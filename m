@@ -1,9 +1,8 @@
 From: Zhang, Sonic <sonic.zhang@intel.com>
-Date: Tue Jun 22 02:39:36 2004
-Subject: [Ocfs2-devel] 
-	The truncate_inode_page call in ocfs_file_release causes the severe
-	throughput drop of file reading in OCFS2.
-Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E048028CF@pdsmsx403>
+Date: Tue Jun 22 02:51:26 2004
+Subject: [Ocfs2-devel] The truncate_inode_page call in ocfs_file_release
+	causes the severethroughput drop of file reading in OCFS2.
+Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E048028DD@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
