@@ -1,32 +1,33 @@
-From: John L. Villalovos <john.l.villalovos@intel.com>
-Date: Fri Mar 19 12:55:35 2004
-Subject: [Ocfs2-devel] Tiny fix to remove dead code
-Message-ID: <405B4213.3090008@intel.com>
+From: Rusty Lynch <rusty@linux.co.intel.com>
+Date: Fri Mar 19 16:56:50 2004
+Subject: [Ocfs2-devel] [PATCH]Warning fix for dlm.c
+Message-ID: <200403192256.i2JMuRT6003479@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Since this section of code is wrapped in a
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-it seemed like this was redundant.
+The following patch fixes a couple of minor warnings about lockflags
+and lock_path not being used.
 
-John
+    --rusty
 
-Index: src/file.c
+
+Index: src/dlm.c
 ===================================================================
---- src/file.c	(revision 791)
-+++ src/file.c	(working copy)
-@@ -1502,11 +1502,7 @@
-  	stat->nlink = inode->i_nlink;
-  	stat->uid = inode->i_uid;
-  	stat->gid = inode->i_gid;
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-  	stat->rdev = inode->i_rdev;
--#else
-- 	stat->rdev = kdev_t_to_nr(inode->i_rdev);
--#endif
-  	stat->atime = inode->i_atime;
-  	stat->mtime = inode->i_mtime;
-  	stat->ctime = inode->i_ctime;
+--- src/dlm.c	(revision 793)
++++ src/dlm.c	(working copy)
+@@ -1233,12 +1233,10 @@
+ 	ocfs_lock_res *lockres = NULL;
+ 	int k = 0;
+ 	struct buffer_head *tmpbh = NULL, **b = NULL;
+-	int lockflags = (lock_id >= osb->vol_layout.bitmap_off ? OCFS_BH_CACHED : 0);
+ 	/* TODO: 40 bytes of "bool" sitting on the stack for now. move    */
+ 	/*       mutually exclusive flags into an enum and switch on them */
+ 	bool disk_vote = false;
+ 	bool no_owner = false, owner_dead = false, wait_on_recovery = false;
+-	int lock_path = invalid_path;
+ 	__u32 extra_lock_flags = 0;
+ 
+ 	LOG_ENTRY_ARGS ("(0x%08x, %u.%u, %u, %u, 0x%08x, 0x%08x)\n", osb,
