@@ -1,44 +1,39 @@
 From: Manish Singh <manish.singh@oracle.com>
-Date: Tue Feb  3 23:36:22 2004
-Subject: [Ocfs2-devel] [PATCH] ocfs2 support for blkid utility
-In-Reply-To: <200402040448.i144mMld031531@penguin.co.intel.com>
-References: <200402040448.i144mMld031531@penguin.co.intel.com>
-Message-ID: <20040204053617.GA12219@ca-server1.us.oracle.com>
+Date: Wed Feb  4 01:37:29 2004
+Subject: [Ocfs2-devel] 
+	Re: [Ocfs2-users] CVS to Subversion sync and check-in comments
+In-Reply-To: <20040204013251.GG5821@ca-server1.us.oracle.com>
+References: <50D19C3AC815734C9E19FE4C4F6128A602A56881@orsmsx403.jf.intel.com>
+	<20040204013251.GG5821@ca-server1.us.oracle.com>
+Message-ID: <20040204073721.GA13975@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Feb 03, 2004 at 08:48:22PM -0800, Rusty Lynch wrote:
-> So... I downloaded the e2fsprog source tree and hacked the following
-> patch that adds ocfs2 support.
-> 
-> In the probe_ocfs() function, buf contains the first kbytes of data
-> from the disk, and I just grab the label, suggested mount point, and
-> UUID by indexing into buf.
-> 
-> Some of the other probe functions define their super block structure
-> in an e2fsprog header file, and then just cast buf to their own 
-> super block.  Since ocfs2 structures are considerably more complex, 
-> I just went with the offset method.
-
-It'd be cleaner to declare a couple structs in probe.h and use then in
-probe.c, similar to what I did for mount in:
-
-http://oss.oracle.com/projects/ocfs/src/trunk/patches/mountocfslabel.diff
-
-Using offsets directly is rather cryptic.
-
-> This code would totally break if ocfs2 changes the layout of the first
-> kbyte on disk.  Are there any plans to change this?
-
-No changes are planned, since one goal is to maintain on-disk compatibility
-with ocfs1 as much as possible.
- 
-> Would anyone have a problem with me submitting this to the e2fsprogs
-> project?
-
-Fine by me, if you take my suggestion above. ;)
+At some point in the near future, we're going to be using the subversion
+repository directly. In the meantime, I'll try to preserve log comments
+while syncing.
 
 -Manish
+
+On Tue, Feb 03, 2004 at 05:32:52PM -0800, Wim Coekaerts wrote:
+> yeah, Manish .. can you get this worked out please.
+> 
+> On Tue, Feb 03, 2004 at 05:28:20PM -0800, Villalovos, John L wrote:
+> > So is there any possibility of getting it so that the Subversion
+> > repository can get the check-in comments from the internal CVS
+> > repository?
+> > 
+> > At the moment every log file comment I see in SVN is "Sync".  Which
+> > doesn't really let me know what has happenned without having to go lock
+> > at the actual diff between the two versions.  And even then I may not
+> > have any idea why the change was done.
+> > 
+> > Thanks,
+> > John
+> > _______________________________________________
+> > Ocfs2-users mailing list
+> > Ocfs2-users@oss.oracle.com
+> > http://oss.oracle.com/mailman/listinfo/ocfs2-users
