@@ -1,23 +1,30 @@
 From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Feb  5 23:55:59 2004
+Date: Fri Feb  6 00:22:28 2004
 Subject: [Ocfs2-devel] [PATCH] Convert to new style set/clear funcs
-Message-ID: <200402060555.i165tW0l024672@penguin.co.intel.com>
+In-Reply-To: <200402060555.i165tW0l024672@penguin.co.intel.com>
+References: <200402060555.i165tW0l024672@penguin.co.intel.com>
+Message-ID: <20040206062213.GA25140@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following is a small patch that pushes ocfs just a little bit 
-further towards a working 2.6 port.
+On Thu, Feb 05, 2004 at 09:55:32PM -0800, Rusty Lynch wrote:
+> The following is a small patch that pushes ocfs just a little bit 
+> further towards a working 2.6 port.
+> 
+> The mark_buffer_XXX(bh, bool) functions have been replaced with
+> set_buffer_XXX(bh)/clear_buffer_XXX(bh)/buffer_XXX(bh) functions
+> in the new linux/buffer_head.h
+> 
+> This patch defines the 2.6 function in a 2.4 build, and then
+> converts all the 2.4 calls to 2.6 calls.  I did this to reduce 
+> the amount of #ifdef/#endif stuff in the *.c files.
 
-The mark_buffer_XXX(bh, bool) functions have been replaced with
-set_buffer_XXX(bh)/clear_buffer_XXX(bh)/buffer_XXX(bh) functions
-in the new linux/buffer_head.h
+I must be getting tired... made a small mistake on the last patch
 
-This patch defines the 2.6 function in a 2.4 build, and then
-converts all the 2.4 calls to 2.6 calls.  I did this to reduce 
-the amount of #ifdef/#endif stuff in the *.c files.
+BTW, this is against version 27 from svn
 
     --rusty
 
@@ -182,7 +189,7 @@ Index: src/inc/io.h
 ===================================================================
 --- src/inc/io.h	(revision 27)
 +++ src/inc/io.h	(working copy)
-@@ -50,11 +50,41 @@
+@@ -50,11 +50,43 @@
  #define OCFS_NONCACHED(osb,off)  ((off) < (osb)->vol_layout.data_start_off)
  
  #define BH_Modified 18
@@ -219,8 +226,10 @@ Index: src/inc/io.h
 +}
 +
 +#undef buffer_uptodate
++#undef buffer_dirty
 +BUFFER_FNS(Uptodate, uptodate)
 +BUFFER_FNS(Modified, modified)
++BUFFER_FNS(Dirty, dirty)
 +
 +#endif /* 2.4.x kernel */
 +
