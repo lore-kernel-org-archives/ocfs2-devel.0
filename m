@@ -1,28 +1,24 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Mon Mar 22 16:51:27 2004
-Subject: [Ocfs2-devel] [PATCH]Initialize lockres->cache_list
-Message-ID: <200403222250.i2MMouhY003199@penguin.co.intel.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Mon Mar 22 16:52:18 2004
+Subject: [Ocfs2-devel] Re: [PATCH]Fix for 2.6 unmount crash
+In-Reply-To: <200403181614.i2IGEMH1028597@penguin.co.intel.com>
+References: <200403181614.i2IGEMH1028597@penguin.co.intel.com>
+Message-ID: <20040322225214.GD22829@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following is a small patch to initialize the cache_list list_head
-while initializing a new lockres.
+On Thu, Mar 18, 2004 at 08:14:22AM -0800, Rusty Lynch wrote:
+> This patch catches the scenario where a dismount has already
+> been started, and a ocfs_release_cached_oin() has been kicked
+> off as a result of ocfs_inode_hash_destroy() calling iput()
+> on any remaining inodes.
+It took me a few days, but this is in there now.
+	--Mark
 
-    --rusty
-
-Index: src/dlm.c
-===================================================================
---- src/dlm.c	(revision 804)
-+++ src/dlm.c	(working copy)
-@@ -1056,6 +1056,8 @@
- 	lockres->lock_holders = 0;
- 	LOG_TRACE_ARGS("lockres->lock_holders = %u\n", lockres->lock_holders);
- 
-+	INIT_LIST_HEAD(&lockres->cache_list);
-+
- 	LOG_EXIT ();
- 	return;
- }				/* ocfs_init_lockres */
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
