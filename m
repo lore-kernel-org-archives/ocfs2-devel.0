@@ -1,58 +1,65 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Mon Mar  1 11:25:08 2004
-Subject: [Ocfs2-devel] [PATCH]trivial warning fixes
-Message-ID: <200403011724.i21HOjqc017905@penguin.co.intel.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Mon Mar  1 16:06:54 2004
+Subject: [Ocfs2-devel] [PATCH]2.6 fixes in journal.c
+In-Reply-To: <20040301165447.GA16000@penguin.co.intel.com>
+References: <200402270216.i1R2GnW8007425@penguin.co.intel.com>
+	<20040301165447.GA16000@penguin.co.intel.com>
+Message-ID: <20040301220643.GT1421@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following patch fixes some simple compile warnings.
+On Mon, Mar 01, 2004 at 08:54:47AM -0800, Rusty Lynch wrote:
+> Here is the same patch cut against the new svn tree.
+> 
+> 
+> Index: src/journal.c
+> ===================================================================
+> --- src/journal.c	(revision 738)
+> +++ src/journal.c	(working copy)
+> @@ -656,7 +656,7 @@
+>  		break;
+>  
+>  	case OCFS_JOURNAL_ACCESS_WRITE:
+> -		status = journal_get_write_access(handle->k_handle, bh);
+> +		status = journal_get_write_access(handle->k_handle, bh, NULL);
+>  		break;
+Can we put an #if LINUX_VERSION_CODE around that one please? Passing NULL in
+2.6 for the credits argument is fine.
 
-    --rusty
+>  
+>  	default:
+> @@ -899,7 +899,7 @@
+>  	OCFS_BH_PUT_DATA(bh);
+>  	fe = NULL;
+>  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+> -	inode = ocfs_iget (sb, &args);
+> +	inode = ocfs_iget (osb->sb, &args);
+>  #else
+>  	inode = ocfs_get_inode_from_offset(osb, args.offset, bh);
+>  #endif
+> @@ -935,9 +935,13 @@
+>  
+>  	LOG_TRACE_STR("Returned from journal_init_inode");
+>  	LOG_TRACE_ARGS("k_journal->j_maxlen = %u\n", k_journal->j_maxlen);
+> +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+> +	k_journal->j_commit_interval = OCFS_DEFAULT_COMMIT_INTERVAL;
+> +#else
+>  	lock_journal(k_journal);
+>  	k_journal->j_commit_interval = OCFS_DEFAULT_COMMIT_INTERVAL;
+>  	unlock_journal(k_journal);
+> +#endif
+Ok, you can actually just remove that lock_journal/unlock_journal pair. At
+that point in the JBD init cycle, we don't have to worry about protecting
+that variable.
 
-Index: src/nm.c
-===================================================================
---- src/nm.c	(revision 738)
-+++ src/nm.c	(working copy)
-@@ -39,6 +39,7 @@
- 
- void ocfs_process_vote_worker(void *val);
- 
-+#ifdef VERBOSE_PROCESS_VOTE
- static const char *process_vote_strings[] = {
- 	"INVALID_REQUEST",      // reply with a NO vote
- 	"UPDATE_OIN_INODE",     // update both oin and inode
-@@ -51,6 +52,7 @@
- 	"REMASTER_THIS",        // remaster lock to me
- 	"REMASTER_REQUESTOR"    // remaster lock to requestor
- };
-+#endif
- 
- /*
-  * ocfs_recv_thread()
-@@ -228,7 +230,8 @@
- 	int status = 0;
- 	__u8 *buffer = NULL;
- 	ocfs_publish *publish;
--	__u32 i, j;
-+	__u32 i;
-+	unsigned long j;
- 	__u32 highest_vote_node;
- 	__u64 offset = 0;
- 	__u32 num_nodes = 0;
-Index: src/file.c
-===================================================================
---- src/file.c	(revision 738)
-+++ src/file.c	(working copy)
-@@ -347,7 +347,9 @@
-         ocfs_super * osb;
-         ocfs_inode *oin = NULL;
-         struct dentry *dentry;
-+#ifdef DO_PARENT_INODE_INC
-         struct inode *parent;
-+#endif
- 	bool last_close = false;
- 
- 	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, '%*s')\n", inode, file,
+The rest of the patch looks good, so if you could just fix those two things,
+I'll commit.
+	--Mark
+
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
