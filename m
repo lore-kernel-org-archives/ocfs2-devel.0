@@ -1,177 +1,163 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Sun Jun  6 03:11:05 2004
-Subject: [Ocfs2-devel] [PATCH] workqueue compat glue for 2.4
-Message-ID: <20040606081054.GA28366@lst.de>
+Date: Sun Jun  6 03:11:52 2004
+Subject: [Ocfs2-devel] [PATCH] use sb_getblk
+Message-ID: <20040606081146.GB28366@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+It's both in 2.6 and recent 2.6 (for RH ASS2.1 you'll probably need to
+copy the latest 2.4 defintion, but I don't care for obsolete junk).
 
-Index: src/nm.c
+
+Index: src/super.c
 ===================================================================
---- src/nm.c	(revision 1014)
-+++ src/nm.c	(working copy)
-@@ -119,11 +119,7 @@
+--- src/super.c	(revision 1014)
++++ src/super.c	(working copy)
+@@ -799,7 +799,7 @@
  
- finally:
- 	/* Flush all scheduled tasks */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--	flush_scheduled_work ();
--#else
--	flush_scheduled_tasks ();
--#endif
-+	flush_scheduled_work();
- 
- 	if (OcfsIpcCtxt.send_sock) {
- 		sock_release (OcfsIpcCtxt.send_sock);
-@@ -150,11 +146,7 @@
- 	ocfs_super *osb;
- 	ocfs_vote_request_ctxt ctxt;
- 	__u8 publish_sect[512];
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
- 	struct work_struct ipc_wq;
--#else
--	struct tq_struct ipc_tq;
--#endif
- };
- 
- void ocfs_process_vote_worker(void *val)
-@@ -222,13 +214,8 @@
- 	
- 	sv->osb = osb;
- 
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--	INIT_WORK (&sv->ipc_wq, ocfs_process_vote_worker, sv);
--	schedule_work (&sv->ipc_wq);
--#else
--	INIT_TQUEUE (&sv->ipc_tq, ocfs_process_vote_worker, sv);
--	schedule_task (&sv->ipc_tq);
--#endif
-+	INIT_WORK(&sv->ipc_wq, ocfs_process_vote_worker, sv);
-+	schedule_work(&sv->ipc_wq);
- 
- bail:
- 	/* if no error, then the workqueue should clear it? */
-@@ -463,11 +450,7 @@
- 	}
- 
- 	/* Flush all scheduled tasks */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--	flush_scheduled_work ();
--#else
--	flush_scheduled_tasks ();
--#endif
-+	flush_scheduled_work();
- 
- 	complete (&(osb->dlm_complete));
- eek:
-@@ -1429,11 +1412,7 @@
- 	}
- 
- 	/* Flush all scheduled tasks */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--	flush_scheduled_work ();
--#else
--	flush_scheduled_tasks ();
--#endif
-+	flush_scheduled_work();
- 
- #warning   need a way to wait on all of these threads on dismount
- 	return status;
+ 	/* get first two blocks */
+ 	for (i=0; i<2; i++) {
+-		bhs[i] = getblk (OCFS_GET_BLOCKDEV(sb), i, 512);
++		bhs[i] = sb_getblk(sb, i);
+ 		if (bhs[i] == NULL) {
+ 			LOG_ERROR_STATUS(status = -EIO);
+ 			goto leave;
 Index: src/journal.c
 ===================================================================
 --- src/journal.c	(revision 1014)
 +++ src/journal.c	(working copy)
-@@ -1642,11 +1641,7 @@
+@@ -583,8 +583,7 @@
+ 			 * turned off later. */
+ 			LOG_ERROR_ARGS("block %lu was modified but never "
+ 				       "dirtied!\n", co->blocknr);
+-			bh = getblk(OCFS_GET_BLOCKDEV(osb->sb), co->blocknr,
+-				    osb->sect_size);
++			bh = sb_getblk(osb->sb, co->blocknr);
+ 			if (bh == NULL)
+ 				BUG();
  
- 
- 	/* Flush all scheduled tasks */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--	flush_scheduled_work ();
--#else
--	flush_scheduled_tasks ();
--#endif
-+	flush_scheduled_work();
- 	complete (&(commit->c_complete));
- 	return 0;
- }
-Index: src/vote.c
+Index: src/file.c
 ===================================================================
---- src/vote.c	(revision 1014)
-+++ src/vote.c	(working copy)
-@@ -102,11 +102,7 @@
- 	LOG_ENTRY ();
- 
- 	/* Initialize the workitem with our worker routine and Q it. */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
- 	INIT_WORK (&recv_ctxt->ipc_wq, ocfs_dlm_recv_msg, recv_ctxt);
--#else
--	INIT_TQUEUE (&recv_ctxt->ipc_tq, ocfs_dlm_recv_msg, recv_ctxt);
--#endif
- 
- 	memset (&sin, 0, sizeof (sin));
- 	oldfs = get_fs ();
-@@ -133,11 +129,7 @@
- 			NIPQUAD (sin.sin_addr.s_addr));
- 
- 	if (status == 0)
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--		schedule_work (&recv_ctxt->ipc_wq);
--#else
--		schedule_task (&recv_ctxt->ipc_tq);
--#endif
-+		schedule_work(&recv_ctxt->ipc_wq);
- 
- bail:
- 	LOG_EXIT_STATUS (status);
+--- src/file.c	(revision 1014)
++++ src/file.c	(working copy)
+@@ -1220,7 +1220,8 @@
+ 			     block < (unsigned long)((actualDiskOffset+actualLength) >> osb->sect_size_bits);
+ 			     block++) {
+ 				LOG_TRACE_ARGS("setting block %lu as new!\n", block);
+-				alloc_bh = getblk(OCFS_GET_BLOCKDEV(sb), block, sb->s_blocksize);
++				alloc_bh = sb_getblk(sb, block);
++#warning unchecked allocation here
+ 				alloc_bh->b_state |= (1UL << BH_New);
+ 				brelse(alloc_bh);
+ 			}
 Index: src/volcfg.c
 ===================================================================
 --- src/volcfg.c	(revision 1014)
 +++ src/volcfg.c	(working copy)
-@@ -114,13 +114,8 @@
- 	cfg_task = (ocfs_cfg_task *) arg;
+@@ -496,7 +491,7 @@
+ 	}
  
- 	/* initialize the task and submit it */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--	INIT_WORK   (&(cfg_task->cfg_wq), ocfs_worker, cfg_task);
--	schedule_work (&cfg_task->cfg_wq);
--#else
--	INIT_TQUEUE (&(cfg_task->cfg_tq), ocfs_worker, cfg_task);
--	schedule_task (&cfg_task->cfg_tq);
--#endif
-+	INIT_WORK(&cfg_task->cfg_wq, ocfs_worker, cfg_task);
-+	schedule_work(&cfg_task->cfg_wq);
+ 	blocknum = lock_off >> sb->s_blocksize_bits;
+-	bh = getblk(OCFS_GET_BLOCKDEV(sb), blocknum, sb->s_blocksize);
++	bh = sb_getblk(sb, blocknum);
+ 	if (bh == NULL) {
+ 		LOG_ERROR_STATUS (status = -EIO);
+ 		goto finally;
+@@ -646,7 +641,7 @@
+ 		((node_num + OCFS_VOLCFG_HDR_SECTORS) * osb->sect_size);
+ 	blocknum = offset >> sb->s_blocksize_bits;
  
- 	LOG_EXIT ();
- 	return ;
+-	bh = getblk(OCFS_GET_BLOCKDEV(sb), blocknum, sb->s_blocksize);
++	bh = sb_getblk(sb, blocknum);
+ 	if (bh == NULL) {
+ 		status = -EIO;
+ 		LOG_ERROR_STATUS(status);
+Index: src/buffer_head_io.c
+===================================================================
+--- src/buffer_head_io.c	(revision 1014)
++++ src/buffer_head_io.c	(working copy)
+@@ -64,7 +64,6 @@
+ 	int status = 0;
+ 	int i;
+ 	struct super_block *sb;
+-	ocfs_blockdev dev;
+ 	struct buffer_head *bh;
+ 
+ #ifdef OCFS_DBG_TIMING
+@@ -89,7 +88,6 @@
+ 		LOG_TRACE_ARGS ("Getting write for %d blocks\n", nr);
+ 
+ 	sb = osb->sb;
+-	dev = OCFS_GET_BLOCKDEV(sb);
+ 
+ 	/* we don't ever want cached writes -- those should go to the
+ 	 * journal so we can control when they actually hit disk and
+@@ -204,7 +202,6 @@
+ 	struct super_block *sb;
+ 	int nr, i, ignore_cache = 0;
+ 	__u64 blocknum;
+-	ocfs_blockdev dev;
+ 	struct buffer_head *bh;
+ 
+ #ifdef OCFS_DBG_TIMING
+@@ -243,7 +240,6 @@
+ 	}
+ 
+ 	sb = osb->sb;
+-	dev = OCFS_GET_BLOCKDEV(sb);
+ 	blocknum = off >> sb->s_blocksize_bits;
+ 
+ 	nr = (len + 511) >> 9;
+@@ -258,7 +254,7 @@
+ 
+ 	for (i = 0 ; i < nr ; i++) {
+ 		if (bhs[i] == NULL) {
+-			bhs[i] = getblk (dev, blocknum++, sb->s_blocksize);
++			bhs[i] = sb_getblk(sb, blocknum++);
+ 			if (bhs[i] == NULL) {
+ 				LOG_TRACE_STR("bh == NULL");
+ 				status = -EIO;
 Index: src/inc/ocfs.h
 ===================================================================
 --- src/inc/ocfs.h	(revision 1014)
 +++ src/inc/ocfs.h	(working copy)
-@@ -1439,21 +1430,13 @@
- 	__s32 msg_len;
- 	__u8 msg[OCFS_MAX_DLM_PKT_SIZE];
- 	int status;
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
- 	struct work_struct ipc_wq;
--#else
--	struct tq_struct ipc_tq;
--#endif
- }
- ocfs_recv_ctxt;
+@@ -542,21 +542,16 @@
+ #endif
  
- typedef struct _ocfs_cfg_task
- {
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-typedef struct block_device * ocfs_blockdev;
+ typedef dev_t ocfs_dev;
+ #define OCFS_NODEV     0
+-#define OCFS_GET_BLOCKDEV(sb)   ((sb)->s_bdev)
+ #else /* 2.4 kernel */
+-typedef kdev_t ocfs_blockdev;
+ typedef int ocfs_dev;
+ #define OCFS_NODEV     NODEV
+-#define OCFS_GET_BLOCKDEV(sb)   ((sb)->s_dev)
+ #endif
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+ /* No longer exists in 2.5 */
+ #define fsync_inode_buffers(inode) sync_mapping_buffers(inode->i_mapping)
+-#define getblk(dev, blk, sz)	__getblk(dev, blk, sz)
+ #endif /* >= 2.6.0  */
+ 
+ #define OCFS_SB(sb)	    ((ocfs_super *)OCFS_GENERIC_SB_MEMBER(sb))
+@@ -617,11 +612,7 @@
+ 	struct semaphore s_sem;
+ 	struct list_head s_list;
+ 	unsigned long s_blocknr;
 -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
- 	struct work_struct cfg_wq;
+ 	dev_t s_dev;
 -#else
--	struct tq_struct cfg_tq;
+-	kdev_t s_dev;
 -#endif
- 	ocfs_super *osb;
- 	__u64 lock_off;
- 	__u8 *buffer;
+ 	atomic_t s_refcnt;
+ 	struct buffer_head *s_bh;
+ 	wait_queue_head_t s_wait;
 Index: src/inc/ocfs_compat.h
 ===================================================================
 --- src/inc/ocfs_compat.h	(revision 1014)
