@@ -1,27 +1,103 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Fri Jun 18 05:06:34 2004
-Subject: [Ocfs2-devel] [PATCH] another blocknumber printk messup
-Message-ID: <20040618100630.GA10633@lst.de>
+From: Wim Coekaerts <wim.coekaerts@oracle.com>
+Date: Fri Jun 18 13:29:44 2004
+Subject: [Ocfs2-devel] some intersting result for ocfs2 performance
+In-Reply-To: <3ACA40606221794F80A5670F0AF15F8404AE1150@pdsmsx403>
+References: <3ACA40606221794F80A5670F0AF15F8404AE1150@pdsmsx403>
+Message-ID: <20040618182937.GG5446@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+yeah right now, when you close the file, the stuff is flushed.
 
-Index: src/super.c
-===================================================================
---- src/super.c	(revision 1146)
-+++ src/super.c	(working copy)
-@@ -1790,8 +1790,9 @@
- 				       OCFS2_MINOR_REV_LEVEL);
- 		} else if (bh->b_blocknr != le64_to_cpu(di->i_blkno)) {
- 			LOG_ERROR_ARGS("bad block number on superblock: "
--				       "found %llu, should be %lu\n",
--				       le64_to_cpu(di->i_blkno), bh->b_blocknr);
-+				       "found %llu, should be %llu\n",
-+				       le64_to_cpu(di->i_blkno),
-+				       (unsigned long long)bh->b_blocknr);
- 		} else if (le32_to_cpu(di->id2.i_super.s_clustersize_bits) < 12 ||
- 			    le32_to_cpu(di->id2.i_super.s_clustersize_bits) > 20) {
- 			LOG_ERROR_ARGS("bad cluster size found: %u\n",
+one think you should do is run the test but when you dod the reread,
+make sure the files are not closed. have another process keep them open
+or so.
+
+
+On Fri, Jun 18, 2004 at 03:23:26PM +0800, Ling, Xiaofeng wrote:
+> I made simple C program to test for the reading performance. see attach.
+> The result are interesting.
+> The program will open the file and repeat read(-p specified), each time
+> the throughput is print out.
+> 
+> The first time read, the performance is low,it's reasonable, but after
+> sleep 6 seconds, the next read 
+> performance will also drop, and if only sleep 5 seconds, it won't.
+> So, it looks like after 5 seconds, the cache will be thrown out, it that
+> ture?
+> 
+> but compare with ext3 (the last data, 100 times), seems the cache in
+> ocfs2 doesn't take effective at all.
+> 
+> run on svn 1122.
+> =======================================================
+> ./ben -f /ocfs/ttt -s 128 -a -p 10 --create
+> 
+> create file /ocfs/ttt of size 128K successfully
+> total:128.000K Time:22.010 Rate:5816KB
+> total:128.000K Time:11.952 Rate:10710KB
+> total:128.000K Time:11.997 Rate:10669KB
+> total:128.000K Time:12.055 Rate:10618KB
+> total:128.000K Time:11.891 Rate:10764KB
+> total:128.000K Time:11.996 Rate:10670KB
+> total:128.000K Time:12.023 Rate:10646KB
+> total:128.000K Time:11.907 Rate:10750KB
+> total:128.000K Time:12.071 Rate:10604KB
+> total:128.000K Time:12.000 Rate:10667KB
+> total:1280.000K Time:130.101 Rate:9839KB
+> 
+> ./ben -f /ocfs/ttt -s 128 -a -p 10 --sleep 5
+> 
+> total:128.000K Time:20.667 Rate:6193KB
+> total:128.000K Time:11.903 Rate:10754KB
+> total:128.000K Time:12.011 Rate:10657KB
+> total:128.000K Time:11.917 Rate:10741KB
+> total:128.000K Time:8.272 Rate:15474KB
+> total:128.000K Time:8.287 Rate:15446KB
+> total:128.000K Time:12.124 Rate:10558KB
+> total:128.000K Time:12.014 Rate:10654KB
+> total:128.000K Time:11.953 Rate:10709KB
+> total:128.000K Time:11.990 Rate:10676KB
+> total:1280.000K Time:5121.921 Rate:250KB
+> 
+> ./ben -f /ocfs/ttt -s 128 -a -p 10 --sleep 6
+> 
+> total:128.000K Time:12.325 Rate:10385KB
+> total:128.000K Time:11.925 Rate:10734KB
+> total:128.000K Time:11.928 Rate:10731KB
+> total:128.000K Time:11.966 Rate:10697KB
+> total:128.000K Time:11.990 Rate:10676KB
+> total:128.000K Time:12.065 Rate:10609KB
+> total:128.000K Time:20.131 Rate:6358KB
+> total:128.000K Time:11.980 Rate:10684KB
+> total:128.000K Time:12.032 Rate:10638KB
+> total:128.000K Time:11.907 Rate:10750KB
+> total:1280.000K Time:6129.400 Rate:209KB
+> 
+> 
+> --------------------------------
+> for ext3
+> 
+> ./ben -f /ext3/ttt -s 128 -a -p 10 --create
+> 
+> create file /ocfs2/ttt of size 128K successfully
+> total:128.000K Time:0.114 Rate:1122807KB
+> total:128.000K Time:0.052 Rate:2461538KB
+> total:128.000K Time:0.050 Rate:2560000KB
+> total:128.000K Time:0.050 Rate:2560000KB
+> total:128.000K Time:0.050 Rate:2560000KB
+> total:128.000K Time:0.050 Rate:2560000KB
+> total:128.000K Time:0.050 Rate:2560000KB
+> total:128.000K Time:0.051 Rate:2509804KB
+> total:128.000K Time:0.050 Rate:2560000KB
+> total:128.000K Time:0.050 Rate:2560000KB
+> total:1280.000K Time:0.654 Rate:1957187KB
+
+
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel@oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
