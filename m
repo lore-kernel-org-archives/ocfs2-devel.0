@@ -1,92 +1,105 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Wed Jun  2 13:10:23 2004
-Subject: [Ocfs2-devel] [PATCH] fix OCFS_FE_SET_ATTRIBUTES mess
-Message-ID: <20040602095836.GA24046@lst.de>
+From: Manish Singh <manish.singh@oracle.com>
+Date: Wed Jun  2 19:09:57 2004
+Subject: [Ocfs2-devel] [PATCH] start centralizing kernel compat mess
+In-Reply-To: <20040602091432.GC22363@lst.de>
+References: <20040602091432.GC22363@lst.de>
+Message-ID: <20040603000947.GA17151@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Committed all your patches posted today to trunk, except for this one,
+which went on the format-changes branch since we have an ocfs_compat.h
+in place there already. Thanks!
 
-Index: src/file.c
-===================================================================
---- src/file.c	(revision 969)
-+++ src/file.c	(working copy)
-@@ -42,39 +42,27 @@
- static int ocfs_truncate_file (ocfs_super * osb, __u64 file_off, __u64 file_size, struct inode *inode);
- 
- #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--#define OCFS_FE_SET_ATTRIBUTES(fe, attr) 				     \
--do {									     \
--	if (attr->ia_valid & ATTR_SIZE)					     \
--		fe->file_size = attr->ia_size;				     \
--	if (attr->ia_valid & ATTR_UID)					     \
--		fe->uid = attr->ia_uid;					     \
--	if (attr->ia_valid & ATTR_GID)					     \
--		fe->gid = attr->ia_gid;					     \
--	if (attr->ia_valid & ATTR_MODE)					     \
--		fe->prot_bits = attr->ia_mode & 0007777;		     \
--	if (attr->ia_valid & ATTR_CTIME)				     \
--		fe->create_time = attr->ia_ctime.tv_sec;		     \
--	if (attr->ia_valid & ATTR_MTIME)				     \
--		fe->modify_time = attr->ia_mtime.tv_sec;		     \
--} while (0)
--#else /* 2.4 kernel */
--#define OCFS_FE_SET_ATTRIBUTES(fe, attr) 				     \
--do {									     \
--	if (attr->ia_valid & ATTR_SIZE)					     \
--		fe->file_size = attr->ia_size;				     \
--	if (attr->ia_valid & ATTR_UID)					     \
--		fe->uid = attr->ia_uid;					     \
--	if (attr->ia_valid & ATTR_GID)					     \
--		fe->gid = attr->ia_gid;					     \
--	if (attr->ia_valid & ATTR_MODE)					     \
--		fe->prot_bits = attr->ia_mode & 0007777;		     \
--	if (attr->ia_valid & ATTR_CTIME)				     \
--		fe->create_time = attr->ia_ctime;			     \
--	if (attr->ia_valid & ATTR_MTIME)				     \
--		fe->modify_time = attr->ia_mtime;			     \
--} while (0)
-+#define ocfs_get_seconds(t)	(t).tv_sec
-+#else
-+#define ocfs_get_seconds(t)	(t)
- #endif
- 
-+static void ocfs_fe_set_attributes(ocfs_file_entry *fe, struct iattr *attr)
-+{
-+	if (attr->ia_valid & ATTR_SIZE)
-+		fe->file_size = attr->ia_size;
-+	if (attr->ia_valid & ATTR_UID)
-+		fe->uid = attr->ia_uid;
-+	if (attr->ia_valid & ATTR_GID)
-+		fe->gid = attr->ia_gid;
-+	if (attr->ia_valid & ATTR_MODE)
-+		fe->prot_bits = attr->ia_mode & 0007777;
-+	if (attr->ia_valid & ATTR_CTIME)
-+		fe->create_time = ocfs_get_seconds(attr->ia_ctime);
-+	if (attr->ia_valid & ATTR_MTIME)
-+		fe->modify_time = ocfs_get_seconds(attr->ia_mtime);
-+}
-+
- static inline int ocfs_sync_inode(struct inode *inode)
- {
- 	int status;
-@@ -659,7 +647,7 @@
- 	fileEntry->modify_time = OCFS_CURRENT_TIME;
- 
- 	DISK_LOCK_SEQNUM (fileEntry) = 0;
--	OCFS_FE_SET_ATTRIBUTES(fileEntry, attr);
-+	ocfs_fe_set_attributes(fileEntry, attr);
- 
- 	/* Set the valid bit here */
- 	SET_VALID_BIT (fileEntry->sync_flags);
-@@ -1287,7 +1275,7 @@
- 	LOG_TRACE_ARGS("fileEntry->alloc_size = %llu\n", fileEntry->alloc_size);
- 
- 	if (attr)
--		OCFS_FE_SET_ATTRIBUTES(fileEntry, attr);
-+		ocfs_fe_set_attributes(fileEntry, attr);
- 	/* Set the Valid bit and reset the change bit here... TODO */
- 	SET_VALID_BIT (fileEntry->sync_flags);
- 	fileEntry->sync_flags &= ~(OCFS_SYNC_FLAG_CHANGE);
+-Manish
+
+On Wed, Jun 02, 2004 at 11:14:32AM +0200, Christoph Hellwig wrote:
+> 
+> Index: src/inode.c
+> ===================================================================
+> --- src/inode.c	(revision 969)
+> +++ src/inode.c	(working copy)
+> @@ -33,6 +33,8 @@
+>  #include "inc/ocfs.h"
+>  #include "inc/ocfs_journal.h"
+>  
+> +#include "kcompat.h"
+> +
+>  #define OCFS_DEBUG_CONTEXT    OCFS_DEBUG_CONTEXT_INODE
+>  
+>  extern struct semaphore recovery_list_sem;
+> @@ -790,11 +792,7 @@
+>  	memcpy (kaddr, symname, len - 1);
+>  	mapping->a_ops->commit_write (NULL, page, 0, len - 1);
+>  	err = mapping->a_ops->readpage (NULL, page);
+> -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+>  	wait_on_page_locked (page);
+> -#else
+> -	wait_on_page (page);
+> -#endif
+>  	page_cache_release (page);
+>  	if (err < 0)
+>  		goto fail;
+> @@ -802,11 +800,7 @@
+>  	return 0;
+>  
+>  fail_map:
+> -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+>  	unlock_page (page);
+> -#else
+> -	UnlockPage (page);
+> -#endif
+>  	page_cache_release (page);
+>  fail:
+>  	return err;
+> Index: src/symlink.c
+> ===================================================================
+> --- src/symlink.c	(revision 969)
+> +++ src/symlink.c	(working copy)
+> @@ -34,10 +34,11 @@
+>  
+>  #include <linux/types.h>
+>  #include <linux/slab.h>
+> +#include <linux/utsname.h>
+>  
+>  #include "inc/ocfs_log.h"
+>  #include "inc/ocfs.h"
+> -#include <linux/utsname.h>
+> +#include "kcompat.h"
+>  
+>  #define OCFS_DEBUG_CONTEXT    OCFS_DEBUG_CONTEXT_SYMLINK
+>  
+> @@ -160,15 +161,8 @@
+>  				NULL);
+>  	if (IS_ERR(page))
+>  		goto sync_fail;
+> -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+>  	wait_on_page_locked(page);
+>  	if (!PageUptodate(page))
+> -
+> -#else
+> -	wait_on_page(page);
+> -	if (!Page_Uptodate(page))
+> -
+> -#endif
+>  		goto async_fail;
+>  	*ppage = page;
+>  	return kmap(page);
+> --- /dev/null	2004-05-30 14:45:31.000000000 +0200
+> +++ src/kcompat.h	2004-06-02 11:05:24.430188496 +0200
+> @@ -0,0 +1,12 @@
+> +#ifndef _KCOMPAT_H
+> +#define _KCOMPAT_H
+> +
+> +#include <linux/version.h>
+> +
+> +#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+> +#define wait_on_page_locked(p)	wait_on_page(p)
+> +#define unlock_page(p)		UnlockPage(p)
+> +#define Page_Uptodate(p)	PageUptodate(p)
+> +#endif
+> +
+> +#endif /* _KCOMPAT_H */
