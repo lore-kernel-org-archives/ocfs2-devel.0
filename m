@@ -1,22 +1,18 @@
 From: Wim Coekaerts <wim.coekaerts@oracle.com>
-Date: Fri Jul  2 16:45:52 2004
+Date: Fri Jul  2 16:46:18 2004
 Subject: [Ocfs2-devel] FYI:  RedHat open-sourced GFS/DLM/cluster stuff
 	last week
 In-Reply-To: <0604335B7764D141945E20215310596002299ED3@orsmsx404.amr.corp.intel.com>
 References: <0604335B7764D141945E20215310596002299ED3@orsmsx404.amr.corp.intel.com>
-Message-ID: <20040702213714.GA937@ca-server1.us.oracle.com>
+Message-ID: <20040702213745.GB937@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-the stuff for rhel3 is still msotly the old stuff 
-
-yeah we um have good access to redhat stuff, but good for the folks not
-in our group, on this list.
-
-Wim
+oh - it does not change our commitment to ocfs btw. we're not going to
+drop ours or reduce efforts on it. just fyi :)
 
 On Fri, Jul 02, 2004 at 02:25:34PM -0700, Cahill, Ben M wrote:
 > Hi all,
