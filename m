@@ -1,7 +1,7 @@
 From: Zhang, Sonic <sonic.zhang@intel.com>
-Date: Fri Mar 26 19:42:36 2004
+Date: Fri Mar 26 19:50:20 2004
 Subject: [Ocfs2-devel] New patch to solve starvation problem in bug 48
-Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E03B65E48@PDSMSX403.ccr.corp.intel.com>
+Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E03B65E49@PDSMSX403.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,9 +11,9 @@ To: ocfs2-devel@oss.oracle.com
 Hi Mark,
 
 	I found a new solution to fix the starvation problem in bug 48
-instead of changed the delta jiffies to schedule_timeout(). I just add
+instead of enlarging the delta jiffies to schedule_timeout(). I just add
 several lines of signal process code, which makes the thread
-ocfs_volume_thread() really go to thread after receive the SIGTERM
+ocfs_volume_thread() really go to sleep after receive the SIGTERM
 signal. It also gives routine ocfs_journal_set_unmounted() a chance to
 run and check the lock status before thread ocfs_volume_thread() wakes
 up.
