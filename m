@@ -1,29 +1,40 @@
-From: Villalovos, John L <john.l.villalovos@intel.com>
-Date: Mon Aug  2 17:01:06 2004
-Subject: [Ocfs2-devel] Calculating volume size from superblock
-Message-ID: <60C14C611F1DDD4198D53F2F43D8CA3B01864545@orsmsx410>
+From: Chen, Yukun <yukun.chen@intel.com>
+Date: Tue Aug  3 02:25:52 2004
+Subject: [Ocfs2-devel] Invalid file rights
+Message-ID: <B44D37711ED29844BEA67908EAF36F03768F9E@pdsmsx401.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-joel.becker@oracle.com wrote:
-> 	As Sunil pointed out, you need to use the global bitmap to
-> determine the number of clusters and multiply it by the clustersize.
-> The libocfs2 library can help you get that information, or
-> you can code
-> up the bits to parse the information yourself.  Doing it
-> yourself means
-> learning how to navigate directories.
+Hi All
 
-Just wondering.  As a possible RFE.  Is there any reason the size of the
-global bitmap could not be in the superblock?  It seems strange that in
-order to find out how big the filesystem is I have to actually traverse
-the filesystem.
+I find a file rights bug on kernel 2.4 with svn 1313 code. Steps to
+duplicate
 
-Would it be a bad to but the size of the global bitmap into the
-superblock?
+Being root, create a file in a ocfs2 partition with the sentence below
 
-Thanks,
-John
+ open(filename, O_CREAT | O_RDWR )
+
+Then the file will be created with a right 000 --- nobody can write/read
+it at 
+
+all. 
+
+But, if I use "touch filename" , the file will be created with a right
+of 644.
+
+Any ideas on it? (a bug # 113 has been reported to oss.oracle.com
+bugzilla)
+
+Thanx.
+
+
+Aaron
+
+Intel China Software Lab
+
+Tel:  8621-52574545 Ext.1587
+
+E_mail:yukun.chen@intel.com
