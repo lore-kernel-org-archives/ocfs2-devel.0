@@ -1,67 +1,43 @@
-From: Zhang, Sonic <sonic.zhang@intel.com>
-Date: Thu Apr  8 00:40:31 2004
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Thu Apr  8 10:09:20 2004
 Subject: [Ocfs2-devel] Fail to mount an OCFS volume for the second time
 	under kernel 2.6.
-Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E03B65E55@PDSMSX403.ccr.corp.intel.com>
+In-Reply-To: <37FBBA5F3A361C41AB7CE44558C3448E03B65E51@PDSMSX403.ccr.corp.intel.com>
+References: <37FBBA5F3A361C41AB7CE44558C3448E03B65E51@PDSMSX403.ccr.corp.intel.com>
+Message-ID: <20040408150912.GN10672@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
-
-	I checked this bug on kernel 2.4. It doesn't occur.
-	So, this bug is related to kernel 2.6 porting.
-
-
-*********************************************
-Sonic Zhang
-Software Engineer
-Intel China Software Lab
-Tel: (086)021-52574545-1667
-iNet: 752-1667
-*********************************************=20
-
------Original Message-----
-From: ocfs2-devel-bounces@oss.oracle.com =
-[mailto:ocfs2-devel-bounces@oss.oracle.com] On Behalf Of Zhang, Sonic
-Sent: 2004=C4=EA4=D4=C27=C8=D5 17:25
-To: Ocfs2-Devel
-Subject: [Ocfs2-devel] Fail to mount an OCFS volume for the second time =
-under kernel 2.6.
-
-Hi,
-
-	After check out the latest svn source, I found I fail to mount
-an OCFS volume for the second time under kernel 2.6. The system will
-halt if I do so. But, I remember I did it successfully in the former
-version. I submitted it into the bugzilla.
-
-See following details.
-
-Steps:
-1. create ocfs volume.
-2. mount this volume.
-3. umount this volume.
-4. mount this volume again.
-
-Results:
-System halt with error information.
-JBD: no valid journal superblock found
-(1342) ERROR: status=3D-22, fs/ocfs2/osb.c, 407
-(1342) ERROR: status=3D-22, fs/ocfs2/super.c, 1032
+On Wed, Apr 07, 2004 at 05:24:46PM +0800, Zhang, Sonic wrote:
+> Hi,
+> 
+> 	After check out the latest svn source, I found I fail to mount
+> an OCFS volume for the second time under kernel 2.6. The system will
+> halt if I do so. But, I remember I did it successfully in the former
+> version. I submitted it into the bugzilla.
+>
+> See following details.
+> 
+> Steps:
+> 1. create ocfs volume.
+> 2. mount this volume.
+> 3. umount this volume.
+> 4. mount this volume again.
+> 
+> Results:
+> System halt with error information.
+> JBD: no valid journal superblock found
+> (1342) ERROR: status=-22, fs/ocfs2/osb.c, 407
+> (1342) ERROR: status=-22, fs/ocfs2/super.c, 1032
+So does this happen every time, even on a fresh file system? I wonder if the
+1st mount of that filesystem was somehow interrupted...
+	--Mark  (hoping we didn't break the 2.6 stuff somehow :)
 
 
-*********************************************
-Sonic Zhang
-Software Engineer
-Intel China Software Lab
-Tel: (086)021-52574545-1667
-iNet: 752-1667
-*********************************************=20
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel@oss.oracle.com
-http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
