@@ -1,45 +1,37 @@
-From: Sonic Zhang <sonic.zhang@intel.com>
-Date: Thu Apr  1 02:35:32 2004
-Subject: [Ocfs2-devel] A patch to remove compile warnings in file inode.c
-Message-ID: <406BD458.3060203@intel.com>
+From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
+Date: Thu Apr  1 21:56:58 2004
+Subject: [Ocfs2-devel] [Patch] install module on 2.6
+Message-ID: <3ACA40606221794F80A5670F0AF15F8403D2C732@PDSMSX403.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+It seems on 2.6 kernel, "make install" does not work.
+A simple patch to fix it
 
-    This is a patch to remove compile warnings in file inode.c.
 
-/root/projects/ocfs2/src/inode.c: In function `ocfs_find_actor':
-/root/projects/ocfs2/src/inode.c:562: warning: `args' might be used 
-uninitialized in this function
+Index: src/Makefile
+===================================================================
+--- src/Makefile	(revision 833)
++++ src/Makefile	(working copy)
+@@ -239,7 +239,13 @@
+ 
+ all:
+ 	$(MAKE) -C $(KDIR) SUBDIRS=$(CURDIR) modules
++install:install-ocfs
+ 
++install-ocfs: ocfs2.ko
++	$(TOPDIR)/mkinstalldirs $(DESTDIR)$(MODULEDIR)/ocfs
++	$(INSTALL_DATA) ocfs2.ko $(DESTDIR)$(MODULEDIR)/ocfs/ocfs2.ko
++	depmod -a
++
+ endif # OCFS_KERNEL_2_6
+ 
+ include $(TOPDIR)/Postamble.make
 
-See the attachment.
 
---------------------------------------------------
---- src/inode.c.old    2004-04-01 16:27:32.683665136 +0800
-+++ src/inode.c    2004-04-01 16:29:49.864810432 +0800
-@@ -559,7 +559,7 @@
-  */
- int ocfs_find_actor (struct inode *inode, void *opaque)
- {
--    ocfs_find_inode_args *args;
-+    ocfs_find_inode_args *args = NULL;
-     int ret = 0;
-     __u64 fileOff;
-     ocfs_file_entry *fe = NULL;
-
--------------- next part --------------
---- src/inode.c.old	2004-04-01 16:27:32.683665136 +0800
-+++ src/inode.c	2004-04-01 16:29:49.864810432 +0800
-@@ -559,7 +559,7 @@
-  */
- int ocfs_find_actor (struct inode *inode, void *opaque)
- {
--	ocfs_find_inode_args *args;
-+	ocfs_find_inode_args *args = NULL;
- 	int ret = 0;
- 	__u64 fileOff;
- 	ocfs_file_entry *fe = NULL;
+-------------------
+Xiaofeng
+xfling@users.sourceforge.net
