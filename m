@@ -1,19 +1,27 @@
 From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Thu Aug  5 19:06:32 2004
-Subject: [Ocfs2-devel] found a subdir with link=1
-Message-ID: <3ACA40606221794F80A5670F0AF15F840516716D@pdsmsx403>
+Date: Thu Aug  5 19:59:38 2004
+Subject: [Ocfs2-devel] Error message shows when create and rmdir
+Message-ID: <3ACA40606221794F80A5670F0AF15F84051672AF@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I found a subdir with link=1, in my ocfs2 file system.
-It is a empty directory, so the link should equal to 2, but now it is 1.
-So I can not remove it. I can not remember what kind of operations I do
-that cause this directory, but there shall be a bug inside the driver.
-Anyone found the same problem?
-My ocfs is svn 1331.
+Try this on 2.6.6 for svn 1303, this also exist on prev version.
+
+Two node with /ocfs mount to the same disk.
+1.node 0: mkdir /ocfs/a
+2.node 1: rmdir /ocfs/a
+after a while, when the journal commited.
+It shows:
+(18503) commit_thread: flushed 1 transactions, releasing 3 locks
+(18503) commit_thread: after optimization, 3 locks to release
+(18503) ERROR at /home/xling/ocfs/ocfs2/src/bitmap.c, 408:
+bitmap->validbits = 
+0 but start = 277 and num = 1!
+
+see bug 115
 
 -------------------
 Intel China Software Lab.
