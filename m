@@ -1,23 +1,29 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Tue Nov 23 03:04:01 2004
-Subject: [Ocfs2-devel] Re: [Ocfs2-commits] mfasheh commits r1663 -
-	branches/dlm-glue/src
-In-Reply-To: <20041123085853.GC3179@ca-server1.us.oracle.com>
-References: <200411230337.iAN3bJSS015490@oss.oracle.com>
-	<20041123083052.GA8945@lst.de>
-	<20041123085853.GC3179@ca-server1.us.oracle.com>
-Message-ID: <20041123090355.GA9545@lst.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu Dec 30 14:20:55 2004
+Subject: [Ocfs2-devel] Loading the OCFS2 clustering bits.
+Message-ID: <20041230202051.GP12210@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Nov 23, 2004 at 12:58:53AM -0800, Mark Fasheh wrote:
-> On Tue, Nov 23, 2004 at 09:30:52AM +0100, Christoph Hellwig wrote:
-> > You never opencode the memset ocfs_malloc did.  Did you do an audit that
-> > it's never needed?
-> Yeah, stupidly, much of the code which called ocfs_malloc did the memset
-> anyway so that's why you don't see any "+ memset( ..." lines in the patch :)
+Folks,
+	The latest OCFS2 trees now require a clustering infrastructure
+we've dubbed O2CB for lack of a better name.  The latest OCFS2 tools
+contain a startup script to manage initializing this infrastructure.
+See the file README.O2CB from ocfs2-tools for more information.
 
-ok
+Joel
+
+--=20
+
+Dort wo man B=C3=BCcher verbrennt, verbrennt man am Ende auch Mensch.
+(Wherever they burn books, they will also end up burning people.)
+	- Heinrich Heine
+
+Joel Becker
+Senior Member of Technical Staff
+Oracle Corporation
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
