@@ -1,36 +1,65 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Tue Feb 24 15:50:43 2004
-Subject: [Ocfs2-devel] Re: [PATCH]2.6 fixes in file.c
-In-Reply-To: <20040224214438.GK1421@ca-server1.us.oracle.com>
-References: <200402200413.i1K4DFoW004249@penguin.co.intel.com>
-	<20040224015742.GI1421@ca-server1.us.oracle.com>
-	<20040224030843.GA18881@penguin.co.intel.com>
-	<20040224214438.GK1421@ca-server1.us.oracle.com>
-Message-ID: <20040224215021.GA24689@penguin.co.intel.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Tue Feb 24 16:12:16 2004
+Subject: [Ocfs2-devel] [PATCH]2.6 fixes in super.c
+In-Reply-To: <20040224042501.GA20255@penguin.co.intel.com>
+References: <200402180312.i1I3CH7Y015248@penguin.co.intel.com>
+	<20040219233755.GA24928@penguin.co.intel.com>
+	<20040223233523.GA1421@ca-server1.us.oracle.com>
+	<20040224042501.GA20255@penguin.co.intel.com>
+Message-ID: <20040224221212.GL1421@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Feb 24, 2004 at 01:44:38PM -0800, Mark Fasheh wrote:
+On Mon, Feb 23, 2004 at 08:25:01PM -0800, Rusty Lynch wrote:
+> Here is a redone version of the patch that applies cleanly to the current 
+> svn repository.
+> 
+>     --rusty
 <snip>
-> > > >  int ocfs_empty (struct dentry *dentry);
-> > > > +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-> > > > +int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd);
-> > > > +#else
-> > > >  int ocfs_dentry_revalidate (struct dentry *dentry, int flags);
-> > > > +#endif
-> > > Why is this here? Shouldn't this update be in the dcache patch? 
-> > 
-> > yeap, a little blood from the dcache patch.  It's still needed, so I still
-> > have it in this patch.
-> What worries me is that I don't see any similar changes to the function
-> declaration (and the function itself) in dcache.c... Is this a "coming soon"
-> or did you forget to send that patch? Since it doesn't affect the 2.4
-> version, I can commit it anyway but I just wanna make sure we're on the same
-> page.
 
-oops... I didn't realize I dropped it.
+> @@ -721,15 +733,27 @@
+>          buf->f_type = OCFS_MAGIC;
+>          buf->f_bsize = sb->s_blocksize;
+>          buf->f_namelen = OCFS_MAX_FILENAME_LENGTH;
+> +        buf->f_bavail = buf->f_bfree;
+> +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+>          buf->f_blocks =
+> -            (unsigned long) ((unsigned long) (numbits) *
+> -                             (unsigned long) (osb->vol_layout.cluster_size >> 9) -
+> -			     (8 * ONE_MEGA_BYTE / osb->vol_layout.cluster_size)); 
+> +		(unsigned long) ((unsigned long) (numbits) *
+> +				 (unsigned long) (osb->vol_layout.cluster_size >> 9) -
+> +				 (8 * ONE_MEGA_BYTE / osb->vol_layout.cluster_size)); 
+>          buf->f_bfree =
+>              (unsigned long) (freebits * (osb->vol_layout.cluster_size >> 9));
+>          buf->f_bavail = buf->f_bfree;
+>          buf->f_files = (unsigned long) (numbits);
+>          buf->f_ffree = (unsigned long) (numbits) - freebits;
+> +#else
+> +        buf->f_blocks =
+> +		(sector_t) ((unsigned long) (numbits) *
+> +			    (unsigned long) (osb->vol_layout.cluster_size >> 9) -
+> +			    (8 * ONE_MEGA_BYTE / osb->vol_layout.cluster_size)); 
+> +        buf->f_bfree =
+> +            (sector_t) (freebits * (osb->vol_layout.cluster_size >> 9));
+> +        buf->f_files = (sector_t) (numbits);
+> +        buf->f_ffree = (sector_t) (numbits) - freebits;
+> +#endif
 
-    --rusty
+In this preprocessor conditional, don't we mean: 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+
+instead of 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+
+If so, I'll just change it in my tree and commit that (you should prolly fix
+it in yours too).
+	--Mark
+
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
