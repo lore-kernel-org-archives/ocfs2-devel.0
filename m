@@ -1,29 +1,36 @@
-From: Lynch, Rusty <rusty.lynch@intel.com>
-Date: Wed Apr 28 17:17:45 2004
-Subject: [Ocfs2-devel] R867 still crash on 2.4.20
-Message-ID: <032EB457B9DBC540BFB1B7B519C78B0E0411BA54@orsmsx404.jf.intel.com>
+From: Zhang, Sonic <sonic.zhang@intel.com>
+Date: Wed Apr 28 21:11:13 2004
+Subject: [Ocfs2-devel] 
+	What's your opinion on the patch to fix bug 58 for kernel 2.6
+	porting?
+Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E03B65E90@PDSMSX403.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-> On Wed, Apr 28, 2004 at 09:48:05AM +0800, ling-linux wrote:
->> I've checked out the newest one rivision 867, on 2.4.20, when
-mounting,
->> it still crashs.
->My svn tree shows the latest revision at 873...
->
->> ==========
->> <1> Unable to handle kernel NULL point dereference at virtual address
->> 0000000.
->> Have you ever tried on 2.4 kernel?  Can you reproduce this?
->I run it on a 2.4 kernel all the time! :)
->Do you have a full stack trace? As in, what's the kernel output!
->	--Mark
+Hi Mark,
 
-I just tried svn version 873 on both a UP and SMP 2.4.25 kernel with no
-problems. I can mount, fill the volume full of files, move stuff around,
-delete stuff, and umount.  
+	Do you have any opinion on the patch to fix bug 58 for kernel
+2.6 porting?
+	Could you add the patch into the source tree? 
 
-    --rusty
+	Thank you.
+
+
+*********************************************
+Sonic Zhang
+Software Engineer
+Intel China Software Lab
+Tel: (086)021-52574545-1667
+iNet: 752-1667
+********************************************* 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ocfs2-inode-count.patch
+Type: application/octet-stream
+Size: 2910 bytes
+Desc: ocfs2-inode-count.patch
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040429/445ff5c9/ocfs2-inode-count.obj
