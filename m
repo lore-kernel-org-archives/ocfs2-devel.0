@@ -1,36 +1,24 @@
-From: Sami <techker_s@yahoo.com>
-Date: Wed Sep  8 13:43:23 2004
-Subject: [Ocfs2-devel] HELP! PRKR-1025 error
-Message-ID: <20040908184318.36460.qmail@web61003.mail.yahoo.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Mon Sep 13 20:48:45 2004
+Subject: [Ocfs2-devel] OCFS2 Beta 6 Release
+Message-ID: <20040914014842.GA1820@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+http://oss.oracle.com/projects/ocfs2/
 
-I am installing per
-http://www.oracle.com/technology/pub/articles/hunter_rac.html#FireWire%20Technology
+The OCFS2 team is pleased to announce our sixth beta release!
 
-I am getting a PRKR-1025 error. The
-$ORACLE_HOME/root.sh doesnt not create any entry for
-srvconfig_loc in the srvConfig.loc file
+RPM packages can be found in the files section on the web site.
 
-$ srvconfig -init
+*** Please do not use Oracle support for OCFS2 Beta 6 bugs. Bugs should be
+eported using the bugzilla system on oss.oracle.com.
 
-PRKR-1025 error when attempting to run the srvconfig
--init command, check that you have the valid entry for
-"srvconfig_loc" in your /var/opt/oracle/srvConfig.loc
-file and that the file is owned by "oracle". This
-entry gets created by the root.sh.
+For more details, and instructions on how to install OCFS2 please visit the
+web page.
 
-Plus, the root.sh doesnt have line 249 with OPS_CONFIG
-as stated in
-http://www.oracle.com/technology/pub/articles/hunter_rac.html#FireWire%20Technology
-
-
-__________________________________________________
-Do You Yahoo!?
-Tired of spam?  Yahoo! Mail has the best spam protection around 
-http://mail.yahoo.com 
+Thanks!
+The OCFS2 Team
