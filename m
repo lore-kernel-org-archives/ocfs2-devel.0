@@ -1,13 +1,36 @@
 From: Zhang, Sonic <sonic.zhang@intel.com>
-Date: Fri Apr  9 04:36:05 2004
-Subject: [Ocfs2-devel] Fail to mount an OCFS volume for the second
-	timeunder kernel 2.6.
-Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E03B65E59@PDSMSX403.ccr.corp.intel.com>
+Date: Mon Apr 12 02:49:51 2004
+Subject: [Ocfs2-devel] Fail to mount an OCFS volume for the
+	secondtimeunder kernel 2.6.
+Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E03B65E5F@PDSMSX403.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Hi,
+
+	I checked some original svn versions of the OCFS2 source code, rev.810, =
+815, 818, 819, 820, 821 and 823. All versions have the same bug under =
+kernel 2.6 as the latest version.
+
+
+*********************************************
+Sonic Zhang
+Software Engineer
+Intel China Software Lab
+Tel: (086)021-52574545-1667
+iNet: 752-1667
+*********************************************=20
+
+-----Original Message-----
+From: ocfs2-devel-bounces@oss.oracle.com =
+[mailto:ocfs2-devel-bounces@oss.oracle.com] On Behalf Of Zhang, Sonic
+Sent: 2004=C4=EA4=D4=C29=C8=D5 17:36
+To: Ocfs2-Devel
+Subject: RE: [Ocfs2-devel] Fail to mount an OCFS volume for the =
+secondtimeunder kernel 2.6.
 
 Hi,
 
@@ -91,6 +114,10 @@ Tel: (086)021-52574545-1667
 iNet: 752-1667
 *********************************************=20
 
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel@oss.oracle.com
+http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 _______________________________________________
 Ocfs2-devel mailing list
 Ocfs2-devel@oss.oracle.com
