@@ -1,30 +1,26 @@
-From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Fri Aug  6 20:29:50 2004
-Subject: [Ocfs2-devel] [BUG] system hang when copying with reading
-Message-ID: <3ACA40606221794F80A5670F0AF15F8405167C14@pdsmsx403>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Fri Aug  6 20:34:14 2004
+Subject: [Ocfs2-devel] why skip zero is removed?
+In-Reply-To: <3ACA40606221794F80A5670F0AF15F8405167C12@pdsmsx403>
+References: <3ACA40606221794F80A5670F0AF15F8405167C12@pdsmsx403>
+Message-ID: <20040807013357.GY8008@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+On Sat, Aug 07, 2004 at 09:27:18AM +0800, Ling, Xiaofeng wrote:
+> So the drop is not caused by zeros. But now I can not reproduce it after
+> the 
+> machine is rebooted. The performance now is high again. A strange
+> problem.
+Can you update from the latest svn, revision r1332 contains a fix which
+*seem*s to increase my overall performance quite a bit, but I'm not
+completely convinced yet (as in, I want others to tell me whether it helps).
+	--Mark
 
-Step:
-node A: copy a file "bb.txt" of 200M to ocfs root
-node B: cd ocfs root, run "head bb.txt"
-Result:
-node B hangs.
-by kdb, three process went into "D" status. head, ocfs2cmt, kjourand
-in head, it is in ocfs_notify_truncate_on_wopen, 
-in ocfs2cmt, it is in ocfs_commit_cache.
-
-It's ok if head run on same node.
-report it as bug 117
--------------------
-Intel China Software Lab.
-iNet: 8-752-1243
-8621-52574545-1243(O)
-503-712-6740(Temp)
-
-xfling@users.sourceforge.net
-Opinions are my own and don't represent those of my employer 
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
