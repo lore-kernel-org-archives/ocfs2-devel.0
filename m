@@ -1,75 +1,673 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Wed Mar  3 17:15:24 2004
-Subject: [Ocfs2-devel] Re: [PATCH]check return from ocfs_journal_wipe()
-In-Reply-To: <20040303223006.GZ1421@ca-server1.us.oracle.com>
-References: <200403032154.i23Ls9kU018323@penguin.co.intel.com>
-	<20040303223006.GZ1421@ca-server1.us.oracle.com>
-Message-ID: <20040303223625.GA18418@penguin.co.intel.com>
+From: John L. Villalovos <john.l.villalovos@intel.com>
+Date: Wed Mar  3 18:40:06 2004
+Subject: [Ocfs2-devel] 2.6 build support
+Message-ID: <40467ADE.8010507@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Mar 03, 2004 at 02:30:06PM -0800, Mark Fasheh wrote:
-> On Wed, Mar 03, 2004 at 01:54:09PM -0800, Rusty Lynch wrote:
-> > I managed to get into a state on my 2.6 build where ocfs_journal_wipe()
-> > failed, and then because we were not checking the return status of the
-> > the function, the journal_load() in ocfs_journal_load() called BUG.
-> > 
-> > Here is a quick patch that should catch such a problem by bailing
-> > when an error is detected.
-> Good catch. Any idea what the error (or error #) was? I'd like to know what
-> you hit...
-> 	--Mark
+Okay.  I'm still plugging away here.
 
-It returned -22.  Here is a dump of the last page debug messages:
+I have worked on having the Makefile setup things which are common to both 2.4.x and 2.6.x and then go and do the 2.4.x/2.6.x specific things.
 
-(13552) ENTRY: ocfs_update_extent_map() 
-(13552) ENTRY: ocfs_add_extent_map_entry() 
-(13552) ENTRY: ocfs_extent_map_add() 
-(13552) ENTRY: ocfs_coalesce_extent_map_entry() 
-(13552) EXIT : ocfs_coalesce_extent_map_entry() = 0 
-(13552) EXIT : ocfs_extent_map_add() = 1 
-(13552) EXIT : ocfs_add_extent_map_entry() = 1 
-(13552) EXIT : ocfs_update_extent_map() = 0 
-(13552) ENTRY: ocfs_lookup_extent_map_entry() 
-(13552) ENTRY: ocfs_extent_map_lookup() 
-(13552) EXIT : ocfs_extent_map_lookup() = 1 
-(13552) EXIT : ocfs_lookup_extent_map_entry() = 1 
-(13552) EXIT : ocfs_lookup_file_allocation() = 0 
-(13552) EXIT : ocfs_bmap() = 7024 
-(13552) TRACE: ocfs_journal_init() k_journal->j_maxlen = 16384
-(13552) EXIT : ocfs_journal_init() = 0 
-(13552) TRACE: ocfs_check_volume() Node config states a journal version of 1
-(13552) ENTRY: ocfs_journal_wipe() 
-JBD: no valid journal superblock found
-(13552) EXIT : ocfs_journal_wipe() = -22 
-(13552) ENTRY: ocfs_journal_load() 
-Assertion failure in journal_get_superblock() at fs/jbd/journal.c:935: "bh != NULL"
-------------[ cut here ]------------
-kernel BUG at fs/jbd/journal.c:935!
-invalid operand: 0000 [#1]
-CPU:    0
-EIP:    0060:[<c018c220>]    Not tainted VLI
-EFLAGS: 00010286
-EIP is at journal_get_superblock+0x130/0x140
-eax: 00000057   ebx: d7816b60   ecx: c0341890   edx: 00000000
-esi: fffffffb   edi: da11a000   ebp: d9b87cbc   esp: d9b87c9c
-ds: 007b   es: 007b   ss: 0068
-Process mount (pid: 13552, threadinfo=d9b86000 task=d69bad00)
-Stack: c0301a40 c02eff49 c02fea43 000003a7 c02fe946 00000000 d7816b60 e08dbddf 
-       d9b87ccc c018c244 d7816b60 d7816b60 d9b87cdc c018c2a4 d7816b60 da11a7c0 
-       d9b87cfc e08af363 d7816b60 000034f0 e08dbddf e08ddbf9 da11a7c0 00000000 
-Call Trace:
- [<c018c244>] load_superblock+0x14/0x60
- [<c018c2a4>] journal_load+0x14/0xa0
- [<e08af363>] ocfs_journal_load+0x73/0x1c0 [ocfs2]
- [<e08b3c67>] ocfs_check_volume+0x537/0x600 [ocfs2]
- [<e08a0e0c>] ocfs_mount_volume+0x66c/0xd20 [ocfs2]
- [<c0115b90>] default_wake_function+0x0/0x20
- [<c0115b90>] default_wake_function+0x0/0x20
- [<c0115b90>] default_wake_function+0x0/0x20
- [<c0115b90>] default_wake_function+0x0/0x20
- [<e08dace0>] ocfs_timeout_func+0x0/0x20 [ocfs2]
- [<c0150224>] sb_set_blocksize+0x24/0x60
+I have compiled this on both 2.4.x and 2.6.x and I did not see any problems.
+
+John
+
+
+Index: configure.in
+===================================================================
+--- configure.in	(revision 751)
++++ configure.in	(working copy)
+@@ -281,6 +281,10 @@
+    ;;
+  esac
+
++if test "x$enable_kernel26" = "xyes"; then
++  USE_JOURNAL_CREATE_REPLACEMENT=no
++fi
++
+  AC_MSG_RESULT($USE_JOURNAL_CREATE_REPLACEMENT)
+  AC_SUBST(USE_JOURNAL_CREATE_REPLACEMENT)
+
+@@ -321,7 +325,11 @@
+  GCCINC=$gccdir
+  AC_SUBST(GCCINC)
+
++OCFS_BUILD_DIR=`pwd`
++AC_SUBST(OCFS_BUILD_DIR)
++
+  AC_OUTPUT([Config.make
++Config-minimal.make
+  vendor/redhat/ocfs2-2.4.9-e.spec
+  vendor/redhat/ocfs2-2.4.18-e.spec
+  vendor/redhat/ocfs2-2.4.21-EL.spec
+Index: Config.make.in
+===================================================================
+--- Config.make.in	(revision 751)
++++ Config.make.in	(working copy)
+@@ -61,4 +61,5 @@
+  OCFS_TRACE = @OCFS_TRACE@
+  OCFS_PROCESSOR = @OCFS_PROCESSOR@
+
++OCFS_BUILD_DIR = @OCFS_BUILD_DIR@
+  USE_JOURNAL_CREATE_REPLACEMENT = @USE_JOURNAL_CREATE_REPLACEMENT@
+Index: src/Makefile
+===================================================================
+--- src/Makefile	(revision 751)
++++ src/Makefile	(working copy)
+@@ -1,50 +1,61 @@
++# See if we are being included by the 2.6 kernel build system.
++ifeq ($(KERNELRELEASE),)
++# Normal build that is being called locally
+  TOPDIR = ..
+
+  include $(TOPDIR)/Preamble.make
++else # ifeq ($(KERNELRELEASE),)
++# We are being included by the 2.6.x kernel build system
+
+-WARNINGS = -Wall -Wstrict-prototypes -Wno-format
++# Global parameter so we know where our stuff is
++OCFS_SRC_DIR	:= $(SUBDIRS)
+
+-ifneq ($(OCFS_PROCESSOR),x86_64)
+-WARNINGS += -Wmissing-prototypes -Wmissing-declarations
++include $(OCFS_SRC_DIR)/../Config-minimal.make
+  endif
+
++#-*******************************************************
++# Now do stuff which is global for 2.4.x and 2.6.x builds
++
++# WARNINGS = -Wall -Wstrict-prototypes -Wno-format
++WARNINGS = -Werror -Wstrict-prototypes -Wno-format
++
+  ifdef OCFS_DEBUG
+  OPTS += -g
+  endif
+
+  BASE_DEFINES = -DMODULE -DLINUX -D__KERNEL__
+-DEFINES = $(BASE_DEFINES)
++GLOBAL_DEFINES =
+
+  ifdef OCFS_DEBUG
+-DEFINES += -DDEBUG
++GLOBAL_DEFINES += -DDEBUG
+  endif
+
+  ifdef OCFS_MEMDEBUG
+-DEFINES += -DOCFS_LINUX_MEM_DEBUG -DDEBUG_SLAB_ALLOCS
++GLOBAL_DEFINES += -DOCFS_LINUX_MEM_DEBUG -DDEBUG_SLAB_ALLOCS
+  endif
+
+  ifdef OCFS_AIO
+-DEFINES += -DAIO_ENABLED
++GLOBAL_DEFINES += -DAIO_ENABLED
+  endif
+
+  ifdef OCFS_TRACE
+-DEFINES += -DTRACE
++GLOBAL_DEFINES += -DTRACE
+  endif
+
+  ifdef HAVE_NPTL
+-DEFINES += -DHAVE_NPTL
++GLOBAL_DEFINES += -DHAVE_NPTL
+  endif
+
+  ifeq ($(USE_JOURNAL_CREATE_REPLACEMENT),yes)
+-DEFINES += -DUSE_JOURNAL_CREATE_REPLACEMENT
++GLOBAL_DEFINES += -DUSE_JOURNAL_CREATE_REPLACEMENT
+  endif
+
+  ifneq ($(QUIET),1)
+-DEFINES += -DDEBUG_LOCK_BUFFER
+-DEFINES += -DVERBOSE_BH_JBD_TRACE
+-DEFINES += -DVERBOSE_LOCKING_TRACE
+-DEFINES += -DVERBOSE_BH_SEQNUM_TRACE
+-DEFINES += -DVERBOSE_PROCESS_VOTE
++GLOBAL_DEFINES += -DDEBUG_LOCK_BUFFER
++GLOBAL_DEFINES += -DVERBOSE_BH_JBD_TRACE
++GLOBAL_DEFINES += -DVERBOSE_LOCKING_TRACE
++GLOBAL_DEFINES += -DVERBOSE_BH_SEQNUM_TRACE
++GLOBAL_DEFINES += -DVERBOSE_PROCESS_VOTE
+
+  #off by default -- these generate ALOT of output
+  #DEFINES += -DVERBOSE_BH_SEM
+@@ -61,43 +72,35 @@
+  endif
+
+  ifeq ($(KVER),suse)
+-DEFINES += -DSUSE
++GLOBAL_DEFINES += -DSUSE
+  endif
+  ifeq ($(KVER),hugemem)
+-  DEFINES += -D__BOOT_KERNEL_HUGEMEM=1
+-  DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0
+-  DEFINES += -D__BOOT_KERNEL_SMP=0
+-  DEFINES += -D__BOOT_KERNEL_UP=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_HUGEMEM=1
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_SMP=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_UP=0
+  endif
+  ifeq ($(KVER),smp)
+-  DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
+-  DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0
+-  DEFINES += -D__BOOT_KERNEL_SMP=1
+-  DEFINES += -D__BOOT_KERNEL_UP=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_SMP=1
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_UP=0
+  endif
+  ifeq ($(KVER),ent)
+-  DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
+-  DEFINES += -D__BOOT_KERNEL_ENTERPRISE=1
+-  DEFINES += -D__BOOT_KERNEL_SMP=0
+-  DEFINES += -D__BOOT_KERNEL_UP=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_ENTERPRISE=1
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_SMP=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_UP=0
+  endif
+  ifeq ($(KVER),up)
+-  DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
+-  DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0
+-  DEFINES += -D__BOOT_KERNEL_SMP=0
+-  DEFINES += -D__BOOT_KERNEL_UP=1
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_SMP=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_UP=1
+  endif
+
+-INCLUDES = -Iinc -I$(KERNELINC) -I$(GCCINC)
+-
+-CFLAGS=$(OPTS) -pipe -nostdinc -fno-strict-aliasing -fno-common \
+-	-fomit-frame-pointer $(MODVERSIONS) $(WARNINGS)
+-LDADD=-nostdlib
+-
+-OPTIMIZE = -O2
+-
+  ifeq ($(OCFS_PROCESSOR),ppc64)
+-  DEFINES += -D__LP64__
++  GLOBAL_DEFINES += -D__LP64__
+    CFLAGS += -m64 -fsigned-char -fno-builtin -msoft-float -mminimal-toc
+    LDADD += -m elf64ppc
+  endif
+@@ -107,12 +110,50 @@
+  ifeq ($(OCFS_PROCESSOR),ia64)
+  endif
+  ifeq ($(OCFS_PROCESSOR),i686)
+-  DEFINES += -D__ILP32__
++  GLOBAL_DEFINES += -D__ILP32__
+  endif
+  ifeq ($(OCFS_PROCESSOR),i586)
+-  DEFINES += -D__ILP32__
++  GLOBAL_DEFINES += -D__ILP32__
+  endif
+
++DEFINES += $(BASE_DEFINES) $(GLOBAL_DEFINES)
++
++ifeq ($(OCFS_PROCESSOR),x86_64)
++SUPPORT =
++endif
++ifeq ($(OCFS_PROCESSOR),ia64)
++SUPPORT =
++endif
++ifeq ($(OCFS_PROCESSOR),i686)
++SUPPORT = divdi3.c
++endif
++ifeq ($(OCFS_PROCESSOR),i586)
++SUPPORT = divdi3.c
++endif
++
++# End of stuff which is global for 2.4.x and 2.6.x kernels
++#-********************************************************
++
++# See if we are being included by the 2.6 kernel build system.
++ifeq ($(KERNELRELEASE),)
++# Normal build that is being called locally
++# Preliminary 2.6.x kernel support.  See if we are building for the 2.6.x
++# kernel
++ifndef KERNEL_26
++# Building for a 2.4.x kernel
++
++ifneq ($(OCFS_PROCESSOR),x86_64)
++WARNINGS += -Wmissing-prototypes -Wmissing-declarations
++endif
++
++INCLUDES = -Iinc -I$(KERNELINC) -I$(GCCINC)
++
++CFLAGS=$(OPTS) -pipe -nostdinc -fno-strict-aliasing -fno-common \
++	-fomit-frame-pointer $(MODVERSIONS) $(WARNINGS)
++LDADD=-nostdlib
++
++OPTIMIZE = -O2
++
+  CFLAGS += $(OPTIMIZE)
+
+  MODULES = ocfs2.o
+@@ -147,19 +188,6 @@
+  	vote.c
+
+
+-ifeq ($(OCFS_PROCESSOR),x86_64)
+-SUPPORT =
+-endif
+-ifeq ($(OCFS_PROCESSOR),ia64)
+-SUPPORT =
+-endif
+-ifeq ($(OCFS_PROCESSOR),i686)
+-SUPPORT = divdi3.c
+-endif
+-ifeq ($(OCFS_PROCESSOR),i586)
+-SUPPORT = divdi3.c
+-endif
+-
+  CFILES = $(OSOURCES) $(SUPPORT)
+
+  HFILES = \
+@@ -196,4 +224,59 @@
+  dist-subdircreate:
+  	$(TOPDIR)/mkinstalldirs $(DIST_DIR)/inc
+
++
++else # ifndef KERNEL_26
++# The 2.6.x kernel makefile
++
++# This Makefile has two ways through it.  They are:
++#   1.	We are being included by the local Makefile to do a 2.6 kernel build.
++#	In this method we will call the kernel make system to build our module.
++#	This will cause the kernel make system to call back into our makefile
++#	(2nd way).
++
++KDIR	:= $(KERNELDIR)
++
++all:
++	$(MAKE) -C $(KDIR) V=1 SUBDIRS=$(OCFS_BUILD_DIR)/src modules
++
++endif # OCFS_KERNEL_2_6
++
+  include $(TOPDIR)/Postamble.make
++else # ifeq ($(KERNELRELEASE),)
++# We are being included by the 2.6 kernel build system.  So we will include the
++# 2.6.x Makefile and skip everything else.
++# The 2.6.x kernel makefile
++
++# This Makefile has two ways through it.  They are:
++#   1.	We are being included by the local Makefile to do a 2.6 kernel build.
++#	In this method we will call the kernel make system to build our module.
++#	This will cause the kernel make system to call back into our makefile
++#	(2nd way).
++#
++#   2.	We are being included by the kernel make system.  So in this method we
++#	just setup the variables that the make system wants and then the kernel
++#	make system will take care of the build.
++
++# 2nd method.  The kernel make system is including us.  We need to setup the
++# various parameters for the kernel make system and then it will take care of
++# building us.
++
++# EXTRA_CFLAGS += -D__ILP32__ -I$(OCFS_SRC_DIR)/inc -Wno-format
++EXTRA_CFLAGS += -I$(OCFS_SRC_DIR)/inc
++
++EXTRA_CFLAGS += $(GLOBAL_DEFINES) $(WARNINGS)
++
++# FIXME: Need to figure out how to use the stuff from Postamble.make.  In
++# particular the MD5 and Version strings
++EXTRA_CFLAGS +=	-DOCFS_BUILD_DATE=\"y\" -DOCFS_BUILD_MD5=\"z\" \
++		-DOCFS_BUILD_VERSION=\"x\"
++
++# Kernel Module file to produce
++obj-m += ocfs2.o
++
++# list of object files that are used to create our module
++ocfs2-objs := alloc.o divdi3.o hash.o ioctl.o oin.o super.o ver.o \
++              bitmap.o dlm.o heartbeat.o journal.o osb.o symlink.o volcfg.o \
++              dcache.o extmap.o inode.o namei.o proc.o sysfile.o vote.o \
++              dir.o file.o io.o nm.o sem.o util.o
++endif # ifneq ($(KERNELRELEASE),)
+Index: Config-minimal.make.in
+===================================================================
+--- /dev/null	2004-02-23 13:02:56.000000000 -0800
++++ Config-minimal.make.in	2004-03-03 16:23:30.173607433 -0800
+@@ -0,0 +1,8 @@
++OCFS_DEBUG = @OCFS_DEBUG@
++OCFS_LARGEIO = @OCFS_LARGEIO@
++OCFS_AIO = @OCFS_AIO@
++OCFS_MEMDEBUG = @OCFS_MEMDEBUG@
++OCFS_TRACE = @OCFS_TRACE@
++OCFS_PROCESSOR = @OCFS_PROCESSOR@
++HAVE_NPTL = @HAVE_NPTL@
++USE_JOURNAL_CREATE_REPLACEMENT = @USE_JOURNAL_CREATE_REPLACEMENT@
+
+-------------- next part --------------
+Index: configure.in
+===================================================================
+--- configure.in	(revision 751)
++++ configure.in	(working copy)
+@@ -281,6 +281,10 @@
+   ;;
+ esac
+ 
++if test "x$enable_kernel26" = "xyes"; then
++  USE_JOURNAL_CREATE_REPLACEMENT=no
++fi
++
+ AC_MSG_RESULT($USE_JOURNAL_CREATE_REPLACEMENT)
+ AC_SUBST(USE_JOURNAL_CREATE_REPLACEMENT)
+ 
+@@ -321,7 +325,11 @@
+ GCCINC=$gccdir
+ AC_SUBST(GCCINC)
+ 
++OCFS_BUILD_DIR=`pwd`
++AC_SUBST(OCFS_BUILD_DIR)
++
+ AC_OUTPUT([Config.make
++Config-minimal.make
+ vendor/redhat/ocfs2-2.4.9-e.spec
+ vendor/redhat/ocfs2-2.4.18-e.spec
+ vendor/redhat/ocfs2-2.4.21-EL.spec
+Index: Config.make.in
+===================================================================
+--- Config.make.in	(revision 751)
++++ Config.make.in	(working copy)
+@@ -61,4 +61,5 @@
+ OCFS_TRACE = @OCFS_TRACE@
+ OCFS_PROCESSOR = @OCFS_PROCESSOR@
+ 
++OCFS_BUILD_DIR = @OCFS_BUILD_DIR@
+ USE_JOURNAL_CREATE_REPLACEMENT = @USE_JOURNAL_CREATE_REPLACEMENT@
+Index: src/Makefile
+===================================================================
+--- src/Makefile	(revision 751)
++++ src/Makefile	(working copy)
+@@ -1,50 +1,61 @@
++# See if we are being included by the 2.6 kernel build system.
++ifeq ($(KERNELRELEASE),)
++# Normal build that is being called locally
+ TOPDIR = ..
+ 
+ include $(TOPDIR)/Preamble.make
++else # ifeq ($(KERNELRELEASE),)
++# We are being included by the 2.6.x kernel build system
+ 
+-WARNINGS = -Wall -Wstrict-prototypes -Wno-format
++# Global parameter so we know where our stuff is
++OCFS_SRC_DIR	:= $(SUBDIRS)
+ 
+-ifneq ($(OCFS_PROCESSOR),x86_64)
+-WARNINGS += -Wmissing-prototypes -Wmissing-declarations
++include $(OCFS_SRC_DIR)/../Config-minimal.make
+ endif
+ 
++#-*******************************************************
++# Now do stuff which is global for 2.4.x and 2.6.x builds
++
++# WARNINGS = -Wall -Wstrict-prototypes -Wno-format
++WARNINGS = -Werror -Wstrict-prototypes -Wno-format
++
+ ifdef OCFS_DEBUG
+ OPTS += -g
+ endif
+ 
+ BASE_DEFINES = -DMODULE -DLINUX -D__KERNEL__ 
+-DEFINES = $(BASE_DEFINES)
++GLOBAL_DEFINES =
+ 
+ ifdef OCFS_DEBUG
+-DEFINES += -DDEBUG
++GLOBAL_DEFINES += -DDEBUG
+ endif
+ 
+ ifdef OCFS_MEMDEBUG
+-DEFINES += -DOCFS_LINUX_MEM_DEBUG -DDEBUG_SLAB_ALLOCS
++GLOBAL_DEFINES += -DOCFS_LINUX_MEM_DEBUG -DDEBUG_SLAB_ALLOCS
+ endif
+ 
+ ifdef OCFS_AIO
+-DEFINES += -DAIO_ENABLED
++GLOBAL_DEFINES += -DAIO_ENABLED
+ endif
+ 
+ ifdef OCFS_TRACE
+-DEFINES += -DTRACE
++GLOBAL_DEFINES += -DTRACE
+ endif
+ 
+ ifdef HAVE_NPTL
+-DEFINES += -DHAVE_NPTL
++GLOBAL_DEFINES += -DHAVE_NPTL
+ endif
+ 
+ ifeq ($(USE_JOURNAL_CREATE_REPLACEMENT),yes)
+-DEFINES += -DUSE_JOURNAL_CREATE_REPLACEMENT
++GLOBAL_DEFINES += -DUSE_JOURNAL_CREATE_REPLACEMENT
+ endif
+ 
+ ifneq ($(QUIET),1)
+-DEFINES += -DDEBUG_LOCK_BUFFER
+-DEFINES += -DVERBOSE_BH_JBD_TRACE
+-DEFINES += -DVERBOSE_LOCKING_TRACE
+-DEFINES += -DVERBOSE_BH_SEQNUM_TRACE
+-DEFINES += -DVERBOSE_PROCESS_VOTE
++GLOBAL_DEFINES += -DDEBUG_LOCK_BUFFER
++GLOBAL_DEFINES += -DVERBOSE_BH_JBD_TRACE
++GLOBAL_DEFINES += -DVERBOSE_LOCKING_TRACE
++GLOBAL_DEFINES += -DVERBOSE_BH_SEQNUM_TRACE
++GLOBAL_DEFINES += -DVERBOSE_PROCESS_VOTE
+ 
+ #off by default -- these generate ALOT of output
+ #DEFINES += -DVERBOSE_BH_SEM
+@@ -61,43 +72,35 @@
+ endif
+ 
+ ifeq ($(KVER),suse)
+-DEFINES += -DSUSE
++GLOBAL_DEFINES += -DSUSE
+ endif
+ ifeq ($(KVER),hugemem)
+-  DEFINES += -D__BOOT_KERNEL_HUGEMEM=1
+-  DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0
+-  DEFINES += -D__BOOT_KERNEL_SMP=0
+-  DEFINES += -D__BOOT_KERNEL_UP=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_HUGEMEM=1
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_SMP=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_UP=0
+ endif
+ ifeq ($(KVER),smp)
+-  DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
+-  DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0 
+-  DEFINES += -D__BOOT_KERNEL_SMP=1 
+-  DEFINES += -D__BOOT_KERNEL_UP=0 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_SMP=1 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_UP=0 
+ endif
+ ifeq ($(KVER),ent)
+-  DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
+-  DEFINES += -D__BOOT_KERNEL_ENTERPRISE=1 
+-  DEFINES += -D__BOOT_KERNEL_SMP=0 
+-  DEFINES += -D__BOOT_KERNEL_UP=0 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_ENTERPRISE=1 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_SMP=0 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_UP=0 
+ endif
+ ifeq ($(KVER),up)
+-  DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
+-  DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0 
+-  DEFINES += -D__BOOT_KERNEL_SMP=0 
+-  DEFINES += -D__BOOT_KERNEL_UP=1 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_HUGEMEM=0
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_ENTERPRISE=0 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_SMP=0 
++  GLOBAL_DEFINES += -D__BOOT_KERNEL_UP=1 
+ endif
+ 
+-INCLUDES = -Iinc -I$(KERNELINC) -I$(GCCINC)
+-
+-CFLAGS=$(OPTS) -pipe -nostdinc -fno-strict-aliasing -fno-common \
+-	-fomit-frame-pointer $(MODVERSIONS) $(WARNINGS)
+-LDADD=-nostdlib
+-
+-OPTIMIZE = -O2
+-
+ ifeq ($(OCFS_PROCESSOR),ppc64)
+-  DEFINES += -D__LP64__
++  GLOBAL_DEFINES += -D__LP64__
+   CFLAGS += -m64 -fsigned-char -fno-builtin -msoft-float -mminimal-toc
+   LDADD += -m elf64ppc
+ endif
+@@ -107,12 +110,50 @@
+ ifeq ($(OCFS_PROCESSOR),ia64)
+ endif
+ ifeq ($(OCFS_PROCESSOR),i686)
+-  DEFINES += -D__ILP32__
++  GLOBAL_DEFINES += -D__ILP32__
+ endif
+ ifeq ($(OCFS_PROCESSOR),i586)
+-  DEFINES += -D__ILP32__
++  GLOBAL_DEFINES += -D__ILP32__
+ endif
+ 
++DEFINES += $(BASE_DEFINES) $(GLOBAL_DEFINES)
++
++ifeq ($(OCFS_PROCESSOR),x86_64)
++SUPPORT =
++endif
++ifeq ($(OCFS_PROCESSOR),ia64)
++SUPPORT =
++endif
++ifeq ($(OCFS_PROCESSOR),i686)
++SUPPORT = divdi3.c
++endif
++ifeq ($(OCFS_PROCESSOR),i586)
++SUPPORT = divdi3.c
++endif
++
++# End of stuff which is global for 2.4.x and 2.6.x kernels
++#-********************************************************
++
++# See if we are being included by the 2.6 kernel build system.
++ifeq ($(KERNELRELEASE),)
++# Normal build that is being called locally
++# Preliminary 2.6.x kernel support.  See if we are building for the 2.6.x
++# kernel
++ifndef KERNEL_26
++# Building for a 2.4.x kernel
++
++ifneq ($(OCFS_PROCESSOR),x86_64)
++WARNINGS += -Wmissing-prototypes -Wmissing-declarations
++endif
++
++INCLUDES = -Iinc -I$(KERNELINC) -I$(GCCINC)
++
++CFLAGS=$(OPTS) -pipe -nostdinc -fno-strict-aliasing -fno-common \
++	-fomit-frame-pointer $(MODVERSIONS) $(WARNINGS)
++LDADD=-nostdlib
++
++OPTIMIZE = -O2
++
+ CFLAGS += $(OPTIMIZE)
+ 
+ MODULES = ocfs2.o
+@@ -147,19 +188,6 @@
+ 	vote.c
+ 
+ 
+-ifeq ($(OCFS_PROCESSOR),x86_64)
+-SUPPORT =
+-endif
+-ifeq ($(OCFS_PROCESSOR),ia64)
+-SUPPORT =
+-endif
+-ifeq ($(OCFS_PROCESSOR),i686)
+-SUPPORT = divdi3.c
+-endif
+-ifeq ($(OCFS_PROCESSOR),i586)
+-SUPPORT = divdi3.c
+-endif
+-
+ CFILES = $(OSOURCES) $(SUPPORT)
+ 
+ HFILES = \
+@@ -196,4 +224,59 @@
+ dist-subdircreate:
+ 	$(TOPDIR)/mkinstalldirs $(DIST_DIR)/inc
+ 
++
++else # ifndef KERNEL_26
++# The 2.6.x kernel makefile
++
++# This Makefile has two ways through it.  They are:
++#   1.	We are being included by the local Makefile to do a 2.6 kernel build.
++#	In this method we will call the kernel make system to build our module.
++#	This will cause the kernel make system to call back into our makefile
++#	(2nd way).
++
++KDIR	:= $(KERNELDIR)
++
++all:
++	$(MAKE) -C $(KDIR) V=1 SUBDIRS=$(OCFS_BUILD_DIR)/src modules
++
++endif # OCFS_KERNEL_2_6
++
+ include $(TOPDIR)/Postamble.make
++else # ifeq ($(KERNELRELEASE),)
++# We are being included by the 2.6 kernel build system.  So we will include the
++# 2.6.x Makefile and skip everything else.
++# The 2.6.x kernel makefile
++
++# This Makefile has two ways through it.  They are:
++#   1.	We are being included by the local Makefile to do a 2.6 kernel build.
++#	In this method we will call the kernel make system to build our module.
++#	This will cause the kernel make system to call back into our makefile
++#	(2nd way).
++#
++#   2.	We are being included by the kernel make system.  So in this method we
++#	just setup the variables that the make system wants and then the kernel
++#	make system will take care of the build.
++
++# 2nd method.  The kernel make system is including us.  We need to setup the
++# various parameters for the kernel make system and then it will take care of
++# building us.
++
++# EXTRA_CFLAGS += -D__ILP32__ -I$(OCFS_SRC_DIR)/inc -Wno-format
++EXTRA_CFLAGS += -I$(OCFS_SRC_DIR)/inc
++
++EXTRA_CFLAGS += $(GLOBAL_DEFINES) $(WARNINGS)
++
++# FIXME: Need to figure out how to use the stuff from Postamble.make.  In
++# particular the MD5 and Version strings
++EXTRA_CFLAGS +=	-DOCFS_BUILD_DATE=\"y\" -DOCFS_BUILD_MD5=\"z\" \
++		-DOCFS_BUILD_VERSION=\"x\"
++
++# Kernel Module file to produce
++obj-m += ocfs2.o
++
++# list of object files that are used to create our module
++ocfs2-objs := alloc.o divdi3.o hash.o ioctl.o oin.o super.o ver.o \
++              bitmap.o dlm.o heartbeat.o journal.o osb.o symlink.o volcfg.o \
++              dcache.o extmap.o inode.o namei.o proc.o sysfile.o vote.o \
++              dir.o file.o io.o nm.o sem.o util.o
++endif # ifneq ($(KERNELRELEASE),)
+Index: Config-minimal.make.in
+===================================================================
+--- /dev/null	2004-02-23 13:02:56.000000000 -0800
++++ Config-minimal.make.in	2004-03-03 16:23:30.173607433 -0800
+@@ -0,0 +1,8 @@
++OCFS_DEBUG = @OCFS_DEBUG@
++OCFS_LARGEIO = @OCFS_LARGEIO@
++OCFS_AIO = @OCFS_AIO@
++OCFS_MEMDEBUG = @OCFS_MEMDEBUG@
++OCFS_TRACE = @OCFS_TRACE@
++OCFS_PROCESSOR = @OCFS_PROCESSOR@
++HAVE_NPTL = @HAVE_NPTL@
++USE_JOURNAL_CREATE_REPLACEMENT = @USE_JOURNAL_CREATE_REPLACEMENT@
