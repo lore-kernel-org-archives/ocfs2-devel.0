@@ -1,37 +1,93 @@
-From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Thu Aug 19 21:41:56 2004
-Subject: [Ocfs2-devel] LTP system call test all pass!
-Message-ID: <3ACA40606221794F80A5670F0AF15F84053D9991@pdsmsx403>
+From: Chen, Yukun <yukun.chen@intel.com>
+Date: Fri Aug 20 03:25:29 2004
+Subject: [Ocfs2-devel] 
+	[2.6.6 svn 1364]System hang randomly when writing to the same file
+	from different processes of the same node
+Message-ID: <B44D37711ED29844BEA67908EAF36F039A20ED@pdsmsx401.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-=20
+Hi all
 
->-----Original Message-----
->From: joel.becker@oracle.com [mailto:joel.becker@oracle.com]=20
->Sent: 2004=C4=EA8=D4=C220=C8=D5 10:31
->To: Ling, Xiaofeng; ocfs2-devel@oss.oracle.com
->Subject: Re: [Ocfs2-devel] LTP system call test all pass!
->
->On Thu, Aug 19, 2004 at 07:19:31PM -0700, Joel Becker wrote:
->> On Fri, Aug 20, 2004 at 10:16:33AM +0800, Ling, Xiaofeng wrote:
->> > Does ocfs support loop device now?
->> > LSB test need loop device and maybe  a small loop device. =20
->>=20
->> 	"Why wouldn't it", is the question, I guess.  What was=20
->the problem
->> before?  Worth trying out, it might just work.
->
->	I just created a file on ocfs2, ran mkfs.ext3, and mounted it
->with loopback ("mount -o loop /ocfs2/loopme /mnt/tmp").  It=20
->worked fine.
->If you have any problems, let us know.
->
-In fact, what I mean is LSB is trying to use loop device to test the =
-file system API so if ocfs can be make on the
-loop device, then the API can be tested.
-I've tried before, the format is not successful for the raw device, seem =
-now it can.
+ 
+
+Steps to duplicate:
+
+1.Do some operation ,such as mkdir&touch , on node A and node B
+
+ 
+
+2.on node A process1  write to a file at a specific position(such as
+offset 1000) ,100 times
+
+ 
+
+2.also on node A, at the same time , process2 write to the same file at
+the 
+
+ 
+
+same position, 100 times
+
+ 
+
+Repeat step 1-2 several times, system will hang with the following
+message found in node A:
+
+ 
+
+state=1, lockid=22765568, flags = 0x1000, asked type = 5 master = 1,
+state = 0x0, type = 5
+
+(18397) ERROR at /tmp/trunk/src/dlm.c, 461: status = -110
+
+(18397) ERROR at /tmp/trunk/src/vote.c, 910: inode 5558, vote_status=0,
+vote_state=1, lockid=22765568, flags = 0x1000, asked type = 5 master =
+1, state = 0x0, type = 5
+
+...
+
+ 
+
+on node B , error message with dmesg:
+
+Call Trace:
+
+recalc_task_prio
+
+shedule
+
+ocfs_comm_process_msg
+
+ocfs_dlm_recv_msg
+
+worker_thread
+
+ocfs_dlm_recv_msg
+
+default_wake_function
+
+....
+
+ 
+
+Any ideas on it? thanx.
+
+ 
+
+Aaron
+
+Intel China Software Lab
+
+Tel:  8621-52574545 Ext.1587
+
+E_mail:yukun.chen@intel.com
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040820/51ee0f1b/attachment.htm
