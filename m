@@ -1,34 +1,38 @@
-From: Chen, Yukun <yukun.chen@intel.com>
-Date: Fri Aug  6 04:41:35 2004
-Subject: [Ocfs2-devel] Cannot see files created on another node
-Message-ID: <B44D37711ED29844BEA67908EAF36F03806DBF@pdsmsx401.ccr.corp.intel.com>
+From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
+Date: Fri Aug  6 17:06:01 2004
+Subject: [Ocfs2-devel] 
+	[patch] fix bug 53--- Disk usage status reported in "df" is
+	incorrect
+Message-ID: <3ACA40606221794F80A5670F0AF15F8405167BD3@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
+This is bug for 2.6 kernel.
 
-I met the bug on kernel 2.4.x, svn 1313
+------------------------------------------------------------------------
+--------------------
+Index: super.c
+===================================================================
+--- super.c     (revision 1331)
++++ super.c     (working copy)
+@@ -757,6 +757,8 @@
+                            reserved_bits);
+        buf->f_bfree =
+            (sector_t) (freebits * (osb->s_clustersize >>
+osb->sb->s_blocksize_bits));
++
++       buf->f_bavail = buf->f_bfree;
+        buf->f_files = (sector_t) (numbits);
+        buf->f_ffree = (sector_t) (numbits) - freebits;
+ #endif
+-------------------
+Intel China Software Lab.
+iNet: 8-752-1243
+8621-52574545-1243(O)
+503-712-26740
 
-Steps to duplicate:
-
-1. create 1000 files in node1
-
-2. in the same time, create another 1000 files at the same point in
-node2
-
-Then, I can see 2000 files in node2 but only 1000 files in node1
-
-(I have submitted a bug#117 to oss.oracle.com bugzillia)
-
-Thanx.
-
-Aaron
-
-Intel China Software Lab
-
-Tel:  8621-52574545 Ext.1587
-
-E_mail:yukun.chen@intel.com
+xfling@users.sourceforge.net
+Opinions are my own and don't represent those of my employer 
