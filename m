@@ -1,9 +1,8 @@
-From: Kurt Hackel <Kurt.Hackel@oracle.com>
-Date: Wed Apr  7 23:56:23 2004
-Subject: [Ocfs2-devel] Is hardlink support in the todo list?
-In-Reply-To: <3ACA40606221794F80A5670F0AF15F8403E42EE4@PDSMSX403.ccr.corp.intel.com>
-References: <3ACA40606221794F80A5670F0AF15F8403E42EE4@PDSMSX403.ccr.corp.intel.com>
-Message-ID: <20040408045617.GB32526@ca2.us.oracle.com>
+From: Zhang, Sonic <sonic.zhang@intel.com>
+Date: Thu Apr  8 00:40:31 2004
+Subject: [Ocfs2-devel] Fail to mount an OCFS volume for the second time
+	under kernel 2.6.
+Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E03B65E55@PDSMSX403.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,30 +11,57 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi,
 
-It is currently not planned for version 2, but it would not be too
-difficult to implement.  With recent changes to inode handling this is
-made much easier.  The best approach based on the disk structure that is
-already there would be to have the first file entry be the "master" for
-the hardlink, and all other names which are added later would have a
-pointer back to this file entry.  We have flags in the fs already for
-handling the case where the master is deleted (marking it so as not to
-show up in readdir).  Would just need to do some refcounting on the
-master to do final cleanup.  Renames would be just like they are today
-for regular files, but would just need to migrate the "master" pointer
-to the new file entry instead of the data pointers.
+	I checked this bug on kernel 2.4. It doesn't occur.
+	So, this bug is related to kernel 2.6 porting.
 
-If anyone feels like implementing this (hint hint ;-) we can discuss the
-specifics further.
 
-Thanks!
--kurt
+*********************************************
+Sonic Zhang
+Software Engineer
+Intel China Software Lab
+Tel: (086)021-52574545-1667
+iNet: 752-1667
+*********************************************=20
 
-On Thu, Apr 08, 2004 at 10:46:43AM +0800, Ling, Xiaofeng wrote:
-> Hi,
->      It seems currently hardlink is not support by ocfs2,  is it planned
-> to do?
-> Is it possible for the current ocfs format?
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+-----Original Message-----
+From: ocfs2-devel-bounces@oss.oracle.com =
+[mailto:ocfs2-devel-bounces@oss.oracle.com] On Behalf Of Zhang, Sonic
+Sent: 2004=C4=EA4=D4=C27=C8=D5 17:25
+To: Ocfs2-Devel
+Subject: [Ocfs2-devel] Fail to mount an OCFS volume for the second time =
+under kernel 2.6.
+
+Hi,
+
+	After check out the latest svn source, I found I fail to mount
+an OCFS volume for the second time under kernel 2.6. The system will
+halt if I do so. But, I remember I did it successfully in the former
+version. I submitted it into the bugzilla.
+
+See following details.
+
+Steps:
+1. create ocfs volume.
+2. mount this volume.
+3. umount this volume.
+4. mount this volume again.
+
+Results:
+System halt with error information.
+JBD: no valid journal superblock found
+(1342) ERROR: status=3D-22, fs/ocfs2/osb.c, 407
+(1342) ERROR: status=3D-22, fs/ocfs2/super.c, 1032
+
+
+*********************************************
+Sonic Zhang
+Software Engineer
+Intel China Software Lab
+Tel: (086)021-52574545-1667
+iNet: 752-1667
+*********************************************=20
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel@oss.oracle.com
+http://oss.oracle.com/mailman/listinfo/ocfs2-devel
