@@ -1,96 +1,122 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Mon Jun 14 08:04:19 2004
-Subject: [Ocfs2-devel] [PATCH] use huge_{de,en}_code_dev directly
-Message-ID: <20040614130415.GA29963@lst.de>
+Date: Mon Jun 14 08:35:05 2004
+Subject: [Ocfs2-devel] [PATCH] dcache.c polishing
+Message-ID: <20040614133500.GA30415@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-no need for wrappers, just implement the 2.6ish function names on 2.4
-aswell.
+kill dead ocfs_empty stuff, cleanup d_revalidate handling.
 
 
-Index: src/ocfs_compat.h
+Index: dcache.c
 ===================================================================
---- src/ocfs_compat.h	(revision 1091)
-+++ src/ocfs_compat.h	(working copy)
-@@ -82,13 +88,13 @@
- }
- #endif
+--- dcache.c	(revision 1091)
++++ dcache.c	(working copy)
+@@ -44,24 +44,11 @@
+ #define OCFS_DEBUG_CONTEXT    OCFS_DEBUG_CONTEXT_DCACHE
  
--static inline dev_t ocfs_decode_dev(u64 val)
-+static inline dev_t huge_decode_dev(u64 val)
- {
- 	u16 val16 = (u16)(val & 0xFFFFULL);
- 	return MKDEV((val16 >> 8) & 0xFF, val16 & 0xFF);
- }
  
--static inline u64 ocfs_encode_dev(dev_t dev)
-+static inline u64 huge_encode_dev(dev_t dev)
- {
- 	return (u64)((MAJOR(dev) << 8) | MINOR(dev));
- }
-@@ -99,16 +105,6 @@
- 
- #define ocfs_get_seconds(t) ((t).tv_sec)
- 
--static inline dev_t ocfs_decode_dev(u64 val)
--{
--	return huge_decode_dev(val);
--}
+-static int ocfs_empty_func(struct dentry *dentry, void *ignore);
 -
--static inline u64 ocfs_encode_dev(dev_t dev)
--{
--	return huge_encode_dev(dev);
--}
+-/*
+- * ocfs_dentry_revalidate()
+- *
+- */
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd)
+-#else
+-int ocfs_dentry_revalidate (struct dentry *dentry, int flags)
+-#endif
++static int ocfs_dentry_revalidate24(struct dentry *dentry, int flags)
+ {
+-	int ret = 0;    /* if all else fails, just return false */
+ 	struct inode *inode = dentry->d_inode;
++	int ret = 0;    /* if all else fails, just return false */
+ 	ocfs_super *osb;
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-	int flags = nd ? nd->flags : 0;
+-#endif
+ 
+ 	LOG_ENTRY_ARGS ("(0x%p, %d, '%*s')\n", dentry, flags,
+ 			dentry->d_name.len, dentry->d_name.name);
+@@ -106,24 +93,21 @@
+ 
+ 	LOG_EXIT_INT (ret);
+ 	return ret;
+-}				/* ocfs_dentry_revalidate */
 -
- #endif  /* LINUX_VERSION_CODE < 2.6 */
+-
+-/* exits if it finds any hashed dentries */
+-static int ocfs_empty_func(struct dentry *dentry, void *ignore)
+-{
+-	return 1;
+ }
  
- #ifndef BITS_TO_LONGS
-Index: src/namei.c
+-
+-/*
+- * ocfs_empty()
+- *
+- */
+-int ocfs_empty (struct dentry *dentry)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++static int ocfs_dentry_revalidate(struct dentry *dentry, struct nameidata *nd)
+ {
+-	return ocfs_foreach_child (dentry, ocfs_empty_func, NULL);
++	return ocfs_dentry_revalidate24(dentry, nd ? nd->flags : 0);
+ }
++struct dentry_operations ocfs_dentry_ops = {
++	.d_revalidate		= ocfs_dentry_revalidate,
++};
++#else
++struct dentry_operations ocfs_dentry_ops = {
++	.d_revalidate		= ocfs_dentry_revalidate24,
++};
++#endif
+ 
+ /*
+  * ocfs_foreach_child()
+@@ -157,6 +141,4 @@
+ 
+ 	LOG_EXIT_INT (ret);
+ 	return ret;
+-}				/* ocfs_foreach_child */
+-
+-
++}
+Index: dcache.h
 ===================================================================
---- src/namei.c	(revision 1091)
-+++ src/namei.c	(working copy)
-@@ -438,7 +436,7 @@
- 	fe->i_gid = current->fsgid;
- 	fe->i_mode = mode;
- 	if (S_ISCHR (mode) || S_ISBLK (mode))
--		fe->id1.dev1.i_rdev = ocfs_encode_dev(dev);
-+		fe->id1.dev1.i_rdev = huge_encode_dev(dev);
+--- dcache.h	(revision 1091)
++++ dcache.h	(working copy)
+@@ -29,12 +29,8 @@
+ #ifndef OCFS2_DCACHE_H
+ #define OCFS2_DCACHE_H
  
- 	if (S_ISLNK (mode) || S_ISDIR (mode) || S_ISREG (mode)) 
- 		atomic_set(GET_INODE_CLEAN_SEQ(inode), atomic_read(&osb->clean_buffer_seq));
-Index: src/inode.c
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-int ocfs_dentry_revalidate(struct dentry *dentry, struct nameidata *nd);
+-#else
+-int ocfs_dentry_revalidate(struct dentry *dentry, int flags);
+-#endif
+-int ocfs_empty(struct dentry *dentry);
++extern struct dentry_operations ocfs_dentry_ops;
++
+ int ocfs_foreach_child(struct dentry *dentry,
+ 		       int (*func)(struct dentry *, void *),
+ 		       void *data);
+Index: namei.c
 ===================================================================
---- src/inode.c	(revision 1091)
-+++ src/inode.c	(working copy)
-@@ -366,8 +366,7 @@
+--- namei.c	(revision 1091)
++++ namei.c	(working copy)
+@@ -105,10 +105,6 @@
+ static int ocfs_orphan_add(ocfs_super *osb, ocfs_journal_handle *handle,
+ 			   struct inode *inode, ocfs2_dinode *fe);
  
- 	inode->i_version = 1;
- 	inode->i_generation = le32_to_cpu(fe->i_generation);
--	inode->i_rdev =
--		ocfs_decode_dev(le64_to_cpu(fe->id1.dev1.i_rdev));
-+	inode->i_rdev = huge_decode_dev(le64_to_cpu(fe->id1.dev1.i_rdev));
- 	inode->i_mode = fe->i_mode;
- 	inode->i_uid = fe->i_uid;
- 	inode->i_gid = fe->i_gid;
-@@ -533,7 +532,7 @@
- 	fe = OCFS_BH_GET_DATA_READ(bh);
- 	sysfile = le32_to_cpu(fe->i_flags) & OCFS2_SYSTEM_FL;
- 	if (S_ISCHR(fe->i_mode) || S_ISBLK(fe->i_mode))
--    		inode->i_rdev = ocfs_decode_dev(le64_to_cpu(fe->id1.dev1.i_rdev));
-+    		inode->i_rdev = huge_decode_dev(le64_to_cpu(fe->id1.dev1.i_rdev));
- 
- 	ocfs_populate_inode (inode, fe, 0);
- 
-@@ -2037,7 +2034,7 @@
- 	     	    S_ISSOCK(fe->i_mode)) {
- 			inode->i_rdev = OCFS_NODEV;
- 			init_special_inode(inode, inode->i_mode,
--					   ocfs_decode_dev(le64_to_cpu(fe->id1.dev1.i_rdev)));
-+					   huge_decode_dev(le64_to_cpu(fe->id1.dev1.i_rdev)));
- 		}
- 
- 		fel = &fe->id2.i_list;
+-static struct dentry_operations ocfs_dentry_ops = {
+-	.d_revalidate = ocfs_dentry_revalidate	// let's test it out!
+-};
+-
+ static inline int ocfs_add_entry(ocfs_journal_handle *handle, 
+ 				 struct dentry *dentry, 
+ 				 struct inode *inode, __u64 inode_off, 
