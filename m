@@ -1,45 +1,60 @@
-From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Wed Mar 17 04:05:57 2004
-Subject: [Ocfs2-devel] [Bug] mmap fail for ocfs2-1.9.9 in 2.4.20
-Message-ID: <3ACA40606221794F80A5670F0AF15F84039757B5@PDSMSX403.ccr.corp.intel.com>
+From: Rusty Lynch <rusty@linux.co.intel.com>
+Date: Wed Mar 17 12:25:38 2004
+Subject: [Ocfs2-devel] [Build PATCH]Add --enable-lockres-debug
+Message-ID: <200403171825.i2HIPRIn022075@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The test is from Open Posix Test Suite. http://openposix.sf.net
-attach is the failed case.
-mount /tmp with ocfs2 and run the case will fail.
+The following patch just enables existing lock resource debug code
+that already exist in ocfs.h.  
 
-> -----Original Message-----
-> From: Mark Fasheh [mailto:mark.fasheh@oracle.com] 
-> Sent: 2004��3��17�� 9:03
-> To: Ling, Xiaofeng
-> Cc: ocfs2-devel@oss.oracle.com
-> Subject: Re: [Ocfs2-devel] [Bug] mmap fail for ocfs2-1.9.9 in 2.4.20
-> 
-> 
-> On Tue, Mar 16, 2004 at 05:45:07PM +0800, Ling, Xiaofeng wrote:
-> > do the follow steps, on ext2, it is ok. but on ocfs2, it fails,
-> > 
-> >  Test Steps:
-> >   1. Create a file, while it is open call unlink().
-> What sort of return code do you get from unlink? We don't 
-> support delete while a file is still open, so it's not 
-> surpise that the file is still there after all this -- we 
-> can't delete it!
-> 	--Mark
-> 
-> --
-> Mark Fasheh
-> Software Developer, Oracle Corp
-> mark.fasheh@oracle.com
-> 
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: 12-1.c
-Type: application/octet-stream
-Size: 3204 bytes
-Desc: 12-1.c
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040317/bfc5cefb/12-1.obj
+    --rusty
+
+Index: configure.in
+===================================================================
+--- configure.in	(revision 781)
++++ configure.in	(working copy)
+@@ -104,6 +104,13 @@
+ fi
+ AC_SUBST(OCFS_MEMDEBUG)
+ 
++AC_ARG_ENABLE(lockres-debug, [  --enable-lockres-debug=[yes/no]     Turn on lock resource debugging [default=no]],,enable_lockres_debug=no)
++OCFS_DBG_LOCKRES=
++if test "x$enable_lockres_debug" = "xyes"; then
++  OCFS_DBG_LOCKRES=yes
++fi
++AC_SUBST(OCFS_DBG_LOCKRES)
++
+ AC_ARG_ENABLE(trace, [  --enable-trace=[yes/no]         Turn on tracing [default=yes]],,enable_trace=yes)
+ OCFS_TRACE=
+ if test "x$enable_trace" = "xyes"; then
+Index: Config.make.in
+===================================================================
+--- Config.make.in	(revision 781)
++++ Config.make.in	(working copy)
+@@ -60,6 +60,7 @@
+ OCFS_LARGEIO = @OCFS_LARGEIO@
+ OCFS_AIO = @OCFS_AIO@
+ OCFS_MEMDEBUG = @OCFS_MEMDEBUG@
++OCFS_DBG_LOCKRES = @OCFS_DBG_LOCKRES@
+ OCFS_TRACE = @OCFS_TRACE@
+ OCFS_PROCESSOR = @OCFS_PROCESSOR@
+ 
+Index: src/Makefile
+===================================================================
+--- src/Makefile	(revision 781)
++++ src/Makefile	(working copy)
+@@ -33,6 +33,10 @@
+ GLOBAL_DEFINES += -DOCFS_LINUX_MEM_DEBUG -DDEBUG_SLAB_ALLOCS
+ endif
+ 
++ifdef OCFS_DBG_LOCKRES
++GLOBAL_DEFINES += -DOCFS_DBG_LOCKRES
++endif
++
+ ifdef OCFS_AIO
+ GLOBAL_DEFINES += -DAIO_ENABLED
+ endif
