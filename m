@@ -1,38 +1,54 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Tue Jun 22 06:51:55 2004
-Subject: [Ocfs2-devel] [PATCH] fixup journal-related ifdef mess
-In-Reply-To: <20040622004806.GF1771@ca-server1.us.oracle.com>
-References: <20040620144000.GB16073@lst.de>
-	<20040622004806.GF1771@ca-server1.us.oracle.com>
-Message-ID: <20040622114842.GA14441@lst.de>
+Date: Tue Jun 22 07:22:59 2004
+Subject: [Ocfs2-devel] [PATCH] provide strsep for ancient kernels
+Message-ID: <20040622122254.GA14879@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jun 21, 2004 at 05:48:06PM -0700, Mark Fasheh wrote:
-> Thanks for all the patches so far.
-> 
-> (This patch has been committed, but before I could take a look at it)
-> 
-> What's wrong with how this was done before?
-> 
-> I agree with the goal of reducing code clutter, and making it easier to be
-> a  2.6 file system, so why can't we do ext3 style thin wrappers around those
-> functions (look at ext3_jbd.h to see what I'm going for) instead of doing
-> things like 
-> 
-> > +#define journal_start(journal, nblocks)      \
-> > +     ocfs_journal_start(journal, nblocks)
-> > +#define journal_stop(handle) \
-> > +     ocfs_journal_stop(handle)
-> 
-> which winds up defining a macro with the same name as a function (blech! ;)
-> 
-> Of course, ext3 had some other reasons for doing it that way too, but it
-> seemed to me to be a bit more obvious...
 
-Just using the latest kernel release native function is the cleanest
-approach imho, wrappers just obsfucate the code.  I don't think this is
-documented anywhere.
+Index: src/super.c
+===================================================================
+--- src/super.c	(revision 1182)
++++ src/super.c	(working copy)
+@@ -435,13 +435,7 @@
+ 
+ 	LOG_TRACE_ARGS("strlen(options) = %u, options = \"%s\"\n", (unsigned int)strlen(options), options);
+ 
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-	while ( (c = strsep(&options, ",")) != NULL)
+-#else
+-	for (c = strtok (options, ","); c != NULL; c = strtok (NULL, ","))
+-#endif
+-//	while ( (c = strsep(&options, ",")) != NULL) 
+-	{
++	while ((c = strsep(&options, ",")) != NULL) {
+ 		if ((value = strchr (c, '=')) != NULL)
+ 			*value++ = 0;
+ 		if (!strcmp (c, "gid")) {
+Index: src/ocfs_compat.h
+===================================================================
+--- src/ocfs_compat.h	(revision 1182)
++++ src/ocfs_compat.h	(working copy)
+@@ -87,6 +87,19 @@
+ 	sb->s_blocksize_bits = bits;
+ 	return sb->s_blocksize;
+ }
++
++static inline char *strsep(char **s, const char *ct)
++{
++	char *sbegin = *s, *end;
++
++	if (sbegin == NULL)
++		return NULL;
++	end = strpbrk(sbegin, ct);
++	if (end)
++		*end++ = '\0';
++	*s = end;
++	return sbegin;
++}
+ #endif
+ 
+ typedef long sector_t;
