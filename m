@@ -1,26 +1,32 @@
-From: Villalovos, John L <john.l.villalovos@intel.com>
-Date: Fri Apr 30 12:29:55 2004
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Fri Apr 30 12:45:05 2004
 Subject: [Ocfs2-devel] Two questions
-Message-ID: <60C14C611F1DDD4198D53F2F43D8CA3B88C608@orsmsx410.jf.intel.com>
+In-Reply-To: <60C14C611F1DDD4198D53F2F43D8CA3B88C608@orsmsx410.jf.intel.com>
+References: <60C14C611F1DDD4198D53F2F43D8CA3B88C608@orsmsx410.jf.intel.com>
+Message-ID: <20040430174459.GF9043@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2/src/hash.c:
+On Fri, Apr 30, 2004 at 10:29:48AM -0700, Villalovos, John L wrote:
+> In ocfs2/src/hash.c:
+> 
+> HASHBUCKET:  This is a linked list which does not use the kernel's
+> linked list code.  Is there a reason for this?
+Legacy. It'll actually be gone soon as the only thing using it is the
+lockres hash, which will soon be merged into the inode hash.
 
-HASHBUCKET:  This is a linked list which does not use the kernel's
-linked list code.  Is there a reason for this?
+> BARF_BARF_BARF: Is there a reason for that being there?  If so maybe it
+> should be documented.
+I'll let Kurt explain that one :)
 
-BARF_BARF_BARF: Is there a reason for that being there?  If so maybe it
-should be documented.
+We sometimes put #warnings and whatnot in the code for things we want to
+revisit in the future...
+	--Mark
 
-Thanks,
-John
-
--- 
-A: Because it messes up the order in which people normally read text.
-Q: Why is top-posting such a bad thing?
-A: Top-posting
-Q: What is the most annoying thing on usenet and in e-mail?
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
