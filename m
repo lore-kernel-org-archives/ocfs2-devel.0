@@ -1,35 +1,32 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu Aug 19 21:31:33 2004
+Date: Thu Aug 19 21:39:36 2004
 Subject: [Ocfs2-devel] LTP system call test all pass!
-In-Reply-To: <20040820021931.GQ2098@ca-server1.us.oracle.com>
+In-Reply-To: <20040820023128.GR2098@ca-server1.us.oracle.com>
 References: <3ACA40606221794F80A5670F0AF15F84053D990A@pdsmsx403>
 	<20040820021931.GQ2098@ca-server1.us.oracle.com>
-Message-ID: <20040820023128.GR2098@ca-server1.us.oracle.com>
+	<20040820023128.GR2098@ca-server1.us.oracle.com>
+Message-ID: <20040820023932.GS2098@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Aug 19, 2004 at 07:19:31PM -0700, Joel Becker wrote:
-> On Fri, Aug 20, 2004 at 10:16:33AM +0800, Ling, Xiaofeng wrote:
-> > Does ocfs support loop device now?
-> > LSB test need loop device and maybe  a small loop device.  
-> 
-> 	"Why wouldn't it", is the question, I guess.  What was the problem
-> before?  Worth trying out, it might just work.
+On Thu, Aug 19, 2004 at 07:31:28PM -0700, Joel Becker wrote:
+> 	I just created a file on ocfs2, ran mkfs.ext3, and mounted it
+> with loopback ("mount -o loop /ocfs2/loopme /mnt/tmp").  It worked fine.
+> If you have any problems, let us know.
 
-	I just created a file on ocfs2, ran mkfs.ext3, and mounted it
-with loopback ("mount -o loop /ocfs2/loopme /mnt/tmp").  It worked fine.
-If you have any problems, let us know.
+	Yosh tells me that the problem is creating an OCFS2 on the
+loopback, not creating a loopback file on an OCFS2.  Well, I tried the
+other ("losetup /dev/loop0 /tmp/loopme; mkfs.ocfs2 /dev/loop0; mount
+/dev/loop0") and it worked fine as well.
 
 Joel
-
 -- 
 
-"You can get more with a kind word and a gun than you can with
- a kind word alone."
-         - Al Capone
+"The first thing we do, let's kill all the lawyers."
+                                        -Henry VI, IV:ii
 
 Joel Becker
 Senior Member of Technical Staff
