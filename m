@@ -1,7 +1,8 @@
 From: John L. Villalovos <john.l.villalovos@intel.com>
-Date: Fri Jul  2 13:00:14 2004
-Subject: [Ocfs2-devel] Patch to fix the dist rule in ocfs-tools
-Message-ID: <40E5A2A8.6030700@intel.com>
+Date: Fri Jul  2 13:20:24 2004
+Subject: [Ocfs2-devel] 
+	Patch to fix dist rule in ocfs-tools with another minor fix
+Message-ID: <40E5A75E.3040203@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -24,6 +25,15 @@ Index: ocfs2/debugfs.ocfs2/Makefile
 ===================================================================
 --- ocfs2/debugfs.ocfs2/Makefile	(revision 127)
 +++ ocfs2/debugfs.ocfs2/Makefile	(working copy)
+@@ -12,7 +12,7 @@
+  CFLAGS += -Wall -O2
+
+  CFILES = main.c commands.c dump.c readfs.c utils.c journal.c
+-HFILES = include/main.h include/commands.h include/dump.h include/readfs.h include/utils.h include/journal.h
++HFILES = include/main.h include/commands.h include/dump.h include/readfs.h include/utils.h include/journal.h include/jbd.h
+
+  OBJS = $(subst .c,.o,$(CFILES))
+
 @@ -21,4 +21,9 @@
   debugfs.ocfs2: $(OBJS)
   	$(LINK) $(GLIB_LIBS) -lreadline -lncurses
