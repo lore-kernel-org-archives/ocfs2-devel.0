@@ -1,34 +1,38 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon Aug  9 14:05:18 2004
-Subject: [Ocfs2-devel] Cluster sizes allowed?
-In-Reply-To: <60C14C611F1DDD4198D53F2F43D8CA3B0194AA20@orsmsx410>
-References: <60C14C611F1DDD4198D53F2F43D8CA3B0194AA20@orsmsx410>
-Message-ID: <20040809190512.GN2595@ca-server1.us.oracle.com>
+From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
+Date: Tue Aug 10 17:19:46 2004
+Subject: [Ocfs2-devel] [BUG] write and read on other node are not consistent
+Message-ID: <3ACA40606221794F80A5670F0AF15F840520BD03@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Aug 09, 2004 at 10:13:11AM -0700, Villalovos, John L wrote:
-> What are the cluster sizes allowed?
 
-	The formula is 2^x where 12 <= x <= 20.  If you need a formula.
-The acutal on-disk format stores the clustersize as the exponent
-(OCFS_RAW_SB(sb_dinode)->s_clustersize_bits).  So
-12 <= s_clustersize_bits <= 20, and clustersize == 1 <<
-s_clustersize_bits.
+svn 1343 kernel 2.6.6
+try this case
+test1()
+{       
+ 	  WD="aaaaaaaa"
+        ssh $REMOTE "echo $WD > /ocfs/testcluster$$"
+        sleep 10
+        RD=`cat /ocfs/testcluster$$`
+        if [ "x$WD" == "x$RD" ];then
+                echo PASS
+        else
+                echo FAIL
+        fi
+}
+It fails, so now write on node and read from anther is not consistent.
+what 
+read from anther is some random data. 
+But after remount, it's correct.
 
-Joel
+-------------------
+Intel China Software Lab.
+iNet: 8-752-1243
+8621-52574545-1243(O)
+503-712-6740(Temp)
 
--- 
-
-Life's Little Instruction Book #356
-
-	"Be there when people need you."
-
-Joel Becker
-Senior Member of Technical Staff
-Oracle Corporation
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+xfling@users.sourceforge.net
+Opinions are my own and don't represent those of my employer 
