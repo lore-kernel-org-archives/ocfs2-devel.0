@@ -1,33 +1,31 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sun Mar  6 05:11:50 2005
-Subject: [Ocfs2-devel] [jeffm@suse.com: [PATCH 1/4] vfs: adds the S_PRIVATE
-	flag and adds use to security]
-Message-ID: <20050306111147.GQ27331@ca-server1.us.oracle.com>
+Date: Fri Mar 18 00:14:34 2005
+Subject: [Ocfs2-devel] New cluster initialization ABI
+Message-ID: <20050318061435.GL2714@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-System inodes, anyone?
+Folks,
+	The tiny clustering software that OCFS2 uses these days, O2CB,
+has had a userspace<->kernel change.  The new interface uses usysfs
+instead of ioctl(2).
+	You will need revision 2006 of ocfs2 and revision 668 of
+ocfs2-tools.  The two revisions go together.  Starting the clustering
+software with /etc/init.d/o2cb works just as before.
 
 Joel
 
 -- 
 
-"I always thought the hardest questions were those I could not answer.
- Now I know they are the ones I can never ask."
-			- Charlie Watkins
+"Every day I get up and look through the Forbes list of the richest
+ people in America. If I'm not there, I go to work."
+        - Robert Orben
 
 Joel Becker
 Senior Member of Technical Staff
 Oracle
 E-mail: joel.becker@oracle.com
 Phone: (650) 506-8127
--------------- next part --------------
-An embedded message was scrubbed...
-From: Jeffrey Mahoney <jeffm@suse.com>
-Subject: [PATCH 1/4] vfs: adds the S_PRIVATE flag and adds use to security
-Date: Fri, 4 Mar 2005 14:52:04 -0500
-Size: 12588
-Url: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20050306/606770e5/attachment.mht
