@@ -1,23 +1,24 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Tue Mar 16 18:35:15 2004
-Subject: [Ocfs2-devel] [PATCH]2.6 mechanism for holding private inode data
-In-Reply-To: <20040315221654.GD20057@ca-server1.us.oracle.com>
-References: <200403110449.i2B4ncDw032388@penguin.co.intel.com>
-	<20040311215300.GA7623@penguin.co.intel.com>
-	<20040312204747.GA20057@ca-server1.us.oracle.com>
-	<20040312210701.GA12754@penguin.co.intel.com>
-	<20040313000913.GB20057@ca-server1.us.oracle.com>
-	<20040314223440.GA1408@penguin.co.intel.com>
-	<20040315221654.GD20057@ca-server1.us.oracle.com>
-Message-ID: <20040317003510.GF20057@ca-server1.us.oracle.com>
+Date: Tue Mar 16 18:37:46 2004
+Subject: [Ocfs2-devel] Re: [PATCH]bugfix for unlinking on 2.6 kernel
+In-Reply-To: <200403150058.i2F0wnIc001649@penguin.co.intel.com>
+References: <200403150058.i2F0wnIc001649@penguin.co.intel.com>
+Message-ID: <20040317003741.GG20057@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Alright, things look good for this patch -- I've committed it to SVN.
-I'll prolly change the generic_ip to an ocfs_inode * later.
+On Sun, Mar 14, 2004 at 04:58:49PM -0800, Rusty Lynch wrote:
+> On a 2.6 kernel, sys_unlink will wrap the call to the filesystem
+> unlink function with atomic_inc/atomic_dec of the inode->i_count.
+> 
+> The following minimal patch fixes ocfs_unlink to take this into
+> consideration.  (Without this patch attempting to delete any file
+> on a ocfs2 volume from a 2.6 bases system would result in an -EBUSY
+> error.)
+Looks good.
 	--Mark
 
 --
