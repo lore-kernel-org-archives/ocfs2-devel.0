@@ -1,37 +1,36 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Tue Aug  3 13:57:09 2004
-Subject: [Ocfs2-devel] [Patch] use asynchronous journal commit in
-	ocfs_rename
-In-Reply-To: <3ACA40606221794F80A5670F0AF15F840509060C@pdsmsx403>
-References: <3ACA40606221794F80A5670F0AF15F840509060C@pdsmsx403>
-Message-ID: <20040803185703.GM8008@ca-server1.us.oracle.com>
+From: Villalovos, John L <john.l.villalovos@intel.com>
+Date: Tue Aug  3 14:14:42 2004
+Subject: [Ocfs2-devel] Calculating volume size from superblock
+Message-ID: <60C14C611F1DDD4198D53F2F43D8CA3B01864F52@orsmsx410>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Aug 03, 2004 at 03:49:57AM +0800, Ling, Xiaofeng wrote:
-> ok. I've made the patch. see attach. 
-Coolness, next time could you include it inline in the mail?  :)
+joel.becker@oracle.com wrote:
+> On Mon, Aug 02, 2004 at 03:00:44PM -0700, Villalovos, John L wrote:
+>> Just wondering.  As a possible RFE.  Is there any reason the size of
+>> the global bitmap could not be in the superblock?  It seems strange
+>> that in order to find out how big the filesystem is I have to
+>> actually traverse the filesystem.
+> 
+> 	Well, the global bitmap is what the global bitmap represents, if
+> you'll allow circular logic.  Why should the superblock need to be
+> updated if global bitmap information changes?  This actually matters
+> in a cluster.
 
-In ocfs_link, you did:
-ocfs_handle_add_lock(handle, OCFS_LKM_EXMODE, FLAG_FILE_CREATE, inode);
+So the global bitmap size changes on a regular basis?
 
-You left out the FLAG_FILE_UPDATE_OIN which is somewhat critical as it is
-what the other node keys on to know that it needs to update the inode
-information (otherwise i_nlink might've gotten out of sync).
+I guess I thought that once you formatted the file system the size of
+the global bitmap would be a constant size for the life of the
+filesystem.  (Until you added a resize capability).
 
-Also, tmpstat is no longer used in ocfs_link so I removed it.
+Is that not true?  If so I guess that explains it better why I need to
+traverse through the file system in order to figure out the size of it.
 
-I came across an unexpected bug in the way we handle symlinks, but the fix
-(which is unfortunately, something of a hack) was fairly simple.
+I'm just trying to make my life easier by not needing to traverse the
+file system.  Of course I haven't gone through every function in making
+the EVMS plugin so I may need to anyway :(
 
-I'm looking forward to just removing the checkpointing code altogether now
-:)
-	--Mark
-
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+John
