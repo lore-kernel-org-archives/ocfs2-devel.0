@@ -1,37 +1,24 @@
-From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Thu Apr  1 21:56:58 2004
-Subject: [Ocfs2-devel] [Patch] install module on 2.6
-Message-ID: <3ACA40606221794F80A5670F0AF15F8403D2C732@PDSMSX403.ccr.corp.intel.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Fri Apr  2 12:54:43 2004
+Subject: [Ocfs2-devel] Can you check the patch for bug 48 and commit?
+In-Reply-To: <37FBBA5F3A361C41AB7CE44558C3448E03B65E4D@PDSMSX403.ccr.corp.intel.com>
+References: <37FBBA5F3A361C41AB7CE44558C3448E03B65E4D@PDSMSX403.ccr.corp.intel.com>
+Message-ID: <20040402185439.GG10672@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-It seems on 2.6 kernel, "make install" does not work.
-A simple patch to fix it
+On Wed, Mar 31, 2004 at 12:10:22PM +0800, Zhang, Sonic wrote:
+> Hi Mark,
+> 
+> 	OK, I made the same NPTL fix. 
+> 	Please see the attachment.
+You lost the if (signal_pending(current)) line! I fixed it myself.
+	--Mark
 
-
-Index: src/Makefile
-===================================================================
---- src/Makefile	(revision 833)
-+++ src/Makefile	(working copy)
-@@ -239,7 +239,13 @@
- 
- all:
- 	$(MAKE) -C $(KDIR) SUBDIRS=$(CURDIR) modules
-+install:install-ocfs
- 
-+install-ocfs: ocfs2.ko
-+	$(TOPDIR)/mkinstalldirs $(DESTDIR)$(MODULEDIR)/ocfs
-+	$(INSTALL_DATA) ocfs2.ko $(DESTDIR)$(MODULEDIR)/ocfs/ocfs2.ko
-+	depmod -a
-+
- endif # OCFS_KERNEL_2_6
- 
- include $(TOPDIR)/Postamble.make
-
-
--------------------
-Xiaofeng
-xfling@users.sourceforge.net
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
