@@ -1,29 +1,33 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu Dec 30 14:20:55 2004
-Subject: [Ocfs2-devel] Loading the OCFS2 clustering bits.
-Message-ID: <20041230202051.GP12210@ca-server1.us.oracle.com>
+Date: Sun Mar  6 05:11:50 2005
+Subject: [Ocfs2-devel] [jeffm@suse.com: [PATCH 1/4] vfs: adds the S_PRIVATE
+	flag and adds use to security]
+Message-ID: <20050306111147.GQ27331@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Folks,
-	The latest OCFS2 trees now require a clustering infrastructure
-we've dubbed O2CB for lack of a better name.  The latest OCFS2 tools
-contain a startup script to manage initializing this infrastructure.
-See the file README.O2CB from ocfs2-tools for more information.
+System inodes, anyone?
 
 Joel
 
---=20
+-- 
 
-Dort wo man B=C3=BCcher verbrennt, verbrennt man am Ende auch Mensch.
-(Wherever they burn books, they will also end up burning people.)
-	- Heinrich Heine
+"I always thought the hardest questions were those I could not answer.
+ Now I know they are the ones I can never ask."
+			- Charlie Watkins
 
 Joel Becker
 Senior Member of Technical Staff
-Oracle Corporation
+Oracle
 E-mail: joel.becker@oracle.com
 Phone: (650) 506-8127
+-------------- next part --------------
+An embedded message was scrubbed...
+From: Jeffrey Mahoney <jeffm@suse.com>
+Subject: [PATCH 1/4] vfs: adds the S_PRIVATE flag and adds use to security
+Date: Fri, 4 Mar 2005 14:52:04 -0500
+Size: 12588
+Url: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20050306/606770e5/attachment.mht
