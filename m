@@ -1,38 +1,42 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Tue Feb 17 17:09:37 2004
-Subject: [Ocfs2-devel] Re: Whats missing in mkfs?
-In-Reply-To: <200402172220.i1HMKv24008615@penguin.co.intel.com>
-References: <200402172220.i1HMKv24008615@penguin.co.intel.com>
-Message-ID: <20040217230932.GL26331@ca-server1.us.oracle.com>
+Date: Tue Feb 17 17:19:20 2004
+Subject: [Ocfs2-devel] osb->curr_trans_id
+In-Reply-To: <50D19C3AC815734C9E19FE4C4F6128A602A56902@orsmsx403.jf.intel.com>
+References: <50D19C3AC815734C9E19FE4C4F6128A602A56902@orsmsx403.jf.intel.com>
+Message-ID: <20040217231910.GM26331@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-There's a couple of things:
+On Tue, Feb 17, 2004 at 02:46:38PM -0800, Villalovos, John L wrote:
+> So I was looking at the TODO list and I see these two entries:
+> 
+> * get rid of osb->curr_trans_id as it was never used (always zero)
+> 
+> * get rid of all the:
+>         changeSeqNum = osb->curr_trans_id;
+>         DISK_LOCK_SEQNUM(fe) = changeSeqNum;
+>   code as it is equally useless.
+> 
+> So I was going to tackle this but I was wondering if there was anything
+> I should look out for.
+Yes, we've held off on this because we're not completely sure that it's
+useless (more like almost sure), so you can either wait until we're sure,
+or if you want to tackle it, be prepared to prove that it is indeed,
+completely useless :)
 
-We need to create and format the journal files. They should be 8 megs in
-size, and default to just creating journals for nodes 1-4. Basically what
-mkfs for an ext3 filesystem does. Also, the local alloc bitmap structures
-need to be created as well (one for each node). If you look at the calls to
-ocfs_journal_init (the exend_system_file call there) and ocfs_journal_create
-and ocfs_create_new_local_alloc in ocfs_check_volume, you'll see what i
-mean. Also, ocfs does a ton of other things in terms of initializing system
-files to the filesystem on "1st mount" which really should be moved into the
-format utility. Check out ocfs_create_root_dir_node for that.
-
-Essentially, we're doing a *ton* of stuff in kernel space, which really
-should be in userspace. If you're interested in tackling this, I'd be more
-than happy to coordinate :)
+> >From my quick perusing of the code it seems fairly simple but I am
+> probably missing something.
+> 
+> So before submitting a "dumb" patch I thought I see if there was any
+> comments on this.
+There's actually a long trail of code and values set from values set from
+values (some of which eventually hit disk) to follow, and basically none of
+us has had the chance to do so :)
 	--Mark
 
-On Tue, Feb 17, 2004 at 02:20:57PM -0800, Rusty Lynch wrote:
-> The TODO list has an item about finishing mkfs.
-> It looks like mkfs -t ocfs2 works fine.  Is there 
-> something specific that is missing
-> 
->     --rusty
 --
 Mark Fasheh
 Software Developer, Oracle Corp
