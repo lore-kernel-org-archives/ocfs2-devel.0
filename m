@@ -1,71 +1,92 @@
 From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Feb 26 19:15:10 2004
-Subject: [Ocfs2-devel] Plans for completing the 2.6 port
-Message-ID: <200402270114.i1R1EuST007250@penguin.co.intel.com>
+Date: Thu Feb 26 20:16:59 2004
+Subject: [Ocfs2-devel] [PATCH]2.6 fixes in journal.c
+Message-ID: <200402270216.i1R2GnW8007425@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I thought it would good to put down in words my plans for finishing
-the 2.6 port of ocfs2.  The target I am shooting for is acceptance in 
-the up and coming SuSE release that is based on a 2.6 kernel.
+The following is a patch that fixes some small 2.6 issues with
+journal.c
 
-This basically means we need to have a code drop ready by the end of
-the month, which is at the end of the week.  If it is ok for the first 
-code drop to have some major functional problems then this might be
-doable.
+* journal_get_write_access now has an additional "credits" argument
+  that appears to be safe to pass in as null.  (Other people are
+  doing it and the code in the latest bk tree always test for null
+  before attempting to incrementing it.)
+* small typo in an ocfs_iget call
+* remaining call to daemonize that is moved to the 2.6 safe
+  ocfs_daemonize call
+* WARNING!!! Here is the thing I am not sure about!
+  The lock_journal/unlock_journal calls do not exist anymore.
+  There is a journal_[un]lock_updates() function, but it is 
+  unclear when to use that function.
 
-So far I have approached a 2.6 port as:
-* fix build system
-* fix a bunch of compile errors just trying to get
-  to the point where a module is created that actually
-  loads
-* dive into bug fixing for 2.6 specific problems
+  I just removed the [un]lock_journal calls around a line where
+  we were tweaking the commit interval.
 
-Building against a 2.6 kernel with the current automake infrastructure:
------------------------------------------------------------------------
+    --rusty
 
-I have basically punted on this, creating my own cheesy Makefile that uses
-the kernel build system.  John is working on a better way to do this (at least
-something good enough to check-in to the tree and useful for a SLES9 spec
-file.)
-
-If anyone is trying to build against a 2.6 tree before John is able to submit
-a patch to Manish, my own hard coded version of a makefile can be found at 
-http://www.stinkycat.com/ocfs2/Makefile.
-
-Ability to do a clean compile:
-------------------------------
-
-Up until now, I have really just been working towards a clean compile.  A 
-large part of this is pretty simple, with little tweaks here and there for 
-small changes in various kernel structures (like changes in prototypes
-for the various vfs hooks.)  
-
-However there are a lot of changes that more in the realm of crossing my 
-fingers and hoping for the best, where I am copying what other file systems
-do without fully understanding why.  I am certain that there are plenty
-of gross errors that will become all to obvious as I attempt to actually
-use ocfs2 in a 2.6 kernel.
-
-I still have random fixes that I need to submit patches for, and then other
-areas I have patches for but are broken.  To get a clean compile you can
-use the following large patch will apply to svn version 36:
-
-http://www.stinkycat.com/ocfs2/massive_2_6_port.r36.patch
-
-Beware!!! The above patch will allow you to build a 2.6 module,
-load the module, and even mount the file system, BUT...  shame on 
-you if you try to actually read from the file system. :->
-
-Usable ocfs2 on a 2.6 system:
------------------------------
-
-As mentioned above, this is really the next major step.  With any luck
-the process of getting my patches into the svn repository will expose the
-some gross conceptual errors that exist in my current tree.
-
-This is where I will be enlisting the help of John and another colleague of 
-mine, Sonic Zhang, who is working out of Shanghai.
+Index: src/journal.c
+===================================================================
+--- src/journal.c	(revision 36)
++++ src/journal.c	(working copy)
+@@ -656,7 +656,7 @@
+ 		break;
+ 
+ 	case OCFS_JOURNAL_ACCESS_WRITE:
+-		status = journal_get_write_access(handle->k_handle, bh);
++		status = journal_get_write_access(handle->k_handle, bh, NULL);
+ 		break;
+ 
+ 	default:
+@@ -898,7 +898,7 @@
+ 	OCFS_BH_PUT_DATA(bh);
+ 	fe = NULL;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-	inode = ocfs_iget (sb, &args);
++	inode = ocfs_iget (osb->sb, &args);
+ #else
+ 	inode = ocfs_get_inode_from_offset(osb, args.offset, bh);
+ #endif
+@@ -934,9 +934,13 @@
+ 
+ 	LOG_TRACE_STR("Returned from journal_init_inode");
+ 	LOG_TRACE_ARGS("k_journal->j_maxlen = %u\n", k_journal->j_maxlen);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++	k_journal->j_commit_interval = OCFS_DEFAULT_COMMIT_INTERVAL;
++#else
+ 	lock_journal(k_journal);
+ 	k_journal->j_commit_interval = OCFS_DEFAULT_COMMIT_INTERVAL;
+ 	unlock_journal(k_journal);
++#endif
+ 
+ 	/* yay, pass the proper info back to our journal structure. */
+ 	osb->journal.osb = osb;
+@@ -1368,12 +1372,14 @@
+ 	ocfs_super *osb = ((struct ocfs_recover_arg *) arg)->osb;
+ 	int node_num = ((struct ocfs_recover_arg *) arg)->node_num;
+ 	int status = 0;
++	char proc[16];
+ 
+ 	LOG_ENTRY_ARGS("(node_num=%d, osb->node_num = %d)\n", node_num,
+ 		       osb->node_num);
+ 
+-	daemonize();
+-	reparent_to_init();
++	sprintf (proc, "ocfs2rec-%d", osb->osb_id);
++	ocfs_daemonize (proc, strlen(proc));
++
+ #ifdef HAVE_NPTL
+ 	spin_lock_irq (&current->sighand->siglock);
+ 	sigfillset(&current->blocked);
+@@ -1522,7 +1528,7 @@
+ 	OCFS_BH_PUT_DATA(bh);
+ 	fe = NULL;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-	inode = ocfs_iget (sb, &args);
++	inode = ocfs_iget (osb->sb, &args);
+ #else
+ 	inode = ocfs_get_inode_from_offset(osb, args.offset, bh);
+ #endif
