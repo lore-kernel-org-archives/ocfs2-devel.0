@@ -1,103 +1,273 @@
-From: Wim Coekaerts <wim.coekaerts@oracle.com>
-Date: Fri Jun 18 13:29:44 2004
-Subject: [Ocfs2-devel] some intersting result for ocfs2 performance
-In-Reply-To: <3ACA40606221794F80A5670F0AF15F8404AE1150@pdsmsx403>
-References: <3ACA40606221794F80A5670F0AF15F8404AE1150@pdsmsx403>
-Message-ID: <20040618182937.GG5446@ca-server1.us.oracle.com>
+From: Christoph Hellwig <hch@lst.de>
+Date: Sun Jun 20 09:07:19 2004
+Subject: [Ocfs2-devel] [PATCH] file_operations belong to file.c
+Message-ID: <20040620140706.GA15757@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-yeah right now, when you close the file, the stuff is flushed.
-
-one think you should do is run the test but when you dod the reread,
-make sure the files are not closed. have another process keep them open
-or so.
-
-
-On Fri, Jun 18, 2004 at 03:23:26PM +0800, Ling, Xiaofeng wrote:
-> I made simple C program to test for the reading performance. see attach.
-> The result are interesting.
-> The program will open the file and repeat read(-p specified), each time
-> the throughput is print out.
-> 
-> The first time read, the performance is low,it's reasonable, but after
-> sleep 6 seconds, the next read 
-> performance will also drop, and if only sleep 5 seconds, it won't.
-> So, it looks like after 5 seconds, the cache will be thrown out, it that
-> ture?
-> 
-> but compare with ext3 (the last data, 100 times), seems the cache in
-> ocfs2 doesn't take effective at all.
-> 
-> run on svn 1122.
-> =======================================================
-> ./ben -f /ocfs/ttt -s 128 -a -p 10 --create
-> 
-> create file /ocfs/ttt of size 128K successfully
-> total:128.000K Time:22.010 Rate:5816KB
-> total:128.000K Time:11.952 Rate:10710KB
-> total:128.000K Time:11.997 Rate:10669KB
-> total:128.000K Time:12.055 Rate:10618KB
-> total:128.000K Time:11.891 Rate:10764KB
-> total:128.000K Time:11.996 Rate:10670KB
-> total:128.000K Time:12.023 Rate:10646KB
-> total:128.000K Time:11.907 Rate:10750KB
-> total:128.000K Time:12.071 Rate:10604KB
-> total:128.000K Time:12.000 Rate:10667KB
-> total:1280.000K Time:130.101 Rate:9839KB
-> 
-> ./ben -f /ocfs/ttt -s 128 -a -p 10 --sleep 5
-> 
-> total:128.000K Time:20.667 Rate:6193KB
-> total:128.000K Time:11.903 Rate:10754KB
-> total:128.000K Time:12.011 Rate:10657KB
-> total:128.000K Time:11.917 Rate:10741KB
-> total:128.000K Time:8.272 Rate:15474KB
-> total:128.000K Time:8.287 Rate:15446KB
-> total:128.000K Time:12.124 Rate:10558KB
-> total:128.000K Time:12.014 Rate:10654KB
-> total:128.000K Time:11.953 Rate:10709KB
-> total:128.000K Time:11.990 Rate:10676KB
-> total:1280.000K Time:5121.921 Rate:250KB
-> 
-> ./ben -f /ocfs/ttt -s 128 -a -p 10 --sleep 6
-> 
-> total:128.000K Time:12.325 Rate:10385KB
-> total:128.000K Time:11.925 Rate:10734KB
-> total:128.000K Time:11.928 Rate:10731KB
-> total:128.000K Time:11.966 Rate:10697KB
-> total:128.000K Time:11.990 Rate:10676KB
-> total:128.000K Time:12.065 Rate:10609KB
-> total:128.000K Time:20.131 Rate:6358KB
-> total:128.000K Time:11.980 Rate:10684KB
-> total:128.000K Time:12.032 Rate:10638KB
-> total:128.000K Time:11.907 Rate:10750KB
-> total:1280.000K Time:6129.400 Rate:209KB
-> 
-> 
-> --------------------------------
-> for ext3
-> 
-> ./ben -f /ext3/ttt -s 128 -a -p 10 --create
-> 
-> create file /ocfs2/ttt of size 128K successfully
-> total:128.000K Time:0.114 Rate:1122807KB
-> total:128.000K Time:0.052 Rate:2461538KB
-> total:128.000K Time:0.050 Rate:2560000KB
-> total:128.000K Time:0.050 Rate:2560000KB
-> total:128.000K Time:0.050 Rate:2560000KB
-> total:128.000K Time:0.050 Rate:2560000KB
-> total:128.000K Time:0.050 Rate:2560000KB
-> total:128.000K Time:0.051 Rate:2509804KB
-> total:128.000K Time:0.050 Rate:2560000KB
-> total:128.000K Time:0.050 Rate:2560000KB
-> total:1280.000K Time:0.654 Rate:1957187KB
+allows lots of function to become static in there.  The only problem is
+the 2.4 aio support which uses file operations for what should be
+address_space operations.  They're misplaced in both inode.c and file.c
+so they'll get a file of their own one day.
 
 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Index: src/inode.c
+===================================================================
+--- src/inode.c	(revision 1156)
++++ src/inode.c	(working copy)
+@@ -41,12 +41,10 @@
+ #include "ocfs.h"
+ 
+ #include "alloc.h"
+-#include "dir.h"
+ #include "dlm.h"
+ #include "extmap.h"
+ #include "file.h"
+ #include "inode.h"
+-#include "ioctl.h"
+ #include "lockres.h"
+ #include "namei.h"
+ #include "super.h"
+@@ -106,12 +104,6 @@
+ #endif
+ #endif
+ 
+-#ifdef AIO_ENABLED
+-int ocfs_kvec_read(struct file *file, kvec_cb_t cb, size_t size, loff_t pos); 
+-int ocfs_kvec_write(struct file *file, kvec_cb_t cb, size_t size, loff_t pos); 
+-int ocfs_kvec_rw(struct file *filp, int rw, kvec_cb_t cb, size_t size, loff_t pos);
+-#endif /* AIO_ENABLED */
+-
+ static void __ocfs_read_inode2(struct inode *inode, 
+ 			       ocfs_find_inode_args *args);
+ 
+@@ -131,31 +123,6 @@
+ #endif
+ };
+ 
+-static struct file_operations ocfs_fops = {
+-	.read = ocfs_file_read,
+-	.write = ocfs_file_write,
+-	.mmap = generic_file_mmap,
+-	.fsync = ocfs_sync_file,
+-	.flush = ocfs_flush,
+-	.release = ocfs_file_release,
+-	.open = ocfs_file_open,
+-	.ioctl = ocfs_ioctl,
+-#ifdef AIO_ENABLED
+-	.kvec_read = ocfs_kvec_read,
+-	.kvec_write = ocfs_kvec_write,
+-	.aio_read = generic_file_aio_read,
+-	.aio_write = generic_file_aio_write,
+-#endif
+-};
+-
+-static struct file_operations ocfs_dops = {
+-	.read = generic_read_dir,
+-	.readdir = ocfs_readdir,
+-	.fsync = ocfs_sync_file,
+-	.release = ocfs_file_release,
+-	.ioctl = ocfs_ioctl
+-};
+-
+ static struct inode_operations ocfs_dir_iops = {
+ 	.create = ocfs_create,
+ 	.lookup = ocfs_lookup,
+@@ -1761,18 +1728,9 @@
+ #endif /* 2.4.x kernel */
+ 
+ #ifdef AIO_ENABLED
+-int ocfs_kvec_read(struct file *file, kvec_cb_t cb, size_t size, loff_t pos) 
++static int ocfs_kvec_rw(struct file *filp, int rw, kvec_cb_t cb,
++		size_t size, loff_t pos)
+ {
+-	return ocfs_kvec_rw(file, READ, cb, size, pos);
+-}
+-
+-int ocfs_kvec_write(struct file *file, kvec_cb_t cb, size_t size, loff_t pos) 
+-{
+-	return ocfs_kvec_rw(file, WRITE, cb, size, pos);
+-}
+-
+-int ocfs_kvec_rw(struct file *filp, int rw, kvec_cb_t cb, size_t size, loff_t pos) 
+-{
+ 	int	     err = 0;
+ 	int max_sectors = 25000;
+ 	struct inode *inode = filp->f_dentry->d_inode;
+@@ -1863,6 +1821,15 @@
+ 
+ }
+ 
++int ocfs_kvec_read(struct file *file, kvec_cb_t cb, size_t size, loff_t pos) 
++{
++	return ocfs_kvec_rw(file, READ, cb, size, pos);
++}
++
++int ocfs_kvec_write(struct file *file, kvec_cb_t cb, size_t size, loff_t pos) 
++{
++	return ocfs_kvec_rw(file, WRITE, cb, size, pos);
++}
+ #endif
+ 
+ /*
+Index: src/inode.h
+===================================================================
+--- src/inode.h	(revision 1156)
++++ src/inode.h	(working copy)
+@@ -50,4 +50,9 @@
+ int ocfs_verify_update_inode(ocfs_super *osb, struct inode *inode,
+ 			     int *needs_trunc, int lockres_locked);
+ 
++#ifdef AIO_ENABLED
++int ocfs_kvec_read(struct file *file, kvec_cb_t cb, size_t size, loff_t pos); 
++int ocfs_kvec_write(struct file *file, kvec_cb_t cb, size_t size, loff_t pos); 
++#endif
++
+ #endif /* OCFS2_INODE_H */
+Index: src/file.c
+===================================================================
+--- src/file.c	(revision 1156)
++++ src/file.c	(working copy)
+@@ -37,11 +37,13 @@
+ #include "ocfs.h"
+ 
+ #include "alloc.h"
++#include "dir.h"
+ #include "dlm.h"
+ #include "extmap.h"
+ #include "file.h"
+ #include "sysfile.h"
+ #include "inode.h"
++#include "ioctl.h"
+ #include "util.h"
+ 
+ #include "ocfs_journal.h"
+@@ -173,7 +175,7 @@
+  * ocfs_file_open()
+  *
+  */
+-int ocfs_file_open (struct inode *inode, struct file *file)
++static int ocfs_file_open(struct inode *inode, struct file *file)
+ {
+ 	int ret =0, err = 0, status = 0;
+ 	int mode = file->f_flags;
+@@ -332,7 +334,7 @@
+  * ocfs_file_release()
+  *
+  */
+-int ocfs_file_release (struct inode *inode, struct file *file)
++static int ocfs_file_release (struct inode *inode, struct file *file)
+ {
+ 	ocfs_super * osb;
+ 	struct dentry *dentry;
+@@ -516,7 +518,7 @@
+  * ocfs_flush()
+  *
+  */
+-int ocfs_flush (struct file *file)
++static int ocfs_flush(struct file *file)
+ {
+ 	int err = 0;
+ 
+@@ -532,7 +534,8 @@
+  * ocfs_sync_file()
+  *
+  */
+-int ocfs_sync_file (struct file *file, struct dentry *dentry, int datasync)
++static int ocfs_sync_file(struct file *file, struct dentry *dentry,
++		int datasync)
+ {
+ 	int err = 0;
+ 	journal_t *journal;
+@@ -670,7 +673,8 @@
+  * Linux 2.5 TODO: Remove all O_DIRECT conditionals here, they are no longer
+  * needed.
+  */
+-ssize_t ocfs_file_write (struct file *filp, const char *buf, size_t count, loff_t * ppos)
++static ssize_t ocfs_file_write(struct file *filp, const char *buf,
++		size_t count, loff_t *ppos)
+ {
+ 	int ret = 0;
+ 	int saAcquired = 0, writingAtEOF = 0;
+@@ -832,7 +836,8 @@
+  * Linux 2.5 TODO: Remove all O_DIRECT conditionals here, they are no longer
+  * needed.
+  */
+-ssize_t ocfs_file_read (struct file *filp, char *buf, size_t count, loff_t * ppos)
++static ssize_t ocfs_file_read(struct file *filp, char *buf,
++		size_t count, loff_t *ppos)
+ {
+ 	int ret = 0;
+ 	ocfs_super *osb = NULL;
+@@ -898,6 +903,31 @@
+ 	return ret;
+ }				/* ocfs_file_read */
+ 
++struct file_operations ocfs_fops = {
++	.read = ocfs_file_read,
++	.write = ocfs_file_write,
++	.mmap = generic_file_mmap,
++	.fsync = ocfs_sync_file,
++	.flush = ocfs_flush,
++	.release = ocfs_file_release,
++	.open = ocfs_file_open,
++	.ioctl = ocfs_ioctl,
++#ifdef AIO_ENABLED
++	.kvec_read = ocfs_kvec_read,
++	.kvec_write = ocfs_kvec_write,
++	.aio_read = generic_file_aio_read,
++	.aio_write = generic_file_aio_write,
++#endif
++};
++
++struct file_operations ocfs_dops = {
++	.read = generic_read_dir,
++	.readdir = ocfs_readdir,
++	.fsync = ocfs_sync_file,
++	.release = ocfs_file_release,
++	.ioctl = ocfs_ioctl
++};
++
+ /*
+  * ocfs_truncate_file()
+  *
+Index: src/file.h
+===================================================================
+--- src/file.h	(revision 1156)
++++ src/file.h	(working copy)
+@@ -29,29 +29,20 @@
+ #ifndef OCFS2_FILE_H
+ #define OCFS2_FILE_H
+ 
++extern struct file_operations ocfs_fops;
++extern struct file_operations ocfs_dops;
++
+ int ocfs_extend_file (ocfs_super * osb, __u64 file_size, __u64 file_off, 
+ 		      ocfs_journal_handle *passed_handle, 
+ 		      struct inode *inode, struct iattr *attr, 
+ 		      int system_file, struct buffer_head *fe_bh);
+-int ocfs_file_open(struct inode *inode, struct file *file);
+-ssize_t ocfs_file_read(struct file *filp, char *buf, size_t count,
+-		       loff_t * ppos);
+-int ocfs_file_release(struct inode *inode, struct file *file);
+-ssize_t ocfs_file_write(struct file *filp, const char *buf,
+-			size_t count, loff_t *ppos);
+-int ocfs_flush(struct file *file);
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+ int ocfs_getattr(struct vfsmount *mnt, struct dentry *dentry,
+ 		 struct kstat *stat);
+-#else
+-int ocfs_getattr(struct dentry *dentry, struct iattr *attr);
+-#endif
+ int ocfs_inode_fill_ext_map(ocfs_super *osb, struct buffer_head *fe_bh,
+ 			    struct inode *inode);
+ int ocfs_inode_notify_open(ocfs_super *osb, struct buffer_head *fe_bh, 
+ 			   ocfs_journal_handle *handle,
+ 			   struct inode *inode);
+ int ocfs_setattr(struct dentry *dentry, struct iattr *attr);
+-int ocfs_sync_file(struct file *file, struct dentry *dentry, int datasync);
+ 
+ #endif /* OCFS2_FILE_H */
