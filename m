@@ -1,107 +1,63 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Wed Feb  4 02:38:41 2004
-Subject: [Ocfs2-devel] [PATCH] Adding ocfs support to blkid
-Message-ID: <200402040838.i148cCqU002632@penguin.co.intel.com>
+From: Villalovos, John L <john.l.villalovos@intel.com>
+Date: Wed Feb  4 12:06:44 2004
+Subject: [Ocfs2-devel] Re: [Ocfs2-users] CVS to Subversion sync and
+	check-in comments
+Message-ID: <50D19C3AC815734C9E19FE4C4F6128A602A56882@orsmsx403.jf.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following patch adds ocfs support to blkid.
+Thanks!  That would be appreciated.
 
-    --rusty
+John
 
-# This is a BitKeeper generated patch for the following project:
-# Project Name: Ext2 filesystem utilities
-# This patch format is intended for GNU patch command version 2.5 or higher.
-# This patch includes the following deltas:
-#	           ChangeSet	1.1327  -> 1.1328 
-#	   lib/blkid/probe.c	1.15    -> 1.16   
-#	   lib/blkid/probe.h	1.9     -> 1.10   
-#
-# The following is the BitKeeper ChangeSet Log
-# --------------------------------------------
-# 04/02/03	rusty@stratocaster.com	1.1328
-# Adding support for the Oracle Cluster File System (ocfs)
-# --------------------------------------------
-#
-diff -Nru a/lib/blkid/probe.c b/lib/blkid/probe.c
---- a/lib/blkid/probe.c	Wed Feb  4 00:21:03 2004
-+++ b/lib/blkid/probe.c	Wed Feb  4 00:21:03 2004
-@@ -312,6 +312,36 @@
- 	return 1;
- }
- 
-+static int probe_ocfs(int fd __BLKID_ATTR((unused)), 
-+		      blkid_cache cache __BLKID_ATTR((unused)), 
-+		      blkid_dev dev,
-+		      struct blkid_magic *id __BLKID_ATTR((unused)), 
-+		      unsigned char *buf)
-+{
-+	struct ocfs_volume_header ovh;
-+	struct ocfs_volume_label ovl;
-+	
-+	if (lseek(fd, 0, SEEK_SET) != 0)
-+		return -1;
-+
-+	if (read(fd, (char *) &ovh, sizeof(ovh)) != sizeof(ovh))
-+		return -1;
-+
-+	if (strncmp(ovh.signature, OCFS_MAGIC, sizeof(OCFS_MAGIC)) != 0)
-+		return -1;
-+
-+	if (lseek(fd, 512, SEEK_SET) != 512)
-+		return -1;
-+
-+	if (read(fd, (char *) &ovl, sizeof(ovl)) != sizeof(ovl)) 
-+		return -1;
-+
-+	blkid_set_tag(dev, "LABEL", ovl.label, ocfslabellen(ovl));
-+	blkid_set_tag(dev, "MOUNT", ovh.mount, ocfsmountlen(ovh));
-+	set_uuid(dev, ovl.vol_id);
-+	return 0;
-+}
-+
- /*
-  * BLKID_BLK_OFFS is at least as large as the highest bim_kboff defined
-  * in the type_array table below + bim_kbalign.
-@@ -371,6 +401,7 @@
-   { "swap",	 0, 0x1ff6, 10, "SWAPSPACE2",		0 },
-   { "swap",	 0, 0x3ff6, 10, "SWAP-SPACE",		0 },
-   { "swap",	 0, 0x3ff6, 10, "SWAPSPACE2",		0 },
-+  { "ocfs2",	 0,	 8,  9,	 "OracleCFS",  probe_ocfs },
-   {   NULL,	 0,	 0,  0, NULL,			NULL }
- };
- 
-diff -Nru a/lib/blkid/probe.h b/lib/blkid/probe.h
---- a/lib/blkid/probe.h	Wed Feb  4 00:21:03 2004
-+++ b/lib/blkid/probe.h	Wed Feb  4 00:21:03 2004
-@@ -209,6 +209,27 @@
- 	__u32	h_blksize;
- };
- 
-+struct ocfs_volume_header {
-+	u_char	minor_version[4];
-+	u_char	major_version[4];
-+	u_char	signature[128];
-+	u_char  mount[128];
-+	u_char  mount_len[2];
-+};
-+
-+struct ocfs_volume_label {
-+	u_char	disk_lock[48];
-+	u_char	label[64];	
-+	u_char	label_len[2];
-+	u_char  vol_id[16];
-+	u_char  vol_id_len[2];
-+};
-+
-+#define ocfslabellen(o)	((uint)o.label_len[0] + (((uint) o.label_len[1]) << 8))
-+#define ocfsmountlen(o)	((uint)o.mount_len[0] + (((uint) o.mount_len[1])<<8))
-+
-+#define OCFS_MAGIC "OracleCFS"
-+
- #define ISODCL(from, to) (to - from + 1)
- struct iso_volume_descriptor {
- 	char type[ISODCL(1,1)]; /* 711 */
+
+
+> -----Original Message-----
+> From: ocfs2-devel-bounces@oss.oracle.com 
+> [mailto:ocfs2-devel-bounces@oss.oracle.com] On Behalf Of Manish Singh
+> Sent: Tuesday, February 03, 2004 11:37 PM
+> To: Wim Coekaerts
+> Cc: ocfs2-users@oss.oracle.com; ocfs2-devel@oss.oracle.com; 
+> Villalovos, John L
+> Subject: [Ocfs2-devel] Re: [Ocfs2-users] CVS to Subversion 
+> sync and check-in comments
+> 
+> 
+> At some point in the near future, we're going to be using the 
+> subversion
+> repository directly. In the meantime, I'll try to preserve 
+> log comments
+> while syncing.
+> 
+> -Manish
+> 
+> On Tue, Feb 03, 2004 at 05:32:52PM -0800, Wim Coekaerts wrote:
+> > yeah, Manish .. can you get this worked out please.
+> > 
+> > On Tue, Feb 03, 2004 at 05:28:20PM -0800, Villalovos, John L wrote:
+> > > So is there any possibility of getting it so that the Subversion
+> > > repository can get the check-in comments from the internal CVS
+> > > repository?
+> > > 
+> > > At the moment every log file comment I see in SVN is 
+> "Sync".  Which
+> > > doesn't really let me know what has happenned without 
+> having to go lock
+> > > at the actual diff between the two versions.  And even 
+> then I may not
+> > > have any idea why the change was done.
+> > > 
+> > > Thanks,
+> > > John
+> > > _______________________________________________
+> > > Ocfs2-users mailing list
+> > > Ocfs2-users@oss.oracle.com
+> > > http://oss.oracle.com/mailman/listinfo/ocfs2-users
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel@oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
