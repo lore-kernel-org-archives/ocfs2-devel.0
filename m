@@ -1,116 +1,80 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Feb 26 20:22:10 2004
-Subject: [Ocfs2-devel] [PATCH]2.6 prototype fixes
-Message-ID: <200402270221.i1R2Lxs4007447@penguin.co.intel.com>
+From: John Villalovos <John.L.Villalovos@intel.com>
+Date: Fri Feb 27 13:51:34 2004
+Subject: [Ocfs2-devel] Patch for 2.6 support in configure
+Message-ID: <3779.10.10.213.44.1077910769.squirrel@linux.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following is a patch for various function definition and prototype 
-changes for a 2.6 kernel. (The ocfs_getattr definition was already
-fixed in a previous patch.)
+This patch add support for using a 2.6.x kernel when running configure.
 
-    --rusty
+It requires the user to use "--enable-kernel-2_6" to enable it.  It also
+creates an OCFS_KERNEL_2_6 Makefile variable that is put into
+Config.make.in
 
-Index: src/inc/proto.h
-===================================================================
---- src/inc/proto.h	(revision 36)
-+++ src/inc/proto.h	(working copy)
-@@ -78,9 +78,12 @@
- ssize_t ocfs_file_read (struct file *filp, char *buf, size_t count, loff_t * ppos);
- int ocfs_extend_file (ocfs_super * osb, __u64 parent_off, ocfs_inode * oin, __u64 file_size, __u64 * file_off, ocfs_journal_handle *passed_handle, struct inode *inode, struct iattr *attr);
- int ocfs_setattr (struct dentry *dentry, struct iattr *attr);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+int ocfs_getattr (struct vfsmount *mnt, struct dentry *dentry, struct kstat *stat);
-+#else
- int ocfs_getattr (struct dentry *dentry, struct iattr *attr);
-+#endif
- 
--
- int ocfs_find_inode (struct inode *inode, unsigned long ino, void *opaque);
- void ocfs_populate_inode (struct inode *inode, ocfs_file_entry *fe, umode_t mode, void *genptr, bool create_ino);
- void ocfs_read_locked_inode (struct inode *inode, ocfs_file_entry *entry);
-@@ -242,14 +245,25 @@
- 
- 
- int ocfs_empty (struct dentry *dentry);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd);
-+#else
- int ocfs_dentry_revalidate (struct dentry *dentry, int flags);
-+#endif
- int ocfs_foreach_child (struct dentry *dentry, int (*func)(struct dentry *, void *), void *data);
--
- int ocfs_readdir (struct file *filp, void *dirent, filldir_t filldir);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+struct dentry *ocfs_lookup (struct inode *dir, struct dentry *dentry, struct nameidata *nd);
-+#else
- struct dentry *ocfs_lookup (struct inode *dir, struct dentry *dentry);
-+#endif
- int ocfs_mknod (struct inode *dir, struct dentry *dentry, int mode, ocfs_dev dev);
- int ocfs_mkdir (struct inode *dir, struct dentry *dentry, int mode);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+int ocfs_create (struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd);
-+#else
- int ocfs_create (struct inode *dir, struct dentry *dentry, int mode);
-+#endif
- int ocfs_link (struct dentry *old_dentry, struct inode *dir, struct dentry *dentry);
- int ocfs_unlink (struct inode *dir, struct dentry *dentry);
- int ocfs_rename (struct inode *old_dir, struct dentry *old_dentry, struct inode *new_dir, struct dentry *new_dentry);
-Index: src/dcache.c
-===================================================================
---- src/dcache.c	(revision 36)
-+++ src/dcache.c	(working copy)
-@@ -35,7 +35,11 @@
-  * ocfs_dentry_revalidate()
-  *
-  */
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd)
-+#else
- int ocfs_dentry_revalidate (struct dentry *dentry, int flags)
-+#endif
- {
- 	int tmpstat, ret = 0;    /* if all else fails, just return false */
- 	ocfs_file_entry *fe = NULL;
-@@ -46,7 +50,9 @@
-         struct qstr q;
- 	struct buffer_head *fe_bh = NULL;
- 	int needs_trunc;
--#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+	int flags = nd->flags;
-+#else
- 	ocfs_find_inode_args args;
- #endif
- 
-Index: src/namei.c
-===================================================================
---- src/namei.c	(revision 36)
-+++ src/namei.c	(working copy)
-@@ -58,7 +58,11 @@
-  * ocfs_lookup()
-  *
-  */
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+struct dentry *ocfs_lookup (struct inode *dir, struct dentry *dentry, struct nameidata *nd)
-+#else
- struct dentry *ocfs_lookup (struct inode *dir, struct dentry *dentry)
-+#endif
- {
- 	int status;
- 	ocfs_find_inode_args args;
-@@ -533,7 +537,11 @@
-  * ocfs_create()
-  *
-  */
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+int ocfs_create (struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd)
-+#else
- int ocfs_create (struct inode *dir, struct dentry *dentry, int mode)
-+#endif
- {
- 	int ret;
- 
+I am working on using this information in the src/Makefile to add
+support for 2.6
+
+John
+
+
+Index: configure.in
+=================================================================== ---
+configure.in	(revision 36)
++++ configure.in	(working copy)
+@@ -83,6 +83,13 @@
+   AC_MSG_ERROR(GCC is required)
+ fi
+
++AC_ARG_ENABLE(kernel-2_6, AS_HELP_STRING([--enable-kernel-2_6],
+[(BROKEN!) Enable building on Linux kernel version 2.6.x
+(default=no)]),enable_kernel26=yes,enable_kernel26=no)
++OCFS_KERNEL_2_6=
++if test "x$enable_kernel26" = "xyes"; then
++  OCFS_KERNEL_2_6=yes
++fi
++AC_SUBST(OCFS_KERNEL_2_6)
++
+ AC_ARG_ENABLE(debug, [  --enable-debug=[yes/no]         Turn on
+debugging
+[default=yes]],,enable_debug=yes)
+ OCFS_DEBUG=
+ if test "x$enable_debug" = "xyes"; then
+@@ -178,6 +185,13 @@
+ case "$kversion" in
+   2.4.*)
+     ;;
++  2.6.*)
++    if test "x$enable_kernel26" = "xyes"; then
++      AC_MSG_NOTICE([Support for kernel version 2.6 is BROKEN at this
+time!])
++    else
++      AC_MSG_ERROR([Support for kernel version 2.6 is BROKEN (System
+Hangs) at this time!  You must use --enable-kernel-2_6 to get past this
+point.])
++    fi
++    ;;
+   *)
+     AC_MSG_ERROR([This module only supports kernel version 2.4.x]) ;;
+Index: Config.make.in
+=================================================================== ---
+Config.make.in	(revision 36)
++++ Config.make.in	(working copy)
+@@ -58,5 +58,6 @@
+ OCFS_MEMDEBUG = @OCFS_MEMDEBUG@
+ OCFS_TRACE = @OCFS_TRACE@
+ OCFS_PROCESSOR = @OCFS_PROCESSOR@
++OCFS_KERNEL_2_6 = @OCFS_KERNEL_2_6@
+
+ USE_JOURNAL_CREATE_REPLACEMENT = @USE_JOURNAL_CREATE_REPLACEMENT@
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: configure.in.diff
+Type: application/octet-stream
+Size: 1499 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040227/4e61d0f7/configure.in.obj
