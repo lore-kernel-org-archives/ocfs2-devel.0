@@ -1,36 +1,28 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri Mar 19 20:10:12 2004
-Subject: [Ocfs2-devel] Bug in ocfs_file_entry struct for 2.6
-In-Reply-To: <20040319235852.GA22829@ca-server1.us.oracle.com>
-References: <60C14C611F1DDD4198D53F2F43D8CA3B0E3E08@orsmsx410.jf.intel.com>
-	<20040319235852.GA22829@ca-server1.us.oracle.com>
-Message-ID: <20040320021006.GW18020@ca-server1.us.oracle.com>
+From: Rusty Lynch <rusty@linux.co.intel.com>
+Date: Mon Mar 22 16:51:27 2004
+Subject: [Ocfs2-devel] [PATCH]Initialize lockres->cache_list
+Message-ID: <200403222250.i2MMouhY003199@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Mar 19, 2004 at 03:58:52PM -0800, Mark Fasheh wrote:
-> > I noticed that it defines:
-> > 
-> >     __u16 dev_major;                  // NUMBER RANGE(0,65535)
-> >     __u16 dev_minor;                  // NUMBER RANGE(0,65535)
+The following is a small patch to initialize the cache_list list_head
+while initializing a new lockres.
 
-	The write answer is to make it __u32 rdev, and then use the
-proper MAJOR/MINOR/major/minor/to_kdev_t routines on it.  This is what
-all other filesystems do.
+    --rusty
 
-Joel
-
--- 
-
-Life's Little Instruction Book #15
-
-	"Own a great stereo system."
-
-Joel Becker
-Senior Member of Technical Staff
-Oracle Corporation
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+Index: src/dlm.c
+===================================================================
+--- src/dlm.c	(revision 804)
++++ src/dlm.c	(working copy)
+@@ -1056,6 +1056,8 @@
+ 	lockres->lock_holders = 0;
+ 	LOG_TRACE_ARGS("lockres->lock_holders = %u\n", lockres->lock_holders);
+ 
++	INIT_LIST_HEAD(&lockres->cache_list);
++
+ 	LOG_EXIT ();
+ 	return;
+ }				/* ocfs_init_lockres */
