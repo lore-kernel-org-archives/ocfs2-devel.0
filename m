@@ -1,60 +1,49 @@
-From: Wim Coekaerts <wim.coekaerts@oracle.com>
-Date: Fri Jul  2 16:46:18 2004
-Subject: [Ocfs2-devel] FYI:  RedHat open-sourced GFS/DLM/cluster stuff
-	last week
-In-Reply-To: <0604335B7764D141945E20215310596002299ED3@orsmsx404.amr.corp.intel.com>
-References: <0604335B7764D141945E20215310596002299ED3@orsmsx404.amr.corp.intel.com>
-Message-ID: <20040702213745.GB937@ca-server1.us.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Fri Jul  2 17:35:26 2004
+Subject: [Ocfs2-devel] On-disk changes for signedness and lock types
+Message-ID: <20040702223522.GE864@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-oh - it does not change our commitment to ocfs btw. we're not going to
-drop ours or reduce efforts on it. just fyi :)
+Folks,
+	The bad news is, we changed the disk format again.  The good
+news is, we managed to batch a few changes at once this time.
+	The upshot is that r1237 of ocfs2 and r133 of ocfs-tools are
+required in conjunction.  You will need to reformat your volumes.
+	Also of interest, the latest ocfs-tools has debugfs.ocfs2, which
+is a proper debugging interface to the filesystem.  It can dump the
+details of inodes and directories, allowing examination of the on-disk
+structures.
+	What has changed?  Well, we had issues with node numbers being
+unsigned (given that the "unset node number" was -1 -> 65536) and
+comparisons between u16 and u32 variables.  That should be fixed, with
+s16 variables pervailing for node numbers.  Let us know if you see
+anymore problems with this.  It should't be an on-disk problem anymore,
+just a kernel code problem.
+	Also, the lock type values have changed.  This is a move towards
+a more robust locking system.  No, that's not happening anytime soon,
+but we should use common locking primitives.
+	Finally, the comm_voting parameter has been removed from the
+module.  Network publish/vote is always enabled now.
+	Here's hoping that's the last of the changes.  Don't bet on it,
+but here's hoping.  Thank you for your patience as we work these issues
+out.
 
-On Fri, Jul 02, 2004 at 02:25:34PM -0700, Cahill, Ben M wrote:
-> Hi all,
-> 
-> If you haven't heard about it already, I thought folks on the list might
-> be interested to know that RH open-sourced (GPL) a whole bunch of stuff
-> that had been Sistina's commercial software offering for shared/cluster
-> filesystem (GFS) and related support.
-> 
-> The biggest surprise for me was that it includes a "redesigned from the
-> ground up" distributed lock manager (DLM) modeled after the same
-> VaxCluster/VMS DLM that inspired OpenDLM.  It also includes the g-lock
-> layer that I was talking about a week or two ago, so you can plug in
-> different lock managers and perform operations at specific times during
-> the lifetime of a specific lock type.
-> 
-> There's some good reading about the whole GFS/DLM/cluster thing at:
-> 
-> http://people.redhat.com/~teigland/sca.pdf
-> 
-> The cluster project page:
-> 
-> http://sources.redhat.com/cluster/
-> 
-> And the specific GFS project page:
-> 
-> http://sources.redhat.com/cluster/gfs/
-> 
-> CVS in the project pages contains stuff for 2.6.7.  Source for 2.4 GFS
-> is at:
-> 
-> ftp://ftp.redhat.com/pub/redhat/linux/enterprise/3/en/RHGFS/i386/SRPMS/
-> 
-> although I haven't been successful in accessing that, yet.  Daniel
-> Phillips (RedHat) said that doesn't contain the latest goodies
-> (including DLM IIRC).
-> 
-> -- Ben --
-> 
-> Opinions are mine, not Intel's 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Joel
+
+-- 
+
+"There is no more evil thing on earth than race prejudice, none at 
+ all.  I write deliberately -- it is the worst single thing in life 
+ now.  It justifies and holds together more baseness, cruelty and
+ abomination than any other sort of error in the world." 
+        - H. G. Wells
+
+Joel Becker
+Senior Member of Technical Staff
+Oracle Corporation
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
