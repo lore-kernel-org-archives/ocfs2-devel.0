@@ -1,35 +1,45 @@
-From: Villalovos, John L <john.l.villalovos@intel.com>
-Date: Fri Feb 27 18:09:59 2004
-Subject: [Ocfs2-devel] Makefile and configure changes for 2.6 support
-Message-ID: <50D19C3AC815734C9E19FE4C4F6128A602A56965@orsmsx403.jf.intel.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Fri Feb 27 20:28:01 2004
+Subject: [Ocfs2-devel] Re: [PATCH]2.6 fixes in file.c
+In-Reply-To: <20040224215021.GA24689@penguin.co.intel.com>
+References: <200402200413.i1K4DFoW004249@penguin.co.intel.com>
+	<20040224015742.GI1421@ca-server1.us.oracle.com>
+	<20040224030843.GA18881@penguin.co.intel.com>
+	<20040224214438.GK1421@ca-server1.us.oracle.com>
+	<20040224215021.GA24689@penguin.co.intel.com>
+Message-ID: <20040228022756.GQ1421@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-> This is a cumulative patch to provide support to the build 
-> system for building OCFS2 for 2.6.
+This has been committed.
+	--Mark
+
+On Tue, Feb 24, 2004 at 01:50:21PM -0800, Rusty Lynch wrote:
+> On Tue, Feb 24, 2004 at 01:44:38PM -0800, Mark Fasheh wrote:
+> <snip>
+> > > > >  int ocfs_empty (struct dentry *dentry);
+> > > > > +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+> > > > > +int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd);
+> > > > > +#else
+> > > > >  int ocfs_dentry_revalidate (struct dentry *dentry, int flags);
+> > > > > +#endif
+> > > > Why is this here? Shouldn't this update be in the dcache patch? 
+> > > 
+> > > yeap, a little blood from the dcache patch.  It's still needed, so I still
+> > > have it in this patch.
+> > What worries me is that I don't see any similar changes to the function
+> > declaration (and the function itself) in dcache.c... Is this a "coming soon"
+> > or did you forget to send that patch? Since it doesn't affect the 2.4
+> > version, I can commit it anyway but I just wanna make sure we're on the same
+> > page.
 > 
-> This does NOT have the patches that are needed to the source 
-> code files to make them build under 2.6.
+> oops... I didn't realize I dropped it.
 > 
-> It only consists of changes to:
-> Config.make.in
-> configure.in
-> src/Makefile
-> 
-> and the addition of:
-> src/Makefile-2.6.in
-> 
-
-
-Just one note.  If you are using a version of AutoConf before 2.58 then
-you will need to do:
-
-s/AS_HELP_STRING/AC_HELP_STRING/
-
-Version 2.58 of AutoConf obsoleted AC_HELP_STRING and renamed it to
-AS_HELP_STRING.
-
-John
+>     --rusty
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
