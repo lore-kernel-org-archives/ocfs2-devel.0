@@ -1,31 +1,45 @@
 From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Fri Jul 23 18:41:06 2004
-Subject: [Ocfs2-devel] A patch to improve the metadata reading
-	throughput(a gainst svn1267)
-Message-ID: <3ACA40606221794F80A5670F0AF15F8404F680EA@pdsmsx403>
+Date: Tue Jul 27 13:19:51 2004
+Subject: [Ocfs2-devel] patch to improve directory creation performance
+Message-ID: <3ACA40606221794F80A5670F0AF15F8404FB8C0D@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-=20
+We found the reason that cause the directory creation is slow again in
+the new version.
+It is becuase in ocfs_extend_file, it will write zero to new allocated
+block.For directory,
+it is not needed.
+See the patch.
 
->-----Original Message-----
->From: Mark Fasheh [mailto:mark.fasheh@oracle.com]=20
->Sent: 2004=C4=EA7=D4=C222=C8=D5 21:46
->To: Ling, Xiaofeng
->Cc: Zhang, Sonic; Fu, Michael; Yang, Elton; Ocfs2-Devel
->Subject: Re: [Ocfs2-devel] A patch to improve the metadata=20
->reading throughput(a gainst svn1267)
+Now the directory creation speed is improved from 700/s to 5000/s.
 
->Actually, the bug (which I just fixed) was that we weren't=20
->telling the other
->node to wait *on* the journal flush for a busy directory. Once=20
->I fixed it, I
->haven't had any directory contents consistency issues. See svn=20
->revision 1302
->for the patch.
-Yes, I've run test, it's ok now.
-So currently, when the node get READONLY message, it will=20
-flush the journal and then answer it. Is my description correct?
+
+------------------------------------------------------------------------
+----------------------
+Index: file.c
+===================================================================
+--- file.c      (revision 1306)
++++ file.c      (working copy)
+@@ -1171,6 +1171,7 @@
+
+ #define        OCFS_MAX_ZERO_BLOCKS (4096)
+
++       if(!S_ISDIR(inode->i_mode)) {
+        down(&OCFS_I(inode)->ip_sem);
+        if (!(OCFS_I(inode)->ip_open_flags &
+OCFS_OIN_OPEN_FOR_DIRECTIO)) {
+                struct buffer_head **bhs = NULL;
+@@ -1237,7 +1238,7 @@
+                kfree(bhs);
+        } else
+                up(&OCFS_I(inode)->ip_sem);
+-
++       }
+        ext_alloc_inode = ocfs_get_system_file_inode(osb,
+EXTENT_ALLOC_BITMAP_SYSTEM_INODE, osb->node_num);
+        if (!ext_alloc_inode) {
+                status = -EFAIL;
