@@ -1,35 +1,25 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri Oct 15 22:44:25 2004
-Subject: [Ocfs2-devel] Re: [Ocfs2-commits] bryce commits r1573 - in trunk: .
-	mount.ocfs
-In-Reply-To: <20041014185029.GA31796@lst.de>
-References: <200410141425.i9EEPDZS029376@oss.oracle.com>
-	<20041014185029.GA31796@lst.de>
-Message-ID: <20041016034415.GN27633@ca-server1.us.oracle.com>
+From: Christoph Hellwig <hch@lst.de>
+Date: Sat Oct 16 06:13:12 2004
+Subject: [Ocfs2-devel] Re: [Ocfs2-commits] manish commits r1580 - trunk/src
+In-Reply-To: <200410152051.i9FKpCWY008044@oss.oracle.com>
+References: <200410152051.i9FKpCWY008044@oss.oracle.com>
+Message-ID: <20041016111302.GA29477@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Oct 14, 2004 at 08:50:29PM +0200, Christoph Hellwig wrote:
-> > +int module_loaded(char * module) {
-> this check is bogus, the kernel will autload a filesystem on the first
-> mount attempt.
+On Fri, Oct 15, 2004 at 03:51:12PM -0500, svn-commits@oss.oracle.com wrote:
+> Author: manish
+> Date: 2004-10-15 15:51:10 -0500 (Fri, 15 Oct 2004)
+> New Revision: 1580
+> 
+> Modified:
+>    trunk/src/suballoc.c
+> Log:
+> cast bitops on bg_bitmap to unsigned long *
 
-	Not if the module fails to load without magic module parameters,
-as OCFS2 still does.
-
-Joel
-
--- 
-
-"Can any of you seriously say the Bill of Rights could get through
- Congress today?  It wouldn't even get out of committee."
-	- F. Lee Bailey
-
-Joel Becker
-Senior Member of Technical Staff
-Oracle Corporation
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+Are these disk or core structures?  IF core please just make them
+unisgned long, if they're ondisk you just sayd goodbye to binary
+compatiblity for BE and LE 64bit hosts.
