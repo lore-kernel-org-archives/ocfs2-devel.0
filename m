@@ -1,74 +1,70 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri Sep  3 18:01:37 2004
-Subject: [Ocfs2-devel] [PATCH] remove pre-2.4.21 compat code
-In-Reply-To: <20040903091228.GC32029@lst.de>
-References: <20040903091228.GC32029@lst.de>
-Message-ID: <20040903230130.GA5532@ca-server1.us.oracle.com>
+From: Christoph Hellwig <hch@lst.de>
+Date: Sat Sep  4 04:53:16 2004
+Subject: [Ocfs2-devel] [PATCH] remove ocfs_put_inode
+Message-ID: <20040904095307.GA18592@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hello,
+this doesn't do anything but noisy debug printks anymore
 
-On Fri, Sep 03, 2004 at 11:12:29AM +0200, Christoph Hellwig wrote:
-<snip> 
-> Index: src/aops.c
-> ===================================================================
-> --- src/aops.c	(revision 1418)
-> +++ src/aops.c	(working copy)
-> @@ -609,8 +609,8 @@
->  	LOG_CLEAR_CONTEXT();
->  	return ret;
->  }				/* ocfs_direct_IO */
-> +#else
->  
-> -#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,10)
->  /*
->   * ocfs_direct_IO()
->   *
-> @@ -618,7 +618,7 @@
->   * we should never get here any more
->   * so let's just BUG(), hint from sct@redhat.com
->   */
-> -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,20) || defined(SUSE)
-> +#ifdef SUSE
->  static int ocfs_direct_IO (int rw, struct file *filp, struct kiobuf *iobuf, unsigned long blocknr, int blocksize)
->  {
->  	BUG();
-> @@ -631,7 +631,7 @@
->  	return 0;
->  }				/* ocfs_direct_IO */
->  #endif
-> -#endif  /* version >= 2.4.10 */
-> +#endif
-I think over here you really mean this:
 
-  * we should never get here any more
-  * so let's just BUG(), hint from sct@redhat.com
-  */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,20) || defined(SUSE)
- static int ocfs_direct_IO (int rw, struct file *filp, struct kiobuf *iobuf,
-unsigned long blocknr, int blocksize)
- {
-        BUG();
-        return 0;
- }                              /* ocfs_direct_IO */
--#else
--static int ocfs_direct_IO (int rw, struct inode *inode, struct kiobuf
-*iobuf, unsigned long blocknr, int blocksize)
+Index: src/super.c
+===================================================================
+--- src/super.c	(revision 1426)
++++ src/super.c	(working copy)
+@@ -196,9 +196,7 @@
+ 
+ static struct super_operations ocfs_sops = {
+ 	.statfs = ocfs_statfs,
+-	.put_inode = ocfs_put_inode,
+ 	.clear_inode = ocfs_clear_inode,
+-	//put_inode =           force_delete,
+ 	.delete_inode =        ocfs_delete_inode, 
+ 	.sync_fs = ocfs_sync_fs,
+ 	.write_super = ocfs_write_super,
+Index: src/inode.c
+===================================================================
+--- src/inode.c	(revision 1426)
++++ src/inode.c	(working copy)
+@@ -521,26 +521,6 @@
+ 	return status;
+ }
+ 
+-/*
+- * ocfs_put_inode()
+- *
+- */
+-void ocfs_put_inode (struct inode *inode)
 -{
--       BUG();
--       return 0;
--}                              /* ocfs_direct_IO */
- #endif
--#endif  /* version >= 2.4.10 */
-
-Otherwise, it looks good, thanks!
-	--Mark
-
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+-	ocfs_super *osb;
+-
+-	LOG_SET_CONTEXT(PUT_INODE);
+-
+-	LOG_ENTRY_ARGS ("(0x%p, i_ino=%llu)\n", inode, OCFS_I(inode)->ip_blkno);
+-	LOG_TRACE_ARGS ("put_inode: count=%d\n", atomic_read(&inode->i_count));
+-	osb = OCFS_SB(inode->i_sb);
+-	LOG_EXIT ();
+-
+-	LOG_CLEAR_CONTEXT();
+-	return;
+-}				/* ocfs_put_inode */
+-
+-
+ void ocfs_sync_blockdev(struct super_block *sb)
+ {
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+Index: src/inode.h
+===================================================================
+--- src/inode.h	(revision 1426)
++++ src/inode.h	(working copy)
+@@ -40,7 +40,6 @@
+ int ocfs_inode_revalidate(struct dentry *dentry);
+ int ocfs_populate_inode(struct inode *inode, ocfs2_dinode *fe,
+ 			 int create_ino);
+-void ocfs_put_inode(struct inode *inode);
+ void ocfs_read_inode(struct inode *inode);
+ void ocfs_read_inode2(struct inode *inode, void *opaque);
+ ssize_t ocfs_rw_direct(int rw, struct file *filp, char *buf,
