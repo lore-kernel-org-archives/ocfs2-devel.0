@@ -1,166 +1,33 @@
 From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Fri Feb 13 16:10:19 2004
+Date: Fri Feb 13 16:10:20 2004
 Subject: [Ocfs2-devel] Request to remove -Wfno-format
-In-Reply-To: <20040212202959.GA23932@ca-server1.us.oracle.com>
+In-Reply-To: <20040213034433.GA1193@ca-server1.us.oracle.com>
 References: <200402121839.i1CIdRaY027264@penguin.co.intel.com>
 	<20040212202959.GA23932@ca-server1.us.oracle.com>
-Message-ID: <20040213015201.GA4171@penguin.co.intel.com>
+	<20040213015201.GA4171@penguin.co.intel.com>
+	<20040213034433.GA1193@ca-server1.us.oracle.com>
+Message-ID: <20040213054330.GA12076@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Feb 12, 2004 at 12:30:00PM -0800, Manish Singh wrote:
-<snip>
-> > If it is ok, I would like to make the build more strict, and treat each of
-> > the warnings as bugs.
+On Thu, Feb 12, 2004 at 07:44:34PM -0800, Manish Singh wrote:
+> On Thu, Feb 12, 2004 at 05:52:01PM -0800, Rusty Lynch wrote:
+> > (There are a couple of places where I cast a size_t to int to stop warnings
+> > on 64bit machines... can't think of a cleaner way of printing size_t since 
+> > prink doesn't directly handle the type.)
 > 
-> Go for it, the cleanup is welcome. While you're at it, getting rid of
-> the HI()/LO() nonsense would be good too.
+> %Zu works for size_t.
 
-I didn't remove the use of HI()/LO(), but here is a patch that both removes
--Wno-format and also fixes the many formating warnings that you see if building
-with tracing enabled.
+Ah.. I see that now in the fprintf man page.
 
-The patch is rather large, but it just does the same thing over and over.
-
-(There are a couple of places where I cast a size_t to int to stop warnings
-on 64bit machines... can't think of a cleaner way of printing size_t since 
-prink doesn't directly handle the type.)
+Here is another version of the patch that uses %zu where appropriate.
 
     --rusty
 
 
-Index: src/super.c
-===================================================================
---- src/super.c	(revision 31)
-+++ src/super.c	(working copy)
-@@ -326,7 +326,7 @@
- 		inode = NULL;
- 	}
- 
--	LOG_EXIT_PTR (0);
-+	LOG_EXIT_PTR (NULL);
- 	return NULL;
- }				/* ocfs_read_super */
- 
-@@ -355,7 +355,7 @@
- 		goto bail;
- 	}
- 
--	LOG_TRACE_ARGS("strlen(options) = %d, options = \"%s\"\n", strlen(options), options);
-+	LOG_TRACE_ARGS("strlen(options) = %d, options = \"%s\"\n", (int)strlen(options), options);
- 
- #ifdef LINUX_2_5
-         while ( (c = strsep(&options, ",")) != NULL)
-@@ -675,7 +675,7 @@
-  */
- static void ocfs_put_super (struct super_block *sb)
- {
--	LOG_ENTRY_ARGS ("(0x%08x)\n", sb);
-+	LOG_ENTRY_ARGS ("(%p)\n", sb);
- 
- 	ocfs_sync_blockdev(sb);
- 	LOG_TRACE_STR ("put super... do nothing!  DONE!!!!");
-@@ -700,7 +700,7 @@
-         ocfs_bitmap_lock *bm_lock = NULL;
- 	struct buffer_head *bh = NULL;
- 
--        LOG_ENTRY_ARGS ("(0x%08x, 0x%08x)\n", sb, buf);
-+        LOG_ENTRY_ARGS ("(%p, %p)\n", sb, buf);
- 
-         osb = (ocfs_super *) OCFS_GENERIC_SB_P(sb);
-         numbits = osb->cluster_bitmap.validbits;
-@@ -1064,7 +1064,7 @@
- 	__u32 tempmap;
- 	int i;
- 
--	LOG_ENTRY_ARGS ("(0x%08x)\n", sb);
-+	LOG_ENTRY_ARGS ("(%p)\n", sb);
- 
- 	if (sb == NULL) {
- 		LOG_ERROR_STATUS (status = -EFAIL);
-Index: src/extmap.c
-===================================================================
---- src/extmap.c	(revision 31)
-+++ src/extmap.c	(working copy)
-@@ -245,7 +245,7 @@
- 
- bail:
- 
--	LOG_EXIT_ULONG (ret);
-+	LOG_EXIT_STATUS (ret);
- 	return ret;
- }				/* ocfs_coalesce_extent_map_entry */
- 
-@@ -304,7 +304,7 @@
- 	spin_unlock(&(map->lock));
- 
- bail:
--	LOG_EXIT_ULONG (ret);
-+	LOG_EXIT_STATUS (ret);
- 	return ret;
- }				/* ocfs_extent_map_add */
- 
-@@ -385,7 +385,7 @@
- 	spin_unlock(&(map->lock));
- 
- bail:
--	LOG_EXIT_ULONG (ret);
-+	LOG_EXIT_STATUS (ret);
- 	return ret;
- }				/* ocfs_extent_map_lookup */
- 
-@@ -430,7 +430,7 @@
- 	spin_unlock(&(map->lock));
- bail:
- 
--	LOG_EXIT_ULONG (ret);
-+	LOG_EXIT_STATUS (ret);
- 	return ret;
- }				/* ocfs_extent_map_next_entry */
- 
-@@ -519,7 +519,7 @@
- 		*SectorCount = (LO(LiSectorCount)) << OCFS_LOG_SECTOR_SIZE;
- 	}
- 		
--	LOG_EXIT_ULONG (Results);
-+	LOG_EXIT_STATUS (Results);
- 	return Results;
- }				/* ocfs_get_next_extent_map_entry  */
- 
-@@ -566,7 +566,7 @@
- 		}
- 	}
- 
--	LOG_EXIT_ULONG (ret);
-+	LOG_EXIT_STATUS (ret);
- 	return ret;
- }				/* ocfs_lookup_extent_map_entry */
- 
-@@ -648,7 +648,7 @@
- 
- 		if ((OcfsExtent->next_free_ext != OCFS_MAX_DATA_EXTENTS) &&
- 		    (*remainingLength)) {
--			LOG_ERROR_ARGS ("next_free_extent=%d, rem_len=%u.%u",
-+			LOG_ERROR_ARGS ("next_free_extent=%d, rem_len=%lu.%lu",
- 				OcfsExtent->next_free_ext, HILO(*remainingLength));
- 		} else
- 			status = 0;
-@@ -689,10 +689,10 @@
- 
- 	ret = ocfs_extent_map_add (Map, ((__s64) Vbo), ((__s64) Lbo), ((__s64) ByteCount));
- 	if (!ret)
--		LOG_ERROR_ARGS ("fileoff=%u.%u, diskoff=%u.%u, len=%u.%u",
-+		LOG_ERROR_ARGS ("fileoff=%lu.%lu, diskoff=%lu.%lu, len=%lu.%lu",
- 				HILO (Vbo), HILO (Lbo), HILO (ByteCount));
- 
- 
--	LOG_EXIT_ULONG (ret);
-+	LOG_EXIT_STATUS (ret);
- 	return ret;
- }				/* ocfs_add_extent_map_entry */
 Index: src/inode.c
 ===================================================================
 --- src/inode.c	(revision 31)
@@ -379,6 +246,135 @@ Index: src/inode.c
  
  	ret = block_write_full_page (page, ocfs_get_block);
  
+Index: src/extmap.c
+===================================================================
+--- src/extmap.c	(revision 31)
++++ src/extmap.c	(working copy)
+@@ -245,7 +245,7 @@
+ 
+ bail:
+ 
+-	LOG_EXIT_ULONG (ret);
++	LOG_EXIT_STATUS (ret);
+ 	return ret;
+ }				/* ocfs_coalesce_extent_map_entry */
+ 
+@@ -304,7 +304,7 @@
+ 	spin_unlock(&(map->lock));
+ 
+ bail:
+-	LOG_EXIT_ULONG (ret);
++	LOG_EXIT_STATUS (ret);
+ 	return ret;
+ }				/* ocfs_extent_map_add */
+ 
+@@ -385,7 +385,7 @@
+ 	spin_unlock(&(map->lock));
+ 
+ bail:
+-	LOG_EXIT_ULONG (ret);
++	LOG_EXIT_STATUS (ret);
+ 	return ret;
+ }				/* ocfs_extent_map_lookup */
+ 
+@@ -430,7 +430,7 @@
+ 	spin_unlock(&(map->lock));
+ bail:
+ 
+-	LOG_EXIT_ULONG (ret);
++	LOG_EXIT_STATUS (ret);
+ 	return ret;
+ }				/* ocfs_extent_map_next_entry */
+ 
+@@ -519,7 +519,7 @@
+ 		*SectorCount = (LO(LiSectorCount)) << OCFS_LOG_SECTOR_SIZE;
+ 	}
+ 		
+-	LOG_EXIT_ULONG (Results);
++	LOG_EXIT_STATUS (Results);
+ 	return Results;
+ }				/* ocfs_get_next_extent_map_entry  */
+ 
+@@ -566,7 +566,7 @@
+ 		}
+ 	}
+ 
+-	LOG_EXIT_ULONG (ret);
++	LOG_EXIT_STATUS (ret);
+ 	return ret;
+ }				/* ocfs_lookup_extent_map_entry */
+ 
+@@ -648,7 +648,7 @@
+ 
+ 		if ((OcfsExtent->next_free_ext != OCFS_MAX_DATA_EXTENTS) &&
+ 		    (*remainingLength)) {
+-			LOG_ERROR_ARGS ("next_free_extent=%d, rem_len=%u.%u",
++			LOG_ERROR_ARGS ("next_free_extent=%d, rem_len=%lu.%lu",
+ 				OcfsExtent->next_free_ext, HILO(*remainingLength));
+ 		} else
+ 			status = 0;
+@@ -689,10 +689,10 @@
+ 
+ 	ret = ocfs_extent_map_add (Map, ((__s64) Vbo), ((__s64) Lbo), ((__s64) ByteCount));
+ 	if (!ret)
+-		LOG_ERROR_ARGS ("fileoff=%u.%u, diskoff=%u.%u, len=%u.%u",
++		LOG_ERROR_ARGS ("fileoff=%lu.%lu, diskoff=%lu.%lu, len=%lu.%lu",
+ 				HILO (Vbo), HILO (Lbo), HILO (ByteCount));
+ 
+ 
+-	LOG_EXIT_ULONG (ret);
++	LOG_EXIT_STATUS (ret);
+ 	return ret;
+ }				/* ocfs_add_extent_map_entry */
+Index: src/super.c
+===================================================================
+--- src/super.c	(revision 31)
++++ src/super.c	(working copy)
+@@ -326,7 +326,7 @@
+ 		inode = NULL;
+ 	}
+ 
+-	LOG_EXIT_PTR (0);
++	LOG_EXIT_PTR (NULL);
+ 	return NULL;
+ }				/* ocfs_read_super */
+ 
+@@ -355,7 +355,7 @@
+ 		goto bail;
+ 	}
+ 
+-	LOG_TRACE_ARGS("strlen(options) = %d, options = \"%s\"\n", strlen(options), options);
++	LOG_TRACE_ARGS("strlen(options) = %zu, options = \"%s\"\n", strlen(options), options);
+ 
+ #ifdef LINUX_2_5
+         while ( (c = strsep(&options, ",")) != NULL)
+@@ -675,7 +675,7 @@
+  */
+ static void ocfs_put_super (struct super_block *sb)
+ {
+-	LOG_ENTRY_ARGS ("(0x%08x)\n", sb);
++	LOG_ENTRY_ARGS ("(%p)\n", sb);
+ 
+ 	ocfs_sync_blockdev(sb);
+ 	LOG_TRACE_STR ("put super... do nothing!  DONE!!!!");
+@@ -700,7 +700,7 @@
+         ocfs_bitmap_lock *bm_lock = NULL;
+ 	struct buffer_head *bh = NULL;
+ 
+-        LOG_ENTRY_ARGS ("(0x%08x, 0x%08x)\n", sb, buf);
++        LOG_ENTRY_ARGS ("(%p, %p)\n", sb, buf);
+ 
+         osb = (ocfs_super *) OCFS_GENERIC_SB_P(sb);
+         numbits = osb->cluster_bitmap.validbits;
+@@ -1064,7 +1064,7 @@
+ 	__u32 tempmap;
+ 	int i;
+ 
+-	LOG_ENTRY_ARGS ("(0x%08x)\n", sb);
++	LOG_ENTRY_ARGS ("(%p)\n", sb);
+ 
+ 	if (sb == NULL) {
+ 		LOG_ERROR_STATUS (status = -EFAIL);
 Index: src/heartbeat.c
 ===================================================================
 --- src/heartbeat.c	(revision 31)
@@ -423,28 +419,6 @@ Index: src/proc.c
    "Failed Large Allocs      : %u\n"            \
    "Retry Large Allocs       : %u\n"            \
    "Inode Hash Objects       : %u\n"
-Index: src/dcache.c
-===================================================================
---- src/dcache.c	(revision 31)
-+++ src/dcache.c	(working copy)
-@@ -48,7 +48,7 @@
- 	struct buffer_head *fe_bh = NULL;
- 	int needs_trunc;
- 
--        LOG_ENTRY_ARGS ("(0x%08x, %d, '%*s')\n", dentry, flags,
-+        LOG_ENTRY_ARGS ("(%p, %d, '%*s')\n", dentry, flags,
-                         dentry->d_name.len, dentry->d_name.name);
- 
- 	if ((inode = dentry->d_inode) == NULL ||
-@@ -176,7 +176,7 @@
- 	struct list_head *list;
- 	int ret, done;
- 
--	LOG_ENTRY_ARGS ("(0x%08x, '%*s')\n", dentry,
-+	LOG_ENTRY_ARGS ("(%p, '%*s')\n", dentry,
-                         dentry->d_name.len, dentry->d_name.name);
- 
- 	spin_lock (&dcache_lock);
 Index: src/io.c
 ===================================================================
 --- src/io.c	(revision 31)
@@ -615,122 +589,28 @@ Index: src/io.c
  		       (!(flags & OCFS_BH_CACHED) || ignore_cache) ? "no" : "yes");
  
  bail:
-Index: src/ioctl.c
+Index: src/dcache.c
 ===================================================================
---- src/ioctl.c	(revision 31)
-+++ src/ioctl.c	(working copy)
-@@ -40,7 +40,7 @@
- 	extern char *ocfs_version;
- 	int ret = 0;
+--- src/dcache.c	(revision 31)
++++ src/dcache.c	(working copy)
+@@ -48,7 +48,7 @@
+ 	struct buffer_head *fe_bh = NULL;
+ 	int needs_trunc;
  
--	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, %u, %lu)\n", inode, filp, cmd, arg);
-+	LOG_ENTRY_ARGS ("(%p, %p, %u, %lu)\n", inode, filp, cmd, arg);
+-        LOG_ENTRY_ARGS ("(0x%08x, %d, '%*s')\n", dentry, flags,
++        LOG_ENTRY_ARGS ("(%p, %d, '%*s')\n", dentry, flags,
+                         dentry->d_name.len, dentry->d_name.name);
  
- 	if (_IOC_TYPE (cmd) != OCFS_IOC_MAGIC) {
- 		ret = -ENOTTY;
-Index: src/nm.c
-===================================================================
---- src/nm.c	(revision 31)
-+++ src/nm.c	(working copy)
-@@ -158,12 +158,12 @@
- 	ocfs_publish * publish;
- 	struct ocfs_sched_vote *sv = NULL;
+ 	if ((inode = dentry->d_inode) == NULL ||
+@@ -176,7 +176,7 @@
+ 	struct list_head *list;
+ 	int ret, done;
  
--	LOG_ENTRY_ARGS("(vote_node = %d, bh = 0x%x)\n", vote_node, bh);
-+	LOG_ENTRY_ARGS("(vote_node = %d, bh = %p)\n", vote_node, bh);
+-	LOG_ENTRY_ARGS ("(0x%08x, '%*s')\n", dentry,
++	LOG_ENTRY_ARGS ("(%p, '%*s')\n", dentry,
+                         dentry->d_name.len, dentry->d_name.name);
  
- 	publish = (ocfs_publish *) OCFS_BH_GET_DATA_READ(bh); /* read */
- 
- 	if (osb->last_publ_seq_num[vote_node] == publish->publ_seq_num){
--		LOG_TRACE_ARGS("Already voted on node %d, seqnum (%u.%u)\n", 
-+		LOG_TRACE_ARGS("Already voted on node %d, seqnum (%lu.%lu)\n", 
- 			       vote_node, HILO(publish->publ_seq_num));
- 		OCFS_BH_PUT_DATA(bh);
- 		status = 0;
-@@ -310,7 +310,7 @@
- 			atomic_inc (&osb->nm_init);
- 		}
- 
--		LOG_TRACE_ARGS ("Publish map: 0x%08x\n", LO (osb->publ_map));
-+		LOG_TRACE_ARGS ("Publish map: %lu\n", LO (osb->publ_map));
- 
- 		/* map of local node */
- 		curr_node_map = (__u64) ((__u64)1 << osb->node_num);
-@@ -433,7 +433,7 @@
- 	int status = 0;
- 	ocfs_file_entry *fe;
- 
--	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, 0x%08x)\n", osb, lock_res, bh);
-+	LOG_ENTRY_ARGS ("(%p, %p, %p)\n", osb, lock_res, bh);
- 
- 	/* Don't sync-read if we already own the lock as it may not
- 	 * have hit disk yet. */
-@@ -447,7 +447,7 @@
- 
- 	status = ocfs_acquire_lockres_ex (lock_res, timeout);
- 	if (status < 0) {
--		LOG_TRACE_ARGS ("Timedout locking lockres for id: %u.%u\n",
-+		LOG_TRACE_ARGS ("Timedout locking lockres for id: %lu.%lu\n",
- 				HILO (lock_res->sector_num));
- 		goto finally;
- 	}
-@@ -487,7 +487,7 @@
- 	ocfs_lock_res *tmp_lockres = NULL;
- 	struct buffer_head *tmpbh = NULL, **b = NULL;
- 
--	LOG_ENTRY_ARGS ("(0x%08x, %u.%u, 0x%08x, 0x%08x, 0x%08x)\n", osb,
-+	LOG_ENTRY_ARGS ("(%p, %lu.%lu, %p, %p, %p)\n", osb,
- 			HI (lock_id), LO (lock_id), lockres, bh, updated);
- 
- 	if (bh == NULL)
-@@ -720,7 +720,7 @@
- 	__u64 lock_id, seq_num;
- 	int needs_trunc = 0;
- 
--	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x)\n", osb, ctxt);
-+	LOG_ENTRY_ARGS ("(%p, %p)\n", osb, ctxt);
- 
- 	if (!publish && !dlm_msg) {
- 		status = -EINVAL;
-@@ -743,7 +743,7 @@
- 	}
- 	lockflags = (lock_id >= osb->vol_layout.bitmap_off ? OCFS_BH_CACHED : 0);
- 	
--	LOG_TRACE_ARGS ("node=%u, id=%u.%u, seq=%u.%u\n", node_num,
-+	LOG_TRACE_ARGS ("node=%u, id=%lu.%lu, seq=%lu.%lu\n", node_num,
- 			HILO (lock_id), HILO (seq_num));
- 
- 	if (disk_vote) {
-@@ -765,7 +765,7 @@
- 	} else {
- 		status = ocfs_acquire_lockres_ex (lockres, (OCFS_NM_HEARTBEAT_TIME/2));
- 		if (status < 0) {
--			LOG_TRACE_ARGS ("Timedout locking lockres for id: %u.%u\n",
-+			LOG_TRACE_ARGS ("Timedout locking lockres for id: %lu.%lu\n",
- 				HILO (lockres->sector_num));
- 			ocfs_put_lockres(lockres);
- 			goto leave;
-@@ -775,9 +775,9 @@
- 	vote_type = get_process_vote_action(osb, lockres, node_num, flags, 
- 					    status, &master_alive, &oin);
- 	
--	printk("ocfs_process_vote: %s request for lockid: %u.%u, action: %s, type: %s\n",
-+	printk("ocfs_process_vote: %s request for lockid: %lu.%lu, action: %s, type: %s\n",
- 	       flags & FLAG_RELEASE_LOCK ? "RELEASE" : 
--	       (flags & FLAG_ACQUIRE_LOCK ? "ACQUIRE" : "MODIFY"), lock_id,
-+	       (flags & FLAG_ACQUIRE_LOCK ? "ACQUIRE" : "MODIFY"), HILO(lock_id),
- 	       process_vote_strings[vote_type], disk_vote ? "disk vote" : "net vote" );
- 
- 
-@@ -938,7 +938,7 @@
- 			 * him the lock if it's part of the cache and
- 			 * we can flush it... */
- 
--			LOG_TRACE_ARGS("Lock id (%u.%u) has %u holders\n", 
-+			LOG_TRACE_ARGS("Lock id (%lu.%lu) has %u holders\n", 
- 				       HILO(lockres->sector_num), 
- 				       lockres->lock_holders);
- 
+ 	spin_lock (&dcache_lock);
 Index: src/journal.c
 ===================================================================
 --- src/journal.c	(revision 31)
@@ -838,55 +718,122 @@ Index: src/journal.c
  
  	/* take a lock on the publish sector */
  	down (&(osb->publish_lock));
-Index: src/bitmap.c
+Index: src/nm.c
 ===================================================================
---- src/bitmap.c	(revision 31)
-+++ src/bitmap.c	(working copy)
-@@ -42,7 +42,7 @@
- {
- 	__u32 tmp;
+--- src/nm.c	(revision 31)
++++ src/nm.c	(working copy)
+@@ -158,12 +158,12 @@
+ 	ocfs_publish * publish;
+ 	struct ocfs_sched_vote *sv = NULL;
  
--	LOG_ENTRY_ARGS ("(0x%08x, %u, %u)\n", bitmap, validbits, allocbits);
-+	LOG_ENTRY_ARGS ("(%p, %u, %u)\n", bitmap, validbits, allocbits);
+-	LOG_ENTRY_ARGS("(vote_node = %d, bh = 0x%x)\n", vote_node, bh);
++	LOG_ENTRY_ARGS("(vote_node = %d, bh = %p)\n", vote_node, bh);
  
- 	bitmap->validbits = validbits;
- 	bitmap->allocbits = allocbits;
-@@ -137,7 +137,7 @@
- 	int c;
- 	struct buffer_head *currbh = NULL;
+ 	publish = (ocfs_publish *) OCFS_BH_GET_DATA_READ(bh); /* read */
  
--	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, %u, %u, %u)\n", osb, bitmap, numBits,
-+	LOG_ENTRY_ARGS ("(%p, %p, %u, %u, %u)\n", osb, bitmap, numBits,
- 			offset, sysonly);
+ 	if (osb->last_publ_seq_num[vote_node] == publish->publ_seq_num){
+-		LOG_TRACE_ARGS("Already voted on node %d, seqnum (%u.%u)\n", 
++		LOG_TRACE_ARGS("Already voted on node %d, seqnum (%lu.%lu)\n", 
+ 			       vote_node, HILO(publish->publ_seq_num));
+ 		OCFS_BH_PUT_DATA(bh);
+ 		status = 0;
+@@ -310,7 +310,7 @@
+ 			atomic_inc (&osb->nm_init);
+ 		}
  
- 	globalsize = bitmap->validbits - sysonly;
-@@ -258,7 +258,7 @@
- 		OCFS_BH_PUT_DATA(currbh);
+-		LOG_TRACE_ARGS ("Publish map: 0x%08x\n", LO (osb->publ_map));
++		LOG_TRACE_ARGS ("Publish map: %lu\n", LO (osb->publ_map));
+ 
+ 		/* map of local node */
+ 		curr_node_map = (__u64) ((__u64)1 << osb->node_num);
+@@ -433,7 +433,7 @@
+ 	int status = 0;
+ 	ocfs_file_entry *fe;
+ 
+-	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, 0x%08x)\n", osb, lock_res, bh);
++	LOG_ENTRY_ARGS ("(%p, %p, %p)\n", osb, lock_res, bh);
+ 
+ 	/* Don't sync-read if we already own the lock as it may not
+ 	 * have hit disk yet. */
+@@ -447,7 +447,7 @@
+ 
+ 	status = ocfs_acquire_lockres_ex (lock_res, timeout);
+ 	if (status < 0) {
+-		LOG_TRACE_ARGS ("Timedout locking lockres for id: %u.%u\n",
++		LOG_TRACE_ARGS ("Timedout locking lockres for id: %lu.%lu\n",
+ 				HILO (lock_res->sector_num));
+ 		goto finally;
  	}
+@@ -487,7 +487,7 @@
+ 	ocfs_lock_res *tmp_lockres = NULL;
+ 	struct buffer_head *tmpbh = NULL, **b = NULL;
  
--	LOG_EXIT_ULONG (count);
-+	LOG_EXIT_STATUS (count);
- 	return count;
- }				/* ocfs_count_bits */
+-	LOG_ENTRY_ARGS ("(0x%08x, %u.%u, 0x%08x, 0x%08x, 0x%08x)\n", osb,
++	LOG_ENTRY_ARGS ("(%p, %lu.%lu, %p, %p, %p)\n", osb,
+ 			HI (lock_id), LO (lock_id), lockres, bh, updated);
  
-@@ -277,7 +277,7 @@
- 	void *buff;
- 	int i, local;
+ 	if (bh == NULL)
+@@ -720,7 +720,7 @@
+ 	__u64 lock_id, seq_num;
+ 	int needs_trunc = 0;
  
--	LOG_ENTRY_ARGS ("(0x%08x, %u, %u)\n", bitmap, start, num);
-+	LOG_ENTRY_ARGS ("(%p, %u, %u)\n", bitmap, start, num);
+-	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x)\n", osb, ctxt);
++	LOG_ENTRY_ARGS ("(%p, %p)\n", osb, ctxt);
  
- 	if ((start + num) > bitmap->validbits) {
- 		LOG_ERROR_ARGS("bitmap->validbits = %u but start = %u and "  \
-@@ -318,7 +318,7 @@
- 	void *buff;
- 	int i, local;
+ 	if (!publish && !dlm_msg) {
+ 		status = -EINVAL;
+@@ -743,7 +743,7 @@
+ 	}
+ 	lockflags = (lock_id >= osb->vol_layout.bitmap_off ? OCFS_BH_CACHED : 0);
+ 	
+-	LOG_TRACE_ARGS ("node=%u, id=%u.%u, seq=%u.%u\n", node_num,
++	LOG_TRACE_ARGS ("node=%u, id=%lu.%lu, seq=%lu.%lu\n", node_num,
+ 			HILO (lock_id), HILO (seq_num));
  
--	LOG_ENTRY_ARGS ("(0x%08x, %u, %u)\n", bitmap, start, num);
-+	LOG_ENTRY_ARGS ("(%p, %u, %u)\n", bitmap, start, num);
+ 	if (disk_vote) {
+@@ -765,7 +765,7 @@
+ 	} else {
+ 		status = ocfs_acquire_lockres_ex (lockres, (OCFS_NM_HEARTBEAT_TIME/2));
+ 		if (status < 0) {
+-			LOG_TRACE_ARGS ("Timedout locking lockres for id: %u.%u\n",
++			LOG_TRACE_ARGS ("Timedout locking lockres for id: %lu.%lu\n",
+ 				HILO (lockres->sector_num));
+ 			ocfs_put_lockres(lockres);
+ 			goto leave;
+@@ -775,9 +775,9 @@
+ 	vote_type = get_process_vote_action(osb, lockres, node_num, flags, 
+ 					    status, &master_alive, &oin);
+ 	
+-	printk("ocfs_process_vote: %s request for lockid: %u.%u, action: %s, type: %s\n",
++	printk("ocfs_process_vote: %s request for lockid: %lu.%lu, action: %s, type: %s\n",
+ 	       flags & FLAG_RELEASE_LOCK ? "RELEASE" : 
+-	       (flags & FLAG_ACQUIRE_LOCK ? "ACQUIRE" : "MODIFY"), lock_id,
++	       (flags & FLAG_ACQUIRE_LOCK ? "ACQUIRE" : "MODIFY"), HILO(lock_id),
+ 	       process_vote_strings[vote_type], disk_vote ? "disk vote" : "net vote" );
  
- 	if ((start + num) > bitmap->validbits) {
- 		LOG_ERROR_ARGS("bitmap->validbits = %u but start = %u and "  \
+ 
+@@ -938,7 +938,7 @@
+ 			 * him the lock if it's part of the cache and
+ 			 * we can flush it... */
+ 
+-			LOG_TRACE_ARGS("Lock id (%u.%u) has %u holders\n", 
++			LOG_TRACE_ARGS("Lock id (%lu.%lu) has %u holders\n", 
+ 				       HILO(lockres->sector_num), 
+ 				       lockres->lock_holders);
+ 
+Index: src/ioctl.c
+===================================================================
+--- src/ioctl.c	(revision 31)
++++ src/ioctl.c	(working copy)
+@@ -40,7 +40,7 @@
+ 	extern char *ocfs_version;
+ 	int ret = 0;
+ 
+-	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, %u, %lu)\n", inode, filp, cmd, arg);
++	LOG_ENTRY_ARGS ("(%p, %p, %u, %lu)\n", inode, filp, cmd, arg);
+ 
+ 	if (_IOC_TYPE (cmd) != OCFS_IOC_MAGIC) {
+ 		ret = -ENOTTY;
 Index: src/dlm.c
 ===================================================================
 --- src/dlm.c	(revision 31)
@@ -1177,40 +1124,55 @@ Index: src/dlm.c
  
  	if (disk_vote && !disk_reset) {
  		tmpstat = ocfs_reset_voting (osb, lockres->sector_num,
-Index: src/util.c
+Index: src/bitmap.c
 ===================================================================
---- src/util.c	(revision 31)
-+++ src/util.c	(working copy)
-@@ -270,7 +270,7 @@
- 		*oin = GET_INODE_OIN(inode);
- 	*off = GET_INODE_VOTEOFF (inode);
- 
--	LOG_TRACE_ARGS("offset=%u.%u, i_ino=%u\n", HILO((*off)), inode->i_ino);
-+	LOG_TRACE_ARGS("offset=%lu.%lu, i_ino=%lu\n", HILO((*off)), inode->i_ino);
- 
- 	if (*off == -1)
- 		BUG();
-@@ -388,9 +388,9 @@
- void ocfs_truncate_inode_pages(struct inode *inode, loff_t off)
+--- src/bitmap.c	(revision 31)
++++ src/bitmap.c	(working copy)
+@@ -42,7 +42,7 @@
  {
- #if LINUX_VERSION_CODE <= LinuxVersionCode(2,4,10)
--	LOG_TRACE_ARGS ("NOT truncating pages for inode %p from offset %u.%u\n", inode, off);
-+	LOG_TRACE_ARGS ("NOT truncating pages for inode %p from offset %lu.%lu\n", inode, HILO(off));
- #else
--	LOG_TRACE_ARGS ("truncating pages for inode %p from offset %u.%u\n", inode, off);
-+	LOG_TRACE_ARGS ("truncating pages for inode %p from offset %lu.%lu\n", inode, HILO(off));
- 	truncate_inode_pages(&inode->i_data, off);
- #endif
- }				/* ocfs_truncate_inode_pages */
-@@ -471,7 +471,7 @@
-                 addr = *stack++;
-                 if (ocfs_kernel_text_address(addr)) {
-                 //        lookup_symbol(addr, buffer, 512);
--                        printk("[<%08lx>] %s (0x%x)\n", addr," ",stack-1);
-+                        printk("[<%08lx>] %s (%p)\n", addr," ",stack-1);
-                 }
-         }
-         printk("\n");
+ 	__u32 tmp;
+ 
+-	LOG_ENTRY_ARGS ("(0x%08x, %u, %u)\n", bitmap, validbits, allocbits);
++	LOG_ENTRY_ARGS ("(%p, %u, %u)\n", bitmap, validbits, allocbits);
+ 
+ 	bitmap->validbits = validbits;
+ 	bitmap->allocbits = allocbits;
+@@ -137,7 +137,7 @@
+ 	int c;
+ 	struct buffer_head *currbh = NULL;
+ 
+-	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, %u, %u, %u)\n", osb, bitmap, numBits,
++	LOG_ENTRY_ARGS ("(%p, %p, %u, %u, %u)\n", osb, bitmap, numBits,
+ 			offset, sysonly);
+ 
+ 	globalsize = bitmap->validbits - sysonly;
+@@ -258,7 +258,7 @@
+ 		OCFS_BH_PUT_DATA(currbh);
+ 	}
+ 
+-	LOG_EXIT_ULONG (count);
++	LOG_EXIT_STATUS (count);
+ 	return count;
+ }				/* ocfs_count_bits */
+ 
+@@ -277,7 +277,7 @@
+ 	void *buff;
+ 	int i, local;
+ 
+-	LOG_ENTRY_ARGS ("(0x%08x, %u, %u)\n", bitmap, start, num);
++	LOG_ENTRY_ARGS ("(%p, %u, %u)\n", bitmap, start, num);
+ 
+ 	if ((start + num) > bitmap->validbits) {
+ 		LOG_ERROR_ARGS("bitmap->validbits = %u but start = %u and "  \
+@@ -318,7 +318,7 @@
+ 	void *buff;
+ 	int i, local;
+ 
+-	LOG_ENTRY_ARGS ("(0x%08x, %u, %u)\n", bitmap, start, num);
++	LOG_ENTRY_ARGS ("(%p, %u, %u)\n", bitmap, start, num);
+ 
+ 	if ((start + num) > bitmap->validbits) {
+ 		LOG_ERROR_ARGS("bitmap->validbits = %u but start = %u and "  \
 Index: src/vote.c
 ===================================================================
 --- src/vote.c	(revision 31)
@@ -1251,6 +1213,40 @@ Index: src/vote.c
  
  	msg_len = sizeof (ocfs_dlm_msg) - 1 + sizeof (ocfs_dlm_req_master);
  
+Index: src/util.c
+===================================================================
+--- src/util.c	(revision 31)
++++ src/util.c	(working copy)
+@@ -270,7 +270,7 @@
+ 		*oin = GET_INODE_OIN(inode);
+ 	*off = GET_INODE_VOTEOFF (inode);
+ 
+-	LOG_TRACE_ARGS("offset=%u.%u, i_ino=%u\n", HILO((*off)), inode->i_ino);
++	LOG_TRACE_ARGS("offset=%lu.%lu, i_ino=%lu\n", HILO((*off)), inode->i_ino);
+ 
+ 	if (*off == -1)
+ 		BUG();
+@@ -388,9 +388,9 @@
+ void ocfs_truncate_inode_pages(struct inode *inode, loff_t off)
+ {
+ #if LINUX_VERSION_CODE <= LinuxVersionCode(2,4,10)
+-	LOG_TRACE_ARGS ("NOT truncating pages for inode %p from offset %u.%u\n", inode, off);
++	LOG_TRACE_ARGS ("NOT truncating pages for inode %p from offset %lu.%lu\n", inode, HILO(off));
+ #else
+-	LOG_TRACE_ARGS ("truncating pages for inode %p from offset %u.%u\n", inode, off);
++	LOG_TRACE_ARGS ("truncating pages for inode %p from offset %lu.%lu\n", inode, HILO(off));
+ 	truncate_inode_pages(&inode->i_data, off);
+ #endif
+ }				/* ocfs_truncate_inode_pages */
+@@ -471,7 +471,7 @@
+                 addr = *stack++;
+                 if (ocfs_kernel_text_address(addr)) {
+                 //        lookup_symbol(addr, buffer, 512);
+-                        printk("[<%08lx>] %s (0x%x)\n", addr," ",stack-1);
++                        printk("[<%08lx>] %s (%p)\n", addr," ",stack-1);
+                 }
+         }
+         printk("\n");
 Index: src/dir.c
 ===================================================================
 --- src/dir.c	(revision 31)
@@ -1406,12 +1402,14 @@ Index: src/file.c
                          file->f_dentry->d_name.len, file->f_dentry->d_name.name);
  
  	dentry = file->f_dentry;
-@@ -370,7 +370,7 @@
+@@ -369,8 +369,8 @@
+                 goto do_parent_dec;
          }
                  
-         LOG_TRACE_ARGS ("openhandles: %d / osbfiles: %d / refcount: %d\n",
+-        LOG_TRACE_ARGS ("openhandles: %d / osbfiles: %d / refcount: %d\n",
 -                         oin->open_hndl_cnt, osb->file_open_cnt,
-+                         oin->open_hndl_cnt, (int)osb->file_open_cnt,
++        LOG_TRACE_ARGS ("openhandles: %d / osbfiles: %lu / refcount: %d\n",
++                         oin->open_hndl_cnt, (long int)osb->file_open_cnt,
                          atomic_read(&dentry->d_count)); 
                 
          /* FIXME: in all the other places I run thru all the dentries */
@@ -1447,7 +1445,7 @@ Index: src/file.c
  	int needs_trunc = 0;
  
 -	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, %d, '%*s')\n", filp, buf, count,
-+	LOG_ENTRY_ARGS ("(%p, %p, %d, '%*s')\n", filp, buf, (int)count,
++	LOG_ENTRY_ARGS ("(%p, %p, %zu, '%*s')\n", filp, buf, count,
                          filp->f_dentry->d_name.len, filp->f_dentry->d_name.name);
  
  	/* happy write of zero bytes */
@@ -1493,7 +1491,7 @@ Index: src/file.c
  	int status = 0, needs_trunc = 0;
  
 -	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, %d, '%*s')\n", filp, buf, count,
-+	LOG_ENTRY_ARGS ("(%p, %p, %d, '%*s')\n", filp, buf, (int)count,
++	LOG_ENTRY_ARGS ("(%p, %p, %zu, '%*s')\n", filp, buf, count,
                          filp->f_dentry->d_name.len, filp->f_dentry->d_name.name);
  
  
