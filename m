@@ -1,7 +1,7 @@
 From: Chen, Yukun <yukun.chen@intel.com>
-Date: Wed Aug 11 04:43:19 2004
-Subject: [Ocfs2-devel] data inconsistency when write in a memory map way
-Message-ID: <B44D37711ED29844BEA67908EAF36F038AD04A@pdsmsx401.ccr.corp.intel.com>
+Date: Wed Aug 11 04:49:42 2004
+Subject: [Ocfs2-devel] fstat cause process blocked on bi-node enviornment
+Message-ID: <B44D37711ED29844BEA67908EAF36F038AD052@pdsmsx401.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,25 +10,46 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi all
 
-for beta 4 release, on kernel 2.4.x
+  For beta 4 release, on kernel 2.4.x.
 
-steps to duplicate:
+  Steps to duplicate:
 
-1.on node a, write to a file residing on a ocfs2 partition in a way of
-memory 
+  1. on node a, large the size of file1
 
-map
+  2. on node b, in the meanwhile, fstat to get the attributes of the
+same file
 
-2.then on node b , check the writtent data but nothing will be found.
+  then the process is blocked with error message:
 
-It is ok if I use a normal way to write file and check on another node.
+############
+(2336) ERROR at vote.c, 921: inode 8770, vote_status=0, vote_state=1,
+lockid=35921920, flags = 0x40000004, asked type = 5 master = 1, state =
+0x0, type = 5
+(2336) ERROR at dlm.c, 1000: Timed out acquiring lock for inode 8770,
+(lockid = 35921920) retrying...
+(2) ocfs_process_vote: ACQUIRE request for lockid: 12288, action: (11)
+READONLY, type: net vote, num_ident = 1
+(2) vote: lockid=12288, node=0, seqnum=17, response=1, open_handle=no
+###########
 
-Any ideas on it.
+simultaneously, error message can be found on the first node( node a)
+below:
 
-BTW, the issue has been reported as bug#124 to oss.oracle.com
+####################
+(5626) ERROR at vote.c, 921: inode 3, vote_status=0, vote_state=1,
+lockid=12288, flags = 0x60001000, asked type = 5 master = 1, state =
+0x0, type = 5
+(5626) ERROR at dlm.c, 1000: Timed out acquiring lock for inode 3,
+(lockid = 12288) retrying...
+
+####################
+
+It seems sth. wrong with the lock. Any comments are welcome.
 
 Thanx.
 
+BTW, a bug #125 has been reported to oss.oracle.com to descripe this
+issue.
 
 Aaron
 
