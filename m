@@ -1,48 +1,23 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Mar 18 10:15:11 2004
-Subject: [Ocfs2-devel] [PATCH]Fix for 2.6 unmount crash
-Message-ID: <200403181614.i2IGEMH1028597@penguin.co.intel.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Thu Mar 18 12:31:22 2004
+Subject: [Ocfs2-devel] A patch to fix bug 45 in bugzilla
+In-Reply-To: <20040318151045.GA25973@penguin.co.intel.com>
+References: <40596BF0.8020807@intel.com>
+	<20040318151045.GA25973@penguin.co.intel.com>
+Message-ID: <20040318183106.GN20057@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch catches the scenario where a dismount has already
-been started, and a ocfs_release_cached_oin() has been kicked
-off as a result of ocfs_inode_hash_destroy() calling iput()
-on any remaining inodes.
+On Thu, Mar 18, 2004 at 07:10:45AM -0800, Rusty Lynch wrote:
+> If this is jbd bug, then how come ext3 doesn't trigger buffer_error()?
+Ext3 almost never uses journal_create. They have their mkfs make the
+journals for them. (journal_create is used to format a new journal)
+	--Mark
 
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=47
-
-This will cause a 2.6 system built with memory debugging to 
-crash (indicating that we are doing something wrong, which is using
-our cache objects after we have free'ed them.)
-
-I haven't seen a crash on 2.4 due to this, but a 2.4 system does
-come across this scenario (but it just doesn't crash.)
-
-    --rusty
-
-Index: src/oin.c
-===================================================================
---- src/oin.c	(revision 787)
-+++ src/oin.c	(working copy)
-@@ -705,6 +705,17 @@
- 	if (oin == NULL)
- 		goto bail;
- 
-+	/*
-+	 * If the OCFS_OSB_FLAGS_BEING_DISMOUNTED flag has
-+	 * already been set, then the lockres hash has already
-+	 * been cleaned out which means that we have a lock_res
-+	 * pointer that points to free memory.
-+	 */
-+	if (osb->osb_flags & OCFS_OSB_FLAGS_BEING_DISMOUNTED) {
-+		oin->lock_res = NULL;
-+		goto bail;
-+	}
-+
- 	ocfs_down_sem (&(oin->main_res), true);
- 	bAcquiredOIN = true;
-         inode = oin->inode;
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
