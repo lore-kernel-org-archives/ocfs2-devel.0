@@ -1,37 +1,38 @@
-From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Tue Jun 22 04:11:13 2004
-Subject: [Ocfs2-devel] The truncate_inode_page call
-	inocfs_file_releasecaus es the severethroughput drop of file reading in OCFS2.
-Message-ID: <3ACA40606221794F80A5670F0AF15F8404B3F1D1@pdsmsx403>
+From: Christoph Hellwig <hch@lst.de>
+Date: Tue Jun 22 06:51:55 2004
+Subject: [Ocfs2-devel] [PATCH] fixup journal-related ifdef mess
+In-Reply-To: <20040622004806.GF1771@ca-server1.us.oracle.com>
+References: <20040620144000.GB16073@lst.de>
+	<20040622004806.GF1771@ca-server1.us.oracle.com>
+Message-ID: <20040622114842.GA14441@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-=20
+On Mon, Jun 21, 2004 at 05:48:06PM -0700, Mark Fasheh wrote:
+> Thanks for all the patches so far.
+> 
+> (This patch has been committed, but before I could take a look at it)
+> 
+> What's wrong with how this was done before?
+> 
+> I agree with the goal of reducing code clutter, and making it easier to be
+> a  2.6 file system, so why can't we do ext3 style thin wrappers around those
+> functions (look at ext3_jbd.h to see what I'm going for) instead of doing
+> things like 
+> 
+> > +#define journal_start(journal, nblocks)      \
+> > +     ocfs_journal_start(journal, nblocks)
+> > +#define journal_stop(handle) \
+> > +     ocfs_journal_stop(handle)
+> 
+> which winds up defining a macro with the same name as a function (blech! ;)
+> 
+> Of course, ext3 had some other reasons for doing it that way too, but it
+> seemed to me to be a bit more obvious...
 
->-----Original Message-----
->From: ocfs2-devel-bounces@oss.oracle.com=20
->[mailto:ocfs2-devel-bounces@oss.oracle.com] On Behalf Of Wim Coekaerts
->Sent: 2004=C4=EA6=D4=C222=C8=D5 16:01
->To: Zhang, Sonic
->
->the problem is, how can we notify. I think we don't want to=20
->notify every
->node on every change othewise we overload the interconnect and we don't
->have a good consistent map, if I remmeber Kurts explanation correctly.
-
->this has to be fixed for regular performance for sure, the question is
->how do we do this in a good way.=20
-
-What we are thinking is like follows:
-1.Both node A and node B read file foo, the cache is ok and do not =
-truncate when closing.
-2.When Node B open foo for writting, it get the lock in file entry of =
-foo.
-3.When node A open foo again for reading, it found the lock is gotten by =
-node B for writting,=20
- so it should first truncate all its page caches.
-
-It this feasible?
+Just using the latest kernel release native function is the cleanest
+approach imho, wrappers just obsfucate the code.  I don't think this is
+documented anywhere.
