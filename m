@@ -1,129 +1,37 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Feb  5 15:49:29 2004
-Subject: [Ocfs2-devel] [PATCH] Adding ocfs support to blkid
-In-Reply-To: <20040204185952.GA13452@ca-server1.us.oracle.com>
-References: <200402040838.i148cCqU002632@penguin.co.intel.com>
-	<20040204185952.GA13452@ca-server1.us.oracle.com>
-Message-ID: <20040204193757.GA5285@penguin.co.intel.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Thu Feb  5 17:49:50 2004
+Subject: [Ocfs2-devel] important: ocfs2 version number bump
+Message-ID: <20040205234947.GC26471@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Feb 04, 2004 at 10:59:52AM -0800, Mark Fasheh wrote:
-> Could we call it "ocfs" instead of "ocfs2" below? We will likely be bumping
-> up the version number in the header for ocfs version 2 when it's released.
-> 	--Mark
+*** WARNING: None of this should be attempted on a production file system.
+
+We've bumped up the version number in the ocfs2 module. This means however
+that it won't mount ocfs1 filesystems. To be able to mount with ocfs2, you
+MUST download, build and install the current SVN version of ocfs-tools and
+do one of the following:
+
+1) Format as a version 2 filesystem. Run mkfs.ocfs2 with the same options as
+you used to use with 'mkfs.ocfs'. For example:
+
+       mkfs.ocfs2 -b 4 -L ocfs2_test -m /ocfs2 /dev/sdb1
 
 
-Here is a new version of the patch that works for "ocfs"
-instead of "ocfs2".
+2) If you have an existing version 1 filesystem, then you can use the
+tuneocfs '-c 2' option to bump up the version number. You will not be able
+to go back to version 1 after this.
 
-    --rusty
+	tuneocfs -c 2 /dev/sdb1
 
-# This is a BitKeeper generated diff -Nru style patch.
-#
-# ChangeSet
-#   2004/02/04 11:15:08-08:00 rusty@penguin.co.intel.com 
-#   Changing name of file system from ocfs2 to ocfs
-# 
-# lib/blkid/probe.c
-#   2004/02/04 11:15:07-08:00 rusty@penguin.co.intel.com +1 -1
-#   Changing name of file system from ocfs2 to ocfs
-# 
-# ChangeSet
-#   2004/02/04 00:14:40-08:00 rusty@penguin.co.intel.com 
-#   Adding support for the Oracle cluster file system (ocfs)
-# 
-# BitKeeper/etc/logging_ok
-#   2004/02/04 00:14:40-08:00 rusty@penguin.co.intel.com +2 -1
-#   Logging to logging@openlogging.org accepted
-# 
-# lib/blkid/probe.h
-#   2004/02/04 00:14:24-08:00 rusty@penguin.co.intel.com +21 -0
-#   Adding support for the Oracle cluster file system (ocfs)
-# 
-# lib/blkid/probe.c
-#   2004/02/04 00:14:24-08:00 rusty@penguin.co.intel.com +31 -0
-#   Adding support for the Oracle cluster file system (ocfs)
-# 
-diff -Nru a/lib/blkid/probe.c b/lib/blkid/probe.c
---- a/lib/blkid/probe.c	Wed Feb  4 11:33:23 2004
-+++ b/lib/blkid/probe.c	Wed Feb  4 11:33:23 2004
-@@ -312,6 +312,36 @@
- 	return 1;
- }
- 
-+static int probe_ocfs(int fd __BLKID_ATTR((unused)), 
-+		      blkid_cache cache __BLKID_ATTR((unused)), 
-+		      blkid_dev dev,
-+		      struct blkid_magic *id __BLKID_ATTR((unused)), 
-+		      unsigned char *buf)
-+{
-+	struct ocfs_volume_header ovh;
-+	struct ocfs_volume_label ovl;
-+	
-+	if (lseek(fd, 0, SEEK_SET) != 0)
-+		return -1;
-+
-+	if (read(fd, (char *) &ovh, sizeof(ovh)) != sizeof(ovh))
-+		return -1;
-+
-+	if (strncmp(ovh.signature, OCFS_MAGIC, sizeof(OCFS_MAGIC)) != 0)
-+		return -1;
-+
-+	if (lseek(fd, 512, SEEK_SET) != 512)
-+		return -1;
-+
-+	if (read(fd, (char *) &ovl, sizeof(ovl)) != sizeof(ovl)) 
-+		return -1;
-+
-+	blkid_set_tag(dev, "LABEL", ovl.label, ocfslabellen(ovl));
-+	blkid_set_tag(dev, "MOUNT", ovh.mount, ocfsmountlen(ovh));
-+	set_uuid(dev, ovl.vol_id);
-+	return 0;
-+}
-+
- /*
-  * BLKID_BLK_OFFS is at least as large as the highest bim_kboff defined
-  * in the type_array table below + bim_kbalign.
-@@ -371,6 +401,7 @@
-   { "swap",	 0, 0x1ff6, 10, "SWAPSPACE2",		0 },
-   { "swap",	 0, 0x3ff6, 10, "SWAP-SPACE",		0 },
-   { "swap",	 0, 0x3ff6, 10, "SWAPSPACE2",		0 },
-+  { "ocfs",	 0,	 8,  9,	 "OracleCFS",  probe_ocfs },
-   {   NULL,	 0,	 0,  0, NULL,			NULL }
- };
- 
-diff -Nru a/lib/blkid/probe.h b/lib/blkid/probe.h
---- a/lib/blkid/probe.h	Wed Feb  4 11:33:23 2004
-+++ b/lib/blkid/probe.h	Wed Feb  4 11:33:23 2004
-@@ -209,6 +209,27 @@
- 	__u32	h_blksize;
- };
- 
-+struct ocfs_volume_header {
-+	u_char	minor_version[4];
-+	u_char	major_version[4];
-+	u_char	signature[128];
-+	u_char  mount[128];
-+	u_char  mount_len[2];
-+};
-+
-+struct ocfs_volume_label {
-+	u_char	disk_lock[48];
-+	u_char	label[64];	
-+	u_char	label_len[2];
-+	u_char  vol_id[16];
-+	u_char  vol_id_len[2];
-+};
-+
-+#define ocfslabellen(o)	((uint)o.label_len[0] + (((uint) o.label_len[1]) << 8))
-+#define ocfsmountlen(o)	((uint)o.mount_len[0] + (((uint) o.mount_len[1])<<8))
-+
-+#define OCFS_MAGIC "OracleCFS"
-+
- #define ISODCL(from, to) (to - from + 1)
- struct iso_volume_descriptor {
- 	char type[ISODCL(1,1)]; /* 711 */
+This option is currently undocumented as it is changing rapidly. Again, NONE
+of this should be attempted on a production file system.
+	--Mark
+
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
