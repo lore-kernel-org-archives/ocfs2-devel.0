@@ -1,54 +1,94 @@
-From: Kurt Hackel <Kurt.Hackel@oracle.com>
-Date: Thu Jun 17 16:20:58 2004
-Subject: [Ocfs2-devel] OCFS2 final on-disk format changes are going in
-Message-ID: <20040617212054.GA1343@ca2.us.oracle.com>
+From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
+Date: Fri Jun 18 02:23:46 2004
+Subject: [Ocfs2-devel] some intersting result for ocfs2 performance
+Message-ID: <3ACA40606221794F80A5670F0AF15F8404AE1150@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
+I made simple C program to test for the reading performance. see attach.
+The result are interesting.
+The program will open the file and repeat read(-p specified), each time
+the throughput is print out.
 
-We just finished up the last of the work to change the on-disk format of
-ocfs2 and we are about to move this from the branch into trunk in svn.
-We tried very hard to make every conceivable change that we would want
-in this last pass so that this would be the final on-disk change.
+The first time read, the performance is low,it's reasonable, but after
+sleep 6 seconds, the next read 
+performance will also drop, and if only sleep 5 seconds, it won't.
+So, it looks like after 5 seconds, the cache will be thrown out, it that
+ture?
 
-What this means for any of you who are tracking this project is that you
-will need to reformat before picking up the most current ocfs2.  The
-ocfs-tools svn package has been split into "ocfs" and "ocfs2"
-subdirectories, so just "svn update" that package and you will see the
-new userland mkfs2.  We will be coming out with new versions of the rest
-of the tools shortly, so these aren't final.  The mkfs2 that is there is
-in a fairly rough state, meaning it won't warn you if you try to format
-a mounted device, or warn you if the cluster size you choose is so small
-that bitmap operations are unbearably slow, so just be careful.
+but compare with ext3 (the last data, 100 times), seems the cache in
+ocfs2 doesn't take effective at all.
 
-The only upcoming on-disk change that we forsee at this point is to do a
-last pass of le##_to_cpu/cpu_to_le## macros around everything in user
-and kernel.  As of this release, we actually seem to work on 2.4 and 2.6,
-little and big endian, 32- and 64-bit, and hard sector sizes from 512 to
-4096.  :)
+run on svn 1122.
+=======================================================
+./ben -f /ocfs/ttt -s 128 -a -p 10 --create
 
-For any of you interested enough to know the details of what changed, we
-will be coming up with a document soon about the ocfs->ocfs2 changes (it
-can be found at http://oss.oracle.com/projects/ocfs2/documentation/) and 
-some new documentation on all of the on-disk structures and how they
-are laid out now.  Until then, please first take a look at super.c (in
-ocfs_initialize_osb mostly) to see how the new bootstrapping differs
-from before to get a good idea of what is going on.  (Basically, all of
-the "hard" offsets and sizes that we stored on the former superblock are
-now "soft" and dynamically allocated by mkfs or tunefs).  Nearly all of
-our former limits (total volume size, total on-disk bitmap size, total
-number of nodes in the cluster, etc) are now either gone or expanded to
-huge limits.
+create file /ocfs/ttt of size 128K successfully
+total:128.000K Time:22.010 Rate:5816KB
+total:128.000K Time:11.952 Rate:10710KB
+total:128.000K Time:11.997 Rate:10669KB
+total:128.000K Time:12.055 Rate:10618KB
+total:128.000K Time:11.891 Rate:10764KB
+total:128.000K Time:11.996 Rate:10670KB
+total:128.000K Time:12.023 Rate:10646KB
+total:128.000K Time:11.907 Rate:10750KB
+total:128.000K Time:12.071 Rate:10604KB
+total:128.000K Time:12.000 Rate:10667KB
+total:1280.000K Time:130.101 Rate:9839KB
 
-We'd really like to thank all of you for your patience as we have been
-making these pretty drastic changes lately.  Your bug reports/fixes are
-invaluable to us and we'd love to see even more.  We're going to go on a
-long stability run for awhile now, so you can hopefully expect better
-turnaround time on getting your patches in.  Thanks for sticking with
-us, we really think that the new format will pay off in the end.
+./ben -f /ocfs/ttt -s 128 -a -p 10 --sleep 5
 
--kurt
+total:128.000K Time:20.667 Rate:6193KB
+total:128.000K Time:11.903 Rate:10754KB
+total:128.000K Time:12.011 Rate:10657KB
+total:128.000K Time:11.917 Rate:10741KB
+total:128.000K Time:8.272 Rate:15474KB
+total:128.000K Time:8.287 Rate:15446KB
+total:128.000K Time:12.124 Rate:10558KB
+total:128.000K Time:12.014 Rate:10654KB
+total:128.000K Time:11.953 Rate:10709KB
+total:128.000K Time:11.990 Rate:10676KB
+total:1280.000K Time:5121.921 Rate:250KB
+
+./ben -f /ocfs/ttt -s 128 -a -p 10 --sleep 6
+
+total:128.000K Time:12.325 Rate:10385KB
+total:128.000K Time:11.925 Rate:10734KB
+total:128.000K Time:11.928 Rate:10731KB
+total:128.000K Time:11.966 Rate:10697KB
+total:128.000K Time:11.990 Rate:10676KB
+total:128.000K Time:12.065 Rate:10609KB
+total:128.000K Time:20.131 Rate:6358KB
+total:128.000K Time:11.980 Rate:10684KB
+total:128.000K Time:12.032 Rate:10638KB
+total:128.000K Time:11.907 Rate:10750KB
+total:1280.000K Time:6129.400 Rate:209KB
+
+
+--------------------------------
+for ext3
+
+./ben -f /ext3/ttt -s 128 -a -p 10 --create
+
+create file /ocfs2/ttt of size 128K successfully
+total:128.000K Time:0.114 Rate:1122807KB
+total:128.000K Time:0.052 Rate:2461538KB
+total:128.000K Time:0.050 Rate:2560000KB
+total:128.000K Time:0.050 Rate:2560000KB
+total:128.000K Time:0.050 Rate:2560000KB
+total:128.000K Time:0.050 Rate:2560000KB
+total:128.000K Time:0.050 Rate:2560000KB
+total:128.000K Time:0.051 Rate:2509804KB
+total:128.000K Time:0.050 Rate:2560000KB
+total:128.000K Time:0.050 Rate:2560000KB
+total:1280.000K Time:0.654 Rate:1957187KB
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ben.c
+Type: application/octet-stream
+Size: 4238 bytes
+Desc: ben.c
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040618/1b16165f/ben.obj
