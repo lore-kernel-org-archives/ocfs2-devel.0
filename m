@@ -1,61 +1,62 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Tue Jul 13 16:59:01 2004
-Subject: [Ocfs2-devel] posix
-In-Reply-To: <3ACA40606221794F80A5670F0AF15F8404D650E9@pdsmsx403>
-References: <3ACA40606221794F80A5670F0AF15F8404D650E9@pdsmsx403>
-Message-ID: <20040713215354.GK14805@ca-server1.us.oracle.com>
+From: Zhang, Sonic <sonic.zhang@intel.com>
+Date: Fri Jul 16 05:00:11 2004
+Subject: [Ocfs2-devel] 
+	A patch to improve the metadata reading throughput (against svn
+	1267)
+Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E04B13BD8@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I commited a fix for this (finally we can say it was actually a bug, and not
-some poor design choice!). Which posix tests fail now?
-	--Mark
+Hi,
 
-On Thu, Jul 08, 2004 at 01:22:11PM +0800, Ling, Xiaofeng wrote:
-> Many broken and fails are caused by unable chmod for the ocfs root directory.
-> Such as access02, because the ocfs root can not write by other users.
-> I've tried remove the restriction in ocfs_setattr, many case can pass.
-> 
-> >-----Original Message-----
-> >From: wim.coekaerts@oracle.com [mailto:wim.coekaerts@oracle.com] 
-> >Sent: 2004??7??7?? 17:12
-> >To: Ling, Xiaofeng
-> >Cc: Wim Coekaerts; ocfs2-devel@oss.oracle.com
-> >Subject: Re: [Ocfs2-devel] posix
-> >
-> >great thanks - still a bunch that fail but compared to pervious list
-> >this seems to behave much better.. hmm
-> >i guess still a bunch of probs to address
-> >
-> >On Wed, Jul 07, 2004 at 04:44:06PM +0800, Ling, Xiaofeng wrote:
-> >> >-----Original Message-----
-> >> >any chance to rerun the ltp testsuites to see how we are doing these
-> >> >days with all the changes ?
-> >> >
-> >> Follow is the output of LTP about file system call before  hang at
-> >> readdir02.
-> >> ---------------------------------------------------
-> >> TDIRECTORY=/ocfs ./runalltests.sh -q -f `pwd`/runtest/syscall-file
-> >> access01    1  PASS  :  access(accessfile, F_OK) returned 0
-> >> access01    2  PASS  :  access(accessfile, X_OK) returned 0
-> >> access01    3  PASS  :  access(accessfile, W_OK) returned 0
-> >> access01    4  PASS  :  access(accessfile, R_OK) returned 0
-> >> access02    1  BROK  :  open(test_file1, O_RDWR|O_CREAT, 
-> >0644) Failed,
-> >> errno=13 :Permission denied
-> >> access02    2  BROK  :  Remaining cases broken
-> >> access02    3  BROK  :  Remaining cases broken
-> >> access02    4  BROK  :  Remaining cases broken
-> >> access03    1  PASS  :  access((char *)-1,R_OK) failed as 
-> >expected with
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+	This is a new patch to increase the metadata reading throughput
+for OCFS2. Our approach is to make the metadata reading operation via
+routine ocfs_read_bh() cacheable and keep consistency through routine
+invalidate_bdev() when receiving lock release notifications, such as
+FLAG_FILE_CREATE, FLAG_FILE_DELETE, FLAG_FILE_TRUNCATE,
+FLAG_FILE_EXTEND, etc. These notification is sent in routine
+ocfs_release_lock(), which is invoked in the journal commit thread.
+
+	We also did some benchmark.
+	The directory creating rate is about 4000/s with this patch and
+1400/s without.
+	The directory removing rate is about 740/s with this patch and
+10/s without.
+
+	Please refer to the attachment. It is against svn 1267.
+
+	This patch is not stable yet. Known issues:
+1. We still need to check all code which read the metadata. Figure out
+if that metadata is suitable to be cached.
+3. Current OCFS lock mechanism may cause dead lock in some cases after
+we change to cache metadata and release lock in journal asynchronously.
+We plan to fix it in a new patch.
+4. readdir() may get old data after the data is written back to disk in
+journal asynchronously. It is not a bug. But which way is better, sync
+the new data to disk when other nodes notify READONLY message or just
+let them get old data?
+
+	We are working to improve this patch. Any suggestion?
+	Thank you very much.
+
+
+
+
+*********************************************
+Sonic Zhang
+Software Engineer
+Intel China Software Lab
+Tel: (086)021-52574545-1667
+iNet: 752-1667
+*********************************************  
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ocfs2-metadata-2.patch
+Type: application/octet-stream
+Size: 9512 bytes
+Desc: ocfs2-metadata-2.patch
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040716/8474cd98/ocfs2-metadata-2.obj
