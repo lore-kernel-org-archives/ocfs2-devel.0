@@ -1,22 +1,31 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Mar 18 16:24:57 2004
-Subject: [Ocfs2-devel] Re: [PATCH]remove oin's needs_flush_list
-In-Reply-To: <200403181600.i2IG0Xj4027264@penguin.co.intel.com>
-References: <200403181600.i2IG0Xj4027264@penguin.co.intel.com>
-Message-ID: <20040318222452.GP20057@ca-server1.us.oracle.com>
+From: Sonic Zhang <sonic.zhang@intel.com>
+Date: Thu Mar 18 20:52:02 2004
+Subject: [Ocfs2-devel] 
+	I regenerate the patch for bug 45 against kernel 2.6.4
+Message-ID: <405A605D.4080504@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 18, 2004 at 08:00:33AM -0800, Rusty Lynch wrote:
-> The following is a very simple patch to remove the needs_flush_list
-> list_head and in_needs_flush_list boolean members of ocfs_inode.
-Excellent, committed.
-	--Mark
+See bellow.
+Please check if it works.
 
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+---------------------------------------------------------------------------
+
+--- linux-2.6.4a/fs/jbd/journal.c    2004-03-19 10:40:49.264613984 +0800
++++ linux-2.6.4/fs/jbd/journal.c    2004-03-19 10:41:12.091143824 +0800
+@@ -832,10 +832,10 @@
+         bh = __getblk(journal->j_dev, blocknr, journal->j_blocksize);
+         lock_buffer(bh);
+         memset (bh->b_data, 0, journal->j_blocksize);
+-        BUFFER_TRACE(bh, "marking dirty");
+-        mark_buffer_dirty(bh);
+         BUFFER_TRACE(bh, "marking uptodate");
+         set_buffer_uptodate(bh);
++        BUFFER_TRACE(bh, "marking dirty");
++        mark_buffer_dirty(bh);
+         unlock_buffer(bh);
+         __brelse(bh);
+     }
