@@ -1,36 +1,45 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Mar 29 21:10:54 2004
-Subject: [Ocfs2-devel] Can you check the patch for bug 48 and commit?
-In-Reply-To: <37FBBA5F3A361C41AB7CE44558C3448E03B65E4C@PDSMSX403.ccr.corp.intel.com>
-References: <37FBBA5F3A361C41AB7CE44558C3448E03B65E4C@PDSMSX403.ccr.corp.intel.com>
-Message-ID: <20040330031050.GB10672@ca-server1.us.oracle.com>
+From: Rusty Lynch <rusty@linux.co.intel.com>
+Date: Tue Mar 30 11:28:09 2004
+Subject: [Ocfs2-devel] [PATCH]remove ocfs_fill_super and port
+	ocfs_read_super
+In-Reply-To: <20040330024421.GA10672@ca-server1.us.oracle.com>
+References: <200403260259.i2Q2xnp9006458@penguin.co.intel.com>
+	<20040326143454.GG18020@ca-server1.us.oracle.com>
+	<20040326204638.GA7147@penguin.co.intel.com>
+	<20040329212947.GW10672@ca-server1.us.oracle.com>
+	<20040329213158.GA12840@penguin.co.intel.com>
+	<20040329223754.GA15877@penguin.co.intel.com>
+	<20040329230609.GY10672@ca-server1.us.oracle.com>
+	<20040329234603.GA19720@penguin.co.intel.com>
+	<20040330024421.GA10672@ca-server1.us.oracle.com>
+Message-ID: <20040330172337.GA9975@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Mar 30, 2004 at 10:53:13AM +0800, Zhang, Sonic wrote:
-> Hi Mark,
+On Mon, Mar 29, 2004 at 06:44:21PM -0800, Mark Fasheh wrote:
+> On Mon, Mar 29, 2004 at 03:46:03PM -0800, Rusty Lynch wrote:
+> > Here is my previous patch with the ocfs_set_blocksize make inline, and the addition
+> > of OCFS_MOD_[INC|DEC]_USE_COUNT
+> Ok, this is in. I fixed a couple of things, one of them being the whole
+> OCFS_DEC/INC_INODE_COUNT which I removed, and just put the kernel macros in
+> the 2.4 read_super.
+
+Ahh... good idea on where to put the mod inc/dec.
 > 
-> Can you check the patch for bug 48 in the attachment and commit? I haven't
-> found it in the svn tree.
-That's because I was still looking at the signals part of the patch :)
-I needed to do some reading in schedule() to make sure what I though was
-going on, really is. Also, I think the correct approach is to do both, the
-signal handling, *and* to define the timeout value itself as a function of
-HZ, rather than a hard number of jiffies.
+> You'll prolly get conflicts when updating :(
 
-> This patch adds lines of signal process code, which makes the thread
-> ocfs_volume_thread() really go to sleep after receive the SIGTERM signal.
-> So, it gives routine ocfs_journal_set_unmounted() a chance to run and
-> check the lock status before thread ocfs_volume_thread() wakes up.
-You need to update from cvs because half of that patch is already in. Also,
-can you make the same NPTL fix in it that I did for ocfs_commit_thread? See
-the svn logs to know what I'm talking about.
-	--Mark
+Nope. I make a point of starting from a fresh tree when ever possible 
+(less chance of munging up future patches)
+> 
+> Let me know if I messed anything up for 2.6, but I seriously doubt it :)
+> 	--Mark
 
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+Works for me 
+> 
+> --
+> Mark Fasheh
+> Software Developer, Oracle Corp
+> mark.fasheh@oracle.com
