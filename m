@@ -1,59 +1,69 @@
 From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Mon Feb  9 14:48:08 2004
+Date: Mon Feb  9 15:47:09 2004
 Subject: [Ocfs2-devel] [PATCH][2.6 PORT] more ocfs.h cleanup
-Message-ID: <200402092045.i19KjlKM000935@penguin.co.intel.com>
+In-Reply-To: <200402092045.i19KjlKM000935@penguin.co.intel.com>
+References: <200402092045.i19KjlKM000935@penguin.co.intel.com>
+Message-ID: <20040209214559.GA2131@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following is a patch that cleans up src/inc/ocfs.h in another step
-towards a port to the 2.6 kernel.
+On Mon, Feb 09, 2004 at 12:45:47PM -0800, Rusty Lynch wrote:
+> The following is a patch that cleans up src/inc/ocfs.h in another step
+> towards a port to the 2.6 kernel.
+
+Just got access to an ia64 machine and discovered that my last patch
+moved the ia64 defines for prefetch and friends down too low (so
+the warning messages talked about in the top comment come back.)
+
+This version corrects the problem.
 
     --rusty
+
 
 Index: src/inc/ocfs.h
 ===================================================================
 --- src/inc/ocfs.h	(revision 29)
 +++ src/inc/ocfs.h	(working copy)
-@@ -5,19 +5,6 @@
+@@ -5,7 +5,15 @@
  struct mem_dqinfo;
  extern inline void mark_info_dirty(struct mem_dqinfo *info);
  
 -#ifndef LINUX_2_5
--#ifdef __ia64__
--extern inline void prefetch(const void *x);
--extern inline void prefetchw(const void *x);
--#else
--static inline void prefetch(const void *x);
--static inline void prefetchw(const void *x);
--#endif
--extern inline int generic_fls(int x);
--extern inline int get_bitmask_order(unsigned int count);
++/*
++** System header files
++*/
++#define   __KERNEL_SYSCALLS__
++#include  <linux/version.h>
++#include  <linux/types.h>
++#include  <linux/config.h>
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+ #ifdef __ia64__
+ extern inline void prefetch(const void *x);
+ extern inline void prefetchw(const void *x);
+@@ -15,23 +23,14 @@
+ #endif
+ extern inline int generic_fls(int x);
+ extern inline int get_bitmask_order(unsigned int count);
 -#endif /* !LINUX_2_5 */
++#endif /* 2.4 kernel */
+ 
 -
--
- /*
- ** System header files
- */
-@@ -30,8 +17,20 @@
+-/*
+-** System header files
+-*/
+-#define   __KERNEL_SYSCALLS__
+-#include  <linux/version.h>
+-#include  <linux/types.h>
+-#include  <linux/config.h>
+ #include  <linux/module.h>
+ #include  <linux/init.h>
  #include  <linux/kernel.h>
  #include  <asm/byteorder.h>
  #include  <linux/spinlock.h>
-+
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-+#ifdef __ia64__
-+extern inline void prefetch(const void *x);
-+extern inline void prefetchw(const void *x);
-+#else
-+static inline void prefetch(const void *x);
-+static inline void prefetchw(const void *x);
-+#endif
-+extern inline int generic_fls(int x);
-+extern inline int get_bitmask_order(unsigned int count);
-+#endif /* 2.4 kernel */
-+
  #include  <linux/slab.h>
 -#include  <linux/slab.h>
  #include  <linux/sched.h>
