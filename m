@@ -1,41 +1,42 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Mar 25 13:10:44 2004
-Subject: [Ocfs2-devel] About Mark's advice on bug 48
-In-Reply-To: <4062A5B5.3000205@intel.com>
-References: <4062A5B5.3000205@intel.com>
-Message-ID: <20040325191037.GN10672@ca-server1.us.oracle.com>
+Date: Thu Mar 25 16:55:54 2004
+Subject: [Ocfs2-devel] [BUG] strange behavior with mknod on ocfs2
+In-Reply-To: <200403250405.i2P45gYf017979@penguin.co.intel.com>
+References: <200403250405.i2P45gYf017979@penguin.co.intel.com>
+Message-ID: <20040325225541.GQ10672@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 25, 2004 at 05:26:13PM +0800, Sonic Zhang wrote:
-> Hi Mark,
+On Wed, Mar 24, 2004 at 08:05:42PM -0800, Rusty Lynch wrote:
+> I just created a new bug in bugzilla for some wacky bahavior around mknod.
 > 
->    I change a little to your patch. I remove the signal prcess code, 
-> because kernel thread doesn't receive signals by default. 
-Ours does! If you look in ocfs_daemonize, you'll see the following:
-	/* Block all signals except SIGKILL, SIGSTOP, SIGHUP and SIGINT */
-#ifdef HAVE_NPTL
-       	spin_lock_irq (&current->sighand->siglock);
-       	tmpsig = current->blocked;
-       	siginitsetinv (&current->blocked, SHUTDOWN_SIGS);
-	recalc_sigpending ();
-	spin_unlock_irq (&current->sighand->siglock);
-
-You need that signal processing bit, to dequeue pending signals from our
-task. Otherwise, ocfs_wait will trigger the signal_pending condition and
-return -EINTR on every call!
-
->This patch 
-> fixes the halt problem in thread ocfs_submit_thread(). But, there is 
-> another dead lock on osb->publish_lock in thread  ocfs_volume_thread() 
-> and routine ocfs_journal_set_unmounted(). I am tracking this problem now.
-I'd like more info on this.
+> The following is cut out of the bug report at ==>
+> http://oss.oracle.com/bugzilla/show_bug.cgi?id=52
+> 
+> On a 2.4 build, creating devices with mknod will result in the in-memory major
+> and minor numbers not matching the on-disk major and minor numbers (untill the
+> filesystem is remounted.)
+hmmm, i think we're forgetting to stuff the device in inode->i_rdev. Does
+this patch help? It seems to on my build.
 	--Mark
 
 --
 Mark Fasheh
 Software Developer, Oracle Corp
 mark.fasheh@oracle.com
+
+Index: namei.c
+===================================================================
+--- namei.c	(revision 806)
++++ namei.c	(working copy)
+@@ -300,6 +300,7 @@ int ocfs_mknod (struct inode *dir, struc
+ 		BUG();
+ 	oin->inode = inode;
+ 
++	inode->i_rdev = dev;
+ 	ocfs_populate_inode (inode, fe, mode, oin, true);
+ 	insert_inode_hash (inode);
+ 	ocfs_inode_hash_bind(osb, GET_INODE_VOTEOFF(inode), inode);
