@@ -1,212 +1,79 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Fri Jul 16 16:32:26 2004
-Subject: [Ocfs2-devel] [PATCH] provide sync_mapping_buffers stub for 2.4
-Message-ID: <20040716213221.GB10617@lst.de>
+From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
+Date: Tue Jul 20 17:08:40 2004
+Subject: [Ocfs2-devel] A patch to improve the metadata reading
+	throughput(a gainst svn1267)
+Message-ID: <3ACA40606221794F80A5670F0AF15F8404EDD5CE@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Two issues here:
+ 
 
-(a) two places were using only fsync_inode_buffers but not
-    fsync_inode_data_buffers in 2.4.  This looks like a bug to me, but
-    if it was intentional the patch needs rework.
-(b) by moving the sync_mapping_buffers from ocfs_inc_inode_seq into
-    the only caller that actually wants it it can lose a parameter.
+>-----Original Message-----
+>Another thing that's on the list which you might be interested 
+>in looking at
+>is not sending all lock release messages. Some of them do 
+>basically nothing
+>on the other end in process_vote, so there's really no reason 
+>to send them
+>to the nodes at all. This should help alot when you've batched 
+>up a ton of
+>locks to release in commit_cache.
+Now, in our patch, the release message will notify the other node
+to throw away meta data caches, so they are not doing nothing.
 
+>So are you planning to turn off immediate checkpointing for 
+>all the other
+>journal transactions? This is also on the list :) The only one 
+>that *may* be
+>troublesome I believe is truncate. Otherwise, the ones that 
+>are left are:
+>link, symlink, and rename.
 
-diff -u src/dlm.c src/dlm.c
---- src/dlm.c	(working copy)
-+++ src/dlm.c	(working copy)
-@@ -1410,7 +1410,7 @@
- 		ocfs_node_map_set(&lockres->oin_openmap, &open_map);
+Yes, the immediate checkpointing is the main reason for the 
+low performance of these operations we found.
+
+>> 4. readdir() may get old data after the data is written back 
+>to disk in
+>> journal asynchronously. It is not a bug. But which way is 
+>better, sync
+>> the new data to disk when other nodes notify READONLY message or just
+>> let them get old data?
+>No, we consider it a bug :)  The other nodes should be getting 
+>up to date
+>directory contents.
+Now, in our patch, the release message is sent in journal
+asynchronously,
+so before that, we can think the write is not finished. So we think this
+is 
+accepted and not bug, of cause, resolved it is also ok.
+
+Index: src/journal.c
+===================================================================
+--- src/journal.c	(revision 1267)
++++ src/journal.c	(working copy)
+@@ -148,6 +148,8 @@
+ 	}
+ 	spin_unlock(&journal->cmt_lock);
  
- 	if (need_to_zap_buffers)
--		ocfs_inc_inode_seq(osb, inode, 0);
-+		ocfs_inc_inode_seq(osb, inode);
- 	
- 	/* just alerting owner on open */
- 	if (flags & (FLAG_ADD_OIN_MAP | FLAG_TRUNCATE_PAGES))
-diff -u src/nm.c src/nm.c
---- src/nm.c	(working copy)
-+++ src/nm.c	(working copy)
-@@ -951,11 +951,7 @@
- 
- 			inode->i_nlink = 0;
- 			d_prune_aliases (inode);
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
- 			sync_mapping_buffers(inode->i_mapping);
--#else
--			fsync_inode_buffers (inode);
--#endif
- 			ocfs_truncate_inode_pages(inode, 0);
- 			/* Alright, for the YES case, we're done here. */
- 			break;
-@@ -986,14 +982,7 @@
- 
- 			// if the requestor just wants to do readdir, we 
- 			// drop our buffers, so switch to readonly and done
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
- 			sync_mapping_buffers(inode->i_mapping);
--#else
--			fsync_inode_buffers(inode);
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,18)
--			fsync_inode_data_buffers(inode);
--#endif
--#endif
- 
- 			ocfs_node_map_set_bit(&lockres->readonly_map, node_num);
- 			lockres->readonly_node = osb->node_num;
-@@ -1059,14 +1048,7 @@
- 				lockres->readonly_node = OCFS_INVALID_NODE_NUM;
- 			}
- 
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
- 			sync_mapping_buffers(inode->i_mapping);
--#else
--			fsync_inode_buffers(inode);
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,18)
--			fsync_inode_data_buffers(inode);
--#endif
--#endif
- 
- #warning do we need a truncate_inode_pages here?
- 
-@@ -1099,7 +1081,7 @@
- 			}
- 
- 			if (is_dir && vote_type == RELEASE_CACHE)
--				ocfs_inc_inode_seq(osb, inode, 0);
-+				ocfs_inc_inode_seq(osb, inode);
- 
- 			/* need to do the write only if fe lock values need to change */
- 			if (is_locked || vote_type == CHANGE_MASTER) {
-@@ -1297,8 +1279,10 @@
- 
- leave:
- 	if (inode) {
--		if (inc_inode_seq)
--			ocfs_inc_inode_seq(osb, inode, 1);
-+		if (inc_inode_seq) {
-+			ocfs_inc_inode_seq(osb, inode);
-+			sync_mapping_buffers(inode->i_mapping);
-+		}
- 		if (have_io_sem)
- 			up_write(&OCFS_I(inode)->ip_io_sem);
- 		iput(inode);
-@@ -1313,7 +1297,7 @@
- 
- 
- /* inode is definitely non NULL */
--void ocfs_inc_inode_seq(ocfs_super *osb, struct inode *inode, int sync_buffers)
-+void ocfs_inc_inode_seq(ocfs_super *osb, struct inode *inode)
- {
- 	atomic_t *seq = GET_INODE_CLEAN_SEQ(inode);
- 
-@@ -1334,17 +1318,6 @@
- 	
- 	LOG_TRACE_ARGS("done incrementing inode seq... new is %d\n", 
- 		       atomic_read(seq));
--
--	if (sync_buffers) {
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--		sync_mapping_buffers(inode->i_mapping);
--#else
--		fsync_inode_buffers(inode);
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,18)
--		fsync_inode_data_buffers(inode);
--#endif
--#endif
--	}
- }
- 
- 
-only in patch2:
-unchanged:
---- src/ocfs_compat.h	(revision 1280)
-+++ src/ocfs_compat.h	(working copy)
-@@ -108,6 +108,20 @@
- #define INIT_WORK(w, f, d)	INIT_TQUEUE(w, f, d)
- #define schedule_work(w)	schedule_task(w)
- 
-+static inline int sync_mapping_buffers(struct adress_space *mapping)
-+{       
-+	struct inode = mapping->host;
-+	int error;
-+
-+	error = fsync_inode_buffers(inode);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,18)
-+	if (!error)
-+		error = fsync_inode_data_buffers(inode);
-+#endif
-+	return error;
-+}
-+
-+
- #ifdef HAVE_NPTL
- static inline void dequeue_signal_lock(struct task_struct *task,
- 				       sigset_t *blocked, siginfo_t *info)
-@@ -143,9 +157,6 @@
- 
- #define ocfs_get_seconds(t) ((t).tv_sec)
- 
--#define fsync_inode_buffers(inode) \
--	sync_mapping_buffers((inode)->i_mapping)
--
- #endif  /* LINUX_VERSION_CODE < 2.6 */
- 
- #ifndef BITS_TO_LONGS
-only in patch2:
-unchanged:
---- src/namei.c	(revision 1280)
-+++ src/namei.c	(working copy)
-@@ -1314,7 +1314,7 @@
- 	ocfs_commit_trans(handle);
- 
- 	if (new_inode)
--		fsync_inode_buffers(old_inode);
-+		sync_mapping_buffers(old_inode->i_mapping);
- 
- 	status = 0;
- 
-only in patch2:
-unchanged:
---- src/file.c	(revision 1280)
-+++ src/file.c	(working copy)
-@@ -80,19 +80,12 @@
- 
- int ocfs_sync_inode(struct inode *inode)
- {
--	int status;
- #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
- 	filemap_fdatawrite(inode->i_mapping);
--	status = sync_mapping_buffers(inode->i_mapping);
- #else
- 	filemap_fdatasync(inode->i_mapping);
--	status = fsync_inode_buffers(inode);
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,18)
--	if (!status)	       
--		status = fsync_inode_data_buffers(inode);
- #endif
--#endif
--	return status;
-+	return sync_mapping_buffers(inode->i_mapping);
- }
- 
- /* 
-only in patch2:
-unchanged:
---- src/nm.h	(revision 1280)
-+++ src/nm.h	(working copy)
-@@ -31,8 +31,7 @@
- 
- int ocfs_drop_readonly_cache_lock(ocfs_super *osb, struct inode *inode,
- 				  int yield);
--void ocfs_inc_inode_seq(ocfs_super *osb, struct inode *inode,
--			int sync_buffers);
-+void ocfs_inc_inode_seq(ocfs_super *osb, struct inode *inode);
- int ocfs_process_vote(ocfs_super *osb, ocfs_vote_request_ctxt *ctxt);
- int ocfs_recv_thread(void *unused);
- void ocfs_recover_oin_locks(ocfs_super *osb, __u32 node_num);
++	if (osb->needs_flush)
++		ocfs_sync_blockdev(osb->sb);
+
+>Is this necessary? It seems awfully heavy, and since we journal *all*>
+>metadata (so it should be synced up to disk via the journal_flush just
+a
+>couple lines above that), I don't see the point... I was actually
+meaning to
+>take the other call to sync_blockdev out as it's never used :)
+
+We added this just because we found that some times we can not see the
+new created directory
+from another node, but by adding this, we can always see. Seems
+some buffer in block device's cache list are not flushed to disk after
+journal_flush.
+And after the lock release message is sent, the meta data cache on
+another node can not be
+throw away any more.So we must ensure all data is synced to disk on this
+node before sending message.
