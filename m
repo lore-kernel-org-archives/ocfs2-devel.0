@@ -1,34 +1,22 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri Feb 27 21:08:00 2004
-Subject: [Ocfs2-devel] Re: [PATCH]2.6 fixes in inode.c
-In-Reply-To: <200402251541.i1PFff84029171@penguin.co.intel.com>
-References: <200402251541.i1PFff84029171@penguin.co.intel.com>
-Message-ID: <20040228030756.GR1421@ca-server1.us.oracle.com>
+From: Manish Singh <manish.singh@oracle.com>
+Date: Sat Feb 28 17:36:55 2004
+Subject: [Ocfs2-devel] Moving to subversion
+Message-ID: <20040228233651.GA13019@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Feb 25, 2004 at 07:41:41AM -0800, Rusty Lynch wrote:
-> The following patch fixes some more 2.6 issues that come out of
-> porting inode.c
-> 
-> * In 2.6, direct-io is accomplished by just providing a direct_IO
->   mechanism in the address_space_operations.  This means there is
->   no need to treat direct IO differently in read/write operations.
-> * There were a couple of more timespec related bumps
-> * A typo in 2.6 code for handling inode devices
-> * Several more 2.6 prototype variants that cause compiler
->   errors/warnings
-> * Small changes in the inode structure
+I've just reimported the Subversion repository with the internal CVS tree.
+This means that development from the Oracle side will use it directly, so
+there won't be any syncing lags. Also, full revision history logs are
+maintained.
 
-Ok, just got this in CVS. Some of your logic for the prototypes was a little
-less strict than I wanted so I changed it around a bit :)
-	--Mark
+As a result of this, those with pre-existing checkouts will have to
+recheckout, since the revision numbers match the old CVS repo and have no
+relation to the previous snapshots. If you have changes in your local tree,
+I think you'll still be able to make diffs, since a local copy is kept in
+the .svn dir. So I hope migration won't be that much of a pain.
 
-
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+-Manish
