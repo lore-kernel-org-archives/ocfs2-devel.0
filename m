@@ -1,26 +1,33 @@
-From: Villalovos, John L <john.l.villalovos@intel.com>
-Date: Tue Aug  3 15:47:06 2004
+From: Wim Coekaerts <wim.coekaerts@oracle.com>
+Date: Tue Aug  3 16:26:32 2004
 Subject: [Ocfs2-devel] Distributions for OCFS2?
-Message-ID: <60C14C611F1DDD4198D53F2F43D8CA3B0186509C@orsmsx410>
+In-Reply-To: <60C14C611F1DDD4198D53F2F43D8CA3B0186509C@orsmsx410>
+References: <60C14C611F1DDD4198D53F2F43D8CA3B0186509C@orsmsx410>
+Message-ID: <20040803210637.GA8569@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-What are the current targeted distributions for OCFS2?
+On Tue, Aug 03, 2004 at 01:46:32PM -0700, Villalovos, John L wrote:
+> What are the current targeted distributions for OCFS2?
+> 
+> RHEL2.1?
+no
 
-RHEL2.1?
+> 
+> RHEL3?
 
-RHEL3?
+yes
+> 
+> RHEL4?
+yes
+> 
+> SuSE SLES 8?  (Is there such a thing?)
+dunno 
+> 
+> SuSE SLES 9?
+yes (and they will merge the code in when it's ready)
 
-RHEL4?
-
-SuSE SLES 8?  (Is there such a thing?)
-
-SuSE SLES 9?
-
-I'm just wondering how much backward compatibility we care about.
-
-Thanks,
-John
+ia32/ia64/amd-em64t/ppc64/zlinux ;)
