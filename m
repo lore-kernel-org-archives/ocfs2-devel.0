@@ -1,42 +1,46 @@
-From: Kurt Hackel <Kurt.Hackel@oracle.com>
-Date: Wed Apr 21 19:23:26 2004
-Subject: [Ocfs2-devel] Re: mkfs.ocfs2 updates
-In-Reply-To: <60C14C611F1DDD4198D53F2F43D8CA3B0E3F7D@orsmsx410.jf.intel.com>
-References: <60C14C611F1DDD4198D53F2F43D8CA3B0E3F7D@orsmsx410.jf.intel.com>
-Message-ID: <20040422002317.GC23405@ca2.us.oracle.com>
+From: Sunil Mushran <Sunil.Mushran@oracle.com>
+Date: Wed Apr 21 19:49:17 2004
+Subject: [Ocfs2-devel] Commenting patch
+In-Reply-To: <60C14C611F1DDD4198D53F2F43D8CA3B0E3F7C@orsmsx410.jf.intel.com>
+References: <60C14C611F1DDD4198D53F2F43D8CA3B0E3F7C@orsmsx410.jf.intel.com>
+Message-ID: <40871688.3060408@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Very soon.  This week sometime.  It will involve stripping a lot of code
-out of the kernel module too, which is a good thing :)
+We typically use c++ style comments to comment
+individual lines of code and c-style for actual comments.
 
-My only complication is making sure it works with version 1.
+Atleast in the module (v1) we have stuck to this coding style,
+alongwith tabs (no spaces), etc. from linus' style.
 
-Btw, I have no problem at all with // C++ comments and use them all over
-the place.  As for top-posting, hmmm....  :-p
+But tools, expecially debugocfs, is another story.... thanks
+to an unnamed rebel. ;-)
 
--kurt
+Villalovos, John L wrote:
 
-
-On Wed, Apr 21, 2004 at 05:10:48PM -0700, Villalovos, John L wrote:
-> khackel@ca2.us.oracle.com wrote:
-> > John,
-> > 
-> > Eeeeek!  Sorry I should have said something!  I pretty much finished
-> > mkfs over the last few days.  I couldn't take it anymore so I
-> > just went
-> > ahead and did it over the weekend ;-)
-> 
-> So do you know when this will get checked in?  Or has it already?
-> 
-> Thanks,
-> John
-> 
-> -- 
-> A: Because it messes up the order in which people normally read text.
-> Q: Why is top-posting such a bad thing?
-> A: Top-posting
-> Q: What is the most annoying thing on usenet and in e-mail?
+>Sunil Mushran wrote:
+>  
+>
+>>I thought Kurt was already done with mkfs.
+>>
+>>But comments can't hurt... unless it is C++ style. :-)
+>>Please could you use C style comments... /* */.
+>>    
+>>
+>
+>Just curious why you don't want C++ style comments.  They are part of
+>the C standard since 1999 and all the compilers that can compile the
+>kernel support them.  I noticed that other code in the kernel uses them
+>too.
+>
+>I'm just curious since I am a fan of those style comments.
+>
+>But I'll be happy to redo it in the /* */ style.
+>
+>John
+>
+>  
+>
