@@ -1,64 +1,45 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Wed Mar 17 16:32:20 2004
-Subject: [Ocfs2-devel] Crash in ocfs_volume_thread
-In-Reply-To: <60C14C611F1DDD4198D53F2F43D8CA3B0EFC68@orsmsx410.jf.intel.com>
-References: <60C14C611F1DDD4198D53F2F43D8CA3B0EFC68@orsmsx410.jf.intel.com>
-Message-ID: <20040317223216.GL20057@ca-server1.us.oracle.com>
+From: Sunil Mushran <Sunil.Mushran@oracle.com>
+Date: Wed Mar 17 16:34:41 2004
+Subject: [Ocfs2-devel] [Build PATCH]Add --enable-lockres-debug
+In-Reply-To: <20040317221733.GK20057@ca-server1.us.oracle.com>
+References: <200403171825.i2HIPRIn022075@penguin.co.intel.com>
+	<20040317195254.GJ20057@ca-server1.us.oracle.com>
+	<20040317210207.GA22346@penguin.co.intel.com>
+	<20040317221733.GK20057@ca-server1.us.oracle.com>
+Message-ID: <4058D27C.5020803@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Mar 17, 2004 at 01:42:12PM -0800, Villalovos, John L wrote:
-> I am trying to debug an issue where I get a crash in the
-> ocfs_volume_thread.
-> 
-> Here is the scenario.
-> 
-> This is all done under a 2.6.x kernel
-> 
-> I have a corrupted partition (I think).  
-> 
-> I created this corrupted partition by:
-> 
-> 1. Run mkfs.ocfs2
-> 2. Mount the partition once.  This caused errors.
-> 3. Reboot the system.
-> 4. Try to mount the partition again and then it crashes in the
-> ocfs_volume_thread.
-Hmm, this particular scenario I don't believe has been considered very
-much... (trying to mount a partition that failed the whole 1st mount
-business)
+My fault.
+I checked into configure.in some changes I had made locally
+sometime ago. Just prints the --enable flag during autogen.
 
-> I get the following errors:
-> 
-> kernel: (17777) ERROR: status = -22, /root/ocfs/new-ocfs2/src/osb.c, 427
-> kernel: (17777) ERROR: status = -22, /root/ocfs/new-ocfs2/src/super.c,
-> 1063
-> 
-> Then the crash occurs because I have a NULL pointer in line 670 of io.c
-> which seems to be called by ocfs_volume_thread.
-> 
-> The NULL pointer is in bh->b_bdev.  This being NULL causes a crash to
-> occur later on when BH_GET_DEVICE(bh) is called and tries to do a
-> bh->b_bdev->bd_dev.
-> 
-> 
-> >From looking at the code in super.c it seems like it creates the thread
-> but when the error occurs it doesn't take care of destroying the
-> thread(s) that have been created.  Does this interpretation seem
-> correct.
-> 
-> So should the threads get killed if the mount fails?
-Definitely.
+Mark Fasheh wrote:
 
-So then the fs is being cleaned up, but the nm thread obviously isn't. Are
-any of the other threads still alive too? (Perhaps we haven't even gotten a
-chance to start them yet actually).
-	--Mark
-
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+>On Wed, Mar 17, 2004 at 01:02:07PM -0800, Rusty Lynch wrote:
+>  
+>
+>>yes.  On my 2.6 build there is a crash when I umount if ocfs_put_inode
+>>comes across a non-root inode that still has an oin associated with it.
+>>The problem is that in ocfs_release_cached_oin we try to use oin->lock_res
+>>which was already free'ed in ocfs_hash_destroy, and not set to null.
+>>    
+>>
+>Ok, cool. I put this in SVN then. Btw, are you sure all your files are up to
+>date? I had to massage the configure.in stuff because it caused conflicts
+>with some code that been there for a while (or so I'm told)
+>	--Mark
+>
+>--
+>Mark Fasheh
+>Software Developer, Oracle Corp
+>mark.fasheh@oracle.com
+>_______________________________________________
+>Ocfs2-devel mailing list
+>Ocfs2-devel@oss.oracle.com
+>http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>  
+>
