@@ -1,9 +1,9 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Feb 12 12:52:32 2004
+From: Manish Singh <manish.singh@oracle.com>
+Date: Thu Feb 12 14:30:04 2004
 Subject: [Ocfs2-devel] Request to remove -Wfno-format
 In-Reply-To: <200402121839.i1CIdRaY027264@penguin.co.intel.com>
 References: <200402121839.i1CIdRaY027264@penguin.co.intel.com>
-Message-ID: <20040212185222.GA30675@penguin.co.intel.com>
+Message-ID: <20040212202959.GA23932@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -17,7 +17,11 @@ On Thu, Feb 12, 2004 at 10:39:27AM -0800, Rusty Lynch wrote:
 > including "-Wno-format".
 > 
 > Is there a good reason for adding the "-Wno-format" option to the build?
-> 
+
+No good reason. Fixing the LOG messages for proper formats was deemed less
+important than fixing real functionality bugs, so -Wno-format is used to cut
+down on the warning noise.
+
 > The kind of mistakes that are being ignored are ==>
 > 
 > LOG_TRACE_ARGS("found some data to free (%u.%u)\n", 
@@ -43,22 +47,8 @@ On Thu, Feb 12, 2004 at 10:39:27AM -0800, Rusty Lynch wrote:
 > 
 > If it is ok, I would like to make the build more strict, and treat each of
 > the warnings as bugs.
-> 
->     --rusty
 
-and here is a quick patch to remove the flag
+Go for it, the cleanup is welcome. While you're at it, getting rid of
+the HI()/LO() nonsense would be good too.
 
-
-Index: src/Makefile
-===================================================================
---- src/Makefile	(revision 31)
-+++ src/Makefile	(working copy)
-@@ -2,7 +2,7 @@
- 
- include $(TOPDIR)/Preamble.make
- 
--WARNINGS = -Wall -Wstrict-prototypes -Wno-format
-+WARNINGS = -Wall -Wstrict-prototypes 
- 
- ifneq ($(OCFS_PROCESSOR),x86_64)
- WARNINGS += -Wmissing-prototypes -Wmissing-declarations
+-Manish
