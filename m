@@ -1,39 +1,50 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue Aug  3 13:45:46 2004
-Subject: [Ocfs2-devel] Calculating volume size from superblock
-In-Reply-To: <60C14C611F1DDD4198D53F2F43D8CA3B018122C7@orsmsx410>
-References: <60C14C611F1DDD4198D53F2F43D8CA3B018122C7@orsmsx410>
-Message-ID: <20040803183817.GL2595@ca-server1.us.oracle.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Tue Aug  3 13:49:35 2004
+Subject: [Ocfs2-devel] Invalid file rights
+In-Reply-To: <B44D37711ED29844BEA67908EAF36F03768F9E@pdsmsx401.ccr.corp.intel.com>
+References: <B44D37711ED29844BEA67908EAF36F03768F9E@pdsmsx401.ccr.corp.intel.com>
+Message-ID: <20040803184929.GL8008@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Aug 02, 2004 at 11:56:03AM -0700, Villalovos, John L wrote:
-> So it sounds like it isn't a simple thing to do?
+On Tue, Aug 03, 2004 at 03:25:42PM +0800, Chen, Yukun wrote:
+> Hi All
+> 
+> I find a file rights bug on kernel 2.4 with svn 1313 code. Steps to
+> duplicate
+> 
+> Being root, create a file in a ocfs2 partition with the sentence below
+> 
+>  open(filename, O_CREAT | O_RDWR )
+> 
+> Then the file will be created with a right 000 --- nobody can write/read
+> it at all. 
+Right, and we get the mode from the kernel for this, right? Is there some
+policy which we're missing? In ocfs_mknod_locked we do "fe->i_mode = mode;"
+so it's definitely being set on disk. later on we also do "inode->i_mode =
+mode;".
 
-	No, it's not terribly simple.  Though it could be pretty small
-in a quick-n-dirty way.
+> But, if I use "touch filename" , the file will be created with a right
+> of 644.
+Well, that'd be because:
 
-> How portable is the libocfs2 library?  Is it fairly self contained?
+[mfasheh@expo ocfs2]$ strace touch file
+<snip>
+open("file", O_WRONLY|O_NONBLOCK|O_CREAT|O_NOCTTY|O_LARGEFILE, 0666) = 3
+<snip>
 
-	You can see it in the subversion repository for ocfs-tools.
-It's not complete yet, so copying it over is probably a bad idea right
-now.
-	It's self-contained, requiring only libet from e2fsprogs right
-now.  It's basically a conceptual port of libe2fs.
+So that's "touch" setting the mode there.
+ 
+> Any ideas on it? (a bug # 113 has been reported to oss.oracle.com
+> bugzilla)
+So the "touch" case is obvious, but I'm not sure that the 1st one is a bug
+either... If it is, please explain why.
+	--Mark
 
-Joel
-
--- 
-
-"If the human brain were so simple we could understand it, we would
- be so simple that we could not."
-	- W. A. Clouston
-
-Joel Becker
-Senior Member of Technical Staff
-Oracle Corporation
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
