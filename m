@@ -1,28 +1,46 @@
 From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Mar  4 13:50:13 2004
-Subject: [Ocfs2-devel] 2.6 status
-In-Reply-To: <20040304182631.GF5856@ca-server1.us.oracle.com>
-References: <20040304182631.GF5856@ca-server1.us.oracle.com>
-Message-ID: <20040304195000.GA28812@penguin.co.intel.com>
+Date: Thu Mar  4 14:35:56 2004
+Subject: [Ocfs2-devel] [PATCH]remove mark_info_dirty() hack on 2.6
+Message-ID: <200403042035.i24KZjAj000857@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 04, 2004 at 10:26:31AM -0800, Wim Coekaerts wrote:
-> so I need to send something that at least builds to suse today or
-> tomorrow(absolute latest) for 2.6, can I ? 
+In ocfs.h we have a hack for avoiding warnings by defining 
+mark_info_dirty().  This is no longer needed in 2.6, and there
+is a patch in the -mm tree that is about to make it into the 
+mainline tree that changes the mark_info_dirty() prototype.
 
-The current tree can do this now. You can load the module, mount 
-the file system, and then die in various ways.
-
-I just figured out what was missing in the inode creation / adding
-a new hash entry/ binding the the new inode process, and will 
-have a patch out today that will make the file system usable
-(well, until you try to delete something :->)
-
-John has access to the latest SLES9 beta, and is working on a spec
-file.
+The following patch changes ocfs.h to only include the warning
+work around if compiling against a 2.4 kernel.
 
     --rusty
+
+Index: src/inc/ocfs.h
+===================================================================
+--- src/inc/ocfs.h	(revision 754)
++++ src/inc/ocfs.h	(working copy)
+@@ -27,10 +27,6 @@
+ #ifndef OCFS_H
+ #define OCFS_H
+ 
+-/* XXX Hack to avoid warning */
+-struct mem_dqinfo;
+-extern inline void mark_info_dirty(struct mem_dqinfo *info);
+-
+ /*
+ ** System header files
+ */
+@@ -49,6 +45,10 @@
+ #endif
+ extern inline int generic_fls(int x);
+ extern inline int get_bitmask_order(unsigned int count);
++
++/* XXX Hack to avoid warning */
++struct mem_dqinfo;
++extern inline void mark_info_dirty(struct mem_dqinfo *info);
+ #endif /* 2.4 kernel */
+ 
+ #include  <linux/module.h>
