@@ -1,117 +1,80 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Mon Jul  5 15:23:17 2004
-Subject: [Ocfs2-devel] [PATCH] kill allchild iterators
-Message-ID: <20040705202313.GA5562@lst.de>
+From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
+Date: Mon Jul  5 22:28:52 2004
+Subject: [Ocfs2-devel] [Patch] fix  for continuous receiving
+	FLAG_VOTE_UPDATE_RETRY
+Message-ID: <3ACA40606221794F80A5670F0AF15F8404CD9BDD@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-iterating over all childs is really a rather bad idea in a unix fs, so
-let's kill the if 0'ed code and all the child iteration code behind it
-that's now unused.
+=20
 
+>-----Original Message-----
+>From: Mark Fasheh [mailto:mark.fasheh@oracle.com]=20
+>Sent: 2004=C4=EA7=D4=C26=C8=D5 1:58
+>To: Ling, Xiaofeng
+>Cc: ocfs2-devel@oss.oracle.com
+>Subject: Re: [Ocfs2-devel] [Patch] fix for continuous=20
+>receiving FLAG_VOTE_UPDATE_RETRY
+>
+>
+>Hmm, since we loop on the same conditions (i <=20
+>osb->max_nodes), could you
+>resend with both 'if' blocks within the same 'for' loop? Also,=20
+>if you feel
+>like fixing the bug noted above in the same patch, that'd be=20
+>just fine with
+>me :)
+>	--Mark
+I resend the patch and also adding the free of inode_alloc_inode.
+But I have a concern about combinding loop.
+At acquiring, the loop is separated, that is after acquired all the =
+inode_alloc_inode and then
+begin to acquire ext_alloc_inode. Is there any special consideration? =
+Does release need the
+same process?
 
-Index: src/dcache.c
-===================================================================
---- src/dcache.c	(revision 1238)
-+++ src/dcache.c	(working copy)
-@@ -112,37 +112,3 @@
- 	.d_revalidate		= ocfs_dentry_revalidate24,
- };
- #endif
+-------------------------------------------------------------------------=
 -
--/*
-- * ocfs_foreach_child()
-- *
-- */
--int ocfs_foreach_child (struct dentry *dentry, int (*func)(struct dentry *, void *), void *data)
--{
--	struct list_head *list;
--	int ret, done;
--
--	LOG_ENTRY_ARGS ("(0x%p, '%*s')\n", dentry,
--			dentry->d_name.len, dentry->d_name.name);
--
--	spin_lock (&dcache_lock);
--	list = dentry->d_subdirs.next;
--
--	ret = 1;
--	while (list != &dentry->d_subdirs) {
--		struct dentry *de = list_entry (list, struct dentry, d_child);
--
--		if (de->d_inode && !d_unhashed (de)) {
--			done = func(de, data);
--			if (done) {
--				ret = 0;
--				break;
--			}
--		}
--		list = list->next;
--	}
--	spin_unlock (&dcache_lock);
--
--	LOG_EXIT_INT (ret);
--	return ret;
--}
-Index: src/dlm.c
-===================================================================
---- src/dlm.c	(revision 1238)
-+++ src/dlm.c	(working copy)
-@@ -62,7 +62,6 @@
- static int ocfs_reset_voting (ocfs_super * osb);
- static int ocfs_get_vote_on_disk (ocfs_super * osb, __u64 lock_id, __u32 lock_type, __u32 flags, ocfs_node_map * got_vote_map, ocfs_node_map * vote_map, __u64 lock_seq_num, ocfs_node_map * oin_open_map);
- int ocfs_disk_release_lock (ocfs_super * osb, __u64 lock_id, __u32 lock_type, __u32 flags, struct buffer_head *bh, struct inode *inode);
--static int ocfs_zap_child_buffers_func(struct dentry *dentry, void *data);
- 
- 
- void ocfs_set_publish_vote_map(ocfs_super *osb, ocfs_publish *publish, ocfs_node_map *vote_map)
-@@ -1268,32 +1267,10 @@
- }				/* ocfs_release_lock */
- 
- 
--/* inode is definitely non NULL */
--static int ocfs_zap_child_buffers_func(struct dentry *dentry, void *data)
--{
--	struct inode *inode = dentry->d_inode;
--	ocfs_super *osb = data;
--
--	ocfs_inc_inode_seq(osb, inode, 0);
--	return 0;
--}
--
- int ocfs_break_cache_lock_zap_buffers(ocfs_super * osb, struct inode * inode)
- {
--	struct list_head *iter;
--	struct dentry *dentry;
--
--	if (inode==NULL) 
--		return 0;
--
--#warning invalidating child inodes is probably inappropriate now
--#if 0
--	list_for_each(iter, &(inode->i_dentry)) {
--		dentry = list_entry (iter, struct dentry, d_alias);
--		ocfs_foreach_child (dentry, ocfs_zap_child_buffers_func, osb);
--	}
--#endif
--	ocfs_inc_inode_seq(osb, inode, 0);
-+	if (inode) 
-+		ocfs_inc_inode_seq(osb, inode, 0);
- 	return 0;
- }
- 
-Index: src/dcache.h
-===================================================================
---- src/dcache.h	(revision 1238)
-+++ src/dcache.h	(working copy)
-@@ -31,8 +31,4 @@
- 
- extern struct dentry_operations ocfs_dentry_ops;
- 
--int ocfs_foreach_child(struct dentry *dentry,
--		       int (*func)(struct dentry *, void *),
--		       void *data);
--
- #endif /* OCFS2_DCACHE_H */
+Index: alloc.c
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+--- alloc.c	(revision 1238)
++++ alloc.c	(working copy)
+@@ -482,6 +482,19 @@
+ 	}
+=20
+ 	for (i =3D 0; i < osb->max_nodes; i++) {
++		if (inode_alloc_free[i] !=3D NULL) {
++			down_write(&OCFS_I(inode_alloc_inode[i])->ip_io_sem);
++			status =3D ocfs_release_lock (osb,
++						    OCFS_LKM_EXMODE,
++						    FLAG_FILE_CREATE,
++						    NULL, inode_alloc_inode[i]);
++			up_write(&OCFS_I(inode_alloc_inode[i])->ip_io_sem);
++			if (status < 0) {
++				LOG_ERROR_STATUS (status);
++				goto finally;
++			}
++		}
++
+ 		if (ext_alloc_free[i] !=3D NULL) {
+ 			down_write(&OCFS_I(ext_alloc_inode[i])->ip_io_sem);
+ 			status =3D ocfs_release_lock (osb,
+@@ -497,6 +510,13 @@
+ 	}
+=20
+ finally:
++	if (inode_alloc_inode) {
++		for (i =3D 0; i < osb->max_nodes; i++) {
++			if (inode_alloc_inode[i])
++				iput(inode_alloc_inode[i]);
++		}
++		kfree(inode_alloc_inode);
++	}
+=20
+ 	if (ext_alloc_inode) {
+ 		for (i =3D 0; i < osb->max_nodes; i++) {
