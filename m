@@ -1,105 +1,101 @@
-From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Mon Aug  2 14:50:25 2004
-Subject: [Ocfs2-devel] [Patch] use asynchronous journal commit in
-	ocfs_rename
-Message-ID: <3ACA40606221794F80A5670F0AF15F840509060C@pdsmsx403>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Mon Aug  2 15:11:51 2004
+Subject: [Ocfs2-devel] [Patch] how about remove the sync in
+	ocfs_file_open?
+In-Reply-To: <3ACA40606221794F80A5670F0AF15F8404FFE3CD@pdsmsx403>
+References: <3ACA40606221794F80A5670F0AF15F8404FFE3CD@pdsmsx403>
+Message-ID: <20040802200334.GH8008@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ok. I've made the patch. see attach. 
+On Thu, Jul 29, 2004 at 02:19:57AM +0800, Ling, Xiaofeng wrote:
+> >From the data below, this sync cause the performance of writting from
+> second time downgrade(13M compare to 544M for 128K file).
+> and the sync has no use here.
+Well, since it's really easy to revert, we're going to try this one and see
+if it breaks anything multi-node. If it does, you can be sure we'll put the
+sync_inode back :)
+	--Mark
 
->-----Original Message-----
->From: Mark Fasheh [mailto:mark.fasheh@oracle.com] 
->Sent: 2004��7��31�� 0:01
->To: Ling, Xiaofeng
->Cc: Ocfs2-Devel
->Subject: Re: [Ocfs2-devel] [Patch] use asynchronous journal 
->commit in ocfs_rename
->
->On Thu, Jul 29, 2004 at 08:36:54AM +0800, Ling, Xiaofeng wrote:
->> Use asynchronous commit in ocfs_rename can make the speed of rename
->> from  95dir/s to 11834dir/s.
->Cool. the patch looks good at first glance. Would you be interested in
->taking it one step further and doing the same for the last couple sync
->transactions?  (link, truncate, and symlink)
->
->Basically the same thing you just did here. The best thing in 
->fact would  be
->to just get rid of those flags (and the code which acts on 
->them) altogether.
->
->It's about time we got rid of that junk.
->	--Mark
->
->> 
->---------------------------------------------------------------
->---------
->> ---------------------
->>  Index: namei.c
->> ===================================================================
->> --- namei.c     (revision 1312)
->> +++ namei.c     (working copy)
->> @@ -1049,6 +1049,8 @@
->>                 goto bail;
->>         }
->> 
->> +       ocfs_handle_set_checkpoint(handle, 0);
->> +       ocfs_handle_set_sync(handle, 0);
->>         /* if old and new are the same, this'll just do one lock. */
->>         status = ocfs_double_lock(osb, handle,
->>                                   OCFS_LKM_EXMODE,
->> @@ -1084,6 +1086,9 @@
->>                 LOG_ERROR_STATUS(status);
->>                 goto finally;
->>         }
->> +
->> +       ocfs_handle_add_lock(handle, OCFS_LKM_EXMODE,
->> +                            FLAG_FILE_CREATE | FLAG_DIR, old_inode);
->>         got_oldlock = 1;
->> 
->>         if (S_ISDIR(old_inode->i_mode)) {
->> @@ -1157,6 +1162,8 @@
->>                 }
->>                 got_newlock = 1;
->> 
->> +               ocfs_handle_add_lock(handle, OCFS_LKM_EXMODE,
->> +                            FLAG_FILE_CREATE | FLAG_DIR, new_inode);
->>                 /* if our caching is working right, then after the
->>                  * verify_update_inode, newfe->i_nlink ==
->>                  * new_inode->i_nlink */
->> @@ -1294,16 +1301,7 @@
->>         status = 0;
->> 
->>  bail:
->> -       if (got_oldlock) {
->> -               ocfs_release_lock(osb, OCFS_LKM_EXMODE, oldfe_flags,
->> -                                 old_inode);
->> -       }
->> 
->> -       if (got_newlock) {
->> -               ocfs_release_lock(osb, OCFS_LKM_EXMODE, newfe_flags,
->> -                                 new_inode);
->> -       }
->> -
->>         double_up_write(&OCFS_I(old_dir)->ip_io_sem,
->>                         &OCFS_I(new_dir)->ip_io_sem);
->>         up_write(&OCFS_I(old_inode)->ip_io_sem);
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel@oss.oracle.com
->> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->--
->Mark Fasheh
->Software Developer, Oracle Corp
->mark.fasheh@oracle.com
->
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: allasync.patch
-Type: application/octet-stream
-Size: 4982 bytes
-Desc: allasync.patch
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040803/41942687/allasync.obj
+ 
+> Index: file.c
+> ===================================================================
+> --- file.c      (revision 1308)
+> +++ file.c      (working copy)
+> @@ -300,7 +301,6 @@
+>                 have_oin_sem = 0;
+>         }
+> 
+> -       status = ocfs_sync_inode(inode);
+> 
+>  leave:
+>         if (have_oin_sem) {
+> 
+> 
+> before remove
+> -----------------------------------------------------------------
+>  ./ben -0 -p10 -a
+> create file /ocfs/ocfs_test25032 of size 128K successfully
+> total:128.000K Time:0.562 Rate:227758KB
+> total:128.000K Time:9.795 Rate:13068KB
+> total:128.000K Time:9.687 Rate:13214KB
+> total:128.000K Time:8.999 Rate:14224KB
+> total:128.000K Time:9.817 Rate:13039KB
+> total:128.000K Time:9.802 Rate:13059KB
+> total:128.000K Time:9.146 Rate:13995KB
+> total:128.000K Time:9.646 Rate:13270KB
+> total:128.000K Time:9.655 Rate:13257KB
+> total:128.000K Time:9.028 Rate:14178KB
+> total:1280.000K Time:87.329 Rate:14657KB
+> 
+> after remove
+> ------------------------------------------------------------------------
+> ------------------
+> ./ben -0 -p10 -a
+> create file /ocfs/ocfs_test24613 of size 128K successfully
+> total:128.000K Time:0.292 Rate:438356KB
+> total:128.000K Time:0.235 Rate:544681KB
+> total:128.000K Time:0.209 Rate:612440KB
+> total:128.000K Time:0.225 Rate:568889KB
+> total:128.000K Time:0.207 Rate:618357KB
+> total:128.000K Time:0.219 Rate:584475KB
+> total:128.000K Time:0.205 Rate:624390KB
+> total:128.000K Time:0.207 Rate:618357KB
+> total:128.000K Time:0.204 Rate:627451KB
+> total:128.000K Time:0.204 Rate:627451KB
+> total:1280.000K Time:3.083 Rate:415180KB
+> -------------------
+> 
+> 
+> Index: file.c
+> ===================================================================
+> --- file.c      (revision 1308)
+> +++ file.c      (working copy)
+> @@ -300,7 +301,6 @@
+>                 have_oin_sem = 0;
+>         }
+> 
+> -       status = ocfs_sync_inode(inode);
+> 
+>  leave:
+>         if (have_oin_sem) {
+> 
+> 
+> 
+> 
+> Intel China Software Lab.
+> iNet: 8-752-1243
+> 021-52574545-1243(O)
+> xfling@users.sourceforge.net
+> Opinions are my own and don't represent those of my employer 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel@oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
