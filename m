@@ -1,92 +1,116 @@
 From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Feb 26 20:16:59 2004
-Subject: [Ocfs2-devel] [PATCH]2.6 fixes in journal.c
-Message-ID: <200402270216.i1R2GnW8007425@penguin.co.intel.com>
+Date: Thu Feb 26 20:22:10 2004
+Subject: [Ocfs2-devel] [PATCH]2.6 prototype fixes
+Message-ID: <200402270221.i1R2Lxs4007447@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following is a patch that fixes some small 2.6 issues with
-journal.c
-
-* journal_get_write_access now has an additional "credits" argument
-  that appears to be safe to pass in as null.  (Other people are
-  doing it and the code in the latest bk tree always test for null
-  before attempting to incrementing it.)
-* small typo in an ocfs_iget call
-* remaining call to daemonize that is moved to the 2.6 safe
-  ocfs_daemonize call
-* WARNING!!! Here is the thing I am not sure about!
-  The lock_journal/unlock_journal calls do not exist anymore.
-  There is a journal_[un]lock_updates() function, but it is 
-  unclear when to use that function.
-
-  I just removed the [un]lock_journal calls around a line where
-  we were tweaking the commit interval.
+The following is a patch for various function definition and prototype 
+changes for a 2.6 kernel. (The ocfs_getattr definition was already
+fixed in a previous patch.)
 
     --rusty
 
-Index: src/journal.c
+Index: src/inc/proto.h
 ===================================================================
---- src/journal.c	(revision 36)
-+++ src/journal.c	(working copy)
-@@ -656,7 +656,7 @@
- 		break;
- 
- 	case OCFS_JOURNAL_ACCESS_WRITE:
--		status = journal_get_write_access(handle->k_handle, bh);
-+		status = journal_get_write_access(handle->k_handle, bh, NULL);
- 		break;
- 
- 	default:
-@@ -898,7 +898,7 @@
- 	OCFS_BH_PUT_DATA(bh);
- 	fe = NULL;
- #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--	inode = ocfs_iget (sb, &args);
-+	inode = ocfs_iget (osb->sb, &args);
- #else
- 	inode = ocfs_get_inode_from_offset(osb, args.offset, bh);
- #endif
-@@ -934,9 +934,13 @@
- 
- 	LOG_TRACE_STR("Returned from journal_init_inode");
- 	LOG_TRACE_ARGS("k_journal->j_maxlen = %u\n", k_journal->j_maxlen);
+--- src/inc/proto.h	(revision 36)
++++ src/inc/proto.h	(working copy)
+@@ -78,9 +78,12 @@
+ ssize_t ocfs_file_read (struct file *filp, char *buf, size_t count, loff_t * ppos);
+ int ocfs_extend_file (ocfs_super * osb, __u64 parent_off, ocfs_inode * oin, __u64 file_size, __u64 * file_off, ocfs_journal_handle *passed_handle, struct inode *inode, struct iattr *attr);
+ int ocfs_setattr (struct dentry *dentry, struct iattr *attr);
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+	k_journal->j_commit_interval = OCFS_DEFAULT_COMMIT_INTERVAL;
++int ocfs_getattr (struct vfsmount *mnt, struct dentry *dentry, struct kstat *stat);
 +#else
- 	lock_journal(k_journal);
- 	k_journal->j_commit_interval = OCFS_DEFAULT_COMMIT_INTERVAL;
- 	unlock_journal(k_journal);
+ int ocfs_getattr (struct dentry *dentry, struct iattr *attr);
 +#endif
  
- 	/* yay, pass the proper info back to our journal structure. */
- 	osb->journal.osb = osb;
-@@ -1368,12 +1372,14 @@
- 	ocfs_super *osb = ((struct ocfs_recover_arg *) arg)->osb;
- 	int node_num = ((struct ocfs_recover_arg *) arg)->node_num;
- 	int status = 0;
-+	char proc[16];
+-
+ int ocfs_find_inode (struct inode *inode, unsigned long ino, void *opaque);
+ void ocfs_populate_inode (struct inode *inode, ocfs_file_entry *fe, umode_t mode, void *genptr, bool create_ino);
+ void ocfs_read_locked_inode (struct inode *inode, ocfs_file_entry *entry);
+@@ -242,14 +245,25 @@
  
- 	LOG_ENTRY_ARGS("(node_num=%d, osb->node_num = %d)\n", node_num,
- 		       osb->node_num);
  
--	daemonize();
--	reparent_to_init();
-+	sprintf (proc, "ocfs2rec-%d", osb->osb_id);
-+	ocfs_daemonize (proc, strlen(proc));
-+
- #ifdef HAVE_NPTL
- 	spin_lock_irq (&current->sighand->siglock);
- 	sigfillset(&current->blocked);
-@@ -1522,7 +1528,7 @@
- 	OCFS_BH_PUT_DATA(bh);
- 	fe = NULL;
- #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
--	inode = ocfs_iget (sb, &args);
-+	inode = ocfs_iget (osb->sb, &args);
- #else
- 	inode = ocfs_get_inode_from_offset(osb, args.offset, bh);
+ int ocfs_empty (struct dentry *dentry);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd);
++#else
+ int ocfs_dentry_revalidate (struct dentry *dentry, int flags);
++#endif
+ int ocfs_foreach_child (struct dentry *dentry, int (*func)(struct dentry *, void *), void *data);
+-
+ int ocfs_readdir (struct file *filp, void *dirent, filldir_t filldir);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++struct dentry *ocfs_lookup (struct inode *dir, struct dentry *dentry, struct nameidata *nd);
++#else
+ struct dentry *ocfs_lookup (struct inode *dir, struct dentry *dentry);
++#endif
+ int ocfs_mknod (struct inode *dir, struct dentry *dentry, int mode, ocfs_dev dev);
+ int ocfs_mkdir (struct inode *dir, struct dentry *dentry, int mode);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++int ocfs_create (struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd);
++#else
+ int ocfs_create (struct inode *dir, struct dentry *dentry, int mode);
++#endif
+ int ocfs_link (struct dentry *old_dentry, struct inode *dir, struct dentry *dentry);
+ int ocfs_unlink (struct inode *dir, struct dentry *dentry);
+ int ocfs_rename (struct inode *old_dir, struct dentry *old_dentry, struct inode *new_dir, struct dentry *new_dentry);
+Index: src/dcache.c
+===================================================================
+--- src/dcache.c	(revision 36)
++++ src/dcache.c	(working copy)
+@@ -35,7 +35,11 @@
+  * ocfs_dentry_revalidate()
+  *
+  */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd)
++#else
+ int ocfs_dentry_revalidate (struct dentry *dentry, int flags)
++#endif
+ {
+ 	int tmpstat, ret = 0;    /* if all else fails, just return false */
+ 	ocfs_file_entry *fe = NULL;
+@@ -46,7 +50,9 @@
+         struct qstr q;
+ 	struct buffer_head *fe_bh = NULL;
+ 	int needs_trunc;
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++	int flags = nd->flags;
++#else
+ 	ocfs_find_inode_args args;
  #endif
+ 
+Index: src/namei.c
+===================================================================
+--- src/namei.c	(revision 36)
++++ src/namei.c	(working copy)
+@@ -58,7 +58,11 @@
+  * ocfs_lookup()
+  *
+  */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++struct dentry *ocfs_lookup (struct inode *dir, struct dentry *dentry, struct nameidata *nd)
++#else
+ struct dentry *ocfs_lookup (struct inode *dir, struct dentry *dentry)
++#endif
+ {
+ 	int status;
+ 	ocfs_find_inode_args args;
+@@ -533,7 +537,11 @@
+  * ocfs_create()
+  *
+  */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
++int ocfs_create (struct inode *dir, struct dentry *dentry, int mode, struct nameidata *nd)
++#else
+ int ocfs_create (struct inode *dir, struct dentry *dentry, int mode)
++#endif
+ {
+ 	int ret;
+ 
