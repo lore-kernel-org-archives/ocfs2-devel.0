@@ -1,16 +1,43 @@
-From: Wim Coekaerts <wim.coekaerts@oracle.com>
-Date: Thu Feb 19 18:15:10 2004
-Subject: [Ocfs2-devel] [PATCH]2.6 fixes in oin.c
-In-Reply-To: <20040220001149.GA26928@penguin.co.intel.com>
-References: <200402192358.i1JNw43I025405@penguin.co.intel.com>
-	<20040220001149.GA26928@penguin.co.intel.com>
-Message-ID: <20040220001507.GE17039@ca-server1.us.oracle.com>
+From: Rusty Lynch <rusty@linux.co.intel.com>
+Date: Thu Feb 19 22:13:12 2004
+Subject: [Ocfs2-devel] [PATCH]2.6 fixes in dcache.c
+Message-ID: <200402200413.i1K4D0D5004243@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-:)
+This is a minimal patch that fixes a compile warning when building
+with a 2.6 kernel, and also switches over another #if LINUX_2_5 to
+the normal #if LINUX_VERSION_CODE ...
 
-> #@#$#!!! here is a version that also includes changes to ocfs.h
+    --rusty
+
+Index: src/dcache.c
+===================================================================
+--- src/dcache.c	(revision 32)
++++ src/dcache.c	(working copy)
+@@ -43,10 +43,12 @@
+ 	ocfs_inode *oin;
+ 	ocfs_super *osb;
+ 	__u64 off;
+-	ocfs_find_inode_args args;
+         struct qstr q;
+ 	struct buffer_head *fe_bh = NULL;
+ 	int needs_trunc;
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
++	ocfs_find_inode_args args;
++#endif
+ 
+         LOG_ENTRY_ARGS ("(0x%08x, %d, '%*s')\n", dentry, flags,
+                         dentry->d_name.len, dentry->d_name.name);
+@@ -127,7 +129,7 @@
+                 LOG_TRACE_STR("found the file entry, but it has been deleted or renamed!");
+                 ret = 0;  /* it is now officially stale :) */
+         } else {
+-#ifdef LINUX_2_5
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+ 		ocfs_read_locked_inode (inode, fe);
+ #else
+ 		args.offset = fe->this_sector;
