@@ -1,100 +1,62 @@
-From: Chen, Yukun <yukun.chen@intel.com>
-Date: Thu Jun  3 06:05:09 2004
-Subject: [Ocfs2-devel] A defect  of latest code of ocfs2 on kernel 2.4.22
-Message-ID: <941A6821ACE16D4BBB8A958A0EB047F746D4F3@pdsmsx404.ccr.corp.intel.com>
+From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
+Date: Fri Jun  4 00:53:33 2004
+Subject: [Ocfs2-devel] RE: [Ocfs-devel] [Patch] for bug 81
+Message-ID: <3ACA40606221794F80A5670F0AF15F84048AA57D@PDSMSX403.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
-   I find a defect with the latest code in a 2-nodes enviornment.
- 
-Step to duplicate:
-on node1
-   1. load_ocfs2
-   2. mkfs.ocfs2 -b 4 -F -L ocfs2 -m /ocfs /dev/sdc2
-   3. mount /dev/sdc2 /ocfs -t ocfs2
- 
-then on node2   
-   4. load_ocfs2
-   5. mount /dev/sdc2 /ocfs -t ocfs2
- 
-on node1
-    6. mkdir /ocfs/foo
- 
-on node2
-    7. fstat /ocfs/foo
- 
-then umount,rmmod in node1 & node2 respectively. Everything is ok until now. 
-But I  fails to insert ocfs2 mod again on node2 with error message by dmesg:
- 
-.....
-sectbits=9, clusterbits=12, dirbits=17, filebits=9, inodebits=9
-ocfs2: Adding west1 (node 0) to clustered device (8,34)
-the attribe of fe is 1, FILthe attribe of fe is 0, FILthe attribe of fe is 0, 
-FILthe attribe of fe is 0, FILthe attribe of fe is 0, FIL<3>(4806) ERROR at 
-dlm.c, 1393: DISKVOTE!!: req_lock=2, flags=40000401, offset=1532416, 
-inode=1532416
-(4806) ERROR at dlm.c, 1396: DISKVOTE!!: this=1, master=0, locktype=0, ronode=-
-1, romap=00000000
-Call Trace: 
-[<dd0c5c38>]   (0xdd0c5c38)
-??????.
- [<c0ed0000>]   (0xdd0c5fd0)
- 
-JBD: Ignoring recovery information on journal
-kjournald starting.  Commit interval 5 seconds
-ocfs2: Mounting device (8,34) on west2 (node 1)
-(4840) ERROR at dlm.c, 1393: DISKVOTE!!: req_lock=8, flags=40001400, 
-offset=1536, inode=1536
-(4840) ERROR at dlm.c, 1396: DISKVOTE!!: this=1, master=0, locktype=0, ronode=-
-1, romap=00000000
-Call Trace: 
- [<c0109b9f>]   (0xdc321fc0)
-???.
-(4840) ERROR at dlm.c, 1393: DISKVOTE!!: req_lock=2, flags=40000401, 
-offset=1565184, inode=1565184
-(4840) ERROR at dlm.c, 1396: DISKVOTE!!: this=1, master=0, locktype=0, ronode=-
-1, romap=00000000
-Call Trace: 
-[<dc321cd0>]   (0xdc321cd0)
-???..
- [<c0109b9f>]   (0xdc321fc0)
- 
-(4840) ERROR at dlm.c, 1393: DISKVOTE!!: req_lock=2, flags=40000400, 
-offset=1024, inode=1024
-(4840) ERROR at dlm.c, 1396: DISKVOTE!!: this=1, master=0, locktype=0, ronode=-
-1, romap=00000000
-Call Trace: 
-[<dc321be0>]   (0xdc321be0)
- [<c0109b9f>]   (0xdc321fc0)
-??????
-(4840) ERROR at journal.c, 245: Inode 2 already has a transaction!
-the attribe of fe is 1, FIL<3>(4840) ERROR at journal.c, 245: Inode 2 already 
-has a transaction!
-ocfs2: Received dismount message for device (8,34) from west1 (node 0)
-ocfs2: Unmounting device (8,34) on west2 (node 1)
-kmem_cache_destroy: Can't free all objects dff0be14
-Unloaded OCFS Driver module
-....
- 
-Any idea for it?
-Thanx.
+seems the fix is rollback in revision 1001=20
 
- 
-
-Aaron
-
-Intel China Software Lab
-
-Tel:  8621-52574545 Ext.1587
-
-E_mail:yukun.chen@intel.com
-
- 
-
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040603/f165e911/attachment-0001.htm
+>-----Original Message-----
+>From: khackel@ca2.us.oracle.com=20
+>[mailto:khackel@ca2.us.oracle.com] On Behalf Of Kurt Hackel
+>Sent: 2004=C4=EA6=D4=C22=C8=D5 14:09
+>To: Ling, Xiaofeng
+>Cc: ocfs-devel@oss.oracle.com
+>Subject: Re: [Ocfs-devel] [Patch] for bug 81
+>
+>Thank you very much!  Committed to revision 969.
+>-kurt
+>
+>On Wed, Jun 02, 2004 at 01:53:36PM +0800, Ling, Xiaofeng wrote:
+>> Index: namei.c
+>> =
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+>> --- namei.c     (revision 968)
+>> +++ namei.c     (working copy)
+>> @@ -526,7 +526,7 @@
+>>=20
+>>         status =3D -EBUSY;
+>>=20
+>> -       if (!empty_dir(inode)) {
+>> +       if ( S_ISDIR (inode->i_mode) && !empty_dir(inode)) {
+>>                 LOG_TRACE_STR ("dentry is not empty, cannot delete");
+>>                 goto bail;
+>>         } else if (OCFS_I(inode)->open_hndl_cnt > 0) {
+>>=20
+>> bug 81 description:
+>> Env:
+>>   kernel 2.4.20
+>>   Dell Pc P4-2.1 512M, 80G
+>> Reproduce Step:
+>> 1.load_ocfs2 and mount to /ocfs
+>> 2. touch /ocfs/file
+>> 3. rm /ocfs/file
+>>=20
+>> With error message
+>> (10396) ERROR at dir.c, 253: bad directory (dir #36300288) - no data
+>> block
+>> _______________________________________________
+>> Ocfs-devel mailing list
+>> Ocfs-devel@oss.oracle.com
+>> http://oss.oracle.com/mailman/listinfo/ocfs-devel
+>
+_______________________________________________
+Ocfs-devel mailing list
+Ocfs-devel@oss.oracle.com
+http://oss.oracle.com/mailman/listinfo/ocfs-devel
