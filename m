@@ -1,15 +1,43 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri Aug 20 12:43:20 2004
+From: Chen, Yukun <yukun.chen@intel.com>
+Date: Sun Aug 22 21:51:51 2004
 Subject: [Ocfs2-devel] [2.6.6 svn 1364]System hang randomly when writing
 	to the same file from different processes of the same node
-In-Reply-To: <B44D37711ED29844BEA67908EAF36F039A20ED@pdsmsx401.ccr.corp.intel.com>
-References: <B44D37711ED29844BEA67908EAF36F039A20ED@pdsmsx401.ccr.corp.intel.com>
-Message-ID: <20040820174315.GD1165@ca-server1.us.oracle.com>
+Message-ID: <B44D37711ED29844BEA67908EAF36F039EA49C@pdsmsx401.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
 To: ocfs2-devel@oss.oracle.com
+
+Hi Mark
+
+I checked the version and found 1364 on both nodes. Also, I attached the test cases for duplicating such bug.
+
+The steps to run the test case:
+
+1. make sure you have setup the tvs environment
+
+2. make sure the two test machine can ssh each other as root without password 
+
+3.update the variable OCFSDEV in test.config to the device name of your ocfs2 partition
+
+4.update the variable REMOTE in setup.sh to the remote machine name
+
+5.make sure you have created dir /ocfs (I will updated it later to an arbitrary dir which the user can change in the latter version)
+
+6.run "test_filelock.sh"
+
+Feel free let me if you have any problems. 
+Thanx.
+
+Aaron
+
+-----Original Message-----
+From: Mark Fasheh [mailto:mark.fasheh@oracle.com] 
+Sent: 2004��8��21�� 1:43
+To: Chen, Yukun
+Cc: ocfs2-devel@oss.oracle.com
+Subject: Re: [Ocfs2-devel] [2.6.6 svn 1364]System hang randomly when writing to the same file from different processes of the same node
 
 
 Are all your nodes updated to r1364 btw? That'd make a big difference as the
@@ -106,3 +134,10 @@ On Fri, Aug 20, 2004 at 04:24:37PM +0800, Chen, Yukun wrote:
 Mark Fasheh
 Software Developer, Oracle Corp
 mark.fasheh@oracle.com
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: hang.tar
+Type: application/x-tar
+Size: 20480 bytes
+Desc: hang.tar
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040823/68866931/hang-0001.tar
