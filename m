@@ -1,62 +1,52 @@
 From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Thu Mar 18 09:11:01 2004
-Subject: [Ocfs2-devel] A patch to fix bug 45 in bugzilla
-In-Reply-To: <40596BF0.8020807@intel.com>
-References: <40596BF0.8020807@intel.com>
-Message-ID: <20040318151045.GA25973@penguin.co.intel.com>
+Date: Thu Mar 18 10:04:03 2004
+Subject: [Ocfs2-devel] [PATCH]remove oin's needs_flush_list
+Message-ID: <200403181600.i2IG0Xj4027264@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 18, 2004 at 05:29:20PM +0800, Sonic Zhang wrote:
-> Hi,
-> 
-> I think I found the root cause of the bug 45 in the bugzilla.
-> 
-> Actually, it is not an OCFS bug. It is caused in the Linux journaling
-> routine(JBD) journal_create(). In kernel 2.6.x, buffer_head state
-> BH_Uptodate is checked in mark_buffer_dirty(), while kernel 2.4.x
-> doesn't do. If this state doesn't exist in the buffer_head, buffer error
-> information is reported. But, in routine journal_create(), the state
-> BH_Uptodate is set after the call to mark_buffer_dirty(). This works 
-> well in kernel 2.4.x, but fails in kernel 2.6.x.
+The following is a very simple patch to remove the needs_flush_list
+list_head and in_needs_flush_list boolean members of ocfs_inode.
 
-If this is jbd bug, then how come ext3 doesn't trigger buffer_error()?
+This is dead code.
 
-> 
-> I attach a patch to fix this bug in kernel 2.6.x. Could you please put it 
-> into the subfolder "patches" in ocfs2 source tree?
-> 
-> Thank you.
-> 
-> ---------------------------------------
-> --- linux-2.6.1.old/fs/jbd/journal.c	2004-03-18 15:55:47.591428104 +0800
-> +++ linux-2.6.1/fs/jbd/journal.c	2004-03-18 15:56:25.609648456 +0800
-> @@ -832,10 +832,10 @@
-> 		bh = __getblk(journal->j_dev, blocknr, journal->j_blocksize);
-> 		lock_buffer(bh);
-> 		memset (bh->b_data, 0, journal->j_blocksize);
-> -		BUFFER_TRACE(bh, "marking dirty");
-> -		mark_buffer_dirty(bh);
-> 		BUFFER_TRACE(bh, "marking uptodate");
-> 		set_buffer_uptodate(bh);
-> +		BUFFER_TRACE(bh, "marking dirty");
-> +		mark_buffer_dirty(bh);
-> 
-> 		unlock_buffer(bh);
-> 		__brelse(bh);
-> 	}
-> 
-> 
-> 
-> 
-> 
-> 
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+    --rusty
+
+Index: src/oin.c
+===================================================================
+--- src/oin.c	(revision 787)
++++ src/oin.c	(working copy)
+@@ -753,10 +753,6 @@
+ 		}
+ 
+ 		lockResource->oin = NULL;
+-		if (oin->in_needs_flush_list) {
+-			list_del (& (oin->needs_flush_list));
+-			oin->in_needs_flush_list = false;
+-		}
+ 		if (lockResource->in_cache_list) {
+ 			list_del (& (lockResource->cache_list));
+ 			lockResource->in_cache_list = false;
+Index: src/inc/ocfs.h
+===================================================================
+--- src/inc/ocfs.h	(revision 787)
++++ src/inc/ocfs.h	(working copy)
+@@ -1838,7 +1838,6 @@
+ 	ocfs_obj_id obj_id;
+ 	struct inode *inode;
+ 	struct _ocfs_super *osb;	/* ocfs_inode belongs to this volume */
+-	struct list_head needs_flush_list;
+ 	struct list_head recovery_list;
+ 	ocfs_sem main_res;
+ 	struct semaphore extend_sem;
+@@ -1853,7 +1852,6 @@
+ 	__u32 oin_flags;
+ 	bool needs_verification;
+ 	bool cache_enabled;
+-	bool in_needs_flush_list;
+ 	bool journal_inode;    /* is this the journal oin? */
+ };
+ 
