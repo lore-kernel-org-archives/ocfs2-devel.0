@@ -1,36 +1,25 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Mon Mar 29 15:32:38 2004
-Subject: [Ocfs2-devel] [PATCH]remove ocfs_fill_super and port
-	ocfs_read_super
-In-Reply-To: <20040329212947.GW10672@ca-server1.us.oracle.com>
-References: <200403260259.i2Q2xnp9006458@penguin.co.intel.com>
-	<20040326143454.GG18020@ca-server1.us.oracle.com>
-	<20040326204638.GA7147@penguin.co.intel.com>
-	<20040329212947.GW10672@ca-server1.us.oracle.com>
-Message-ID: <20040329213158.GA12840@penguin.co.intel.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Mon Mar 29 16:40:05 2004
+Subject: [Ocfs2-devel] Re: [PATCH] correctly set inode->i_rdev
+In-Reply-To: <200403270516.i2R5Gpac012997@penguin.co.intel.com>
+References: <200403270516.i2R5Gpac012997@penguin.co.intel.com>
+Message-ID: <20040329224000.GX10672@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Mar 29, 2004 at 01:29:47PM -0800, Mark Fasheh wrote:
-> On Fri, Mar 26, 2004 at 12:46:38PM -0800, Rusty Lynch wrote:
-> > How about something like...
-> Could you move the MOD_INC_USE_COUNT / MOD_DEC_USE_COUNT macros out of the
-> generic function too?
+On Fri, Mar 26, 2004 at 09:16:51PM -0800, Rusty Lynch wrote:
+> The following minimal patch fixes bug #52.  For some reason we were
+> always setting the inode->i_rdev to the super block's dev while 
+> populating the inode.
+Ok, I like this approach better than my original one. 
+It also means that OCFS_SET_INODE_DEV isn't used anymore so I'll take that
+out too.
+	--Mark
 
-Can do
-
-> 
-> We could make ocfs_set_blocksize an inline, unless you think it's too big
-> for that...
-
-I should be inline.  Let me change that.
-
-> 	--Mark
-> 
-> --
-> Mark Fasheh
-> Software Developer, Oracle Corp
-> mark.fasheh@oracle.com
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
