@@ -1,38 +1,33 @@
 From: Zhang, Sonic <sonic.zhang@intel.com>
-Date: Tue Mar  2 03:01:29 2004
+Date: Tue Mar  2 03:02:04 2004
 Subject: [Ocfs2-devel] 
-	Fail to create OCFS volumn on the hard disk via a QLA2312 fiber
-	channel card.
-Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E5A30D0@PDSMSX403.ccr.corp.intel.com>
+	unknown symbol mark_buffer_clean found when compile OCFSv2 under
+	kernel 2.6.0
+Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E5A30D1@PDSMSX403.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
 
-	I am Sonic Zhang from Intel PRC. I am now working with Rusty to
-port the OCFSv2 to kernel 2.6. 
+Hi Rusty and Mark,
 
-	I have set up an environment to compile and run the OCFS v2
-driver. I run kernel 2.6.0 on 2 IA32 servers with 2 QLogic QLA2312 fiber
-channel cards and 1 hard disk array. After I download the source code of
-OCFS tools and compile them, I found I can't create OCFS volume on the
-disk connected via the fiber channel card, while EXT3 volume can be
-created successful on the same disk. 
+	I checked out the latest source code from the svn tree. And I
+also compile the source code under kernel 2.6 successfully with Rusty's
+makefile.	But I failed to insert the ocfs2 module into the kernel
+2.6.
 
-	I run following command to create the OCFS volume.
+My operation:
+[host1]> insmod ocfs2.o node_name=westvile2 ip_address=192.168.1.14
+cs=1793 guid=6B359212647D8D256E190007E903E0ED
+ocfs2: Unknown symbol mark_buffer_clean
+Error inserting 'ocfs2.o': -1 Unknown symbol in module
 
-[host1]>mkfs.ocfs -F -b 128 -L testocfs -m /mnt/ocfs /dev/sdb2
-Error opening /dev/rawctl .
-No such device, bindraw.c 62.
+	Routine mark_buffer_clean exits in file include/linux/fs.h of
+kernel 2.4.x, but it is removed in kernel 2.6.x. 
 
-
-	Does anybody know what's the cause?
-
-	Thank you.
-
+	Thanks.
 
 
 *********************************************
