@@ -1,7 +1,9 @@
 From: Sonic Zhang <sonic.zhang@intel.com>
-Date: Fri Mar 26 01:26:59 2004
+Date: Fri Mar 26 02:27:28 2004
 Subject: [Ocfs2-devel] About Mark's advice on bug 48
-Message-ID: <4063DB4B.6060000@intel.com>
+In-Reply-To: <4063DB4B.6060000@intel.com>
+References: <4063DB4B.6060000@intel.com>
+Message-ID: <4063E97B.7020100@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,72 +12,74 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi Mark,
 
-Finally, I found the second halt is caused by starvation when routine 
-ocfs_joutnal_set_unmounted() acquiring the lock osb->publish_lock. In 
-thread ocfs_volume_thread(), the delta jiffies to sleep between up() and 
-down() in schedule_timeout() is too short. Routine 
-ocfs_joutnal_set_unmounted() has no chance to check if lock 
-osb->publish_lock is released  between it is releases and reacquired by 
-thread ocfs_volume_thread. So routine ocfs_journal_set_unmounted() 
-always waits in loop. After I change the delta jiffies from 50 to 500, 
-kernel 2.6 won't halt when it reboots after  a OCFS volume is mounted.
+Yes, I find the code in ocfs_daemonize() to allow kernel thread to 
+receive signals. So, I change the signal process code to make it 
+compilable under kernel 2.6. Please check my revise.
 
-I also add a line to release the lock in a branch to  symbol "finally". 
- This may remove latent dead lock. In addition, I clear the reference 
-point OcfsIpcCtxt.task before thread ocfs_recv_thread() exits. This 
-prevents invalid access to the task structure in routine 
-ocfs_dismount_volume() when rebooting.
+Thank you.
 
-Here is my patch to file nm.c.
--------------------------------------------------------------------
---- ocfs2.old/src/nm.c.old    2004-03-26 15:21:32.000000000 +0800
-+++ ocfs2/src/nm.c    2004-03-26 15:21:06.000000000 +0800
-@@ -119,6 +119,8 @@
-         OcfsIpcCtxt.recv_sock = NULL;
-     }
+This patch is for journal.c.
+------------------------------------------------------------------
+--- ocfs2.old/src/journal.c.old    2004-03-25 10:44:20.000000000 +0800
++++ ocfs2/src/journal.c    2004-03-26 16:08:19.526750568 +0800
+@@ -1745,6 +1745,7 @@
+     ocfs_commit_task *commit = osb->commit;
+     char name[16];
+     ocfs_journal * journal = &osb->journal;
++    siginfo_t info;
  
-+    OcfsIpcCtxt.task = NULL;
-+   
-     /* signal main thread of ipcdlm's exit */
-     complete (&(OcfsIpcCtxt.complete));
- 
-@@ -227,6 +229,12 @@
- //#define OCFS_BH_SEM_PRUNE_LIMIT   60   // prune everything each 30 
-seconds
- #define OCFS_BH_SEM_PRUNE_LIMIT   60000  // 8 hours :)
- 
+     sprintf (name, "ocfs2cmt-%d", osb->osb_id);
+     ocfs_daemonize (name, strlen(name));
+@@ -1765,7 +1766,21 @@
+                 LOG_TRACE_STR("FLUSH_EVENT: timed out");
+                 break;
+             case -EINTR:
+-                finish = 1;
++                /* journal shutdown has asked me to do
++                 * one last commit cache and then exit */
++                if (journal->state == OCFS_JOURNAL_IN_SHUTDOWN)
++                    finish = 1;
++                if (signal_pending(current)) {
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+#define OCFS_SCHEDULE_TIMEOUT_JIFFIES    500
++                    /* ignore the actual signal */
++                    dequeue_signal_lock(current, &current->blocked, &info);
 +#else
-+#define OCFS_SCHEDULE_TIMEOUT_JIFFIES    50
++                    spin_lock_irq(&current->sigmask_lock);
++                    /* ignore the actual signal */
++                    dequeue_signal(&current->blocked, &info);
++                    spin_unlock_irq(&current->sigmask_lock);
 +#endif
-+
- /*
-  * ocfs_volume_thread()
-  *
-@@ -409,6 +417,7 @@
-                 OCFS_BH_PUT_DATA(bh);
-                 status = ocfs_write_bh(osb, bh, 0, NULL);
-                 if (status < 0) {
-+                    up(&(osb->publish_lock));
-                     LOG_ERROR_STATUS (status);
-                     goto finally;
-                 }
-@@ -425,7 +434,7 @@
-                 goto finally;
-             }
-         }
--        osb->hbt = 50 + jiffies;
-+        osb->hbt = OCFS_SCHEDULE_TIMEOUT_JIFFIES + jiffies;
++                }
+                 LOG_TRACE_STR("FLUSH_EVENT: interrupted");
+                 break;
+             case 0:
+@@ -1778,7 +1793,7 @@
  
- finally:
-         status = 0;
-@@ -435,7 +444,7 @@
-             break;
-         j = jiffies;
-         if (time_after (j, (unsigned long) (osb->hbt))) {
--            osb->hbt = 50 + j;
-+            osb->hbt = OCFS_SCHEDULE_TIMEOUT_JIFFIES + j;
+         if ((OcfsGlobalCtxt.flags & OCFS_FLAG_SHUTDOWN_VOL_THREAD) ||
+             (osb->osb_flags & OCFS_OSB_FLAGS_BEING_DISMOUNTED))
+-            break;
++            finish = 1;
+ 
+         //if (!osb->needs_flush && status != 0)
+         //    continue;
+@@ -1788,18 +1803,13 @@
+ 
+         if (down_trylock(&osb->trans_lock) != 0) {
+             LOG_TRACE_ARGS("commit thread: trylock failed, miss=%d\n", 
+misses);
+-            if (++misses < OCFS_COMMIT_MISS_MAX)
++            if (++misses < OCFS_COMMIT_MISS_MAX && finish == 0)
+                 continue;
+             LOG_TRACE_ARGS("commit thread: about to down\n");
+             down(&osb->trans_lock);
+             misses = 0;
          }
-         set_current_state (TASK_INTERRUPTIBLE);
-         schedule_timeout (osb->hbt - j);
+ 
+-        /* journal shutdown has asked me to do one last commit cache */
+-        /* this commit cache will leave trans lock held! */
+-        if (journal->state == OCFS_JOURNAL_IN_SHUTDOWN)
+-            finish = 1;
+-
+         status = ocfs_commit_cache (osb, false);
+         if (status < 0)
+             LOG_ERROR_STATUS(status);
