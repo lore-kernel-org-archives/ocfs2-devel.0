@@ -1,30 +1,125 @@
-From: Manish Singh <manish.singh@oracle.com>
-Date: Tue Feb 10 19:10:12 2004
-Subject: [Ocfs2-devel] Revision 30 fails to insmod
-In-Reply-To: <20040211002621.GA16362@penguin.co.intel.com>
-References: <50D19C3AC815734C9E19FE4C4F6128A617802E@orsmsx403.jf.intel.com>
-	<20040211002621.GA16362@penguin.co.intel.com>
-Message-ID: <20040211011007.GA20569@ca-server1.us.oracle.com>
+From: John Villalovos <John.L.Villalovos@intel.com>
+Date: Tue Feb 10 19:16:31 2004
+Subject: [Ocfs2-devel] Patch to add some error checking to super.c
+Message-ID: <40298266.6040503@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Feb 10, 2004 at 04:26:21PM -0800, Rusty Lynch wrote:
-> On Tue, Feb 10, 2004 at 04:07:26PM -0800, Villalovos, John L wrote:
-> > Just did a sync with revision 30 from the repository.
-> > 
-> > It fails to insmod.
-> > 
-> > /lib/modules/2.4.22-1.2149.nptl/unsupported/fs/ocfs2.o: unresolved
-> > symbol OCFS_SB_GET_KDEV
-> > 
-> > It looks like the latest revision removed the definition of
-> > OCFS_SB_GET_KDEV in src/inc/ocfs.h but is still using the macro :(
-> 
-> Here is a fix
+I am starting to explore the code and I started at super.c.
 
-Thanks, committed to the tree.
+Here is a patch to add some error checking.  It also removes a redundant 
+INIT_LIST_HEAD call.
 
--Manish
+John
+
+Index: src/super.c
+===================================================================
+--- src/super.c	(revision 30)
++++ src/super.c	(working copy)
+@@ -434,7 +434,6 @@
+          INIT_LIST_HEAD (&(OcfsGlobalCtxt.item_list));
+  #endif
+  	INIT_LIST_HEAD (&(OcfsGlobalCtxt.osb_next));
+-	INIT_LIST_HEAD (&(OcfsGlobalCtxt.osb_next));
+
+  	/* Read remaining insmod params */
+  	if ((status = ocfs_read_params ()) < 0)
+@@ -767,29 +766,36 @@
+  	OcfsGlobalCtxt.oin_cache = kmem_cache_create ("ocfs2_oin",
+  		sizeof (ocfs_inode) + OCFS_POINTER_SIZE, 0, SLAB_NO_REAP | 
+SLAB_HWCACHE_ALIGN,
+  		NULL, NULL);
++	if ( !OcfsGlobalCtxt.oin_cache ) return -ENOMEM;
+
+  	OcfsGlobalCtxt.ofile_cache = kmem_cache_create ("ocfs2_ofile",
+  		sizeof (ocfs_file) + OCFS_POINTER_SIZE, 0, SLAB_NO_REAP | 
+SLAB_HWCACHE_ALIGN,
+  		NULL, NULL);
++	if ( !OcfsGlobalCtxt.ofile_cache ) return -ENOMEM;
+
+  	OcfsGlobalCtxt.lockres_cache = kmem_cache_create ("ocfs2_lockres",
+  		sizeof (ocfs_lock_res) + OCFS_POINTER_SIZE, 0, SLAB_NO_REAP | 
+SLAB_HWCACHE_ALIGN,
+  		NULL, NULL);
++	if ( !OcfsGlobalCtxt.lockres_cache ) return -ENOMEM;
+
+  	OcfsGlobalCtxt.fe_cache = kmem_cache_create ("ocfs2_fileentry",
+  		OCFS_SECTOR_SIZE, 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN, NULL, NULL);
++	if ( !OcfsGlobalCtxt.fe_cache ) return -ENOMEM;
+
+  	OcfsGlobalCtxt.extent_cache = kmem_cache_create ("ocfs2_extent",
+  		sizeof(ocfs_extent) + OCFS_POINTER_SIZE, 0, SLAB_NO_REAP | 
+SLAB_HWCACHE_ALIGN,
+  		NULL, NULL);
+-	
++	if ( !OcfsGlobalCtxt.extent_cache ) return -ENOMEM;
++
+  	OcfsGlobalCtxt.bh_sem_cache = kmem_cache_create ("ocfs2_bh_sem",
+  		sizeof(ocfs_bh_sem), 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN,
+  		NULL, NULL);
++	if ( !OcfsGlobalCtxt.bh_sem_cache ) return -ENOMEM;
+
+  	OcfsGlobalCtxt.inum_cache = kmem_cache_create("ocfs2_inum",
+  		sizeof(ocfs_inode_num), 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN,
+  		NULL, NULL);
++	if ( !OcfsGlobalCtxt.inum_cache ) return -ENOMEM;
+
+  	OCFS_SET_FLAG (OcfsGlobalCtxt.flags, OCFS_FLAG_MEM_LISTS_INITIALIZED);
+
+
+
+
+-------------- next part --------------
+Index: src/super.c
+===================================================================
+--- src/super.c	(revision 30)
++++ src/super.c	(working copy)
+@@ -434,7 +434,6 @@
+         INIT_LIST_HEAD (&(OcfsGlobalCtxt.item_list));
+ #endif
+ 	INIT_LIST_HEAD (&(OcfsGlobalCtxt.osb_next));
+-	INIT_LIST_HEAD (&(OcfsGlobalCtxt.osb_next));
+ 
+ 	/* Read remaining insmod params */
+ 	if ((status = ocfs_read_params ()) < 0)
+@@ -767,29 +766,36 @@
+ 	OcfsGlobalCtxt.oin_cache = kmem_cache_create ("ocfs2_oin",
+ 		sizeof (ocfs_inode) + OCFS_POINTER_SIZE, 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN,
+ 		NULL, NULL);
++	if ( !OcfsGlobalCtxt.oin_cache ) return -ENOMEM;
+ 
+ 	OcfsGlobalCtxt.ofile_cache = kmem_cache_create ("ocfs2_ofile",
+ 		sizeof (ocfs_file) + OCFS_POINTER_SIZE, 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN,
+ 		NULL, NULL);
++	if ( !OcfsGlobalCtxt.ofile_cache ) return -ENOMEM;
+ 
+ 	OcfsGlobalCtxt.lockres_cache = kmem_cache_create ("ocfs2_lockres",
+ 		sizeof (ocfs_lock_res) + OCFS_POINTER_SIZE, 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN,
+ 		NULL, NULL);
++	if ( !OcfsGlobalCtxt.lockres_cache ) return -ENOMEM;
+ 
+ 	OcfsGlobalCtxt.fe_cache = kmem_cache_create ("ocfs2_fileentry",
+ 		OCFS_SECTOR_SIZE, 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN, NULL, NULL);
++	if ( !OcfsGlobalCtxt.fe_cache ) return -ENOMEM;
+ 
+ 	OcfsGlobalCtxt.extent_cache = kmem_cache_create ("ocfs2_extent",
+ 		sizeof(ocfs_extent) + OCFS_POINTER_SIZE, 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN,
+ 		NULL, NULL);
+-	
++	if ( !OcfsGlobalCtxt.extent_cache ) return -ENOMEM;
++
+ 	OcfsGlobalCtxt.bh_sem_cache = kmem_cache_create ("ocfs2_bh_sem",
+ 		sizeof(ocfs_bh_sem), 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN,
+ 		NULL, NULL);
++	if ( !OcfsGlobalCtxt.bh_sem_cache ) return -ENOMEM;
+ 
+ 	OcfsGlobalCtxt.inum_cache = kmem_cache_create("ocfs2_inum", 
+ 		sizeof(ocfs_inode_num), 0, SLAB_NO_REAP | SLAB_HWCACHE_ALIGN, 
+ 		NULL, NULL);
++	if ( !OcfsGlobalCtxt.inum_cache ) return -ENOMEM;
+ 
+ 	OCFS_SET_FLAG (OcfsGlobalCtxt.flags, OCFS_FLAG_MEM_LISTS_INITIALIZED);
+ 
