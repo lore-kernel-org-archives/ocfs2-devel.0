@@ -1,208 +1,230 @@
 From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Mon Feb 23 21:08:59 2004
-Subject: [Ocfs2-devel] Re: [PATCH]2.6 fixes in file.c
-In-Reply-To: <20040224015742.GI1421@ca-server1.us.oracle.com>
-References: <200402200413.i1K4DFoW004249@penguin.co.intel.com>
-	<20040224015742.GI1421@ca-server1.us.oracle.com>
-Message-ID: <20040224030843.GA18881@penguin.co.intel.com>
+Date: Mon Feb 23 22:25:15 2004
+Subject: [Ocfs2-devel] [PATCH]2.6 fixes in super.c
+In-Reply-To: <20040223233523.GA1421@ca-server1.us.oracle.com>
+References: <200402180312.i1I3CH7Y015248@penguin.co.intel.com>
+	<20040219233755.GA24928@penguin.co.intel.com>
+	<20040223233523.GA1421@ca-server1.us.oracle.com>
+Message-ID: <20040224042501.GA20255@penguin.co.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Feb 23, 2004 at 05:57:42PM -0800, Mark Fasheh wrote:
-> On Thu, Feb 19, 2004 at 08:13:15PM -0800, Rusty Lynch wrote:
-> > The following is a patch to file.c and proto.h that fixes some
-> > errors that happen when building with a 2.6 kernel.
-> > 
-> > * proper use of timespec time in various places
-> > * adds a new ocfs_sync_inode() function that for syncing inodes
-> >   in a 2.4 and 2.6 friendly way
-> > * removes more kdev references from the 2.6 code sections
-> > 
-> >     --rusty
-> 
-> This patch doesn't apply against current svn, would you mind regenerating it?
-
-Here is a patch that depends on my last patch (for the LINUX_2_5 cleanup).
-
-> > +static int ocfs_sync_inode(struct inode *inode)
-> Could we also add a prototype to the top of the file. That way we can keep
-> it consistent with the rest of the code.
-
-got it
-
-> >  int ocfs_empty (struct dentry *dentry);
+On Mon, Feb 23, 2004 at 03:35:23PM -0800, Mark Fasheh wrote:
+> On Thu, Feb 19, 2004 at 03:37:55PM -0800, Rusty Lynch wrote:
+> > On Tue, Feb 17, 2004 at 07:12:17PM -0800, Rusty Lynch wrote:
+> > > The following patch fixes 2.6 port issues in super.c (which
+> > > spills into ocfs.h)
+<snip>
 > > +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-> > +int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd);
-> > +#else
-> >  int ocfs_dentry_revalidate (struct dentry *dentry, int flags);
-> > +#endif
-> Why is this here? Shouldn't this update be in the dcache patch? 
+> > +static int ocfs_statfs (struct super_block *sb, struct kstatfs *buf)
+> 
+> Is there a reason why we can't just combine the 2.4 / 2.6 versions of these
+> functions? From a cursory glance, they seem mostly the same...
 
-yeap, a little blood from the dcache patch.  It's still needed, so I still
-have it in this patch.
+Here is a redone version of the patch that applies cleanly to the current 
+svn repository.
+
+    --rusty
 
 
-diff -urN a/src/file.c b/src/file.c
---- a/src/file.c	2004-02-23 18:45:25.000000000 -0800
-+++ b/src/file.c	2004-02-23 19:03:07.000000000 -0800
-@@ -29,7 +29,25 @@
+diff -urN b/src/inc/ocfs.h c/src/inc/ocfs.h
+--- b/src/inc/ocfs.h	2004-02-23 18:44:55.000000000 -0800
++++ c/src/inc/ocfs.h	2004-02-23 20:07:55.000000000 -0800
+@@ -88,7 +88,7 @@
+ #endif
+ #include  <linux/inet.h>
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+-#include <asm/statfs.h>
++#include <linux/statfs.h>
+ #include <linux/blkdev.h>
+ #include <linux/in.h>
+ #include <linux/buffer_head.h>
+diff -urN b/src/super.c c/src/super.c
+--- b/src/super.c	2004-02-23 18:45:17.000000000 -0800
++++ c/src/super.c	2004-02-23 20:12:23.000000000 -0800
+@@ -37,8 +37,10 @@
+ __u32 osb_id;             /* Keeps track of next available OSB Id */
+ spinlock_t mount_cnt_lock;
+ __u32 mount_cnt;          /* Number of volumes currently mounted */
+-bool mount_cnt_inc;       /* true when mount_cnt is inc by 1 during first mount */
  
- static int ocfs_change_file_attrib (ocfs_super * osb, __u64 parent_off, ocfs_inode * oin, __u64 file_size, __u64 file_off, struct iattr *attr, struct inode *inode);
- static int ocfs_truncate_file (ocfs_super * osb, __u64 file_off, __u64 file_size, ocfs_inode * oin, struct inode *inode);
-+static int ocfs_sync_inode(struct inode *inode);
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
++bool mount_cnt_inc;       /* true when mount_cnt is inc by 1 during first mount */
++#endif
+ 
+ char *node_name = NULL;
+ __u32 node_number = OCFS_INVALID_NODE_NUM;
+@@ -123,17 +125,21 @@
+ #endif /* Linux 2.4 stuff */
+ 
+ static int ocfs_parse_options (char *options, __u32 * uid, __u32 * gid, bool * reclaim_id);
+-static struct super_block *ocfs_read_super (struct super_block *sb, void *data, int silent);
+ static int __init ocfs_driver_entry (void);
+ static void __exit ocfs_driver_exit (void);
+ static void ocfs_put_super (struct super_block *sb);
+-static int ocfs_statfs (struct super_block *sb, struct statfs *buf);
+ static void lockres_hash_free_func (const void *p);
+ static int ocfs_mount_volume (struct super_block *sb, bool reclaim_id, struct inode *root);
+ static int ocfs_read_params(void);
+ static int ocfs_initialize_mem_lists (void);
+ static void ocfs_free_mem_lists (void);
  
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+#define OCFS_FE_SET_ATTRIBUTES(fe, attr) 				     \
-+do {									     \
-+	if (attr->ia_valid & ATTR_SIZE)					     \
-+		fe->file_size = attr->ia_size;				     \
-+	if (attr->ia_valid & ATTR_UID)					     \
-+		fe->uid = attr->ia_uid;					     \
-+	if (attr->ia_valid & ATTR_GID)					     \
-+		fe->gid = attr->ia_gid;					     \
-+	if (attr->ia_valid & ATTR_MODE)					     \
-+		fe->prot_bits = attr->ia_mode & 0007777;		     \
-+	if (attr->ia_valid & ATTR_CTIME)				     \
-+		fe->create_time = attr->ia_ctime.tv_sec;		     \
-+	if (attr->ia_valid & ATTR_MTIME)				     \
-+		fe->modify_time = attr->ia_mtime.tv_sec;		     \
-+} while (0)
-+#else /* 2.4 kernel */
- #define OCFS_FE_SET_ATTRIBUTES(fe, attr) 				     \
- do {									     \
- 	if (attr->ia_valid & ATTR_SIZE)					     \
-@@ -45,6 +63,22 @@
- 	if (attr->ia_valid & ATTR_MTIME)				     \
- 		fe->modify_time = attr->ia_mtime;			     \
- } while (0)
++static int ocfs_statfs (struct super_block *sb, struct kstatfs *buf);
++#else
++static int ocfs_statfs (struct super_block *sb, struct statfs *buf);
 +#endif
 +
-+static int ocfs_sync_inode(struct inode *inode)
-+{
-+	int status;
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+	status = sync_mapping_buffers(inode->i_mapping);
-+#else
-+	status = fsync_inode_buffers(inode);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,18)
-+	if (!status)	       
-+		status = fsync_inode_data_buffers(inode);
-+#endif
-+#endif
-+	return status;
-+}
+ static struct super_operations ocfs_sops = {
+ 	.statfs = ocfs_statfs,
+ 	.put_inode = ocfs_put_inode,
+@@ -151,19 +157,6 @@
  
- /*
-  * ocfs_file_open()
-@@ -246,10 +280,10 @@
- 	}
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
  
- 	if (truncate_pages) {
--		fsync_inode_buffers(inode);
--#if LINUX_VERSION_CODE >= LinuxVersionCode(2,4,18)
--		fsync_inode_data_buffers(inode);
--#endif
-+		status = ocfs_sync_inode(inode);
-+		if (status)
-+			goto leave;
+-static struct file_system_type ocfs_fs_type = {
+-        .owner          = THIS_MODULE,
+-        .name           = "ocfs2",
+-        .get_sb         = ocfs_get_sb, /* is this called when we mount
+-					* the fs? */
+-        .kill_sb        = kill_block_super, /* set to the generic one
+-					     * right now, but do we
+-					     * need to change that? */
+-        .fs_flags       = FS_REQUIRES_DEV,
+-	.next           = NULL
+-};
+-
+-
+ static int ocfs_fill_super (struct super_block *sb, void *data, int silent)
+ {
+ 	struct dentry *root_dentry;
+@@ -238,11 +231,23 @@
+ 	return status;
+ }				/* ocfs_fill_super */
+ 
+-static struct super_block *ocfs_get_sb(struct file_system_type *fs_type, int flags, char *dev_name, void *data)
++static struct super_block *ocfs_get_sb(struct file_system_type *fs_type, int flags, const char *dev_name, void *data)
+ {
+ 	return get_sb_bdev(fs_type, flags, dev_name, data, ocfs_fill_super);
+ }
+ 
++static struct file_system_type ocfs_fs_type = {
++        .owner          = THIS_MODULE,
++        .name           = "ocfs2",
++        .get_sb         = ocfs_get_sb, /* is this called when we mount
++					* the fs? */
++        .kill_sb        = kill_block_super, /* set to the generic one
++					     * right now, but do we
++					     * need to change that? */
++        .fs_flags       = FS_REQUIRES_DEV,
++	.next           = NULL
++};
 +
- 		if (inode->i_data.nrpages)
- 			ocfs_truncate_inode_pages(inode, 0);
- 	}
-@@ -398,17 +432,11 @@
- 		
-                 ocfs_up_sem (&(oin->main_res));
-                 ocfs_release_oin (oin, true);
--		fsync_inode_buffers(inode);
--#if LINUX_VERSION_CODE >= LinuxVersionCode(2,4,18)
--		fsync_inode_data_buffers(inode);
--#endif
-+		ocfs_sync_inode(inode);
-         } else {
-                 ocfs_up_sem (&(oin->main_res));
-                 ocfs_release_cached_oin (osb, oin);
--		fsync_inode_buffers(inode);
--#if LINUX_VERSION_CODE >= LinuxVersionCode(2,4,18)
--		fsync_inode_data_buffers(inode);
--#endif
-+		ocfs_sync_inode(inode);
-         }
+ #else  /* We're a 2.4 kernel */
  
- 	if (last_close) {
-@@ -440,10 +468,7 @@
- 	LOG_ENTRY_ARGS ("(0x%08x, '%*s')\n", file,
-                         file->f_dentry->d_name.len, file->f_dentry->d_name.name);
  
--#if LINUX_VERSION_CODE >= LinuxVersionCode(2,4,18)
--	fsync_inode_data_buffers(file->f_dentry->d_inode);
--#endif
--	err = fsync_inode_buffers(file->f_dentry->d_inode);
-+	err = ocfs_sync_inode(file->f_dentry->d_inode);
- 	LOG_EXIT_STATUS (err);
- 	return (err < 0) ? -EIO : 0;
- }				/* ocfs_flush */
-@@ -457,10 +482,7 @@
- 	int err = 0;
- 	LOG_ENTRY_ARGS ("(0x%08x, 0x%08x, %d, '%*s')\n", file, dentry, datasync,
-                         dentry->d_name.len, dentry->d_name.name);
--#if LINUX_VERSION_CODE >= LinuxVersionCode(2,4,18)
--	fsync_inode_data_buffers(file->f_dentry->d_inode);
--#endif
--	err = fsync_inode_buffers(dentry->d_inode);
-+	err = ocfs_sync_inode(dentry->d_inode);
- 	LOG_EXIT_STATUS (err);
- 	return (err < 0) ? -EIO : 0;
- }				/* ocfs_sync_file */
-@@ -549,7 +571,7 @@
- 		DISK_LOCK_CURRENT_MASTER (fileEntry) = osb->node_num;
- 	}
- 
--	fileEntry->modify_time = CURRENT_TIME;
-+	fileEntry->modify_time = OCFS_CURRENT_TIME;
- 
- 	DISK_LOCK_SEQNUM (fileEntry) = changeSeqNum;
- 	OCFS_FE_SET_ATTRIBUTES(fileEntry, attr);
-@@ -1483,7 +1505,11 @@
- 	stat->nlink = inode->i_nlink;
- 	stat->uid = inode->i_uid;
- 	stat->gid = inode->i_gid;
--	stat->rdev = kdev_t_to_nr(inode->i_rdev);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+	stat->rdev = inode->i_rdev;
-+#else
-+ 	stat->rdev = kdev_t_to_nr(inode->i_rdev);
+@@ -478,7 +483,9 @@
+ 	spin_lock_init (&mount_cnt_lock);
+ 	spin_lock (&mount_cnt_lock);
+ 	mount_cnt = 0;
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+ 	mount_cnt_inc = false;
 +#endif
- 	stat->atime = inode->i_atime;
- 	stat->mtime = inode->i_mtime;
- 	stat->ctime = inode->i_ctime;
-diff -urN a/src/inc/proto.h b/src/inc/proto.h
---- a/src/inc/proto.h	2004-02-23 18:44:42.000000000 -0800
-+++ b/src/inc/proto.h	2004-02-23 18:46:18.000000000 -0800
-@@ -78,8 +78,11 @@
- ssize_t ocfs_file_read (struct file *filp, char *buf, size_t count, loff_t * ppos);
- int ocfs_extend_file (ocfs_super * osb, __u64 parent_off, ocfs_inode * oin, __u64 file_size, __u64 * file_off, ocfs_journal_handle *passed_handle, struct inode *inode, struct iattr *attr);
- int ocfs_setattr (struct dentry *dentry, struct iattr *attr);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+int ocfs_getattr (struct vfsmount *mnt, struct dentry *dentry, struct kstat *stat);
-+#else
- int ocfs_getattr (struct dentry *dentry, struct iattr *attr);
+ 	spin_unlock (&mount_cnt_lock);
+ 
+ 	spin_lock_init (&OcfsGlobalCtxt.comm_seq_lock);
+@@ -679,8 +686,9 @@
+ 
+ 	ocfs_sync_blockdev(sb);
+ 	LOG_TRACE_STR ("put super... do nothing!  DONE!!!!");
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+ 	MOD_DEC_USE_COUNT;
 -
 +#endif
- 
- int ocfs_find_inode (struct inode *inode, unsigned long ino, void *opaque);
- void ocfs_populate_inode (struct inode *inode, ocfs_file_entry *fe, umode_t mode, void *genptr, bool create_ino);
-@@ -242,7 +245,11 @@
- 
- 
- int ocfs_empty (struct dentry *dentry);
+ 	LOG_EXIT ();
+ 	return;
+ }				/* ocfs_put_super */
+@@ -691,7 +699,11 @@
+  * ocfs_statfs()
+  *
+  */
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-+int ocfs_dentry_revalidate (struct dentry *dentry, struct nameidata *nd);
++static int ocfs_statfs (struct super_block *sb, struct kstatfs *buf)
 +#else
- int ocfs_dentry_revalidate (struct dentry *dentry, int flags);
+ static int ocfs_statfs (struct super_block *sb, struct statfs *buf)
 +#endif
- int ocfs_foreach_child (struct dentry *dentry, int (*func)(struct dentry *, void *), void *data);
+ {
+         ocfs_super *osb = NULL;
+         __u32 numbits, freebits = 0;
+@@ -700,7 +712,7 @@
+         ocfs_bitmap_lock *bm_lock = NULL;
+ 	struct buffer_head *bh = NULL;
  
- int ocfs_readdir (struct file *filp, void *dirent, filldir_t filldir);
+-        LOG_ENTRY_ARGS ("(0x%08x, 0x%08x)\n", sb, buf);
++        LOG_ENTRY_ARGS ("(%p, %p)\n", sb, buf);
+ 
+         osb = (ocfs_super *) OCFS_GENERIC_SB_P(sb);
+         numbits = osb->cluster_bitmap.validbits;
+@@ -721,15 +733,27 @@
+         buf->f_type = OCFS_MAGIC;
+         buf->f_bsize = sb->s_blocksize;
+         buf->f_namelen = OCFS_MAX_FILENAME_LENGTH;
++        buf->f_bavail = buf->f_bfree;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+         buf->f_blocks =
+-            (unsigned long) ((unsigned long) (numbits) *
+-                             (unsigned long) (osb->vol_layout.cluster_size >> 9) -
+-			     (8 * ONE_MEGA_BYTE / osb->vol_layout.cluster_size)); 
++		(unsigned long) ((unsigned long) (numbits) *
++				 (unsigned long) (osb->vol_layout.cluster_size >> 9) -
++				 (8 * ONE_MEGA_BYTE / osb->vol_layout.cluster_size)); 
+         buf->f_bfree =
+             (unsigned long) (freebits * (osb->vol_layout.cluster_size >> 9));
+         buf->f_bavail = buf->f_bfree;
+         buf->f_files = (unsigned long) (numbits);
+         buf->f_ffree = (unsigned long) (numbits) - freebits;
++#else
++        buf->f_blocks =
++		(sector_t) ((unsigned long) (numbits) *
++			    (unsigned long) (osb->vol_layout.cluster_size >> 9) -
++			    (8 * ONE_MEGA_BYTE / osb->vol_layout.cluster_size)); 
++        buf->f_bfree =
++            (sector_t) (freebits * (osb->vol_layout.cluster_size >> 9));
++        buf->f_files = (sector_t) (numbits);
++        buf->f_ffree = (sector_t) (numbits) - freebits;
++#endif
+ 
+ 	OCFS_BH_PUT_DATA(bh);
+ 	lock_buffer(bh);
+@@ -981,10 +1005,12 @@
+ 		}
+ 
+ 		OcfsIpcCtxt.init = true;
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+ 		if (mount_cnt_inc == false) {
+ 			MOD_INC_USE_COUNT;
+ 			mount_cnt_inc = true;
+ 		}	
++#endif
+ 	}
+ 	spin_unlock (&mount_cnt_lock);
+ 
+@@ -1180,6 +1206,7 @@
+ 	ocfs_safefree (osb);
+ 	sb->s_dev = 0;
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+ 	spin_lock (&mount_cnt_lock);
+ 	if (!mount_cnt && !atomic_read(&OcfsGlobalCtxt.cnt_lockres) && mount_cnt_inc) {
+ 		MOD_DEC_USE_COUNT;
+@@ -1190,6 +1217,7 @@
+ 			       atomic_read(&OcfsGlobalCtxt.cnt_lockres));
+ 	}
+ 	spin_unlock (&mount_cnt_lock);
++#endif
+ 
+ leave:
+ 	if (AcquiredOSB) {
