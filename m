@@ -1,9 +1,9 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Aug  9 13:07:49 2004
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon Aug  9 14:05:18 2004
 Subject: [Ocfs2-devel] Cluster sizes allowed?
 In-Reply-To: <60C14C611F1DDD4198D53F2F43D8CA3B0194AA20@orsmsx410>
 References: <60C14C611F1DDD4198D53F2F43D8CA3B0194AA20@orsmsx410>
-Message-ID: <20040809180307.GZ8008@ca-server1.us.oracle.com>
+Message-ID: <20040809190512.GN2595@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,19 +11,24 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 On Mon, Aug 09, 2004 at 10:13:11AM -0700, Villalovos, John L wrote:
-> Another quick question.
-> 
 > What are the cluster sizes allowed?
-> 
-> I was thinking that the formula is:
-> 
-> Cluster Size = 4096 * ( 2 ** X ) where 0 <= X <= 8.
-> 
-> Is this correct?
-Yes.
-	--Mark
 
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+	The formula is 2^x where 12 <= x <= 20.  If you need a formula.
+The acutal on-disk format stores the clustersize as the exponent
+(OCFS_RAW_SB(sb_dinode)->s_clustersize_bits).  So
+12 <= s_clustersize_bits <= 20, and clustersize == 1 <<
+s_clustersize_bits.
+
+Joel
+
+-- 
+
+Life's Little Instruction Book #356
+
+	"Be there when people need you."
+
+Joel Becker
+Senior Member of Technical Staff
+Oracle Corporation
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
