@@ -1,17 +1,23 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri Apr 16 17:50:54 2004
-Subject: [Ocfs2-devel] nooin merge and the 2.6 port
-Message-ID: <20040416225050.GH10471@ca-server1.us.oracle.com>
+Date: Mon Apr 19 12:56:17 2004
+Subject: [Ocfs2-devel] Patches to fix the OCFS2 bug 54, which cause crash
+	in the second mount under kernel 2.6.
+In-Reply-To: <37FBBA5F3A361C41AB7CE44558C3448E03B65E68@PDSMSX403.ccr.corp.intel.com>
+References: <37FBBA5F3A361C41AB7CE44558C3448E03B65E68@PDSMSX403.ccr.corp.intel.com>
+Message-ID: <20040419175612.GI10471@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I just landed a big change from my nooin branch which gets us --> <-- close
-to no longer having the ocfs_inode structure (everything will be on
-ocfs_inode_private instead). I believe I kept the 2.6 code up to date with
-my changes, but please feel free to yell@me if I've broken anything :)
+On Fri, Apr 16, 2004 at 03:40:58PM +0800, Zhang, Sonic wrote:
+> Hi Mark,
+> 
+> 	I attach a new patch for ocfs based on your suggestion to walk
+> 	around the bug in JBD before it is fixed in kernel.
+Alright Sonic, this has been committed. Thanks for catching the #if case. I
+re-added my comment which you removed :)
 	--Mark
 
 --
