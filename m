@@ -1,57 +1,116 @@
-From: Rusty Lynch <rusty@linux.co.intel.com>
-Date: Tue Mar 23 20:41:20 2004
-Subject: [Ocfs2-devel] [BUG]mmap changes not not persisted
-Message-ID: <200403240241.i2O2fCqV013880@penguin.co.intel.com>
+From: Sonic Zhang <sonic.zhang@intel.com>
+Date: Tue Mar 23 21:05:22 2004
+Subject: [Ocfs2-devel] 
+ Bug 48 "[kernel 2.6 porting] System halt during reboot after mount
+ an OCFS volume." in bugzilla is fixed.
+Message-ID: <4060FB02.9090402@intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-While try to figure out the correct way to make a 2.6 build flush out
-it's buffers to disk so that all changes are not lost when the file closes,
-I discovered a problem with mmap on a 2.4 build.
+Hi all,
 
-I created a new bugzilla bug, that explains the problem at
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=50
+I successfully root cause and fix bug 48 "[kernel 2.6 porting] System halt 
+during reboot after mount an OCFS volume.".
 
-Here is a cut-n-past from my description in the bug report:
+In current OCFS v2 driver, ocfs_volume_thread, ocfs_recv_thread and 
+ocfs_commit_thread are assumed to be terminated by the ocfs_dismount_volume 
+routine. But, if the system reboots, all processes and kernel threads will 
+receive signal SIGTERM before ocfs_dismount_volume routine is called.  
 
-When mmap is used over write data in an existing file, the changes made are
-lost once the file is closed.
+These kernel threads don't exit correctly. For example, they don't know they 
+should exit loop after received signal SIGTERM and clear their task_struct 
+pointers in ocfs_super to indiate their status. That's the cause of the system 
+halt in ocfs_dismount_volume routine when system reboots.
 
-This can be reproduced in a test case that will:
-(SETUP) create a file of 100bytes and null out the contents of the file.
-1. open the target file
-2. mmap a region of the file
-3. memset the pointer returned from mmap to some non-null char
-4. unmap and close the file
-5. hexdump the file and notice none of the changes were persisted to disk
+I attach a patch to fix this bug. Please review. 
 
-If you were to either create a new file, or extend the existing file 
-and then mmap the new region of the file, then the changes will successfully
-make their way to the disk.
+Thank you
 
-I am seeing this bug on version 798 of the svn repository, on a 2.4.22 based
-Fedora distribution.
+This patch is against svn version 807.
+----------------------------------------------------------------
+--- ocfs2.old/src/journal.c	2004-03-22 16:02:55.000000000 +0800
++++ ocfs2/src/journal.c	2004-03-22 16:09:57.000000000 +0800
+@@ -1034,12 +1034,13 @@
+ 	/* The OCFS_JOURNAL_IN_SHUTDOWN will signal to commit_cache to not
+ 	 * drop the trans_lock (which we want to hold until we
+ 	 * completely destroy the journal. */
+-	if (osb->commit && osb->commit->c_task) {
+-		/* Wait for the commit thread */
+-		LOG_TRACE_STR ("Waiting for ocfs2commit to exit....");
+-		send_sig (SIGINT, osb->commit->c_task, 0);
+-		wait_for_completion(&osb->commit->c_complete);
+-		osb->commit->c_task = NULL;
++	if (osb->commit) {
++		if(osb->commit->c_task) {
++			/* Wait for the commit thread */
++			LOG_TRACE_STR ("Waiting for ocfs2commit to exit....");
++			send_sig (SIGINT, osb->commit->c_task, 0);
++			wait_for_completion(&osb->commit->c_complete);
++		}
+ 		ocfs_free(osb->commit);
+ 	}
+ 	
+@@ -1808,7 +1809,7 @@
+ 			break;
+ 	}
+ 
+-
++	commit->c_task = NULL;
+ 
+         /* Flush all scheduled tasks */
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 
 
-------- Additional Comment #1 From Rusty Lynch 2004-03-23 20:34 -------
-
-Created an attachment (id=3)
-Not so simple test case for reading and writing to a file
-
-The following attachment is a little unit test that I am using to track down
-problems with reading/writing to a file.
-
-Using the test case, you can expose this bug by:
-
-dd bs=1K count=1 if=/dev/urandom of=testme.bin
-read_write --filename=testme.bin --size=20 --offset=0 --close --mmap
-
-This will attempt to 
-* mmap the first 20 bytes of the testme.bin file
-* write a known value of random numbers
-* close and reopen the file
-* remap the first 20 bytes of the file
-* and then read the first 20 bytes and compare it to the known value
+--- ocfs2.old/src/nm.c.old	2004-03-23 17:09:29.000000000 +0800
++++ ocfs2/src/nm.c	2004-03-24 10:18:35.000000000 +0800
+@@ -118,6 +118,8 @@
+ 		OcfsIpcCtxt.recv_sock = NULL;
+ 	}
+ 
++	OcfsIpcCtxt.task = NULL;
++
+ 	/* signal main thread of ipcdlm's exit */
+ 	complete (&(OcfsIpcCtxt.complete));
+ 
+@@ -249,6 +251,8 @@
+ 	__u64 cfg_seq_num;
+ 	int which, pruned, prune_iters = 0;
+ 	struct buffer_head *bh = NULL;
++	int signr;
++	siginfo_t info;
+ 
+ 	LOG_ENTRY ();
+ 
+@@ -258,6 +262,7 @@
+ 
+ 	sprintf (proc, "ocfs2nm-%d", osb->osb_id);
+ 	ocfs_daemonize (proc, strlen(proc));
++	allow_signal(SIGTERM);
+ 
+ 	osb->dlm_task = current;
+ 
+@@ -437,7 +442,11 @@
+ 			osb->hbt = 50 + j;
+ 		}
+ 		set_current_state (TASK_INTERRUPTIBLE);
+-		schedule_timeout (osb->hbt - j);
++		if( schedule_timeout (osb->hbt - j) < osb->hbt -j ) {
++			signr = dequeue_signal_lock(current, &current->blocked, &info);
++			if(signr == SIGTERM)
++				OcfsGlobalCtxt.flags |= OCFS_FLAG_SHUTDOWN_VOL_THREAD;
++		}
+ 	}
+ 
+         /* Flush all scheduled tasks */
+@@ -447,6 +456,8 @@
+         flush_scheduled_tasks ();
+ #endif
+ 
++	osb->dlm_task = NULL;
++
+ 	complete (&(osb->dlm_complete));
+ eek:
+ 	LOG_EXIT_LONG (0);
