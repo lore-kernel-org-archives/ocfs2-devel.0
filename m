@@ -1,64 +1,85 @@
-From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
-Date: Fri Jul 30 18:12:28 2004
-Subject: [Ocfs2-devel] fail to write to a file in a way of direct
-	io(kernel 2.4.24) 
-Message-ID: <3ACA40606221794F80A5670F0AF15F840508F7AA@pdsmsx403>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Sat Jul 31 02:01:31 2004
+Subject: [Ocfs2-devel] [Patch] use asynchronous journal commit in
+	ocfs_rename
+In-Reply-To: <3ACA40606221794F80A5670F0AF15F8404FFE536@pdsmsx403>
+References: <3ACA40606221794F80A5670F0AF15F8404FFE536@pdsmsx403>
+Message-ID: <20040731070125.GD8008@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-How about 2.6 kernel?
+On Thu, Jul 29, 2004 at 08:36:54AM +0800, Ling, Xiaofeng wrote:
+> Use asynchronous commit in ocfs_rename can make the speed of rename
+> from  95dir/s to 11834dir/s.
+Cool. the patch looks good at first glance. Would you be interested in
+taking it one step further and doing the same for the last couple sync
+transactions?  (link, truncate, and symlink)
 
+Basically the same thing you just did here. The best thing in fact would  be
+to just get rid of those flags (and the code which acts on them) altogether.
 
-________________________________
+It's about time we got rid of that junk.
+	--Mark
 
-	From: ocfs2-devel-bounces@oss.oracle.com [mailto:ocfs2-devel-bounces@oss.oracle.com] On Behalf Of Chen, Yukun
-	Sent: 2004��7��30�� 7:16
-	To: ocfs2-devel@oss.oracle.com
-	Subject: [Ocfs2-devel] fail to write to a file in a way of direct io(kernel 2.4.24) 
-	
-	
-
-	Hi All,
-
-	 
-
-	I meet a bug on kernel 2.4.24, rev 1303, steps to duplicate: (also, I have committed a bug #110 in the bugzilla of oss.oracle.com)
-
-	 
-
-	1.open a file in an ocfs2 partition in a way of direct io(read/write rights have been granted to the file)
-
-	 
-
-	2.write something to the file
-
-	 
-
-	nothing will be found on the file even after I umounted and then remounted the partition. Furthermore, I can write to the file successfully in a non-directio way.
-
-	 
-
-	Any ideas on it? 
-
-	 
-
-	Thanx.  
-
-	 
-
-	Aaron
-
-	Intel China Software Lab
-
-	Tel:  8621-52574545 Ext.1587
-
-	E_mail:yukun.chen@intel.com
-
-	 
-
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040731/ea6e3c06/attachment.htm
+> ------------------------------------------------------------------------
+> ---------------------
+>  Index: namei.c
+> ===================================================================
+> --- namei.c     (revision 1312)
+> +++ namei.c     (working copy)
+> @@ -1049,6 +1049,8 @@
+>                 goto bail;
+>         }
+> 
+> +       ocfs_handle_set_checkpoint(handle, 0);
+> +       ocfs_handle_set_sync(handle, 0);
+>         /* if old and new are the same, this'll just do one lock. */
+>         status = ocfs_double_lock(osb, handle,
+>                                   OCFS_LKM_EXMODE,
+> @@ -1084,6 +1086,9 @@
+>                 LOG_ERROR_STATUS(status);
+>                 goto finally;
+>         }
+> +
+> +       ocfs_handle_add_lock(handle, OCFS_LKM_EXMODE,
+> +                            FLAG_FILE_CREATE | FLAG_DIR, old_inode);
+>         got_oldlock = 1;
+> 
+>         if (S_ISDIR(old_inode->i_mode)) {
+> @@ -1157,6 +1162,8 @@
+>                 }
+>                 got_newlock = 1;
+> 
+> +               ocfs_handle_add_lock(handle, OCFS_LKM_EXMODE,
+> +                            FLAG_FILE_CREATE | FLAG_DIR, new_inode);
+>                 /* if our caching is working right, then after the
+>                  * verify_update_inode, newfe->i_nlink ==
+>                  * new_inode->i_nlink */
+> @@ -1294,16 +1301,7 @@
+>         status = 0;
+> 
+>  bail:
+> -       if (got_oldlock) {
+> -               ocfs_release_lock(osb, OCFS_LKM_EXMODE, oldfe_flags,
+> -                                 old_inode);
+> -       }
+> 
+> -       if (got_newlock) {
+> -               ocfs_release_lock(osb, OCFS_LKM_EXMODE, newfe_flags,
+> -                                 new_inode);
+> -       }
+> -
+>         double_up_write(&OCFS_I(old_dir)->ip_io_sem,
+>                         &OCFS_I(new_dir)->ip_io_sem);
+>         up_write(&OCFS_I(old_inode)->ip_io_sem);
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel@oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+--
+Mark Fasheh
+Software Developer, Oracle Corp
+mark.fasheh@oracle.com
