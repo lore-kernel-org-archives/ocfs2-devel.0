@@ -1,18 +1,19 @@
 From: Wim Coekaerts <wim.coekaerts@oracle.com>
-Date: Wed Aug 25 02:15:04 2004
+Date: Wed Aug 25 10:48:46 2004
 Subject: [Ocfs2-devel] some performance data.
 In-Reply-To: <3ACA40606221794F80A5670F0AF15F84054B267B@pdsmsx403>
 References: <3ACA40606221794F80A5670F0AF15F84054B267B@pdsmsx403>
-Message-ID: <20040825071455.GA16331@ca-server1.us.oracle.com>
+Message-ID: <20040825154840.GC14518@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-hmm interesting  - I amsure we can tune read performance, we're probably
-still doing too much cache dropping than we should be. the other bits
-look pretty nice tho ;-)
+also, I assume that is nondirect io read/write
+can you modify fileben to do O_DIRECT only and see how that one compares
+?
+
 
 On Wed, Aug 25, 2004 at 11:39:21AM +0800, Ling, Xiaofeng wrote:
 > I've tried redhat GFS and get some performance data.
