@@ -1,16 +1,29 @@
 From: Wim Coekaerts <wim.coekaerts@oracle.com>
-Date: Tue Jul  6 22:10:12 2004
-Subject: [Ocfs2-devel] [PATCH] add notify trunctpage to close file
-In-Reply-To: <3ACA40606221794F80A5670F0AF15F8404D1BE82@pdsmsx403>
-References: <3ACA40606221794F80A5670F0AF15F8404D1BE82@pdsmsx403>
-Message-ID: <20040707031008.GA5951@ca-server1.us.oracle.com>
+Date: Wed Jul  7 03:34:46 2004
+Subject: [Ocfs2-devel] flush
+Message-ID: <20040707083442.GA9197@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
->  	ocfs_sync_inode(inode);
+for those that are going to be awake now ;-)
 
-euhm I think we should not be doing a sync inode on every file release.
-could explain the perofmrance degradation on install/untar
+sys_close() -> filp_close() -> ocfs_fops() -> ocfs_flush() -> fsync_buffers_list()
+
+that happens on close. flush causes a sync to disk
+so
+
+untar of a full tree took 6:15 min
+then took out the ocfs_sync_inode() from ocfs_file_release()
+then lowered heartbeat to 1 per second nad commit interval now at 5
+seconds
+
+then went down to bout 4:30 minutes
+
+then noticed the flush during untar, so I got rid of ocfs_flush() as a
+test
+went down to bout 2 minutes, however things are inconsistent
+so it's not tha simple .but that's a huge part of the remaining
+bottlenecks when comparing stuff to ext3
