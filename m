@@ -1,51 +1,65 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Wed Jul 28 16:07:01 2004
-Subject: [Ocfs2-devel] A patch to fix a typo error in ocfs_file_read(),
-	which causes performance drop.
-In-Reply-To: <37FBBA5F3A361C41AB7CE44558C3448E04C6FCE0@pdsmsx403>
-References: <37FBBA5F3A361C41AB7CE44558C3448E04C6FCE0@pdsmsx403>
-Message-ID: <20040728210031.GA8008@ca-server1.us.oracle.com>
+From: Ling, Xiaofeng <xiaofeng.ling@intel.com>
+Date: Wed Jul 28 21:28:37 2004
+Subject: [Ocfs2-devel] 
+	[Patch] use asynchronous journal commit in ocfs_rename 
+Message-ID: <3ACA40606221794F80A5670F0AF15F8404FFE536@pdsmsx403>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-heh, can't believe we missed that!
-	--Mark
+Use asynchronous commit in ocfs_rename can make the speed of rename
+from  95dir/s to 11834dir/s.
 
-On Wed, Jul 28, 2004 at 03:08:28PM +0800, Zhang, Sonic wrote:
-> Hi,
-> 
-> 	I found a typo error in ocfs_file_read(), which causes
-> performance drop.
-> 	See my patch. 
-> 
-> 	Thanks.
-> 
-> 
-> --------------------------------------
-> --- file.c.old	2004-07-28 14:58:00.018535576 +0800
-> +++ file.c	2004-07-28 14:58:32.835546632 +0800
-> @@ -853,11 +853,9 @@
->  			filp->f_flags |= O_DIRECT;
->  		else
->  			filp->f_flags &= ~O_DIRECT;
-> -		ret = generic_file_write (filp, buf, count, ppos);
-> +		ret = generic_file_read (filp, buf, count, ppos);
->  		filp->f_flags = savedflags;
->  	}
-> -
-> -	ret = generic_file_read (filp, buf, count, ppos);
->  #else
->  	if (do_direct_io) 
->  		ret = ocfs_rw_direct (READ, filp, buf, count, ppos);
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+------------------------------------------------------------------------
+---------------------
+ Index: namei.c
+===================================================================
+--- namei.c     (revision 1312)
++++ namei.c     (working copy)
+@@ -1049,6 +1049,8 @@
+                goto bail;
+        }
+
++       ocfs_handle_set_checkpoint(handle, 0);
++       ocfs_handle_set_sync(handle, 0);
+        /* if old and new are the same, this'll just do one lock. */
+        status = ocfs_double_lock(osb, handle,
+                                  OCFS_LKM_EXMODE,
+@@ -1084,6 +1086,9 @@
+                LOG_ERROR_STATUS(status);
+                goto finally;
+        }
++
++       ocfs_handle_add_lock(handle, OCFS_LKM_EXMODE,
++                            FLAG_FILE_CREATE | FLAG_DIR, old_inode);
+        got_oldlock = 1;
+
+        if (S_ISDIR(old_inode->i_mode)) {
+@@ -1157,6 +1162,8 @@
+                }
+                got_newlock = 1;
+
++               ocfs_handle_add_lock(handle, OCFS_LKM_EXMODE,
++                            FLAG_FILE_CREATE | FLAG_DIR, new_inode);
+                /* if our caching is working right, then after the
+                 * verify_update_inode, newfe->i_nlink ==
+                 * new_inode->i_nlink */
+@@ -1294,16 +1301,7 @@
+        status = 0;
+
+ bail:
+-       if (got_oldlock) {
+-               ocfs_release_lock(osb, OCFS_LKM_EXMODE, oldfe_flags,
+-                                 old_inode);
+-       }
+
+-       if (got_newlock) {
+-               ocfs_release_lock(osb, OCFS_LKM_EXMODE, newfe_flags,
+-                                 new_inode);
+-       }
+-
+        double_up_write(&OCFS_I(old_dir)->ip_io_sem,
+                        &OCFS_I(new_dir)->ip_io_sem);
+        up_write(&OCFS_I(old_inode)->ip_io_sem);
