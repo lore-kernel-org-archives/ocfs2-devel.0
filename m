@@ -1,9 +1,7 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri May 21 13:07:57 2004
-Subject: [Ocfs2-devel] Error when mount ocfs2 partition on kernel 2.6.6
-In-Reply-To: <941A6821ACE16D4BBB8A958A0EB047F730704A@pdsmsx404.ccr.corp.intel.com>
-References: <941A6821ACE16D4BBB8A958A0EB047F730704A@pdsmsx404.ccr.corp.intel.com>
-Message-ID: <20040521180751.GF25513@ca-server1.us.oracle.com>
+From: Zhang, Sonic <sonic.zhang@intel.com>
+Date: Mon May 24 19:21:40 2004
+Subject: [Ocfs2-devel] [Patch] Patch to fix OCFS bug 73 and 74.
+Message-ID: <37FBBA5F3A361C41AB7CE44558C3448E03B65ED0@PDSMSX403.ccr.corp.intel.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,186 +10,110 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi,
 
-On Fri, May 21, 2004 at 06:24:25PM +0800, Chen, Yukun wrote:
-> Hi All
-> 
->          I find a hang issue when trying to mount an ocfs2 partition in a
-> cluster environment. Machine 1 and machine 2 share a raid array.
-> 
->          Steps to reproduce: (m1 represent machine 1, and m2 represent machine
-> 2)
-<snip>
+	After investigate in the JBD code in kernel 2.6.6 and OCFS2 svn
+929 on IPF, I think I find the cause of dead lock bug 73 and 74.
 
-So one of the machines is trying to recover the other one and dies, right?
+	In kernel 2.6.6, the bit 12 to 19 of variable b_state in
+structure buffer_head is occupied by the linux journaling code as
+follows.
 
-<snip>
-> Oracle Cluster FileSystem x y (build z)
-> ocfs2: hostname is westvile2
-> sectbits=9, clusterbits=12, dirbits=17, filebits=9
-> ocfs2: Adding west1 (node 0) to clustered device (8,66)
-> (3263) ERROR at /root/ocfs/ocfs2-6/src/dlm.c, 1395: DISKVOTE!!: req_lock=2,
-> flags=40000401, offset=1532416, inode=3
-> (3263) ERROR at /root/ocfs/ocfs2-6/src/dlm.c, 1398: DISKVOTE!!: this=1, master=
-> 0, locktype=0, ronode=-1, romap=00000000
-> Call Trace:
-> [<dc16dbf4>]   (0xdc16dbf4)
-> 
-> ???
->  [<c0ed0000>]   (0xdc16dfd0)
-> [<ffffe410>]   (0xdc16dfec)
-> 
-> (3263) ERROR at /root/ocfs/ocfs2-6/src/dlm.c, 1395: DISKVOTE!!: req_lock=2,
-> flags=40000401, offset=1532416, inode=3
-> (3263) ERROR at /root/ocfs/ocfs2-6/src/dlm.c, 1398: DISKVOTE!!: this=1, master=
-> 0, locktype=0, ronode=-1, romap=00000000
-> Call Trace:
-> [<dc16dbf4>]   (0xdc16dbf4)
-> [<ffffffff>]   (0xdc16dc04)
-> 
-> ???..
->  [<c0105f71>]   (0xdc16dfc0)
-> [<c0ed0000>]   (0xdc16dfd0)
-> [<ffffe410>]   (0xdc16dfec)
-> 
-> ocfs2: Removing west1 (node 0) from clustered device (8,66)
-> ocfs2: Recovering node 0 from device (8,66)
-> (fs/jbd/recovery.c, 255): journal_recover: JBD: recovery, exit status 0,
-> recovered transactions 5 to 5
-> (fs/jbd/recovery.c, 257): journal_recover: JBD: Replayed 0 and revoked 0/0
-> blocks
-> kjournald starting.  Commit interval 5 seconds
-> Unable to handle kernel NULL pointer dereference at virtual address 0000001c
->  printing eip:
-> e0ad4eeb
-> *pde = 1dfef067
-> *pte = 00000000
-> Oops: 0000 [#1]
-> SMP
-> CPU:    2
-> EIP:    0060:[<e0ad4eeb>]    Not tainted
-> EFLAGS: 00010286   (2.6.6)
-> EIP is at ocfs_bh_sem_lookup+0x1b/0x370 [ocfs2]
-> eax: 00000000   ebx: 00000800   ecx: db405dc4   edx: 00000000
-> esi: 00000000   edi: 00000000   ebp: dbe51e84   esp: dbe51e44
-> ds: 007b   es: 007b   ss: 0068
-> Process ocfs2rec-0 (pid: 3267, threadinfo=dbe50000 task=dd3ed480)
-> Stack: db58d378 dc2ee600 db58d378 c1416be0 00014025 88ad2fc6 000000ba dd3ed630
->        c1416be0 c0498e20 dbe51ea8 00000000 c0498e20 00000000 00000000 00000000
->        dbe51e98 e0ad5257 00000000 00000000 00000000 dbe51efc e0ac175b 00000000
-> Call Trace:
->  [<e0ad5257>] ocfs_bh_sem_lock+0x17/0x60 [ocfs2]
->  [<e0ac175b>] ocfs_sync_local_to_main+0x9b/0x7e0 [ocfs2]
->  [<e0ad4c90>] ocfs_bh_sem_put+0x20/0xb0 [ocfs2]
->  [<e0ad5472>] ocfs_bh_sem_unlock+0x32/0x50 [ocfs2]
->  [<e0adee39>] ocfs_read_bhs+0x3f9/0x8e0 [ocfs2]
->  [<e0ac369d>] ocfs_shutdown_local_alloc+0xdd/0x350 [ocfs2]
->  [<e0ac39f7>] ocfs_recover_local_alloc+0xe7/0x1c6 [ocfs2]
->  [<e0ae4ac9>] ocfs_recover_vol+0x699/0xc70 [ocfs2]
->  [<e0ae4163>] __ocfs_recovery_thread+0x113/0x1e0 [ocfs2]
->  [<e0ae4050>] __ocfs_recovery_thread+0x0/0x1e0 [ocfs2]
->  [<c01042e5>] kernel_thread_helper+0x5/0x10
->  
-> 
->          Any ideas on this issue?
+enum jbd_state_bits {
+        BH_JBD                  /* Has an attached ext3 journal_head */
+          = BH_PrivateStart,
+        BH_JWrite,              /* Being written to log (@@@ DEBUGGING)
+*/
+        BH_Freed,               /* Has been freed (truncated) */
+        BH_Revoked,             /* Has been revoked from the log */
+        BH_RevokeValid,         /* Revoked flag is valid */
+        BH_JBDDirty,            /* Is dirty but journaled */
+        BH_State,               /* Pins most journal_head state */
+        BH_JournalHead,         /* Pins bh->b_private and jh->b_bh */
+};
 
-Ahh yes, that's a bug I inadvertantly introduced recently. The fix is in my
-local tree and will get pushed out shortly with some other changes I'm
-making to alloc.c. In the meantime you can apply this patch. Ignore the
-warnings you'll get due to unused variables and whatnot -- that'll be
-cleaned up in my commit.
-	--Mark
+	But, in ocfs2 head io.h, variable BH_Modified and the inode
+clean sequence number also occupy some bits in this frame as follows.
 
---
-Mark Fasheh
-Software Developer, Oracle Corp
-mark.fasheh@oracle.com
+#define BH_Modified 18
+#define STATE_BIT_MASK		((~0UL)<<19)
+
+	The bit 18 and bit 19 conflict with Linux journaling code in
+kernel 2.6.6. When copy a file to the OCFS2 volume, the journaling code
+will try to lock bit BH_JournalHead and BH_State of variable b_state in
+buffer_head, which have already been set to 1 in OCFS2 routine
+ocfs_read_dirnode() and ocfs_insert_dir_node(). So, the dead locks occur
+at journaling routine jbd_lock_bh_journal_head() and
+jbd_lock_bh_state().
+
+	My patch fixes these 2 bugs by using the empty bits 20 ~ 31. It
+is against svn 932. Please refer to the attachment.
+
+	Any comment?
 
 
-Index: src/alloc.c
-===================================================================
---- src/alloc.c	(revision 930)
-+++ src/alloc.c	(working copy)
-@@ -3416,50 +3416,6 @@ static int ocfs_sync_local_to_main(ocfs_
- 	}
- 	OCFS_BH_PUT_DATA(local_alloc_bh);
+------------------------------------------------------------------------
+-----------
+--- ocfs2.old/src/inc/io.h	2004-05-24 19:16:00.000000000 -0700
++++ ocfs2/src/inc/io.h	2004-05-24 23:11:57.877670837 -0700
+@@ -75,7 +75,7 @@
  
--	if (bm_lock_bh) {
--		local_lock = 0;
--		bh = bm_lock_bh;
--	}
--	
--	if (bm_inode) {
--		atomic_inc(&bm_inode->i_count);
--		local_inode = bm_inode;
--	} else {
--		local_inode = ocfs_iget(osb, OCFS_BITMAP_LOCK_OFFSET, NULL);
--		if (!local_inode) {
--			status = -EINVAL;
--			LOG_ERROR_STATUS(status);
--			goto bail;
--		}
--	}
--
--	if (local_lock) {
--		down (&(osb->vol_alloc_sem));
--
--		/* Get the allocation lock here */
--		status = ocfs_acquire_lock (osb, OCFS_BITMAP_LOCK_OFFSET,
--					    OCFS_DLM_EXCLUSIVE_LOCK, 
--					    (in_recovery) ? FLAG_FILE_RECOVERY 
--					    : 0, &bh, local_inode);
--		if (status < 0) {
--			if (status != -EINTR)
--				LOG_ERROR_STATUS (status);
--			goto bail;
--		}
--		got_lock = 1;
--	}
--
--	bitmapblocks = (OCFS_ALIGN(osb->cluster_bitmap.validbits, 
--				   OCFS_BITS_IN_CHUNK) / OCFS_BITS_IN_CHUNK);
--
--	status = ocfs_read_bhs(osb, osb->vol_layout.bitmap_off, 
--			       bitmapblocks * osb->sect_size, 
--			       osb->cluster_bitmap.chunk, 0, NULL);
--	if (status < 0) {
--		LOG_ERROR_STATUS(status);
--		goto bail;
--	}
--
- 	if (!(*f)) {
- 		*f = ocfs_alloc_bitmap_free_head();
- 		if (*f == NULL) {
-@@ -3500,23 +3456,6 @@ static int ocfs_sync_local_to_main(ocfs_
- 	OCFS_BH_PUT_DATA(local_alloc_bh);
+ #define OCFS_NONCACHED(osb,off)  ((off) <
+(osb)->vol_layout.data_start_off)
  
- bail:
--	if (local_lock) {
--		up (&(osb->vol_alloc_sem));
--
--		if (got_lock) {
--			tmpstat = ocfs_release_lock (osb, 
--						     OCFS_BITMAP_LOCK_OFFSET,
--						     OCFS_DLM_EXCLUSIVE_LOCK, 
--						     0, bh, local_inode);
--			if (tmpstat < 0)
--				LOG_ERROR_STATUS (tmpstat);
--		}
--		if (bh != NULL)
--			brelse(bh);
--	}
--
--	if (local_inode)
--		iput(local_inode);
+-#define BH_Modified 18
++#define BH_Modified 20
  
- 	LOG_EXIT_STATUS(status);
- 	return(status);
-@@ -3997,7 +3936,7 @@ void ocfs_shutdown_local_alloc(ocfs_supe
- 	else
- 		bh = osb->local_alloc_bh;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+ /* 
+@@ -214,10 +214,10 @@
+ 	ocfs_bh_sem_unlock(bh);
+ }
  
--	status = ocfs_sync_local_to_main(osb, &f, NULL, NULL, NULL,
-+	status = ocfs_sync_local_to_main(osb, &f, bh, NULL, NULL,
- 					 in_recovery);
- 	if (status < 0)
- 		LOG_ERROR_STATUS(status);
+-
++#define JBD_STATE_BIT_MAX	21
+ #define STATE_BIT_MAX           (1 << 12)
+ #define STATE_BIT_MAX_MASK      ((1 << 12)-1)
+-#define STATE_BIT_MASK		((~0UL)<<19)
++#define STATE_BIT_MASK		((~0UL)<<JBD_STATE_BIT_MAX)
+ 
+ 
+ static inline void CLEAR_BH_SEQNUM(struct buffer_head *bh)
+@@ -229,7 +229,7 @@
+ static inline void SET_BH_SEQNUM(struct inode *inode, struct
+buffer_head *bh)
+ {
+ 	unsigned int seq = (atomic_read(GET_INODE_CLEAN_SEQ(inode)) & 
+-			    STATE_BIT_MAX_MASK) << 19;
++			    STATE_BIT_MAX_MASK) << JBD_STATE_BIT_MAX;
+ 
+ 	CLEAR_BH_SEQNUM(bh);
+ 	bh->b_state |= seq;
+@@ -238,7 +238,7 @@
+ static inline int TEST_BH_SEQNUM(struct inode *inode, struct
+buffer_head *bh)
+ {
+ 	int ret;
+-	unsigned int seq = (bh->b_state & STATE_BIT_MASK) >> 19;
++	unsigned int seq = (bh->b_state & STATE_BIT_MASK) >>
+JBD_STATE_BIT_MAX;
+ 
+ 	ret = (seq == atomic_read(GET_INODE_CLEAN_SEQ(inode)));
+ 	return ret;
+
+
+
+
+*********************************************
+Sonic Zhang
+Software Engineer
+Intel China Software Lab
+Tel: (086)021-52574545-1667
+iNet: 752-1667
+********************************************* 
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ocfs2-jbd-statebit.patch
+Type: application/octet-stream
+Size: 1274 bytes
+Desc: ocfs2-jbd-statebit.patch
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20040525/895dece7/ocfs2-jbd-statebit.obj
