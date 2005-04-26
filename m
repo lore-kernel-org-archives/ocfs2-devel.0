@@ -1,37 +1,50 @@
-From: Chris Mason <mason@suse.com>
-Date: Thu Mar 31 07:44:33 2005
-Subject: [Ocfs2-devel] xattr/acl support
-In-Reply-To: <20050329193913.GA28010@ca-server1.us.oracle.com>
-References: <200503290904.18742.mason@suse.com>
-	<200503291219.20281.mason@suse.com>
-	<20050329193913.GA28010@ca-server1.us.oracle.com>
-Message-ID: <200503310844.30032.mason@suse.com>
+From: Christoph Hellwig <hch@lst.de>
+Date: Tue Apr 26 02:18:26 2005
+Subject: [Ocfs2-devel] Re: [Ocfs2-commits] manish commits r2175 - in
+	trunk/fs/ocfs2: . cluster dlm
+In-Reply-To: <200504260323.j3Q3NC9V013089@oss.oracle.com>
+References: <200504260323.j3Q3NC9V013089@oss.oracle.com>
+Message-ID: <20050426071825.GA17901@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tuesday 29 March 2005 14:39, Joel Becker wrote:
-> On Tue, Mar 29, 2005 at 12:19:19PM -0500, Chris Mason wrote:
-> > ;) Does the disk format already have all the slots reserved for such a
-> > thing? It looks like you've probably got some extra room on the end of
-> > the inode, I'm hoping for something that can pack in tiny files directly
-> > and perhaps store small acls/xattrs in there.
->
-> 	We've not agreed yet on how we want to implement them.  We go
-> back and forth.  Could be internal to the inode reserved space for a few
-> small xattrs, expanding to a whole cluster for larger ones.  Or it could
-> be block-based, copying the code directly from ext3.  We just haven't
-> decided yet.
+On Mon, Apr 25, 2005 at 10:23:12PM -0500, svn-commits@oss.oracle.com wrote:
+> Author: manish
+> Signed-off-by: mfasheh
+> Date: 2005-04-25 22:23:11 -0500 (Mon, 25 Apr 2005)
+> New Revision: 2175
+> 
+> Modified:
+>    trunk/fs/ocfs2/alloc.c
+>    trunk/fs/ocfs2/aops.c
+>    trunk/fs/ocfs2/buffer_head_io.c
+>    trunk/fs/ocfs2/cluster/masklog.h
+>    trunk/fs/ocfs2/dcache.c
+>    trunk/fs/ocfs2/dir.c
+>    trunk/fs/ocfs2/dlm/dlmast.c
+>    trunk/fs/ocfs2/dlm/dlmconvert.c
+>    trunk/fs/ocfs2/dlm/dlmdebug.c
+>    trunk/fs/ocfs2/dlm/dlmrecovery.c
+>    trunk/fs/ocfs2/dlm/dlmunlock.c
+>    trunk/fs/ocfs2/dlmglue.c
+>    trunk/fs/ocfs2/file.c
+>    trunk/fs/ocfs2/inode.c
+>    trunk/fs/ocfs2/journal.c
+>    trunk/fs/ocfs2/localalloc.c
+>    trunk/fs/ocfs2/mmap.c
+>    trunk/fs/ocfs2/namei.c
+>    trunk/fs/ocfs2/ocfs.h
+>    trunk/fs/ocfs2/proc.c
+>    trunk/fs/ocfs2/suballoc.c
+>    trunk/fs/ocfs2/super.c
+>    trunk/fs/ocfs2/vote.c
+> Log:
+> Define MLFu64 and friends, for portable format strings for sized 64-bit types.
+> This gets rid of the tons on warnings on ia64 and ppc64.
 
-There's a real performance hit moving the common xattrs (especially acls) 
-outside the inode.  I'd suggest storing at least some of them internally.
-
-> 	Note that there is no extra room at the "end" of the inode, as
-> the extent list fills to the end.  The extra room is in the reserved
-> fields.
-
-Ok, thanks.
-
--chris
+Standard kernel practice is to cast a u64 to unsigned long (and a s64 to
+long), and not using such obsfucation.  I'd strongly suggest to follow
+that lead in ocfs.
