@@ -1,30 +1,27 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Tue Apr 26 03:58:15 2005
-Subject: [Ocfs2-devel] Re: [Ocfs2-commits] manish commits r2175 - in
-	trunk/fs/ocfs2: . cluster dlm
-In-Reply-To: <20050426084753.GA8236@ca-server1.us.oracle.com>
-References: <200504260323.j3Q3NC9V013089@oss.oracle.com>
-	<20050426071825.GA17901@lst.de>
-	<20050426081538.GA6750@ca-server1.us.oracle.com>
-	<20050426082033.GA18736@lst.de>
-	<20050426084753.GA8236@ca-server1.us.oracle.com>
-Message-ID: <20050426085537.GA19262@lst.de>
+Date: Tue May 17 03:10:38 2005
+Subject: [Ocfs2-devel] Re: [Ocfs2-commits] manish commits r2251 -
+	trunk/fs/ocfs2
+In-Reply-To: <200505170114.j4H1EBTj028369@oss.oracle.com>
+References: <200505170114.j4H1EBTj028369@oss.oracle.com>
+Message-ID: <20050517081039.GA29015@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Apr 26, 2005 at 01:47:53AM -0700, Manish Singh wrote:
-> Perhaps they should be in some common place then? The kernel could
-> provide the C99 macros for dealing with explicitly sized types.
+On Mon, May 16, 2005 at 08:14:11PM -0500, svn-commits@oss.oracle.com wrote:
+> Author: manish
+> Signed-off-by: mfasheh
+> Date: 2005-05-16 20:14:10 -0500 (Mon, 16 May 2005)
+> New Revision: 2251
+> 
+> Modified:
+>    trunk/fs/ocfs2/namei.c
+> Log:
+> Cosmetic coding style fix
 
-I don't think we wanted this, but feel free to bring it up on lkml
-again.
 
-> It sounds like the reason it doesn't exist already is simply because
-> nobody has done it yet. Printing 64-bit types in non-arch specific code
-> is rare in the current kernel tree,
-
-There are lots of places printinkg 64bit values in filesystem and block
-layer code.
+While we're fixing at style issues, could you please remove all the
+typedefs for struct types?
