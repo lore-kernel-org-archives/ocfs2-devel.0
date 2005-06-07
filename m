@@ -1,24 +1,18 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri May 20 14:22:54 2005
-Subject: [Ocfs2-devel] OCFS2 weekly release now available
-Message-ID: <20050520192258.GK1340@ca-server1.us.oracle.com>
+From: Marvin Vinson <marvin.vinson@oracle.com>
+Date: Tue Jun  7 17:07:18 2005
+Subject: [Ocfs2-devel] OCFS2 Supported Platforms
+Message-ID: <429F1FB6.1090604@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-OCFS2 users and testers,
-	We'll be making weekly releases of OCFS2 until our 1.0 release.
-You'll be able to find RPMS and source tarballs in the files section on our
-website:
+Can someone let me know our plans to deploy OCFS on Solaris platforms?  
+I thought I heard we would port OCFS to Solaris sometime this year.  Is 
+a Solaris beta program available?  I couldn't find anything related to 
+Solaris at oss.oracle.com.
 
-http://oss.oracle.com/projects/ocfs2/files/
+Thanks in advance,
 
-The weekly releases will usually be available every Friday morning.
-	--Mark
-
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
+Marvin
