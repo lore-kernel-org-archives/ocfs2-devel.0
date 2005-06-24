@@ -1,36 +1,45 @@
-From: Adrian Bunk <bunk@stusta.de>
-Date: Fri Jun 24 03:03:19 2005
-Subject: [Ocfs2-devel] [-mm patch] CONFIGFS_FS shouldn't be user-visible
-Message-ID: <20050624080315.GC26545@stusta.de>
+From: Paul Jackson <pj@sgi.com>
+Date: Fri Jun 24 15:34:11 2005
+Subject: [Ocfs2-devel] Re: [RFC] [PATCH] OCFS2
+In-Reply-To: <Xine.LNX.4.44.0506231358230.14123-100000@thoron.boston.redhat.com>
+References: <20050518223303.GE1340@ca-server1.us.oracle.com>
+	<Xine.LNX.4.44.0506231358230.14123-100000@thoron.boston.redhat.com>
+Message-ID: <20050623200524.298a6ab4.pj@sgi.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <joel.becker@oracle.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: James Morris <jmorris@redhat.com>
+Cc: mark.fasheh@oracle.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, torvalds@osdl.org, akpm@osdl.org, wim.coekaerts@oracle.com, lmb@suse.de
 
-I haven't found any reason why CONFIGFS_FS is user-visible.
-Other parts of the kernel using configfs should simply select it.
+James wrote:
+> Any chance of splitting it out?
 
-Signed-off-by: Adrian Bunk <bunk@stusta.de>
+Responding to your post, but I guess it's really Oracle I'm asking:
 
---- linux-2.6.12-mm1-full/fs/Kconfig.old	2005-06-21 23:19:19.000000000 +0200
-+++ linux-2.6.12-mm1-full/fs/Kconfig	2005-06-21 23:22:30.000000000 +0200
-@@ -981,16 +981,7 @@
- 	  ramfs.
- 
- config CONFIGFS_FS
--	tristate "Userspace-driven configuration filesystem (EXPERIMENTAL)"
--	depends on EXPERIMENTAL
--	help
--	  configfs is a ram-based filesystem that provides the converse
--	  of sysfs's functionality. Where sysfs is a filesystem-based
--	  view of kernel objects, configfs is a filesystem-based manager
--	  of kernel objects, or config_items.
--
--	  Both sysfs and configfs can and should exist together on the
--	  same system. One is not a replacement for the other.
-+	tristate
- 
- config RELAYFS_FS
- 	tristate "Relayfs file system support"
+On my first glance just now at the git-ocfs patch, I was surprised that
+what seemed to be separable facilities were combined into one patch.  I
+see a file system, a lock manager (is that what DLM stands for - please
+spell out acronyms)  and a configuration file system.
+
+
++configfs/
++       - directory containing configfs documentation and example code.
+  ...
++dlmfs.txt
++       - info on the userspace interface to the OCFS2 DLM.
+  ...
++ocfs2.txt
++       - info and mount options for the OCFS2 clustered filesystem.
+
+
+These combine to make a 45 thousand line patch.  That's a big patch.
+Only the netdev and reiser4 patches (and the combined linus.patch)
+are bigger.
+
+Shouldn't these be 3 patches, or more?
+
+-- 
+                  I won't rest till it's the best ...
+                  Programmer, Linux Scalability
+                  Paul Jackson <pj@sgi.com> 1.925.600.0401
