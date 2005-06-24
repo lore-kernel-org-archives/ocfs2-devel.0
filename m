@@ -1,32 +1,36 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Jun 23 23:00:17 2005
-Subject: [Ocfs2-devel] Re: [RFC] [PATCH] OCFS2
-In-Reply-To: <20050623200524.298a6ab4.pj@sgi.com>
-References: <20050518223303.GE1340@ca-server1.us.oracle.com>
-	<Xine.LNX.4.44.0506231358230.14123-100000@thoron.boston.redhat.com>
-	<20050623200524.298a6ab4.pj@sgi.com>
-Message-ID: <20050624035940.GE8215@ca-server1.us.oracle.com>
+From: Adrian Bunk <bunk@stusta.de>
+Date: Fri Jun 24 03:03:19 2005
+Subject: [Ocfs2-devel] [-mm patch] CONFIGFS_FS shouldn't be user-visible
+Message-ID: <20050624080315.GC26545@stusta.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Paul Jackson <pj@sgi.com>
-Cc: James Morris <jmorris@redhat.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, torvalds@osdl.org, akpm@osdl.org, wim.coekaerts@oracle.com, lmb@suse.de
+To: Joel Becker <joel.becker@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Thu, Jun 23, 2005 at 08:05:24PM -0700, Paul Jackson wrote:
-> These combine to make a 45 thousand line patch.  That's a big patch.
-> Only the netdev and reiser4 patches (and the combined linus.patch)
-> are bigger.
-> 
-> Shouldn't these be 3 patches, or more?
-They are. I believe you're looking at the combined patch. If you want them
-broken out, we keep those at
-http://oss.oracle.com/projects/ocfs2/files/patches/
+I haven't found any reason why CONFIGFS_FS is user-visible.
+Other parts of the kernel using configfs should simply select it.
 
-My original patch mail also had links to the broken out ones...
-	--Mark
+Signed-off-by: Adrian Bunk <bunk@stusta.de>
 
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
+--- linux-2.6.12-mm1-full/fs/Kconfig.old	2005-06-21 23:19:19.000000000 +0200
++++ linux-2.6.12-mm1-full/fs/Kconfig	2005-06-21 23:22:30.000000000 +0200
+@@ -981,16 +981,7 @@
+ 	  ramfs.
+ 
+ config CONFIGFS_FS
+-	tristate "Userspace-driven configuration filesystem (EXPERIMENTAL)"
+-	depends on EXPERIMENTAL
+-	help
+-	  configfs is a ram-based filesystem that provides the converse
+-	  of sysfs's functionality. Where sysfs is a filesystem-based
+-	  view of kernel objects, configfs is a filesystem-based manager
+-	  of kernel objects, or config_items.
+-
+-	  Both sysfs and configfs can and should exist together on the
+-	  same system. One is not a replacement for the other.
++	tristate
+ 
+ config RELAYFS_FS
+ 	tristate "Relayfs file system support"
