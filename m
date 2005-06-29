@@ -1,58 +1,35 @@
-From: Adrian Bunk <bunk@stusta.de>
-Date: Wed Jun 29 19:47:35 2005
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed Jun 29 19:57:39 2005
 Subject: [Ocfs2-devel] [-mm patch] CONFIGFS_FS: "If unsure, say N."
-In-Reply-To: <20050629213038.GA23823@ca-server1.us.oracle.com>
+In-Reply-To: <20050630004738.GA27478@stusta.de>
 References: <20050624080315.GC26545@stusta.de>
 	<20050629213038.GA23823@ca-server1.us.oracle.com>
-Message-ID: <20050630004738.GA27478@stusta.de>
+	<20050630004738.GA27478@stusta.de>
+Message-ID: <20050630005723.GE23823@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Adrian Bunk <bunk@stusta.de>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Wed, Jun 29, 2005 at 02:30:38PM -0700, Joel Becker wrote:
-> On Fri, Jun 24, 2005 at 10:03:15AM +0200, Adrian Bunk wrote:
-> > I haven't found any reason why CONFIGFS_FS is user-visible.
-> > Other parts of the kernel using configfs should simply select it.
-> 
-> 	Doesn't work for external modules that might want to use it.
-> Imagine that configfs gets merged before OCFS2, which depends on it.
+On Thu, Jun 30, 2005 at 02:47:38AM +0200, Adrian Bunk wrote:
+> But I get your point, what about the patch below?
 
-I was surprised if configfs was merged with zero users in the kernel.
+	Non-descriptive.  We are descriptive for sysfs (and even allow
+the choice!).  I'd say that leaving the description but perhaps adding
+the caveat about modules and unsure-N might be a good way to go.
 
-But I get your point, what about the patch below?
+Joel
 
-> Joel
+-- 
 
-cu
-Adrian
+"If you are ever in doubt as to whether or not to kiss a pretty girl, 
+ give her the benefit of the doubt"
+                                        -Thomas Carlyle
 
-
-<--  snip  -->
-
-
-Make it clear that users usually shouldn't manually enable CONFIGFS_FS.
-
-Signed-off-by: Adrian Bunk <bunk@stusta.de>
-
---- linux-2.6.12-mm2-full/fs/Kconfig.old	2005-06-30 01:51:51.000000000 +0200
-+++ linux-2.6.12-mm2-full/fs/Kconfig	2005-06-30 01:54:01.000000000 +0200
-@@ -934,13 +934,11 @@
- 	tristate "Userspace-driven configuration filesystem (EXPERIMENTAL)"
- 	depends on EXPERIMENTAL
- 	help
--	  configfs is a ram-based filesystem that provides the converse
--	  of sysfs's functionality. Where sysfs is a filesystem-based
--	  view of kernel objects, configfs is a filesystem-based manager
--	  of kernel objects, or config_items.
-+	  This option is provided for the case where no in-kernel-tree
-+	  modules require configfs, but a module built outside the kernel
-+	  tree does. Such modules require Y or M here.
- 
--	  Both sysfs and configfs can and should exist together on the
--	  same system. One is not a replacement for the other.
-+	  If unsure, say N.
- 
- config RELAYFS_FS
- 	tristate "Relayfs file system support"
+Joel Becker
+Senior Member of Technical Staff
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
