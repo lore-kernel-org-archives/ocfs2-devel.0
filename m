@@ -1,26 +1,29 @@
-From: Zach Brown <zach.brown@oracle.com>
-Date: Fri Jul  1 13:20:58 2005
-Subject: [Ocfs2-devel] Re: [Ocfs2-commits] zab commits r2451
-	-	trunk/fs/ocfs2/cluster
-In-Reply-To: <20050701170449.GG26608@marowsky-bree.de>
+From: Bruce Schwartz <bruce.schwartz@gmail.com>
+Date: Fri Jul  1 18:51:06 2005
+Subject: [Ocfs2-devel] 256 node limit
+In-Reply-To: <42C5899E.2000209@oracle.com>
 References: <200507011649.j61GnMlY022352@oss.oracle.com>
 	<20050701170449.GG26608@marowsky-bree.de>
-Message-ID: <42C5899E.2000209@oracle.com>
+	<42C5899E.2000209@oracle.com>
+Message-ID: <11fa5cce05070116517b7339b5@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Lars Marowsky-Bree wrote:
-> On 2005-07-01T11:49:22, svn-commits@oss.oracle.com wrote:
-> 
-> 
->>+/* This quorum hack is only here until we transition to some more rational
->>+ * approach that is driven from userspace.  Honest.  No foolin'.
-> 
-> Hopefully we can hack this up at OLS/KS.
+Hi all --
 
-Agreed, that would be very good.
+In the "what's new in OCFS2" document at 
+http://oss.oracle.com/projects/ocfs2/dist/documentation/ocfs2-whats-new.txtit
+says that the 256 node limit is a software limit and could be lifted.
+Why
+is that limit there? Are there some algorithms that don't scale nicely with 
+larger number of nodes? I'm guessing that there is more to it than saving a 
+byte of RAM in a few data structures.
 
-- z
+Thanks,
+Bruce
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20050701/0c255206/attachment.html
