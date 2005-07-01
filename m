@@ -1,43 +1,29 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed Jun 29 20:30:27 2005
-Subject: [Ocfs2-devel] [-mm patch] CONFIGFS_FS: "If unsure, say N."
-In-Reply-To: <20050630011015.GC27478@stusta.de>
-References: <20050624080315.GC26545@stusta.de>
-	<20050629213038.GA23823@ca-server1.us.oracle.com>
-	<20050630004738.GA27478@stusta.de>
-	<20050630005723.GE23823@ca-server1.us.oracle.com>
-	<20050630011015.GC27478@stusta.de>
-Message-ID: <20050630013011.GF23823@ca-server1.us.oracle.com>
+From: Lars Marowsky-Bree <lmb@suse.de>
+Date: Fri Jul  1 12:05:08 2005
+Subject: [Ocfs2-devel] Re: [Ocfs2-commits] zab commits r2451 -
+	trunk/fs/ocfs2/cluster
+In-Reply-To: <200507011649.j61GnMlY022352@oss.oracle.com>
+References: <200507011649.j61GnMlY022352@oss.oracle.com>
+Message-ID: <20050701170449.GG26608@marowsky-bree.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Adrian Bunk <bunk@stusta.de>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jun 30, 2005 at 03:10:15AM +0200, Adrian Bunk wrote:
-> The question is:
-> Assume a user doesn't use external modules, will enabling this option 
-> have any effect for him except that it wastes some bytes of his RAM?
-> 
-> sysfs is useful in this case.
-> How is configfs useful in this case?
+On 2005-07-01T11:49:22, svn-commits@oss.oracle.com wrote:
 
-	I'm not saying it is.  I'm saying that "Hey, if you are unsure
-you want 'N'" is a good thing to say, but removing the description of
-"what configfs is" is unhelpful and unneeded.
+> +/* This quorum hack is only here until we transition to some more rational
+> + * approach that is driven from userspace.  Honest.  No foolin'.
 
-Joel
+Hopefully we can hack this up at OLS/KS.
+
+
+Sincerely,
+    Lars Marowsky-Br?e <lmb@suse.de>
 
 -- 
-
-"And yet I fight,
- And yet I fight this battle all alone.
- No one to cry to;
- No place to call home."
-
-Joel Becker
-Senior Member of Technical Staff
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+High Availability & Clustering
+SUSE Labs, Research and Development
+SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
+"Ignorance more frequently begets confidence than does knowledge"
