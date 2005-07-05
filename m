@@ -1,79 +1,41 @@
-From: Adrian Bunk <bunk@stusta.de>
-Date: Sat Jul  2 05:58:50 2005
-Subject: [Ocfs2-devel] [-mm patch] CONFIGFS_FS: "If unsure, say N."
-In-Reply-To: <20050630013011.GF23823@ca-server1.us.oracle.com>
-References: <20050624080315.GC26545@stusta.de>
-	<20050629213038.GA23823@ca-server1.us.oracle.com>
-	<20050630004738.GA27478@stusta.de>
-	<20050630005723.GE23823@ca-server1.us.oracle.com>
-	<20050630011015.GC27478@stusta.de>
-	<20050630013011.GF23823@ca-server1.us.oracle.com>
-Message-ID: <20050702105848.GI3592@stusta.de>
+From: Sunil Mushran <Sunil.Mushran@oracle.com>
+Date: Tue Jul  5 18:23:47 2005
+Subject: [Ocfs2-devel] 256 node limit
+In-Reply-To: <11fa5cce05070116517b7339b5@mail.gmail.com>
+References: <200507011649.j61GnMlY022352@oss.oracle.com>	<20050701170449.GG26608@marowsky-bree.de>	<42C5899E.2000209@oracle.com>
+	<11fa5cce05070116517b7339b5@mail.gmail.com>
+Message-ID: <42CB1689.8040800@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 29, 2005 at 06:30:11PM -0700, Joel Becker wrote:
-> On Thu, Jun 30, 2005 at 03:10:15AM +0200, Adrian Bunk wrote:
-> > The question is:
-> > Assume a user doesn't use external modules, will enabling this option 
-> > have any effect for him except that it wastes some bytes of his RAM?
-> > 
-> > sysfs is useful in this case.
-> > How is configfs useful in this case?
-> 
-> 	I'm not saying it is.  I'm saying that "Hey, if you are unsure
-> you want 'N'" is a good thing to say, but removing the description of
-> "what configfs is" is unhelpful and unneeded.
+It's actually 255. Yes, that doc needs to be updated.
 
-OK, what about the patch below?
+No, the algorithms did not play much role in setting this limit.
+Guess, can say the limit is part arbitrary, part practical.
+(That extra byte adds up pretty quickly.)
 
-> Joel
+Bruce Schwartz wrote:
 
-cu
-Adrian
-
-
-
-<--  snip  -->
-
-
-Make it clear that users usually shouldn't manually enable CONFIGFS_FS.
-
-Signed-off-by: Adrian Bunk <bunk@stusta.de>
-
---- linux-2.6.13-rc1-mm1-full/fs/Kconfig.old	2005-07-02 12:50:23.000000000 +0200
-+++ linux-2.6.13-rc1-mm1-full/fs/Kconfig	2005-07-02 12:51:05.000000000 +0200
-@@ -936,24 +936,30 @@
- config CONFIGFS_FS
- 	tristate "Userspace-driven configuration filesystem (EXPERIMENTAL)"
- 	depends on EXPERIMENTAL
- 	help
- 	  configfs is a ram-based filesystem that provides the converse
- 	  of sysfs's functionality. Where sysfs is a filesystem-based
- 	  view of kernel objects, configfs is a filesystem-based manager
- 	  of kernel objects, or config_items.
- 
- 	  Both sysfs and configfs can and should exist together on the
- 	  same system. One is not a replacement for the other.
- 
-+	  This option is provided for the case where no in-kernel-tree
-+	  modules require configfs, but a module built outside the kernel
-+	  tree does. Such modules require Y or M here.
-+
-+	  If unsure, say N.
-+
- config RELAYFS_FS
- 	tristate "Relayfs file system support"
- 	---help---
- 	  Relayfs is a high-speed data relay filesystem designed to provide
- 	  an efficient mechanism for tools and facilities to relay large
- 	  amounts of data from kernel space to user space.
- 
- 	  To compile this code as a module, choose M here: the module will be
- 	  called relayfs.
- 
- 	  If unsure, say N.
- 
+> Hi all --
+>
+> In the "what's new in OCFS2" document at  
+> http://oss.oracle.com/projects/ocfs2/dist/documentation/ocfs2-whats-new.txt 
+> it says that the 256 node limit is a software limit and could be 
+> lifted.  Why is that limit there?  Are there some algorithms that 
+> don't scale nicely with larger number of nodes?  I'm guessing that 
+> there is more to it than saving a byte of RAM in a few data structures.
+>
+> Thanks,
+> Bruce
+>
+>------------------------------------------------------------------------
+>
+>_______________________________________________
+>Ocfs2-devel mailing list
+>Ocfs2-devel@oss.oracle.com
+>http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>  
+>
