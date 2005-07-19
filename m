@@ -1,56 +1,154 @@
-From: Lars Marowsky-Bree <lmb@suse.de>
-Date: Tue Jul 19 11:24:23 2005
-Subject: [Ocfs2-devel] [RFC] nodemanager, ocfs2, dlm
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Tue Jul 19 19:48:22 2005
+Subject: [Ocfs2-devel] Re: [Linux-cluster] [RFC] nodemanager, ocfs2, dlm
 In-Reply-To: <20050718061553.GA9568@redhat.com>
 References: <20050718061553.GA9568@redhat.com>
-Message-ID: <20050719155214.GG13246@marowsky-bree.de>
+Message-ID: <20050720004826.GH14505@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: David Teigland <teigland@redhat.com>, linux-kernel@vger.kernel.org
-Cc: linux-cluster@redhat.com, ocfs2-devel@oss.oracle.com
+To: linux clustering <linux-cluster@redhat.com>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On 2005-07-18T14:15:53, David Teigland <teigland@redhat.com> wrote:
+Hi David,
 
+On Mon, Jul 18, 2005 at 02:15:53PM +0800, David Teigland wrote:
 > Some of the comments about the dlm concerned how it's configured (from
 > user space.)  In particular, there was interest in seeing the dlm and
 > ocfs2 use common methods for their configuration.
 > 
 > The first area I'm looking at is how we get addresses/ids of other nodes.
-> Currently, the dlm uses an ioctl on a misc device and ocfs2 uses a
-> separate kernel module called "ocfs2_nodemanager" that's based on
-> configfs.
-> 
+Right. So this doesn't take into account other parts of node management
+(communication, heartbeat, etc). OCFS2 and dlm would still be handling that
+stuff on their own for now. For OCFS2 that would mean that an
+ocfs2_nodemanager would still exist, but as a much smaller module sitting on
+top of 'nodemanager'.
+
 > I've taken a stab at generalizing ocfs2_nodemanager so the dlm could use
 > it (removing ocfs-specific stuff).  It still needs some work, but I'd like
 > to know if this appeals to the ocfs group and to others who were
 > interested in seeing some similarity in dlm/ocfs configuration.
+While I agree that some things look like they still need a bit of work, I
+like the direction this is taking - thanks for getting this ball rolling. My
+questions and comments below:
 
-Hi Dave, I finally found time to read through this.
+> +enum {
+> +	NM_NODE_ATTR_NODEID = 0,
+> +	NM_NODE_ATTR_ADDRESS,
+> +	NM_NODE_ATTR_LOCAL,
+> +};
+So no port attribute. The OCFS2 network code normally takes port from the
+node manager in order to determine how to talk to a given node. We'll have
+to figure out how to resolve that. The easiest would be to add 'port' back,
+but I think that might be problematic if we have multiple cluster network
+infrastructures as we do today.
 
-Yes, I most definetely like where this is going!
+Another way to handle this would be to have userspace symlink to the node
+items as an attribute on an ocfs2_tcp item. We could store 'port' as a
+second attribute. This would have the added benefit of pinning node
+information while OCFS2 uses it.
 
-> +/* TODO:
-> +   - generic addresses (IPV4/6)
-> +   - multiple addresses per node
+> +struct node {
+> +	spinlock_t		nd_lock;
+> +	struct config_item	nd_item; 
+> +	char			nd_name[NODEMANAGER_MAX_NAME_LEN+1];
+An accessor function for this would be nice for pretty prints - maybe strcpy
+into a passed string.
 
-The nodeid, I thought, was relative to a given DLM namespace, no? This
-concept seems to be missing here, or are you suggesting the nodeid to be
-global across namespaces?
+> +	int			nd_nodeid;
+This definitely won't work with OCFS2... Nodeid (what used to be called
+node_num) needs to be unsigned. Otherwise this will break all our nodemap
+stuff which uses a bitmap to represent cluster state.
 
-Also, eventually we obviously need to have state for the nodes - up/down
-et cetera. I think the node manager also ought to track this.
+> +	u32			nd_ipv4_address;
+> +	struct rb_node		nd_ip_node;
+> +	int			nd_local;
+> +	unsigned long		nd_set_attributes;
+> +	struct idr		nd_status_idr;
+> +	struct list_head	nd_status_list;
+What are these two for? They don't seem to be referenced elsewhere...
 
-How would kernel components use this and be notified about changes to
-the configuration / membership state?
+> +static ssize_t node_local_write(struct node *node, const char *page,
+> +				size_t count)
+> +{
+> +	struct cluster *cluster = node_to_cluster(node);
+> +	unsigned long tmp;
+> +	char *p = (char *)page;
+> +
+> +	tmp = simple_strtoul(p, &p, 0);
+> +	if (!p || (*p && (*p != '\n')))
+> +		return -EINVAL;
+> +
+> +	tmp = !!tmp; /* boolean of whether this node wants to be local */
+> +
+> +	/* the only failure case is trying to set a new local node
+> +	 * when a different one is already set */
+> +
+> +	if (tmp && tmp == cluster->cl_has_local &&
+> +	    cluster->cl_local_node != node->nd_nodeid)
+> +		return -EBUSY;
+> +
+> +	if (!tmp && cluster->cl_has_local &&
+> +	    cluster->cl_local_node == node->nd_nodeid) {
+> +		cluster->cl_local_node = 0;
+I think we might want to be setting cl_local_node to NODEMANAGER_MAX_NODES
+here. It seems that ocfs2_nodemanager also does this so we might have just
+caught a bug you inherited :)
 
+> diff -urN a/drivers/nodemanager/nodemanager.h b/drivers/nodemanager/nodemanager.h
+> --- a/drivers/nodemanager/nodemanager.h	1970-01-01 07:30:00.000000000 +0730
+> +++ b/drivers/nodemanager/nodemanager.h	2005-07-18 13:41:35.377583200 +0800
+> @@ -0,0 +1,37 @@
+> +/*
+> + * nodemanager.h
+> + *
+> + * Copyright (C) 2004 Oracle.  All rights reserved.
+> + * Copyright (C) 2005 Red Hat, Inc.  All rights reserved.
+> + *
+> + * This program is free software; you can redistribute it and/or
+> + * modify it under the terms of the GNU General Public
+> + * License as published by the Free Software Foundation; either
+> + * version 2 of the License, or (at your option) any later version.
+> + * 
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+> + * General Public License for more details.
+> + * 
+> + * You should have received a copy of the GNU General Public
+> + * License along with this program; if not, write to the
+> + * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+> + * Boston, MA 021110-1307, USA.
+> + *
+> + */
+> +
+> +#ifndef NODEMANAGER_H
+> +#define NODEMANAGER_H
+> +
+> +#define NODEMANAGER_MAX_NODES		255
+> +#define NODEMANAGER_INVALID_NODE_NUM	255
+> +#define NODEMANAGER_MAX_NAME_LEN	__NEW_UTS_LEN	/* 64 */
+> +
+> +u32 nodemanager_nodeid_to_addr(int nodeid);
+> +int nodemanager_addr_to_nodeid(u32 addr);
+> +int nodemanager_our_nodeid(void);
+> +u32 nodemanager_our_addr(void);
+> +
+> +#endif
+You removed o2nm_configured_node_map but we need some sort of method for
+enumerating over the set of configured nodes.
 
-Sincerely,
-    Lars Marowsky-Br?e <lmb@suse.de>
+Also we need a method for querying the existence of a node.
+The OCFS2 code usually uses o2nm_get_node_by_num(..) != NULL for this but a
+simple boolean api call would be cleaner and would avoid exposing the node
+structure.
 
--- 
-High Availability & Clustering
-SUSE Labs, Research and Development
-SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
-"Ignorance more frequently begets confidence than does knowledge"
+That's it for my first pass - I might have additional comments after reading
+through this some more :)
+	--Mark
+
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh@oracle.com
