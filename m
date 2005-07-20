@@ -1,78 +1,62 @@
-From: David Teigland <teigland@redhat.com>
-Date: Tue Jul 19 23:11:30 2005
-Subject: [Ocfs2-devel] Re: [Linux-cluster] [RFC] nodemanager, ocfs2, dlm
-In-Reply-To: <20050720004826.GH14505@ca-server1.us.oracle.com>
+From: Lars Marowsky-Bree <lmb@suse.de>
+Date: Wed Jul 20 11:33:23 2005
+Subject: [Ocfs2-devel] [RFC] nodemanager, ocfs2, dlm
+In-Reply-To: <20050720033546.GB9747@redhat.com>
 References: <20050718061553.GA9568@redhat.com>
-	<20050720004826.GH14505@ca-server1.us.oracle.com>
-Message-ID: <20050720041630.GC9747@redhat.com>
+	<20050719155214.GG13246@marowsky-bree.de>
+	<20050720033546.GB9747@redhat.com>
+Message-ID: <20050720162636.GL5416@marowsky-bree.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mark.fasheh@oracle.com>
+To: David Teigland <teigland@redhat.com>
 Cc: linux-kernel@vger.kernel.org, linux-cluster@redhat.com, ocfs2-devel@oss.oracle.com
 
-On Tue, Jul 19, 2005 at 05:48:26PM -0700, Mark Fasheh wrote:
-> For OCFS2 that would mean that an ocfs2_nodemanager would still exist,
-> but as a much smaller module sitting on top of 'nodemanager'.
+On 2005-07-20T11:35:46, David Teigland <teigland@redhat.com> wrote:
 
-Yep, factoring out the common bits.
+> > Also, eventually we obviously need to have state for the nodes - up/down
+> > et cetera. I think the node manager also ought to track this.
+> We don't have a need for that information yet; I'm hoping we won't ever
+> need it in the kernel, but we'll see.
 
-> So no port attribute. The OCFS2 network code normally takes port from the
-> node manager in order to determine how to talk to a given node. We'll have
-> to figure out how to resolve that. The easiest would be to add 'port' back,
-> but I think that might be problematic if we have multiple cluster network
-> infrastructures as we do today.
+Hm, I'm thinking a service might have a good reason to want to know the
+possible list of nodes as opposed to the currently active membership;
+though the DLM as the service in question right now does not appear to
+need such.
 
-The port is specific to the component using it (ocfs2, dlm, etc), so
-defining port as a node property doesn't make sense if nodemanager is
-providing node info to multiple components.
+But, see below.
 
-> Another way to handle this would be to have userspace symlink to the node
-> items as an attribute on an ocfs2_tcp item. We could store 'port' as a
-> second attribute. This would have the added benefit of pinning node
-> information while OCFS2 uses it.
-
-I expect each component will probably use another per-node configfs object
-for component-specific attributes, using the common bits from the
-nodemanager object.
-
-> > +	char			nd_name[NODEMANAGER_MAX_NAME_LEN+1];
-> An accessor function for this would be nice for pretty prints - maybe strcpy
-> into a passed string.
-
-ok
-
-> > +	int			nd_nodeid;
-> This definitely won't work with OCFS2... Nodeid (what used to be called
-> node_num) needs to be unsigned. Otherwise this will break all our nodemap
-> stuff which uses a bitmap to represent cluster state.
-
-ok
-
-> > +	struct list_head	nd_status_list;
-> What are these two for? They don't seem to be referenced elsewhere...
-
-Missed ripping them out with the other ocfs-specific stuff.
-
-> > +	if (!tmp && cluster->cl_has_local &&
-> > +	    cluster->cl_local_node == node->nd_nodeid) {
-> > +		cluster->cl_local_node = 0;
-> I think we might want to be setting cl_local_node to NODEMANAGER_MAX_NODES
-> here. It seems that ocfs2_nodemanager also does this so we might have just
-> caught a bug you inherited :)
-
-yep
-
-> You removed o2nm_configured_node_map but we need some sort of method for
-> enumerating over the set of configured nodes.
+> There are at least two ways to handle this:
 > 
-> Also we need a method for querying the existence of a node.
-> The OCFS2 code usually uses o2nm_get_node_by_num(..) != NULL for this but a
-> simple boolean api call would be cleaner and would avoid exposing the node
-> structure.
+> 1. Pass cluster events and data into the kernel (this sounds like what
+> you're talking about above), notify the effected kernel components, each
+> kernel component takes the cluster data and does whatever it needs to with
+> it (internal adjustments, recovery, etc).
+> 
+> 2. Each kernel component "foo-kernel" has an associated user space
+> component "foo-user".  Cluster events (from userland clustering
+> infrastructure) are passed to foo-user -- not into the kernel.  foo-user
+> determines what the specific consequences are for foo-kernel.  foo-user
+> then manipulates foo-kernel accordingly, through user/kernel hooks (sysfs,
+> configfs, etc).  These control hooks would largely be specific to foo.
+> 
+> We're following option 2 with the dlm and gfs and have been for quite a
+> while, which means we don't need 1.  I think ocfs2 is moving that way,
+> too.  Someone could still try 1, of course, but it would be of no use or
+> interest to me.  I'm not aware of any actual projects pushing forward with
+> something like 1, so the persistent reference to it is somewhat baffling.
 
-Right, those should be on the TODO.
+Right. I thought that the node manager changes for generalizing it where
+pushing into sort-of direction 1. Thanks for clearing this up.
 
-Thanks,
-Dave
+
+
+Sincerely,
+    Lars Marowsky-Br?e <lmb@suse.de>
+
+-- 
+High Availability & Clustering
+SUSE Labs, Research and Development
+SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
+"Ignorance more frequently begets confidence than does knowledge"
