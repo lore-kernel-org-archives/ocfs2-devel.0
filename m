@@ -1,107 +1,48 @@
 From: lazar obradovic <laza@yu.net>
-Date: Mon Aug 15 18:23:19 2005
+Date: Mon Aug 15 18:46:11 2005
 Subject: [Ocfs2-devel] ocfs2-1.0.1 ebuilds
-In-Reply-To: <20050815221450.GA29912@ca-server1.us.oracle.com>
+In-Reply-To: <4301175A.6050101@oracle.com>
 References: <42F800E5.2080706@yu.net> <43010710.2060800@yu.net>
 	<20050815221450.GA29912@ca-server1.us.oracle.com>
-Message-ID: <4301242D.7090902@yu.net>
+	<4301175A.6050101@oracle.com>
+Message-ID: <4301298C.4090803@yu.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Manish Singh wrote:
+Sunil Mushran wrote:
 
->A few comments and questions:
->  
->
+> I have not seen the changes in code but the comments in the bug
+> indicate they have to do with adding umounts in o2cb stop.
 
-Thanks for the feedback.
+'init script' in bug report refers to new gentoo-style init script...
+I added unmount to that one, not the original one... Please take a look 
+at sys-fs/ocfs2-tools/files/ocfs2.init file in the attachment.
 
->>KEYWORDS="-* ~x86"
->>    
->>
->
->Does that mean this is only enabled for x86 platforms? 1.0.x works on
->x86_64 and ia64 too.
->  
->
-Yes, and it's masked unstable for x86.
-I was not aware of the fact that it also works on amd64 and ia64 (though 
-I see a lot of *-endian fixups lately), so I'll mark it unstable on 
-those platforms as well.
-ocfs2 is definitely not working on ppc, ppc64, mips, sparc, alpha or 
-hppa, nor will, in the near future?
+> Maybe a better idea would be to have a generic ocfs2 mount/umount
+> service as follows:
+> http://oss.oracle.com/bugzilla/attachment.cgi?id=162
+> This one is for SLES9. Maybe someone can write one up for gentoo.
 
->The glib2 dependency in the tools should not be in the gtk2 option,
->since ocfs2cdsl and debug.ocfs2 depend on it too, and they are command
->line tools. 
->
-Will correct it, thanks.
+ocfs2 should be added to gentoo's list of network filesystems (I forgot 
+to open a bug on baselayout, just did it now - gentoo bz#102659 ), so 
+netmount script will take care of mounting and unmounting it.
 
->Passing --disable-gtktest in the non-gtk2 case is kind of
->silly, since there isn't any test for gtk itself, only pygtk.
->  
->
-gtktest broke the emerge of ocfs2-tools and --disable-gtktest seem to work.
-I'll check the exact reason for it and offer a solution instead of 
-workaround, but until then, it's best if it stays like this.
+However, if you decide to stop ocfs2 cluster by other means than 
+rebooting, it's initscript should unmount every ocfs2 mountpoint. Piece 
+of script I copied from gentoo's netmount is far more complex, since 
+'umount -at ocfs2' might fail if someone is still using files on ocfs2. 
+It adds a extra layer, killing all the processes that have open files on 
+the mountpoint one is trying to unmount, so I find it a better solution.
 
->The python binding for VTE is needed for some ocfs2console functionality
->(though it does work without it).
->  
->
-Thanks for this one too, I'll add VTE to deps list.
+> If so, please add it as an attachment to bug:
+> http://oss.oracle.com/bugzilla/show_bug.cgi?id=524
+> Doc-ing this would be far easier.
 
->Why are you using --prefix=/ ?
->  
->
-econf is a wrapper around configure script that gives gentoo-defaults of 
-paths to regular configure. Among these, default value for prefix is 
-/usr, so it would break o2cb_ctl (as a workaround, init script could 
-update /proc/sys/fs/ocfs2/nm/hb_ctl_path but I find that dirtier than 
-giving --prefix=/ to econf).
-On the other hand, this leads to installation of python extensions under 
-/lib, instead of /usr/lib, which is fixed later, during src_install... 
-Confiure's python.m4 should probably be updated to properly detect 
-pyexecdir (or, perhaps, give the option to specify it).
-
->It looks like you are still installing a sample cluster.conf. This makes
->no sense, there's no sane defaults for it, and putting the sample will
->only lead to confusion.
->  
->
-Gentoo's config protection will take care of that during the upgrades, 
-and I find templates with bogus data rather useful for a quick 
-first-time configuration... If you insist, I could push the empty config 
-for first-time installs, with commented templates...
-
->Replacing the o2cb init script with your own is a bad idea. This makes
->the gentoo distribution gratuitiously incompatible with the OCFS2
->documentation out there, as well as breaking some ocfs2console
->functionality. Please don't do this.
->  
->
-As stated in INSTALL.GENTOO:
-
----8<---
-KNOWN BUGS
-==========
-1. Init script does not have all the functionality as o2cb script
-----------------------------------------------------------------
-I know that, but o2cb script doesn't use "depend" and therefore it's start
-can't be controlled inside runlevel. I had to rewrite major portions of it
-to make it gentoo-friendly. o2cb is still available, and if you need
-additional functionality from /etc/init.d/ocfs2, file a bugreport (see
-"Reporting Bugs" below).
----8<---
-
-That's why Gentoo init script is not called o2cb, but simple ocfs2, 
-since it's not a full replacement. As users request, I'll add parts to 
-ocfs2.init, and untill that, o2cb is still available.
-
-Once again, thanks for the feedback.
+Will do, as soon as I fix errors previously noted by manish.singh. I 
+think this piece of code should also be usable on SLES and RHEL...
 
 -- 
 LO275-RIPE
