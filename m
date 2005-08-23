@@ -1,41 +1,32 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sun Aug 21 23:01:58 2005
-Subject: [Ocfs2-devel] Small fixes for ocfs2-tools 1.1.1
-In-Reply-To: <20050820141934.GM4436@marowsky-bree.de>
-References: <20050820141934.GM4436@marowsky-bree.de>
-Message-ID: <20050822040159.GH3168@ca-server1.us.oracle.com>
+From: Andreas Gruenbacher <agruen@suse.de>
+Date: Tue Aug 23 19:09:29 2005
+Subject: [Ocfs2-devel] Minor fs/Kconfig cleanup
+Message-ID: <200508231800.00580.agruen@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, Aug 20, 2005 at 04:19:34PM +0200, Lars Marowsky-Bree wrote:
-> The second one I'm not sure about whether you want to take it upstream.
-> If linking against com_err, you need to also link against pthread now.
+Hello,
 
-	I'm so tired of arbitrary "punish the 99% of users who are sane
-by pulling in threads, which are only used by 1% of folks" patches.
-Then you have harder compatibility issues, and you have larger run sets,
-and you have whack stuff going on when debugging...
+the current ocfs2 code nicely adds "select JBD" for EXT3_FS, but doesn't 
+remove the following line, which is obsolete after that. Here's a patch:
+
+Index: linux-2.6.12/fs/Kconfig
+===================================================================
+--- linux-2.6.12.orig/fs/Kconfig
++++ linux-2.6.12/fs/Kconfig
+@@ -140,7 +140,6 @@ config EXT3_FS_SECURITY
  
-> In our specfile, I also had to move debugfs.ocfs2 and ocfs2cdsl from
-> /sbin to /usr/sbin, because they link against glib, which is not on /,
-> and thus our build system doesn't like binaries on / linked against
-> that.
+ config JBD
+ 	tristate
+-	default EXT3_FS
+ 	help
+ 	  This is a generic journaling layer for block devices.  It is
+ 	  currently used by the ext3 and OCFS2 file systems, but it could
 
-	Oh, you mean distro A puts thing in different and more
-surprising place than distro B?  That _never_ happens in Linux! :-)
-
-Joel
-
+Cheers,
 -- 
-
-"The only way to get rid of a temptation is to yield to it."
-         - Oscar Wilde 
-
-Joel Becker
-Senior Member of Technical Staff
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+Andreas Gruenbacher <agruen@suse.de>
+SUSE Labs, SUSE LINUX PRODUCTS GMBH
