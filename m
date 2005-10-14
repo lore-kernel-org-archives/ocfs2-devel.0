@@ -1,51 +1,33 @@
-From: Shaya Potter <spotter@cs.columbia.edu>
-Date: Fri Oct 14 00:33:34 2005
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Fri Oct 14 01:12:45 2005
 Subject: [Ocfs2-devel] ocfs2's bmap output
-Message-ID: <1129268016.8092.28.camel@localhost.localdomain>
+In-Reply-To: <1129268016.8092.28.camel@localhost.localdomain>
+References: <1129268016.8092.28.camel@localhost.localdomain>
+Message-ID: <20051014061251.GE9943@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I'm writing a stackable file system and one of it's features is that it
-can combine many sparse files into a single view.  On ext2/3 I was using
-bmap to give me the information needed, so for instance, if I created a
-big sparse file and tacked on some information at the end on ext2/3 I'd
-get something like
+Hi,
 
-blade12:~# ~/a.out abc
-File: abc Size: 30002 Blocks: 8 Blocksize: 4096
-  0          0
-  1          0
-  2          0
-  3          0
-  4          0
-  5          0
-  6          0
-  7     833699
+On Fri, Oct 14, 2005 at 01:33:35AM -0400, Shaya Potter wrote:
+> I'm guessing this is because of its use of extents, and probably means
+> I've screwed myself in trying to use bmap in this way.  Is that a
+> correct assumption?  Is there any other interface into OCFS2 to tell if
+> a block is a "blank" sparse area?
+Unfortunately, no. Since OCFS2 doesn't currently support sparse files, the
+"holes" created are actually allocated and filled with zeros. Once
+allocated, they'll look no different from other file data.
 
-where my test program basically calls bmap (or in this case as it's from
-userspace, it calls the FIBMAP ioctl) on each block of the file.
+I suppose you could read back those clusters in a file to see if they have
+zero's, though that might not be particularly performant. Also, it would be
+impossible to differentiate between a block that was zero'd as part of
+a process file write versus a block which was zero'd as a hole.
+	--Mark
 
-however, when I run it on OCFS2, I get.
-
-blade12:/san/lc2# ~/a.out abc
-File: abc Size: 30002 Blocks: 8 Blocksize: 4096
-  0    5700288
-  1    5700289
-  2    5700290
-  3    5700291
-  4    5700292
-  5    5700293
-  6    5700294
-  7    5700295
-
-I'm guessing this is because of its use of extents, and probably means
-I've screwed myself in trying to use bmap in this way.  Is that a
-correct assumption?  Is there any other interface into OCFS2 to tell if
-a block is a "blank" sparse area?
-
-thanks,
-
-shaya
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh@oracle.com
