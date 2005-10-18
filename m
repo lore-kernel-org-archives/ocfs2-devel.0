@@ -1,22 +1,34 @@
-From: Lars Marowsky-Bree <lmb@suse.de>
-Date: Tue Oct 18 18:03:30 2005
+From: Jeff Mahoney <jeffm@suse.com>
+Date: Tue Oct 18 18:20:16 2005
 Subject: [Ocfs2-devel] [RFC] Integration with external clustering
 In-Reply-To: <20051018221849.GN11488@ca-server1.us.oracle.com>
 References: <43556F8B.3060105@suse.com>
 	<20051018221849.GN11488@ca-server1.us.oracle.com>
-Message-ID: <20051018230323.GE2813@marowsky-bree.de>
+Message-ID: <43558422.9040607@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2005-10-18T15:18:49, Joel Becker <Joel.Becker@oracle.com> wrote:
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
 
-I'm too tired to go into the filesystem details and I have a better
-understanding of the user-space parts than the fs layer ;-) I'll wade
-through the rest tomorrow morning to see whether I can add something
-useful to that part of the discussion too.
+Joel Becker wrote:
+> On Tue, Oct 18, 2005 at 05:56:27PM -0400, Jeff Mahoney wrote:
+>> I'll start with an idea of what I'd like to see the configfs space look
+>> like, since I think it will probably illustrate it best:
+>>
+>> /config/cluster/ocfs2/<fs uuid>/<node>/
+> 
+> 	If you are treating each mount as a 'cluster', the ocfs2 path
+> element is pretty redundant, and /config/cluster/<fs uuid> would
+> suffice.
+
+I was leaving /config/cluster as a global subsystem, since there may be
+other users of the namespace in the future. I wasn't using ocfs2 as an
+identifier of a cluster name, but rather the name of the particular
+cluster subsystem.
 
 > 	Given that heartbeat regions can and should be shared, you need
 > a way to describe this.  We don't have userspace doing global heartbeat
@@ -24,30 +36,23 @@ useful to that part of the discussion too.
 > heartbeat region (see
 > http://oss.oracle.com/projects/ocfs2-tools/src/branches/global-heartbeat/documentation/o2cb/).
 
-Good point, but I think part of Jeff's proposal is to pull-out the
-heartbeating from OCFS2 into user-space, so OCFS2 no longer would
-maintain its own heartbeat, and thus no heartbeat region.
+As Lars mentioned in his reply, part of my plan is to remove the
+heartbeating aspect completely when the userspace clustering is enabled.
+The node manager would be fed membership information from userspace,
+where it knows what the network topology and storage configuration is.
+Quorum and fencing decisions would be made in userspace using the
+algorithms already implemented and tested.
 
-Membership events (nodes up, down) would be provided to OCFS2
-post-fencing.
+Since there are any number of possible topologies, I'd like the
+granularity for controlling membership to be at the per-file system level.
 
 > 	Have you also considered what this will or won't do to possible
 > interaction with the CMan stack?  We'd love OCFS2 to handle both stacks.
 
-This is hard for us to judge, but given that CMan in recent mailing list
-discussions seems to be moving towards a user-space driven membership
-too, it's fairly likely useable here too.
-
-The main semantic difference I can make out between the RHAT DLM and the
-one which OCFS2 uses are the way how the events are delivered across the
-cluster; while OCFS2 doesn't seem to care much, RHAT's DLM requires a
-"suspend all nodes - reconfigure / submit events - tell all nodes to
-resume" three-phase protocol.
-
-Our user-space stack is capable of driving both, as it happens. Funny,
-actually - we have been working on the assumption that our user-space
-stack needs to be able to drive all CFS implementations, and now you
-bring up that you want your CFS to be driven by both stacks. ;-)
+I'm not really familiar with the CMan stack, but I was hoping that the
+configuration I described would be easy enough for any userspace cluster
+manager to handle. Lars and Andrew Beekhof are working with me on the
+cluster side of things, so they'd be more familiar with the details here.
 
 > 	Finally, have you considered the user barriers to this?  The
 > absolute bottom-line goal of O2CB is the minimum input by the user.  For
@@ -59,60 +64,29 @@ bring up that you want your CFS to be driven by both stacks. ;-)
 > shouldn't have to do anything more than ocfs2console requires them
 > today.
 
-heartbeat used to have 3 straightforward config files; the XML based
-configuration file (one of them, actually) is pretty new. "Plethora of
-XML configuration files" certainly isn't true of heartbeat 2.x, and
-never was. The XML configuration file is even automatically replicated
-across cluster nodes so the user can't get them desync'ed ;-)
+I'm not sure if we're on the same page here. I'm not proposing a
+complete replacement of o2cb. I'm proposing we keep o2cb and supplement
+it with the ability to handle input from a userspace cluster manager,
+regardless of what that cluster manager is. The implementation of that
+cluster manager should be completely outside the scope of the file
+system. I'm envisioning the cluster manager choice (userspace or o2cb)
+as a compile time option, but I suppose it could be a module load time
+option as well.
 
-My goal is for the user to only add a single resource entry (a so-called
-"clone" resource type) to the configuration for each OCFS2 filesystem,
-and then he'd be done; the cluster would auto-generate everything else.
+The differences to o2cb should be minimal, and absolutely hidden from
+the user unless they desire more functionality, such as alternate
+network paths.
 
-(As it happens, another group at Novell already has demoed this with
-Novell Clustering Services; the OCFS2 configuration file is generated
-from the LDAP-based cluster configuration automatically. Something
-similar is what I'm aiming for here: tell us on which nodes to mount the
-filesystem on (all or a subset), point us at a storage, tell us the
-network to use, say "go".)
+- -Jeff
 
-Admittedly, until heartbeat 2.x has a nice GUI, that will imply an XML
-blurb to be fed to one of our tools. And yes, heartbeat 2.x's
-configuration file is as simple as possible (if one ignores the XML
-verbosity), but still, it is a quite powerful tool. 
+- --
+Jeff Mahoney
+SUSE Labs
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.2 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://enigmail.mozdev.org
 
-But, as far as heartbeat 2.x based clusters is concerned, this will be
-as easy as it can get. Trust me; I'm on the receiving end of support
-cases, and I don't want it to make easier to misconfigure, and so the
-less configuration possible, the better. Support has my cell phone
-number and is not afraid to use it, I'm afraid... Does that make my
-motivation sincerely believable? ;-)
-
-Of course, this brings up a valid point; currently, OCFS2 can run "stand
-alone" w/o any supporting user-space stack. Uhm. As RAC doesn't
-interoperate with _any_ other stack, I assume this is a property which
-needs to be preserved.
-
-I'm not sure our proposal covers that case adequately; I'm thinking we
-were thinking "rip & replace!" when it comes to membership/fencing, not
-"either - or", but I might be wrong. This however might not be too
-difficult to extend, because we only modify the heartbeat/fencing stack
-- instead of ripping it out, we need to make it switchable.
-
-So, going back to your original question, in the stand-alone mode as it
-is now, the node membership would simply be "global" - all filesystems
-would inherit membership from the same 'cluster'. While in our case, we
-might run each filesystem with its own membership - that could be as
-simple as a pointer in the per-fs data structures.
-
-Before I write too much more crap I better get some sleep now ;-)
-
-
-Sincerely,
-    Lars Marowsky-Br?e <lmb@suse.de>
-
--- 
-High Availability & Clustering
-SUSE Labs, Research and Development
-SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
-"Ignorance more frequently begets confidence than does knowledge"
+iD8DBQFDVYQhLPWxlyuTD7IRAijgAJ9GKB9qk1nliD39da4SJFKzBIYs+QCeJ3nX
+tWMar1L44rcOBlw1yYx8g1Y=
+=3Q1D
+-----END PGP SIGNATURE-----
