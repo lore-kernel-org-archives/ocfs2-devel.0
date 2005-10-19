@@ -1,35 +1,65 @@
-From: Lars Marowsky-Bree <lmb@suse.de>
-Date: Wed Oct 19 14:57:13 2005
+From: Jeff Mahoney <jeffm@suse.com>
+Date: Wed Oct 19 16:30:26 2005
 Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <43558422.9040607@suse.com>
+In-Reply-To: <20051019132624.GI24589@marowsky-bree.de>
 References: <43556F8B.3060105@suse.com>
 	<20051018221849.GN11488@ca-server1.us.oracle.com>
-	<43558422.9040607@suse.com>
-Message-ID: <20051019195654.GQ24589@marowsky-bree.de>
+	<20051018230323.GE2813@marowsky-bree.de>
+	<20051018232752.GO11488@ca-server1.us.oracle.com>
+	<20051019132624.GI24589@marowsky-bree.de>
+Message-ID: <4356BBE8.2080904@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2005-10-18T19:24:18, Jeff Mahoney <jeffm@suse.com> wrote:
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
 
-> > 	Have you also considered what this will or won't do to possible
-> > interaction with the CMan stack?  We'd love OCFS2 to handle both stacks.
-> I'm not really familiar with the CMan stack, but I was hoping that the
-> configuration I described would be easy enough for any userspace cluster
-> manager to handle. Lars and Andrew Beekhof are working with me on the
-> cluster side of things, so they'd be more familiar with the details here.
+Lars Marowsky-Bree wrote:
+> Actually a good point. I don't think the heartbeat hierarchy is needed
+> if driven by a user-space membership.
 
-David Teigland is subscribed to this list according to mailman, so,
-David, what are your thoughts? ;-)
+If we're to provide membership information on a per file system basis,
+we'll need some way to distinguish between them. The hierarchy may not
+matter in the case of the o2cb global heartbeat, but it does for the
+userspace heartbeat.
 
+> OCFS2 doesn't register with us in this model; _we_ drive OCFS2 and
+> provide it with the events; we manage it, so we know it's there.
 
-Sincerely,
-    Lars Marowsky-Br?e <lmb@suse.de>
+No, OCFS2 needs to register with userspace.
 
--- 
-High Availability & Clustering
-SUSE Labs, Research and Development
-SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
-"Ignorance more frequently begets confidence than does knowledge"
+The userspace heart beat should only care about nodes where the file
+system is actually mounted. Otherwise, if a random node that has the
+ability to mount a file system but doesn't actually have it mounted
+could cause heartbeat events across the cluster. That shouldn't happen.
+
+In order to do this, I think that at mount time, we should call out to
+user space to tell it to start caring about this node for a particular
+heart beat group. When the file system is umounted, we call out again
+and tell it to stop caring.
+
+Only using the cluster manager to mount or umount a file system isn't an
+acceptable use pattern. OCFS2 shouldn't become so special cased that
+it's a pain to work with. Ideally, it should only be slightly more
+difficult to configure than o2cb is now. mount -t ocfs2 should work with
+no additional effort for the common case. There should be a default
+OCFS2 configuration that we can use for common mounts, and then special
+cased configurations for more advanced topologies. We can pass out the
+UUID as a parameter; I don't think this should be too difficult to do.
+
+- -Jeff
+
+- --
+Jeff Mahoney
+SUSE Labs
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.2 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://enigmail.mozdev.org
+
+iD8DBQFDVrvoLPWxlyuTD7IRAibPAKCMUrfsy4WMUBDpyZ0BKqNy9KcNjwCggxE1
+bZbDDewALUQBLnswO+8Mnio=
+=uDuP
+-----END PGP SIGNATURE-----
