@@ -1,62 +1,63 @@
-From: Lars Marowsky-Bree <lmb@suse.de>
-Date: Wed Oct 19 08:35:48 2005
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed Oct 19 12:49:02 2005
 Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <20051018234757.GD25876@ca-server1.us.oracle.com>
+In-Reply-To: <20051019132624.GI24589@marowsky-bree.de>
 References: <43556F8B.3060105@suse.com>
 	<20051018221849.GN11488@ca-server1.us.oracle.com>
 	<20051018230323.GE2813@marowsky-bree.de>
-	<20051018234757.GD25876@ca-server1.us.oracle.com>
-Message-ID: <20051019133542.GJ24589@marowsky-bree.de>
+	<20051018232752.GO11488@ca-server1.us.oracle.com>
+	<20051019132624.GI24589@marowsky-bree.de>
+Message-ID: <20051019174905.GQ11488@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2005-10-18T16:47:57, Mark Fasheh <mark.fasheh@oracle.com> wrote:
+On Wed, Oct 19, 2005 at 03:26:24PM +0200, Lars Marowsky-Bree wrote:
+> Actually a good point. I don't think the heartbeat hierarchy is needed
+> if driven by a user-space membership.
 
-> Do you mean that the user would have to add a configuration entry for every
-> single OCFS2 mount on their machine? Unless that's done automatically and
-> transparently (perhaps from mount.ocfs2), it's pretty much a non starter.
+	Well, if it is information that some kernel component would
+want/need, then sure it would live in configfs somewhere, but not under
+OCFS2.
+	Is your heartbeat loop (the actual does-the-beating code) in
+kenrel or userspace?  I thought that was your only kernel component at
+one point, because of scheduling issues with userspace, but please
+correct me.
 
-> We've always wanted the users path (once the cluster stack is
-> installed and configured) to be as easy as a local filesystem:
-> mkfs.ocfs2 /dev/foo; mount /dev/foo /ocfs2.
+> OCFS2 doesn't register with us in this model; _we_ drive OCFS2 and
+> provide it with the events; we manage it, so we know it's there.
 
-Well, I think we're approximately on the same page here.
+	Well, there needs to be some entry point by which OCFS2 recieves
+events.  We don't care how it is done, I guess, but it needs the usual
+async, locking-safe, yadayada that everyone expects.
 
-Your "mkfs ; mount" approach works because you are looking at a special
-case; you just have the filesystem, nothing else it depends on, nothing
-else depends on it.
+> > 	Of course, if we're figuring on leaving O2CB for that person,
+> > and having heartbeat2 as a 'more fancy' user, that's a whole 'nother
+> > story.  Then it's your problem :-)
+> 
+> That's probably the best way to approach this right now ;-)
 
-I think you expect the mount command as above to register the filesystem
-with the cluster manager automatically, while our approach is sort-of
-the other way around.
+	Put succinctly: We absolutely require the minimal mkfs; mount;
+paradigm be available for our users.  We will not settle for less.
+	How that is done we don't much care.  So if your system can't
+provide it, O2CB will continue to do so.  We'll be happy to help
+integrate with your stuff as well, as long as it doesn't compromise
+O2CB.  Then, if someone is already using your manager, they can just use
+it with OCFS2.  But anyone not already using your manager can just
+mkfs;mount; with O2CB.
 
-The admin has to add the configuration entry to the CRM because in our
-model, the filesystem mount is a cluster resource; if he wants us to be
-aware of it (which means that we know to mount it before trying to start
-Oracle on that node, for example, to give it membership events etc -
-for that we need to not only know about the filesystem itself, but also
-about how it depends on other components (SAN reservations, fencing...)
-and how other components depend on it), he needs to tell us.
-
-Yes, the configuration is a bit of a hassle. The admin in this case has
-to model the relationship of the clustered resources to one another. We
-need to make this easier as far as that is possible.
-
-And yes, auto-discovery of these relations would rock; if we could query
-what resources are active on the node, what they depend on, ... we could
-create a cluster configuration automatically. CIM/WBEM might actually go
-into that direction. But right now, I consider this a research problem
-still.
-
-
-Sincerely,
-    Lars Marowsky-Br?e <lmb@suse.de>
+Joel
 
 -- 
-High Availability & Clustering
-SUSE Labs, Research and Development
-SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
-"Ignorance more frequently begets confidence than does knowledge"
+
+ "I'm living so far beyond my income that we may almost be said
+ to be living apart."
+         - e e cummings
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
