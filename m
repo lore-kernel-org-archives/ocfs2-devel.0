@@ -1,85 +1,85 @@
-From: Jeff Mahoney <jeffm@suse.com>
-Date: Wed Oct 19 17:41:15 2005
+From: David Teigland <teigland@redhat.com>
+Date: Wed Oct 19 17:42:09 2005
 Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <20051019174905.GQ11488@ca-server1.us.oracle.com>
+In-Reply-To: <20051019195654.GQ24589@marowsky-bree.de>
 References: <43556F8B.3060105@suse.com>
 	<20051018221849.GN11488@ca-server1.us.oracle.com>
-	<20051018230323.GE2813@marowsky-bree.de>
-	<20051018232752.GO11488@ca-server1.us.oracle.com>
-	<20051019132624.GI24589@marowsky-bree.de>
-	<20051019174905.GQ11488@ca-server1.us.oracle.com>
-Message-ID: <4356CC69.50706@suse.com>
+	<43558422.9040607@suse.com>
+	<20051019195654.GQ24589@marowsky-bree.de>
+Message-ID: <20051019224221.GB4305@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
-
-Joel Becker wrote:
-> On Wed, Oct 19, 2005 at 03:26:24PM +0200, Lars Marowsky-Bree wrote:
->> Actually a good point. I don't think the heartbeat hierarchy is needed
->> if driven by a user-space membership.
+On Wed, Oct 19, 2005 at 09:56:54PM +0200, Lars Marowsky-Bree wrote:
+> On 2005-10-18T19:24:18, Jeff Mahoney <jeffm@suse.com> wrote:
 > 
-> 	Well, if it is information that some kernel component would
-> want/need, then sure it would live in configfs somewhere, but not under
-> OCFS2.
+> > > 	Have you also considered what this will or won't do to possible
+> > > interaction with the CMan stack?  We'd love OCFS2 to handle both stacks.
+> > I'm not really familiar with the CMan stack, but I was hoping that the
+> > configuration I described would be easy enough for any userspace cluster
+> > manager to handle. Lars and Andrew Beekhof are working with me on the
+> > cluster side of things, so they'd be more familiar with the details here.
+> 
+> David, what are your thoughts? ;-)
 
-Yes and no. I'd like to revise my original proposal here. I think that
-my proposed node hierarchy changes would be required to provide the
-alternate network paths and such, but would the "active" attribute
-really be required? Initially, I wanted to make the distinction between
-a node's membership being removed and the node simply going down. On
-further thought, I don't think this distinction actually needs to be made.
+Just catching up on this after being away for a while.  Not only has cman
+moved entirely to user space, but a large portion of gfs (everything
+related to cman and clustering) has also moved to user space.  So, a user
+space gfs daemon (call it gfs_clusterd) interacts with the other user
+space clustering systems and drives the bits of gfs in the kernel. 
 
-OCFS2 is aware if a node down event is expected or not by the umount
-map. Therefore, it seems simple enough to allow a local node's
-membership to imply a heartbeat presence.
+Here are the main "knobs" gfs_clusterd uses to control a specific fs:
 
-So, how about the following:
+/sys/fs/gfs2/<fs_name>/lock_module/
+                                   block
+                                   mounted
+                                   jid
+                                   recover
 
-The existing heartbeat directory structure can stay as it is. It will
-only be available when o2cb is active.
+When a gfs fs is mounted on a node:
 
-/configfs/<cluster>/<uuid>/<node>/
-                                  ip address
-                                  port
-                                  local
-                                  fs slot
-                                  node number
+. the mount process enters gfs-kernel
+. the mount process sends a simple uevent to gfs_clusterd
+. the mount process waits for gfs_clusterd to write 1 to /sys/.../mounted
 
-The user space heartbeat will create and remove the <node> directory on
-up/down events. OCFS2 will take appropriate action as expected with the
-current heartbeat implementation. I intend to simply queue the events as
-they are now and use the existing callback infrastructure to distribute
-them.
+. gfs_clusterd gets the mount uevent from gfs-kernel
+. gfs_clusterd joins the cluster-wide "group" that represents the
+  specific fs being mounted [1]
+. gfs_clusterd tells gfs-kernel which journal the local node will use by
+  writing the journal id to /sys/.../jid
+. gfs_clusterd tells the mount process it can continue by writing 1
+  to /sys/.../mounted
+. the local node now has the fs mounted
 
-> 	Put succinctly: We absolutely require the minimal mkfs; mount;
-> paradigm be available for our users.  We will not settle for less.
-> 	How that is done we don't much care.  So if your system can't
-> provide it, O2CB will continue to do so.  We'll be happy to help
-> integrate with your stuff as well, as long as it doesn't compromise
-> O2CB.  Then, if someone is already using your manager, they can just use
-> it with OCFS2.  But anyone not already using your manager can just
-> mkfs;mount; with O2CB.
+[1] As part of the node being added to the group, gfs_clusterd on the
+nodes that already have the fs mounted is notified of the new mounter for
+the fs.
 
-I totally agree that mkfs;mount should work. It's what users expect to
-work for a file system, and we don't want OCFS2 to be special cased so
-much that nobody wants to deal with it. Users with more advanced
-topologies can handle the additional configuration load.
+When a node that has a gfs file system mounted fails:
 
-- -Jeff
+. the cluster infrastructure notifies gfs_clusterd that a node failed
+. gfs_clusterd writes 1 to /sys/../block to block new lock requests from gfs
+. the infrastructure notifies gfs_clusterd that gfs_clusterd is "stopped"
+  (and therefore blocked) on all mounters
+. gfs_clusterd tells gfs-kernel to recover the journal of the failed
+  node by writing the journal id of the failed node to /sys/.../recover
+. when journal recovery is done, gfs-kernel sends a uevent to gfs_clusterd
+. gfs_clusterd tells gfs-kernel to continue normal operation by
+  writing 0 to /sys/.../block
 
-- --
-Jeff Mahoney
-SUSE Labs
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.2 (GNU/Linux)
-Comment: Using GnuPG with Thunderbird - http://enigmail.mozdev.org
+That's a simplified example of how we control gfs from user space.  Our
+dlm is controlled in a similar way by the dlm_controld daemon.  Think of
+the user daemon (gfs_clusterd) and kernel module (gfs.ko) as two parts of
+a single system and sysfs/configfs as more of an internal communication
+path between the two parts, not so much an external API.
 
-iD8DBQFDVsxpLPWxlyuTD7IRAkauAKCS+C9vzh2T8t/vI8ww682ATpzYjQCfX329
-I14cD4TccpuEyek4gELeu3I=
-=d6GW
------END PGP SIGNATURE-----
+It's the interfaces the two user daemons have with the cluster
+infrastructure (membership/group manager, crm, etc) that would need to be
+studied to use gfs in other environments.  None of this is easy, but
+there's far more flexibility working it out in user space than in the
+kernel.  The same may be the case for ocfs.
+
+Dave
