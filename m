@@ -1,13 +1,14 @@
 From: Jeff Mahoney <jeffm@suse.com>
-Date: Wed Oct 19 16:30:26 2005
+Date: Wed Oct 19 17:41:15 2005
 Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <20051019132624.GI24589@marowsky-bree.de>
+In-Reply-To: <20051019174905.GQ11488@ca-server1.us.oracle.com>
 References: <43556F8B.3060105@suse.com>
 	<20051018221849.GN11488@ca-server1.us.oracle.com>
 	<20051018230323.GE2813@marowsky-bree.de>
 	<20051018232752.GO11488@ca-server1.us.oracle.com>
 	<20051019132624.GI24589@marowsky-bree.de>
-Message-ID: <4356BBE8.2080904@suse.com>
+	<20051019174905.GQ11488@ca-server1.us.oracle.com>
+Message-ID: <4356CC69.50706@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -17,38 +18,57 @@ To: ocfs2-devel@oss.oracle.com
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-Lars Marowsky-Bree wrote:
-> Actually a good point. I don't think the heartbeat hierarchy is needed
-> if driven by a user-space membership.
+Joel Becker wrote:
+> On Wed, Oct 19, 2005 at 03:26:24PM +0200, Lars Marowsky-Bree wrote:
+>> Actually a good point. I don't think the heartbeat hierarchy is needed
+>> if driven by a user-space membership.
+> 
+> 	Well, if it is information that some kernel component would
+> want/need, then sure it would live in configfs somewhere, but not under
+> OCFS2.
 
-If we're to provide membership information on a per file system basis,
-we'll need some way to distinguish between them. The hierarchy may not
-matter in the case of the o2cb global heartbeat, but it does for the
-userspace heartbeat.
+Yes and no. I'd like to revise my original proposal here. I think that
+my proposed node hierarchy changes would be required to provide the
+alternate network paths and such, but would the "active" attribute
+really be required? Initially, I wanted to make the distinction between
+a node's membership being removed and the node simply going down. On
+further thought, I don't think this distinction actually needs to be made.
 
-> OCFS2 doesn't register with us in this model; _we_ drive OCFS2 and
-> provide it with the events; we manage it, so we know it's there.
+OCFS2 is aware if a node down event is expected or not by the umount
+map. Therefore, it seems simple enough to allow a local node's
+membership to imply a heartbeat presence.
 
-No, OCFS2 needs to register with userspace.
+So, how about the following:
 
-The userspace heart beat should only care about nodes where the file
-system is actually mounted. Otherwise, if a random node that has the
-ability to mount a file system but doesn't actually have it mounted
-could cause heartbeat events across the cluster. That shouldn't happen.
+The existing heartbeat directory structure can stay as it is. It will
+only be available when o2cb is active.
 
-In order to do this, I think that at mount time, we should call out to
-user space to tell it to start caring about this node for a particular
-heart beat group. When the file system is umounted, we call out again
-and tell it to stop caring.
+/configfs/<cluster>/<uuid>/<node>/
+                                  ip address
+                                  port
+                                  local
+                                  fs slot
+                                  node number
 
-Only using the cluster manager to mount or umount a file system isn't an
-acceptable use pattern. OCFS2 shouldn't become so special cased that
-it's a pain to work with. Ideally, it should only be slightly more
-difficult to configure than o2cb is now. mount -t ocfs2 should work with
-no additional effort for the common case. There should be a default
-OCFS2 configuration that we can use for common mounts, and then special
-cased configurations for more advanced topologies. We can pass out the
-UUID as a parameter; I don't think this should be too difficult to do.
+The user space heartbeat will create and remove the <node> directory on
+up/down events. OCFS2 will take appropriate action as expected with the
+current heartbeat implementation. I intend to simply queue the events as
+they are now and use the existing callback infrastructure to distribute
+them.
+
+> 	Put succinctly: We absolutely require the minimal mkfs; mount;
+> paradigm be available for our users.  We will not settle for less.
+> 	How that is done we don't much care.  So if your system can't
+> provide it, O2CB will continue to do so.  We'll be happy to help
+> integrate with your stuff as well, as long as it doesn't compromise
+> O2CB.  Then, if someone is already using your manager, they can just use
+> it with OCFS2.  But anyone not already using your manager can just
+> mkfs;mount; with O2CB.
+
+I totally agree that mkfs;mount should work. It's what users expect to
+work for a file system, and we don't want OCFS2 to be special cased so
+much that nobody wants to deal with it. Users with more advanced
+topologies can handle the additional configuration load.
 
 - -Jeff
 
@@ -59,7 +79,7 @@ SUSE Labs
 Version: GnuPG v1.4.2 (GNU/Linux)
 Comment: Using GnuPG with Thunderbird - http://enigmail.mozdev.org
 
-iD8DBQFDVrvoLPWxlyuTD7IRAibPAKCMUrfsy4WMUBDpyZ0BKqNy9KcNjwCggxE1
-bZbDDewALUQBLnswO+8Mnio=
-=uDuP
+iD8DBQFDVsxpLPWxlyuTD7IRAkauAKCS+C9vzh2T8t/vI8ww682ATpzYjQCfX329
+I14cD4TccpuEyek4gELeu3I=
+=d6GW
 -----END PGP SIGNATURE-----
