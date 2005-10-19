@@ -1,63 +1,35 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed Oct 19 12:49:02 2005
+From: Lars Marowsky-Bree <lmb@suse.de>
+Date: Wed Oct 19 14:57:13 2005
 Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <20051019132624.GI24589@marowsky-bree.de>
+In-Reply-To: <43558422.9040607@suse.com>
 References: <43556F8B.3060105@suse.com>
 	<20051018221849.GN11488@ca-server1.us.oracle.com>
-	<20051018230323.GE2813@marowsky-bree.de>
-	<20051018232752.GO11488@ca-server1.us.oracle.com>
-	<20051019132624.GI24589@marowsky-bree.de>
-Message-ID: <20051019174905.GQ11488@ca-server1.us.oracle.com>
+	<43558422.9040607@suse.com>
+Message-ID: <20051019195654.GQ24589@marowsky-bree.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 19, 2005 at 03:26:24PM +0200, Lars Marowsky-Bree wrote:
-> Actually a good point. I don't think the heartbeat hierarchy is needed
-> if driven by a user-space membership.
+On 2005-10-18T19:24:18, Jeff Mahoney <jeffm@suse.com> wrote:
 
-	Well, if it is information that some kernel component would
-want/need, then sure it would live in configfs somewhere, but not under
-OCFS2.
-	Is your heartbeat loop (the actual does-the-beating code) in
-kenrel or userspace?  I thought that was your only kernel component at
-one point, because of scheduling issues with userspace, but please
-correct me.
+> > 	Have you also considered what this will or won't do to possible
+> > interaction with the CMan stack?  We'd love OCFS2 to handle both stacks.
+> I'm not really familiar with the CMan stack, but I was hoping that the
+> configuration I described would be easy enough for any userspace cluster
+> manager to handle. Lars and Andrew Beekhof are working with me on the
+> cluster side of things, so they'd be more familiar with the details here.
 
-> OCFS2 doesn't register with us in this model; _we_ drive OCFS2 and
-> provide it with the events; we manage it, so we know it's there.
+David Teigland is subscribed to this list according to mailman, so,
+David, what are your thoughts? ;-)
 
-	Well, there needs to be some entry point by which OCFS2 recieves
-events.  We don't care how it is done, I guess, but it needs the usual
-async, locking-safe, yadayada that everyone expects.
 
-> > 	Of course, if we're figuring on leaving O2CB for that person,
-> > and having heartbeat2 as a 'more fancy' user, that's a whole 'nother
-> > story.  Then it's your problem :-)
-> 
-> That's probably the best way to approach this right now ;-)
-
-	Put succinctly: We absolutely require the minimal mkfs; mount;
-paradigm be available for our users.  We will not settle for less.
-	How that is done we don't much care.  So if your system can't
-provide it, O2CB will continue to do so.  We'll be happy to help
-integrate with your stuff as well, as long as it doesn't compromise
-O2CB.  Then, if someone is already using your manager, they can just use
-it with OCFS2.  But anyone not already using your manager can just
-mkfs;mount; with O2CB.
-
-Joel
+Sincerely,
+    Lars Marowsky-Br?e <lmb@suse.de>
 
 -- 
-
- "I'm living so far beyond my income that we may almost be said
- to be living apart."
-         - e e cummings
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+High Availability & Clustering
+SUSE Labs, Research and Development
+SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
+"Ignorance more frequently begets confidence than does knowledge"
