@@ -1,109 +1,154 @@
-From: Lars Marowsky-Bree <lmb@suse.de>
-Date: Thu Oct 20 05:58:09 2005
+From: Andrew Beekhof <abeekhof@suse.de>
+Date: Thu Oct 20 06:04:50 2005
 Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <20051019224221.GB4305@redhat.com>
+In-Reply-To: <4356BBE8.2080904@suse.com>
 References: <43556F8B.3060105@suse.com>
 	<20051018221849.GN11488@ca-server1.us.oracle.com>
-	<43558422.9040607@suse.com>
-	<20051019195654.GQ24589@marowsky-bree.de>
-	<20051019224221.GB4305@redhat.com>
-Message-ID: <20051020105755.GE11726@marowsky-bree.de>
+	<20051018230323.GE2813@marowsky-bree.de>
+	<20051018232752.GO11488@ca-server1.us.oracle.com>
+	<20051019132624.GI24589@marowsky-bree.de>
+	<4356BBE8.2080904@suse.com>
+Message-ID: <C81B7C58-4398-4FA2-B886-FCAE7FF0192B@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2005-10-19T17:42:21, David Teigland <teigland@redhat.com> wrote:
+I'm kinda new here, so I apologize in advance if I have insulted  
+anyone's intelligence below.
+My specialty is in hb2 (specifically the CRM) and not yet in OCFS2,  
+so I'm also happy to be corrected if I've missed the point or said  
+something dumb there too.
 
-> Just catching up on this after being away for a while.  Not only has cman
-> moved entirely to user space, but a large portion of gfs (everything
-> related to cman and clustering) has also moved to user space.  So, a user
-> space gfs daemon (call it gfs_clusterd) interacts with the other user
-> space clustering systems and drives the bits of gfs in the kernel. 
+Moving on...
 
-Morning David, thanks for your insights!
-
-> Here are the main "knobs" gfs_clusterd uses to control a specific fs:
-> 
-> /sys/fs/gfs2/<fs_name>/lock_module/
->                                    block
->                                    mounted
->                                    jid
->                                    recover
-> 
-> When a gfs fs is mounted on a node:
-> 
-> . the mount process enters gfs-kernel
-> . the mount process sends a simple uevent to gfs_clusterd
-> . the mount process waits for gfs_clusterd to write 1 to /sys/.../mounted
-> 
-> . gfs_clusterd gets the mount uevent from gfs-kernel
-> . gfs_clusterd joins the cluster-wide "group" that represents the
->   specific fs being mounted [1]
-> . gfs_clusterd tells gfs-kernel which journal the local node will use by
->   writing the journal id to /sys/.../jid
-> . gfs_clusterd tells the mount process it can continue by writing 1
->   to /sys/.../mounted
-> . the local node now has the fs mounted
-
-The /sys/.../mounted flag seems to be exactly the thing I don't like.
-Sigh. ;-) It seems, however, that there's actual demand for this
-functionality.
-
-OK. I'll now make a 180 degree turn and say that we need to do this and
-agree to figure out how ;-)
-
-Ignoring the specific steps gfs_clusterd performs (which would be
-different on our stack, of course), the main issue I'm not liking this
-much is the hoop through kernel space for the uevent and the
-notification.
-
-(Also, your outline doesn't contain the possibility that the cluster
-says "No, you CAN'T mount this. Rejected!" - is this for ease of
-describing the case, or how is that implemented? Writing "2" to the
-.../mounted flag or something?)
-
-I'd much rather have all of this done in user-space prior to the actual
-mount syscall being issued.
-
-"mount" would need a generic hook by which it could call into the
-cluster stuff (whatever it is) to a) have it authorize the mount, b)
-_know_ about the mount, c) prepare the mount if needed - by bringing
-online all pre-requisites on that node et cetera. 
-
-Actually this is quite powerful. This hook could also be used for _non
-cluster filesystems_ - the cluster could deny mounting of filesystems on
-shared storage which are active on another node.
-
-Same for umount. A nice side-effect for the umount would be that it
-could actually ask the cluster "hey, admin wants this unmounted, stop
-everything which depends on it on that node too! Migrate!".
-
-Two issues:
-
-- This is a special case for filesystems. It'd be nice if we had a
-  generic mechanism by which this also worked for all kinds of
-  resources; as I've said, CIM seems to be going into that direction.
-  Then also this could be unified with the mechanism for example the
-  clustered LVMs use; the C-LVM2 already has such a mechanism internally
-  too.
-  
-  However, filesystems are a fairly important case, and when we have
-  more than one implementation of this mechanism (LVM + filesystem)
-  we'll have a better idea of what such a generic mechanism would look
-  like.
-
-- Trapping this in user-space of course isn't as powerful as
-  intercepting each and every mount syscall(); somebody calling directly
-  would get a reject. This however seems acceptable to me?
+On Oct 19, 2005, at 11:34 PM, Jeff Mahoney wrote:
 
 
-Sincerely,
-    Lars Marowsky-Br?e <lmb@suse.de>
+> Lars Marowsky-Bree wrote:
+>
+>
+>> Actually a good point. I don't think the heartbeat hierarchy is  
+>> needed
+>> if driven by a user-space membership.
+>>
+>>
+>
+> If we're to provide membership information on a per file system basis,
+> we'll need some way to distinguish between them. The hierarchy may not
+> matter in the case of the o2cb global heartbeat, but it does for the
+> userspace heartbeat.
+>
+>
+>
+>> OCFS2 doesn't register with us in this model; _we_ drive OCFS2 and
+>> provide it with the events; we manage it, so we know it's there.
+>>
+>>
+>
+> No, OCFS2 needs to register with userspace.
+>
+> The userspace heart beat should only care about nodes where the file
+> system is actually mounted. Otherwise, if a random node that has the
+> ability to mount a file system but doesn't actually have it mounted
+> could cause heartbeat events across the cluster. That shouldn't  
+> happen.
+>
 
--- 
-High Availability & Clustering
-SUSE Labs, Research and Development
-SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
-"Ignorance more frequently begets confidence than does knowledge"
+I believe the idea here is that "not mounted" == "resource not running"
+
+So like you said, if a node that could but doesn't have the  
+filesystem mounted fails... then the filesystem will not hear  
+anything about it.
+
+There is also the related point that if it is mounted - we must know  
+about it.
+Having resources we're supposed to be managing active without us  
+knowing is highly evil because it might violate the currently active  
+cluster policy.
+
+
+> In order to do this, I think that at mount time, we should call out to
+> user space to tell it to start caring about this node for a particular
+> heart beat group. When the file system is umounted, we call out again
+> and tell it to stop caring.
+>
+
+As I mentioned to Jeff last night, we _could_ make something like  
+this work.
+
+However, thinking more about it, I dont think we should.
+
+It seems to me that there are two use cases here and I believe that  
+trying to bash one into the form of the other is a mistake.
+
+
+The first is where the filesystem (often via the user) is in  
+control.  Thats where you want mount to work transparently - updating  
+the cluster behind the scenes.
+
+
+The second is where the cluster is in control.  Here a transparent  
+mount command is a hinderance because you end up calling back to the  
+cluster for no reason or benefit - in fact you end up creating a  
+loop.  Not that breaking it isnt possible - but logically it makes no  
+sense to create it in the first place.
+
+
+In case people are wondering why you would even want the cluster to  
+be in control... its because it knows more than the filesystem does.
+
+For example the cluster knows that Apache on nodeX failed so we need  
+to migrate it (and the filesystem it requires) to nodeY.
+Or it might be 7am which means the nighty auditing run is complete  
+and we don't need as many nodes to share the load.
+
+In both cases the node is healthy, the filesystem is healthy - but we  
+want to stop/move the filesystem anyway.
+
+Alternatively the filesystem may have failed but there are some  
+unrelated resources that can/must be safely migrated before the node  
+is fenced.
+
+
+My personal view (others may disagree) is that hb2 resource  
+management (the CRM) should stay out of the first scenario.  Use the  
+messaging, the membership, or the fencing pieces by all means... but  
+not the CRM.
+For that situation it doesn't really add anything over what already  
+exists and in fact it makes things worse.
+Its worse because you now have two brains - both of which want to  
+enforce their will on the cluster, both with different policies and  
+perspectives.
+I don't see how that can ever turn out well.
+
+
+> Only using the cluster manager to mount or umount a file system  
+> isn't an
+> acceptable use pattern.
+>
+
+I don't think that its an either/or here.  We need to be able to  
+support the second scenario without impacting the first.... and then  
+let the user decide what fits their needs best.
+
+
+> OCFS2 shouldn't become so special cased that
+> it's a pain to work with. Ideally, it should only be slightly more
+> difficult to configure than o2cb is now. mount -t ocfs2 should work  
+> with
+> no additional effort for the common case. There should be a default
+> OCFS2 configuration that we can use for common mounts, and then  
+> special
+> cased configurations for more advanced topologies. We can pass out the
+> UUID as a parameter; I don't think this should be too difficult to do.
+>
+> - -Jeff
+>
+
+--
+Andrew Beekhof
+
+"Would the last person to leave please turn out the enlightenment?" -  
+TISM
