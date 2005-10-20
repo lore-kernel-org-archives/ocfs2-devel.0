@@ -1,85 +1,107 @@
-From: David Teigland <teigland@redhat.com>
-Date: Wed Oct 19 17:42:09 2005
+From: Lars Marowsky-Bree <lmb@suse.de>
+Date: Thu Oct 20 05:24:15 2005
 Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <20051019195654.GQ24589@marowsky-bree.de>
+In-Reply-To: <4356BBE8.2080904@suse.com>
 References: <43556F8B.3060105@suse.com>
 	<20051018221849.GN11488@ca-server1.us.oracle.com>
-	<43558422.9040607@suse.com>
-	<20051019195654.GQ24589@marowsky-bree.de>
-Message-ID: <20051019224221.GB4305@redhat.com>
+	<20051018230323.GE2813@marowsky-bree.de>
+	<20051018232752.GO11488@ca-server1.us.oracle.com>
+	<20051019132624.GI24589@marowsky-bree.de>
+	<4356BBE8.2080904@suse.com>
+Message-ID: <20051020102358.GB11726@marowsky-bree.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 19, 2005 at 09:56:54PM +0200, Lars Marowsky-Bree wrote:
-> On 2005-10-18T19:24:18, Jeff Mahoney <jeffm@suse.com> wrote:
+On 2005-10-19T17:34:32, Jeff Mahoney <jeffm@suse.com> wrote:
+
+> > Actually a good point. I don't think the heartbeat hierarchy is needed
+> > if driven by a user-space membership.
+> If we're to provide membership information on a per file system basis,
+> we'll need some way to distinguish between them. The hierarchy may not
+> matter in the case of the o2cb global heartbeat, but it does for the
+> userspace heartbeat.
+
+User-spaces knows which membership it needs to supply to which
+filesystem UUID anyway though. The heartbeat/ subdirectory (if that's
+what we are talking about) only matters for in-kernel membership as like
+now.
+
+> > OCFS2 doesn't register with us in this model; _we_ drive OCFS2 and
+> > provide it with the events; we manage it, so we know it's there.
+> No, OCFS2 needs to register with userspace.
 > 
-> > > 	Have you also considered what this will or won't do to possible
-> > > interaction with the CMan stack?  We'd love OCFS2 to handle both stacks.
-> > I'm not really familiar with the CMan stack, but I was hoping that the
-> > configuration I described would be easy enough for any userspace cluster
-> > manager to handle. Lars and Andrew Beekhof are working with me on the
-> > cluster side of things, so they'd be more familiar with the details here.
+> The userspace heart beat should only care about nodes where the file
+> system is actually mounted. Otherwise, if a random node that has the
+> ability to mount a file system but doesn't actually have it mounted
+> could cause heartbeat events across the cluster. That shouldn't happen.
+
+You're thinking like a filesystem-and-nothing-else guy, can't blame you
+for that ;-)
+
+> In order to do this, I think that at mount time, we should call out to
+> user space to tell it to start caring about this node for a particular
+> heart beat group. When the file system is umounted, we call out again
+> and tell it to stop caring.
 > 
-> David, what are your thoughts? ;-)
+> Only using the cluster manager to mount or umount a file system isn't an
+> acceptable use pattern. OCFS2 shouldn't become so special cased that
+> it's a pain to work with.
 
-Just catching up on this after being away for a while.  Not only has cman
-moved entirely to user space, but a large portion of gfs (everything
-related to cman and clustering) has also moved to user space.  So, a user
-space gfs daemon (call it gfs_clusterd) interacts with the other user
-space clustering systems and drives the bits of gfs in the kernel. 
+This is the only way of managing cluster resources. Cluster resources
+must be solely controlled via the CRM. Just like now, cluster users are
+quite used to that, it's a basic property of all existing cluster
+stacks: the user is for example NOT allowed to mount a non-shared
+filesystem just because he sees the SAN; he needs to use the CRM, or
+various constraints can no longer be guaranteed.
 
-Here are the main "knobs" gfs_clusterd uses to control a specific fs:
+A common model how resources can register with a CRM doesn't exist yet.
+As I pointed at the future: CIM/WBEM might one day offer something like
+this, but we aren't there yet. Random subsystems registering with us w/o
+them telling us their dependencies just doesn't work.
 
-/sys/fs/gfs2/<fs_name>/lock_module/
-                                   block
-                                   mounted
-                                   jid
-                                   recover
+"mount the filesystem as a normal filesystem" is a use pattern which
+works if your filesystem is the only thing which the cluster manages.
+But what does it depend on? Is the node allowed to mount the filesystem
+at all, based on the current active policy rules? Does it require
+fencing? ...
 
-When a gfs fs is mounted on a node:
+And most especially, I don't want this event to come from the kernel to
+user-space, I think.
 
-. the mount process enters gfs-kernel
-. the mount process sends a simple uevent to gfs_clusterd
-. the mount process waits for gfs_clusterd to write 1 to /sys/.../mounted
+What might just be about possible is that "mount" is patched to know
+that it has to go through some special steps to "mount" an OCFS2 fs;
+namely, not do it itself directly, but tell the CRM "Hey, user wants
+this mounted, see what you can do".
 
-. gfs_clusterd gets the mount uevent from gfs-kernel
-. gfs_clusterd joins the cluster-wide "group" that represents the
-  specific fs being mounted [1]
-. gfs_clusterd tells gfs-kernel which journal the local node will use by
-  writing the journal id to /sys/.../jid
-. gfs_clusterd tells the mount process it can continue by writing 1
-  to /sys/.../mounted
-. the local node now has the fs mounted
+As you're not allowed to mount the filesystem if you're not a proper
+cluster member, the requirement for the cluster stack to be running
+isn't anything new.
 
-[1] As part of the node being added to the group, gfs_clusterd on the
-nodes that already have the fs mounted is notified of the new mounter for
-the fs.
+> There should be a default OCFS2 configuration that we can use for
+> common mounts, and then special cased configurations for more advanced
+> topologies. We can pass out the UUID as a parameter; I don't think
+> this should be too difficult to do.
 
-When a node that has a gfs file system mounted fails:
+The "default" case is that the filesystem is mounted on all nodes (as
+part of the cluster startup) all the time, and all nodes are equal.
+Still, this requires the cluster to be told. And it needs to be told
+that the filesystem needs to be started before the application etc.
 
-. the cluster infrastructure notifies gfs_clusterd that a node failed
-. gfs_clusterd writes 1 to /sys/../block to block new lock requests from gfs
-. the infrastructure notifies gfs_clusterd that gfs_clusterd is "stopped"
-  (and therefore blocked) on all mounters
-. gfs_clusterd tells gfs-kernel to recover the journal of the failed
-  node by writing the journal id of the failed node to /sys/.../recover
-. when journal recovery is done, gfs-kernel sends a uevent to gfs_clusterd
-. gfs_clusterd tells gfs-kernel to continue normal operation by
-  writing 0 to /sys/.../block
+See, the user has to tell us about the applications and other services
+already anyway; as part of that configuration, he also tells us about
+the filesystem. That's all consistent. I don't want to special case
+OCFS2; the mount extension pointed at above might be a path to get both
+approaches joined.
 
-That's a simplified example of how we control gfs from user space.  Our
-dlm is controlled in a similar way by the dlm_controld daemon.  Think of
-the user daemon (gfs_clusterd) and kernel module (gfs.ko) as two parts of
-a single system and sysfs/configfs as more of an internal communication
-path between the two parts, not so much an external API.
 
-It's the interfaces the two user daemons have with the cluster
-infrastructure (membership/group manager, crm, etc) that would need to be
-studied to use gfs in other environments.  None of this is easy, but
-there's far more flexibility working it out in user space than in the
-kernel.  The same may be the case for ocfs.
+Sincerely,
+    Lars Marowsky-Br?e <lmb@suse.de>
 
-Dave
+-- 
+High Availability & Clustering
+SUSE Labs, Research and Development
+SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
+"Ignorance more frequently begets confidence than does knowledge"
