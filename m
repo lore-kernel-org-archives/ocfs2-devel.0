@@ -1,72 +1,36 @@
-From: Andrew Beekhof <abeekhof@suse.de>
-Date: Mon Oct 24 08:39:15 2005
-Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <20051024114108.GJ19508@marowsky-bree.de>
-References: <20051018230323.GE2813@marowsky-bree.de>
-	<20051018232752.GO11488@ca-server1.us.oracle.com>
-	<20051019132624.GI24589@marowsky-bree.de>
-	<4356BBE8.2080904@suse.com>
-	<20051020102358.GB11726@marowsky-bree.de>
-	<20051020150341.GC11488@ca-server1.us.oracle.com>
-	<20051020152606.GB16745@redhat.com>
-	<20051020154244.GD11488@ca-server1.us.oracle.com>
-	<20051020154519.GO11726@marowsky-bree.de>
-	<9FBDF3A9-27F7-4F4F-BE47-47174A31A586@suse.de>
-	<20051024114108.GJ19508@marowsky-bree.de>
-Message-ID: <6989A6BC-9663-45B5-8D8C-82CF486E08AD@suse.de>
+From: Michael Steinmann <msl@calivia.com>
+Date: Tue Oct 25 03:31:48 2005
+Subject: [Ocfs2-devel] Support for SLES9
+Message-ID: <15538.193.5.216.100.1130229159.squirrel@www2.calivia.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Support for SLES9 seems to be pretty much lacking at the moment.
+The OCFS2 site [1] states OCFS2 is supported with SP2+. There actually
+does not exist a SP2+ for SLES9 (or should this rather read "will be
+supported in SP3" instead?).
 
-On Oct 24, 2005, at 1:41 PM, Lars Marowsky-Bree wrote:
+Latest RPMs that come with SLES9 SP2 are 0.99.14 which has critical known
+bugs and is unusable.
 
-> On 2005-10-21T11:05:37, Andrew Beekhof <abeekhof@suse.de> wrote:
->
->
->> for future reference, in the context of hb2 the callout will have to
->> either:
->> - create a placement constraint to put the new clone on the  
->> correct node
->> - increase the number of clones
->> - somehow figure out if the new clone would ever be started
->> (otherwise it may block forever)
->>
->
-> In that case the clone will still be orphaned/inactive after the  
-> cluster
-> has reached S_IDLE again.
->
+Anybody got to compile current source on SLES9 x86_64?
+1.1.2, 1.1.6 and trunk all fail to compile on SLES9.SP2 2.6.5-7.191-smp SMP
+x86_64 [3].
 
-that's probably the most plausible way to do it.  though it relies on  
-the cluster being otherwise stable which may not always be true.
 
->
->> - wait for the new clone to be started
->>
->> or, do nothing (if invoked by hb2 directly)
->>
->
->
-> Sincerely,
->     Lars Marowsky-Br?e <lmb@suse.de>
->
-> -- 
-> High Availability & Clustering
-> SUSE Labs, Research and Development
-> SUSE LINUX Products GmbH - A Novell Business     -- Charles Darwin
-> "Ignorance more frequently begets confidence than does knowledge"
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+ocfs2-1.0.7 is the latest tarball I got to compile.
+Problem here is that we loose IP heartbeat and node1 fences shortly after
+mounting a shared LV on the second node [4]. Bummer.
 
---
-Andrew Beekhof
+Anybody more luck?
 
-"Eating fruit is mean and vicious... keep your hands off Golden  
-Delicious" - TISM
+--Mike
+
+[1] http://oss.oracle.com/projects/ocfs2/
+[2]
+http://www.novell.com/products/linuxpackages/enterpriseserver/SP2/i386/index_all.html
+[3] http://oss.oracle.com/bugzilla/show_bug.cgi?id=589
+[4] http://oss.oracle.com/bugzilla/show_bug.cgi?id=590
