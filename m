@@ -1,37 +1,31 @@
-From: Lars Marowsky-Bree <lmb@suse.de>
-Date: Mon Nov  7 06:08:18 2005
-Subject: [Ocfs2-devel] [RFC] Integration with external clustering
-In-Reply-To: <20051107050117.GA17440@lst.de>
-References: <20051018232752.GO11488@ca-server1.us.oracle.com>
-	<20051019132624.GI24589@marowsky-bree.de>
-	<4356BBE8.2080904@suse.com>
-	<20051020102358.GB11726@marowsky-bree.de>
-	<20051020150341.GC11488@ca-server1.us.oracle.com>
-	<20051020152606.GB16745@redhat.com>
-	<20051020154244.GD11488@ca-server1.us.oracle.com>
-	<20051021090937.GA30904@lst.de> <4358A6C1.C5C7.00CF.0@novell.com>
-	<20051107050117.GA17440@lst.de>
-Message-ID: <20051107120805.GC22055@marowsky-bree.de>
+From: Fabio Massimo Di Nitto <fabbione@ubuntu.com>
+Date: Mon, 02 Jan 2006 11:08:39 +0100
+Subject: [Ocfs2-devel] [PATCH] make really clean in ocfs2-tools/extras
+Message-ID: <43B8FBA7.1050707@ubuntu.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2005-11-07T06:01:17, Christoph Hellwig <hch@lst.de> wrote:
 
-> Umm, no.  not at all :) what I meant was routines for parsing mount
-> options so far.  when we find additional code useful for mount helpers
-> we can move it there aswell, but I'm not interested in new functionally,
-> especially not such things.
+almost a cosmetic patch :)
 
-Well, given that it can be implemented via the same hooks entirely in
-user-space, everyone can be happy.
+could you please apply it?
 
-
+Thanks
+Fabio
 
 -- 
-High Availability & Clustering
-SUSE Labs, Research and Development
-SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
-"Ignorance more frequently begets confidence than does knowledge"
+I'm going to make him an offer he can't refuse.
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: ocfs2.diff
+Url: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20060102/b2c71f65/ocfs2.ksh
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 894 bytes
+Desc: OpenPGP digital signature
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20060102/b2c71f65/signature.bin
