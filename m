@@ -1,8 +1,8 @@
 From: Jeff Mahoney <jeffm@suse.com>
 Date: Mon, 9 Jan 2006 17:39:42 -0500
-Subject: [Ocfs2-devel] [PATCH 05/11] ocfs2: actually free hb set on cluster
-	removal
-Message-ID: <20060109223942.GA8780@locomotive.unixthugs.org>
+Subject: [Ocfs2-devel] [PATCH 08/11] ocfs2: only disconnect tcp connections
+	when the last reference is dropped
+Message-ID: <20060109223942.GA8814@locomotive.unixthugs.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,20 +10,50 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
- This patch actually frees the hb set when the cluster dir is removed.
+ Since o2net wants all events from any resource, by default it will drop the
+ TCP connection when a single resource fails.
 
- fs/ocfs2/cluster/nodemanager.c |    1 +
- 1 files changed, 1 insertion(+)
+ This patch waits until all listeners have been dropped to drop the
+ connection.
+
+ fs/ocfs2/cluster/nodemanager.h |    1 +
+ fs/ocfs2/cluster/tcp.c         |    7 +++++--
+ 2 files changed, 6 insertions(+), 2 deletions(-)
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
-diff -ruNpX dontdiff linux-2.6.15-staging2/fs/ocfs2/cluster/nodemanager.c linux-2.6.15-ocfs2/fs/ocfs2/cluster/nodemanager.c
---- linux-2.6.15-staging2/fs/ocfs2/cluster/nodemanager.c	2006-01-08 20:07:52.077646720 -0500
-+++ linux-2.6.15-ocfs2/fs/ocfs2/cluster/nodemanager.c	2006-01-08 18:08:59.630943432 -0500
-@@ -685,6 +685,7 @@ static void o2nm_cluster_group_drop_item
- 	BUG_ON(o2nm_single_cluster != cluster);
- 	o2nm_single_cluster = NULL;
+
+diff -ruNpX dontdiff linux-2.6.15/fs/ocfs2/cluster/nodemanager.h linux-2.6.15-ocfs2/fs/ocfs2/cluster/nodemanager.h
+--- linux-2.6.15/fs/ocfs2/cluster/nodemanager.h	2006-01-06 12:24:12.505215920 -0500
++++ linux-2.6.15-ocfs2/fs/ocfs2/cluster/nodemanager.h	2006-01-06 12:24:21.421860384 -0500
+@@ -51,6 +51,7 @@ struct o2nm_node {
+ 	int			nd_local;
  
-+	o2hb_free_hb_set(cluster->cl_group.default_groups[1]);
- 	for (i = 0; cluster->cl_group.default_groups[i]; i++) {
- 		killme = &cluster->cl_group.default_groups[i]->cg_item;
- 		cluster->cl_group.default_groups[i] = NULL;
+ 	unsigned long		nd_set_attributes;
++	atomic_t		nd_count;
+ };
+ 
+ struct o2nm_cluster {
+diff -ruNpX dontdiff linux-2.6.15/fs/ocfs2/cluster/tcp.c linux-2.6.15-ocfs2/fs/ocfs2/cluster/tcp.c
+--- linux-2.6.15/fs/ocfs2/cluster/tcp.c	2006-01-06 12:24:12.506215768 -0500
++++ linux-2.6.15-ocfs2/fs/ocfs2/cluster/tcp.c	2006-01-06 12:24:21.422860232 -0500
+@@ -1448,8 +1448,10 @@ void o2net_disconnect_node(struct o2nm_n
+ static void o2net_hb_node_down_cb(struct o2nm_node *node, int node_num,
+ 				  void *data)
+ {
+-	if (node_num != o2nm_this_node())
+-		o2net_disconnect_node(node);
++	if (node_num != o2nm_this_node()) {
++		if (atomic_dec_and_test(&node->nd_count))
++			o2net_disconnect_node(node);
++	}
+ }
+ 
+ static void o2net_hb_node_up_cb(struct o2nm_node *node, int node_num,
+@@ -1462,6 +1464,7 @@ static void o2net_hb_node_up_cb(struct o
+ 		(msecs_to_jiffies(O2NET_RECONNECT_DELAY_MS) + 1);
+ 
+ 	if (node_num != o2nm_this_node()) {
++		atomic_inc(&node->nd_count);
+ 		/* heartbeat doesn't work unless a local node number is
+ 		 * configured and doing so brings up the o2net_wq, so we can
+ 		 * use it.. */
