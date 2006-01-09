@@ -1,36 +1,35 @@
 From: Jeff Mahoney <jeffm@suse.com>
-Date: Mon, 9 Jan 2006 12:36:40 -0500
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix compilation on ia64
-Message-ID: <20060109173640.GA25744@locomotive.unixthugs.org>
+Date: Mon, 9 Jan 2006 12:42:35 -0500
+Subject: [Ocfs2-devel] [PATCH] ocfs2: actually free hb set on cluster removal
+Message-ID: <20060109174235.GB25744@locomotive.unixthugs.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
 
- Including <asm/signal.h> results in compilation failure on ia64 due to
- not including <linux/compiler.h>
+ This patch actually frees the hb set when the cluster dir is removed.
 
- Including <linux/signal.h> corrects the problem.
+ Since heartbeat threads are stopped when the individual heartbeat sets are
+ removed, this just cleans up the allocation.
 
- Please apply.
+ fs/ocfs2/cluster/nodemanager.c |    1 +
+ 1 files changed, 1 insertion(+)
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 
-diff -ruNpX dontdiff linux-2.6.15/fs/ocfs2/dlm/userdlm.c linux-2.6.15-fix/fs/ocfs2/dlm/userdlm.c
---- linux-2.6.15/fs/ocfs2/dlm/userdlm.c	2006-01-08 23:19:50.000000000 -0500
-+++ linux-2.6.15-fix/fs/ocfs2/dlm/userdlm.c	2006-01-09 12:31:08.056894624 -0500
-@@ -27,7 +27,7 @@
-  * Boston, MA 021110-1307, USA.
-  */
+diff -ruNpX dontdiff linux-2.6.15-staging2/fs/ocfs2/cluster/nodemanager.c linux-2.6.15-ocfs2/fs/ocfs2/cluster/nodemanager.c
+--- linux-2.6.15-staging2/fs/ocfs2/cluster/nodemanager.c	2006-01-08 20:07:52.077646720 -0500
++++ linux-2.6.15-ocfs2/fs/ocfs2/cluster/nodemanager.c	2006-01-08 18:08:59.630943432 -0500
+@@ -685,6 +685,7 @@ static void o2nm_cluster_group_drop_item
+ 	BUG_ON(o2nm_single_cluster != cluster);
+ 	o2nm_single_cluster = NULL;
  
--#include <asm/signal.h>
-+#include <linux/signal.h>
- 
- #include <linux/module.h>
- #include <linux/fs.h>
++	o2hb_free_hb_set(cluster->cl_group.default_groups[1]);
+ 	for (i = 0; cluster->cl_group.default_groups[i]; i++) {
+ 		killme = &cluster->cl_group.default_groups[i]->cg_item;
+ 		cluster->cl_group.default_groups[i] = NULL;
 -- 
 Jeff Mahoney
 SuSE Labs
