@@ -1,61 +1,133 @@
 From: Jeff Mahoney <jeffm@suse.com>
-Date: Mon, 09 Jan 2006 17:34:44 -0500
-Subject: [Ocfs2-devel] [PATCH] ocfs2: actually free hb set on cluster
- removal
-In-Reply-To: <20060109214501.GG3313@ca-server1.us.oracle.com>
-References: <20060109174235.GB25744@locomotive.unixthugs.org>
-	<20060109214501.GG3313@ca-server1.us.oracle.com>
-Message-ID: <43C2E504.5070203@suse.com>
+Date: Mon, 9 Jan 2006 17:39:42 -0500
+Subject: [Ocfs2-devel] [PATCH 02/11] ocfs2: introduce generic heartbeat
+	resource
+Message-ID: <20060109223942.GA8744@locomotive.unixthugs.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
 
-Mark Fasheh wrote:
-> Hi,
-> 
-> On Mon, Jan 09, 2006 at 12:42:35PM -0500, Jeff Mahoney wrote:
->>  Since heartbeat threads are stopped when the individual heartbeat sets are
->>  removed, this just cleans up the allocation.
-> Yes, it seems we're leaking memory there.
-> 
->> +	o2hb_free_hb_set(cluster->cl_group.default_groups[1]);
->>  	for (i = 0; cluster->cl_group.default_groups[i]; i++) {
->>  		killme = &cluster->cl_group.default_groups[i]->cg_item;
->>  		cluster->cl_group.default_groups[i] = NULL;
-> What about the for loop on the next line? Won't that try to access memory
-> freed in the call to o2hb_free_hb_set(...)?                 
-> 	--Mark
+ This patch creates a generic heartbeat "base" object that can be used
+ to create a generic heartbeat implementation.
 
-Hi Mark -
+ Following patches will split the disk-specific heartbeat code out from
+ heartbeat.c, and finally add a user heartbeat implementation that uses
+ the generic implementation.
 
-Apologies, my OCFS2 tree is quite a ways from the stock one. I guess I
-was just overeager pushing patches out that I figured could be applied
-before I started posting the bigger changes.
+ This patch alone is essentially a no-op.
 
-So, yes, of course it will end up freeing memory that will be used
-immediately afterwards. In my tree, o2hb_free_hb_set calls an exit
-callback and decrements some references - no memory is freed.
+  fs/ocfs2/cluster/heartbeat.c |   25 +++++++------------------
+  fs/ocfs2/cluster/heartbeat.h |   20 +++++++++++++++++++-
+  2 files changed, 26 insertions(+), 19 deletions(-)
 
-I had planned on waiting a bit longer to fix up one of the early
-patches, but I guess now is a good a time as any to post them.
+Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 
-So, I'll post them shortly. :)
-
-- -Jeff
-
-- --
-Jeff Mahoney
-SUSE Labs
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.2 (GNU/Linux)
-Comment: Using GnuPG with Thunderbird - http://enigmail.mozdev.org
-
-iD8DBQFDwuUELPWxlyuTD7IRAmyvAJ48v8u7OTHGxdRxwKgnr8/BiepTxQCeLt1G
-iEEluYM73wpSYAnUXvjBQAY=
-=sgXu
------END PGP SIGNATURE-----
+diff -ruNp linux-2.6.15/fs/ocfs2/cluster/heartbeat.c linux-2.6.15-ocfs2/fs/ocfs2/cluster/heartbeat.c
+--- linux-2.6.15/fs/ocfs2/cluster/heartbeat.c	2006-01-06 12:19:15.955298360 -0500
++++ linux-2.6.15-ocfs2/fs/ocfs2/cluster/heartbeat.c	2006-01-06 12:19:25.693817880 -0500
+@@ -107,7 +107,7 @@ struct o2hb_disk_slot {
+ /* each thread owns a region.. when we're asked to tear down the region
+  * we ask the thread to stop, who cleans up the region */
+ struct o2hb_region {
+-	struct config_item	hr_item;
++	struct o2hb_heartbeat_resource hr_res;
+ 
+ 	struct list_head	hr_all_item;
+ 	unsigned		hr_unclean_stop:1;
+@@ -1016,7 +1016,8 @@ EXPORT_SYMBOL_GPL(o2hb_fill_node_map);
+ 
+ static struct o2hb_region *to_o2hb_region(struct config_item *item)
+ {
+-	return item ? container_of(item, struct o2hb_region, hr_item) : NULL;
++	return container_of(to_o2hb_heartbeat_resource(item),
++	                    struct o2hb_region, hr_res);
+ }
+ 
+ /* drop_item only drops its ref after killing the thread, nothing should
+@@ -1380,7 +1381,7 @@ static ssize_t o2hb_region_dev_write(str
+ 	atomic_set(&reg->hr_steady_iterations, O2HB_LIVE_THRESHOLD + 1);
+ 
+ 	reg->hr_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
+-				   reg->hr_item.ci_name);
++				   reg->hr_res.hr_item.ci_name);
+ 	if (IS_ERR(reg->hr_task)) {
+ 		ret = PTR_ERR(reg->hr_task);
+ 		mlog_errno(ret);
+@@ -1498,19 +1499,6 @@ static struct config_item_type o2hb_regi
+ };
+ 
+ /* heartbeat set */
+-
+-struct o2hb_heartbeat_group {
+-	struct config_group hs_group;
+-	/* some stuff? */
+-};
+-
+-static struct o2hb_heartbeat_group *to_o2hb_heartbeat_group(struct config_group *group)
+-{
+-	return group ?
+-		container_of(group, struct o2hb_heartbeat_group, hs_group)
+-		: NULL;
+-}
+-
+ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *group,
+ 							  const char *name)
+ {
+@@ -1521,9 +1509,10 @@ static struct config_item *o2hb_heartbea
+ 	if (reg == NULL)
+ 		goto out; /* ENOMEM */
+ 
+-	config_item_init_type_name(&reg->hr_item, name, &o2hb_region_type);
++	config_item_init_type_name(&reg->hr_res.hr_item, name,
++	                           &o2hb_region_type);
+ 
+-	ret = &reg->hr_item;
++	ret = &reg->hr_res.hr_item;
+ 
+ 	spin_lock(&o2hb_live_lock);
+ 	list_add_tail(&reg->hr_all_item, &o2hb_all_regions);
+diff -ruNp linux-2.6.15/fs/ocfs2/cluster/heartbeat.h linux-2.6.15-ocfs2/fs/ocfs2/cluster/heartbeat.h
+--- linux-2.6.15/fs/ocfs2/cluster/heartbeat.h	2006-01-06 12:19:15.956298208 -0500
++++ linux-2.6.15-ocfs2/fs/ocfs2/cluster/heartbeat.h	2006-01-06 12:19:25.693817880 -0500
+@@ -27,6 +27,7 @@
+ #ifndef O2CLUSTER_HEARTBEAT_H
+ #define O2CLUSTER_HEARTBEAT_H
+ 
++#include <linux/configfs.h>
+ #include "ocfs2_heartbeat.h"
+ 
+ #define O2HB_REGION_TIMEOUT_MS		2000
+@@ -51,6 +52,15 @@ enum o2hb_callback_type {
+ 	O2HB_NUM_CB
+ };
+ 
++struct o2hb_heartbeat_group {
++	struct config_group hs_group;
++	/* some stuff? */
++};
++
++struct o2hb_heartbeat_resource {
++	struct config_item hr_item;
++};
++
+ struct o2nm_node;
+ typedef void (o2hb_cb_func)(struct o2nm_node *, int, void *);
+ 
+@@ -83,5 +93,13 @@ void o2hb_stop_all_regions(void);
+ void o2hb_notify(enum o2hb_callback_type type, struct o2nm_node *node,
+                  int node_num);
+ 
+-
++static inline struct o2hb_heartbeat_group *to_o2hb_heartbeat_group(struct config_group *group)
++{
++	return container_of(group, struct o2hb_heartbeat_group, hs_group);
++}
++
++static inline struct o2hb_heartbeat_resource *to_o2hb_heartbeat_resource(struct config_item *item)
++{
++	return container_of(item, struct o2hb_heartbeat_resource, hr_item);
++}
+ #endif /* O2CLUSTER_HEARTBEAT_H */
