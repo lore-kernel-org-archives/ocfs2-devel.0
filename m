@@ -1,118 +1,117 @@
-From: Jeff Mahoney <jeffm@suse.com>
-Date: Mon, 9 Jan 2006 23:09:56 -0500
-Subject: [Ocfs2-devel] Userspace Cluster Testing HOWTO
-Message-ID: <20060110040956.GA22270@locomotive.unixthugs.org>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Mon, 9 Jan 2006 20:29:59 -0800
+Subject: [Ocfs2-devel] [PATCH 00/11] ocfs2: implement userspace
+	clustering interface
+In-Reply-To: <20060109223942.GA8721@locomotive.unixthugs.org>
+References: <20060109223942.GA8721@locomotive.unixthugs.org>
+Message-ID: <20060110042959.GJ3313@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Jeff,
+	Thanks for sending all these patches out. Once patch 3 is in the
+mailman moderation queue, I'll be sure to let it through - last time was my
+fault as I accidentally deleted it along with the millions of spam messages
+that got caught in there. I'll start with some higher level commentary while
+I try to absorb the patchset :) More commentary will come later for sure.
 
-OCFS2 Userspace Cluster HOWTO
-*****************************
+To get the most nit-picky request out of the way, I noticed that many of the
+functions you add (including file system functions) don't have a prefix.
+It'd be nice if you could keep that consistent with the rest of the code in
+their respective files.
 
-This document will lay out, briefly, how to use the userspace
-cluster manager interface. I will use several shorthand terms,
-defined as follows:
- * <cluster> -> <configfs>/cluster/<clustername>
- * o2cb -> <initscripts>/o2cb
+On to more important things:
 
-One of the things that has changed from the old one-heartbeat
-implementation is that the heartbeat modes have been split out
-into modules. This means that you'll need to either change your
-o2cb script to load the appropriate mode module prior to starting
-the cluster, or you'll need to load it yourself.
+I'm a bit worried about the new methods for querying heartbeat information,
+specifically that things are jumping from all heartbeat status being global
+(in the sense that it's collated into one giant map) to it being specific to
+a given region. Things like the dlm domain joining code have expected it to
+be global for some time now. Tcp had a similar assumption which you had to
+fix in patch #8. Of course there, it was easy to work around. I need to
+think more on this. Things might actually be ok, but it's not something I
+expected to change.
 
-The disk mode module is called ocfs2_disk_heartbeat. The user mode
-module is called ocfs2_user_heartbeat. Both may be loaded at the
-same time, but only one may be active. Choosing which one is
-active is controlled by /sys/o2cb/heartbeat_mode. This file will
-contain "inactive" if no mode module is loaded, but will otherwise
-contain the active mode's name. When the first mode module is loaded,
-it will automatically become the active mode. The mode cannot be
-changed while a cluster is active, so before changing modes, make
-sure that <configfs>/cluster is empty, otherwise the write will fail
-with -EBUSY. If you attempt to change to a mode that isn't loaded,
-the write will fail with -EINVAL.
+Is there any userspace source available that makes use of this yet? Hmm, I
+see that you sent a description of what's required from userspace. Perhaps
+that'll answer some more questions :)
+	--Mark
 
-To reiterate: With these patches applied, o2cb will fail to start
-without modification. There is no way to keep them as separate
-modules and have it automatically load since it creates a dependency
-loop when ocfs2_nodemanager's module_init requests ocfs2_disk_heartbeat.
-ocfs2_nodemanager technically isn't finished loading, so it locks up.
-
-I suppose it would be possible to just link in the disk heartbeat by
-default without much more hassle and avoid this problem entirely.
-
-** Quick start
-
-The easiest way to set up a quick userspace managed cluster is to unload
-the disk mode module, load the user mode module, and restart o2cb. This
-will automatically populate your node/ directory, and allow you to get
-started creating heartbeat resources right away.
-
-Otherwise, you'll need to populate the node/ directory manually.
-
-** Interface basics
-
-ConfigFS allows the user to create symbolic links to objects inside
-the configfs namespace. This seemed like a natural way to allow the
-user to manage heartbeat resources in an intuitive manner.
-
-In order to create a userspace-managed heartbeat resource, the
-<cluster>/node/ must be populated. There is no real reason why this
-can't be done dynamically. The format of each node is unchanged
-from the disk-based heartbeat.
-
-Once the nodes are configured, a heartbeat resource can be defined
-by creating a directory under <cluster>/heartbeat. Like the disk
-heartbeat, this should be named with the capitalized UUID string of
-the file system to be mounted. Unlike the disk heartbeat, the directory
-will be created completely empty. This is normal.
-
-To add nodes to the resource, you create a symbolic link from the node
-you want to add in <cluster>/node to the <cluster>/heartbeat/<uuid>
-directory. This should be done at approximately the same time on all
-nodes affected by the changes. The solution we plan to use is to have
-the Linux HA hb2 project manage all this, but for testing, just cut
-and paste the changes into sessions on each node. Every time a link
-is created, a node up event is issued.
-
-To inform the kernel that a node has left the resource, whether by
-crashing or umounting the file system, remove the link. The underlying
-layers will make the determination themselves if the event was expected
-or not, the same as how it is handled with the disk heartbeat.
-
-Once you've created a heartbeat resource and added, minimally, the local
-node, you'll be able to mount a file system. One thing to be sure about
-though is that there are no kernel threads automatically managing
-membership anymore. If you want to define two separate heartbeat groups
-on multiple nodes with different memberships, it will be perfectly
-happy to allow you to do so.
-
-A quick way to get the UUID in the format heartbeat needs is this:
-% mounted.ocfs2 -d <dev>|tail -1|awk '{print $3}'|tr -d -- -|tr a-z A-Z
-
-** Example
-
-% o2cb stop
-% rmmod ocfs2_disk_heartbeat
-% modprobe ocfs2_user_heartbeat
-% o2cb start
-% cat /sys/o2cb/heartbeat_mode
-
-Verify that the output contains "user".
-
-At this point <cluster>/node contains a number of directories,
-corresponding to your node membership
-
-% cd <cluster>/heartbeat
-% UUID=`mounted.ocfs2 -d <dev>|tail -1|awk '{print $3}'|tr -d -- -|tr a-z A-Z`
-% mkdir $UUID
-% cd $UUID
-% ln -s ../../node/* .
-
-Execute this on all nodes and all nodes will be a part of the
-resource and in sync. The file system will be able to be mounted
-normally.
+On Mon, Jan 09, 2006 at 05:39:42PM -0500, Jeff Mahoney wrote:
+> 
+> Hello all -
+> 
+> As mentioned in my last email, here are my patches for implementing a userspace
+> clustering interface.
+> 
+> These should be considered early beta, but I very much welcome comment.
+> 
+> A quick preview:
+> 01 - event driven quorum: o2net will no longer call into quorum
+>      directly, but rather generate events that quorum will hook into.
+>      Unfortunately, I've run into a bit of a snag with this since there
+>      are two places where recursive events can be generated (ie: a
+>      connection event generated when handling a node up/down event) and
+>      that causes deadlocks on the o2hb_callback_sem. This is really
+>      the only patch the entire series is waiting on sorting out.
+> 02 - introduce generic heartbeat resource: initially, this will
+>      just contain a config_item and will replace the config_item
+>      in o2hb_region. Eventually, it will be used as a handle for a
+>      generic heartbeat resource, including several operations.
+> 03 - split disk heartbeat out from the generic heartbeat: They'll still
+>      be closely tied, but going their separate ways. This patch
+>      intentionally does very little other than move code around without
+>      modifying it.
+> 04 - add a heartbeat registration API: This expands the generic
+>      heartbeat group structure to include the type information as well
+>      as a few operations necessary to abstract the heartbeat resource.
+>      In addition, it adds a mechanism for registering a group mode. It
+>      uses the first mode loaded. Since disk is the only mode at this
+>      point, there is no way to switch. This will be added later.
+> 05 - add per-resource events: callbacks can define that they only want
+>      events from a particular heartbeat resource, and will only receive
+>      events for those. This is useful for only sending the file system
+>      the events from the heartbeat resource it's listening to.
+> 06 - per-resource membership: fill_node_map can take a resource name
+>      (UUID) to use for filling the membership bitmap passed in. If NULL
+>      is passed, it uses a global up/down. No changes to the disk
+>      heartbeat other than prototype changes are needed, since it still
+>      keeps a global membership.
+> 07 - o2net refcounted disconnect: Rather than disconnect when a node
+>      down event is caught by o2net, it waits until the last reference
+>      is dropped. This is useful for userspace heartbeat since it can
+>      take down a disk resource but the network resource will still be
+>      available.
+> 08 - add check_node_status: The userspace heartbeat implementation
+>      allows the caller to check on a per-node, per-resource basis if
+>      a particular node is up. Building the global list is a bigger deal,
+>      so when that is avoidable, it does so.
+> 09 - add /sys/o2cb/heartbeat_mode: This patch allows the user to select
+>      which mode heartbeat will use. It requires that the change be made
+>      before the cluster is created.
+> 10 - add userspace clustering: The real goal of all this. This will
+>      allow the user to create heartbeat directories as before, but
+>      rather than supplying disk information, it allows the user to
+>      create symlinks to communicate the current node membership for
+>      a given heartbeat group. Since configfs doesn't allow dangling
+>      symlinks, this is an easy way to intuitively configure heartbeat
+>      resources from userspace. Node UP events are generated when a link
+>      is created and node DOWN events are generated when a link is
+>      removed.
+> 
+> -Jeff
+> 
+> --
+> Jeff Mahoney
+> SUSE Labs
+>  
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh at oracle.com
