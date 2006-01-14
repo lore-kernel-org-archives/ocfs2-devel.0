@@ -1,25 +1,29 @@
-From: J. Bruce Fields <bfields@fieldses.org>
-Date: Wed, 11 Jan 2006 18:17:29 -0500
-Subject: [Ocfs2-devel] NFS exports of cluster filesystems
-In-Reply-To: <20060111231107.GY3313@ca-server1.us.oracle.com>
-References: <20051216211736.GA14415@fieldses.org>
-	<20060103183047.GD11551@fieldses.org>
-	<20060111212500.GJ27971@fieldses.org>
-	<20060111214905.GW3313@ca-server1.us.oracle.com>
-	<20060111215500.GA8618@fieldses.org>
-	<20060111231107.GY3313@ca-server1.us.oracle.com>
-Message-ID: <20060111231729.GI8618@fieldses.org>
+From: Adrian Bunk <bunk@stusta.de>
+Date: Sat, 14 Jan 2006 20:55:10 +0100
+Subject: [Ocfs2-devel] [-mm patch] fs/ocfs2/dlm/dlmrecovery.c must #include
+	<linux/delay.h>
+Message-ID: <20060114195510.GQ29663@stusta.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mark.fasheh@oracle.com, kurt.hackel@oracle.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Wed, Jan 11, 2006 at 03:11:07PM -0800, Mark Fasheh wrote:
-> I assume you simply forgot the "Signed-off-by:" line?
+fs/ocfs2/dlm/dlmrecovery.c does now use msleep(), and does therefore 
+need to #include <linux/delay.h> for getting the prototype of this 
+function.
 
-Signed-off-by: J. Bruce Fields <bfields@citi.umich.edu>
 
-Wouldn't want to mis-assign the blame for that one.
+Signed-off-by: Adrian Bunk <bunk@stusta.de>
 
---b.
+--- linux-2.6.15-mm4-full/fs/ocfs2/dlm/dlmrecovery.c.old	2006-01-14 16:44:15.000000000 +0100
++++ linux-2.6.15-mm4-full/fs/ocfs2/dlm/dlmrecovery.c	2006-01-14 16:45:06.000000000 +0100
+@@ -39,6 +39,7 @@
+ #include <linux/inet.h>
+ #include <linux/timer.h>
+ #include <linux/kthread.h>
++#include <linux/delay.h>
+ 
+ 
+ #include "cluster/heartbeat.h"
