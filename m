@@ -1,29 +1,25 @@
-From: Adrian Bunk <bunk@stusta.de>
-Date: Sat, 14 Jan 2006 20:55:10 +0100
-Subject: [Ocfs2-devel] [-mm patch] fs/ocfs2/dlm/dlmrecovery.c must #include
-	<linux/delay.h>
-Message-ID: <20060114195510.GQ29663@stusta.de>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Sun, 15 Jan 2006 22:28:44 -0800
+Subject: [Ocfs2-devel] [-mm patch] fs/ocfs2/dlm/dlmrecovery.c must
+	#include <linux/delay.h>
+In-Reply-To: <20060114195510.GQ29663@stusta.de>
+References: <20060114195510.GQ29663@stusta.de>
+Message-ID: <20060116062844.GE6373@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mark.fasheh@oracle.com, kurt.hackel@oracle.com
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Adrian Bunk <bunk@stusta.de>
+Cc: kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-fs/ocfs2/dlm/dlmrecovery.c does now use msleep(), and does therefore 
-need to #include <linux/delay.h> for getting the prototype of this 
-function.
+On Sat, Jan 14, 2006 at 08:55:10PM +0100, Adrian Bunk wrote:
+> fs/ocfs2/dlm/dlmrecovery.c does now use msleep(), and does therefore 
+> need to #include <linux/delay.h> for getting the prototype of this 
+> function.
+That looks good - thanks Adrian.
+	--Mark
 
-
-Signed-off-by: Adrian Bunk <bunk@stusta.de>
-
---- linux-2.6.15-mm4-full/fs/ocfs2/dlm/dlmrecovery.c.old	2006-01-14 16:44:15.000000000 +0100
-+++ linux-2.6.15-mm4-full/fs/ocfs2/dlm/dlmrecovery.c	2006-01-14 16:45:06.000000000 +0100
-@@ -39,6 +39,7 @@
- #include <linux/inet.h>
- #include <linux/timer.h>
- #include <linux/kthread.h>
-+#include <linux/delay.h>
- 
- 
- #include "cluster/heartbeat.h"
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh at oracle.com
