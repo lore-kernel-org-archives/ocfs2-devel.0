@@ -1,8 +1,7 @@
 From: Jeff Mahoney <jeffm@suse.com>
 Date: Tue, 21 Feb 2006 11:57:30 -0500
-Subject: [Ocfs2-devel] [PATCH 04/14] ocfs2: introduce generic heartbeat
-	resource
-Message-ID: <20060221165730.GA11859@locomotive.unixthugs.org>
+Subject: [Ocfs2-devel] [PATCH 03/14] ocfs2: event-driven quorum
+Message-ID: <20060221165730.GA11848@locomotive.unixthugs.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,123 +9,471 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
- This patch creates a generic heartbeat "base" object that can be used
- to create a generic heartbeat implementation.
+ This patch separates o2net and o2quo from knowing about one another as much
+ as possible. This is the first in a series of patches that will allow
+ userspace cluster interaction. Quorum is separated out first, and will
+ ultimately only be associated with the disk heartbeat as a separate module.
 
- Following patches will split the disk-specific heartbeat code out from
- heartbeat.c, and finally add a user heartbeat implementation that uses
- the generic implementation.
+ To do so, this patch performs the following changes:
+ * Introduces an event notifier for o2net events. These should be synchronous
+   and as such, the in-kernel notifier_block implementation suits this
+   perfectly. notifier_blocks can be registered and unregistered with
+   o2net_{,un}register_notifier() and events are issued by o2net_notify().
+ * Where o2net used to call o2quo functions directly, o2net events are now
+   issued. o2quo registers as a listener for these events and handles them
+   appropriately.
+ * o2quo heartbeat callbacks are now called directly by heartbeat rather
+   than going through o2net. Previously, o2net callbacks called o2quo callbacks
+   immediately. This ordering is preserved by increasing o2quo's priority over
+   o2net.
+ * o2net knowledge of o2quo in header files has been moved to quorum.h
+ * o2net's handling of quorum decisions on connection failure has been
+   moved to o2quo.
+ * o2quo is initialized by the nodemanager rather than by o2net.
 
- This patch alone is essentially a no-op.
-
- fs/ocfs2/cluster/heartbeat.c |   25 +++++++------------------
- fs/ocfs2/cluster/heartbeat.h |   19 +++++++++++++++++++
- 2 files changed, 26 insertions(+), 18 deletions(-)
+ fs/ocfs2/cluster/nodemanager.c  |    3 +
+ fs/ocfs2/cluster/quorum.c       |   92 +++++++++++++++++++++++++++++++++++++---
+ fs/ocfs2/cluster/quorum.h       |   13 ++---
+ fs/ocfs2/cluster/tcp.c          |   59 ++++++++++++++-----------
+ fs/ocfs2/cluster/tcp.h          |   11 ++++
+ fs/ocfs2/cluster/tcp_internal.h |   12 -----
+ 6 files changed, 142 insertions(+), 48 deletions(-)
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:41:25.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:44:31.000000000 -0500
-@@ -107,7 +107,7 @@ struct o2hb_disk_slot {
- /* each thread owns a region.. when we're asked to tear down the region
-  * we ask the thread to stop, who cleans up the region */
- struct o2hb_region {
--	struct config_item	hr_item;
-+	struct o2hb_heartbeat_resource hr_res;
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:30.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:30.000000000 -0500
+@@ -28,6 +28,7 @@
+ #include "endian.h"
+ #include "tcp.h"
+ #include "nodemanager.h"
++#include "quorum.h"
+ #include "heartbeat.h"
+ #include "masklog.h"
+ #include "ver.h"
+@@ -755,6 +756,7 @@ static void __exit exit_o2nm(void)
+ 	o2net_proc_exit(o2nm_proc);
+ 	remove_proc_entry(O2NM_PROC_PATH, NULL);
  
- 	struct list_head	hr_all_item;
- 	unsigned		hr_unclean_stop:1;
-@@ -998,7 +998,8 @@ EXPORT_SYMBOL_GPL(o2hb_fill_node_map);
- 
- static struct o2hb_region *to_o2hb_region(struct config_item *item)
- {
--	return item ? container_of(item, struct o2hb_region, hr_item) : NULL;
-+	return container_of(to_o2hb_heartbeat_resource(item),
-+	                    struct o2hb_region, hr_res);
++	o2quo_exit();
+ 	o2net_exit();
  }
  
- /* drop_item only drops its ref after killing the thread, nothing should
-@@ -1362,7 +1363,7 @@ static ssize_t o2hb_region_dev_write(str
- 	atomic_set(&reg->hr_steady_iterations, O2HB_LIVE_THRESHOLD + 1);
+@@ -855,6 +857,7 @@ static int __init init_o2nm(void)
+ 	cluster_print_version();
  
- 	reg->hr_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
--				   reg->hr_item.ci_name);
-+				   reg->hr_res.hr_item.ci_name);
- 	if (IS_ERR(reg->hr_task)) {
- 		ret = PTR_ERR(reg->hr_task);
- 		mlog_errno(ret);
-@@ -1480,19 +1481,6 @@ static struct config_item_type o2hb_regi
- };
+ 	o2hb_init();
++	o2quo_init();
+ 	o2net_init();
  
- /* heartbeat set */
+ 	ocfs2_table_header = register_sysctl_table(ocfs2_root_table, 0);
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/quorum.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/quorum.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/quorum.c	2006-02-20 13:51:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/quorum.c	2006-02-21 11:44:30.000000000 -0500
+@@ -48,6 +48,7 @@
+ #include <linux/workqueue.h>
+ 
+ #include "heartbeat.h"
++#include "tcp.h"
+ #include "nodemanager.h"
+ #define MLOG_MASK_PREFIX ML_QUORUM
+ #include "masklog.h"
+@@ -63,8 +64,13 @@ static struct o2quo_state {
+ 	unsigned long		qs_conn_bm[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ 	int			qs_holds;
+ 	unsigned long		qs_hold_bm[BITS_TO_LONGS(O2NM_MAX_NODES)];
++	struct work_struct	qs_node_work[O2NM_MAX_NODES];
+ } o2quo_state;
+ 
++static struct o2hb_callback_func o2quo_hb_up_cb, o2quo_hb_down_cb;
++#define O2QUO_HB_PRI 0x1
++#define O2QUO_DELAY_MS   ((o2hb_dead_threshold + 2) * O2HB_REGION_TIMEOUT_MS)
++
+ /* this is horribly heavy-handed.  It should instead flip the file
+  * system RO and call some userspace script. */
+ static void o2quo_fence_self(void)
+@@ -184,7 +190,7 @@ static void o2quo_clear_hold(struct o2qu
+  * the connection.  the hold will be droped in conn_up or hb_down.  it might be
+  * perpetuated by con_err until hb_down.  if we already have a conn, we might
+  * be dropping a hold that conn_up got. */
+-void o2quo_hb_up(u8 node)
++static void o2quo_hb_up(struct o2nm_node *_node, int node, void *data)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+@@ -208,7 +214,7 @@ void o2quo_hb_up(u8 node)
+ 
+ /* hb going down releases any holds we might have had due to this node from
+  * conn_up, conn_err, or hb_up */
+-void o2quo_hb_down(u8 node)
++static void o2quo_hb_down(struct o2nm_node *_node, int node, void *data)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+@@ -226,6 +232,8 @@ void o2quo_hb_down(u8 node)
+ 	o2quo_clear_hold(qs, node);
+ 
+ 	spin_unlock(&qs->qs_lock);
++
++	cancel_delayed_work(&qs->qs_node_work[node]);
+ }
+ 
+ /* this tells us that we've decided that the node is still heartbeating
+@@ -233,9 +241,10 @@ void o2quo_hb_down(u8 node)
+  * and indicates that we must now make a quorum decision in the future,
+  * though we might be doing so after waiting for holds to drain.  Here
+  * we'll be dropping the hold from conn_err. */
+-void o2quo_hb_still_up(u8 node)
++void o2quo_hb_still_up(void *arg)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
++	u8 node = (long)arg;
+ 
+ 	spin_lock(&qs->qs_lock);
+ 
+@@ -278,7 +287,7 @@ void o2quo_conn_up(u8 node)
+  * still heartbeating we grab a hold that will delay decisions until either the
+  * node stops heartbeating from hb_down or the caller decides that the node is
+  * still up and calls still_up */
+-void o2quo_conn_err(u8 node)
++void o2quo_conn_down(u8 node)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
+ 
+@@ -301,15 +310,88 @@ void o2quo_conn_err(u8 node)
+ 	spin_unlock(&qs->qs_lock);
+ }
+ 
+-void o2quo_init(void)
++void o2quo_conn_err(u8 node)
++{
++	struct o2quo_state *qs = &o2quo_state;
++	o2quo_conn_down(node);
++	schedule_delayed_work(&qs->qs_node_work[node],
++	                      msecs_to_jiffies(O2QUO_DELAY_MS));
++}
++
++static int o2quo_net_notifier(struct notifier_block *self, unsigned long type,
++                              void *data)
++{
++	u8 node_num = *(u8 *) data;
++	switch (type) {
++	case O2NET_CONN_UP:
++                o2quo_conn_up(node_num);
++                break;
++	case O2NET_CONN_DOWN:
++                o2quo_conn_down(node_num);
++                break;
++	case O2NET_CONN_ERR:
++                o2quo_conn_err(node_num);
++                break;
++	}
++
++	return 0;
++}
++
++static struct notifier_block o2quo_net_nb = {
++	.notifier_call = o2quo_net_notifier,
++};
++
++static void o2quo_unregister_hb_callbacks(void)
++{
++	int ret;
++
++	ret = o2hb_unregister_callback(&o2quo_hb_up_cb);
++	if (ret < 0)
++		mlog(ML_ERROR, "Status return %d unregistering heartbeat up "
++		     "callback!\n", ret);
++
++	ret = o2hb_unregister_callback(&o2quo_hb_down_cb);
++	if (ret < 0)
++		mlog(ML_ERROR, "Status return %d unregistering heartbeat down "
++		     "callback!\n", ret);
++}
++
++static int o2quo_register_hb_callbacks(void)
++{
++	int ret;
++
++	o2hb_setup_callback(&o2quo_hb_down_cb, O2HB_NODE_DOWN_CB,
++	                    o2quo_hb_down, NULL, O2QUO_HB_PRI);
++	o2hb_setup_callback(&o2quo_hb_up_cb, O2HB_NODE_UP_CB,
++	                    o2quo_hb_up, NULL, O2QUO_HB_PRI);
++
++	ret = o2hb_register_callback(&o2quo_hb_up_cb);
++	if (ret == 0)
++		ret = o2hb_register_callback(&o2quo_hb_down_cb);
++
++	if (ret)
++		o2quo_unregister_hb_callbacks();
++
++	return ret;
++}
++
++int o2quo_init(void)
+ {
+ 	struct o2quo_state *qs = &o2quo_state;
++	long i;
+ 
+ 	spin_lock_init(&qs->qs_lock);
+ 	INIT_WORK(&qs->qs_work, o2quo_make_decision, NULL);
++	for (i = 0; i < O2NM_MAX_NODES; i++)
++		INIT_WORK(&qs->qs_node_work[i], o2quo_hb_still_up, (void *)i);
++
++	o2net_register_notifier(&o2quo_net_nb);
++	return o2quo_register_hb_callbacks();
+ }
+ 
+ void o2quo_exit(void)
+ {
+ 	flush_scheduled_work();
++	o2quo_unregister_hb_callbacks();
++	o2net_unregister_notifier(&o2quo_net_nb);
+ }
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/quorum.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/quorum.h
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/quorum.h	2006-02-20 13:51:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/quorum.h	2006-02-21 11:44:30.000000000 -0500
+@@ -23,14 +23,13 @@
+ #ifndef O2CLUSTER_QUORUM_H
+ #define O2CLUSTER_QUORUM_H
+ 
+-void o2quo_init(void);
++int o2quo_init(void);
+ void o2quo_exit(void);
 -
--struct o2hb_heartbeat_group {
--	struct config_group hs_group;
--	/* some stuff? */
--};
+-void o2quo_hb_up(u8 node);
+-void o2quo_hb_down(u8 node);
+-void o2quo_hb_still_up(u8 node);
+-void o2quo_conn_up(u8 node);
+-void o2quo_conn_err(u8 node);
+ void o2quo_disk_timeout(void);
+ 
++/* we're delaying our quorum decision so that heartbeat will have timed
++ * out truly dead nodes by the time we come around to making decisions
++ * on their number */
++#define O2NET_QUORUM_DELAY_MS	((o2hb_dead_threshold + 2) * O2HB_REGION_TIMEOUT_MS)
++
+ #endif /* O2CLUSTER_QUORUM_H */
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp.c	2006-02-21 11:41:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp.c	2006-02-21 11:44:30.000000000 -0500
+@@ -67,7 +67,6 @@
+ #include "nodemanager.h"
+ #define MLOG_MASK_PREFIX ML_TCP
+ #include "masklog.h"
+-#include "quorum.h"
+ 
+ #include "tcp_internal.h"
+ 
+@@ -110,7 +109,6 @@
+ 
+ static rwlock_t o2net_handler_lock = RW_LOCK_UNLOCKED;
+ static struct rb_root o2net_handler_tree = RB_ROOT;
 -
--static struct o2hb_heartbeat_group *to_o2hb_heartbeat_group(struct config_group *group)
+ static struct o2net_node o2net_nodes[O2NM_MAX_NODES];
+ 
+ /* XXX someday we'll need better accounting */
+@@ -128,7 +126,10 @@ static struct workqueue_struct *o2net_wq
+ static struct work_struct o2net_listen_work;
+ 
+ static struct o2hb_callback_func o2net_hb_up, o2net_hb_down;
+-#define O2NET_HB_PRI 0x1
++#define O2NET_HB_PRI 0x2
++
++static struct notifier_block *o2net_notifier_list;
++static DECLARE_MUTEX(o2net_notifier_mutex);
+ 
+ static struct o2net_handshake *o2net_hand;
+ static struct o2net_msg *o2net_keep_req, *o2net_keep_resp;
+@@ -401,9 +402,7 @@ static void o2net_set_nn_state(struct o2
+ 		wake_up(&nn->nn_sc_wq);
+ 
+ 	if (!was_err && nn->nn_persistent_error) {
+-		o2quo_conn_err(o2net_num_from_nn(nn));
+-		queue_delayed_work(o2net_wq, &nn->nn_still_up,
+-				   msecs_to_jiffies(O2NET_QUORUM_DELAY_MS));
++		o2net_notify(O2NET_CONN_ERR, o2net_num_from_nn(nn));
+ 	}
+ 
+ 	if (was_valid && !valid) {
+@@ -413,7 +412,8 @@ static void o2net_set_nn_state(struct o2
+ 	}
+ 
+ 	if (!was_valid && valid) {
+-		o2quo_conn_up(o2net_num_from_nn(nn));
++		o2net_notify(O2NET_CONN_UP, o2net_num_from_nn(nn));
++
+ 		/* this is a bit of a hack.  we only try reconnecting
+ 		 * when heartbeating starts until we get a connection.
+ 		 * if that connection then dies we don't try reconnecting.
+@@ -1450,13 +1450,6 @@ static void o2net_connect_expired(void *
+ 	spin_unlock(&nn->nn_lock);
+ }
+ 
+-static void o2net_still_up(void *arg)
 -{
--	return group ?
--		container_of(group, struct o2hb_heartbeat_group, hs_group)
--		: NULL;
+-	struct o2net_node *nn = arg;
+-
+-	o2quo_hb_still_up(o2net_num_from_nn(nn));
 -}
 -
- static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *group,
- 							  const char *name)
+ /* ------------------------------------------------------------ */
+ 
+ void o2net_disconnect_node(struct o2nm_node *node)
+@@ -1471,7 +1464,6 @@ void o2net_disconnect_node(struct o2nm_n
+ 	if (o2net_wq) {
+ 		cancel_delayed_work(&nn->nn_connect_expired);
+ 		cancel_delayed_work(&nn->nn_connect_work);
+-		cancel_delayed_work(&nn->nn_still_up);
+ 		flush_workqueue(o2net_wq);
+ 	}
+ }
+@@ -1479,8 +1471,6 @@ void o2net_disconnect_node(struct o2nm_n
+ static void o2net_hb_node_down_cb(struct o2nm_node *node, int node_num,
+ 				  void *data)
  {
-@@ -1503,9 +1491,10 @@ static struct config_item *o2hb_heartbea
- 	if (reg == NULL)
- 		goto out; /* ENOMEM */
+-	o2quo_hb_down(node_num);
+-
+ 	if (node_num != o2nm_this_node())
+ 		o2net_disconnect_node(node);
+ }
+@@ -1490,8 +1480,6 @@ static void o2net_hb_node_up_cb(struct o
+ {
+ 	struct o2net_node *nn = o2net_nn_from_num(node_num);
  
--	config_item_init_type_name(&reg->hr_item, name, &o2hb_region_type);
-+	config_item_init_type_name(&reg->hr_res.hr_item, name,
-+	                           &o2hb_region_type);
+-	o2quo_hb_up(node_num);
+-
+ 	/* ensure an immediate connect attempt */
+ 	nn->nn_last_connect_attempt = jiffies -
+ 		(msecs_to_jiffies(O2NET_RECONNECT_DELAY_MS) + 1);
+@@ -1781,7 +1769,7 @@ int o2net_start_listening(struct o2nm_no
+ 		destroy_workqueue(o2net_wq);
+ 		o2net_wq = NULL;
+ 	} else
+-		o2quo_conn_up(node->nd_num);
++		o2net_notify(O2NET_CONN_UP, node->nd_num);
  
--	ret = &reg->hr_item;
-+	ret = &reg->hr_res.hr_item;
+ 	return ret;
+ }
+@@ -1818,17 +1806,39 @@ void o2net_stop_listening(struct o2nm_no
+ 	sock_release(o2net_listen_sock);
+ 	o2net_listen_sock = NULL;
  
- 	spin_lock(&o2hb_live_lock);
- 	list_add_tail(&reg->hr_all_item, &o2hb_all_regions);
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:41:25.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:31.000000000 -0500
-@@ -27,6 +27,7 @@
- #ifndef O2CLUSTER_HEARTBEAT_H
- #define O2CLUSTER_HEARTBEAT_H
+-	o2quo_conn_err(node->nd_num);
++	o2net_notify(O2NET_CONN_DOWN, node->nd_num);
+ }
  
-+#include <linux/configfs.h>
- #include "ocfs2_heartbeat.h"
++void o2net_register_notifier(struct notifier_block *nb)
++{
++	down(&o2net_notifier_mutex);
++	notifier_chain_register(&o2net_notifier_list, nb);
++	up(&o2net_notifier_mutex);
++}
++EXPORT_SYMBOL_GPL(o2net_register_notifier);
++
++void o2net_unregister_notifier(struct notifier_block *nb)
++{
++	down(&o2net_notifier_mutex);
++	notifier_chain_unregister(&o2net_notifier_list, nb);
++	up(&o2net_notifier_mutex);
++}
++EXPORT_SYMBOL_GPL(o2net_unregister_notifier);
++
++void o2net_notify(enum o2net_notifier_type type, u8 node_num)
++{
++	down(&o2net_notifier_mutex);
++	notifier_call_chain(&o2net_notifier_list, type, &node_num);
++	up(&o2net_notifier_mutex);
++}
++EXPORT_SYMBOL_GPL(o2net_notify);
++
+ /* ------------------------------------------------------------ */
  
- #define O2HB_REGION_TIMEOUT_MS		2000
-@@ -52,6 +53,15 @@ enum o2hb_callback_type {
- 	O2HB_NUM_CB
+ int o2net_init(void)
+ {
+ 	unsigned long i;
+ 
+-	o2quo_init();
+-
+ 	o2net_hand = kcalloc(1, sizeof(struct o2net_handshake), GFP_KERNEL);
+ 	o2net_keep_req = kcalloc(1, sizeof(struct o2net_msg), GFP_KERNEL);
+ 	o2net_keep_resp = kcalloc(1, sizeof(struct o2net_msg), GFP_KERNEL);
+@@ -1847,11 +1857,11 @@ int o2net_init(void)
+ 
+ 	for (i = 0; i < ARRAY_SIZE(o2net_nodes); i++) {
+ 		struct o2net_node *nn = o2net_nn_from_num(i);
++		memset(nn, 0, sizeof (*nn));
+ 
+ 		spin_lock_init(&nn->nn_lock);
+ 		INIT_WORK(&nn->nn_connect_work, o2net_start_connect, nn);
+ 		INIT_WORK(&nn->nn_connect_expired, o2net_connect_expired, nn);
+-		INIT_WORK(&nn->nn_still_up, o2net_still_up, nn);
+ 		/* until we see hb from a node we'll return einval */
+ 		nn->nn_persistent_error = -ENOTCONN;
+ 		init_waitqueue_head(&nn->nn_sc_wq);
+@@ -1864,7 +1874,6 @@ int o2net_init(void)
+ 
+ void o2net_exit(void)
+ {
+-	o2quo_exit();
+ 	kfree(o2net_hand);
+ 	kfree(o2net_keep_req);
+ 	kfree(o2net_keep_resp);
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp.h
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp.h	2006-02-21 11:41:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp.h	2006-02-21 11:44:30.000000000 -0500
+@@ -50,6 +50,13 @@ struct o2net_msg
+ 	__u8  buf[0];
  };
  
-+struct o2hb_heartbeat_group {
-+	struct config_group hs_group;
-+	/* some stuff? */
++enum o2net_notifier_type {
++	O2NET_CONN_UP,
++	O2NET_CONN_DOWN,
++	O2NET_CONN_ERR,
++	O2NET_MAX_NOTIFIER,
 +};
 +
-+struct o2hb_heartbeat_resource {
-+	struct config_item hr_item;
-+};
-+
- struct o2nm_node;
- typedef void (o2hb_cb_func)(struct o2nm_node *, int, void *);
+ typedef int (o2net_msg_handler_func)(struct o2net_msg *msg, u32 len, void *data);
  
-@@ -84,4 +94,13 @@ int o2hb_check_local_node_heartbeating(v
- int o2hb_check_local_node_heartbeating_from_callback(void);
- void o2hb_stop_all_regions(void);
+ #define O2NET_MAX_PAYLOAD_BYTES  (4096 - sizeof(struct o2net_msg))
+@@ -105,6 +112,10 @@ int o2net_start_listening(struct o2nm_no
+ void o2net_stop_listening(struct o2nm_node *node);
+ void o2net_disconnect_node(struct o2nm_node *node);
  
-+static inline struct o2hb_heartbeat_group *to_o2hb_heartbeat_group(struct config_group *group)
-+{
-+	return container_of(group, struct o2hb_heartbeat_group, hs_group);
-+}
++void o2net_register_notifier(struct notifier_block *nb);
++void o2net_unregister_notifier(struct notifier_block *nb);
++void o2net_notify(enum o2net_notifier_type type, u8 node_num);
 +
-+static inline struct o2hb_heartbeat_resource *to_o2hb_heartbeat_resource(struct config_item *item)
-+{
-+	return container_of(item, struct o2hb_heartbeat_resource, hr_item);
-+}
- #endif /* O2CLUSTER_HEARTBEAT_H */
+ int o2net_init(void);
+ void o2net_exit(void);
+ int o2net_proc_init(struct proc_dir_entry *parent);
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp_internal.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp_internal.h
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp_internal.h	2006-02-21 11:41:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp_internal.h	2006-02-21 11:44:30.000000000 -0500
+@@ -30,12 +30,7 @@
+ #define O2NET_MSG_KEEP_RESP_MAGIC ((u16)0xfa58)
+ 
+ /* same as hb delay, we're waiting for another node to recognize our hb */
+-#define O2NET_RECONNECT_DELAY_MS	O2HB_REGION_TIMEOUT_MS
+-
+-/* we're delaying our quorum decision so that heartbeat will have timed
+- * out truly dead nodes by the time we come around to making decisions
+- * on their number */
+-#define O2NET_QUORUM_DELAY_MS	((o2hb_dead_threshold + 2) * O2HB_REGION_TIMEOUT_MS)
++#define O2NET_RECONNECT_DELAY_MS	2000	
+ 
+ #define O2NET_KEEPALIVE_DELAY_SECS	5
+ #define O2NET_IDLE_TIMEOUT_SECS		10
+@@ -79,11 +74,6 @@ struct o2net_node {
+ 	 * established.  this expiring gives up on the node and errors out
+ 	 * transmits */
+ 	struct work_struct		nn_connect_expired;
+-
+-	/* after we give up on a socket we wait a while before deciding
+-	 * that it is still heartbeating and that we should do some
+-	 * quorum work */
+-	struct work_struct		nn_still_up;
+ };
+ 
+ struct o2net_sock_container {
