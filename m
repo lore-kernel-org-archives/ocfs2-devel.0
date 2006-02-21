@@ -1,7 +1,7 @@
 From: Jeff Mahoney <jeffm@suse.com>
-Date: Tue, 21 Feb 2006 11:57:32 -0500
-Subject: [Ocfs2-devel] [PATCH 13/14] ocfs2: add userspace clustering
-Message-ID: <20060221165732.GA11970@locomotive.unixthugs.org>
+Date: Tue, 21 Feb 2006 11:57:31 -0500
+Subject: [Ocfs2-devel] [PATCH 08/14] ocfs2: allow per-resource callbacks
+Message-ID: <20060221165731.GA11915@locomotive.unixthugs.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,315 +9,167 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
- This patch adds userspace clustering support as well as separate
- configurability of disk and userspace hearbeat modes.
+ The following patch adds a heartbeat resource pointer to callbacks and
+ events, allowing users to specify on a per-callback function basis whether
+ to listen to a specific heartbeat resource or receive events for any
+ resource.
 
- fs/Kconfig                        |   22 +++
- fs/ocfs2/cluster/Makefile         |    5 
- fs/ocfs2/cluster/nodemanager.c    |    5 
- fs/ocfs2/cluster/nodemanager.h    |    5 
- fs/ocfs2/cluster/user_heartbeat.c |  213 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 244 insertions(+), 6 deletions(-)
+ This functionality is not used by this patch, but will be with the next patch.
 
- fs/Kconfig                        |   22 +++
- fs/ocfs2/cluster/Makefile         |    5 
- fs/ocfs2/cluster/nodemanager.c    |    5 
- fs/ocfs2/cluster/nodemanager.h    |    5 
- fs/ocfs2/cluster/user_heartbeat.c |  214 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 245 insertions(+), 6 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |   14 +++++++++-----
+ fs/ocfs2/cluster/heartbeat.h |    4 +++-
+ fs/ocfs2/cluster/quorum.c    |    4 ++--
+ fs/ocfs2/cluster/tcp.c       |    4 ++--
+ fs/ocfs2/dlm/dlmdomain.c     |    5 +++--
+ fs/ocfs2/heartbeat.c         |    5 +++--
+ 6 files changed, 22 insertions(+), 14 deletions(-)
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/Kconfig linux-2.6.16-rc4.ocfs2-staging2/fs/Kconfig
---- linux-2.6.16-rc4.ocfs2-staging1/fs/Kconfig	2006-02-20 13:52:40.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/Kconfig	2006-02-21 11:44:52.000000000 -0500
-@@ -356,6 +356,28 @@ config OCFS2_FS
- 	          - POSIX ACLs
- 	          - readpages / writepages (not user visible)
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:44:38.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:44:41.000000000 -0500
+@@ -68,16 +68,18 @@ static struct o2hb_callback {
+ static struct o2hb_callback *hbcall_from_type(enum o2hb_callback_type type);
  
-+config OCFS2_FS_O2CB
-+	tristate "O2CB Kernelspace Clustering"
-+	depends on OCFS2_FS
-+	default y
-+	help
-+	  OCFS2 includes a simple kernelspace clustering package that requires
-+	  a very small userspace complement to configure it. However, it is
-+	  not as flexible as an external cluster manager, and is only
-+	  limited to maintaining a cluster for OCFS2 file systems.
-+	  If you are not using an external clustering package, choose
-+	  this option.
-+
-+config OCFS2_FS_USERSPACE_CLUSTER
-+	tristate "Userspace Clustering"
-+	depends on OCFS2_FS
-+	default y
-+	help
-+	  This option will allow OCFS2 to use userspace clustering services
-+	  via configfs and sysfs. Currently, the only supported userspace
-+	  clustering agent is the Linux-HA project from http://www.linux-ha.org.
-+	  If you are using a userspace cluster manager, choose this option.
-+
- config MINIX_FS
- 	tristate "Minix fs support"
- 	help
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/Makefile linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/Makefile
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/Makefile	2006-02-21 11:44:52.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/Makefile	2006-02-21 11:44:52.000000000 -0500
-@@ -1,7 +1,10 @@
--obj-$(CONFIG_OCFS2_FS) += ocfs2_nodemanager.o ocfs2_disk_heartbeat.o
-+obj-$(CONFIG_OCFS2_FS) += ocfs2_nodemanager.o
-+obj-$(CONFIG_OCFS2_FS_O2CB) += ocfs2_disk_heartbeat.o
-+obj-$(CONFIG_OCFS2_FS_USERSPACE_CLUSTER) += ocfs2_user_heartbeat.o
+ static void o2hb_fire_callbacks(struct o2hb_callback *hbcall,
+-				struct o2nm_node *node,
+-				int idx)
++                                struct o2hb_node_event *event)
+ {
+ 	struct list_head *iter;
+ 	struct o2hb_callback_func *f;
++	struct o2nm_node *node = event->hn_node;
++	int idx = event->hn_node_num;
  
- ocfs2_nodemanager-objs := nodemanager.o heartbeat.o tcp.o net_proc.o \
- 	masklog.o ver.o sys.o
- 
- ocfs2_disk_heartbeat-objs := disk_heartbeat.o quorum.o
-+ocfs2_user_heartbeat-objs := user_heartbeat.o
- 
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:52.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:52.000000000 -0500
-@@ -218,11 +218,6 @@ static struct o2nm_cluster *to_o2nm_clus
- 		: NULL;
+ 	list_for_each(iter, &hbcall->list) {
+ 		f = list_entry(iter, struct o2hb_callback_func, hc_item);
+ 		mlog(ML_HEARTBEAT, "calling funcs %p\n", f);
+-		(f->hc_func)(node, idx, f->hc_data);
++		if (f->hc_res == NULL || f->hc_res == event->hn_res)
++			(f->hc_func)(node, idx, f->hc_data);
+ 	}
  }
  
--static struct o2nm_node *to_o2nm_node(struct config_item *item)
--{
--	return item ? container_of(item, struct o2nm_node, nd_item) : NULL;
--}
--
- static void o2nm_node_release(struct config_item *item)
- {
- 	struct o2nm_node *node = to_o2nm_node(item);
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.h
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.h	2006-02-21 11:44:48.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.h	2006-02-21 11:44:52.000000000 -0500
-@@ -74,4 +74,9 @@ struct o2nm_node *o2nm_get_node_by_ip(__
- void o2nm_node_get(struct o2nm_node *node);
- void o2nm_node_put(struct o2nm_node *node);
+@@ -119,7 +121,7 @@ void o2hb_run_event_list(struct o2hb_nod
+ 		 * to recover from. */
+ 		BUG_ON(IS_ERR(hbcall));
  
-+static inline struct o2nm_node *to_o2nm_node(struct config_item *item)
-+{
-+	return container_of(item, struct o2nm_node, nd_item);
-+}
-+
- #endif /* O2CLUSTER_NODEMANAGER_H */
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/user_heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/user_heartbeat.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/user_heartbeat.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/user_heartbeat.c	2006-02-21 11:44:52.000000000 -0500
-@@ -0,0 +1,214 @@
-+
-+/* The userspace cluster heartbeat directory will be populated with symbolic
-+ * links to the nodes who are heartbeating in the given group */
-+
-+#include <linux/configfs.h>
-+#include "heartbeat.h"
-+#include "tcp.h"
-+#include "nodemanager.h"
-+
-+struct o2hb_user_region {
-+	struct o2hb_heartbeat_resource hr_res;
-+	unsigned long hr_live_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
-+};
-+
-+static inline struct o2hb_user_region *to_o2hb_user_region(struct o2hb_heartbeat_resource *hbres)
-+{
-+	return container_of(hbres, struct o2hb_user_region, hr_res);
-+}
-+
-+static inline struct o2hb_user_region *item_to_o2hb_user_region(struct config_item *item)
-+{
-+	return to_o2hb_user_region(to_o2hb_heartbeat_resource(item));
-+}
-+
-+static inline void o2hb_user_region_get(struct o2hb_user_region *region)
-+{
-+	o2hb_heartbeat_resource_get(&region->hr_res);
-+}
-+
-+static inline void o2hb_user_region_put(struct o2hb_user_region *region)
-+{
-+	o2hb_heartbeat_resource_put(&region->hr_res);
-+}
-+static int o2hb_user_group_allow_link(struct config_item *src,
-+                                      struct config_item *target)
-+{
-+	struct o2nm_node *node = to_o2nm_node(target);
-+	struct o2hb_user_region *hbr = item_to_o2hb_user_region(src);
-+
-+	struct o2hb_node_event event = {
-+		.hn_item = LIST_HEAD_INIT(event.hn_item),
-+		.hn_res = &hbr->hr_res,
-+	};
-+
-+	/* Make sure the target is within the same cluster */
-+	if (src->ci_parent->ci_parent != target->ci_parent->ci_parent)
-+		return -EPERM;
-+
-+	printk ("Node %s is up in group %s\n", target->ci_name, src->ci_name);
-+
-+	spin_lock(&o2hb_live_lock);
-+	set_bit(node->nd_num, hbr->hr_live_bitmap);
-+
-+	/* also add a link back to the node */
-+
-+	/* Notify listeners that this node is up */
-+	o2hb_queue_node_event(&event, O2HB_NODE_UP_CB, node, node->nd_num);
-+	spin_unlock(&o2hb_live_lock);
-+
-+	o2hb_run_event_list (&event);
-+
-+	return 0;
-+}
-+
-+static int o2hb_user_group_drop_link(struct config_item *src,
-+                                     struct config_item *target)
-+{
-+	struct o2nm_node *node = to_o2nm_node(target);
-+	struct o2hb_user_region *hbr = item_to_o2hb_user_region(src);
-+
-+	struct o2hb_node_event event = {
-+		.hn_item = LIST_HEAD_INIT(event.hn_item),
-+		.hn_res = &hbr->hr_res,
-+	};
-+
-+	/* Somehow notify listeners that this node is down */
-+	printk ("Node %s is down in group %s\n", target->ci_name,
-+	                                         src->ci_name);
-+
-+	spin_lock(&o2hb_live_lock);
-+	clear_bit(node->nd_num, hbr->hr_live_bitmap);
-+
-+	/* Notify listeners that this node is down */
-+	o2hb_queue_node_event (&event, O2HB_NODE_DOWN_CB, node, node->nd_num);
-+	spin_unlock(&o2hb_live_lock);
-+
-+	o2hb_run_event_list (&event);
-+
-+	return 0;
-+}
-+
-+static struct configfs_item_operations o2hb_user_region_ops = {
-+	.allow_link	= o2hb_user_group_allow_link,
-+	.drop_link	= o2hb_user_group_drop_link,
-+};
-+
-+struct config_item_type o2hb_user_region_type = {
-+	.ct_item_ops	= &o2hb_user_region_ops,
-+	.ct_owner	= THIS_MODULE,
-+};
-+
-+/* How to create a heartbeat region */
-+static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *group,
-+                                                          const char *name)
-+{
-+	struct o2hb_user_region *region;
-+	struct config_item *ret = NULL;
-+
-+	region = kzalloc(sizeof (*region), GFP_KERNEL);
-+	if (region == NULL)
-+		goto out;
-+
-+	/* mkdir <fs uuid> */
-+	config_item_init_type_name(&region->hr_res.hr_item, name,
-+	                            &o2hb_user_region_type);
-+
-+	ret = &region->hr_res.hr_item;
-+
-+out:
-+	if (ret == NULL)
-+		kfree(region);
-+	return ret;
-+}
-+
-+/* How to remove a heartbeat region */
-+static void o2hb_heartbeat_group_drop_item(struct config_group *group,
-+                                           struct config_item *item)
-+{
-+	config_item_put (item);
-+}
-+
-+static struct configfs_group_operations o2hb_user_heartbeat_root_ops = {
-+	.make_item	= o2hb_heartbeat_group_make_item,
-+	.drop_item	= o2hb_heartbeat_group_drop_item,
-+};
-+
-+static inline struct o2hb_user_region *o2hb_user_region_get_by_name(const char *resource)
-+{
-+	struct o2hb_heartbeat_resource *hbr;
-+	struct o2hb_user_region *region = NULL;
-+
-+	hbr = o2hb_heartbeat_resource_get_by_name(resource);
-+	if (hbr != NULL)
-+		region = to_o2hb_user_region(hbr);
-+
-+	return region;
-+}
-+
-+static int o2hb_user_fill_node_map(const char *resource, unsigned long *map,
-+                                   size_t len)
-+{
-+	struct o2hb_user_region *region;
-+	if (resource == NULL)
-+		return -EINVAL;
-+
-+	if (len > BITS_TO_LONGS(O2NM_MAX_NODES) * sizeof (*map))
-+		return -EFAULT;
-+
-+	region = o2hb_user_region_get_by_name(resource);
-+	if (region == NULL)
-+		return -ENOENT;
-+
-+	memcpy (map, region->hr_live_bitmap, len);
-+
-+	o2hb_user_region_put(region);
-+
-+	return 0;
-+}
-+
-+static int o2hb_user_check_node_status(const char *resource, u8 node_num)
-+{
-+	int ret = 0;
-+
-+	if (resource) {
-+		struct o2hb_user_region *region;
-+		region = o2hb_user_region_get_by_name(resource);
-+		if (region == NULL)
-+			goto out;
-+
-+		ret = test_bit(node_num, region->hr_live_bitmap);
-+		o2hb_user_region_put(region);
-+	} else {
-+		struct o2nm_node *node = o2nm_get_node_by_num(node_num);
-+		ret = (node && atomic_read(&node->nd_count));
-+	}
-+out:
-+	return ret;
-+}
-+
-+static struct o2hb_heartbeat_group user_heartbeat_group = {
-+	.hs_type = {
-+		.ct_group_ops	= &o2hb_user_heartbeat_root_ops,
-+		.ct_owner	= THIS_MODULE,
-+	},
-+	.hs_name		= "user",
-+	.fill_node_map		= o2hb_user_fill_node_map,
-+	.check_node_status	= o2hb_user_check_node_status,
-+};
-+
-+static int __init o2hb_user_heartbeat_init(void)
-+{
-+	return o2hb_register_heartbeat_group(&user_heartbeat_group);
-+}
-+
-+static void __exit o2hb_user_heartbeat_exit(void)
-+{
-+	o2hb_unregister_heartbeat_group(&user_heartbeat_group);
-+}
-+
-+MODULE_AUTHOR("Novell");
-+MODULE_LICENSE("GPL");
-+
-+module_init(o2hb_user_heartbeat_init);
-+module_exit(o2hb_user_heartbeat_exit);
+-		o2hb_fire_callbacks(hbcall, event->hn_node, event->hn_node_num);
++		o2hb_fire_callbacks(hbcall, event);
+ 
+ 		spin_lock(&o2hb_live_lock);
+ 	}
+@@ -262,7 +264,8 @@ void o2hb_setup_callback(struct o2hb_cal
+ 			 enum o2hb_callback_type type,
+ 			 o2hb_cb_func *func,
+ 			 void *data,
+-			 int priority)
++			 int priority,
++			 struct o2hb_heartbeat_resource *res)
+ {
+ 	INIT_LIST_HEAD(&hc->hc_item);
+ 	hc->hc_func = func;
+@@ -270,6 +273,7 @@ void o2hb_setup_callback(struct o2hb_cal
+ 	hc->hc_priority = priority;
+ 	hc->hc_type = type;
+ 	hc->hc_magic = O2HB_CB_MAGIC;
++	hc->hc_res = res;
+ }
+ EXPORT_SYMBOL_GPL(o2hb_setup_callback);
+ 
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:38.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:41.000000000 -0500
+@@ -68,6 +68,7 @@ struct o2hb_callback_func {
+ 	void			*hc_data;
+ 	int			hc_priority;
+ 	enum o2hb_callback_type hc_type;
++	struct o2hb_heartbeat_resource *hc_res;
+ };
+ 
+ struct o2hb_node_event {
+@@ -75,6 +76,7 @@ struct o2hb_node_event {
+ 	enum o2hb_callback_type hn_event_type;
+ 	struct o2nm_node        *hn_node;
+ 	int                     hn_node_num;
++	struct o2hb_heartbeat_resource *hn_res;
+ };
+ void o2hb_queue_node_event(struct o2hb_node_event *event,
+                            enum o2hb_callback_type type,
+@@ -91,7 +93,7 @@ void o2hb_setup_callback(struct o2hb_cal
+ 			 enum o2hb_callback_type type,
+ 			 o2hb_cb_func *func,
+ 			 void *data,
+-			 int priority);
++			 int priority, struct o2hb_heartbeat_resource *res);
+ int o2hb_register_callback(struct o2hb_callback_func *hc);
+ int o2hb_unregister_callback(struct o2hb_callback_func *hc);
+ void o2hb_fill_node_map(unsigned long *map,
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/quorum.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/quorum.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/quorum.c	2006-02-21 11:44:38.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/quorum.c	2006-02-21 11:44:41.000000000 -0500
+@@ -362,9 +362,9 @@ static int o2quo_register_hb_callbacks(v
+ 	int ret;
+ 
+ 	o2hb_setup_callback(&o2quo_hb_down_cb, O2HB_NODE_DOWN_CB,
+-	                    o2quo_hb_down, NULL, O2QUO_HB_PRI);
++	                    o2quo_hb_down, NULL, O2QUO_HB_PRI, NULL);
+ 	o2hb_setup_callback(&o2quo_hb_up_cb, O2HB_NODE_UP_CB,
+-	                    o2quo_hb_up, NULL, O2QUO_HB_PRI);
++	                    o2quo_hb_up, NULL, O2QUO_HB_PRI, NULL);
+ 
+ 	ret = o2hb_register_callback(&o2quo_hb_up_cb);
+ 	if (ret == 0)
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp.c	2006-02-21 11:44:31.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp.c	2006-02-21 11:44:41.000000000 -0500
+@@ -1522,9 +1522,9 @@ int o2net_register_hb_callbacks(void)
+ 	int ret;
+ 
+ 	o2hb_setup_callback(&o2net_hb_down, O2HB_NODE_DOWN_CB,
+-			    o2net_hb_node_down_cb, NULL, O2NET_HB_PRI);
++			    o2net_hb_node_down_cb, NULL, O2NET_HB_PRI, NULL);
+ 	o2hb_setup_callback(&o2net_hb_up, O2HB_NODE_UP_CB,
+-			    o2net_hb_node_up_cb, NULL, O2NET_HB_PRI);
++			    o2net_hb_node_up_cb, NULL, O2NET_HB_PRI, NULL);
+ 
+ 	ret = o2hb_register_callback(&o2net_hb_up);
+ 	if (ret == 0)
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/dlm/dlmdomain.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/dlm/dlmdomain.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/dlm/dlmdomain.c	2006-02-21 11:41:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/dlm/dlmdomain.c	2006-02-21 11:44:41.000000000 -0500
+@@ -991,13 +991,14 @@ static int dlm_register_domain_handlers(
+ 	mlog(0, "registering handlers.\n");
+ 
+ 	o2hb_setup_callback(&dlm->dlm_hb_down, O2HB_NODE_DOWN_CB,
+-			    dlm_hb_node_down_cb, dlm, DLM_HB_NODE_DOWN_PRI);
++			    dlm_hb_node_down_cb, dlm,
++			    DLM_HB_NODE_DOWN_PRI, NULL);
+ 	status = o2hb_register_callback(&dlm->dlm_hb_down);
+ 	if (status)
+ 		goto bail;
+ 
+ 	o2hb_setup_callback(&dlm->dlm_hb_up, O2HB_NODE_UP_CB,
+-			    dlm_hb_node_up_cb, dlm, DLM_HB_NODE_UP_PRI);
++			    dlm_hb_node_up_cb, dlm, DLM_HB_NODE_UP_PRI, NULL);
+ 	status = o2hb_register_callback(&dlm->dlm_hb_up);
+ 	if (status)
+ 		goto bail;
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/heartbeat.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/heartbeat.c	2006-02-20 13:51:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/heartbeat.c	2006-02-21 11:44:41.000000000 -0500
+@@ -136,10 +136,11 @@ void ocfs2_setup_hb_callbacks(struct ocf
+ {
+ 	o2hb_setup_callback(&osb->osb_hb_down, O2HB_NODE_DOWN_CB,
+ 			    ocfs2_hb_node_down_cb, osb,
+-			    OCFS2_HB_NODE_DOWN_PRI);
++			    OCFS2_HB_NODE_DOWN_PRI, NULL);
+ 
+ 	o2hb_setup_callback(&osb->osb_hb_up, O2HB_NODE_UP_CB,
+-			    ocfs2_hb_node_up_cb, osb, OCFS2_HB_NODE_UP_PRI);
++			    ocfs2_hb_node_up_cb, osb,
++			    OCFS2_HB_NODE_UP_PRI, NULL);
+ 
+ 	/* Not exactly a heartbeat callback, but leads to essentially
+ 	 * the same path so we set it up here. */
