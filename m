@@ -1,8 +1,8 @@
 From: Jeff Mahoney <jeffm@suse.com>
 Date: Tue, 21 Feb 2006 11:57:31 -0500
-Subject: [Ocfs2-devel] [PATCH 12/14] ocfs2: add the ability to switch
-	between heartbeat group modes
-Message-ID: <20060221165731.GA11959@locomotive.unixthugs.org>
+Subject: [Ocfs2-devel] [PATCH 11/14] ocfs2: add check_node_status for
+	resources that can distinguish between resources
+Message-ID: <20060221165731.GA11948@locomotive.unixthugs.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,240 +10,135 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
- This patch allows the user to switch heartbeat modes by writing the desired
- mode into /sys/o2cb/heartbeat_mode.
+ This patch adds the ->check_node_status operation to the heartbeat resource.
 
- The mode cannot be switched when another is in use. This means that
- <configfs>/cluster/ must be empty.
+ In doing so, it means that we don't need to request the bitmap and test it
+ ourselves for heartbeat implementations that can check status more
+ efficiently.
 
- fs/ocfs2/cluster/Makefile      |    2 
- fs/ocfs2/cluster/heartbeat.h   |    3 +
- fs/ocfs2/cluster/nodemanager.c |    8 ++
- fs/ocfs2/cluster/sys.c         |  121 +++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/cluster/sys.h         |   33 +++++++++++
- 5 files changed, 166 insertions(+), 1 deletion(-)
+ This patch also creates a single __o2hb_check_node_heartbeating
+ implementation, since the others were simply doing the same thing
+ either with a lock or with the local node.
+
+ fs/ocfs2/cluster/heartbeat.c |   70 +++++++++++++++++++------------------------
+ fs/ocfs2/cluster/heartbeat.h |    1 
+ 2 files changed, 32 insertions(+), 39 deletions(-)
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:44:46.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:44:48.000000000 -0500
+@@ -396,37 +396,47 @@ int o2hb_unregister_heartbeat_group(stru
+ }
+ EXPORT_SYMBOL_GPL(o2hb_unregister_heartbeat_group);
+ 
+-int o2hb_check_node_heartbeating(const char *resource, u8 node_num)
++static int __o2hb_check_node_heartbeating(const char *resource, u8 node_num,
++                                          int need_lock)
+ {
+-	unsigned long testing_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
++	int ret = 0;
++	if (need_lock) {
++		down_read(&o2hb_callback_sem);
++		spin_lock(&o2hb_live_lock);
++	}
++
++	if (o2hb_active_group->check_node_status) {
++		ret = o2hb_active_group->check_node_status(resource, node_num);
++	} else {
++		unsigned long testing_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
++		if( o2hb_fill_node_map_from_callback(resource, testing_map,
++		                                     sizeof(testing_map)) == 0)
++			ret = test_bit(node_num, testing_map);
++	}
++
++	if (need_lock) {
++		spin_unlock(&o2hb_live_lock);
++		up_read(&o2hb_callback_sem);
++	}
+ 
+-	o2hb_fill_node_map(resource, testing_map, sizeof(testing_map));
+-	if (!test_bit(node_num, testing_map)) {
++	if (!ret)
+ 		mlog(ML_HEARTBEAT,
+ 		     "node (%u) does not have heartbeating enabled.\n",
+ 		     node_num);
+-		return 0;
+-	}
+ 
+-	return 1;
++	return ret;
++}
++
++int o2hb_check_node_heartbeating(const char *resource, u8 node_num)
++{
++	return __o2hb_check_node_heartbeating(resource, node_num, 1);
+ }
+ EXPORT_SYMBOL_GPL(o2hb_check_node_heartbeating);
+ 
+ int o2hb_check_node_heartbeating_from_callback(const char *resource,
+                                                u8 node_num)
+ {
+-	unsigned long testing_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+-
+-	o2hb_fill_node_map_from_callback(resource, testing_map,
+-	                                 sizeof(testing_map));
+-	if (!test_bit(node_num, testing_map)) {
+-		mlog(ML_HEARTBEAT,
+-		     "node (%u) does not have heartbeating enabled.\n",
+-		     node_num);
+-		return 0;
+-	}
+-
+-	return 1;
++	return __o2hb_check_node_heartbeating(resource, node_num, 0);
+ }
+ EXPORT_SYMBOL_GPL(o2hb_check_node_heartbeating_from_callback);
+ 
+@@ -434,16 +444,7 @@ EXPORT_SYMBOL_GPL(o2hb_check_node_heartb
+  * heartbeating. */
+ int o2hb_check_local_node_heartbeating(const char *resource)
+ {
+-	u8 node_num;
+-
+-	/* if this node was set then we have networking */
+-	node_num = o2nm_this_node();
+-	if (node_num == O2NM_MAX_NODES) {
+-		mlog(ML_HEARTBEAT, "this node has not been configured.\n");
+-		return 0;
+-	}
+-
+-	return o2hb_check_node_heartbeating(resource, node_num);
++	return __o2hb_check_node_heartbeating(resource, o2nm_this_node(), 1);
+ }
+ EXPORT_SYMBOL_GPL(o2hb_check_local_node_heartbeating);
+ 
+@@ -451,15 +452,6 @@ EXPORT_SYMBOL_GPL(o2hb_check_local_node_
+  * heartbeating. */
+ int o2hb_check_local_node_heartbeating_from_callback(const char *resource)
+ {
+-	u8 node_num;
+-
+-	/* if this node was set then we have networking */
+-	node_num = o2nm_this_node();
+-	if (node_num == O2NM_MAX_NODES) {
+-		mlog(ML_HEARTBEAT, "this node has not been configured.\n");
+-		return 0;
+-	}
+-
+-	return o2hb_check_node_heartbeating_from_callback(resource, node_num);
++	return __o2hb_check_node_heartbeating(resource, o2nm_this_node(), 0);
+ }
+ EXPORT_SYMBOL_GPL(o2hb_check_local_node_heartbeating_from_callback);
 diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:50.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:50.000000000 -0500
-@@ -109,6 +109,9 @@ int o2hb_check_node_heartbeating_from_ca
- int o2hb_check_local_node_heartbeating(const char *resource);
- int o2hb_check_local_node_heartbeating_from_callback(const char *resource);
- 
-+const char *o2hb_heartbeat_mode(void);
-+int o2hb_set_heartbeat_mode(const char *type, size_t count);
-+
- struct o2hb_heartbeat_resource *o2hb_heartbeat_resource_get_by_name(const char * name);
- 
- static inline struct o2hb_heartbeat_group *to_o2hb_heartbeat_group(struct config_group *group)
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/Makefile linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/Makefile
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/Makefile	2006-02-21 11:44:38.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/Makefile	2006-02-21 11:44:50.000000000 -0500
-@@ -1,7 +1,7 @@
- obj-$(CONFIG_OCFS2_FS) += ocfs2_nodemanager.o ocfs2_disk_heartbeat.o
- 
- ocfs2_nodemanager-objs := nodemanager.o heartbeat.o tcp.o net_proc.o \
--	masklog.o ver.o
-+	masklog.o ver.o sys.o
- 
- ocfs2_disk_heartbeat-objs := disk_heartbeat.o quorum.o
- 
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:46.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:50.000000000 -0500
-@@ -32,6 +32,7 @@
- #include "heartbeat.h"
- #include "masklog.h"
- #include "ver.h"
-+#include "sys.h"
- 
- /* for now we operate under the assertion that there can be only one
-  * cluster active at a time.  Changing this will require trickling
-@@ -740,6 +741,7 @@ static void __exit exit_o2nm(void)
- 
- 	/* XXX sync with hb callbacks and shut down hb? */
- 	o2net_unregister_hb_callbacks();
-+	o2cb_sys_shutdown();
- 	configfs_unregister_subsystem(&o2nm_cluster_group.cs_subsys);
- 	o2nm_remove_proc(o2nm_proc);
- 	mlog_remove_proc(o2nm_proc);
-@@ -881,9 +883,15 @@ static int __init init_o2nm(void)
- 		goto out_mlog;
- 
- 	ret = o2nm_init_proc(o2nm_proc);
-+	if (ret)
-+		goto out_proc;
-+
-+	ret = o2cb_sys_init();
- 	if (ret == 0)
- 		goto out;
- 
-+	o2nm_remove_proc(o2nm_proc);
-+out_proc:
- 	o2net_proc_exit(o2nm_proc);
- out_mlog:
- 	mlog_remove_proc(o2nm_proc);
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/sys.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/sys.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/sys.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/sys.c	2006-02-21 11:44:50.000000000 -0500
-@@ -0,0 +1,121 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * sys.c
-+ *
-+ * OCFS2 cluster sysfs interface
-+ *
-+ * Copyright (C) 2005 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License as published by the Free Software Foundation,
-+ * version 2 of the License.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public
-+ * License along with this program; if not, write to the
-+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-+ * Boston, MA 021110-1307, USA.
-+ *
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/module.h>
-+#include <linux/kobject.h>
-+#include <linux/sysfs.h>
-+
-+#include "heartbeat.h"
-+#include "ocfs2_nodemanager.h"
-+#include "masklog.h"
-+#include "sys.h"
-+
-+struct o2cb_attribute {
-+	struct attribute	attr;
-+	ssize_t (*show)(char *buf);
-+	ssize_t (*store)(const char *buf, size_t count);
-+};
-+
-+#define O2CB_ATTR(_name, _mode, _show, _store)	\
-+struct o2cb_attribute o2cb_attr_##_name = __ATTR(_name, _mode, _show, _store)
-+
-+#define to_o2cb_subsys(k) container_of(to_kset(k), struct subsystem, kset)
-+#define to_o2cb_attr(_attr) container_of(_attr, struct o2cb_attribute, attr)
-+
-+static ssize_t o2cb_heartbeat_mode_show(char *buf)
-+{
-+	return snprintf(buf, PAGE_SIZE, "%s\n", o2hb_heartbeat_mode());
-+}
-+
-+static ssize_t o2cb_heartbeat_mode_store(const char * buffer, size_t count)
-+{
-+	return o2hb_set_heartbeat_mode(buffer, count);
-+}
-+
-+static O2CB_ATTR(heartbeat_mode, S_IFREG | S_IRUGO | S_IWUSR,
-+                 o2cb_heartbeat_mode_show, o2cb_heartbeat_mode_store);
-+
-+static struct attribute *o2cb_attrs[] = {
-+	&o2cb_attr_heartbeat_mode.attr,
-+	NULL,
-+};
-+
-+static ssize_t
-+o2cb_show(struct kobject * kobj, struct attribute * attr, char * buffer);
-+static ssize_t
-+o2cb_store(struct kobject * kobj, struct attribute * attr,
-+	   const char * buffer, size_t count);
-+static struct sysfs_ops o2cb_sysfs_ops = {
-+	.show	= o2cb_show,
-+	.store	= o2cb_store,
-+};
-+
-+static struct kobj_type o2cb_subsys_type = {
-+	.default_attrs	= o2cb_attrs,
-+	.sysfs_ops	= &o2cb_sysfs_ops,
-+};
-+
-+/* gives us o2cb_subsys */
-+static decl_subsys(o2cb, NULL, NULL);
-+
-+static ssize_t
-+o2cb_show(struct kobject * kobj, struct attribute * attr, char * buffer)
-+{
-+	struct o2cb_attribute *o2cb_attr = to_o2cb_attr(attr);
-+	struct subsystem *sbs = to_o2cb_subsys(kobj);
-+
-+	BUG_ON(sbs != &o2cb_subsys);
-+
-+	if (o2cb_attr->show)
-+		return o2cb_attr->show(buffer);
-+	return -EIO;
-+}
-+
-+static ssize_t
-+o2cb_store(struct kobject * kobj, struct attribute * attr,
-+	     const char * buffer, size_t count)
-+{
-+	struct o2cb_attribute *o2cb_attr = to_o2cb_attr(attr);
-+	struct subsystem *sbs = to_o2cb_subsys(kobj);
-+
-+	BUG_ON(sbs != &o2cb_subsys);
-+
-+	if (o2cb_attr->store)
-+		return o2cb_attr->store(buffer, count);
-+	return -EIO;
-+}
-+
-+void o2cb_sys_shutdown(void)
-+{
-+	subsystem_unregister(&o2cb_subsys);
-+}
-+
-+int o2cb_sys_init(void)
-+{
-+	o2cb_subsys.kset.kobj.ktype = &o2cb_subsys_type;
-+	return subsystem_register(&o2cb_subsys);
-+}
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/sys.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/sys.h
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/sys.h	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/sys.h	2006-02-21 11:44:50.000000000 -0500
-@@ -0,0 +1,33 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * sys.h
-+ *
-+ * Function prototypes for o2cb sysfs interface
-+ *
-+ * Copyright (C) 2005 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License as published by the Free Software Foundation,
-+ * version 2 of the License.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public
-+ * License along with this program; if not, write to the
-+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-+ * Boston, MA 021110-1307, USA.
-+ *
-+ */
-+
-+#ifndef O2CLUSTER_SYS_H
-+#define O2CLUSTER_SYS_H
-+
-+void o2cb_sys_shutdown(void);
-+int o2cb_sys_init(void);
-+
-+#endif /* O2CLUSTER_SYS_H */
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:46.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:48.000000000 -0500
+@@ -49,6 +49,7 @@ struct o2hb_heartbeat_group {
+ 	void (*exit)(struct o2hb_heartbeat_group *hs);
+ 	int (*fill_node_map)(const char *resource, unsigned long *map,
+ 	                     size_t bytes);
++	int (*check_node_status)(const char *resource, u8 node_num);
+ 	atomic_t hs_count;
+ 	struct list_head hs_list;
+ };
