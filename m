@@ -1,8 +1,8 @@
 From: Jeff Mahoney <jeffm@suse.com>
 Date: Tue, 21 Feb 2006 11:57:30 -0500
-Subject: [Ocfs2-devel] [PATCH 02/14] ocfs2: complete failure recovery for
-	nodemanager init
-Message-ID: <20060221165730.GA11835@locomotive.unixthugs.org>
+Subject: [Ocfs2-devel] [PATCH 04/14] ocfs2: introduce generic heartbeat
+	resource
+Message-ID: <20060221165730.GA11859@locomotive.unixthugs.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,40 +10,123 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
- This patch finishes cleaning up the node manager allocations if it fails
- to initialize.
+ This patch creates a generic heartbeat "base" object that can be used
+ to create a generic heartbeat implementation.
 
- fs/ocfs2/cluster/nodemanager.c |    5 ++++-
- 1 files changed, 4 insertions(+), 1 deletion(-)
+ Following patches will split the disk-specific heartbeat code out from
+ heartbeat.c, and finally add a user heartbeat implementation that uses
+ the generic implementation.
+
+ This patch alone is essentially a no-op.
+
+ fs/ocfs2/cluster/heartbeat.c |   25 +++++++------------------
+ fs/ocfs2/cluster/heartbeat.h |   19 +++++++++++++++++++
+ 2 files changed, 26 insertions(+), 18 deletions(-)
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:41:25.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:28.000000000 -0500
-@@ -861,7 +861,7 @@ static int __init init_o2nm(void)
- 	if (!ocfs2_table_header) {
- 		printk(KERN_ERR "nodemanager: unable to register sysctl\n");
- 		ret = -ENOMEM; /* or something. */
--		goto out;
-+		goto out_o2net;
- 	}
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:41:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:44:31.000000000 -0500
+@@ -107,7 +107,7 @@ struct o2hb_disk_slot {
+ /* each thread owns a region.. when we're asked to tear down the region
+  * we ask the thread to stop, who cleans up the region */
+ struct o2hb_region {
+-	struct config_item	hr_item;
++	struct o2hb_heartbeat_resource hr_res;
  
- 	ret = o2net_register_hb_callbacks();
-@@ -894,6 +894,7 @@ static int __init init_o2nm(void)
- 	if (ret == 0)
- 		goto out;
+ 	struct list_head	hr_all_item;
+ 	unsigned		hr_unclean_stop:1;
+@@ -998,7 +998,8 @@ EXPORT_SYMBOL_GPL(o2hb_fill_node_map);
  
-+	o2net_proc_exit(o2nm_proc);
- out_mlog:
- 	mlog_remove_proc(o2nm_proc);
- out_remove:
-@@ -904,6 +905,8 @@ out_callbacks:
- 	o2net_unregister_hb_callbacks();
- out_sysctl:
- 	unregister_sysctl_table(ocfs2_table_header);
-+out_o2net:
-+	o2net_exit();
- out:
- 	return ret;
+ static struct o2hb_region *to_o2hb_region(struct config_item *item)
+ {
+-	return item ? container_of(item, struct o2hb_region, hr_item) : NULL;
++	return container_of(to_o2hb_heartbeat_resource(item),
++	                    struct o2hb_region, hr_res);
  }
+ 
+ /* drop_item only drops its ref after killing the thread, nothing should
+@@ -1362,7 +1363,7 @@ static ssize_t o2hb_region_dev_write(str
+ 	atomic_set(&reg->hr_steady_iterations, O2HB_LIVE_THRESHOLD + 1);
+ 
+ 	reg->hr_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
+-				   reg->hr_item.ci_name);
++				   reg->hr_res.hr_item.ci_name);
+ 	if (IS_ERR(reg->hr_task)) {
+ 		ret = PTR_ERR(reg->hr_task);
+ 		mlog_errno(ret);
+@@ -1480,19 +1481,6 @@ static struct config_item_type o2hb_regi
+ };
+ 
+ /* heartbeat set */
+-
+-struct o2hb_heartbeat_group {
+-	struct config_group hs_group;
+-	/* some stuff? */
+-};
+-
+-static struct o2hb_heartbeat_group *to_o2hb_heartbeat_group(struct config_group *group)
+-{
+-	return group ?
+-		container_of(group, struct o2hb_heartbeat_group, hs_group)
+-		: NULL;
+-}
+-
+ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *group,
+ 							  const char *name)
+ {
+@@ -1503,9 +1491,10 @@ static struct config_item *o2hb_heartbea
+ 	if (reg == NULL)
+ 		goto out; /* ENOMEM */
+ 
+-	config_item_init_type_name(&reg->hr_item, name, &o2hb_region_type);
++	config_item_init_type_name(&reg->hr_res.hr_item, name,
++	                           &o2hb_region_type);
+ 
+-	ret = &reg->hr_item;
++	ret = &reg->hr_res.hr_item;
+ 
+ 	spin_lock(&o2hb_live_lock);
+ 	list_add_tail(&reg->hr_all_item, &o2hb_all_regions);
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:41:25.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:31.000000000 -0500
+@@ -27,6 +27,7 @@
+ #ifndef O2CLUSTER_HEARTBEAT_H
+ #define O2CLUSTER_HEARTBEAT_H
+ 
++#include <linux/configfs.h>
+ #include "ocfs2_heartbeat.h"
+ 
+ #define O2HB_REGION_TIMEOUT_MS		2000
+@@ -52,6 +53,15 @@ enum o2hb_callback_type {
+ 	O2HB_NUM_CB
+ };
+ 
++struct o2hb_heartbeat_group {
++	struct config_group hs_group;
++	/* some stuff? */
++};
++
++struct o2hb_heartbeat_resource {
++	struct config_item hr_item;
++};
++
+ struct o2nm_node;
+ typedef void (o2hb_cb_func)(struct o2nm_node *, int, void *);
+ 
+@@ -84,4 +94,13 @@ int o2hb_check_local_node_heartbeating(v
+ int o2hb_check_local_node_heartbeating_from_callback(void);
+ void o2hb_stop_all_regions(void);
+ 
++static inline struct o2hb_heartbeat_group *to_o2hb_heartbeat_group(struct config_group *group)
++{
++	return container_of(group, struct o2hb_heartbeat_group, hs_group);
++}
++
++static inline struct o2hb_heartbeat_resource *to_o2hb_heartbeat_resource(struct config_item *item)
++{
++	return container_of(item, struct o2hb_heartbeat_resource, hr_item);
++}
+ #endif /* O2CLUSTER_HEARTBEAT_H */
