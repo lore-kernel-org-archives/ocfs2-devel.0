@@ -1,7 +1,8 @@
 From: Jeff Mahoney <jeffm@suse.com>
-Date: Tue, 21 Feb 2006 11:57:31 -0500
-Subject: [Ocfs2-devel] [PATCH 08/14] ocfs2: allow per-resource callbacks
-Message-ID: <20060221165731.GA11915@locomotive.unixthugs.org>
+Date: Tue, 21 Feb 2006 11:57:32 -0500
+Subject: [Ocfs2-devel] [PATCH 14/14] ocfs2: include disk heartbeat in
+	ocfs2_nodemanager to avoid userspace changes
+Message-ID: <20060221165732.GA11981@locomotive.unixthugs.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,167 +10,136 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 
- The following patch adds a heartbeat resource pointer to callbacks and
- events, allowing users to specify on a per-callback function basis whether
- to listen to a specific heartbeat resource or receive events for any
- resource.
+ This patch removes disk heartbeat's modularity which makes it the default.
 
- This functionality is not used by this patch, but will be with the next patch.
+ Without this patch, userspace changes are required.
 
- fs/ocfs2/cluster/heartbeat.c |   14 +++++++++-----
- fs/ocfs2/cluster/heartbeat.h |    4 +++-
- fs/ocfs2/cluster/quorum.c    |    4 ++--
- fs/ocfs2/cluster/tcp.c       |    4 ++--
- fs/ocfs2/dlm/dlmdomain.c     |    5 +++--
- fs/ocfs2/heartbeat.c         |    5 +++--
- 6 files changed, 22 insertions(+), 14 deletions(-)
+ This patch is not intended for permanent application, just to make it easier
+ for users not interested in testing the userspace clustering implementation
+ to use ocfs2.
+
+ In order to switch to user clustering, use "o2cb offline" to shut down the
+ cluster, echo "user" > /sys/o2cb/heartbeat_mode, and "o2cb online" to
+ start it back up again.
+
+ fs/Kconfig                        |   12 ------------
+ fs/ocfs2/cluster/Makefile         |    3 +--
+ fs/ocfs2/cluster/disk_heartbeat.c |    8 ++------
+ fs/ocfs2/cluster/disk_heartbeat.h |    2 ++
+ fs/ocfs2/cluster/nodemanager.c    |    7 +++++++
+ 5 files changed, 12 insertions(+), 20 deletions(-)
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:44:38.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.c	2006-02-21 11:44:41.000000000 -0500
-@@ -68,16 +68,18 @@ static struct o2hb_callback {
- static struct o2hb_callback *hbcall_from_type(enum o2hb_callback_type type);
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/Kconfig linux-2.6.16-rc4.ocfs2-staging2/fs/Kconfig
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/Kconfig	2006-02-21 11:44:53.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/Kconfig	2006-02-21 11:44:53.000000000 -0500
+@@ -356,18 +356,6 @@ config OCFS2_FS
+ 	          - POSIX ACLs
+ 	          - readpages / writepages (not user visible)
  
- static void o2hb_fire_callbacks(struct o2hb_callback *hbcall,
--				struct o2nm_node *node,
--				int idx)
-+                                struct o2hb_node_event *event)
- {
- 	struct list_head *iter;
- 	struct o2hb_callback_func *f;
-+	struct o2nm_node *node = event->hn_node;
-+	int idx = event->hn_node_num;
- 
- 	list_for_each(iter, &hbcall->list) {
- 		f = list_entry(iter, struct o2hb_callback_func, hc_item);
- 		mlog(ML_HEARTBEAT, "calling funcs %p\n", f);
--		(f->hc_func)(node, idx, f->hc_data);
-+		if (f->hc_res == NULL || f->hc_res == event->hn_res)
-+			(f->hc_func)(node, idx, f->hc_data);
- 	}
+-config OCFS2_FS_O2CB
+-	tristate "O2CB Kernelspace Clustering"
+-	depends on OCFS2_FS
+-	default y
+-	help
+-	  OCFS2 includes a simple kernelspace clustering package that requires
+-	  a very small userspace complement to configure it. However, it is
+-	  not as flexible as an external cluster manager, and is only
+-	  limited to maintaining a cluster for OCFS2 file systems.
+-	  If you are not using an external clustering package, choose
+-	  this option.
+-
+ config OCFS2_FS_USERSPACE_CLUSTER
+ 	tristate "Userspace Clustering"
+ 	depends on OCFS2_FS
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/disk_heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/disk_heartbeat.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/disk_heartbeat.c	2006-02-21 11:44:46.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/disk_heartbeat.c	2006-02-21 11:44:53.000000000 -0500
+@@ -1509,7 +1509,7 @@ void o2hb_stop_all_regions(void)
+ 	spin_unlock(&o2hb_live_lock);
  }
  
-@@ -119,7 +121,7 @@ void o2hb_run_event_list(struct o2hb_nod
- 		 * to recover from. */
- 		BUG_ON(IS_ERR(hbcall));
- 
--		o2hb_fire_callbacks(hbcall, event->hn_node, event->hn_node_num);
-+		o2hb_fire_callbacks(hbcall, event);
- 
- 		spin_lock(&o2hb_live_lock);
- 	}
-@@ -262,7 +264,8 @@ void o2hb_setup_callback(struct o2hb_cal
- 			 enum o2hb_callback_type type,
- 			 o2hb_cb_func *func,
- 			 void *data,
--			 int priority)
-+			 int priority,
-+			 struct o2hb_heartbeat_resource *res)
+-static int __init o2hb_disk_heartbeat_init(void)
++int o2hb_disk_heartbeat_init(void)
  {
- 	INIT_LIST_HEAD(&hc->hc_item);
- 	hc->hc_func = func;
-@@ -270,6 +273,7 @@ void o2hb_setup_callback(struct o2hb_cal
- 	hc->hc_priority = priority;
- 	hc->hc_type = type;
- 	hc->hc_magic = O2HB_CB_MAGIC;
-+	hc->hc_res = res;
+ 	int i;
+ 
+@@ -1520,14 +1520,10 @@ static int __init o2hb_disk_heartbeat_in
+ 	return o2hb_register_heartbeat_group(&disk_heartbeat_group);
  }
- EXPORT_SYMBOL_GPL(o2hb_setup_callback);
  
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:38.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/heartbeat.h	2006-02-21 11:44:41.000000000 -0500
-@@ -68,6 +68,7 @@ struct o2hb_callback_func {
- 	void			*hc_data;
- 	int			hc_priority;
- 	enum o2hb_callback_type hc_type;
-+	struct o2hb_heartbeat_resource *hc_res;
- };
- 
- struct o2hb_node_event {
-@@ -75,6 +76,7 @@ struct o2hb_node_event {
- 	enum o2hb_callback_type hn_event_type;
- 	struct o2nm_node        *hn_node;
- 	int                     hn_node_num;
-+	struct o2hb_heartbeat_resource *hn_res;
- };
- void o2hb_queue_node_event(struct o2hb_node_event *event,
-                            enum o2hb_callback_type type,
-@@ -91,7 +93,7 @@ void o2hb_setup_callback(struct o2hb_cal
- 			 enum o2hb_callback_type type,
- 			 o2hb_cb_func *func,
- 			 void *data,
--			 int priority);
-+			 int priority, struct o2hb_heartbeat_resource *res);
- int o2hb_register_callback(struct o2hb_callback_func *hc);
- int o2hb_unregister_callback(struct o2hb_callback_func *hc);
- void o2hb_fill_node_map(unsigned long *map,
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/quorum.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/quorum.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/quorum.c	2006-02-21 11:44:38.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/quorum.c	2006-02-21 11:44:41.000000000 -0500
-@@ -362,9 +362,9 @@ static int o2quo_register_hb_callbacks(v
- 	int ret;
- 
- 	o2hb_setup_callback(&o2quo_hb_down_cb, O2HB_NODE_DOWN_CB,
--	                    o2quo_hb_down, NULL, O2QUO_HB_PRI);
-+	                    o2quo_hb_down, NULL, O2QUO_HB_PRI, NULL);
- 	o2hb_setup_callback(&o2quo_hb_up_cb, O2HB_NODE_UP_CB,
--	                    o2quo_hb_up, NULL, O2QUO_HB_PRI);
-+	                    o2quo_hb_up, NULL, O2QUO_HB_PRI, NULL);
- 
- 	ret = o2hb_register_callback(&o2quo_hb_up_cb);
- 	if (ret == 0)
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/tcp.c	2006-02-21 11:44:31.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/tcp.c	2006-02-21 11:44:41.000000000 -0500
-@@ -1522,9 +1522,9 @@ int o2net_register_hb_callbacks(void)
- 	int ret;
- 
- 	o2hb_setup_callback(&o2net_hb_down, O2HB_NODE_DOWN_CB,
--			    o2net_hb_node_down_cb, NULL, O2NET_HB_PRI);
-+			    o2net_hb_node_down_cb, NULL, O2NET_HB_PRI, NULL);
- 	o2hb_setup_callback(&o2net_hb_up, O2HB_NODE_UP_CB,
--			    o2net_hb_node_up_cb, NULL, O2NET_HB_PRI);
-+			    o2net_hb_node_up_cb, NULL, O2NET_HB_PRI, NULL);
- 
- 	ret = o2hb_register_callback(&o2net_hb_up);
- 	if (ret == 0)
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/dlm/dlmdomain.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/dlm/dlmdomain.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/dlm/dlmdomain.c	2006-02-21 11:41:25.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/dlm/dlmdomain.c	2006-02-21 11:44:41.000000000 -0500
-@@ -991,13 +991,14 @@ static int dlm_register_domain_handlers(
- 	mlog(0, "registering handlers.\n");
- 
- 	o2hb_setup_callback(&dlm->dlm_hb_down, O2HB_NODE_DOWN_CB,
--			    dlm_hb_node_down_cb, dlm, DLM_HB_NODE_DOWN_PRI);
-+			    dlm_hb_node_down_cb, dlm,
-+			    DLM_HB_NODE_DOWN_PRI, NULL);
- 	status = o2hb_register_callback(&dlm->dlm_hb_down);
- 	if (status)
- 		goto bail;
- 
- 	o2hb_setup_callback(&dlm->dlm_hb_up, O2HB_NODE_UP_CB,
--			    dlm_hb_node_up_cb, dlm, DLM_HB_NODE_UP_PRI);
-+			    dlm_hb_node_up_cb, dlm, DLM_HB_NODE_UP_PRI, NULL);
- 	status = o2hb_register_callback(&dlm->dlm_hb_up);
- 	if (status)
- 		goto bail;
-diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/heartbeat.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/heartbeat.c
---- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/heartbeat.c	2006-02-20 13:51:25.000000000 -0500
-+++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/heartbeat.c	2006-02-21 11:44:41.000000000 -0500
-@@ -136,10 +136,11 @@ void ocfs2_setup_hb_callbacks(struct ocf
+-static void __exit o2hb_disk_heartbeat_exit(void)
++void o2hb_disk_heartbeat_exit(void)
  {
- 	o2hb_setup_callback(&osb->osb_hb_down, O2HB_NODE_DOWN_CB,
- 			    ocfs2_hb_node_down_cb, osb,
--			    OCFS2_HB_NODE_DOWN_PRI);
-+			    OCFS2_HB_NODE_DOWN_PRI, NULL);
+ 	o2hb_unregister_heartbeat_group(&disk_heartbeat_group);
+ }
  
- 	o2hb_setup_callback(&osb->osb_hb_up, O2HB_NODE_UP_CB,
--			    ocfs2_hb_node_up_cb, osb, OCFS2_HB_NODE_UP_PRI);
-+			    ocfs2_hb_node_up_cb, osb,
-+			    OCFS2_HB_NODE_UP_PRI, NULL);
+ MODULE_AUTHOR("Oracle");
+ MODULE_LICENSE("GPL");
+-
+-module_init(o2hb_disk_heartbeat_init);
+-module_exit(o2hb_disk_heartbeat_exit);
+-
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/disk_heartbeat.h linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/disk_heartbeat.h
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/disk_heartbeat.h	2006-02-21 11:44:38.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/disk_heartbeat.h	2006-02-21 11:44:53.000000000 -0500
+@@ -37,5 +37,7 @@ extern unsigned int o2hb_dead_threshold;
+ #define O2HB_MAX_WRITE_TIMEOUT_MS (O2HB_REGION_TIMEOUT_MS * (o2hb_dead_threshold - 1))
+ void o2hb_stop_all_regions(void);
+ void o2hb_dead_threshold_set(unsigned int threshold);
++int o2hb_disk_heartbeat_init(void);
++void o2hb_disk_heartbeat_exit(void);
  
- 	/* Not exactly a heartbeat callback, but leads to essentially
- 	 * the same path so we set it up here. */
+ #endif /* O2CLUSTER_DISK_HEARTBEAT_H */
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/Makefile linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/Makefile
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/Makefile	2006-02-21 11:44:53.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/Makefile	2006-02-21 11:44:53.000000000 -0500
+@@ -3,8 +3,7 @@ obj-$(CONFIG_OCFS2_FS_O2CB) += ocfs2_dis
+ obj-$(CONFIG_OCFS2_FS_USERSPACE_CLUSTER) += ocfs2_user_heartbeat.o
+ 
+ ocfs2_nodemanager-objs := nodemanager.o heartbeat.o tcp.o net_proc.o \
+-	masklog.o ver.o sys.o
++	masklog.o ver.o sys.o disk_heartbeat.o quorum.o
+ 
+-ocfs2_disk_heartbeat-objs := disk_heartbeat.o quorum.o
+ ocfs2_user_heartbeat-objs := user_heartbeat.o
+ 
+diff -ruNpX ../dontdiff linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c
+--- linux-2.6.16-rc4.ocfs2-staging1/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:53.000000000 -0500
++++ linux-2.6.16-rc4.ocfs2-staging2/fs/ocfs2/cluster/nodemanager.c	2006-02-21 11:44:53.000000000 -0500
+@@ -30,6 +30,7 @@
+ #include "nodemanager.h"
+ #include "quorum.h"
+ #include "heartbeat.h"
++#include "disk_heartbeat.h"
+ #include "masklog.h"
+ #include "ver.h"
+ #include "sys.h"
+@@ -736,6 +737,7 @@ static void __exit exit_o2nm(void)
+ 
+ 	/* XXX sync with hb callbacks and shut down hb? */
+ 	o2net_unregister_hb_callbacks();
++	o2hb_disk_heartbeat_exit();
+ 	o2cb_sys_shutdown();
+ 	configfs_unregister_subsystem(&o2nm_cluster_group.cs_subsys);
+ 	o2nm_remove_proc(o2nm_proc);
+@@ -842,6 +844,10 @@ static int __init init_o2nm(void)
+ 	cluster_print_version();
+ 
+ 	o2hb_init();
++	ret = o2hb_disk_heartbeat_init();
++	if (ret)
++		goto out;
++
+ 	o2net_init();
+ 
+ 	ocfs2_table_header = register_sysctl_table(ocfs2_root_table, 0);
+@@ -900,6 +906,7 @@ out_sysctl:
+ 	unregister_sysctl_table(ocfs2_table_header);
+ out_o2net:
+ 	o2net_exit();
++	o2hb_disk_heartbeat_exit();
+ out:
+ 	return ret;
+ }
