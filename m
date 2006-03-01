@@ -1,50 +1,37 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri, 10 Mar 2006 17:09:13 -0800
-Subject: [Ocfs2-devel] Ocfs2 performance
-In-Reply-To: <E1FHWCm-0002rT-00@calista.inka.de>
-References: <20060310002121.GJ27280@ca-server1.us.oracle.com>
-	<E1FHWCm-0002rT-00@calista.inka.de>
-Message-ID: <20060311010913.GN27280@ca-server1.us.oracle.com>
+From: Andrew Morton <akpm@osdl.org>
+Date: Wed, 01 Mar 2006 23:34:57 -0000
+Subject: [Ocfs2-devel] [git patches] ocfs2 updates
+In-Reply-To: <20060301231034.GZ20175@ca-server1.us.oracle.com>
+References: <20060301231034.GZ20175@ca-server1.us.oracle.com>
+Message-ID: <20060301153714.56d20f24.akpm@osdl.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Bernd Eckenfels <be-news06@lina.inka.de>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mark.fasheh@oracle.com>
+Cc: torvalds@osdl.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Fri, Mar 10, 2006 at 02:14:08AM +0100, Bernd Eckenfels wrote:
-> Mark Fasheh <mark.fasheh@oracle.com> wrote:
-> > Your hash sizes are still ridiculously large.
-> 
-> How long are those entries in the buckets kept?
-Shortly after the inode is destroyed. Basically the entries are "lock
-resources" which the DLM tracks. OCFS2 only ever gets lock objects attached
-to those resources. In OCFS2 the lock objects obey inode lifetimes. So the
-DLM can't purge the lock resources until OCFS2 destroys the inode, etc. If
-other nodes take locks on that resource and your local node is the "master"
-(as in, arbitrates access to the resource) it may stay around longer.
+Mark Fasheh <mark.fasheh@oracle.com> wrote:
+>
+> +					    "Extent %d at e_blkno %"MLFu64" of inode %"MLFu64" goes past ip_clusters of %u\n",
 
-> I mean if I untar a tree the files are only locked while extracted,
-> afterwards they are owner-less... (I must admint I dont understand ocfs2
-> very deeply, but maybe explaining why so many active locks need to be
-> cached might help to find an optimized way.
-Well, OCFS2 caches locks. That is, once you've gone to the DLM to acquire a
-lock at a given level, OCFS2 will just hold onto it and manage access to it
-until the locks needs to be upgraded or downgraded. This provides a very
-large performance increase over always asking the DLM for a new lock.
-Anyway, at the point that we've acquired the lock the first time, the file
-system isn't really forcing the dlm to hit the hash much.
+Sometime, please consider killing MLFu64 and friends.
 
-> > By the way, an interesting thing happened when I recently switched disk
-> > arrays - the fluctuations in untar times disappeared. The new array is much
-> > nicer, while the old one was basically Just A Bunch Of Disks. Also, sync
-> > times dropped dramatically.
-> 
-> Writeback Cache?
-Yep, and a whole slew of other nice features :)
-	--Mark
+#if (BITS_PER_LONG == 32) || defined(CONFIG_X86_64) || (defined(CONFIG_UML_X86) && defined(CONFIG_64BIT))
+#define MLFi64 "lld"
+#define MLFu64 "llu"
+#define MLFx64 "llx"
+#else
+#define MLFi64 "ld"
+#define MLFu64 "lu"
+#define MLFx64 "lx"
+#endif
 
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh at oracle.com
+You covered most cases there, but sh64 implements u64 as `unsigned long
+long' (for example).
+
+Generally we solve this problem by just using %ll and casting the args
+appropriately.   That does have some runtime cost on 32-bit.
+
+u64 and s64 are the easy case - it gets stickier on things like sector_t
+whose size is controlled by a CONFIG_thing on 32-bit.
