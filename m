@@ -1,83 +1,67 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Sun, 5 Mar 2006 18:58:00 -0800
+From: Daniel Phillips <phillips@google.com>
+Date: Sun, 05 Mar 2006 20:59:50 -0800
 Subject: [Ocfs2-devel] Ocfs2 performance bugs of doom
-In-Reply-To: <440B9035.1070404@google.com>
+In-Reply-To: <20060306025800.GA27280@ca-server1.us.oracle.com>
 References: <4408C2E8.4010600@google.com>
 	<20060303233617.51718c8e.akpm@osdl.org>
 	<440B9035.1070404@google.com>
-Message-ID: <20060306025800.GA27280@ca-server1.us.oracle.com>
+	<20060306025800.GA27280@ca-server1.us.oracle.com>
+Message-ID: <440BC1C6.1000606@google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Daniel Phillips <phillips@google.com>
+To: Mark Fasheh <mark.fasheh@oracle.com>
 Cc: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Sun, Mar 05, 2006 at 05:28:21PM -0800, Daniel Phillips wrote:
-> Note, this is uniprocessor, single node on a local disk.  Something
-> pretty badly broken all right.  Tomorrow I will take a look at the hash
-> distribution and see what's up.
+Mark Fasheh wrote:
+> On Sun, Mar 05, 2006 at 05:28:21PM -0800, Daniel Phillips wrote:
+>>I think this table is per-ocfs2-mount, and really really, a meg is
+>>nothing if it makes CPU cycles  go away.  That's .05% of the memory
+>>on this box, which is a small box where clusters are concerned.  But
+>>there is also some gratuitous cpu suck still happening in there that
+>>needs investigating.  I would not be surprised at all to learn that
+>>full_name_hash is a terrible hash function.
 > 
-> I guess there are about 250k symbols in the table before purging
-> finally kicks in, which happens 5th or 6th time I untar a kernel tree.
-> So, 20,000 names times 5-6 times the three locks per inode Mark
-> mentioned.  I'll actually measure that tomorrow instead of inferring
-> it.
-> 
-> I think this table is per-ocfs2-mount, and really really, a meg is
-> nothing if it makes CPU cycles  go away.  That's .05% of the memory
-> on this box, which is a small box where clusters are concerned.  But
-> there is also some gratuitous cpu suck still happening in there that
-> needs investigating.  I would not be surprised at all to learn that
-> full_name_hash is a terrible hash function.
-Can you try the attached patch? Here's a sample OCFS2 lock name:
+> Can you try the attached patch?
 
-M0000000000000000036cc0458354c5
+With patch:
 
-So as you can see, things at the beginning of the name are very regular -
-something that I don't think full_name_hash() is handling very well. I
-hacked a (barely) new hash function to avoid the first 7 bytes and it
-reliably saves me 2 seconds in real time on my untars. I think we can
-actually make it much better (this is still pretty dumb) than that, but I'm
-just curious as to how much it helps on your tests.
+     Real  User  Sys
+    31.93 23.72 3.69
+    29.39 24.18 4.01
+    53.36 24.25 4.80
+    30.24 24.40 4.76
+    63.60 24.09 5.03
+    29.95 24.18 4.91
 
-Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
+Without patch:
 
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 8f3a9e3..06cebb2 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -81,6 +81,15 @@ void __dlm_unhash_lockres(struct dlm_loc
- 	dlm_lockres_put(lockres);
- }
- 
-+static inline unsigned int
-+dlm_name_hash(const unsigned char *name, unsigned int len)
-+{
-+	/* optimize for OCFS2 lock names */
-+	if (len > 7)
-+		return full_name_hash(&name[7], len - 7);
-+	return full_name_hash(name, len);
-+}
-+
- void __dlm_insert_lockres(struct dlm_ctxt *dlm,
- 		       struct dlm_lock_resource *res)
- {
-@@ -90,7 +99,7 @@ void __dlm_insert_lockres(struct dlm_ctx
- 	assert_spin_locked(&dlm->spinlock);
- 
- 	q = &res->lockname;
--	q->hash = full_name_hash(q->name, q->len);
-+	q->hash = dlm_name_hash(q->name, q->len);
- 	bucket = &(dlm->lockres_hash[q->hash % DLM_HASH_BUCKETS]);
- 
- 	/* get a reference for our hashtable */
-@@ -112,7 +121,7 @@ struct dlm_lock_resource * __dlm_lookup_
- 
- 	assert_spin_locked(&dlm->spinlock);
- 
--	hash = full_name_hash(name, len);
-+	hash = dlm_name_hash(name, len);
- 
- 	bucket = &(dlm->lockres_hash[hash % DLM_HASH_BUCKETS]);
- 
+     Real  User  Sys
+    30.15 23.90 3.58
+    54.99 24.38 4.56
+    31.49 24.63 5.28
+    60.09 24.71 5.47
+    31.44 24.34 5.72
+    65.36 24.31 5.84
+
+So that hack apparently improves the bucket distribution quite a bit, but
+look, the bad old linear systime creep is still very obvious.  For that
+there is no substitute for lots of buckets.
+
+The hash function can be improved way more.  Your resource encoding is
+also painfully wasteful.
+
+As for optimizing the loop... most of the loop overhead comes from
+loading cold cache lines no doubt.  The struct qstr is an impediment
+there because it adds another cache line to every loop.  Speaking of
+that, the qstr is so far away from the list.next pointer that you're
+most probably getting an extra cache line load there too.  Just move
+the qstr up next to the hash list.
+
+Notice, those wildly gyrating real times are still manifesting.  Seen
+them over there?
+
+Regards,
+
+Daniel
