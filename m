@@ -1,67 +1,38 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon, 6 Mar 2006 14:36:00 -0800
-Subject: [Ocfs2-devel] [git patches] ocfs2 updates
-Message-ID: <20060306223600.GC27280@ca-server1.us.oracle.com>
+Date: Mon, 6 Mar 2006 20:58:35 -0800
+Subject: [Ocfs2-devel] Ocfs2 performance bugs of doom
+In-Reply-To: <p733bhvgc7f.fsf@verdi.suse.de>
+References: <4408C2E8.4010600@google.com>
+	<20060303233617.51718c8e.akpm@osdl.org>
+	<440B9035.1070404@google.com>
+	<20060306025800.GA27280@ca-server1.us.oracle.com>
+	<440BC1C6.1000606@google.com>
+	<20060306195135.GB27280@ca-server1.us.oracle.com>
+	<p733bhvgc7f.fsf@verdi.suse.de>
+Message-ID: <20060307045835.GF27280@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@osdl.org>, Linus Torvalds <torvalds@osdl.org>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Andi Kleen <ak@suse.de>
+Cc: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Please pull from 'upstream-linus' branch of
-git://oss.oracle.com/home/sourcebo/git/ocfs2.git
+On Tue, Mar 07, 2006 at 04:34:12AM +0100, Andi Kleen wrote:
+> Did you actually do some statistics how long the hash chains are? 
+> Just increasing hash tables blindly has other bad side effects, like
+> increasing cache misses.
+Yep, the gory details are at:
 
-to receive the following updates:
+http://oss.oracle.com/~mfasheh/lock_distribution.csv
 
- fs/ocfs2/alloc.c             |   88 ++++++++--------
- fs/ocfs2/aops.c              |   18 +--
- fs/ocfs2/buffer_head_io.c    |   11 +-
- fs/ocfs2/cluster/heartbeat.c |   38 +++----
- fs/ocfs2/cluster/masklog.h   |   10 -
- fs/ocfs2/dcache.c            |    9 -
- fs/ocfs2/dir.c               |   42 +++----
- fs/ocfs2/dlm/dlmast.c        |   22 ++--
- fs/ocfs2/dlm/dlmcommon.h     |   21 +++
- fs/ocfs2/dlm/dlmconvert.c    |   11 +-
- fs/ocfs2/dlm/dlmdebug.c      |   18 ++-
- fs/ocfs2/dlm/dlmlock.c       |   14 ++
- fs/ocfs2/dlm/dlmmaster.c     |  227 ++++++++++++++++++++++++++++++++++++-------
- fs/ocfs2/dlm/dlmrecovery.c   |   50 +++++----
- fs/ocfs2/dlm/dlmunlock.c     |   11 +-
- fs/ocfs2/dlmglue.c           |  101 +++++++++----------
- fs/ocfs2/export.c            |   24 ++--
- fs/ocfs2/extent_map.c        |   34 +++---
- fs/ocfs2/file.c              |   42 ++++---
- fs/ocfs2/inode.c             |  116 +++++++++++----------
- fs/ocfs2/journal.c           |   27 ++---
- fs/ocfs2/localalloc.c        |   17 +--
- fs/ocfs2/namei.c             |   79 +++++++-------
- fs/ocfs2/ocfs2.h             |   12 +-
- fs/ocfs2/suballoc.c          |   72 +++++++------
- fs/ocfs2/super.c             |   14 +-
- fs/ocfs2/super.h             |    8 +
- fs/ocfs2/uptodate.c          |   40 ++++---
- fs/ocfs2/vote.c              |   63 ++++++-----
- 29 files changed, 749 insertions(+), 490 deletions(-)
+This measure was taken about 18,000 locks into a kernel untar. The only
+change was that I switched things to only hash the last 18 characters of
+lock resource names.
 
-Kurt Hackel:
-      ocfs2: fix hang in dlm lock resource mastery
-      ocfs2: dlm recovery fixes
-      ocfs2: don't use MLF* in dlm/ files
-
-Mark Fasheh:
-      ocfs2: use __attribute__ format
-      ocfs2: don't use MLF* in cluster/ files
-      ocfs2: don't use MLF* in the file system
-      ocfs2: finally remove MLF* macros
-
-A patch file for the changes can also be found at:
-
-http://oss.oracle.com/~mfasheh/ocfs2-update.patch
-
-It wasn't posted in e-mail because the MLF* updates drove the patch size
-past the lkml mail size limit.
+In short things aren't so bad that a larger hash table wouldn't help. We've
+definitely got some peaks however. Our in-house laboratory of mathematicians
+(read: Bill Irwin) is checking out methods by which we can smooth things out
+a bit more :)
 	--Mark
 
 --
