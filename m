@@ -1,26 +1,45 @@
 From: Daniel Phillips <phillips@google.com>
-Date: Fri, 10 Mar 2006 13:13:23 -0800
-Subject: [Ocfs2-devel] Ocfs2 performance
-In-Reply-To: <4411C42F.9080908@oracle.com>
-References: <4408C2E8.4010600@google.com>	<20060303233617.51718c8e.akpm@osdl.org>	<440B9035.1070404@google.com>	<20060306025800.GA27280@ca-server1.us.oracle.com>	<440BC1C6.1000606@google.com>	<20060306195135.GB27280@ca-server1.us.oracle.com>	<p733bhvgc7f.fsf@verdi.suse.de>	<20060307045835.GF27280@ca-server1.us.oracle.com>	<440FCA81.7090608@google.com>	<20060310002121.GJ27280@ca-server1.us.oracle.com>
-	<44116057.5060705@google.com> <4411C42F.9080908@oracle.com>
-Message-ID: <4411EBF3.2010007@google.com>
+Date: Fri, 10 Mar 2006 14:32:32 -0800
+Subject: [Ocfs2-devel] Another ocfs2 performance bug
+Message-ID: <4411FE80.7030302@google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Zach Brown <zach.brown@oracle.com>
-Cc: Mark Fasheh <mark.fasheh@oracle.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Zach Brown wrote:
->>Pretty close race - vmalloc is slightly faster if anything.
-> 
-> I don't think that test tells us anything interesting about the relative
-> load on the TLB.  What would be interesting is seeing the effect
-> vmalloc()ed hashes have on a concurrently running load that puts heavy
-> pressure on the TLB.
+Hi guys,
 
-Bzip2 isn't that kind of load?
+Reading all the files in a big directory tree takes at least four times
+as long on ocfs2 as ext3.
+
+# ocfs2: Copy a kernel tree to /dev/null
+mount -tocfs2 /dev/hdb /big
+time find /big/linux-2.6.16-rc3 -type f -exec cp {} /dev/null \;
+
+real   1m54.933s  <===
+user   0m0.896s
+sys    0m1.844s
+
+time find /big/linux-2.6.16-rc3 -type f -exec cp {} /dev/null \;
+
+real   0m14.301s
+user   0m5.172s
+sys    0m9.093s
+
+# ext3: Copy a kernel tree to /dev/null
+mount -text3 /dev/hdb /big
+time find /big/linux-2.6.16-rc3 -type f -exec cp {} /dev/null \;
+
+real    0m23.899s <===
+user    0m4.672s
+sys     0m9.513s
+
+time find /big/linux-2.6.16-rc3 -type f -exec cp {} /dev/null \;
+
+real    0m14.198s
+user    0m5.168s
+sys     0m8.977s
 
 Regards,
 
