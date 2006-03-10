@@ -1,292 +1,90 @@
-From: Daniel Phillips <phillips@google.com>
-Date: Wed, 08 Mar 2006 22:26:09 -0800
-Subject: [Ocfs2-devel] Ocfs2 performance bugs of doom
-In-Reply-To: <20060307045835.GF27280@ca-server1.us.oracle.com>
-References: <4408C2E8.4010600@google.com>	<20060303233617.51718c8e.akpm@osdl.org>	<440B9035.1070404@google.com>	<20060306025800.GA27280@ca-server1.us.oracle.com>	<440BC1C6.1000606@google.com>	<20060306195135.GB27280@ca-server1.us.oracle.com>	<p733bhvgc7f.fsf@verdi.suse.de>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Thu, 9 Mar 2006 16:21:21 -0800
+Subject: [Ocfs2-devel] Ocfs2 performance
+In-Reply-To: <440FCA81.7090608@google.com>
+References: <4408C2E8.4010600@google.com>
+	<20060303233617.51718c8e.akpm@osdl.org>
+	<440B9035.1070404@google.com>
+	<20060306025800.GA27280@ca-server1.us.oracle.com>
+	<440BC1C6.1000606@google.com>
+	<20060306195135.GB27280@ca-server1.us.oracle.com>
+	<p733bhvgc7f.fsf@verdi.suse.de>
 	<20060307045835.GF27280@ca-server1.us.oracle.com>
-Message-ID: <440FCA81.7090608@google.com>
+	<440FCA81.7090608@google.com>
+Message-ID: <20060310002121.GJ27280@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mark.fasheh@oracle.com>
+To: Daniel Phillips <phillips@google.com>
 Cc: Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> On Tue, Mar 07, 2006 at 04:34:12AM +0100, Andi Kleen wrote:
->>Did you actually do some statistics how long the hash chains are? 
->>Just increasing hash tables blindly has other bad side effects, like
->>increasing cache misses.
-> 
-> Yep, the gory details are at:
-> 
-> http://oss.oracle.com/~mfasheh/lock_distribution.csv
+E-mail subject line change, because the old one has worn thin ;)
 
-Hi Mark,
+On Wed, Mar 08, 2006 at 10:26:09PM -0800, Daniel Phillips wrote:
+> I don't know how you got your statistics, but I went to the bother of
+> writing a proc interface to dump the bucket counts.
+The initial set of numbers I posted was collected by hacking the dlm to dump
+bucket lengths at about 20,000 locks. I have since written some user space
+code to model the dlm hash and output chain lengths. This allowed me to test
+hash distributions at a rapid rate. As a data set, I used debugfs.ocfs2 to
+collect lock names from a file system with a fully untarred kernel tree. The
+program outputs in a format suitable for import into gnuplot. If interested,
+you can get the program and a sample data set from:
 
-I don't know how you got your statistics, but I went to the bother of
-writing a proc interface to dump the bucket counts.  Mostly to try out the
-seq_file interface, though it turned into something more of a tour through
-the slimy unberbelly of seq_read.  (This patch includes surgery for one of
-the several bunions I found there - seq_read failed to distinguish between
-"buffer full" and "buffer overrun", expanding the buffer unnecessarily in
-the former case).  This also includes my simple-minded big hash table
-code, with a 256K table size this time.
+http://oss.oracle.com/~mfasheh/dlm_hash/distribution_modeling/
 
-This proc interface always names itself /proc/ocfs2hash (a bug if you
-create more than one lockspace).  It gives the chain length as a uint32_t
-per bucket.
+Standard disclaimers apply - that code is a hack and wasn't edited to be
+particularly performant, error resistant or pretty. It's also clearly not
+intended for testing the actual performance of the hash (just distribution
+output). Anyway, it turns out that full_name_hash() didn't have the severe
+spikes in distribution that my original hack to compare only the last parts
+of a lockres name had. This makes it inappropriate for general use, even
+though it resulted in a performance gain on our micro-benchmark.
 
-Dump the buckets like this:
+> So if we improve the hash function, 128K buckets (512K table size) is
+> the right number, given a steady-state number of hash resources around
+> 128K.  This is pretty much independent of load: if you run light loads
+> long enough, you will eventually fill up the hash table.
+Your hash sizes are still ridiculously large. All my data shows that we need
+to increase the hash size by much much less. At the following location you
+will find a series of files detailing the results of 10 untar runs with
+various hash allocations. The short story is that we really only need
+an allocation on the order of a few pages. 
 
-    cat /proc/ocfs2hash | hexdump -e'32 " %1.1X" "\n"'
+http://oss.oracle.com/~mfasheh/dlm_hash/untar_timings/
 
-To total the buckets:
+If you average up the untar times you'll get something close to this:
+1 page:   23 seconds
+2 pages:  18 seconds
+4 pages:  16 seconds
+6 pages:  15 seconds
+8 pages:  14 seconds
+16 pages: 14 seconds
+32 pages: 14 seconds
+64 pages: 14 seconds
 
-    cat /proc/ocfs2hash | hexdump -v -e'"%1.1d\n"' | awk '{sum += $1} END {print "Total: ", sum;}'
+PAGE_SIZE on this system is 4096
 
-After untarring four kernel trees, number of locks hits a peak of 128K.
-With 64K buckets the hash, a typical region of the table looks like:
+So our largest performance gain is by just adding a page, and things seem to
+top out at 6-8 pages. I will likely have a patch in the next few days or so
+which will allocate a small array of pages at dlm startup. The bottom line
+is that the default is extremely likely to be on the order of a few pages.
+Eventually this will also be user configurable.
 
-  3 0 3 6 1 2 2 1 2 6 1 0 1 2 1 0 0 3 1 2 2 3 1 2 5 3 2 2 1 0 3 1
-  1 1 3 5 2 2 1 0 2 3 3 1 3 0 5 2 2 3 0 2 1 3 1 2 4 2 0 2 5 1 4 3
-  5 3 3 3 3 1 4 1 2 1 2 6 2 1 3 0 2 2 2 8 1 2 2 2 3 1 0 1 3 2 1 1
-  1 2 2 2 2 3 2 0 2 2 2 5 2 3 2 1 1 2 6 6 1 2 2 4 2 0 3 0 3 3 3 0
-  2 2 1 1 2 3 2 0 2 3 3 1 3 3 3 1 4 2 8 3 2 2 2 4 3 0 1 2 3 4 2 0
-  3 1 0 1 2 2 3 1 4 2 1 1 3 3 4 3 3 3 4 2 1 4 2 1 5 2 1 3 1 2 3 2
-  1 0 1 5 3 2 1 2 3 0 1 1 2 3 4 4 4 1 3 1 4 3 2 2 4 4 1 3 1 0 0 1
-  3 1 1 3 0 3 0 1 1 1 1 1 3 4 4 2 4 3 4 2 3 3 0 3 4 2 1 5 4 1 3 1
-  1 0 1 0 1 4 1 2 1 4 2 0 2 2 5 2 1 1 1 2 3 6 4 5 5 1 1 2 3 1 5 1
-  3 0 1 0 3 3 2 0 2 1 2 1 0 4 3 2 1 0 1 0 2 7 1 3 2 1 1 2 4 1 3 1
-  2 2 3 1 3 3 1 2 0 2 1 3 1 2 0 4 4 1 2 1 2 3 3 6 0 5 2 1 1 0 3 0
-  1 0 2 0 4 3 2 1 0 0 2 0 1 4 2 4 5 1 0 1 3 2 2 1 1 3 2 3 0 2 1 1
-  3 0 0 0 2 5 3 1 0 2 0 1 0 0 2 0 4 2 1 2 4 3 0 1 2 4 1 3 0 0 1 4
+> Of course, if we take a critical look at your locking strategy we might
+> find some fat to cut there too. Could I possibly interest you in writing
+> up a tech note on your global locking strategy?
+Sure, but it'll take a while. I've already got one OCFS2 related paper to
+write. Perhaps I'll be able to kill two birds with one stone.
 
-A poor distribution as you already noticed[1].  Even if it was a great
-distribution, we would still average a little over two nodes per bucket
-twice as many as we should allow unless you believe that people running
-cluster filesystems have too much time on their hands and need to waste
-some of it waiting for the computer to chew its way through millions
-of cold cache lines.
+By the way, an interesting thing happened when I recently switched disk
+arrays - the fluctuations in untar times disappeared. The new array is much
+nicer, while the old one was basically Just A Bunch Of Disks. Also, sync
+times dropped dramatically.
+	--Mark
 
-So if we improve the hash function, 128K buckets (512K table size) is
-the right number, given a steady-state number of hash resources around
-128K.  This is pretty much independent of load: if you run light loads
-long enough, you will eventually fill up the hash table.  Of course, if
-we take a critical look at your locking strategy we might find some fat
-to cut there too.  Could I possibly interest you in writing up a tech
-note on your global locking strategy?
-
-[1] And this is our all-important dentry hash function.  Oops.
-
-Regards,
-
-Daniel
-
-diff -urp 2.6.16.clean/fs/ocfs2/dlm/dlmcommon.h 2.6.16/fs/ocfs2/dlm/dlmcommon.h
---- 2.6.16.clean/fs/ocfs2/dlm/dlmcommon.h	2006-03-02 19:05:13.000000000 -0800
-+++ 2.6.16/fs/ocfs2/dlm/dlmcommon.h	2006-03-08 15:47:53.000000000 -0800
-@@ -36,8 +36,8 @@
-  #define DLM_LOCK_RES_OWNER_UNKNOWN     O2NM_MAX_NODES
-  #define DLM_THREAD_SHUFFLE_INTERVAL    5     // flush everything every 5 passes
-  #define DLM_THREAD_MS                  200   // flush at least every 200 ms
--
--#define DLM_HASH_BUCKETS     (PAGE_SIZE / sizeof(struct hlist_head))
-+#define DLM_HASH_SIZE		(1 << 18)
-+#define DLM_HASH_BUCKETS	(DLM_HASH_SIZE / sizeof(struct hlist_head))
-
-  enum dlm_ast_type {
-  	DLM_AST = 0,
-diff -urp 2.6.16.clean/fs/ocfs2/dlm/dlmdomain.c 2.6.16/fs/ocfs2/dlm/dlmdomain.c
---- 2.6.16.clean/fs/ocfs2/dlm/dlmdomain.c	2006-03-02 16:47:47.000000000 -0800
-+++ 2.6.16/fs/ocfs2/dlm/dlmdomain.c	2006-03-08 20:26:47.000000000 -0800
-@@ -33,6 +33,7 @@
-  #include <linux/spinlock.h>
-  #include <linux/delay.h>
-  #include <linux/err.h>
-+#include <linux/vmalloc.h>
-
-  #include "cluster/heartbeat.h"
-  #include "cluster/nodemanager.h"
-@@ -49,6 +50,80 @@
-  #define MLOG_MASK_PREFIX (ML_DLM|ML_DLM_DOMAIN)
-  #include "cluster/masklog.h"
-
-+#include <linux/seq_file.h>
-+#include <linux/proc_fs.h>
-+
-+static void hashdump_stop(struct seq_file *seq, void *v)
-+{
-+};
-+
-+static void *hashdump_next(struct seq_file *seq, void *v, loff_t *pos)
-+{
-+	return *pos < DLM_HASH_SIZE ? (++*pos, pos) : NULL;
-+};
-+
-+static void *hashdump_start(struct seq_file *seq, loff_t *pos)
-+{
-+	return *pos < DLM_HASH_SIZE ? pos : NULL;
-+};
-+
-+int hashdump_show(struct seq_file *seq, void *v)
-+{
-+	loff_t *ppos = v, pos = *ppos;
-+	int len = seq->size - seq->count, tail = DLM_HASH_SIZE - pos;
-+
-+	if (len > tail)
-+		len = tail;
-+	memcpy(seq->buf + seq->count, seq->private + pos, len);
-+	seq->count += len;
-+	*ppos += len - 1;
-+	return 0;
-+}
-+
-+static struct seq_operations hashdump_ops = {
-+	.start = hashdump_start,
-+	.next = hashdump_next,
-+	.stop = hashdump_stop,
-+	.show = hashdump_show
-+};
-+
-+static int hashdump_open(struct inode *inode, struct file *file)
-+{
-+	int err = seq_open(file, &hashdump_ops);
-+	if (!err) {
-+		struct seq_file *seq = file->private_data;
-+		int size = DLM_HASH_BUCKETS * sizeof(int), *vec = vmalloc(size);
-+		if (vec) {
-+			struct dlm_ctxt *dlm = PDE(inode)->data;
-+			struct hlist_head *heads = dlm->lockres_hash;
-+			struct hlist_node *node;
-+			struct dlm_lock_resource *res;
-+			int i;
-+
-+			memset(vec, 0, size);
-+			for (i = 0; i < DLM_HASH_BUCKETS; i++)
-+				hlist_for_each_entry(res, node, heads + i, hash_node)
-+					vec[i]++;
-+			seq->private = vec;
-+		}
-+	}
-+	return err;
-+};
-+
-+int hashdump_release(struct inode *inode, struct file *file)
-+{
-+	vfree(((struct seq_file *)file->private_data)->private);
-+	return seq_release(inode, file);
-+}
-+
-+static struct file_operations hashdump_file_ops = {
-+	.owner   = THIS_MODULE,
-+	.open    = hashdump_open,
-+	.read    = seq_read,
-+	.llseek  = seq_lseek,
-+	.release = hashdump_release
-+};
-+
-  /*
-   *
-   * spinlock lock ordering: if multiple locks are needed, obey this ordering:
-@@ -194,7 +269,7 @@ static int dlm_wait_on_domain_helper(con
-  static void dlm_free_ctxt_mem(struct dlm_ctxt *dlm)
-  {
-  	if (dlm->lockres_hash)
--		free_page((unsigned long) dlm->lockres_hash);
-+		vfree(dlm->lockres_hash);
-
-  	if (dlm->name)
-  		kfree(dlm->name);
-@@ -223,6 +298,7 @@ static void dlm_ctxt_release(struct kref
-
-  	wake_up(&dlm_domain_events);
-
-+	remove_proc_entry("ocfs2hash", NULL);
-  	dlm_free_ctxt_mem(dlm);
-
-  	spin_lock(&dlm_domain_lock);
-@@ -1191,7 +1267,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(c
-  		goto leave;
-  	}
-
--	dlm->lockres_hash = (struct hlist_head *) __get_free_page(GFP_KERNEL);
-+	dlm->lockres_hash = (struct hlist_head *)vmalloc(DLM_HASH_SIZE);
-  	if (!dlm->lockres_hash) {
-  		mlog_errno(-ENOMEM);
-  		kfree(dlm->name);
-@@ -1203,6 +1279,14 @@ static struct dlm_ctxt *dlm_alloc_ctxt(c
-  	for (i=0; i<DLM_HASH_BUCKETS; i++)
-  		INIT_HLIST_HEAD(&dlm->lockres_hash[i]);
-
-+	{
-+	struct proc_dir_entry *entry = create_proc_entry("ocfs2hash", 0, NULL);
-+	if (entry) {
-+		entry->proc_fops = &hashdump_file_ops;
-+		entry->data = dlm;
-+	}
-+	}
-+
-  	strcpy(dlm->name, domain);
-  	dlm->key = key;
-  	dlm->node_num = o2nm_this_node();
-diff -urp 2.6.16.clean/fs/seq_file.c 2.6.16/fs/seq_file.c
---- 2.6.16.clean/fs/seq_file.c	2006-02-12 16:27:25.000000000 -0800
-+++ 2.6.16/fs/seq_file.c	2006-03-08 16:59:27.000000000 -0800
-@@ -106,18 +106,17 @@ ssize_t seq_read(struct file *file, char
-  		if (!size)
-  			goto Done;
-  	}
-+expand:
-  	/* we need at least one record in buffer */
--	while (1) {
--		pos = m->index;
--		p = m->op->start(m, &pos);
--		err = PTR_ERR(p);
--		if (!p || IS_ERR(p))
--			break;
--		err = m->op->show(m, p);
--		if (err)
--			break;
--		if (m->count < m->size)
--			goto Fill;
-+	pos = m->index;
-+	p = m->op->start(m, &pos);
-+	err = PTR_ERR(p);
-+	if (!p || IS_ERR(p))
-+		goto Errstop;
-+
-+	err = m->op->show(m, p);
-+
-+	if (err == -1) {
-  		m->op->stop(m, p);
-  		kfree(m->buf);
-  		m->buf = kmalloc(m->size <<= 1, GFP_KERNEL);
-@@ -125,12 +124,12 @@ ssize_t seq_read(struct file *file, char
-  			goto Enomem;
-  		m->count = 0;
-  		m->version = 0;
-+		goto expand;
-  	}
--	m->op->stop(m, p);
--	m->count = 0;
--	goto Done;
--Fill:
--	/* they want more? let's try to get some more */
-+
-+	if (err)
-+		goto Errstop;
-+
-  	while (m->count < size) {
-  		size_t offs = m->count;
-  		loff_t next = pos;
-@@ -172,6 +171,10 @@ Enomem:
-  Efault:
-  	err = -EFAULT;
-  	goto Done;
-+Errstop:
-+	m->op->stop(m, p);
-+	m->count = 0;
-+	goto Done;
-  }
-  EXPORT_SYMBOL(seq_read);
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh at oracle.com
