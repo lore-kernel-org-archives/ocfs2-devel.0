@@ -1,6 +1,6 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu, 9 Mar 2006 16:21:21 -0800
-Subject: [Ocfs2-devel] Ocfs2 performance
+From: J. Bruce Fields <bfields@fieldses.org>
+Date: Thu, 9 Mar 2006 21:33:05 -0500
+Subject: [Ocfs2-devel] Ocfs2 performance bugs of doom
 In-Reply-To: <440FCA81.7090608@google.com>
 References: <4408C2E8.4010600@google.com>
 	<20060303233617.51718c8e.akpm@osdl.org>
@@ -11,80 +11,61 @@ References: <4408C2E8.4010600@google.com>
 	<p733bhvgc7f.fsf@verdi.suse.de>
 	<20060307045835.GF27280@ca-server1.us.oracle.com>
 	<440FCA81.7090608@google.com>
-Message-ID: <20060310002121.GJ27280@ca-server1.us.oracle.com>
+Message-ID: <20060310023305.GB28722@fieldses.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Daniel Phillips <phillips@google.com>
-Cc: Andi Kleen <ak@suse.de>, Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-
-E-mail subject line change, because the old one has worn thin ;)
+Cc: Mark Fasheh <mark.fasheh@oracle.com>, Andrew Morton <akpm@osdl.org>, Andi Kleen <ak@suse.de>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
 On Wed, Mar 08, 2006 at 10:26:09PM -0800, Daniel Phillips wrote:
-> I don't know how you got your statistics, but I went to the bother of
-> writing a proc interface to dump the bucket counts.
-The initial set of numbers I posted was collected by hacking the dlm to dump
-bucket lengths at about 20,000 locks. I have since written some user space
-code to model the dlm hash and output chain lengths. This allowed me to test
-hash distributions at a rapid rate. As a data set, I used debugfs.ocfs2 to
-collect lock names from a file system with a fully untarred kernel tree. The
-program outputs in a format suitable for import into gnuplot. If interested,
-you can get the program and a sample data set from:
+> After untarring four kernel trees, number of locks hits a peak of 128K.
+> With 64K buckets the hash, a typical region of the table looks like:
+> 
+>   3 0 3 6 1 2 2 1 2 6 1 0 1 2 1 0 0 3 1 2 2 3 1 2 5 3 2 2 1 0 3 1
+>   1 1 3 5 2 2 1 0 2 3 3 1 3 0 5 2 2 3 0 2 1 3 1 2 4 2 0 2 5 1 4 3
+>   5 3 3 3 3 1 4 1 2 1 2 6 2 1 3 0 2 2 2 8 1 2 2 2 3 1 0 1 3 2 1 1
+>   1 2 2 2 2 3 2 0 2 2 2 5 2 3 2 1 1 2 6 6 1 2 2 4 2 0 3 0 3 3 3 0
+>   2 2 1 1 2 3 2 0 2 3 3 1 3 3 3 1 4 2 8 3 2 2 2 4 3 0 1 2 3 4 2 0
+>   3 1 0 1 2 2 3 1 4 2 1 1 3 3 4 3 3 3 4 2 1 4 2 1 5 2 1 3 1 2 3 2
+>   1 0 1 5 3 2 1 2 3 0 1 1 2 3 4 4 4 1 3 1 4 3 2 2 4 4 1 3 1 0 0 1
+>   3 1 1 3 0 3 0 1 1 1 1 1 3 4 4 2 4 3 4 2 3 3 0 3 4 2 1 5 4 1 3 1
+>   1 0 1 0 1 4 1 2 1 4 2 0 2 2 5 2 1 1 1 2 3 6 4 5 5 1 1 2 3 1 5 1
+>   3 0 1 0 3 3 2 0 2 1 2 1 0 4 3 2 1 0 1 0 2 7 1 3 2 1 1 2 4 1 3 1
+>   2 2 3 1 3 3 1 2 0 2 1 3 1 2 0 4 4 1 2 1 2 3 3 6 0 5 2 1 1 0 3 0
+>   1 0 2 0 4 3 2 1 0 0 2 0 1 4 2 4 5 1 0 1 3 2 2 1 1 3 2 3 0 2 1 1
+>   3 0 0 0 2 5 3 1 0 2 0 1 0 0 2 0 4 2 1 2 4 3 0 1 2 4 1 3 0 0 1 4
+> 
+> A poor distribution as you already noticed[1].
 
-http://oss.oracle.com/~mfasheh/dlm_hash/distribution_modeling/
+How did you decide that? The distribution of bucket sizes is:
 
-Standard disclaimers apply - that code is a hack and wasn't edited to be
-particularly performant, error resistant or pretty. It's also clearly not
-intended for testing the actual performance of the hash (just distribution
-output). Anyway, it turns out that full_name_hash() didn't have the severe
-spikes in distribution that my original hack to compare only the last parts
-of a lockres name had. This makes it inappropriate for general use, even
-though it resulted in a performance gain on our micro-benchmark.
+0: 58
+1: 108
+2: 105
+3: 82
+4: 37
+5: 16
+6: 7
+7: 1
+8: 2
 
-> So if we improve the hash function, 128K buckets (512K table size) is
-> the right number, given a steady-state number of hash resources around
-> 128K.  This is pretty much independent of load: if you run light loads
-> long enough, you will eventually fill up the hash table.
-Your hash sizes are still ridiculously large. All my data shows that we need
-to increase the hash size by much much less. At the following location you
-will find a series of files detailing the results of 10 untar runs with
-various hash allocations. The short story is that we really only need
-an allocation on the order of a few pages. 
+which, without running any statistics, looks pretty close to a binomial
+distribution:
 
-http://oss.oracle.com/~mfasheh/dlm_hash/untar_timings/
+0 52.884
+1 109.21
+2 112.63
+3 77.349
+4 39.793
+5 16.358
+6 5.5972
+7 1.6397
+8 0.41980
 
-If you average up the untar times you'll get something close to this:
-1 page:   23 seconds
-2 pages:  18 seconds
-4 pages:  16 seconds
-6 pages:  15 seconds
-8 pages:  14 seconds
-16 pages: 14 seconds
-32 pages: 14 seconds
-64 pages: 14 seconds
+so it's probably about what you'd get if the hash function were choosing
+buckets uniformly at random, which is the best I'd think you could do
+without special knowledge of the inputs.
 
-PAGE_SIZE on this system is 4096
-
-So our largest performance gain is by just adding a page, and things seem to
-top out at 6-8 pages. I will likely have a patch in the next few days or so
-which will allocate a small array of pages at dlm startup. The bottom line
-is that the default is extremely likely to be on the order of a few pages.
-Eventually this will also be user configurable.
-
-> Of course, if we take a critical look at your locking strategy we might
-> find some fat to cut there too. Could I possibly interest you in writing
-> up a tech note on your global locking strategy?
-Sure, but it'll take a while. I've already got one OCFS2 related paper to
-write. Perhaps I'll be able to kill two birds with one stone.
-
-By the way, an interesting thing happened when I recently switched disk
-arrays - the fluctuations in untar times disappeared. The new array is much
-nicer, while the old one was basically Just A Bunch Of Disks. Also, sync
-times dropped dramatically.
-	--Mark
-
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh at oracle.com
+--b.
