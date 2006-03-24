@@ -1,29 +1,70 @@
-From: Bernd Eckenfels <be-mail2006@lina.inka.de>
-Date: Sat, 11 Mar 2006 02:57:31 +0100
-Subject: [Ocfs2-devel] Ocfs2 performance
-In-Reply-To: <20060311010913.GN27280@ca-server1.us.oracle.com>
-References: <20060310002121.GJ27280@ca-server1.us.oracle.com>
-	<E1FHWCm-0002rT-00@calista.inka.de>
-	<20060311010913.GN27280@ca-server1.us.oracle.com>
-Message-ID: <20060311015731.GA16912@lina.inka.de>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Fri, 24 Mar 2006 15:40:40 -0800
+Subject: [Ocfs2-devel] [git patches] ocfs2 updates
+Message-ID: <20060324234040.GK25194@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mark.fasheh@oracle.com>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Andrew Morton <akpm@osdl.org>, Linus Torvalds <torvalds@osdl.org>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Fri, Mar 10, 2006 at 05:09:13PM -0800, Mark Fasheh wrote:
-> until the locks needs to be upgraded or downgraded. This provides a very
-> large performance increase over always asking the DLM for a new lock.
+Please pull from 'upstream-linus' branch of
+git://oss.oracle.com/home/sourcebo/git/ocfs2.git
 
-Yes, it is basically the same problem as the buffer cache. Excessive
-single-use patterns dirty the small cache or require a too big cache to be
-usefull.
+to receive the following updates:
 
-Maybe a user specific limit of percentage of hash (and locks) used? I mean
-the untar test case is a bit synthetic, but think of concurrent read access
-in a cluster of nntp servers (news article pool).
+ fs/ocfs2/alloc.c             |   88 ++++++++--------
+ fs/ocfs2/aops.c              |   18 +--
+ fs/ocfs2/buffer_head_io.c    |   11 +-
+ fs/ocfs2/cluster/heartbeat.c |   38 +++----
+ fs/ocfs2/cluster/masklog.h   |   10 -
+ fs/ocfs2/dcache.c            |    9 -
+ fs/ocfs2/dir.c               |   42 +++----
+ fs/ocfs2/dlm/dlmast.c        |   22 ++--
+ fs/ocfs2/dlm/dlmcommon.h     |   21 +++
+ fs/ocfs2/dlm/dlmconvert.c    |   11 +-
+ fs/ocfs2/dlm/dlmdebug.c      |   18 ++-
+ fs/ocfs2/dlm/dlmlock.c       |   14 ++
+ fs/ocfs2/dlm/dlmmaster.c     |  227 ++++++++++++++++++++++++++++++++++++-------
+ fs/ocfs2/dlm/dlmrecovery.c   |   50 +++++----
+ fs/ocfs2/dlm/dlmunlock.c     |   11 +-
+ fs/ocfs2/dlmglue.c           |  101 +++++++++----------
+ fs/ocfs2/export.c            |   24 ++--
+ fs/ocfs2/extent_map.c        |   34 +++---
+ fs/ocfs2/file.c              |   42 ++++---
+ fs/ocfs2/inode.c             |  116 +++++++++++----------
+ fs/ocfs2/journal.c           |   27 ++---
+ fs/ocfs2/localalloc.c        |   17 +--
+ fs/ocfs2/namei.c             |   79 +++++++-------
+ fs/ocfs2/ocfs2.h             |   12 +-
+ fs/ocfs2/suballoc.c          |   72 +++++++------
+ fs/ocfs2/super.c             |   14 +-
+ fs/ocfs2/super.h             |    8 +
+ fs/ocfs2/uptodate.c          |   40 ++++---
+ fs/ocfs2/vote.c              |   63 ++++++-----
+ 29 files changed, 749 insertions(+), 490 deletions(-)
 
-Gruss
-Bernd
+Kurt Hackel:
+      ocfs2: fix hang in dlm lock resource mastery
+      ocfs2: dlm recovery fixes
+      ocfs2: don't use MLF* in dlm/ files
+
+Mark Fasheh:
+      ocfs2: use __attribute__ format
+      ocfs2: don't use MLF* in cluster/ files
+      ocfs2: don't use MLF* in the file system
+      ocfs2: finally remove MLF* macros
+
+A patch file for the changes can also be found at:
+
+http://oss.oracle.com/~mfasheh/ocfs2-update.patch
+
+It wasn't posted in e-mail because the MLF* updates drove the patch size
+past the lkml mail size limit.
+	--Mark
+
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh at oracle.com
