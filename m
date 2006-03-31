@@ -1,70 +1,58 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri, 24 Mar 2006 15:40:40 -0800
-Subject: [Ocfs2-devel] [git patches] ocfs2 updates
-Message-ID: <20060324234040.GK25194@ca-server1.us.oracle.com>
+From: Adrian Bunk <bunk@stusta.de>
+Date: Fri, 31 Mar 2006 16:53:55 +0200
+Subject: [Ocfs2-devel] [2.6 patch] fs/ocfs2/dlm/dlmrecovery.c: make
+	dlm_lockres_master_requery() static
+Message-ID: <20060331145355.GF3893@stusta.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@osdl.org>, Linus Torvalds <torvalds@osdl.org>
+To: mark.fasheh@oracle.com, kurt.hackel@oracle.com
 Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Please pull from 'upstream-linus' branch of
-git://oss.oracle.com/home/sourcebo/git/ocfs2.git
+dlm_lockres_master_requery() became global without any external usage.
 
-to receive the following updates:
 
- fs/ocfs2/alloc.c             |   88 ++++++++--------
- fs/ocfs2/aops.c              |   18 +--
- fs/ocfs2/buffer_head_io.c    |   11 +-
- fs/ocfs2/cluster/heartbeat.c |   38 +++----
- fs/ocfs2/cluster/masklog.h   |   10 -
- fs/ocfs2/dcache.c            |    9 -
- fs/ocfs2/dir.c               |   42 +++----
- fs/ocfs2/dlm/dlmast.c        |   22 ++--
- fs/ocfs2/dlm/dlmcommon.h     |   21 +++
- fs/ocfs2/dlm/dlmconvert.c    |   11 +-
- fs/ocfs2/dlm/dlmdebug.c      |   18 ++-
- fs/ocfs2/dlm/dlmlock.c       |   14 ++
- fs/ocfs2/dlm/dlmmaster.c     |  227 ++++++++++++++++++++++++++++++++++++-------
- fs/ocfs2/dlm/dlmrecovery.c   |   50 +++++----
- fs/ocfs2/dlm/dlmunlock.c     |   11 +-
- fs/ocfs2/dlmglue.c           |  101 +++++++++----------
- fs/ocfs2/export.c            |   24 ++--
- fs/ocfs2/extent_map.c        |   34 +++---
- fs/ocfs2/file.c              |   42 ++++---
- fs/ocfs2/inode.c             |  116 +++++++++++----------
- fs/ocfs2/journal.c           |   27 ++---
- fs/ocfs2/localalloc.c        |   17 +--
- fs/ocfs2/namei.c             |   79 +++++++-------
- fs/ocfs2/ocfs2.h             |   12 +-
- fs/ocfs2/suballoc.c          |   72 +++++++------
- fs/ocfs2/super.c             |   14 +-
- fs/ocfs2/super.h             |    8 +
- fs/ocfs2/uptodate.c          |   40 ++++---
- fs/ocfs2/vote.c              |   63 ++++++-----
- 29 files changed, 749 insertions(+), 490 deletions(-)
+Signed-off-by: Adrian Bunk <bunk@stusta.de>
 
-Kurt Hackel:
-      ocfs2: fix hang in dlm lock resource mastery
-      ocfs2: dlm recovery fixes
-      ocfs2: don't use MLF* in dlm/ files
+---
 
-Mark Fasheh:
-      ocfs2: use __attribute__ format
-      ocfs2: don't use MLF* in cluster/ files
-      ocfs2: don't use MLF* in the file system
-      ocfs2: finally remove MLF* macros
+ fs/ocfs2/dlm/dlmcommon.h   |    2 --
+ fs/ocfs2/dlm/dlmrecovery.c |    8 ++++++--
+ 2 files changed, 6 insertions(+), 4 deletions(-)
 
-A patch file for the changes can also be found at:
-
-http://oss.oracle.com/~mfasheh/ocfs2-update.patch
-
-It wasn't posted in e-mail because the MLF* updates drove the patch size
-past the lkml mail size limit.
-	--Mark
-
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh at oracle.com
+--- linux-2.6.16-mm2-full/fs/ocfs2/dlm/dlmcommon.h.old	2006-03-31 15:46:51.000000000 +0200
++++ linux-2.6.16-mm2-full/fs/ocfs2/dlm/dlmcommon.h	2006-03-31 15:46:58.000000000 +0200
+@@ -801,8 +801,6 @@
+ int dlm_finalize_reco_handler(struct o2net_msg *msg, u32 len, void *data);
+ int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+ 			  u8 nodenum, u8 *real_master);
+-int dlm_lockres_master_requery(struct dlm_ctxt *dlm,
+-			       struct dlm_lock_resource *res, u8 *real_master);
+ 
+ 
+ int dlm_dispatch_assert_master(struct dlm_ctxt *dlm,
+--- linux-2.6.16-mm2-full/fs/ocfs2/dlm/dlmrecovery.c.old	2006-03-31 15:47:07.000000000 +0200
++++ linux-2.6.16-mm2-full/fs/ocfs2/dlm/dlmrecovery.c	2006-03-31 15:47:49.000000000 +0200
+@@ -95,6 +95,9 @@
+ static void dlm_request_all_locks_worker(struct dlm_work_item *item,
+ 					 void *data);
+ static void dlm_mig_lockres_worker(struct dlm_work_item *item, void *data);
++static int dlm_lockres_master_requery(struct dlm_ctxt *dlm,
++				      struct dlm_lock_resource *res,
++				      u8 *real_master);
+ 
+ static u64 dlm_get_next_mig_cookie(void);
+ 
+@@ -1312,8 +1315,9 @@
+ 
+ 
+ 
+-int dlm_lockres_master_requery(struct dlm_ctxt *dlm,
+-			       struct dlm_lock_resource *res, u8 *real_master)
++static int dlm_lockres_master_requery(struct dlm_ctxt *dlm,
++				      struct dlm_lock_resource *res,
++				      u8 *real_master)
+ {
+ 	struct dlm_node_iter iter;
+ 	int nodenum;
