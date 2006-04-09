@@ -1,23 +1,28 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon, 3 Apr 2006 21:28:34 -0700
-Subject: [Ocfs2-devel] [2.6 patch] fs/ocfs2/dlm/dlmrecovery.c: make
-	dlm_lockres_master_requery() static
-In-Reply-To: <20060331145355.GF3893@stusta.de>
-References: <20060331145355.GF3893@stusta.de>
-Message-ID: <20060404042834.GZ25194@ca-server1.us.oracle.com>
+From: James Harper <james.harper@bendigoit.com.au>
+Date: Sun, 9 Apr 2006 13:56:32 +1000
+Subject: [Ocfs2-devel] using ethernet instead of TCP
+Message-ID: <AEC6C66638C05B468B556EA548C1A77DCEBF59@trantor>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Adrian Bunk <bunk@stusta.de>
-Cc: kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Mar 31, 2006 at 04:53:55PM +0200, Adrian Bunk wrote:
-> dlm_lockres_master_requery() became global without any external usage.
-Looks good, thanks.
-	--Mark
+Has anyone considered having the option of using Ethernet instead of TCP
+for inter-node communications? Such a feature would be useful for me as
+I'd like to use the same Ethernet segment for inter-node communication
+as I run AoE over (much less chance of a split brain), but I don't
+currently run IP on that segment. Also, running ocfs2 as the root
+filesystem would be easier (I've asked on -users if this is a good idea,
+as discussion of that aspect probably isn't appropriate to -devel) as IP
+wouldn't need to be started before bringing the root filesystem online.
 
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh at oracle.com
+Obviously it's going to limit the cluster to the one lan segment, and
+you get a lot of stuff 'for free' with TCP that would have to be written
+for ocfs2 to use Ethernet (but I don't know how much the inter-node
+stuff actually makes use of it), so it might be too much work for too
+little gain...
+
+Thanks
+
+James
