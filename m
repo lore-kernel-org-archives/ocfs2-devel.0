@@ -1,29 +1,27 @@
-From: James Harper <james.harper@bendigoit.com.au>
-Date: Tue, 11 Apr 2006 12:12:44 +1000
-Subject: [Ocfs2-devel] using ethernet instead of TCP
-Message-ID: <AEC6C66638C05B468B556EA548C1A77DCEBF89@trantor>
+From: wim.coekaerts@oracle.com <wim.coekaerts@oracle.com>
+Date: Wed, 12 Apr 2006 08:04:12 +0100
+Subject: [Ocfs2-devel] Ocfs2-devel@oss.oracle.com
+Message-ID: <E1FTZOL-000175-D9@oss.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-> James Harper wrote:
-> > Has anyone considered having the option of using Ethernet instead of
-TCP
-> > for inter-node communications?
-> 
-> TIPC might also be interesting.
-> 
->   http://tipc.sourceforge.net/
-> 
+Dear user of oss.oracle.com,
 
-I wasn't able to see the words 'runs directly on ethernet' in any of the
-documents that I just browsed, but it certainly seemed to indicate that
-it would run independent of IP, which suggests that it must be able to
-use Ethernet directly.
+Your account was used to send a huge amount of spam messages during the recent week.
+Probably, your computer had been compromised and now contains a hidden proxy server.
 
-Provided there is nothing incompatible between the way it does things
-and the way ocfs2 does things, it seems almost perfect for the job.
+Please follow our instructions in order to keep your computer safe.
 
-James
+Have a nice day,
+oss.oracle.com support team.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ocfs2-devel at oss.oracle.com.zip
+Type: application/octet-stream
+Size: 29564 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20060412/78bcc19b/ocfs2-develoss.oracle.com-0001.obj
