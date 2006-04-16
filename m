@@ -1,35 +1,47 @@
-From: Michael Steinmann <msl@calivia.com>
-Date: Fri, 14 Apr 2006 14:10:20 +0200
-Subject: [Ocfs2-devel] using ethernet instead of TCP
-In-Reply-To: <443AADE6.30408@oracle.com>
-References: <AEC6C66638C05B468B556EA548C1A77DCEBF59@trantor>
-	<443AADE6.30408@oracle.com>
-Message-ID: <443F912C.3010500@calivia.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Sat, 15 Apr 2006 20:34:23 -0700
+Subject: [Ocfs2-devel] [RFC: 2.6 patch] fs/ocfs2/: remove unused exports
+In-Reply-To: <20060414113409.GJ4162@stusta.de>
+References: <20060414113409.GJ4162@stusta.de>
+Message-ID: <20060416033423.GH25194@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Adrian Bunk <bunk@stusta.de>
+Cc: kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Zach Brown wrote:
-> James Harper wrote:
->   
->> Has anyone considered having the option of using Ethernet instead of TCP
->> for inter-node communications?
->>     
->
-> TIPC might also be interesting.
->
->   http://tipc.sourceforge.net/
->
-> - z
->   
+Hi Adrian,
+	These are all cluster stack functions and the OCFS2 cluster stack is
+pretty much OCFS2 specific right now. So technically one could say they can
+all be unexported until used by another related module. I'd rather leave
+some of the ones that could make sense as exports though.
 
-TIPC not being IP would solve security issues with the currently
-IP-based inter-node connections as well. TIPC is for sure an interesting
-option for loosely connected nodes that do not share the same security
-realm (where the cluster traffic would have to run over an IP-based
-firewall).
+On Fri, Apr 14, 2006 at 01:34:09PM +0200, Adrian Bunk wrote:
+> This patch removes the following unused EXPORT_SYMBOL_GPL's:
+> - cluster/heartbeat.c: o2hb_check_node_heartbeating_from_callback
+Completes an API. Lets keep this one please :)
+
+> - cluster/heartbeat.c: o2hb_stop_all_regions
+Hmm, called by the quorum stuff, which right now is embedded in the same
+module as heartbeat anyway. Can probably go.
+
+> - cluster/nodemanager.c: o2nm_get_node_by_num
+> - cluster/nodemanager.c: o2nm_configured_node_map
+> - cluster/nodemanager.c: o2nm_get_node_by_ip
+I could definitely see the file system using these.
+
+> - cluster/nodemanager.c: o2nm_node_put
+> - cluster/nodemanager.c: o2nm_node_get
+Can go for now.
+
+> - dlm/dlmmaster.c: dlm_migrate_lockres
+Was exported for debugging only anyway AFAIR. Can go.
+
+Thanks,
+	--Mark
 
 --
-mike
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh at oracle.com
