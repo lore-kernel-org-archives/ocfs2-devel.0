@@ -1,37 +1,37 @@
-From: Daniel Phillips <phillips@google.com>
-Date: Wed, 26 Apr 2006 09:50:13 -0700
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Wed, 26 Apr 2006 11:06:00 -0700
 Subject: [Ocfs2-devel] OCFS2 features RFC
-In-Reply-To: <20060425215548.GB16170@lst.de>
+In-Reply-To: <p73odyp7z8n.fsf@bragg.suse.de>
 References: <20060425183553.GB10524@ca-server1.us.oracle.com>
-	<20060425215548.GB16170@lst.de>
-Message-ID: <444FA4C5.9010608@google.com>
+	<p73odyp7z8n.fsf@bragg.suse.de>
+Message-ID: <20060426180600.GJ10524@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Christoph Hellwig wrote:
-> On Tue, Apr 25, 2006 at 11:35:53AM -0700, Mark Fasheh wrote:
->>-Htree support
+On Wed, Apr 26, 2006 at 06:11:04AM +0200, Andi Kleen wrote:
+> Won't you get into deadlocks then when the system is low on memory?
+> (freeing memory might require write outs on OCFS2 and the user space
+> cluster might be stuck already)
 > 
-> Please not.  htree is just the worst possible directory format around.
-> Do some nice hashed or btree directories, but don't try this odd hack
-> again.
+> Or rather if you rely on user space you would need to make sure
+> that the basic block write out path works without such possible
+> deadlocks.
+The DLM certainly wouldn't be in userspace - there's also a convincing
+performance argument for it being in kernel.
 
-Could you be specific about what you think is odd about it?
+Primarily then I think we're worred about that in the context of something
+like heartbeat. In that case, we probably want something that can do it's
+work within some preallocated, mlock'd area. I'm not sure (yet) how the
+various stacks handle this problem, or even if they do. I need to think
+about membership software. I want to say that I don't think this would be an
+issue there, but I have a feeling I could concoct a case during node
+recovery.
+	--Mark
 
-> Especially as the only reason it was developed for in ext2/3
-> doesn't work very well in a cluster filesystem anyway
-
-In what way?
-
- > to access the
-> new htree all nodes would have to support the format anyway, so the
-> whole easy up/downgrade thing doesn't matter at all.
-
-Good point, and this only affects the leaf node format.
-
-Regards,
-
-Daniel
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh at oracle.com
