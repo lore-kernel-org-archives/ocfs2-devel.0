@@ -1,26 +1,55 @@
-From: Andi Kleen <ak@suse.de>
-Date: 26 Apr 2006 06:11:04 +0200
-Subject: [Ocfs2-devel] OCFS2 features RFC
-In-Reply-To: <20060425183553.GB10524@ca-server1.us.oracle.com>
-References: <20060425183553.GB10524@ca-server1.us.oracle.com>
-Message-ID: <p73odyp7z8n.fsf@bragg.suse.de>
+From: Eduardo Paixao Niel <eduardo.paixao@markway.com.br>
+Date: Wed, 26 Apr 2006 10:29:52 -0300
+Subject: [Ocfs2-devel] [ocfs2-devel] OCFS2 for SLES 9
+Message-ID: <CORREIOMfKQu1bCdUg0000016c7@correio.markway.com.br>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh <mark.fasheh@oracle.com> writes:
-> 
-> - We'd like as much of it to be user space code as is possible and
->   practical.
+Hi,
+ 
+Somebody knows when the OCFS2 will be certified for Linux SLES 9 ? In the
+link below only the OCFS v.1 is certified.
+ 
+http://oss.oracle.com/projects/ocfs2/
+ 
+I have a project that need that information to be approved.
+ 
+Regards,
+ 
+ 
+ 
 
-Won't you get into deadlocks then when the system is low on memory?
-(freeing memory might require write outs on OCFS2 and the user space
-cluster might be stuck already)
+Eduardo Paix?o Niel - Oracle Certified Professional 
 
-Or rather if you rely on user space you would need to make sure
-that the basic block write out path works without such possible
-deadlocks.
+MarkWay Business & Inform?tica Ltda.
 
--Andi
+Oracle Certified Solution Partner
+
+Tel/Fax: 55-21-2262-4312
+
+ <http://www.markway.com.br/> http://www.markway.com.br
+
+ Oracle Certified Professional
+
+ "14 ANOS CRIANDO NEG?CIOS" 
+
+ 
+
+Quer falar sobre nosso atendimento ?
+Envie mensagem ao nosso Setor da Qualidade
+qualidade at markway.com.br
+
+ 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20060426/a0426294/attachment.html
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: image/gif
+Size: 1427 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20060426/a0426294/attachment.gif
