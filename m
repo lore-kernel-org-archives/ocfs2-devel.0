@@ -1,96 +1,74 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Tue, 16 May 2006 18:44:20 -0700
-Subject: [Ocfs2-devel] OCFS2 features RFC
-In-Reply-To: <446398D3.7010508@suse.com>
-References: <20060425183553.GB10524@ca-server1.us.oracle.com>
-	<446398D3.7010508@suse.com>
-Message-ID: <20060517014419.GS21588@ca-server1.us.oracle.com>
+From: Sum Sha <sumsha.matrixreloaded@gmail.com>
+Date: Wed, 17 May 2006 19:50:43 +0530
+Subject: [Ocfs2-devel] Fencing in OCFS2
+Message-ID: <c04850370605170720g2ce8d0cayd5328712104fcb21@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jeff,
+Hi,
+Just wanted to understand how OCFS2 fencing works. Sorry if this has
+already been discussed...
+(1)
+--------------
+A node has quorum when:
+        * it sees an odd number of heartbeating nodes and has network
+          connectivity to more than half of them.
+                or
+        * it sees an even number of heartbeating nodes and has network
+          connectivity to at least half of them *and* has connectivity to
+          the heartbeating node with the lowest node number.
+--------------
+Now, Think about a case where there are 5 nodes in an OCFS2 cluster.
+Consider that split-brain happens and it's divided into 2 subclusters
+of 3-node and 2-node. In this case, this algorithm will work fine and
+the cluster with 3-node sub cluster will win the race. But think about
+the case, where there is a serial split-brain and you have 2-node,
+2-node and 1-node (3 sub-clusters) after 2 split-brains at the same
+time. In this case, this algorithm will fail and all sub-clusters will
+be paniced, because on each sub cluster, none of the nodes has
+connectivity to more than (5/2 = 2) nodes, while each node can get
+disk hearbeat from 5 nodes.
 
-On Thu, May 11, 2006 at 04:04:35PM -0400, Jeff Mahoney wrote:
-> While performance enhancements are always welcome, the two big features
-> we'd like to see in future OCFS2 releases are features that will make
-> using OCFS2 more transparent and more like a "local" file system. The
-> features we want are cluster wide lockf/flock and shared writable mmap.
-I'm trying to do more research on the user locking stuff right now actually.
-My aim is twofold. The first is to nail down exactly what each type of
-locking entails, and secondly I want to know what impact a lack of
-cluster-aware locking has on at least one existing application.
+This may be the case with any cluster configuration, if there are
+serial split-brains. Has the algorithm been designed for handling
+serial split-brains? If yes, then how?
+Is there anything else which is to be considered?
 
-Just to break it down, lockf() seems to be a (POSIX compliant?) library
-wrapper around fcntl() locking, which is range based, optionally mandatory,
-and provides deadlock detection. Ranges can encompass any part of the file,
-with a special case that allows to lock all possible (present and future)
-bytes from a given offset. Along with the usual blocking / nonblocking
-variants on read / exclusive locks, fcntl supports the F_GETLK operation
-which allows userspace to query information about a range, including the
-pids of processes holding incompatible locks.
+(2) In ocfs2_faq I read that for quorum process to get stabilzed it
+may take 28 seconds.
+--------------
+Q05     How long does the quorum process take?
+A05     First a node will realize that it doesn't have connectivity with
+        another node.  This can happen immediately if the connection is closed
+        but can take a maximum of 10 seconds of idle time.  Then the node
+        must wait long enough to give heartbeating a chance to declare the
+        node dead.  It does this by waiting two iterations longer than
+        the number of iterations needed to consider a node dead (see Q03 in
+        the Heartbeat section of this FAQ).  The current default of 7
+        iterations of 2 seconds results in waiting for 9 iterations or 18
+        seconds.  By default, then, a maximum of 28 seconds can pass from the
+        time a network fault occurs until a node fences itself.
+--------------
 
-flock() on the other hand is always advisory and does not support ranges. No
-explicit deadlock detection seems to be done, though deadlocks can be broken
-by the user sending a signal (including kill -9) to one of the waiting
-processes. It also supports shared, exclusive and trylock type operations.
+I don't understand why are we giving heartbeating extra 2 iterations
+to declare a node dead in case of split brain? What I think is, if we
+are already missing disk heartbeat for a node, then it's missed
+heartbeat counter has already been started and we would declare that
+node dead after 7 iterations. How do we include these extra 2
+iterations?
 
-And finally, quoting from the fcntl() man page: "Since kernel 2.0, there is
-no interaction between the types of lock placed by flock(2) and fcntl(2)."
+What I want to say here is, after 10 seconds of TCP idle timeout for a
+node, we believe that we will start missing disk heartbeats for that
+node and we allow 9 iterations of such missed heartbeats, but how do
+you inform the other thread, which is already doing this missed
+heartbeat calculation (because we are missing disk hearbeats), that it
+needs to wait for 2 more iterations before declaring the node dead. If
+you don't inform that thread about this, then it will declare the
+other node dead after 7 iterations only. So how this extra 2
+iterations concept will come into picture?
 
-Now, to get to an actual example of application usage, I took a look at the
-apache 2.2.2 source. It seems that they do file locking in the apr functions
-apr_file_lock() / apr_file_unlock() (located in
-srclib/apr/file_io/unix/flock.c). On Linux, these use fcntl().
-
-The only consumer of those functions I could find in the httpd tarball are
-the "sdbm" routines in and around srclib/apr-util/dbm/sdbm/
-
-And that's about where my apache expertise ends :/
-
-There's many more apps to look at for information though - sendmail
-immediately comes to mind. An strace on my machine here reveals that rpm
-uses fcntl() locking.
-
-So the question for the current OCFS2 code base is what impact the lack of
-cluster-aware fcntl() locking has on the particular set of software which
-we're going to worry about right now. Whenever we chose to do it (and we
-_will_ do it), it will take a long time to develop - fcntl() locking alone
-encompasses about two thirds of our non-trivial dlm feature wishlist.
-
-> - From a data integrity perspective, it shouldn't make a difference to an
-> application whether competing reader/writers are on the same node or a
-> different node. If standard locking primitives are already in use by the
-> application, they should "just work" if the competing process is on
-> another node.
-I agree 100%.
-
-> > -Online file system resize
-> 
-> This would be nice, and I think easily done in the same manner ext3
-> does. Anything outside the file system's current view of the block
-> device can be initialized in userspace, and the last block group,
-> bitmaps, and superblock would be adjusted by an ioctl in kernelspace.
-Yep, that's basically how we plan to approach it.
-
-> > - We'd like as much of it to be user space code as is possible and
-> >   practical.
-> 
-> The heartbeat project does a pretty good job on the userspace end, but
-> as Andi pointed out, it has the usual shortcomings of anything in
-> userspace involved with writing data inside the kernel. It is prone to
-> deadlocks and we could miss node topology events.
-Ahh ok, so that explains how heartbeat handles it (aka, it doesn't right
-now). It really seems to me that we're going to need to find a solution to
-this sort of problem sooner or later (why do I get the feeling that I'm
-being naive?). Speaking from experience, having cluster stack components in
-kernel means a much longer development time. Even small focused ones like
-the OCFS2 stack.
-	--Mark
-
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh at oracle.com
+Thanks.
+Sumsha.
