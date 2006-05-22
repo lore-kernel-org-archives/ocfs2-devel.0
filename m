@@ -1,106 +1,81 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri, 19 May 2006 23:11:37 -0700
-Subject: [Ocfs2-devel] OCFS2 features RFC
-In-Reply-To: <446D12CF.2080501@google.com>
-References: <20060425183553.GB10524@ca-server1.us.oracle.com>
-	<446398D3.7010508@suse.com>
-	<20060517014419.GS21588@ca-server1.us.oracle.com>
-	<446BBCF5.7040903@google.com>
-	<20060518024638.GY21588@ca-server1.us.oracle.com>
-	<446D12CF.2080501@google.com>
-Message-ID: <20060520061137.GA21588@ca-server1.us.oracle.com>
+From: Sum Sha <sumsha.matrixreloaded@gmail.com>
+Date: Mon, 22 May 2006 13:12:47 +0530
+Subject: [Ocfs2-devel] Fencing in OCFS2
+In-Reply-To: <446E7848.2000004@google.com>
+References: <c04850370605170720g2ce8d0cayd5328712104fcb21@mail.gmail.com>
+	<c04850370605180746l531fceb4x3ca1c7d76fef740a@mail.gmail.com>
+	<446CC185.9090306@oracle.com> <446CC939.8060502@google.com>
+	<c04850370605190740s67ac3b0dpedd580ccb5f94997@mail.gmail.com>
+	<446E7848.2000004@google.com>
+Message-ID: <c04850370605220042g6b5d75c3y6af03c7e7c3b564d@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, May 18, 2006 at 05:35:27PM -0700, Daniel Phillips wrote:
-> Ok, I just figured out how to be really lazy and do cluster-consistent
-> NFS locking across clustered NFS servers without doing much work.  In the
-> duh category, only one node will actually run lockd and all other NFS
-> server nodes will just port-forward the NLM traffic to/from it.  Sure,
-> you can bottleneck this scheme with a little effort, but to be honest we
-> aren't that interested in NFS locking performance, we are more interested
-> in actual file operations.
-Out of curiousity, how will a failure on the lockd node be handled? Or is
-this something that you're not worried about.
+Thanks for giving this information. I will wait for your proposal
+assuming that today OCFS2 fencing will work as per what I have
+mentioned in my previous mails.
 
-> >call_usermodehelper()?
-> 
-> Bad idea, this gets you back into memory deadlock zone.  Avoiding memory
-> deadlock is considerably easier in kernel and is nigh on impossible with
-> call_usermodehelper.
-Good catch, I threw that out without fully evaluating the implications :)
- 
-> Like the Red Hat framework?  Ahem.  Maybe not.  For one thing, they never
-> even got close to figuring out how to avoid memory deadlock.  For another,
-> it's a rambling bloated pig with lots of bogus factoring.  Honestly, what
-> you have now is a much better starting point,
-Well, I should've said "multiple existing frameworks" - so people could run
-whatever fits their needs the best. So folks could pick the feature sets
-that suit their needs the best. Besides, I think you're being somewhat
-unfair to the Red Hat framework. It does _alot_ more than the OCFS2 stack
-can even dream of handling right now. And we haven't even talked about
-Linux-HA yet.
-
-> you should be thinking about how to evolve it in the direction it needs to
-> go rather than cutting over to an existing framework, that was designed
-> with the mindset of usermode cluster apps, not the more stringent
-> requirements of a cluster filesystem.
-I hear they have this thing called "GFS" ;) 
-
-What we are thinking about right now is how we can reuse code - building on
-other people's bug fixes, feature patches, etc. What we have today just
-bootstraps our file system into the world of the cluster. Deciding to go the
-full blown home grown cluster route path isn't some decision we make based
-on one (admittedly difficult) bug or design issue. Nor is it something that
-we will undertake without having fully explored all other alternatives.
- 
-> No, the filesystem never calls fencing, only the cluster manager does.
-> As I understand it, what happens is:
-> 
->    1) Somebody (heartbeat) reports a dead node to cluster manager
->    2) Cluster manager issues a fence request for the dead node
->    3) Cluster manager receives confirmation that the node was fenced
->    4) Cluster manager sends out dead node messages to cluster managers
->       on other nodes
->    5) Some cluster manager receives dead node message, notifies DLM
->    6) DLM receives dead node message, initiates lock recovery
-That sounds alot closer to how it should happen, IMHO.
-
-> Step (2) is where we need plugins, where each plugin registers a fencing
-> and somehow each node becomes associated with a particular fencing method
-> (setting up this association is an excellent example of a component that
-> can and should be in userspace because this part never executes in the
-> block IO path).  The right interface to initiate fencing is probably a
-> direct (kernel-to-kernel) call, there is actually no good reason to use
-> a socket interface here.
-Fencing plugins by the way can tend to do a variety of things, ranging from
-direct device access, to being able to telnet or ssh into a switch. The
-plugin system therefore needs to be fairly generic, to the level of
-running a binary that could be written in perl, C, etc.
-
-> However, the fencing confirmation is an asynchronous event and might as
-> well come in over a socket. There are alternatives (e.g., linked list
-> event queue) but the socket is most natural because the cluster manager
-> already needs one to receive events from other sources.
-> 
-> Actually, fencing has no divine right to be a separate subsystem and is
-> properly part of the cluster manager.  It's better to think of it that
-> way.  As such, the cluster manager <=> fencing api is internal, there is
-> no need to get into interminable discussions of how to standardize it.
-Sure.
-
-> So let's just do something really minimal that gives us a plugin
-> interface and move on to harder problems. If you do eventually figure out
-> how to move the whole cluster manager to userspace then you replace the
-> module scheme in favor of a dso scheme.
-Well, I'm wondering how we're going to support all the different fencing
-methods using kernel modules ;)
-	--Mark
-
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh at oracle.com
+Thanks.
+Sumsha.
+On 5/20/06, Daniel Phillips <phillips@google.com> wrote:
+> Sum Sha wrote:
+> > Don't know if I am looking at very old code or not getting what you
+> > want to say.
+> > Code for OCFS2 version 1.2.0-1 says that "if a node detects that it's
+> > not part of quorum, then panic itself".
+> >
+> > Inside fs/ocfs2/cluster/quorum.c: o2quo_make_decision() {
+> > -> A Node detects if it's part of quorum
+> > -> If it's not, then it calls o2quo_fence_self()
+> > -> o2quo_fence_self() function stops all the regions by calling
+> > o2hb_stop_all_regions() and then calls panic() directly with the
+> > message "ocfs2 is very sorry to be fencing this system by
+> > panicing\n"...
+> > }
+> >
+> > Now tell me if in this case fencing means panic or not?
+> > If you want to stop a node from accessing a shared storage, then
+> > panicking may be a good idea (that's what you are doing here), but
+> > don't understand if this algorithm stops all the nodes and causes
+> > complete cluster shutdown, then how it can be a good idea !
+> >
+> > Probably I am looking at the older version of the code or some more
+> > explaination is needed here :)
+>
+> You are looking at a quick hack appropriate for a first try.  Now let's look
+> at
+> what has to be done to make this more generic and less panic-oriented.
+>
+> 1) Self-fencing is just one possible fencing method, so we need a way of
+> plugging
+> in and configuring other fencing methods.
+>
+> 2) There are really two parts to self-fencing:
+>       * Target.  Each fencing method includes a specified behavior of the
+>         node that is to be fenced.  We must define such behavior accurately,
+>         or we won't be able to use self-fencing.  For fencing methods other
+>         than self-fencing we still may want to define target behaviour, such
+>         as rebooting, or attempting self-cleanup and rejoin.  Each target
+>         fencing method specifies the initiation method to be used in order
+>         to fence this node.
+>
+>       * Initiator.  Fencing must be initiated by some quorum node.  A
+>         particular fencing method initiates fencing by some means.  For a
+>         self-fencing target the initiator method simply waits some number of
+>         heartbeats then reports success.
+>
+> OCFS2 only implements one degenerate form of self-fencing target, and no
+> methods
+> of initiation.  This needs to be fixed.  I am preparing a specific proposal
+> for
+> a better fencing harness for OCFS2.  Since it is too long to write in the
+> margin
+> of this email, I will send it to the list next week in its own email.
+>
+> Regards,
+>
+> Daniel
+>
