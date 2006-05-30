@@ -1,38 +1,37 @@
-From: Daniel Phillips <phillips@google.com>
-Date: Fri, 26 May 2006 10:23:02 -0700
-Subject: [Ocfs2-devel] Fencing in OCFS2
-In-Reply-To: <4476232F.2070700@google.com>
-References: <c04850370605170720g2ce8d0cayd5328712104fcb21@mail.gmail.com>
-	<4476232F.2070700@google.com>
-Message-ID: <44773976.1060607@google.com>
+From: Lars Marowsky-Bree <lmb@suse.de>
+Date: Tue, 30 May 2006 21:38:48 +0200
+Subject: [Ocfs2-devel] [RFC] Fencing harness for OCFS2
+In-Reply-To: <44767695.7000203@google.com>
+References: <44767695.7000203@google.com>
+Message-ID: <20060530193848.GP17040@marowsky-bree.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Daniel Phillips wrote:
-> so with:
-> 
->    A = 2
->    B = 2
->    H = 2 seconds
->    L = .5 seconds
->    W = 10 seconds
-> 
-> we have:
-> 
->    8 + 1 + 10 = 19 seconds
+On 2006-05-25T20:31:33, Daniel Phillips <phillips@google.com> wrote:
 
-Oops, sorry, I should not have set W (maximum latency between watchdog
-trigger and shutdown) as high as 10, since the panic shuts down
-interrupts much faster than that, which in theory stops any disk or
-network hardware from transmitting.  This should just take a few ms,
-however there may be write traffic in flight, so we need to set W to
-a second or two.  This gets our "safe" watchdog wait down to 10 seconds
-or so, which is still twice as bad as the 5 seconds we get with storage
-side fencing.
+> Goals:
+>     - Lightweight, kernel based fencing harness
+>     - Support pluggable fencing methods
+>     - Pluggable methods take policy out of kernel
+>     - No reinvented wheels, use kernel modules
+>     - Also accomodate user space fencing methods
+>     - Divide work appropriately between kernel and user space
+>     - Obey memory deadlock prevention rules
+>     - Obey safe module unload rules
+>     - Handle multiple clusters per node
 
-Regards,
+Sorry we're chiming in so late, but with Jeff's user-space membership
+patches, we have user-space driven fencing working with heartbeat 2.
 
-Daniel
+
+Sincerely,
+    Lars Marowsky-Br?e
+
+-- 
+High Availability & Clustering
+SUSE Labs, Research and Development
+SUSE LINUX Products GmbH - A Novell Business	 -- Charles Darwin
+"Ignorance more frequently begets confidence than does knowledge"
