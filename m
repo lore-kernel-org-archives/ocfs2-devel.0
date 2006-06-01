@@ -1,194 +1,162 @@
 From: Daniel Phillips <phillips@google.com>
-Date: Thu, 01 Jun 2006 11:57:38 -0700
-Subject: [Ocfs2-devel] [RFC] Fencing harness for OCFS2
-In-Reply-To: <20060601101336.GC4265@marowsky-bree.de>
-References: <44767695.7000203@google.com>
-	<20060530193848.GP17040@marowsky-bree.de>
-	<447CA02C.30308@suse.com> <447CA7D7.4090803@google.com>
-	<20060531001925.GQ17040@marowsky-bree.de>
-	<447DE28F.9090308@google.com>
-	<20060531230302.GB4265@marowsky-bree.de>
-	<447E3B88.1010108@google.com>
-	<20060601101336.GC4265@marowsky-bree.de>
-Message-ID: <447F38A2.3090208@google.com>
+Date: Thu, 01 Jun 2006 16:13:56 -0700
+Subject: [Ocfs2-devel] [RFC] Service Master Takeover harness for OCFS2
+Message-ID: <447F74B4.4060704@google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Lars Marowsky-Bree wrote:
-> On 2006-05-31T17:57:44, I wrote:
->>Deciding whether a node needs to be fenced is pretty easy.  If it missed X
->>heartbeats, fence it.
-> 
-> That is too simplistic.
-> 
-> For example, _you_ think it missed the heartbeats. What do the other
-> nodes think? Did they hear it? Maybe it is you who should be fenced
-> instead?  You need to arrive at a concensus on what the cluster should
-> look like, and (heuristically) compute the largest fully connected set.
+Goals:
+    - Lightweight, kernel based service master takeover harness
+    - Pluggable takeover methods take policy out of kernel
+    - No reinvented wheels, use kernel modules
+    - Accomodate user space takeover methods
+    - Divide work appropriately between kernel and user space
+    - Obey memory deadlock prevention rules
+    - Obey safe module unload rules
+    - Handle multiple clusters per node
 
-The node doing the fencing has quorum by definition.  None of the nodes
-in the quorum have missed X heartbeats by definition.  So our node is
-perfectly within its rights to fence any node that has missed X
-heartbeats.  Duh.
+Service Masters and Line of Succession
+--------------------------------------
 
-> And before fencing, you need to ensure you (still) have the required
-> quorum.
+Arguably, nobody has ever come up with a cluster services and resource
+balancing model that satisfies everybody, and quite possibly nobody ever
+will.  A big part of the problem is representing service interdepencies so
+that a cluster manager can automatically ensure the right services are
+available to support other services, all the way up to and including cluster
+applications.  This is really hard.  Fortunately, it is also unncessary to
+to handle this in the block IO path.  Most of the hard work just needs to be
+done at node bringup and teardown time.  This allows us to factor the problem
+in such a way that only one small part of a service management framework
+actually needs to obey memory deadlock rules, and the rest can be
+implemented outside the kernel.
 
-See, you are not far off grokking all this, you probably just need another
-cup of coffee.
+Definition: a "service master" is the final arbiter of any decisions about
+which services will execute on which nodes, and is also responsible for
+ensuring that all nodes know how to contact those services.  Service master
+takeover is the act of moving the service master role from one node to
+another, normally because an old service master node has failed.  Service
+master takeover is the one essential component of a service management
+framework that needs to follow the stringent anti deadlock rules, and
+therefore is best implemented in the kernel.
 
-> And, what if you, locally, can't talk to the fencing device necessary to
-> reset said node and the request has to be forwarded to another node?
+Sevice master takeover is very small job in terms of amount of work that
+needs to be done, but it is a crucially important job.  For this purpose,
+OCFS2 currently uses a system for nominating service masters only when
+needed, via a nondeterministic competition.  This is a bad idea both
+because it is inherently unstable and because it introduces unnecessary
+latency in the failover path.  So I propose a simple mechanism whereby a
+cluster always has a deterministic means of appointing new masters as
+necessary.  Instead of holding an election, we simply define a line of
+succession of service masters so that when one fails its job is
+immediately taken over by the next in line.  The line of succession is
+simple seniority: the oldest node in the cluster is the service master.
 
-Asymmetric fencing capability is covered by my earlier RFC, you will need
-different methods on nodes with and without fencing capability.  Setting
-this up is handled entirely by user space.  There is no special kernel
-support for this because none is needed.
+Because service master takeover is implemented via pluggable methods, it
+is not incompatible with election algorithms or other fanciful schemes
+for assigning cluster duties.  In other words, a service master method
+might for some ungodly reason decide to hold an election.  More usefully,
+a service master might wish to use a cluster resource map to help it
+pick a "good" node for some service function.  Or a service master might
+appoint some other node to run an election, consult a resource map, or
+whatever.  The point is that we always have the ability to make certain
+critical decisions at exactly one place in the cluster.  This eliminates
+entire classes of latency, code fluff and potential raciness.
 
-> To be sure, this can be done within the kernel, but it rains over the
-> parade as "it's so easy". ;-)
+By analogy, when it comes to crunch time our cluster should act more like
+an army and less like a mob.  An army has a well defined chain of command
+and a good plan of action in case a leader becomes a casualty.  More often
+than not, a mob will just panic.
 
-Good thing I brought my simplicity umbrella with me today.
+Note: some services are distributed cluster wide, others need only a single
+instance on one node, and others need a few instances including hot spares.
+These various arrangements have one thing in common: each requires a
+single service master to make certain critical decisions for it and we can
+handle all of these topologies using one simple service master takeover
+harness.
 
-> (The Concensus Cluster Membership layer alone in heartbeat is roughly
-> 25kLoC (including comments and stuff, though.) That's not to say it
-> couldn't be cleaned up and done in 15kLoC, but it's definitely more than
-> a couple of hundred. In particular if you then have to deal with mixed
-> versions and so on.)
+Registering Service Master Methods
+----------------------------------
 
-I hold to my prediction of a 3 digit number of lines of kernel code needed
-for the cluster stack, including basic methods to emulate OCFS2's  current
-behavior.  Interesting to hear I will compete with a solution an order of
-magnitude more bloated, and I bet, harder to audit and less performant.
+Service master methods are registered the same way as fencing methods,
+something like:
 
-Since I still intend to convince you of the yummy goodness of driving your
-code via core events that come from kernel, much of your 15K lines of code
-will still be useful with this arrangement.  I do not doubt that you have
-a much longer requirements list than the kernel code does and I agree that
-the bulk of the code must be in user space.
+    err = node_register_master_method(name, fn, owner);
 
-> But, our (as far as we can tell, appropriately protected) user-space
-> membership and fencing layer already does that. Why would you want to
-> move it back to the kernel?
+Like fencing methods, service master methods are defined in kernel modules.
+Multiple master methods may be defined simultaneously, to handle multiple
+services.  Typically, service masters will not need to interact during
+failover.  The services themselves may well interact, including during
+failover, but the service master harness need not concern itself with that;
+if service interaction is required then it is the responsibility of the
+methods or of the services controlled by the service master methods.
 
-It is already in kernel, I am not moving it anywhere, I am just evolving
-it in a natural direction.
+Normally, each node of a cluster will load the same service master methods
+so that every cluster node is capable of mastering any cluster service.
+We could relax this in asymmetric clusters by defining a separate line of
+succession for each separate service, but for the time being this extra
+complication is unnecessary.
 
->>...You will see in the anti memory
->>deadlock patches I posted [last] summer there is a mechanism for
->>resizing the PF_MEMALLOC reserve as necessary, suitable for use at
->>module init and exit time.
-> 
-> Have they been merged yet? If not, why? (I'm not asking to be annoying,
-> but because LKML etc is a big place and I missed the discussion. And,
-> "this summer" has been mostly winter so far in Germany, so I'm not sure
-> which summer you're refering to ;-)
+Associating Nodes with Service Master Methods
+---------------------------------------------
 
-Excuse me, I meant last summer, posted and discussed on netdev.  Notice how
-that topic dropped from issue number one at last year's KS to not even on
-the agenda this year.  That is because the interesting bit of the problem
-is done, though somebody (me) still has to get busy and prepare the patch
-for merging.  This will arrive along with my NBD server rewrite, which lets
-me set up a nice test case for it.
+Like fencing methods, service master methods are defined in a global
+configuration file.  At node bringup time the node manager checks that all
+service master methods specified for the cluster are in fact registered,
+and fills in the method pointers.  This code does not have to obey memory
+deadlock rules so it may easily be implemented in user space, except for
+filling in the method pointers.
 
-> If we can resize the PF_MEMALLOC space and have authorized user-space
-> dig into it, did you not just cause the need for this to be implemented
-> in kernel to go away?
+Service Master Takeover
+-----------------------
 
-One of the needs, yes.  Other needs include keeping the code small and easy
-to audit, and keeping short lines of communication to the kernel cluster
-filesystem, which is by far the heaviest user.
+For simplicity, service master takeover methods will always be executed by
+the senior node in the cluster, where senority is defined by some stable
+scheme such as how long a node has been a member of the cluster.  This
+gives a simple, stable, easy to maintain and (probably) race free method
+for defining order of succession.  Note that this in no way implies that
+all cluster services will run on the senior node, or that all locks will
+be mastered by the senior node.  It only specifices a means of making
+certain critical promptly and unbambigously.
 
->>I think I know what you're talking about, you think that there will be no
->>nice interface from the kernel cluster components to userspace.
-> 
-> No, actually I'm saying that we've already got so many critical piece
-> outside kernel-space
+ From time to time the senior node of the cluster will leave, either
+voluntarily or otherwise.  The next node in line of succession becomes the
+senior node.  To verify that all nodes agree with this new appointment,
+the node manager sends a message to each cluster node indicating that it
+is now the new service master.  When a quorum (less one) of nodes have
+replied the senior node then invokes each service master takeover method
+with a call like:
 
-So far you only mentioned MPIO, an out of kernel patch that still seems
-far from sanity.
+    err = thisnode->master->takeover(thisnode);
 
-> ...we really need a solution - ie, giving them
-> access to PF_MEMALLOC, priorizing their network communication above
-> others, and if the PF_MEMALLOC reserve (or some other resource) becomes
-> a point of contention among this privileged group, arbitate as sanely as
-> possible.
+Nonzero error only means that takeover has been successfully initiated.  To
+allow takeover of separate services to proceed in parallel, the takeover
+method reports success via a message, something like:
 
-I agree, you need a solution.  The main bit you don't have right now is
-a syscall or ioctl for setting/clearing PF_MEMALLOC.  How about we float
-a really awful patch for that on lkml and wait for the hive mind to come
-up with something palatable?
+    write(thisnode->nodeman->socket, {MASTERED, thisnode, errno, errmsg}, len);
 
-> But, if you want to work really hard and be appreciated, you should put
-> more work towards helping solving the user-space problem, because then
-> your solution will be general.
-> 
-> (Not just by OCFS2, but by iSCSI, GFS, MPIO, (dare I say it:) FUSE ...)
+where error messaging is the same as for fencing.
 
-I need to stay focussed on my own work at the moment, that includes fixing
-the in-kernel network deadlock, fixing NBD to support local use of exports,
-finishing up my cluster block devices, and patching OCFS2's cluster stack
-to be general enough to support those cluster block devices.  That means
-I won't be taking side trips into FUSE and MPIO for a while.  You are
-welcome to of course, and I will code a (really lousy) userspace interface
-for PF_MEMALLOC for you if you like.
+Note: messaging all node members on takeover as described above is not
+strictly necessary since we already have the quorum guarantee and every
+node already knows which node will become the new senior node in case of
+failure.  I am not sure it accomplishes anything useful, but we can wait
+to see actual code before deciding whether this bit deserves to live.
+It does seem wise to ensure that all cluster nodes know about the new
+service master and don't sit around waiting for answers from the old
+one, before the service master continues with other cluster business,
+but perhaps there is a quicker way to accomplish this.
 
->>>Ah, you didn't read what I wrote. Read again. When we can free up memory
->>>for our "dirty" user-space stack by pushing out writes destined to the
->>>CFS to the local swap, so we can fence etc and all that. That's an idea
->>>I've been toying around with lately.
->>>
->>>Of course, when we're out of virtual memory too, that won't work
->>>either.
->>
->>I was going to mention that.
-> 
-> If you're completely out of virtual memory, dude, better take that
-> suicide pill. ;-)
+Note: it should be apparent that this new service master failover scheme
+is inherently much faster than the incumbent one.
 
-Sorry, you got that wrong once again.  You can fill up all of swap just
-doing normal writes to a file.  Try to find a mechanism in the VMM that
-prevents that, you won't, because that is how Linux works.  By introducing
-swap you don't change the fundamental problem at all, just push it around
-a little.
+User Space Service Master Methods
+---------------------------------
 
-> Well, there is the political question about how you're going to get this
-> actually _into_ the kernel when people seem to be convinced it can be
-> handled in user-space.
-
-Those people have probably not even thought about the deadlock problem,
-not to mention other valid reasons.  Anyway, like I keep saying, it is
-_already_ in kernel, I am just improving it, and shrinking it too I expect.
-
-> Many a solution has hit the wall at this stage,
-> and I'd recommend at least giving this argument some thought, because it
-> will come up.
-
-It has come up.  The protests are getting weaker.  Those protesting
-generally are not writing a lot of code which doesn't help their protests
-much.
-
->>Note that I do plan a nice, tight little interface to userspace methods,
->>which I promise will be able to interface with little effort to the work
->>you described above.  I am pretty sure your code will get smaller too, or
->>it would if you didn't need to keep the old cruft around to support
->>prehistoric kernels.  So if the kernel gets smaller and userspace gets
->>smaller and it all gets faster and more obviously correct, What is the
->>problem again?
-> 
-> Well, if that is indeed the combined result, we shall certainly all be
-> delighted. What's your timeline for the first useable pilot?
-
-"When it is ready".  The next item on the agenda is an RFC for a pluggable
-service master takeover harness along similar lines to the fencing harness.
-I need this in order to integrate my block devices and I think it will also
-be a pretty big improvement over OCFS2's existing dlm_pick_recovery_master
-which is pretty scary as was discussed yesterday.  I will offer a patch for
-those two to kick around before moving on to membership events.
-
-Regards,
-
-Daniel
+A service master takeover method might simply send a message to a
+(memlocked) user space daemon that can do whatever it wants.  Or the
+takeover method might message some server running on another node.  In
+other words, nothing special needs to be done to allow this simple
+harness to support arbitrary userspace service takeover methods.
