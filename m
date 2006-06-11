@@ -1,59 +1,71 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu, 8 Jun 2006 21:08:24 -0700
-Subject: [Ocfs2-devel] Extended Attribute Support?
-In-Reply-To: <355a4e960606072143q11e8a055vef0dca48b423a4bc@mail.gmail.com>
-References: <355a4e960606070435q69e1413fga5c30869d38caf31@mail.gmail.com>
-	<20060607164519.GM3082@ca-server1.us.oracle.com>
-	<355a4e960606071747n7ae0ea88u8a1d155586c85fe9@mail.gmail.com>
-	<20060608034600.GO3082@ca-server1.us.oracle.com>
-	<355a4e960606072143q11e8a055vef0dca48b423a4bc@mail.gmail.com>
-Message-ID: <20060609040824.GT3082@ca-server1.us.oracle.com>
+Date: Sun, 11 Jun 2006 10:45:10 -0700
+Subject: [Ocfs2-devel] ext2 attributes for OCFS2
+In-Reply-To: <20060610123253.GA23924@MAIL.13thfloor.at>
+References: <20060610123253.GA23924@MAIL.13thfloor.at>
+Message-ID: <20060611174510.GW3082@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 07, 2006 at 09:43:47PM -0700, EKC wrote:
-> I have a fourteen node cluster of dual dual-core opterons with local
-> SATA disks that I was using for Lustre. My plan is to use aoe with
-> DRBD mirroring between pairs of nodes (each node has two disks) for
-> OCFS2.
-Ok, so what's the maximum node count per shared disk here? 2 or 14? Either
-value is easily within the range of what we test with here. Total nodes in
-the cluster shouldn't really your performance.
+Hey Herbert,
 
-> I am using the cluster to distribute the load for self-contained
-> database-backed (mysql, Berkeley db, and o_append/mmap flat-file
-> "databases") applications, each of which is hosted in its own vserver.
-So one thing we don't support yet is shared writeable mmap. It looks like we
-might have that going soon though, as David Howells has a patch in -mm which
-makes that alot easier to implement in OCFS2.
+On Sat, Jun 10, 2006 at 02:32:53PM +0200, Herbert Poetzl wrote:
+> did a first hack on adding the iattrs (ext2) to OCFS2. it is currently for
+> Linux-VServer patched kernels and I need to clean it up a little more (and
+> of course test it), but I thought I'd ask you folks what you think about
+> the general idea and the implementation.
+Well it definitely looks like things are going in a good direction :) How
+many of these attributes were you planning to implement by the way? I'm
+thinking we probably want to cover at least some of the basics
+- immutable, appends... Maybe the vfs already handles those for us - I'll
+have to read more code to figure that out. Patch comments below.
 
-> This use case becomes complicated because I need to quickly "clone"
-> vservers. I've looked at layering unionfs or cowloop ontop of a
-> cluster fs. However, my preference is to use vserver's COW support
-> (hard-link two files and flag them as 'immutable' and 'unlink'; break
-> the link and copy the files on write,chmod,chown).
-After having read the vserver home page, their COW support seems promising,
-but I'm unaware of how they implement that so I couldn't comment on OCFS2
-interaction.
+> here is a link to the patch, if there is some
+> interest from your side, I'll prepare one for
+> mainline ...
+> 
+> http://vserver.13thfloor.at/Experimental/delta-ocfs2-feat01.diff
+You probably want to move the cluster lock in the OCFS2_IOC_SETFLAGS case up
+a bit so that you can be sure your inode image is up to date within the
+cluster. Similarly, you'll probably want to take a read-only meta data lock
+in the OCFS2_IOC_GETFLAGS case.
 
-> My compute and storage needs are closely correlated. Filesystem reads
-> dominate (80%) over writes. Directories are shared between nodes only
-> in COW cases. Metadata operations and read/writes have a a lot of
-> spatial locality. Cache coherency becomes an issue with the COW
-> (hardlinking) requirement.
-Ok, so mostly reads and with COW, writes look like they'll be mostly node
-local. This is an optimum load for OCFS2 as you will not have many inodes
-which have to be passed between nodes.
+OCFS2 makes use of a small area associated with locks (called a Lock Value
+Block) to stuff commonly used inode information. This helps the file system
+avoid a disk read when updating inode information due to a new lock acquiry
+- ocfs2_meta_lock_update() is the function responsible for this. These new
+attributes should be put in the lvb as we'll want to be able to test their
+existence by checking the struct inode under cluster lock (as opposed to
+having to read off disk and checking the disk inode flags). Luckily this is
+pretty easy - you already handled the disk cases by updating
+ocfs2_populate_inode() and ocfs2_refresh_inode(). The lvb is a similar
+process. I'll outline the steps below.
 
-So taking into account node numbers and your expected load it seems like you
-probably have a fair chance of making that work, assuming we get those
-features you're missing.
+At the top of dlmglue.h you'll see the ocfs2_meta_lvb structure definition.
+Just go ahead and take some of the reserved fields for our purposes.
+Be sure to bump the value of OCFS2_LVB_VERSION so that node which don't
+understand the new field know just to ignore the lvb.
 
-Well, you certainly have an interesting use case, and I hope that OCFS2 can
-accomodate your needs.
+The next step is to update __ocfs2_stuff_meta_lvb() to understand how to
+write the values into the lvb, and ocfs2_refresh_inode_from_lvb() to take
+them from the lvb into the inode.
+
+We only need to stuff these new flags into the lvb btw, so don't worry about
+the other ocfs2_dinode->i_flags - they're not nearly as dynamic and aren't
+really checked anywhere we won't already be using the disk.
+
+I'm thinking about whether we want to mark the existence of this feature in
+the superblock (probably as a compat flag). More on this later I suppose.
+
+> note: some attributes (like the noatime) do not (yet) make sense for
+> OCFS2, It's just a generic approach ...
+Right. What's up with the OCFS2_BARRIER_FL and OCFS2_IUNLINK flags? Am
+I correct when I don't notice those in ext3?
+
+Thanks!
 	--Mark
 
 --
