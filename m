@@ -1,25 +1,23 @@
-From: Adrian Bunk <bunk@stusta.de>
-Date: Sat, 15 Jul 2006 02:36:01 +0200
-Subject: [Ocfs2-devel] [RFC: 2.6 patch] fs/ocfs2/dlm/dlmmaster.c: unexport
-	dlm_migrate_lockres
-Message-ID: <20060715003600.GK3633@stusta.de>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Sun, 16 Jul 2006 00:31:41 -0700
+Subject: [Ocfs2-devel] [RFC: 2.6 patch] fs/ocfs2/dlm/dlmmaster.c:
+	unexport dlm_migrate_lockres
+In-Reply-To: <20060715003600.GK3633@stusta.de>
+References: <20060715003600.GK3633@stusta.de>
+Message-ID: <20060716073141.GK29686@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch removes the unused EXPORT_SYMBOL_GPL(dlm_migrate_lockres).
+On Sat, Jul 15, 2006 at 02:36:01AM +0200, Adrian Bunk wrote:
+> This patch removes the unused EXPORT_SYMBOL_GPL(dlm_migrate_lockres).
+Eh, that's fine I guess - we haven't used it yet and afair it was just
+exported for debugging purposes anyway.
+	--Mark
 
-Signed-off-by: Adrian Bunk <bunk@stusta.de>
-
---- linux-2.6.18-rc1-mm2-full/fs/ocfs2/dlm/dlmmaster.c.old	2006-07-15 00:40:56.000000000 +0200
-+++ linux-2.6.18-rc1-mm2-full/fs/ocfs2/dlm/dlmmaster.c	2006-07-15 00:41:07.000000000 +0200
-@@ -2375,7 +2375,6 @@
- 	mlog(0, "returning %d\n", ret);
- 	return ret;
- }
--EXPORT_SYMBOL_GPL(dlm_migrate_lockres);
- 
- int dlm_lock_basts_flushed(struct dlm_ctxt *dlm, struct dlm_lock *lock)
- {
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh at oracle.com
