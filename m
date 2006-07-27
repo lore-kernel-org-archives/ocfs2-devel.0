@@ -1,23 +1,20 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Sun, 16 Jul 2006 00:31:41 -0700
-Subject: [Ocfs2-devel] [RFC: 2.6 patch] fs/ocfs2/dlm/dlmmaster.c:
-	unexport dlm_migrate_lockres
-In-Reply-To: <20060715003600.GK3633@stusta.de>
-References: <20060715003600.GK3633@stusta.de>
-Message-ID: <20060716073141.GK29686@ca-server1.us.oracle.com>
+From: Karsten Hashimoto <karsten.hashimoto@hashimoto-net.de>
+Date: Thu, 27 Jul 2006 23:56:58 +0200
+Subject: [Ocfs2-devel] ocfs2 for OpenSolaris x86_64
+Message-ID: <1154037418.759.6.camel@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, Jul 15, 2006 at 02:36:01AM +0200, Adrian Bunk wrote:
-> This patch removes the unused EXPORT_SYMBOL_GPL(dlm_migrate_lockres).
-Eh, that's fine I guess - we haven't used it yet and afair it was just
-exported for debugging purposes anyway.
-	--Mark
-
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh at oracle.com
+are there any plans to port ocfs2 to OpenSolaris 10 ?
+I personally would find this very helpfull since we run 80% of all
+Oracle on Solaris and Linux solutions did not really deliver on the
+promises up to now.
+So we still have to spend much money on expensive Cluster Filesystems
+with Solaris. ocfs2 for Solaris would surely help to spread Oracle
+Cluster technology faster in big companies like ours (roughly 1000
+Databases).
+kind regards 
+Karsten
