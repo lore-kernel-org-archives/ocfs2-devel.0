@@ -1,38 +1,126 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Wed Sep 13 11:17:41 2006
-Subject: [Ocfs2-devel] cluster/heartbeat.c::compute_max_sectors is invalid.
-In-Reply-To: <20060913104442.6d8a541b@mathieu.toulouse>
-References: <44FFEF06.5030001@seanodes.com>
-	<20060908182833.GF8792@ca-server1.us.oracle.com>
-	<20060913104442.6d8a541b@mathieu.toulouse>
-Message-ID: <20060913181737.GH8792@ca-server1.us.oracle.com>
+Date: Wed Sep 13 14:35:12 2006
+Subject: [Ocfs2-devel] What's in ocfs2.git
+Message-ID: <20060913213507.GK8792@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: ocfs2-devel@oss.oracle.com
 
-On Wed, Sep 13, 2006 at 10:44:42AM +0200, Mathieu Avila wrote:
-> A proposal patch (against the 2.6.17.11 vanilla kernel) for this is
-> attached. It works for me, and shouldn't break any existing device.
-Ok, that patch looks good - I've put it in my 2.6.19 queue.
+The following describes the contents of the ALL branch of
+
+git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git
+
+* The usual set of cleanups and fixes.
+   - a #include cleanup
+   - some nlink check fixes
+   - a heartbeat sector math fix
+
+* OCFS2 now supports ext2 file attributes. Thanks to Herbert Poetzl for that
+  feature.
+
+* Shared writeable mmap support. This just make use of the ->page_mkwrite()
+  callback to take write locks on pages. It works quite well, though there's
+  one unresolved issue I'd like to work out first.
+
+* Fix mtime updates on buffered writes so that they always happen.
+
+* An old directory readahead patch which I had never pushed upstream. IMHO,
+  it's actually more interesting in that it provides the code to do readahead
+  of other fs structures in the future.
+
+* A patch series which removes the "dentry" vote, in favor of a locking
+  scheme which achieves the same thing (cluster-wide dentry delete on
+  unlink/rename) using fewer network messages in the average case. This
+  series also includes two interesting changes:
+   - An OCFS2 DLM API update, needed to get this going.
+   - A small patch to the VFS to enable a file system to manually d_move()
+     during rename. This also updates NFS for the behavior.
+
+* A configfs fix - it was previously possible to create duplicate subsystem
+  names.
 
 
-> And i still think that it is a bad idea to try figuring out how many
-> BIOs are needed, because it really depends on the underlying
-> architecture of the device. Although it might work on most hardware,
-> some strange one might break one day...
-Well, I'm pretty sure some other software uses that approach, but that might
-just mean other software might have similar problems :)
+Most of this will be queued up for 2.6.19. Diffstat and shortlog are below.  
 
-So yeah. I don't reallly have any qualms changing ocfs2 heartbeat to a more
-"natural" usage of the bio API.
+Broken out patches can be found at:
 
-
-Thanks!
+http://www.kernel.org/pub/linux/kernel/people/mfasheh/ocfs2/ocfs2_git_patches/ocfs2-all-20060913/
 	--Mark
 
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
+ fs/configfs/dir.c               |   32 ++
+ fs/namei.c                      |    6 
+ fs/nfs/dir.c                    |    3 
+ fs/nfs/super.c                  |   10 
+ fs/ocfs2/Makefile               |    1 
+ fs/ocfs2/alloc.c                |   28 +-
+ fs/ocfs2/aops.c                 |   83 ++----
+ fs/ocfs2/buffer_head_io.c       |   95 +++++--
+ fs/ocfs2/buffer_head_io.h       |    2 
+ fs/ocfs2/cluster/heartbeat.c    |    8 
+ fs/ocfs2/cluster/tcp_internal.h |    5 
+ fs/ocfs2/dcache.c               |  380 +++++++++++++++++++++++++++++-
+ fs/ocfs2/dcache.h               |   27 ++
+ fs/ocfs2/dir.c                  |   28 +-
+ fs/ocfs2/dlm/dlmapi.h           |    1 
+ fs/ocfs2/dlm/dlmast.c           |    6 
+ fs/ocfs2/dlm/dlmcommon.h        |    1 
+ fs/ocfs2/dlm/dlmlock.c          |   10 
+ fs/ocfs2/dlm/dlmmaster.c        |    4 
+ fs/ocfs2/dlm/dlmrecovery.c      |    3 
+ fs/ocfs2/dlm/userdlm.c          |   81 ++----
+ fs/ocfs2/dlm/userdlm.h          |    1 
+ fs/ocfs2/dlmglue.c              |  497 +++++++++++++++++++++++++++++++---------
+ fs/ocfs2/dlmglue.h              |   16 +
+ fs/ocfs2/export.c               |    4 
+ fs/ocfs2/file.c                 |    3 
+ fs/ocfs2/inode.c                |   42 ++-
+ fs/ocfs2/inode.h                |    3 
+ fs/ocfs2/ioctl.c                |  136 ++++++++++
+ fs/ocfs2/ioctl.h                |   16 +
+ fs/ocfs2/mmap.c                 |  100 ++++++--
+ fs/ocfs2/namei.c                |  148 +++++++----
+ fs/ocfs2/ocfs2_fs.h             |   24 +
+ fs/ocfs2/ocfs2_lockid.h         |   25 ++
+ fs/ocfs2/super.c                |    2 
+ fs/ocfs2/sysfile.c              |    4 
+ fs/ocfs2/uptodate.c             |   21 +
+ fs/ocfs2/uptodate.h             |    2 
+ fs/ocfs2/vote.c                 |  180 --------------
+ fs/ocfs2/vote.h                 |    5 
+ include/linux/fs.h              |    7 
+ 41 files changed, 1479 insertions(+), 571 deletions(-)
+
+Adrian Bunk:
+      fs/ocfs2/ioctl.c should #include "ioctl.h"
+
+Herbert Poetzl:
+      ocfs2: add ext2 attributes
+
+Joel Becker:
+      configfs: Prevent duplicate subsystem names.
+
+Mark Fasheh:
+      ocfs2: implement directory read-ahead
+      ocfs2: Shared writeable mmap
+      ocfs2: properly update i_mtime on buffered write
+      ocfs2: move nlink check in ocfs2_mknod()
+      ocfs2: Remove overzealous BUG_ON()
+      ocfs2: Silence dlm error print
+      ocfs2: Allow binary names in the DLM
+      ocfs2: Update dlmfs for new dlmlock() API
+      ocfs2: Update dlmglue for new dlmlock() API
+      ocfs2: Add new cluster lock type
+      ocfs2: Add dentry tracking API
+      ocfs2: Hook rest of the file system into dentry locking API
+      ocfs2: Remove the dentry vote
+      Allow file systems to manually d_move() inside of ->rename()
+      ocfs2: manually d_move() during ocfs2_rename()
+
+Mathieu Avila:
+      ocfs2: Fix heartbeat sector calculation
+
+Tiger Yang:
+      ocfs2: Fix directory link count checks in ocfs2_link()
