@@ -1,66 +1,49 @@
-From: Andrew Beekhof <abeekhof@suse.de>
-Date: Sat Nov 18 02:35:14 2006
-Subject: [Ocfs2-devel] Re: [patch 0/3] OCFS Configurable timeouts from
-	userspace
-In-Reply-To: <20061118073600.206222000@suse.de>
-References: <20061118073600.206222000@suse.de>
-Message-ID: <C312C009-09C5-4403-93BC-6054366EF788@suse.de>
+From: Adrian Bunk <bunk@stusta.de>
+Date: Sun Nov 19 18:24:32 2006
+Subject: [Ocfs2-devel] [2.6 patch] make ocfs2_create_new_lock() static
+Message-ID: <20061120022428.GS31879@stusta.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mark.fasheh@oracle.com, kurt.hackel@oracle.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Apologies, quilt seems to have misplaced the comments at the top of  
-each patch:
+This patch makes the needlessly global ocfs2_create_new_lock() static.
 
-Patch 1:
-From: Andrew Beekhof <abeekhof@suse.de>
-Subject: OCFS2 - Expose struct o2nm_cluster
+Signed-off-by: Adrian Bunk <bunk@stusta.de>
 
-Subsequent patches (namely userspace heartbeat and configurable  
-timeouts)
-   require access to the o2nm_cluster struct.  This patch does the
-   necessary shuffling.
+---
 
-Patch 2:
-From: Jeff Mahoney <jeffm@suse.de>
-Subject: OCFS2 Configurable timeouts
+ fs/ocfs2/dlmglue.c |    8 ++++----
+ fs/ocfs2/dlmglue.h |    2 --
+ 2 files changed, 4 insertions(+), 6 deletions(-)
 
-Allow configuration of OCFS2 timeouts from userspace via configfs
-
-Patch 3:
-From: Andrew Beekhof <abeekhof@suse.de>
-Subject: OCFS2 Configurable timeouts - Protocol changes
-
-Modify the OCFS2 handshake to ensure essential timeouts are configured
-   identically on all nodes.
-Included is the field for userspace-heartbeat timeout to avoid the  
-need for
-   further protocol changes.
-
-The addition of two dummy fields is a temporary measure to
-    satisfy the logic in o2net_check_handshake() and will be
-    rectified in a future version of this patch
-
-
-On Nov 18, 2006, at 8:36 AM, abeekhof@suse.de wrote:
-
-> --
->
-> Jeff has asked me to finish off his configurable timeouts patch....
-> here's the results :-)
->
-> One thing I'm not so happy about are the changes (I made) to  
-> o2net_msg struct
-> in order to satisfy the logic in o2net_check_handshake()
->
-> Presumably the logic in o2net_check_handshake() should be changed?
->
-> Andrew
-
---
-Andrew Beekhof
-
-"Would the last person to leave please turn out the enlightenment?" -  
-TISM
+--- linux-2.6.19-rc5-mm2/fs/ocfs2/dlmglue.h.old	2006-11-20 02:04:48.000000000 +0100
++++ linux-2.6.19-rc5-mm2/fs/ocfs2/dlmglue.h	2006-11-20 02:04:55.000000000 +0100
+@@ -68,8 +68,6 @@
+ 				u64 parent, struct inode *inode);
+ void ocfs2_lock_res_free(struct ocfs2_lock_res *res);
+ int ocfs2_create_new_inode_locks(struct inode *inode);
+-int ocfs2_create_new_lock(struct ocfs2_super *osb,
+-			  struct ocfs2_lock_res *lockres, int ex, int local);
+ int ocfs2_drop_inode_locks(struct inode *inode);
+ int ocfs2_data_lock_full(struct inode *inode,
+ 			 int write,
+--- linux-2.6.19-rc5-mm2/fs/ocfs2/dlmglue.c.old	2006-11-20 02:05:01.000000000 +0100
++++ linux-2.6.19-rc5-mm2/fs/ocfs2/dlmglue.c	2006-11-20 02:05:10.000000000 +0100
+@@ -1063,10 +1063,10 @@
+ 	mlog_exit_void();
+ }
+ 
+-int ocfs2_create_new_lock(struct ocfs2_super *osb,
+-			  struct ocfs2_lock_res *lockres,
+-			  int ex,
+-			  int local)
++static int ocfs2_create_new_lock(struct ocfs2_super *osb,
++				 struct ocfs2_lock_res *lockres,
++				 int ex,
++				 int local)
+ {
+ 	int level =  ex ? LKM_EXMODE : LKM_PRMODE;
+ 	unsigned long flags;
