@@ -1,22 +1,20 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Sun Nov 26 17:59:28 2006
-Subject: [Ocfs2-devel] implement i_op->permission in ocfs2
-Message-ID: <456A4679.8060203@oracle.com>
+From: abeekhof@suse.de <abeekhof@suse.de>
+Date: Wed Nov 29 01:04:22 2006
+Subject: [Ocfs2-devel] [patch 0/1] OCFS Configurable timeouts - Revision 2
+Message-ID: <20061129085130.004252000@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch implement .permission() in ocfs2_file_iops, 
-ocfs2_special_file_iops and ocfs2_dir_iops.
+Hopefully this is the final version :-)
 
-thanks,
-tiger
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: permission.patch
-Type: text/x-patch
-Size: 1875 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20061127/35945c14/permission.bin
+--
+
+Added a global spinlock around modifications to o2net_connected_peer (as discussed with Mark).
+
+I have a separate patch that uses to_o2nm_cluster_from_node() but since I cant reproduce the problem mentioned in Jeff's comment (it apparently needs the userspace heartbeating modifications), I'd prefer to leave it out.
+
+
+Andrew
