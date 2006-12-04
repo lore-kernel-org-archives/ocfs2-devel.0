@@ -1,100 +1,83 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Sun Dec  3 12:31:54 2006
-Subject: [Ocfs2-devel] What's in ocfs2.git
-Message-ID: <20061203203149.GC19617@ca-server1.us.oracle.com>
+From: abeekhof@suse.de <abeekhof@suse.de>
+Date: Mon Dec  4 05:12:41 2006
+Subject: [Ocfs2-devel] [patch 1/3] ocfs2-expose-o2nm_cluster.patch
+References: <20061204130452.199246000@suse.de>
+Message-ID: <20061204131234.943485000@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
-
-This e-mail describes the OCFS2 patches which I intend to push
-upstream to Linus for 2.6.20.
-
-* Various ocfs2 cleanups, including a patchset by me intended to clean up
-  some of the internal ocfs2 journal api. Mostly this revolves around
-  removing the ocfs2_journal_handle wrapper around handle_t. The immediate
-  benefits are better readability and a slightly smaller memory footprint
-  for open journal transactions.
+To: ocfs2-devel@oss.oracle.com
 
 
-* Configfs gets some small cleanups and some mutex annotations.
+From: Andrew Beekhof <abeekhof@suse.de>
+Subject: [patch 1/3] OCFS2 - Expose struct o2nm_cluster 
 
+Subsequent patches (namely userspace heartbeat and configurable timeouts)
+require access to the o2nm_cluster struct.  This patch does the necessary
+shuffling.
 
-* Atime updates - thanks to Tiger Yang <tiger.yang@oracle.com>, ocfs2 now
-  writes to the inode atime field. This doesn't require any disk changes,
-  and is completely backwards compatible with older ocfs2 versions. An
-  inodes Atime is only updated if it hasn't changed within a certain
-  quantum. The user can define their own value at mount time, with 0
-  indicating that atime should always be updated. This is very similar to
-  the scheme implemented by gfs2. In the future, I'd like to see a "relative
-  atime" mode, which functions in the manner described by Valerie Henson at:
+Signed-off-by: Andrew Beekhof <abeekhof@suse.de>
+---
+ fs/ocfs2/cluster/nodemanager.c |   13 +------------
+ fs/ocfs2/cluster/nodemanager.h |   14 ++++++++++++++
+ 2 files changed, 15 insertions(+), 12 deletions(-)
 
-http://lkml.org/lkml/2006/8/25/380
-
-
-* sys_splice - ocfs2 now has splice read and write support. Thanks again to
-  Tiger for the bulk of this functionality. Mostly we make use of the
-  generic_splice_read() and generic_file_splice_write_nolock() functions
-  provided already in fs/splice.c.
-
- - There is one patch in the ocfs2 splice() series external to fs/ocfs2 - a
-   simple export of should_remove_suid(). This is done for code reuse
-   purposes. That particular patch can be seen at:
-
-http://ftp.kernel.org/pub/linux/kernel/people/mfasheh/ocfs2/ocfs2_git_patches/ocfs2-upstream-linus-20061201/0025-Export-should_remove_suid.txt
-
-   I'll also attach it to this mail for review purposes.
-
-
-* Last in the list of notable patches is a somewhat involved fix by Kurt
-  Hackel <kurt.hackel@oracle.com> within the ocfs2 dlm. We had temporarily
-  disable automatic migration of certain lock types because it was causing
-  us problems during stress testing. This patch fixes those problems and
-  re-enables migration. Overall this should reduce memory usage of the ocfs2
-  dlm.
-
-
-The patches can be found in
-
-git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
-
-Additionally, broken out patches are available at:
-
-http://ftp.kernel.org/pub/linux/kernel/people/mfasheh/ocfs2/ocfs2_git_patches/ocfs2-upstream-linus-20060924/
-
-Thanks,
-	--Mark
+Index: fs/ocfs2/cluster/nodemanager.c
+===================================================================
+--- fs/ocfs2/cluster/nodemanager.c.orig	2006-11-15 11:58:34.000000000 +0100
++++ fs/ocfs2/cluster/nodemanager.c	2006-11-15 12:02:57.000000000 +0100
+@@ -35,7 +35,7 @@
+ /* for now we operate under the assertion that there can be only one
+  * cluster active at a time.  Changing this will require trickling
+  * cluster references throughout where nodes are looked up */
+-static struct o2nm_cluster *o2nm_single_cluster = NULL;
++struct o2nm_cluster *o2nm_single_cluster = NULL;
+ 
+ #define OCFS2_MAX_HB_CTL_PATH 256
+ static char ocfs2_hb_ctl_path[OCFS2_MAX_HB_CTL_PATH] = "/sbin/ocfs2_hb_ctl";
+@@ -97,17 +97,6 @@ const char *o2nm_get_hb_ctl_path(void)
+ }
+ EXPORT_SYMBOL_GPL(o2nm_get_hb_ctl_path);
+ 
+-struct o2nm_cluster {
+-	struct config_group	cl_group;
+-	unsigned		cl_has_local:1;
+-	u8			cl_local_node;
+-	rwlock_t		cl_nodes_lock;
+-	struct o2nm_node  	*cl_nodes[O2NM_MAX_NODES];
+-	struct rb_root		cl_node_ip_tree;
+-	/* this bitmap is part of a hack for disk bitmap.. will go eventually. - zab */
+-	unsigned long	cl_nodes_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+-};
+-
+ struct o2nm_node *o2nm_get_node_by_num(u8 node_num)
+ {
+ 	struct o2nm_node *node = NULL;
+Index: fs/ocfs2/cluster/nodemanager.h
+===================================================================
+--- fs/ocfs2/cluster/nodemanager.h.orig	2006-11-15 12:01:55.000000000 +0100
++++ fs/ocfs2/cluster/nodemanager.h	2006-11-15 12:03:25.000000000 +0100
+@@ -53,6 +53,20 @@ struct o2nm_node {
+ 	unsigned long		nd_set_attributes;
+ };
+ 
++struct o2nm_cluster {
++	struct config_group	cl_group;
++	unsigned		cl_has_local:1;
++	u8			cl_local_node;
++	rwlock_t		cl_nodes_lock;
++	struct o2nm_node  	*cl_nodes[O2NM_MAX_NODES];
++	struct rb_root		cl_node_ip_tree;
++
++	/* this bitmap is part of a hack for disk bitmap.. will go eventually. - zab */
++	unsigned long	cl_nodes_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
++};
++
++extern struct o2nm_cluster *o2nm_single_cluster;
++
+ u8 o2nm_this_node(void);
+ 
+ int o2nm_configured_node_map(unsigned long *map, unsigned bytes);
 
 --
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
-
-
-[PATCH] Export should_remove_suid()
-
-This helps us avoid replicating the same logic within file system drivers.
-
-Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
-
----
-
- mm/filemap.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
-
-d23a147bb6e8d467e8df73b6589888717da3b9ce
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 7b84dc8..13df01c 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -1893,6 +1893,7 @@ int should_remove_suid(struct dentry *de
- 
- 	return 0;
- }
-+EXPORT_SYMBOL(should_remove_suid);
- 
- int __remove_suid(struct dentry *dentry, int kill)
- {
--- 
-1.3.3
