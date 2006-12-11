@@ -1,38 +1,25 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Dec 11 14:26:41 2006
-Subject: [Ocfs2-devel] Re: [RFC: -mm patch] OCFS2: make code static
-In-Reply-To: <20061211191001.GF28443@stusta.de>
-References: <20061211005807.f220b81c.akpm@osdl.org>
-	<20061211191001.GF28443@stusta.de>
-Message-ID: <20061211222636.GC6831@ca-server1.us.oracle.com>
+Date: Mon Dec 11 14:38:05 2006
+Subject: [Ocfs2-devel] [patch 2/3]OCFS2: allow the ocfs2 heartbeat thread
+	to prioritize I/O --revision 3
+In-Reply-To: <4579B3C00200000400262DB0@lucius.provo.novell.com>
+References: <4579B3C00200000400262DB0@lucius.provo.novell.com>
+Message-ID: <20061211223801.GD6831@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Adrian Bunk <bunk@stusta.de>
-Cc: Andrew Morton <akpm@osdl.org>, kurt.hackel@oracle.com, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Hi Adrian,
-
-On Mon, Dec 11, 2006 at 08:10:01PM +0100, Adrian Bunk wrote:
-> On Mon, Dec 11, 2006 at 12:58:07AM -0800, Andrew Morton wrote:
-> >...
-> > Changes since 2.6.19-rc6-mm2:
-> >...
-> >  git-ocfs2.patch
-> >...
-> >  git trees.
-> >...
-> 
-> This patch makes needlessly global code static.
-> 
-> Signed-off-by: Adrian Bunk <bunk@stusta.de>
-
-I hand-merged the tcp.c change as the patch introducing that variable is
-going upstream soon. Would you mind sending me the dlm/* stuff as a seperate
-patch?
-
-Thanks,
+On Fri, Dec 08, 2006 at 12:48:35AM -0700, Zhen Wei wrote:
+> --- trunk.orig/mount.ocfs2/mount.ocfs2.c	2006-12-08 15:09:42.000000000 +0800
+> +++ trunk/mount.ocfs2/mount.ocfs2.c	2006-12-08 15:17:59.000000000 +0800
+> @@ -393,6 +393,7 @@ int main(int argc, char **argv)
+>  		goto bail;
+>  	}
+>  
+> +	run_hb_ctl (hb_ctl_path, mo.dev, "-P");
+Don't we need to add another argument for the actual priority value?
 	--Mark
 
 --
