@@ -1,40 +1,26 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Jan 29 12:05:07 2007
+Date: Mon Jan 29 13:19:27 2007
 Subject: [Ocfs2-devel] [git patches] ocfs2 fixes
-Message-ID: <20070129200459.GD8176@ca-server1.us.oracle.com>
+In-Reply-To: <20070129200459.GD8176@ca-server1.us.oracle.com>
+References: <20070129200459.GD8176@ca-server1.us.oracle.com>
+Message-ID: <20070129211922.GF8176@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@osdl.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@osdl.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Hi Linus,
-	I made a silly error in my last upstream push. This patch makes
-ocfs2 build again.
+On Mon, Jan 29, 2007 at 12:04:59PM -0800, Mark Fasheh wrote:
+> Hi Linus,
+> 	I made a silly error in my last upstream push. This patch makes
+> ocfs2 build again.
+
+Ok, never mind - I just noticed that you directly applied my patch on
+Friday. Thanks!
 	--Mark
 
-Please pull from 'upstream-linus' branch of
-git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
-
-to receive the following updates:
-
- fs/ocfs2/ocfs2_fs.h |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-Mark Fasheh:
-      ocfs2: fix thinko in ocfs2_backup_super_blkno()
-
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index c99e905..e61e218 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -587,7 +587,7 @@ static inline u64 ocfs2_backup_super_blk
- 
- 	if (index >= 0 && index < OCFS2_MAX_BACKUP_SUPERBLOCKS) {
- 		offset <<= (2 * index);
--		offset /= sb->s_blocksize;
-+		offset >>= sb->s_blocksize_bits;
- 		return offset;
- 	}
- 
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh@oracle.com
