@@ -1,61 +1,45 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Thu Mar 15 15:43:41 2007
-Subject: [Ocfs2-devel] Strange panics on ocfs2-1.2 svn rev 2988:2990
-In-Reply-To: <45F9C873.1050402@terra.com.br>
-References: <45F9B4D9.2050207@terra.com.br> <45F9B696.1060506@oracle.com>
-	<45F9C0E3.8040803@terra.com.br> <45F9C873.1050402@terra.com.br>
-Message-ID: <45F9CC1A.3050708@oracle.com>
+From: Adrian Bunk <bunk@stusta.de>
+Date: Mon Mar 26 15:34:50 2007
+Subject: [Ocfs2-devel] [RFC: 2.6.16 patch] ocfs2 heartbeat: clean up bio
+	submission code
+In-Reply-To: <20070326115717.GA16201@localhost.localdomain>
+References: <20070324114213.GC752@stusta.de>
+	<17927.4509.867938.738430@notabene.brown>
+	<20070326115717.GA16201@localhost.localdomain>
+Message-ID: <20070326223449.GJ16477@stusta.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Ahh... now this one is something I am tracking/testing right now.
+On Mon, Mar 26, 2007 at 01:57:17PM +0200, Lars Ellenberg wrote:
+> 
+> uhm, how about 
+> 
+>   commit b559292e066f6d570cd5aa5dbd41de61dd04bdce
+>   tree d8221b5f54ad9b8cef694de687013614dccf5966
+>   parent 925037bcba7691db2403684141a276930ad184f3
+>   author Philipp Reisner <philipp.reisner@linbit.com> Thu, 11 Jan 2007 10:58:10 +0100
+>   committer Mark Fasheh <mark.fasheh@oracle.com> Wed, 07 Feb 2007 12:15:58 -0800
+>   
+>       [PATCH] ocfs2 heartbeat: clean up bio submission code
+> 
+> pretty please?
 
-Marcus Alves Grando wrote:
-> Marcus Alves Grando wrote:
->   
->> Sunil Mushran wrote:
->>     
->>> You'll have to be lot more specific.... especially considering you are
->>> working directly of an svn tree. For starters, where is the server hung?
->>>       
->> Ok It's true.
->>
->> Let's start again.
->>
->> After make svn up and make packages with svn rev 2990. Two servers
->> doesn't reboot after "shutdown -r now". After look on console both
->> servers have panic message.
->>
->> Two panic's attached.
->>     
->
-> To say the true, i think that's happened between 2985 and 2987.
->
-> New panic attached, compiled with svn 2987 rev.
->
-> Regards
->
->   
->> Thanks
->>
->>     
->>> Marcus Alves Grando wrote:
->>>       
->>>> Hi developers,
->>>>
->>>> After svn up ocfs2-1.2 tree from 2987 to 2990 i have strange problems.
->>>> My servers are four RH AS4u4 with kernel-hugemem. When i execute
->>>> "shutdown -r now" in four server some servers reboot some not, with and
->>>> without changing idle_timeout_ms.
->>>>
->>>> Any fix for that?
->>>>
->>>> Regards
->>>>
->>>>   
->>>>         
->
->   
+It doesn't apply without rejects and seems non-trivial.
+
+I need a patch that:
+- applies and
+- was runtime tested with 2.6.16.45 and
+- got approved by the OCFS2 maintainers as being low-risk.
+
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
