@@ -1,51 +1,57 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Thu Mar 29 09:41:35 2007
-Subject: [Ocfs2-devel] [PATCH 0/3] Properly protect the extent map
-In-Reply-To: <460B7B00.30004@ubuntu.com>
-References: <20070329005041.518030000@oracle.com> <460B7B00.30004@ubuntu.com>
-Message-ID: <460BEC3A.2050009@oracle.com>
+From: Adrian Bunk <bunk@stusta.de>
+Date: Thu Mar 29 22:11:07 2007
+Subject: [Ocfs2-devel] Re: [RFC: 2.6.16 patch] ocfs2 heartbeat: clean up bio
+	submission code
+In-Reply-To: <20070329082752.GA9348@barkeeper1.linbit>
+References: <20070324114213.GC752@stusta.de>
+	<17927.4509.867938.738430@notabene.brown>
+	<20070326115717.GA16201@localhost.localdomain>
+	<20070326223449.GJ16477@stusta.de>
+	<20070329082752.GA9348@barkeeper1.linbit>
+Message-ID: <20070330051105.GF14134@stusta.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Thanks Fabbio. Yes, we'll schedule the test on the big cluster after the
-1.2.5 release run. Next week, I hope.
+On Thu, Mar 29, 2007 at 10:30:19AM +0200, Lars Ellenberg wrote:
+> On Tue, Mar 27, 2007 at 12:34:49AM +0200, Adrian Bunk wrote:
+> > On Mon, Mar 26, 2007 at 01:57:17PM +0200, Lars Ellenberg wrote:
+> > > 
+> > > uhm, how about 
+> > > 
+> > >   commit b559292e066f6d570cd5aa5dbd41de61dd04bdce
+> > >   tree d8221b5f54ad9b8cef694de687013614dccf5966
+> > >   parent 925037bcba7691db2403684141a276930ad184f3
+> > >   author Philipp Reisner <philipp.reisner@linbit.com> Thu, 11 Jan 2007 10:58:10 +0100
+> > >   committer Mark Fasheh <mark.fasheh@oracle.com> Wed, 07 Feb 2007 12:15:58 -0800
+> > >   
+> > >       [PATCH] ocfs2 heartbeat: clean up bio submission code
+> > > 
+> > > pretty please?
+> > 
+> > It doesn't apply without rejects and seems non-trivial.
+> > 
+> > I need a patch that:
+> > - applies and
+> > - was runtime tested with 2.6.16.45 and
+> > - got approved by the OCFS2 maintainers as being low-risk.
+> 
+> ok, I'll try to adjust it anyways as soon as I find the time,
+> if no one else steps forward :)
+> but maybe I'll miss your .46 window :(
+> you should hear from me again by saturday latest.
 
-Fabio Massimo Di Nitto wrote:
-> Joel Becker wrote:
->   
->> The extent map code was seeing an error trip when inserting records.
->> There is a sanity check ensuring that the new record is within the known
->> size of the file - as known by the extent map.  The problem was that the
->> "known" size was smaller than expected, returning an error to the caller.
->>
->> This is a lot easier to see in local mounts.  It has only been rarely seen
->> in clusters.
->>
->> We have three "independant" problems.
->>
->> 1) We don't take ip_alloc_sem when touching directory allocations.
->> 2) We don't lock em_clusters properly.
->> 3) Local mounts race to ocfs2_extent_map_trunc() in ocfs2_meta_lock_update().
->>
->> The patches that follow are against mainline.  They have been tested
->> against 1.2 with local mounts.
->>
->> Patches (1) and (2) will be ported to the ocfs2 1.2 branch directly,
->> and all three fixes will be pushed to mainline.
->>
->> Joel
->>     
->
-> add a
->
-> Signed-off-by: Fabio M. Di Nitto <fabbione@ubuntu.com>
->
-> on all 3 of them. They fix the problem as i reported it, but it looks like they
-> introduce a performance hit. Somebody other than me should test it too.
->
-> Fabio
->
->   
+You've already missed the .46 window, but that shouldn't be a big issue 
+since it could still get into .47 next week or .48 two weeks from now.
+
+cu
+Adrian
+
+-- 
+
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed
