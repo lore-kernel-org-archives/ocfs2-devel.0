@@ -1,33 +1,46 @@
-From: tao.ma <tao.ma@oracle.com>
-Date: Thu Mar 29 00:01:21 2007
-Subject: [Ocfs2-devel] Remove the printing of harmless ERRORS like
-	ECONNRESET, EPIPE
-Message-ID: <460B6434.7020401@oracle.com>
+From: Fabio Massimo Di Nitto <fabbione@ubuntu.com>
+Date: Thu Mar 29 02:04:50 2007
+Subject: [Ocfs2-devel] [PATCH 0/3] Properly protect the extent map
+In-Reply-To: <20070329005041.518030000@oracle.com>
+References: <20070329005041.518030000@oracle.com>
+Message-ID: <460B7B00.30004@ubuntu.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Remove the printing of harmless ERRORS like ECONNRESET, EPIPE.
-For more details, see
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=865
+Joel Becker wrote:
+> The extent map code was seeing an error trip when inserting records.
+> There is a sanity check ensuring that the new record is within the known
+> size of the file - as known by the extent map.  The problem was that the
+> "known" size was smaller than expected, returning an error to the caller.
+> 
+> This is a lot easier to see in local mounts.  It has only been rarely seen
+> in clusters.
+> 
+> We have three "independant" problems.
+> 
+> 1) We don't take ip_alloc_sem when touching directory allocations.
+> 2) We don't lock em_clusters properly.
+> 3) Local mounts race to ocfs2_extent_map_trunc() in ocfs2_meta_lock_update().
+> 
+> The patches that follow are against mainline.  They have been tested
+> against 1.2 with local mounts.
+> 
+> Patches (1) and (2) will be ported to the ocfs2 1.2 branch directly,
+> and all three fixes will be pushed to mainline.
+> 
+> Joel
 
-The ocfs2 kernel source code in git tree don't have function
-"ocfs2_file_sendfile", so this bug only exists in ocfs2-1.2 branch.
+add a
 
+Signed-off-by: Fabio M. Di Nitto <fabbione@ubuntu.com>
 
--------------- next part --------------
-Index: fs/ocfs2/file.c
-===================================================================
---- fs/ocfs2/file.c	(revision 3001)
-+++ fs/ocfs2/file.c	(working copy)
-@@ -368,8 +368,6 @@ static ssize_t ocfs2_file_sendfile(struc
- 	down_read(&OCFS2_I(inode)->ip_alloc_sem);
- 
- 	ret = generic_file_sendfile(in_file, ppos, count, actor, target);
--	if (ret < 0)
--		mlog_errno(ret);
- 
- 	up_read(&OCFS2_I(inode)->ip_alloc_sem);
- 
+on all 3 of them. They fix the problem as i reported it, but it looks like they
+introduce a performance hit. Somebody other than me should test it too.
+
+Fabio
+
+-- 
+I'm going to make him an offer he can't refuse.
