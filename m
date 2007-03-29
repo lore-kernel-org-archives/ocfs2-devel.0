@@ -1,38 +1,51 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Mar 29 08:53:44 2007
-Subject: [Ocfs2-devel] Re: [RFC: 2.6.16 patch] ocfs2 heartbeat: clean up bio
-	submission code
-In-Reply-To: <20070329082752.GA9348@barkeeper1.linbit>
-References: <20070324114213.GC752@stusta.de>
-	<17927.4509.867938.738430@notabene.brown>
-	<20070326115717.GA16201@localhost.localdomain>
-	<20070326223449.GJ16477@stusta.de>
-	<20070329082752.GA9348@barkeeper1.linbit>
-Message-ID: <20070329155337.GJ2919@ca-server1.us.oracle.com>
+From: Sunil Mushran <Sunil.Mushran@oracle.com>
+Date: Thu Mar 29 09:41:35 2007
+Subject: [Ocfs2-devel] [PATCH 0/3] Properly protect the extent map
+In-Reply-To: <460B7B00.30004@ubuntu.com>
+References: <20070329005041.518030000@oracle.com> <460B7B00.30004@ubuntu.com>
+Message-ID: <460BEC3A.2050009@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 29, 2007 at 10:30:19AM +0200, Lars Ellenberg wrote:
-> > - got approved by the OCFS2 maintainers as being low-risk.
-> 
-> ok, I'll try to adjust it anyways as soon as I find the time,
-> if no one else steps forward :)
-> but maybe I'll miss your .46 window :(
-> you should hear from me again by saturday latest.
+Thanks Fabbio. Yes, we'll schedule the test on the big cluster after the
+1.2.5 release run. Next week, I hope.
 
-I'm on vacation until Sunday, so I unfortunately wouldn't be able to review
-a patch until next week. In general, I'm not opposed to the concept -
-I don't have much time for extra testing though, so if you could please
-include detailed information on how your patch was verified to work, that
-would really help me out.
-
-Thanks,
-	--Mark
-
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
+Fabio Massimo Di Nitto wrote:
+> Joel Becker wrote:
+>   
+>> The extent map code was seeing an error trip when inserting records.
+>> There is a sanity check ensuring that the new record is within the known
+>> size of the file - as known by the extent map.  The problem was that the
+>> "known" size was smaller than expected, returning an error to the caller.
+>>
+>> This is a lot easier to see in local mounts.  It has only been rarely seen
+>> in clusters.
+>>
+>> We have three "independant" problems.
+>>
+>> 1) We don't take ip_alloc_sem when touching directory allocations.
+>> 2) We don't lock em_clusters properly.
+>> 3) Local mounts race to ocfs2_extent_map_trunc() in ocfs2_meta_lock_update().
+>>
+>> The patches that follow are against mainline.  They have been tested
+>> against 1.2 with local mounts.
+>>
+>> Patches (1) and (2) will be ported to the ocfs2 1.2 branch directly,
+>> and all three fixes will be pushed to mainline.
+>>
+>> Joel
+>>     
+>
+> add a
+>
+> Signed-off-by: Fabio M. Di Nitto <fabbione@ubuntu.com>
+>
+> on all 3 of them. They fix the problem as i reported it, but it looks like they
+> introduce a performance hit. Somebody other than me should test it too.
+>
+> Fabio
+>
+>   
