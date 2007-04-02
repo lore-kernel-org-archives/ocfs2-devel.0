@@ -1,37 +1,38 @@
-From: Fabio Massimo Di Nitto <fabbione@ubuntu.com>
-Date: Mon Apr  2 12:00:45 2007
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon Apr  2 16:55:28 2007
 Subject: [Ocfs2-devel] [PATCH 0/3] Properly protect the extent map
-In-Reply-To: <20070402185828.GC21982@ca-server1.us.oracle.com>
-References: <20070329005041.518030000@oracle.com> <460B7B00.30004@ubuntu.com>
-	<20070402184550.GA21982@ca-server1.us.oracle.com>
-	<46114FE6.8030704@ubuntu.com>
-	<20070402185828.GC21982@ca-server1.us.oracle.com>
-Message-ID: <461152CF.6030600@ubuntu.com>
+In-Reply-To: <20070402184713.GB21982@ca-server1.us.oracle.com>
+References: <20070329005041.518030000@oracle.com>
+	<20070402184713.GB21982@ca-server1.us.oracle.com>
+Message-ID: <20070402235524.GB4757@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> On Mon, Apr 02, 2007 at 08:48:06PM +0200, Fabio Massimo Di Nitto wrote:
->> i kept logging all the info in the bug:
+On Mon, Apr 02, 2007 at 11:47:13AM -0700, Mark Fasheh wrote:
+> On Wed, Mar 28, 2007 at 06:27:07PM -0700, Joel Becker wrote:
+> > The patches that follow are against mainline.  They have been tested
+> > against 1.2 with local mounts.
+> > 
+> > Patches (1) and (2) will be ported to the ocfs2 1.2 branch directly,
+> > and all three fixes will be pushed to mainline.
 > 
-> Ahh, great, thanks.
+> Ok. These patches look good - thanks. Have you had a chance to test against
+> mainline?
 
-no problem.
+	I haven't yet, only Fabionne has.  I will tomorrow.
 
-> 
-> 
->> http://oss.oracle.com/bugzilla/show_bug.cgi?id=859
-> 
-> So it looks like nobody was able to reproduce the performance problem -
-> phew! I'll push these patches into ocfs2.git shortly.
-
-Yes.. i also tested them on 2.6.20 + the 2.6.20_fixes branch that Sunil pointed
-me too, so they should be good to go there too.
-
-Fabio
+Joel
 
 -- 
-I'm going to make him an offer he can't refuse.
+
+"We'd better get back, `cause it'll be dark soon,
+ and they mostly come at night.  Mostly."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
