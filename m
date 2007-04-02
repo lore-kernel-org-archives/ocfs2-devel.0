@@ -1,57 +1,27 @@
-From: Adrian Bunk <bunk@stusta.de>
-Date: Thu Mar 29 22:11:07 2007
-Subject: [Ocfs2-devel] Re: [RFC: 2.6.16 patch] ocfs2 heartbeat: clean up bio
-	submission code
-In-Reply-To: <20070329082752.GA9348@barkeeper1.linbit>
-References: <20070324114213.GC752@stusta.de>
-	<17927.4509.867938.738430@notabene.brown>
-	<20070326115717.GA16201@localhost.localdomain>
-	<20070326223449.GJ16477@stusta.de>
-	<20070329082752.GA9348@barkeeper1.linbit>
-Message-ID: <20070330051105.GF14134@stusta.de>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Mon Apr  2 11:45:55 2007
+Subject: [Ocfs2-devel] [PATCH 0/3] Properly protect the extent map
+In-Reply-To: <460B7B00.30004@ubuntu.com>
+References: <20070329005041.518030000@oracle.com> <460B7B00.30004@ubuntu.com>
+Message-ID: <20070402184550.GA21982@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 29, 2007 at 10:30:19AM +0200, Lars Ellenberg wrote:
-> On Tue, Mar 27, 2007 at 12:34:49AM +0200, Adrian Bunk wrote:
-> > On Mon, Mar 26, 2007 at 01:57:17PM +0200, Lars Ellenberg wrote:
-> > > 
-> > > uhm, how about 
-> > > 
-> > >   commit b559292e066f6d570cd5aa5dbd41de61dd04bdce
-> > >   tree d8221b5f54ad9b8cef694de687013614dccf5966
-> > >   parent 925037bcba7691db2403684141a276930ad184f3
-> > >   author Philipp Reisner <philipp.reisner@linbit.com> Thu, 11 Jan 2007 10:58:10 +0100
-> > >   committer Mark Fasheh <mark.fasheh@oracle.com> Wed, 07 Feb 2007 12:15:58 -0800
-> > >   
-> > >       [PATCH] ocfs2 heartbeat: clean up bio submission code
-> > > 
-> > > pretty please?
-> > 
-> > It doesn't apply without rejects and seems non-trivial.
-> > 
-> > I need a patch that:
-> > - applies and
-> > - was runtime tested with 2.6.16.45 and
-> > - got approved by the OCFS2 maintainers as being low-risk.
-> 
-> ok, I'll try to adjust it anyways as soon as I find the time,
-> if no one else steps forward :)
-> but maybe I'll miss your .46 window :(
-> you should hear from me again by saturday latest.
+On Thu, Mar 29, 2007 at 10:38:24AM +0200, Fabio Massimo Di Nitto wrote:
+> on all 3 of them. They fix the problem as i reported it, but it looks like they
+> introduce a performance hit.
 
-You've already missed the .46 window, but that shouldn't be a big issue 
-since it could still get into .47 next week or .48 two weeks from now.
+Can you elaborate on that please?
 
-cu
-Adrian
+I don't see anything in those patches that should cause any performance
+problems but if you have any more information about what you saw, it might
+point to something we missed.
+	--Mark
 
--- 
-
-       "Is there not promise of rain?" Ling Tan asked suddenly out
-        of the darkness. There had been need of rain for many days.
-       "Only a promise," Lao Er said.
-                                       Pearl S. Buck - Dragon Seed
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh@oracle.com
