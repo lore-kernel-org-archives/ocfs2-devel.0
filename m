@@ -1,35 +1,43 @@
-From: Jeff Mahoney <jeffm@suse.com>
-Date: Mon Apr 16 11:22:12 2007
-Subject: [Ocfs2-devel] [PATCH] use conditional for machine_restart()
-In-Reply-To: <4623BE03.1020006@oracle.com>
-References: <4623B745.1030007@suse.com> <4623BE03.1020006@oracle.com>
-Message-ID: <4623BE7B.8070308@suse.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon Apr 16 13:30:56 2007
+Subject: [Ocfs2-devel] [PATCH] enable building as SUSE KMP
+In-Reply-To: <4623BB1C.30101@suse.com>
+References: <4623BB1C.30101@suse.com>
+Message-ID: <20070416203052.GI27857@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
-
-Sunil Mushran wrote:
-> http://oss.oracle.com/~smushran/.suse/o2cb-quorum_fence.patch
+On Mon, Apr 16, 2007 at 02:06:20PM -0400, Jeff Mahoney wrote:
+> -----BEGIN PGP SIGNED MESSAGE-----
+> Hash: SHA1
 > 
-> We'll be checking in the above soon. It avoids CFLAGS. Any objections?
+> 
+> Starting with SLE 10 and openSUSE 10.2, the "right" way of building kernel
+> modules for SUSE Linux systems is via the kernel module package (KMP) mechanism.
 
-Nope. Works for me.
+	Slickness.  Do all SLES10 versions, including GA, support this?
+I hope so, it means we never have to create vendor/sles10.
 
-- -Jeff
+> With the KMP infrastructure, if allowed, 'make packages' should work without even
+> running configure since it runs configure for each kernel it builds against.
 
-- --
-Jeff Mahoney
-SUSE Labs
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.5 (GNU/Linux)
-Comment: Using GnuPG with SUSE - http://enigmail.mozdev.org
+	You still need to run configure in the outer tree, because that
+is what substitutes @VERSION@ etc.  That's all it does, however.  The
+vendor trees, as you probably have noted, are designed to run "make
+packages" on any system, regardless of where configure was run.
 
-iD8DBQFGI757LPWxlyuTD7IRAmhbAJ4qhGpIZGKu3lgCX5xjA7XY589a6ACgktoQ
-NphbaVJ2WZ4kwTB1xE33vqQ=
-=z1Tz
------END PGP SIGNATURE-----
+Joel
+
+-- 
+
+"Here's a nickle -- get yourself a better X server."
+	- Keith Packard
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
