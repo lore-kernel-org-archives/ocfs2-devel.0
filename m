@@ -1,7 +1,7 @@
 From: Jeff Mahoney <jeffm@suse.com>
-Date: Mon Apr 16 10:50:12 2007
-Subject: [Ocfs2-devel] [PATCH] use conditional for machine_restart()
-Message-ID: <4623B745.1030007@suse.com>
+Date: Mon Apr 16 10:57:16 2007
+Subject: [Ocfs2-devel] [PATCH] fix up sles9 spec file
+Message-ID: <4623B8E3.4090002@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,66 +12,164 @@ To: ocfs2-devel@oss.oracle.com
 Hash: SHA1
 
 
-This patch handles the missing machine_restart() on some SUSE releases.
+This patch teaches the sles9 spec file to understand that configfs
+is built conditionally, and may not be present in the output.
 
 - -Jeff
 
-diff -ruNp ocfs2-1.2.5/Config.make.in ocfs2-1.2.5.devel/Config.make.in
-- --- ocfs2-1.2.5/Config.make.in	2007-03-27 15:54:17.000000000 -0400
-+++ ocfs2-1.2.5.devel/Config.make.in	2007-04-16 13:00:54.357734412 -0400
-@@ -62,6 +62,7 @@ DIO_OLD_GET_BLOCKS = @DIO_OLD_GET_BLOCKS
- STATFS_GETS_SB = @STATFS_GETS_SB@
- INODE_HAS_BLKSIZE  = @INODE_HAS_BLKSIZE@
- INODE_HAS_PRIVATE  = @INODE_HAS_PRIVATE@
-+HAS_MACHINE_RESTART  = @HAS_MACHINE_RESTART@
+diff -ruNp ocfs2-1.2.5/vendor/sles9/ocfs2.spec-generic.in ocfs2-1.2.5.devel/vendor/sles9/ocfs2.spec-generic.in
+- --- ocfs2-1.2.5/vendor/sles9/ocfs2.spec-generic.in	2007-03-27 15:54:15.000000000 -0400
++++ ocfs2-1.2.5.devel/vendor/sles9/ocfs2.spec-generic.in	2007-04-16 13:05:25.962229912 -0400
+@@ -301,9 +301,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
  
- BUILD_DEBUGFS_BACKPORT = @BUILD_DEBUGFS_BACKPORT@
- BUILD_CONFIGFS = @BUILD_CONFIGFS@
-diff -ruNp ocfs2-1.2.5/configure.in ocfs2-1.2.5.devel/configure.in
-- --- ocfs2-1.2.5/configure.in	2007-03-27 15:54:17.000000000 -0400
-+++ ocfs2-1.2.5.devel/configure.in	2007-04-16 12:56:51.301364243 -0400
-@@ -273,6 +274,11 @@ OCFS2_CHECK_KERNEL([i_private field on s
-   INODE_HAS_PRIVATE=yes, , [i_private])
- AC_SUBST(INODE_HAS_PRIVATE)
+ make clean
+ %endif
+@@ -324,9 +326,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
  
-+HAS_MACHINE_RESTART=
-+OCFS2_CHECK_KERNEL([machine_restart], reboot.h,
-+   HAS_MACHINE_RESTART=yes, , [machine_restart])
-+AC_SUBST(HAS_MACHINE_RESTART)
-+
- # using -include has two advantages:
- #  the source doesn't need to know to include compat headers
- #  the compat header file names don't go through the search path
-diff -ruNp ocfs2-1.2.5/fs/ocfs2/cluster/Makefile ocfs2-1.2.5.devel/fs/ocfs2/cluster/Makefile
-- --- ocfs2-1.2.5/fs/ocfs2/cluster/Makefile	2007-03-27 15:54:16.000000000 -0400
-+++ ocfs2-1.2.5.devel/fs/ocfs2/cluster/Makefile	2007-04-16 12:59:43.332305221 -0400
-@@ -23,6 +23,10 @@ ifdef INET_SK_RETURNS_INET_OPT
- EXTRA_CFLAGS += -DINET_SK_RETURNS_INET_OPT
- endif
+ make clean
+ %endif
+@@ -347,9 +351,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
  
-+ifdef HAS_MACHINE_RESTART
-+EXTRA_CFLAGS += -DHAS_MACHINE_RESTART
-+endif
-+
- SOURCES =			\
- 	heartbeat.c		\
- 	masklog.c		\
-diff -ruNp ocfs2-1.2.5/fs/ocfs2/cluster/quorum.c ocfs2-1.2.5.devel/fs/ocfs2/cluster/quorum.c
-- --- ocfs2-1.2.5/fs/ocfs2/cluster/quorum.c	2007-03-27 15:54:16.000000000 -0400
-+++ ocfs2-1.2.5.devel/fs/ocfs2/cluster/quorum.c	2007-04-15 20:13:01.189599924 -0400
-@@ -81,7 +81,11 @@ static void o2quo_fence_self(void)
- 		panic("*** ocfs2 is very sorry to be fencing this system by panicing ***\n");
- 	default:
- 		printk("*** ocfs2 is very sorry to be fencing this system by restarting ***\n");
-+#ifdef HAS_MACHINE_RESTART
- 		machine_restart(NULL);
-+#else
-+		emergency_restart();
-+#endif
- 	}
- }
+ make clean
+ %endif
+@@ -370,9 +376,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
  
-
+ make clean
+ %endif
+@@ -393,9 +401,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
+ 
+ make clean
+ %endif
+@@ -416,9 +426,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
+ 
+ make clean
+ %endif
+@@ -439,9 +451,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
+ 
+ make clean
+ %endif
+@@ -462,9 +476,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
+ 
+ make clean
+ %endif
+@@ -485,9 +501,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
+ 
+ make clean
+ %endif
+@@ -508,9 +526,11 @@ mv "${EXTRA_MODLIB}"/ocfs2_nodemanager.k
+ mkdir -p "${INST_MODLIB}/fs/ocfs2/dlm"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlm.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+ mv "${EXTRA_MODLIB}"/ocfs2_dlmfs.ko "${INST_MODLIB}/fs/ocfs2/dlm/"
+- -mkdir -p "${INST_MODLIB}/fs/configfs"
+- -mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
+- -rm "${EXTRA_MODLIB}"/*.ko
++if [ -e "${EXTRA_MODLIB}/configfs.ko" ]; then
++	mkdir -p "${INST_MODLIB}/fs/configfs"
++	mv "${EXTRA_MODLIB}"/configfs.ko "${INST_MODLIB}/fs/configfs/"
++fi
++rm -f "${EXTRA_MODLIB}"/*.ko
+ 
+ make clean
+ %endif
 
 - -- 
 Jeff Mahoney
@@ -80,7 +178,7 @@ SUSE Labs
 Version: GnuPG v1.4.5 (GNU/Linux)
 Comment: Using GnuPG with SUSE - http://enigmail.mozdev.org
 
-iD8DBQFGI7dELPWxlyuTD7IRAvOOAJ9sjawmGSfB8AYcCqtykZPCsSe2ywCfWcRq
-/sGmAIIXR+8BS1LRQQa7N8I=
-=ucIC
+iD8DBQFGI7jjLPWxlyuTD7IRArXSAJ46nvnYc57oaIqyavc3P02Q+U0duwCfSEU9
+fSRooxqW35a9LTX6EJAg3qw=
+=CyVk
 -----END PGP SIGNATURE-----
