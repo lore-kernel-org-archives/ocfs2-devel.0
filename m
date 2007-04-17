@@ -1,43 +1,40 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon Apr 16 13:30:56 2007
-Subject: [Ocfs2-devel] [PATCH] enable building as SUSE KMP
-In-Reply-To: <4623BB1C.30101@suse.com>
-References: <4623BB1C.30101@suse.com>
-Message-ID: <20070416203052.GI27857@ca-server1.us.oracle.com>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Tue Apr 17 02:41:10 2007
+Subject: [Ocfs2-devel] a patch on ocfs2
+Message-ID: <46249641.3070108@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Apr 16, 2007 at 02:06:20PM -0400, Jeff Mahoney wrote:
-> -----BEGIN PGP SIGNED MESSAGE-----
-> Hash: SHA1
-> 
-> 
-> Starting with SLE 10 and openSUSE 10.2, the "right" way of building kernel
-> modules for SUSE Linux systems is via the kernel module package (KMP) mechanism.
+Hi Sunil,
 
-	Slickness.  Do all SLES10 versions, including GA, support this?
-I hope so, it means we never have to create vendor/sles10.
+I found a bug on ocfs2 covering both 1.2.4 and 1.2.5.
+it's simple,  please see the patch on 1.2.5(pasted below):
 
-> With the KMP infrastructure, if allowed, 'make packages' should work without even
-> running configure since it runs configure for each kernel it builds against.
 
-	You still need to run configure in the outer tree, because that
-is what substitutes @VERSION@ etc.  That's all it does, however.  The
-vendor trees, as you probably have noted, are designed to run "make
-packages" on any system, regardless of where configure was run.
-
-Joel
+--- ocfs2-1.2.5/fs/ocfs2/dlm/dlmconvert.c.orig  2007-04-17 
+17:28:08.000000000 -0400
++++ ocfs2-1.2.5/fs/ocfs2/dlm/dlmconvert.c       2007-04-17 
+17:28:38.000000000 -0400
+@@ -490,7 +490,9 @@
+                               "cookie=%u:%llu\n",
+                               
+dlm_get_lock_cookie_node(be64_to_cpu(cnv->cookie)),
+                               
+dlm_get_lock_cookie_seq(be64_to_cpu(cnv->cookie)));
++               spin_lock(&res->spinlock);
+                __dlm_print_one_lock_resource(res);
++               spin_unlock(&res->spinlock);
+                goto leave;
+        }
 
 -- 
+Wengang Wang
+Member of Technical Staff
+Oracle China Development Center
+Open Source Technologies Development
 
-"Here's a nickle -- get yourself a better X server."
-	- Keith Packard
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+Tel:      +86 10 8278 6265
+Mobile:   +86 13381078925
