@@ -1,315 +1,274 @@
 From: Joel Becker <joel.becker@oracle.com>
 Date: Thu Jun 14 21:53:51 2007
-Subject: [Ocfs2-devel] [PATCH 1/2] configfs: config item dependancies.
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Depend on configfs heartbeat items.
 In-Reply-To: <20070615044046.GA17382@tasint.org>
 References: <20070615044046.GA17382@tasint.org>
-Message-ID: <E1Hz3of-0004n3-Ml@ca-server1.us.oracle.com>
+Message-ID: <E1Hz3of-0004n6-OG@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Sometimes other drivers depend on particular configfs items.  For example,
-ocfs2 mounts depend on a heartbeat region item.  If that region item is
-removed with rmdir(2), the ocfs2 mount must BUG or go readonly.  Not happy.
+ocfs2 mounts require a heartbeat region.  Use the new configfs_depend_item()
+facility to actually depend on them so they can't go away from under us.
 
-This provides two additional API calls: configfs_depend_item() and
-configfs_undepend_item().  A client driver can call configfs_depend_item()
-on an existing item to tell configfs that it is depended on.  configfs will
-then return -EBUSY from rmdir(2) for that item.  When the item is no longer
-depended on, the client driver calls configfs_undepend_item() on it.
-
-These API cannot be called underneath any configfs callbacks, as they will
-conflict.  They can block and allocate.  A client driver probably shouldn't
-calling them of its own gumption.  Rather it should be providing an API that
-external subsystems call.
-
-How does this work?  Imagine the ocfs2 mount process.  When it mounts, it
-asks for a heart region item.  This is done via a call into the heartbeat
-code.  Inside the heartbeat code, the region item is looked up.  Here,
-the heartbeat code calls configfs_depend_item().  If it succeeds, then
-heartbeat knows the region is safe to give to ocfs2.  If it fails, it was
-being torn down anyway, and heartbeat can gracefully pass up an error.
+First, teach cluster/nodemanager.c to depend an item on the o2cb subsystem.
+Then teach o2hb_register_callbacks to take a UUID and depend on the
+appropriate region.  Finally, teach all users of o2hb to pass a UUID or
+NULL if they don't require a pin.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/configfs/configfs_internal.h |    7 +
- fs/configfs/dir.c               |  203 +++++++++++++++++++++++++++++++++++++++
- include/linux/configfs.h        |    5 +
- 3 files changed, 212 insertions(+), 3 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c   |   64 +++++++++++++++++++++++++++++++++++++++-
+ fs/ocfs2/cluster/heartbeat.h   |    6 +++-
+ fs/ocfs2/cluster/nodemanager.c |   10 ++++++
+ fs/ocfs2/cluster/nodemanager.h |    3 ++
+ fs/ocfs2/cluster/tcp.c         |    8 +++--
+ fs/ocfs2/dlm/dlmdomain.c       |    8 +++--
+ fs/ocfs2/heartbeat.c           |   10 +++---
+ 7 files changed, 92 insertions(+), 17 deletions(-)
 
-diff --git a/fs/configfs/configfs_internal.h b/fs/configfs/configfs_internal.h
-index 7b48c03..3b0185f 100644
---- a/fs/configfs/configfs_internal.h
-+++ b/fs/configfs/configfs_internal.h
-@@ -29,10 +29,11 @@ #include <linux/list.h>
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 9791134..e331f4c 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1665,7 +1665,56 @@ void o2hb_setup_callback(struct o2hb_cal
+ }
+ EXPORT_SYMBOL_GPL(o2hb_setup_callback);
  
- struct configfs_dirent {
- 	atomic_t		s_count;
-+	int			s_dependent_count;
- 	struct list_head	s_sibling;
- 	struct list_head	s_children;
- 	struct list_head	s_links;
--	void 			* s_element;
-+	void			* s_element;
- 	int			s_type;
- 	umode_t			s_mode;
- 	struct dentry		* s_dentry;
-@@ -41,8 +42,8 @@ struct configfs_dirent {
+-int o2hb_register_callback(struct o2hb_callback_func *hc)
++static struct o2hb_region *o2hb_find_region(const char *region_uuid)
++{
++	struct o2hb_region *p, *reg = NULL;
++
++	assert_spin_locked(&o2hb_live_lock);
++
++	list_for_each_entry(p, &o2hb_all_regions, hr_all_item) {
++		if (!strcmp(region_uuid, config_item_name(&p->hr_item))) {
++			reg = p;
++			break;
++		}
++	}
++
++	return reg;
++}
++
++static int o2hb_region_get(const char *region_uuid)
++{
++	int ret = 0;
++	struct o2hb_region *reg;
++
++	spin_lock(&o2hb_live_lock);
++
++	reg = o2hb_find_region(region_uuid);
++	if (!reg)
++		ret = -ENOENT;
++	spin_unlock(&o2hb_live_lock);
++
++	if (!ret)
++		ret = o2nm_depend_item(&reg->hr_item);
++
++	return ret;
++}
++
++static void o2hb_region_put(const char *region_uuid)
++{
++	struct o2hb_region *reg;
++
++	spin_lock(&o2hb_live_lock);
++
++	reg = o2hb_find_region(region_uuid);
++
++	spin_unlock(&o2hb_live_lock);
++
++	if (reg)
++		o2nm_undepend_item(&reg->hr_item);
++}
++
++int o2hb_register_callback(const char *region_uuid,
++			   struct o2hb_callback_func *hc)
+ {
+ 	struct o2hb_callback_func *tmp;
+ 	struct list_head *iter;
+@@ -1681,6 +1730,12 @@ int o2hb_register_callback(struct o2hb_c
+ 		goto out;
+ 	}
  
- #define CONFIGFS_ROOT		0x0001
- #define CONFIGFS_DIR		0x0002
--#define CONFIGFS_ITEM_ATTR 	0x0004
--#define CONFIGFS_ITEM_LINK 	0x0020
-+#define CONFIGFS_ITEM_ATTR	0x0004
-+#define CONFIGFS_ITEM_LINK	0x0020
- #define CONFIGFS_USET_DIR	0x0040
- #define CONFIGFS_USET_DEFAULT	0x0080
- #define CONFIGFS_USET_DROPPING	0x0100
-diff --git a/fs/configfs/dir.c b/fs/configfs/dir.c
-index 5e6e37e..94b139c 100644
---- a/fs/configfs/dir.c
-+++ b/fs/configfs/dir.c
-@@ -355,6 +355,10 @@ static int configfs_detach_prep(struct d
- 			/* Mark that we've taken i_mutex */
- 			sd->s_type |= CONFIGFS_USET_DROPPING;
++	if (region_uuid) {
++		ret = o2hb_region_get(region_uuid);
++		if (ret)
++			goto out;
++	}
++
+ 	down_write(&o2hb_callback_sem);
  
-+			/*
-+			 * Yup, recursive.  If there's a problem, blame
-+			 * deep nesting of default_groups
-+			 */
- 			ret = configfs_detach_prep(sd->s_dentry);
- 			if (!ret)
- 				continue;
-@@ -738,6 +742,198 @@ static void client_drop_item(struct conf
- 		config_item_put(item);
+ 	list_for_each(iter, &hbcall->list) {
+@@ -1702,16 +1757,21 @@ out:
+ }
+ EXPORT_SYMBOL_GPL(o2hb_register_callback);
+ 
+-void o2hb_unregister_callback(struct o2hb_callback_func *hc)
++void o2hb_unregister_callback(const char *region_uuid,
++			      struct o2hb_callback_func *hc)
+ {
+ 	BUG_ON(hc->hc_magic != O2HB_CB_MAGIC);
+ 
+ 	mlog(ML_HEARTBEAT, "on behalf of %p for funcs %p\n",
+ 	     __builtin_return_address(0), hc);
+ 
++	/* XXX Can this happen _with_ a region reference? */
+ 	if (list_empty(&hc->hc_item))
+ 		return;
+ 
++	if (region_uuid)
++		o2hb_region_put(region_uuid);
++
+ 	down_write(&o2hb_callback_sem);
+ 
+ 	list_del_init(&hc->hc_item);
+diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
+index cc6d40b..35397dd 100644
+--- a/fs/ocfs2/cluster/heartbeat.h
++++ b/fs/ocfs2/cluster/heartbeat.h
+@@ -69,8 +69,10 @@ void o2hb_setup_callback(struct o2hb_cal
+ 			 o2hb_cb_func *func,
+ 			 void *data,
+ 			 int priority);
+-int o2hb_register_callback(struct o2hb_callback_func *hc);
+-void o2hb_unregister_callback(struct o2hb_callback_func *hc);
++int o2hb_register_callback(const char *region_uuid,
++			   struct o2hb_callback_func *hc);
++void o2hb_unregister_callback(const char *region_uuid,
++			      struct o2hb_callback_func *hc);
+ void o2hb_fill_node_map(unsigned long *map,
+ 			unsigned bytes);
+ void o2hb_init(void);
+diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+index 9f5ad0f..50a0524 100644
+--- a/fs/ocfs2/cluster/nodemanager.c
++++ b/fs/ocfs2/cluster/nodemanager.c
+@@ -900,6 +900,16 @@ static struct o2nm_cluster_group o2nm_cl
+ 	},
+ };
+ 
++int o2nm_depend_item(struct config_item *item)
++{
++	return configfs_depend_item(&o2nm_cluster_group.cs_subsys, item);
++}
++
++void o2nm_undepend_item(struct config_item *item)
++{
++	configfs_undepend_item(&o2nm_cluster_group.cs_subsys, item);
++}
++
+ static void __exit exit_o2nm(void)
+ {
+ 	if (ocfs2_table_header)
+diff --git a/fs/ocfs2/cluster/nodemanager.h b/fs/ocfs2/cluster/nodemanager.h
+index 0705221..55ae1a0 100644
+--- a/fs/ocfs2/cluster/nodemanager.h
++++ b/fs/ocfs2/cluster/nodemanager.h
+@@ -77,4 +77,7 @@ struct o2nm_node *o2nm_get_node_by_ip(__
+ void o2nm_node_get(struct o2nm_node *node);
+ void o2nm_node_put(struct o2nm_node *node);
+ 
++int o2nm_depend_item(struct config_item *item);
++void o2nm_undepend_item(struct config_item *item);
++
+ #endif /* O2CLUSTER_NODEMANAGER_H */
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 0b229a9..d58c7dd 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -1638,8 +1638,8 @@ static void o2net_hb_node_up_cb(struct o
+ 
+ void o2net_unregister_hb_callbacks(void)
+ {
+-	o2hb_unregister_callback(&o2net_hb_up);
+-	o2hb_unregister_callback(&o2net_hb_down);
++	o2hb_unregister_callback(NULL, &o2net_hb_up);
++	o2hb_unregister_callback(NULL, &o2net_hb_down);
  }
  
-+/*
-+ * configfs_depend_item() and configfs_undepend_item()
-+ *
-+ * WARNING: Do not call these from a configfs callback!
-+ *
-+ * This describes these functions and their helpers.
-+ *
-+ * Allow another kernel system to depend on a config_item.  If this
-+ * happens, the item cannot go away until the dependant can live without
-+ * it.  The idea is to give client modules as simple an interface as
-+ * possible.  When a system asks them to depend on an item, they just
-+ * call configfs_depend_item().  If the item is live and the client
-+ * driver is in good shape, we'll happily do the work for them.
-+ *
-+ * Why is the locking complex?  Because configfs uses the VFS to handle
-+ * all locking, but this function is called outside the normal
-+ * VFS->configfs path.  So it must take VFS locks to prevent the
-+ * VFS->configfs stuff (configfs_mkdir(), configfs_rmdir(), etc).  This is
-+ * why you can't call these functions underneath configfs callbacks.
-+ *
-+ * Note, btw, that this can be called at *any* time, even when a configfs
-+ * subsystem isn't registered, or when configfs is loading or unloading.
-+ * Just like configfs_register_subsystem().  So we take the same
-+ * precautions.  We pin the filesystem.  We lock each i_mutex _in_order_
-+ * on our way down the tree.  If we can find the target item in the
-+ * configfs tree, it must be part of the subsystem tree as well, so we
-+ * do not need the subsystem semaphore.  Holding the i_mutex chain locks
-+ * out mkdir() and rmdir(), who might be racing us.
-+ */
-+
-+/*
-+ * configfs_depend_prep()
-+ *
-+ * Only subdirectories count here.  Files (CONFIGFS_NOT_PINNED) are
-+ * attributes.  This is similar but not the same to configfs_detach_prep().
-+ * Note that configfs_detach_prep() expects the parent to be locked when it
-+ * is called, but we lock the parent *inside* configfs_depend_prep().  We
-+ * do that so we can unlock it if we find nothing.
-+ *
-+ * Here we do a depth-first search of the dentry hierarchy looking for
-+ * our object.  We take i_mutex on each step of the way down.  IT IS
-+ * ESSENTIAL THAT i_mutex LOCKING IS ORDERED.  If we come back up a branch,
-+ * we'll drop the i_mutex.
-+ *
-+ * If the target is not found, -ENOENT is bubbled up and we have released
-+ * all locks.  If the target was found, the locks will be cleared by
-+ * configfs_depend_rollback().
-+ *
-+ * This adds a requirement that all config_items be unique!
-+ *
-+ * XXX: Ugly recursive!  If we keep this, it needs to be iterative!
-+ */
-+static int configfs_depend_prep(struct dentry *origin,
-+				struct config_item *target)
-+{
-+	struct configfs_dirent *child_sd, *sd = origin->d_fsdata;
-+	int ret = 0;
-+
-+	/* Lock this guy on the way down */
-+	mutex_lock(&sd->s_dentry->d_inode->i_mutex);
-+	if (sd->s_element == target)  /* Boo-yah */
-+		goto out;
-+
-+	list_for_each_entry(child_sd, &sd->s_children, s_sibling) {
-+		if (sd->s_type & CONFIGFS_DIR) {
-+			ret = configfs_depend_prep(child_sd->s_dentry,
-+						   target);
-+			if (!ret)
-+				goto out;  /* Child path boo-yah */
-+		}
-+	}
-+
-+	/* We looped all our children and didn't find target */
-+	mutex_unlock(&sd->s_dentry->d_inode->i_mutex);
-+	ret = -ENOENT;
-+
-+out:
-+	return ret;
-+}
-+
-+/*
-+ * This is ONLY called if configfs_depend_prep() did its job.  So we can
-+ * trust the entire path from item back up to origin.
-+ *
-+ * We walk backwards from item, unlocking each i_mutex.  We finish by
-+ * unlocking origin.
-+ */
-+static void configfs_depend_rollback(struct dentry *origin,
-+				     struct config_item *item)
-+{
-+	struct dentry *dentry = item->ci_dentry;
-+
-+	while (dentry != origin) {
-+		mutex_unlock(&dentry->d_inode->i_mutex);
-+		dentry = dentry->d_parent;
-+	}
-+
-+	mutex_unlock(&origin->d_inode->i_mutex);
-+}
-+
-+int configfs_depend_item(struct configfs_subsystem *subsys,
-+			 struct config_item *target)
-+{
-+	int ret;
-+	struct configfs_dirent *p, *root_sd, *subsys_sd = NULL;
-+	struct config_item *s_item = &subsys->su_group.cg_item;
-+
-+	/*
-+	 * Pin the configfs filesystem.  This means we can safely access
-+	 * the root of the configfs filesystem.
-+	 */
-+	ret = configfs_pin_fs();
-+	if (ret)
-+		return ret;
-+
-+	/*
-+	 * Next, lock the root directory.  We're going to check that the
-+	 * subsystem is really registered, and so we need to lock out
-+	 * configfs_[un]register_subsystem().
-+	 */
-+	mutex_lock(&configfs_sb->s_root->d_inode->i_mutex);
-+
-+	root_sd = configfs_sb->s_root->d_fsdata;
-+
-+	list_for_each_entry(p, &root_sd->s_children, s_sibling) {
-+		if (p->s_type & CONFIGFS_DIR) {
-+			if (p->s_element == s_item) {
-+				subsys_sd = p;
-+				break;
-+			}
-+		}
-+	}
-+
-+	if (!subsys_sd) {
-+		ret = -ENOENT;
-+		goto out_unlock_fs;
-+	}
-+
-+	/* Ok, now we can trust subsys/s_item */
-+
-+	/* Scan the tree, locking i_mutex recursively, return 0 if found */
-+	ret = configfs_depend_prep(subsys_sd->s_dentry, target);
-+	if (ret)
-+		goto out_unlock_fs;
-+
-+	/* We hold all i_mutexes from the subsystem down to the target */
-+	p = target->ci_dentry->d_fsdata;
-+	p->s_dependent_count += 1;
-+
-+	configfs_depend_rollback(subsys_sd->s_dentry, target);
-+
-+out_unlock_fs:
-+	mutex_unlock(&configfs_sb->s_root->d_inode->i_mutex);
-+
-+	/*
-+	 * If we succeeded, the fs is pinned via other methods.  If not,
-+	 * we're done with it anyway.  So release_fs() is always right.
-+	 */
-+	configfs_release_fs();
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL(configfs_depend_item);
-+
-+/*
-+ * Release the dependent linkage.  This is much simpler than
-+ * configfs_depend_item() because we know that that the client driver is
-+ * pinned, thus the subsystem is pinned, and therefore configfs is pinned.
-+ */
-+void configfs_undepend_item(struct configfs_subsystem *subsys,
-+			    struct config_item *target)
-+{
-+	struct configfs_dirent *sd;
-+
-+	/*
-+	 * Since we can trust everything is pinned, we just need i_mutex
-+	 * on the item.
-+	 */
-+	mutex_lock(&target->ci_dentry->d_inode->i_mutex);
-+
-+	sd = target->ci_dentry->d_fsdata;
-+	BUG_ON(sd->s_dependent_count < 1);
-+
-+	sd->s_dependent_count -= 1;
-+
-+	/*
-+	 * After this unlock, we cannot trust the item to stay alive!
-+	 * DO NOT REFERENCE item after this unlock.
-+	 */
-+	mutex_unlock(&target->ci_dentry->d_inode->i_mutex);
-+}
-+EXPORT_SYMBOL(configfs_undepend_item);
+ int o2net_register_hb_callbacks(void)
+@@ -1651,9 +1651,9 @@ int o2net_register_hb_callbacks(void)
+ 	o2hb_setup_callback(&o2net_hb_up, O2HB_NODE_UP_CB,
+ 			    o2net_hb_node_up_cb, NULL, O2NET_HB_PRI);
  
- static int configfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
+-	ret = o2hb_register_callback(&o2net_hb_up);
++	ret = o2hb_register_callback(NULL, &o2net_hb_up);
+ 	if (ret == 0)
+-		ret = o2hb_register_callback(&o2net_hb_down);
++		ret = o2hb_register_callback(NULL, &o2net_hb_down);
+ 
+ 	if (ret)
+ 		o2net_unregister_hb_callbacks();
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index d836b98..6954565 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1128,8 +1128,8 @@ bail:
+ 
+ static void dlm_unregister_domain_handlers(struct dlm_ctxt *dlm)
  {
-@@ -881,6 +1077,13 @@ static int configfs_rmdir(struct inode *
- 	if (sd->s_type & CONFIGFS_USET_DEFAULT)
- 		return -EPERM;
+-	o2hb_unregister_callback(&dlm->dlm_hb_up);
+-	o2hb_unregister_callback(&dlm->dlm_hb_down);
++	o2hb_unregister_callback(NULL, &dlm->dlm_hb_up);
++	o2hb_unregister_callback(NULL, &dlm->dlm_hb_down);
+ 	o2net_unregister_handler_list(&dlm->dlm_domain_handlers);
+ }
  
-+	/*
-+	 * Here's where we check for dependents.  We're protected by
-+	 * i_mutex.
-+	 */
-+	if (sd->s_dependent_count)
-+		return -EBUSY;
-+
- 	/* Get a working ref until we have the child */
- 	parent_item = configfs_get_config_item(dentry->d_parent);
- 	subsys = to_config_group(parent_item)->cg_subsys;
-diff --git a/include/linux/configfs.h b/include/linux/configfs.h
-index fef6f3d..9815531 100644
---- a/include/linux/configfs.h
-+++ b/include/linux/configfs.h
-@@ -175,6 +175,11 @@ static inline struct configfs_subsystem 
- int configfs_register_subsystem(struct configfs_subsystem *subsys);
- void configfs_unregister_subsystem(struct configfs_subsystem *subsys);
+@@ -1141,13 +1141,13 @@ static int dlm_register_domain_handlers(
  
-+/* These functions can sleep and can alloc with GFP_KERNEL */
-+/* WARNING: These cannot be called underneath configfs callbacks!! */
-+int configfs_depend_item(struct configfs_subsystem *subsys, struct config_item *target);
-+void configfs_undepend_item(struct configfs_subsystem *subsys, struct config_item *target);
-+
- #endif  /* __KERNEL__ */
+ 	o2hb_setup_callback(&dlm->dlm_hb_down, O2HB_NODE_DOWN_CB,
+ 			    dlm_hb_node_down_cb, dlm, DLM_HB_NODE_DOWN_PRI);
+-	status = o2hb_register_callback(&dlm->dlm_hb_down);
++	status = o2hb_register_callback(NULL, &dlm->dlm_hb_down);
+ 	if (status)
+ 		goto bail;
  
- #endif /* _CONFIGFS_H_ */
+ 	o2hb_setup_callback(&dlm->dlm_hb_up, O2HB_NODE_UP_CB,
+ 			    dlm_hb_node_up_cb, dlm, DLM_HB_NODE_UP_PRI);
+-	status = o2hb_register_callback(&dlm->dlm_hb_up);
++	status = o2hb_register_callback(NULL, &dlm->dlm_hb_up);
+ 	if (status)
+ 		goto bail;
+ 
+diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
+index b25ef63..352eb4a 100644
+--- a/fs/ocfs2/heartbeat.c
++++ b/fs/ocfs2/heartbeat.c
+@@ -157,16 +157,16 @@ int ocfs2_register_hb_callbacks(struct o
+ 	if (ocfs2_mount_local(osb))
+ 		return 0;
+ 
+-	status = o2hb_register_callback(&osb->osb_hb_down);
++	status = o2hb_register_callback(osb->uuid_str, &osb->osb_hb_down);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto bail;
+ 	}
+ 
+-	status = o2hb_register_callback(&osb->osb_hb_up);
++	status = o2hb_register_callback(osb->uuid_str, &osb->osb_hb_up);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		o2hb_unregister_callback(&osb->osb_hb_down);
++		o2hb_unregister_callback(osb->uuid_str, &osb->osb_hb_down);
+ 	}
+ 
+ bail:
+@@ -178,8 +178,8 @@ void ocfs2_clear_hb_callbacks(struct ocf
+ 	if (ocfs2_mount_local(osb))
+ 		return;
+ 
+-	o2hb_unregister_callback(&osb->osb_hb_down);
+-	o2hb_unregister_callback(&osb->osb_hb_up);
++	o2hb_unregister_callback(osb->uuid_str, &osb->osb_hb_down);
++	o2hb_unregister_callback(osb->uuid_str, &osb->osb_hb_up);
+ }
+ 
+ void ocfs2_stop_heartbeat(struct ocfs2_super *osb)
 -- 
 1.4.2.3
