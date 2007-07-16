@@ -1,13 +1,22 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Wed Jul 11 09:22:37 2007
-Subject: [Ocfs2-devel] [git patches] ocfs2 and configfs updates
-Message-ID: <20070711162233.GN15463@ca-server1.us.oracle.com>
+Date: Mon Jul 16 10:06:12 2007
+Subject: [Ocfs2-devel] [RESEND] [git patches] ocfs2 and configfs updates
+Message-ID: <20070716170604.GT15463@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, David Teigland <teigland@redhat.com>, Joel Becker <joel.becker@oracle.com>
+
+Hi Linus,
+	These patches from last week never made it into your tree, so I'm
+resending. A test pull on my end indicates that the merge shouldn't have any
+conflicts, so I didn't bother rebasing on your latest stuff.
+
+Original message follows.
+	--Mark
+
 
 This represents the majority of our 2.6.23-rc1 patches.
 
