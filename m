@@ -1,154 +1,205 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Wed Sep 19 13:12:21 2007
-Subject: [Ocfs2-devel] [PATCH 07/15] ocfs2: Implement ocfs2_empty_dir() as a
-	caller of ocfs2_dir_foreach()
-Message-ID: <200709192012.l8JKCGWI012183@agmgw2.us.oracle.com>
+Date: Wed Sep 19 13:12:22 2007
+Subject: [Ocfs2-devel] [PATCH 04/15] ocfs2: Abstract out core dir listing
+	functionality
+Message-ID: <200709192012.l8JKCGaj029285@rgmgw2.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We can preserve the behavior of ocfs2_empty_dir(), while getting rid of the
-open coded directory walk by just providing a smart filldir callback. This
-also automatically gets to use the dir readahead code, though in this case
-any advantage is minor at best.
+Put this in it's own function so that the functionality can be overridden.
 
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dir.c |   96 ++++++++++++++++++++++++++-----------------------------
- fs/ocfs2/dir.h |    2 +-
- 2 files changed, 46 insertions(+), 52 deletions(-)
+ fs/ocfs2/dir.c |  103 ++++++++++++++++++++++++++++++-------------------------
+ 1 files changed, 56 insertions(+), 47 deletions(-)
 
 diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index a75c340..4bb5440 100644
+index 8e0ae02..d1f92fd 100644
 --- a/fs/ocfs2/dir.c
 +++ b/fs/ocfs2/dir.c
-@@ -660,67 +660,61 @@ bail:
- 	return ret;
+@@ -414,11 +414,8 @@ bail:
+ 	return retval;
  }
  
-+struct ocfs2_empty_dir_priv {
-+	unsigned seen_dot;
-+	unsigned seen_dot_dot;
-+	unsigned seen_other;
-+};
-+static int ocfs2_empty_dir_filldir(void *priv, const char *name, int name_len,
-+				   loff_t pos, u64 ino, unsigned type)
-+{
-+	struct ocfs2_empty_dir_priv *p = priv;
-+
-+	/*
-+	 * Check the positions of "." and ".." records to be sure
-+	 * they're in the correct place.
-+	 */
-+	if (name_len == 1 && !strncmp(".", name, 1) && pos == 0) {
-+		p->seen_dot = 1;
-+		return 0;
-+	}
-+
-+	if (name_len == 2 && !strncmp("..", name, 2) &&
-+	    pos == OCFS2_DIR_REC_LEN(1)) {
-+		p->seen_dot_dot = 1;
-+		return 0;
-+	}
-+
-+	p->seen_other = 1;
-+	return 1;
-+}
- /*
-  * routine to check that the specified directory is empty (for rmdir)
-+ *
-+ * Returns 1 if dir is empty, zero otherwise.
-  */
- int ocfs2_empty_dir(struct inode *inode)
+-/*
+- * ocfs2_readdir()
+- *
+- */
+-int ocfs2_readdir(struct file * filp, void * dirent, filldir_t filldir)
++static int ocfs2_dir_foreach_blk(struct inode *inode, unsigned long *f_version,
++				 loff_t *f_pos, void *priv, filldir_t filldir)
  {
--	unsigned long offset;
--	struct buffer_head * bh;
--	struct ocfs2_dir_entry * de, * de1;
--	struct super_block * sb;
--	int err;
-+	int ret;
-+	loff_t start = 0;
-+	struct ocfs2_empty_dir_priv priv;
+ 	int error = 0;
+ 	unsigned long offset, blk, last_ra_blk = 0;
+@@ -426,45 +423,23 @@ int ocfs2_readdir(struct file * filp, void * dirent, filldir_t filldir)
+ 	struct buffer_head * bh, * tmp;
+ 	struct ocfs2_dir_entry * de;
+ 	int err;
+-	struct inode *inode = filp->f_path.dentry->d_inode;
+ 	struct super_block * sb = inode->i_sb;
+ 	unsigned int ra_sectors = 16;
+-	int lock_level = 0;
+-
+-	mlog_entry("dirino=%llu\n",
+-		   (unsigned long long)OCFS2_I(inode)->ip_blkno);
  
--	sb = inode->i_sb;
--	if ((i_size_read(inode) <
--	     (OCFS2_DIR_REC_LEN(1) + OCFS2_DIR_REC_LEN(2))) ||
--	    !(bh = ocfs2_bread(inode, 0, &err, 0))) {
--	    	mlog(ML_ERROR, "bad directory (dir #%llu) - no data block\n",
--		     (unsigned long long)OCFS2_I(inode)->ip_blkno);
--		return 1;
+ 	stored = 0;
+ 	bh = NULL;
+ 
+-	error = ocfs2_meta_lock_atime(inode, filp->f_vfsmnt, &lock_level);
+-	if (lock_level && error >= 0) {
+-		/* We release EX lock which used to update atime
+-		 * and get PR lock again to reduce contention
+-		 * on commonly accessed directories. */
+-		ocfs2_meta_unlock(inode, 1);
+-		lock_level = 0;
+-		error = ocfs2_meta_lock(inode, NULL, 0);
 -	}
-+	memset(&priv, 0, sizeof(priv));
+-	if (error < 0) {
+-		if (error != -ENOENT)
+-			mlog_errno(error);
+-		/* we haven't got any yet, so propagate the error. */
+-		stored = error;
+-		goto bail_nolock;
+-	}
+-
+-	offset = filp->f_pos & (sb->s_blocksize - 1);
++	offset = (*f_pos) & (sb->s_blocksize - 1);
  
--	de = (struct ocfs2_dir_entry *) bh->b_data;
--	de1 = (struct ocfs2_dir_entry *)
--			((char *)de + le16_to_cpu(de->rec_len));
--	if ((le64_to_cpu(de->inode) != OCFS2_I(inode)->ip_blkno) ||
--			!le64_to_cpu(de1->inode) ||
--			strcmp(".", de->name) ||
--			strcmp("..", de1->name)) {
--	    	mlog(ML_ERROR, "bad directory (dir #%llu) - no `.' or `..'\n",
-+	ret = ocfs2_dir_foreach(inode, &start, &priv, ocfs2_empty_dir_filldir);
-+	if (ret)
-+		mlog_errno(ret);
-+
-+	if (!priv.seen_dot || !priv.seen_dot_dot) {
-+		mlog(ML_ERROR, "bad directory (dir #%llu) - no `.' or `..'\n",
- 		     (unsigned long long)OCFS2_I(inode)->ip_blkno);
--		brelse(bh);
-+		/*
-+		 * XXX: Is it really safe to allow an unlink to continue?
-+		 */
- 		return 1;
+-	while (!error && !stored && filp->f_pos < i_size_read(inode)) {
+-		blk = (filp->f_pos) >> sb->s_blocksize_bits;
++	while (!error && !stored && *f_pos < i_size_read(inode)) {
++		blk = (*f_pos) >> sb->s_blocksize_bits;
+ 		bh = ocfs2_bread(inode, blk, &err, 0);
+ 		if (!bh) {
+ 			mlog(ML_ERROR,
+ 			     "directory #%llu contains a hole at offset %lld\n",
+ 			     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+-			     filp->f_pos);
+-			filp->f_pos += sb->s_blocksize - offset;
++			     *f_pos);
++			*f_pos += sb->s_blocksize - offset;
+ 			continue;
+ 		}
+ 
+@@ -490,7 +465,7 @@ revalidate:
+ 		 * readdir(2), then we might be pointing to an invalid
+ 		 * dirent right now.  Scan from the start of the block
+ 		 * to make sure. */
+-		if (filp->f_version != inode->i_version) {
++		if (*f_version != inode->i_version) {
+ 			for (i = 0; i < sb->s_blocksize && i < offset; ) {
+ 				de = (struct ocfs2_dir_entry *) (bh->b_data + i);
+ 				/* It's too expensive to do a full
+@@ -505,21 +480,20 @@ revalidate:
+ 				i += le16_to_cpu(de->rec_len);
+ 			}
+ 			offset = i;
+-			filp->f_pos = (filp->f_pos & ~(sb->s_blocksize - 1))
++			*f_pos = ((*f_pos) & ~(sb->s_blocksize - 1))
+ 				| offset;
+-			filp->f_version = inode->i_version;
++			*f_version = inode->i_version;
+ 		}
+ 
+-		while (!error && filp->f_pos < i_size_read(inode)
++		while (!error && *f_pos < i_size_read(inode)
+ 		       && offset < sb->s_blocksize) {
+ 			de = (struct ocfs2_dir_entry *) (bh->b_data + offset);
+ 			if (!ocfs2_check_dir_entry(inode, de, bh, offset)) {
+ 				/* On error, skip the f_pos to the
+ 				   next block. */
+-				filp->f_pos = (filp->f_pos |
+-					       (sb->s_blocksize - 1)) + 1;
++				*f_pos = ((*f_pos) | (sb->s_blocksize - 1)) + 1;
+ 				brelse(bh);
+-				goto bail;
++				goto out;
+ 			}
+ 			offset += le16_to_cpu(de->rec_len);
+ 			if (le64_to_cpu(de->inode)) {
+@@ -530,36 +504,71 @@ revalidate:
+ 				 * not the directory has been modified
+ 				 * during the copy operation.
+ 				 */
+-				unsigned long version = filp->f_version;
++				unsigned long version = *f_version;
+ 				unsigned char d_type = DT_UNKNOWN;
+ 
+ 				if (de->file_type < OCFS2_FT_MAX)
+ 					d_type = ocfs2_filetype_table[de->file_type];
+-				error = filldir(dirent, de->name,
++				error = filldir(priv, de->name,
+ 						de->name_len,
+-						filp->f_pos,
++						*f_pos,
+ 						ino_from_blkno(sb, le64_to_cpu(de->inode)),
+ 						d_type);
+ 				if (error)
+ 					break;
+-				if (version != filp->f_version)
++				if (version != *f_version)
+ 					goto revalidate;
+ 				stored ++;
+ 			}
+-			filp->f_pos += le16_to_cpu(de->rec_len);
++			*f_pos += le16_to_cpu(de->rec_len);
+ 		}
+ 		offset = 0;
+ 		brelse(bh);
  	}
--	offset = le16_to_cpu(de->rec_len) + le16_to_cpu(de1->rec_len);
--	de = (struct ocfs2_dir_entry *)((char *)de1 + le16_to_cpu(de1->rec_len));
--	while (offset < i_size_read(inode) ) {
--		if (!bh || (void *)de >= (void *)(bh->b_data + sb->s_blocksize)) {
--			brelse(bh);
--			bh = ocfs2_bread(inode,
--					 offset >> sb->s_blocksize_bits, &err, 0);
--			if (!bh) {
--				mlog(ML_ERROR, "dir %llu has a hole at %lu\n",
--				     (unsigned long long)OCFS2_I(inode)->ip_blkno, offset);
--				offset += sb->s_blocksize;
--				continue;
--			}
--			de = (struct ocfs2_dir_entry *) bh->b_data;
--		}
--		if (!ocfs2_check_dir_entry(inode, de, bh, offset)) {
--			brelse(bh);
--			return 1;
--		}
--		if (le64_to_cpu(de->inode)) {
--			brelse(bh);
--			return 0;
--		}
--		offset += le16_to_cpu(de->rec_len);
--		de = (struct ocfs2_dir_entry *)
--			((char *)de + le16_to_cpu(de->rec_len));
--	}
--	brelse(bh);
--	return 1;
+ 
+ 	stored = 0;
+-bail:
++out:
++	return stored;
++}
 +
-+	return !priv.seen_other;
++/*
++ * ocfs2_readdir()
++ *
++ */
++int ocfs2_readdir(struct file * filp, void * dirent, filldir_t filldir)
++{
++	int error = 0;
++	struct inode *inode = filp->f_path.dentry->d_inode;
++	int lock_level = 0;
++
++	mlog_entry("dirino=%llu\n",
++		   (unsigned long long)OCFS2_I(inode)->ip_blkno);
++
++	error = ocfs2_meta_lock_atime(inode, filp->f_vfsmnt, &lock_level);
++	if (lock_level && error >= 0) {
++		/* We release EX lock which used to update atime
++		 * and get PR lock again to reduce contention
++		 * on commonly accessed directories. */
++		ocfs2_meta_unlock(inode, 1);
++		lock_level = 0;
++		error = ocfs2_meta_lock(inode, NULL, 0);
++	}
++	if (error < 0) {
++		if (error != -ENOENT)
++			mlog_errno(error);
++		/* we haven't got any yet, so propagate the error. */
++		goto bail_nolock;
++	}
++
++	error = ocfs2_dir_foreach_blk(inode, &filp->f_version, &filp->f_pos,
++				      dirent, filldir);
++
+ 	ocfs2_meta_unlock(inode, lock_level);
+ 
+ bail_nolock:
+-	mlog_exit(stored);
++	mlog_exit(error);
+ 
+-	return stored;
++	return error;
  }
  
- int ocfs2_fill_new_dir(struct ocfs2_super *osb,
-diff --git a/fs/ocfs2/dir.h b/fs/ocfs2/dir.h
-index 075d0e9..3e65f91 100644
---- a/fs/ocfs2/dir.h
-+++ b/fs/ocfs2/dir.h
-@@ -54,7 +54,7 @@ static inline int ocfs2_add_entry(handle_t *handle,
- int ocfs2_check_dir_for_entry(struct inode *dir,
- 			      const char *name,
- 			      int namelen);
--int ocfs2_empty_dir(struct inode *inode);  /* FIXME: to namei.c */
-+int ocfs2_empty_dir(struct inode *inode);
- int ocfs2_find_files_on_disk(const char *name,
- 			     int namelen,
- 			     u64 *blkno,
+ /*
 -- 
 1.5.0.6
