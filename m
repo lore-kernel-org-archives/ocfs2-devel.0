@@ -1,205 +1,172 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
 Date: Wed Sep 19 13:12:22 2007
-Subject: [Ocfs2-devel] [PATCH 04/15] ocfs2: Abstract out core dir listing
-	functionality
-Message-ID: <200709192012.l8JKCGaj029285@rgmgw2.us.oracle.com>
+Subject: [Ocfs2-devel] [PATCH 09/15] ocfs2: Rename cleanups
+Message-ID: <200709192012.l8JKCG62012197@agmgw2.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Put this in it's own function so that the functionality can be overridden.
+ocfs2_rename() does direct manipulation of the dirent it's gotten back from
+a directory search. Wrap this manipulation inside of a function so that we
+can transparently change directory update behavior in the future. As an
+added bonus, this gets rid of an ugly macro.
 
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dir.c |  103 ++++++++++++++++++++++++++++++-------------------------
- 1 files changed, 56 insertions(+), 47 deletions(-)
+ fs/ocfs2/dir.c   |   22 ++++++++++++++++++++++
+ fs/ocfs2/dir.h   |    3 +++
+ fs/ocfs2/namei.c |   53 ++++++++++++++++++++++-------------------------------
+ 3 files changed, 47 insertions(+), 31 deletions(-)
 
 diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 8e0ae02..d1f92fd 100644
+index 4791683..31db7e3 100644
 --- a/fs/ocfs2/dir.c
 +++ b/fs/ocfs2/dir.c
-@@ -414,11 +414,8 @@ bail:
- 	return retval;
+@@ -271,6 +271,28 @@ cleanup_and_exit:
+ 	return ret;
  }
  
--/*
-- * ocfs2_readdir()
-- *
-- */
--int ocfs2_readdir(struct file * filp, void * dirent, filldir_t filldir)
-+static int ocfs2_dir_foreach_blk(struct inode *inode, unsigned long *f_version,
-+				 loff_t *f_pos, void *priv, filldir_t filldir)
- {
- 	int error = 0;
- 	unsigned long offset, blk, last_ra_blk = 0;
-@@ -426,45 +423,23 @@ int ocfs2_readdir(struct file * filp, void * dirent, filldir_t filldir)
- 	struct buffer_head * bh, * tmp;
- 	struct ocfs2_dir_entry * de;
- 	int err;
--	struct inode *inode = filp->f_path.dentry->d_inode;
- 	struct super_block * sb = inode->i_sb;
- 	unsigned int ra_sectors = 16;
--	int lock_level = 0;
--
--	mlog_entry("dirino=%llu\n",
--		   (unsigned long long)OCFS2_I(inode)->ip_blkno);
- 
- 	stored = 0;
- 	bh = NULL;
- 
--	error = ocfs2_meta_lock_atime(inode, filp->f_vfsmnt, &lock_level);
--	if (lock_level && error >= 0) {
--		/* We release EX lock which used to update atime
--		 * and get PR lock again to reduce contention
--		 * on commonly accessed directories. */
--		ocfs2_meta_unlock(inode, 1);
--		lock_level = 0;
--		error = ocfs2_meta_lock(inode, NULL, 0);
--	}
--	if (error < 0) {
--		if (error != -ENOENT)
--			mlog_errno(error);
--		/* we haven't got any yet, so propagate the error. */
--		stored = error;
--		goto bail_nolock;
--	}
--
--	offset = filp->f_pos & (sb->s_blocksize - 1);
-+	offset = (*f_pos) & (sb->s_blocksize - 1);
- 
--	while (!error && !stored && filp->f_pos < i_size_read(inode)) {
--		blk = (filp->f_pos) >> sb->s_blocksize_bits;
-+	while (!error && !stored && *f_pos < i_size_read(inode)) {
-+		blk = (*f_pos) >> sb->s_blocksize_bits;
- 		bh = ocfs2_bread(inode, blk, &err, 0);
- 		if (!bh) {
- 			mlog(ML_ERROR,
- 			     "directory #%llu contains a hole at offset %lld\n",
- 			     (unsigned long long)OCFS2_I(inode)->ip_blkno,
--			     filp->f_pos);
--			filp->f_pos += sb->s_blocksize - offset;
-+			     *f_pos);
-+			*f_pos += sb->s_blocksize - offset;
- 			continue;
- 		}
- 
-@@ -490,7 +465,7 @@ revalidate:
- 		 * readdir(2), then we might be pointing to an invalid
- 		 * dirent right now.  Scan from the start of the block
- 		 * to make sure. */
--		if (filp->f_version != inode->i_version) {
-+		if (*f_version != inode->i_version) {
- 			for (i = 0; i < sb->s_blocksize && i < offset; ) {
- 				de = (struct ocfs2_dir_entry *) (bh->b_data + i);
- 				/* It's too expensive to do a full
-@@ -505,21 +480,20 @@ revalidate:
- 				i += le16_to_cpu(de->rec_len);
- 			}
- 			offset = i;
--			filp->f_pos = (filp->f_pos & ~(sb->s_blocksize - 1))
-+			*f_pos = ((*f_pos) & ~(sb->s_blocksize - 1))
- 				| offset;
--			filp->f_version = inode->i_version;
-+			*f_version = inode->i_version;
- 		}
- 
--		while (!error && filp->f_pos < i_size_read(inode)
-+		while (!error && *f_pos < i_size_read(inode)
- 		       && offset < sb->s_blocksize) {
- 			de = (struct ocfs2_dir_entry *) (bh->b_data + offset);
- 			if (!ocfs2_check_dir_entry(inode, de, bh, offset)) {
- 				/* On error, skip the f_pos to the
- 				   next block. */
--				filp->f_pos = (filp->f_pos |
--					       (sb->s_blocksize - 1)) + 1;
-+				*f_pos = ((*f_pos) | (sb->s_blocksize - 1)) + 1;
- 				brelse(bh);
--				goto bail;
-+				goto out;
- 			}
- 			offset += le16_to_cpu(de->rec_len);
- 			if (le64_to_cpu(de->inode)) {
-@@ -530,36 +504,71 @@ revalidate:
- 				 * not the directory has been modified
- 				 * during the copy operation.
- 				 */
--				unsigned long version = filp->f_version;
-+				unsigned long version = *f_version;
- 				unsigned char d_type = DT_UNKNOWN;
- 
- 				if (de->file_type < OCFS2_FT_MAX)
- 					d_type = ocfs2_filetype_table[de->file_type];
--				error = filldir(dirent, de->name,
-+				error = filldir(priv, de->name,
- 						de->name_len,
--						filp->f_pos,
-+						*f_pos,
- 						ino_from_blkno(sb, le64_to_cpu(de->inode)),
- 						d_type);
- 				if (error)
- 					break;
--				if (version != filp->f_version)
-+				if (version != *f_version)
- 					goto revalidate;
- 				stored ++;
- 			}
--			filp->f_pos += le16_to_cpu(de->rec_len);
-+			*f_pos += le16_to_cpu(de->rec_len);
- 		}
- 		offset = 0;
- 		brelse(bh);
- 	}
- 
- 	stored = 0;
--bail:
++int ocfs2_update_entry(struct inode *dir, handle_t *handle,
++		       struct buffer_head *de_bh, struct ocfs2_dir_entry *de,
++		       struct inode *new_entry_inode)
++{
++	int ret;
++
++	ret = ocfs2_journal_access(handle, dir, de_bh,
++				   OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	de->inode = cpu_to_le64(OCFS2_I(new_entry_inode)->ip_blkno);
++	ocfs2_set_de_type(de, new_entry_inode->i_mode);
++
++	ocfs2_journal_dirty(handle, de_bh);
++
 +out:
-+	return stored;
++	return ret;
 +}
 +
-+/*
-+ * ocfs2_readdir()
-+ *
-+ */
-+int ocfs2_readdir(struct file * filp, void * dirent, filldir_t filldir)
-+{
-+	int error = 0;
-+	struct inode *inode = filp->f_path.dentry->d_inode;
-+	int lock_level = 0;
-+
-+	mlog_entry("dirino=%llu\n",
-+		   (unsigned long long)OCFS2_I(inode)->ip_blkno);
-+
-+	error = ocfs2_meta_lock_atime(inode, filp->f_vfsmnt, &lock_level);
-+	if (lock_level && error >= 0) {
-+		/* We release EX lock which used to update atime
-+		 * and get PR lock again to reduce contention
-+		 * on commonly accessed directories. */
-+		ocfs2_meta_unlock(inode, 1);
-+		lock_level = 0;
-+		error = ocfs2_meta_lock(inode, NULL, 0);
-+	}
-+	if (error < 0) {
-+		if (error != -ENOENT)
-+			mlog_errno(error);
-+		/* we haven't got any yet, so propagate the error. */
-+		goto bail_nolock;
-+	}
-+
-+	error = ocfs2_dir_foreach_blk(inode, &filp->f_version, &filp->f_pos,
-+				      dirent, filldir);
-+
- 	ocfs2_meta_unlock(inode, lock_level);
+ /*
+  * ocfs2_delete_entry deletes a directory entry by merging it with the
+  * previous entry
+diff --git a/fs/ocfs2/dir.h b/fs/ocfs2/dir.h
+index d03eaaa..ce48b90 100644
+--- a/fs/ocfs2/dir.h
++++ b/fs/ocfs2/dir.h
+@@ -50,6 +50,9 @@ static inline int ocfs2_add_entry(handle_t *handle,
+ 				 dentry->d_name.name, dentry->d_name.len,
+ 				 inode, blkno, parent_fe_bh, insert_bh);
+ }
++int ocfs2_update_entry(struct inode *dir, handle_t *handle,
++		       struct buffer_head *de_bh, struct ocfs2_dir_entry *de,
++		       struct inode *new_entry_inode);
  
- bail_nolock:
--	mlog_exit(stored);
-+	mlog_exit(error);
- 
--	return stored;
-+	return error;
+ int ocfs2_check_dir_for_entry(struct inode *dir,
+ 			      const char *name,
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 98aeebc..d2f0335 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -933,11 +933,6 @@ static void ocfs2_double_unlock(struct inode *inode1, struct inode *inode2)
+ 		ocfs2_meta_unlock(inode2, 1);
  }
  
- /*
+-#define PARENT_INO(buffer) \
+-	((struct ocfs2_dir_entry *) \
+-	 ((char *)buffer + \
+-	  le16_to_cpu(((struct ocfs2_dir_entry *)buffer)->rec_len)))->inode
+-
+ static int ocfs2_rename(struct inode *old_dir,
+ 			struct dentry *old_dentry,
+ 			struct inode *new_dir,
+@@ -959,8 +954,8 @@ static int ocfs2_rename(struct inode *old_dir,
+ 	handle_t *handle = NULL;
+ 	struct buffer_head *old_dir_bh = NULL;
+ 	struct buffer_head *new_dir_bh = NULL;
+-	struct ocfs2_dir_entry *old_de = NULL, *new_de = NULL; // dirent for old_dentry
+-							       // and new_dentry
++	struct ocfs2_dir_entry *old_inode_dot_dot_de = NULL, *old_de = NULL,
++		*new_de = NULL;
+ 	struct buffer_head *new_de_bh = NULL, *old_de_bh = NULL; // bhs for above
+ 	struct buffer_head *old_inode_de_bh = NULL; // if old_dentry is a dir,
+ 						    // this is the 1st dirent bh
+@@ -1044,19 +1039,26 @@ static int ocfs2_rename(struct inode *old_dir,
+ 	}
+ 
+ 	if (S_ISDIR(old_inode->i_mode)) {
+-		status = -EIO;
+-		old_inode_de_bh = ocfs2_bread(old_inode, 0, &status, 0);
+-		if (!old_inode_de_bh)
++		u64 old_inode_parent;
++
++		status = ocfs2_find_files_on_disk("..", 2, &old_inode_parent,
++						  old_inode, &old_inode_de_bh,
++						  &old_inode_dot_dot_de);
++		if (status) {
++			status = -EIO;
+ 			goto bail;
++		}
+ 
+-		status = -EIO;
+-		if (le64_to_cpu(PARENT_INO(old_inode_de_bh->b_data)) !=
+-		    OCFS2_I(old_dir)->ip_blkno)
++		if (old_inode_parent != OCFS2_I(old_dir)->ip_blkno) {
++			status = -EIO;
+ 			goto bail;
+-		status = -EMLINK;
+-		if (!new_inode && new_dir!=old_dir &&
+-		    new_dir->i_nlink >= OCFS2_LINK_MAX)
++		}
++
++		if (!new_inode && new_dir != old_dir &&
++		    new_dir->i_nlink >= OCFS2_LINK_MAX) {
++			status = -EMLINK;
+ 			goto bail;
++		}
+ 	}
+ 
+ 	status = -ENOENT;
+@@ -1206,20 +1208,13 @@ static int ocfs2_rename(struct inode *old_dir,
+ 		}
+ 
+ 		/* change the dirent to point to the correct inode */
+-		status = ocfs2_journal_access(handle, new_dir, new_de_bh,
+-					      OCFS2_JOURNAL_ACCESS_WRITE);
++		status = ocfs2_update_entry(new_dir, handle, new_de_bh,
++					    new_de, old_inode);
+ 		if (status < 0) {
+ 			mlog_errno(status);
+ 			goto bail;
+ 		}
+-		new_de->inode = cpu_to_le64(OCFS2_I(old_inode)->ip_blkno);
+-		new_de->file_type = old_de->file_type;
+ 		new_dir->i_version++;
+-		status = ocfs2_journal_dirty(handle, new_de_bh);
+-		if (status < 0) {
+-			mlog_errno(status);
+-			goto bail;
+-		}
+ 
+ 		if (S_ISDIR(new_inode->i_mode))
+ 			newfe->i_links_count = 0;
+@@ -1268,12 +1263,8 @@ static int ocfs2_rename(struct inode *old_dir,
+ 	}
+ 	old_dir->i_ctime = old_dir->i_mtime = CURRENT_TIME;
+ 	if (old_inode_de_bh) {
+-		status = ocfs2_journal_access(handle, old_inode,
+-					     old_inode_de_bh,
+-					     OCFS2_JOURNAL_ACCESS_WRITE);
+-		PARENT_INO(old_inode_de_bh->b_data) =
+-			cpu_to_le64(OCFS2_I(new_dir)->ip_blkno);
+-		status = ocfs2_journal_dirty(handle, old_inode_de_bh);
++		status = ocfs2_update_entry(old_inode, handle, old_inode_de_bh,
++					    old_inode_dot_dot_de, new_dir);
+ 		old_dir->i_nlink--;
+ 		if (new_inode) {
+ 			new_inode->i_nlink--;
 -- 
 1.5.0.6
