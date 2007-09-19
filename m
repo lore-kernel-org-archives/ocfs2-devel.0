@@ -1,172 +1,172 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
 Date: Wed Sep 19 13:12:22 2007
-Subject: [Ocfs2-devel] [PATCH 09/15] ocfs2: Rename cleanups
-Message-ID: <200709192012.l8JKCG62012197@agmgw2.us.oracle.com>
+Subject: [Ocfs2-devel] [PATCH 08/15] ocfs2: Provide convenience function for
+	ino lookup
+Message-ID: <200709192012.l8JKCGXI029319@rgmgw2.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_rename() does direct manipulation of the dirent it's gotten back from
-a directory search. Wrap this manipulation inside of a function so that we
-can transparently change directory update behavior in the future. As an
-added bonus, this gets rid of an ugly macro.
+A couple paths which needed to just match a parent dir + name pair to an
+inode number were a bit messy because they had to deal with
+ocfs2_find_files_on_disk() which returns a larger number of values. Provide
+a convenience function, ocfs2_lookup_ino_from_name() which internalizes all
+the extra accounting.
 
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dir.c   |   22 ++++++++++++++++++++++
- fs/ocfs2/dir.h   |    3 +++
- fs/ocfs2/namei.c |   53 ++++++++++++++++++++++-------------------------------
- 3 files changed, 47 insertions(+), 31 deletions(-)
+ fs/ocfs2/dir.c     |   17 +++++++++++++++++
+ fs/ocfs2/dir.h     |    2 ++
+ fs/ocfs2/export.c  |    8 +-------
+ fs/ocfs2/namei.c   |    9 ++-------
+ fs/ocfs2/sysfile.c |   10 +++-------
+ 5 files changed, 25 insertions(+), 21 deletions(-)
 
 diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 4791683..31db7e3 100644
+index 4bb5440..4791683 100644
 --- a/fs/ocfs2/dir.c
 +++ b/fs/ocfs2/dir.c
-@@ -271,6 +271,28 @@ cleanup_and_exit:
- 	return ret;
+@@ -628,6 +628,23 @@ leave:
+ 	return status;
  }
  
-+int ocfs2_update_entry(struct inode *dir, handle_t *handle,
-+		       struct buffer_head *de_bh, struct ocfs2_dir_entry *de,
-+		       struct inode *new_entry_inode)
++/*
++ * Convenience function for callers which just want the block number
++ * mapped to a name and don't require the full dirent info, etc.
++ */
++int ocfs2_lookup_ino_from_name(struct inode *dir, const char *name,
++			       int namelen, u64 *blkno)
 +{
 +	int ret;
++	struct buffer_head *bh = NULL;
++	struct ocfs2_dir_entry *dirent = NULL;
 +
-+	ret = ocfs2_journal_access(handle, dir, de_bh,
-+				   OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
++	ret = ocfs2_find_files_on_disk(name, namelen, blkno, dir, &bh, &dirent);
++	brelse(bh);
 +
-+	de->inode = cpu_to_le64(OCFS2_I(new_entry_inode)->ip_blkno);
-+	ocfs2_set_de_type(de, new_entry_inode->i_mode);
-+
-+	ocfs2_journal_dirty(handle, de_bh);
-+
-+out:
 +	return ret;
 +}
 +
- /*
-  * ocfs2_delete_entry deletes a directory entry by merging it with the
-  * previous entry
+ /* Check for a name within a directory.
+  *
+  * Return 0 if the name does not exist
 diff --git a/fs/ocfs2/dir.h b/fs/ocfs2/dir.h
-index d03eaaa..ce48b90 100644
+index 3e65f91..d03eaaa 100644
 --- a/fs/ocfs2/dir.h
 +++ b/fs/ocfs2/dir.h
-@@ -50,6 +50,9 @@ static inline int ocfs2_add_entry(handle_t *handle,
- 				 dentry->d_name.name, dentry->d_name.len,
- 				 inode, blkno, parent_fe_bh, insert_bh);
- }
-+int ocfs2_update_entry(struct inode *dir, handle_t *handle,
-+		       struct buffer_head *de_bh, struct ocfs2_dir_entry *de,
-+		       struct inode *new_entry_inode);
+@@ -61,6 +61,8 @@ int ocfs2_find_files_on_disk(const char *name,
+ 			     struct inode *inode,
+ 			     struct buffer_head **dirent_bh,
+ 			     struct ocfs2_dir_entry **dirent);
++int ocfs2_lookup_ino_from_name(struct inode *dir, const char *name,
++			       int namelen, u64 *blkno);
+ int ocfs2_readdir(struct file *filp, void *dirent, filldir_t filldir);
+ int ocfs2_dir_foreach(struct inode *inode, loff_t *f_pos, void *priv,
+ 		      filldir_t filldir);
+diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
+index bc48177..c3bbc19 100644
+--- a/fs/ocfs2/export.c
++++ b/fs/ocfs2/export.c
+@@ -88,8 +88,6 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
+ 	struct dentry *parent;
+ 	struct inode *inode;
+ 	struct inode *dir = child->d_inode;
+-	struct buffer_head *dirent_bh = NULL;
+-	struct ocfs2_dir_entry *dirent;
  
- int ocfs2_check_dir_for_entry(struct inode *dir,
- 			      const char *name,
+ 	mlog_entry("(0x%p, '%.*s')\n", child,
+ 		   child->d_name.len, child->d_name.name);
+@@ -105,8 +103,7 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
+ 		goto bail;
+ 	}
+ 
+-	status = ocfs2_find_files_on_disk("..", 2, &blkno, dir, &dirent_bh,
+-					  &dirent);
++	status = ocfs2_lookup_ino_from_name(dir, "..", 2, &blkno);
+ 	if (status < 0) {
+ 		parent = ERR_PTR(-ENOENT);
+ 		goto bail_unlock;
+@@ -131,9 +128,6 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
+ bail_unlock:
+ 	ocfs2_meta_unlock(dir, 0);
+ 
+-	if (dirent_bh)
+-		brelse(dirent_bh);
+-
+ bail:
+ 	mlog_exit_ptr(parent);
+ 
 diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 98aeebc..d2f0335 100644
+index aae6c0b..98aeebc 100644
 --- a/fs/ocfs2/namei.c
 +++ b/fs/ocfs2/namei.c
-@@ -933,11 +933,6 @@ static void ocfs2_double_unlock(struct inode *inode1, struct inode *inode2)
- 		ocfs2_meta_unlock(inode2, 1);
+@@ -101,10 +101,8 @@ static struct dentry *ocfs2_lookup(struct inode *dir, struct dentry *dentry,
+ {
+ 	int status;
+ 	u64 blkno;
+-	struct buffer_head *dirent_bh = NULL;
+ 	struct inode *inode = NULL;
+ 	struct dentry *ret;
+-	struct ocfs2_dir_entry *dirent;
+ 	struct ocfs2_inode_info *oi;
+ 
+ 	mlog_entry("(0x%p, 0x%p, '%.*s')\n", dir, dentry,
+@@ -126,9 +124,8 @@ static struct dentry *ocfs2_lookup(struct inode *dir, struct dentry *dentry,
+ 		goto bail;
+ 	}
+ 
+-	status = ocfs2_find_files_on_disk(dentry->d_name.name,
+-					  dentry->d_name.len, &blkno,
+-					  dir, &dirent_bh, &dirent);
++	status = ocfs2_lookup_ino_from_name(dir, dentry->d_name.name,
++					    dentry->d_name.len, &blkno);
+ 	if (status < 0)
+ 		goto bail_add;
+ 
+@@ -183,8 +180,6 @@ bail_unlock:
+ 	ocfs2_meta_unlock(dir, 0);
+ 
+ bail:
+-	if (dirent_bh)
+-		brelse(dirent_bh);
+ 
+ 	mlog_exit_ptr(ret);
+ 
+diff --git a/fs/ocfs2/sysfile.c b/fs/ocfs2/sysfile.c
+index 5df6e35..fd2e846 100644
+--- a/fs/ocfs2/sysfile.c
++++ b/fs/ocfs2/sysfile.c
+@@ -100,17 +100,14 @@ static struct inode * _ocfs2_get_system_file_inode(struct ocfs2_super *osb,
+ 	char namebuf[40];
+ 	struct inode *inode = NULL;
+ 	u64 blkno;
+-	struct buffer_head *dirent_bh = NULL;
+-	struct ocfs2_dir_entry *de = NULL;
+ 	int status = 0;
+ 
+ 	ocfs2_sprintf_system_inode_name(namebuf,
+ 					sizeof(namebuf),
+ 					type, slot);
+ 
+-	status = ocfs2_find_files_on_disk(namebuf, strlen(namebuf),
+-					  &blkno, osb->sys_root_inode,
+-					  &dirent_bh, &de);
++	status = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
++					    strlen(namebuf), &blkno);
+ 	if (status < 0) {
+ 		goto bail;
+ 	}
+@@ -122,8 +119,7 @@ static struct inode * _ocfs2_get_system_file_inode(struct ocfs2_super *osb,
+ 		goto bail;
+ 	}
+ bail:
+-	if (dirent_bh)
+-		brelse(dirent_bh);
++
+ 	return inode;
  }
  
--#define PARENT_INO(buffer) \
--	((struct ocfs2_dir_entry *) \
--	 ((char *)buffer + \
--	  le16_to_cpu(((struct ocfs2_dir_entry *)buffer)->rec_len)))->inode
--
- static int ocfs2_rename(struct inode *old_dir,
- 			struct dentry *old_dentry,
- 			struct inode *new_dir,
-@@ -959,8 +954,8 @@ static int ocfs2_rename(struct inode *old_dir,
- 	handle_t *handle = NULL;
- 	struct buffer_head *old_dir_bh = NULL;
- 	struct buffer_head *new_dir_bh = NULL;
--	struct ocfs2_dir_entry *old_de = NULL, *new_de = NULL; // dirent for old_dentry
--							       // and new_dentry
-+	struct ocfs2_dir_entry *old_inode_dot_dot_de = NULL, *old_de = NULL,
-+		*new_de = NULL;
- 	struct buffer_head *new_de_bh = NULL, *old_de_bh = NULL; // bhs for above
- 	struct buffer_head *old_inode_de_bh = NULL; // if old_dentry is a dir,
- 						    // this is the 1st dirent bh
-@@ -1044,19 +1039,26 @@ static int ocfs2_rename(struct inode *old_dir,
- 	}
- 
- 	if (S_ISDIR(old_inode->i_mode)) {
--		status = -EIO;
--		old_inode_de_bh = ocfs2_bread(old_inode, 0, &status, 0);
--		if (!old_inode_de_bh)
-+		u64 old_inode_parent;
-+
-+		status = ocfs2_find_files_on_disk("..", 2, &old_inode_parent,
-+						  old_inode, &old_inode_de_bh,
-+						  &old_inode_dot_dot_de);
-+		if (status) {
-+			status = -EIO;
- 			goto bail;
-+		}
- 
--		status = -EIO;
--		if (le64_to_cpu(PARENT_INO(old_inode_de_bh->b_data)) !=
--		    OCFS2_I(old_dir)->ip_blkno)
-+		if (old_inode_parent != OCFS2_I(old_dir)->ip_blkno) {
-+			status = -EIO;
- 			goto bail;
--		status = -EMLINK;
--		if (!new_inode && new_dir!=old_dir &&
--		    new_dir->i_nlink >= OCFS2_LINK_MAX)
-+		}
-+
-+		if (!new_inode && new_dir != old_dir &&
-+		    new_dir->i_nlink >= OCFS2_LINK_MAX) {
-+			status = -EMLINK;
- 			goto bail;
-+		}
- 	}
- 
- 	status = -ENOENT;
-@@ -1206,20 +1208,13 @@ static int ocfs2_rename(struct inode *old_dir,
- 		}
- 
- 		/* change the dirent to point to the correct inode */
--		status = ocfs2_journal_access(handle, new_dir, new_de_bh,
--					      OCFS2_JOURNAL_ACCESS_WRITE);
-+		status = ocfs2_update_entry(new_dir, handle, new_de_bh,
-+					    new_de, old_inode);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto bail;
- 		}
--		new_de->inode = cpu_to_le64(OCFS2_I(old_inode)->ip_blkno);
--		new_de->file_type = old_de->file_type;
- 		new_dir->i_version++;
--		status = ocfs2_journal_dirty(handle, new_de_bh);
--		if (status < 0) {
--			mlog_errno(status);
--			goto bail;
--		}
- 
- 		if (S_ISDIR(new_inode->i_mode))
- 			newfe->i_links_count = 0;
-@@ -1268,12 +1263,8 @@ static int ocfs2_rename(struct inode *old_dir,
- 	}
- 	old_dir->i_ctime = old_dir->i_mtime = CURRENT_TIME;
- 	if (old_inode_de_bh) {
--		status = ocfs2_journal_access(handle, old_inode,
--					     old_inode_de_bh,
--					     OCFS2_JOURNAL_ACCESS_WRITE);
--		PARENT_INO(old_inode_de_bh->b_data) =
--			cpu_to_le64(OCFS2_I(new_dir)->ip_blkno);
--		status = ocfs2_journal_dirty(handle, old_inode_de_bh);
-+		status = ocfs2_update_entry(old_inode, handle, old_inode_de_bh,
-+					    old_inode_dot_dot_de, new_dir);
- 		old_dir->i_nlink--;
- 		if (new_inode) {
- 			new_inode->i_nlink--;
 -- 
 1.5.0.6
