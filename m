@@ -1,33 +1,30 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu Sep 20 11:47:27 2007
-Subject: [Ocfs2-devel] [PATCH 08/15] ocfs2: Provide convenience
-	function for ino lookup
-In-Reply-To: <200709192012.l8JKCGXI029319@rgmgw2.us.oracle.com>
-References: <200709192012.l8JKCGXI029319@rgmgw2.us.oracle.com>
-Message-ID: <20070920184651.GK30391@tasint.org>
+Date: Thu Sep 20 11:58:46 2007
+Subject: [Ocfs2-devel] [PATCH 09/15] ocfs2: Rename cleanups
+In-Reply-To: <200709192012.l8JKCG62012197@agmgw2.us.oracle.com>
+References: <200709192012.l8JKCG62012197@agmgw2.us.oracle.com>
+Message-ID: <20070920185809.GL30391@tasint.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Sep 11, 2007 at 03:22:06PM -0700, Mark Fasheh wrote:
-> A couple paths which needed to just match a parent dir + name pair to an
-> inode number were a bit messy because they had to deal with
-> ocfs2_find_files_on_disk() which returns a larger number of values. Provide
-> a convenience function, ocfs2_lookup_ino_from_name() which internalizes all
-> the extra accounting.
+On Tue, Sep 11, 2007 at 05:21:56PM -0700, Mark Fasheh wrote:
+> ocfs2_rename() does direct manipulation of the dirent it's gotten back from
+> a directory search. Wrap this manipulation inside of a function so that we
+> can transparently change directory update behavior in the future. As an
+> added bonus, this gets rid of an ugly macro.
 > 
 > Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
-
-
 -- 
 
-Life's Little Instruction Book #3
-
-	"Watch a sunrise at least once a year."
+A good programming language should have features that make the
+kind of people who use the phrase "software engineering" shake
+their heads disapprovingly.
+	- Paul Graham
 
 Joel Becker
 Principal Software Developer
