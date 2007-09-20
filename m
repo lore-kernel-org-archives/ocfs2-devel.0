@@ -1,44 +1,38 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Sep 20 17:04:56 2007
-Subject: [Ocfs2-devel] [PATCH 14/15] ocfs2: Read support for directories
-	with inline data
-In-Reply-To: <20070920234740.GF3490@tasint.org>
-References: <200709192012.l8JKCHo9029366@rgmgw2.us.oracle.com>
-	<20070920234740.GF3490@tasint.org>
-Message-ID: <20070921000454.GH21356@ca-server1.us.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu Sep 20 17:13:51 2007
+Subject: [Ocfs2-devel] [PATCH 15/15] ocfs2: Write support for
+	directories with inline data
+In-Reply-To: <200709192012.l8JKCHnX012247@agmgw2.us.oracle.com>
+References: <200709192012.l8JKCHnX012247@agmgw2.us.oracle.com>
+Message-ID: <20070921001315.GG3490@tasint.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Sep 20, 2007 at 04:47:40PM -0700, Joel Becker wrote:
-> On Wed, Sep 12, 2007 at 01:01:18PM -0700, Mark Fasheh wrote:
-> > +static int ocfs2_dir_foreach_blk_id(struct inode *inode,
-> > +				    unsigned long *f_version,
-> > +				    loff_t *f_pos, void *priv,
-> > +				    filldir_t filldir)
-> > +{
+On Thu, Sep 13, 2007 at 04:33:54PM -0700, Mark Fasheh wrote:
+> Create all new directories with OCFS2_INLINE_DATA_FL and the inline data
+> bytes formatted as an empty directory. Inode size field reflects the actual
+> amount of inline data available, which makes searching for dirent space
+> very similar to the regular directory search.
 > 
-> 	Isn't this function basically the center of foreach_blk_el()?
+> Inline-data directories are automatically pushed out to extents on any
+> insert request which is too large for the available space.
+> 
+> Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 
-It's deceptive. Some parts are similar, but many checks are different or
-don't exist in one version over another. The looping is slightly different
-too. The extent based code handles readahead, while that doesn't make sense
-for inline-data, etc, etc.
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
-> Is there any way to consolidate that?
 
-I actually looked at that for a long time, but decided that it would be best
-to just keep them seperate. The extent based code is a total mess, and
-introducing subtle changes based on in-inode dirs seemed like it could break
-some stuff (in weird ways) which has been working fine for a while now.
+-- 
 
-I managed to consolidate most of the other dir functions though, which I
-was happy about.
-	--Mark
+"Ninety feet between bases is perhaps as close as man has ever come
+ to perfection."
+	- Red Smith
 
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
