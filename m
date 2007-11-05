@@ -2,9 +2,8 @@ From: Andreas Dilger <adilger@sun.com>
 Date: Mon Nov  5 17:44:58 2007
 Subject: [Ocfs2-devel] Re: [RFC] add FIEMAP ioctl to efficiently map file
 	allocation
-In-Reply-To: <20071029221302.GD3042@webber.adilger.int>
-References: <20070419002139.GK5967@schatzie.adilger.int>
-	<20070419015426.GM48531920@melbourne.sgi.com>
+In-Reply-To: <20071030001126.GD28607@ca-server1.us.oracle.com>
+References: <20070419015426.GM48531920@melbourne.sgi.com>
 	<20070430224401.GX5967@schatzie.adilger.int>
 	<20070501042254.GD77450368@melbourne.sgi.com>
 	<1FA8E92B-954D-4624-A089-80D4AA7399FD@cam.ac.uk>
@@ -13,33 +12,43 @@ References: <20070419002139.GK5967@schatzie.adilger.int>
 	<20071029194507.GA8578@webber.adilger.int>
 	<20071029205744.GB28607@ca-server1.us.oracle.com>
 	<20071029221302.GD3042@webber.adilger.int>
-Message-ID: <20071029222907.GF3042@webber.adilger.int>
+	<20071030001126.GD28607@ca-server1.us.oracle.com>
+Message-ID: <20071030002559.GH3042@webber.adilger.int>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mark.fasheh@oracle.com>, linux-fsdevel@vger.kernel.org, David Chinner <dgc@sgi.com>, linux-ext4@vger.kernel.org, xfs@oss.sgi.com, hch@infradead.orgAnton Altaparmakov <a>
+To: Mark Fasheh <mark.fasheh@oracle.com>
+Cc: linux-fsdevel@vger.kernel.org, David Chinner <dgc@sgi.com>, linux-ext4@vger.kernel.org, xfs@oss.sgi.com, hch@infradead.org, Anton Altaparmakov <aia21@cam.ac.uk>, Mike Waychison <mikew@google.com>, ocfs2-devel@oss.oracle.com
 
-On Oct 29, 2007  16:13 -0600, Andreas Dilger wrote:
-> On Oct 29, 2007  13:57 -0700, Mark Fasheh wrote:
-> > I'm a little bit confused by fe_offset. Is it a physical offset, or a
-> > logical offset? The reason I ask is that your description above says "FIEMAP
-> > ioctl will return the logical to physical mapping for the extent that
-> > contains the specified logical byte address." Which seems to imply physical,
-> > but your math to get to the next logical start in a very fragmented file,
-> > implies that fe_offset is a logical offset:
+On Oct 29, 2007  17:11 -0700, Mark Fasheh wrote:
+> On Mon, Oct 29, 2007 at 04:13:02PM -0600, Andreas Dilger wrote:
+> > > Btrfs, Ocfs2, and Gfs2 pack small amounts of user data directly in inode
+> > > blocks.
 > > 
-> >        fm_start = fm_extents[fm_extent_count - 1].fe_offset +
-> >                          fm_extents[fm_extent_count - 1].fe_length + 1; 
+> > Hmm, but part of the issue would be how to request the extra data, and
+> > what offset it would be given?  One could, for example, use negative
+> > offsets to represent metadata or something, or add a FIEMAP_EXTENT_META
+> > or similar, I hadn't given that much thought.
 > 
-> Note the distinction between "fe_offset" (which is a physical offset for
-> a single extent) and "fm_offset" (which is a logical offset for that file).
+> Well, fe_offset and fe_length are already expressed in bytes, so we could
+> just put the byte offset to where the inline data starts in there. fe_length
+> is just used as the length allocated for inline-data.
+> 
+> If fe_offset is required to be block aligned, then we could add a field to
+> express an offset within the block where data would be found - say
+> 'fe_data_start_offset'. In the non-inline case, we could guarantee that
+> fe_data_start_offset is zero. That way software which doesn't want to care
+> whether something is inline-data (for example, a backup program) or not
+> could just blidly add it to fe_offset before looking at the data.
 
-Actually, that is completely bunk.  What it should say is something like:
-"filefrag can easily call the FIEMAP ioctls repeatedly using the returned
-fm_start and fm_length as the start offset for the next ioctl:
+Oh, I was confused as to what you are asking.  Mapping in-inode data is
+just fine using the existing interface.  The byte offset of the data is
+given, and the "FIEMAP_EXTENT_NO_DIRECT" flag is set to indicate that it
+isn't necessarily safe to do IO directly to that byte offset in the file
+(e.g. tail packed, compressed data, etc).
 
-        fiemap.fm_start = fiemap.fm_start + fiemap.fm_length + 1;
+I was thinking you were asking how to map metadata (e.g. indirect blocks).
 
 Cheers, Andreas
 --
