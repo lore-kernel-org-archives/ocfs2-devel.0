@@ -1,718 +1,343 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri Nov 16 00:50:42 2007
-Subject: [Ocfs2-devel] [PATCH 1/6] Move resize function out of tunefs.c,
-	take 1
+Date: Fri Nov 16 00:50:45 2007
+Subject: [Ocfs2-devel] [PATCH 3/6] Abstract checking and validating process
+	in tunefs.ocfs2,take 1
 In-Reply-To: <20071116083920.GA3879@tma-pc1.cn.oracle.com>
-Message-ID: <20071116084632.GA3929@tma-pc1.cn.oracle.com>
+Message-ID: <20071116084711.GA3939@tma-pc1.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We will add online resize in tunefs.ocfs2, and it will be complicated.
-so add a new file resize.c in it and move all resize function out of
-tunefs.c.
+In the main function of tunefs.ocfs2, there are a large
+number of checking and validating process. They are seperated
+and can be moved out of "main" so that future online resize
+can skip these check easily. So add 2 new function, volume_check
+and validate_parameter to organize the complicated process.
+
+There are also 2 minor changes in this patch:
+1. the print of "Adding backup superblock for the volume" are moved to
+   validate process as others.
+2. remove_slot_check is moved into function volume_check as it does
+   the check work while it was in validate process.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
 ---
 
- tunefs.ocfs2/Makefile |    2 
- tunefs.ocfs2/resize.c |  320 +++++++++++++++++++++++++++++++++++++++++++++++++
- tunefs.ocfs2/tunefs.c |  295 ---------------------------------------------
- tunefs.ocfs2/tunefs.h |    6 +
- 4 files changed, 328 insertions(+), 295 deletions(-)
- create mode 100644 tunefs.ocfs2/resize.c
+ tunefs.ocfs2/tunefs.c |  267 +++++++++++++++++++++++++++----------------------
+ 1 files changed, 147 insertions(+), 120 deletions(-)
 
-755feb64b82a2c84291e713ccde2be2a5ea31f18
-diff --git a/tunefs.ocfs2/Makefile b/tunefs.ocfs2/Makefile
-index e6b4427..be68fc8 100644
---- a/tunefs.ocfs2/Makefile
-+++ b/tunefs.ocfs2/Makefile
-@@ -31,7 +31,7 @@ DEFINES = -DOCFS2_FLAT_INCLUDES -DVERSIO
- 
- MANS = tunefs.ocfs2.8
- 
--CFILES = tunefs.c query.c remove_slot.c sparse_file.c features.c
-+CFILES = tunefs.c query.c remove_slot.c sparse_file.c features.c resize.c
- HFILES = tunefs.h
- 
- OBJS = $(subst .c,.o,$(CFILES))
-diff --git a/tunefs.ocfs2/resize.c b/tunefs.ocfs2/resize.c
-new file mode 100644
-index 0000000..be5ea6b
---- /dev/null
-+++ b/tunefs.ocfs2/resize.c
-@@ -0,0 +1,320 @@
-+/*
-+ * resize.c
-+ *
-+ * tunefs utility for online and offline resize.
-+ *
-+ * Copyright (C) 2007 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License as published by the Free Software Foundation; either
-+ * version 2 of the License, or (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public
-+ * License along with this program; if not, write to the
-+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-+ * Boston, MA 021110-1307, USA.
-+ *
-+ */
-+
-+#include <tunefs.h>
-+
-+extern ocfs2_tune_opts opts;
-+
-+void get_vol_size(ocfs2_filesys *fs)
-+{
-+	errcode_t ret = 0;
-+	uint64_t num_blocks;
-+
-+	ret = ocfs2_get_device_size(opts.device, fs->fs_blocksize,
-+				    &num_blocks);
-+	if (ret) {
-+		com_err(opts.progname, ret, "while getting size of device %s",
-+			opts.device);
-+		exit(1);
-+	}
-+
-+	if (!opts.num_blocks)
-+		opts.num_blocks = num_blocks;
-+
-+	if (opts.num_blocks > num_blocks) {
-+		com_err(opts.progname, 0, "The containing partition (or device) "
-+			"is only %"PRIu64" blocks", num_blocks);
-+		exit(1);
-+	}
-+
-+	return ;
-+}
-+
-+int validate_vol_size(ocfs2_filesys *fs)
-+{
-+	uint64_t num_blocks;
-+
-+	if (opts.num_blocks == fs->fs_blocks) {
-+		com_err(opts.progname, 0, "The filesystem is already "
-+			"%"PRIu64" blocks", fs->fs_blocks);
-+		return -1;
-+	}
-+
-+	if (opts.num_blocks < fs->fs_blocks) {
-+		com_err(opts.progname, 0, "Cannot shrink volume size from "
-+		       "%"PRIu64" blocks to %"PRIu64" blocks",
-+		       fs->fs_blocks, opts.num_blocks);
-+		return -1;
-+	}
-+
-+	num_blocks = ocfs2_clusters_to_blocks(fs, 1);
-+	if (num_blocks > (opts.num_blocks - fs->fs_blocks)) {
-+		com_err(opts.progname, 0, "Cannot grow volume size less than "
-+		       "%d blocks", num_blocks);
-+		return -1;
-+	}
-+
-+	if (opts.num_blocks > UINT32_MAX) {
-+		com_err(opts.progname, 0, "As JBD can only store block numbers "
-+			"in 32 bits, %s cannot be grown to more than %"PRIu64" "
-+			"blocks.", opts.device, UINT32_MAX);
-+		return -1;
-+	}
-+
-+	return 0;
-+}
-+
-+errcode_t update_volume_size(ocfs2_filesys *fs, int *changed)
-+{
-+	errcode_t ret = 0;
-+	struct ocfs2_dinode *di;
-+	uint64_t bm_blkno = 0;
-+	uint64_t gd_blkno = 0;
-+	uint64_t lgd_blkno = 0;
-+	char *in_buf = NULL;
-+	char *gd_buf = NULL;
-+	char *lgd_buf = NULL;
-+	struct ocfs2_chain_list *cl;
-+	struct ocfs2_chain_rec *cr;
-+	struct ocfs2_group_desc *gd;
-+	uint32_t cluster_chunk;
-+	uint32_t num_new_clusters, save_new_clusters;
-+	uint32_t first_new_cluster;
-+	uint16_t chain;
-+	uint32_t used_bits;
-+	uint32_t total_bits;
-+	uint32_t num_bits;
-+	int flush_lgd = 0;
-+	char *zero_buf = NULL;
-+
-+	ret = ocfs2_malloc_block(fs->fs_io, &in_buf);
-+	if (ret) {
-+		com_err(opts.progname, ret, "while allocating a block during "
-+			"volume resize");
-+		goto bail;
-+	}
-+
-+	ret = ocfs2_malloc_block(fs->fs_io, &gd_buf);
-+	if (ret) {
-+		com_err(opts.progname, ret, "while allocating a block during "
-+			"volume resize");
-+		goto bail;
-+	}
-+
-+	ret = ocfs2_malloc_block(fs->fs_io, &lgd_buf);
-+	if (ret) {
-+		com_err(opts.progname, ret, "while allocating a block during "
-+			"volume resize");
-+		goto bail;
-+	}
-+
-+	ret = ocfs2_malloc_blocks(fs->fs_io, ocfs2_clusters_to_blocks(fs, 1),
-+				  &zero_buf);
-+	if (ret) {
-+		com_err(opts.progname, ret, "while allocating a cluster during "
-+			"volume resize");
-+		goto bail;
-+	}
-+
-+	memset(zero_buf, 0, fs->fs_clustersize);
-+
-+	/* read global bitmap */
-+	ret = ocfs2_lookup_system_inode(fs, GLOBAL_BITMAP_SYSTEM_INODE, 0,
-+					&bm_blkno);
-+	if (ret) {
-+		com_err(opts.progname, ret, "while looking up global bitmap "
-+			"inode during volume resize");
-+		goto bail;
-+	}
-+
-+	ret = ocfs2_read_inode(fs, bm_blkno, in_buf);
-+	if (ret) {
-+		com_err(opts.progname, ret, "while reading inode at block "
-+			"%"PRIu64" during volume resize", bm_blkno);
-+		goto bail;
-+	}
-+
-+	di = (struct ocfs2_dinode *)in_buf;
-+	cl = &(di->id2.i_chain);
-+
-+	total_bits = di->id1.bitmap1.i_total;
-+	used_bits = di->id1.bitmap1.i_used;
-+
-+	first_new_cluster = di->i_clusters;
-+	save_new_clusters = num_new_clusters =
-+		ocfs2_blocks_to_clusters(fs, opts.num_blocks) - di->i_clusters;
-+
-+	/* Find the blknum of the last cluster group */
-+	lgd_blkno = ocfs2_which_cluster_group(fs, cl->cl_cpg, first_new_cluster - 1);
-+
-+	ret = ocfs2_read_group_desc(fs, lgd_blkno, lgd_buf);
-+	if (ret) {
-+		com_err(opts.progname, ret, "while reading group descriptor "
-+			"at block %"PRIu64" during volume resize", lgd_blkno);
-+		goto bail;
-+	}
-+
-+	gd = (struct ocfs2_group_desc *)lgd_buf;
-+
-+	/* If only one cluster group then see if we need to adjust up cl_cpg */
-+	if (cl->cl_next_free_rec == 1) {
-+		if (cl->cl_cpg < 8 * gd->bg_size)
-+			cl->cl_cpg = 8 * gd->bg_size;
-+	}
-+
-+	chain = gd->bg_chain;
-+
-+	/* If possible round off the last group to cpg */
-+	cluster_chunk = MIN(num_new_clusters,
-+			    (cl->cl_cpg - (gd->bg_bits/cl->cl_bpc)));
-+	if (cluster_chunk) {
-+		num_new_clusters -= cluster_chunk;
-+		first_new_cluster += cluster_chunk;
-+
-+		num_bits = cluster_chunk * cl->cl_bpc;
-+
-+		gd->bg_bits += num_bits;
-+		gd->bg_free_bits_count += num_bits;
-+
-+		cr = &(cl->cl_recs[chain]);
-+		cr->c_total += num_bits;
-+		cr->c_free += num_bits;
-+
-+		total_bits += num_bits;
-+
-+		fs->fs_clusters += cluster_chunk;
-+		fs->fs_blocks += ocfs2_clusters_to_blocks(fs, cluster_chunk);
-+
-+		/* This cluster group block is written after the new */
-+		/* cluster groups are written to disk */
-+		flush_lgd = 1;
-+	}
-+
-+	/* Init the new groups and write to disk */
-+	/* Add these groups one by one starting from the first chain after */
-+	/* the one containing the last group */
-+
-+	gd = (struct ocfs2_group_desc *)gd_buf;
-+
-+	while(num_new_clusters) {
-+		gd_blkno = ocfs2_which_cluster_group(fs, cl->cl_cpg,
-+						     first_new_cluster);
-+		cluster_chunk = MIN(num_new_clusters, cl->cl_cpg);
-+		num_new_clusters -= cluster_chunk;
-+		first_new_cluster += cluster_chunk;
-+
-+		if (++chain >= cl->cl_count)
-+			chain = 0;
-+
-+		ocfs2_init_group_desc(fs, gd, gd_blkno,
-+				      fs->fs_super->i_fs_generation, di->i_blkno,
-+				      (cluster_chunk *cl->cl_bpc), chain);
-+
-+		/* Add group to chain */
-+		cr = &(cl->cl_recs[chain]);
-+		if (chain >= cl->cl_next_free_rec) {
-+			cl->cl_next_free_rec++;
-+			cr->c_free = 0;
-+			cr->c_total = 0;
-+			cr->c_blkno = 0;
-+		}
-+
-+		gd->bg_next_group = cr->c_blkno;
-+		cr->c_blkno = gd_blkno;
-+		cr->c_free += gd->bg_free_bits_count;
-+		cr->c_total += gd->bg_bits;
-+
-+		used_bits += (gd->bg_bits - gd->bg_free_bits_count);
-+		total_bits += gd->bg_bits;
-+
-+		fs->fs_clusters += cluster_chunk;
-+		fs->fs_blocks += ocfs2_clusters_to_blocks(fs, cluster_chunk);
-+
-+		/* Initialize the first cluster in the group */
-+		ret = io_write_block(fs->fs_io, gd_blkno,
-+				     ocfs2_clusters_to_blocks(fs, 1), zero_buf);
-+		if (ret) {
-+			com_err(opts.progname, ret, "while initializing the "
-+				"cluster starting at block %"PRIu64" during "
-+				"volume resize", gd_blkno);
-+			goto bail;
-+		}
-+
-+		/* write a new group descriptor */
-+		ret = ocfs2_write_group_desc(fs, gd_blkno, gd_buf);
-+		if (ret) {
-+			com_err(opts.progname, ret, "while writing group "
-+				"descriptor at block %"PRIu64" during "
-+				"volume resize", gd_blkno);
-+			goto bail;
-+		}
-+	}
-+
-+	di->id1.bitmap1.i_total = total_bits;
-+	di->id1.bitmap1.i_used = used_bits;
-+
-+	di->i_clusters += save_new_clusters;
-+	di->i_size = (uint64_t) di->i_clusters * fs->fs_clustersize;
-+
-+	fs->fs_super->i_clusters = di->i_clusters;
-+
-+	block_signals(SIG_BLOCK);
-+	/* Flush that last group descriptor we updated before the new ones */
-+	if (flush_lgd) {
-+		ret = ocfs2_write_group_desc(fs, lgd_blkno, lgd_buf);
-+		if (ret) {
-+			block_signals(SIG_UNBLOCK);
-+			com_err(opts.progname, ret, "while flushing group "
-+				"descriptor at block %"PRIu64" during "
-+				"volume resize", lgd_blkno);
-+			goto bail;
-+		}
-+	}
-+
-+	/* write the global bitmap inode */
-+	ret = ocfs2_write_inode(fs, bm_blkno, in_buf);
-+	if (ret) {
-+		block_signals(SIG_UNBLOCK);
-+		com_err(opts.progname, ret, "while writing global bitmap "
-+			"inode at block %"PRIu64" during volume resize",
-+			bm_blkno);
-+		goto bail;
-+	}
-+
-+	block_signals(SIG_UNBLOCK);
-+
-+	*changed = 1;
-+
-+bail:
-+	if (zero_buf)
-+		ocfs2_free(&zero_buf);
-+	if (in_buf)
-+		ocfs2_free(&in_buf);
-+	if (gd_buf)
-+		ocfs2_free(&gd_buf);
-+	if (lgd_buf)
-+		ocfs2_free(&lgd_buf);
-+
-+	return ret;
-+}
+6e284ab75718e8e55ffb03a262e8a32a5a807a6b
 diff --git a/tunefs.ocfs2/tunefs.c b/tunefs.ocfs2/tunefs.c
-index fbcee4a..207431c 100644
+index 207431c..cea9eb1 100644
 --- a/tunefs.ocfs2/tunefs.c
 +++ b/tunefs.ocfs2/tunefs.c
-@@ -66,7 +66,7 @@ static void handle_signal(int sig)
- }
+@@ -30,6 +30,9 @@ ocfs2_tune_opts opts;
+ ocfs2_filesys *fs_gbl = NULL;
+ static int cluster_locked = 0;
+ static int resize = 0;
++static uint64_t def_jrnl_size = 0;
++static char old_uuid[OCFS2_VOL_UUID_LEN * 2 + 1];
++static char new_uuid[OCFS2_VOL_UUID_LEN * 2 + 1];
  
- /* Call this with SIG_BLOCK to block and SIG_UNBLOCK to unblock */
--static void block_signals(int how)
-+void block_signals(int how)
+ static void usage(const char *progname)
  {
-      sigset_t sigs;
- 
-@@ -408,31 +408,6 @@ static void get_options(int argc, char *
- 	return ;
+@@ -997,6 +1000,145 @@ static void free_opts(void)
+ 		free(opts.device);
  }
  
--static void get_vol_size(ocfs2_filesys *fs)
--{
--	errcode_t ret = 0;
--	uint64_t num_blocks;
--
--	ret = ocfs2_get_device_size(opts.device, fs->fs_blocksize,
--				    &num_blocks);
--	if (ret) {
--		com_err(opts.progname, ret, "while getting size of device %s",
--			opts.device);
--		exit(1);
--	}
--
--	if (!opts.num_blocks)
--		opts.num_blocks = num_blocks;
--
--	if (opts.num_blocks > num_blocks) {
--		com_err(opts.progname, 0, "The containing partition (or device) "
--			"is only %"PRIu64" blocks", num_blocks);
--		exit(1);
--	}
--
--	return ;
--}
--
- static int validate_mount_change(ocfs2_filesys *fs)
- {
- 	if (opts.mount == MOUNT_LOCAL) {
-@@ -446,40 +421,6 @@ static int validate_mount_change(ocfs2_f
- 	return -1;
- }
- 
--static int validate_vol_size(ocfs2_filesys *fs)
--{
--	uint64_t num_blocks;
--
--	if (opts.num_blocks == fs->fs_blocks) {
--		com_err(opts.progname, 0, "The filesystem is already "
--			"%"PRIu64" blocks", fs->fs_blocks);
--		return -1;
--	}
--
--	if (opts.num_blocks < fs->fs_blocks) {
--		com_err(opts.progname, 0, "Cannot shrink volume size from "
--		       "%"PRIu64" blocks to %"PRIu64" blocks",
--		       fs->fs_blocks, opts.num_blocks);
--		return -1;
--	}
--
--	num_blocks = ocfs2_clusters_to_blocks(fs, 1);
--	if (num_blocks > (opts.num_blocks - fs->fs_blocks)) {
--		com_err(opts.progname, 0, "Cannot grow volume size less than "
--		       "%d blocks", num_blocks);
--		return -1;
--	}
--
--	if (opts.num_blocks > UINT32_MAX) {
--		com_err(opts.progname, 0, "As JBD can only store block numbers "
--			"in 32 bits, %s cannot be grown to more than %"PRIu64" "
--			"blocks.", opts.device, UINT32_MAX);
--		return -1;
--	}
--
--	return 0;
--}
--
- static errcode_t add_slots(ocfs2_filesys *fs)
++static errcode_t volume_check(ocfs2_filesys *fs)
++{
++	errcode_t ret;
++	int dirty = 0;
++	uint16_t max_slots = OCFS2_RAW_SB(fs->fs_super)->s_max_slots;
++
++	ret = journal_check(fs, &dirty, &def_jrnl_size);
++	if (ret || dirty)
++		goto bail;
++
++	ret = 1;
++	if (opts.list_sparse) {
++		if (!ocfs2_sparse_alloc(OCFS2_RAW_SB(fs->fs_super))) {
++			com_err(opts.progname, 0,
++				"sparse_file flag check failed. ");
++			goto bail;
++		}
++		printf("List all the sparse files in the volume\n");
++	}
++
++	if (opts.feature_string) {
++		if (feature_check(fs)) {
++			com_err(opts.progname, 0,
++				"feature check failed. ");
++			goto bail;
++		}
++		printf("Modify feature \"%s\" for the volume\n",
++			opts.feature_string);
++	}
++
++	/* If operation requires touching the global bitmap, ensure it is good */
++	/* This is to handle failed resize */
++	if (opts.num_blocks || opts.num_slots || opts.jrnl_size ||
++	    opts.backup_super) {
++		if (global_bitmap_check(fs)) {
++			com_err(opts.progname, 0, "Global bitmap check failed. "
++				"Run fsck.ocfs2 -f <device>.");
++			goto bail;
++		}
++	}
++
++	/* check whether the block for backup superblock are used. */
++	if (opts.backup_super) {
++		if (backup_super_check(fs))
++			goto bail;
++	}
++
++	/* remove slot check. */
++	if (opts.num_slots && opts.num_slots < max_slots) {
++		ret = remove_slot_check(fs);
++		if (ret) {
++			com_err(opts.progname, 0,
++				"remove slot check failed. ");
++			goto bail;
++		}
++	}
++
++	ret = 0;
++bail:
++	return ret;
++}
++
++static void validate_parameter(ocfs2_filesys *fs)
++{
++	uint16_t max_slots = OCFS2_RAW_SB(fs->fs_super)->s_max_slots;
++	uint64_t num_clusters;
++	char *tmpstr;
++
++	/* valid backup super. */
++	if (opts.backup_super)
++		printf("Adding backup superblock for the volume\n");
++
++	/* validate volume label */
++	if (opts.vol_label) {
++		printf("Changing volume label from %s to %s\n",
++		       OCFS2_RAW_SB(fs->fs_super)->s_label, opts.vol_label);
++	}
++
++	/* validate volume uuid */
++	if (opts.vol_uuid) {
++		uuid_unparse(OCFS2_RAW_SB(fs->fs_super)->s_uuid, old_uuid);
++		uuid_unparse(opts.vol_uuid, new_uuid);
++		printf("Changing volume uuid from %s to %s\n", old_uuid, new_uuid);
++	}
++
++	/* validate mount type */
++	if (opts.mount) {
++		if (!validate_mount_change(fs)) {
++			if (opts.mount == MOUNT_LOCAL)
++				tmpstr = MOUNT_LOCAL_STR;
++			else
++				tmpstr = MOUNT_CLUSTER_STR;
++			printf("Changing mount type to %s\n", tmpstr);
++		} else
++			opts.mount = 0;
++	}
++
++	/* validate num slots */
++	max_slots = OCFS2_RAW_SB(fs->fs_super)->s_max_slots;
++	if (opts.num_slots) {
++		if (opts.num_slots > max_slots) {
++			if (!opts.jrnl_size)
++				opts.jrnl_size = def_jrnl_size;
++
++		} else if (opts.num_slots == max_slots) {
++			printf("Giving the same number of nodes. "
++				"Ignore the change of slots.");
++			opts.num_slots = 0;
++		}
++
++		if (opts.num_slots)
++			printf("Changing number of node slots from %d to %d\n",
++			       max_slots, opts.num_slots);
++	}
++
++	/* validate journal size */
++	if (opts.jrnl_size) {
++		num_clusters = (opts.jrnl_size + fs->fs_clustersize - 1) >>
++				OCFS2_RAW_SB(fs->fs_super)->s_clustersize_bits;
++
++		opts.jrnl_size = num_clusters <<
++				OCFS2_RAW_SB(fs->fs_super)->s_clustersize_bits;
++
++		if (opts.jrnl_size != def_jrnl_size)
++			printf("Changing journal size %"PRIu64" to %"PRIu64"\n",
++			       def_jrnl_size, opts.jrnl_size);
++	}
++
++	/* validate volume size */
++	if (opts.num_blocks) {
++		if (validate_vol_size(fs))
++			opts.num_blocks = 0;
++		else
++			printf("Changing volume size from %"PRIu64" blocks to "
++			       "%"PRIu64" blocks\n", fs->fs_blocks,
++			       opts.num_blocks);
++	}
++}
++
+ int main(int argc, char **argv)
  {
  	errcode_t ret = 0;
-@@ -994,240 +935,6 @@ bail:
- 	return ret;
- }
+@@ -1011,14 +1153,8 @@ int main(int argc, char **argv)
+ 	int upd_incompat = 0;
+ 	int upd_backup_super = 0;
+ 	int upd_feature = 0;
+-	char *tmpstr;
+ 	uint16_t max_slots;
+-	uint64_t def_jrnl_size = 0;
+-	uint64_t num_clusters;
+ 	uint64_t old_blocks = 0;
+-	int dirty = 0;
+-	char old_uuid[OCFS2_VOL_UUID_LEN * 2 + 1];
+-	char new_uuid[OCFS2_VOL_UUID_LEN * 2 + 1];
  
--static errcode_t update_volume_size(ocfs2_filesys *fs, int *changed)
--{
--	errcode_t ret = 0;
--	struct ocfs2_dinode *di;
--	uint64_t bm_blkno = 0;
--	uint64_t gd_blkno = 0;
--	uint64_t lgd_blkno = 0;
--	char *in_buf = NULL;
--	char *gd_buf = NULL;
--	char *lgd_buf = NULL;
--	struct ocfs2_chain_list *cl;
--	struct ocfs2_chain_rec *cr;
--	struct ocfs2_group_desc *gd;
--	uint32_t cluster_chunk;
--	uint32_t num_new_clusters, save_new_clusters;
--	uint32_t first_new_cluster;
--	uint16_t chain;
--	uint32_t used_bits;
--	uint32_t total_bits;
--	uint32_t num_bits;
--	int flush_lgd = 0;
--	char *zero_buf = NULL;
+ 	initialize_ocfs_error_table();
+ 	initialize_o2dl_error_table();
+@@ -1116,121 +1252,11 @@ int main(int argc, char **argv)
+ 	 */
+ 	io_init_cache(fs->fs_io, ocfs2_extent_recs_per_eb(fs->fs_blocksize));
+ 
+-	ret = journal_check(fs, &dirty, &def_jrnl_size);
+-	if (ret || dirty)
+-		goto unlock;
 -
--	ret = ocfs2_malloc_block(fs->fs_io, &in_buf);
--	if (ret) {
--		com_err(opts.progname, ret, "while allocating a block during "
--			"volume resize");
--		goto bail;
--	}
--
--	ret = ocfs2_malloc_block(fs->fs_io, &gd_buf);
--	if (ret) {
--		com_err(opts.progname, ret, "while allocating a block during "
--			"volume resize");
--		goto bail;
--	}
--
--	ret = ocfs2_malloc_block(fs->fs_io, &lgd_buf);
--	if (ret) {
--		com_err(opts.progname, ret, "while allocating a block during "
--			"volume resize");
--		goto bail;
--	}
--
--	ret = ocfs2_malloc_blocks(fs->fs_io, ocfs2_clusters_to_blocks(fs, 1),
--				  &zero_buf);
--	if (ret) {
--		com_err(opts.progname, ret, "while allocating a cluster during "
--			"volume resize");
--		goto bail;
--	}
--
--	memset(zero_buf, 0, fs->fs_clustersize);
--
--	/* read global bitmap */
--	ret = ocfs2_lookup_system_inode(fs, GLOBAL_BITMAP_SYSTEM_INODE, 0,
--					&bm_blkno);
--	if (ret) {
--		com_err(opts.progname, ret, "while looking up global bitmap "
--			"inode during volume resize");
--		goto bail;
--	}
--
--	ret = ocfs2_read_inode(fs, bm_blkno, in_buf);
--	if (ret) {
--		com_err(opts.progname, ret, "while reading inode at block "
--			"%"PRIu64" during volume resize", bm_blkno);
--		goto bail;
--	}
--
--	di = (struct ocfs2_dinode *)in_buf;
--	cl = &(di->id2.i_chain);
--
--	total_bits = di->id1.bitmap1.i_total;
--	used_bits = di->id1.bitmap1.i_used;
--
--	first_new_cluster = di->i_clusters;
--	save_new_clusters = num_new_clusters =
--	       	ocfs2_blocks_to_clusters(fs, opts.num_blocks) - di->i_clusters;
--
--	/* Find the blknum of the last cluster group */
--	lgd_blkno = ocfs2_which_cluster_group(fs, cl->cl_cpg, first_new_cluster - 1);
--
--	ret = ocfs2_read_group_desc(fs, lgd_blkno, lgd_buf);
--	if (ret) {
--		com_err(opts.progname, ret, "while reading group descriptor "
--			"at block %"PRIu64" during volume resize", lgd_blkno);
--		goto bail;
--	}
--
--	gd = (struct ocfs2_group_desc *)lgd_buf;
--
--	/* If only one cluster group then see if we need to adjust up cl_cpg */
--	if (cl->cl_next_free_rec == 1) {
--		if (cl->cl_cpg < 8 * gd->bg_size)
--			cl->cl_cpg = 8 * gd->bg_size;
--	}
--
--	chain = gd->bg_chain;
--
--	/* If possible round off the last group to cpg */
--	cluster_chunk = MIN(num_new_clusters,
--			    (cl->cl_cpg - (gd->bg_bits/cl->cl_bpc)));
--	if (cluster_chunk) {
--		num_new_clusters -= cluster_chunk;
--		first_new_cluster += cluster_chunk;
--
--		num_bits = cluster_chunk * cl->cl_bpc;
--
--		gd->bg_bits += num_bits;
--		gd->bg_free_bits_count += num_bits;
--
--		cr = &(cl->cl_recs[chain]);
--		cr->c_total += num_bits;
--		cr->c_free += num_bits;
--
--		total_bits += num_bits;
--
--		fs->fs_clusters += cluster_chunk;
--		fs->fs_blocks += ocfs2_clusters_to_blocks(fs, cluster_chunk);
--
--		/* This cluster group block is written after the new */
--		/* cluster groups are written to disk */
--		flush_lgd = 1;
--	}
--
--	/* Init the new groups and write to disk */
--	/* Add these groups one by one starting from the first chain after */
--	/* the one containing the last group */
--
--	gd = (struct ocfs2_group_desc *)gd_buf;
--
--	while(num_new_clusters) {
--		gd_blkno = ocfs2_which_cluster_group(fs, cl->cl_cpg,
--						     first_new_cluster);
--		cluster_chunk = MIN(num_new_clusters, cl->cl_cpg);
--		num_new_clusters -= cluster_chunk;
--		first_new_cluster += cluster_chunk;
--
--		if (++chain >= cl->cl_count)
--			chain = 0;
--
--		ocfs2_init_group_desc(fs, gd, gd_blkno,
--				      fs->fs_super->i_fs_generation, di->i_blkno,
--				      (cluster_chunk *cl->cl_bpc), chain);
--
--		/* Add group to chain */
--		cr = &(cl->cl_recs[chain]);
--		if (chain >= cl->cl_next_free_rec) {
--			cl->cl_next_free_rec++;
--			cr->c_free = 0;
--			cr->c_total = 0;
--			cr->c_blkno = 0;
+-	if (opts.list_sparse) {
+-		if (!ocfs2_sparse_alloc(OCFS2_RAW_SB(fs->fs_super))) {
+-			com_err(opts.progname, 0,
+-				"sparse_file flag check failed. ");
+-			goto unlock;
 -		}
+-		printf("List all the sparse files in the volume\n");
+-	}
 -
--		gd->bg_next_group = cr->c_blkno;
--		cr->c_blkno = gd_blkno;
--		cr->c_free += gd->bg_free_bits_count;
--		cr->c_total += gd->bg_bits;
--
--		used_bits += (gd->bg_bits - gd->bg_free_bits_count);
--		total_bits += gd->bg_bits;
--
--		fs->fs_clusters += cluster_chunk;
--		fs->fs_blocks += ocfs2_clusters_to_blocks(fs, cluster_chunk);
--
--		/* Initialize the first cluster in the group */
--		ret = io_write_block(fs->fs_io, gd_blkno,
--				     ocfs2_clusters_to_blocks(fs, 1), zero_buf);
--		if (ret) {
--			com_err(opts.progname, ret, "while initializing the "
--				"cluster starting at block %"PRIu64" during "
--				"volume resize", gd_blkno);
--			goto bail;
+-	if (opts.feature_string) {
+-		if (feature_check(fs)) {
+-			com_err(opts.progname, 0,
+-				"feature check failed. ");
+-			goto unlock;
 -		}
+-		printf("Modify feature \"%s\" for the volume\n",
+-			opts.feature_string);
+-	}
 -
--		/* write a new group descriptor */
--		ret = ocfs2_write_group_desc(fs, gd_blkno, gd_buf);
--		if (ret) {
--			com_err(opts.progname, ret, "while writing group "
--				"descriptor at block %"PRIu64" during "
--				"volume resize", gd_blkno);
--			goto bail;
+-	/* If operation requires touching the global bitmap, ensure it is good */
+-	/* This is to handle failed resize */
+-	if (opts.num_blocks || opts.num_slots || opts.jrnl_size ||
+-	    opts.backup_super) {
+-		if (global_bitmap_check(fs)) {
+-			com_err(opts.progname, 0, "Global bitmap check failed. "
+-				"Run fsck.ocfs2 -f <device>.");
+-			goto unlock;
 -		}
 -	}
 -
--	di->id1.bitmap1.i_total = total_bits;
--	di->id1.bitmap1.i_used = used_bits;
+-	/* check whether the block for backup superblock are used. */
+-	if (opts.backup_super) {
+-		if (backup_super_check(fs))
+-			goto unlock;
+-		else
+-			printf("Adding backup superblock for the volume\n");
+-	}
 -
--	di->i_clusters += save_new_clusters;
--	di->i_size = (uint64_t) di->i_clusters * fs->fs_clustersize;
+-	/* validate volume label */
+-	if (opts.vol_label) {
+-		printf("Changing volume label from %s to %s\n",
+-		       OCFS2_RAW_SB(fs->fs_super)->s_label, opts.vol_label);
+-	}
 -
--	fs->fs_super->i_clusters = di->i_clusters;
+-	/* validate volume uuid */
+-	if (opts.vol_uuid) {
+-		uuid_unparse(OCFS2_RAW_SB(fs->fs_super)->s_uuid, old_uuid);
+-		uuid_unparse(opts.vol_uuid, new_uuid);
+-		printf("Changing volume uuid from %s to %s\n", old_uuid, new_uuid);
+-	}
 -
--	block_signals(SIG_BLOCK);
--	/* Flush that last group descriptor we updated before the new ones */
--	if (flush_lgd) {
--		ret = ocfs2_write_group_desc(fs, lgd_blkno, lgd_buf);
--		if (ret) {
--			block_signals(SIG_UNBLOCK);
--			com_err(opts.progname, ret, "while flushing group "
--				"descriptor at block %"PRIu64" during "
--				"volume resize", lgd_blkno);
--			goto bail;
+-	/* validate mount type */
+-	if (opts.mount) {
+-		if (!validate_mount_change(fs)) {
+-			if (opts.mount == MOUNT_LOCAL)
+-				tmpstr = MOUNT_LOCAL_STR;
+-			else
+-				tmpstr = MOUNT_CLUSTER_STR;
+-			printf("Changing mount type to %s\n", tmpstr);
+-		} else
+-			opts.mount = 0;
+-	}
+-
+-	/* validate num slots */
+-	max_slots = OCFS2_RAW_SB(fs->fs_super)->s_max_slots;
+-	if (opts.num_slots) {
+-		if (opts.num_slots < max_slots) {
+-			ret = remove_slot_check(fs);
+-			if (ret) {
+-				com_err(opts.progname, 0,
+-					"remove slot check failed. ");
+-				goto unlock;
+-			}
 -		}
+-		else if (opts.num_slots > max_slots) {
+-			if (!opts.jrnl_size)
+-				opts.jrnl_size = def_jrnl_size;
+-
+-		} else {
+-			printf("Giving the same number of nodes. "
+-				"Ignore the change of slots.");
+-			opts.num_slots = 0;
+-		}
+-
+-		if (opts.num_slots)
+-			printf("Changing number of node slots from %d to %d\n",
+-			       max_slots, opts.num_slots);
 -	}
 -
--	/* write the global bitmap inode */
--	ret = ocfs2_write_inode(fs, bm_blkno, in_buf);
--	if (ret) {
--		block_signals(SIG_UNBLOCK);
--		com_err(opts.progname, ret, "while writing global bitmap "
--			"inode at block %"PRIu64" during volume resize",
--			bm_blkno);
-- 		goto bail;
+-	/* validate journal size */
+-	if (opts.jrnl_size) {
+-		num_clusters = (opts.jrnl_size + fs->fs_clustersize - 1) >>
+-				OCFS2_RAW_SB(fs->fs_super)->s_clustersize_bits;
+-
+-		opts.jrnl_size = num_clusters <<
+-				OCFS2_RAW_SB(fs->fs_super)->s_clustersize_bits;
+-
+-		if (opts.jrnl_size != def_jrnl_size)
+-			printf("Changing journal size %"PRIu64" to %"PRIu64"\n",
+-			       def_jrnl_size, opts.jrnl_size);
 -	}
--
--	block_signals(SIG_UNBLOCK);
--
--	*changed = 1;
--
--bail:
--	if (zero_buf)
--		ocfs2_free(&zero_buf);
--	if (in_buf)
--		ocfs2_free(&in_buf);
--	if (gd_buf)
--		ocfs2_free(&gd_buf);
--	if (lgd_buf)
--		ocfs2_free(&lgd_buf);
--
--	return ret;
--}
--
- static errcode_t refresh_backup_super(ocfs2_filesys *fs)
- {
- 	errcode_t ret;
-diff --git a/tunefs.ocfs2/tunefs.h b/tunefs.ocfs2/tunefs.h
-index 566d746..3863331 100644
---- a/tunefs.ocfs2/tunefs.h
-+++ b/tunefs.ocfs2/tunefs.h
-@@ -98,6 +98,8 @@ typedef struct _ocfs2_tune_opts {
- 	time_t tune_time;
- } ocfs2_tune_opts;
++	ret = volume_check(fs);
++	if (ret)
++ 		goto unlock;
  
-+void block_signals(int how);
-+
- void print_query(char *queryfmt);
+-	/* validate volume size */
+-	if (opts.num_blocks) {
+-		if (validate_vol_size(fs))
+-			opts.num_blocks = 0;
+-		else
+-			printf("Changing volume size from %"PRIu64" blocks to "
+-			       "%"PRIu64" blocks\n", fs->fs_blocks,
+-			       opts.num_blocks);
+-	}
++	validate_parameter(fs);
  
- errcode_t remove_slots(ocfs2_filesys *fs);
-@@ -113,4 +115,8 @@ void free_clear_ctxt(void);
+ 	if (!opts.vol_label && !opts.vol_uuid && !opts.num_slots &&
+ 	    !opts.jrnl_size && !opts.num_blocks && !opts.mount &&
+@@ -1249,6 +1275,7 @@ int main(int argc, char **argv)
+ 	}
  
- errcode_t feature_check(ocfs2_filesys *fs);
- errcode_t update_feature(ocfs2_filesys *fs);
-+
-+void get_vol_size(ocfs2_filesys *fs);
-+errcode_t update_volume_size(ocfs2_filesys *fs, int *changed);
-+int validate_vol_size(ocfs2_filesys *fs);
- #endif /* _TUNEFS_H */
+ 	/* Set resize incompat flag on superblock */
++	max_slots = OCFS2_RAW_SB(fs->fs_super)->s_max_slots;
+ 	if (opts.num_blocks ||
+ 	    (opts.num_slots && opts.num_slots < max_slots)) {
+ 		if (opts.num_blocks)
 -- 
 1.3.3
