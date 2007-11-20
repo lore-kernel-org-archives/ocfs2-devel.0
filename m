@@ -1,43 +1,53 @@
 From: tao.ma <tao.ma@oracle.com>
-Date: Tue Nov 20 17:14:06 2007
-Subject: [Ocfs2-devel] [PATCH 1/2] Initalize bitmap_cpg of ocfs2_super
-	to be the maximum,take 1
-In-Reply-To: <20071120234009.GI28607@ca-server1.us.oracle.com>
-References: <20071116082736.GA3732@tma-pc1.cn.oracle.com>	<20071116084110.GA3893@tma-pc1.cn.oracle.com>	<20071120225859.GG28607@ca-server1.us.oracle.com>	<47436A4A.1030409@oracle.com>	<20071120232233.GH28607@ca-server1.us.oracle.com>
-	<20071120234009.GI28607@ca-server1.us.oracle.com>
-Message-ID: <4743869A.9040305@oracle.com>
+Date: Tue Nov 20 17:32:53 2007
+Subject: [Ocfs2-devel] [PATCH 2/2] Add online resize support for ocfs2,
+	take 1
+In-Reply-To: <20071121010812.GJ28607@ca-server1.us.oracle.com>
+References: <20071116082736.GA3732@tma-pc1.cn.oracle.com>
+	<20071116084153.GA3900@tma-pc1.cn.oracle.com>
+	<20071121010812.GJ28607@ca-server1.us.oracle.com>
+Message-ID: <47438AF4.9060206@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Thanks for your review.
+Just one thing that I am not clear.
 Mark Fasheh wrote:
-> On Tue, Nov 20, 2007 at 03:22:33PM -0800, Mark Fasheh wrote:
->   
->> On Tue, Nov 20, 2007 at 03:14:18PM -0800, Sunil Mushran wrote:
->>     
->>> We encountered this during offline resize.
->>>
->>> While fsck.ocfs2 was updated to fix this issue, we never
->>> did address the same in mkfs.
->>>
->>> As the chances that a user will encounter this is fairly low,
->>> we could always bail online resize if it encountered this issue.
->>> (A dirty read of the global bitmap from tune should suffice.)
->>>
->>> If so, ask user to run fsck.
->>>       
->> Yeah, that's fine by me. We need to fix it in mkfs.ocfs2 though, before or
->> at the same time this patch series goes in.
+>> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+>> index 4b32e09..ae08951 100644
+>> --- a/fs/ocfs2/journal.h
+>> +++ b/fs/ocfs2/journal.h
+>> @@ -278,6 +278,9 @@ int                  ocfs2_journal_dirty
+>>  /* simple file updates like chmod, etc. */
+>>  #define OCFS2_INODE_UPDATE_CREDITS 1
+>>  
+>> +/* onine resize. Just dinode + last group descriptor update. */
+>> +#define OCFS2_ONLINE_RESIZE_CREDITS (2)
+>> +
+>>  /* get one bit out of a suballocator: dinode + group descriptor +
+>>   * prev. group desc. if we relink. */
+>>  #define OCFS2_SUBALLOC_ALLOC (3)
+>> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+>> index 6ef8767..099d984 100644
+>> --- a/fs/ocfs2/ocfs2_fs.h
+>> +++ b/fs/ocfs2/ocfs2_fs.h
+>> @@ -27,7 +27,7 @@ #define _OCFS2_FS_H
+>>  
+>>  /* Version */
+>>  #define OCFS2_MAJOR_REV_LEVEL		0
+>> -#define OCFS2_MINOR_REV_LEVEL          	90
+>> +#define OCFS2_MINOR_REV_LEVEL          	91
 >>     
 >
-> Ok, just realized that Tao has those patches in the ocfs2-tools series -
-> great.
->
-> Tao, just let us know if you tested the file system on a very small fs
-> created with the updated mkfs.ocfs2. If you haven't, please do and in any
-> case provide precise details as to how it was tested.
+> This isn't needed.
 >   
-I have tested in some cases, but I would like to add a new script in 
-ocfs2-test so that you can see the more details about it. ;)
+This is needed. I'd like to copy your previous comments here.
+
+1) This kind of change requires bumping the protocol version, because
+without it the value will get stale on other nodes. We're fine though since
+you should be bumping protocol anyway to make sure non-resize capable nodes
+don't mount at the same time.
+So maybe "the protocol version" your mentioned isn't here? 
