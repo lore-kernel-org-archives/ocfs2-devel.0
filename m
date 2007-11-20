@@ -1,29 +1,33 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Nov 19 18:13:47 2007
-Subject: [Ocfs2-devel] Re: [PATCH 47/59] fs/ocfs2: Add missing "space"
-In-Reply-To: <82a29b02f6151dd2d9a34d071e24f0726b8466d0.1195454436.git.joe@perches.com>
-References: <ee1678e1bc8b80b7ae420059fffc7241486ea91a.1195454434.git.joe@perches.com>
-	<82a29b02f6151dd2d9a34d071e24f0726b8466d0.1195454436.git.joe@perches.com>
-Message-ID: <20071120021321.GY28607@ca-server1.us.oracle.com>
+Date: Tue Nov 20 12:07:33 2007
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix comparison in
+	ocfs2_size_fits_inline_data()
+Message-ID: <20071120200722.GD28607@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joe Perches <joe@perches.com>
-Cc: linux-kernel@vger.kernel.org, Kurt Hackel <kurt.hackel@oracle.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Nov 19, 2007 at 05:53:34PM -0800, Joe Perches wrote:
-> 
-> Signed-off-by: Joe Perches <joe@perches.com>
-> ---
->  fs/ocfs2/dlm/dlmmaster.c |    4 ++--
->  fs/ocfs2/inode.c         |    2 +-
->  2 files changed, 3 insertions(+), 3 deletions(-)
+This was causing us to prematurely push out inline data by one byte.
 
-Thanks, I'll put this in ocfs2.git.
-	--Mark
+Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
+---
+ fs/ocfs2/aops.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 556e34c..56f7790 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1514,7 +1514,7 @@ int ocfs2_size_fits_inline_data(struct buffer_head *di_bh, u64 new_size)
+ {
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+ 
+-	if (new_size < le16_to_cpu(di->id2.i_data.id_count))
++	if (new_size <= le16_to_cpu(di->id2.i_data.id_count))
+ 		return 1;
+ 	return 0;
+ }
+-- 
+1.5.3.4
