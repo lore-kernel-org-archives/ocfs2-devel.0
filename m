@@ -1,47 +1,32 @@
-From: tao.ma <tao.ma@oracle.com>
-Date: Mon Nov 26 16:59:56 2007
-Subject: [Ocfs2-devel] [PATCH 6/6] Add online resize in tunefs.ocfs2, take
-	1
-In-Reply-To: <474B50C6.7080904@tiscali.nl>
-References: <20071116084804.GA3956@tma-pc1.cn.oracle.com>
-	<474B50C6.7080904@tiscali.nl>
-Message-ID: <474B6BBB.40401@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue Nov 27 00:12:50 2007
+Subject: [Ocfs2-devel] [PATCH 1/3] Add online resize support for ocfs2,
+	take 2
+Message-ID: <20071127081123.GA4345@tma-pc1.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Roel Kluin wrote:
-> Tao Ma wrote:
->   
->> +static errcode_t find_mount_point(char *device)
->> +{
->> +	int mount_flags = 0;
->> +	errcode_t ret;
->> +
->> +	memset(mnt_dir, 0, sizeof(mnt_dir));
->> +
->> +	ret = ocfs2_check_mount_point(device, &mount_flags,
->> +				      mnt_dir, sizeof(mnt_dir));
->> +	if (ret)
->> +		goto out;
->> +
->> +	if ((!mount_flags & OCFS2_MF_MOUNTED) ||
->>     
->
-> if(!(mount_flags & OCFS2_MF_MOUNTED) ||
->   
-Thanks for pointing it out.
->   
->> +	    (mount_flags & OCFS2_MF_READONLY) ||
->> +	    (mount_flags & OCFS2_MF_SWAP)) {
->> +		ret = OCFS2_ET_BAD_DEVICE_NAME;
->> +		goto out;
->> +	}
->> +
->> +	ret = 0;
->> +out:
->> +	return ret;
->> +}
->>     
+Modification from V1 to V2:
+Divide the whole processes into 2 steps like ext3.
+1) If the last group isn't full, tunefs.ocfs2 will call
+   OCFS2_IOC_GROUP_EXTEND first to extend it. All the main work is
+   done in kernel.
+2) For every new groups, tunefs.ocfs2 will call OCFS2_IOC_GROUP_ADD
+   to add them one by one. The new group descriptor is initialized
+   in userspace, we only check it in the kernel and update the
+   global_bitap, super blocks etc.
+
+User can do offline resize using tunefs.ocfs2 when a volume isn't
+mounted. Now the support for online resize is added into ocfs2.
+
+Please note that the node where online resize goes must already
+has the volume mounted. We don't mount it behind the user and the
+operation would fail if we find it isn't mounted. As for other
+nodes, we don't care whether the volume is mounted or not.
+
+global_bitmap, super block and all the backups will be updated
+in the kernel. And if super block or backup's update fails, we
+just output some error message in dmesg and continue the work.
