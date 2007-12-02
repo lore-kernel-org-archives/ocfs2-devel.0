@@ -1,57 +1,108 @@
-From: Andreas Dilger <adilger@sun.com>
-Date: Mon Nov  5 17:44:58 2007
-Subject: [Ocfs2-devel] Re: [RFC] add FIEMAP ioctl to efficiently map file
-	allocation
-In-Reply-To: <20071030001126.GD28607@ca-server1.us.oracle.com>
-References: <20070419015426.GM48531920@melbourne.sgi.com>
-	<20070430224401.GX5967@schatzie.adilger.int>
-	<20070501042254.GD77450368@melbourne.sgi.com>
-	<1FA8E92B-954D-4624-A089-80D4AA7399FD@cam.ac.uk>
-	<20070502000654.GK77450368@melbourne.sgi.com>
-	<8464EA47-03AC-4162-A2D0-683517568640@cam.ac.uk>
-	<20071029194507.GA8578@webber.adilger.int>
-	<20071029205744.GB28607@ca-server1.us.oracle.com>
-	<20071029221302.GD3042@webber.adilger.int>
-	<20071030001126.GD28607@ca-server1.us.oracle.com>
-Message-ID: <20071030002559.GH3042@webber.adilger.int>
+From: tao.ma <tao.ma@oracle.com>
+Date: Sun Dec  2 18:08:31 2007
+Subject: [Ocfs2-devel] [PATCH 3/3] Implement "GROUP_ADD" for online	resize,
+	take 2
+In-Reply-To: <20071130232004.GF28607@ca-server1.us.oracle.com>
+References: <20071127081123.GA4345@tma-pc1.cn.oracle.com>
+	<20071127082149.GA4486@tma-pc1.cn.oracle.com>
+	<20071130232004.GF28607@ca-server1.us.oracle.com>
+Message-ID: <475364A8.10000@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mark.fasheh@oracle.com>
-Cc: linux-fsdevel@vger.kernel.org, David Chinner <dgc@sgi.com>, linux-ext4@vger.kernel.org, xfs@oss.sgi.com, hch@infradead.org, Anton Altaparmakov <aia21@cam.ac.uk>, Mike Waychison <mikew@google.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Oct 29, 2007  17:11 -0700, Mark Fasheh wrote:
-> On Mon, Oct 29, 2007 at 04:13:02PM -0600, Andreas Dilger wrote:
-> > > Btrfs, Ocfs2, and Gfs2 pack small amounts of user data directly in inode
-> > > blocks.
-> > 
-> > Hmm, but part of the issue would be how to request the extra data, and
-> > what offset it would be given?  One could, for example, use negative
-> > offsets to represent metadata or something, or add a FIEMAP_EXTENT_META
-> > or similar, I hadn't given that much thought.
-> 
-> Well, fe_offset and fe_length are already expressed in bytes, so we could
-> just put the byte offset to where the inline data starts in there. fe_length
-> is just used as the length allocated for inline-data.
-> 
-> If fe_offset is required to be block aligned, then we could add a field to
-> express an offset within the block where data would be found - say
-> 'fe_data_start_offset'. In the non-inline case, we could guarantee that
-> fe_data_start_offset is zero. That way software which doesn't want to care
-> whether something is inline-data (for example, a backup program) or not
-> could just blidly add it to fe_offset before looking at the data.
+Mark Fasheh wrote:
+>> +static int ocfs2_check_new_group(struct inode *inode,
+>> +				 struct ocfs2_dinode *di,
+>> +				 struct ocfs2_new_group_input *input)
+>> +{
+>> +	int ret;
+>> +	struct ocfs2_group_desc *gd;
+>> +	struct buffer_head *group_bh = NULL;
+>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>> +	u16 cl_bpc = le16_to_cpu(di->id2.i_chain.cl_bpc);
+>> +	u64 cr_blkno;
+>> +	unsigned int max_bits = le16_to_cpu(di->id2.i_chain.cl_cpg) *
+>> +				le16_to_cpu(di->id2.i_chain.cl_bpc);
+>> +
+>> +	ret = ocfs2_read_block(osb, input->group, &group_bh, 0, NULL);
+>> +	if (ret < 0)
+>> +		goto out;
+>>     
+>
+> You should pass the inode so that the group gets added to the caching info.
+> We're fine if the checks here fail and userspace tries again since this read
+> (that doesn't use the caching flag) always goes to disk.
+>   
+Just a question. We can cache the group information even if the block 
+isn't in this inode, right?
+I used to think of that we *only* cache the block which is already in 
+the inode.
 
-Oh, I was confused as to what you are asking.  Mapping in-inode data is
-just fine using the existing interface.  The byte offset of the data is
-given, and the "FIEMAP_EXTENT_NO_DIRECT" flag is set to indicate that it
-isn't necessarily safe to do IO directly to that byte offset in the file
-(e.g. tail packed, compressed data, etc).
-
-I was thinking you were asking how to map metadata (e.g. indirect blocks).
-
-Cheers, Andreas
---
-Andreas Dilger
-Sr. Software Engineer, Lustre Group
-Sun Microsystems of Canada, Inc.
+>> +	else if (le64_to_cpu(gd->bg_next_group) != cr_blkno)
+>> +		mlog(0, "Group descriptor # %llu has next group set as %llu "
+>> +		     "while the chain head has  %llu set\n",
+>> +		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
+>> +		     le64_to_cpu(gd->bg_next_group), cr_blkno);
+>>     
+>
+> The 1st block pointer in a chain can change when we re-link groups during
+> allocation, so this check is invalid.
+>   
+I don't realize it until I read suballoc.c today. :)
+>
+>   
+>> +static int ocfs2_verify_group_input(struct inode *inode,
+>> +				    struct ocfs2_dinode *di,
+>> +				    struct ocfs2_new_group_input *input)
+>> +{
+>> +	u16 cl_count = le16_to_cpu(di->id2.i_chain.cl_count);
+>> +	u16 cl_cpg = le16_to_cpu(di->id2.i_chain.cl_cpg);
+>> +	u16 next_free = le16_to_cpu(di->id2.i_chain.cl_next_free_rec);
+>> +	u32 cluster = ocfs2_blocks_to_clusters(inode->i_sb, input->group);
+>> +	u32 total_clusters = le32_to_cpu(di->i_clusters);
+>> +	int ret = -EINVAL;
+>> +
+>> +	if (cluster < total_clusters)
+>> +		mlog(0, "add a group which is in the current volume.\n");
+>> +	else if (input->chain >= cl_count)
+>> +		mlog(0, "input chain exceeds the limit.\n");
+>> +	else if (next_free != cl_count && next_free != input->chain)
+>> +		mlog(0, "the add group should be in chain %u\n", next_free);
+>>     
+>
+> If I read this properly, then it's insisting that new groups always be added
+> to the rightmost chain... I'm not sure that's correct - we want to fill
+> chains which have fewer groups than the others first.
+>   
+We want to fill the chains first, Instead of growing the chain? This is 
+the mechanism in offline resize. So not suitable for online?
+> Anyway, weren't we trying to avoid enforcing group placement policy in the
+> kernel, short of making sure that the requested chain is a valid one?
+>   
+Sorry for my poor English( ;) Keep improving). Do you mean we should 
+enforce group placement policy in the user space, or vice versa?
+>   
+>> +
+>> +	if (input->chain == le16_to_cpu(cl->cl_next_free_rec)) {
+>> +		le16_add_cpu(&cl->cl_next_free_rec, 1);
+>> +		memset(cr, 0, sizeof(struct ocfs2_chain_rec));
+>> +	}
+>> +
+>> +	cr->c_blkno = le64_to_cpu(input->group);
+>>     
+>
+> Before this, you need to set the new group descriptors bg_next_group value
+> to cr->c_blkno.
+>
+> By the way, this probably means you need to read the group descriptor near
+> the top of this function instead of within ocfs2_check_new_group().
+>   
+>
+I used to write the group descriptors in the user space to avoid the 
+group write in the kernel, so the cr->c_blkno is already set in the 
+bg_next_group in tunefs.ocfs2.
+But from all your 3 comments above, it seems that we *have to* write the 
+new group descriptor in the kernel.
