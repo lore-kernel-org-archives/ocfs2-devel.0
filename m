@@ -1,238 +1,602 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Thu Dec  6 21:21:35 2007
-Subject: [Ocfs2-devel] [PATCH 1/7] ocfs2: Move slot map access into
-	slot_map.c
+Date: Thu Dec  6 21:21:36 2007
+Subject: [Ocfs2-devel] [PATCH 3/7] ocfs2: Change the recovery map to an
+	array of node numbers.
 In-Reply-To: <1197004787-15344-1-git-send-email-joel.becker@oracle.com>
 References: <1197004787-15344-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1197004787-15344-2-git-send-email-joel.becker@oracle.com>
+Message-ID: <1197004787-15344-4-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Mark Fasheh <mark.fasheh@oracle.com>
+The old recovery map was a bitmap of node numbers.  This was sufficient
+for the maximum node number of 254.  Going forward, we want node numbers
+to be UINT32.  Thus, we need a new recovery map.
 
-journal.c and dlmglue.c would refresh the slot map by hand.  Instead, have
-the update and clear functions do the work inside slot_map.c.  The eventual
-result is to make ocfs2_slot_info defined privately in slot_map.c
+Note that we can't keep track of slots here.  We must write down the
+node number to recovery *before* we get the locks needed to convert a
+node number into a slot number.
+
+The recovery map is now an array of unsigned ints, max_slots in size.
+It moves to journal.c with the rest of recovery.
+
+Because it needs to be initialized, we move all of recovery initialization
+into a new function, ocfs2_recovery_init().  This actually cleans up
+ocfs2_initialize_super() a little as well.  Following on, recovery cleaup
+becomes part of ocfs2_recovery_exit().
+
+A number of node map functions are rendered obsolete and are removed.
+
+Finally, waiting on recovery is wrapped in a function rather than naked
+checks on the recovery_event.  This is a cleanup from Mark.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/dlmglue.c  |    8 +-----
- fs/ocfs2/journal.c  |    3 +-
- fs/ocfs2/slot_map.c |   62 +++++++++++++++++++++++++++++++++++++++-----------
- fs/ocfs2/slot_map.h |   11 +++-----
- fs/ocfs2/super.c    |    3 +-
- 5 files changed, 55 insertions(+), 32 deletions(-)
+ fs/ocfs2/dlmglue.c   |    6 +-
+ fs/ocfs2/heartbeat.c |  111 ----------------------------
+ fs/ocfs2/heartbeat.h |   18 -----
+ fs/ocfs2/journal.c   |  195 ++++++++++++++++++++++++++++++++++++++++++++++----
+ fs/ocfs2/journal.h   |    4 +
+ fs/ocfs2/ocfs2.h     |    3 +-
+ fs/ocfs2/super.c     |   33 ++-------
+ 7 files changed, 196 insertions(+), 174 deletions(-)
 
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 64d6ff4..c2ebd72 100644
+index c2ebd72..828f1dd 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
-@@ -1935,8 +1935,6 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
- 	int status = 0;
- 	int level = ex ? LKM_EXMODE : LKM_PRMODE;
- 	struct ocfs2_lock_res *lockres = &osb->osb_super_lockres;
--	struct buffer_head *bh;
--	struct ocfs2_slot_info *si = osb->slot_info;
+@@ -1753,8 +1753,7 @@ int ocfs2_meta_lock_full(struct inode *inode,
+ 		goto local;
  
- 	mlog_entry_void();
+ 	if (!(arg_flags & OCFS2_META_LOCK_RECOVERY))
+-		wait_event(osb->recovery_event,
+-			   ocfs2_node_map_is_empty(osb, &osb->recovery_map));
++		ocfs2_wait_for_recovery(osb);
  
-@@ -1962,11 +1960,7 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
- 		goto bail;
- 	}
- 	if (status) {
--		bh = si->si_bh;
--		status = ocfs2_read_block(osb, bh->b_blocknr, &bh, 0,
--					  si->si_inode);
--		if (status == 0)
--			ocfs2_update_slot_info(si);
-+		status = ocfs2_refresh_slot_info(osb);
+ 	lockres = &OCFS2_I(inode)->ip_meta_lockres;
+ 	level = ex ? LKM_EXMODE : LKM_PRMODE;
+@@ -1777,8 +1776,7 @@ int ocfs2_meta_lock_full(struct inode *inode,
+ 	 * committed to owning this lock so we don't allow signals to
+ 	 * abort the operation. */
+ 	if (!(arg_flags & OCFS2_META_LOCK_RECOVERY))
+-		wait_event(osb->recovery_event,
+-			   ocfs2_node_map_is_empty(osb, &osb->recovery_map));
++		ocfs2_wait_for_recovery(osb);
  
- 		ocfs2_complete_lock_res_refresh(lockres, status);
+ local:
+ 	/*
+diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
+index c0efd94..8e3eac8 100644
+--- a/fs/ocfs2/heartbeat.c
++++ b/fs/ocfs2/heartbeat.c
+@@ -48,16 +48,10 @@ static inline void __ocfs2_node_map_set_bit(struct ocfs2_node_map *map,
+ 					    int bit);
+ static inline void __ocfs2_node_map_clear_bit(struct ocfs2_node_map *map,
+ 					      int bit);
+-static inline int __ocfs2_node_map_is_empty(struct ocfs2_node_map *map);
+-static void __ocfs2_node_map_dup(struct ocfs2_node_map *target,
+-				 struct ocfs2_node_map *from);
+-static void __ocfs2_node_map_set(struct ocfs2_node_map *target,
+-				 struct ocfs2_node_map *from);
  
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index b9dd370..da63375 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -1109,8 +1109,7 @@ static int ocfs2_recover_node(struct ocfs2_super *osb,
- 
- 	/* Likewise, this would be a strange but ultimately not so
- 	 * harmful place to get an error... */
--	ocfs2_clear_slot(si, slot_num);
--	status = ocfs2_update_disk_slots(osb, si);
-+	status = ocfs2_clear_slot(osb, slot_num);
- 	if (status < 0)
- 		mlog_errno(status);
- 
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index 3a50ce5..f5727b8 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -49,7 +49,7 @@ static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
- 			      s16 node_num);
- 
- /* post the slot information on disk into our slot_info struct. */
--void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
-+static void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
+ void ocfs2_init_node_maps(struct ocfs2_super *osb)
  {
- 	int i;
- 	__le16 *disk_info;
-@@ -65,10 +65,27 @@ void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
- 	spin_unlock(&si->si_lock);
+ 	spin_lock_init(&osb->node_map_lock);
+-	ocfs2_node_map_init(&osb->recovery_map);
+ 	ocfs2_node_map_init(&osb->osb_recovering_orphan_dirs);
  }
  
-+int ocfs2_refresh_slot_info(struct ocfs2_super *osb)
+@@ -196,108 +190,3 @@ int ocfs2_node_map_test_bit(struct ocfs2_super *osb,
+ 	return ret;
+ }
+ 
+-static inline int __ocfs2_node_map_is_empty(struct ocfs2_node_map *map)
+-{
+-	int bit;
+-	bit = find_next_bit(map->map, map->num_nodes, 0);
+-	if (bit < map->num_nodes)
+-		return 0;
+-	return 1;
+-}
+-
+-int ocfs2_node_map_is_empty(struct ocfs2_super *osb,
+-			    struct ocfs2_node_map *map)
+-{
+-	int ret;
+-	BUG_ON(map->num_nodes == 0);
+-	spin_lock(&osb->node_map_lock);
+-	ret = __ocfs2_node_map_is_empty(map);
+-	spin_unlock(&osb->node_map_lock);
+-	return ret;
+-}
+-
+-static void __ocfs2_node_map_dup(struct ocfs2_node_map *target,
+-				 struct ocfs2_node_map *from)
+-{
+-	BUG_ON(from->num_nodes == 0);
+-	ocfs2_node_map_init(target);
+-	__ocfs2_node_map_set(target, from);
+-}
+-
+-/* returns 1 if bit is the only bit set in target, 0 otherwise */
+-int ocfs2_node_map_is_only(struct ocfs2_super *osb,
+-			   struct ocfs2_node_map *target,
+-			   int bit)
+-{
+-	struct ocfs2_node_map temp;
+-	int ret;
+-
+-	spin_lock(&osb->node_map_lock);
+-	__ocfs2_node_map_dup(&temp, target);
+-	__ocfs2_node_map_clear_bit(&temp, bit);
+-	ret = __ocfs2_node_map_is_empty(&temp);
+-	spin_unlock(&osb->node_map_lock);
+-
+-	return ret;
+-}
+-
+-static void __ocfs2_node_map_set(struct ocfs2_node_map *target,
+-				 struct ocfs2_node_map *from)
+-{
+-	int num_longs, i;
+-
+-	BUG_ON(target->num_nodes != from->num_nodes);
+-	BUG_ON(target->num_nodes == 0);
+-
+-	num_longs = BITS_TO_LONGS(target->num_nodes);
+-	for (i = 0; i < num_longs; i++)
+-		target->map[i] = from->map[i];
+-}
+-
+-/* Returns whether the recovery bit was actually set - it may not be
+- * if a node is still marked as needing recovery */
+-int ocfs2_recovery_map_set(struct ocfs2_super *osb,
+-			   int num)
+-{
+-	int set = 0;
+-
+-	spin_lock(&osb->node_map_lock);
+-
+-	if (!test_bit(num, osb->recovery_map.map)) {
+-	    __ocfs2_node_map_set_bit(&osb->recovery_map, num);
+-	    set = 1;
+-	}
+-
+-	spin_unlock(&osb->node_map_lock);
+-
+-	return set;
+-}
+-
+-void ocfs2_recovery_map_clear(struct ocfs2_super *osb,
+-			      int num)
+-{
+-	ocfs2_node_map_clear_bit(osb, &osb->recovery_map, num);
+-}
+-
+-int ocfs2_node_map_iterate(struct ocfs2_super *osb,
+-			   struct ocfs2_node_map *map,
+-			   int idx)
+-{
+-	int i = idx;
+-
+-	idx = O2NM_INVALID_NODE_NUM;
+-	spin_lock(&osb->node_map_lock);
+-	if ((i != O2NM_INVALID_NODE_NUM) &&
+-	    (i >= 0) &&
+-	    (i < map->num_nodes)) {
+-		while(i < map->num_nodes) {
+-			if (test_bit(i, map->map)) {
+-				idx = i;
+-				break;
+-			}
+-			i++;
+-		}
+-	}
+-	spin_unlock(&osb->node_map_lock);
+-	return idx;
+-}
+diff --git a/fs/ocfs2/heartbeat.h b/fs/ocfs2/heartbeat.h
+index 5685921..2d65f1c 100644
+--- a/fs/ocfs2/heartbeat.h
++++ b/fs/ocfs2/heartbeat.h
+@@ -34,8 +34,6 @@ void ocfs2_stop_heartbeat(struct ocfs2_super *osb);
+ /* node map functions - used to keep track of mounted and in-recovery
+  * nodes. */
+ void ocfs2_node_map_init(struct ocfs2_node_map *map);
+-int ocfs2_node_map_is_empty(struct ocfs2_super *osb,
+-			    struct ocfs2_node_map *map);
+ void ocfs2_node_map_set_bit(struct ocfs2_super *osb,
+ 			    struct ocfs2_node_map *map,
+ 			    int bit);
+@@ -45,21 +43,5 @@ void ocfs2_node_map_clear_bit(struct ocfs2_super *osb,
+ int ocfs2_node_map_test_bit(struct ocfs2_super *osb,
+ 			    struct ocfs2_node_map *map,
+ 			    int bit);
+-int ocfs2_node_map_iterate(struct ocfs2_super *osb,
+-			   struct ocfs2_node_map *map,
+-			   int idx);
+-static inline int ocfs2_node_map_first_set_bit(struct ocfs2_super *osb,
+-					       struct ocfs2_node_map *map)
+-{
+-	return ocfs2_node_map_iterate(osb, map, 0);
+-}
+-int ocfs2_recovery_map_set(struct ocfs2_super *osb,
+-			   int num);
+-void ocfs2_recovery_map_clear(struct ocfs2_super *osb,
+-			      int num);
+-/* returns 1 if bit is the only bit set in target, 0 otherwise */
+-int ocfs2_node_map_is_only(struct ocfs2_super *osb,
+-			   struct ocfs2_node_map *target,
+-			   int bit);
+ 
+ #endif /* OCFS2_HEARTBEAT_H */
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index c1d692b..89c275e 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -64,6 +64,151 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
+ 				 int slot);
+ static int ocfs2_commit_thread(void *arg);
+ 
++
++/*
++ * The recovery_list is a simple linked list of node numbers to recover.
++ * It is protected by the recovery_lock.
++ */
++
++struct ocfs2_recovery_map {
++	int rm_used;
++	unsigned int *rm_entries;
++};
++
++int ocfs2_recovery_init(struct ocfs2_super *osb)
++{
++	struct ocfs2_recovery_map *rm;
++
++	mutex_init(&osb->recovery_lock);
++	osb->disable_recovery = 0;
++	osb->recovery_thread_task = NULL;
++	init_waitqueue_head(&osb->recovery_event);
++
++	rm = kzalloc(sizeof(struct ocfs2_recovery_map) +
++		     osb->max_slots * sizeof(unsigned int),
++		     GFP_KERNEL);
++	if (!rm) {
++		mlog_errno(-ENOMEM);
++		return -ENOMEM;
++	}
++
++	rm->rm_entries = (unsigned int *)((char *)rm + sizeof(struct ocfs2_recovery_map));
++	osb->recovery_map = rm;
++
++	return 0;
++}
++
++/* we can't grab the goofy sem lock from inside wait_event, so we use
++ * memory barriers to make sure that we'll see the null task before
++ * being woken up */
++static int ocfs2_recovery_thread_running(struct ocfs2_super *osb)
++{
++	mb();
++	return osb->recovery_thread_task != NULL;
++}
++
++void ocfs2_recovery_exit(struct ocfs2_super *osb)
++{
++	struct ocfs2_recovery_map *rm;
++
++	/* disable any new recovery threads and wait for any currently
++	 * running ones to exit. Do this before setting the vol_state. */
++	mutex_lock(&osb->recovery_lock);
++	osb->disable_recovery = 1;
++	mutex_unlock(&osb->recovery_lock);
++	wait_event(osb->recovery_event, !ocfs2_recovery_thread_running(osb));
++
++	/* At this point, we know that no more recovery threads can be
++	 * launched, so wait for any recovery completion work to
++	 * complete. */
++	flush_workqueue(ocfs2_wq);
++
++	/*
++	 * Now that recovery is shut down, and the osb is about to be
++	 * freed,  the osb_lock is not taken here.
++	 */
++	rm = osb->recovery_map;
++	/* XXX: Should we bug if there are dirty entries? */
++
++	if (rm)
++		kfree(rm);
++}
++
++
++/* Behaves like test-and-set.  Returns the previous value */
++static int __ocfs2_recovery_map_test(struct ocfs2_super *osb,
++				     unsigned int node_num)
++{
++	int i;
++	struct ocfs2_recovery_map *rm = osb->recovery_map;
++
++	assert_spin_locked(&osb->osb_lock);
++
++	for (i = 0; i < rm->rm_used; i++) {
++		if (rm->rm_entries[i] == node_num) {
++			return 1;
++		}
++	}
++
++	return 0;
++}
++
++static int ocfs2_recovery_map_test(struct ocfs2_super *osb,
++				   unsigned int node_num)
 +{
 +	int ret;
-+	struct ocfs2_slot_info *si = osb->slot_info;
-+	struct buffer_head *bh;
 +
-+	if (si == NULL)
-+		return 0;
-+
-+	bh = si->si_bh;
-+	ret = ocfs2_read_block(osb, bh->b_blocknr, &bh, 0, si->si_inode);
-+	if (ret == 0)
-+		ocfs2_update_slot_info(si);
++	spin_lock(&osb->osb_lock);
++	ret = __ocfs2_recovery_map_test(osb, node_num);
++	spin_unlock(&osb->osb_lock);
 +
 +	return ret;
 +}
 +
- /* post the our slot info stuff into it's destination bh and write it
-  * out. */
--int ocfs2_update_disk_slots(struct ocfs2_super *osb,
--			    struct ocfs2_slot_info *si)
-+static int ocfs2_update_disk_slots(struct ocfs2_super *osb,
-+				   struct ocfs2_slot_info *si)
- {
- 	int status, i;
- 	__le16 *disk_info = (__le16 *) si->si_bh->b_data;
-@@ -135,6 +152,19 @@ s16 ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
- 	return ret;
- }
- 
-+static void __ocfs2_free_slot_info(struct ocfs2_slot_info *si)
++static int ocfs2_recovery_map_set(struct ocfs2_super *osb,
++				  unsigned int node_num)
 +{
-+	if (si == NULL)
-+		return;
++	struct ocfs2_recovery_map *rm = osb->recovery_map;
 +
-+	if (si->si_inode)
-+		iput(si->si_inode);
-+	if (si->si_bh)
-+		brelse(si->si_bh);
++	spin_lock(&osb->osb_lock);
++	if (__ocfs2_recovery_map_test(osb, node_num)) {
++		spin_unlock(&osb->osb_lock);
++		return 1;
++	}
 +
-+	kfree(si);
++	/* XXX: Can this be exploited? Not from o2dlm... */
++	BUG_ON(rm->rm_used >= osb->max_slots);
++
++	rm->rm_entries[rm->rm_used] = node_num;
++	rm->rm_used++;
++	spin_unlock(&osb->osb_lock);
++
++	return 0;
 +}
 +
- static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
- 			      s16 slot_num,
- 			      s16 node_num)
-@@ -147,12 +177,18 @@ static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
- 	si->si_global_node_nums[slot_num] = node_num;
- }
- 
--void ocfs2_clear_slot(struct ocfs2_slot_info *si,
--		      s16 slot_num)
-+int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num)
++static void ocfs2_recovery_map_clear(struct ocfs2_super *osb,
++				     unsigned int node_num)
++{
++	int i;
++	struct ocfs2_recovery_map *rm = osb->recovery_map;
++
++	spin_lock(&osb->osb_lock);
++
++	for (i = 0; i < rm->rm_used; i++) {
++		if (rm->rm_entries[i] == node_num)
++			break;
++	}
++
++	if (i < rm->rm_used) {
++		/* XXX: be careful with the pointer math */
++		memmove(&(rm->rm_entries[i]), &(rm->rm_entries[i + 1]),
++			(rm->rm_used - i - 1) * sizeof(unsigned int));
++		rm->rm_used--;
++	}
++
++	spin_unlock(&osb->osb_lock);
++}
++
+ static int ocfs2_commit_cache(struct ocfs2_super *osb)
  {
-+	struct ocfs2_slot_info *si = osb->slot_info;
-+
-+	if (si == NULL)
-+		return 0;
-+
- 	spin_lock(&si->si_lock);
- 	__ocfs2_fill_slot(si, slot_num, OCFS2_INVALID_SLOT);
- 	spin_unlock(&si->si_lock);
-+
-+	return ocfs2_update_disk_slots(osb, osb->slot_info);
- }
- 
- int ocfs2_init_slot_info(struct ocfs2_super *osb)
-@@ -202,18 +238,17 @@ int ocfs2_init_slot_info(struct ocfs2_super *osb)
- 	osb->slot_info = si;
- bail:
- 	if (status < 0 && si)
--		ocfs2_free_slot_info(si);
-+		__ocfs2_free_slot_info(si);
- 
+ 	int status = 0;
+@@ -636,6 +781,23 @@ bail:
  	return status;
  }
  
--void ocfs2_free_slot_info(struct ocfs2_slot_info *si)
-+void ocfs2_free_slot_info(struct ocfs2_super *osb)
- {
--	if (si->si_inode)
--		iput(si->si_inode);
--	if (si->si_bh)
--		brelse(si->si_bh);
--	kfree(si);
-+	struct ocfs2_slot_info *si = osb->slot_info;
++static int ocfs2_recovery_completed(struct ocfs2_super *osb)
++{
++	int empty;
++	struct ocfs2_recovery_map *rm = osb->recovery_map;
 +
-+	osb->slot_info = NULL;
-+	__ocfs2_free_slot_info(si);
- }
++	spin_lock(&osb->osb_lock);
++	empty = (rm->rm_used == 0);
++	spin_unlock(&osb->osb_lock);
++
++	return empty;
++}
++
++void ocfs2_wait_for_recovery(struct ocfs2_super *osb)
++{
++	wait_event(osb->recovery_event, ocfs2_recovery_completed(osb));
++}
++
+ /*
+  * JBD Might read a cached version of another nodes journal file. We
+  * don't want this as this file changes often and we get no
+@@ -834,6 +996,7 @@ static int __ocfs2_recovery_thread(void *arg)
+ {
+ 	int status, node_num;
+ 	struct ocfs2_super *osb = arg;
++	struct ocfs2_recovery_map *rm = osb->recovery_map;
  
- int ocfs2_find_slot(struct ocfs2_super *osb)
-@@ -285,7 +320,6 @@ void ocfs2_put_slot(struct ocfs2_super *osb)
+ 	mlog_entry_void();
+ 
+@@ -849,26 +1012,29 @@ restart:
+ 		goto bail;
  	}
  
+-	while(!ocfs2_node_map_is_empty(osb, &osb->recovery_map)) {
+-		node_num = ocfs2_node_map_first_set_bit(osb,
+-							&osb->recovery_map);
+-		if (node_num == O2NM_INVALID_NODE_NUM) {
+-			mlog(0, "Out of nodes to recover.\n");
+-			break;
+-		}
++	spin_lock(&osb->osb_lock);
++	while (rm->rm_used) {
++		/* It's always safe to remove entry zero, as we won't
++		 * clear it until ocfs2_recover_node() has succeeded. */
++		node_num = rm->rm_entries[0];
++		spin_unlock(&osb->osb_lock);
+ 
+ 		status = ocfs2_recover_node(osb, node_num);
+-		if (status < 0) {
++		if (!status) {
++			ocfs2_recovery_map_clear(osb, node_num);
++		} else {
+ 			mlog(ML_ERROR,
+ 			     "Error %d recovering node %d on device (%u,%u)!\n",
+ 			     status, node_num,
+ 			     MAJOR(osb->sb->s_dev), MINOR(osb->sb->s_dev));
+ 			mlog(ML_ERROR, "Volume requires unmount.\n");
+-			continue;
+ 		}
+ 
+-		ocfs2_recovery_map_clear(osb, node_num);
++		spin_lock(&osb->osb_lock);
+ 	}
++	spin_unlock(&osb->osb_lock);
++	mlog(0, "All nodes recovered\n");
++
+ 	ocfs2_super_unlock(osb, 1);
+ 
+ 	/* We always run recovery on our own orphan dir - the dead
+@@ -879,8 +1045,7 @@ restart:
+ 
  bail:
--	osb->slot_info = NULL;
--	ocfs2_free_slot_info(si);
-+	ocfs2_free_slot_info(osb);
- }
+ 	mutex_lock(&osb->recovery_lock);
+-	if (!status &&
+-	    !ocfs2_node_map_is_empty(osb, &osb->recovery_map)) {
++	if (!status && !ocfs2_recovery_completed(osb)) {
+ 		mutex_unlock(&osb->recovery_lock);
+ 		goto restart;
+ 	}
+@@ -910,8 +1075,8 @@ void ocfs2_recovery_thread(struct ocfs2_super *osb, int node_num)
  
-diff --git a/fs/ocfs2/slot_map.h b/fs/ocfs2/slot_map.h
-index 1025872..b029ffd 100644
---- a/fs/ocfs2/slot_map.h
-+++ b/fs/ocfs2/slot_map.h
-@@ -30,7 +30,7 @@
- struct ocfs2_slot_info {
- 	spinlock_t si_lock;
+ 	/* People waiting on recovery will wait on
+ 	 * the recovery map to empty. */
+-	if (!ocfs2_recovery_map_set(osb, node_num))
+-		mlog(0, "node %d already be in recovery.\n", node_num);
++	if (ocfs2_recovery_map_set(osb, node_num))
++		mlog(0, "node %d already in recovery map.\n", node_num);
  
--       	struct inode *si_inode;
-+	struct inode *si_inode;
- 	struct buffer_head *si_bh;
- 	unsigned int si_num_slots;
- 	unsigned int si_size;
-@@ -38,19 +38,16 @@ struct ocfs2_slot_info {
- };
+ 	mlog(0, "starting recovery thread...\n");
  
- int ocfs2_init_slot_info(struct ocfs2_super *osb);
--void ocfs2_free_slot_info(struct ocfs2_slot_info *si);
-+void ocfs2_free_slot_info(struct ocfs2_super *osb);
+@@ -1184,7 +1349,7 @@ int ocfs2_mark_dead_nodes(struct ocfs2_super *osb)
+ 		if (status == -ENOENT)
+ 			continue;
  
- int ocfs2_find_slot(struct ocfs2_super *osb);
- void ocfs2_put_slot(struct ocfs2_super *osb);
+-		if (ocfs2_node_map_test_bit(osb, &osb->recovery_map, node_num))
++		if (ocfs2_recovery_map_test(osb, node_num))
+ 			continue;
+ 		spin_unlock(&si->si_lock);
  
--void ocfs2_update_slot_info(struct ocfs2_slot_info *si);
--int ocfs2_update_disk_slots(struct ocfs2_super *osb,
--			    struct ocfs2_slot_info *si);
-+int ocfs2_refresh_slot_info(struct ocfs2_super *osb);
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 4b32e09..11008a2 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -134,6 +134,10 @@ static inline void ocfs2_inode_set_new(struct ocfs2_super *osb,
  
- s16 ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
- 			   s16 global);
--void ocfs2_clear_slot(struct ocfs2_slot_info *si,
--		      s16 slot_num);
-+int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num);
+ /* Exported only for the journal struct init code in super.c. Do not call. */
+ void ocfs2_complete_recovery(struct work_struct *work);
++void ocfs2_wait_for_recovery(struct ocfs2_super *osb);
++
++int ocfs2_recovery_init(struct ocfs2_super *osb);
++void ocfs2_recovery_exit(struct ocfs2_super *osb);
  
- static inline int ocfs2_is_empty_slot(struct ocfs2_slot_info *si,
- 				      int slot_num)
+ /*
+  *  Journal Control:
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index f8f8661..dcb9120 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -178,6 +178,7 @@ enum ocfs2_mount_options
+ #define OCFS2_DEFAULT_ATIME_QUANTUM	60
+ 
+ struct ocfs2_journal;
++struct ocfs2_recovery_map;
+ struct ocfs2_super
+ {
+ 	struct task_struct *commit_task;
+@@ -189,7 +190,6 @@ struct ocfs2_super
+ 	struct ocfs2_slot_info *slot_info;
+ 
+ 	spinlock_t node_map_lock;
+-	struct ocfs2_node_map recovery_map;
+ 
+ 	u64 root_blkno;
+ 	u64 system_dir_blkno;
+@@ -224,6 +224,7 @@ struct ocfs2_super
+ 
+ 	atomic_t vol_state;
+ 	struct mutex recovery_lock;
++	struct ocfs2_recovery_map *recovery_map;
+ 	struct task_struct *recovery_thread_task;
+ 	int disable_recovery;
+ 	wait_queue_head_t checkpoint_event;
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 1996820..012b555 100644
+index 012b555..2142985 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -1682,8 +1682,7 @@ static void ocfs2_delete_osb(struct ocfs2_super *osb)
+@@ -1166,15 +1166,6 @@ leave:
+ 	return status;
+ }
  
- 	/* This function assumes that the caller has the main osb resource */
+-/* we can't grab the goofy sem lock from inside wait_event, so we use
+- * memory barriers to make sure that we'll see the null task before
+- * being woken up */
+-static int ocfs2_recovery_thread_running(struct ocfs2_super *osb)
+-{
+-	mb();
+-	return osb->recovery_thread_task != NULL;
+-}
+-
+ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+ {
+ 	int tmp;
+@@ -1191,17 +1182,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
  
--	if (osb->slot_info)
--		ocfs2_free_slot_info(osb->slot_info);
-+	ocfs2_free_slot_info(osb);
+ 	ocfs2_truncate_log_shutdown(osb);
  
- 	kfree(osb->osb_orphan_wipes);
- 	/* FIXME
+-	/* disable any new recovery threads and wait for any currently
+-	 * running ones to exit. Do this before setting the vol_state. */
+-	mutex_lock(&osb->recovery_lock);
+-	osb->disable_recovery = 1;
+-	mutex_unlock(&osb->recovery_lock);
+-	wait_event(osb->recovery_event, !ocfs2_recovery_thread_running(osb));
+-
+-	/* At this point, we know that no more recovery threads can be
+-	 * launched, so wait for any recovery completion work to
+-	 * complete. */
+-	flush_workqueue(ocfs2_wq);
++	/* This will disable recovery and flush any recovery work. */
++	ocfs2_recovery_exit(osb);
+ 
+ 	ocfs2_journal_shutdown(osb);
+ 
+@@ -1310,7 +1292,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	osb->s_sectsize_bits = blksize_bits(sector_size);
+ 	BUG_ON(!osb->s_sectsize_bits);
+ 
+-	init_waitqueue_head(&osb->recovery_event);
+ 	spin_lock_init(&osb->dc_task_lock);
+ 	init_waitqueue_head(&osb->dc_event);
+ 	osb->dc_work_sequence = 0;
+@@ -1330,10 +1311,12 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	snprintf(osb->dev_str, sizeof(osb->dev_str), "%u,%u",
+ 		 MAJOR(osb->sb->s_dev), MINOR(osb->sb->s_dev));
+ 
+-	mutex_init(&osb->recovery_lock);
+-
+-	osb->disable_recovery = 0;
+-	osb->recovery_thread_task = NULL;
++	status = ocfs2_recovery_init(osb);
++	if (status) {
++		mlog(ML_ERROR, "Unable to initialize recovery state\n");
++		mlog_errno(status);
++		goto bail;
++	}
+ 
+ 	init_waitqueue_head(&osb->checkpoint_event);
+ 	atomic_set(&osb->needs_checkpoint, 0);
 -- 
 1.5.2.2
