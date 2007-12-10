@@ -1,51 +1,43 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri Dec  7 01:28:19 2007
-Subject: [Ocfs2-devel] [RFC] to make files of ocfs2 under sysfs canonical
-In-Reply-To: <91b13c310712062321u7ffe7f9dqbe228d6995ce79e@mail.gmail.com>
-References: <4758ca1d.11588c0a.7668.ffff9173@mx.google.com>
-	<20071207051224.GA29246@tasint.org>
-	<91b13c310712062321u7ffe7f9dqbe228d6995ce79e@mail.gmail.com>
-Message-ID: <20071207092807.GA29158@ca-server1.us.oracle.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Mon Dec 10 13:39:52 2007
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Local alloc window size
+	changeable via mount option
+In-Reply-To: <1196467193-24983-2-git-send-email-sunil.mushran@oracle.com>
+References: <1196467193-24983-1-git-send-email-sunil.mushran@oracle.com>
+	<1196467193-24983-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20071210213923.GV28607@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 07, 2007 at 03:21:20PM +0800, rae l wrote:
-> On Dec 7, 2007 1:12 PM, Joel Becker <Joel.Becker@oracle.com> wrote:
-> > o2cb is, in theory, independent of the filesystem.  Thus, it doesn't
-> > necessarily belong under /sys/fs.
-> I agree it's independent, but /sys/oc2b just don't conform the uniform
-> of the linux kernel sysfs usage.
+On Fri, Nov 30, 2007 at 03:59:53PM -0800, Sunil Mushran wrote:
+> Local alloc is a performance optimiztion in ocfs2 in which a node
+> takes a window of bits from the global bitmap and then uses that for
+> all small local allocations. This window size is fixed to 8MB currently.
+> This patch allows users to specify the window size in MB including
+> disabling it by passing in 0. If the number specified is too large,
+> the fs will use the default value of 8MB.
+> 
+> mount -o localalloc=X /dev/sdX /mntpoint
+> 
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+> ---
+>  fs/ocfs2/localalloc.c |   41 +++++++++++++++++++++++++++++------------
+>  fs/ocfs2/ocfs2.h      |    1 +
+>  fs/ocfs2/ocfs2_fs.h   |    8 ++++++++
+>  fs/ocfs2/suballoc.c   |    5 +++--
+>  fs/ocfs2/super.c      |   17 +++++++++++++++++
+>  5 files changed, 58 insertions(+), 14 deletions(-)
 
-	By your measure.  By others, it does.  In fact, we asked around
-before we put it there.
+We need to update the "Mount options" list in
+Documentation/filesystems/ocfs2.txt as well.
 
-> > The bigger problem is that there are tools expecting /sys/o2cb to be
-> > there.  We can't just drop it.
-> Do you mean the ocfs2-tools? We could also change it. Or any other tools?
+Otherwise, this looks fine.
+	--Mark
 
-	I mean ocfs2-tools.  We have to deal with existing
-installations, not just new tools.
-
-> The kernel community doesn't promise a stable kernel API, so does the sysfs,
-> Except If it would break many userspace tools, we should consider with
-> caution or keep the binary compatibility,
-
-	sysfs is a userspace ABI.  The kernel *does* try to keep
-userspace ABI stable or backwards compatible.
-
-Joel
-
--- 
-
-"What do you take me for, an idiot?"  
-        - General Charles de Gaulle, when a journalist asked him
-          if he was happy.
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+--
+Mark Fasheh
+Senior Software Developer, Oracle
+mark.fasheh@oracle.com
