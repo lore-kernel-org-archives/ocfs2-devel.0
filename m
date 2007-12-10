@@ -1,40 +1,66 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Dec 10 13:39:52 2007
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Local alloc window size
-	changeable via mount option
-In-Reply-To: <1196467193-24983-2-git-send-email-sunil.mushran@oracle.com>
-References: <1196467193-24983-1-git-send-email-sunil.mushran@oracle.com>
-	<1196467193-24983-2-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20071210213923.GV28607@ca-server1.us.oracle.com>
+Date: Mon Dec 10 14:33:46 2007
+Subject: [Ocfs2-devel] [PATCH 2/7] ocfs2: Wrap all other access to
+	ocfs2_slot_info.
+In-Reply-To: <1197004787-15344-3-git-send-email-joel.becker@oracle.com>
+References: <1197004787-15344-1-git-send-email-joel.becker@oracle.com>
+	<1197004787-15344-3-git-send-email-joel.becker@oracle.com>
+Message-ID: <20071210223324.GW28607@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Nov 30, 2007 at 03:59:53PM -0800, Sunil Mushran wrote:
-> Local alloc is a performance optimiztion in ocfs2 in which a node
-> takes a window of bits from the global bitmap and then uses that for
-> all small local allocations. This window size is fixed to 8MB currently.
-> This patch allows users to specify the window size in MB including
-> disabling it by passing in 0. If the number specified is too large,
-> the fs will use the default value of 8MB.
-> 
-> mount -o localalloc=X /dev/sdX /mntpoint
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-> ---
->  fs/ocfs2/localalloc.c |   41 +++++++++++++++++++++++++++++------------
->  fs/ocfs2/ocfs2.h      |    1 +
->  fs/ocfs2/ocfs2_fs.h   |    8 ++++++++
->  fs/ocfs2/suballoc.c   |    5 +++--
->  fs/ocfs2/super.c      |   17 +++++++++++++++++
->  5 files changed, 58 insertions(+), 14 deletions(-)
+On Thu, Dec 06, 2007 at 09:19:42PM -0800, Joel Becker wrote:
+> diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+> index f5727b8..a4f2c02 100644
+> --- a/fs/ocfs2/slot_map.c
+> +++ b/fs/ocfs2/slot_map.c
+> @@ -42,14 +42,30 @@
+>  
+>  #include "buffer_head_io.h"
+>  
+> -static s16 __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
+> +struct ocfs2_slot_info_real {
+> +	spinlock_t si_lock;
+> +
+> +	struct inode *si_inode;
+> +	struct buffer_head *si_bh;
+> +	unsigned int si_num_slots;
+> +	unsigned int si_size;
+> +	s16 si_global_node_nums[OCFS2_MAX_SLOTS];
+> +};
+> +
+> +static inline struct ocfs2_slot_info_real *to_slot_info(struct ocfs2_super *osb)
+> +{
+> +	return (struct ocfs2_slot_info_real *)osb->slot_info;
+> +}
+> +
 
-We need to update the "Mount options" list in
-Documentation/filesystems/ocfs2.txt as well.
+...
 
-Otherwise, this looks fine.
+> diff --git a/fs/ocfs2/slot_map.h b/fs/ocfs2/slot_map.h
+> index b029ffd..14b065b 100644
+> --- a/fs/ocfs2/slot_map.h
+> +++ b/fs/ocfs2/slot_map.h
+> @@ -29,12 +29,6 @@
+>  
+>  struct ocfs2_slot_info {
+>  	spinlock_t si_lock;
+> -
+> -	struct inode *si_inode;
+> -	struct buffer_head *si_bh;
+> -	unsigned int si_num_slots;
+> -	unsigned int si_size;
+> -	s16 si_global_node_nums[OCFS2_MAX_SLOTS];
+>  };
+
+Ok, so we need to either use 'osb->osb_lock' for slot info locking and drop
+ocfs2_slot_info from slot_map.h completely, or just leave the definition in
+slot_map.h. As it stands in this patch, if we add anything to 'struct
+ocfs2_slot_info' or move 'si_lock' around in 'struct ocfs2_slot_info_real'
+things will blow up :(
 	--Mark
 
 --
