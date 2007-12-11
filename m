@@ -1,43 +1,45 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Dec 10 14:58:34 2007
-Subject: [Ocfs2-devel] [PATCH 3/7] ocfs2: Change the recovery map to an
-	array of node numbers.
-In-Reply-To: <1197004787-15344-4-git-send-email-joel.becker@oracle.com>
-References: <1197004787-15344-1-git-send-email-joel.becker@oracle.com>
-	<1197004787-15344-4-git-send-email-joel.becker@oracle.com>
-Message-ID: <20071210225635.GX28607@ca-server1.us.oracle.com>
+From: rae l <crquan@gmail.com>
+Date: Tue Dec 11 17:02:55 2007
+Subject: [Ocfs2-devel] [RFC] to make files of ocfs2 under sysfs canonical
+In-Reply-To: <20071211190633.GA27037@kroah.com>
+References: <4758ca1d.11588c0a.7668.ffff9173@mx.google.com>
+	<20071207051224.GA29246@tasint.org>
+	<91b13c310712062321u7ffe7f9dqbe228d6995ce79e@mail.gmail.com>
+	<20071211190633.GA27037@kroah.com>
+Message-ID: <91b13c310712111702x76553ed1w94d044e5b5d0506f@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Dec 06, 2007 at 09:19:43PM -0800, Joel Becker wrote:
-> The old recovery map was a bitmap of node numbers.  This was sufficient
-> for the maximum node number of 254.  Going forward, we want node numbers
-> to be UINT32.  Thus, we need a new recovery map.
-> 
-> Note that we can't keep track of slots here.  We must write down the
-> node number to recovery *before* we get the locks needed to convert a
-> node number into a slot number.
-> 
-> The recovery map is now an array of unsigned ints, max_slots in size.
-> It moves to journal.c with the rest of recovery.
-> 
-> Because it needs to be initialized, we move all of recovery initialization
-> into a new function, ocfs2_recovery_init().  This actually cleans up
-> ocfs2_initialize_super() a little as well.  Following on, recovery cleaup
-> becomes part of ocfs2_recovery_exit().
-> 
-> A number of node map functions are rendered obsolete and are removed.
-> 
-> Finally, waiting on recovery is wrapped in a function rather than naked
-> checks on the recovery_event.  This is a cleanup from Mark.
-> 
-> Signed-off-by: Joel Becker <joel.becker@oracle.com>
-Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
+On Dec 12, 2007 3:06 AM, Greg KH <greg@kroah.com> wrote:
+> On Fri, Dec 07, 2007 at 03:21:20PM +0800, rae l wrote:
+> > On Dec 7, 2007 1:12 PM, Joel Becker <Joel.Becker@oracle.com> wrote:
+> > > On Fri, Dec 07, 2007 at 12:22:17PM +0800, Denis Cheng wrote:
+> > > > ocfs2 uses a subsystem under sysfs: /sys/o2cb, which is not good,
+> > > >
+> > > > the canonical use of sysfs is one kset under /sys/fs, like the approach
+> > > > gfs2 does.
+> > > >
+> > > o2cb is, in theory, independent of the filesystem.  Thus, it doesn't
+> > > necessarily belong under /sys/fs.
+> > I agree it's independent, but /sys/oc2b just don't conform the uniform
+> > of the linux kernel sysfs usage.
+>
+> And what would that be?  :)
+The sysfs entries of ocfs2 are under /sys/oc2b, but I think they
+generally should be under /sys/fs/oc2b, aren't they?
 
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
+But as Joel said, this change will break ocfs2-tools, so the decision
+was not made.
+
+On Dec 7, 2007 5:28 PM, Joel Becker <Joel.Becker@oracle.com> wrote:
+>         I mean ocfs2-tools.  We have to deal with existing
+> installations, not just new tools.
+To Joel: I mean this change will be done in new kernels, and new
+ocfs2-tools, old kernel require old ocfs2-tools, that does not break
+existing installations, is that OK?
+
+-- 
+Denis Cheng
