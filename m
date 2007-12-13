@@ -1,52 +1,65 @@
-From: tao.ma <tao.ma@oracle.com>
-Date: Wed Dec 12 23:06:54 2007
-Subject: [Ocfs2-devel] [PATCH 3/3] Implement "GROUP_ADD" for online	resize,
-	take 2
-In-Reply-To: <20071130232004.GF28607@ca-server1.us.oracle.com>
-References: <20071127081123.GA4345@tma-pc1.cn.oracle.com>
-	<20071127082149.GA4486@tma-pc1.cn.oracle.com>
-	<20071130232004.GF28607@ca-server1.us.oracle.com>
-Message-ID: <4760D978.8080404@oracle.com>
+From: Marcos E. Matsunaga <Marcos.Matsunaga@oracle.com>
+Date: Thu Dec 13 07:03:55 2007
+Subject: [Ocfs2-devel] BTW: could some oracle people make
+	the	oss.oracle.com website more faster?
+In-Reply-To: <91b13c310712122019lefd94d6vd5948b73215fc78d@mail.gmail.com>
+References: <91b13c310712120920k5898a260h6c859c1db4061940@mail.gmail.com>	<47601E9C.2050008@suse.de>
+	<476022DD.10303@oracle.com>
+	<91b13c310712122019lefd94d6vd5948b73215fc78d@mail.gmail.com>
+Message-ID: <47614983.5020603@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
->
->> +	le32_add_cpu(&cr->c_total, input->clusters * cl_bpc);
->> +	le32_add_cpu(&cr->c_free, input->frees * cl_bpc);
->> +
->> +	le32_add_cpu(&fe->id1.bitmap1.i_total, input->clusters *cl_bpc);
->> +	le32_add_cpu(&fe->id1.bitmap1.i_used,
->> +		     (input->clusters - input->frees) * cl_bpc);
->> +	le32_add_cpu(&fe->i_clusters, input->clusters);
->> +	le64_add_cpu(&fe->i_size, input->clusters << osb->s_clustersize_bits);
->> +
->> +	ret = ocfs2_journal_dirty(handle, main_bm_bh);
->> +	if (ret < 0) {
->> +		mlog_errno(ret);
->> +		goto out_unlock;
->> +	}
->> +
->> +	ret = ocfs2_commit_trans(osb, handle);
->> +	if (ret < 0) {
->> +		mlog_errno(ret);
->> +		goto out_unlock;
->> +	}
->> +
->> +	spin_lock(&OCFS2_I(main_bm_inode)->ip_lock);
->> +	OCFS2_I(main_bm_inode)->ip_clusters = le32_to_cpu(fe->i_clusters);
->> +	spin_unlock(&OCFS2_I(main_bm_inode)->ip_lock);
->>     
->
-> Need to also update i_size. I think the other patch was missing
-> that too...
-> 	--Mark
+Does the same happen if you try to download something else from OTN?
+
+I've tried from US, UK and South America (a friend ran it for me from
+Brazil) and they are all pretty fast. Page load is in average of less
+than 2 seconds.
+
+The command Sunil suggested (wget -r -l1
+http://oss.oracle.com/projects/ocfs2/) takes less than 15 seconds, but
+it downloads every single reference that is not usually loaded when you
+open a page (68 files).
+
+My guess is that the problem is somewhere in your ISP. Maybe if you try
+to traceroute to oss it may show where it is slowing down.
+
+Regards,
+
+Marcos Eduardo Matsunaga
+
+Oracle USA
+Linux Engineering
+
+
+
+
+
+rae l wrote:
+> On Dec 13, 2007 2:05 AM, Sunil Mushran <Sunil.Mushran@oracle.com> wrote:
 >   
-Sorry for the late response. I have been in leave for some days.
-Do you mean "fe->i_size" which I have updated above?
-If it is,  do I need to spin_lock and update "fe->i_size" and 
-"ip_clusters" in the same time before commit_trans?
-I saw some similar codes in suballoc.c.
+>> It's almost all text. One small image.
+>>
+>> See if wget can help you pinpoint the problem.
+>>
+>> $ wget -r -l1 http://oss.oracle.com/projects/ocfs2/
+>> Run it in a temp dir.
+>>     
+> and the download spped of files under oss.oracle.com/projects/ are
+> always below 3KB/s:
+>
+> --12:15:11--  http://oss.oracle.com/projects/ocfs2-tools/dist/files/source/v1.3/ocfs2-tools-1.3.9.tar.gz
+>   (try: 2) => `/usr/portage/distfiles/ocfs2-tools-1.3.9.tar.gz'
+> Connecting to oss.oracle.com|141.146.12.120|:80... connected.
+> HTTP request sent, awaiting response... 206 Partial Content
+> Length: 517,192 (505K), 515,804 (504K) remaining [application/x-gzip]
+>
+>  8% [=>                                 ] 43,028         2.48K/s    ETA 09:02
+>
+>   
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20071213/48bf246a/attachment.html
