@@ -1,26 +1,28 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Dec 17 17:36:40 2007
-Subject: [Ocfs2-devel] [PATCH 1/6] Move resize function out of
-	tunefs.c, take 3
-In-Reply-To: <20071218011219.GA23419@tma-pc1.cn.oracle.com>
-References: <47671D39.6090509@oracle.com>
-	<20071218011219.GA23419@tma-pc1.cn.oracle.com>
-Message-ID: <20071218013442.GB13821@ca-server1.us.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon Dec 17 23:39:14 2007
+Subject: [Ocfs2-devel] [PATCH 0/4] Add online resize support for ocfs2,
+	take 4
+Message-ID: <20071218073522.GA24606@tma-pc1.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Dec 18, 2007 at 09:12:19AM +0800, tao.ma wrote:
-> We will add online resize in tunefs.ocfs2, and it will be complicated.
-> so add a new file resize.c in it and move all resize function out of
-> tunefs.c.
-> 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
-Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
+Mark,
+    Wish this patch series meets your need.
 
---
-Mark Fasheh
-Senior Software Developer, Oracle
-mark.fasheh@oracle.com
+Changes from V3 to V4 can be found in the patches themselves.
+They are just some minor fixes, no significant change in the code.
+
+User can do offline resize using tunefs.ocfs2 when a volume isn't
+mounted. Now the support for online resize is added into ocfs2.
+
+Please note that the node where online resize goes must already
+has the volume mounted. We don't mount it behind the user and the
+operation would fail if we find it isn't mounted. As for other
+nodes, we don't care whether the volume is mounted or not.
+
+global_bitmap, super block and all the backups will be updated
+in the kernel. And if super block or backup's update fails, we
+just output some error message in dmesg and continue the work.
