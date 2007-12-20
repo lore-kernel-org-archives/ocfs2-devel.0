@@ -1,70 +1,70 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Thu Dec 20 15:30:02 2007
-Subject: [Ocfs2-devel] [PATCH 13/30] ocfs2: Handle enum value FS_OCFS2
+Subject: [Ocfs2-devel] [PATCH 14/30] ocfs2: Handles configfs_depend_item()
+	and configfs_undepend_item()
 In-Reply-To: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1198193387-16606-12-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1198193387-16606-13-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 0e03036c97b70b2602f7dedaa3a223ed7563c2c9 in mainline registers
-ocfs2 sysctl (FS_OCFS2) number under CTL_FS. This patch allows one to
-build ocfs2 with kernels having/not having this change.
+Commit 631d1febab8e546e3bb800bdfe2c212b8adf87de in mainline introduces
+two new calls in configfs, configfs_depend_item() and configfs_undepend_item().
+This patch allows one to build ocfs2 with kernels having/not having
+this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Makefile                     |    3 ++-
- configure.in                 |    5 +++++
- kapi-compat/include/sysctl.h |    9 +++++++++
- 3 files changed, 16 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/sysctl.h
+ Makefile                       |    3 ++-
+ configure.in                   |    5 +++++
+ kapi-compat/include/configfs.h |    7 +++++++
+ 3 files changed, 14 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/configfs.h
 
 diff --git a/Makefile b/Makefile
-index 5c22979..6377ff9 100644
+index 6377ff9..71cd3c7 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -17,7 +17,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/inc_nlink.h \
+@@ -18,7 +18,8 @@ KAPI_COMPAT_FILES = \
  	kapi-compat/include/drop_nlink.h \
  	kapi-compat/include/slab.h \
--	kapi-compat/include/fstype.h
-+	kapi-compat/include/fstype.h \
-+	kapi-compat/include/sysctl.h
+ 	kapi-compat/include/fstype.h \
+-	kapi-compat/include/sysctl.h
++	kapi-compat/include/sysctl.h \
++	kapi-compat/include/configfs.h
  
  PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index f1ca3e3..fdb188c 100644
+index fdb188c..513585f 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -209,6 +209,11 @@ OCFS2_CHECK_KERNEL([flag FS_RENAME_DOES_D_MOVE in fs.h], fs.h,
-   , fstype_compat_header="fstype.h", [FS_RENAME_DOES_D_MOVE])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $fstype_compat_header"
+@@ -214,6 +214,11 @@ OCFS2_CHECK_KERNEL([enum FS_OCFS2 in sysctl.h], sysctl.h,
+   , sysctl_compat_header="sysctl.h", [FS_OCFS2])
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $sysctl_compat_header"
  
-+sysctl_compat_header=""
-+OCFS2_CHECK_KERNEL([enum FS_OCFS2 in sysctl.h], sysctl.h,
-+  , sysctl_compat_header="sysctl.h", [FS_OCFS2])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $sysctl_compat_header"
++configfs_compat_header=""
++OCFS2_CHECK_KERNEL([configfs_depend_item() in configfs.h], configfs.h,
++  , configfs_compat_header="configfs.h", [configfs_depend_item()])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $configfs_compat_header"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/sysctl.h b/kapi-compat/include/sysctl.h
+diff --git a/kapi-compat/include/configfs.h b/kapi-compat/include/configfs.h
 new file mode 100644
-index 0000000..73ed0a7
+index 0000000..ff68e58
 --- /dev/null
-+++ b/kapi-compat/include/sysctl.h
-@@ -0,0 +1,9 @@
-+#ifndef KAPI_SYSCTL_H
-+#define KAPI_SYSCTL_H
++++ b/kapi-compat/include/configfs.h
+@@ -0,0 +1,7 @@
++#ifndef KAPI_CONFIGFS_H
++#define KAPI_CONFIGFS_H
 +
-+/* CTL_FS names: */
-+enum {
-+	FS_OCFS2=988,   /* ocfs2 */
-+};
++#define configfs_depend_item(a, b)	0
++#define configfs_undepend_item(a, b)
 +
 +#endif
 -- 
