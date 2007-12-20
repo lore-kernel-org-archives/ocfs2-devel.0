@@ -1,84 +1,81 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Thu Dec 20 15:29:55 2007
-Subject: [Ocfs2-devel] [PATCH 30/30] ocfs2: Handle missing exportfs.h
+Subject: [Ocfs2-devel] [PATCH 09/30] ocfs2: Add helper inc_nlink
 In-Reply-To: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1198193387-16606-29-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1198193387-16606-8-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit a569425512253992cc64ebf8b6d00a62f986db3e in mainline
-moved struct export_operation from fs.h to exportfs.h. This
-patch allows one to build ocfs2 with kernels having/not having
-this change.
+Commit d8c76e6f45c111c32a4b3e50a2adc9210737b0d8 in mainline introduced
+helper inc_nlink(). This patch allows one to build ocfs2 with kernels
+having/not having that change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Config.make.in    |    1 +
- configure.in      |    5 +++++
- fs/ocfs2/Makefile |    4 ++++
- fs/ocfs2/export.h |    2 ++
- 4 files changed, 12 insertions(+), 0 deletions(-)
+ Makefile                        |    3 ++-
+ configure.in                    |    5 +++++
+ kapi-compat/include/inc_nlink.h |   19 +++++++++++++++++++
+ 3 files changed, 26 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/inc_nlink.h
 
-diff --git a/Config.make.in b/Config.make.in
-index f22473c..90e4472 100644
---- a/Config.make.in
-+++ b/Config.make.in
-@@ -74,6 +74,7 @@ IOP_IS_CONST = @IOP_IS_CONST@
- VECTORED_FILE_AIO = @VECTORED_FILE_AIO@
- SPLICE_FROM_PIPE = @SPLICE_FROM_PIPE@
- OLD_BIO_END_IO = @OLD_BIO_END_IO@
-+EXPORTFS_HEADER = @EXPORTFS_HEADER@
+diff --git a/Makefile b/Makefile
+index 088d0e1..1595b90 100644
+--- a/Makefile
++++ b/Makefile
+@@ -13,7 +13,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/compiler.h \
+ 	kapi-compat/include/highmem.h \
+ 	kapi-compat/include/fpath.h \
+-	kapi-compat/include/kmod.h
++	kapi-compat/include/kmod.h \
++	kapi-compat/include/inc_nlink.h
  
- OCFS_DEBUG = @OCFS_DEBUG@
+ PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index 60fd68f..d4f3c97 100644
+index 94937cd..554a0a4 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -297,6 +297,11 @@ OCFS2_CHECK_KERNEL([old bio_end_io_t in bio.h], bio.h,
-   OLD_BIO_END_IO=yes, , [^typedef int (bio_end_io_t) (struct bio \*, unsigned int, int);])
- AC_SUBST(OLD_BIO_END_IO)
+@@ -188,6 +188,11 @@ OCFS2_CHECK_KERNEL([enum umh_wait in kmod.h], kmod.h,
+   , kmod_compat_header="kmod.h", [umh_wait])
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $kmod_compat_header"
  
-+EXPORTFS_HEADER=
-+OCFS2_CHECK_KERNEL([exportfs.h], exportfs.h,
-+  EXPORTFS_HEADER=yes, , [^struct export_operations {])
-+AC_SUBST(EXPORTFS_HEADER)
++inc_nlink_compat_header=""
++OCFS2_CHECK_KERNEL([inc_nlink() in fs.h], fs.h,
++  , inc_nlink_compat_header="inc_nlink.h", [^static inline void inc_nlink(])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $inc_nlink_compat_header"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index e4296d3..8f8458e 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -81,6 +81,10 @@ ifdef SPLICE_FROM_PIPE
- EXTRA_CFLAGS += -DSPLICE_FROM_PIPE
- endif
- 
-+ifdef EXPORTFS_HEADER
-+EXTRA_CFLAGS += -DEXPORTFS_HEADER
-+endif
+diff --git a/kapi-compat/include/inc_nlink.h b/kapi-compat/include/inc_nlink.h
+new file mode 100644
+index 0000000..26ddaac
+--- /dev/null
++++ b/kapi-compat/include/inc_nlink.h
+@@ -0,0 +1,19 @@
++#ifndef KAPI_INC_NLINK_H
++#define KAPI_INC_NLINK_H
 +
- #
- # Since SUBDIRS means something to kbuild, define them safely.  Do not
- # include trailing slashes.
-diff --git a/fs/ocfs2/export.h b/fs/ocfs2/export.h
-index e08bed9..f81edb5 100644
---- a/fs/ocfs2/export.h
-+++ b/fs/ocfs2/export.h
-@@ -26,7 +26,9 @@
- #ifndef OCFS2_EXPORT_H
- #define OCFS2_EXPORT_H
- 
-+#ifdef EXPORTFS_HEADER
- #include <linux/exportfs.h>
++#include <linux/fs.h>
++
++/*
++ * inc_nlink - directly increment an inode's link count
++ * @inode: inode
++ *
++ * This is a low-level filesystem helper to replace any
++ * direct filesystem manipulation of i_nlink.  Currently,
++ * it is only here for parity with dec_nlink().
++ */
++static inline void inc_nlink(struct inode *inode)
++{
++	inode->i_nlink++;
++}
++
 +#endif
- 
- extern struct export_operations ocfs2_export_ops;
- 
 -- 
 1.5.2.5
