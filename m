@@ -1,99 +1,121 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Thu Dec 20 15:29:57 2007
-Subject: [Ocfs2-devel] [PATCH 29/30] ocfs2: Handle older prototype of
-	bi_end_io_t
+Subject: [Ocfs2-devel] [PATCH 23/30] ocfs2: Handle missing export
+	generic_segment_checks()
 In-Reply-To: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1198193387-16606-28-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1198193387-16606-22-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 6712ecf8f648118c3363c142196418f89a510b90 in mainline
-dropped 'size' argument from bi_end_io(). This patch allows
+Commit 0ceb331433e8aad9c5f441a965d7c681f8b9046f in mainline wraps
+common segment checks in generic_segment_checks(). This patch allows
 one to build ocfs2 with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Config.make.in               |    1 +
- configure.in                 |    5 +++++
- fs/ocfs2/cluster/Makefile    |    4 ++++
- fs/ocfs2/cluster/heartbeat.c |    9 +++++++++
- 4 files changed, 19 insertions(+), 0 deletions(-)
+ Config.make.in    |    1 +
+ configure.in      |    5 +++++
+ fs/ocfs2/Makefile |    4 ++++
+ fs/ocfs2/file.c   |   40 ++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 50 insertions(+), 0 deletions(-)
 
 diff --git a/Config.make.in b/Config.make.in
-index 89c1e94..f22473c 100644
+index 788c156..c1ca1d9 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -73,6 +73,7 @@ SOP_IS_CONST = @SOP_IS_CONST@
- IOP_IS_CONST = @IOP_IS_CONST@
- VECTORED_FILE_AIO = @VECTORED_FILE_AIO@
- SPLICE_FROM_PIPE = @SPLICE_FROM_PIPE@
-+OLD_BIO_END_IO = @OLD_BIO_END_IO@
+@@ -67,6 +67,7 @@ SU_MUTEX_DEFINED = @SU_MUTEX_DEFINED@
+ STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
+ FALLOCATE_DEFINED = @FALLOCATE_DEFINED@
+ SPLICE_HEADER = @SPLICE_HEADER@
++GENERIC_SEGMENT_CHECKS = @GENERIC_SEGMENT_CHECKS@
  
  OCFS_DEBUG = @OCFS_DEBUG@
  
 diff --git a/configure.in b/configure.in
-index 021b925..60fd68f 100644
+index 472e01a..a311d3f 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -292,6 +292,11 @@ OCFS2_CHECK_KERNEL([__splice_from_pipe() in splice.h], splice.h,
-   SPLICE_FROM_PIPE=yes, , [^extern ssize_t __splice_from_pipe(struct pipe_inode_info \*])
- AC_SUBST(SPLICE_FROM_PIPE)
+@@ -262,6 +262,11 @@ OCFS2_CHECK_KERNEL([should_remove_suid() in fs.h], fs.h,
+   SHOULD_REMOVE_SUID=yes, , [should_remove_suid()])
+ AC_SUBST(SHOULD_REMOVE_SUID)
  
-+OLD_BIO_END_IO=
-+OCFS2_CHECK_KERNEL([old bio_end_io_t in bio.h], bio.h,
-+  OLD_BIO_END_IO=yes, , [^typedef int (bio_end_io_t) (struct bio \*, unsigned int, int);])
-+AC_SUBST(OLD_BIO_END_IO)
++GENERIC_SEGMENT_CHECKS=
++OCFS2_CHECK_KERNEL([generic_segment_checks() in fs.h], fs.h,
++  GENERIC_SEGMENT_CHECKS=yes, , [generic_segment_checks()])
++AC_SUBST(GENERIC_SEGMENT_CHECKS)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
-index ff57486..ccbddd0 100644
---- a/fs/ocfs2/cluster/Makefile
-+++ b/fs/ocfs2/cluster/Makefile
-@@ -29,6 +29,10 @@ ifdef STRUCT_SUBSYSTEM_DEFINED
- EXTRA_CFLAGS += -DSTRUCT_SUBSYSTEM_DEFINED
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index a80a9fc..7434d6d 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -57,6 +57,10 @@ ifdef SHOULD_REMOVE_SUID
+ EXTRA_CFLAGS += -DSHOULD_REMOVE_SUID
  endif
  
-+ifdef OLD_BIO_END_IO
-+EXTRA_CFLAGS += -DOLD_BIO_END_IO
++ifdef GENERIC_SEGMENT_CHECKS
++EXTRA_CFLAGS += -DGENERIC_SEGMENT_CHECKS
 +endif
 +
- SOURCES =			\
- 	heartbeat.c		\
- 	masklog.c		\
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index e610665..b41a7fb 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -216,8 +216,14 @@ static void o2hb_wait_on_io(struct o2hb_region *reg,
- 	wait_for_completion(&wc->wc_io_complete);
+ #
+ # Since SUBDIRS means something to kbuild, define them safely.  Do not
+ # include trailing slashes.
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index cee10ae..dd074af 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1809,6 +1809,46 @@ static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
  }
+ #endif
  
-+#ifdef OLD_BIO_END_IO
-+static int o2hb_bio_end_io(struct bio *bio,
-+			   unsigned int bytes_done,
-+			   int error)
-+#else
- static void o2hb_bio_end_io(struct bio *bio,
- 			   int error)
-+#endif
- {
- 	struct o2hb_bio_wait_ctxt *wc = bio->bi_private;
- 
-@@ -228,6 +234,9 @@ static void o2hb_bio_end_io(struct bio *bio,
- 
- 	o2hb_bio_wait_dec(wc, 1);
- 	bio_put(bio);
-+#ifdef OLD_BIO_END_IO
++#ifndef GENERIC_SEGMENT_CHECKS
++/*
++ * Performs necessary checks before doing a write
++ * @iov:	io vector request
++ * @nr_segs:	number of segments in the iovec
++ * @count:	number of bytes to write
++ * @access_flags: type of access: %VERIFY_READ or %VERIFY_WRITE
++ *
++ * Adjust number of segments and amount of bytes to write (nr_segs should be
++ * properly initialized first). Returns appropriate error code that caller
++ * should return or zero in case that write should be allowed.
++ */
++int generic_segment_checks(const struct iovec *iov,
++			unsigned long *nr_segs, size_t *count, int access_flags)
++{
++	unsigned long   seg;
++	size_t cnt = 0;
++	for (seg = 0; seg < *nr_segs; seg++) {
++		const struct iovec *iv = &iov[seg];
++
++		/*
++		 * If any segment has a negative length, or the cumulative
++		 * length ever wraps negative then return -EINVAL.
++		 */
++		cnt += iv->iov_len;
++		if (unlikely((ssize_t)(cnt|iv->iov_len) < 0))
++			return -EINVAL;
++		if (access_ok(access_flags, iv->iov_base, iv->iov_len))
++			continue;
++		if (seg == 0)
++			return -EFAULT;
++		*nr_segs = seg;
++		cnt -= iv->iov_len;	/* This segment is no good */
++		break;
++	}
++	*count = cnt;
 +	return 0;
++}
 +#endif
- }
- 
- /* Setup a Bio to cover I/O against num_slots slots starting at
++
+ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
+ 					 loff_t *ppos,
+ 					 size_t count,
 -- 
 1.5.2.5
