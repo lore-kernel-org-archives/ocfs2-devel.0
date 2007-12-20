@@ -1,444 +1,394 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Dec 20 16:55:54 2007
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: add flock lock type
-Message-ID: <20071221005542.GK13821@ca-server1.us.oracle.com>
+Date: Thu Dec 20 16:55:57 2007
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: cluster aware flock()
+Message-ID: <20071221005548.GL13821@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This adds a new dlmglue lock type which is intended to back flock()
-requests.
-
-Since these locks are driven from userspace, usage rules are much more
-liberal than the typical Ocfs2 internal cluster lock. As a result, we can't
-make use of most dlmglue features - lock caching and lock level
-optimizations in particular. Additionally, userspace is free to deadlock
-itself, so we have to deal with that in the same way as the rest of the
-kernel - by allowing a signal to abort a lock request.
-
-In order to keep ocfs2_cluster_lock() complexity down, ocfs2_file_lock()
-does it's own dlm coordination. We still use the same helper functions
-though, so duplicated code is kept to a minimum.
+Hook up ocfs2_flock(), using the new flock lock type in dlmglue.c. A new
+mount option, "localflocks" is added so that users can revert to old
+functionality as need be.
 
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dlmglue.c      |  267 +++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/dlmglue.h      |    5 +
- fs/ocfs2/file.h         |    6 +
- fs/ocfs2/ocfs2.h        |    1 +
- fs/ocfs2/ocfs2_lockid.h |    5 +
- 5 files changed, 284 insertions(+), 0 deletions(-)
+ Documentation/filesystems/ocfs2.txt |    1 +
+ fs/ocfs2/Makefile                   |    1 +
+ fs/ocfs2/file.c                     |   60 ++++++++++++++++-
+ fs/ocfs2/locks.c                    |  125 +++++++++++++++++++++++++++++++++++
+ fs/ocfs2/locks.h                    |   31 +++++++++
+ fs/ocfs2/ocfs2.h                    |    1 +
+ fs/ocfs2/super.c                    |   19 +++++
+ 7 files changed, 237 insertions(+), 1 deletions(-)
+ create mode 100644 fs/ocfs2/locks.c
+ create mode 100644 fs/ocfs2/locks.h
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 4e97dcc..2a17305 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -69,6 +69,7 @@ struct ocfs2_mask_waiter {
+diff --git a/Documentation/filesystems/ocfs2.txt b/Documentation/filesystems/ocfs2.txt
+index ed55238..81007e8 100644
+--- a/Documentation/filesystems/ocfs2.txt
++++ b/Documentation/filesystems/ocfs2.txt
+@@ -62,3 +62,4 @@ data=writeback		Data ordering is not preserved, data may be written
+ preferred_slot=0(*)	During mount, try to use this filesystem slot first. If
+ 			it is in use by another node, the first empty one found
+ 			will be chosen. Invalid values will be ignored.
++localflocks		This disables cluster aware flock.
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index 9fb8132..c268c91 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -19,6 +19,7 @@ ocfs2-objs := \
+ 	ioctl.o 		\
+ 	journal.o 		\
+ 	localalloc.o 		\
++	locks.o			\
+ 	mmap.o 			\
+ 	namei.o 		\
+ 	slot_map.o 		\
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index b75b2e1..67a7cfc 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -51,6 +51,7 @@
+ #include "inode.h"
+ #include "ioctl.h"
+ #include "journal.h"
++#include "locks.h"
+ #include "mmap.h"
+ #include "suballoc.h"
+ #include "super.h"
+@@ -63,6 +64,35 @@ static int ocfs2_sync_inode(struct inode *inode)
+ 	return sync_mapping_buffers(inode->i_mapping);
+ }
  
- static struct ocfs2_super *ocfs2_get_dentry_osb(struct ocfs2_lock_res *lockres);
- static struct ocfs2_super *ocfs2_get_inode_osb(struct ocfs2_lock_res *lockres);
-+static struct ocfs2_super *ocfs2_get_file_osb(struct ocfs2_lock_res *lockres);
++static int ocfs2_init_file_private(struct inode *inode, struct file *file)
++{
++	struct ocfs2_file_private *fp;
++
++	fp = kzalloc(sizeof(struct ocfs2_file_private), GFP_KERNEL);
++	if (!fp)
++		return -ENOMEM;
++
++	fp->fp_file = file;
++	mutex_init(&fp->fp_mutex);
++	ocfs2_file_lock_res_init(&fp->fp_flock, fp);
++	file->private_data = fp;
++
++	return 0;
++}
++
++static void ocfs2_free_file_private(struct inode *inode, struct file *file)
++{
++	struct ocfs2_file_private *fp = file->private_data;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++
++	if (fp) {
++		ocfs2_simple_drop_lockres(osb, &fp->fp_flock);
++		ocfs2_lock_res_free(&fp->fp_flock);
++		kfree(fp);
++		file->private_data = NULL;
++	}
++}
++
+ static int ocfs2_file_open(struct inode *inode, struct file *file)
+ {
+ 	int status;
+@@ -89,7 +119,18 @@ static int ocfs2_file_open(struct inode *inode, struct file *file)
  
- /*
-  * Return value from ->downconvert_worker functions.
-@@ -258,6 +259,11 @@ static struct ocfs2_lock_res_ops ocfs2_inode_open_lops = {
- 	.flags		= 0,
+ 	oi->ip_open_count++;
+ 	spin_unlock(&oi->ip_lock);
+-	status = 0;
++
++	status = ocfs2_init_file_private(inode, file);
++	if (status) {
++		/*
++		 * We want to set open count back if we're failing the
++		 * open.
++		 */
++		spin_lock(&oi->ip_lock);
++		oi->ip_open_count--;
++		spin_unlock(&oi->ip_lock);
++	}
++
+ leave:
+ 	mlog_exit(status);
+ 	return status;
+@@ -108,11 +149,24 @@ static int ocfs2_file_release(struct inode *inode, struct file *file)
+ 		oi->ip_flags &= ~OCFS2_INODE_OPEN_DIRECT;
+ 	spin_unlock(&oi->ip_lock);
+ 
++	ocfs2_free_file_private(inode, file);
++
+ 	mlog_exit(0);
+ 
+ 	return 0;
+ }
+ 
++static int ocfs2_dir_open(struct inode *inode, struct file *file)
++{
++	return ocfs2_init_file_private(inode, file);
++}
++
++static int ocfs2_dir_release(struct inode *inode, struct file *file)
++{
++	ocfs2_free_file_private(inode, file);
++	return 0;
++}
++
+ static int ocfs2_sync_file(struct file *file,
+ 			   struct dentry *dentry,
+ 			   int datasync)
+@@ -2216,6 +2270,7 @@ const struct file_operations ocfs2_fops = {
+ #ifdef CONFIG_COMPAT
+ 	.compat_ioctl   = ocfs2_compat_ioctl,
+ #endif
++	.flock		= ocfs2_flock,
+ 	.splice_read	= ocfs2_file_splice_read,
+ 	.splice_write	= ocfs2_file_splice_write,
  };
- 
-+static struct ocfs2_lock_res_ops ocfs2_flock_lops = {
-+	.get_osb	= ocfs2_get_file_osb,
-+	.flags		= 0,
-+};
+@@ -2224,8 +2279,11 @@ const struct file_operations ocfs2_dops = {
+ 	.read		= generic_read_dir,
+ 	.readdir	= ocfs2_readdir,
+ 	.fsync		= ocfs2_sync_file,
++	.release	= ocfs2_dir_release,
++	.open		= ocfs2_dir_open,
+ 	.ioctl		= ocfs2_ioctl,
+ #ifdef CONFIG_COMPAT
+ 	.compat_ioctl   = ocfs2_compat_ioctl,
+ #endif
++	.flock		= ocfs2_flock,
+ };
+diff --git a/fs/ocfs2/locks.c b/fs/ocfs2/locks.c
+new file mode 100644
+index 0000000..203f871
+--- /dev/null
++++ b/fs/ocfs2/locks.c
+@@ -0,0 +1,125 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * locks.c
++ *
++ * Userspace file locking support
++ *
++ * Copyright (C) 2007 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public
++ * License along with this program; if not, write to the
++ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++ * Boston, MA 021110-1307, USA.
++ */
 +
- static inline int ocfs2_is_inode_lock(struct ocfs2_lock_res *lockres)
- {
- 	return lockres->l_type == OCFS2_LOCK_TYPE_META ||
-@@ -316,6 +322,17 @@ static int ocfs2_meta_lock_update(struct inode *inode,
- 				  struct buffer_head **bh);
- static void ocfs2_drop_osb_locks(struct ocfs2_super *osb);
- static inline int ocfs2_highest_compat_lock_level(int level);
-+static void ocfs2_prepare_downconvert(struct ocfs2_lock_res *lockres,
-+				      int new_level);
-+static int ocfs2_downconvert_lock(struct ocfs2_super *osb,
-+				  struct ocfs2_lock_res *lockres,
-+				  int new_level,
-+				  int lvb);
-+static int ocfs2_prepare_cancel_convert(struct ocfs2_super *osb,
-+				        struct ocfs2_lock_res *lockres);
-+static int ocfs2_cancel_convert(struct ocfs2_super *osb,
-+				struct ocfs2_lock_res *lockres);
++#include <linux/fs.h>
 +
- 
- static void ocfs2_build_lock_name(enum ocfs2_lock_type type,
- 				  u64 blkno,
-@@ -428,6 +445,13 @@ static struct ocfs2_super *ocfs2_get_inode_osb(struct ocfs2_lock_res *lockres)
- 	return OCFS2_SB(inode->i_sb);
- }
- 
-+static struct ocfs2_super *ocfs2_get_file_osb(struct ocfs2_lock_res *lockres)
++#define MLOG_MASK_PREFIX ML_INODE
++#include <cluster/masklog.h>
++
++#include "ocfs2.h"
++
++#include "dlmglue.h"
++#include "file.h"
++#include "locks.h"
++
++static int ocfs2_do_flock(struct file *file, struct inode *inode,
++			  int cmd, struct file_lock *fl)
 +{
-+	struct ocfs2_file_private *fp = lockres->l_priv;
++	int ret = 0, level = 0, trylock = 0;
++	struct ocfs2_file_private *fp = file->private_data;
++	struct ocfs2_lock_res *lockres = &fp->fp_flock;
 +
-+	return OCFS2_SB(fp->fp_file->f_mapping->host->i_sb);
-+}
++	if (fl->fl_type == F_WRLCK)
++		level = 1;
++	if (!IS_SETLKW(cmd))
++		trylock = 1;
 +
- static __u64 ocfs2_get_dentry_lock_ino(struct ocfs2_lock_res *lockres)
- {
- 	__be64 inode_blkno_be;
-@@ -508,6 +532,21 @@ static void ocfs2_rename_lock_res_init(struct ocfs2_lock_res *res,
- 				   &ocfs2_rename_lops, osb);
- }
- 
-+void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
-+			      struct ocfs2_file_private *fp)
-+{
-+	struct inode *inode = fp->fp_file->f_mapping->host;
-+	struct ocfs2_inode_info *oi = OCFS2_I(inode);
++	mutex_lock(&fp->fp_mutex);
 +
-+	ocfs2_lock_res_init_once(lockres);
-+	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_FLOCK, oi->ip_blkno,
-+			      inode->i_generation, lockres->l_name);
-+	ocfs2_lock_res_init_common(OCFS2_SB(inode->i_sb), lockres,
-+				   OCFS2_LOCK_TYPE_FLOCK, &ocfs2_flock_lops,
-+				   fp);
-+	lockres->l_flags |= OCFS2_LOCK_NOCACHE;
-+}
++	if (lockres->l_flags & OCFS2_LOCK_ATTACHED &&
++	    lockres->l_level > LKM_NLMODE) {
++		int old_level = 0;
 +
- void ocfs2_lock_res_free(struct ocfs2_lock_res *res)
- {
- 	mlog_entry_void();
-@@ -724,6 +763,13 @@ static void ocfs2_blocking_ast(void *opaque, int level)
- 	     lockres->l_name, level, lockres->l_level,
- 	     ocfs2_lock_type_string(lockres->l_type));
- 
-+	/*
-+	 * We can skip the bast for locks which don't enable caching -
-+	 * they'll be dropped at the earliest possible time anyway.
-+	 */
-+	if (lockres->l_flags & OCFS2_LOCK_NOCACHE)
-+		return;
++		if (lockres->l_level == LKM_EXMODE)
++			old_level = 1;
 +
- 	spin_lock_irqsave(&lockres->l_lock, flags);
- 	needs_downconvert = ocfs2_generic_handle_bast(lockres, level);
- 	if (needs_downconvert)
-@@ -935,6 +981,21 @@ static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
- 
- }
- 
-+static int ocfs2_wait_for_mask_interruptible(struct ocfs2_mask_waiter *mw,
-+					     struct ocfs2_lock_res *lockres)
-+{
-+	int ret;
++		if (level == old_level)
++			goto out;
 +
-+	ret = wait_for_completion_interruptible(&mw->mw_complete);
-+	if (ret)
-+		lockres_remove_mask_waiter(lockres, mw);
-+	else
-+		ret = mw->mw_status;
-+	/* Re-arm the completion in case we want to wait on it again */
-+	INIT_COMPLETION(mw->mw_complete);
++		/*
++		 * Converting an existing lock is not guaranteed to be
++		 * atomic, so we can get away with simply unlocking
++		 * here and allowing the lock code to try at the new
++		 * level.
++		 */
++
++		flock_lock_file_wait(file,
++				     &(struct file_lock){.fl_type = F_UNLCK});
++
++		ocfs2_file_unlock(file);
++	}
++
++	ret = ocfs2_file_lock(file, level, trylock);
++	if (ret) {
++		if (ret == -EAGAIN && trylock)
++			ret = -EWOULDBLOCK;
++		else
++			mlog_errno(ret);
++		goto out;
++	}
++
++	ret = flock_lock_file_wait(file, fl);
++
++out:
++	mutex_unlock(&fp->fp_mutex);
++
 +	return ret;
 +}
 +
- static int ocfs2_cluster_lock(struct ocfs2_super *osb,
- 			      struct ocfs2_lock_res *lockres,
- 			      int level,
-@@ -1372,6 +1433,212 @@ int ocfs2_data_lock_with_page(struct inode *inode,
- 	return ret;
- }
- 
-+static int ocfs2_flock_handle_signal(struct ocfs2_lock_res *lockres,
-+				     int level)
++static int ocfs2_do_funlock(struct file *file, int cmd, struct file_lock *fl)
 +{
 +	int ret;
-+	struct ocfs2_super *osb = ocfs2_get_lockres_osb(lockres);
-+	unsigned long flags;
-+	struct ocfs2_mask_waiter mw;
++	struct ocfs2_file_private *fp = file->private_data;
 +
-+	ocfs2_init_mask_waiter(&mw);
++	mutex_lock(&fp->fp_mutex);
++	ocfs2_file_unlock(file);
++	ret = flock_lock_file_wait(file, fl);
++	mutex_unlock(&fp->fp_mutex);
 +
-+retry_cancel:
-+	spin_lock_irqsave(&lockres->l_lock, flags);
-+	if (lockres->l_flags & OCFS2_LOCK_BUSY) {
-+		ret = ocfs2_prepare_cancel_convert(osb, lockres);
-+		if (ret) {
-+			spin_unlock_irqrestore(&lockres->l_lock, flags);
-+			ret = ocfs2_cancel_convert(osb, lockres);
-+			if (ret < 0) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+			goto retry_cancel;
-+		}
-+		lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BUSY, 0);
-+		spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+		ocfs2_wait_for_mask(&mw);
-+		goto retry_cancel;
-+	}
-+
-+	ret = -ERESTARTSYS;
-+	/*
-+	 * We may still have gotten the lock, in which case there's no
-+	 * point to restarting the syscall.
-+	 */
-+	if (lockres->l_level == level)
-+		ret = 0;
-+
-+	mlog(0, "Cancel returning %d. flags: 0x%lx, level: %d, act: %d\n", ret,
-+	     lockres->l_flags, lockres->l_level, lockres->l_action);
-+
-+	spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+out:
 +	return ret;
 +}
 +
 +/*
-+ * ocfs2_file_lock() and ocfs2_file_unlock() map to a single pair of
-+ * flock() calls. The locking approach this requires is sufficiently
-+ * different from all other cluster lock types that we implement a
-+ * seperate path to the "low-level" dlm calls. In particular:
-+ *
-+ * - No optimization of lock levels is done - we take at exactly
-+ *   what's been requested.
-+ *
-+ * - No lock caching is employed. We immediately downconvert to
-+ *   no-lock at unlock time. This also means flock locks never go on
-+ *   the blocking list).
-+ *
-+ * - Since userspace can trivially deadlock itself with flock, we make
-+ *   sure to allow cancellation of a misbehaving applications flock()
-+ *   request.
-+ *
-+ * - Access to any flock lockres doesn't require concurrency, so we
-+ *   can simplify the code by requiring the caller to guarantee
-+ *   serialization of dlmglue flock calls.
++ * Overall flow of ocfs2_flock() was influenced by gfs2_flock().
 + */
-+int ocfs2_file_lock(struct file *file, int ex, int trylock)
++int ocfs2_flock(struct file *file, int cmd, struct file_lock *fl)
 +{
-+	int ret, level = ex ? LKM_EXMODE : LKM_PRMODE;
-+	unsigned int lkm_flags = trylock ? LKM_NOQUEUE : 0;
-+	unsigned long flags;
-+	struct ocfs2_file_private *fp = file->private_data;
-+	struct ocfs2_lock_res *lockres = &fp->fp_flock;
-+	struct ocfs2_super *osb = OCFS2_SB(file->f_mapping->host->i_sb);
-+	struct ocfs2_mask_waiter mw;
++	struct inode *inode = file->f_mapping->host;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
 +
-+	ocfs2_init_mask_waiter(&mw);
++	if (!(fl->fl_flags & FL_FLOCK))
++		return -ENOLCK;
++	if (__mandatory_lock(inode))
++		return -ENOLCK;
 +
-+	if ((lockres->l_flags & OCFS2_LOCK_BUSY) ||
-+	    (lockres->l_level > LKM_NLMODE)) {
-+		mlog(ML_ERROR,
-+		     "File lock \"%s\" has busy or locked state: flags: 0x%lx, "
-+		     "level: %u\n", lockres->l_name, lockres->l_flags,
-+		     lockres->l_level);
-+		return -EINVAL;
-+	}
++	if ((osb->s_mount_opt & OCFS2_MOUNT_LOCALFLOCKS) ||
++	    ocfs2_mount_local(osb))
++		return flock_lock_file_wait(file, fl);
 +
-+	spin_lock_irqsave(&lockres->l_lock, flags);
-+	if (!(lockres->l_flags & OCFS2_LOCK_ATTACHED)) {
-+		lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BUSY, 0);
-+		spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+		/*
-+		 * Get the lock at NLMODE to start - that way we
-+		 * can cancel the upconvert request if need be.
-+		 */
-+		ret = ocfs2_lock_create(osb, lockres, LKM_NLMODE, 0);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		ret = ocfs2_wait_for_mask(&mw);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+		spin_lock_irqsave(&lockres->l_lock, flags);
-+	}
-+
-+	lockres->l_action = OCFS2_AST_CONVERT;
-+	lkm_flags |= LKM_CONVERT;
-+	lockres->l_requested = level;
-+	lockres_or_flags(lockres, OCFS2_LOCK_BUSY);
-+
-+	lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BUSY, 0);
-+	spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+	ret = dlmlock(osb->dlm, level, &lockres->l_lksb, lkm_flags,
-+		      lockres->l_name, OCFS2_LOCK_ID_MAX_LEN - 1,
-+		      ocfs2_locking_ast, lockres, ocfs2_blocking_ast);
-+	if (ret != DLM_NORMAL) {
-+		if (trylock && ret == DLM_NOTQUEUED)
-+			ret = -EAGAIN;
-+		else {
-+			ocfs2_log_dlm_error("dlmlock", ret, lockres);
-+			ret = -EINVAL;
-+		}
-+
-+		ocfs2_recover_from_dlm_error(lockres, 1);
-+		lockres_remove_mask_waiter(lockres, &mw);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_wait_for_mask_interruptible(&mw, lockres);
-+	if (ret == -ERESTARTSYS) {
-+		/*
-+		 * Userspace can cause deadlock itself with
-+		 * flock(). Current behavior locally is to allow the
-+		 * deadlock, but abort the system call if a signal is
-+		 * received. We follow this example, otherwise a
-+		 * poorly written program could sit in kernel until
-+		 * reboot.
-+		 *
-+		 * Handling this is a bit more complicated for Ocfs2
-+		 * though. We can't exit this function with an
-+		 * outstanding lock request, so a cancel convert is
-+		 * required. We intentionally overwrite 'ret' - if the
-+		 * cancel fails and the lock was granted, it's easier
-+		 * to just bubble sucess back up to the user.
-+		 */
-+		ret = ocfs2_flock_handle_signal(lockres, level);
-+	}
-+
-+out:
-+
-+	mlog(0, "Lock: \"%s\" ex: %d, trylock: %d, returns: %d\n",
-+	     lockres->l_name, ex, trylock, ret);
-+	return ret;
++	if (fl->fl_type == F_UNLCK)
++		return ocfs2_do_funlock(file, cmd, fl);
++	else
++		return ocfs2_do_flock(file, inode, cmd, fl);
 +}
+diff --git a/fs/ocfs2/locks.h b/fs/ocfs2/locks.h
+new file mode 100644
+index 0000000..9743ef2
+--- /dev/null
++++ b/fs/ocfs2/locks.h
+@@ -0,0 +1,31 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * locks.h
++ *
++ * Function prototypes for Userspace file locking support
++ *
++ * Copyright (C) 2002, 2004 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public
++ * License along with this program; if not, write to the
++ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++ * Boston, MA 021110-1307, USA.
++ */
 +
-+void ocfs2_file_unlock(struct file *file)
-+{
-+	int ret;
-+	unsigned long flags;
-+	struct ocfs2_file_private *fp = file->private_data;
-+	struct ocfs2_lock_res *lockres = &fp->fp_flock;
-+	struct ocfs2_super *osb = OCFS2_SB(file->f_mapping->host->i_sb);
-+	struct ocfs2_mask_waiter mw;
++#ifndef OCFS2_LOCKS_H
++#define OCFS2_LOCKS_H
 +
-+	ocfs2_init_mask_waiter(&mw);
++int ocfs2_flock(struct file *file, int cmd, struct file_lock *fl);
 +
-+	if (!(lockres->l_flags & OCFS2_LOCK_ATTACHED))
-+		return;
-+
-+	if (lockres->l_level == LKM_NLMODE)
-+		return;
-+
-+	mlog(0, "Unlock: \"%s\" flags: 0x%lx, level: %d, act: %d\n",
-+	     lockres->l_name, lockres->l_flags, lockres->l_level,
-+	     lockres->l_action);
-+
-+	spin_lock_irqsave(&lockres->l_lock, flags);
-+	/*
-+	 * Fake a blocking ast for the downconvert code.
-+	 */
-+	lockres_or_flags(lockres, OCFS2_LOCK_BLOCKED);
-+	lockres->l_blocking = LKM_EXMODE;
-+
-+	ocfs2_prepare_downconvert(lockres, LKM_NLMODE);
-+	lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BUSY, 0);
-+	spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+	ret = ocfs2_downconvert_lock(osb, lockres, LKM_NLMODE, 0);
-+	if (ret) {
-+		mlog_errno(ret);
-+		return;
-+	}
-+
-+	ret = ocfs2_wait_for_mask(&mw);
-+	if (ret)
-+		mlog_errno(ret);
-+}
-+
- static void ocfs2_vote_on_unlock(struct ocfs2_super *osb,
- 				 struct ocfs2_lock_res *lockres)
- {
-diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-index 87a785e..5a58f8b 100644
---- a/fs/ocfs2/dlmglue.h
-+++ b/fs/ocfs2/dlmglue.h
-@@ -66,6 +66,9 @@ void ocfs2_inode_lock_res_init(struct ocfs2_lock_res *res,
- 			       struct inode *inode);
- void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
- 				u64 parent, struct inode *inode);
-+struct ocfs2_file_private;
-+void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
-+			      struct ocfs2_file_private *fp);
- void ocfs2_lock_res_free(struct ocfs2_lock_res *res);
- int ocfs2_create_new_inode_locks(struct inode *inode);
- int ocfs2_drop_inode_locks(struct inode *inode);
-@@ -107,6 +110,8 @@ int ocfs2_rename_lock(struct ocfs2_super *osb);
- void ocfs2_rename_unlock(struct ocfs2_super *osb);
- int ocfs2_dentry_lock(struct dentry *dentry, int ex);
- void ocfs2_dentry_unlock(struct dentry *dentry, int ex);
-+int ocfs2_file_lock(struct file *file, int ex, int trylock);
-+void ocfs2_file_unlock(struct file *file);
- 
- void ocfs2_mark_lockres_freeing(struct ocfs2_lock_res *lockres);
- void ocfs2_simple_drop_lockres(struct ocfs2_super *osb,
-diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
-index 066f14a..048ddca 100644
---- a/fs/ocfs2/file.h
-+++ b/fs/ocfs2/file.h
-@@ -32,6 +32,12 @@ extern const struct inode_operations ocfs2_file_iops;
- extern const struct inode_operations ocfs2_special_file_iops;
- struct ocfs2_alloc_context;
- 
-+struct ocfs2_file_private {
-+	struct file		*fp_file;
-+	struct mutex		fp_mutex;
-+	struct ocfs2_lock_res	fp_flock;
-+};
-+
- enum ocfs2_alloc_restarted {
- 	RESTART_NONE = 0,
- 	RESTART_TRANS,
++#endif /* OCFS2_LOCKS_H */
 diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 60a23e1..9c34b83 100644
+index 9c34b83..f653995 100644
 --- a/fs/ocfs2/ocfs2.h
 +++ b/fs/ocfs2/ocfs2.h
-@@ -101,6 +101,7 @@ enum ocfs2_unlock_action {
- 					       * about to be
- 					       * dropped. */
- #define OCFS2_LOCK_QUEUED        (0x00000100) /* queued for downconvert */
-+#define OCFS2_LOCK_NOCACHE       (0x00000200) /* don't use a holder count */
- 
- struct ocfs2_lock_res_ops;
- 
-diff --git a/fs/ocfs2/ocfs2_lockid.h b/fs/ocfs2/ocfs2_lockid.h
-index 4ca02b1..86f3e37 100644
---- a/fs/ocfs2/ocfs2_lockid.h
-+++ b/fs/ocfs2/ocfs2_lockid.h
-@@ -45,6 +45,7 @@ enum ocfs2_lock_type {
- 	OCFS2_LOCK_TYPE_RW,
- 	OCFS2_LOCK_TYPE_DENTRY,
- 	OCFS2_LOCK_TYPE_OPEN,
-+	OCFS2_LOCK_TYPE_FLOCK,
- 	OCFS2_NUM_LOCK_TYPES
+@@ -171,6 +171,7 @@ enum ocfs2_mount_options
+ 	OCFS2_MOUNT_NOINTR  = 1 << 2,   /* Don't catch signals */
+ 	OCFS2_MOUNT_ERRORS_PANIC = 1 << 3, /* Panic on errors */
+ 	OCFS2_MOUNT_DATA_WRITEBACK = 1 << 4, /* No data ordering */
++	OCFS2_MOUNT_LOCALFLOCKS = 1 << 5, /* No cluster aware user file locks */
  };
  
-@@ -73,6 +74,9 @@ static inline char ocfs2_lock_type_char(enum ocfs2_lock_type type)
- 		case OCFS2_LOCK_TYPE_OPEN:
- 			c = 'O';
+ #define OCFS2_OSB_SOFT_RO	0x0001
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 5ee7754..edb1241 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -150,6 +150,7 @@ enum {
+ 	Opt_data_writeback,
+ 	Opt_atime_quantum,
+ 	Opt_slot,
++	Opt_localflocks,
+ 	Opt_err,
+ };
+ 
+@@ -165,6 +166,7 @@ static match_table_t tokens = {
+ 	{Opt_data_writeback, "data=writeback"},
+ 	{Opt_atime_quantum, "atime_quantum=%u"},
+ 	{Opt_slot, "preferred_slot=%u"},
++	{Opt_localflocks, "localflocks"},
+ 	{Opt_err, NULL}
+ };
+ 
+@@ -816,6 +818,20 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 			if (option)
+ 				mopt->slot = (s16)option;
  			break;
-+		case OCFS2_LOCK_TYPE_FLOCK:
-+			c = 'F';
++		case Opt_localflocks:
++			/*
++			 * Changing this during remount could race
++			 * flock() requests, or "unbalance" existing
++			 * ones (e.g., a lock is taken in one mode but
++			 * dropped in the other). If users care enough
++			 * to flip locking modes during remount, we
++			 * could add a "local" flag to individual
++			 * flock structures for proper tracking of
++			 * state.
++			 */
++			if (!is_remount)
++				mopt->mount_opt |= OCFS2_MOUNT_LOCALFLOCKS;
 +			break;
  		default:
- 			c = '\0';
- 	}
-@@ -90,6 +94,7 @@ static char *ocfs2_lock_type_strings[] = {
- 	[OCFS2_LOCK_TYPE_RW] = "Write/Read",
- 	[OCFS2_LOCK_TYPE_DENTRY] = "Dentry",
- 	[OCFS2_LOCK_TYPE_OPEN] = "Open",
-+	[OCFS2_LOCK_TYPE_FLOCK] = "Flock",
- };
+ 			mlog(ML_ERROR,
+ 			     "Unrecognized mount option \"%s\" "
+@@ -864,6 +880,9 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
+ 	if (osb->s_atime_quantum != OCFS2_DEFAULT_ATIME_QUANTUM)
+ 		seq_printf(s, ",atime_quantum=%u", osb->s_atime_quantum);
  
- static inline const char *ocfs2_lock_type_string(enum ocfs2_lock_type type)
++	if (opts & OCFS2_MOUNT_LOCALFLOCKS)
++		seq_printf(s, ",localflocks,");
++
+ 	return 0;
+ }
+ 
 -- 
 1.5.3.6
