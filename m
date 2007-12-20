@@ -1,182 +1,99 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu Dec 20 15:29:56 2007
-Subject: [Ocfs2-devel] [PATCH 06/30] ocfs2: Include do_sync_mapping_range()
-	from mainline
+Date: Thu Dec 20 15:29:57 2007
+Subject: [Ocfs2-devel] [PATCH 29/30] ocfs2: Handle older prototype of
+	bi_end_io_t
 In-Reply-To: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1198193387-16606-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1198193387-16606-28-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 5b04aa3a64f854244bc40a6f528176ed50b5c4f6 introduced export symbol
-do_sync_mapping_range(). This patch allows one to build ocfs2 with kernels
-having/not having that change.
+Commit 6712ecf8f648118c3363c142196418f89a510b90 in mainline
+dropped 'size' argument from bi_end_io(). This patch allows
+one to build ocfs2 with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Config.make.in    |    2 +
- configure.in      |    5 +++
- fs/ocfs2/Makefile |    4 ++
- fs/ocfs2/alloc.c  |   93 +++++++++++++++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 104 insertions(+), 0 deletions(-)
+ Config.make.in               |    1 +
+ configure.in                 |    5 +++++
+ fs/ocfs2/cluster/Makefile    |    4 ++++
+ fs/ocfs2/cluster/heartbeat.c |    9 +++++++++
+ 4 files changed, 19 insertions(+), 0 deletions(-)
 
 diff --git a/Config.make.in b/Config.make.in
-index befeb79..1fe7ddc 100644
+index 89c1e94..f22473c 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -59,6 +59,8 @@ EXTRA_CFLAGS += @KAPI_COMPAT_CFLAGS@
+@@ -73,6 +73,7 @@ SOP_IS_CONST = @SOP_IS_CONST@
+ IOP_IS_CONST = @IOP_IS_CONST@
+ VECTORED_FILE_AIO = @VECTORED_FILE_AIO@
+ SPLICE_FROM_PIPE = @SPLICE_FROM_PIPE@
++OLD_BIO_END_IO = @OLD_BIO_END_IO@
  
- DELAYED_WORK_DEFINED = @DELAYED_WORK_DEFINED@
- 
-+HAS_SYNC_MAPPING_RANGE  = @HAS_SYNC_MAPPING_RANGE@
-+
  OCFS_DEBUG = @OCFS_DEBUG@
  
- ifneq ($(OCFS_DEBUG),)
 diff --git a/configure.in b/configure.in
-index 47b0da0..603dc94 100644
+index 021b925..60fd68f 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -172,6 +172,11 @@ OCFS2_CHECK_KERNEL([zero_user_page() in highmem.h], highmem.h,
-   , highmem_compat_header="highmem.h", [zero_user_page])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $highmem_compat_header"
+@@ -292,6 +292,11 @@ OCFS2_CHECK_KERNEL([__splice_from_pipe() in splice.h], splice.h,
+   SPLICE_FROM_PIPE=yes, , [^extern ssize_t __splice_from_pipe(struct pipe_inode_info \*])
+ AC_SUBST(SPLICE_FROM_PIPE)
  
-+HAS_SYNC_MAPPING_RANGE=
-+OCFS2_CHECK_KERNEL([do_sync_mapping_range() in fs.h], fs.h,
-+  HAS_SYNC_MAPPING_RANGE=yes, , [do_sync_mapping_range(])
-+AC_SUBST(HAS_SYNC_MAPPING_RANGE)
++OLD_BIO_END_IO=
++OCFS2_CHECK_KERNEL([old bio_end_io_t in bio.h], bio.h,
++  OLD_BIO_END_IO=yes, , [^typedef int (bio_end_io_t) (struct bio \*, unsigned int, int);])
++AC_SUBST(OLD_BIO_END_IO)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 0edfed7..3dc33a5 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -29,6 +29,10 @@ ifdef DELAYED_WORK_DEFINED
- EXTRA_CFLAGS += -DDELAYED_WORK_DEFINED
+diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
+index ff57486..ccbddd0 100644
+--- a/fs/ocfs2/cluster/Makefile
++++ b/fs/ocfs2/cluster/Makefile
+@@ -29,6 +29,10 @@ ifdef STRUCT_SUBSYSTEM_DEFINED
+ EXTRA_CFLAGS += -DSTRUCT_SUBSYSTEM_DEFINED
  endif
  
-+ifdef HAS_SYNC_MAPPING_RANGE
-+EXTRA_CFLAGS += -DHAS_SYNC_MAPPING_RANGE
++ifdef OLD_BIO_END_IO
++EXTRA_CFLAGS += -DOLD_BIO_END_IO
 +endif
 +
- #
- # Since SUBDIRS means something to kbuild, define them safely.  Do not
- # include trailing slashes.
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 5a8a4f2..0cc4729 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -29,6 +29,11 @@
- #include <linux/highmem.h>
- #include <linux/swap.h>
- 
-+#ifndef HAS_SYNC_MAPPING_RANGE
-+#include <linux/writeback.h>
-+#include <linux/mpage.h>
-+#endif
-+
- #define MLOG_MASK_PREFIX ML_DISK_ALLOC
- #include <cluster/masklog.h>
- 
-@@ -5750,6 +5755,94 @@ out:
- 	return ret;
+ SOURCES =			\
+ 	heartbeat.c		\
+ 	masklog.c		\
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index e610665..b41a7fb 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -216,8 +216,14 @@ static void o2hb_wait_on_io(struct o2hb_region *reg,
+ 	wait_for_completion(&wc->wc_io_complete);
  }
  
-+#ifndef HAS_SYNC_MAPPING_RANGE
-+int do_writepages(struct address_space *mapping, struct writeback_control *wbc)
-+{
-+	int ret;
-+
-+	if (wbc->nr_to_write <= 0)
-+		return 0;
-+	wbc->for_writepages = 1;
-+	if (mapping->a_ops->writepages)
-+		ret = mapping->a_ops->writepages(mapping, wbc);
-+	else
-+		ret = generic_writepages(mapping, wbc);
-+	wbc->for_writepages = 0;
-+	return ret;
-+}
-+
-+/**
-+ * __filemap_fdatawrite_range - start writeback on mapping dirty pages in range
-+ * @mapping:	address space structure to write
-+ * @start:	offset in bytes where the range starts
-+ * @end:	offset in bytes where the range ends (inclusive)
-+ * @sync_mode:	enable synchronous operation
-+ *
-+ * Start writeback against all of a mapping's dirty pages that lie
-+ * within the byte offsets <start, end> inclusive.
-+ *
-+ * If sync_mode is WB_SYNC_ALL then this is a "data integrity" operation, as
-+ * opposed to a regular memory cleansing writeback.  The difference between
-+ * these two operations is that if a dirty page/buffer is encountered, it must
-+ * be waited upon, and not just skipped over.
-+ */
-+int __filemap_fdatawrite_range(struct address_space *mapping, loff_t start,
-+				loff_t end, int sync_mode)
-+{
-+	int ret;
-+	struct writeback_control wbc = {
-+		.sync_mode = sync_mode,
-+		.nr_to_write = mapping->nrpages * 2,
-+		.range_start = start,
-+		.range_end = end,
-+	};
-+
-+	if (!mapping_cap_writeback_dirty(mapping))
-+		return 0;
-+
-+	ret = do_writepages(mapping, &wbc);
-+	return ret;
-+}
-+
-+/*
-+ * `endbyte' is inclusive
-+ */
-+static int do_sync_mapping_range(struct address_space *mapping, loff_t offset,
-+				 loff_t endbyte, unsigned int flags)
-+{
-+	int ret;
-+
-+	if (!mapping) {
-+		ret = -EINVAL;
-+		goto out;
-+	}
-+
-+	ret = 0;
-+	if (flags & SYNC_FILE_RANGE_WAIT_BEFORE) {
-+		ret = wait_on_page_writeback_range(mapping,
-+					offset >> PAGE_CACHE_SHIFT,
-+					endbyte >> PAGE_CACHE_SHIFT);
-+		if (ret < 0)
-+			goto out;
-+	}
-+
-+	if (flags & SYNC_FILE_RANGE_WRITE) {
-+		ret = __filemap_fdatawrite_range(mapping, offset, endbyte,
-+						WB_SYNC_NONE);
-+		if (ret < 0)
-+			goto out;
-+	}
-+
-+	if (flags & SYNC_FILE_RANGE_WAIT_AFTER) {
-+		ret = wait_on_page_writeback_range(mapping,
-+					offset >> PAGE_CACHE_SHIFT,
-+					endbyte >> PAGE_CACHE_SHIFT);
-+	}
-+out:
-+	return ret;
-+}
++#ifdef OLD_BIO_END_IO
++static int o2hb_bio_end_io(struct bio *bio,
++			   unsigned int bytes_done,
++			   int error)
++#else
+ static void o2hb_bio_end_io(struct bio *bio,
+ 			   int error)
 +#endif
-+
- /*
-  * Zero the area past i_size but still within an allocated
-  * cluster. This avoids exposing nonzero data on subsequent file
+ {
+ 	struct o2hb_bio_wait_ctxt *wc = bio->bi_private;
+ 
+@@ -228,6 +234,9 @@ static void o2hb_bio_end_io(struct bio *bio,
+ 
+ 	o2hb_bio_wait_dec(wc, 1);
+ 	bio_put(bio);
++#ifdef OLD_BIO_END_IO
++	return 0;
++#endif
+ }
+ 
+ /* Setup a Bio to cover I/O against num_slots slots starting at
 -- 
 1.5.2.5
