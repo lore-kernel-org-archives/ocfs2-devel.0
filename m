@@ -1,120 +1,162 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Thu Dec 20 15:30:09 2007
-Subject: [Ocfs2-devel] [PATCH 16/30] ocfs2: Handle su_mutex in struct
-	configfs_subsystem
+Subject: [Ocfs2-devel] [PATCH 27/30] ocfs2: Handle missing vectorized
+	fileops aio_read() and aio_write()
 In-Reply-To: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1198193387-16606-15-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1198193387-16606-26-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit e6bd07aee739566803425acdbf5cdb29919164e1 in mainline changed a
-semaphore into a mutex in struct configfs_subsystem. This patch allows
-building ocfs2 with kernels having/not having this change.
+Commit 027445c37282bc1ed26add45e573ad2d3e4860a5 in mainline vectorized
+fileops aio_read() and aio_write(). This patch allows one to build ocfs2
+with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Config.make.in                 |    1 +
- Makefile                       |    3 ++-
- configure.in                   |    6 ++++++
- fs/ocfs2/cluster/Makefile      |    4 ++++
- fs/ocfs2/cluster/nodemanager.c |    2 +-
- kapi-compat/include/su_mutex.h |   13 +++++++++++++
- 6 files changed, 27 insertions(+), 2 deletions(-)
- create mode 100644 kapi-compat/include/su_mutex.h
+ Config.make.in    |    1 +
+ configure.in      |    5 +++++
+ fs/ocfs2/Makefile |    4 ++++
+ fs/ocfs2/file.c   |   33 +++++++++++++++++++++++++++++----
+ 4 files changed, 39 insertions(+), 4 deletions(-)
 
 diff --git a/Config.make.in b/Config.make.in
-index eb8671d..b7bd06b 100644
+index d4cd518..f99b9f4 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -63,6 +63,7 @@ HAS_SYNC_MAPPING_RANGE  = @HAS_SYNC_MAPPING_RANGE@
- HAS_F_PATH_DEFINED = @HAS_F_PATH_DEFINED@
- KMEM_CACHE_CREATE_DTOR = @KMEM_CACHE_CREATE_DTOR@
- REGISTER_SYSCTL_TWO_ARGS = @REGISTER_SYSCTL_TWO_ARGS@
-+SU_MUTEX_DEFINED = @SU_MUTEX_DEFINED@
+@@ -71,6 +71,7 @@ GENERIC_SEGMENT_CHECKS = @GENERIC_SEGMENT_CHECKS@
+ FAULT_IN_VMOPS = @FAULT_IN_VMOPS@
+ SOP_IS_CONST = @SOP_IS_CONST@
+ IOP_IS_CONST = @IOP_IS_CONST@
++VECTORED_FILE_AIO = @VECTORED_FILE_AIO@
  
  OCFS_DEBUG = @OCFS_DEBUG@
  
-diff --git a/Makefile b/Makefile
-index a9bfccb..9848c47 100644
---- a/Makefile
-+++ b/Makefile
-@@ -20,7 +20,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/fstype.h \
- 	kapi-compat/include/sysctl.h \
- 	kapi-compat/include/configfs.h \
--	kapi-compat/include/register_sysctl.h
-+	kapi-compat/include/register_sysctl.h \
-+	kapi-compat/include/su_mutex.h
- 
- PATCH_FILES =
- 
 diff --git a/configure.in b/configure.in
-index 04db94f..3d3c5da 100644
+index 8a23983..741dfdb 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -225,6 +225,12 @@ OCFS2_CHECK_KERNEL([register_sysctl() with two args in sysctl.h], sysctl.h,
- AC_SUBST(REGISTER_SYSCTL_TWO_ARGS)
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS register_sysctl.h"
+@@ -282,6 +282,11 @@ OCFS2_CHECK_KERNEL([i_op declared as const in struct inode in fs.h], fs.h,
+   IOP_IS_CONST=yes, , [^.*const struct inode_operations.*\*i_op;])
+ AC_SUBST(IOP_IS_CONST)
  
-+SU_MUTEX_DEFINED=
-+OCFS2_CHECK_KERNEL([su_mutex in struct configfs_subsystem in configfs.h], configfs.h,
-+  SU_MUTEX_DEFINED=yes, , [su_mutex])
-+AC_SUBST(SU_MUTEX_DEFINED)
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS su_mutex.h"
++VECTORED_FILE_AIO=
++OCFS2_CHECK_KERNEL([aio_read() in struct file_operations using iovec in fs.h], fs.h,
++  VECTORED_FILE_AIO=yes, , [ssize_t (\*aio_read) (struct kiocb \*, const struct iovec \*, unsigned long, loff_t);])
++AC_SUBST(VECTORED_FILE_AIO)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
-index 6c2f11b..1e69fef 100644
---- a/fs/ocfs2/cluster/Makefile
-+++ b/fs/ocfs2/cluster/Makefile
-@@ -21,6 +21,10 @@ ifdef REGISTER_SYSCTL_TWO_ARGS
- EXTRA_CFLAGS += -DREGISTER_SYSCTL_TWO_ARGS
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index 97912fd..80fd6c6 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -73,6 +73,10 @@ ifdef IOP_IS_CONST
+ EXTRA_CFLAGS += -DIOP_IS_CONST
  endif
  
-+ifdef SU_MUTEX_DEFINED
-+EXTRA_CFLAGS += -DSU_MUTEX_DEFINED
++ifdef VECTORED_FILE_AIO
++EXTRA_CFLAGS += -DVECTORED_FILE_AIO
 +endif
 +
- SOURCES =			\
- 	heartbeat.c		\
- 	masklog.c		\
-diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
-index 9fff881..ca142d0 100644
---- a/fs/ocfs2/cluster/nodemanager.c
-+++ b/fs/ocfs2/cluster/nodemanager.c
-@@ -974,7 +974,7 @@ static int __init init_o2nm(void)
- 		goto out_sysctl;
+ #
+ # Since SUBDIRS means something to kbuild, define them safely.  Do not
+ # include trailing slashes.
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index e74730d..1ee2a79 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2087,10 +2087,19 @@ out:
+ 	return total ? total : ret;
+ }
  
- 	config_group_init(&o2nm_cluster_group.cs_subsys.su_group);
--	mutex_init(&o2nm_cluster_group.cs_subsys.su_mutex);
-+	kapi_mutex_init(&o2nm_cluster_group.cs_subsys.su_mutex);
- 	ret = configfs_register_subsystem(&o2nm_cluster_group.cs_subsys);
- 	if (ret) {
- 		printk(KERN_ERR "nodemanager: Registration returned %d\n", ret);
-diff --git a/kapi-compat/include/su_mutex.h b/kapi-compat/include/su_mutex.h
-new file mode 100644
-index 0000000..1e633ed
---- /dev/null
-+++ b/kapi-compat/include/su_mutex.h
-@@ -0,0 +1,13 @@
-+#ifndef KAPI_SUMUTEX_H
-+#define KAPI_SUMUTEX_H
-+
-+#ifdef SU_MUTEX_DEFINED
-+# define kapi_mutex_init	mutex_init
-+# define su_mutex		su_mutex
++#ifdef VECTORED_FILE_AIO
++#define iocb_ki_left	iocb->ki_left
+ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
+ 				    const struct iovec *iov,
+ 				    unsigned long nr_segs,
+ 				    loff_t pos)
 +#else
-+# include "asm/semaphore.h"
-+# define kapi_mutex_init	init_MUTEX
-+# define su_mutex		su_sem
++#define iocb_ki_left	buflen
++static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
++				    const char __user *buf,
++				    size_t buflen,
++				    loff_t pos)
 +#endif
-+
+ {
+ 	int ret, direct_io, appending, rw_level, have_alloc_sem  = 0;
+ 	int can_do_direct, sync = 0;
+@@ -2100,13 +2109,19 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
+ 	loff_t *ppos = &iocb->ki_pos;
+ 	struct file *file = iocb->ki_filp;
+ 	struct inode *inode = file->f_path_dentry->d_inode;
++#ifndef VECTORED_FILE_AIO
++	struct iovec iov_local = { .iov_base = (void __user *)buf,
++				   .iov_len  = buflen };
++	const struct iovec *iov = &iov_local;
++	unsigned long nr_segs = 1;
 +#endif
+ 
+ 	mlog_entry("(0x%p, %u, '%.*s')\n", file,
+ 		   (unsigned int)nr_segs,
+ 		   file->f_path_dentry->d_name.len,
+ 		   file->f_path_dentry->d_name.name);
+ 
+-	if (iocb->ki_left == 0)
++	if (iocb_ki_left == 0)
+ 		return 0;
+ 
+ 	ret = generic_segment_checks(iov, &nr_segs, &ocount, VERIFY_READ);
+@@ -2139,7 +2154,7 @@ relock:
+ 
+ 	can_do_direct = direct_io;
+ 	ret = ocfs2_prepare_inode_for_write(file->f_path_dentry, ppos,
+-					    iocb->ki_left, appending,
++					    iocb_ki_left, appending,
+ 					    &can_do_direct);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+@@ -2392,17 +2407,23 @@ bail:
+ 	return ret;
+ }
+ 
++#ifdef VECTORED_FILE_AIO
+ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
+ 				   const struct iovec *iov,
+ 				   unsigned long nr_segs,
+ 				   loff_t pos)
++#else
++static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
++				   char __user *buf,
++				   size_t buflen,
++				   loff_t pos)
++#endif
+ {
+ 	int ret = 0, rw_level = -1, have_alloc_sem = 0, lock_level = 0;
+ 	struct file *filp = iocb->ki_filp;
+ 	struct inode *inode = filp->f_path_dentry->d_inode;
+ 
+-	mlog_entry("(0x%p, %u, '%.*s')\n", filp,
+-		   (unsigned int)nr_segs,
++	mlog_entry("(0x%p, '%.*s')\n", filp,
+ 		   filp->f_path_dentry->d_name.len,
+ 		   filp->f_path_dentry->d_name.name);
+ 
+@@ -2446,7 +2467,11 @@ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
+ 	}
+ 	ocfs2_meta_unlock(inode, lock_level);
+ 
++#ifdef VECTORED_FILE_AIO
+ 	ret = generic_file_aio_read(iocb, iov, nr_segs, iocb->ki_pos);
++#else
++	ret = generic_file_aio_read(iocb, buf, buflen, iocb->ki_pos);
++#endif
+ 	if (ret == -EINVAL)
+ 		mlog(ML_ERROR, "generic_file_aio_read returned -EINVAL\n");
+ 
 -- 
 1.5.2.5
