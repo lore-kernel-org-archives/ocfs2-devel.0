@@ -1,21 +1,20 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri Dec 21 11:55:54 2007
-Subject: [Ocfs2-devel] [PATCH 12/30] ocfs2: Define FS_RENAME_DOES_D_MOVE
-In-Reply-To: <1198193387-16606-11-git-send-email-sunil.mushran@oracle.com>
+Date: Fri Dec 21 11:57:53 2007
+Subject: [Ocfs2-devel] [PATCH 13/30] ocfs2: Handle enum value FS_OCFS2
+In-Reply-To: <1198193387-16606-12-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-	<1198193387-16606-11-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20071221195521.GG13171@mail.oracle.com>
+	<1198193387-16606-12-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20071221195611.GH13171@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Dec 20, 2007 at 03:29:29PM -0800, Sunil Mushran wrote:
-> Commit 349457ccf2592c14bdf13b6706170ae2e94931b1 in mainline defines macro
-> FS_RENAME_DOES_D_MOVE to allow fs to call d_move() during rename().
-> This patch allows one to build ocfs2 with kernels having/not having
-> this change.
+On Thu, Dec 20, 2007 at 03:29:30PM -0800, Sunil Mushran wrote:
+> Commit 0e03036c97b70b2602f7dedaa3a223ed7563c2c9 in mainline registers
+> ocfs2 sysctl (FS_OCFS2) number under CTL_FS. This patch allows one to
+> build ocfs2 with kernels having/not having this change.
 > 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
@@ -23,50 +22,53 @@ Signed-off-by: Joel Becker <joel.becker@oracle.com>
 > ---
 >  Makefile                     |    3 ++-
 >  configure.in                 |    5 +++++
->  kapi-compat/include/fstype.h |    6 ++++++
->  3 files changed, 13 insertions(+), 1 deletions(-)
->  create mode 100644 kapi-compat/include/fstype.h
+>  kapi-compat/include/sysctl.h |    9 +++++++++
+>  3 files changed, 16 insertions(+), 1 deletions(-)
+>  create mode 100644 kapi-compat/include/sysctl.h
 > 
 > diff --git a/Makefile b/Makefile
-> index ae5947b..5c22979 100644
+> index 5c22979..6377ff9 100644
 > --- a/Makefile
 > +++ b/Makefile
-> @@ -16,7 +16,8 @@ KAPI_COMPAT_FILES = \
->  	kapi-compat/include/kmod.h \
+> @@ -17,7 +17,8 @@ KAPI_COMPAT_FILES = \
 >  	kapi-compat/include/inc_nlink.h \
 >  	kapi-compat/include/drop_nlink.h \
-> -	kapi-compat/include/slab.h
-> +	kapi-compat/include/slab.h \
-> +	kapi-compat/include/fstype.h
+>  	kapi-compat/include/slab.h \
+> -	kapi-compat/include/fstype.h
+> +	kapi-compat/include/fstype.h \
+> +	kapi-compat/include/sysctl.h
 >  
 >  PATCH_FILES =
 >  
 > diff --git a/configure.in b/configure.in
-> index cb91de1..f1ca3e3 100644
+> index f1ca3e3..fdb188c 100644
 > --- a/configure.in
 > +++ b/configure.in
-> @@ -204,6 +204,11 @@ OCFS2_CHECK_KERNEL([kmem_cache_create() with dtor arg in slab.h], slab.h,
->  AC_SUBST(KMEM_CACHE_CREATE_DTOR)
->  KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS slab.h"
+> @@ -209,6 +209,11 @@ OCFS2_CHECK_KERNEL([flag FS_RENAME_DOES_D_MOVE in fs.h], fs.h,
+>    , fstype_compat_header="fstype.h", [FS_RENAME_DOES_D_MOVE])
+>  KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $fstype_compat_header"
 >  
-> +fstype_compat_header=""
-> +OCFS2_CHECK_KERNEL([flag FS_RENAME_DOES_D_MOVE in fs.h], fs.h,
-> +  , fstype_compat_header="fstype.h", [FS_RENAME_DOES_D_MOVE])
-> +KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $fstype_compat_header"
+> +sysctl_compat_header=""
+> +OCFS2_CHECK_KERNEL([enum FS_OCFS2 in sysctl.h], sysctl.h,
+> +  , sysctl_compat_header="sysctl.h", [FS_OCFS2])
+> +KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $sysctl_compat_header"
 > +
 >  # using -include has two advantages:
 >  #  the source doesn't need to know to include compat headers
 >  #  the compat header file names don't go through the search path
-> diff --git a/kapi-compat/include/fstype.h b/kapi-compat/include/fstype.h
+> diff --git a/kapi-compat/include/sysctl.h b/kapi-compat/include/sysctl.h
 > new file mode 100644
-> index 0000000..895ea86
+> index 0000000..73ed0a7
 > --- /dev/null
-> +++ b/kapi-compat/include/fstype.h
-> @@ -0,0 +1,6 @@
-> +#ifndef KAPI_FSTYPE_H
-> +#define KAPI_FSTYPE_H
+> +++ b/kapi-compat/include/sysctl.h
+> @@ -0,0 +1,9 @@
+> +#ifndef KAPI_SYSCTL_H
+> +#define KAPI_SYSCTL_H
 > +
-> +#define FS_RENAME_DOES_D_MOVE	FS_ODD_RENAME
+> +/* CTL_FS names: */
+> +enum {
+> +	FS_OCFS2=988,   /* ocfs2 */
+> +};
 > +
 > +#endif
 > -- 
@@ -80,9 +82,9 @@ Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
 -- 
 
-Life's Little Instruction Book #407
+ Joel's Second Law:
 
-	"Every once in a while, take the scenic route."
+	If a code change requires additional user setup, it is wrong.
 
 Joel Becker
 Principal Software Developer
