@@ -1,134 +1,119 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sat Dec 22 03:51:34 2007
-Subject: [Ocfs2-devel] [PATCH 23/30] ocfs2: Handle missing export
-	generic_segment_checks()
-In-Reply-To: <1198193387-16606-22-git-send-email-sunil.mushran@oracle.com>
+Date: Sat Dec 22 03:51:37 2007
+Subject: [Ocfs2-devel] [PATCH 22/30] ocfs2: Handles missing export
+	should_remove_suid()
+In-Reply-To: <1198193387-16606-21-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-	<1198193387-16606-22-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20071222112957.GB11437@ca-server1.us.oracle.com>
+	<1198193387-16606-21-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20071222112402.GA11437@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Dec 20, 2007 at 03:29:40PM -0800, Sunil Mushran wrote:
-> Commit 0ceb331433e8aad9c5f441a965d7c681f8b9046f in mainline wraps
-> common segment checks in generic_segment_checks(). This patch allows
-> one to build ocfs2 with kernels having/not having this change.
+On Thu, Dec 20, 2007 at 03:29:39PM -0800, Sunil Mushran wrote:
+> Commits 01de85e057328ecbef36e108673b1e81059d54c1 and
+> d23a147bb6e8d467e8df73b6589888717da3b9ce in mainline added and exported
+> symbol should_remove_suid(). This patch allows one to build ocfs2 with
+> kernels having/not having these changes.
+> 
 
-Let's move this to kapi-compat/include/generic-segment-checks.h and do
+This should go in kapi-compat/include/should-remove-suid.h and play the
+same tricks as we did above.
 
-ifdef NO_GENERIC_SEGMENT_CHECKS
-CPPFLAGS_file.o += -DNO_GENERIC_SEGMENT_CHECKS
+[should-remove-suid.h]
+#ifdef NO_SHOULD_REMOVE_SUID
+int should_remove_suid()
+{
+...
+}
+#endif
+
+[Makefile]
+ifdef NO_SHOULD_REMOVE_SUID
+CPPFLAGS_file.o += -DNO_SHOULD_REMOVE_SUID
 endif
 
-like the previous patch.
-
-Joel
- 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 > ---
->  Config.make.in    |    1 +
 >  configure.in      |    5 +++++
 >  fs/ocfs2/Makefile |    4 ++++
->  fs/ocfs2/file.c   |   40 ++++++++++++++++++++++++++++++++++++++++
->  4 files changed, 50 insertions(+), 0 deletions(-)
+>  fs/ocfs2/file.c   |   30 ++++++++++++++++++++++++++++++
+>  3 files changed, 39 insertions(+), 0 deletions(-)
 > 
-> diff --git a/Config.make.in b/Config.make.in
-> index 788c156..c1ca1d9 100644
-> --- a/Config.make.in
-> +++ b/Config.make.in
-> @@ -67,6 +67,7 @@ SU_MUTEX_DEFINED = @SU_MUTEX_DEFINED@
->  STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
->  FALLOCATE_DEFINED = @FALLOCATE_DEFINED@
->  SPLICE_HEADER = @SPLICE_HEADER@
-> +GENERIC_SEGMENT_CHECKS = @GENERIC_SEGMENT_CHECKS@
->  
->  OCFS_DEBUG = @OCFS_DEBUG@
->  
 > diff --git a/configure.in b/configure.in
-> index 472e01a..a311d3f 100644
+> index 39fb02b..472e01a 100644
 > --- a/configure.in
 > +++ b/configure.in
-> @@ -262,6 +262,11 @@ OCFS2_CHECK_KERNEL([should_remove_suid() in fs.h], fs.h,
->    SHOULD_REMOVE_SUID=yes, , [should_remove_suid()])
->  AC_SUBST(SHOULD_REMOVE_SUID)
+> @@ -257,6 +257,11 @@ OCFS2_CHECK_KERNEL([MNT_RELATIME in mount.h], mount.h,
+>    , relatime_compat_header="mount.h", [^#define MNT_RELATIME])
+>  KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $relatime_compat_header"
 >  
-> +GENERIC_SEGMENT_CHECKS=
-> +OCFS2_CHECK_KERNEL([generic_segment_checks() in fs.h], fs.h,
-> +  GENERIC_SEGMENT_CHECKS=yes, , [generic_segment_checks()])
-> +AC_SUBST(GENERIC_SEGMENT_CHECKS)
+> +SHOULD_REMOVE_SUID=
+> +OCFS2_CHECK_KERNEL([should_remove_suid() in fs.h], fs.h,
+> +  SHOULD_REMOVE_SUID=yes, , [should_remove_suid()])
+> +AC_SUBST(SHOULD_REMOVE_SUID)
 > +
 >  # using -include has two advantages:
 >  #  the source doesn't need to know to include compat headers
 >  #  the compat header file names don't go through the search path
 > diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-> index a80a9fc..7434d6d 100644
+> index 3cc7c74..a80a9fc 100644
 > --- a/fs/ocfs2/Makefile
 > +++ b/fs/ocfs2/Makefile
-> @@ -57,6 +57,10 @@ ifdef SHOULD_REMOVE_SUID
->  EXTRA_CFLAGS += -DSHOULD_REMOVE_SUID
+> @@ -53,6 +53,10 @@ ifdef SPLICE_HEADER
+>  EXTRA_CFLAGS += -DSPLICE_HEADER
 >  endif
 >  
-> +ifdef GENERIC_SEGMENT_CHECKS
-> +EXTRA_CFLAGS += -DGENERIC_SEGMENT_CHECKS
+> +ifdef SHOULD_REMOVE_SUID
+> +EXTRA_CFLAGS += -DSHOULD_REMOVE_SUID
 > +endif
 > +
 >  #
 >  # Since SUBDIRS means something to kbuild, define them safely.  Do not
 >  # include trailing slashes.
 > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index cee10ae..dd074af 100644
+> index 1c179fc..cee10ae 100644
 > --- a/fs/ocfs2/file.c
 > +++ b/fs/ocfs2/file.c
-> @@ -1809,6 +1809,46 @@ static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
+> @@ -1593,6 +1593,36 @@ out:
+>  	return ret;
 >  }
->  #endif
 >  
-> +#ifndef GENERIC_SEGMENT_CHECKS
+> +#ifndef SHOULD_REMOVE_SUID
 > +/*
-> + * Performs necessary checks before doing a write
-> + * @iov:	io vector request
-> + * @nr_segs:	number of segments in the iovec
-> + * @count:	number of bytes to write
-> + * @access_flags: type of access: %VERIFY_READ or %VERIFY_WRITE
+> + * The logic we want is
 > + *
-> + * Adjust number of segments and amount of bytes to write (nr_segs should be
-> + * properly initialized first). Returns appropriate error code that caller
-> + * should return or zero in case that write should be allowed.
+> + *	if suid or (sgid and xgrp)
+> + *		remove privs
 > + */
-> +int generic_segment_checks(const struct iovec *iov,
-> +			unsigned long *nr_segs, size_t *count, int access_flags)
+> +int should_remove_suid(struct dentry *dentry)
 > +{
-> +	unsigned long   seg;
-> +	size_t cnt = 0;
-> +	for (seg = 0; seg < *nr_segs; seg++) {
-> +		const struct iovec *iv = &iov[seg];
+> +	mode_t mode = dentry->d_inode->i_mode;
+> +	int kill = 0;
 > +
-> +		/*
-> +		 * If any segment has a negative length, or the cumulative
-> +		 * length ever wraps negative then return -EINVAL.
-> +		 */
-> +		cnt += iv->iov_len;
-> +		if (unlikely((ssize_t)(cnt|iv->iov_len) < 0))
-> +			return -EINVAL;
-> +		if (access_ok(access_flags, iv->iov_base, iv->iov_len))
-> +			continue;
-> +		if (seg == 0)
-> +			return -EFAULT;
-> +		*nr_segs = seg;
-> +		cnt -= iv->iov_len;	/* This segment is no good */
-> +		break;
-> +	}
-> +	*count = cnt;
+> +	/* suid always must be killed */
+> +	if (unlikely(mode & S_ISUID))
+> +		kill = ATTR_KILL_SUID;
+> +
+> +	/*
+> +	 * sgid without any exec bits is just a mandatory locking mark; leave
+> +	 * it alone.  If some exec bits are set, it's a real sgid; kill it.
+> +	 */
+> +	if (unlikely((mode & S_ISGID) && (mode & S_IXGRP)))
+> +		kill |= ATTR_KILL_SGID;
+> +
+> +	if (unlikely(kill && !capable(CAP_FSETID)))
+> +		return kill;
+> +
 > +	return 0;
 > +}
 > +#endif
 > +
->  static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
->  					 loff_t *ppos,
->  					 size_t count,
+>  /*
+>   * Parts of this function taken from xfs_change_file_space()
+>   */
 > -- 
 > 1.5.2.5
 > 
@@ -140,9 +125,10 @@ Joel
 
 -- 
 
-Life's Little Instruction Book #20
-
-	"Be forgiving of yourself and others."
+"In the beginning, the universe was created. This has made a lot 
+ of people very angry, and is generally considered to have been a 
+ bad move."
+        - Douglas Adams
 
 Joel Becker
 Principal Software Developer
