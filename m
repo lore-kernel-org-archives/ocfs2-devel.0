@@ -1,183 +1,112 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon Dec 24 13:28:00 2007
-Subject: [Ocfs2-devel] [PATCH 27/30] ocfs2: Handle missing vectorized
-	fileops aio_read() and aio_write()
-In-Reply-To: <1198193387-16606-26-git-send-email-sunil.mushran@oracle.com>
+Date: Mon Dec 24 13:30:01 2007
+Subject: [Ocfs2-devel] [PATCH 28/30] ocfs2: Handle missing
+	__splice_from_pipe()
+In-Reply-To: <1198193387-16606-27-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-	<1198193387-16606-26-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20071224212757.GE7242@mail.oracle.com>
+	<1198193387-16606-27-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20071224212844.GF7242@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Dec 20, 2007 at 03:29:44PM -0800, Sunil Mushran wrote:
-> Commit 027445c37282bc1ed26add45e573ad2d3e4860a5 in mainline vectorized
-> fileops aio_read() and aio_write(). This patch allows one to build ocfs2
-> with kernels having/not having this change.
+On Thu, Dec 20, 2007 at 03:29:45PM -0800, Sunil Mushran wrote:
+> Commit c66ab6fa705e1b2887a6d9246b798bdc526839e2 in mainline introduced
+> __splice_from_pipe(). This patch allows one to build ocfs2 with kernels
+> having/not having this change.
 
-	I can't help but wonder if we couldn't write this as a wrapper
-over the vectorized version.  That is, rather than defining two
-different ocfs2_aio_read() prototypes, just do
-
-#ifdef NO_VECTORIZED_AIO
-static ocfs2_aio_read_novec(...)
-{
-    struct iovec { ... };
-    return ocfs2_aio_read(..., &iovec, ...);
-}
-#endif
-
-Something like that.
-	Also, please reverse the test.
+	Can we reverse the test?
 
 Joel
 
+> Note: This patch disables splice io for kernels not providing
+> __splice_from_pipe(). We will later add a patch to enable splice
+> io with such kernels too.
 > 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 > ---
 >  Config.make.in    |    1 +
 >  configure.in      |    5 +++++
 >  fs/ocfs2/Makefile |    4 ++++
->  fs/ocfs2/file.c   |   33 +++++++++++++++++++++++++++++----
->  4 files changed, 39 insertions(+), 4 deletions(-)
+>  fs/ocfs2/file.c   |    4 ++++
+>  4 files changed, 14 insertions(+), 0 deletions(-)
 > 
 > diff --git a/Config.make.in b/Config.make.in
-> index d4cd518..f99b9f4 100644
+> index f99b9f4..89c1e94 100644
 > --- a/Config.make.in
 > +++ b/Config.make.in
-> @@ -71,6 +71,7 @@ GENERIC_SEGMENT_CHECKS = @GENERIC_SEGMENT_CHECKS@
->  FAULT_IN_VMOPS = @FAULT_IN_VMOPS@
+> @@ -72,6 +72,7 @@ FAULT_IN_VMOPS = @FAULT_IN_VMOPS@
 >  SOP_IS_CONST = @SOP_IS_CONST@
 >  IOP_IS_CONST = @IOP_IS_CONST@
-> +VECTORED_FILE_AIO = @VECTORED_FILE_AIO@
+>  VECTORED_FILE_AIO = @VECTORED_FILE_AIO@
+> +SPLICE_FROM_PIPE = @SPLICE_FROM_PIPE@
 >  
 >  OCFS_DEBUG = @OCFS_DEBUG@
 >  
 > diff --git a/configure.in b/configure.in
-> index 8a23983..741dfdb 100644
+> index 741dfdb..021b925 100644
 > --- a/configure.in
 > +++ b/configure.in
-> @@ -282,6 +282,11 @@ OCFS2_CHECK_KERNEL([i_op declared as const in struct inode in fs.h], fs.h,
->    IOP_IS_CONST=yes, , [^.*const struct inode_operations.*\*i_op;])
->  AC_SUBST(IOP_IS_CONST)
+> @@ -287,6 +287,11 @@ OCFS2_CHECK_KERNEL([aio_read() in struct file_operations using iovec in fs.h], f
+>    VECTORED_FILE_AIO=yes, , [ssize_t (\*aio_read) (struct kiocb \*, const struct iovec \*, unsigned long, loff_t);])
+>  AC_SUBST(VECTORED_FILE_AIO)
 >  
-> +VECTORED_FILE_AIO=
-> +OCFS2_CHECK_KERNEL([aio_read() in struct file_operations using iovec in fs.h], fs.h,
-> +  VECTORED_FILE_AIO=yes, , [ssize_t (\*aio_read) (struct kiocb \*, const struct iovec \*, unsigned long, loff_t);])
-> +AC_SUBST(VECTORED_FILE_AIO)
+> +SPLICE_FROM_PIPE=
+> +OCFS2_CHECK_KERNEL([__splice_from_pipe() in splice.h], splice.h,
+> +  SPLICE_FROM_PIPE=yes, , [^extern ssize_t __splice_from_pipe(struct pipe_inode_info \*])
+> +AC_SUBST(SPLICE_FROM_PIPE)
 > +
 >  # using -include has two advantages:
 >  #  the source doesn't need to know to include compat headers
 >  #  the compat header file names don't go through the search path
 > diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-> index 97912fd..80fd6c6 100644
+> index 80fd6c6..e4296d3 100644
 > --- a/fs/ocfs2/Makefile
 > +++ b/fs/ocfs2/Makefile
-> @@ -73,6 +73,10 @@ ifdef IOP_IS_CONST
->  EXTRA_CFLAGS += -DIOP_IS_CONST
+> @@ -77,6 +77,10 @@ ifdef VECTORED_FILE_AIO
+>  EXTRA_CFLAGS += -DVECTORED_FILE_AIO
 >  endif
 >  
-> +ifdef VECTORED_FILE_AIO
-> +EXTRA_CFLAGS += -DVECTORED_FILE_AIO
+> +ifdef SPLICE_FROM_PIPE
+> +EXTRA_CFLAGS += -DSPLICE_FROM_PIPE
 > +endif
 > +
 >  #
 >  # Since SUBDIRS means something to kbuild, define them safely.  Do not
 >  # include trailing slashes.
 > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index e74730d..1ee2a79 100644
+> index 1ee2a79..e022c97 100644
 > --- a/fs/ocfs2/file.c
 > +++ b/fs/ocfs2/file.c
-> @@ -2087,10 +2087,19 @@ out:
->  	return total ? total : ret;
+> @@ -2258,6 +2258,7 @@ out_sems:
+>  	return written ? written : ret;
 >  }
 >  
-> +#ifdef VECTORED_FILE_AIO
-> +#define iocb_ki_left	iocb->ki_left
->  static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
->  				    const struct iovec *iov,
->  				    unsigned long nr_segs,
->  				    loff_t pos)
-> +#else
-> +#define iocb_ki_left	buflen
-> +static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
-> +				    const char __user *buf,
-> +				    size_t buflen,
-> +				    loff_t pos)
-> +#endif
->  {
->  	int ret, direct_io, appending, rw_level, have_alloc_sem  = 0;
->  	int can_do_direct, sync = 0;
-> @@ -2100,13 +2109,19 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
->  	loff_t *ppos = &iocb->ki_pos;
->  	struct file *file = iocb->ki_filp;
->  	struct inode *inode = file->f_path_dentry->d_inode;
-> +#ifndef VECTORED_FILE_AIO
-> +	struct iovec iov_local = { .iov_base = (void __user *)buf,
-> +				   .iov_len  = buflen };
-> +	const struct iovec *iov = &iov_local;
-> +	unsigned long nr_segs = 1;
-> +#endif
->  
->  	mlog_entry("(0x%p, %u, '%.*s')\n", file,
->  		   (unsigned int)nr_segs,
->  		   file->f_path_dentry->d_name.len,
->  		   file->f_path_dentry->d_name.name);
->  
-> -	if (iocb->ki_left == 0)
-> +	if (iocb_ki_left == 0)
->  		return 0;
->  
->  	ret = generic_segment_checks(iov, &nr_segs, &ocount, VERIFY_READ);
-> @@ -2139,7 +2154,7 @@ relock:
->  
->  	can_do_direct = direct_io;
->  	ret = ocfs2_prepare_inode_for_write(file->f_path_dentry, ppos,
-> -					    iocb->ki_left, appending,
-> +					    iocb_ki_left, appending,
->  					    &can_do_direct);
->  	if (ret < 0) {
->  		mlog_errno(ret);
-> @@ -2392,17 +2407,23 @@ bail:
+> +#ifdef SPLICE_FROM_PIPE
+>  static int ocfs2_splice_write_actor(struct pipe_inode_info *pipe,
+>  				    struct pipe_buffer *buf,
+>  				    struct splice_desc *sd)
+> @@ -2406,6 +2407,7 @@ bail:
+>  	mlog_exit(ret);
 >  	return ret;
 >  }
+> +#endif
 >  
-> +#ifdef VECTORED_FILE_AIO
+>  #ifdef VECTORED_FILE_AIO
 >  static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
->  				   const struct iovec *iov,
->  				   unsigned long nr_segs,
->  				   loff_t pos)
-> +#else
-> +static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
-> +				   char __user *buf,
-> +				   size_t buflen,
-> +				   loff_t pos)
+> @@ -2530,8 +2532,10 @@ const struct file_operations ocfs2_fops = {
+>  #ifdef CONFIG_COMPAT
+>  	.compat_ioctl   = ocfs2_compat_ioctl,
+>  #endif
+> +#ifdef SPLICE_FROM_PIPE
+>  	.splice_read	= ocfs2_file_splice_read,
+>  	.splice_write	= ocfs2_file_splice_write,
 > +#endif
->  {
->  	int ret = 0, rw_level = -1, have_alloc_sem = 0, lock_level = 0;
->  	struct file *filp = iocb->ki_filp;
->  	struct inode *inode = filp->f_path_dentry->d_inode;
+>  };
 >  
-> -	mlog_entry("(0x%p, %u, '%.*s')\n", filp,
-> -		   (unsigned int)nr_segs,
-> +	mlog_entry("(0x%p, '%.*s')\n", filp,
->  		   filp->f_path_dentry->d_name.len,
->  		   filp->f_path_dentry->d_name.name);
->  
-> @@ -2446,7 +2467,11 @@ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
->  	}
->  	ocfs2_meta_unlock(inode, lock_level);
->  
-> +#ifdef VECTORED_FILE_AIO
->  	ret = generic_file_aio_read(iocb, iov, nr_segs, iocb->ki_pos);
-> +#else
-> +	ret = generic_file_aio_read(iocb, buf, buflen, iocb->ki_pos);
-> +#endif
->  	if (ret == -EINVAL)
->  		mlog(ML_ERROR, "generic_file_aio_read returned -EINVAL\n");
->  
+>  const struct file_operations ocfs2_dops = {
 > -- 
 > 1.5.2.5
 > 
@@ -189,8 +118,9 @@ Joel
 
 -- 
 
-"There is no sincerer love than the love of food."  
-         - George Bernard Shaw 
+"Maybe the time has drawn the faces I recall.
+ But things in this life change very slowly,
+ If they ever change at all."
 
 Joel Becker
 Principal Software Developer
