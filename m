@@ -1,206 +1,275 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon Dec 24 13:21:56 2007
-Subject: [Ocfs2-devel] [PATCH 24/30] ocfs2: Handle missing vmops->fault()
-In-Reply-To: <1198193387-16606-23-git-send-email-sunil.mushran@oracle.com>
+Date: Mon Dec 24 13:23:56 2007
+Subject: [Ocfs2-devel] [PATCH 26/30] ocfs2: Handle missing const struct
+	inode_operations in struct inode
+In-Reply-To: <1198193387-16606-25-git-send-email-sunil.mushran@oracle.com>
 References: <1198193387-16606-1-git-send-email-sunil.mushran@oracle.com>
-	<1198193387-16606-23-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20071224212046.GB7242@mail.oracle.com>
+	<1198193387-16606-25-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20071224212307.GD7242@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Dec 20, 2007 at 03:29:41PM -0800, Sunil Mushran wrote:
-> Commit 54cb8821de07f2ffcd28c380ce9b93d5784b40d7 in mainline introduces
-> vmops->fault() which is used to replace vmops->populate() and vmops->nopage().
-> This patch allows one to build ocfs2 with kernels having/not having this
-> change.
+On Thu, Dec 20, 2007 at 03:29:43PM -0800, Sunil Mushran wrote:
+> Commit c5ef1c42c51b1b5b4a401a6517bdda30933ddbaf in mainline marks struct
+> inode_operations in struct inode as a const. This patch allows one to build
+> ocfs2 with kernels having/not having this change.
 
-	While I hate the naked ifdef'd code, I'm not sure what else to
-do.  In asmlib, I solve this with a function
-"init_asmfs_dir_operations()", called from the __init func.  We could do
-that, placing the _populate() and _nopage() functions in kapi-compat,
-then providing the init_fault_ops() function...but frankly, I'm not sure
-that's a big win.
-	I would, however, reverse the test so that it's
-
-+#ifndef NO_FAULT_IN_VMOPS
- 	.fault		= ocfs2_fault,
-+#else
-+	.nopage		= ocfs2_nopage,
-+#endif
+	Please reverse the test.
 
 Joel
-
-
-> 
+ 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 > ---
->  Config.make.in    |    1 +
->  configure.in      |    5 +++++
->  fs/ocfs2/Makefile |    4 ++++
->  fs/ocfs2/mmap.c   |   51 +++++++++++++++++++++++++++++++++++++++++++++++++--
->  4 files changed, 59 insertions(+), 2 deletions(-)
+>  Config.make.in        |    1 +
+>  configure.in          |    5 +++++
+>  fs/ocfs2/Makefile     |    4 ++++
+>  fs/ocfs2/dlm/Makefile |    4 ++++
+>  fs/ocfs2/dlm/dlmfs.c  |   18 ++++++++++++++++++
+>  fs/ocfs2/file.c       |    8 ++++++++
+>  fs/ocfs2/file.h       |    5 +++++
+>  fs/ocfs2/namei.c      |    4 ++++
+>  fs/ocfs2/namei.h      |    4 ++++
+>  fs/ocfs2/symlink.c    |    8 ++++++++
+>  fs/ocfs2/symlink.h    |    5 +++++
+>  11 files changed, 66 insertions(+), 0 deletions(-)
 > 
 > diff --git a/Config.make.in b/Config.make.in
-> index c1ca1d9..96dbb7a 100644
+> index 938ac53..d4cd518 100644
 > --- a/Config.make.in
 > +++ b/Config.make.in
-> @@ -68,6 +68,7 @@ STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
->  FALLOCATE_DEFINED = @FALLOCATE_DEFINED@
->  SPLICE_HEADER = @SPLICE_HEADER@
+> @@ -70,6 +70,7 @@ SPLICE_HEADER = @SPLICE_HEADER@
 >  GENERIC_SEGMENT_CHECKS = @GENERIC_SEGMENT_CHECKS@
-> +FAULT_IN_VMOPS = @FAULT_IN_VMOPS@
+>  FAULT_IN_VMOPS = @FAULT_IN_VMOPS@
+>  SOP_IS_CONST = @SOP_IS_CONST@
+> +IOP_IS_CONST = @IOP_IS_CONST@
 >  
 >  OCFS_DEBUG = @OCFS_DEBUG@
 >  
 > diff --git a/configure.in b/configure.in
-> index a311d3f..b8b8001 100644
+> index 3093542..8a23983 100644
 > --- a/configure.in
 > +++ b/configure.in
-> @@ -267,6 +267,11 @@ OCFS2_CHECK_KERNEL([generic_segment_checks() in fs.h], fs.h,
->    GENERIC_SEGMENT_CHECKS=yes, , [generic_segment_checks()])
->  AC_SUBST(GENERIC_SEGMENT_CHECKS)
+> @@ -277,6 +277,11 @@ OCFS2_CHECK_KERNEL([s_op declared as const in struct super_block in fs.h], fs.h,
+>    SOP_IS_CONST=yes, , [^.*const struct super_operations.*\*s_op;])
+>  AC_SUBST(SOP_IS_CONST)
 >  
-> +FAULT_IN_VMOPS=
-> +OCFS2_CHECK_KERNEL([fault() in struct vm_operations_struct in mm.h], mm.h,
-> +  FAULT_IN_VMOPS=yes, , [^.*int (\*fault)])
-> +AC_SUBST(FAULT_IN_VMOPS)
+> +IOP_IS_CONST=
+> +OCFS2_CHECK_KERNEL([i_op declared as const in struct inode in fs.h], fs.h,
+> +  IOP_IS_CONST=yes, , [^.*const struct inode_operations.*\*i_op;])
+> +AC_SUBST(IOP_IS_CONST)
 > +
 >  # using -include has two advantages:
 >  #  the source doesn't need to know to include compat headers
 >  #  the compat header file names don't go through the search path
 > diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-> index 7434d6d..521888b 100644
+> index 4ce2431..97912fd 100644
 > --- a/fs/ocfs2/Makefile
 > +++ b/fs/ocfs2/Makefile
-> @@ -61,6 +61,10 @@ ifdef GENERIC_SEGMENT_CHECKS
->  EXTRA_CFLAGS += -DGENERIC_SEGMENT_CHECKS
+> @@ -69,6 +69,10 @@ ifdef SOPS_IS_CONST
+>  EXTRA_CFLAGS += -DSOPS_IS_CONST
 >  endif
 >  
-> +ifdef FAULT_IN_VMOPS
-> +EXTRA_CFLAGS += -DFAULT_IN_VMOPS
+> +ifdef IOP_IS_CONST
+> +EXTRA_CFLAGS += -DIOP_IS_CONST
 > +endif
 > +
 >  #
 >  # Since SUBDIRS means something to kbuild, define them safely.  Do not
 >  # include trailing slashes.
-> diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-> index c0483c9..58c67ea 100644
-> --- a/fs/ocfs2/mmap.c
-> +++ b/fs/ocfs2/mmap.c
-> @@ -60,6 +60,7 @@ static inline int ocfs2_vm_op_unblock_sigs(sigset_t *oldset)
->  	return sigprocmask(SIG_SETMASK, oldset, NULL);
->  }
+> diff --git a/fs/ocfs2/dlm/Makefile b/fs/ocfs2/dlm/Makefile
+> index 2df255e..c7edb07 100644
+> --- a/fs/ocfs2/dlm/Makefile
+> +++ b/fs/ocfs2/dlm/Makefile
+> @@ -32,6 +32,10 @@ ifdef SOP_IS_CONST
+>  EXTRA_CFLAGS += -DSOP_IS_CONST
+>  endif
 >  
-> +#ifdef FAULT_IN_VMOPS
->  static int ocfs2_fault(struct vm_area_struct *area, struct vm_fault *vmf)
->  {
->  	sigset_t blocked, oldset;
-> @@ -83,6 +84,35 @@ out:
->  	mlog_exit_ptr(vmf->page);
->  	return ret;
->  }
+> +ifdef IOP_IS_CONST
+> +EXTRA_CFLAGS += -DIOP_IS_CONST
+> +endif
+> +
+>  DLM_SOURCES =			\
+>  	dlmast.c		\
+>  	dlmconvert.c		\
+> diff --git a/fs/ocfs2/dlm/dlmfs.c b/fs/ocfs2/dlm/dlmfs.c
+> index dc5b5a5..9ff18be 100644
+> --- a/fs/ocfs2/dlm/dlmfs.c
+> +++ b/fs/ocfs2/dlm/dlmfs.c
+> @@ -66,9 +66,15 @@ static const struct super_operations dlmfs_ops;
+>  static struct super_operations dlmfs_ops;
+>  #endif
+>  static const struct file_operations dlmfs_file_operations;
+> +#ifdef IOP_IS_CONST
+>  static const struct inode_operations dlmfs_dir_inode_operations;
+>  static const struct inode_operations dlmfs_root_inode_operations;
+>  static const struct inode_operations dlmfs_file_inode_operations;
 > +#else
-> +static struct page *ocfs2_nopage(struct vm_area_struct * area,
-> +				 unsigned long address,
-> +				 int *type)
-> +{
-> +	struct page *page = NOPAGE_SIGBUS;
-> +	sigset_t blocked, oldset;
-> +	int error, ret;
-> +
-> +	mlog_entry("(area=%p, address=%lu, type=%p)\n", area, address,
-> +		   type);
-> +
-> +	error = ocfs2_vm_op_block_sigs(&blocked, &oldset);
-> +	if (error < 0) {
-> +		mlog_errno(error);
-> +		ret = VM_FAULT_SIGBUS;
-> +		goto out;
-> +	}
-> +
-> +	page = filemap_nopage(area, address, type);
-> +
-> +	error = ocfs2_vm_op_unblock_sigs(&oldset);
-> +	if (error < 0)
-> +		mlog_errno(error);
-> +out:
-> +	mlog_exit_ptr(page);
-> +	return page;
-> +}
+> +static struct inode_operations dlmfs_dir_inode_operations;
+> +static struct inode_operations dlmfs_root_inode_operations;
+> +static struct inode_operations dlmfs_file_inode_operations;
 > +#endif
+>  static struct kmem_cache *dlmfs_inode_cache;
 >  
->  static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
->  				struct page *page)
-> @@ -96,6 +126,9 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
->  	void *fsdata;
->  	loff_t size = i_size_read(inode);
->  
-> +	mlog_entry("(inode=0x%p, i_ino=%lu, page=0x%p)\n", inode, inode->i_ino,
-> +		   page);
-> +
->  	/*
->  	 * Another node might have truncated while we were waiting on
->  	 * cluster locks.
-> @@ -147,6 +180,7 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
->  	BUG_ON(ret != len);
->  	ret = 0;
->  out:
-> +	mlog_exit(ret);
->  	return ret;
->  }
->  
-> @@ -157,6 +191,8 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct page *page)
->  	sigset_t blocked, oldset;
->  	int ret, ret2;
->  
-> +	mlog_entry("(vma=0x%p, page=0x%p)\n", vma, page);
-> +
->  	ret = ocfs2_vm_op_block_sigs(&blocked, &oldset);
->  	if (ret < 0) {
->  		mlog_errno(ret);
-> @@ -202,11 +238,16 @@ out:
->  	if (ret2 < 0)
->  		mlog_errno(ret2);
->  
-> +	mlog_exit(ret);
->  	return ret;
->  }
->  
->  static struct vm_operations_struct ocfs2_file_vm_ops = {
-> +#ifdef FAULT_IN_VMOPS
->  	.fault		= ocfs2_fault,
-> +#else
-> +	.nopage		= ocfs2_nopage,
-> +#endif
->  	.page_mkwrite	= ocfs2_page_mkwrite,
+>  struct workqueue_struct *user_dlm_worker;
+> @@ -547,14 +553,22 @@ static const struct file_operations dlmfs_file_operations = {
+>  	.write		= dlmfs_file_write,
 >  };
 >  
-> @@ -214,6 +255,10 @@ int ocfs2_mmap(struct file *file, struct vm_area_struct *vma)
->  {
->  	int ret = 0, lock_level = 0;
->  
-> +	mlog_entry("(file=0x%p, vma=%p, '%.*s')\n", file, vma,
-> +		   file->f_path_dentry->d_name.len,
-> +		   file->f_path_dentry->d_name.name);
-> +
->  	ret = ocfs2_meta_lock_atime(file->f_dentry->d_inode,
->  				    file->f_vfsmnt, &lock_level);
->  	if (ret < 0) {
-> @@ -223,7 +268,9 @@ int ocfs2_mmap(struct file *file, struct vm_area_struct *vma)
->  	ocfs2_meta_unlock(file->f_dentry->d_inode, lock_level);
->  out:
->  	vma->vm_ops = &ocfs2_file_vm_ops;
-> +#ifdef FAULT_IN_VMOPS
->  	vma->vm_flags |= VM_CAN_NONLINEAR;
-> -	return 0;
+> +#ifdef IOP_IS_CONST
+>  static const struct inode_operations dlmfs_dir_inode_operations = {
+> +#else
+> +static struct inode_operations dlmfs_dir_inode_operations = {
 > +#endif
-> +	mlog_exit(ret);
-> +	return ret;
+>  	.create		= dlmfs_create,
+>  	.lookup		= simple_lookup,
+>  	.unlink		= dlmfs_unlink,
+>  };
+>  
+>  /* this way we can restrict mkdir to only the toplevel of the fs. */
+> +#ifdef IOP_IS_CONST
+>  static const struct inode_operations dlmfs_root_inode_operations = {
+> +#else
+> +static struct inode_operations dlmfs_root_inode_operations = {
+> +#endif
+>  	.lookup		= simple_lookup,
+>  	.mkdir		= dlmfs_mkdir,
+>  	.rmdir		= simple_rmdir,
+> @@ -572,7 +586,11 @@ static struct super_operations dlmfs_ops = {
+>  	.drop_inode	= generic_delete_inode,
+>  };
+>  
+> +#ifdef IOP_IS_CONST
+>  static const struct inode_operations dlmfs_file_inode_operations = {
+> +#else
+> +static struct inode_operations dlmfs_file_inode_operations = {
+> +#endif
+>  	.getattr	= simple_getattr,
+>  };
+>  
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index dd074af..e74730d 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -2469,7 +2469,11 @@ bail:
+>  	return ret;
 >  }
-> -
+>  
+> +#ifdef IOP_IS_CONST
+>  const struct inode_operations ocfs2_file_iops = {
+> +#else
+> +struct inode_operations ocfs2_file_iops = {
+> +#endif
+>  	.setattr	= ocfs2_setattr,
+>  	.getattr	= ocfs2_getattr,
+>  	.permission	= ocfs2_permission,
+> @@ -2478,7 +2482,11 @@ const struct inode_operations ocfs2_file_iops = {
+>  #endif
+>  };
+>  
+> +#ifdef IOP_IS_CONST
+>  const struct inode_operations ocfs2_special_file_iops = {
+> +#else
+> +struct inode_operations ocfs2_special_file_iops = {
+> +#endif
+>  	.setattr	= ocfs2_setattr,
+>  	.getattr	= ocfs2_getattr,
+>  	.permission	= ocfs2_permission,
+> diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
+> index 066f14a..7bf6f9d 100644
+> --- a/fs/ocfs2/file.h
+> +++ b/fs/ocfs2/file.h
+> @@ -28,8 +28,13 @@
+>  
+>  extern const struct file_operations ocfs2_fops;
+>  extern const struct file_operations ocfs2_dops;
+> +#ifdef IOP_IS_CONST
+>  extern const struct inode_operations ocfs2_file_iops;
+>  extern const struct inode_operations ocfs2_special_file_iops;
+> +#else
+> +extern struct inode_operations ocfs2_file_iops;
+> +extern struct inode_operations ocfs2_special_file_iops;
+> +#endif
+>  struct ocfs2_alloc_context;
+>  
+>  enum ocfs2_alloc_restarted {
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index 7292590..5ddcc23 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -1898,7 +1898,11 @@ leave:
+>  	return status;
+>  }
+>  
+> +#ifdef IOP_IS_CONST
+>  const struct inode_operations ocfs2_dir_iops = {
+> +#else
+> +struct inode_operations ocfs2_dir_iops = {
+> +#endif
+>  	.create		= ocfs2_create,
+>  	.lookup		= ocfs2_lookup,
+>  	.link		= ocfs2_link,
+> diff --git a/fs/ocfs2/namei.h b/fs/ocfs2/namei.h
+> index 688aef6..66e1dee 100644
+> --- a/fs/ocfs2/namei.h
+> +++ b/fs/ocfs2/namei.h
+> @@ -26,7 +26,11 @@
+>  #ifndef OCFS2_NAMEI_H
+>  #define OCFS2_NAMEI_H
+>  
+> +#ifdef IOP_IS_CONST
+>  extern const struct inode_operations ocfs2_dir_iops;
+> +#else
+> +extern struct inode_operations ocfs2_dir_iops;
+> +#endif
+>  
+>  struct dentry *ocfs2_get_parent(struct dentry *child);
+>  
+> diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
+> index 7134007..d77c1d4 100644
+> --- a/fs/ocfs2/symlink.c
+> +++ b/fs/ocfs2/symlink.c
+> @@ -163,12 +163,20 @@ bail:
+>  	return ERR_PTR(status);
+>  }
+>  
+> +#ifdef IOP_IS_CONST
+>  const struct inode_operations ocfs2_symlink_inode_operations = {
+> +#else
+> +struct inode_operations ocfs2_symlink_inode_operations = {
+> +#endif
+>  	.readlink	= page_readlink,
+>  	.follow_link	= ocfs2_follow_link,
+>  	.getattr	= ocfs2_getattr,
+>  };
+> +#ifdef IOP_IS_CONST
+>  const struct inode_operations ocfs2_fast_symlink_inode_operations = {
+> +#else
+> +struct inode_operations ocfs2_fast_symlink_inode_operations = {
+> +#endif
+>  	.readlink	= ocfs2_readlink,
+>  	.follow_link	= ocfs2_follow_link,
+>  	.getattr	= ocfs2_getattr,
+> diff --git a/fs/ocfs2/symlink.h b/fs/ocfs2/symlink.h
+> index 65a6c9c..fd0ed70 100644
+> --- a/fs/ocfs2/symlink.h
+> +++ b/fs/ocfs2/symlink.h
+> @@ -26,8 +26,13 @@
+>  #ifndef OCFS2_SYMLINK_H
+>  #define OCFS2_SYMLINK_H
+>  
+> +#ifdef IOP_IS_CONST
+>  extern const struct inode_operations ocfs2_symlink_inode_operations;
+>  extern const struct inode_operations ocfs2_fast_symlink_inode_operations;
+> +#else
+> +extern struct inode_operations ocfs2_symlink_inode_operations;
+> +extern struct inode_operations ocfs2_fast_symlink_inode_operations;
+> +#endif
+>  
+>  /*
+>   * Test whether an inode is a fast symlink.
 > -- 
 > 1.5.2.5
 > 
@@ -212,9 +281,9 @@ Joel
 
 -- 
 
-Life's Little Instruction Book #20
+Life's Little Instruction Book #226
 
-	"Be forgiving of yourself and others."
+	"When someone hugs you, let them be the first to let go."
 
 Joel Becker
 Principal Software Developer
