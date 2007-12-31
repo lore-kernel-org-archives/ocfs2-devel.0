@@ -1,132 +1,190 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Mon Dec 31 14:25:45 2007
-Subject: [Ocfs2-devel] [PATCH 23/30] ocfs2: Handles missing export
-	should_remove_suid()
+Subject: [Ocfs2-devel] [PATCH 07/30] ocfs2: Handle missing vmops->fault()
 In-Reply-To: <1199139862-31452-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199139862-31452-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199139862-31452-22-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199139862-31452-6-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commits 01de85e057328ecbef36e108673b1e81059d54c1 and
-d23a147bb6e8d467e8df73b6589888717da3b9ce in mainline added and exported
-symbol should_remove_suid(). This patch allows one to build ocfs2 with
-kernels having/not having these changes.
+Commit 54cb8821de07f2ffcd28c380ce9b93d5784b40d7 in mainline introduces
+vmops->fault() which is used to replace vmops->populate() and vmops->nopage().
+This patch allows one to build ocfs2 with kernels having/not having this
+change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Config.make.in                           |    1 +
- Makefile                                 |    3 +-
- configure.in                             |    6 +++++
- fs/ocfs2/Makefile                        |    4 +++
- kapi-compat/include/should_remove_suid.h |   37 ++++++++++++++++++++++++++++++
- 5 files changed, 50 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/should_remove_suid.h
+ Config.make.in    |    1 +
+ configure.in      |    5 ++++
+ fs/ocfs2/Makefile |    4 +++
+ fs/ocfs2/mmap.c   |   55 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ 4 files changed, 61 insertions(+), 4 deletions(-)
 
 diff --git a/Config.make.in b/Config.make.in
-index a912f40..53792d0 100644
+index 67ee363..4208ece 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -68,6 +68,7 @@ NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM = @NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSY
- STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
- NO_FALLOCATE = @NO_FALLOCATE@
- NO_SPLICE_HEADER = @NO_SPLICE_HEADER@
-+NO_SHOULD_REMOVE_SUID = @NO_SHOULD_REMOVE_SUID@
+@@ -60,6 +60,7 @@ EXTRA_CFLAGS += @KAPI_COMPAT_CFLAGS@
+ NO_DELAYED_WORK = @NO_DELAYED_WORK@
+ 
+ NO_SYNC_MAPPING_RANGE  = @NO_SYNC_MAPPING_RANGE@
++NO_FAULT_IN_VMOPS = @NO_FAULT_IN_VMOPS@
  
  OCFS_DEBUG = @OCFS_DEBUG@
  
-diff --git a/Makefile b/Makefile
-index b3998b4..5daa098 100644
---- a/Makefile
-+++ b/Makefile
-@@ -25,7 +25,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/su_mutex.h \
- 	kapi-compat/include/kobject.h \
- 	kapi-compat/include/cap.h \
--	kapi-compat/include/relatime.h
-+	kapi-compat/include/relatime.h \
-+	kapi-compat/include/should_remove_suid.h
- 
- PATCH_FILES =
- 
 diff --git a/configure.in b/configure.in
-index 9cef1f8..c2356da 100644
+index 72698ae..1aced84 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -263,6 +263,12 @@ OCFS2_CHECK_KERNEL([MNT_RELATIME in mount.h], mount.h,
-   , relatime_compat_header="relatime.h", [^#define MNT_RELATIME])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $relatime_compat_header"
+@@ -178,6 +178,11 @@ OCFS2_CHECK_KERNEL([do_sync_mapping_range() in fs.h], fs.h,
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS sync_mapping_range.h"
+ AC_SUBST(NO_SYNC_MAPPING_RANGE)
  
-+NO_SHOULD_REMOVE_SUID=
-+OCFS2_CHECK_KERNEL([should_remove_suid() in fs.h], fs.h,
-+  , NO_SHOULD_REMOVE_SUID=yes, [should_remove_suid()])
-+AC_SUBST(NO_SHOULD_REMOVE_SUID)
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS should_remove_suid.h"
++NO_FAULT_IN_VMOPS=
++OCFS2_CHECK_KERNEL([fault() in struct vm_operations_struct in mm.h], mm.h,
++  , NO_FAULT_IN_VMOPS=yes, [^.*int (\*fault)])
++AC_SUBST(NO_FAULT_IN_VMOPS)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
 diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 58be004..cecd610 100644
+index 737c12a..cbf3118 100644
 --- a/fs/ocfs2/Makefile
 +++ b/fs/ocfs2/Makefile
-@@ -57,6 +57,10 @@ ifdef NO_SPLICE_HEADER
- EXTRA_CFLAGS += -DNO_SPLICE_HEADER
+@@ -33,6 +33,10 @@ ifdef NO_SYNC_MAPPING_RANGE
+ CFLAGS_alloc.o += -DNO_SYNC_MAPPING_RANGE
  endif
  
-+ifdef NO_SHOULD_REMOVE_SUID
-+CFLAGS_file.o += -DNO_SHOULD_REMOVE_SUID
++ifdef NO_FAULT_IN_VMOPS
++EXTRA_CFLAGS += -DNO_FAULT_IN_VMOPS
 +endif
 +
  #
  # Since SUBDIRS means something to kbuild, define them safely.  Do not
  # include trailing slashes.
-diff --git a/kapi-compat/include/should_remove_suid.h b/kapi-compat/include/should_remove_suid.h
-new file mode 100644
-index 0000000..4c9e598
---- /dev/null
-+++ b/kapi-compat/include/should_remove_suid.h
-@@ -0,0 +1,37 @@
-+#ifndef KAP_SHOULD_REMOVE_SUID_H
-+#define KAP_SHOULD_REMOVE_SUID_H
-+
-+#ifdef NO_SHOULD_REMOVE_SUID
-+
-+#include <linux/fs.h>
-+
-+/*
-+ * The logic we want is
-+ *
-+ *	if suid or (sgid and xgrp)
-+ *		remove privs
-+ */
-+int should_remove_suid(struct dentry *dentry)
+diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+index 9875615..a827b0b 100644
+--- a/fs/ocfs2/mmap.c
++++ b/fs/ocfs2/mmap.c
+@@ -60,6 +60,7 @@ static inline int ocfs2_vm_op_unblock_sigs(sigset_t *oldset)
+ 	return sigprocmask(SIG_SETMASK, oldset, NULL);
+ }
+ 
++#ifndef NO_FAULT_IN_VMOPS
+ static int ocfs2_fault(struct vm_area_struct *area, struct vm_fault *vmf)
+ {
+ 	sigset_t blocked, oldset;
+@@ -83,6 +84,35 @@ out:
+ 	mlog_exit_ptr(vmf->page);
+ 	return ret;
+ }
++#else
++static struct page *ocfs2_nopage(struct vm_area_struct * area,
++				 unsigned long address,
++				 int *type)
 +{
-+	mode_t mode = dentry->d_inode->i_mode;
-+	int kill = 0;
++	struct page *page = NOPAGE_SIGBUS;
++	sigset_t blocked, oldset;
++	int error, ret;
 +
-+	/* suid always must be killed */
-+	if (unlikely(mode & S_ISUID))
-+		kill = ATTR_KILL_SUID;
++	mlog_entry("(area=%p, address=%lu, type=%p)\n", area, address,
++		   type);
 +
-+	/*
-+	 * sgid without any exec bits is just a mandatory locking mark; leave
-+	 * it alone.  If some exec bits are set, it's a real sgid; kill it.
-+	 */
-+	if (unlikely((mode & S_ISGID) && (mode & S_IXGRP)))
-+		kill |= ATTR_KILL_SGID;
++	error = ocfs2_vm_op_block_sigs(&blocked, &oldset);
++	if (error < 0) {
++		mlog_errno(error);
++		ret = VM_FAULT_SIGBUS;
++		goto out;
++	}
 +
-+	if (unlikely(kill && !capable(CAP_FSETID)))
-+		return kill;
++	page = filemap_nopage(area, address, type);
 +
-+	return 0;
++	error = ocfs2_vm_op_unblock_sigs(&oldset);
++	if (error < 0)
++		mlog_errno(error);
++out:
++	mlog_exit_ptr(page);
++	return page;
 +}
 +#endif
+ 
+ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
+ 				struct page *page)
+@@ -96,6 +126,9 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
+ 	void *fsdata;
+ 	loff_t size = i_size_read(inode);
+ 
++	mlog_entry("(inode=0x%p, i_ino=%lu, page=0x%p)\n", inode, inode->i_ino,
++		   page);
 +
+ 	/*
+ 	 * Another node might have truncated while we were waiting on
+ 	 * cluster locks.
+@@ -147,6 +180,7 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
+ 	BUG_ON(ret != len);
+ 	ret = 0;
+ out:
++	mlog_exit(ret);
+ 	return ret;
+ }
+ 
+@@ -157,6 +191,8 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct page *page)
+ 	sigset_t blocked, oldset;
+ 	int ret, ret2;
+ 
++	mlog_entry("(vma=0x%p, page=0x%p)\n", vma, page);
++
+ 	ret = ocfs2_vm_op_block_sigs(&blocked, &oldset);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+@@ -202,11 +238,16 @@ out:
+ 	if (ret2 < 0)
+ 		mlog_errno(ret2);
+ 
++	mlog_exit(ret);
+ 	return ret;
+ }
+ 
+ static struct vm_operations_struct ocfs2_file_vm_ops = {
++#ifndef NO_FAULT_IN_VMOPS
+ 	.fault		= ocfs2_fault,
++#else
++	.nopage		= ocfs2_nopage,
 +#endif
+ 	.page_mkwrite	= ocfs2_page_mkwrite,
+ };
+ 
+@@ -214,16 +255,22 @@ int ocfs2_mmap(struct file *file, struct vm_area_struct *vma)
+ {
+ 	int ret = 0, lock_level = 0;
+ 
+-	ret = ocfs2_meta_lock_atime(file->f_dentry->d_inode,
++	mlog_entry("(file=0x%p, vma=%p, '%.*s')\n", file, vma,
++		   file->f_path.dentry->d_name.len,
++		   file->f_path.dentry->d_name.name);
++
++	ret = ocfs2_meta_lock_atime(file->f_path.dentry->d_inode,
+ 				    file->f_vfsmnt, &lock_level);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+ 		goto out;
+ 	}
+-	ocfs2_meta_unlock(file->f_dentry->d_inode, lock_level);
++	ocfs2_meta_unlock(file->f_path.dentry->d_inode, lock_level);
+ out:
+ 	vma->vm_ops = &ocfs2_file_vm_ops;
++#ifndef NO_FAULT_IN_VMOPS
+ 	vma->vm_flags |= VM_CAN_NONLINEAR;
+-	return 0;
++#endif
++	mlog_exit(ret);
++	return ret;
+ }
+-
 -- 
 1.5.3.4
