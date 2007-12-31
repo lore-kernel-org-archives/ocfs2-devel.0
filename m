@@ -1,55 +1,27 @@
-From: Marcin Slusarz <marcin.slusarz@gmail.com>
-Date: Tue, 25 Dec 2007 14:51:22 -0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: convert byte order of constant instead
-	of variable
-Message-ID: <20071225145256.GD24373@joi>
+From: Christoph Hellwig <hch@infradead.org>
+Date: Mon, 31 Dec 2007 09:17:47 -0000
+Subject: [Ocfs2-devel] [RFC][PATCH] byteorder: introduce le32_add_cpu &
+	friends to	core
+In-Reply-To: <20071230214857.GA14177@joi>
+References: <20071230190619.GA13757@joi> <20071230191825.GA6447@infradead.org>
+	<20071230214857.GA14177@joi>
+Message-ID: <20071231091732.GA29043@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
-Cc: Mark Fasheh <mark.fasheh@oracle.com>, Kurt Hackel <kurt.hackel@oracle.com>, LKML <linux-kernel@vger.kernel.org>
+To: Marcin Slusarz <marcin.slusarz@gmail.com>
+Cc: Christoph Hellwig <hch@infradead.org>, ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>, kernel-janitors <kernel-janitors@vger.kernel.org>
 
-convert byte order of constant instead of variable
-it will be done at compile time (vs run time)
-remove unused le32_and_cpu
+On Sun, Dec 30, 2007 at 10:49:34PM +0100, Marcin Slusarz wrote:
+> I found it in XFS only. Did I miss something?
 
-Signed-off-by: Marcin Slusarz <marcin.slusarz@gmail.com>
-CC: Mark Fasheh <mark.fasheh@oracle.com>
-CC: Kurt Hackel <kurt.hackel@oracle.com>
----
- fs/ocfs2/endian.h |    5 -----
- fs/ocfs2/inode.c  |    2 +-
- 2 files changed, 1 insertions(+), 6 deletions(-)
+These helpers come from ocfs2 which has both be and le variants.
 
-diff --git a/fs/ocfs2/endian.h b/fs/ocfs2/endian.h
-index ff25762..1942e09 100644
---- a/fs/ocfs2/endian.h
-+++ b/fs/ocfs2/endian.h
-@@ -37,11 +37,6 @@ static inline void le64_add_cpu(__le64 *var, u64 val)
- 	*var = cpu_to_le64(le64_to_cpu(*var) + val);
- }
+> be32_add is shorter than be32_add_cpu but I think it's not clear
+> whether second parameter is in native byte order or not.
 
--static inline void le32_and_cpu(__le32 *var, u32 val)
--{
--	*var = cpu_to_le32(le32_to_cpu(*var) & val);
--}
--
- static inline void be32_add_cpu(__be32 *var, u32 val)
- {
- 	*var = cpu_to_be32(be32_to_cpu(*var) + val);
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index ebb2bbe..ccea366 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -617,7 +617,7 @@ static int ocfs2_remove_inode(struct inode *inode,
- 	}
+Then again adding foreing endian values doesn't make much sense.
 
- 	di->i_dtime = cpu_to_le64(CURRENT_TIME.tv_sec);
--	le32_and_cpu(&di->i_flags, ~(OCFS2_VALID_FL | OCFS2_ORPHANED_FL));
-+	di->i_flags &= cpu_to_le32(~(OCFS2_VALID_FL | OCFS2_ORPHANED_FL));
-
- 	status = ocfs2_journal_dirty(handle, di_bh);
- 	if (status < 0) {
---
-1.5.3.4
+If you insist on your naming please make sure to convert ocfs and xfs
+to your naming.
