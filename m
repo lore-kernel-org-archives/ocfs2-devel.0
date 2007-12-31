@@ -1,84 +1,70 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon Dec 31 14:25:58 2007
-Subject: [Ocfs2-devel] [PATCH 11/30] ocfs2: Add helper drop_nlink
+Date: Mon Dec 31 14:25:59 2007
+Subject: [Ocfs2-devel] [PATCH 19/30] ocfs2: Handle missing macro
+	is_owner_or_cap()
 In-Reply-To: <1199139862-31452-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199139862-31452-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199139862-31452-10-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199139862-31452-18-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 9a53c3a783c2fa9b969628e65695c11c3e51e673 in mainline added
-helper drop_nlink(). This patch allows one to build ocfs2 with kernels
-having/not having that change.
+Commit 3bd858ab1c451725c07a805dcb315215dc85b86e in mainline introduces
+helper macro is_owner_or_cap(). This patch allows one to build ocfs2 with
+kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Makefile                         |    3 ++-
- configure.in                     |    5 +++++
- kapi-compat/include/drop_nlink.h |   22 ++++++++++++++++++++++
- 3 files changed, 29 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/drop_nlink.h
+ Makefile                  |    3 ++-
+ configure.in              |    5 +++++
+ kapi-compat/include/cap.h |    7 +++++++
+ 3 files changed, 14 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/cap.h
 
 diff --git a/Makefile b/Makefile
-index 8900c89..a7277f3 100644
+index 1807eac..cb395cc 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -15,7 +15,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/sync_mapping_range.h \
- 	kapi-compat/include/fpath.h \
- 	kapi-compat/include/kmod.h \
--	kapi-compat/include/inc_nlink.h
-+	kapi-compat/include/inc_nlink.h \
-+	kapi-compat/include/drop_nlink.h
+@@ -23,7 +23,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/configfs.h \
+ 	kapi-compat/include/register_sysctl.h \
+ 	kapi-compat/include/su_mutex.h \
+-	kapi-compat/include/kobject.h
++	kapi-compat/include/kobject.h \
++	kapi-compat/include/cap.h
  
  PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index 8c94d23..969a558 100644
+index 3ea990f..c1525a6 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -199,6 +199,11 @@ OCFS2_CHECK_KERNEL([inc_nlink() in fs.h], fs.h,
-   , inc_nlink_compat_header="inc_nlink.h", [^static inline void inc_nlink(])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $inc_nlink_compat_header"
+@@ -243,6 +243,11 @@ OCFS2_CHECK_KERNEL([struct subsystem in kobject.h], kobject.h,
+ AC_SUBST(STRUCT_SUBSYSTEM_DEFINED)
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS kobject.h"
  
-+drop_nlink_compat_header=""
-+OCFS2_CHECK_KERNEL([drop_nlink() in fs.h], fs.h,
-+  , drop_nlink_compat_header="drop_nlink.h", [^static inline void drop_nlink(])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $drop_nlink_compat_header"
++cap_compat_header=""
++OCFS2_CHECK_KERNEL([is_owner_or_cap() in fs.h], fs.h,
++  , cap_compat_header="cap.h", [^#define is_owner_or_cap])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $cap_compat_header"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/drop_nlink.h b/kapi-compat/include/drop_nlink.h
+diff --git a/kapi-compat/include/cap.h b/kapi-compat/include/cap.h
 new file mode 100644
-index 0000000..d54973b
+index 0000000..a10a12f
 --- /dev/null
-+++ b/kapi-compat/include/drop_nlink.h
-@@ -0,0 +1,22 @@
-+#ifndef KAPI_DROP_NLINK_H
-+#define KAPI_DROP_NLINK_H
++++ b/kapi-compat/include/cap.h
+@@ -0,0 +1,7 @@
++#ifndef KAPI_CAP_H
++#define KAPI_CAP_H
 +
-+#include <linux/fs.h>
-+
-+/*
-+ * drop_nlink - directly drop an inode's link count
-+ * @inode: inode
-+ *
-+ * This is a low-level filesystem helper to replace any
-+ * direct filesystem manipulation of i_nlink.  In cases
-+ * where we are attempting to track writes to the
-+ * filesystem, a decrement to zero means an imminent
-+ * write when the file is truncated and actually unlinked
-+ * on the filesystem.
-+ */
-+static inline void drop_nlink(struct inode *inode)
-+{
-+	inode->i_nlink--;
-+}
++#define is_owner_or_cap(inode)  \
++	        ((current->fsuid == (inode)->i_uid) || capable(CAP_FOWNER))
 +
 +#endif
 -- 
