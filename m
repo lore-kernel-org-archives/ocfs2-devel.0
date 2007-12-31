@@ -1,23 +1,41 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Dec 31 11:36:58 2007
-Subject: [Ocfs2-devel] Re: [PATCH] ocfs2: convert byte order of constant
-	instead of variable
-In-Reply-To: <20071225145256.GD24373@joi>
-References: <20071225145256.GD24373@joi>
-Message-ID: <20071231193542.GR13821@ca-server1.us.oracle.com>
+Date: Mon Dec 31 11:39:01 2007
+Subject: [Ocfs2-devel] Re: [RFC][PATCH] byteorder: introduce le32_add_cpu &
+	friends to core
+In-Reply-To: <20071230190619.GA13757@joi>
+References: <20071230190619.GA13757@joi>
+Message-ID: <20071231193801.GS13821@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Marcin Slusarz <marcin.slusarz@gmail.com>
-Cc: ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, kernel-janitors <kernel-janitors@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-On Tue, Dec 25, 2007 at 03:52:59PM +0100, Marcin Slusarz wrote:
-> convert byte order of constant instead of variable
-> it will be done at compile time (vs run time)
-> remove unused le32_and_cpu
+On Sun, Dec 30, 2007 at 08:06:34PM +0100, Marcin Slusarz wrote:
+> There are many places where these functions would be useful.
+> (just look at: grep -r 'cpu_to_[ble12346]*([ble12346]*_to_cpu.*[-+]' linux-src/)
+> What do you think?
+> 
+> ps: this patch depends on http://lkml.org/lkml/2007/12/25/35
+> --
+> 
+> add inline functions which add native byte order variable to
+> little/big endian variable to core header and as an example
+> convert ext3 to use them
 
-Ok, this looks good. I'll put it in ocfs2.git later today.
+You might want to note where you got these functions from in your message.
+
+Also, it would be easier to follow these changes if you had broken things up
+into two patches - one which moved stuff from ocfs2 into generic helpers and
+a 2nd one to convert ext3.
+
+Looking into my crystal ball, I see a bunch of "convert to using byteorder
+math macros" patches coming down the pipe. Since we're talking about disk
+fields where a mistake could be costly, I suggest that any patch more than a
+couple of lines should be tested by the submitter with sparse. A statement
+that sparse didn't produce any new warnings (with the patch applied) could
+be included in the description.
 	--Mark
 
 --
