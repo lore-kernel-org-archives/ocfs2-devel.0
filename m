@@ -1,82 +1,100 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Mon Dec 31 14:25:53 2007
-Subject: [Ocfs2-devel] [PATCH 10/30] ocfs2: Add helper inc_nlink
+Subject: [Ocfs2-devel] [PATCH 29/30] ocfs2: Handle older prototype of
+	bi_end_io_t
 In-Reply-To: <1199139862-31452-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199139862-31452-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199139862-31452-9-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199139862-31452-28-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit d8c76e6f45c111c32a4b3e50a2adc9210737b0d8 in mainline introduced
-helper inc_nlink(). This patch allows one to build ocfs2 with kernels
-having/not having that change.
+Commit 6712ecf8f648118c3363c142196418f89a510b90 in mainline
+dropped 'size' argument from bi_end_io(). This patch allows
+one to build ocfs2 with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Makefile                        |    3 ++-
- configure.in                    |    5 +++++
- kapi-compat/include/inc_nlink.h |   19 +++++++++++++++++++
- 3 files changed, 26 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/inc_nlink.h
+ Config.make.in               |    1 +
+ configure.in                 |    5 +++++
+ fs/ocfs2/cluster/Makefile    |    4 ++++
+ fs/ocfs2/cluster/heartbeat.c |    9 +++++++++
+ 4 files changed, 19 insertions(+), 0 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index a12754c..8900c89 100644
---- a/Makefile
-+++ b/Makefile
-@@ -14,7 +14,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/highmem.h \
- 	kapi-compat/include/sync_mapping_range.h \
- 	kapi-compat/include/fpath.h \
--	kapi-compat/include/kmod.h
-+	kapi-compat/include/kmod.h \
-+	kapi-compat/include/inc_nlink.h
+diff --git a/Config.make.in b/Config.make.in
+index 114cf90..98577c6 100644
+--- a/Config.make.in
++++ b/Config.make.in
+@@ -74,6 +74,7 @@ SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
+ IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
+ NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
+ NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
++OLD_BIO_END_IO = @OLD_BIO_END_IO@
  
- PATCH_FILES =
+ OCFS_DEBUG = @OCFS_DEBUG@
  
 diff --git a/configure.in b/configure.in
-index 584b564..8c94d23 100644
+index d1e6557..ba2153a 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -194,6 +194,11 @@ OCFS2_CHECK_KERNEL([enum umh_wait in kmod.h], kmod.h,
-   , kmod_compat_header="kmod.h", [umh_wait])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $kmod_compat_header"
+@@ -295,6 +295,11 @@ OCFS2_CHECK_KERNEL([__splice_from_pipe() in splice.h], splice.h,
+   , NO_SPLICE_FROM_PIPE=yes, [^extern ssize_t __splice_from_pipe(struct pipe_inode_info \*])
+ AC_SUBST(NO_SPLICE_FROM_PIPE)
  
-+inc_nlink_compat_header=""
-+OCFS2_CHECK_KERNEL([inc_nlink() in fs.h], fs.h,
-+  , inc_nlink_compat_header="inc_nlink.h", [^static inline void inc_nlink(])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $inc_nlink_compat_header"
++OLD_BIO_END_IO=
++OCFS2_CHECK_KERNEL([old bio_end_io_t in bio.h], bio.h,
++  OLD_BIO_END_IO=yes, , [^typedef int (bio_end_io_t) (struct bio \*, unsigned int, int);])
++AC_SUBST(OLD_BIO_END_IO)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/inc_nlink.h b/kapi-compat/include/inc_nlink.h
-new file mode 100644
-index 0000000..26ddaac
---- /dev/null
-+++ b/kapi-compat/include/inc_nlink.h
-@@ -0,0 +1,19 @@
-+#ifndef KAPI_INC_NLINK_H
-+#define KAPI_INC_NLINK_H
+diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
+index 512bfa1..0a5e287 100644
+--- a/fs/ocfs2/cluster/Makefile
++++ b/fs/ocfs2/cluster/Makefile
+@@ -29,6 +29,10 @@ ifdef STRUCT_SUBSYSTEM_DEFINED
+ EXTRA_CFLAGS += -DSTRUCT_SUBSYSTEM_DEFINED
+ endif
+ 
++ifdef OLD_BIO_END_IO
++EXTRA_CFLAGS += -DOLD_BIO_END_IO
++endif
 +
-+#include <linux/fs.h>
-+
-+/*
-+ * inc_nlink - directly increment an inode's link count
-+ * @inode: inode
-+ *
-+ * This is a low-level filesystem helper to replace any
-+ * direct filesystem manipulation of i_nlink.  Currently,
-+ * it is only here for parity with dec_nlink().
-+ */
-+static inline void inc_nlink(struct inode *inode)
-+{
-+	inode->i_nlink++;
-+}
-+
+ SOURCES =			\
+ 	heartbeat.c		\
+ 	masklog.c		\
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 65ff7f3..6a91607 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -215,8 +215,14 @@ static void o2hb_wait_on_io(struct o2hb_region *reg,
+ 	wait_for_completion(&wc->wc_io_complete);
+ }
+ 
++#ifdef OLD_BIO_END_IO
++static int o2hb_bio_end_io(struct bio *bio,
++			   unsigned int bytes_done,
++			   int error)
++#else
+ static void o2hb_bio_end_io(struct bio *bio,
+ 			   int error)
 +#endif
+ {
+ 	struct o2hb_bio_wait_ctxt *wc = bio->bi_private;
+ 
+@@ -227,6 +233,9 @@ static void o2hb_bio_end_io(struct bio *bio,
+ 
+ 	o2hb_bio_wait_dec(wc, 1);
+ 	bio_put(bio);
++#ifdef OLD_BIO_END_IO
++	return 0;
++#endif
+ }
+ 
+ /* Setup a Bio to cover I/O against num_slots slots starting at
 -- 
 1.5.3.4
