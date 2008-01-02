@@ -1,30 +1,20 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed Jan  2 15:14:59 2008
-Subject: [Ocfs2-devel] Re: [PATCH 13/30] ocfs2: Define FS_RENAME_DOES_D_MOVE
-In-Reply-To: <1199139862-31452-12-git-send-email-sunil.mushran@oracle.com>
-References: <1199139862-31452-1-git-send-email-sunil.mushran@oracle.com>
-	<1199139862-31452-12-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20080102231418.GE8779@mail.oracle.com>
+From: Sunil Mushran <Sunil.Mushran@oracle.com>
+Date: Wed Jan  2 19:01:27 2008
+Subject: [Ocfs2-devel] Re: [Ocfs2-tools-devel] [PATCH 2/6] Abstract some
+ specific process in	resize to some individual function.take 3
+In-Reply-To: <20071218011251.GA23432@tma-pc1.cn.oracle.com>
+References: <20071218011251.GA23432@tma-pc1.cn.oracle.com>
+Message-ID: <477C4FB9.3070609@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Dec 31, 2007 at 02:24:05PM -0800, Sunil Mushran wrote:
->  kapi-compat/include/fstype.h |    6 ++++++
-
-	And here I'd call it fs_rename_does_d_move.h
-
-Joel
-
--- 
-
-"Glory is fleeting, but obscurity is forever."  
-         - Napoleon Bonaparte
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+Tao Ma wrote:
+> Some process may be different for online and offline resize, so move
+> them to different functions for future change.
+>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> --
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
