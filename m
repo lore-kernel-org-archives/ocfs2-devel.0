@@ -1,85 +1,143 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Thu Jan  3 11:21:55 2008
-Subject: [Ocfs2-devel] [PATCH 30/30] ocfs2: Handle missing exportfs.h
+Subject: [Ocfs2-devel] [PATCH 24/30] ocfs2: Handle missing export
+	generic_segment_checks()
 In-Reply-To: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199388006-32658-29-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199388006-32658-23-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit a569425512253992cc64ebf8b6d00a62f986db3e in mainline
-moved struct export_operation from fs.h to exportfs.h. This
-patch allows one to build ocfs2 with kernels having/not having
-this change.
+Commit 0ceb331433e8aad9c5f441a965d7c681f8b9046f in mainline wraps
+common segment checks in generic_segment_checks(). This patch allows
+one to build ocfs2 with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Config.make.in    |    1 +
- configure.in      |    5 +++++
- fs/ocfs2/Makefile |    4 ++++
- fs/ocfs2/export.h |    2 ++
- 4 files changed, 12 insertions(+), 0 deletions(-)
+ Config.make.in                               |    1 +
+ Makefile                                     |    3 +-
+ configure.in                                 |    6 +++
+ fs/ocfs2/Makefile                            |    4 ++
+ kapi-compat/include/generic_segment_checks.h |   49 ++++++++++++++++++++++++++
+ 5 files changed, 62 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/generic_segment_checks.h
 
 diff --git a/Config.make.in b/Config.make.in
-index 98577c6..ed67a49 100644
+index 53792d0..a44bbe3 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -75,6 +75,7 @@ IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
- NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
- NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
- OLD_BIO_END_IO = @OLD_BIO_END_IO@
-+NO_EXPORTFS_HEADER = @NO_EXPORTFS_HEADER@
+@@ -69,6 +69,7 @@ STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
+ NO_FALLOCATE = @NO_FALLOCATE@
+ NO_SPLICE_HEADER = @NO_SPLICE_HEADER@
+ NO_SHOULD_REMOVE_SUID = @NO_SHOULD_REMOVE_SUID@
++NO_GENERIC_SEGMENT_CHECKS = @NO_GENERIC_SEGMENT_CHECKS@
  
  OCFS_DEBUG = @OCFS_DEBUG@
  
+diff --git a/Makefile b/Makefile
+index 0c17fec..9427ce6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -26,7 +26,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/kobject.h \
+ 	kapi-compat/include/cap.h \
+ 	kapi-compat/include/relatime.h \
+-	kapi-compat/include/should_remove_suid.h
++	kapi-compat/include/should_remove_suid.h \
++	kapi-compat/include/generic_segment_checks.h
+ 
+ PATCH_FILES =
+ 
 diff --git a/configure.in b/configure.in
-index a55db86..b12aed8 100644
+index cd0c299..2f7e19c 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -301,6 +301,11 @@ OCFS2_CHECK_KERNEL([old bio_end_io_t in bio.h], bio.h,
-   OLD_BIO_END_IO=yes, , [^typedef int (bio_end_io_t) (struct bio \*, unsigned int, int);])
- AC_SUBST(OLD_BIO_END_IO)
+@@ -269,6 +269,12 @@ OCFS2_CHECK_KERNEL([should_remove_suid() in fs.h], fs.h,
+ AC_SUBST(NO_SHOULD_REMOVE_SUID)
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS should_remove_suid.h"
  
-+NO_EXPORTFS_HEADER=
-+OCFS2_CHECK_KERNEL([exportfs.h], exportfs.h,
-+  , NO_EXPORTFS_HEADER=yes, [^struct export_operations {])
-+AC_SUBST(NO_EXPORTFS_HEADER)
++NO_GENERIC_SEGMENT_CHECKS=
++OCFS2_CHECK_KERNEL([generic_segment_checks() in fs.h], fs.h,
++  , NO_GENERIC_SEGMENT_CHECKS=yes, [generic_segment_checks()])
++AC_SUBST(NO_GENERIC_SEGMENT_CHECKS)
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS generic_segment_checks.h"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
 diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index eb46c29..51cac1b 100644
+index cecd610..98a7ada 100644
 --- a/fs/ocfs2/Makefile
 +++ b/fs/ocfs2/Makefile
-@@ -81,6 +81,10 @@ ifdef NO_SPLICE_FROM_PIPE
- EXTRA_CFLAGS += -DNO_SPLICE_FROM_PIPE
+@@ -61,6 +61,10 @@ ifdef NO_SHOULD_REMOVE_SUID
+ CFLAGS_file.o += -DNO_SHOULD_REMOVE_SUID
  endif
  
-+ifdef NO_EXPORTFS_HEADER
-+EXTRA_CFLAGS += -DNO_EXPORTFS_HEADER
++ifdef NO_GENERIC_SEGMENT_CHECKS
++CFLAGS_file.o += -DNO_GENERIC_SEGMENT_CHECKS
 +endif
 +
  #
  # Since SUBDIRS means something to kbuild, define them safely.  Do not
  # include trailing slashes.
-diff --git a/fs/ocfs2/export.h b/fs/ocfs2/export.h
-index e08bed9..591b185 100644
---- a/fs/ocfs2/export.h
-+++ b/fs/ocfs2/export.h
-@@ -26,7 +26,9 @@
- #ifndef OCFS2_EXPORT_H
- #define OCFS2_EXPORT_H
- 
-+#ifndef NO_EXPORTFS_HEADER
- #include <linux/exportfs.h>
+diff --git a/kapi-compat/include/generic_segment_checks.h b/kapi-compat/include/generic_segment_checks.h
+new file mode 100644
+index 0000000..84aa888
+--- /dev/null
++++ b/kapi-compat/include/generic_segment_checks.h
+@@ -0,0 +1,49 @@
++#ifndef KAPI_GENERIC_SEGMENT_CHECKS_H
++#define KAPI_GENERIC_SEGMENT_CHECKS_H
++
++#ifdef NO_GENERIC_SEGMENT_CHECKS
++
++#include <linux/fs.h>
++#include <linux/uaccess.h>
++#include <linux/uio.h>
++
++/*
++ * Performs necessary checks before doing a write
++ * @iov:	io vector request
++ * @nr_segs:	number of segments in the iovec
++ * @count:	number of bytes to write
++ * @access_flags: type of access: %VERIFY_READ or %VERIFY_WRITE
++ *
++ * Adjust number of segments and amount of bytes to write (nr_segs should be
++ * properly initialized first). Returns appropriate error code that caller
++ * should return or zero in case that write should be allowed.
++ */
++int generic_segment_checks(const struct iovec *iov,
++			unsigned long *nr_segs, size_t *count, int access_flags)
++{
++	unsigned long   seg;
++	size_t cnt = 0;
++	for (seg = 0; seg < *nr_segs; seg++) {
++		const struct iovec *iv = &iov[seg];
++
++		/*
++		 * If any segment has a negative length, or the cumulative
++		 * length ever wraps negative then return -EINVAL.
++		 */
++		cnt += iv->iov_len;
++		if (unlikely((ssize_t)(cnt|iv->iov_len) < 0))
++			return -EINVAL;
++		if (access_ok(access_flags, iv->iov_base, iv->iov_len))
++			continue;
++		if (seg == 0)
++			return -EFAULT;
++		*nr_segs = seg;
++		cnt -= iv->iov_len;	/* This segment is no good */
++		break;
++	}
++	*count = cnt;
++	return 0;
++}
 +#endif
- 
- extern struct export_operations ocfs2_export_ops;
- 
++
++#endif
 -- 
 1.5.2.5
