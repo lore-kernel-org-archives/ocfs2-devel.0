@@ -1,72 +1,81 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Thu Jan  3 11:22:03 2008
-Subject: [Ocfs2-devel] [PATCH 09/30] ocfs2: Define enum umh_wait
+Subject: [Ocfs2-devel] [PATCH 10/30] ocfs2: Add helper inc_nlink
 In-Reply-To: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199388006-32658-8-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199388006-32658-9-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 86313c488a6848b7ec2ba04e74f25f79dd32a0b7 in mainline introduced
-enum umh_wait. This patch allows one to build ocfs2 with kernels having/
-not having that change.
+Commit d8c76e6f45c111c32a4b3e50a2adc9210737b0d8 in mainline introduced
+helper inc_nlink(). This patch allows one to build ocfs2 with kernels
+having/not having that change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Makefile                       |    3 ++-
- configure.in                   |    5 +++++
- kapi-compat/include/umh_wait.h |   10 ++++++++++
- 3 files changed, 17 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/umh_wait.h
+ Makefile                        |    3 ++-
+ configure.in                    |    5 +++++
+ kapi-compat/include/inc_nlink.h |   19 +++++++++++++++++++
+ 3 files changed, 26 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/inc_nlink.h
 
 diff --git a/Makefile b/Makefile
-index c1ebc15..b937c2b 100644
+index b937c2b..2995450 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -13,7 +13,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/compiler.h \
+@@ -14,7 +14,8 @@ KAPI_COMPAT_FILES = \
  	kapi-compat/include/highmem.h \
  	kapi-compat/include/sync_mapping_range.h \
--	kapi-compat/include/fpath.h
-+	kapi-compat/include/fpath.h \
-+	kapi-compat/include/umh_wait.h
+ 	kapi-compat/include/fpath.h \
+-	kapi-compat/include/umh_wait.h
++	kapi-compat/include/umh_wait.h \
++	kapi-compat/include/inc_nlink.h
  
  PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index 62588ac..93f1558 100644
+index 93f1558..05d71ae 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -189,6 +189,11 @@ OCFS2_CHECK_KERNEL([f_path in fs.h], fs.h,
- AC_SUBST(NO_F_PATH_IN_STRUCT_FILE)
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS fpath.h"
+@@ -194,6 +194,11 @@ OCFS2_CHECK_KERNEL([enum umh_wait in kmod.h], kmod.h,
+   , kmod_compat_header="umh_wait.h", [umh_wait])
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $kmod_compat_header"
  
-+kmod_compat_header=""
-+OCFS2_CHECK_KERNEL([enum umh_wait in kmod.h], kmod.h,
-+  , kmod_compat_header="umh_wait.h", [umh_wait])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $kmod_compat_header"
++inc_nlink_compat_header=""
++OCFS2_CHECK_KERNEL([inc_nlink() in fs.h], fs.h,
++  , inc_nlink_compat_header="inc_nlink.h", [^static inline void inc_nlink(])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $inc_nlink_compat_header"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/umh_wait.h b/kapi-compat/include/umh_wait.h
+diff --git a/kapi-compat/include/inc_nlink.h b/kapi-compat/include/inc_nlink.h
 new file mode 100644
-index 0000000..42a082b
+index 0000000..26ddaac
 --- /dev/null
-+++ b/kapi-compat/include/umh_wait.h
-@@ -0,0 +1,10 @@
-+#ifndef KAPI_KMOD_H
-+#define KAPI_KMOD_H
++++ b/kapi-compat/include/inc_nlink.h
+@@ -0,0 +1,19 @@
++#ifndef KAPI_INC_NLINK_H
++#define KAPI_INC_NLINK_H
 +
-+enum umh_wait {
-+	UMH_NO_WAIT = -1,	/* don't wait at all */
-+	UMH_WAIT_EXEC = 0,	/* wait for the exec, but not the process */
-+	UMH_WAIT_PROC = 1,	/* wait for the process to complete */
-+};
++#include <linux/fs.h>
++
++/*
++ * inc_nlink - directly increment an inode's link count
++ * @inode: inode
++ *
++ * This is a low-level filesystem helper to replace any
++ * direct filesystem manipulation of i_nlink.  Currently,
++ * it is only here for parity with dec_nlink().
++ */
++static inline void inc_nlink(struct inode *inode)
++{
++	inode->i_nlink++;
++}
 +
 +#endif
 -- 
