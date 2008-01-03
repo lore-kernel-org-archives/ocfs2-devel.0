@@ -1,71 +1,69 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu Jan  3 11:22:05 2008
-Subject: [Ocfs2-devel] [PATCH 15/30] ocfs2: Handles configfs_depend_item()
-	and configfs_undepend_item()
+Date: Thu Jan  3 11:22:06 2008
+Subject: [Ocfs2-devel] [PATCH 13/30] ocfs2: Define FS_RENAME_DOES_D_MOVE
 In-Reply-To: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199388006-32658-14-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199388006-32658-12-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 631d1febab8e546e3bb800bdfe2c212b8adf87de in mainline introduces
-two new calls in configfs, configfs_depend_item() and configfs_undepend_item().
+Commit 349457ccf2592c14bdf13b6706170ae2e94931b1 in mainline defines macro
+FS_RENAME_DOES_D_MOVE to allow fs to call d_move() during rename().
 This patch allows one to build ocfs2 with kernels having/not having
 this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Makefile                       |    3 ++-
- configure.in                   |    5 +++++
- kapi-compat/include/configfs.h |    7 +++++++
- 3 files changed, 14 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/configfs.h
+ Makefile                                    |    3 ++-
+ configure.in                                |    5 +++++
+ kapi-compat/include/fs_rename_does_d_move.h |    6 ++++++
+ 3 files changed, 13 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/fs_rename_does_d_move.h
 
 diff --git a/Makefile b/Makefile
-index 1d27943..1553e54 100644
+index 23af453..43cd04c 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -19,7 +19,8 @@ KAPI_COMPAT_FILES = \
+@@ -17,7 +17,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/umh_wait.h \
+ 	kapi-compat/include/inc_nlink.h \
  	kapi-compat/include/drop_nlink.h \
- 	kapi-compat/include/slab.h \
- 	kapi-compat/include/fs_rename_does_d_move.h \
--	kapi-compat/include/sysctl.h
-+	kapi-compat/include/sysctl.h \
-+	kapi-compat/include/configfs.h
+-	kapi-compat/include/slab.h
++	kapi-compat/include/slab.h \
++	kapi-compat/include/fs_rename_does_d_move.h
  
  PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index 28e1198..fb2b8e2 100644
+index 11b877f..ae5dada 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -220,6 +220,11 @@ OCFS2_CHECK_KERNEL([enum FS_OCFS2 in sysctl.h], sysctl.h,
-   , sysctl_compat_header="sysctl.h", [FS_OCFS2])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $sysctl_compat_header"
+@@ -210,6 +210,11 @@ OCFS2_CHECK_KERNEL([kmem_cache_create() with dtor arg in slab.h], slab.h,
+ AC_SUBST(KMEM_CACHE_CREATE_DTOR)
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS slab.h"
  
-+configfs_compat_header=""
-+OCFS2_CHECK_KERNEL([configfs_depend_item() in configfs.h], configfs.h,
-+  , configfs_compat_header="configfs.h", [configfs_depend_item()])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $configfs_compat_header"
++fstype_compat_header=""
++OCFS2_CHECK_KERNEL([flag FS_RENAME_DOES_D_MOVE in fs.h], fs.h,
++  , fstype_compat_header="fs_rename_does_d_move.h", [FS_RENAME_DOES_D_MOVE])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $fstype_compat_header"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/configfs.h b/kapi-compat/include/configfs.h
+diff --git a/kapi-compat/include/fs_rename_does_d_move.h b/kapi-compat/include/fs_rename_does_d_move.h
 new file mode 100644
-index 0000000..cbc11e6
+index 0000000..895ea86
 --- /dev/null
-+++ b/kapi-compat/include/configfs.h
-@@ -0,0 +1,7 @@
-+#ifndef KAPI_CONFIGFS_H
-+#define KAPI_CONFIGFS_H
++++ b/kapi-compat/include/fs_rename_does_d_move.h
+@@ -0,0 +1,6 @@
++#ifndef KAPI_FSTYPE_H
++#define KAPI_FSTYPE_H
 +
-+#define configfs_depend_item(a, b)	(0)
-+#define configfs_undepend_item(a, b)
++#define FS_RENAME_DOES_D_MOVE	FS_ODD_RENAME
 +
 +#endif
 -- 
