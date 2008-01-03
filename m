@@ -1,190 +1,121 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Thu Jan  3 11:21:58 2008
-Subject: [Ocfs2-devel] [PATCH 07/30] ocfs2: Handle missing vmops->fault()
+Subject: [Ocfs2-devel] [PATCH 17/30] ocfs2: Handle su_mutex in struct
+	configfs_subsystem
 In-Reply-To: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199388006-32658-6-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199388006-32658-16-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 54cb8821de07f2ffcd28c380ce9b93d5784b40d7 in mainline introduces
-vmops->fault() which is used to replace vmops->populate() and vmops->nopage().
-This patch allows one to build ocfs2 with kernels having/not having this
-change.
+Commit e6bd07aee739566803425acdbf5cdb29919164e1 in mainline changed a
+semaphore into a mutex in struct configfs_subsystem. This patch allows
+building ocfs2 with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Config.make.in    |    1 +
- configure.in      |    5 ++++
- fs/ocfs2/Makefile |    4 +++
- fs/ocfs2/mmap.c   |   55 +++++++++++++++++++++++++++++++++++++++++++++++++---
- 4 files changed, 61 insertions(+), 4 deletions(-)
+ Config.make.in                 |    1 +
+ Makefile                       |    3 ++-
+ configure.in                   |    6 ++++++
+ fs/ocfs2/cluster/Makefile      |    4 ++++
+ fs/ocfs2/cluster/nodemanager.c |    2 +-
+ kapi-compat/include/su_mutex.h |   13 +++++++++++++
+ 6 files changed, 27 insertions(+), 2 deletions(-)
+ create mode 100644 kapi-compat/include/su_mutex.h
 
 diff --git a/Config.make.in b/Config.make.in
-index 67ee363..4208ece 100644
+index 2b2a041..b12623a 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -60,6 +60,7 @@ EXTRA_CFLAGS += @KAPI_COMPAT_CFLAGS@
- NO_DELAYED_WORK = @NO_DELAYED_WORK@
- 
- NO_SYNC_MAPPING_RANGE  = @NO_SYNC_MAPPING_RANGE@
-+NO_FAULT_IN_VMOPS = @NO_FAULT_IN_VMOPS@
+@@ -64,6 +64,7 @@ NO_FAULT_IN_VMOPS = @NO_FAULT_IN_VMOPS@
+ NO_F_PATH_IN_STRUCT_FILE = @NO_F_PATH_IN_STRUCT_FILE@
+ KMEM_CACHE_CREATE_DTOR = @KMEM_CACHE_CREATE_DTOR@
+ REGISTER_SYSCTL_TWO_ARGS = @REGISTER_SYSCTL_TWO_ARGS@
++NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM = @NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM@
  
  OCFS_DEBUG = @OCFS_DEBUG@
  
+diff --git a/Makefile b/Makefile
+index 4256eb7..1ecedd2 100644
+--- a/Makefile
++++ b/Makefile
+@@ -21,7 +21,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/fs_rename_does_d_move.h \
+ 	kapi-compat/include/sysctl.h \
+ 	kapi-compat/include/configfs.h \
+-	kapi-compat/include/register_sysctl.h
++	kapi-compat/include/register_sysctl.h \
++	kapi-compat/include/su_mutex.h
+ 
+ PATCH_FILES =
+ 
 diff --git a/configure.in b/configure.in
-index 72698ae..1aced84 100644
+index f4d0185..034f104 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -178,6 +178,11 @@ OCFS2_CHECK_KERNEL([do_sync_mapping_range() in fs.h], fs.h,
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS sync_mapping_range.h"
- AC_SUBST(NO_SYNC_MAPPING_RANGE)
+@@ -231,6 +231,12 @@ OCFS2_CHECK_KERNEL([register_sysctl() with two args in sysctl.h], sysctl.h,
+ AC_SUBST(REGISTER_SYSCTL_TWO_ARGS)
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS register_sysctl.h"
  
-+NO_FAULT_IN_VMOPS=
-+OCFS2_CHECK_KERNEL([fault() in struct vm_operations_struct in mm.h], mm.h,
-+  , NO_FAULT_IN_VMOPS=yes, [^.*int (\*fault)])
-+AC_SUBST(NO_FAULT_IN_VMOPS)
++NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM=
++OCFS2_CHECK_KERNEL([su_mutex in struct configfs_subsystem in configfs.h], configfs.h,
++  , NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM=yes, [su_mutex])
++AC_SUBST(NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM)
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS su_mutex.h"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 737c12a..cbf3118 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -33,6 +33,10 @@ ifdef NO_SYNC_MAPPING_RANGE
- CFLAGS_alloc.o += -DNO_SYNC_MAPPING_RANGE
+diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
+index 68b434b..671104a 100644
+--- a/fs/ocfs2/cluster/Makefile
++++ b/fs/ocfs2/cluster/Makefile
+@@ -21,6 +21,10 @@ ifdef REGISTER_SYSCTL_TWO_ARGS
+ EXTRA_CFLAGS += -DREGISTER_SYSCTL_TWO_ARGS
  endif
  
-+ifdef NO_FAULT_IN_VMOPS
-+EXTRA_CFLAGS += -DNO_FAULT_IN_VMOPS
++ifdef NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM
++EXTRA_CFLAGS += -DNO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM
 +endif
 +
- #
- # Since SUBDIRS means something to kbuild, define them safely.  Do not
- # include trailing slashes.
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 9875615..a827b0b 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -60,6 +60,7 @@ static inline int ocfs2_vm_op_unblock_sigs(sigset_t *oldset)
- 	return sigprocmask(SIG_SETMASK, oldset, NULL);
- }
+ SOURCES =			\
+ 	heartbeat.c		\
+ 	masklog.c		\
+diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+index 9fff881..cb06ef4 100644
+--- a/fs/ocfs2/cluster/nodemanager.c
++++ b/fs/ocfs2/cluster/nodemanager.c
+@@ -974,7 +974,7 @@ static int __init init_o2nm(void)
+ 		goto out_sysctl;
  
-+#ifndef NO_FAULT_IN_VMOPS
- static int ocfs2_fault(struct vm_area_struct *area, struct vm_fault *vmf)
- {
- 	sigset_t blocked, oldset;
-@@ -83,6 +84,35 @@ out:
- 	mlog_exit_ptr(vmf->page);
- 	return ret;
- }
+ 	config_group_init(&o2nm_cluster_group.cs_subsys.su_group);
+-	mutex_init(&o2nm_cluster_group.cs_subsys.su_mutex);
++	init_su_mutex(&o2nm_cluster_group.cs_subsys.su_mutex);
+ 	ret = configfs_register_subsystem(&o2nm_cluster_group.cs_subsys);
+ 	if (ret) {
+ 		printk(KERN_ERR "nodemanager: Registration returned %d\n", ret);
+diff --git a/kapi-compat/include/su_mutex.h b/kapi-compat/include/su_mutex.h
+new file mode 100644
+index 0000000..12ebc2d
+--- /dev/null
++++ b/kapi-compat/include/su_mutex.h
+@@ -0,0 +1,13 @@
++#ifndef KAPI_SUMUTEX_H
++#define KAPI_SUMUTEX_H
++
++#ifdef NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM
++# include "asm/semaphore.h"
++# define init_su_mutex		init_MUTEX
++# define su_mutex		su_sem
 +#else
-+static struct page *ocfs2_nopage(struct vm_area_struct * area,
-+				 unsigned long address,
-+				 int *type)
-+{
-+	struct page *page = NOPAGE_SIGBUS;
-+	sigset_t blocked, oldset;
-+	int error, ret;
-+
-+	mlog_entry("(area=%p, address=%lu, type=%p)\n", area, address,
-+		   type);
-+
-+	error = ocfs2_vm_op_block_sigs(&blocked, &oldset);
-+	if (error < 0) {
-+		mlog_errno(error);
-+		ret = VM_FAULT_SIGBUS;
-+		goto out;
-+	}
-+
-+	page = filemap_nopage(area, address, type);
-+
-+	error = ocfs2_vm_op_unblock_sigs(&oldset);
-+	if (error < 0)
-+		mlog_errno(error);
-+out:
-+	mlog_exit_ptr(page);
-+	return page;
-+}
++# define init_su_mutex		mutex_init
++# define su_mutex		su_mutex
 +#endif
- 
- static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
- 				struct page *page)
-@@ -96,6 +126,9 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
- 	void *fsdata;
- 	loff_t size = i_size_read(inode);
- 
-+	mlog_entry("(inode=0x%p, i_ino=%lu, page=0x%p)\n", inode, inode->i_ino,
-+		   page);
 +
- 	/*
- 	 * Another node might have truncated while we were waiting on
- 	 * cluster locks.
-@@ -147,6 +180,7 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
- 	BUG_ON(ret != len);
- 	ret = 0;
- out:
-+	mlog_exit(ret);
- 	return ret;
- }
- 
-@@ -157,6 +191,8 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct page *page)
- 	sigset_t blocked, oldset;
- 	int ret, ret2;
- 
-+	mlog_entry("(vma=0x%p, page=0x%p)\n", vma, page);
-+
- 	ret = ocfs2_vm_op_block_sigs(&blocked, &oldset);
- 	if (ret < 0) {
- 		mlog_errno(ret);
-@@ -202,11 +238,16 @@ out:
- 	if (ret2 < 0)
- 		mlog_errno(ret2);
- 
-+	mlog_exit(ret);
- 	return ret;
- }
- 
- static struct vm_operations_struct ocfs2_file_vm_ops = {
-+#ifndef NO_FAULT_IN_VMOPS
- 	.fault		= ocfs2_fault,
-+#else
-+	.nopage		= ocfs2_nopage,
 +#endif
- 	.page_mkwrite	= ocfs2_page_mkwrite,
- };
- 
-@@ -214,16 +255,22 @@ int ocfs2_mmap(struct file *file, struct vm_area_struct *vma)
- {
- 	int ret = 0, lock_level = 0;
- 
--	ret = ocfs2_meta_lock_atime(file->f_dentry->d_inode,
-+	mlog_entry("(file=0x%p, vma=%p, '%.*s')\n", file, vma,
-+		   file->f_path.dentry->d_name.len,
-+		   file->f_path.dentry->d_name.name);
-+
-+	ret = ocfs2_meta_lock_atime(file->f_path.dentry->d_inode,
- 				    file->f_vfsmnt, &lock_level);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
--	ocfs2_meta_unlock(file->f_dentry->d_inode, lock_level);
-+	ocfs2_meta_unlock(file->f_path.dentry->d_inode, lock_level);
- out:
- 	vma->vm_ops = &ocfs2_file_vm_ops;
-+#ifndef NO_FAULT_IN_VMOPS
- 	vma->vm_flags |= VM_CAN_NONLINEAR;
--	return 0;
-+#endif
-+	mlog_exit(ret);
-+	return ret;
- }
--
 -- 
 1.5.2.5
