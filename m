@@ -1,106 +1,132 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Thu Jan  3 11:21:57 2008
-Subject: [Ocfs2-devel] [PATCH 28/30] ocfs2: Handle missing
-	__splice_from_pipe()
+Subject: [Ocfs2-devel] [PATCH 23/30] ocfs2: Handles missing export
+	should_remove_suid()
 In-Reply-To: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199388006-32658-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199388006-32658-27-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199388006-32658-22-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit c66ab6fa705e1b2887a6d9246b798bdc526839e2 in mainline introduced
-__splice_from_pipe(). This patch allows one to build ocfs2 with kernels
-having/not having this change.
-
-Note: This patch disables splice io for kernels not providing
-__splice_from_pipe(). We will later add a patch to enable splice
-io with such kernels too.
+Commits 01de85e057328ecbef36e108673b1e81059d54c1 and
+d23a147bb6e8d467e8df73b6589888717da3b9ce in mainline added and exported
+symbol should_remove_suid(). This patch allows one to build ocfs2 with
+kernels having/not having these changes.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Config.make.in    |    1 +
- configure.in      |    5 +++++
- fs/ocfs2/Makefile |    4 ++++
- fs/ocfs2/file.c   |    4 ++++
- 4 files changed, 14 insertions(+), 0 deletions(-)
+ Config.make.in                           |    1 +
+ Makefile                                 |    3 +-
+ configure.in                             |    6 +++++
+ fs/ocfs2/Makefile                        |    4 +++
+ kapi-compat/include/should_remove_suid.h |   37 ++++++++++++++++++++++++++++++
+ 5 files changed, 50 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/should_remove_suid.h
 
 diff --git a/Config.make.in b/Config.make.in
-index c6deb57..114cf90 100644
+index a912f40..53792d0 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -73,6 +73,7 @@ NO_GENERIC_SEGMENT_CHECKS = @NO_GENERIC_SEGMENT_CHECKS@
- SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
- IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
- NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
-+NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
+@@ -68,6 +68,7 @@ NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM = @NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSY
+ STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
+ NO_FALLOCATE = @NO_FALLOCATE@
+ NO_SPLICE_HEADER = @NO_SPLICE_HEADER@
++NO_SHOULD_REMOVE_SUID = @NO_SHOULD_REMOVE_SUID@
  
  OCFS_DEBUG = @OCFS_DEBUG@
  
+diff --git a/Makefile b/Makefile
+index ea4b979..0c17fec 100644
+--- a/Makefile
++++ b/Makefile
+@@ -25,7 +25,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/su_mutex.h \
+ 	kapi-compat/include/kobject.h \
+ 	kapi-compat/include/cap.h \
+-	kapi-compat/include/relatime.h
++	kapi-compat/include/relatime.h \
++	kapi-compat/include/should_remove_suid.h
+ 
+ PATCH_FILES =
+ 
 diff --git a/configure.in b/configure.in
-index 8c30910..b1e7be6 100644
+index a792b2f..cd0c299 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -291,6 +291,11 @@ OCFS2_CHECK_KERNEL([aio_read() in struct file_operations using iovec in fs.h], f
- AC_SUBST(NO_VECTORIZED_AIO)
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS aiovec.h"
+@@ -263,6 +263,12 @@ OCFS2_CHECK_KERNEL([MNT_RELATIME in mount.h], mount.h,
+   , relatime_compat_header="relatime.h", [^#define MNT_RELATIME])
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $relatime_compat_header"
  
-+NO_SPLICE_FROM_PIPE=
-+OCFS2_CHECK_KERNEL([__splice_from_pipe() in splice.h], splice.h,
-+  , NO_SPLICE_FROM_PIPE=yes, [^extern ssize_t __splice_from_pipe(struct pipe_inode_info \*])
-+AC_SUBST(NO_SPLICE_FROM_PIPE)
++NO_SHOULD_REMOVE_SUID=
++OCFS2_CHECK_KERNEL([should_remove_suid() in fs.h], fs.h,
++  , NO_SHOULD_REMOVE_SUID=yes, [should_remove_suid()])
++AC_SUBST(NO_SHOULD_REMOVE_SUID)
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS should_remove_suid.h"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
 diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 1646a9b..eb46c29 100644
+index 58be004..cecd610 100644
 --- a/fs/ocfs2/Makefile
 +++ b/fs/ocfs2/Makefile
-@@ -77,6 +77,10 @@ ifdef NO_VECTORIZED_AIO
- CFLAGS_file.o += -DNO_VECTORIZED_AIO
+@@ -57,6 +57,10 @@ ifdef NO_SPLICE_HEADER
+ EXTRA_CFLAGS += -DNO_SPLICE_HEADER
  endif
  
-+ifdef NO_SPLICE_FROM_PIPE
-+EXTRA_CFLAGS += -DNO_SPLICE_FROM_PIPE
++ifdef NO_SHOULD_REMOVE_SUID
++CFLAGS_file.o += -DNO_SHOULD_REMOVE_SUID
 +endif
 +
  #
  # Since SUBDIRS means something to kbuild, define them safely.  Do not
  # include trailing slashes.
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 62040aa..ad73b3c 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2173,6 +2173,7 @@ out_sems:
- 	return written ? written : ret;
- }
- 
-+#ifndef NO_SPLICE_FROM_PIPE
- static int ocfs2_splice_write_actor(struct pipe_inode_info *pipe,
- 				    struct pipe_buffer *buf,
- 				    struct splice_desc *sd)
-@@ -2321,6 +2322,7 @@ bail:
- 	mlog_exit(ret);
- 	return ret;
- }
+diff --git a/kapi-compat/include/should_remove_suid.h b/kapi-compat/include/should_remove_suid.h
+new file mode 100644
+index 0000000..4c9e598
+--- /dev/null
++++ b/kapi-compat/include/should_remove_suid.h
+@@ -0,0 +1,37 @@
++#ifndef KAP_SHOULD_REMOVE_SUID_H
++#define KAP_SHOULD_REMOVE_SUID_H
++
++#ifdef NO_SHOULD_REMOVE_SUID
++
++#include <linux/fs.h>
++
++/*
++ * The logic we want is
++ *
++ *	if suid or (sgid and xgrp)
++ *		remove privs
++ */
++int should_remove_suid(struct dentry *dentry)
++{
++	mode_t mode = dentry->d_inode->i_mode;
++	int kill = 0;
++
++	/* suid always must be killed */
++	if (unlikely(mode & S_ISUID))
++		kill = ATTR_KILL_SUID;
++
++	/*
++	 * sgid without any exec bits is just a mandatory locking mark; leave
++	 * it alone.  If some exec bits are set, it's a real sgid; kill it.
++	 */
++	if (unlikely((mode & S_ISGID) && (mode & S_IXGRP)))
++		kill |= ATTR_KILL_SGID;
++
++	if (unlikely(kill && !capable(CAP_FSETID)))
++		return kill;
++
++	return 0;
++}
 +#endif
- 
- static ssize_t __ocfs2_file_aio_read(struct kiocb *iocb,
- 				   const struct iovec *iov,
-@@ -2435,8 +2437,10 @@ const struct file_operations ocfs2_fops = {
- #ifdef CONFIG_COMPAT
- 	.compat_ioctl   = ocfs2_compat_ioctl,
- #endif
-+#ifndef NO_SPLICE_FROM_PIPE
- 	.splice_read	= ocfs2_file_splice_read,
- 	.splice_write	= ocfs2_file_splice_write,
++
 +#endif
- };
- 
- const struct file_operations ocfs2_dops = {
 -- 
 1.5.2.5
