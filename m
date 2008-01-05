@@ -1,94 +1,26 @@
-From: Jeff Mahoney <jeffm@suse.com>
-Date: Thu Jan 31 12:55:56 2008
-Subject: [Ocfs2-devel] [patch 2/5] ocfs2: add compatibility for
-	mandatory_lock()
-References: <20080131204634.478915000@suse.com>
-Message-ID: <20080131204715.360817000@suse.com>
+From: marcin.slusarz at gmail.com <marcin.slusarz@gmail.com>
+Date: Sat, 05 Jan 2008 15:34:54 -0000
+Subject: [Ocfs2-devel] [PATCH 0/3] byteorder: introduce le32_add_cpu &
+	friends to core
+Message-ID: <1199547382-29969-1-git-send-email-marcin.slusarz@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Mark Fasheh <mark.fasheh@oracle.com>, OCFS2-devel <ocfs2-devel@oss.oracle.com>, Christoph Hellwig <hch@infradead.org>, kernel-janitors <kernel-janitors@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-ext4@vger.kernel.org, xfs-masters@oss.sgi.com, Marcin Slusarz <marcin.slusarz@gmail.com>
 
- SLES10 doesn't have a mandatory_lock() function, but does support
- IS_MANDATORY() and the associated functions.
+Hi
 
- This patch adds mandatory_lock() support.
+This patchset moves le*_add_cpu and be*_add_cpu functions from OCFS2 to core
+header (1st), converts ext3 filesystem to this API (2nd) and replaces
+XFS different named functions with new ones (3rd).
 
-Signed-off-by: Jeff Mahoney <jeffm@suse.com>
----
+There are many places where these functions will be useful.
+Just look at: grep -r 'cpu_to_[ble12346]*([ble12346]*_to_cpu.*[-+]' linux-src/
+Patch for ext3 is an example how conversions will probably look like.
 
- Config.make.in                       |    1 +
- configure.in                         |    6 ++++++
- fs/ocfs2/Makefile                    |    4 ++++
- kapi-compat/include/mandatory_lock.h |   27 +++++++++++++++++++++++++++
- 4 files changed, 38 insertions(+)
+ps: this patchset depends on http://lkml.org/lkml/2007/12/25/35 (which is
+    in ocfs2 git tree, branches: trivial, ALL)
 
---- a/Config.make.in	2008-01-31 13:48:44.000000000 -0500
-+++ b/Config.make.in	2008-01-31 13:49:00.000000000 -0500
-@@ -88,6 +88,7 @@ INVALIDATEPAGE_RETURNS_INT = @INVALIDATE
- DIO_OLD_GET_BLOCKS = @DIO_OLD_GET_BLOCKS@
- HAS_SYSTEM_UTSNAME = @HAS_SYSTEM_UTSNAME@
- NO_LOCKDEP = @NO_LOCKDEP@
-+NO_MANDATORY_LOCK = @NO_MANDATORY_LOCK@
- 
- OCFS_DEBUG = @OCFS_DEBUG@
- 
---- a/configure.in	2008-01-31 13:48:44.000000000 -0500
-+++ b/configure.in	2008-01-31 13:49:00.000000000 -0500
-@@ -384,6 +384,12 @@ OCFS2_CHECK_KERNEL([linux/lockdep.h], lo
-   NO_LOCKDEP=yes, [^struct lock_class {])
- AC_SUBST(NO_LOCKDEP)
- 
-+NO_MANDATORY_LOCK=
-+OCFS2_CHECK_KERNEL([mandatory_lock() in fs.h], fs.h, ,
-+  NO_MANDATORY_LOCK=yes, [^static inline int mandatory_lock(])
-+AC_SUBST(NO_MANDATORY_LOCK)
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS mandatory_lock.h"
-+
- # using -include has two advantages:
- #  the source doesn't need to know to include compat headers
- #  the compat header file names don't go through the search path
---- a/fs/ocfs2/Makefile	2008-01-31 13:48:44.000000000 -0500
-+++ b/fs/ocfs2/Makefile	2008-01-31 13:49:00.000000000 -0500
-@@ -140,6 +140,10 @@ ifdef NO_LOCKDEP
- EXTRA_CFLAGS += -DNO_LOCKDEP
- endif
- 
-+ifdef NO_MANDATORY_LOCK
-+EXTRA_CFLAGS += -DNO_MANDATORY_LOCK
-+endif
-+
- #
- # Since SUBDIRS means something to kbuild, define them safely.  Do not
- # include trailing slashes.
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ b/kapi-compat/include/mandatory_lock.h	2008-01-31 13:49:00.000000000 -0500
-@@ -0,0 +1,27 @@
-+#ifndef KAPI_MANDATORY_LOCK_H
-+#define KAPI_MANDATORY_LOCK_H
-+
-+#ifdef NO_MANDATORY_LOCK
-+#include <linux/fs.h>
-+/*
-+ * Candidates for mandatory locking have the setgid bit set
-+ * but no group execute bit -  an otherwise meaningless combination.
-+ */
-+
-+static inline int __mandatory_lock(struct inode *ino)
-+{
-+        return (ino->i_mode & (S_ISGID | S_IXGRP)) == S_ISGID;
-+}
-+
-+/*
-+ * ... and these candidates should be on MS_MANDLOCK mounted fs,
-+ * otherwise these will be advisory locks
-+ */
-+
-+static inline int mandatory_lock(struct inode *ino)
-+{
-+        return IS_MANDLOCK(ino) && __mandatory_lock(ino);
-+}
-+#endif
-+
-+#endif /* KAPI_MANDATORY_LOCK_H */
+Marcin Slusarz
