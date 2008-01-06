@@ -1,278 +1,265 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Sun Jan  6 13:44:24 2008
-Subject: [Ocfs2-devel] [PATCH 0/2] Unwritten extent merge update,V1
-In-Reply-To: <20080104083214.GA1584@tma-pc1.cn.oracle.com>
+Date: Sun Jan  6 21:52:25 2008
+Subject: [Ocfs2-devel] [PATCH 1/2] Add support for cross extent block
+	merge.V1
+In-Reply-To: <20080104084538.GA1916@tma-pc1.cn.oracle.com>
 References: <20080104083214.GA1584@tma-pc1.cn.oracle.com>
-Message-ID: <20080106214249.GS23506@ca-server1.us.oracle.com>
+	<20080104084538.GA1916@tma-pc1.cn.oracle.com>
+Message-ID: <20080107055116.GT23506@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jan 04, 2008 at 04:32:14PM +0800, tao.ma wrote:
-> The old extent merging code down underneath "ocfs2_mark_extent_written()"
-> can't merge extents between leaf blocks. This patch resolve this.
-> So that a large unwritten extent which has been split up with a bunch of
-> writes can be merged together once all unwritten regions have been written to.
+On Fri, Jan 04, 2008 at 04:45:38PM +0800, tao.ma wrote:
+> In ocfs2_merge_rec_left, when we find the merge extent is "CONTIG_RIGHT"
+> with the first extent record of the next extent block, we will merge it to
+> the next extent block and change all the related extent blocks accordingly.
+> 
+> In ocfs2_merge_rec_right, when we find the merge extent is "CONTIG_LEFT"
+> with the last extent record of the previous extent block, we will merge
+> it to the prevoius extent block and change all the related extent blocks
+> accordingly.
+> 
+> As for CONTIG_LEFTRIGHT, we will handle CONTIG_RIGHT first when the split_index
+> is zero since it is more efficient and easier.
+> 
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> ---
+>  fs/ocfs2/alloc.c |  367 ++++++++++++++++++++++++++++++++++++++++++++++++-----
+>  1 files changed, 332 insertions(+), 35 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 23c8cda..c256750 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -1450,6 +1450,8 @@ static void ocfs2_adjust_root_records(struct ocfs2_extent_list *root_el,
+>   *   - When our insert into the right path leaf is at the leftmost edge
+>   *     and requires an update of the path immediately to it's left. This
+>   *     can occur at the end of some types of rotation and appending inserts.
+> + *   - When we've adjusted the last extent record in the left path leaf and the
+> + *     1st extent record in the right path leaf during cross extent block merge.
+>   */
+>  static void ocfs2_complete_edge_insert(struct inode *inode, handle_t *handle,
+>  				       struct ocfs2_path *left_path,
 
-So, just to get things started I'll attach a patch which I think you might
-find useful. It adds a function 'ocfs2_check_tree()' which you can call
-after marking an extent unwritten. It'll walk the entire btree and look for
-certain inconsistencies. If one is found, the journal is synced and then the
-box is paniced. The syncing gives us the chance to inspect the btree after
-rebooting the box.
-
-Last time I was hacking on the tree code, I modified
-ocfs2-test/programs/fill_verify_holes/old_burn-in.sh to call
-fill_verify_holes with '-u' (for unwritten extents) and ran the script
-against a 512 blocksize/4k clustersize file system. The kernel I was running
-had the tree check patch applied. This setup helped me catch the vast
-majority of bugs which I had introduced by my changes. These days, I'd also
-disable the extent map cache (which wasn't around then) as it would also
-hide some problems.
+Ok, great. I like that we're keeping these functions documented... It's hard
+enough to follow as-is!
 
 
-By the way - the page cache can also hide problems by allowing the "verify"
-program to read cached data which it wouldn't actually be able to find if
-the btree was actually searched. I think we can might be able to minimize
-this by inserting:
 
-echo 1 > /proc/sys/vm/drop_caches
+>  /*
+>   * Remove split_rec clusters from the record at index and merge them
+>   * onto the beginning of the record at index + 1.
+>   */
 
-right before the verify step in old_burn-in.sh.
+Should update this comment though...
+
+> -static int ocfs2_merge_rec_right(struct inode *inode, struct buffer_head *bh,
+> -				handle_t *handle,
+> -				struct ocfs2_extent_rec *split_rec,
+> -				struct ocfs2_extent_list *el, int index)
+> +static int ocfs2_merge_rec_right(struct inode *inode,
+> +				 struct ocfs2_path *left_path,
+> +				 handle_t *handle,
+> +				 struct ocfs2_extent_rec *split_rec,
+> +				 struct ocfs2_extent_list *el, int index)
+>  {
 
 
-Ultimately of course, you can do whatever you want for testing, but I'd
-definitely like to get a detailed description of what you did or what you're
-planning to do in that area. I'm paranoid about btree changes, even though
-I'm really happy that you took this task on ;)
+> @@ -2751,7 +2848,90 @@ static int ocfs2_merge_rec_right(struct inode *inode, struct buffer_head *bh,
+>  	if (ret)
+>  		mlog_errno(ret);
+>  
+> +	if (right_path) {
+> +		ret = ocfs2_journal_dirty(handle, path_leaf_bh(right_path));
+> +		if (ret)
+> +			mlog_errno(ret);
+> +
+> +		root_bh = left_path->p_node[subtree_index].bh;
+> +		BUG_ON(root_bh != right_path->p_node[subtree_index].bh);
+> +
+> +		ret = ocfs2_journal_access(handle, inode, root_bh,
+> +					   OCFS2_JOURNAL_ACCESS_WRITE);
+> +		if (ret) {
+> +			mlog_errno(ret);
+> +			goto out;
+> +		}
+> +
+> +		for (i = subtree_index + 1;
+> +		     i < path_num_items(right_path); i++) {
+> +			ret = ocfs2_journal_access(handle, inode,
+> +						   right_path->p_node[i].bh,
+> +						   OCFS2_JOURNAL_ACCESS_WRITE);
+> +			if (ret) {
+> +				mlog_errno(ret);
+> +				goto out;
+> +			}
+> +
+> +			ret = ocfs2_journal_access(handle, inode,
+> +						   left_path->p_node[i].bh,
+> +						   OCFS2_JOURNAL_ACCESS_WRITE);
+> +			if (ret) {
+> +				mlog_errno(ret);
+> +				goto out;
+> +			}
+> +		}
+
+I'd move the journal_access() calls here up before we actually change the
+records. That way we can catch journal errors before the tree gets into an
+transient state.
+
+
+> @@ -2759,22 +2939,64 @@ out:
+>   * Remove split_rec clusters from the record at index and merge them
+>   * onto the tail of the record at index - 1.
+>   */
+
+Should update this comment.
+
+
+> -static int ocfs2_merge_rec_left(struct inode *inode, struct buffer_head *bh,
+> +static int ocfs2_merge_rec_left(struct inode *inode,
+> +				struct ocfs2_path *right_path,
+>  				handle_t *handle,
+>  				struct ocfs2_extent_rec *split_rec,
+>  				struct ocfs2_extent_list *el, int index)
+>  {
+> -	int ret, has_empty_extent = 0;
+> +	int ret, i, subtree_index = 0, has_empty_extent = 0;
+>  	unsigned int split_clusters = le16_to_cpu(split_rec->e_leaf_clusters);
+>  	struct ocfs2_extent_rec *left_rec;
+>  	struct ocfs2_extent_rec *right_rec;
+> +	struct buffer_head *bh = path_leaf_bh(right_path);
+> +	struct buffer_head *root_bh = NULL;
+> +	struct ocfs2_path *left_path = NULL;
+> +	struct ocfs2_extent_list *left_el;
+>  
+> -	BUG_ON(index <= 0);
+> +	BUG_ON(index < 0);
+>  
+> -	left_rec = &el->l_recs[index - 1];
+>  	right_rec = &el->l_recs[index];
+> -	if (ocfs2_is_empty_extent(&el->l_recs[0]))
+> -		has_empty_extent = 1;
+> +	if (index == 0) {
+> +		/* we meet with a cross extent block merge. */
+> +		ret = ocfs2_get_left_path(inode, right_path, &left_path);
+> +		if (ret) {
+> +			mlog_errno(ret);
+> +			goto out;
+> +		}
+> +
+> +		left_el = path_leaf_el(left_path);
+> +		BUG_ON(le16_to_cpu(left_el->l_next_free_rec) !=
+> +		       le16_to_cpu(left_el->l_count));
+> +
+> +		left_rec = &left_el->l_recs[le16_to_cpu(left_el->l_count) - 1];
+
+Using left_el->l_count to index the array is correct here, but would you
+mind changing this to use l_next_free_rec so it's more consistent with what
+we usually do? It actually reads a bit weird to my eyes because I'm used to
+seeing l_next_free_rec inside of array derefs!
+
+
+> @@ -2802,24 +3024,77 @@ static int ocfs2_merge_rec_left(struct inode *inode, struct buffer_head *bh,
+>  	ocfs2_cleanup_merge(el, index);
+>  
+>  	ret = ocfs2_journal_dirty(handle, bh);
+> -	if (ret)
+> +	if (ret) {
+>  		mlog_errno(ret);
+> +		goto out;
+> +	}
+>  
+> +	if (left_path) {
+> +		ret = ocfs2_journal_dirty(handle, path_leaf_bh(left_path));
+> +		if (ret) {
+> +			mlog_errno(ret);
+> +			goto out;
+> +		}
+> +
+> +		/*
+> +		 * In the situation that the right_rec is empty and the extent
+> +		 * block is empty also, ocfs2_complete_edge_insert can't handle
+> +		 * it, while ocfs2_rotate_tree_left can be called and the extent
+> +		 * block will be deleted since c_split_covers_rec is set.
+> +		 */
+> +		if (le16_to_cpu(right_rec->e_leaf_clusters) == 0 &&
+> +		    le16_to_cpu(el->l_next_free_rec) == 1)
+> +			goto out;
+>
+
+Hmm, I'm worried that we're exiting this function with a path whose upper
+cpos values are inconsistent. An error before we get the chance to actually
+do the rotate / removal could leave us with an inconsistent tree.
+
+I'm not sure that we can just slap some code to handle it here though - from
+what I can tell, the callers are expecting that we'd leave an empty extent
+for them to handle.
+
+I see that ocfs2_rotate_tree_left _almost_ handles this situation
+correctly, except the transaction extend could fail before we get to remove
+the blocks. That might actually be a bug, though I have to think about it
+some more. Generally if ocfs2_rotate_tree_left handled it 100% correctly, we
+_could_ just comment the heck out of this function that callers *must* call
+the rotate function later. Since calling ocfs2_rotate_tree_left() is
+implicitely decided by the callers, I'd also want to audit the code to make
+sure that it always gets called in the new merge situations we've
+introduced.
+
+
+> +		root_bh = left_path->p_node[subtree_index].bh;
+> +		BUG_ON(root_bh != right_path->p_node[subtree_index].bh);
+> +
+> +		ret = ocfs2_journal_access(handle, inode, root_bh,
+> +					   OCFS2_JOURNAL_ACCESS_WRITE);
+> +		if (ret) {
+> +			mlog_errno(ret);
+> +			goto out;
+> +		}
+> +
+> +		for (i = subtree_index + 1;
+> +		     i < path_num_items(right_path); i++) {
+> +			ret = ocfs2_journal_access(handle, inode,
+> +						   right_path->p_node[i].bh,
+> +						   OCFS2_JOURNAL_ACCESS_WRITE);
+> +			if (ret) {
+> +				mlog_errno(ret);
+> +				goto out;
+> +			}
+> +
+> +			ret = ocfs2_journal_access(handle, inode,
+> +						   left_path->p_node[i].bh,
+> +						   OCFS2_JOURNAL_ACCESS_WRITE);
+> +			if (ret) {
+> +				mlog_errno(ret);
+> +				goto out;
+> +			}
+> +		}
+
+Same comment as before regarding the journal_access calls.
+
+
+> @@ -2858,9 +3132,21 @@ static int ocfs2_try_to_merge_extent(struct inode *inode,
+>  		 * Since the adding of an empty extent shifts
+>  		 * everything back to the right, there's no need to
+>  		 * update split_index here.
+> -		 */
+> -		ret = ocfs2_merge_rec_left(inode, path_leaf_bh(left_path),
+> -					   handle, split_rec, el, split_index);
+> +		 *
+> + 		 * When the split_index is zero, we need to merge it to the
+> + 		 * prevoius extent block. It is more efficient and easier
+> + 		 * if we do merge_right first and merge_left later.
+> + 		 */
+
+So why don't we just always do the left merge 1st, instead of switching on
+them like this?
 	--Mark
 
 --
 Mark Fasheh
 Principal Software Developer, Oracle
 mark.fasheh@oracle.com
-
-
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index cf30761..0bebced 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -49,6 +49,8 @@ #include "uptodate.h"
- 
- #include "buffer_head_io.h"
- 
-+static void ocfs2_check_tree(struct inode *inode);
-+
- static void ocfs2_free_truncate_context(struct ocfs2_truncate_context *tc);
- static int ocfs2_cache_extent_block_free(struct ocfs2_cached_dealloc_ctxt *ctxt,
- 					 struct ocfs2_extent_block *eb);
-@@ -3782,6 +3784,9 @@ int ocfs2_insert_extent(struct ocfs2_sup
- 	else
- 		ocfs2_extent_map_insert_rec(inode, &rec);
- 
-+	if (status == 0)
-+		ocfs2_check_tree(inode);
-+
- bail:
- 	if (bh)
- 		brelse(bh);
-@@ -4134,6 +4139,9 @@ int ocfs2_mark_extent_written(struct ino
- 	if (ret)
- 		mlog_errno(ret);
- 
-+	if (ret == 0)
-+		ocfs2_check_tree(inode);
-+
- out:
- 	ocfs2_free_path(left_path);
- 	return ret;
-@@ -4501,6 +4509,9 @@ int ocfs2_remove_extent(struct inode *in
- 		}
- 	}
- 
-+	if (ret == 0)
-+		ocfs2_check_tree(inode);
-+
- out:
- 	ocfs2_free_path(path);
- 	return ret;
-@@ -6122,3 +6133,177 @@ static void ocfs2_free_truncate_context(
- 
- 	kfree(tc);
- }
-+
-+#define INDEX_DEPTH (OCFS2_MAX_PATH_DEPTH - 1)
-+
-+static void ocfs2_path_error(void)
-+{
-+	handle_t *handle = journal_current_handle();
-+
-+	handle->h_sync = 1;
-+	journal_stop(handle);
-+
-+	BUG();
-+}
-+
-+static void ocfs2_check_path(struct inode *inode,
-+			     struct ocfs2_path *path,
-+			     int *check_index)
-+{
-+	int i, next_free, node;
-+	u32 parent_range, child_range;
-+	struct ocfs2_extent_list *el;
-+	struct ocfs2_extent_rec *rec;
-+	struct ocfs2_extent_rec *rec1;
-+	struct ocfs2_extent_rec *parent_rec;
-+
-+	for(node = 0; node < path_num_items(path); node++) {
-+		el = path->p_node[node].el;
-+
-+		next_free = le16_to_cpu(el->l_next_free_rec);
-+
-+		/* Check for duplicate records */
-+		/* Check for records in order */
-+		for(i = 0; i < (next_free - 1); i++) {
-+			rec = &el->l_recs[i];
-+			rec1 = &el->l_recs[i+1];
-+
-+			if (!ocfs2_is_empty_extent(rec) &&
-+			    le32_to_cpu(rec1->e_cpos) <=
-+			    le32_to_cpu(rec->e_cpos))
-+				goto bad_records;
-+		}
-+	}
-+
-+	/* Check ranges of records */
-+	el = path_root_el(path);
-+	parent_rec = &el->l_recs[check_index[0]];
-+	i = 1;
-+	while (i <= path->p_tree_depth) {
-+		struct ocfs2_extent_rec *child_rec;
-+
-+		el = path->p_node[i].el;
-+
-+		parent_range = le32_to_cpu(parent_rec->e_cpos) +
-+			le32_to_cpu(parent_rec->e_int_clusters);
-+		child_range = ocfs2_sum_rightmost_rec(el);
-+		if (child_range > parent_range)
-+			goto bad_range;
-+
-+		child_rec = &el->l_recs[0];
-+
-+		/*
-+		 * The leftmost branch is allowed to have a starting
-+		 * cpos of zero but children who actually start after
-+		 * that.
-+		 */
-+		if (parent_rec->e_cpos &&
-+		    (le32_to_cpu(parent_rec->e_cpos) <
-+		     le32_to_cpu(child_rec->e_cpos)))
-+			goto bad_range;
-+
-+		parent_rec = &el->l_recs[check_index[i]];
-+
-+		i++;
-+	}
-+
-+	return;
-+
-+bad_records:
-+	mlog(ML_ERROR, "Inode %lu: Bad Records\n",
-+	     (unsigned long)inode->i_ino);
-+	ocfs2_path_error();
-+	return;
-+
-+bad_range:
-+	mlog(ML_ERROR, "Inode %lu: Bad Range\n",
-+	     (unsigned long)inode->i_ino);
-+	mlog(ML_ERROR, "Child block: %llu, Parent rec: (%u, %u, %llu)\n",
-+	     (unsigned long long)path->p_node[i].bh->b_blocknr,
-+	     le32_to_cpu(parent_rec->e_cpos),
-+	     le32_to_cpu(parent_rec->e_int_clusters),
-+	     (unsigned long long)le64_to_cpu(parent_rec->e_blkno));
-+	ocfs2_path_error();
-+}
-+
-+static void ocfs2_check_tree(struct inode *inode)
-+{
-+	int ret, i;
-+	int check_index[INDEX_DEPTH] = {0, };
-+	u64 blkno;
-+	struct ocfs2_dinode *di;
-+	struct buffer_head *di_bh = NULL;
-+	struct buffer_head *bh;
-+	struct buffer_head *first_tail_bh = NULL;
-+	struct ocfs2_path *path = NULL;
-+	struct ocfs2_extent_block *eb;
-+	struct ocfs2_extent_list *el;
-+
-+	ret = ocfs2_read_block(OCFS2_SB(inode->i_sb), OCFS2_I(inode)->ip_blkno,
-+			       &di_bh, OCFS2_BH_CACHED, inode);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	di = (struct ocfs2_dinode *)di_bh->b_data;
-+
-+	path = ocfs2_new_inode_path(di_bh);
-+	if (!path) {
-+		ret = -ENOMEM;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+restart:
-+	i = 0;
-+	while (i < path->p_tree_depth) {
-+		el = path->p_node[i].el;
-+
-+		BUG_ON(check_index[i] >= le16_to_cpu(el->l_next_free_rec));
-+
-+		blkno = le64_to_cpu(el->l_recs[check_index[i]].e_blkno);
-+		bh = NULL;
-+		ret = ocfs2_read_block(OCFS2_SB(inode->i_sb), blkno,
-+				       &bh, OCFS2_BH_CACHED, inode);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		ocfs2_path_insert_eb(path, i + 1, bh);
-+
-+		eb = (struct ocfs2_extent_block *) bh->b_data;
-+		if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb))
-+			BUG();
-+
-+		i++;
-+	}
-+
-+	ocfs2_check_path(inode, path, check_index);
-+
-+	if (le64_to_cpu(di->i_last_eb_blk) != path_leaf_bh(path)->b_blocknr
-+	    && path->p_tree_depth) {
-+		int max;
-+
-+		for(i = (path->p_tree_depth - 1); i >= 0; i--) {
-+			el = path->p_node[i].el;
-+
-+			max = le16_to_cpu(el->l_next_free_rec);
-+
-+			check_index[i]++;
-+			if (check_index[i] >= max)
-+				check_index[i] = 0;
-+			else
-+				break;
-+		}
-+
-+		ocfs2_reinit_path(path, 1);
-+		goto restart;
-+	}
-+
-+out:
-+	ocfs2_free_path(path);
-+	brelse(di_bh);
-+	brelse(first_tail_bh);
-+}
