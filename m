@@ -1,141 +1,33 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri Jan  4 00:47:53 2008
-Subject: [Ocfs2-devel] [PATCH 2/2] Enable cross extent block merge.V1
-In-Reply-To: <20080104083214.GA1584@tma-pc1.cn.oracle.com>
-Message-ID: <20080104084619.GA1955@tma-pc1.cn.oracle.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Sun Jan  6 12:51:57 2008
+Subject: [Ocfs2-devel] Re: [PATCH 1/3] byteorder: move le32_add_cpu &
+	friends from OCFS2 to core
+In-Reply-To: <1199547382-29969-2-git-send-email-marcin.slusarz@gmail.com>
+References: <1199547382-29969-1-git-send-email-marcin.slusarz@gmail.com>
+	<1199547382-29969-2-git-send-email-marcin.slusarz@gmail.com>
+Message-ID: <20080106205055.GR23506@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: marcin.slusarz@gmail.com
+Cc: kernel-janitors <kernel-janitors@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, xfs-masters@oss.sgi.com, Andrew Morton <akpm@linux-foundation.org>, linux-ext4@vger.kernel.org, OCFS2-devel <ocfs2-devel@oss.oracle.com>
 
-In ocfs2_figure_merge_contig_type, we judge whether there exists
-a cross extent block merge and enable it by setting CONTIG_LEFT
-and CONTIG_RIGHT accordingly.
+On Sat, Jan 05, 2008 at 04:36:20PM +0100, marcin.slusarz@gmail.com wrote:
+> - move inline functions which add native byte order variable to
+>   little/big endian variable to core header
+>   * le16_add_cpu(__le16 *var, u16 val)
+>   * le32_add_cpu(__le32 *var, u32 val)
+>   * le64_add_cpu(__le64 *var, u64 val)
+>   * be32_add_cpu(__be32 *var, u32 val)
+> - add for completeness:
+>   * be16_add_cpu(__be16 *var, u16 val)
+>   * be64_add_cpu(__be64 *var, u64 val)
+> 
+> Signed-off-by: Marcin Slusarz <marcin.slusarz@gmail.com>
+Acked-by: Mark Fasheh <mark.fasheh@oracle.com>
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/alloc.c |   76 ++++++++++++++++++++++++++++++++++++++++++++++++-----
- 1 files changed, 68 insertions(+), 8 deletions(-)
-
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index c256750..e3b17ac 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -3795,20 +3795,48 @@ out:
- }
- 
- static enum ocfs2_contig_type
--ocfs2_figure_merge_contig_type(struct inode *inode,
-+ocfs2_figure_merge_contig_type(struct inode *inode, struct ocfs2_path *path,
- 			       struct ocfs2_extent_list *el, int index,
- 			       struct ocfs2_extent_rec *split_rec)
- {
--	struct ocfs2_extent_rec *rec;
-+	int status;
-+	struct ocfs2_extent_rec *rec = NULL;
- 	enum ocfs2_contig_type ret = CONTIG_NONE;
-+	u32 left_cpos, right_cpos;
-+	struct ocfs2_extent_list *new_el;
-+	struct ocfs2_path *left_path = NULL, *right_path = NULL;
-+
-+	if (index > 0) {
-+		rec = &el->l_recs[index - 1];
-+	} else if (path->p_tree_depth > 0) {
-+		status = ocfs2_find_cpos_for_left_leaf(inode->i_sb,
-+						       path, &left_cpos);
-+		if (status)
-+			goto out;
-+
-+		if (left_cpos != 0) {
-+			left_path = ocfs2_new_path(path_root_bh(path),
-+						   path_root_el(path));
-+			if (!left_path)
-+				goto out;
-+
-+			status = ocfs2_find_path(inode, left_path, left_cpos);
-+			if (status)
-+				goto out;
-+
-+			new_el = path_leaf_el(left_path);
-+
-+			BUG_ON(le16_to_cpu(new_el->l_next_free_rec) !=
-+			       le16_to_cpu(new_el->l_count));
-+			rec = &new_el->l_recs[le16_to_cpu(new_el->l_count) - 1];
-+		}
-+	}
- 
- 	/*
- 	 * We're careful to check for an empty extent record here -
- 	 * the merge code will know what to do if it sees one.
- 	 */
--
--	if (index > 0) {
--		rec = &el->l_recs[index - 1];
-+	if (rec) {
- 		if (index == 1 && ocfs2_is_empty_extent(rec)) {
- 			if (split_rec->e_cpos == el->l_recs[index].e_cpos)
- 				ret = CONTIG_RIGHT;
-@@ -3817,10 +3845,36 @@ ocfs2_figure_merge_contig_type(struct inode *inode,
- 		}
- 	}
- 
--	if (index < (le16_to_cpu(el->l_next_free_rec) - 1)) {
-+	rec = NULL;
-+	if (index < (le16_to_cpu(el->l_next_free_rec) - 1))
-+		rec = &el->l_recs[index + 1];
-+	else if (le16_to_cpu(el->l_next_free_rec) == le16_to_cpu(el->l_count) &&
-+		 path->p_tree_depth > 0) {
-+		status = ocfs2_find_cpos_for_right_leaf(inode->i_sb,
-+							path, &right_cpos);
-+		if (status)
-+			goto out;
-+
-+		if (right_cpos != 0) {
-+			right_path = ocfs2_new_path(path_root_bh(path),
-+						   path_root_el(path));
-+			if (!right_path)
-+				goto out;
-+
-+			status = ocfs2_find_path(inode, right_path, right_cpos);
-+			if (status)
-+				goto out;
-+
-+			new_el = path_leaf_el(right_path);
-+			rec = &new_el->l_recs[0];
-+			if (ocfs2_is_empty_extent(rec))
-+				goto out;
-+		}
-+	}
-+
-+	if (rec) {
- 		enum ocfs2_contig_type contig_type;
- 
--		rec = &el->l_recs[index + 1];
- 		contig_type = ocfs2_extent_contig(inode, rec, split_rec);
- 
- 		if (contig_type == CONTIG_LEFT && ret == CONTIG_RIGHT)
-@@ -3829,6 +3883,12 @@ ocfs2_figure_merge_contig_type(struct inode *inode,
- 			ret = contig_type;
- 	}
- 
-+out:
-+	if (left_path)
-+		ocfs2_free_path(left_path);
-+	if (right_path)
-+		ocfs2_free_path(right_path);
-+
- 	return ret;
- }
- 
-@@ -4291,7 +4351,7 @@ static int __ocfs2_mark_extent_written(struct inode *inode,
- 		goto out;
- 	}
- 
--	ctxt.c_contig_type = ocfs2_figure_merge_contig_type(inode, el,
-+	ctxt.c_contig_type = ocfs2_figure_merge_contig_type(inode, path, el,
- 							    split_index,
- 							    split_rec);
- 
--- 
-1.5.3.GIT
+--
+Mark Fasheh
+Principal Software Developer, Oracle
+mark.fasheh@oracle.com
