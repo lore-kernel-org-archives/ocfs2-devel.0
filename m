@@ -1,73 +1,133 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed Jan  9 17:59:48 2008
-Subject: [Ocfs2-devel] [PATCH 15/30] ocfs2: Handles configfs_depend_item()
-	and configfs_undepend_item()
+Date: Wed Jan  9 17:59:50 2008
+Subject: [Ocfs2-devel] [PATCH 25/30] ocfs2: Handle missing const s_op in
+	struct super_block
 In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199930370-17076-14-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199930370-17076-24-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 631d1febab8e546e3bb800bdfe2c212b8adf87de in mainline introduces
-two new calls in configfs, configfs_depend_item() and configfs_undepend_item().
-This patch allows one to build ocfs2 with kernels having/not having
-this change.
+Commit ee9b6d61a2a43c5952eb43283f8db284a4e70b8a in mainline marks
+struct super_operations as a const in struct super_block. This patch
+allows one to build with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- Makefile                       |    3 ++-
- configure.in                   |    5 +++++
- kapi-compat/include/configfs.h |    7 +++++++
- 3 files changed, 14 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/configfs.h
+ Config.make.in        |    1 +
+ configure.in          |    5 +++++
+ fs/ocfs2/Makefile     |    4 ++++
+ fs/ocfs2/dlm/Makefile |    4 ++++
+ fs/ocfs2/dlm/dlmfs.c  |    8 ++++++++
+ fs/ocfs2/super.c      |    4 ++++
+ 6 files changed, 26 insertions(+), 0 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 1d27943..1553e54 100644
---- a/Makefile
-+++ b/Makefile
-@@ -19,7 +19,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/drop_nlink.h \
- 	kapi-compat/include/slab.h \
- 	kapi-compat/include/fs_rename_does_d_move.h \
--	kapi-compat/include/sysctl.h
-+	kapi-compat/include/sysctl.h \
-+	kapi-compat/include/configfs.h
+diff --git a/Config.make.in b/Config.make.in
+index e49c8d5..d725fbd 100644
+--- a/Config.make.in
++++ b/Config.make.in
+@@ -70,6 +70,7 @@ NO_FALLOCATE = @NO_FALLOCATE@
+ NO_SPLICE_HEADER = @NO_SPLICE_HEADER@
+ NO_SHOULD_REMOVE_SUID = @NO_SHOULD_REMOVE_SUID@
+ NO_GENERIC_SEGMENT_CHECKS = @NO_GENERIC_SEGMENT_CHECKS@
++SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
  
- PATCH_FILES =
+ OCFS_DEBUG = @OCFS_DEBUG@
  
 diff --git a/configure.in b/configure.in
-index 7874829..25452d9 100644
+index 1ecdba6..dc6346b 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -231,6 +231,11 @@ OCFS2_CHECK_KERNEL([enum FS_OCFS2 in sysctl.h], sysctl.h,
-   , sysctl_compat_header="sysctl.h", [FS_OCFS2])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $sysctl_compat_header"
+@@ -286,6 +286,11 @@ OCFS2_CHECK_KERNEL([generic_segment_checks() in fs.h], fs.h,
+ AC_SUBST(NO_GENERIC_SEGMENT_CHECKS)
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS generic_segment_checks.h"
  
-+configfs_compat_header=""
-+OCFS2_CHECK_KERNEL([configfs_depend_item() in configfs.h], configfs.h,
-+  , configfs_compat_header="configfs.h", [configfs_depend_item()])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $configfs_compat_header"
++SOP_IS_NOT_CONST=
++OCFS2_CHECK_KERNEL([s_op declared as const in struct super_block in fs.h], fs.h,
++  , SOP_IS_NOT_CONST=yes, [^.*const struct super_operations.*\*s_op;])
++AC_SUBST(SOP_IS_NOT_CONST)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/configfs.h b/kapi-compat/include/configfs.h
-new file mode 100644
-index 0000000..cbc11e6
---- /dev/null
-+++ b/kapi-compat/include/configfs.h
-@@ -0,0 +1,7 @@
-+#ifndef KAPI_CONFIGFS_H
-+#define KAPI_CONFIGFS_H
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index 3228a44..c6e09a3 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -76,6 +76,10 @@ SOURCES += compat_generic_segment_checks.c
+ EXTRA_CFLAGS += -DNO_GENERIC_SEGMENT_CHECKS
+ endif
+ 
++ifdef SOP_IS_NOT_CONST
++EXTRA_CFLAGS += -DSOP_IS_NOT_CONST
++endif
 +
-+#define configfs_depend_item(a, b)	(0)
-+#define configfs_undepend_item(a, b)
+ #
+ # Since SUBDIRS means something to kbuild, define them safely.  Do not
+ # include trailing slashes.
+diff --git a/fs/ocfs2/dlm/Makefile b/fs/ocfs2/dlm/Makefile
+index 7e84646..1eb0bbe 100644
+--- a/fs/ocfs2/dlm/Makefile
++++ b/fs/ocfs2/dlm/Makefile
+@@ -38,6 +38,10 @@ ifdef STRUCT_SUBSYSTEM_DEFINED
+ EXTRA_CFLAGS += -DSTRUCT_SUBSYSTEM_DEFINED
+ endif
+ 
++ifdef SOP_IS_NOT_CONST
++EXTRA_CFLAGS += -DSOP_IS_NOT_CONST
++endif
 +
+ DLM_SOURCES +=			\
+ 	dlmast.c		\
+ 	dlmconvert.c		\
+diff --git a/fs/ocfs2/dlm/dlmfs.c b/fs/ocfs2/dlm/dlmfs.c
+index 78704a1..6d57554 100644
+--- a/fs/ocfs2/dlm/dlmfs.c
++++ b/fs/ocfs2/dlm/dlmfs.c
+@@ -60,7 +60,11 @@
+ #define MLOG_MASK_PREFIX ML_DLMFS
+ #include "cluster/masklog.h"
+ 
++#ifdef SOP_IS_NOT_CONST
++static struct super_operations dlmfs_ops;
++#else
+ static const struct super_operations dlmfs_ops;
 +#endif
+ static const struct file_operations dlmfs_file_operations;
+ static const struct inode_operations dlmfs_dir_inode_operations;
+ static const struct inode_operations dlmfs_root_inode_operations;
+@@ -556,7 +560,11 @@ static const struct inode_operations dlmfs_root_inode_operations = {
+ 	.rmdir		= simple_rmdir,
+ };
+ 
++#ifdef SOP_IS_NOT_CONST
++static struct super_operations dlmfs_ops = {
++#else
+ static const struct super_operations dlmfs_ops = {
++#endif
+ 	.statfs		= simple_statfs,
+ 	.alloc_inode	= dlmfs_alloc_inode,
+ 	.destroy_inode	= dlmfs_destroy_inode,
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index f5c424d..43147c0 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -124,7 +124,11 @@ static void ocfs2_write_super(struct super_block *sb);
+ static struct inode *ocfs2_alloc_inode(struct super_block *sb);
+ static void ocfs2_destroy_inode(struct inode *inode);
+ 
++#ifdef SOP_IS_NOT_CONST
++static struct super_operations ocfs2_sops = {
++#else
+ static const struct super_operations ocfs2_sops = {
++#endif
+ 	.statfs		= ocfs2_statfs,
+ 	.alloc_inode	= ocfs2_alloc_inode,
+ 	.destroy_inode	= ocfs2_destroy_inode,
 -- 
 1.5.2.5
