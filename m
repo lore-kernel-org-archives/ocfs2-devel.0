@@ -1,191 +1,74 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed Jan  9 18:00:05 2008
-Subject: [Ocfs2-devel] [PATCH 07/30] ocfs2: Handle missing vmops->fault()
+Date: Wed Jan  9 18:00:06 2008
+Subject: [Ocfs2-devel] [PATCH 04/30] ocfs2: Handle macro uninitialized_var
 In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199930370-17076-6-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199930370-17076-3-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 54cb8821de07f2ffcd28c380ce9b93d5784b40d7 in mainline introduces
-vmops->fault() which is used to replace vmops->populate() and vmops->nopage().
-This patch allows one to build ocfs2 with kernels having/not having this
-change.
+Commit 9490991482a2091a828d997adbc088e24c310a4d in mainline introduced
+macro uninitialized_var(). This patch allows one to build ocfs2 with
+kernels having/not having that change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- Config.make.in    |    1 +
- configure.in      |    5 ++++
- fs/ocfs2/Makefile |    4 +++
- fs/ocfs2/mmap.c   |   55 +++++++++++++++++++++++++++++++++++++++++++++++++---
- 4 files changed, 61 insertions(+), 4 deletions(-)
+ Makefile                       |    3 ++-
+ configure.in                   |    5 +++++
+ kapi-compat/include/compiler.h |   10 ++++++++++
+ 3 files changed, 17 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/compiler.h
 
-diff --git a/Config.make.in b/Config.make.in
-index 09f02e1..af9d11e 100644
---- a/Config.make.in
-+++ b/Config.make.in
-@@ -60,6 +60,7 @@ EXTRA_CFLAGS += @KAPI_COMPAT_CFLAGS@
- NO_DELAYED_WORK_STRUCT = @NO_DELAYED_WORK_STRUCT@
+diff --git a/Makefile b/Makefile
+index 4752593..21ff590 100644
+--- a/Makefile
++++ b/Makefile
+@@ -9,7 +9,8 @@ SUBDIRS = fs vendor
+ LINUX_INCLUDE_FILES =
  
- NO_SYNC_MAPPING_RANGE  = @NO_SYNC_MAPPING_RANGE@
-+NO_FAULT_IN_VMOPS = @NO_FAULT_IN_VMOPS@
+ KAPI_COMPAT_FILES = \
+-	kapi-compat/include/workqueue.h
++	kapi-compat/include/workqueue.h \
++	kapi-compat/include/compiler.h
  
- OCFS_DEBUG = @OCFS_DEBUG@
+ PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index abe848c..a90a3a6 100644
+index 46a4bc2..26c4575 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -178,6 +178,11 @@ OCFS2_CHECK_KERNEL([do_sync_mapping_range() in fs.h], fs.h,
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS sync_mapping_range.h"
- AC_SUBST(NO_SYNC_MAPPING_RANGE)
+@@ -162,6 +162,11 @@ OCFS2_CHECK_KERNEL([struct delayed_work in workqueue.h], workqueue.h,
+ AC_SUBST(NO_DELAYED_WORK_STRUCT)
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS workqueue.h"
  
-+NO_FAULT_IN_VMOPS=
-+OCFS2_CHECK_KERNEL([fault() in struct vm_operations_struct in mm.h], mm.h,
-+  , NO_FAULT_IN_VMOPS=yes, [^.*int (\*fault)])
-+AC_SUBST(NO_FAULT_IN_VMOPS)
++compiler_compat_header=""
++OCFS2_CHECK_KERNEL([uninitialized_var() in compiler-gcc4.h], compiler-gcc4.h,
++  , compiler_compat_header="compiler.h", [uninitialized_var])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $compiler_compat_header"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index f27b3a1..5b67f93 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -40,6 +40,10 @@ SOURCES += compat_sync_mapping_range.c
- EXTRA_CFLAGS += -DNO_SYNC_MAPPING_RANGE
- endif
- 
-+ifdef NO_FAULT_IN_VMOPS
-+EXTRA_CFLAGS += -DNO_FAULT_IN_VMOPS
-+endif
+diff --git a/kapi-compat/include/compiler.h b/kapi-compat/include/compiler.h
+new file mode 100644
+index 0000000..c104ed1
+--- /dev/null
++++ b/kapi-compat/include/compiler.h
+@@ -0,0 +1,10 @@
++#ifndef KAPI_COMPILER_H
++#define KAPI_COMPILER_H
 +
- #
- # Since SUBDIRS means something to kbuild, define them safely.  Do not
- # include trailing slashes.
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 9875615..a827b0b 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -60,6 +60,7 @@ static inline int ocfs2_vm_op_unblock_sigs(sigset_t *oldset)
- 	return sigprocmask(SIG_SETMASK, oldset, NULL);
- }
- 
-+#ifndef NO_FAULT_IN_VMOPS
- static int ocfs2_fault(struct vm_area_struct *area, struct vm_fault *vmf)
- {
- 	sigset_t blocked, oldset;
-@@ -83,6 +84,35 @@ out:
- 	mlog_exit_ptr(vmf->page);
- 	return ret;
- }
-+#else
-+static struct page *ocfs2_nopage(struct vm_area_struct * area,
-+				 unsigned long address,
-+				 int *type)
-+{
-+	struct page *page = NOPAGE_SIGBUS;
-+	sigset_t blocked, oldset;
-+	int error, ret;
++/*
++ * A trick to suppress uninitialized variable warning without generating any
++ * code
++ */
++#define uninitialized_var(x) x = x
 +
-+	mlog_entry("(area=%p, address=%lu, type=%p)\n", area, address,
-+		   type);
-+
-+	error = ocfs2_vm_op_block_sigs(&blocked, &oldset);
-+	if (error < 0) {
-+		mlog_errno(error);
-+		ret = VM_FAULT_SIGBUS;
-+		goto out;
-+	}
-+
-+	page = filemap_nopage(area, address, type);
-+
-+	error = ocfs2_vm_op_unblock_sigs(&oldset);
-+	if (error < 0)
-+		mlog_errno(error);
-+out:
-+	mlog_exit_ptr(page);
-+	return page;
-+}
 +#endif
- 
- static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
- 				struct page *page)
-@@ -96,6 +126,9 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
- 	void *fsdata;
- 	loff_t size = i_size_read(inode);
- 
-+	mlog_entry("(inode=0x%p, i_ino=%lu, page=0x%p)\n", inode, inode->i_ino,
-+		   page);
-+
- 	/*
- 	 * Another node might have truncated while we were waiting on
- 	 * cluster locks.
-@@ -147,6 +180,7 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
- 	BUG_ON(ret != len);
- 	ret = 0;
- out:
-+	mlog_exit(ret);
- 	return ret;
- }
- 
-@@ -157,6 +191,8 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct page *page)
- 	sigset_t blocked, oldset;
- 	int ret, ret2;
- 
-+	mlog_entry("(vma=0x%p, page=0x%p)\n", vma, page);
-+
- 	ret = ocfs2_vm_op_block_sigs(&blocked, &oldset);
- 	if (ret < 0) {
- 		mlog_errno(ret);
-@@ -202,11 +238,16 @@ out:
- 	if (ret2 < 0)
- 		mlog_errno(ret2);
- 
-+	mlog_exit(ret);
- 	return ret;
- }
- 
- static struct vm_operations_struct ocfs2_file_vm_ops = {
-+#ifndef NO_FAULT_IN_VMOPS
- 	.fault		= ocfs2_fault,
-+#else
-+	.nopage		= ocfs2_nopage,
-+#endif
- 	.page_mkwrite	= ocfs2_page_mkwrite,
- };
- 
-@@ -214,16 +255,22 @@ int ocfs2_mmap(struct file *file, struct vm_area_struct *vma)
- {
- 	int ret = 0, lock_level = 0;
- 
--	ret = ocfs2_meta_lock_atime(file->f_dentry->d_inode,
-+	mlog_entry("(file=0x%p, vma=%p, '%.*s')\n", file, vma,
-+		   file->f_path.dentry->d_name.len,
-+		   file->f_path.dentry->d_name.name);
-+
-+	ret = ocfs2_meta_lock_atime(file->f_path.dentry->d_inode,
- 				    file->f_vfsmnt, &lock_level);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
--	ocfs2_meta_unlock(file->f_dentry->d_inode, lock_level);
-+	ocfs2_meta_unlock(file->f_path.dentry->d_inode, lock_level);
- out:
- 	vma->vm_ops = &ocfs2_file_vm_ops;
-+#ifndef NO_FAULT_IN_VMOPS
- 	vma->vm_flags |= VM_CAN_NONLINEAR;
--	return 0;
-+#endif
-+	mlog_exit(ret);
-+	return ret;
- }
--
 -- 
 1.5.2.5
