@@ -1,73 +1,85 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed Jan  9 18:00:02 2008
-Subject: [Ocfs2-devel] [PATCH 14/30] ocfs2: Handle enum value FS_OCFS2
+Date: Wed Jan  9 18:00:03 2008
+Subject: [Ocfs2-devel] [PATCH 21/30] ocfs2: Handle splice.h
 In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199930370-17076-13-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199930370-17076-20-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 0e03036c97b70b2602f7dedaa3a223ed7563c2c9 in mainline registers
-ocfs2 sysctl (FS_OCFS2) number under CTL_FS. This patch allows one to
-build ocfs2 with kernels having/not having this change.
+Commit d6b29d7cee064f28ca097e906de7453541351095 in mainline moves the splice
+structures from pipe_fs_i.h to splice.h. This patch allows one to build
+ocfs2 with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- Makefile                     |    3 ++-
- configure.in                 |    5 +++++
- kapi-compat/include/sysctl.h |    9 +++++++++
- 3 files changed, 16 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/sysctl.h
+ Config.make.in    |    1 +
+ configure.in      |    5 +++++
+ fs/ocfs2/Makefile |    4 ++++
+ fs/ocfs2/file.c   |    2 ++
+ 4 files changed, 12 insertions(+), 0 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 43cd04c..1d27943 100644
---- a/Makefile
-+++ b/Makefile
-@@ -18,7 +18,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/inc_nlink.h \
- 	kapi-compat/include/drop_nlink.h \
- 	kapi-compat/include/slab.h \
--	kapi-compat/include/fs_rename_does_d_move.h
-+	kapi-compat/include/fs_rename_does_d_move.h \
-+	kapi-compat/include/sysctl.h
+diff --git a/Config.make.in b/Config.make.in
+index a33fba9..ad1c8e9 100644
+--- a/Config.make.in
++++ b/Config.make.in
+@@ -67,6 +67,7 @@ REGISTER_SYSCTL_TWO_ARGS = @REGISTER_SYSCTL_TWO_ARGS@
+ NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM = @NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM@
+ STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
+ NO_FALLOCATE = @NO_FALLOCATE@
++NO_SPLICE_HEADER = @NO_SPLICE_HEADER@
  
- PATCH_FILES =
+ OCFS_DEBUG = @OCFS_DEBUG@
  
 diff --git a/configure.in b/configure.in
-index f1d3732..7874829 100644
+index d93a896..19c38d4 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -226,6 +226,11 @@ if test "x$fstype_compat_header" = "xfs_rename_does_d_move.h" ; then
-   fi
- fi
+@@ -264,6 +264,11 @@ OCFS2_CHECK_KERNEL([fallocate() in fs.h], fs.h,
+   , NO_FALLOCATE=yes, [^.*long (\*fallocate)])
+ AC_SUBST(NO_FALLOCATE)
  
-+sysctl_compat_header=""
-+OCFS2_CHECK_KERNEL([enum FS_OCFS2 in sysctl.h], sysctl.h,
-+  , sysctl_compat_header="sysctl.h", [FS_OCFS2])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $sysctl_compat_header"
++NO_SPLICE_HEADER=
++OCFS2_CHECK_KERNEL([struct splice_desc in splice.h], splice.h,
++  , NO_SPLICE_HEADER=yes, [^struct splice_desc ])
++AC_SUBST(NO_SPLICE_HEADER)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/sysctl.h b/kapi-compat/include/sysctl.h
-new file mode 100644
-index 0000000..73ed0a7
---- /dev/null
-+++ b/kapi-compat/include/sysctl.h
-@@ -0,0 +1,9 @@
-+#ifndef KAPI_SYSCTL_H
-+#define KAPI_SYSCTL_H
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index 7b40064..f4c9428 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -60,6 +60,10 @@ ifdef NO_FALLOCATE
+ EXTRA_CFLAGS += -DNO_FALLOCATE
+ endif
+ 
++ifdef NO_SPLICE_HEADER
++EXTRA_CFLAGS += -DNO_SPLICE_HEADER
++endif
 +
-+/* CTL_FS names: */
-+enum {
-+	FS_OCFS2=988,   /* ocfs2 */
-+};
-+
+ #
+ # Since SUBDIRS means something to kbuild, define them safely.  Do not
+ # include trailing slashes.
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 45b1c05..ad38a21 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -31,7 +31,9 @@
+ #include <linux/pagemap.h>
+ #include <linux/uio.h>
+ #include <linux/sched.h>
++#ifndef NO_SPLICE_HEADER
+ #include <linux/splice.h>
 +#endif
+ #include <linux/mount.h>
+ #include <linux/writeback.h>
+ #ifndef NO_FALLOCATE
 -- 
 1.5.2.5
