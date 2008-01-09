@@ -1,18 +1,22 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed Jan  9 18:00:04 2008
-Subject: [Ocfs2-devel] [PATCH 20/30] ocfs2: Handle missing iop->fallocate()
+Date: Wed Jan  9 18:00:05 2008
+Subject: [Ocfs2-devel] [PATCH 28/30] ocfs2: Handle missing
+	__splice_from_pipe()
 In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199930370-17076-19-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199930370-17076-27-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 97ac73506c0ba93f30239bb57b4cfc5d73e68a62 in mainline introduces a
-new iop, fallocate(). This patch allows one to build ocfs2 with kernels
+Commit c66ab6fa705e1b2887a6d9246b798bdc526839e2 in mainline introduced
+__splice_from_pipe(). This patch allows one to build ocfs2 with kernels
 having/not having this change.
+
+TODO: This patch disables splice io for kernels not providing
+__splice_from_pipe(). We need to enable this later.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
@@ -21,91 +25,82 @@ Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
  Config.make.in    |    1 +
  configure.in      |    5 +++++
  fs/ocfs2/Makefile |    4 ++++
- fs/ocfs2/file.c   |    6 ++++++
- 4 files changed, 16 insertions(+), 0 deletions(-)
+ fs/ocfs2/file.c   |    4 ++++
+ 4 files changed, 14 insertions(+), 0 deletions(-)
 
 diff --git a/Config.make.in b/Config.make.in
-index 05833bd..a33fba9 100644
+index 6a3e418..6fae3a8 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -66,6 +66,7 @@ KMEM_CACHE_CREATE_DTOR = @KMEM_CACHE_CREATE_DTOR@
- REGISTER_SYSCTL_TWO_ARGS = @REGISTER_SYSCTL_TWO_ARGS@
- NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM = @NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM@
- STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
-+NO_FALLOCATE = @NO_FALLOCATE@
+@@ -73,6 +73,7 @@ NO_GENERIC_SEGMENT_CHECKS = @NO_GENERIC_SEGMENT_CHECKS@
+ SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
+ IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
+ NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
++NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
  
  OCFS_DEBUG = @OCFS_DEBUG@
  
 diff --git a/configure.in b/configure.in
-index 8dfcad6..d93a896 100644
+index ae20ad6..f01fea8 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -259,6 +259,11 @@ OCFS2_CHECK_KERNEL([is_owner_or_cap() in fs.h], fs.h,
-   , cap_compat_header="cap.h", [^#define is_owner_or_cap])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $cap_compat_header"
+@@ -302,6 +302,11 @@ OCFS2_CHECK_KERNEL([aio_read() in struct file_operations using iovec in fs.h], f
+ AC_SUBST(NO_VECTORIZED_AIO)
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS aiovec.h"
  
-+NO_FALLOCATE=
-+OCFS2_CHECK_KERNEL([fallocate() in fs.h], fs.h,
-+  , NO_FALLOCATE=yes, [^.*long (\*fallocate)])
-+AC_SUBST(NO_FALLOCATE)
++NO_SPLICE_FROM_PIPE=
++OCFS2_CHECK_KERNEL([__splice_from_pipe() in splice.h], splice.h,
++  , NO_SPLICE_FROM_PIPE=yes, [^extern ssize_t __splice_from_pipe(struct pipe_inode_info \*])
++AC_SUBST(NO_SPLICE_FROM_PIPE)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
 diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 0eac626..7b40064 100644
+index e6cfda0..277cddf 100644
 --- a/fs/ocfs2/Makefile
 +++ b/fs/ocfs2/Makefile
-@@ -56,6 +56,10 @@ ifdef STRUCT_SUBSYSTEM_DEFINED
- EXTRA_CFLAGS += -DSTRUCT_SUBSYSTEM_DEFINED
+@@ -88,6 +88,10 @@ ifdef NO_VECTORIZED_AIO
+ CFLAGS_file.o += -DNO_VECTORIZED_AIO
  endif
  
-+ifdef NO_FALLOCATE
-+EXTRA_CFLAGS += -DNO_FALLOCATE
++ifdef NO_SPLICE_FROM_PIPE
++EXTRA_CFLAGS += -DNO_SPLICE_FROM_PIPE
 +endif
 +
  #
  # Since SUBDIRS means something to kbuild, define them safely.  Do not
  # include trailing slashes.
 diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 1ccf8ea..45b1c05 100644
+index 62040aa..ad73b3c 100644
 --- a/fs/ocfs2/file.c
 +++ b/fs/ocfs2/file.c
-@@ -34,7 +34,9 @@
- #include <linux/splice.h>
- #include <linux/mount.h>
- #include <linux/writeback.h>
-+#ifndef NO_FALLOCATE
- #include <linux/falloc.h>
-+#endif
- 
- #define MLOG_MASK_PREFIX ML_INODE
- #include <cluster/masklog.h>
-@@ -1749,6 +1751,7 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
- 	return __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
+@@ -2173,6 +2173,7 @@ out_sems:
+ 	return written ? written : ret;
  }
  
-+#ifndef NO_FALLOCATE
- static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
- 			    loff_t len)
- {
-@@ -1772,6 +1775,7 @@ static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
- 	return __ocfs2_change_file_space(NULL, inode, offset,
- 					 OCFS2_IOC_RESVSP64, &sr, change_size);
++#ifndef NO_SPLICE_FROM_PIPE
+ static int ocfs2_splice_write_actor(struct pipe_inode_info *pipe,
+ 				    struct pipe_buffer *buf,
+ 				    struct splice_desc *sd)
+@@ -2321,6 +2322,7 @@ bail:
+ 	mlog_exit(ret);
+ 	return ret;
  }
 +#endif
  
- static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
- 					 loff_t *ppos,
-@@ -2397,7 +2401,9 @@ const struct inode_operations ocfs2_file_iops = {
- 	.setattr	= ocfs2_setattr,
- 	.getattr	= ocfs2_getattr,
- 	.permission	= ocfs2_permission,
-+#ifndef NO_FALLOCATE
- 	.fallocate	= ocfs2_fallocate,
+ static ssize_t __ocfs2_file_aio_read(struct kiocb *iocb,
+ 				   const struct iovec *iov,
+@@ -2435,8 +2437,10 @@ const struct file_operations ocfs2_fops = {
+ #ifdef CONFIG_COMPAT
+ 	.compat_ioctl   = ocfs2_compat_ioctl,
+ #endif
++#ifndef NO_SPLICE_FROM_PIPE
+ 	.splice_read	= ocfs2_file_splice_read,
+ 	.splice_write	= ocfs2_file_splice_write,
 +#endif
  };
  
- const struct inode_operations ocfs2_special_file_iops = {
+ const struct file_operations ocfs2_dops = {
 -- 
 1.5.2.5
