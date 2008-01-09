@@ -1,85 +1,118 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Wed Jan  9 17:59:57 2008
-Subject: [Ocfs2-devel] [PATCH 11/30] ocfs2: Add helper drop_nlink
+Subject: [Ocfs2-devel] [PATCH 16/30] ocfs2: Handle different prototypes of
+	register_sysctl_table()
 In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199930370-17076-10-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199930370-17076-15-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 9a53c3a783c2fa9b969628e65695c11c3e51e673 in mainline added
-helper drop_nlink(). This patch allows one to build ocfs2 with kernels
-having/not having that change.
+Commit 0b4d414714f0d2f922d39424b0c5c82ad900a381 in mainline removes the
+insert_at_head argument from register_sysctl_table(). This patch allows
+building ocfs2 with kernels having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- Makefile                         |    3 ++-
- configure.in                     |    5 +++++
- kapi-compat/include/drop_nlink.h |   22 ++++++++++++++++++++++
- 3 files changed, 29 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/drop_nlink.h
+ Config.make.in                        |    1 +
+ Makefile                              |    3 ++-
+ configure.in                          |    6 ++++++
+ fs/ocfs2/cluster/Makefile             |    4 ++++
+ fs/ocfs2/cluster/nodemanager.c        |    2 +-
+ kapi-compat/include/register_sysctl.h |   10 ++++++++++
+ 6 files changed, 24 insertions(+), 2 deletions(-)
+ create mode 100644 kapi-compat/include/register_sysctl.h
 
+diff --git a/Config.make.in b/Config.make.in
+index c5631b6..9e2b466 100644
+--- a/Config.make.in
++++ b/Config.make.in
+@@ -63,6 +63,7 @@ NO_SYNC_MAPPING_RANGE  = @NO_SYNC_MAPPING_RANGE@
+ NO_FAULT_IN_VMOPS = @NO_FAULT_IN_VMOPS@
+ NO_F_PATH_IN_STRUCT_FILE = @NO_F_PATH_IN_STRUCT_FILE@
+ KMEM_CACHE_CREATE_DTOR = @KMEM_CACHE_CREATE_DTOR@
++REGISTER_SYSCTL_TWO_ARGS = @REGISTER_SYSCTL_TWO_ARGS@
+ 
+ OCFS_DEBUG = @OCFS_DEBUG@
+ 
 diff --git a/Makefile b/Makefile
-index 2995450..d201b85 100644
+index 1553e54..4256eb7 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -15,7 +15,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/sync_mapping_range.h \
- 	kapi-compat/include/fpath.h \
- 	kapi-compat/include/umh_wait.h \
--	kapi-compat/include/inc_nlink.h
-+	kapi-compat/include/inc_nlink.h \
-+	kapi-compat/include/drop_nlink.h
+@@ -20,7 +20,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/slab.h \
+ 	kapi-compat/include/fs_rename_does_d_move.h \
+ 	kapi-compat/include/sysctl.h \
+-	kapi-compat/include/configfs.h
++	kapi-compat/include/configfs.h \
++	kapi-compat/include/register_sysctl.h
  
  PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index 1cdd243..f9b0a70 100644
+index 25452d9..795437c 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -199,6 +199,11 @@ OCFS2_CHECK_KERNEL([inc_nlink() in fs.h], fs.h,
-   , inc_nlink_compat_header="inc_nlink.h", [^static inline void inc_nlink(])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $inc_nlink_compat_header"
+@@ -236,6 +236,12 @@ OCFS2_CHECK_KERNEL([configfs_depend_item() in configfs.h], configfs.h,
+   , configfs_compat_header="configfs.h", [configfs_depend_item()])
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $configfs_compat_header"
  
-+drop_nlink_compat_header=""
-+OCFS2_CHECK_KERNEL([drop_nlink() in fs.h], fs.h,
-+  , drop_nlink_compat_header="drop_nlink.h", [^static inline void drop_nlink(])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $drop_nlink_compat_header"
++REGISTER_SYSCTL_TWO_ARGS=
++OCFS2_CHECK_KERNEL([register_sysctl() with two args in sysctl.h], sysctl.h,
++  REGISTER_SYSCTL_TWO_ARGS=yes, , [^.*int insert_at_head);])
++AC_SUBST(REGISTER_SYSCTL_TWO_ARGS)
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS register_sysctl.h"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/drop_nlink.h b/kapi-compat/include/drop_nlink.h
+diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
+index 16bddd9..28fe533 100644
+--- a/fs/ocfs2/cluster/Makefile
++++ b/fs/ocfs2/cluster/Makefile
+@@ -22,6 +22,10 @@ ifdef NO_DELAYED_WORK_STRUCT
+ EXTRA_CFLAGS += -DNO_DELAYED_WORK_STRUCT
+ endif
+ 
++ifdef REGISTER_SYSCTL_TWO_ARGS
++EXTRA_CFLAGS += -DREGISTER_SYSCTL_TWO_ARGS
++endif
++
+ SOURCES +=			\
+ 	heartbeat.c		\
+ 	masklog.c		\
+diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+index af2070d..9fff881 100644
+--- a/fs/ocfs2/cluster/nodemanager.c
++++ b/fs/ocfs2/cluster/nodemanager.c
+@@ -962,7 +962,7 @@ static int __init init_o2nm(void)
+ 	o2hb_init();
+ 	o2net_init();
+ 
+-	ocfs2_table_header = register_sysctl_table(ocfs2_root_table);
++	ocfs2_table_header = kapi_register_sysctl_table(ocfs2_root_table);
+ 	if (!ocfs2_table_header) {
+ 		printk(KERN_ERR "nodemanager: unable to register sysctl\n");
+ 		ret = -ENOMEM; /* or something. */
+diff --git a/kapi-compat/include/register_sysctl.h b/kapi-compat/include/register_sysctl.h
 new file mode 100644
-index 0000000..d54973b
+index 0000000..94e8071
 --- /dev/null
-+++ b/kapi-compat/include/drop_nlink.h
-@@ -0,0 +1,22 @@
-+#ifndef KAPI_DROP_NLINK_H
-+#define KAPI_DROP_NLINK_H
++++ b/kapi-compat/include/register_sysctl.h
+@@ -0,0 +1,10 @@
++#ifndef KAPI_REGISTER_SYSCTL_H
++#define KAPI_REGISTER_SYSCTL_H
 +
-+#include <linux/fs.h>
-+
-+/*
-+ * drop_nlink - directly drop an inode's link count
-+ * @inode: inode
-+ *
-+ * This is a low-level filesystem helper to replace any
-+ * direct filesystem manipulation of i_nlink.  In cases
-+ * where we are attempting to track writes to the
-+ * filesystem, a decrement to zero means an imminent
-+ * write when the file is truncated and actually unlinked
-+ * on the filesystem.
-+ */
-+static inline void drop_nlink(struct inode *inode)
-+{
-+	inode->i_nlink--;
-+}
++#ifdef REGISTER_SYSCTL_TWO_ARGS
++#define kapi_register_sysctl_table(a)	register_sysctl_table(a, 0)
++#else
++#define kapi_register_sysctl_table(a)	register_sysctl_table(a)
++#endif
 +
 +#endif
 -- 
