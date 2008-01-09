@@ -1,101 +1,111 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Wed Jan  9 18:00:04 2008
-Subject: [Ocfs2-devel] [PATCH 29/30] ocfs2: Handle older prototype of
-	bi_end_io_t
+Subject: [Ocfs2-devel] [PATCH 20/30] ocfs2: Handle missing iop->fallocate()
 In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199930370-17076-28-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199930370-17076-19-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 6712ecf8f648118c3363c142196418f89a510b90 in mainline
-dropped 'size' argument from bi_end_io(). This patch allows
-one to build ocfs2 with kernels having/not having this change.
+Commit 97ac73506c0ba93f30239bb57b4cfc5d73e68a62 in mainline introduces a
+new iop, fallocate(). This patch allows one to build ocfs2 with kernels
+having/not having this change.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- Config.make.in               |    1 +
- configure.in                 |    5 +++++
- fs/ocfs2/cluster/Makefile    |    4 ++++
- fs/ocfs2/cluster/heartbeat.c |    9 +++++++++
- 4 files changed, 19 insertions(+), 0 deletions(-)
+ Config.make.in    |    1 +
+ configure.in      |    5 +++++
+ fs/ocfs2/Makefile |    4 ++++
+ fs/ocfs2/file.c   |    6 ++++++
+ 4 files changed, 16 insertions(+), 0 deletions(-)
 
 diff --git a/Config.make.in b/Config.make.in
-index 6fae3a8..6329e83 100644
+index 05833bd..a33fba9 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -74,6 +74,7 @@ SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
- IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
- NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
- NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
-+OLD_BIO_END_IO = @OLD_BIO_END_IO@
+@@ -66,6 +66,7 @@ KMEM_CACHE_CREATE_DTOR = @KMEM_CACHE_CREATE_DTOR@
+ REGISTER_SYSCTL_TWO_ARGS = @REGISTER_SYSCTL_TWO_ARGS@
+ NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM = @NO_SU_MUTEX_IN_STRUCT_CONFIGFS_SUBSYSTEM@
+ STRUCT_SUBSYSTEM_DEFINED = @STRUCT_SUBSYSTEM_DEFINED@
++NO_FALLOCATE = @NO_FALLOCATE@
  
  OCFS_DEBUG = @OCFS_DEBUG@
  
 diff --git a/configure.in b/configure.in
-index f01fea8..5799760 100644
+index 8dfcad6..d93a896 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -307,6 +307,11 @@ OCFS2_CHECK_KERNEL([__splice_from_pipe() in splice.h], splice.h,
-   , NO_SPLICE_FROM_PIPE=yes, [^extern ssize_t __splice_from_pipe(struct pipe_inode_info \*])
- AC_SUBST(NO_SPLICE_FROM_PIPE)
+@@ -259,6 +259,11 @@ OCFS2_CHECK_KERNEL([is_owner_or_cap() in fs.h], fs.h,
+   , cap_compat_header="cap.h", [^#define is_owner_or_cap])
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $cap_compat_header"
  
-+OLD_BIO_END_IO=
-+OCFS2_CHECK_KERNEL([old bio_end_io_t in bio.h], bio.h,
-+  OLD_BIO_END_IO=yes, , [^typedef int (bio_end_io_t) (struct bio \*, unsigned int, int);])
-+AC_SUBST(OLD_BIO_END_IO)
++NO_FALLOCATE=
++OCFS2_CHECK_KERNEL([fallocate() in fs.h], fs.h,
++  , NO_FALLOCATE=yes, [^.*long (\*fallocate)])
++AC_SUBST(NO_FALLOCATE)
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
-index 7ef2934..08cf6cb 100644
---- a/fs/ocfs2/cluster/Makefile
-+++ b/fs/ocfs2/cluster/Makefile
-@@ -34,6 +34,10 @@ ifdef STRUCT_SUBSYSTEM_DEFINED
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index 0eac626..7b40064 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -56,6 +56,10 @@ ifdef STRUCT_SUBSYSTEM_DEFINED
  EXTRA_CFLAGS += -DSTRUCT_SUBSYSTEM_DEFINED
  endif
  
-+ifdef OLD_BIO_END_IO
-+EXTRA_CFLAGS += -DOLD_BIO_END_IO
++ifdef NO_FALLOCATE
++EXTRA_CFLAGS += -DNO_FALLOCATE
 +endif
 +
- SOURCES +=			\
- 	heartbeat.c		\
- 	masklog.c		\
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 65ff7f3..6a91607 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -215,8 +215,14 @@ static void o2hb_wait_on_io(struct o2hb_region *reg,
- 	wait_for_completion(&wc->wc_io_complete);
+ #
+ # Since SUBDIRS means something to kbuild, define them safely.  Do not
+ # include trailing slashes.
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 1ccf8ea..45b1c05 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -34,7 +34,9 @@
+ #include <linux/splice.h>
+ #include <linux/mount.h>
+ #include <linux/writeback.h>
++#ifndef NO_FALLOCATE
+ #include <linux/falloc.h>
++#endif
+ 
+ #define MLOG_MASK_PREFIX ML_INODE
+ #include <cluster/masklog.h>
+@@ -1749,6 +1751,7 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
+ 	return __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
  }
  
-+#ifdef OLD_BIO_END_IO
-+static int o2hb_bio_end_io(struct bio *bio,
-+			   unsigned int bytes_done,
-+			   int error)
-+#else
- static void o2hb_bio_end_io(struct bio *bio,
- 			   int error)
-+#endif
++#ifndef NO_FALLOCATE
+ static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
+ 			    loff_t len)
  {
- 	struct o2hb_bio_wait_ctxt *wc = bio->bi_private;
- 
-@@ -227,6 +233,9 @@ static void o2hb_bio_end_io(struct bio *bio,
- 
- 	o2hb_bio_wait_dec(wc, 1);
- 	bio_put(bio);
-+#ifdef OLD_BIO_END_IO
-+	return 0;
-+#endif
+@@ -1772,6 +1775,7 @@ static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
+ 	return __ocfs2_change_file_space(NULL, inode, offset,
+ 					 OCFS2_IOC_RESVSP64, &sr, change_size);
  }
++#endif
  
- /* Setup a Bio to cover I/O against num_slots slots starting at
+ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
+ 					 loff_t *ppos,
+@@ -2397,7 +2401,9 @@ const struct inode_operations ocfs2_file_iops = {
+ 	.setattr	= ocfs2_setattr,
+ 	.getattr	= ocfs2_getattr,
+ 	.permission	= ocfs2_permission,
++#ifndef NO_FALLOCATE
+ 	.fallocate	= ocfs2_fallocate,
++#endif
+ };
+ 
+ const struct inode_operations ocfs2_special_file_iops = {
 -- 
 1.5.2.5
