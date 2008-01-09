@@ -1,118 +1,76 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed Jan  9 17:59:57 2008
-Subject: [Ocfs2-devel] [PATCH 16/30] ocfs2: Handle different prototypes of
-	register_sysctl_table()
+Date: Wed Jan  9 17:59:58 2008
+Subject: [Ocfs2-devel] [PATCH 22/30] ocfs2: Handle missing macro MNT_RELATIME
 In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
 References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1199930370-17076-15-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199930370-17076-21-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 0b4d414714f0d2f922d39424b0c5c82ad900a381 in mainline removes the
-insert_at_head argument from register_sysctl_table(). This patch allows
-building ocfs2 with kernels having/not having this change.
+Commit 47ae32d6a54955a041cdc30b06d0bb16e75f68d5 in mainline introduced
+macro MNT_RELATIME to limit atime updates to frequency specified in the
+mount option. This patch allows one to build ocfs2 with kernels having/not
+having this change.
+
+It should be noted that the functionality will not be available on kernels
+not having the macro as the vfs support will be missing.
+
+TODO: This feature needs to be enabled later by parsing the realtime mount
+option in ocfs2 itself.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- Config.make.in                        |    1 +
- Makefile                              |    3 ++-
- configure.in                          |    6 ++++++
- fs/ocfs2/cluster/Makefile             |    4 ++++
- fs/ocfs2/cluster/nodemanager.c        |    2 +-
- kapi-compat/include/register_sysctl.h |   10 ++++++++++
- 6 files changed, 24 insertions(+), 2 deletions(-)
- create mode 100644 kapi-compat/include/register_sysctl.h
+ Makefile                       |    3 ++-
+ configure.in                   |    5 +++++
+ kapi-compat/include/relatime.h |    6 ++++++
+ 3 files changed, 13 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/relatime.h
 
-diff --git a/Config.make.in b/Config.make.in
-index c5631b6..9e2b466 100644
---- a/Config.make.in
-+++ b/Config.make.in
-@@ -63,6 +63,7 @@ NO_SYNC_MAPPING_RANGE  = @NO_SYNC_MAPPING_RANGE@
- NO_FAULT_IN_VMOPS = @NO_FAULT_IN_VMOPS@
- NO_F_PATH_IN_STRUCT_FILE = @NO_F_PATH_IN_STRUCT_FILE@
- KMEM_CACHE_CREATE_DTOR = @KMEM_CACHE_CREATE_DTOR@
-+REGISTER_SYSCTL_TWO_ARGS = @REGISTER_SYSCTL_TWO_ARGS@
- 
- OCFS_DEBUG = @OCFS_DEBUG@
- 
 diff --git a/Makefile b/Makefile
-index 1553e54..4256eb7 100644
+index 5539d48..ea4b979 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -20,7 +20,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/slab.h \
- 	kapi-compat/include/fs_rename_does_d_move.h \
- 	kapi-compat/include/sysctl.h \
--	kapi-compat/include/configfs.h
-+	kapi-compat/include/configfs.h \
-+	kapi-compat/include/register_sysctl.h
+@@ -24,7 +24,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/register_sysctl.h \
+ 	kapi-compat/include/su_mutex.h \
+ 	kapi-compat/include/kobject.h \
+-	kapi-compat/include/cap.h
++	kapi-compat/include/cap.h \
++	kapi-compat/include/relatime.h
  
  PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index 25452d9..795437c 100644
+index 19c38d4..2f2a263 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -236,6 +236,12 @@ OCFS2_CHECK_KERNEL([configfs_depend_item() in configfs.h], configfs.h,
-   , configfs_compat_header="configfs.h", [configfs_depend_item()])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $configfs_compat_header"
+@@ -269,6 +269,11 @@ OCFS2_CHECK_KERNEL([struct splice_desc in splice.h], splice.h,
+   , NO_SPLICE_HEADER=yes, [^struct splice_desc ])
+ AC_SUBST(NO_SPLICE_HEADER)
  
-+REGISTER_SYSCTL_TWO_ARGS=
-+OCFS2_CHECK_KERNEL([register_sysctl() with two args in sysctl.h], sysctl.h,
-+  REGISTER_SYSCTL_TWO_ARGS=yes, , [^.*int insert_at_head);])
-+AC_SUBST(REGISTER_SYSCTL_TWO_ARGS)
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS register_sysctl.h"
++relatime_compat_header=""
++OCFS2_CHECK_KERNEL([MNT_RELATIME in mount.h], mount.h,
++  , relatime_compat_header="relatime.h", [^#define MNT_RELATIME])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $relatime_compat_header"
 +
  # using -include has two advantages:
  #  the source doesn't need to know to include compat headers
  #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
-index 16bddd9..28fe533 100644
---- a/fs/ocfs2/cluster/Makefile
-+++ b/fs/ocfs2/cluster/Makefile
-@@ -22,6 +22,10 @@ ifdef NO_DELAYED_WORK_STRUCT
- EXTRA_CFLAGS += -DNO_DELAYED_WORK_STRUCT
- endif
- 
-+ifdef REGISTER_SYSCTL_TWO_ARGS
-+EXTRA_CFLAGS += -DREGISTER_SYSCTL_TWO_ARGS
-+endif
-+
- SOURCES +=			\
- 	heartbeat.c		\
- 	masklog.c		\
-diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
-index af2070d..9fff881 100644
---- a/fs/ocfs2/cluster/nodemanager.c
-+++ b/fs/ocfs2/cluster/nodemanager.c
-@@ -962,7 +962,7 @@ static int __init init_o2nm(void)
- 	o2hb_init();
- 	o2net_init();
- 
--	ocfs2_table_header = register_sysctl_table(ocfs2_root_table);
-+	ocfs2_table_header = kapi_register_sysctl_table(ocfs2_root_table);
- 	if (!ocfs2_table_header) {
- 		printk(KERN_ERR "nodemanager: unable to register sysctl\n");
- 		ret = -ENOMEM; /* or something. */
-diff --git a/kapi-compat/include/register_sysctl.h b/kapi-compat/include/register_sysctl.h
+diff --git a/kapi-compat/include/relatime.h b/kapi-compat/include/relatime.h
 new file mode 100644
-index 0000000..94e8071
+index 0000000..34c5d38
 --- /dev/null
-+++ b/kapi-compat/include/register_sysctl.h
-@@ -0,0 +1,10 @@
-+#ifndef KAPI_REGISTER_SYSCTL_H
-+#define KAPI_REGISTER_SYSCTL_H
++++ b/kapi-compat/include/relatime.h
+@@ -0,0 +1,6 @@
++#ifndef KAPI_RELATIME_H
++#define KAPI_RELATIME_H
 +
-+#ifdef REGISTER_SYSCTL_TWO_ARGS
-+#define kapi_register_sysctl_table(a)	register_sysctl_table(a, 0)
-+#else
-+#define kapi_register_sysctl_table(a)	register_sysctl_table(a)
-+#endif
++#define MNT_RELATIME    0x20
 +
 +#endif
 -- 
