@@ -1,28 +1,73 @@
-From: tao.ma <tao.ma@oracle.com>
-Date: Wed Jan  9 16:50:19 2008
-Subject: [Ocfs2-devel] [PATCH 1/1] Change default value for o2net and
-	heartbeat.
-In-Reply-To: <20080109190933.GD23506@ca-server1.us.oracle.com>
-References: <20080109025432.GA14956@tma-pc1.cn.oracle.com>
-	<20080109190933.GD23506@ca-server1.us.oracle.com>
-Message-ID: <47856B9C.803@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed Jan  9 17:59:48 2008
+Subject: [Ocfs2-devel] [PATCH 15/30] ocfs2: Handles configfs_depend_item()
+	and configfs_undepend_item()
+In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
+References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1199930370-17076-14-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> On Wed, Jan 09, 2008 at 10:54:32AM +0800, tao.ma wrote:
->   
->> The default value for o2net and heartbeat have been changed
->> in the newest o2cb configure(ocfs2-tools).
->> So change it also in kernel.
->>     
->
-> Thanks Tao, but this is already in Ocfs2.git:
->
-> http://git.kernel.org/?p=linux/kernel/git/mfasheh/ocfs2.git;a=commitdiff;h=a4372b59334d2e7d0ef89eafb8af8d0eedfcf984
-> 	--Mark
->   
-aha, I haven't found it in the linux-2.6.git tree. ;)
+Commit 631d1febab8e546e3bb800bdfe2c212b8adf87de in mainline introduces
+two new calls in configfs, configfs_depend_item() and configfs_undepend_item().
+This patch allows one to build ocfs2 with kernels having/not having
+this change.
+
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
+---
+ Makefile                       |    3 ++-
+ configure.in                   |    5 +++++
+ kapi-compat/include/configfs.h |    7 +++++++
+ 3 files changed, 14 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/configfs.h
+
+diff --git a/Makefile b/Makefile
+index 1d27943..1553e54 100644
+--- a/Makefile
++++ b/Makefile
+@@ -19,7 +19,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/drop_nlink.h \
+ 	kapi-compat/include/slab.h \
+ 	kapi-compat/include/fs_rename_does_d_move.h \
+-	kapi-compat/include/sysctl.h
++	kapi-compat/include/sysctl.h \
++	kapi-compat/include/configfs.h
+ 
+ PATCH_FILES =
+ 
+diff --git a/configure.in b/configure.in
+index 7874829..25452d9 100644
+--- a/configure.in
++++ b/configure.in
+@@ -231,6 +231,11 @@ OCFS2_CHECK_KERNEL([enum FS_OCFS2 in sysctl.h], sysctl.h,
+   , sysctl_compat_header="sysctl.h", [FS_OCFS2])
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $sysctl_compat_header"
+ 
++configfs_compat_header=""
++OCFS2_CHECK_KERNEL([configfs_depend_item() in configfs.h], configfs.h,
++  , configfs_compat_header="configfs.h", [configfs_depend_item()])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $configfs_compat_header"
++
+ # using -include has two advantages:
+ #  the source doesn't need to know to include compat headers
+ #  the compat header file names don't go through the search path
+diff --git a/kapi-compat/include/configfs.h b/kapi-compat/include/configfs.h
+new file mode 100644
+index 0000000..cbc11e6
+--- /dev/null
++++ b/kapi-compat/include/configfs.h
+@@ -0,0 +1,7 @@
++#ifndef KAPI_CONFIGFS_H
++#define KAPI_CONFIGFS_H
++
++#define configfs_depend_item(a, b)	(0)
++#define configfs_undepend_item(a, b)
++
++#endif
+-- 
+1.5.2.5
