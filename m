@@ -1,89 +1,88 @@
-From: tao.ma <tao.ma@oracle.com>
-Date: Thu Jan 10 16:34:35 2008
-Subject: [Ocfs2-devel] [PATCH 1/1] Clear joining_node no matter whether
-	it	is in the domain map or not.
-In-Reply-To: <47865DE8.9000500@oracle.com>
-References: <20080110072055.GA7911@tma-pc1.cn.oracle.com>
-	<47865DE8.9000500@oracle.com>
-Message-ID: <4786B98D.5080707@oracle.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Thu Jan 10 17:48:25 2008
+Subject: [Ocfs2-devel] [PATCH 1/2] Add support for cross extent block
+	merge.V1
+In-Reply-To: <4781EB53.8040503@oracle.com>
+References: <20080104083214.GA1584@tma-pc1.cn.oracle.com>
+	<20080104084538.GA1916@tma-pc1.cn.oracle.com>
+	<20080107055116.GT23506@ca-server1.us.oracle.com>
+	<4781EB53.8040503@oracle.com>
+Message-ID: <20080111014719.GQ23506@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sunil Mushran wrote:
-> This looks good. Did you manage to actually test this scenario?
-Yes, I have simulate this scenario by 2 steps.
-1. Let o2net timeout in the joining node.(this node number is bigger 
-than the mounted one.)
-    The joining node will fence. And after its fence, no other node can 
-join the domain include himself.
-    The mounted one hang when the "umount" is called.
-After the modification, it goes well.
-2. Let o2net timeout in the joining node.(this node number is less than 
-the mounted one.) The mounted one will reboot and the joining node mount 
-the volume. After the mounted one reboot, it can join the domain. So the 
-old code handle this issue successfully.
->
-> We'll need to apply this both git and 1.2.
->
-> Tao Ma wrote:
->> Currently the process of dlm join contains 2 steps: query join and 
->> assert join.
->> After query join, the joined node will set its joining_node. So if 
->> the joining
->> node happens to panic before the 2nd step, the joined node will fail 
->> to clear
->> its joining_node flag because that node isn't in the domain map. It 
->> at least
->> cause 2 problems.
->> 1. All the new join request will fail. So no new node can mount the 
->> volume.
->> 2. The joined node can't umount the volume since during the umount 
->> process it
->>    has to wait for the joining_node to be unknown. So the umount will 
->> be hanged.
+On Mon, Jan 07, 2008 at 05:05:23PM +0800, tao.ma wrote:
+>> Hmm, I'm worried that we're exiting this function with a path whose upper
+>> cpos values are inconsistent. An error before we get the chance to 
+>> actually
+>> do the rotate / removal could leave us with an inconsistent tree.
 >>
->> The solution is to clear the joining_node before we check the domain 
->> map.
->>
->> Signed-off-by: Tao Ma <tao.ma@oracle.com>
->> ---
->>  fs/ocfs2/dlm/dlmrecovery.c |   12 ++++++------
->>  1 files changed, 6 insertions(+), 6 deletions(-)
->>
->> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
->> index 2fde7bf..3502bec 100644
->> --- a/fs/ocfs2/dlm/dlmrecovery.c
->> +++ b/fs/ocfs2/dlm/dlmrecovery.c
->> @@ -2270,6 +2270,12 @@ static void __dlm_hb_node_down(struct dlm_ctxt 
->> *dlm, int idx)
->>          }
->>      }
->>  
->> +    /* Clean up join state on node death. */
->> +    if (dlm->joining_node == idx) {
->> +        mlog(0, "Clearing join state for node %u\n", idx);
->> +        __dlm_set_joining_node(dlm, DLM_LOCK_RES_OWNER_UNKNOWN);
->> +    }
->> +
->>      /* check to see if the node is already considered dead */
->>      if (!test_bit(idx, dlm->live_nodes_map)) {
->>          mlog(0, "for domain %s, node %d is already dead. "
->> @@ -2288,12 +2294,6 @@ static void __dlm_hb_node_down(struct dlm_ctxt 
->> *dlm, int idx)
->>  
->>      clear_bit(idx, dlm->live_nodes_map);
->>  
->> -    /* Clean up join state on node death. */
->> -    if (dlm->joining_node == idx) {
->> -        mlog(0, "Clearing join state for node %u\n", idx);
->> -        __dlm_set_joining_node(dlm, DLM_LOCK_RES_OWNER_UNKNOWN);
->> -    }
->> -
->>      /* make sure local cleanup occurs before the heartbeat events */
->>      if (!test_bit(idx, dlm->recovery_map))
->>          dlm_do_local_recovery_cleanup(dlm, idx);
+>> I'm not sure that we can just slap some code to handle it here though - 
+>> from
+>> what I can tell, the callers are expecting that we'd leave an empty extent
+>> for them to handle.
 >>   
->
+> Yes. So the situation here is really hard to handle and lead me to make the 
+> decision that we should let ocfs2_roatate_tree_left go on the issue.
+>> I see that ocfs2_rotate_tree_left _almost_ handles this situation
+>> correctly, except the transaction extend could fail before we get to 
+>> remove
+>> the blocks. That might actually be a bug, though I have to think about it
+>> some more. Generally if ocfs2_rotate_tree_left handled it 100% correctly, 
+>> we
+>> _could_ just comment the heck out of this function that callers *must* 
+>> call
+>> the rotate function later. Since calling ocfs2_rotate_tree_left() is
+>> implicitely decided by the callers, I'd also want to audit the code to 
+>> make
+>> sure that it always gets called in the new merge situations we've
+>> introduced.
+>>   
+> So any suggestion is welcomed. By now, I haven't found a good way to handle 
+> it except my current ugly codes. ;)
+
+Ok, I've had some time to think about this. We should just handle this
+corner case in ocfs2_merge_rec_left(). ocfs2_rotate_tree_left() cleanly
+exits if the empty extent has already been removed, so it's safe to
+unconditionally call it as we do today.
+
+
+>> So why don't we just always do the left merge 1st, instead of switching on
+>> them like this?
+>>   
+> If split_index==0, then if we do merge_right first, it will not touch the 
+> previous extent block(so no cross extent block merge is needed) and only 
+> the extent block after the record will be affected. The second merge_left 
+> will be cross extent block merge.
+> If split_index==l_count-1, then if we do merge_left first, the first merge 
+> will move the recs[0] of the next extent block into this block. So when 
+> merge_right is called, no cross extent block merge is needed.
+> So if you don't like this switch, I would prefer merge_right first and 
+> merge_left second to the original merge_left first. ;)
+
+Yeah, I think what I was looking for was whether you had a reason to not
+just re-order the merging in all cases.
+
+Do we ever get into the case that a leftright merge is at index == (l_count
+- 1)? I think the search should prevent that (and instead give us index == 0
+for the extent block to the right).
+
+If so, I think that just always doing the left merge 1st makes sense. I
+don't see any problem with that breaking the code to merge within a block
+either.
+
+
+> btw, I have patched your code of ocfs2_check_tree to my current git tree, 
+> it works well under my test script. The test script should be ready for 
+> review soon.
+
+Great, post it ;) Have you looked at running the burn-in script?
+	--Mark
+
+--
+Mark Fasheh
+Principal Software Developer, Oracle
+mark.fasheh@oracle.com
