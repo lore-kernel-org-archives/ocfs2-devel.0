@@ -1,50 +1,35 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Jan 10 15:18:50 2008
-Subject: [Ocfs2-devel] [PATCH 1/1] Clear joining_node no matter whether
-	it is in the domain map or not.
-In-Reply-To: <20080110072055.GA7911@tma-pc1.cn.oracle.com>
-References: <20080110072055.GA7911@tma-pc1.cn.oracle.com>
-Message-ID: <20080110231701.GN23506@ca-server1.us.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu Jan 10 15:51:37 2008
+Subject: [Ocfs2-devel] OCFS2-1.4 Yet another drop
+In-Reply-To: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
+References: <1199930370-17076-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080110235027.GB12597@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jan 10, 2008 at 03:20:55PM +0800, tao.ma wrote:
-> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> index 2fde7bf..3502bec 100644
-> --- a/fs/ocfs2/dlm/dlmrecovery.c
-> +++ b/fs/ocfs2/dlm/dlmrecovery.c
-> @@ -2270,6 +2270,12 @@ static void __dlm_hb_node_down(struct dlm_ctxt *dlm, int idx)
->  		}
->  	}
->  
-> +	/* Clean up join state on node death. */
-> +	if (dlm->joining_node == idx) {
-> +		mlog(0, "Clearing join state for node %u\n", idx);
-> +		__dlm_set_joining_node(dlm, DLM_LOCK_RES_OWNER_UNKNOWN);
-> +	}
-> +
->  	/* check to see if the node is already considered dead */
->  	if (!test_bit(idx, dlm->live_nodes_map)) {
->  		mlog(0, "for domain %s, node %d is already dead. "
-> @@ -2288,12 +2294,6 @@ static void __dlm_hb_node_down(struct dlm_ctxt *dlm, int idx)
->  
->  	clear_bit(idx, dlm->live_nodes_map);
->  
-> -	/* Clean up join state on node death. */
-> -	if (dlm->joining_node == idx) {
-> -		mlog(0, "Clearing join state for node %u\n", idx);
-> -		__dlm_set_joining_node(dlm, DLM_LOCK_RES_OWNER_UNKNOWN);
-> -	}
-> -
+On Wed, Jan 09, 2008 at 05:59:02PM -0800, Sunil Mushran wrote:
+> Hopefully this is the last drop before we create the repos.
+> 
+> The big change in this drop is moving the kernel code to from kapi-include
+> headers to compat-file.c
 
-Ahh ok - we *did* have this code, it was just never being executed. Good
-catch Tao. I'll throw this in ocfs2.git.
-	--Mark
+These look good to me.  I couldn't see where COMPAT_SOURCES got added to
+DIST_FILES, but I see it in the git tree.  I assume you just didn't send
+the Makefile patch?
 
---
-Mark Fasheh
-Principal Software Developer, Oracle
-mark.fasheh@oracle.com
+Joel
+
+-- 
+
+Life's Little Instruction Book #451
+
+	"Don't be afraid to say, 'I'm sorry.'"
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
