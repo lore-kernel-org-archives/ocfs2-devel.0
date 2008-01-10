@@ -1,37 +1,17 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Thu Jan 10 10:04:36 2008
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Thu Jan 10 15:18:50 2008
 Subject: [Ocfs2-devel] [PATCH 1/1] Clear joining_node no matter whether
-	it	is in the domain map or not.
+	it is in the domain map or not.
 In-Reply-To: <20080110072055.GA7911@tma-pc1.cn.oracle.com>
 References: <20080110072055.GA7911@tma-pc1.cn.oracle.com>
-Message-ID: <47865DE8.9000500@oracle.com>
+Message-ID: <20080110231701.GN23506@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This looks good. Did you manage to actually test this scenario?
-
-We'll need to apply this both git and 1.2.
-
-Tao Ma wrote:
-> Currently the process of dlm join contains 2 steps: query join and assert join.
-> After query join, the joined node will set its joining_node. So if the joining
-> node happens to panic before the 2nd step, the joined node will fail to clear
-> its joining_node flag because that node isn't in the domain map. It at least
-> cause 2 problems.
-> 1. All the new join request will fail. So no new node can mount the volume.
-> 2. The joined node can't umount the volume since during the umount process it
->    has to wait for the joining_node to be unknown. So the umount will be hanged.
->
-> The solution is to clear the joining_node before we check the domain map.
->
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
-> ---
->  fs/ocfs2/dlm/dlmrecovery.c |   12 ++++++------
->  1 files changed, 6 insertions(+), 6 deletions(-)
->
+On Thu, Jan 10, 2008 at 03:20:55PM +0800, tao.ma wrote:
 > diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
 > index 2fde7bf..3502bec 100644
 > --- a/fs/ocfs2/dlm/dlmrecovery.c
@@ -59,7 +39,12 @@ Tao Ma wrote:
 > -		__dlm_set_joining_node(dlm, DLM_LOCK_RES_OWNER_UNKNOWN);
 > -	}
 > -
->  	/* make sure local cleanup occurs before the heartbeat events */
->  	if (!test_bit(idx, dlm->recovery_map))
->  		dlm_do_local_recovery_cleanup(dlm, idx);
->   
+
+Ahh ok - we *did* have this code, it was just never being executed. Good
+catch Tao. I'll throw this in ocfs2.git.
+	--Mark
+
+--
+Mark Fasheh
+Principal Software Developer, Oracle
+mark.fasheh@oracle.com
