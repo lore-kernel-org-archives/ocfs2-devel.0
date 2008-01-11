@@ -1,13 +1,51 @@
 From: bob findlay (TOC) <bob.findlay@bbsrc.ac.uk>
-Date: Fri Jan 11 03:17:29 2008
-Subject: [Ocfs2-devel] systems hang when accessing parts of the OCFS2 file
-	system
-Message-ID: <D2AD15EF58CEB8448EA3626C1A102209014260EB@NBIE2KSRV1.nbi.bbsrc.ac.uk>
+Date: Fri Jan 11 05:50:47 2008
+Subject: [Ocfs2-devel] systems hang when accessing parts of the OCFS2
+	filesystem
+In-Reply-To: <D2AD15EF58CEB8448EA3626C1A102209014260EB@NBIE2KSRV1.nbi.bbsrc.ac.uk>
+References: <D2AD15EF58CEB8448EA3626C1A102209014260EB@NBIE2KSRV1.nbi.bbsrc.ac.uk>
+Message-ID: <D2AD15EF58CEB8448EA3626C1A1022090142611E@NBIE2KSRV1.nbi.bbsrc.ac.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Sorry, should have also stated the obviously necessary information -
+
+[root@jic55124 bin]# cat /proc/fs/ocfs2/version
+OCFS2 1.2.7 Tue Oct  9 16:15:59 PDT 2007 (build
+d443ce77532cea8d1e167ab2de51b8c8)
+
+[root@jic55124 bin]# rpm -qf /boot/vmlinuz-`uname -r` --queryformat
+"%{ARCH}\n"
+x86_64
+
+[root@jic55124 bin]# uname -a
+Linux jic55124 2.6.9-42.ELsmp #1 SMP Wed Jul 12 23:32:02 EDT 2006 x86_64
+x86_64 x86_64 GNU/Linux
+
+
+Thanks
+ 
+Bob.
+ 
+=====================================================
+Bob Findlay
+The Operations Centre - Norwich BioScience Institutes
+Tel: 01603 450474  (2474 internal)
+Fax: 01603 450045
+=====================================================
+
+
+-----Original Message-----
+From: ocfs2-devel-bounces@oss.oracle.com
+[mailto:ocfs2-devel-bounces@oss.oracle.com] On Behalf Of bob findlay
+(TOC)
+Sent: 11 January 2008 11:17
+To: ocfs2-devel@oss.oracle.com; ocfs2-users@oss.oracle.com
+Subject: [Ocfs2-devel] systems hang when accessing parts of the OCFS2
+filesystem
 
 Hi everyone
  
@@ -197,6 +235,3 @@ Fax: 01603 450045
 =====================================================
 
  
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080111/dfbb3538/attachment-0001.html
