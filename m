@@ -1,35 +1,40 @@
 From: bob findlay (TOC) <bob.findlay@bbsrc.ac.uk>
-Date: Fri Jan 11 05:50:47 2008
+Date: Fri Jan 11 06:01:45 2008
 Subject: [Ocfs2-devel] systems hang when accessing parts of the OCFS2
 	filesystem
 In-Reply-To: <D2AD15EF58CEB8448EA3626C1A102209014260EB@NBIE2KSRV1.nbi.bbsrc.ac.uk>
 References: <D2AD15EF58CEB8448EA3626C1A102209014260EB@NBIE2KSRV1.nbi.bbsrc.ac.uk>
-Message-ID: <D2AD15EF58CEB8448EA3626C1A1022090142611E@NBIE2KSRV1.nbi.bbsrc.ac.uk>
+Message-ID: <D2AD15EF58CEB8448EA3626C1A10220901426121@NBIE2KSRV1.nbi.bbsrc.ac.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sorry, should have also stated the obviously necessary information -
+is having both sdf & sdf1 cause for concern?  especially as the
+mounted.ocfs2 -f complains about a bad magic number on sdf.  it doesn't
+seem right that both sdf and sdf1 have oracle as the label?  we're
+mounting by label, and it's sdf1 that gets mounted.
 
-[root@jic55124 bin]# cat /proc/fs/ocfs2/version
-OCFS2 1.2.7 Tue Oct  9 16:15:59 PDT 2007 (build
-d443ce77532cea8d1e167ab2de51b8c8)
-
-[root@jic55124 bin]# rpm -qf /boot/vmlinuz-`uname -r` --queryformat
-"%{ARCH}\n"
-x86_64
-
-[root@jic55124 bin]# uname -a
-Linux jic55124 2.6.9-42.ELsmp #1 SMP Wed Jul 12 23:32:02 EDT 2006 x86_64
-x86_64 x86_64 GNU/Linux
+[root@jic55124 bin]# mounted.ocfs2 -d
+Device                FS     UUID                                  Label
+/dev/sdf              ocfs2  e9b6b495-a72d-4792-9b51-b294702b7ed4
+oracle
+/dev/sdf1             ocfs2  e418cb00-242f-4df2-96b4-6f3b0ae9b2e8
+oracle
+/dev/sdg              ocfs2  79a4a600-4f9c-4be0-b983-fbadf44a35d7  temp
+[root@jic55124 bin]# mounted.ocfs2 -f
+Device                FS     Nodes
+/dev/sdf              ocfs2  Unknown: Bad magic number in inode  
+/dev/sdf1             ocfs2  jic55124, jic55123, node3, node8, node4,
+node1, node5, node6, node7
+/dev/sdg              ocfs2  jic55123
 
 
 Thanks
- 
+
 Bob.
- 
+
 =====================================================
 Bob Findlay
 The Operations Centre - Norwich BioScience Institutes
@@ -48,26 +53,26 @@ Subject: [Ocfs2-devel] systems hang when accessing parts of the OCFS2
 filesystem
 
 Hi everyone
- 
+
 Firstly, apologies for the cross post, I am not sure which list is most
 appropriate for this question.  I should also point out, that I did not
 install OCFS2 and I am not the person that normally looks after these
 kind of things, so please can you bear that in mind when you make any
 suggestions (I will need a lot of detail!)
- 
+
 The problem: accessing certain directories within the cluster file
 system e.g. with "ls" cause the process to hang permanently.  I cannot
 cancel the request, I have to terminate the session.  This is happening
 across multiple nodes, so I am assuming that OCFS2 is the root cause of
 the problem.
- 
+
 Accessing the directory in debug mode seems to work fine eg this command
 will hang my session
- 
+
 [root@jic55124 databases]# ls -l /common/users/cbu/vigourom
 
 Whereas this works fine
- 
+
 [root@jic55124 databases]# echo "ls -l /users/cbu/vigourom" |
 debugfs.ocfs2 -n /dev/sdf1
         25447960        drwxr-xr-x  33  2522  2004            4096
@@ -139,15 +144,15 @@ debugfs.ocfs2 -n /dev/sdf1
         28545968        drwxr-xr-x   5  2522  2004            4096
 4-Sep-2007 15:05 GCGSeqmergeTests
 etc
- 
-stat gives 
- 
+
+stat gives
+
 [root@jic55124 databases]# echo "stat /users/cbu/vigourom" |
-debugfs.ocfs2 -n /dev/sdf1     
+debugfs.ocfs2 -n /dev/sdf1    
         Inode: 25447960   Mode: 0755   Generation: 1766836575
 (0x694fc95f)
         FS Generation: 3856768928 (0xe5e19fa0)
-        Type: Directory   Attr: 0x0   Flags: Valid 
+        Type: Directory   Attr: 0x0   Flags: Valid
         User: 2522 (vigourom)   Group: 2004 (cbu)   Size: 4096
         Links: 33   Clusters: 1
         ctime: 0x4786481b -- Thu Jan 10 16:30:19 2008
@@ -162,20 +167,20 @@ debugfs.ocfs2 -n /dev/sdf1
         Tree Depth: 0   Count: 243   Next Free Rec: 1
         ## Offset        Clusters       Block#
         0  0             1              20289216
- 
+
 fsck.ocfs2 gives internal logic failures (or faliures ;) amongst other
 things, which sounds pretty bad.  Is it?
- 
+
 [root@jic55124 ~]# fsck.ocfs2 -fn /dev/sdf1
 Checking OCFS2 filesystem in /dev/sdf1:
   label:              oracle
-  uuid:               e4 18 cb 00 24 2f 4d f2 96 b4 6f 3b 0a e9 b2 e8 
+  uuid:               e4 18 cb 00 24 2f 4d f2 96 b4 6f 3b 0a e9 b2 e8
   number of blocks:   243930952
   bytes per block:    4096
   number of clusters: 30491369
   bytes per cluster:  32768
   max slots:          24
- 
+
 ** Skipping journal replay because -n was given.  There may be spurious
 errors that journal replay would fix. **
 /dev/sdf1 was run with -f, check forced.
@@ -214,19 +219,19 @@ entries.  Move it to lost+found? n
 [INODE_COUNT] Inode 149371341 has a link count of 2 on disk but
 directory entry references come to 0. Update the count on disk to mn
 All passes succeeded.
- 
- 
+
+
 This has happened before and was "resolved" by shutting down the cluster
 and performing a fsck.ocfs2, but that doesn't help us prevent it in the
-future, so I would really like to resolve it properly.  
- 
+future, so I would really like to resolve it properly. 
+
 any suggestions as to how I can narrow down the cause of this problem
 please?  (or how to fix it would be even better! ;-)
- 
+
 Thanks
- 
+
 Bob.
- 
+
 =====================================================
 Bob Findlay
 The Operations Centre - Norwich BioScience Institutes
@@ -234,4 +239,9 @@ Tel: 01603 450474  (2474 internal)
 Fax: 01603 450045
 =====================================================
 
- 
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080111/93f3e5e0/attachment-0001.html
