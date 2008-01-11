@@ -1,113 +1,202 @@
-From: tao.ma <tao.ma@oracle.com>
-Date: Thu Jan 10 18:21:14 2008
-Subject: [Ocfs2-devel] [PATCH 1/2] Add support for cross extent block
-	merge.V1
-In-Reply-To: <20080111014719.GQ23506@ca-server1.us.oracle.com>
-References: <20080104083214.GA1584@tma-pc1.cn.oracle.com>
-	<20080104084538.GA1916@tma-pc1.cn.oracle.com>
-	<20080107055116.GT23506@ca-server1.us.oracle.com>
-	<4781EB53.8040503@oracle.com>
-	<20080111014719.GQ23506@ca-server1.us.oracle.com>
-Message-ID: <4786D26F.2030909@oracle.com>
+From: bob findlay (TOC) <bob.findlay@bbsrc.ac.uk>
+Date: Fri Jan 11 03:17:29 2008
+Subject: [Ocfs2-devel] systems hang when accessing parts of the OCFS2 file
+	system
+Message-ID: <D2AD15EF58CEB8448EA3626C1A102209014260EB@NBIE2KSRV1.nbi.bbsrc.ac.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> On Mon, Jan 07, 2008 at 05:05:23PM +0800, tao.ma wrote:
->   
->>> Hmm, I'm worried that we're exiting this function with a path whose upper
->>> cpos values are inconsistent. An error before we get the chance to 
->>> actually
->>> do the rotate / removal could leave us with an inconsistent tree.
->>>
->>> I'm not sure that we can just slap some code to handle it here though - 
->>> from
->>> what I can tell, the callers are expecting that we'd leave an empty extent
->>> for them to handle.
->>>   
->>>       
->> Yes. So the situation here is really hard to handle and lead me to make the 
->> decision that we should let ocfs2_roatate_tree_left go on the issue.
->>     
->>> I see that ocfs2_rotate_tree_left _almost_ handles this situation
->>> correctly, except the transaction extend could fail before we get to 
->>> remove
->>> the blocks. That might actually be a bug, though I have to think about it
->>> some more. Generally if ocfs2_rotate_tree_left handled it 100% correctly, 
->>> we
->>> _could_ just comment the heck out of this function that callers *must* 
->>> call
->>> the rotate function later. Since calling ocfs2_rotate_tree_left() is
->>> implicitely decided by the callers, I'd also want to audit the code to 
->>> make
->>> sure that it always gets called in the new merge situations we've
->>> introduced.
->>>   
->>>       
->> So any suggestion is welcomed. By now, I haven't found a good way to handle 
->> it except my current ugly codes. ;)
->>     
->
-> Ok, I've had some time to think about this. We should just handle this
-> corner case in ocfs2_merge_rec_left(). ocfs2_rotate_tree_left() cleanly
-> exits if the empty extent has already been removed, so it's safe to
-> unconditionally call it as we do today.
->   
-hmm, ok. Maybe a helper function is needed since now 
-ocfs2_merge_rec_left have to handle so much issue.
->
->   
->>> So why don't we just always do the left merge 1st, instead of switching on
->>> them like this?
->>>   
->>>       
->> If split_index==0, then if we do merge_right first, it will not touch the 
->> previous extent block(so no cross extent block merge is needed) and only 
->> the extent block after the record will be affected. The second merge_left 
->> will be cross extent block merge.
->> If split_index==l_count-1, then if we do merge_left first, the first merge 
->> will move the recs[0] of the next extent block into this block. So when 
->> merge_right is called, no cross extent block merge is needed.
->> So if you don't like this switch, I would prefer merge_right first and 
->> merge_left second to the original merge_left first. ;)
->>     
->
-> Yeah, I think what I was looking for was whether you had a reason to not
-> just re-order the merging in all cases.
->
-> Do we ever get into the case that a leftright merge is at index == (l_count
-> - 1)? I think the search should prevent that (and instead give us index == 0
-> for the extent block to the right).
->   
-Yes, I think we can get into this issue when the unwritten extent exists 
-in l_count-1.
-> If so, I think that just always doing the left merge 1st makes sense. I
-> don't see any problem with that breaking the code to merge within a block
-> either.
->   
-Do you mean right merge first? As I have mentioned above, if index==0, 
-the first right merge first will not touch cross extent block. Only the 
-second one has to.
-And now I think some of my previous comment is wrong. ;)
-Even if index == l_count-1, it is ok for right merge first. Since the 
-first right merge is a cross extent block merge, but the second left 
-merge don't touch cross extent block. So there is totally one cross 
-extent block merge.
->
->   
->> btw, I have patched your code of ocfs2_check_tree to my current git tree, 
->> it works well under my test script. The test script should be ready for 
->> review soon.
->>     
->
-> Great, post it ;) Have you looked at running the burn-in script
-OK, I will post it soon. Actually it is generated when I create sparse 
-file support in ocfs2-tools. I always want to modify it to be a test 
-script for both kernel and the tools. Now it really goes. ;)
-Actually I make the ocfs2 file system read-only one time when I run one 
-random_rw_test in it. :)
-But I have to sparse some time to investigate the real reason. So please 
-wait. ;)
+Hi everyone
+ 
+Firstly, apologies for the cross post, I am not sure which list is most
+appropriate for this question.  I should also point out, that I did not
+install OCFS2 and I am not the person that normally looks after these
+kind of things, so please can you bear that in mind when you make any
+suggestions (I will need a lot of detail!)
+ 
+The problem: accessing certain directories within the cluster file
+system e.g. with "ls" cause the process to hang permanently.  I cannot
+cancel the request, I have to terminate the session.  This is happening
+across multiple nodes, so I am assuming that OCFS2 is the root cause of
+the problem.
+ 
+Accessing the directory in debug mode seems to work fine eg this command
+will hang my session
+ 
+[root@jic55124 databases]# ls -l /common/users/cbu/vigourom
+
+Whereas this works fine
+ 
+[root@jic55124 databases]# echo "ls -l /users/cbu/vigourom" |
+debugfs.ocfs2 -n /dev/sdf1
+        25447960        drwxr-xr-x  33  2522  2004            4096
+10-Jan-2008 16:30 .
+        25447672        drwxr-xr-x   5  3773  2004            4096
+30-Nov-2007 14:27 ..
+        25447961        drwx------   2  2522  2004            4096
+1-Aug-2007 12:06 .ssh
+        25447963        -rw-r--r--   1  2522  2004            3814
+1-Aug-2007 17:04 addgi_new3.pl
+        25447964        -rw-r--r--   1     0     0               0
+1-Aug-2007 17:05 allmaize.out
+        25447965        -rw-------   1  2522  2004            1741
+15-Aug-2007 11:13 .viminfo
+        25447966        drwxr-xr-x   3  2522  2004            4096
+4-Sep-2007 12:07 .mcop
+        25447970        drwxr-xr-x   2  2522  2004            4096
+4-Sep-2007 15:43 forUNIGENE
+        25447971        -rw-r--r--   1     0     0          325655
+1-Aug-2007 15:02 maize.out
+        25447972        -rw-r--r--   1     0     0             264
+1-Aug-2007 15:42 README
+        25447973        -rwxr--r--   1  2522  2004         7209696
+8-Aug-2007 14:53 bioperl-1.5.2_102.zip
+        25447974        drwxrwsr-x   9  2522  2004            4096
+13-Aug-2007 14:59 bioperl-1.5.2_102
+        22610705        drwxr-xr-x   2  2522  2004            4096
+14-Aug-2007 17:10 perl5lib
+        22610706        drwxr-xr-x   3  2522  2004            4096
+14-Aug-2007 17:11 .cpan
+        22610709        drwx------   4  2522  2004            4096
+4-Sep-2007 11:39 .gnome
+        22610713        drwx------   4  2522  2004            4096
+4-Sep-2007 14:58 .gnome2
+        22610719        drwx------   2  2522  2004            4096
+4-Sep-2007 11:39 .gnome2_private
+        22610720        drwx------   4  2522  2004            4096
+4-Sep-2007 11:40 .kde
+        229702011       -rw-------   1  2522  2004             771
+10-Jan-2008 09:40 .Xauthority
+        22610820        drwx------   4  2522  2004            4096
+9-Jan-2008 14:08 .gconf
+        22610835        drwx------   2  2522  2004            4096
+10-Jan-2008 13:41 .gconfd
+        22610837        drwxr-xr-x   3  2522  2004            4096
+4-Sep-2007 11:39 .nautilus
+        22610842        drwxr-xr-x   4  2522  2004            4096
+4-Sep-2007 15:27 Desktop
+        28545914        drwxr-xr-x   2  2522  2004            4096
+4-Sep-2007 11:40 .qt
+        28545917        drwxr-xr-x   2  2522  2004            4096
+4-Sep-2007 11:42 .fonts
+        28545922        drwx------   3  2522  2004            4096
+4-Sep-2007 12:13 .mozilla
+        4567882         -rw-r--r--   1  2522  2004              53
+9-Jan-2008 14:08 .fonts.cache-1
+        28545956        -rw-------   1  2522  2004               0
+6-Sep-2007 15:30 .ICEauthority
+        28545957        -rw-r--r--   1  2522  2004             110
+4-Sep-2007 11:42 .fonts.conf
+        28545958        -rw-------   1  2522  2004              31
+4-Sep-2007 12:07 .mcoprc
+        28545959        drwxr-xr-x   2  2522  2004            4096
+4-Sep-2007 12:17 .wp
+        28545962        drwxr-xr-x   2  2522  2004            4096
+4-Sep-2007 15:04 .seqlab-node7
+        28545967        -rw-r--r--   1  2522  2004             707
+4-Sep-2007 16:16 .seqlab-history
+        28545968        drwxr-xr-x   5  2522  2004            4096
+4-Sep-2007 15:05 GCGSeqmergeTests
+etc
+ 
+stat gives 
+ 
+[root@jic55124 databases]# echo "stat /users/cbu/vigourom" |
+debugfs.ocfs2 -n /dev/sdf1     
+        Inode: 25447960   Mode: 0755   Generation: 1766836575
+(0x694fc95f)
+        FS Generation: 3856768928 (0xe5e19fa0)
+        Type: Directory   Attr: 0x0   Flags: Valid 
+        User: 2522 (vigourom)   Group: 2004 (cbu)   Size: 4096
+        Links: 33   Clusters: 1
+        ctime: 0x4786481b -- Thu Jan 10 16:30:19 2008
+        atime: 0x46a9a7dc -- Fri Jul 27 09:07:56 2007
+        mtime: 0x4786481b -- Thu Jan 10 16:30:19 2008
+        dtime: 0x0 -- Thu Jan  1 01:00:00 1970
+        ctime_nsec: 0x33de5143 -- 870207811
+        atime_nsec: 0x0ba52bb0 -- 195374000
+        mtime_nsec: 0x33de5143 -- 870207811
+        Last Extblk: 0
+        Sub Alloc Slot: 4   Sub Alloc Bit: 544
+        Tree Depth: 0   Count: 243   Next Free Rec: 1
+        ## Offset        Clusters       Block#
+        0  0             1              20289216
+ 
+fsck.ocfs2 gives internal logic failures (or faliures ;) amongst other
+things, which sounds pretty bad.  Is it?
+ 
+[root@jic55124 ~]# fsck.ocfs2 -fn /dev/sdf1
+Checking OCFS2 filesystem in /dev/sdf1:
+  label:              oracle
+  uuid:               e4 18 cb 00 24 2f 4d f2 96 b4 6f 3b 0a e9 b2 e8 
+  number of blocks:   243930952
+  bytes per block:    4096
+  number of clusters: 30491369
+  bytes per cluster:  32768
+  max slots:          24
+ 
+** Skipping journal replay because -n was given.  There may be spurious
+errors that journal replay would fix. **
+/dev/sdf1 was run with -f, check forced.
+Pass 0a: Checking cluster allocation chains
+[GROUP_FREE_BITS] Group descriptor at block 177020928 claims to have 2
+free bits which is more than 0 bits indicated by the bitmap.n
+Pass 0b: Checking inode allocation chains
+Pass 0c: Checking extent block allocation chains
+Pass 1: Checking inodes and blocks.
+o2fsck_mark_cluster_allocated: Internal logic faliure !! duplicate
+cluster 22151173
+[DIR_ZERO] Inode 149371341 is a zero length directory, clear it? n
+[CLUSTER_ALLOC_BIT] Cluster 11553628 is marked in the global cluster
+bitmap but it isn't in use.  Clear its bit in the bitmap? n
+[CLUSTER_ALLOC_BIT] Cluster 16917926 is marked in the global cluster
+bitmap but it isn't in use.  Clear its bit in the bitmap? n
+Pass 2: Checking directory entries.
+[DIRENT_INODE_FREE] Directory entry '#74502784' refers to inode number
+74502784 which isn't allocated, clear the entry? n
+Pass 3: Checking directory connectivity.
+[DIR_NOT_CONNECTED] Directory inode 149371341 isn't connected to the
+filesystem.  Move it to lost+found? n
+Pass 4a: checking for orphaned inodes
+** Skipping orphan dir replay because -n was given.
+Pass 4b: Checking inodes link counts.
+[INODE_COUNT] Inode 74502784 has a link count of 0 on disk but directory
+entry references come to 1. Update the count on disk to man
+[INODE_COUNT] Inode 142698567 has a link count of 1 on disk but
+directory entry references come to 2. Update the count on disk to mn
+pass4: Internal logic faliure fsck's thinks inode 149371307 has a link
+count of 1 but on disk it is 0
+[INODE_COUNT] Inode 149371307 has a link count of 1 on disk but
+directory entry references come to 2. Update the count on disk to mn
+[INODE_NOT_CONNECTED] Inode 149371307 isn't referenced by any directory
+entries.  Move it to lost+found? n
+[INODE_COUNT] Inode 149371341 has a link count of 2 on disk but
+directory entry references come to 0. Update the count on disk to mn
+All passes succeeded.
+ 
+ 
+This has happened before and was "resolved" by shutting down the cluster
+and performing a fsck.ocfs2, but that doesn't help us prevent it in the
+future, so I would really like to resolve it properly.  
+ 
+any suggestions as to how I can narrow down the cause of this problem
+please?  (or how to fix it would be even better! ;-)
+ 
+Thanks
+ 
+Bob.
+ 
+=====================================================
+Bob Findlay
+The Operations Centre - Norwich BioScience Institutes
+Tel: 01603 450474  (2474 internal)
+Fax: 01603 450045
+=====================================================
+
+ 
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080111/dfbb3538/attachment-0001.html
