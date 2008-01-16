@@ -1,54 +1,62 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Wed Jan 16 11:33:18 2008
-Subject: [Ocfs2-devel] [PATCH 01/20] ocfs2: Fix priority mistakes in
-	fs/ocfs2/{alloc.c, dlmglue.c}
+Subject: [Ocfs2-devel] [PATCH 12/20] ocfs2: Remove expensive bitmap scanning
 In-Reply-To: <1200511977-19513-1-git-send-email-sunil.mushran@oracle.com>
 References: <1200511977-19513-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1200511977-19513-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1200511977-19513-13-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 3cf0c507dd28de0e1a4c24304d806e6b3976f0f5
-Author: Roel Kluin <12o3l@tiscali.nl>
-Date: Sat, 27 Oct 2007 00:20:36 +0200
+Mainline commit 5a58c3ef22d6e5b84ff651a7d27ae2cbea9f9870
+Author: Jan Kara <jack@suse.cz>
+Date: Tue, 13 Nov 2007 19:59:33 +0100
 
-Fixes priority mistakes similar to '!x & y'
+Enable expensive bitmap scanning only if DEBUG option is enabled.
+The bitmap scanning quite loads the CPU and on my machine the write
+throughput of dd if=/dev/zero of=/ocfs2/file bs=1M count=500 conv=sync
+improves from 37 MB/s to 45.4 MB/s in local mode...
 
-Signed-off-by: Roel Kluin <12o3l@tiscali.nl>
+Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/alloc.c   |    2 +-
- fs/ocfs2/dlmglue.c |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ fs/ocfs2/localalloc.c |   14 +-------------
+ 1 files changed, 1 insertions(+), 13 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 4791433..1a6455e 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -3946,7 +3946,7 @@ static int __ocfs2_mark_extent_written(struct inode *inode,
- 	struct ocfs2_merge_ctxt ctxt;
- 	struct ocfs2_extent_list *rightmost_el;
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index d272847..e29328a 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -484,17 +484,6 @@ int ocfs2_reserve_local_alloc_bits(struct ocfs2_super *osb,
  
--	if (!rec->e_flags & OCFS2_EXT_UNWRITTEN) {
-+	if (!(rec->e_flags & OCFS2_EXT_UNWRITTEN)) {
- 		ret = -EIO;
- 		mlog_errno(ret);
- 		goto out;
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 41c76ff..ef09fd2 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -670,7 +670,7 @@ static inline void ocfs2_generic_handle_attach_action(struct ocfs2_lock_res *loc
- {
- 	mlog_entry_void();
+ 	alloc = (struct ocfs2_dinode *) osb->local_alloc_bh->b_data;
  
--	BUG_ON((!lockres->l_flags & OCFS2_LOCK_BUSY));
-+	BUG_ON((!(lockres->l_flags & OCFS2_LOCK_BUSY)));
- 	BUG_ON(lockres->l_flags & OCFS2_LOCK_ATTACHED);
+-	if (le32_to_cpu(alloc->id1.bitmap1.i_used) !=
+-	    ocfs2_local_alloc_count_bits(alloc)) {
+-		ocfs2_error(osb->sb, "local alloc inode %llu says it has "
+-			    "%u free bits, but a count shows %u",
+-			    (unsigned long long)le64_to_cpu(alloc->i_blkno),
+-			    le32_to_cpu(alloc->id1.bitmap1.i_used),
+-			    ocfs2_local_alloc_count_bits(alloc));
+-		status = -EIO;
+-		goto bail;
+-	}
+-
+ 	free_bits = le32_to_cpu(alloc->id1.bitmap1.i_total) -
+ 		le32_to_cpu(alloc->id1.bitmap1.i_used);
+ 	if (bits_wanted > free_bits) {
+@@ -712,9 +701,8 @@ static int ocfs2_sync_local_to_main(struct ocfs2_super *osb,
+ 	void *bitmap;
+ 	struct ocfs2_local_alloc *la = OCFS2_LOCAL_ALLOC(alloc);
  
- 	if (lockres->l_requested > LKM_NLMODE &&
+-	mlog_entry("total = %u, COUNT = %u, used = %u\n",
++	mlog_entry("total = %u, used = %u\n",
+ 		   le32_to_cpu(alloc->id1.bitmap1.i_total),
+-		   ocfs2_local_alloc_count_bits(alloc),
+ 		   le32_to_cpu(alloc->id1.bitmap1.i_used));
+ 
+ 	if (!alloc->id1.bitmap1.i_total) {
 -- 
 1.5.3.4
