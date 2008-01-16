@@ -1,69 +1,54 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed Jan 16 11:33:17 2008
-Subject: [Ocfs2-devel] [PATCH 05/20] ocfs2: fix write() performance
-	regression
+Date: Wed Jan 16 11:33:18 2008
+Subject: [Ocfs2-devel] [PATCH 01/20] ocfs2: Fix priority mistakes in
+	fs/ocfs2/{alloc.c, dlmglue.c}
 In-Reply-To: <1200511977-19513-1-git-send-email-sunil.mushran@oracle.com>
 References: <1200511977-19513-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1200511977-19513-6-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1200511977-19513-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 4e9563fd55ff4479f2b118d0757d121dd0cfc39c
-Author: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu, 1 Nov 2007 11:37:48 -0700
+Mainline commit 3cf0c507dd28de0e1a4c24304d806e6b3976f0f5
+Author: Roel Kluin <12o3l@tiscali.nl>
+Date: Sat, 27 Oct 2007 00:20:36 +0200
 
-On file systems which don't support sparse files, Ocfs2_map_page_blocks()
-was reading blocks on appending writes. This caused write performance to
-suffer dramatically. Fix this by detecting an appending write on a nonsparse
-fs and skipping the read.
+Fixes priority mistakes similar to '!x & y'
 
+Signed-off-by: Roel Kluin <12o3l@tiscali.nl>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/aops.c |   22 ++++++++++++++++++++++
- 1 files changed, 22 insertions(+), 0 deletions(-)
+ fs/ocfs2/alloc.c   |    2 +-
+ fs/ocfs2/dlmglue.c |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 93c01b7..4999180 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -729,6 +729,27 @@ static void ocfs2_clear_page_regions(struct page *page,
- }
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 4791433..1a6455e 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -3946,7 +3946,7 @@ static int __ocfs2_mark_extent_written(struct inode *inode,
+ 	struct ocfs2_merge_ctxt ctxt;
+ 	struct ocfs2_extent_list *rightmost_el;
  
- /*
-+ * Nonsparse file systems fully allocate before we get to the write
-+ * code. This prevents ocfs2_write() from tagging the write as an
-+ * allocating one, which means ocfs2_map_page_blocks() might try to
-+ * read-in the blocks at the tail of our file. Avoid reading them by
-+ * testing i_size against each block offset.
-+ */
-+static int ocfs2_should_read_blk(struct inode *inode, struct page *page,
-+				 unsigned int block_start)
-+{
-+	u64 offset = page_offset(page) + block_start;
-+
-+	if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb)))
-+		return 1;
-+
-+	if (i_size_read(inode) > offset)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+/*
-  * Some of this taken from block_prepare_write(). We already have our
-  * mapping by now though, and the entire write will be allocating or
-  * it won't, so not much need to use BH_New.
-@@ -781,6 +802,7 @@ int ocfs2_map_page_blocks(struct page *page, u64 *p_blkno,
- 				set_buffer_uptodate(bh);
- 		} else if (!buffer_uptodate(bh) && !buffer_delay(bh) &&
- 			   !buffer_new(bh) &&
-+			   ocfs2_should_read_blk(inode, page, block_start) &&
- 			   (block_start < from || block_end > to)) {
- 			ll_rw_block(READ, 1, &bh);
- 			*wait_bh++=bh;
+-	if (!rec->e_flags & OCFS2_EXT_UNWRITTEN) {
++	if (!(rec->e_flags & OCFS2_EXT_UNWRITTEN)) {
+ 		ret = -EIO;
+ 		mlog_errno(ret);
+ 		goto out;
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 41c76ff..ef09fd2 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -670,7 +670,7 @@ static inline void ocfs2_generic_handle_attach_action(struct ocfs2_lock_res *loc
+ {
+ 	mlog_entry_void();
+ 
+-	BUG_ON((!lockres->l_flags & OCFS2_LOCK_BUSY));
++	BUG_ON((!(lockres->l_flags & OCFS2_LOCK_BUSY)));
+ 	BUG_ON(lockres->l_flags & OCFS2_LOCK_ATTACHED);
+ 
+ 	if (lockres->l_requested > LKM_NLMODE &&
 -- 
 1.5.3.4
