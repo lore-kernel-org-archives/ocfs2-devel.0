@@ -1,43 +1,47 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Jan 17 14:37:02 2008
-Subject: [Ocfs2-devel] [PATCH 01/30] ocfs2_dlm: Call node eviction callbacks
-	from heartbeat handler
+Date: Thu Jan 17 14:37:03 2008
+Subject: [Ocfs2-devel] [PATCH 23/30] ocfs2: printf fixes
 In-Reply-To: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
 References: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
-Message-ID: <1200609356-17788-2-git-send-email-mark.fasheh@oracle.com>
+Message-ID: <1200609356-17788-24-git-send-email-mark.fasheh@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Mark Fasheh <mark.fasheh@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
 
-With this, a dlm client can take advantage of the group protocol in the dlm
-to get full notification whenever a node within the dlm domain leaves
-unexpectedly.
+From: Jan Kara <jack@suse.cz>
 
+Explicitely convert loff_t to long long in printf. Just for sure...
+
+Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dlm/dlmrecovery.c |    7 +++++++
- 1 files changed, 7 insertions(+), 0 deletions(-)
+ fs/ocfs2/file.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 2fde7bf..b10f3e3 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2321,6 +2321,13 @@ void dlm_hb_node_down_cb(struct o2nm_node *node, int idx, void *data)
- 	if (!dlm_grab(dlm))
- 		return;
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 6ebc9f9..ed5d523 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -626,7 +626,7 @@ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
  
-+	/*
-+	 * This will notify any dlm users that a node in our domain
-+	 * went away without notifying us first.
-+	 */
-+	if (test_bit(idx, dlm->domain_map))
-+		dlm_fire_domain_eviction_callbacks(dlm, idx);
-+
- 	spin_lock(&dlm->spinlock);
- 	__dlm_hb_node_down(dlm, idx);
- 	spin_unlock(&dlm->spinlock);
+ 	mlog(0, "extend inode %llu, i_size = %lld, di->i_clusters = %u, "
+ 	     "clusters_to_add = %u, extents_to_split = %u\n",
+-	     (unsigned long long)OCFS2_I(inode)->ip_blkno, i_size_read(inode),
++	     (unsigned long long)OCFS2_I(inode)->ip_blkno, (long long)i_size_read(inode),
+ 	     le32_to_cpu(di->i_clusters), clusters_to_add, extents_to_split);
+ 
+ 	num_free_extents = ocfs2_num_free_extents(osb, inode, di);
+@@ -807,7 +807,7 @@ restarted_transaction:
+ 	     le32_to_cpu(fe->i_clusters),
+ 	     (unsigned long long)le64_to_cpu(fe->i_size));
+ 	mlog(0, "inode: ip_clusters=%u, i_size=%lld\n",
+-	     OCFS2_I(inode)->ip_clusters, i_size_read(inode));
++	     OCFS2_I(inode)->ip_clusters, (long long)i_size_read(inode));
+ 
+ leave:
+ 	if (handle) {
 -- 
 1.5.3.6
