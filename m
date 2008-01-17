@@ -1,364 +1,52 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Jan 17 14:36:44 2008
-Subject: [Ocfs2-devel] [PATCH 07/30] dlm: Split lock mode and flag constants
-	into a sharable header.
+Date: Thu Jan 17 14:36:45 2008
+Subject: [Ocfs2-devel] [PATCH 21/30] ocfs2: Safer read_inline_data()
 In-Reply-To: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
 References: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
-Message-ID: <1200609356-17788-8-git-send-email-mark.fasheh@oracle.com>
+Message-ID: <1200609356-17788-22-git-send-email-mark.fasheh@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
 
-From: Joel Becker <joel.becker@oracle.com>
+From: Jan Kara <jack@suse.cz>
 
-This allows others to use the DLM constants without being tied to the
-function API of fs/dlm.
+In ocfs2_read_inline_data() we should store file size in loff_t. Although
+the file size should fit in 32 bits we cannot be sure in case filesystem is
+corrupted.
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
-Signed-off-by: Steven Whitehouse <swhiteho@redhat.com>
-Signed-off-by: David Teigland <teigland@redhat.com>
+Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- include/linux/Kbuild         |    1 +
- include/linux/dlm.h          |  140 +------------------------------------
- include/linux/dlmconstants.h |  159 ++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 162 insertions(+), 138 deletions(-)
- create mode 100644 include/linux/dlmconstants.h
+ fs/ocfs2/aops.c |    7 ++++---
+ 1 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/Kbuild b/include/linux/Kbuild
-index f30fa92..bd694f7 100644
---- a/include/linux/Kbuild
-+++ b/include/linux/Kbuild
-@@ -49,6 +49,7 @@ header-y += comstats.h
- header-y += const.h
- header-y += cgroupstats.h
- header-y += cycx_cfm.h
-+header-y += dlmconstants.h
- header-y += dlm_device.h
- header-y += dlm_netlink.h
- header-y += dm-ioctl.h
-diff --git a/include/linux/dlm.h b/include/linux/dlm.h
-index be9d278..c743fbc 100644
---- a/include/linux/dlm.h
-+++ b/include/linux/dlm.h
-@@ -19,148 +19,12 @@
-  * routines and structures to use DLM lockspaces
-  */
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 2a0eaac..865684f 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -217,7 +217,7 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
+ 			   struct buffer_head *di_bh)
+ {
+ 	void *kaddr;
+-	unsigned int size;
++	loff_t size;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
  
--/*
-- * Lock Modes
-- */
-+/* Lock levels and flags are here */
-+#include <linux/dlmconstants.h>
+ 	if (!(le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL)) {
+@@ -231,8 +231,9 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
+ 	if (size > PAGE_CACHE_SIZE ||
+ 	    size > ocfs2_max_inline_data(inode->i_sb)) {
+ 		ocfs2_error(inode->i_sb,
+-			    "Inode %llu has with inline data has bad size: %u",
+-			    (unsigned long long)OCFS2_I(inode)->ip_blkno, size);
++			    "Inode %llu has with inline data has bad size: %Lu",
++			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
++			    (unsigned long long)size);
+ 		return -EROFS;
+ 	}
  
--#define DLM_LOCK_IV		-1	/* invalid */
--#define DLM_LOCK_NL		0	/* null */
--#define DLM_LOCK_CR		1	/* concurrent read */
--#define DLM_LOCK_CW		2	/* concurrent write */
--#define DLM_LOCK_PR		3	/* protected read */
--#define DLM_LOCK_PW		4	/* protected write */
--#define DLM_LOCK_EX		5	/* exclusive */
--
--/*
-- * Maximum size in bytes of a dlm_lock name
-- */
- 
- #define DLM_RESNAME_MAXLEN	64
- 
--/*
-- * Flags to dlm_lock
-- *
-- * DLM_LKF_NOQUEUE
-- *
-- * Do not queue the lock request on the wait queue if it cannot be granted
-- * immediately.  If the lock cannot be granted because of this flag, DLM will
-- * either return -EAGAIN from the dlm_lock call or will return 0 from
-- * dlm_lock and -EAGAIN in the lock status block when the AST is executed.
-- *
-- * DLM_LKF_CANCEL
-- *
-- * Used to cancel a pending lock request or conversion.  A converting lock is
-- * returned to its previously granted mode.
-- *
-- * DLM_LKF_CONVERT
-- *
-- * Indicates a lock conversion request.  For conversions the name and namelen
-- * are ignored and the lock ID in the LKSB is used to identify the lock.
-- *
-- * DLM_LKF_VALBLK
-- *
-- * Requests DLM to return the current contents of the lock value block in the
-- * lock status block.  When this flag is set in a lock conversion from PW or EX
-- * modes, DLM assigns the value specified in the lock status block to the lock
-- * value block of the lock resource.  The LVB is a DLM_LVB_LEN size array
-- * containing application-specific information.
-- *
-- * DLM_LKF_QUECVT
-- *
-- * Force a conversion request to be queued, even if it is compatible with
-- * the granted modes of other locks on the same resource.
-- *
-- * DLM_LKF_IVVALBLK
-- *
-- * Invalidate the lock value block.
-- *
-- * DLM_LKF_CONVDEADLK
-- *
-- * Allows the dlm to resolve conversion deadlocks internally by demoting the
-- * granted mode of a converting lock to NL.  The DLM_SBF_DEMOTED flag is
-- * returned for a conversion that's been effected by this.
-- *
-- * DLM_LKF_PERSISTENT
-- *
-- * Only relevant to locks originating in userspace.  A persistent lock will not
-- * be removed if the process holding the lock exits.
-- *
-- * DLM_LKF_NODLCKWT
-- *
-- * Do not cancel the lock if it gets into conversion deadlock.
-- * Exclude this lock from being monitored due to DLM_LSFL_TIMEWARN.
-- *
-- * DLM_LKF_NODLCKBLK
-- *
-- * net yet implemented
-- *
-- * DLM_LKF_EXPEDITE
-- *
-- * Used only with new requests for NL mode locks.  Tells the lock manager
-- * to grant the lock, ignoring other locks in convert and wait queues.
-- *
-- * DLM_LKF_NOQUEUEBAST
-- *
-- * Send blocking AST's before returning -EAGAIN to the caller.  It is only
-- * used along with the NOQUEUE flag.  Blocking AST's are not sent for failed
-- * NOQUEUE requests otherwise.
-- *
-- * DLM_LKF_HEADQUE
-- *
-- * Add a lock to the head of the convert or wait queue rather than the tail.
-- *
-- * DLM_LKF_NOORDER
-- *
-- * Disregard the standard grant order rules and grant a lock as soon as it
-- * is compatible with other granted locks.
-- *
-- * DLM_LKF_ORPHAN
-- *
-- * not yet implemented
-- *
-- * DLM_LKF_ALTPR
-- *
-- * If the requested mode cannot be granted immediately, try to grant the lock
-- * in PR mode instead.  If this alternate mode is granted instead of the
-- * requested mode, DLM_SBF_ALTMODE is returned in the lksb.
-- *
-- * DLM_LKF_ALTCW
-- *
-- * The same as ALTPR, but the alternate mode is CW.
-- *
-- * DLM_LKF_FORCEUNLOCK
-- *
-- * Unlock the lock even if it is converting or waiting or has sublocks.
-- * Only really for use by the userland device.c code.
-- *
-- */
--
--#define DLM_LKF_NOQUEUE		0x00000001
--#define DLM_LKF_CANCEL		0x00000002
--#define DLM_LKF_CONVERT		0x00000004
--#define DLM_LKF_VALBLK		0x00000008
--#define DLM_LKF_QUECVT		0x00000010
--#define DLM_LKF_IVVALBLK	0x00000020
--#define DLM_LKF_CONVDEADLK	0x00000040
--#define DLM_LKF_PERSISTENT	0x00000080
--#define DLM_LKF_NODLCKWT	0x00000100
--#define DLM_LKF_NODLCKBLK	0x00000200
--#define DLM_LKF_EXPEDITE	0x00000400
--#define DLM_LKF_NOQUEUEBAST	0x00000800
--#define DLM_LKF_HEADQUE		0x00001000
--#define DLM_LKF_NOORDER		0x00002000
--#define DLM_LKF_ORPHAN		0x00004000
--#define DLM_LKF_ALTPR		0x00008000
--#define DLM_LKF_ALTCW		0x00010000
--#define DLM_LKF_FORCEUNLOCK	0x00020000
--#define DLM_LKF_TIMEOUT		0x00040000
--
--/*
-- * Some return codes that are not in errno.h
-- */
--
--#define DLM_ECANCEL		0x10001
--#define DLM_EUNLOCK		0x10002
- 
- typedef void dlm_lockspace_t;
- 
-diff --git a/include/linux/dlmconstants.h b/include/linux/dlmconstants.h
-new file mode 100644
-index 0000000..fddb3d3
---- /dev/null
-+++ b/include/linux/dlmconstants.h
-@@ -0,0 +1,159 @@
-+/******************************************************************************
-+*******************************************************************************
-+**
-+**  Copyright (C) Sistina Software, Inc.  1997-2003  All rights reserved.
-+**  Copyright (C) 2004-2007 Red Hat, Inc.  All rights reserved.
-+**
-+**  This copyrighted material is made available to anyone wishing to use,
-+**  modify, copy, or redistribute it subject to the terms and conditions
-+**  of the GNU General Public License v.2.
-+**
-+*******************************************************************************
-+******************************************************************************/
-+
-+#ifndef __DLMCONSTANTS_DOT_H__
-+#define __DLMCONSTANTS_DOT_H__
-+
-+/*
-+ * Constants used by DLM interface.
-+ */
-+
-+/*
-+ * Lock Modes
-+ */
-+
-+#define DLM_LOCK_IV		(-1)	/* invalid */
-+#define DLM_LOCK_NL		0	/* null */
-+#define DLM_LOCK_CR		1	/* concurrent read */
-+#define DLM_LOCK_CW		2	/* concurrent write */
-+#define DLM_LOCK_PR		3	/* protected read */
-+#define DLM_LOCK_PW		4	/* protected write */
-+#define DLM_LOCK_EX		5	/* exclusive */
-+
-+
-+/*
-+ * Flags to dlm_lock
-+ *
-+ * DLM_LKF_NOQUEUE
-+ *
-+ * Do not queue the lock request on the wait queue if it cannot be granted
-+ * immediately.  If the lock cannot be granted because of this flag, DLM will
-+ * either return -EAGAIN from the dlm_lock call or will return 0 from
-+ * dlm_lock and -EAGAIN in the lock status block when the AST is executed.
-+ *
-+ * DLM_LKF_CANCEL
-+ *
-+ * Used to cancel a pending lock request or conversion.  A converting lock is
-+ * returned to its previously granted mode.
-+ *
-+ * DLM_LKF_CONVERT
-+ *
-+ * Indicates a lock conversion request.  For conversions the name and namelen
-+ * are ignored and the lock ID in the LKSB is used to identify the lock.
-+ *
-+ * DLM_LKF_VALBLK
-+ *
-+ * Requests DLM to return the current contents of the lock value block in the
-+ * lock status block.  When this flag is set in a lock conversion from PW or EX
-+ * modes, DLM assigns the value specified in the lock status block to the lock
-+ * value block of the lock resource.  The LVB is a DLM_LVB_LEN size array
-+ * containing application-specific information.
-+ *
-+ * DLM_LKF_QUECVT
-+ *
-+ * Force a conversion request to be queued, even if it is compatible with
-+ * the granted modes of other locks on the same resource.
-+ *
-+ * DLM_LKF_IVVALBLK
-+ *
-+ * Invalidate the lock value block.
-+ *
-+ * DLM_LKF_CONVDEADLK
-+ *
-+ * Allows the dlm to resolve conversion deadlocks internally by demoting the
-+ * granted mode of a converting lock to NL.  The DLM_SBF_DEMOTED flag is
-+ * returned for a conversion that's been effected by this.
-+ *
-+ * DLM_LKF_PERSISTENT
-+ *
-+ * Only relevant to locks originating in userspace.  A persistent lock will not
-+ * be removed if the process holding the lock exits.
-+ *
-+ * DLM_LKF_NODLCKWT
-+ *
-+ * Do not cancel the lock if it gets into conversion deadlock.
-+ * Exclude this lock from being monitored due to DLM_LSFL_TIMEWARN.
-+ *
-+ * DLM_LKF_NODLCKBLK
-+ *
-+ * net yet implemented
-+ *
-+ * DLM_LKF_EXPEDITE
-+ *
-+ * Used only with new requests for NL mode locks.  Tells the lock manager
-+ * to grant the lock, ignoring other locks in convert and wait queues.
-+ *
-+ * DLM_LKF_NOQUEUEBAST
-+ *
-+ * Send blocking AST's before returning -EAGAIN to the caller.  It is only
-+ * used along with the NOQUEUE flag.  Blocking AST's are not sent for failed
-+ * NOQUEUE requests otherwise.
-+ *
-+ * DLM_LKF_HEADQUE
-+ *
-+ * Add a lock to the head of the convert or wait queue rather than the tail.
-+ *
-+ * DLM_LKF_NOORDER
-+ *
-+ * Disregard the standard grant order rules and grant a lock as soon as it
-+ * is compatible with other granted locks.
-+ *
-+ * DLM_LKF_ORPHAN
-+ *
-+ * not yet implemented
-+ *
-+ * DLM_LKF_ALTPR
-+ *
-+ * If the requested mode cannot be granted immediately, try to grant the lock
-+ * in PR mode instead.  If this alternate mode is granted instead of the
-+ * requested mode, DLM_SBF_ALTMODE is returned in the lksb.
-+ *
-+ * DLM_LKF_ALTCW
-+ *
-+ * The same as ALTPR, but the alternate mode is CW.
-+ *
-+ * DLM_LKF_FORCEUNLOCK
-+ *
-+ * Unlock the lock even if it is converting or waiting or has sublocks.
-+ * Only really for use by the userland device.c code.
-+ *
-+ */
-+
-+#define DLM_LKF_NOQUEUE		0x00000001
-+#define DLM_LKF_CANCEL		0x00000002
-+#define DLM_LKF_CONVERT		0x00000004
-+#define DLM_LKF_VALBLK		0x00000008
-+#define DLM_LKF_QUECVT		0x00000010
-+#define DLM_LKF_IVVALBLK	0x00000020
-+#define DLM_LKF_CONVDEADLK	0x00000040
-+#define DLM_LKF_PERSISTENT	0x00000080
-+#define DLM_LKF_NODLCKWT	0x00000100
-+#define DLM_LKF_NODLCKBLK	0x00000200
-+#define DLM_LKF_EXPEDITE	0x00000400
-+#define DLM_LKF_NOQUEUEBAST	0x00000800
-+#define DLM_LKF_HEADQUE		0x00001000
-+#define DLM_LKF_NOORDER		0x00002000
-+#define DLM_LKF_ORPHAN		0x00004000
-+#define DLM_LKF_ALTPR		0x00008000
-+#define DLM_LKF_ALTCW		0x00010000
-+#define DLM_LKF_FORCEUNLOCK	0x00020000
-+#define DLM_LKF_TIMEOUT		0x00040000
-+
-+/*
-+ * Some return codes that are not in errno.h
-+ */
-+
-+#define DLM_ECANCEL		0x10001
-+#define DLM_EUNLOCK		0x10002
-+
-+#endif  /* __DLMCONSTANTS_DOT_H__ */
 -- 
 1.5.3.6
