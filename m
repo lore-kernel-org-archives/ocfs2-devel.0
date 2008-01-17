@@ -1,259 +1,373 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Jan 17 14:37:12 2008
-Subject: [Ocfs2-devel] [PATCH 17/30] ocfs2: Local alloc window size
-	changeable via mount option
+Date: Thu Jan 17 14:37:13 2008
+Subject: [Ocfs2-devel] [PATCH 13/30] ocfs2: Implement group add for online
+	resize
 In-Reply-To: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
 References: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
-Message-ID: <1200609356-17788-18-git-send-email-mark.fasheh@oracle.com>
+Message-ID: <1200609356-17788-14-git-send-email-mark.fasheh@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Sunil Mushran <sunil.mushran@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Tao Ma <tao.ma@oracle.com>
 
-From: Sunil Mushran <sunil.mushran@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
 
-Local alloc is a performance optimization in ocfs2 in which a node
-takes a window of bits from the global bitmap and then uses that for
-all small local allocations. This window size is fixed to 8MB currently.
-This patch allows users to specify the window size in MB including
-disabling it by passing in 0. If the number specified is too large,
-the fs will use the default value of 8MB.
+This patch adds the ability for a userspace program to request that a
+properly formatted cluster group be added to the main allocation bitmap for
+an Ocfs2 file system. The request is made via an ioctl, OCFS2_IOC_GROUP_ADD.
+On a high level, this is similar to ext3, but we use a different ioctl as
+the structure which has to be passed through is different.
 
-mount -o localalloc=X /dev/sdX /mntpoint
+During an online resize, tunefs.ocfs2 will format any new cluster groups
+which must be added to complete the resize, and call OCFS2_IOC_GROUP_ADD on
+each one. Kernel verifies that the core cluster group information is valid
+and then does the work of linking it into the global allocation bitmap.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- Documentation/filesystems/ocfs2.txt |    3 ++
- fs/ocfs2/localalloc.c               |   42 +++++++++++++++++++++++++----------
- fs/ocfs2/ocfs2.h                    |    1 +
- fs/ocfs2/ocfs2_fs.h                 |    8 ++++++
- fs/ocfs2/suballoc.c                 |    5 ++-
- fs/ocfs2/super.c                    |   17 ++++++++++++++
- 6 files changed, 62 insertions(+), 14 deletions(-)
+ fs/ocfs2/ioctl.c    |    9 ++
+ fs/ocfs2/journal.h  |    3 +
+ fs/ocfs2/ocfs2_fs.h |   12 +++
+ fs/ocfs2/resize.c   |  243 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/resize.h   |    1 +
+ 5 files changed, 268 insertions(+), 0 deletions(-)
 
-diff --git a/Documentation/filesystems/ocfs2.txt b/Documentation/filesystems/ocfs2.txt
-index b63bd2d..071fad1 100644
---- a/Documentation/filesystems/ocfs2.txt
-+++ b/Documentation/filesystems/ocfs2.txt
-@@ -72,3 +72,6 @@ commit=nrsec	(*)	Ocfs2 can be told to sync all its data and metadata
- 			it at the default (5 seconds).
- 			Setting it to very large values will improve
- 			performance.
-+localalloc=8(*)		Allows custom localalloc size in MB. If the value is too
-+			large, the fs will silently revert it to the default.
-+			Localalloc is not enabled for local mounts.
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index 0de0792..add1ffd 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -75,18 +75,12 @@ static int ocfs2_local_alloc_new_window(struct ocfs2_super *osb,
- static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
- 					  struct inode *local_alloc_inode);
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index b74b24e..7003d58 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -119,6 +119,7 @@ int ocfs2_ioctl(struct inode * inode, struct file * filp,
+ 	int new_clusters;
+ 	int status;
+ 	struct ocfs2_space_resv sr;
++	struct ocfs2_new_group_input input;
  
--/*
-- * Determine how large our local alloc window should be, in bits.
-- *
-- * These values (and the behavior in ocfs2_alloc_should_use_local) have
-- * been chosen so that most allocations, including new block groups go
-- * through local alloc.
-- */
- static inline int ocfs2_local_alloc_window_bits(struct ocfs2_super *osb)
- {
--	BUG_ON(osb->s_clustersize_bits < 12);
-+	BUG_ON(osb->s_clustersize_bits > 20);
+ 	switch (cmd) {
+ 	case OCFS2_IOC_GETFLAGS:
+@@ -147,6 +148,12 @@ int ocfs2_ioctl(struct inode * inode, struct file * filp,
+ 			return -EFAULT;
  
--	return 2048 >> (osb->s_clustersize_bits - 12);
-+	/* Size local alloc windows by the megabyte */
-+	return osb->local_alloc_size << (20 - osb->s_clustersize_bits);
- }
- 
- /*
-@@ -96,18 +90,23 @@ static inline int ocfs2_local_alloc_window_bits(struct ocfs2_super *osb)
- int ocfs2_alloc_should_use_local(struct ocfs2_super *osb, u64 bits)
- {
- 	int la_bits = ocfs2_local_alloc_window_bits(osb);
-+	int ret = 0;
- 
- 	if (osb->local_alloc_state != OCFS2_LA_ENABLED)
--		return 0;
-+		goto bail;
- 
- 	/* la_bits should be at least twice the size (in clusters) of
- 	 * a new block group. We want to be sure block group
- 	 * allocations go through the local alloc, so allow an
- 	 * allocation to take up to half the bitmap. */
- 	if (bits > (la_bits / 2))
--		return 0;
-+		goto bail;
- 
--	return 1;
-+	ret = 1;
-+bail:
-+	mlog(0, "state=%d, bits=%llu, la_bits=%d, ret=%d\n",
-+	     osb->local_alloc_state, (unsigned long long)bits, la_bits, ret);
-+	return ret;
- }
- 
- int ocfs2_load_local_alloc(struct ocfs2_super *osb)
-@@ -121,6 +120,19 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
- 
- 	mlog_entry_void();
- 
-+	if (ocfs2_mount_local(osb))
-+		goto bail;
+ 		return ocfs2_group_extend(inode, new_clusters);
++	case OCFS2_IOC_GROUP_ADD:
++	case OCFS2_IOC_GROUP_ADD64:
++		if (copy_from_user(&input, (int __user *) arg, sizeof(input)))
++			return -EFAULT;
 +
-+	if (osb->local_alloc_size == 0)
-+		goto bail;
-+
-+	if (ocfs2_local_alloc_window_bits(osb) >= osb->bitmap_cpg) {
-+		mlog(ML_NOTICE, "Requested local alloc window %d is larger "
-+		     "than max possible %u. Using defaults.\n",
-+		     ocfs2_local_alloc_window_bits(osb), (osb->bitmap_cpg - 1));
-+		osb->local_alloc_size = OCFS2_DEFAULT_LOCAL_ALLOC_SIZE;
-+	}
-+
- 	/* read the alloc off disk */
- 	inode = ocfs2_get_system_file_inode(osb, LOCAL_ALLOC_SYSTEM_INODE,
- 					    osb->slot_num);
-@@ -181,6 +193,9 @@ bail:
- 	if (inode)
- 		iput(inode);
- 
-+	mlog(0, "Local alloc window bits = %d\n",
-+	     ocfs2_local_alloc_window_bits(osb));
-+
- 	mlog_exit(status);
- 	return status;
- }
-@@ -521,6 +536,9 @@ bail:
- 		iput(local_alloc_inode);
++		return ocfs2_group_add(inode, &input);
+ 	default:
+ 		return -ENOTTY;
  	}
+@@ -170,6 +177,8 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+ 	case OCFS2_IOC_UNRESVSP:
+ 	case OCFS2_IOC_UNRESVSP64:
+ 	case OCFS2_IOC_GROUP_EXTEND:
++	case OCFS2_IOC_GROUP_ADD:
++	case OCFS2_IOC_GROUP_ADD64:
+ 		break;
+ 	default:
+ 		return -ENOIOCTLCMD;
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 0ba3a42..220f3e8 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -281,6 +281,9 @@ int                  ocfs2_journal_dirty_data(handle_t *handle,
+ /* group extend. inode update and last group update. */
+ #define OCFS2_GROUP_EXTEND_CREDITS	(OCFS2_INODE_UPDATE_CREDITS + 1)
  
-+	mlog(0, "bits=%d, slot=%d, ret=%d\n", bits_wanted, osb->slot_num,
-+	     status);
++/* group add. inode update and the new group update. */
++#define OCFS2_GROUP_ADD_CREDITS	(OCFS2_INODE_UPDATE_CREDITS + 1)
 +
- 	mlog_exit(status);
- 	return status;
- }
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 82802f5..d12bd70 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -231,6 +231,7 @@ struct ocfs2_super
- 	struct ocfs2_journal *journal;
- 	unsigned long osb_commit_interval;
- 
-+	int local_alloc_size;
- 	enum ocfs2_local_alloc_state local_alloc_state;
- 	struct buffer_head *local_alloc_bh;
- 	u64 la_last_gd;
+ /* get one bit out of a suballocator: dinode + group descriptor +
+  * prev. group desc. if we relink. */
+ #define OCFS2_SUBALLOC_ALLOC (3)
 diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 4255517..3633edd 100644
+index 19ac421..4255517 100644
 --- a/fs/ocfs2/ocfs2_fs.h
 +++ b/fs/ocfs2/ocfs2_fs.h
-@@ -270,6 +270,14 @@ struct ocfs2_new_group_input {
- /* Journal limits (in bytes) */
- #define OCFS2_MIN_JOURNAL_SIZE		(4 * 1024 * 1024)
+@@ -231,7 +231,19 @@ struct ocfs2_space_resv {
+ #define OCFS2_IOC_RESVSP64	_IOW ('X', 42, struct ocfs2_space_resv)
+ #define OCFS2_IOC_UNRESVSP64	_IOW ('X', 43, struct ocfs2_space_resv)
  
-+/*
-+ * Default local alloc size (in megabytes)
-+ *
-+ * The value chosen should be such that most allocations, including new
-+ * block groups, use local alloc.
-+ */
-+#define OCFS2_DEFAULT_LOCAL_ALLOC_SIZE	8
++/* Used to pass group descriptor data when online resize is done */
++struct ocfs2_new_group_input {
++	__u64 group;		/* Group descriptor's blkno. */
++	__u32 clusters;		/* Total number of clusters in this group */
++	__u32 frees;		/* Total free clusters in this group */
++	__u16 chain;		/* Chain for this group */
++	__u16 reserved1;
++	__u32 reserved2;
++};
 +
- struct ocfs2_system_inode_info {
- 	char	*si_name;
- 	int	si_iflags;
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 4391744..7e397e2 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -1516,8 +1516,9 @@ int __ocfs2_claim_clusters(struct ocfs2_super *osb,
- 		if (min_clusters > (osb->bitmap_cpg - 1)) {
- 			/* The only paths asking for contiguousness
- 			 * should know about this already. */
--			mlog(ML_ERROR, "minimum allocation requested exceeds "
--				       "group bitmap size!");
-+			mlog(ML_ERROR, "minimum allocation requested %u exceeds "
-+			     "group bitmap size %u!\n", min_clusters,
-+			     osb->bitmap_cpg);
- 			status = -ENOSPC;
- 			goto bail;
- 		}
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 8044ed9..1104f14 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -87,6 +87,7 @@ struct mount_options
- 	unsigned long	mount_opt;
- 	unsigned int	atime_quantum;
- 	signed short	slot;
-+	unsigned int	localalloc_opt;
- };
+ #define OCFS2_IOC_GROUP_EXTEND	_IOW('o', 1, int)
++#define OCFS2_IOC_GROUP_ADD	_IOW('o', 2,struct ocfs2_new_group_input)
++#define OCFS2_IOC_GROUP_ADD64	_IOW('o', 3,struct ocfs2_new_group_input)
  
- static int ocfs2_parse_options(struct super_block *sb, char *options,
-@@ -151,6 +152,7 @@ enum {
- 	Opt_atime_quantum,
- 	Opt_slot,
- 	Opt_commit,
-+	Opt_localalloc,
- 	Opt_err,
- };
- 
-@@ -167,6 +169,7 @@ static match_table_t tokens = {
- 	{Opt_atime_quantum, "atime_quantum=%u"},
- 	{Opt_slot, "preferred_slot=%u"},
- 	{Opt_commit, "commit=%u"},
-+	{Opt_localalloc, "localalloc=%d"},
- 	{Opt_err, NULL}
- };
- 
-@@ -602,6 +605,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 	osb->s_atime_quantum = parsed_options.atime_quantum;
- 	osb->preferred_slot = parsed_options.slot;
- 	osb->osb_commit_interval = parsed_options.commit_interval;
-+	osb->local_alloc_size = parsed_options.localalloc_opt;
- 
- 	sb->s_magic = OCFS2_SUPER_MAGIC;
- 
-@@ -756,6 +760,7 @@ static int ocfs2_parse_options(struct super_block *sb,
- 	mopt->mount_opt = 0;
- 	mopt->atime_quantum = OCFS2_DEFAULT_ATIME_QUANTUM;
- 	mopt->slot = OCFS2_INVALID_SLOT;
-+	mopt->localalloc_opt = OCFS2_DEFAULT_LOCAL_ALLOC_SIZE;
- 
- 	if (!options) {
- 		status = 1;
-@@ -834,6 +839,15 @@ static int ocfs2_parse_options(struct super_block *sb,
- 				option = JBD_DEFAULT_MAX_COMMIT_AGE;
- 			mopt->commit_interval = HZ * option;
- 			break;
-+		case Opt_localalloc:
-+			option = 0;
-+			if (match_int(&args[0], &option)) {
-+				status = 0;
-+				goto bail;
-+			}
-+			if (option >= 0 && (option <= ocfs2_local_alloc_size(sb) * 8))
-+				mopt->localalloc_opt = option;
-+			break;
- 		default:
- 			mlog(ML_ERROR,
- 			     "Unrecognized mount option \"%s\" "
-@@ -886,6 +900,9 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
- 		seq_printf(s, ",commit=%u",
- 			   (unsigned) (osb->osb_commit_interval / HZ));
- 
-+	if (osb->local_alloc_size != OCFS2_DEFAULT_LOCAL_ALLOC_SIZE)
-+		seq_printf(s, ",localalloc=%d", osb->local_alloc_size);
-+
- 	return 0;
+ /*
+  * Journal Flags (ocfs2_dinode.id1.journal1.i_flags)
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index e5237a2..ba305c1 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -396,3 +396,246 @@ out:
+ 	mlog_exit_void();
+ 	return ret;
  }
++
++static int ocfs2_check_new_group(struct inode *inode,
++				 struct ocfs2_dinode *di,
++				 struct ocfs2_new_group_input *input,
++				 struct buffer_head *group_bh)
++{
++	int ret;
++	struct ocfs2_group_desc *gd;
++	u16 cl_bpc = le16_to_cpu(di->id2.i_chain.cl_bpc);
++	unsigned int max_bits = le16_to_cpu(di->id2.i_chain.cl_cpg) *
++				le16_to_cpu(di->id2.i_chain.cl_bpc);
++
++
++	gd = (struct ocfs2_group_desc *)group_bh->b_data;
++
++	ret = -EIO;
++	if (!OCFS2_IS_VALID_GROUP_DESC(gd))
++		mlog(ML_ERROR, "Group descriptor # %llu isn't valid.\n",
++		     (unsigned long long)le64_to_cpu(gd->bg_blkno));
++	else if (di->i_blkno != gd->bg_parent_dinode)
++		mlog(ML_ERROR, "Group descriptor # %llu has bad parent "
++		     "pointer (%llu, expected %llu)\n",
++		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
++		     (unsigned long long)le64_to_cpu(gd->bg_parent_dinode),
++		     (unsigned long long)le64_to_cpu(di->i_blkno));
++	else if (le16_to_cpu(gd->bg_bits) > max_bits)
++		mlog(ML_ERROR, "Group descriptor # %llu has bit count of %u\n",
++		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
++		     le16_to_cpu(gd->bg_bits));
++	else if (le16_to_cpu(gd->bg_free_bits_count) > le16_to_cpu(gd->bg_bits))
++		mlog(ML_ERROR, "Group descriptor # %llu has bit count %u but "
++		     "claims that %u are free\n",
++		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
++		     le16_to_cpu(gd->bg_bits),
++		     le16_to_cpu(gd->bg_free_bits_count));
++	else if (le16_to_cpu(gd->bg_bits) > (8 * le16_to_cpu(gd->bg_size)))
++		mlog(ML_ERROR, "Group descriptor # %llu has bit count %u but "
++		     "max bitmap bits of %u\n",
++		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
++		     le16_to_cpu(gd->bg_bits),
++		     8 * le16_to_cpu(gd->bg_size));
++	else if (le16_to_cpu(gd->bg_chain) != input->chain)
++		mlog(ML_ERROR, "Group descriptor # %llu has bad chain %u "
++		     "while input has %u set.\n",
++		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
++		     le16_to_cpu(gd->bg_chain), input->chain);
++	else if (le16_to_cpu(gd->bg_bits) != input->clusters * cl_bpc)
++		mlog(ML_ERROR, "Group descriptor # %llu has bit count %u but "
++		     "input has %u clusters set\n",
++		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
++		     le16_to_cpu(gd->bg_bits), input->clusters);
++	else if (le16_to_cpu(gd->bg_free_bits_count) != input->frees * cl_bpc)
++		mlog(ML_ERROR, "Group descriptor # %llu has free bit count %u "
++		     "but it should have %u set\n",
++		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
++		     le16_to_cpu(gd->bg_bits),
++		     input->frees * cl_bpc);
++	else
++		ret = 0;
++
++	return ret;
++}
++
++static int ocfs2_verify_group_and_input(struct inode *inode,
++					struct ocfs2_dinode *di,
++					struct ocfs2_new_group_input *input,
++					struct buffer_head *group_bh)
++{
++	u16 cl_count = le16_to_cpu(di->id2.i_chain.cl_count);
++	u16 cl_cpg = le16_to_cpu(di->id2.i_chain.cl_cpg);
++	u16 next_free = le16_to_cpu(di->id2.i_chain.cl_next_free_rec);
++	u32 cluster = ocfs2_blocks_to_clusters(inode->i_sb, input->group);
++	u32 total_clusters = le32_to_cpu(di->i_clusters);
++	int ret = -EINVAL;
++
++	if (cluster < total_clusters)
++		mlog(ML_ERROR, "add a group which is in the current volume.\n");
++	else if (input->chain >= cl_count)
++		mlog(ML_ERROR, "input chain exceeds the limit.\n");
++	else if (next_free != cl_count && next_free != input->chain)
++		mlog(ML_ERROR,
++		     "the add group should be in chain %u\n", next_free);
++	else if (total_clusters + input->clusters < total_clusters)
++		mlog(ML_ERROR, "add group's clusters overflow.\n");
++	else if (input->clusters > cl_cpg)
++		mlog(ML_ERROR, "the cluster exceeds the maximum of a group\n");
++	else if (input->frees > input->clusters)
++		mlog(ML_ERROR, "the free cluster exceeds the total clusters\n");
++	else if (total_clusters % cl_cpg != 0)
++		mlog(ML_ERROR,
++		     "the last group isn't full. Use group extend first.\n");
++	else if (input->group != ocfs2_which_cluster_group(inode, cluster))
++		mlog(ML_ERROR, "group blkno is invalid\n");
++	else if ((ret = ocfs2_check_new_group(inode, di, input, group_bh)))
++		mlog(ML_ERROR, "group descriptor check failed.\n");
++	else
++		ret = 0;
++
++	return ret;
++}
++
++/* Add a new group descriptor to global_bitmap. */
++int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
++{
++	int ret;
++	handle_t *handle;
++	struct buffer_head *main_bm_bh = NULL;
++	struct inode *main_bm_inode = NULL;
++	struct ocfs2_dinode *fe = NULL;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	struct buffer_head *group_bh = NULL;
++	struct ocfs2_group_desc *group = NULL;
++	struct ocfs2_chain_list *cl;
++	struct ocfs2_chain_rec *cr;
++	u16 cl_bpc;
++
++	mlog_entry_void();
++
++	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
++		return -EROFS;
++
++	main_bm_inode = ocfs2_get_system_file_inode(osb,
++						    GLOBAL_BITMAP_SYSTEM_INODE,
++						    OCFS2_INVALID_SLOT);
++	if (!main_bm_inode) {
++		ret = -EINVAL;
++		mlog_errno(ret);
++		goto out;
++	}
++
++	mutex_lock(&main_bm_inode->i_mutex);
++
++	ret = ocfs2_inode_lock(main_bm_inode, &main_bm_bh, 1);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_mutex;
++	}
++
++	fe = (struct ocfs2_dinode *)main_bm_bh->b_data;
++
++	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
++				 ocfs2_group_bitmap_size(osb->sb) * 8) {
++		mlog(ML_ERROR, "The disk is too old and small."
++		     " Force to do offline resize.");
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++	ret = ocfs2_read_block(osb, input->group, &group_bh, 0, NULL);
++	if (ret < 0) {
++		mlog(ML_ERROR, "Can't read the group descriptor # %llu "
++		     "from the device.", input->group);
++		goto out;
++	}
++
++	ocfs2_set_new_buffer_uptodate(inode, group_bh);
++
++	ret = ocfs2_verify_group_and_input(main_bm_inode, fe, input, group_bh);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_unlock;
++	}
++
++	mlog(0, "Add a new group  %llu in chain = %u, length = %u\n",
++	     input->group, input->chain, input->clusters);
++
++	handle = ocfs2_start_trans(osb, OCFS2_GROUP_ADD_CREDITS);
++	if (IS_ERR(handle)) {
++		mlog_errno(PTR_ERR(handle));
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++	cl_bpc = le16_to_cpu(fe->id2.i_chain.cl_bpc);
++	cl = &fe->id2.i_chain;
++	cr = &cl->cl_recs[input->chain];
++
++	ret = ocfs2_journal_access(handle, main_bm_inode, group_bh,
++				   OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	group = (struct ocfs2_group_desc *)group_bh->b_data;
++	group->bg_next_group = cr->c_blkno;
++
++	ret = ocfs2_journal_dirty(handle, group_bh);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	ret = ocfs2_journal_access(handle, main_bm_inode, main_bm_bh,
++				   OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	if (input->chain == le16_to_cpu(cl->cl_next_free_rec)) {
++		le16_add_cpu(&cl->cl_next_free_rec, 1);
++		memset(cr, 0, sizeof(struct ocfs2_chain_rec));
++	}
++
++	cr->c_blkno = le64_to_cpu(input->group);
++	le32_add_cpu(&cr->c_total, input->clusters * cl_bpc);
++	le32_add_cpu(&cr->c_free, input->frees * cl_bpc);
++
++	le32_add_cpu(&fe->id1.bitmap1.i_total, input->clusters *cl_bpc);
++	le32_add_cpu(&fe->id1.bitmap1.i_used,
++		     (input->clusters - input->frees) * cl_bpc);
++	le32_add_cpu(&fe->i_clusters, input->clusters);
++
++	ocfs2_journal_dirty(handle, main_bm_bh);
++
++	spin_lock(&OCFS2_I(main_bm_inode)->ip_lock);
++	OCFS2_I(main_bm_inode)->ip_clusters = le32_to_cpu(fe->i_clusters);
++	le64_add_cpu(&fe->i_size, input->clusters << osb->s_clustersize_bits);
++	spin_unlock(&OCFS2_I(main_bm_inode)->ip_lock);
++	i_size_write(main_bm_inode, le64_to_cpu(fe->i_size));
++
++	ocfs2_update_super_and_backups(main_bm_inode, input->clusters);
++
++out_commit:
++	ocfs2_commit_trans(osb, handle);
++out_unlock:
++	if (group_bh)
++		brelse(group_bh);
++
++	if (main_bm_bh)
++		brelse(main_bm_bh);
++
++	ocfs2_inode_unlock(main_bm_inode, 1);
++
++out_mutex:
++	mutex_unlock(&main_bm_inode->i_mutex);
++	iput(main_bm_inode);
++
++out:
++	mlog_exit_void();
++	return ret;
++}
+diff --git a/fs/ocfs2/resize.h b/fs/ocfs2/resize.h
+index 3acb79a..f38841a 100644
+--- a/fs/ocfs2/resize.h
++++ b/fs/ocfs2/resize.h
+@@ -27,5 +27,6 @@
+ #define OCFS2_RESIZE_H
  
+ int ocfs2_group_extend(struct inode * inode, int new_clusters);
++int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input);
+ 
+ #endif /* OCFS2_RESIZE_H */
 -- 
 1.5.3.6
