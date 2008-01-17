@@ -1,9 +1,10 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Jan 17 14:37:00 2008
-Subject: [Ocfs2-devel] [PATCH 08/30] ocfs2: Readpages support
+Date: Thu Jan 17 14:37:01 2008
+Subject: [Ocfs2-devel] [PATCH 02/30] ocfs2: Remove fs dependency on
+	ocfs2_heartbeat module
 In-Reply-To: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
 References: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
-Message-ID: <1200609356-17788-9-git-send-email-mark.fasheh@oracle.com>
+Message-ID: <1200609356-17788-3-git-send-email-mark.fasheh@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,135 +12,175 @@ Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
 Cc: ocfs2-devel@oss.oracle.com, Mark Fasheh <mark.fasheh@oracle.com>
 
-Add ->readpages support to Ocfs2. This is rather trivial - all it required
-is a small update to ocfs2_get_block (for mapping full extents via b_size)
-and an ocfs2_readpages() function which partially mirrors ocfs2_readpage().
+Now that the dlm exposes domain information to us, we don't need generic
+node up / node down callbacks. And since the DLM is only telling us when a
+node goes down unexpectedly, we no longer need to optimize away node down
+callbacks via the umount map.
 
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/aops.c |   68 +++++++++++++++++++++++++++++++++++++++++++++++++++++-
- 1 files changed, 66 insertions(+), 2 deletions(-)
+ fs/ocfs2/heartbeat.c |   73 --------------------------------------------------
+ fs/ocfs2/heartbeat.h |    2 -
+ fs/ocfs2/super.c     |    8 -----
+ 3 files changed, 0 insertions(+), 83 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index ac8c390..2a0eaac 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -26,6 +26,7 @@
- #include <asm/byteorder.h>
- #include <linux/swap.h>
- #include <linux/pipe_fs_i.h>
-+#include <linux/mpage.h>
+diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
+index c4c3617..6239fc5 100644
+--- a/fs/ocfs2/heartbeat.c
++++ b/fs/ocfs2/heartbeat.c
+@@ -30,9 +30,6 @@
+ #include <linux/highmem.h>
+ #include <linux/kmod.h>
  
- #define MLOG_MASK_PREFIX ML_FILE_IO
- #include <cluster/masklog.h>
-@@ -139,7 +140,8 @@ static int ocfs2_get_block(struct inode *inode, sector_t iblock,
- {
- 	int err = 0;
- 	unsigned int ext_flags;
--	u64 p_blkno, past_eof;
-+	u64 max_blocks = bh_result->b_size >> inode->i_blkbits;
-+	u64 p_blkno, count, past_eof;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-#include <cluster/heartbeat.h>
+-#include <cluster/nodemanager.h>
+-
+ #include <dlm/dlmapi.h>
  
- 	mlog_entry("(0x%p, %llu, 0x%p, %d)\n", inode,
-@@ -155,7 +157,7 @@ static int ocfs2_get_block(struct inode *inode, sector_t iblock,
- 		goto bail;
+ #define MLOG_MASK_PREFIX ML_SUPER
+@@ -48,9 +45,6 @@
+ 
+ #include "buffer_head_io.h"
+ 
+-#define OCFS2_HB_NODE_DOWN_PRI     (0x0000002)
+-#define OCFS2_HB_NODE_UP_PRI	   OCFS2_HB_NODE_DOWN_PRI
+-
+ static inline void __ocfs2_node_map_set_bit(struct ocfs2_node_map *map,
+ 					    int bit);
+ static inline void __ocfs2_node_map_clear_bit(struct ocfs2_node_map *map,
+@@ -87,26 +81,11 @@ static void ocfs2_do_node_down(int node_num,
+ 		return;
  	}
  
--	err = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno, NULL,
-+	err = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno, &count,
- 					  &ext_flags);
- 	if (err) {
- 		mlog(ML_ERROR, "Error %d from get_blocks(0x%p, %llu, 1, "
-@@ -164,6 +166,9 @@ static int ocfs2_get_block(struct inode *inode, sector_t iblock,
- 		goto bail;
- 	}
+-	if (ocfs2_node_map_test_bit(osb, &osb->umount_map, node_num)) {
+-		/* If a node is in the umount map, then we've been
+-		 * expecting him to go down and we know ahead of time
+-		 * that recovery is not necessary. */
+-		ocfs2_node_map_clear_bit(osb, &osb->umount_map, node_num);
+-		return;
+-	}
+-
+ 	ocfs2_recovery_thread(osb, node_num);
  
-+	if (max_blocks < count)
-+		count = max_blocks;
-+
- 	/*
- 	 * ocfs2 never allocates in this function - the only time we
- 	 * need to use BH_New is when we're extending i_size on a file
-@@ -178,6 +183,8 @@ static int ocfs2_get_block(struct inode *inode, sector_t iblock,
- 	if (p_blkno && !(ext_flags & OCFS2_EXT_UNWRITTEN))
- 		map_bh(bh_result, inode->i_sb, p_blkno);
- 
-+	bh_result->b_size = count << inode->i_blkbits;
-+
- 	if (!ocfs2_sparse_alloc(osb)) {
- 		if (p_blkno == 0) {
- 			err = -EIO;
-@@ -322,6 +329,62 @@ out:
- 	return ret;
+ 	ocfs2_remove_node_from_vote_queues(osb, node_num);
  }
  
-+/*
-+ * This is used only for read-ahead. Failures or difficult to handle
-+ * siutations are safe to ignore.
-+ *
-+ * Right now, we don't bother with BH_Boundary - in-inode extent lists
-+ * are quite large (243 extents on 4k blocks), so most inodes don't
-+ * grow out to a tree. If need be, detecting boundary extents could
-+ * trivially be added in a future version of ocfs2_get_block().
-+ */
-+static int ocfs2_readpages(struct file *filp, struct address_space *mapping,
-+			   struct list_head *pages, unsigned nr_pages)
-+{
-+	int ret, err = -EIO;
-+	struct inode *inode = mapping->host;
-+	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-+	loff_t start;
-+	struct page *last;
-+
-+	/*
-+	 * Use the nonblocking flag for the dlm code to avoid page
-+	 * lock inversion, but don't bother with retrying.
-+	 */
-+	ret = ocfs2_inode_lock_full(inode, NULL, 0, OCFS2_LOCK_NONBLOCK);
-+	if (ret)
-+		return err;
-+
-+	if (down_read_trylock(&oi->ip_alloc_sem) == 0) {
-+		ocfs2_inode_unlock(inode, 0);
-+		return err;
-+	}
-+
-+	/*
-+	 * Don't bother with inline-data. There isn't anything
-+	 * to read-ahead in that case anyway...
-+	 */
-+	if (oi->ip_dyn_features & OCFS2_INLINE_DATA_FL)
-+		goto out_unlock;
-+
-+	/*
-+	 * Check whether a remote node truncated this file - we just
-+	 * drop out in that case as it's not worth handling here.
-+	 */
-+	last = list_entry(pages->prev, struct page, lru);
-+	start = (loff_t)last->index << PAGE_CACHE_SHIFT;
-+	if (start >= i_size_read(inode))
-+		goto out_unlock;
-+
-+	err = mpage_readpages(mapping, pages, nr_pages, ocfs2_get_block);
-+
-+out_unlock:
-+	up_read(&oi->ip_alloc_sem);
-+	ocfs2_inode_unlock(inode, 0);
-+
-+	return err;
-+}
-+
- /* Note: Because we don't support holes, our allocation has
-  * already happened (allocation writes zeros to the file data)
-  * so we don't have to worry about ordered writes in
-@@ -1877,6 +1940,7 @@ static int ocfs2_write_end(struct file *file, struct address_space *mapping,
+-static void ocfs2_hb_node_down_cb(struct o2nm_node *node,
+-				  int node_num,
+-				  void *data)
+-{
+-	ocfs2_do_node_down(node_num, (struct ocfs2_super *) data);
+-}
+-
+ /* Called from the dlm when it's about to evict a node. We may also
+  * get a heartbeat callback later. */
+ static void ocfs2_dlm_eviction_cb(int node_num,
+@@ -121,27 +100,8 @@ static void ocfs2_dlm_eviction_cb(int node_num,
+ 	ocfs2_do_node_down(node_num, osb);
+ }
  
- const struct address_space_operations ocfs2_aops = {
- 	.readpage	= ocfs2_readpage,
-+	.readpages	= ocfs2_readpages,
- 	.writepage	= ocfs2_writepage,
- 	.write_begin	= ocfs2_write_begin,
- 	.write_end	= ocfs2_write_end,
+-static void ocfs2_hb_node_up_cb(struct o2nm_node *node,
+-				int node_num,
+-				void *data)
+-{
+-	struct ocfs2_super *osb = data;
+-
+-	BUG_ON(osb->node_num == node_num);
+-
+-	mlog(0, "node up event for %d\n", node_num);
+-	ocfs2_node_map_clear_bit(osb, &osb->umount_map, node_num);
+-}
+-
+ void ocfs2_setup_hb_callbacks(struct ocfs2_super *osb)
+ {
+-	o2hb_setup_callback(&osb->osb_hb_down, O2HB_NODE_DOWN_CB,
+-			    ocfs2_hb_node_down_cb, osb,
+-			    OCFS2_HB_NODE_DOWN_PRI);
+-
+-	o2hb_setup_callback(&osb->osb_hb_up, O2HB_NODE_UP_CB,
+-			    ocfs2_hb_node_up_cb, osb, OCFS2_HB_NODE_UP_PRI);
+-
+ 	/* Not exactly a heartbeat callback, but leads to essentially
+ 	 * the same path so we set it up here. */
+ 	dlm_setup_eviction_cb(&osb->osb_eviction_cb,
+@@ -149,39 +109,6 @@ void ocfs2_setup_hb_callbacks(struct ocfs2_super *osb)
+ 			      osb);
+ }
+ 
+-/* Most functions here are just stubs for now... */
+-int ocfs2_register_hb_callbacks(struct ocfs2_super *osb)
+-{
+-	int status;
+-
+-	if (ocfs2_mount_local(osb))
+-		return 0;
+-
+-	status = o2hb_register_callback(osb->uuid_str, &osb->osb_hb_down);
+-	if (status < 0) {
+-		mlog_errno(status);
+-		goto bail;
+-	}
+-
+-	status = o2hb_register_callback(osb->uuid_str, &osb->osb_hb_up);
+-	if (status < 0) {
+-		mlog_errno(status);
+-		o2hb_unregister_callback(osb->uuid_str, &osb->osb_hb_down);
+-	}
+-
+-bail:
+-	return status;
+-}
+-
+-void ocfs2_clear_hb_callbacks(struct ocfs2_super *osb)
+-{
+-	if (ocfs2_mount_local(osb))
+-		return;
+-
+-	o2hb_unregister_callback(osb->uuid_str, &osb->osb_hb_down);
+-	o2hb_unregister_callback(osb->uuid_str, &osb->osb_hb_up);
+-}
+-
+ void ocfs2_stop_heartbeat(struct ocfs2_super *osb)
+ {
+ 	int ret;
+diff --git a/fs/ocfs2/heartbeat.h b/fs/ocfs2/heartbeat.h
+index e8fb079..5685921 100644
+--- a/fs/ocfs2/heartbeat.h
++++ b/fs/ocfs2/heartbeat.h
+@@ -29,8 +29,6 @@
+ void ocfs2_init_node_maps(struct ocfs2_super *osb);
+ 
+ void ocfs2_setup_hb_callbacks(struct ocfs2_super *osb);
+-int ocfs2_register_hb_callbacks(struct ocfs2_super *osb);
+-void ocfs2_clear_hb_callbacks(struct ocfs2_super *osb);
+ void ocfs2_stop_heartbeat(struct ocfs2_super *osb);
+ 
+ /* node map functions - used to keep track of mounted and in-recovery
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 5ee7754..64b81b3 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1117,12 +1117,6 @@ static int ocfs2_mount_volume(struct super_block *sb)
+ 		goto leave;
+ 	}
+ 
+-	status = ocfs2_register_hb_callbacks(osb);
+-	if (status < 0) {
+-		mlog_errno(status);
+-		goto leave;
+-	}
+-
+ 	status = ocfs2_dlm_init(osb);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+@@ -1260,8 +1254,6 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+ 		ocfs2_dlm_shutdown(osb);
+ 	}
+ 
+-	ocfs2_clear_hb_callbacks(osb);
+-
+ 	debugfs_remove(osb->osb_debug_root);
+ 
+ 	if (!mnt_err)
 -- 
 1.5.3.6
