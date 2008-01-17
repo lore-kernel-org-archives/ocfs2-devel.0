@@ -1,447 +1,698 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Jan 17 14:36:51 2008
-Subject: [Ocfs2-devel] [PATCH 18/30] ocfs2: add flock lock type
+Date: Thu Jan 17 14:36:52 2008
+Subject: [Ocfs2-devel] [PATCH 12/30] ocfs2: Add group extend for online
+	resize
 In-Reply-To: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
 References: <1200609356-17788-1-git-send-email-mark.fasheh@oracle.com>
-Message-ID: <1200609356-17788-19-git-send-email-mark.fasheh@oracle.com>
+Message-ID: <1200609356-17788-13-git-send-email-mark.fasheh@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Mark Fasheh <mark.fasheh@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Tao Ma <tao.ma@oracle.com>
 
-This adds a new dlmglue lock type which is intended to back flock()
-requests.
+From: Tao Ma <tao.ma@oracle.com>
 
-Since these locks are driven from userspace, usage rules are much more
-liberal than the typical Ocfs2 internal cluster lock. As a result, we can't
-make use of most dlmglue features - lock caching and lock level
-optimizations in particular. Additionally, userspace is free to deadlock
-itself, so we have to deal with that in the same way as the rest of the
-kernel - by allowing a signal to abort a lock request.
+This patch adds the ability for a userspace program to request an extend of
+last cluster group on an Ocfs2 file system. The request is made via ioctl,
+OCFS2_IOC_GROUP_EXTEND. This is derived from EXT3_IOC_GROUP_EXTEND, but is
+obviously Ocfs2 specific.
 
-In order to keep ocfs2_cluster_lock() complexity down, ocfs2_file_lock()
-does it's own dlm coordination. We still use the same helper functions
-though, so duplicated code is kept to a minimum.
+tunefs.ocfs2 would call this for an online-resize operation if the last
+cluster group isn't full.
 
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dlmglue.c      |  267 +++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/dlmglue.h      |    5 +
- fs/ocfs2/file.h         |    6 +
- fs/ocfs2/ocfs2.h        |    1 +
- fs/ocfs2/ocfs2_lockid.h |    5 +
- 5 files changed, 284 insertions(+), 0 deletions(-)
+ fs/ocfs2/Makefile         |    1 +
+ fs/ocfs2/buffer_head_io.c |   61 +++++++
+ fs/ocfs2/buffer_head_io.h |    2 +
+ fs/ocfs2/ioctl.c          |    8 +
+ fs/ocfs2/journal.h        |    3 +
+ fs/ocfs2/ocfs2_fs.h       |    2 +
+ fs/ocfs2/resize.c         |  398 +++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/resize.h         |   31 ++++
+ fs/ocfs2/suballoc.c       |   11 +-
+ fs/ocfs2/suballoc.h       |    8 +
+ 10 files changed, 518 insertions(+), 7 deletions(-)
+ create mode 100644 fs/ocfs2/resize.c
+ create mode 100644 fs/ocfs2/resize.h
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index c365206..f959da0 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -68,6 +68,7 @@ struct ocfs2_mask_waiter {
- 
- static struct ocfs2_super *ocfs2_get_dentry_osb(struct ocfs2_lock_res *lockres);
- static struct ocfs2_super *ocfs2_get_inode_osb(struct ocfs2_lock_res *lockres);
-+static struct ocfs2_super *ocfs2_get_file_osb(struct ocfs2_lock_res *lockres);
- 
- /*
-  * Return value from ->downconvert_worker functions.
-@@ -252,6 +253,11 @@ static struct ocfs2_lock_res_ops ocfs2_inode_open_lops = {
- 	.flags		= 0,
- };
- 
-+static struct ocfs2_lock_res_ops ocfs2_flock_lops = {
-+	.get_osb	= ocfs2_get_file_osb,
-+	.flags		= 0,
-+};
-+
- static inline int ocfs2_is_inode_lock(struct ocfs2_lock_res *lockres)
- {
- 	return lockres->l_type == OCFS2_LOCK_TYPE_META ||
-@@ -310,6 +316,17 @@ static int ocfs2_inode_lock_update(struct inode *inode,
- 				  struct buffer_head **bh);
- static void ocfs2_drop_osb_locks(struct ocfs2_super *osb);
- static inline int ocfs2_highest_compat_lock_level(int level);
-+static void ocfs2_prepare_downconvert(struct ocfs2_lock_res *lockres,
-+				      int new_level);
-+static int ocfs2_downconvert_lock(struct ocfs2_super *osb,
-+				  struct ocfs2_lock_res *lockres,
-+				  int new_level,
-+				  int lvb);
-+static int ocfs2_prepare_cancel_convert(struct ocfs2_super *osb,
-+				        struct ocfs2_lock_res *lockres);
-+static int ocfs2_cancel_convert(struct ocfs2_super *osb,
-+				struct ocfs2_lock_res *lockres);
-+
- 
- static void ocfs2_build_lock_name(enum ocfs2_lock_type type,
- 				  u64 blkno,
-@@ -419,6 +436,13 @@ static struct ocfs2_super *ocfs2_get_inode_osb(struct ocfs2_lock_res *lockres)
- 	return OCFS2_SB(inode->i_sb);
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index d2057e7..3591890 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -21,6 +21,7 @@ ocfs2-objs := \
+ 	localalloc.o 		\
+ 	mmap.o 			\
+ 	namei.o 		\
++	resize.o		\
+ 	slot_map.o 		\
+ 	suballoc.o 		\
+ 	super.o 		\
+diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
+index c903741..6eaa67f 100644
+--- a/fs/ocfs2/buffer_head_io.c
++++ b/fs/ocfs2/buffer_head_io.c
+@@ -280,3 +280,64 @@ bail:
+ 	mlog_exit(status);
+ 	return status;
  }
- 
-+static struct ocfs2_super *ocfs2_get_file_osb(struct ocfs2_lock_res *lockres)
++
++/* Check whether the blkno is the super block or one of the backups. */
++static inline void ocfs2_check_super_or_backup(struct super_block *sb,
++					       sector_t blkno)
 +{
-+	struct ocfs2_file_private *fp = lockres->l_priv;
++	int i;
++	u64 backup_blkno;
 +
-+	return OCFS2_SB(fp->fp_file->f_mapping->host->i_sb);
-+}
-+
- static __u64 ocfs2_get_dentry_lock_ino(struct ocfs2_lock_res *lockres)
- {
- 	__be64 inode_blkno_be;
-@@ -499,6 +523,21 @@ static void ocfs2_rename_lock_res_init(struct ocfs2_lock_res *res,
- 				   &ocfs2_rename_lops, osb);
- }
- 
-+void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
-+			      struct ocfs2_file_private *fp)
-+{
-+	struct inode *inode = fp->fp_file->f_mapping->host;
-+	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-+
-+	ocfs2_lock_res_init_once(lockres);
-+	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_FLOCK, oi->ip_blkno,
-+			      inode->i_generation, lockres->l_name);
-+	ocfs2_lock_res_init_common(OCFS2_SB(inode->i_sb), lockres,
-+				   OCFS2_LOCK_TYPE_FLOCK, &ocfs2_flock_lops,
-+				   fp);
-+	lockres->l_flags |= OCFS2_LOCK_NOCACHE;
-+}
-+
- void ocfs2_lock_res_free(struct ocfs2_lock_res *res)
- {
- 	mlog_entry_void();
-@@ -715,6 +754,13 @@ static void ocfs2_blocking_ast(void *opaque, int level)
- 	     lockres->l_name, level, lockres->l_level,
- 	     ocfs2_lock_type_string(lockres->l_type));
- 
-+	/*
-+	 * We can skip the bast for locks which don't enable caching -
-+	 * they'll be dropped at the earliest possible time anyway.
-+	 */
-+	if (lockres->l_flags & OCFS2_LOCK_NOCACHE)
++	if (blkno == OCFS2_SUPER_BLOCK_BLKNO)
 +		return;
 +
- 	spin_lock_irqsave(&lockres->l_lock, flags);
- 	needs_downconvert = ocfs2_generic_handle_bast(lockres, level);
- 	if (needs_downconvert)
-@@ -926,6 +972,21 @@ static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
- 
- }
- 
-+static int ocfs2_wait_for_mask_interruptible(struct ocfs2_mask_waiter *mw,
-+					     struct ocfs2_lock_res *lockres)
-+{
-+	int ret;
-+
-+	ret = wait_for_completion_interruptible(&mw->mw_complete);
-+	if (ret)
-+		lockres_remove_mask_waiter(lockres, mw);
-+	else
-+		ret = mw->mw_status;
-+	/* Re-arm the completion in case we want to wait on it again */
-+	INIT_COMPLETION(mw->mw_complete);
-+	return ret;
-+}
-+
- static int ocfs2_cluster_lock(struct ocfs2_super *osb,
- 			      struct ocfs2_lock_res *lockres,
- 			      int level,
-@@ -1296,6 +1357,212 @@ out:
- 	mlog_exit_void();
- }
- 
-+static int ocfs2_flock_handle_signal(struct ocfs2_lock_res *lockres,
-+				     int level)
-+{
-+	int ret;
-+	struct ocfs2_super *osb = ocfs2_get_lockres_osb(lockres);
-+	unsigned long flags;
-+	struct ocfs2_mask_waiter mw;
-+
-+	ocfs2_init_mask_waiter(&mw);
-+
-+retry_cancel:
-+	spin_lock_irqsave(&lockres->l_lock, flags);
-+	if (lockres->l_flags & OCFS2_LOCK_BUSY) {
-+		ret = ocfs2_prepare_cancel_convert(osb, lockres);
-+		if (ret) {
-+			spin_unlock_irqrestore(&lockres->l_lock, flags);
-+			ret = ocfs2_cancel_convert(osb, lockres);
-+			if (ret < 0) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+			goto retry_cancel;
-+		}
-+		lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BUSY, 0);
-+		spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+		ocfs2_wait_for_mask(&mw);
-+		goto retry_cancel;
++	for (i = 0; i < OCFS2_MAX_BACKUP_SUPERBLOCKS; i++) {
++		backup_blkno = ocfs2_backup_super_blkno(sb, i);
++		if (backup_blkno == blkno)
++			return;
 +	}
 +
-+	ret = -ERESTARTSYS;
-+	/*
-+	 * We may still have gotten the lock, in which case there's no
-+	 * point to restarting the syscall.
-+	 */
-+	if (lockres->l_level == level)
-+		ret = 0;
-+
-+	mlog(0, "Cancel returning %d. flags: 0x%lx, level: %d, act: %d\n", ret,
-+	     lockres->l_flags, lockres->l_level, lockres->l_action);
-+
-+	spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+out:
-+	return ret;
++	BUG();
 +}
 +
 +/*
-+ * ocfs2_file_lock() and ocfs2_file_unlock() map to a single pair of
-+ * flock() calls. The locking approach this requires is sufficiently
-+ * different from all other cluster lock types that we implement a
-+ * seperate path to the "low-level" dlm calls. In particular:
-+ *
-+ * - No optimization of lock levels is done - we take at exactly
-+ *   what's been requested.
-+ *
-+ * - No lock caching is employed. We immediately downconvert to
-+ *   no-lock at unlock time. This also means flock locks never go on
-+ *   the blocking list).
-+ *
-+ * - Since userspace can trivially deadlock itself with flock, we make
-+ *   sure to allow cancellation of a misbehaving applications flock()
-+ *   request.
-+ *
-+ * - Access to any flock lockres doesn't require concurrency, so we
-+ *   can simplify the code by requiring the caller to guarantee
-+ *   serialization of dlmglue flock calls.
++ * Write super block and bakcups doesn't need to collaborate with journal,
++ * so we don't need to lock ip_io_mutex and inode doesn't need to bea passed
++ * into this function.
 + */
-+int ocfs2_file_lock(struct file *file, int ex, int trylock)
++int ocfs2_write_super_or_backup(struct ocfs2_super *osb,
++				struct buffer_head *bh)
 +{
-+	int ret, level = ex ? LKM_EXMODE : LKM_PRMODE;
-+	unsigned int lkm_flags = trylock ? LKM_NOQUEUE : 0;
-+	unsigned long flags;
-+	struct ocfs2_file_private *fp = file->private_data;
-+	struct ocfs2_lock_res *lockres = &fp->fp_flock;
-+	struct ocfs2_super *osb = OCFS2_SB(file->f_mapping->host->i_sb);
-+	struct ocfs2_mask_waiter mw;
++	int ret = 0;
 +
-+	ocfs2_init_mask_waiter(&mw);
++	mlog_entry_void();
 +
-+	if ((lockres->l_flags & OCFS2_LOCK_BUSY) ||
-+	    (lockres->l_level > LKM_NLMODE)) {
-+		mlog(ML_ERROR,
-+		     "File lock \"%s\" has busy or locked state: flags: 0x%lx, "
-+		     "level: %u\n", lockres->l_name, lockres->l_flags,
-+		     lockres->l_level);
-+		return -EINVAL;
-+	}
++	BUG_ON(buffer_jbd(bh));
++	ocfs2_check_super_or_backup(osb->sb, bh->b_blocknr);
 +
-+	spin_lock_irqsave(&lockres->l_lock, flags);
-+	if (!(lockres->l_flags & OCFS2_LOCK_ATTACHED)) {
-+		lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BUSY, 0);
-+		spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+		/*
-+		 * Get the lock at NLMODE to start - that way we
-+		 * can cancel the upconvert request if need be.
-+		 */
-+		ret = ocfs2_lock_create(osb, lockres, LKM_NLMODE, 0);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		ret = ocfs2_wait_for_mask(&mw);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+		spin_lock_irqsave(&lockres->l_lock, flags);
-+	}
-+
-+	lockres->l_action = OCFS2_AST_CONVERT;
-+	lkm_flags |= LKM_CONVERT;
-+	lockres->l_requested = level;
-+	lockres_or_flags(lockres, OCFS2_LOCK_BUSY);
-+
-+	lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BUSY, 0);
-+	spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+	ret = dlmlock(osb->dlm, level, &lockres->l_lksb, lkm_flags,
-+		      lockres->l_name, OCFS2_LOCK_ID_MAX_LEN - 1,
-+		      ocfs2_locking_ast, lockres, ocfs2_blocking_ast);
-+	if (ret != DLM_NORMAL) {
-+		if (trylock && ret == DLM_NOTQUEUED)
-+			ret = -EAGAIN;
-+		else {
-+			ocfs2_log_dlm_error("dlmlock", ret, lockres);
-+			ret = -EINVAL;
-+		}
-+
-+		ocfs2_recover_from_dlm_error(lockres, 1);
-+		lockres_remove_mask_waiter(lockres, &mw);
++	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb)) {
++		ret = -EROFS;
 +		goto out;
 +	}
 +
-+	ret = ocfs2_wait_for_mask_interruptible(&mw, lockres);
-+	if (ret == -ERESTARTSYS) {
-+		/*
-+		 * Userspace can cause deadlock itself with
-+		 * flock(). Current behavior locally is to allow the
-+		 * deadlock, but abort the system call if a signal is
-+		 * received. We follow this example, otherwise a
-+		 * poorly written program could sit in kernel until
-+		 * reboot.
-+		 *
-+		 * Handling this is a bit more complicated for Ocfs2
-+		 * though. We can't exit this function with an
-+		 * outstanding lock request, so a cancel convert is
-+		 * required. We intentionally overwrite 'ret' - if the
-+		 * cancel fails and the lock was granted, it's easier
-+		 * to just bubble sucess back up to the user.
-+		 */
-+		ret = ocfs2_flock_handle_signal(lockres, level);
++	lock_buffer(bh);
++	set_buffer_uptodate(bh);
++
++	/* remove from dirty list before I/O. */
++	clear_buffer_dirty(bh);
++
++	get_bh(bh); /* for end_buffer_write_sync() */
++	bh->b_end_io = end_buffer_write_sync;
++	submit_bh(WRITE, bh);
++
++	wait_on_buffer(bh);
++
++	if (!buffer_uptodate(bh)) {
++		ret = -EIO;
++		brelse(bh);
 +	}
 +
 +out:
++	mlog_exit(ret);
++	return ret;
++}
+diff --git a/fs/ocfs2/buffer_head_io.h b/fs/ocfs2/buffer_head_io.h
+index 6cc2093..c2e7861 100644
+--- a/fs/ocfs2/buffer_head_io.h
++++ b/fs/ocfs2/buffer_head_io.h
+@@ -47,6 +47,8 @@ int ocfs2_read_blocks(struct ocfs2_super          *osb,
+ 		      int                  flags,
+ 		      struct inode        *inode);
+ 
++int ocfs2_write_super_or_backup(struct ocfs2_super *osb,
++				struct buffer_head *bh);
+ 
+ #define OCFS2_BH_CACHED            1
+ #define OCFS2_BH_READAHEAD         8
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index 67c2fb4..b74b24e 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -20,6 +20,7 @@
+ 
+ #include "ocfs2_fs.h"
+ #include "ioctl.h"
++#include "resize.h"
+ 
+ #include <linux/ext2_fs.h>
+ 
+@@ -115,6 +116,7 @@ int ocfs2_ioctl(struct inode * inode, struct file * filp,
+ 	unsigned int cmd, unsigned long arg)
+ {
+ 	unsigned int flags;
++	int new_clusters;
+ 	int status;
+ 	struct ocfs2_space_resv sr;
+ 
+@@ -140,6 +142,11 @@ int ocfs2_ioctl(struct inode * inode, struct file * filp,
+ 			return -EFAULT;
+ 
+ 		return ocfs2_change_file_space(filp, cmd, &sr);
++	case OCFS2_IOC_GROUP_EXTEND:
++		if (get_user(new_clusters, (int __user *)arg))
++			return -EFAULT;
 +
-+	mlog(0, "Lock: \"%s\" ex: %d, trylock: %d, returns: %d\n",
-+	     lockres->l_name, ex, trylock, ret);
++		return ocfs2_group_extend(inode, new_clusters);
+ 	default:
+ 		return -ENOTTY;
+ 	}
+@@ -162,6 +169,7 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+ 	case OCFS2_IOC_RESVSP64:
+ 	case OCFS2_IOC_UNRESVSP:
+ 	case OCFS2_IOC_UNRESVSP64:
++	case OCFS2_IOC_GROUP_EXTEND:
+ 		break;
+ 	default:
+ 		return -ENOIOCTLCMD;
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 4b32e09..0ba3a42 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -278,6 +278,9 @@ int                  ocfs2_journal_dirty_data(handle_t *handle,
+ /* simple file updates like chmod, etc. */
+ #define OCFS2_INODE_UPDATE_CREDITS 1
+ 
++/* group extend. inode update and last group update. */
++#define OCFS2_GROUP_EXTEND_CREDITS	(OCFS2_INODE_UPDATE_CREDITS + 1)
++
+ /* get one bit out of a suballocator: dinode + group descriptor +
+  * prev. group desc. if we relink. */
+ #define OCFS2_SUBALLOC_ALLOC (3)
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 6ef8767..19ac421 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -231,6 +231,8 @@ struct ocfs2_space_resv {
+ #define OCFS2_IOC_RESVSP64	_IOW ('X', 42, struct ocfs2_space_resv)
+ #define OCFS2_IOC_UNRESVSP64	_IOW ('X', 43, struct ocfs2_space_resv)
+ 
++#define OCFS2_IOC_GROUP_EXTEND	_IOW('o', 1, int)
++
+ /*
+  * Journal Flags (ocfs2_dinode.id1.journal1.i_flags)
+  */
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+new file mode 100644
+index 0000000..e5237a2
+--- /dev/null
++++ b/fs/ocfs2/resize.c
+@@ -0,0 +1,398 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * resize.c
++ *
++ * volume resize.
++ * Inspired by ext3/resize.c.
++ *
++ * Copyright (C) 2007 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public
++ * License along with this program; if not, write to the
++ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++ * Boston, MA 021110-1307, USA.
++ */
++
++#include <linux/fs.h>
++#include <linux/types.h>
++
++#define MLOG_MASK_PREFIX ML_DISK_ALLOC
++#include <cluster/masklog.h>
++
++#include "ocfs2.h"
++
++#include "alloc.h"
++#include "dlmglue.h"
++#include "inode.h"
++#include "journal.h"
++#include "super.h"
++#include "sysfile.h"
++#include "uptodate.h"
++
++#include "buffer_head_io.h"
++#include "suballoc.h"
++#include "resize.h"
++
++/*
++ * Check whether there are new backup superblocks exist
++ * in the last group. If there are some, mark them or clear
++ * them in the bitmap.
++ *
++ * Return how many backups we find in the last group.
++ */
++static u16 ocfs2_calc_new_backup_super(struct inode *inode,
++				       struct ocfs2_group_desc *gd,
++				       int new_clusters,
++				       u32 first_new_cluster,
++				       u16 cl_cpg,
++				       int set)
++{
++	int i;
++	u16 backups = 0;
++	u32 cluster;
++	u64 blkno, gd_blkno, lgd_blkno = le64_to_cpu(gd->bg_blkno);
++
++	for (i = 0; i < OCFS2_MAX_BACKUP_SUPERBLOCKS; i++) {
++		blkno = ocfs2_backup_super_blkno(inode->i_sb, i);
++		cluster = ocfs2_blocks_to_clusters(inode->i_sb, blkno);
++
++		gd_blkno = ocfs2_which_cluster_group(inode, cluster);
++		if (gd_blkno < lgd_blkno)
++			continue;
++		else if (gd_blkno > lgd_blkno)
++			break;
++
++		if (set)
++			ocfs2_set_bit(cluster % cl_cpg,
++				      (unsigned long *)gd->bg_bitmap);
++		else
++			ocfs2_clear_bit(cluster % cl_cpg,
++					(unsigned long *)gd->bg_bitmap);
++		backups++;
++	}
++
++	mlog_exit_void();
++	return backups;
++}
++
++static int ocfs2_update_last_group_and_inode(handle_t *handle,
++					     struct inode *bm_inode,
++					     struct buffer_head *bm_bh,
++					     struct buffer_head *group_bh,
++					     u32 first_new_cluster,
++					     int new_clusters)
++{
++	int ret = 0;
++	struct ocfs2_super *osb = OCFS2_SB(bm_inode->i_sb);
++	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) bm_bh->b_data;
++	struct ocfs2_chain_list *cl = &fe->id2.i_chain;
++	struct ocfs2_chain_rec *cr;
++	struct ocfs2_group_desc *group;
++	u16 chain, num_bits, backups = 0;
++	u16 cl_bpc = le16_to_cpu(cl->cl_bpc);
++	u16 cl_cpg = le16_to_cpu(cl->cl_cpg);
++
++	mlog_entry("(new_clusters=%d, first_new_cluster = %u)\n",
++		   new_clusters, first_new_cluster);
++
++	ret = ocfs2_journal_access(handle, bm_inode, group_bh,
++				   OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	group = (struct ocfs2_group_desc *) group_bh->b_data;
++
++	/* update the group first. */
++	num_bits = new_clusters * cl_bpc;
++	le16_add_cpu(&group->bg_bits, num_bits);
++	le16_add_cpu(&group->bg_free_bits_count, num_bits);
++
++	/*
++	 * check whether there are some new backup superblocks exist in
++	 * this group and update the group bitmap accordingly.
++	 */
++	if (OCFS2_HAS_COMPAT_FEATURE(osb->sb,
++				     OCFS2_FEATURE_COMPAT_BACKUP_SB)) {
++		backups = ocfs2_calc_new_backup_super(bm_inode,
++						     group,
++						     new_clusters,
++						     first_new_cluster,
++						     cl_cpg, 1);
++		le16_add_cpu(&group->bg_free_bits_count, -1 * backups);
++	}
++
++	ret = ocfs2_journal_dirty(handle, group_bh);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_rollback;
++	}
++
++	/* update the inode accordingly. */
++	ret = ocfs2_journal_access(handle, bm_inode, bm_bh,
++				   OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_rollback;
++	}
++
++	chain = le16_to_cpu(group->bg_chain);
++	cr = (&cl->cl_recs[chain]);
++	le32_add_cpu(&cr->c_total, num_bits);
++	le32_add_cpu(&cr->c_free, num_bits);
++	le32_add_cpu(&fe->id1.bitmap1.i_total, num_bits);
++	le32_add_cpu(&fe->i_clusters, new_clusters);
++
++	if (backups) {
++		le32_add_cpu(&cr->c_free, -1 * backups);
++		le32_add_cpu(&fe->id1.bitmap1.i_used, backups);
++	}
++
++	spin_lock(&OCFS2_I(bm_inode)->ip_lock);
++	OCFS2_I(bm_inode)->ip_clusters = le32_to_cpu(fe->i_clusters);
++	le64_add_cpu(&fe->i_size, new_clusters << osb->s_clustersize_bits);
++	spin_unlock(&OCFS2_I(bm_inode)->ip_lock);
++	i_size_write(bm_inode, le64_to_cpu(fe->i_size));
++
++	ocfs2_journal_dirty(handle, bm_bh);
++
++out_rollback:
++	if (ret < 0) {
++		ocfs2_calc_new_backup_super(bm_inode,
++					    group,
++					    new_clusters,
++					    first_new_cluster,
++					    cl_cpg, 0);
++		le16_add_cpu(&group->bg_free_bits_count, backups);
++		le16_add_cpu(&group->bg_bits, -1 * num_bits);
++		le16_add_cpu(&group->bg_free_bits_count, -1 * num_bits);
++	}
++out:
++	mlog_exit(ret);
 +	return ret;
 +}
 +
-+void ocfs2_file_unlock(struct file *file)
++static int update_backups(struct inode * inode, u32 clusters, char *data)
 +{
-+	int ret;
-+	unsigned long flags;
-+	struct ocfs2_file_private *fp = file->private_data;
-+	struct ocfs2_lock_res *lockres = &fp->fp_flock;
-+	struct ocfs2_super *osb = OCFS2_SB(file->f_mapping->host->i_sb);
-+	struct ocfs2_mask_waiter mw;
++	int i, ret = 0;
++	u32 cluster;
++	u64 blkno;
++	struct buffer_head *backup = NULL;
++	struct ocfs2_dinode *backup_di = NULL;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
 +
-+	ocfs2_init_mask_waiter(&mw);
++	/* calculate the real backups we need to update. */
++	for (i = 0; i < OCFS2_MAX_BACKUP_SUPERBLOCKS; i++) {
++		blkno = ocfs2_backup_super_blkno(inode->i_sb, i);
++		cluster = ocfs2_blocks_to_clusters(inode->i_sb, blkno);
++		 if (cluster > clusters)
++			break;
 +
-+	if (!(lockres->l_flags & OCFS2_LOCK_ATTACHED))
-+		return;
++		ret = ocfs2_read_block(osb, blkno, &backup, 0, NULL);
++		if (ret < 0) {
++			mlog_errno(ret);
++			break;
++		}
 +
-+	if (lockres->l_level == LKM_NLMODE)
-+		return;
++		memcpy(backup->b_data, data, inode->i_sb->s_blocksize);
 +
-+	mlog(0, "Unlock: \"%s\" flags: 0x%lx, level: %d, act: %d\n",
-+	     lockres->l_name, lockres->l_flags, lockres->l_level,
-+	     lockres->l_action);
++		backup_di = (struct ocfs2_dinode *)backup->b_data;
++		backup_di->i_blkno = cpu_to_le64(blkno);
 +
-+	spin_lock_irqsave(&lockres->l_lock, flags);
-+	/*
-+	 * Fake a blocking ast for the downconvert code.
-+	 */
-+	lockres_or_flags(lockres, OCFS2_LOCK_BLOCKED);
-+	lockres->l_blocking = LKM_EXMODE;
-+
-+	ocfs2_prepare_downconvert(lockres, LKM_NLMODE);
-+	lockres_add_mask_waiter(lockres, &mw, OCFS2_LOCK_BUSY, 0);
-+	spin_unlock_irqrestore(&lockres->l_lock, flags);
-+
-+	ret = ocfs2_downconvert_lock(osb, lockres, LKM_NLMODE, 0);
-+	if (ret) {
-+		mlog_errno(ret);
-+		return;
++		ret = ocfs2_write_super_or_backup(osb, backup);
++		brelse(backup);
++		backup = NULL;
++		if (ret < 0) {
++			mlog_errno(ret);
++			break;
++		}
 +	}
 +
-+	ret = ocfs2_wait_for_mask(&mw);
-+	if (ret)
-+		mlog_errno(ret);
++	return ret;
 +}
 +
- static void ocfs2_downconvert_on_unlock(struct ocfs2_super *osb,
- 					struct ocfs2_lock_res *lockres)
- {
-diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-index 6dcbc94..5f17243 100644
---- a/fs/ocfs2/dlmglue.h
-+++ b/fs/ocfs2/dlmglue.h
-@@ -66,6 +66,9 @@ void ocfs2_inode_lock_res_init(struct ocfs2_lock_res *res,
- 			       struct inode *inode);
- void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
- 				u64 parent, struct inode *inode);
-+struct ocfs2_file_private;
-+void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
-+			      struct ocfs2_file_private *fp);
- void ocfs2_lock_res_free(struct ocfs2_lock_res *res);
- int ocfs2_create_new_inode_locks(struct inode *inode);
- int ocfs2_drop_inode_locks(struct inode *inode);
-@@ -98,6 +101,8 @@ int ocfs2_rename_lock(struct ocfs2_super *osb);
- void ocfs2_rename_unlock(struct ocfs2_super *osb);
- int ocfs2_dentry_lock(struct dentry *dentry, int ex);
- void ocfs2_dentry_unlock(struct dentry *dentry, int ex);
-+int ocfs2_file_lock(struct file *file, int ex, int trylock);
-+void ocfs2_file_unlock(struct file *file);
- 
- void ocfs2_mark_lockres_freeing(struct ocfs2_lock_res *lockres);
- void ocfs2_simple_drop_lockres(struct ocfs2_super *osb,
-diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
-index 066f14a..048ddca 100644
---- a/fs/ocfs2/file.h
-+++ b/fs/ocfs2/file.h
-@@ -32,6 +32,12 @@ extern const struct inode_operations ocfs2_file_iops;
- extern const struct inode_operations ocfs2_special_file_iops;
- struct ocfs2_alloc_context;
- 
-+struct ocfs2_file_private {
-+	struct file		*fp_file;
-+	struct mutex		fp_mutex;
-+	struct ocfs2_lock_res	fp_flock;
-+};
++static void ocfs2_update_super_and_backups(struct inode *inode,
++					   int new_clusters)
++{
++	int ret;
++	u32 clusters = 0;
++	struct buffer_head *super_bh = NULL;
++	struct ocfs2_dinode *super_di = NULL;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
 +
- enum ocfs2_alloc_restarted {
- 	RESTART_NONE = 0,
- 	RESTART_TRANS,
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index d12bd70..63c131e 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -101,6 +101,7 @@ enum ocfs2_unlock_action {
- 					       * about to be
- 					       * dropped. */
- #define OCFS2_LOCK_QUEUED        (0x00000100) /* queued for downconvert */
-+#define OCFS2_LOCK_NOCACHE       (0x00000200) /* don't use a holder count */
++	/*
++	 * update the superblock last.
++	 * It doesn't matter if the write failed.
++	 */
++	ret = ocfs2_read_block(osb, OCFS2_SUPER_BLOCK_BLKNO,
++			       &super_bh, 0, NULL);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	super_di = (struct ocfs2_dinode *)super_bh->b_data;
++	le32_add_cpu(&super_di->i_clusters, new_clusters);
++	clusters = le32_to_cpu(super_di->i_clusters);
++
++	ret = ocfs2_write_super_or_backup(osb, super_bh);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	if (OCFS2_HAS_COMPAT_FEATURE(osb->sb, OCFS2_FEATURE_COMPAT_BACKUP_SB))
++		ret = update_backups(inode, clusters, super_bh->b_data);
++
++out:
++	if (super_bh)
++		brelse(super_bh);
++	if (ret)
++		printk(KERN_WARNING "ocfs2: Failed to update super blocks on %s"
++			" during fs resize. This condition is not fatal,"
++			" but fsck.ocfs2 should be run to fix it\n",
++			osb->dev_str);
++	return;
++}
++
++/*
++ * Extend the filesystem to the new number of clusters specified.  This entry
++ * point is only used to extend the current filesystem to the end of the last
++ * existing group.
++ */
++int ocfs2_group_extend(struct inode * inode, int new_clusters)
++{
++	int ret;
++	handle_t *handle;
++	struct buffer_head *main_bm_bh = NULL;
++	struct buffer_head *group_bh = NULL;
++	struct inode *main_bm_inode = NULL;
++	struct ocfs2_dinode *fe = NULL;
++	struct ocfs2_group_desc *group = NULL;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	u16 cl_bpc;
++	u32 first_new_cluster;
++	u64 lgd_blkno;
++
++	mlog_entry_void();
++
++	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
++		return -EROFS;
++
++	if (new_clusters < 0)
++		return -EINVAL;
++	else if (new_clusters == 0)
++		return 0;
++
++	main_bm_inode = ocfs2_get_system_file_inode(osb,
++						    GLOBAL_BITMAP_SYSTEM_INODE,
++						    OCFS2_INVALID_SLOT);
++	if (!main_bm_inode) {
++		ret = -EINVAL;
++		mlog_errno(ret);
++		goto out;
++	}
++
++	mutex_lock(&main_bm_inode->i_mutex);
++
++	ret = ocfs2_inode_lock(main_bm_inode, &main_bm_bh, 1);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_mutex;
++	}
++
++	fe = (struct ocfs2_dinode *)main_bm_bh->b_data;
++
++	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
++				 ocfs2_group_bitmap_size(osb->sb) * 8) {
++		mlog(ML_ERROR, "The disk is too old and small. "
++		     "Force to do offline resize.");
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++	if (!OCFS2_IS_VALID_DINODE(fe)) {
++		OCFS2_RO_ON_INVALID_DINODE(main_bm_inode->i_sb, fe);
++		ret = -EIO;
++		goto out_unlock;
++	}
++
++	first_new_cluster = le32_to_cpu(fe->i_clusters);
++	lgd_blkno = ocfs2_which_cluster_group(main_bm_inode,
++					      first_new_cluster - 1);
++
++	ret = ocfs2_read_block(osb, lgd_blkno, &group_bh, OCFS2_BH_CACHED,
++			       main_bm_inode);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_unlock;
++	}
++
++	group = (struct ocfs2_group_desc *) group_bh->b_data;
++
++	ret = ocfs2_check_group_descriptor(inode->i_sb, fe, group);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_unlock;
++	}
++
++	cl_bpc = le16_to_cpu(fe->id2.i_chain.cl_bpc);
++	if (le16_to_cpu(group->bg_bits) / cl_bpc + new_clusters >
++		le16_to_cpu(fe->id2.i_chain.cl_cpg)) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++	mlog(0, "extend the last group at %llu, new clusters = %d\n",
++	     le64_to_cpu(group->bg_blkno), new_clusters);
++
++	handle = ocfs2_start_trans(osb, OCFS2_GROUP_EXTEND_CREDITS);
++	if (IS_ERR(handle)) {
++		mlog_errno(PTR_ERR(handle));
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++
++	/* update the last group descriptor and inode. */
++	ret = ocfs2_update_last_group_and_inode(handle, main_bm_inode,
++						main_bm_bh, group_bh,
++						first_new_cluster,
++						new_clusters);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	ocfs2_update_super_and_backups(main_bm_inode, new_clusters);
++
++out_commit:
++	ocfs2_commit_trans(osb, handle);
++out_unlock:
++	if (group_bh)
++		brelse(group_bh);
++
++	if (main_bm_bh)
++		brelse(main_bm_bh);
++
++	ocfs2_inode_unlock(main_bm_inode, 1);
++
++out_mutex:
++	mutex_unlock(&main_bm_inode->i_mutex);
++	iput(main_bm_inode);
++
++out:
++	mlog_exit_void();
++	return ret;
++}
+diff --git a/fs/ocfs2/resize.h b/fs/ocfs2/resize.h
+new file mode 100644
+index 0000000..3acb79a
+--- /dev/null
++++ b/fs/ocfs2/resize.h
+@@ -0,0 +1,31 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * resize.h
++ *
++ * Function prototypes
++ *
++ * Copyright (C) 2007 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public
++ * License along with this program; if not, write to the
++ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++ * Boston, MA 021110-1307, USA.
++ */
++
++#ifndef OCFS2_RESIZE_H
++#define OCFS2_RESIZE_H
++
++int ocfs2_group_extend(struct inode * inode, int new_clusters);
++
++#endif /* OCFS2_RESIZE_H */
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 6df4dbf..4391744 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -101,8 +101,6 @@ static inline int ocfs2_block_group_reasonably_empty(struct ocfs2_group_desc *bg
+ static inline u32 ocfs2_desc_bitmap_to_cluster_off(struct inode *inode,
+ 						   u64 bg_blkno,
+ 						   u16 bg_bit_off);
+-static inline u64 ocfs2_which_cluster_group(struct inode *inode,
+-					    u32 cluster);
+ static inline void ocfs2_block_to_cluster_group(struct inode *inode,
+ 						u64 data_blkno,
+ 						u64 *bg_blkno,
+@@ -131,9 +129,9 @@ static u32 ocfs2_bits_per_group(struct ocfs2_chain_list *cl)
+ }
  
- struct ocfs2_lock_res_ops;
+ /* somewhat more expensive than our other checks, so use sparingly. */
+-static int ocfs2_check_group_descriptor(struct super_block *sb,
+-					struct ocfs2_dinode *di,
+-					struct ocfs2_group_desc *gd)
++int ocfs2_check_group_descriptor(struct super_block *sb,
++				 struct ocfs2_dinode *di,
++				 struct ocfs2_group_desc *gd)
+ {
+ 	unsigned int max_bits;
  
-diff --git a/fs/ocfs2/ocfs2_lockid.h b/fs/ocfs2/ocfs2_lockid.h
-index 4ca02b1..86f3e37 100644
---- a/fs/ocfs2/ocfs2_lockid.h
-+++ b/fs/ocfs2/ocfs2_lockid.h
-@@ -45,6 +45,7 @@ enum ocfs2_lock_type {
- 	OCFS2_LOCK_TYPE_RW,
- 	OCFS2_LOCK_TYPE_DENTRY,
- 	OCFS2_LOCK_TYPE_OPEN,
-+	OCFS2_LOCK_TYPE_FLOCK,
- 	OCFS2_NUM_LOCK_TYPES
- };
+@@ -1443,8 +1441,7 @@ static inline u32 ocfs2_desc_bitmap_to_cluster_off(struct inode *inode,
  
-@@ -73,6 +74,9 @@ static inline char ocfs2_lock_type_char(enum ocfs2_lock_type type)
- 		case OCFS2_LOCK_TYPE_OPEN:
- 			c = 'O';
- 			break;
-+		case OCFS2_LOCK_TYPE_FLOCK:
-+			c = 'F';
-+			break;
- 		default:
- 			c = '\0';
- 	}
-@@ -90,6 +94,7 @@ static char *ocfs2_lock_type_strings[] = {
- 	[OCFS2_LOCK_TYPE_RW] = "Write/Read",
- 	[OCFS2_LOCK_TYPE_DENTRY] = "Dentry",
- 	[OCFS2_LOCK_TYPE_OPEN] = "Open",
-+	[OCFS2_LOCK_TYPE_FLOCK] = "Flock",
- };
+ /* given a cluster offset, calculate which block group it belongs to
+  * and return that block offset. */
+-static inline u64 ocfs2_which_cluster_group(struct inode *inode,
+-					    u32 cluster)
++u64 ocfs2_which_cluster_group(struct inode *inode, u32 cluster)
+ {
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	u32 group_no;
+diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+index cafe937..8799033 100644
+--- a/fs/ocfs2/suballoc.h
++++ b/fs/ocfs2/suballoc.h
+@@ -147,4 +147,12 @@ static inline int ocfs2_is_cluster_bitmap(struct inode *inode)
+ int ocfs2_reserve_cluster_bitmap_bits(struct ocfs2_super *osb,
+ 				      struct ocfs2_alloc_context *ac);
  
- static inline const char *ocfs2_lock_type_string(enum ocfs2_lock_type type)
++/* given a cluster offset, calculate which block group it belongs to
++ * and return that block offset. */
++u64 ocfs2_which_cluster_group(struct inode *inode, u32 cluster);
++
++/* somewhat more expensive than our other checks, so use sparingly. */
++int ocfs2_check_group_descriptor(struct super_block *sb,
++				 struct ocfs2_dinode *di,
++				 struct ocfs2_group_desc *gd);
+ #endif /* _CHAINALLOC_H_ */
 -- 
 1.5.3.6
