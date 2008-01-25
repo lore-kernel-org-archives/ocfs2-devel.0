@@ -1,31 +1,89 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Fri Jan 25 10:25:11 2008
-Subject: [Ocfs2-devel] block-count in mkfs.ocfs2
-In-Reply-To: <20080123095822.GB18317@baloo.nue.novell.com>
-References: <20080123095822.GB18317@baloo.nue.novell.com>
-Message-ID: <479A295C.4020401@oracle.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Fri Jan 25 10:53:18 2008
+Subject: [Ocfs2-devel] /etc/mkfs.ocfs2.conf support
+In-Reply-To: <20080123094730.GA18317@baloo.nue.novell.com>
+References: <20080123094730.GA18317@baloo.nue.novell.com>
+Message-ID: <20080125185146.GU23506@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-No reason other than mke2fs does the same. Using similar params makes
-it easier for everyone. Also, we hardly expect anyone to limit the fs
-to smaller than the volume size. AFAIK, it's mainly used in testing
-(on/off)line fs resize. :)
+On Wed, Jan 23, 2008 at 03:17:30PM +0530, Goldwyn Rodrigues wrote:
+> 
+> Changes to support mkfs.ocfs2.conf
+> Mostly picked from e2fsprogs
+> 
+> --- 
+> diff --git a/mkfs.ocfs2/Makefile b/mkfs.ocfs2/Makefile
+> index 00d9d22..7c3c0f5 100644
+> --- a/mkfs.ocfs2/Makefile
+> +++ b/mkfs.ocfs2/Makefile
+> @@ -28,7 +28,7 @@ LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
+>  INCLUDES = -I$(TOPDIR)/include -I.
+>  DEFINES = -DVERSION=\"$(VERSION)\"
+>  
+> -CFILES = mkfs.c check.c
+> +CFILES = prof_err.c profile.c mkfs.c check.c
+>  HFILES = mkfs.h
+>  
+>  OBJS = $(subst .c,.o,$(CFILES))
+> @@ -40,4 +40,12 @@ DIST_FILES = $(CFILES) $(HFILES) mkfs.ocfs2.8.in
+>  mkfs.ocfs2: $(OBJS) $(LIBOCFS2_DEPS) $(LIBO2DLM_DEPS) $(LIBO2CB_DEPS)
+>  	$(LINK) $(LIBOCFS2_LIBS) $(LIBO2DLM_LIBS) $(LIBO2CB_LIBS) $(COM_ERR_LIBS) $(UUID_LIBS)
+>  
+> +prof_err.c prof_err.h: prof_err.et
+> +	compile_et prof_err.et
+> +
+> +CLEAN_RULES = clean-err
+> +
+> +clean-err:
+> +	rm -f prof_err.c prof_err.h
+> +
+>  include $(TOPDIR)/Postamble.make
+> diff --git a/mkfs.ocfs2/mkfs.c b/mkfs.ocfs2/mkfs.c
+> index 0ade0ab..610b994 100644
+> --- a/mkfs.ocfs2/mkfs.c
+> +++ b/mkfs.ocfs2/mkfs.c
+> @@ -24,6 +24,9 @@
+>   */
+>  
+>  #include "mkfs.h"
+> +#include "profile.h"
+> +
+> +profile_t profile;
+>  
+>  static State *get_state(int argc, char **argv);
+>  static int get_number(char *arg, uint64_t *res);
+> @@ -507,11 +510,104 @@ parse_fs_type_opts(char *progname, const char *typestr,
+>  	}
+>  }
+>  
+> +static void syntax_err_report(const char *filename, long err, int line_num)
+> +{
+> +	fprintf(stderr, "Syntax error in mke2fs config file (%s, line #%d)\n\t%s\n", filename, line_num, error_message(err));
+> +	exit(1);
+> +}
+> +
+> +
+> +static const char *config_fn[] = { "/etc/mkfs.ocfs2.conf", 0 };
+> +static const char *default_files[] = { "<default>", 0 };
+> +const char *mkfs_default_profile = 
+> +  "[defaults]\n"
+> +  "	block-size = 4096\n"
+> +  "\n"
+> +  "[fs_types]\n"
+> +  "	datafiles = {\n"
+> +  "		journal = {\n"
+> +  "			size = 8192\n"
+> +  "		}\n"
+> +  "	}\n"
 
-It's 8k blocks... meaning 32M, for a 4K blocksize. That is fine if all
-the user is doing is hosting datafiles as the db rarely grows the
-datafiles... meaning no need for journaling.
+Is this making '-T datafiles' the default? It should not be...
+	--Mark
 
-Goldwyn Rodrigues wrote:
-> Hi,
->
-> While making changes to mkfs, I noticed blocks-count is taken as a positional argument (value determined by the position in the command line) instead of an optional argument (parsed by getopts such as --block-count). Is there a particular reason for this?
->
-> Moreover, you might have to check on the default values of the mkfs_default_profile. Only the journal size in case of "datafiles" filesystem type seem to be having a default value of 8k.
->
-> Regards,
->
->   
+--
+Mark Fasheh
+Principal Software Developer, Oracle
+mark.fasheh@oracle.com
