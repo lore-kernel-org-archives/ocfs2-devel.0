@@ -1,113 +1,44 @@
 From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Sat Jan 26 22:29:37 2008
+Date: Sat Jan 26 22:34:31 2008
 Subject: [Ocfs2-devel] /etc/mkfs.ocfs2.conf support
-In-Reply-To: <20080126001015.GB32433@mail.oracle.com>
+In-Reply-To: <20080125185146.GU23506@ca-server1.us.oracle.com>
 References: <20080123094730.GA18317@baloo.nue.novell.com>
-	<20080126001015.GB32433@mail.oracle.com>
-Message-ID: <20080127062926.GA8213@baloo.nue.novell.com>
+	<20080125185146.GU23506@ca-server1.us.oracle.com>
+Message-ID: <20080127063421.GB8213@baloo.nue.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jan 25, 2008 at 04:10:15PM -0800, Joel Becker wrote:
+On Fri, Jan 25, 2008 at 10:51:46AM -0800, Mark Fasheh wrote:
 > On Wed, Jan 23, 2008 at 03:17:30PM +0530, Goldwyn Rodrigues wrote:
-> > Changes to support mkfs.ocfs2.conf
-> > Mostly picked from e2fsprogs
+> > 
+> > +
+> > +static const char *config_fn[] = { "/etc/mkfs.ocfs2.conf", 0 };
+> > +static const char *default_files[] = { "<default>", 0 };
+> > +const char *mkfs_default_profile = 
+> > +  "[defaults]\n"
+> > +  "	block-size = 4096\n"
+> > +  "\n"
+> > +  "[fs_types]\n"
+> > +  "	datafiles = {\n"
+> > +  "		journal = {\n"
+> > +  "			size = 8192\n"
+> > +  "		}\n"
+> > +  "	}\n"
 > 
-> 	Interesting.  I didn't even know this existed :-)  First thought
-> - what version of e2fsprogs is this from?  I grabbed 1.40.4, the latest
-> on my Debian installation, and its profile.c is very different.
+> Is this making '-T datafiles' the default? It should not be...
+> 	--Mark
+> 
 
-I used 1.40.2, but I don't think the profile.c would be any different in
-the two versions.
-What I changed from orignal e2fsprogs:
-        - changed the function prototype to take char *[], instead of
-          separate name, subname and subsubname, in order to include
-          a further level of attribute handling for journal
-        - removed the string and boolean parsing functions. These are
-          not required now, but might be required in the future.
-        - removed the debug set, perhaps it could be included as a part
-          of testing.
-        - the original profile in e2fsprogs has been picked from
-          kerberos, and was split in multiple files. The old comments
-          are still present. I removed them.
+No, it does not. It means that whenever the user supplies '-T datafiles'
+in the command line, the journal size would be set to 8192 by default.
+This was the only default value I could interpret from the current code.
 
+However, it does assume the default block size is 4K. I will remove
+that.
 
-> 
-> > diff --git a/mkfs.ocfs2/Makefile b/mkfs.ocfs2/Makefile
-> > index 00d9d22..7c3c0f5 100644
-> > --- a/mkfs.ocfs2/Makefile
-> > +++ b/mkfs.ocfs2/Makefile
-> > @@ -28,7 +28,7 @@ LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
-> >  INCLUDES = -I$(TOPDIR)/include -I.
-> >  DEFINES = -DVERSION=\"$(VERSION)\"
-> >  
-> > -CFILES = mkfs.c check.c
-> > +CFILES = prof_err.c profile.c mkfs.c check.c
-> >  HFILES = mkfs.h
-> >
-> >  OBJS = $(subst .c,.o,$(CFILES))
-> 
-> 	You can't put prof_err.c in CFILES - that will include it in
-> DIST_FILES, which we don't want.  Conversely, you need to add
-> prof_err.et to DIST_FILES.  I suggest
-> 
->  - Add prof_err.et to DIST_FILES
->  - Add prof_err.o to OBJS
-> 
-> This will force prof_err.o to be included in the mkfs.ocfs2
-> dependencies.  .c.o rules will cause prof_err.c to be required, and this
-> will trigger the compile_et of prof_err.et.  Meanwhile, having
-> prof_err.et in DIST_FILES makes sure it's part of the tarball.
-> 	See libocfs2/Makefile for how we do this.  You might also want
-> to add HEADERS_GEN like you see in there so that you can declare:
-> 
-> HFILES = mkfs.h
-> HFILES_GEN = prof_err.h 
-> 
-> $(OBJS): $(HFILES) $(HFILES_GEN)
-> 
-> This triggers a build dependency on prof_err.h for all objects.
-
-Ok, I understood this.
-
-
-> 
-> > +	/* Read from the configuration file and set the values */
-> > +	blocksize = get_bytesize_from_profile(ft_str,"block-size" , blocksize);
-> > +	cluster_size =  get_bytesize_from_profile(ft_str, "cluster-size", cluster_size);
-> > +	journal_size_in_bytes = get_journalsize_from_profile(ft_str, journal_size_in_bytes);
-> > +	blockscount = get_bytesize_from_profile(ft_str, "blocks-count", blockscount);
-> > +	initial_slots = get_uint_from_profile(ft_str, "number-of-nodes", initial_slots);
-> 
-> 	Here, you are relying on multiple things:
-> 
-> 1) If the value is nonzero, nothing will happen.  Why hide this above in
->    get_*_from_profile()?  Why not say
-> 
-> 	if (!blocksize)
-> 		blocksize = get_bytesize_from_profile(ft_str, "block-size");
-
-Yes. This is the way it is done in e2fsprogs as well, but I thought of
-folding even the condition inside the function. I'll do it the way you
-suggested to avoid an additional function call.
-
-> 
-> 2) if ft_str is NULL, only the [defaults] section is honored.  This is
->    not obvious without reading profile.c, so one could think that it
->    might select the first fs_type in the [fs_type] section.  Put a
->    comment in the get_*_from_profile() functions, right before you set
->    names[1] = category, stating that NULL means ignored.
-> 3) Setting these here will cause fill_defaults() to skip them.  If
->    get_*_from_profile() returns 0 (unset), fill_defaults() will fill
->    them.  This is the correct behavior, but it strikes me as non-obvious
->    and could use a comment somewhere.
-
-I missed on the comments. will do it.
-
-Thanks for the review, I shall re-post the patches soon.
 
 -- 
 Goldwyn
