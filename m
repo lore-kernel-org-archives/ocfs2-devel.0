@@ -1,38 +1,25 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue Jan 29 14:22:47 2008
-Subject: [Ocfs2-devel] Re: [git pull] Fix recent Ocfs2 breakage
-In-Reply-To: <20080129221858.GA27902@mail.oracle.com>
-References: <20080129033307.GE23506@ca-server1.us.oracle.com>
-	<20080129050804.GA2285@suse.de>
-	<20080129074402.GA27097@ca-server1.us.oracle.com>
-	<20080129185448.GA358@suse.de>
-	<20080129221858.GA27902@mail.oracle.com>
-Message-ID: <20080129222239.GB27902@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue Jan 29 22:10:57 2008
+Subject: [Ocfs2-devel] [PATCH 0/2] Unwritten extent merge update, V2
+Message-ID: <20080130060924.GA9243@tma-pc1.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Greg KH <gregkh@suse.de>, Mark Fasheh <mark.fasheh@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jan 29, 2008 at 02:18:58PM -0800, Joel Becker wrote:
-> 	But I'm still not understanding what you mean by "1 kobject for
-> the directory".  We have one kobject for the "logmask" directory, and
-> then attributes for each log type.  I don't see how that would change.
+The old extent merging code down underneath "ocfs2_mark_extent_written()"
+can't merge extents between leaf blocks. This patch resolve this.
+So that a large unwritten extent which has been split up with a bunch of
+writes can be merged together once all unwritten regions have been written to.
 
-	Oh, wait, I'm an idiot.  It does look like its a kset.  If we
-set the ktype to have the ops and attrs, just like we do, but use a
-kobj, would that make you happier?
-
-Joel
-
--- 
-
-"The whole problem with the world is that fools and fanatics are always
- so certain of themselves, and wiser people so full of doubts."
-	- Bertrand Russell
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+Modification from V1 to V2:
+1. Add more comments for some functions which is more complicated than before.
+2. move the journal_access() calls to a better place so that we may detect its
+   error before we do the real modification to some extent blocks.
+3. Using l_next_free_rec instead of l_count to index the extent record array so
+   that it's more consistent with other codes.
+4. Delete the empty extent block during ocfs2_merge_rec_left when it is needed
+   instead of leaving it to ocfs2_rotate_tree_left.
+5. Stick to one merge mechanism in CONTIG_LEFTRIGHT. Right merge is always the
+   first instead of left one.
