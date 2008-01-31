@@ -1,17 +1,16 @@
 From: Jeff Mahoney <jeffm@suse.com>
-Date: Thu Jan 31 12:55:12 2008
-Subject: [Ocfs2-devel] [patch 4/5] ocfs2: Add check for const
-	address_space_operations
+Date: Thu Jan 31 12:55:17 2008
+Subject: [Ocfs2-devel] [patch 1/5] ocfs2: add compatibility for lockdep
 References: <20080131204634.478915000@suse.com>
-Message-ID: <20080131204715.818833000@suse.com>
+Message-ID: <20080131204715.155259000@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
- SLES10 doesn't have a const a_ops in struct address_space. This patch adds
- a check.
+ SLES10 doesn't have lockdep support. This patch ifdefs out the lockdep
+ annotations when lockdep isn't found.
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 ---
@@ -19,82 +18,67 @@ Signed-off-by: Jeff Mahoney <jeffm@suse.com>
  Config.make.in    |    1 +
  configure.in      |    5 +++++
  fs/ocfs2/Makefile |    4 ++++
- fs/ocfs2/aops.c   |    4 ++++
- fs/ocfs2/inode.h  |    4 ++++
- 5 files changed, 18 insertions(+)
+ fs/ocfs2/inode.c  |    4 ++++
+ 4 files changed, 14 insertions(+)
 
-diff --git a/Config.make.in b/Config.make.in
-index dc5431b..98bf410 100644
---- a/Config.make.in
-+++ b/Config.make.in
-@@ -73,6 +73,7 @@ NO_GENERIC_SEGMENT_CHECKS = @NO_GENERIC_SEGMENT_CHECKS@
- SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
- IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
- FOP_IS_NOT_CONST = @FOP_IS_NOT_CONST@
-+AOPS_IS_NOT_CONST = @AOPS_IS_NOT_CONST@
- NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
- NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
- OLD_BIO_END_IO = @OLD_BIO_END_IO@
-diff --git a/configure.in b/configure.in
-index 3d9e49f..a4b3f0e 100644
---- a/configure.in
-+++ b/configure.in
-@@ -310,6 +310,11 @@ OCFS2_CHECK_KERNEL([f_op declared as const in struct file in fs.h], fs.h,
-   , FOP_IS_NOT_CONST=yes, [^.*const struct file_operations.*\*f_op;])
- AC_SUBST(FOP_IS_NOT_CONST)
+--- a/Config.make.in	2008-01-31 13:51:13.000000000 -0500
++++ b/Config.make.in	2008-01-31 13:51:15.000000000 -0500
+@@ -87,6 +87,7 @@ FILLDIR_T_WITH_INO_T = @FILLDIR_T_WITH_I
+ INVALIDATEPAGE_RETURNS_INT = @INVALIDATEPAGE_RETURNS_INT@
+ DIO_OLD_GET_BLOCKS = @DIO_OLD_GET_BLOCKS@
+ HAS_SYSTEM_UTSNAME = @HAS_SYSTEM_UTSNAME@
++NO_LOCKDEP = @NO_LOCKDEP@
  
-+AOPS_IS_NOT_CONST=
-+OCFS2_CHECK_KERNEL([a_ops declared as const in struct address_space in fs.h], fs.h,
-+  , AOPS_IS_NOT_CONST=yes, [^.*const struct address_space_operations.*\*a_ops;])
-+AC_SUBST(AOPS_IS_NOT_CONST)
+ OCFS_DEBUG = @OCFS_DEBUG@
+ 
+--- a/configure.in	2008-01-31 13:51:13.000000000 -0500
++++ b/configure.in	2008-01-31 13:51:15.000000000 -0500
+@@ -379,6 +379,11 @@ OCFS2_CHECK_KERNEL([system_utsname in ut
+   HAS_SYSTEM_UTSNAME=yes, , [^extern struct new_utsname system_utsname])
+ AC_SUBST(HAS_SYSTEM_UTSNAME)
+ 
++NO_LOCKDEP=
++OCFS2_CHECK_KERNEL([linux/lockdep.h], lockdep.h, ,
++  NO_LOCKDEP=yes, [^struct lock_class {])
++AC_SUBST(NO_LOCKDEP)
 +
- NO_VECTORIZED_AIO=
- OCFS2_CHECK_KERNEL([aio_read() in struct file_operations using iovec in fs.h], fs.h,
-   , NO_VECTORIZED_AIO=yes, [ssize_t (\*aio_read) (struct kiocb \*, const struct iovec \*, unsigned long, loff_t);])
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 5750280..c8a81c4 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -88,6 +88,10 @@ ifdef FOP_IS_NOT_CONST
- EXTRA_CFLAGS += -DFOP_IS_NOT_CONST
+ # using -include has two advantages:
+ #  the source doesn't need to know to include compat headers
+ #  the compat header file names don't go through the search path
+--- a/fs/ocfs2/Makefile	2008-01-31 13:51:13.000000000 -0500
++++ b/fs/ocfs2/Makefile	2008-01-31 13:51:15.000000000 -0500
+@@ -136,6 +136,10 @@ ifdef DIO_OLD_GET_BLOCKS
+ EXTRA_CFLAGS += -DDIO_OLD_GET_BLOCKS
  endif
  
-+ifdef AOPS_IS_NOT_CONST
-+EXTRA_CFLAGS += -DAOPS_IS_NOT_CONST
++ifdef NO_LOCKDEP
++EXTRA_CFLAGS += -DNO_LOCKDEP
 +endif
 +
- ifdef NO_VECTORIZED_AIO
- CFLAGS_file.o += -DNO_VECTORIZED_AIO
- endif
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 54dd079..9b2a743 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1953,7 +1953,11 @@ int ocfs2_write_end(struct file *file, struct address_space *mapping,
- 	return ret;
- }
+ #
+ # Since SUBDIRS means something to kbuild, define them safely.  Do not
+ # include trailing slashes.
+--- a/fs/ocfs2/inode.c	2008-01-31 13:51:13.000000000 -0500
++++ b/fs/ocfs2/inode.c	2008-01-31 13:51:15.000000000 -0500
+@@ -60,7 +60,9 @@ struct ocfs2_find_inode_args
+ 	unsigned int	fi_sysfile_type;
+ };
  
-+#ifdef AOPS_IS_NOT_CONST
-+struct address_space_operations ocfs2_aops = {
-+#else
- const struct address_space_operations ocfs2_aops = {
-+#endif
- 	.readpage	= ocfs2_readpage,
- 	.readpages	= ocfs2_readpages,
- 	.writepage	= ocfs2_writepage,
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 390a855..01437ca 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -111,7 +111,11 @@ static inline struct ocfs2_inode_info *OCFS2_I(struct inode *inode)
- 
- extern struct kmem_cache *ocfs2_inode_cache;
- 
-+#ifdef AOPS_IS_NOT_CONST
-+extern struct address_space_operations ocfs2_aops;
-+#else
- extern const struct address_space_operations ocfs2_aops;
++#ifndef NO_LOCKDEP
+ static struct lock_class_key ocfs2_sysfile_lock_key[NUM_SYSTEM_INODES];
 +#endif
  
- struct buffer_head *ocfs2_bread(struct inode *inode, int block,
- 				int *err, int reada);
+ static int ocfs2_read_locked_inode(struct inode *inode,
+ 				   struct ocfs2_find_inode_args *args);
+@@ -205,9 +207,11 @@ static int ocfs2_init_locked_inode(struc
+ 
+ 	inode->i_ino = args->fi_ino;
+ 	OCFS2_I(inode)->ip_blkno = args->fi_blkno;
++#ifndef NO_LOCKDEP
+ 	if (args->fi_sysfile_type != 0)
+ 		lockdep_set_class(&inode->i_mutex,
+ 			&ocfs2_sysfile_lock_key[args->fi_sysfile_type]);
++#endif
+ 
+ 	mlog_exit(0);
+ 	return 0;
