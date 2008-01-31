@@ -1,84 +1,85 @@
 From: Jeff Mahoney <jeffm@suse.com>
-Date: Thu Jan 31 12:55:17 2008
-Subject: [Ocfs2-devel] [patch 1/5] ocfs2: add compatibility for lockdep
+Date: Thu Jan 31 12:55:18 2008
+Subject: [Ocfs2-devel] [patch 5/5] ocfs2: Add check for type of b_size in
+	struct buffer_head
 References: <20080131204634.478915000@suse.com>
-Message-ID: <20080131204715.155259000@suse.com>
+Message-ID: <20080131204716.022642000@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
- SLES10 doesn't have lockdep support. This patch ifdefs out the lockdep
- annotations when lockdep isn't found.
+ SLES10 has a b_size of type u32, not size_t in struct buffer_head. This
+ patch adds a check.
 
 Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 ---
 
- Config.make.in    |    1 +
- configure.in      |    5 +++++
- fs/ocfs2/Makefile |    4 ++++
- fs/ocfs2/inode.c  |    4 ++++
- 4 files changed, 14 insertions(+)
+ Config.make.in     |    1 +
+ configure.in       |    5 +++++
+ fs/ocfs2/Makefile  |    4 ++++
+ fs/ocfs2/journal.c |    7 ++++++-
+ 4 files changed, 16 insertions(+), 1 deletion(-)
 
---- a/Config.make.in	2008-01-31 13:51:13.000000000 -0500
-+++ b/Config.make.in	2008-01-31 13:51:15.000000000 -0500
-@@ -87,6 +87,7 @@ FILLDIR_T_WITH_INO_T = @FILLDIR_T_WITH_I
- INVALIDATEPAGE_RETURNS_INT = @INVALIDATEPAGE_RETURNS_INT@
- DIO_OLD_GET_BLOCKS = @DIO_OLD_GET_BLOCKS@
- HAS_SYSTEM_UTSNAME = @HAS_SYSTEM_UTSNAME@
-+NO_LOCKDEP = @NO_LOCKDEP@
+diff --git a/Config.make.in b/Config.make.in
+index 98bf410..24740c1 100644
+--- a/Config.make.in
++++ b/Config.make.in
+@@ -77,6 +77,7 @@ AOPS_IS_NOT_CONST = @AOPS_IS_NOT_CONST@
+ NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
+ NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
+ OLD_BIO_END_IO = @OLD_BIO_END_IO@
++B_SIZE_IS_U32 = @B_SIZE_IS_U32@
+ NO_EXPORTFS_HEADER = @NO_EXPORTFS_HEADER@
+ WRITEBACK_CONTROL_NO_RANGE_PREFIX = @WRITEBACK_CONTROL_NO_RANGE_PREFIX@
+ NO_SYNC_FILE_FLAGS = @NO_SYNC_FILE_FLAGS@
+diff --git a/configure.in b/configure.in
+index a4b3f0e..c783d4a 100644
+--- a/configure.in
++++ b/configure.in
+@@ -331,6 +331,11 @@ OCFS2_CHECK_KERNEL([old bio_end_io_t in bio.h], bio.h,
+   OLD_BIO_END_IO=yes, , [^typedef int (bio_end_io_t) (struct bio \*, unsigned int, int);])
+ AC_SUBST(OLD_BIO_END_IO)
  
- OCFS_DEBUG = @OCFS_DEBUG@
- 
---- a/configure.in	2008-01-31 13:51:13.000000000 -0500
-+++ b/configure.in	2008-01-31 13:51:15.000000000 -0500
-@@ -379,6 +379,11 @@ OCFS2_CHECK_KERNEL([system_utsname in ut
-   HAS_SYSTEM_UTSNAME=yes, , [^extern struct new_utsname system_utsname])
- AC_SUBST(HAS_SYSTEM_UTSNAME)
- 
-+NO_LOCKDEP=
-+OCFS2_CHECK_KERNEL([linux/lockdep.h], lockdep.h, ,
-+  NO_LOCKDEP=yes, [^struct lock_class {])
-+AC_SUBST(NO_LOCKDEP)
++B_SIZE_IS_U32=
++OCFS2_CHECK_KERNEL([b_size is u32 struct buffer_head in buffer_head.h], buffer_head.h,
++ B_SIZE_IS_U32=yes, , [^	u32 b_size;])
++AC_SUBST(B_SIZE_IS_U32)
 +
- # using -include has two advantages:
- #  the source doesn't need to know to include compat headers
- #  the compat header file names don't go through the search path
---- a/fs/ocfs2/Makefile	2008-01-31 13:51:13.000000000 -0500
-+++ b/fs/ocfs2/Makefile	2008-01-31 13:51:15.000000000 -0500
-@@ -136,6 +136,10 @@ ifdef DIO_OLD_GET_BLOCKS
- EXTRA_CFLAGS += -DDIO_OLD_GET_BLOCKS
+ NO_EXPORTFS_HEADER=
+ OCFS2_CHECK_KERNEL([exportfs.h], exportfs.h,
+   , NO_EXPORTFS_HEADER=yes, [^struct export_operations {])
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index c8a81c4..af47a25 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -100,6 +100,10 @@ ifdef NO_SPLICE_FROM_PIPE
+ EXTRA_CFLAGS += -DNO_SPLICE_FROM_PIPE
  endif
  
-+ifdef NO_LOCKDEP
-+EXTRA_CFLAGS += -DNO_LOCKDEP
++ifdef B_SIZE_IS_U32
++EXTRA_CFLAGS += -DB_SIZE_IS_U32
 +endif
 +
- #
- # Since SUBDIRS means something to kbuild, define them safely.  Do not
- # include trailing slashes.
---- a/fs/ocfs2/inode.c	2008-01-31 13:51:13.000000000 -0500
-+++ b/fs/ocfs2/inode.c	2008-01-31 13:51:15.000000000 -0500
-@@ -60,7 +60,9 @@ struct ocfs2_find_inode_args
- 	unsigned int	fi_sysfile_type;
- };
+ ifdef NO_EXPORTFS_HEADER
+ EXTRA_CFLAGS += -DNO_EXPORTFS_HEADER
+ endif
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 0332505..907a1bf 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -235,7 +235,12 @@ int ocfs2_journal_access(handle_t *handle,
+ 	BUG_ON(!handle);
+ 	BUG_ON(!bh);
  
-+#ifndef NO_LOCKDEP
- static struct lock_class_key ocfs2_sysfile_lock_key[NUM_SYSTEM_INODES];
+-	mlog_entry("bh->b_blocknr=%llu, type=%d (\"%s\"), bh->b_size = %zu\n",
++	mlog_entry("bh->b_blocknr=%llu, type=%d (\"%s\"), bh->b_size = "
++#ifdef B_SIZE_IS_U32
++		   "%u\n",
++#else
++		   "%zu\n",
 +#endif
- 
- static int ocfs2_read_locked_inode(struct inode *inode,
- 				   struct ocfs2_find_inode_args *args);
-@@ -205,9 +207,11 @@ static int ocfs2_init_locked_inode(struc
- 
- 	inode->i_ino = args->fi_ino;
- 	OCFS2_I(inode)->ip_blkno = args->fi_blkno;
-+#ifndef NO_LOCKDEP
- 	if (args->fi_sysfile_type != 0)
- 		lockdep_set_class(&inode->i_mutex,
- 			&ocfs2_sysfile_lock_key[args->fi_sysfile_type]);
-+#endif
- 
- 	mlog_exit(0);
- 	return 0;
+ 		   (unsigned long long)bh->b_blocknr, type,
+ 		   (type == OCFS2_JOURNAL_ACCESS_CREATE) ?
+ 		   "OCFS2_JOURNAL_ACCESS_CREATE" :
