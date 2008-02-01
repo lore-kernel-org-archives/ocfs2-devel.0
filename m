@@ -1,11 +1,11 @@
 From: Sunil Mushran <Sunil.Mushran@oracle.com>
 Date: Fri Feb  1 15:38:21 2008
-Subject: [Ocfs2-devel] Re: [patch 5/5] ocfs2: Add check for type of b_size
-	in struct buffer_head
-In-Reply-To: <20080131204716.022642000@suse.com>
+Subject: [Ocfs2-devel] Re: [patch 4/5] ocfs2: Add check for const
+	address_space_operations
+In-Reply-To: <20080131204715.818833000@suse.com>
 References: <20080131204634.478915000@suse.com>
-	<20080131204716.022642000@suse.com>
-Message-ID: <47A3AD32.8030408@oracle.com>
+	<20080131204715.818833000@suse.com>
+Message-ID: <47A3AD28.6070902@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,83 +13,99 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 Jeff Mahoney wrote:
->  SLES10 has a b_size of type u32, not size_t in struct buffer_head. This
->  patch adds a check.
+>  SLES10 doesn't have a const a_ops in struct address_space. This patch adds
+>  a check.
 >
 > Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 >   
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
+
 > ---
 >
->  Config.make.in     |    1 +
->  configure.in       |    5 +++++
->  fs/ocfs2/Makefile  |    4 ++++
->  fs/ocfs2/journal.c |    7 ++++++-
->  4 files changed, 16 insertions(+), 1 deletion(-)
+>  Config.make.in    |    1 +
+>  configure.in      |    5 +++++
+>  fs/ocfs2/Makefile |    4 ++++
+>  fs/ocfs2/aops.c   |    4 ++++
+>  fs/ocfs2/inode.h  |    4 ++++
+>  5 files changed, 18 insertions(+)
 >
 > diff --git a/Config.make.in b/Config.make.in
-> index 98bf410..24740c1 100644
+> index dc5431b..98bf410 100644
 > --- a/Config.make.in
 > +++ b/Config.make.in
-> @@ -77,6 +77,7 @@ AOPS_IS_NOT_CONST = @AOPS_IS_NOT_CONST@
+> @@ -73,6 +73,7 @@ NO_GENERIC_SEGMENT_CHECKS = @NO_GENERIC_SEGMENT_CHECKS@
+>  SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
+>  IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
+>  FOP_IS_NOT_CONST = @FOP_IS_NOT_CONST@
+> +AOPS_IS_NOT_CONST = @AOPS_IS_NOT_CONST@
 >  NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
 >  NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
 >  OLD_BIO_END_IO = @OLD_BIO_END_IO@
-> +B_SIZE_IS_U32 = @B_SIZE_IS_U32@
->  NO_EXPORTFS_HEADER = @NO_EXPORTFS_HEADER@
->  WRITEBACK_CONTROL_NO_RANGE_PREFIX = @WRITEBACK_CONTROL_NO_RANGE_PREFIX@
->  NO_SYNC_FILE_FLAGS = @NO_SYNC_FILE_FLAGS@
 > diff --git a/configure.in b/configure.in
-> index a4b3f0e..c783d4a 100644
+> index 3d9e49f..a4b3f0e 100644
 > --- a/configure.in
 > +++ b/configure.in
-> @@ -331,6 +331,11 @@ OCFS2_CHECK_KERNEL([old bio_end_io_t in bio.h], bio.h,
->    OLD_BIO_END_IO=yes, , [^typedef int (bio_end_io_t) (struct bio \*, unsigned int, int);])
->  AC_SUBST(OLD_BIO_END_IO)
+> @@ -310,6 +310,11 @@ OCFS2_CHECK_KERNEL([f_op declared as const in struct file in fs.h], fs.h,
+>    , FOP_IS_NOT_CONST=yes, [^.*const struct file_operations.*\*f_op;])
+>  AC_SUBST(FOP_IS_NOT_CONST)
 >  
-> +B_SIZE_IS_U32=
-> +OCFS2_CHECK_KERNEL([b_size is u32 struct buffer_head in buffer_head.h], buffer_head.h,
-> + B_SIZE_IS_U32=yes, , [^	u32 b_size;])
-> +AC_SUBST(B_SIZE_IS_U32)
+> +AOPS_IS_NOT_CONST=
+> +OCFS2_CHECK_KERNEL([a_ops declared as const in struct address_space in fs.h], fs.h,
+> +  , AOPS_IS_NOT_CONST=yes, [^.*const struct address_space_operations.*\*a_ops;])
+> +AC_SUBST(AOPS_IS_NOT_CONST)
 > +
->  NO_EXPORTFS_HEADER=
->  OCFS2_CHECK_KERNEL([exportfs.h], exportfs.h,
->    , NO_EXPORTFS_HEADER=yes, [^struct export_operations {])
+>  NO_VECTORIZED_AIO=
+>  OCFS2_CHECK_KERNEL([aio_read() in struct file_operations using iovec in fs.h], fs.h,
+>    , NO_VECTORIZED_AIO=yes, [ssize_t (\*aio_read) (struct kiocb \*, const struct iovec \*, unsigned long, loff_t);])
 > diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-> index c8a81c4..af47a25 100644
+> index 5750280..c8a81c4 100644
 > --- a/fs/ocfs2/Makefile
 > +++ b/fs/ocfs2/Makefile
-> @@ -100,6 +100,10 @@ ifdef NO_SPLICE_FROM_PIPE
->  EXTRA_CFLAGS += -DNO_SPLICE_FROM_PIPE
+> @@ -88,6 +88,10 @@ ifdef FOP_IS_NOT_CONST
+>  EXTRA_CFLAGS += -DFOP_IS_NOT_CONST
 >  endif
 >  
-> +ifdef B_SIZE_IS_U32
-> +EXTRA_CFLAGS += -DB_SIZE_IS_U32
+> +ifdef AOPS_IS_NOT_CONST
+> +EXTRA_CFLAGS += -DAOPS_IS_NOT_CONST
 > +endif
 > +
->  ifdef NO_EXPORTFS_HEADER
->  EXTRA_CFLAGS += -DNO_EXPORTFS_HEADER
+>  ifdef NO_VECTORIZED_AIO
+>  CFLAGS_file.o += -DNO_VECTORIZED_AIO
 >  endif
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 0332505..907a1bf 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -235,7 +235,12 @@ int ocfs2_journal_access(handle_t *handle,
->  	BUG_ON(!handle);
->  	BUG_ON(!bh);
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 54dd079..9b2a743 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1953,7 +1953,11 @@ int ocfs2_write_end(struct file *file, struct address_space *mapping,
+>  	return ret;
+>  }
 >  
-> -	mlog_entry("bh->b_blocknr=%llu, type=%d (\"%s\"), bh->b_size = %zu\n",
-> +	mlog_entry("bh->b_blocknr=%llu, type=%d (\"%s\"), bh->b_size = "
-> +#ifdef B_SIZE_IS_U32
-> +		   "%u\n",
+> +#ifdef AOPS_IS_NOT_CONST
+> +struct address_space_operations ocfs2_aops = {
 > +#else
-> +		   "%zu\n",
+>  const struct address_space_operations ocfs2_aops = {
 > +#endif
->  		   (unsigned long long)bh->b_blocknr, type,
->  		   (type == OCFS2_JOURNAL_ACCESS_CREATE) ?
->  		   "OCFS2_JOURNAL_ACCESS_CREATE" :
+>  	.readpage	= ocfs2_readpage,
+>  	.readpages	= ocfs2_readpages,
+>  	.writepage	= ocfs2_writepage,
+> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+> index 390a855..01437ca 100644
+> --- a/fs/ocfs2/inode.h
+> +++ b/fs/ocfs2/inode.h
+> @@ -111,7 +111,11 @@ static inline struct ocfs2_inode_info *OCFS2_I(struct inode *inode)
+>  
+>  extern struct kmem_cache *ocfs2_inode_cache;
+>  
+> +#ifdef AOPS_IS_NOT_CONST
+> +extern struct address_space_operations ocfs2_aops;
+> +#else
+>  extern const struct address_space_operations ocfs2_aops;
+> +#endif
+>  
+>  struct buffer_head *ocfs2_bread(struct inode *inode, int block,
+>  				int *err, int reada);
 >
 >
 >   
