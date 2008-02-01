@@ -1,11 +1,11 @@
 From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Fri Feb  1 15:38:21 2008
-Subject: [Ocfs2-devel] Re: [patch 4/5] ocfs2: Add check for const
-	address_space_operations
-In-Reply-To: <20080131204715.818833000@suse.com>
+Date: Fri Feb  1 15:38:23 2008
+Subject: [Ocfs2-devel] Re: [patch 2/5] ocfs2: add compatibility for
+	mandatory_lock()
+In-Reply-To: <20080131204715.360817000@suse.com>
 References: <20080131204634.478915000@suse.com>
-	<20080131204715.818833000@suse.com>
-Message-ID: <47A3AD28.6070902@oracle.com>
+	<20080131204715.360817000@suse.com>
+Message-ID: <47A3AD13.7080500@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,99 +13,92 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 Jeff Mahoney wrote:
->  SLES10 doesn't have a const a_ops in struct address_space. This patch adds
->  a check.
+>  SLES10 doesn't have a mandatory_lock() function, but does support
+>  IS_MANDATORY() and the associated functions.
+>
+>  This patch adds mandatory_lock() support.
 >
 > Signed-off-by: Jeff Mahoney <jeffm@suse.com>
 >   
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-
 > ---
 >
->  Config.make.in    |    1 +
->  configure.in      |    5 +++++
->  fs/ocfs2/Makefile |    4 ++++
->  fs/ocfs2/aops.c   |    4 ++++
->  fs/ocfs2/inode.h  |    4 ++++
->  5 files changed, 18 insertions(+)
+>  Config.make.in                       |    1 +
+>  configure.in                         |    6 ++++++
+>  fs/ocfs2/Makefile                    |    4 ++++
+>  kapi-compat/include/mandatory_lock.h |   27 +++++++++++++++++++++++++++
+>  4 files changed, 38 insertions(+)
 >
-> diff --git a/Config.make.in b/Config.make.in
-> index dc5431b..98bf410 100644
-> --- a/Config.make.in
-> +++ b/Config.make.in
-> @@ -73,6 +73,7 @@ NO_GENERIC_SEGMENT_CHECKS = @NO_GENERIC_SEGMENT_CHECKS@
->  SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
->  IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
->  FOP_IS_NOT_CONST = @FOP_IS_NOT_CONST@
-> +AOPS_IS_NOT_CONST = @AOPS_IS_NOT_CONST@
->  NO_VECTORIZED_AIO = @NO_VECTORIZED_AIO@
->  NO_SPLICE_FROM_PIPE = @NO_SPLICE_FROM_PIPE@
->  OLD_BIO_END_IO = @OLD_BIO_END_IO@
-> diff --git a/configure.in b/configure.in
-> index 3d9e49f..a4b3f0e 100644
-> --- a/configure.in
-> +++ b/configure.in
-> @@ -310,6 +310,11 @@ OCFS2_CHECK_KERNEL([f_op declared as const in struct file in fs.h], fs.h,
->    , FOP_IS_NOT_CONST=yes, [^.*const struct file_operations.*\*f_op;])
->  AC_SUBST(FOP_IS_NOT_CONST)
+> --- a/Config.make.in	2008-01-31 13:48:44.000000000 -0500
+> +++ b/Config.make.in	2008-01-31 13:49:00.000000000 -0500
+> @@ -88,6 +88,7 @@ INVALIDATEPAGE_RETURNS_INT = @INVALIDATE
+>  DIO_OLD_GET_BLOCKS = @DIO_OLD_GET_BLOCKS@
+>  HAS_SYSTEM_UTSNAME = @HAS_SYSTEM_UTSNAME@
+>  NO_LOCKDEP = @NO_LOCKDEP@
+> +NO_MANDATORY_LOCK = @NO_MANDATORY_LOCK@
 >  
-> +AOPS_IS_NOT_CONST=
-> +OCFS2_CHECK_KERNEL([a_ops declared as const in struct address_space in fs.h], fs.h,
-> +  , AOPS_IS_NOT_CONST=yes, [^.*const struct address_space_operations.*\*a_ops;])
-> +AC_SUBST(AOPS_IS_NOT_CONST)
+>  OCFS_DEBUG = @OCFS_DEBUG@
+>  
+> --- a/configure.in	2008-01-31 13:48:44.000000000 -0500
+> +++ b/configure.in	2008-01-31 13:49:00.000000000 -0500
+> @@ -384,6 +384,12 @@ OCFS2_CHECK_KERNEL([linux/lockdep.h], lo
+>    NO_LOCKDEP=yes, [^struct lock_class {])
+>  AC_SUBST(NO_LOCKDEP)
+>  
+> +NO_MANDATORY_LOCK=
+> +OCFS2_CHECK_KERNEL([mandatory_lock() in fs.h], fs.h, ,
+> +  NO_MANDATORY_LOCK=yes, [^static inline int mandatory_lock(])
+> +AC_SUBST(NO_MANDATORY_LOCK)
+> +KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS mandatory_lock.h"
 > +
->  NO_VECTORIZED_AIO=
->  OCFS2_CHECK_KERNEL([aio_read() in struct file_operations using iovec in fs.h], fs.h,
->    , NO_VECTORIZED_AIO=yes, [ssize_t (\*aio_read) (struct kiocb \*, const struct iovec \*, unsigned long, loff_t);])
-> diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-> index 5750280..c8a81c4 100644
-> --- a/fs/ocfs2/Makefile
-> +++ b/fs/ocfs2/Makefile
-> @@ -88,6 +88,10 @@ ifdef FOP_IS_NOT_CONST
->  EXTRA_CFLAGS += -DFOP_IS_NOT_CONST
+>  # using -include has two advantages:
+>  #  the source doesn't need to know to include compat headers
+>  #  the compat header file names don't go through the search path
+> --- a/fs/ocfs2/Makefile	2008-01-31 13:48:44.000000000 -0500
+> +++ b/fs/ocfs2/Makefile	2008-01-31 13:49:00.000000000 -0500
+> @@ -140,6 +140,10 @@ ifdef NO_LOCKDEP
+>  EXTRA_CFLAGS += -DNO_LOCKDEP
 >  endif
 >  
-> +ifdef AOPS_IS_NOT_CONST
-> +EXTRA_CFLAGS += -DAOPS_IS_NOT_CONST
+> +ifdef NO_MANDATORY_LOCK
+> +EXTRA_CFLAGS += -DNO_MANDATORY_LOCK
 > +endif
 > +
->  ifdef NO_VECTORIZED_AIO
->  CFLAGS_file.o += -DNO_VECTORIZED_AIO
->  endif
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 54dd079..9b2a743 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -1953,7 +1953,11 @@ int ocfs2_write_end(struct file *file, struct address_space *mapping,
->  	return ret;
->  }
->  
-> +#ifdef AOPS_IS_NOT_CONST
-> +struct address_space_operations ocfs2_aops = {
-> +#else
->  const struct address_space_operations ocfs2_aops = {
+>  #
+>  # Since SUBDIRS means something to kbuild, define them safely.  Do not
+>  # include trailing slashes.
+> --- /dev/null	1970-01-01 00:00:00.000000000 +0000
+> +++ b/kapi-compat/include/mandatory_lock.h	2008-01-31 13:49:00.000000000 -0500
+> @@ -0,0 +1,27 @@
+> +#ifndef KAPI_MANDATORY_LOCK_H
+> +#define KAPI_MANDATORY_LOCK_H
+> +
+> +#ifdef NO_MANDATORY_LOCK
+> +#include <linux/fs.h>
+> +/*
+> + * Candidates for mandatory locking have the setgid bit set
+> + * but no group execute bit -  an otherwise meaningless combination.
+> + */
+> +
+> +static inline int __mandatory_lock(struct inode *ino)
+> +{
+> +        return (ino->i_mode & (S_ISGID | S_IXGRP)) == S_ISGID;
+> +}
+> +
+> +/*
+> + * ... and these candidates should be on MS_MANDLOCK mounted fs,
+> + * otherwise these will be advisory locks
+> + */
+> +
+> +static inline int mandatory_lock(struct inode *ino)
+> +{
+> +        return IS_MANDLOCK(ino) && __mandatory_lock(ino);
+> +}
 > +#endif
->  	.readpage	= ocfs2_readpage,
->  	.readpages	= ocfs2_readpages,
->  	.writepage	= ocfs2_writepage,
-> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-> index 390a855..01437ca 100644
-> --- a/fs/ocfs2/inode.h
-> +++ b/fs/ocfs2/inode.h
-> @@ -111,7 +111,11 @@ static inline struct ocfs2_inode_info *OCFS2_I(struct inode *inode)
->  
->  extern struct kmem_cache *ocfs2_inode_cache;
->  
-> +#ifdef AOPS_IS_NOT_CONST
-> +extern struct address_space_operations ocfs2_aops;
-> +#else
->  extern const struct address_space_operations ocfs2_aops;
-> +#endif
->  
->  struct buffer_head *ocfs2_bread(struct inode *inode, int block,
->  				int *err, int reada);
+> +
+> +#endif /* KAPI_MANDATORY_LOCK_H */
 >
 >
 >   
