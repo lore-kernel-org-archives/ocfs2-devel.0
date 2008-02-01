@@ -1,128 +1,193 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri Feb  1 16:50:02 2008
-Subject: [Ocfs2-devel] [PATCH 04/12] ocfs2_dlm: Link all lockres' to a
-	tracking list
+Date: Fri Feb  1 16:50:03 2008
+Subject: [Ocfs2-devel] [PATCH 05/12] ocfs2_dlm: Create debugfs dirs
 In-Reply-To: <1201913371-1522-1-git-send-email-sunil.mushran@oracle.com>
 References: <1201913371-1522-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1201913371-1522-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1201913371-1522-6-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch links all the lockres' to a tracking list in dlm_ctxt.
-We will use this in the upcoming patch that will walk the entire
-list and to dump the lockres states to a debugfs file.
+This patch creates the debugfs directories that will hold the
+files to be used to dump the dlm state.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |    6 ++++--
- fs/ocfs2/dlm/dlmdomain.c |    1 +
- fs/ocfs2/dlm/dlmmaster.c |   12 +++++++++---
- fs/ocfs2/dlm/dlmthread.c |    5 +++++
- 4 files changed, 19 insertions(+), 5 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    2 ++
+ fs/ocfs2/dlm/dlmdebug.c  |   42 ++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlm/dlmdebug.h  |    7 +++++++
+ fs/ocfs2/dlm/dlmdomain.c |   20 ++++++++++++++++++++
+ 4 files changed, 71 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 041ec68..d782b41 100644
+index d782b41..74ee372 100644
 --- a/fs/ocfs2/dlm/dlmcommon.h
 +++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -101,6 +101,7 @@ struct dlm_ctxt
- 	struct list_head purge_list;
- 	struct list_head pending_asts;
- 	struct list_head pending_basts;
-+	struct list_head tracking_list;
- 	unsigned int purge_count;
- 	spinlock_t spinlock;
- 	spinlock_t ast_lock;
-@@ -259,11 +260,12 @@ struct dlm_lock_resource
- 	struct list_head purge;
+@@ -125,6 +125,8 @@ struct dlm_ctxt
+ 	atomic_t remote_resources;
+ 	atomic_t unknown_resources;
  
- 	/*
--	 * These two lists require you to hold an additional reference
-+	 * These three lists require you to hold an additional reference
- 	 * while they are on the list.
- 	 */
- 	struct list_head dirty;
--	struct list_head recovering; // dlm_recovery_ctxt.resources list
-+	struct list_head recovering;	/* dlm->dlm_recovery_ctxt.resources */
-+	struct list_head tracking;	/* dlm->tracking_list */
- 
- 	/* unused lock resources have their last_used stamped and are
- 	 * put on a list for the dlm thread to run. */
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 6d02ef5..71d3946 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1404,6 +1404,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
- 	INIT_LIST_HEAD(&dlm->reco.node_data);
- 	INIT_LIST_HEAD(&dlm->purge_list);
- 	INIT_LIST_HEAD(&dlm->dlm_domain_handlers);
-+	INIT_LIST_HEAD(&dlm->tracking_list);
- 	dlm->reco.state = 0;
- 
- 	INIT_LIST_HEAD(&dlm->pending_asts);
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index e469e49..4f2bf7c 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -648,10 +648,11 @@ static void dlm_lockres_release(struct kref *kref)
- 	    !list_empty(&res->blocked) ||
- 	    !list_empty(&res->dirty) ||
- 	    !list_empty(&res->recovering) ||
--	    !list_empty(&res->purge)) {
-+	    !list_empty(&res->purge) ||
-+	    !list_empty(&res->tracking)) {
- 		mlog(ML_ERROR,
- 		     "Going to BUG for resource %.*s."
--		     "  We're on a list! [%c%c%c%c%c%c%c]\n",
-+		     "  We're on a list! [%c%c%c%c%c%c%c%c]\n",
- 		     res->lockname.len, res->lockname.name,
- 		     !hlist_unhashed(&res->hash_node) ? 'H' : ' ',
- 		     !list_empty(&res->granted) ? 'G' : ' ',
-@@ -659,7 +660,8 @@ static void dlm_lockres_release(struct kref *kref)
- 		     !list_empty(&res->blocked) ? 'B' : ' ',
- 		     !list_empty(&res->dirty) ? 'D' : ' ',
- 		     !list_empty(&res->recovering) ? 'R' : ' ',
--		     !list_empty(&res->purge) ? 'P' : ' ');
-+		     !list_empty(&res->purge) ? 'P' : ' ',
-+		     !list_empty(&res->tracking) ? 'T' : ' ');
- 
- 		dlm_print_one_lock_resource(res);
- 	}
-@@ -709,6 +711,7 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
- 	INIT_LIST_HEAD(&res->dirty);
- 	INIT_LIST_HEAD(&res->recovering);
- 	INIT_LIST_HEAD(&res->purge);
-+	INIT_LIST_HEAD(&res->tracking);
- 	atomic_set(&res->asts_reserved, 0);
- 	res->migration_pending = 0;
- 	res->inflight_locks = 0;
-@@ -724,6 +727,9 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
- 
- 	res->last_used = 0;
- 
-+	dlm_lockres_get(res);
-+	list_add_tail(&res->tracking, &dlm->tracking_list);
++	struct dentry *dlm_debugfs_subroot;
 +
- 	memset(res->lvb, 0, DLM_LVB_LEN);
- 	memset(res->refmap, 0, sizeof(res->refmap));
- }
-diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index cebd089..620d6a3 100644
---- a/fs/ocfs2/dlm/dlmthread.c
-+++ b/fs/ocfs2/dlm/dlmthread.c
-@@ -204,6 +204,11 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
- 	}
- 	__dlm_unhash_lockres(res);
+ 	/* NOTE: Next three are protected by dlm_domain_lock */
+ 	struct kref dlm_refs;
+ 	enum dlm_ctxt_state dlm_state;
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 068dd98..fe327be 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -31,6 +31,7 @@
+ #include <linux/sysctl.h>
+ #include <linux/spinlock.h>
+ #include <linux/proc_fs.h>
++#include <linux/debugfs.h>
  
-+	if (!list_empty(&res->tracking)) {
-+		list_del_init(&res->tracking);
-+		dlm_lockres_put(res);
+ #include "cluster/heartbeat.h"
+ #include "cluster/nodemanager.h"
+@@ -46,6 +47,8 @@
+ #define MLOG_MASK_PREFIX ML_DLM
+ #include "cluster/masklog.h"
+ 
++static struct dentry *dlm_debugfs_root = NULL;
++
+ static int dlm_dump_all_lock_resources(const char __user *data,
+ 					unsigned int len);
+ static void dlm_dump_purge_list(struct dlm_ctxt *dlm);
+@@ -695,3 +698,42 @@ const char *dlm_errname(enum dlm_status err)
+ 	return dlm_errnames[err];
+ }
+ EXPORT_SYMBOL_GPL(dlm_errname);
++
++/* subroot - domain dir */
++int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
++{
++	dlm->dlm_debugfs_subroot = debugfs_create_dir(dlm->name, dlm_debugfs_root);
++	if (!dlm->dlm_debugfs_subroot) {
++		mlog_errno(-ENOMEM);
++		goto bail;
 +	}
 +
- 	/* lockres is not in the hash now.  drop the flag and wake up
- 	 * any processes waiting in dlm_get_lock_resource. */
- 	if (!master) {
++	return 0;
++bail:
++	dlm_destroy_debugfs_subroot(dlm);
++	return -ENOMEM;
++}
++
++void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm)
++{
++	if (dlm->dlm_debugfs_subroot)
++		debugfs_remove(dlm->dlm_debugfs_subroot);
++}
++
++/* debugfs root */
++int dlm_create_debugfs_root(void)
++{
++	dlm_debugfs_root = debugfs_create_dir("o2dlm", NULL);
++	if (!dlm_debugfs_root) {
++		mlog_errno(-ENOMEM);
++		return -ENOMEM;
++	}
++
++	return 0;
++}
++
++void dlm_destroy_debugfs_root(void)
++{
++	if (dlm_debugfs_root)
++		debugfs_remove(dlm_debugfs_root);
++}
+diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
+index dbe3a3d..e701499 100644
+--- a/fs/ocfs2/dlm/dlmdebug.h
++++ b/fs/ocfs2/dlm/dlmdebug.h
+@@ -31,4 +31,11 @@ void dlm_dump_lock_resources(struct dlm_ctxt *dlm);
+ void dlm_proc_add_domain(struct dlm_ctxt *dlm);
+ void dlm_proc_del_domain(struct dlm_ctxt *dlm);
+ void dlm_dump_work_queue(struct dlm_ctxt *dlm);
++
++int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm);
++void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm);
++
++int dlm_create_debugfs_root(void);
++void dlm_destroy_debugfs_root(void);
++
+ #endif
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 71d3946..7b2c967 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -33,6 +33,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/delay.h>
+ #include <linux/err.h>
++#include <linux/debugfs.h>
+ 
+ #include "cluster/heartbeat.h"
+ #include "cluster/nodemanager.h"
+@@ -43,6 +44,7 @@
+ 
+ #include "dlmdebug.h"
+ #include "dlmdomain.h"
++#include "dlmdebug.h"
+ 
+ #include "dlmver.h"
+ 
+@@ -288,6 +290,8 @@ static void dlm_free_ctxt_mem(struct dlm_ctxt *dlm)
+ {
+ 	dlm_proc_del_domain(dlm);
+ 
++	dlm_destroy_debugfs_subroot(dlm);
++
+ 	if (dlm->lockres_hash)
+ 		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
+ 
+@@ -1362,6 +1366,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 				u32 key)
+ {
+ 	int i;
++	int ret;
+ 	struct dlm_ctxt *dlm = NULL;
+ 
+ 	dlm = kzalloc(sizeof(*dlm), GFP_KERNEL);
+@@ -1394,6 +1399,15 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	dlm->key = key;
+ 	dlm->node_num = o2nm_this_node();
+ 
++	ret = dlm_create_debugfs_subroot(dlm);
++	if (ret < 0) {
++		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
++		kfree(dlm->name);
++		kfree(dlm);
++		dlm = NULL;
++		goto leave;
++	}
++
+ 	spin_lock_init(&dlm->spinlock);
+ 	spin_lock_init(&dlm->master_lock);
+ 	spin_lock_init(&dlm->ast_lock);
+@@ -1678,8 +1692,13 @@ static int __init dlm_init(void)
+ 
+ 	dlm_init_proc();
+ 
++	status = dlm_create_debugfs_root();
++	if (status)
++		goto error;
++
+ 	return 0;
+ error:
++	dlm_unregister_net_handlers();
+ 	dlm_destroy_lock_cache();
+ 	dlm_destroy_lockname_cache();
+ 	dlm_destroy_lockres_cache();
+@@ -1689,6 +1708,7 @@ error:
+ 
+ static void __exit dlm_exit (void)
+ {
++	dlm_destroy_debugfs_root();
+ 	dlm_remove_proc();
+ 	dlm_unregister_net_handlers();
+ 	dlm_destroy_lock_cache();
 -- 
 1.5.2.5
