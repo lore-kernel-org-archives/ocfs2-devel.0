@@ -1,33 +1,22 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri Feb 29 13:40:29 2008
-Subject: [Ocfs2-devel] endian bug?
-Message-ID: <20080229213936.GE9349@ca-server1.us.oracle.com>
+From: Jeff at locomotive.unixthugs.org <Jeff@locomotive.unixthugs.org>
+Date: Sat, 02 Feb 2008 16:27:54 -0000
+Subject: [Ocfs2-devel] [patch 00/16] ocfs2: SLES10 compatibility patch queue
+Message-ID: <20080202162652.006821000@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Compiling with sparse today, I get:
+ Here is the original set of fixes, split out into 14 individual ones.
 
-fs/ocfs2/resize.c:600:16: warning: cast to restricted type
-fs/ocfs2/resize.c:600:14: warning: incorrect type in assignment (different
-base types)
-fs/ocfs2/resize.c:600:14:    expected restricted unsigned long long
-[usertype] c_blkno
-fs/ocfs2/resize.c:600:14:    got unsigned long long [unsigned] [usertype]
-<noident>
+ In addition to splitting them out, I also changed the ones that were
+ HAS_* to NO_* as requested. The last two patches are needed to build
+ on openSUSE 10.3 which is based on 2.6.22. I used it as a sanity check
+ and found those failures.
 
-
-Which in my tree is:
-
-	cr->c_blkno = le64_to_cpu(input->group);
-
-where 'cr' is of type 'ocfs2_chain_rec'... This looks wrong to me, would you
-care to verify (and send a patch)?
-	--Mark
+ -Jeff
 
 --
-Mark Fasheh
-Principal Software Developer, Oracle
-mark.fasheh@oracle.com
+Jeff Mahoney
+SUSE Labs
