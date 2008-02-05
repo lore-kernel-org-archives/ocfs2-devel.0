@@ -1,50 +1,27 @@
-From: Jeff Mahoney <jeffm@suse.com>
-Date: Mon Feb  4 20:37:37 2008
-Subject: [Ocfs2-devel] Re: [patch 01/16] ocfs2: Add check for missing
-	range_* prefix in struct writeback_control
-In-Reply-To: <47A7D4B4.6090802@oracle.com>
-References: <20080202162652.006821000@suse.com>
-	<20080202162710.319523000@suse.com> <47A7D4B4.6090802@oracle.com>
-Message-ID: <91731AA7-C332-494B-A505-F84254FACDDB@suse.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Tue Feb  5 12:13:39 2008
+Subject: [Ocfs2-devel] [patch 1/1] offline de-fragmentation tool
+In-Reply-To: <47A67D89.2030403@oracle.com>
+References: <47A67D89.2030403@oracle.com>
+Message-ID: <20080205201305.GL22671@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Works for me.
+On Mon, Feb 04, 2008 at 10:50:49AM +0800, wengang wang wrote:
+> this tool doesn't merge or split extent records for now. and it's nearly 
+> help nothing to fs performance.
+> the feature to be added is trying to move all data clusters of a file 
+> together as possible. so that accessing to file on ocfs2 can get better 
+> performance.
 
-Thanks.
-
--Jeff
+Merging extents is pretty high value, so I'd definitely like to see that as
+your next step ;)
+	--Mark
 
 --
-Jeff Mahoney (mobile)
-SUSE Labs
-
-
-On Feb 4, 2008, at 10:15 PM, Sunil Mushran <Sunil.Mushran@oracle.com>  
-wrote:
-
-> Jeff@locomotive.unixthugs.org wrote:
->> --- a/fs/ocfs2/Makefile    2008-02-02 10:36:14.000000000 -0500
->> +++ b/fs/ocfs2/Makefile    2008-02-02 10:36:24.000000000 -0500
->> @@ -116,6 +116,10 @@ ifdef NO_MANDATORY_LOCK
->> EXTRA_CFLAGS += -DNO_MANDATORY_LOCK
->> endif
->> +ifdef WRITEBACK_CONTROL_NO_RANGE_PREFIX
->> +EXTRA_CFLAGS += -DWRITEBACK_CONTROL_NO_RANGE_PREFIX
->> +endif
->> +
->>
->
-> If it's ok, I am changing EXTRA_CFLAGS to  
-> CFLAGS_compat_sync_mapping_range.o instead.
-> More targeted.
->
-> Rest all the patches look good. If no one objects, I will push these  
-> tomorrow.
->
-> Sunil
->
->
+Mark Fasheh
+Principal Software Developer, Oracle
+mark.fasheh@oracle.com
