@@ -1,37 +1,36 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri Feb  8 10:49:57 2008
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: Enable localalloc for local mounts
+Date: Fri Feb  8 10:49:59 2008
+Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: Fix broken rpm build
 In-Reply-To: <1202496577-21982-1-git-send-email-sunil.mushran@oracle.com>
 References: <1202496577-21982-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1202496577-21982-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1202496577-21982-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 2fbe8d1ebe004425b4f7b8bba345623d2280be82 disabled localalloc
-for local mounts. This caused issues as ocfs2 uses localalloc to
-provide write locality. This patch enables localalloc for local mounts.
+Commit 959aeecc8cdaf7ce6046227062086624d4eb7031 in this tree missed
+including kapi-include/include/mandatory_lock.h to Makefile.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/localalloc.c |    3 ---
- 1 files changed, 0 insertions(+), 3 deletions(-)
+ Makefile |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index ff7f343..d036fe8 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -120,9 +120,6 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+diff --git a/Makefile b/Makefile
+index 4a290cf..8e17890 100644
+--- a/Makefile
++++ b/Makefile
+@@ -31,7 +31,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/writeback_control.h \
+ 	kapi-compat/include/blkcnt_t.h \
+ 	kapi-compat/include/read_mapping_page.h \
+-	kapi-compat/include/aiovec.h
++	kapi-compat/include/aiovec.h \
++	kapi-compat/include/mandatory_lock.h
  
- 	mlog_entry_void();
- 
--	if (ocfs2_mount_local(osb))
--		goto bail;
--
- 	if (osb->local_alloc_size == 0)
- 		goto bail;
+ PATCH_FILES =
  
 -- 
 1.5.2.5
