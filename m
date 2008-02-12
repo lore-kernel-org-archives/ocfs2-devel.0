@@ -1,65 +1,63 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 07 Feb 2008 22:17:37 -0000
-Subject: [Ocfs2-devel] [git patches] ocfs2 update
-In-Reply-To: <20080207213714.GR22671@ca-server1.us.oracle.com>
-References: <20080207200944.GQ22671@ca-server1.us.oracle.com>
-	<20080207124745.4868e108.akpm@linux-foundation.org>
-	<20080207213714.GR22671@ca-server1.us.oracle.com>
-Message-ID: <20080207141706.33604c50.akpm@linux-foundation.org>
+From: marcin.slusarz at gmail.com <marcin.slusarz@gmail.com>
+Date: Tue, 12 Feb 2008 23:11:24 -0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: le*_add_cpu conversion
+In-Reply-To: <1202857582-15450-1-git-send-email-marcin.slusarz@gmail.com>
+References: <1202857582-15450-1-git-send-email-marcin.slusarz@gmail.com>
+Message-ID: <1202857582-15450-14-git-send-email-marcin.slusarz@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mark.fasheh@oracle.com>
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel.Becker@oracle.com
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Marcin Slusarz <marcin.slusarz@gmail.com>, Mark Fasheh <mark.fasheh@oracle.com>, Kurt Hackel <kurt.hackel@oracle.com>, ocfs2-devel@oss.oracle.com
 
-On Thu, 7 Feb 2008 13:37:15 -0800
-Mark Fasheh <mark.fasheh@oracle.com> wrote:
+From: Marcin Slusarz <marcin.slusarz@gmail.com>
 
-> > Please integrate checkpatch into your processes - this one had a few little
-> > glitches.
-> 
-> FWIW - I've run all patches through checkpatch.pl since your last review.
+replace all:
+little_endian_variable = cpu_to_leX(leX_to_cpu(little_endian_variable) +
+					expression_in_cpu_byteorder);
+with:
+	leX_add_cpu(&little_endian_variable, expression_in_cpu_byteorder);
+generated with semantic patch
 
-cool, thanks.
+Signed-off-by: Marcin Slusarz <marcin.slusarz@gmail.com>
+Cc: Mark Fasheh <mark.fasheh@oracle.com>
+Cc: Kurt Hackel <kurt.hackel@oracle.com>
+Cc: ocfs2-devel at oss.oracle.com
+---
+ fs/ocfs2/dir.c        |    5 ++---
+ fs/ocfs2/localalloc.c |    3 +--
+ 2 files changed, 3 insertions(+), 5 deletions(-)
 
-> This one went through a couple cycles of checkpatch actually :) There's
-> three warnings that I get:
-> 
-> ERROR: "foo * bar" should be "foo *bar"
-> #70: FILE: fs/ocfs2/dlm/dlmapi.h:200:
-> +struct dlm_ctxt * dlm_register_domain(const char *domain, u32 key,
-> 
-> WARNING: line over 80 characters
-> #269: FILE: fs/ocfs2/dlm/dlmdomain.c:813:
-> +
-> #&dlm->fs_locking_proto,
-> 
-> WARNING: line over 80 characters
-> #270: FILE: fs/ocfs2/dlm/dlmdomain.c:814:
-> +
-> #&query->fs_proto)) {
-> 
-> total: 1 errors, 2 warnings, 569 lines checked
-> 
-> 
-> The "foo * bar" one is from existing code which got moved, and I felt that
-> leaving them unmodified was cleaner from a patch-reading perspective.
-
-I tend to clean those things up as we go, because it's a free patch.
-
-otoh I see that dlm style is presently space-after-asterisk so there's not
-a lot of point in fixing just one of them.
-
-> The over 80 characters warnings were ignored as the code seemed more
-> readable as-is.
-
-yes, I tend to ignore those warnings unless the mess is really gratuitous or
-if the surrounding code has obviously made some effort to avoid the problem.
-
-> I guess a lot of this can be subjective though, so I can be super strict if
-> you really feel it's necessary.
-
-No, you shouldn't view checkpatch as a things-i-must-do.  It is a
-things-i-might-have-missed tool.  If you _meant_ things to be that way then
-fine, ignore it.
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index e280833..8a18758 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -390,9 +390,8 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
+ 				goto bail;
+ 			}
+ 			if (pde)
+-				pde->rec_len =
+-					cpu_to_le16(le16_to_cpu(pde->rec_len) +
+-						    le16_to_cpu(de->rec_len));
++				le16_add_cpu(&pde->rec_len,
++						le16_to_cpu(de->rec_len));
+ 			else
+ 				de->inode = 0;
+ 			dir->i_version++;
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index add1ffd..d0e217e 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -588,8 +588,7 @@ int ocfs2_claim_local_alloc_bits(struct ocfs2_super *osb,
+ 	while(bits_wanted--)
+ 		ocfs2_set_bit(start++, bitmap);
+ 
+-	alloc->id1.bitmap1.i_used = cpu_to_le32(*num_bits +
+-				le32_to_cpu(alloc->id1.bitmap1.i_used));
++	le32_add_cpu(&alloc->id1.bitmap1.i_used, *num_bits);
+ 
+ 	status = ocfs2_journal_dirty(handle, osb->local_alloc_bh);
+ 	if (status < 0) {
+-- 
+1.5.3.7
