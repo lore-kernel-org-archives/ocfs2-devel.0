@@ -1,128 +1,200 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon Feb 11 10:53:28 2008
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Add fops->sendfile()
-In-Reply-To: <1202755969-7115-1-git-send-email-sunil.mushran@oracle.com>
-References: <1202755969-7115-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1202755969-7115-4-git-send-email-sunil.mushran@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Wed Feb 13 18:32:57 2008
+Subject: [Ocfs2-devel] [PATCH] o2net: Reconnect after idle time out.V2
+Message-ID: <20080214023137.GA14136@tma-pc1.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-fops->sendfile() was removed in 2.6.23. Re-adding as this version
-of the fs is meant to also work with older kernels.
+Modification from V1 to V2:
+1. Use atomic ops instead of spin_lock in timer.
+2. Add some comments when querying connect_expired work.
+   These comments are copied form Zach's mail.;)
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Currently, o2net connects to a node on hb_up and disconnects on
+hb_down and net timeout.
+
+It disconnects on net timeout is ok, but it should attempt to
+reconnect back. This is because sometimes nodes get overloaded
+enough that the network connection breaks but the disk hb does not.
+And if we get into that situation, we either fence (unnecessarily)
+or wait for its disk hb to die (and sometimes hang in the process).
+
+So in this updated scheme, when the network disconnects, we keep
+attempting to reconnect till we succeed or we get a disk hb down
+event.
+
+If the other node is really dead, then we will eventually get a
+node down event. If not, we should be able to connect again and
+continue.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+
 ---
- Config.make.in    |    1 +
- configure.in      |    5 +++++
- fs/ocfs2/Makefile |    4 ++++
- fs/ocfs2/file.c   |   42 ++++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 52 insertions(+), 0 deletions(-)
 
-diff --git a/Config.make.in b/Config.make.in
-index a9740e8..b7d553d 100644
---- a/Config.make.in
-+++ b/Config.make.in
-@@ -94,6 +94,7 @@ DIO_OLD_GET_BLOCKS = @DIO_OLD_GET_BLOCKS@
- NO_LINUX_UACCESS_H = @NO_LINUX_UACCESS_H@
- NO_SYSTEM_UTSNAME = @NO_SYSTEM_UTSNAME@
- HAS_MS_LOOP_NO_AOPS  = @HAS_MS_LOOP_NO_AOPS@
-+HAS_FOPS_SENDFILE = @HAS_FOPS_SENDFILE@
+ fs/ocfs2/cluster/tcp.c          |   51 ++++++++++++++++++++++++++++-----------
+ fs/ocfs2/cluster/tcp_internal.h |    2 ++
+ 2 files changed, 38 insertions(+), 15 deletions(-)
+
+80a4fe7d969802b1943ddd8f3860803458798146
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index ee50c96..d808bfa 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -399,8 +399,6 @@ static void o2net_set_nn_state(struct o2
+ 	mlog_bug_on_msg(err && valid, "err %d valid %u\n", err, valid);
+ 	mlog_bug_on_msg(valid && !sc, "valid %u sc %p\n", valid, sc);
  
- OCFS_DEBUG = @OCFS_DEBUG@
+-	/* we won't reconnect after our valid conn goes away for
+-	 * this hb iteration.. here so it shows up in the logs */
+ 	if (was_valid && !valid && err == 0)
+ 		err = -ENOTCONN;
  
-diff --git a/configure.in b/configure.in
-index a1c5d19..f3544b0 100644
---- a/configure.in
-+++ b/configure.in
-@@ -415,6 +415,11 @@ OCFS2_CHECK_KERNEL([MS_LOOP_NO_AOPS flag defined], fs.h,
-   HAS_MS_LOOP_NO_AOPS==yes, , [MS_LOOP_NO_AOPS])
- AC_SUBST(HAS_MS_LOOP_NO_AOPS)
+@@ -430,11 +428,6 @@ static void o2net_set_nn_state(struct o2
  
-+HAS_FOPS_SENDFILE=
-+OCFS2_CHECK_KERNEL([fops->sendfile() in fs.h], fs.h,
-+  HAS_FOPS_SENDFILE=yes, , [^.*ssize_t (\*sendfile)])
-+AC_SUBST(HAS_FOPS_SENDFILE)
+ 	if (!was_valid && valid) {
+ 		o2quo_conn_up(o2net_num_from_nn(nn));
+-		/* this is a bit of a hack.  we only try reconnecting
+-		 * when heartbeating starts until we get a connection.
+-		 * if that connection then dies we don't try reconnecting.
+-		 * the only way to start connecting again is to down
+-		 * heartbeat and bring it back up. */
+ 		cancel_delayed_work(&nn->nn_connect_expired);
+ 		printk(KERN_INFO "o2net: %s " SC_NODEF_FMT "\n",
+ 		       o2nm_this_node() > sc->sc_node->nd_num ?
+@@ -457,6 +450,18 @@ static void o2net_set_nn_state(struct o2
+ 			delay = 0;
+ 		mlog(ML_CONN, "queueing conn attempt in %lu jiffies\n", delay);
+ 		queue_delayed_work(o2net_wq, &nn->nn_connect_work, delay);
 +
- # using -include has two advantages:
- #  the source doesn't need to know to include compat headers
- #  the compat header file names don't go through the search path
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 05a94c7..0b90da3 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -164,6 +164,10 @@ ifdef HAS_MS_LOOP_NO_AOPS
- EXTRA_CFLAGS += -DHAS_MS_LOOP_NO_AOPS
- endif
++		/*
++		 * Delay the expired work after idle timeout.
++		 *
++		 * We might have lots of failed connection attempts that run
++		 * through here but we only cancel the connect_expired work when
++		 * a connection attempt succeeds.  So only the first enqueue of
++		 * the connect_expired work will do anything.  The rest will see
++		 * that it's already queued and do nothing.
++		 */
++		delay += msecs_to_jiffies(o2net_idle_timeout(sc->sc_node));
++		queue_delayed_work(o2net_wq, &nn->nn_connect_expired, delay);
+ 	}
  
-+ifdef HAS_FOPS_SENDFILE
-+EXTRA_CFLAGS += -DHAS_FOPS_SENDFILE
-+endif
+ 	/* keep track of the nn's sc ref for the caller */
+@@ -1193,6 +1198,7 @@ static int o2net_check_handshake(struct 
+ 	 * shut down already */
+ 	if (nn->nn_sc == sc) {
+ 		o2net_sc_reset_idle_timer(sc);
++		atomic_set(&nn->nn_timeout, 0);
+ 		o2net_set_nn_state(nn, sc, 1, 0);
+ 	}
+ 	spin_unlock(&nn->nn_lock);
+@@ -1391,6 +1397,7 @@ static void o2net_sc_send_keep_req(struc
+ static void o2net_idle_timer(unsigned long data)
+ {
+ 	struct o2net_sock_container *sc = (struct o2net_sock_container *)data;
++	struct o2net_node *nn = o2net_nn_from_num(sc->sc_node->nd_num);
+ 	struct timeval now;
+ 
+ 	do_gettimeofday(&now);
+@@ -1413,6 +1420,12 @@ static void o2net_idle_timer(unsigned lo
+ 	     sc->sc_tv_func_start.tv_sec, (long) sc->sc_tv_func_start.tv_usec,
+ 	     sc->sc_tv_func_stop.tv_sec, (long) sc->sc_tv_func_stop.tv_usec);
+ 
++	/*
++	 * Initialize the nn_timeout so that the next connection attempt
++	 * will continue in o2net_start_connect.
++	 */
++	atomic_set(&nn->nn_timeout, 1);
 +
- #
- # Since SUBDIRS means something to kbuild, define them safely.  Do not
- # include trailing slashes.
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index e068a76..11856c2 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2465,6 +2465,45 @@ bail:
- 	return ret;
+ 	o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
  }
  
-+#ifdef HAS_FOPS_SENDFILE
-+static ssize_t ocfs2_file_sendfile(struct file *in_file,
-+				   loff_t *ppos,
-+				   size_t count,
-+				   read_actor_t actor,
-+				   void *target)
-+{
-+	int ret;
-+	struct inode *inode = in_file->f_mapping->host;
-+
-+	mlog_entry("inode %llu, ppos %lld, count = %u\n",
-+		   (unsigned long long)OCFS2_I(inode)->ip_blkno,
-+		   (long long) *ppos,
-+		   (unsigned int) count);
-+
-+	/* Obviously, there is no user buffer to worry about here --
-+	 * this simplifies locking, so no need to walk vmas a la
-+	 * read/write. We take the cluster lock against the inode
-+	 * and call generic_file_sendfile. */
-+	ret = ocfs2_inode_lock(inode, NULL, 0);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto bail;
-+	}
-+
-+	down_read(&OCFS2_I(inode)->ip_alloc_sem);
-+
-+	ret = generic_file_sendfile(in_file, ppos, count, actor, target);
-+
-+	up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+
-+	ocfs2_inode_unlock(inode, 0);
-+
-+bail:
-+	mlog_exit(ret);
-+	return ret;
-+}
-+#endif
-+
- #ifdef IOP_IS_NOT_CONST
- struct inode_operations ocfs2_file_iops = {
- #else
-@@ -2511,6 +2550,9 @@ const struct file_operations ocfs2_fops = {
- 	.splice_read	= ocfs2_file_splice_read,
- 	.splice_write	= ocfs2_file_splice_write,
- #endif
-+#ifdef HAS_FOPS_SENDFILE
-+	.sendfile	= ocfs2_file_sendfile,
-+#endif
- };
+@@ -1447,6 +1460,7 @@ static void o2net_start_connect(struct w
+ 	struct socket *sock = NULL;
+ 	struct sockaddr_in myaddr = {0, }, remoteaddr = {0, };
+ 	int ret = 0, stop;
++	unsigned int timeout;
  
- #ifdef FOP_IS_NOT_CONST
+ 	/* if we're greater we initiate tx, otherwise we accept */
+ 	if (o2nm_this_node() <= o2net_num_from_nn(nn))
+@@ -1466,8 +1480,17 @@ static void o2net_start_connect(struct w
+ 	}
+ 
+ 	spin_lock(&nn->nn_lock);
+-	/* see if we already have one pending or have given up */
+-	stop = (nn->nn_sc || nn->nn_persistent_error);
++	/*
++	 * see if we already have one pending or have given up.
++	 * For nn_timeout, it is set when we close the connection
++	 * because of the idle time out. So it means that we have
++	 * at least connected to that node successfully once,
++	 * now try to connect to it again.
++	 */
++	timeout = atomic_read(&nn->nn_timeout);
++	stop = (nn->nn_sc ||
++		(nn->nn_persistent_error &&
++		(nn->nn_persistent_error != -ENOTCONN || timeout == 0)));
+ 	spin_unlock(&nn->nn_lock);
+ 	if (stop)
+ 		goto out;
+@@ -1580,6 +1603,7 @@ void o2net_disconnect_node(struct o2nm_n
+ 
+ 	/* don't reconnect until it's heartbeating again */
+ 	spin_lock(&nn->nn_lock);
++	atomic_set(&nn->nn_timeout, 0);
+ 	o2net_set_nn_state(nn, NULL, 0, -ENOTCONN);
+ 	spin_unlock(&nn->nn_lock);
+ 
+@@ -1614,17 +1638,12 @@ static void o2net_hb_node_up_cb(struct o
+ 		(msecs_to_jiffies(o2net_reconnect_delay(node)) + 1);
+ 
+ 	if (node_num != o2nm_this_node()) {
+-		/* heartbeat doesn't work unless a local node number is
+-		 * configured and doing so brings up the o2net_wq, so we can
+-		 * use it.. */
+-		queue_delayed_work(o2net_wq, &nn->nn_connect_expired,
+-		                   msecs_to_jiffies(o2net_idle_timeout(node)));
+-
+ 		/* believe it or not, accept and node hearbeating testing
+ 		 * can succeed for this node before we got here.. so
+ 		 * only use set_nn_state to clear the persistent error
+ 		 * if that hasn't already happened */
+ 		spin_lock(&nn->nn_lock);
++		atomic_set(&nn->nn_timeout, 0);
+ 		if (nn->nn_persistent_error)
+ 			o2net_set_nn_state(nn, NULL, 0, 0);
+ 		spin_unlock(&nn->nn_lock);
+@@ -1748,6 +1767,7 @@ static int o2net_accept_one(struct socke
+ 	new_sock = NULL;
+ 
+ 	spin_lock(&nn->nn_lock);
++	atomic_set(&nn->nn_timeout, 0);
+ 	o2net_set_nn_state(nn, sc, 0, 0);
+ 	spin_unlock(&nn->nn_lock);
+ 
+@@ -1942,6 +1962,7 @@ int o2net_init(void)
+ 	for (i = 0; i < ARRAY_SIZE(o2net_nodes); i++) {
+ 		struct o2net_node *nn = o2net_nn_from_num(i);
+ 
++		atomic_set(&nn->nn_timeout, 0);
+ 		spin_lock_init(&nn->nn_lock);
+ 		INIT_DELAYED_WORK(&nn->nn_connect_work, o2net_start_connect);
+ 		INIT_DELAYED_WORK(&nn->nn_connect_expired,
+diff --git a/fs/ocfs2/cluster/tcp_internal.h b/fs/ocfs2/cluster/tcp_internal.h
+index 9606111..e79c1ed 100644
+--- a/fs/ocfs2/cluster/tcp_internal.h
++++ b/fs/ocfs2/cluster/tcp_internal.h
+@@ -80,6 +80,8 @@ struct o2net_node {
+ 	unsigned			nn_sc_valid:1;
+ 	/* if this is set tx just returns it */
+ 	int				nn_persistent_error;
++	/* It is only set to 1 after the idle time out. */
++	atomic_t			nn_timeout;
+ 
+ 	/* threads waiting for an sc to arrive wait on the wq for generation
+ 	 * to increase.  it is increased when a connecting socket succeeds
 -- 
-1.5.3.4
+1.3.3
