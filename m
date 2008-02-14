@@ -1,63 +1,67 @@
-From: marcin.slusarz at gmail.com <marcin.slusarz@gmail.com>
-Date: Tue, 12 Feb 2008 23:11:24 -0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: le*_add_cpu conversion
-In-Reply-To: <1202857582-15450-1-git-send-email-marcin.slusarz@gmail.com>
-References: <1202857582-15450-1-git-send-email-marcin.slusarz@gmail.com>
-Message-ID: <1202857582-15450-14-git-send-email-marcin.slusarz@gmail.com>
+From: Julia Lawall <julia@diku.dk>
+Date: Thu, 14 Feb 2008 15:15:56 -0000
+Subject: [Ocfs2-devel] [PATCH 3/6] fs/ocfs2: Use DIV_ROUND_UP
+Message-ID: <Pine.LNX.4.58.0802141614400.1185@pc-041.diku.dk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Marcin Slusarz <marcin.slusarz@gmail.com>, Mark Fasheh <mark.fasheh@oracle.com>, Kurt Hackel <kurt.hackel@oracle.com>, ocfs2-devel@oss.oracle.com
+To: mark.fasheh@oracle.com, kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
 
-From: Marcin Slusarz <marcin.slusarz@gmail.com>
+From: Julia Lawall <julia@diku.dk>
 
-replace all:
-little_endian_variable = cpu_to_leX(leX_to_cpu(little_endian_variable) +
-					expression_in_cpu_byteorder);
-with:
-	leX_add_cpu(&little_endian_variable, expression_in_cpu_byteorder);
-generated with semantic patch
+The kernel.h macro DIV_ROUND_UP performs the computation (((n) + (d) - 1) /
+(d)) but is perhaps more readable.
 
-Signed-off-by: Marcin Slusarz <marcin.slusarz@gmail.com>
-Cc: Mark Fasheh <mark.fasheh@oracle.com>
-Cc: Kurt Hackel <kurt.hackel@oracle.com>
-Cc: ocfs2-devel at oss.oracle.com
+An extract of the semantic patch that makes this change is as follows:
+(http://www.emn.fr/x-info/coccinelle/)
+
+// <smpl>
+@haskernel@
+@@
+
+#include <linux/kernel.h>
+
+@depends on haskernel@
+expression n,d;
+@@
+
+(
+- (n + d - 1) / d
++ DIV_ROUND_UP(n,d)
+|
+- (n + (d - 1)) / d
++ DIV_ROUND_UP(n,d)
+)
+
+@depends on haskernel@
+expression n,d;
+@@
+
+- DIV_ROUND_UP((n),d)
++ DIV_ROUND_UP(n,d)
+
+@depends on haskernel@
+expression n,d;
+@@
+
+- DIV_ROUND_UP(n,(d))
++ DIV_ROUND_UP(n,d)
+// </smpl>
+
+Signed-off-by: Julia Lawall <julia@diku.dk>
+
 ---
- fs/ocfs2/dir.c        |    5 ++---
- fs/ocfs2/localalloc.c |    3 +--
- 2 files changed, 3 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index e280833..8a18758 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -390,9 +390,8 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
- 				goto bail;
- 			}
- 			if (pde)
--				pde->rec_len =
--					cpu_to_le16(le16_to_cpu(pde->rec_len) +
--						    le16_to_cpu(de->rec_len));
-+				le16_add_cpu(&pde->rec_len,
-+						le16_to_cpu(de->rec_len));
- 			else
- 				de->inode = 0;
- 			dir->i_version++;
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index add1ffd..d0e217e 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -588,8 +588,7 @@ int ocfs2_claim_local_alloc_bits(struct ocfs2_super *osb,
- 	while(bits_wanted--)
- 		ocfs2_set_bit(start++, bitmap);
- 
--	alloc->id1.bitmap1.i_used = cpu_to_le32(*num_bits +
--				le32_to_cpu(alloc->id1.bitmap1.i_used));
-+	le32_add_cpu(&alloc->id1.bitmap1.i_used, *num_bits);
- 
- 	status = ocfs2_journal_dirty(handle, osb->local_alloc_bh);
- 	if (status < 0) {
--- 
-1.5.3.7
+diff -u -p a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+--- a/fs/ocfs2/cluster/heartbeat.c 2007-12-31 08:43:31.000000000 +0100
++++ b/fs/ocfs2/cluster/heartbeat.c 2008-02-13 20:59:54.000000000 +0100
+@@ -1149,7 +1149,7 @@ static int o2hb_map_slot_data(struct o2h
+ 		slot->ds_raw_block = NULL;
+ 	}
+
+-	reg->hr_num_pages = (reg->hr_blocks + spp - 1) / spp;
++	reg->hr_num_pages = DIV_ROUND_UP(reg->hr_blocks, spp);
+ 	mlog(ML_HEARTBEAT, "Going to require %u pages to cover %u blocks "
+ 			   "at %u blocks per page\n",
+ 	     reg->hr_num_pages, reg->hr_blocks, spp);
