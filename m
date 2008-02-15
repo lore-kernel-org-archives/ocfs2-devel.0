@@ -1,200 +1,184 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed Feb 13 18:32:57 2008
-Subject: [Ocfs2-devel] [PATCH] o2net: Reconnect after idle time out.V2
-Message-ID: <20080214023137.GA14136@tma-pc1.cn.oracle.com>
+From: Joel Becker <joel.becker@oracle.com>
+Date: Fri Feb 15 18:08:58 2008
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Clean up locking protocol
+	negotiation.
+In-Reply-To: <1203127653-4617-1-git-send-email-joel.becker@oracle.com>
+References: <1203127653-4617-1-git-send-email-joel.becker@oracle.com>
+Message-ID: <1203127653-4617-2-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
 
-Modification from V1 to V2:
-1. Use atomic ops instead of spin_lock in timer.
-2. Add some comments when querying connect_expired work.
-   These comments are copied form Zach's mail.;)
+The comparison functions for protocol negotiation (introduced in commit
+d24fbcda0c4988322949df3d759f1cfb32b32953) were confusing.
+Separate out the comparison and value update parts.
 
-Currently, o2net connects to a node on hb_up and disconnects on
-hb_down and net timeout.
-
-It disconnects on net timeout is ok, but it should attempt to
-reconnect back. This is because sometimes nodes get overloaded
-enough that the network connection breaks but the disk hb does not.
-And if we get into that situation, we either fence (unnecessarily)
-or wait for its disk hb to die (and sometimes hang in the process).
-
-So in this updated scheme, when the network disconnects, we keep
-attempting to reconnect till we succeed or we get a disk hb down
-event.
-
-If the other node is really dead, then we will eventually get a
-node down event. If not, we should be able to connect again and
-continue.
-
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
-
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
+ fs/ocfs2/dlm/dlmdomain.c |  102 ++++++++++++++++++++++------------------------
+ 1 files changed, 49 insertions(+), 53 deletions(-)
 
- fs/ocfs2/cluster/tcp.c          |   51 ++++++++++++++++++++++++++++-----------
- fs/ocfs2/cluster/tcp_internal.h |    2 ++
- 2 files changed, 38 insertions(+), 15 deletions(-)
-
-80a4fe7d969802b1943ddd8f3860803458798146
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index ee50c96..d808bfa 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -399,8 +399,6 @@ static void o2net_set_nn_state(struct o2
- 	mlog_bug_on_msg(err && valid, "err %d valid %u\n", err, valid);
- 	mlog_bug_on_msg(valid && !sc, "valid %u sc %p\n", valid, sc);
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 638d2eb..de802a7 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -144,8 +144,6 @@ static int dlm_cancel_join_handler(struct o2net_msg *msg, u32 len, void *data,
+ 				   void **ret_data);
+ static int dlm_exit_domain_handler(struct o2net_msg *msg, u32 len, void *data,
+ 				   void **ret_data);
+-static int dlm_protocol_compare(struct dlm_protocol_version *existing,
+-				struct dlm_protocol_version *request);
  
--	/* we won't reconnect after our valid conn goes away for
--	 * this hb iteration.. here so it shows up in the logs */
- 	if (was_valid && !valid && err == 0)
- 		err = -ENOTCONN;
+ static void dlm_unregister_domain_handlers(struct dlm_ctxt *dlm);
  
-@@ -430,11 +428,6 @@ static void o2net_set_nn_state(struct o2
+@@ -681,36 +679,48 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
+ }
+ EXPORT_SYMBOL_GPL(dlm_unregister_domain);
  
- 	if (!was_valid && valid) {
- 		o2quo_conn_up(o2net_num_from_nn(nn));
--		/* this is a bit of a hack.  we only try reconnecting
--		 * when heartbeating starts until we get a connection.
--		 * if that connection then dies we don't try reconnecting.
--		 * the only way to start connecting again is to down
--		 * heartbeat and bring it back up. */
- 		cancel_delayed_work(&nn->nn_connect_expired);
- 		printk(KERN_INFO "o2net: %s " SC_NODEF_FMT "\n",
- 		       o2nm_this_node() > sc->sc_node->nd_num ?
-@@ -457,6 +450,18 @@ static void o2net_set_nn_state(struct o2
- 			delay = 0;
- 		mlog(ML_CONN, "queueing conn attempt in %lu jiffies\n", delay);
- 		queue_delayed_work(o2net_wq, &nn->nn_connect_work, delay);
++/*
++ * Compare a requested locking protocol version against the current one.
++ *
++ * If the major numbers are different, they are incompatible.
++ * If the current minor is greater than the request, they are incompatible.
++ * If the current minor is less than or equal to the request, they are
++ * compatible, and the requester should run at the current minor version.
++ */
++static int dlm_protocol_compatible(struct dlm_protocol_version *existing,
++				   struct dlm_protocol_version *request)
++{
++	if (existing->pv_major != request->pv_major)
++		return 0;
 +
-+		/*
-+		 * Delay the expired work after idle timeout.
-+		 *
-+		 * We might have lots of failed connection attempts that run
-+		 * through here but we only cancel the connect_expired work when
-+		 * a connection attempt succeeds.  So only the first enqueue of
-+		 * the connect_expired work will do anything.  The rest will see
-+		 * that it's already queued and do nothing.
-+		 */
-+		delay += msecs_to_jiffies(o2net_idle_timeout(sc->sc_node));
-+		queue_delayed_work(o2net_wq, &nn->nn_connect_expired, delay);
- 	}
- 
- 	/* keep track of the nn's sc ref for the caller */
-@@ -1193,6 +1198,7 @@ static int o2net_check_handshake(struct 
- 	 * shut down already */
- 	if (nn->nn_sc == sc) {
- 		o2net_sc_reset_idle_timer(sc);
-+		atomic_set(&nn->nn_timeout, 0);
- 		o2net_set_nn_state(nn, sc, 1, 0);
- 	}
- 	spin_unlock(&nn->nn_lock);
-@@ -1391,6 +1397,7 @@ static void o2net_sc_send_keep_req(struc
- static void o2net_idle_timer(unsigned long data)
++	if (existing->pv_minor > request->pv_minor)
++		return 0;
++
++	return 1;
++}
++
+ static int dlm_query_join_proto_check(char *proto_type, int node,
+ 				      struct dlm_protocol_version *ours,
+ 				      struct dlm_protocol_version *request)
  {
- 	struct o2net_sock_container *sc = (struct o2net_sock_container *)data;
-+	struct o2net_node *nn = o2net_nn_from_num(sc->sc_node->nd_num);
- 	struct timeval now;
+-	int rc;
+-	struct dlm_protocol_version proto = *request;
++	int compatible = dlm_protocol_compatible(ours, request);
  
- 	do_gettimeofday(&now);
-@@ -1413,6 +1420,12 @@ static void o2net_idle_timer(unsigned lo
- 	     sc->sc_tv_func_start.tv_sec, (long) sc->sc_tv_func_start.tv_usec,
- 	     sc->sc_tv_func_stop.tv_sec, (long) sc->sc_tv_func_stop.tv_usec);
+-	if (!dlm_protocol_compare(ours, &proto)) {
++	if (compatible)
+ 		mlog(0,
+ 		     "node %u wanted to join with %s locking protocol "
+ 		     "%u.%u, we respond with %u.%u\n",
+ 		     node, proto_type,
+-		     request->pv_major,
+-		     request->pv_minor,
+-		     proto.pv_major, proto.pv_minor);
+-		request->pv_minor = proto.pv_minor;
+-		rc = 0;
+-	} else {
++		     request->pv_major, request->pv_minor,
++		     ours->pv_major, ours->pv_minor);
++	else
+ 		mlog(ML_NOTICE,
+ 		     "Node %u wanted to join with %s locking "
+ 		     "protocol %u.%u, but we have %u.%u, disallowing\n",
+ 		     node, proto_type,
+-		     request->pv_major,
+-		     request->pv_minor,
+-		     ours->pv_major,
+-		     ours->pv_minor);
+-		rc = 1;
+-	}
++		     request->pv_major, request->pv_minor,
++		     ours->pv_major, ours->pv_minor);
  
-+	/*
-+	 * Initialize the nn_timeout so that the next connection attempt
-+	 * will continue in o2net_start_connect.
-+	 */
-+	atomic_set(&nn->nn_timeout, 1);
-+
- 	o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
+-	return rc;
++	return compatible;
  }
  
-@@ -1447,6 +1460,7 @@ static void o2net_start_connect(struct w
- 	struct socket *sock = NULL;
- 	struct sockaddr_in myaddr = {0, }, remoteaddr = {0, };
- 	int ret = 0, stop;
-+	unsigned int timeout;
+ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
+@@ -806,21 +816,23 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
+ 			/* Make sure we speak compatible locking protocols.  */
+ 			if (dlm_query_join_proto_check("DLM", bit,
+ 						       &dlm->dlm_locking_proto,
+-						       &query->dlm_proto)) {
+-				response.packet.code =
+-					JOIN_PROTOCOL_MISMATCH;
+-			} else if (dlm_query_join_proto_check("fs", bit,
+-							      &dlm->fs_locking_proto,
+-							      &query->fs_proto)) {
+-				response.packet.code =
+-					JOIN_PROTOCOL_MISMATCH;
+-			} else {
++						       &query->dlm_proto) &&
++			    dlm_query_join_proto_check("fs", bit,
++						       &dlm->fs_locking_proto,
++						       &query->fs_proto)) {
++				/*
++				 * We're compatible, return our
++				 * minor number
++				 */
+ 				response.packet.dlm_minor =
+-					query->dlm_proto.pv_minor;
++					dlm->dlm_locking_proto.pv_minor;
+ 				response.packet.fs_minor =
+-					query->fs_proto.pv_minor;
++					dlm->fs_locking_proto.pv_minor;
+ 				response.packet.code = JOIN_OK;
+ 				__dlm_set_joining_node(dlm, query->node_idx);
++			} else {
++				response.packet.code =
++					JOIN_PROTOCOL_MISMATCH;
+ 			}
+ 		}
  
- 	/* if we're greater we initiate tx, otherwise we accept */
- 	if (o2nm_this_node() <= o2net_num_from_nn(nn))
-@@ -1466,8 +1480,17 @@ static void o2net_start_connect(struct w
- 	}
+@@ -1546,29 +1558,6 @@ leave:
+ }
  
- 	spin_lock(&nn->nn_lock);
--	/* see if we already have one pending or have given up */
--	stop = (nn->nn_sc || nn->nn_persistent_error);
-+	/*
-+	 * see if we already have one pending or have given up.
-+	 * For nn_timeout, it is set when we close the connection
-+	 * because of the idle time out. So it means that we have
-+	 * at least connected to that node successfully once,
-+	 * now try to connect to it again.
-+	 */
-+	timeout = atomic_read(&nn->nn_timeout);
-+	stop = (nn->nn_sc ||
-+		(nn->nn_persistent_error &&
-+		(nn->nn_persistent_error != -ENOTCONN || timeout == 0)));
- 	spin_unlock(&nn->nn_lock);
- 	if (stop)
- 		goto out;
-@@ -1580,6 +1603,7 @@ void o2net_disconnect_node(struct o2nm_n
- 
- 	/* don't reconnect until it's heartbeating again */
- 	spin_lock(&nn->nn_lock);
-+	atomic_set(&nn->nn_timeout, 0);
- 	o2net_set_nn_state(nn, NULL, 0, -ENOTCONN);
- 	spin_unlock(&nn->nn_lock);
- 
-@@ -1614,17 +1638,12 @@ static void o2net_hb_node_up_cb(struct o
- 		(msecs_to_jiffies(o2net_reconnect_delay(node)) + 1);
- 
- 	if (node_num != o2nm_this_node()) {
--		/* heartbeat doesn't work unless a local node number is
--		 * configured and doing so brings up the o2net_wq, so we can
--		 * use it.. */
--		queue_delayed_work(o2net_wq, &nn->nn_connect_expired,
--		                   msecs_to_jiffies(o2net_idle_timeout(node)));
+ /*
+- * Compare a requested locking protocol version against the current one.
+- *
+- * If the major numbers are different, they are incompatible.
+- * If the current minor is greater than the request, they are incompatible.
+- * If the current minor is less than or equal to the request, they are
+- * compatible, and the requester should run at the current minor version.
+- */
+-static int dlm_protocol_compare(struct dlm_protocol_version *existing,
+-				struct dlm_protocol_version *request)
+-{
+-	if (existing->pv_major != request->pv_major)
+-		return 1;
 -
- 		/* believe it or not, accept and node hearbeating testing
- 		 * can succeed for this node before we got here.. so
- 		 * only use set_nn_state to clear the persistent error
- 		 * if that hasn't already happened */
- 		spin_lock(&nn->nn_lock);
-+		atomic_set(&nn->nn_timeout, 0);
- 		if (nn->nn_persistent_error)
- 			o2net_set_nn_state(nn, NULL, 0, 0);
- 		spin_unlock(&nn->nn_lock);
-@@ -1748,6 +1767,7 @@ static int o2net_accept_one(struct socke
- 	new_sock = NULL;
+-	if (existing->pv_minor > request->pv_minor)
+-		return 1;
+-
+-	if (existing->pv_minor < request->pv_minor)
+-		request->pv_minor = existing->pv_minor;
+-
+-	return 0;
+-}
+-
+-/*
+  * dlm_register_domain: one-time setup per "domain".
+  *
+  * The filesystem passes in the requested locking version via proto.
+@@ -1620,7 +1609,14 @@ retry:
+ 			goto retry;
+ 		}
  
- 	spin_lock(&nn->nn_lock);
-+	atomic_set(&nn->nn_timeout, 0);
- 	o2net_set_nn_state(nn, sc, 0, 0);
- 	spin_unlock(&nn->nn_lock);
- 
-@@ -1942,6 +1962,7 @@ int o2net_init(void)
- 	for (i = 0; i < ARRAY_SIZE(o2net_nodes); i++) {
- 		struct o2net_node *nn = o2net_nn_from_num(i);
- 
-+		atomic_set(&nn->nn_timeout, 0);
- 		spin_lock_init(&nn->nn_lock);
- 		INIT_DELAYED_WORK(&nn->nn_connect_work, o2net_start_connect);
- 		INIT_DELAYED_WORK(&nn->nn_connect_expired,
-diff --git a/fs/ocfs2/cluster/tcp_internal.h b/fs/ocfs2/cluster/tcp_internal.h
-index 9606111..e79c1ed 100644
---- a/fs/ocfs2/cluster/tcp_internal.h
-+++ b/fs/ocfs2/cluster/tcp_internal.h
-@@ -80,6 +80,8 @@ struct o2net_node {
- 	unsigned			nn_sc_valid:1;
- 	/* if this is set tx just returns it */
- 	int				nn_persistent_error;
-+	/* It is only set to 1 after the idle time out. */
-+	atomic_t			nn_timeout;
- 
- 	/* threads waiting for an sc to arrive wait on the wq for generation
- 	 * to increase.  it is increased when a connecting socket succeeds
+-		if (dlm_protocol_compare(&dlm->fs_locking_proto, fs_proto)) {
++		if (dlm_protocol_compatible(&dlm->fs_locking_proto, fs_proto)) {
++			/*
++			 * We're compatible, and we run at the minor
++			 * number negotiated
++			 */
++			fs_proto->pv_minor =
++				dlm->fs_locking_proto.pv_minor;
++		} else {
+ 			mlog(ML_ERROR,
+ 			     "Requested locking protocol version is not "
+ 			     "compatible with already registered domain "
 -- 
-1.3.3
+1.5.3.8
