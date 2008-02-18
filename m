@@ -1,48 +1,30 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Feb 18 12:16:27 2008
-Subject: [Ocfs2-devel] Re: [PATCH 3/7] fs/ocfs2: Use BUG_ON
-In-Reply-To: <Pine.LNX.4.64.0802171855070.28055@ask.diku.dk>
-References: <Pine.LNX.4.64.0802171855070.28055@ask.diku.dk>
-Message-ID: <20080218201453.GA22671@ca-server1.us.oracle.com>
+Date: Mon Feb 18 13:03:41 2008
+Subject: [Ocfs2-devel] Re: [PATCH] ocfs2: le*_add_cpu conversion
+In-Reply-To: <1202857582-15450-14-git-send-email-marcin.slusarz@gmail.com>
+References: <1202857582-15450-1-git-send-email-marcin.slusarz@gmail.com>
+	<1202857582-15450-14-git-send-email-marcin.slusarz@gmail.com>
+Message-ID: <20080218210313.GB22671@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Julia Lawall <julia@diku.dk>
-Cc: kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
+To: marcin.slusarz@gmail.com
+Cc: LKML <linux-kernel@vger.kernel.org>, Kurt Hackel <kurt.hackel@oracle.com>, ocfs2-devel@oss.oracle.com
 
-On Sun, Feb 17, 2008 at 06:55:49PM +0100, Julia Lawall wrote:
-> From: Julia Lawall <julia@diku.dk>
+On Wed, Feb 13, 2008 at 12:06:18AM +0100, marcin.slusarz@gmail.com wrote:
+> From: Marcin Slusarz <marcin.slusarz@gmail.com>
 > 
-> if (...) BUG(); should be replaced with BUG_ON(...) when the test has no
-> side-effects to allow a definition of BUG_ON that drops the code completely.
-> 
-> The semantic patch that makes this change is as follows:
-> (http://www.emn.fr/x-info/coccinelle/)
-> 
-> // <smpl>
-> @ disable unlikely @ expression E,f; @@
-> 
-> (
->   if (<... f(...) ...>) { BUG(); }
-> |
-> - if (unlikely(E)) { BUG(); }
-> + BUG_ON(E);
-> )
-> 
-> @@ expression E,f; @@
-> 
-> (
->   if (<... f(...) ...>) { BUG(); }
-> |
-> - if (E) { BUG(); }
-> + BUG_ON(E);
-> )
-> // </smpl>
-> 
-> Signed-off-by: Julia Lawall <julia@diku.dk>
-Acked-by: Mark Fasheh <mark.fasheh@oracle.com>
+> replace all:
+> little_endian_variable = cpu_to_leX(leX_to_cpu(little_endian_variable) +
+> 					expression_in_cpu_byteorder);
+> with:
+> 	leX_add_cpu(&little_endian_variable, expression_in_cpu_byteorder);
+> generated with semantic patch
 
+
+Thanks, this is in ocfs2.git now.
+	--Mark
 --
 Mark Fasheh
 Principal Software Developer, Oracle
