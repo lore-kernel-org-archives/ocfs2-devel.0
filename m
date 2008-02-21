@@ -1,28 +1,25 @@
 From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Mon Feb 18 17:34:00 2008
-Subject: [Ocfs2-devel] Re: [PATCH] o2net: Reconnect after idle time out.V2
-In-Reply-To: <47B47204.400@oracle.com>
-References: <20080214023137.GA14136@tma-pc1.cn.oracle.com>
-	<47B47204.400@oracle.com>
-Message-ID: <20080219013337.GF22671@ca-server1.us.oracle.com>
+Date: Thu Feb 21 09:43:13 2008
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: Detect and use MS_LOOP_NO_AOPS
+In-Reply-To: <1202755969-7115-3-git-send-email-sunil.mushran@oracle.com>
+References: <1202755969-7115-1-git-send-email-sunil.mushran@oracle.com>
+	<1202755969-7115-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080221174309.GA27865@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Feb 14, 2008 at 08:53:24AM -0800, Zach Brown wrote:
-> Tao Ma wrote:
-> > Modification from V1 to V2:
-> > 1. Use atomic ops instead of spin_lock in timer.
-> > 2. Add some comments when querying connect_expired work.
-> >    These comments are copied form Zach's mail.;)
-> 
-> :)
-> 
-> This looks OK to me, thanks for updating it.
+On Mon, Feb 11, 2008 at 10:52:48AM -0800, Sunil Mushran wrote:
+> +#ifdef HAS_MS_LOOP_NO_AOPS
+> +	/* OCFS2's prepare and commit write operations don't do any locking. */
 
-Ok, thanks guys. This is in ocfs2.git now.
+We might want to change this comment to something like:
+
+	/* Ocfs2 1.4 doesn't provide prepare and commit write operations */
+
+otherwise, the patch looks fine (sob)
 	--Mark
 
 --
