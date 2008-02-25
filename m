@@ -1,42 +1,120 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon Feb 25 12:21:13 2008
-Subject: [Ocfs2-devel] New dlm debug infrastructure
-Message-ID: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
+Date: Mon Feb 25 12:21:14 2008
+Subject: [Ocfs2-devel] [PATCH 10/18] ocfs2_dlm: Moves struct
+	dlm_master_list_entry to dlmcommon.h
+In-Reply-To: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
+References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1203970862-8790-11-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-These patches include the following:
-1. Use slabs for struct dlm_lock_resource and struct dlm_lock allocations.
-2. Fix memory leaks detected wrt to the above 2 structures.
-3. Add debugfs interface to allow users to dump dlm_state, lockres, mles, etc.
-4. Remove the older proc interface for the same.
+This patch moves some mle related definitions from dlmmaster.c
+to dlmcommon.h.
 
-The lockres state dump uses the fs_locks model in that the fs dumps raw
-information that the dlm_locks command in debugfs.ocfs2 makes readable.
-Example is shown below.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/dlm/dlmcommon.h |   37 +++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlm/dlmmaster.c |   37 -------------------------------------
+ 2 files changed, 37 insertions(+), 37 deletions(-)
 
-Sunil
-
-$ cat /sys/kernel/debug/o2dlm/.../locking_state
-NAME:M00000000000000000000058cf07918
-LRES:1,96,0,0,0,0,0,0,0,0,4
-RMAP:92
-LVBX:0500000000000001000000000000000011f0c6ddb9444bb411f0c44add11180911f0c44add111809000000000000100041ed0005000000008cf0791800000000
-LOCK:1,0,0,-1,96,96:4,0,0,0,0,0,0,0,0,2
-LOCK:1,0,5,-1,92,92:3,0,0,0,0,0,0,0,0,2
-
-$ debugfs.ocfs2 -R "dlm_locks -l M00000000000000000000058cf07918" /dev/sdX
-Lockres: M00000000000000000000058cf07918   Owner: 96   State: 0x0
-Last Used: 0      ASTs Reserved: 0    Inflight: 0    Migration Pending: No
-Refs: 4    Locks: 2    On Lists: None
-Reference Map: 92
-Raw LVB:	05 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00
-		11 f0 c6 dd b9 44 4b b4 11 f0 c4 4a dd 11 18 09
-		11 f0 c4 4a dd 11 18 09 00 00 00 00 00 00 10 00
-		41 ed 00 05 00 00 00 00 8c f0 79 18 00 00 00 00
- Lock-Queue  Node  Level  Conv  Cookie           Refs  AST  BAST  Pending-Action
- Granted     96    NL     -1    96:4             2     No   No    None
- Granted     92    EX     -1    92:3             2     No   No    None
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index a2cfd61..41c8d90 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -49,6 +49,43 @@
+ /* Intended to make it easier for us to switch out hash functions */
+ #define dlm_lockid_hash(_n, _l) full_name_hash(_n, _l)
+ 
++enum dlm_mle_type {
++	DLM_MLE_BLOCK,
++	DLM_MLE_MASTER,
++	DLM_MLE_MIGRATION
++};
++
++struct dlm_lock_name
++{
++	u8 len;
++	u8 name[DLM_LOCKID_NAME_MAX];
++};
++
++struct dlm_master_list_entry
++{
++	struct list_head list;
++	struct list_head hb_events;
++	struct dlm_ctxt *dlm;
++	spinlock_t spinlock;
++	wait_queue_head_t wq;
++	atomic_t woken;
++	struct kref mle_refs;
++	int inuse;
++	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
++	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
++	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
++	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
++	u8 master;
++	u8 new_master;
++	enum dlm_mle_type type;
++	struct o2hb_callback_func mle_hb_up;
++	struct o2hb_callback_func mle_hb_down;
++	union {
++		struct dlm_lock_resource *res;
++		struct dlm_lock_name name;
++	} u;
++};
++
+ enum dlm_ast_type {
+ 	DLM_AST = 0,
+ 	DLM_BAST,
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index d10fe48..c491b9e 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -52,43 +52,6 @@
+ #define MLOG_MASK_PREFIX (ML_DLM|ML_DLM_MASTER)
+ #include "cluster/masklog.h"
+ 
+-enum dlm_mle_type {
+-	DLM_MLE_BLOCK,
+-	DLM_MLE_MASTER,
+-	DLM_MLE_MIGRATION
+-};
+-
+-struct dlm_lock_name
+-{
+-	u8 len;
+-	u8 name[DLM_LOCKID_NAME_MAX];
+-};
+-
+-struct dlm_master_list_entry
+-{
+-	struct list_head list;
+-	struct list_head hb_events;
+-	struct dlm_ctxt *dlm;
+-	spinlock_t spinlock;
+-	wait_queue_head_t wq;
+-	atomic_t woken;
+-	struct kref mle_refs;
+-	int inuse;
+-	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+-	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+-	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+-	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+-	u8 master;
+-	u8 new_master;
+-	enum dlm_mle_type type;
+-	struct o2hb_callback_func mle_hb_up;
+-	struct o2hb_callback_func mle_hb_down;
+-	union {
+-		struct dlm_lock_resource *res;
+-		struct dlm_lock_name name;
+-	} u;
+-};
+-
+ static void dlm_mle_node_down(struct dlm_ctxt *dlm,
+ 			      struct dlm_master_list_entry *mle,
+ 			      struct o2nm_node *node,
+-- 
+1.5.2.5
