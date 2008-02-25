@@ -1,120 +1,42 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon Feb 25 12:21:11 2008
-Subject: [Ocfs2-devel] [PATCH 06/18] ocfs2_dlm: Link all lockres' to a
-	tracking list
-In-Reply-To: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
-References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1203970862-8790-7-git-send-email-sunil.mushran@oracle.com>
+Date: Mon Feb 25 12:21:13 2008
+Subject: [Ocfs2-devel] New dlm debug infrastructure
+Message-ID: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch links all the lockres' to a tracking list in dlm_ctxt.
-We will use this in the upcoming patch that will walk the entire
-list and to dump the lockres states to a debugfs file.
+These patches include the following:
+1. Use slabs for struct dlm_lock_resource and struct dlm_lock allocations.
+2. Fix memory leaks detected wrt to the above 2 structures.
+3. Add debugfs interface to allow users to dump dlm_state, lockres, mles, etc.
+4. Remove the older proc interface for the same.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/dlm/dlmcommon.h |    4 ++++
- fs/ocfs2/dlm/dlmdomain.c |   11 +++++++++++
- fs/ocfs2/dlm/dlmmaster.c |   11 +++++++++++
- 3 files changed, 26 insertions(+), 0 deletions(-)
+The lockres state dump uses the fs_locks model in that the fs dumps raw
+information that the dlm_locks command in debugfs.ocfs2 makes readable.
+Example is shown below.
 
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index eac1b3b..a3b22bf 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -101,6 +101,7 @@ struct dlm_ctxt
- 	struct list_head purge_list;
- 	struct list_head pending_asts;
- 	struct list_head pending_basts;
-+	struct list_head tracking_list;
- 	unsigned int purge_count;
- 	spinlock_t spinlock;
- 	spinlock_t ast_lock;
-@@ -266,6 +267,9 @@ struct dlm_lock_resource
- 	struct list_head dirty;
- 	struct list_head recovering; // dlm_recovery_ctxt.resources list
- 
-+	/* Added during init and removed during release */
-+	struct list_head tracking;	/* dlm->tracking_list */
-+
- 	/* unused lock resources have their last_used stamped and are
- 	 * put on a list for the dlm thread to run. */
- 	unsigned long    last_used;
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 6d02ef5..1d382f1 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -634,6 +634,7 @@ int dlm_shutting_down(struct dlm_ctxt *dlm)
- void dlm_unregister_domain(struct dlm_ctxt *dlm)
- {
- 	int leave = 0;
-+	struct dlm_lock_resource *res;
- 
- 	spin_lock(&dlm_domain_lock);
- 	BUG_ON(dlm->dlm_state != DLM_CTXT_JOINED);
-@@ -663,6 +664,15 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
- 			msleep(500);
- 			mlog(0, "%s: more migration to do\n", dlm->name);
- 		}
-+
-+		/* This list should be empty. If not, print remaining lockres */
-+		if (!list_empty(&dlm->tracking_list)) {
-+			mlog(ML_ERROR, "Following lockres' are still on the "
-+			     "tracking list:\n");
-+			list_for_each_entry(res, &dlm->tracking_list, tracking)
-+				dlm_print_one_lock_resource(res);
-+		}
-+
- 		dlm_mark_domain_leaving(dlm);
- 		dlm_leave_domain(dlm);
- 		dlm_complete_dlm_shutdown(dlm);
-@@ -1404,6 +1414,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
- 	INIT_LIST_HEAD(&dlm->reco.node_data);
- 	INIT_LIST_HEAD(&dlm->purge_list);
- 	INIT_LIST_HEAD(&dlm->dlm_domain_handlers);
-+	INIT_LIST_HEAD(&dlm->tracking_list);
- 	dlm->reco.state = 0;
- 
- 	INIT_LIST_HEAD(&dlm->pending_asts);
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index d07a30a..d10fe48 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -642,6 +642,14 @@ static void dlm_lockres_release(struct kref *kref)
- 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
- 	     res->lockname.name);
- 
-+	if (!list_empty(&res->tracking))
-+		list_del_init(&res->tracking);
-+	else {
-+		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
-+		     res->lockname.len, res->lockname.name);
-+		dlm_print_one_lock_resource(res);
-+	}
-+
- 	if (!hlist_unhashed(&res->hash_node) ||
- 	    !list_empty(&res->granted) ||
- 	    !list_empty(&res->converting) ||
-@@ -709,6 +717,7 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
- 	INIT_LIST_HEAD(&res->dirty);
- 	INIT_LIST_HEAD(&res->recovering);
- 	INIT_LIST_HEAD(&res->purge);
-+	INIT_LIST_HEAD(&res->tracking);
- 	atomic_set(&res->asts_reserved, 0);
- 	res->migration_pending = 0;
- 	res->inflight_locks = 0;
-@@ -724,6 +733,8 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
- 
- 	res->last_used = 0;
- 
-+	list_add_tail(&res->tracking, &dlm->tracking_list);
-+
- 	memset(res->lvb, 0, DLM_LVB_LEN);
- 	memset(res->refmap, 0, sizeof(res->refmap));
- }
--- 
-1.5.2.5
+Sunil
+
+$ cat /sys/kernel/debug/o2dlm/.../locking_state
+NAME:M00000000000000000000058cf07918
+LRES:1,96,0,0,0,0,0,0,0,0,4
+RMAP:92
+LVBX:0500000000000001000000000000000011f0c6ddb9444bb411f0c44add11180911f0c44add111809000000000000100041ed0005000000008cf0791800000000
+LOCK:1,0,0,-1,96,96:4,0,0,0,0,0,0,0,0,2
+LOCK:1,0,5,-1,92,92:3,0,0,0,0,0,0,0,0,2
+
+$ debugfs.ocfs2 -R "dlm_locks -l M00000000000000000000058cf07918" /dev/sdX
+Lockres: M00000000000000000000058cf07918   Owner: 96   State: 0x0
+Last Used: 0      ASTs Reserved: 0    Inflight: 0    Migration Pending: No
+Refs: 4    Locks: 2    On Lists: None
+Reference Map: 92
+Raw LVB:	05 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00
+		11 f0 c6 dd b9 44 4b b4 11 f0 c4 4a dd 11 18 09
+		11 f0 c4 4a dd 11 18 09 00 00 00 00 00 00 10 00
+		41 ed 00 05 00 00 00 00 8c f0 79 18 00 00 00 00
+ Lock-Queue  Node  Level  Conv  Cookie           Refs  AST  BAST  Pending-Action
+ Granted     96    NL     -1    96:4             2     No   No    None
+ Granted     92    EX     -1    92:3             2     No   No    None
