@@ -1,40 +1,53 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon Feb 25 12:21:17 2008
-Subject: [Ocfs2-devel] [PATCH 05/18] ocfs2_dlm: Add missing
-	dlm_lockres_put()s
+Date: Mon Feb 25 12:21:18 2008
+Subject: [Ocfs2-devel] [PATCH 01/18] ocfs2_dlm: Rename slabcache
+	dlm_mle_cache to o2dlm_mle
 In-Reply-To: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
 References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1203970862-8790-6-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1203970862-8790-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch adds few missing puts in dlm_master_request_handler().
+This patch renames dlm_mle_slabcache to prevent namespace
+clashes with fs/dlm.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmmaster.c |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+ fs/ocfs2/dlm/dlmdomain.c |    4 +++-
+ fs/ocfs2/dlm/dlmmaster.c |    2 +-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 1d854d5..502712b 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1648,8 +1648,10 @@ static int __init dlm_init(void)
+ 	dlm_print_version();
+ 
+ 	status = dlm_init_mle_cache();
+-	if (status)
++	if (status) {
++		mlog(ML_ERROR, "Could not create o2dlm_mle slabcache\n");
+ 		return -1;
++	}
+ 
+ 	status = dlm_register_net_handlers();
+ 	if (status) {
 diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 8e3c40e..d07a30a 100644
+index 42ea5af..cc4e624 100644
 --- a/fs/ocfs2/dlm/dlmmaster.c
 +++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -1718,7 +1718,13 @@ send_response:
- 		if (ret < 0) {
- 			mlog(ML_ERROR, "failed to dispatch assert master work\n");
- 			response = DLM_MASTER_RESP_ERROR;
-+			/* incase dlm_assert_master_worker() was not called */
-+			dlm_lockres_put(res);
- 		}
-+	} else {
-+		/* match the put in dlm_assert_master_worker() */
-+		if (res)
-+			dlm_lockres_put(res);
- 	}
+@@ -506,7 +506,7 @@ static void dlm_mle_node_up(struct dlm_ctxt *dlm,
  
- 	dlm_put(dlm);
+ int dlm_init_mle_cache(void)
+ {
+-	dlm_mle_cache = kapi_kmem_cache_create("dlm_mle_cache",
++	dlm_mle_cache = kapi_kmem_cache_create("o2dlm_mle",
+ 					  sizeof(struct dlm_master_list_entry),
+ 					  0, SLAB_HWCACHE_ALIGN,
+ 					  NULL);
 -- 
 1.5.2.5
