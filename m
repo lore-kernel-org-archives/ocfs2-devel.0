@@ -1,152 +1,195 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Mon Feb 25 12:21:21 2008
-Subject: [Ocfs2-devel] [PATCH 04/18] ocfs2_dlm: Add missing
-	dlm_lockres_put()s in migration path
+Subject: [Ocfs2-devel] [PATCH 07/18] ocfs2_dlm: Create debugfs dirs
 In-Reply-To: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
 References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1203970862-8790-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1203970862-8790-8-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The inline comments explain the missing puts in the lockres
-migration paths.
+This patch creates the debugfs directories that will hold the
+files to be used to dump the dlm state.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h   |    1 +
- fs/ocfs2/dlm/dlmrecovery.c |   41 +++++++++++++++++++++++++++++++++++------
- 2 files changed, 36 insertions(+), 6 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    2 ++
+ fs/ocfs2/dlm/dlmdebug.c  |   44 ++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlm/dlmdebug.h  |    7 +++++++
+ fs/ocfs2/dlm/dlmdomain.c |   20 ++++++++++++++++++++
+ 4 files changed, 73 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 041ec68..eac1b3b 100644
+index a3b22bf..810e9b4 100644
 --- a/fs/ocfs2/dlm/dlmcommon.h
 +++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -172,6 +172,7 @@ struct dlm_mig_lockres_priv
- {
- 	struct dlm_lock_resource *lockres;
- 	u8 real_master;
-+	u8 extra_ref;
- };
+@@ -125,6 +125,8 @@ struct dlm_ctxt
+ 	atomic_t remote_resources;
+ 	atomic_t unknown_resources;
  
- struct dlm_assert_master_priv
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 455dc72..487c50e 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1325,6 +1325,7 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
- 		(struct dlm_migratable_lockres *)msg->buf;
- 	int ret = 0;
- 	u8 real_master;
-+	u8 extra_refs = 0;
- 	char *buf = NULL;
- 	struct dlm_work_item *item = NULL;
- 	struct dlm_lock_resource *res = NULL;
-@@ -1402,16 +1403,28 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
- 		__dlm_insert_lockres(dlm, res);
- 		spin_unlock(&dlm->spinlock);
- 
-+		/* Add an extra ref for this lock-less lockres lest the
-+		 * dlm_thread purges it before we get the chance to add
-+		 * locks to it */
-+		dlm_lockres_get(res);
++	struct dentry *dlm_debugfs_subroot;
 +
-+		/* There are three refs that need to be put.
-+		 * 1. Taken above.
-+		 * 2. kref_init in dlm_new_lockres()->dlm_init_lockres().
-+		 * 3. dlm_lookup_lockres()
-+		 * The first one is handled at the end of this function. The
-+		 * other two are handled in the worker thread after locks have
-+		 * been attached. Yes, we don't wait for purge time to match
-+		 * kref_init. The lockres will still have atleast one ref
-+		 * added because it is in the hash __dlm_insert_lockres() */
-+		extra_refs++;
+ 	/* NOTE: Next three are protected by dlm_domain_lock */
+ 	struct kref dlm_refs;
+ 	enum dlm_ctxt_state dlm_state;
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index e4f1fe9..baa8e24 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -31,6 +31,7 @@
+ #include <linux/sysctl.h>
+ #include <linux/spinlock.h>
+ #include <linux/proc_fs.h>
++#include <linux/debugfs.h>
+ 
+ #include "cluster/heartbeat.h"
+ #include "cluster/nodemanager.h"
+@@ -46,6 +47,8 @@
+ #define MLOG_MASK_PREFIX ML_DLM
+ #include "cluster/masklog.h"
+ 
++static struct dentry *dlm_debugfs_root = NULL;
 +
- 		/* now that the new lockres is inserted,
- 		 * make it usable by other processes */
- 		spin_lock(&res->spinlock);
- 		res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
- 		spin_unlock(&res->spinlock);
- 		wake_up(&res->wq);
--
--		/* add an extra ref for just-allocated lockres 
--		 * otherwise the lockres will be purged immediately */
--		dlm_lockres_get(res);
- 	}
- 
- 	/* at this point we have allocated everything we need,
-@@ -1441,12 +1454,17 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
- 	dlm_init_work_item(dlm, item, dlm_mig_lockres_worker, buf);
- 	item->u.ml.lockres = res; /* already have a ref */
- 	item->u.ml.real_master = real_master;
-+	item->u.ml.extra_ref = extra_refs;
- 	spin_lock(&dlm->work_lock);
- 	list_add_tail(&item->list, &dlm->work_list);
- 	spin_unlock(&dlm->work_lock);
- 	queue_work(dlm->dlm_worker, &dlm->dispatched_work);
- 
- leave:
-+	/* One extra ref taken needs to be put here */
-+	if (extra_refs)
-+		dlm_lockres_put(res);
-+
- 	dlm_put(dlm);
- 	if (ret < 0) {
- 		if (buf)
-@@ -1462,17 +1480,19 @@ leave:
- 
- void dlm_mig_lockres_worker(struct dlm_work_item *item, void *data)
- {
--	struct dlm_ctxt *dlm = data;
-+	struct dlm_ctxt *dlm;
- 	struct dlm_migratable_lockres *mres;
- 	int ret = 0;
- 	struct dlm_lock_resource *res;
- 	u8 real_master;
-+	u8 extra_ref;
- 
- 	dlm = item->dlm;
- 	mres = (struct dlm_migratable_lockres *)data;
- 
- 	res = item->u.ml.lockres;
- 	real_master = item->u.ml.real_master;
-+	extra_ref = item->u.ml.extra_ref;
- 
- 	if (real_master == DLM_LOCK_RES_OWNER_UNKNOWN) {
- 		/* this case is super-rare. only occurs if
-@@ -1515,6 +1535,12 @@ again:
- 	}
- 
- leave:
-+	/* See comment in dlm_mig_lockres_handler() */
-+	if (res) {
-+		if (extra_ref)
-+			dlm_lockres_put(res);
-+		dlm_lockres_put(res);
-+	}
- 	kfree(data);
- 	mlog_exit(ret);
+ static int dlm_dump_all_lock_resources(const char __user *data,
+ 					unsigned int len);
+ static void dlm_dump_purge_list(struct dlm_ctxt *dlm);
+@@ -699,3 +702,44 @@ const char *dlm_errname(enum dlm_status err)
+ 	return dlm_errnames[err];
  }
-@@ -1642,7 +1668,8 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
- 				/* retry!? */
- 				BUG();
- 			}
--		}
-+		} else /* put.. incase we are not the master */
-+			dlm_lockres_put(res);
- 		spin_unlock(&res->spinlock);
- 	}
- 	spin_unlock(&dlm->spinlock);
-@@ -1919,6 +1946,8 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
- 		     "Recovering res %s:%.*s, is already on recovery list!\n",
- 		     dlm->name, res->lockname.len, res->lockname.name);
- 		list_del_init(&res->recovering);
-+		/* Duh... */
-+		dlm_lockres_put(res);
- 	}
- 	/* We need to hold a reference while on the recovery list */
- 	dlm_lockres_get(res);
+ EXPORT_SYMBOL_GPL(dlm_errname);
++
++#define DLM_DEBUGFS_DIR				"o2dlm"
++
++/* subroot - domain dir */
++int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
++{
++	dlm->dlm_debugfs_subroot = debugfs_create_dir(dlm->name, dlm_debugfs_root);
++	if (!dlm->dlm_debugfs_subroot) {
++		mlog_errno(-ENOMEM);
++		goto bail;
++	}
++
++	return 0;
++bail:
++	dlm_destroy_debugfs_subroot(dlm);
++	return -ENOMEM;
++}
++
++void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm)
++{
++	if (dlm->dlm_debugfs_subroot)
++		debugfs_remove(dlm->dlm_debugfs_subroot);
++}
++
++/* debugfs root */
++int dlm_create_debugfs_root(void)
++{
++	dlm_debugfs_root = debugfs_create_dir(DLM_DEBUGFS_DIR, NULL);
++	if (!dlm_debugfs_root) {
++		mlog_errno(-ENOMEM);
++		return -ENOMEM;
++	}
++
++	return 0;
++}
++
++void dlm_destroy_debugfs_root(void)
++{
++	if (dlm_debugfs_root)
++		debugfs_remove(dlm_debugfs_root);
++}
+diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
+index dbe3a3d..e701499 100644
+--- a/fs/ocfs2/dlm/dlmdebug.h
++++ b/fs/ocfs2/dlm/dlmdebug.h
+@@ -31,4 +31,11 @@ void dlm_dump_lock_resources(struct dlm_ctxt *dlm);
+ void dlm_proc_add_domain(struct dlm_ctxt *dlm);
+ void dlm_proc_del_domain(struct dlm_ctxt *dlm);
+ void dlm_dump_work_queue(struct dlm_ctxt *dlm);
++
++int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm);
++void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm);
++
++int dlm_create_debugfs_root(void);
++void dlm_destroy_debugfs_root(void);
++
+ #endif
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 1d382f1..da2a155 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -33,6 +33,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/delay.h>
+ #include <linux/err.h>
++#include <linux/debugfs.h>
+ 
+ #include "cluster/heartbeat.h"
+ #include "cluster/nodemanager.h"
+@@ -43,6 +44,7 @@
+ 
+ #include "dlmdebug.h"
+ #include "dlmdomain.h"
++#include "dlmdebug.h"
+ 
+ #include "dlmver.h"
+ 
+@@ -288,6 +290,8 @@ static void dlm_free_ctxt_mem(struct dlm_ctxt *dlm)
+ {
+ 	dlm_proc_del_domain(dlm);
+ 
++	dlm_destroy_debugfs_subroot(dlm);
++
+ 	if (dlm->lockres_hash)
+ 		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
+ 
+@@ -1372,6 +1376,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 				u32 key)
+ {
+ 	int i;
++	int ret;
+ 	struct dlm_ctxt *dlm = NULL;
+ 
+ 	dlm = kzalloc(sizeof(*dlm), GFP_KERNEL);
+@@ -1404,6 +1409,15 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	dlm->key = key;
+ 	dlm->node_num = o2nm_this_node();
+ 
++	ret = dlm_create_debugfs_subroot(dlm);
++	if (ret < 0) {
++		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
++		kfree(dlm->name);
++		kfree(dlm);
++		dlm = NULL;
++		goto leave;
++	}
++
+ 	spin_lock_init(&dlm->spinlock);
+ 	spin_lock_init(&dlm->master_lock);
+ 	spin_lock_init(&dlm->ast_lock);
+@@ -1688,8 +1702,13 @@ static int __init dlm_init(void)
+ 
+ 	dlm_init_proc();
+ 
++	status = dlm_create_debugfs_root();
++	if (status)
++		goto error;
++
+ 	return 0;
+ error:
++	dlm_unregister_net_handlers();
+ 	dlm_destroy_lock_cache();
+ 	dlm_destroy_lockname_cache();
+ 	dlm_destroy_lockres_cache();
+@@ -1699,6 +1718,7 @@ error:
+ 
+ static void __exit dlm_exit (void)
+ {
++	dlm_destroy_debugfs_root();
+ 	dlm_remove_proc();
+ 	dlm_unregister_net_handlers();
+ 	dlm_destroy_lock_cache();
 -- 
 1.5.2.5
