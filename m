@@ -1,40 +1,40 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Mon Feb 25 12:21:17 2008
-Subject: [Ocfs2-devel] [PATCH 18/18] ocfs2_dlm: Print message showing the
-	recomaster
+Subject: [Ocfs2-devel] [PATCH 05/18] ocfs2_dlm: Add missing
+	dlm_lockres_put()s
 In-Reply-To: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
 References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1203970862-8790-19-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1203970862-8790-6-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Knowing the dlm recovery master helps in debugging recovery
-issues. This patch printks the message on the recomaster node.
+This patch adds few missing puts in dlm_master_request_handler().
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmrecovery.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 487c50e..fae0543 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -517,9 +517,9 @@ static int dlm_do_recovery(struct dlm_ctxt *dlm)
- 	return 0;
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 8e3c40e..d07a30a 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -1718,7 +1718,13 @@ send_response:
+ 		if (ret < 0) {
+ 			mlog(ML_ERROR, "failed to dispatch assert master work\n");
+ 			response = DLM_MASTER_RESP_ERROR;
++			/* incase dlm_assert_master_worker() was not called */
++			dlm_lockres_put(res);
+ 		}
++	} else {
++		/* match the put in dlm_assert_master_worker() */
++		if (res)
++			dlm_lockres_put(res);
+ 	}
  
- master_here:
--	mlog(0, "(%d) mastering recovery of %s:%u here(this=%u)!\n",
--	     dlm->dlm_reco_thread_task->pid,
--	     dlm->name, dlm->reco.dead_node, dlm->node_num);
-+	mlog(ML_NOTICE, "(%d) Node %u is the Recovery Master for the Dead Node "
-+	     "%u for Domain %s\n", dlm->dlm_reco_thread_task->pid,
-+	     dlm->node_num, dlm->reco.dead_node, dlm->name);
- 
- 	status = dlm_remaster_locks(dlm, dlm->reco.dead_node);
- 	if (status < 0) {
+ 	dlm_put(dlm);
 -- 
 1.5.2.5
