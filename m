@@ -1,116 +1,120 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri Feb 22 16:11:47 2008
-Subject: [Ocfs2-devel] [PATCH 0/3] Add inode stealing for ocfs2.V1
-In-Reply-To: <20080222230738.GH27865@ca-server1.us.oracle.com>
-References: <20080222084149.GA29738@tma-pc1.cn.oracle.com>
-	<20080222230738.GH27865@ca-server1.us.oracle.com>
-Message-ID: <47BF64BC.3010207@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon Feb 25 12:21:11 2008
+Subject: [Ocfs2-devel] [PATCH 06/18] ocfs2_dlm: Link all lockres' to a
+	tracking list
+In-Reply-To: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
+References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1203970862-8790-7-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh Wrote:
-> On Fri, Feb 22, 2008 at 04:41:49PM +0800, tao.ma wrote:
->   
->> 	This patch set improve the method for inode allocation. Now they
->> are divided into 3 small patches, but I think maybe they can be merged
->> together as one. Any comments are welcomed.
->>     
->
-> Thank you for the thorough description. One thing that was left out - could
-> you give me a short description of how these changes were tested?
->   
-I have created a test script. It will create some inode in other nodes, 
-then use up all the spaces in the volume and all the inodes in the this 
-node's local inode_alloc. Then it will try to allocate from other nodes. 
-I am using debugfs.ocfs2 to check whether the "i_suballoc_slot" for the 
-new created inode is in the right slot and then delete it to be sure 
-kernel can handle it successfully. In the end, the volume will be 
-umounted and fscked for any possible error.
-Since this patch is only V1, I'm ready for any comments and will modify 
-the test scripts according to the new modification.
->
->   
->> In OCFS2, we allocate the inodes from slot specific inode_alloc to avoid
->> inode creation congestion. The local alloc file grows in a large contiguous
->> chunk. As for a 4K bs, it grows 4M every time. So 1024 inodes will be
->> allocated at a time.
->>
->> Over time, if the fs gets fragmented enough(e.g, the user has created many
->> small files and also delete some of them), we can end up in a situation,
->> whereby we cannot extend the inode_alloc as we don't have a large chunk
->> free in the global_bitmap even if df shows few gigs free. More annoying is
->> that this situation will invariably mean that while one cannot create inodes
->> on one node but can from another node. Still more annoying is that an unused
->> slot may have space for plenty of inodes but is unusable as the user may not
->> be mounting as many nodes anymore.
->>
->> This patch series implement a solution which is to steal inodes from another
->> slot. Now the whole inode allocation process looks like this:
->> 1. Allocate from its own inode_alloc:000X
->>    1) If we can reserve, OK.
->>    2) If fails, try to allocate a large chunk and reserve once again.
->>     
->
-> Do you have a mechanism in place to remember which inode alloc file you were
-> last able to sucessfully allocate from? If you did that, then we could avoid
-> needlessly searching our own slot every time.
->
-> You could even reset your "last inode alloc slot" pointer to the local slot
-> when space is freed from the local allocator.
->   
-You are right. I don't have this mechanism. I will investigate on it and 
-see how it can works. Thanks.
->
->   
->> 2. If 1 fails, try to allocate from the last node's inode_alloc. This time,
->>    Just try to reserve, we don't go for global_bitmap if this inode also
->>    can't allocate the inode.
->>     
->
-> Does every node go to the same inode allocator after it's own? Wouldn't this
-> create a lot of traffic in one slot?
->
-> Why not search inode alloc in the next slot and loop back until you reach
-> yours again? So, if the nodes slot is '3' and max slots is 6, it'd search
-> 4, 5, 0, 1, 2 before giving up.
->   
-Not sure whether your suggestion is reasonable. I start from the last 
-node because:
-1. It is not often used like others.
-2. If there is only one node whose inode alloc is full, it will only 
-contact the last node so that the congestion will be mainly between this 
-one and the last one.
-3. If there is more nodes whose inode allocs are full, there is a very 
-large chance that all the mounted one are full, so the very first times 
-of inode alloc may just fail until it reach a really empty node. And I 
-think the node which has the largest chance of "being empty" is the last 
-node.
-Make sense?
-So I think maybe if I add the mechanism of recording "last inode alloc 
-slot", it should work OK.
-Comments?
->
->   
->> 3. If 2 fails, try the node before it until we reach inode_alloc:0000.
->>    In the process, we will skip its own inode_alloc.
->>     
->
->   
->> 4. If 3 fails, try to allocate from its own inode_alloc:000X once again. Here
->>    is a chance that the global_bitmap may has a large enough chunk now during
->>    the inode iteration process.
->>     
->
-> What are the chances that the global bitmap emptied enough in the time it
-> took us to search the other allocators? It doesn't seem like that would
-> happen very much, so I wouldn't bother with this last step unless we had
-> evidence that it would make a real difference.
->   
-OK, I will try to find out whether there is a real scenario. If none, I 
-wil remove this.
+This patch links all the lockres' to a tracking list in dlm_ctxt.
+We will use this in the upcoming patch that will walk the entire
+list and to dump the lockres states to a debugfs file.
 
-Regards,
-Tao
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/dlm/dlmcommon.h |    4 ++++
+ fs/ocfs2/dlm/dlmdomain.c |   11 +++++++++++
+ fs/ocfs2/dlm/dlmmaster.c |   11 +++++++++++
+ 3 files changed, 26 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index eac1b3b..a3b22bf 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -101,6 +101,7 @@ struct dlm_ctxt
+ 	struct list_head purge_list;
+ 	struct list_head pending_asts;
+ 	struct list_head pending_basts;
++	struct list_head tracking_list;
+ 	unsigned int purge_count;
+ 	spinlock_t spinlock;
+ 	spinlock_t ast_lock;
+@@ -266,6 +267,9 @@ struct dlm_lock_resource
+ 	struct list_head dirty;
+ 	struct list_head recovering; // dlm_recovery_ctxt.resources list
+ 
++	/* Added during init and removed during release */
++	struct list_head tracking;	/* dlm->tracking_list */
++
+ 	/* unused lock resources have their last_used stamped and are
+ 	 * put on a list for the dlm thread to run. */
+ 	unsigned long    last_used;
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 6d02ef5..1d382f1 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -634,6 +634,7 @@ int dlm_shutting_down(struct dlm_ctxt *dlm)
+ void dlm_unregister_domain(struct dlm_ctxt *dlm)
+ {
+ 	int leave = 0;
++	struct dlm_lock_resource *res;
+ 
+ 	spin_lock(&dlm_domain_lock);
+ 	BUG_ON(dlm->dlm_state != DLM_CTXT_JOINED);
+@@ -663,6 +664,15 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
+ 			msleep(500);
+ 			mlog(0, "%s: more migration to do\n", dlm->name);
+ 		}
++
++		/* This list should be empty. If not, print remaining lockres */
++		if (!list_empty(&dlm->tracking_list)) {
++			mlog(ML_ERROR, "Following lockres' are still on the "
++			     "tracking list:\n");
++			list_for_each_entry(res, &dlm->tracking_list, tracking)
++				dlm_print_one_lock_resource(res);
++		}
++
+ 		dlm_mark_domain_leaving(dlm);
+ 		dlm_leave_domain(dlm);
+ 		dlm_complete_dlm_shutdown(dlm);
+@@ -1404,6 +1414,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	INIT_LIST_HEAD(&dlm->reco.node_data);
+ 	INIT_LIST_HEAD(&dlm->purge_list);
+ 	INIT_LIST_HEAD(&dlm->dlm_domain_handlers);
++	INIT_LIST_HEAD(&dlm->tracking_list);
+ 	dlm->reco.state = 0;
+ 
+ 	INIT_LIST_HEAD(&dlm->pending_asts);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index d07a30a..d10fe48 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -642,6 +642,14 @@ static void dlm_lockres_release(struct kref *kref)
+ 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+ 	     res->lockname.name);
+ 
++	if (!list_empty(&res->tracking))
++		list_del_init(&res->tracking);
++	else {
++		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
++		     res->lockname.len, res->lockname.name);
++		dlm_print_one_lock_resource(res);
++	}
++
+ 	if (!hlist_unhashed(&res->hash_node) ||
+ 	    !list_empty(&res->granted) ||
+ 	    !list_empty(&res->converting) ||
+@@ -709,6 +717,7 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+ 	INIT_LIST_HEAD(&res->dirty);
+ 	INIT_LIST_HEAD(&res->recovering);
+ 	INIT_LIST_HEAD(&res->purge);
++	INIT_LIST_HEAD(&res->tracking);
+ 	atomic_set(&res->asts_reserved, 0);
+ 	res->migration_pending = 0;
+ 	res->inflight_locks = 0;
+@@ -724,6 +733,8 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+ 
+ 	res->last_used = 0;
+ 
++	list_add_tail(&res->tracking, &dlm->tracking_list);
++
+ 	memset(res->lvb, 0, DLM_LVB_LEN);
+ 	memset(res->refmap, 0, sizeof(res->refmap));
+ }
+-- 
+1.5.2.5
