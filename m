@@ -1,7 +1,7 @@
 From: Julia Lawall <julia@diku.dk>
-Date: Sun, 17 Feb 2008 17:56:08 -0000
-Subject: [Ocfs2-devel] [PATCH 3/7] fs/ocfs2: Use BUG_ON
-Message-ID: <Pine.LNX.4.64.0802171855070.28055@ask.diku.dk>
+Date: Tue, 26 Feb 2008 20:47:10 -0000
+Subject: [Ocfs2-devel] [PATCH 8/9] fs/ocfs2/aops.c: Correct use of ! and &
+Message-ID: <Pine.LNX.4.64.0802262145321.18200@ask.diku.dk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,29 +10,23 @@ To: mark.fasheh@oracle.com, kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, 
 
 From: Julia Lawall <julia@diku.dk>
 
-if (...) BUG(); should be replaced with BUG_ON(...) when the test has no
-side-effects to allow a definition of BUG_ON that drops the code completely.
+In commit e6bafba5b4765a5a252f1b8d31cbf6d2459da337, a bug was fixed that
+involved converting !x & y to !(x & y).  The code below shows the same
+pattern, and thus should perhaps be fixed in the same way.
+
+This is not tested and clearly changes the semantics, so it is only
+something to consider.
 
 The semantic patch that makes this change is as follows:
 (http://www.emn.fr/x-info/coccinelle/)
 
 // <smpl>
-@ disable unlikely @ expression E,f; @@
-
+@@ expression E1,E2; @@
 (
-  if (<... f(...) ...>) { BUG(); }
+  !E1 & !E2
 |
-- if (unlikely(E)) { BUG(); }
-+ BUG_ON(E);
-)
-
-@@ expression E,f; @@
-
-(
-  if (<... f(...) ...>) { BUG(); }
-|
-- if (E) { BUG(); }
-+ BUG_ON(E);
+- !E1 & E2
++ !(E1 & E2)
 )
 // </smpl>
 
@@ -40,29 +34,15 @@ Signed-off-by: Julia Lawall <julia@diku.dk>
 
 ---
 
-diff -u -p a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
---- a/fs/ocfs2/alloc.c 2008-02-05 20:56:02.000000000 +0100
-+++ b/fs/ocfs2/alloc.c 2008-02-17 16:40:41.000000000 +0100
-@@ -1029,8 +1029,7 @@ static void ocfs2_rotate_leaf(struct ocf
- 	BUG_ON(!next_free);
+diff -u -p a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+--- a/fs/ocfs2/aops.c 2008-02-05 20:56:02.000000000 +0100
++++ b/fs/ocfs2/aops.c 2008-02-26 08:16:47.000000000 +0100
+@@ -257,7 +257,7 @@ static int ocfs2_readpage_inline(struct 
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
  
- 	/* The tree code before us didn't allow enough room in the leaf. */
--	if (el->l_next_free_rec == el->l_count && !has_empty)
--		BUG();
-+	BUG_ON(el->l_next_free_rec == el->l_count && !has_empty);
+ 	BUG_ON(!PageLocked(page));
+-	BUG_ON(!OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL);
++	BUG_ON(!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL));
  
- 	/*
- 	 * The easiest way to approach this is to just remove the
-diff -u -p a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
---- a/fs/ocfs2/journal.c 2008-02-02 16:09:08.000000000 +0100
-+++ b/fs/ocfs2/journal.c 2008-02-17 16:40:59.000000000 +0100
-@@ -586,8 +586,7 @@ int ocfs2_journal_load(struct ocfs2_jour
- 
- 	mlog_entry_void();
- 
--	if (!journal)
--		BUG();
-+	BUG_ON(!journal);
- 
- 	osb = journal->j_osb;
- 
+ 	ret = ocfs2_read_block(osb, OCFS2_I(inode)->ip_blkno, &di_bh,
+ 			       OCFS2_BH_CACHED, inode);
