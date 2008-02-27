@@ -1,39 +1,51 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Wed Feb 27 19:07:34 2008
-Subject: [Ocfs2-devel] Use dlm_print_one_lock_resource in
-	dlm_add_lock_to_array.
-Message-ID: <20080228030541.GA11530@tma-pc1.cn.oracle.com>
+Date: Wed Feb 27 22:36:33 2008
+Subject: [Ocfs2-devel] [PATCH 0/3] Add inode steal for ocfs2.V2
+Message-ID: <20080228063438.GA27318@tma-pc1.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-__dlm_print_one_lock_resource must be called with spin_lock
-the res->spinlock. While in this case, we use it without this
-precondition and lead to the failure of assert_spin_locked.
-So call dlm_print_one_lock_resource instead.
+Hi all,
+This patch series add inode steal mechanism for inode allocation.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Modification from V1 to V2:
+1. Add a new member in ocfs2_super which will record the slot we steal
+   the inode successfully. This will speed up the next steal.
+2. Modify the mechanism of inode stealing. Now we will start our search
+   from the node next to it. 
+3. Remove the last and extra inode allocation in the local slot since
+   there is no evidence that we will have our global bitmap be emptied
+   enough in the time it takes us to search the other allocators.
 
----
+In OCFS2, we allocate the inodes from slot specific inode_alloc to avoid
+inode creation congestion. The local alloc file grows in a large contiguous
+chunk. As for a 4K bs, it grows 4M every time. So 1024 inodes will be
+allocated at a time.
 
- fs/ocfs2/dlm/dlmrecovery.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+Over time, if the fs gets fragmented enough(e.g, the user has created many
+small files and also delete some of them), we can end up in a situation,
+whereby we cannot extend the inode_alloc as we don't have a large chunk
+free in the global_bitmap even if df shows few gigs free. More annoying is
+that this situation will invariably mean that while one cannot create inodes
+on one node but can from another node. Still more annoying is that an unused
+slot may have space for plenty of inodes but is unusable as the user may not
+be mounting as many nodes anymore.
 
-c1c3be6574177eebc71c8c1ee70ead0a7f0ea659
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 91f747b..550d4e6 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1191,7 +1191,7 @@ static int dlm_add_lock_to_array(struct 
- 			    (ml->type == LKM_EXMODE ||
- 			     memcmp(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN))) {
- 				mlog(ML_ERROR, "mismatched lvbs!\n");
--				__dlm_print_one_lock_resource(lock->lockres);
-+				dlm_print_one_lock_resource(lock->lockres);
- 				BUG();
- 			}
- 			memcpy(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN);
--- 
-1.3.3
+This patch series implement a solution which is to steal inodes from another
+slot. Now the whole inode allocation process looks like this:
+1. Allocate from its own inode_alloc:000X
+   1) If we can reserve, OK.
+   2) If fails, try to allocate a large chunk and reserve once again.
+2. If 1 fails, try to allocate from the ocfs2_super->inode_steal_slot.
+   This time, Just try to reserve, we don't go for global_bitmap if
+   this inode also can't allocate the inode.
+3. If 2 fails, try the node next until we reach that steal slot again.
+
+ocfs2_super->inode_steal_slot is initalized as the node next to our own
+slot. And once the inode stealing successes, we will refresh it with
+the slot we steal inode from. It will also be reinitalized when the local
+truncate log or local alloc recovery is flushed in which case the global
+bitmap may be refreshed.
