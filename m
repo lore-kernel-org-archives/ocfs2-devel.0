@@ -1,31 +1,76 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Wed Feb 27 13:27:11 2008
-Subject: [Ocfs2-devel] Re: [PATCH 8/9] fs/ocfs2/aops.c: Correct use of ! and
-	&
-In-Reply-To: <Pine.LNX.4.64.0802262145321.18200@ask.diku.dk>
-References: <Pine.LNX.4.64.0802262145321.18200@ask.diku.dk>
-Message-ID: <20080227212645.GP27865@ca-server1.us.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Wed Feb 27 18:43:06 2008
+Subject: [Ocfs2-devel] [PATCH] Use dlm_print_one_lock_resource for lock
+	reason.
+Message-ID: <20080228024155.GA9569@tma-pc1.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Julia Lawall <julia@diku.dk>
-Cc: kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Feb 26, 2008 at 09:45:56PM +0100, Julia Lawall wrote:
-> From: Julia Lawall <julia@diku.dk>
-> 
-> In commit e6bafba5b4765a5a252f1b8d31cbf6d2459da337, a bug was fixed that
-> involved converting !x & y to !(x & y).  The code below shows the same
-> pattern, and thus should perhaps be fixed in the same way.
-> 
-> This is not tested and clearly changes the semantics, so it is only
-> something to consider.
+__dlm_print_one_lock_resource must be called with spin_lock
+the res->spinlock. While in some cases, we use it without this
+precondition and lead to the failure of assert_spin_locked.
+So call dlm_print_one_lock_resource instead.
 
-That looks fine - it's in Ocfs2.git now, thanks.
-	--Mark
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
---
-Mark Fasheh
-Principal Software Developer, Oracle
-mark.fasheh@oracle.com
+---
+
+ fs/ocfs2/dlm/dlmconvert.c  |    2 +-
+ fs/ocfs2/dlm/dlmmaster.c   |    4 ++--
+ fs/ocfs2/dlm/dlmrecovery.c |    2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+e24386850ba5540d084e1aa0b7934116ff587165
+diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
+index ecb4d99..75997b4 100644
+--- a/fs/ocfs2/dlm/dlmconvert.c
++++ b/fs/ocfs2/dlm/dlmconvert.c
+@@ -487,7 +487,7 @@ int dlm_convert_lock_handler(struct o2ne
+ 			       "cookie=%u:%llu\n",
+ 		     dlm_get_lock_cookie_node(be64_to_cpu(cnv->cookie)),
+ 		     dlm_get_lock_cookie_seq(be64_to_cpu(cnv->cookie)));
+-		__dlm_print_one_lock_resource(res);
++		dlm_print_one_lock_resource(res);
+ 		goto leave;
+ 	}
+ 
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index a54d33d..fe6b3ef 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -2348,7 +2348,7 @@ int dlm_deref_lockres_handler(struct o2n
+ 			mlog(ML_ERROR, "%s:%.*s: node %u trying to drop ref "
+ 		     	"but it is already dropped!\n", dlm->name,
+ 		     	res->lockname.len, res->lockname.name, node);
+-			__dlm_print_one_lock_resource(res);
++			dlm_print_one_lock_resource(res);
+ 		}
+ 		ret = 0;
+ 		goto done;
+@@ -2408,7 +2408,7 @@ static void dlm_deref_lockres_worker(str
+ 		mlog(ML_ERROR, "%s:%.*s: node %u trying to drop ref "
+ 		     "but it is already dropped!\n", dlm->name,
+ 		     res->lockname.len, res->lockname.name, node);
+-		__dlm_print_one_lock_resource(res);
++		dlm_print_one_lock_resource(res);
+ 	}
+ 
+ 	dlm_lockres_put(res);
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 91f747b..550d4e6 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1191,7 +1191,7 @@ static int dlm_add_lock_to_array(struct 
+ 			    (ml->type == LKM_EXMODE ||
+ 			     memcmp(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN))) {
+ 				mlog(ML_ERROR, "mismatched lvbs!\n");
+-				__dlm_print_one_lock_resource(lock->lockres);
++				dlm_print_one_lock_resource(lock->lockres);
+ 				BUG();
+ 			}
+ 			memcpy(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN);
+-- 
+1.3.3
