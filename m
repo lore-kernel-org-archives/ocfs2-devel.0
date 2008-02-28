@@ -1,20 +1,20 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu Feb 28 16:53:03 2008
-Subject: [Ocfs2-devel] [PATCH 11/18] ocfs2_dlm: Dumps the mles into a
-	debugfs file
-In-Reply-To: <1203970862-8790-12-git-send-email-sunil.mushran@oracle.com>
+Date: Thu Feb 28 16:53:05 2008
+Subject: [Ocfs2-devel] [PATCH 13/18] ocfs2_dlm: Dumps the workqueue
+	into a debugfs file
+In-Reply-To: <1203970862-8790-14-git-send-email-sunil.mushran@oracle.com>
 References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
-	<1203970862-8790-12-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20080229005149.GM23975@mail.oracle.com>
+	<1203970862-8790-14-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080229005252.GO23975@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Feb 25, 2008 at 12:20:55PM -0800, Sunil Mushran wrote:
-> This patch dumps all mles it can fit in one page into a debugfs file.
-> Useful for debugging.
+On Mon, Feb 25, 2008 at 12:20:57PM -0800, Sunil Mushran wrote:
+> This patch dumps all the tasks on the workqueue it can fit in one page
+> into a debugfs file. Useful for debugging.
 > 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
@@ -23,106 +23,80 @@ On Mon, Feb 25, 2008 at 12:20:55PM -0800, Sunil Mushran wrote:
 Joel
 
 > ---
->  fs/ocfs2/dlm/dlmdebug.c |  119 +++++++++++++++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/dlm/dlmdebug.c |   93 +++++++++++++++++++++++++++++++++++++++++++++++
 >  fs/ocfs2/dlm/dlmdebug.h |    1 +
->  2 files changed, 120 insertions(+), 0 deletions(-)
+>  2 files changed, 94 insertions(+), 0 deletions(-)
 > 
 > diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-> index 905145a..158b2e5 100644
+> index ffdc976..1864731 100644
 > --- a/fs/ocfs2/dlm/dlmdebug.c
 > +++ b/fs/ocfs2/dlm/dlmdebug.c
-> @@ -706,6 +706,7 @@ EXPORT_SYMBOL_GPL(dlm_errname);
->  #define DLM_DEBUGFS_DIR				"o2dlm"
->  #define DLM_DEBUGFS_DLM_STATE			"dlm_state"
+> @@ -708,6 +708,7 @@ EXPORT_SYMBOL_GPL(dlm_errname);
 >  #define DLM_DEBUGFS_LOCKING_STATE		"locking_state"
-> +#define DLM_DEBUGFS_MLE_STATE			"mle_state"
+>  #define DLM_DEBUGFS_MLE_STATE			"mle_state"
+>  #define DLM_DEBUGFS_PURGE_LIST			"purge_list"
+> +#define DLM_DEBUGFS_WORK_QUEUE			"work_queue"
 >  
 >  /* NOTE: This function converts a lockname into a string. It uses knowledge
 >   * of the format of the lockname that should be outside the purview of the dlm.
-> @@ -827,6 +828,112 @@ static int debug_buffer_release(struct inode *inode, struct file *file)
+> @@ -829,6 +830,85 @@ static int debug_buffer_release(struct inode *inode, struct file *file)
 >  }
 >  /* end - util funcs */
 >  
-> +/* begin - debug mle funcs */
-> +static int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len)
+> +/* begin - work queue funcs */
+> +static int debug_workqueue_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
 > +{
-> +	int out = 0;
-> +	unsigned int namelen;
-> +	const char *name;
-> +	char *mle_type;
-> +
-> +	if (mle->type != DLM_MLE_MASTER) {
-> +		namelen = mle->u.name.len;
-> +		name = mle->u.name.name;
-> +	} else {
-> +		namelen = mle->u.res->lockname.len;
-> +		name = mle->u.res->lockname.name;
-> +	}
-> +
-> +	if (mle->type == DLM_MLE_BLOCK)
-> +		mle_type = "BLK";
-> +	else if (mle->type == DLM_MLE_MASTER)
-> +		mle_type = "MAS";
-> +	else
-> +		mle_type = "MIG";
-> +
-> +	out += stringify_lockname(name, namelen, buf + out, len - out);
-> +	out += snprintf(buf + out, len - out,
-> +			"\t%3s\tmas=%3u\tnew=%3u\tevt=%1d\tuse=%1d\tref=%3d\n",
-> +			mle_type, mle->master, mle->new_master,
-> +			!list_empty(&mle->hb_events),
-> +			!!mle->inuse,
-> +			atomic_read(&mle->mle_refs.refcount));
-> +
-> +	out += snprintf(buf + out, len - out, "Maybe=");
-> +	out += stringify_nodemap(mle->maybe_map, O2NM_MAX_NODES,
-> +				 buf + out, len - out);
-> +	out += snprintf(buf + out, len - out, "\n");
-> +
-> +	out += snprintf(buf + out, len - out, "Vote=");
-> +	out += stringify_nodemap(mle->vote_map, O2NM_MAX_NODES,
-> +				 buf + out, len - out);
-> +	out += snprintf(buf + out, len - out, "\n");
-> +
-> +	out += snprintf(buf + out, len - out, "Response=");
-> +	out += stringify_nodemap(mle->response_map, O2NM_MAX_NODES,
-> +				 buf + out, len - out);
-> +	out += snprintf(buf + out, len - out, "\n");
-> +
-> +	out += snprintf(buf + out, len - out, "Node=");
-> +	out += stringify_nodemap(mle->node_map, O2NM_MAX_NODES,
-> +				 buf + out, len - out);
-> +	out += snprintf(buf + out, len - out, "\n");
-> +
-> +	out += snprintf(buf + out, len - out, "\n");
-> +
-> +	return out;
-> +}
-> +
-> +static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
-> +{
-> +	struct dlm_master_list_entry *mle;
+> +	struct dlm_work_item *wi;
 > +	int out = 0;
 > +	unsigned long total = 0;
 > +
 > +	out += snprintf(db->buf + out, db->len - out,
-> +			"Dumping MLEs for Domain: %s\n", dlm->name);
+> +			"Dumping Workqueue for Domain: %s\n", dlm->name);
 > +
-> +	spin_lock(&dlm->master_lock);
-> +	list_for_each_entry(mle, &dlm->master_list, list) {
+> +	spin_lock(&dlm->work_lock);
+> +	list_for_each_entry(wi, &dlm->work_list, list) {
 > +		++total;
-> +		if (db->len - out < 200)
+> +		if (db->len - out < 100)
 > +			continue;
-> +		out += dump_mle(mle, db->buf + out, db->len - out);
+> +		if (wi->func == dlm_request_all_locks_worker) {
+> +			out += snprintf(db->buf + out, db->len - out,
+> +					"RequestAllLocks, "
+> +					"recomaster=%d, deadnode=%d\n",
+> +					wi->u.ral.reco_master,
+> +					wi->u.ral.dead_node);
+> +		} else if (wi->func == dlm_mig_lockres_worker) {
+> +			out += snprintf(db->buf + out, db->len - out,
+> +					"MigrateLockres,  ");
+> +			out += stringify_lockname(wi->u.ml.lockres->lockname.name,
+> +						  wi->u.ml.lockres->lockname.len,
+> +						  db->buf + out, db->len - out);
+> +			out += snprintf(db->buf + out, db->len - out,
+> +					"  master=%d\n", wi->u.ml.real_master);
+> +		} else if (wi->func == dlm_assert_master_worker) {
+> +			out += snprintf(db->buf + out, db->len - out,
+> +					"AssertMaster, ");
+> +			out += stringify_lockname(wi->u.am.lockres->lockname.name,
+> +						  wi->u.am.lockres->lockname.len,
+> +						  db->buf + out, db->len - out);
+> +			out += snprintf(db->buf + out, db->len - out,
+> +					" from=%d, flags=0x%X, ignore=%d\n",
+> +					wi->u.am.request_from,
+> +					wi->u.am.flags,
+> +					wi->u.am.ignore_higher);
+> +		} else {
+> +			out += snprintf(db->buf + out, db->len - out,
+> +					"Unknown, 0x%p\n", wi->func);
+> +		}
 > +	}
-> +	spin_unlock(&dlm->master_lock);
+> +	spin_unlock(&dlm->work_lock);
 > +
 > +	out += snprintf(db->buf + out, db->len - out,
 > +			"Total on list: %ld\n", total);
+> +
 > +	return out;
 > +}
 > +
-> +static int debug_mle_open(struct inode *inode, struct file *file)
+> +static int debug_workqueue_open(struct inode *inode, struct file *file)
 > +{
 > +	struct dlm_ctxt *dlm = inode->i_private;
 > +	struct debug_buffer *db;
@@ -131,7 +105,7 @@ Joel
 > +	if (!db)
 > +		goto bail;
 > +
-> +	db->len = debug_mle_print(dlm, db);
+> +	db->len = debug_workqueue_print(dlm, db);
 > +
 > +	file->private_data = db;
 > +
@@ -140,28 +114,28 @@ Joel
 > +	return -ENOMEM;
 > +}
 > +
-> +static struct file_operations debug_mle_fops = {
-> +	.open =		debug_mle_open,
+> +static struct file_operations debug_workqueue_fops = {
+> +	.open =		debug_workqueue_open,
 > +	.release =	debug_buffer_release,
 > +	.read =		debug_buffer_read,
 > +	.llseek =	debug_buffer_llseek,
 > +};
+> +/* end - work queue funcs */
 > +
-> +/* end - debug mle funcs */
-> +
->  /* begin - debug lockres funcs */
->  static int dump_lock(struct dlm_lock *lock, int list_type, char *buf, int len)
+>  /* begin - purge list funcs */
+>  static int debug_purgelist_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
 >  {
-> @@ -1222,6 +1329,16 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
+> @@ -1408,6 +1488,17 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
 >  		goto bail;
 >  	}
 >  
-> +	/* for dumping mles */
-> +	dc->debug_mle_dentry = debugfs_create_file(DLM_DEBUGFS_MLE_STATE,
-> +						   S_IFREG|S_IRUSR,
-> +						   dlm->dlm_debugfs_subroot,
-> +						   dlm, &debug_mle_fops);
-> +	if (!dc->debug_mle_dentry) {
+> +	/* for dumping the dlm work queue */
+> +	dc->debug_workqueue_dentry =
+> +			debugfs_create_file(DLM_DEBUGFS_WORK_QUEUE,
+> +					    S_IFREG|S_IRUSR,
+> +					    dlm->dlm_debugfs_subroot,
+> +					    dlm, &debug_workqueue_fops);
+> +	if (!dc->debug_workqueue_dentry) {
 > +		mlog_errno(-ENOMEM);
 > +		goto bail;
 > +	}
@@ -169,24 +143,24 @@ Joel
 >  	dlm_debug_get(dc);
 >  	return 0;
 >  
-> @@ -1235,6 +1352,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
+> @@ -1421,6 +1512,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
 >  	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
 >  
 >  	if (dc) {
-> +		if (dc->debug_mle_dentry)
-> +			debugfs_remove(dc->debug_mle_dentry);
->  		if (dc->debug_lockres_dentry)
->  			debugfs_remove(dc->debug_lockres_dentry);
->  		if (dc->debug_state_dentry)
+> +		if (dc->debug_workqueue_dentry)
+> +			debugfs_remove(dc->debug_workqueue_dentry);
+>  		if (dc->debug_purgelist_dentry)
+>  			debugfs_remove(dc->debug_purgelist_dentry);
+>  		if (dc->debug_mle_dentry)
 > diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
-> index 86d02f4..c6b240f 100644
+> index ca7bc32..fcc19c8 100644
 > --- a/fs/ocfs2/dlm/dlmdebug.h
 > +++ b/fs/ocfs2/dlm/dlmdebug.h
-> @@ -29,6 +29,7 @@ struct dlm_debug_ctxt {
->  	struct kref debug_refcnt;
->  	struct dentry *debug_state_dentry;
+> @@ -31,6 +31,7 @@ struct dlm_debug_ctxt {
 >  	struct dentry *debug_lockres_dentry;
-> +	struct dentry *debug_mle_dentry;
+>  	struct dentry *debug_mle_dentry;
+>  	struct dentry *debug_purgelist_dentry;
+> +	struct dentry *debug_workqueue_dentry;
 >  };
 >  
 >  struct debug_buffer
@@ -201,9 +175,9 @@ Joel
 
 -- 
 
-Bram's Law:
-	The easier a piece of software is to write, the worse it's
-	implemented in practice.
+"Sometimes when reading Goethe I have the paralyzing suspicion
+ that he is trying to be funny."
+         - Guy Davenport
 
 Joel Becker
 Principal Software Developer
