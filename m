@@ -1,19 +1,22 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu Feb 28 17:09:31 2008
-Subject: [Ocfs2-devel] [PATCH 07/18] ocfs2_dlm: Create debugfs dirs
-In-Reply-To: <1203970862-8790-8-git-send-email-sunil.mushran@oracle.com>
+Date: Thu Feb 28 17:09:33 2008
+Subject: [Ocfs2-devel] [PATCH 02/18] ocfs2_dlm: Creates slabcaches for
+	the lockres' and the locks
+In-Reply-To: <1203970862-8790-3-git-send-email-sunil.mushran@oracle.com>
 References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
-	<1203970862-8790-8-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20080229010913.GB17860@mail.oracle.com>
+	<1203970862-8790-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080229010816.GA17860@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Feb 25, 2008 at 12:20:51PM -0800, Sunil Mushran wrote:
-> This patch creates the debugfs directories that will hold the
-> files to be used to dump the dlm state.
+On Mon, Feb 25, 2008 at 12:20:46PM -0800, Sunil Mushran wrote:
+> This patch makes the o2dlm allocate memory for lockres, lockname and lock
+> structures from slabcaches rather than kmalloc. This allows us to not only
+> make these allocs more efficient but also allows us to track the memory being
+> consumed by these structures.
 
 	Please run through checkpatch.pl.
 
@@ -21,182 +24,255 @@ Joel
 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 > ---
->  fs/ocfs2/dlm/dlmcommon.h |    2 ++
->  fs/ocfs2/dlm/dlmdebug.c  |   44 ++++++++++++++++++++++++++++++++++++++++++++
->  fs/ocfs2/dlm/dlmdebug.h  |    7 +++++++
->  fs/ocfs2/dlm/dlmdomain.c |   20 ++++++++++++++++++++
->  4 files changed, 73 insertions(+), 0 deletions(-)
+>  fs/ocfs2/dlm/dlmcommon.h |   10 +++++++
+>  fs/ocfs2/dlm/dlmdomain.c |   33 ++++++++++++++++++++---
+>  fs/ocfs2/dlm/dlmlock.c   |   23 +++++++++++++++-
+>  fs/ocfs2/dlm/dlmmaster.c |   65 +++++++++++++++++++++++++++++++++++++--------
+>  4 files changed, 113 insertions(+), 18 deletions(-)
 > 
 > diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-> index a3b22bf..810e9b4 100644
+> index f3afb15..041ec68 100644
 > --- a/fs/ocfs2/dlm/dlmcommon.h
 > +++ b/fs/ocfs2/dlm/dlmcommon.h
-> @@ -125,6 +125,8 @@ struct dlm_ctxt
->  	atomic_t remote_resources;
->  	atomic_t unknown_resources;
->  
-> +	struct dentry *dlm_debugfs_subroot;
-> +
->  	/* NOTE: Next three are protected by dlm_domain_lock */
->  	struct kref dlm_refs;
->  	enum dlm_ctxt_state dlm_state;
-> diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-> index e4f1fe9..baa8e24 100644
-> --- a/fs/ocfs2/dlm/dlmdebug.c
-> +++ b/fs/ocfs2/dlm/dlmdebug.c
-> @@ -31,6 +31,7 @@
->  #include <linux/sysctl.h>
->  #include <linux/spinlock.h>
->  #include <linux/proc_fs.h>
-> +#include <linux/debugfs.h>
->  
->  #include "cluster/heartbeat.h"
->  #include "cluster/nodemanager.h"
-> @@ -46,6 +47,8 @@
->  #define MLOG_MASK_PREFIX ML_DLM
->  #include "cluster/masklog.h"
->  
-> +static struct dentry *dlm_debugfs_root = NULL;
-> +
->  static int dlm_dump_all_lock_resources(const char __user *data,
->  					unsigned int len);
->  static void dlm_dump_purge_list(struct dlm_ctxt *dlm);
-> @@ -699,3 +702,44 @@ const char *dlm_errname(enum dlm_status err)
->  	return dlm_errnames[err];
+> @@ -944,9 +944,19 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
+>  					  DLM_LOCK_RES_MIGRATING));
 >  }
->  EXPORT_SYMBOL_GPL(dlm_errname);
+>  
+> +/* create/destroy slab caches */
+> +int dlm_init_lockres_cache(void);
+> +void dlm_destroy_lockres_cache(void);
 > +
-> +#define DLM_DEBUGFS_DIR				"o2dlm"
+> +int dlm_init_lockname_cache(void);
+> +void dlm_destroy_lockname_cache(void);
 > +
-> +/* subroot - domain dir */
-> +int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
-> +{
-> +	dlm->dlm_debugfs_subroot = debugfs_create_dir(dlm->name, dlm_debugfs_root);
-> +	if (!dlm->dlm_debugfs_subroot) {
-> +		mlog_errno(-ENOMEM);
-> +		goto bail;
-> +	}
+> +int dlm_init_lock_cache(void);
+> +void dlm_destroy_lock_cache(void);
+>  
+>  int dlm_init_mle_cache(void);
+>  void dlm_destroy_mle_cache(void);
 > +
-> +	return 0;
-> +bail:
-> +	dlm_destroy_debugfs_subroot(dlm);
-> +	return -ENOMEM;
-> +}
-> +
-> +void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm)
-> +{
-> +	if (dlm->dlm_debugfs_subroot)
-> +		debugfs_remove(dlm->dlm_debugfs_subroot);
-> +}
-> +
-> +/* debugfs root */
-> +int dlm_create_debugfs_root(void)
-> +{
-> +	dlm_debugfs_root = debugfs_create_dir(DLM_DEBUGFS_DIR, NULL);
-> +	if (!dlm_debugfs_root) {
-> +		mlog_errno(-ENOMEM);
-> +		return -ENOMEM;
-> +	}
-> +
-> +	return 0;
-> +}
-> +
-> +void dlm_destroy_debugfs_root(void)
-> +{
-> +	if (dlm_debugfs_root)
-> +		debugfs_remove(dlm_debugfs_root);
-> +}
-> diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
-> index dbe3a3d..e701499 100644
-> --- a/fs/ocfs2/dlm/dlmdebug.h
-> +++ b/fs/ocfs2/dlm/dlmdebug.h
-> @@ -31,4 +31,11 @@ void dlm_dump_lock_resources(struct dlm_ctxt *dlm);
->  void dlm_proc_add_domain(struct dlm_ctxt *dlm);
->  void dlm_proc_del_domain(struct dlm_ctxt *dlm);
->  void dlm_dump_work_queue(struct dlm_ctxt *dlm);
-> +
-> +int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm);
-> +void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm);
-> +
-> +int dlm_create_debugfs_root(void);
-> +void dlm_destroy_debugfs_root(void);
-> +
->  #endif
+>  void dlm_hb_event_notify_attached(struct dlm_ctxt *dlm, int idx, int node_up);
+>  int dlm_drop_lockres_ref(struct dlm_ctxt *dlm,
+>  			 struct dlm_lock_resource *res);
 > diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-> index 1d382f1..da2a155 100644
+> index 502712b..6d02ef5 100644
 > --- a/fs/ocfs2/dlm/dlmdomain.c
 > +++ b/fs/ocfs2/dlm/dlmdomain.c
-> @@ -33,6 +33,7 @@
->  #include <linux/spinlock.h>
->  #include <linux/delay.h>
->  #include <linux/err.h>
-> +#include <linux/debugfs.h>
+> @@ -1650,24 +1650,49 @@ static int __init dlm_init(void)
+>  	status = dlm_init_mle_cache();
+>  	if (status) {
+>  		mlog(ML_ERROR, "Could not create o2dlm_mle slabcache\n");
+> -		return -1;
+> +		goto error;
+>  	}
 >  
->  #include "cluster/heartbeat.h"
->  #include "cluster/nodemanager.h"
-> @@ -43,6 +44,7 @@
->  
->  #include "dlmdebug.h"
->  #include "dlmdomain.h"
-> +#include "dlmdebug.h"
->  
->  #include "dlmver.h"
->  
-> @@ -288,6 +290,8 @@ static void dlm_free_ctxt_mem(struct dlm_ctxt *dlm)
->  {
->  	dlm_proc_del_domain(dlm);
->  
-> +	dlm_destroy_debugfs_subroot(dlm);
-> +
->  	if (dlm->lockres_hash)
->  		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
->  
-> @@ -1372,6 +1376,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
->  				u32 key)
->  {
->  	int i;
-> +	int ret;
->  	struct dlm_ctxt *dlm = NULL;
->  
->  	dlm = kzalloc(sizeof(*dlm), GFP_KERNEL);
-> @@ -1404,6 +1409,15 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
->  	dlm->key = key;
->  	dlm->node_num = o2nm_this_node();
->  
-> +	ret = dlm_create_debugfs_subroot(dlm);
-> +	if (ret < 0) {
-> +		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
-> +		kfree(dlm->name);
-> +		kfree(dlm);
-> +		dlm = NULL;
-> +		goto leave;
+> -	status = dlm_register_net_handlers();
+> +	status = dlm_init_lockres_cache();
+> +	if (status) {
+> +		mlog(ML_ERROR, "Could not create o2dlm_lockres slabcache\n");
+> +		goto error;
 > +	}
 > +
->  	spin_lock_init(&dlm->spinlock);
->  	spin_lock_init(&dlm->master_lock);
->  	spin_lock_init(&dlm->ast_lock);
-> @@ -1688,8 +1702,13 @@ static int __init dlm_init(void)
+> +	status = dlm_init_lockname_cache();
+>  	if (status) {
+> -		dlm_destroy_mle_cache();
+> -		return -1;
+> +		mlog(ML_ERROR, "Could not create o2dlm_lockname slabcache\n");
+> +		goto error;
+>  	}
 >  
->  	dlm_init_proc();
->  
-> +	status = dlm_create_debugfs_root();
+> +	status = dlm_init_lock_cache();
+> +	if (status) {
+> +		mlog(ML_ERROR, "Could not create o2dlm_lock slabcache\n");
+> +		goto error;
+> +	}
+> +
+> +	status = dlm_register_net_handlers();
 > +	if (status)
 > +		goto error;
 > +
+>  	dlm_init_proc();
+>  
 >  	return 0;
->  error:
-> +	dlm_unregister_net_handlers();
->  	dlm_destroy_lock_cache();
->  	dlm_destroy_lockname_cache();
->  	dlm_destroy_lockres_cache();
-> @@ -1699,6 +1718,7 @@ error:
+> +error:
+> +	dlm_destroy_lock_cache();
+> +	dlm_destroy_lockname_cache();
+> +	dlm_destroy_lockres_cache();
+> +	dlm_destroy_mle_cache();
+> +	return -1;
+>  }
 >  
 >  static void __exit dlm_exit (void)
 >  {
-> +	dlm_destroy_debugfs_root();
 >  	dlm_remove_proc();
 >  	dlm_unregister_net_handlers();
->  	dlm_destroy_lock_cache();
+> +	dlm_destroy_lock_cache();
+> +	dlm_destroy_lockname_cache();
+> +	dlm_destroy_lockres_cache();
+>  	dlm_destroy_mle_cache();
+>  }
+>  
+> diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+> index 52578d9..ea393b6 100644
+> --- a/fs/ocfs2/dlm/dlmlock.c
+> +++ b/fs/ocfs2/dlm/dlmlock.c
+> @@ -53,6 +53,8 @@
+>  #define MLOG_MASK_PREFIX ML_DLM
+>  #include "cluster/masklog.h"
+>  
+> +static struct kmem_cache *dlm_lock_cache = NULL;
+> +
+>  static DEFINE_SPINLOCK(dlm_cookie_lock);
+>  static u64 dlm_next_cookie = 1;
+>  
+> @@ -64,6 +66,22 @@ static void dlm_init_lock(struct dlm_lock *newlock, int type,
+>  static void dlm_lock_release(struct kref *kref);
+>  static void dlm_lock_detach_lockres(struct dlm_lock *lock);
+>  
+> +int dlm_init_lock_cache(void)
+> +{
+> +	dlm_lock_cache = kapi_kmem_cache_create("o2dlm_lock",
+> +						sizeof(struct dlm_lock),
+> +						0, SLAB_HWCACHE_ALIGN, NULL);
+> +	if (dlm_lock_cache == NULL)
+> +		return -ENOMEM;
+> +	return 0;
+> +}
+> +
+> +void dlm_destroy_lock_cache(void)
+> +{
+> +	if (dlm_lock_cache)
+> +		kmem_cache_destroy(dlm_lock_cache);
+> +}
+> +
+>  /* Tell us whether we can grant a new lock request.
+>   * locking:
+>   *   caller needs:  res->spinlock
+> @@ -353,7 +371,7 @@ static void dlm_lock_release(struct kref *kref)
+>  		mlog(0, "freeing kernel-allocated lksb\n");
+>  		kfree(lock->lksb);
+>  	}
+> -	kfree(lock);
+> +	kmem_cache_free(dlm_lock_cache, lock);
+>  }
+>  
+>  /* associate a lock with it's lockres, getting a ref on the lockres */
+> @@ -412,9 +430,10 @@ struct dlm_lock * dlm_new_lock(int type, u8 node, u64 cookie,
+>  	struct dlm_lock *lock;
+>  	int kernel_allocated = 0;
+>  
+> -	lock = kzalloc(sizeof(*lock), GFP_NOFS);
+> +	lock = (struct dlm_lock *) kmem_cache_alloc(dlm_lock_cache, GFP_NOFS);
+>  	if (!lock)
+>  		return NULL;
+> +	memset(lock, 0, sizeof(struct dlm_lock));
+>  
+>  	if (!lksb) {
+>  		/* zero memory only if kernel-allocated */
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index cc4e624..939b863 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -214,8 +214,9 @@ int dlm_dump_all_mles(const char __user *data, unsigned int len)
+>  EXPORT_SYMBOL_GPL(dlm_dump_all_mles);
+>  
+>  
+> -
+> -
+> +/* dlm slab caches */
+> +static struct kmem_cache *dlm_lockres_cache = NULL;
+> +static struct kmem_cache *dlm_lockname_cache = NULL;
+>  static struct kmem_cache *dlm_mle_cache = NULL;
+>  
+>  
+> @@ -559,6 +560,38 @@ static void dlm_mle_release(struct kref *kref)
+>   * LOCK RESOURCE FUNCTIONS
+>   */
+>  
+> +int dlm_init_lockres_cache(void)
+> +{
+> +	dlm_lockres_cache = kapi_kmem_cache_create("o2dlm_lockres",
+> +					sizeof(struct dlm_lock_resource), 0,
+> +					SLAB_HWCACHE_ALIGN, NULL);
+> +	if (dlm_lockres_cache == NULL)
+> +		return -ENOMEM;
+> +	return 0;
+> +}
+> +
+> +void dlm_destroy_lockres_cache(void)
+> +{
+> +	if (dlm_lockres_cache)
+> +		kmem_cache_destroy(dlm_lockres_cache);
+> +}
+> +
+> +int dlm_init_lockname_cache(void)
+> +{
+> +	dlm_lockname_cache = kapi_kmem_cache_create("o2dlm_lockname",
+> +						    DLM_LOCKID_NAME_MAX, 0,
+> +						    SLAB_HWCACHE_ALIGN, NULL);
+> +	if (dlm_lockname_cache == NULL)
+> +		return -ENOMEM;
+> +	return 0;
+> +}
+> +
+> +void dlm_destroy_lockname_cache(void)
+> +{
+> +	if (dlm_lockname_cache)
+> +		kmem_cache_destroy(dlm_lockname_cache);
+> +}
+> +
+>  static void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
+>  				  struct dlm_lock_resource *res,
+>  				  u8 owner)
+> @@ -641,9 +674,9 @@ static void dlm_lockres_release(struct kref *kref)
+>  	BUG_ON(!list_empty(&res->recovering));
+>  	BUG_ON(!list_empty(&res->purge));
+>  
+> -	kfree(res->lockname.name);
+> +	kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
+>  
+> -	kfree(res);
+> +	kmem_cache_free(dlm_lockres_cache, res);
+>  }
+>  
+>  void dlm_lockres_put(struct dlm_lock_resource *res)
+> @@ -699,20 +732,28 @@ struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
+>  				   const char *name,
+>  				   unsigned int namelen)
+>  {
+> -	struct dlm_lock_resource *res;
+> +	struct dlm_lock_resource *res = NULL;
+>  
+> -	res = kmalloc(sizeof(struct dlm_lock_resource), GFP_NOFS);
+> +	res = (struct dlm_lock_resource *)
+> +				kmem_cache_alloc(dlm_lockres_cache, GFP_NOFS);
+>  	if (!res)
+> -		return NULL;
+> +		goto error;
+>  
+> -	res->lockname.name = kmalloc(namelen, GFP_NOFS);
+> -	if (!res->lockname.name) {
+> -		kfree(res);
+> -		return NULL;
+> -	}
+> +	res->lockname.name = (char *)
+> +				kmem_cache_alloc(dlm_lockname_cache, GFP_NOFS);
+> +	if (!res->lockname.name)
+> +		goto error;
+>  
+>  	dlm_init_lockres(dlm, res, name, namelen);
+>  	return res;
+> +
+> +error:
+> +	if (res && res->lockname.name)
+> +		kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
+> +
+> +	if (res)
+> +		kmem_cache_free(dlm_lockres_cache, res);
+> +	return NULL;
+>  }
+>  
+>  void __dlm_lockres_grab_inflight_ref(struct dlm_ctxt *dlm,
 > -- 
 > 1.5.2.5
 > 
@@ -208,10 +284,8 @@ Joel
 
 -- 
 
-"Gone to plant a weeping willow
- On the bank's green edge it will roll, roll, roll.
- Sing a lulaby beside the waters.
- Lovers come and go, the river roll, roll, rolls."
+"Sometimes one pays most for the things one gets for nothing."
+        - Albert Einstein
 
 Joel Becker
 Principal Software Developer
