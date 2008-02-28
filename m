@@ -1,105 +1,143 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Thu Feb 28 15:31:05 2008
-Subject: [Ocfs2-devel] [PATCH 3/3] Add inode stealing for
-	ocfs2_reserve_new_inode.V2
-In-Reply-To: <20080228070026.GA29377@tma-pc1.cn.oracle.com>
-References: <20080228063438.GA27318@tma-pc1.cn.oracle.com>
-	<20080228070026.GA29377@tma-pc1.cn.oracle.com>
-Message-ID: <20080228233042.GW27865@ca-server1.us.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu Feb 28 16:32:39 2008
+Subject: [Ocfs2-devel] [PATCH 06/18] ocfs2_dlm: Link all lockres' to a
+	tracking list
+In-Reply-To: <1203970862-8790-7-git-send-email-sunil.mushran@oracle.com>
+References: <1203970862-8790-1-git-send-email-sunil.mushran@oracle.com>
+	<1203970862-8790-7-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080229003113.GI23975@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Feb 28, 2008 at 03:00:26PM +0800, tao.ma wrote:
-> Add inode stealing for ocfs2_reserve_new_inode. Now the whole process is:
-> 1. Allocate from its own inode_alloc:000X
->    1) If we can reserve, OK.
->    2) If fails, try to allocate a large chunk and reserve once again.
-> 2. If 1 fails, try to allocate from the ocfs2_super->inode_steal_slot.
->    This time, Just try to reserve, we don't go for global_bitmap if
->    this inode also can't allocate the inode.
-> 3. If 2 fails, try the node next until we reach that steal slot again.
+On Mon, Feb 25, 2008 at 12:20:50PM -0800, Sunil Mushran wrote:
+> This patch links all the lockres' to a tracking list in dlm_ctxt.
+> We will use this in the upcoming patch that will walk the entire
+> list and to dump the lockres states to a debugfs file.
 > 
-> ocfs2_super->inode_steal_slot is initalized as the node next to our own
-> slot. And once the inode stealing successes, we will refresh it with
-> the slot we steal inode from.
-
-> It will also be reinitalized when the local
-> truncate log or local alloc recovery is flushed in which case the global
-> bitmap may be refreshed.
-
-How about when we free an inode from our slots allocator?
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
 
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index 6546cef..75b7fe0 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -206,11 +206,13 @@ struct ocfs2_super
->  	u32 s_feature_incompat;
->  	u32 s_feature_ro_compat;
+> ---
+>  fs/ocfs2/dlm/dlmcommon.h |    4 ++++
+>  fs/ocfs2/dlm/dlmdomain.c |   11 +++++++++++
+>  fs/ocfs2/dlm/dlmmaster.c |   11 +++++++++++
+>  3 files changed, 26 insertions(+), 0 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+> index eac1b3b..a3b22bf 100644
+> --- a/fs/ocfs2/dlm/dlmcommon.h
+> +++ b/fs/ocfs2/dlm/dlmcommon.h
+> @@ -101,6 +101,7 @@ struct dlm_ctxt
+>  	struct list_head purge_list;
+>  	struct list_head pending_asts;
+>  	struct list_head pending_basts;
+> +	struct list_head tracking_list;
+>  	unsigned int purge_count;
+>  	spinlock_t spinlock;
+>  	spinlock_t ast_lock;
+> @@ -266,6 +267,9 @@ struct dlm_lock_resource
+>  	struct list_head dirty;
+>  	struct list_head recovering; // dlm_recovery_ctxt.resources list
 >  
-> -	/* Protects s_next_generaion, osb_flags. Could protect more on
-> -	 * osb as it's very short lived. */
-> +	/* Protects s_next_generation, osb_flags and inode_steal_slot.
-> +	 * Could protect more on osb as it's very short lived.
-> +	 */
->  	spinlock_t osb_lock;
->  	u32 s_next_generation;
->  	unsigned long osb_flags;
-> +	s16 inode_steal_slot;
-
-Please prefix this with "s_" or "osb_".
-
-
->  	unsigned long s_mount_opt;
->  	unsigned int s_atime_quantum;
-> @@ -522,6 +524,36 @@ static inline unsigned int ocfs2_pages_per_cluster(struct super_block *sb)
->  	return pages_per_cluster;
->  }
- 
-> +static inline void ocfs2_init_inode_steal_slot(struct ocfs2_super *osb)
-> +{
-> +	BUG_ON(osb->slot_num == OCFS2_INVALID_SLOT);
+> +	/* Added during init and removed during release */
+> +	struct list_head tracking;	/* dlm->tracking_list */
 > +
-> +	spin_lock(&osb->osb_lock);
-> +	osb->inode_steal_slot = osb->slot_num + 1;
-> +	if (osb->inode_steal_slot == osb->max_slots)
-> +		osb->inode_steal_slot = 0;
-> +	spin_unlock(&osb->osb_lock);
-> +}
-
-We probably don't want to inline this.
-
-
->  int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
->  			    struct ocfs2_alloc_context **ac)
+>  	/* unused lock resources have their last_used stamped and are
+>  	 * put on a list for the dlm thread to run. */
+>  	unsigned long    last_used;
+> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+> index 6d02ef5..1d382f1 100644
+> --- a/fs/ocfs2/dlm/dlmdomain.c
+> +++ b/fs/ocfs2/dlm/dlmdomain.c
+> @@ -634,6 +634,7 @@ int dlm_shutting_down(struct dlm_ctxt *dlm)
+>  void dlm_unregister_domain(struct dlm_ctxt *dlm)
 >  {
-> @@ -542,6 +577,17 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
->  	status = ocfs2_reserve_suballoc_bits(osb, *ac,
->  					     INODE_ALLOC_SYSTEM_INODE,
->  					     osb->slot_num, ALLOC_NEW_GROUP);
-> +	if (status >= 0) {
-> +		status = 0;
-> +		goto bail;
-> +	} else if (status < 0 && status != -ENOSPC) {
-> +		mlog_errno(status);
-> +		goto bail;
+>  	int leave = 0;
+> +	struct dlm_lock_resource *res;
+>  
+>  	spin_lock(&dlm_domain_lock);
+>  	BUG_ON(dlm->dlm_state != DLM_CTXT_JOINED);
+> @@ -663,6 +664,15 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
+>  			msleep(500);
+>  			mlog(0, "%s: more migration to do\n", dlm->name);
+>  		}
+> +
+> +		/* This list should be empty. If not, print remaining lockres */
+> +		if (!list_empty(&dlm->tracking_list)) {
+> +			mlog(ML_ERROR, "Following lockres' are still on the "
+> +			     "tracking list:\n");
+> +			list_for_each_entry(res, &dlm->tracking_list, tracking)
+> +				dlm_print_one_lock_resource(res);
+> +		}
+> +
+>  		dlm_mark_domain_leaving(dlm);
+>  		dlm_leave_domain(dlm);
+>  		dlm_complete_dlm_shutdown(dlm);
+> @@ -1404,6 +1414,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+>  	INIT_LIST_HEAD(&dlm->reco.node_data);
+>  	INIT_LIST_HEAD(&dlm->purge_list);
+>  	INIT_LIST_HEAD(&dlm->dlm_domain_handlers);
+> +	INIT_LIST_HEAD(&dlm->tracking_list);
+>  	dlm->reco.state = 0;
+>  
+>  	INIT_LIST_HEAD(&dlm->pending_asts);
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index d07a30a..d10fe48 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -642,6 +642,14 @@ static void dlm_lockres_release(struct kref *kref)
+>  	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+>  	     res->lockname.name);
+>  
+> +	if (!list_empty(&res->tracking))
+> +		list_del_init(&res->tracking);
+> +	else {
+> +		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
+> +		     res->lockname.len, res->lockname.name);
+> +		dlm_print_one_lock_resource(res);
 > +	}
 > +
-> +	ocfs2_free_ac_resource(*ac);
+>  	if (!hlist_unhashed(&res->hash_node) ||
+>  	    !list_empty(&res->granted) ||
+>  	    !list_empty(&res->converting) ||
+> @@ -709,6 +717,7 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+>  	INIT_LIST_HEAD(&res->dirty);
+>  	INIT_LIST_HEAD(&res->recovering);
+>  	INIT_LIST_HEAD(&res->purge);
+> +	INIT_LIST_HEAD(&res->tracking);
+>  	atomic_set(&res->asts_reserved, 0);
+>  	res->migration_pending = 0;
+>  	res->inflight_locks = 0;
+> @@ -724,6 +733,8 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+>  
+>  	res->last_used = 0;
+>  
+> +	list_add_tail(&res->tracking, &dlm->tracking_list);
 > +
-> +	status = ocfs2_steal_inode_from_other_nodes(osb, *ac);
+>  	memset(res->lvb, 0, DLM_LVB_LEN);
+>  	memset(res->refmap, 0, sizeof(res->refmap));
+>  }
+> -- 
+> 1.5.2.5
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel@oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
-Does this mean we always search our own first, even if we know it's not
-likely to have anything in it? Wouldn't it be better to ignore once it's
-full until we get to one of the spots where you've inserted a call to
-ocfs2_init_inode_steal_slot)?
-	--Mark
+-- 
 
---
-Mark Fasheh
-Principal Software Developer, Oracle
-mark.fasheh@oracle.com
+Life's Little Instruction Book #222
+
+	"Think twice before burdening a friend with a secret."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
