@@ -1,43 +1,33 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Fri Feb 29 12:18:06 2008
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix writeout
-	in	ocfs2_data_convert_worker()
-In-Reply-To: <20080229012643.GA9349@ca-server1.us.oracle.com>
-References: <20080229012643.GA9349@ca-server1.us.oracle.com>
-Message-ID: <47C8685F.100@oracle.com>
+From: Mark Fasheh <mark.fasheh@oracle.com>
+Date: Fri Feb 29 13:40:29 2008
+Subject: [Ocfs2-devel] endian bug?
+Message-ID: <20080229213936.GE9349@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> Commit f1f540688eae66c274ff1c1133b5d9c687b28f58 "optimized"
-> ocfs2_data_convert_worker() to "only do work for regular files".
-> Unfortunately, I left out a '!', which casued it to *skip* regular files.
-> This was hidden from testing until recently because the default data
-> journaling mode (data=ordered) doesn't exercise this code.
->
-> Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
->   
+Compiling with sparse today, I get:
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+fs/ocfs2/resize.c:600:16: warning: cast to restricted type
+fs/ocfs2/resize.c:600:14: warning: incorrect type in assignment (different
+base types)
+fs/ocfs2/resize.c:600:14:    expected restricted unsigned long long
+[usertype] c_blkno
+fs/ocfs2/resize.c:600:14:    got unsigned long long [unsigned] [usertype]
+<noident>
 
-> ---
->  fs/ocfs2/dlmglue.c |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
->
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 351130c..f4b3dab 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -3042,7 +3042,7 @@ static int ocfs2_data_convert_worker(struct ocfs2_lock_res *lockres,
->         	inode = ocfs2_lock_res_inode(lockres);
->  	mapping = inode->i_mapping;
->  
-> -	if (S_ISREG(inode->i_mode))
-> +	if (!S_ISREG(inode->i_mode))
->  		goto out;
->  
->  	/*
->   
+
+Which in my tree is:
+
+	cr->c_blkno = le64_to_cpu(input->group);
+
+where 'cr' is of type 'ocfs2_chain_rec'... This looks wrong to me, would you
+care to verify (and send a patch)?
+	--Mark
+
+--
+Mark Fasheh
+Principal Software Developer, Oracle
+mark.fasheh@oracle.com
