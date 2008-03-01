@@ -1,48 +1,44 @@
-From: Julia Lawall <julia@diku.dk>
-Date: Tue, 26 Feb 2008 20:47:10 -0000
-Subject: [Ocfs2-devel] [PATCH 8/9] fs/ocfs2/aops.c: Correct use of ! and &
-Message-ID: <Pine.LNX.4.64.0802262145321.18200@ask.diku.dk>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Sat Mar  1 14:04:50 2008
+Subject: [Ocfs2-devel] [PATCH 6/6] ocfs2/dlm: dlm_thread should not sleep
+	while holding the dlm_spinlock
+In-Reply-To: <1204409065-10953-1-git-send-email-sunil.mushran@oracle.com>
+References: <1204409065-10953-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1204409065-10953-7-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mark.fasheh@oracle.com, kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-From: Julia Lawall <julia@diku.dk>
+This patch addresses the bug in which the dlm_thread could go to sleep
+while holding the dlm_spinlock.
 
-In commit e6bafba5b4765a5a252f1b8d31cbf6d2459da337, a bug was fixed that
-involved converting !x & y to !(x & y).  The code below shows the same
-pattern, and thus should perhaps be fixed in the same way.
-
-This is not tested and clearly changes the semantics, so it is only
-something to consider.
-
-The semantic patch that makes this change is as follows:
-(http://www.emn.fr/x-info/coccinelle/)
-
-// <smpl>
-@@ expression E1,E2; @@
-(
-  !E1 & !E2
-|
-- !E1 & E2
-+ !(E1 & E2)
-)
-// </smpl>
-
-Signed-off-by: Julia Lawall <julia@diku.dk>
-
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
+ fs/ocfs2/dlm/dlmthread.c |    6 ++++--
+ 1 files changed, 4 insertions(+), 2 deletions(-)
 
-diff -u -p a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
---- a/fs/ocfs2/aops.c 2008-02-05 20:56:02.000000000 +0100
-+++ b/fs/ocfs2/aops.c 2008-02-26 08:16:47.000000000 +0100
-@@ -257,7 +257,7 @@ static int ocfs2_readpage_inline(struct 
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+index cebd089..4060bb3 100644
+--- a/fs/ocfs2/dlm/dlmthread.c
++++ b/fs/ocfs2/dlm/dlmthread.c
+@@ -176,12 +176,14 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+ 	     res->lockname.name, master);
  
- 	BUG_ON(!PageLocked(page));
--	BUG_ON(!OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL);
-+	BUG_ON(!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL));
- 
- 	ret = ocfs2_read_block(osb, OCFS2_I(inode)->ip_blkno, &di_bh,
- 			       OCFS2_BH_CACHED, inode);
+ 	if (!master) {
++		/* drop spinlock...  retake below */
++		spin_unlock(&dlm->spinlock);
++
+ 		spin_lock(&res->spinlock);
+ 		/* This ensures that clear refmap is sent after the set */
+ 		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_SETREF_INPROG);
+ 		spin_unlock(&res->spinlock);
+-		/* drop spinlock to do messaging, retake below */
+-		spin_unlock(&dlm->spinlock);
++
+ 		/* clear our bit from the master's refmap, ignore errors */
+ 		ret = dlm_drop_lockres_ref(dlm, res);
+ 		if (ret < 0) {
+-- 
+1.5.3.6
