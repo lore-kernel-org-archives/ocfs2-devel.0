@@ -1,58 +1,127 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sun Mar  2 18:16:35 2008
-Subject: [Ocfs2-devel] [PATCH 3/6] ocfs2/dlm: Add missing
-	dlm_lockres_put()s
-In-Reply-To: <1204409065-10953-4-git-send-email-sunil.mushran@oracle.com>
+Date: Sun Mar  2 18:18:34 2008
+Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2/dlm: Move struct
+	dlm_master_list_entry to dlmcommon.h
+In-Reply-To: <1204409065-10953-5-git-send-email-sunil.mushran@oracle.com>
 References: <1204409065-10953-1-git-send-email-sunil.mushran@oracle.com>
-	<1204409065-10953-4-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20080303021521.GD6897@mail.oracle.com>
+	<1204409065-10953-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080303021806.GE6897@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, Mar 01, 2008 at 02:04:22PM -0800, Sunil Mushran wrote:
-> dlm_master_request_handler() forgot to put a lockres when
-> dlm_assert_master_worker() failed or was skipped.
+On Sat, Mar 01, 2008 at 02:04:23PM -0800, Sunil Mushran wrote:
+> This patch moves some mle related definitions from dlmmaster.c
+> to dlmcommon.h.
 > 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
+	Why is this patch in the bugfix series rather than the
+add-debug-stuff series?
+
 > ---
->  fs/ocfs2/dlm/dlmmaster.c |   11 ++++++++++-
->  1 files changed, 10 insertions(+), 1 deletions(-)
+>  fs/ocfs2/dlm/dlmcommon.h |   35 +++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/dlm/dlmmaster.c |   37 -------------------------------------
+>  2 files changed, 35 insertions(+), 37 deletions(-)
 > 
+> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+> index 5b3607c..c52dec6 100644
+> --- a/fs/ocfs2/dlm/dlmcommon.h
+> +++ b/fs/ocfs2/dlm/dlmcommon.h
+> @@ -49,6 +49,41 @@
+>  /* Intended to make it easier for us to switch out hash functions */
+>  #define dlm_lockid_hash(_n, _l) full_name_hash(_n, _l)
+>  
+> +enum dlm_mle_type {
+> +	DLM_MLE_BLOCK,
+> +	DLM_MLE_MASTER,
+> +	DLM_MLE_MIGRATION
+> +};
+> +
+> +struct dlm_lock_name {
+> +	u8 len;
+> +	u8 name[DLM_LOCKID_NAME_MAX];
+> +};
+> +
+> +struct dlm_master_list_entry {
+> +	struct list_head list;
+> +	struct list_head hb_events;
+> +	struct dlm_ctxt *dlm;
+> +	spinlock_t spinlock;
+> +	wait_queue_head_t wq;
+> +	atomic_t woken;
+> +	struct kref mle_refs;
+> +	int inuse;
+> +	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> +	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> +	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> +	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> +	u8 master;
+> +	u8 new_master;
+> +	enum dlm_mle_type type;
+> +	struct o2hb_callback_func mle_hb_up;
+> +	struct o2hb_callback_func mle_hb_down;
+> +	union {
+> +		struct dlm_lock_resource *res;
+> +		struct dlm_lock_name name;
+> +	} u;
+> +};
+> +
+>  enum dlm_ast_type {
+>  	DLM_AST = 0,
+>  	DLM_BAST,
 > diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index eadf9bf..b6629bb 100644
+> index b6629bb..3011183 100644
 > --- a/fs/ocfs2/dlm/dlmmaster.c
 > +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -1663,7 +1663,12 @@ way_up_top:
->  		dlm_put_mle(tmpmle);
->  	}
->  send_response:
-> -
-> +	/*
-> +	 * __dlm_lookup_lockres() grabbed a reference to this lockres.
-> +	 * The reference is released by dlm_assert_master_worker() under
-> +	 * the call to dlm_dispatch_assert_master().  If
-> +	 * dlm_assert_master_worker() isn't called, we drop it here.
-> +	 */
->  	if (dispatch_assert) {
->  		if (response != DLM_MASTER_RESP_YES)
->  			mlog(ML_ERROR, "invalid response %d\n", response);
-> @@ -1678,7 +1683,11 @@ send_response:
->  		if (ret < 0) {
->  			mlog(ML_ERROR, "failed to dispatch assert master work\n");
->  			response = DLM_MASTER_RESP_ERROR;
-> +			dlm_lockres_put(res);
->  		}
-> +	} else {
-> +		if (res)
-> +			dlm_lockres_put(res);
->  	}
+> @@ -52,43 +52,6 @@
+>  #define MLOG_MASK_PREFIX (ML_DLM|ML_DLM_MASTER)
+>  #include "cluster/masklog.h"
 >  
->  	dlm_put(dlm);
+> -enum dlm_mle_type {
+> -	DLM_MLE_BLOCK,
+> -	DLM_MLE_MASTER,
+> -	DLM_MLE_MIGRATION
+> -};
+> -
+> -struct dlm_lock_name
+> -{
+> -	u8 len;
+> -	u8 name[DLM_LOCKID_NAME_MAX];
+> -};
+> -
+> -struct dlm_master_list_entry
+> -{
+> -	struct list_head list;
+> -	struct list_head hb_events;
+> -	struct dlm_ctxt *dlm;
+> -	spinlock_t spinlock;
+> -	wait_queue_head_t wq;
+> -	atomic_t woken;
+> -	struct kref mle_refs;
+> -	int inuse;
+> -	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> -	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> -	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> -	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+> -	u8 master;
+> -	u8 new_master;
+> -	enum dlm_mle_type type;
+> -	struct o2hb_callback_func mle_hb_up;
+> -	struct o2hb_callback_func mle_hb_down;
+> -	union {
+> -		struct dlm_lock_resource *res;
+> -		struct dlm_lock_name name;
+> -	} u;
+> -};
+> -
+>  static void dlm_mle_node_down(struct dlm_ctxt *dlm,
+>  			      struct dlm_master_list_entry *mle,
+>  			      struct o2nm_node *node,
 > -- 
 > 1.5.3.6
 > 
@@ -64,8 +133,9 @@ Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
 -- 
 
-"Anything that is too stupid to be spoken is sung."  
-        - Voltaire
+Life's Little Instruction Book #24
+
+	"Drink champagne for no reason at all."
 
 Joel Becker
 Principal Software Developer
