@@ -1,172 +1,154 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon Mar  3 12:28:55 2008
-Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2/dlm: Move struct
-	dlm_master_list_entry to dlmcommon.h
-In-Reply-To: <47CC451E.1050908@oracle.com>
-References: <1204409065-10953-1-git-send-email-sunil.mushran@oracle.com>
-	<1204409065-10953-5-git-send-email-sunil.mushran@oracle.com>
-	<20080303021806.GE6897@mail.oracle.com>
-	<47CC451E.1050908@oracle.com>
-Message-ID: <20080303202317.GC679@mail.oracle.com>
+From: Sunil Mushran <Sunil.Mushran@oracle.com>
+Date: Mon Mar  3 18:25:34 2008
+Subject: [Ocfs2-devel] [PATCH 3/3] Add inode stealing
+	for	ocfs2_reserve_new_inode.V3
+In-Reply-To: <20080303091251.GA18140@tma-pc1.cn.oracle.com>
+References: <20080303091251.GA18140@tma-pc1.cn.oracle.com>
+Message-ID: <47CCB2F8.3040702@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Mar 03, 2008 at 10:36:14AM -0800, Sunil Mushran wrote:
-> Was trying to balance out the number of patches in both. :)
-> I mean I wanted this cleanup irrespective of the debugfs series.
+Tao Ma wrote:
+> +static inline void ocfs2_set_inode_steal_slot(struct ocfs2_super *osb,
+> +					      u16 slot)
+> +{
+> +	spin_lock(&osb->osb_lock);
+> +	osb->s_inode_steal_slot = slot;
+> +	spin_unlock(&osb->osb_lock);
+> +}
 
-	Sure, but it's not necessary here.  It's not a cleanup on its
-own - it only matters when we start referring to mles in dlmdebug.c.
+Shouldn't slot be s16 and not u16.
 
-Joel
+>  
+> +static int ocfs2_steal_inode_from_other_nodes(struct ocfs2_super *osb,
+> +					      struct ocfs2_alloc_context *ac)
+> +{
+> +	int status = -ENOSPC, i;
+> +	s16 slot = ocfs2_get_inode_steal_slot(osb);
+> +
+> +	/*
+> +	 * This is the first time we try to steal inodes, so begin
+> +	 * with the node next to us first.
+> +	 */
 
-> Joel Becker wrote:
->> On Sat, Mar 01, 2008 at 02:04:23PM -0800, Sunil Mushran wrote:
->>   
->>> This patch moves some mle related definitions from dlmmaster.c
->>> to dlmcommon.h.
->>>
->>> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
->>>     
->>
->> Signed-off-by: Joel Becker <joel.becker@oracle.com>
->>
->> 	Why is this patch in the bugfix series rather than the
->> add-debug-stuff series?
->>
->>   
->>> ---
->>>  fs/ocfs2/dlm/dlmcommon.h |   35 +++++++++++++++++++++++++++++++++++
->>>  fs/ocfs2/dlm/dlmmaster.c |   37 -------------------------------------
->>>  2 files changed, 35 insertions(+), 37 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
->>> index 5b3607c..c52dec6 100644
->>> --- a/fs/ocfs2/dlm/dlmcommon.h
->>> +++ b/fs/ocfs2/dlm/dlmcommon.h
->>> @@ -49,6 +49,41 @@
->>>  /* Intended to make it easier for us to switch out hash functions */
->>>  #define dlm_lockid_hash(_n, _l) full_name_hash(_n, _l)
->>>  +enum dlm_mle_type {
->>> +	DLM_MLE_BLOCK,
->>> +	DLM_MLE_MASTER,
->>> +	DLM_MLE_MIGRATION
->>> +};
->>> +
->>> +struct dlm_lock_name {
->>> +	u8 len;
->>> +	u8 name[DLM_LOCKID_NAME_MAX];
->>> +};
->>> +
->>> +struct dlm_master_list_entry {
->>> +	struct list_head list;
->>> +	struct list_head hb_events;
->>> +	struct dlm_ctxt *dlm;
->>> +	spinlock_t spinlock;
->>> +	wait_queue_head_t wq;
->>> +	atomic_t woken;
->>> +	struct kref mle_refs;
->>> +	int inuse;
->>> +	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>> +	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>> +	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>> +	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>> +	u8 master;
->>> +	u8 new_master;
->>> +	enum dlm_mle_type type;
->>> +	struct o2hb_callback_func mle_hb_up;
->>> +	struct o2hb_callback_func mle_hb_down;
->>> +	union {
->>> +		struct dlm_lock_resource *res;
->>> +		struct dlm_lock_name name;
->>> +	} u;
->>> +};
->>> +
->>>  enum dlm_ast_type {
->>>  	DLM_AST = 0,
->>>  	DLM_BAST,
->>> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
->>> index b6629bb..3011183 100644
->>> --- a/fs/ocfs2/dlm/dlmmaster.c
->>> +++ b/fs/ocfs2/dlm/dlmmaster.c
->>> @@ -52,43 +52,6 @@
->>>  #define MLOG_MASK_PREFIX (ML_DLM|ML_DLM_MASTER)
->>>  #include "cluster/masklog.h"
->>>  -enum dlm_mle_type {
->>> -	DLM_MLE_BLOCK,
->>> -	DLM_MLE_MASTER,
->>> -	DLM_MLE_MIGRATION
->>> -};
->>> -
->>> -struct dlm_lock_name
->>> -{
->>> -	u8 len;
->>> -	u8 name[DLM_LOCKID_NAME_MAX];
->>> -};
->>> -
->>> -struct dlm_master_list_entry
->>> -{
->>> -	struct list_head list;
->>> -	struct list_head hb_events;
->>> -	struct dlm_ctxt *dlm;
->>> -	spinlock_t spinlock;
->>> -	wait_queue_head_t wq;
->>> -	atomic_t woken;
->>> -	struct kref mle_refs;
->>> -	int inuse;
->>> -	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>> -	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>> -	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>> -	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->>> -	u8 master;
->>> -	u8 new_master;
->>> -	enum dlm_mle_type type;
->>> -	struct o2hb_callback_func mle_hb_up;
->>> -	struct o2hb_callback_func mle_hb_down;
->>> -	union {
->>> -		struct dlm_lock_resource *res;
->>> -		struct dlm_lock_name name;
->>> -	} u;
->>> -};
->>> -
->>>  static void dlm_mle_node_down(struct dlm_ctxt *dlm,
->>>  			      struct dlm_master_list_entry *mle,
->>>  			      struct o2nm_node *node,
->>> -- 
->>> 1.5.3.6
->>>
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel@oss.oracle.com
->>> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>     
->>
->>   
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel@oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Change comment to:
+/* Start to steal inodes from the first slot after ours. */
 
--- 
+> +	if (slot == OCFS2_INVALID_SLOT)
+> +		slot = osb->slot_num + 1;
+> +
+> +	for (i = 0; i < osb->max_slots; i++, slot++) {
+> +		if (slot == osb->max_slots)
+> +			slot = 0;
+> +
+> +		if (slot == osb->slot_num)
+> +			continue;
+> +
+> +		status = ocfs2_reserve_suballoc_bits(osb, ac,
+> +						     INODE_ALLOC_SYSTEM_INODE,
+> +						     slot, NOT_ALLOC_NEW_GROUP);
+> +		if (status >= 0) {
+> +			ocfs2_set_inode_steal_slot(osb, slot);
+> +			break;
+> +		}
+> +
+> +		ocfs2_free_ac_resource(ac);
+> +	}
+> +
+> +	return status;
+> +}
+> +
+if (slot == OCFS2_INVALID_SLOT)
+slot = (osb->slot_num + 1 == osb->max_slots) ? 0 : osb->slot_num + 1;
 
-"You cannot bring about prosperity by discouraging thrift. You cannot
- strengthen the weak by weakening the strong. You cannot help the wage
- earner by pulling down the wage payer. You cannot further the
- brotherhood of man by encouraging class hatred. You cannot help the
- poor by destroying the rich. You cannot build character and courage by
- taking away a man's initiative and independence. You cannot help men
- permanently by doing for them what they could and should do for
- themselves."
-	- Abraham Lincoln 
+while (slot != osb->slot_num) {
+status = ocfs2_reserve_suballoc_bits(osb, ....);
+...
+ocfs2_free_ac_resource(ac);
+slot = (slot + 1 == osb->max_slots) ? 0 : slot + 1;
+}
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+Not that your code is incorrect. Other option is to not use "i"
+and replace continue with a break.
+
+>  int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+>  			    struct ocfs2_alloc_context **ac)
+>  {
+>  	int status;
+> +	s16 slot = ocfs2_get_inode_steal_slot(osb);
+> +#define OCFS2_INODE_STEAL_TIMES 10
+> +	static atomic_t inode_steal_times = ATOMIC_INIT(0);
+
+Can you rename inode_steal_times to num_inodes_stolen. BTW, this
+will be for all mounts which is not what we want. Why don't you
+add this to ocfs2_super? s_num_inodes_stolen. In that case, protect
+it using osb_lock.
+
+>  
+>  	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+>  	if (!(*ac)) {
+> @@ -539,9 +584,43 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+>  
+>  	(*ac)->ac_group_search = ocfs2_block_group_search;
+>  
+> +	/*
+> +	 * slot is set when we successfully steal inode from other nodes.
+> +	 * It is reset in 3 places:
+> +	 * 1. when we flush the turncate log
+
+spelling... truncate
+
+> +	 * 2. when we complete local alloc recovery.
+> +	 * 3. when we successfully allocate from our own slot.
+> +	 * After it is set, we will go on stealing inodes until we find the
+> +	 * need to check our slots to see wether there is some space for us.
+> +	 */
+
+spelling... whether
+
+> +	if (slot != OCFS2_INVALID_SLOT &&
+> +	    atomic_read(&inode_steal_times) < OCFS2_INODE_STEAL_TIMES)
+> +		goto inode_steal;
+> +
+> +	atomic_set(&inode_steal_times, 0);
+>  	status = ocfs2_reserve_suballoc_bits(osb, *ac,
+>  					     INODE_ALLOC_SYSTEM_INODE,
+>  					     osb->slot_num, ALLOC_NEW_GROUP);
+> +	if (status >= 0) {
+> +		status = 0;
+> +
+> +		/*
+> +		 * Some inodes must be freed by us, so try to allocate
+> +		 * from our own next time.
+> +		 */
+> +		if (slot != OCFS2_INVALID_SLOT)
+> +			ocfs2_init_inode_steal_slot(osb);
+> +		goto bail;
+> +	} else if (status < 0 && status != -ENOSPC) {
+> +		mlog_errno(status);
+> +		goto bail;
+> +	}
+> +
+> +	ocfs2_free_ac_resource(*ac);
+> +
+> +inode_steal:
+> +	status = ocfs2_steal_inode_from_other_nodes(osb, *ac);
+> +	atomic_inc(&inode_steal_times);
+>  	if (status < 0) {
+>  		if (status != -ENOSPC)
+>  			mlog_errno(status);
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index bec75af..c4e82c7 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1193,6 +1193,7 @@ static int ocfs2_mount_volume(struct super_block *sb)
+>  		mlog_errno(status);
+>  		goto leave;
+>  	}
+> +	ocfs2_init_inode_steal_slot(osb);
+>  
+>  	/* load all node-local system inodes */
+>  	status = ocfs2_init_local_system_inodes(osb);
