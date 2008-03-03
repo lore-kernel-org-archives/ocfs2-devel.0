@@ -1,143 +1,172 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Mon Mar  3 10:36:50 2008
-Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2/dlm: Move
-	struct	dlm_master_list_entry to dlmcommon.h
-In-Reply-To: <20080303021806.GE6897@mail.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon Mar  3 12:28:55 2008
+Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2/dlm: Move struct
+	dlm_master_list_entry to dlmcommon.h
+In-Reply-To: <47CC451E.1050908@oracle.com>
 References: <1204409065-10953-1-git-send-email-sunil.mushran@oracle.com>
 	<1204409065-10953-5-git-send-email-sunil.mushran@oracle.com>
 	<20080303021806.GE6897@mail.oracle.com>
-Message-ID: <47CC451E.1050908@oracle.com>
+	<47CC451E.1050908@oracle.com>
+Message-ID: <20080303202317.GC679@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Was trying to balance out the number of patches in both. :)
-I mean I wanted this cleanup irrespective of the debugfs series.
+On Mon, Mar 03, 2008 at 10:36:14AM -0800, Sunil Mushran wrote:
+> Was trying to balance out the number of patches in both. :)
+> I mean I wanted this cleanup irrespective of the debugfs series.
 
-Joel Becker wrote:
-> On Sat, Mar 01, 2008 at 02:04:23PM -0800, Sunil Mushran wrote:
->   
->> This patch moves some mle related definitions from dlmmaster.c
->> to dlmcommon.h.
+	Sure, but it's not necessary here.  It's not a cleanup on its
+own - it only matters when we start referring to mles in dlmdebug.c.
+
+Joel
+
+> Joel Becker wrote:
+>> On Sat, Mar 01, 2008 at 02:04:23PM -0800, Sunil Mushran wrote:
+>>   
+>>> This patch moves some mle related definitions from dlmmaster.c
+>>> to dlmcommon.h.
+>>>
+>>> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+>>>     
 >>
->> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
->>     
->
-> Signed-off-by: Joel Becker <joel.becker@oracle.com>
->
-> 	Why is this patch in the bugfix series rather than the
-> add-debug-stuff series?
->
->   
->> ---
->>  fs/ocfs2/dlm/dlmcommon.h |   35 +++++++++++++++++++++++++++++++++++
->>  fs/ocfs2/dlm/dlmmaster.c |   37 -------------------------------------
->>  2 files changed, 35 insertions(+), 37 deletions(-)
+>> Signed-off-by: Joel Becker <joel.becker@oracle.com>
 >>
->> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
->> index 5b3607c..c52dec6 100644
->> --- a/fs/ocfs2/dlm/dlmcommon.h
->> +++ b/fs/ocfs2/dlm/dlmcommon.h
->> @@ -49,6 +49,41 @@
->>  /* Intended to make it easier for us to switch out hash functions */
->>  #define dlm_lockid_hash(_n, _l) full_name_hash(_n, _l)
->>  
->> +enum dlm_mle_type {
->> +	DLM_MLE_BLOCK,
->> +	DLM_MLE_MASTER,
->> +	DLM_MLE_MIGRATION
->> +};
->> +
->> +struct dlm_lock_name {
->> +	u8 len;
->> +	u8 name[DLM_LOCKID_NAME_MAX];
->> +};
->> +
->> +struct dlm_master_list_entry {
->> +	struct list_head list;
->> +	struct list_head hb_events;
->> +	struct dlm_ctxt *dlm;
->> +	spinlock_t spinlock;
->> +	wait_queue_head_t wq;
->> +	atomic_t woken;
->> +	struct kref mle_refs;
->> +	int inuse;
->> +	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> +	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> +	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> +	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> +	u8 master;
->> +	u8 new_master;
->> +	enum dlm_mle_type type;
->> +	struct o2hb_callback_func mle_hb_up;
->> +	struct o2hb_callback_func mle_hb_down;
->> +	union {
->> +		struct dlm_lock_resource *res;
->> +		struct dlm_lock_name name;
->> +	} u;
->> +};
->> +
->>  enum dlm_ast_type {
->>  	DLM_AST = 0,
->>  	DLM_BAST,
->> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
->> index b6629bb..3011183 100644
->> --- a/fs/ocfs2/dlm/dlmmaster.c
->> +++ b/fs/ocfs2/dlm/dlmmaster.c
->> @@ -52,43 +52,6 @@
->>  #define MLOG_MASK_PREFIX (ML_DLM|ML_DLM_MASTER)
->>  #include "cluster/masklog.h"
->>  
->> -enum dlm_mle_type {
->> -	DLM_MLE_BLOCK,
->> -	DLM_MLE_MASTER,
->> -	DLM_MLE_MIGRATION
->> -};
->> -
->> -struct dlm_lock_name
->> -{
->> -	u8 len;
->> -	u8 name[DLM_LOCKID_NAME_MAX];
->> -};
->> -
->> -struct dlm_master_list_entry
->> -{
->> -	struct list_head list;
->> -	struct list_head hb_events;
->> -	struct dlm_ctxt *dlm;
->> -	spinlock_t spinlock;
->> -	wait_queue_head_t wq;
->> -	atomic_t woken;
->> -	struct kref mle_refs;
->> -	int inuse;
->> -	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> -	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> -	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> -	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
->> -	u8 master;
->> -	u8 new_master;
->> -	enum dlm_mle_type type;
->> -	struct o2hb_callback_func mle_hb_up;
->> -	struct o2hb_callback_func mle_hb_down;
->> -	union {
->> -		struct dlm_lock_resource *res;
->> -		struct dlm_lock_name name;
->> -	} u;
->> -};
->> -
->>  static void dlm_mle_node_down(struct dlm_ctxt *dlm,
->>  			      struct dlm_master_list_entry *mle,
->>  			      struct o2nm_node *node,
->> -- 
->> 1.5.3.6
+>> 	Why is this patch in the bugfix series rather than the
+>> add-debug-stuff series?
 >>
+>>   
+>>> ---
+>>>  fs/ocfs2/dlm/dlmcommon.h |   35 +++++++++++++++++++++++++++++++++++
+>>>  fs/ocfs2/dlm/dlmmaster.c |   37 -------------------------------------
+>>>  2 files changed, 35 insertions(+), 37 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+>>> index 5b3607c..c52dec6 100644
+>>> --- a/fs/ocfs2/dlm/dlmcommon.h
+>>> +++ b/fs/ocfs2/dlm/dlmcommon.h
+>>> @@ -49,6 +49,41 @@
+>>>  /* Intended to make it easier for us to switch out hash functions */
+>>>  #define dlm_lockid_hash(_n, _l) full_name_hash(_n, _l)
+>>>  +enum dlm_mle_type {
+>>> +	DLM_MLE_BLOCK,
+>>> +	DLM_MLE_MASTER,
+>>> +	DLM_MLE_MIGRATION
+>>> +};
+>>> +
+>>> +struct dlm_lock_name {
+>>> +	u8 len;
+>>> +	u8 name[DLM_LOCKID_NAME_MAX];
+>>> +};
+>>> +
+>>> +struct dlm_master_list_entry {
+>>> +	struct list_head list;
+>>> +	struct list_head hb_events;
+>>> +	struct dlm_ctxt *dlm;
+>>> +	spinlock_t spinlock;
+>>> +	wait_queue_head_t wq;
+>>> +	atomic_t woken;
+>>> +	struct kref mle_refs;
+>>> +	int inuse;
+>>> +	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>>> +	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>>> +	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>>> +	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>>> +	u8 master;
+>>> +	u8 new_master;
+>>> +	enum dlm_mle_type type;
+>>> +	struct o2hb_callback_func mle_hb_up;
+>>> +	struct o2hb_callback_func mle_hb_down;
+>>> +	union {
+>>> +		struct dlm_lock_resource *res;
+>>> +		struct dlm_lock_name name;
+>>> +	} u;
+>>> +};
+>>> +
+>>>  enum dlm_ast_type {
+>>>  	DLM_AST = 0,
+>>>  	DLM_BAST,
+>>> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+>>> index b6629bb..3011183 100644
+>>> --- a/fs/ocfs2/dlm/dlmmaster.c
+>>> +++ b/fs/ocfs2/dlm/dlmmaster.c
+>>> @@ -52,43 +52,6 @@
+>>>  #define MLOG_MASK_PREFIX (ML_DLM|ML_DLM_MASTER)
+>>>  #include "cluster/masklog.h"
+>>>  -enum dlm_mle_type {
+>>> -	DLM_MLE_BLOCK,
+>>> -	DLM_MLE_MASTER,
+>>> -	DLM_MLE_MIGRATION
+>>> -};
+>>> -
+>>> -struct dlm_lock_name
+>>> -{
+>>> -	u8 len;
+>>> -	u8 name[DLM_LOCKID_NAME_MAX];
+>>> -};
+>>> -
+>>> -struct dlm_master_list_entry
+>>> -{
+>>> -	struct list_head list;
+>>> -	struct list_head hb_events;
+>>> -	struct dlm_ctxt *dlm;
+>>> -	spinlock_t spinlock;
+>>> -	wait_queue_head_t wq;
+>>> -	atomic_t woken;
+>>> -	struct kref mle_refs;
+>>> -	int inuse;
+>>> -	unsigned long maybe_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>>> -	unsigned long vote_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>>> -	unsigned long response_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>>> -	unsigned long node_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+>>> -	u8 master;
+>>> -	u8 new_master;
+>>> -	enum dlm_mle_type type;
+>>> -	struct o2hb_callback_func mle_hb_up;
+>>> -	struct o2hb_callback_func mle_hb_down;
+>>> -	union {
+>>> -		struct dlm_lock_resource *res;
+>>> -		struct dlm_lock_name name;
+>>> -	} u;
+>>> -};
+>>> -
+>>>  static void dlm_mle_node_down(struct dlm_ctxt *dlm,
+>>>  			      struct dlm_master_list_entry *mle,
+>>>  			      struct o2nm_node *node,
+>>> -- 
+>>> 1.5.3.6
+>>>
+>>>
+>>> _______________________________________________
+>>> Ocfs2-devel mailing list
+>>> Ocfs2-devel@oss.oracle.com
+>>> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>>     
 >>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel@oss.oracle.com
->> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>     
+>>   
 >
->   
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel@oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+-- 
+
+"You cannot bring about prosperity by discouraging thrift. You cannot
+ strengthen the weak by weakening the strong. You cannot help the wage
+ earner by pulling down the wage payer. You cannot further the
+ brotherhood of man by encouraging class hatred. You cannot help the
+ poor by destroying the rich. You cannot build character and courage by
+ taking away a man's initiative and independence. You cannot help men
+ permanently by doing for them what they could and should do for
+ themselves."
+	- Abraham Lincoln 
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
