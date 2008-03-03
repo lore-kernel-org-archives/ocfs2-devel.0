@@ -1,10 +1,10 @@
 From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Mon Mar  3 18:25:38 2008
-Subject: [Ocfs2-devel] [PATCH 2/3] Add ac_alloc_slot
-	in	ocfs2_alloc_context.V3
-In-Reply-To: <20080303091230.GA18126@tma-pc1.cn.oracle.com>
-References: <20080303091230.GA18126@tma-pc1.cn.oracle.com>
-Message-ID: <47CCB31E.2070802@oracle.com>
+Date: Mon Mar  3 18:32:17 2008
+Subject: [Ocfs2-devel] [PATCH 1/3] Add a new parameter
+	for	ocfs2_reserve_suballoc_bits.V3
+In-Reply-To: <20080303091209.GA18111@tma-pc1.cn.oracle.com>
+References: <20080303091209.GA18111@tma-pc1.cn.oracle.com>
+Message-ID: <47CCB34D.7060000@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,58 +12,87 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 Tao Ma wrote:
-> In inode stealing, we no longer restrict the allocation to
-> happen in the local node. So it is neccessary for us to add
-> a new member in ocfs2_alloc_context to indicate which slot
-> we are using for allocation. We also modify the process of
-> local alloc so that this member can be used there also.
+> In some cases(Inode stealing from other nodes), we may not want
+> ocfs2_reserve_suballoc_bits to allocate new groups from the
+> global_bitmap since it may already be full. So add a new parameter
+> for this.
 >
 > Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 >   
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
 > ---
->  fs/ocfs2/localalloc.c |    2 ++
->  fs/ocfs2/suballoc.c   |    1 +
->  fs/ocfs2/suballoc.h   |    1 +
->  3 files changed, 4 insertions(+), 0 deletions(-)
+>  fs/ocfs2/suballoc.c |   22 ++++++++++++++++++----
+>  1 files changed, 18 insertions(+), 4 deletions(-)
 >
-> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-> index add1ffd..80d1c75 100644
-> --- a/fs/ocfs2/localalloc.c
-> +++ b/fs/ocfs2/localalloc.c
-> @@ -526,6 +526,8 @@ int ocfs2_reserve_local_alloc_bits(struct ocfs2_super *osb,
->  	}
->  
->  	ac->ac_inode = local_alloc_inode;
-> +	/* We should never use localalloc from another slot */
-> +	ac->ac_alloc_slot = osb->slot_num;
->  	ac->ac_which = OCFS2_AC_USE_LOCAL;
->  	get_bh(osb->local_alloc_bh);
->  	ac->ac_bh = osb->local_alloc_bh;
 > diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index 3be4e73..33d5573 100644
+> index 72c198a..3be4e73 100644
 > --- a/fs/ocfs2/suballoc.c
 > +++ b/fs/ocfs2/suballoc.c
-> @@ -424,6 +424,7 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
->  	}
+> @@ -46,6 +46,9 @@
 >  
->  	ac->ac_inode = alloc_inode;
-> +	ac->ac_alloc_slot = slot;
+>  #include "buffer_head_io.h"
 >  
->  	fe = (struct ocfs2_dinode *) bh->b_data;
->  	if (!OCFS2_IS_VALID_DINODE(fe)) {
-> diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-> index 8799033..544c600 100644
-> --- a/fs/ocfs2/suballoc.h
-> +++ b/fs/ocfs2/suballoc.h
-> @@ -36,6 +36,7 @@ typedef int (group_search_t)(struct inode *,
->  struct ocfs2_alloc_context {
->  	struct inode *ac_inode;    /* which bitmap are we allocating from? */
->  	struct buffer_head *ac_bh; /* file entry bh */
-> +	u32    ac_alloc_slot;   /* which slot are we allocating from? */
->  	u32    ac_bits_wanted;
->  	u32    ac_bits_given;
->  #define OCFS2_AC_USE_LOCAL 1
+> +#define NOT_ALLOC_NEW_GROUP		0
+> +#define ALLOC_NEW_GROUP			1
+> +
+>  static inline void ocfs2_debug_bg(struct ocfs2_group_desc *bg);
+>  static inline void ocfs2_debug_suballoc_inode(struct ocfs2_dinode *fe);
+>  static inline u16 ocfs2_find_victim_chain(struct ocfs2_chain_list *cl);
+> @@ -391,7 +394,8 @@ bail:
+>  static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
+>  				       struct ocfs2_alloc_context *ac,
+>  				       int type,
+> -				       u32 slot)
+> +				       u32 slot,
+> +				       int alloc_new_group)
+>  {
+>  	int status;
+>  	u32 bits_wanted = ac->ac_bits_wanted;
+> @@ -446,6 +450,14 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
+>  			goto bail;
+>  		}
+>  
+> +		if (alloc_new_group != ALLOC_NEW_GROUP) {
+> +			mlog(0, "Alloc File %u Full: wanted=%u, free_bits=%u, "
+> +			     "and we don't alloc a new group for it.\n",
+> +			     slot, bits_wanted, free_bits);
+> +			status = -ENOSPC;
+> +			goto bail;
+> +		}
+> +
+>  		status = ocfs2_block_group_alloc(osb, alloc_inode, bh);
+>  		if (status < 0) {
+>  			if (status != -ENOSPC)
+> @@ -490,7 +502,8 @@ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
+>  	(*ac)->ac_group_search = ocfs2_block_group_search;
+>  
+>  	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
+> -					     EXTENT_ALLOC_SYSTEM_INODE, slot);
+> +					     EXTENT_ALLOC_SYSTEM_INODE,
+> +					     slot, ALLOC_NEW_GROUP);
+>  	if (status < 0) {
+>  		if (status != -ENOSPC)
+>  			mlog_errno(status);
+> @@ -527,7 +540,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+>  
+>  	status = ocfs2_reserve_suballoc_bits(osb, *ac,
+>  					     INODE_ALLOC_SYSTEM_INODE,
+> -					     osb->slot_num);
+> +					     osb->slot_num, ALLOC_NEW_GROUP);
+>  	if (status < 0) {
+>  		if (status != -ENOSPC)
+>  			mlog_errno(status);
+> @@ -557,7 +570,8 @@ int ocfs2_reserve_cluster_bitmap_bits(struct ocfs2_super *osb,
+>  
+>  	status = ocfs2_reserve_suballoc_bits(osb, ac,
+>  					     GLOBAL_BITMAP_SYSTEM_INODE,
+> -					     OCFS2_INVALID_SLOT);
+> +					     OCFS2_INVALID_SLOT,
+> +					     ALLOC_NEW_GROUP);
+>  	if (status < 0 && status != -ENOSPC) {
+>  		mlog_errno(status);
+>  		goto bail;
 >   
