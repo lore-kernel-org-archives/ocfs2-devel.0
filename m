@@ -1,53 +1,121 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue Mar  4 16:50:13 2008
-Subject: [Ocfs2-devel] [PATCH 01/12] ocfs2/dlm: Rename slabcache
-	dlm_mle_cache to o2dlm_mle
+Date: Tue Mar  4 16:50:14 2008
+Subject: [Ocfs2-devel] [PATCH 03/12] ocfs2/dlm: Link all lockres' to a
+	tracking list
 In-Reply-To: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
 References: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1204678200-26237-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1204678200-26237-4-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch renames dlm_mle_slabcache to prevent namespace clashes with fs/dlm.
+This patch links all the lockres' to a tracking list in dlm_ctxt.
+We will use this in the upcoming patch that will walk the entire
+list and to dump the lockres states to a debugfs file.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/dlm/dlmdomain.c |    4 +++-
- fs/ocfs2/dlm/dlmmaster.c |    2 +-
- 2 files changed, 4 insertions(+), 2 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    4 ++++
+ fs/ocfs2/dlm/dlmdomain.c |   11 +++++++++++
+ fs/ocfs2/dlm/dlmmaster.c |   11 +++++++++++
+ 3 files changed, 26 insertions(+), 0 deletions(-)
 
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index c281618..e2a2b7a 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -101,6 +101,7 @@ struct dlm_ctxt
+ 	struct list_head purge_list;
+ 	struct list_head pending_asts;
+ 	struct list_head pending_basts;
++	struct list_head tracking_list;
+ 	unsigned int purge_count;
+ 	spinlock_t spinlock;
+ 	spinlock_t ast_lock;
+@@ -270,6 +271,9 @@ struct dlm_lock_resource
+ 	struct list_head dirty;
+ 	struct list_head recovering; // dlm_recovery_ctxt.resources list
+ 
++	/* Added during init and removed during release */
++	struct list_head tracking;	/* dlm->tracking_list */
++
+ 	/* unused lock resources have their last_used stamped and are
+ 	 * put on a list for the dlm thread to run. */
+ 	unsigned long    last_used;
 diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 638d2eb..2f15944 100644
+index c8a4e08..6b62211 100644
 --- a/fs/ocfs2/dlm/dlmdomain.c
 +++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1787,8 +1787,10 @@ static int __init dlm_init(void)
- 	dlm_print_version();
+@@ -644,6 +644,7 @@ int dlm_shutting_down(struct dlm_ctxt *dlm)
+ void dlm_unregister_domain(struct dlm_ctxt *dlm)
+ {
+ 	int leave = 0;
++	struct dlm_lock_resource *res;
  
- 	status = dlm_init_mle_cache();
--	if (status)
-+	if (status) {
-+		mlog(ML_ERROR, "Could not create o2dlm_mle slabcache\n");
- 		return -1;
-+	}
+ 	spin_lock(&dlm_domain_lock);
+ 	BUG_ON(dlm->dlm_state != DLM_CTXT_JOINED);
+@@ -673,6 +674,15 @@ void dlm_unregister_domain(struct dlm_ctxt *dlm)
+ 			msleep(500);
+ 			mlog(0, "%s: more migration to do\n", dlm->name);
+ 		}
++
++		/* This list should be empty. If not, print remaining lockres */
++		if (!list_empty(&dlm->tracking_list)) {
++			mlog(ML_ERROR, "Following lockres' are still on the "
++			     "tracking list:\n");
++			list_for_each_entry(res, &dlm->tracking_list, tracking)
++				dlm_print_one_lock_resource(res);
++		}
++
+ 		dlm_mark_domain_leaving(dlm);
+ 		dlm_leave_domain(dlm);
+ 		dlm_complete_dlm_shutdown(dlm);
+@@ -1497,6 +1507,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	INIT_LIST_HEAD(&dlm->reco.node_data);
+ 	INIT_LIST_HEAD(&dlm->purge_list);
+ 	INIT_LIST_HEAD(&dlm->dlm_domain_handlers);
++	INIT_LIST_HEAD(&dlm->tracking_list);
+ 	dlm->reco.state = 0;
  
- 	status = dlm_register_net_handlers();
- 	if (status) {
+ 	INIT_LIST_HEAD(&dlm->pending_asts);
 diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index ea6b895..90797c5 100644
+index ac9ed31..9713346 100644
 --- a/fs/ocfs2/dlm/dlmmaster.c
 +++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -507,7 +507,7 @@ static void dlm_mle_node_up(struct dlm_ctxt *dlm,
+@@ -639,6 +639,14 @@ static void dlm_lockres_release(struct kref *kref)
+ 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+ 	     res->lockname.name);
  
- int dlm_init_mle_cache(void)
- {
--	dlm_mle_cache = kmem_cache_create("dlm_mle_cache",
-+	dlm_mle_cache = kmem_cache_create("o2dlm_mle",
- 					  sizeof(struct dlm_master_list_entry),
- 					  0, SLAB_HWCACHE_ALIGN,
- 					  NULL);
++	if (!list_empty(&res->tracking))
++		list_del_init(&res->tracking);
++	else {
++		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
++		     res->lockname.len, res->lockname.name);
++		dlm_print_one_lock_resource(res);
++	}
++
+ 	if (!hlist_unhashed(&res->hash_node) ||
+ 	    !list_empty(&res->granted) ||
+ 	    !list_empty(&res->converting) ||
+@@ -706,6 +714,7 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+ 	INIT_LIST_HEAD(&res->dirty);
+ 	INIT_LIST_HEAD(&res->recovering);
+ 	INIT_LIST_HEAD(&res->purge);
++	INIT_LIST_HEAD(&res->tracking);
+ 	atomic_set(&res->asts_reserved, 0);
+ 	res->migration_pending = 0;
+ 	res->inflight_locks = 0;
+@@ -721,6 +730,8 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+ 
+ 	res->last_used = 0;
+ 
++	list_add_tail(&res->tracking, &dlm->tracking_list);
++
+ 	memset(res->lvb, 0, DLM_LVB_LEN);
+ 	memset(res->refmap, 0, sizeof(res->refmap));
+ }
 -- 
 1.5.3.6
