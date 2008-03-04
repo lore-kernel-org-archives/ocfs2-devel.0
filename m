@@ -1,106 +1,183 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Tue Mar  4 16:48:01 2008
-Subject: [Ocfs2-devel] [PATCH 3/3] Add inode stealing for
-	ocfs2_reserve_new_inode.V4
-In-Reply-To: <20080304085525.GA22501@tma-pc1.cn.oracle.com>
-References: <47CCB2F8.3040702@oracle.com>
-	<20080304085525.GA22501@tma-pc1.cn.oracle.com>
-Message-ID: <20080305004412.GO9349@ca-server1.us.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue Mar  4 16:50:07 2008
+Subject: [Ocfs2-devel] [PATCH 11/12] ocfs2/dlm: Move dlm_print_one_mle()
+	from dlmmaster.c to dlmdebug.c
+In-Reply-To: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
+References: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1204678200-26237-12-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Mar 04, 2008 at 04:55:25PM +0800, tao.ma wrote:
-> Modified as Sunil suggested.
-> 
-> 2 new variables are added. They are:
-> 1) ocfs2_super->s_inode_steal_slot. It is initalized as invalid and only
->    set valid when we steal inode from other slots successfully. When we
->    flush the truncate log, complete local alloc recovery or allocate
->    from our own slot successfully, it will be reset to invalid.
-> 2) ocfs2_super->s_num_inodes_stolen. It is used to record the times we try
->    to steal inode from other nodes. And it is increased no matter whether
->    our steal succeed or not. It is reset to zero when we try to allocate
->    from our own slot or reset the s_inode_steal_slot.
-> 
-> So with this 2 new variables, now the whole inode allocation process is:
-> 1. Check whether the s_inode_steal_slot is valid. If it is invalid, goto
->    step 2, that is to try to allocate from our own. If it is valid, then
->    we must have stealed inode successfully just now, so verify whether we
->    have steal "s_num_inodes_stolen". If yes, goto step 2 since now we need
->    to try own slot in case there is some space for us. If not, goto step 3
->    and steal from other nodes directly.
-> 2. Allocate from its own inode_alloc:000X and zero s_num_inodes_stolen.
->    1) If we can reserve, OK.
->    2) If fails, try to allocate a large chunk and reserve once again.
->    3) If OK, clear s_inode_steal_slot and exit directly.
-> 3. Try to allocate from other nodes.
->    1) If s_inode_steal_slot is valid, start from that node, otherwise
->       start from the node next to us. This time, Just try to reserve in
->       inode_alloc, we don't go for global_bitmap if this node also can't
->       allocate the inode.
->    3) Try the node next to it until we reach the first steal slot again.
->    4) If we succeed in one node's inode_alloc, set s_inode_steal_slot to it.
->    5) increase s_num_inodes_stolen.
-> 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+This patch helps in consolidating debugging related functions in dlmdebug.c.
 
-Ok, this is all in ocfs2.git now. I made the following changes though, so
-please verify.
-	--Mark
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ fs/ocfs2/dlm/dlmdebug.c  |   15 +++++++-
+ fs/ocfs2/dlm/dlmdebug.h  |    2 +
+ fs/ocfs2/dlm/dlmmaster.c |   89 +---------------------------------------------
+ 3 files changed, 17 insertions(+), 89 deletions(-)
 
---
-Mark Fasheh
-Principal Software Developer, Oracle
-mark.fasheh@oracle.com
-
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index e9ad7f9..0273a55 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -178,8 +178,6 @@ enum ocfs2_mount_options
- #define OCFS2_OSB_ERROR_FS	0x0004
- #define OCFS2_DEFAULT_ATIME_QUANTUM	60
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index b45eeb7..ef91a10 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -58,6 +58,8 @@ void dlm_print_one_lock_resource(struct dlm_lock_resource *res)
+ 	spin_unlock(&res->spinlock);
+ }
  
--#define OCFS2_NUM_INODES_STOLEN 10
--
- struct ocfs2_journal;
- struct ocfs2_super
++int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len);
++
+ static void dlm_print_lockres_refmap(struct dlm_lock_resource *res)
  {
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 2fcefab..2a61875 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -49,6 +49,8 @@
- #define NOT_ALLOC_NEW_GROUP		0
- #define ALLOC_NEW_GROUP			1
+ 	int bit;
+@@ -166,6 +168,17 @@ void dlm_dump_lock_resources(struct dlm_ctxt *dlm)
+ }
+ #endif  /*  0  */
  
-+#define OCFS2_MAX_INODES_TO_STEAL	1024
++void dlm_print_one_mle(struct dlm_master_list_entry *mle)
++{
++	char *buf;
 +
- static inline void ocfs2_debug_bg(struct ocfs2_group_desc *bg);
- static inline void ocfs2_debug_suballoc_inode(struct ocfs2_dinode *fe);
- static inline u16 ocfs2_find_victim_chain(struct ocfs2_chain_list *cl);
-@@ -591,7 +593,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
- 	 * need to check our slots to see whether there is some space for us.
- 	 */
- 	if (slot != OCFS2_INVALID_SLOT &&
--	    atomic_read(&osb->s_num_inodes_stolen) < OCFS2_NUM_INODES_STOLEN)
-+	    atomic_read(&osb->s_num_inodes_stolen) < OCFS2_MAX_INODES_TO_STEAL)
- 		goto inode_steal;
- 
- 	atomic_set(&osb->s_num_inodes_stolen, 0);
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index c4e82c7..c4e7c97 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1405,6 +1405,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	osb->local_alloc_state = OCFS2_LA_UNUSED;
- 	osb->local_alloc_bh = NULL;
- 
-+	osb->s_num_inodes_stolen = ATOMIC_INIT(0);
++	buf = (char *) get_zeroed_page(GFP_NOFS);
++	if (buf) {
++		dump_mle(mle, buf, PAGE_SIZE - 1);
++		free_page((unsigned long)buf);
++	}
++}
 +
- 	ocfs2_setup_hb_callbacks(osb);
+ static const char *dlm_errnames[] = {
+ 	[DLM_NORMAL] =			"DLM_NORMAL",
+ 	[DLM_GRANTED] =			"DLM_GRANTED",
+@@ -538,7 +551,7 @@ static struct file_operations debug_purgelist_fops = {
+ /* end - purge list funcs */
  
- 	init_waitqueue_head(&osb->osb_mount_event);
+ /* begin - debug mle funcs */
+-static int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len)
++int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len)
+ {
+ 	int out = 0;
+ 	unsigned int namelen;
+diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
+index 6c6ac72..d197640 100644
+--- a/fs/ocfs2/dlm/dlmdebug.h
++++ b/fs/ocfs2/dlm/dlmdebug.h
+@@ -55,4 +55,6 @@ void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm);
+ int dlm_create_debugfs_root(void);
+ void dlm_destroy_debugfs_root(void);
+ 
++void dlm_print_one_mle(struct dlm_master_list_entry *mle);
++
+ #endif
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 74b5283..0e84f28 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -48,6 +48,7 @@
+ #include "dlmapi.h"
+ #include "dlmcommon.h"
+ #include "dlmdomain.h"
++#include "dlmdebug.h"
+ 
+ #define MLOG_MASK_PREFIX (ML_DLM|ML_DLM_MASTER)
+ #include "cluster/masklog.h"
+@@ -90,94 +91,6 @@ static inline int dlm_mle_equal(struct dlm_ctxt *dlm,
+ 	return 1;
+ }
+ 
+-#define dlm_print_nodemap(m)  _dlm_print_nodemap(m,#m)
+-static void _dlm_print_nodemap(unsigned long *map, const char *mapname)
+-{
+-	int i;
+-	printk("%s=[ ", mapname);
+-	for (i=0; i<O2NM_MAX_NODES; i++)
+-		if (test_bit(i, map))
+-			printk("%d ", i);
+-	printk("]");
+-}
+-
+-static void dlm_print_one_mle(struct dlm_master_list_entry *mle)
+-{
+-	int refs;
+-	char *type;
+-	char attached;
+-	u8 master;
+-	unsigned int namelen;
+-	const char *name;
+-	struct kref *k;
+-	unsigned long *maybe = mle->maybe_map,
+-		      *vote = mle->vote_map,
+-		      *resp = mle->response_map,
+-		      *node = mle->node_map;
+-
+-	k = &mle->mle_refs;
+-	if (mle->type == DLM_MLE_BLOCK)
+-		type = "BLK";
+-	else if (mle->type == DLM_MLE_MASTER)
+-		type = "MAS";
+-	else
+-		type = "MIG";
+-	refs = atomic_read(&k->refcount);
+-	master = mle->master;
+-	attached = (list_empty(&mle->hb_events) ? 'N' : 'Y');
+-
+-	if (mle->type != DLM_MLE_MASTER) {
+-		namelen = mle->u.name.len;
+-		name = mle->u.name.name;
+-	} else {
+-		namelen = mle->u.res->lockname.len;
+-		name = mle->u.res->lockname.name;
+-	}
+-
+-	mlog(ML_NOTICE, "%.*s: %3s refs=%3d mas=%3u new=%3u evt=%c inuse=%d ",
+-		  namelen, name, type, refs, master, mle->new_master, attached,
+-		  mle->inuse);
+-	dlm_print_nodemap(maybe);
+-	printk(", ");
+-	dlm_print_nodemap(vote);
+-	printk(", ");
+-	dlm_print_nodemap(resp);
+-	printk(", ");
+-	dlm_print_nodemap(node);
+-	printk(", ");
+-	printk("\n");
+-}
+-
+-#if 0
+-/* Code here is included but defined out as it aids debugging */
+-
+-static void dlm_dump_mles(struct dlm_ctxt *dlm)
+-{
+-	struct dlm_master_list_entry *mle;
+-	
+-	mlog(ML_NOTICE, "dumping all mles for domain %s:\n", dlm->name);
+-	spin_lock(&dlm->master_lock);
+-	list_for_each_entry(mle, &dlm->master_list, list)
+-		dlm_print_one_mle(mle);
+-	spin_unlock(&dlm->master_lock);
+-}
+-
+-int dlm_dump_all_mles(const char __user *data, unsigned int len)
+-{
+-	struct dlm_ctxt *dlm;
+-
+-	spin_lock(&dlm_domain_lock);
+-	list_for_each_entry(dlm, &dlm_domains, list) {
+-		mlog(ML_NOTICE, "found dlm: %p, name=%s\n", dlm, dlm->name);
+-		dlm_dump_mles(dlm);
+-	}
+-	spin_unlock(&dlm_domain_lock);
+-	return len;
+-}
+-EXPORT_SYMBOL_GPL(dlm_dump_all_mles);
+-
+-#endif  /*  0  */
+-
+ static struct kmem_cache *dlm_lockres_cache = NULL;
+ static struct kmem_cache *dlm_lockname_cache = NULL;
+ static struct kmem_cache *dlm_mle_cache = NULL;
+-- 
+1.5.3.6
