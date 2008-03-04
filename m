@@ -1,238 +1,234 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue Mar  4 16:50:11 2008
-Subject: [Ocfs2-devel] [PATCH 04/12] ocfs2/dlm: Create debugfs dirs
+Date: Tue Mar  4 16:50:12 2008
+Subject: [Ocfs2-devel] [PATCH 10/12] ocfs2/dlm: Dumps the workqueue into a
+	debugfs file
 In-Reply-To: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
 References: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1204678200-26237-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1204678200-26237-11-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch creates the debugfs directories that will hold the
-files to be used to dump the dlm state.
+This patch dumps all the tasks on the workqueue it can fit in one page
+into a debugfs file. Useful for debugging.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |    2 +
- fs/ocfs2/dlm/dlmdebug.c  |   57 +++++++++++++++++++++++++++++++++++++++++++++-
- fs/ocfs2/dlm/dlmdebug.h  |   34 +++++++++++++++++++++++++++
- fs/ocfs2/dlm/dlmdomain.c |   20 ++++++++++++++++
- 4 files changed, 112 insertions(+), 1 deletions(-)
- create mode 100644 fs/ocfs2/dlm/dlmdebug.h
+ fs/ocfs2/dlm/dlmcommon.h   |    3 +
+ fs/ocfs2/dlm/dlmdebug.c    |   96 ++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlm/dlmdebug.h    |    1 +
+ fs/ocfs2/dlm/dlmmaster.c   |    3 +-
+ fs/ocfs2/dlm/dlmrecovery.c |    7 +--
+ 5 files changed, 103 insertions(+), 7 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index e2a2b7a..a20d093 100644
+index 3a59fdc..08d8a7f 100644
 --- a/fs/ocfs2/dlm/dlmcommon.h
 +++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -123,6 +123,8 @@ struct dlm_ctxt
- 	atomic_t remote_resources;
- 	atomic_t unknown_resources;
+@@ -975,6 +975,9 @@ int dlm_finalize_reco_handler(struct o2net_msg *msg, u32 len, void *data,
+ int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+ 			  u8 nodenum, u8 *real_master);
  
-+	struct dentry *dlm_debugfs_subroot;
-+
- 	/* NOTE: Next three are protected by dlm_domain_lock */
- 	struct kref dlm_refs;
- 	enum dlm_ctxt_state dlm_state;
++void dlm_request_all_locks_worker(struct dlm_work_item *item, void *data);
++void dlm_mig_lockres_worker(struct dlm_work_item *item, void *data);
++void dlm_assert_master_worker(struct dlm_work_item *item, void *data);
+ 
+ int dlm_dispatch_assert_master(struct dlm_ctxt *dlm,
+ 			       struct dlm_lock_resource *res,
 diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index 64239b3..be63024 100644
+index 0842e1b..b45eeb7 100644
 --- a/fs/ocfs2/dlm/dlmdebug.c
 +++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -30,6 +30,7 @@
- #include <linux/utsname.h>
- #include <linux/sysctl.h>
- #include <linux/spinlock.h>
-+#include <linux/debugfs.h>
+@@ -303,6 +303,7 @@ static int stringify_lockname(const char *lockname, int locklen,
+ #define DLM_DEBUGFS_LOCKING_STATE		"locking_state"
+ #define DLM_DEBUGFS_MLE_STATE			"mle_state"
+ #define DLM_DEBUGFS_PURGE_LIST			"purge_list"
++#define DLM_DEBUGFS_WORK_QUEUE			"work_queue"
  
- #include "cluster/heartbeat.h"
- #include "cluster/nodemanager.h"
-@@ -37,12 +38,16 @@
- 
- #include "dlmapi.h"
- #include "dlmcommon.h"
--
- #include "dlmdomain.h"
-+#include "dlmdebug.h"
- 
- #define MLOG_MASK_PREFIX ML_DLM
- #include "cluster/masklog.h"
- 
-+#ifdef CONFIG_DEBUG_FS
-+static struct dentry *dlm_debugfs_root = NULL;
-+#endif
-+
- void dlm_print_one_lock_resource(struct dlm_lock_resource *res)
- {
- 	mlog(ML_NOTICE, "lockres: %.*s, owner=%u, state=%u\n",
-@@ -266,3 +271,53 @@ const char *dlm_errname(enum dlm_status err)
- 	return dlm_errnames[err];
+ #ifdef CONFIG_DEBUG_FS
+ /* begin - utils funcs */
+@@ -397,6 +398,88 @@ static int debug_buffer_release(struct inode *inode, struct file *file)
  }
- EXPORT_SYMBOL_GPL(dlm_errname);
-+
-+#define DLM_DEBUGFS_DIR				"o2dlm"
-+
-+/* subroot - domain dir */
-+int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
+ /* end - util funcs */
+ 
++/* begin - work queue funcs */
++static int debug_workqueue_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
 +{
-+#ifdef CONFIG_DEBUG_FS
-+	dlm->dlm_debugfs_subroot = debugfs_create_dir(dlm->name,
-+						      dlm_debugfs_root);
-+	if (!dlm->dlm_debugfs_subroot) {
++	struct dlm_work_item *wi;
++	int out = 0;
++	unsigned long total = 0;
++	struct qstr *lockname;
++
++	out += snprintf(db->buf + out, db->len - out,
++			"Dumping Workqueue for Domain: %s\n", dlm->name);
++
++	spin_lock(&dlm->work_lock);
++	list_for_each_entry(wi, &dlm->work_list, list) {
++		++total;
++		if (db->len - out < 100)
++			continue;
++		if (wi->func == dlm_request_all_locks_worker) {
++			out += snprintf(db->buf + out, db->len - out,
++					"RequestAllLocks, "
++					"recomaster=%d, deadnode=%d\n",
++					wi->u.ral.reco_master,
++					wi->u.ral.dead_node);
++		} else if (wi->func == dlm_mig_lockres_worker) {
++			out += snprintf(db->buf + out, db->len - out,
++					"MigrateLockres,  ");
++			lockname = &(wi->u.ml.lockres->lockname);
++			out += stringify_lockname(lockname->name,
++						  lockname->len,
++						  db->buf + out, db->len - out);
++			out += snprintf(db->buf + out, db->len - out,
++					"  master=%d\n", wi->u.ml.real_master);
++		} else if (wi->func == dlm_assert_master_worker) {
++			out += snprintf(db->buf + out, db->len - out,
++					"AssertMaster, ");
++			lockname = &(wi->u.am.lockres->lockname);
++			out += stringify_lockname(lockname->name,
++						  lockname->len,
++						  db->buf + out, db->len - out);
++			out += snprintf(db->buf + out, db->len - out,
++					" from=%d, flags=0x%X, ignore=%d\n",
++					wi->u.am.request_from,
++					wi->u.am.flags,
++					wi->u.am.ignore_higher);
++		} else {
++			out += snprintf(db->buf + out, db->len - out,
++					"Unknown, 0x%p\n", wi->func);
++		}
++	}
++	spin_unlock(&dlm->work_lock);
++
++	out += snprintf(db->buf + out, db->len - out,
++			"Total on list: %ld\n", total);
++
++	return out;
++}
++
++static int debug_workqueue_open(struct inode *inode, struct file *file)
++{
++	struct dlm_ctxt *dlm = inode->i_private;
++	struct debug_buffer *db;
++
++	db = debug_buffer_allocate();
++	if (!db)
++		goto bail;
++
++	db->len = debug_workqueue_print(dlm, db);
++
++	file->private_data = db;
++
++	return 0;
++bail:
++	return -ENOMEM;
++}
++
++static struct file_operations debug_workqueue_fops = {
++	.open =		debug_workqueue_open,
++	.release =	debug_buffer_release,
++	.read =		debug_buffer_read,
++	.llseek =	debug_buffer_llseek,
++};
++/* end - work queue funcs */
++
+ /* begin - purge list funcs */
+ static int debug_purgelist_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ {
+@@ -978,6 +1061,17 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
+ 		goto bail;
+ 	}
+ 
++	/* for dumping the dlm work queue */
++	dc->debug_workqueue_dentry =
++			debugfs_create_file(DLM_DEBUGFS_WORK_QUEUE,
++					    S_IFREG|S_IRUSR,
++					    dlm->dlm_debugfs_subroot,
++					    dlm, &debug_workqueue_fops);
++	if (!dc->debug_workqueue_dentry) {
 +		mlog_errno(-ENOMEM);
 +		goto bail;
 +	}
 +
-+	return 0;
-+bail:
-+	dlm_destroy_debugfs_subroot(dlm);
-+	return -ENOMEM;
-+#endif
-+	return 0;
-+}
-+
-+void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm)
-+{
-+#ifdef CONFIG_DEBUG_FS
-+	if (dlm->dlm_debugfs_subroot)
-+		debugfs_remove(dlm->dlm_debugfs_subroot);
-+#endif
-+}
-+
-+/* debugfs root */
-+int dlm_create_debugfs_root(void)
-+{
-+#ifdef CONFIG_DEBUG_FS
-+	dlm_debugfs_root = debugfs_create_dir(DLM_DEBUGFS_DIR, NULL);
-+	if (!dlm_debugfs_root) {
-+		mlog_errno(-ENOMEM);
-+		return -ENOMEM;
-+	}
-+#endif
-+	return 0;
-+}
-+
-+void dlm_destroy_debugfs_root(void)
-+{
-+#ifdef CONFIG_DEBUG_FS
-+	if (dlm_debugfs_root)
-+		debugfs_remove(dlm_debugfs_root);
-+#endif
-+}
-diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
-new file mode 100644
-index 0000000..eb397d5
---- /dev/null
-+++ b/fs/ocfs2/dlm/dlmdebug.h
-@@ -0,0 +1,34 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * dlmdebug.h
-+ *
-+ * Copyright (C) 2008 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License as published by the Free Software Foundation; either
-+ * version 2 of the License, or (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public
-+ * License along with this program; if not, write to the
-+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-+ * Boston, MA 021110-1307, USA.
-+ *
-+ */
-+
-+#ifndef DLMDEBUG_H
-+#define DLMDEBUG_H
-+
-+int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm);
-+void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm);
-+
-+int dlm_create_debugfs_root(void);
-+void dlm_destroy_debugfs_root(void);
-+
-+#endif
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 6b62211..2fd17a4 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -33,6 +33,7 @@
- #include <linux/spinlock.h>
- #include <linux/delay.h>
- #include <linux/err.h>
-+#include <linux/debugfs.h>
- 
- #include "cluster/heartbeat.h"
- #include "cluster/nodemanager.h"
-@@ -42,6 +43,7 @@
- #include "dlmcommon.h"
- 
- #include "dlmdomain.h"
-+#include "dlmdebug.h"
- 
- #include "dlmver.h"
- 
-@@ -298,6 +300,8 @@ static int dlm_wait_on_domain_helper(const char *domain)
- 
- static void dlm_free_ctxt_mem(struct dlm_ctxt *dlm)
- {
-+	dlm_destroy_debugfs_subroot(dlm);
-+
- 	if (dlm->lockres_hash)
- 		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
- 
-@@ -1465,6 +1469,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
- 				u32 key)
- {
- 	int i;
-+	int ret;
- 	struct dlm_ctxt *dlm = NULL;
- 
- 	dlm = kzalloc(sizeof(*dlm), GFP_KERNEL);
-@@ -1497,6 +1502,15 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
- 	dlm->key = key;
- 	dlm->node_num = o2nm_this_node();
- 
-+	ret = dlm_create_debugfs_subroot(dlm);
-+	if (ret < 0) {
-+		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
-+		kfree(dlm->name);
-+		kfree(dlm);
-+		dlm = NULL;
-+		goto leave;
-+	}
-+
- 	spin_lock_init(&dlm->spinlock);
- 	spin_lock_init(&dlm->master_lock);
- 	spin_lock_init(&dlm->ast_lock);
-@@ -1822,8 +1836,13 @@ static int __init dlm_init(void)
- 		goto error;
- 	}
- 
-+	status = dlm_create_debugfs_root();
-+	if (status)
-+		goto error;
-+
+ 	dlm_debug_get(dc);
  	return 0;
- error:
-+	dlm_unregister_net_handlers();
- 	dlm_destroy_lock_cache();
- 	dlm_destroy_master_caches();
- 	dlm_destroy_mle_cache();
-@@ -1832,6 +1851,7 @@ error:
  
- static void __exit dlm_exit (void)
+@@ -994,6 +1088,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
+ 	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
+ 
+ 	if (dc) {
++		if (dc->debug_workqueue_dentry)
++			debugfs_remove(dc->debug_workqueue_dentry);
+ 		if (dc->debug_purgelist_dentry)
+ 			debugfs_remove(dc->debug_purgelist_dentry);
+ 		if (dc->debug_mle_dentry)
+diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
+index 974a6be..6c6ac72 100644
+--- a/fs/ocfs2/dlm/dlmdebug.h
++++ b/fs/ocfs2/dlm/dlmdebug.h
+@@ -31,6 +31,7 @@ struct dlm_debug_ctxt {
+ 	struct dentry *debug_lockres_dentry;
+ 	struct dentry *debug_mle_dentry;
+ 	struct dentry *debug_purgelist_dentry;
++	struct dentry *debug_workqueue_dentry;
+ };
+ 
+ struct debug_buffer {
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 94cadcb..74b5283 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -61,7 +61,6 @@ static void dlm_mle_node_up(struct dlm_ctxt *dlm,
+ 			    struct o2nm_node *node,
+ 			    int idx);
+ 
+-static void dlm_assert_master_worker(struct dlm_work_item *item, void *data);
+ static int dlm_do_assert_master(struct dlm_ctxt *dlm,
+ 				struct dlm_lock_resource *res,
+ 				void *nodemap, u32 flags);
+@@ -2139,7 +2138,7 @@ int dlm_dispatch_assert_master(struct dlm_ctxt *dlm,
+ 	return 0;
+ }
+ 
+-static void dlm_assert_master_worker(struct dlm_work_item *item, void *data)
++void dlm_assert_master_worker(struct dlm_work_item *item, void *data)
  {
-+	dlm_destroy_debugfs_root();
- 	dlm_unregister_net_handlers();
- 	dlm_destroy_lock_cache();
- 	dlm_destroy_master_caches();
+ 	struct dlm_ctxt *dlm = data;
+ 	int ret = 0;
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index bcb9260..d0a17c6 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -92,9 +92,6 @@ static void dlm_finish_local_lockres_recovery(struct dlm_ctxt *dlm,
+ static void dlm_reco_ast(void *astdata);
+ static void dlm_reco_bast(void *astdata, int blocked_type);
+ static void dlm_reco_unlock_ast(void *astdata, enum dlm_status st);
+-static void dlm_request_all_locks_worker(struct dlm_work_item *item,
+-					 void *data);
+-static void dlm_mig_lockres_worker(struct dlm_work_item *item, void *data);
+ static int dlm_lockres_master_requery(struct dlm_ctxt *dlm,
+ 				      struct dlm_lock_resource *res,
+ 				      u8 *real_master);
+@@ -862,7 +859,7 @@ int dlm_request_all_locks_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	return 0;
+ }
+ 
+-static void dlm_request_all_locks_worker(struct dlm_work_item *item, void *data)
++void dlm_request_all_locks_worker(struct dlm_work_item *item, void *data)
+ {
+ 	struct dlm_migratable_lockres *mres;
+ 	struct dlm_lock_resource *res;
+@@ -1480,7 +1477,7 @@ leave:
+ }
+ 
+ 
+-static void dlm_mig_lockres_worker(struct dlm_work_item *item, void *data)
++void dlm_mig_lockres_worker(struct dlm_work_item *item, void *data)
+ {
+ 	struct dlm_ctxt *dlm;
+ 	struct dlm_migratable_lockres *mres;
 -- 
 1.5.3.6
