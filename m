@@ -1,254 +1,187 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue Mar  4 16:50:08 2008
-Subject: [Ocfs2-devel] [PATCH 02/12] ocfs2/dlm: Creates slabcaches for lock
-	and lockres
+Date: Tue Mar  4 16:50:09 2008
+Subject: [Ocfs2-devel] [PATCH 08/12] ocfs2/dlm: Dumps the mles into a
+	debugfs file
 In-Reply-To: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
 References: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1204678200-26237-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1204678200-26237-9-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch makes the o2dlm allocate memory for lockres, lockname and lock
-structures from slabcaches rather than kmalloc. This allows us to not only
-make these allocs more efficient but also allows us to track the memory being
-consumed by these structures.
+This patch dumps all mles it can fit in one page into a debugfs file.
+Useful for debugging.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |    7 +++++
- fs/ocfs2/dlm/dlmdomain.c |   26 +++++++++++++++++--
- fs/ocfs2/dlm/dlmlock.c   |   22 +++++++++++++++-
- fs/ocfs2/dlm/dlmmaster.c |   61 +++++++++++++++++++++++++++++++++++++---------
- 4 files changed, 99 insertions(+), 17 deletions(-)
+ fs/ocfs2/dlm/dlmdebug.c |  119 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlm/dlmdebug.h |    1 +
+ 2 files changed, 120 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 5b3607c..c281618 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -961,9 +961,16 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
- 					  DLM_LOCK_RES_MIGRATING));
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 5afc723..f792af5 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -301,6 +301,7 @@ static int stringify_lockname(const char *lockname, int locklen,
+ #define DLM_DEBUGFS_DIR				"o2dlm"
+ #define DLM_DEBUGFS_DLM_STATE			"dlm_state"
+ #define DLM_DEBUGFS_LOCKING_STATE		"locking_state"
++#define DLM_DEBUGFS_MLE_STATE			"mle_state"
+ 
+ #ifdef CONFIG_DEBUG_FS
+ /* begin - utils funcs */
+@@ -395,6 +396,112 @@ static int debug_buffer_release(struct inode *inode, struct file *file)
  }
+ /* end - util funcs */
  
-+/* create/destroy slab caches */
-+int dlm_init_master_caches(void);
-+void dlm_destroy_master_caches(void);
++/* begin - debug mle funcs */
++static int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len)
++{
++	int out = 0;
++	unsigned int namelen;
++	const char *name;
++	char *mle_type;
 +
-+int dlm_init_lock_cache(void);
-+void dlm_destroy_lock_cache(void);
- 
- int dlm_init_mle_cache(void);
- void dlm_destroy_mle_cache(void);
-+
- void dlm_hb_event_notify_attached(struct dlm_ctxt *dlm, int idx, int node_up);
- int dlm_drop_lockres_ref(struct dlm_ctxt *dlm,
- 			 struct dlm_lock_resource *res);
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 2f15944..c8a4e08 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1789,21 +1789,41 @@ static int __init dlm_init(void)
- 	status = dlm_init_mle_cache();
- 	if (status) {
- 		mlog(ML_ERROR, "Could not create o2dlm_mle slabcache\n");
--		return -1;
-+		goto error;
++	if (mle->type != DLM_MLE_MASTER) {
++		namelen = mle->u.name.len;
++		name = mle->u.name.name;
++	} else {
++		namelen = mle->u.res->lockname.len;
++		name = mle->u.res->lockname.name;
 +	}
 +
-+	status = dlm_init_master_caches();
-+	if (status) {
-+		mlog(ML_ERROR, "Could not create o2dlm_lockres and "
-+		     "o2dlm_lockname slabcaches\n");
-+		goto error;
++	if (mle->type == DLM_MLE_BLOCK)
++		mle_type = "BLK";
++	else if (mle->type == DLM_MLE_MASTER)
++		mle_type = "MAS";
++	else
++		mle_type = "MIG";
++
++	out += stringify_lockname(name, namelen, buf + out, len - out);
++	out += snprintf(buf + out, len - out,
++			"\t%3s\tmas=%3u\tnew=%3u\tevt=%1d\tuse=%1d\tref=%3d\n",
++			mle_type, mle->master, mle->new_master,
++			!list_empty(&mle->hb_events),
++			!!mle->inuse,
++			atomic_read(&mle->mle_refs.refcount));
++
++	out += snprintf(buf + out, len - out, "Maybe=");
++	out += stringify_nodemap(mle->maybe_map, O2NM_MAX_NODES,
++				 buf + out, len - out);
++	out += snprintf(buf + out, len - out, "\n");
++
++	out += snprintf(buf + out, len - out, "Vote=");
++	out += stringify_nodemap(mle->vote_map, O2NM_MAX_NODES,
++				 buf + out, len - out);
++	out += snprintf(buf + out, len - out, "\n");
++
++	out += snprintf(buf + out, len - out, "Response=");
++	out += stringify_nodemap(mle->response_map, O2NM_MAX_NODES,
++				 buf + out, len - out);
++	out += snprintf(buf + out, len - out, "\n");
++
++	out += snprintf(buf + out, len - out, "Node=");
++	out += stringify_nodemap(mle->node_map, O2NM_MAX_NODES,
++				 buf + out, len - out);
++	out += snprintf(buf + out, len - out, "\n");
++
++	out += snprintf(buf + out, len - out, "\n");
++
++	return out;
++}
++
++static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
++{
++	struct dlm_master_list_entry *mle;
++	int out = 0;
++	unsigned long total = 0;
++
++	out += snprintf(db->buf + out, db->len - out,
++			"Dumping MLEs for Domain: %s\n", dlm->name);
++
++	spin_lock(&dlm->master_lock);
++	list_for_each_entry(mle, &dlm->master_list, list) {
++		++total;
++		if (db->len - out < 200)
++			continue;
++		out += dump_mle(mle, db->buf + out, db->len - out);
 +	}
++	spin_unlock(&dlm->master_lock);
 +
-+	status = dlm_init_lock_cache();
-+	if (status) {
-+		mlog(ML_ERROR, "Count not create o2dlm_lock slabcache\n");
-+		goto error;
- 	}
- 
- 	status = dlm_register_net_handlers();
- 	if (status) {
--		dlm_destroy_mle_cache();
--		return -1;
-+		mlog(ML_ERROR, "Unable to register network handlers\n");
-+		goto error;
- 	}
- 
- 	return 0;
-+error:
-+	dlm_destroy_lock_cache();
-+	dlm_destroy_master_caches();
-+	dlm_destroy_mle_cache();
-+	return -1;
- }
- 
- static void __exit dlm_exit (void)
- {
- 	dlm_unregister_net_handlers();
-+	dlm_destroy_lock_cache();
-+	dlm_destroy_master_caches();
- 	dlm_destroy_mle_cache();
- }
- 
-diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-index 52578d9..e8e19eb 100644
---- a/fs/ocfs2/dlm/dlmlock.c
-+++ b/fs/ocfs2/dlm/dlmlock.c
-@@ -53,6 +53,8 @@
- #define MLOG_MASK_PREFIX ML_DLM
- #include "cluster/masklog.h"
- 
-+static struct kmem_cache *dlm_lock_cache = NULL;
-+
- static DEFINE_SPINLOCK(dlm_cookie_lock);
- static u64 dlm_next_cookie = 1;
- 
-@@ -64,6 +66,22 @@ static void dlm_init_lock(struct dlm_lock *newlock, int type,
- static void dlm_lock_release(struct kref *kref);
- static void dlm_lock_detach_lockres(struct dlm_lock *lock);
- 
-+int dlm_init_lock_cache(void)
-+{
-+	dlm_lock_cache = kmem_cache_create("o2dlm_lock",
-+					   sizeof(struct dlm_lock), 0,
-+					   SLAB_HWCACHE_ALIGN, NULL);
-+	if (dlm_lock_cache == NULL)
-+		return -ENOMEM;
-+	return 0;
++	out += snprintf(db->buf + out, db->len - out,
++			"Total on list: %ld\n", total);
++	return out;
 +}
 +
-+void dlm_destroy_lock_cache(void)
++static int debug_mle_open(struct inode *inode, struct file *file)
 +{
-+	if (dlm_lock_cache)
-+		kmem_cache_destroy(dlm_lock_cache);
-+}
++	struct dlm_ctxt *dlm = inode->i_private;
++	struct debug_buffer *db;
 +
- /* Tell us whether we can grant a new lock request.
-  * locking:
-  *   caller needs:  res->spinlock
-@@ -353,7 +371,7 @@ static void dlm_lock_release(struct kref *kref)
- 		mlog(0, "freeing kernel-allocated lksb\n");
- 		kfree(lock->lksb);
- 	}
--	kfree(lock);
-+	kmem_cache_free(dlm_lock_cache, lock);
- }
- 
- /* associate a lock with it's lockres, getting a ref on the lockres */
-@@ -412,7 +430,7 @@ struct dlm_lock * dlm_new_lock(int type, u8 node, u64 cookie,
- 	struct dlm_lock *lock;
- 	int kernel_allocated = 0;
- 
--	lock = kzalloc(sizeof(*lock), GFP_NOFS);
-+	lock = (struct dlm_lock *) kmem_cache_zalloc(dlm_lock_cache, GFP_NOFS);
- 	if (!lock)
- 		return NULL;
- 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 90797c5..ac9ed31 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -216,10 +216,10 @@ EXPORT_SYMBOL_GPL(dlm_dump_all_mles);
- 
- #endif  /*  0  */
- 
--
-+static struct kmem_cache *dlm_lockres_cache = NULL;
-+static struct kmem_cache *dlm_lockname_cache = NULL;
- static struct kmem_cache *dlm_mle_cache = NULL;
- 
--
- static void dlm_mle_release(struct kref *kref);
- static void dlm_init_mle(struct dlm_master_list_entry *mle,
- 			enum dlm_mle_type type,
-@@ -560,6 +560,35 @@ static void dlm_mle_release(struct kref *kref)
-  * LOCK RESOURCE FUNCTIONS
-  */
- 
-+int dlm_init_master_caches(void)
-+{
-+	dlm_lockres_cache = kmem_cache_create("o2dlm_lockres",
-+					      sizeof(struct dlm_lock_resource),
-+					      0, SLAB_HWCACHE_ALIGN, NULL);
-+	if (!dlm_lockres_cache)
++	db = debug_buffer_allocate();
++	if (!db)
 +		goto bail;
 +
-+	dlm_lockname_cache = kmem_cache_create("o2dlm_lockname",
-+					       DLM_LOCKID_NAME_MAX, 0,
-+					       SLAB_HWCACHE_ALIGN, NULL);
-+	if (!dlm_lockname_cache)
-+		goto bail;
++	db->len = debug_mle_print(dlm, db);
++
++	file->private_data = db;
 +
 +	return 0;
 +bail:
-+	dlm_destroy_master_caches();
 +	return -ENOMEM;
 +}
 +
-+void dlm_destroy_master_caches(void)
-+{
-+	if (dlm_lockname_cache)
-+		kmem_cache_destroy(dlm_lockname_cache);
++static struct file_operations debug_mle_fops = {
++	.open =		debug_mle_open,
++	.release =	debug_buffer_release,
++	.read =		debug_buffer_read,
++	.llseek =	debug_buffer_llseek,
++};
 +
-+	if (dlm_lockres_cache)
-+		kmem_cache_destroy(dlm_lockres_cache);
-+}
++/* end - debug mle funcs */
 +
- static void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
- 				  struct dlm_lock_resource *res,
- 				  u8 owner)
-@@ -642,9 +671,9 @@ static void dlm_lockres_release(struct kref *kref)
- 	BUG_ON(!list_empty(&res->recovering));
- 	BUG_ON(!list_empty(&res->purge));
- 
--	kfree(res->lockname.name);
-+	kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
- 
--	kfree(res);
-+	kmem_cache_free(dlm_lockres_cache, res);
- }
- 
- void dlm_lockres_put(struct dlm_lock_resource *res)
-@@ -700,20 +729,28 @@ struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
- 				   const char *name,
- 				   unsigned int namelen)
+ /* begin - debug lockres funcs */
+ static int dump_lock(struct dlm_lock *lock, int list_type, char *buf, int len)
  {
--	struct dlm_lock_resource *res;
-+	struct dlm_lock_resource *res = NULL;
+@@ -792,6 +899,16 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
+ 		goto bail;
+ 	}
  
--	res = kmalloc(sizeof(struct dlm_lock_resource), GFP_NOFS);
-+	res = (struct dlm_lock_resource *)
-+				kmem_cache_zalloc(dlm_lockres_cache, GFP_NOFS);
- 	if (!res)
--		return NULL;
-+		goto error;
- 
--	res->lockname.name = kmalloc(namelen, GFP_NOFS);
--	if (!res->lockname.name) {
--		kfree(res);
--		return NULL;
--	}
-+	res->lockname.name = (char *)
-+				kmem_cache_zalloc(dlm_lockname_cache, GFP_NOFS);
-+	if (!res->lockname.name)
-+		goto error;
- 
- 	dlm_init_lockres(dlm, res, name, namelen);
- 	return res;
++	/* for dumping mles */
++	dc->debug_mle_dentry = debugfs_create_file(DLM_DEBUGFS_MLE_STATE,
++						   S_IFREG|S_IRUSR,
++						   dlm->dlm_debugfs_subroot,
++						   dlm, &debug_mle_fops);
++	if (!dc->debug_mle_dentry) {
++		mlog_errno(-ENOMEM);
++		goto bail;
++	}
 +
-+error:
-+	if (res && res->lockname.name)
-+		kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
-+
-+	if (res)
-+		kmem_cache_free(dlm_lockres_cache, res);
-+	return NULL;
- }
+ 	dlm_debug_get(dc);
+ 	return 0;
  
- void __dlm_lockres_grab_inflight_ref(struct dlm_ctxt *dlm,
+@@ -808,6 +925,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
+ 	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
+ 
+ 	if (dc) {
++		if (dc->debug_mle_dentry)
++			debugfs_remove(dc->debug_mle_dentry);
+ 		if (dc->debug_lockres_dentry)
+ 			debugfs_remove(dc->debug_lockres_dentry);
+ 		if (dc->debug_state_dentry)
+diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
+index 6676a50..313af2a 100644
+--- a/fs/ocfs2/dlm/dlmdebug.h
++++ b/fs/ocfs2/dlm/dlmdebug.h
+@@ -29,6 +29,7 @@ struct dlm_debug_ctxt {
+ 	struct kref debug_refcnt;
+ 	struct dentry *debug_state_dentry;
+ 	struct dentry *debug_lockres_dentry;
++	struct dentry *debug_mle_dentry;
+ };
+ 
+ struct debug_buffer {
 -- 
 1.5.3.6
