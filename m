@@ -1,10 +1,9 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed Mar  5 16:28:16 2008
-Subject: [Ocfs2-devel] [PATCH 13/18] ocfs2: Split o2cb code from generic
-	stack functions.
+Date: Wed Mar  5 16:28:19 2008
+Subject: [Ocfs2-devel] [PATCH 16/18] ocfs2: Create stack glue sysfs files.
 In-Reply-To: <1204763261-28025-1-git-send-email-joel.becker@oracle.com>
 References: <1204763261-28025-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1204763261-28025-14-git-send-email-joel.becker@oracle.com>
+Message-ID: <1204763261-28025-17-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,349 +11,163 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, mark.fasheh@oracle.com
 
-Split off the o2cb-specific funtionality from the generic stack glue
-calls.  This is a precurser to wrapping the o2cb functionality in an
-operations vector.
+Introduce a set of sysfs files that describe the current stack glue
+state.  The files live under /sys/fs/ocfs2.  The locking_protocol file
+displays the version of ocfs2's locking code.  The
+loaded_cluster_plugins file displays all of the currently loaded stack
+plugins.  When filesystems are mounted, the active_cluster_plugin file
+will display the plugin in use.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
-Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/stackglue.c |  209 ++++++++++++++++++++++++++++++++++----------------
- 1 files changed, 144 insertions(+), 65 deletions(-)
+ fs/ocfs2/stackglue.c |  121 +++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 files changed, 120 insertions(+), 1 deletions(-)
 
 diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 51c2546..e35dde6 100644
+index 1978c9c..76ae4fc 100644
 --- a/fs/ocfs2/stackglue.c
 +++ b/fs/ocfs2/stackglue.c
-@@ -197,21 +197,19 @@ static void o2dlm_unlock_ast_wrapper(void *astarg, enum dlm_status status)
- 	lproto->lp_unlock_ast(astarg, error);
- }
+@@ -23,6 +23,9 @@
+ #include <linux/module.h>
+ #include <linux/slab.h>
+ #include <linux/kmod.h>
++#include <linux/fs.h>
++#include <linux/kobject.h>
++#include <linux/sysfs.h>
  
--int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
--		   int mode,
--		   union ocfs2_dlm_lksb *lksb,
--		   u32 flags,
--		   void *name,
--		   unsigned int namelen,
--		   void *astarg)
-+static int o2cb_dlm_lock(struct ocfs2_cluster_connection *conn,
-+			 int mode,
-+			 union ocfs2_dlm_lksb *lksb,
-+			 u32 flags,
-+			 void *name,
-+			 unsigned int namelen,
-+			 void *astarg)
- {
- 	enum dlm_status status;
- 	int o2dlm_mode = mode_to_o2dlm(mode);
- 	int o2dlm_flags = flags_to_o2dlm(flags);
- 	int ret;
+ #include "stackglue.h"
  
--	BUG_ON(lproto == NULL);
--
- 	status = dlmlock(conn->cc_lockspace, o2dlm_mode, &lksb->lksb_o2dlm,
- 			 o2dlm_flags, name, namelen,
- 			 o2dlm_lock_ast_wrapper, astarg,
-@@ -220,43 +218,80 @@ int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
- 	return ret;
- }
+@@ -335,14 +338,130 @@ int ocfs2_cluster_this_node(unsigned int *node)
+ EXPORT_SYMBOL_GPL(ocfs2_cluster_this_node);
  
--int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
--		     union ocfs2_dlm_lksb *lksb,
--		     u32 flags,
--		     void *astarg)
-+int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
-+		   int mode,
-+		   union ocfs2_dlm_lksb *lksb,
-+		   u32 flags,
-+		   void *name,
-+		   unsigned int namelen,
-+		   void *astarg)
+ 
+-static int __init ocfs2_stack_glue_init(void)
++/*
++ * Sysfs bits
++ */
++
++static ssize_t ocfs2_max_locking_protocol_show(struct kobject *kobj,
++					       struct kobj_attribute *attr,
++					       char *buf)
 +{
-+	BUG_ON(lproto == NULL);
++	ssize_t ret = 0;
 +
-+	return o2cb_dlm_lock(conn, mode, lksb, flags,
-+			     name, namelen, astarg);
-+}
-+
-+static int o2cb_dlm_unlock(struct ocfs2_cluster_connection *conn,
-+			   union ocfs2_dlm_lksb *lksb,
-+			   u32 flags,
-+			   void *astarg)
- {
- 	enum dlm_status status;
- 	int o2dlm_flags = flags_to_o2dlm(flags);
- 	int ret;
- 
--	BUG_ON(lproto == NULL);
--
- 	status = dlmunlock(conn->cc_lockspace, &lksb->lksb_o2dlm,
- 			   o2dlm_flags, o2dlm_unlock_ast_wrapper, astarg);
- 	ret = dlm_status_to_errno(status);
- 	return ret;
- }
- 
--int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
-+int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
-+		     union ocfs2_dlm_lksb *lksb,
-+		     u32 flags,
-+		     void *astarg)
-+{
-+	BUG_ON(lproto == NULL);
-+
-+	return o2cb_dlm_unlock(conn, lksb, flags, astarg);
-+}
-+
-+static int o2cb_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
- {
- 	return dlm_status_to_errno(lksb->lksb_o2dlm.status);
- }
- 
-+int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
-+{
-+	return o2cb_dlm_lock_status(lksb);
-+}
-+
- /*
-  * Why don't we cast to ocfs2_meta_lvb?  The "clean" answer is that we
-  * don't cast at the glue level.  The real answer is that the header
-  * ordering is nigh impossible.
-  */
--void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb)
-+static void *o2cb_dlm_lvb(union ocfs2_dlm_lksb *lksb)
- {
- 	return (void *)(lksb->lksb_o2dlm.lvb);
- }
- 
--void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
-+void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb)
-+{
-+	return o2cb_dlm_lvb(lksb);
-+}
-+
-+static void o2cb_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
- {
- 	dlm_print_one_lock(lksb->lksb_o2dlm.lockid);
- }
- 
-+void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
-+{
-+	o2cb_dlm_dump_lksb(lksb);
-+}
-+
- /*
-  * Called from the dlm when it's about to evict a node. This is how the
-  * classic stack signals node death.
-@@ -271,6 +306,62 @@ static void o2dlm_eviction_cb(int node_num, void *data)
- 	conn->cc_recovery_handler(node_num, conn->cc_recovery_data);
- }
- 
-+static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
-+{
-+	int rc = 0;
-+	u32 dlm_key;
-+	struct dlm_ctxt *dlm;
-+	struct o2dlm_private *priv;
-+	struct dlm_protocol_version dlm_version;
-+
-+	BUG_ON(conn == NULL);
-+
-+	/* for now we only have one cluster/node, make sure we see it
-+	 * in the heartbeat universe */
-+	if (!o2hb_check_local_node_heartbeating()) {
-+		rc = -EINVAL;
-+		goto out;
-+	}
-+
-+	priv = kzalloc(sizeof(struct o2dlm_private), GFP_KERNEL);
-+	if (!priv) {
-+		rc = -ENOMEM;
-+		goto out_free;
-+	}
-+
-+	/* This just fills the structure in.  It is safe to pass conn. */
-+	dlm_setup_eviction_cb(&priv->op_eviction_cb, o2dlm_eviction_cb,
-+			      conn);
-+
-+	conn->cc_private = priv;
-+
-+	/* used by the dlm code to make message headers unique, each
-+	 * node in this domain must agree on this. */
-+	dlm_key = crc32_le(0, conn->cc_name, conn->cc_namelen);
-+	dlm_version.pv_major = conn->cc_version.pv_major;
-+	dlm_version.pv_minor = conn->cc_version.pv_minor;
-+
-+	dlm = dlm_register_domain(conn->cc_name, dlm_key, &dlm_version);
-+	if (IS_ERR(dlm)) {
-+		rc = PTR_ERR(dlm);
-+		mlog_errno(rc);
-+		goto out_free;
-+	}
-+
-+	conn->cc_version.pv_major = dlm_version.pv_major;
-+	conn->cc_version.pv_minor = dlm_version.pv_minor;
-+	conn->cc_lockspace = dlm;
-+
-+	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
-+
-+out_free:
-+	if (rc && conn->cc_private)
-+		kfree(conn->cc_private);
-+
-+out:
-+	return rc;
-+}
-+
- int ocfs2_cluster_connect(const char *group,
- 			  int grouplen,
- 			  void (*recovery_handler)(int node_num,
-@@ -280,10 +371,6 @@ int ocfs2_cluster_connect(const char *group,
- {
- 	int rc = 0;
- 	struct ocfs2_cluster_connection *new_conn;
--	u32 dlm_key;
--	struct dlm_ctxt *dlm;
--	struct o2dlm_private *priv;
--	struct dlm_protocol_version dlm_version;
- 
- 	BUG_ON(group == NULL);
- 	BUG_ON(conn == NULL);
-@@ -294,13 +381,6 @@ int ocfs2_cluster_connect(const char *group,
- 		goto out;
- 	}
- 
--	/* for now we only have one cluster/node, make sure we see it
--	 * in the heartbeat universe */
--	if (!o2hb_check_local_node_heartbeating()) {
--		rc = -EINVAL;
--		goto out;
--	}
--
- 	new_conn = kzalloc(sizeof(struct ocfs2_cluster_connection),
- 			   GFP_KERNEL);
- 	if (!new_conn) {
-@@ -316,64 +396,53 @@ int ocfs2_cluster_connect(const char *group,
- 	/* Start the new connection at our maximum compatibility level */
- 	new_conn->cc_version = lproto->lp_max_version;
- 
--	priv = kzalloc(sizeof(struct o2dlm_private), GFP_KERNEL);
--	if (!priv) {
--		rc = -ENOMEM;
--		goto out_free;
--	}
--
--	/* This just fills the structure in.  It is safe to use new_conn. */
--	dlm_setup_eviction_cb(&priv->op_eviction_cb, o2dlm_eviction_cb,
--			      new_conn);
--
--	new_conn->cc_private = priv;
--
--	/* used by the dlm code to make message headers unique, each
--	 * node in this domain must agree on this. */
--	dlm_key = crc32_le(0, group, grouplen);
--	dlm_version.pv_major = new_conn->cc_version.pv_major;
--	dlm_version.pv_minor = new_conn->cc_version.pv_minor;
--
--	dlm = dlm_register_domain(group, dlm_key, &dlm_version);
--	if (IS_ERR(dlm)) {
--		rc = PTR_ERR(dlm);
-+	rc = o2cb_cluster_connect(new_conn);
-+	if (rc) {
- 		mlog_errno(rc);
- 		goto out_free;
- 	}
- 
--	new_conn->cc_version.pv_major = dlm_version.pv_major;
--	new_conn->cc_version.pv_minor = dlm_version.pv_minor;
--	new_conn->cc_lockspace = dlm;
--
--	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
--
- 	*conn = new_conn;
- 
- out_free:
--	if (rc) {
--		kfree(new_conn->cc_private);
-+	if (rc)
- 		kfree(new_conn);
--	}
- 
- out:
- 	return rc;
- }
- 
- 
--int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
-+static int o2cb_cluster_disconnect(struct ocfs2_cluster_connection *conn)
- {
- 	struct dlm_ctxt *dlm = conn->cc_lockspace;
- 	struct o2dlm_private *priv = conn->cc_private;
- 
- 	dlm_unregister_eviction_cb(&priv->op_eviction_cb);
--	dlm_unregister_domain(dlm);
--
-+	conn->cc_private = NULL;
- 	kfree(priv);
--	kfree(conn);
-+
-+	dlm_unregister_domain(dlm);
-+	conn->cc_lockspace = NULL;
- 
- 	return 0;
- }
- 
-+int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
-+{
-+	int ret;
-+
-+	BUG_ON(conn == NULL);
-+
-+	ret = o2cb_cluster_disconnect(conn);
-+
-+	/* XXX Should we free it anyway? */
-+	if (!ret)
-+		kfree(conn);
++	spin_lock(&ocfs2_stack_lock);
++	if (lproto)
++		ret = snprintf(buf, PAGE_SIZE, "%u.%u\n",
++			       lproto->lp_max_version.pv_major,
++			       lproto->lp_max_version.pv_minor);
++	spin_unlock(&ocfs2_stack_lock);
 +
 +	return ret;
 +}
 +
- static void o2hb_stop(const char *group)
++static struct kobj_attribute ocfs2_attr_max_locking_protocol =
++	__ATTR(max_locking_protocol, S_IFREG | S_IRUGO,
++	       ocfs2_max_locking_protocol_show, NULL);
++
++static ssize_t ocfs2_loaded_cluster_plugins_show(struct kobject *kobj,
++						 struct kobj_attribute *attr,
++						 char *buf)
  {
- 	int ret;
-@@ -406,15 +475,20 @@ static void o2hb_stop(const char *group)
-  *
-  * Other stacks will eventually provide a NULL ->hangup() pointer.
-  */
-+static void o2cb_cluster_hangup(const char *group, int grouplen)
-+{
-+	o2hb_stop(group);
++	ssize_t ret = 0, total = 0, remain = PAGE_SIZE;
++	struct ocfs2_stack_plugin *p;
++
++	spin_lock(&ocfs2_stack_lock);
++	list_for_each_entry(p, &ocfs2_stack_list, sp_list) {
++		ret = snprintf(buf, remain, "%s\n",
++			       p->sp_name);
++		if (ret < 0) {
++			total = ret;
++			break;
++		}
++		if (ret == remain) {
++			/* snprintf() didn't fit */
++			total = -E2BIG;
++			break;
++		}
++		total += ret;
++		remain -= ret;
++	}
++	spin_unlock(&ocfs2_stack_lock);
++
++	return total;
 +}
 +
- void ocfs2_cluster_hangup(const char *group, int grouplen)
- {
- 	BUG_ON(group == NULL);
- 	BUG_ON(group[grouplen] != '\0');
- 
--	o2hb_stop(group);
-+	o2cb_cluster_hangup(group, grouplen);
- }
- 
--int ocfs2_cluster_this_node(unsigned int *node)
-+static int o2cb_cluster_this_node(unsigned int *node)
- {
- 	int node_num;
- 
-@@ -429,6 +503,11 @@ int ocfs2_cluster_this_node(unsigned int *node)
++static struct kobj_attribute ocfs2_attr_loaded_cluster_plugins =
++	__ATTR(loaded_cluster_plugins, S_IFREG | S_IRUGO,
++	       ocfs2_loaded_cluster_plugins_show, NULL);
++
++static ssize_t ocfs2_active_cluster_plugin_show(struct kobject *kobj,
++						struct kobj_attribute *attr,
++						char *buf)
++{
++	ssize_t ret = 0;
++
++	spin_lock(&ocfs2_stack_lock);
++	if (active_stack) {
++		ret = snprintf(buf, PAGE_SIZE, "%s\n",
++			       active_stack->sp_name);
++		if (ret == PAGE_SIZE)
++			ret = -E2BIG;
++	}
++	spin_unlock(&ocfs2_stack_lock);
++
++	return ret;
++}
++
++static struct kobj_attribute ocfs2_attr_active_cluster_plugin =
++	__ATTR(active_cluster_plugin, S_IFREG | S_IRUGO,
++	       ocfs2_active_cluster_plugin_show, NULL);
++
++static struct attribute *ocfs2_attrs[] = {
++	&ocfs2_attr_max_locking_protocol.attr,
++	&ocfs2_attr_loaded_cluster_plugins.attr,
++	&ocfs2_attr_active_cluster_plugin.attr,
++	NULL,
++};
++
++static struct attribute_group ocfs2_attr_group = {
++	.attrs = ocfs2_attrs,
++};
++
++static struct kset *ocfs2_kset;
++
++static void ocfs2_sysfs_exit(void)
++{
++	kset_unregister(ocfs2_kset);
++}
++
++static int ocfs2_sysfs_init(void)
++{
++	int ret;
++
++	ocfs2_kset = kset_create_and_add("ocfs2", NULL, fs_kobj);
++	if (!ocfs2_kset)
++		return -ENOMEM;
++
++	ret = sysfs_create_group(&ocfs2_kset->kobj, &ocfs2_attr_group);
++	if (ret)
++		goto error;
++
  	return 0;
- }
- 
-+int ocfs2_cluster_this_node(unsigned int *node)
-+{
-+	return o2cb_cluster_this_node(node);
++
++error:
++	kset_unregister(ocfs2_kset);
++	return ret;
 +}
 +
- void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto)
++static int __init ocfs2_stack_glue_init(void)
++{
++	return ocfs2_sysfs_init();
+ }
+ 
+ static void __exit ocfs2_stack_glue_exit(void)
  {
- 	BUG_ON(proto != NULL);
+ 	lproto = NULL;
++	ocfs2_sysfs_exit();
+ }
+ 
+ MODULE_AUTHOR("Oracle");
 -- 
 1.5.3.8
