@@ -1,10 +1,10 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed Mar  5 16:28:20 2008
-Subject: [Ocfs2-devel] [PATCH 07/18] ocfs2: Move o2hb functionality into the
-	stack glue.
+Date: Wed Mar  5 16:28:22 2008
+Subject: [Ocfs2-devel] [PATCH 18/18] ocfs2: Add the 'cluster_stack' sysfs
+	file.
 In-Reply-To: <1204763261-28025-1-git-send-email-joel.becker@oracle.com>
 References: <1204763261-28025-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1204763261-28025-8-git-send-email-joel.becker@oracle.com>
+Message-ID: <1204763261-28025-19-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,283 +12,254 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, mark.fasheh@oracle.com
 
-The last bit of classic stack used directly in ocfs2 code is o2hb.
-Specifically, the check for heartbeat during mount and the call to
-ocfs2_hb_ctl during unmount.
+Userspace can now query and specify the cluster stack in use via the
+/sys/fs/ocfs2/cluster_stack file.  By default, it is 'o2cb', which is
+the classic stack.  Thus, old tools that do not know how to modify this
+file will work just fine.  The stack cannot be modified if there is a
+live filesystem.
 
-We create an extra API, ocfs2_cluster_hangup(), to encapsulate the call
-to ocfs2_hb_ctl.  Other stacks will just leave hangup() empty.
+ocfs2_cluster_connect() now takes the expected cluster stack as an
+argument.  This way, the filesystem and the stack glue ensure they are
+speaking to the same backend.
 
-The check for heartbeat is moved into ocfs2_cluster_connect().  It will
-be matched by a similar check for other stacks.
-
-With this change, only stackglue.c includes cluster/ headers.
+If the stack is 'o2cb', the o2cb stack plugin is used.  For any other
+value, the fsdlm stack plugin is selected.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
-Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dlmglue.c   |    4 ----
- fs/ocfs2/heartbeat.c |   33 ---------------------------------
- fs/ocfs2/heartbeat.h |    1 -
- fs/ocfs2/ioctl.c     |    1 +
- fs/ocfs2/ocfs2.h     |    4 ----
- fs/ocfs2/stackglue.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/stackglue.h |    1 +
- fs/ocfs2/super.c     |   23 ++++++++++-------------
- 8 files changed, 62 insertions(+), 55 deletions(-)
+ fs/ocfs2/dlmglue.c   |    3 +-
+ fs/ocfs2/stackglue.c |  111 +++++++++++++++++++++++++++++++++++++++++++++-----
+ fs/ocfs2/stackglue.h |    3 +-
+ 3 files changed, 104 insertions(+), 13 deletions(-)
 
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 9e13d4b..aa13d15 100644
+index 71af7d6..737f0b2 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
-@@ -32,10 +32,6 @@
- #include <linux/debugfs.h>
- #include <linux/seq_file.h>
- 
--#include <cluster/heartbeat.h>
--#include <cluster/nodemanager.h>
--#include <cluster/tcp.h>
--
- #define MLOG_MASK_PREFIX ML_DLM_GLUE
- #include <cluster/masklog.h>
- 
-diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
-index dcac1a4..c6e7213 100644
---- a/fs/ocfs2/heartbeat.c
-+++ b/fs/ocfs2/heartbeat.c
-@@ -28,7 +28,6 @@
- #include <linux/types.h>
- #include <linux/slab.h>
- #include <linux/highmem.h>
--#include <linux/kmod.h>
- 
- #define MLOG_MASK_PREFIX ML_SUPER
- #include <cluster/masklog.h>
-@@ -83,38 +82,6 @@ void ocfs2_do_node_down(int node_num, void *data)
- 	ocfs2_recovery_thread(osb, node_num);
- }
- 
--void ocfs2_stop_heartbeat(struct ocfs2_super *osb)
--{
--	int ret;
--	char *argv[5], *envp[3];
--
--	if (ocfs2_mount_local(osb))
--		return;
--
--	if (!osb->uuid_str) {
--		/* This can happen if we don't get far enough in mount... */
--		mlog(0, "No UUID with which to stop heartbeat!\n\n");
--		return;
--	}
--
--	argv[0] = (char *)o2nm_get_hb_ctl_path();
--	argv[1] = "-K";
--	argv[2] = "-u";
--	argv[3] = osb->uuid_str;
--	argv[4] = NULL;
--
--	mlog(0, "Run: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
--
--	/* minimal command environment taken from cpu_run_sbin_hotplug */
--	envp[0] = "HOME=/";
--	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
--	envp[2] = NULL;
--
--	ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
--	if (ret < 0)
--		mlog_errno(ret);
--}
--
- static inline void __ocfs2_node_map_set_bit(struct ocfs2_node_map *map,
- 					    int bit)
- {
-diff --git a/fs/ocfs2/heartbeat.h b/fs/ocfs2/heartbeat.h
-index 38e2450..74b9c5d 100644
---- a/fs/ocfs2/heartbeat.h
-+++ b/fs/ocfs2/heartbeat.h
-@@ -29,7 +29,6 @@
- void ocfs2_init_node_maps(struct ocfs2_super *osb);
- 
- void ocfs2_do_node_down(int node_num, void *data);
--void ocfs2_stop_heartbeat(struct ocfs2_super *osb);
- 
- /* node map functions - used to keep track of mounted and in-recovery
-  * nodes. */
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 5177fba..ab1c216 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -7,6 +7,7 @@
- 
- #include <linux/fs.h>
- #include <linux/mount.h>
-+#include <linux/smp_lock.h>
- 
- #define MLOG_MASK_PREFIX ML_INODE
- #include <cluster/masklog.h>
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 7006aba..31dc28b 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -36,10 +36,6 @@
- #include <linux/mutex.h>
- #include <linux/jbd.h>
- 
--#include "cluster/nodemanager.h"
--#include "cluster/heartbeat.h"
--#include "cluster/tcp.h"
--
- /* For union ocfs2_dlm_lksb */
- #include "stackglue.h"
- 
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 8146863..670fa94 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -20,12 +20,14 @@
- 
- #include <linux/slab.h>
- #include <linux/crc32.h>
-+#include <linux/kmod.h>
- 
- /* Needed for AOP_TRUNCATED_PAGE in mlog_errno() */
- #include <linux/fs.h>
- 
- #include "cluster/masklog.h"
- #include "cluster/nodemanager.h"
-+#include "cluster/heartbeat.h"
- 
- #include "stackglue.h"
- 
-@@ -301,6 +303,13 @@ int ocfs2_cluster_connect(const char *group,
- 		goto out;
+@@ -2627,7 +2627,8 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
  	}
  
-+	/* for now we only have one cluster/node, make sure we see it
-+	 * in the heartbeat universe */
-+	if (!o2hb_check_local_node_heartbeating()) {
-+		rc = -EINVAL;
+ 	/* for now, uuid == domain */
+-	status = ocfs2_cluster_connect(osb->uuid_str,
++	status = ocfs2_cluster_connect(osb->osb_cluster_stack,
++				       osb->uuid_str,
+ 				       strlen(osb->uuid_str),
+ 				       ocfs2_do_node_down, osb,
+ 				       &conn);
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 76ae4fc..bf45d9b 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -27,11 +27,17 @@
+ #include <linux/kobject.h>
+ #include <linux/sysfs.h>
+ 
++#include "ocfs2_fs.h"
++
+ #include "stackglue.h"
+ 
++#define OCFS2_STACK_PLUGIN_O2CB		"o2cb"
++#define OCFS2_STACK_PLUGIN_USER		"user"
++
+ static struct ocfs2_locking_protocol *lproto;
+ static DEFINE_SPINLOCK(ocfs2_stack_lock);
+ static LIST_HEAD(ocfs2_stack_list);
++static char cluster_stack_name[OCFS2_STACK_LABEL_LEN + 1];
+ 
+ /*
+  * The stack currently in use.  If not null, active_stack->sp_count > 0,
+@@ -53,26 +59,36 @@ static struct ocfs2_stack_plugin *ocfs2_stack_lookup(const char *name)
+ 	return NULL;
+ }
+ 
+-static int ocfs2_stack_driver_request(const char *name)
++static int ocfs2_stack_driver_request(const char *stack_name,
++				      const char *plugin_name)
+ {
+ 	int rc;
+ 	struct ocfs2_stack_plugin *p;
+ 
+ 	spin_lock(&ocfs2_stack_lock);
+ 
++	/*
++	 * If the stack passed by the filesystem isn't the selected one,
++	 * we can't continue.
++	 */
++	if (strcmp(stack_name, cluster_stack_name)) {
++		rc = -EBUSY;
 +		goto out;
 +	}
 +
- 	new_conn = kzalloc(sizeof(struct ocfs2_cluster_connection),
- 			   GFP_KERNEL);
- 	if (!new_conn) {
-@@ -359,6 +368,7 @@ out:
- 	return rc;
- }
- 
-+
- int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
- {
- 	struct dlm_ctxt *dlm = conn->cc_lockspace;
-@@ -373,6 +383,46 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
- 	return 0;
- }
- 
-+static void o2hb_stop(const char *group)
-+{
-+	int ret;
-+	char *argv[5], *envp[3];
-+
-+	argv[0] = (char *)o2nm_get_hb_ctl_path();
-+	argv[1] = "-K";
-+	argv[2] = "-u";
-+	argv[3] = (char *)group;
-+	argv[4] = NULL;
-+
-+	mlog(0, "Run: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
-+
-+	/* minimal command environment taken from cpu_run_sbin_hotplug */
-+	envp[0] = "HOME=/";
-+	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
-+	envp[2] = NULL;
-+
-+	ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
-+	if (ret < 0)
-+		mlog_errno(ret);
-+}
-+
-+/*
-+ * Hangup is a hack for tools compatibility.  Older ocfs2-tools software
-+ * expects the filesystem to call "ocfs2_hb_ctl" during unmount.  This
-+ * happens regardless of whether the DLM got started, so we can't do it
-+ * in ocfs2_cluster_disconnect().  We bring the o2hb_stop() function into
-+ * the glue and provide a "hangup" API for super.c to call.
-+ *
-+ * Other stacks will eventually provide a NULL ->hangup() pointer.
-+ */
-+void ocfs2_cluster_hangup(const char *group, int grouplen)
-+{
-+	BUG_ON(group == NULL);
-+	BUG_ON(group[grouplen] != '\0');
-+
-+	o2hb_stop(group);
-+}
-+
- int ocfs2_cluster_this_node(unsigned int *node)
- {
- 	int node_num;
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index ccb0399..22af77b 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -74,6 +74,7 @@ int ocfs2_cluster_connect(const char *group,
- 			  void *recovery_data,
- 			  struct ocfs2_cluster_connection **conn);
- int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn);
-+void ocfs2_cluster_hangup(const char *group, int grouplen);
- int ocfs2_cluster_this_node(unsigned int *node);
- 
- int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index d3c4d32..8f536b3 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -40,8 +40,7 @@
- #include <linux/crc32.h>
- #include <linux/debugfs.h>
- #include <linux/mount.h>
--
--#include <cluster/nodemanager.h>
-+#include <linux/seq_file.h>
- 
- #define MLOG_MASK_PREFIX ML_SUPER
- #include <cluster/masklog.h>
-@@ -579,15 +578,6 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 		goto read_super_error;
+ 	if (active_stack) {
+ 		/*
+ 		 * If the active stack isn't the one we want, it cannot
+ 		 * be selected right now.
+ 		 */
+-		if (!strcmp(active_stack->sp_name, name))
++		if (!strcmp(active_stack->sp_name, plugin_name))
+ 			rc = 0;
+ 		else
+ 			rc = -EBUSY;
+ 		goto out;
  	}
  
--	/* for now we only have one cluster/node, make sure we see it
--	 * in the heartbeat universe */
--	if (parsed_options.mount_opt & OCFS2_MOUNT_HB_LOCAL) {
--		if (!o2hb_check_local_node_heartbeating()) {
--			status = -EINVAL;
--			goto read_super_error;
--		}
--	}
--
- 	/* probe for superblock */
- 	status = ocfs2_sb_probe(sb, &bh, &sector_size);
- 	if (status < 0) {
-@@ -1275,8 +1265,15 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 
- 	debugfs_remove(osb->osb_debug_root);
- 
--	if (!mnt_err)
--		ocfs2_stop_heartbeat(osb);
+-	p = ocfs2_stack_lookup(name);
++	p = ocfs2_stack_lookup(plugin_name);
+ 	if (!p || !try_module_get(p->sp_owner)) {
+ 		rc = -ENOENT;
+ 		goto out;
+@@ -94,23 +110,42 @@ out:
+  * there is no stack, it tries to load it.  It will fail if the stack still
+  * cannot be found.  It will also fail if a different stack is in use.
+  */
+-static int ocfs2_stack_driver_get(const char *name)
++static int ocfs2_stack_driver_get(const char *stack_name)
+ {
+ 	int rc;
++	char *plugin_name = OCFS2_STACK_PLUGIN_O2CB;
++
 +	/*
-+	 * This is a small hack to move ocfs2_hb_ctl into stackglue.
-+	 * If we're dismounting due to mount error, mount.ocfs2 will clean
-+	 * up heartbeat.  If we're a local mount, there is no heartbeat.
-+	 * If we failed before we got a uuid_str yet, we can't stop
-+	 * heartbeat.  Otherwise, do it.
++	 * Classic stack does not pass in a stack name.  This is
++	 * compatible with older tools as well.
 +	 */
-+	if (!mnt_err && !ocfs2_mount_local(osb) && osb->uuid_str)
-+		ocfs2_cluster_hangup(osb->uuid_str, strlen(osb->uuid_str));
++	if (!stack_name || !*stack_name)
++		stack_name = OCFS2_STACK_PLUGIN_O2CB;
++
++	if (strlen(stack_name) != OCFS2_STACK_LABEL_LEN) {
++		printk(KERN_ERR
++		       "ocfs2 passed an invalid cluster stack label: \"%s\"\n",
++		       stack_name);
++		return -EINVAL;
++	}
  
- 	atomic_set(&osb->vol_state, VOLUME_DISMOUNTED);
+-	rc = ocfs2_stack_driver_request(name);
++	/* Anything that isn't the classic stack is a user stack */
++	if (strcmp(stack_name, OCFS2_STACK_PLUGIN_O2CB))
++		plugin_name = OCFS2_STACK_PLUGIN_USER;
++
++	rc = ocfs2_stack_driver_request(stack_name, plugin_name);
+ 	if (rc == -ENOENT) {
+-		request_module("ocfs2_stack_%s", name);
+-		rc = ocfs2_stack_driver_request(name);
++		request_module("ocfs2_stack_%s", plugin_name);
++		rc = ocfs2_stack_driver_request(stack_name, plugin_name);
+ 	}
  
+ 	if (rc == -ENOENT) {
+ 		printk(KERN_ERR
+ 		       "ocfs2: Cluster stack driver \"%s\" cannot be found\n",
+-		       name);
++		       plugin_name);
+ 	} else if (rc == -EBUSY) {
+ 		printk(KERN_ERR
+-		       "ocfs2: A different cluster stack driver is in use\n");
++		       "ocfs2: A different cluster stack is in use\n");
+ 	}
+ 
+ 	return rc;
+@@ -242,7 +277,8 @@ void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
+ }
+ EXPORT_SYMBOL_GPL(ocfs2_dlm_dump_lksb);
+ 
+-int ocfs2_cluster_connect(const char *group,
++int ocfs2_cluster_connect(const char *stack_name,
++			  const char *group,
+ 			  int grouplen,
+ 			  void (*recovery_handler)(int node_num,
+ 						   void *recovery_data),
+@@ -277,7 +313,7 @@ int ocfs2_cluster_connect(const char *group,
+ 	new_conn->cc_version = lproto->lp_max_version;
+ 
+ 	/* This will pin the stack driver if successful */
+-	rc = ocfs2_stack_driver_get("o2cb");
++	rc = ocfs2_stack_driver_get(stack_name);
+ 	if (rc)
+ 		goto out_free;
+ 
+@@ -416,10 +452,61 @@ static struct kobj_attribute ocfs2_attr_active_cluster_plugin =
+ 	__ATTR(active_cluster_plugin, S_IFREG | S_IRUGO,
+ 	       ocfs2_active_cluster_plugin_show, NULL);
+ 
++static ssize_t ocfs2_cluster_stack_show(struct kobject *kobj,
++					struct kobj_attribute *attr,
++					char *buf)
++{
++	ssize_t ret;
++	spin_lock(&ocfs2_stack_lock);
++	ret = snprintf(buf, PAGE_SIZE, "%s\n", cluster_stack_name);
++	spin_unlock(&ocfs2_stack_lock);
++
++	return ret;
++}
++
++static ssize_t ocfs2_cluster_stack_store(struct kobject *kobj,
++					 struct kobj_attribute *attr,
++					 const char *buf, size_t count)
++{
++	size_t len = count;
++	ssize_t ret;
++
++	if (len == 0)
++		return len;
++
++	if (buf[len - 1] == '\n')
++		len--;
++
++	if ((len != OCFS2_STACK_LABEL_LEN) ||
++	    (strnlen(buf, len) != len))
++		return -EINVAL;
++
++	spin_lock(&ocfs2_stack_lock);
++	if (active_stack) {
++		if (!strncmp(buf, cluster_stack_name, len))
++			ret = count;
++		else
++			ret = -EBUSY;
++	} else {
++		memcpy(cluster_stack_name, buf, len);
++		ret = count;
++	}
++	spin_unlock(&ocfs2_stack_lock);
++
++	return ret;
++}
++
++
++static struct kobj_attribute ocfs2_attr_cluster_stack =
++	__ATTR(cluster_stack, S_IFREG | S_IRUGO | S_IWUSR,
++	       ocfs2_cluster_stack_show,
++	       ocfs2_cluster_stack_store);
++
+ static struct attribute *ocfs2_attrs[] = {
+ 	&ocfs2_attr_max_locking_protocol.attr,
+ 	&ocfs2_attr_loaded_cluster_plugins.attr,
+ 	&ocfs2_attr_active_cluster_plugin.attr,
++	&ocfs2_attr_cluster_stack.attr,
+ 	NULL,
+ };
+ 
+@@ -455,6 +542,8 @@ error:
+ 
+ static int __init ocfs2_stack_glue_init(void)
+ {
++	strcpy(cluster_stack_name, OCFS2_STACK_PLUGIN_O2CB);
++
+ 	return ocfs2_sysfs_init();
+ }
+ 
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index c96c8bb..d88bc65 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -209,7 +209,8 @@ struct ocfs2_stack_plugin {
+ 
+ 
+ /* Used by the filesystem */
+-int ocfs2_cluster_connect(const char *group,
++int ocfs2_cluster_connect(const char *stack_name,
++			  const char *group,
+ 			  int grouplen,
+ 			  void (*recovery_handler)(int node_num,
+ 						   void *recovery_data),
 -- 
 1.5.3.8
