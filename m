@@ -1,10 +1,9 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed Mar  5 17:14:28 2008
-Subject: [Ocfs2-devel] [PATCH 03/10] ocfs2: Start the ocfs2_control
-	handshake.
+Date: Wed Mar  5 17:14:29 2008
+Subject: [Ocfs2-devel] [PATCH 07/10] ocfs2: add fsdlm to stackglue
 In-Reply-To: <1204766038-31721-1-git-send-email-joel.becker@oracle.com>
 References: <1204766038-31721-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1204766038-31721-4-git-send-email-joel.becker@oracle.com>
+Message-ID: <1204766038-31721-8-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,231 +11,378 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
 
-When a control daemon opens the ocfs2_control device, it must perform a
-handshake to tell the filesystem it is something capable of monitoring
-cluster status.  Only after the handshake is complete will the filesystem
-allow mounts.
+From: David Teigland <teigland@redhat.com>
 
-This is the first part of the handshake.  The daemon reads all supported
-ocfs2_control protocols, then writes in the protocol it will use.
+Add code to use fs/dlm.
 
+[ Modified to be part of the stack_user module -- Joel ]
+
+Signed-off-by: David Teigland <teigland@redhat.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/stack_user.c |  144 +++++++++++++++++++++++++++++++++++++++++++++++--
- 1 files changed, 139 insertions(+), 5 deletions(-)
+ fs/ocfs2/stack_user.c |  216 ++++++++++++++++++++++++++++++++++++++++++++++++-
+ fs/ocfs2/stackglue.c  |   14 +++-
+ fs/ocfs2/stackglue.h  |   19 ++++-
+ 3 files changed, 243 insertions(+), 6 deletions(-)
 
 diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index fdca5d3..ff8d307 100644
+index 9faa678..9cb2015 100644
 --- a/fs/ocfs2/stack_user.c
 +++ b/fs/ocfs2/stack_user.c
-@@ -22,6 +22,7 @@
- #include <linux/miscdevice.h>
- #include <linux/mutex.h>
+@@ -24,6 +24,7 @@
  #include <linux/reboot.h>
-+#include <asm/uaccess.h>
+ #include <asm/uaccess.h>
  
++#include "ocfs2.h"  /* For struct ocfs2_lock_res */
  #include "stackglue.h"
  
-@@ -40,6 +41,16 @@
-  */
  
- /*
-+ * Whether or not the client has done the handshake.
-+ * For now, we have just one protocol version.
-+ */
-+#define OCFS2_CONTROL_PROTO			"T01\n"
-+#define OCFS2_CONTROL_PROTO_LEN			4
-+#define OCFS2_CONTROL_HANDSHAKE_INVALID		(0)
-+#define OCFS2_CONTROL_HANDSHAKE_READ		(1)
-+#define OCFS2_CONTROL_HANDSHAKE_VALID		(2)
-+
-+/*
-  * ocfs2_live_connection is refcounted because the filesystem and
-  * miscdevice sides can detach in different order.  Let's just be safe.
-  */
-@@ -48,11 +59,30 @@ struct ocfs2_live_connection {
- 	struct ocfs2_cluster_connection	*oc_conn;
+@@ -152,6 +153,8 @@ union ocfs2_control_message {
+ 	struct ocfs2_control_message_down	u_down;
  };
  
-+struct ocfs2_control_private {
-+	struct list_head op_list;
-+	int op_state;
-+};
++static struct ocfs2_stack_plugin user_stack;
 +
  static atomic_t ocfs2_control_opened;
- 
- static LIST_HEAD(ocfs2_live_connection_list);
-+static LIST_HEAD(ocfs2_control_private_list);
- static DEFINE_MUTEX(ocfs2_control_lock);
- 
-+static inline void ocfs2_control_set_handshake_state(struct file *file,
-+						     int state)
-+{
-+	struct ocfs2_control_private *p = file->private_data;
-+	p->op_state = state;
-+}
-+
-+static inline int ocfs2_control_get_handshake_state(struct file *file)
-+{
-+	struct ocfs2_control_private *p = file->private_data;
-+	return p->op_state;
-+}
-+
- static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
- {
- 	size_t len = strlen(name);
-@@ -119,27 +149,115 @@ static void ocfs2_live_connection_drop(struct ocfs2_live_connection *c)
- 	kfree(c);
+ static int ocfs2_control_this_node = -1;
+ static struct ocfs2_protocol_version running_proto;
+@@ -344,6 +347,20 @@ out_unlock:
+ 	return rc;
  }
  
-+static ssize_t ocfs2_control_cfu(char *target, size_t target_len,
-+				 const char __user *buf, size_t count)
++static int ocfs2_control_get_this_node(void)
 +{
-+	/* The T01 expects write(2) calls to have exactly one command */
-+	if (count != target_len)
-+		return -EINVAL;
-+
-+	if (copy_from_user(target, buf, target_len))
-+		return -EFAULT;
-+
-+	return count;
-+}
-+
-+static ssize_t ocfs2_control_validate_handshake(struct file *file,
-+						const char __user *buf,
-+						size_t count)
-+{
-+	ssize_t ret;
-+	char kbuf[OCFS2_CONTROL_PROTO_LEN];
-+
-+	ret = ocfs2_control_cfu(kbuf, OCFS2_CONTROL_PROTO_LEN,
-+				buf, count);
-+	if (ret != count)
-+		return ret;
-+
-+	if (strncmp(kbuf, OCFS2_CONTROL_PROTO, OCFS2_CONTROL_PROTO_LEN))
-+		return -EINVAL;
-+
-+	atomic_inc(&ocfs2_control_opened);
-+	ocfs2_control_set_handshake_state(file,
-+					  OCFS2_CONTROL_HANDSHAKE_VALID);
-+
-+
-+	return count;
-+}
-+
- 
- static ssize_t ocfs2_control_write(struct file *file,
- 				   const char __user *buf,
- 				   size_t count,
- 				   loff_t *ppos)
- {
--	return 0;
-+	ssize_t ret;
-+
-+	switch (ocfs2_control_get_handshake_state(file)) {
-+		case OCFS2_CONTROL_HANDSHAKE_INVALID:
-+			ret = -EINVAL;
-+			break;
-+
-+		case OCFS2_CONTROL_HANDSHAKE_READ:
-+			ret = ocfs2_control_validate_handshake(file, buf,
-+							       count);
-+			break;
-+
-+		case OCFS2_CONTROL_HANDSHAKE_VALID:
-+			ret = count;  /* XXX */
-+			break;
-+
-+		default:
-+			BUG();
-+			ret = -EIO;
-+			break;
-+	}
-+
-+	return ret;
- }
- 
-+/*
-+ * This is a naive version.  If we ever have a new protocol, we'll expand
-+ * it.  Probably using seq_file.
-+ */
- static ssize_t ocfs2_control_read(struct file *file,
- 				  char __user *buf,
- 				  size_t count,
- 				  loff_t *ppos)
- {
--	return 0;
-+	char *proto_string = OCFS2_CONTROL_PROTO;
-+	size_t to_write = 0;
-+
-+	if (*ppos >= OCFS2_CONTROL_PROTO_LEN)
-+		return 0;
-+
-+	to_write = OCFS2_CONTROL_PROTO_LEN - *ppos;
-+	if (to_write > count)
-+		to_write = count;
-+	if (copy_to_user(buf, proto_string + *ppos, to_write))
-+		return -EFAULT;
-+
-+	*ppos += to_write;
-+
-+	/* Have we read the whole protocol list? */
-+	if (*ppos >= OCFS2_CONTROL_PROTO_LEN)
-+		ocfs2_control_set_handshake_state(file,
-+						  OCFS2_CONTROL_HANDSHAKE_READ);
-+
-+	return to_write;
- }
- 
- static int ocfs2_control_release(struct inode *inode, struct file *file)
- {
-+	struct ocfs2_control_private *p = file->private_data;
++	int rc;
 +
 +	mutex_lock(&ocfs2_control_lock);
++	if (ocfs2_control_this_node < 0)
++		rc = -EINVAL;
++	else
++		rc = ocfs2_control_this_node;
++	mutex_unlock(&ocfs2_control_lock);
 +
-+	if (ocfs2_control_get_handshake_state(file) !=
-+	    OCFS2_CONTROL_HANDSHAKE_VALID)
++	return rc;
++}
++
+ static int ocfs2_control_do_setnode_msg(struct file *file,
+ 					struct ocfs2_control_message_setn *msg)
+ {
+@@ -652,13 +669,210 @@ static void ocfs2_control_exit(void)
+ 		       -rc);
+ }
+ 
++static struct dlm_lksb *fsdlm_astarg_to_lksb(void *astarg)
++{
++	struct ocfs2_lock_res *res = astarg;
++	return &res->l_lksb.lksb_fsdlm;
++}
++
++static void fsdlm_lock_ast_wrapper(void *astarg)
++{
++	struct dlm_lksb *lksb = fsdlm_astarg_to_lksb(astarg);
++	int status = lksb->sb_status;
++
++	BUG_ON(user_stack.sp_proto == NULL);
++
++	/*
++	 * For now we're punting on the issue of other non-standard errors
++	 * where we can't tell if the unlock_ast or lock_ast should be called.
++	 * The main "other error" that's possible is EINVAL which means the
++	 * function was called with invalid args, which shouldn't be possible
++	 * since the caller here is under our control.  Other non-standard
++	 * errors probably fall into the same category, or otherwise are fatal
++	 * which means we can't carry on anyway.
++	 */
++
++	if (status == -DLM_EUNLOCK || status == -DLM_ECANCEL)
++		user_stack.sp_proto->lp_unlock_ast(astarg, 0);
++	else
++		user_stack.sp_proto->lp_lock_ast(astarg);
++}
++
++static void fsdlm_blocking_ast_wrapper(void *astarg, int level)
++{
++	BUG_ON(user_stack.sp_proto == NULL);
++
++	user_stack.sp_proto->lp_blocking_ast(astarg, level);
++}
++
++static int user_dlm_lock(struct ocfs2_cluster_connection *conn,
++			 int mode,
++			 union ocfs2_dlm_lksb *lksb,
++			 u32 flags,
++			 void *name,
++			 unsigned int namelen,
++			 void *astarg)
++{
++	int ret;
++
++	if (!lksb->lksb_fsdlm.sb_lvbptr)
++		lksb->lksb_fsdlm.sb_lvbptr = (char *)lksb +
++					     sizeof(struct dlm_lksb);
++
++	ret = dlm_lock(conn->cc_lockspace, mode, &lksb->lksb_fsdlm,
++		       flags|DLM_LKF_NODLCKWT, name, namelen, 0,
++		       fsdlm_lock_ast_wrapper, astarg,
++		       fsdlm_blocking_ast_wrapper);
++	return ret;
++}
++
++static int user_dlm_unlock(struct ocfs2_cluster_connection *conn,
++			   union ocfs2_dlm_lksb *lksb,
++			   u32 flags,
++			   void *astarg)
++{
++	int ret;
++
++	ret = dlm_unlock(conn->cc_lockspace, lksb->lksb_fsdlm.sb_lkid,
++			 flags, &lksb->lksb_fsdlm, astarg);
++	return ret;
++}
++
++static int user_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
++{
++	return lksb->lksb_fsdlm.sb_status;
++}
++
++static void *user_dlm_lvb(union ocfs2_dlm_lksb *lksb)
++{
++	return (void *)(lksb->lksb_fsdlm.sb_lvbptr);
++}
++
++static void user_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
++{
++}
++
++/*
++ * Compare a requested locking protocol version against the current one.
++ *
++ * If the major numbers are different, they are incompatible.
++ * If the current minor is greater than the request, they are incompatible.
++ * If the current minor is less than or equal to the request, they are
++ * compatible, and the requester should run at the current minor version.
++ */
++static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
++			       struct ocfs2_protocol_version *request)
++{
++	if (existing->pv_major != request->pv_major)
++		return 1;
++
++	if (existing->pv_minor > request->pv_minor)
++		return 1;
++
++	if (existing->pv_minor < request->pv_minor)
++		request->pv_minor = existing->pv_minor;
++
++	return 0;
++}
++
++static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
++{
++	dlm_lockspace_t *fsdlm;
++	struct ocfs2_live_connection *control;
++	int rc = 0;
++
++	BUG_ON(conn == NULL);
++
++	rc = ocfs2_live_connection_new(conn, &control);
++	if (rc)
 +		goto out;
 +
- 	if (atomic_dec_and_test(&ocfs2_control_opened)) {
--		mutex_lock(&ocfs2_control_lock);
- 		if (!list_empty(&ocfs2_live_connection_list)) {
- 			/* XXX: Do bad things! */
- 			printk(KERN_ERR
-@@ -148,15 +266,31 @@ static int ocfs2_control_release(struct inode *inode, struct file *file)
- 			       "an emergency restart!\n");
- 			emergency_restart();
- 		}
--		mutex_unlock(&ocfs2_control_lock);
- 	}
- 
++	/*
++	 * running_proto must have been set before we allowed any mounts
++	 * to proceed.
++	 */
++	if (fs_protocol_compare(&running_proto, &conn->cc_version)) {
++		printk(KERN_ERR
++		       "Unable to mount with fs locking protocol version "
++		       "%u.%u because the userspace control daemon has "
++		       "negotiated %u.%u\n",
++		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
++		       running_proto.pv_major, running_proto.pv_minor);
++		rc = -EPROTO;
++		ocfs2_live_connection_drop(control);
++		goto out;
++	}
++
++	rc = dlm_new_lockspace(conn->cc_name, strlen(conn->cc_name),
++			       &fsdlm, DLM_LSFL_FS, DLM_LVB_LEN);
++	if (rc) {
++		ocfs2_live_connection_drop(control);
++		goto out;
++	}
++
++	conn->cc_private = control;
++	conn->cc_lockspace = fsdlm;
 +out:
-+	list_del_init(&p->op_list);
-+	file->private_data = NULL;
++	return rc;
++}
 +
-+	mutex_unlock(&ocfs2_control_lock);
++static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn,
++				   int hangup_pending)
++{
++	dlm_release_lockspace(conn->cc_lockspace, 2);
++	conn->cc_lockspace = NULL;
++	ocfs2_live_connection_drop(conn->cc_private);
++	conn->cc_private = NULL;
++	return 0;
++}
 +
-+	kfree(p);
++static int user_cluster_this_node(unsigned int *this_node)
++{
++	int rc;
 +
- 	return 0;
- }
- 
- static int ocfs2_control_open(struct inode *inode, struct file *file)
++	rc = ocfs2_control_get_this_node();
++	if (rc < 0)
++		return rc;
++
++	*this_node = rc;
++	return 0;
++}
++
++static struct ocfs2_stack_operations user_stack_ops = {
++	.connect	= user_cluster_connect,
++	.disconnect	= user_cluster_disconnect,
++	.this_node	= user_cluster_this_node,
++	.dlm_lock	= user_dlm_lock,
++	.dlm_unlock	= user_dlm_unlock,
++	.lock_status	= user_dlm_lock_status,
++	.lock_lvb	= user_dlm_lvb,
++	.dump_lksb	= user_dlm_dump_lksb,
++};
++
++static struct ocfs2_stack_plugin user_stack = {
++	.sp_name	= "user",
++	.sp_ops		= &user_stack_ops,
++	.sp_owner	= THIS_MODULE,
++};
++
++
+ static int __init user_stack_init(void)
  {
--	atomic_inc(&ocfs2_control_opened);
-+	struct ocfs2_control_private *p;
+-	return ocfs2_control_init();
++	int rc;
 +
-+	p = kzalloc(sizeof(struct ocfs2_control_private), GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
++	rc = ocfs2_control_init();
++	if (!rc) {
++		rc = ocfs2_stack_glue_register(&user_stack);
++		if (rc)
++			ocfs2_control_exit();
++	}
 +
-+	mutex_lock(&ocfs2_control_lock);
-+	file->private_data = p;
-+	list_add(&p->op_list, &ocfs2_control_private_list);
-+	mutex_unlock(&ocfs2_control_lock);
- 
- 	return 0;
++	return rc;
  }
+ 
+ static void __exit user_stack_exit(void)
+ {
++	ocfs2_stack_glue_unregister(&user_stack);
+ 	ocfs2_control_exit();
+ }
+ 
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index bf45d9b..119f60c 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -228,13 +228,20 @@ void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto)
+ EXPORT_SYMBOL_GPL(ocfs2_stack_glue_set_locking_protocol);
+ 
+ 
++/*
++ * The ocfs2_dlm_lock() and ocfs2_dlm_unlock() functions take
++ * "struct ocfs2_lock_res *astarg" instead of "void *astarg" because the
++ * underlying stack plugins need to pilfer the lksb off of the lock_res.
++ * If some other structure needs to be passed as an astarg, the plugins
++ * will need to be given a different avenue to the lksb.
++ */
+ int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
+ 		   int mode,
+ 		   union ocfs2_dlm_lksb *lksb,
+ 		   u32 flags,
+ 		   void *name,
+ 		   unsigned int namelen,
+-		   void *astarg)
++		   struct ocfs2_lock_res *astarg)
+ {
+ 	BUG_ON(lproto == NULL);
+ 
+@@ -246,7 +253,7 @@ EXPORT_SYMBOL_GPL(ocfs2_dlm_lock);
+ int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
+ 		     union ocfs2_dlm_lksb *lksb,
+ 		     u32 flags,
+-		     void *astarg)
++		     struct ocfs2_lock_res *astarg)
+ {
+ 	BUG_ON(lproto == NULL);
+ 
+@@ -360,7 +367,8 @@ void ocfs2_cluster_hangup(const char *group, int grouplen)
+ 	BUG_ON(group == NULL);
+ 	BUG_ON(group[grouplen] != '\0');
+ 
+-	active_stack->sp_ops->hangup(group, grouplen);
++	if (active_stack->sp_ops->hangup)
++		active_stack->sp_ops->hangup(group, grouplen);
+ 
+ 	/* cluster_disconnect() was called with hangup_pending==1 */
+ 	ocfs2_stack_driver_put();
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index d88bc65..005e4f1 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -26,6 +26,7 @@
+ #include <linux/dlmconstants.h>
+ 
+ #include "dlm/dlmapi.h"
++#include <linux/dlm.h>
+ 
+ /*
+  * dlmconstants.h does not have a LOCAL flag.  We hope to remove it
+@@ -60,6 +61,17 @@ struct ocfs2_locking_protocol {
+ 	void (*lp_unlock_ast)(void *astarg, int error);
+ };
+ 
++
++/*
++ * The dlm_lockstatus struct includes lvb space, but the dlm_lksb struct only
++ * has a pointer to separately allocated lvb space.  This struct exists only to
++ * include in the lksb union to make space for a combined dlm_lksb and lvb.
++ */
++struct fsdlm_lksb_plus_lvb {
++	struct dlm_lksb lksb;
++	char lvb[DLM_LVB_LEN];
++};
++
+ /*
+  * A union of all lock status structures.  We define it here so that the
+  * size of the union is known.  Lock status structures are embedded in
+@@ -67,6 +79,8 @@ struct ocfs2_locking_protocol {
+  */
+ union ocfs2_dlm_lksb {
+ 	struct dlm_lockstatus lksb_o2dlm;
++	struct dlm_lksb lksb_fsdlm;
++	struct fsdlm_lksb_plus_lvb padding;
+ };
+ 
+ /*
+@@ -221,17 +235,18 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
+ void ocfs2_cluster_hangup(const char *group, int grouplen);
+ int ocfs2_cluster_this_node(unsigned int *node);
+ 
++struct ocfs2_lock_res;
+ int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
+ 		   int mode,
+ 		   union ocfs2_dlm_lksb *lksb,
+ 		   u32 flags,
+ 		   void *name,
+ 		   unsigned int namelen,
+-		   void *astarg);
++		   struct ocfs2_lock_res *astarg);
+ int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
+ 		     union ocfs2_dlm_lksb *lksb,
+ 		     u32 flags,
+-		     void *astarg);
++		     struct ocfs2_lock_res *astarg);
+ 
+ int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb);
+ void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb);
 -- 
 1.5.3.8
