@@ -1,94 +1,39 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed Mar  5 14:52:33 2008
-Subject: [Ocfs2-devel] [PATCH 6/7] ocfs2: Define the contents of the
-	slot_map file.
-In-Reply-To: <1204757524-21343-1-git-send-email-joel.becker@oracle.com>
-References: <1204757524-21343-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1204757524-21343-7-git-send-email-joel.becker@oracle.com>
+Date: Wed Mar  5 16:28:11 2008
+Subject: [Ocfs2-devel] [PATCH 0/18] ocfs2: Cluster stack glue layer
+Message-ID: <1204763261-28025-1-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, mark.fasheh@oracle.com
 
-The slot map file is merely an array of __le16.  Wrap it in a structure for
-cleaner reference.
+ocfs2 is currently tied to its internal cluster stack, the ocfs2 Cluster
+Base (o2cb).  This includes the nodemanager (o2nm) and distributed lock
+manager (o2dlm).
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/ocfs2_fs.h |   12 ++++++++++++
- fs/ocfs2/slot_map.c |   15 ++++++++-------
- 2 files changed, 20 insertions(+), 7 deletions(-)
+Going forward, ocfs2 would like to use the DLM in fs/dlm.  This includes
+interacting with userspace cluster stacks that drive fs/dlm, allowing
+all clustering on a machine to use the same stack.
 
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 3633edd..3299116 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -475,6 +475,18 @@ struct ocfs2_extent_block
- };
- 
- /*
-+ * On disk slot map for OCFS2.  This defines the contents of the "slot_map"
-+ * system file.
-+ */
-+struct ocfs2_slot_map {
-+/*00*/	__le16 sm_slots[0];
-+/*
-+ * Actual on-disk size is one block.  OCFS2_MAX_SLOTS is 255,
-+ * 255 * sizeof(__le16) == 512B, within the 512B block minimum blocksize.
-+ */
-+};
-+
-+/*
-  * On disk superblock for OCFS2
-  * Note that it is contained inside an ocfs2_dinode, so all offsets
-  * are relative to the start of ocfs2_dinode.id2.
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index 65a61bf..e7e7a74 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -85,17 +85,17 @@ static void ocfs2_set_slot(struct ocfs2_slot_info *si,
- static void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
- {
- 	int i;
--	__le16 *disk_info;
-+	struct ocfs2_slot_map *sm;
- 
- 	/* we don't read the slot block here as ocfs2_super_lock
- 	 * should've made sure we have the most recent copy. */
--	disk_info = (__le16 *) si->si_bh[0]->b_data;
-+	sm = (struct ocfs2_slot_map *)si->si_bh[0]->b_data;
- 
- 	for (i = 0; i < si->si_num_slots; i++) {
--		if (le16_to_cpu(disk_info[i]) == (u16)OCFS2_INVALID_SLOT)
-+		if (le16_to_cpu(sm->sm_slots[i]) == (u16)OCFS2_INVALID_SLOT)
- 			ocfs2_invalidate_slot(si, i);
- 		else
--			ocfs2_set_slot(si, i, le16_to_cpu(disk_info[i]));
-+			ocfs2_set_slot(si, i, le16_to_cpu(sm->sm_slots[i]));
- 	}
- }
- 
-@@ -135,15 +135,16 @@ static int ocfs2_update_disk_slots(struct ocfs2_super *osb,
- 				   struct ocfs2_slot_info *si)
- {
- 	int status, i;
--	__le16 *disk_info = (__le16 *) si->si_bh[0]->b_data;
-+	struct ocfs2_slot_map *sm;
- 
- 	spin_lock(&osb->osb_lock);
-+	sm = (struct ocfs2_slot_map *)si->si_bh[0]->b_data;
- 	for (i = 0; i < si->si_num_slots; i++) {
- 		if (si->si_slots[i].sl_valid)
--			disk_info[i] =
-+			sm->sm_slots[i] =
- 				cpu_to_le16(si->si_slots[i].sl_node_num);
- 		else
--			disk_info[i] = cpu_to_le16(OCFS2_INVALID_SLOT);
-+			sm->sm_slots[i] = cpu_to_le16(OCFS2_INVALID_SLOT);
- 	}
- 	spin_unlock(&osb->osb_lock);
- 
--- 
-1.5.3.8
+This patch series decouples the o2cb stack from ocfs2, creating a
+plug-in architecture.  A layer called "stackglue" sits between the ocfs2
+filesystem and the chosen cluster plug-in.  A later patch series will
+introduce the plug-in for fs/dlm and userspace cluster stacks.
+
+The series should be functionally equivalent.  Each patch should compile
+and run successfully, with no modification to userspace tools.  The end
+result of this series is a plug-in cluster backend that behaves exactly
+as the current system does.  As an added benefit, local (non-clustered)
+ocfs2 filesystems do not need to load any plug-in.  In the past, even a
+non-clustered filesystem required the o2cb modules loaded, though not
+configured.
+
+The kernel code is also available on the 'stack-glue' branch of my git
+repository.
+
+View:
+http://oss.oracle.com/git/?p=jlbec/linux-2.6.git;a=shortlog;h=stack-glue
+Pull:
+git pull git://oss.oracle.com/git/jlbec/linux-2.6.git stack-glue
