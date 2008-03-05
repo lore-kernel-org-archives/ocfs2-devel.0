@@ -1,58 +1,276 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Wed Mar  5 10:47:12 2008
-Subject: [Ocfs2-devel] Re: [PATCH] Dynamic lockres hash table
-In-Reply-To: <20080305184021.GT9349@ca-server1.us.oracle.com>
-References: <20080304102448.GB24335@duck.suse.cz> <47CE065F.6080707@oracle.com>
-	<20080305184021.GT9349@ca-server1.us.oracle.com>
-Message-ID: <47CEEA8D.2020406@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed Mar  5 10:53:24 2008
+Subject: [Ocfs2-devel] [PATCH 02/12] ocfs2/dlm: Creates slabcaches for
+	lock and lockres
+In-Reply-To: <1204678200-26237-3-git-send-email-sunil.mushran@oracle.com>
+References: <1204678200-26237-1-git-send-email-sunil.mushran@oracle.com>
+	<1204678200-26237-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080305185319.GA799@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Look it at as a short term fix considering sles is shipping next
-month and we won't have the time to do the dynamic resizing.
+On Tue, Mar 04, 2008 at 04:49:50PM -0800, Sunil Mushran wrote:
+> This patch makes the o2dlm allocate memory for lockres, lockname and lock
+> structures from slabcaches rather than kmalloc. This allows us to not only
+> make these allocs more efficient but also allows us to track the memory being
+> consumed by these structures.
+> 
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
-As far as dynamic resizing goes, if we provide info indicating that
-the lookups are slow and that they can speeded up by increasing
-the hash... we can not only let the user do it manually but at some
-point resize it automatically too.
+> ---
+>  fs/ocfs2/dlm/dlmcommon.h |    7 +++++
+>  fs/ocfs2/dlm/dlmdomain.c |   26 +++++++++++++++++--
+>  fs/ocfs2/dlm/dlmlock.c   |   22 +++++++++++++++-
+>  fs/ocfs2/dlm/dlmmaster.c |   61 +++++++++++++++++++++++++++++++++++++---------
+>  4 files changed, 99 insertions(+), 17 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+> index 5b3607c..c281618 100644
+> --- a/fs/ocfs2/dlm/dlmcommon.h
+> +++ b/fs/ocfs2/dlm/dlmcommon.h
+> @@ -961,9 +961,16 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
+>  					  DLM_LOCK_RES_MIGRATING));
+>  }
+>  
+> +/* create/destroy slab caches */
+> +int dlm_init_master_caches(void);
+> +void dlm_destroy_master_caches(void);
+> +
+> +int dlm_init_lock_cache(void);
+> +void dlm_destroy_lock_cache(void);
+>  
+>  int dlm_init_mle_cache(void);
+>  void dlm_destroy_mle_cache(void);
+> +
+>  void dlm_hb_event_notify_attached(struct dlm_ctxt *dlm, int idx, int node_up);
+>  int dlm_drop_lockres_ref(struct dlm_ctxt *dlm,
+>  			 struct dlm_lock_resource *res);
+> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+> index 2f15944..c8a4e08 100644
+> --- a/fs/ocfs2/dlm/dlmdomain.c
+> +++ b/fs/ocfs2/dlm/dlmdomain.c
+> @@ -1789,21 +1789,41 @@ static int __init dlm_init(void)
+>  	status = dlm_init_mle_cache();
+>  	if (status) {
+>  		mlog(ML_ERROR, "Could not create o2dlm_mle slabcache\n");
+> -		return -1;
+> +		goto error;
+> +	}
+> +
+> +	status = dlm_init_master_caches();
+> +	if (status) {
+> +		mlog(ML_ERROR, "Could not create o2dlm_lockres and "
+> +		     "o2dlm_lockname slabcaches\n");
+> +		goto error;
+> +	}
+> +
+> +	status = dlm_init_lock_cache();
+> +	if (status) {
+> +		mlog(ML_ERROR, "Count not create o2dlm_lock slabcache\n");
+> +		goto error;
+>  	}
+>  
+>  	status = dlm_register_net_handlers();
+>  	if (status) {
+> -		dlm_destroy_mle_cache();
+> -		return -1;
+> +		mlog(ML_ERROR, "Unable to register network handlers\n");
+> +		goto error;
+>  	}
+>  
+>  	return 0;
+> +error:
+> +	dlm_destroy_lock_cache();
+> +	dlm_destroy_master_caches();
+> +	dlm_destroy_mle_cache();
+> +	return -1;
+>  }
+>  
+>  static void __exit dlm_exit (void)
+>  {
+>  	dlm_unregister_net_handlers();
+> +	dlm_destroy_lock_cache();
+> +	dlm_destroy_master_caches();
+>  	dlm_destroy_mle_cache();
+>  }
+>  
+> diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+> index 52578d9..e8e19eb 100644
+> --- a/fs/ocfs2/dlm/dlmlock.c
+> +++ b/fs/ocfs2/dlm/dlmlock.c
+> @@ -53,6 +53,8 @@
+>  #define MLOG_MASK_PREFIX ML_DLM
+>  #include "cluster/masklog.h"
+>  
+> +static struct kmem_cache *dlm_lock_cache = NULL;
+> +
+>  static DEFINE_SPINLOCK(dlm_cookie_lock);
+>  static u64 dlm_next_cookie = 1;
+>  
+> @@ -64,6 +66,22 @@ static void dlm_init_lock(struct dlm_lock *newlock, int type,
+>  static void dlm_lock_release(struct kref *kref);
+>  static void dlm_lock_detach_lockres(struct dlm_lock *lock);
+>  
+> +int dlm_init_lock_cache(void)
+> +{
+> +	dlm_lock_cache = kmem_cache_create("o2dlm_lock",
+> +					   sizeof(struct dlm_lock), 0,
+> +					   SLAB_HWCACHE_ALIGN, NULL);
+> +	if (dlm_lock_cache == NULL)
+> +		return -ENOMEM;
+> +	return 0;
+> +}
+> +
+> +void dlm_destroy_lock_cache(void)
+> +{
+> +	if (dlm_lock_cache)
+> +		kmem_cache_destroy(dlm_lock_cache);
+> +}
+> +
+>  /* Tell us whether we can grant a new lock request.
+>   * locking:
+>   *   caller needs:  res->spinlock
+> @@ -353,7 +371,7 @@ static void dlm_lock_release(struct kref *kref)
+>  		mlog(0, "freeing kernel-allocated lksb\n");
+>  		kfree(lock->lksb);
+>  	}
+> -	kfree(lock);
+> +	kmem_cache_free(dlm_lock_cache, lock);
+>  }
+>  
+>  /* associate a lock with it's lockres, getting a ref on the lockres */
+> @@ -412,7 +430,7 @@ struct dlm_lock * dlm_new_lock(int type, u8 node, u64 cookie,
+>  	struct dlm_lock *lock;
+>  	int kernel_allocated = 0;
+>  
+> -	lock = kzalloc(sizeof(*lock), GFP_NOFS);
+> +	lock = (struct dlm_lock *) kmem_cache_zalloc(dlm_lock_cache, GFP_NOFS);
+>  	if (!lock)
+>  		return NULL;
+>  
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index 90797c5..ac9ed31 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -216,10 +216,10 @@ EXPORT_SYMBOL_GPL(dlm_dump_all_mles);
+>  
+>  #endif  /*  0  */
+>  
+> -
+> +static struct kmem_cache *dlm_lockres_cache = NULL;
+> +static struct kmem_cache *dlm_lockname_cache = NULL;
+>  static struct kmem_cache *dlm_mle_cache = NULL;
+>  
+> -
+>  static void dlm_mle_release(struct kref *kref);
+>  static void dlm_init_mle(struct dlm_master_list_entry *mle,
+>  			enum dlm_mle_type type,
+> @@ -560,6 +560,35 @@ static void dlm_mle_release(struct kref *kref)
+>   * LOCK RESOURCE FUNCTIONS
+>   */
+>  
+> +int dlm_init_master_caches(void)
+> +{
+> +	dlm_lockres_cache = kmem_cache_create("o2dlm_lockres",
+> +					      sizeof(struct dlm_lock_resource),
+> +					      0, SLAB_HWCACHE_ALIGN, NULL);
+> +	if (!dlm_lockres_cache)
+> +		goto bail;
+> +
+> +	dlm_lockname_cache = kmem_cache_create("o2dlm_lockname",
+> +					       DLM_LOCKID_NAME_MAX, 0,
+> +					       SLAB_HWCACHE_ALIGN, NULL);
+> +	if (!dlm_lockname_cache)
+> +		goto bail;
+> +
+> +	return 0;
+> +bail:
+> +	dlm_destroy_master_caches();
+> +	return -ENOMEM;
+> +}
+> +
+> +void dlm_destroy_master_caches(void)
+> +{
+> +	if (dlm_lockname_cache)
+> +		kmem_cache_destroy(dlm_lockname_cache);
+> +
+> +	if (dlm_lockres_cache)
+> +		kmem_cache_destroy(dlm_lockres_cache);
+> +}
+> +
+>  static void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
+>  				  struct dlm_lock_resource *res,
+>  				  u8 owner)
+> @@ -642,9 +671,9 @@ static void dlm_lockres_release(struct kref *kref)
+>  	BUG_ON(!list_empty(&res->recovering));
+>  	BUG_ON(!list_empty(&res->purge));
+>  
+> -	kfree(res->lockname.name);
+> +	kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
+>  
+> -	kfree(res);
+> +	kmem_cache_free(dlm_lockres_cache, res);
+>  }
+>  
+>  void dlm_lockres_put(struct dlm_lock_resource *res)
+> @@ -700,20 +729,28 @@ struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
+>  				   const char *name,
+>  				   unsigned int namelen)
+>  {
+> -	struct dlm_lock_resource *res;
+> +	struct dlm_lock_resource *res = NULL;
+>  
+> -	res = kmalloc(sizeof(struct dlm_lock_resource), GFP_NOFS);
+> +	res = (struct dlm_lock_resource *)
+> +				kmem_cache_zalloc(dlm_lockres_cache, GFP_NOFS);
+>  	if (!res)
+> -		return NULL;
+> +		goto error;
+>  
+> -	res->lockname.name = kmalloc(namelen, GFP_NOFS);
+> -	if (!res->lockname.name) {
+> -		kfree(res);
+> -		return NULL;
+> -	}
+> +	res->lockname.name = (char *)
+> +				kmem_cache_zalloc(dlm_lockname_cache, GFP_NOFS);
+> +	if (!res->lockname.name)
+> +		goto error;
+>  
+>  	dlm_init_lockres(dlm, res, name, namelen);
+>  	return res;
+> +
+> +error:
+> +	if (res && res->lockname.name)
+> +		kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
+> +
+> +	if (res)
+> +		kmem_cache_free(dlm_lockres_cache, res);
+> +	return NULL;
+>  }
+>  
+>  void __dlm_lockres_grab_inflight_ref(struct dlm_ctxt *dlm,
+> -- 
+> 1.5.3.6
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel@oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
-Mark Fasheh wrote:
-> On Tue, Mar 04, 2008 at 06:33:03PM -0800, Sunil Mushran wrote:
->   
->> My main problem with a mount option is that it is not dynamic.
->>
->> I was thinking along lines of having a sysfs param that will
->> allow users to dynamically resize the number of pages alloted
->> to the hash. This will definitely require us running tests to see
->> how long it takes to rehash with 500K lockres under the
->> dlm_spinlock.
->>     
->
-> I like the idea of being able to change it on the fly, but I'm wondering
-> about how useful that ability will be for customers versus just being able
-> to set it at mount time.
->
->
->   
->> I guess as a first step, we should add a avg lookup time stat.
->>
->> But all this will take time.
->>
->> How about we increase the defaults in 1.4 from 4 pages to 16 or
->> even 32 pages. This will be for Enterprise Kernels only and we
->> should be able to assume that they will have 128K per mount to
->> spare.
->>     
->
-> Please, can we solve this everywhere instead of having some ocfs2 1.4
-> specific hack.
-> 	--Mark
->
-> --
-> Mark Fasheh
-> Principal Software Developer, Oracle
-> mark.fasheh@oracle.com
->   
+-- 
+
+"I don't know anything about music. In my line you don't have
+ to."
+        - Elvis Presley
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
