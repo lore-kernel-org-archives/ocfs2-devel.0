@@ -1,7 +1,10 @@
 From: Joel Becker <joel.becker@oracle.com>
 Date: Wed Mar  5 14:52:33 2008
-Subject: [Ocfs2-devel] [PATCH 0/7] ocfs2: Extended slot map
-Message-ID: <1204757524-21343-1-git-send-email-joel.becker@oracle.com>
+Subject: [Ocfs2-devel] [PATCH 6/7] ocfs2: Define the contents of the
+	slot_map file.
+In-Reply-To: <1204757524-21343-1-git-send-email-joel.becker@oracle.com>
+References: <1204757524-21343-1-git-send-email-joel.becker@oracle.com>
+Message-ID: <1204757524-21343-7-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,39 +12,83 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
 
-ocfs2 has a system file called "slot_map".  A "slot" is a collection of
-files local to particular mounted node, including the journal and
-allocators that node is using.  The slot map converts the slot number to
-a node number, so when a node dies, ocfs2 knows which slot to recover.
+The slot map file is merely an array of __le16.  Wrap it in a structure for
+cleaner reference.
 
-The old ocfs2 slot map is a very limited.  It has a physical maximum of
-254 entries - specifically, it must fit within one disk block.  It only
-allows node numbers up to 254, and cannot be extended past INT16_MAX
-(32767).  This is a problem in the world of userspace cluster stacks,
-where the node numbers are often sparse and can be up to UINT32_MAX.
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ fs/ocfs2/ocfs2_fs.h |   12 ++++++++++++
+ fs/ocfs2/slot_map.c |   15 ++++++++-------
+ 2 files changed, 20 insertions(+), 7 deletions(-)
 
-It also has the structural problem that empty slots are signified by a
-magic number.  That number happens to be -1 (0xFFFF).  It makes for code
-that isn't as obvious as one would like.
-
-Thus, we introduce a new slot map format, referred to hence as the
-"extended slot map".  The extended slot map is allocated as regular file
-space, and so is bound by i_size.  The new format adds a "valid" field,
-distinct from the node number.  Finally, it has room for extension
-should it be needed.
-
-The kernel code is available on the 'new-slot-map' branch of my git
-repository.
-
-View:
-http://oss.oracle.com/git/?p=jlbec/linux-2.6.git;a=shortlog;h=new-slot-map
-Pull:
-git pull git://oss.oracle.com/git/jlbec/linux-2.6.git new-slot-map
-
-The tools code is also available via git, in the 'new-slot-map' branch
-as well.
-
-View:
-http://oss.oracle.com/git/?p=ocfs2-tools.git;a=shortlog;h=new-slot-map
-Pull:
-git pull git://oss.oracle.com/git/ocfs2-tools.git new-slot-map
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 3633edd..3299116 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -475,6 +475,18 @@ struct ocfs2_extent_block
+ };
+ 
+ /*
++ * On disk slot map for OCFS2.  This defines the contents of the "slot_map"
++ * system file.
++ */
++struct ocfs2_slot_map {
++/*00*/	__le16 sm_slots[0];
++/*
++ * Actual on-disk size is one block.  OCFS2_MAX_SLOTS is 255,
++ * 255 * sizeof(__le16) == 512B, within the 512B block minimum blocksize.
++ */
++};
++
++/*
+  * On disk superblock for OCFS2
+  * Note that it is contained inside an ocfs2_dinode, so all offsets
+  * are relative to the start of ocfs2_dinode.id2.
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index 65a61bf..e7e7a74 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -85,17 +85,17 @@ static void ocfs2_set_slot(struct ocfs2_slot_info *si,
+ static void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
+ {
+ 	int i;
+-	__le16 *disk_info;
++	struct ocfs2_slot_map *sm;
+ 
+ 	/* we don't read the slot block here as ocfs2_super_lock
+ 	 * should've made sure we have the most recent copy. */
+-	disk_info = (__le16 *) si->si_bh[0]->b_data;
++	sm = (struct ocfs2_slot_map *)si->si_bh[0]->b_data;
+ 
+ 	for (i = 0; i < si->si_num_slots; i++) {
+-		if (le16_to_cpu(disk_info[i]) == (u16)OCFS2_INVALID_SLOT)
++		if (le16_to_cpu(sm->sm_slots[i]) == (u16)OCFS2_INVALID_SLOT)
+ 			ocfs2_invalidate_slot(si, i);
+ 		else
+-			ocfs2_set_slot(si, i, le16_to_cpu(disk_info[i]));
++			ocfs2_set_slot(si, i, le16_to_cpu(sm->sm_slots[i]));
+ 	}
+ }
+ 
+@@ -135,15 +135,16 @@ static int ocfs2_update_disk_slots(struct ocfs2_super *osb,
+ 				   struct ocfs2_slot_info *si)
+ {
+ 	int status, i;
+-	__le16 *disk_info = (__le16 *) si->si_bh[0]->b_data;
++	struct ocfs2_slot_map *sm;
+ 
+ 	spin_lock(&osb->osb_lock);
++	sm = (struct ocfs2_slot_map *)si->si_bh[0]->b_data;
+ 	for (i = 0; i < si->si_num_slots; i++) {
+ 		if (si->si_slots[i].sl_valid)
+-			disk_info[i] =
++			sm->sm_slots[i] =
+ 				cpu_to_le16(si->si_slots[i].sl_node_num);
+ 		else
+-			disk_info[i] = cpu_to_le16(OCFS2_INVALID_SLOT);
++			sm->sm_slots[i] = cpu_to_le16(OCFS2_INVALID_SLOT);
+ 	}
+ 	spin_unlock(&osb->osb_lock);
+ 
+-- 
+1.5.3.8
