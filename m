@@ -1,291 +1,113 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon Mar 10 15:17:10 2008
-Subject: [Ocfs2-devel] [PATCH 06/11] ocfs2/dlm: Dumps the lockres' into a
+Date: Mon Mar 10 15:17:11 2008
+Subject: [Ocfs2-devel] [PATCH 09/11] ocfs2/dlm: Dumps the purgelist into a
 	debugfs file
 In-Reply-To: <1205187389-3563-1-git-send-email-sunil.mushran@oracle.com>
 References: <1205187389-3563-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1205187389-3563-7-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1205187389-3563-10-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch dumps all the lockres' alongwith all the locks into
-a debugfs file. Useful for debugging.
+This patch dumps all the lockres' on the purgelist it can fit in one page
+into a debugfs file. Useful for debugging.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/dlm/dlmdebug.c |  247 +++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/dlm/dlmdebug.h |    8 ++
- 2 files changed, 255 insertions(+), 0 deletions(-)
+ fs/ocfs2/dlm/dlmdebug.c |   71 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlm/dlmdebug.h |    1 +
+ 2 files changed, 72 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index e335403..cccb1ce 100644
+index 6de326b..a109005 100644
 --- a/fs/ocfs2/dlm/dlmdebug.c
 +++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -273,8 +273,35 @@ EXPORT_SYMBOL_GPL(dlm_errname);
- 
- static struct dentry *dlm_debugfs_root = NULL;
- 
-+/* NOTE: This function converts a lockname into a string. It uses knowledge
-+ * of the format of the lockname that should be outside the purview of the dlm.
-+ * We are adding only to make dlm debugging slightly easier.
-+ *
-+ * For more on lockname formats, please refer to dlmglue.c and ocfs2_lockid.h.
-+ */
-+static int stringify_lockname(const char *lockname, int locklen,
-+			      char *buf, int len)
-+{
-+	int out = 0;
-+	__be64 inode_blkno_be;
-+
-+#define OCFS2_DENTRY_LOCK_INO_START	18
-+	if (*lockname == 'N') {
-+		memcpy((__be64 *)&inode_blkno_be,
-+		       (char *)&lockname[OCFS2_DENTRY_LOCK_INO_START],
-+		       sizeof(__be64));
-+		out += snprintf(buf + out, len - out, "%.*s%08x",
-+				OCFS2_DENTRY_LOCK_INO_START - 1, lockname,
-+				(unsigned int)be64_to_cpu(inode_blkno_be));
-+	} else
-+		out += snprintf(buf + out, len - out, "%.*s",
-+				locklen, lockname);
-+	return out;
-+}
-+
- #define DLM_DEBUGFS_DIR				"o2dlm"
+@@ -303,6 +303,7 @@ static int stringify_lockname(const char *lockname, int locklen,
  #define DLM_DEBUGFS_DLM_STATE			"dlm_state"
-+#define DLM_DEBUGFS_LOCKING_STATE		"locking_state"
+ #define DLM_DEBUGFS_LOCKING_STATE		"locking_state"
+ #define DLM_DEBUGFS_MLE_STATE			"mle_state"
++#define DLM_DEBUGFS_PURGE_LIST			"purge_list"
  
  /* begin - utils funcs */
  static void dlm_debug_free(struct kref *kref)
-@@ -368,6 +395,213 @@ static int debug_buffer_release(struct inode *inode, struct file *file)
+@@ -396,6 +397,63 @@ static int debug_buffer_release(struct inode *inode, struct file *file)
  }
  /* end - util funcs */
  
-+/* begin - debug lockres funcs */
-+static int dump_lock(struct dlm_lock *lock, int list_type, char *buf, int len)
++/* begin - purge list funcs */
++static int debug_purgelist_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
 +{
-+	int out;
-+
-+#define DEBUG_LOCK_VERSION	1
-+	spin_lock(&lock->spinlock);
-+	out = snprintf(buf, len, "LOCK:%d,%d,%d,%d,%d,%d:%lld,%d,%d,%d,%d,%d,"
-+		       "%d,%d,%d,%d\n",
-+		       DEBUG_LOCK_VERSION,
-+		       list_type, lock->ml.type, lock->ml.convert_type,
-+		       lock->ml.node,
-+		       dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
-+		       dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)),
-+		       !list_empty(&lock->ast_list),
-+		       !list_empty(&lock->bast_list),
-+		       lock->ast_pending, lock->bast_pending,
-+		       lock->convert_pending, lock->lock_pending,
-+		       lock->cancel_pending, lock->unlock_pending,
-+		       atomic_read(&lock->lock_refs.refcount));
-+	spin_unlock(&lock->spinlock);
-+
-+	return out;
-+}
-+
-+static int dump_lockres(struct dlm_lock_resource *res, char *buf, int len)
-+{
-+	struct dlm_lock *lock;
-+	int i;
++	struct dlm_lock_resource *res;
 +	int out = 0;
++	unsigned long total = 0;
 +
-+	out += snprintf(buf + out, len - out, "NAME:");
-+	out += stringify_lockname(res->lockname.name, res->lockname.len,
-+				  buf + out, len - out);
-+	out += snprintf(buf + out, len - out, "\n");
-+
-+#define DEBUG_LRES_VERSION	1
-+	out += snprintf(buf + out, len - out,
-+			"LRES:%d,%d,%d,%ld,%d,%d,%d,%d,%d,%d,%d\n",
-+			DEBUG_LRES_VERSION,
-+			res->owner, res->state, res->last_used,
-+			!list_empty(&res->purge),
-+			!list_empty(&res->dirty),
-+			!list_empty(&res->recovering),
-+			res->inflight_locks, res->migration_pending,
-+			atomic_read(&res->asts_reserved),
-+			atomic_read(&res->refs.refcount));
-+
-+	/* refmap */
-+	out += snprintf(buf + out, len - out, "RMAP:");
-+	out += stringify_nodemap(res->refmap, O2NM_MAX_NODES,
-+				 buf + out, len - out);
-+	out += snprintf(buf + out, len - out, "\n");
-+
-+	/* lvb */
-+	out += snprintf(buf + out, len - out, "LVBX:");
-+	for (i = 0; i < DLM_LVB_LEN; i++)
-+		out += snprintf(buf + out, len - out,
-+					"%02x", (unsigned char)res->lvb[i]);
-+	out += snprintf(buf + out, len - out, "\n");
-+
-+	/* granted */
-+	list_for_each_entry(lock, &res->granted, list)
-+		out += dump_lock(lock, 0, buf + out, len - out);
-+
-+	/* converting */
-+	list_for_each_entry(lock, &res->converting, list)
-+		out += dump_lock(lock, 1, buf + out, len - out);
-+
-+	/* blocked */
-+	list_for_each_entry(lock, &res->blocked, list)
-+		out += dump_lock(lock, 2, buf + out, len - out);
-+
-+	out += snprintf(buf + out, len - out, "\n");
-+
-+	return out;
-+}
-+
-+static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
-+{
-+	struct debug_lockres *dl = m->private;
-+	struct dlm_ctxt *dlm = dl->dl_ctxt;
-+	struct dlm_lock_resource *res = NULL;
++	out += snprintf(db->buf + out, db->len - out,
++			"Dumping Purgelist for Domain: %s\n", dlm->name);
 +
 +	spin_lock(&dlm->spinlock);
-+
-+	if (dl->dl_res) {
-+		list_for_each_entry(res, &dl->dl_res->tracking, tracking) {
-+			if (dl->dl_res) {
-+				dlm_lockres_put(dl->dl_res);
-+				dl->dl_res = NULL;
-+			}
-+			if (&res->tracking == &dlm->tracking_list) {
-+				mlog(0, "End of list found, %p\n", res);
-+				dl = NULL;
-+				break;
-+			}
-+			dlm_lockres_get(res);
-+			dl->dl_res = res;
-+			break;
-+		}
-+	} else {
-+		if (!list_empty(&dlm->tracking_list)) {
-+			list_for_each_entry(res, &dlm->tracking_list, tracking)
-+				break;
-+			dlm_lockres_get(res);
-+			dl->dl_res = res;
-+		} else
-+			dl = NULL;
++	list_for_each_entry(res, &dlm->purge_list, purge) {
++		++total;
++		if (db->len - out < 100)
++			continue;
++		spin_lock(&res->spinlock);
++		out += stringify_lockname(res->lockname.name,
++					  res->lockname.len,
++					  db->buf + out, db->len - out);
++		out += snprintf(db->buf + out, db->len - out, "\t%ld\n",
++				(jiffies - res->last_used)/HZ);
++		spin_unlock(&res->spinlock);
 +	}
-+
-+	if (dl) {
-+		spin_lock(&dl->dl_res->spinlock);
-+		dump_lockres(dl->dl_res, dl->dl_buf, dl->dl_len - 1);
-+		spin_unlock(&dl->dl_res->spinlock);
-+	}
-+
 +	spin_unlock(&dlm->spinlock);
 +
-+	return dl;
++	out += snprintf(db->buf + out, db->len - out,
++			"Total on list: %ld\n", total);
++
++	return out;
 +}
 +
-+static void lockres_seq_stop(struct seq_file *m, void *v)
-+{
-+}
-+
-+static void *lockres_seq_next(struct seq_file *m, void *v, loff_t *pos)
-+{
-+	return NULL;
-+}
-+
-+static int lockres_seq_show(struct seq_file *s, void *v)
-+{
-+	struct debug_lockres *dl = (struct debug_lockres *)v;
-+
-+	seq_printf(s, "%s", dl->dl_buf);
-+
-+	return 0;
-+}
-+
-+static struct seq_operations debug_lockres_ops = {
-+	.start =	lockres_seq_start,
-+	.stop =		lockres_seq_stop,
-+	.next =		lockres_seq_next,
-+	.show =		lockres_seq_show,
-+};
-+
-+static int debug_lockres_open(struct inode *inode, struct file *file)
++static int debug_purgelist_open(struct inode *inode, struct file *file)
 +{
 +	struct dlm_ctxt *dlm = inode->i_private;
-+	int ret = -ENOMEM;
-+	struct seq_file *seq;
-+	struct debug_lockres *dl = NULL;
++	struct debug_buffer *db;
 +
-+	dl = kzalloc(sizeof(struct debug_lockres), GFP_KERNEL);
-+	if (!dl) {
-+		mlog_errno(ret);
++	db = debug_buffer_allocate();
++	if (!db)
 +		goto bail;
-+	}
 +
-+	dl->dl_len = PAGE_SIZE;
-+	dl->dl_buf = kmalloc(dl->dl_len, GFP_KERNEL);
-+	if (!dl->dl_buf) {
-+		mlog_errno(ret);
-+		goto bail;
-+	}
++	db->len = debug_purgelist_print(dlm, db);
 +
-+	ret = seq_open(file, &debug_lockres_ops);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto bail;
-+	}
-+
-+	seq = (struct seq_file *) file->private_data;
-+	seq->private = dl;
-+
-+	dlm_grab(dlm);
-+	dl->dl_ctxt = dlm;
++	file->private_data = db;
 +
 +	return 0;
 +bail:
-+	if (dl)
-+		kfree(dl->dl_buf);
-+	kfree(dl);
-+	return ret;
++	return -ENOMEM;
 +}
 +
-+static int debug_lockres_release(struct inode *inode, struct file *file)
-+{
-+	struct seq_file *seq = (struct seq_file *)file->private_data;
-+	struct debug_lockres *dl = (struct debug_lockres *)seq->private;
-+
-+	if (dl->dl_res)
-+		dlm_lockres_put(dl->dl_res);
-+	dlm_put(dl->dl_ctxt);
-+	kfree(dl->dl_buf);
-+	return seq_release_private(inode, file);
-+}
-+
-+static struct file_operations debug_lockres_fops = {
-+	.open =		debug_lockres_open,
-+	.release =	debug_lockres_release,
-+	.read =		seq_read,
-+	.llseek =	seq_lseek,
++static struct file_operations debug_purgelist_fops = {
++	.open =		debug_purgelist_open,
++	.release =	debug_buffer_release,
++	.read =		debug_buffer_read,
++	.llseek =	debug_buffer_llseek,
 +};
-+/* end - debug lockres funcs */
++/* end - purge list funcs */
 +
- /* begin - debug state funcs */
- static int debug_state_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ /* begin - debug mle funcs */
+ static int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len)
  {
-@@ -544,6 +778,17 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
+@@ -906,6 +964,17 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
  		goto bail;
  	}
  
-+	/* for dumping lockres */
-+	dc->debug_lockres_dentry =
-+			debugfs_create_file(DLM_DEBUGFS_LOCKING_STATE,
++	/* for dumping lockres on the purge list */
++	dc->debug_purgelist_dentry =
++			debugfs_create_file(DLM_DEBUGFS_PURGE_LIST,
 +					    S_IFREG|S_IRUSR,
 +					    dlm->dlm_debugfs_subroot,
-+					    dlm, &debug_lockres_fops);
-+	if (!dc->debug_lockres_dentry) {
++					    dlm, &debug_purgelist_fops);
++	if (!dc->debug_purgelist_dentry) {
 +		mlog_errno(-ENOMEM);
 +		goto bail;
 +	}
@@ -293,40 +115,26 @@ index e335403..cccb1ce 100644
  	dlm_debug_get(dc);
  	return 0;
  
-@@ -557,6 +802,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
+@@ -919,6 +988,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
  	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
  
  	if (dc) {
-+		if (dc->debug_lockres_dentry)
-+			debugfs_remove(dc->debug_lockres_dentry);
- 		if (dc->debug_state_dentry)
- 			debugfs_remove(dc->debug_state_dentry);
- 		dlm_debug_put(dc);
++		if (dc->debug_purgelist_dentry)
++			debugfs_remove(dc->debug_purgelist_dentry);
+ 		if (dc->debug_mle_dentry)
+ 			debugfs_remove(dc->debug_mle_dentry);
+ 		if (dc->debug_lockres_dentry)
 diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
-index 94cc10a..7c5b2b0 100644
+index cbc69f2..8857743 100644
 --- a/fs/ocfs2/dlm/dlmdebug.h
 +++ b/fs/ocfs2/dlm/dlmdebug.h
-@@ -30,6 +30,7 @@
- struct dlm_debug_ctxt {
- 	struct kref debug_refcnt;
+@@ -32,6 +32,7 @@ struct dlm_debug_ctxt {
  	struct dentry *debug_state_dentry;
-+	struct dentry *debug_lockres_dentry;
+ 	struct dentry *debug_lockres_dentry;
+ 	struct dentry *debug_mle_dentry;
++	struct dentry *debug_purgelist_dentry;
  };
  
  struct debug_buffer {
-@@ -37,6 +38,13 @@ struct debug_buffer {
- 	char *buf;
- };
- 
-+struct debug_lockres {
-+	int dl_len;
-+	char *dl_buf;
-+	struct dlm_ctxt *dl_ctxt;
-+	struct dlm_lock_resource *dl_res;
-+};
-+
- int dlm_debug_init(struct dlm_ctxt *dlm);
- void dlm_debug_shutdown(struct dlm_ctxt *dlm);
- 
 -- 
 1.5.3.6
