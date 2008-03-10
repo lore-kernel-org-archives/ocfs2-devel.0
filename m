@@ -1,74 +1,49 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon Mar 10 15:56:26 2008
-Subject: [Ocfs2-devel] [PATCH 05/11] ocfs2/dlm: Dump the dlm state in a
-	debugfs file
-In-Reply-To: <1205187389-3563-6-git-send-email-sunil.mushran@oracle.com>
+Date: Mon Mar 10 15:58:18 2008
+Subject: [Ocfs2-devel] [PATCH 10/11] ocfs2/dlm: Move
+	dlm_print_one_mle() from dlmmaster.c to dlmdebug.c
+In-Reply-To: <1205187389-3563-11-git-send-email-sunil.mushran@oracle.com>
 References: <1205187389-3563-1-git-send-email-sunil.mushran@oracle.com>
-	<1205187389-3563-6-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20080310225622.GC31998@mail.oracle.com>
+	<1205187389-3563-11-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080310225740.GD31998@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Mar 10, 2008 at 03:16:23PM -0700, Sunil Mushran wrote:
-> This patch dumps the dlm state (dlm_ctxt) into a debugfs file.
-> Useful for debugging.
+On Mon, Mar 10, 2008 at 03:16:28PM -0700, Sunil Mushran wrote:
+> This patch helps in consolidating debugging related functions in dlmdebug.c.
 > 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
 > ---
->  fs/ocfs2/dlm/dlmcommon.h |    1 +
->  fs/ocfs2/dlm/dlmdebug.c  |  296 ++++++++++++++++++++++++++++++++++++++++++++++
->  fs/ocfs2/dlm/dlmdebug.h  |   20 +++
->  fs/ocfs2/dlm/dlmdomain.c |    8 ++
->  4 files changed, 325 insertions(+), 0 deletions(-)
+>  fs/ocfs2/dlm/dlmdebug.c  |  154 ++++++++++++++++++++++++---------------------
+>  fs/ocfs2/dlm/dlmdebug.h  |    2 +
+>  fs/ocfs2/dlm/dlmmaster.c |   89 +--------------------------
+>  3 files changed, 85 insertions(+), 160 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-> index 6a49140..f7a51ca 100644
-> --- a/fs/ocfs2/dlm/dlmcommon.h
-> +++ b/fs/ocfs2/dlm/dlmcommon.h
-> @@ -123,6 +123,7 @@ struct dlm_ctxt
->  	atomic_t remote_resources;
->  	atomic_t unknown_resources;
->  
-> +	struct dlm_debug_ctxt *dlm_debug_ctxt;
->  	struct dentry *dlm_debugfs_subroot;
->  
->  	/* NOTE: Next three are protected by dlm_domain_lock */
 > diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-> index 62e2a4c..e335403 100644
+> index a109005..58e4579 100644
 > --- a/fs/ocfs2/dlm/dlmdebug.c
 > +++ b/fs/ocfs2/dlm/dlmdebug.c
-> @@ -274,6 +274,294 @@ EXPORT_SYMBOL_GPL(dlm_errname);
->  static struct dentry *dlm_debugfs_root = NULL;
+> @@ -268,11 +268,6 @@ const char *dlm_errname(enum dlm_status err)
+>  }
+>  EXPORT_SYMBOL_GPL(dlm_errname);
 >  
->  #define DLM_DEBUGFS_DIR				"o2dlm"
-> +#define DLM_DEBUGFS_DLM_STATE			"dlm_state"
-> +
-> +/* begin - utils funcs */
-> +static void dlm_debug_free(struct kref *kref)
-> +{
-> +	struct dlm_debug_ctxt *dc;
-> +
-> +	dc = container_of(kref, struct dlm_debug_ctxt, debug_refcnt);
-> +
-> +	kfree(dc);
-> +}
-> +
-> +void dlm_debug_put(struct dlm_debug_ctxt *dc)
-> +{
-> +	if (dc)
-> +		kref_put(&dc->debug_refcnt, dlm_debug_free);
-> +}
-> +
-> +static void dlm_debug_get(struct dlm_debug_ctxt *dc)
-> +{
-> +	kref_get(&dc->debug_refcnt);
-> +}
-> +
+> -
+> -#ifdef CONFIG_DEBUG_FS
+> -
+> -static struct dentry *dlm_debugfs_root = NULL;
+> -
+>  /* NOTE: This function converts a lockname into a string. It uses knowledge
+>   * of the format of the lockname that should be outside the purview of the dlm.
+>   * We are adding only to make dlm debugging slightly easier.
+> @@ -299,6 +294,88 @@ static int stringify_lockname(const char *lockname, int locklen,
+>  	return out;
+>  }
+>  
 > +static int stringify_nodemap(unsigned long *nodemap, int maxnodes,
 > +			     char *buf, int len)
 > +{
@@ -81,348 +56,280 @@ Signed-off-by: Joel Becker <joel.becker@oracle.com>
 > +	return out;
 > +}
 > +
-> +static struct debug_buffer *debug_buffer_allocate(void)
-> +{
-> +	struct debug_buffer *db = NULL;
-> +
-> +	db = kzalloc(sizeof(struct debug_buffer), GFP_KERNEL);
-> +	if (!db)
-> +		goto bail;
-> +
-> +	db->len = PAGE_SIZE;
-> +	db->buf = kmalloc(db->len, GFP_KERNEL);
-> +	if (!db->buf)
-> +		goto bail;
-> +
-> +	return db;
-> +bail:
-> +	kfree(db);
-> +	return NULL;
-> +}
-> +
-> +static ssize_t debug_buffer_read(struct file *file, char __user *buf,
-> +				 size_t nbytes, loff_t *ppos)
-> +{
-> +	struct debug_buffer *db = file->private_data;
-> +
-> +	return simple_read_from_buffer(buf, nbytes, ppos, db->buf, db->len);
-> +}
-> +
-> +static loff_t debug_buffer_llseek(struct file *file, loff_t off, int whence)
-> +{
-> +	struct debug_buffer *db = file->private_data;
-> +	loff_t new = -1;
-> +
-> +	switch (whence) {
-> +	case 0:
-> +		new = off;
-> +		break;
-> +	case 1:
-> +		new = file->f_pos + off;
-> +		break;
-> +	}
-> +
-> +	if (new < 0 || new > db->len)
-> +		return -EINVAL;
-> +
-> +	return (file->f_pos = new);
-> +}
-> +
-> +static int debug_buffer_release(struct inode *inode, struct file *file)
-> +{
-> +	struct debug_buffer *db = (struct debug_buffer *)file->private_data;
-> +
-> +	if (db)
-> +		kfree(db->buf);
-> +	kfree(db);
-> +
-> +	return 0;
-> +}
-> +/* end - util funcs */
-> +
-> +/* begin - debug state funcs */
-> +static int debug_state_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+> +static int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len)
 > +{
 > +	int out = 0;
-> +	struct dlm_reco_node_data *node;
-> +	char *state;
-> +	int lres, rres, ures, tres;
+> +	unsigned int namelen;
+> +	const char *name;
+> +	char *mle_type;
 > +
-> +	lres = atomic_read(&dlm->local_resources);
-> +	rres = atomic_read(&dlm->remote_resources);
-> +	ures = atomic_read(&dlm->unknown_resources);
-> +	tres = lres + rres + ures;
-> +
-> +	spin_lock(&dlm->spinlock);
-> +
-> +	switch (dlm->dlm_state) {
-> +	case DLM_CTXT_NEW:
-> +		state = "NEW"; break;
-> +	case DLM_CTXT_JOINED:
-> +		state = "JOINED"; break;
-> +	case DLM_CTXT_IN_SHUTDOWN:
-> +		state = "SHUTDOWN"; break;
-> +	case DLM_CTXT_LEAVING:
-> +		state = "LEAVING"; break;
-> +	default:
-> +		state = "UNKNOWN"; break;
+> +	if (mle->type != DLM_MLE_MASTER) {
+> +		namelen = mle->u.name.len;
+> +		name = mle->u.name.name;
+> +	} else {
+> +		namelen = mle->u.res->lockname.len;
+> +		name = mle->u.res->lockname.name;
 > +	}
 > +
-> +	/* Domain: xxxxxxxxxx  Key: 0xdfbac769 */
-> +	out += snprintf(db->buf + out, db->len - out,
-> +			"Domain: %s  Key: 0x%08x\n", dlm->name, dlm->key);
-> +
-> +	/* Thread Pid: xxx  Node: xxx  State: xxxxx */
-> +	out += snprintf(db->buf + out, db->len - out,
-> +			"Thread Pid: %d  Node: %d  State: %s\n",
-> +			dlm->dlm_thread_task->pid, dlm->node_num, state);
-> +
-> +	/* Number of Joins: xxx  Joining Node: xxx */
-> +	out += snprintf(db->buf + out, db->len - out,
-> +			"Number of Joins: %d  Joining Node: %d\n",
-> +			dlm->num_joins, dlm->joining_node);
-> +
-> +	/* Domain Map: xx xx xx */
-> +	out += snprintf(db->buf + out, db->len - out, "Domain Map: ");
-> +	out += stringify_nodemap(dlm->domain_map, O2NM_MAX_NODES,
-> +				 db->buf + out, db->len - out);
-> +	out += snprintf(db->buf + out, db->len - out, "\n");
-> +
-> +	/* Live Map: xx xx xx */
-> +	out += snprintf(db->buf + out, db->len - out, "Live Map: ");
-> +	out += stringify_nodemap(dlm->live_nodes_map, O2NM_MAX_NODES,
-> +				 db->buf + out, db->len - out);
-> +	out += snprintf(db->buf + out, db->len - out, "\n");
-> +
-> +	/* Mastered Resources Total: xxx  Locally: xxx  Remotely: ... */
-> +	out += snprintf(db->buf + out, db->len - out,
-> +			"Mastered Resources Total: %d  Locally: %d  "
-> +			"Remotely: %d  Unknown: %d\n",
-> +			tres, lres, rres, ures);
-> +
-> +	/* Lists: Dirty=Empty  Purge=InUse  PendingASTs=Empty  ... */
-> +	out += snprintf(db->buf + out, db->len - out,
-> +			"Lists: Dirty=%s  Purge=%s  PendingASTs=%s  "
-> +			"PendingBASTs=%s  Master=%s\n",
-> +			(list_empty(&dlm->dirty_list) ? "Empty" : "InUse"),
-> +			(list_empty(&dlm->purge_list) ? "Empty" : "InUse"),
-> +			(list_empty(&dlm->pending_asts) ? "Empty" : "InUse"),
-> +			(list_empty(&dlm->pending_basts) ? "Empty" : "InUse"),
-> +			(list_empty(&dlm->master_list) ? "Empty" : "InUse"));
-> +
-> +	/* Purge Count: xxx  Refs: xxx */
-> +	out += snprintf(db->buf + out, db->len - out,
-> +			"Purge Count: %d  Refs: %d\n", dlm->purge_count,
-> +			atomic_read(&dlm->dlm_refs.refcount));
-> +
-> +	/* Dead Node: xxx */
-> +	out += snprintf(db->buf + out, db->len - out,
-> +			"Dead Node: %d\n", dlm->reco.dead_node);
-> +
-> +	/* What about DLM_RECO_STATE_FINALIZE? */
-> +	if (dlm->reco.state == DLM_RECO_STATE_ACTIVE)
-> +		state = "ACTIVE";
+> +	if (mle->type == DLM_MLE_BLOCK)
+> +		mle_type = "BLK";
+> +	else if (mle->type == DLM_MLE_MASTER)
+> +		mle_type = "MAS";
 > +	else
-> +		state = "INACTIVE";
+> +		mle_type = "MIG";
 > +
-> +	/* Recovery Pid: xxxx  Master: xxx  State: xxxx */
-> +	out += snprintf(db->buf + out, db->len - out,
-> +			"Recovery Pid: %d  Master: %d  State: %s\n",
-> +			dlm->dlm_reco_thread_task->pid,
-> +			dlm->reco.new_master, state);
+> +	out += stringify_lockname(name, namelen, buf + out, len - out);
+> +	out += snprintf(buf + out, len - out,
+> +			"\t%3s\tmas=%3u\tnew=%3u\tevt=%1d\tuse=%1d\tref=%3d\n",
+> +			mle_type, mle->master, mle->new_master,
+> +			!list_empty(&mle->hb_events),
+> +			!!mle->inuse,
+> +			atomic_read(&mle->mle_refs.refcount));
 > +
-> +	/* Recovery Map: xx xx */
-> +	out += snprintf(db->buf + out, db->len - out, "Recovery Map: ");
-> +	out += stringify_nodemap(dlm->recovery_map, O2NM_MAX_NODES,
-> +				 db->buf + out, db->len - out);
-> +	out += snprintf(db->buf + out, db->len - out, "\n");
+> +	out += snprintf(buf + out, len - out, "Maybe=");
+> +	out += stringify_nodemap(mle->maybe_map, O2NM_MAX_NODES,
+> +				 buf + out, len - out);
+> +	out += snprintf(buf + out, len - out, "\n");
 > +
-> +	/* Recovery Node State: */
-> +	out += snprintf(db->buf + out, db->len - out, "Recovery Node State:\n");
-> +	list_for_each_entry(node, &dlm->reco.node_data, list) {
-> +		switch (node->state) {
-> +		case DLM_RECO_NODE_DATA_INIT:
-> +			state = "INIT";
-> +			break;
-> +		case DLM_RECO_NODE_DATA_REQUESTING:
-> +			state = "REQUESTING";
-> +			break;
-> +		case DLM_RECO_NODE_DATA_DEAD:
-> +			state = "DEAD";
-> +			break;
-> +		case DLM_RECO_NODE_DATA_RECEIVING:
-> +			state = "RECEIVING";
-> +			break;
-> +		case DLM_RECO_NODE_DATA_REQUESTED:
-> +			state = "REQUESTED";
-> +			break;
-> +		case DLM_RECO_NODE_DATA_DONE:
-> +			state = "DONE";
-> +			break;
-> +		case DLM_RECO_NODE_DATA_FINALIZE_SENT:
-> +			state = "FINALIZE-SENT";
-> +			break;
-> +		default:
-> +			state = "BAD";
-> +			break;
-> +		}
-> +		out += snprintf(db->buf + out, db->len - out, "\t%u - %s\n",
-> +				node->node_num, state);
-> +	}
+> +	out += snprintf(buf + out, len - out, "Vote=");
+> +	out += stringify_nodemap(mle->vote_map, O2NM_MAX_NODES,
+> +				 buf + out, len - out);
+> +	out += snprintf(buf + out, len - out, "\n");
 > +
-> +	spin_unlock(&dlm->spinlock);
+> +	out += snprintf(buf + out, len - out, "Response=");
+> +	out += stringify_nodemap(mle->response_map, O2NM_MAX_NODES,
+> +				 buf + out, len - out);
+> +	out += snprintf(buf + out, len - out, "\n");
+> +
+> +	out += snprintf(buf + out, len - out, "Node=");
+> +	out += stringify_nodemap(mle->node_map, O2NM_MAX_NODES,
+> +				 buf + out, len - out);
+> +	out += snprintf(buf + out, len - out, "\n");
+> +
+> +	out += snprintf(buf + out, len - out, "\n");
 > +
 > +	return out;
 > +}
 > +
-> +static int debug_state_open(struct inode *inode, struct file *file)
+> +void dlm_print_one_mle(struct dlm_master_list_entry *mle)
 > +{
-> +	struct dlm_ctxt *dlm = inode->i_private;
-> +	struct debug_buffer *db = NULL;
+> +	char *buf;
 > +
-> +	db = debug_buffer_allocate();
-> +	if (!db)
-> +		goto bail;
-> +
-> +	db->len = debug_state_print(dlm, db);
-> +
-> +	file->private_data = db;
-> +
-> +	return 0;
-> +bail:
-> +	return -ENOMEM;
-> +}
-> +
-> +static struct file_operations debug_state_fops = {
-> +	.open =		debug_state_open,
-> +	.release =	debug_buffer_release,
-> +	.read =		debug_buffer_read,
-> +	.llseek =	debug_buffer_llseek,
-> +};
-> +/* end  - debug state funcs */
-> +
-> +/* files in subroot */
-> +int dlm_debug_init(struct dlm_ctxt *dlm)
-> +{
-> +	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
-> +
-> +	/* for dumping dlm_ctxt */
-> +	dc->debug_state_dentry = debugfs_create_file(DLM_DEBUGFS_DLM_STATE,
-> +						     S_IFREG|S_IRUSR,
-> +						     dlm->dlm_debugfs_subroot,
-> +						     dlm, &debug_state_fops);
-> +	if (!dc->debug_state_dentry) {
-> +		mlog_errno(-ENOMEM);
-> +		goto bail;
-> +	}
-> +
-> +	dlm_debug_get(dc);
-> +	return 0;
-> +
-> +bail:
-> +	dlm_debug_shutdown(dlm);
-> +	return -ENOMEM;
-> +}
-> +
-> +void dlm_debug_shutdown(struct dlm_ctxt *dlm)
-> +{
-> +	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
-> +
-> +	if (dc) {
-> +		if (dc->debug_state_dentry)
-> +			debugfs_remove(dc->debug_state_dentry);
-> +		dlm_debug_put(dc);
+> +	buf = (char *) get_zeroed_page(GFP_NOFS);
+> +	if (buf) {
+> +		dump_mle(mle, buf, PAGE_SIZE - 1);
+> +		free_page((unsigned long)buf);
 > +	}
 > +}
+> +
+> +#ifdef CONFIG_DEBUG_FS
+> +
+> +static struct dentry *dlm_debugfs_root = NULL;
+> +
+>  #define DLM_DEBUGFS_DIR				"o2dlm"
+>  #define DLM_DEBUGFS_DLM_STATE			"dlm_state"
+>  #define DLM_DEBUGFS_LOCKING_STATE		"locking_state"
+> @@ -326,18 +403,6 @@ static void dlm_debug_get(struct dlm_debug_ctxt *dc)
+>  	kref_get(&dc->debug_refcnt);
+>  }
 >  
->  /* subroot - domain dir */
->  int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
-> @@ -285,6 +573,14 @@ int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
->  		goto bail;
->  	}
+> -static int stringify_nodemap(unsigned long *nodemap, int maxnodes,
+> -			     char *buf, int len)
+> -{
+> -	int out = 0;
+> -	int i = -1;
+> -
+> -	while ((i = find_next_bit(nodemap, maxnodes, i + 1)) < maxnodes)
+> -		out += snprintf(buf + out, len - out, "%d ", i);
+> -
+> -	return out;
+> -}
+> -
+>  static struct debug_buffer *debug_buffer_allocate(void)
+>  {
+>  	struct debug_buffer *db = NULL;
+> @@ -455,61 +520,6 @@ static struct file_operations debug_purgelist_fops = {
+>  /* end - purge list funcs */
 >  
-> +	dlm->dlm_debug_ctxt = kzalloc(sizeof(struct dlm_debug_ctxt),
-> +				      GFP_KERNEL);
-> +	if (!dlm->dlm_debug_ctxt) {
-> +		mlog_errno(-ENOMEM);
-> +		goto bail;
-> +	}
-> +	kref_init(&dlm->dlm_debug_ctxt->debug_refcnt);
-> +
->  	return 0;
->  bail:
->  	dlm_destroy_debugfs_subroot(dlm);
+>  /* begin - debug mle funcs */
+> -static int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len)
+> -{
+> -	int out = 0;
+> -	unsigned int namelen;
+> -	const char *name;
+> -	char *mle_type;
+> -
+> -	if (mle->type != DLM_MLE_MASTER) {
+> -		namelen = mle->u.name.len;
+> -		name = mle->u.name.name;
+> -	} else {
+> -		namelen = mle->u.res->lockname.len;
+> -		name = mle->u.res->lockname.name;
+> -	}
+> -
+> -	if (mle->type == DLM_MLE_BLOCK)
+> -		mle_type = "BLK";
+> -	else if (mle->type == DLM_MLE_MASTER)
+> -		mle_type = "MAS";
+> -	else
+> -		mle_type = "MIG";
+> -
+> -	out += stringify_lockname(name, namelen, buf + out, len - out);
+> -	out += snprintf(buf + out, len - out,
+> -			"\t%3s\tmas=%3u\tnew=%3u\tevt=%1d\tuse=%1d\tref=%3d\n",
+> -			mle_type, mle->master, mle->new_master,
+> -			!list_empty(&mle->hb_events),
+> -			!!mle->inuse,
+> -			atomic_read(&mle->mle_refs.refcount));
+> -
+> -	out += snprintf(buf + out, len - out, "Maybe=");
+> -	out += stringify_nodemap(mle->maybe_map, O2NM_MAX_NODES,
+> -				 buf + out, len - out);
+> -	out += snprintf(buf + out, len - out, "\n");
+> -
+> -	out += snprintf(buf + out, len - out, "Vote=");
+> -	out += stringify_nodemap(mle->vote_map, O2NM_MAX_NODES,
+> -				 buf + out, len - out);
+> -	out += snprintf(buf + out, len - out, "\n");
+> -
+> -	out += snprintf(buf + out, len - out, "Response=");
+> -	out += stringify_nodemap(mle->response_map, O2NM_MAX_NODES,
+> -				 buf + out, len - out);
+> -	out += snprintf(buf + out, len - out, "\n");
+> -
+> -	out += snprintf(buf + out, len - out, "Node=");
+> -	out += stringify_nodemap(mle->node_map, O2NM_MAX_NODES,
+> -				 buf + out, len - out);
+> -	out += snprintf(buf + out, len - out, "\n");
+> -
+> -	out += snprintf(buf + out, len - out, "\n");
+> -
+> -	return out;
+> -}
+> -
+>  static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+>  {
+>  	struct dlm_master_list_entry *mle;
 > diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
-> index b969595..94cc10a 100644
+> index 8857743..d34a62a 100644
 > --- a/fs/ocfs2/dlm/dlmdebug.h
 > +++ b/fs/ocfs2/dlm/dlmdebug.h
-> @@ -27,6 +27,19 @@
+> @@ -25,6 +25,8 @@
+>  #ifndef DLMDEBUG_H
+>  #define DLMDEBUG_H
 >  
+> +void dlm_print_one_mle(struct dlm_master_list_entry *mle);
+> +
 >  #ifdef CONFIG_DEBUG_FS
 >  
-> +struct dlm_debug_ctxt {
-> +	struct kref debug_refcnt;
-> +	struct dentry *debug_state_dentry;
-> +};
-> +
-> +struct debug_buffer {
-> +	int len;
-> +	char *buf;
-> +};
-> +
-> +int dlm_debug_init(struct dlm_ctxt *dlm);
-> +void dlm_debug_shutdown(struct dlm_ctxt *dlm);
-> +
->  int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm);
->  void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm);
+>  struct dlm_debug_ctxt {
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index 94cadcb..efc015c 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -48,6 +48,7 @@
+>  #include "dlmapi.h"
+>  #include "dlmcommon.h"
+>  #include "dlmdomain.h"
+> +#include "dlmdebug.h"
 >  
-> @@ -35,6 +48,13 @@ void dlm_destroy_debugfs_root(void);
+>  #define MLOG_MASK_PREFIX (ML_DLM|ML_DLM_MASTER)
+>  #include "cluster/masklog.h"
+> @@ -91,94 +92,6 @@ static inline int dlm_mle_equal(struct dlm_ctxt *dlm,
+>  	return 1;
+>  }
 >  
->  #else
->  
-> +static int dlm_debug_init(struct dlm_ctxt *dlm)
-> +{
-> +	return 0;
-> +}
-> +static void dlm_debug_shutdown(struct dlm_ctxt *dlm)
-> +{
-> +}
->  static int dlm_create_debugfs_subroot(struct dlm_ctxt *dlm)
->  {
->  	return 0;
-> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-> index c137d69..63f8125 100644
-> --- a/fs/ocfs2/dlm/dlmdomain.c
-> +++ b/fs/ocfs2/dlm/dlmdomain.c
-> @@ -398,6 +398,7 @@ static void dlm_destroy_dlm_worker(struct dlm_ctxt *dlm)
->  static void dlm_complete_dlm_shutdown(struct dlm_ctxt *dlm)
->  {
->  	dlm_unregister_domain_handlers(dlm);
-> +	dlm_debug_shutdown(dlm);
->  	dlm_complete_thread(dlm);
->  	dlm_complete_recovery_thread(dlm);
->  	dlm_destroy_dlm_worker(dlm);
-> @@ -1418,6 +1419,12 @@ static int dlm_join_domain(struct dlm_ctxt *dlm)
->  		goto bail;
->  	}
->  
-> +	status = dlm_debug_init(dlm);
-> +	if (status < 0) {
-> +		mlog_errno(status);
-> +		goto bail;
-> +	}
-> +
->  	status = dlm_launch_thread(dlm);
->  	if (status < 0) {
->  		mlog_errno(status);
-> @@ -1485,6 +1492,7 @@ bail:
->  
->  	if (status) {
->  		dlm_unregister_domain_handlers(dlm);
-> +		dlm_debug_shutdown(dlm);
->  		dlm_complete_thread(dlm);
->  		dlm_complete_recovery_thread(dlm);
->  		dlm_destroy_dlm_worker(dlm);
+> -#define dlm_print_nodemap(m)  _dlm_print_nodemap(m,#m)
+> -static void _dlm_print_nodemap(unsigned long *map, const char *mapname)
+> -{
+> -	int i;
+> -	printk("%s=[ ", mapname);
+> -	for (i=0; i<O2NM_MAX_NODES; i++)
+> -		if (test_bit(i, map))
+> -			printk("%d ", i);
+> -	printk("]");
+> -}
+> -
+> -static void dlm_print_one_mle(struct dlm_master_list_entry *mle)
+> -{
+> -	int refs;
+> -	char *type;
+> -	char attached;
+> -	u8 master;
+> -	unsigned int namelen;
+> -	const char *name;
+> -	struct kref *k;
+> -	unsigned long *maybe = mle->maybe_map,
+> -		      *vote = mle->vote_map,
+> -		      *resp = mle->response_map,
+> -		      *node = mle->node_map;
+> -
+> -	k = &mle->mle_refs;
+> -	if (mle->type == DLM_MLE_BLOCK)
+> -		type = "BLK";
+> -	else if (mle->type == DLM_MLE_MASTER)
+> -		type = "MAS";
+> -	else
+> -		type = "MIG";
+> -	refs = atomic_read(&k->refcount);
+> -	master = mle->master;
+> -	attached = (list_empty(&mle->hb_events) ? 'N' : 'Y');
+> -
+> -	if (mle->type != DLM_MLE_MASTER) {
+> -		namelen = mle->u.name.len;
+> -		name = mle->u.name.name;
+> -	} else {
+> -		namelen = mle->u.res->lockname.len;
+> -		name = mle->u.res->lockname.name;
+> -	}
+> -
+> -	mlog(ML_NOTICE, "%.*s: %3s refs=%3d mas=%3u new=%3u evt=%c inuse=%d ",
+> -		  namelen, name, type, refs, master, mle->new_master, attached,
+> -		  mle->inuse);
+> -	dlm_print_nodemap(maybe);
+> -	printk(", ");
+> -	dlm_print_nodemap(vote);
+> -	printk(", ");
+> -	dlm_print_nodemap(resp);
+> -	printk(", ");
+> -	dlm_print_nodemap(node);
+> -	printk(", ");
+> -	printk("\n");
+> -}
+> -
+> -#if 0
+> -/* Code here is included but defined out as it aids debugging */
+> -
+> -static void dlm_dump_mles(struct dlm_ctxt *dlm)
+> -{
+> -	struct dlm_master_list_entry *mle;
+> -	
+> -	mlog(ML_NOTICE, "dumping all mles for domain %s:\n", dlm->name);
+> -	spin_lock(&dlm->master_lock);
+> -	list_for_each_entry(mle, &dlm->master_list, list)
+> -		dlm_print_one_mle(mle);
+> -	spin_unlock(&dlm->master_lock);
+> -}
+> -
+> -int dlm_dump_all_mles(const char __user *data, unsigned int len)
+> -{
+> -	struct dlm_ctxt *dlm;
+> -
+> -	spin_lock(&dlm_domain_lock);
+> -	list_for_each_entry(dlm, &dlm_domains, list) {
+> -		mlog(ML_NOTICE, "found dlm: %p, name=%s\n", dlm, dlm->name);
+> -		dlm_dump_mles(dlm);
+> -	}
+> -	spin_unlock(&dlm_domain_lock);
+> -	return len;
+> -}
+> -EXPORT_SYMBOL_GPL(dlm_dump_all_mles);
+> -
+> -#endif  /*  0  */
+> -
+>  static struct kmem_cache *dlm_lockres_cache = NULL;
+>  static struct kmem_cache *dlm_lockname_cache = NULL;
+>  static struct kmem_cache *dlm_mle_cache = NULL;
 > -- 
 > 1.5.3.6
 > 
@@ -434,9 +341,9 @@ Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
 -- 
 
-"Any man who is under 30, and is not a liberal, has not heart;
- and any man who is over 30, and is not a conservative, has no brains."
-         - Sir Winston Churchill 
+Life's Little Instruction Book #226
+
+	"When someone hugs you, let them be the first to let go."
 
 Joel Becker
 Principal Software Developer
