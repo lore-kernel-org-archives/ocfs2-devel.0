@@ -1,216 +1,188 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon Mar 10 15:17:05 2008
-Subject: [Ocfs2-devel] [PATCH 11/11] ocfs2/dlm: Fix lockname in lockres
-	print function
+Date: Mon Mar 10 15:17:09 2008
+Subject: [Ocfs2-devel] [PATCH 08/11] ocfs2/dlm: Dumps the mles into a
+	debugfs file
 In-Reply-To: <1205187389-3563-1-git-send-email-sunil.mushran@oracle.com>
 References: <1205187389-3563-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1205187389-3563-12-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1205187389-3563-9-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-__dlm_print_one_lock_resource was printing lockname incorrectly.
-Also, we now use printk directly instead of mlog as the latter prints
-the line context which is not useful for this print.
+This patch dumps all mles it can fit in one page into a debugfs file.
+Useful for debugging.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/dlm/dlmdebug.c |  126 +++++++++++++++++++----------------------------
- 1 files changed, 51 insertions(+), 75 deletions(-)
+ fs/ocfs2/dlm/dlmdebug.c |  119 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlm/dlmdebug.h |    1 +
+ 2 files changed, 120 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index 58e4579..53a9e60 100644
+index cccb1ce..6de326b 100644
 --- a/fs/ocfs2/dlm/dlmdebug.c
 +++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -5,7 +5,7 @@
-  *
-  * debug functionality for the dlm
-  *
-- * Copyright (C) 2004 Oracle.  All rights reserved.
-+ * Copyright (C) 2004, 2008 Oracle.  All rights reserved.
-  *
-  * This program is free software; you can redistribute it and/or
-  * modify it under the terms of the GNU General Public
-@@ -44,11 +44,10 @@
- #define MLOG_MASK_PREFIX ML_DLM
- #include "cluster/masklog.h"
+@@ -302,6 +302,7 @@ static int stringify_lockname(const char *lockname, int locklen,
+ #define DLM_DEBUGFS_DIR				"o2dlm"
+ #define DLM_DEBUGFS_DLM_STATE			"dlm_state"
+ #define DLM_DEBUGFS_LOCKING_STATE		"locking_state"
++#define DLM_DEBUGFS_MLE_STATE			"mle_state"
  
-+int stringify_lockname(const char *lockname, int locklen, char *buf, int len);
+ /* begin - utils funcs */
+ static void dlm_debug_free(struct kref *kref)
+@@ -395,6 +396,112 @@ static int debug_buffer_release(struct inode *inode, struct file *file)
+ }
+ /* end - util funcs */
+ 
++/* begin - debug mle funcs */
++static int dump_mle(struct dlm_master_list_entry *mle, char *buf, int len)
++{
++	int out = 0;
++	unsigned int namelen;
++	const char *name;
++	char *mle_type;
 +
- void dlm_print_one_lock_resource(struct dlm_lock_resource *res)
- {
--	mlog(ML_NOTICE, "lockres: %.*s, owner=%u, state=%u\n",
--	       res->lockname.len, res->lockname.name,
--	       res->owner, res->state);
- 	spin_lock(&res->spinlock);
- 	__dlm_print_one_lock_resource(res);
- 	spin_unlock(&res->spinlock);
-@@ -59,75 +58,78 @@ static void dlm_print_lockres_refmap(struct dlm_lock_resource *res)
- 	int bit;
- 	assert_spin_locked(&res->spinlock);
- 
--	mlog(ML_NOTICE, "  refmap nodes: [ ");
-+	printk(KERN_NOTICE "  refmap nodes: [ ");
- 	bit = 0;
- 	while (1) {
- 		bit = find_next_bit(res->refmap, O2NM_MAX_NODES, bit);
- 		if (bit >= O2NM_MAX_NODES)
- 			break;
--		printk("%u ", bit);
-+		printk(KERN_NOTICE "%u ", bit);
- 		bit++;
- 	}
--	printk("], inflight=%u\n", res->inflight_locks);
-+	printk(KERN_NOTICE "], inflight=%u\n", res->inflight_locks);
++	if (mle->type != DLM_MLE_MASTER) {
++		namelen = mle->u.name.len;
++		name = mle->u.name.name;
++	} else {
++		namelen = mle->u.res->lockname.len;
++		name = mle->u.res->lockname.name;
++	}
++
++	if (mle->type == DLM_MLE_BLOCK)
++		mle_type = "BLK";
++	else if (mle->type == DLM_MLE_MASTER)
++		mle_type = "MAS";
++	else
++		mle_type = "MIG";
++
++	out += stringify_lockname(name, namelen, buf + out, len - out);
++	out += snprintf(buf + out, len - out,
++			"\t%3s\tmas=%3u\tnew=%3u\tevt=%1d\tuse=%1d\tref=%3d\n",
++			mle_type, mle->master, mle->new_master,
++			!list_empty(&mle->hb_events),
++			!!mle->inuse,
++			atomic_read(&mle->mle_refs.refcount));
++
++	out += snprintf(buf + out, len - out, "Maybe=");
++	out += stringify_nodemap(mle->maybe_map, O2NM_MAX_NODES,
++				 buf + out, len - out);
++	out += snprintf(buf + out, len - out, "\n");
++
++	out += snprintf(buf + out, len - out, "Vote=");
++	out += stringify_nodemap(mle->vote_map, O2NM_MAX_NODES,
++				 buf + out, len - out);
++	out += snprintf(buf + out, len - out, "\n");
++
++	out += snprintf(buf + out, len - out, "Response=");
++	out += stringify_nodemap(mle->response_map, O2NM_MAX_NODES,
++				 buf + out, len - out);
++	out += snprintf(buf + out, len - out, "\n");
++
++	out += snprintf(buf + out, len - out, "Node=");
++	out += stringify_nodemap(mle->node_map, O2NM_MAX_NODES,
++				 buf + out, len - out);
++	out += snprintf(buf + out, len - out, "\n");
++
++	out += snprintf(buf + out, len - out, "\n");
++
++	return out;
 +}
 +
-+static void __dlm_print_lock(struct dlm_lock *lock)
++static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
 +{
-+	spin_lock(&lock->spinlock);
++	struct dlm_master_list_entry *mle;
++	int out = 0;
++	unsigned long total = 0;
 +
-+	printk(KERN_NOTICE "    type=%d, conv=%d, node=%u, cookie=%u:%llu, "
-+	       "ref=%u, ast=(empty=%c,pend=%c), bast=(empty=%c,pend=%c), "
-+	       "pending=(conv=%c,lock=%c,cancel=%c,unlock=%c)\n",
-+	       lock->ml.type, lock->ml.convert_type, lock->ml.node,
-+	       dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
-+	       dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)),
-+	       atomic_read(&lock->lock_refs.refcount),
-+	       (list_empty(&lock->ast_list) ? 'y' : 'n'),
-+	       (lock->ast_pending ? 'y' : 'n'),
-+	       (list_empty(&lock->bast_list) ? 'y' : 'n'),
-+	       (lock->bast_pending ? 'y' : 'n'),
-+	       (lock->convert_pending ? 'y' : 'n'),
-+	       (lock->lock_pending ? 'y' : 'n'),
-+	       (lock->cancel_pending ? 'y' : 'n'),
-+	       (lock->unlock_pending ? 'y' : 'n'));
++	out += snprintf(db->buf + out, db->len - out,
++			"Dumping MLEs for Domain: %s\n", dlm->name);
 +
-+	spin_unlock(&lock->spinlock);
- }
- 
- void __dlm_print_one_lock_resource(struct dlm_lock_resource *res)
++	spin_lock(&dlm->master_lock);
++	list_for_each_entry(mle, &dlm->master_list, list) {
++		++total;
++		if (db->len - out < 200)
++			continue;
++		out += dump_mle(mle, db->buf + out, db->len - out);
++	}
++	spin_unlock(&dlm->master_lock);
++
++	out += snprintf(db->buf + out, db->len - out,
++			"Total on list: %ld\n", total);
++	return out;
++}
++
++static int debug_mle_open(struct inode *inode, struct file *file)
++{
++	struct dlm_ctxt *dlm = inode->i_private;
++	struct debug_buffer *db;
++
++	db = debug_buffer_allocate();
++	if (!db)
++		goto bail;
++
++	db->len = debug_mle_print(dlm, db);
++
++	file->private_data = db;
++
++	return 0;
++bail:
++	return -ENOMEM;
++}
++
++static struct file_operations debug_mle_fops = {
++	.open =		debug_mle_open,
++	.release =	debug_buffer_release,
++	.read =		debug_buffer_read,
++	.llseek =	debug_buffer_llseek,
++};
++
++/* end - debug mle funcs */
++
+ /* begin - debug lockres funcs */
+ static int dump_lock(struct dlm_lock *lock, int list_type, char *buf, int len)
  {
- 	struct list_head *iter2;
- 	struct dlm_lock *lock;
-+	char buf[DLM_LOCKID_NAME_MAX];
- 
- 	assert_spin_locked(&res->spinlock);
- 
--	mlog(ML_NOTICE, "lockres: %.*s, owner=%u, state=%u\n",
--	       res->lockname.len, res->lockname.name,
--	       res->owner, res->state);
--	mlog(ML_NOTICE, "  last used: %lu, on purge list: %s\n",
--	     res->last_used, list_empty(&res->purge) ? "no" : "yes");
-+	stringify_lockname(res->lockname.name, res->lockname.len,
-+			   buf, sizeof(buf) - 1);
-+	printk(KERN_NOTICE "lockres: %s, owner=%u, state=%u\n",
-+	       buf, res->owner, res->state);
-+	printk(KERN_NOTICE "  last used: %lu, refcnt: %u, on purge list: %s\n",
-+	       res->last_used, atomic_read(&res->refs.refcount),
-+	       list_empty(&res->purge) ? "no" : "yes");
-+	printk(KERN_NOTICE "  on dirty list: %s, on reco list: %s, "
-+	       "migrating pending: %s\n",
-+	       list_empty(&res->dirty) ? "no" : "yes",
-+	       list_empty(&res->recovering) ? "no" : "yes",
-+	       res->migration_pending ? "yes" : "no");
-+	printk(KERN_NOTICE "  inflight locks: %d, asts reserved: %d\n",
-+	       res->inflight_locks, atomic_read(&res->asts_reserved));
- 	dlm_print_lockres_refmap(res);
--	mlog(ML_NOTICE, "  granted queue: \n");
-+	printk(KERN_NOTICE "  granted queue:\n");
- 	list_for_each(iter2, &res->granted) {
- 		lock = list_entry(iter2, struct dlm_lock, list);
--		spin_lock(&lock->spinlock);
--		mlog(ML_NOTICE, "    type=%d, conv=%d, node=%u, "
--		       "cookie=%u:%llu, ast=(empty=%c,pend=%c), bast=(empty=%c,pend=%c)\n", 
--		       lock->ml.type, lock->ml.convert_type, lock->ml.node, 
--		     dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
--		     dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)),
--		       list_empty(&lock->ast_list) ? 'y' : 'n',
--		       lock->ast_pending ? 'y' : 'n',
--		       list_empty(&lock->bast_list) ? 'y' : 'n',
--		       lock->bast_pending ? 'y' : 'n');
--		spin_unlock(&lock->spinlock);
-+		__dlm_print_lock(lock);
+@@ -789,6 +896,16 @@ int dlm_debug_init(struct dlm_ctxt *dlm)
+ 		goto bail;
  	}
--	mlog(ML_NOTICE, "  converting queue: \n");
-+	printk(KERN_NOTICE "  converting queue:\n");
- 	list_for_each(iter2, &res->converting) {
- 		lock = list_entry(iter2, struct dlm_lock, list);
--		spin_lock(&lock->spinlock);
--		mlog(ML_NOTICE, "    type=%d, conv=%d, node=%u, "
--		       "cookie=%u:%llu, ast=(empty=%c,pend=%c), bast=(empty=%c,pend=%c)\n", 
--		       lock->ml.type, lock->ml.convert_type, lock->ml.node, 
--		     dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
--		     dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)),
--		       list_empty(&lock->ast_list) ? 'y' : 'n',
--		       lock->ast_pending ? 'y' : 'n',
--		       list_empty(&lock->bast_list) ? 'y' : 'n',
--		       lock->bast_pending ? 'y' : 'n');
--		spin_unlock(&lock->spinlock);
-+		__dlm_print_lock(lock);
- 	}
--	mlog(ML_NOTICE, "  blocked queue: \n");
-+	printk(KERN_NOTICE "  blocked queue:\n");
- 	list_for_each(iter2, &res->blocked) {
- 		lock = list_entry(iter2, struct dlm_lock, list);
--		spin_lock(&lock->spinlock);
--		mlog(ML_NOTICE, "    type=%d, conv=%d, node=%u, "
--		       "cookie=%u:%llu, ast=(empty=%c,pend=%c), bast=(empty=%c,pend=%c)\n", 
--		       lock->ml.type, lock->ml.convert_type, lock->ml.node, 
--		     dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
--		     dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)),
--		       list_empty(&lock->ast_list) ? 'y' : 'n',
--		       lock->ast_pending ? 'y' : 'n',
--		       list_empty(&lock->bast_list) ? 'y' : 'n',
--		       lock->bast_pending ? 'y' : 'n');
--		spin_unlock(&lock->spinlock);
-+		__dlm_print_lock(lock);
- 	}
- }
  
-@@ -137,31 +139,6 @@ void dlm_print_one_lock(struct dlm_lock *lockid)
- }
- EXPORT_SYMBOL_GPL(dlm_print_one_lock);
++	/* for dumping mles */
++	dc->debug_mle_dentry = debugfs_create_file(DLM_DEBUGFS_MLE_STATE,
++						   S_IFREG|S_IRUSR,
++						   dlm->dlm_debugfs_subroot,
++						   dlm, &debug_mle_fops);
++	if (!dc->debug_mle_dentry) {
++		mlog_errno(-ENOMEM);
++		goto bail;
++	}
++
+ 	dlm_debug_get(dc);
+ 	return 0;
  
--#if 0
--void dlm_dump_lock_resources(struct dlm_ctxt *dlm)
--{
--	struct dlm_lock_resource *res;
--	struct hlist_node *iter;
--	struct hlist_head *bucket;
--	int i;
--
--	mlog(ML_NOTICE, "struct dlm_ctxt: %s, node=%u, key=%u\n",
--		  dlm->name, dlm->node_num, dlm->key);
--	if (!dlm || !dlm->name) {
--		mlog(ML_ERROR, "dlm=%p\n", dlm);
--		return;
--	}
--
--	spin_lock(&dlm->spinlock);
--	for (i=0; i<DLM_HASH_BUCKETS; i++) {
--		bucket = dlm_lockres_hash(dlm, i);
--		hlist_for_each_entry(res, iter, bucket, hash_node)
--			dlm_print_one_lock_resource(res);
--	}
--	spin_unlock(&dlm->spinlock);
--}
--#endif  /*  0  */
--
- static const char *dlm_errnames[] = {
- 	[DLM_NORMAL] =			"DLM_NORMAL",
- 	[DLM_GRANTED] =			"DLM_GRANTED",
-@@ -274,8 +251,7 @@ EXPORT_SYMBOL_GPL(dlm_errname);
-  *
-  * For more on lockname formats, please refer to dlmglue.c and ocfs2_lockid.h.
-  */
--static int stringify_lockname(const char *lockname, int locklen,
--			      char *buf, int len)
-+int stringify_lockname(const char *lockname, int locklen, char *buf, int len)
- {
- 	int out = 0;
- 	__be64 inode_blkno_be;
+@@ -802,6 +919,8 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
+ 	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
+ 
+ 	if (dc) {
++		if (dc->debug_mle_dentry)
++			debugfs_remove(dc->debug_mle_dentry);
+ 		if (dc->debug_lockres_dentry)
+ 			debugfs_remove(dc->debug_lockres_dentry);
+ 		if (dc->debug_state_dentry)
+diff --git a/fs/ocfs2/dlm/dlmdebug.h b/fs/ocfs2/dlm/dlmdebug.h
+index 7c5b2b0..cbc69f2 100644
+--- a/fs/ocfs2/dlm/dlmdebug.h
++++ b/fs/ocfs2/dlm/dlmdebug.h
+@@ -31,6 +31,7 @@ struct dlm_debug_ctxt {
+ 	struct kref debug_refcnt;
+ 	struct dentry *debug_state_dentry;
+ 	struct dentry *debug_lockres_dentry;
++	struct dentry *debug_mle_dentry;
+ };
+ 
+ struct debug_buffer {
 -- 
 1.5.3.6
