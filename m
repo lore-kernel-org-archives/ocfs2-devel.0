@@ -1,74 +1,32 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Tue Mar 11 16:32:15 2008
-Subject: [Ocfs2-devel] [PATCH 01/18] ocfs2: Add helper task_pid_nr
-In-Reply-To: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
-References: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1205278329-11111-2-git-send-email-sunil.mushran@oracle.com>
+Subject: [Ocfs2-devel] Backports to OCFS2 1.4
+Message-ID: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit 7af5729474b5b8ad385adadab78d6e723e7655a3 in mainline introduced
-helper task_pid_nr(). This patch allows one to build ocfs2 with kernels
-having/not having that change.
+The following patches are in this series. All except the first one
+have already been merged into mainline. The headers indicate the mainline
+commit# and other details of the original patch.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- Makefile                          |    3 ++-
- configure.in                      |    5 +++++
- kapi-compat/include/task_pid_nr.h |   12 ++++++++++++
- 3 files changed, 19 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/task_pid_nr.h
-
-diff --git a/Makefile b/Makefile
-index 8e17890..0768cd0 100644
---- a/Makefile
-+++ b/Makefile
-@@ -32,7 +32,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/blkcnt_t.h \
- 	kapi-compat/include/read_mapping_page.h \
- 	kapi-compat/include/aiovec.h \
--	kapi-compat/include/mandatory_lock.h
-+	kapi-compat/include/mandatory_lock.h \
-+	kapi-compat/include/task_pid_nr.h
- 
- PATCH_FILES =
- 
-diff --git a/configure.in b/configure.in
-index f3544b0..df2dcc6 100644
---- a/configure.in
-+++ b/configure.in
-@@ -420,6 +420,11 @@ OCFS2_CHECK_KERNEL([fops->sendfile() in fs.h], fs.h,
-   HAS_FOPS_SENDFILE=yes, , [^.*ssize_t (\*sendfile)])
- AC_SUBST(HAS_FOPS_SENDFILE)
- 
-+task_pid_nr_compat_header=""
-+OCFS2_CHECK_KERNEL([task_pid_nr in sched.h], sched.h,
-+  , task_pid_nr_compat_header="task_pid_nr.h", [^static inline pid_t task_pid_nr(struct])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $task_pid_nr_compat_header"
-+
- # using -include has two advantages:
- #  the source doesn't need to know to include compat headers
- #  the compat header file names don't go through the search path
-diff --git a/kapi-compat/include/task_pid_nr.h b/kapi-compat/include/task_pid_nr.h
-new file mode 100644
-index 0000000..bd69a75
---- /dev/null
-+++ b/kapi-compat/include/task_pid_nr.h
-@@ -0,0 +1,12 @@
-+#ifndef KAPI_TASK_PID_NR_H
-+#define KAPI_TASK_PID_NR_H
-+
-+#include <linux/types.h>
-+#include <linux/sched.h>
-+
-+static inline pid_t task_pid_nr(struct task_struct *tsk)
-+{
-+        return tsk->pid;
-+}
-+
-+#endif
--- 
-1.5.3.4
+[PATCH 01/18] ocfs2: Add helper task_pid_nr
+[PATCH 02/18] ocfs2: Spelling fixes
+[PATCH 03/18] ocfs2: Negotiate locking protocol versions.
+[PATCH 04/18] ocfs2: Fix writeout in ocfs2_data_convert_worker()
+[PATCH 05/18] ocfs2: possible cleanups
+[PATCH 06/18] ocfs2: make ocfs2_downconvert_thread() static
+[PATCH 07/18] ocfs2: make dlm_do_assert_master() static
+[PATCH 08/18] ocfs2: Correct use of ! and & in aops.c
+[PATCH 09/18] ocfs2/dlm: fix printk warning
+[PATCH 10/18] ocfs2: Use dlm_print_one_lock_resource for lock resource print
+[PATCH 11/18] ocfs2: Fix endian bug in o2dlm protocol negotiation.
+[PATCH 12/18] ocfs2: Fix an endian bug in online resize
+[PATCH 13/18] ocfs2/dlm: Add missing dlm_lock_put()s
+[PATCH 14/18] ocfs2/dlm: Add missing dlm_lockres_put()s in migration path
+[PATCH 15/18] ocfs2/dlm: Add missing dlm_lockres_put()s
+[PATCH 16/18] ocfs2/dlm: Print message showing the recovery master
+[PATCH 17/18] ocfs2/dlm: dlm_thread should not sleep while holding the dlm_spinlock
+[PATCH 18/18] ocfs2: Fix NULL pointer dereferences in o2net
