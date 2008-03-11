@@ -1,285 +1,164 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Tue Mar 11 16:32:19 2008
-Subject: [Ocfs2-devel] [PATCH 11/18] ocfs2: Fix endian bug in o2dlm protocol
-	negotiation.
+Subject: [Ocfs2-devel] [PATCH 14/18] ocfs2/dlm: Add missing
+	dlm_lockres_put()s in migration path
 In-Reply-To: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
 References: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1205278329-11111-12-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1205278329-11111-15-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 0f71b7b40f55de909e40fa5ab217a5da3439c7d8
-Author: Joel Becker <joel.becker@oracle.com>
-Date: Tue, 12 Feb 2008 14:56:25 -0800
+Mainline commit 52987e2ab456c1a828046494aac53819b1454341
+Author: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Sat, 1 Mar 2008 14:04:21 -0800
 
-struct dlm_query_join_packet is made up of four one-byte fields.  They
-are effectively in big-endian order already.  However, little-endian
-machines swap them before putting the packet on the wire (because
-query_join's response is a status, and that status is treated as a u32
-on the wire).  Thus, a big-endian and little-endian machines will
-treat this structure differently.
+During migration, the recovery master node may be asked to master a lockres
+it may not know about. In that case, it would not only have to create a
+lockres and add it to the hash, but also remember to to do the _put_
+corresponding to the kref_init in dlm_init_lockres(), as soon as the migration
+is completed. Yes, we don't wait for the dlm_purge_lockres() to do that
+matching put. Note the ref added for it being in the hash protects the lockres
+from being freed prematurely.
 
-The solution is to have little-endian machines swap the structure when
-converting from the structure to the u32 representation.
+This patch adds that missing put, as described above, to plug a memleak.
 
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |   20 +++++----
- fs/ocfs2/dlm/dlmdomain.c |  101 +++++++++++++++++++++++++++++----------------
- 2 files changed, 76 insertions(+), 45 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h   |    1 +
+ fs/ocfs2/dlm/dlmrecovery.c |   40 ++++++++++++++++++++++++++++++++++------
+ 2 files changed, 35 insertions(+), 6 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 0f6896d..b90ee17 100644
+index b90ee17..57c0a08 100644
 --- a/fs/ocfs2/dlm/dlmcommon.h
 +++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -602,17 +602,19 @@ enum dlm_query_join_response_code {
- 	JOIN_PROTOCOL_MISMATCH,
+@@ -176,6 +176,7 @@ struct dlm_mig_lockres_priv
+ {
+ 	struct dlm_lock_resource *lockres;
+ 	u8 real_master;
++	u8 extra_ref;
  };
  
-+struct dlm_query_join_packet {
-+	u8 code;	/* Response code.  dlm_minor and fs_minor
-+			   are only valid if this is JOIN_OK */
-+	u8 dlm_minor;	/* The minor version of the protocol the
-+			   dlm is speaking. */
-+	u8 fs_minor;	/* The minor version of the protocol the
-+			   filesystem is speaking. */
-+	u8 reserved;
-+};
-+
- union dlm_query_join_response {
- 	u32 intval;
--	struct {
--		u8 code;	/* Response code.  dlm_minor and fs_minor
--				   are only valid if this is JOIN_OK */
--		u8 dlm_minor;	/* The minor version of the protocol the
--				   dlm is speaking. */
--		u8 fs_minor;	/* The minor version of the protocol the
--				   filesystem is speaking. */
--		u8 reserved;
--	} packet;
-+	struct dlm_query_join_packet packet;
- };
+ struct dlm_assert_master_priv
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 4a0e7aa..7843ec1 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1327,6 +1327,7 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 		(struct dlm_migratable_lockres *)msg->buf;
+ 	int ret = 0;
+ 	u8 real_master;
++	u8 extra_refs = 0;
+ 	char *buf = NULL;
+ 	struct dlm_work_item *item = NULL;
+ 	struct dlm_lock_resource *res = NULL;
+@@ -1404,16 +1405,28 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 		__dlm_insert_lockres(dlm, res);
+ 		spin_unlock(&dlm->spinlock);
  
- struct dlm_lock_request
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 8861c2d..0d6050d 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -713,14 +713,46 @@ static int dlm_query_join_proto_check(char *proto_type, int node,
- 	return rc;
- }
++		/* Add an extra ref for this lock-less lockres lest the
++		 * dlm_thread purges it before we get the chance to add
++		 * locks to it */
++		dlm_lockres_get(res);
++
++		/* There are three refs that need to be put.
++		 * 1. Taken above.
++		 * 2. kref_init in dlm_new_lockres()->dlm_init_lockres().
++		 * 3. dlm_lookup_lockres()
++		 * The first one is handled at the end of this function. The
++		 * other two are handled in the worker thread after locks have
++		 * been attached. Yes, we don't wait for purge time to match
++		 * kref_init. The lockres will still have atleast one ref
++		 * added because it is in the hash __dlm_insert_lockres() */
++		extra_refs++;
++
+ 		/* now that the new lockres is inserted,
+ 		 * make it usable by other processes */
+ 		spin_lock(&res->spinlock);
+ 		res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
+ 		spin_unlock(&res->spinlock);
+ 		wake_up(&res->wq);
+-
+-		/* add an extra ref for just-allocated lockres 
+-		 * otherwise the lockres will be purged immediately */
+-		dlm_lockres_get(res);
+ 	}
  
-+/*
-+ * struct dlm_query_join_packet is made up of four one-byte fields.  They
-+ * are effectively in big-endian order already.  However, little-endian
-+ * machines swap them before putting the packet on the wire (because
-+ * query_join's response is a status, and that status is treated as a u32
-+ * on the wire).  Thus, a big-endian and little-endian machines will treat
-+ * this structure differently.
-+ *
-+ * The solution is to have little-endian machines swap the structure when
-+ * converting from the structure to the u32 representation.  This will
-+ * result in the structure having the correct format on the wire no matter
-+ * the host endian format.
-+ */
-+static void dlm_query_join_packet_to_wire(struct dlm_query_join_packet *packet,
-+					  u32 *wire)
-+{
-+	union dlm_query_join_response response;
+ 	/* at this point we have allocated everything we need,
+@@ -1443,12 +1456,17 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	dlm_init_work_item(dlm, item, dlm_mig_lockres_worker, buf);
+ 	item->u.ml.lockres = res; /* already have a ref */
+ 	item->u.ml.real_master = real_master;
++	item->u.ml.extra_ref = extra_refs;
+ 	spin_lock(&dlm->work_lock);
+ 	list_add_tail(&item->list, &dlm->work_list);
+ 	spin_unlock(&dlm->work_lock);
+ 	queue_work(dlm->dlm_worker, &dlm->dispatched_work);
+ 
+ leave:
++	/* One extra ref taken needs to be put here */
++	if (extra_refs)
++		dlm_lockres_put(res);
 +
-+	response.packet = *packet;
-+	*wire = cpu_to_be32(response.intval);
-+}
-+
-+static void dlm_query_join_wire_to_packet(u32 wire,
-+					  struct dlm_query_join_packet *packet)
-+{
-+	union dlm_query_join_response response;
-+
-+	response.intval = cpu_to_be32(wire);
-+	*packet = response.packet;
-+}
-+
- static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
- 				  void **ret_data)
+ 	dlm_put(dlm);
+ 	if (ret < 0) {
+ 		if (buf)
+@@ -1464,17 +1482,19 @@ leave:
+ 
+ static void dlm_mig_lockres_worker(struct dlm_work_item *item, void *data)
  {
- 	struct dlm_query_join_request *query;
--	union dlm_query_join_response response = {
--		.packet.code = JOIN_DISALLOW,
-+	struct dlm_query_join_packet packet = {
-+		.code = JOIN_DISALLOW,
- 	};
- 	struct dlm_ctxt *dlm = NULL;
-+	u32 response;
- 	u8 nodenum;
+-	struct dlm_ctxt *dlm = data;
++	struct dlm_ctxt *dlm;
+ 	struct dlm_migratable_lockres *mres;
+ 	int ret = 0;
+ 	struct dlm_lock_resource *res;
+ 	u8 real_master;
++	u8 extra_ref;
  
- 	query = (struct dlm_query_join_request *) msg->buf;
-@@ -737,11 +769,11 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
- 		mlog(0, "node %u is not in our live map yet\n",
- 		     query->node_idx);
+ 	dlm = item->dlm;
+ 	mres = (struct dlm_migratable_lockres *)data;
  
--		response.packet.code = JOIN_DISALLOW;
-+		packet.code = JOIN_DISALLOW;
- 		goto respond;
+ 	res = item->u.ml.lockres;
+ 	real_master = item->u.ml.real_master;
++	extra_ref = item->u.ml.extra_ref;
+ 
+ 	if (real_master == DLM_LOCK_RES_OWNER_UNKNOWN) {
+ 		/* this case is super-rare. only occurs if
+@@ -1517,6 +1537,12 @@ again:
  	}
  
--	response.packet.code = JOIN_OK_NO_MAP;
-+	packet.code = JOIN_OK_NO_MAP;
- 
- 	spin_lock(&dlm_domain_lock);
- 	dlm = __dlm_lookup_domain_full(query->domain, query->name_len);
-@@ -760,7 +792,7 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
- 				mlog(0, "disallow join as node %u does not "
- 				     "have node %u in its nodemap\n",
- 				     query->node_idx, nodenum);
--				response.packet.code = JOIN_DISALLOW;
-+				packet.code = JOIN_DISALLOW;
- 				goto unlock_respond;
- 			}
- 		}
-@@ -780,23 +812,23 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
- 			/*If this is a brand new context and we
- 			 * haven't started our join process yet, then
- 			 * the other node won the race. */
--			response.packet.code = JOIN_OK_NO_MAP;
-+			packet.code = JOIN_OK_NO_MAP;
- 		} else if (dlm->joining_node != DLM_LOCK_RES_OWNER_UNKNOWN) {
- 			/* Disallow parallel joins. */
--			response.packet.code = JOIN_DISALLOW;
-+			packet.code = JOIN_DISALLOW;
- 		} else if (dlm->reco.state & DLM_RECO_STATE_ACTIVE) {
- 			mlog(0, "node %u trying to join, but recovery "
- 			     "is ongoing.\n", bit);
--			response.packet.code = JOIN_DISALLOW;
-+			packet.code = JOIN_DISALLOW;
- 		} else if (test_bit(bit, dlm->recovery_map)) {
- 			mlog(0, "node %u trying to join, but it "
- 			     "still needs recovery.\n", bit);
--			response.packet.code = JOIN_DISALLOW;
-+			packet.code = JOIN_DISALLOW;
- 		} else if (test_bit(bit, dlm->domain_map)) {
- 			mlog(0, "node %u trying to join, but it "
- 			     "is still in the domain! needs recovery?\n",
- 			     bit);
--			response.packet.code = JOIN_DISALLOW;
-+			packet.code = JOIN_DISALLOW;
- 		} else {
- 			/* Alright we're fully a part of this domain
- 			 * so we keep some state as to who's joining
-@@ -807,19 +839,15 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
- 			if (dlm_query_join_proto_check("DLM", bit,
- 						       &dlm->dlm_locking_proto,
- 						       &query->dlm_proto)) {
--				response.packet.code =
--					JOIN_PROTOCOL_MISMATCH;
-+				packet.code = JOIN_PROTOCOL_MISMATCH;
- 			} else if (dlm_query_join_proto_check("fs", bit,
- 							      &dlm->fs_locking_proto,
- 							      &query->fs_proto)) {
--				response.packet.code =
--					JOIN_PROTOCOL_MISMATCH;
-+				packet.code = JOIN_PROTOCOL_MISMATCH;
- 			} else {
--				response.packet.dlm_minor =
--					query->dlm_proto.pv_minor;
--				response.packet.fs_minor =
--					query->fs_proto.pv_minor;
--				response.packet.code = JOIN_OK;
-+				packet.dlm_minor = query->dlm_proto.pv_minor;
-+				packet.fs_minor = query->fs_proto.pv_minor;
-+				packet.code = JOIN_OK;
- 				__dlm_set_joining_node(dlm, query->node_idx);
- 			}
- 		}
-@@ -830,9 +858,10 @@ unlock_respond:
- 	spin_unlock(&dlm_domain_lock);
- 
- respond:
--	mlog(0, "We respond with %u\n", response.packet.code);
-+	mlog(0, "We respond with %u\n", packet.code);
- 
--	return response.intval;
-+	dlm_query_join_packet_to_wire(&packet, &response);
-+	return response;
+ leave:
++	/* See comment in dlm_mig_lockres_handler() */
++	if (res) {
++		if (extra_ref)
++			dlm_lockres_put(res);
++		dlm_lockres_put(res);
++	}
+ 	kfree(data);
+ 	mlog_exit(ret);
  }
- 
- static int dlm_assert_joined_handler(struct o2net_msg *msg, u32 len, void *data,
-@@ -968,7 +997,8 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
- {
- 	int status;
- 	struct dlm_query_join_request join_msg;
--	union dlm_query_join_response join_resp;
-+	struct dlm_query_join_packet packet;
-+	u32 join_resp;
- 
- 	mlog(0, "querying node %d\n", node);
- 
-@@ -984,11 +1014,12 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
- 
- 	status = o2net_send_message(DLM_QUERY_JOIN_MSG, DLM_MOD_KEY, &join_msg,
- 				    sizeof(join_msg), node,
--				    &join_resp.intval);
-+				    &join_resp);
- 	if (status < 0 && status != -ENOPROTOOPT) {
- 		mlog_errno(status);
- 		goto bail;
+@@ -1644,7 +1670,8 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
+ 				/* retry!? */
+ 				BUG();
+ 			}
+-		}
++		} else /* put.. incase we are not the master */
++			dlm_lockres_put(res);
+ 		spin_unlock(&res->spinlock);
  	}
-+	dlm_query_join_wire_to_packet(join_resp, &packet);
- 
- 	/* -ENOPROTOOPT from the net code means the other side isn't
- 	    listening for our message type -- that's fine, it means
-@@ -997,10 +1028,10 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
- 	if (status == -ENOPROTOOPT) {
- 		status = 0;
- 		*response = JOIN_OK_NO_MAP;
--	} else if (join_resp.packet.code == JOIN_DISALLOW ||
--		   join_resp.packet.code == JOIN_OK_NO_MAP) {
--		*response = join_resp.packet.code;
--	} else if (join_resp.packet.code == JOIN_PROTOCOL_MISMATCH) {
-+	} else if (packet.code == JOIN_DISALLOW ||
-+		   packet.code == JOIN_OK_NO_MAP) {
-+		*response = packet.code;
-+	} else if (packet.code == JOIN_PROTOCOL_MISMATCH) {
- 		mlog(ML_NOTICE,
- 		     "This node requested DLM locking protocol %u.%u and "
- 		     "filesystem locking protocol %u.%u.  At least one of "
-@@ -1012,14 +1043,12 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
- 		     dlm->fs_locking_proto.pv_minor,
- 		     node);
- 		status = -EPROTO;
--		*response = join_resp.packet.code;
--	} else if (join_resp.packet.code == JOIN_OK) {
--		*response = join_resp.packet.code;
-+		*response = packet.code;
-+	} else if (packet.code == JOIN_OK) {
-+		*response = packet.code;
- 		/* Use the same locking protocol as the remote node */
--		dlm->dlm_locking_proto.pv_minor =
--			join_resp.packet.dlm_minor;
--		dlm->fs_locking_proto.pv_minor =
--			join_resp.packet.fs_minor;
-+		dlm->dlm_locking_proto.pv_minor = packet.dlm_minor;
-+		dlm->fs_locking_proto.pv_minor = packet.fs_minor;
- 		mlog(0,
- 		     "Node %d responds JOIN_OK with DLM locking protocol "
- 		     "%u.%u and fs locking protocol %u.%u\n",
-@@ -1031,11 +1060,11 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
- 	} else {
- 		status = -EINVAL;
- 		mlog(ML_ERROR, "invalid response %d from node %u\n",
--		     join_resp.packet.code, node);
-+		     packet.code, node);
+ 	spin_unlock(&dlm->spinlock);
+@@ -1921,6 +1948,7 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
+ 		     "Recovering res %s:%.*s, is already on recovery list!\n",
+ 		     dlm->name, res->lockname.len, res->lockname.name);
+ 		list_del_init(&res->recovering);
++		dlm_lockres_put(res);
  	}
- 
- 	mlog(0, "status %d, node %d response is %d\n", status, node,
--		  *response);
-+	     *response);
- 
- bail:
- 	return status;
+ 	/* We need to hold a reference while on the recovery list */
+ 	dlm_lockres_get(res);
 -- 
 1.5.3.4
