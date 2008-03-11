@@ -1,61 +1,50 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
 Date: Tue Mar 11 16:32:25 2008
-Subject: [Ocfs2-devel] [PATCH 18/18] ocfs2: Fix NULL pointer dereferences in
-	o2net
+Subject: [Ocfs2-devel] [PATCH 17/18] ocfs2/dlm: dlm_thread should not sleep
+	while holding the dlm_spinlock
 In-Reply-To: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
 References: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1205278329-11111-19-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1205278329-11111-18-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit cdef59a94c2fc962ada379d4240d556db7b56d55
-Author: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 5 Mar 2008 15:49:55 +0800
+Mainline commit c824c3c723f2e37a00b3b739a55b28de595fd72e
+Author: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Sat, 1 Mar 2008 14:04:25 -0800
 
-In some situations, ocfs2_set_nn_state might get called with sc = NULL and
-valid = 0. If sc = NULL, we can't dereference it to get the o2nm_node
-member. Instead, do what o2net_initialize_handshake does and use NULL when
-calling o2net_reconnect_delay and o2net_idle_timeout.
+This patch addresses the bug in which the dlm_thread could go to sleep
+while holding the dlm_spinlock.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/cluster/tcp.c |    9 ++++-----
- 1 files changed, 4 insertions(+), 5 deletions(-)
+ fs/ocfs2/dlm/dlmthread.c |    6 ++++--
+ 1 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 6dbdee0..090018a 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -451,9 +451,9 @@ static void o2net_set_nn_state(struct o2net_node *nn,
- 		/* delay if we're withing a RECONNECT_DELAY of the
- 		 * last attempt */
- 		delay = (nn->nn_last_connect_attempt +
--			 msecs_to_jiffies(o2net_reconnect_delay(sc->sc_node)))
-+			 msecs_to_jiffies(o2net_reconnect_delay(NULL)))
- 			- jiffies;
--		if (delay > msecs_to_jiffies(o2net_reconnect_delay(sc->sc_node)))
-+		if (delay > msecs_to_jiffies(o2net_reconnect_delay(NULL)))
- 			delay = 0;
- 		mlog(ML_CONN, "queueing conn attempt in %lu jiffies\n", delay);
- 		queue_delayed_work(o2net_wq, &nn->nn_connect_work, delay);
-@@ -1583,12 +1583,11 @@ static void o2net_connect_expired(kapi_work_struct_t *work)
+diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+index cebd089..4060bb3 100644
+--- a/fs/ocfs2/dlm/dlmthread.c
++++ b/fs/ocfs2/dlm/dlmthread.c
+@@ -176,12 +176,14 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+ 	     res->lockname.name, master);
  
- 	spin_lock(&nn->nn_lock);
- 	if (!nn->nn_sc_valid) {
--		struct o2nm_node *node = nn->nn_sc->sc_node;
- 		mlog(ML_ERROR, "no connection established with node %u after "
- 		     "%u.%u seconds, giving up and returning errors.\n",
- 		     o2net_num_from_nn(nn),
--		     o2net_idle_timeout(node) / 1000,
--		     o2net_idle_timeout(node) % 1000);
-+		     o2net_idle_timeout(NULL) / 1000,
-+		     o2net_idle_timeout(NULL) % 1000);
- 
- 		o2net_set_nn_state(nn, NULL, 0, -ENOTCONN);
- 	}
+ 	if (!master) {
++		/* drop spinlock...  retake below */
++		spin_unlock(&dlm->spinlock);
++
+ 		spin_lock(&res->spinlock);
+ 		/* This ensures that clear refmap is sent after the set */
+ 		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_SETREF_INPROG);
+ 		spin_unlock(&res->spinlock);
+-		/* drop spinlock to do messaging, retake below */
+-		spin_unlock(&dlm->spinlock);
++
+ 		/* clear our bit from the master's refmap, ignore errors */
+ 		ret = dlm_drop_lockres_ref(dlm, res);
+ 		if (ret < 0) {
 -- 
 1.5.3.4
