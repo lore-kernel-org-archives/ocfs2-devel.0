@@ -1,50 +1,92 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue Mar 11 16:32:25 2008
-Subject: [Ocfs2-devel] [PATCH 17/18] ocfs2/dlm: dlm_thread should not sleep
-	while holding the dlm_spinlock
+Date: Tue Mar 11 16:32:26 2008
+Subject: [Ocfs2-devel] [PATCH 13/18] ocfs2/dlm: Add missing dlm_lock_put()s
 In-Reply-To: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
 References: <1205278329-11111-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1205278329-11111-18-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1205278329-11111-14-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit c824c3c723f2e37a00b3b739a55b28de595fd72e
+Mainline commit 2c5c54aca9d0263f81bd4886232835ba31f7635a
 Author: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Sat, 1 Mar 2008 14:04:25 -0800
+Date: Sat, 1 Mar 2008 14:04:20 -0800
 
-This patch addresses the bug in which the dlm_thread could go to sleep
-while holding the dlm_spinlock.
+Normally locks for remote nodes are freed when that node sends an UNLOCK
+message to the master. The master node tags an DLM_UNLOCK_FREE_LOCK action
+to do an extra put on the lock at the end.
+
+However, there are times when the master node has to free the locks for the
+remote nodes forcibly.
+
+Two cases when this happens are:
+1. When the master has migrated the lockres plus all locks to another node.
+2. When the master is clearing all the locks of a dead node.
+
+It was in the above two conditions that the dlm was missing the extra put.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mark.fasheh@oracle.com>
 ---
- fs/ocfs2/dlm/dlmthread.c |    6 ++++--
- 1 files changed, 4 insertions(+), 2 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c   |    3 +++
+ fs/ocfs2/dlm/dlmrecovery.c |    9 +++++++++
+ 2 files changed, 12 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index cebd089..4060bb3 100644
---- a/fs/ocfs2/dlm/dlmthread.c
-+++ b/fs/ocfs2/dlm/dlmthread.c
-@@ -176,12 +176,14 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
- 	     res->lockname.name, master);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 5b27581..e5ceda9 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -2933,6 +2933,9 @@ static void dlm_remove_nonlocal_locks(struct dlm_ctxt *dlm,
+ 				dlm_lockres_clear_refmap_bit(lock->ml.node, res);
+ 				list_del_init(&lock->list);
+ 				dlm_lock_put(lock);
++				/* In a normal unlock, we would have added a
++				 * DLM_UNLOCK_FREE_LOCK action. Force it. */
++				dlm_lock_put(lock);
+ 			}
+ 		}
+ 		queue++;
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 3004f95..4a0e7aa 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2130,11 +2130,16 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
+ 	assert_spin_locked(&dlm->spinlock);
+ 	assert_spin_locked(&res->spinlock);
  
- 	if (!master) {
-+		/* drop spinlock...  retake below */
-+		spin_unlock(&dlm->spinlock);
++	/* We do two dlm_lock_put(). One for removing from list and the other is
++	 * to force the DLM_UNLOCK_FREE_LOCK action so as to free the locks */
 +
- 		spin_lock(&res->spinlock);
- 		/* This ensures that clear refmap is sent after the set */
- 		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_SETREF_INPROG);
- 		spin_unlock(&res->spinlock);
--		/* drop spinlock to do messaging, retake below */
--		spin_unlock(&dlm->spinlock);
-+
- 		/* clear our bit from the master's refmap, ignore errors */
- 		ret = dlm_drop_lockres_ref(dlm, res);
- 		if (ret < 0) {
+ 	/* TODO: check pending_asts, pending_basts here */
+ 	list_for_each_entry_safe(lock, next, &res->granted, list) {
+ 		if (lock->ml.node == dead_node) {
+ 			list_del_init(&lock->list);
+ 			dlm_lock_put(lock);
++			/* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
++			dlm_lock_put(lock);
+ 			freed++;
+ 		}
+ 	}
+@@ -2142,6 +2147,8 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
+ 		if (lock->ml.node == dead_node) {
+ 			list_del_init(&lock->list);
+ 			dlm_lock_put(lock);
++			/* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
++			dlm_lock_put(lock);
+ 			freed++;
+ 		}
+ 	}
+@@ -2149,6 +2156,8 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
+ 		if (lock->ml.node == dead_node) {
+ 			list_del_init(&lock->list);
+ 			dlm_lock_put(lock);
++			/* Can't schedule DLM_UNLOCK_FREE_LOCK - do manually */
++			dlm_lock_put(lock);
+ 			freed++;
+ 		}
+ 	}
 -- 
 1.5.3.4
