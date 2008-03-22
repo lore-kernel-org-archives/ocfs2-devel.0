@@ -1,52 +1,59 @@
-From: Mark Fasheh <mark.fasheh@oracle.com>
-Date: Fri Mar 21 12:01:38 2008
-Subject: [Ocfs2-devel] [git patches] ocfs2 MAINTAINERS update
-Message-ID: <20080321185950.GR23981@ca-server1.us.oracle.com>
+From: Mark Fasheh <mark@fasheh.com>
+Date: Sat Mar 22 08:36:11 2008
+Subject: [Ocfs2-devel] [PATCH] o2nm: Get rid of arguments to the timeout
+	routines
+In-Reply-To: <47DEB30E.8060605@suse.com>
+References: <47DEB30E.8060605@suse.com>
+Message-ID: <20080322153551.GG27205@ZenIV.linux.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, joel.becker@oracle.com, kurt.hackel@oracle.com, mfasheh@suse.com
+To: ocfs2-devel@oss.oracle.com
 
-Hi Linus,
+On Mon, Mar 17, 2008 at 02:06:06PM -0400, Jeff Mahoney wrote:
+> -----BEGIN PGP SIGNED MESSAGE-----
+> Hash: SHA1
+> 
+> 
+>  We keep seeing bug reports related to NULL pointer derefs in
+>  o2net_set_nn_state(). When I originally wrote up the configurable timeout
+>  patch, I had tried to plan for multiple clusters. This was silly.
+> 
+>  The timeout routines all use o2nm_single_cluster so there's no point
+>  in passing an argument at all. This patch removes the arguments and kills
+>  those bugs dead.
+> 
+> Signed-off-by: Jeff Mahoney <jeffm@suse.com>
+> - ---
+>  fs/ocfs2/cluster/tcp.c |   45 +++++++++++++++++++--------------------------
+>  1 file changed, 19 insertions(+), 26 deletions(-)
+> 
+> - --- a/fs/ocfs2/cluster/tcp.c
+> +++ b/fs/ocfs2/cluster/tcp.c
+> @@ -149,23 +149,17 @@ static void o2net_idle_timer(unsigned lo
+>  static void o2net_sc_postpone_idle(struct o2net_sock_container *sc);
+>  static void o2net_sc_reset_idle_timer(struct o2net_sock_container *sc);
+>  
+> - -/*
+> - - * FIXME: These should use to_o2nm_cluster_from_node(), but we end up
+> - - * losing our parent link to the cluster during shutdown. This can be
+> - - * solved by adding a pre-removal callback to configfs, or passing
+> - - * around the cluster with the node. -jeffm
+> - - */
+> - -static inline int o2net_reconnect_delay(struct o2nm_node *node)
+> +static inline int o2net_reconnect_delay(void)
+>  {
+>  	return o2nm_single_cluster->cl_reconnect_delay_ms;
+>  }
 
-	I've taken a new job at SUSE labs, so my e-mail address needs an
-update. Going forward, I'll co-maintain Ocfs2 with Joel Becker so we need to
-put his information in there as well. Kurt deserves a very large amount of
-credit for his work on Ocfs2, but he has since moved on to other projects,
-so we'll just put Joel in his spot.
 
-	So, it should more or less be business as usual with respect to
-Ocfs2, other than that Joel and I will share some of the maintainership
-load.
+That all looks fine, but it seems that the patch is a diff of a diff. Was
+that intentional? Neither git nor I have any idea how to handle something like this
+:)
 	--Mark
 
-Please pull from 'upstream-linus' branch of
-git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
-
-to receive the following updates:
-
- MAINTAINERS |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
-
-Mark Fasheh (1):
-      ocfs2: MAINTAINERS update
-
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 03e4602..73883b8 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -2935,9 +2935,9 @@ S:	Maintained
- 
- ORACLE CLUSTER FILESYSTEM 2 (OCFS2)
- P:	Mark Fasheh
--M:	mark.fasheh@oracle.com
--P:	Kurt Hackel
--M:	kurt.hackel@oracle.com
-+M:	mfasheh@suse.com
-+P:	Joel Becker
-+M:	joel.becker@oracle.com
- L:	ocfs2-devel@oss.oracle.com
- W:	http://oss.oracle.com/projects/ocfs2/
- S:	Supported
+-- 
+"There's nothing like a cantankerous old man who takes a 'hey you kids, get
+off my lawn!' approach to foreign policy" -Jon Stewart on the subject of
+Donald Rumsfeld
