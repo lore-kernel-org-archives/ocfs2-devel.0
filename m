@@ -1,40 +1,83 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 06 Mar 2008 11:51:11 -0000
-Subject: [Ocfs2-devel] [PATCH] Dynamic lockres hash table
-In-Reply-To: <47CEE95E.8020200@oracle.com>
-References: <20080304102448.GB24335@duck.suse.cz> <47CE065F.6080707@oracle.com>
-	<20080305182618.GA10416@duck.suse.cz> <47CEE95E.8020200@oracle.com>
-Message-ID: <20080306115100.GA12532@duck.suse.cz>
+From: Julia Lawall <julia@diku.dk>
+Date: Mon, 24 Mar 2008 19:09:15 +0100 (CET)
+Subject: [Ocfs2-devel] [PATCH 2/5] fs/ocfs2/aops.c: test for IS_ERR rather
+	than 0
+Message-ID: <Pine.LNX.4.64.0803241908490.32740@ask.diku.dk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mark.fasheh@oracle.com, kurt.hackel@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
 
-On Wed 05-03-08 10:41:34, Sunil Mushran wrote:
-> Jan Kara wrote:
->>   Actually, it's non-trivial to measure (differently than by profiling).
->> You cannot use standard time functions because they have too low 
->> resolution
->> - we are speaking about microseconds here...
->>   
-> jiffies should have enough resolution.
-  Not really. On SLES kernels HZ=250 and thus 1 jiffie tick is 4ms. That's
-quite a lot - actually, my lockres statistics show that quite a lot of lock
-operations get below 4 ms (i.e., time for that acquisition was counted as
-0). I guess they are operations that don't require any network
-communication...
+From: Julia Lawall <julia@diku.dk>
 
->>   Definitely, they should have 16 or even 32 pages per mount.  With 500K
->> lockres, which is not so extreme on bigger FS, 16 pages mean hash chains 
->> of
->> average length 61 on x86_64. It is not ideal but I guess it should be
->> sufficient.
->
-> Any objections to increasing the default to 32 pages for 1.4?
-  32 pages is fine with me.
+The function ocfs2_start_trans always returns either a valid pointer or a
+value made with ERR_PTR, so its result should be tested with IS_ERR, not
+with a test for 0.
 
-								Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+
+The problem was found using the following semantic match.
+(http://www.emn.fr/x-info/coccinelle/)
+
+//<smpl>
+@a@
+expression E, E1;
+statement S,S1;
+position p;
+@@
+
+E = ocfs2_start_trans(...)
+... when != E = E1
+if at p (E) S else S1
+
+@n@
+position a.p;
+expression E,E1;
+statement S,S1;
+@@
+
+E = NULL
+... when != E = E1
+if at p (E) S else S1
+
+@depends on !n@
+expression E;
+statement S,S1;
+position a.p;
+@@
+
+* if at p (E)
+  S else S1
+//</smpl>
+
+Signed-off-by: Julia Lawall <julia@diku.dk>
+---
+ fs/ocfs2/aops.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff -u -p a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+--- a/fs/ocfs2/aops.c	2008-03-24 17:50:26.000000000 +0100
++++ b/fs/ocfs2/aops.c	2008-03-24 17:52:02.000000000 +0100
+@@ -467,11 +467,11 @@ handle_t *ocfs2_start_walk_page_trans(st
+ 							 unsigned to)
+ {
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	handle_t *handle = NULL;
++	handle_t *handle;
+ 	int ret = 0;
+ 
+ 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+-	if (!handle) {
++	if (IS_ERR(handle)) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+ 		goto out;
+@@ -487,7 +487,7 @@ handle_t *ocfs2_start_walk_page_trans(st
+ 	}
+ out:
+ 	if (ret) {
+-		if (handle)
++		if (!IS_ERR(handle))
+ 			ocfs2_commit_trans(osb, handle);
+ 		handle = ERR_PTR(ret);
+ 	}
