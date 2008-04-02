@@ -1,172 +1,189 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:24:58 -0700
-Subject: [Ocfs2-devel] [PATCH 62/62] ocfs2/cluster: Get rid of arguments to
-	the timeout routines
-In-Reply-To: 12071673121124-git-send-email-mfasheh@suse.com
-References: 12071673121124-git-send-email-mfasheh@suse.com
-Message-ID: <12071679053371-git-send-email-mfasheh@suse.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed,  2 Apr 2008 16:16:28 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Add cluster lock stats at the fs
+	level
+Message-ID: <1207178188-30130-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Jeff Mahoney <jeffm@suse.com>
+To: ocfs2-devel@oss.oracle.com
 
-From: Jeff Mahoney <jeffm@suse.com>
+This patch adds code to track the number of times the fs takes
+various cluster locks as well as the times associated with it.
 
-We keep seeing bug reports related to NULL pointer derefs in
-o2net_set_nn_state(). When I originally wrote up the configurable timeout
-patch, I had tried to plan for multiple clusters. This was silly.
-
-The timeout routines all use o2nm_single_cluster so there's no point in
-passing an argument at all. This patch removes the arguments and kills those
-bugs dead.
-
-Signed-off-by: Jeff Mahoney <jeffm@suse.com>
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+Authored-by: Jan Kara <jack@suse.cz>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/tcp.c |   47 ++++++++++++++++++++---------------------------
- 1 files changed, 20 insertions(+), 27 deletions(-)
+ fs/ocfs2/dlmglue.c |   69 +++++++++++++++++++++++++++++++++++++++++++++++++++-
+ fs/ocfs2/ocfs2.h   |   10 +++++++
+ 2 files changed, 78 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 4ea4b0a..1170918 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -142,23 +142,17 @@ static void o2net_idle_timer(unsigned long data);
- static void o2net_sc_postpone_idle(struct o2net_sock_container *sc);
- static void o2net_sc_reset_idle_timer(struct o2net_sock_container *sc);
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 1f1873b..cede25f 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -32,6 +32,7 @@
+ #include <linux/pagemap.h>
+ #include <linux/debugfs.h>
+ #include <linux/seq_file.h>
++#include <linux/time.h>
  
--/*
-- * FIXME: These should use to_o2nm_cluster_from_node(), but we end up
-- * losing our parent link to the cluster during shutdown. This can be
-- * solved by adding a pre-removal callback to configfs, or passing
-- * around the cluster with the node. -jeffm
-- */
--static inline int o2net_reconnect_delay(struct o2nm_node *node)
-+static inline int o2net_reconnect_delay(void)
- {
- 	return o2nm_single_cluster->cl_reconnect_delay_ms;
+ #include <cluster/heartbeat.h>
+ #include <cluster/nodemanager.h>
+@@ -65,6 +66,7 @@ struct ocfs2_mask_waiter {
+ 	struct completion	mw_complete;
+ 	unsigned long		mw_mask;
+ 	unsigned long		mw_goal;
++	unsigned long long 	mw_lock_start;
+ };
+ 
+ static struct ocfs2_super *ocfs2_get_dentry_osb(struct ocfs2_lock_res *lockres);
+@@ -415,6 +417,16 @@ static void ocfs2_lock_res_init_common(struct ocfs2_super *osb,
+ 	res->l_flags         = OCFS2_LOCK_INITIALIZED;
+ 
+ 	ocfs2_add_lockres_tracking(res, osb->osb_dlm_debug);
++
++	res->l_lock_num_prmode = 0;
++	res->l_lock_num_prmode_failed = 0;
++	res->l_lock_total_prmode = 0;
++	res->l_lock_max_prmode = 0;
++	res->l_lock_num_exmode = 0;
++	res->l_lock_num_exmode_failed = 0;
++	res->l_lock_total_exmode = 0;
++	res->l_lock_max_exmode = 0;
++	res->l_lock_refresh = 0;
  }
  
--static inline int o2net_keepalive_delay(struct o2nm_node *node)
-+static inline int o2net_keepalive_delay(void)
+ void ocfs2_lock_res_init_once(struct ocfs2_lock_res *res)
+@@ -950,8 +962,11 @@ static inline int ocfs2_may_continue_on_blocked_lock(struct ocfs2_lock_res *lock
+ 
+ static void ocfs2_init_mask_waiter(struct ocfs2_mask_waiter *mw)
  {
- 	return o2nm_single_cluster->cl_keepalive_delay_ms;
++	struct timespec ts = current_kernel_time();
++
+ 	INIT_LIST_HEAD(&mw->mw_item);
+ 	init_completion(&mw->mw_complete);
++	mw->mw_lock_start = timespec_to_ns(&ts);
  }
  
--static inline int o2net_idle_timeout(struct o2nm_node *node)
-+static inline int o2net_idle_timeout(void)
- {
- 	return o2nm_single_cluster->cl_idle_timeout_ms;
+ static int ocfs2_wait_for_mask(struct ocfs2_mask_waiter *mw)
+@@ -1013,6 +1028,35 @@ static int ocfs2_wait_for_mask_interruptible(struct ocfs2_mask_waiter *mw,
+ 	return ret;
  }
-@@ -444,9 +438,9 @@ static void o2net_set_nn_state(struct o2net_node *nn,
- 		/* delay if we're withing a RECONNECT_DELAY of the
- 		 * last attempt */
- 		delay = (nn->nn_last_connect_attempt +
--			 msecs_to_jiffies(o2net_reconnect_delay(NULL)))
-+			 msecs_to_jiffies(o2net_reconnect_delay()))
- 			- jiffies;
--		if (delay > msecs_to_jiffies(o2net_reconnect_delay(NULL)))
-+		if (delay > msecs_to_jiffies(o2net_reconnect_delay()))
- 			delay = 0;
- 		mlog(ML_CONN, "queueing conn attempt in %lu jiffies\n", delay);
- 		queue_delayed_work(o2net_wq, &nn->nn_connect_work, delay);
-@@ -460,7 +454,7 @@ static void o2net_set_nn_state(struct o2net_node *nn,
- 		 * the connect_expired work will do anything.  The rest will see
- 		 * that it's already queued and do nothing.
- 		 */
--		delay += msecs_to_jiffies(o2net_idle_timeout(NULL));
-+		delay += msecs_to_jiffies(o2net_idle_timeout());
- 		queue_delayed_work(o2net_wq, &nn->nn_connect_expired, delay);
+ 
++static void add_lock_stats(struct ocfs2_lock_res *lockres, int level,
++			   struct ocfs2_mask_waiter *mw, int ret)
++{
++	unsigned long long *num, *sum;
++	unsigned int *max, *failed;
++	struct timespec ts = current_kernel_time();
++	unsigned long long time = timespec_to_ns(&ts) - mw->mw_lock_start;
++
++	if (level == LKM_PRMODE) {
++		num = &lockres->l_lock_num_prmode;
++		sum = &lockres->l_lock_total_prmode;
++		max = &lockres->l_lock_max_prmode;
++		failed = &lockres->l_lock_num_prmode_failed;
++	} else if (level == LKM_EXMODE) {
++		num = &lockres->l_lock_num_exmode;
++		sum = &lockres->l_lock_total_exmode;
++		max = &lockres->l_lock_max_exmode;
++		failed = &lockres->l_lock_num_exmode_failed;
++	} else
++		return;
++
++	(*num)++;
++	(*sum) += time;
++	if (time > *max)
++		*max = time;
++	if (ret)
++		(*failed)++;
++}
++
+ static int ocfs2_cluster_lock(struct ocfs2_super *osb,
+ 			      struct ocfs2_lock_res *lockres,
+ 			      int level,
+@@ -1153,6 +1197,7 @@ out:
+ 			goto again;
+ 		mlog_errno(ret);
+ 	}
++	add_lock_stats(lockres, level, &mw, ret);
+ 
+ 	mlog_exit(ret);
+ 	return ret;
+@@ -1878,6 +1923,7 @@ static int ocfs2_inode_lock_update(struct inode *inode,
+ 				le32_to_cpu(fe->i_flags));
+ 
+ 		ocfs2_refresh_inode(inode, fe);
++		lockres->l_lock_refresh++;
  	}
  
-@@ -1159,23 +1153,23 @@ static int o2net_check_handshake(struct o2net_sock_container *sc)
- 	 * but isn't. This can ultimately cause corruption.
- 	 */
- 	if (be32_to_cpu(hand->o2net_idle_timeout_ms) !=
--				o2net_idle_timeout(sc->sc_node)) {
-+				o2net_idle_timeout()) {
- 		mlog(ML_NOTICE, SC_NODEF_FMT " uses a network idle timeout of "
- 		     "%u ms, but we use %u ms locally.  disconnecting\n",
- 		     SC_NODEF_ARGS(sc),
- 		     be32_to_cpu(hand->o2net_idle_timeout_ms),
--		     o2net_idle_timeout(sc->sc_node));
-+		     o2net_idle_timeout());
- 		o2net_ensure_shutdown(nn, sc, -ENOTCONN);
- 		return -1;
- 	}
+ 	status = 0;
+@@ -2169,6 +2215,7 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
  
- 	if (be32_to_cpu(hand->o2net_keepalive_delay_ms) !=
--			o2net_keepalive_delay(sc->sc_node)) {
-+			o2net_keepalive_delay()) {
- 		mlog(ML_NOTICE, SC_NODEF_FMT " uses a keepalive delay of "
- 		     "%u ms, but we use %u ms locally.  disconnecting\n",
- 		     SC_NODEF_ARGS(sc),
- 		     be32_to_cpu(hand->o2net_keepalive_delay_ms),
--		     o2net_keepalive_delay(sc->sc_node));
-+		     o2net_keepalive_delay());
- 		o2net_ensure_shutdown(nn, sc, -ENOTCONN);
- 		return -1;
+ 		if (status < 0)
+ 			mlog_errno(status);
++		lockres->l_lock_refresh++;
  	}
-@@ -1353,12 +1347,11 @@ static void o2net_initialize_handshake(void)
- {
- 	o2net_hand->o2hb_heartbeat_timeout_ms = cpu_to_be32(
- 		O2HB_MAX_WRITE_TIMEOUT_MS);
--	o2net_hand->o2net_idle_timeout_ms = cpu_to_be32(
--		o2net_idle_timeout(NULL));
-+	o2net_hand->o2net_idle_timeout_ms = cpu_to_be32(o2net_idle_timeout());
- 	o2net_hand->o2net_keepalive_delay_ms = cpu_to_be32(
--		o2net_keepalive_delay(NULL));
-+		o2net_keepalive_delay());
- 	o2net_hand->o2net_reconnect_delay_ms = cpu_to_be32(
--		o2net_reconnect_delay(NULL));
-+		o2net_reconnect_delay());
+ bail:
+ 	mlog_exit(status);
+@@ -2363,7 +2410,7 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
  }
  
- /* ------------------------------------------------------------ */
-@@ -1404,8 +1397,8 @@ static void o2net_idle_timer(unsigned long data)
- 
- 	printk(KERN_INFO "o2net: connection to " SC_NODEF_FMT " has been idle for %u.%u "
- 	     "seconds, shutting it down.\n", SC_NODEF_ARGS(sc),
--		     o2net_idle_timeout(sc->sc_node) / 1000,
--		     o2net_idle_timeout(sc->sc_node) % 1000);
-+		     o2net_idle_timeout() / 1000,
-+		     o2net_idle_timeout() % 1000);
- 	mlog(ML_NOTICE, "here are some times that might help debug the "
- 	     "situation: (tmr %ld.%ld now %ld.%ld dr %ld.%ld adv "
- 	     "%ld.%ld:%ld.%ld func (%08x:%u) %ld.%ld:%ld.%ld)\n",
-@@ -1433,10 +1426,10 @@ static void o2net_sc_reset_idle_timer(struct o2net_sock_container *sc)
+ /* So that debugfs.ocfs2 can determine which format is being used */
+-#define OCFS2_DLM_DEBUG_STR_VERSION 1
++#define OCFS2_DLM_DEBUG_STR_VERSION 2
+ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
  {
- 	o2net_sc_cancel_delayed_work(sc, &sc->sc_keepalive_work);
- 	o2net_sc_queue_delayed_work(sc, &sc->sc_keepalive_work,
--		      msecs_to_jiffies(o2net_keepalive_delay(sc->sc_node)));
-+		      msecs_to_jiffies(o2net_keepalive_delay()));
- 	do_gettimeofday(&sc->sc_tv_timer);
- 	mod_timer(&sc->sc_idle_timeout,
--	       jiffies + msecs_to_jiffies(o2net_idle_timeout(sc->sc_node)));
-+	       jiffies + msecs_to_jiffies(o2net_idle_timeout()));
- }
+ 	int i;
+@@ -2404,6 +2451,26 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ 	for(i = 0; i < DLM_LVB_LEN; i++)
+ 		seq_printf(m, "0x%x\t", lvb[i]);
  
- static void o2net_sc_postpone_idle(struct o2net_sock_container *sc)
-@@ -1578,8 +1571,8 @@ static void o2net_connect_expired(struct work_struct *work)
- 		mlog(ML_ERROR, "no connection established with node %u after "
- 		     "%u.%u seconds, giving up and returning errors.\n",
- 		     o2net_num_from_nn(nn),
--		     o2net_idle_timeout(NULL) / 1000,
--		     o2net_idle_timeout(NULL) % 1000);
-+		     o2net_idle_timeout() / 1000,
-+		     o2net_idle_timeout() % 1000);
++	/* The following seq_print was added in version 2 of this output */
++	seq_printf(m, "%llu\t"
++		   "%llu\t"
++		   "%u\t"
++		   "%u\t"
++		   "%llu\t"
++		   "%llu\t"
++		   "%u\t"
++		   "%u\t"
++		   "%u\t",
++		   lockres->l_lock_num_prmode,
++		   lockres->l_lock_num_exmode,
++		   lockres->l_lock_num_prmode_failed,
++		   lockres->l_lock_num_exmode_failed,
++		   lockres->l_lock_total_prmode,
++		   lockres->l_lock_total_exmode,
++		   lockres->l_lock_max_prmode,
++		   lockres->l_lock_max_exmode,
++		   lockres->l_lock_refresh);
++
+ 	/* End the line */
+ 	seq_printf(m, "\n");
+ 	return 0;
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 6546cef..771fd81 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -131,6 +131,16 @@ struct ocfs2_lock_res {
+ 	wait_queue_head_t        l_event;
  
- 		o2net_set_nn_state(nn, NULL, 0, -ENOTCONN);
- 	}
-@@ -1634,7 +1627,7 @@ static void o2net_hb_node_up_cb(struct o2nm_node *node, int node_num,
+ 	struct list_head         l_debug_list;
++
++	unsigned long long	 l_lock_num_prmode; 	   /* PR acquires */
++	unsigned long long 	 l_lock_num_exmode; 	   /* EX acquires */
++	unsigned int		 l_lock_num_prmode_failed; /* Failed PR gets */
++	unsigned int		 l_lock_num_exmode_failed; /* Failed EX gets */
++	unsigned long long	 l_lock_total_prmode; 	   /* Tot wait for PR */
++	unsigned long long	 l_lock_total_exmode; 	   /* Tot wait for EX */
++	unsigned int		 l_lock_max_prmode; 	   /* Max wait for PR */
++	unsigned int		 l_lock_max_exmode; 	   /* Max wait for EX */
++	unsigned int		 l_lock_refresh;	   /* Disk refreshes */
+ };
  
- 	/* ensure an immediate connect attempt */
- 	nn->nn_last_connect_attempt = jiffies -
--		(msecs_to_jiffies(o2net_reconnect_delay(node)) + 1);
-+		(msecs_to_jiffies(o2net_reconnect_delay()) + 1);
- 
- 	if (node_num != o2nm_this_node()) {
- 		/* believe it or not, accept and node hearbeating testing
+ struct ocfs2_dlm_debug {
 -- 
-1.5.4.1
+1.5.3.4
