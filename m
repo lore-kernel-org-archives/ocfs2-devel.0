@@ -1,8 +1,8 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:27 -0700
-Subject: [Ocfs2-devel] [PATCH 17/62] ocfs2: handle async EAGAIN from NOQUEUE
-	request
-In-Reply-To: <12071673511262-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:34 -0700
+Subject: [Ocfs2-devel] [PATCH 24/62] ocfs2: Add the USERSPACE_STACK incompat
+	bit.
+In-Reply-To: <12071673661674-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -20,95 +20,312 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071673481928-git-send-email-mfasheh@suse.com>
 	<12071673492775-git-send-email-mfasheh@suse.com>
 	<12071673511262-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673543752-git-send-email-mfasheh@suse.com>
+	<12071673543752-git-send-email-mfasheh@suse.com>
+	<1207167355295-git-send-email-mfasheh@suse.com>
+	<12071673571757-git-send-email-mfasheh@suse.com>
+	<12071673591158-git-send-email-mfasheh@suse.com>
+	<12071673613757-git-send-email-mfasheh@suse.com>
+	<1207167363119-git-send-email-mfasheh@suse.com>
+	<12071673661674-git-send-email-mfasheh@suse.com>
+Message-ID: <12071673681650-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, David Teigland <teigland@redhat.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
-From: David Teigland <teigland@redhat.com>
+From: Joel Becker <joel.becker@oracle.com>
 
-When using fsdlm, -EAGAIN is returned in the async callback for NOQUEUE
-requests. Fix up dlmglue to expect this.
+The filesystem gains the USERSPACE_STACK incomat bit and the
+s_cluster_info field on the superblock.  When a userspace stack is in
+use, the name of the stack is stored on-disk for mount-time
+verification.
 
-Signed-off-by: David Teigland <teigland@redhat.com>
+The "cluster_stack" option is added to mount(2) processing.  The mount
+process needs to pass the matching stack name.  If the passed name and
+the on-disk name do not match, the mount is failed.
+
+When using the classic o2cb stack, the incompat bit is *not* set and no
+mount option is used other than the usual heartbeat=local.  Thus, the
+filesystem is compatible with older tools.
+
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlmglue.c |   27 +++++++++++++++++++++++----
- 1 files changed, 23 insertions(+), 4 deletions(-)
+ fs/ocfs2/ocfs2.h    |    7 ++++
+ fs/ocfs2/ocfs2_fs.h |   40 +++++++++++++++++++++-
+ fs/ocfs2/super.c    |   90 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 134 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 295c47f..b640423 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -880,13 +880,20 @@ static void ocfs2_locking_ast(void *opaque)
- 	struct ocfs2_lock_res *lockres = opaque;
- 	struct ocfs2_super *osb = ocfs2_get_lockres_osb(lockres);
- 	unsigned long flags;
-+	int status;
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index af929ec..9ff5811 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -248,6 +248,7 @@ struct ocfs2_super
+ 	struct ocfs2_alloc_stats alloc_stats;
+ 	char dev_str[20];		/* "major,minor" of the device */
  
- 	spin_lock_irqsave(&lockres->l_lock, flags);
++	char osb_cluster_stack[OCFS2_STACK_LABEL_LEN + 1];
+ 	struct ocfs2_cluster_connection *cconn;
+ 	struct ocfs2_lock_res osb_super_lockres;
+ 	struct ocfs2_lock_res osb_rename_lockres;
+@@ -368,6 +369,12 @@ static inline int ocfs2_is_soft_readonly(struct ocfs2_super *osb)
+ 	return ret;
+ }
  
--	if (ocfs2_dlm_lock_status(&lockres->l_lksb)) {
-+	status = ocfs2_dlm_lock_status(&lockres->l_lksb);
++static inline int ocfs2_userspace_stack(struct ocfs2_super *osb)
++{
++	return (osb->s_feature_incompat &
++		OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK);
++}
 +
-+	if (status == -EAGAIN) {
-+		lockres_clear_flags(lockres, OCFS2_LOCK_BUSY);
-+		goto out;
+ static inline int ocfs2_mount_local(struct ocfs2_super *osb)
+ {
+ 	return (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT);
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index c495023..52c4266 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -89,7 +89,8 @@
+ #define OCFS2_FEATURE_INCOMPAT_SUPP	(OCFS2_FEATURE_INCOMPAT_LOCAL_MOUNT \
+ 					 | OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC \
+ 					 | OCFS2_FEATURE_INCOMPAT_INLINE_DATA \
+-					 | OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP)
++					 | OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP \
++					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK)
+ #define OCFS2_FEATURE_RO_COMPAT_SUPP	OCFS2_FEATURE_RO_COMPAT_UNWRITTEN
+ 
+ /*
+@@ -131,6 +132,17 @@
+ 
+ 
+ /*
++ * Support for alternate, userspace cluster stacks.  If set, the superblock
++ * field s_cluster_info contains a tag for the alternate stack in use as
++ * well as the name of the cluster being joined.
++ * mount.ocfs2 must pass in a matching stack name.
++ *
++ * If not set, the classic stack will be used.  This is compatbile with
++ * all older versions.
++ */
++#define OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK	0x0080
++
++/*
+  * backup superblock flag is used to indicate that this volume
+  * has backup superblocks.
+  */
+@@ -272,6 +284,10 @@ struct ocfs2_new_group_input {
+ #define OCFS2_VOL_UUID_LEN		16
+ #define OCFS2_MAX_VOL_LABEL_LEN		64
+ 
++/* The alternate, userspace stack fields */
++#define OCFS2_STACK_LABEL_LEN		4
++#define OCFS2_CLUSTER_NAME_LEN		16
++
+ /* Journal limits (in bytes) */
+ #define OCFS2_MIN_JOURNAL_SIZE		(4 * 1024 * 1024)
+ 
+@@ -513,6 +529,13 @@ struct ocfs2_slot_map_extended {
+  */
+ };
+ 
++struct ocfs2_cluster_info {
++/*00*/	__u8   ci_stack[OCFS2_STACK_LABEL_LEN];
++	__le32 ci_reserved;
++/*08*/	__u8   ci_cluster[OCFS2_CLUSTER_NAME_LEN];
++/*18*/
++};
++
+ /*
+  * On disk superblock for OCFS2
+  * Note that it is contained inside an ocfs2_dinode, so all offsets
+@@ -545,7 +568,20 @@ struct ocfs2_super_block {
+ 					 * group header */
+ /*50*/	__u8  s_label[OCFS2_MAX_VOL_LABEL_LEN];	/* Label for mounting, etc. */
+ /*90*/	__u8  s_uuid[OCFS2_VOL_UUID_LEN];	/* 128-bit uuid */
+-/*A0*/
++/*A0*/  struct ocfs2_cluster_info s_cluster_info; /* Selected userspace
++						     stack.  Only valid
++						     with INCOMPAT flag. */
++/*B8*/  __le64 s_reserved2[17];		/* Fill out superblock */
++/*140*/
++
++	/*
++	 * NOTE: As stated above, all offsets are relative to
++	 * ocfs2_dinode.id2, which is at 0xC0 in the inode.
++	 * 0xC0 + 0x140 = 0x200 or 512 bytes.  A superblock must fit within
++	 * our smallest blocksize, which is 512 bytes.  To ensure this,
++	 * we reserve the space in s_reserved2.  Anything past s_reserved2
++	 * will not be available on the smallest blocksize.
++	 */
+ };
+ 
+ /*
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index e27a0d4..96ebe36 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -87,6 +87,7 @@ struct mount_options
+ 	unsigned int	atime_quantum;
+ 	signed short	slot;
+ 	unsigned int	localalloc_opt;
++	char		cluster_stack[OCFS2_STACK_LABEL_LEN + 1];
+ };
+ 
+ static int ocfs2_parse_options(struct super_block *sb, char *options,
+@@ -152,6 +153,7 @@ enum {
+ 	Opt_commit,
+ 	Opt_localalloc,
+ 	Opt_localflocks,
++	Opt_stack,
+ 	Opt_err,
+ };
+ 
+@@ -170,6 +172,7 @@ static match_table_t tokens = {
+ 	{Opt_commit, "commit=%u"},
+ 	{Opt_localalloc, "localalloc=%d"},
+ 	{Opt_localflocks, "localflocks"},
++	{Opt_stack, "cluster_stack=%s"},
+ 	{Opt_err, NULL}
+ };
+ 
+@@ -549,8 +552,17 @@ static int ocfs2_verify_heartbeat(struct ocfs2_super *osb)
+ 		}
+ 	}
+ 
++	if (ocfs2_userspace_stack(osb)) {
++		if (osb->s_mount_opt & OCFS2_MOUNT_HB_LOCAL) {
++			mlog(ML_ERROR, "Userspace stack expected, but "
++			     "o2cb heartbeat arguments passed to mount\n");
++			return -EINVAL;
++		}
 +	}
 +
-+	if (status) {
- 		mlog(ML_ERROR, "lockres %s: lksb status value of %d!\n",
--		     lockres->l_name,
--		     ocfs2_dlm_lock_status(&lockres->l_lksb));
-+		     lockres->l_name, status);
- 		spin_unlock_irqrestore(&lockres->l_lock, flags);
- 		return;
- 	}
-@@ -909,7 +916,7 @@ static void ocfs2_locking_ast(void *opaque)
- 		     lockres->l_unlock_action);
- 		BUG();
- 	}
--
-+out:
- 	/* set it to something invalid so if we get called again we
- 	 * can catch it. */
- 	lockres->l_action = OCFS2_AST_INVALID;
-@@ -1113,6 +1120,7 @@ static int ocfs2_cluster_lock(struct ocfs2_super *osb,
- 	int ret = 0; /* gcc doesn't realize wait = 1 guarantees ret is set */
- 	unsigned long flags;
- 	unsigned int gen;
-+	int noqueue_attempted = 0;
+ 	if (!(osb->s_mount_opt & OCFS2_MOUNT_HB_LOCAL)) {
+-		if (!ocfs2_mount_local(osb) && !ocfs2_is_hard_readonly(osb)) {
++		if (!ocfs2_mount_local(osb) && !ocfs2_is_hard_readonly(osb) &&
++		    !ocfs2_userspace_stack(osb)) {
+ 			mlog(ML_ERROR, "Heartbeat has to be started to mount "
+ 			     "a read-write clustered device.\n");
+ 			return -EINVAL;
+@@ -560,6 +572,35 @@ static int ocfs2_verify_heartbeat(struct ocfs2_super *osb)
+ 	return 0;
+ }
  
- 	mlog_entry_void();
- 
-@@ -1157,6 +1165,13 @@ again:
- 	}
- 
- 	if (level > lockres->l_level) {
-+		if (noqueue_attempted > 0) {
-+			ret = -EAGAIN;
-+			goto unlock;
-+		}
-+		if (lkm_flags & DLM_LKF_NOQUEUE)
-+			noqueue_attempted = 1;
++/*
++ * If we're using a userspace stack, mount should have passed
++ * a name that matches the disk.  If not, mount should not
++ * have passed a stack.
++ */
++static int ocfs2_verify_userspace_stack(struct ocfs2_super *osb,
++					struct mount_options *mopt)
++{
++	if (!ocfs2_userspace_stack(osb) && mopt->cluster_stack[0]) {
++		mlog(ML_ERROR,
++		     "cluster stack passed to mount, but this filesystem "
++		     "does not support it\n");
++		return -EINVAL;
++	}
 +
- 		if (lockres->l_action != OCFS2_AST_INVALID)
- 			mlog(ML_ERROR, "lockres %s has action %u pending\n",
- 			     lockres->l_name, lockres->l_action);
-@@ -1621,6 +1636,10 @@ int ocfs2_file_lock(struct file *file, int ex, int trylock)
- 		 * to just bubble sucess back up to the user.
- 		 */
- 		ret = ocfs2_flock_handle_signal(lockres, level);
-+	} else if (!ret && (level > lockres->l_level)) {
-+		/* Trylock failed asynchronously */
-+		BUG_ON(!trylock);
-+		ret = -EAGAIN;
++	if (ocfs2_userspace_stack(osb) &&
++	    strncmp(osb->osb_cluster_stack, mopt->cluster_stack,
++		    OCFS2_STACK_LABEL_LEN)) {
++		mlog(ML_ERROR,
++		     "cluster stack passed to mount (\"%s\") does not "
++		     "match the filesystem (\"%s\")\n",
++		     mopt->cluster_stack,
++		     osb->osb_cluster_stack);
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
+ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ {
+ 	struct dentry *root;
+@@ -598,6 +639,10 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 	osb->osb_commit_interval = parsed_options.commit_interval;
+ 	osb->local_alloc_size = parsed_options.localalloc_opt;
+ 
++	status = ocfs2_verify_userspace_stack(osb, &parsed_options);
++	if (status)
++		goto read_super_error;
++
+ 	sb->s_magic = OCFS2_SUPER_MAGIC;
+ 
+ 	/* Hard readonly mode only if: bdev_read_only, MS_RDONLY,
+@@ -752,6 +797,7 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 	mopt->atime_quantum = OCFS2_DEFAULT_ATIME_QUANTUM;
+ 	mopt->slot = OCFS2_INVALID_SLOT;
+ 	mopt->localalloc_opt = OCFS2_DEFAULT_LOCAL_ALLOC_SIZE;
++	mopt->cluster_stack[0] = '\0';
+ 
+ 	if (!options) {
+ 		status = 1;
+@@ -853,6 +899,25 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 			if (!is_remount)
+ 				mopt->mount_opt |= OCFS2_MOUNT_LOCALFLOCKS;
+ 			break;
++		case Opt_stack:
++			/* Check both that the option we were passed
++			 * is of the right length and that it is a proper
++			 * string of the right length.
++			 */
++			if (((args[0].to - args[0].from) !=
++			     OCFS2_STACK_LABEL_LEN) ||
++			    (strnlen(args[0].from,
++				     OCFS2_STACK_LABEL_LEN) !=
++			     OCFS2_STACK_LABEL_LEN)) {
++				mlog(ML_ERROR,
++				     "Invalid cluster_stack option\n");
++				status = 0;
++				goto bail;
++			}
++			memcpy(mopt->cluster_stack, args[0].from,
++			       OCFS2_STACK_LABEL_LEN);
++			mopt->cluster_stack[OCFS2_STACK_LABEL_LEN] = '\0';
++			break;
+ 		default:
+ 			mlog(ML_ERROR,
+ 			     "Unrecognized mount option \"%s\" "
+@@ -911,6 +976,10 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
+ 	if (opts & OCFS2_MOUNT_LOCALFLOCKS)
+ 		seq_printf(s, ",localflocks,");
+ 
++	if (osb->osb_cluster_stack[0])
++		seq_printf(s, ",cluster_stack=%.*s", OCFS2_STACK_LABEL_LEN,
++			   osb->osb_cluster_stack);
++
+ 	return 0;
+ }
+ 
+@@ -1403,6 +1472,25 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		goto bail;
  	}
  
- out:
++	if (ocfs2_userspace_stack(osb)) {
++		memcpy(osb->osb_cluster_stack,
++		       OCFS2_RAW_SB(di)->s_cluster_info.ci_stack,
++		       OCFS2_STACK_LABEL_LEN);
++		osb->osb_cluster_stack[OCFS2_STACK_LABEL_LEN] = '\0';
++		if (strlen(osb->osb_cluster_stack) != OCFS2_STACK_LABEL_LEN) {
++			mlog(ML_ERROR,
++			     "couldn't mount because of an invalid "
++			     "cluster stack label (%s) \n",
++			     osb->osb_cluster_stack);
++			status = -EINVAL;
++			goto bail;
++		}
++	} else {
++		/* The empty string is identical with classic tools that
++		 * don't know about s_cluster_info. */
++		osb->osb_cluster_stack[0] = '\0';
++	}
++
+ 	get_random_bytes(&osb->s_next_generation, sizeof(u32));
+ 
+ 	/* FIXME
 -- 
 1.5.4.1
