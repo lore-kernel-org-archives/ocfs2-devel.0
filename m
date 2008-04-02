@@ -1,8 +1,7 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:15:05 -0700
-Subject: [Ocfs2-devel] [PATCH 55/62] ocfs2: Add ac_alloc_slot in
-	ocfs2_alloc_context
-In-Reply-To: <12071674312495-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:15:01 -0700
+Subject: [Ocfs2-devel] [PATCH 51/62] ocfs2: Move /sys/o2cb to /sys/fs/o2cb
+In-Reply-To: <12071674242631-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -54,71 +53,109 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071674193441-git-send-email-mfasheh@suse.com>
 	<12071674213882-git-send-email-mfasheh@suse.com>
 	<12071674242631-git-send-email-mfasheh@suse.com>
-	<1207167425415-git-send-email-mfasheh@suse.com>
-	<1207167427753-git-send-email-mfasheh@suse.com>
-	<12071674291040-git-send-email-mfasheh@suse.com>
-	<12071674312495-git-send-email-mfasheh@suse.com>
-Message-ID: <12071674333467-git-send-email-mfasheh@suse.com>
+Message-ID: <1207167425415-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <tao.ma@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
-From: Tao Ma <tao.ma@oracle.com>
+/sys/fs is where we really want file system specific sysfs objects.
 
-In inode stealing, we no longer restrict the allocation to
-happen in the local node. So it is neccessary for us to add
-a new member in ocfs2_alloc_context to indicate which slot
-we are using for allocation. We also modify the process of
-local alloc so that this member can be used there also.
+Ocfs2-tools has been updated to look in /sys/fs/o2cb. We can maintain
+backwards compatibility with old ocfs2-tools by using a sysfs symlink. After
+some time (2 years), the symlink can be safely removed. This patch also adds
+documentation to make it easier for people to figure out what /sys/fs/o2cb
+is used for.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/localalloc.c |    2 ++
- fs/ocfs2/suballoc.c   |    1 +
- fs/ocfs2/suballoc.h   |    1 +
- 3 files changed, 4 insertions(+), 0 deletions(-)
+ Documentation/ABI/obsolete/o2cb            |   11 +++++++++++
+ Documentation/ABI/stable/o2cb              |   10 ++++++++++
+ Documentation/feature-removal-schedule.txt |   10 ++++++++++
+ fs/ocfs2/cluster/sys.c                     |    9 +++++++++
+ 4 files changed, 40 insertions(+), 0 deletions(-)
+ create mode 100644 Documentation/ABI/obsolete/o2cb
+ create mode 100644 Documentation/ABI/stable/o2cb
 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index ab83fd5..b6d0719 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -523,6 +523,8 @@ int ocfs2_reserve_local_alloc_bits(struct ocfs2_super *osb,
- 	}
+diff --git a/Documentation/ABI/obsolete/o2cb b/Documentation/ABI/obsolete/o2cb
+new file mode 100644
+index 0000000..9c49d8e
+--- /dev/null
++++ b/Documentation/ABI/obsolete/o2cb
+@@ -0,0 +1,11 @@
++What:		/sys/o2cb symlink
++Date:		Dec 2005
++KernelVersion:	2.6.16
++Contact:	ocfs2-devel at oss.oracle.com
++Description:	This is a symlink: /sys/o2cb to /sys/fs/o2cb. The symlink will
++		be removed when new versions of ocfs2-tools which know to look
++		in /sys/fs/o2cb are sufficiently prevalent. Don't code new
++		software to look here, it should try /sys/fs/o2cb instead.
++		See Documentation/ABI/stable/o2cb for more information on usage.
++Users:		ocfs2-tools. It's sufficient to mail proposed changes to
++		ocfs2-devel at oss.oracle.com.
+diff --git a/Documentation/ABI/stable/o2cb b/Documentation/ABI/stable/o2cb
+new file mode 100644
+index 0000000..5eb1545
+--- /dev/null
++++ b/Documentation/ABI/stable/o2cb
+@@ -0,0 +1,10 @@
++What:		/sys/fs/o2cb/ (was /sys/o2cb)
++Date:		Dec 2005
++KernelVersion:	2.6.16
++Contact:	ocfs2-devel at oss.oracle.com
++Description:	Ocfs2-tools looks at 'interface-revision' for versioning
++		information. Each logmask/ file controls a set of debug prints
++		and can be written into with the strings "allow", "deny", or
++		"off". Reading the file returns the current state.
++Users:		ocfs2-tools. It's sufficient to mail proposed changes to
++		ocfs2-devel at oss.oracle.com.
+diff --git a/Documentation/feature-removal-schedule.txt b/Documentation/feature-removal-schedule.txt
+index bf0e3df..4101f1f 100644
+--- a/Documentation/feature-removal-schedule.txt
++++ b/Documentation/feature-removal-schedule.txt
+@@ -318,3 +318,13 @@ Why:	Not used in-tree. The current out-of-tree users used it to
+ 	code / infrastructure should be in the kernel and not in some
+ 	out-of-tree driver.
+ Who:	Thomas Gleixner <tglx@linutronix.de>
++
++---------------------------
++
++What:	/sys/o2cb symlink
++When:	January 2010
++Why:	/sys/fs/o2cb is the proper location for this information - /sys/o2cb
++	exists as a symlink for backwards compatibility for old versions of
++	ocfs2-tools. 2 years should be sufficient time to phase in new versions
++	which know to look in /sys/fs/o2cb.
++Who:	ocfs2-devel at oss.oracle.com
+diff --git a/fs/ocfs2/cluster/sys.c b/fs/ocfs2/cluster/sys.c
+index 0c095ce..98429fd 100644
+--- a/fs/ocfs2/cluster/sys.c
++++ b/fs/ocfs2/cluster/sys.c
+@@ -57,6 +57,7 @@ static struct kset *o2cb_kset;
+ void o2cb_sys_shutdown(void)
+ {
+ 	mlog_sys_shutdown();
++	sysfs_remove_link(NULL, "o2cb");
+ 	kset_unregister(o2cb_kset);
+ }
  
- 	ac->ac_inode = local_alloc_inode;
-+	/* We should never use localalloc from another slot */
-+	ac->ac_alloc_slot = osb->slot_num;
- 	ac->ac_which = OCFS2_AC_USE_LOCAL;
- 	get_bh(osb->local_alloc_bh);
- 	ac->ac_bh = osb->local_alloc_bh;
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 3be4e73..33d5573 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -424,6 +424,7 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 	}
+@@ -68,6 +69,14 @@ int o2cb_sys_init(void)
+ 	if (!o2cb_kset)
+ 		return -ENOMEM;
  
- 	ac->ac_inode = alloc_inode;
-+	ac->ac_alloc_slot = slot;
- 
- 	fe = (struct ocfs2_dinode *) bh->b_data;
- 	if (!OCFS2_IS_VALID_DINODE(fe)) {
-diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-index 8799033..544c600 100644
---- a/fs/ocfs2/suballoc.h
-+++ b/fs/ocfs2/suballoc.h
-@@ -36,6 +36,7 @@ typedef int (group_search_t)(struct inode *,
- struct ocfs2_alloc_context {
- 	struct inode *ac_inode;    /* which bitmap are we allocating from? */
- 	struct buffer_head *ac_bh; /* file entry bh */
-+	u32    ac_alloc_slot;   /* which slot are we allocating from? */
- 	u32    ac_bits_wanted;
- 	u32    ac_bits_given;
- #define OCFS2_AC_USE_LOCAL 1
++	/*
++	 * Create this symlink for backwards compatibility with old
++	 * versions of ocfs2-tools which look for things in /sys/o2cb.
++	 */
++	ret = sysfs_create_link(NULL, &o2cb_kset->kobj, "o2cb");
++	if (ret)
++		goto error;
++
+ 	ret = sysfs_create_group(&o2cb_kset->kobj, &o2cb_attr_group);
+ 	if (ret)
+ 		goto error;
 -- 
 1.5.4.1
