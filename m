@@ -1,96 +1,102 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:15:08 -0700
-Subject: [Ocfs2-devel] [PATCH 58/62] ocfs2: Improve rename locking
-In-Reply-To: <12071674382558-git-send-email-mfasheh@suse.com>
-References: <12071673121124-git-send-email-mfasheh@suse.com>
-	<1207167318479-git-send-email-mfasheh@suse.com>
-	<12071673203909-git-send-email-mfasheh@suse.com>
-	<12071673232465-git-send-email-mfasheh@suse.com>
-	<12071673263948-git-send-email-mfasheh@suse.com>
-	<12071673282579-git-send-email-mfasheh@suse.com>
-	<1207167330482-git-send-email-mfasheh@suse.com>
-	<12071673321172-git-send-email-mfasheh@suse.com>
-	<12071673341888-git-send-email-mfasheh@suse.com>
-	<12071673362069-git-send-email-mfasheh@suse.com>
-	<12071673391031-git-send-email-mfasheh@suse.com>
-	<12071673413492-git-send-email-mfasheh@suse.com>
-	<1207167343926-git-send-email-mfasheh@suse.com>
-	<12071673461268-git-send-email-mfasheh@suse.com>
-	<12071673481928-git-send-email-mfasheh@suse.com>
-	<12071673492775-git-send-email-mfasheh@suse.com>
-	<12071673511262-git-send-email-mfasheh@suse.com>
-	<12071673543752-git-send-email-mfasheh@suse.com>
-	<1207167355295-git-send-email-mfasheh@suse.com>
-	<12071673571757-git-send-email-mfasheh@suse.com>
-	<12071673591158-git-send-email-mfasheh@suse.com>
-	<12071673613757-git-send-email-mfasheh@suse.com>
-	<1207167363119-git-send-email-mfasheh@suse.com>
-	<12071673661674-git-send-email-mfasheh@suse.com>
-	<12071673681650-git-send-email-mfasheh@suse.com>
-	<12071673701937-git-send-email-mfasheh@suse.com>
-	<12071673722691-git-send-email-mfasheh@suse.com>
-	<12071673731276-git-send-email-mfasheh@suse.com>
-	<12071673753788-git-send-email-mfasheh@suse.com>
-	<12071673772233-git-send-email-mfasheh@suse.com>
-	<1207167379283-git-send-email-mfasheh@suse.com>
-	<12071673821008-git-send-email-mfasheh@suse.com>
-	<12071673843208-git-send-email-mfasheh@suse.com>
-	<12071673872568-git-send-email-mfasheh@suse.com>
-	<12071673882492-git-send-email-mfasheh@suse.com>
-	<1207167390414-git-send-email-mfasheh@suse.com>
-	<1207167392537-git-send-email-mfasheh@suse.com>
-	<12071673941659-git-send-email-mfasheh@suse.com>
-	<12071673964014-git-send-email-mfasheh@suse.com>
-	<1207167398684-git-send-email-mfasheh@suse.com>
-	<12071674013954-git-send-email-mfasheh@suse.com>
-	<12071674033903-git-send-email-mfasheh@suse.com>
-	<12071674061934-git-send-email-mfasheh@suse.com>
-	<12071674083120-git-send-email-mfasheh@suse.com>
-	<12071674103432-git-send-email-mfasheh@suse.com>
-	<1207167413855-git-send-email-mfasheh@suse.com>
-	<12071674151752-git-send-email-mfasheh@suse.com>
-	<12071674171596-git-send-email-mfasheh@suse.com>
-	<12071674193441-git-send-email-mfasheh@suse.com>
-	<12071674213882-git-send-email-mfasheh@suse.com>
-	<12071674242631-git-send-email-mfasheh@suse.com>
-	<1207167425415-git-send-email-mfasheh@suse.com>
-	<1207167427753-git-send-email-mfasheh@suse.com>
-	<12071674291040-git-send-email-mfasheh@suse.com>
-	<12071674312495-git-send-email-mfasheh@suse.com>
-	<12071674333467-git-send-email-mfasheh@suse.com>
-	<12071674361985-git-send-email-mfasheh@suse.com>
-	<12071674382558-git-send-email-mfasheh@suse.com>
-Message-ID: <12071674402193-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:24:55 -0700
+Subject: [Ocfs2-devel] [PATCH 59/62] ocfs2: Convert ocfs2 over to
+	unlocked_ioctl
+In-Reply-To: 12071673121124-git-send-email-mfasheh@suse.com
+References: 12071673121124-git-send-email-mfasheh@suse.com
+Message-ID: <1207167898446-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Jan Kara <jack@suse.cz>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andi Kleen <andi-suse@firstfloor.org>
 
-From: Jan Kara <jack@suse.cz>
+From: Andi Kleen <andi-suse@firstfloor.org>
 
-ocfs2_rename() was being too aggressive with the rename lock - we only need
-it for certain forms of directory rename.
+As far as I can see there is nothing in ocfs2_ioctl that requires the BKL,
+so use unlocked_ioctl
 
-Signed-off-by: Jan Kara <jack@suse.cz>
+Signed-off-by: Andi Kleen <ak@suse.de>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/namei.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ fs/ocfs2/file.c  |    4 ++--
+ fs/ocfs2/ioctl.c |   12 +++---------
+ fs/ocfs2/ioctl.h |    3 +--
+ 3 files changed, 6 insertions(+), 13 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index ab5a227..d5d808f 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -997,7 +997,7 @@ static int ocfs2_rename(struct inode *old_dir,
- 	 *
- 	 * And that's why, just like the VFS, we need a file system
- 	 * rename lock. */
--	if (old_dentry != new_dentry) {
-+	if (old_dir != new_dir && S_ISDIR(old_inode->i_mode)) {
- 		status = ocfs2_rename_lock(osb);
- 		if (status < 0) {
- 			mlog_errno(status);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index ed5d523..9154c82 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2242,7 +2242,7 @@ const struct file_operations ocfs2_fops = {
+ 	.open		= ocfs2_file_open,
+ 	.aio_read	= ocfs2_file_aio_read,
+ 	.aio_write	= ocfs2_file_aio_write,
+-	.ioctl		= ocfs2_ioctl,
++	.unlocked_ioctl	= ocfs2_ioctl,
+ #ifdef CONFIG_COMPAT
+ 	.compat_ioctl   = ocfs2_compat_ioctl,
+ #endif
+@@ -2258,7 +2258,7 @@ const struct file_operations ocfs2_dops = {
+ 	.fsync		= ocfs2_sync_file,
+ 	.release	= ocfs2_dir_release,
+ 	.open		= ocfs2_dir_open,
+-	.ioctl		= ocfs2_ioctl,
++	.unlocked_ioctl	= ocfs2_ioctl,
+ #ifdef CONFIG_COMPAT
+ 	.compat_ioctl   = ocfs2_compat_ioctl,
+ #endif
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index ab1c216..b413166 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -113,9 +113,9 @@ bail:
+ 	return status;
+ }
+ 
+-int ocfs2_ioctl(struct inode * inode, struct file * filp,
+-	unsigned int cmd, unsigned long arg)
++long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
++	struct inode *inode = filp->f_path.dentry->d_inode;
+ 	unsigned int flags;
+ 	int new_clusters;
+ 	int status;
+@@ -169,9 +169,6 @@ int ocfs2_ioctl(struct inode * inode, struct file * filp,
+ #ifdef CONFIG_COMPAT
+ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+ {
+-	struct inode *inode = file->f_path.dentry->d_inode;
+-	int ret;
+-
+ 	switch (cmd) {
+ 	case OCFS2_IOC32_GETFLAGS:
+ 		cmd = OCFS2_IOC_GETFLAGS;
+@@ -191,9 +188,6 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+ 		return -ENOIOCTLCMD;
+ 	}
+ 
+-	lock_kernel();
+-	ret = ocfs2_ioctl(inode, file, cmd, arg);
+-	unlock_kernel();
+-	return ret;
++	return ocfs2_ioctl(file, cmd, arg);
+ }
+ #endif
+diff --git a/fs/ocfs2/ioctl.h b/fs/ocfs2/ioctl.h
+index 4d6c4f4..cf9a5ee 100644
+--- a/fs/ocfs2/ioctl.h
++++ b/fs/ocfs2/ioctl.h
+@@ -10,8 +10,7 @@
+ #ifndef OCFS2_IOCTL_H
+ #define OCFS2_IOCTL_H
+ 
+-int ocfs2_ioctl(struct inode * inode, struct file * filp,
+-	unsigned int cmd, unsigned long arg);
++long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg);
+ 
+ #endif /* OCFS2_IOCTL_H */
 -- 
 1.5.4.1
