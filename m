@@ -1,36 +1,13 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:37 -0700
-Subject: [Ocfs2-devel] [PATCH 27/62] ocfs2: Add the ocfs2_control misc
-	device.
-In-Reply-To: <12071673722691-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:15 -0700
+Subject: [Ocfs2-devel] [PATCH 05/62] ocfs2: De-magic the in-memory slot map.
+In-Reply-To: <12071673263948-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
 	<12071673232465-git-send-email-mfasheh@suse.com>
 	<12071673263948-git-send-email-mfasheh@suse.com>
-	<12071673282579-git-send-email-mfasheh@suse.com>
-	<1207167330482-git-send-email-mfasheh@suse.com>
-	<12071673321172-git-send-email-mfasheh@suse.com>
-	<12071673341888-git-send-email-mfasheh@suse.com>
-	<12071673362069-git-send-email-mfasheh@suse.com>
-	<12071673391031-git-send-email-mfasheh@suse.com>
-	<12071673413492-git-send-email-mfasheh@suse.com>
-	<1207167343926-git-send-email-mfasheh@suse.com>
-	<12071673461268-git-send-email-mfasheh@suse.com>
-	<12071673481928-git-send-email-mfasheh@suse.com>
-	<12071673492775-git-send-email-mfasheh@suse.com>
-	<12071673511262-git-send-email-mfasheh@suse.com>
-	<12071673543752-git-send-email-mfasheh@suse.com>
-	<1207167355295-git-send-email-mfasheh@suse.com>
-	<12071673571757-git-send-email-mfasheh@suse.com>
-	<12071673591158-git-send-email-mfasheh@suse.com>
-	<12071673613757-git-send-email-mfasheh@suse.com>
-	<1207167363119-git-send-email-mfasheh@suse.com>
-	<12071673661674-git-send-email-mfasheh@suse.com>
-	<12071673681650-git-send-email-mfasheh@suse.com>
-	<12071673701937-git-send-email-mfasheh@suse.com>
-	<12071673722691-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673731276-git-send-email-mfasheh@suse.com>
+Message-ID: <12071673282579-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -40,219 +17,338 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
 From: Joel Becker <joel.becker@oracle.com>
 
-The ocfs2_control misc device is how a userspace control daemon (controld)
-talks to the filesystem.  Introduce the bare-bones filesystem ops.
+The in-memory slot map uses the same magic as the on-disk one.  There is
+a special value to mark a slot as invalid.  It relies on the size of
+certain types and so on.
+
+Write a new in-memory map that keeps validity as a separate field.  Outside
+of the I/O functions, OCFS2_INVALID_SLOT now means what it is supposed to.
+It also is no longer tied to the type size.
+
+This also means that only the I/O functions refer to 16bit quantities.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/stack_user.c |  184 ++++++++++++++++++++++++++++++++++++++++++++++++-
- 1 files changed, 183 insertions(+), 1 deletions(-)
+ fs/ocfs2/journal.c  |    2 +-
+ fs/ocfs2/ocfs2.h    |    6 +-
+ fs/ocfs2/slot_map.c |  130 ++++++++++++++++++++++++++++-----------------------
+ fs/ocfs2/slot_map.h |    2 +-
+ 4 files changed, 77 insertions(+), 63 deletions(-)
 
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index 920eb11..fdca5d3 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -18,17 +18,199 @@
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index ca4c0ea..bffd2d7 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -71,7 +71,7 @@ static int ocfs2_commit_thread(void *arg);
   */
  
- #include <linux/module.h>
-+#include <linux/fs.h>
-+#include <linux/miscdevice.h>
-+#include <linux/mutex.h>
-+#include <linux/reboot.h>
+ struct ocfs2_recovery_map {
+-	int rm_used;
++	unsigned int rm_used;
+ 	unsigned int *rm_entries;
+ };
  
- #include "stackglue.h"
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index c6ed8c3..95f783d 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -216,10 +216,10 @@ struct ocfs2_super
+ 	unsigned long s_mount_opt;
+ 	unsigned int s_atime_quantum;
  
+-	u16 max_slots;
++	unsigned int max_slots;
+ 	s16 node_num;
+-	s16 slot_num;
+-	s16 preferred_slot;
++	int slot_num;
++	int preferred_slot;
+ 	int s_sectsize_bits;
+ 	int s_clustersize;
+ 	int s_clustersize_bits;
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index 5bddee1..65a61bf 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -42,21 +42,41 @@
  
--static int __init user_stack_init(void)
-+/*
-+ * The control protocol starts with a handshake.  Until the handshake
-+ * is complete, the control device will fail all write(2)s.
-+ *
-+ * The handshake is simple.  First, the client reads until EOF.  Each line
-+ * of output is a supported protocol tag.  All protocol tags are a single
-+ * character followed by a two hex digit version number.  Currently the
-+ * only things supported is T01, for "Text-base version 0x01".  Next, the
-+ * client writes the version they would like to use.  If the version tag
-+ * written is unknown, -EINVAL is returned.  Once the negotiation is
-+ * complete, the client can start sending messages.
-+ */
+ #include "buffer_head_io.h"
+ 
 +
-+/*
-+ * ocfs2_live_connection is refcounted because the filesystem and
-+ * miscdevice sides can detach in different order.  Let's just be safe.
-+ */
-+struct ocfs2_live_connection {
-+	struct list_head		oc_list;
-+	struct ocfs2_cluster_connection	*oc_conn;
++struct ocfs2_slot {
++	int sl_valid;
++	unsigned int sl_node_num;
 +};
 +
-+static atomic_t ocfs2_control_opened;
+ struct ocfs2_slot_info {
+ 	struct inode *si_inode;
+ 	unsigned int si_blocks;
+ 	struct buffer_head **si_bh;
+ 	unsigned int si_num_slots;
+-	unsigned int si_size;
+-	s16 si_global_node_nums[OCFS2_MAX_SLOTS];
++	struct ocfs2_slot *si_slots;
+ };
+ 
+ 
+-static s16 __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
+-				    s16 global);
+-static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
+-			      s16 slot_num,
+-			      s16 node_num);
++static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
++				    unsigned int node_num);
 +
-+static LIST_HEAD(ocfs2_live_connection_list);
-+static DEFINE_MUTEX(ocfs2_control_lock);
-+
-+static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
++static void ocfs2_invalidate_slot(struct ocfs2_slot_info *si,
++				  int slot_num)
 +{
-+	size_t len = strlen(name);
-+	struct ocfs2_live_connection *c;
++	BUG_ON((slot_num < 0) || (slot_num >= si->si_num_slots));
++	si->si_slots[slot_num].sl_valid = 0;
++}
 +
-+	BUG_ON(!mutex_is_locked(&ocfs2_control_lock));
++static void ocfs2_set_slot(struct ocfs2_slot_info *si,
++			   int slot_num, unsigned int node_num)
++{
++	BUG_ON((slot_num < 0) || (slot_num >= si->si_num_slots));
++	BUG_ON((node_num == O2NM_INVALID_NODE_NUM) ||
++	       (node_num >= O2NM_MAX_NODES));
 +
-+	list_for_each_entry(c, &ocfs2_live_connection_list, oc_list) {
-+		if ((c->oc_conn->cc_namelen == len) &&
-+		    !strncmp(c->oc_conn->cc_name, name, len))
-+			return c;
++	si->si_slots[slot_num].sl_valid = 1;
++	si->si_slots[slot_num].sl_node_num = node_num;
++}
+ 
+ /*
+  * Post the slot information on disk into our slot_info struct.
+@@ -71,8 +91,12 @@ static void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
+ 	 * should've made sure we have the most recent copy. */
+ 	disk_info = (__le16 *) si->si_bh[0]->b_data;
+ 
+-	for (i = 0; i < si->si_size; i++)
+-		si->si_global_node_nums[i] = le16_to_cpu(disk_info[i]);
++	for (i = 0; i < si->si_num_slots; i++) {
++		if (le16_to_cpu(disk_info[i]) == (u16)OCFS2_INVALID_SLOT)
++			ocfs2_invalidate_slot(si, i);
++		else
++			ocfs2_set_slot(si, i, le16_to_cpu(disk_info[i]));
 +	}
-+
-+	return c;
-+}
-+
-+/*
-+ * ocfs2_live_connection structures are created underneath the ocfs2
-+ * mount path.  Since the VFS prevents multiple calls to
-+ * fill_super(), we can't get dupes here.
-+ */
-+static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
-+				     struct ocfs2_live_connection **c_ret)
-+{
-+	int rc = 0;
-+	struct ocfs2_live_connection *c;
-+
-+	c = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
-+	if (!c)
-+		return -ENOMEM;
-+
-+	mutex_lock(&ocfs2_control_lock);
-+	c->oc_conn = conn;
-+
-+	if (atomic_read(&ocfs2_control_opened))
-+		list_add(&c->oc_list, &ocfs2_live_connection_list);
-+	else {
-+		printk(KERN_ERR
-+		       "ocfs2: Userspace control daemon is not present\n");
-+		rc = -ESRCH;
+ }
+ 
+ int ocfs2_refresh_slot_info(struct ocfs2_super *osb)
+@@ -114,8 +138,13 @@ static int ocfs2_update_disk_slots(struct ocfs2_super *osb,
+ 	__le16 *disk_info = (__le16 *) si->si_bh[0]->b_data;
+ 
+ 	spin_lock(&osb->osb_lock);
+-	for (i = 0; i < si->si_size; i++)
+-		disk_info[i] = cpu_to_le16(si->si_global_node_nums[i]);
++	for (i = 0; i < si->si_num_slots; i++) {
++		if (si->si_slots[i].sl_valid)
++			disk_info[i] =
++				cpu_to_le16(si->si_slots[i].sl_node_num);
++		else
++			disk_info[i] = cpu_to_le16(OCFS2_INVALID_SLOT);
 +	}
-+
-+	mutex_unlock(&ocfs2_control_lock);
-+
-+	if (!rc)
-+		*c_ret = c;
-+	else
-+		kfree(c);
-+
-+	return rc;
-+}
-+
-+/*
-+ * This function disconnects the cluster connection from ocfs2_control.
-+ * Afterwards, userspace can't affect the cluster connection.
-+ */
-+static void ocfs2_live_connection_drop(struct ocfs2_live_connection *c)
-+{
-+	mutex_lock(&ocfs2_control_lock);
-+	list_del_init(&c->oc_list);
-+	c->oc_conn = NULL;
-+	mutex_unlock(&ocfs2_control_lock);
-+
-+	kfree(c);
-+}
-+
-+
-+static ssize_t ocfs2_control_write(struct file *file,
-+				   const char __user *buf,
-+				   size_t count,
-+				   loff_t *ppos)
- {
+ 	spin_unlock(&osb->osb_lock);
+ 
+ 	status = ocfs2_write_block(osb, si->si_bh[0], si->si_inode);
+@@ -147,39 +176,39 @@ static int ocfs2_slot_map_physical_size(struct ocfs2_super *osb,
  	return 0;
  }
  
-+static ssize_t ocfs2_control_read(struct file *file,
-+				  char __user *buf,
-+				  size_t count,
-+				  loff_t *ppos)
-+{
-+	return 0;
-+}
-+
-+static int ocfs2_control_release(struct inode *inode, struct file *file)
-+{
-+	if (atomic_dec_and_test(&ocfs2_control_opened)) {
-+		mutex_lock(&ocfs2_control_lock);
-+		if (!list_empty(&ocfs2_live_connection_list)) {
-+			/* XXX: Do bad things! */
-+			printk(KERN_ERR
-+			       "ocfs2: Unexpected release of ocfs2_control!\n"
-+			       "       Loss of cluster connection requires "
-+			       "an emergency restart!\n");
-+			emergency_restart();
-+		}
-+		mutex_unlock(&ocfs2_control_lock);
-+	}
-+
-+	return 0;
-+}
-+
-+static int ocfs2_control_open(struct inode *inode, struct file *file)
-+{
-+	atomic_inc(&ocfs2_control_opened);
-+
-+	return 0;
-+}
-+
-+static const struct file_operations ocfs2_control_fops = {
-+	.open    = ocfs2_control_open,
-+	.release = ocfs2_control_release,
-+	.read    = ocfs2_control_read,
-+	.write   = ocfs2_control_write,
-+	.owner   = THIS_MODULE,
-+};
-+
-+struct miscdevice ocfs2_control_device = {
-+	.minor		= MISC_DYNAMIC_MINOR,
-+	.name		= "ocfs2_control",
-+	.fops		= &ocfs2_control_fops,
-+};
-+
-+static int ocfs2_control_init(void)
-+{
-+	int rc;
-+
-+	atomic_set(&ocfs2_control_opened, 0);
-+
-+	rc = misc_register(&ocfs2_control_device);
-+	if (rc)
-+		printk(KERN_ERR
-+		       "ocfs2: Unable to register ocfs2_control device "
-+		       "(errno %d)\n",
-+		       -rc);
-+
-+	return rc;
-+}
-+
-+static void ocfs2_control_exit(void)
-+{
-+	int rc;
-+
-+	rc = misc_deregister(&ocfs2_control_device);
-+	if (rc)
-+		printk(KERN_ERR
-+		       "ocfs2: Unable to deregister ocfs2_control device "
-+		       "(errno %d)\n",
-+		       -rc);
-+}
-+
-+static int __init user_stack_init(void)
-+{
-+	return ocfs2_control_init();
-+}
-+
- static void __exit user_stack_exit(void)
+-/* try to find global node in the slot info. Returns
+- * OCFS2_INVALID_SLOT if nothing is found. */
+-static s16 __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
+-				    s16 global)
++/* try to find global node in the slot info. Returns -ENOENT
++ * if nothing is found. */
++static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
++				    unsigned int node_num)
  {
-+	ocfs2_control_exit();
+-	int i;
+-	s16 ret = OCFS2_INVALID_SLOT;
++	int i, ret = -ENOENT;
+ 
+ 	for(i = 0; i < si->si_num_slots; i++) {
+-		if (global == si->si_global_node_nums[i]) {
+-			ret = (s16) i;
++		if (si->si_slots[i].sl_valid &&
++		    (node_num == si->si_slots[i].sl_node_num)) {
++			ret = i;
+ 			break;
+ 		}
+ 	}
++
+ 	return ret;
  }
  
- MODULE_AUTHOR("Oracle");
+-static s16 __ocfs2_find_empty_slot(struct ocfs2_slot_info *si,
+-				   s16 preferred)
++static int __ocfs2_find_empty_slot(struct ocfs2_slot_info *si,
++				   int preferred)
+ {
+-	int i;
+-	s16 ret = OCFS2_INVALID_SLOT;
++	int i, ret = -ENOSPC;
+ 
+-	if (preferred >= 0 && preferred < si->si_num_slots) {
+-		if (OCFS2_INVALID_SLOT == si->si_global_node_nums[preferred]) {
++	if ((preferred >= 0) && (preferred < si->si_num_slots)) {
++		if (!si->si_slots[preferred].sl_valid) {
+ 			ret = preferred;
+ 			goto out;
+ 		}
+ 	}
+ 
+ 	for(i = 0; i < si->si_num_slots; i++) {
+-		if (OCFS2_INVALID_SLOT == si->si_global_node_nums[i]) {
+-			ret = (s16) i;
++		if (!si->si_slots[i].sl_valid) {
++			ret = i;
+ 			break;
+ 		}
+ 	}
+@@ -189,16 +218,13 @@ out:
+ 
+ int ocfs2_node_num_to_slot(struct ocfs2_super *osb, unsigned int node_num)
+ {
+-	s16 slot;
++	int slot;
+ 	struct ocfs2_slot_info *si = osb->slot_info;
+ 
+ 	spin_lock(&osb->osb_lock);
+ 	slot = __ocfs2_node_num_to_slot(si, node_num);
+ 	spin_unlock(&osb->osb_lock);
+ 
+-	if (slot == OCFS2_INVALID_SLOT)
+-		return -ENOENT;
+-
+ 	return slot;
+ }
+ 
+@@ -212,10 +238,10 @@ int ocfs2_slot_to_node_num_locked(struct ocfs2_super *osb, int slot_num,
+ 	BUG_ON(slot_num < 0);
+ 	BUG_ON(slot_num > osb->max_slots);
+ 
+-	if (si->si_global_node_nums[slot_num] == OCFS2_INVALID_SLOT)
++	if (!si->si_slots[slot_num].sl_valid)
+ 		return -ENOENT;
+ 
+-	*node_num = si->si_global_node_nums[slot_num];
++	*node_num = si->si_slots[slot_num].sl_node_num;
+ 	return 0;
+ }
+ 
+@@ -241,19 +267,7 @@ static void __ocfs2_free_slot_info(struct ocfs2_slot_info *si)
+ 	kfree(si);
+ }
+ 
+-static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
+-			      s16 slot_num,
+-			      s16 node_num)
+-{
+-	BUG_ON(slot_num == OCFS2_INVALID_SLOT);
+-	BUG_ON(slot_num >= si->si_num_slots);
+-	BUG_ON((node_num != O2NM_INVALID_NODE_NUM) &&
+-	       (node_num >= O2NM_MAX_NODES));
+-
+-	si->si_global_node_nums[slot_num] = node_num;
+-}
+-
+-int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num)
++int ocfs2_clear_slot(struct ocfs2_super *osb, int slot_num)
+ {
+ 	struct ocfs2_slot_info *si = osb->slot_info;
+ 
+@@ -261,7 +275,7 @@ int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num)
+ 		return 0;
+ 
+ 	spin_lock(&osb->osb_lock);
+-	__ocfs2_fill_slot(si, slot_num, OCFS2_INVALID_SLOT);
++	ocfs2_invalidate_slot(si, slot_num);
+ 	spin_unlock(&osb->osb_lock);
+ 
+ 	return ocfs2_update_disk_slots(osb, osb->slot_info);
+@@ -324,11 +338,13 @@ bail:
+ 
+ int ocfs2_init_slot_info(struct ocfs2_super *osb)
+ {
+-	int status, i;
++	int status;
+ 	struct inode *inode = NULL;
+ 	struct ocfs2_slot_info *si;
+ 
+-	si = kzalloc(sizeof(struct ocfs2_slot_info), GFP_KERNEL);
++	si = kzalloc(sizeof(struct ocfs2_slot_info) +
++		     (sizeof(struct ocfs2_slot) * osb->max_slots),
++		     GFP_KERNEL);
+ 	if (!si) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+@@ -336,10 +352,8 @@ int ocfs2_init_slot_info(struct ocfs2_super *osb)
+ 	}
+ 
+ 	si->si_num_slots = osb->max_slots;
+-	si->si_size = OCFS2_MAX_SLOTS;
+-
+-	for(i = 0; i < si->si_num_slots; i++)
+-		si->si_global_node_nums[i] = OCFS2_INVALID_SLOT;
++	si->si_slots = (struct ocfs2_slot *)((char *)si +
++					     sizeof(struct ocfs2_slot_info));
+ 
+ 	inode = ocfs2_get_system_file_inode(osb, SLOT_MAP_SYSTEM_INODE,
+ 					    OCFS2_INVALID_SLOT);
+@@ -375,7 +389,7 @@ void ocfs2_free_slot_info(struct ocfs2_super *osb)
+ int ocfs2_find_slot(struct ocfs2_super *osb)
+ {
+ 	int status;
+-	s16 slot;
++	int slot;
+ 	struct ocfs2_slot_info *si;
+ 
+ 	mlog_entry_void();
+@@ -390,11 +404,11 @@ int ocfs2_find_slot(struct ocfs2_super *osb)
+ 	 * own journal recovery? Possibly not, though we certainly
+ 	 * need to warn to the user */
+ 	slot = __ocfs2_node_num_to_slot(si, osb->node_num);
+-	if (slot == OCFS2_INVALID_SLOT) {
++	if (slot < 0) {
+ 		/* if no slot yet, then just take 1st available
+ 		 * one. */
+ 		slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
+-		if (slot == OCFS2_INVALID_SLOT) {
++		if (slot < 0) {
+ 			spin_unlock(&osb->osb_lock);
+ 			mlog(ML_ERROR, "no free slots available!\n");
+ 			status = -EINVAL;
+@@ -404,7 +418,7 @@ int ocfs2_find_slot(struct ocfs2_super *osb)
+ 		mlog(ML_NOTICE, "slot %d is already allocated to this node!\n",
+ 		     slot);
+ 
+-	__ocfs2_fill_slot(si, slot, osb->node_num);
++	ocfs2_set_slot(si, slot, osb->node_num);
+ 	osb->slot_num = slot;
+ 	spin_unlock(&osb->osb_lock);
+ 
+@@ -430,7 +444,7 @@ void ocfs2_put_slot(struct ocfs2_super *osb)
+ 	spin_lock(&osb->osb_lock);
+ 	ocfs2_update_slot_info(si);
+ 
+-	__ocfs2_fill_slot(si, osb->slot_num, OCFS2_INVALID_SLOT);
++	ocfs2_invalidate_slot(si, osb->slot_num);
+ 	osb->slot_num = OCFS2_INVALID_SLOT;
+ 	spin_unlock(&osb->osb_lock);
+ 
+diff --git a/fs/ocfs2/slot_map.h b/fs/ocfs2/slot_map.h
+index 5118e89..601c95f 100644
+--- a/fs/ocfs2/slot_map.h
++++ b/fs/ocfs2/slot_map.h
+@@ -39,6 +39,6 @@ int ocfs2_node_num_to_slot(struct ocfs2_super *osb, unsigned int node_num);
+ int ocfs2_slot_to_node_num_locked(struct ocfs2_super *osb, int slot_num,
+ 				  unsigned int *node_num);
+ 
+-int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num);
++int ocfs2_clear_slot(struct ocfs2_super *osb, int slot_num);
+ 
+ #endif
 -- 
 1.5.4.1
