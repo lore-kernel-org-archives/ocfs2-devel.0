@@ -1,13 +1,20 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:15 -0700
-Subject: [Ocfs2-devel] [PATCH 05/62] ocfs2: De-magic the in-memory slot map.
-In-Reply-To: <12071673263948-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:21 -0700
+Subject: [Ocfs2-devel] [PATCH 11/62] ocfs2: Create the lock status block
+	union.
+In-Reply-To: <12071673391031-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
 	<12071673232465-git-send-email-mfasheh@suse.com>
 	<12071673263948-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673282579-git-send-email-mfasheh@suse.com>
+	<12071673282579-git-send-email-mfasheh@suse.com>
+	<1207167330482-git-send-email-mfasheh@suse.com>
+	<12071673321172-git-send-email-mfasheh@suse.com>
+	<12071673341888-git-send-email-mfasheh@suse.com>
+	<12071673362069-git-send-email-mfasheh@suse.com>
+	<12071673391031-git-send-email-mfasheh@suse.com>
+Message-ID: <12071673413492-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -17,338 +24,219 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
 From: Joel Becker <joel.becker@oracle.com>
 
-The in-memory slot map uses the same magic as the on-disk one.  There is
-a special value to mark a slot as invalid.  It relies on the size of
-certain types and so on.
+Wrap the lock status block (lksb) in a union.  Later we will add a union
+element for the fs/dlm lksb.  Create accessors for the status and lvb
+fields.
 
-Write a new in-memory map that keeps validity as a separate field.  Outside
-of the I/O functions, OCFS2_INVALID_SLOT now means what it is supposed to.
-It also is no longer tied to the type size.
-
-This also means that only the I/O functions refer to 16bit quantities.
+Other than a debugging function, dlmglue.c does not directly reference
+the o2dlm locking path anymore.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/journal.c  |    2 +-
- fs/ocfs2/ocfs2.h    |    6 +-
- fs/ocfs2/slot_map.c |  130 ++++++++++++++++++++++++++++-----------------------
- fs/ocfs2/slot_map.h |    2 +-
- 4 files changed, 77 insertions(+), 63 deletions(-)
+ fs/ocfs2/dlmglue.c   |   23 +++++++++++++----------
+ fs/ocfs2/ocfs2.h     |    5 +++--
+ fs/ocfs2/stackglue.c |   29 ++++++++++++++++++++++-------
+ fs/ocfs2/stackglue.h |   11 +++++++++--
+ 4 files changed, 47 insertions(+), 21 deletions(-)
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index ca4c0ea..bffd2d7 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -71,7 +71,7 @@ static int ocfs2_commit_thread(void *arg);
-  */
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 6a222a5..4590376 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -112,7 +112,8 @@ static void ocfs2_dump_meta_lvb_info(u64 level,
+ 				     unsigned int line,
+ 				     struct ocfs2_lock_res *lockres)
+ {
+-	struct ocfs2_meta_lvb *lvb = (struct ocfs2_meta_lvb *) lockres->l_lksb.lvb;
++	struct ocfs2_meta_lvb *lvb =
++		(struct ocfs2_meta_lvb *)ocfs2_dlm_lvb(&lockres->l_lksb);
  
- struct ocfs2_recovery_map {
--	int rm_used;
-+	unsigned int rm_used;
- 	unsigned int *rm_entries;
- };
+ 	mlog(level, "LVB information for %s (called from %s:%u):\n",
+ 	     lockres->l_name, function, line);
+@@ -799,14 +800,14 @@ static void ocfs2_blocking_ast(void *opaque, int level)
+ static void ocfs2_locking_ast(void *opaque)
+ {
+ 	struct ocfs2_lock_res *lockres = opaque;
+-	struct dlm_lockstatus *lksb = &lockres->l_lksb;
+ 	unsigned long flags;
  
+ 	spin_lock_irqsave(&lockres->l_lock, flags);
+ 
+-	if (lksb->status != DLM_NORMAL) {
+-		mlog(ML_ERROR, "lockres %s: lksb status value of %u!\n",
+-		     lockres->l_name, lksb->status);
++	if (ocfs2_dlm_lock_status(&lockres->l_lksb)) {
++		mlog(ML_ERROR, "lockres %s: lksb status value of %d!\n",
++		     lockres->l_name,
++		     ocfs2_dlm_lock_status(&lockres->l_lksb));
+ 		spin_unlock_irqrestore(&lockres->l_lock, flags);
+ 		return;
+ 	}
+@@ -1634,7 +1635,7 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
+ 
+ 	mlog_entry_void();
+ 
+-	lvb = (struct ocfs2_meta_lvb *) lockres->l_lksb.lvb;
++	lvb = (struct ocfs2_meta_lvb *)ocfs2_dlm_lvb(&lockres->l_lksb);
+ 
+ 	/*
+ 	 * Invalidate the LVB of a deleted inode - this way other
+@@ -1686,7 +1687,7 @@ static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
+ 
+ 	mlog_meta_lvb(0, lockres);
+ 
+-	lvb = (struct ocfs2_meta_lvb *) lockres->l_lksb.lvb;
++	lvb = (struct ocfs2_meta_lvb *)ocfs2_dlm_lvb(&lockres->l_lksb);
+ 
+ 	/* We're safe here without the lockres lock... */
+ 	spin_lock(&oi->ip_lock);
+@@ -1721,7 +1722,8 @@ static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
+ static inline int ocfs2_meta_lvb_is_trustable(struct inode *inode,
+ 					      struct ocfs2_lock_res *lockres)
+ {
+-	struct ocfs2_meta_lvb *lvb = (struct ocfs2_meta_lvb *) lockres->l_lksb.lvb;
++	struct ocfs2_meta_lvb *lvb =
++		(struct ocfs2_meta_lvb *)ocfs2_dlm_lvb(&lockres->l_lksb);
+ 
+ 	if (lvb->lvb_version == OCFS2_LVB_VERSION
+ 	    && be32_to_cpu(lvb->lvb_igeneration) == inode->i_generation)
+@@ -2379,7 +2381,7 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ 		   lockres->l_blocking);
+ 
+ 	/* Dump the raw LVB */
+-	lvb = lockres->l_lksb.lvb;
++	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+ 	for(i = 0; i < DLM_LVB_LEN; i++)
+ 		seq_printf(m, "0x%x\t", lvb[i]);
+ 
+@@ -2692,7 +2694,8 @@ static int ocfs2_drop_lock(struct ocfs2_super *osb,
+ 	if (ret) {
+ 		ocfs2_log_dlm_error("ocfs2_dlm_unlock", ret, lockres);
+ 		mlog(ML_ERROR, "lockres flags: %lu\n", lockres->l_flags);
+-		dlm_print_one_lock(lockres->l_lksb.lockid);
++		/* XXX Need to abstract this */
++		dlm_print_one_lock(lockres->l_lksb.lksb_o2dlm.lockid);
+ 		BUG();
+ 	}
+ 	mlog(0, "lock %s, successfull return from ocfs2_dlm_unlock\n",
 diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index c6ed8c3..95f783d 100644
+index f78e9ed..6d7c6d2 100644
 --- a/fs/ocfs2/ocfs2.h
 +++ b/fs/ocfs2/ocfs2.h
-@@ -216,10 +216,10 @@ struct ocfs2_super
- 	unsigned long s_mount_opt;
- 	unsigned int s_atime_quantum;
+@@ -40,7 +40,8 @@
+ #include "cluster/heartbeat.h"
+ #include "cluster/tcp.h"
  
--	u16 max_slots;
-+	unsigned int max_slots;
- 	s16 node_num;
--	s16 slot_num;
--	s16 preferred_slot;
-+	int slot_num;
-+	int preferred_slot;
- 	int s_sectsize_bits;
- 	int s_clustersize;
- 	int s_clustersize_bits;
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index 5bddee1..65a61bf 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -42,21 +42,41 @@
+-#include "dlm/dlmapi.h"
++/* For union ocfs2_dlm_lksb */
++#include "stackglue.h"
  
- #include "buffer_head_io.h"
+ #include "ocfs2_fs.h"
+ #include "ocfs2_lockid.h"
+@@ -120,7 +121,7 @@ struct ocfs2_lock_res {
+ 	int                      l_level;
+ 	unsigned int             l_ro_holders;
+ 	unsigned int             l_ex_holders;
+-	struct dlm_lockstatus    l_lksb;
++	union ocfs2_dlm_lksb     l_lksb;
  
-+
-+struct ocfs2_slot {
-+	int sl_valid;
-+	unsigned int sl_node_num;
-+};
-+
- struct ocfs2_slot_info {
- 	struct inode *si_inode;
- 	unsigned int si_blocks;
- 	struct buffer_head **si_bh;
- 	unsigned int si_num_slots;
--	unsigned int si_size;
--	s16 si_global_node_nums[OCFS2_MAX_SLOTS];
-+	struct ocfs2_slot *si_slots;
- };
+ 	/* used from AST/BAST funcs. */
+ 	enum ocfs2_ast_action    l_action;
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 0aec2fc..eb88854 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -199,7 +199,7 @@ static void o2dlm_unlock_ast_wrapper(void *astarg, enum dlm_status status)
  
+ int ocfs2_dlm_lock(struct dlm_ctxt *dlm,
+ 		   int mode,
+-		   struct dlm_lockstatus *lksb,
++		   union ocfs2_dlm_lksb *lksb,
+ 		   u32 flags,
+ 		   void *name,
+ 		   unsigned int namelen,
+@@ -212,15 +212,16 @@ int ocfs2_dlm_lock(struct dlm_ctxt *dlm,
  
--static s16 __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
--				    s16 global);
--static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
--			      s16 slot_num,
--			      s16 node_num);
-+static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
-+				    unsigned int node_num);
-+
-+static void ocfs2_invalidate_slot(struct ocfs2_slot_info *si,
-+				  int slot_num)
-+{
-+	BUG_ON((slot_num < 0) || (slot_num >= si->si_num_slots));
-+	si->si_slots[slot_num].sl_valid = 0;
-+}
-+
-+static void ocfs2_set_slot(struct ocfs2_slot_info *si,
-+			   int slot_num, unsigned int node_num)
-+{
-+	BUG_ON((slot_num < 0) || (slot_num >= si->si_num_slots));
-+	BUG_ON((node_num == O2NM_INVALID_NODE_NUM) ||
-+	       (node_num >= O2NM_MAX_NODES));
-+
-+	si->si_slots[slot_num].sl_valid = 1;
-+	si->si_slots[slot_num].sl_node_num = node_num;
-+}
+ 	BUG_ON(lproto == NULL);
  
- /*
-  * Post the slot information on disk into our slot_info struct.
-@@ -71,8 +91,12 @@ static void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
- 	 * should've made sure we have the most recent copy. */
- 	disk_info = (__le16 *) si->si_bh[0]->b_data;
- 
--	for (i = 0; i < si->si_size; i++)
--		si->si_global_node_nums[i] = le16_to_cpu(disk_info[i]);
-+	for (i = 0; i < si->si_num_slots; i++) {
-+		if (le16_to_cpu(disk_info[i]) == (u16)OCFS2_INVALID_SLOT)
-+			ocfs2_invalidate_slot(si, i);
-+		else
-+			ocfs2_set_slot(si, i, le16_to_cpu(disk_info[i]));
-+	}
- }
- 
- int ocfs2_refresh_slot_info(struct ocfs2_super *osb)
-@@ -114,8 +138,13 @@ static int ocfs2_update_disk_slots(struct ocfs2_super *osb,
- 	__le16 *disk_info = (__le16 *) si->si_bh[0]->b_data;
- 
- 	spin_lock(&osb->osb_lock);
--	for (i = 0; i < si->si_size; i++)
--		disk_info[i] = cpu_to_le16(si->si_global_node_nums[i]);
-+	for (i = 0; i < si->si_num_slots; i++) {
-+		if (si->si_slots[i].sl_valid)
-+			disk_info[i] =
-+				cpu_to_le16(si->si_slots[i].sl_node_num);
-+		else
-+			disk_info[i] = cpu_to_le16(OCFS2_INVALID_SLOT);
-+	}
- 	spin_unlock(&osb->osb_lock);
- 
- 	status = ocfs2_write_block(osb, si->si_bh[0], si->si_inode);
-@@ -147,39 +176,39 @@ static int ocfs2_slot_map_physical_size(struct ocfs2_super *osb,
- 	return 0;
- }
- 
--/* try to find global node in the slot info. Returns
-- * OCFS2_INVALID_SLOT if nothing is found. */
--static s16 __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
--				    s16 global)
-+/* try to find global node in the slot info. Returns -ENOENT
-+ * if nothing is found. */
-+static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
-+				    unsigned int node_num)
- {
--	int i;
--	s16 ret = OCFS2_INVALID_SLOT;
-+	int i, ret = -ENOENT;
- 
- 	for(i = 0; i < si->si_num_slots; i++) {
--		if (global == si->si_global_node_nums[i]) {
--			ret = (s16) i;
-+		if (si->si_slots[i].sl_valid &&
-+		    (node_num == si->si_slots[i].sl_node_num)) {
-+			ret = i;
- 			break;
- 		}
- 	}
-+
+-	status = dlmlock(dlm, o2dlm_mode, lksb, o2dlm_flags, name, namelen,
+-		       o2dlm_lock_ast_wrapper, astarg,
+-		       o2dlm_blocking_ast_wrapper);
++	status = dlmlock(dlm, o2dlm_mode, &lksb->lksb_o2dlm, o2dlm_flags,
++			 name, namelen,
++			 o2dlm_lock_ast_wrapper, astarg,
++			 o2dlm_blocking_ast_wrapper);
+ 	ret = dlm_status_to_errno(status);
  	return ret;
  }
  
--static s16 __ocfs2_find_empty_slot(struct ocfs2_slot_info *si,
--				   s16 preferred)
-+static int __ocfs2_find_empty_slot(struct ocfs2_slot_info *si,
-+				   int preferred)
+ int ocfs2_dlm_unlock(struct dlm_ctxt *dlm,
+-		     struct dlm_lockstatus *lksb,
++		     union ocfs2_dlm_lksb *lksb,
+ 		     u32 flags,
+ 		     void *astarg)
  {
--	int i;
--	s16 ret = OCFS2_INVALID_SLOT;
-+	int i, ret = -ENOSPC;
+@@ -230,12 +231,26 @@ int ocfs2_dlm_unlock(struct dlm_ctxt *dlm,
  
--	if (preferred >= 0 && preferred < si->si_num_slots) {
--		if (OCFS2_INVALID_SLOT == si->si_global_node_nums[preferred]) {
-+	if ((preferred >= 0) && (preferred < si->si_num_slots)) {
-+		if (!si->si_slots[preferred].sl_valid) {
- 			ret = preferred;
- 			goto out;
- 		}
- 	}
+ 	BUG_ON(lproto == NULL);
  
- 	for(i = 0; i < si->si_num_slots; i++) {
--		if (OCFS2_INVALID_SLOT == si->si_global_node_nums[i]) {
--			ret = (s16) i;
-+		if (!si->si_slots[i].sl_valid) {
-+			ret = i;
- 			break;
- 		}
- 	}
-@@ -189,16 +218,13 @@ out:
- 
- int ocfs2_node_num_to_slot(struct ocfs2_super *osb, unsigned int node_num)
- {
--	s16 slot;
-+	int slot;
- 	struct ocfs2_slot_info *si = osb->slot_info;
- 
- 	spin_lock(&osb->osb_lock);
- 	slot = __ocfs2_node_num_to_slot(si, node_num);
- 	spin_unlock(&osb->osb_lock);
- 
--	if (slot == OCFS2_INVALID_SLOT)
--		return -ENOENT;
--
- 	return slot;
+-	status = dlmunlock(dlm, lksb, o2dlm_flags,
+-			 o2dlm_unlock_ast_wrapper, astarg);
++	status = dlmunlock(dlm, &lksb->lksb_o2dlm, o2dlm_flags,
++			   o2dlm_unlock_ast_wrapper, astarg);
+ 	ret = dlm_status_to_errno(status);
+ 	return ret;
  }
  
-@@ -212,10 +238,10 @@ int ocfs2_slot_to_node_num_locked(struct ocfs2_super *osb, int slot_num,
- 	BUG_ON(slot_num < 0);
- 	BUG_ON(slot_num > osb->max_slots);
++int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
++{
++	return dlm_status_to_errno(lksb->lksb_o2dlm.status);
++}
++
++/*
++ * Why don't we cast to ocfs2_meta_lvb?  The "clean" answer is that we
++ * don't cast at the glue level.  The real answer is that the header
++ * ordering is nigh impossible.
++ */
++void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb)
++{
++	return (void *)(lksb->lksb_o2dlm.lvb);
++}
  
--	if (si->si_global_node_nums[slot_num] == OCFS2_INVALID_SLOT)
-+	if (!si->si_slots[slot_num].sl_valid)
- 		return -ENOENT;
- 
--	*node_num = si->si_global_node_nums[slot_num];
-+	*node_num = si->si_slots[slot_num].sl_node_num;
- 	return 0;
- }
- 
-@@ -241,19 +267,7 @@ static void __ocfs2_free_slot_info(struct ocfs2_slot_info *si)
- 	kfree(si);
- }
- 
--static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
--			      s16 slot_num,
--			      s16 node_num)
--{
--	BUG_ON(slot_num == OCFS2_INVALID_SLOT);
--	BUG_ON(slot_num >= si->si_num_slots);
--	BUG_ON((node_num != O2NM_INVALID_NODE_NUM) &&
--	       (node_num >= O2NM_MAX_NODES));
--
--	si->si_global_node_nums[slot_num] = node_num;
--}
--
--int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num)
-+int ocfs2_clear_slot(struct ocfs2_super *osb, int slot_num)
+ void o2cb_get_stack(struct ocfs2_locking_protocol *proto)
  {
- 	struct ocfs2_slot_info *si = osb->slot_info;
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index 8ebcfba..3c91e24 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -40,18 +40,25 @@ struct ocfs2_locking_protocol {
+ 	void (*lp_unlock_ast)(void *astarg, int error);
+ };
  
-@@ -261,7 +275,7 @@ int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num)
- 		return 0;
++union ocfs2_dlm_lksb {
++	struct dlm_lockstatus lksb_o2dlm;
++};
++
+ int ocfs2_dlm_lock(struct dlm_ctxt *dlm,
+ 		   int mode,
+-		   struct dlm_lockstatus *lksb,
++		   union ocfs2_dlm_lksb *lksb,
+ 		   u32 flags,
+ 		   void *name,
+ 		   unsigned int namelen,
+ 		   void *astarg);
+ int ocfs2_dlm_unlock(struct dlm_ctxt *dlm,
+-		     struct dlm_lockstatus *lksb,
++		     union ocfs2_dlm_lksb *lksb,
+ 		     u32 flags,
+ 		     void *astarg);
  
- 	spin_lock(&osb->osb_lock);
--	__ocfs2_fill_slot(si, slot_num, OCFS2_INVALID_SLOT);
-+	ocfs2_invalidate_slot(si, slot_num);
- 	spin_unlock(&osb->osb_lock);
++int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb);
++void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb);
++
+ void o2cb_get_stack(struct ocfs2_locking_protocol *proto);
+ void o2cb_put_stack(void);
  
- 	return ocfs2_update_disk_slots(osb, osb->slot_info);
-@@ -324,11 +338,13 @@ bail:
- 
- int ocfs2_init_slot_info(struct ocfs2_super *osb)
- {
--	int status, i;
-+	int status;
- 	struct inode *inode = NULL;
- 	struct ocfs2_slot_info *si;
- 
--	si = kzalloc(sizeof(struct ocfs2_slot_info), GFP_KERNEL);
-+	si = kzalloc(sizeof(struct ocfs2_slot_info) +
-+		     (sizeof(struct ocfs2_slot) * osb->max_slots),
-+		     GFP_KERNEL);
- 	if (!si) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
-@@ -336,10 +352,8 @@ int ocfs2_init_slot_info(struct ocfs2_super *osb)
- 	}
- 
- 	si->si_num_slots = osb->max_slots;
--	si->si_size = OCFS2_MAX_SLOTS;
--
--	for(i = 0; i < si->si_num_slots; i++)
--		si->si_global_node_nums[i] = OCFS2_INVALID_SLOT;
-+	si->si_slots = (struct ocfs2_slot *)((char *)si +
-+					     sizeof(struct ocfs2_slot_info));
- 
- 	inode = ocfs2_get_system_file_inode(osb, SLOT_MAP_SYSTEM_INODE,
- 					    OCFS2_INVALID_SLOT);
-@@ -375,7 +389,7 @@ void ocfs2_free_slot_info(struct ocfs2_super *osb)
- int ocfs2_find_slot(struct ocfs2_super *osb)
- {
- 	int status;
--	s16 slot;
-+	int slot;
- 	struct ocfs2_slot_info *si;
- 
- 	mlog_entry_void();
-@@ -390,11 +404,11 @@ int ocfs2_find_slot(struct ocfs2_super *osb)
- 	 * own journal recovery? Possibly not, though we certainly
- 	 * need to warn to the user */
- 	slot = __ocfs2_node_num_to_slot(si, osb->node_num);
--	if (slot == OCFS2_INVALID_SLOT) {
-+	if (slot < 0) {
- 		/* if no slot yet, then just take 1st available
- 		 * one. */
- 		slot = __ocfs2_find_empty_slot(si, osb->preferred_slot);
--		if (slot == OCFS2_INVALID_SLOT) {
-+		if (slot < 0) {
- 			spin_unlock(&osb->osb_lock);
- 			mlog(ML_ERROR, "no free slots available!\n");
- 			status = -EINVAL;
-@@ -404,7 +418,7 @@ int ocfs2_find_slot(struct ocfs2_super *osb)
- 		mlog(ML_NOTICE, "slot %d is already allocated to this node!\n",
- 		     slot);
- 
--	__ocfs2_fill_slot(si, slot, osb->node_num);
-+	ocfs2_set_slot(si, slot, osb->node_num);
- 	osb->slot_num = slot;
- 	spin_unlock(&osb->osb_lock);
- 
-@@ -430,7 +444,7 @@ void ocfs2_put_slot(struct ocfs2_super *osb)
- 	spin_lock(&osb->osb_lock);
- 	ocfs2_update_slot_info(si);
- 
--	__ocfs2_fill_slot(si, osb->slot_num, OCFS2_INVALID_SLOT);
-+	ocfs2_invalidate_slot(si, osb->slot_num);
- 	osb->slot_num = OCFS2_INVALID_SLOT;
- 	spin_unlock(&osb->osb_lock);
- 
-diff --git a/fs/ocfs2/slot_map.h b/fs/ocfs2/slot_map.h
-index 5118e89..601c95f 100644
---- a/fs/ocfs2/slot_map.h
-+++ b/fs/ocfs2/slot_map.h
-@@ -39,6 +39,6 @@ int ocfs2_node_num_to_slot(struct ocfs2_super *osb, unsigned int node_num);
- int ocfs2_slot_to_node_num_locked(struct ocfs2_super *osb, int slot_num,
- 				  unsigned int *node_num);
- 
--int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num);
-+int ocfs2_clear_slot(struct ocfs2_super *osb, int slot_num);
- 
- #endif
 -- 
 1.5.4.1
