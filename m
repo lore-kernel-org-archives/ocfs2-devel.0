@@ -1,8 +1,7 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:15:04 -0700
-Subject: [Ocfs2-devel] [PATCH 54/62] ocfs2: Add a new parameter for
-	ocfs2_reserve_suballoc_bits
-In-Reply-To: <12071674291040-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:15:03 -0700
+Subject: [Ocfs2-devel] [PATCH 53/62] ocfs2: Enable cross extent block merge.
+In-Reply-To: <1207167427753-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -56,8 +55,7 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071674242631-git-send-email-mfasheh@suse.com>
 	<1207167425415-git-send-email-mfasheh@suse.com>
 	<1207167427753-git-send-email-mfasheh@suse.com>
-	<12071674291040-git-send-email-mfasheh@suse.com>
-Message-ID: <12071674312495-git-send-email-mfasheh@suse.com>
+Message-ID: <12071674291040-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -67,85 +65,152 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <ta
 
 From: Tao Ma <tao.ma@oracle.com>
 
-In some cases(Inode stealing from other nodes), we may not want
-ocfs2_reserve_suballoc_bits to allocate new groups from the
-global_bitmap since it may already be full. So add a new parameter
-for this.
+In ocfs2_figure_merge_contig_type, we judge whether there exists
+a cross extent block merge and enable it by setting CONTIG_LEFT
+and CONTIG_RIGHT accordingly.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/suballoc.c |   22 ++++++++++++++++++----
- 1 files changed, 18 insertions(+), 4 deletions(-)
+ fs/ocfs2/alloc.c |   94 +++++++++++++++++++++++++++++++++++++++++++++++++----
+ 1 files changed, 86 insertions(+), 8 deletions(-)
 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 72c198a..3be4e73 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -46,6 +46,9 @@
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index f63cb32..7d81aa6 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -3782,20 +3782,57 @@ out:
+ }
  
- #include "buffer_head_io.h"
- 
-+#define NOT_ALLOC_NEW_GROUP		0
-+#define ALLOC_NEW_GROUP			1
-+
- static inline void ocfs2_debug_bg(struct ocfs2_group_desc *bg);
- static inline void ocfs2_debug_suballoc_inode(struct ocfs2_dinode *fe);
- static inline u16 ocfs2_find_victim_chain(struct ocfs2_chain_list *cl);
-@@ -391,7 +394,8 @@ bail:
- static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 				       struct ocfs2_alloc_context *ac,
- 				       int type,
--				       u32 slot)
-+				       u32 slot,
-+				       int alloc_new_group)
+ static enum ocfs2_contig_type
+-ocfs2_figure_merge_contig_type(struct inode *inode,
++ocfs2_figure_merge_contig_type(struct inode *inode, struct ocfs2_path *path,
+ 			       struct ocfs2_extent_list *el, int index,
+ 			       struct ocfs2_extent_rec *split_rec)
  {
- 	int status;
- 	u32 bits_wanted = ac->ac_bits_wanted;
-@@ -446,6 +450,14 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 			goto bail;
- 		}
- 
-+		if (alloc_new_group != ALLOC_NEW_GROUP) {
-+			mlog(0, "Alloc File %u Full: wanted=%u, free_bits=%u, "
-+			     "and we don't alloc a new group for it.\n",
-+			     slot, bits_wanted, free_bits);
-+			status = -ENOSPC;
-+			goto bail;
-+		}
+-	struct ocfs2_extent_rec *rec;
++	int status;
+ 	enum ocfs2_contig_type ret = CONTIG_NONE;
++	u32 left_cpos, right_cpos;
++	struct ocfs2_extent_rec *rec = NULL;
++	struct ocfs2_extent_list *new_el;
++	struct ocfs2_path *left_path = NULL, *right_path = NULL;
++	struct buffer_head *bh;
++	struct ocfs2_extent_block *eb;
 +
- 		status = ocfs2_block_group_alloc(osb, alloc_inode, bh);
- 		if (status < 0) {
- 			if (status != -ENOSPC)
-@@ -490,7 +502,8 @@ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
- 	(*ac)->ac_group_search = ocfs2_block_group_search;
++	if (index > 0) {
++		rec = &el->l_recs[index - 1];
++	} else if (path->p_tree_depth > 0) {
++		status = ocfs2_find_cpos_for_left_leaf(inode->i_sb,
++						       path, &left_cpos);
++		if (status)
++			goto out;
++
++		if (left_cpos != 0) {
++			left_path = ocfs2_new_path(path_root_bh(path),
++						   path_root_el(path));
++			if (!left_path)
++				goto out;
++
++			status = ocfs2_find_path(inode, left_path, left_cpos);
++			if (status)
++				goto out;
++
++			new_el = path_leaf_el(left_path);
++
++			if (le16_to_cpu(new_el->l_next_free_rec) !=
++			    le16_to_cpu(new_el->l_count)) {
++				bh = path_leaf_bh(left_path);
++				eb = (struct ocfs2_extent_block *)bh->b_data;
++				OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb,
++								 eb);
++				goto out;
++			}
++			rec = &new_el->l_recs[
++				le16_to_cpu(new_el->l_next_free_rec) - 1];
++		}
++	}
  
- 	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
--					     EXTENT_ALLOC_SYSTEM_INODE, slot);
-+					     EXTENT_ALLOC_SYSTEM_INODE,
-+					     slot, ALLOC_NEW_GROUP);
- 	if (status < 0) {
- 		if (status != -ENOSPC)
- 			mlog_errno(status);
-@@ -527,7 +540,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+ 	/*
+ 	 * We're careful to check for an empty extent record here -
+ 	 * the merge code will know what to do if it sees one.
+ 	 */
+-
+-	if (index > 0) {
+-		rec = &el->l_recs[index - 1];
++	if (rec) {
+ 		if (index == 1 && ocfs2_is_empty_extent(rec)) {
+ 			if (split_rec->e_cpos == el->l_recs[index].e_cpos)
+ 				ret = CONTIG_RIGHT;
+@@ -3804,10 +3841,45 @@ ocfs2_figure_merge_contig_type(struct inode *inode,
+ 		}
+ 	}
  
- 	status = ocfs2_reserve_suballoc_bits(osb, *ac,
- 					     INODE_ALLOC_SYSTEM_INODE,
--					     osb->slot_num);
-+					     osb->slot_num, ALLOC_NEW_GROUP);
- 	if (status < 0) {
- 		if (status != -ENOSPC)
- 			mlog_errno(status);
-@@ -557,7 +570,8 @@ int ocfs2_reserve_cluster_bitmap_bits(struct ocfs2_super *osb,
+-	if (index < (le16_to_cpu(el->l_next_free_rec) - 1)) {
++	rec = NULL;
++	if (index < (le16_to_cpu(el->l_next_free_rec) - 1))
++		rec = &el->l_recs[index + 1];
++	else if (le16_to_cpu(el->l_next_free_rec) == le16_to_cpu(el->l_count) &&
++		 path->p_tree_depth > 0) {
++		status = ocfs2_find_cpos_for_right_leaf(inode->i_sb,
++							path, &right_cpos);
++		if (status)
++			goto out;
++
++		if (right_cpos == 0)
++			goto out;
++
++		right_path = ocfs2_new_path(path_root_bh(path),
++					    path_root_el(path));
++		if (!right_path)
++			goto out;
++
++		status = ocfs2_find_path(inode, right_path, right_cpos);
++		if (status)
++			goto out;
++
++		new_el = path_leaf_el(right_path);
++		rec = &new_el->l_recs[0];
++		if (ocfs2_is_empty_extent(rec)) {
++			if (le16_to_cpu(new_el->l_next_free_rec) <= 1) {
++				bh = path_leaf_bh(right_path);
++				eb = (struct ocfs2_extent_block *)bh->b_data;
++				OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb,
++								 eb);
++				goto out;
++			}
++			rec = &new_el->l_recs[1];
++		}
++	}
++
++	if (rec) {
+ 		enum ocfs2_contig_type contig_type;
  
- 	status = ocfs2_reserve_suballoc_bits(osb, ac,
- 					     GLOBAL_BITMAP_SYSTEM_INODE,
--					     OCFS2_INVALID_SLOT);
-+					     OCFS2_INVALID_SLOT,
-+					     ALLOC_NEW_GROUP);
- 	if (status < 0 && status != -ENOSPC) {
- 		mlog_errno(status);
- 		goto bail;
+-		rec = &el->l_recs[index + 1];
+ 		contig_type = ocfs2_extent_contig(inode, rec, split_rec);
+ 
+ 		if (contig_type == CONTIG_LEFT && ret == CONTIG_RIGHT)
+@@ -3816,6 +3888,12 @@ ocfs2_figure_merge_contig_type(struct inode *inode,
+ 			ret = contig_type;
+ 	}
+ 
++out:
++	if (left_path)
++		ocfs2_free_path(left_path);
++	if (right_path)
++		ocfs2_free_path(right_path);
++
+ 	return ret;
+ }
+ 
+@@ -4278,7 +4356,7 @@ static int __ocfs2_mark_extent_written(struct inode *inode,
+ 		goto out;
+ 	}
+ 
+-	ctxt.c_contig_type = ocfs2_figure_merge_contig_type(inode, el,
++	ctxt.c_contig_type = ocfs2_figure_merge_contig_type(inode, path, el,
+ 							    split_index,
+ 							    split_rec);
+ 
 -- 
 1.5.4.1
