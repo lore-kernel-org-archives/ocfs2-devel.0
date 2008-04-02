@@ -1,8 +1,8 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:24 -0700
-Subject: [Ocfs2-devel] [PATCH 14/62] ocfs2: Move o2hb functionality into the
-	stack glue.
-In-Reply-To: <12071673461268-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:30 -0700
+Subject: [Ocfs2-devel] [PATCH 20/62] ocfs2: Split o2cb code from generic
+	stack functions.
+In-Reply-To: <12071673571757-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -17,7 +17,13 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071673413492-git-send-email-mfasheh@suse.com>
 	<1207167343926-git-send-email-mfasheh@suse.com>
 	<12071673461268-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673481928-git-send-email-mfasheh@suse.com>
+	<12071673481928-git-send-email-mfasheh@suse.com>
+	<12071673492775-git-send-email-mfasheh@suse.com>
+	<12071673511262-git-send-email-mfasheh@suse.com>
+	<12071673543752-git-send-email-mfasheh@suse.com>
+	<1207167355295-git-send-email-mfasheh@suse.com>
+	<12071673571757-git-send-email-mfasheh@suse.com>
+Message-ID: <12071673591158-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -27,159 +33,153 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
 From: Joel Becker <joel.becker@oracle.com>
 
-The last bit of classic stack used directly in ocfs2 code is o2hb.
-Specifically, the check for heartbeat during mount and the call to
-ocfs2_hb_ctl during unmount.
-
-We create an extra API, ocfs2_cluster_hangup(), to encapsulate the call
-to ocfs2_hb_ctl.  Other stacks will just leave hangup() empty.
-
-The check for heartbeat is moved into ocfs2_cluster_connect().  It will
-be matched by a similar check for other stacks.
-
-With this change, only stackglue.c includes cluster/ headers.
+Split off the o2cb-specific funtionality from the generic stack glue
+calls.  This is a precurser to wrapping the o2cb functionality in an
+operations vector.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlmglue.c   |    4 ----
- fs/ocfs2/heartbeat.c |   33 ---------------------------------
- fs/ocfs2/heartbeat.h |    1 -
- fs/ocfs2/ioctl.c     |    1 +
- fs/ocfs2/ocfs2.h     |    4 ----
- fs/ocfs2/stackglue.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/stackglue.h |    1 +
- fs/ocfs2/super.c     |   23 ++++++++++-------------
- 8 files changed, 62 insertions(+), 55 deletions(-)
+ fs/ocfs2/stackglue.c |  209 ++++++++++++++++++++++++++++++++++----------------
+ 1 files changed, 144 insertions(+), 65 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 6652a48..05fd016 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -32,10 +32,6 @@
- #include <linux/debugfs.h>
- #include <linux/seq_file.h>
- 
--#include <cluster/heartbeat.h>
--#include <cluster/nodemanager.h>
--#include <cluster/tcp.h>
--
- #define MLOG_MASK_PREFIX ML_DLM_GLUE
- #include <cluster/masklog.h>
- 
-diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
-index dcac1a4..c6e7213 100644
---- a/fs/ocfs2/heartbeat.c
-+++ b/fs/ocfs2/heartbeat.c
-@@ -28,7 +28,6 @@
- #include <linux/types.h>
- #include <linux/slab.h>
- #include <linux/highmem.h>
--#include <linux/kmod.h>
- 
- #define MLOG_MASK_PREFIX ML_SUPER
- #include <cluster/masklog.h>
-@@ -83,38 +82,6 @@ void ocfs2_do_node_down(int node_num, void *data)
- 	ocfs2_recovery_thread(osb, node_num);
- }
- 
--void ocfs2_stop_heartbeat(struct ocfs2_super *osb)
--{
--	int ret;
--	char *argv[5], *envp[3];
--
--	if (ocfs2_mount_local(osb))
--		return;
--
--	if (!osb->uuid_str) {
--		/* This can happen if we don't get far enough in mount... */
--		mlog(0, "No UUID with which to stop heartbeat!\n\n");
--		return;
--	}
--
--	argv[0] = (char *)o2nm_get_hb_ctl_path();
--	argv[1] = "-K";
--	argv[2] = "-u";
--	argv[3] = osb->uuid_str;
--	argv[4] = NULL;
--
--	mlog(0, "Run: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
--
--	/* minimal command environment taken from cpu_run_sbin_hotplug */
--	envp[0] = "HOME=/";
--	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
--	envp[2] = NULL;
--
--	ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
--	if (ret < 0)
--		mlog_errno(ret);
--}
--
- static inline void __ocfs2_node_map_set_bit(struct ocfs2_node_map *map,
- 					    int bit)
- {
-diff --git a/fs/ocfs2/heartbeat.h b/fs/ocfs2/heartbeat.h
-index 38e2450..74b9c5d 100644
---- a/fs/ocfs2/heartbeat.h
-+++ b/fs/ocfs2/heartbeat.h
-@@ -29,7 +29,6 @@
- void ocfs2_init_node_maps(struct ocfs2_super *osb);
- 
- void ocfs2_do_node_down(int node_num, void *data);
--void ocfs2_stop_heartbeat(struct ocfs2_super *osb);
- 
- /* node map functions - used to keep track of mounted and in-recovery
-  * nodes. */
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 5177fba..ab1c216 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -7,6 +7,7 @@
- 
- #include <linux/fs.h>
- #include <linux/mount.h>
-+#include <linux/smp_lock.h>
- 
- #define MLOG_MASK_PREFIX ML_INODE
- #include <cluster/masklog.h>
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 7006aba..31dc28b 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -36,10 +36,6 @@
- #include <linux/mutex.h>
- #include <linux/jbd.h>
- 
--#include "cluster/nodemanager.h"
--#include "cluster/heartbeat.h"
--#include "cluster/tcp.h"
--
- /* For union ocfs2_dlm_lksb */
- #include "stackglue.h"
- 
 diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 8146863..670fa94 100644
+index 51c2546..e35dde6 100644
 --- a/fs/ocfs2/stackglue.c
 +++ b/fs/ocfs2/stackglue.c
-@@ -20,12 +20,14 @@
+@@ -197,21 +197,19 @@ static void o2dlm_unlock_ast_wrapper(void *astarg, enum dlm_status status)
+ 	lproto->lp_unlock_ast(astarg, error);
+ }
  
- #include <linux/slab.h>
- #include <linux/crc32.h>
-+#include <linux/kmod.h>
+-int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
+-		   int mode,
+-		   union ocfs2_dlm_lksb *lksb,
+-		   u32 flags,
+-		   void *name,
+-		   unsigned int namelen,
+-		   void *astarg)
++static int o2cb_dlm_lock(struct ocfs2_cluster_connection *conn,
++			 int mode,
++			 union ocfs2_dlm_lksb *lksb,
++			 u32 flags,
++			 void *name,
++			 unsigned int namelen,
++			 void *astarg)
+ {
+ 	enum dlm_status status;
+ 	int o2dlm_mode = mode_to_o2dlm(mode);
+ 	int o2dlm_flags = flags_to_o2dlm(flags);
+ 	int ret;
  
- /* Needed for AOP_TRUNCATED_PAGE in mlog_errno() */
- #include <linux/fs.h>
+-	BUG_ON(lproto == NULL);
+-
+ 	status = dlmlock(conn->cc_lockspace, o2dlm_mode, &lksb->lksb_o2dlm,
+ 			 o2dlm_flags, name, namelen,
+ 			 o2dlm_lock_ast_wrapper, astarg,
+@@ -220,43 +218,80 @@ int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
+ 	return ret;
+ }
  
- #include "cluster/masklog.h"
- #include "cluster/nodemanager.h"
-+#include "cluster/heartbeat.h"
+-int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
+-		     union ocfs2_dlm_lksb *lksb,
+-		     u32 flags,
+-		     void *astarg)
++int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
++		   int mode,
++		   union ocfs2_dlm_lksb *lksb,
++		   u32 flags,
++		   void *name,
++		   unsigned int namelen,
++		   void *astarg)
++{
++	BUG_ON(lproto == NULL);
++
++	return o2cb_dlm_lock(conn, mode, lksb, flags,
++			     name, namelen, astarg);
++}
++
++static int o2cb_dlm_unlock(struct ocfs2_cluster_connection *conn,
++			   union ocfs2_dlm_lksb *lksb,
++			   u32 flags,
++			   void *astarg)
+ {
+ 	enum dlm_status status;
+ 	int o2dlm_flags = flags_to_o2dlm(flags);
+ 	int ret;
  
- #include "stackglue.h"
+-	BUG_ON(lproto == NULL);
+-
+ 	status = dlmunlock(conn->cc_lockspace, &lksb->lksb_o2dlm,
+ 			   o2dlm_flags, o2dlm_unlock_ast_wrapper, astarg);
+ 	ret = dlm_status_to_errno(status);
+ 	return ret;
+ }
  
-@@ -301,6 +303,13 @@ int ocfs2_cluster_connect(const char *group,
- 		goto out;
- 	}
+-int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
++int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
++		     union ocfs2_dlm_lksb *lksb,
++		     u32 flags,
++		     void *astarg)
++{
++	BUG_ON(lproto == NULL);
++
++	return o2cb_dlm_unlock(conn, lksb, flags, astarg);
++}
++
++static int o2cb_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
+ {
+ 	return dlm_status_to_errno(lksb->lksb_o2dlm.status);
+ }
  
++int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
++{
++	return o2cb_dlm_lock_status(lksb);
++}
++
+ /*
+  * Why don't we cast to ocfs2_meta_lvb?  The "clean" answer is that we
+  * don't cast at the glue level.  The real answer is that the header
+  * ordering is nigh impossible.
+  */
+-void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb)
++static void *o2cb_dlm_lvb(union ocfs2_dlm_lksb *lksb)
+ {
+ 	return (void *)(lksb->lksb_o2dlm.lvb);
+ }
+ 
+-void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
++void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb)
++{
++	return o2cb_dlm_lvb(lksb);
++}
++
++static void o2cb_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
+ {
+ 	dlm_print_one_lock(lksb->lksb_o2dlm.lockid);
+ }
+ 
++void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
++{
++	o2cb_dlm_dump_lksb(lksb);
++}
++
+ /*
+  * Called from the dlm when it's about to evict a node. This is how the
+  * classic stack signals node death.
+@@ -271,6 +306,62 @@ static void o2dlm_eviction_cb(int node_num, void *data)
+ 	conn->cc_recovery_handler(node_num, conn->cc_recovery_data);
+ }
+ 
++static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
++{
++	int rc = 0;
++	u32 dlm_key;
++	struct dlm_ctxt *dlm;
++	struct o2dlm_private *priv;
++	struct dlm_protocol_version dlm_version;
++
++	BUG_ON(conn == NULL);
++
 +	/* for now we only have one cluster/node, make sure we see it
 +	 * in the heartbeat universe */
 +	if (!o2hb_check_local_node_heartbeating()) {
@@ -187,123 +187,195 @@ index 8146863..670fa94 100644
 +		goto out;
 +	}
 +
- 	new_conn = kzalloc(sizeof(struct ocfs2_cluster_connection),
- 			   GFP_KERNEL);
- 	if (!new_conn) {
-@@ -359,6 +368,7 @@ out:
- 	return rc;
- }
- 
++	priv = kzalloc(sizeof(struct o2dlm_private), GFP_KERNEL);
++	if (!priv) {
++		rc = -ENOMEM;
++		goto out_free;
++	}
 +
- int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
- {
- 	struct dlm_ctxt *dlm = conn->cc_lockspace;
-@@ -373,6 +383,46 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
- 	return 0;
- }
- 
-+static void o2hb_stop(const char *group)
-+{
-+	int ret;
-+	char *argv[5], *envp[3];
++	/* This just fills the structure in.  It is safe to pass conn. */
++	dlm_setup_eviction_cb(&priv->op_eviction_cb, o2dlm_eviction_cb,
++			      conn);
 +
-+	argv[0] = (char *)o2nm_get_hb_ctl_path();
-+	argv[1] = "-K";
-+	argv[2] = "-u";
-+	argv[3] = (char *)group;
-+	argv[4] = NULL;
++	conn->cc_private = priv;
 +
-+	mlog(0, "Run: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
++	/* used by the dlm code to make message headers unique, each
++	 * node in this domain must agree on this. */
++	dlm_key = crc32_le(0, conn->cc_name, conn->cc_namelen);
++	dlm_version.pv_major = conn->cc_version.pv_major;
++	dlm_version.pv_minor = conn->cc_version.pv_minor;
 +
-+	/* minimal command environment taken from cpu_run_sbin_hotplug */
-+	envp[0] = "HOME=/";
-+	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
-+	envp[2] = NULL;
++	dlm = dlm_register_domain(conn->cc_name, dlm_key, &dlm_version);
++	if (IS_ERR(dlm)) {
++		rc = PTR_ERR(dlm);
++		mlog_errno(rc);
++		goto out_free;
++	}
 +
-+	ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
-+	if (ret < 0)
-+		mlog_errno(ret);
++	conn->cc_version.pv_major = dlm_version.pv_major;
++	conn->cc_version.pv_minor = dlm_version.pv_minor;
++	conn->cc_lockspace = dlm;
++
++	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
++
++out_free:
++	if (rc && conn->cc_private)
++		kfree(conn->cc_private);
++
++out:
++	return rc;
 +}
 +
-+/*
-+ * Hangup is a hack for tools compatibility.  Older ocfs2-tools software
-+ * expects the filesystem to call "ocfs2_hb_ctl" during unmount.  This
-+ * happens regardless of whether the DLM got started, so we can't do it
-+ * in ocfs2_cluster_disconnect().  We bring the o2hb_stop() function into
-+ * the glue and provide a "hangup" API for super.c to call.
-+ *
-+ * Other stacks will eventually provide a NULL ->hangup() pointer.
-+ */
-+void ocfs2_cluster_hangup(const char *group, int grouplen)
-+{
-+	BUG_ON(group == NULL);
-+	BUG_ON(group[grouplen] != '\0');
-+
-+	o2hb_stop(group);
-+}
-+
- int ocfs2_cluster_this_node(unsigned int *node)
+ int ocfs2_cluster_connect(const char *group,
+ 			  int grouplen,
+ 			  void (*recovery_handler)(int node_num,
+@@ -280,10 +371,6 @@ int ocfs2_cluster_connect(const char *group,
  {
- 	int node_num;
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index ccb0399..22af77b 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -74,6 +74,7 @@ int ocfs2_cluster_connect(const char *group,
- 			  void *recovery_data,
- 			  struct ocfs2_cluster_connection **conn);
- int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn);
-+void ocfs2_cluster_hangup(const char *group, int grouplen);
- int ocfs2_cluster_this_node(unsigned int *node);
+ 	int rc = 0;
+ 	struct ocfs2_cluster_connection *new_conn;
+-	u32 dlm_key;
+-	struct dlm_ctxt *dlm;
+-	struct o2dlm_private *priv;
+-	struct dlm_protocol_version dlm_version;
  
- int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index d3c4d32..8f536b3 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -40,8 +40,7 @@
- #include <linux/crc32.h>
- #include <linux/debugfs.h>
- #include <linux/mount.h>
--
--#include <cluster/nodemanager.h>
-+#include <linux/seq_file.h>
- 
- #define MLOG_MASK_PREFIX ML_SUPER
- #include <cluster/masklog.h>
-@@ -579,15 +578,6 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 		goto read_super_error;
+ 	BUG_ON(group == NULL);
+ 	BUG_ON(conn == NULL);
+@@ -294,13 +381,6 @@ int ocfs2_cluster_connect(const char *group,
+ 		goto out;
  	}
  
 -	/* for now we only have one cluster/node, make sure we see it
 -	 * in the heartbeat universe */
--	if (parsed_options.mount_opt & OCFS2_MOUNT_HB_LOCAL) {
--		if (!o2hb_check_local_node_heartbeating()) {
--			status = -EINVAL;
--			goto read_super_error;
--		}
+-	if (!o2hb_check_local_node_heartbeating()) {
+-		rc = -EINVAL;
+-		goto out;
 -	}
 -
- 	/* probe for superblock */
- 	status = ocfs2_sb_probe(sb, &bh, &sector_size);
- 	if (status < 0) {
-@@ -1275,8 +1265,15 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+ 	new_conn = kzalloc(sizeof(struct ocfs2_cluster_connection),
+ 			   GFP_KERNEL);
+ 	if (!new_conn) {
+@@ -316,64 +396,53 @@ int ocfs2_cluster_connect(const char *group,
+ 	/* Start the new connection at our maximum compatibility level */
+ 	new_conn->cc_version = lproto->lp_max_version;
  
- 	debugfs_remove(osb->osb_debug_root);
+-	priv = kzalloc(sizeof(struct o2dlm_private), GFP_KERNEL);
+-	if (!priv) {
+-		rc = -ENOMEM;
+-		goto out_free;
+-	}
+-
+-	/* This just fills the structure in.  It is safe to use new_conn. */
+-	dlm_setup_eviction_cb(&priv->op_eviction_cb, o2dlm_eviction_cb,
+-			      new_conn);
+-
+-	new_conn->cc_private = priv;
+-
+-	/* used by the dlm code to make message headers unique, each
+-	 * node in this domain must agree on this. */
+-	dlm_key = crc32_le(0, group, grouplen);
+-	dlm_version.pv_major = new_conn->cc_version.pv_major;
+-	dlm_version.pv_minor = new_conn->cc_version.pv_minor;
+-
+-	dlm = dlm_register_domain(group, dlm_key, &dlm_version);
+-	if (IS_ERR(dlm)) {
+-		rc = PTR_ERR(dlm);
++	rc = o2cb_cluster_connect(new_conn);
++	if (rc) {
+ 		mlog_errno(rc);
+ 		goto out_free;
+ 	}
  
--	if (!mnt_err)
--		ocfs2_stop_heartbeat(osb);
-+	/*
-+	 * This is a small hack to move ocfs2_hb_ctl into stackglue.
-+	 * If we're dismounting due to mount error, mount.ocfs2 will clean
-+	 * up heartbeat.  If we're a local mount, there is no heartbeat.
-+	 * If we failed before we got a uuid_str yet, we can't stop
-+	 * heartbeat.  Otherwise, do it.
-+	 */
-+	if (!mnt_err && !ocfs2_mount_local(osb) && osb->uuid_str)
-+		ocfs2_cluster_hangup(osb->uuid_str, strlen(osb->uuid_str));
+-	new_conn->cc_version.pv_major = dlm_version.pv_major;
+-	new_conn->cc_version.pv_minor = dlm_version.pv_minor;
+-	new_conn->cc_lockspace = dlm;
+-
+-	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
+-
+ 	*conn = new_conn;
  
- 	atomic_set(&osb->vol_state, VOLUME_DISMOUNTED);
+ out_free:
+-	if (rc) {
+-		kfree(new_conn->cc_private);
++	if (rc)
+ 		kfree(new_conn);
+-	}
  
+ out:
+ 	return rc;
+ }
+ 
+ 
+-int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
++static int o2cb_cluster_disconnect(struct ocfs2_cluster_connection *conn)
+ {
+ 	struct dlm_ctxt *dlm = conn->cc_lockspace;
+ 	struct o2dlm_private *priv = conn->cc_private;
+ 
+ 	dlm_unregister_eviction_cb(&priv->op_eviction_cb);
+-	dlm_unregister_domain(dlm);
+-
++	conn->cc_private = NULL;
+ 	kfree(priv);
+-	kfree(conn);
++
++	dlm_unregister_domain(dlm);
++	conn->cc_lockspace = NULL;
+ 
+ 	return 0;
+ }
+ 
++int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
++{
++	int ret;
++
++	BUG_ON(conn == NULL);
++
++	ret = o2cb_cluster_disconnect(conn);
++
++	/* XXX Should we free it anyway? */
++	if (!ret)
++		kfree(conn);
++
++	return ret;
++}
++
+ static void o2hb_stop(const char *group)
+ {
+ 	int ret;
+@@ -406,15 +475,20 @@ static void o2hb_stop(const char *group)
+  *
+  * Other stacks will eventually provide a NULL ->hangup() pointer.
+  */
++static void o2cb_cluster_hangup(const char *group, int grouplen)
++{
++	o2hb_stop(group);
++}
++
+ void ocfs2_cluster_hangup(const char *group, int grouplen)
+ {
+ 	BUG_ON(group == NULL);
+ 	BUG_ON(group[grouplen] != '\0');
+ 
+-	o2hb_stop(group);
++	o2cb_cluster_hangup(group, grouplen);
+ }
+ 
+-int ocfs2_cluster_this_node(unsigned int *node)
++static int o2cb_cluster_this_node(unsigned int *node)
+ {
+ 	int node_num;
+ 
+@@ -429,6 +503,11 @@ int ocfs2_cluster_this_node(unsigned int *node)
+ 	return 0;
+ }
+ 
++int ocfs2_cluster_this_node(unsigned int *node)
++{
++	return o2cb_cluster_this_node(node);
++}
++
+ void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto)
+ {
+ 	BUG_ON(proto != NULL);
 -- 
 1.5.4.1
