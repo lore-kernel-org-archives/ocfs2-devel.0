@@ -1,7 +1,8 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:42 -0700
-Subject: [Ocfs2-devel] [PATCH 32/62] ocfs2: add fsdlm to stackglue
-In-Reply-To: <12071673821008-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:48 -0700
+Subject: [Ocfs2-devel] [PATCH 38/62] ocfs2/dlm: Create slabcaches for lock
+	and lockres
+In-Reply-To: <12071673941659-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -34,387 +35,262 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071673772233-git-send-email-mfasheh@suse.com>
 	<1207167379283-git-send-email-mfasheh@suse.com>
 	<12071673821008-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673843208-git-send-email-mfasheh@suse.com>
+	<12071673843208-git-send-email-mfasheh@suse.com>
+	<12071673872568-git-send-email-mfasheh@suse.com>
+	<12071673882492-git-send-email-mfasheh@suse.com>
+	<1207167390414-git-send-email-mfasheh@suse.com>
+	<1207167392537-git-send-email-mfasheh@suse.com>
+	<12071673941659-git-send-email-mfasheh@suse.com>
+Message-ID: <12071673964014-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, David Teigland <teigland@redhat.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Sunil Mushran <sunil.mushran@oracle.com>
 
-From: David Teigland <teigland@redhat.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
 
-Add code to use fs/dlm.
+This patch makes the o2dlm allocate memory for lockres, lockname and lock
+structures from slabcaches rather than kmalloc. This allows us to not only
+make these allocs more efficient but also allows us to track the memory being
+consumed by these structures.
 
-[ Modified to be part of the stack_user module -- Joel ]
-
-Signed-off-by: David Teigland <teigland@redhat.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/stack_user.c |  216 ++++++++++++++++++++++++++++++++++++++++++++++++-
- fs/ocfs2/stackglue.c  |   14 +++-
- fs/ocfs2/stackglue.h  |   19 ++++-
- 3 files changed, 243 insertions(+), 6 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    7 +++++
+ fs/ocfs2/dlm/dlmdomain.c |   26 +++++++++++++++++--
+ fs/ocfs2/dlm/dlmlock.c   |   22 +++++++++++++++-
+ fs/ocfs2/dlm/dlmmaster.c |   61 +++++++++++++++++++++++++++++++++++++---------
+ 4 files changed, 99 insertions(+), 17 deletions(-)
 
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index de982c1..7428663 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -24,6 +24,7 @@
- #include <linux/reboot.h>
- #include <asm/uaccess.h>
- 
-+#include "ocfs2.h"  /* For struct ocfs2_lock_res */
- #include "stackglue.h"
- 
- 
-@@ -152,6 +153,8 @@ union ocfs2_control_message {
- 	struct ocfs2_control_message_down	u_down;
- };
- 
-+static struct ocfs2_stack_plugin user_stack;
-+
- static atomic_t ocfs2_control_opened;
- static int ocfs2_control_this_node = -1;
- static struct ocfs2_protocol_version running_proto;
-@@ -344,6 +347,20 @@ out_unlock:
- 	return rc;
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index dc8ea66..7525a8a 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -963,9 +963,16 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
+ 					  DLM_LOCK_RES_MIGRATING));
  }
  
-+static int ocfs2_control_get_this_node(void)
-+{
-+	int rc;
++/* create/destroy slab caches */
++int dlm_init_master_caches(void);
++void dlm_destroy_master_caches(void);
 +
-+	mutex_lock(&ocfs2_control_lock);
-+	if (ocfs2_control_this_node < 0)
-+		rc = -EINVAL;
-+	else
-+		rc = ocfs2_control_this_node;
-+	mutex_unlock(&ocfs2_control_lock);
++int dlm_init_lock_cache(void);
++void dlm_destroy_lock_cache(void);
+ 
+ int dlm_init_mle_cache(void);
+ void dlm_destroy_mle_cache(void);
 +
-+	return rc;
-+}
+ void dlm_hb_event_notify_attached(struct dlm_ctxt *dlm, int idx, int node_up);
+ int dlm_drop_lockres_ref(struct dlm_ctxt *dlm,
+ 			 struct dlm_lock_resource *res);
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 2ce6207..b092364 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1818,21 +1818,41 @@ static int __init dlm_init(void)
+ 	status = dlm_init_mle_cache();
+ 	if (status) {
+ 		mlog(ML_ERROR, "Could not create o2dlm_mle slabcache\n");
+-		return -1;
++		goto error;
++	}
 +
- static int ocfs2_control_do_setnode_msg(struct file *file,
- 					struct ocfs2_control_message_setn *msg)
++	status = dlm_init_master_caches();
++	if (status) {
++		mlog(ML_ERROR, "Could not create o2dlm_lockres and "
++		     "o2dlm_lockname slabcaches\n");
++		goto error;
++	}
++
++	status = dlm_init_lock_cache();
++	if (status) {
++		mlog(ML_ERROR, "Count not create o2dlm_lock slabcache\n");
++		goto error;
+ 	}
+ 
+ 	status = dlm_register_net_handlers();
+ 	if (status) {
+-		dlm_destroy_mle_cache();
+-		return -1;
++		mlog(ML_ERROR, "Unable to register network handlers\n");
++		goto error;
+ 	}
+ 
+ 	return 0;
++error:
++	dlm_destroy_lock_cache();
++	dlm_destroy_master_caches();
++	dlm_destroy_mle_cache();
++	return -1;
+ }
+ 
+ static void __exit dlm_exit (void)
  {
-@@ -652,13 +669,210 @@ static void ocfs2_control_exit(void)
- 		       -rc);
+ 	dlm_unregister_net_handlers();
++	dlm_destroy_lock_cache();
++	dlm_destroy_master_caches();
+ 	dlm_destroy_mle_cache();
  }
  
-+static struct dlm_lksb *fsdlm_astarg_to_lksb(void *astarg)
+diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+index 52578d9..83a9f29 100644
+--- a/fs/ocfs2/dlm/dlmlock.c
++++ b/fs/ocfs2/dlm/dlmlock.c
+@@ -53,6 +53,8 @@
+ #define MLOG_MASK_PREFIX ML_DLM
+ #include "cluster/masklog.h"
+ 
++static struct kmem_cache *dlm_lock_cache = NULL;
++
+ static DEFINE_SPINLOCK(dlm_cookie_lock);
+ static u64 dlm_next_cookie = 1;
+ 
+@@ -64,6 +66,22 @@ static void dlm_init_lock(struct dlm_lock *newlock, int type,
+ static void dlm_lock_release(struct kref *kref);
+ static void dlm_lock_detach_lockres(struct dlm_lock *lock);
+ 
++int dlm_init_lock_cache(void)
 +{
-+	struct ocfs2_lock_res *res = astarg;
-+	return &res->l_lksb.lksb_fsdlm;
-+}
-+
-+static void fsdlm_lock_ast_wrapper(void *astarg)
-+{
-+	struct dlm_lksb *lksb = fsdlm_astarg_to_lksb(astarg);
-+	int status = lksb->sb_status;
-+
-+	BUG_ON(user_stack.sp_proto == NULL);
-+
-+	/*
-+	 * For now we're punting on the issue of other non-standard errors
-+	 * where we can't tell if the unlock_ast or lock_ast should be called.
-+	 * The main "other error" that's possible is EINVAL which means the
-+	 * function was called with invalid args, which shouldn't be possible
-+	 * since the caller here is under our control.  Other non-standard
-+	 * errors probably fall into the same category, or otherwise are fatal
-+	 * which means we can't carry on anyway.
-+	 */
-+
-+	if (status == -DLM_EUNLOCK || status == -DLM_ECANCEL)
-+		user_stack.sp_proto->lp_unlock_ast(astarg, 0);
-+	else
-+		user_stack.sp_proto->lp_lock_ast(astarg);
-+}
-+
-+static void fsdlm_blocking_ast_wrapper(void *astarg, int level)
-+{
-+	BUG_ON(user_stack.sp_proto == NULL);
-+
-+	user_stack.sp_proto->lp_blocking_ast(astarg, level);
-+}
-+
-+static int user_dlm_lock(struct ocfs2_cluster_connection *conn,
-+			 int mode,
-+			 union ocfs2_dlm_lksb *lksb,
-+			 u32 flags,
-+			 void *name,
-+			 unsigned int namelen,
-+			 void *astarg)
-+{
-+	int ret;
-+
-+	if (!lksb->lksb_fsdlm.sb_lvbptr)
-+		lksb->lksb_fsdlm.sb_lvbptr = (char *)lksb +
-+					     sizeof(struct dlm_lksb);
-+
-+	ret = dlm_lock(conn->cc_lockspace, mode, &lksb->lksb_fsdlm,
-+		       flags|DLM_LKF_NODLCKWT, name, namelen, 0,
-+		       fsdlm_lock_ast_wrapper, astarg,
-+		       fsdlm_blocking_ast_wrapper);
-+	return ret;
-+}
-+
-+static int user_dlm_unlock(struct ocfs2_cluster_connection *conn,
-+			   union ocfs2_dlm_lksb *lksb,
-+			   u32 flags,
-+			   void *astarg)
-+{
-+	int ret;
-+
-+	ret = dlm_unlock(conn->cc_lockspace, lksb->lksb_fsdlm.sb_lkid,
-+			 flags, &lksb->lksb_fsdlm, astarg);
-+	return ret;
-+}
-+
-+static int user_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
-+{
-+	return lksb->lksb_fsdlm.sb_status;
-+}
-+
-+static void *user_dlm_lvb(union ocfs2_dlm_lksb *lksb)
-+{
-+	return (void *)(lksb->lksb_fsdlm.sb_lvbptr);
-+}
-+
-+static void user_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
-+{
-+}
-+
-+/*
-+ * Compare a requested locking protocol version against the current one.
-+ *
-+ * If the major numbers are different, they are incompatible.
-+ * If the current minor is greater than the request, they are incompatible.
-+ * If the current minor is less than or equal to the request, they are
-+ * compatible, and the requester should run at the current minor version.
-+ */
-+static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
-+			       struct ocfs2_protocol_version *request)
-+{
-+	if (existing->pv_major != request->pv_major)
-+		return 1;
-+
-+	if (existing->pv_minor > request->pv_minor)
-+		return 1;
-+
-+	if (existing->pv_minor < request->pv_minor)
-+		request->pv_minor = existing->pv_minor;
-+
++	dlm_lock_cache = kmem_cache_create("o2dlm_lock",
++					   sizeof(struct dlm_lock),
++					   0, SLAB_HWCACHE_ALIGN, NULL);
++	if (dlm_lock_cache == NULL)
++		return -ENOMEM;
 +	return 0;
 +}
 +
-+static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
++void dlm_destroy_lock_cache(void)
 +{
-+	dlm_lockspace_t *fsdlm;
-+	struct ocfs2_live_connection *control;
-+	int rc = 0;
-+
-+	BUG_ON(conn == NULL);
-+
-+	rc = ocfs2_live_connection_new(conn, &control);
-+	if (rc)
-+		goto out;
-+
-+	/*
-+	 * running_proto must have been set before we allowed any mounts
-+	 * to proceed.
-+	 */
-+	if (fs_protocol_compare(&running_proto, &conn->cc_version)) {
-+		printk(KERN_ERR
-+		       "Unable to mount with fs locking protocol version "
-+		       "%u.%u because the userspace control daemon has "
-+		       "negotiated %u.%u\n",
-+		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
-+		       running_proto.pv_major, running_proto.pv_minor);
-+		rc = -EPROTO;
-+		ocfs2_live_connection_drop(control);
-+		goto out;
-+	}
-+
-+	rc = dlm_new_lockspace(conn->cc_name, strlen(conn->cc_name),
-+			       &fsdlm, DLM_LSFL_FS, DLM_LVB_LEN);
-+	if (rc) {
-+		ocfs2_live_connection_drop(control);
-+		goto out;
-+	}
-+
-+	conn->cc_private = control;
-+	conn->cc_lockspace = fsdlm;
-+out:
-+	return rc;
++	if (dlm_lock_cache)
++		kmem_cache_destroy(dlm_lock_cache);
 +}
 +
-+static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn,
-+				   int hangup_pending)
-+{
-+	dlm_release_lockspace(conn->cc_lockspace, 2);
-+	conn->cc_lockspace = NULL;
-+	ocfs2_live_connection_drop(conn->cc_private);
-+	conn->cc_private = NULL;
-+	return 0;
-+}
-+
-+static int user_cluster_this_node(unsigned int *this_node)
-+{
-+	int rc;
-+
-+	rc = ocfs2_control_get_this_node();
-+	if (rc < 0)
-+		return rc;
-+
-+	*this_node = rc;
-+	return 0;
-+}
-+
-+static struct ocfs2_stack_operations user_stack_ops = {
-+	.connect	= user_cluster_connect,
-+	.disconnect	= user_cluster_disconnect,
-+	.this_node	= user_cluster_this_node,
-+	.dlm_lock	= user_dlm_lock,
-+	.dlm_unlock	= user_dlm_unlock,
-+	.lock_status	= user_dlm_lock_status,
-+	.lock_lvb	= user_dlm_lvb,
-+	.dump_lksb	= user_dlm_dump_lksb,
-+};
-+
-+static struct ocfs2_stack_plugin user_stack = {
-+	.sp_name	= "user",
-+	.sp_ops		= &user_stack_ops,
-+	.sp_owner	= THIS_MODULE,
-+};
-+
-+
- static int __init user_stack_init(void)
- {
--	return ocfs2_control_init();
-+	int rc;
-+
-+	rc = ocfs2_control_init();
-+	if (!rc) {
-+		rc = ocfs2_stack_glue_register(&user_stack);
-+		if (rc)
-+			ocfs2_control_exit();
-+	}
-+
-+	return rc;
+ /* Tell us whether we can grant a new lock request.
+  * locking:
+  *   caller needs:  res->spinlock
+@@ -353,7 +371,7 @@ static void dlm_lock_release(struct kref *kref)
+ 		mlog(0, "freeing kernel-allocated lksb\n");
+ 		kfree(lock->lksb);
+ 	}
+-	kfree(lock);
++	kmem_cache_free(dlm_lock_cache, lock);
  }
  
- static void __exit user_stack_exit(void)
- {
-+	ocfs2_stack_glue_unregister(&user_stack);
- 	ocfs2_control_exit();
- }
+ /* associate a lock with it's lockres, getting a ref on the lockres */
+@@ -412,7 +430,7 @@ struct dlm_lock * dlm_new_lock(int type, u8 node, u64 cookie,
+ 	struct dlm_lock *lock;
+ 	int kernel_allocated = 0;
  
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index bf45d9b..119f60c 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -228,13 +228,20 @@ void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto)
- EXPORT_SYMBOL_GPL(ocfs2_stack_glue_set_locking_protocol);
+-	lock = kzalloc(sizeof(*lock), GFP_NOFS);
++	lock = (struct dlm_lock *) kmem_cache_zalloc(dlm_lock_cache, GFP_NOFS);
+ 	if (!lock)
+ 		return NULL;
  
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 90797c5..ac9ed31 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -216,10 +216,10 @@ EXPORT_SYMBOL_GPL(dlm_dump_all_mles);
  
-+/*
-+ * The ocfs2_dlm_lock() and ocfs2_dlm_unlock() functions take
-+ * "struct ocfs2_lock_res *astarg" instead of "void *astarg" because the
-+ * underlying stack plugins need to pilfer the lksb off of the lock_res.
-+ * If some other structure needs to be passed as an astarg, the plugins
-+ * will need to be given a different avenue to the lksb.
-+ */
- int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
- 		   int mode,
- 		   union ocfs2_dlm_lksb *lksb,
- 		   u32 flags,
- 		   void *name,
- 		   unsigned int namelen,
--		   void *astarg)
-+		   struct ocfs2_lock_res *astarg)
- {
- 	BUG_ON(lproto == NULL);
+ #endif  /*  0  */
  
-@@ -246,7 +253,7 @@ EXPORT_SYMBOL_GPL(ocfs2_dlm_lock);
- int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
- 		     union ocfs2_dlm_lksb *lksb,
- 		     u32 flags,
--		     void *astarg)
-+		     struct ocfs2_lock_res *astarg)
- {
- 	BUG_ON(lproto == NULL);
+-
++static struct kmem_cache *dlm_lockres_cache = NULL;
++static struct kmem_cache *dlm_lockname_cache = NULL;
+ static struct kmem_cache *dlm_mle_cache = NULL;
  
-@@ -360,7 +367,8 @@ void ocfs2_cluster_hangup(const char *group, int grouplen)
- 	BUG_ON(group == NULL);
- 	BUG_ON(group[grouplen] != '\0');
- 
--	active_stack->sp_ops->hangup(group, grouplen);
-+	if (active_stack->sp_ops->hangup)
-+		active_stack->sp_ops->hangup(group, grouplen);
- 
- 	/* cluster_disconnect() was called with hangup_pending==1 */
- 	ocfs2_stack_driver_put();
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index d88bc65..005e4f1 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -26,6 +26,7 @@
- #include <linux/dlmconstants.h>
- 
- #include "dlm/dlmapi.h"
-+#include <linux/dlm.h>
- 
- /*
-  * dlmconstants.h does not have a LOCAL flag.  We hope to remove it
-@@ -60,6 +61,17 @@ struct ocfs2_locking_protocol {
- 	void (*lp_unlock_ast)(void *astarg, int error);
- };
- 
-+
-+/*
-+ * The dlm_lockstatus struct includes lvb space, but the dlm_lksb struct only
-+ * has a pointer to separately allocated lvb space.  This struct exists only to
-+ * include in the lksb union to make space for a combined dlm_lksb and lvb.
-+ */
-+struct fsdlm_lksb_plus_lvb {
-+	struct dlm_lksb lksb;
-+	char lvb[DLM_LVB_LEN];
-+};
-+
- /*
-  * A union of all lock status structures.  We define it here so that the
-  * size of the union is known.  Lock status structures are embedded in
-@@ -67,6 +79,8 @@ struct ocfs2_locking_protocol {
+-
+ static void dlm_mle_release(struct kref *kref);
+ static void dlm_init_mle(struct dlm_master_list_entry *mle,
+ 			enum dlm_mle_type type,
+@@ -560,6 +560,35 @@ static void dlm_mle_release(struct kref *kref)
+  * LOCK RESOURCE FUNCTIONS
   */
- union ocfs2_dlm_lksb {
- 	struct dlm_lockstatus lksb_o2dlm;
-+	struct dlm_lksb lksb_fsdlm;
-+	struct fsdlm_lksb_plus_lvb padding;
- };
  
- /*
-@@ -221,17 +235,18 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
- void ocfs2_cluster_hangup(const char *group, int grouplen);
- int ocfs2_cluster_this_node(unsigned int *node);
++int dlm_init_master_caches(void)
++{
++	dlm_lockres_cache = kmem_cache_create("o2dlm_lockres",
++					      sizeof(struct dlm_lock_resource),
++					      0, SLAB_HWCACHE_ALIGN, NULL);
++	if (!dlm_lockres_cache)
++		goto bail;
++
++	dlm_lockname_cache = kmem_cache_create("o2dlm_lockname",
++					       DLM_LOCKID_NAME_MAX, 0,
++					       SLAB_HWCACHE_ALIGN, NULL);
++	if (!dlm_lockname_cache)
++		goto bail;
++
++	return 0;
++bail:
++	dlm_destroy_master_caches();
++	return -ENOMEM;
++}
++
++void dlm_destroy_master_caches(void)
++{
++	if (dlm_lockname_cache)
++		kmem_cache_destroy(dlm_lockname_cache);
++
++	if (dlm_lockres_cache)
++		kmem_cache_destroy(dlm_lockres_cache);
++}
++
+ static void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
+ 				  struct dlm_lock_resource *res,
+ 				  u8 owner)
+@@ -642,9 +671,9 @@ static void dlm_lockres_release(struct kref *kref)
+ 	BUG_ON(!list_empty(&res->recovering));
+ 	BUG_ON(!list_empty(&res->purge));
  
-+struct ocfs2_lock_res;
- int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
- 		   int mode,
- 		   union ocfs2_dlm_lksb *lksb,
- 		   u32 flags,
- 		   void *name,
- 		   unsigned int namelen,
--		   void *astarg);
-+		   struct ocfs2_lock_res *astarg);
- int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
- 		     union ocfs2_dlm_lksb *lksb,
- 		     u32 flags,
--		     void *astarg);
-+		     struct ocfs2_lock_res *astarg);
+-	kfree(res->lockname.name);
++	kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
  
- int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb);
- void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb);
+-	kfree(res);
++	kmem_cache_free(dlm_lockres_cache, res);
+ }
+ 
+ void dlm_lockres_put(struct dlm_lock_resource *res)
+@@ -700,20 +729,28 @@ struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
+ 				   const char *name,
+ 				   unsigned int namelen)
+ {
+-	struct dlm_lock_resource *res;
++	struct dlm_lock_resource *res = NULL;
+ 
+-	res = kmalloc(sizeof(struct dlm_lock_resource), GFP_NOFS);
++	res = (struct dlm_lock_resource *)
++				kmem_cache_zalloc(dlm_lockres_cache, GFP_NOFS);
+ 	if (!res)
+-		return NULL;
++		goto error;
+ 
+-	res->lockname.name = kmalloc(namelen, GFP_NOFS);
+-	if (!res->lockname.name) {
+-		kfree(res);
+-		return NULL;
+-	}
++	res->lockname.name = (char *)
++				kmem_cache_zalloc(dlm_lockname_cache, GFP_NOFS);
++	if (!res->lockname.name)
++		goto error;
+ 
+ 	dlm_init_lockres(dlm, res, name, namelen);
+ 	return res;
++
++error:
++	if (res && res->lockname.name)
++		kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
++
++	if (res)
++		kmem_cache_free(dlm_lockres_cache, res);
++	return NULL;
+ }
+ 
+ void __dlm_lockres_grab_inflight_ref(struct dlm_ctxt *dlm,
 -- 
 1.5.4.1
