@@ -1,8 +1,8 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:47 -0700
-Subject: [Ocfs2-devel] [PATCH 37/62] ocfs2/dlm: Rename slabcache
-	dlm_mle_cache to o2dlm_mle
-In-Reply-To: <1207167392537-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:45 -0700
+Subject: [Ocfs2-devel] [PATCH 35/62] ocfs2: Allow selection of cluster
+	plug-ins.
+In-Reply-To: <12071673882492-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -38,56 +38,92 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071673843208-git-send-email-mfasheh@suse.com>
 	<12071673872568-git-send-email-mfasheh@suse.com>
 	<12071673882492-git-send-email-mfasheh@suse.com>
-	<1207167390414-git-send-email-mfasheh@suse.com>
-	<1207167392537-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673941659-git-send-email-mfasheh@suse.com>
+Message-ID: <1207167390414-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Sunil Mushran <sunil.mushran@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
-From: Sunil Mushran <sunil.mushran@oracle.com>
+From: Joel Becker <joel.becker@oracle.com>
 
-This patch renames dlm_mle_slabcache to prevent namespace clashes with fs/dlm.
+ocfs2 now supports plug-ins for the classic O2CB stack as well as
+userspace cluster stacks in conjunction with fs/dlm.  This allows zero,
+one, or both of the plug-ins to be selected in Kconfig.  For local mounts
+(non-clustered), neither plug-in is needed.  Both plugins can be loaded
+at one time, the runtime will select the one needed for the cluster
+systme in use.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlm/dlmdomain.c |    4 +++-
- fs/ocfs2/dlm/dlmmaster.c |    2 +-
- 2 files changed, 4 insertions(+), 2 deletions(-)
+ fs/Kconfig        |   26 ++++++++++++++++++++++++++
+ fs/ocfs2/Makefile |   10 ++++++----
+ 2 files changed, 32 insertions(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 0879d86..2ce6207 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1816,8 +1816,10 @@ static int __init dlm_init(void)
- 	dlm_print_version();
+diff --git a/fs/Kconfig b/fs/Kconfig
+index d731282..c7b50ce 100644
+--- a/fs/Kconfig
++++ b/fs/Kconfig
+@@ -444,6 +444,32 @@ config OCFS2_FS
+ 	  For more information on OCFS2, see the file
+ 	  <file:Documentation/filesystems/ocfs2.txt>.
  
- 	status = dlm_init_mle_cache();
--	if (status)
-+	if (status) {
-+		mlog(ML_ERROR, "Could not create o2dlm_mle slabcache\n");
- 		return -1;
-+	}
++config OCFS2_FS_O2CB
++	tristate "O2CB Kernelspace Clustering"
++	depends on OCFS2_FS
++	default y
++	help
++	  OCFS2 includes a simple kernelspace clustering package, the OCFS2
++	  Cluster Base.  It only requires a very small userspace component
++	  to configure it. This comes with the standard ocfs2-tools package.
++	  O2CB is limited to maintaining a cluster for OCFS2 file systems.
++	  It cannot manage any other cluster applications.
++
++	  It is always safe to say Y here, as the clustering method is
++	  run-time selectable.
++
++config OCFS2_FS_USERSPACE_CLUSTER
++	tristate "OCFS2 Userspace Clustering"
++	depends on OCFS2_FS && DLM
++	default y
++	help
++	  This option will allow OCFS2 to use userspace clustering services
++	  in conjunction with the DLM in fs/dlm.  If you are using a
++	  userspace cluster manager, say Y here.
++
++	  It is safe to say Y, as the clustering method is run-time
++	  selectable.
++
+ config OCFS2_DEBUG_MASKLOG
+ 	bool "OCFS2 logging support"
+ 	depends on OCFS2_FS
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index b8d6d02..f6956de 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -4,9 +4,10 @@ EXTRA_CFLAGS += -DCATCH_BH_JBD_RACES
  
- 	status = dlm_register_net_handlers();
- 	if (status) {
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index ea6b895..90797c5 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -507,7 +507,7 @@ static void dlm_mle_node_up(struct dlm_ctxt *dlm,
+ obj-$(CONFIG_OCFS2_FS) += 	\
+ 	ocfs2.o			\
+-	ocfs2_stackglue.o	\
+-	ocfs2_stack_o2cb.o	\
+-	ocfs2_stack_user.o
++	ocfs2_stackglue.o
++
++obj-$(CONFIG_OCFS2_FS_O2CB) += ocfs2_stack_o2cb.o
++obj-$(CONFIG_OCFS2_FS_USERSPACE_CLUSTER) += ocfs2_stack_user.o
  
- int dlm_init_mle_cache(void)
- {
--	dlm_mle_cache = kmem_cache_create("dlm_mle_cache",
-+	dlm_mle_cache = kmem_cache_create("o2dlm_mle",
- 					  sizeof(struct dlm_master_list_entry),
- 					  0, SLAB_HWCACHE_ALIGN,
- 					  NULL);
+ ocfs2-objs := \
+ 	alloc.o 		\
+@@ -39,5 +40,6 @@ ocfs2_stackglue-objs := stackglue.o
+ ocfs2_stack_o2cb-objs := stack_o2cb.o
+ ocfs2_stack_user-objs := stack_user.o
+ 
++# cluster/ is always needed when OCFS2_FS for masklog support
+ obj-$(CONFIG_OCFS2_FS) += cluster/
+-obj-$(CONFIG_OCFS2_FS) += dlm/
++obj-$(CONFIG_OCFS2_FS_O2CB) += dlm/
 -- 
 1.5.4.1
