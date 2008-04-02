@@ -1,8 +1,8 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:30 -0700
-Subject: [Ocfs2-devel] [PATCH 20/62] ocfs2: Split o2cb code from generic
-	stack functions.
-In-Reply-To: <12071673571757-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:41 -0700
+Subject: [Ocfs2-devel] [PATCH 31/62] ocfs2: Add the 'set version' message to
+	the ocfs2_control device.
+In-Reply-To: <1207167379283-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -23,7 +23,18 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071673543752-git-send-email-mfasheh@suse.com>
 	<1207167355295-git-send-email-mfasheh@suse.com>
 	<12071673571757-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673591158-git-send-email-mfasheh@suse.com>
+	<12071673591158-git-send-email-mfasheh@suse.com>
+	<12071673613757-git-send-email-mfasheh@suse.com>
+	<1207167363119-git-send-email-mfasheh@suse.com>
+	<12071673661674-git-send-email-mfasheh@suse.com>
+	<12071673681650-git-send-email-mfasheh@suse.com>
+	<12071673701937-git-send-email-mfasheh@suse.com>
+	<12071673722691-git-send-email-mfasheh@suse.com>
+	<12071673731276-git-send-email-mfasheh@suse.com>
+	<12071673753788-git-send-email-mfasheh@suse.com>
+	<12071673772233-git-send-email-mfasheh@suse.com>
+	<1207167379283-git-send-email-mfasheh@suse.com>
+Message-ID: <12071673821008-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -33,349 +44,239 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
 From: Joel Becker <joel.becker@oracle.com>
 
-Split off the o2cb-specific funtionality from the generic stack glue
-calls.  This is a precurser to wrapping the o2cb functionality in an
-operations vector.
+The "SETV" message sets the filesystem locking protocol version as
+negotiated by the client.  The client negotiates based on the maximum
+version advertised in /sys/fs/ocfs2/max_locking_protocol.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/stackglue.c |  209 ++++++++++++++++++++++++++++++++++----------------
- 1 files changed, 144 insertions(+), 65 deletions(-)
+ fs/ocfs2/stack_user.c |  131 ++++++++++++++++++++++++++++++++++++++++++++-----
+ 1 files changed, 119 insertions(+), 12 deletions(-)
 
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 51c2546..e35dde6 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -197,21 +197,19 @@ static void o2dlm_unlock_ast_wrapper(void *astarg, enum dlm_status status)
- 	lproto->lp_unlock_ast(astarg, error);
- }
+diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+index 43e6105..de982c1 100644
+--- a/fs/ocfs2/stack_user.c
++++ b/fs/ocfs2/stack_user.c
+@@ -40,7 +40,7 @@
+  * unknown, -EINVAL is returned.  Once the negotiation is complete, the
+  * client can start sending messages.
+  *
+- * The T01 protocol only has two messages.  First is the "SETN" message.
++ * The T01 protocol has three messages.  First is the "SETN" message.
+  * It has the following syntax:
+  *
+  *  SETN<space><8-char-hex-nodenum><newline>
+@@ -50,8 +50,22 @@
+  * The "SETN" message must be the first message following the protocol.
+  * It tells ocfs2_control the local node number.
+  *
+- * Once the local node number has been set, the "DOWN" message can be
+- * sent for node down notification.  It has the following syntax:
++ * Next comes the "SETV" message.  It has the following syntax:
++ *
++ *  SETV<space><2-char-hex-major><space><2-char-hex-minor><newline>
++ *
++ * This is 11 characters.
++ *
++ * The "SETV" message sets the filesystem locking protocol version as
++ * negotiated by the client.  The client negotiates based on the maximum
++ * version advertised in /sys/fs/ocfs2/max_locking_protocol.  The major
++ * number from the "SETV" message must match
++ * user_stack.sp_proto->lp_max_version.pv_major, and the minor number
++ * must be less than or equal to ...->lp_max_version.pv_minor.
++ *
++ * Once this information has been set, mounts will be allowed.  From this
++ * point on, the "DOWN" message can be sent for node down notification.
++ * It has the following syntax:
+  *
+  *  DOWN<space><32-char-cap-hex-uuid><space><8-char-hex-nodenum><newline>
+  *
+@@ -79,9 +93,12 @@
+ #define OCFS2_CONTROL_MESSAGE_OP_LEN		4
+ #define OCFS2_CONTROL_MESSAGE_SETNODE_OP	"SETN"
+ #define OCFS2_CONTROL_MESSAGE_SETNODE_TOTAL_LEN	14
++#define OCFS2_CONTROL_MESSAGE_SETVERSION_OP	"SETV"
++#define OCFS2_CONTROL_MESSAGE_SETVERSION_TOTAL_LEN	11
+ #define OCFS2_CONTROL_MESSAGE_DOWN_OP		"DOWN"
+ #define OCFS2_CONTROL_MESSAGE_DOWN_TOTAL_LEN	47
+ #define OCFS2_TEXT_UUID_LEN			32
++#define OCFS2_CONTROL_MESSAGE_VERNUM_LEN	2
+ #define OCFS2_CONTROL_MESSAGE_NODENUM_LEN	8
  
--int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
--		   int mode,
--		   union ocfs2_dlm_lksb *lksb,
--		   u32 flags,
--		   void *name,
--		   unsigned int namelen,
--		   void *astarg)
-+static int o2cb_dlm_lock(struct ocfs2_cluster_connection *conn,
-+			 int mode,
-+			 union ocfs2_dlm_lksb *lksb,
-+			 u32 flags,
-+			 void *name,
-+			 unsigned int namelen,
-+			 void *astarg)
- {
- 	enum dlm_status status;
- 	int o2dlm_mode = mode_to_o2dlm(mode);
- 	int o2dlm_flags = flags_to_o2dlm(flags);
- 	int ret;
- 
--	BUG_ON(lproto == NULL);
--
- 	status = dlmlock(conn->cc_lockspace, o2dlm_mode, &lksb->lksb_o2dlm,
- 			 o2dlm_flags, name, namelen,
- 			 o2dlm_lock_ast_wrapper, astarg,
-@@ -220,43 +218,80 @@ int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
- 	return ret;
- }
- 
--int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
--		     union ocfs2_dlm_lksb *lksb,
--		     u32 flags,
--		     void *astarg)
-+int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
-+		   int mode,
-+		   union ocfs2_dlm_lksb *lksb,
-+		   u32 flags,
-+		   void *name,
-+		   unsigned int namelen,
-+		   void *astarg)
-+{
-+	BUG_ON(lproto == NULL);
-+
-+	return o2cb_dlm_lock(conn, mode, lksb, flags,
-+			     name, namelen, astarg);
-+}
-+
-+static int o2cb_dlm_unlock(struct ocfs2_cluster_connection *conn,
-+			   union ocfs2_dlm_lksb *lksb,
-+			   u32 flags,
-+			   void *astarg)
- {
- 	enum dlm_status status;
- 	int o2dlm_flags = flags_to_o2dlm(flags);
- 	int ret;
- 
--	BUG_ON(lproto == NULL);
--
- 	status = dlmunlock(conn->cc_lockspace, &lksb->lksb_o2dlm,
- 			   o2dlm_flags, o2dlm_unlock_ast_wrapper, astarg);
- 	ret = dlm_status_to_errno(status);
- 	return ret;
- }
- 
--int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
-+int ocfs2_dlm_unlock(struct ocfs2_cluster_connection *conn,
-+		     union ocfs2_dlm_lksb *lksb,
-+		     u32 flags,
-+		     void *astarg)
-+{
-+	BUG_ON(lproto == NULL);
-+
-+	return o2cb_dlm_unlock(conn, lksb, flags, astarg);
-+}
-+
-+static int o2cb_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
- {
- 	return dlm_status_to_errno(lksb->lksb_o2dlm.status);
- }
- 
-+int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
-+{
-+	return o2cb_dlm_lock_status(lksb);
-+}
-+
  /*
-  * Why don't we cast to ocfs2_meta_lvb?  The "clean" answer is that we
-  * don't cast at the glue level.  The real answer is that the header
-  * ordering is nigh impossible.
+@@ -97,6 +114,7 @@ struct ocfs2_control_private {
+ 	struct list_head op_list;
+ 	int op_state;
+ 	int op_this_node;
++	struct ocfs2_protocol_version op_proto;
+ };
+ 
+ /* SETN<space><8-char-hex-nodenum><newline> */
+@@ -107,6 +125,16 @@ struct ocfs2_control_message_setn {
+ 	char	newline;
+ };
+ 
++/* SETV<space><2-char-hex-major><space><2-char-hex-minor><newline> */
++struct ocfs2_control_message_setv {
++	char	tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
++	char	space1;
++	char	major[OCFS2_CONTROL_MESSAGE_VERNUM_LEN];
++	char	space2;
++	char	minor[OCFS2_CONTROL_MESSAGE_VERNUM_LEN];
++	char	newline;
++};
++
+ /* DOWN<space><32-char-cap-hex-uuid><space><8-char-hex-nodenum><newline> */
+ struct ocfs2_control_message_down {
+ 	char	tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
+@@ -120,11 +148,13 @@ struct ocfs2_control_message_down {
+ union ocfs2_control_message {
+ 	char					tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
+ 	struct ocfs2_control_message_setn	u_setn;
++	struct ocfs2_control_message_setv	u_setv;
+ 	struct ocfs2_control_message_down	u_down;
+ };
+ 
+ static atomic_t ocfs2_control_opened;
+ static int ocfs2_control_this_node = -1;
++static struct ocfs2_protocol_version running_proto;
+ 
+ static LIST_HEAD(ocfs2_live_connection_list);
+ static LIST_HEAD(ocfs2_control_private_list);
+@@ -264,8 +294,9 @@ static void ocfs2_control_send_down(const char *uuid,
+ /*
+  * Called whenever configuration elements are sent to /dev/ocfs2_control.
+  * If all configuration elements are present, try to set the global
+- * values.  If not, return -EAGAIN.  If there is a problem, return a
+- * different error.
++ * values.  If there is a problem, return an error.  Skip any missing
++ * elements, and only bump ocfs2_control_opened when we have all elements
++ * and are successful.
   */
--void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb)
-+static void *o2cb_dlm_lvb(union ocfs2_dlm_lksb *lksb)
+ static int ocfs2_control_install_private(struct file *file)
  {
- 	return (void *)(lksb->lksb_o2dlm.lvb);
- }
+@@ -275,15 +306,32 @@ static int ocfs2_control_install_private(struct file *file)
  
--void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
-+void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb)
-+{
-+	return o2cb_dlm_lvb(lksb);
-+}
-+
-+static void o2cb_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
- {
- 	dlm_print_one_lock(lksb->lksb_o2dlm.lockid);
- }
+ 	BUG_ON(p->op_state != OCFS2_CONTROL_HANDSHAKE_PROTOCOL);
  
-+void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
-+{
-+	o2cb_dlm_dump_lksb(lksb);
-+}
+-	if (p->op_this_node < 0)
++	mutex_lock(&ocfs2_control_lock);
 +
- /*
-  * Called from the dlm when it's about to evict a node. This is how the
-  * classic stack signals node death.
-@@ -271,6 +306,62 @@ static void o2dlm_eviction_cb(int node_num, void *data)
- 	conn->cc_recovery_handler(node_num, conn->cc_recovery_data);
- }
- 
-+static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
-+{
-+	int rc = 0;
-+	u32 dlm_key;
-+	struct dlm_ctxt *dlm;
-+	struct o2dlm_private *priv;
-+	struct dlm_protocol_version dlm_version;
-+
-+	BUG_ON(conn == NULL);
-+
-+	/* for now we only have one cluster/node, make sure we see it
-+	 * in the heartbeat universe */
-+	if (!o2hb_check_local_node_heartbeating()) {
++	if (p->op_this_node < 0) {
+ 		set_p = 0;
++	} else if ((ocfs2_control_this_node >= 0) &&
++		   (ocfs2_control_this_node != p->op_this_node)) {
 +		rc = -EINVAL;
-+		goto out;
++		goto out_unlock;
++	}
+ 
+-	mutex_lock(&ocfs2_control_lock);
+-	if (ocfs2_control_this_node < 0) {
+-		if (set_p)
+-			ocfs2_control_this_node = p->op_this_node;
+-	} else if (ocfs2_control_this_node != p->op_this_node)
++	if (!p->op_proto.pv_major) {
++		set_p = 0;
++	} else if (!list_empty(&ocfs2_live_connection_list) &&
++		   ((running_proto.pv_major != p->op_proto.pv_major) ||
++		    (running_proto.pv_minor != p->op_proto.pv_minor))) {
+ 		rc = -EINVAL;
++		goto out_unlock;
 +	}
 +
-+	priv = kzalloc(sizeof(struct o2dlm_private), GFP_KERNEL);
-+	if (!priv) {
-+		rc = -ENOMEM;
-+		goto out_free;
++	if (set_p) {
++		ocfs2_control_this_node = p->op_this_node;
++		running_proto.pv_major = p->op_proto.pv_major;
++		running_proto.pv_minor = p->op_proto.pv_minor;
 +	}
 +
-+	/* This just fills the structure in.  It is safe to pass conn. */
-+	dlm_setup_eviction_cb(&priv->op_eviction_cb, o2dlm_eviction_cb,
-+			      conn);
++out_unlock:
+ 	mutex_unlock(&ocfs2_control_lock);
+ 
+ 	if (!rc && set_p) {
+@@ -327,6 +375,56 @@ static int ocfs2_control_do_setnode_msg(struct file *file,
+ 	return ocfs2_control_install_private(file);
+ }
+ 
++static int ocfs2_control_do_setversion_msg(struct file *file,
++					   struct ocfs2_control_message_setv *msg)
++ {
++	long major, minor;
++	char *ptr = NULL;
++	struct ocfs2_control_private *p = file->private_data;
++	struct ocfs2_protocol_version *max =
++		&user_stack.sp_proto->lp_max_version;
 +
-+	conn->cc_private = priv;
++	if (ocfs2_control_get_handshake_state(file) !=
++	    OCFS2_CONTROL_HANDSHAKE_PROTOCOL)
++		return -EINVAL;
 +
-+	/* used by the dlm code to make message headers unique, each
-+	 * node in this domain must agree on this. */
-+	dlm_key = crc32_le(0, conn->cc_name, conn->cc_namelen);
-+	dlm_version.pv_major = conn->cc_version.pv_major;
-+	dlm_version.pv_minor = conn->cc_version.pv_minor;
++	if (strncmp(msg->tag, OCFS2_CONTROL_MESSAGE_SETVERSION_OP,
++		    OCFS2_CONTROL_MESSAGE_OP_LEN))
++		return -EINVAL;
 +
-+	dlm = dlm_register_domain(conn->cc_name, dlm_key, &dlm_version);
-+	if (IS_ERR(dlm)) {
-+		rc = PTR_ERR(dlm);
-+		mlog_errno(rc);
-+		goto out_free;
-+	}
++	if ((msg->space1 != ' ') || (msg->space2 != ' ') ||
++	    (msg->newline != '\n'))
++		return -EINVAL;
++	msg->space1 = msg->space2 = msg->newline = '\0';
 +
-+	conn->cc_version.pv_major = dlm_version.pv_major;
-+	conn->cc_version.pv_minor = dlm_version.pv_minor;
-+	conn->cc_lockspace = dlm;
++	major = simple_strtol(msg->major, &ptr, 16);
++	if (!ptr || *ptr)
++		return -EINVAL;
++	minor = simple_strtol(msg->minor, &ptr, 16);
++	if (!ptr || *ptr)
++		return -EINVAL;
 +
-+	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
++	/*
++	 * The major must be between 1 and 255, inclusive.  The minor
++	 * must be between 0 and 255, inclusive.  The version passed in
++	 * must be within the maximum version supported by the filesystem.
++	 */
++	if ((major == LONG_MIN) || (major == LONG_MAX) ||
++	    (major > (u8)-1) || (major < 1))
++		return -ERANGE;
++	if ((minor == LONG_MIN) || (minor == LONG_MAX) ||
++	    (minor > (u8)-1) || (minor < 0))
++		return -ERANGE;
++	if ((major != max->pv_major) ||
++	    (minor > max->pv_minor))
++		return -EINVAL;
 +
-+out_free:
-+	if (rc && conn->cc_private)
-+		kfree(conn->cc_private);
++	p->op_proto.pv_major = major;
++	p->op_proto.pv_minor = minor;
 +
-+out:
-+	return rc;
++	return ocfs2_control_install_private(file);
 +}
 +
- int ocfs2_cluster_connect(const char *group,
- 			  int grouplen,
- 			  void (*recovery_handler)(int node_num,
-@@ -280,10 +371,6 @@ int ocfs2_cluster_connect(const char *group,
+ static int ocfs2_control_do_down_msg(struct file *file,
+ 				     struct ocfs2_control_message_down *msg)
  {
- 	int rc = 0;
- 	struct ocfs2_cluster_connection *new_conn;
--	u32 dlm_key;
--	struct dlm_ctxt *dlm;
--	struct o2dlm_private *priv;
--	struct dlm_protocol_version dlm_version;
- 
- 	BUG_ON(group == NULL);
- 	BUG_ON(conn == NULL);
-@@ -294,13 +381,6 @@ int ocfs2_cluster_connect(const char *group,
- 		goto out;
+@@ -379,6 +477,10 @@ static ssize_t ocfs2_control_message(struct file *file,
+ 	    !strncmp(msg.tag, OCFS2_CONTROL_MESSAGE_SETNODE_OP,
+ 		     OCFS2_CONTROL_MESSAGE_OP_LEN))
+ 		ret = ocfs2_control_do_setnode_msg(file, &msg.u_setn);
++	else if ((count == OCFS2_CONTROL_MESSAGE_SETVERSION_TOTAL_LEN) &&
++		 !strncmp(msg.tag, OCFS2_CONTROL_MESSAGE_SETVERSION_OP,
++			  OCFS2_CONTROL_MESSAGE_OP_LEN))
++		ret = ocfs2_control_do_setversion_msg(file, &msg.u_setv);
+ 	else if ((count == OCFS2_CONTROL_MESSAGE_DOWN_TOTAL_LEN) &&
+ 		 !strncmp(msg.tag, OCFS2_CONTROL_MESSAGE_DOWN_OP,
+ 			  OCFS2_CONTROL_MESSAGE_OP_LEN))
+@@ -471,8 +573,13 @@ static int ocfs2_control_release(struct inode *inode, struct file *file)
+ 			       "an emergency restart!\n");
+ 			emergency_restart();
+ 		}
+-		/* Last valid close clears the node number */
++		/*
++		 * Last valid close clears the node number and resets
++		 * the locking protocol version
++		 */
+ 		ocfs2_control_this_node = -1;
++		running_proto.pv_major = 0;
++		running_proto.pv_major = 0;
  	}
- 
--	/* for now we only have one cluster/node, make sure we see it
--	 * in the heartbeat universe */
--	if (!o2hb_check_local_node_heartbeating()) {
--		rc = -EINVAL;
--		goto out;
--	}
--
- 	new_conn = kzalloc(sizeof(struct ocfs2_cluster_connection),
- 			   GFP_KERNEL);
- 	if (!new_conn) {
-@@ -316,64 +396,53 @@ int ocfs2_cluster_connect(const char *group,
- 	/* Start the new connection at our maximum compatibility level */
- 	new_conn->cc_version = lproto->lp_max_version;
- 
--	priv = kzalloc(sizeof(struct o2dlm_private), GFP_KERNEL);
--	if (!priv) {
--		rc = -ENOMEM;
--		goto out_free;
--	}
--
--	/* This just fills the structure in.  It is safe to use new_conn. */
--	dlm_setup_eviction_cb(&priv->op_eviction_cb, o2dlm_eviction_cb,
--			      new_conn);
--
--	new_conn->cc_private = priv;
--
--	/* used by the dlm code to make message headers unique, each
--	 * node in this domain must agree on this. */
--	dlm_key = crc32_le(0, group, grouplen);
--	dlm_version.pv_major = new_conn->cc_version.pv_major;
--	dlm_version.pv_minor = new_conn->cc_version.pv_minor;
--
--	dlm = dlm_register_domain(group, dlm_key, &dlm_version);
--	if (IS_ERR(dlm)) {
--		rc = PTR_ERR(dlm);
-+	rc = o2cb_cluster_connect(new_conn);
-+	if (rc) {
- 		mlog_errno(rc);
- 		goto out_free;
- 	}
- 
--	new_conn->cc_version.pv_major = dlm_version.pv_major;
--	new_conn->cc_version.pv_minor = dlm_version.pv_minor;
--	new_conn->cc_lockspace = dlm;
--
--	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
--
- 	*conn = new_conn;
- 
- out_free:
--	if (rc) {
--		kfree(new_conn->cc_private);
-+	if (rc)
- 		kfree(new_conn);
--	}
  
  out:
- 	return rc;
- }
- 
- 
--int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
-+static int o2cb_cluster_disconnect(struct ocfs2_cluster_connection *conn)
- {
- 	struct dlm_ctxt *dlm = conn->cc_lockspace;
- 	struct o2dlm_private *priv = conn->cc_private;
- 
- 	dlm_unregister_eviction_cb(&priv->op_eviction_cb);
--	dlm_unregister_domain(dlm);
--
-+	conn->cc_private = NULL;
- 	kfree(priv);
--	kfree(conn);
-+
-+	dlm_unregister_domain(dlm);
-+	conn->cc_lockspace = NULL;
- 
- 	return 0;
- }
- 
-+int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
-+{
-+	int ret;
-+
-+	BUG_ON(conn == NULL);
-+
-+	ret = o2cb_cluster_disconnect(conn);
-+
-+	/* XXX Should we free it anyway? */
-+	if (!ret)
-+		kfree(conn);
-+
-+	return ret;
-+}
-+
- static void o2hb_stop(const char *group)
- {
- 	int ret;
-@@ -406,15 +475,20 @@ static void o2hb_stop(const char *group)
-  *
-  * Other stacks will eventually provide a NULL ->hangup() pointer.
-  */
-+static void o2cb_cluster_hangup(const char *group, int grouplen)
-+{
-+	o2hb_stop(group);
-+}
-+
- void ocfs2_cluster_hangup(const char *group, int grouplen)
- {
- 	BUG_ON(group == NULL);
- 	BUG_ON(group[grouplen] != '\0');
- 
--	o2hb_stop(group);
-+	o2cb_cluster_hangup(group, grouplen);
- }
- 
--int ocfs2_cluster_this_node(unsigned int *node)
-+static int o2cb_cluster_this_node(unsigned int *node)
- {
- 	int node_num;
- 
-@@ -429,6 +503,11 @@ int ocfs2_cluster_this_node(unsigned int *node)
- 	return 0;
- }
- 
-+int ocfs2_cluster_this_node(unsigned int *node)
-+{
-+	return o2cb_cluster_this_node(node);
-+}
-+
- void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto)
- {
- 	BUG_ON(proto != NULL);
 -- 
 1.5.4.1
