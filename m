@@ -1,8 +1,8 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:21 -0700
-Subject: [Ocfs2-devel] [PATCH 11/62] ocfs2: Create the lock status block
-	union.
-In-Reply-To: <12071673391031-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:24 -0700
+Subject: [Ocfs2-devel] [PATCH 14/62] ocfs2: Move o2hb functionality into the
+	stack glue.
+In-Reply-To: <12071673461268-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -14,7 +14,10 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071673341888-git-send-email-mfasheh@suse.com>
 	<12071673362069-git-send-email-mfasheh@suse.com>
 	<12071673391031-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673413492-git-send-email-mfasheh@suse.com>
+	<12071673413492-git-send-email-mfasheh@suse.com>
+	<1207167343926-git-send-email-mfasheh@suse.com>
+	<12071673461268-git-send-email-mfasheh@suse.com>
+Message-ID: <12071673481928-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -24,219 +27,283 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
 From: Joel Becker <joel.becker@oracle.com>
 
-Wrap the lock status block (lksb) in a union.  Later we will add a union
-element for the fs/dlm lksb.  Create accessors for the status and lvb
-fields.
+The last bit of classic stack used directly in ocfs2 code is o2hb.
+Specifically, the check for heartbeat during mount and the call to
+ocfs2_hb_ctl during unmount.
 
-Other than a debugging function, dlmglue.c does not directly reference
-the o2dlm locking path anymore.
+We create an extra API, ocfs2_cluster_hangup(), to encapsulate the call
+to ocfs2_hb_ctl.  Other stacks will just leave hangup() empty.
+
+The check for heartbeat is moved into ocfs2_cluster_connect().  It will
+be matched by a similar check for other stacks.
+
+With this change, only stackglue.c includes cluster/ headers.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlmglue.c   |   23 +++++++++++++----------
- fs/ocfs2/ocfs2.h     |    5 +++--
- fs/ocfs2/stackglue.c |   29 ++++++++++++++++++++++-------
- fs/ocfs2/stackglue.h |   11 +++++++++--
- 4 files changed, 47 insertions(+), 21 deletions(-)
+ fs/ocfs2/dlmglue.c   |    4 ----
+ fs/ocfs2/heartbeat.c |   33 ---------------------------------
+ fs/ocfs2/heartbeat.h |    1 -
+ fs/ocfs2/ioctl.c     |    1 +
+ fs/ocfs2/ocfs2.h     |    4 ----
+ fs/ocfs2/stackglue.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/stackglue.h |    1 +
+ fs/ocfs2/super.c     |   23 ++++++++++-------------
+ 8 files changed, 62 insertions(+), 55 deletions(-)
 
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 6a222a5..4590376 100644
+index 6652a48..05fd016 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
-@@ -112,7 +112,8 @@ static void ocfs2_dump_meta_lvb_info(u64 level,
- 				     unsigned int line,
- 				     struct ocfs2_lock_res *lockres)
+@@ -32,10 +32,6 @@
+ #include <linux/debugfs.h>
+ #include <linux/seq_file.h>
+ 
+-#include <cluster/heartbeat.h>
+-#include <cluster/nodemanager.h>
+-#include <cluster/tcp.h>
+-
+ #define MLOG_MASK_PREFIX ML_DLM_GLUE
+ #include <cluster/masklog.h>
+ 
+diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
+index dcac1a4..c6e7213 100644
+--- a/fs/ocfs2/heartbeat.c
++++ b/fs/ocfs2/heartbeat.c
+@@ -28,7 +28,6 @@
+ #include <linux/types.h>
+ #include <linux/slab.h>
+ #include <linux/highmem.h>
+-#include <linux/kmod.h>
+ 
+ #define MLOG_MASK_PREFIX ML_SUPER
+ #include <cluster/masklog.h>
+@@ -83,38 +82,6 @@ void ocfs2_do_node_down(int node_num, void *data)
+ 	ocfs2_recovery_thread(osb, node_num);
+ }
+ 
+-void ocfs2_stop_heartbeat(struct ocfs2_super *osb)
+-{
+-	int ret;
+-	char *argv[5], *envp[3];
+-
+-	if (ocfs2_mount_local(osb))
+-		return;
+-
+-	if (!osb->uuid_str) {
+-		/* This can happen if we don't get far enough in mount... */
+-		mlog(0, "No UUID with which to stop heartbeat!\n\n");
+-		return;
+-	}
+-
+-	argv[0] = (char *)o2nm_get_hb_ctl_path();
+-	argv[1] = "-K";
+-	argv[2] = "-u";
+-	argv[3] = osb->uuid_str;
+-	argv[4] = NULL;
+-
+-	mlog(0, "Run: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
+-
+-	/* minimal command environment taken from cpu_run_sbin_hotplug */
+-	envp[0] = "HOME=/";
+-	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
+-	envp[2] = NULL;
+-
+-	ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
+-	if (ret < 0)
+-		mlog_errno(ret);
+-}
+-
+ static inline void __ocfs2_node_map_set_bit(struct ocfs2_node_map *map,
+ 					    int bit)
  {
--	struct ocfs2_meta_lvb *lvb = (struct ocfs2_meta_lvb *) lockres->l_lksb.lvb;
-+	struct ocfs2_meta_lvb *lvb =
-+		(struct ocfs2_meta_lvb *)ocfs2_dlm_lvb(&lockres->l_lksb);
+diff --git a/fs/ocfs2/heartbeat.h b/fs/ocfs2/heartbeat.h
+index 38e2450..74b9c5d 100644
+--- a/fs/ocfs2/heartbeat.h
++++ b/fs/ocfs2/heartbeat.h
+@@ -29,7 +29,6 @@
+ void ocfs2_init_node_maps(struct ocfs2_super *osb);
  
- 	mlog(level, "LVB information for %s (called from %s:%u):\n",
- 	     lockres->l_name, function, line);
-@@ -799,14 +800,14 @@ static void ocfs2_blocking_ast(void *opaque, int level)
- static void ocfs2_locking_ast(void *opaque)
- {
- 	struct ocfs2_lock_res *lockres = opaque;
--	struct dlm_lockstatus *lksb = &lockres->l_lksb;
- 	unsigned long flags;
+ void ocfs2_do_node_down(int node_num, void *data);
+-void ocfs2_stop_heartbeat(struct ocfs2_super *osb);
  
- 	spin_lock_irqsave(&lockres->l_lock, flags);
+ /* node map functions - used to keep track of mounted and in-recovery
+  * nodes. */
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index 5177fba..ab1c216 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -7,6 +7,7 @@
  
--	if (lksb->status != DLM_NORMAL) {
--		mlog(ML_ERROR, "lockres %s: lksb status value of %u!\n",
--		     lockres->l_name, lksb->status);
-+	if (ocfs2_dlm_lock_status(&lockres->l_lksb)) {
-+		mlog(ML_ERROR, "lockres %s: lksb status value of %d!\n",
-+		     lockres->l_name,
-+		     ocfs2_dlm_lock_status(&lockres->l_lksb));
- 		spin_unlock_irqrestore(&lockres->l_lock, flags);
- 		return;
- 	}
-@@ -1634,7 +1635,7 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
+ #include <linux/fs.h>
+ #include <linux/mount.h>
++#include <linux/smp_lock.h>
  
- 	mlog_entry_void();
- 
--	lvb = (struct ocfs2_meta_lvb *) lockres->l_lksb.lvb;
-+	lvb = (struct ocfs2_meta_lvb *)ocfs2_dlm_lvb(&lockres->l_lksb);
- 
- 	/*
- 	 * Invalidate the LVB of a deleted inode - this way other
-@@ -1686,7 +1687,7 @@ static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
- 
- 	mlog_meta_lvb(0, lockres);
- 
--	lvb = (struct ocfs2_meta_lvb *) lockres->l_lksb.lvb;
-+	lvb = (struct ocfs2_meta_lvb *)ocfs2_dlm_lvb(&lockres->l_lksb);
- 
- 	/* We're safe here without the lockres lock... */
- 	spin_lock(&oi->ip_lock);
-@@ -1721,7 +1722,8 @@ static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
- static inline int ocfs2_meta_lvb_is_trustable(struct inode *inode,
- 					      struct ocfs2_lock_res *lockres)
- {
--	struct ocfs2_meta_lvb *lvb = (struct ocfs2_meta_lvb *) lockres->l_lksb.lvb;
-+	struct ocfs2_meta_lvb *lvb =
-+		(struct ocfs2_meta_lvb *)ocfs2_dlm_lvb(&lockres->l_lksb);
- 
- 	if (lvb->lvb_version == OCFS2_LVB_VERSION
- 	    && be32_to_cpu(lvb->lvb_igeneration) == inode->i_generation)
-@@ -2379,7 +2381,7 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
- 		   lockres->l_blocking);
- 
- 	/* Dump the raw LVB */
--	lvb = lockres->l_lksb.lvb;
-+	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
- 	for(i = 0; i < DLM_LVB_LEN; i++)
- 		seq_printf(m, "0x%x\t", lvb[i]);
- 
-@@ -2692,7 +2694,8 @@ static int ocfs2_drop_lock(struct ocfs2_super *osb,
- 	if (ret) {
- 		ocfs2_log_dlm_error("ocfs2_dlm_unlock", ret, lockres);
- 		mlog(ML_ERROR, "lockres flags: %lu\n", lockres->l_flags);
--		dlm_print_one_lock(lockres->l_lksb.lockid);
-+		/* XXX Need to abstract this */
-+		dlm_print_one_lock(lockres->l_lksb.lksb_o2dlm.lockid);
- 		BUG();
- 	}
- 	mlog(0, "lock %s, successfull return from ocfs2_dlm_unlock\n",
+ #define MLOG_MASK_PREFIX ML_INODE
+ #include <cluster/masklog.h>
 diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index f78e9ed..6d7c6d2 100644
+index 7006aba..31dc28b 100644
 --- a/fs/ocfs2/ocfs2.h
 +++ b/fs/ocfs2/ocfs2.h
-@@ -40,7 +40,8 @@
- #include "cluster/heartbeat.h"
- #include "cluster/tcp.h"
+@@ -36,10 +36,6 @@
+ #include <linux/mutex.h>
+ #include <linux/jbd.h>
  
--#include "dlm/dlmapi.h"
-+/* For union ocfs2_dlm_lksb */
-+#include "stackglue.h"
+-#include "cluster/nodemanager.h"
+-#include "cluster/heartbeat.h"
+-#include "cluster/tcp.h"
+-
+ /* For union ocfs2_dlm_lksb */
+ #include "stackglue.h"
  
- #include "ocfs2_fs.h"
- #include "ocfs2_lockid.h"
-@@ -120,7 +121,7 @@ struct ocfs2_lock_res {
- 	int                      l_level;
- 	unsigned int             l_ro_holders;
- 	unsigned int             l_ex_holders;
--	struct dlm_lockstatus    l_lksb;
-+	union ocfs2_dlm_lksb     l_lksb;
- 
- 	/* used from AST/BAST funcs. */
- 	enum ocfs2_ast_action    l_action;
 diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 0aec2fc..eb88854 100644
+index 8146863..670fa94 100644
 --- a/fs/ocfs2/stackglue.c
 +++ b/fs/ocfs2/stackglue.c
-@@ -199,7 +199,7 @@ static void o2dlm_unlock_ast_wrapper(void *astarg, enum dlm_status status)
+@@ -20,12 +20,14 @@
  
- int ocfs2_dlm_lock(struct dlm_ctxt *dlm,
- 		   int mode,
--		   struct dlm_lockstatus *lksb,
-+		   union ocfs2_dlm_lksb *lksb,
- 		   u32 flags,
- 		   void *name,
- 		   unsigned int namelen,
-@@ -212,15 +212,16 @@ int ocfs2_dlm_lock(struct dlm_ctxt *dlm,
+ #include <linux/slab.h>
+ #include <linux/crc32.h>
++#include <linux/kmod.h>
  
- 	BUG_ON(lproto == NULL);
+ /* Needed for AOP_TRUNCATED_PAGE in mlog_errno() */
+ #include <linux/fs.h>
  
--	status = dlmlock(dlm, o2dlm_mode, lksb, o2dlm_flags, name, namelen,
--		       o2dlm_lock_ast_wrapper, astarg,
--		       o2dlm_blocking_ast_wrapper);
-+	status = dlmlock(dlm, o2dlm_mode, &lksb->lksb_o2dlm, o2dlm_flags,
-+			 name, namelen,
-+			 o2dlm_lock_ast_wrapper, astarg,
-+			 o2dlm_blocking_ast_wrapper);
- 	ret = dlm_status_to_errno(status);
- 	return ret;
+ #include "cluster/masklog.h"
+ #include "cluster/nodemanager.h"
++#include "cluster/heartbeat.h"
+ 
+ #include "stackglue.h"
+ 
+@@ -301,6 +303,13 @@ int ocfs2_cluster_connect(const char *group,
+ 		goto out;
+ 	}
+ 
++	/* for now we only have one cluster/node, make sure we see it
++	 * in the heartbeat universe */
++	if (!o2hb_check_local_node_heartbeating()) {
++		rc = -EINVAL;
++		goto out;
++	}
++
+ 	new_conn = kzalloc(sizeof(struct ocfs2_cluster_connection),
+ 			   GFP_KERNEL);
+ 	if (!new_conn) {
+@@ -359,6 +368,7 @@ out:
+ 	return rc;
  }
  
- int ocfs2_dlm_unlock(struct dlm_ctxt *dlm,
--		     struct dlm_lockstatus *lksb,
-+		     union ocfs2_dlm_lksb *lksb,
- 		     u32 flags,
- 		     void *astarg)
++
+ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
  {
-@@ -230,12 +231,26 @@ int ocfs2_dlm_unlock(struct dlm_ctxt *dlm,
- 
- 	BUG_ON(lproto == NULL);
- 
--	status = dlmunlock(dlm, lksb, o2dlm_flags,
--			 o2dlm_unlock_ast_wrapper, astarg);
-+	status = dlmunlock(dlm, &lksb->lksb_o2dlm, o2dlm_flags,
-+			   o2dlm_unlock_ast_wrapper, astarg);
- 	ret = dlm_status_to_errno(status);
- 	return ret;
+ 	struct dlm_ctxt *dlm = conn->cc_lockspace;
+@@ -373,6 +383,46 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn)
+ 	return 0;
  }
  
-+int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb)
++static void o2hb_stop(const char *group)
 +{
-+	return dlm_status_to_errno(lksb->lksb_o2dlm.status);
++	int ret;
++	char *argv[5], *envp[3];
++
++	argv[0] = (char *)o2nm_get_hb_ctl_path();
++	argv[1] = "-K";
++	argv[2] = "-u";
++	argv[3] = (char *)group;
++	argv[4] = NULL;
++
++	mlog(0, "Run: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
++
++	/* minimal command environment taken from cpu_run_sbin_hotplug */
++	envp[0] = "HOME=/";
++	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
++	envp[2] = NULL;
++
++	ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
++	if (ret < 0)
++		mlog_errno(ret);
 +}
 +
 +/*
-+ * Why don't we cast to ocfs2_meta_lvb?  The "clean" answer is that we
-+ * don't cast at the glue level.  The real answer is that the header
-+ * ordering is nigh impossible.
++ * Hangup is a hack for tools compatibility.  Older ocfs2-tools software
++ * expects the filesystem to call "ocfs2_hb_ctl" during unmount.  This
++ * happens regardless of whether the DLM got started, so we can't do it
++ * in ocfs2_cluster_disconnect().  We bring the o2hb_stop() function into
++ * the glue and provide a "hangup" API for super.c to call.
++ *
++ * Other stacks will eventually provide a NULL ->hangup() pointer.
 + */
-+void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb)
++void ocfs2_cluster_hangup(const char *group, int grouplen)
 +{
-+	return (void *)(lksb->lksb_o2dlm.lvb);
++	BUG_ON(group == NULL);
++	BUG_ON(group[grouplen] != '\0');
++
++	o2hb_stop(group);
 +}
- 
- void o2cb_get_stack(struct ocfs2_locking_protocol *proto)
++
+ int ocfs2_cluster_this_node(unsigned int *node)
  {
+ 	int node_num;
 diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index 8ebcfba..3c91e24 100644
+index ccb0399..22af77b 100644
 --- a/fs/ocfs2/stackglue.h
 +++ b/fs/ocfs2/stackglue.h
-@@ -40,18 +40,25 @@ struct ocfs2_locking_protocol {
- 	void (*lp_unlock_ast)(void *astarg, int error);
- };
+@@ -74,6 +74,7 @@ int ocfs2_cluster_connect(const char *group,
+ 			  void *recovery_data,
+ 			  struct ocfs2_cluster_connection **conn);
+ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn);
++void ocfs2_cluster_hangup(const char *group, int grouplen);
+ int ocfs2_cluster_this_node(unsigned int *node);
  
-+union ocfs2_dlm_lksb {
-+	struct dlm_lockstatus lksb_o2dlm;
-+};
-+
- int ocfs2_dlm_lock(struct dlm_ctxt *dlm,
- 		   int mode,
--		   struct dlm_lockstatus *lksb,
-+		   union ocfs2_dlm_lksb *lksb,
- 		   u32 flags,
- 		   void *name,
- 		   unsigned int namelen,
- 		   void *astarg);
- int ocfs2_dlm_unlock(struct dlm_ctxt *dlm,
--		     struct dlm_lockstatus *lksb,
-+		     union ocfs2_dlm_lksb *lksb,
- 		     u32 flags,
- 		     void *astarg);
+ int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index d3c4d32..8f536b3 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -40,8 +40,7 @@
+ #include <linux/crc32.h>
+ #include <linux/debugfs.h>
+ #include <linux/mount.h>
+-
+-#include <cluster/nodemanager.h>
++#include <linux/seq_file.h>
  
-+int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb);
-+void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb);
-+
- void o2cb_get_stack(struct ocfs2_locking_protocol *proto);
- void o2cb_put_stack(void);
+ #define MLOG_MASK_PREFIX ML_SUPER
+ #include <cluster/masklog.h>
+@@ -579,15 +578,6 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 		goto read_super_error;
+ 	}
+ 
+-	/* for now we only have one cluster/node, make sure we see it
+-	 * in the heartbeat universe */
+-	if (parsed_options.mount_opt & OCFS2_MOUNT_HB_LOCAL) {
+-		if (!o2hb_check_local_node_heartbeating()) {
+-			status = -EINVAL;
+-			goto read_super_error;
+-		}
+-	}
+-
+ 	/* probe for superblock */
+ 	status = ocfs2_sb_probe(sb, &bh, &sector_size);
+ 	if (status < 0) {
+@@ -1275,8 +1265,15 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+ 
+ 	debugfs_remove(osb->osb_debug_root);
+ 
+-	if (!mnt_err)
+-		ocfs2_stop_heartbeat(osb);
++	/*
++	 * This is a small hack to move ocfs2_hb_ctl into stackglue.
++	 * If we're dismounting due to mount error, mount.ocfs2 will clean
++	 * up heartbeat.  If we're a local mount, there is no heartbeat.
++	 * If we failed before we got a uuid_str yet, we can't stop
++	 * heartbeat.  Otherwise, do it.
++	 */
++	if (!mnt_err && !ocfs2_mount_local(osb) && osb->uuid_str)
++		ocfs2_cluster_hangup(osb->uuid_str, strlen(osb->uuid_str));
+ 
+ 	atomic_set(&osb->vol_state, VOLUME_DISMOUNTED);
  
 -- 
 1.5.4.1
