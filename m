@@ -1,31 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:14:33 -0700
-Subject: [Ocfs2-devel] [PATCH 23/62] ocfs2: Create stack glue sysfs files.
-In-Reply-To: <1207167363119-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:11 -0700
+Subject: [Ocfs2-devel] [PATCH 01/62] ocfs2: Move slot map access into
+	slot_map.c
+In-Reply-To: <12071673121124-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
-	<1207167318479-git-send-email-mfasheh@suse.com>
-	<12071673203909-git-send-email-mfasheh@suse.com>
-	<12071673232465-git-send-email-mfasheh@suse.com>
-	<12071673263948-git-send-email-mfasheh@suse.com>
-	<12071673282579-git-send-email-mfasheh@suse.com>
-	<1207167330482-git-send-email-mfasheh@suse.com>
-	<12071673321172-git-send-email-mfasheh@suse.com>
-	<12071673341888-git-send-email-mfasheh@suse.com>
-	<12071673362069-git-send-email-mfasheh@suse.com>
-	<12071673391031-git-send-email-mfasheh@suse.com>
-	<12071673413492-git-send-email-mfasheh@suse.com>
-	<1207167343926-git-send-email-mfasheh@suse.com>
-	<12071673461268-git-send-email-mfasheh@suse.com>
-	<12071673481928-git-send-email-mfasheh@suse.com>
-	<12071673492775-git-send-email-mfasheh@suse.com>
-	<12071673511262-git-send-email-mfasheh@suse.com>
-	<12071673543752-git-send-email-mfasheh@suse.com>
-	<1207167355295-git-send-email-mfasheh@suse.com>
-	<12071673571757-git-send-email-mfasheh@suse.com>
-	<12071673591158-git-send-email-mfasheh@suse.com>
-	<12071673613757-git-send-email-mfasheh@suse.com>
-	<1207167363119-git-send-email-mfasheh@suse.com>
-Message-ID: <12071673661674-git-send-email-mfasheh@suse.com>
+Message-ID: <1207167318479-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -33,166 +12,227 @@ Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
 Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
-From: Joel Becker <joel.becker@oracle.com>
-
-Introduce a set of sysfs files that describe the current stack glue
-state.  The files live under /sys/fs/ocfs2.  The locking_protocol file
-displays the version of ocfs2's locking code.  The
-loaded_cluster_plugins file displays all of the currently loaded stack
-plugins.  When filesystems are mounted, the active_cluster_plugin file
-will display the plugin in use.
+journal.c and dlmglue.c would refresh the slot map by hand.  Instead, have
+the update and clear functions do the work inside slot_map.c.  The eventual
+result is to make ocfs2_slot_info defined privately in slot_map.c
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/stackglue.c |  121 +++++++++++++++++++++++++++++++++++++++++++++++++-
- 1 files changed, 120 insertions(+), 1 deletions(-)
+ fs/ocfs2/dlmglue.c  |    8 +-----
+ fs/ocfs2/journal.c  |    3 +-
+ fs/ocfs2/slot_map.c |   62 +++++++++++++++++++++++++++++++++++++++-----------
+ fs/ocfs2/slot_map.h |   11 +++-----
+ fs/ocfs2/super.c    |    3 +-
+ 5 files changed, 55 insertions(+), 32 deletions(-)
 
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 1978c9c..76ae4fc 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -23,6 +23,9 @@
- #include <linux/module.h>
- #include <linux/slab.h>
- #include <linux/kmod.h>
-+#include <linux/fs.h>
-+#include <linux/kobject.h>
-+#include <linux/sysfs.h>
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 1f1873b..1a80fa9 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2132,8 +2132,6 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
+ 	int status = 0;
+ 	int level = ex ? LKM_EXMODE : LKM_PRMODE;
+ 	struct ocfs2_lock_res *lockres = &osb->osb_super_lockres;
+-	struct buffer_head *bh;
+-	struct ocfs2_slot_info *si = osb->slot_info;
  
- #include "stackglue.h"
+ 	mlog_entry_void();
  
-@@ -335,14 +338,130 @@ int ocfs2_cluster_this_node(unsigned int *node)
- EXPORT_SYMBOL_GPL(ocfs2_cluster_this_node);
+@@ -2159,11 +2157,7 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
+ 		goto bail;
+ 	}
+ 	if (status) {
+-		bh = si->si_bh;
+-		status = ocfs2_read_block(osb, bh->b_blocknr, &bh, 0,
+-					  si->si_inode);
+-		if (status == 0)
+-			ocfs2_update_slot_info(si);
++		status = ocfs2_refresh_slot_info(osb);
  
+ 		ocfs2_complete_lock_res_refresh(lockres, status);
  
--static int __init ocfs2_stack_glue_init(void)
-+/*
-+ * Sysfs bits
-+ */
-+
-+static ssize_t ocfs2_max_locking_protocol_show(struct kobject *kobj,
-+					       struct kobj_attribute *attr,
-+					       char *buf)
-+{
-+	ssize_t ret = 0;
-+
-+	spin_lock(&ocfs2_stack_lock);
-+	if (lproto)
-+		ret = snprintf(buf, PAGE_SIZE, "%u.%u\n",
-+			       lproto->lp_max_version.pv_major,
-+			       lproto->lp_max_version.pv_minor);
-+	spin_unlock(&ocfs2_stack_lock);
-+
-+	return ret;
-+}
-+
-+static struct kobj_attribute ocfs2_attr_max_locking_protocol =
-+	__ATTR(max_locking_protocol, S_IFREG | S_IRUGO,
-+	       ocfs2_max_locking_protocol_show, NULL);
-+
-+static ssize_t ocfs2_loaded_cluster_plugins_show(struct kobject *kobj,
-+						 struct kobj_attribute *attr,
-+						 char *buf)
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index f31c7e8..c2e654e 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -1123,8 +1123,7 @@ static int ocfs2_recover_node(struct ocfs2_super *osb,
+ 
+ 	/* Likewise, this would be a strange but ultimately not so
+ 	 * harmful place to get an error... */
+-	ocfs2_clear_slot(si, slot_num);
+-	status = ocfs2_update_disk_slots(osb, si);
++	status = ocfs2_clear_slot(osb, slot_num);
+ 	if (status < 0)
+ 		mlog_errno(status);
+ 
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index 3a50ce5..f5727b8 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -49,7 +49,7 @@ static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
+ 			      s16 node_num);
+ 
+ /* post the slot information on disk into our slot_info struct. */
+-void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
++static void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
  {
-+	ssize_t ret = 0, total = 0, remain = PAGE_SIZE;
-+	struct ocfs2_stack_plugin *p;
-+
-+	spin_lock(&ocfs2_stack_lock);
-+	list_for_each_entry(p, &ocfs2_stack_list, sp_list) {
-+		ret = snprintf(buf, remain, "%s\n",
-+			       p->sp_name);
-+		if (ret < 0) {
-+			total = ret;
-+			break;
-+		}
-+		if (ret == remain) {
-+			/* snprintf() didn't fit */
-+			total = -E2BIG;
-+			break;
-+		}
-+		total += ret;
-+		remain -= ret;
-+	}
-+	spin_unlock(&ocfs2_stack_lock);
-+
-+	return total;
-+}
-+
-+static struct kobj_attribute ocfs2_attr_loaded_cluster_plugins =
-+	__ATTR(loaded_cluster_plugins, S_IFREG | S_IRUGO,
-+	       ocfs2_loaded_cluster_plugins_show, NULL);
-+
-+static ssize_t ocfs2_active_cluster_plugin_show(struct kobject *kobj,
-+						struct kobj_attribute *attr,
-+						char *buf)
-+{
-+	ssize_t ret = 0;
-+
-+	spin_lock(&ocfs2_stack_lock);
-+	if (active_stack) {
-+		ret = snprintf(buf, PAGE_SIZE, "%s\n",
-+			       active_stack->sp_name);
-+		if (ret == PAGE_SIZE)
-+			ret = -E2BIG;
-+	}
-+	spin_unlock(&ocfs2_stack_lock);
-+
-+	return ret;
-+}
-+
-+static struct kobj_attribute ocfs2_attr_active_cluster_plugin =
-+	__ATTR(active_cluster_plugin, S_IFREG | S_IRUGO,
-+	       ocfs2_active_cluster_plugin_show, NULL);
-+
-+static struct attribute *ocfs2_attrs[] = {
-+	&ocfs2_attr_max_locking_protocol.attr,
-+	&ocfs2_attr_loaded_cluster_plugins.attr,
-+	&ocfs2_attr_active_cluster_plugin.attr,
-+	NULL,
-+};
-+
-+static struct attribute_group ocfs2_attr_group = {
-+	.attrs = ocfs2_attrs,
-+};
-+
-+static struct kset *ocfs2_kset;
-+
-+static void ocfs2_sysfs_exit(void)
-+{
-+	kset_unregister(ocfs2_kset);
-+}
-+
-+static int ocfs2_sysfs_init(void)
+ 	int i;
+ 	__le16 *disk_info;
+@@ -65,10 +65,27 @@ void ocfs2_update_slot_info(struct ocfs2_slot_info *si)
+ 	spin_unlock(&si->si_lock);
+ }
+ 
++int ocfs2_refresh_slot_info(struct ocfs2_super *osb)
 +{
 +	int ret;
++	struct ocfs2_slot_info *si = osb->slot_info;
++	struct buffer_head *bh;
 +
-+	ocfs2_kset = kset_create_and_add("ocfs2", NULL, fs_kobj);
-+	if (!ocfs2_kset)
-+		return -ENOMEM;
++	if (si == NULL)
++		return 0;
 +
-+	ret = sysfs_create_group(&ocfs2_kset->kobj, &ocfs2_attr_group);
-+	if (ret)
-+		goto error;
++	bh = si->si_bh;
++	ret = ocfs2_read_block(osb, bh->b_blocknr, &bh, 0, si->si_inode);
++	if (ret == 0)
++		ocfs2_update_slot_info(si);
 +
- 	return 0;
-+
-+error:
-+	kset_unregister(ocfs2_kset);
 +	return ret;
 +}
 +
-+static int __init ocfs2_stack_glue_init(void)
-+{
-+	return ocfs2_sysfs_init();
- }
- 
- static void __exit ocfs2_stack_glue_exit(void)
+ /* post the our slot info stuff into it's destination bh and write it
+  * out. */
+-int ocfs2_update_disk_slots(struct ocfs2_super *osb,
+-			    struct ocfs2_slot_info *si)
++static int ocfs2_update_disk_slots(struct ocfs2_super *osb,
++				   struct ocfs2_slot_info *si)
  {
- 	lproto = NULL;
-+	ocfs2_sysfs_exit();
+ 	int status, i;
+ 	__le16 *disk_info = (__le16 *) si->si_bh->b_data;
+@@ -135,6 +152,19 @@ s16 ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
+ 	return ret;
  }
  
- MODULE_AUTHOR("Oracle");
++static void __ocfs2_free_slot_info(struct ocfs2_slot_info *si)
++{
++	if (si == NULL)
++		return;
++
++	if (si->si_inode)
++		iput(si->si_inode);
++	if (si->si_bh)
++		brelse(si->si_bh);
++
++	kfree(si);
++}
++
+ static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
+ 			      s16 slot_num,
+ 			      s16 node_num)
+@@ -147,12 +177,18 @@ static void __ocfs2_fill_slot(struct ocfs2_slot_info *si,
+ 	si->si_global_node_nums[slot_num] = node_num;
+ }
+ 
+-void ocfs2_clear_slot(struct ocfs2_slot_info *si,
+-		      s16 slot_num)
++int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num)
+ {
++	struct ocfs2_slot_info *si = osb->slot_info;
++
++	if (si == NULL)
++		return 0;
++
+ 	spin_lock(&si->si_lock);
+ 	__ocfs2_fill_slot(si, slot_num, OCFS2_INVALID_SLOT);
+ 	spin_unlock(&si->si_lock);
++
++	return ocfs2_update_disk_slots(osb, osb->slot_info);
+ }
+ 
+ int ocfs2_init_slot_info(struct ocfs2_super *osb)
+@@ -202,18 +238,17 @@ int ocfs2_init_slot_info(struct ocfs2_super *osb)
+ 	osb->slot_info = si;
+ bail:
+ 	if (status < 0 && si)
+-		ocfs2_free_slot_info(si);
++		__ocfs2_free_slot_info(si);
+ 
+ 	return status;
+ }
+ 
+-void ocfs2_free_slot_info(struct ocfs2_slot_info *si)
++void ocfs2_free_slot_info(struct ocfs2_super *osb)
+ {
+-	if (si->si_inode)
+-		iput(si->si_inode);
+-	if (si->si_bh)
+-		brelse(si->si_bh);
+-	kfree(si);
++	struct ocfs2_slot_info *si = osb->slot_info;
++
++	osb->slot_info = NULL;
++	__ocfs2_free_slot_info(si);
+ }
+ 
+ int ocfs2_find_slot(struct ocfs2_super *osb)
+@@ -285,7 +320,6 @@ void ocfs2_put_slot(struct ocfs2_super *osb)
+ 	}
+ 
+ bail:
+-	osb->slot_info = NULL;
+-	ocfs2_free_slot_info(si);
++	ocfs2_free_slot_info(osb);
+ }
+ 
+diff --git a/fs/ocfs2/slot_map.h b/fs/ocfs2/slot_map.h
+index 1025872..b029ffd 100644
+--- a/fs/ocfs2/slot_map.h
++++ b/fs/ocfs2/slot_map.h
+@@ -30,7 +30,7 @@
+ struct ocfs2_slot_info {
+ 	spinlock_t si_lock;
+ 
+-       	struct inode *si_inode;
++	struct inode *si_inode;
+ 	struct buffer_head *si_bh;
+ 	unsigned int si_num_slots;
+ 	unsigned int si_size;
+@@ -38,19 +38,16 @@ struct ocfs2_slot_info {
+ };
+ 
+ int ocfs2_init_slot_info(struct ocfs2_super *osb);
+-void ocfs2_free_slot_info(struct ocfs2_slot_info *si);
++void ocfs2_free_slot_info(struct ocfs2_super *osb);
+ 
+ int ocfs2_find_slot(struct ocfs2_super *osb);
+ void ocfs2_put_slot(struct ocfs2_super *osb);
+ 
+-void ocfs2_update_slot_info(struct ocfs2_slot_info *si);
+-int ocfs2_update_disk_slots(struct ocfs2_super *osb,
+-			    struct ocfs2_slot_info *si);
++int ocfs2_refresh_slot_info(struct ocfs2_super *osb);
+ 
+ s16 ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
+ 			   s16 global);
+-void ocfs2_clear_slot(struct ocfs2_slot_info *si,
+-		      s16 slot_num);
++int ocfs2_clear_slot(struct ocfs2_super *osb, s16 slot_num);
+ 
+ static inline int ocfs2_is_empty_slot(struct ocfs2_slot_info *si,
+ 				      int slot_num)
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index bec75af..fad37af 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1724,8 +1724,7 @@ static void ocfs2_delete_osb(struct ocfs2_super *osb)
+ 
+ 	/* This function assumes that the caller has the main osb resource */
+ 
+-	if (osb->slot_info)
+-		ocfs2_free_slot_info(osb->slot_info);
++	ocfs2_free_slot_info(osb);
+ 
+ 	kfree(osb->osb_orphan_wipes);
+ 	/* FIXME
 -- 
 1.5.4.1
