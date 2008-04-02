@@ -1,8 +1,7 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed,  2 Apr 2008 13:15:07 -0700
-Subject: [Ocfs2-devel] [PATCH 57/62] fs/ocfs2/aops.c: test for IS_ERR rather
-	than 0
-In-Reply-To: <12071674361985-git-send-email-mfasheh@suse.com>
+Date: Wed,  2 Apr 2008 13:14:46 -0700
+Subject: [Ocfs2-devel] [PATCH 36/62] ocfs2: Document /sys/fs/ocfs2
+In-Reply-To: <1207167390414-git-send-email-mfasheh@suse.com>
 References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<1207167318479-git-send-email-mfasheh@suse.com>
 	<12071673203909-git-send-email-mfasheh@suse.com>
@@ -39,74 +38,124 @@ References: <12071673121124-git-send-email-mfasheh@suse.com>
 	<12071673872568-git-send-email-mfasheh@suse.com>
 	<12071673882492-git-send-email-mfasheh@suse.com>
 	<1207167390414-git-send-email-mfasheh@suse.com>
-	<1207167392537-git-send-email-mfasheh@suse.com>
-	<12071673941659-git-send-email-mfasheh@suse.com>
-	<12071673964014-git-send-email-mfasheh@suse.com>
-	<1207167398684-git-send-email-mfasheh@suse.com>
-	<12071674013954-git-send-email-mfasheh@suse.com>
-	<12071674033903-git-send-email-mfasheh@suse.com>
-	<12071674061934-git-send-email-mfasheh@suse.com>
-	<12071674083120-git-send-email-mfasheh@suse.com>
-	<12071674103432-git-send-email-mfasheh@suse.com>
-	<1207167413855-git-send-email-mfasheh@suse.com>
-	<12071674151752-git-send-email-mfasheh@suse.com>
-	<12071674171596-git-send-email-mfasheh@suse.com>
-	<12071674193441-git-send-email-mfasheh@suse.com>
-	<12071674213882-git-send-email-mfasheh@suse.com>
-	<12071674242631-git-send-email-mfasheh@suse.com>
-	<1207167425415-git-send-email-mfasheh@suse.com>
-	<1207167427753-git-send-email-mfasheh@suse.com>
-	<12071674291040-git-send-email-mfasheh@suse.com>
-	<12071674312495-git-send-email-mfasheh@suse.com>
-	<12071674333467-git-send-email-mfasheh@suse.com>
-	<12071674361985-git-send-email-mfasheh@suse.com>
-Message-ID: <12071674382558-git-send-email-mfasheh@suse.com>
+Message-ID: <1207167392537-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Julia Lawall <julia@diku.dk>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
-From: Julia Lawall <julia@diku.dk>
+From: Joel Becker <joel.becker@oracle.com>
 
-The function ocfs2_start_trans always returns either a valid pointer or a
-value made with ERR_PTR, so its result should be tested with IS_ERR, not
-with a test for 0.
+Add ABI documentation for these files:
 
-Signed-off-by: Julia Lawall <julia@diku.dk>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+	/sys/fs/ocfs2/max_locking_protocol
+	/sys/fs/ocfs2/loaded_cluster_plugins
+	/sys/fs/ocfs2/active_cluster_plugin
+	/sys/fs/ocfs2/cluster_stack
+
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/aops.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ Documentation/ABI/testing/sysfs-ocfs2 |   89 +++++++++++++++++++++++++++++++++
+ 1 files changed, 89 insertions(+), 0 deletions(-)
+ create mode 100644 Documentation/ABI/testing/sysfs-ocfs2
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 90383ed..17964c0 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -467,11 +467,11 @@ handle_t *ocfs2_start_walk_page_trans(struct inode *inode,
- 							 unsigned to)
- {
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
--	handle_t *handle = NULL;
-+	handle_t *handle;
- 	int ret = 0;
- 
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (!handle) {
-+	if (IS_ERR(handle)) {
- 		ret = -ENOMEM;
- 		mlog_errno(ret);
- 		goto out;
-@@ -487,7 +487,7 @@ handle_t *ocfs2_start_walk_page_trans(struct inode *inode,
- 	}
- out:
- 	if (ret) {
--		if (handle)
-+		if (!IS_ERR(handle))
- 			ocfs2_commit_trans(osb, handle);
- 		handle = ERR_PTR(ret);
- 	}
+diff --git a/Documentation/ABI/testing/sysfs-ocfs2 b/Documentation/ABI/testing/sysfs-ocfs2
+new file mode 100644
+index 0000000..b7cc516
+--- /dev/null
++++ b/Documentation/ABI/testing/sysfs-ocfs2
+@@ -0,0 +1,89 @@
++What:		/sys/fs/ocfs2/
++Date:		April 2008
++Contact:	ocfs2-devel at oss.oracle.com
++Description:
++		The /sys/fs/ocfs2 directory contains knobs used by the
++		ocfs2-tools to interact with the filesystem.
++
++What:		/sys/fs/ocfs2/max_locking_protocol
++Date:		April 2008
++Contact:	ocfs2-devel at oss.oracle.com
++Description:
++		The /sys/fs/ocfs2/max_locking_protocol file displays version
++		of ocfs2 locking supported by the filesystem.  This version
++		covers how ocfs2 uses distributed locking between cluster
++		nodes.
++
++		The protocol version has a major and minor number.  Two
++		cluster nodes can interoperate if they have an identical
++		major number and an overlapping minor number - thus,
++		a node with version 1.10 can interoperate with a node
++		sporting version 1.8, as long as both use the 1.8 protocol.
++
++		Reading from this file returns a single line, the major
++		number and minor number joined by a period, eg "1.10".
++
++		This file is read-only.  The value is compiled into the
++		driver.
++
++What:		/sys/fs/ocfs2/loaded_cluster_plugins
++Date:		April 2008
++Contact:	ocfs2-devel at oss.oracle.com
++Description:
++		The /sys/fs/ocfs2/loaded_cluster_plugins file describes
++		the available plugins to support ocfs2 cluster operation.
++		A cluster plugin is required to use ocfs2 in a cluster.
++		There are currently two available plugins:
++
++		* 'o2cb' - The classic o2cb cluster stack that ocfs2 has
++			used since its inception.
++		* 'user' - A plugin supporting userspace cluster software
++			in conjunction with fs/dlm.
++
++		Reading from this file returns the names of all loaded
++		plugins, one per line.
++
++		This file is read-only.  Its contents may change as
++		plugins are loaded or removed.
++
++What:		/sys/fs/ocfs2/active_cluster_plugin
++Date:		April 2008
++Contact:	ocfs2-devel at oss.oracle.com
++Description:
++		The /sys/fs/ocfs2/active_cluster_plugin displays which
++		cluster plugin is currently in use by the filesystem.
++		The active plugin will appear in the loaded_cluster_plugins
++		file as well.  Only one plugin can be used at a time.
++
++		Reading from this file returns the name of the active plugin
++		on a single line.
++
++		This file is read-only.  Which plugin is active depends on
++		the cluster stack in use.  The contents may change
++		when all filesystems are unmounted and the cluster stack
++		is changed.
++
++What:		/sys/fs/ocfs2/cluster_stack
++Date:		April 2008
++Contact:	ocfs2-devel at oss.oracle.com
++Description:
++		The /sys/fs/ocfs2/cluster_stack file contains the name
++		of current ocfs2 cluster stack.  This value is set by
++		userspace tools when bringing the cluster stack online.
++
++		Cluster stack names are 4 characters in length.
++
++		When the 'o2cb' cluster stack is used, the 'o2cb' cluster
++		plugin is active.  All other cluster stacks use the 'user'
++		cluster plugin.
++
++		Reading from this file returns the name of the current
++		cluster stack on a single line.
++
++		Writing a new stack name to this file changes the current
++		cluster stack unless there are mounted ocfs2 filesystems.
++		If there are mounted filesystems, attempts to change the
++		stack return an error.
++
++Users:
++	ocfs2-tools <ocfs2-tools-devel@oss.oracle.com>
 -- 
 1.5.4.1
