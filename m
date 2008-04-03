@@ -1,189 +1,146 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed,  2 Apr 2008 16:16:28 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Add cluster lock stats at the fs
-	level
-Message-ID: <1207178188-30130-1-git-send-email-sunil.mushran@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Thu, 3 Apr 2008 16:20:10 -0700
+Subject: [Ocfs2-devel] [PATCH 3/3] Extent tree operation
+	refactoring.take 1
+In-Reply-To: <20080328084559.GA6352@dhcp-beijing-cdc-10-182-120-173.cn.oracle.com>
+References: <20080328084559.GA6352@dhcp-beijing-cdc-10-182-120-173.cn.oracle
+	.com>
+Message-ID: <20080403232010.GL21261@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch adds code to track the number of times the fs takes
-various cluster locks as well as the times associated with it.
+On Fri, Mar 28, 2008 at 04:45:59PM +0800, Tao Ma wrote:
+> In the old extent tree operation, we take the hypothesis that we
+> are using the ocfs2_extent_list in ocfs2_dinode as the tree root.
+> As xattr will also use ocfs2_extent_list to store large values
+> xattr enty, we refactor the tree operation so that xattr can use
+> it directly.
+> 
+> The refactoring includes 3 steps:
+> 1. Abstract the set/get of last_eb_blk since it may be stored
+>    in different location for dinode and xattr.
+> 2. Add a new structure named ocfs2_extent_tree to indicate the
+>    extent tree the operation will work on.
+> 3. Remove all the use of fe_bh and di, use root_bh and root_el in
+>    extent tree instead. So now all the fe_bh is replaced with
+>    et->root_bh, el with root_el accordingly.
 
-Authored-by: Jan Kara <jack@suse.cz>
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/dlmglue.c |   69 +++++++++++++++++++++++++++++++++++++++++++++++++++-
- fs/ocfs2/ocfs2.h   |   10 +++++++
- 2 files changed, 78 insertions(+), 1 deletions(-)
+Most of this looks fine - I've got a couple of comments below.
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 1f1873b..cede25f 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -32,6 +32,7 @@
- #include <linux/pagemap.h>
- #include <linux/debugfs.h>
- #include <linux/seq_file.h>
-+#include <linux/time.h>
- 
- #include <cluster/heartbeat.h>
- #include <cluster/nodemanager.h>
-@@ -65,6 +66,7 @@ struct ocfs2_mask_waiter {
- 	struct completion	mw_complete;
- 	unsigned long		mw_mask;
- 	unsigned long		mw_goal;
-+	unsigned long long 	mw_lock_start;
- };
- 
- static struct ocfs2_super *ocfs2_get_dentry_osb(struct ocfs2_lock_res *lockres);
-@@ -415,6 +417,16 @@ static void ocfs2_lock_res_init_common(struct ocfs2_super *osb,
- 	res->l_flags         = OCFS2_LOCK_INITIALIZED;
- 
- 	ocfs2_add_lockres_tracking(res, osb->osb_dlm_debug);
-+
-+	res->l_lock_num_prmode = 0;
-+	res->l_lock_num_prmode_failed = 0;
-+	res->l_lock_total_prmode = 0;
-+	res->l_lock_max_prmode = 0;
-+	res->l_lock_num_exmode = 0;
-+	res->l_lock_num_exmode_failed = 0;
-+	res->l_lock_total_exmode = 0;
-+	res->l_lock_max_exmode = 0;
-+	res->l_lock_refresh = 0;
- }
- 
- void ocfs2_lock_res_init_once(struct ocfs2_lock_res *res)
-@@ -950,8 +962,11 @@ static inline int ocfs2_may_continue_on_blocked_lock(struct ocfs2_lock_res *lock
- 
- static void ocfs2_init_mask_waiter(struct ocfs2_mask_waiter *mw)
- {
-+	struct timespec ts = current_kernel_time();
-+
- 	INIT_LIST_HEAD(&mw->mw_item);
- 	init_completion(&mw->mw_complete);
-+	mw->mw_lock_start = timespec_to_ns(&ts);
- }
- 
- static int ocfs2_wait_for_mask(struct ocfs2_mask_waiter *mw)
-@@ -1013,6 +1028,35 @@ static int ocfs2_wait_for_mask_interruptible(struct ocfs2_mask_waiter *mw,
- 	return ret;
- }
- 
-+static void add_lock_stats(struct ocfs2_lock_res *lockres, int level,
-+			   struct ocfs2_mask_waiter *mw, int ret)
-+{
-+	unsigned long long *num, *sum;
-+	unsigned int *max, *failed;
-+	struct timespec ts = current_kernel_time();
-+	unsigned long long time = timespec_to_ns(&ts) - mw->mw_lock_start;
-+
-+	if (level == LKM_PRMODE) {
-+		num = &lockres->l_lock_num_prmode;
-+		sum = &lockres->l_lock_total_prmode;
-+		max = &lockres->l_lock_max_prmode;
-+		failed = &lockres->l_lock_num_prmode_failed;
-+	} else if (level == LKM_EXMODE) {
-+		num = &lockres->l_lock_num_exmode;
-+		sum = &lockres->l_lock_total_exmode;
-+		max = &lockres->l_lock_max_exmode;
-+		failed = &lockres->l_lock_num_exmode_failed;
-+	} else
-+		return;
-+
-+	(*num)++;
-+	(*sum) += time;
-+	if (time > *max)
-+		*max = time;
-+	if (ret)
-+		(*failed)++;
-+}
-+
- static int ocfs2_cluster_lock(struct ocfs2_super *osb,
- 			      struct ocfs2_lock_res *lockres,
- 			      int level,
-@@ -1153,6 +1197,7 @@ out:
- 			goto again;
- 		mlog_errno(ret);
- 	}
-+	add_lock_stats(lockres, level, &mw, ret);
- 
- 	mlog_exit(ret);
- 	return ret;
-@@ -1878,6 +1923,7 @@ static int ocfs2_inode_lock_update(struct inode *inode,
- 				le32_to_cpu(fe->i_flags));
- 
- 		ocfs2_refresh_inode(inode, fe);
-+		lockres->l_lock_refresh++;
- 	}
- 
- 	status = 0;
-@@ -2169,6 +2215,7 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
- 
- 		if (status < 0)
- 			mlog_errno(status);
-+		lockres->l_lock_refresh++;
- 	}
- bail:
- 	mlog_exit(status);
-@@ -2363,7 +2410,7 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
- }
- 
- /* So that debugfs.ocfs2 can determine which format is being used */
--#define OCFS2_DLM_DEBUG_STR_VERSION 1
-+#define OCFS2_DLM_DEBUG_STR_VERSION 2
- static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
- {
- 	int i;
-@@ -2404,6 +2451,26 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
- 	for(i = 0; i < DLM_LVB_LEN; i++)
- 		seq_printf(m, "0x%x\t", lvb[i]);
- 
-+	/* The following seq_print was added in version 2 of this output */
-+	seq_printf(m, "%llu\t"
-+		   "%llu\t"
-+		   "%u\t"
-+		   "%u\t"
-+		   "%llu\t"
-+		   "%llu\t"
-+		   "%u\t"
-+		   "%u\t"
-+		   "%u\t",
-+		   lockres->l_lock_num_prmode,
-+		   lockres->l_lock_num_exmode,
-+		   lockres->l_lock_num_prmode_failed,
-+		   lockres->l_lock_num_exmode_failed,
-+		   lockres->l_lock_total_prmode,
-+		   lockres->l_lock_total_exmode,
-+		   lockres->l_lock_max_prmode,
-+		   lockres->l_lock_max_exmode,
-+		   lockres->l_lock_refresh);
-+
- 	/* End the line */
- 	seq_printf(m, "\n");
- 	return 0;
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 6546cef..771fd81 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -131,6 +131,16 @@ struct ocfs2_lock_res {
- 	wait_queue_head_t        l_event;
- 
- 	struct list_head         l_debug_list;
-+
-+	unsigned long long	 l_lock_num_prmode; 	   /* PR acquires */
-+	unsigned long long 	 l_lock_num_exmode; 	   /* EX acquires */
-+	unsigned int		 l_lock_num_prmode_failed; /* Failed PR gets */
-+	unsigned int		 l_lock_num_exmode_failed; /* Failed EX gets */
-+	unsigned long long	 l_lock_total_prmode; 	   /* Tot wait for PR */
-+	unsigned long long	 l_lock_total_exmode; 	   /* Tot wait for EX */
-+	unsigned int		 l_lock_max_prmode; 	   /* Max wait for PR */
-+	unsigned int		 l_lock_max_exmode; 	   /* Max wait for EX */
-+	unsigned int		 l_lock_refresh;	   /* Disk refreshes */
- };
- 
- struct ocfs2_dlm_debug {
--- 
-1.5.3.4
+
+> +static void ocfs2_free_extent_tree(struct ocfs2_extent_tree *et)
+> +{
+> +	if (et) {
+> +		brelse(et->root_bh);
+> +		kfree(et);
+> +	}
+> +}
+> +
+> +static int ocfs2_extent_tree_sanity_check(struct inode *inode,
+> +					  struct ocfs2_extent_tree *et)
+> +{
+> +	int ret = 0;
+
+Wouldn't it be cleaner if this were also a callback type in struct
+ocfs2_extent_tree_operations?
+
+
+> +	/* current we only support dinode extent. */
+> +	BUG_ON(et->type != OCFS2_DINODE_EXTENT);
+> +	if (et->type == OCFS2_DINODE_EXTENT) {
+> +		struct ocfs2_dinode *di;
+> +
+> +		di = (struct ocfs2_dinode *)et->root_bh->b_data;
+> +		if (!OCFS2_IS_VALID_DINODE(di)) {
+> +			ret = -EIO;
+> +			ocfs2_error(inode->i_sb,
+> +				"Inode %llu has invalid path root",
+> +				(unsigned long long)OCFS2_I(inode)->ip_blkno);
+> +		}
+> +	}
+> +
+> +	return ret;
+> +}
+> +
+>  static void ocfs2_free_truncate_context(struct ocfs2_truncate_context *tc);
+>  static int ocfs2_cache_extent_block_free(struct ocfs2_cached_dealloc_ctxt *ctxt,
+>  					 struct ocfs2_extent_block *eb);
+> @@ -205,17 +294,6 @@ static struct ocfs2_path *ocfs2_new_path(struct buffer_head *root_bh,
+>  }
+>  
+>  /*
+> - * Allocate and initialize a new path based on a disk inode tree.
+> - */
+> -static struct ocfs2_path *ocfs2_new_inode_path(struct buffer_head *di_bh)
+> -{
+> -	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+> -	struct ocfs2_extent_list *el = &di->id2.i_list;
+> -
+> -	return ocfs2_new_path(di_bh, el);
+> -}
+> -
+> -/*
+>   * Convenience function to journal all components in a path.
+>   */
+>  static int ocfs2_journal_access_path(struct inode *inode, handle_t *handle,
+> @@ -368,24 +446,35 @@ struct ocfs2_merge_ctxt {
+>   */
+>  int ocfs2_num_free_extents(struct ocfs2_super *osb,
+>  			   struct inode *inode,
+> -			   struct buffer_head *bh)
+> +			   struct buffer_head *root_bh,
+> +			   enum ocfs2_extent_tree_type type)
+>  {
+>  	int retval;
+> -	struct ocfs2_extent_list *el;
+> +	struct ocfs2_extent_list *el = NULL;
+>  	struct ocfs2_extent_block *eb;
+>  	struct buffer_head *eb_bh = NULL;
+> -	struct ocfs2_dinode *fe = (struct ocfs2_dinode *)bh->b_data;
+> +	u64 last_eb_blk = 0;
+>  
+>  	mlog_entry_void();
+>  
+> -	if (!OCFS2_IS_VALID_DINODE(fe)) {
+> -		OCFS2_RO_ON_INVALID_DINODE(inode->i_sb, fe);
+> -		retval = -EIO;
+> -		goto bail;
+> +	/* current we only support dinode extent. */
+> +	BUG_ON(type != OCFS2_DINODE_EXTENT);
+
+Outside of your allocation function and each callback, I'd say we probably
+don't need so many of these. The others will catch any problem before these
+do.
+
+
+> @@ -6043,13 +6161,14 @@ int ocfs2_commit_truncate(struct ocfs2_super *osb,
+>  	handle_t *handle = NULL;
+>  	struct inode *tl_inode = osb->osb_tl_inode;
+>  	struct ocfs2_path *path = NULL;
+> +	struct ocfs2_dinode *di = (struct ocfs2_dinode *)fe_bh->b_data;
+>  
+>  	mlog_entry_void();
+>  
+>  	new_highest_cpos = ocfs2_clusters_for_bytes(osb->sb,
+>  						     i_size_read(inode));
+>  
+> -	path = ocfs2_new_inode_path(fe_bh);
+> +	path = ocfs2_new_path(fe_bh, &di->id2.i_list);
+>  	if (!path) {
+>  		status = -ENOMEM;
+>  		mlog_errno(status);
+> @@ -6339,3 +6458,5 @@ static void ocfs2_free_truncate_context(struct ocfs2_truncate_context *tc)
+>  
+>  	kfree(tc);
+>  }
+> +
+> +
+
+You've added whitespace here for no reason.
+	--Mark
+
+--
+Mark Fasheh
