@@ -1,48 +1,69 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 21 Apr 2008 03:02:06 -0700
-Subject: [Ocfs2-devel] [2.6 patch] make struct o2cb_stack_ops static
-In-Reply-To: <20080421084931.GT26897@cs181133002.pp.htv.fi>
-References: <20080421084931.GT26897@cs181133002.pp.htv.fi>
-Message-ID: <20080421100206.GB7059@ca-server1.us.oracle.com>
+From: Sunil Mushran <Sunil.Mushran@oracle.com>
+Date: Mon, 21 Apr 2008 10:16:28 -0700
+Subject: [Ocfs2-devel] [2.6 patch] ocfs2/dlm/dlmdebug.c: make 2
+ functions static
+In-Reply-To: <20080421084937.GU26897@cs181133002.pp.htv.fi>
+References: <20080421084937.GU26897@cs181133002.pp.htv.fi>
+Message-ID: <480CCBEC.3080905@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Adrian Bunk <bunk@kernel.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+Cc: Joel Becker <joel.becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Mon, Apr 21, 2008 at 11:49:31AM +0300, Adrian Bunk wrote:
-> This patch makes the needlessly global struct o2cb_stack_ops static.
-> 
+Adrian Bunk wrote:
+> This patch makes the following needlessly global functions static:
+> - stringify_lockname()
+> - dlm_debug_put()
+>
 > Signed-off-by: Adrian Bunk <bunk@kernel.org>
-Acked-by: Joel Becker <joel.becker@oracle.com>
+>   
 
-> 
+Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
+
 > ---
-> eb3ca85e31f3ddec51aaab0fd2243962d7ce1bc6 diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-> index ac1d74c..bbd1667 100644
-> --- a/fs/ocfs2/stack_o2cb.c
-> +++ b/fs/ocfs2/stack_o2cb.c
-> @@ -385,7 +385,7 @@ static int o2cb_cluster_this_node(unsigned int *node)
->  	return 0;
+>
+>  fs/ocfs2/dlm/dlmdebug.c |    8 +++++---
+>  1 file changed, 5 insertions(+), 3 deletions(-)
+>
+> fec83555cf8467e5c932fa52177b8f567eb84d94 diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+> index 5f6d858..1b81dcb 100644
+> --- a/fs/ocfs2/dlm/dlmdebug.c
+> +++ b/fs/ocfs2/dlm/dlmdebug.c
+> @@ -44,7 +44,8 @@
+>  #define MLOG_MASK_PREFIX ML_DLM
+>  #include "cluster/masklog.h"
+>  
+> -int stringify_lockname(const char *lockname, int locklen, char *buf, int len);
+> +static int stringify_lockname(const char *lockname, int locklen, char *buf,
+> +			      int len);
+>  
+>  void dlm_print_one_lock_resource(struct dlm_lock_resource *res)
+>  {
+> @@ -251,7 +252,8 @@ EXPORT_SYMBOL_GPL(dlm_errname);
+>   *
+>   * For more on lockname formats, please refer to dlmglue.c and ocfs2_lockid.h.
+>   */
+> -int stringify_lockname(const char *lockname, int locklen, char *buf, int len)
+> +static int stringify_lockname(const char *lockname, int locklen, char *buf,
+> +			      int len)
+>  {
+>  	int out = 0;
+>  	__be64 inode_blkno_be;
+> @@ -368,7 +370,7 @@ static void dlm_debug_free(struct kref *kref)
+>  	kfree(dc);
 >  }
 >  
-> -struct ocfs2_stack_operations o2cb_stack_ops = {
-> +static struct ocfs2_stack_operations o2cb_stack_ops = {
->  	.connect	= o2cb_cluster_connect,
->  	.disconnect	= o2cb_cluster_disconnect,
->  	.hangup		= o2cb_cluster_hangup,
-> 
-
--- 
-
-"What does it say about a society's priorities when the time you
- spend in meetings on Monday is greater than the total number of
- hours you spent sleeping over the weekend?"
-	- Nat Friedman
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+> -void dlm_debug_put(struct dlm_debug_ctxt *dc)
+> +static void dlm_debug_put(struct dlm_debug_ctxt *dc)
+>  {
+>  	if (dc)
+>  		kref_put(&dc->debug_refcnt, dlm_debug_free);
+>
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>   
