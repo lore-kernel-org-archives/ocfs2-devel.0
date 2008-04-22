@@ -1,68 +1,88 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Wed, 30 Apr 2008 10:13:47 -0700
-Subject: [Ocfs2-devel] [patch 0/2] Add inode steal in ocfs2-1.2
-In-Reply-To: <48181D3B.3070503@oracle.com>
-References: <20080430070805.GA11248@dhcp-beijing-cdc-10-182-121-54.cn.oracle	.com>
-	<48181D3B.3070503@oracle.com>
-Message-ID: <4818A8CB.3000304@oracle.com>
+From: Randy Dunlap <RANDY.DUNLAP@ORACLE.COM>
+Date: Tue, 22 Apr 2008 22:21:38 -0000
+Subject: [Ocfs2-devel] current OCFS2 testing results
+In-Reply-To: <20080422184644.GA26425@mail.oracle.com>
+References: <28180743.1208882223804.JavaMail.oracle@acsmt302.oracle.com>
+	<20080422184644.GA26425@mail.oracle.com>
+Message-ID: <16034211.1208902895432.JavaMail.oracle@acsmt302.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Thanks.
 
-Can you work with Marcos to check this in ocfs2-test repo.
 
-Tao Ma wrote:
-> One more thing, it has been tested with my script which has been sent to 
-> ocfs2-tools-devel for review. Please see
-> http://oss.oracle.com/pipermail/ocfs2-tools-devel/2008-March/000621.html
->
-> Regards,
-> Tao
->
-> tao.ma at oracle.com wrote:
->   
->> Hi all,
->> This patch series add inode steal mechanism for inode allocation and
->> it is backported from 2.6.26.
->>
->> In OCFS2, we allocate the inodes from slot specific inode_alloc to avoid
->> inode creation congestion. The local alloc file grows in a large contiguous
->> chunk. As for a 4K bs, it grows 4M every time. So 1024 inodes will be
->> allocated at a time.
->>
->> Over time, if the fs gets fragmented enough(e.g, the user has created
->> many small files and also delete some of them), we can end up in a situation,
->> whereby we cannot extend the inode_alloc as we don't have a large chunk
->> free in the global_bitmap even if df shows few gigs free. More annoying
->> is that this situation will invariably mean that while one cannot create
->> inodes on one node but can from another node. Still more annoying is that an
->> unused slot may have space for plenty of inodes but is unusable as the user may
->> not be mounting as many nodes anymore.
->>
->> This patch series implement a solution which is to steal inodes from
->> another slot. Now the whole inode allocation process looks like this:
->> 1. Allocate from its own inode_alloc:000X
->>    1) If we can reserve, OK.
->>    2) If fails, try to allocate a large chunk and reserve once again.
->> 2. If 1 fails, try to allocate from the ocfs2_super->inode_steal_slot.
->>    This time, Just try to reserve, we don't go for global_bitmap if
->>    this inode also can't allocate the inode.
->> 3. If 2 fails, try the node next until we reach that steal slot again.
->>
->> ocfs2_super->inode_steal_slot is initalized as the node next to our own
->> slot. And once the inode stealing successes, we will refresh it with
->> the slot we steal inode from. It will also be reinitalized when the
->> local truncate log or local alloc recovery is flushed in which case the global
->> bitmap may be refreshed.
->>
->>     
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->   
+Tested/works.
+
+Acked-by: Randy Dunlap <randy.dunlap@oracle.com>
+
+---
+~Randy
+
+
+--- Original Message ---
+> On Tue, Apr 22, 2008 at 11:37:03AM -0500, Randy Dunlap wrote:
+> > There appear to be 2 problems.  One is sysfs duplicate filename and the other
+> > is with mlog_and_bits & mlog_not_bits.  Maybe the latter one is just a result of
+> > the first one.
+> > 
+> > OCFS2 Node Manager 1.5.0
+> > sysfs: duplicate filename 'o2cb' can not be created
+> 
+> 	Looks like the rejiggering of the /sys/fs/o2cb path didn't
+> get
+> merged right.  Please try the patch at the end.
+> 
+> > ocfs2: Unknown symbol mlog_and_bits
+> > ocfs2: Unknown symbol mlog_not_bits
+> 
+> ocfs2_nodemanager provides these, so when it fails to load,
+> they don't
+> exist.
+> 
+> Joel
+> 
+> --------------------
+> 
+> 
+> ocfs2: Correct merge of 52f7c21 (Move /sys/o2cb to /sys/fs/o2cb)
+> 
+> Commit 52f7c21b613f80cb425d115c9e5b4ed958a133c0 was intended
+> to move
+> /sys/o2cb to /sys/fs/o2cb, providing /sys/o2cb as a symlink
+> for
+> backwards compatibility.  However, the merge apparently added
+> the
+> symlink but failed to move the directory, resulting in a
+> duplicate
+> filename error.  It's a one-line change that was missing.
+> 
+> Signed-off-by: Joel Becker <joel.becker@oracle.com>
+> 
+> ---
+> 
+> diff --git a/fs/ocfs2/cluster/sys.c b/fs/ocfs2/cluster/sys.c
+> index 98429fd..bc702da 100644
+> --- a/fs/ocfs2/cluster/sys.c
+> +++ b/fs/ocfs2/cluster/sys.c
+> @@ -65,7 +65,7 @@ int o2cb_sys_init(void)
+>  {
+>  	int ret;
+>  
+> -	o2cb_kset = kset_create_and_add("o2cb", NULL, NULL);
+> +	o2cb_kset = kset_create_and_add("o2cb", NULL, fs_kobj);
+>  	if (!o2cb_kset)
+>  		return -ENOMEM;
+>  
+> 
+> -- 
+> 
+>  The zen have a saying:
+>  "When you learn how to listen, ANYONE can be your teacher."
+> 
+> Joel Becker
+> Principal Software Developer
+> Oracle
+> E-mail: joel.becker at oracle.com
+> Phone: (650) 506-8127
