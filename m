@@ -1,84 +1,166 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 02 May 2008 15:48:51 +0800
-Subject: [Ocfs2-devel] [patch 0/2] Add inode steal in ocfs2-1.2
-In-Reply-To: <4818A8CB.3000304@oracle.com>
-References: <20080430070805.GA11248@dhcp-beijing-cdc-10-182-121-54.cn.oracle	.com>
-	<48181D3B.3070503@oracle.com> <4818A8CB.3000304@oracle.com>
-Message-ID: <481AC763.9080301@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Fri, 2 May 2008 11:35:10 -0700
+Subject: [Ocfs2-devel] [git patches] Ocfs2 fixes
+Message-ID: <20080502183510.GE15434@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
-OK, no problem.
-Marcos, please verify it and I will commit it into ocfs2-test.
-You must have at least 3 nodes to run this test since one node will 
-steal inodes from other 2 nodes.
-any problem, please let me know. Thanks.
+Some fixes/cleanups that I pulled into ocfs2.git after we sent our feature merge.
+The /sys/o2cb fix in particular has been asked about a couple times.
+	--Mark
 
-Regards,
-Tao
+Please pull from 'upstream-linus' branch of
+git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
 
-Sunil Mushran wrote:
-> Thanks.
-> 
-> Can you work with Marcos to check this in ocfs2-test repo.
-> 
-> Tao Ma wrote:
->> One more thing, it has been tested with my script which has been sent 
->> to ocfs2-tools-devel for review. Please see
->> http://oss.oracle.com/pipermail/ocfs2-tools-devel/2008-March/000621.html
->>
->> Regards,
->> Tao
->>
->> tao.ma at oracle.com wrote:
->>  
->>> Hi all,
->>> This patch series add inode steal mechanism for inode allocation and
->>> it is backported from 2.6.26.
->>>
->>> In OCFS2, we allocate the inodes from slot specific inode_alloc to avoid
->>> inode creation congestion. The local alloc file grows in a large 
->>> contiguous
->>> chunk. As for a 4K bs, it grows 4M every time. So 1024 inodes will be
->>> allocated at a time.
->>>
->>> Over time, if the fs gets fragmented enough(e.g, the user has created
->>> many small files and also delete some of them), we can end up in a 
->>> situation,
->>> whereby we cannot extend the inode_alloc as we don't have a large chunk
->>> free in the global_bitmap even if df shows few gigs free. More annoying
->>> is that this situation will invariably mean that while one cannot create
->>> inodes on one node but can from another node. Still more annoying is 
->>> that an
->>> unused slot may have space for plenty of inodes but is unusable as 
->>> the user may
->>> not be mounting as many nodes anymore.
->>>
->>> This patch series implement a solution which is to steal inodes from
->>> another slot. Now the whole inode allocation process looks like this:
->>> 1. Allocate from its own inode_alloc:000X
->>>    1) If we can reserve, OK.
->>>    2) If fails, try to allocate a large chunk and reserve once again.
->>> 2. If 1 fails, try to allocate from the ocfs2_super->inode_steal_slot.
->>>    This time, Just try to reserve, we don't go for global_bitmap if
->>>    this inode also can't allocate the inode.
->>> 3. If 2 fails, try the node next until we reach that steal slot again.
->>>
->>> ocfs2_super->inode_steal_slot is initalized as the node next to our own
->>> slot. And once the inode stealing successes, we will refresh it with
->>> the slot we steal inode from. It will also be reinitalized when the
->>> local truncate log or local alloc recovery is flushed in which case 
->>> the global
->>> bitmap may be refreshed.
->>>
->>>     
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>   
-> 
+to receive the following updates:
+
+ fs/ocfs2/cluster/sys.c  |    2 +-
+ fs/ocfs2/dlm/dlmdebug.c |    8 +++++---
+ fs/ocfs2/file.c         |    4 ++++
+ fs/ocfs2/localalloc.c   |    4 ++--
+ fs/ocfs2/stack_o2cb.c   |    2 +-
+ fs/ocfs2/stack_user.c   |    2 +-
+ fs/ocfs2/symlink.c      |    2 ++
+ 7 files changed, 16 insertions(+), 8 deletions(-)
+
+Adrian Bunk (3):
+      ocfs2: make struct ocfs2_control_device static
+      ocfs2: make struct o2cb_stack_ops static
+      ocfs2/dlm: dlmdebug.c: make 2 functions static
+
+Joel Becker (1):
+      ocfs2: Correct merge of 52f7c21 (Move /sys/o2cb to /sys/fs/o2cb)
+
+Sunil Mushran (2):
+      ocfs2: Allow uid/gid/perm changes of symlinks
+      ocfs2: Use GFP_NOFS in kmalloc during localalloc window move
+
+diff --git a/fs/ocfs2/cluster/sys.c b/fs/ocfs2/cluster/sys.c
+index 98429fd..bc702da 100644
+--- a/fs/ocfs2/cluster/sys.c
++++ b/fs/ocfs2/cluster/sys.c
+@@ -65,7 +65,7 @@ int o2cb_sys_init(void)
+ {
+ 	int ret;
+ 
+-	o2cb_kset = kset_create_and_add("o2cb", NULL, NULL);
++	o2cb_kset = kset_create_and_add("o2cb", NULL, fs_kobj);
+ 	if (!o2cb_kset)
+ 		return -ENOMEM;
+ 
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 5f6d858..1b81dcb 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -44,7 +44,8 @@
+ #define MLOG_MASK_PREFIX ML_DLM
+ #include "cluster/masklog.h"
+ 
+-int stringify_lockname(const char *lockname, int locklen, char *buf, int len);
++static int stringify_lockname(const char *lockname, int locklen, char *buf,
++			      int len);
+ 
+ void dlm_print_one_lock_resource(struct dlm_lock_resource *res)
+ {
+@@ -251,7 +252,8 @@ EXPORT_SYMBOL_GPL(dlm_errname);
+  *
+  * For more on lockname formats, please refer to dlmglue.c and ocfs2_lockid.h.
+  */
+-int stringify_lockname(const char *lockname, int locklen, char *buf, int len)
++static int stringify_lockname(const char *lockname, int locklen, char *buf,
++			      int len)
+ {
+ 	int out = 0;
+ 	__be64 inode_blkno_be;
+@@ -368,7 +370,7 @@ static void dlm_debug_free(struct kref *kref)
+ 	kfree(dc);
+ }
+ 
+-void dlm_debug_put(struct dlm_debug_ctxt *dc)
++static void dlm_debug_put(struct dlm_debug_ctxt *dc)
+ {
+ 	if (dc)
+ 		kref_put(&dc->debug_refcnt, dlm_debug_free);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 9154c82..57e0d30 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1048,6 +1048,10 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ 	mlog_entry("(0x%p, '%.*s')\n", dentry,
+ 	           dentry->d_name.len, dentry->d_name.name);
+ 
++	/* ensuring we don't even attempt to truncate a symlink */
++	if (S_ISLNK(inode->i_mode))
++		attr->ia_valid &= ~ATTR_SIZE;
++
+ 	if (attr->ia_valid & ATTR_MODE)
+ 		mlog(0, "mode change: %d\n", attr->ia_mode);
+ 	if (attr->ia_valid & ATTR_UID)
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index ce0dc14..be774bd 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -260,7 +260,7 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
+ 	bh = osb->local_alloc_bh;
+ 	alloc = (struct ocfs2_dinode *) bh->b_data;
+ 
+-	alloc_copy = kmalloc(bh->b_size, GFP_KERNEL);
++	alloc_copy = kmalloc(bh->b_size, GFP_NOFS);
+ 	if (!alloc_copy) {
+ 		status = -ENOMEM;
+ 		goto out_commit;
+@@ -931,7 +931,7 @@ static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
+ 	 * local alloc shutdown won't try to double free main bitmap
+ 	 * bits. Make a copy so the sync function knows which bits to
+ 	 * free. */
+-	alloc_copy = kmalloc(osb->local_alloc_bh->b_size, GFP_KERNEL);
++	alloc_copy = kmalloc(osb->local_alloc_bh->b_size, GFP_NOFS);
+ 	if (!alloc_copy) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
+index ac1d74c..bbd1667 100644
+--- a/fs/ocfs2/stack_o2cb.c
++++ b/fs/ocfs2/stack_o2cb.c
+@@ -385,7 +385,7 @@ static int o2cb_cluster_this_node(unsigned int *node)
+ 	return 0;
+ }
+ 
+-struct ocfs2_stack_operations o2cb_stack_ops = {
++static struct ocfs2_stack_operations o2cb_stack_ops = {
+ 	.connect	= o2cb_cluster_connect,
+ 	.disconnect	= o2cb_cluster_disconnect,
+ 	.hangup		= o2cb_cluster_hangup,
+diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+index 7428663..b503772 100644
+--- a/fs/ocfs2/stack_user.c
++++ b/fs/ocfs2/stack_user.c
+@@ -635,7 +635,7 @@ static const struct file_operations ocfs2_control_fops = {
+ 	.owner   = THIS_MODULE,
+ };
+ 
+-struct miscdevice ocfs2_control_device = {
++static struct miscdevice ocfs2_control_device = {
+ 	.minor		= MISC_DYNAMIC_MINOR,
+ 	.name		= "ocfs2_control",
+ 	.fops		= &ocfs2_control_fops,
+diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
+index 7134007..ba9dbb5 100644
+--- a/fs/ocfs2/symlink.c
++++ b/fs/ocfs2/symlink.c
+@@ -167,9 +167,11 @@ const struct inode_operations ocfs2_symlink_inode_operations = {
+ 	.readlink	= page_readlink,
+ 	.follow_link	= ocfs2_follow_link,
+ 	.getattr	= ocfs2_getattr,
++	.setattr	= ocfs2_setattr,
+ };
+ const struct inode_operations ocfs2_fast_symlink_inode_operations = {
+ 	.readlink	= ocfs2_readlink,
+ 	.follow_link	= ocfs2_follow_link,
+ 	.getattr	= ocfs2_getattr,
++	.setattr	= ocfs2_setattr,
+ };
