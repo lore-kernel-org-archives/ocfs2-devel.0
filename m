@@ -1,47 +1,60 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Fri, 16 May 2008 14:04:23 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: Fix two typos
-In-Reply-To: <1210917863-6809-3-git-send-email-tiger.yang@oracle.com>
-References: <1210917863-6809-1-git-send-email-tiger.yang@oracle.com>
-	<1210917863-6809-2-git-send-email-tiger.yang@oracle.com>
-	<1210917863-6809-3-git-send-email-tiger.yang@oracle.com>
-Message-ID: <1210917863-6809-4-git-send-email-tiger.yang@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 19 May 2008 16:23:37 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/net: Silence build warnings on
+	sparc64
+Message-ID: <1211239417-32337-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Fixed typos added in ocfs2 1.4 git
-commit b77f15f3bfc3bcf747f05e5d120fa38d69f3e7ad and
-commit 2a96d67a1c49dbbe3eb10bb4957c93f9d74bec62
+suseconds_t is type long on most arches except sparc64 where it is type int.
+This patch silences the following warnings that are generated when building
+on it.
 
-Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+netdebug.c: In function 'nst_seq_show':
+netdebug.c:152: warning: format '%lu' expects type 'long unsigned int', but argument 13 has type 'suseconds_t'
+netdebug.c:152: warning: format '%lu' expects type 'long unsigned int', but argument 15 has type 'suseconds_t'
+netdebug.c:152: warning: format '%lu' expects type 'long unsigned int', but argument 17 has type 'suseconds_t'
+netdebug.c: In function 'sc_seq_show':
+netdebug.c:332: warning: format '%lu' expects type 'long unsigned int', but argument 19 has type 'suseconds_t'
+netdebug.c:332: warning: format '%lu' expects type 'long unsigned int', but argument 21 has type 'suseconds_t'
+netdebug.c:332: warning: format '%lu' expects type 'long unsigned int', but argument 23 has type 'suseconds_t'
+netdebug.c:332: warning: format '%lu' expects type 'long unsigned int', but argument 25 has type 'suseconds_t'
+netdebug.c:332: warning: format '%lu' expects type 'long unsigned int', but argument 27 has type 'suseconds_t'
+netdebug.c:332: warning: format '%lu' expects type 'long unsigned int', but argument 29 has type 'suseconds_t'
+
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- configure.in |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ fs/ocfs2/cluster/netdebug.c |    8 +++++---
+ 1 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/configure.in b/configure.in
-index 14a0316..bd4fe02 100644
---- a/configure.in
-+++ b/configure.in
-@@ -233,7 +233,7 @@ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $sysctl_compat_header"
+diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
+index 7bf3c0e..d8bfa0e 100644
+--- a/fs/ocfs2/cluster/netdebug.c
++++ b/fs/ocfs2/cluster/netdebug.c
+@@ -146,8 +146,10 @@ static int nst_seq_show(struct seq_file *seq, void *v)
+ 			   nst->st_task->comm, nst->st_node,
+ 			   nst->st_sc, nst->st_id, nst->st_msg_type,
+ 			   nst->st_msg_key,
+-			   nst->st_sock_time.tv_sec, nst->st_sock_time.tv_usec,
+-			   nst->st_send_time.tv_sec, nst->st_send_time.tv_usec,
++			   nst->st_sock_time.tv_sec,
++			   (unsigned long)nst->st_sock_time.tv_usec,
++			   nst->st_send_time.tv_sec,
++			   (unsigned long)nst->st_send_time.tv_usec,
+ 			   nst->st_status_time.tv_sec,
+ 			   nst->st_status_time.tv_usec);
+ 	}
+@@ -274,7 +276,7 @@ static void *sc_seq_next(struct seq_file *seq, void *v, loff_t *pos)
+ 	return sc; /* unused, just needs to be null when done */
+ }
  
- configfs_compat_header=""
- OCFS2_CHECK_KERNEL([configfs_depend_item() in configfs.h], configfs.h,
--  , configfs_compat_header="configfs.h", [configfs_depend_item()])
-+  , configfs_compat_header="configfs.h", [configfs_depend_item(])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $configfs_compat_header"
+-#define TV_SEC_USEC(TV) TV.tv_sec, TV.tv_usec
++#define TV_SEC_USEC(TV) TV.tv_sec, (unsigned long)TV.tv_usec
  
- REGISTER_SYSCTL_TWO_ARGS=
-@@ -413,7 +413,7 @@ AC_SUBST(NO_SYSTEM_UTSNAME)
- 
- HAS_MS_LOOP_NO_AOPS=
- OCFS2_CHECK_KERNEL([MS_LOOP_NO_AOPS flag defined], fs.h,
--  HAS_MS_LOOP_NO_AOPS==yes, , [MS_LOOP_NO_AOPS])
-+  HAS_MS_LOOP_NO_AOPS=yes, , [MS_LOOP_NO_AOPS])
- AC_SUBST(HAS_MS_LOOP_NO_AOPS)
- 
- HAS_FOPS_SENDFILE=
+ static int sc_seq_show(struct seq_file *seq, void *v)
+ {
 -- 
-1.5.4.4
+1.5.3.6
