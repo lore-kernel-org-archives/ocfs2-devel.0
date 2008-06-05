@@ -1,54 +1,37 @@
-From: Eivind Sarto <ivan@kasenna.com>
-Date: Tue, 3 Jun 2008 19:22:25 -0500
-Subject: [Ocfs2-devel] OCFS2 and direct-io writes
-Message-ID: <9560740CA5C0C54BB3853AC9A4164BBB0308251D@EX-101.mail.navisite.com>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Thu, 05 Jun 2008 10:52:49 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: check return value of
+	ocfs2_journal_load()
+Message-ID: <48475501.9090904@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I am looking at possibility of using OCFS2 with an existing application that
-requires very high throughput for read and write file access.
-Files are created by single writer (process) and can be read by multiple reader,
-possibly while the file is being written.  100+ different files may be written
-simultaneously, and can be read by 1000+ readers. 
+we should check the return value of ocfs2_journal_load() before going on.
+this patch is based on 1.2 svn, but mainline git should has the same fix.
 
-I am currently using XFS on a local filesystem, preallocating the unwritten extents with RESVSP,
-writing and reading the files with large direct-io requests.
-
-OCFS2-1.3.9 appears to almost support the features I need.  Large direct-io requests can be passed straight
-through to the storage device and allocation of unwritten extents are supported (even same API as XFS).
-However, direct-io writes are not supported if the file is being appended.  The direct-io requests
-is converted to a buffered-io and the io write-bandwidth is not very good.
-
-I am not familiar with OCFS2 internals and my question is the following:
-Would it be possible to modify OCFS2 to support direct-io when writing a file sequentially?
-Would it easier if the data blocks had already been allocated as unwritten extents (using RESVSP)?
+Signed-off-by: wengang wang <wen.gang.wang@oracle.com>
+---
+ super.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
 
-I actually attempted to hack the OCFS2 code a bit to allow direct-io writes to happen when the extents
-had previously been allocated with a RESVSP.  It only to a couple of minor changes:
-  file.c:ocfs2_prepare_inode_for_write()
-      Don't disable direct_io if file is growing.
-  file.c:ocfs2_check_range_for_holes()
-      Don't treat unwritten extents as holes.
-  aops.c:ocfs2_direct_IO_get_blocks()
-      Map unwritten extents if they exists.
 
-With these changes, a single/local OCFS2 filesystem will allow me to write/create files using
-large, direct-io.  All the write requests go straight through to the storage.  And the write performance
-is very close to that of XFS.
-But, in a distributed environment the inode->i_size does not get syncronized with the other nodes in
-the cluster.  The direct-io path does not syncronize the inode->i_size.
+-- 
+Wengang Wang
+Member of Technical Staff
+Oracle Asia R&D Center
+Open Source Technologies Development
 
-Would it be possible to safely to update the i_size for all nodes in a cluster, without causing any
-races or other problems?
-If so, does anyone have any suggestions as to how and where in the code I could syncronize the i_size?
+Tel:      +86 10 8278 6265
+Mobile:   +86 13381078925
 
-Any feedback would be appreciated.
-Thanks,
--ivan 
 -------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080603/fd514a0b/attachment.html 
+A non-text attachment was scrubbed...
+Name: ocfs2_journal_load.patch
+Type: text/x-patch
+Size: 548 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080605/6b419fb4/attachment.bin 
