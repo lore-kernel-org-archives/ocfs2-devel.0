@@ -1,37 +1,39 @@
-From: wengang wang <wen.gang.wang@oracle.com>
-Date: Thu, 05 Jun 2008 10:52:49 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: check return value of
-	ocfs2_journal_load()
-Message-ID: <48475501.9090904@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 05 Jun 2008 15:16:33 +0800
+Subject: [Ocfs2-devel] [PATCH 0/8] ocfs2: Add extended attributes for ocfs2.
+	V1
+Message-ID: <484792D1.3080802@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-we should check the return value of ocfs2_journal_load() before going on.
-this patch is based on 1.2 svn, but mainline git should has the same fix.
+Hi all,
+	Extended attributes are used for storing POSIX ACLs, SELinux labels, 
+and user accessible metadata. They are essential for deploying file 
+systems exported for workgroup use via samba. The following patches 
+implement extended attributes on the OCFS2 file system.
 
-Signed-off-by: wengang wang <wen.gang.wang@oracle.com>
----
- super.c |    6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+Patch 1-4: The refactoring of extent tree operation. xattr will use 
+ocfs2_extent_list for both the large EA and large numbers of EA. So we 
+need some refactoring so that the old code can work with them.
 
+Patch 5: Add ocfs2 xattr header.
 
+Patch 6: Add operations for storing large EA in ocfs2. This is also 
+refactor the old extent tree a little.
 
--- 
-Wengang Wang
-Member of Technical Staff
-Oracle Asia R&D Center
-Open Source Technologies Development
+Patch 7: The extended attributes for ocfs2. It enables extended 
+attributes storage for both in-inode and one meta block. The main design 
+doc can be found at 
+http://oss.oracle.com/osswiki/OCFS2/DesignDocs/ExtendedAttributes.
 
-Tel:      +86 10 8278 6265
-Mobile:   +86 13381078925
+Patch 8: Enables storing large numbers of EAs in ocfs2. The main design 
+doc can be found at 
+http://oss.oracle.com/osswiki/OCFS2/DesignDocs/IndexedEATrees. The main 
+process is almost the same, but some difference is described in detail 
+in that patch.
 
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: ocfs2_journal_load.patch
-Type: text/x-patch
-Size: 548 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080605/6b419fb4/attachment.bin 
+Regards,
+Tiger and Tao
