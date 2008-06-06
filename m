@@ -1,15 +1,40 @@
-From: Sunil Mushran <Sunil.Mushran@oracle.com>
-Date: Thu, 05 Jun 2008 16:10:27 -0700
+From: Eivind Sarto <ivan@kasenna.com>
+Date: Thu, 5 Jun 2008 19:04:13 -0500
 Subject: [Ocfs2-devel] OCFS2 and direct-io writes
-In-Reply-To: <9560740CA5C0C54BB3853AC9A4164BBB0308251D@EX-101.mail.navisite.com>
 References: <9560740CA5C0C54BB3853AC9A4164BBB0308251D@EX-101.mail.navisite.com>
-Message-ID: <48487263.9060205@oracle.com>
+	<48487263.9060205@oracle.com>
+Message-ID: <9560740CA5C0C54BB3853AC9A4164BBB03082522@EX-101.mail.navisite.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Thanks for the reply.
+
+I have spent a bit more time looking at OCFS2 code and it will clearly
+require an EX lock.  It will also be neccessary to convert the unwritten extents and
+also syncronize the updated inode->i_size across all nodes.
+
+The main problem would be that this should probably be done from within ocfs2_dio_end_io().
+But, I think that routine is being called from an interrupt context so that prevents me
+from calling anything that could block.
+
+I am going to try some quick and dirty hacks that will allow me to get direct-io writes working so
+I can test OCFS2 with our video server.
+If the results are promising, I will think about the right way to make this work.
+
+Thanks,
+-ivan 
+
+
+-----Original Message-----
+From: Sunil Mushran [mailto:Sunil.Mushran at oracle.com]
+Sent: Thu 6/5/2008 4:10 PM
+To: Eivind Sarto
+Cc: ocfs2-devel at oss.oracle.com; Chris Mason
+Subject: Re: [Ocfs2-devel] OCFS2 and direct-io writes
+ 
 Ivan,
 
 Updating inode->i_size will require us to take the EX on the inode
@@ -94,3 +119,8 @@ Eivind Sarto wrote:
 > Ocfs2-devel mailing list
 > Ocfs2-devel at oss.oracle.com
 > http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080605/8c940deb/attachment.html 
