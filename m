@@ -1,63 +1,38 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 9 Jun 2008 18:58:00 -0700
-Subject: [Ocfs2-devel] [BUG] deadlock between configfs_rmdir() and
-	sys_rename() (WAS	Re: [RFC][PATCH 4/4] configfs: Make
-	multiple default_group)	destructions lockdep friendly
-In-Reply-To: <20080609125443.GL18153@localhost>
-References: <20080522114048.265996107@kerlabs.com>
-	<20080522114947.927196541@kerlabs.com> <4836F48A.70008@kerlabs.com>
-	<20080602230721.GD19500@mail.oracle.com>
-	<20080603160034.GA17308@localhost>
-	<20080606230154.GK29740@mail.oracle.com>
-	<20080609110353.GK18153@localhost>
-	<20080609125443.GL18153@localhost>
-Message-ID: <20080610015800.GD14820@mail.oracle.com>
+From: wen.gang.wang at oracle.com <wen.gang.wang@oracle.com>
+Date: Tue, 10 Jun 2008 14:24:48 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Handle error during journal load
+Message-ID: <1213079088-9921-1-git-send-email-wen.gang.wang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Louis Rilling <Louis.Rilling@kerlabs.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jun 09, 2008 at 02:54:43PM +0200, Louis Rilling wrote:
-> Following an intuition, I just found a deadlock resulting from the whole default
-> groups tree locking in configfs_detach_prep().
+From: Wengang Wang <wen.gang.wang@oracle.com>
 
-	Ugh, thanks for catching this :-(
+This patch ensures the mount fails if the fs is unable to load the journal.
+
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/super.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
+
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index df63ba2..ccecfe5 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1703,7 +1703,11 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+ 	local = ocfs2_mount_local(osb);
  
-> The issue here is that the VFS locks the i_mutex of the source and target
-> directories of the rename in source -> target order (because none is ascendent
-> of the other one), while configfs_detach_prep() takes them in default group
-> order (or reverse order, I'm not sure), following the order specified by the
-> groups' creator.
-
-	What actual targets are you renaming?  Sibling default groups?
-
-> The VFS protects itself against deadlocks of two concurrent renames with
-> interverted source and target directories with i_sb->s_vfs_rename_mutex. Perhaps
-> configfs should use the same lock before calling configfs_detach_prep()?
-> Or maybe configfs would better find an alternative to locking the whole
-> default groups tree? I strongly advocate for the latter, since this could also
-> solve our issues with lockdep ;)
-
-	I think the former actually works nicely.  We are playing with
-the subtree, and want to keep all operations out of it.  Except, of
-course, that we come into rmdir() with our parent i_mutex taken, so that
-violates the ordering of the rename locks, right?
-	I'm not against the latter AT ALL.  I just haven't come up with
-it yet - we can't remove parts of the tree, it must be all or none.
-Hence, we lock them all speculatively.
-
-Joel
-
+ 	/* will play back anything left in the journal. */
+-	ocfs2_journal_load(osb->journal, local);
++	status = ocfs2_journal_load(osb->journal, local);
++	if (status < 0) {
++		mlog(ML_ERROR, "ocfs2 journal load failed! %d\n", status);
++		goto finally;
++	}
+ 
+ 	if (dirty) {
+ 		/* recover my local alloc if we didn't unmount cleanly. */
 -- 
-
-Life's Little Instruction Book #15
-
-	"Own a great stereo system."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.3.2
