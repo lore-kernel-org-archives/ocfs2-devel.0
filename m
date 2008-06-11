@@ -1,76 +1,108 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 11 Jun 2008 14:15:23 -0700
-Subject: [Ocfs2-devel] [BUG] deadlock between configfs_rmdir() and
-	sys_rename() (WAS	Re: [RFC][PATCH 4/4] configfs: Make
-	multiple default_group)	destructions lockdep friendly
-In-Reply-To: <20080611173047.GR18153@localhost>
-References: <20080602230721.GD19500@mail.oracle.com>
-	<20080603160034.GA17308@localhost>
-	<20080606230154.GK29740@mail.oracle.com>
-	<20080609110353.GK18153@localhost>
-	<20080609125443.GL18153@localhost>
-	<20080610015800.GD14820@mail.oracle.com>
-	<20080610101427.GA4048@localdomain>
-	<20080610173654.GA23829@ca-server1.us.oracle.com>
-	<20080611141010.GP18153@localhost>
-	<20080611173047.GR18153@localhost>
-Message-ID: <20080611211523.GB14754@mail.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 11 Jun 2008 16:31:08 -0700
+Subject: [Ocfs2-devel] [PATCH 3/8] Make ocfs2_lock_allocators generic
+	for extent	allocation.v1
+In-Reply-To: <20080605073240.GA19775@tma-pc2.cn.oracle.com>
+References: <484792D1.3080802@oracle.com>
+	<20080605073240.GA19775@tma-pc2.cn.oracle.com>
+Message-ID: <20080611233108.GN28100@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Louis Rilling <Louis.Rilling@kerlabs.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 11, 2008 at 07:30:47PM +0200, Louis Rilling wrote:
-> I've spoken too fast. Doing things in d_revalidate() (or even in
-> configfs_lookup()) is just too early: after they are called and before
-> lock_rename(), nothing can prevent rmdir() from being called.
 
-	Yeah, that's what I was saying.
+[ Btw, patches 1 and 2 looked fine to me ]
 
-> I'm afraid that we need a way to get rid of the whole tree locking in
-> configfs_detach_prep(). Imagine that we protect all calls to configfs_rmdir()
-> and configfs_mkdir() with a global mutex (say configfs_dir_mutex). Is it still
-> needed to take default group's i_mutex in configfs_detach_prep() to check for
-> the validity of the rmdir()?
+On Thu, Jun 05, 2008 at 03:32:40PM +0800, Tao Ma wrote:
+> Now ocfs2_lock_allocators is localized to be only used in
+> file extend allocation. But the whole function is useful
+> when we want to store large EAs. So make it generic.
 
-	That's not a bad idea.  I was basically sure we need the tree
-locking to prevent other VFS operations from happening, but the more I
-think about it, the only reason we do the prep locking is to check and
-protect the ENOTEMPTY case.  I've bounced it off Mark too, and he
-agrees.
+There's a lot more going on in this patch than your subject line and
+description let on about  ;) Next time around, an explanation of the
+extent_tree_operations + interface would be nice.
 
-> 	After this check, we could set a REMOVING flag in configfs_dirent of all
-> default groups (could actually be done by configfs_detach_prep(), making
-> configfs_detach_rollback() resetting the flag), release configfs_dir_mutex, and
-> then call configfs_detach_group(), with detach_groups() taking default group's
-> i_mutex right before calling configfs_detach_group() recursively (this would
-> lead to the same path locking as in populate_groups() or
-> configfs_depend_prep()).
 
-	We already set the flag - CONFIGFS_USET_DROPPING.  The only
-change is that you don't take i_mutex anymore.  For the static mutex,
-the name 'configfs_dir_mutex' is fine.
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> ---
+>  fs/ocfs2/alloc.c    |  460 ++++++++++++++++++++++++++++++++-------------------
+>  fs/ocfs2/alloc.h    |   23 ++-
+>  fs/ocfs2/aops.c     |   11 +-
+>  fs/ocfs2/dir.c      |    7 +-
+>  fs/ocfs2/file.c     |  104 ++----------
+>  fs/ocfs2/file.h     |    4 -
+>  fs/ocfs2/suballoc.c |   82 +++++++++
+>  fs/ocfs2/suballoc.h |    5 +
+>  8 files changed, 418 insertions(+), 278 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index dc844df..71a89b2 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -49,6 +49,94 @@
+>  
+>  #include "buffer_head_io.h"
+>  
+> +struct ocfs2_extent_tree_operations {
+> +	void (*set_last_eb_blk) (void *et, u64 blkno);
+> +	u64 (*get_last_eb_blk) (void *et);
+> +	int (*sanity_check) (struct inode *inode, void *et);
+> +};
 
-> 	On mkdir() side, once configfs_dir_mutex is acquired, we first check the
-> REMOVING flag, and proceed if it is not set.
+Shouldn't the 'et' argument to these functions be properly typed?
 
-	And if it is set, we return -ENOENT.
+Also, this entire interface should be very well commented.
 
-> Just tell me if you think that it's feasible, and I'll send you a patch if it's
 
-	Have at!  Thanks.
+> @@ -663,7 +745,7 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
+>  	}
+>  
+>  	/* Link the new branch into the rest of the tree (el will
+> -	 * either be on the fe, or the extent block passed in. */
+> +	 * either be on the root_bh, or the extent block passed in. */
+>  	i = le16_to_cpu(el->l_next_free_rec);
+>  	el->l_recs[i].e_blkno = cpu_to_le64(next_blkno);
+>  	el->l_recs[i].e_cpos = cpu_to_le32(new_cpos);
+> @@ -672,7 +754,7 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
+>  
+>  	/* fe needs a new last extent block pointer, as does the
+>  	 * next_leaf on the previously last-extent-block. */
+> -	fe->i_last_eb_blk = cpu_to_le64(new_last_eb_blk);
+> +	et->eops->set_last_eb_blk(et, new_last_eb_blk);
 
-Joel
+It might be less akward if we had some small wrappers around these calls:
 
--- 
+static inline void ocfs2_set_last_eb_blk(struct ocfs2_extent_tree *et,
+					u64 new_last_eb_blk)
+{
+	et->eops->set_last_eb_blk(et, new_last_eb_blk);
+}
 
-"Vote early and vote often." 
-        - Al Capone
+and the same could be done for ->get_last_eb_blk.
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+
+> +static void ocfs2_update_clusters(struct inode *inode,
+> +				  struct ocfs2_extent_tree *et,
+> +				  u32 clusters)
+> +{
+> +	if (et->type == OCFS2_DINODE_EXTENT) {
+> +		struct ocfs2_dinode *di =
+> +			(struct ocfs2_dinode *)et->root_bh->b_data;
+> +		ocfs2_update_dinode_clusters(inode, di, clusters);
+> +	}
+> +}
+
+Shouldn't 'update clusters' be an ocfs2_extent_tree_operation?
+
+
+The rest of this looks good. It's a big patch, but it looks good :) The only
+conern I have isn't really with your code per se, but with layout of our
+source files. Alloc.c keeps growing... and growing... and growing... At some
+point it might be worth our while to split things out at least so that we
+have a 'core btree operations' file.
+	--Mark
+
+--
+Mark Fasheh
