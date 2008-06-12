@@ -1,57 +1,45 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 12 Jun 2008 16:44:12 -0700
-Subject: [Ocfs2-devel] [PATCH 6/8] Add extent tree operation for xattr
-	value.v1
-In-Reply-To: <20080605073437.GA19797@tma-pc2.cn.oracle.com>
+Date: Thu, 12 Jun 2008 16:51:15 -0700
+Subject: [Ocfs2-devel] [PATCH 3/8] Make ocfs2_lock_allocators generic
+	for extent	allocation.v1
+In-Reply-To: <48507E90.1080408@oracle.com>
 References: <484792D1.3080802@oracle.com>
-	<20080605073437.GA19797@tma-pc2.cn.oracle.com>
-Message-ID: <20080612234412.GR28100@wotan.suse.de>
+	<20080605073240.GA19775@tma-pc2.cn.oracle.com>
+	<20080611233108.GN28100@wotan.suse.de>
+	<48507E90.1080408@oracle.com>
+Message-ID: <20080612235115.GS28100@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jun 05, 2008 at 03:34:37PM +0800, Tao Ma wrote:
-> @@ -4199,7 +4246,8 @@ int ocfs2_insert_extent(struct ocfs2_super *osb,
->  			u32 new_clusters,
->  			u8 flags,
->  			struct ocfs2_alloc_context *meta_ac,
-> -			enum ocfs2_extent_tree_type et_type)
-> +			enum ocfs2_extent_tree_type et_type,
-> +			void *private)
+On Thu, Jun 12, 2008 at 09:40:32AM +0800, Tao Ma wrote:
+> Hi Mark,
+> 	Thanks for the review.
+> 	I will modify it according to your suggestions.
+> 
+> Mark Fasheh wrote:
+> >The rest of this looks good. It's a big patch, but it looks good :) The 
+> >only
+> >conern I have isn't really with your code per se, but with layout of our
+> >source files. Alloc.c keeps growing... and growing... and growing... At 
+> >some
+> >point it might be worth our while to split things out at least so that we
+> >have a 'core btree operations' file.
+> Yes, now alloc.c have more than 6000 lines. And maybe a new file name 
+> btree.c can be split out from this file that will do the real work of 
+> btree operation since with my patch, btree now isn't used by inode only. ;)
+> I will handle this after the xattr patch is committed. Thanks.
 
-Hmm, at this point, wouldn't it make sense to have a couple high-level
-"ocfs2_foo_insert_extent" functions whcih build up anm ocfs2_extent_tree and
-then pass it down to the common ocfs2_insert_extent?
-
-
-> +static int ocfs2_xattr_value_truncate(struct inode *inode,
-> +				      struct buffer_head *root_bh,
-> +				      struct ocfs2_xattr_value_root *xv,
-> +				      int len)
-> +{
-> +	int ret;
-> +	u32 new_clusters = ocfs2_clusters_for_bytes(inode->i_sb, len);
-> +	u32 old_clusters = le32_to_cpu(xv->xr_clusters);
-> +
-> +	if (new_clusters == old_clusters)
-> +		return 0;
-> +
-> +	if (new_clusters > old_clusters)
-> +		ret = ocfs2_xattr_extend_allocation(inode,
-> +						    new_clusters - old_clusters,
-> +						    root_bh, xv);
-> +	else
-> +		ret = ocfs2_xattr_shrink_size(inode,
-> +					      old_clusters, new_clusters,
-> +					      root_bh, xv);
-
-If we shrink the xattr value, do you need to zero the area between the new
-size and the end of the last cluster? We do it for inodes because a later
-extend might expose the data which was trucated. But I think EA's don't have
-that equivalent operation?
+Btree.c sounds good to me. I think maybe we can split out some parts of the
+indexed btree code into their own file as well - that last patch looks
+pretty big  ;)
 	--Mark
 
+
+> 
+> Regards,
+> Tao
 --
 Mark Fasheh
