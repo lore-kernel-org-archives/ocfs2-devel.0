@@ -1,100 +1,123 @@
-From: Louis Rilling <Louis.Rilling@kerlabs.com>
-Date: Sat, 14 Jun 2008 00:27:44 +0200
-Subject: [Ocfs2-devel] [RFC] configfs: module reference counting rules
-In-Reply-To: <20080613202605.GD20576@mail.oracle.com>
-References: <20080612235410.GC4012@localdomain>
-	<20080613033309.GE20581@mail.oracle.com>
-	<20080613095159.GH30804@localhost>
-	<20080613202605.GD20576@mail.oracle.com>
-Message-ID: <20080613222744.GB4153@localdomain>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Fri, 13 Jun 2008 15:34:41 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3][BUGFIX] configfs: Introduce
+	configfs_dirent_lock
+In-Reply-To: <20080613215401.GA4153@localdomain>
+References: <20080612133126.335618468@kerlabs.com>
+	<20080612134203.763166823@kerlabs.com>
+	<20080612191348.GE5377@mail.oracle.com>
+	<20080612222558.GA4012@localdomain>
+	<20080613024130.GD20581@mail.oracle.com>
+	<20080613104513.GI30804@localhost>
+	<20080613201746.GB20576@mail.oracle.com>
+	<20080613215401.GA4153@localdomain>
+Message-ID: <20080613223441.GE20576@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel.Becker@oracle.com
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Louis Rilling <Louis.Rilling@kerlabs.com>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Fri, Jun 13, 2008 at 01:26:05PM -0700, Joel Becker wrote:
-> On Fri, Jun 13, 2008 at 11:51:59AM +0200, Louis Rilling wrote:
-> > On Thu, Jun 12, 2008 at 08:33:12PM -0700, Joel Becker wrote:
-> > Ok, got it. The race is between unregister_subsystem() and mkdir() at the root
-> > of the subsystem (or one of its default groups). In deeper, user-created groups,
-> > this would be a design bug of the subsystem if this race could occur.
+On Fri, Jun 13, 2008 at 11:54:01PM +0200, Louis Rilling wrote:
+> On Fri, Jun 13, 2008 at 01:17:46PM -0700, Joel Becker wrote:
+> > Louis,
+> > 	Can I just say, you're the first person to do serious review
+> > other than myself, and I really appreciate it :-)
 > 
-> 	Exactly.
+> It's just that I use configfs in my own work, and I'm playing hard with
+> it, especially with modules. So I need to understand exactly what it
+> does, and what is possible with it.
 
-A few more thoughts:
+	I'm all for it.  And see my other email responding to Luis about
+the current concerns with configfs.
 
-1/ taking the module reference is only needed if mkdir() is called under
-a subsystem root or one of its default group, right? Of course this is a
-bit complex to check for this condition, and it does not hurt to take
-module references in all cases of mkdir().
-
-2/ this module reference counting makes unregister_subsystem() win
-against mkdir(), but only if unregister_subsystem() is called in
-module_cleanup(), because otherwise try_module_get() would succeed,
-right? If so, this means that after having called register_subsystem(),
-a module_init() cannot cleanly fail. Perhaps this should be documented
-in that case.
-
-3/ to make unregister_subsystem() win against mkdir(), mkdir() should
-try_module_get() on the subsystem's owner, not on the new item owner (as
-is done by the current code), right? Maybe there is a bug here...
-
+> > 	I see what you are saying here.  I'm not sure if that is worth
+> > the complexity - we can say "it was kind of there".  No one will ever
+> > hit it :-)  But let me think about it more.
 > 
-> > > 	This is hard logic, and not something we want each and every
-> > > client module to have to figure out.  Your change has them explicitly
-> > > __module_get() in ->make_item/group(), which isn't safe because of this
-> > > race!
+> To me it's an issue only if we want to provide some atomic view to
+> userspace: either userspace sees a group with all of its default groups,
+> or it sees none. So the question is: does userspace need such atomicity?
+> Currently configfs provides it, so this would be a userspace visible
+> change if we break it.
+
+	People *won't* see that.  default groups are populated and
+cleaned under i_mutex.  The race of mkdir vs rmdir isn't about seeing
+partial default groups, it's about the ENOMEM racing the ENOTEMPTY.  It
+doesn't impact lookup or other operations.  We can fix it.  I'm just not
+sure it's worth the complexity (and this is an open question).
+
+> > 	There's another reason this can't be a problem.  If we get into
+> > detach_groups(), we take i_mutex, locking out readdir().  Then we delete
+> > the directory, setting S_DEAD.  In vfs_readdir(), they check
+> > IS_DEADDIR() after getting i_mutex.  So they will see S_DEAD and not
+> > call our ->readdir().  S_DEAD is important.  Someone could actually have
+> > our default_group as their cwd.  S_DEAD prevents them from doing
+> > anything :-)
+> 
+> As I told you in a previous email, I'm missing some VFS skills, so
+> thanks again for the explanation.
+
+	Oh, don't worry about that.  There's nothing wrong with not
+knowing - that's why you asked me.  Now you do :-)
+
+> Sure, my only concern is the atomic view of userspace: can userspace
+> tolerate that (pwd=A/B, with B a default group of A, B having default groups C
+> and D, and A being removed) 'ls C' returns error because default group C is
+> already removed and 'ls D' is ok because default group D is not removed yet?
+
+	They can't see that.  We take i_mutex in detach_group.  This
+locks out lookup and readdir.  When we're done with detach_group, all
+default groups are gone.
+
+> > > 2/ the existence of default group trees that are tagged as USET_DROPPING and
+> > >    should be treated as not existing anymore.
 > > 
-> > Well, this remains hard logic for the modules. But I agree that they should not
-> > impact the logic that deals with racing mkdir() and unregister_subsystem().
+> > 	This is not an issue.  USET_DROPPING does *not* mean it went
+> > away.  It means we're safe to make it go away.  We protect the actual
+> > going-away with i_mutex.  And that's normal VFS behavior.
 > 
-> 	It is, but most modules don't have to deal with it.  Most
-> modules (all in-kernel configfs users) have a single refrence on it.
-> When they take an additional one, it's for the duration of a function
-> call.  They have to make sure that it's safe to call the function in the
-> first place, so it's clearly safe to get/put the item.
-> 	Forget about the configfs view that is presented to userspace.
-> If you were a module with inter-linked structures, you'd have to make
-> sure they were freed cleanly.  For simple things, you create and drop
-> them.  If a module has a complex interlinkage, they have a mechanism to
-> handle it.
-> 	Example: filesystems can hang whatever they want off of VFS
-> structures like inodes and superblocks - a mounted filesystem prevents
-> rmmod.  Everything is safe, *everything*, as long as it is all cleaned
-> up when put_super() returns.
-> 	So for the simple case, we provide plenty of protection.  If
-> someone wants to do something fancier, they have to provide their own
-> protection, but they would anyway.  And we can't know their complex
-> lifecycle, so we can't really help anyway.
+> Again this is the concern of atomicity from userspace point of view: to
+> provide such atomic view, mkdir(), lookup(), readdir(), and probably
+> attributes open() should just fail when done in a default group flagged with
+> USET_DROPPING.
 
-Actually, I'm developing a framework based on configfs, with which many
-modules can be linked together through mkdir() and symlink() operations.
-So I'm already managing such reference holding, but the fact that
-configfs does not hold a reference until the last config_item_put()
-imposes limitations (with which I can live though) to the framework:
-plugins of the framework provide custom config_item_types, but cannot define
-their own config_item_operations (especially release()), because
-release() must be called with a reference held on the module, and once
-release() is called somebody (not the module itself) has to drop this reference.
-	For instance, A is a group of the framework, and mkdir A/B creates an
-object implemented by module "mod_b". Before calling mod_b's
-constructor, A's make_item() has to grab a reference on mod_b, and fail
-if not successful. Then this reference cannot be dropped before B's last
-reference is dropped, which can happen a long time after rmdir A/B. So
-A's drop_item() cannot drop mod_b's reference, and A has to provide
-the release() config_item_operation for B, which will call B's
-destructor and finally drop mod_b's reference.
-	So I'd hoped that configfs could help me with this reference
-counting, for instance by keeping a reference until last
-config_item_cleanup(). But I can live without it, so don't care.
+	It's not atomic, though, and never has been.  I'm not quite sure
+what you are unsure of here.  Let me try to clarify a little.
+	Are you worried about two separate runs of the ls(1) command?
 
-Louis
+  # ls A/B/C
+  # ls A/B/D
+
+These can't be atomic, because someone else could rmdir(1) in the
+middle:
+
+  # ls A/B/C
+  # rmdir A/B
+  # ls A/B/D
+  ls: No such file or directory
+
+This is perfectly normal, and there is no way to prevent it - it is
+separate entrances to the system call.
+	Do you mean inside one call?  That is "ls A/B" would print "C"
+but not "D"?  That cannot happen, because we hold B's i_mutex during
+detach_group.  So, if readdir beat us to i_mutex, it lists "C D".  If we
+win, we remove both before releasing B's i_Mutex, and readdir errors
+with ENOENT - we removed B.
+	I'm not quite sure what inconsistency you are asking about here.
+
+Joel
 
 -- 
-Dr Louis Rilling			Kerlabs - IRISA
-Skype: louis.rilling			Campus Universitaire de Beaulieu
-Phone: (+33|0) 2 99 84 71 52		Avenue du General Leclerc
-Fax: (+33|0) 2 99 84 71 71		35042 Rennes CEDEX - France
-http://www.kerlabs.com/
+
+"The one important thing i have learned over the years is the
+ difference between taking one's work seriously and taking one's self
+ seriously.  The first is imperative and the second is disastrous."
+	-Margot Fonteyn
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
