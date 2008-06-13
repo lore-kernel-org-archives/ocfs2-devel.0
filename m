@@ -1,11 +1,11 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 13 Jun 2008 09:54:46 +0800
-Subject: [Ocfs2-devel] [PATCH 5/8] Add xattr header in ocfs2.v1
-In-Reply-To: <20080612212117.GQ28100@wotan.suse.de>
+Date: Fri, 13 Jun 2008 10:08:22 +0800
+Subject: [Ocfs2-devel] [PATCH 4/8] Make extend allocation generic.v1
+In-Reply-To: <20080612205914.GP28100@wotan.suse.de>
 References: <484792D1.3080802@oracle.com>
-	<20080605073342.GA19789@tma-pc2.cn.oracle.com>
-	<20080612212117.GQ28100@wotan.suse.de>
-Message-ID: <4851D366.9060008@oracle.com>
+	<20080605073309.GA19782@tma-pc2.cn.oracle.com>
+	<20080612205914.GP28100@wotan.suse.de>
+Message-ID: <4851D696.10901@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,96 +15,43 @@ To: ocfs2-devel@oss.oracle.com
 
 
 Mark Fasheh wrote:
-> On Thu, Jun 05, 2008 at 03:33:42PM +0800, Tao Ma wrote:
->> Signed-off-by: Tao Ma <tao.ma@oracle.com>
->> ---
->>  fs/ocfs2/xattr.h |   95 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
->>  1 files changed, 95 insertions(+), 0 deletions(-)
->>  create mode 100644 fs/ocfs2/xattr.h
->>
->> diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
->> new file mode 100644
->> index 0000000..a5b93cf
+> On Thu, Jun 05, 2008 at 03:33:09PM +0800, Tao Ma wrote:
+>
+>> @@ -508,96 +508,14 @@ int ocfs2_do_extend_allocation(struct ocfs2_super *osb,
+>>  			       struct ocfs2_alloc_context *meta_ac,
+>>  			       enum ocfs2_alloc_restarted *reason_ret)
 > 
-> Can we put this in ocfs2_fs.h instead? That way we still have just one place
-> to look for describing the disk format.
-ext3 separate its ext header in xattr.h, so we do like it does. But you 
-may be right since we put all the stuffs concerning disk format in 
-ocfs2_fs.h. I will modify it.
+> I think you should rename ocfs2_do_extend_allocation to something more
+> direct since it's used only for traditional inode data btrees. Maybe
+> ocfs2_add_inode_data() ?
+How about ocfs2_add_inode_data_in_extent? So that it means we allocate 
+extent rec to store it?
 > 
 > 
->> --- /dev/null
->> +++ b/fs/ocfs2/xattr.h
->> @@ -0,0 +1,95 @@
->> +/* -*- mode: c; c-basic-offset: 8; -*-
->> + * vim: noexpandtab sw=8 ts=8 sts=0:
->> + *
->> + * xattr.h
->> + *
->> + * Function prototypes
->> + *
->> + * Copyright (C) 2008 Oracle.  All rights reserved.
->> + *
->> + * This program is free software; you can redistribute it and/or
->> + * modify it under the terms of the GNU General Public
->> + * License as published by the Free Software Foundation; either
->> + * version 2 of the License, or (at your option) any later version.
->> + *
->> + * This program is distributed in the hope that it will be useful,
->> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
->> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
->> + * General Public License for more details.
->> + *
->> + * You should have received a copy of the GNU General Public
->> + * License along with this program; if not, write to the
->> + * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
->> + * Boston, MA 021110-1307, USA.
->> + */
+>> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+>> index 1992a6a..c953796 100644
+>> --- a/fs/ocfs2/suballoc.c
+>> +++ b/fs/ocfs2/suballoc.c
+>> @@ -1973,3 +1973,106 @@ out:
+>>  
+>>  	return ret;
+>>  }
 >> +
->> +#ifndef OCFS2_XATTR_H
->> +#define OCFS2_XATTR_H
->> +
->> +#include <linux/init.h>
->> +#include <linux/xattr.h>
->> +
->> +/* Magic value in attribute blocks */
->> +#define OCFS2_XATTR_BLOCK_SIGNATURE_1	"XATTR01"
->> +#define OCFS2_XATTR_BLOCK_SIGNATURE_2	"XATTR02
+>> +int ocfs2_do_cluster_allocation(struct ocfs2_super *osb,
 > 
-> Did we still need the "XATTR02" signature? I thought it was taken out of the
-> design. Looking through the doc, it's only referenced in an out-dated
-> diagram.
-Yes, it is from Tiger's original implementation. I will remove it. Thanks.
+> Likewise, this name doesn't tell me much about the function. Also, a
+> comment describing it's expected usage would be nice ;)
+How about the name ocfs2_add_cluster_for_extent?
 > 
 > 
->> +
->> +enum ocfs2_xattr_type {
->> +	OCFS2_XATTR_INDEX_USER = 1,
->> +	OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS,
->> +	OCFS2_XATTR_INDEX_POSIX_ACL_DEFAULT,
->> +	OCFS2_XATTR_INDEX_TRUSTED,
->> +	OCFS2_XATTR_INDEX_LUSTRE,
->> +	OCFS2_XATTR_INDEX_SECURITY,
->> +	OCFS2_XATTR_MAX
->> +};
->> +
->> +struct ocfs2_xattr_entry {
->> +	__le32	xe_name_hash;
->> +	__le16	xe_name_offset;
->> +	__u8	xe_name_len;
->> +	__u8	xe_type : 7;
->> +	__u8	xe_local : 1;
->> +	__le64	xe_value_size;
->> +};
->> +
->> +struct ocfs2_xattr_header {
->> +	__le16	xh_count;
->> +	__le16	xh_reserved1;
->> +	__le32	xh_csum;
->> +	__le16  xh_reserved2[4];
+>> +				struct inode *inode,
+>> +				u32 *logical_offset,
+>> +				u32 *clusters_to_add,
 > 
-> Could just be '__u64 xh_reserved2;'
-Should be. Will modify it.
+> This changed to a "u32 *" but you gave no explanation of why.
+Yes, this is used by the *old* xattr extend allocation, so that the user 
+can detect how much the clusters have been added. Now I can do it in 
+another way.So I will not change it in my revised patch. Thanks.
 
 Regards,
 Tao
