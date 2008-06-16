@@ -1,115 +1,238 @@
 From: Louis Rilling <Louis.Rilling@kerlabs.com>
-Date: Mon, 16 Jun 2008 13:30:11 +0200
-Subject: [Ocfs2-devel] [PATCH 1/3][BUGFIX] configfs: Introduce
-	configfs_dirent_lock
-In-Reply-To: <20080613223441.GE20576@mail.oracle.com>
-References: <20080612133126.335618468@kerlabs.com>
-	<20080612134203.763166823@kerlabs.com>
-	<20080612191348.GE5377@mail.oracle.com>
-	<20080612222558.GA4012@localdomain>
-	<20080613024130.GD20581@mail.oracle.com>
-	<20080613104513.GI30804@localhost>
-	<20080613201746.GB20576@mail.oracle.com>
-	<20080613215401.GA4153@localdomain>
-	<20080613223441.GE20576@mail.oracle.com>
-Message-ID: <20080616113011.GQ30804@localhost>
+Date: Mon, 16 Jun 2008 14:39:12 +0200
+Subject: [Ocfs2-devel] [RFC] configfs: module reference counting rules
+In-Reply-To: <20080614084701.GA9657@mail.oracle.com>
+References: <20080612235410.GC4012@localdomain>
+	<20080613033309.GE20581@mail.oracle.com>
+	<20080613095159.GH30804@localhost>
+	<20080613202605.GD20576@mail.oracle.com>
+	<20080613222744.GB4153@localdomain>
+	<20080614084701.GA9657@mail.oracle.com>
+Message-ID: <20080616123912.GR30804@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Joel.Becker@oracle.com
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Fri, Jun 13, 2008 at 03:34:41PM -0700, Joel Becker wrote:
-> > To me it's an issue only if we want to provide some atomic view to
-> > userspace: either userspace sees a group with all of its default groups,
-> > or it sees none. So the question is: does userspace need such atomicity?
-> > Currently configfs provides it, so this would be a userspace visible
-> > change if we break it.
+On Sat, Jun 14, 2008 at 01:47:01AM -0700, Joel Becker wrote:
+> On Sat, Jun 14, 2008 at 12:27:44AM +0200, Louis Rilling wrote:
+> > 1/ taking the module reference is only needed if mkdir() is called under
+> > a subsystem root or one of its default group, right? Of course this is a
+> > bit complex to check for this condition, and it does not hurt to take
+> > module references in all cases of mkdir().
 > 
-> 	People *won't* see that.  default groups are populated and
-> cleaned under i_mutex.  The race of mkdir vs rmdir isn't about seeing
-> partial default groups, it's about the ENOMEM racing the ENOTEMPTY.  It
-> doesn't impact lookup or other operations.  We can fix it.  I'm just not
-> sure it's worth the complexity (and this is an open question).
-
-It's not that difficult to implement, you may just find it a bit ugly... I hope
-to send you a corrected "rename fix" today.
-
+> 	Correct, but it's much cleaner to always take the module ref.
 > 
-> > Sure, my only concern is the atomic view of userspace: can userspace
-> > tolerate that (pwd=A/B, with B a default group of A, B having default groups C
-> > and D, and A being removed) 'ls C' returns error because default group C is
-> > already removed and 'ls D' is ok because default group D is not removed yet?
+> > 2/ this module reference counting makes unregister_subsystem() win
+> > against mkdir(), but only if unregister_subsystem() is called in
+> > module_cleanup(), because otherwise try_module_get() would succeed,
+> > right? If so, this means that after having called register_subsystem(),
+> > a module_init() cannot cleanly fail. Perhaps this should be documented
+> > in that case.
 > 
-> 	They can't see that.  We take i_mutex in detach_group.  This
-> locks out lookup and readdir.  When we're done with detach_group, all
-> default groups are gone.
+> 	Correct again, mkdir can race a failing module_init().  This is
+> the same as register_filesystem().  A module that needed to protect
+> against this could have a mutex they release right before module_init()
+> succeeds.  They'd check it in make_item().  But most everyone can safely
+> make configfs_register_subsystem() the last thing in their
+> module_init().
 
-If I understand correctly, lookup() is not called each time userspace does ls,
-and in configfs case, it is never called for existing items since the d_cache is
-populated as soon as the user creates items. So lookup() does not block 'ls'
-during rmdir() (unless it is a lookup for a never accessed attribute). I think
-that this is the point that invalidates all my theory about atomicity :)
+Agreed. I have examples of similar issues (but not configfs related) where
+a single module module_init() failing needs several cleanup that can only
+safely be done in module_cleanup(), but I cannot claim that this is general
+case :)
 
 > 
-> > > > 2/ the existence of default group trees that are tagged as USET_DROPPING and
-> > > >    should be treated as not existing anymore.
-> > > 
-> > > 	This is not an issue.  USET_DROPPING does *not* mean it went
-> > > away.  It means we're safe to make it go away.  We protect the actual
-> > > going-away with i_mutex.  And that's normal VFS behavior.
+> > 3/ to make unregister_subsystem() win against mkdir(), mkdir() should
+> > try_module_get() on the subsystem's owner, not on the new item owner (as
+> > is done by the current code), right? Maybe there is a bug here...
+> 
+> 	Nope.  You can build a subsystem out of multiple modules if you
+> like.  The module that owns the newly created object needs to be pinned,
+> and that's new_item->type->owner.  If a subsystem lives within one
+> module, then subsys->type->owner == new_item->type->owner, and it
+> doesn't matter.
+
+In the "several modules" case, the module is pinned too late to protect against
+module unloading. This does probably not hurt configfs since the only
+problematic call is config_item_cleanup(), where the new item's release()
+operation is called. For such subsystems, the only way to protect against module
+unloading is to grab a reference on the new item's module in the make_item()
+operation, and find a way to ensure that the reference is dropped after the last
+config_item_put().
+	IMHO, what really hurts configfs is that the unregister_subsystem() vs
+mkdir() race is not solved unless mkdir() tries to grab a reference on the
+subsystem's module. And the current code of mkdir() does not ensure that in the
+"several modules" case.
+
+> 
+> > > 	So for the simple case, we provide plenty of protection.  If
+> > > someone wants to do something fancier, they have to provide their own
+> > > protection, but they would anyway.  And we can't know their complex
+> > > lifecycle, so we can't really help anyway.
 > > 
-> > Again this is the concern of atomicity from userspace point of view: to
-> > provide such atomic view, mkdir(), lookup(), readdir(), and probably
-> > attributes open() should just fail when done in a default group flagged with
-> > USET_DROPPING.
+> > Actually, I'm developing a framework based on configfs, with which many
+> > modules can be linked together through mkdir() and symlink() operations.
+> > So I'm already managing such reference holding, but the fact that
+> > configfs does not hold a reference until the last config_item_put()
+> > imposes limitations (with which I can live though) to the framework:
 > 
-> 	It's not atomic, though, and never has been.  I'm not quite sure
-> what you are unsure of here.  Let me try to clarify a little.
-> 	Are you worried about two separate runs of the ls(1) command?
-> 
->   # ls A/B/C
->   # ls A/B/D
-> 
-> These can't be atomic, because someone else could rmdir(1) in the
-> middle:
-> 
->   # ls A/B/C
->   # rmdir A/B
->   # ls A/B/D
->   ls: No such file or directory
-> 
-> This is perfectly normal, and there is no way to prevent it - it is
-> separate entrances to the system call.
-> 	Do you mean inside one call?  That is "ls A/B" would print "C"
-> but not "D"?  That cannot happen, because we hold B's i_mutex during
-> detach_group.  So, if readdir beat us to i_mutex, it lists "C D".  If we
-> win, we remove both before releasing B's i_Mutex, and readdir errors
-> with ENOENT - we removed B.
-> 	I'm not quite sure what inconsistency you are asking about here.
+> 	Think about it this way: the try_module_get() isn't to protect
+> the client module, it is to protect configfs.  It makes sure that if
+> someone calls a VFS operation on a configfs inode, configfs can follow
+> the config_*_operations safely.  Once a config_item is removed from the
+> filesystem view, configfs is done with it.
+> 	Look at it the other way around.  A config_item is not a
+> structure owned by configfs.  It is a part of the larger object, which
+> is owned by the module that created it.  The config_item portion just
+> lets configfs display it to userspace.
 
-The scenario that made me worry was more:
-process 1:
-/* PWD=A/B */
-# ls C
-ls: No such file or directory
-/* some sync between process 1 and 2 */
-process 2:
-/* PWD=A/D */
-# ls E
-/* ok */
-# ls E
-ls: No such file or directory
+Yes, this is what I realized in your previous email.
 
-From a user's point of view, this looks as if somebody did 'rmdir A; mkdir A;
-rmdir A', while there actually were only 'rmdir A'.
+> 
+> > 	For instance, A is a group of the framework, and mkdir A/B creates an
+> > object implemented by module "mod_b". Before calling mod_b's
+> > constructor, A's make_item() has to grab a reference on mod_b, and fail
+> > if not successful. Then this reference cannot be dropped before B's last
+> > reference is dropped, which can happen a long time after rmdir A/B. So
+> > A's drop_item() cannot drop mod_b's reference, and A has to provide
+> > the release() config_item_operation for B, which will call B's
+> > destructor and finally drop mod_b's reference.
+> 
+> 	Wow, so A->make_item() does something like:
+> 
+>     submod = lookup_which_mod();
+>     if (!strcmp(submod, "mod_a"))
+>         new_thing = mod_a->alloc();
+>     else if (!strcmp(submod, "mod_b"))
+>         new_thing = mod_b->alloc();
+> 
+>     return &new_thing->config_item;
+> 
+> That's pretty complicated, I agree.  But certainly doable.
 
-If there were no d_cache, this would be impossible with the current
-implementation of detach_prep() locking all default groups. But with the d_cache
-this has always been possible.
+I do something like this (and this works):
 
-Anyway, I give up with this (wrong) atomicity concern.
+struct mod_type {
+	struct list_head type_list;
+	struct config_item_type item_type;
+	const char *name;
+	struct config_item *new_item(const char *name);
+	void destroy_item(struct config_item *item);
+};
+
+void my_release(struct config_item *item)
+{
+	struct mod_type *type = container_of(item->ci_type, struct mod_type,
+					item_type);
+	type->destroy_item(item);
+	module_put(type->item_type.ct_owner);
+}
+
+struct configfs_item_operations my_item_ops = {
+	.release = my_release,
+};
+
+void register(struct mod_type *mod_type)
+{
+	mod_type->item_type.ct_item_ops = &my_item_ops;
+	spin_lock(&type_list);
+	list_add(&mod_type->type_list, &mod_type_head);
+	spin_unlock(&type_list);
+}
+
+/* Must only be called inside module_cleanup() */
+void unregister(struct mod_type *mod_type)
+{
+	spin_lock(&type_list);
+	list_del(&mod_type->type_list);
+	spin_unlock(&type_list);
+}
+
+struct mod_type *lookup(const char *name)
+{
+	/* return mod_type having mod_type->name == name in the list */ 
+}
+
+make_item(struct config_group *group, const char *name)
+{
+	spin_lock(&mod_type_list);
+	mod_type = lookup(name);
+	if (mod_type)
+		if (!try_module_get(mod_type->item_type.ct_owner))
+			mod_type = NULL;
+	spin_unlock(&mod_type_list);
+
+	new_item = NULL;
+	if (mod_type) {
+		new_item = mod_type->new_item(name);
+		if (!new_item)
+			module_put(mod_type->item_type.ct_owner);
+	}
+	return new_item;
+}
+
+drop_item(struct config_group *group, struct config_item *item)
+{
+	config_item_put(item);
+}
+
+------
+
+mod_a_init()
+	register(mod_type_a);
+
+mod_a_cleanup()
+	unregister(mod_type_a);
+
+> 	Why can't mod_b provide a ->release() that does
+> module_put(self)?
+
+Because this is simply wrong. Doing module_put(self) exposes the modules's
+function to be run while another cpu unloads the module. Note how I solve this
+by doing try_module_get() while still having mod_type_list locked, and doing
+module_put() only after having destroyed the module's item. This lock
+actually protects item creation against concurrent removal of the module
+implementing that item.
+
+> Or are you trying to hide that detail from the person
+> who is implementing mod_b?  Even better, use the chained release scheme
+> that is used by bio_endio().  Have mod_b control its own
+> config_item_operations.  In make_item, copy off the type and operations,
+> then put in your own.  In drop, put them back.
+> 
+> struct my_item_type {
+> 	struct config_item_type *original_type;
+> 	struct config_item_type type;
+> 	struct config_item_operations ops;
+> };
+> 
+> make_item()
+> {
+> 	mod_b = alloc_mod_b();
+> 	my_type = kzalloc(struct my_item_type);
+> 	my_type->original_type = mod_b->item->ci_type;
+> 	my_type->ops = *my_type->original_type->ct_item_ops;
+> 	my_type->ops.release = my_item_release();
+> 	my_type->type = *my_type->original_type;
+> 	my_type->type.ops = &my_type->ops;
+> 	mod_b->item->ci_type = &my_type->type;
+> 
+> 	return &mod_b->item;
+> }
+> 
+> my_item_release(struct config_item *item)
+> {
+> 	my_type = to_my_type(item->type);
+> 	item->ci_type = my_type->original_type;
+> 	kfree(my_type);
+> 	item->ci_type->ct_ops->release(item);
+> }
+
+I already do something like this, replacing the item_operations instead of the
+whole item_type. And I find it ugly. Only a matter of taste, I agree.
 
 Louis
 
@@ -124,4 +247,4 @@ Name: not available
 Type: application/pgp-signature
 Size: 189 bytes
 Desc: Digital signature
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080616/b3829e80/attachment.bin 
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080616/7588f9f1/attachment-0001.bin 
