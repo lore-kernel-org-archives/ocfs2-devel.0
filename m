@@ -1,96 +1,94 @@
-From: Louis Rilling <louis.rilling@kerlabs.com>
-Date: Tue, 17 Jun 2008 19:37:21 +0200
-Subject: [Ocfs2-devel] [BUGFIX][PATCH 1/3] configfs: Fix symlink() to a
-	removing item
-In-Reply-To: <1213724243-29183-1-git-send-email-louis.rilling@kerlabs.com>
-References: <1213724243-29183-1-git-send-email-louis.rilling@kerlabs.com>
-Message-ID: <1213724243-29183-2-git-send-email-louis.rilling@kerlabs.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Tue, 17 Jun 2008 10:59:03 -0700
+Subject: [Ocfs2-devel] [PATCH 7/8] ocfs2: Add extended attributes
+	support. v1
+In-Reply-To: <48563EF6.2090203@oracle.com>
+References: <484792D1.3080802@oracle.com>
+	<1212650694-9603-1-git-send-email-tiger.yang@oracle.com>
+	<20080613032230.GW28100@wotan.suse.de>
+	<48563EF6.2090203@oracle.com>
+Message-ID: <20080617175903.GC28100@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel.Becker@oracle.com
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Louis Rilling <louis.rilling@kerlabs.com>
+To: ocfs2-devel@oss.oracle.com
 
-The rule for configfs symlinks is that symlinks always point to valid
-config_items, and prevent the target from being removed. However,
-configfs_symlink() only checks that it can grab a reference on the target item,
-without ensuring that it remains alive until the symlink is correctly attached.
+On Mon, Jun 16, 2008 at 06:22:46PM +0800, Tiger Yang wrote:
+> Mark Fasheh wrote:
+> >You'll have to go through the code and determine where we need to use the
+> >new functions. Please do this as a seperate patch by the way - it's a 
+> >tricky
+> >enough operation that I will refuse to read the change if it's intermingled
+> >with other stuff.
+> >  
+> This is a serious problem. The patch attached fix this problem.
 
-This patch makes configfs_symlink() fail whenever the target is being removed,
-using the CONFIGFS_USET_DROPPING flag set by configfs_detach_prep() and
-protected by configfs_dirent_lock.
+Great! I have one more comment regarding all this, below.
 
-This patch introduces a similar (weird?) behavior as with mkdir failures making
-rmdir fail: if symlink() races with rmdir() of the parent directory (or its
-youngest user-created ancestor if parent is a default group) or rmdir() of the
-target directory, and then fails in configfs_create(), this can make the racing
-rmdir() fail despite the concerned directory having no user-created entry (resp.
-no symlink pointing to it or one of its default groups) in the end.
-This behavior is fixed in later patches.
 
-Signed-off-by: Louis Rilling <louis.rilling@kerlabs.com>
----
- fs/configfs/dir.c     |   14 +++++++-------
- fs/configfs/symlink.c |    6 ++++++
- 2 files changed, 13 insertions(+), 7 deletions(-)
+> My patch could handle EAs in inode block or in external block at the 
+> same times. That is little different between design doc.
+> If we find free space inline, we will set EAs in it firstly, otherwise 
+> we will set EAs in external block. This resolution just like ext3 does.
+> So i_xattr_loc could only be used for contain the number of external block.
 
-diff --git a/fs/configfs/dir.c b/fs/configfs/dir.c
-index 614e382..f2a12d0 100644
---- a/fs/configfs/dir.c
-+++ b/fs/configfs/dir.c
-@@ -370,6 +370,9 @@ static int configfs_detach_prep(struct dentry *dentry, struct mutex **wait_mutex
- 	struct configfs_dirent *sd;
- 	int ret;
- 
-+	/* Mark that we're trying to drop the group */
-+	parent_sd->s_type |= CONFIGFS_USET_DROPPING;
-+
- 	ret = -EBUSY;
- 	if (!list_empty(&parent_sd->s_links))
- 		goto out;
-@@ -385,8 +388,6 @@ static int configfs_detach_prep(struct dentry *dentry, struct mutex **wait_mutex
- 					*wait_mutex = &sd->s_dentry->d_inode->i_mutex;
- 				return -EAGAIN;
- 			}
--			/* Mark that we're trying to drop the group */
--			sd->s_type |= CONFIGFS_USET_DROPPING;
- 
- 			/*
- 			 * Yup, recursive.  If there's a problem, blame
-@@ -414,12 +415,11 @@ static void configfs_detach_rollback(struct dentry *dentry)
- 	struct configfs_dirent *parent_sd = dentry->d_fsdata;
- 	struct configfs_dirent *sd;
- 
--	list_for_each_entry(sd, &parent_sd->s_children, s_sibling) {
--		if (sd->s_type & CONFIGFS_USET_DEFAULT) {
-+	parent_sd->s_type &= ~CONFIGFS_USET_DROPPING;
-+
-+	list_for_each_entry(sd, &parent_sd->s_children, s_sibling)
-+		if (sd->s_type & CONFIGFS_USET_DEFAULT)
- 			configfs_detach_rollback(sd->s_dentry);
--			sd->s_type &= ~CONFIGFS_USET_DROPPING;
--		}
--	}
- }
- 
- static void detach_attrs(struct config_item * item)
-diff --git a/fs/configfs/symlink.c b/fs/configfs/symlink.c
-index faeb441..58722a9 100644
---- a/fs/configfs/symlink.c
-+++ b/fs/configfs/symlink.c
-@@ -78,6 +78,12 @@ static int create_link(struct config_item *parent_item,
- 	if (sl) {
- 		sl->sl_target = config_item_get(item);
- 		spin_lock(&configfs_dirent_lock);
-+		if (target_sd->s_type & CONFIGFS_USET_DROPPING) {
-+			spin_unlock(&configfs_dirent_lock);
-+			config_item_put(item);
-+			kfree(sl);
-+			return -EPERM;
-+		}
- 		list_add(&sl->sl_list, &target_sd->s_links);
- 		spin_unlock(&configfs_dirent_lock);
- 		ret = configfs_create_link(sl, parent_item->ci_dentry,
--- 
-1.5.5.3
+Go ahead and add a field to record inline xattr size on the inode. For now,
+if we're going to take some space for inline EA, you will always just set it
+to osb->s_min_inline_xattr, which is always OCFS2_MIN_XATTR_INLINE_SIZE.
+
+So, use osb->s_min_inline_xattr to figure out whether there's enough space
+in the inode for xattrs and set the initial inode field based on it. But
+after that, use i_inline_xattr_size (or whatever you call it) to figure out
+offset to start in the inode from the end of block, how many bytes to scan,
+etc.
+
+The two reasons I think this is a good idea:
+
+- The inline xattr data size is explicitely stored on disk, as opposed to
+  being assumed from a constant stored in memory.
+
+- We don't have to rely on the minimum size to stay the same for all inodes on
+  a file system. If we need to tune defaults, this becomes much easier if
+  new inodes can just inherit the new value without affecting existing ones.
+
+
+> >What hash function is this? Where did you get it from? How good is it for
+> >  
+> >use with EA names? How good is it for other uses? Answers to all those
+> >questions belong here in e-mail, as well as a nice big comment at the top 
+> >of
+> >this function.
+> >
+> >
+> >Also, there's this item in the design doc:
+> > * need a random seed in super block which is never printed on console
+> >
+> >We want to combine the random seed with the hashing process somehow so that
+> >the results for a given name are not globally predictable for all Ocfs2 
+> >file
+> >systems.
+> >  
+> I got this hash function form  ext3_xattr_hash_entry().  In design doc, 
+> "The hash value is calculated using the full (prefix.suffix) name of the 
+> xattr to avoid hash collisions when the same suffix is used in multiple 
+> attribute namespaces. It it used to identify when a name is not going to 
+> match before doing a string comparison to verify that the name is a 
+> match.", so I got the hash value form EA's prefix and EA's name. 
+> Actually I didn't compare hash value and sort EAs when EAs in inode for 
+> in external block, Because only few EAs could be stored in inode or 
+> external block. Tao use this hash value for large number EAs in bucket.  
+> Next I will use that random seed for hash value.
+
+Ok, thanks for the explanation. We should keep in mind that ext3 can't store
+as many xattrs as we can so a bit of investigation into the effectiveness of
+this hash function for our use might be a good idea.
+
+
+> I will correct other problems you commented.
+
+Thanks, Tiger.
+	--Mark
+
+--
+Mark Fasheh
