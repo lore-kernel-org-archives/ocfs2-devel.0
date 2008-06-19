@@ -1,69 +1,72 @@
 From: Louis Rilling <Louis.Rilling@kerlabs.com>
-Date: Thu, 19 Jun 2008 11:28:42 +0200
-Subject: [Ocfs2-devel] [BUGFIX][PATCH 3/3] configfs: Fix failing
-	symlink() making	rmdir() fail
-In-Reply-To: <20080618201107.GF16780@ca-server1.us.oracle.com>
-References: <1213724243-29183-1-git-send-email-louis.rilling@kerlabs.com>
-	<1213724243-29183-4-git-send-email-louis.rilling@kerlabs.com>
-	<20080617221528.GA29091@mail.oracle.com>
-	<20080618114043.GB30804@localhost>
-	<20080618201107.GF16780@ca-server1.us.oracle.com>
-Message-ID: <20080619092842.GK30804@localhost>
+Date: Thu, 19 Jun 2008 13:13:57 +0200
+Subject: [Ocfs2-devel] [RFC] configfs: Pin configfs
+	subsystems	separately from new config_items.
+In-Reply-To: <20080618200713.GE16780@ca-server1.us.oracle.com>
+References: <1213742460-26331-1-git-send-email-joel.becker@oracle.com>
+	<20080618123134.GC30804@localhost>
+	<20080618161215.GA16780@ca-server1.us.oracle.com>
+	<20080618165101.GI30804@localhost>
+	<20080618200713.GE16780@ca-server1.us.oracle.com>
+Message-ID: <20080619111357.GM30804@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 18, 2008 at 01:11:07PM -0700, Joel Becker wrote:
-> On Wed, Jun 18, 2008 at 01:40:43PM +0200, Louis Rilling wrote:
-> > The problem is rmdir() of the target item (see below). ATTACHING only protects
-> > us from rmdir() of the parent. This is the exact reason why I attach the link to
-> > the target in last place, where we know that we won't have to rollback.
+On Wed, Jun 18, 2008 at 01:07:13PM -0700, Joel Becker wrote:
+> On Wed, Jun 18, 2008 at 06:51:01PM +0200, Louis Rilling wrote:
+> > On Wed, Jun 18, 2008 at 09:12:15AM -0700, Joel Becker wrote:
+> > I suspect the common case to not need to pin the new item: if we assume that the
+> > parent is already pinned, it will remain pinned until the new item is dropped.
 > 
-> 	Why wouldn't it protect the target, given that detach_prep()
-> will be called against the target if it's being rmdir'd?
-
-Because
-1/ setting and clearing ATTACHING could badly interact with mkdir()/symlink()
-inside the target item (for instance clear the flag before mkdir() has finished
-attaching a new item); to avoid this we could use a different flag, but
-2/ rmdir() of the target cannot lock the inode of the new symlink's parent like
-it does for mkdir(), otherwise we would risk a deadlock with other symlink() and
-sys_rename(). This means that rmdir() should retry aggressively, in a busy
-waiting loop, or replacing mutex_lock()/mutex_unlock() with yield().
-
+> 	We still want to pin the new item.  I'll discuss below.
 > 
-> > 	And AFAICS, creating a VFS object can not hurt as long as we hold the
-> > parent i_mutex, right? Otherwise there already is a problem in
-> > configfs_attach_item() where a failure in populate_attrs() leads to rollback the
-> > creation of the VFS object already created for the item.
+> > 4/ make_item()/make_group() pins the module of the new item/group if it differs
+> >    from the current one, and at least until drop_item() (must check in-tree
+> >    subsystems, but I suspect that module dependency tracking already does the
+> >    job).
 > 
-> 	We *can* do that, but we try to isolate it - hand-building VFS
-> objects is complex and error prone, and I try to isolate that to
-> specific cases.  I'd rather avoid it when not necessary.
+> 	This is a silly rule, though.  Why "pin if it is different" when
+> "always pin" is just as effective and much easier to understand?  You
+> never have to ask "but was the item's module pinned?" when tracking a
+> problem.
 
-In the case of symlink(), building a new inode is what all filesystems must do.
-The only "bad" side-effect I can figure out of having to rollback is that the
-new entry will be visible for a short time until it is removed.
+Not so silly, if you consider that this relieves in-tree users from having to
+add try_module_get() in their code. Only special users (like me) who create
+items implemented by other modules, without explicitly depending on symbols of
+these modules or keeping references after ->drop_item(), have to deal with
+such module pinning.
 
-Anyway, do you think that the "solutions" above are more acceptable?
+> 	In the end, though, it doesn't matter.  We need a reference on
+> the item because we refer to it after calling client_drop_item().
+> Specifically, we call config_item_put().  If we don't have a reference
+> and trust make_item()/drop_item() to handle that for us, the module can
+> go away between the call of client_drop_item() and config_item_put() in
+> configfs_rmdir().
 
-> 
-> > > 		spin_lock(&configfs_dirent_lock);
-> > > 		parent_sd->s_type &= ~CONFIGFS_USET_ATTACHING;
-> > > 		if (ret) {
-> > 
-> > Here, if detach_prep() of the target failed because of the link attached above,
-> > it had no means to retry. rmdir() of the target fails because of this
-> > temporary link, which results in a failing symlink() making rmdir() of the
-> > target fail.
-> 
-> 	How so?  It sees ATTACHING, it gets -EAGAIN, it tries again,
-> just like before.  What's different?
+Ok, rule 4/ should say "until ->release()", whatever the means (as we discussed
+earlier), the common case being that ->release() is called inside parent's
+->drop_item() (see right below). This is needed anyway, because otherwise
+failing to pin the module in mkdir() cannot recover safely by calling
+client_drop_item().
+	And I think that we can also get rid of the last config_item_put() (or
+put it before client_drop_item()), because after client_drop_item() rmdir() does
+not need the item anymore, and client_drop_item() is supposed to call
+config_item_put() (in parent's drop_item() or directly). IOW, when entering
+rmdir() configfs already holds the item's ref that was given by parent's
+->make_item(), and rmdir() drops that ref in client_drop_item(). No need to hold
+the extra one grabbed by configfs_get_config_item().
 
-See above the reasons for not using ATTACHING on the target.
+> 	In the end, we are holding a reference to the module while we
+> are accessing it.  It's overkill for the common case (single module was
+> safe before when we pinned item->owner, and it is safe if we only
+> pin subsys->owner), but it provides the best proper safety if we allow
+> multi-module subsystems.
+
+As I said above, the way it is done currently, pinning the new item's module
+does not provide any safety in multi-module subsystems.
 
 Louis
 
@@ -78,4 +81,4 @@ Name: not available
 Type: application/pgp-signature
 Size: 189 bytes
 Desc: Digital signature
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080619/c0ac9aab/attachment.bin 
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080619/738bbcae/attachment.bin 
