@@ -1,11 +1,11 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 20 Jun 2008 15:44:20 -0700
+Date: Fri, 20 Jun 2008 15:42:42 -0700
 Subject: [Ocfs2-devel] [PATCH] configfs: Fix failing symlink() making
 	rmdir() fail
 In-Reply-To: <1213963762-11678-1-git-send-email-louis.rilling@kerlabs.com>
 References: <20080619221605.GE10888@mail.oracle.com>
 	<1213963762-11678-1-git-send-email-louis.rilling@kerlabs.com>
-Message-ID: <20080620224420.GF21416@mail.oracle.com>
+Message-ID: <20080620224242.GE21416@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -17,15 +17,16 @@ On Fri, Jun 20, 2008 at 02:09:22PM +0200, Louis Rilling wrote:
 > What about this other solution? By the way, it does not even need to
 > rename CONFIGFS_USET_IN_MKDIR.
 
-	We don't need the check for USET_DROPPING either.  I like a lot!
+	I like it.  My first thought was "why doesn't he take the mutex
+during configfs_unlink()?", but the unlink is protected enough by
+dirent_lock.
 
 Joel
 
 -- 
 
-"I don't want to achieve immortality through my work; I want to
- achieve immortality through not dying."
-        - Woody Allen
+"Reality is merely an illusion, albeit a very persistent one."
+        - Albert Einstien
 
 Joel Becker
 Principal Software Developer
