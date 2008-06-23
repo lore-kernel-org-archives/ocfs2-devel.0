@@ -1,41 +1,42 @@
-From: Louis Rilling <Louis.Rilling@kerlabs.com>
-Date: Mon, 23 Jun 2008 14:05:49 +0200
-Subject: [Ocfs2-devel] [PATCH] configfs: Fix failing symlink() making
-	rmdir() fail
-In-Reply-To: <20080620224420.GF21416@mail.oracle.com>
-References: <20080619221605.GE10888@mail.oracle.com>
-	<1213963762-11678-1-git-send-email-louis.rilling@kerlabs.com>
-	<20080620224420.GF21416@mail.oracle.com>
-Message-ID: <20080623120548.GT30804@localhost>
+From: Louis Rilling <louis.rilling@kerlabs.com>
+Date: Mon, 23 Jun 2008 14:16:16 +0200
+Subject: [Ocfs2-devel] [PATCH 0/2]v2 configfs: symlink() fixes
+Message-ID: <1214223378-14203-1-git-send-email-louis.rilling@kerlabs.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Joel.Becker@oracle.com
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Louis Rilling <louis.rilling@kerlabs.com>
 
-On Fri, Jun 20, 2008 at 03:44:20PM -0700, Joel Becker wrote:
-> On Fri, Jun 20, 2008 at 02:09:22PM +0200, Louis Rilling wrote:
-> > What about this other solution? By the way, it does not even need to
-> > rename CONFIGFS_USET_IN_MKDIR.
-> 
-> 	We don't need the check for USET_DROPPING either.  I like a lot!
+[ applies on top of the previously submitted rename() vs rmdir() deadlock fix ]
 
-I hope that you wasn't speaking about checking USET_DROPPING on the target. We
-still need to check it, of course. I'm resending the updated, hopefully final,
-patchset.
+Hi,
 
-Louis
+The following patchset fixes incorrect symlinks to dead items in configfs, which
+are forbidden by specification.
+
+The first patch actually prevents such dangling symlinks from being created, but
+introduces a weird(?) behavior where a failing symlink() can make a racing
+rmdir() fail in the symlink's parent and in the symlink's target as well. This
+behavior is fixed with the next patch.
+
+Changelog:
+  - fix error code when symlink's target is being removed
+  - re-implemented the weird(?) behavior fix in a way that does not temporarily
+    instantiate the new symlink in the VFS.
+
+Summary:
+  configfs: Fix symlink() to a removing item
+  configfs: Fix failing symlink() making rmdir() fail
+
+ fs/configfs/configfs_internal.h |    1 +
+ fs/configfs/dir.c               |   24 +++++++++++++++++-------
+ fs/configfs/symlink.c           |   14 +++++++++++++-
+ 3 files changed, 31 insertions(+), 8 deletions(-)
 
 -- 
 Dr Louis Rilling			Kerlabs
 Skype: louis.rilling			Batiment Germanium
 Phone: (+33|0) 6 80 89 08 23		80 avenue des Buttes de Coesmes
 http://www.kerlabs.com/			35700 Rennes
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: not available
-Type: application/pgp-signature
-Size: 189 bytes
-Desc: Digital signature
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080623/34c3ad8e/attachment.bin 
