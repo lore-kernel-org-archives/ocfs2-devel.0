@@ -1,95 +1,83 @@
-From: Louis Rilling <louis.rilling@kerlabs.com>
-Date: Mon, 23 Jun 2008 14:16:17 +0200
-Subject: [Ocfs2-devel] [PATCH 1/2] configfs: Fix symlink() to a removing item
-In-Reply-To: <1214223378-14203-1-git-send-email-louis.rilling@kerlabs.com>
-References: <1214223378-14203-1-git-send-email-louis.rilling@kerlabs.com>
-Message-ID: <1214223378-14203-2-git-send-email-louis.rilling@kerlabs.com>
+From: Louis Rilling <Louis.Rilling@kerlabs.com>
+Date: Mon, 23 Jun 2008 17:44:57 +0200
+Subject: [Ocfs2-devel] [RFC] configfs: Pin configfs
+	subsystems	separately from new config_items.
+In-Reply-To: <20080620223614.GD21416@mail.oracle.com>
+References: <1213742460-26331-1-git-send-email-joel.becker@oracle.com>
+	<20080618123134.GC30804@localhost>
+	<20080618161215.GA16780@ca-server1.us.oracle.com>
+	<20080618165101.GI30804@localhost>
+	<20080618200713.GE16780@ca-server1.us.oracle.com>
+	<20080619111357.GM30804@localhost>
+	<20080619220739.GC10888@mail.oracle.com>
+	<20080620124644.GQ30804@localhost>
+	<20080620223614.GD21416@mail.oracle.com>
+Message-ID: <20080623154457.GW30804@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel.Becker@oracle.com
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Louis Rilling <louis.rilling@kerlabs.com>
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: linux-fsdevel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
 
-The rule for configfs symlinks is that symlinks always point to valid
-config_items, and prevent the target from being removed. However,
-configfs_symlink() only checks that it can grab a reference on the target item,
-without ensuring that it remains alive until the symlink is correctly attached.
+On Fri, Jun 20, 2008 at 03:36:14PM -0700, Joel Becker wrote:
+> On Fri, Jun 20, 2008 at 02:46:44PM +0200, Louis Rilling wrote:
+> > But keeping this last config_item_put() prevents the simplification that I'm
+> > defending. And I think that the simplification is worth moving this
+> > config_item_put() before client_drop_item().
+> 
+> 	I guess I'm not seeing what's simpler.  Four lines of
+> try_module_get() aren't very complex, really.  Conversely, having some
+> functions that *don't* do config_item_get_item() is weird.  Not invalid,
+> just harder to read.
 
-This patch makes configfs_symlink() fail whenever the target is being removed,
-using the CONFIGFS_USET_DROPPING flag set by configfs_detach_prep() and
-protected by configfs_dirent_lock.
+config_item_get_item() followed by config_item_put(), with a comment on why this
+is correct, was my suggestion, not avoiding to call config_item_get_item().
 
-This patch introduces a similar (weird?) behavior as with mkdir failures making
-rmdir fail: if symlink() races with rmdir() of the parent directory (or its
-youngest user-created ancestor if parent is a default group) or rmdir() of the
-target directory, and then fails in configfs_create(), this can make the racing
-rmdir() fail despite the concerned directory having no user-created entry (resp.
-no symlink pointing to it or one of its default groups) in the end.
-This behavior is fixed in later patches.
+> 	Let's put it on the shelf.  What I have with this patch is
+> really no different in effective behavior.
 
-Signed-off-by: Louis Rilling <louis.rilling@kerlabs.com>
----
- fs/configfs/dir.c     |   14 +++++++-------
- fs/configfs/symlink.c |    6 ++++++
- 2 files changed, 13 insertions(+), 7 deletions(-)
+I'm completely ok with your patch. I just thought that this was the occasion to
+cleanup module pinning stuff.
 
-diff --git a/fs/configfs/dir.c b/fs/configfs/dir.c
-index 614e382..f2a12d0 100644
---- a/fs/configfs/dir.c
-+++ b/fs/configfs/dir.c
-@@ -370,6 +370,9 @@ static int configfs_detach_prep(struct dentry *dentry, struct mutex **wait_mutex
- 	struct configfs_dirent *sd;
- 	int ret;
- 
-+	/* Mark that we're trying to drop the group */
-+	parent_sd->s_type |= CONFIGFS_USET_DROPPING;
-+
- 	ret = -EBUSY;
- 	if (!list_empty(&parent_sd->s_links))
- 		goto out;
-@@ -385,8 +388,6 @@ static int configfs_detach_prep(struct dentry *dentry, struct mutex **wait_mutex
- 					*wait_mutex = &sd->s_dentry->d_inode->i_mutex;
- 				return -EAGAIN;
- 			}
--			/* Mark that we're trying to drop the group */
--			sd->s_type |= CONFIGFS_USET_DROPPING;
- 
- 			/*
- 			 * Yup, recursive.  If there's a problem, blame
-@@ -414,12 +415,11 @@ static void configfs_detach_rollback(struct dentry *dentry)
- 	struct configfs_dirent *parent_sd = dentry->d_fsdata;
- 	struct configfs_dirent *sd;
- 
--	list_for_each_entry(sd, &parent_sd->s_children, s_sibling) {
--		if (sd->s_type & CONFIGFS_USET_DEFAULT) {
-+	parent_sd->s_type &= ~CONFIGFS_USET_DROPPING;
-+
-+	list_for_each_entry(sd, &parent_sd->s_children, s_sibling)
-+		if (sd->s_type & CONFIGFS_USET_DEFAULT)
- 			configfs_detach_rollback(sd->s_dentry);
--			sd->s_type &= ~CONFIGFS_USET_DROPPING;
--		}
--	}
- }
- 
- static void detach_attrs(struct config_item * item)
-diff --git a/fs/configfs/symlink.c b/fs/configfs/symlink.c
-index faeb441..b66908d 100644
---- a/fs/configfs/symlink.c
-+++ b/fs/configfs/symlink.c
-@@ -78,6 +78,12 @@ static int create_link(struct config_item *parent_item,
- 	if (sl) {
- 		sl->sl_target = config_item_get(item);
- 		spin_lock(&configfs_dirent_lock);
-+		if (target_sd->s_type & CONFIGFS_USET_DROPPING) {
-+			spin_unlock(&configfs_dirent_lock);
-+			config_item_put(item);
-+			kfree(sl);
-+			return -ENOENT;
-+		}
- 		list_add(&sl->sl_list, &target_sd->s_links);
- 		spin_unlock(&configfs_dirent_lock);
- 		ret = configfs_create_link(sl, parent_item->ci_dentry,
+Would you consider the last following argument?
+
+Consider a very simple subsystem, implemented by a single module, that does
+absolutely no config_item_get(). Currently, this module must provide a release()
+operation for all user-created config_items, because the last reference is
+dropped by configfs, right after dropping the item. With my simplification, the
+module effectively drops the last reference in ->drop_item(), and could rely on
+that to make the code simpler like below:
+
+make_item()
+	new_item = kmalloc();
+	config_item_init_type_long_name();
+	return new_item;
+
+drop_item(item)
+	config_item_put(item);
+	kfree(item);
+
+No need for a release() operation in that simple case, and one may find such
+code more readable thanks to its symmetry.
+
+Looking at some in-tree code, netconsole would be a candidate for such code
+simplification. Indeed, netconsole does not look like needing config_item_get(),
+because the target_list_lock already provides the necessary protection.
+
+That said, thanks for the discussion, and for not forgetting the idea :)
+
+Louis
+
 -- 
-1.5.5.3
+Dr Louis Rilling			Kerlabs
+Skype: louis.rilling			Batiment Germanium
+Phone: (+33|0) 6 80 89 08 23		80 avenue des Buttes de Coesmes
+http://www.kerlabs.com/			35700 Rennes
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 189 bytes
+Desc: Digital signature
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080623/8540dbea/attachment.bin 
