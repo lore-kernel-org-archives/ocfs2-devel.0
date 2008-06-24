@@ -1,12 +1,8 @@
 From: Louis Rilling <Louis.Rilling@kerlabs.com>
-Date: Tue, 24 Jun 2008 15:30:10 +0200
-Subject: [Ocfs2-devel] [PATCH 0/5][BUGFIX] configfs: Fix deadlock of
-	rename() vs	rmdir()
-In-Reply-To: <20080623223450.GH592@mail.oracle.com>
-References: <20080616170057.399713501@kerlabs.com>
-	<20080616232657.GE6441@mail.oracle.com>
-	<20080623223450.GH592@mail.oracle.com>
-Message-ID: <20080624133010.GG7621@hawkmoon.kerlabs.com>
+Date: Tue, 24 Jun 2008 16:16:49 +0200
+Subject: [Ocfs2-devel] configfs: Q: item leak in a failing
+	configfs_attach_group()?
+Message-ID: <20080624141649.GH7621@hawkmoon.kerlabs.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,21 +10,89 @@ Content-Transfer-Encoding: 7bit
 To: Joel Becker <Joel.Becker@oracle.com>
 Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Mon, Jun 23, 2008 at 03:34:50PM -0700, Joel Becker wrote:
-> On Mon, Jun 16, 2008 at 04:26:57PM -0700, Joel Becker wrote:
-> > 	Ok, this is in-tree for the next merge.  Thanks.
-> 
-> 	Btw, we still need to solve the lockdep issue.  I'm leaning
-> towards turning it off for attach/detach_groups(), because any CHILD+N
-> level won't mesh with the VFS anyway.
+Hi,
 
-Yes, and the same for depend_prep()/depend_rollback().
+I'd like an opinion on the following scenario:
 
-> 	We also need a comment on detach_group() pointing out its
-> recursive locking.  It's there in the code, but it's not obvious.
+process 1: 					process 2:
+configfs_mkdir("A")
+  attach_group("A")
+    attach_item("A")
+      d_instantiate("A")
+    populate_groups("A")
+      mutex_lock("A")
+      attach_group("A/B")
+        attach_item("A")
+          d_instantiate("A/B")
+						mkdir("A/B/C")
+						  do_path_lookup("A/B/C", LOOKUP_PARENT)
+						    ok
+						  lookup_create("A/B/C")
+						    mutex_lock("A/B")
+						    ok
+						  configfs_mkdir("A/B/C")
+						    ok
+      attach_group("A/C")
+        attach_item("A/C")
+          d_instantiate("A/C")
+        populate_groups("A/C")
+          mutex_lock("A/C")
+          attach_group("A/C/D")
+            attach_item("A/C/D")
+              failure
+          mutex_unlock("A/C")
+          detach_groups("A/C")
+            nothing to do
+						mkdir("A/C/E")
+						  do_path_lookup("A/C/E", LOOKUP_PARENT)
+						    ok
+						  lookup_create("A/C/E")
+						    mutex_lock("A/C")
+						    ok
+						  configfs_mkdir("A/C/E")
+						    ok
+        detach_item("A/C")
+        d_delete("A/C")
+      mutex_unlock("A")
+      detach_groups("A")
+        mutex_lock("A/B")
+        detach_group("A/B")
+	  detach_groups("A/B")
+	    nothing since no _default_ group
+          detach_item("A/B")
+        mutex_unlock("A/B")
+        d_delete("A/B")
+    detach_item("A")
+    d_delete("A")
 
-Will do all of this after we are sure not to change things again (see my
-separate email on a possible bug in attach_group()).
+Two bugs (if the scenario is possible):
+
+1/ "A/B/C" and "A/C/E" are created, but never removed while their parent are
+removed in the end.
+
+2/ "A" and "A/C" inodes are not locked while detach_item() is called on them,
+   which may probably confuse VFS.
+
+Is there something that prevents such scenario? I'd say that once dentries
+are instantiated, the dcache does not need to lock their inode to traverse them,
+so the scenario is possible.
+
+Where am I wrong?
+
+If I'm right, two kinds of solutions for issue 1:
+i/ tag new directories with CONFIGFS_USET_NEW before calling d_instantiate, and
+validate the whole group+default groups hierarchy in a second pass by clearing
+CONFIGFS_USET_NEW
+
+ii/ do not call d_instantiate() immediately in configfs_create() if called from
+configfs_create_dir(), and d_instantitate() the group+default groups hierarchy
+in a second pass. Problem: is it correct to add children to a dentry which is
+not yet instantiated?
+
+For issue 2/, locking the inode before calling detach_item() (as is done from
+configfs_rmdir()), plus a solution for 1/ should be sufficient.
+
+Thanks for your explanations.
 
 Louis
 
@@ -43,4 +107,4 @@ Name: not available
 Type: application/pgp-signature
 Size: 189 bytes
 Desc: Digital signature
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080624/ad403db3/attachment.bin 
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080624/2b25cb23/attachment.bin 
