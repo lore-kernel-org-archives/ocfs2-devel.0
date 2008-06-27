@@ -1,41 +1,33 @@
-From: Louis Rilling <louis.rilling@kerlabs.com>
-Date: Fri, 27 Jun 2008 13:10:25 +0200
-Subject: [Ocfs2-devel] [BUGFIX][PATCH] configfs: Fix open directory making
-	rmdir() fail
-Message-ID: <1214565025-2646-1-git-send-email-louis.rilling@kerlabs.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Fri, 27 Jun 2008 11:10:34 -0700
+Subject: [Ocfs2-devel] [PATCH 7/8] ocfs2: Add extended attributes
+	support. v1
+In-Reply-To: <48649B99.3090205@oracle.com>
+References: <484792D1.3080802@oracle.com>
+	<1212650694-9603-1-git-send-email-tiger.yang@oracle.com>
+	<20080617233221.GD28100@wotan.suse.de>
+	<48649B99.3090205@oracle.com>
+Message-ID: <20080627181034.GB28100@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Louis Rilling <louis.rilling@kerlabs.com>
+To: ocfs2-devel@oss.oracle.com
 
-When checking for user-created elements under an item to be removed by rmdir(),
-configfs_detach_prep() counts fake configfs_dirents created by dir_open() as
-user-created and fails when finding one. It is however perfectly valid to remove
-a directory that is open.
+On Fri, Jun 27, 2008 at 03:49:45PM +0800, Tiger Yang wrote:
+> I split setting long value operation into two parts. First insert tree 
+> root in local, if succeed then insert long value into B tree based on 
+> that tree root. If hit problem in second step, we could only get that 
+> junk tree root. This is harmless for system. but is it acceptable?
 
-Simply make configfs_detach_prep() skip fake configfs_dirent, like it already
-does for attributes, and like detach_groups() does.
+If the junk root is ignored, and eventually overwritten as more ea's get
+inserted then I don't think you need to do any more.
 
-Signed-off-by: Louis Rilling <louis.rilling@kerlabs.com>
----
- fs/configfs/dir.c |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+If the junk root stays in the block and occupies space that would otherwise
+be used, then we probably need to handle this.. I imagine a clever user
+could DOS the xattr space by making large ones when the system is low on
+free space...
+	--Mark
 
-diff --git a/fs/configfs/dir.c b/fs/configfs/dir.c
-index 2c873fd..e721fd5 100644
---- a/fs/configfs/dir.c
-+++ b/fs/configfs/dir.c
-@@ -379,7 +379,8 @@ static int configfs_detach_prep(struct dentry *dentry, struct mutex **wait_mutex
- 
- 	ret = 0;
- 	list_for_each_entry(sd, &parent_sd->s_children, s_sibling) {
--		if (sd->s_type & CONFIGFS_NOT_PINNED)
-+		if (!sd->s_element ||
-+		    (sd->s_type & CONFIGFS_NOT_PINNED))
- 			continue;
- 		if (sd->s_type & CONFIGFS_USET_DEFAULT) {
- 			/* Abort if racing with mkdir() */
--- 
-1.5.5.3
+--
+Mark Fasheh
