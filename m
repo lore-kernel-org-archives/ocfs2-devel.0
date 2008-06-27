@@ -1,35 +1,41 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Fri, 27 Jun 2008 15:49:45 +0800
-Subject: [Ocfs2-devel] [PATCH 7/8] ocfs2: Add extended attributes
- support. v1
-In-Reply-To: <20080617233221.GD28100@wotan.suse.de>
-References: <484792D1.3080802@oracle.com>
-	<1212650694-9603-1-git-send-email-tiger.yang@oracle.com>
-	<20080617233221.GD28100@wotan.suse.de>
-Message-ID: <48649B99.3090205@oracle.com>
+From: Louis Rilling <louis.rilling@kerlabs.com>
+Date: Fri, 27 Jun 2008 13:10:25 +0200
+Subject: [Ocfs2-devel] [BUGFIX][PATCH] configfs: Fix open directory making
+	rmdir() fail
+Message-ID: <1214565025-2646-1-git-send-email-louis.rilling@kerlabs.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Louis Rilling <louis.rilling@kerlabs.com>
 
-Hi, Mark,
+When checking for user-created elements under an item to be removed by rmdir(),
+configfs_detach_prep() counts fake configfs_dirents created by dir_open() as
+user-created and fails when finding one. It is however perfectly valid to remove
+a directory that is open.
 
-Mark Fasheh wrote:
-> Hmm, some comments describing this function would be helpfull. In
-> particular, I'd like to know how failure in the middle of an operation is
-> handled. Say you're expanding the ea because the user asked to store a
-> larger size, but you hit a problem shortly after growing it. What happens?
+Simply make configfs_detach_prep() skip fake configfs_dirent, like it already
+does for attributes, and like detach_groups() does.
 
-I split setting long value operation into two parts. First insert tree 
-root in local, if succeed then insert long value into B tree based on 
-that tree root. If hit problem in second step, we could only get that 
-junk tree root. This is harmless for system. but is it acceptable?
+Signed-off-by: Louis Rilling <louis.rilling@kerlabs.com>
+---
+ fs/configfs/dir.c |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-I have an idea to fix this problem by reduce the entry count when second 
-step hit problem. Do we have to do this?
-
-All other issues fixed in the second version patches.
-
-thanks and regards,
-tiger
+diff --git a/fs/configfs/dir.c b/fs/configfs/dir.c
+index 2c873fd..e721fd5 100644
+--- a/fs/configfs/dir.c
++++ b/fs/configfs/dir.c
+@@ -379,7 +379,8 @@ static int configfs_detach_prep(struct dentry *dentry, struct mutex **wait_mutex
+ 
+ 	ret = 0;
+ 	list_for_each_entry(sd, &parent_sd->s_children, s_sibling) {
+-		if (sd->s_type & CONFIGFS_NOT_PINNED)
++		if (!sd->s_element ||
++		    (sd->s_type & CONFIGFS_NOT_PINNED))
+ 			continue;
+ 		if (sd->s_type & CONFIGFS_USET_DEFAULT) {
+ 			/* Abort if racing with mkdir() */
+-- 
+1.5.5.3
