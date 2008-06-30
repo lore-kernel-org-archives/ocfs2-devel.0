@@ -1,47 +1,52 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon, 30 Jun 2008 10:53:34 +0800
-Subject: [Ocfs2-devel] [PATCH 7/8] ocfs2: Add extended
- attributes	support. v1
-In-Reply-To: <20080627181034.GB28100@wotan.suse.de>
-References: <484792D1.3080802@oracle.com>	<1212650694-9603-1-git-send-email-tiger.yang@oracle.com>	<20080617233221.GD28100@wotan.suse.de>	<48649B99.3090205@oracle.com>
-	<20080627181034.GB28100@wotan.suse.de>
-Message-ID: <48684AAE.3030104@oracle.com>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Mon, 30 Jun 2008 16:57:19 +0800
+Subject: [Ocfs2-devel] [BUGFIX][OCFS2 1/1] inode truncating
+Message-ID: <48689FEF.6040504@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-	Yes, this is also a problem in xattr bucket. Tiger and I both inserted 
-a zeroed tree root as xattr's value and then extend the root.
+/an ocfs2 bug:
+a truncate races with ocfs2_get_block(...,0).
 
-The [PATCH 13/15] also has the same problem. I will revise it in the 
-next round.
+1) 'dd' is doing a truncate, clearing the page cache and reset inode size./
+/2) between clearing page cache and resizing inode, a read comes and 
+create a /
+/new page and insert it to page cache./
+/3) the read(from `cat`) set buffer head in the new page as mapped but 
+doesn't increase /   /ip_mmu_private in ocfs2_get_block() because it's a 
+read./
+/4) a write from 'dd' matches the page that the read created. because 
+the buffer /
+  /heads are already mapped, it doesn't call ocfs2_get_block. the 
+ip_mmu_private /
+  /keeps unchanged since last write./
+/5) in cont_prepare_write() it dead loops since bytes(ip_mmu_private) is 
+not /
+  /increased in last prepare write./
 
-Regards,
-Tao
+BUG is described in 
+s://bug.oraclecorp.com/pls/bug/webbug_print.show?c_rptno=7183894.
 
-Mark Fasheh wrote:
-> On Fri, Jun 27, 2008 at 03:49:45PM +0800, Tiger Yang wrote:
->> I split setting long value operation into two parts. First insert tree 
->> root in local, if succeed then insert long value into B tree based on 
->> that tree root. If hit problem in second step, we could only get that 
->> junk tree root. This is harmless for system. but is it acceptable?
-> 
-> If the junk root is ignored, and eventually overwritten as more ea's get
-> inserted then I don't think you need to do any more.
-> 
-> If the junk root stays in the block and occupies space that would otherwise
-> be used, then we probably need to handle this.. I imagine a clever user
-> could DOS the xattr space by making large ones when the system is low on
-> free space...
-> 	--Mark
-> 
-> --
-> Mark Fasheh
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+solution:
+/1) moves the clearing of page cache truncate_inode_pages() from 
+ocfs2_truncate_file() to/
+  /ocfs2_set_inode_size() after resizing inode size and i_blocks./
+/2) in ocfs2_get_block(), add checks on iblock >= inode->i_blocks. if 
+true, return -EIO.
+3) //a kernel bug fix is needed for 2.6.9 kernel.
+//see https://bugzilla.redhat.com/show_bug.cgi?id=453359/
+
+ aops.c |    6 ++++++
+ file.c |    4 ++--
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: ocfs2_truncate.patch
+Type: text/x-patch
+Size: 1146 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080630/b27b78c5/attachment.bin 
