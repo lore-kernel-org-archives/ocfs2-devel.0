@@ -1,52 +1,62 @@
 From: wengang wang <wen.gang.wang@oracle.com>
-Date: Mon, 30 Jun 2008 16:57:19 +0800
+Date: Mon, 30 Jun 2008 17:04:21 +0800
 Subject: [Ocfs2-devel] [BUGFIX][OCFS2 1/1] inode truncating
-Message-ID: <48689FEF.6040504@oracle.com>
+In-Reply-To: <48689FEF.6040504@oracle.com>
+References: <48689FEF.6040504@oracle.com>
+Message-ID: <4868A195.1010404@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-/an ocfs2 bug:
-a truncate races with ocfs2_get_block(...,0).
+This patch is based on 1.2 svn,
+since there is no ip_mmu_private used in mainline, so maybe there is no 
+such dead loop problem for mainline(not tested).
 
-1) 'dd' is doing a truncate, clearing the page cache and reset inode size./
-/2) between clearing page cache and resizing inode, a read comes and 
-create a /
-/new page and insert it to page cache./
-/3) the read(from `cat`) set buffer head in the new page as mapped but 
-doesn't increase /   /ip_mmu_private in ocfs2_get_block() because it's a 
-read./
-/4) a write from 'dd' matches the page that the read created. because 
-the buffer /
-  /heads are already mapped, it doesn't call ocfs2_get_block. the 
-ip_mmu_private /
-  /keeps unchanged since last write./
-/5) in cont_prepare_write() it dead loops since bytes(ip_mmu_private) is 
-not /
-  /increased in last prepare write./
+thanks
+wengang.
 
-BUG is described in 
-s://bug.oraclecorp.com/pls/bug/webbug_print.show?c_rptno=7183894.
-
-solution:
-/1) moves the clearing of page cache truncate_inode_pages() from 
-ocfs2_truncate_file() to/
-  /ocfs2_set_inode_size() after resizing inode size and i_blocks./
-/2) in ocfs2_get_block(), add checks on iblock >= inode->i_blocks. if 
-true, return -EIO.
-3) //a kernel bug fix is needed for 2.6.9 kernel.
-//see https://bugzilla.redhat.com/show_bug.cgi?id=453359/
-
- aops.c |    6 ++++++
- file.c |    4 ++--
- 2 files changed, 8 insertions(+), 2 deletions(-)
-
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: ocfs2_truncate.patch
-Type: text/x-patch
-Size: 1146 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080630/b27b78c5/attachment.bin 
+wengang wang wrote:
+> /an ocfs2 bug:
+> a truncate races with ocfs2_get_block(...,0).
+>
+> 1) 'dd' is doing a truncate, clearing the page cache and reset inode 
+> size./
+> /2) between clearing page cache and resizing inode, a read comes and 
+> create a /
+> /new page and insert it to page cache./
+> /3) the read(from `cat`) set buffer head in the new page as mapped but 
+> doesn't increase /   /ip_mmu_private in ocfs2_get_block() because it's 
+> a read./
+> /4) a write from 'dd' matches the page that the read created. because 
+> the buffer /
+>  /heads are already mapped, it doesn't call ocfs2_get_block. the 
+> ip_mmu_private /
+>  /keeps unchanged since last write./
+> /5) in cont_prepare_write() it dead loops since bytes(ip_mmu_private) 
+> is not /
+>  /increased in last prepare write./
+>
+> BUG is described in 
+> s://bug.oraclecorp.com/pls/bug/webbug_print.show?c_rptno=7183894.
+>
+> solution:
+> /1) moves the clearing of page cache truncate_inode_pages() from 
+> ocfs2_truncate_file() to/
+>  /ocfs2_set_inode_size() after resizing inode size and i_blocks./
+> /2) in ocfs2_get_block(), add checks on iblock >= inode->i_blocks. if 
+> true, return -EIO.
+> 3) //a kernel bug fix is needed for 2.6.9 kernel.
+> //see https://bugzilla.redhat.com/show_bug.cgi?id=453359/
+>
+> aops.c |    6 ++++++
+> file.c |    4 ++--
+> 2 files changed, 8 insertions(+), 2 deletions(-)
+>
+> ------------------------------------------------------------------------
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
