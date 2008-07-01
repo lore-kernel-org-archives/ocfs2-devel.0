@@ -1,69 +1,79 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 31 Jul 2008 17:44:25 -0700
-Subject: [Ocfs2-devel] [git patches] Ocfs2 and Configfs fixes
-Message-ID: <20080801004425.GL28014@wotan.suse.de>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Tue, 01 Jul 2008 11:53:49 +0800
+Subject: [Ocfs2-devel] [BUGFIX][OCFS2 1/1] inode truncating
+In-Reply-To: <4869A35F.9080502@oracle.com>
+References: <48689FEF.6040504@oracle.com> <4869A35F.9080502@oracle.com>
+Message-ID: <4869AA4D.2000704@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
+To: ocfs2-devel@oss.oracle.com
 
-The only non-fix here is Joel's new configfs convenience macros, but nobody
-is using them yet, so I think the patch is safe.
+Sunil,
 
-By the way, these patches (as usual) are all rebased on top of your latest
-tree. I think that since the vast majority of ocfs2 and configfs patches are
-self-contained and within a small area of the kernel that this should
-probably be fine. If you feel otherwise however, please let me know and I'll
-happily respin this as a set of topic-branch merges.
-	--Mark
+bugzilla filed with answers to your questions.
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=986
 
---
-Mark Fasheh
-
-Please pull from 'upstream-linus' branch of
-git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
-
-to receive the following updates:
-
- Documentation/filesystems/configfs/configfs.txt    |   17 ++-
- ...figfs_example.c => configfs_example_explicit.c} |   18 +-
- ...onfigfs_example.c => configfs_example_macros.c} |   75 ++------
- fs/configfs/configfs_internal.h                    |    3 +
- fs/configfs/dir.c                                  |  210 ++++++++++++++++----
- fs/configfs/symlink.c                              |   26 +++
- fs/ocfs2/aops.c                                    |   29 ++--
- fs/ocfs2/file.c                                    |    2 +-
- fs/ocfs2/journal.c                                 |  173 +++++++++++++----
- fs/ocfs2/journal.h                                 |    3 +-
- fs/ocfs2/ocfs2.h                                   |    2 +
- fs/ocfs2/ocfs2_fs.h                                |    5 +-
- fs/ocfs2/super.c                                   |   12 +-
- include/linux/configfs.h                           |   68 ++++++-
- 14 files changed, 475 insertions(+), 168 deletions(-)
- copy Documentation/filesystems/configfs/{configfs_example.c => configfs_example_explicit.c} (96%)
- rename Documentation/filesystems/configfs/{configfs_example.c => configfs_example_macros.c} (85%)
-
-Joel Becker (3):
-      configfs: Include linux/err.h in linux/configfs.h
-      configfs: Pin configfs subsystems separately from new config_items.
-      configfs: Convenience macros for attribute definition.
-
-Julia Lawall (1):
-      ocfs2: Release mutex in error handling code
-
-Louis Rilling (5):
-      configfs: Fix symlink() to a removing item
-      configfs: Fix failing symlink() making rmdir() fail
-      configfs: Prevent userspace from creating new entries under attaching directories
-      configfs: Lock new directory inodes before removing on cleanup after failure
-      configfs: Fix open directory making rmdir() fail
-
-Sunil Mushran (3):
-      ocfs2: Add counter in struct ocfs2_dinode to track journal replays
-      ocfs2: Fix race between mount and recovery
-      ocfs2: Fix oops when racing files truncates with writes into an mmap region
-
---
-Mark Fasheh
+regards,
+wengang.
+Sunil Mushran wrote:
+> Wengang,
+>
+> I needed some clarification. Is the fix proposed in kernel or in ocfs2,
+> or in kernel and in ocfs2?
+>
+> Is the bug in 1.2/el4 only? Has 1.2/el5 or current mainline tested?
+> Just want to know what has been tested.
+>
+> Also, please could you a file a bugzilla with the details. Especially
+> the testcase. Will be useful as we will be able to test it in
+> multiple envs.
+>
+> Thanks
+> Sunil
+>
+> wengang wang wrote:
+>> /an ocfs2 bug:
+>> a truncate races with ocfs2_get_block(...,0).
+>>
+>> 1) 'dd' is doing a truncate, clearing the page cache and reset inode 
+>> size./
+>> /2) between clearing page cache and resizing inode, a read comes and 
+>> create a /
+>> /new page and insert it to page cache./
+>> /3) the read(from `cat`) set buffer head in the new page as mapped 
+>> but doesn't increase /   /ip_mmu_private in ocfs2_get_block() because 
+>> it's a read./
+>> /4) a write from 'dd' matches the page that the read created. because 
+>> the buffer /
+>>  /heads are already mapped, it doesn't call ocfs2_get_block. the 
+>> ip_mmu_private /
+>>  /keeps unchanged since last write./
+>> /5) in cont_prepare_write() it dead loops since bytes(ip_mmu_private) 
+>> is not /
+>>  /increased in last prepare write./
+>>
+>> BUG is described in 
+>> s://bug.oraclecorp.com/pls/bug/webbug_print.show?c_rptno=7183894.
+>>
+>> solution:
+>> /1) moves the clearing of page cache truncate_inode_pages() from 
+>> ocfs2_truncate_file() to/
+>>  /ocfs2_set_inode_size() after resizing inode size and i_blocks./
+>> /2) in ocfs2_get_block(), add checks on iblock >= inode->i_blocks. if 
+>> true, return -EIO.
+>> 3) //a kernel bug fix is needed for 2.6.9 kernel.
+>> //see https://bugzilla.redhat.com/show_bug.cgi?id=453359/
+>>
+>> aops.c |    6 ++++++
+>> file.c |    4 ++--
+>> 2 files changed, 8 insertions(+), 2 deletions(-)
+>>
+>> ------------------------------------------------------------------------
+>>
+>> _______________________________________________
+>> Ocfs2-devel mailing list
+>> Ocfs2-devel at oss.oracle.com
+>> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>
