@@ -1,88 +1,78 @@
-From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Wed, 2 Jul 2008 15:18:04 +0530
-Subject: [Ocfs2-devel] Add --force option in tunefs
-Message-ID: <20080702094655.GA6088@baloo.nue.novell.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 2 Jul 2008 10:53:52 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix oops in mmap_truncate testing
+In-Reply-To: <4868B959.7000106@suse.de>
+References: <4868B959.7000106@suse.de>
+Message-ID: <20080702175352.GK28100@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch enable --force option in tunefs.ocfs2
-Like mkfs, the --force option ignores cluster initialization 
-and locking.
+On Mon, Jun 30, 2008 at 06:45:45PM +0800, Coly Li wrote:
+> This patch fixes a mmap_truncate bug which was found by ocfs2 test suite.
 
-A force option is useless for local mounts and hence, to display the
-warning message, the check for force flag is checked after the check for
-local mount.
+Great, thanks for this.
 
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+A cleaned up version of the patch is attached. This one applies to mainline
+- the one sent didn't so I had to massage things. Let me know how your
+testing goes.
+	--Mark
+
+--
+Mark Fasheh
 
 
-diff --git a/tunefs.ocfs2/tunefs.c b/tunefs.ocfs2/tunefs.c
-index be10eb2..e238f1e 100644
---- a/tunefs.ocfs2/tunefs.c
-+++ b/tunefs.ocfs2/tunefs.c
-@@ -44,7 +44,7 @@ static void usage(const char *progname)
- 	fprintf(stderr, "usage: %s [-J journal-options] [-L volume-label]\n"
- 			"\t\t[-M mount-type] [-N number-of-node-slots] [-Q query-fmt]\n"
- 			"\t\t[--update-cluster-stack]\n"
--			"\t\t[-qSUvV] [--backup-super] [--list-sparse]\n"
-+			"\t\t[-qSUvV] [--backup-super] [--list-sparse] [--force]\n"
- 			"\t\t[--fs-features=[no]sparse,...]] device [blocks-count]\n",
- 			progname);
- 	exit(0);
-@@ -202,6 +202,7 @@ static void get_options(int argc, char **argv)
- 		{ "quiet", 0, 0, 'q' },
- 		{ "query", 1, 0, 'Q' },
- 		{ "version", 0, 0, 'V' },
-+		{ "force", 0, 0, 'F' },
- 		{ "journal-options", 0, 0, 'J'},
- 		{ "volume-size", 0, 0, 'S'},
- 		{ "uuid-reset", 0, 0, 'U'},
-@@ -221,7 +222,7 @@ static void get_options(int argc, char **argv)
- 	opts.prompt = 1;
+From: Coly Li <coyli@suse.de>
+
+[PATCH] ocfs2: fix oops in mmap_truncate testing
+
+This patch fixes a mmap_truncate bug which was found by ocfs2 test suite.
+
+In an ocfs2 cluster more than 1 node, run program mmap_truncate, which races
+mmap writes and truncates from multiple processes. While the test is
+running, a stat from another node forces writeout, causing an oops in
+ocfs2_get_block() because it sees a buffer to write which isn't allocated.
+
+This patch fixed the bug by clear dirty and uptodate bits in buffer, leave
+the buffer unmapped and return.
+
+Fix is suggested by Mark Fasheh, and I code up the patch.
+
+Signed-off-by: Coly Li <coyli@suse.de>
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+---
+ fs/ocfs2/aops.c |   17 +++++++++++++++++
+ 1 files changed, 17 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 17964c0..b74a702 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -179,6 +179,23 @@ static int ocfs2_get_block(struct inode *inode, sector_t iblock,
+ 			"ino %lu, iblock %llu\n", inode->i_ino,
+ 			(unsigned long long)iblock);
  
- 	while (1) {
--		c = getopt_long(argc, argv, "L:N:J:M:Q:SUvqVxb", long_options,
-+		c = getopt_long(argc, argv, "L:N:J:M:Q:SUvqVFxb", long_options,
- 				NULL);
- 
- 		if (c == -1)
-@@ -292,6 +293,10 @@ static void get_options(int argc, char **argv)
- 			opts.verbose = 1;
- 			break;
- 
-+		case 'F':
-+			opts.force = 1;
-+			break;
++	/*
++	 * ocfs2 never allocates in this function - the only time we
++	 * need to use BH_New is when we're extending i_size on a file
++	 * system which doesn't support holes, in which case BH_New
++	 * allows block_prepare_write() to zero.
++	 *
++	 * If we see this on a sparse file system, then a truncate has
++	 * raced us and removed the cluster. In this case, we clear
++	 * the buffers dirty and uptodate bits and let the buffer code
++	 * ignore it as a hole.
++	 */
++	if (create && p_blkno == 0 && ocfs2_sparse_alloc(osb)) {
++		clear_buffer_dirty(bh_result);
++		clear_buffer_uptodate(bh_result);
++		goto bail;
++	}
 +
- 		case 'q':
- 			opts.quiet = 1;
- 			break;
-@@ -1295,6 +1300,10 @@ int main(int argc, char **argv)
- 		get_vol_size(fs);
- 
- 	if (!ocfs2_mount_local(fs)) {
-+		if (opts.force) {
-+			fprintf(stderr, "WARNING: Cluster check disabled.\n");
-+			goto skip_cluster_start;
-+		}
- 		ret = o2cb_init();
- 		if (ret) {
- 			com_err(opts.progname, ret, "while initializing the cluster");
-diff --git a/tunefs.ocfs2/tunefs.h b/tunefs.ocfs2/tunefs.h
-index c7b4acf..819997b 100644
---- a/tunefs.ocfs2/tunefs.h
-+++ b/tunefs.ocfs2/tunefs.h
-@@ -87,6 +87,7 @@ typedef struct _ocfs2_tune_opts {
- 	int verbose;
- 	int quiet;
- 	int prompt;
-+	int force;
- 	int backup_super;
- 	int update_cluster;
- 	int list_sparse;
-
+ 	/* Treat the unwritten extent as a hole for zeroing purposes. */
+ 	if (p_blkno && !(ext_flags & OCFS2_EXT_UNWRITTEN))
+ 		map_bh(bh_result, inode->i_sb, p_blkno);
 -- 
-Goldwyn
+1.5.4.1
