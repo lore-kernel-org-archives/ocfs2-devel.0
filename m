@@ -1,78 +1,39 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 2 Jul 2008 10:53:52 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix oops in mmap_truncate testing
-In-Reply-To: <4868B959.7000106@suse.de>
-References: <4868B959.7000106@suse.de>
-Message-ID: <20080702175352.GK28100@wotan.suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 2 Jul 2008 12:44:31 -0700
+Subject: [Ocfs2-devel] Add --force option in tunefs
+In-Reply-To: <20080702094655.GA6088@baloo.nue.novell.com>
+References: <20080702094655.GA6088@baloo.nue.novell.com>
+Message-ID: <20080702194431.GH29916@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jun 30, 2008 at 06:45:45PM +0800, Coly Li wrote:
-> This patch fixes a mmap_truncate bug which was found by ocfs2 test suite.
+On Wed, Jul 02, 2008 at 03:18:04PM +0530, Goldwyn Rodrigues wrote:
 
-Great, thanks for this.
+	Hey, there.  Tools changes belong on
+ocfs2-tools-devel at oss.oracle.com, so I've copied that mailing list.
 
-A cleaned up version of the patch is attached. This one applies to mainline
-- the one sent didn't so I had to massage things. Let me know how your
-testing goes.
-	--Mark
+> This patch enable --force option in tunefs.ocfs2
+> Like mkfs, the --force option ignores cluster initialization 
+> and locking.
 
---
-Mark Fasheh
+	Thanks for the patch, but we decided long ago that we didn't
+want tunefs run without the cluster.  That's why there is no force
+option.  It's intentional.
 
+Joel
 
-From: Coly Li <coyli@suse.de>
-
-[PATCH] ocfs2: fix oops in mmap_truncate testing
-
-This patch fixes a mmap_truncate bug which was found by ocfs2 test suite.
-
-In an ocfs2 cluster more than 1 node, run program mmap_truncate, which races
-mmap writes and truncates from multiple processes. While the test is
-running, a stat from another node forces writeout, causing an oops in
-ocfs2_get_block() because it sees a buffer to write which isn't allocated.
-
-This patch fixed the bug by clear dirty and uptodate bits in buffer, leave
-the buffer unmapped and return.
-
-Fix is suggested by Mark Fasheh, and I code up the patch.
-
-Signed-off-by: Coly Li <coyli@suse.de>
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
----
- fs/ocfs2/aops.c |   17 +++++++++++++++++
- 1 files changed, 17 insertions(+), 0 deletions(-)
-
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 17964c0..b74a702 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -179,6 +179,23 @@ static int ocfs2_get_block(struct inode *inode, sector_t iblock,
- 			"ino %lu, iblock %llu\n", inode->i_ino,
- 			(unsigned long long)iblock);
- 
-+	/*
-+	 * ocfs2 never allocates in this function - the only time we
-+	 * need to use BH_New is when we're extending i_size on a file
-+	 * system which doesn't support holes, in which case BH_New
-+	 * allows block_prepare_write() to zero.
-+	 *
-+	 * If we see this on a sparse file system, then a truncate has
-+	 * raced us and removed the cluster. In this case, we clear
-+	 * the buffers dirty and uptodate bits and let the buffer code
-+	 * ignore it as a hole.
-+	 */
-+	if (create && p_blkno == 0 && ocfs2_sparse_alloc(osb)) {
-+		clear_buffer_dirty(bh_result);
-+		clear_buffer_uptodate(bh_result);
-+		goto bail;
-+	}
-+
- 	/* Treat the unwritten extent as a hole for zeroing purposes. */
- 	if (p_blkno && !(ext_flags & OCFS2_EXT_UNWRITTEN))
- 		map_bh(bh_result, inode->i_sb, p_blkno);
 -- 
-1.5.4.1
+
+"Born under a bad sign.
+ I been down since I began to crawl.
+ If it wasn't for bad luck,
+ I wouldn't have no luck at all."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
