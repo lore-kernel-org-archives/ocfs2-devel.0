@@ -1,11 +1,10 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 3 Jul 2008 15:06:58 -0700
-Subject: [Ocfs2-devel] [BUGFIX][PATCH 2/2] configfs: Lock new
-	directory	inodes before removing on cleanup after failure
-In-Reply-To: <1214503549-15678-3-git-send-email-louis.rilling@kerlabs.com>
-References: <1214503549-15678-1-git-send-email-louis.rilling@kerlabs.com>
-	<1214503549-15678-3-git-send-email-louis.rilling@kerlabs.com>
-Message-ID: <20080703220658.GH1502@mail.oracle.com>
+Date: Thu, 3 Jul 2008 15:08:05 -0700
+Subject: [Ocfs2-devel] [BUGFIX][PATCH] configfs: Fix open directory
+	making rmdir()	fail
+In-Reply-To: <1214565025-2646-1-git-send-email-louis.rilling@kerlabs.com>
+References: <1214565025-2646-1-git-send-email-louis.rilling@kerlabs.com>
+Message-ID: <20080703220805.GI1502@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,82 +12,45 @@ Content-Transfer-Encoding: 7bit
 To: Louis Rilling <louis.rilling@kerlabs.com>
 Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Thu, Jun 26, 2008 at 08:05:49PM +0200, Louis Rilling wrote:
-> Once a new configfs directory is created by configfs_attach_item() or
-> configfs_attach_group(), a failure in the remaining initialization steps leads
-> to removing a directory which inode the VFS may have already accessed.
+On Fri, Jun 27, 2008 at 01:10:25PM +0200, Louis Rilling wrote:
+> When checking for user-created elements under an item to be removed by rmdir(),
+> configfs_detach_prep() counts fake configfs_dirents created by dir_open() as
+> user-created and fails when finding one. It is however perfectly valid to remove
+> a directory that is open.
 > 
-> This commit adds the necessary inode locking to safely remove configfs
-> directories while cleaning up after a failure. As an advantage, the locking
-> rules of populate_groups() and detach_groups() become the same: the caller must
-> have the group's inode mutex locked.
+> Simply make configfs_detach_prep() skip fake configfs_dirent, like it already
+> does for attributes, and like detach_groups() does.
 
-	I like this latter symmetry.
+	This looks good.
 
->  static void configfs_remove_dir(struct config_item * item)
-> @@ -594,36 +596,20 @@ static int create_default_group(struct config_group *parent_group,
->  static int populate_groups(struct config_group *group)
->  {
->  	struct config_group *new_group;
-> -	struct dentry *dentry = group->cg_item.ci_dentry;
->  	int ret = 0;
->  	int i;
+> Signed-off-by: Louis Rilling <louis.rilling@kerlabs.com>
+> ---
+>  fs/configfs/dir.c |    3 ++-
+>  1 files changed, 2 insertions(+), 1 deletions(-)
+> 
+> diff --git a/fs/configfs/dir.c b/fs/configfs/dir.c
+> index 2c873fd..e721fd5 100644
+> --- a/fs/configfs/dir.c
+> +++ b/fs/configfs/dir.c
+> @@ -379,7 +379,8 @@ static int configfs_detach_prep(struct dentry *dentry, struct mutex **wait_mutex
 >  
-> -	if (group->default_groups) {
-> -		/*
-> -		 * FYI, we're faking mkdir here
-> -		 * I'm not sure we need this semaphore, as we're called
-> -		 * from our parent's mkdir.  That holds our parent's
-> -		 * i_mutex, so afaik lookup cannot continue through our
-> -		 * parent to find us, let alone mess with our tree.
-> -		 * That said, taking our i_mutex is closer to mkdir
-> -		 * emulation, and shouldn't hurt.
-> -		 */
-> -		mutex_lock_nested(&dentry->d_inode->i_mutex, I_MUTEX_CHILD);
-> -
-> +	if (group->default_groups)
-
-	Put the {} around this if.  It may only have the for() as a
-child, but it's 10 lines.
-
->  		for (i = 0; group->default_groups[i]; i++) {
->  			new_group = group->default_groups[i];
->  
->  			ret = create_default_group(group, new_group);
-> -			if (ret)
-> +			if (ret) {
-> +				detach_groups(group);
->  				break;
-> +			}
->  		}
->  
-<snip>  
-> @@ -738,7 +724,14 @@ static int configfs_attach_item(struct config_item *parent_item,
->  	if (!ret) {
->  		ret = populate_attrs(item);
->  		if (ret) {
-> +			/*
-> +			 * We are going to remove an inode and its dentry but
-> +			 * the VFS may already have hit and used them.
-> +			 */
-> +			mutex_lock(&dentry->d_inode->i_mutex);
->  			configfs_remove_dir(item);
-> +			dentry->d_inode->i_flags |= S_DEAD;
-> +			mutex_unlock(&dentry->d_inode->i_mutex);
-
-	This emulates how rmdir() would lock it, which is quite nice.
-Perhaps add to the comment "thus, we must lock them as rmdir() would".
-
-Joel
+>  	ret = 0;
+>  	list_for_each_entry(sd, &parent_sd->s_children, s_sibling) {
+> -		if (sd->s_type & CONFIGFS_NOT_PINNED)
+> +		if (!sd->s_element ||
+> +		    (sd->s_type & CONFIGFS_NOT_PINNED))
+>  			continue;
+>  		if (sd->s_type & CONFIGFS_USET_DEFAULT) {
+>  			/* Abort if racing with mkdir() */
+> -- 
+> 1.5.5.3
+> 
 
 -- 
 
-"There is shadow under this red rock.
- (Come in under the shadow of this red rock)
- And I will show you something different from either
- Your shadow at morning striding behind you
- Or your shadow at evening rising to meet you.
- I will show you fear in a handful of dust."
+"You can get more with a kind word and a gun than you can with
+ a kind word alone."
+         - Al Capone
 
 Joel Becker
 Principal Software Developer
