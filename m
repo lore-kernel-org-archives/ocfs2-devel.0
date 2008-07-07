@@ -1,36 +1,38 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon,  7 Jul 2008 13:26:17 -0700
-Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: Silence an error message in
-	ocfs2_file_aio_read()
-In-Reply-To: <1215462380-12975-1-git-send-email-sunil.mushran@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 7 Jul 2008 13:51:20 -0700
+Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2: Fixes tiny race between
+	mount	and recovery
+In-Reply-To: <1215462380-12975-4-git-send-email-sunil.mushran@oracle.com>
 References: <1215462380-12975-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1215462380-12975-2-git-send-email-sunil.mushran@oracle.com>
+	<1215462380-12975-4-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20080707205120.GC8651@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch silences an EINVAL error message in ocfs2_file_aio_read()
-that is always due to a user error.
+On Mon, Jul 07, 2008 at 01:26:19PM -0700, Sunil Mushran wrote:
+> +struct ocfs2_recovery_item {
+> +	unsigned int ri_node_num;
+> +	unsigned int ri_count;
+> +};
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/file.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+	Also, what's the point of the count here?  To try and recover
+more than once?
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index d4cf056..79c4ee1 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2450,7 +2450,7 @@ static ssize_t __ocfs2_file_aio_read(struct kiocb *iocb,
- 
- 	ret = kapi_generic_file_aio_read(iocb, iov, nr_segs, iocb->ki_pos);
- 	if (ret == -EINVAL)
--		mlog(ML_ERROR, "generic_file_aio_read returned -EINVAL\n");
-+		mlog(0, "generic_file_aio_read returned -EINVAL\n");
- 
- 	/* buffered aio wouldn't have proper lock coverage today */
- 	BUG_ON(ret == -EIOCBQUEUED && !(filp->f_flags & O_DIRECT));
+Joel
+
 -- 
-1.5.4.3
+
+ Brain: I shall pollute the water supply with this DNAdefibuliser,
+        turning everyone into mindless slaves.
+ Pinky: What about the people who drink bottled water?
+ Brain: Pinky, people who pay 5 dollars for a bottle of water are
+        already mindless slaves.
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
