@@ -1,48 +1,36 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 9 Jul 2008 11:29:43 -0700
-Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2: Fixes tiny race between
-	mount	and recovery
-In-Reply-To: <20080709173520.GH28100@wotan.suse.de>
-References: <1215462380-12975-1-git-send-email-sunil.mushran@oracle.com>
-	<1215462380-12975-4-git-send-email-sunil.mushran@oracle.com>
-	<20080707205037.GB8651@mail.oracle.com>
-	<4872C7A4.1010507@oracle.com> <48739F16.7000205@oracle.com>
-	<20080708181706.GA13557@mail.oracle.com>
-	<20080709173520.GH28100@wotan.suse.de>
-Message-ID: <20080709182943.GA4384@mail.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 9 Jul 2008 15:59:23 -0700
+Subject: [Ocfs2-devel] [PATCH 05/15] Add xattr header in ocfs2.v2
+In-Reply-To: <20080627070110.GA20347@tma-pc2.cn.oracle.com>
+References: <48648B3E.6050808@oracle.com>
+	<20080627070110.GA20347@tma-pc2.cn.oracle.com>
+Message-ID: <20080709225923.GA22129@eris>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jul 09, 2008 at 10:35:20AM -0700, Mark Fasheh wrote:
-> On Tue, Jul 08, 2008 at 11:17:06AM -0700, Joel Becker wrote:
-> > On Tue, Jul 08, 2008 at 10:08:38AM -0700, Sunil Mushran wrote:
-> > > Instead of using generation, we could use ij_pad. Renamed to
-> > > something appropriate.
-> > 
-> > 	I like that, as it is specific to the journal part and leaves
-> > i_generation alone.  Can we see ourselves needing any other use of that
-> > word?
-> 
-> The only thing that crossed my mind would be journal version (for when we have
-> JBD2), but I think it's better to use an inode flag for that anyway.
+[ everything up until this patch looks great ]
 
-	Don't we have extra flag space on journal1.ij_flags?  That seems
-like the right place for OCFS2_JOURNAL_FLAG_JBD2.
+On Fri, Jun 27, 2008 at 03:01:10PM +0800, Tao Ma wrote:
+> +struct ocfs2_xattr_entry {
+> +	__le32	xe_name_hash;
+> +	__le16	xe_name_offset;
+> +	__u8	xe_name_len;
+> +	__u8	xe_type : 7;
+> +	__u8	xe_local : 1;
 
-Joel
+Would you mind turning xe_type / xe_local into just one __u8 with the
+bottom-most bit reserved for the local bit and the upper 7 bits used as
+type? I'm not quite sure about whether bitfields are considered safe for use
+in disk structures. At the very least, it seems a bit controversial.
 
--- 
+I would heartily support you creating two pairs of _set / _get macros in
+this file to aid in such a change.
 
-"I'm drifting and drifting
- Just like a ship out on the sea.
- Cause I ain't got nobody, baby,
- In this world to care for me."
+Thanks,
+	--Mark
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+--
+Mark Fasheh
