@@ -1,44 +1,41 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 8 Jul 2008 11:17:06 -0700
-Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2: Fixes tiny race between
-	mount	and recovery
-In-Reply-To: <48739F16.7000205@oracle.com>
-References: <1215462380-12975-1-git-send-email-sunil.mushran@oracle.com>
-	<1215462380-12975-4-git-send-email-sunil.mushran@oracle.com>
-	<20080707205037.GB8651@mail.oracle.com>
-	<4872C7A4.1010507@oracle.com> <48739F16.7000205@oracle.com>
-Message-ID: <20080708181706.GA13557@mail.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Tue, 8 Jul 2008 21:17:48 -0700
+Subject: [Ocfs2-devel] [git patch] ocfs2 fix for 2.6.26
+Message-ID: <20080709041748.GG28100@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On Tue, Jul 08, 2008 at 10:08:38AM -0700, Sunil Mushran wrote:
-> Instead of using generation, we could use ij_pad. Renamed to
-> something appropriate.
+This single patch fixes an Ocfs2 regression introduced during the merge
+window.
+	--Mark
 
-	I like that, as it is specific to the journal part and leaves
-i_generation alone.  Can we see ourselves needing any other use of that
-word?
+Please pull from 'upstream-linus' branch of
+git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
 
-Joel
+to receive the following updates:
 
-> Sunil Mushran wrote:
->> Possible Solution:
->> Use the i_generation in the journal inode as a recovery counter.
->> Meaning, we increment it each time we recover the journal. That
->> is, from mount thread in ocfs2_journal_load() and from recovery
->> thread in ocfs2_replay_journal(). In both places, we have the
->> superblock lock making the writes safe.
+ fs/ocfs2/dlm/dlmmaster.c |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
--- 
+Sunil Mushran (1):
+      ocfs2/dlm: Fixes oops in dlm_new_lockres()
 
-"When ideas fail, words come in very handy." 
-         - Goethe
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index efc015c..44f87ca 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -606,7 +606,9 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+ 
+ 	res->last_used = 0;
+ 
++	spin_lock(&dlm->spinlock);
+ 	list_add_tail(&res->tracking, &dlm->tracking_list);
++	spin_unlock(&dlm->spinlock);
+ 
+ 	memset(res->lvb, 0, DLM_LVB_LEN);
+ 	memset(res->refmap, 0, sizeof(res->refmap));
+ 
