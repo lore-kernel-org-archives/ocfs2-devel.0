@@ -1,81 +1,30 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 10 Jul 2008 10:02:18 -0700
-Subject: [Ocfs2-devel] EIP on ocfs2 flock / stack o2cb
-In-Reply-To: <22efb4930807100723y7230cc84n85696367eee93e00@mail.gmail.com>
-References: <22efb4930807100723y7230cc84n85696367eee93e00@mail.gmail.com>
-Message-ID: <20080710170217.GN28100@wotan.suse.de>
+Date: Thu, 10 Jul 2008 13:01:31 -0700
+Subject: [Ocfs2-devel] [git patch] one more ocfs2 regression fix
+Message-ID: <20080710200131.GP28100@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On Thu, Jul 10, 2008 at 09:23:07AM -0500, Geoffrey Pan wrote:
-> 2.6.26-rc9 with dlm lock patch applied from 3 days ago..
-> 
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel: ------------[ cut here ]------------
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel: invalid opcode: 0000 [#1] SMP
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel: Process easyapache (pid: 18310, ti=e3109000 task=f42d61b0 task.ti=
-> e3109000)
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel: Stack: f8bb50c9 f8bb5da0 f45c4f00 e3109ee4 f8b6c0ff 00000400
-> df416038 0000001f
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:        df416014 df416038 df416014 f8bffded 00000400 df416038
-> 0000001f df416014
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:        00000000 00000000 f413f800 00000005 df41601c e30b2cb8
-> 00000008 e30b2cb8
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel: Call Trace:
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<f8bb50c9>] o2cb_dlm_lock+0x1b/0x57 [ocfs2_stack_o2cb]
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<f8b6c0ff>] ocfs2_dlm_lock+0x2e/0x34 [ocfs2_stackglue]
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<f8bffded>] ocfs2_file_lock+0x2ba/0x523 [ocfs2]
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<c045ecc2>] do_wp_page+0x1b3/0x47f
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<c045ef35>] do_wp_page+0x426/0x47f
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<f8c10734>] ocfs2_flock+0x0/0x1d4 [ocfs2]
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<f8c10849>] ocfs2_flock+0x115/0x1d4 [ocfs2]
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<c044c41a>] audit_syscall_entry+0x102/0x12c
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<c044c6e5>] audit_syscall_exit+0x2a1/0x2bd
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<f8c10734>] ocfs2_flock+0x0/0x1d4 [ocfs2]
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<c0480a12>] sys_flock+0x10a/0x13d
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  [<c0403882>] syscall_call+0x7/0xb
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel:  =======================
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel: Code: 81 ca 00 00 80 00 a9 00 00 04 00 74 0b 25 ff ff fb ff 81 ca
-> 00 00 02 00 a9 00 00 10 00 74 08 25 ff ff ef ff 80 ca 80 85 c0 74 04 <0f> 0b eb
-> fe 89 d0 c3 57 83 fa 05 56 89 cf 53 89 d6 89 c3 7e 04
-> Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
-> cs3 kernel: EIP: [<f8bb50a7>] flags_to_o2dlm+0x77/0x7e [ocfs2_stack_o2cb]
-> SS:ESP 0068:e3109e68  -- End dryrun test 'Check SSL' --
-> 
-
-Thanks for reporting this. Can you tell me soon if this patch fixes the
-problem?
+Thanks to Geoffrey Pan for reporting this and testing the fix so quickly. I
+also verified this fix on my test cluster today, since things are getting
+down to the wire. It's definitely 2.6.26 material.
 	--Mark
 
---
-Mark Fasheh
+Please pull from 'upstream-linus' branch of
+git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
+
+to receive the following updates:
+
+ fs/ocfs2/dlmglue.c |   14 +++++++-------
+ 1 files changed, 7 insertions(+), 7 deletions(-)
 
 From: Mark Fasheh <mfasheh@suse.com>
 
-[PATCH] ocfs2: Fix flags in ocfs2_file_lock
+ocfs2: Fix flags in ocfs2_file_lock
 
 The stack-glue merge changed the way we use flags in dlmglue in that we now
 use the fs/dlm equivalents. Unfortunately, a merge error left the new flock
