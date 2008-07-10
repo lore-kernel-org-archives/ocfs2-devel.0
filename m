@@ -1,12 +1,14 @@
 From: Geoffrey Pan <cheetaweb@gmail.com>
-Date: Thu, 10 Jul 2008 09:17:16 -0500
-Subject: [Ocfs2-devel] Kernel EIP on 'du' of filesystem on 2.6.26-rc9
-Message-ID: <22efb4930807100717k238b53e9qfcffb2db30bea971@mail.gmail.com>
+Date: Thu, 10 Jul 2008 09:23:07 -0500
+Subject: [Ocfs2-devel] EIP on ocfs2 flock / stack o2cb
+Message-ID: <22efb4930807100723y7230cc84n85696367eee93e00@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+2.6.26-rc9 with dlm lock patch applied from 3 days ago..
 
 Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
 cs3 kernel: ------------[ cut here ]------------
@@ -61,4 +63,4 @@ cs3 kernel: EIP: [<f8bb50a7>] flags_to_o2dlm+0x77/0x7e [ocfs2_stack_o2cb]
 SS:ESP 0068:e3109e68  -- End dryrun test 'Check SSL' --
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080710/e35d6799/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080710/a59f3862/attachment-0001.html 
