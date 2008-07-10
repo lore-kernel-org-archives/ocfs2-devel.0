@@ -1,39 +1,64 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 10 Jul 2008 12:50:09 +0800
-Subject: [Ocfs2-devel] [PATCH 05/15] Add xattr header in ocfs2.v2
-In-Reply-To: <20080709225923.GA22129@eris>
-References: <48648B3E.6050808@oracle.com>
-	<20080627070110.GA20347@tma-pc2.cn.oracle.com>
-	<20080709225923.GA22129@eris>
-Message-ID: <48759501.5040006@oracle.com>
+From: Geoffrey Pan <cheetaweb@gmail.com>
+Date: Thu, 10 Jul 2008 09:17:16 -0500
+Subject: [Ocfs2-devel] Kernel EIP on 'du' of filesystem on 2.6.26-rc9
+Message-ID: <22efb4930807100717k238b53e9qfcffb2db30bea971@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-
-
-Mark Fasheh wrote:
-> [ everything up until this patch looks great ]
-> 
-> On Fri, Jun 27, 2008 at 03:01:10PM +0800, Tao Ma wrote:
->> +struct ocfs2_xattr_entry {
->> +	__le32	xe_name_hash;
->> +	__le16	xe_name_offset;
->> +	__u8	xe_name_len;
->> +	__u8	xe_type : 7;
->> +	__u8	xe_local : 1;
-> 
-> Would you mind turning xe_type / xe_local into just one __u8 with the
-> bottom-most bit reserved for the local bit and the upper 7 bits used as
-> type? I'm not quite sure about whether bitfields are considered safe for use
-> in disk structures. At the very least, it seems a bit controversial.
-> 
-> I would heartily support you creating two pairs of _set / _get macros in
-> this file to aid in such a change.
-Ok, I will modify it and I will also modify the design doc for it.
-Thanks.
-
-Regards,
-Tao
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel: ------------[ cut here ]------------
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel: invalid opcode: 0000 [#1] SMP
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel: Process easyapache (pid: 18310, ti=e3109000 task=f42d61b0
+task.ti=e3109000)
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel: Stack: f8bb50c9 f8bb5da0 f45c4f00 e3109ee4 f8b6c0ff 00000400
+df416038 0000001f
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:        df416014 df416038 df416014 f8bffded 00000400 df416038
+0000001f df416014
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:        00000000 00000000 f413f800 00000005 df41601c e30b2cb8
+00000008 e30b2cb8
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel: Call Trace:
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<f8bb50c9>] o2cb_dlm_lock+0x1b/0x57 [ocfs2_stack_o2cb]
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<f8b6c0ff>] ocfs2_dlm_lock+0x2e/0x34 [ocfs2_stackglue]
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<f8bffded>] ocfs2_file_lock+0x2ba/0x523 [ocfs2]
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<c045ecc2>] do_wp_page+0x1b3/0x47f
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<c045ef35>] do_wp_page+0x426/0x47f
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<f8c10734>] ocfs2_flock+0x0/0x1d4 [ocfs2]
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<f8c10849>] ocfs2_flock+0x115/0x1d4 [ocfs2]
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<c044c41a>] audit_syscall_entry+0x102/0x12c
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<c044c6e5>] audit_syscall_exit+0x2a1/0x2bd
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<f8c10734>] ocfs2_flock+0x0/0x1d4 [ocfs2]
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<c0480a12>] sys_flock+0x10a/0x13d
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  [<c0403882>] syscall_call+0x7/0xb
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel:  =======================
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel: Code: 81 ca 00 00 80 00 a9 00 00 04 00 74 0b 25 ff ff fb ff 81
+ca 00 00 02 00 a9 00 00 10 00 74 08 25 ff ff ef ff 80 ca 80 85 c0 74 04 <0f>
+0b eb fe 89 d0 c3 57 83 fa 05 56 89 cf 53 89 d6 89 c3 7e 04
+Message from syslogd@ at Thu Jul 10 15:12:27 2008 ...
+cs3 kernel: EIP: [<f8bb50a7>] flags_to_o2dlm+0x77/0x7e [ocfs2_stack_o2cb]
+SS:ESP 0068:e3109e68  -- End dryrun test 'Check SSL' --
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080710/e35d6799/attachment.html 
