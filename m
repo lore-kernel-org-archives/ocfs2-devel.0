@@ -1,11 +1,11 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 10 Jul 2008 16:15:17 -0700
-Subject: [Ocfs2-devel] [PATCH 09/15] Add helper function in uptodate	for
-	removing xattr clusters.v2
+Date: Thu, 10 Jul 2008 16:19:38 -0700
+Subject: [Ocfs2-devel] [PATCH 09/15] Add helper function in uptodate for
+	removing xattr	clusters.v2
 In-Reply-To: <20080627070149.GA20359@tma-pc2.cn.oracle.com>
 References: <48648B3E.6050808@oracle.com>
 	<20080627070149.GA20359@tma-pc2.cn.oracle.com>
-Message-ID: <20080710231517.GA26363@eris>
+Message-ID: <20080710231938.GC32459@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
