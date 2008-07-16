@@ -1,72 +1,63 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 16 Jul 2008 10:39:42 -0700
-Subject: [Ocfs2-devel] [PATCH 15/15] ocfs2: Add incompatible flag
-	for	extended attribute v2
-In-Reply-To: <487D65C1.2090803@oracle.com>
-References: <48648B3E.6050808@oracle.com>
-	<1214551656-22529-1-git-send-email-tiger.yang@oracle.com>
-	<1214551656-22529-2-git-send-email-tiger.yang@oracle.com>
-	<1214551656-22529-3-git-send-email-tiger.yang@oracle.com>
-	<20080710230002.GA32459@wotan.suse.de>
-	<20080710232228.GE11809@mail.oracle.com>
-	<487D65C1.2090803@oracle.com>
-Message-ID: <20080716173942.GB18105@ca-server1.us.oracle.com>
+From: Louis Rilling <Louis.Rilling@kerlabs.com>
+Date: Wed, 16 Jul 2008 19:56:54 +0200
+Subject: [Ocfs2-devel] [BUGFIX][PATCH v2 0/2] configfs: Fix cleanup
+	after mkdir()	failure
+In-Reply-To: <20080716172703.GA18105@ca-server1.us.oracle.com>
+References: <1215183366-17479-1-git-send-email-louis.rilling@kerlabs.com>
+	<20080711220740.GC22577@mail.oracle.com>
+	<20080716130821.GF3801@hawkmoon.kerlabs.com>
+	<20080716172703.GA18105@ca-server1.us.oracle.com>
+Message-ID: <20080716175654.GA19577@hawkmoon.kerlabs.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Wed, Jul 16, 2008 at 11:06:41AM +0800, Tiger Yang wrote:
-> Why we want RO_COMPAT feature with xattr support?
-> If we make it RO_COMPAT, this means we could only support set xattr in a 
-> read only ocfs2. But sys_setxattr() need mount writable, so we couldn't 
-> set xattr at all.
+On Wed, Jul 16, 2008 at 10:27:03AM -0700, Joel Becker wrote:
+> On Wed, Jul 16, 2008 at 03:08:21PM +0200, Louis Rilling wrote:
+> > There is still a few things in flight:
+> > - error handling in config_*_init_type_name(): has rather low priority in my
+> >   TODO list, will come back to it probably in a few weeks.
+> 
+> 	I thought we did this already.  Perhaps I didn't include it?
+> Did we have another change to make?
 
-	RO_COMPAT doesn't mean "only used when read-only".  RO_COMPAT
-means that a filesystem that doesn't understand the feature can still
-mount it safely in read-only mode.
-	The compat flags have simple rules:
+You requested me to move a BUG_ON() earlier (before the actual memory
+allocation), and to update documentation. I'm quite in a hurry on other things,
+so I'm delaying this (especially the documentation part for which I feel like a
+new paragraph is needed).
 
-1) If a filesystem module understands all the flags (COMPAT, INCOMPAT,
-   RO_COMPAT), it MAY safely mount read-write.
-2) If a filesystem module does not understand an INCOMPAT flag, it MUST
-   NOT mount the filesystem at all.  It's code will error or crash
-   because of the new INCOMPAT feature.  An example is sparse files - a
-   filesystem module that doesn't understand sparse files will see a
-   hole and crash.
-3) If a filesystem does not understand an RO_COMPAT flag, it MUST NOT
-   mount read-write, but it MAY mount read-only.  It's code will safely
-   ignore the new feature in a read-only mode, but cannot safely write
-   to the filesystem.  The only example in ocfs2 is unwritten extents.
-   A read-only filesystem can handle them, but to write them it has to
-   know the feature (to clear the flag).
-4) If a filesystem does not understand a COMPAT flag, it MAY still mount
-   read-write.  It's code will not trip over the feature it does not
-   understand.  The example is backup superblocks.  A filesystem that
-   does not understand backup superblocks will just ignore them -
-   they're marked as used in the global bitmap.
+> 
+> > - a small locking cleanup in configfs_rmdir(): will do at the same time as
+> >   lockdep stuff.
+> 
+> 	What sort of change?  I suppose I'll see it when it arrives.
 
-	A filesystem that doesn't understand xattrs (eg, 1.2) will see
-the xattr fields as padding.  It uses all the other fields to navigate
-the inode (i_list or i_data).  So it won't accidentally trip over the
-xattr stuff.  Thus, it would be safe to access the inode read-only.  It
-cannot access the inode read-write, as operations like unlink(2) will
-leak the xattr blocks.  Thus, it would be an RO_COMPAT feature.
-	However, as Mark pointed out, older filesystems clean up orphans
-in read-only mode.  That would leak xattrs - so xattrs cannot be
-RO_COMPAT, because it isn't safe for older modules to mount read-only..
+You may look at the retry loop in configfs_rmdir() and see?that locks need only
+to be taken inside the loop, not outside. This would result in fewer lines for
+exactly the same behavior.
 
-Joel
+> 	I figure this new stuff will probably miss the .27 window, but
+> it sounds like that's fine - nothing too serious, and it will make .28.
+
+Sorry for not being responsive enough. As mentioned above, I have more urgent
+things to work on right now.
+
+Thanks,
+
+Louis
 
 -- 
-
-"The opposite of a correct statement is a false statement. The
- opposite of a profound truth may well be another profound truth."
-         - Niels Bohr 
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Dr Louis Rilling			Kerlabs
+Skype: louis.rilling			Batiment Germanium
+Phone: (+33|0) 6 80 89 08 23		80 avenue des Buttes de Coesmes
+http://www.kerlabs.com/			35700 Rennes
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 189 bytes
+Desc: Digital signature
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080716/28b50dbe/attachment.bin 
