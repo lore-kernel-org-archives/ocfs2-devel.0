@@ -1,68 +1,68 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 16 Jul 2008 13:43:27 -0700
-Subject: [Ocfs2-devel] [BUGFIX][PATCH v2 0/2] configfs: Fix cleanup
-	after mkdir()	failure
-In-Reply-To: <20080716175654.GA19577@hawkmoon.kerlabs.com>
-References: <1215183366-17479-1-git-send-email-louis.rilling@kerlabs.com>
-	<20080711220740.GC22577@mail.oracle.com>
-	<20080716130821.GF3801@hawkmoon.kerlabs.com>
-	<20080716172703.GA18105@ca-server1.us.oracle.com>
-	<20080716175654.GA19577@hawkmoon.kerlabs.com>
-Message-ID: <20080716204327.GB16440@ca-server1.us.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed, 16 Jul 2008 17:22:22 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Fix oops when racing files
+	truncates with writes into an mmap region
+Message-ID: <1216254142-28879-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Louis Rilling <Louis.Rilling@kerlabs.com>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jul 16, 2008 at 07:56:54PM +0200, Louis Rilling wrote:
-> On Wed, Jul 16, 2008 at 10:27:03AM -0700, Joel Becker wrote:
-> > On Wed, Jul 16, 2008 at 03:08:21PM +0200, Louis Rilling wrote:
-> > > - error handling in config_*_init_type_name(): has rather low priority in my
-> > >   TODO list, will come back to it probably in a few weeks.
-> > 
-> > 	I thought we did this already.  Perhaps I didn't include it?
-> > Did we have another change to make?
-> 
-> You requested me to move a BUG_ON() earlier (before the actual memory
-> allocation), and to update documentation. I'm quite in a hurry on other things,
-> so I'm delaying this (especially the documentation part for which I feel like a
-> new paragraph is needed).
+This patch fixes an oops that is reproduced when one races writes to a mmap-ed
+region with another process truncating the file.
 
-	Sounds good.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/aops.c |   29 +++++++++++++++++------------
+ 1 files changed, 17 insertions(+), 12 deletions(-)
 
-> > > - a small locking cleanup in configfs_rmdir(): will do at the same time as
-> > >   lockdep stuff.
-> > 
-> > 	What sort of change?  I suppose I'll see it when it arrives.
-> 
-> You may look at the retry loop in configfs_rmdir() and see?that locks need only
-> to be taken inside the loop, not outside. This would result in fewer lines for
-> exactly the same behavior.
-
-	I see what you mean.  Not pressing, I agree.
-
-> > 	I figure this new stuff will probably miss the .27 window, but
-> > it sounds like that's fine - nothing too serious, and it will make .28.
-> 
-> Sorry for not being responsive enough. As mentioned above, I have more urgent
-> things to work on right now.
-
-	Don't worry, do what you have to do.  We're good for .27 - the
-major races have been fixed.  Thank you for all your work!
-
-Joel
-
-
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 17964c0..699144a 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1066,12 +1066,15 @@ static void ocfs2_write_failure(struct inode *inode,
+ 	for(i = 0; i < wc->w_num_pages; i++) {
+ 		tmppage = wc->w_pages[i];
+ 
+-		if (ocfs2_should_order_data(inode))
+-			walk_page_buffers(wc->w_handle, page_buffers(tmppage),
+-					  from, to, NULL,
+-					  ocfs2_journal_dirty_data);
+-
+-		block_commit_write(tmppage, from, to);
++		if (page_has_buffers(tmppage)) {
++			if (ocfs2_should_order_data(inode))
++				walk_page_buffers(wc->w_handle,
++						  page_buffers(tmppage),
++						  from, to, NULL,
++						  ocfs2_journal_dirty_data);
++
++			block_commit_write(tmppage, from, to);
++		}
+ 	}
+ }
+ 
+@@ -1894,12 +1897,14 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+ 			to = PAGE_CACHE_SIZE;
+ 		}
+ 
+-		if (ocfs2_should_order_data(inode))
+-			walk_page_buffers(wc->w_handle, page_buffers(tmppage),
+-					  from, to, NULL,
+-					  ocfs2_journal_dirty_data);
+-
+-		block_commit_write(tmppage, from, to);
++		if (page_has_buffers(tmppage)) {
++			if (ocfs2_should_order_data(inode))
++				walk_page_buffers(wc->w_handle,
++						  page_buffers(tmppage),
++						  from, to, NULL,
++						  ocfs2_journal_dirty_data);
++			block_commit_write(tmppage, from, to);
++		}
+ 	}
+ 
+ out_write_size:
 -- 
-
-Life's Little Instruction Book #451
-
-	"Don't be afraid to say, 'I'm sorry.'"
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.4.3
