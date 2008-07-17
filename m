@@ -1,38 +1,52 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 17 Jul 2008 11:13:10 -0700
-Subject: [Ocfs2-devel] [PATCH 08/15] ocfs2: Add extended attribute
-	support v2
-In-Reply-To: <487F1209.6050204@oracle.com>
-References: <48648B3E.6050808@oracle.com>
-	<1214551656-22529-1-git-send-email-tiger.yang@oracle.com>
-	<1214551656-22529-2-git-send-email-tiger.yang@oracle.com>
-	<20080710231119.GB32459@wotan.suse.de>
-	<487F1209.6050204@oracle.com>
-Message-ID: <20080717181310.GJ28014@wotan.suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 17 Jul 2008 14:20:38 -0700
+Subject: [Ocfs2-devel] [git patches] Ocfs2 and Configfs updates for
+	2.6.27
+In-Reply-To: <alpine.LFD.1.10.0807171056520.2959@woody.linux-foundation.org>
+References: <20080717175146.GH28014@wotan.suse.de>
+	<alpine.LFD.1.10.0807171056520.2959@woody.linux-foundation.org>
+Message-ID: <20080717212038.GA8283@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Andrew Morton <akpm@linux-foundation.org>
 
-On Thu, Jul 17, 2008 at 05:34:01PM +0800, Tiger Yang wrote:
-> >Btw, neither this, nor any of the other code seems to take symlinks into
-> >account. As far as I can tell, it's valid to set xattrs on a symlink. Is
-> >this correct? If so, we need to handle fast symlinks and also symlinks with
-> >extents. Though I suppose symlinks using extents probably don't need any
-> >extra work since they otherwise look like regular files.
+On Thu, Jul 17, 2008 at 11:01:40AM -0700, Linus Torvalds wrote:
+> .. I really dislike how this was done.
+
+	Argh!
+
+> This commit:
 > 
-> Could I do not put xattr inline when I found its a fast symlink? This 
-> could make the question simple.
+> 11c3b79218390a139f2d474ee1e983a672d5839a ("configfs: Allow ->make_item() 
+> and ->make_group() to return detailed errors.")
+> 
+> is just ugly. Returning one value by passing a pointer to a pointer, and 
+> the error value by returning an 'int' errno is _not_ how we do things in 
+> the kernel.
 
-Most of our symlinks are fast symlinks, so I don't think it'd be a good idea
-to skip inline xattrs on them.
+	See, I coded it up with PTR_ERR() first, and everyone I showed
+it to said "I hate PTR_ERR()!".
 
-What's the problem though? From your code, it seemed like fast symlinks
-would be pretty easy to take care of... Keep in mind by the way, that once
-created, the contents of a symlink never change. So it's not like you'll
-have to update the actual symlink code very much.
-	--Mark
+> I pulled it, but I want to register my protest.
 
---
-Mark Fasheh
+	I wish you hadn't, because it won't be to difficult to go back
+to PTR_ERR().  However, don't revert it - that affects some of the
+follow-on patches that were affected by the change.
+	I'll spin up a new PTR_ERR() change.  I have some more cleanups
+coming too, they need to finish their time in linux-next.
+
+Joel
+
+-- 
+
+"The cynics are right nine times out of ten."  
+        - H. L. Mencken
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
