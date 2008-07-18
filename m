@@ -1,63 +1,60 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 17 Jul 2008 17:47:15 -0700
-Subject: [Ocfs2-devel] [PATCH 12/15] Add xattr find process for xattr
-	index btree.v2
-In-Reply-To: <4877FDEA.4090801@oracle.com>
-References: <48648B3E.6050808@oracle.com>
-	<20080627070235.GA20375@tma-pc2.cn.oracle.com>
-	<20080711235914.GD9557@wotan.suse.de> <4877FDEA.4090801@oracle.com>
-Message-ID: <20080718004715.GO28014@wotan.suse.de>
+From: Louis Rilling <Louis.Rilling@kerlabs.com>
+Date: Fri, 18 Jul 2008 10:48:03 +0200
+Subject: [Ocfs2-devel] [git patches] Ocfs2 and Configfs updates
+	for	2.6.27
+In-Reply-To: <20080717223018.GC8283@ca-server1.us.oracle.com>
+References: <20080717175146.GH28014@wotan.suse.de>
+	<alpine.LFD.1.10.0807171056520.2959@woody.linux-foundation.org>
+	<20080717212038.GA8283@ca-server1.us.oracle.com>
+	<20080717214512.GB8283@ca-server1.us.oracle.com>
+	<20080717223018.GC8283@ca-server1.us.oracle.com>
+Message-ID: <20080718084803.GB3887@localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel.Becker@localdomain
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Andrew Morton <akpm@linux-foundation.org>
 
-On Sat, Jul 12, 2008 at 08:42:18AM +0800, Tao Ma wrote:
-> >This function looks like it's doing a lot of random I/O. What about sucking
-> >up some large numbers of (contiguous) blocks with a readahead request 
-> >before
-> >going into this function? The beauty of how our readhead works is that you
-> >wouldn't have to change a single line of code here..
-> Do you mean add OCFS2_BH_READAHEAD in read_block flag?
+On Thu, Jul 17, 2008 at 03:30:18PM -0700, Joel Becker wrote:
+> On Thu, Jul 17, 2008 at 02:45:12PM -0700, Joel Becker wrote:
+> > On Thu, Jul 17, 2008 at 02:20:38PM -0700, Joel Becker wrote:
+> > > On Thu, Jul 17, 2008 at 11:01:40AM -0700, Linus Torvalds wrote:
+> > > > I pulled it, but I want to register my protest.
+> > > 
+> > > 	I wish you hadn't, because it won't be to difficult to go back
+> > > to PTR_ERR().  However, don't revert it - that affects some of the
+> > > follow-on patches that were affected by the change.
+> > 
+> > 	I lied.  I'll cleanup the fallout.  You can revert it or wait
+> > for my revert + PTR_ERR.  Let me know if you revert it.
+> 
+> Linus,
+> 	Pull this to get the revert and the PTR_ERR() version:
+> 
+> git://oss.oracle.com/git/jlbec/linux-2.6.git configfs-fixup-ptr-error
+> 
+> It's tested with the same testing I did before - ocfs2 and netconsole.
 
-Yes. You can pass that flag to ocfs2_read_block and it will submit the read
-request without waiting on it to return. In fact, you can even drop your
-reference to the bh and read it in again later via a non-readahead
-ocfs2_read_block() call and the code will do the right thing.
+While this new version looks ok, it seems that it still allows client
+subsystems to return NULL in ->make_group()/->make_item(), in which case
+configfs_mkdir() turns the result into -ENOMEM. Maybe this is intended to
+smoothly update out-of-tree subsystems? I'd suggest to schedule a removal
+of this backward compatibility, and display an error log to encourage
+fixing the subsystems that still return NULL.
 
-An example of this is ocfs2_dir_foreach_blk_el() - it's doing directory
-readahead, though it's a bit obscured by the ocfs2_bread() call. I don't
-think you need ocfs2_bread() though, but underneath it's just
-ocfs2_read_block() + OCFS2_BH_READAHEAD.
+Louis
 
-
-> Not sure whether readahead can help us much. We normally only read the 
-> header of a bucket, as for bs=1K, we only read 1 block for every 4 
-> blocks, so most of readahead is useless. And even worse, with binary 
-> search, we really don't know which block we will read before the search. 
-> So can readahead help us in this issue? I am not familiar with IO 
-> readahead, so please be patient and explain it to you if you have time. ;)
-
-What I'm trying to do is take the multiple single-block reads that you're
-doing and turn them into a fewer number of larger, streaming reads.
-
-This will improve performance because the block layer below us will be
-better able to merge the multiple requests into a larger one, thus requiring
-fewer seeks (or fewer requests).
-
-What works in our favor is that we're limiting the size of leaves, as I
-discussed earlier.
-
-You're correct by the way, in that we might not touch some of the blocks
-that we've read. I think that's ok though - the point is that the ones we
-*do* touch will hopefully be there at the same time as all the rest.
-
-
-By the way, regarding the binary search, I find myself wondering if it's
-worth the effort, or whether we should just start with a linear search of
-the leaf. Do you have any opinions on this?
-	--Mark
-
---
-Mark Fasheh
+-- 
+Dr Louis Rilling			Kerlabs - IRISA
+Skype: louis.rilling			Campus Universitaire de Beaulieu
+Phone: (+33|0) 2 99 84 71 52		Avenue du General Leclerc
+Fax: (+33|0) 2 99 84 71 71		35042 Rennes CEDEX - France
+http://www.kerlabs.com/
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 189 bytes
+Desc: Digital signature
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080718/1c0019a6/attachment-0001.bin 
