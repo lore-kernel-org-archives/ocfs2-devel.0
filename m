@@ -1,54 +1,42 @@
-From: Julia Lawall <julia@diku.dk>
-Date: Mon, 21 Jul 2008 09:59:15 +0200 (CEST)
-Subject: [Ocfs2-devel] [PATCH 7/7] fs/ocfs2/file.c: Release mutex in error
-	handling code
-Message-ID: <Pine.LNX.4.64.0807210958570.24625@ask.diku.dk>
+From: Fabio M. Di Nitto <fdinitto@redhat.com>
+Date: Tue, 22 Jul 2008 06:16:38 +0200
+Subject: [Ocfs2-devel] HA Cluster Developer Summit 2008: call for
+	participants
+Message-ID: <1216700198.26234.36.camel@daitarn-fedora.int.fabbione.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-From: Julia Lawall <julia@diku.dk>
+Hi,
 
-The mutex is released on a successful return, so it would seem that it
-should be released on an error return as well.
+the HA Cluster Developer Summit 2008 will (1) take place in Prague (2),
+the beautiful capital of the Czech Republic, starting the 29th of Sept
+and finishing the 1st of October (3).
 
-The semantic patch finds this problem is as follows:
-(http://www.emn.fr/x-info/coccinelle/)
+Confirm your paticipation _before_ the end of July here:
 
-// <smpl>
-@@
-expression l;
-@@
+http://sources.redhat.com/cluster/wiki/ClusterSummit2008
 
-mutex_lock(l);
-... when != mutex_unlock(l)
-    when any
-    when strict
-(
-if (...) { ... when != mutex_unlock(l)
-+   mutex_unlock(l);
-    return ...;
-}
-|
-mutex_unlock(l);
-)
-// </smpl>
+Fill the table at the bottom of the page with the minimal required
+information.
 
-Signed-off-by: Julia Lawall <julia@diku.dk>
+Your real name is required if you want us to book the hotel for you.
+Email address is required for us to contact you if more information are
+required.
+Make sure to confirm asap. If uncertain we will not count you for
+quorum.
 
----
-diff -u -p a/fs/ocfs2/file.c b/fs/ocfs2/file.c
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1766,8 +1766,8 @@ out_inode_unlock:
- out_rw_unlock:
- 	ocfs2_rw_unlock(inode, 1);
- 
--	mutex_unlock(&inode->i_mutex);
- out:
-+	mutex_unlock(&inode->i_mutex);
- 	return ret;
- }
- 
+If you want to participate but prefer to keep your particiaption hidden
+from the wiki, mail me back with your information.
+
+The Summit schedule will be posted soon.
+
+Regards,
+Fabio
+
+(1) the summit will take place only if quorum is achieved.
+(2) http://en.wikipedia.org/wiki/Prague
+(3) the summit will last 3 days. People can participate from Monday
+morning to Wednesday afteroon.
