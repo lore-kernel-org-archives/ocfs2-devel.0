@@ -1,64 +1,111 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 25 Jul 2008 02:33:15 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2-tools: Add extended
-	attribute	support in mkfs.ocfs2
-In-Reply-To: <1216969599-9280-1-git-send-email-tiger.yang@oracle.com>
-References: <1216969599-9280-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <20080725093315.GF6317@ca-server1.us.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Fri, 25 Jul 2008 14:57:55 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Add extended attribute support
+	v3
+Message-ID: <20080725215755.GH28014@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jul 25, 2008 at 03:06:38PM +0800, Tiger Yang wrote:
-> diff --git a/include/ocfs2-kernel/ocfs2_fs.h b/include/ocfs2-kernel/ocfs2_fs.h
-> index 0cfef2a..ade9ec1 100644
-> --- a/include/ocfs2-kernel/ocfs2_fs.h
-> +++ b/include/ocfs2-kernel/ocfs2_fs.h
+Ok, your handling of symlinks looks fine. Thanks very much for doing this.
+Other comments on this patch below.
 
-	You've got an ancient version of the xattr ocfs2_fs.h here.
+On Fri, Jul 25, 2008 at 05:03:06PM +0800, Tiger Yang wrote:
+> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+> index 390a855..0977569 100644
+> --- a/fs/ocfs2/inode.h
+> +++ b/fs/ocfs2/inode.h
+> @@ -40,6 +40,14 @@ struct ocfs2_inode_info
+>  	/* protects allocation changes on this inode. */
+>  	struct rw_semaphore		ip_alloc_sem;
+>  
+> +	/*
+> +	 * Extended attributes can be read independently of the main file
+> +	 * data. Taking i_mutex even when reading would cause contention
+> +	 * between readers of EAs and writers of regular file data, so
+> +	 * instead we synchronize on xattr_sem when reading or changing EAs.
+> +	 */
+> +	struct rw_semaphore		xattr_sem;
 
-> +struct ocfs2_xattr_entry {
-> +	__le32	xe_name_hash;
-> +	__le16	xe_name_offset;
-> +	__u8	xe_name_len;
-> +	__u8	xe_type : 7;
-> +	__u8	xe_local : 1;
-> +	__le64	xe_value_size;
-> +};
+Nice comment - thanks for making this clear. I hate to say this though,
+but... Could you please remove it and go back to i_mutex / ip_alloc_sem
+locking for now?
 
-	We removed the bitfields.
+The thing is, the locking as you have it here isn't protecting against
+racing a data write, which is reading l_count on the extent list (or id_count on
+inline data) and an xattr write which might want to shrink those. You'll
+need at least ip_alloc_sem around those, since ocfs2_page_mkwrite() doesn't
+take i_mutex because it doesn't want to deadlock against the mmap
+semaphore.
 
-> +struct ocfs2_xattr_block {
-> +/*00*/	__u8	xb_signature[8];
-> +	__le16	xb_suballoc_slot;
-> +	__le16	xb_suballoc_bit;
-> +	__le32	xb_fs_generation;
-> +/*10*/	__le32	xb_csum;
-> +	__le16	xb_flags;
-> +	__le16	xb_reserved0;
-> +	__le64	xb_blkno;
-> +/*20*/	__le64	xb_reserved1[2];
-> +/*30*/	union {
-> +		struct ocfs2_xattr_header	xb_header;
-> +		struct ocfs2_xattr_tree_root	xb_root;
-> +	} xb_attrs;
-> +};
 
-	This got shuffled around for a 64bit checksum field.  Etc.  Can
-you sync up with Tao?
+Or are you trying to protect xattr against itself? If that's the case, you
+could push this lock up to the top and take it around entire operations.
 
-Joel
 
--- 
+>   * On disk structure for xattr block.
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index 00d0fff..d521362 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -532,6 +532,45 @@ bail:
+>  	return status;
+>  }
+>  
+> +int ocfs2_reserve_new_metadata_blocks(struct ocfs2_super *osb,
+> +				      int blocks,
+> +				      struct ocfs2_alloc_context **ac)
+> +{
+> +	int status;
+> +	u32 slot;
+> +
+> +	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+> +	if (!(*ac)) {
+> +		status = -ENOMEM;
+> +		mlog_errno(status);
+> +		goto bail;
+> +	}
+> +
+> +	(*ac)->ac_bits_wanted = blocks;
+> +	(*ac)->ac_which = OCFS2_AC_USE_META;
+> +	slot = osb->slot_num;
+> +	(*ac)->ac_group_search = ocfs2_block_group_search;
+> +
+> +	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
+> +					     EXTENT_ALLOC_SYSTEM_INODE,
+> +					     slot, ALLOC_NEW_GROUP);
+> +	if (status < 0) {
+> +		if (status != -ENOSPC)
+> +			mlog_errno(status);
+> +		goto bail;
+> +	}
+> +
+> +	status = 0;
+> +bail:
+> +	if ((status < 0) && *ac) {
+> +		ocfs2_free_alloc_context(*ac);
+> +		*ac = NULL;
+> +	}
+> +
+> +	mlog_exit(status);
+> +	return status;
+> +}
 
-"The nice thing about egotists is that they don't talk about other
- people."
-         - Lucille S. Harper
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Ok, I see what you're doing here, but you should just refactor
+ocfs2_reserve_new_metadata() as a small wrapper around this function:
+
+int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
+			       struct ocfs2_extent_list *root_el,
+			       struct ocfs2_alloc_context **ac)
+{
+	return ocfs2_reserve_new_metadata_blocks(osb, ocfs2_extend_meta_needed(root_el), ac);
+}
+
+Thanks,
+	--Mark
+
+--
+Mark Fasheh
