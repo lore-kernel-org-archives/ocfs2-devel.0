@@ -1,40 +1,36 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 25 Jul 2008 17:08:03 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2-tools: Add extended attribute
- support in fsck.ocfs2
-In-Reply-To: <48899524.3050805@oracle.com>
-References: <1216969599-9280-1-git-send-email-tiger.yang@oracle.com>
-	<1216969599-9280-2-git-send-email-tiger.yang@oracle.com>
-	<48898644.9090307@oracle.com> <48899524.3050805@oracle.com>
-Message-ID: <488997F3.9010408@oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Fri, 25 Jul 2008 17:10:30 +0800
+Subject: [Ocfs2-devel] [PATCH 08/15] ocfs2: Add extended attribute
+ support v2
+In-Reply-To: <20080710231119.GB32459@wotan.suse.de>
+References: <48648B3E.6050808@oracle.com>
+	<1214551656-22529-1-git-send-email-tiger.yang@oracle.com>
+	<1214551656-22529-2-git-send-email-tiger.yang@oracle.com>
+	<20080710231119.GB32459@wotan.suse.de>
+Message-ID: <48899886.80707@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Mark Fasheh wrote:
+  > Btw, neither this, nor any of the other code seems to take symlinks into
+> account. As far as I can tell, it's valid to set xattrs on a symlink. Is
+> this correct? If so, we need to handle fast symlinks and also symlinks with
+> extents. Though I suppose symlinks using extents probably don't need any
+> extra work since they otherwise look like regular files.
 
+I add ea support for symlink file and I fixed other issues you 
+mentioned. please review the patch.
 
-Tiger Yang wrote:
-> 
-> Tao Ma wrote:
-> 
->>> +static inline int ocfs2_xattr_extent_recs_per_inode(int blocksize)
->>> +{
->>> +    int size;
->>> +
->>> +    size = blocksize - offsetof(struct ocfs2_xattr_block,
->>> +                    xb_attrs.xb_root.xt_list.l_recs);
->>> +
->>> +    return (size / sizeof(struct ocfs2_extent_rec));
->>> +}
->> I remember with 512, there is no xattr in inode.
-> 
-> This function only used in index block, it's not for inode block.
-So could you please rename it as it isn't concerned with inode?
+thanks,
+tiger
 
-btw, next time please send your patch to ocfs2-tools-devel since it is 
-tools' patches.
-
-Regards,
-Tao
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-ocfs2-Add-extended-attribute-support-v3.patch
+Type: text/x-patch
+Size: 62480 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080725/a7750633/attachment-0001.bin 
