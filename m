@@ -1,47 +1,58 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu, 31 Jul 2008 17:37:12 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Add extended attribute support
-	v3
-In-Reply-To: <20080725215755.GH28014@wotan.suse.de>
-References: <20080725215755.GH28014@wotan.suse.de>
-Message-ID: <489187C8.7030708@oracle.com>
+From: Coly Li <coyli@suse.de>
+Date: Thu, 31 Jul 2008 21:40:21 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2-tools: add error message to mount.ocfs2
+ when mount point is invalid.
+Message-ID: <4891C0C5.1010007@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> The thing is, the locking as you have it here isn't protecting against
-> racing a data write, which is reading l_count on the extent list (or id_count on
-> inline data) and an xattr write which might want to shrink those. You'll
-> need at least ip_alloc_sem around those, since ocfs2_page_mkwrite() doesn't
-> take i_mutex because it doesn't want to deadlock against the mmap
-> semaphore.
-Thanks, You point out a potential bug in my patch. I didn't protect
-reading/writing xattr against file data.
+Adds error messages to mount.ocfs2 when mount point is invalid in three conditions:
+1) mount point does not exist.
+2) mount point is a symbolic link.
+3) mount point is not a directory.
+Adding these error messages can help ocfs2console provides more helpful feedback information to end 
+use. Similar information can be found when mounting ext[234] file systems.
 
-My patch check l_count/id_count in ocfs2_xattr_has_space_inline() and
-may change it in ocfs2_xattr_ibody_set().
-is patch attached fix this problem?
+Patch is generated against upstream ocfs2-tools.
 
+Signed-off-by: Coly Li <coyli@suse.de>
+Cc: Joel Becker <Joel.Becker@oracle.com>
+Cc: Tao Ma <tao.ma@oracle.com>
+Cc: Tiger Yang <tiger.yang@oracle.com>
+---
+diff --git a/mount.ocfs2/mount.ocfs2.c b/mount.ocfs2/mount.ocfs2.c
+index a97b4cb..eb8e336 100644
+--- a/mount.ocfs2/mount.ocfs2.c
++++ b/mount.ocfs2/mount.ocfs2.c
+@@ -382,9 +382,21 @@ int main(int argc, char **argv)
+  			o2cb_complete_group_join(&cluster, &desc, errno);
+  		}
+  		block_signals (SIG_UNBLOCK);
+-		com_err(progname, ret, "while mounting %s on %s. "
+-			"Check 'dmesg' for more information on this error.",
+-			mo.dev, mo.dir);
++
++		/* complain mount failure */
++		if (lstat(mo.dir, &statbuf))
++			com_err(progname, 0, "mount point %s does not "
++				"exist", mo.dir);
++		else if (stat(mo.dir, &statbuf))
++			com_err(progname, 0, "mount point %s is a "
++				"symbolic link to nowhere", mo.dir);
++		else if (stat(mo.dir, &statbuf) || !S_ISDIR(statbuf.st_mode))
++			com_err(progname, 0, "mount point %s is not "
++				"a directory", mo.dir);
++		else
++			com_err(progname, ret, "while mounting %s on %s. "
++				"Check 'dmesg' for more information on this "
++				"error.", mo.dev, mo.dir);
+  		goto bail;
+  	}
+  	if (hb_started) {
 
-> Or are you trying to protect xattr against itself? If that's the case, you
-> could push this lock up to the top and take it around entire operations.
-Actually I am trying to protect xattr read/write by this semaphore,
-since we found a bug about it.
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=990
-
-So I need change comment about xattr semaphore.
-/* protects extended attribute change on this inode */
-
-Best regards,
-tiger
-
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: 0009-2.patch
-Type: text/x-patch
-Size: 1253 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080731/7cf7eb39/attachment.bin 
+-- 
+Coly Li
+SuSE PRC Labs
