@@ -1,79 +1,68 @@
-From: wengang wang <wen.gang.wang@oracle.com>
-Date: Tue, 01 Jul 2008 11:53:49 +0800
-Subject: [Ocfs2-devel] [BUGFIX][OCFS2 1/1] inode truncating
-In-Reply-To: <4869A35F.9080502@oracle.com>
-References: <48689FEF.6040504@oracle.com> <4869A35F.9080502@oracle.com>
-Message-ID: <4869AA4D.2000704@oracle.com>
+From: Louis Rilling <louis.rilling@kerlabs.com>
+Date: Fri,  1 Aug 2008 14:03:02 +0200
+Subject: [Ocfs2-devel] [PATCH] configfs: Consolidate locking around
+	configfs_detach_prep() in configfs_rmdir()
+Message-ID: <1217592182-26845-1-git-send-email-louis.rilling@kerlabs.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Louis Rilling <louis.rilling@kerlabs.com>
 
-Sunil,
+It appears that configfs_rmdir() can protect configfs_detach_prep() retries with
+less calls to {spin,mutex}_{lock,unlock}, and a cleaner code.
 
-bugzilla filed with answers to your questions.
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=986
+This patch does not change any behavior, except that it removes two useless
+lock/unlock pairs having nothing inside to protect and providing a useless
+barrier.
 
-regards,
-wengang.
-Sunil Mushran wrote:
-> Wengang,
->
-> I needed some clarification. Is the fix proposed in kernel or in ocfs2,
-> or in kernel and in ocfs2?
->
-> Is the bug in 1.2/el4 only? Has 1.2/el5 or current mainline tested?
-> Just want to know what has been tested.
->
-> Also, please could you a file a bugzilla with the details. Especially
-> the testcase. Will be useful as we will be able to test it in
-> multiple envs.
->
-> Thanks
-> Sunil
->
-> wengang wang wrote:
->> /an ocfs2 bug:
->> a truncate races with ocfs2_get_block(...,0).
->>
->> 1) 'dd' is doing a truncate, clearing the page cache and reset inode 
->> size./
->> /2) between clearing page cache and resizing inode, a read comes and 
->> create a /
->> /new page and insert it to page cache./
->> /3) the read(from `cat`) set buffer head in the new page as mapped 
->> but doesn't increase /   /ip_mmu_private in ocfs2_get_block() because 
->> it's a read./
->> /4) a write from 'dd' matches the page that the read created. because 
->> the buffer /
->>  /heads are already mapped, it doesn't call ocfs2_get_block. the 
->> ip_mmu_private /
->>  /keeps unchanged since last write./
->> /5) in cont_prepare_write() it dead loops since bytes(ip_mmu_private) 
->> is not /
->>  /increased in last prepare write./
->>
->> BUG is described in 
->> s://bug.oraclecorp.com/pls/bug/webbug_print.show?c_rptno=7183894.
->>
->> solution:
->> /1) moves the clearing of page cache truncate_inode_pages() from 
->> ocfs2_truncate_file() to/
->>  /ocfs2_set_inode_size() after resizing inode size and i_blocks./
->> /2) in ocfs2_get_block(), add checks on iblock >= inode->i_blocks. if 
->> true, return -EIO.
->> 3) //a kernel bug fix is needed for 2.6.9 kernel.
->> //see https://bugzilla.redhat.com/show_bug.cgi?id=453359/
->>
->> aops.c |    6 ++++++
->> file.c |    4 ++--
->> 2 files changed, 8 insertions(+), 2 deletions(-)
->>
->> ------------------------------------------------------------------------
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+Signed-off-by: Louis Rilling <louis.rilling@kerlabs.com>
+---
+ fs/configfs/dir.c |   17 +++++++----------
+ 1 files changed, 7 insertions(+), 10 deletions(-)
+
+diff --git a/fs/configfs/dir.c b/fs/configfs/dir.c
+index 7a8db78..8e93341 100644
+--- a/fs/configfs/dir.c
++++ b/fs/configfs/dir.c
+@@ -1311,16 +1311,18 @@ static int configfs_rmdir(struct inode *dir, struct dentry *dentry)
+ 	 * Ensure that no racing symlink() will make detach_prep() fail while
+ 	 * the new link is temporarily attached
+ 	 */
+-	mutex_lock(&configfs_symlink_mutex);
+-	spin_lock(&configfs_dirent_lock);
+ 	do {
+ 		struct mutex *wait_mutex;
+ 
++		mutex_lock(&configfs_symlink_mutex);
++		spin_lock(&configfs_dirent_lock);
+ 		ret = configfs_detach_prep(dentry, &wait_mutex);
+-		if (ret) {
++		if (ret)
+ 			configfs_detach_rollback(dentry);
+-			spin_unlock(&configfs_dirent_lock);
+-			mutex_unlock(&configfs_symlink_mutex);
++		spin_unlock(&configfs_dirent_lock);
++		mutex_unlock(&configfs_symlink_mutex);
++
++		if (ret) {
+ 			if (ret != -EAGAIN) {
+ 				config_item_put(parent_item);
+ 				return ret;
+@@ -1329,13 +1331,8 @@ static int configfs_rmdir(struct inode *dir, struct dentry *dentry)
+ 			/* Wait until the racing operation terminates */
+ 			mutex_lock(wait_mutex);
+ 			mutex_unlock(wait_mutex);
+-
+-			mutex_lock(&configfs_symlink_mutex);
+-			spin_lock(&configfs_dirent_lock);
+ 		}
+ 	} while (ret == -EAGAIN);
+-	spin_unlock(&configfs_dirent_lock);
+-	mutex_unlock(&configfs_symlink_mutex);
+ 
+ 	/* Get a working ref for the duration of this function */
+ 	item = configfs_get_config_item(dentry);
+-- 
+1.5.5.3
