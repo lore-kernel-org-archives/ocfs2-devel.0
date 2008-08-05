@@ -1,31 +1,37 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 29 Aug 2008 10:48:31 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Switch over to JBD2.
-In-Reply-To: <48B833EE.3050609@oracle.com>
-References: <20080829004902.GF15974@mail.oracle.com>
-	<48B833EE.3050609@oracle.com>
-Message-ID: <20080829174831.GS4563@wotan.suse.de>
+From: Alexander Beregalov <a.beregalov@gmail.com>
+Date: Tue, 05 Aug 2008 20:12:20 -0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster/netdebug.c: fix warning
+Message-ID: <20080805201036.GC17320@orion>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mfasheh@suse.com, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Fri, Aug 29, 2008 at 10:37:50AM -0700, Sunil Mushran wrote:
-> Any reason we don't want to support both jbd and jdb2. As in, using
-> incompat to specifically enable jbd2.
+From: Alexander Beregalov <a.beregalov@gmail.com>
 
-I keep going back and forth on this. On one hand, we want people to be on
-JBD2 as it handles all our needs (including backwards compat with JBD). On
-the other hand, it might be prudent to allow folks a fallback, just for a
-short while until this has been "in the wild" for a bit.
+ocfs2/cluster/netdebug.c: fix warning
+
+fs/ocfs2/cluster/netdebug.c:154: warning: format '%lu' expects
+	type 'long unsigned int', but argument 17 has type 'suseconds_t'
 
 
-> I am talking about short term only. Long term is jdb2 only.
+Signed-off-by: Alexander Beregalov <a.beregalov@gmail.com>
+---
 
-Yeah. My thinking right now is that we make JBD2 the default, mark Ocfs2 JBD
-support as deprecated, and remove JBD support completely in 2.6.29.
-	--Mark
+ fs/ocfs2/cluster/netdebug.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
---
-Mark Fasheh
+diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
+index d8bfa0e..cdc0ed2 100644
+--- a/fs/ocfs2/cluster/netdebug.c
++++ b/fs/ocfs2/cluster/netdebug.c
+@@ -151,7 +151,7 @@ static int nst_seq_show(struct seq_file *seq, void *v)
+ 			   nst->st_send_time.tv_sec,
+ 			   (unsigned long)nst->st_send_time.tv_usec,
+ 			   nst->st_status_time.tv_sec,
+-			   nst->st_status_time.tv_usec);
++			   (unsigned long)nst->st_status_time.tv_usec);
+ 	}
+ 
+ 	spin_unlock(&o2net_debug_lock);
