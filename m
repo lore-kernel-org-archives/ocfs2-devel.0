@@ -1,44 +1,157 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Wed, 06 Aug 2008 10:34:53 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Add extended attribute support
-	v3
-In-Reply-To: <20080804213404.GO28014@wotan.suse.de>
-References: <20080725215755.GH28014@wotan.suse.de>
-	<489187C8.7030708@oracle.com>
-	<20080804213404.GO28014@wotan.suse.de>
-Message-ID: <48990DCD.7090804@oracle.com>
+From: Adrian Bunk <bunk@kernel.org>
+Date: Thu, 7 Aug 2008 00:11:12 +0300
+Subject: [Ocfs2-devel] [2.6 patch] ocfs2/cluster/tcp.c: make some functions
+	static
+Message-ID: <20080806211112.GP1702@cs181140183.pp.htv.fi>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Sunil Mushran <sunil.mushran@oracle.com>, Mark Fasheh <mfasheh@suse.com>, joel.becker@oracle.com
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
+Commit 0f475b2abed6cbccee1da20a0bef2895eb2a0edd
+(ocfs2/net: Silence build warnings) made sense
+as far as it fixed compile warnings, but it was
+not required that it made the functions global.
 
-Mark Fasheh wrote:
-> In order to protect against mmap changing the inline data state, you should
-> hold a write lock on ip_alloc_sem across the call to ocfs2_xattr_ibody_find()
-> and until the return from ocfs2_xattr_set_entry.
-> 
-> So basically, ocfs2_xattr_set() should look like:
-> 
-> ...
-> down_write(&oi->ip_alloc_sem);
-> ocfs2_ibody_find();
-> ...
-> ocfs2_xattr_set_entry();
-> up_write(&oi->ip_alloc_sem);
-> ...
-> 
-> This way mmap can't change inline data state in between the calls to
-> ibody_find and xattr_set_entry.
+Signed-off-by: Adrian Bunk <bunk@kernel.org>
 
-Thanks the guide. I think I have done what your said.
-In ocfs2_ibody_find(), I checked the l_count/id_count with readable 
-semaphore. And in ocfs2_xattr_set_ibody, I checked it again and follow 
-by ocfs2_xattr_set_entry() with writable semaphore. If mmap change 
-l_count/id_count between those two function, I still have chance to know 
-it. And data in struct ocfs2_xattr_search which filled in 
-ocfs2_ibody_find() are not affected by mmap operations.
+---
 
-Best regards,
-tiger
+This patch has been sent on:
+- 5 Jun 2008
+
+ fs/ocfs2/cluster/tcp.c          |   44 ++++++++++++++++++++++++++------
+ fs/ocfs2/cluster/tcp_internal.h |   32 -----------------------
+ 2 files changed, 37 insertions(+), 39 deletions(-)
+
+dd88fbb63c1952663eed2f1d93b85a95938cf37c diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index a27d615..2bcf706 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -143,8 +143,8 @@ static void o2net_sc_postpone_idle(struct o2net_sock_container *sc);
+ static void o2net_sc_reset_idle_timer(struct o2net_sock_container *sc);
+ 
+ #ifdef CONFIG_DEBUG_FS
+-void o2net_init_nst(struct o2net_send_tracking *nst, u32 msgtype,
+-		    u32 msgkey, struct task_struct *task, u8 node)
++static void o2net_init_nst(struct o2net_send_tracking *nst, u32 msgtype,
++			   u32 msgkey, struct task_struct *task, u8 node)
+ {
+ 	INIT_LIST_HEAD(&nst->st_net_debug_item);
+ 	nst->st_task = task;
+@@ -153,31 +153,61 @@ void o2net_init_nst(struct o2net_send_tracking *nst, u32 msgtype,
+ 	nst->st_node = node;
+ }
+ 
+-void o2net_set_nst_sock_time(struct o2net_send_tracking *nst)
++static void o2net_set_nst_sock_time(struct o2net_send_tracking *nst)
+ {
+ 	do_gettimeofday(&nst->st_sock_time);
+ }
+ 
+-void o2net_set_nst_send_time(struct o2net_send_tracking *nst)
++static void o2net_set_nst_send_time(struct o2net_send_tracking *nst)
+ {
+ 	do_gettimeofday(&nst->st_send_time);
+ }
+ 
+-void o2net_set_nst_status_time(struct o2net_send_tracking *nst)
++static void o2net_set_nst_status_time(struct o2net_send_tracking *nst)
+ {
+ 	do_gettimeofday(&nst->st_status_time);
+ }
+ 
+-void o2net_set_nst_sock_container(struct o2net_send_tracking *nst,
++static void o2net_set_nst_sock_container(struct o2net_send_tracking *nst,
+ 					 struct o2net_sock_container *sc)
+ {
+ 	nst->st_sc = sc;
+ }
+ 
+-void o2net_set_nst_msg_id(struct o2net_send_tracking *nst, u32 msg_id)
++static void o2net_set_nst_msg_id(struct o2net_send_tracking *nst, u32 msg_id)
+ {
+ 	nst->st_id = msg_id;
+ }
++
++#else  /* CONFIG_DEBUG_FS */
++
++static inline void o2net_init_nst(struct o2net_send_tracking *nst, u32 msgtype,
++				  u32 msgkey, struct task_struct *task, u8 node)
++{
++}
++
++static inline void o2net_set_nst_sock_time(struct o2net_send_tracking *nst)
++{
++}
++
++static inline void o2net_set_nst_send_time(struct o2net_send_tracking *nst)
++{
++}
++
++static inline void o2net_set_nst_status_time(struct o2net_send_tracking *nst)
++{
++}
++
++static inline void o2net_set_nst_sock_container(struct o2net_send_tracking *nst,
++						struct o2net_sock_container *sc)
++{
++}
++
++static inline void o2net_set_nst_msg_id(struct o2net_send_tracking *nst,
++					u32 msg_id)
++{
++}
++
+ #endif /* CONFIG_DEBUG_FS */
+ 
+ static inline int o2net_reconnect_delay(void)
+diff --git a/fs/ocfs2/cluster/tcp_internal.h b/fs/ocfs2/cluster/tcp_internal.h
+index 18307ff..8d58cfe 100644
+--- a/fs/ocfs2/cluster/tcp_internal.h
++++ b/fs/ocfs2/cluster/tcp_internal.h
+@@ -224,42 +224,10 @@ struct o2net_send_tracking {
+ 	struct timeval			st_send_time;
+ 	struct timeval			st_status_time;
+ };
+-
+-void o2net_init_nst(struct o2net_send_tracking *nst, u32 msgtype,
+-		    u32 msgkey, struct task_struct *task, u8 node);
+-void o2net_set_nst_sock_time(struct o2net_send_tracking *nst);
+-void o2net_set_nst_send_time(struct o2net_send_tracking *nst);
+-void o2net_set_nst_status_time(struct o2net_send_tracking *nst);
+-void o2net_set_nst_sock_container(struct o2net_send_tracking *nst,
+-				  struct o2net_sock_container *sc);
+-void o2net_set_nst_msg_id(struct o2net_send_tracking *nst, u32 msg_id);
+-
+ #else
+ struct o2net_send_tracking {
+ 	u32	dummy;
+ };
+-
+-static inline void o2net_init_nst(struct o2net_send_tracking *nst, u32 msgtype,
+-				  u32 msgkey, struct task_struct *task, u8 node)
+-{
+-}
+-static inline void o2net_set_nst_sock_time(struct o2net_send_tracking *nst)
+-{
+-}
+-static inline void o2net_set_nst_send_time(struct o2net_send_tracking *nst)
+-{
+-}
+-static inline void o2net_set_nst_status_time(struct o2net_send_tracking *nst)
+-{
+-}
+-static inline void o2net_set_nst_sock_container(struct o2net_send_tracking *nst,
+-						struct o2net_sock_container *sc)
+-{
+-}
+-static inline void o2net_set_nst_msg_id(struct o2net_send_tracking *nst,
+-					u32 msg_id)
+-{
+-}
+ #endif	/* CONFIG_DEBUG_FS */
+ 
+ #endif /* O2CLUSTER_TCP_INTERNAL_H */
