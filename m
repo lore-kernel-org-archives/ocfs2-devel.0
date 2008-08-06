@@ -1,161 +1,248 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Thu,  7 Aug 2008 06:31:27 +0800
-Subject: [Ocfs2-devel] [PATCH 05/15] Add xattr header in ocfs2. v3
+Date: Thu,  7 Aug 2008 06:31:24 +0800
+Subject: [Ocfs2-devel] [PATCH 02/15] Use ocfs2_extent_list instead of
+	ocfs2_dinode.
 In-Reply-To: <489A94F4.90903@oracle.com>
 References: <489A94F4.90903@oracle.com>
-Message-ID: <1218061894-7693-5-git-send-email-tao.ma@oracle.com>
+Message-ID: <1218061894-7693-2-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Modification from V2 to V3:
-1. Add annotations for every field.
-2. Change csum to be _le64 include xb_csum and xh_csum.
-3. Change the definition of xe_local and xe_type and add set/get helper
-   function for them.
+ocfs2_extend_meta_needed, ocfs2_calc_extend_credits and
+ocfs2_reserve_new_metadata are all useful for extent tree operations.
+But they are all limited by using ocfs2_dinode as the parameter.
+Change their parameter to ocfs2_extent_list so that xattr extent
+list can use them.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/ocfs2_fs.h |  118 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 118 insertions(+), 0 deletions(-)
+ fs/ocfs2/alloc.c    |    3 ++-
+ fs/ocfs2/alloc.h    |   12 +++++++++---
+ fs/ocfs2/aops.c     |    3 ++-
+ fs/ocfs2/dir.c      |    5 +++--
+ fs/ocfs2/file.c     |    9 +++++----
+ fs/ocfs2/journal.h  |   17 +++++++++++------
+ fs/ocfs2/suballoc.c |    4 ++--
+ fs/ocfs2/suballoc.h |    7 ++++++-
+ 8 files changed, 40 insertions(+), 20 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 3f19451..1b0e136 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -64,6 +64,7 @@
- #define OCFS2_INODE_SIGNATURE		"INODE01"
- #define OCFS2_EXTENT_BLOCK_SIGNATURE	"EXBLK01"
- #define OCFS2_GROUP_DESC_SIGNATURE      "GROUP01"
-+#define OCFS2_XATTR_BLOCK_SIGNATURE	"XATTR01"
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index c74711f..dc844df 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -4536,7 +4536,8 @@ static int ocfs2_split_tree(struct inode *inode, struct buffer_head *di_bh,
+ 	} else
+ 		rightmost_el = path_leaf_el(path);
  
- /* Compatibility flags */
- #define OCFS2_HAS_COMPAT_FEATURE(sb,mask)			\
-@@ -712,6 +713,123 @@ struct ocfs2_group_desc
- /*40*/	__u8    bg_bitmap[0];
- };
- 
+-	credits += path->p_tree_depth + ocfs2_extend_meta_needed(di);
++	credits += path->p_tree_depth +
++		   ocfs2_extend_meta_needed(&di->id2.i_list);
+ 	ret = ocfs2_extend_trans(handle, credits);
+ 	if (ret) {
+ 		mlog_errno(ret);
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index 758dbda..249e79e 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -48,8 +48,14 @@ int ocfs2_remove_extent(struct inode *inode, struct buffer_head *di_bh,
+ int ocfs2_num_free_extents(struct ocfs2_super *osb,
+ 			   struct inode *inode,
+ 			   struct buffer_head *bh);
+-/* how many new metadata chunks would an allocation need at maximum? */
+-static inline int ocfs2_extend_meta_needed(struct ocfs2_dinode *fe)
 +/*
-+ * On disk extended attribute structure for OCFS2.
-+ */
-+
-+/*
-+ * ocfs2_xattr_entry indicates one extend attribute.
++ * how many new metadata chunks would an allocation need at maximum?
 + *
-+ * Note that it can be stored in inode, one block or one xattr bucket.
++ * Please note that the caller must make sure that root_el is the root
++ * of extent tree. So for an inode, it should be &fe->id2.i_list. Otherwise
++ * the result may be wrong.
 + */
-+struct ocfs2_xattr_entry {
-+	__le32	xe_name_hash;    /* hash value of xattr prefix+suffix. */
-+	__le16	xe_name_offset;  /* byte offset from the 1st etnry in the local
-+				    local xattr storage(inode, xattr block or
-+				    xattr bucket). */
-+	__u8	xe_name_len;	 /* xattr name len, does't include prefix. */
-+	__u8	xe_type;         /* the low 7 bits indicates the name prefix's
-+				  * type and the highest 1 bits indicate whether
-+				  * the EA is stored in the local storage. */
-+	__le64	xe_value_size;	 /* real xattr value length. */
-+};
-+
-+/*
-+ * On disk structure for xattr header.
-+ *
-+ * One ocfs2_xattr_header describes how many ocfs2_xattr_entry records in
-+ * the local xattr storage.
-+ */
-+struct ocfs2_xattr_header {
-+	__le16	xh_count;                       /* contains the count of how
-+						   many records are in the
-+						   local xattr storage. */
-+	__le16	xh_reserved1;
-+	__le32	xh_reserved2;
-+	__le64  xh_csum;
-+	struct ocfs2_xattr_entry xh_entries[0]; /* xattr entry list. */
-+};
-+
-+/*
-+ * On disk structure for xattr value root.
-+ *
-+ * It is used when one extended attribute's size is larger, and we will save it
-+ * in an outside cluster. It will stored in a b-tree like file content.
-+ */
-+struct ocfs2_xattr_value_root {
-+/*00*/	__le32	xr_clusters;              /* clusters covered by xattr value. */
-+	__le32	xr_reserved0;
-+	__le64	xr_last_eb_blk;           /* Pointer to last extent block */
-+/*10*/	struct ocfs2_extent_list xr_list; /* Extent record list */
-+};
-+
-+/*
-+ * On disk structure for xattr tree root.
-+ *
-+ * It is used when there are too many extended attributes for one file. These
-+ * attributes will be organized and stored in an indexed-btree.
-+ */
-+struct ocfs2_xattr_tree_root {
-+/*00*/	__le32	xt_clusters;              /* clusters covered by xattr. */
-+	__le32	xt_reserved0;
-+	__le64	xt_last_eb_blk;           /* Pointer to last extent block */
-+/*10*/	struct ocfs2_extent_list xt_list; /* Extent record list */
-+};
-+
-+#define OCFS2_XATTR_INDEXED 0x1
-+
-+/*
-+ * On disk structure for xattr block.
-+ */
-+struct ocfs2_xattr_block {
-+/*00*/	__u8	xb_signature[8];     /* Signature for verification */
-+	__le16	xb_suballoc_slot;    /* Slot suballocator this
-+					block belongs to. */
-+	__le16	xb_suballoc_bit;     /* Bit offset in suballocator
-+					block group */
-+	__le32	xb_fs_generation;    /* Must match super block */
-+/*10*/	__le64	xb_blkno;            /* Offset on disk, in blocks */
-+	__le64	xb_csum;
-+/*20*/	__le16	xb_flags;            /* Indicates whether this block contains
-+					real xattr or a xattr tree. */
-+	__le16	xb_reserved0;
-+	__le32  xb_reserved1;
-+	__le64	xb_reserved2;
-+/*30*/	union {
-+		struct ocfs2_xattr_header xb_header; /* xattr header if this
-+							block contains xattr */
-+		struct ocfs2_xattr_tree_root xb_root;/* xattr tree root if this
-+							block cotains xattr
-+							tree. */
-+	} xb_attrs;
-+};
-+
-+#define OCFS2_XATTR_ENTRY_LOCAL		0x80
-+#define OCFS2_XATTR_TYPE_MASK		0x7F
-+static inline void ocfs2_xattr_set_local(struct ocfs2_xattr_entry *xe,
-+					 int local)
-+{
-+	if (local)
-+		xe->xe_type |= OCFS2_XATTR_ENTRY_LOCAL;
-+	else
-+		xe->xe_type &= ~OCFS2_XATTR_ENTRY_LOCAL;
-+}
-+
-+static inline int ocfs2_xattr_is_local(struct ocfs2_xattr_entry *xe)
-+{
-+	return xe->xe_type & OCFS2_XATTR_ENTRY_LOCAL;
-+}
-+
-+static inline void ocfs2_xattr_set_type(struct ocfs2_xattr_entry *xe, int type)
-+{
-+	xe->xe_type |= type;
-+}
-+
-+static inline int ocfs2_xattr_get_type(struct ocfs2_xattr_entry *xe)
-+{
-+	return xe->xe_type & OCFS2_XATTR_TYPE_MASK;
-+}
-+
- #ifdef __KERNEL__
- static inline int ocfs2_fast_symlink_chars(struct super_block *sb)
++static inline int ocfs2_extend_meta_needed(struct ocfs2_extent_list *root_el)
  {
+ 	/*
+ 	 * Rather than do all the work of determining how much we need
+@@ -59,7 +65,7 @@ static inline int ocfs2_extend_meta_needed(struct ocfs2_dinode *fe)
+ 	 * new tree_depth==0 extent_block, and one block at the new
+ 	 * top-of-the tree.
+ 	 */
+-	return le16_to_cpu(fe->id2.i_list.l_tree_depth) + 2;
++	return le16_to_cpu(root_el->l_tree_depth) + 2;
+ }
+ 
+ void ocfs2_dinode_new_extent_list(struct inode *inode, struct ocfs2_dinode *di);
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 70da6ab..36d72f9 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1717,7 +1717,8 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+ 			goto out;
+ 		}
+ 
+-		credits = ocfs2_calc_extend_credits(inode->i_sb, di,
++		credits = ocfs2_calc_extend_credits(inode->i_sb,
++						    &di->id2.i_list,
+ 						    clusters_to_alloc);
+ 
+ 	}
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 8a14fff..5e8cd6d 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -1425,6 +1425,7 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 	int credits, num_free_extents, drop_alloc_sem = 0;
+ 	loff_t dir_i_size;
+ 	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) parent_fe_bh->b_data;
++	struct ocfs2_extent_list *el = &fe->id2.i_list;
+ 	struct ocfs2_alloc_context *data_ac = NULL;
+ 	struct ocfs2_alloc_context *meta_ac = NULL;
+ 	handle_t *handle = NULL;
+@@ -1483,7 +1484,7 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 		}
+ 
+ 		if (!num_free_extents) {
+-			status = ocfs2_reserve_new_metadata(osb, fe, &meta_ac);
++			status = ocfs2_reserve_new_metadata(osb, el, &meta_ac);
+ 			if (status < 0) {
+ 				if (status != -ENOSPC)
+ 					mlog_errno(status);
+@@ -1498,7 +1499,7 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 			goto bail;
+ 		}
+ 
+-		credits = ocfs2_calc_extend_credits(sb, fe, 1);
++		credits = ocfs2_calc_extend_credits(sb, el, 1);
+ 	} else {
+ 		spin_unlock(&OCFS2_I(dir)->ip_lock);
+ 		credits = OCFS2_SIMPLE_DIR_EXTEND_CREDITS;
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 536ef8b..d8176a6 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -540,7 +540,7 @@ int ocfs2_do_extend_allocation(struct ocfs2_super *osb,
+ 		goto leave;
+ 	} else if ((!free_extents)
+ 		   && (ocfs2_alloc_context_bits_left(meta_ac)
+-		       < ocfs2_extend_meta_needed(fe))) {
++		       < ocfs2_extend_meta_needed(&fe->id2.i_list))) {
+ 		mlog(0, "filesystem is really fragmented...\n");
+ 		status = -EAGAIN;
+ 		reason = RESTART_META;
+@@ -652,7 +652,7 @@ int ocfs2_lock_allocators(struct inode *inode, struct buffer_head *di_bh,
+ 	 */
+ 	if (!num_free_extents ||
+ 	    (ocfs2_sparse_alloc(osb) && num_free_extents < max_recs_needed)) {
+-		ret = ocfs2_reserve_new_metadata(osb, di, meta_ac);
++		ret = ocfs2_reserve_new_metadata(osb, &di->id2.i_list, meta_ac);
+ 		if (ret < 0) {
+ 			if (ret != -ENOSPC)
+ 				mlog_errno(ret);
+@@ -732,7 +732,8 @@ restart_all:
+ 		goto leave;
+ 	}
+ 
+-	credits = ocfs2_calc_extend_credits(osb->sb, fe, clusters_to_add);
++	credits = ocfs2_calc_extend_credits(osb->sb, &fe->id2.i_list,
++					    clusters_to_add);
+ 	handle = ocfs2_start_trans(osb, credits);
+ 	if (IS_ERR(handle)) {
+ 		status = PTR_ERR(handle);
+@@ -790,7 +791,7 @@ restarted_transaction:
+ 			mlog(0, "restarting transaction.\n");
+ 			/* TODO: This can be more intelligent. */
+ 			credits = ocfs2_calc_extend_credits(osb->sb,
+-							    fe,
++							    &fe->id2.i_list,
+ 							    clusters_to_add);
+ 			status = ocfs2_extend_trans(handle, credits);
+ 			if (status < 0) {
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index db82be2..f1479ab 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -339,11 +339,16 @@ int                  ocfs2_journal_dirty_data(handle_t *handle,
+ #define OCFS2_RENAME_CREDITS (3 * OCFS2_INODE_UPDATE_CREDITS + 3              \
+ 			     + OCFS2_UNLINK_CREDITS)
+ 
++/*
++ * Please note that the caller must make sure that root_el is the root
++ * of extent tree. So for an inode, it should be &fe->id2.i_list. Otherwise
++ * the result may be wrong.
++ */
+ static inline int ocfs2_calc_extend_credits(struct super_block *sb,
+-					    struct ocfs2_dinode *fe,
++					    struct ocfs2_extent_list *root_el,
+ 					    u32 bits_wanted)
+ {
+-	int bitmap_blocks, sysfile_bitmap_blocks, dinode_blocks;
++	int bitmap_blocks, sysfile_bitmap_blocks, extent_blocks;
+ 
+ 	/* bitmap dinode, group desc. + relinked group. */
+ 	bitmap_blocks = OCFS2_SUBALLOC_ALLOC;
+@@ -354,16 +359,16 @@ static inline int ocfs2_calc_extend_credits(struct super_block *sb,
+ 	 * however many metadata chunks needed * a remaining suballoc
+ 	 * alloc. */
+ 	sysfile_bitmap_blocks = 1 +
+-		(OCFS2_SUBALLOC_ALLOC - 1) * ocfs2_extend_meta_needed(fe);
++		(OCFS2_SUBALLOC_ALLOC - 1) * ocfs2_extend_meta_needed(root_el);
+ 
+ 	/* this does not include *new* metadata blocks, which are
+-	 * accounted for in sysfile_bitmap_blocks. fe +
++	 * accounted for in sysfile_bitmap_blocks. root_el +
+ 	 * prev. last_eb_blk + blocks along edge of tree.
+ 	 * calc_symlink_credits passes because we just need 1
+ 	 * credit for the dinode there. */
+-	dinode_blocks = 1 + 1 + le16_to_cpu(fe->id2.i_list.l_tree_depth);
++	extent_blocks = 1 + 1 + le16_to_cpu(root_el->l_tree_depth);
+ 
+-	return bitmap_blocks + sysfile_bitmap_blocks + dinode_blocks;
++	return bitmap_blocks + sysfile_bitmap_blocks + extent_blocks;
+ }
+ 
+ static inline int ocfs2_calc_symlink_credits(struct super_block *sb)
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index d2d278f..af769a5 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -494,7 +494,7 @@ bail:
+ }
+ 
+ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
+-			       struct ocfs2_dinode *fe,
++			       struct ocfs2_extent_list *root_el,
+ 			       struct ocfs2_alloc_context **ac)
+ {
+ 	int status;
+@@ -507,7 +507,7 @@ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
+ 		goto bail;
+ 	}
+ 
+-	(*ac)->ac_bits_wanted = ocfs2_extend_meta_needed(fe);
++	(*ac)->ac_bits_wanted = ocfs2_extend_meta_needed(root_el);
+ 	(*ac)->ac_which = OCFS2_AC_USE_META;
+ 	slot = osb->slot_num;
+ 	(*ac)->ac_group_search = ocfs2_block_group_search;
+diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+index 544c600..d024c69 100644
+--- a/fs/ocfs2/suballoc.h
++++ b/fs/ocfs2/suballoc.h
+@@ -59,8 +59,13 @@ static inline int ocfs2_alloc_context_bits_left(struct ocfs2_alloc_context *ac)
+ 	return ac->ac_bits_wanted - ac->ac_bits_given;
+ }
+ 
++/*
++ * Please note that the caller must make sure that root_el is the root
++ * of extent tree. So for an inode, it should be &fe->id2.i_list. Otherwise
++ * the result may be wrong.
++ */
+ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
+-			       struct ocfs2_dinode *fe,
++			       struct ocfs2_extent_list *root_el,
+ 			       struct ocfs2_alloc_context **ac);
+ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+ 			    struct ocfs2_alloc_context **ac);
 -- 
 1.5.4.GIT
