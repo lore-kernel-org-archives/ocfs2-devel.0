@@ -1,38 +1,44 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 5 Aug 2008 16:22:55 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster/netdebug.c: fix warning
-In-Reply-To: <20080805205041.GD17320@orion>
-References: <20080805201036.GC17320@orion>
-	<20080805202948.GL22600@mail.oracle.com>
-	<20080805205041.GD17320@orion>
-Message-ID: <20080805232254.GO22600@mail.oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Wed, 06 Aug 2008 10:34:53 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Add extended attribute support
+	v3
+In-Reply-To: <20080804213404.GO28014@wotan.suse.de>
+References: <20080725215755.GH28014@wotan.suse.de>
+	<489187C8.7030708@oracle.com>
+	<20080804213404.GO28014@wotan.suse.de>
+Message-ID: <48990DCD.7090804@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Alexander Beregalov <a.beregalov@gmail.com>
-Cc: mfasheh@suse.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, Aug 06, 2008 at 12:50:41AM +0400, Alexander Beregalov wrote:
-> On Tue, Aug 05, 2008 at 01:29:48PM -0700, Joel Becker wrote:
-> > 	suseconds_t is a signed long.  Can you change the format to %ld
-> > and cast to long?  Unfortunately, we need the cast, as sparc64 and
-> > parisc treat it as int.
+
+Mark Fasheh wrote:
+> In order to protect against mmap changing the inline data state, you should
+> hold a write lock on ip_alloc_sem across the call to ocfs2_xattr_ibody_find()
+> and until the return from ocfs2_xattr_set_entry.
 > 
-> Then we should change cast from unsigned long to long for every tv_usec, right?
+> So basically, ocfs2_xattr_set() should look like:
+> 
+> ...
+> down_write(&oi->ip_alloc_sem);
+> ocfs2_ibody_find();
+> ...
+> ocfs2_xattr_set_entry();
+> up_write(&oi->ip_alloc_sem);
+> ...
+> 
+> This way mmap can't change inline data state in between the calls to
+> ibody_find and xattr_set_entry.
 
-	Yup.
+Thanks the guide. I think I have done what your said.
+In ocfs2_ibody_find(), I checked the l_count/id_count with readable 
+semaphore. And in ocfs2_xattr_set_ibody, I checked it again and follow 
+by ocfs2_xattr_set_entry() with writable semaphore. If mmap change 
+l_count/id_count between those two function, I still have chance to know 
+it. And data in struct ocfs2_xattr_search which filled in 
+ocfs2_ibody_find() are not affected by mmap operations.
 
-Joel
-
--- 
-
-"You can get more with a kind word and a gun than you can with
- a kind word alone."
-         - Al Capone
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Best regards,
+tiger
