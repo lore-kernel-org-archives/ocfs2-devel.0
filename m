@@ -1,187 +1,154 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu,  7 Aug 2008 15:11:13 +0800
-Subject: [Ocfs2-devel] [PATCH 08/15] ocfs2: reserve inline space for
-	extended attribute
+Date: Thu,  7 Aug 2008 15:12:28 +0800
+Subject: [Ocfs2-devel] [PATCH 15/15] ocfs2: Add incompatible flag for
+	extended attribute v3
 In-Reply-To: <489A94F4.90903@oracle.com>
 References: <489A94F4.90903@oracle.com>
-Message-ID: <1218093073-8585-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <1218093148-8632-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch reserve some space in inode block for extended attribute.
-That space used to store extent list or inline data.
+This patch add incompatible flag for extended attribute support.
+This flag could protect EAs not destroyed by previous ocfs2-tools
+or kernel modules.
 
 Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/alloc.c    |   22 ++++++++++++++++------
- fs/ocfs2/ocfs2.h    |    1 +
- fs/ocfs2/ocfs2_fs.h |   43 ++++++++++++++++++++++++++++++++++++++++---
- fs/ocfs2/super.c    |    2 ++
- 4 files changed, 59 insertions(+), 9 deletions(-)
+ fs/ocfs2/ocfs2.h    |    7 +++++++
+ fs/ocfs2/ocfs2_fs.h |   19 +++++++++++++------
+ fs/ocfs2/super.c    |    3 ++-
+ fs/ocfs2/xattr.c    |   12 ++++++++++++
+ 4 files changed, 34 insertions(+), 7 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index e380f26..294bede 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -6467,20 +6467,29 @@ out:
- 	return ret;
- }
- 
--static void ocfs2_zero_dinode_id2(struct inode *inode, struct ocfs2_dinode *di)
-+static void ocfs2_zero_dinode_id2_with_xattr(struct inode *inode,
-+					     struct ocfs2_dinode *di)
- {
- 	unsigned int blocksize = 1 << inode->i_sb->s_blocksize_bits;
-+	unsigned int xattrsize = le16_to_cpu(di->i_xattr_inline_size);
- 
--	memset(&di->id2, 0, blocksize - offsetof(struct ocfs2_dinode, id2));
-+	if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_XATTR_FL)
-+		memset(&di->id2, 0, blocksize -
-+				    offsetof(struct ocfs2_dinode, id2) -
-+				    xattrsize);
-+	else
-+		memset(&di->id2, 0, blocksize -
-+				    offsetof(struct ocfs2_dinode, id2));
- }
- 
- void ocfs2_dinode_new_extent_list(struct inode *inode,
- 				  struct ocfs2_dinode *di)
- {
--	ocfs2_zero_dinode_id2(inode, di);
-+	ocfs2_zero_dinode_id2_with_xattr(inode, di);
- 	di->id2.i_list.l_tree_depth = 0;
- 	di->id2.i_list.l_next_free_rec = 0;
--	di->id2.i_list.l_count = cpu_to_le16(ocfs2_extent_recs_per_inode(inode->i_sb));
-+	di->id2.i_list.l_count = cpu_to_le16(
-+		ocfs2_extent_recs_per_inode_with_xattr(inode->i_sb, di));
- }
- 
- void ocfs2_set_inode_data_inline(struct inode *inode, struct ocfs2_dinode *di)
-@@ -6497,9 +6506,10 @@ void ocfs2_set_inode_data_inline(struct inode *inode, struct ocfs2_dinode *di)
- 	 * We clear the entire i_data structure here so that all
- 	 * fields can be properly initialized.
- 	 */
--	ocfs2_zero_dinode_id2(inode, di);
-+	ocfs2_zero_dinode_id2_with_xattr(inode, di);
- 
--	idata->id_count = cpu_to_le16(ocfs2_max_inline_data(inode->i_sb));
-+	idata->id_count = cpu_to_le16(
-+			ocfs2_max_inline_data_with_xattr(inode->i_sb, di));
- }
- 
- int ocfs2_convert_inline_data_to_extents(struct inode *inode,
 diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 3169237..32631a5 100644
+index 33ddb7d..1fcd09c 100644
 --- a/fs/ocfs2/ocfs2.h
 +++ b/fs/ocfs2/ocfs2.h
-@@ -227,6 +227,7 @@ struct ocfs2_super
- 	int s_sectsize_bits;
- 	int s_clustersize;
- 	int s_clustersize_bits;
-+	unsigned int s_xattr_inline_size;
+@@ -329,6 +329,13 @@ static inline int ocfs2_supports_inline_data(struct ocfs2_super *osb)
+ 	return 0;
+ }
  
- 	atomic_t vol_state;
- 	struct mutex recovery_lock;
++static inline int ocfs2_supports_xattr(struct ocfs2_super *osb)
++{
++	if (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_XATTR)
++		return 1;
++	return 0;
++}
++
+ /* set / clear functions because cluster events can make these happen
+  * in parallel so we want the transitions to be atomic. this also
+  * means that any future flags osb_flags must be protected by spinlock
 diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index af91f9d..13bf3e5 100644
+index 0a2019b..947130b 100644
 --- a/fs/ocfs2/ocfs2_fs.h
 +++ b/fs/ocfs2/ocfs2_fs.h
-@@ -300,6 +300,9 @@ struct ocfs2_new_group_input {
+@@ -91,7 +91,8 @@
+ 					 | OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC \
+ 					 | OCFS2_FEATURE_INCOMPAT_INLINE_DATA \
+ 					 | OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP \
+-					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK)
++					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK \
++					 | OCFS2_FEATURE_INCOMPAT_XATTR)
+ #define OCFS2_FEATURE_RO_COMPAT_SUPP	OCFS2_FEATURE_RO_COMPAT_UNWRITTEN
+ 
+ /*
+@@ -128,10 +129,6 @@
+ /* Support for data packed into inode blocks */
+ #define OCFS2_FEATURE_INCOMPAT_INLINE_DATA	0x0040
+ 
+-/* Support for the extended slot map */
+-#define OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP 0x100
+-
+-
+ /*
+  * Support for alternate, userspace cluster stacks.  If set, the superblock
+  * field s_cluster_info contains a tag for the alternate stack in use as
+@@ -143,6 +140,12 @@
   */
- #define OCFS2_DEFAULT_LOCAL_ALLOC_SIZE	8
+ #define OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK	0x0080
  
-+/* Inline extended attribute size (in bytes) */
-+#define OCFS2_MIN_XATTR_INLINE_SIZE     256
++/* Support for the extended slot map */
++#define OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP 0x100
 +
- struct ocfs2_system_inode_info {
- 	char	*si_name;
- 	int	si_iflags;
-@@ -622,7 +625,8 @@ struct ocfs2_dinode {
- 					   belongs to */
- 	__le16 i_suballoc_bit;		/* Bit offset in suballocator
- 					   block group */
--/*10*/	__le32 i_reserved0;
-+/*10*/	__le16 i_reserved0;
-+	__le16 i_xattr_inline_size;
- 	__le32 i_clusters;		/* Cluster count */
- 	__le32 i_uid;			/* Owner UID */
- 	__le32 i_gid;			/* Owning GID */
-@@ -641,11 +645,12 @@ struct ocfs2_dinode {
- 	__le32 i_atime_nsec;
- 	__le32 i_ctime_nsec;
- 	__le32 i_mtime_nsec;
--	__le32 i_attr;
-+/*70*/	__le32 i_attr;
- 	__le16 i_orphaned_slot;		/* Only valid when OCFS2_ORPHANED_FL
- 					   was set in i_flags */
- 	__le16 i_dyn_features;
--/*70*/	__le64 i_reserved2[8];
-+	__le64 i_xattr_loc;
-+/*80*/	__le64 i_reserved2[7];
- /*B8*/	union {
- 		__le64 i_pad1;		/* Generic way to refer to this
- 					   64bit union */
-@@ -843,6 +848,20 @@ static inline int ocfs2_max_inline_data(struct super_block *sb)
- 		offsetof(struct ocfs2_dinode, id2.i_data.id_data);
- }
++/* Support for extended attributes */
++#define OCFS2_FEATURE_INCOMPAT_XATTR		0x0200
++
+ /*
+  * backup superblock flag is used to indicate that this volume
+  * has backup superblocks.
+@@ -575,7 +578,11 @@ struct ocfs2_super_block {
+ /*A0*/  struct ocfs2_cluster_info s_cluster_info; /* Selected userspace
+ 						     stack.  Only valid
+ 						     with INCOMPAT flag. */
+-/*B8*/  __le64 s_reserved2[17];		/* Fill out superblock */
++/*B8*/	__le16 s_xattr_inline_size;	/* extended attribute inline size
++					   for this fs*/
++	__le16 s_reserved0;
++	__le32 s_reserved1;
++/*C0*/  __le64 s_reserved2[16];		/* Fill out superblock */
+ /*140*/
  
-+static inline int ocfs2_max_inline_data_with_xattr(struct super_block *sb,
-+						   struct ocfs2_dinode *di)
-+{
-+	unsigned int xattrsize = le16_to_cpu(di->i_xattr_inline_size);
-+
-+	if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_XATTR_FL)
-+		return sb->s_blocksize -
-+			offsetof(struct ocfs2_dinode, id2.i_data.id_data) -
-+			xattrsize;
-+	else
-+		return sb->s_blocksize -
-+			offsetof(struct ocfs2_dinode, id2.i_data.id_data);
-+}
-+
- static inline int ocfs2_extent_recs_per_inode(struct super_block *sb)
- {
- 	int size;
-@@ -853,6 +872,24 @@ static inline int ocfs2_extent_recs_per_inode(struct super_block *sb)
- 	return size / sizeof(struct ocfs2_extent_rec);
- }
- 
-+static inline int ocfs2_extent_recs_per_inode_with_xattr(
-+						struct super_block *sb,
-+						struct ocfs2_dinode *di)
-+{
-+	int size;
-+	unsigned int xattrsize = le16_to_cpu(di->i_xattr_inline_size);
-+
-+	if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_XATTR_FL)
-+		size = sb->s_blocksize -
-+			offsetof(struct ocfs2_dinode, id2.i_list.l_recs) -
-+			xattrsize;
-+	else
-+		size = sb->s_blocksize -
-+			offsetof(struct ocfs2_dinode, id2.i_list.l_recs);
-+
-+	return size / sizeof(struct ocfs2_extent_rec);
-+}
-+
- static inline int ocfs2_chain_recs_per_inode(struct super_block *sb)
- {
- 	int size;
+ 	/*
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index df63ba2..c0a1cdf 100644
+index 1202fb8..fc4eb4a 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -1421,6 +1421,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
+@@ -1434,7 +1434,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
  
  	osb->slot_num = OCFS2_INVALID_SLOT;
  
-+	osb->s_xattr_inline_size = OCFS2_MIN_XATTR_INLINE_SIZE;
-+
+-	osb->s_xattr_inline_size = OCFS2_MIN_XATTR_INLINE_SIZE;
++	osb->s_xattr_inline_size = le16_to_cpu(
++					di->id2.i_super.s_xattr_inline_size);
+ 
  	osb->local_alloc_state = OCFS2_LA_UNUSED;
  	osb->local_alloc_bh = NULL;
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 4589dec..9cd39ad 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -580,6 +580,9 @@ ssize_t ocfs2_listxattr(struct dentry *dentry,
+ 	struct ocfs2_dinode *di = NULL;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(dentry->d_inode);
  
++	if (!ocfs2_supports_xattr(OCFS2_SB(dentry->d_sb)))
++		return -EOPNOTSUPP;
++
+ 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
+ 		return ret;
+ 
+@@ -859,6 +862,9 @@ int ocfs2_xattr_get(struct inode *inode,
+ 		.not_found = -ENODATA,
+ 	};
+ 
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return -EOPNOTSUPP;
++
+ 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
+ 		ret = -ENODATA;
+ 
+@@ -1557,6 +1563,9 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ 	handle_t *handle;
+ 	int ret;
+ 
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return 0;
++
+ 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
+ 		return 0;
+ 
+@@ -1993,6 +2002,9 @@ int ocfs2_xattr_set(struct inode *inode,
+ 		.not_found = -ENODATA,
+ 	};
+ 
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return -EOPNOTSUPP;
++
+ 	ret = ocfs2_inode_lock(inode, &di_bh, 1);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
 -- 
 1.5.4.4
