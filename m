@@ -1,165 +1,144 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon, 11 Aug 2008 00:49:00 +0800
-Subject: [Ocfs2-devel] [PATCH 05/15] Add xattr header in ocfs2.v3 revised.
-In-Reply-To: <20080811000327.GD28014@wotan.suse.de>
-References: <20080811000327.GD28014@wotan.suse.de>
-Message-ID: <1218386940-6723-1-git-send-email-tao.ma@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Sun, 10 Aug 2008 18:18:54 -0700
+Subject: [Ocfs2-devel] [PATCH 08/15] ocfs2: reserve inline space for
+	extended attribute
+In-Reply-To: <1218093073-8585-1-git-send-email-tiger.yang@oracle.com>
+References: <489A94F4.90903@oracle.com>
+	<1218093073-8585-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <20080811011854.GA21187@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-	Thanks for your advice about xe_type set. Here is the revised patch.
+On Thu, Aug 07, 2008 at 03:11:13PM +0800, Tiger Yang wrote:
+> This patch reserve some space in inode block for extended attribute.
+> That space used to store extent list or inline data.
 
-Modification from V2 to V3:
-1. Add annotations for every field.
-2. Change csum to be _le64 include xb_csum and xh_csum.
-3. Change the definition of xe_local and xe_type(make xe_local the
-   bottom-most bit of a _u8). And add set/get helper function for
-   xe_local and xe_type.
+This patch looks much better, thanks. One small note below.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/ocfs2_fs.h |  118 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 118 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 3f19451..0175b49 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -64,6 +64,7 @@
- #define OCFS2_INODE_SIGNATURE		"INODE01"
- #define OCFS2_EXTENT_BLOCK_SIGNATURE	"EXBLK01"
- #define OCFS2_GROUP_DESC_SIGNATURE      "GROUP01"
-+#define OCFS2_XATTR_BLOCK_SIGNATURE	"XATTR01"
- 
- /* Compatibility flags */
- #define OCFS2_HAS_COMPAT_FEATURE(sb,mask)			\
-@@ -712,6 +713,123 @@ struct ocfs2_group_desc
- /*40*/	__u8    bg_bitmap[0];
- };
- 
-+/*
-+ * On disk extended attribute structure for OCFS2.
-+ */
-+
-+/*
-+ * ocfs2_xattr_entry indicates one extend attribute.
-+ *
-+ * Note that it can be stored in inode, one block or one xattr bucket.
-+ */
-+struct ocfs2_xattr_entry {
-+	__le32	xe_name_hash;    /* hash value of xattr prefix+suffix. */
-+	__le16	xe_name_offset;  /* byte offset from the 1st etnry in the local
-+				    local xattr storage(inode, xattr block or
-+				    xattr bucket). */
-+	__u8	xe_name_len;	 /* xattr name len, does't include prefix. */
-+	__u8	xe_type;         /* the low 7 bits indicates the name prefix's
-+				  * type and the highest 1 bits indicate whether
-+				  * the EA is stored in the local storage. */
-+	__le64	xe_value_size;	 /* real xattr value length. */
-+};
-+
-+/*
-+ * On disk structure for xattr header.
-+ *
-+ * One ocfs2_xattr_header describes how many ocfs2_xattr_entry records in
-+ * the local xattr storage.
-+ */
-+struct ocfs2_xattr_header {
-+	__le16	xh_count;                       /* contains the count of how
-+						   many records are in the
-+						   local xattr storage. */
-+	__le16	xh_reserved1;
-+	__le32	xh_reserved2;
-+	__le64  xh_csum;
-+	struct ocfs2_xattr_entry xh_entries[0]; /* xattr entry list. */
-+};
-+
-+/*
-+ * On disk structure for xattr value root.
-+ *
-+ * It is used when one extended attribute's size is larger, and we will save it
-+ * in an outside cluster. It will stored in a b-tree like file content.
-+ */
-+struct ocfs2_xattr_value_root {
-+/*00*/	__le32	xr_clusters;              /* clusters covered by xattr value. */
-+	__le32	xr_reserved0;
-+	__le64	xr_last_eb_blk;           /* Pointer to last extent block */
-+/*10*/	struct ocfs2_extent_list xr_list; /* Extent record list */
-+};
-+
-+/*
-+ * On disk structure for xattr tree root.
-+ *
-+ * It is used when there are too many extended attributes for one file. These
-+ * attributes will be organized and stored in an indexed-btree.
-+ */
-+struct ocfs2_xattr_tree_root {
-+/*00*/	__le32	xt_clusters;              /* clusters covered by xattr. */
-+	__le32	xt_reserved0;
-+	__le64	xt_last_eb_blk;           /* Pointer to last extent block */
-+/*10*/	struct ocfs2_extent_list xt_list; /* Extent record list */
-+};
-+
-+#define OCFS2_XATTR_INDEXED 0x1
-+
-+/*
-+ * On disk structure for xattr block.
-+ */
-+struct ocfs2_xattr_block {
-+/*00*/	__u8	xb_signature[8];     /* Signature for verification */
-+	__le16	xb_suballoc_slot;    /* Slot suballocator this
-+					block belongs to. */
-+	__le16	xb_suballoc_bit;     /* Bit offset in suballocator
-+					block group */
-+	__le32	xb_fs_generation;    /* Must match super block */
-+/*10*/	__le64	xb_blkno;            /* Offset on disk, in blocks */
-+	__le64	xb_csum;
-+/*20*/	__le16	xb_flags;            /* Indicates whether this block contains
-+					real xattr or a xattr tree. */
-+	__le16	xb_reserved0;
-+	__le32  xb_reserved1;
-+	__le64	xb_reserved2;
-+/*30*/	union {
-+		struct ocfs2_xattr_header xb_header; /* xattr header if this
-+							block contains xattr */
-+		struct ocfs2_xattr_tree_root xb_root;/* xattr tree root if this
-+							block cotains xattr
-+							tree. */
-+	} xb_attrs;
-+};
-+
-+#define OCFS2_XATTR_ENTRY_LOCAL		0x80
-+#define OCFS2_XATTR_TYPE_MASK		0x7F
-+static inline void ocfs2_xattr_set_local(struct ocfs2_xattr_entry *xe,
-+					 int local)
-+{
-+	if (local)
-+		xe->xe_type |= OCFS2_XATTR_ENTRY_LOCAL;
-+	else
-+		xe->xe_type &= ~OCFS2_XATTR_ENTRY_LOCAL;
-+}
-+
-+static inline int ocfs2_xattr_is_local(struct ocfs2_xattr_entry *xe)
-+{
-+	return xe->xe_type & OCFS2_XATTR_ENTRY_LOCAL;
-+}
-+
-+static inline void ocfs2_xattr_set_type(struct ocfs2_xattr_entry *xe, int type)
-+{
-+	xe->xe_type |= type & OCFS2_XATTR_TYPE_MASK;
-+}
-+
-+static inline int ocfs2_xattr_get_type(struct ocfs2_xattr_entry *xe)
-+{
-+	return xe->xe_type & OCFS2_XATTR_TYPE_MASK;
-+}
-+
- #ifdef __KERNEL__
- static inline int ocfs2_fast_symlink_chars(struct super_block *sb)
- {
--- 
-1.5.4.GIT
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index 3169237..32631a5 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -227,6 +227,7 @@ struct ocfs2_super
+>  	int s_sectsize_bits;
+>  	int s_clustersize;
+>  	int s_clustersize_bits;
+> +	unsigned int s_xattr_inline_size;
+>  
+>  	atomic_t vol_state;
+>  	struct mutex recovery_lock;
+> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+> index af91f9d..13bf3e5 100644
+> --- a/fs/ocfs2/ocfs2_fs.h
+> +++ b/fs/ocfs2/ocfs2_fs.h
+> @@ -300,6 +300,9 @@ struct ocfs2_new_group_input {
+>   */
+>  #define OCFS2_DEFAULT_LOCAL_ALLOC_SIZE	8
+>  
+> +/* Inline extended attribute size (in bytes) */
+> +#define OCFS2_MIN_XATTR_INLINE_SIZE     256
+> +
+>  struct ocfs2_system_inode_info {
+>  	char	*si_name;
+>  	int	si_iflags;
+> @@ -622,7 +625,8 @@ struct ocfs2_dinode {
+>  					   belongs to */
+>  	__le16 i_suballoc_bit;		/* Bit offset in suballocator
+>  					   block group */
+> -/*10*/	__le32 i_reserved0;
+> +/*10*/	__le16 i_reserved0;
+> +	__le16 i_xattr_inline_size;
+>  	__le32 i_clusters;		/* Cluster count */
+>  	__le32 i_uid;			/* Owner UID */
+>  	__le32 i_gid;			/* Owning GID */
+> @@ -641,11 +645,12 @@ struct ocfs2_dinode {
+>  	__le32 i_atime_nsec;
+>  	__le32 i_ctime_nsec;
+>  	__le32 i_mtime_nsec;
+> -	__le32 i_attr;
+> +/*70*/	__le32 i_attr;
+>  	__le16 i_orphaned_slot;		/* Only valid when OCFS2_ORPHANED_FL
+>  					   was set in i_flags */
+>  	__le16 i_dyn_features;
+> -/*70*/	__le64 i_reserved2[8];
+> +	__le64 i_xattr_loc;
+> +/*80*/	__le64 i_reserved2[7];
+>  /*B8*/	union {
+>  		__le64 i_pad1;		/* Generic way to refer to this
+>  					   64bit union */
+> @@ -843,6 +848,20 @@ static inline int ocfs2_max_inline_data(struct super_block *sb)
+>  		offsetof(struct ocfs2_dinode, id2.i_data.id_data);
+>  }
+>  
+> +static inline int ocfs2_max_inline_data_with_xattr(struct super_block *sb,
+> +						   struct ocfs2_dinode *di)
+> +{
+> +	unsigned int xattrsize = le16_to_cpu(di->i_xattr_inline_size);
+> +
+> +	if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_XATTR_FL)
+> +		return sb->s_blocksize -
+> +			offsetof(struct ocfs2_dinode, id2.i_data.id_data) -
+> +			xattrsize;
+> +	else
+> +		return sb->s_blocksize -
+> +			offsetof(struct ocfs2_dinode, id2.i_data.id_data);
+> +}
+> +
+>  static inline int ocfs2_extent_recs_per_inode(struct super_block *sb)
+>  {
+>  	int size;
+> @@ -853,6 +872,24 @@ static inline int ocfs2_extent_recs_per_inode(struct super_block *sb)
+>  	return size / sizeof(struct ocfs2_extent_rec);
+>  }
+>  
+> +static inline int ocfs2_extent_recs_per_inode_with_xattr(
+> +						struct super_block *sb,
+> +						struct ocfs2_dinode *di)
+> +{
+> +	int size;
+> +	unsigned int xattrsize = le16_to_cpu(di->i_xattr_inline_size);
+> +
+> +	if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_XATTR_FL)
+> +		size = sb->s_blocksize -
+> +			offsetof(struct ocfs2_dinode, id2.i_list.l_recs) -
+> +			xattrsize;
+> +	else
+> +		size = sb->s_blocksize -
+> +			offsetof(struct ocfs2_dinode, id2.i_list.l_recs);
+> +
+> +	return size / sizeof(struct ocfs2_extent_rec);
+> +}
+> +
+>  static inline int ocfs2_chain_recs_per_inode(struct super_block *sb)
+>  {
+>  	int size;
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index df63ba2..c0a1cdf 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1421,6 +1421,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  
+>  	osb->slot_num = OCFS2_INVALID_SLOT;
+>  
+> +	osb->s_xattr_inline_size = OCFS2_MIN_XATTR_INLINE_SIZE;
+
+Why not use the value of i_xattr_inline_size off the super-block inode to
+tell the module how large xattrs should be? That way we could allow users to
+change it in the future.
+
+
+By the way, regarding sizes. I just realized that the sizes chosen for
+xattrs need to be aligned to 16 byte boundaries (sizeof(struct
+ocfs2_extent_rec)) so we don't waste space in the extent list above them.
+
+Does that make sense to you? I think we're safe - you chose the value of
+OCFS2_MIN_XATTR_INLINE_SIZE well. A comment above it noting this might be nice though
+so that we don't make a mistake in the future.
+	--Mark
+
+--
+Mark Fasheh
