@@ -1,154 +1,265 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 12 Aug 2008 09:09:49 +0800
-Subject: [Ocfs2-devel] [PATCH 13/15] Enable xattr set in index btree. v3
-In-Reply-To: <20080812001110.GF21187@wotan.suse.de>
-References: <489A94F4.90903@oracle.com>
-	<1218061894-7693-11-git-send-email-tao.ma@oracle.com>
-	<20080812001110.GF21187@wotan.suse.de>
-Message-ID: <48A0E2DD.2020607@oracle.com>
+From: Jeff Mahoney <jeffm@suse.com>
+Date: Tue, 12 Aug 2008 11:18:31 -0400
+Subject: [Ocfs2-devel] [PATCH] ocfs2console: Allow ocfs2console to enumerate
+ device mapper devices
+Message-ID: <48A1A9C7.1080906@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+ ocfs2console will currently display device mapper devices as dm-#, where
+ the number can be dynamic across reboots making it non-obvious which
+ device the user is using. While LVM volumes aren't safe to use across
+ physical nodes, they are often used with virtual machines. Many ocfs2
+ users also use dm-multipath.
 
+ This patch refactors partition_info_fill to separate hashing from
+ enumeration so that it is trivial to add a device-mapper enumerator.
 
-Mark Fasheh wrote:
-> On Thu, Aug 07, 2008 at 06:31:33AM +0800, Tao Ma wrote:
->> +/*
->> + * Add a new cluster for xattr storage.
->> + *
->> + * If the new cluster is contiguous with the previous one, it will be
->> + * appended to the same extent record, and num_clusters will be updated.
->> + * If not, we will insert a new extent for it and move some xattrs in
->> + * the last cluster into the new allocated one.
->> + * We also need to limit the maximum size of a btree leaf, otherwise we'll
->> + * lose the benefits of hashing because we'll have to search large leaves.
->> + * So now the maximum size is OCFS2_MAX_XATTR_TREE_LEAF_SIZE(or clustersize,
->> + * if it's bigger).
->> + *
->> + * first_bh is the first block of the previous extent rec and header_bh
->> + * indicates the bucket we will insert the new xattrs. They will be updated
->> + * when the header_bh is moved into the new cluster.
->> + */
->> +static int ocfs2_add_new_xattr_cluster(struct inode *inode,
->> +				       struct buffer_head *root_bh,
->> +				       struct buffer_head **first_bh,
->> +				       struct buffer_head **header_bh,
->> +				       u32 *num_clusters,
->> +				       u32 prev_cpos,
->> +				       u64 prev_blkno,
->> +				       int *extend)
->> +{
->> +	int ret, credits;
->> +	u16 bpc = ocfs2_clusters_to_blocks(inode->i_sb, 1);
->> +	u32 prev_clusters = *num_clusters;
->> +	u32 clusters_to_add = 1, bit_off, num_bits, v_start = 0;
->> +	u64 block;
->> +	handle_t *handle = NULL;
->> +	struct ocfs2_alloc_context *data_ac = NULL;
->> +	struct ocfs2_alloc_context *meta_ac = NULL;
->> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->> +	struct ocfs2_xattr_block *xb =
->> +			(struct ocfs2_xattr_block *)root_bh->b_data;
->> +	struct ocfs2_xattr_tree_root *xb_root = &xb->xb_attrs.xb_root;
->> +	struct ocfs2_extent_list *root_el = &xb_root->xt_list;
->> +	enum ocfs2_extent_tree_type type = OCFS2_XATTR_TREE_EXTENT;
->> +
->> +	mlog(0, "Add new xattr cluster for %llu, previous xattr hash = %u, "
->> +	     "previous xattr blkno = %llu\n",
->> +	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
->> +	     prev_cpos, prev_blkno);
->> +
->> +	ret = ocfs2_lock_allocators(inode, root_bh, root_el,
->> +				    clusters_to_add, 0, &data_ac,
->> +				    &meta_ac, type, NULL);
->> +	if (ret) {
->> +		mlog_errno(ret);
->> +		goto leave;
->> +	}
->> +
->> +	credits = ocfs2_calc_extend_credits(osb->sb, root_el, clusters_to_add);
->> +	handle = ocfs2_start_trans(osb, credits);
->> +	if (IS_ERR(handle)) {
->> +		ret = PTR_ERR(handle);
->> +		handle = NULL;
->> +		mlog_errno(ret);
->> +		goto leave;
->> +	}
->> +
->> +	ret = ocfs2_journal_access(handle, inode, root_bh,
->> +				   OCFS2_JOURNAL_ACCESS_WRITE);
->> +	if (ret < 0) {
->> +		mlog_errno(ret);
->> +		goto leave;
->> +	}
->> +
->> +	ret = __ocfs2_claim_clusters(osb, handle, data_ac, 1,
->> +				     clusters_to_add, &bit_off, &num_bits);
->> +	if (ret < 0) {
->> +		if (ret != -ENOSPC)
->> +			mlog_errno(ret);
->> +		goto leave;
->> +	}
->> +
->> +	BUG_ON(num_bits > clusters_to_add);
->> +
->> +	block = ocfs2_clusters_to_blocks(osb->sb, bit_off);
->> +	mlog(0, "Allocating %u clusters at block %u for xattr in inode %llu\n",
->> +	     num_bits, bit_off, (unsigned long long)OCFS2_I(inode)->ip_blkno);
->> +
->> +	if (prev_blkno + prev_clusters * bpc == block &&
->> +	    (prev_clusters + num_bits) << osb->s_clustersize_bits <=
->> +	     OCFS2_MAX_XATTR_TREE_LEAF_SIZE) {
->> +		/*
->> +		 * If this cluster is contiguous with the old one and
->> +		 * adding this new cluster, we don't surpass the limit of
->> +		 * OCFS2_MAX_XATTR_TREE_LEAF_SIZE, cool. We will let it be
->> +		 * initialized and used like other buckets in the previous
->> +		 * cluster.
->> +		 * So add it as a contiguous one. The caller will handle
->> +		 * its init process.
->> +		 */
->> +		v_start = prev_cpos + prev_clusters;
->> +		*num_clusters = prev_clusters + num_bits;
->> +		mlog(0, "Add contiguous %u clusters to previous extent rec.\n",
->> +		     num_bits);
->> +	} else {
->> +		ret = ocfs2_adjust_xattr_cross_cluster(inode,
->> +						       handle,
->> +						       first_bh,
->> +						       header_bh,
->> +						       block,
->> +						       prev_blkno,
->> +						       prev_clusters,
->> +						       &v_start,
->> +						       extend);
->> +		if (ret) {
->> +			mlog_errno(ret);
->> +			goto leave;
->> +		}
->> +	}
->> +
->> +	mlog(0, "Insert %u clusters at block %llu for xattr at %u\n",
->> +	     num_bits, block, v_start);
->> +	ret = ocfs2_xattr_tree_insert_extent(osb, handle, inode, root_bh,
->> +					     v_start, block, num_bits,
->> +					     0, meta_ac);
-> 
-> I think we need to do something down in the extent insertion code to prevent
-> merging in the OCFS2_MAX_XATTR_TREE_LEAF_SIZE cases - what's preventing it
-> from appending that allocation to the end of an extent (any extent) in the
-> btree?
-We don't need to do that. You see, in ocfs2_adjust_xattr_corss_cluster I 
-have adjusted v_start(v_start now indicates the first name hash of the 
-xattrs in the new cluster), so now they will not be contiguous now. ;)
+ The device mapper enumerator is automatically enabled if libdevmapper
+ is present at build time. When enabled, it suppresses the dm-# devices
+ from enumeration. If disabled, the dm-# devices are used instead.
 
-We only allow xattr hashes to be the same in one bucket(4K) size, so 
-with 64K as our leaf size, even if the cluster is contiguous, we will 
-not have contiguous name hash. so it is safe to say here v_start can 
-never be old_v_start+1.
+ I have a bug report for this (Novell Bugzilla 414756) and it was easy
+ enough to bang out quickly.
 
-Regards,
-Tao
+Signed-off-by: Jeff Mahoney <jeffm@suse.com>
+---
+ Config.make.in                          |    2 
+ configure.in                            |    5 +
+ ocfs2console/ocfs2interface/Makefile    |    7 +
+ ocfs2console/ocfs2interface/ocfsplist.c |  148 ++++++++++++++++++++++----------
+ 4 files changed, 118 insertions(+), 44 deletions(-)
+
+--- a/Config.make.in
++++ b/Config.make.in
+@@ -72,6 +72,8 @@ HAVE_BLKID = @HAVE_BLKID@
+ 
+ LIBDLM_FOUND = @LIBDLM_FOUND@
+ 
++LIBDEVMAPPER_FOUND = @LIBDEVMAPPER_FOUND@
++
+ BUILD_OCFS2CONSOLE = @BUILD_OCFS2CONSOLE@
+ 
+ BUILD_DEBUGOCFS2 = @BUILD_DEBUGOCFS2@
+--- a/configure.in
++++ b/configure.in
+@@ -289,6 +289,11 @@ if test "x$cman_found" = "xyes" -a "x$cp
+ fi
+ AC_SUBST(BUILD_CMAN_SUPPORT)
+ 
++LIBDEVMAPPER_FOUND=
++AC_CHECK_HEADER(libdevmapper.h, LIBDEVMAPPER_FOUND=yes,
++  [AC_MSG_WARN([libdevmapper.h not found, device-mapper support will not be built])])
++AC_SUBST(LIBDEVMAPPER_FOUND)
++
+ BUILD_OCFS2CONSOLE=
+ AC_ARG_ENABLE(ocfs2console, [  --enable-ocfs2console=[yes/no]    Build GUI frontend [default=yes]],,enable_ocfs2console=yes)
+ 
+--- a/ocfs2console/ocfs2interface/Makefile
++++ b/ocfs2console/ocfs2interface/Makefile
+@@ -48,6 +48,11 @@ OCFS2_CFILES = ocfs2module.c
+ ocfs2module_CPPFLAGS = $(OCFS2_CPPFLAGS)
+ ocfs2module_CFLAGS = $(PYMOD_CFLAGS)
+ 
++ifneq ($(LIBDEVMAPPER_FOUND),)
++ocfsplist_CPPFLAGS += -DHAVE_DEVICE_MAPPER
++LIBDEVMAPPER_LIBS = -ldevmapper
++endif
++
+ PLIST_OBJS = $(subst .c,.o,$(PLIST_CFILES))
+ GIDLE_OBJS = $(subst .c,.o,$(GIDLE_CFILES))
+ OCFS2_OBJS = $(subst .c,.o,$(OCFS2_CFILES))
+@@ -90,7 +95,7 @@ INSTALL_RULES = install-pylib
+ DIST_FILES = $(PLIST_CFILES) $(PLIST_HFILES) $(GIDLE_CFILES) $(OCFS2_CFILES) $(O2CB_CFILES) $(PYSRC) $(addsuffix .in,$(BUILT_PYSRC))
+ 
+ plistmodule.so: $(PLIST_OBJS) $(LIBOCFS2_DEPS) $(LIBO2DLM_DEPS) $(LIBO2CB_DEPS) $(BLKID_DEPS)
+-	$(LINK) -shared $(LIBOCFS2_LIBS) $(LIBO2DLM_LIBS) $(LIBO2CB_LIBS) $(BLKID_LIBS) $(COM_ERR_LIBS) $(GLIB_LIBS)
++	$(LINK) -shared $(LIBOCFS2_LIBS) $(LIBO2DLM_LIBS) $(LIBO2CB_LIBS) $(BLKID_LIBS) $(COM_ERR_LIBS) $(GLIB_LIBS) $(LIBDEVMAPPER_LIBS)
+ 
+ gidlemodule.so: $(GIDLE_OBJS)
+ 	$(LINK) -shared $(GLIB_LIBS)
+--- a/ocfs2console/ocfs2interface/ocfsplist.c
++++ b/ocfs2console/ocfs2interface/ocfsplist.c
+@@ -37,6 +37,11 @@
+ 
+ #include <blkid/blkid.h>
+ 
++#ifdef HAVE_DEVICE_MAPPER
++#include <libdevmapper.h>
++#include <limits.h>
++#endif
++
+ #include "ocfsplist.h"
+ 
+ 
+@@ -214,15 +219,91 @@ get_device_fstype (const gchar  *device,
+ }
+ 
+ static void
+-partition_info_fill (GHashTable *info,
+-		     gboolean    async)
++partition_add_one(GHashTable *info, gboolean async, const char *name,
++		  guint *count)
++{
++  GSList *list = NULL;
++  gchar *device = g_strconcat ("/dev/", name, NULL);
++  gint i = strlen (device) - 1;
++
++  if (g_ascii_isdigit (device[i]))
++    {
++      gchar *p;
++      while (i > 0 && g_ascii_isdigit (device[i]))
++        i--;
++
++      p = g_strndup (device, i + 1);
++      list = g_hash_table_lookup (info, p);
++
++      if (list == NULL)
++        {
++          list = g_slist_prepend (NULL, device);
++          g_hash_table_insert (info, p, list);
++        }
++      else
++        {
++          if (strcmp (p, list->data) == 0)
++            {
++              g_free (list->data);
++              list->data = device;
++            }
++          else
++            g_slist_append (list, device);
++
++          g_free (p);
++        }
++    }
++  else if (!g_hash_table_lookup (info, device))
++    {
++      list = g_slist_prepend (NULL, g_strdup (device));
++      g_hash_table_insert (info, device, list);
++    }
++      else
++  g_free (device);
++
++  async_loop_run (async, count, FILL_ASYNC_ITERATIONS);
++}
++
++#ifdef HAVE_DEVICE_MAPPER
++static void
++partition_add_dm(GHashTable *info, gboolean async, guint *count)
++{
++  struct dm_names *names;
++  struct dm_task *dmt;
++  unsigned int next = 0;
++
++  if (!(dmt = dm_task_create(DM_DEVICE_LIST)))
++    return;
++
++  if (!dm_task_run(dmt))
++    goto out;
++
++  if (!(names = dm_task_get_names(dmt)))
++    goto out;
++
++  if (!names->dev)
++    goto out;
++
++  do
++    {
++      char name[PATH_MAX];
++      names = (void *) names + next;
++      snprintf(name, PATH_MAX, "mapper/%s", names->name);
++      partition_add_one(info, async, name, count);
++      next = names->next;
++    }
++  while (next);
++
++out:
++  dm_task_destroy(dmt);
++}
++#endif
++
++static void
++partition_add_partitions(GHashTable *info, gboolean async, guint *count)
+ {
+   FILE   *proc;
+-  gchar   line[100], name[100], *device;
+-  GSList *list;
+-  gint    i;
+-  gchar  *p;
+-  guint   count = 0;
++  gchar   line[100], name[100];
+ 
+   proc = fopen ("/proc/partitions", "r");
+   if (proc == NULL)
+@@ -233,47 +314,28 @@ partition_info_fill (GHashTable *info,
+       if (sscanf(line, "%*d %*d %*d %99[^ \t\n]", name) != 1)
+ 	continue;
+ 
+-      device = g_strconcat ("/dev/", name, NULL);
+-
+-      i = strlen (device) - 1;
+-      if (g_ascii_isdigit (device[i]))
+-	{
+-	  while (i > 0 && g_ascii_isdigit (device[i]))
+-	    i--;
++#ifdef HAVE_DEVICE_MAPPER
++      if (strstr(name, "dm-") == name)
++	continue;
++#endif
+ 
+-	  p = g_strndup (device, i + 1);
+-	  list = g_hash_table_lookup (info, p);
++      partition_add_one(info, async, name, count);
+ 
+-	  if (list == NULL)
+-	    {
+-	      list = g_slist_prepend (NULL, device);
+-	      g_hash_table_insert (info, p, list);
+-	    }
+-	  else
+-	    {
+-	      if (strcmp (p, list->data) == 0)
+-		{
+-		  g_free (list->data);
+-		  list->data = device;
+-		}
+-	      else
+-		g_slist_append (list, device);
++    }
++  fclose (proc);
++}
+ 
+-	      g_free (p);
+-	    }
+-	}
+-      else if (!g_hash_table_lookup (info, device))
+-	{
+-	  list = g_slist_prepend (NULL, g_strdup (device));
+-	  g_hash_table_insert (info, device, list);
+-	}
+-      else
+-	g_free (device);
++static void
++partition_info_fill (GHashTable *info,
++		     gboolean    async)
++{
++  guint   count = 0;
+ 
+-      async_loop_run (async, &count, FILL_ASYNC_ITERATIONS);
+-    }
++  partition_add_partitions(info, async, &count);
+ 
+-  fclose (proc);
++#ifdef HAVE_DEVICE_MAPPER
++  partition_add_dm(info, async, &count);
++#endif
+ }
+ 
+ static gboolean
+
+-- 
+Jeff Mahoney
+SUSE Labs
