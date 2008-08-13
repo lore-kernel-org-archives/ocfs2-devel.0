@@ -1,33 +1,61 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 13 Aug 2008 12:52:48 -0700
-Subject: [Ocfs2-devel] [PATCH 0/3] Dynamic local alloc (halfway there)
-In-Reply-To: <48A331A9.7000404@oracle.com>
-References: <1217536922-28328-1-git-send-email-mfasheh@suse.com>
-	<48A331A9.7000404@oracle.com>
-Message-ID: <20080813195248.GN21187@wotan.suse.de>
+Date: Wed, 13 Aug 2008 13:32:40 -0700
+Subject: [Ocfs2-devel] [PATCH] Refactor ocfs2_insert_extent for
+	not-merging.
+In-Reply-To: <1218648792-5033-1-git-send-email-tao.ma@oracle.com>
+References: <20080812205225.GH21187@wotan.suse.de>
+	<1218648792-5033-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20080813203240.GO21187@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Aug 13, 2008 at 03:10:33PM -0400, Marcos E. Matsunaga wrote:
-> The times in average goes up 3-4 times and then comes back to normal. I had
-> some hard times with the kernel because at some point it starts to dump stacks
-> for processes that stay too long without responding. Some of the systems had
-> times over 3-4 times going up to about 10 times, but my guess is that it was
-> related to the dumps as the systems get very slow at that point.
+On Thu, Aug 14, 2008 at 01:33:12AM +0800, Tao Ma wrote:
+> From: taoma <taoma@tma-home.cn.oracle.com>
+> 
+> Hi Mark,
+> 	Here is the patch we discussed this morning.
+> 
+> In xattr bucket, we want to limit the maximum size of a btree leaf,
+> otherwise we'll lose the benefits of hashing because we'll have to search
+> large leaves.
+> 
+> So add a new flag in ocfs2_extent_tree which will prevent ocfs2_insert_extent
+> from merging the leaf record even if they are contiguous.
 
-Ok, so we're doing much better - where it would slow down by about 50 times
-before. How about overall run time? Is that affected at all? Do we complete
-the whole test faster than before, or does the run time stay the same?
+Ok, this is close... The problem I see here though is that we've gone from
+always merging when possible to *never* merging.
+
+What we want is "don't merge if the resulting extent is larger than a given
+size".
+
+So, instead of a flags field, how about "unsigned int max_extent_clusters".
+If it's zero, we don't limit the extent. Otherwise, we honor the value it is
+set to. A (cleaner) alternative would be to set it to the max value a u16 can have by
+default so we never have to do an explicit "is this zero" check.
 
 
-> I'm planning to leave it running again, but disabling the dumps. I'm not really
-> sure it will have much of an effect in terms of performance impact, but I'll
-> try.
+Inside of ocfs2_figure_contig_type():
 
-Well, it's certainly worth knowing  :)
+... ocfs2_figure_contig_type(...) {
+	...
+	unsigned int len = le16_to_cpu(ext_rec->e_leaf_clusters) + le16_to_cpu(insert_rec->e_leaf_clusters);
+
+	/*
+	 * Caller might want us to limit the size of extents, don't calculate
+	 * contiguousness if we might exceed that limit.
+	 */
+	if (et->max_extent_clusters && len > et->max_extent_clusters) {
+	        insert->ins_contig = CONTIG_NONE;
+	        return;
+	}
+
+	...
+}
+
+Thanks,
 	--Mark
 
 --
