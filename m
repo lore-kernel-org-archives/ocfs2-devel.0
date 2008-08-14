@@ -1,108 +1,139 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 14 Aug 2008 12:55:22 -0700
-Subject: [Ocfs2-devel] [PATCH 03/15] Abstract ocfs2_extent_tree
-	in	b-tree operations.
-In-Reply-To: <1218061894-7693-3-git-send-email-tao.ma@oracle.com>
+Date: Thu, 14 Aug 2008 13:01:44 -0700
+Subject: [Ocfs2-devel] [PATCH 04/15] Make extend allocation generic.
+In-Reply-To: <1218061894-7693-4-git-send-email-tao.ma@oracle.com>
 References: <489A94F4.90903@oracle.com>
-	<1218061894-7693-3-git-send-email-tao.ma@oracle.com>
-Message-ID: <20080814195522.GA28875@mail.oracle.com>
+	<1218061894-7693-4-git-send-email-tao.ma@oracle.com>
+Message-ID: <20080814200144.GB28875@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Aug 07, 2008 at 06:31:25AM +0800, Tao Ma wrote:
-> In the old extent tree operation, we take the hypothesis that we
-> are using the ocfs2_extent_list in ocfs2_dinode as the tree root.
-> As xattr will also use ocfs2_extent_list to store large value
-> for a xattr entry, we refactor the tree operation so that xattr
-> can use it directly.
-> 
-> The refactoring includes 4 steps:
-> 1. Abstract set/get of last_eb_blk and update_clusters since they may
->    be stored in different location for dinode and xattr.
-> 2. Add a new structure named ocfs2_extent_tree to indicate the
->    extent tree the operation will work on.
-> 3. Remove all the use of fe_bh and di, use root_bh and root_el in
->    extent tree instead. So now all the fe_bh is replaced with
->    et->root_bh, el with root_el accordingly.
-> 4. Make ocfs2_lock_allocators generic. Now it is limited to be only used
->    in file extend allocation. But the whole function is useful when we want
->    to store large EAs.
-> 
-> Note: This patch hasn't touch the code of ocfs2_commit_truncate since
-> it isn't has been modified with the new tree operation.
-> So all the truncating code deem that the tree root is ocfs2_dinode.
+On Thu, Aug 07, 2008 at 06:31:26AM +0800, Tao Ma wrote:
+> The old ocfs2_do_extend_allocation is restrictly to be used in file
+> extension. Now a new function named ocfs2_do_cluster_allocation will
+> handle the issue of generic extend allocation and it is created in
+> suballoc.c.
 
-	Ok, I love this patch.  I just have a couple questions.
+<snip> 
 
-> +struct ocfs2_extent_tree_operations {
-> +	void (*set_last_eb_blk) (struct ocfs2_extent_tree *et, u64 blkno);
-> +	u64 (*get_last_eb_blk) (struct ocfs2_extent_tree *et);
-> +	void (*update_clusters) (struct inode *inode,
-> +				 struct ocfs2_extent_tree *et,
-> +				 u32 new_clusters);
-> +	int (*sanity_check) (struct inode *inode, struct ocfs2_extent_tree *et);
-> +};
+> +int ocfs2_add_clusters_in_btree(struct ocfs2_super *osb,
+> +				struct inode *inode,
+> +				u32 *logical_offset,
+> +				u32 clusters_to_add,
+> +				int mark_unwritten,
+> +				struct buffer_head *root_bh,
+> +				struct ocfs2_extent_list *root_el,
+> +				handle_t *handle,
+> +				struct ocfs2_alloc_context *data_ac,
+> +				struct ocfs2_alloc_context *meta_ac,
+> +				enum ocfs2_alloc_restarted *reason_ret,
+> +				enum ocfs2_extent_tree_type type)
 
-	Can we please prefix these?  et_set_last_eb_blk,
-et_update_clusters, etc.
-
-> +struct ocfs2_extent_tree {
-> +	enum ocfs2_extent_tree_type type;
-> +	struct ocfs2_extent_tree_operations *eops;
-> +	struct buffer_head *root_bh;
-> +	struct ocfs2_extent_list *root_el;
-> +};
-
-	And these too?  et_type, et_ops, et_root_bh, et_root_el.
-
->  int ocfs2_num_free_extents(struct ocfs2_super *osb,
->  			   struct inode *inode,
-> -			   struct buffer_head *bh)
-> +			   struct buffer_head *root_bh,
-> +			   enum ocfs2_extent_tree_type type)
->  {
->  	int retval;
-> -	struct ocfs2_extent_list *el;
-> +	struct ocfs2_extent_list *el = NULL;
->  	struct ocfs2_extent_block *eb;
->  	struct buffer_head *eb_bh = NULL;
-> -	struct ocfs2_dinode *fe = (struct ocfs2_dinode *)bh->b_data;
-> +	u64 last_eb_blk = 0;
->  
->  	mlog_entry_void();
->  
-> -	if (!OCFS2_IS_VALID_DINODE(fe)) {
-> -		OCFS2_RO_ON_INVALID_DINODE(inode->i_sb, fe);
-> -		retval = -EIO;
-> -		goto bail;
-> +	if (type == OCFS2_DINODE_EXTENT) {
-> +		struct ocfs2_dinode *fe =
-> +				(struct ocfs2_dinode *)root_bh->b_data;
-> +		if (!OCFS2_IS_VALID_DINODE(fe)) {
-> +			OCFS2_RO_ON_INVALID_DINODE(inode->i_sb, fe);
-> +			retval = -EIO;
-> +			goto bail;
-> +		}
-> +
-> +		if (fe->i_last_eb_blk)
-> +			last_eb_blk = le64_to_cpu(fe->i_last_eb_blk);
-> +		el = &fe->id2.i_list;
-
-	Why isn't this using ocfs2_new_extent_tree() and then
-ocfs2_get_last_eb_lock()?  You do that every other place, and it keeps
-you from having to special case each type here.
-
+	It seems to me that if you have root_bh and type, you can create
+an ocfs2_extent_tree and calculate root_el from that.  So you don't need
+root_el in this function's arguments, and callers don't need to know how
+to compute it.
 
 Joel
 
+> +{
+> +	int status = 0;
+> +	int free_extents;
+> +	enum ocfs2_alloc_restarted reason = RESTART_NONE;
+> +	u32 bit_off, num_bits;
+> +	u64 block;
+> +	u8 flags = 0;
+> +
+> +	BUG_ON(!clusters_to_add);
+> +
+> +	if (mark_unwritten)
+> +		flags = OCFS2_EXT_UNWRITTEN;
+> +
+> +	free_extents = ocfs2_num_free_extents(osb, inode, root_bh, type);
+> +	if (free_extents < 0) {
+> +		status = free_extents;
+> +		mlog_errno(status);
+> +		goto leave;
+> +	}
+> +
+> +	/* there are two cases which could cause us to EAGAIN in the
+> +	 * we-need-more-metadata case:
+> +	 * 1) we haven't reserved *any*
+> +	 * 2) we are so fragmented, we've needed to add metadata too
+> +	 *    many times. */
+> +	if (!free_extents && !meta_ac) {
+> +		mlog(0, "we haven't reserved any metadata!\n");
+> +		status = -EAGAIN;
+> +		reason = RESTART_META;
+> +		goto leave;
+> +	} else if ((!free_extents)
+> +		   && (ocfs2_alloc_context_bits_left(meta_ac)
+> +		       < ocfs2_extend_meta_needed(root_el))) {
+> +		mlog(0, "filesystem is really fragmented...\n");
+> +		status = -EAGAIN;
+> +		reason = RESTART_META;
+> +		goto leave;
+> +	}
+> +
+> +	status = __ocfs2_claim_clusters(osb, handle, data_ac, 1,
+> +					clusters_to_add, &bit_off, &num_bits);
+> +	if (status < 0) {
+> +		if (status != -ENOSPC)
+> +			mlog_errno(status);
+> +		goto leave;
+> +	}
+> +
+> +	BUG_ON(num_bits > clusters_to_add);
+> +
+> +	/* reserve our write early -- insert_extent may update the inode */
+> +	status = ocfs2_journal_access(handle, inode, root_bh,
+> +				      OCFS2_JOURNAL_ACCESS_WRITE);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		goto leave;
+> +	}
+> +
+> +	block = ocfs2_clusters_to_blocks(osb->sb, bit_off);
+> +	mlog(0, "Allocating %u clusters at block %u for inode %llu\n",
+> +	     num_bits, bit_off, (unsigned long long)OCFS2_I(inode)->ip_blkno);
+> +	status = ocfs2_insert_extent(osb, handle, inode, root_bh,
+> +				     *logical_offset, block, num_bits,
+> +				     flags, meta_ac, type);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		goto leave;
+> +	}
+> +
+> +	status = ocfs2_journal_dirty(handle, root_bh);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		goto leave;
+> +	}
+> +
+> +	clusters_to_add -= num_bits;
+> +	*logical_offset += num_bits;
+> +
+> +	if (clusters_to_add) {
+> +		mlog(0, "need to alloc once more, wanted = %u\n",
+> +		     clusters_to_add);
+> +		status = -EAGAIN;
+> +		reason = RESTART_TRANS;
+> +	}
+> +
+> +leave:
+> +	mlog_exit(status);
+> +	if (reason_ret)
+> +		*reason_ret = reason;
+> +	return status;
+> +}
+
 -- 
 
-"Maybe the time has drawn the faces I recall.
- But things in this life change very slowly,
- If they ever change at all."
+"You don't make the poor richer by making the rich poorer."
+	- Sir Winston Churchill
 
 Joel Becker
 Principal Software Developer
