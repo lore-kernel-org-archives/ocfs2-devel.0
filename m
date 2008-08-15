@@ -1,7 +1,7 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 15 Aug 2008 23:43:06 +0800
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Fri, 15 Aug 2008 10:59:42 -0700
 Subject: [Ocfs2-devel] [PATCH 04/15] Make extend allocation generic.
-In-Reply-To: <20080815062634.GA28988@mail.oracle.com>
+In-Reply-To: <48A5A40A.4010004@oracle.com>
 References: <489A94F4.90903@oracle.com>
 	<1218061894-7693-4-git-send-email-tao.ma@oracle.com>
 	<20080814200144.GB28875@mail.oracle.com>
@@ -9,85 +9,34 @@ References: <489A94F4.90903@oracle.com>
 	<20080814234722.GF17664@mail.oracle.com>
 	<48A541D5.2080102@oracle.com>
 	<20080815062634.GA28988@mail.oracle.com>
-Message-ID: <48A5A40A.4010004@oracle.com>
+	<48A5A40A.4010004@oracle.com>
+Message-ID: <20080815175942.GU21187@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+On Fri, Aug 15, 2008 at 11:43:06PM +0800, Tao Ma wrote:
+> btw, do you have time to review all the other patches? If yes, I will 
+> wait until you review all of them and send out next round then.
 
+Can you send the latest stuff, with all fixes that have already been
+discussed up until today, and then address any other issues Joel might find
+in his review as follow-up patches, based on the branch I create in
+ocfs2.git?
 
-Joel Becker wrote:
-> On Fri, Aug 15, 2008 at 04:44:05PM +0800, Tao Ma wrote:
->>
->> Joel Becker wrote:
->>> On Fri, Aug 15, 2008 at 03:14:38PM +0800, Tao Ma wrote:
->>>> Joel Becker wrote:
->>>>> On Thu, Aug 07, 2008 at 06:31:26AM +0800, Tao Ma wrote:
->>>>>> The old ocfs2_do_extend_allocation is restrictly to be used in file
->>>>>> extension. Now a new function named ocfs2_do_cluster_allocation will
->>>>>> handle the issue of generic extend allocation and it is created in
->>>>>> suballoc.c.
->>>>> <snip> 
->>>>>
->>>>>> +int ocfs2_add_clusters_in_btree(struct ocfs2_super *osb,
->>>>>> +				struct inode *inode,
->>>>>> +				u32 *logical_offset,
->>>>>> +				u32 clusters_to_add,
->>>>>> +				int mark_unwritten,
->>>>>> +				struct buffer_head *root_bh,
->>>>>> +				struct ocfs2_extent_list *root_el,
->>>>>> +				handle_t *handle,
->>>>>> +				struct ocfs2_alloc_context *data_ac,
->>>>>> +				struct ocfs2_alloc_context *meta_ac,
->>>>>> +				enum ocfs2_alloc_restarted *reason_ret,
->>>>>> +				enum ocfs2_extent_tree_type type)
->>>>> 	It seems to me that if you have root_bh and type, you can create
->>>>> an ocfs2_extent_tree and calculate root_el from that.  So you don't need
->>>>> root_el in this function's arguments, and callers don't need to know how
->>>>> to compute it.
->>>> No we can't. For a ocfs2_xattr_value_root. It can be stored in any place 
->>>> of a buffer_head, so we have to give it to this function.
->>> 	But don't you later turn a private pointer into that thing?
->> I think I know your meaning now.
->> I have gone through the function and it doesn't create 
->> ocfs2_extent_tree. So I don't think it is worth for us to just erase a 
->> "parameter" in kernel stack while doing kmalloc+kfree, right?
-> 
-> 	Why are you kmalloc()ing at all?  Every place you use
-> ocfs2_extent_tree() does this:
-> 
-> 	struct ocfs2_extent_tree *et = NULL;
-> 
-> 	et = ocfs2_new_extent_tree(bh, type);
-> 	do_some_alloc(et);
-> 	if (et)
-> 		ocfs2_free_extent_tree(et);
-> 
-> You never actually pass the extent tree up to the caller or store it on
-> a pointer somewhere.  You could just as easily do this:
-> 
-> 	struct ocfs2_extent_tree et;
-> 
-> 	ocfs2_fill_extent_tree(&et, bh, type);
-> 	do_some_alloc(&et);
-> 	ocfs2_drop_extent_tree(&et);
-> 
-> and never kmalloc at all.  The et just lives on the current function's
-> stack, safely passed to all sub functions.
-> 	If you ever do need to allocate an extent tree, you can always
-> kzalloc it and then call fill_extent_tree.  But since allocating is the
-> very rare case, why do it by default?
-yes, you are right. I will adjust the initialization of 
-ocfs2_extent_tree. thanks.
+I definitely want whatever review Joel can give, but I also want to get this
+up in ocfs2.git ASAP. Since I'm very confident that the disk format is
+essentially frozen, we can merge more or less immediately and get this stuff
+exposure in the various trees that pick up ocfs2.git.
 
-But as for the original case which you ask me not to pass root_el, it 
-isn't suitable since root_el need less stack length and more readable 
-than we initiate a ocfs2_extent_tree here.
+I'll worry about folding follow-up patches back into the main series once
+all review is in. That should free you to concentrate on addressing issues
+as they come up.
 
-btw, do you have time to review all the other patches? If yes, I will 
-wait until you review all of them and send out next round then.
+Thanks,
+	--Mark   (Dusting off his merge-monkey hat)
 
-Regards,
-Tao
+--
+Mark Fasheh
