@@ -1,7 +1,7 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 15 Aug 2008 12:23:10 -0700
+From: Tao Ma <tao.ma@oracle.com>
+Date: Sat, 16 Aug 2008 17:39:42 +0800
 Subject: [Ocfs2-devel] [PATCH 04/15] Make extend allocation generic.
-In-Reply-To: <48A5A40A.4010004@oracle.com>
+In-Reply-To: <20080815175942.GU21187@wotan.suse.de>
 References: <489A94F4.90903@oracle.com>
 	<1218061894-7693-4-git-send-email-tao.ma@oracle.com>
 	<20080814200144.GB28875@mail.oracle.com>
@@ -10,53 +10,41 @@ References: <489A94F4.90903@oracle.com>
 	<48A541D5.2080102@oracle.com>
 	<20080815062634.GA28988@mail.oracle.com>
 	<48A5A40A.4010004@oracle.com>
-Message-ID: <20080815192310.GC22815@mail.oracle.com>
+	<20080815175942.GU21187@wotan.suse.de>
+Message-ID: <48A6A05E.405@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Aug 15, 2008 at 11:43:06PM +0800, Tao Ma wrote:
->>>>>>> +int ocfs2_add_clusters_in_btree(struct ocfs2_super *osb,
->>>>>>> +				struct inode *inode,
->>>>>>> +				u32 *logical_offset,
->>>>>>> +				u32 clusters_to_add,
->>>>>>> +				int mark_unwritten,
->>>>>>> +				struct buffer_head *root_bh,
->>>>>>> +				struct ocfs2_extent_list *root_el,
->>>>>>> +				handle_t *handle,
->>>>>>> +				struct ocfs2_alloc_context *data_ac,
->>>>>>> +				struct ocfs2_alloc_context *meta_ac,
->>>>>>> +				enum ocfs2_alloc_restarted *reason_ret,
->>>>>>> +				enum ocfs2_extent_tree_type type)
+Hi Mark,
+	OK, I will contact Tiger to see whether we can send them out next Monday.
 
-> But as for the original case which you ask me not to pass root_el, it  
-> isn't suitable since root_el need less stack length and more readable  
-> than we initiate a ocfs2_extent_tree here.
+Regards,
+Tao
 
-	That's a 12 argument function there.  That's ugly.  This isn't
-about actual stack usage (you're right, we don't gain stack in my
-scheme).  It's about readable functions.
-	In fact, struct ocfs2_alloc_context exists so that Mark could
-pass one _ac down to a function rather than 5 arguments.
-	Why aren't you passing a struct ocfs2_extent_tree to this
-function anyway?  You could do it in the caller, pass it down, and then
-this function takes one *et rather than *root_bh+*root_el+type.  Just a
-thought.
-	Mark knows this code better than I, so if he jumps in and says
-"I find this 12 argument function more readable than what you propose",
-I will happily consider myself outvoted :-)
-
-Joel
-
--- 
-
-"If at first you don't succeed, cover all traces that you tried."
-                                                        -Unknown
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Mark Fasheh wrote:
+> On Fri, Aug 15, 2008 at 11:43:06PM +0800, Tao Ma wrote:
+>> btw, do you have time to review all the other patches? If yes, I will 
+>> wait until you review all of them and send out next round then.
+> 
+> Can you send the latest stuff, with all fixes that have already been
+> discussed up until today, and then address any other issues Joel might find
+> in his review as follow-up patches, based on the branch I create in
+> ocfs2.git?
+> 
+> I definitely want whatever review Joel can give, but I also want to get this
+> up in ocfs2.git ASAP. Since I'm very confident that the disk format is
+> essentially frozen, we can merge more or less immediately and get this stuff
+> exposure in the various trees that pick up ocfs2.git.
+> 
+> I'll worry about folding follow-up patches back into the main series once
+> all review is in. That should free you to concentrate on addressing issues
+> as they come up.
+> 
+> Thanks,
+> 	--Mark   (Dusting off his merge-monkey hat)
+> 
+> --
+> Mark Fasheh
