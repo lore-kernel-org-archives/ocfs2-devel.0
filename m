@@ -1,133 +1,163 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Mon, 18 Aug 2008 17:38:54 +0800
-Subject: [Ocfs2-devel] [PATCH 15/16] Delete all xattr buckets in inode
-	removal.
+Date: Mon, 18 Aug 2008 17:38:42 +0800
+Subject: [Ocfs2-devel] [PATCH 01/16] Modify ocfs2_num_free_extents for
+	future xattr usage.
 In-Reply-To: <48A929A4.90103@oracle.com>
 References: <48A929A4.90103@oracle.com>
-Message-ID: <1219052334-10415-13-git-send-email-tao.ma@oracle.com>
+Message-ID: <1219052334-10415-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In inode removal, we need to iterate all the buckets, remove all
-the outside value storage for individual xattr and delete the xattr
-buckets.
+ocfs2_num_free_extents is used to find the free extent record
+number. The old parameter is "ocfs2_dinode", and it isn't suitable
+for xattr_value. So change it to "buffer_head *".
+ocfs2_lock_allocator is also modified in this patch because we
+need "buffer_head *" to call ocfs2_num_free_extents.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/xattr.c |   84 +++++++++++++++++++++++++++++++++++++++++++++++++++--
- 1 files changed, 80 insertions(+), 4 deletions(-)
+ fs/ocfs2/alloc.c |    3 ++-
+ fs/ocfs2/alloc.h |    2 +-
+ fs/ocfs2/aops.c  |    5 +++--
+ fs/ocfs2/dir.c   |    3 ++-
+ fs/ocfs2/file.c  |   11 ++++++-----
+ fs/ocfs2/file.h  |    2 +-
+ 6 files changed, 15 insertions(+), 11 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 1de17c8..6e84b36 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -147,6 +147,9 @@ static int ocfs2_xattr_set_entry_index_block(struct inode *inode,
- 					     struct ocfs2_xattr_info *xi,
- 					     struct ocfs2_xattr_search *xs);
- 
-+static int ocfs2_delete_xattr_index_block(struct inode *inode,
-+					  struct buffer_head *xb_bh);
-+
- static inline struct xattr_handler *ocfs2_xattr_handler(int name_index)
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 10bfb46..c74711f 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -368,12 +368,13 @@ struct ocfs2_merge_ctxt {
+  */
+ int ocfs2_num_free_extents(struct ocfs2_super *osb,
+ 			   struct inode *inode,
+-			   struct ocfs2_dinode *fe)
++			   struct buffer_head *bh)
  {
- 	struct xattr_handler *handler = NULL;
-@@ -1527,13 +1530,14 @@ static int ocfs2_xattr_block_remove(struct inode *inode,
- 				    struct buffer_head *blk_bh)
+ 	int retval;
+ 	struct ocfs2_extent_list *el;
+ 	struct ocfs2_extent_block *eb;
+ 	struct buffer_head *eb_bh = NULL;
++	struct ocfs2_dinode *fe = (struct ocfs2_dinode *)bh->b_data;
+ 
+ 	mlog_entry_void();
+ 
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index 42ff94b..758dbda 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -47,7 +47,7 @@ int ocfs2_remove_extent(struct inode *inode, struct buffer_head *di_bh,
+ 			struct ocfs2_cached_dealloc_ctxt *dealloc);
+ int ocfs2_num_free_extents(struct ocfs2_super *osb,
+ 			   struct inode *inode,
+-			   struct ocfs2_dinode *fe);
++			   struct buffer_head *bh);
+ /* how many new metadata chunks would an allocation need at maximum? */
+ static inline int ocfs2_extend_meta_needed(struct ocfs2_dinode *fe)
  {
- 	struct ocfs2_xattr_block *xb;
--	struct ocfs2_xattr_header *header;
- 	int ret = 0;
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 506c24f..3d28c9e 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1712,8 +1712,9 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+ 		 * ocfs2_lock_allocators(). It greatly over-estimates
+ 		 * the work to be done.
+ 		 */
+-		ret = ocfs2_lock_allocators(inode, di, clusters_to_alloc,
+-					    extents_to_split, &data_ac, &meta_ac);
++		ret = ocfs2_lock_allocators(inode, wc->w_di_bh,
++					    clusters_to_alloc, extents_to_split,
++					    &data_ac, &meta_ac);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 8a18758..8a14fff 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -1474,7 +1474,8 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 	spin_lock(&OCFS2_I(dir)->ip_lock);
+ 	if (dir_i_size == ocfs2_clusters_to_bytes(sb, OCFS2_I(dir)->ip_clusters)) {
+ 		spin_unlock(&OCFS2_I(dir)->ip_lock);
+-		num_free_extents = ocfs2_num_free_extents(osb, dir, fe);
++		num_free_extents = ocfs2_num_free_extents(osb, dir,
++							  parent_fe_bh);
+ 		if (num_free_extents < 0) {
+ 			status = num_free_extents;
+ 			mlog_errno(status);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index ec2ed15..6398458 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -521,7 +521,7 @@ int ocfs2_do_extend_allocation(struct ocfs2_super *osb,
+ 	if (mark_unwritten)
+ 		flags = OCFS2_EXT_UNWRITTEN;
  
- 	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
--	header = &(xb->xb_attrs.xb_header);
--
--	ret = ocfs2_remove_value_outside(inode, blk_bh, header);
-+	if (!(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED)) {
-+		struct ocfs2_xattr_header *header = &(xb->xb_attrs.xb_header);
-+		ret = ocfs2_remove_value_outside(inode, blk_bh, header);
-+	} else
-+		ret = ocfs2_delete_xattr_index_block(inode, blk_bh);
+-	free_extents = ocfs2_num_free_extents(osb, inode, fe);
++	free_extents = ocfs2_num_free_extents(osb, inode, fe_bh);
+ 	if (free_extents < 0) {
+ 		status = free_extents;
+ 		mlog_errno(status);
+@@ -609,7 +609,7 @@ leave:
+  * File systems which don't support holes call this from
+  * ocfs2_extend_allocation().
+  */
+-int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
++int ocfs2_lock_allocators(struct inode *inode, struct buffer_head *di_bh,
+ 			  u32 clusters_to_add, u32 extents_to_split,
+ 			  struct ocfs2_alloc_context **data_ac,
+ 			  struct ocfs2_alloc_context **meta_ac)
+@@ -617,6 +617,7 @@ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
+ 	int ret = 0, num_free_extents;
+ 	unsigned int max_recs_needed = clusters_to_add + 2 * extents_to_split;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
  
- 	return ret;
- }
-@@ -4754,3 +4758,75 @@ out:
- 	mlog_exit(ret);
- 	return ret;
- }
-+
-+static int ocfs2_delete_xattr_in_bucket(struct inode *inode,
-+					struct ocfs2_xattr_bucket *bucket,
-+					void *para)
-+{
-+	int ret = 0;
-+	struct ocfs2_xattr_header *xh = bucket->xh;
-+	u16 i;
-+	struct ocfs2_xattr_entry *xe;
-+
-+	for (i = 0; i < le16_to_cpu(xh->xh_count); i++) {
-+		xe = &xh->xh_entries[i];
-+		if (ocfs2_xattr_is_local(xe))
-+			continue;
-+
-+		ret = ocfs2_xattr_bucket_value_truncate(inode,
-+							bucket->bhs[0],
-+							i, 0);
-+		if (ret) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+	}
-+
-+	return ret;
-+}
-+
-+static int ocfs2_delete_xattr_index_block(struct inode *inode,
-+					  struct buffer_head *xb_bh)
-+{
-+	struct ocfs2_xattr_block *xb =
-+			(struct ocfs2_xattr_block *)xb_bh->b_data;
-+	struct ocfs2_extent_list *el = &xb->xb_attrs.xb_root.xt_list;
-+	int ret = 0;
-+	u32 name_hash = UINT_MAX, e_cpos, num_clusters;
-+	u64 p_blkno;
-+
-+	if (le16_to_cpu(el->l_next_free_rec) == 0)
-+		return 0;
-+
-+	while (name_hash > 0) {
-+		ret = ocfs2_xattr_get_rec(inode, name_hash, &p_blkno,
-+					  &e_cpos, &num_clusters, el);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		ret = ocfs2_iterate_xattr_buckets(inode, p_blkno, num_clusters,
-+						  ocfs2_delete_xattr_in_bucket,
-+						  NULL);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		ret = ocfs2_rm_xattr_cluster(inode, xb_bh,
-+					     p_blkno, e_cpos, num_clusters);
-+		if (ret) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+
-+		if (e_cpos == 0)
-+			break;
-+
-+		name_hash = e_cpos - 1;
-+	}
-+
-+out:
-+	return ret;
-+}
+ 	*meta_ac = NULL;
+ 	if (data_ac)
+@@ -629,7 +630,7 @@ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
+ 	     (unsigned long long)OCFS2_I(inode)->ip_blkno, (long long)i_size_read(inode),
+ 	     le32_to_cpu(di->i_clusters), clusters_to_add, extents_to_split);
+ 
+-	num_free_extents = ocfs2_num_free_extents(osb, inode, di);
++	num_free_extents = ocfs2_num_free_extents(osb, inode, di_bh);
+ 	if (num_free_extents < 0) {
+ 		ret = num_free_extents;
+ 		mlog_errno(ret);
+@@ -724,7 +725,7 @@ static int __ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
+ restart_all:
+ 	BUG_ON(le32_to_cpu(fe->i_clusters) != OCFS2_I(inode)->ip_clusters);
+ 
+-	status = ocfs2_lock_allocators(inode, fe, clusters_to_add, 0, &data_ac,
++	status = ocfs2_lock_allocators(inode, bh, clusters_to_add, 0, &data_ac,
+ 				       &meta_ac);
+ 	if (status) {
+ 		mlog_errno(status);
+@@ -1395,7 +1396,7 @@ static int __ocfs2_remove_inode_range(struct inode *inode,
+ 	struct ocfs2_alloc_context *meta_ac = NULL;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+ 
+-	ret = ocfs2_lock_allocators(inode, di, 0, 1, NULL, &meta_ac);
++	ret = ocfs2_lock_allocators(inode, di_bh, 0, 1, NULL, &meta_ac);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		return ret;
+diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
+index 1e27b4d..29888a9 100644
+--- a/fs/ocfs2/file.h
++++ b/fs/ocfs2/file.h
+@@ -55,7 +55,7 @@ int ocfs2_do_extend_allocation(struct ocfs2_super *osb,
+ 			       enum ocfs2_alloc_restarted *reason_ret);
+ int ocfs2_extend_no_holes(struct inode *inode, u64 new_i_size,
+ 			  u64 zero_to);
+-int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
++int ocfs2_lock_allocators(struct inode *inode, struct buffer_head *fe,
+ 			  u32 clusters_to_add, u32 extents_to_split,
+ 			  struct ocfs2_alloc_context **data_ac,
+ 			  struct ocfs2_alloc_context **meta_ac);
 -- 
 1.5.4.1
