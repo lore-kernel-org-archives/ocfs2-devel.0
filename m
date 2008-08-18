@@ -1,157 +1,91 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Mon, 18 Aug 2008 17:38:46 +0800
-Subject: [Ocfs2-devel] [PATCH 05/16] Add xattr header in ocfs2.
+Date: Mon, 18 Aug 2008 17:38:47 +0800
+Subject: [Ocfs2-devel] [PATCH 06/16] Add helper function in uptodate for
+	removing xattr clusters.
 In-Reply-To: <48A929A4.90103@oracle.com>
 References: <48A929A4.90103@oracle.com>
-Message-ID: <1219052334-10415-5-git-send-email-tao.ma@oracle.com>
+Message-ID: <1219052334-10415-6-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add the basic xattr disk layout in ocfs2_fs.h.
+The old uptodate only handles the issue of removing one buffer_head
+from ocfs2 inode's buffer cache. With xattr clusters, we may need to
+remove some clusters from the cache. So add helper function for it.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/ocfs2_fs.h |  118 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 118 insertions(+), 0 deletions(-)
+ fs/ocfs2/uptodate.c |   32 ++++++++++++++++++++++++++------
+ fs/ocfs2/uptodate.h |    3 +++
+ 2 files changed, 29 insertions(+), 6 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 4f61985..1b46505 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -64,6 +64,7 @@
- #define OCFS2_INODE_SIGNATURE		"INODE01"
- #define OCFS2_EXTENT_BLOCK_SIGNATURE	"EXBLK01"
- #define OCFS2_GROUP_DESC_SIGNATURE      "GROUP01"
-+#define OCFS2_XATTR_BLOCK_SIGNATURE	"XATTR01"
+diff --git a/fs/ocfs2/uptodate.c b/fs/ocfs2/uptodate.c
+index 4da8851..e26459e 100644
+--- a/fs/ocfs2/uptodate.c
++++ b/fs/ocfs2/uptodate.c
+@@ -511,14 +511,10 @@ static void ocfs2_remove_metadata_tree(struct ocfs2_caching_info *ci,
+ 	ci->ci_num_cached--;
+ }
  
- /* Compatibility flags */
- #define OCFS2_HAS_COMPAT_FEATURE(sb,mask)			\
-@@ -715,6 +716,123 @@ struct ocfs2_group_desc
- /*40*/	__u8    bg_bitmap[0];
- };
- 
-+/*
-+ * On disk extended attribute structure for OCFS2.
-+ */
-+
-+/*
-+ * ocfs2_xattr_entry indicates one extend attribute.
-+ *
-+ * Note that it can be stored in inode, one block or one xattr bucket.
-+ */
-+struct ocfs2_xattr_entry {
-+	__le32	xe_name_hash;    /* hash value of xattr prefix+suffix. */
-+	__le16	xe_name_offset;  /* byte offset from the 1st etnry in the local
-+				    local xattr storage(inode, xattr block or
-+				    xattr bucket). */
-+	__u8	xe_name_len;	 /* xattr name len, does't include prefix. */
-+	__u8	xe_type;         /* the low 7 bits indicates the name prefix's
-+				  * type and the highest 1 bits indicate whether
-+				  * the EA is stored in the local storage. */
-+	__le64	xe_value_size;	 /* real xattr value length. */
-+};
-+
-+/*
-+ * On disk structure for xattr header.
-+ *
-+ * One ocfs2_xattr_header describes how many ocfs2_xattr_entry records in
-+ * the local xattr storage.
-+ */
-+struct ocfs2_xattr_header {
-+	__le16	xh_count;                       /* contains the count of how
-+						   many records are in the
-+						   local xattr storage. */
-+	__le16	xh_reserved1;
-+	__le32	xh_reserved2;
-+	__le64  xh_csum;
-+	struct ocfs2_xattr_entry xh_entries[0]; /* xattr entry list. */
-+};
-+
-+/*
-+ * On disk structure for xattr value root.
-+ *
-+ * It is used when one extended attribute's size is larger, and we will save it
-+ * in an outside cluster. It will stored in a b-tree like file content.
-+ */
-+struct ocfs2_xattr_value_root {
-+/*00*/	__le32	xr_clusters;              /* clusters covered by xattr value. */
-+	__le32	xr_reserved0;
-+	__le64	xr_last_eb_blk;           /* Pointer to last extent block */
-+/*10*/	struct ocfs2_extent_list xr_list; /* Extent record list */
-+};
-+
-+/*
-+ * On disk structure for xattr tree root.
-+ *
-+ * It is used when there are too many extended attributes for one file. These
-+ * attributes will be organized and stored in an indexed-btree.
-+ */
-+struct ocfs2_xattr_tree_root {
-+/*00*/	__le32	xt_clusters;              /* clusters covered by xattr. */
-+	__le32	xt_reserved0;
-+	__le64	xt_last_eb_blk;           /* Pointer to last extent block */
-+/*10*/	struct ocfs2_extent_list xt_list; /* Extent record list */
-+};
-+
-+#define OCFS2_XATTR_INDEXED 0x1
-+
-+/*
-+ * On disk structure for xattr block.
-+ */
-+struct ocfs2_xattr_block {
-+/*00*/	__u8	xb_signature[8];     /* Signature for verification */
-+	__le16	xb_suballoc_slot;    /* Slot suballocator this
-+					block belongs to. */
-+	__le16	xb_suballoc_bit;     /* Bit offset in suballocator
-+					block group */
-+	__le32	xb_fs_generation;    /* Must match super block */
-+/*10*/	__le64	xb_blkno;            /* Offset on disk, in blocks */
-+	__le64	xb_csum;
-+/*20*/	__le16	xb_flags;            /* Indicates whether this block contains
-+					real xattr or a xattr tree. */
-+	__le16	xb_reserved0;
-+	__le32  xb_reserved1;
-+	__le64	xb_reserved2;
-+/*30*/	union {
-+		struct ocfs2_xattr_header xb_header; /* xattr header if this
-+							block contains xattr */
-+		struct ocfs2_xattr_tree_root xb_root;/* xattr tree root if this
-+							block cotains xattr
-+							tree. */
-+	} xb_attrs;
-+};
-+
-+#define OCFS2_XATTR_ENTRY_LOCAL		0x80
-+#define OCFS2_XATTR_TYPE_MASK		0x7F
-+static inline void ocfs2_xattr_set_local(struct ocfs2_xattr_entry *xe,
-+					 int local)
-+{
-+	if (local)
-+		xe->xe_type |= OCFS2_XATTR_ENTRY_LOCAL;
-+	else
-+		xe->xe_type &= ~OCFS2_XATTR_ENTRY_LOCAL;
-+}
-+
-+static inline int ocfs2_xattr_is_local(struct ocfs2_xattr_entry *xe)
-+{
-+	return xe->xe_type & OCFS2_XATTR_ENTRY_LOCAL;
-+}
-+
-+static inline void ocfs2_xattr_set_type(struct ocfs2_xattr_entry *xe, int type)
-+{
-+	xe->xe_type |= type & OCFS2_XATTR_TYPE_MASK;
-+}
-+
-+static inline int ocfs2_xattr_get_type(struct ocfs2_xattr_entry *xe)
-+{
-+	return xe->xe_type & OCFS2_XATTR_TYPE_MASK;
-+}
-+
- #ifdef __KERNEL__
- static inline int ocfs2_fast_symlink_chars(struct super_block *sb)
+-/* Called when we remove a chunk of metadata from an inode. We don't
+- * bother reverting things to an inlined array in the case of a remove
+- * which moves us back under the limit. */
+-void ocfs2_remove_from_cache(struct inode *inode,
+-			     struct buffer_head *bh)
++static void ocfs2_remove_block_from_cache(struct inode *inode,
++					  sector_t block)
  {
+ 	int index;
+-	sector_t block = bh->b_blocknr;
+ 	struct ocfs2_meta_cache_item *item = NULL;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_caching_info *ci = &oi->ip_metadata_cache;
+@@ -544,6 +540,30 @@ void ocfs2_remove_from_cache(struct inode *inode,
+ 		kmem_cache_free(ocfs2_uptodate_cachep, item);
+ }
+ 
++/*
++ * Called when we remove a chunk of metadata from an inode. We don't
++ * bother reverting things to an inlined array in the case of a remove
++ * which moves us back under the limit.
++ */
++void ocfs2_remove_from_cache(struct inode *inode,
++			     struct buffer_head *bh)
++{
++	sector_t block = bh->b_blocknr;
++
++	ocfs2_remove_block_from_cache(inode, block);
++}
++
++/* Called when we remove xattr clusters from an inode. */
++void ocfs2_remove_xattr_clusters_from_cache(struct inode *inode,
++					    sector_t block,
++					    u32 c_len)
++{
++	u64 i, b_len = ocfs2_clusters_to_blocks(inode->i_sb, 1) * c_len;
++
++	for (i = 0; i < b_len; i++, block++)
++		ocfs2_remove_block_from_cache(inode, block);
++}
++
+ int __init init_ocfs2_uptodate_cache(void)
+ {
+ 	ocfs2_uptodate_cachep = kmem_cache_create("ocfs2_uptodate",
+diff --git a/fs/ocfs2/uptodate.h b/fs/ocfs2/uptodate.h
+index 2e73206..531b4b3 100644
+--- a/fs/ocfs2/uptodate.h
++++ b/fs/ocfs2/uptodate.h
+@@ -40,6 +40,9 @@ void ocfs2_set_new_buffer_uptodate(struct inode *inode,
+ 				   struct buffer_head *bh);
+ void ocfs2_remove_from_cache(struct inode *inode,
+ 			     struct buffer_head *bh);
++void ocfs2_remove_xattr_clusters_from_cache(struct inode *inode,
++					    sector_t block,
++					    u32 c_len);
+ int ocfs2_buffer_read_ahead(struct inode *inode,
+ 			    struct buffer_head *bh);
+ 
 -- 
 1.5.4.1
