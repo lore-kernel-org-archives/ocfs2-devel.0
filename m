@@ -1,13 +1,25 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 19 Aug 2008 17:22:15 -0700
+Date: Tue, 19 Aug 2008 17:51:15 -0700
 Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix sleep-with-spinlock recovery
 	regression
-Message-ID: <20080820002215.GE8070@wotan.suse.de>
+In-Reply-To: <20080820002215.GE8070@wotan.suse.de>
+References: <20080820002215.GE8070@wotan.suse.de>
+Message-ID: <20080820005115.GF8070@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+On Tue, Aug 19, 2008 at 05:22:15PM -0700, Mark Fasheh wrote:
+> This fixes a bug introduced with 539d8264093560b917ee3afe4c7f74e5da09d6a5:
+>     [PATCH 2/2] ocfs2: Fix race between mount and recovery
+
+Ok, version 2 - with a bug fix.
+
+From: Mark Fasheh <mfasheh@suse.com>
+
+[PATCH] ocfs2: Fix sleep-with-spinlock recovery regression
 
 This fixes a bug introduced with 539d8264093560b917ee3afe4c7f74e5da09d6a5:
     [PATCH 2/2] ocfs2: Fix race between mount and recovery
@@ -19,11 +31,11 @@ just move the spinlock down past the read.
 
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/journal.c |   20 ++++++++++++++------
- 1 files changed, 14 insertions(+), 6 deletions(-)
+ fs/ocfs2/journal.c |   23 ++++++++++++++---------
+ 1 files changed, 14 insertions(+), 9 deletions(-)
 
 diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 7a37240..20f3675 100644
+index 7a37240..c47bc2a 100644
 --- a/fs/ocfs2/journal.c
 +++ b/fs/ocfs2/journal.c
 @@ -1418,13 +1418,13 @@ int ocfs2_mark_dead_nodes(struct ocfs2_super *osb)
@@ -78,5 +90,16 @@ index 7a37240..20f3675 100644
  		spin_unlock(&osb->osb_lock);
  
  		/* Ok, we have a slot occupied by another node which
+@@ -1465,10 +1473,7 @@ int ocfs2_mark_dead_nodes(struct ocfs2_super *osb)
+ 			mlog_errno(status);
+ 			goto bail;
+ 		}
+-
+-		spin_lock(&osb->osb_lock);
+ 	}
+-	spin_unlock(&osb->osb_lock);
+ 
+ 	status = 0;
+ bail:
 -- 
 1.5.4.1
