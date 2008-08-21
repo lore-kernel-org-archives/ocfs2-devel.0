@@ -1,81 +1,86 @@
-From: TaoMa <tao.ma@oracle.com>
-Date: Thu, 21 Aug 2008 16:08:50 +0800
-Subject: [Ocfs2-devel] [PATCH 06/10] ocfs2: Use struct ocfs2_extent_tree
-	in ocfs2_num_free_extents().
-In-Reply-To: <20080821062152.GD17607@mail.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 21 Aug 2008 10:46:41 -0700
+Subject: [Ocfs2-devel] [PATCH 10/10] ocfs2: Make ocfs2_extent_tree the
+	first-class	representation of a tree.
+In-Reply-To: <48AD1D5C.8000803@oracle.com>
 References: <1219286905-28104-1-git-send-email-joel.becker@oracle.com>
-	<1219286905-28104-7-git-send-email-joel.becker@oracle.com>
-	<48ACEAAD.3070907@oracle.com>
-	<20080821062152.GD17607@mail.oracle.com>
-Message-ID: <48AD2292.5060500@oracle.com>
+	<1219286905-28104-11-git-send-email-joel.becker@oracle.com>
+	<48AD1D5C.8000803@oracle.com>
+Message-ID: <20080821174641.GK17607@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Joel Becker wrote:
-> On Thu, Aug 21, 2008 at 12:10:21PM +0800, TaoMa wrote:
->   
->> Joel Becker wrote:
->>     
->>> ocfs2_num_free_extents() re-implements the logic of
->>> ocfs2_get_extent_tree().  Now that ocfs2_get_extent_tree() does not
->>> allocate, let's use it in ocfs2_num_free_extents() to simplify the code.
->>>
->>> The inode validation code in ocfs2_num_free_extents() is not needed.
->>> All callers are passing in pre-validated inodes.
->>>
->>> Signed-off-by: Joel Becker <joel.becker@oracle.com>
->>> ---
->>>  fs/ocfs2/alloc.c |   30 +++++-------------------------
->>>  1 files changed, 5 insertions(+), 25 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
->>> index fb6ae67..0b900f6 100644
->>> --- a/fs/ocfs2/alloc.c
->>> +++ b/fs/ocfs2/alloc.c
->>> @@ -618,34 +618,13 @@ int ocfs2_num_free_extents(struct ocfs2_super *osb,
->>>  	struct ocfs2_extent_block *eb;
->>>  	struct buffer_head *eb_bh = NULL;
->>>  	u64 last_eb_blk = 0;
->>> +	struct ocfs2_extent_tree et;
->>>   	mlog_entry_void();
->>>  -	if (type == OCFS2_DINODE_EXTENT) {
->>> -		struct ocfs2_dinode *fe =
->>> -				(struct ocfs2_dinode *)root_bh->b_data;
->>> -		if (!OCFS2_IS_VALID_DINODE(fe)) {
->>> -			OCFS2_RO_ON_INVALID_DINODE(inode->i_sb, fe);
->>> -			retval = -EIO;
->>> -			goto bail;
->>> -		}
->>> -
->>> -		if (fe->i_last_eb_blk)
->>> -			last_eb_blk = le64_to_cpu(fe->i_last_eb_blk);
->>> -		el = &fe->id2.i_list;
->>> -	} else if (type == OCFS2_XATTR_VALUE_EXTENT) {
->>> -		struct ocfs2_xattr_value_root *xv =
->>> -			(struct ocfs2_xattr_value_root *) obj;
->>> -
->>> -		last_eb_blk = le64_to_cpu(xv->xr_last_eb_blk);
->>> -		el = &xv->xr_list;
->>> -	} else if (type == OCFS2_XATTR_TREE_EXTENT) {
->>> -		struct ocfs2_xattr_block *xb =
->>> -			(struct ocfs2_xattr_block *)root_bh->b_data;
->>> -
->>> -		last_eb_blk = le64_to_cpu(xb->xb_attrs.xb_root.xt_last_eb_blk);
->>> -		el = &xb->xb_attrs.xb_root.xt_list;
->>> -	}
->>> +	ocfs2_get_extent_tree(&et, inode, root_bh, type, obj);
->>>   
->>>       
->> call eo_sanity_check first may be better since there is a check above in  
->> OCFS2_DINODE_EXTENT.
->>     
->
-> 	Every dinode caller has already checked the inode.  I looked at
-> them before I removed the IS_VALID_INODE().  That's what I meant in the
-> commit message.
->   
-OK.
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+On Thu, Aug 21, 2008 at 03:46:36PM +0800, TaoMa wrote:
+>>    @@ -1236,10 +1241,11 @@ static int __ocfs2_remove_inode_range(struct 
+>> inode *inode,
+>>  	handle_t *handle;
+>>  	struct ocfs2_alloc_context *meta_ac = NULL;
+>>  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+>> +	struct ocfs2_extent_tree et;
+>> +
+>> +	ocfs2_get_dinode_extent_tree(&et, inode, di_bh);
+>>  -	ret = ocfs2_lock_allocators(inode, di_bh, &di->id2.i_list,
+>> -				    0, 1, NULL, &meta_ac,
+>> -				    OCFS2_DINODE_EXTENT, NULL);
+>> +	ret = ocfs2_lock_allocators(inode, &et, 0, 1, NULL, &meta_ac);
+>>  	if (ret) {
+>>  		mlog_errno(ret);
+>>  		return ret;
+>>   
+> here you need to ocfs2_put_dinoe_extent_tree and I see no put in the end  
+> of the function.
+
+	Good catch.  Here's the on-top diff:
+
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 1f31a99..c49d2f3 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1247,6 +1247,7 @@ static int __ocfs2_remove_inode_range(struct inode *inode,
+ 
+ 	ret = ocfs2_lock_allocators(inode, &et, 0, 1, NULL, &meta_ac);
+ 	if (ret) {
++		ocfs2_put_extent_tree(&et);
+ 		mlog_errno(ret);
+ 		return ret;
+ 	}
+@@ -1303,6 +1304,7 @@ out:
+ 	if (meta_ac)
+ 		ocfs2_free_alloc_context(meta_ac);
+ 
++	ocfs2_put_extent_tree(&et);
+ 	return ret;
+ }
+ 
+>> @@ -1269,8 +1275,8 @@ static int __ocfs2_remove_inode_range(struct inode *inode,
+>>  		goto out;
+>>  	}
+>>  -	ret = ocfs2_remove_extent(inode, di_bh, cpos, len, handle, meta_ac,
+>> -				  dealloc, OCFS2_DINODE_EXTENT, NULL);
+>> +	ret = ocfs2_remove_extent(inode, &et, cpos, len, handle, meta_ac,
+>> +				  dealloc);
+>>  	if (ret) {
+>>  		mlog_errno(ret);
+>>  		goto out_commit;
+>>   
+> btw, I like your abstraction.
+
+	It's your abstraction in the first place.  I just liked it so
+much I promoted it to public view.  But thank you :-)
+
+Joel
+
+-- 
+
+"What no boss of a programmer can ever understand is that a programmer
+ is working when he's staring out of the window"
+	- With apologies to Burton Rascoe
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
