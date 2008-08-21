@@ -1,50 +1,56 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 20 Aug 2008 23:26:09 -0700
-Subject: [Ocfs2-devel] [PATCH 09/10] ocfs2: Add an insertion check
-	to	ocfs2_extent_tree_operations.
-In-Reply-To: <48ACEF0D.2080304@oracle.com>
+Date: Wed, 20 Aug 2008 23:23:30 -0700
+Subject: [Ocfs2-devel] [PATCH 07/10] ocfs2: Determine an extent
+	tree's	max_leaf_clusters in an et_op.
+In-Reply-To: <48ACEB5B.5030903@oracle.com>
 References: <1219286905-28104-1-git-send-email-joel.becker@oracle.com>
-	<1219286905-28104-10-git-send-email-joel.becker@oracle.com>
-	<48ACEF0D.2080304@oracle.com>
-Message-ID: <20080821062609.GF17607@mail.oracle.com>
+	<1219286905-28104-8-git-send-email-joel.becker@oracle.com>
+	<48ACEB5B.5030903@oracle.com>
+Message-ID: <20080821062329.GE17607@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Aug 21, 2008 at 12:29:01PM +0800, TaoMa wrote:
+On Thu, Aug 21, 2008 at 12:13:15PM +0800, TaoMa wrote:
 > Joel Becker wrote:
->> The op eo_sanity_check() was really a check on remove_right_path().
->> Let's call it eo_remove_check().  Let's add an eo_insert_check() that
->> can be called from ocfs2_insert_extent().
+>> Provide an optional extent_tree_operation to specify the
+>> max_leaf_clusters of an ocfs2_extent_tree.  If not provided, the value
+>> is 0 (unlimited).
+>>
+
+<snip>
+
+>> @@ -265,11 +275,13 @@ static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
+>>  		et->et_ops = &ocfs2_xattr_et_ops;
+>>  	} else if (et_type == OCFS2_XATTR_TREE_EXTENT) {
+>>  		et->et_ops = &ocfs2_xattr_tree_et_ops;
+>> -		et->et_max_leaf_clusters = ocfs2_clusters_for_bytes(inode->i_sb,
+>> -						OCFS2_MAX_XATTR_TREE_LEAF_SIZE);
+>>  	}
+>>   	et->et_ops->eo_fill_root_el(et);
+>> +	if (!et->et_ops->eo_fill_max_leaf_clusters)
+>> +		et->et_max_leaf_clusters = 0;
+>> +	else
+>> +		et->et_ops->eo_fill_max_leaf_clusters(inode, et);
+>>  }
 >>   
-> eo_sanity_check is used to check inode, and I don't see there is any  
-> hint of remove_right_path in this function although it is now only used  
-> in ocfs2_remove_rightmost_path. And I have said in the previous  
-> e-mail,it can be used in ocfs2_num_free_extents.
+> Like what you have done in patch 1/10, maybe we can add a small wrapper  
+> named ocfs2_et_fill_max_leaf_clusters for this?
 
-	As I pointed out there, ocfs2_num_free_extents() doesn't need
-the check - the inode is safe coming in.  I suspect remove_right_path is
-the same, though I didn't audit it as much.
-
-> So I'd like to reserve the name and your add for insert_check is OK or  
-> it can be moved to ocfs2_*_insert_extent.
-
-	I purposely moved the ocfs2_insert_extent() check to the
-_insert_check() helper function because ocfs2_*_insert_extent() go away
-in patch 10.
-	Check that out, and then let's discuss where sanity/remove_check
-is needed.  Maybe we can remove it, or maybe we need to expand its
-scope.
+	I did it that way at first, but then I decided to make the
+eo_fill_*() functions not have an accessor, because they are internal to
+get_extent_tree().  They can only be called from there.
+	I'm open to changing it.  It jwas just a thought.
 
 Joel
 
 -- 
 
-"Heav'n hath no rage like love to hatred turn'd, nor Hell a fury,
- like a woman scorn'd."
-        - William Congreve
+Life's Little Instruction Book #396
+
+	"Never give anyone a fruitcake."
 
 Joel Becker
 Principal Software Developer
