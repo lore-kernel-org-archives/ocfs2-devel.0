@@ -1,277 +1,42 @@
-From: Joel Becker <joel.becker@oracle.com>
-Date: Wed, 20 Aug 2008 19:48:18 -0700
-Subject: [Ocfs2-devel] [PATCH 03/10] ocfs2: Make ocfs2_extent_tree get/put
-	instead of alloc.
+From: TaoMa <tao.ma@oracle.com>
+Date: Thu, 21 Aug 2008 11:45:56 +0800
+Subject: [Ocfs2-devel] [PATCH 0/10] Make ocfs2_extent_tree a first-class
+	object
 In-Reply-To: <1219286905-28104-1-git-send-email-joel.becker@oracle.com>
 References: <1219286905-28104-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1219286905-28104-4-git-send-email-joel.becker@oracle.com>
+Message-ID: <48ACE4F4.4000000@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Rather than allocating a struct ocfs2_extent_tree, just put it on the
-stack.  Fill it with ocfs2_get_extent_tree() and drop it with
-ocfs2_put_extent_tree().  Now the callers don't have to ENOMEM, yet
-still safely ref the root_bh.
+Joel Becker wrote:
+> The new xattr code introduced a great abstraction, ocfs2_extent_tree.
+> However, it's hidden in alloc.c.  Tao said he wanted to keep it there,
+> but I think it works great as a first-class object.
+>
+> Callers into alloc.c can just fill in an ocfs2_extent_tree with the
+> appropriate ocfs2_get_*_extent_tree() function, then pass it to all
+> alloc.c functions.  Those functions no longer need individual root_bh,
+> root_el, et_type, or void*private arguments.  People filling in dinode
+> extent trees don't even need to pass NULL for that private.
+>
+> The series first adds structure prefixes to ocfs2_extent_tree and
+> ocfs2_extent_tree_operations.  Next, it turns 'private' into 'object',
+> calculating object as bh->b_data if it was NULL.  Third, we calculate
+> the other fields (root_el, max_leaf_extents) in operations rather than
+> if blocks.  Finally, we remove the et_type, the if block, and start
+> using extent trees as first class objects.
+>
+> Check out the last patch, which is really the payoff, to see what I'm
+> going for.
+>   
+wow, you did such a quick job. ;)
+I just put my modification(which is generated from your review) in my 
+local branch and wait for a final send, but you have already sent them 
+out. Awesome!
+Then I will just need to review them.;)
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/alloc.c |  117 ++++++++++++++++-------------------------------------
- 1 files changed, 36 insertions(+), 81 deletions(-)
-
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index ab16b89..0abf11e 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -223,22 +223,17 @@ static struct ocfs2_extent_tree_operations ocfs2_xattr_tree_et_ops = {
- 	.eo_sanity_check	= ocfs2_xattr_tree_sanity_check,
- };
- 
--static struct ocfs2_extent_tree*
--	 ocfs2_new_extent_tree(struct inode *inode,
--			       struct buffer_head *bh,
--			       enum ocfs2_extent_tree_type et_type,
--			       void *private)
-+static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
-+				  struct inode *inode,
-+				  struct buffer_head *bh,
-+				  enum ocfs2_extent_tree_type et_type,
-+				  void *private)
- {
--	struct ocfs2_extent_tree *et;
--
--	et = kzalloc(sizeof(*et), GFP_NOFS);
--	if (!et)
--		return NULL;
--
- 	et->et_type = et_type;
- 	get_bh(bh);
- 	et->et_root_bh = bh;
- 	et->et_private = private;
-+	et->et_max_leaf_clusters = 0;
- 
- 	if (et_type == OCFS2_DINODE_EXTENT) {
- 		et->et_root_el =
-@@ -257,16 +252,11 @@ static struct ocfs2_extent_tree*
- 		et->et_max_leaf_clusters = ocfs2_clusters_for_bytes(inode->i_sb,
- 						OCFS2_MAX_XATTR_TREE_LEAF_SIZE);
- 	}
--
--	return et;
- }
- 
--static void ocfs2_free_extent_tree(struct ocfs2_extent_tree *et)
-+static void ocfs2_put_extent_tree(struct ocfs2_extent_tree *et)
- {
--	if (et) {
--		brelse(et->et_root_bh);
--		kfree(et);
--	}
-+	brelse(et->et_root_bh);
- }
- 
- static inline void ocfs2_et_set_last_eb_blk(struct ocfs2_extent_tree *et,
-@@ -4439,22 +4429,15 @@ int ocfs2_dinode_insert_extent(struct ocfs2_super *osb,
- 			       struct ocfs2_alloc_context *meta_ac)
- {
- 	int status;
--	struct ocfs2_extent_tree *et = NULL;
--
--	et = ocfs2_new_extent_tree(inode, root_bh, OCFS2_DINODE_EXTENT, NULL);
--	if (!et) {
--		status = -ENOMEM;
--		mlog_errno(status);
--		goto bail;
--	}
-+	struct ocfs2_extent_tree et;
- 
-+	ocfs2_get_extent_tree(&et, inode, root_bh, OCFS2_DINODE_EXTENT,
-+			      NULL);
- 	status = ocfs2_insert_extent(osb, handle, inode, root_bh,
- 				     cpos, start_blk, new_clusters,
--				     flags, meta_ac, et);
-+				     flags, meta_ac, &et);
-+	ocfs2_put_extent_tree(&et);
- 
--	if (et)
--		ocfs2_free_extent_tree(et);
--bail:
- 	return status;
- }
- 
-@@ -4470,23 +4453,15 @@ int ocfs2_xattr_value_insert_extent(struct ocfs2_super *osb,
- 				    void *private)
- {
- 	int status;
--	struct ocfs2_extent_tree *et = NULL;
--
--	et = ocfs2_new_extent_tree(inode, root_bh,
--				   OCFS2_XATTR_VALUE_EXTENT, private);
--	if (!et) {
--		status = -ENOMEM;
--		mlog_errno(status);
--		goto bail;
--	}
-+	struct ocfs2_extent_tree et;
- 
-+	ocfs2_get_extent_tree(&et, inode, root_bh,
-+			      OCFS2_XATTR_VALUE_EXTENT, private);
- 	status = ocfs2_insert_extent(osb, handle, inode, root_bh,
- 				     cpos, start_blk, new_clusters,
--				     flags, meta_ac, et);
-+				     flags, meta_ac, &et);
-+	ocfs2_put_extent_tree(&et);
- 
--	if (et)
--		ocfs2_free_extent_tree(et);
--bail:
- 	return status;
- }
- 
-@@ -4501,23 +4476,15 @@ int ocfs2_xattr_tree_insert_extent(struct ocfs2_super *osb,
- 				   struct ocfs2_alloc_context *meta_ac)
- {
- 	int status;
--	struct ocfs2_extent_tree *et = NULL;
--
--	et = ocfs2_new_extent_tree(inode, root_bh, OCFS2_XATTR_TREE_EXTENT,
--				   NULL);
--	if (!et) {
--		status = -ENOMEM;
--		mlog_errno(status);
--		goto bail;
--	}
-+	struct ocfs2_extent_tree et;
- 
-+	ocfs2_get_extent_tree(&et, inode, root_bh, OCFS2_XATTR_TREE_EXTENT,
-+			      NULL);
- 	status = ocfs2_insert_extent(osb, handle, inode, root_bh,
- 				     cpos, start_blk, new_clusters,
--				     flags, meta_ac, et);
-+				     flags, meta_ac, &et);
-+	ocfs2_put_extent_tree(&et);
- 
--	if (et)
--		ocfs2_free_extent_tree(et);
--bail:
- 	return status;
- }
- 
-@@ -4906,11 +4873,13 @@ int ocfs2_mark_extent_written(struct inode *inode, struct buffer_head *root_bh,
- 	struct ocfs2_extent_rec split_rec;
- 	struct ocfs2_path *left_path = NULL;
- 	struct ocfs2_extent_list *el;
--	struct ocfs2_extent_tree *et = NULL;
-+	struct ocfs2_extent_tree et;
- 
- 	mlog(0, "Inode %lu cpos %u, len %u, phys %u (%llu)\n",
- 	     inode->i_ino, cpos, len, phys, (unsigned long long)start_blkno);
- 
-+	ocfs2_get_extent_tree(&et, inode, root_bh, et_type, private);
-+
- 	if (!ocfs2_writes_unwritten_extents(OCFS2_SB(inode->i_sb))) {
- 		ocfs2_error(inode->i_sb, "Inode %llu has unwritten extents "
- 			    "that are being written to, but the feature bit "
-@@ -4920,13 +4889,6 @@ int ocfs2_mark_extent_written(struct inode *inode, struct buffer_head *root_bh,
- 		goto out;
- 	}
- 
--	et = ocfs2_new_extent_tree(inode, root_bh, et_type, private);
--	if (!et) {
--		ret = -ENOMEM;
--		mlog_errno(ret);
--		goto out;
--	}
--
- 	/*
- 	 * XXX: This should be fixed up so that we just re-insert the
- 	 * next extent records.
-@@ -4934,7 +4896,7 @@ int ocfs2_mark_extent_written(struct inode *inode, struct buffer_head *root_bh,
- 	if (et_type == OCFS2_DINODE_EXTENT)
- 		ocfs2_extent_map_trunc(inode, 0);
- 
--	left_path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
-+	left_path = ocfs2_new_path(et.et_root_bh, et.et_root_el);
- 	if (!left_path) {
- 		ret = -ENOMEM;
- 		mlog_errno(ret);
-@@ -4965,7 +4927,7 @@ int ocfs2_mark_extent_written(struct inode *inode, struct buffer_head *root_bh,
- 	split_rec.e_flags = path_leaf_el(left_path)->l_recs[index].e_flags;
- 	split_rec.e_flags &= ~OCFS2_EXT_UNWRITTEN;
- 
--	ret = __ocfs2_mark_extent_written(inode, et, handle, left_path,
-+	ret = __ocfs2_mark_extent_written(inode, &et, handle, left_path,
- 					  index, &split_rec, meta_ac,
- 					  dealloc);
- 	if (ret)
-@@ -4973,8 +4935,7 @@ int ocfs2_mark_extent_written(struct inode *inode, struct buffer_head *root_bh,
- 
- out:
- 	ocfs2_free_path(left_path);
--	if (et)
--		ocfs2_free_extent_tree(et);
-+	ocfs2_put_extent_tree(&et);
- 	return ret;
- }
- 
-@@ -5216,18 +5177,13 @@ int ocfs2_remove_extent(struct inode *inode, struct buffer_head *root_bh,
- 	struct ocfs2_extent_rec *rec;
- 	struct ocfs2_extent_list *el;
- 	struct ocfs2_path *path = NULL;
--	struct ocfs2_extent_tree *et = NULL;
-+	struct ocfs2_extent_tree et;
- 
--	et = ocfs2_new_extent_tree(inode, root_bh, et_type, private);
--	if (!et) {
--		ret = -ENOMEM;
--		mlog_errno(ret);
--		goto out;
--	}
-+	ocfs2_get_extent_tree(&et, inode, root_bh, et_type, private);
- 
- 	ocfs2_extent_map_trunc(inode, 0);
- 
--	path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
-+	path = ocfs2_new_path(et.et_root_bh, et.et_root_el);
- 	if (!path) {
- 		ret = -ENOMEM;
- 		mlog_errno(ret);
-@@ -5280,13 +5236,13 @@ int ocfs2_remove_extent(struct inode *inode, struct buffer_head *root_bh,
- 
- 	if (le32_to_cpu(rec->e_cpos) == cpos || rec_range == trunc_range) {
- 		ret = ocfs2_truncate_rec(inode, handle, path, index, dealloc,
--					 cpos, len, et);
-+					 cpos, len, &et);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
- 		}
- 	} else {
--		ret = ocfs2_split_tree(inode, et, handle, path, index,
-+		ret = ocfs2_split_tree(inode, &et, handle, path, index,
- 				       trunc_range, meta_ac);
- 		if (ret) {
- 			mlog_errno(ret);
-@@ -5335,7 +5291,7 @@ int ocfs2_remove_extent(struct inode *inode, struct buffer_head *root_bh,
- 		}
- 
- 		ret = ocfs2_truncate_rec(inode, handle, path, index, dealloc,
--					 cpos, len, et);
-+					 cpos, len, &et);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -5344,8 +5300,7 @@ int ocfs2_remove_extent(struct inode *inode, struct buffer_head *root_bh,
- 
- out:
- 	ocfs2_free_path(path);
--	if (et)
--		ocfs2_free_extent_tree(et);
-+	ocfs2_put_extent_tree(&et);
- 	return ret;
- }
- 
--- 
-1.5.6.3
+Regards,
+Tao
