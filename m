@@ -1,78 +1,81 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 21 Aug 2008 16:11:00 -0700
-Subject: [Ocfs2-devel] [PATCH 03/10] ocfs2: Make ocfs2_extent_tree
-	get/put instead of alloc.
-In-Reply-To: <20080821230533.GJ14096@mail.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 21 Aug 2008 16:25:40 -0700
+Subject: [Ocfs2-devel] [PATCH 09/10] ocfs2: Add an insertion check
+	to	ocfs2_extent_tree_operations.
+In-Reply-To: <20080821225238.GS4563@wotan.suse.de>
 References: <1219286905-28104-1-git-send-email-joel.becker@oracle.com>
-	<1219286905-28104-4-git-send-email-joel.becker@oracle.com>
-	<20080821221059.GQ4563@wotan.suse.de>
-	<20080821230533.GJ14096@mail.oracle.com>
-Message-ID: <20080821231100.GT4563@wotan.suse.de>
+	<1219286905-28104-10-git-send-email-joel.becker@oracle.com>
+	<20080821225238.GS4563@wotan.suse.de>
+Message-ID: <20080821232540.GK14096@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Aug 21, 2008 at 04:05:33PM -0700, Joel Becker wrote:
-> On Thu, Aug 21, 2008 at 03:10:59PM -0700, Mark Fasheh wrote:
-> > On Wed, Aug 20, 2008 at 07:48:18PM -0700, Joel Becker wrote:
-> > > Rather than allocating a struct ocfs2_extent_tree, just put it on the
-> > > stack.  Fill it with ocfs2_get_extent_tree() and drop it with
-> > > ocfs2_put_extent_tree().  Now the callers don't have to ENOMEM, yet
-> > > still safely ref the root_bh.
-> > > 
-> > > Signed-off-by: Joel Becker <joel.becker@oracle.com>
-> > > ---
-> > >  fs/ocfs2/alloc.c |  117 ++++++++++++++++-------------------------------------
-> > >  1 files changed, 36 insertions(+), 81 deletions(-)
-> > > 
-> > > diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> > > index ab16b89..0abf11e 100644
-> > > --- a/fs/ocfs2/alloc.c
-> > > +++ b/fs/ocfs2/alloc.c
-> > > @@ -223,22 +223,17 @@ static struct ocfs2_extent_tree_operations ocfs2_xattr_tree_et_ops = {
-> > >  	.eo_sanity_check	= ocfs2_xattr_tree_sanity_check,
-> > >  };
-> > >  
-> > > -static struct ocfs2_extent_tree*
-> > > -	 ocfs2_new_extent_tree(struct inode *inode,
-> > > -			       struct buffer_head *bh,
-> > > -			       enum ocfs2_extent_tree_type et_type,
-> > > -			       void *private)
-> > > +static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
-> > > +				  struct inode *inode,
-> > > +				  struct buffer_head *bh,
-> > > +				  enum ocfs2_extent_tree_type et_type,
-> > > +				  void *private)
+On Thu, Aug 21, 2008 at 03:52:39PM -0700, Mark Fasheh wrote:
+> On Wed, Aug 20, 2008 at 07:48:24PM -0700, Joel Becker wrote:
+> > The op eo_sanity_check() was really a check on remove_right_path().
+> > Let's call it eo_remove_check().  Let's add an eo_insert_check() that
+> > can be called from ocfs2_insert_extent().
 > > 
-> > Actually, maybe "ocfs2_init_extent_tree()" would be more straightforward.
-> > I'm fine with this too though.
+> > Let's have the wrapper calls ocfs2_et_insert_check() and
+> > ocfs2_et_remove_check() ignore NULL ops.  That way we don't have to
+> > provide useless operations for xattr types.
+
+<snip>
+
+> > @@ -4406,26 +4430,22 @@ static int ocfs2_insert_extent(struct ocfs2_super *osb,
+> >  	int uninitialized_var(free_records);
+> >  	struct buffer_head *last_eb_bh = NULL;
+> >  	struct ocfs2_insert_type insert = {0, };
+> > -	struct ocfs2_extent_rec rec;
+> > -
+> > -	BUG_ON(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL);
+> > +	struct ocfs2_extent_rec rec = {
+> > +		.e_cpos = cpu_to_le32(cpos),
+> > +		.e_blkno = cpu_to_le64(start_blk),
+> > +	};
+> >  
+> >  	mlog(0, "add %u clusters at position %u to inode %llu\n",
+> >  	     new_clusters, cpos, (unsigned long long)OCFS2_I(inode)->ip_blkno);
+> >  
+> > -	mlog_bug_on_msg(!ocfs2_sparse_alloc(osb) &&
+> > -			(OCFS2_I(inode)->ip_clusters != cpos),
+> > -			"Device %s, asking for sparse allocation: inode %llu, "
+> > -			"cpos %u, clusters %u\n",
+> > -			osb->dev_str,
+> > -			(unsigned long long)OCFS2_I(inode)->ip_blkno, cpos,
+> > -			OCFS2_I(inode)->ip_clusters);
+> > -
+> > -	memset(&rec, 0, sizeof(rec));
+> > -	rec.e_cpos = cpu_to_le32(cpos);
+> > -	rec.e_blkno = cpu_to_le64(start_blk);
+> > +	/* gcc doesn't understand anonymous unions in the initializer */
+> >  	rec.e_leaf_clusters = cpu_to_le16(new_clusters);
+> >  	rec.e_flags = flags;
 > 
-> 	I originally had "fill", but I chose "get" because we get_bh()
-> and thus require a "put" to brelse().  I'm not tied to it, so if you
-> like "init" I'll change it.
+> Is there a reason why you changed the way we initialize "rec" for this
+> patch? I guess the end result is the same - specifically, I want to be 100%
+> certain that rec.e_reserved1 gets zero'd. Still though, I think the flow we
+> had before was better.
 
-Nah, this is ok.
+	Well, the naked memset() is ugly (IMHO) when the initializer
+works (an initializer ensures that all non-initialized fields are zero).
+However, it didn't work quite like I expected, since gcc couldn't handle
+the anonymous union in the initializer.  I'll revert it back to the old
+way.
 
+Joel
 
-> > > @@ -257,16 +252,11 @@ static struct ocfs2_extent_tree*
-> > >  		et->et_max_leaf_clusters = ocfs2_clusters_for_bytes(inode->i_sb,
-> > >  						OCFS2_MAX_XATTR_TREE_LEAF_SIZE);
-> > >  	}
-> > 
-> > Can you add a check, down here probably, that we got an 'et_type' value
-> > passed in which is valid? If not, then we might continue with on-the-stack
-> > versions of et_root_el, etc. This won't fail as nice as the kzalloc would
-> > have before.
-> 
-> 	The final patch removes the et_type completely.  If you want, I
-> can have the intermediate patches do stricter et_type checking (I think
-> a later one BUG()s).
+-- 
 
-Yep, just caught that one. We don't have to be super strict in the early
-patches so long as it gets caught by the end of the series.
-	--Mark
+Life's Little Instruction Book #109
 
---
-Mark Fasheh
+	"Know how to drive a stick shift."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
