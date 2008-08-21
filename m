@@ -1,94 +1,84 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 20 Aug 2008 23:19:11 -0700
-Subject: [Ocfs2-devel] [PATCH 03/10] ocfs2: Make ocfs2_extent_tree
-	get/put instead of	alloc.
-In-Reply-To: <48ACE71C.4000700@oracle.com>
+Date: Wed, 20 Aug 2008 23:21:52 -0700
+Subject: [Ocfs2-devel] [PATCH 06/10] ocfs2: Use struct ocfs2_extent_tree
+	in	ocfs2_num_free_extents().
+In-Reply-To: <48ACEAAD.3070907@oracle.com>
 References: <1219286905-28104-1-git-send-email-joel.becker@oracle.com>
-	<1219286905-28104-4-git-send-email-joel.becker@oracle.com>
-	<48ACE71C.4000700@oracle.com>
-Message-ID: <20080821061911.GB17607@mail.oracle.com>
+	<1219286905-28104-7-git-send-email-joel.becker@oracle.com>
+	<48ACEAAD.3070907@oracle.com>
+Message-ID: <20080821062152.GD17607@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Aug 21, 2008 at 11:55:08AM +0800, TaoMa wrote:
+On Thu, Aug 21, 2008 at 12:10:21PM +0800, TaoMa wrote:
 > Joel Becker wrote:
->> Rather than allocating a struct ocfs2_extent_tree, just put it on the
->> stack.  Fill it with ocfs2_get_extent_tree() and drop it with
->> ocfs2_put_extent_tree().  Now the callers don't have to ENOMEM, yet
->> still safely ref the root_bh.
+>> ocfs2_num_free_extents() re-implements the logic of
+>> ocfs2_get_extent_tree().  Now that ocfs2_get_extent_tree() does not
+>> allocate, let's use it in ocfs2_num_free_extents() to simplify the code.
+>>
+>> The inode validation code in ocfs2_num_free_extents() is not needed.
+>> All callers are passing in pre-validated inodes.
 >>
 >> Signed-off-by: Joel Becker <joel.becker@oracle.com>
-
+>> ---
+>>  fs/ocfs2/alloc.c |   30 +++++-------------------------
+>>  1 files changed, 5 insertions(+), 25 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+>> index fb6ae67..0b900f6 100644
 >> --- a/fs/ocfs2/alloc.c
 >> +++ b/fs/ocfs2/alloc.c
->> @@ -223,22 +223,17 @@ static struct ocfs2_extent_tree_operations ocfs2_xattr_tree_et_ops = {
->>  	.eo_sanity_check	= ocfs2_xattr_tree_sanity_check,
->>  };
->>  
->>
->>  -static void ocfs2_free_extent_tree(struct ocfs2_extent_tree *et)
->> +static void ocfs2_put_extent_tree(struct ocfs2_extent_tree *et)
->>  {
->> -	if (et) {
->> -		brelse(et->et_root_bh);
->> -		kfree(et);
->> -	}
->> +	brelse(et->et_root_bh);
->>  }
->>   
-> Can we inline this since it is just a one-line function?
-
-	No, because it's going to be an exported function in the last
-patch.  Plus, inlining is kind of pointless - we're not on any fastpaths
-here.  Inlining isn't always necessary, and shouldn't be the default for
-all tiny functions.  For something like this, gcc might even figure it
-out.
-
->>  @@ -4906,11 +4873,13 @@ int ocfs2_mark_extent_written(struct inode 
->> *inode, struct buffer_head *root_bh,
->>  	struct ocfs2_extent_rec split_rec;
->>  	struct ocfs2_path *left_path = NULL;
->>  	struct ocfs2_extent_list *el;
->> -	struct ocfs2_extent_tree *et = NULL;
+>> @@ -618,34 +618,13 @@ int ocfs2_num_free_extents(struct ocfs2_super *osb,
+>>  	struct ocfs2_extent_block *eb;
+>>  	struct buffer_head *eb_bh = NULL;
+>>  	u64 last_eb_blk = 0;
 >> +	struct ocfs2_extent_tree et;
->>   	mlog(0, "Inode %lu cpos %u, len %u, phys %u (%llu)\n",
->>  	     inode->i_ino, cpos, len, phys, (unsigned long long)start_blkno);
->>  +	ocfs2_get_extent_tree(&et, inode, root_bh, et_type, private);
->> +
->>  	if (!ocfs2_writes_unwritten_extents(OCFS2_SB(inode->i_sb))) {
->>  		ocfs2_error(inode->i_sb, "Inode %llu has unwritten extents "
->>  			    "that are being written to, but the feature bit "
->> @@ -4920,13 +4889,6 @@ int ocfs2_mark_extent_written(struct inode *inode, struct buffer_head *root_bh,
->>  		goto out;
->>  	}
->>  -	et = ocfs2_new_extent_tree(inode, root_bh, et_type, private);
->> -	if (!et) {
->> -		ret = -ENOMEM;
->> -		mlog_errno(ret);
->> -		goto out;
->> -	}
+>>   	mlog_entry_void();
+>>  -	if (type == OCFS2_DINODE_EXTENT) {
+>> -		struct ocfs2_dinode *fe =
+>> -				(struct ocfs2_dinode *)root_bh->b_data;
+>> -		if (!OCFS2_IS_VALID_DINODE(fe)) {
+>> -			OCFS2_RO_ON_INVALID_DINODE(inode->i_sb, fe);
+>> -			retval = -EIO;
+>> -			goto bail;
+>> -		}
 >> -
+>> -		if (fe->i_last_eb_blk)
+>> -			last_eb_blk = le64_to_cpu(fe->i_last_eb_blk);
+>> -		el = &fe->id2.i_list;
+>> -	} else if (type == OCFS2_XATTR_VALUE_EXTENT) {
+>> -		struct ocfs2_xattr_value_root *xv =
+>> -			(struct ocfs2_xattr_value_root *) obj;
+>> -
+>> -		last_eb_blk = le64_to_cpu(xv->xr_last_eb_blk);
+>> -		el = &xv->xr_list;
+>> -	} else if (type == OCFS2_XATTR_TREE_EXTENT) {
+>> -		struct ocfs2_xattr_block *xb =
+>> -			(struct ocfs2_xattr_block *)root_bh->b_data;
+>> -
+>> -		last_eb_blk = le64_to_cpu(xb->xb_attrs.xb_root.xt_last_eb_blk);
+>> -		el = &xb->xb_attrs.xb_root.xt_list;
+>> -	}
+>> +	ocfs2_get_extent_tree(&et, inode, root_bh, type, obj);
 >>   
-> I think you can get the extent tree here, since if the above judgement  
-> returns error, we can go out directly without initializing the extent 
-> tree.
+> call eo_sanity_check first may be better since there is a check above in  
+> OCFS2_DINODE_EXTENT.
 
-	I do it up top because I unconditionally put it at the bottom.
-This is a brelse(), which needs the matching get_bh().  Since we're
-munging a stack variable, it doesn't hurt us to do the get_extent_tree()
-at the top.
+	Every dinode caller has already checked the inode.  I looked at
+them before I removed the IS_VALID_INODE().  That's what I meant in the
+commit message.
 
 Joel
 
 -- 
 
-"Born under a bad sign.
- I been down since I began to crawl.
- If it wasn't for bad luck,
- I wouldn't have no luck at all."
+"It is not the function of our government to keep the citizen from
+ falling into error; it is the function of the citizen to keep the
+ government from falling into error."
+	- Robert H. Jackson
 
 Joel Becker
 Principal Software Developer
