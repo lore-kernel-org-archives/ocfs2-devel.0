@@ -1,50 +1,50 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 20 Aug 2008 23:20:04 -0700
-Subject: [Ocfs2-devel] [PATCH 05/10] ocfs2: Provide the get_root_el()
-	method to	ocfs2_extent_tree_operations.
-In-Reply-To: <48ACEA14.70104@oracle.com>
+Date: Wed, 20 Aug 2008 23:26:09 -0700
+Subject: [Ocfs2-devel] [PATCH 09/10] ocfs2: Add an insertion check
+	to	ocfs2_extent_tree_operations.
+In-Reply-To: <48ACEF0D.2080304@oracle.com>
 References: <1219286905-28104-1-git-send-email-joel.becker@oracle.com>
-	<1219286905-28104-6-git-send-email-joel.becker@oracle.com>
-	<48ACEA14.70104@oracle.com>
-Message-ID: <20080821062003.GC17607@mail.oracle.com>
+	<1219286905-28104-10-git-send-email-joel.becker@oracle.com>
+	<48ACEF0D.2080304@oracle.com>
+Message-ID: <20080821062609.GF17607@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Aug 21, 2008 at 12:07:48PM +0800, TaoMa wrote:
+On Thu, Aug 21, 2008 at 12:29:01PM +0800, TaoMa wrote:
 > Joel Becker wrote:
->> The root_el of an ocfs2_extent_tree needs to be calculated from
->> et->et_object.  Make it an operation on et->et_ops.
->>
->> Signed-off-by: Joel Becker <joel.becker@oracle.com>
->>
->>   static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
->> @@ -232,22 +260,16 @@ static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
->>  	et->et_object = obj;
->>   	if (et_type == OCFS2_DINODE_EXTENT) {
->> -		et->et_root_el =
->> -			&((struct ocfs2_dinode *)obj)->id2.i_list;
->>  		et->et_ops = &ocfs2_dinode_et_ops;
->>  	} else if (et_type == OCFS2_XATTR_VALUE_EXTENT) {
->> -		struct ocfs2_xattr_value_root *xv =
->> -			(struct ocfs2_xattr_value_root *)obj;
->> -		et->et_root_el = &xv->xr_list;
->>  		et->et_ops = &ocfs2_xattr_et_ops;
+>> The op eo_sanity_check() was really a check on remove_right_path().
+>> Let's call it eo_remove_check().  Let's add an eo_insert_check() that
+>> can be called from ocfs2_insert_extent().
 >>   
-> Since there is only one line, the brackets are unnecessary. I don't  
-> recall whether checkpatch or "make sparse" will complain this. ;)
+> eo_sanity_check is used to check inode, and I don't see there is any  
+> hint of remove_right_path in this function although it is now only used  
+> in ocfs2_remove_rightmost_path. And I have said in the previous  
+> e-mail,it can be used in ocfs2_num_free_extents.
 
-	It's checkpatch, but these go away in a later patch.
+	As I pointed out there, ocfs2_num_free_extents() doesn't need
+the check - the inode is safe coming in.  I suspect remove_right_path is
+the same, though I didn't audit it as much.
+
+> So I'd like to reserve the name and your add for insert_check is OK or  
+> it can be moved to ocfs2_*_insert_extent.
+
+	I purposely moved the ocfs2_insert_extent() check to the
+_insert_check() helper function because ocfs2_*_insert_extent() go away
+in patch 10.
+	Check that out, and then let's discuss where sanity/remove_check
+is needed.  Maybe we can remove it, or maybe we need to expand its
+scope.
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #109
-
-	"Know how to drive a stick shift."
+"Heav'n hath no rage like love to hatred turn'd, nor Hell a fury,
+ like a woman scorn'd."
+        - William Congreve
 
 Joel Becker
 Principal Software Developer
