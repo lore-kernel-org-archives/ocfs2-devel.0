@@ -1,223 +1,154 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 29 Aug 2008 09:00:19 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Resolve deadlock in
-	ocfs2_xattr_free_block.
-Message-ID: <1219971619-4459-1-git-send-email-tao.ma@oracle.com>
+Date: Fri, 29 Aug 2008 09:19:26 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: support empty xattr bucket in find.
+Message-ID: <1219972766-5486-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_xattr_free_block, we takes a cluster lock on xb_alloc_inode
-while we have a transaction open. And the caller is a little complicated
-for handling xattr block release. So move all the mechanism of releasing
-xattr block(including both value, xattr tree and xattr block) into this
-function and open a separate transaction for it.
+In ocfs2_xattr_buckets_find, when we meet with an empty
+bucket, just skip it and try to find another non-empty one.
+
+Note:
+We erase empty bucket now when we find it has no xattr in it.
+And there are actually many to-dos left if we really want to
+disable automatic removal of empty buckets(e.g. when we insert
+a new xattr cluster in xattr tree, we have to find a suitable
+start hash, and an empty bucket can't give us such information.
+That also means that we have to enhance our xattr bucket extension
+process and so on). So I am not sure whether this patch should
+be committed alone or with the future disabling patches.
+Mark, it is up to you. ;)
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/xattr.c |  152 +++++++++++++++++++++++++++++-------------------------
- 1 files changed, 82 insertions(+), 70 deletions(-)
+ fs/ocfs2/xattr.c |  105 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 105 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 2ccffb1..35d7bf7 100644
+index 2bc53b1..782abce 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -1442,51 +1442,6 @@ out:
- 
+@@ -2241,6 +2241,80 @@ static int ocfs2_find_xe_in_bucket(struct inode *inode,
  }
  
--static int ocfs2_xattr_free_block(handle_t *handle,
--				  struct ocfs2_super *osb,
--				  struct ocfs2_xattr_block *xb)
--{
--	struct inode *xb_alloc_inode;
--	struct buffer_head *xb_alloc_bh = NULL;
--	u64 blk = le64_to_cpu(xb->xb_blkno);
--	u16 bit = le16_to_cpu(xb->xb_suballoc_bit);
--	u64 bg_blkno = ocfs2_which_suballoc_group(blk, bit);
--	int ret = 0;
--
--	xb_alloc_inode = ocfs2_get_system_file_inode(osb,
--				EXTENT_ALLOC_SYSTEM_INODE,
--				le16_to_cpu(xb->xb_suballoc_slot));
--	if (!xb_alloc_inode) {
--		ret = -ENOMEM;
--		mlog_errno(ret);
--		goto out;
--	}
--	mutex_lock(&xb_alloc_inode->i_mutex);
--
--	ret = ocfs2_inode_lock(xb_alloc_inode, &xb_alloc_bh, 1);
--	if (ret < 0) {
--		mlog_errno(ret);
--		goto out_mutex;
--	}
--	ret = ocfs2_extend_trans(handle, OCFS2_SUBALLOC_FREE);
--	if (ret < 0) {
--		mlog_errno(ret);
--		goto out_unlock;
--	}
--	ret = ocfs2_free_suballoc_bits(handle, xb_alloc_inode, xb_alloc_bh,
--				       bit, bg_blkno, 1);
--	if (ret < 0)
--		mlog_errno(ret);
--out_unlock:
--	ocfs2_inode_unlock(xb_alloc_inode, 1);
--	brelse(xb_alloc_bh);
--out_mutex:
--	mutex_unlock(&xb_alloc_inode->i_mutex);
--	iput(xb_alloc_inode);
--out:
--	return ret;
--}
--
- static int ocfs2_remove_value_outside(struct inode*inode,
- 				      struct buffer_head *bh,
- 				      struct ocfs2_xattr_header *header)
-@@ -1548,6 +1503,84 @@ static int ocfs2_xattr_block_remove(struct inode *inode,
- 	return ret;
- }
- 
-+static int ocfs2_xattr_free_block(struct inode *inode,
-+				  u64 block)
+ /*
++ * Try to find a non-empty bucket between low_bucket and high_bucket.
++ *
++ * First try to find one bucket that isn't empty between bucket and
++ * high_bucket. If none, try to find one bucket that isn't empty between
++ * bucket and low_bucket. If all are empty, return the lowest bucket.
++ */
++static int ocfs2_find_not_emtpy_bucket(struct inode *inode,
++				       struct buffer_head **bucket_bh,
++				       int *bucket,
++				       int low_bucket,
++				       int high_bucket,
++				       u64 p_blkno)
 +{
-+	struct inode *xb_alloc_inode;
-+	struct buffer_head *xb_alloc_bh = NULL;
-+	struct buffer_head *blk_bh = NULL;
-+	struct ocfs2_xattr_block *xb;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	handle_t *handle;
-+	int ret = 0;
-+	u64 blk, bg_blkno;
-+	u16 bit;
++	int i, ret = 0;
++	int old_bucket = *bucket;
++	struct buffer_head *bh = NULL;
++	struct ocfs2_xattr_header *xh = NULL;
++	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
++	u64 blkno;
 +
-+	ret = ocfs2_read_block(osb, block, &blk_bh,
-+			       OCFS2_BH_CACHED, inode);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out;
++	for (i = old_bucket + 1; i <= high_bucket; i++) {
++		blkno = p_blkno + i * blk_per_bucket;
++
++		ret = ocfs2_read_block(OCFS2_SB(inode->i_sb), blkno,
++				       &bh, OCFS2_BH_CACHED, inode);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
++		xh = (struct ocfs2_xattr_header *)bh->b_data;
++
++		if (xh->xh_count)
++			goto find_out;
++
++		brelse(bh);
++		bh = NULL;
 +	}
 +
-+	/*Verify the signature of xattr block*/
-+	if (memcmp((void *)blk_bh->b_data, OCFS2_XATTR_BLOCK_SIGNATURE,
-+		   strlen(OCFS2_XATTR_BLOCK_SIGNATURE))) {
-+		ret = -EFAULT;
-+		goto out;
++	/*
++	 * In case old_bucket is already the lowest one, and we
++	 * haven't find one non-empty bucket above us, return it
++	 * by starting iteration from itself.
++	 */
++	i = old_bucket == low_bucket ? old_bucket : old_bucket - 1;
++	for (; i >= low_bucket; i--) {
++		brelse(bh);
++		bh = NULL;
++		blkno = p_blkno + i * blk_per_bucket;
++
++		ret = ocfs2_read_block(OCFS2_SB(inode->i_sb), blkno,
++				       &bh, OCFS2_BH_CACHED, inode);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
++		xh = (struct ocfs2_xattr_header *)bh->b_data;
++
++		if (xh->xh_count)
++			break;
 +	}
 +
-+	ret = ocfs2_xattr_block_remove(inode, blk_bh);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
++find_out:
++	*bucket_bh = bh;
++	*bucket = i;
 +
-+	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
-+	blk = le64_to_cpu(xb->xb_blkno);
-+	bit = le16_to_cpu(xb->xb_suballoc_bit);
-+	bg_blkno = ocfs2_which_suballoc_group(blk, bit);
-+
-+	xb_alloc_inode = ocfs2_get_system_file_inode(osb,
-+				EXTENT_ALLOC_SYSTEM_INODE,
-+				le16_to_cpu(xb->xb_suballoc_slot));
-+	if (!xb_alloc_inode) {
-+		ret = -ENOMEM;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+	mutex_lock(&xb_alloc_inode->i_mutex);
-+
-+	ret = ocfs2_inode_lock(xb_alloc_inode, &xb_alloc_bh, 1);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out_mutex;
-+	}
-+
-+	handle = ocfs2_start_trans(osb, OCFS2_SUBALLOC_FREE);
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
-+		mlog_errno(ret);
-+		goto out_unlock;
-+	}
-+
-+	ret = ocfs2_free_suballoc_bits(handle, xb_alloc_inode, xb_alloc_bh,
-+				       bit, bg_blkno, 1);
-+	if (ret < 0)
-+		mlog_errno(ret);
-+
-+	ocfs2_commit_trans(osb, handle);
-+out_unlock:
-+	ocfs2_inode_unlock(xb_alloc_inode, 1);
-+	brelse(xb_alloc_bh);
-+out_mutex:
-+	mutex_unlock(&xb_alloc_inode->i_mutex);
-+	iput(xb_alloc_inode);
++	mlog(0, "Find non-empty Bucket %llu.\n",
++	     (unsigned long long)bh->b_blocknr);
 +out:
-+	brelse(blk_bh);
 +	return ret;
 +}
 +
- /*
-  * ocfs2_xattr_remove()
-  *
-@@ -1555,9 +1588,6 @@ static int ocfs2_xattr_block_remove(struct inode *inode,
-  */
- int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
- {
--	struct ocfs2_xattr_block *xb;
--	struct buffer_head *blk_bh = NULL;
--	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
- 	handle_t *handle;
-@@ -1576,22 +1606,10 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
- 			goto out;
++/*
+  * Find the specified xattr entry in a series of buckets.
+  * This series start from p_blkno and last for num_clusters.
+  * The ocfs2_xattr_header.xh_num_buckets of the first bucket contains
+@@ -2294,6 +2368,37 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
  		}
- 	}
--	if (di->i_xattr_loc) {
--		ret = ocfs2_read_block(OCFS2_SB(inode->i_sb),
--				       le64_to_cpu(di->i_xattr_loc),
--				       &blk_bh, OCFS2_BH_CACHED, inode);
--		if (ret < 0) {
--			mlog_errno(ret);
--			return ret;
--		}
--		/*Verify the signature of xattr block*/
--		if (memcmp((void *)blk_bh->b_data, OCFS2_XATTR_BLOCK_SIGNATURE,
--			   strlen(OCFS2_XATTR_BLOCK_SIGNATURE))) {
--			ret = -EFAULT;
--			goto out;
--		}
  
--		ret = ocfs2_xattr_block_remove(inode, blk_bh);
-+	if (di->i_xattr_loc) {
-+		ret = ocfs2_xattr_free_block(inode,
-+					     le64_to_cpu(di->i_xattr_loc));
- 		if (ret < 0) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -1612,11 +1630,7 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
- 		goto out_commit;
- 	}
- 
--	if (di->i_xattr_loc) {
--		xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
--		ocfs2_xattr_free_block(handle, osb, xb);
--		di->i_xattr_loc = cpu_to_le64(0);
--	}
-+	di->i_xattr_loc = 0;
- 
- 	spin_lock(&oi->ip_lock);
- 	oi->ip_dyn_features &= ~(OCFS2_INLINE_XATTR_FL | OCFS2_HAS_XATTR_FL);
-@@ -1629,8 +1643,6 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
- out_commit:
- 	ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
- out:
--	brelse(blk_bh);
--
- 	return ret;
- }
- 
+ 		xh = (struct ocfs2_xattr_header *)bh->b_data;
++
++		if (!xh->xh_count) {
++			mlog(0, "Bucket %llu is empty.\n",
++			     (unsigned long long)bh->b_blocknr);
++			/*
++			 * this bucket is empty.
++			 * If we have comes to the end(low == high), just
++			 * exit the loop.
++			 *
++			 * If not, try to find one bucket which isn't empty.
++			 */
++			if (low_bucket == high_bucket)
++				break;
++
++			brelse(bh);
++			bh = NULL;
++			ret = ocfs2_find_not_emtpy_bucket(inode, &bh,
++							  &bucket,
++							  low_bucket,
++							  high_bucket,
++							  p_blkno);
++			if (ret) {
++				mlog_errno(ret);
++				goto out;
++			}
++
++			xh = (struct ocfs2_xattr_header *)bh->b_data;
++			if (!xh->xh_count)
++				break;
++		}
++
+ 		xe = &xh->xh_entries[0];
+ 		if (name_hash < le32_to_cpu(xe->xe_name_hash)) {
+ 			high_bucket = bucket - 1;
 -- 
 1.5.4.GIT
