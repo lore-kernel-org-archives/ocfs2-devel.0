@@ -1,663 +1,223 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 28 Aug 2008 17:49:02 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Switch over to JBD2.
-Message-ID: <20080829004902.GF15974@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Fri, 29 Aug 2008 09:00:19 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Resolve deadlock in
+	ocfs2_xattr_free_block.
+Message-ID: <1219971619-4459-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2 wants JBD2 for many reasons, not the least of which is that JBD is
-limiting our maximum filesystem size.
+In ocfs2_xattr_free_block, we takes a cluster lock on xb_alloc_inode
+while we have a transaction open. And the caller is a little complicated
+for handling xattr block release. So move all the mechanism of releasing
+xattr block(including both value, xattr tree and xattr block) into this
+function and open a separate transaction for it.
 
-It's a pretty trivial change.  Most functions are just renamed.  The
-only functional change is moving to Jan's inode-based ordered data mode.
-It's better, too.
-
-Because JBD2 reads and writes JBD journals, this is compatible with any
-existing filesystem.  It can even interact with JBD-based ocfs2 as long
-as the journal is formated for JBD.
-
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/Kconfig          |   30 +++++++++---------
- fs/ocfs2/alloc.c    |   27 +++++------------
- fs/ocfs2/aops.c     |   21 ++++---------
- fs/ocfs2/file.c     |   14 ++++++--
- fs/ocfs2/inode.c    |    5 +++
- fs/ocfs2/inode.h    |    1 +
- fs/ocfs2/journal.c  |   82 ++++++++++++++++++++++----------------------------
- fs/ocfs2/journal.h  |   20 +++++++++---
- fs/ocfs2/ocfs2.h    |    2 +-
- fs/ocfs2/super.c    |   10 ++++--
- fs/ocfs2/uptodate.c |    2 +-
- 11 files changed, 104 insertions(+), 110 deletions(-)
+ fs/ocfs2/xattr.c |  152 +++++++++++++++++++++++++++++-------------------------
+ 1 files changed, 82 insertions(+), 70 deletions(-)
 
-diff --git a/fs/Kconfig b/fs/Kconfig
-index abccb5d..535bdd3 100644
---- a/fs/Kconfig
-+++ b/fs/Kconfig
-@@ -206,17 +206,16 @@ config JBD
- 	tristate
- 	help
- 	  This is a generic journalling layer for block devices.  It is
--	  currently used by the ext3 and OCFS2 file systems, but it could
--	  also be used to add journal support to other file systems or block
-+	  currently used by the ext3 file system, but it could also be
-+	  used to add journal support to other file systems or block
- 	  devices such as RAID or LVM.
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 2ccffb1..35d7bf7 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -1442,51 +1442,6 @@ out:
  
--	  If you are using the ext3 or OCFS2 file systems, you need to
--	  say Y here. If you are not using ext3 OCFS2 then you will probably
--	  want to say N.
-+	  If you are using the ext3 file system, you need to say Y here.
-+	  If you are not using ext3 then you will probably want to say N.
- 
- 	  To compile this device as a module, choose M here: the module will be
--	  called jbd.  If you are compiling ext3 or OCFS2 into the kernel,
--	  you cannot compile this code as a module.
-+	  called jbd.  If you are compiling ext3 into the kernel, you
-+	  cannot compile this code as a module.
- 
- config JBD_DEBUG
- 	bool "JBD (ext3) debugging support"
-@@ -240,16 +239,17 @@ config JBD2
- 	help
- 	  This is a generic journaling layer for block devices that support
- 	  both 32-bit and 64-bit block numbers.  It is currently used by
--	  the ext4dev/ext4 filesystem, but it could also be used to add
--	  journal support to other file systems or block devices such
--	  as RAID or LVM.
-+	  the ext4dev/ext4 and OCFS2 filesystems, but it could also be
-+	  used to add journal support to other file systems or block
-+	  devices such as RAID or LVM.
- 
--	  If you are using ext4dev/ext4, you need to say Y here. If you are not
--	  using ext4dev/ext4 then you will probably want to say N.
-+	  If you are using ext4dev/ext4 or OCFS2, you need to say Y here.
-+	  If you are not using ext4dev/ext4 or OCFS2 then you will
-+	  probably want to say N.
- 
- 	  To compile this device as a module, choose M here. The module will be
--	  called jbd2.  If you are compiling ext4dev/ext4 into the kernel,
--	  you cannot compile this code as a module.
-+	  called jbd2.  If you are compiling ext4dev/ext4 or OCFS2 into the
-+	  kernel, you cannot compile this code as a module.
- 
- config JBD2_DEBUG
- 	bool "JBD2 (ext4dev/ext4) debugging support"
-@@ -426,7 +426,7 @@ config OCFS2_FS
- 	tristate "OCFS2 file system support"
- 	depends on NET && SYSFS
- 	select CONFIGFS_FS
--	select JBD
-+	select JBD2
- 	select CRC32
- 	help
- 	  OCFS2 is a general purpose extent based shared disk cluster file
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 10bfb46..0f84811 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -6008,20 +6008,13 @@ bail:
- 	return status;
  }
  
--static int ocfs2_writeback_zero_func(handle_t *handle, struct buffer_head *bh)
-+static int ocfs2_zero_func(handle_t *handle, struct buffer_head *bh)
- {
- 	set_buffer_uptodate(bh);
- 	mark_buffer_dirty(bh);
- 	return 0;
- }
- 
--static int ocfs2_ordered_zero_func(handle_t *handle, struct buffer_head *bh)
+-static int ocfs2_xattr_free_block(handle_t *handle,
+-				  struct ocfs2_super *osb,
+-				  struct ocfs2_xattr_block *xb)
 -{
--	set_buffer_uptodate(bh);
--	mark_buffer_dirty(bh);
--	return ocfs2_journal_dirty_data(handle, bh);
+-	struct inode *xb_alloc_inode;
+-	struct buffer_head *xb_alloc_bh = NULL;
+-	u64 blk = le64_to_cpu(xb->xb_blkno);
+-	u16 bit = le16_to_cpu(xb->xb_suballoc_bit);
+-	u64 bg_blkno = ocfs2_which_suballoc_group(blk, bit);
+-	int ret = 0;
+-
+-	xb_alloc_inode = ocfs2_get_system_file_inode(osb,
+-				EXTENT_ALLOC_SYSTEM_INODE,
+-				le16_to_cpu(xb->xb_suballoc_slot));
+-	if (!xb_alloc_inode) {
+-		ret = -ENOMEM;
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-	mutex_lock(&xb_alloc_inode->i_mutex);
+-
+-	ret = ocfs2_inode_lock(xb_alloc_inode, &xb_alloc_bh, 1);
+-	if (ret < 0) {
+-		mlog_errno(ret);
+-		goto out_mutex;
+-	}
+-	ret = ocfs2_extend_trans(handle, OCFS2_SUBALLOC_FREE);
+-	if (ret < 0) {
+-		mlog_errno(ret);
+-		goto out_unlock;
+-	}
+-	ret = ocfs2_free_suballoc_bits(handle, xb_alloc_inode, xb_alloc_bh,
+-				       bit, bg_blkno, 1);
+-	if (ret < 0)
+-		mlog_errno(ret);
+-out_unlock:
+-	ocfs2_inode_unlock(xb_alloc_inode, 1);
+-	brelse(xb_alloc_bh);
+-out_mutex:
+-	mutex_unlock(&xb_alloc_inode->i_mutex);
+-	iput(xb_alloc_inode);
+-out:
+-	return ret;
 -}
 -
- static void ocfs2_map_and_dirty_page(struct inode *inode, handle_t *handle,
- 				     unsigned int from, unsigned int to,
- 				     struct page *page, int zero, u64 *phys)
-@@ -6040,17 +6033,13 @@ static void ocfs2_map_and_dirty_page(struct inode *inode, handle_t *handle,
- 	 * here if they aren't - ocfs2_map_page_blocks()
- 	 * might've skipped some
- 	 */
--	if (ocfs2_should_order_data(inode)) {
--		ret = walk_page_buffers(handle,
--					page_buffers(page),
--					from, to, &partial,
--					ocfs2_ordered_zero_func);
--		if (ret < 0)
--			mlog_errno(ret);
--	} else {
--		ret = walk_page_buffers(handle, page_buffers(page),
--					from, to, &partial,
--					ocfs2_writeback_zero_func);
-+	ret = walk_page_buffers(handle, page_buffers(page),
-+				from, to, &partial,
-+				ocfs2_zero_func);
+ static int ocfs2_remove_value_outside(struct inode*inode,
+ 				      struct buffer_head *bh,
+ 				      struct ocfs2_xattr_header *header)
+@@ -1548,6 +1503,84 @@ static int ocfs2_xattr_block_remove(struct inode *inode,
+ 	return ret;
+ }
+ 
++static int ocfs2_xattr_free_block(struct inode *inode,
++				  u64 block)
++{
++	struct inode *xb_alloc_inode;
++	struct buffer_head *xb_alloc_bh = NULL;
++	struct buffer_head *blk_bh = NULL;
++	struct ocfs2_xattr_block *xb;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	handle_t *handle;
++	int ret = 0;
++	u64 blk, bg_blkno;
++	u16 bit;
++
++	ret = ocfs2_read_block(osb, block, &blk_bh,
++			       OCFS2_BH_CACHED, inode);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	/*Verify the signature of xattr block*/
++	if (memcmp((void *)blk_bh->b_data, OCFS2_XATTR_BLOCK_SIGNATURE,
++		   strlen(OCFS2_XATTR_BLOCK_SIGNATURE))) {
++		ret = -EFAULT;
++		goto out;
++	}
++
++	ret = ocfs2_xattr_block_remove(inode, blk_bh);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
++	blk = le64_to_cpu(xb->xb_blkno);
++	bit = le16_to_cpu(xb->xb_suballoc_bit);
++	bg_blkno = ocfs2_which_suballoc_group(blk, bit);
++
++	xb_alloc_inode = ocfs2_get_system_file_inode(osb,
++				EXTENT_ALLOC_SYSTEM_INODE,
++				le16_to_cpu(xb->xb_suballoc_slot));
++	if (!xb_alloc_inode) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
++		goto out;
++	}
++	mutex_lock(&xb_alloc_inode->i_mutex);
++
++	ret = ocfs2_inode_lock(xb_alloc_inode, &xb_alloc_bh, 1);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_mutex;
++	}
++
++	handle = ocfs2_start_trans(osb, OCFS2_SUBALLOC_FREE);
++	if (IS_ERR(handle)) {
++		ret = PTR_ERR(handle);
++		mlog_errno(ret);
++		goto out_unlock;
++	}
++
++	ret = ocfs2_free_suballoc_bits(handle, xb_alloc_inode, xb_alloc_bh,
++				       bit, bg_blkno, 1);
 +	if (ret < 0)
 +		mlog_errno(ret);
-+	else if (ocfs2_should_order_data(inode)) {
-+		ret = ocfs2_jbd2_file_inode(handle, inode);
- 		if (ret < 0)
- 			mlog_errno(ret);
- 	}
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 506c24f..5d30782 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -485,11 +485,8 @@ handle_t *ocfs2_start_walk_page_trans(struct inode *inode,
- 	}
- 
- 	if (ocfs2_should_order_data(inode)) {
--		ret = walk_page_buffers(handle,
--					page_buffers(page),
--					from, to, NULL,
--					ocfs2_journal_dirty_data);
--		if (ret < 0) 
-+		ret = ocfs2_jbd2_file_inode(handle, inode);
-+		if (ret < 0)
- 			mlog_errno(ret);
- 	}
- out:
-@@ -669,7 +666,7 @@ static void ocfs2_invalidatepage(struct page *page, unsigned long offset)
- {
- 	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
- 
--	journal_invalidatepage(journal, page, offset);
-+	jbd2_journal_invalidatepage(journal, page, offset);
- }
- 
- static int ocfs2_releasepage(struct page *page, gfp_t wait)
-@@ -678,7 +675,7 @@ static int ocfs2_releasepage(struct page *page, gfp_t wait)
- 
- 	if (!page_has_buffers(page))
- 		return 0;
--	return journal_try_to_free_buffers(journal, page, wait);
-+	return jbd2_journal_try_to_free_buffers(journal, page, wait);
- }
- 
- static ssize_t ocfs2_direct_IO(int rw,
-@@ -1075,10 +1072,7 @@ static void ocfs2_write_failure(struct inode *inode,
- 
- 		if (page_has_buffers(tmppage)) {
- 			if (ocfs2_should_order_data(inode))
--				walk_page_buffers(wc->w_handle,
--						  page_buffers(tmppage),
--						  from, to, NULL,
--						  ocfs2_journal_dirty_data);
-+				ocfs2_jbd2_file_inode(wc->w_handle, inode);
- 
- 			block_commit_write(tmppage, from, to);
- 		}
-@@ -1906,10 +1900,7 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
- 
- 		if (page_has_buffers(tmppage)) {
- 			if (ocfs2_should_order_data(inode))
--				walk_page_buffers(wc->w_handle,
--						  page_buffers(tmppage),
--						  from, to, NULL,
--						  ocfs2_journal_dirty_data);
-+				ocfs2_jbd2_file_inode(wc->w_handle, inode);
- 			block_commit_write(tmppage, from, to);
- 		}
- 	}
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index ec2ed15..2f2217a 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -184,7 +184,7 @@ static int ocfs2_sync_file(struct file *file,
- 		goto bail;
- 
- 	journal = osb->journal->j_journal;
--	err = journal_force_commit(journal);
-+	err = jbd2_journal_force_commit(journal);
- 
- bail:
- 	mlog_exit(err);
-@@ -1096,9 +1096,15 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 			goto bail_unlock;
- 		}
- 
--		if (i_size_read(inode) > attr->ia_size)
-+		if (i_size_read(inode) > attr->ia_size) {
-+			if (ocfs2_should_order_data(inode)) {
-+				status = ocfs2_begin_ordered_truncate(inode,
-+								      attr->ia_size);
-+				if (status)
-+					goto bail_unlock;
-+			}
- 			status = ocfs2_truncate_file(inode, bh, attr->ia_size);
--		else
-+		} else
- 			status = ocfs2_extend_file(inode, bh, attr->ia_size);
- 		if (status < 0) {
- 			if (status != -ENOSPC)
-@@ -2040,7 +2046,7 @@ out_dio:
- 		 */
- 		if (old_size != i_size_read(inode) ||
- 		    old_clusters != OCFS2_I(inode)->ip_clusters) {
--			ret = journal_force_commit(osb->journal->j_journal);
-+			ret = jbd2_journal_force_commit(osb->journal->j_journal);
- 			if (ret < 0)
- 				written = ret;
- 		}
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 7e9e4c7..ce8ec09 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -909,6 +909,9 @@ void ocfs2_delete_inode(struct inode *inode)
- 		goto bail;
- 	}
- 
-+	if (ocfs2_should_order_data(inode))
-+		ocfs2_begin_ordered_truncate(inode, 0);
 +
- 	if (!ocfs2_inode_is_valid_to_delete(inode)) {
- 		/* It's probably not necessary to truncate_inode_pages
- 		 * here but we do it for safety anyway (it will most
-@@ -1081,6 +1084,8 @@ void ocfs2_clear_inode(struct inode *inode)
- 	oi->ip_last_trans = 0;
- 	oi->ip_dir_start_lookup = 0;
- 	oi->ip_blkno = 0ULL;
-+	jbd2_journal_release_jbd_inode(OCFS2_SB(inode->i_sb)->journal->j_journal,
-+				       &oi->ip_jinode);
- 
- bail:
- 	mlog_exit_void();
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 390a855..3b2eb2a 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -68,6 +68,7 @@ struct ocfs2_inode_info
- 	struct ocfs2_extent_map		ip_extent_map;
- 
- 	struct inode			vfs_inode;
-+	struct jbd2_inode		ip_jinode;
- };
- 
++	ocfs2_commit_trans(osb, handle);
++out_unlock:
++	ocfs2_inode_unlock(xb_alloc_inode, 1);
++	brelse(xb_alloc_bh);
++out_mutex:
++	mutex_unlock(&xb_alloc_inode->i_mutex);
++	iput(xb_alloc_inode);
++out:
++	brelse(blk_bh);
++	return ret;
++}
++
  /*
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index c47bc2a..1d188b1 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -215,9 +215,9 @@ static int ocfs2_commit_cache(struct ocfs2_super *osb)
- 		goto finally;
- 	}
- 
--	journal_lock_updates(journal->j_journal);
--	status = journal_flush(journal->j_journal);
--	journal_unlock_updates(journal->j_journal);
-+	jbd2_journal_lock_updates(journal->j_journal);
-+	status = jbd2_journal_flush(journal->j_journal);
-+	jbd2_journal_unlock_updates(journal->j_journal);
- 	if (status < 0) {
- 		up_write(&journal->j_trans_barrier);
- 		mlog_errno(status);
-@@ -264,7 +264,7 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
- 
- 	down_read(&osb->journal->j_trans_barrier);
- 
--	handle = journal_start(journal, max_buffs);
-+	handle = jbd2_journal_start(journal, max_buffs);
- 	if (IS_ERR(handle)) {
- 		up_read(&osb->journal->j_trans_barrier);
- 
-@@ -290,7 +290,7 @@ int ocfs2_commit_trans(struct ocfs2_super *osb,
- 
- 	BUG_ON(!handle);
- 
--	ret = journal_stop(handle);
-+	ret = jbd2_journal_stop(handle);
- 	if (ret < 0)
- 		mlog_errno(ret);
- 
-@@ -304,7 +304,7 @@ int ocfs2_commit_trans(struct ocfs2_super *osb,
-  * transaction. extend_trans will either extend the current handle by
-  * nblocks, or commit it and start a new one with nblocks credits.
+  * ocfs2_xattr_remove()
   *
-- * This might call journal_restart() which will commit dirty buffers
-+ * This might call jbd2_journal_restart() which will commit dirty buffers
-  * and then restart the transaction. Before calling
-  * ocfs2_extend_trans(), any changed blocks should have been
-  * dirtied. After calling it, all blocks which need to be changed must
-@@ -332,7 +332,7 @@ int ocfs2_extend_trans(handle_t *handle, int nblocks)
- #ifdef CONFIG_OCFS2_DEBUG_FS
- 	status = 1;
- #else
--	status = journal_extend(handle, nblocks);
-+	status = jbd2_journal_extend(handle, nblocks);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -340,8 +340,10 @@ int ocfs2_extend_trans(handle_t *handle, int nblocks)
- #endif
- 
- 	if (status > 0) {
--		mlog(0, "journal_extend failed, trying journal_restart\n");
--		status = journal_restart(handle, nblocks);
-+		mlog(0,
-+		     "jbd2_journal_extend failed, trying "
-+		     "jbd2_journal_restart\n");
-+		status = jbd2_journal_restart(handle, nblocks);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto bail;
-@@ -393,11 +395,11 @@ int ocfs2_journal_access(handle_t *handle,
- 	switch (type) {
- 	case OCFS2_JOURNAL_ACCESS_CREATE:
- 	case OCFS2_JOURNAL_ACCESS_WRITE:
--		status = journal_get_write_access(handle, bh);
-+		status = jbd2_journal_get_write_access(handle, bh);
- 		break;
- 
- 	case OCFS2_JOURNAL_ACCESS_UNDO:
--		status = journal_get_undo_access(handle, bh);
-+		status = jbd2_journal_get_undo_access(handle, bh);
- 		break;
- 
- 	default:
-@@ -422,7 +424,7 @@ int ocfs2_journal_dirty(handle_t *handle,
- 	mlog_entry("(bh->b_blocknr=%llu)\n",
- 		   (unsigned long long)bh->b_blocknr);
- 
--	status = journal_dirty_metadata(handle, bh);
-+	status = jbd2_journal_dirty_metadata(handle, bh);
- 	if (status < 0)
- 		mlog(ML_ERROR, "Could not dirty metadata buffer. "
- 		     "(bh->b_blocknr=%llu)\n",
-@@ -432,19 +434,7 @@ int ocfs2_journal_dirty(handle_t *handle,
- 	return status;
- }
- 
--int ocfs2_journal_dirty_data(handle_t *handle,
--			     struct buffer_head *bh)
--{
--	int err = journal_dirty_data(handle, bh);
--	if (err)
--		mlog_errno(err);
--	/* TODO: When we can handle it, abort the handle and go RO on
--	 * error here. */
--
--	return err;
--}
--
--#define OCFS2_DEFAULT_COMMIT_INTERVAL 	(HZ * JBD_DEFAULT_MAX_COMMIT_AGE)
-+#define OCFS2_DEFAULT_COMMIT_INTERVAL	(HZ * JBD2_DEFAULT_MAX_COMMIT_AGE)
- 
- void ocfs2_set_journal_params(struct ocfs2_super *osb)
- {
-@@ -457,9 +447,9 @@ void ocfs2_set_journal_params(struct ocfs2_super *osb)
- 	spin_lock(&journal->j_state_lock);
- 	journal->j_commit_interval = commit_interval;
- 	if (osb->s_mount_opt & OCFS2_MOUNT_BARRIER)
--		journal->j_flags |= JFS_BARRIER;
-+		journal->j_flags |= JBD2_BARRIER;
- 	else
--		journal->j_flags &= ~JFS_BARRIER;
-+		journal->j_flags &= ~JBD2_BARRIER;
- 	spin_unlock(&journal->j_state_lock);
- }
- 
-@@ -524,14 +514,14 @@ int ocfs2_journal_init(struct ocfs2_journal *journal, int *dirty)
- 	mlog(0, "inode->ip_clusters = %u\n", OCFS2_I(inode)->ip_clusters);
- 
- 	/* call the kernels journal init function now */
--	j_journal = journal_init_inode(inode);
-+	j_journal = jbd2_journal_init_inode(inode);
- 	if (j_journal == NULL) {
- 		mlog(ML_ERROR, "Linux journal layer error\n");
- 		status = -EINVAL;
- 		goto done;
- 	}
- 
--	mlog(0, "Returned from journal_init_inode\n");
-+	mlog(0, "Returned from jbd2_journal_init_inode\n");
- 	mlog(0, "j_journal->j_maxlen = %u\n", j_journal->j_maxlen);
- 
- 	*dirty = (le32_to_cpu(di->id1.journal1.ij_flags) &
-@@ -639,7 +629,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 	if (journal->j_state != OCFS2_JOURNAL_LOADED)
- 		goto done;
- 
--	/* need to inc inode use count as journal_destroy will iput. */
-+	/* need to inc inode use count - jbd2_journal_destroy will iput. */
- 	if (!igrab(inode))
- 		BUG();
- 
-@@ -668,9 +658,9 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 	BUG_ON(atomic_read(&(osb->journal->j_num_trans)) != 0);
- 
- 	if (ocfs2_mount_local(osb)) {
--		journal_lock_updates(journal->j_journal);
--		status = journal_flush(journal->j_journal);
--		journal_unlock_updates(journal->j_journal);
-+		jbd2_journal_lock_updates(journal->j_journal);
-+		status = jbd2_journal_flush(journal->j_journal);
-+		jbd2_journal_unlock_updates(journal->j_journal);
- 		if (status < 0)
- 			mlog_errno(status);
- 	}
-@@ -686,7 +676,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 	}
- 
- 	/* Shutdown the kernel journal system */
--	journal_destroy(journal->j_journal);
-+	jbd2_journal_destroy(journal->j_journal);
- 
- 	OCFS2_I(inode)->ip_open_count--;
- 
-@@ -711,15 +701,15 @@ static void ocfs2_clear_journal_error(struct super_block *sb,
- {
- 	int olderr;
- 
--	olderr = journal_errno(journal);
-+	olderr = jbd2_journal_errno(journal);
- 	if (olderr) {
- 		mlog(ML_ERROR, "File system error %d recorded in "
- 		     "journal %u.\n", olderr, slot);
- 		mlog(ML_ERROR, "File system on device %s needs checking.\n",
- 		     sb->s_id);
- 
--		journal_ack_err(journal);
--		journal_clear_err(journal);
-+		jbd2_journal_ack_err(journal);
-+		jbd2_journal_clear_err(journal);
- 	}
- }
- 
-@@ -734,7 +724,7 @@ int ocfs2_journal_load(struct ocfs2_journal *journal, int local, int replayed)
- 
- 	osb = journal->j_osb;
- 
--	status = journal_load(journal->j_journal);
-+	status = jbd2_journal_load(journal->j_journal);
- 	if (status < 0) {
- 		mlog(ML_ERROR, "Failed to load journal!\n");
- 		goto done;
-@@ -778,7 +768,7 @@ int ocfs2_journal_wipe(struct ocfs2_journal *journal, int full)
- 
- 	BUG_ON(!journal);
- 
--	status = journal_wipe(journal->j_journal, full);
-+	status = jbd2_journal_wipe(journal->j_journal, full);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -1229,19 +1219,19 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
- 	}
- 
- 	mlog(0, "calling journal_init_inode\n");
--	journal = journal_init_inode(inode);
-+	journal = jbd2_journal_init_inode(inode);
- 	if (journal == NULL) {
- 		mlog(ML_ERROR, "Linux journal layer error\n");
- 		status = -EIO;
- 		goto done;
- 	}
- 
--	status = journal_load(journal);
-+	status = jbd2_journal_load(journal);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		if (!igrab(inode))
- 			BUG();
--		journal_destroy(journal);
-+		jbd2_journal_destroy(journal);
- 		goto done;
- 	}
- 
-@@ -1249,9 +1239,9 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
- 
- 	/* wipe the journal */
- 	mlog(0, "flushing the journal.\n");
--	journal_lock_updates(journal);
--	status = journal_flush(journal);
--	journal_unlock_updates(journal);
-+	jbd2_journal_lock_updates(journal);
-+	status = jbd2_journal_flush(journal);
-+	jbd2_journal_unlock_updates(journal);
- 	if (status < 0)
- 		mlog_errno(status);
- 
-@@ -1272,7 +1262,7 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
- 	if (!igrab(inode))
- 		BUG();
- 
--	journal_destroy(journal);
-+	jbd2_journal_destroy(journal);
- 
- done:
- 	/* drop the lock on this nodes journal */
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 2178ebf..be4967a 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -27,7 +27,7 @@
- #define OCFS2_JOURNAL_H
- 
- #include <linux/fs.h>
--#include <linux/jbd.h>
-+#include <linux/jbd2.h>
- 
- enum ocfs2_journal_state {
- 	OCFS2_JOURNAL_FREE = 0,
-@@ -215,8 +215,8 @@ static inline void ocfs2_checkpoint_inode(struct inode *inode)
-  *                          buffer. Will have to call ocfs2_journal_dirty once
-  *                          we've actually dirtied it. Type is one of . or .
-  *  ocfs2_journal_dirty    - Mark a journalled buffer as having dirty data.
-- *  ocfs2_journal_dirty_data - Indicate that a data buffer should go out before
-- *                             the current handle commits.
-+ *  ocfs2_jbd2_file_inode  - Mark an inode so that its data goes out before
-+ *                           the current handle commits.
+@@ -1555,9 +1588,6 @@ static int ocfs2_xattr_block_remove(struct inode *inode,
   */
+ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ {
+-	struct ocfs2_xattr_block *xb;
+-	struct buffer_head *blk_bh = NULL;
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+ 	handle_t *handle;
+@@ -1576,22 +1606,10 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ 			goto out;
+ 		}
+ 	}
+-	if (di->i_xattr_loc) {
+-		ret = ocfs2_read_block(OCFS2_SB(inode->i_sb),
+-				       le64_to_cpu(di->i_xattr_loc),
+-				       &blk_bh, OCFS2_BH_CACHED, inode);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			return ret;
+-		}
+-		/*Verify the signature of xattr block*/
+-		if (memcmp((void *)blk_bh->b_data, OCFS2_XATTR_BLOCK_SIGNATURE,
+-			   strlen(OCFS2_XATTR_BLOCK_SIGNATURE))) {
+-			ret = -EFAULT;
+-			goto out;
+-		}
  
- /* You must always start_trans with a number of buffs > 0, but it's
-@@ -268,8 +268,6 @@ int                  ocfs2_journal_access(handle_t *handle,
-  */
- int                  ocfs2_journal_dirty(handle_t *handle,
- 					 struct buffer_head *bh);
--int                  ocfs2_journal_dirty_data(handle_t *handle,
--					      struct buffer_head *bh);
- 
- /*
-  *  Credit Macros:
-@@ -415,4 +413,16 @@ static inline int ocfs2_calc_tree_trunc_credits(struct super_block *sb,
- 	return credits;
- }
- 
-+static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode)
-+{
-+	return jbd2_journal_file_inode(handle, &OCFS2_I(inode)->ip_jinode);
-+}
-+
-+static inline int ocfs2_begin_ordered_truncate(struct inode *inode,
-+					       loff_t new_size)
-+{
-+	return jbd2_journal_begin_ordered_truncate(&OCFS2_I(inode)->ip_jinode,
-+						   new_size);
-+}
-+
- #endif /* OCFS2_JOURNAL_H */
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 7f625f2..400ad8f 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -34,7 +34,7 @@
- #include <linux/workqueue.h>
- #include <linux/kref.h>
- #include <linux/mutex.h>
--#include <linux/jbd.h>
-+#include <linux/jbd2.h>
- 
- /* For union ocfs2_dlm_lksb */
- #include "stackglue.h"
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 88255d3..7d4b701 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -205,10 +205,11 @@ static int ocfs2_sync_fs(struct super_block *sb, int wait)
- 		ocfs2_schedule_truncate_log_flush(osb, 0);
+-		ret = ocfs2_xattr_block_remove(inode, blk_bh);
++	if (di->i_xattr_loc) {
++		ret = ocfs2_xattr_free_block(inode,
++					     le64_to_cpu(di->i_xattr_loc));
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+ 			goto out;
+@@ -1612,11 +1630,7 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ 		goto out_commit;
  	}
  
--	if (journal_start_commit(OCFS2_SB(sb)->journal->j_journal, &target)) {
-+	if (jbd2_journal_start_commit(OCFS2_SB(sb)->journal->j_journal,
-+				      &target)) {
- 		if (wait)
--			log_wait_commit(OCFS2_SB(sb)->journal->j_journal,
--					target);
-+			jbd2_log_wait_commit(OCFS2_SB(sb)->journal->j_journal,
-+					     target);
- 	}
- 	return 0;
+-	if (di->i_xattr_loc) {
+-		xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
+-		ocfs2_xattr_free_block(handle, osb, xb);
+-		di->i_xattr_loc = cpu_to_le64(0);
+-	}
++	di->i_xattr_loc = 0;
+ 
+ 	spin_lock(&oi->ip_lock);
+ 	oi->ip_dyn_features &= ~(OCFS2_INLINE_XATTR_FL | OCFS2_HAS_XATTR_FL);
+@@ -1629,8 +1643,6 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ out_commit:
+ 	ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
+ out:
+-	brelse(blk_bh);
+-
+ 	return ret;
  }
-@@ -325,6 +326,7 @@ static struct inode *ocfs2_alloc_inode(struct super_block *sb)
- 	if (!oi)
- 		return NULL;
- 
-+	jbd2_journal_init_jbd_inode(&oi->ip_jinode, &oi->vfs_inode);
- 	return &oi->vfs_inode;
- }
- 
-@@ -873,7 +875,7 @@ static int ocfs2_parse_options(struct super_block *sb,
- 			if (option < 0)
- 				return 0;
- 			if (option == 0)
--				option = JBD_DEFAULT_MAX_COMMIT_AGE;
-+				option = JBD2_DEFAULT_MAX_COMMIT_AGE;
- 			mopt->commit_interval = HZ * option;
- 			break;
- 		case Opt_localalloc:
-diff --git a/fs/ocfs2/uptodate.c b/fs/ocfs2/uptodate.c
-index 4da8851..c0cd75a 100644
---- a/fs/ocfs2/uptodate.c
-+++ b/fs/ocfs2/uptodate.c
-@@ -53,7 +53,7 @@
- #include <linux/highmem.h>
- #include <linux/buffer_head.h>
- #include <linux/rbtree.h>
--#include <linux/jbd.h>
-+#include <linux/jbd2.h>
- 
- #define MLOG_MASK_PREFIX ML_UPTODATE
  
 -- 
-1.5.6.3
-
-
--- 
-
-Life's Little Instruction Book #396
-
-	"Never give anyone a fruitcake."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.4.GIT
