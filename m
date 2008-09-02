@@ -1,56 +1,51 @@
-From: Coly Li <coyli@suse.de>
-Date: Fri, 01 Aug 2008 09:29:34 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2-tools: add error message to
- mount.ocfs2 when mount point is invalid.
-In-Reply-To: <20080731200056.GC14766@mail.oracle.com>
-References: <4891C0C5.1010007@suse.de> <20080731200056.GC14766@mail.oracle.com>
-Message-ID: <489266FE.2080501@suse.de>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue,  2 Sep 2008 08:50:55 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix a bug in direct IO read.
+Message-ID: <1220316655-4400-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+ocfs2 will become read-only if we try to read the bytes which pass
+the end of i_size. This can be easily reproduced by following steps:
+1. mkfs a ocfs2 volume with bs=4k cs=4k and nosparse.
+2. create a small file(say less than 100 bytes) and we will create the file
+   which is allocated 1 cluster.
+3. read 8196 bytes from the kernel using O_DIRECT which exceeds the limit.
+4. The ocfs2 volume becomes read-only and dmesg shows:
+OCFS2: ERROR (device sda13): ocfs2_direct_IO_get_blocks:
+Inode 66010 has a hole at block 1
+File system is now read-only due to the potential of on-disk corruption.
+Please run fsck.ocfs2 once the file system is unmounted.
 
+I have checked the code of 1.2 and copy the read check there.
+And actually I think even with sparse-enabled, this read check is ok.
 
-Joel Becker Wrote:
-> On Thu, Jul 31, 2008 at 09:40:21PM +0800, Coly Li wrote:
->> diff --git a/mount.ocfs2/mount.ocfs2.c b/mount.ocfs2/mount.ocfs2.c
->> index a97b4cb..eb8e336 100644
->> --- a/mount.ocfs2/mount.ocfs2.c
->> +++ b/mount.ocfs2/mount.ocfs2.c
->> @@ -382,9 +382,21 @@ int main(int argc, char **argv)
->>   			o2cb_complete_group_join(&cluster, &desc, errno);
->>   		}
->>   		block_signals (SIG_UNBLOCK);
->> -		com_err(progname, ret, "while mounting %s on %s. "
->> -			"Check 'dmesg' for more information on this error.",
->> -			mo.dev, mo.dir);
->> +
->> +		/* complain mount failure */
->> +		if (lstat(mo.dir, &statbuf))
->> +			com_err(progname, 0, "mount point %s does not "
->> +				"exist", mo.dir);
->> +		else if (stat(mo.dir, &statbuf))
->> +			com_err(progname, 0, "mount point %s is a "
->> +				"symbolic link to nowhere", mo.dir);
->> +		else if (stat(mo.dir, &statbuf) || !S_ISDIR(statbuf.st_mode))
->   +		else if (!S_ISDIR(statbuf.st_mode))
-> 
-> 	You successfully called stat in the previous "else if" clause.
-wow, thanks for catching this :)
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/aops.c |    8 ++++++++
+ 1 files changed, 8 insertions(+), 0 deletions(-)
 
-> 
->> +			com_err(progname, 0, "mount point %s is not "
->> +				"a directory", mo.dir);
->> +		else
->> +			com_err(progname, ret, "while mounting %s on %s. "
->> +				"Check 'dmesg' for more information on this "
->> +				"error.", mo.dev, mo.dir);
-> 
-> 	Also, I agree with sunil's "broken symbolic link" text.
-patch modified and resend to ocfs2-tools-devel again.
-
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 80fa3fc..f27c1cc 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -576,6 +576,14 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
+ 	inode_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
+ 
+ 	/*
++	 * For a read which begins past the end of file, we return a hole.
++	 */
++	if (!create && (iblock >= inode_blocks)) {
++		ret = 0;
++		goto bail;
++	}
++
++	/*
+ 	 * Any write past EOF is not allowed because we'd be extending.
+ 	 */
+ 	if (create && (iblock + max_blocks) > inode_blocks) {
 -- 
-Coly Li
-SuSE PRC Labs
+1.5.4.GIT
