@@ -1,52 +1,60 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 4 Sep 2008 18:40:10 -0700
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Switch over to JBD2.
-In-Reply-To: <20080905003202.GC29097@lst.de>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Fri, 5 Sep 2008 03:05:43 -0700
+Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: Switch over to JBD2.
+In-Reply-To: <1220497421-8606-1-git-send-email-joel.becker@oracle.com>
 References: <1220497421-8606-1-git-send-email-joel.becker@oracle.com>
-	<1220497421-8606-4-git-send-email-joel.becker@oracle.com>
-	<20080905003202.GC29097@lst.de>
-Message-ID: <20080905014010.GB28061@mail.oracle.com>
+Message-ID: <20080905100542.GN4563@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Sep 05, 2008 at 02:32:02AM +0200, Christoph Hellwig wrote:
-> On Wed, Sep 03, 2008 at 08:03:41PM -0700, Joel Becker wrote:
-> > ocfs2 wants JBD2 for many reasons, not the least of which is that JBD is
-> > limiting our maximum filesystem size.
-> > 
-> > It's a pretty trivial change.  Most functions are just renamed.  The
-> > only functional change is moving to Jan's inode-based ordered data mode.
-> > It's better, too.
-> > 
-> > Because JBD2 reads and writes JBD journals, this is compatible with any
-> > existing filesystem.  It can even interact with JBD-based ocfs2 as long
-> > as the journal is formated for JBD.
-> > 
-> > We provide a compatibility option so that paranoid people can still use
-> > JBD for the time being.  This will go away shortly.
+On Wed, Sep 03, 2008 at 08:03:38PM -0700, Joel Becker wrote:
+> ocfs2 currently uses the Journaled Block Device (JBD) for its
+> journaling.  This is a very stable and tested codebase.  However, JBD
+> is limited by architecture to 32bit block numbers.  This means an ocfs2
+> filesystem is limited to 2^32 blocks.  With a 4K blocksize, that's 16TB.
+> People want larger volumes.
 > 
-> Having to parallel codepathes switched by a little option is a really
-> bad idea.  Those paranoid people (if they exist at all) should just
-> stick to an old kernel.
+> Fortunately, there is now JBD2.  JBD2 adds 64bit block number support
+> and some other features.  JBD2 is backwards compatible, so it can be
+> used with existing filesystems.  The new features won't be accessed
+> until the ocfs2-tools turn them on.
+> 
+> Before we support JBD2, however, we need to ensure that inode blocks are
+> allocated below that 32bit boundary.  stat(2) cannot handle larger inode
+> numbers on 32bit machines.  With that limit in place, we can fully
+> support JBD2 in the kernel filesystem.  Like XFS, we provide the
+> 'inode64' option to remove that limit.  
+> 
+> A config option is provided (OCFS2_COMPAT_JBD) to force ocfs2 to use the
+> old JBD.  This is for the paranoid while we test JBD2.
+> 
+> The kernel code is available on the 'jbd2' branch of my git repository.
+> 
+> View:
+> http://oss.oracle.com/git/?p=jlbec/linux-2.6.git;a=shortlog;h=jbd2
+> Pull:
+> git pull git://oss.oracle.com/git/jlbec/linux-2.6.git jbd2
 
-	This will live exactly as long as it takes us to stress test
-JBD2.  Something like .28 will have this option and .29 will drop it.
+Ok, these look great. A couple of notes:
 
-Joel
+- I removed an ML_NOTICE in the 1st patch
+- I added information to Documentation/filesystems/ocfs2.txt in the 2nd
+  patch
+- Unsurprisingly, the last patch conflicted with lots of things:
 
--- 
+CONFLICT (content): Merge conflict in fs/ocfs2/ocfs2.h
+CONFLICT (content): Merge conflict in fs/ocfs2/suballoc.c
+CONFLICT (content): Merge conflict in fs/ocfs2/super.c
 
-"There is no more evil thing on earth than race prejudice, none at 
- all.  I write deliberately -- it is the worst single thing in life 
- now.  It justifies and holds together more baseness, cruelty and
- abomination than any other sort of error in the world." 
-        - H. G. Wells
+They were fairly easy to fix - please double check my work. I created a
+branch 'feature_merge' in which I pulled in xattrs, dyn_la, and then jbd2
+(purposfully keeping it on top). I'll just pull that into linux-next for
+now, since linux-next is throwaway and I don't want to have to re-merge
+every time I create it.
+	--Mark
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+--
+Mark Fasheh
