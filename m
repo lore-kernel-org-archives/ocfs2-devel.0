@@ -1,86 +1,35 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 8 Sep 2008 16:31:14 -0700
-Subject: [Ocfs2-devel] [PATCH] jbd2: Create proc entry with bdevname+i_ino.
-Message-ID: <20080908233114.GD20100@mail.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 10 Sep 2008 01:48:13 -0700
+Subject: [Ocfs2-devel] [git patches] Ocfs2 regression fix
+Message-ID: <20080910084813.GZ4563@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>
-Cc: ocfs2-devel@oss.oracle.com, mfasheh@suse.com, sunil.mushran@oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
-jbd2 currently creates statistics files for each loaded journal in
-/proc/fs/jbd2/<bdevname>.  ocfs2 loads multiple journals when recovering
-other nodes, and the multiple journals on a given bdev collide in the
-proc namespace.
+Please pull from 'upstream-linus' branch of
+git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
 
-This patch changes the location to /proc/fs/jbd2/<bdevname>-<i_ino> as
-proposed by Jan Kara.  ocfs2 can load multiple journals safely without
-collision.  There are, to my knowledge, no programmatic users, so the
-name change shouldn't (haha) cause any problems.
+to receive the following updates:
 
-ocfs2 has 64bit inode numbers, so a collision could theoretically happen
-with inodes above 32bits, but ocfs2 journals are generally created at
-the front of the volume during mkfs(8).  In addition, ocfs2 restricts
-inodes to 32bits unless the 'inode64' option is specified.
+ fs/ocfs2/aops.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/jbd2/journal.c |   12 ++++++++----
- 1 files changed, 8 insertions(+), 4 deletions(-)
+Tao Ma (1):
+      ocfs2: Fix a bug in direct IO read.
 
-diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
-index 8207a01..18d3063 100644
---- a/fs/jbd2/journal.c
-+++ b/fs/jbd2/journal.c
-@@ -901,9 +901,11 @@ static struct proc_dir_entry *proc_jbd2_stats;
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 506c24f..a53da14 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -594,7 +594,7 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
+ 		goto bail;
+ 	}
  
- static void jbd2_stats_proc_init(journal_t *journal)
- {
--	char name[BDEVNAME_SIZE];
-+	char dname[BDEVNAME_SIZE];
-+	char name[NAME_MAX];
- 
--	bdevname(journal->j_dev, name);
-+	bdevname(journal->j_dev, dname);
-+	snprintf(name, NAME_MAX, "%s-%lu", dname, journal->j_inode->i_ino);
- 	journal->j_proc_entry = proc_mkdir(name, proc_jbd2_stats);
- 	if (journal->j_proc_entry) {
- 		proc_create_data("history", S_IRUGO, journal->j_proc_entry,
-@@ -915,9 +917,11 @@ static void jbd2_stats_proc_init(journal_t *journal)
- 
- static void jbd2_stats_proc_exit(journal_t *journal)
- {
--	char name[BDEVNAME_SIZE];
-+	char dname[BDEVNAME_SIZE];
-+	char name[NAME_MAX];
- 
--	bdevname(journal->j_dev, name);
-+	bdevname(journal->j_dev, dname);
-+	snprintf(name, NAME_MAX, "%s-%lu", dname, journal->j_inode->i_ino);
- 	remove_proc_entry("info", journal->j_proc_entry);
- 	remove_proc_entry("history", journal->j_proc_entry);
- 	remove_proc_entry(name, proc_jbd2_stats);
--- 
-1.5.6.3
-
-
--- 
-
-None of our men are "experts."  We have most unfortunately found
-it necessary to get rid of a man as soon as he thinks himself an
-expert -- because no one ever considers himself expert if he really
-knows his job.  A man who knows a job sees so much more to be done
-than he has done, that he is always pressing forward and never
-gives up an instant of thought to how good and how efficient he is.
-Thinking always ahead, thinking always of trying to do more, brings
-a state of mind in which nothing is impossible. The moment one gets
-into the "expert" state of mind a great number of things become
-impossible.
-	- From Henry Ford Sr., "My Life and Work"
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+-	if (!ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb)) && !p_blkno) {
++	if (!ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb)) && !p_blkno && create) {
+ 		ocfs2_error(inode->i_sb,
+ 			    "Inode %llu has a hole at block %llu\n",
+ 			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
