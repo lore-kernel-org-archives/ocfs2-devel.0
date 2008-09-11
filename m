@@ -1,280 +1,79 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 10 Sep 2008 20:05:57 -0700
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: Exposes the file system state via
-	debugfs
+Date: Wed, 10 Sep 2008 20:05:55 -0700
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: Moves struct ocfs2_slot_info to a
+	header file
 In-Reply-To: <1221102357-869-1-git-send-email-sunil.mushran@oracle.com>
 References: <1221102357-869-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1221102357-869-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1221102357-869-3-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Patch creates a per mount debugfs file, fs_state, which when read will expose
-information like, cluster stack in use, states of the downconvert, recovery
-and commit threads, number of journal txns, some allocation stats, list of
-all slots, etc.
+Moves the definition of struct ocfs2_slot_info from slot_map.c to ocfs2.h.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/ocfs2.h |    1 +
- fs/ocfs2/super.c |  217 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 218 insertions(+), 0 deletions(-)
+ fs/ocfs2/ocfs2.h    |   16 +++++++++++++++-
+ fs/ocfs2/slot_map.c |   17 -----------------
+ 2 files changed, 15 insertions(+), 18 deletions(-)
 
 diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 5ab2211..add2586 100644
+index 487487a..b4bf878 100644
 --- a/fs/ocfs2/ocfs2.h
 +++ b/fs/ocfs2/ocfs2.h
-@@ -298,6 +298,7 @@ struct ocfs2_super
- 	struct ocfs2_dlm_debug *osb_dlm_debug;
+@@ -192,8 +192,22 @@ enum ocfs2_mount_options
+ #define OCFS2_OSB_ERROR_FS	0x0004
+ #define OCFS2_DEFAULT_ATIME_QUANTUM	60
  
- 	struct dentry *osb_debug_root;
-+	struct dentry *osb_ctxt;
- 
- 	wait_queue_head_t recovery_event;
- 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index d789c53..ae11040 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -606,6 +606,212 @@ static int ocfs2_verify_userspace_stack(struct ocfs2_super *osb,
- 	return 0;
- }
- 
-+#ifdef CONFIG_DEBUG_FS
-+struct ocfs2_debug_buffer {
-+	int len;
-+	char *buf;
++struct ocfs2_slot {
++	int sl_valid;
++	unsigned int sl_node_num;
 +};
 +
-+static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
-+{
-+	int out = 0;
-+	int i;
-+	struct ocfs2_slot_info *si = osb->slot_info;
-+	struct ocfs2_cluster_connection *cconn = osb->cconn;
-+	struct ocfs2_recovery_map *rm = osb->recovery_map;
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => Id: %-s  Uuid: %-s  Gen: 0x%X  Label: %-s\n",
-+			"Device", osb->dev_str, osb->uuid_str,
-+			osb->fs_generation, osb->vol_label);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => State: %d  Flags: 0x%lX\n", "Volume",
-+			atomic_read(&osb->vol_state), osb->osb_flags);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => Block: %lu  Cluster: %d\n", "Sizes",
-+			osb->sb->s_blocksize, osb->s_clustersize);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => Compat: 0x%X  Incompat: 0x%X  ROcompat: 0x%X\n",
-+			"Features", osb->s_feature_compat,
-+			osb->s_feature_incompat, osb->s_feature_ro_compat);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => Opts: 0x%lX  AtimeQuanta: %u\n", "Mount",
-+			osb->s_mount_opt, osb->s_atime_quantum);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => Stack: %s  Name: %*s  Version: %d.%d\n",
-+			"Cluster",
-+			(*osb->osb_cluster_stack == '\0' ?
-+			 "o2cb" : osb->osb_cluster_stack),
-+			cconn->cc_namelen, cconn->cc_name,
-+			cconn->cc_version.pv_major, cconn->cc_version.pv_minor);
-+
-+	spin_lock(&osb->dc_task_lock);
-+	out += snprintf(buf + out, len - out,
-+			"%8s => Pid: %d  Count: %lu  WakeSeq: %lu  "
-+			"WorkSeq: %lu\n", "DownCnvt",
-+			task_pid_nr(osb->dc_task), osb->blocked_lock_count,
-+			osb->dc_wake_sequence, osb->dc_work_sequence);
-+	spin_unlock(&osb->dc_task_lock);
-+
-+	spin_lock(&osb->osb_lock);
-+	out += snprintf(buf + out, len - out, "%8s => Pid: %d  Nodes:",
-+			"Recovery",
-+			(osb->recovery_thread_task ?
-+			 task_pid_nr(osb->recovery_thread_task) : -1));
-+	if (rm->rm_used == 0)
-+		out += snprintf(buf + out, len - out, " None\n");
-+	else {
-+		for (i = 0; i < rm->rm_used; i++)
-+			out += snprintf(buf + out, len - out, " %d",
-+					rm->rm_entries[i]);
-+		out += snprintf(buf + out, len - out, "\n");
-+	}
-+	spin_unlock(&osb->osb_lock);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => Pid: %d  Interval: %lu  Needs: %d\n", "Commit",
-+			task_pid_nr(osb->commit_task), osb->osb_commit_interval,
-+			atomic_read(&osb->needs_checkpoint));
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => State: %d  NumTxns: %d  TxnId: %lu\n",
-+			"Journal", osb->journal->j_state,
-+			atomic_read(&osb->journal->j_num_trans),
-+			osb->journal->j_trans_id);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%8s => GlobalAllocs: %d  LocalAllocs: %d  "
-+			"SubAllocs: %d  LAWinMoves: %d  SAExtends: %d\n",
-+			"Stats",
-+			atomic_read(&osb->alloc_stats.bitmap_data),
-+			atomic_read(&osb->alloc_stats.local_data),
-+			atomic_read(&osb->alloc_stats.bg_allocs),
-+			atomic_read(&osb->alloc_stats.moves),
-+			atomic_read(&osb->alloc_stats.bg_extends));
-+
-+	spin_lock(&osb->osb_lock);
-+	out += snprintf(buf + out, len - out,
-+			"%8s => Slot: %d  NumStolen: %d\n", "Steal",
-+			osb->s_inode_steal_slot,
-+			atomic_read(&osb->s_num_inodes_stolen));
-+	spin_unlock(&osb->osb_lock);
-+
-+	out += snprintf(buf + out, len - out, "%8s => %3s  %5s  %10s\n",
-+			"Slots", "Num", "Node", "RecoGen");
-+
-+	spin_lock(&osb->osb_lock);
-+	for (i = 0; i < si->si_num_slots; i++) {
-+		out += snprintf(buf + out, len - out,
-+				"%8s  %c %3d  %5d  %10d\n",
-+				" ",
-+				(i == osb->slot_num ? '*' : ' '),
-+				i,
-+				(si->si_slots[i].sl_valid ?
-+				 si->si_slots[i].sl_node_num : -1),
-+				osb->slot_recovery_generations[i]);
-+	}
-+	spin_unlock(&osb->osb_lock);
-+
-+	return out;
-+}
-+
-+static int ocfs2_osb_debug_open(struct inode *inode, struct file *file)
-+{
-+	struct ocfs2_debug_buffer *odb = NULL;
-+	struct ocfs2_super *osb = inode->i_private;
-+
-+	odb = kzalloc(sizeof(struct ocfs2_debug_buffer), GFP_KERNEL);
-+	if (!odb)
-+		goto bail;
-+
-+	odb->len = PAGE_SIZE;
-+	odb->buf = kmalloc(odb->len, GFP_KERNEL);
-+	if (!odb->buf) {
-+		kfree(odb);
-+		goto bail;
-+	}
-+
-+	odb->len = ocfs2_osb_dump(osb, odb->buf, odb->len);
-+
-+	file->private_data = odb;
-+
-+	return 0;
-+bail:
-+	return -ENOMEM;
-+}
-+
-+static int ocfs2_debug_release(struct inode *inode, struct file *file)
-+{
-+	struct ocfs2_debug_buffer *odb =
-+			(struct ocfs2_debug_buffer *)file->private_data;
-+
-+	kfree(odb->buf);
-+	kfree(odb);
-+
-+	return 0;
-+}
-+
-+static ssize_t ocfs2_debug_read(struct file *file, char __user *buf,
-+				size_t nbytes, loff_t *ppos)
-+{
-+	struct ocfs2_debug_buffer *odb =
-+			(struct ocfs2_debug_buffer *)file->private_data;
-+
-+	return simple_read_from_buffer(buf, nbytes, ppos, odb->buf, odb->len);
-+}
-+
-+static loff_t ocfs2_debug_llseek(struct file *file, loff_t off, int whence)
-+{
-+	struct ocfs2_debug_buffer *odb =
-+			(struct ocfs2_debug_buffer *)file->private_data;
-+	loff_t new = -1;
-+
-+	switch (whence) {
-+	case 0:
-+		new = off;
-+		break;
-+	case 1:
-+		new = file->f_pos + off;
-+		break;
-+	}
-+
-+	if (new < 0 || new > odb->len)
-+		return -EINVAL;
-+
-+	return (file->f_pos = new);
-+}
-+#else
-+static int ocfs2_osb_debug_open(struct inode *inode, struct file *file)
-+{
-+	return 0;
-+}
-+static int ocfs2_debug_release(struct inode *inode, struct file *file)
-+{
-+	return 0;
-+}
-+static ssize_t ocfs2_debug_read(struct file *file, char __user *buf,
-+				size_t nbytes, loff_t *ppos)
-+{
-+	return 0;
-+}
-+static loff_t ocfs2_debug_llseek(struct file *file, loff_t off, int whence)
-+{
-+	return NULL;
-+}
-+#endif	/* CONFIG_DEBUG_FS */
-+
-+static struct file_operations ocfs2_osb_debug_fops = {
-+	.open =		ocfs2_osb_debug_open,
-+	.release =	ocfs2_debug_release,
-+	.read =		ocfs2_debug_read,
-+	.llseek =	ocfs2_debug_llseek,
++struct ocfs2_slot_info {
++	int si_extended;
++	int si_slots_per_block;
++	struct inode *si_inode;
++	unsigned int si_blocks;
++	struct buffer_head **si_bh;
++	unsigned int si_num_slots;
++	struct ocfs2_slot *si_slots;
 +};
 +
- static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ struct ocfs2_journal;
+-struct ocfs2_slot_info;
+ struct ocfs2_recovery_map;
+ struct ocfs2_super
  {
- 	struct dentry *root;
-@@ -706,6 +912,16 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 		goto read_super_error;
- 	}
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index bb5ff89..bd95205 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -42,23 +42,6 @@
  
-+	osb->osb_ctxt = debugfs_create_file("fs_state", S_IFREG|S_IRUSR,
-+					    osb->osb_debug_root,
-+					    osb,
-+					    &ocfs2_osb_debug_fops);
-+	if (!osb->osb_ctxt) {
-+		status = -EINVAL;
-+		mlog_errno(status);
-+		goto read_super_error;
-+	}
-+
- 	status = ocfs2_mount_volume(sb);
- 	if (osb->root_inode)
- 		inode = igrab(osb->root_inode);
-@@ -1323,6 +1539,7 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 	if (osb->cconn)
- 		ocfs2_dlm_shutdown(osb, hangup_needed);
+ #include "buffer_head_io.h"
  
-+	debugfs_remove(osb->osb_ctxt);
- 	debugfs_remove(osb->osb_debug_root);
+-
+-struct ocfs2_slot {
+-	int sl_valid;
+-	unsigned int sl_node_num;
+-};
+-
+-struct ocfs2_slot_info {
+-	int si_extended;
+-	int si_slots_per_block;
+-	struct inode *si_inode;
+-	unsigned int si_blocks;
+-	struct buffer_head **si_bh;
+-	unsigned int si_num_slots;
+-	struct ocfs2_slot *si_slots;
+-};
+-
+-
+ static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
+ 				    unsigned int node_num);
  
- 	if (hangup_needed)
 -- 
 1.5.4.3
