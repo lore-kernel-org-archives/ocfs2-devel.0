@@ -1,272 +1,236 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 16 Sep 2008 11:01:30 -0700
-Subject: [Ocfs2-devel] [PATCH] jbd2: Create proc entry with
-	bdevname+i_ino.
-In-Reply-To: <48CEA062.1000808@oracle.com>
-References: <20080908233114.GD20100@mail.oracle.com>	<20080914084003.GP4563@wotan.suse.de>	<20080914090306.GF30537@mit.edu>
-	<20080914163117.GA13074@mit.edu> <48CEA062.1000808@oracle.com>
-Message-ID: <48CFF47A.9040805@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 17 Sep 2008 16:26:30 -0700
+Subject: [Ocfs2-devel] [PATCH] [RFC] jbd2: Add buffer triggers
+Message-ID: <20080917232629.GB20752@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Tso <tytso@mit.edu>
-Cc: Mark Fasheh <mfasheh@suse.com>, "linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Joel Becker <Joel.Becker@oracle.com>
+To: ocfs2-devel@oss.oracle.com, linux-ext4@vger.kernel.org
 
-The newline looks like a typo here.
+Filesystems often to do compute intensive operation on some
+metadata.  If this operation is repeated many times, it can be very
+expensive.  It would be much nicer if the operation could be performed
+once before a buffer goes to disk.
 
-@@ -1070,6 +1066,12 @@ journal_t * jbd2_journal_init_inode (struct inode 
-*inode)
-+ sprintf(p, ":%lu\n", journal->j_inode->i_ino);
+This adds triggers to jbd2 buffer heads.  Just before writing a metadata
+buffer to the journal, jbd2 will optionally call a commit trigger associated
+with the buffer.  If the journal is aborted, an abort trigger will be
+called on any dirty buffers as they are dropped from pending
+transactions.
 
-Other than that, the test ran fine. Marcos successfully ran multiple
-recoveries in a 6 node cluster.
+ocfs2 will use this feature.
 
-Sunil Mushran wrote:
-> Thanks.
->
-> So we are testing this atop Joel's jbd2 branch (after reversing the
-> top patch).
->
-> http://oss.oracle.com/git/?p=jlbec/linux-2.6.git;a=shortlog;h=jbd2
->
-> Theodore Tso wrote:
->   
->> This is what plan to push instead.  It should address ocfs2's
->> requirement.  In addition, it reduces jbd2 and ext4's stack usage,
->> removes 30 lines of code, and fixes a potential problem with pesky
->> block devices which contain '/' character in their names.  Four for
->> the price of one!
->>
->> Could you try this out confirm this fixes the problem for you?
->> (Currently it only passes the "It builds, ship it!" test, but it's
->> pretty straightforward; and I'm on an airplane at the moment.  :-)
->>
->> Thanks, regards,
->>
->> 						- Ted
->>
->> From 172393695ea4daea0061aa7c4f7ee0d56fbda239 Mon Sep 17 00:00:00 2001
->> From: Theodore Ts'o <tytso@mit.edu>
->> Date: Sun, 14 Sep 2008 12:22:35 -0400
->> Subject: [PATCH] jbd2: clean up how the journal device name is printed
->>
->> Calculate the journal device name once and stash it away in the
->> journal_s structure.  This avoids needing to call bdevname()
->> everywhere and reduces stack usage by not needing to allocate an
->> on-stack buffer.  In addition, we eliminate the '/' that can appear in
->> device names (e.g. "cciss/c0d0p9" --- see kernel bugzilla #11321) that
->> can cause problems when creating proc directory names, and include the
->> inode number to support ocfs2 which creates multiple journals with
->> different inode numbers.
->>
->> Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
->> ---
->>  fs/ext4/super.c      |   12 +++---------
->>  fs/jbd2/commit.c     |   11 +++--------
->>  fs/jbd2/journal.c    |   48 ++++++++++++++++--------------------------------
->>  include/linux/jbd2.h |    3 ++-
->>  4 files changed, 24 insertions(+), 50 deletions(-)
->>
->> diff --git a/fs/ext4/super.c b/fs/ext4/super.c
->> index f58cc03..64e1c21 100644
->> --- a/fs/ext4/super.c
->> +++ b/fs/ext4/super.c
->> @@ -1476,15 +1476,9 @@ static int ext4_setup_super(struct super_block *sb, struct ext4_super_block *es,
->>  			EXT4_INODES_PER_GROUP(sb),
->>  			sbi->s_mount_opt);
->>  
->> -	if (EXT4_SB(sb)->s_journal->j_inode == NULL) {
->> -		char b[BDEVNAME_SIZE];
->> -
->> -		printk(KERN_INFO "EXT4 FS on %s, external journal on %s\n",
->> -		       sb->s_id, bdevname(EXT4_SB(sb)->s_journal->j_dev, b));
->> -	} else {
->> -		printk(KERN_INFO "EXT4 FS on %s, internal journal\n",
->> -		       sb->s_id);
->> -	}
->> +	printk(KERN_INFO "EXT4 FS on %s, %s journal on %s\n",
->> +	       sb->s_id, EXT4_SB(sb)->s_journal->j_inode ? "internal" :
->> +	       "external", EXT4_SB(sb)->s_journal->j_devname);
->>  	return res;
->>  }
->>  
->> diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
->> index f2ad061..b091e53 100644
->> --- a/fs/jbd2/commit.c
->> +++ b/fs/jbd2/commit.c
->> @@ -147,12 +147,9 @@ static int journal_submit_commit_record(journal_t *journal,
->>  	 * to remember if we sent a barrier request
->>  	 */
->>  	if (ret == -EOPNOTSUPP && barrier_done) {
->> -		char b[BDEVNAME_SIZE];
->> -
->>  		printk(KERN_WARNING
->> -			"JBD: barrier-based sync failed on %s - "
->> -			"disabling barriers\n",
->> -			bdevname(journal->j_dev, b));
->> +		       "JBD: barrier-based sync failed on %s - "
->> +		       "disabling barriers\n", journal->j_devname);
->>  		spin_lock(&journal->j_state_lock);
->>  		journal->j_flags &= ~JBD2_BARRIER;
->>  		spin_unlock(&journal->j_state_lock);
->> @@ -681,11 +678,9 @@ start_journal_io:
->>  	 */
->>  	err = journal_finish_inode_data_buffers(journal, commit_transaction);
->>  	if (err) {
->> -		char b[BDEVNAME_SIZE];
->> -
->>  		printk(KERN_WARNING
->>  			"JBD2: Detected IO errors while flushing file data "
->> -			"on %s\n", bdevname(journal->j_fs_dev, b));
->> +		       "on %s\n", journal->j_devname);
->>  		err = 0;
->>  	}
->>  
->> diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
->> index 8207a01..0c4dcc2 100644
->> --- a/fs/jbd2/journal.c
->> +++ b/fs/jbd2/journal.c
->> @@ -597,13 +597,9 @@ int jbd2_journal_bmap(journal_t *journal, unsigned long blocknr,
->>  		if (ret)
->>  			*retp = ret;
->>  		else {
->> -			char b[BDEVNAME_SIZE];
->> -
->>  			printk(KERN_ALERT "%s: journal block not found "
->>  					"at offset %lu on %s\n",
->> -				__func__,
->> -				blocknr,
->> -				bdevname(journal->j_dev, b));
->> +			       __func__, blocknr, journal->j_devname);
->>  			err = -EIO;
->>  			__journal_abort_soft(journal, err);
->>  		}
->> @@ -901,10 +897,7 @@ static struct proc_dir_entry *proc_jbd2_stats;
->>  
->>  static void jbd2_stats_proc_init(journal_t *journal)
->>  {
->> -	char name[BDEVNAME_SIZE];
->> -
->> -	bdevname(journal->j_dev, name);
->> -	journal->j_proc_entry = proc_mkdir(name, proc_jbd2_stats);
->> +	journal->j_proc_entry = proc_mkdir(journal->j_devname, proc_jbd2_stats);
->>  	if (journal->j_proc_entry) {
->>  		proc_create_data("history", S_IRUGO, journal->j_proc_entry,
->>  				 &jbd2_seq_history_fops, journal);
->> @@ -915,12 +908,9 @@ static void jbd2_stats_proc_init(journal_t *journal)
->>  
->>  static void jbd2_stats_proc_exit(journal_t *journal)
->>  {
->> -	char name[BDEVNAME_SIZE];
->> -
->> -	bdevname(journal->j_dev, name);
->>  	remove_proc_entry("info", journal->j_proc_entry);
->>  	remove_proc_entry("history", journal->j_proc_entry);
->> -	remove_proc_entry(name, proc_jbd2_stats);
->> +	remove_proc_entry(journal->j_devname, proc_jbd2_stats);
->>  }
->>  
->>  static void journal_init_stats(journal_t *journal)
->> @@ -1018,6 +1008,7 @@ journal_t * jbd2_journal_init_dev(struct block_device *bdev,
->>  {
->>  	journal_t *journal = journal_init_common();
->>  	struct buffer_head *bh;
->> +	char *p;
->>  	int n;
->>  
->>  	if (!journal)
->> @@ -1039,6 +1030,10 @@ journal_t * jbd2_journal_init_dev(struct block_device *bdev,
->>  	journal->j_fs_dev = fs_dev;
->>  	journal->j_blk_offset = start;
->>  	journal->j_maxlen = len;
->> +	bdevname(journal->j_dev, journal->j_devname);
->> +	p = journal->j_devname;
->> +	while ((p = strchr(p, '/')))
->> +		*p = '!';
->>  	jbd2_stats_proc_init(journal);
->>  
->>  	bh = __getblk(journal->j_dev, start, journal->j_blocksize);
->> @@ -1061,6 +1056,7 @@ journal_t * jbd2_journal_init_inode (struct inode *inode)
->>  {
->>  	struct buffer_head *bh;
->>  	journal_t *journal = journal_init_common();
->> +	char *p;
->>  	int err;
->>  	int n;
->>  	unsigned long long blocknr;
->> @@ -1070,6 +1066,12 @@ journal_t * jbd2_journal_init_inode (struct inode *inode)
->>  
->>  	journal->j_dev = journal->j_fs_dev = inode->i_sb->s_bdev;
->>  	journal->j_inode = inode;
->> +	bdevname(journal->j_dev, journal->j_devname);
->> +	p = journal->j_devname;
->> +	while ((p = strchr(p, '/')))
->> +		*p = '!';
->> +	p = journal->j_devname + strlen(journal->j_devname);
->> +	sprintf(p, ":%lu\n", journal->j_inode->i_ino);
->>  	jbd_debug(1,
->>  		  "journal %p: inode %s/%ld, size %Ld, bits %d, blksize %ld\n",
->>  		  journal, inode->i_sb->s_id, inode->i_ino,
->> @@ -1761,23 +1763,6 @@ int jbd2_journal_wipe(journal_t *journal, int write)
->>  }
->>  
->>  /*
->> - * journal_dev_name: format a character string to describe on what
->> - * device this journal is present.
->> - */
->> -
->> -static const char *journal_dev_name(journal_t *journal, char *buffer)
->> -{
->> -	struct block_device *bdev;
->> -
->> -	if (journal->j_inode)
->> -		bdev = journal->j_inode->i_sb->s_bdev;
->> -	else
->> -		bdev = journal->j_dev;
->> -
->> -	return bdevname(bdev, buffer);
->> -}
->> -
->> -/*
->>   * Journal abort has very specific semantics, which we describe
->>   * for journal abort.
->>   *
->> @@ -1793,13 +1778,12 @@ static const char *journal_dev_name(journal_t *journal, char *buffer)
->>  void __jbd2_journal_abort_hard(journal_t *journal)
->>  {
->>  	transaction_t *transaction;
->> -	char b[BDEVNAME_SIZE];
->>  
->>  	if (journal->j_flags & JBD2_ABORT)
->>  		return;
->>  
->>  	printk(KERN_ERR "Aborting journal on device %s.\n",
->> -		journal_dev_name(journal, b));
->> +	       journal->j_devname);
->>  
->>  	spin_lock(&journal->j_state_lock);
->>  	journal->j_flags |= JBD2_ABORT;
->> diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
->> index 3dd2090..66c3499 100644
->> --- a/include/linux/jbd2.h
->> +++ b/include/linux/jbd2.h
->> @@ -850,7 +850,8 @@ struct journal_s
->>  	 */
->>  	struct block_device	*j_dev;
->>  	int			j_blocksize;
->> -	unsigned long long		j_blk_offset;
->> +	unsigned long long	j_blk_offset;
->> +	char			j_devname[BDEVNAME_SIZE+24];
->>  
->>  	/*
->>  	 * Device which holds the client fs.  For internal journal this will be
->>   
->>     
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->   
+Initially I tried to come up with a more generic trigger that could be
+used for non-buffer-related events like transaction completion.  It
+doesn't tie nicely, because the information a buffer trigger needs
+(specific to a journal_head) isn't the same as what a transaction
+trigger needs (specific to a tranaction_t or perhaps journal_t).  So I
+implemented a buffer set, with the understanding that
+journal/transaction wide triggers should be implemented separately.
+
+There is only one trigger set allowed per buffer.  I can't think of any
+reason to attach more than one set.  Contrast this with a journal or
+transaction in which multiple places may want to watch the entire
+transaction separately.
+
+The trigger sets are considered static allocation from the jbd2
+perspective.  ocfs2 will just have one trigger set per block type,
+setting the same set on every bh of the same type.
+
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ fs/jbd2/commit.c             |    1 +
+ fs/jbd2/journal.c            |   11 +++++++++++
+ fs/jbd2/transaction.c        |   42 ++++++++++++++++++++++++++++++++++++++++++
+ include/linux/jbd2.h         |   29 +++++++++++++++++++++++++++++
+ include/linux/journal-head.h |    5 +++++
+ 5 files changed, 88 insertions(+), 0 deletions(-)
+
+diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
+index f2ad061..07fef48 100644
+--- a/fs/jbd2/commit.c
++++ b/fs/jbd2/commit.c
+@@ -509,6 +509,7 @@ void jbd2_journal_commit_transaction(journal_t *journal)
+ 
+ 		if (is_journal_aborted(journal)) {
+ 			JBUFFER_TRACE(jh, "journal is aborting: refile");
++			jbd2_buffer_abort_trigger(jh);
+ 			jbd2_journal_refile_buffer(journal, jh);
+ 			/* If that was the last one, we need to clean up
+ 			 * any descriptor buffers which may have been
+diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
+index 18d3063..23dbd59 100644
+--- a/fs/jbd2/journal.c
++++ b/fs/jbd2/journal.c
+@@ -50,6 +50,7 @@ EXPORT_SYMBOL(jbd2_journal_unlock_updates);
+ EXPORT_SYMBOL(jbd2_journal_get_write_access);
+ EXPORT_SYMBOL(jbd2_journal_get_create_access);
+ EXPORT_SYMBOL(jbd2_journal_get_undo_access);
++EXPORT_SYMBOL(jbd2_journal_set_triggers);
+ EXPORT_SYMBOL(jbd2_journal_dirty_metadata);
+ EXPORT_SYMBOL(jbd2_journal_release_buffer);
+ EXPORT_SYMBOL(jbd2_journal_forget);
+@@ -354,6 +355,16 @@ repeat:
+ 		done_copy_out = 1;
+ 	}
+ 
++	/* We have the actual buffer to go out, fire any commit trigger */
++	/* XXX Checking trigger pointers here so as to skip kmap when
++	 * empty */
++	if (jh_in->b_triggers && jh_in->b_triggers->t_commit) {
++		mapped_data = kmap_atomic(new_page, KM_USER0);
++
++		jbd2_buffer_commit_trigger(jh_in, mapped_data + new_offset);
++		kunmap_atomic(mapped_data, KM_USER0);
++	}
++
+ 	/*
+ 	 * Did we need to do an escaping?  Now we've done all the
+ 	 * copying, we can finally do so.
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index e5d5405..e975afa 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -943,6 +943,48 @@ out:
+ }
+ 
+ /**
++ * void jbd2_journal_set_triggers() - Add triggers for commit writeout
++ * @bh: buffer to trigger on
++ * @type: struct jbd2_buffer_trigger_type containing the trigger(s).
++ *
++ * Set any triggers on this journal_head.
++ *
++ * Call with NULL to clear the triggers.
++ */
++void jbd2_journal_set_triggers(struct buffer_head *bh,
++			       struct jbd2_buffer_trigger_type *type)
++{
++	struct journal_head *jh = bh2jh(bh);
++
++	if (jh->b_triggers && type) {
++		WARN_ON_ONCE(jh->b_triggers != type);
++		return;
++	}
++
++	jh->b_triggers = type;
++}
++
++void jbd2_buffer_commit_trigger(struct journal_head *jh, void *mapped_data)
++{
++	struct buffer_head *bh = jh2bh(jh);
++
++	if (!jh->b_triggers || !jh->b_triggers->t_commit)
++		return;
++
++	jh->b_triggers->t_commit(jh->b_triggers, bh, mapped_data, bh->b_size);
++}
++
++void jbd2_buffer_abort_trigger(struct journal_head *jh)
++{
++	if (!jh->b_triggers || !jh->b_triggers->t_abort)
++		return;
++
++	jh->b_triggers->t_abort(jh->b_triggers, jh2bh(jh));
++}
++
++
++
++/**
+  * int jbd2_journal_dirty_metadata() -  mark a buffer as containing dirty metadata
+  * @handle: transaction to add buffer to.
+  * @bh: buffer to mark
+diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
+index 3dd2090..032af18 100644
+--- a/include/linux/jbd2.h
++++ b/include/linux/jbd2.h
+@@ -994,6 +994,33 @@ int __jbd2_journal_clean_checkpoint_list(journal_t *journal);
+ int __jbd2_journal_remove_checkpoint(struct journal_head *);
+ void __jbd2_journal_insert_checkpoint(struct journal_head *, transaction_t *);
+ 
++
++/*
++ * Triggers
++ */
++
++struct jbd2_buffer_trigger_type {
++	/*
++	 * Fired just before a buffer is written to the journal.
++	 * mapped_data is a mapped buffer that is the frozen data for
++	 * commit.
++	 */
++	void (*t_commit)(struct jbd2_buffer_trigger_type *type,
++			 struct buffer_head *bh, void *mapped_data,
++			 size_t size);
++
++	/*
++	 * Fired during journal abort for dirty buffers that will not be
++	 * committed.
++	 */
++	void (*t_abort)(struct jbd2_buffer_trigger_type *type,
++			struct buffer_head *bh);
++};
++
++extern void jbd2_buffer_commit_trigger(struct journal_head *jh,
++				       void *mapped_data);
++extern void jbd2_buffer_abort_trigger(struct journal_head *jh);
++
+ /* Buffer IO */
+ extern int
+ jbd2_journal_write_metadata_buffer(transaction_t	  *transaction,
+@@ -1032,6 +1059,8 @@ extern int	 jbd2_journal_extend (handle_t *, int nblocks);
+ extern int	 jbd2_journal_get_write_access(handle_t *, struct buffer_head *);
+ extern int	 jbd2_journal_get_create_access (handle_t *, struct buffer_head *);
+ extern int	 jbd2_journal_get_undo_access(handle_t *, struct buffer_head *);
++void		 jbd2_journal_set_triggers(struct buffer_head *,
++					   struct jbd2_buffer_trigger_type *type);
+ extern int	 jbd2_journal_dirty_metadata (handle_t *, struct buffer_head *);
+ extern void	 jbd2_journal_release_buffer (handle_t *, struct buffer_head *);
+ extern int	 jbd2_journal_forget (handle_t *, struct buffer_head *);
+diff --git a/include/linux/journal-head.h b/include/linux/journal-head.h
+index 8a62d1e..087a1c2 100644
+--- a/include/linux/journal-head.h
++++ b/include/linux/journal-head.h
+@@ -12,6 +12,8 @@
+ 
+ typedef unsigned int		tid_t;		/* Unique transaction ID */
+ typedef struct transaction_s	transaction_t;	/* Compound transaction type */
++
++
+ struct buffer_head;
+ 
+ struct journal_head {
+@@ -87,6 +89,9 @@ struct journal_head {
+ 	 * [j_list_lock]
+ 	 */
+ 	struct journal_head *b_cpnext, *b_cpprev;
++
++	/* Trigger type */
++	struct jbd2_buffer_trigger_type *b_triggers;
+ };
+ 
+ #endif		/* JOURNAL_HEAD_H_INCLUDED */
+-- 
+1.5.6.3
+
+
+-- 
+
+None of our men are "experts."  We have most unfortunately found
+it necessary to get rid of a man as soon as he thinks himself an
+expert -- because no one ever considers himself expert if he really
+knows his job.  A man who knows a job sees so much more to be done
+than he has done, that he is always pressing forward and never
+gives up an instant of thought to how good and how efficient he is.
+Thinking always ahead, thinking always of trying to do more, brings
+a state of mind in which nothing is impossible. The moment one gets
+into the "expert" state of mind a great number of things become
+impossible.
+	- From Henry Ford Sr., "My Life and Work"
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
