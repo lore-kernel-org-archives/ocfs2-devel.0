@@ -1,10 +1,10 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 22 Sep 2008 14:18:46 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add spin lock when accessing
- inode->i_nlink.
-In-Reply-To: <200809220915.m8M9F1CR004450@wengang.cn.oracle.com>
-References: <200809220915.m8M9F1CR004450@wengang.cn.oracle.com>
-Message-ID: <48D80BB6.9080308@oracle.com>
+Date: Mon, 22 Sep 2008 14:36:02 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add nlink check in
+	ocfs2_inode_revalidate()
+In-Reply-To: <200809220927.m8M9RY10004497@wengang.cn.oracle.com>
+References: <200809220927.m8M9RY10004497@wengang.cn.oracle.com>
+Message-ID: <48D80FC2.6030708@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,54 +13,40 @@ To: ocfs2-devel@oss.oracle.com
 
 NAK
 
-Firstly ip_lock does not protect inode. Secondly, the field is
-protected by inode_lock. Follow the code:
+There is no voting in ocfs2 1.4.
 
-iput (inode_lock taken) => iput_final ==> ocfs2_drop_inode (inode_lock 
-still held).
-
-void iput(struct inode *inode)
-{
-....
-                if (atomic_dec_and_lock(&inode->i_count, &inode_lock))
-                        iput_final(inode);
-}
-
-static inline void iput_final(struct inode *inode)
-{
-        struct super_operations *op = inode->i_sb->s_op;
-        void (*drop)(struct inode *) = generic_drop_inode;
-
-        if (op && op->drop_inode)
-                drop = op->drop_inode;
-        drop(inode);
-}
-
+Secondly, i_nlink=0 does not mean inode is deleted. It simply
+means it has no more links. So returning enoent for a valid
+inode would be incorrect.
 
 wangang wang wrote:
-> add spin lock when accessing inode->i_nlink in ocfs2_drop_inode().
+> nlink should be also checked in ocfs2_inode_revalidate().
+> before setting flag OCFS2_INODE_DELETED ip_flags (between 
+> unlink and delete vote), the nlink may be 0.
 >
-> the patch is against 1.2 svn.
+> the patch is against 1.4 git. 
+> 1.2 svn should has the same patch with different line number.
 >
 > Signed-off-by: Wengang wang <wen.gang.wang@oracle.com>
 > --
-> Index: fs/ocfs2/inode.c
-> ===================================================================
-> --- fs/ocfs2/inode.c	(revision 3101)
-> +++ fs/ocfs2/inode.c	(working copy)
-> @@ -991,10 +991,12 @@
->  	/* Testing ip_orphaned_slot here wouldn't work because we may
->  	 * not have gotten a delete_inode vote from any other nodes
->  	 * yet. */
-> +	spin_lock(&oi->ip_lock);
->  	if (oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED) {
->  		mlog(0, "Inode was orphaned on another node, clearing nlink.\n");
->  		inode->i_nlink = 0;
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 591e693..6b5a83e 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1186,6 +1186,13 @@ int ocfs2_inode_revalidate(struct dentry *dentry)
+>  		status = -ENOENT;
+>  		goto bail;
 >  	}
-> +	spin_unlock(&oi->ip_lock);
+> +
+> +	if (!inode->i_nlink) {
+> +		spin_unlock(&OCFS2_I(inode)->ip_lock);
+> +		mlog(0, "inode deleted!\n");
+> +		status = -ENOENT;
+> +		goto bail;
+> +	}
+>  	spin_unlock(&OCFS2_I(inode)->ip_lock);
 >  
->  	generic_drop_inode(inode);
->  
+>  	/* Let ocfs2_inode_lock do the work of updating our struct
 >
 > _______________________________________________
 > Ocfs2-devel mailing list
