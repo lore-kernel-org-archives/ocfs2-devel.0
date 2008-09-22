@@ -1,52 +1,64 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 22 Sep 2008 14:36:02 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add nlink check in
-	ocfs2_inode_revalidate()
-In-Reply-To: <200809220927.m8M9RY10004497@wengang.cn.oracle.com>
-References: <200809220927.m8M9RY10004497@wengang.cn.oracle.com>
-Message-ID: <48D80FC2.6030708@oracle.com>
+Date: Mon, 22 Sep 2008 14:46:04 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: unhash all dentries on a inode.
+In-Reply-To: <200809220948.m8M9mE0T004547@wengang.cn.oracle.com>
+References: <200809220948.m8M9mE0T004547@wengang.cn.oracle.com>
+Message-ID: <48D8121C.20503@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-NAK
+NAK.
 
-There is no voting in ocfs2 1.4.
-
-Secondly, i_nlink=0 does not mean inode is deleted. It simply
-means it has no more links. So returning enoent for a valid
-inode would be incorrect.
+I fail to understand your logic. The code you've added is pretty
+much what d_prune_aliases() does (the call you have deleted).
 
 wangang wang wrote:
-> nlink should be also checked in ocfs2_inode_revalidate().
-> before setting flag OCFS2_INODE_DELETED ip_flags (between 
-> unlink and delete vote), the nlink may be 0.
+> In ocfs2_process_delete_request(), we should unhash all dentries on the inode.
+> --not only the ones with 0 referrence count. so that it's possible for dput()
+> to drop the stale inode.
 >
-> the patch is against 1.4 git. 
-> 1.2 svn should has the same patch with different line number.
+> the patch is against 1.2 svn.
 >
 > Signed-off-by: Wengang wang <wen.gang.wang@oracle.com>
 > --
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 591e693..6b5a83e 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1186,6 +1186,13 @@ int ocfs2_inode_revalidate(struct dentry *dentry)
->  		status = -ENOENT;
->  		goto bail;
->  	}
-> +
-> +	if (!inode->i_nlink) {
-> +		spin_unlock(&OCFS2_I(inode)->ip_lock);
-> +		mlog(0, "inode deleted!\n");
-> +		status = -ENOENT;
-> +		goto bail;
-> +	}
+>
+> Index: fs/ocfs2/vote.c
+> ===================================================================
+> --- fs/ocfs2/vote.c	(revision 3101)
+> +++ fs/ocfs2/vote.c	(working copy)
+> @@ -176,6 +176,7 @@
+>  					int deleting_node)
+>  {
+>  	int response = OCFS2_RESPONSE_BUSY;
+> +	struct list_head *tmp, *head;
+>  
+>  	mlog(0, "DELETE vote on inode %lu, read lnk_cnt = %u, slot = %d\n",
+>  	     inode->i_ino, inode->i_nlink, *orphaned_slot);
+> @@ -253,9 +254,19 @@
+>  	ocfs2_mark_inode_remotely_deleted(inode, deleting_node);
 >  	spin_unlock(&OCFS2_I(inode)->ip_lock);
 >  
->  	/* Let ocfs2_inode_lock do the work of updating our struct
+> -	/* Not sure this is necessary anymore. */
+> -	d_prune_aliases(inode);
+> +	/* unhash all dentries on this inode */
+> +	spin_lock(&dcache_lock);
+> +	head = &inode->i_dentry;
+> +	tmp = head;
+>  
+> +	while ((tmp = tmp->next) != head) {
+> +		struct dentry *dentry = list_entry(tmp, struct dentry, d_alias);
+> +		spin_lock(&dentry->d_lock);
+> +		__d_drop(dentry);
+> +		spin_unlock(&dentry->d_lock);
+> +	}
+> +	spin_unlock(&dcache_lock);
+> +
+>  	/* If we get here, then we're voting 'yes', so commit the
+>  	 * delete on our side. */
+>  	response = OCFS2_RESPONSE_OK;
 >
 > _______________________________________________
 > Ocfs2-devel mailing list
