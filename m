@@ -1,105 +1,81 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 23 Sep 2008 00:11:18 -0700
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Add posix ACL support in ocfs2
-	v1
-In-Reply-To: <1221817381-11133-1-git-send-email-tiger.yang@oracle.com>
-References: <48D3725A.1030701@oracle.com>
-	<1221817381-11133-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <20080923071118.GV4563@wotan.suse.de>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Tue, 23 Sep 2008 15:42:35 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add spin lock when accessing
+ inode->i_nlink.
+In-Reply-To: <48D86122.1040209@oracle.com>
+References: <200809220915.m8M9F1CR004450@wengang.cn.oracle.com>	<48D80BB6.9080308@oracle.com>
+	<48D85199.5030008@oracle.com> <48D86122.1040209@oracle.com>
+Message-ID: <48D89DEB.70607@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Sep 19, 2008 at 05:43:01PM +0800, Tiger Yang wrote:
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index edcdd39..96a53eb 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -56,6 +56,7 @@
->  #include "suballoc.h"
->  #include "super.h"
->  #include "xattr.h"
-> +#include "acl.h"
->  
->  #include "buffer_head_io.h"
->  
-> @@ -1031,7 +1032,7 @@ int ocfs2_permission(struct inode *inode, int mask, struct nameidata *nd)
->  		goto out;
->  	}
->  
-> -	ret = generic_permission(inode, mask, NULL);
-> +	ret = generic_permission(inode, mask, ocfs2_check_acl);
->  
->  	ocfs2_inode_unlock(inode, 0);
->  out:
+Hi,
 
-I think we also need some acl-specific handling of chmod in ocfs2_setattr.
-See ext3_acl_chmod, where it's called and what it does.
+Tao Ma wrote:
+> Hi wengang,
+>
+> wengang wang wrote:
+>> Sunil and Srini,
+>>
+>> Yes, it's protected by the inode_lock. and thanks for your detail.
+>> well, I found a fragment of code in ocfs2_meta_lock_update(),
+>>
+>> #ifdef OCFS2_DELETE_INODE_WORKAROUND
+>>         /* We might as well check this here - since the inode is now
+>>          * locked, an up to date view will indicate whether this was
+>>          * never actually orphaned -- i_nlink should be zero for an
+>>          * orphaned inode. */
+>>         spin_lock(&oi->ip_lock);
+>>         if (inode->i_nlink &&
+>>             oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED) {
+>>                 mlog(0, "Inode %"MLFu64": clearing maybe_orphaned 
+>> flag\n",
+>>                      oi->ip_blkno);
+>>                 oi->ip_flags &= ~OCFS2_INODE_MAYBE_ORPHANED;
+>>         }
+>>         spin_unlock(&oi->ip_lock);
+>> #endif
+>>
+>> the i_nlink and OCFS2_INODE_MAYBE_ORPHANED flag are checked with the 
+>> protection of ip_lock.
+>> If ip_lock is needed here, I think it's need as well in my patch.
+>>   
+> ip_lock here is used to protect the set of ip_flags.
+>
+my concern is that the two function runs as following in timer order.
+process A running in ocfs2_drop_inode() and B running in 
+ocfs2_meta_lock_update()
 
+A        if (oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED) {
+C(omment): now inode->i_nlink is not 0.
+B        if (inode->i_nlink && oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED) {
+B                mlog(0, "Inode %"MLFu64": clearing maybe_orphaned 
+flag\n", oi->ip_blkno);
+B                oi->ip_flags &= ~OCFS2_INODE_MAYBE_ORPHANED;
+B        }
+A                mlog(0, "Inode was orphaned on another node, clearing 
+nlink.\n");
+A                inode->i_nlink = 0;
+A        }
 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 76d1d13..9f8f313 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -61,6 +61,7 @@
->  #include "sysfile.h"
->  #include "uptodate.h"
->  #include "xattr.h"
-> +#include "acl.h"
->  
->  #include "buffer_head_io.h"
->  
-> @@ -328,6 +329,8 @@ leave:
->  	if (status == -ENOSPC)
->  		mlog(0, "Disk is full\n");
->  
-> +	status = ocfs2_init_acl(inode, dir);
+thus, as a result,
+1) OCFS2_INODE_MAYBE_ORPHANED is cleared but inode->i_nlink is 0. 
+but result we wanted is
+2) OCFS2_INODE_MAYBE_ORPHANED is set and i_nlink is 0  or
+3) OCFS2_INODE_MAYBE_ORPHANED is cleared and i_nlink is not 0.
 
-Err, this is a pretty bad place for a call which must do work only if we're
-succesfull in creating the inode. A better place would be a few lines up,
-maybe even just before the call to 'ocfs2_add_entry()', so that an acl
-failure won't result in a non-acl-copied inode which is accessible from a
-directory.
-	
+well, seems 1) won't happen.
+when ocfs2_drop_inode() is running, the inode is with 0 ref count and 
+with inode_lock's protect. so other process can't get any ref on this 
+inode and so won't run ocfs2_meta_lock_update() on this inode.
+so the original code is no problem.
+but if it's not in ocfs2_drop_inode(), it's not a good code.
 
-> +
->  	if (new_fe_bh)
->  		brelse(new_fe_bh);
->  
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index d57cfae..1daff4f 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -76,10 +76,8 @@ static struct ocfs2_xattr_def_value_root def_xv = {
->  
->  struct xattr_handler *ocfs2_xattr_handlers[] = {
->  	&ocfs2_xattr_user_handler,
-> -#ifdef CONFIG_OCFS2_FS_POSIX_ACL
->  	&ocfs2_xattr_acl_access_handler,
->  	&ocfs2_xattr_acl_default_handler,
-> -#endif
->  	&ocfs2_xattr_trusted_handler,
->  	&ocfs2_xattr_security_handler,
->  	NULL
-> @@ -87,12 +85,10 @@ struct xattr_handler *ocfs2_xattr_handlers[] = {
->  
->  static struct xattr_handler *ocfs2_xattr_handler_map[] = {
->  	[OCFS2_XATTR_INDEX_USER]	= &ocfs2_xattr_user_handler,
-> -#ifdef CONFIG_OCFS2_FS_POSIX_ACL
->  	[OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS]
->  					= &ocfs2_xattr_acl_access_handler,
->  	[OCFS2_XATTR_INDEX_POSIX_ACL_DEFAULT]
->  					= &ocfs2_xattr_acl_default_handler,
-> -#endif
->  	[OCFS2_XATTR_INDEX_TRUSTED]	= &ocfs2_xattr_trusted_handler,
->  	[OCFS2_XATTR_INDEX_SECURITY]	= &ocfs2_xattr_security_handler,
->  };
-
-Same as before about the #ifdef's, and adding a proper Kconfig item for
-this.
-	--Mark
-
---
-Mark Fasheh
+thanks,
+wengang.
+> Regards,
+> Tao
+>
