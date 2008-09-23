@@ -1,45 +1,87 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 23 Sep 2008 11:23:14 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add spin lock when accessing
- inode->i_nlink.
-In-Reply-To: <48D85199.5030008@oracle.com>
-References: <200809220915.m8M9F1CR004450@wengang.cn.oracle.com>	<48D80BB6.9080308@oracle.com>
-	<48D85199.5030008@oracle.com>
-Message-ID: <48D86122.1040209@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 22 Sep 2008 21:47:08 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: unhash all dentries on a inode.
+In-Reply-To: <48D84BBF.5060503@oracle.com>
+References: <200809220948.m8M9mE0T004547@wengang.cn.oracle.com>
+	<48D8121C.20503@oracle.com> <48D84BBF.5060503@oracle.com>
+Message-ID: <48D874CC.1020402@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi wengang,
+If so, won't that be a bug?
 
 wengang wang wrote:
-> Sunil and Srini,
+> Sunil,
 >
-> Yes, it's protected by the inode_lock. and thanks for your detail.
-> well, I found a fragment of code in ocfs2_meta_lock_update(),
+> d_prune_aliases() unhashes dentries that has 0 reference count, 
+> dentries with non-zero ref count won't be unhashed.
+> My code unhashes all no matter there reference counts are 0 or not.
 >
-> #ifdef OCFS2_DELETE_INODE_WORKAROUND
->         /* We might as well check this here - since the inode is now
->          * locked, an up to date view will indicate whether this was
->          * never actually orphaned -- i_nlink should be zero for an
->          * orphaned inode. */
->         spin_lock(&oi->ip_lock);
->         if (inode->i_nlink &&
->             oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED) {
->                 mlog(0, "Inode %"MLFu64": clearing maybe_orphaned flag\n",
->                      oi->ip_blkno);
->                 oi->ip_flags &= ~OCFS2_INODE_MAYBE_ORPHANED;
->         }
->         spin_unlock(&oi->ip_lock);
-> #endif
+> regards,
+> wengang.
 >
-> the i_nlink and OCFS2_INODE_MAYBE_ORPHANED flag are checked with the 
-> protection of ip_lock.
-> If ip_lock is needed here, I think it's need as well in my patch.
->   
-ip_lock here is used to protect the set of ip_flags.
-
-Regards,
-Tao
+> Sunil Mushran wrote:
+>> NAK.
+>>
+>> I fail to understand your logic. The code you've added is pretty
+>> much what d_prune_aliases() does (the call you have deleted).
+>>
+>> wangang wang wrote:
+>>> In ocfs2_process_delete_request(), we should unhash all dentries on 
+>>> the inode.
+>>> --not only the ones with 0 referrence count. so that it's possible 
+>>> for dput()
+>>> to drop the stale inode.
+>>>
+>>> the patch is against 1.2 svn.
+>>>
+>>> Signed-off-by: Wengang wang <wen.gang.wang@oracle.com>
+>>> -- 
+>>>
+>>> Index: fs/ocfs2/vote.c
+>>> ===================================================================
+>>> --- fs/ocfs2/vote.c    (revision 3101)
+>>> +++ fs/ocfs2/vote.c    (working copy)
+>>> @@ -176,6 +176,7 @@
+>>>                      int deleting_node)
+>>>  {
+>>>      int response = OCFS2_RESPONSE_BUSY;
+>>> +    struct list_head *tmp, *head;
+>>>  
+>>>      mlog(0, "DELETE vote on inode %lu, read lnk_cnt = %u, slot = 
+>>> %d\n",
+>>>           inode->i_ino, inode->i_nlink, *orphaned_slot);
+>>> @@ -253,9 +254,19 @@
+>>>      ocfs2_mark_inode_remotely_deleted(inode, deleting_node);
+>>>      spin_unlock(&OCFS2_I(inode)->ip_lock);
+>>>  
+>>> -    /* Not sure this is necessary anymore. */
+>>> -    d_prune_aliases(inode);
+>>> +    /* unhash all dentries on this inode */
+>>> +    spin_lock(&dcache_lock);
+>>> +    head = &inode->i_dentry;
+>>> +    tmp = head;
+>>>  
+>>> +    while ((tmp = tmp->next) != head) {
+>>> +        struct dentry *dentry = list_entry(tmp, struct dentry, 
+>>> d_alias);
+>>> +        spin_lock(&dentry->d_lock);
+>>> +        __d_drop(dentry);
+>>> +        spin_unlock(&dentry->d_lock);
+>>> +    }
+>>> +    spin_unlock(&dcache_lock);
+>>> +
+>>>      /* If we get here, then we're voting 'yes', so commit the
+>>>       * delete on our side. */
+>>>      response = OCFS2_RESPONSE_OK;
+>>>
+>>> _______________________________________________
+>>> Ocfs2-devel mailing list
+>>> Ocfs2-devel at oss.oracle.com
+>>> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>>   
+>>
+>
