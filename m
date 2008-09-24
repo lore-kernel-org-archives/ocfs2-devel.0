@@ -1,167 +1,351 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:00:46 -0700
-Subject: [Ocfs2-devel] [PATCH 05/39] ocfs2: Modify ocfs2_num_free_extents
-	for future xattr usage.
+Date: Wed, 24 Sep 2008 15:00:42 -0700
+Subject: [Ocfs2-devel] [PATCH 01/39] ocfs2: POSIX file locks support
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-6-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-2-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
 
-From: Tao Ma <tao.ma@oracle.com>
+This is actually pretty easy since fs/dlm already handles the bulk of the
+work. The Ocfs2 userspace cluster stack module already uses fs/dlm as the
+underlying lock manager, so I only had to add the right calls.
 
-ocfs2_num_free_extents() is used to find the number of free extent records
-in an inode btree. Hence, it takes an "ocfs2_dinode" parameter. We want to
-use this for extended attribute trees in the future, so genericize the
-interface the take a buffer head. A future patch will allow that buffer_head
-to contain any structure rooting an ocfs2 btree.
+Cluster-aware POSIX locks ("plocks") can be turned off by the same means at
+UNIX locks - mount with 'noflocks', or create a local-only Ocfs2 volume.
+Internally, the file system uses two sets of file_operations, depending on
+whether cluster aware plocks is required. This turns out to be easier than
+implementing local-only versions of ->lock.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/alloc.c |    3 ++-
- fs/ocfs2/alloc.h |    2 +-
- fs/ocfs2/aops.c  |    5 +++--
- fs/ocfs2/dir.c   |    3 ++-
- fs/ocfs2/file.c  |   11 ++++++-----
- fs/ocfs2/file.h  |    2 +-
- 6 files changed, 15 insertions(+), 11 deletions(-)
+ fs/ocfs2/file.c       |   51 +++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/file.h       |    2 +
+ fs/ocfs2/inode.c      |   15 ++++++++++++-
+ fs/ocfs2/locks.c      |   15 ++++++++++++++
+ fs/ocfs2/locks.h      |    1 +
+ fs/ocfs2/stack_user.c |   33 +++++++++++++++++++++++++++++++
+ fs/ocfs2/stackglue.c  |   20 +++++++++++++++++++
+ fs/ocfs2/stackglue.h  |   19 ++++++++++++++++++
+ 8 files changed, 154 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 10bfb46..c74711f 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -368,12 +368,13 @@ struct ocfs2_merge_ctxt {
-  */
- int ocfs2_num_free_extents(struct ocfs2_super *osb,
- 			   struct inode *inode,
--			   struct ocfs2_dinode *fe)
-+			   struct buffer_head *bh)
- {
- 	int retval;
- 	struct ocfs2_extent_list *el;
- 	struct ocfs2_extent_block *eb;
- 	struct buffer_head *eb_bh = NULL;
-+	struct ocfs2_dinode *fe = (struct ocfs2_dinode *)bh->b_data;
- 
- 	mlog_entry_void();
- 
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 42ff94b..758dbda 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -47,7 +47,7 @@ int ocfs2_remove_extent(struct inode *inode, struct buffer_head *di_bh,
- 			struct ocfs2_cached_dealloc_ctxt *dealloc);
- int ocfs2_num_free_extents(struct ocfs2_super *osb,
- 			   struct inode *inode,
--			   struct ocfs2_dinode *fe);
-+			   struct buffer_head *bh);
- /* how many new metadata chunks would an allocation need at maximum? */
- static inline int ocfs2_extend_meta_needed(struct ocfs2_dinode *fe)
- {
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index a53da14..e2008dc 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1712,8 +1712,9 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
- 		 * ocfs2_lock_allocators(). It greatly over-estimates
- 		 * the work to be done.
- 		 */
--		ret = ocfs2_lock_allocators(inode, di, clusters_to_alloc,
--					    extents_to_split, &data_ac, &meta_ac);
-+		ret = ocfs2_lock_allocators(inode, wc->w_di_bh,
-+					    clusters_to_alloc, extents_to_split,
-+					    &data_ac, &meta_ac);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 9cce563..fda09c3 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -1479,7 +1479,8 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
- 	spin_lock(&OCFS2_I(dir)->ip_lock);
- 	if (dir_i_size == ocfs2_clusters_to_bytes(sb, OCFS2_I(dir)->ip_clusters)) {
- 		spin_unlock(&OCFS2_I(dir)->ip_lock);
--		num_free_extents = ocfs2_num_free_extents(osb, dir, fe);
-+		num_free_extents = ocfs2_num_free_extents(osb, dir,
-+							  parent_fe_bh);
- 		if (num_free_extents < 0) {
- 			status = num_free_extents;
- 			mlog_errno(status);
 diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 60232b1..92460f1 100644
+index ec2ed15..60232b1 100644
 --- a/fs/ocfs2/file.c
 +++ b/fs/ocfs2/file.c
-@@ -521,7 +521,7 @@ int ocfs2_do_extend_allocation(struct ocfs2_super *osb,
- 	if (mark_unwritten)
- 		flags = OCFS2_EXT_UNWRITTEN;
+@@ -2236,6 +2236,10 @@ const struct inode_operations ocfs2_special_file_iops = {
+ 	.permission	= ocfs2_permission,
+ };
  
--	free_extents = ocfs2_num_free_extents(osb, inode, fe);
-+	free_extents = ocfs2_num_free_extents(osb, inode, fe_bh);
- 	if (free_extents < 0) {
- 		status = free_extents;
- 		mlog_errno(status);
-@@ -609,7 +609,7 @@ leave:
-  * File systems which don't support holes call this from
-  * ocfs2_extend_allocation().
-  */
--int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
-+int ocfs2_lock_allocators(struct inode *inode, struct buffer_head *di_bh,
- 			  u32 clusters_to_add, u32 extents_to_split,
- 			  struct ocfs2_alloc_context **data_ac,
- 			  struct ocfs2_alloc_context **meta_ac)
-@@ -617,6 +617,7 @@ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
- 	int ret = 0, num_free_extents;
- 	unsigned int max_recs_needed = clusters_to_add + 2 * extents_to_split;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
- 
- 	*meta_ac = NULL;
- 	if (data_ac)
-@@ -629,7 +630,7 @@ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno, (long long)i_size_read(inode),
- 	     le32_to_cpu(di->i_clusters), clusters_to_add, extents_to_split);
- 
--	num_free_extents = ocfs2_num_free_extents(osb, inode, di);
-+	num_free_extents = ocfs2_num_free_extents(osb, inode, di_bh);
- 	if (num_free_extents < 0) {
- 		ret = num_free_extents;
- 		mlog_errno(ret);
-@@ -724,7 +725,7 @@ static int __ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
- restart_all:
- 	BUG_ON(le32_to_cpu(fe->i_clusters) != OCFS2_I(inode)->ip_clusters);
- 
--	status = ocfs2_lock_allocators(inode, fe, clusters_to_add, 0, &data_ac,
-+	status = ocfs2_lock_allocators(inode, bh, clusters_to_add, 0, &data_ac,
- 				       &meta_ac);
- 	if (status) {
- 		mlog_errno(status);
-@@ -1395,7 +1396,7 @@ static int __ocfs2_remove_inode_range(struct inode *inode,
- 	struct ocfs2_alloc_context *meta_ac = NULL;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
- 
--	ret = ocfs2_lock_allocators(inode, di, 0, 1, NULL, &meta_ac);
-+	ret = ocfs2_lock_allocators(inode, di_bh, 0, 1, NULL, &meta_ac);
- 	if (ret) {
- 		mlog_errno(ret);
- 		return ret;
++/*
++ * Other than ->lock, keep ocfs2_fops and ocfs2_dops in sync with
++ * ocfs2_fops_no_plocks and ocfs2_dops_no_plocks!
++ */
+ const struct file_operations ocfs2_fops = {
+ 	.llseek		= generic_file_llseek,
+ 	.read		= do_sync_read,
+@@ -2250,6 +2254,7 @@ const struct file_operations ocfs2_fops = {
+ #ifdef CONFIG_COMPAT
+ 	.compat_ioctl   = ocfs2_compat_ioctl,
+ #endif
++	.lock		= ocfs2_lock,
+ 	.flock		= ocfs2_flock,
+ 	.splice_read	= ocfs2_file_splice_read,
+ 	.splice_write	= ocfs2_file_splice_write,
+@@ -2266,5 +2271,51 @@ const struct file_operations ocfs2_dops = {
+ #ifdef CONFIG_COMPAT
+ 	.compat_ioctl   = ocfs2_compat_ioctl,
+ #endif
++	.lock		= ocfs2_lock,
++	.flock		= ocfs2_flock,
++};
++
++/*
++ * POSIX-lockless variants of our file_operations.
++ *
++ * These will be used if the underlying cluster stack does not support
++ * posix file locking, if the user passes the "localflocks" mount
++ * option, or if we have a local-only fs.
++ *
++ * ocfs2_flock is in here because all stacks handle UNIX file locks,
++ * so we still want it in the case of no stack support for
++ * plocks. Internally, it will do the right thing when asked to ignore
++ * the cluster.
++ */
++const struct file_operations ocfs2_fops_no_plocks = {
++	.llseek		= generic_file_llseek,
++	.read		= do_sync_read,
++	.write		= do_sync_write,
++	.mmap		= ocfs2_mmap,
++	.fsync		= ocfs2_sync_file,
++	.release	= ocfs2_file_release,
++	.open		= ocfs2_file_open,
++	.aio_read	= ocfs2_file_aio_read,
++	.aio_write	= ocfs2_file_aio_write,
++	.unlocked_ioctl	= ocfs2_ioctl,
++#ifdef CONFIG_COMPAT
++	.compat_ioctl   = ocfs2_compat_ioctl,
++#endif
++	.flock		= ocfs2_flock,
++	.splice_read	= ocfs2_file_splice_read,
++	.splice_write	= ocfs2_file_splice_write,
++};
++
++const struct file_operations ocfs2_dops_no_plocks = {
++	.llseek		= generic_file_llseek,
++	.read		= generic_read_dir,
++	.readdir	= ocfs2_readdir,
++	.fsync		= ocfs2_sync_file,
++	.release	= ocfs2_dir_release,
++	.open		= ocfs2_dir_open,
++	.unlocked_ioctl	= ocfs2_ioctl,
++#ifdef CONFIG_COMPAT
++	.compat_ioctl   = ocfs2_compat_ioctl,
++#endif
+ 	.flock		= ocfs2_flock,
+ };
 diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
-index 5a6d3e4..c96b805 100644
+index 1e27b4d..5a6d3e4 100644
 --- a/fs/ocfs2/file.h
 +++ b/fs/ocfs2/file.h
-@@ -57,7 +57,7 @@ int ocfs2_do_extend_allocation(struct ocfs2_super *osb,
- 			       enum ocfs2_alloc_restarted *reason_ret);
- int ocfs2_extend_no_holes(struct inode *inode, u64 new_i_size,
- 			  u64 zero_to);
--int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_dinode *di,
-+int ocfs2_lock_allocators(struct inode *inode, struct buffer_head *fe,
- 			  u32 clusters_to_add, u32 extents_to_split,
- 			  struct ocfs2_alloc_context **data_ac,
- 			  struct ocfs2_alloc_context **meta_ac);
+@@ -28,6 +28,8 @@
+ 
+ extern const struct file_operations ocfs2_fops;
+ extern const struct file_operations ocfs2_dops;
++extern const struct file_operations ocfs2_fops_no_plocks;
++extern const struct file_operations ocfs2_dops_no_plocks;
+ extern const struct inode_operations ocfs2_file_iops;
+ extern const struct inode_operations ocfs2_special_file_iops;
+ struct ocfs2_alloc_context;
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 7e9e4c7..99f012a 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -219,6 +219,7 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 	struct super_block *sb;
+ 	struct ocfs2_super *osb;
+ 	int status = -EINVAL;
++	int use_plocks = 1;
+ 
+ 	mlog_entry("(0x%p, size:%llu)\n", inode,
+ 		   (unsigned long long)le64_to_cpu(fe->i_size));
+@@ -226,6 +227,10 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 	sb = inode->i_sb;
+ 	osb = OCFS2_SB(sb);
+ 
++	if ((osb->s_mount_opt & OCFS2_MOUNT_LOCALFLOCKS) ||
++	    ocfs2_mount_local(osb) || !ocfs2_stack_supports_plocks())
++		use_plocks = 0;
++
+ 	/* this means that read_inode cannot create a superblock inode
+ 	 * today.  change if needed. */
+ 	if (!OCFS2_IS_VALID_DINODE(fe) ||
+@@ -295,13 +300,19 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 
+ 	switch (inode->i_mode & S_IFMT) {
+ 	    case S_IFREG:
+-		    inode->i_fop = &ocfs2_fops;
++		    if (use_plocks)
++			    inode->i_fop = &ocfs2_fops;
++		    else
++			    inode->i_fop = &ocfs2_fops_no_plocks;
+ 		    inode->i_op = &ocfs2_file_iops;
+ 		    i_size_write(inode, le64_to_cpu(fe->i_size));
+ 		    break;
+ 	    case S_IFDIR:
+ 		    inode->i_op = &ocfs2_dir_iops;
+-		    inode->i_fop = &ocfs2_dops;
++		    if (use_plocks)
++			    inode->i_fop = &ocfs2_dops;
++		    else
++			    inode->i_fop = &ocfs2_dops_no_plocks;
+ 		    i_size_write(inode, le64_to_cpu(fe->i_size));
+ 		    break;
+ 	    case S_IFLNK:
+diff --git a/fs/ocfs2/locks.c b/fs/ocfs2/locks.c
+index 203f871..544ac62 100644
+--- a/fs/ocfs2/locks.c
++++ b/fs/ocfs2/locks.c
+@@ -24,6 +24,7 @@
+  */
+ 
+ #include <linux/fs.h>
++#include <linux/fcntl.h>
+ 
+ #define MLOG_MASK_PREFIX ML_INODE
+ #include <cluster/masklog.h>
+@@ -32,6 +33,7 @@
+ 
+ #include "dlmglue.h"
+ #include "file.h"
++#include "inode.h"
+ #include "locks.h"
+ 
+ static int ocfs2_do_flock(struct file *file, struct inode *inode,
+@@ -123,3 +125,16 @@ int ocfs2_flock(struct file *file, int cmd, struct file_lock *fl)
+ 	else
+ 		return ocfs2_do_flock(file, inode, cmd, fl);
+ }
++
++int ocfs2_lock(struct file *file, int cmd, struct file_lock *fl)
++{
++	struct inode *inode = file->f_mapping->host;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++
++	if (!(fl->fl_flags & FL_POSIX))
++		return -ENOLCK;
++	if (__mandatory_lock(inode))
++		return -ENOLCK;
++
++	return ocfs2_plock(osb->cconn, OCFS2_I(inode)->ip_blkno, file, cmd, fl);
++}
+diff --git a/fs/ocfs2/locks.h b/fs/ocfs2/locks.h
+index 9743ef2..496d488 100644
+--- a/fs/ocfs2/locks.h
++++ b/fs/ocfs2/locks.h
+@@ -27,5 +27,6 @@
+ #define OCFS2_LOCKS_H
+ 
+ int ocfs2_flock(struct file *file, int cmd, struct file_lock *fl);
++int ocfs2_lock(struct file *file, int cmd, struct file_lock *fl);
+ 
+ #endif /* OCFS2_LOCKS_H */
+diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+index 353fc35..faec2d8 100644
+--- a/fs/ocfs2/stack_user.c
++++ b/fs/ocfs2/stack_user.c
+@@ -28,6 +28,7 @@
+ #include "ocfs2.h"  /* For struct ocfs2_lock_res */
+ #include "stackglue.h"
+ 
++#include <linux/dlm_plock.h>
+ 
+ /*
+  * The control protocol starts with a handshake.  Until the handshake
+@@ -746,6 +747,37 @@ static void user_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
+ {
+ }
+ 
++static int user_plock(struct ocfs2_cluster_connection *conn,
++		      u64 ino,
++		      struct file *file,
++		      int cmd,
++		      struct file_lock *fl)
++{
++	/*
++	 * This more or less just demuxes the plock request into any
++	 * one of three dlm calls.
++	 *
++	 * Internally, fs/dlm will pass these to a misc device, which
++	 * a userspace daemon will read and write to.
++	 *
++	 * For now, cancel requests (which happen internally only),
++	 * are turned into unlocks. Most of this function taken from
++	 * gfs2_lock.
++	 */
++
++	if (cmd == F_CANCELLK) {
++		cmd = F_SETLK;
++		fl->fl_type = F_UNLCK;
++	}
++
++	if (IS_GETLK(cmd))
++		return dlm_posix_get(conn->cc_lockspace, ino, file, fl);
++	else if (fl->fl_type == F_UNLCK)
++		return dlm_posix_unlock(conn->cc_lockspace, ino, file, fl);
++	else
++		return dlm_posix_lock(conn->cc_lockspace, ino, file, cmd, fl);
++}
++
+ /*
+  * Compare a requested locking protocol version against the current one.
+  *
+@@ -839,6 +871,7 @@ static struct ocfs2_stack_operations ocfs2_user_plugin_ops = {
+ 	.dlm_unlock	= user_dlm_unlock,
+ 	.lock_status	= user_dlm_lock_status,
+ 	.lock_lvb	= user_dlm_lvb,
++	.plock		= user_plock,
+ 	.dump_lksb	= user_dlm_dump_lksb,
+ };
+ 
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 07f348b..7150f5d 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -288,6 +288,26 @@ void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
+ }
+ EXPORT_SYMBOL_GPL(ocfs2_dlm_dump_lksb);
+ 
++int ocfs2_stack_supports_plocks(void)
++{
++	return !!(active_stack && active_stack->sp_ops->plock);
++}
++EXPORT_SYMBOL_GPL(ocfs2_stack_supports_plocks);
++
++/*
++ * ocfs2_plock() can only be safely called if
++ * ocfs2_stack_supports_plocks() returned true
++ */
++int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
++		struct file *file, int cmd, struct file_lock *fl)
++{
++	WARN_ON_ONCE(active_stack->sp_ops->plock == NULL);
++	if (active_stack->sp_ops->plock)
++		return active_stack->sp_ops->plock(conn, ino, file, cmd, fl);
++	return -EOPNOTSUPP;
++}
++EXPORT_SYMBOL_GPL(ocfs2_plock);
++
+ int ocfs2_cluster_connect(const char *stack_name,
+ 			  const char *group,
+ 			  int grouplen,
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index db56281..c571af3 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -28,6 +28,10 @@
+ #include "dlm/dlmapi.h"
+ #include <linux/dlm.h>
+ 
++/* Needed for plock-related prototypes */
++struct file;
++struct file_lock;
++
+ /*
+  * dlmconstants.h does not have a LOCAL flag.  We hope to remove it
+  * some day, but right now we need it.  Let's fake it.  This value is larger
+@@ -187,6 +191,17 @@ struct ocfs2_stack_operations {
+ 	void *(*lock_lvb)(union ocfs2_dlm_lksb *lksb);
+ 
+ 	/*
++	 * Cluster-aware posix locks
++	 *
++	 * This is NULL for stacks which do not support posix locks.
++	 */
++	int (*plock)(struct ocfs2_cluster_connection *conn,
++		     u64 ino,
++		     struct file *file,
++		     int cmd,
++		     struct file_lock *fl);
++
++	/*
+ 	 * This is an optoinal debugging hook.  If provided, the
+ 	 * stack can dump debugging information about this lock.
+ 	 */
+@@ -240,6 +255,10 @@ int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb);
+ void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb);
+ void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb);
+ 
++int ocfs2_stack_supports_plocks(void);
++int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
++		struct file *file, int cmd, struct file_lock *fl);
++
+ void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto);
+ 
+ 
 -- 
 1.5.4.5
