@@ -1,158 +1,178 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:01:01 -0700
-Subject: [Ocfs2-devel] [PATCH 20/39] ocfs2: Add incompatible flag for
-	extended attribute
+Date: Wed, 24 Sep 2008 15:00:58 -0700
+Subject: [Ocfs2-devel] [PATCH 17/39] ocfs2: Optionally limit extent size in
+	ocfs2_insert_extent()
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-21-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-18-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Tiger Yang <tiger.yang@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-From: Tiger Yang <tiger.yang@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
 
-This patch adds the s_incompat flag for extended attribute support. This
-helps us ensure that older versions of Ocfs2 or ocfs2-tools will not be able
-to mount a volume with xattr support.
+In xattr bucket, we want to limit the maximum size of a btree leaf,
+otherwise we'll lose the benefits of hashing because we'll have to search
+large leaves.
 
-Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+So add a new field in ocfs2_extent_tree which indicates the maximum leaf cluster
+size we want so that we can prevent ocfs2_insert_extent() from merging the leaf
+record even if it is contiguous with an adjacent record.
+
+Other btree types are not affected by this change.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/ocfs2.h    |    7 +++++++
- fs/ocfs2/ocfs2_fs.h |   19 +++++++++++++------
- fs/ocfs2/super.c    |    3 ++-
- fs/ocfs2/xattr.c    |   12 ++++++++++++
- 4 files changed, 34 insertions(+), 7 deletions(-)
+ fs/ocfs2/alloc.c |   39 ++++++++++++++++++++++++++++++---------
+ fs/ocfs2/alloc.h |    5 +++++
+ 2 files changed, 35 insertions(+), 9 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index cae0dd4..6d3c10d 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -363,6 +363,13 @@ static inline int ocfs2_supports_inline_data(struct ocfs2_super *osb)
- 	return 0;
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 47cdea6..16879bd 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -79,6 +79,7 @@ struct ocfs2_extent_tree {
+ 	struct buffer_head *root_bh;
+ 	struct ocfs2_extent_list *root_el;
+ 	void *private;
++	unsigned int max_leaf_clusters;
+ };
+ 
+ static void ocfs2_dinode_set_last_eb_blk(struct ocfs2_extent_tree *et,
+@@ -220,7 +221,8 @@ static struct ocfs2_extent_tree_operations ocfs2_xattr_tree_et_ops = {
+ };
+ 
+ static struct ocfs2_extent_tree*
+-	 ocfs2_new_extent_tree(struct buffer_head *bh,
++	 ocfs2_new_extent_tree(struct inode *inode,
++			       struct buffer_head *bh,
+ 			       enum ocfs2_extent_tree_type et_type,
+ 			       void *private)
+ {
+@@ -248,6 +250,8 @@ static struct ocfs2_extent_tree*
+ 			(struct ocfs2_xattr_block *)bh->b_data;
+ 		et->root_el = &xb->xb_attrs.xb_root.xt_list;
+ 		et->eops = &ocfs2_xattr_tree_et_ops;
++		et->max_leaf_clusters = ocfs2_clusters_for_bytes(inode->i_sb,
++						OCFS2_MAX_XATTR_TREE_LEAF_SIZE);
+ 	}
+ 
+ 	return et;
+@@ -4118,7 +4122,8 @@ out:
+ static void ocfs2_figure_contig_type(struct inode *inode,
+ 				     struct ocfs2_insert_type *insert,
+ 				     struct ocfs2_extent_list *el,
+-				     struct ocfs2_extent_rec *insert_rec)
++				     struct ocfs2_extent_rec *insert_rec,
++				     struct ocfs2_extent_tree *et)
+ {
+ 	int i;
+ 	enum ocfs2_contig_type contig_type = CONTIG_NONE;
+@@ -4134,6 +4139,20 @@ static void ocfs2_figure_contig_type(struct inode *inode,
+ 		}
+ 	}
+ 	insert->ins_contig = contig_type;
++
++	if (insert->ins_contig != CONTIG_NONE) {
++		struct ocfs2_extent_rec *rec =
++				&el->l_recs[insert->ins_contig_index];
++		unsigned int len = le16_to_cpu(rec->e_leaf_clusters) +
++				   le16_to_cpu(insert_rec->e_leaf_clusters);
++
++		/*
++		 * Caller might want us to limit the size of extents, don't
++		 * calculate contiguousness if we might exceed that limit.
++		 */
++		if (et->max_leaf_clusters && len > et->max_leaf_clusters)
++			insert->ins_contig = CONTIG_NONE;
++	}
  }
  
-+static inline int ocfs2_supports_xattr(struct ocfs2_super *osb)
-+{
-+	if (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_XATTR)
-+		return 1;
-+	return 0;
-+}
-+
- /* set / clear functions because cluster events can make these happen
-  * in parallel so we want the transitions to be atomic. this also
-  * means that any future flags osb_flags must be protected by spinlock
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 8d5e72f..f24ce3d 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -91,7 +91,8 @@
- 					 | OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC \
- 					 | OCFS2_FEATURE_INCOMPAT_INLINE_DATA \
- 					 | OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP \
--					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK)
-+					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK \
-+					 | OCFS2_FEATURE_INCOMPAT_XATTR)
- #define OCFS2_FEATURE_RO_COMPAT_SUPP	OCFS2_FEATURE_RO_COMPAT_UNWRITTEN
- 
  /*
-@@ -128,10 +129,6 @@
- /* Support for data packed into inode blocks */
- #define OCFS2_FEATURE_INCOMPAT_INLINE_DATA	0x0040
+@@ -4241,7 +4260,7 @@ static int ocfs2_figure_insert_type(struct inode *inode,
+ 		le16_to_cpu(el->l_next_free_rec);
  
--/* Support for the extended slot map */
--#define OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP 0x100
--
--
- /*
-  * Support for alternate, userspace cluster stacks.  If set, the superblock
-  * field s_cluster_info contains a tag for the alternate stack in use as
-@@ -143,6 +140,12 @@
-  */
- #define OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK	0x0080
- 
-+/* Support for the extended slot map */
-+#define OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP 0x100
-+
-+/* Support for extended attributes */
-+#define OCFS2_FEATURE_INCOMPAT_XATTR		0x0200
-+
- /*
-  * backup superblock flag is used to indicate that this volume
-  * has backup superblocks.
-@@ -578,7 +581,11 @@ struct ocfs2_super_block {
- /*A0*/  struct ocfs2_cluster_info s_cluster_info; /* Selected userspace
- 						     stack.  Only valid
- 						     with INCOMPAT flag. */
--/*B8*/  __le64 s_reserved2[17];		/* Fill out superblock */
-+/*B8*/	__le16 s_xattr_inline_size;	/* extended attribute inline size
-+					   for this fs*/
-+	__le16 s_reserved0;
-+	__le32 s_reserved1;
-+/*C0*/  __le64 s_reserved2[16];		/* Fill out superblock */
- /*140*/
+ 	if (!insert->ins_tree_depth) {
+-		ocfs2_figure_contig_type(inode, insert, el, insert_rec);
++		ocfs2_figure_contig_type(inode, insert, el, insert_rec, et);
+ 		ocfs2_figure_appending_type(insert, el, insert_rec);
+ 		return 0;
+ 	}
+@@ -4275,7 +4294,7 @@ static int ocfs2_figure_insert_type(struct inode *inode,
+          *     into two types of appends: simple record append, or a
+          *     rotate inside the tail leaf.
+ 	 */
+-	ocfs2_figure_contig_type(inode, insert, el, insert_rec);
++	ocfs2_figure_contig_type(inode, insert, el, insert_rec, et);
  
  	/*
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 67e7e77..973d99f 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1437,7 +1437,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	 * The insert code isn't quite ready to deal with all cases of
+@@ -4411,7 +4430,7 @@ int ocfs2_dinode_insert_extent(struct ocfs2_super *osb,
+ 	int status;
+ 	struct ocfs2_extent_tree *et = NULL;
  
- 	osb->slot_num = OCFS2_INVALID_SLOT;
+-	et = ocfs2_new_extent_tree(root_bh, OCFS2_DINODE_EXTENT, NULL);
++	et = ocfs2_new_extent_tree(inode, root_bh, OCFS2_DINODE_EXTENT, NULL);
+ 	if (!et) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+@@ -4442,7 +4461,8 @@ int ocfs2_xattr_value_insert_extent(struct ocfs2_super *osb,
+ 	int status;
+ 	struct ocfs2_extent_tree *et = NULL;
  
--	osb->s_xattr_inline_size = OCFS2_MIN_XATTR_INLINE_SIZE;
-+	osb->s_xattr_inline_size = le16_to_cpu(
-+					di->id2.i_super.s_xattr_inline_size);
+-	et = ocfs2_new_extent_tree(root_bh, OCFS2_XATTR_VALUE_EXTENT, private);
++	et = ocfs2_new_extent_tree(inode, root_bh,
++				   OCFS2_XATTR_VALUE_EXTENT, private);
+ 	if (!et) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+@@ -4472,7 +4492,8 @@ int ocfs2_xattr_tree_insert_extent(struct ocfs2_super *osb,
+ 	int status;
+ 	struct ocfs2_extent_tree *et = NULL;
  
- 	osb->local_alloc_state = OCFS2_LA_UNUSED;
- 	osb->local_alloc_bh = NULL;
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 9ec7136..090449f 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -564,6 +564,9 @@ ssize_t ocfs2_listxattr(struct dentry *dentry,
- 	struct ocfs2_dinode *di = NULL;
- 	struct ocfs2_inode_info *oi = OCFS2_I(dentry->d_inode);
+-	et = ocfs2_new_extent_tree(root_bh, OCFS2_XATTR_TREE_EXTENT, NULL);
++	et = ocfs2_new_extent_tree(inode, root_bh, OCFS2_XATTR_TREE_EXTENT,
++				   NULL);
+ 	if (!et) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+@@ -4888,7 +4909,7 @@ int ocfs2_mark_extent_written(struct inode *inode, struct buffer_head *root_bh,
+ 		goto out;
+ 	}
  
-+	if (!ocfs2_supports_xattr(OCFS2_SB(dentry->d_sb)))
-+		return -EOPNOTSUPP;
-+
- 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
- 		return ret;
- 
-@@ -843,6 +846,9 @@ int ocfs2_xattr_get(struct inode *inode,
- 		.not_found = -ENODATA,
- 	};
- 
-+	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
-+		return -EOPNOTSUPP;
-+
- 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
- 		ret = -ENODATA;
- 
-@@ -1541,6 +1547,9 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
- 	handle_t *handle;
- 	int ret;
- 
-+	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
-+		return 0;
-+
- 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
- 		return 0;
- 
-@@ -1977,6 +1986,9 @@ int ocfs2_xattr_set(struct inode *inode,
- 		.not_found = -ENODATA,
- 	};
- 
-+	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
-+		return -EOPNOTSUPP;
-+
- 	ret = ocfs2_inode_lock(inode, &di_bh, 1);
- 	if (ret < 0) {
+-	et = ocfs2_new_extent_tree(root_bh, et_type, private);
++	et = ocfs2_new_extent_tree(inode, root_bh, et_type, private);
+ 	if (!et) {
+ 		ret = -ENOMEM;
  		mlog_errno(ret);
+@@ -5186,7 +5207,7 @@ int ocfs2_remove_extent(struct inode *inode, struct buffer_head *root_bh,
+ 	struct ocfs2_path *path = NULL;
+ 	struct ocfs2_extent_tree *et = NULL;
+ 
+-	et = ocfs2_new_extent_tree(root_bh, et_type, private);
++	et = ocfs2_new_extent_tree(inode, root_bh, et_type, private);
+ 	if (!et) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index b8cfc53..ff40c8f 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -32,6 +32,11 @@ enum ocfs2_extent_tree_type {
+ 	OCFS2_XATTR_TREE_EXTENT,
+ };
+ 
++/*
++ * For xattr tree leaf, we limit the leaf byte size to be 64K.
++ */
++#define OCFS2_MAX_XATTR_TREE_LEAF_SIZE 65536
++
+ struct ocfs2_alloc_context;
+ int ocfs2_dinode_insert_extent(struct ocfs2_super *osb,
+ 			       handle_t *handle,
 -- 
 1.5.4.5
