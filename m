@@ -1,351 +1,172 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:00:42 -0700
-Subject: [Ocfs2-devel] [PATCH 01/39] ocfs2: POSIX file locks support
+Date: Wed, 24 Sep 2008 15:00:50 -0700
+Subject: [Ocfs2-devel] [PATCH 09/39] ocfs2: Add the basic xattr disk layout
+	in ocfs2_fs.h
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-2-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-10-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
+Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Tao Ma <tao.ma@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-This is actually pretty easy since fs/dlm already handles the bulk of the
-work. The Ocfs2 userspace cluster stack module already uses fs/dlm as the
-underlying lock manager, so I only had to add the right calls.
+From: Tao Ma <tao.ma@oracle.com>
 
-Cluster-aware POSIX locks ("plocks") can be turned off by the same means at
-UNIX locks - mount with 'noflocks', or create a local-only Ocfs2 volume.
-Internally, the file system uses two sets of file_operations, depending on
-whether cluster aware plocks is required. This turns out to be easier than
-implementing local-only versions of ->lock.
+Ocfs2 uses a very flexible structure for storing extended attributes on
+disk. Small amount of attributes are stored directly in the inode block - up
+to 256 bytes worth. If that fills up, attributes are also stored in an
+external block, linked to from the inode block. That block can in turn
+expand to a btree, capable of storing large numbers of attributes.
 
+Individual attribute values are stored inline if they're small enough
+(currently about 80 bytes, this can be changed though), and otherwise are
+expanded to a btree. The theoretical limit to the size of an individual
+attribute is about the same as an inode, though the kernel's upper bound on
+the size of an attributes data is far smaller.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/file.c       |   51 +++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/file.h       |    2 +
- fs/ocfs2/inode.c      |   15 ++++++++++++-
- fs/ocfs2/locks.c      |   15 ++++++++++++++
- fs/ocfs2/locks.h      |    1 +
- fs/ocfs2/stack_user.c |   33 +++++++++++++++++++++++++++++++
- fs/ocfs2/stackglue.c  |   20 +++++++++++++++++++
- fs/ocfs2/stackglue.h  |   19 ++++++++++++++++++
- 8 files changed, 154 insertions(+), 2 deletions(-)
+ fs/ocfs2/ocfs2_fs.h |  118 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 118 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index ec2ed15..60232b1 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2236,6 +2236,10 @@ const struct inode_operations ocfs2_special_file_iops = {
- 	.permission	= ocfs2_permission,
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 4f61985..1b46505 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -64,6 +64,7 @@
+ #define OCFS2_INODE_SIGNATURE		"INODE01"
+ #define OCFS2_EXTENT_BLOCK_SIGNATURE	"EXBLK01"
+ #define OCFS2_GROUP_DESC_SIGNATURE      "GROUP01"
++#define OCFS2_XATTR_BLOCK_SIGNATURE	"XATTR01"
+ 
+ /* Compatibility flags */
+ #define OCFS2_HAS_COMPAT_FEATURE(sb,mask)			\
+@@ -715,6 +716,123 @@ struct ocfs2_group_desc
+ /*40*/	__u8    bg_bitmap[0];
  };
  
 +/*
-+ * Other than ->lock, keep ocfs2_fops and ocfs2_dops in sync with
-+ * ocfs2_fops_no_plocks and ocfs2_dops_no_plocks!
++ * On disk extended attribute structure for OCFS2.
 + */
- const struct file_operations ocfs2_fops = {
- 	.llseek		= generic_file_llseek,
- 	.read		= do_sync_read,
-@@ -2250,6 +2254,7 @@ const struct file_operations ocfs2_fops = {
- #ifdef CONFIG_COMPAT
- 	.compat_ioctl   = ocfs2_compat_ioctl,
- #endif
-+	.lock		= ocfs2_lock,
- 	.flock		= ocfs2_flock,
- 	.splice_read	= ocfs2_file_splice_read,
- 	.splice_write	= ocfs2_file_splice_write,
-@@ -2266,5 +2271,51 @@ const struct file_operations ocfs2_dops = {
- #ifdef CONFIG_COMPAT
- 	.compat_ioctl   = ocfs2_compat_ioctl,
- #endif
-+	.lock		= ocfs2_lock,
-+	.flock		= ocfs2_flock,
++
++/*
++ * ocfs2_xattr_entry indicates one extend attribute.
++ *
++ * Note that it can be stored in inode, one block or one xattr bucket.
++ */
++struct ocfs2_xattr_entry {
++	__le32	xe_name_hash;    /* hash value of xattr prefix+suffix. */
++	__le16	xe_name_offset;  /* byte offset from the 1st etnry in the local
++				    local xattr storage(inode, xattr block or
++				    xattr bucket). */
++	__u8	xe_name_len;	 /* xattr name len, does't include prefix. */
++	__u8	xe_type;         /* the low 7 bits indicates the name prefix's
++				  * type and the highest 1 bits indicate whether
++				  * the EA is stored in the local storage. */
++	__le64	xe_value_size;	 /* real xattr value length. */
 +};
 +
 +/*
-+ * POSIX-lockless variants of our file_operations.
++ * On disk structure for xattr header.
 + *
-+ * These will be used if the underlying cluster stack does not support
-+ * posix file locking, if the user passes the "localflocks" mount
-+ * option, or if we have a local-only fs.
-+ *
-+ * ocfs2_flock is in here because all stacks handle UNIX file locks,
-+ * so we still want it in the case of no stack support for
-+ * plocks. Internally, it will do the right thing when asked to ignore
-+ * the cluster.
++ * One ocfs2_xattr_header describes how many ocfs2_xattr_entry records in
++ * the local xattr storage.
 + */
-+const struct file_operations ocfs2_fops_no_plocks = {
-+	.llseek		= generic_file_llseek,
-+	.read		= do_sync_read,
-+	.write		= do_sync_write,
-+	.mmap		= ocfs2_mmap,
-+	.fsync		= ocfs2_sync_file,
-+	.release	= ocfs2_file_release,
-+	.open		= ocfs2_file_open,
-+	.aio_read	= ocfs2_file_aio_read,
-+	.aio_write	= ocfs2_file_aio_write,
-+	.unlocked_ioctl	= ocfs2_ioctl,
-+#ifdef CONFIG_COMPAT
-+	.compat_ioctl   = ocfs2_compat_ioctl,
-+#endif
-+	.flock		= ocfs2_flock,
-+	.splice_read	= ocfs2_file_splice_read,
-+	.splice_write	= ocfs2_file_splice_write,
++struct ocfs2_xattr_header {
++	__le16	xh_count;                       /* contains the count of how
++						   many records are in the
++						   local xattr storage. */
++	__le16	xh_reserved1;
++	__le32	xh_reserved2;
++	__le64  xh_csum;
++	struct ocfs2_xattr_entry xh_entries[0]; /* xattr entry list. */
 +};
 +
-+const struct file_operations ocfs2_dops_no_plocks = {
-+	.llseek		= generic_file_llseek,
-+	.read		= generic_read_dir,
-+	.readdir	= ocfs2_readdir,
-+	.fsync		= ocfs2_sync_file,
-+	.release	= ocfs2_dir_release,
-+	.open		= ocfs2_dir_open,
-+	.unlocked_ioctl	= ocfs2_ioctl,
-+#ifdef CONFIG_COMPAT
-+	.compat_ioctl   = ocfs2_compat_ioctl,
-+#endif
- 	.flock		= ocfs2_flock,
- };
-diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
-index 1e27b4d..5a6d3e4 100644
---- a/fs/ocfs2/file.h
-+++ b/fs/ocfs2/file.h
-@@ -28,6 +28,8 @@
- 
- extern const struct file_operations ocfs2_fops;
- extern const struct file_operations ocfs2_dops;
-+extern const struct file_operations ocfs2_fops_no_plocks;
-+extern const struct file_operations ocfs2_dops_no_plocks;
- extern const struct inode_operations ocfs2_file_iops;
- extern const struct inode_operations ocfs2_special_file_iops;
- struct ocfs2_alloc_context;
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 7e9e4c7..99f012a 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -219,6 +219,7 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
- 	struct super_block *sb;
- 	struct ocfs2_super *osb;
- 	int status = -EINVAL;
-+	int use_plocks = 1;
- 
- 	mlog_entry("(0x%p, size:%llu)\n", inode,
- 		   (unsigned long long)le64_to_cpu(fe->i_size));
-@@ -226,6 +227,10 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
- 	sb = inode->i_sb;
- 	osb = OCFS2_SB(sb);
- 
-+	if ((osb->s_mount_opt & OCFS2_MOUNT_LOCALFLOCKS) ||
-+	    ocfs2_mount_local(osb) || !ocfs2_stack_supports_plocks())
-+		use_plocks = 0;
++/*
++ * On disk structure for xattr value root.
++ *
++ * It is used when one extended attribute's size is larger, and we will save it
++ * in an outside cluster. It will stored in a b-tree like file content.
++ */
++struct ocfs2_xattr_value_root {
++/*00*/	__le32	xr_clusters;              /* clusters covered by xattr value. */
++	__le32	xr_reserved0;
++	__le64	xr_last_eb_blk;           /* Pointer to last extent block */
++/*10*/	struct ocfs2_extent_list xr_list; /* Extent record list */
++};
 +
- 	/* this means that read_inode cannot create a superblock inode
- 	 * today.  change if needed. */
- 	if (!OCFS2_IS_VALID_DINODE(fe) ||
-@@ -295,13 +300,19 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
- 
- 	switch (inode->i_mode & S_IFMT) {
- 	    case S_IFREG:
--		    inode->i_fop = &ocfs2_fops;
-+		    if (use_plocks)
-+			    inode->i_fop = &ocfs2_fops;
-+		    else
-+			    inode->i_fop = &ocfs2_fops_no_plocks;
- 		    inode->i_op = &ocfs2_file_iops;
- 		    i_size_write(inode, le64_to_cpu(fe->i_size));
- 		    break;
- 	    case S_IFDIR:
- 		    inode->i_op = &ocfs2_dir_iops;
--		    inode->i_fop = &ocfs2_dops;
-+		    if (use_plocks)
-+			    inode->i_fop = &ocfs2_dops;
-+		    else
-+			    inode->i_fop = &ocfs2_dops_no_plocks;
- 		    i_size_write(inode, le64_to_cpu(fe->i_size));
- 		    break;
- 	    case S_IFLNK:
-diff --git a/fs/ocfs2/locks.c b/fs/ocfs2/locks.c
-index 203f871..544ac62 100644
---- a/fs/ocfs2/locks.c
-+++ b/fs/ocfs2/locks.c
-@@ -24,6 +24,7 @@
-  */
- 
- #include <linux/fs.h>
-+#include <linux/fcntl.h>
- 
- #define MLOG_MASK_PREFIX ML_INODE
- #include <cluster/masklog.h>
-@@ -32,6 +33,7 @@
- 
- #include "dlmglue.h"
- #include "file.h"
-+#include "inode.h"
- #include "locks.h"
- 
- static int ocfs2_do_flock(struct file *file, struct inode *inode,
-@@ -123,3 +125,16 @@ int ocfs2_flock(struct file *file, int cmd, struct file_lock *fl)
- 	else
- 		return ocfs2_do_flock(file, inode, cmd, fl);
- }
++/*
++ * On disk structure for xattr tree root.
++ *
++ * It is used when there are too many extended attributes for one file. These
++ * attributes will be organized and stored in an indexed-btree.
++ */
++struct ocfs2_xattr_tree_root {
++/*00*/	__le32	xt_clusters;              /* clusters covered by xattr. */
++	__le32	xt_reserved0;
++	__le64	xt_last_eb_blk;           /* Pointer to last extent block */
++/*10*/	struct ocfs2_extent_list xt_list; /* Extent record list */
++};
 +
-+int ocfs2_lock(struct file *file, int cmd, struct file_lock *fl)
++#define OCFS2_XATTR_INDEXED 0x1
++
++/*
++ * On disk structure for xattr block.
++ */
++struct ocfs2_xattr_block {
++/*00*/	__u8	xb_signature[8];     /* Signature for verification */
++	__le16	xb_suballoc_slot;    /* Slot suballocator this
++					block belongs to. */
++	__le16	xb_suballoc_bit;     /* Bit offset in suballocator
++					block group */
++	__le32	xb_fs_generation;    /* Must match super block */
++/*10*/	__le64	xb_blkno;            /* Offset on disk, in blocks */
++	__le64	xb_csum;
++/*20*/	__le16	xb_flags;            /* Indicates whether this block contains
++					real xattr or a xattr tree. */
++	__le16	xb_reserved0;
++	__le32  xb_reserved1;
++	__le64	xb_reserved2;
++/*30*/	union {
++		struct ocfs2_xattr_header xb_header; /* xattr header if this
++							block contains xattr */
++		struct ocfs2_xattr_tree_root xb_root;/* xattr tree root if this
++							block cotains xattr
++							tree. */
++	} xb_attrs;
++};
++
++#define OCFS2_XATTR_ENTRY_LOCAL		0x80
++#define OCFS2_XATTR_TYPE_MASK		0x7F
++static inline void ocfs2_xattr_set_local(struct ocfs2_xattr_entry *xe,
++					 int local)
 +{
-+	struct inode *inode = file->f_mapping->host;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+
-+	if (!(fl->fl_flags & FL_POSIX))
-+		return -ENOLCK;
-+	if (__mandatory_lock(inode))
-+		return -ENOLCK;
-+
-+	return ocfs2_plock(osb->cconn, OCFS2_I(inode)->ip_blkno, file, cmd, fl);
-+}
-diff --git a/fs/ocfs2/locks.h b/fs/ocfs2/locks.h
-index 9743ef2..496d488 100644
---- a/fs/ocfs2/locks.h
-+++ b/fs/ocfs2/locks.h
-@@ -27,5 +27,6 @@
- #define OCFS2_LOCKS_H
- 
- int ocfs2_flock(struct file *file, int cmd, struct file_lock *fl);
-+int ocfs2_lock(struct file *file, int cmd, struct file_lock *fl);
- 
- #endif /* OCFS2_LOCKS_H */
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index 353fc35..faec2d8 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -28,6 +28,7 @@
- #include "ocfs2.h"  /* For struct ocfs2_lock_res */
- #include "stackglue.h"
- 
-+#include <linux/dlm_plock.h>
- 
- /*
-  * The control protocol starts with a handshake.  Until the handshake
-@@ -746,6 +747,37 @@ static void user_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
- {
- }
- 
-+static int user_plock(struct ocfs2_cluster_connection *conn,
-+		      u64 ino,
-+		      struct file *file,
-+		      int cmd,
-+		      struct file_lock *fl)
-+{
-+	/*
-+	 * This more or less just demuxes the plock request into any
-+	 * one of three dlm calls.
-+	 *
-+	 * Internally, fs/dlm will pass these to a misc device, which
-+	 * a userspace daemon will read and write to.
-+	 *
-+	 * For now, cancel requests (which happen internally only),
-+	 * are turned into unlocks. Most of this function taken from
-+	 * gfs2_lock.
-+	 */
-+
-+	if (cmd == F_CANCELLK) {
-+		cmd = F_SETLK;
-+		fl->fl_type = F_UNLCK;
-+	}
-+
-+	if (IS_GETLK(cmd))
-+		return dlm_posix_get(conn->cc_lockspace, ino, file, fl);
-+	else if (fl->fl_type == F_UNLCK)
-+		return dlm_posix_unlock(conn->cc_lockspace, ino, file, fl);
++	if (local)
++		xe->xe_type |= OCFS2_XATTR_ENTRY_LOCAL;
 +	else
-+		return dlm_posix_lock(conn->cc_lockspace, ino, file, cmd, fl);
++		xe->xe_type &= ~OCFS2_XATTR_ENTRY_LOCAL;
 +}
 +
- /*
-  * Compare a requested locking protocol version against the current one.
-  *
-@@ -839,6 +871,7 @@ static struct ocfs2_stack_operations ocfs2_user_plugin_ops = {
- 	.dlm_unlock	= user_dlm_unlock,
- 	.lock_status	= user_dlm_lock_status,
- 	.lock_lvb	= user_dlm_lvb,
-+	.plock		= user_plock,
- 	.dump_lksb	= user_dlm_dump_lksb,
- };
- 
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 07f348b..7150f5d 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -288,6 +288,26 @@ void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb)
- }
- EXPORT_SYMBOL_GPL(ocfs2_dlm_dump_lksb);
- 
-+int ocfs2_stack_supports_plocks(void)
++static inline int ocfs2_xattr_is_local(struct ocfs2_xattr_entry *xe)
 +{
-+	return !!(active_stack && active_stack->sp_ops->plock);
++	return xe->xe_type & OCFS2_XATTR_ENTRY_LOCAL;
 +}
-+EXPORT_SYMBOL_GPL(ocfs2_stack_supports_plocks);
 +
-+/*
-+ * ocfs2_plock() can only be safely called if
-+ * ocfs2_stack_supports_plocks() returned true
-+ */
-+int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
-+		struct file *file, int cmd, struct file_lock *fl)
++static inline void ocfs2_xattr_set_type(struct ocfs2_xattr_entry *xe, int type)
 +{
-+	WARN_ON_ONCE(active_stack->sp_ops->plock == NULL);
-+	if (active_stack->sp_ops->plock)
-+		return active_stack->sp_ops->plock(conn, ino, file, cmd, fl);
-+	return -EOPNOTSUPP;
++	xe->xe_type |= type & OCFS2_XATTR_TYPE_MASK;
 +}
-+EXPORT_SYMBOL_GPL(ocfs2_plock);
 +
- int ocfs2_cluster_connect(const char *stack_name,
- 			  const char *group,
- 			  int grouplen,
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index db56281..c571af3 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -28,6 +28,10 @@
- #include "dlm/dlmapi.h"
- #include <linux/dlm.h>
- 
-+/* Needed for plock-related prototypes */
-+struct file;
-+struct file_lock;
++static inline int ocfs2_xattr_get_type(struct ocfs2_xattr_entry *xe)
++{
++	return xe->xe_type & OCFS2_XATTR_TYPE_MASK;
++}
 +
- /*
-  * dlmconstants.h does not have a LOCAL flag.  We hope to remove it
-  * some day, but right now we need it.  Let's fake it.  This value is larger
-@@ -187,6 +191,17 @@ struct ocfs2_stack_operations {
- 	void *(*lock_lvb)(union ocfs2_dlm_lksb *lksb);
- 
- 	/*
-+	 * Cluster-aware posix locks
-+	 *
-+	 * This is NULL for stacks which do not support posix locks.
-+	 */
-+	int (*plock)(struct ocfs2_cluster_connection *conn,
-+		     u64 ino,
-+		     struct file *file,
-+		     int cmd,
-+		     struct file_lock *fl);
-+
-+	/*
- 	 * This is an optoinal debugging hook.  If provided, the
- 	 * stack can dump debugging information about this lock.
- 	 */
-@@ -240,6 +255,10 @@ int ocfs2_dlm_lock_status(union ocfs2_dlm_lksb *lksb);
- void *ocfs2_dlm_lvb(union ocfs2_dlm_lksb *lksb);
- void ocfs2_dlm_dump_lksb(union ocfs2_dlm_lksb *lksb);
- 
-+int ocfs2_stack_supports_plocks(void);
-+int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
-+		struct file *file, int cmd, struct file_lock *fl);
-+
- void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto);
- 
- 
+ #ifdef __KERNEL__
+ static inline int ocfs2_fast_symlink_chars(struct super_block *sb)
+ {
 -- 
 1.5.4.5
