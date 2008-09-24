@@ -1,193 +1,97 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:01:10 -0700
-Subject: [Ocfs2-devel] [PATCH 29/39] ocfs2: Create specific get_extent_tree
-	functions.
+Date: Wed, 24 Sep 2008 15:01:13 -0700
+Subject: [Ocfs2-devel] [PATCH 32/39] ocfs2: Comment struct
+	ocfs2_extent_tree_operations.
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-30-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-33-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
 
 From: Joel Becker <joel.becker@oracle.com>
 
-A caller knows what kind of extent tree they have.  There's no reason
-they have to call ocfs2_get_extent_tree() with a NULL when they could
-just as easily call a specific function to their type of extent tree.
-
-Introduce ocfs2_dinode_get_extent_tree(),
-ocfs2_xattr_tree_get_extent_tree(), and
-ocfs2_xattr_value_get_extent_tree().  They only take the necessary
-arguments, calling into the underlying __ocfs2_get_extent_tree() to do
-the real work.
-
-__ocfs2_get_extent_tree() is the old ocfs2_get_extent_tree(), but
-without needing any switch-by-type logic.
-
-ocfs2_get_extent_tree() is now a wrapper around the specific calls.  It
-exists because a couple alloc.c functions can take et_type.  This will
-go later.
-
-Another benefit is that ocfs2_xattr_value_get_extent_tree() can take a
-struct ocfs2_xattr_value_root* instead of void*.  This gives us
-typechecking where we didn't have it before.
+struct ocfs2_extent_tree_operations provides methods for the different
+on-disk btrees in ocfs2.  Describing what those methods do is probably a
+good idea.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/alloc.c |   76 +++++++++++++++++++++++++++++++++++++++---------------
- fs/ocfs2/alloc.h |    2 +-
- 2 files changed, 56 insertions(+), 22 deletions(-)
+ fs/ocfs2/alloc.c |   45 +++++++++++++++++++++++++++++++++++++++++++--
+ 1 files changed, 43 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 7c0721d..243bacf 100644
+index d196d40..51c3183 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -192,7 +192,7 @@ static int ocfs2_xattr_value_sanity_check(struct inode *inode,
- 	return 0;
- }
+@@ -50,21 +50,62 @@
+ #include "buffer_head_io.h"
  
--static struct ocfs2_extent_tree_operations ocfs2_xattr_et_ops = {
-+static struct ocfs2_extent_tree_operations ocfs2_xattr_value_et_ops = {
- 	.eo_set_last_eb_blk	= ocfs2_xattr_value_set_last_eb_blk,
- 	.eo_get_last_eb_blk	= ocfs2_xattr_value_get_last_eb_blk,
- 	.eo_update_clusters	= ocfs2_xattr_value_update_clusters,
-@@ -256,27 +256,21 @@ static struct ocfs2_extent_tree_operations ocfs2_xattr_tree_et_ops = {
- 	.eo_fill_max_leaf_clusters = ocfs2_xattr_tree_fill_max_leaf_clusters,
+ 
++/*
++ * Operations for a specific extent tree type.
++ *
++ * To implement an on-disk btree (extent tree) type in ocfs2, add
++ * an ocfs2_extent_tree_operations structure and the matching
++ * ocfs2_get_<thingy>_extent_tree() function.  That's pretty much it
++ * for the allocation portion of the extent tree.
++ */
+ struct ocfs2_extent_tree_operations {
++	/*
++	 * last_eb_blk is the block number of the right most leaf extent
++	 * block.  Most on-disk structures containing an extent tree store
++	 * this value for fast access.  The ->eo_set_last_eb_blk() and
++	 * ->eo_get_last_eb_blk() operations access this value.  They are
++	 *  both required.
++	 */
+ 	void (*eo_set_last_eb_blk)(struct ocfs2_extent_tree *et,
+ 				   u64 blkno);
+ 	u64 (*eo_get_last_eb_blk)(struct ocfs2_extent_tree *et);
++
++	/*
++	 * The on-disk structure usually keeps track of how many total
++	 * clusters are stored in this extent tree.  This function updates
++	 * that value.  new_clusters is the delta, and must be
++	 * added to the total.  Required.
++	 */
+ 	void (*eo_update_clusters)(struct inode *inode,
+ 				   struct ocfs2_extent_tree *et,
+ 				   u32 new_clusters);
++
++	/*
++	 * If ->eo_insert_check() exists, it is called before rec is
++	 * inserted into the extent tree.  It is optional.
++	 */
+ 	int (*eo_insert_check)(struct inode *inode,
+ 			       struct ocfs2_extent_tree *et,
+ 			       struct ocfs2_extent_rec *rec);
+ 	int (*eo_sanity_check)(struct inode *inode, struct ocfs2_extent_tree *et);
+ 
+-	/* These are internal to ocfs2_extent_tree and don't have
+-	 * accessor functions */
++	/*
++	 * --------------------------------------------------------------
++	 * The remaining are internal to ocfs2_extent_tree and don't have
++	 * accessor functions
++	 */
++
++	/*
++	 * ->eo_fill_root_el() takes et->et_object and sets et->et_root_el.
++	 * It is required.
++	 */
+ 	void (*eo_fill_root_el)(struct ocfs2_extent_tree *et);
++
++	/*
++	 * ->eo_fill_max_leaf_clusters sets et->et_max_leaf_clusters if
++	 * it exists.  If it does not, et->et_max_leaf_clusters is set
++	 * to 0 (unlimited).  Optional.
++	 */
+ 	void (*eo_fill_max_leaf_clusters)(struct inode *inode,
+ 					  struct ocfs2_extent_tree *et);
  };
- 
--static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
--				  struct inode *inode,
--				  struct buffer_head *bh,
--				  enum ocfs2_extent_tree_type et_type,
--				  void *obj)
-+static void __ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
-+				    struct inode *inode,
-+				    struct buffer_head *bh,
-+				    void *obj,
-+				    enum ocfs2_extent_tree_type et_type,
-+				    struct ocfs2_extent_tree_operations *ops)
- {
- 	et->et_type = et_type;
-+	et->et_ops = ops;
- 	get_bh(bh);
- 	et->et_root_bh = bh;
- 	if (!obj)
- 		obj = (void *)bh->b_data;
- 	et->et_object = obj;
- 
--	if (et_type == OCFS2_DINODE_EXTENT) {
--		et->et_ops = &ocfs2_dinode_et_ops;
--	} else if (et_type == OCFS2_XATTR_VALUE_EXTENT) {
--		et->et_ops = &ocfs2_xattr_et_ops;
--	} else if (et_type == OCFS2_XATTR_TREE_EXTENT) {
--		et->et_ops = &ocfs2_xattr_tree_et_ops;
--	}
--
- 	et->et_ops->eo_fill_root_el(et);
- 	if (!et->et_ops->eo_fill_max_leaf_clusters)
- 		et->et_max_leaf_clusters = 0;
-@@ -284,6 +278,49 @@ static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
- 		et->et_ops->eo_fill_max_leaf_clusters(inode, et);
- }
- 
-+static void ocfs2_get_dinode_extent_tree(struct ocfs2_extent_tree *et,
-+					 struct inode *inode,
-+					 struct buffer_head *bh)
-+{
-+	__ocfs2_get_extent_tree(et, inode, bh, NULL, OCFS2_DINODE_EXTENT,
-+				&ocfs2_dinode_et_ops);
-+}
-+
-+static void ocfs2_get_xattr_tree_extent_tree(struct ocfs2_extent_tree *et,
-+					     struct inode *inode,
-+					     struct buffer_head *bh)
-+{
-+	__ocfs2_get_extent_tree(et, inode, bh, NULL,
-+				OCFS2_XATTR_TREE_EXTENT,
-+				&ocfs2_xattr_tree_et_ops);
-+}
-+
-+static void ocfs2_get_xattr_value_extent_tree(struct ocfs2_extent_tree *et,
-+					     struct inode *inode,
-+					     struct buffer_head *bh,
-+					     struct ocfs2_xattr_value_root *xv)
-+{
-+	__ocfs2_get_extent_tree(et, inode, bh, xv,
-+				OCFS2_XATTR_VALUE_EXTENT,
-+				&ocfs2_xattr_value_et_ops);
-+}
-+
-+static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
-+				  struct inode *inode,
-+				  struct buffer_head *bh,
-+				  enum ocfs2_extent_tree_type et_type,
-+				  void *obj)
-+{
-+	if (et_type == OCFS2_DINODE_EXTENT)
-+		ocfs2_get_dinode_extent_tree(et, inode, bh);
-+	else if (et_type == OCFS2_XATTR_VALUE_EXTENT)
-+		ocfs2_get_xattr_tree_extent_tree(et, inode, bh);
-+	else if (et_type == OCFS2_XATTR_TREE_EXTENT)
-+		ocfs2_get_xattr_value_extent_tree(et, inode, bh, obj);
-+	else
-+		BUG();
-+}
-+
- static void ocfs2_put_extent_tree(struct ocfs2_extent_tree *et)
- {
- 	brelse(et->et_root_bh);
-@@ -4441,8 +4478,7 @@ int ocfs2_dinode_insert_extent(struct ocfs2_super *osb,
- 	int status;
- 	struct ocfs2_extent_tree et;
- 
--	ocfs2_get_extent_tree(&et, inode, root_bh, OCFS2_DINODE_EXTENT,
--			      NULL);
-+	ocfs2_get_dinode_extent_tree(&et, inode, root_bh);
- 	status = ocfs2_insert_extent(osb, handle, inode, root_bh,
- 				     cpos, start_blk, new_clusters,
- 				     flags, meta_ac, &et);
-@@ -4460,13 +4496,12 @@ int ocfs2_xattr_value_insert_extent(struct ocfs2_super *osb,
- 				    u32 new_clusters,
- 				    u8 flags,
- 				    struct ocfs2_alloc_context *meta_ac,
--				    void *obj)
-+				    struct ocfs2_xattr_value_root *xv)
- {
- 	int status;
- 	struct ocfs2_extent_tree et;
- 
--	ocfs2_get_extent_tree(&et, inode, root_bh,
--			      OCFS2_XATTR_VALUE_EXTENT, obj);
-+	ocfs2_get_xattr_value_extent_tree(&et, inode, root_bh, xv);
- 	status = ocfs2_insert_extent(osb, handle, inode, root_bh,
- 				     cpos, start_blk, new_clusters,
- 				     flags, meta_ac, &et);
-@@ -4488,8 +4523,7 @@ int ocfs2_xattr_tree_insert_extent(struct ocfs2_super *osb,
- 	int status;
- 	struct ocfs2_extent_tree et;
- 
--	ocfs2_get_extent_tree(&et, inode, root_bh, OCFS2_XATTR_TREE_EXTENT,
--			      NULL);
-+	ocfs2_get_xattr_tree_extent_tree(&et, inode, root_bh);
- 	status = ocfs2_insert_extent(osb, handle, inode, root_bh,
- 				     cpos, start_blk, new_clusters,
- 				     flags, meta_ac, &et);
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index ff40c8f..04a551f 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -56,7 +56,7 @@ int ocfs2_xattr_value_insert_extent(struct ocfs2_super *osb,
- 				    u32 new_clusters,
- 				    u8 flags,
- 				    struct ocfs2_alloc_context *meta_ac,
--				    void *private);
-+				    struct ocfs2_xattr_value_root *xv);
- int ocfs2_xattr_tree_insert_extent(struct ocfs2_super *osb,
- 				   handle_t *handle,
- 				   struct inode *inode,
 -- 
 1.5.4.5
