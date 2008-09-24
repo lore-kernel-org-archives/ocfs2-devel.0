@@ -1,97 +1,43 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:01:13 -0700
-Subject: [Ocfs2-devel] [PATCH 32/39] ocfs2: Comment struct
-	ocfs2_extent_tree_operations.
+Date: Wed, 24 Sep 2008 15:01:20 -0700
+Subject: [Ocfs2-devel] [PATCH 39/39] ocfs2: Add xattr mount option in
+	ocfs2_show_options()
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-33-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-40-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
+Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>
 
-From: Joel Becker <joel.becker@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
 
-struct ocfs2_extent_tree_operations provides methods for the different
-on-disk btrees in ocfs2.  Describing what those methods do is probably a
-good idea.
+Patch adds check for [no]user_xattr in ocfs2_show_options() that completes
+the list of all mount options.
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/alloc.c |   45 +++++++++++++++++++++++++++++++++++++++++++--
- 1 files changed, 43 insertions(+), 2 deletions(-)
+ fs/ocfs2/super.c |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index d196d40..51c3183 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -50,21 +50,62 @@
- #include "buffer_head_io.h"
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 39f6238..6b4b86e 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1010,6 +1010,11 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
+ 		seq_printf(s, ",cluster_stack=%.*s", OCFS2_STACK_LABEL_LEN,
+ 			   osb->osb_cluster_stack);
  
++	if (opts & OCFS2_MOUNT_NOUSERXATTR)
++		seq_printf(s, ",nouser_xattr");
++	else
++		seq_printf(s, ",user_xattr");
++
+ 	if (opts & OCFS2_MOUNT_INODE64)
+ 		seq_printf(s, ",inode64");
  
-+/*
-+ * Operations for a specific extent tree type.
-+ *
-+ * To implement an on-disk btree (extent tree) type in ocfs2, add
-+ * an ocfs2_extent_tree_operations structure and the matching
-+ * ocfs2_get_<thingy>_extent_tree() function.  That's pretty much it
-+ * for the allocation portion of the extent tree.
-+ */
- struct ocfs2_extent_tree_operations {
-+	/*
-+	 * last_eb_blk is the block number of the right most leaf extent
-+	 * block.  Most on-disk structures containing an extent tree store
-+	 * this value for fast access.  The ->eo_set_last_eb_blk() and
-+	 * ->eo_get_last_eb_blk() operations access this value.  They are
-+	 *  both required.
-+	 */
- 	void (*eo_set_last_eb_blk)(struct ocfs2_extent_tree *et,
- 				   u64 blkno);
- 	u64 (*eo_get_last_eb_blk)(struct ocfs2_extent_tree *et);
-+
-+	/*
-+	 * The on-disk structure usually keeps track of how many total
-+	 * clusters are stored in this extent tree.  This function updates
-+	 * that value.  new_clusters is the delta, and must be
-+	 * added to the total.  Required.
-+	 */
- 	void (*eo_update_clusters)(struct inode *inode,
- 				   struct ocfs2_extent_tree *et,
- 				   u32 new_clusters);
-+
-+	/*
-+	 * If ->eo_insert_check() exists, it is called before rec is
-+	 * inserted into the extent tree.  It is optional.
-+	 */
- 	int (*eo_insert_check)(struct inode *inode,
- 			       struct ocfs2_extent_tree *et,
- 			       struct ocfs2_extent_rec *rec);
- 	int (*eo_sanity_check)(struct inode *inode, struct ocfs2_extent_tree *et);
- 
--	/* These are internal to ocfs2_extent_tree and don't have
--	 * accessor functions */
-+	/*
-+	 * --------------------------------------------------------------
-+	 * The remaining are internal to ocfs2_extent_tree and don't have
-+	 * accessor functions
-+	 */
-+
-+	/*
-+	 * ->eo_fill_root_el() takes et->et_object and sets et->et_root_el.
-+	 * It is required.
-+	 */
- 	void (*eo_fill_root_el)(struct ocfs2_extent_tree *et);
-+
-+	/*
-+	 * ->eo_fill_max_leaf_clusters sets et->et_max_leaf_clusters if
-+	 * it exists.  If it does not, et->et_max_leaf_clusters is set
-+	 * to 0 (unlimited).  Optional.
-+	 */
- 	void (*eo_fill_max_leaf_clusters)(struct inode *inode,
- 					  struct ocfs2_extent_tree *et);
- };
 -- 
 1.5.4.5
