@@ -1,95 +1,59 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:00:51 -0700
-Subject: [Ocfs2-devel] [PATCH 10/39] ocfs2: Add helper function in
-	uptodate.c for removing xattr clusters
+Date: Wed, 24 Sep 2008 15:01:02 -0700
+Subject: [Ocfs2-devel] [PATCH 21/39] ocfs2: fix printk format warnings
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-11-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-22-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Tao Ma <tao.ma@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
 
-From: Tao Ma <tao.ma@oracle.com>
+This patch fixes the following build warnings:
 
-The old uptodate only handles the issue of removing one buffer_head from
-ocfs2 inode's buffer cache. With xattr clusters, we may need to remove
-multiple buffer_head's at a time.
+fs/ocfs2/xattr.c: In function 'ocfs2_half_xattr_bucket':
+fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 7 has type 'long int'
+fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 8 has type 'long int'
+fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 7 has type 'long int'
+fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 8 has type 'long int'
+fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 7 has type 'long int'
+fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 8 has type 'long int'
+fs/ocfs2/xattr.c: In function 'ocfs2_xattr_set_entry_in_bucket':
+fs/ocfs2/xattr.c:4092: warning: format '%d' expects type 'int', but argument 6 has type 'size_t'
+fs/ocfs2/xattr.c:4092: warning: format '%d' expects type 'int', but argument 6 has type 'size_t'
+fs/ocfs2/xattr.c:4092: warning: format '%d' expects type 'int', but argument 6 has type 'size_t'
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/uptodate.c |   32 ++++++++++++++++++++++++++------
- fs/ocfs2/uptodate.h |    3 +++
- 2 files changed, 29 insertions(+), 6 deletions(-)
+ fs/ocfs2/xattr.c |    7 ++++---
+ 1 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/uptodate.c b/fs/ocfs2/uptodate.c
-index 4da8851..e26459e 100644
---- a/fs/ocfs2/uptodate.c
-+++ b/fs/ocfs2/uptodate.c
-@@ -511,14 +511,10 @@ static void ocfs2_remove_metadata_tree(struct ocfs2_caching_info *ci,
- 	ci->ci_num_cached--;
- }
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 090449f..1b349c7 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -3264,7 +3264,8 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
+ 	xe = &xh->xh_entries[start];
+ 	len = sizeof(struct ocfs2_xattr_entry) * (count - start);
+ 	mlog(0, "mv xattr entry len %d from %d to %d\n", len,
+-	     (char *)xe - (char *)xh, (char *)xh->xh_entries - (char *)xh);
++	     (int)((char *)xe - (char *)xh),
++	     (int)((char *)xh->xh_entries - (char *)xh));
+ 	memmove((char *)xh->xh_entries, (char *)xe, len);
+ 	xe = &xh->xh_entries[count - start];
+ 	len = sizeof(struct ocfs2_xattr_entry) * start;
+@@ -4073,8 +4074,8 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
+ 	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
  
--/* Called when we remove a chunk of metadata from an inode. We don't
-- * bother reverting things to an inlined array in the case of a remove
-- * which moves us back under the limit. */
--void ocfs2_remove_from_cache(struct inode *inode,
--			     struct buffer_head *bh)
-+static void ocfs2_remove_block_from_cache(struct inode *inode,
-+					  sector_t block)
- {
- 	int index;
--	sector_t block = bh->b_blocknr;
- 	struct ocfs2_meta_cache_item *item = NULL;
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct ocfs2_caching_info *ci = &oi->ip_metadata_cache;
-@@ -544,6 +540,30 @@ void ocfs2_remove_from_cache(struct inode *inode,
- 		kmem_cache_free(ocfs2_uptodate_cachep, item);
- }
+-	mlog(0, "Set xattr entry len = %d index = %d in bucket %llu\n",
+-	     xi->value_len, xi->name_index,
++	mlog(0, "Set xattr entry len = %lu index = %d in bucket %llu\n",
++	     (unsigned long)xi->value_len, xi->name_index,
+ 	     (unsigned long long)xs->bucket.bhs[0]->b_blocknr);
  
-+/*
-+ * Called when we remove a chunk of metadata from an inode. We don't
-+ * bother reverting things to an inlined array in the case of a remove
-+ * which moves us back under the limit.
-+ */
-+void ocfs2_remove_from_cache(struct inode *inode,
-+			     struct buffer_head *bh)
-+{
-+	sector_t block = bh->b_blocknr;
-+
-+	ocfs2_remove_block_from_cache(inode, block);
-+}
-+
-+/* Called when we remove xattr clusters from an inode. */
-+void ocfs2_remove_xattr_clusters_from_cache(struct inode *inode,
-+					    sector_t block,
-+					    u32 c_len)
-+{
-+	u64 i, b_len = ocfs2_clusters_to_blocks(inode->i_sb, 1) * c_len;
-+
-+	for (i = 0; i < b_len; i++, block++)
-+		ocfs2_remove_block_from_cache(inode, block);
-+}
-+
- int __init init_ocfs2_uptodate_cache(void)
- {
- 	ocfs2_uptodate_cachep = kmem_cache_create("ocfs2_uptodate",
-diff --git a/fs/ocfs2/uptodate.h b/fs/ocfs2/uptodate.h
-index 2e73206..531b4b3 100644
---- a/fs/ocfs2/uptodate.h
-+++ b/fs/ocfs2/uptodate.h
-@@ -40,6 +40,9 @@ void ocfs2_set_new_buffer_uptodate(struct inode *inode,
- 				   struct buffer_head *bh);
- void ocfs2_remove_from_cache(struct inode *inode,
- 			     struct buffer_head *bh);
-+void ocfs2_remove_xattr_clusters_from_cache(struct inode *inode,
-+					    sector_t block,
-+					    u32 c_len);
- int ocfs2_buffer_read_ahead(struct inode *inode,
- 			    struct buffer_head *bh);
- 
+ 	if (!xs->bucket.bhs[1]) {
 -- 
 1.5.4.5
