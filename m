@@ -1,59 +1,158 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:01:02 -0700
-Subject: [Ocfs2-devel] [PATCH 21/39] ocfs2: fix printk format warnings
+Date: Wed, 24 Sep 2008 15:01:01 -0700
+Subject: [Ocfs2-devel] [PATCH 20/39] ocfs2: Add incompatible flag for
+	extended attribute
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-22-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-21-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
+Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Tiger Yang <tiger.yang@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-This patch fixes the following build warnings:
+From: Tiger Yang <tiger.yang@oracle.com>
 
-fs/ocfs2/xattr.c: In function 'ocfs2_half_xattr_bucket':
-fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 7 has type 'long int'
-fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 8 has type 'long int'
-fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 7 has type 'long int'
-fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 8 has type 'long int'
-fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 7 has type 'long int'
-fs/ocfs2/xattr.c:3282: warning: format '%d' expects type 'int', but argument 8 has type 'long int'
-fs/ocfs2/xattr.c: In function 'ocfs2_xattr_set_entry_in_bucket':
-fs/ocfs2/xattr.c:4092: warning: format '%d' expects type 'int', but argument 6 has type 'size_t'
-fs/ocfs2/xattr.c:4092: warning: format '%d' expects type 'int', but argument 6 has type 'size_t'
-fs/ocfs2/xattr.c:4092: warning: format '%d' expects type 'int', but argument 6 has type 'size_t'
+This patch adds the s_incompat flag for extended attribute support. This
+helps us ensure that older versions of Ocfs2 or ocfs2-tools will not be able
+to mount a volume with xattr support.
 
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |    7 ++++---
- 1 files changed, 4 insertions(+), 3 deletions(-)
+ fs/ocfs2/ocfs2.h    |    7 +++++++
+ fs/ocfs2/ocfs2_fs.h |   19 +++++++++++++------
+ fs/ocfs2/super.c    |    3 ++-
+ fs/ocfs2/xattr.c    |   12 ++++++++++++
+ 4 files changed, 34 insertions(+), 7 deletions(-)
 
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index cae0dd4..6d3c10d 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -363,6 +363,13 @@ static inline int ocfs2_supports_inline_data(struct ocfs2_super *osb)
+ 	return 0;
+ }
+ 
++static inline int ocfs2_supports_xattr(struct ocfs2_super *osb)
++{
++	if (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_XATTR)
++		return 1;
++	return 0;
++}
++
+ /* set / clear functions because cluster events can make these happen
+  * in parallel so we want the transitions to be atomic. this also
+  * means that any future flags osb_flags must be protected by spinlock
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 8d5e72f..f24ce3d 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -91,7 +91,8 @@
+ 					 | OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC \
+ 					 | OCFS2_FEATURE_INCOMPAT_INLINE_DATA \
+ 					 | OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP \
+-					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK)
++					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK \
++					 | OCFS2_FEATURE_INCOMPAT_XATTR)
+ #define OCFS2_FEATURE_RO_COMPAT_SUPP	OCFS2_FEATURE_RO_COMPAT_UNWRITTEN
+ 
+ /*
+@@ -128,10 +129,6 @@
+ /* Support for data packed into inode blocks */
+ #define OCFS2_FEATURE_INCOMPAT_INLINE_DATA	0x0040
+ 
+-/* Support for the extended slot map */
+-#define OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP 0x100
+-
+-
+ /*
+  * Support for alternate, userspace cluster stacks.  If set, the superblock
+  * field s_cluster_info contains a tag for the alternate stack in use as
+@@ -143,6 +140,12 @@
+  */
+ #define OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK	0x0080
+ 
++/* Support for the extended slot map */
++#define OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP 0x100
++
++/* Support for extended attributes */
++#define OCFS2_FEATURE_INCOMPAT_XATTR		0x0200
++
+ /*
+  * backup superblock flag is used to indicate that this volume
+  * has backup superblocks.
+@@ -578,7 +581,11 @@ struct ocfs2_super_block {
+ /*A0*/  struct ocfs2_cluster_info s_cluster_info; /* Selected userspace
+ 						     stack.  Only valid
+ 						     with INCOMPAT flag. */
+-/*B8*/  __le64 s_reserved2[17];		/* Fill out superblock */
++/*B8*/	__le16 s_xattr_inline_size;	/* extended attribute inline size
++					   for this fs*/
++	__le16 s_reserved0;
++	__le32 s_reserved1;
++/*C0*/  __le64 s_reserved2[16];		/* Fill out superblock */
+ /*140*/
+ 
+ 	/*
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 67e7e77..973d99f 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1437,7 +1437,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 
+ 	osb->slot_num = OCFS2_INVALID_SLOT;
+ 
+-	osb->s_xattr_inline_size = OCFS2_MIN_XATTR_INLINE_SIZE;
++	osb->s_xattr_inline_size = le16_to_cpu(
++					di->id2.i_super.s_xattr_inline_size);
+ 
+ 	osb->local_alloc_state = OCFS2_LA_UNUSED;
+ 	osb->local_alloc_bh = NULL;
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 090449f..1b349c7 100644
+index 9ec7136..090449f 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -3264,7 +3264,8 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
- 	xe = &xh->xh_entries[start];
- 	len = sizeof(struct ocfs2_xattr_entry) * (count - start);
- 	mlog(0, "mv xattr entry len %d from %d to %d\n", len,
--	     (char *)xe - (char *)xh, (char *)xh->xh_entries - (char *)xh);
-+	     (int)((char *)xe - (char *)xh),
-+	     (int)((char *)xh->xh_entries - (char *)xh));
- 	memmove((char *)xh->xh_entries, (char *)xe, len);
- 	xe = &xh->xh_entries[count - start];
- 	len = sizeof(struct ocfs2_xattr_entry) * start;
-@@ -4073,8 +4074,8 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
- 	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+@@ -564,6 +564,9 @@ ssize_t ocfs2_listxattr(struct dentry *dentry,
+ 	struct ocfs2_dinode *di = NULL;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(dentry->d_inode);
  
--	mlog(0, "Set xattr entry len = %d index = %d in bucket %llu\n",
--	     xi->value_len, xi->name_index,
-+	mlog(0, "Set xattr entry len = %lu index = %d in bucket %llu\n",
-+	     (unsigned long)xi->value_len, xi->name_index,
- 	     (unsigned long long)xs->bucket.bhs[0]->b_blocknr);
++	if (!ocfs2_supports_xattr(OCFS2_SB(dentry->d_sb)))
++		return -EOPNOTSUPP;
++
+ 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
+ 		return ret;
  
- 	if (!xs->bucket.bhs[1]) {
+@@ -843,6 +846,9 @@ int ocfs2_xattr_get(struct inode *inode,
+ 		.not_found = -ENODATA,
+ 	};
+ 
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return -EOPNOTSUPP;
++
+ 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
+ 		ret = -ENODATA;
+ 
+@@ -1541,6 +1547,9 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ 	handle_t *handle;
+ 	int ret;
+ 
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return 0;
++
+ 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
+ 		return 0;
+ 
+@@ -1977,6 +1986,9 @@ int ocfs2_xattr_set(struct inode *inode,
+ 		.not_found = -ENODATA,
+ 	};
+ 
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return -EOPNOTSUPP;
++
+ 	ret = ocfs2_inode_lock(inode, &di_bh, 1);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
 -- 
 1.5.4.5
