@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:01:08 -0700
-Subject: [Ocfs2-devel] [PATCH 27/39] ocfs2: Use struct ocfs2_extent_tree in
-	ocfs2_num_free_extents().
+Date: Wed, 24 Sep 2008 15:01:09 -0700
+Subject: [Ocfs2-devel] [PATCH 28/39] ocfs2: Determine an extent tree's
+	max_leaf_clusters in an et_op.
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-28-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-29-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,69 +14,75 @@ Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kerne
 
 From: Joel Becker <joel.becker@oracle.com>
 
-ocfs2_num_free_extents() re-implements the logic of
-ocfs2_get_extent_tree().  Now that ocfs2_get_extent_tree() does not
-allocate, let's use it in ocfs2_num_free_extents() to simplify the code.
-
-The inode validation code in ocfs2_num_free_extents() is not needed.
-All callers are passing in pre-validated inodes.
+Provide an optional extent_tree_operation to specify the
+max_leaf_clusters of an ocfs2_extent_tree.  If not provided, the value
+is 0 (unlimited).
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/alloc.c |   30 +++++-------------------------
- 1 files changed, 5 insertions(+), 25 deletions(-)
+ fs/ocfs2/alloc.c |   18 +++++++++++++++---
+ 1 files changed, 15 insertions(+), 3 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index fb6ae67..0b900f6 100644
+index 0b900f6..7c0721d 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -618,34 +618,13 @@ int ocfs2_num_free_extents(struct ocfs2_super *osb,
- 	struct ocfs2_extent_block *eb;
- 	struct buffer_head *eb_bh = NULL;
- 	u64 last_eb_blk = 0;
-+	struct ocfs2_extent_tree et;
+@@ -76,6 +76,8 @@ struct ocfs2_extent_tree_operations {
+ 	/* These are internal to ocfs2_extent_tree and don't have
+ 	 * accessor functions */
+ 	void (*eo_fill_root_el)(struct ocfs2_extent_tree *et);
++	void (*eo_fill_max_leaf_clusters)(struct inode *inode,
++					  struct ocfs2_extent_tree *et);
+ };
  
- 	mlog_entry_void();
- 
--	if (type == OCFS2_DINODE_EXTENT) {
--		struct ocfs2_dinode *fe =
--				(struct ocfs2_dinode *)root_bh->b_data;
--		if (!OCFS2_IS_VALID_DINODE(fe)) {
--			OCFS2_RO_ON_INVALID_DINODE(inode->i_sb, fe);
--			retval = -EIO;
--			goto bail;
--		}
--
--		if (fe->i_last_eb_blk)
--			last_eb_blk = le64_to_cpu(fe->i_last_eb_blk);
--		el = &fe->id2.i_list;
--	} else if (type == OCFS2_XATTR_VALUE_EXTENT) {
--		struct ocfs2_xattr_value_root *xv =
--			(struct ocfs2_xattr_value_root *) obj;
--
--		last_eb_blk = le64_to_cpu(xv->xr_last_eb_blk);
--		el = &xv->xr_list;
--	} else if (type == OCFS2_XATTR_TREE_EXTENT) {
--		struct ocfs2_xattr_block *xb =
--			(struct ocfs2_xattr_block *)root_bh->b_data;
--
--		last_eb_blk = le64_to_cpu(xb->xb_attrs.xb_root.xt_last_eb_blk);
--		el = &xb->xb_attrs.xb_root.xt_list;
--	}
-+	ocfs2_get_extent_tree(&et, inode, root_bh, type, obj);
-+	el = et.et_root_el;
-+	last_eb_blk = ocfs2_et_get_last_eb_blk(&et);
- 
- 	if (last_eb_blk) {
- 		retval = ocfs2_read_block(osb, last_eb_blk,
-@@ -665,6 +644,7 @@ bail:
- 	if (eb_bh)
- 		brelse(eb_bh);
- 
-+	ocfs2_put_extent_tree(&et);
- 	mlog_exit(retval);
- 	return retval;
+ struct ocfs2_extent_tree {
+@@ -205,6 +207,14 @@ static void ocfs2_xattr_tree_fill_root_el(struct ocfs2_extent_tree *et)
+ 	et->et_root_el = &xb->xb_attrs.xb_root.xt_list;
  }
+ 
++static void ocfs2_xattr_tree_fill_max_leaf_clusters(struct inode *inode,
++						    struct ocfs2_extent_tree *et)
++{
++	et->et_max_leaf_clusters =
++		ocfs2_clusters_for_bytes(inode->i_sb,
++					 OCFS2_MAX_XATTR_TREE_LEAF_SIZE);
++}
++
+ static void ocfs2_xattr_tree_set_last_eb_blk(struct ocfs2_extent_tree *et,
+ 					     u64 blkno)
+ {
+@@ -243,6 +253,7 @@ static struct ocfs2_extent_tree_operations ocfs2_xattr_tree_et_ops = {
+ 	.eo_update_clusters	= ocfs2_xattr_tree_update_clusters,
+ 	.eo_sanity_check	= ocfs2_xattr_tree_sanity_check,
+ 	.eo_fill_root_el	= ocfs2_xattr_tree_fill_root_el,
++	.eo_fill_max_leaf_clusters = ocfs2_xattr_tree_fill_max_leaf_clusters,
+ };
+ 
+ static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
+@@ -254,7 +265,6 @@ static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
+ 	et->et_type = et_type;
+ 	get_bh(bh);
+ 	et->et_root_bh = bh;
+-	et->et_max_leaf_clusters = 0;
+ 	if (!obj)
+ 		obj = (void *)bh->b_data;
+ 	et->et_object = obj;
+@@ -265,11 +275,13 @@ static void ocfs2_get_extent_tree(struct ocfs2_extent_tree *et,
+ 		et->et_ops = &ocfs2_xattr_et_ops;
+ 	} else if (et_type == OCFS2_XATTR_TREE_EXTENT) {
+ 		et->et_ops = &ocfs2_xattr_tree_et_ops;
+-		et->et_max_leaf_clusters = ocfs2_clusters_for_bytes(inode->i_sb,
+-						OCFS2_MAX_XATTR_TREE_LEAF_SIZE);
+ 	}
+ 
+ 	et->et_ops->eo_fill_root_el(et);
++	if (!et->et_ops->eo_fill_max_leaf_clusters)
++		et->et_max_leaf_clusters = 0;
++	else
++		et->et_ops->eo_fill_max_leaf_clusters(inode, et);
+ }
+ 
+ static void ocfs2_put_extent_tree(struct ocfs2_extent_tree *et)
 -- 
 1.5.4.5
