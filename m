@@ -1,128 +1,230 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:01:18 -0700
-Subject: [Ocfs2-devel] [PATCH 37/39] ocfs2: Add the 'inode64' mount option.
+Date: Wed, 24 Sep 2008 15:01:16 -0700
+Subject: [Ocfs2-devel] [PATCH 35/39] ocfs2: Resolve deadlock in
+	ocfs2_xattr_free_block.
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-38-git-send-email-mfasheh@suse.com>
+Message-ID: <1222293680-15451-36-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
+Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Tao Ma <tao.ma@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-From: Joel Becker <joel.becker@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
 
-Now that ocfs2 limits inode numbers to 32bits, add a mount option to
-disable the limit.  This parallels XFS.  64bit systems can handle the
-larger inode numbers.
+In ocfs2_xattr_free_block, we take a cluster lock on xb_alloc_inode while we
+have a transaction open. This will deadlock the downconvert thread, so fix
+it.
 
-[ Added description of inode64 mount option in ocfs2.txt. --Mark ]
+We can clean up how xattr blocks are removed while here - this patch also
+moves the mechanism of releasing xattr block (including both value, xattr
+tree and xattr block) into this function.
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- Documentation/filesystems/ocfs2.txt |    4 ++++
- fs/ocfs2/ocfs2.h                    |    1 +
- fs/ocfs2/suballoc.c                 |    5 +++--
- fs/ocfs2/super.c                    |   17 +++++++++++++++++
- 4 files changed, 25 insertions(+), 2 deletions(-)
+ fs/ocfs2/xattr.c |  152 +++++++++++++++++++++++++++++-------------------------
+ 1 files changed, 82 insertions(+), 70 deletions(-)
 
-diff --git a/Documentation/filesystems/ocfs2.txt b/Documentation/filesystems/ocfs2.txt
-index c318a8b..6acf1b4 100644
---- a/Documentation/filesystems/ocfs2.txt
-+++ b/Documentation/filesystems/ocfs2.txt
-@@ -76,3 +76,7 @@ localalloc=8(*)		Allows custom localalloc size in MB. If the value is too
- 			large, the fs will silently revert it to the default.
- 			Localalloc is not enabled for local mounts.
- localflocks		This disables cluster aware flock.
-+inode64			Indicates that Ocfs2 is allowed to create inodes at
-+			any location in the filesystem, including those which
-+			will result in inode numbers occupying more than 32
-+			bits of significance.
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 6d3c10d..78ae4f8 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -189,6 +189,7 @@ enum ocfs2_mount_options
- 	OCFS2_MOUNT_DATA_WRITEBACK = 1 << 4, /* No data ordering */
- 	OCFS2_MOUNT_LOCALFLOCKS = 1 << 5, /* No cluster aware user file locks */
- 	OCFS2_MOUNT_NOUSERXATTR = 1 << 6, /* No user xattr */
-+	OCFS2_MOUNT_INODE64 = 1 << 7,	/* Allow inode numbers > 2^32 */
- };
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 38e3e5e..b2e25a8 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -1427,51 +1427,6 @@ out:
  
- #define OCFS2_OSB_SOFT_RO	0x0001
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 213bdca..d7a6f92 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -601,9 +601,10 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
- 	/*
- 	 * stat(2) can't handle i_ino > 32bits, so we tell the
- 	 * lower levels not to allocate us a block group past that
--	 * limit.
-+	 * limit.  The 'inode64' mount option avoids this behavior.
- 	 */
--	(*ac)->ac_max_block = (u32)~0U;
-+	if (!(osb->s_mount_opt & OCFS2_MOUNT_INODE64))
-+		(*ac)->ac_max_block = (u32)~0U;
+ }
  
- 	/*
- 	 * slot is set when we successfully steal inode from other nodes.
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 973d99f..f95469c 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -157,6 +157,7 @@ enum {
- 	Opt_stack,
- 	Opt_user_xattr,
- 	Opt_nouser_xattr,
-+	Opt_inode64,
- 	Opt_err,
- };
+-static int ocfs2_xattr_free_block(handle_t *handle,
+-				  struct ocfs2_super *osb,
+-				  struct ocfs2_xattr_block *xb)
+-{
+-	struct inode *xb_alloc_inode;
+-	struct buffer_head *xb_alloc_bh = NULL;
+-	u64 blk = le64_to_cpu(xb->xb_blkno);
+-	u16 bit = le16_to_cpu(xb->xb_suballoc_bit);
+-	u64 bg_blkno = ocfs2_which_suballoc_group(blk, bit);
+-	int ret = 0;
+-
+-	xb_alloc_inode = ocfs2_get_system_file_inode(osb,
+-				EXTENT_ALLOC_SYSTEM_INODE,
+-				le16_to_cpu(xb->xb_suballoc_slot));
+-	if (!xb_alloc_inode) {
+-		ret = -ENOMEM;
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-	mutex_lock(&xb_alloc_inode->i_mutex);
+-
+-	ret = ocfs2_inode_lock(xb_alloc_inode, &xb_alloc_bh, 1);
+-	if (ret < 0) {
+-		mlog_errno(ret);
+-		goto out_mutex;
+-	}
+-	ret = ocfs2_extend_trans(handle, OCFS2_SUBALLOC_FREE);
+-	if (ret < 0) {
+-		mlog_errno(ret);
+-		goto out_unlock;
+-	}
+-	ret = ocfs2_free_suballoc_bits(handle, xb_alloc_inode, xb_alloc_bh,
+-				       bit, bg_blkno, 1);
+-	if (ret < 0)
+-		mlog_errno(ret);
+-out_unlock:
+-	ocfs2_inode_unlock(xb_alloc_inode, 1);
+-	brelse(xb_alloc_bh);
+-out_mutex:
+-	mutex_unlock(&xb_alloc_inode->i_mutex);
+-	iput(xb_alloc_inode);
+-out:
+-	return ret;
+-}
+-
+ static int ocfs2_remove_value_outside(struct inode*inode,
+ 				      struct buffer_head *bh,
+ 				      struct ocfs2_xattr_header *header)
+@@ -1533,6 +1488,84 @@ static int ocfs2_xattr_block_remove(struct inode *inode,
+ 	return ret;
+ }
  
-@@ -178,6 +179,7 @@ static match_table_t tokens = {
- 	{Opt_stack, "cluster_stack=%s"},
- 	{Opt_user_xattr, "user_xattr"},
- 	{Opt_nouser_xattr, "nouser_xattr"},
-+	{Opt_inode64, "inode64"},
- 	{Opt_err, NULL}
- };
- 
-@@ -411,6 +413,15 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
- 		goto out;
- 	}
- 
-+	/* Probably don't want this on remount; it might
-+	 * mess with other nodes */
-+	if (!(osb->s_mount_opt & OCFS2_MOUNT_INODE64) &&
-+	    (parsed_options.mount_opt & OCFS2_MOUNT_INODE64)) {
-+		ret = -EINVAL;
-+		mlog(ML_ERROR, "Cannot enable inode64 on remount\n");
++static int ocfs2_xattr_free_block(struct inode *inode,
++				  u64 block)
++{
++	struct inode *xb_alloc_inode;
++	struct buffer_head *xb_alloc_bh = NULL;
++	struct buffer_head *blk_bh = NULL;
++	struct ocfs2_xattr_block *xb;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	handle_t *handle;
++	int ret = 0;
++	u64 blk, bg_blkno;
++	u16 bit;
++
++	ret = ocfs2_read_block(osb, block, &blk_bh,
++			       OCFS2_BH_CACHED, inode);
++	if (ret < 0) {
++		mlog_errno(ret);
 +		goto out;
 +	}
 +
- 	/* We're going to/from readonly mode. */
- 	if ((*flags & MS_RDONLY) != (sb->s_flags & MS_RDONLY)) {
- 		/* Lock here so the check of HARD_RO and the potential
-@@ -930,6 +941,9 @@ static int ocfs2_parse_options(struct super_block *sb,
- 			       OCFS2_STACK_LABEL_LEN);
- 			mopt->cluster_stack[OCFS2_STACK_LABEL_LEN] = '\0';
- 			break;
-+		case Opt_inode64:
-+			mopt->mount_opt |= OCFS2_MOUNT_INODE64;
-+			break;
- 		default:
- 			mlog(ML_ERROR,
- 			     "Unrecognized mount option \"%s\" "
-@@ -994,6 +1008,9 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
- 		seq_printf(s, ",cluster_stack=%.*s", OCFS2_STACK_LABEL_LEN,
- 			   osb->osb_cluster_stack);
- 
-+	if (opts & OCFS2_MOUNT_INODE64)
-+		seq_printf(s, ",inode64");
++	/*Verify the signature of xattr block*/
++	if (memcmp((void *)blk_bh->b_data, OCFS2_XATTR_BLOCK_SIGNATURE,
++		   strlen(OCFS2_XATTR_BLOCK_SIGNATURE))) {
++		ret = -EFAULT;
++		goto out;
++	}
 +
- 	return 0;
++	ret = ocfs2_xattr_block_remove(inode, blk_bh);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
++	blk = le64_to_cpu(xb->xb_blkno);
++	bit = le16_to_cpu(xb->xb_suballoc_bit);
++	bg_blkno = ocfs2_which_suballoc_group(blk, bit);
++
++	xb_alloc_inode = ocfs2_get_system_file_inode(osb,
++				EXTENT_ALLOC_SYSTEM_INODE,
++				le16_to_cpu(xb->xb_suballoc_slot));
++	if (!xb_alloc_inode) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
++		goto out;
++	}
++	mutex_lock(&xb_alloc_inode->i_mutex);
++
++	ret = ocfs2_inode_lock(xb_alloc_inode, &xb_alloc_bh, 1);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto out_mutex;
++	}
++
++	handle = ocfs2_start_trans(osb, OCFS2_SUBALLOC_FREE);
++	if (IS_ERR(handle)) {
++		ret = PTR_ERR(handle);
++		mlog_errno(ret);
++		goto out_unlock;
++	}
++
++	ret = ocfs2_free_suballoc_bits(handle, xb_alloc_inode, xb_alloc_bh,
++				       bit, bg_blkno, 1);
++	if (ret < 0)
++		mlog_errno(ret);
++
++	ocfs2_commit_trans(osb, handle);
++out_unlock:
++	ocfs2_inode_unlock(xb_alloc_inode, 1);
++	brelse(xb_alloc_bh);
++out_mutex:
++	mutex_unlock(&xb_alloc_inode->i_mutex);
++	iput(xb_alloc_inode);
++out:
++	brelse(blk_bh);
++	return ret;
++}
++
+ /*
+  * ocfs2_xattr_remove()
+  *
+@@ -1540,9 +1573,6 @@ static int ocfs2_xattr_block_remove(struct inode *inode,
+  */
+ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ {
+-	struct ocfs2_xattr_block *xb;
+-	struct buffer_head *blk_bh = NULL;
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+ 	handle_t *handle;
+@@ -1561,22 +1591,10 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ 			goto out;
+ 		}
+ 	}
+-	if (di->i_xattr_loc) {
+-		ret = ocfs2_read_block(OCFS2_SB(inode->i_sb),
+-				       le64_to_cpu(di->i_xattr_loc),
+-				       &blk_bh, OCFS2_BH_CACHED, inode);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			return ret;
+-		}
+-		/*Verify the signature of xattr block*/
+-		if (memcmp((void *)blk_bh->b_data, OCFS2_XATTR_BLOCK_SIGNATURE,
+-			   strlen(OCFS2_XATTR_BLOCK_SIGNATURE))) {
+-			ret = -EFAULT;
+-			goto out;
+-		}
+ 
+-		ret = ocfs2_xattr_block_remove(inode, blk_bh);
++	if (di->i_xattr_loc) {
++		ret = ocfs2_xattr_free_block(inode,
++					     le64_to_cpu(di->i_xattr_loc));
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+ 			goto out;
+@@ -1597,11 +1615,7 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ 		goto out_commit;
+ 	}
+ 
+-	if (di->i_xattr_loc) {
+-		xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
+-		ocfs2_xattr_free_block(handle, osb, xb);
+-		di->i_xattr_loc = cpu_to_le64(0);
+-	}
++	di->i_xattr_loc = 0;
+ 
+ 	spin_lock(&oi->ip_lock);
+ 	oi->ip_dyn_features &= ~(OCFS2_INLINE_XATTR_FL | OCFS2_HAS_XATTR_FL);
+@@ -1614,8 +1628,6 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ out_commit:
+ 	ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
+ out:
+-	brelse(blk_bh);
+-
+ 	return ret;
  }
  
 -- 
