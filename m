@@ -1,798 +1,205 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 24 Sep 2008 15:01:19 -0700
-Subject: [Ocfs2-devel] [PATCH 38/39] ocfs2: Switch over to JBD2.
+From: Marcos E. Matsunaga <Marcos.Matsunaga@oracle.com>
+Date: Fri, 26 Sep 2008 20:12:44 -0400
+Subject: [Ocfs2-devel] [PATCH 0/39] Ocfs2 updates for 2.6.28
 In-Reply-To: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
 References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1222293680-15451-39-git-send-email-mfasheh@suse.com>
+Message-ID: <48DD7A7C.1030204@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org
-Cc: joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
+To: ocfs2-devel@oss.oracle.com
 
-From: Joel Becker <joel.becker@oracle.com>
+Mark,
 
-ocfs2 wants JBD2 for many reasons, not the least of which is that JBD is
-limiting our maximum filesystem size.
+I'll be running tests on these patches next week. I'm refreshing my
+trees right now and will be building the kernel and hopefully getting it
+started tomorrow.
 
-It's a pretty trivial change.  Most functions are just renamed.  The
-only functional change is moving to Jan's inode-based ordered data mode.
-It's better, too.
+Regards,
 
-Because JBD2 reads and writes JBD journals, this is compatible with any
-existing filesystem.  It can even interact with JBD-based ocfs2 as long
-as the journal is formated for JBD.
+Marcos Eduardo Matsunaga
 
-We provide a compatibility option so that paranoid people can still use
-JBD for the time being.  This will go away shortly.
+Oracle USA
+Linux Engineering
 
-[ Moved call of ocfs2_begin_ordered_truncate() from ocfs2_delete_inode() to
-  ocfs2_truncate_for_delete(). --Mark ]
+?The statements and opinions expressed here are my own and do not
+necessarily represent those of Oracle Corporation.?
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
----
- fs/Kconfig                  |   40 +++++++++++++--------
- fs/ocfs2/alloc.c            |   28 ++++++---------
- fs/ocfs2/aops.c             |   21 ++++++++---
- fs/ocfs2/file.c             |   14 +++++--
- fs/ocfs2/inode.c            |    5 +++
- fs/ocfs2/inode.h            |    1 +
- fs/ocfs2/journal.c          |   72 ++++++++++++++++++++------------------
- fs/ocfs2/journal.h          |   25 +++++++++++--
- fs/ocfs2/ocfs2.h            |    7 +++-
- fs/ocfs2/ocfs2_jbd_compat.h |   82 +++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/super.c            |   10 +++--
- fs/ocfs2/uptodate.c         |    6 +++-
- 12 files changed, 227 insertions(+), 84 deletions(-)
- create mode 100644 fs/ocfs2/ocfs2_jbd_compat.h
 
-diff --git a/fs/Kconfig b/fs/Kconfig
-index abccb5d..e651a36 100644
---- a/fs/Kconfig
-+++ b/fs/Kconfig
-@@ -206,17 +206,16 @@ config JBD
- 	tristate
- 	help
- 	  This is a generic journalling layer for block devices.  It is
--	  currently used by the ext3 and OCFS2 file systems, but it could
--	  also be used to add journal support to other file systems or block
-+	  currently used by the ext3 file system, but it could also be
-+	  used to add journal support to other file systems or block
- 	  devices such as RAID or LVM.
- 
--	  If you are using the ext3 or OCFS2 file systems, you need to
--	  say Y here. If you are not using ext3 OCFS2 then you will probably
--	  want to say N.
-+	  If you are using the ext3 file system, you need to say Y here.
-+	  If you are not using ext3 then you will probably want to say N.
- 
- 	  To compile this device as a module, choose M here: the module will be
--	  called jbd.  If you are compiling ext3 or OCFS2 into the kernel,
--	  you cannot compile this code as a module.
-+	  called jbd.  If you are compiling ext3 into the kernel, you
-+	  cannot compile this code as a module.
- 
- config JBD_DEBUG
- 	bool "JBD (ext3) debugging support"
-@@ -240,16 +239,17 @@ config JBD2
- 	help
- 	  This is a generic journaling layer for block devices that support
- 	  both 32-bit and 64-bit block numbers.  It is currently used by
--	  the ext4dev/ext4 filesystem, but it could also be used to add
--	  journal support to other file systems or block devices such
--	  as RAID or LVM.
-+	  the ext4dev/ext4 and OCFS2 filesystems, but it could also be
-+	  used to add journal support to other file systems or block
-+	  devices such as RAID or LVM.
- 
--	  If you are using ext4dev/ext4, you need to say Y here. If you are not
--	  using ext4dev/ext4 then you will probably want to say N.
-+	  If you are using ext4dev/ext4 or OCFS2, you need to say Y here.
-+	  If you are not using ext4dev/ext4 or OCFS2 then you will
-+	  probably want to say N.
- 
- 	  To compile this device as a module, choose M here. The module will be
--	  called jbd2.  If you are compiling ext4dev/ext4 into the kernel,
--	  you cannot compile this code as a module.
-+	  called jbd2.  If you are compiling ext4dev/ext4 or OCFS2 into the
-+	  kernel, you cannot compile this code as a module.
- 
- config JBD2_DEBUG
- 	bool "JBD2 (ext4dev/ext4) debugging support"
-@@ -426,7 +426,7 @@ config OCFS2_FS
- 	tristate "OCFS2 file system support"
- 	depends on NET && SYSFS
- 	select CONFIGFS_FS
--	select JBD
-+	select JBD2
- 	select CRC32
- 	help
- 	  OCFS2 is a general purpose extent based shared disk cluster file
-@@ -497,6 +497,16 @@ config OCFS2_DEBUG_FS
- 	  this option for debugging only as it is likely to decrease
- 	  performance of the filesystem.
- 
-+config OCFS2_COMPAT_JBD
-+	bool "Use JBD for compatibility"
-+	depends on OCFS2_FS
-+	default n
-+	select JBD
-+	help
-+	  The ocfs2 filesystem now uses JBD2 for its journalling.  JBD2
-+	  is backwards compatible with JBD.  It is safe to say N here.
-+	  However, if you really want to use the original JBD, say Y here.
-+
- endif # BLOCK
- 
- config DNOTIFY
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 5f44ef8..57701d1 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -6430,20 +6430,13 @@ bail:
- 	return status;
- }
- 
--static int ocfs2_writeback_zero_func(handle_t *handle, struct buffer_head *bh)
-+static int ocfs2_zero_func(handle_t *handle, struct buffer_head *bh)
- {
- 	set_buffer_uptodate(bh);
- 	mark_buffer_dirty(bh);
- 	return 0;
- }
- 
--static int ocfs2_ordered_zero_func(handle_t *handle, struct buffer_head *bh)
--{
--	set_buffer_uptodate(bh);
--	mark_buffer_dirty(bh);
--	return ocfs2_journal_dirty_data(handle, bh);
--}
--
- static void ocfs2_map_and_dirty_page(struct inode *inode, handle_t *handle,
- 				     unsigned int from, unsigned int to,
- 				     struct page *page, int zero, u64 *phys)
-@@ -6462,17 +6455,18 @@ static void ocfs2_map_and_dirty_page(struct inode *inode, handle_t *handle,
- 	 * here if they aren't - ocfs2_map_page_blocks()
- 	 * might've skipped some
- 	 */
--	if (ocfs2_should_order_data(inode)) {
--		ret = walk_page_buffers(handle,
--					page_buffers(page),
--					from, to, &partial,
--					ocfs2_ordered_zero_func);
--		if (ret < 0)
--			mlog_errno(ret);
--	} else {
-+	ret = walk_page_buffers(handle, page_buffers(page),
-+				from, to, &partial,
-+				ocfs2_zero_func);
-+	if (ret < 0)
-+		mlog_errno(ret);
-+	else if (ocfs2_should_order_data(inode)) {
-+		ret = ocfs2_jbd2_file_inode(handle, inode);
-+#ifdef CONFIG_OCFS2_COMPAT_JBD
- 		ret = walk_page_buffers(handle, page_buffers(page),
- 					from, to, &partial,
--					ocfs2_writeback_zero_func);
-+					ocfs2_journal_dirty_data);
-+#endif
- 		if (ret < 0)
- 			mlog_errno(ret);
- 	}
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 259775e..de17905 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -485,11 +485,14 @@ handle_t *ocfs2_start_walk_page_trans(struct inode *inode,
- 	}
- 
- 	if (ocfs2_should_order_data(inode)) {
-+		ret = ocfs2_jbd2_file_inode(handle, inode);
-+#ifdef CONFIG_OCFS2_COMPAT_JBD
- 		ret = walk_page_buffers(handle,
- 					page_buffers(page),
- 					from, to, NULL,
- 					ocfs2_journal_dirty_data);
--		if (ret < 0) 
-+#endif
-+		if (ret < 0)
- 			mlog_errno(ret);
- 	}
- out:
-@@ -669,7 +672,7 @@ static void ocfs2_invalidatepage(struct page *page, unsigned long offset)
- {
- 	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
- 
--	journal_invalidatepage(journal, page, offset);
-+	jbd2_journal_invalidatepage(journal, page, offset);
- }
- 
- static int ocfs2_releasepage(struct page *page, gfp_t wait)
-@@ -678,7 +681,7 @@ static int ocfs2_releasepage(struct page *page, gfp_t wait)
- 
- 	if (!page_has_buffers(page))
- 		return 0;
--	return journal_try_to_free_buffers(journal, page, wait);
-+	return jbd2_journal_try_to_free_buffers(journal, page, wait);
- }
- 
- static ssize_t ocfs2_direct_IO(int rw,
-@@ -1074,11 +1077,15 @@ static void ocfs2_write_failure(struct inode *inode,
- 		tmppage = wc->w_pages[i];
- 
- 		if (page_has_buffers(tmppage)) {
--			if (ocfs2_should_order_data(inode))
-+			if (ocfs2_should_order_data(inode)) {
-+				ocfs2_jbd2_file_inode(wc->w_handle, inode);
-+#ifdef CONFIG_OCFS2_COMPAT_JBD
- 				walk_page_buffers(wc->w_handle,
- 						  page_buffers(tmppage),
- 						  from, to, NULL,
- 						  ocfs2_journal_dirty_data);
-+#endif
-+			}
- 
- 			block_commit_write(tmppage, from, to);
- 		}
-@@ -1917,11 +1924,15 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
- 		}
- 
- 		if (page_has_buffers(tmppage)) {
--			if (ocfs2_should_order_data(inode))
-+			if (ocfs2_should_order_data(inode)) {
-+				ocfs2_jbd2_file_inode(wc->w_handle, inode);
-+#ifdef CONFIG_OCFS2_COMPAT_JBD
- 				walk_page_buffers(wc->w_handle,
- 						  page_buffers(tmppage),
- 						  from, to, NULL,
- 						  ocfs2_journal_dirty_data);
-+#endif
-+			}
- 			block_commit_write(tmppage, from, to);
- 		}
- 	}
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 480412a..0f5dfc0 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -185,7 +185,7 @@ static int ocfs2_sync_file(struct file *file,
- 		goto bail;
- 
- 	journal = osb->journal->j_journal;
--	err = journal_force_commit(journal);
-+	err = jbd2_journal_force_commit(journal);
- 
- bail:
- 	mlog_exit(err);
-@@ -941,9 +941,15 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 			goto bail_unlock;
- 		}
- 
--		if (i_size_read(inode) > attr->ia_size)
-+		if (i_size_read(inode) > attr->ia_size) {
-+			if (ocfs2_should_order_data(inode)) {
-+				status = ocfs2_begin_ordered_truncate(inode,
-+								      attr->ia_size);
-+				if (status)
-+					goto bail_unlock;
-+			}
- 			status = ocfs2_truncate_file(inode, bh, attr->ia_size);
--		else
-+		} else
- 			status = ocfs2_extend_file(inode, bh, attr->ia_size);
- 		if (status < 0) {
- 			if (status != -ENOSPC)
-@@ -1888,7 +1894,7 @@ out_dio:
- 		 */
- 		if (old_size != i_size_read(inode) ||
- 		    old_clusters != OCFS2_I(inode)->ip_clusters) {
--			ret = journal_force_commit(osb->journal->j_journal);
-+			ret = jbd2_journal_force_commit(osb->journal->j_journal);
- 			if (ret < 0)
- 				written = ret;
- 		}
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 4738dd2..9d92c85 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -534,6 +534,9 @@ static int ocfs2_truncate_for_delete(struct ocfs2_super *osb,
- 	 * data and fast symlinks.
- 	 */
- 	if (fe->i_clusters) {
-+		if (ocfs2_should_order_data(inode))
-+			ocfs2_begin_ordered_truncate(inode, 0);
-+
- 		handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
- 		if (IS_ERR(handle)) {
- 			status = PTR_ERR(handle);
-@@ -1100,6 +1103,8 @@ void ocfs2_clear_inode(struct inode *inode)
- 	oi->ip_last_trans = 0;
- 	oi->ip_dir_start_lookup = 0;
- 	oi->ip_blkno = 0ULL;
-+	jbd2_journal_release_jbd_inode(OCFS2_SB(inode->i_sb)->journal->j_journal,
-+				       &oi->ip_jinode);
- 
- bail:
- 	mlog_exit_void();
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 499bc62..f66e434 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -71,6 +71,7 @@ struct ocfs2_inode_info
- 	struct ocfs2_extent_map		ip_extent_map;
- 
- 	struct inode			vfs_inode;
-+	struct jbd2_inode		ip_jinode;
- };
- 
- /*
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index c47bc2a..373d943 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -215,9 +215,9 @@ static int ocfs2_commit_cache(struct ocfs2_super *osb)
- 		goto finally;
- 	}
- 
--	journal_lock_updates(journal->j_journal);
--	status = journal_flush(journal->j_journal);
--	journal_unlock_updates(journal->j_journal);
-+	jbd2_journal_lock_updates(journal->j_journal);
-+	status = jbd2_journal_flush(journal->j_journal);
-+	jbd2_journal_unlock_updates(journal->j_journal);
- 	if (status < 0) {
- 		up_write(&journal->j_trans_barrier);
- 		mlog_errno(status);
-@@ -264,7 +264,7 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
- 
- 	down_read(&osb->journal->j_trans_barrier);
- 
--	handle = journal_start(journal, max_buffs);
-+	handle = jbd2_journal_start(journal, max_buffs);
- 	if (IS_ERR(handle)) {
- 		up_read(&osb->journal->j_trans_barrier);
- 
-@@ -290,7 +290,7 @@ int ocfs2_commit_trans(struct ocfs2_super *osb,
- 
- 	BUG_ON(!handle);
- 
--	ret = journal_stop(handle);
-+	ret = jbd2_journal_stop(handle);
- 	if (ret < 0)
- 		mlog_errno(ret);
- 
-@@ -304,7 +304,7 @@ int ocfs2_commit_trans(struct ocfs2_super *osb,
-  * transaction. extend_trans will either extend the current handle by
-  * nblocks, or commit it and start a new one with nblocks credits.
-  *
-- * This might call journal_restart() which will commit dirty buffers
-+ * This might call jbd2_journal_restart() which will commit dirty buffers
-  * and then restart the transaction. Before calling
-  * ocfs2_extend_trans(), any changed blocks should have been
-  * dirtied. After calling it, all blocks which need to be changed must
-@@ -332,7 +332,7 @@ int ocfs2_extend_trans(handle_t *handle, int nblocks)
- #ifdef CONFIG_OCFS2_DEBUG_FS
- 	status = 1;
- #else
--	status = journal_extend(handle, nblocks);
-+	status = jbd2_journal_extend(handle, nblocks);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -340,8 +340,10 @@ int ocfs2_extend_trans(handle_t *handle, int nblocks)
- #endif
- 
- 	if (status > 0) {
--		mlog(0, "journal_extend failed, trying journal_restart\n");
--		status = journal_restart(handle, nblocks);
-+		mlog(0,
-+		     "jbd2_journal_extend failed, trying "
-+		     "jbd2_journal_restart\n");
-+		status = jbd2_journal_restart(handle, nblocks);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto bail;
-@@ -393,11 +395,11 @@ int ocfs2_journal_access(handle_t *handle,
- 	switch (type) {
- 	case OCFS2_JOURNAL_ACCESS_CREATE:
- 	case OCFS2_JOURNAL_ACCESS_WRITE:
--		status = journal_get_write_access(handle, bh);
-+		status = jbd2_journal_get_write_access(handle, bh);
- 		break;
- 
- 	case OCFS2_JOURNAL_ACCESS_UNDO:
--		status = journal_get_undo_access(handle, bh);
-+		status = jbd2_journal_get_undo_access(handle, bh);
- 		break;
- 
- 	default:
-@@ -422,7 +424,7 @@ int ocfs2_journal_dirty(handle_t *handle,
- 	mlog_entry("(bh->b_blocknr=%llu)\n",
- 		   (unsigned long long)bh->b_blocknr);
- 
--	status = journal_dirty_metadata(handle, bh);
-+	status = jbd2_journal_dirty_metadata(handle, bh);
- 	if (status < 0)
- 		mlog(ML_ERROR, "Could not dirty metadata buffer. "
- 		     "(bh->b_blocknr=%llu)\n",
-@@ -432,6 +434,7 @@ int ocfs2_journal_dirty(handle_t *handle,
- 	return status;
- }
- 
-+#ifdef CONFIG_OCFS2_COMPAT_JBD
- int ocfs2_journal_dirty_data(handle_t *handle,
- 			     struct buffer_head *bh)
- {
-@@ -443,8 +446,9 @@ int ocfs2_journal_dirty_data(handle_t *handle,
- 
- 	return err;
- }
-+#endif
- 
--#define OCFS2_DEFAULT_COMMIT_INTERVAL 	(HZ * JBD_DEFAULT_MAX_COMMIT_AGE)
-+#define OCFS2_DEFAULT_COMMIT_INTERVAL	(HZ * JBD2_DEFAULT_MAX_COMMIT_AGE)
- 
- void ocfs2_set_journal_params(struct ocfs2_super *osb)
- {
-@@ -457,9 +461,9 @@ void ocfs2_set_journal_params(struct ocfs2_super *osb)
- 	spin_lock(&journal->j_state_lock);
- 	journal->j_commit_interval = commit_interval;
- 	if (osb->s_mount_opt & OCFS2_MOUNT_BARRIER)
--		journal->j_flags |= JFS_BARRIER;
-+		journal->j_flags |= JBD2_BARRIER;
- 	else
--		journal->j_flags &= ~JFS_BARRIER;
-+		journal->j_flags &= ~JBD2_BARRIER;
- 	spin_unlock(&journal->j_state_lock);
- }
- 
-@@ -524,14 +528,14 @@ int ocfs2_journal_init(struct ocfs2_journal *journal, int *dirty)
- 	mlog(0, "inode->ip_clusters = %u\n", OCFS2_I(inode)->ip_clusters);
- 
- 	/* call the kernels journal init function now */
--	j_journal = journal_init_inode(inode);
-+	j_journal = jbd2_journal_init_inode(inode);
- 	if (j_journal == NULL) {
- 		mlog(ML_ERROR, "Linux journal layer error\n");
- 		status = -EINVAL;
- 		goto done;
- 	}
- 
--	mlog(0, "Returned from journal_init_inode\n");
-+	mlog(0, "Returned from jbd2_journal_init_inode\n");
- 	mlog(0, "j_journal->j_maxlen = %u\n", j_journal->j_maxlen);
- 
- 	*dirty = (le32_to_cpu(di->id1.journal1.ij_flags) &
-@@ -639,7 +643,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 	if (journal->j_state != OCFS2_JOURNAL_LOADED)
- 		goto done;
- 
--	/* need to inc inode use count as journal_destroy will iput. */
-+	/* need to inc inode use count - jbd2_journal_destroy will iput. */
- 	if (!igrab(inode))
- 		BUG();
- 
-@@ -668,9 +672,9 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 	BUG_ON(atomic_read(&(osb->journal->j_num_trans)) != 0);
- 
- 	if (ocfs2_mount_local(osb)) {
--		journal_lock_updates(journal->j_journal);
--		status = journal_flush(journal->j_journal);
--		journal_unlock_updates(journal->j_journal);
-+		jbd2_journal_lock_updates(journal->j_journal);
-+		status = jbd2_journal_flush(journal->j_journal);
-+		jbd2_journal_unlock_updates(journal->j_journal);
- 		if (status < 0)
- 			mlog_errno(status);
- 	}
-@@ -686,7 +690,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 	}
- 
- 	/* Shutdown the kernel journal system */
--	journal_destroy(journal->j_journal);
-+	jbd2_journal_destroy(journal->j_journal);
- 
- 	OCFS2_I(inode)->ip_open_count--;
- 
-@@ -711,15 +715,15 @@ static void ocfs2_clear_journal_error(struct super_block *sb,
- {
- 	int olderr;
- 
--	olderr = journal_errno(journal);
-+	olderr = jbd2_journal_errno(journal);
- 	if (olderr) {
- 		mlog(ML_ERROR, "File system error %d recorded in "
- 		     "journal %u.\n", olderr, slot);
- 		mlog(ML_ERROR, "File system on device %s needs checking.\n",
- 		     sb->s_id);
- 
--		journal_ack_err(journal);
--		journal_clear_err(journal);
-+		jbd2_journal_ack_err(journal);
-+		jbd2_journal_clear_err(journal);
- 	}
- }
- 
-@@ -734,7 +738,7 @@ int ocfs2_journal_load(struct ocfs2_journal *journal, int local, int replayed)
- 
- 	osb = journal->j_osb;
- 
--	status = journal_load(journal->j_journal);
-+	status = jbd2_journal_load(journal->j_journal);
- 	if (status < 0) {
- 		mlog(ML_ERROR, "Failed to load journal!\n");
- 		goto done;
-@@ -778,7 +782,7 @@ int ocfs2_journal_wipe(struct ocfs2_journal *journal, int full)
- 
- 	BUG_ON(!journal);
- 
--	status = journal_wipe(journal->j_journal, full);
-+	status = jbd2_journal_wipe(journal->j_journal, full);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -1229,19 +1233,19 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
- 	}
- 
- 	mlog(0, "calling journal_init_inode\n");
--	journal = journal_init_inode(inode);
-+	journal = jbd2_journal_init_inode(inode);
- 	if (journal == NULL) {
- 		mlog(ML_ERROR, "Linux journal layer error\n");
- 		status = -EIO;
- 		goto done;
- 	}
- 
--	status = journal_load(journal);
-+	status = jbd2_journal_load(journal);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		if (!igrab(inode))
- 			BUG();
--		journal_destroy(journal);
-+		jbd2_journal_destroy(journal);
- 		goto done;
- 	}
- 
-@@ -1249,9 +1253,9 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
- 
- 	/* wipe the journal */
- 	mlog(0, "flushing the journal.\n");
--	journal_lock_updates(journal);
--	status = journal_flush(journal);
--	journal_unlock_updates(journal);
-+	jbd2_journal_lock_updates(journal);
-+	status = jbd2_journal_flush(journal);
-+	jbd2_journal_unlock_updates(journal);
- 	if (status < 0)
- 		mlog_errno(status);
- 
-@@ -1272,7 +1276,7 @@ static int ocfs2_replay_journal(struct ocfs2_super *osb,
- 	if (!igrab(inode))
- 		BUG();
- 
--	journal_destroy(journal);
-+	jbd2_journal_destroy(journal);
- 
- done:
- 	/* drop the lock on this nodes journal */
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 08d1add..d4d14e9 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -27,7 +27,12 @@
- #define OCFS2_JOURNAL_H
- 
- #include <linux/fs.h>
--#include <linux/jbd.h>
-+#ifndef CONFIG_OCFS2_COMPAT_JBD
-+# include <linux/jbd2.h>
-+#else
-+# include <linux/jbd.h>
-+# include "ocfs2_jbd_compat.h"
-+#endif
- 
- enum ocfs2_journal_state {
- 	OCFS2_JOURNAL_FREE = 0,
-@@ -215,8 +220,8 @@ static inline void ocfs2_checkpoint_inode(struct inode *inode)
-  *                          buffer. Will have to call ocfs2_journal_dirty once
-  *                          we've actually dirtied it. Type is one of . or .
-  *  ocfs2_journal_dirty    - Mark a journalled buffer as having dirty data.
-- *  ocfs2_journal_dirty_data - Indicate that a data buffer should go out before
-- *                             the current handle commits.
-+ *  ocfs2_jbd2_file_inode  - Mark an inode so that its data goes out before
-+ *                           the current handle commits.
-  */
- 
- /* You must always start_trans with a number of buffs > 0, but it's
-@@ -268,8 +273,10 @@ int                  ocfs2_journal_access(handle_t *handle,
-  */
- int                  ocfs2_journal_dirty(handle_t *handle,
- 					 struct buffer_head *bh);
-+#ifdef CONFIG_OCFS2_COMPAT_JBD
- int                  ocfs2_journal_dirty_data(handle_t *handle,
- 					      struct buffer_head *bh);
-+#endif
- 
- /*
-  *  Credit Macros:
-@@ -430,4 +437,16 @@ static inline int ocfs2_calc_tree_trunc_credits(struct super_block *sb,
- 	return credits;
- }
- 
-+static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode)
-+{
-+	return jbd2_journal_file_inode(handle, &OCFS2_I(inode)->ip_jinode);
-+}
-+
-+static inline int ocfs2_begin_ordered_truncate(struct inode *inode,
-+					       loff_t new_size)
-+{
-+	return jbd2_journal_begin_ordered_truncate(&OCFS2_I(inode)->ip_jinode,
-+						   new_size);
-+}
-+
- #endif /* OCFS2_JOURNAL_H */
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 78ae4f8..a21a465 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -34,7 +34,12 @@
- #include <linux/workqueue.h>
- #include <linux/kref.h>
- #include <linux/mutex.h>
--#include <linux/jbd.h>
-+#ifndef CONFIG_OCFS2_COMPAT_JBD
-+# include <linux/jbd2.h>
-+#else
-+# include <linux/jbd.h>
-+# include "ocfs2_jbd_compat.h"
-+#endif
- 
- /* For union ocfs2_dlm_lksb */
- #include "stackglue.h"
-diff --git a/fs/ocfs2/ocfs2_jbd_compat.h b/fs/ocfs2/ocfs2_jbd_compat.h
-new file mode 100644
-index 0000000..b91c78f
---- /dev/null
-+++ b/fs/ocfs2/ocfs2_jbd_compat.h
-@@ -0,0 +1,82 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * ocfs2_jbd_compat.h
-+ *
-+ * Compatibility defines for JBD.
-+ *
-+ * Copyright (C) 2008 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ */
-+
-+#ifndef OCFS2_JBD_COMPAT_H
-+#define OCFS2_JBD_COMPAT_H
-+
-+#ifndef CONFIG_OCFS2_COMPAT_JBD
-+# error Should not have been included
-+#endif
-+
-+struct jbd2_inode {
-+	unsigned int dummy;
-+};
-+
-+#define JBD2_BARRIER			JFS_BARRIER
-+#define JBD2_DEFAULT_MAX_COMMIT_AGE	JBD_DEFAULT_MAX_COMMIT_AGE
-+
-+#define jbd2_journal_ack_err			journal_ack_err
-+#define jbd2_journal_clear_err			journal_clear_err
-+#define jbd2_journal_destroy			journal_destroy
-+#define jbd2_journal_dirty_metadata		journal_dirty_metadata
-+#define jbd2_journal_errno			journal_errno
-+#define jbd2_journal_extend			journal_extend
-+#define jbd2_journal_flush			journal_flush
-+#define jbd2_journal_force_commit		journal_force_commit
-+#define jbd2_journal_get_write_access		journal_get_write_access
-+#define jbd2_journal_get_undo_access		journal_get_undo_access
-+#define jbd2_journal_init_inode			journal_init_inode
-+#define jbd2_journal_invalidatepage		journal_invalidatepage
-+#define jbd2_journal_load			journal_load
-+#define jbd2_journal_lock_updates		journal_lock_updates
-+#define jbd2_journal_restart			journal_restart
-+#define jbd2_journal_start			journal_start
-+#define jbd2_journal_start_commit		journal_start_commit
-+#define jbd2_journal_stop			journal_stop
-+#define jbd2_journal_try_to_free_buffers	journal_try_to_free_buffers
-+#define jbd2_journal_unlock_updates		journal_unlock_updates
-+#define jbd2_journal_wipe			journal_wipe
-+#define jbd2_log_wait_commit			log_wait_commit
-+
-+static inline int jbd2_journal_file_inode(handle_t *handle,
-+					  struct jbd2_inode *inode)
-+{
-+	return 0;
-+}
-+
-+static inline int jbd2_journal_begin_ordered_truncate(struct jbd2_inode *inode,
-+						      loff_t new_size)
-+{
-+	return 0;
-+}
-+
-+static inline void jbd2_journal_init_jbd_inode(struct jbd2_inode *jinode,
-+					       struct inode *inode)
-+{
-+	return;
-+}
-+
-+static inline void jbd2_journal_release_jbd_inode(journal_t *journal,
-+						  struct jbd2_inode *jinode)
-+{
-+	return;
-+}
-+
-+
-+#endif  /* OCFS2_JBD_COMPAT_H */
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index f95469c..39f6238 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -212,10 +212,11 @@ static int ocfs2_sync_fs(struct super_block *sb, int wait)
- 		ocfs2_schedule_truncate_log_flush(osb, 0);
- 	}
- 
--	if (journal_start_commit(OCFS2_SB(sb)->journal->j_journal, &target)) {
-+	if (jbd2_journal_start_commit(OCFS2_SB(sb)->journal->j_journal,
-+				      &target)) {
- 		if (wait)
--			log_wait_commit(OCFS2_SB(sb)->journal->j_journal,
--					target);
-+			jbd2_log_wait_commit(OCFS2_SB(sb)->journal->j_journal,
-+					     target);
- 	}
- 	return 0;
- }
-@@ -332,6 +333,7 @@ static struct inode *ocfs2_alloc_inode(struct super_block *sb)
- 	if (!oi)
- 		return NULL;
- 
-+	jbd2_journal_init_jbd_inode(&oi->ip_jinode, &oi->vfs_inode);
- 	return &oi->vfs_inode;
- }
- 
-@@ -896,7 +898,7 @@ static int ocfs2_parse_options(struct super_block *sb,
- 			if (option < 0)
- 				return 0;
- 			if (option == 0)
--				option = JBD_DEFAULT_MAX_COMMIT_AGE;
-+				option = JBD2_DEFAULT_MAX_COMMIT_AGE;
- 			mopt->commit_interval = HZ * option;
- 			break;
- 		case Opt_localalloc:
-diff --git a/fs/ocfs2/uptodate.c b/fs/ocfs2/uptodate.c
-index e26459e..5235140 100644
---- a/fs/ocfs2/uptodate.c
-+++ b/fs/ocfs2/uptodate.c
-@@ -53,7 +53,11 @@
- #include <linux/highmem.h>
- #include <linux/buffer_head.h>
- #include <linux/rbtree.h>
--#include <linux/jbd.h>
-+#ifndef CONFIG_OCFS2_COMPAT_JBD
-+# include <linux/jbd2.h>
-+#else
-+# include <linux/jbd.h>
-+#endif
- 
- #define MLOG_MASK_PREFIX ML_UPTODATE
- 
--- 
-1.5.4.5
+
+Mark Fasheh wrote:
+> Hi,
+>
+> 	The following patches comprise the bulk of Ocfs2 updates for the
+> 2.6.28 merge window. They can roughly be broken up into 4 sets which add
+> incremental features to Ocfs2. The patches are presented as they come in
+> git.
+>
+>
+> EA Support
+>
+> The largest set adds support for extended attributes in Ocfs2. Extended
+> attributes are stored both within the inode block, and externally, when their
+> numbers grow. Individual attributes can be arbitrarily sized. Smaller ones
+> have their data stored inline. Larger attributes grow out to a btree. In
+> theory the btrees have similar limits to inode data. In practice though, the
+> VFS limits EA sizes to 64K.
+>
+> When inode space for attributes run low, new ones are created in an external
+> disk block. When the block fills up, external attributes are moved to an
+> indexed btree. The btree can store many thousands of attributes, if needed.
+>
+> The patches leading up to EA support further abstracted portions of the Ocfs2
+> btree code. Ultimately, this means we can "add" a btree to any Ocfs2 structure
+> by embedding a header, and providing the proper callbacks to manipulate
+> certain key fields. The xattr code makes use of this, as will future Ocfs2
+> features.
+>
+> Joel made some further improvements to our 'generic' (for Ocfs2 at least)
+> btree support which completed the interface by cleaning things up and
+> providing for proper callbacks in a static operations structure. Those patches
+> follow the xattr series as they were developed afterwards.
+>
+>
+> JBD2 Support
+>
+> Ocfs2 can now use JBD2. Amongst other benefits, this allows us to support
+> large block devices with more than 32 bits worth of block numbers. As a part
+> of these patches, and 'inode64' mount option is added which toggles creation
+> of inodes whose inode number requires more than 32 bits to be adequately
+> described.
+>
+> JBD2 support in Ocfs2 is compiled in by default, however since journaling is
+> so central to the operation of a file system, we kept our 'legacy' JBD
+> support. We did this to provide a fallback for any users who might hit a
+> problem, while we fix it. Legacy JBD support will be removed from Ocfs2 in
+> 2.6.29.
+>
+>
+> Cluster Aware POSIX File Locks
+>
+> This was added via the 'plock' interface which Dave Teigland pulled into
+> fs/dlm last merge window. The majority of the support is actually provided in
+> userspace via the dlm_controld. As a result, cluster-aware POSIX locks only
+> work for userspace cluster stacks right now.
+>
+>
+> Local Alloc Throttling
+>
+> These patches allow the "local alloc" file in Ocfs2 to throttle back the
+> number of free disk blocks it caches. This is done during times of extreme
+> fragmentation, or very low disk space. The traditional behavior was to
+> completely disable the local alloc feature, which resulted in performance
+> problems on some corner cases. The throttling has increased performance by 10
+> times during such situations.
+>
+>
+> Please pull from 'merge_window' branch of
+> git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git merge_window
+>
+> to receive the following updates:
+>
+>  Documentation/filesystems/ocfs2.txt |    4 +
+>  fs/Kconfig                          |   40 +-
+>  fs/ocfs2/Makefile                   |    5 +-
+>  fs/ocfs2/alloc.c                    |  857 +++++--
+>  fs/ocfs2/alloc.h                    |   86 +-
+>  fs/ocfs2/aops.c                     |   49 +-
+>  fs/ocfs2/cluster/masklog.c          |    1 +
+>  fs/ocfs2/cluster/masklog.h          |    1 +
+>  fs/ocfs2/dir.c                      |   26 +-
+>  fs/ocfs2/extent_map.c               |   60 +
+>  fs/ocfs2/extent_map.h               |    3 +
+>  fs/ocfs2/file.c                     |  313 +--
+>  fs/ocfs2/file.h                     |   32 +-
+>  fs/ocfs2/inode.c                    |   28 +-
+>  fs/ocfs2/inode.h                    |    4 +
+>  fs/ocfs2/journal.c                  |   72 +-
+>  fs/ocfs2/journal.h                  |   52 +-
+>  fs/ocfs2/localalloc.c               |  362 +++-
+>  fs/ocfs2/localalloc.h               |    4 +
+>  fs/ocfs2/locks.c                    |   15 +
+>  fs/ocfs2/locks.h                    |    1 +
+>  fs/ocfs2/namei.c                    |   13 +-
+>  fs/ocfs2/ocfs2.h                    |   56 +-
+>  fs/ocfs2/ocfs2_fs.h                 |  220 ++-
+>  fs/ocfs2/ocfs2_jbd_compat.h         |   82 +
+>  fs/ocfs2/stack_user.c               |   33 +
+>  fs/ocfs2/stackglue.c                |   20 +
+>  fs/ocfs2/stackglue.h                |   19 +
+>  fs/ocfs2/suballoc.c                 |  205 ++-
+>  fs/ocfs2/suballoc.h                 |   26 +-
+>  fs/ocfs2/super.c                    |   59 +-
+>  fs/ocfs2/symlink.c                  |    9 +
+>  fs/ocfs2/uptodate.c                 |   38 +-
+>  fs/ocfs2/uptodate.h                 |    3 +
+>  fs/ocfs2/xattr.c                    | 4851 +++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/xattr.h                    |   68 +
+>  fs/ocfs2/xattr_trusted.c            |   82 +
+>  fs/ocfs2/xattr_user.c               |   94 +
+>  38 files changed, 7271 insertions(+), 622 deletions(-)
+>  create mode 100644 fs/ocfs2/ocfs2_jbd_compat.h
+>  create mode 100644 fs/ocfs2/xattr.c
+>  create mode 100644 fs/ocfs2/xattr.h
+>  create mode 100644 fs/ocfs2/xattr_trusted.c
+>  create mode 100644 fs/ocfs2/xattr_user.c
+>
+> Joel Becker (15):
+>       ocfs2: Prefix the extent tree operations structure.
+>       ocfs2: Prefix the ocfs2_extent_tree structure.
+>       ocfs2: Make ocfs2_extent_tree get/put instead of alloc.
+>       ocfs2: Make 'private' into 'object' on ocfs2_extent_tree.
+>       ocfs2: Provide the get_root_el() method to ocfs2_extent_tree_operations.
+>       ocfs2: Use struct ocfs2_extent_tree in ocfs2_num_free_extents().
+>       ocfs2: Determine an extent tree's max_leaf_clusters in an et_op.
+>       ocfs2: Create specific get_extent_tree functions.
+>       ocfs2: Add an insertion check to ocfs2_extent_tree_operations.
+>       ocfs2: Make ocfs2_extent_tree the first-class representation of a tree.
+>       ocfs2: Comment struct ocfs2_extent_tree_operations.
+>       ocfs2: Change ocfs2_get_*_extent_tree() to ocfs2_init_*_extent_tree()
+>       ocfs2: Limit inode allocation to 32bits.
+>       ocfs2: Add the 'inode64' mount option.
+>       ocfs2: Switch over to JBD2.
+>
+> Mark Fasheh (5):
+>       ocfs2: POSIX file locks support
+>       ocfs2: Track local alloc bits internally
+>       ocfs2: throttle back local alloc when low on disk space
+>       ocfs2: track local alloc state via debugfs
+>       ocfs2: fix printk format warnings
+>
+> Sunil Mushran (1):
+>       ocfs2: Add xattr mount option in ocfs2_show_options()
+>
+> Tao Ma (15):
+>       ocfs2: Modify ocfs2_num_free_extents for future xattr usage.
+>       ocfs2: Use ocfs2_extent_list instead of ocfs2_dinode.
+>       ocfs2: Abstract ocfs2_extent_tree in b-tree operations.
+>       ocfs2: Make high level btree extend code generic
+>       ocfs2: Add the basic xattr disk layout in ocfs2_fs.h
+>       ocfs2: Add helper function in uptodate.c for removing xattr clusters
+>       ocfs2: Add extent tree operation for xattr value btrees
+>       ocfs2: Add xattr index tree operations
+>       ocfs2: Add xattr bucket iteration for large numbers of EAs
+>       ocfs2: Add xattr lookup code xattr btrees
+>       ocfs2: Optionally limit extent size in ocfs2_insert_extent()
+>       ocfs2: Enable xattr set in index btree
+>       ocfs2: Delete all xattr buckets during inode removal
+>       ocfs2: bug-fix for journal extend in xattr.
+>       ocfs2: Resolve deadlock in ocfs2_xattr_free_block.
+>
+> Tiger Yang (3):
+>       ocfs2: reserve inline space for extended attribute
+>       ocfs2: Add extended attribute support
+>       ocfs2: Add incompatible flag for extended attribute
+>
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>   
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20080926/d9c5e719/attachment.html 
