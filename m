@@ -1,58 +1,21 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon,  1 Sep 2008 08:45:18 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: bug-fix for journal extend in xattr.
-Message-ID: <1220229918-14728-1-git-send-email-tao.ma@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Wed, 1 Oct 2008 23:11:44 -0700
+Subject: [Ocfs2-devel] [PATCH 01/39] ocfs2: POSIX file locks support
+In-Reply-To: <1222293680-15451-2-git-send-email-mfasheh@suse.com>
+References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
+	<1222293680-15451-2-git-send-email-mfasheh@suse.com>
+Message-ID: <20081001231144.87fa2a0b.akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>
+Cc: linux-kernel@vger.kernel.org, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org
 
-In ocfs2_extend_trans, when we can't extend the current
-transaction, it will commit current transaction and restart
-a new one. So if the previous credits we have allocated are't
-used(the block isn't dirtied before our extend), we will not
-have enough credits for any future operation(it will cause jbd
-complain and bug out). So check this and re-extend it.
+> On Wed, 24 Sep 2008 15:00:42 -0700 Mark Fasheh <mfasheh@suse.com> wrote:
+> +int ocfs2_stack_supports_plocks(void)
+> +{
+> +	return !!(active_stack && active_stack->sp_ops->plock);
+> +}
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/xattr.c |   15 ++++++++++++++-
- 1 files changed, 14 insertions(+), 1 deletions(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index f87bbf1..0f18e60 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -1352,8 +1352,9 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 	}
- 
- 	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
--		/*set extended attribue in external blcok*/
-+		/* set extended attribute in external block. */
- 		ret = ocfs2_extend_trans(handle,
-+					 OCFS2_INODE_UPDATE_CREDITS +
- 					 OCFS2_XATTR_BLOCK_UPDATE_CREDITS);
- 		if (ret) {
- 			mlog_errno(ret);
-@@ -3750,6 +3751,18 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
- 		}
- 	}
- 
-+	if (handle->h_buffer_credits < credits) {
-+		/*
-+		 * The journal has been restarted before, and don't
-+		 * have enough space for the insertion, so extend it
-+		 * here.
-+		 */
-+		ret = ocfs2_extend_trans(handle, credits);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto leave;
-+		}
-+	}
- 	mlog(0, "Insert %u clusters at block %llu for xattr@%u\n",
- 	     num_bits, block, v_start);
- 	ret = ocfs2_insert_extent(osb, handle, inode, &et, v_start, block,
--- 
-1.5.4.GIT
+It's pointless doing !! on something which is already 0 or 1.
