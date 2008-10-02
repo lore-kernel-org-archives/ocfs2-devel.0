@@ -1,24 +1,23 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Wed, 1 Oct 2008 23:12:09 -0700
-Subject: [Ocfs2-devel] [PATCH 13/39] ocfs2: Add extended attribute
-	support
-In-Reply-To: <1222293680-15451-14-git-send-email-mfasheh@suse.com>
-References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-	<1222293680-15451-14-git-send-email-mfasheh@suse.com>
-Message-ID: <20081001231209.44417bc1.akpm@linux-foundation.org>
+From: Christoph Hellwig <hch@lst.de>
+Date: Thu, 2 Oct 2008 10:09:28 +0200
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: Add security xattr support in
+	ocfs2
+In-Reply-To: <20080923063329.GU4563@wotan.suse.de>
+References: <48D3725A.1030701@oracle.com>
+	<1221817353-11111-1-git-send-email-tiger.yang@oracle.com>
+	<20080923063329.GU4563@wotan.suse.de>
+Message-ID: <20081002080928.GA24717@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>
-Cc: linux-kernel@vger.kernel.org, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, tiger.yang@oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-> On Wed, 24 Sep 2008 15:00:54 -0700 Mark Fasheh <mfasheh@suse.com> wrote:
-> +		case Opt_user_xattr:
-> +			mopt->mount_opt &= ~OCFS2_MOUNT_NOUSERXATTR;
-> +			break;
-> +		case Opt_nouser_xattr:
-> +			mopt->mount_opt |= OCFS2_MOUNT_NOUSERXATTR;
-> +			break;
+On Mon, Sep 22, 2008 at 11:33:29PM -0700, Mark Fasheh wrote:
+> Also, would you mind rebasing these against the latest xattrs branch in
+> ocfs2.git? The only change was that I removed the code in '#ifdef
+> CONFIG_OCFS2_FS_SECURITY' and '#ifdef CONFIG_OCFS2_FS_ACL' because we
+> weren't ever defining those yet. Obviously, you get to add them back now  :)
 
-Is there a documentation update for these?
+An option for ACLs makes some sense, but the security attrs are so
+little code that's it's pointless.
