@@ -1,65 +1,42 @@
-From: Theodore Tso <tytso@mit.edu>
-Date: Fri, 3 Oct 2008 20:03:36 -0400
-Subject: [Ocfs2-devel] [PATCH] [RFC] jbd2: Add buffer triggers
-In-Reply-To: <20080929012527.GI8711@mit.edu>
-References: <20080917232629.GB20752@mail.oracle.com>
-	<20080929012527.GI8711@mit.edu>
-Message-ID: <20081004000336.GE11442@mit.edu>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon,  6 Oct 2008 16:59:55 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/mmap: return 0 in page_mkwrite to let
+	VFS retry.
+Message-ID: <1223283595-4316-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com, linux-ext4@vger.kernel.org
-Cc: Joel Becker <Joel.Becker@oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-Hey Joel,
+In ocfs2_page_mkwrite, we return -EINVAL when we found the page mapping
+isn't updated, and it will cause the user space program get SIGBUS and
+exit. The reason is that during race writeable mmap, we will do
+unmap_mapping_range in ocfs2_data_downconvert_worker. The good thing is
+that if we reuturn 0 in page_mkwrite, VFS will retry fault and then
+call page_mkwrite again, so it is safe to return 0 here.
 
-I'm not sure you saw this e-mail, since I think it got in a mailman
-moderation queue.
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/mmap.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
 
-I've been looking more closely at this, and I think actually using
-this commit trigger gets very tricky.  Exactly how do you plan to use
-the commit trigger?  The caller is only going to be able to easily
-check the checksum on the frozen copy of the buffer; is that what you
-intended?  When and how do you plan set the checksum for a filesystem
-which is cleanly unmounted?  And are you planning on doing this for
-just the superblock, or for other data structures?  
-
-     	 	     	    	       - Ted
-
-On Sun, Sep 28, 2008 at 09:25:27PM -0400, Theodore Tso wrote:
-> On Wed, Sep 17, 2008 at 04:26:30PM -0700, Joel Becker wrote:
-> > Filesystems often to do compute intensive operation on some
-> > metadata.  If this operation is repeated many times, it can be very
-> > expensive.  It would be much nicer if the operation could be performed
-> > once before a buffer goes to disk.
-> 
-> Sorry for the delay in reviewing this patch, but I've got a question.
-> Right now you are calling the commit trigger *after* doing the escape
-> data copying.  This means that if the commit trigger is going to
-> modify the buffer (in the case of the checksum being stored in-line in
-> the block, which I gather is the case in OCFS2, right?), if you get
-> unlucky and the block begins with the four bytes JBD2_MAGIC_NUMBER,
-> then the checksum will be in the value which gets written out to the
-> log, but *not* to the value in the buffer head that will ultimately
-> get written to the final location on disk.  In the normal case where
-> the journal wraps and then truncated, it means the checksum will never
-> get written to the disk.  That seems bad.  :-)
-> 
-> I believe the correct location to fire the per-buffer commit trigger
-> is right after the first kmap_atomic, right before the comment "Check
-> for escaping".  This also fixes the bug where if the checksum is
-> stored in the first four bytes of the block, in the case where you
-> have bad luck and the checksum == JBD2_MAGIC_NUMBER, you won't end up
-> with a corrupted journal.
-> 
-> Do you agree?  If so, please let me know and I can fix up the patch,
-> or just submit to me an updated patch.
-> 
-> Thanks,
-> 
-> 						- Ted
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-ext4" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+index 3dc18d6..eea1d24 100644
+--- a/fs/ocfs2/mmap.c
++++ b/fs/ocfs2/mmap.c
+@@ -113,7 +113,11 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
+ 	 * ocfs2_write_begin_nolock().
+ 	 */
+ 	if (!PageUptodate(page) || page->mapping != inode->i_mapping) {
+-		ret = -EINVAL;
++		/*
++		 * the page has been umapped in ocfs2_data_downconvert_worker.
++		 * So return 0 here and let VFS retry.
++		 */
++		ret = 0;
+ 		goto out;
+ 	}
+ 
+-- 
+1.5.3.6.861.gd794-dirty
