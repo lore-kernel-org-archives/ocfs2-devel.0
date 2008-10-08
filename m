@@ -1,60 +1,60 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 08 Oct 2008 22:04:40 +0800
-Subject: [Ocfs2-devel] [PATCH 13/39] ocfs2: Add extended attribute
-	support
-In-Reply-To: <20081008133453.GH25392@lst.de>
-References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-	<1222293680-15451-14-git-send-email-mfasheh@suse.com>
-	<20081002081644.GB24717@lst.de>
-	<20081007220811.GG26373@wotan.suse.de>
-	<48EC1359.6040109@oracle.com> <20081008133453.GH25392@lst.de>
-Message-ID: <48ECBDF8.9060008@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 8 Oct 2008 16:17:52 -0700
+Subject: [Ocfs2-devel] [PATCH] [RFC] jbd2: Add buffer triggers
+In-Reply-To: <20081007010154.GE26632@mail.oracle.com>
+References: <20080917232629.GB20752@mail.oracle.com>
+	<20080929012527.GI8711@mit.edu> <20081004000336.GE11442@mit.edu>
+	<20081006213754.GA26632@mail.oracle.com>
+	<20081006214251.GB26632@mail.oracle.com>
+	<20081006233248.GA9337@mit.edu>
+	<20081007010154.GE26632@mail.oracle.com>
+Message-ID: <20081008231752.GA5310@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: Tiger Yang <tiger.yang@oracle.com>, Mark Fasheh <mfasheh@suse.com>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Theodore Tso <tytso@mit.edu>, ocfs2-devel@oss.oracle.com, linux-ext4@vger.kernel.org, mfasheh@suse.com
 
+On Mon, Oct 06, 2008 at 06:01:54PM -0700, Joel Becker wrote:
+> On Mon, Oct 06, 2008 at 07:32:48PM -0400, Theodore Tso wrote:
+> > On Mon, Oct 06, 2008 at 02:42:52PM -0700, Joel Becker wrote:
+> > I'm not 100% sure.....  The other area that we should check very
+> > closely is jbd2_journal_commit_transaction(); in some cases, if
+> > jh->b_committed_data is NULL, the frozen data is thrown away (around
+> > line 850 in transaction.c).  I *think* this happens if b_frozen_data
+> > was only copied to escape the buffer, but I'm not certain; in any
+> > case, there's a potential that in that case you might lose the
+> > calculated checksum and the correct value wouldn't get written to the
+> > final location on disk.  
+<snip>
+> 	Looking at the checkpoint part, though, I think we're not safe.
+> The buffer is attached to the original transaction's checkpoint list
+> after the commit.  This buffer has the un-checksummed b_data.  If the
+> later transaction commits before the checkpoint happens, all is good.
+> But if the buffer lazily writes to disk while the later transaction is
+> still running, the original transaction could be considered "done",
+> updating the journal superblock.  If we crash at that moment, we have a
+> bad checksum on disk.
 
+	I chatted with Mark some about this today.  He pointed out that,
+logically, b_data can't be checkpointed until its data isn't in the
+journal - it might be newer than the most recent transaction.  So I
+looked in the checkpoint code to see where this is handled, and the
+checkpoint code simply forces a commit new enough to encompass b_data
+when it wants to put that block to disk.
+	In other words, I think that the commit trigger is safe in all
+circumstances once moved up in journal_commit_transaction().  I'll be
+cooking that up shortly.
 
-Christoph Hellwig wrote:
-> On Wed, Oct 08, 2008 at 09:56:41AM +0800, Tiger Yang wrote:
->> I have looked the patch for btrfs about this. We are different.
->> Btrfs store the whole xattr name including the prefix "user." 
->> "trusted.", we store index number instead of it.
-> 
-> I looked at the git tree and there are two users of
-> ocfs2_xattr_handler().
-> 
->  (1) for using the ->list handler in listattr.  That's something I fixed
->      in btrfs that I wanted to point you to.  The whole concept of a
->      ->list handler is stupid, and it was only added as a hack for
->      the tmpfs "generic" xattr support which is a mess.  Instead of
->      looking up a handler that would only do the same thing anyway
->      for all on-disk attributes just call the code directly and
->      have a map from index to prefix (look at
->      fs/xfs/linux-2.6/xfs_xattr.c for an example).  You
->      also have a check for OCFS2_MOUNT_NOUSERXATTR for the user
->      attributes, but that's much easier done by just checking the
->      index in an if (and I'd personally just kill it completely, the
->      options doesn't seem useful - but that's an unrelated bit)
-yes, you are right. The handler for list is borrowed from ext3 and 
-somewhat ugly. We just need the prefix name but use such a complicated 
-method. Just a map from index to prefix should work fine.
->  
->  (2) For generating the hash.  I don't quite understand why you want to
->      also hash the prefix if it's not store on disk anyway but sorted
->      into the numeric buckets.
-This is done intentionally. See the design doc 
-http://oss.oracle.com/osswiki/OCFS2/DesignDocs/ExtendedAttributes.
-"Each entry has a 32-bit hash value associated with it. The hash value 
-is calculated using the full (prefix.suffix) name of the xattr to avoid 
-hash collisions when the same suffix is used in multiple attribute 
-namespaces. "
-So Mark, do you think we need this prefix hash?
-Anyway, if we make consensus that the hash calculation doesn't need 
-prefix any more, we can remove the ocfs2_xattr_handler safely.
+Joel
 
-Regards,
-Tao
+-- 
+
+To spot the expert, pick the one who predicts the job will take the
+longest and cost the most.
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
