@@ -1,66 +1,519 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 8 Oct 2008 17:38:22 -0700
-Subject: [Ocfs2-devel] [PATCH 13/39] ocfs2: Add extended attribute
-	support
-In-Reply-To: <48ECBDF8.9060008@oracle.com>
-References: <1222293680-15451-1-git-send-email-mfasheh@suse.com>
-	<1222293680-15451-14-git-send-email-mfasheh@suse.com>
-	<20081002081644.GB24717@lst.de>
-	<20081007220811.GG26373@wotan.suse.de>
-	<48EC1359.6040109@oracle.com> <20081008133453.GH25392@lst.de>
-	<48ECBDF8.9060008@oracle.com>
-Message-ID: <20081009003822.GH26373@wotan.suse.de>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Wed,  8 Oct 2008 21:48:31 -0400
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: fiemap support
+In-Reply-To: <1223516913-17612-2-git-send-email-tytso@mit.edu>
+References: <1223516913-17612-1-git-send-email-tytso@mit.edu>
+	<1223516913-17612-2-git-send-email-tytso@mit.edu>
+Message-ID: <1223516913-17612-3-git-send-email-tytso@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Tao Ma <tao.ma@oracle.com>
-Cc: Christoph Hellwig <hch@lst.de>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: Mark Fasheh <mfasheh@suse.com>, Theodore Ts'o <tytso@mit.edu>, ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 08, 2008 at 10:04:40PM +0800, Tao Ma wrote:
-> 
-> 
-> Christoph Hellwig wrote:
-> > On Wed, Oct 08, 2008 at 09:56:41AM +0800, Tiger Yang wrote:
-> >> I have looked the patch for btrfs about this. We are different.
-> >> Btrfs store the whole xattr name including the prefix "user." 
-> >> "trusted.", we store index number instead of it.
-> > 
-> > I looked at the git tree and there are two users of
-> > ocfs2_xattr_handler().
-> > 
-> >  (1) for using the ->list handler in listattr.  That's something I fixed
-> >      in btrfs that I wanted to point you to.  The whole concept of a
-> >      ->list handler is stupid, and it was only added as a hack for
-> >      the tmpfs "generic" xattr support which is a mess.  Instead of
-> >      looking up a handler that would only do the same thing anyway
-> >      for all on-disk attributes just call the code directly and
-> >      have a map from index to prefix (look at
-> >      fs/xfs/linux-2.6/xfs_xattr.c for an example).  You
-> >      also have a check for OCFS2_MOUNT_NOUSERXATTR for the user
-> >      attributes, but that's much easier done by just checking the
-> >      index in an if (and I'd personally just kill it completely, the
-> >      options doesn't seem useful - but that's an unrelated bit)
-> yes, you are right. The handler for list is borrowed from ext3 and 
-> somewhat ugly. We just need the prefix name but use such a complicated 
-> method. Just a map from index to prefix should work fine.
-> >  
-> >  (2) For generating the hash.  I don't quite understand why you want to
-> >      also hash the prefix if it's not store on disk anyway but sorted
-> >      into the numeric buckets.
-> This is done intentionally. See the design doc 
-> http://oss.oracle.com/osswiki/OCFS2/DesignDocs/ExtendedAttributes.
-> "Each entry has a 32-bit hash value associated with it. The hash value 
-> is calculated using the full (prefix.suffix) name of the xattr to avoid 
-> hash collisions when the same suffix is used in multiple attribute 
-> namespaces. "
-> So Mark, do you think we need this prefix hash?
-> Anyway, if we make consensus that the hash calculation doesn't need 
-> prefix any more, we can remove the ocfs2_xattr_handler safely.
+From: Mark Fasheh <mfasheh@suse.com>
 
-Removing the prefix hash should be fine. Technically, this changes the disk
-format, but nobody should be using this for production yet anyway.
-	--Mark
+Plug ocfs2 into ->fiemap. Some portions of ocfs2_get_clusters() had to be
+refactored so that the extent cache can be skipped in favor of going
+directly to the on-disk records. This makes it easier for us to determine
+which extent is the last one in the btree. Also, I'm not sure we want to be
+caching fiemap lookups anyway as they're not directly related to data
+read/write.
 
---
-Mark Fasheh
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
+Cc: ocfs2-devel at oss.oracle.com
+Cc: linux-fsdevel at vger.kernel.org
+---
+ fs/ocfs2/alloc.c      |    9 --
+ fs/ocfs2/alloc.h      |    9 ++
+ fs/ocfs2/extent_map.c |  346 +++++++++++++++++++++++++++++++++++++++++--------
+ fs/ocfs2/extent_map.h |    3 +
+ fs/ocfs2/file.c       |    1 +
+ 5 files changed, 306 insertions(+), 62 deletions(-)
+
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 10bfb46..29ff57e 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -990,15 +990,6 @@ out:
+ }
+ 
+ /*
+- * This is only valid for leaf nodes, which are the only ones that can
+- * have empty extents anyway.
+- */
+-static inline int ocfs2_is_empty_extent(struct ocfs2_extent_rec *rec)
+-{
+-	return !rec->e_leaf_clusters;
+-}
+-
+-/*
+  * This function will discard the rightmost extent record.
+  */
+ static void ocfs2_shift_records_right(struct ocfs2_extent_list *el)
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index 42ff94b..60cd3d5 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -146,4 +146,13 @@ static inline unsigned int ocfs2_rec_clusters(struct ocfs2_extent_list *el,
+ 		return le16_to_cpu(rec->e_leaf_clusters);
+ }
+ 
++/*
++ * This is only valid for leaf nodes, which are the only ones that can
++ * have empty extents anyway.
++ */
++static inline int ocfs2_is_empty_extent(struct ocfs2_extent_rec *rec)
++{
++	return !rec->e_leaf_clusters;
++}
++
+ #endif /* OCFS2_ALLOC_H */
+diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+index c58668a..aed268e 100644
+--- a/fs/ocfs2/extent_map.c
++++ b/fs/ocfs2/extent_map.c
+@@ -25,6 +25,7 @@
+ #include <linux/fs.h>
+ #include <linux/init.h>
+ #include <linux/types.h>
++#include <linux/fiemap.h>
+ 
+ #define MLOG_MASK_PREFIX ML_EXTENT_MAP
+ #include <cluster/masklog.h>
+@@ -32,6 +33,7 @@
+ #include "ocfs2.h"
+ 
+ #include "alloc.h"
++#include "dlmglue.h"
+ #include "extent_map.h"
+ #include "inode.h"
+ #include "super.h"
+@@ -282,6 +284,51 @@ out:
+ 		kfree(new_emi);
+ }
+ 
++static int ocfs2_last_eb_is_empty(struct inode *inode,
++				  struct ocfs2_dinode *di)
++{
++	int ret, next_free;
++	u64 last_eb_blk = le64_to_cpu(di->i_last_eb_blk);
++	struct buffer_head *eb_bh = NULL;
++	struct ocfs2_extent_block *eb;
++	struct ocfs2_extent_list *el;
++
++	ret = ocfs2_read_block(OCFS2_SB(inode->i_sb), last_eb_blk,
++			       &eb_bh, OCFS2_BH_CACHED, inode);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	eb = (struct ocfs2_extent_block *) eb_bh->b_data;
++	el = &eb->h_list;
++
++	if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
++		ret = -EROFS;
++		OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
++		goto out;
++	}
++
++	if (el->l_tree_depth) {
++		ocfs2_error(inode->i_sb,
++			    "Inode %lu has non zero tree depth in "
++			    "leaf block %llu\n", inode->i_ino,
++			    (unsigned long long)eb_bh->b_blocknr);
++		ret = -EROFS;
++		goto out;
++	}
++
++	next_free = le16_to_cpu(el->l_next_free_rec);
++
++	if (next_free == 0 ||
++	    (next_free == 1 && ocfs2_is_empty_extent(&el->l_recs[0])))
++		ret = 1;
++
++out:
++	brelse(eb_bh);
++	return ret;
++}
++
+ /*
+  * Return the 1st index within el which contains an extent start
+  * larger than v_cluster.
+@@ -373,42 +420,28 @@ out:
+ 	return ret;
+ }
+ 
+-int ocfs2_get_clusters(struct inode *inode, u32 v_cluster,
+-		       u32 *p_cluster, u32 *num_clusters,
+-		       unsigned int *extent_flags)
++static int ocfs2_get_clusters_nocache(struct inode *inode,
++				      struct buffer_head *di_bh,
++				      u32 v_cluster, unsigned int *hole_len,
++				      struct ocfs2_extent_rec *ret_rec,
++				      unsigned int *is_last)
+ {
+-	int ret, i;
+-	unsigned int flags = 0;
+-	struct buffer_head *di_bh = NULL;
+-	struct buffer_head *eb_bh = NULL;
++	int i, ret, tree_height, len;
+ 	struct ocfs2_dinode *di;
+-	struct ocfs2_extent_block *eb;
++	struct ocfs2_extent_block *uninitialized_var(eb);
+ 	struct ocfs2_extent_list *el;
+ 	struct ocfs2_extent_rec *rec;
+-	u32 coff;
+-
+-	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
+-		ret = -ERANGE;
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	ret = ocfs2_extent_map_lookup(inode, v_cluster, p_cluster,
+-				      num_clusters, extent_flags);
+-	if (ret == 0)
+-		goto out;
++	struct buffer_head *eb_bh = NULL;
+ 
+-	ret = ocfs2_read_block(OCFS2_SB(inode->i_sb), OCFS2_I(inode)->ip_blkno,
+-			       &di_bh, OCFS2_BH_CACHED, inode);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
++	memset(ret_rec, 0, sizeof(*ret_rec));
++	if (is_last)
++		*is_last = 0;
+ 
+ 	di = (struct ocfs2_dinode *) di_bh->b_data;
+ 	el = &di->id2.i_list;
++	tree_height = le16_to_cpu(el->l_tree_depth);
+ 
+-	if (el->l_tree_depth) {
++	if (tree_height > 0) {
+ 		ret = ocfs2_find_leaf(inode, el, v_cluster, &eb_bh);
+ 		if (ret) {
+ 			mlog_errno(ret);
+@@ -431,46 +464,143 @@ int ocfs2_get_clusters(struct inode *inode, u32 v_cluster,
+ 	i = ocfs2_search_extent_list(el, v_cluster);
+ 	if (i == -1) {
+ 		/*
+-		 * A hole was found. Return some canned values that
+-		 * callers can key on. If asked for, num_clusters will
+-		 * be populated with the size of the hole.
++		 * Holes can be larger than the maximum size of an
++		 * extent, so we return their lengths in a seperate
++		 * field.
+ 		 */
+-		*p_cluster = 0;
+-		if (num_clusters) {
++		if (hole_len) {
+ 			ret = ocfs2_figure_hole_clusters(inode, el, eb_bh,
+-							 v_cluster,
+-							 num_clusters);
++							 v_cluster, &len);
+ 			if (ret) {
+ 				mlog_errno(ret);
+ 				goto out;
+ 			}
++
++			*hole_len = len;
+ 		}
+-	} else {
+-		rec = &el->l_recs[i];
++		goto out_hole;
++	}
+ 
+-		BUG_ON(v_cluster < le32_to_cpu(rec->e_cpos));
++	rec = &el->l_recs[i];
+ 
+-		if (!rec->e_blkno) {
+-			ocfs2_error(inode->i_sb, "Inode %lu has bad extent "
+-				    "record (%u, %u, 0)", inode->i_ino,
+-				    le32_to_cpu(rec->e_cpos),
+-				    ocfs2_rec_clusters(el, rec));
+-			ret = -EROFS;
+-			goto out;
++	BUG_ON(v_cluster < le32_to_cpu(rec->e_cpos));
++
++	if (!rec->e_blkno) {
++		ocfs2_error(inode->i_sb, "Inode %lu has bad extent "
++			    "record (%u, %u, 0)", inode->i_ino,
++			    le32_to_cpu(rec->e_cpos),
++			    ocfs2_rec_clusters(el, rec));
++		ret = -EROFS;
++		goto out;
++	}
++
++	*ret_rec = *rec;
++
++	/*
++	 * Checking for last extent is potentially expensive - we
++	 * might have to look at the next leaf over to see if it's
++	 * empty.
++	 *
++	 * The first two checks are to see whether the caller even
++	 * cares for this information, and if the extent is at least
++	 * the last in it's list.
++	 *
++	 * If those hold true, then the extent is last if any of the
++	 * additional conditions hold true:
++	 *  - Extent list is in-inode
++	 *  - Extent list is right-most
++	 *  - Extent list is 2nd to rightmost, with empty right-most
++	 */
++	if (is_last) {
++		if (i == (le16_to_cpu(el->l_next_free_rec) - 1)) {
++			if (tree_height == 0)
++				*is_last = 1;
++			else if (eb->h_blkno == di->i_last_eb_blk)
++				*is_last = 1;
++			else if (eb->h_next_leaf_blk == di->i_last_eb_blk) {
++				ret = ocfs2_last_eb_is_empty(inode, di);
++				if (ret < 0) {
++					mlog_errno(ret);
++					goto out;
++				}
++				if (ret == 1)
++					*is_last = 1;
++			}
+ 		}
++	}
++
++out_hole:
++	ret = 0;
++out:
++	brelse(eb_bh);
++	return ret;
++}
++
++static void ocfs2_relative_extent_offsets(struct super_block *sb,
++					  u32 v_cluster,
++					  struct ocfs2_extent_rec *rec,
++					  u32 *p_cluster, u32 *num_clusters)
++
++{
++	u32 coff = v_cluster - le32_to_cpu(rec->e_cpos);
++
++	*p_cluster = ocfs2_blocks_to_clusters(sb, le64_to_cpu(rec->e_blkno));
++	*p_cluster = *p_cluster + coff;
++
++	if (num_clusters)
++		*num_clusters = le16_to_cpu(rec->e_leaf_clusters) - coff;
++}
++
++int ocfs2_get_clusters(struct inode *inode, u32 v_cluster,
++		       u32 *p_cluster, u32 *num_clusters,
++		       unsigned int *extent_flags)
++{
++	int ret;
++	unsigned int uninitialized_var(hole_len), flags = 0;
++	struct buffer_head *di_bh = NULL;
++	struct ocfs2_extent_rec rec;
+ 
+-		coff = v_cluster - le32_to_cpu(rec->e_cpos);
++	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
++		ret = -ERANGE;
++		mlog_errno(ret);
++		goto out;
++	}
+ 
+-		*p_cluster = ocfs2_blocks_to_clusters(inode->i_sb,
+-						    le64_to_cpu(rec->e_blkno));
+-		*p_cluster = *p_cluster + coff;
++	ret = ocfs2_extent_map_lookup(inode, v_cluster, p_cluster,
++				      num_clusters, extent_flags);
++	if (ret == 0)
++		goto out;
+ 
+-		if (num_clusters)
+-			*num_clusters = ocfs2_rec_clusters(el, rec) - coff;
++	ret = ocfs2_read_block(OCFS2_SB(inode->i_sb), OCFS2_I(inode)->ip_blkno,
++			       &di_bh, OCFS2_BH_CACHED, inode);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
+ 
+-		flags = rec->e_flags;
++	ret = ocfs2_get_clusters_nocache(inode, di_bh, v_cluster, &hole_len,
++					 &rec, NULL);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
+ 
+-		ocfs2_extent_map_insert_rec(inode, rec);
++	if (rec.e_blkno == 0ULL) {
++		/*
++		 * A hole was found. Return some canned values that
++		 * callers can key on. If asked for, num_clusters will
++		 * be populated with the size of the hole.
++		 */
++		*p_cluster = 0;
++		if (num_clusters) {
++			*num_clusters = hole_len;
++		}
++	} else {
++		ocfs2_relative_extent_offsets(inode->i_sb, v_cluster, &rec,
++					      p_cluster, num_clusters);
++		flags = rec.e_flags;
++
++		ocfs2_extent_map_insert_rec(inode, &rec);
+ 	}
+ 
+ 	if (extent_flags)
+@@ -478,7 +608,6 @@ int ocfs2_get_clusters(struct inode *inode, u32 v_cluster,
+ 
+ out:
+ 	brelse(di_bh);
+-	brelse(eb_bh);
+ 	return ret;
+ }
+ 
+@@ -521,3 +650,114 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 v_blkno, u64 *p_blkno,
+ out:
+ 	return ret;
+ }
++
++static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
++			       struct fiemap_extent_info *fieinfo,
++			       u64 map_start)
++{
++	int ret;
++	unsigned int id_count;
++	struct ocfs2_dinode *di;
++	u64 phys;
++	u32 flags = FIEMAP_EXTENT_DATA_INLINE|FIEMAP_EXTENT_LAST;
++	struct ocfs2_inode_info *oi = OCFS2_I(inode);
++
++	di = (struct ocfs2_dinode *)di_bh->b_data;
++	id_count = le16_to_cpu(di->id2.i_data.id_count);
++
++	if (map_start < id_count) {
++		phys = oi->ip_blkno << inode->i_sb->s_blocksize_bits;
++		phys += offsetof(struct ocfs2_dinode, id2.i_data.id_data);
++
++		ret = fiemap_fill_next_extent(fieinfo, 0, phys, id_count,
++					      flags);
++		if (ret < 0)
++			return ret;
++	}
++
++	return 0;
++}
++
++#define OCFS2_FIEMAP_FLAGS	(FIEMAP_FLAG_SYNC)
++
++int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
++		 u64 map_start, u64 map_len)
++{
++	int ret, is_last;
++	u32 mapping_end, cpos;
++	unsigned int hole_size;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	u64 len_bytes, phys_bytes, virt_bytes;
++	struct buffer_head *di_bh = NULL;
++	struct ocfs2_extent_rec rec;
++
++	ret = fiemap_check_flags(fieinfo, OCFS2_FIEMAP_FLAGS);
++	if (ret)
++		return ret;
++
++	ret = ocfs2_inode_lock(inode, &di_bh, 0);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	down_read(&OCFS2_I(inode)->ip_alloc_sem);
++
++	/*
++	 * Handle inline-data separately.
++	 */
++	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
++		ret = ocfs2_fiemap_inline(inode, di_bh, fieinfo, map_start);
++		goto out_unlock;
++	}
++
++	cpos = map_start >> osb->s_clustersize_bits;
++	mapping_end = ocfs2_clusters_for_bytes(inode->i_sb,
++					       map_start + map_len);
++	mapping_end -= cpos;
++	is_last = 0;
++	while (cpos < mapping_end && !is_last) {
++		u32 fe_flags;
++
++		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos,
++						 &hole_size, &rec, &is_last);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
++		if (rec.e_blkno == 0ULL) {
++			cpos += hole_size;
++			continue;
++		}
++
++		fe_flags = 0;
++		if (rec.e_flags & OCFS2_EXT_UNWRITTEN)
++			fe_flags |= FIEMAP_EXTENT_UNWRITTEN;
++		if (is_last)
++			fe_flags |= FIEMAP_EXTENT_LAST;
++		len_bytes = (u64)le16_to_cpu(rec.e_leaf_clusters) << osb->s_clustersize_bits;
++		phys_bytes = le64_to_cpu(rec.e_blkno) << osb->sb->s_blocksize_bits;
++		virt_bytes = (u64)le32_to_cpu(rec.e_cpos) << osb->s_clustersize_bits;
++
++		ret = fiemap_fill_next_extent(fieinfo, virt_bytes, phys_bytes,
++					      len_bytes, fe_flags);
++		if (ret)
++			break;
++
++		cpos = le32_to_cpu(rec.e_cpos)+ le16_to_cpu(rec.e_leaf_clusters);
++	}
++
++	if (ret > 0)
++		ret = 0;
++
++out_unlock:
++	brelse(di_bh);
++
++	up_read(&OCFS2_I(inode)->ip_alloc_sem);
++
++	ocfs2_inode_unlock(inode, 0);
++out:
++
++	return ret;
++}
+diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
+index de91e3e..1b97490 100644
+--- a/fs/ocfs2/extent_map.h
++++ b/fs/ocfs2/extent_map.h
+@@ -50,4 +50,7 @@ int ocfs2_get_clusters(struct inode *inode, u32 v_cluster, u32 *p_cluster,
+ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 v_blkno, u64 *p_blkno,
+ 				u64 *ret_count, unsigned int *extent_flags);
+ 
++int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
++		 u64 map_start, u64 map_len);
++
+ #endif  /* _EXTENT_MAP_H */
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index ec2ed15..ed38796 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2228,6 +2228,7 @@ const struct inode_operations ocfs2_file_iops = {
+ 	.getattr	= ocfs2_getattr,
+ 	.permission	= ocfs2_permission,
+ 	.fallocate	= ocfs2_fallocate,
++	.fiemap		= ocfs2_fiemap,
+ };
+ 
+ const struct inode_operations ocfs2_special_file_iops = {
+-- 
+1.5.6.1.205.ge2c7.dirty
