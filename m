@@ -1,54 +1,65 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 14 Oct 2008 17:25:35 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Morph the haphazard
-	OCFS2_IS_VALID_DINODE() checks.
-Message-ID: <20081015002535.GN15154@wotan.suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 14 Oct 2008 17:36:27 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Wrap inode block reads in a
+	dedicated function.
+In-Reply-To: <20081015001716.GL15154@wotan.suse.de>
+References: <20081015001716.GL15154@wotan.suse.de>
+Message-ID: <20081015003627.GE8025@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Oct 14, 2008 at 01:49:02PM -0700, Joel Becker wrote:
-> Random places in the code would check a dinode bh to see if it was
-> valid.  Not only did they do different levels of validation, they
-> handled errors in different ways.
-> 
-> The previous commit unified inode block reads, validating all block
-> reads in the same place.  Thus, these haphazard checks are no longer
-> necessary.  Rather than eliminate them, however, we change them to
-> BUG_ON() checks.  This ensures the assumptions remain true.  All of the
-> code paths to these checks have been audited to ensure they come from a
-> validated inode read.
-> 
-> Signed-off-by: Joel Becker <joel.becker@oracle.com>
-> ---
->  fs/ocfs2/alloc.c    |   50 +++++++++++++++++++++-----------------------------
->  fs/ocfs2/journal.c  |   17 +++++------------
->  fs/ocfs2/resize.c   |   10 ++++------
->  fs/ocfs2/suballoc.c |   36 ++++++++++++++++--------------------
->  4 files changed, 46 insertions(+), 67 deletions(-)
-> 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index b163b79..ddbb567 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -187,20 +187,12 @@ static int ocfs2_dinode_insert_check(struct inode *inode,
->  static int ocfs2_dinode_sanity_check(struct inode *inode,
->  				     struct ocfs2_extent_tree *et)
->  {
-> -	int ret = 0;
-> -	struct ocfs2_dinode *di;
-> +	struct ocfs2_dinode *di = et->et_object;
->  
->  	BUG_ON(et->et_ops != &ocfs2_dinode_et_ops);
-> +	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
+[Oops, properly Cc'd now]
 
+On Tue, Oct 14, 2008 at 05:17:16PM -0700, Mark Fasheh wrote:
+> On Mon, Oct 13, 2008 at 06:16:15PM -0700, Joel Becker wrote:
+> > @@ -232,25 +231,17 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+> 
+> These changes to ocfs2_populate_inode() look great.
 
-This all looks good to me. It should be pretty easy for us later on to
-search on 'BUG_ON(!OCFS2_IS_VALID_DINODE' to remove these redundant checks
-once we're confident the conversion went ok.
-	--Mark
+	I thought you'd like that ;-)
 
---
-Mark Fasheh
+> > +int ocfs2_read_inode_block(struct inode *inode, u64 blkno,
+> > +			   struct buffer_head **bh)
+> > +{
+> 
+> Can we get rid of the blkno argument here, and just get it from
+> OCFS2_I(inode)->ip_blkno? Getting it out of ocfs2_read_inode_block_full()
+> might be nice too, but not as big a deal since it isn't called as much.
+
+	I did that patch right before the concall.  I just had to verify
+my hunch that all callers had a valid ip_blkno.  Attached ;-)
+
+> API-wise, this is a very nice change. It makes the checks we have more
+> consistent. I think it'd be worth the time though to figure out how to
+> execute the validation code only when we've actually read the disk.
+
+	I'm glad you like the API (I'm almost done with group
+descriptors now too).  Regarding 'only on read', when I have the
+callback in ocfs2_read_blocks() to handle that, I can easily lift all of
+the validation there (instead of just the checksum).  Basically, I'm
+refactoring all the metadata reads before I do the read_blocks() hook.
+It seems a much easier to follow series.
+
+Joel
+
+-- 
+
+"The nice thing about egotists is that they don't talk about other
+ people."
+         - Lucille S. Harper
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: 0001-ocfs2-Callers-of-ocfs2_read_inode_block-don-t-nee.patch
+Type: text/x-diff
+Size: 0 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20081014/e55f6a24/attachment.bin 
