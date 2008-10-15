@@ -1,43 +1,59 @@
-From: Jean-Louis.Morard at bit.admin.ch <Jean-Louis.Morard@bit.admin.ch>
-Date: Thu, 9 Oct 2008 16:45:44 +0200
-Subject: [Ocfs2-devel] ACL support in OCFS2
-Message-ID: <E1306337AED1804282B19099556FB90A04C83847@sbem35exc1005.efd.intra.admin.ch>
+From: Randy Dunlap <randy.dunlap@oracle.com>
+Date: Tue, 14 Oct 2008 18:20:37 -0700
+Subject: [Ocfs2-devel] [git patches] Ocfs2 features for 2.6.28 (build
+	errors)
+In-Reply-To: <20081014200319.GK15154@wotan.suse.de>
+References: <20081014200319.GK15154@wotan.suse.de>
+Message-ID: <20081014182037.38503fd0.randy.dunlap@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
+On Tue, 14 Oct 2008 13:03:19 -0700 Mark Fasheh wrote:
 
-Dear All,
-
-I have to introduce a cluster file system that is supported by Novell SLES 10 and that supports ACLs. OCFS is a good candidate as it is integrated in the standard Linux kernel. Unfortunately it doen't support ACLs. We noticed however that Tiger Yang posted a patch to support ACLs in OCFS2 (http://oss.oracle.com/pipermail/ocfs2-devel/2008-September/002837.html). Is it possible to know if this patch will be integrated in the standard OCFS distribution and when? Or does any patch in a RPM format exist?
-
-
-
-Freundliche Gr?sse
-
-Jean-Louis Morard
-Informationssystem-Architekt
-
-Eidgen?ssisches Finanzdepartement EFD
-Bundesamt f?r Informatik und Telekommunikation BIT
-Innovation
-
-Monbijoustrasse 74, 3003 Bern
-Tel. +41 31 32 33793
-Fax +41 31 32 59030
-jean-louis.morard at bit.admin.ch
-www.bit.admin.ch
-
-Der Eisbrecher: die Kundenzeitung des BIT www.bit.admin.ch/eisbrecher
-
-
-> P Bevor Sie dieses E-Mail ausdrucken: Denken Sie an die Umwelt!
+> Hi Linus,
 > 
+> 	The majority of these Ocfs2 patches were sent to the list back in
+> September:
 > 
+> 	http://lkml.org/lkml/2008/9/24/383
 > 
+> All feedback has been incorporated - my original e-mail describing the
+> contents of our tree is attached below.
 > 
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20081009/d1aed8ba/attachment-0001.html 
+> The only exception is that I added (after the initial send to lkml) an
+> internal api cleanup series from Joel. This doesn't really make any
+> functional changes, but simplifies our block I/O handling code in
+> anticipation of some features we're planning for 2.6.29. For reference,
+> these changes are the topmost 6 patches in the branch. I don't think they're
+> are particularly controversial or tricky.
+> 	--Mark
+> 
+> Please pull from 'upstream-linus' branch of
+> git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
+
+
+In 2.6.27-git5 I am seeing build errors as follow:
+
+fs/ocfs2/xattr.c: In function 'ocfs2_xattr_bucket_find':
+fs/ocfs2/xattr.c:2352: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
+fs/ocfs2/xattr.c:2352: error: (Each undeclared identifier is reported only once
+fs/ocfs2/xattr.c:2352: error: for each function it appears in.)
+fs/ocfs2/xattr.c: In function 'ocfs2_iterate_xattr_buckets':
+fs/ocfs2/xattr.c:2429: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
+fs/ocfs2/xattr.c: In function 'ocfs2_xattr_update_xattr_search':
+fs/ocfs2/xattr.c:2697: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
+fs/ocfs2/xattr.c: In function 'ocfs2_defrag_xattr_bucket':
+fs/ocfs2/xattr.c:2902: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
+fs/ocfs2/xattr.c: In function 'ocfs2_read_xattr_bucket':
+fs/ocfs2/xattr.c:3157: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
+fs/ocfs2/xattr.c: In function 'ocfs2_xattr_set_entry_in_bucket':
+fs/ocfs2/xattr.c:4104: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
+make[2]: *** [fs/ocfs2/xattr.o] Error 1
+
+
+---
+~Randy
