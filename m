@@ -1,273 +1,248 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Thu, 16 Oct 2008 02:38:46 -0700
-Subject: [Ocfs2-devel] [PATCH 2/8] ocfs2: Morph the haphazard
-	OCFS2_IS_VALID_DINODE() checks.
+Date: Thu, 16 Oct 2008 02:38:51 -0700
+Subject: [Ocfs2-devel] [PATCH 7/8] ocfs2: Wrap dirblock reads in a dedicated
+	function.
 In-Reply-To: <1224149932-24381-1-git-send-email-joel.becker@oracle.com>
 References: <1224149932-24381-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1224149932-24381-3-git-send-email-joel.becker@oracle.com>
+Message-ID: <1224149932-24381-8-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Random places in the code would check a dinode bh to see if it was
-valid.  Not only did they do different levels of validation, they
-handled errors in different ways.
-
-The previous commit unified inode block reads, validating all block
-reads in the same place.  Thus, these haphazard checks are no longer
-necessary.  Rather than eliminate them, however, we change them to
-BUG_ON() checks.  This ensures the assumptions remain true.  All of the
-code paths to these checks have been audited to ensure they come from a
-validated inode read.
+We have ocfs2_bread() as a vestige of the original ext-based dir code.
+It's only used by directories, though.  Turn it into
+ocfs2_read_dir_block(), with a prototype matching the other metadata
+read functions.  It's set up to validate dirblocks when the time comes.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/alloc.c    |   50 +++++++++++++++++++++-----------------------------
- fs/ocfs2/journal.c  |   17 +++++------------
- fs/ocfs2/ocfs2.h    |    8 --------
- fs/ocfs2/resize.c   |   10 ++++------
- fs/ocfs2/suballoc.c |   36 ++++++++++++++++--------------------
- 5 files changed, 46 insertions(+), 75 deletions(-)
+ fs/ocfs2/dir.c |  150 +++++++++++++++++++++++++++++++++-----------------------
+ 1 files changed, 88 insertions(+), 62 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 6d222d5..7a7f9da 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -187,20 +187,12 @@ static int ocfs2_dinode_insert_check(struct inode *inode,
- static int ocfs2_dinode_sanity_check(struct inode *inode,
- 				     struct ocfs2_extent_tree *et)
- {
--	int ret = 0;
--	struct ocfs2_dinode *di;
-+	struct ocfs2_dinode *di = et->et_object;
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 5777045..c2f3fd9 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -82,49 +82,6 @@ static int ocfs2_do_extend_dir(struct super_block *sb,
+ 			       struct ocfs2_alloc_context *meta_ac,
+ 			       struct buffer_head **new_bh);
  
- 	BUG_ON(et->et_ops != &ocfs2_dinode_et_ops);
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
- 
--	di = et->et_object;
--	if (!OCFS2_IS_VALID_DINODE(di)) {
--		ret = -EIO;
--		ocfs2_error(inode->i_sb,
--			"Inode %llu has invalid path root",
--			(unsigned long long)OCFS2_I(inode)->ip_blkno);
+-static struct buffer_head *ocfs2_bread(struct inode *inode,
+-				       int block, int *err, int reada)
+-{
+-	struct buffer_head *bh = NULL;
+-	int tmperr;
+-	u64 p_blkno;
+-	int readflags = 0;
+-
+-	if (reada)
+-		readflags |= OCFS2_BH_READAHEAD;
+-
+-	if (((u64)block << inode->i_sb->s_blocksize_bits) >=
+-	    i_size_read(inode)) {
+-		BUG_ON(!reada);
+-		return NULL;
 -	}
 -
--	return ret;
+-	down_read(&OCFS2_I(inode)->ip_alloc_sem);
+-	tmperr = ocfs2_extent_map_get_blocks(inode, block, &p_blkno, NULL,
+-					     NULL);
+-	up_read(&OCFS2_I(inode)->ip_alloc_sem);
+-	if (tmperr < 0) {
+-		mlog_errno(tmperr);
+-		goto fail;
+-	}
+-
+-	tmperr = ocfs2_read_blocks(inode, p_blkno, 1, &bh, readflags);
+-	if (tmperr < 0)
+-		goto fail;
+-
+-	tmperr = 0;
+-
+-	*err = 0;
+-	return bh;
+-
+-fail:
+-	brelse(bh);
+-	bh = NULL;
+-
+-	*err = -EIO;
+-	return NULL;
+-}
+-
+ /*
+  * bh passed here can be an inode block or a dir data block, depending
+  * on the inode inline data flag.
+@@ -250,6 +207,76 @@ out:
+ 	return NULL;
+ }
+ 
++static int ocfs2_validate_dir_block(struct super_block *sb,
++				    struct buffer_head *bh)
++{
++	/*
++	 * Nothing yet.  We don't validate dirents here, that's handled
++	 * in-place when the code walks them.
++	 */
++
 +	return 0;
- }
- 
- static void ocfs2_dinode_fill_root_el(struct ocfs2_extent_tree *et)
-@@ -5308,13 +5300,13 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
- 	start_cluster = ocfs2_blocks_to_clusters(osb->sb, start_blk);
- 
- 	di = (struct ocfs2_dinode *) tl_bh->b_data;
--	tl = &di->id2.i_dealloc;
--	if (!OCFS2_IS_VALID_DINODE(di)) {
--		OCFS2_RO_ON_INVALID_DINODE(osb->sb, di);
--		status = -EIO;
--		goto bail;
--	}
- 
-+	/* tl_bh is loaded from ocfs2_truncate_log_init().  It's validated
-+	 * by the underlying call to ocfs2_read_inode_block(), so any
-+	 * corruption is a code bug */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
++}
 +
-+	tl = &di->id2.i_dealloc;
- 	tl_count = le16_to_cpu(tl->tl_count);
- 	mlog_bug_on_msg(tl_count > ocfs2_truncate_recs_per_inode(osb->sb) ||
- 			tl_count == 0,
-@@ -5464,13 +5456,13 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb)
- 	BUG_ON(mutex_trylock(&tl_inode->i_mutex));
- 
- 	di = (struct ocfs2_dinode *) tl_bh->b_data;
--	tl = &di->id2.i_dealloc;
--	if (!OCFS2_IS_VALID_DINODE(di)) {
--		OCFS2_RO_ON_INVALID_DINODE(osb->sb, di);
--		status = -EIO;
--		goto out;
--	}
- 
-+	/* tl_bh is loaded from ocfs2_truncate_log_init().  It's validated
-+	 * by the underlying call to ocfs2_read_inode_block(), so any
-+	 * corruption is a code bug */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
++/*
++ * This function forces all errors to -EIO for consistency with its
++ * predecessor, ocfs2_bread().  We haven't audited what returning the
++ * real error codes would do to callers.  We log the real codes with
++ * mlog_errno() before we squash them.
++ */
++static int ocfs2_read_dir_block(struct inode *inode, u64 v_block,
++				struct buffer_head **bh, int flags)
++{
++	int rc = 0;
++	struct buffer_head *tmp = *bh;
++	u64 p_blkno;
 +
-+	tl = &di->id2.i_dealloc;
- 	num_to_flush = le16_to_cpu(tl->tl_used);
- 	mlog(0, "Flush %u records from truncate log #%llu\n",
- 	     num_to_flush, (unsigned long long)OCFS2_I(tl_inode)->ip_blkno);
-@@ -5625,13 +5617,13 @@ int ocfs2_begin_truncate_log_recovery(struct ocfs2_super *osb,
++	if (((u64)v_block << inode->i_sb->s_blocksize_bits) >=
++	    i_size_read(inode)) {
++		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
++		goto out;
++	}
++
++	down_read(&OCFS2_I(inode)->ip_alloc_sem);
++	rc = ocfs2_extent_map_get_blocks(inode, v_block, &p_blkno, NULL,
++					 NULL);
++	up_read(&OCFS2_I(inode)->ip_alloc_sem);
++	if (rc) {
++		mlog_errno(rc);
++		goto out;
++	}
++
++	if (!p_blkno) {
++		rc = -EIO;
++		mlog(ML_ERROR,
++		     "Directory #%llu contains a hole at offset %llu\n",
++		     (unsigned long long)OCFS2_I(inode)->ip_blkno,
++		     (unsigned long long)v_block << inode->i_sb->s_blocksize_bits);
++		goto out;
++	}
++
++	rc = ocfs2_read_blocks(inode, p_blkno, 1, &tmp, flags);
++	if (rc) {
++		mlog_errno(rc);
++		goto out;
++	}
++
++	if (!(flags & OCFS2_BH_READAHEAD)) {
++		rc = ocfs2_validate_dir_block(inode->i_sb, tmp);
++		if (rc) {
++			brelse(tmp);
++			goto out;
++		}
++	}
++
++	/* If ocfs2_read_blocks() got us a new bh, pass it up.  */
++	if (!*bh)
++		*bh = tmp;
++
++out:
++	return rc ? -EIO : 0;
++}
++
+ static struct buffer_head *ocfs2_find_entry_el(const char *name, int namelen,
+ 					       struct inode *dir,
+ 					       struct ocfs2_dir_entry **res_dir)
+@@ -296,15 +323,17 @@ restart:
+ 				}
+ 				num++;
+ 
+-				bh = ocfs2_bread(dir, b++, &err, 1);
++				bh = NULL;
++				err = ocfs2_read_dir_block(dir, b++, &bh,
++							   OCFS2_BH_READAHEAD);
+ 				bh_use[ra_max] = bh;
+ 			}
+ 		}
+ 		if ((bh = bh_use[ra_ptr++]) == NULL)
+ 			goto next;
+-		if (ocfs2_read_block(dir, block, &bh)) {
++		if (ocfs2_read_dir_block(dir, block, &bh, 0)) {
+ 			/* read error, skip block & hope for the best.
+-			 * ocfs2_read_block() has released the bh. */
++			 * ocfs2_read_dir_block() has released the bh. */
+ 			ocfs2_error(dir->i_sb, "reading directory %llu, "
+ 				    "offset %lu\n",
+ 				    (unsigned long long)OCFS2_I(dir)->ip_blkno,
+@@ -724,7 +753,6 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+ 	int i, stored;
+ 	struct buffer_head * bh, * tmp;
+ 	struct ocfs2_dir_entry * de;
+-	int err;
+ 	struct super_block * sb = inode->i_sb;
+ 	unsigned int ra_sectors = 16;
+ 
+@@ -735,12 +763,8 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+ 
+ 	while (!error && !stored && *f_pos < i_size_read(inode)) {
+ 		blk = (*f_pos) >> sb->s_blocksize_bits;
+-		bh = ocfs2_bread(inode, blk, &err, 0);
+-		if (!bh) {
+-			mlog(ML_ERROR,
+-			     "directory #%llu contains a hole at offset %lld\n",
+-			     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+-			     *f_pos);
++		if (ocfs2_read_dir_block(inode, blk, &bh, 0)) {
++			/* Skip the corrupt dirblock and keep trying */
+ 			*f_pos += sb->s_blocksize - offset;
+ 			continue;
+ 		}
+@@ -754,8 +778,10 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+ 		    || (((last_ra_blk - blk) << 9) <= (ra_sectors / 2))) {
+ 			for (i = ra_sectors >> (sb->s_blocksize_bits - 9);
+ 			     i > 0; i--) {
+-				tmp = ocfs2_bread(inode, ++blk, &err, 1);
+-				brelse(tmp);
++				tmp = NULL;
++				if (!ocfs2_read_dir_block(inode, ++blk, &tmp,
++							  OCFS2_BH_READAHEAD))
++					brelse(tmp);
+ 			}
+ 			last_ra_blk = blk;
+ 			ra_sectors = 8;
+@@ -828,6 +854,7 @@ revalidate:
+ 		}
+ 		offset = 0;
+ 		brelse(bh);
++		bh = NULL;
  	}
  
- 	di = (struct ocfs2_dinode *) tl_bh->b_data;
--	tl = &di->id2.i_dealloc;
--	if (!OCFS2_IS_VALID_DINODE(di)) {
--		OCFS2_RO_ON_INVALID_DINODE(tl_inode->i_sb, di);
--		status = -EIO;
--		goto bail;
--	}
+ 	stored = 0;
+@@ -1680,8 +1707,8 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+ 	struct super_block *sb = dir->i_sb;
+ 	int status;
  
-+	/* tl_bh is loaded from ocfs2_get_truncate_log_info().  It's
-+	 * validated by the underlying call to ocfs2_read_inode_block(),
-+	 * so any corruption is a code bug */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
-+
-+	tl = &di->id2.i_dealloc;
- 	if (le16_to_cpu(tl->tl_used)) {
- 		mlog(0, "We'll have %u logs to recover\n",
- 		     le16_to_cpu(tl->tl_used));
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 54eb9ca..5c4c739 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -587,17 +587,11 @@ static int ocfs2_journal_toggle_dirty(struct ocfs2_super *osb,
- 	mlog_entry_void();
- 
- 	fe = (struct ocfs2_dinode *)bh->b_data;
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		/* This is called from startup/shutdown which will
--		 * handle the errors in a specific manner, so no need
--		 * to call ocfs2_error() here. */
--		mlog(ML_ERROR, "Journal dinode %llu  has invalid "
--		     "signature: %.*s",
--		     (unsigned long long)le64_to_cpu(fe->i_blkno), 7,
--		     fe->i_signature);
--		status = -EIO;
--		goto out;
--	}
-+
-+	/* The journal bh on the osb always comes from ocfs2_journal_init()
-+	 * and was validated there inside ocfs2_inode_lock_full().  It's a
-+	 * code bug if we mess it up. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
- 
- 	flags = le32_to_cpu(fe->id1.journal1.ij_flags);
- 	if (dirty)
-@@ -613,7 +607,6 @@ static int ocfs2_journal_toggle_dirty(struct ocfs2_super *osb,
- 	if (status < 0)
+-	bh = ocfs2_bread(dir, 0, &status, 0);
+-	if (!bh) {
++	status = ocfs2_read_dir_block(dir, 0, &bh, 0);
++	if (status) {
  		mlog_errno(status);
- 
--out:
- 	mlog_exit(status);
- 	return status;
- }
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index a21a465..7ea38ac 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -443,14 +443,6 @@ static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
- #define OCFS2_IS_VALID_DINODE(ptr)					\
- 	(!strcmp((ptr)->i_signature, OCFS2_INODE_SIGNATURE))
- 
--#define OCFS2_RO_ON_INVALID_DINODE(__sb, __di)	do {			\
--	typeof(__di) ____di = (__di);					\
--	ocfs2_error((__sb), 						\
--		"Dinode # %llu has bad signature %.*s",			\
--		(unsigned long long)le64_to_cpu((____di)->i_blkno), 7, 	\
--		(____di)->i_signature);					\
--} while (0)
--
- #define OCFS2_IS_VALID_EXTENT_BLOCK(ptr)				\
- 	(!strcmp((ptr)->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE))
- 
-diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
-index ffd48db..739d452 100644
---- a/fs/ocfs2/resize.c
-+++ b/fs/ocfs2/resize.c
-@@ -314,6 +314,10 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
- 
- 	fe = (struct ocfs2_dinode *)main_bm_bh->b_data;
- 
-+	/* main_bm_bh is validated by inode read inside ocfs2_inode_lock(),
-+	 * so any corruption is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
-+
- 	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
- 				 ocfs2_group_bitmap_size(osb->sb) * 8) {
- 		mlog(ML_ERROR, "The disk is too old and small. "
-@@ -322,12 +326,6 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
- 		goto out_unlock;
+ 		goto bail;
  	}
- 
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(main_bm_inode->i_sb, fe);
--		ret = -EIO;
--		goto out_unlock;
--	}
--
- 	first_new_cluster = le32_to_cpu(fe->i_clusters);
- 	lgd_blkno = ocfs2_which_cluster_group(main_bm_inode,
- 					      first_new_cluster - 1);
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index c5ff18b..95d432b 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -441,11 +441,11 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 	ac->ac_alloc_slot = slot;
- 
- 	fe = (struct ocfs2_dinode *) bh->b_data;
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(alloc_inode->i_sb, fe);
--		status = -EIO;
--		goto bail;
--	}
-+
-+	/* The bh was validated by the inode read inside
-+	 * ocfs2_inode_lock().  Any corruption is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
-+
- 	if (!(fe->i_flags & cpu_to_le32(OCFS2_CHAIN_FL))) {
- 		ocfs2_error(alloc_inode->i_sb, "Invalid chain allocator %llu",
- 			    (unsigned long long)le64_to_cpu(fe->i_blkno));
-@@ -931,11 +931,6 @@ static int ocfs2_relink_block_group(handle_t *handle,
- 	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
- 	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
- 
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(alloc_inode->i_sb, fe);
--		status = -EIO;
--		goto out;
--	}
- 	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
- 		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, bg);
- 		status = -EIO;
-@@ -1392,11 +1387,11 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_super *osb,
- 	BUG_ON(!ac->ac_bh);
- 
- 	fe = (struct ocfs2_dinode *) ac->ac_bh->b_data;
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(osb->sb, fe);
--		status = -EIO;
--		goto bail;
--	}
-+
-+	/* The bh was validated by the inode read during
-+	 * ocfs2_reserve_suballoc_bits().  Any corruption is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
-+
- 	if (le32_to_cpu(fe->id1.bitmap1.i_used) >=
- 	    le32_to_cpu(fe->id1.bitmap1.i_total)) {
- 		ocfs2_error(osb->sb, "Chain allocator dinode %llu has %u used "
-@@ -1782,11 +1777,12 @@ int ocfs2_free_suballoc_bits(handle_t *handle,
- 
- 	mlog_entry_void();
- 
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(alloc_inode->i_sb, fe);
--		status = -EIO;
--		goto bail;
--	}
-+	/* The alloc_bh comes from ocfs2_free_dinode() or
-+	 * ocfs2_free_clusters().  The callers have all locked the
-+	 * allocator and gotten alloc_bh from the lock call.  This
-+	 * validates the dinode buffer.  Any corruption that has happended
-+	 * is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
- 	BUG_ON((count + start_bit) > ocfs2_bits_per_group(cl));
- 
- 	mlog(0, "%llu: freeing %u bits from group %llu, starting at %u\n",
+@@ -1702,11 +1729,10 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+ 				status = -ENOSPC;
+ 				goto bail;
+ 			}
+-			bh = ocfs2_bread(dir,
+-					 offset >> sb->s_blocksize_bits,
+-					 &status,
+-					 0);
+-			if (!bh) {
++			status = ocfs2_read_dir_block(dir,
++					     offset >> sb->s_blocksize_bits,
++					     &bh, 0);
++			if (status) {
+ 				mlog_errno(status);
+ 				goto bail;
+ 			}
 -- 
 1.5.6.5
