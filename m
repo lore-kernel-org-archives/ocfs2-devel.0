@@ -1,390 +1,51 @@
-From: Joel Becker <joel.becker@oracle.com>
-Date: Thu, 16 Oct 2008 02:38:50 -0700
-Subject: [Ocfs2-devel] [PATCH 6/8] ocfs2: Wrap extent block reads in a
-	dedicated function.
-In-Reply-To: <1224149932-24381-1-git-send-email-joel.becker@oracle.com>
-References: <1224149932-24381-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1224149932-24381-7-git-send-email-joel.becker@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 16 Oct 2008 22:43:47 +0800
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2/xattr: Add POSIX ACLs support
+ in ocfs2
+In-Reply-To: <20081016082042.GA22345@ca-server1.us.oracle.com>
+References: <48F6F0A3.5060909@oracle.com>	<1224143394-30970-1-git-send-email-tiger.yang@oracle.com>
+	<20081016082042.GA22345@ca-server1.us.oracle.com>
+Message-ID: <48F75323.4050706@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We weren't consistently checking extent blocks after we read them.
-Most places checked the signature, but none checked h_blkno or
-h_fs_signature.  Create a toplevel ocfs2_read_extent_block() that does
-the read and the validation.
+Joel Becker Wrote:
+> On Thu, Oct 16, 2008 at 03:49:54PM +0800, Tiger Yang wrote:
+>   
+>
+>   
+>> + *
+>> + * This program is free software; you can redistribute it and/or
+>> + * modify it under the terms of the GNU General Public
+>> + * License as published by the Free Software Foundation; either
+>> + * version 2 of the License, or (at your option) any later version.
+>>     
+>
+>  * This program is free software; you can redistribute it and/or
+>  * modify it under the terms of the GNU General Public License
+>  * version 2 as published by the Free Software Foundation.
+>
+>   
+>> + *
+>> + * This program is distributed in the hope that it will be useful,
+>> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+>> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+>> + * General Public License for more details.
+>> + *
+>> + * You should have received a copy of the GNU General Public
+>> + * License along with this program; if not, write to the
+>> + * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+>> + * Boston, MA 021110-1307, USA.
+>>     
+>
+> 	Leave out the last paragraph.  They've moved, and they recommend
+> leaving out the address.
+>   
+hi tiger, you can use this new license. 
+http://kernel.us.oracle.com/~smushran/license.txt
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/alloc.c      |  151 ++++++++++++++++++++++++++++++++-----------------
- fs/ocfs2/alloc.h      |    8 +++
- fs/ocfs2/extent_map.c |   23 ++------
- fs/ocfs2/ocfs2.h      |    8 ---
- 4 files changed, 111 insertions(+), 79 deletions(-)
-
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 7a7f9da..e6ddb8a 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -678,6 +678,66 @@ struct ocfs2_merge_ctxt {
- 	int			c_split_covers_rec;
- };
- 
-+static int ocfs2_validate_extent_block(struct super_block *sb,
-+				       struct buffer_head *bh)
-+{
-+	struct ocfs2_extent_block *eb =
-+		(struct ocfs2_extent_block *)bh->b_data;
-+
-+	if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
-+		ocfs2_error(sb,
-+			    "Extent block #%llu has bad signature %.*s",
-+			    (unsigned long long)bh->b_blocknr, 7,
-+			    eb->h_signature);
-+		return -EINVAL;
-+	}
-+
-+	if (le64_to_cpu(eb->h_blkno) != bh->b_blocknr) {
-+		ocfs2_error(sb,
-+			    "Extent block #%llu has an invalid h_blkno "
-+			    "of %llu",
-+			    (unsigned long long)bh->b_blocknr,
-+			    (unsigned long long)le64_to_cpu(eb->h_blkno));
-+		return -EINVAL;
-+	}
-+
-+	if (le32_to_cpu(eb->h_fs_generation) != OCFS2_SB(sb)->fs_generation) {
-+		ocfs2_error(sb,
-+			    "Extent block #%llu has an invalid "
-+			    "h_fs_generation of #%u",
-+			    (unsigned long long)bh->b_blocknr,
-+			    le32_to_cpu(eb->h_fs_generation));
-+		return -EINVAL;
-+	}
-+
-+	return 0;
-+}
-+
-+int ocfs2_read_extent_block(struct inode *inode, u64 eb_blkno,
-+			    struct buffer_head **bh)
-+{
-+	int rc;
-+	struct buffer_head *tmp = *bh;
-+
-+	rc = ocfs2_read_block(inode, eb_blkno, &tmp);
-+	if (rc)
-+		goto out;
-+
-+	rc = ocfs2_validate_extent_block(inode->i_sb, tmp);
-+	if (rc) {
-+		brelse(tmp);
-+		goto out;
-+	}
-+
-+	/* If ocfs2_read_block() got us a new bh, pass it up. */
-+	if (!*bh)
-+		*bh = tmp;
-+
-+out:
-+	return rc;
-+}
-+
-+
- /*
-  * How many free extents have we got before we need more meta data?
-  */
-@@ -697,8 +757,7 @@ int ocfs2_num_free_extents(struct ocfs2_super *osb,
- 	last_eb_blk = ocfs2_et_get_last_eb_blk(et);
- 
- 	if (last_eb_blk) {
--		retval = ocfs2_read_block(inode, last_eb_blk,
--					  &eb_bh);
-+		retval = ocfs2_read_extent_block(inode, last_eb_blk, &eb_bh);
- 		if (retval < 0) {
- 			mlog_errno(retval);
- 			goto bail;
-@@ -900,11 +959,8 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
- 	for(i = 0; i < new_blocks; i++) {
- 		bh = new_eb_bhs[i];
- 		eb = (struct ocfs2_extent_block *) bh->b_data;
--		if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
--			OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
--			status = -EIO;
--			goto bail;
--		}
-+		/* ocfs2_create_new_meta_bhs() should create it right! */
-+		BUG_ON(!OCFS2_IS_VALID_EXTENT_BLOCK(eb));
- 		eb_el = &eb->h_list;
- 
- 		status = ocfs2_journal_access(handle, inode, bh,
-@@ -1044,11 +1100,8 @@ static int ocfs2_shift_tree_depth(struct ocfs2_super *osb,
- 	}
- 
- 	eb = (struct ocfs2_extent_block *) new_eb_bh->b_data;
--	if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
--		OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
--		status = -EIO;
--		goto bail;
--	}
-+	/* ocfs2_create_new_meta_bhs() should create it right! */
-+	BUG_ON(!OCFS2_IS_VALID_EXTENT_BLOCK(eb));
- 
- 	eb_el = &eb->h_list;
- 	root_el = et->et_root_el;
-@@ -1168,18 +1221,13 @@ static int ocfs2_find_branch_target(struct ocfs2_super *osb,
- 		brelse(bh);
- 		bh = NULL;
- 
--		status = ocfs2_read_block(inode, blkno, &bh);
-+		status = ocfs2_read_extent_block(inode, blkno, &bh);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto bail;
- 		}
- 
- 		eb = (struct ocfs2_extent_block *) bh->b_data;
--		if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
--			OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
--			status = -EIO;
--			goto bail;
--		}
- 		el = &eb->h_list;
- 
- 		if (le16_to_cpu(el->l_next_free_rec) <
-@@ -1532,7 +1580,7 @@ static int __ocfs2_find_path(struct inode *inode,
- 
- 		brelse(bh);
- 		bh = NULL;
--		ret = ocfs2_read_block(inode, blkno, &bh);
-+		ret = ocfs2_read_extent_block(inode, blkno, &bh);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -1540,11 +1588,6 @@ static int __ocfs2_find_path(struct inode *inode,
- 
- 		eb = (struct ocfs2_extent_block *) bh->b_data;
- 		el = &eb->h_list;
--		if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
--			OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
--			ret = -EIO;
--			goto out;
--		}
- 
- 		if (le16_to_cpu(el->l_next_free_rec) >
- 		    le16_to_cpu(el->l_count)) {
-@@ -4089,8 +4132,15 @@ ocfs2_figure_merge_contig_type(struct inode *inode, struct ocfs2_path *path,
- 			    le16_to_cpu(new_el->l_count)) {
- 				bh = path_leaf_bh(left_path);
- 				eb = (struct ocfs2_extent_block *)bh->b_data;
--				OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb,
--								 eb);
-+				ocfs2_error(inode->i_sb,
-+					    "Extent block #%llu has an "
-+					    "invalid l_next_free_rec of "
-+					    "%d.  It should have "
-+					    "matched the l_count of %d",
-+					    (unsigned long long)le64_to_cpu(eb->h_blkno),
-+					    le16_to_cpu(new_el->l_next_free_rec),
-+					    le16_to_cpu(new_el->l_count));
-+				status = -EINVAL;
- 				goto out;
- 			}
- 			rec = &new_el->l_recs[
-@@ -4139,8 +4189,12 @@ ocfs2_figure_merge_contig_type(struct inode *inode, struct ocfs2_path *path,
- 			if (le16_to_cpu(new_el->l_next_free_rec) <= 1) {
- 				bh = path_leaf_bh(right_path);
- 				eb = (struct ocfs2_extent_block *)bh->b_data;
--				OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb,
--								 eb);
-+				ocfs2_error(inode->i_sb,
-+					    "Extent block #%llu has an "
-+					    "invalid l_next_free_rec of %d",
-+					    (unsigned long long)le64_to_cpu(eb->h_blkno),
-+					    le16_to_cpu(new_el->l_next_free_rec));
-+				status = -EINVAL;
- 				goto out;
- 			}
- 			rec = &new_el->l_recs[1];
-@@ -4286,7 +4340,9 @@ static int ocfs2_figure_insert_type(struct inode *inode,
- 		 * ocfs2_figure_insert_type() and ocfs2_add_branch()
- 		 * may want it later.
- 		 */
--		ret = ocfs2_read_block(inode, ocfs2_et_get_last_eb_blk(et), &bh);
-+		ret = ocfs2_read_extent_block(inode,
-+					      ocfs2_et_get_last_eb_blk(et),
-+					      &bh);
- 		if (ret) {
- 			mlog_exit(ret);
- 			goto out;
-@@ -4752,20 +4808,15 @@ static int __ocfs2_mark_extent_written(struct inode *inode,
- 	if (path->p_tree_depth) {
- 		struct ocfs2_extent_block *eb;
- 
--		ret = ocfs2_read_block(inode, ocfs2_et_get_last_eb_blk(et),
--				       &last_eb_bh);
-+		ret = ocfs2_read_extent_block(inode,
-+					      ocfs2_et_get_last_eb_blk(et),
-+					      &last_eb_bh);
- 		if (ret) {
- 			mlog_exit(ret);
- 			goto out;
- 		}
- 
- 		eb = (struct ocfs2_extent_block *) last_eb_bh->b_data;
--		if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
--			OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
--			ret = -EROFS;
--			goto out;
--		}
--
- 		rightmost_el = &eb->h_list;
- 	} else
- 		rightmost_el = path_root_el(path);
-@@ -4910,8 +4961,9 @@ static int ocfs2_split_tree(struct inode *inode, struct ocfs2_extent_tree *et,
- 
- 	depth = path->p_tree_depth;
- 	if (depth > 0) {
--		ret = ocfs2_read_block(inode, ocfs2_et_get_last_eb_blk(et),
--				       &last_eb_bh);
-+		ret = ocfs2_read_extent_block(inode,
-+					      ocfs2_et_get_last_eb_blk(et),
-+					      &last_eb_bh);
- 		if (ret < 0) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -6067,11 +6119,10 @@ static int ocfs2_find_new_last_ext_blk(struct inode *inode,
- 
- 	eb = (struct ocfs2_extent_block *) bh->b_data;
- 	el = &eb->h_list;
--	if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
--		OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
--		ret = -EROFS;
--		goto out;
--	}
-+
-+	/* ocfs2_find_leaf() gets the eb from ocfs2_read_extent_block().
-+	 * Any corruption is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_EXTENT_BLOCK(eb));
- 
- 	*new_last_eb = bh;
- 	get_bh(*new_last_eb);
-@@ -6976,20 +7027,14 @@ int ocfs2_prepare_truncate(struct ocfs2_super *osb,
- 	ocfs2_init_dealloc_ctxt(&(*tc)->tc_dealloc);
- 
- 	if (fe->id2.i_list.l_tree_depth) {
--		status = ocfs2_read_block(inode, le64_to_cpu(fe->i_last_eb_blk),
--					  &last_eb_bh);
-+		status = ocfs2_read_extent_block(inode,
-+						 le64_to_cpu(fe->i_last_eb_blk),
-+						 &last_eb_bh);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto bail;
- 		}
- 		eb = (struct ocfs2_extent_block *) last_eb_bh->b_data;
--		if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
--			OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
--
--			brelse(last_eb_bh);
--			status = -EIO;
--			goto bail;
--		}
- 	}
- 
- 	(*tc)->tc_last_eb_bh = last_eb_bh;
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 70257c8..44bcb50 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -73,6 +73,14 @@ void ocfs2_init_xattr_value_extent_tree(struct ocfs2_extent_tree *et,
- 					struct buffer_head *bh,
- 					struct ocfs2_xattr_value_root *xv);
- 
-+/*
-+ * Read an extent block into *bh.  If *bh is NULL, a bh will be
-+ * allocated.  This is a cached read.  The extent block will be validated
-+ * with ocfs2_validate_extent_block().
-+ */
-+int ocfs2_read_extent_block(struct inode *inode, u64 eb_blkno,
-+			    struct buffer_head **bh);
-+
- struct ocfs2_alloc_context;
- int ocfs2_insert_extent(struct ocfs2_super *osb,
- 			handle_t *handle,
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index b686b31..0bd9d96 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -293,7 +293,7 @@ static int ocfs2_last_eb_is_empty(struct inode *inode,
- 	struct ocfs2_extent_block *eb;
- 	struct ocfs2_extent_list *el;
- 
--	ret = ocfs2_read_block(inode, last_eb_blk, &eb_bh);
-+	ret = ocfs2_read_extent_block(inode, last_eb_blk, &eb_bh);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -302,12 +302,6 @@ static int ocfs2_last_eb_is_empty(struct inode *inode,
- 	eb = (struct ocfs2_extent_block *) eb_bh->b_data;
- 	el = &eb->h_list;
- 
--	if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
--		ret = -EROFS;
--		OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, eb);
--		goto out;
--	}
--
- 	if (el->l_tree_depth) {
- 		ocfs2_error(inode->i_sb,
- 			    "Inode %lu has non zero tree depth in "
-@@ -381,23 +375,16 @@ static int ocfs2_figure_hole_clusters(struct inode *inode,
- 		if (le64_to_cpu(eb->h_next_leaf_blk) == 0ULL)
- 			goto no_more_extents;
- 
--		ret = ocfs2_read_block(inode,
--				       le64_to_cpu(eb->h_next_leaf_blk),
--				       &next_eb_bh);
-+		ret = ocfs2_read_extent_block(inode,
-+					      le64_to_cpu(eb->h_next_leaf_blk),
-+					      &next_eb_bh);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
- 		}
--		next_eb = (struct ocfs2_extent_block *)next_eb_bh->b_data;
--
--		if (!OCFS2_IS_VALID_EXTENT_BLOCK(next_eb)) {
--			ret = -EROFS;
--			OCFS2_RO_ON_INVALID_EXTENT_BLOCK(inode->i_sb, next_eb);
--			goto out;
--		}
- 
-+		next_eb = (struct ocfs2_extent_block *)next_eb_bh->b_data;
- 		el = &next_eb->h_list;
--
- 		i = ocfs2_search_for_hole_index(el, v_cluster);
- 	}
- 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 8fc78d8..bb85f76 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -446,14 +446,6 @@ static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
- #define OCFS2_IS_VALID_EXTENT_BLOCK(ptr)				\
- 	(!strcmp((ptr)->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE))
- 
--#define OCFS2_RO_ON_INVALID_EXTENT_BLOCK(__sb, __eb)	do {		\
--	typeof(__eb) ____eb = (__eb);					\
--	ocfs2_error((__sb), 						\
--		"Extent Block # %llu has bad signature %.*s",		\
--		(unsigned long long)le64_to_cpu((____eb)->h_blkno), 7,	\
--		(____eb)->h_signature);					\
--} while (0)
--
- #define OCFS2_IS_VALID_GROUP_DESC(ptr)					\
- 	(!strcmp((ptr)->bg_signature, OCFS2_GROUP_DESC_SIGNATURE))
- 
--- 
-1.5.6.5
+Regards,
+Tao
