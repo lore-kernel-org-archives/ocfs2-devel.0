@@ -1,142 +1,242 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu, 16 Oct 2008 15:48:51 +0800
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2/xattr: some fix in xattr
+Date: Thu, 16 Oct 2008 15:49:23 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2/xattr: Add security xattr support
+	in ocfs2
 In-Reply-To: <48F6F0A3.5060909@oracle.com>
 References: <48F6F0A3.5060909@oracle.com>
-Message-ID: <1224143331-30924-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <1224143363-30949-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch fix some function declaration problem in xattr.
+This patch add security extended attributes support in ocfs2.
 
 Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/xattr.c |   39 +++++++++++++++++++++++++--------------
- fs/ocfs2/xattr.h |   26 ++++----------------------
- 2 files changed, 29 insertions(+), 36 deletions(-)
+ fs/ocfs2/namei.c |    6 ++
+ fs/ocfs2/xattr.c |  142 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/xattr.h |    5 ++
+ 3 files changed, 153 insertions(+), 0 deletions(-)
 
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 485a6aa..fb0d9c4 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -300,6 +300,12 @@ static int ocfs2_mknod(struct inode *dir,
+ 		inc_nlink(dir);
+ 	}
+ 
++	status = ocfs2_init_security(handle, inode, dir, new_fe_bh);
++	if (status < 0) {
++		mlog_errno(status);
++		goto leave;
++	}
++
+ 	status = ocfs2_add_entry(handle, dentry, inode,
+ 				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
+ 				 de_bh);
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index de3b057..1a326a7 100644
+index 1a326a7..cd42bcc 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -147,6 +147,24 @@ static int ocfs2_xattr_set_entry_index_block(struct inode *inode,
- static int ocfs2_delete_xattr_index_block(struct inode *inode,
- 					  struct buffer_head *xb_bh);
+@@ -40,6 +40,7 @@
+ #include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/string.h>
++#include <linux/security.h>
  
-+static inline u16 ocfs2_xattr_buckets_per_cluster(struct ocfs2_super *osb)
-+{
-+	return (1 << osb->s_clustersize_bits) / OCFS2_XATTR_BUCKET_SIZE;
-+}
-+
-+static inline u16 ocfs2_blocks_per_xattr_bucket(struct super_block *sb)
-+{
-+	return OCFS2_XATTR_BUCKET_SIZE / (1 << sb->s_blocksize_bits);
-+}
-+
-+static inline u16 ocfs2_xattr_max_xe_in_bucket(struct super_block *sb)
-+{
-+	u16 len = sb->s_blocksize -
-+		 offsetof(struct ocfs2_xattr_header, xh_entries);
-+
-+	return len / sizeof(struct ocfs2_xattr_entry);
-+}
-+
- static inline const char *ocfs2_xattr_prefix(int name_index)
- {
- 	struct xattr_handler *handler = NULL;
-@@ -800,11 +818,11 @@ cleanup:
-  * Copy an extended attribute into the buffer provided.
-  * Buffer is NULL to compute the size of buffer required.
-  */
--int ocfs2_xattr_get(struct inode *inode,
--		    int name_index,
--		    const char *name,
--		    void *buffer,
--		    size_t buffer_size)
-+static int ocfs2_xattr_get(struct inode *inode,
-+			   int name_index,
-+			   const char *name,
-+			   void *buffer,
-+			   size_t buffer_size)
- {
- 	int ret;
- 	struct ocfs2_dinode *di = NULL;
-@@ -4823,14 +4841,11 @@ out:
- /*
-  * 'trusted' attributes support
-  */
--
--#define XATTR_TRUSTED_PREFIX "trusted."
--
- static size_t ocfs2_xattr_trusted_list(struct inode *inode, char *list,
- 				       size_t list_size, const char *name,
- 				       size_t name_len)
- {
--	const size_t prefix_len = sizeof(XATTR_TRUSTED_PREFIX) - 1;
-+	const size_t prefix_len = XATTR_TRUSTED_PREFIX_LEN;
- 	const size_t total_len = prefix_len + name_len + 1;
- 
- 	if (list && total_len <= list_size) {
-@@ -4867,18 +4882,14 @@ struct xattr_handler ocfs2_xattr_trusted_handler = {
- 	.set	= ocfs2_xattr_trusted_set,
+ #define MLOG_MASK_PREFIX ML_XATTR
+ #include <cluster/masklog.h>
+@@ -86,12 +87,14 @@ static struct ocfs2_xattr_def_value_root def_xv = {
+ struct xattr_handler *ocfs2_xattr_handlers[] = {
+ 	&ocfs2_xattr_user_handler,
+ 	&ocfs2_xattr_trusted_handler,
++	&ocfs2_xattr_security_handler,
+ 	NULL
  };
  
--
- /*
-  * 'user' attributes support
-  */
--
--#define XATTR_USER_PREFIX "user."
--
- static size_t ocfs2_xattr_user_list(struct inode *inode, char *list,
- 				    size_t list_size, const char *name,
- 				    size_t name_len)
- {
--	const size_t prefix_len = sizeof(XATTR_USER_PREFIX) - 1;
-+	const size_t prefix_len = XATTR_USER_PREFIX_LEN;
- 	const size_t total_len = prefix_len + name_len + 1;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ static struct xattr_handler *ocfs2_xattr_handler_map[] = {
+ 	[OCFS2_XATTR_INDEX_USER]	= &ocfs2_xattr_user_handler,
+ 	[OCFS2_XATTR_INDEX_TRUSTED]	= &ocfs2_xattr_trusted_handler,
++	[OCFS2_XATTR_INDEX_SECURITY]	= &ocfs2_xattr_security_handler,
+ };
  
+ struct ocfs2_xattr_info {
+@@ -2100,6 +2103,77 @@ out:
+ 	return ret;
+ }
+ 
++int ocfs2_xattr_set_handle(handle_t *handle,
++			   struct inode *inode,
++			   struct buffer_head *di_bh,
++			   int name_index,
++			   const char *name,
++			   const void *value,
++			   size_t value_len,
++			   int flags)
++{
++	struct ocfs2_dinode *di;
++	int ret, credits;
++	u16 i, blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
++	struct ocfs2_xattr_set_ctxt ctxt;
++
++	struct ocfs2_xattr_info xi = {
++		.name_index = name_index,
++		.name = name,
++		.value = value,
++		.value_len = value_len,
++	};
++
++	struct ocfs2_xattr_search xis = {
++		.not_found = -ENODATA,
++	};
++
++	struct ocfs2_xattr_search xbs = {
++		.not_found = -ENODATA,
++	};
++
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return -EOPNOTSUPP;
++
++	xis.inode_bh = xbs.inode_bh = di_bh;
++	di = (struct ocfs2_dinode *)di_bh->b_data;
++
++	down_write(&OCFS2_I(inode)->ip_xattr_sem);
++
++	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
++	if (ret)
++		goto cleanup;
++	if (xis.not_found) {
++		ret = ocfs2_xattr_block_find(inode, name_index, name, &xbs);
++		if (ret)
++			goto cleanup;
++	}
++
++	ret = ocfs2_init_xattr_set_ctxt(inode, di, &xi, &xis, &xbs, &ctxt);
++	if (ret) {
++		mlog_errno(ret);
++		goto cleanup;
++	}
++
++	credits = ocfs2_calc_xattr_set_credits(inode, &xi, &xis, &xbs);
++
++	ret = __ocfs2_xattr_set_handle(inode, handle, di, &xi,
++				       &xis, &xbs, &ctxt);
++
++	if (ctxt.data_ac)
++		ocfs2_free_alloc_context(ctxt.data_ac);
++	if (ctxt.meta_ac)
++		ocfs2_free_alloc_context(ctxt.meta_ac);
++
++cleanup:
++	up_write(&OCFS2_I(inode)->ip_xattr_sem);
++	brelse(xbs.xattr_bh);
++	for (i = 0; i < blk_per_bucket; i++)
++		brelse(xbs.bucket.bhs[i]);
++
++	return ret;
++}
++
+ /*
+  * ocfs2_xattr_set()
+  *
+@@ -4839,6 +4913,74 @@ out:
+ }
+ 
+ /*
++ * 'security' attributes support
++ */
++static size_t ocfs2_xattr_security_list(struct inode *inode, char *list,
++					size_t list_size, const char *name,
++					size_t name_len)
++{
++	const size_t prefix_len = XATTR_SECURITY_PREFIX_LEN;
++	const size_t total_len = prefix_len + name_len + 1;
++
++	if (list && total_len <= list_size) {
++		memcpy(list, XATTR_SECURITY_PREFIX, prefix_len);
++		memcpy(list + prefix_len, name, name_len);
++		list[prefix_len + name_len] = '\0';
++	}
++	return total_len;
++}
++
++static int ocfs2_xattr_security_get(struct inode *inode, const char *name,
++				    void *buffer, size_t size)
++{
++	if (strcmp(name, "") == 0)
++		return -EINVAL;
++	return ocfs2_xattr_get(inode, OCFS2_XATTR_INDEX_SECURITY, name,
++			       buffer, size);
++}
++
++static int ocfs2_xattr_security_set(struct inode *inode, const char *name,
++				    const void *value, size_t size, int flags)
++{
++	if (strcmp(name, "") == 0)
++		return -EINVAL;
++
++	return ocfs2_xattr_set(inode, OCFS2_XATTR_INDEX_SECURITY, name, value,
++			       size, flags);
++}
++
++int ocfs2_init_security(handle_t *handle,
++			struct inode *inode,
++			struct inode *dir,
++			struct buffer_head *di_bh)
++{
++	int err;
++	size_t len;
++	void *value;
++	char *name;
++
++	err = security_inode_init_security(inode, dir, &name, &value, &len);
++	if (err) {
++		if (err == -EOPNOTSUPP)
++			return 0;
++		return err;
++	}
++	err = ocfs2_xattr_set_handle(handle, inode, di_bh,
++				     OCFS2_XATTR_INDEX_SECURITY,
++				     name, value, len, 0);
++	kfree(name);
++	kfree(value);
++	return err;
++}
++
++struct xattr_handler ocfs2_xattr_security_handler = {
++	.prefix	= XATTR_SECURITY_PREFIX,
++	.list	= ocfs2_xattr_security_list,
++	.get	= ocfs2_xattr_security_get,
++	.set	= ocfs2_xattr_security_set,
++};
++
++/*
+  * 'trusted' attributes support
+  */
+ static size_t ocfs2_xattr_trusted_list(struct inode *inode, char *list,
 diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-index c25c7c6..c1f0974 100644
+index c1f0974..16a7491 100644
 --- a/fs/ocfs2/xattr.h
 +++ b/fs/ocfs2/xattr.h
-@@ -40,29 +40,11 @@ enum ocfs2_xattr_type {
+@@ -40,11 +40,16 @@ enum ocfs2_xattr_type {
  
  extern struct xattr_handler ocfs2_xattr_user_handler;
  extern struct xattr_handler ocfs2_xattr_trusted_handler;
--
--extern ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
--extern int ocfs2_xattr_get(struct inode *, int, const char *, void *, size_t);
--extern int ocfs2_xattr_set(struct inode *, int, const char *, const void *,
--			   size_t, int);
--extern int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh);
++extern struct xattr_handler ocfs2_xattr_security_handler;
  extern struct xattr_handler *ocfs2_xattr_handlers[];
  
--static inline u16 ocfs2_xattr_buckets_per_cluster(struct ocfs2_super *osb)
--{
--	return (1 << osb->s_clustersize_bits) / OCFS2_XATTR_BUCKET_SIZE;
--}
--
--static inline u16 ocfs2_blocks_per_xattr_bucket(struct super_block *sb)
--{
--	return OCFS2_XATTR_BUCKET_SIZE / (1 << sb->s_blocksize_bits);
--}
--
--static inline u16 ocfs2_xattr_max_xe_in_bucket(struct super_block *sb)
--{
--	u16 len = sb->s_blocksize -
--		 offsetof(struct ocfs2_xattr_header, xh_entries);
-+ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
-+int ocfs2_xattr_set(struct inode *, int, const char *, const void *,
-+		    size_t, int);
-+int ocfs2_xattr_remove(struct inode *, struct buffer_head *);
+ ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
+ int ocfs2_xattr_set(struct inode *, int, const char *, const void *,
+ 		    size_t, int);
++int ocfs2_xattr_set_handle(handle_t *, struct inode *, struct buffer_head *,
++			   int, const char *, const void *, size_t, int);
+ int ocfs2_xattr_remove(struct inode *, struct buffer_head *);
++int ocfs2_init_security(handle_t *, struct inode *,
++			struct inode *, struct buffer_head *);
  
--	return len / sizeof(struct ocfs2_xattr_entry);
--}
  #endif /* OCFS2_XATTR_H */
 -- 
 1.5.4.1
