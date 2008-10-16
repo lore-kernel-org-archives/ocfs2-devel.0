@@ -1,25 +1,31 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu, 16 Oct 2008 17:26:28 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2/xattr: Add POSIX ACLs support
-	in ocfs2
-In-Reply-To: <1224143394-30970-1-git-send-email-tiger.yang@oracle.com>
-References: <48F6F0A3.5060909@oracle.com>
-	<1224143394-30970-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <48F708C4.2060502@oracle.com>
+From: Joel Becker <joel.becker@oracle.com>
+Date: Thu, 16 Oct 2008 02:38:44 -0700
+Subject: [Ocfs2-devel] [PATCH 0/8] Dedicated metadata read functions
+Message-ID: <1224149932-24381-1-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-a bug fix.
+The following patch series builds on top of the read_block cleanups to
+provide dedicated functions to read the various types of ocfs2 metadata.
+Rather than calling ocfs2_read_block[s]() directly, functions wanting an
+inode now call ocfs2_read_inode_block().  The same is true for extent
+blocks, group descriptors, and dirblocks.  I will get to xattr blocks
+later.
 
-thanks,
-tiger
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: fix.patch
-Type: text/x-patch
-Size: 440 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20081016/3bc73233/attachment.bin 
+The older the metadata type, the more inconsistent the block validation
+was.  Sometimes we didn't even check the signature, other times we
+checked everything.  As part of the changes, we make sure all validation
+happens inside the dedicated function.  The rest of the code no longer
+has to check for valid blocks.
+
+The last patch is the best - the validation calls are lifted into
+ocfs2_read_blocks() via a callback.  If validation is requested, it is
+only performed when the block is actually read from disk.  If the block
+was in cache, no validation is performed.  Thus, we can do full
+validation when a block is read yet not lose performance on subsequent
+cached reads.
+
+Joel
