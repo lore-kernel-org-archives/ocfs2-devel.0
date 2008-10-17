@@ -1,15 +1,17 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 17 Oct 2008 12:44:38 +0800
+Date: Fri, 17 Oct 2008 08:54:36 +0800
 Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2/xattr: Proper hash collision handle
-	in bucket division.
-In-Reply-To: <48F81730.9020809@oracle.com>
-References: <48F81730.9020809@oracle.com>
-Message-ID: <1224218678-32196-3-git-send-email-tao.ma@oracle.com>
+	in bucket division.v2
+In-Reply-To: <1224218678-32196-3-git-send-email-tao.ma@oracle.com>
+References: <1224218678-32196-3-git-send-email-tao.ma@oracle.com>
+Message-ID: <1224204876-26802-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Fix a minor sparse warning. Thank tiger for pointing it out.
 
 In ocfs2/xattr, we must make sure the xattrs which have the same
 hash value exist in the same bucket so that the search schema can
@@ -27,7 +29,7 @@ Signed-off-by: Tao Ma <tao.ma@oracle.com>
  1 files changed, 134 insertions(+), 33 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 1bf72da..57b51fc 100644
+index 1bf72da..a2d58a9 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
 @@ -3267,25 +3267,92 @@ static int ocfs2_read_xattr_bucket(struct inode *inode,
@@ -271,7 +273,7 @@ index 1bf72da..57b51fc 100644
  	struct ocfs2_xattr_header *xh = bucket->xh;
 +	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
 +
-+	if (name_hash != le16_to_cpu(xh->xh_entries[0].xe_name_hash))
++	if (name_hash != le32_to_cpu(xh->xh_entries[0].xe_name_hash))
 +		return 0;
  
  	if (xh->xh_entries[le16_to_cpu(xh->xh_count) - 1].xe_name_hash ==
