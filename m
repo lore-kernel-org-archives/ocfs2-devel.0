@@ -1,131 +1,289 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 16 Oct 2008 12:44:38 -0700
-Subject: [Ocfs2-devel] [PATCH] [RFC] jbd2: Add buffer triggers
-In-Reply-To: <20081016194011.GA4748@mail.oracle.com>
-References: <20080917232629.GB20752@mail.oracle.com>
-	<20080929012527.GI8711@mit.edu> <20081004000336.GE11442@mit.edu>
-	<20081006213754.GA26632@mail.oracle.com>
-	<20081006214251.GB26632@mail.oracle.com>
-	<20081006233248.GA9337@mit.edu>
-	<20081007010154.GE26632@mail.oracle.com>
-	<20081008231752.GA5310@mail.oracle.com>
-	<20081016174241.GH12962@mit.edu>
-	<20081016194011.GA4748@mail.oracle.com>
-Message-ID: <20081016194438.GB4748@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Fri, 17 Oct 2008 11:12:21 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/xattr: Proper hash collision handle in
+	bucket division.
+Message-ID: <1224213141-11954-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Tso <tytso@mit.edu>, ocfs2-devel@oss.oracle.com, linux-ext4@vger.kernel.org, mfasheh@suse.com
+To: ocfs2-devel@oss.oracle.com
 
-On Thu, Oct 16, 2008 at 12:40:11PM -0700, Joel Becker wrote:
-> On Thu, Oct 16, 2008 at 01:42:41PM -0400, Theodore Tso wrote:
-> > On Wed, Oct 08, 2008 at 04:17:52PM -0700, Joel Becker wrote:
-> > > 	In other words, I think that the commit trigger is safe in all
-> > > circumstances once moved up in journal_commit_transaction().  I'll be
-> > > cooking that up shortly.
-> > 
-> > Have you had a chance to look at this?  Here's something which hasn't
-> > been compile-tested yet, but it didn't take me long...
-> 
-> 	Actually, I've had the fixed up patch for a week, tested even.
+In ocfs2/xattr, we must make sure the xattrs which have the same
+hash value exist in the same bucket so that the search schema can
+work. But in the old implementation, when we want to extend a bucket,
+we just move half number of xattrs to the new bucket. This works
+in most cases, but if we are lucky enough we will make 2 xattrs
+into 2 different buckets. This cause a problem that the xattr
+existing in the previous bucket can be found any more. This patch
+fix this problem by finding the right position during extending
+the bucket and extend an empty bucket if needed.
 
-	The testing was with this simple printk patch.  I just watched
-the journal blocks go out.  Things like kernel untars, etc.
-
-Joel
-
-From: Joel Becker <joel.becker@oracle.com>
-Date: Thu, 11 Sep 2008 15:53:07 -0700
-Subject: [PATCH] ocfs2: Use the new jbd_journal_set_commit_trigger() to printk.
-
-Just a placeholder trigger set that prints
-
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/journal.c |   51 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 51 insertions(+), 0 deletions(-)
+ fs/ocfs2/xattr.c |  167 +++++++++++++++++++++++++++++++++++++++++++-----------
+ 1 files changed, 134 insertions(+), 33 deletions(-)
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 81e4067..f56666b 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -357,6 +357,51 @@ bail:
- 	return status;
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 8c0041e..3260543 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -3174,25 +3174,92 @@ static int ocfs2_read_xattr_bucket(struct inode *inode,
  }
  
-+struct ocfs2_triggers {
-+	struct jbd2_buffer_trigger_type	ot_triggers;
-+	int				ot_offset;
-+};
-+
-+static inline struct ocfs2_triggers *to_ocfs2_trigger(struct jbd2_buffer_trigger_type *triggers)
+ /*
+- * Move half num of the xattrs in old bucket(blk) to new bucket(new_blk).
++ * Find the suitable pos when we divide a bucket into 2.
++ *
++ * We have to make sure the xattrs with the same hash value exist in the same
++ * bucket. So we start from the middle pos and go backward first and then
++ * forward. If all the xattrs in this bucket have the same hash value, just
++ * return count-1 and let the caller handle this.
++ */
++static u16 ocfs2_xattr_find_divide_pos(struct ocfs2_xattr_header *xh)
 +{
-+	return container_of(triggers, struct ocfs2_triggers, ot_triggers);
++	u16 middle, pos, count = le16_to_cpu(xh->xh_count);
++	struct ocfs2_xattr_entry *xe, *xe_low;
++
++	BUG_ON(count == 0);
++	middle = count / 2;
++
++	/*
++	 * If the bucket only have one xattr(for blocksize == 512 and large
++	 * xattr name, it could be possible), let it go.
++	 */
++	if (middle == 0)
++		return middle;
++
++	/*
++	 * Find a xe before middle which doesn't have the same hash value
++	 * with the previous one.
++	 */
++	pos = middle;
++	while (pos > 0) {
++		xe = &xh->xh_entries[pos];
++		xe_low = &xh->xh_entries[pos - 1];
++		if (le32_to_cpu(xe_low->xe_name_hash) !=
++		    le32_to_cpu(xe->xe_name_hash))
++			return pos;
++
++		pos--;
++	}
++
++	/* now all the xe before middle(include it) has the same hash value. */
++	if (middle == count - 1)
++		return middle;
++
++	/*
++	 * Find a xe after middle which doesn't have the same hash value
++	 * with the later one.
++	 */
++	pos = middle;
++	while (pos < count - 1) {
++		xe_low = &xh->xh_entries[pos];
++		xe = &xh->xh_entries[pos + 1];
++		if (le32_to_cpu(xe_low->xe_name_hash) !=
++		    le32_to_cpu(xe->xe_name_hash))
++			return pos + 1;
++
++		pos++;
++	}
++
++	/* now all the xe in the bucket hash the same hash value. */
++	return count - 1;
 +}
 +
-+static void ocfs2_commit_trigger(struct jbd2_buffer_trigger_type *triggers,
-+				 struct buffer_head *bh,
-+				 void *data, size_t size)
-+{
-+	struct ocfs2_triggers *ot = to_ocfs2_trigger(triggers);
-+
-+	mlog(ML_NOTICE, "bh = 0x%lx, data = 0x%lx, size = %u, offset = %d\n",
-+	     (unsigned long)bh, (unsigned long)data, size, ot->ot_offset);
-+}
-+
-+static void ocfs2_abort_trigger(struct jbd2_buffer_trigger_type *triggers,
-+				struct buffer_head *bh)
-+{
-+	struct ocfs2_triggers *ot = to_ocfs2_trigger(triggers);
-+
-+	mlog(ML_NOTICE, "bh = 0x%lx, offset = %d\n", (unsigned long)bh, ot->ot_offset);
-+}
-+
-+static struct ocfs2_triggers inode_triggers = {
-+	.ot_triggers = {
-+		.t_commit = ocfs2_commit_trigger,
-+		.t_abort = ocfs2_abort_trigger,
-+	},
-+	.ot_offset	= 10, /* Garbage */
-+};
-+
-+static struct ocfs2_triggers other_triggers = {
-+	.ot_triggers = {
-+		.t_commit = ocfs2_commit_trigger,
-+		.t_abort = ocfs2_abort_trigger,
-+	},
-+	.ot_offset	= 20, /* Different garbage */
-+};
-+
-+
- int ocfs2_journal_access(handle_t *handle,
- 			 struct inode *inode,
- 			 struct buffer_head *bh,
-@@ -406,6 +451,12 @@ int ocfs2_journal_access(handle_t *handle,
- 		status = -EINVAL;
- 		mlog(ML_ERROR, "Uknown access type!\n");
- 	}
-+	if (!status)
-+		jbd2_journal_set_triggers(bh,
-+					  bh->b_blocknr ==
-+					  OCFS2_I(inode)->ip_blkno ?
-+					  &inode_triggers.ot_triggers :
-+					  &other_triggers.ot_triggers);
- 	mutex_unlock(&OCFS2_I(inode)->ip_io_mutex);
++/*
++ * Move some xattrs in old bucket(blk) to new bucket(new_blk).
+  * first_hash will record the 1st hash of the new bucket.
++ *
++ * Normally half nums will be moved. But we have to make sure
++ * that the xattr with same hash value is stored in the same
++ * bucket. If all the xattrs in this bucket has the same hash
++ * value, the new bucket will be initialized as an empty one
++ * and the first_hash will be initialized as (hash_value+1).
+  */
+-static int ocfs2_half_xattr_bucket(struct inode *inode,
+-				   handle_t *handle,
+-				   u64 blk,
+-				   u64 new_blk,
+-				   u32 *first_hash,
+-				   int new_bucket_head)
++static int ocfs2_divide_xattr_bucket(struct inode *inode,
++				    handle_t *handle,
++				    u64 blk,
++				    u64 new_blk,
++				    u32 *first_hash,
++				    int new_bucket_head)
+ {
+ 	int ret, i;
+-	u16 count, start, len, name_value_len, xe_len, name_offset;
++	u16 count, start, len, name_value_len = 0, xe_len, name_offset = 0;
+ 	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+ 	struct buffer_head **s_bhs, **t_bhs = NULL;
+ 	struct ocfs2_xattr_header *xh;
+ 	struct ocfs2_xattr_entry *xe;
+ 	int blocksize = inode->i_sb->s_blocksize;
  
- 	if (status < 0)
+-	mlog(0, "move half of xattrs from bucket %llu to %llu\n",
++	mlog(0, "move some of xattrs from bucket %llu to %llu\n",
+ 	     blk, new_blk);
+ 
+ 	s_bhs = kcalloc(blk_per_bucket, sizeof(struct buffer_head *), GFP_NOFS);
+@@ -3233,14 +3300,33 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
+ 		}
+ 	}
+ 
+-	/* copy the whole bucket to the new first. */
+-	for (i = 0; i < blk_per_bucket; i++)
+-		memcpy(t_bhs[i]->b_data, s_bhs[i]->b_data, blocksize);
++	xh = (struct ocfs2_xattr_header *)s_bhs[0]->b_data;
++	count = le16_to_cpu(xh->xh_count);
++	start = ocfs2_xattr_find_divide_pos(xh);
++	xe = &xh->xh_entries[start];
+ 
+ 	/* update the new bucket. */
+ 	xh = (struct ocfs2_xattr_header *)t_bhs[0]->b_data;
+-	count = le16_to_cpu(xh->xh_count);
+-	start = count / 2;
++
++	if (start == count - 1) {
++		/*
++		 * initialized a new empty bucket here.
++		 * The hash value is set as one larger than
++		 * that of the last entry in the previous bucket.
++		 */
++		for (i = 0; i < blk_per_bucket; i++)
++			memset(t_bhs[i]->b_data, 0, blocksize);
++
++		xh->xh_free_start = cpu_to_le16(blocksize);
++		xh->xh_entries[0].xe_name_hash = xe->xe_name_hash;
++		le32_add_cpu(&xh->xh_entries[0].xe_name_hash, 1);
++
++		goto set_num_buckets;
++	}
++
++	/* copy the whole bucket to the new first. */
++	for (i = 0; i < blk_per_bucket; i++)
++		memcpy(t_bhs[i]->b_data, s_bhs[i]->b_data, blocksize);
+ 
+ 	/*
+ 	 * Calculate the total name/value len and xh_free_start for
+@@ -3297,6 +3383,7 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
+ 			xh->xh_free_start = xe->xe_name_offset;
+ 	}
+ 
++set_num_buckets:
+ 	/* set xh->xh_num_buckets for the new xh. */
+ 	if (new_bucket_head)
+ 		xh->xh_num_buckets = cpu_to_le16(1);
+@@ -3313,10 +3400,12 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
+ 	if (first_hash)
+ 		*first_hash = le32_to_cpu(xh->xh_entries[0].xe_name_hash);
+ 
+-	/*
+-	 * Now only update the 1st block of the old bucket.
+-	 * Please note that the entry has been sorted already above.
++	/* Now only update the 1st block of the old bucket.
++	 * If we just add a new empty bucket after it, no needs to modify it.
+ 	 */
++	if (start == count - 1)
++		goto out;
++
+ 	xh = (struct ocfs2_xattr_header *)s_bhs[0]->b_data;
+ 	memset(&xh->xh_entries[start], 0,
+ 	       sizeof(struct ocfs2_xattr_entry) * (count - start));
+@@ -3499,15 +3588,15 @@ out:
+ }
+ 
+ /*
+- * Move half of the xattrs in this cluster to the new cluster.
++ * Move some xattrs in this cluster to the new cluster.
+  * This function should only be called when bucket size == cluster size.
+  * Otherwise ocfs2_mv_xattr_bucket_cross_cluster should be used instead.
+  */
+-static int ocfs2_half_xattr_cluster(struct inode *inode,
+-				    handle_t *handle,
+-				    u64 prev_blk,
+-				    u64 new_blk,
+-				    u32 *first_hash)
++static int ocfs2_divide_xattr_cluster(struct inode *inode,
++				      handle_t *handle,
++				      u64 prev_blk,
++				      u64 new_blk,
++				      u32 *first_hash)
+ {
+ 	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+ 	int ret, credits = 2 * blk_per_bucket;
+@@ -3521,8 +3610,8 @@ static int ocfs2_half_xattr_cluster(struct inode *inode,
+ 	}
+ 
+ 	/* Move half of the xattr in start_blk to the next bucket. */
+-	return  ocfs2_half_xattr_bucket(inode, handle, prev_blk,
+-					new_blk, first_hash, 1);
++	return  ocfs2_divide_xattr_bucket(inode, handle, prev_blk,
++					  new_blk, first_hash, 1);
+ }
+ 
+ /*
+@@ -3584,9 +3673,9 @@ static int ocfs2_adjust_xattr_cross_cluster(struct inode *inode,
+ 						     last_blk, new_blk,
+ 						     v_start);
+ 		else {
+-			ret = ocfs2_half_xattr_cluster(inode, handle,
+-						       last_blk, new_blk,
+-						       v_start);
++			ret = ocfs2_divide_xattr_cluster(inode, handle,
++							 last_blk, new_blk,
++							 v_start);
+ 
+ 			if ((*header_bh)->b_blocknr == last_blk && extend)
+ 				*extend = 0;
+@@ -3803,8 +3892,8 @@ static int ocfs2_extend_xattr_bucket(struct inode *inode,
+ 	}
+ 
+ 	/* Move half of the xattr in start_blk to the next bucket. */
+-	ret = ocfs2_half_xattr_bucket(inode, handle, start_blk,
+-				      start_blk + blk_per_bucket, NULL, 0);
++	ret = ocfs2_divide_xattr_bucket(inode, handle, start_blk,
++					start_blk + blk_per_bucket, NULL, 0);
+ 
+ 	le16_add_cpu(&first_xh->xh_num_buckets, 1);
+ 	ocfs2_journal_dirty(handle, first_bh);
+@@ -4495,11 +4584,21 @@ out:
+ 	return ret;
+ }
+ 
+-/* check whether the xattr bucket is filled up with the same hash value. */
++/*
++ * check whether the xattr bucket is filled up with the same hash value.
++ * If we want to insert the xattr with the same hash, return -ENOSPC.
++ * If we want to insert a xattr with different hash value, go ahead
++ * and ocfs2_divide_xattr_bucket will handle this.
++ */
+ static int ocfs2_check_xattr_bucket_collision(struct inode *inode,
+-					      struct ocfs2_xattr_bucket *bucket)
++					      struct ocfs2_xattr_bucket *bucket,
++					      char *name)
+ {
+ 	struct ocfs2_xattr_header *xh = bucket->xh;
++	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
++
++	if (name_hash != le16_to_cpu(xh->xh_entries[0].xe_name_hash))
++		return 0;
+ 
+ 	if (xh->xh_entries[le16_to_cpu(xh->xh_count) - 1].xe_name_hash ==
+ 	    xh->xh_entries[0].xe_name_hash) {
+@@ -4622,7 +4721,9 @@ try_again:
+ 		 * one bucket's worth, so check it here whether we need to
+ 		 * add a new bucket for the insert.
+ 		 */
+-		ret = ocfs2_check_xattr_bucket_collision(inode, &xs->bucket);
++		ret = ocfs2_check_xattr_bucket_collision(inode,
++							 &xs->bucket,
++							 xi->name);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
 -- 
-1.5.6.5
-
--- 
-
-"In a crisis, don't hide behind anything or anybody. They're going
- to find you anyway."
-	- Paul "Bear" Bryant
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+1.5.4.GIT
