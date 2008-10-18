@@ -1,40 +1,37 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 17 Oct 2008 10:11:21 -0700
-Subject: [Ocfs2-devel] [PATCH] [RFC] jbd2: Add buffer triggers
-In-Reply-To: <20081017122840.GD21503@mit.edu>
-References: <20080929012527.GI8711@mit.edu> <20081004000336.GE11442@mit.edu>
-	<20081006213754.GA26632@mail.oracle.com>
-	<20081006214251.GB26632@mail.oracle.com>
-	<20081006233248.GA9337@mit.edu>
-	<20081007010154.GE26632@mail.oracle.com>
-	<20081008231752.GA5310@mail.oracle.com>
-	<20081016174241.GH12962@mit.edu>
-	<20081016194011.GA4748@mail.oracle.com>
-	<20081017122840.GD21503@mit.edu>
-Message-ID: <20081017171121.GB15154@wotan.suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Fri, 17 Oct 2008 21:55:23 -0700
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2/xattr: Add POSIX ACLs
+	support	in ocfs2
+In-Reply-To: <48F75323.4050706@oracle.com>
+References: <48F6F0A3.5060909@oracle.com>
+	<1224143394-30970-1-git-send-email-tiger.yang@oracle.com>
+	<20081016082042.GA22345@ca-server1.us.oracle.com>
+	<48F75323.4050706@oracle.com>
+Message-ID: <20081018045523.GB32061@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Tso <tytso@mit.edu>
-Cc: ocfs2-devel@oss.oracle.com, linux-ext4@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Oct 17, 2008 at 08:28:40AM -0400, Theodore Tso wrote:
-> Looks good to me.
-> 
-> Acked-by: "Theodore Ts'o" <tytso@mit.edu>
+On Thu, Oct 16, 2008 at 10:43:47PM +0800, Tao Ma wrote:
+> hi tiger, you can use this new license. 
+> http://kernel.us.oracle.com/~smushran/license.txt
 
-Excellet, thanks for the review.
+	Can you fix the license in xattr.c too?  And the copyrights from
+there should go in your CREDITS section if you really did copy code.
 
-> 
-> Given that OCFS2 is going to be the first user of this patch, I guess
-> it would make sense for you to push it to Linus in an ocfs2 branch?
-> Or would you like me to send it to Linus?
+Joel
 
-I'll pick it up in ocfs2.git.
+-- 
 
-Thanks, Mark
+"It is not the function of our government to keep the citizen from
+ falling into error; it is the function of the citizen to keep the
+ government from falling into error."
+	- Robert H. Jackson
 
-
---
-Mark Fasheh
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
