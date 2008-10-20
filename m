@@ -1,72 +1,44 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 20 Oct 2008 19:23:37 +0200
-Subject: [Ocfs2-devel] [PATCH] quota: Make _SUSPENDED just a flag
+Date: Mon, 20 Oct 2008 19:23:42 +0200
+Subject: [Ocfs2-devel] [PATCH] quota: Remove compatibility function
+	sb_any_quota_enabled()
 In-Reply-To: y
 References: y
-Message-ID: <12245234401968-git-send-email-jack@suse.cz>
+Message-ID: <12245234411124-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Upto now, DQUOT_USR_SUSPENDED behaved like a state - i.e., either quota
-was enabled or suspended or none. Now allowed states are 0, ENABLED,
-ENABLED | SUSPENDED. This will be useful later when we implement separate
-enabling of quota usage tracking and limits enforcement because we need to
-keep track of a state which has been suspended.
-
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/dquot.c               |   10 ++++++----
- include/linux/quotaops.h |    6 ++++--
- 2 files changed, 10 insertions(+), 6 deletions(-)
+ include/linux/quotaops.h |    6 ------
+ 1 files changed, 0 insertions(+), 6 deletions(-)
 
-diff --git a/fs/dquot.c b/fs/dquot.c
-index e95ad55..aea7bf9 100644
---- a/fs/dquot.c
-+++ b/fs/dquot.c
-@@ -1568,18 +1568,20 @@ static inline void reset_enable_flags(struct quota_info *dqopt, int type,
- {
- 	switch (type) {
- 		case USRQUOTA:
--			dqopt->flags &= ~DQUOT_USR_ENABLED;
- 			if (remount)
- 				dqopt->flags |= DQUOT_USR_SUSPENDED;
--			else
-+			else {
-+				dqopt->flags &= ~DQUOT_USR_ENABLED;
- 				dqopt->flags &= ~DQUOT_USR_SUSPENDED;
-+			}
- 			break;
- 		case GRPQUOTA:
--			dqopt->flags &= ~DQUOT_GRP_ENABLED;
- 			if (remount)
- 				dqopt->flags |= DQUOT_GRP_SUSPENDED;
--			else
-+			else {
-+				dqopt->flags &= ~DQUOT_GRP_ENABLED;
- 				dqopt->flags &= ~DQUOT_GRP_SUSPENDED;
-+			}
- 			break;
- 	}
- }
 diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index 9e7bc4b..12363cc 100644
+index f7dcc30..94f00ec 100644
 --- a/include/linux/quotaops.h
 +++ b/include/linux/quotaops.h
-@@ -70,8 +70,10 @@ static inline struct mem_dqinfo *sb_dqinfo(struct super_block *sb, int type)
- static inline int sb_has_quota_enabled(struct super_block *sb, int type)
- {
- 	if (type == USRQUOTA)
--		return sb_dqopt(sb)->flags & DQUOT_USR_ENABLED;
--	return sb_dqopt(sb)->flags & DQUOT_GRP_ENABLED;
-+		return (sb_dqopt(sb)->flags & DQUOT_USR_ENABLED)
-+			&& !(sb_dqopt(sb)->flags & DQUOT_USR_SUSPENDED);
-+	return (sb_dqopt(sb)->flags & DQUOT_GRP_ENABLED)
-+		&& !(sb_dqopt(sb)->flags & DQUOT_GROUP_SUSPENDED);
+@@ -119,9 +119,6 @@ static inline int sb_any_quota_active(struct super_block *sb)
+ 	       sb_has_quota_active(sb, GRPQUOTA);
  }
  
- static inline int sb_any_quota_enabled(struct super_block *sb)
+-/* For backward compatibility until we remove all users */
+-#define sb_any_quota_enabled(sb) sb_any_quota_active(sb)
+-
+ /*
+  * Operations supported for diskquotas.
+  */
+@@ -265,9 +262,6 @@ static inline int sb_any_quota_active(struct super_block *sb)
+ 	return 0;
+ }
+ 
+-/* For backward compatibility until we remove all users */
+-#define sb_any_quota_enabled(sb) sb_any_quota_active(sb)
+-
+ /*
+  * NO-OP when quota not configured.
+  */
 -- 
 1.5.2.4
