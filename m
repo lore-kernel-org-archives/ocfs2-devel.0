@@ -1,97 +1,22 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 20 Oct 2008 19:23:34 +0200
-Subject: [Ocfs2-devel] [PATCH] quota: Add callbacks for allocating and
-	destroying dquot structures
+Date: Mon, 20 Oct 2008 19:23:33 +0200
+Subject: [Ocfs2-devel] Quota support for OCFS2
 In-Reply-To: y
 References: y
-Message-ID: <12245234403083-git-send-email-jack@suse.cz>
+Message-ID: <12245234403413-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Some filesystems would like to keep private information together with each
-dquot. Add callbacks alloc_dquot and destroy_dquot allowing filesystem to
-allocate larger dquots from their private slab in a similar fashion we
-currently allocate inodes.
+Hello,
 
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/dquot.c            |   19 +++++++++++++++----
- include/linux/quota.h |    2 ++
- 2 files changed, 17 insertions(+), 4 deletions(-)
+in the following emails will come implementation of quota support for OCFS2.
+First 17 patches are actually necessary changes to generic VFS quota, next 10
+patches implement support for OCFS2.
 
-diff --git a/fs/dquot.c b/fs/dquot.c
-index 8ec4d6c..e1dac3e 100644
---- a/fs/dquot.c
-+++ b/fs/dquot.c
-@@ -417,6 +417,14 @@ out_dqlock:
- 	return ret;
- }
- 
-+static void destroy_dquot(struct dquot *dquot)
-+{
-+	if (dquot->dq_sb->dq_op->destroy_dquot)
-+		dquot->dq_sb->dq_op->destroy_dquot(dquot);
-+	else
-+		kmem_cache_free(dquot_cachep, dquot);
-+}
-+
- /* Invalidate all dquots on the list. Note that this function is called after
-  * quota is disabled and pointers from inodes removed so there cannot be new
-  * quota users. There can still be some users of quotas due to inodes being
-@@ -465,7 +473,7 @@ restart:
- 		remove_dquot_hash(dquot);
- 		remove_free_dquot(dquot);
- 		remove_inuse(dquot);
--		kmem_cache_free(dquot_cachep, dquot);
-+		destroy_dquot(dquot);
- 	}
- 	spin_unlock(&dq_list_lock);
- }
-@@ -529,7 +537,7 @@ static void prune_dqcache(int count)
- 		remove_dquot_hash(dquot);
- 		remove_free_dquot(dquot);
- 		remove_inuse(dquot);
--		kmem_cache_free(dquot_cachep, dquot);
-+		destroy_dquot(dquot);
- 		count--;
- 		head = free_dquots.prev;
- 	}
-@@ -631,7 +639,10 @@ static struct dquot *get_empty_dquot(struct super_block *sb, int type)
- {
- 	struct dquot *dquot;
- 
--	dquot = kmem_cache_zalloc(dquot_cachep, GFP_NOFS);
-+	if (sb->dq_op->alloc_dquot)
-+		dquot = sb->dq_op->alloc_dquot(sb, type);
-+	else
-+		dquot = kmem_cache_zalloc(dquot_cachep, GFP_NOFS);
- 	if(!dquot)
- 		return NODQUOT;
- 
-@@ -684,7 +695,7 @@ we_slept:
- 		dqstats.lookups++;
- 		spin_unlock(&dq_list_lock);
- 		if (empty)
--			kmem_cache_free(dquot_cachep, empty);
-+			destroy_dquot(empty);
- 	}
- 	/* Wait for dq_lock - after this we know that either dquot_release() is already
- 	 * finished or it will be canceled due to dq_count > 1 test */
-diff --git a/include/linux/quota.h b/include/linux/quota.h
-index 376a050..1ac868e 100644
---- a/include/linux/quota.h
-+++ b/include/linux/quota.h
-@@ -294,6 +294,8 @@ struct dquot_operations {
- 	int (*free_inode) (const struct inode *, unsigned long);
- 	int (*transfer) (struct inode *, struct iattr *);
- 	int (*write_dquot) (struct dquot *);		/* Ordinary dquot write */
-+	struct dquot *(*alloc_dquot)(struct super_block *, int);	/* Allocate memory for new dquot (can be NULL if no special entries dquot are needed) */
-+	void (*destroy_dquot)(struct dquot *);		/* Free memory for dquot */
- 	int (*acquire_dquot) (struct dquot *);		/* Quota is going to be created on disk */
- 	int (*release_dquot) (struct dquot *);		/* Quota is going to be deleted from disk */
- 	int (*mark_dirty) (struct dquot *);		/* Dquot is marked dirty */
--- 
-1.5.2.4
+I'm sending the patches just for review and comments. Any comments, bug reports,
+fixes welcome :).
+
+									Honza
