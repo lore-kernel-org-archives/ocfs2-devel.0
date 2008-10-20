@@ -1,332 +1,324 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 20 Oct 2008 19:23:44 +0200
-Subject: [Ocfs2-devel] [PATCH] quota: Move quotaio_v[12].h from
-	include/linux/ to fs/
+Date: Mon, 20 Oct 2008 19:23:59 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Enable quota accounting on mount,
+	disable on umount
 In-Reply-To: y
 References: y
-Message-ID: <12245234422819-git-send-email-jack@suse.cz>
+Message-ID: <12245234432502-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Since these include files are used only by implementation of quota formats,
-there's no need to have them in include/linux/.
+Enable quota usage tracking on mount and disable it on umount. Also
+add support for quota on and quota off quotactls and usrquota and
+grpquota mount options.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/quota_v1.c              |    3 +-
- fs/quota_v2.c              |    7 ++--
- fs/quotaio_v1.h            |   33 ++++++++++++++++++
- fs/quotaio_v2.h            |   79 ++++++++++++++++++++++++++++++++++++++++++++
- include/linux/quotaio_v1.h |   33 ------------------
- include/linux/quotaio_v2.h |   79 --------------------------------------------
- 6 files changed, 118 insertions(+), 116 deletions(-)
- create mode 100644 fs/quotaio_v1.h
- create mode 100644 fs/quotaio_v2.h
- delete mode 100644 include/linux/quotaio_v1.h
- delete mode 100644 include/linux/quotaio_v2.h
+ fs/ocfs2/ocfs2.h |    2 +
+ fs/ocfs2/super.c |  191 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 193 insertions(+), 0 deletions(-)
 
-diff --git a/fs/quota_v1.c b/fs/quota_v1.c
-index 3e078ee..b4af1c6 100644
---- a/fs/quota_v1.c
-+++ b/fs/quota_v1.c
-@@ -3,13 +3,14 @@
- #include <linux/quota.h>
- #include <linux/quotaops.h>
- #include <linux/dqblk_v1.h>
--#include <linux/quotaio_v1.h>
- #include <linux/kernel.h>
- #include <linux/init.h>
- #include <linux/module.h>
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 7f625f2..d1b8a9e 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -184,6 +184,8 @@ enum ocfs2_mount_options
+ 	OCFS2_MOUNT_ERRORS_PANIC = 1 << 3, /* Panic on errors */
+ 	OCFS2_MOUNT_DATA_WRITEBACK = 1 << 4, /* No data ordering */
+ 	OCFS2_MOUNT_LOCALFLOCKS = 1 << 5, /* No cluster aware user file locks */
++	OCFS2_MOUNT_USRQUOTA = 1 << 6, /* We support user quotas */
++	OCFS2_MOUNT_GRPQUOTA = 1 << 7, /* We support group quotas */
+ };
  
- #include <asm/byteorder.h>
- 
-+#include "quotaio_v1.h"
-+
- MODULE_AUTHOR("Jan Kara");
- MODULE_DESCRIPTION("Old quota format support");
- MODULE_LICENSE("GPL");
-diff --git a/fs/quota_v2.c b/fs/quota_v2.c
-index 51c4717..a21d1a7 100644
---- a/fs/quota_v2.c
-+++ b/fs/quota_v2.c
-@@ -6,7 +6,6 @@
- #include <linux/fs.h>
+ #define OCFS2_OSB_SOFT_RO	0x0001
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index e043814..c8281c9 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -41,6 +41,7 @@
+ #include <linux/debugfs.h>
  #include <linux/mount.h>
- #include <linux/dqblk_v2.h>
--#include <linux/quotaio_v2.h>
- #include <linux/kernel.h>
- #include <linux/init.h>
- #include <linux/module.h>
-@@ -15,6 +14,8 @@
+ #include <linux/seq_file.h>
++#include <linux/quotaops.h>
  
- #include <asm/byteorder.h>
+ #define MLOG_MASK_PREFIX ML_SUPER
+ #include <cluster/masklog.h>
+@@ -126,6 +127,8 @@ static int ocfs2_get_sector(struct super_block *sb,
+ static void ocfs2_write_super(struct super_block *sb);
+ static struct inode *ocfs2_alloc_inode(struct super_block *sb);
+ static void ocfs2_destroy_inode(struct inode *inode);
++static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend);
++static void ocfs2_disable_quotas(struct ocfs2_super *osb);
  
-+#include "quotaio_v2.h"
+ static const struct super_operations ocfs2_sops = {
+ 	.statfs		= ocfs2_statfs,
+@@ -159,6 +162,8 @@ enum {
+ 	Opt_localalloc,
+ 	Opt_localflocks,
+ 	Opt_stack,
++	Opt_usrquota,
++	Opt_grpquota,
+ 	Opt_err,
+ };
+ 
+@@ -178,6 +183,8 @@ static match_table_t tokens = {
+ 	{Opt_localalloc, "localalloc=%d"},
+ 	{Opt_localflocks, "localflocks"},
+ 	{Opt_stack, "cluster_stack=%s"},
++	{Opt_usrquota, "usrquota"},
++	{Opt_grpquota, "grpquota"},
+ 	{Opt_err, NULL}
+ };
+ 
+@@ -430,6 +437,9 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
+ 
+ 	/* We're going to/from readonly mode. */
+ 	if ((*flags & MS_RDONLY) != (sb->s_flags & MS_RDONLY)) {
++		/* Disable quota accounting before remounting RO */
++		if (*flags & MS_RDONLY)
++			ocfs2_susp_quotas(osb, 0);
+ 		/* Lock here so the check of HARD_RO and the potential
+ 		 * setting of SOFT_RO is atomic. */
+ 		spin_lock(&osb->osb_lock);
+@@ -465,6 +475,9 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
+ 		}
+ unlock_osb:
+ 		spin_unlock(&osb->osb_lock);
++		/* Enable quota accounting after remounting RW */
++		if (!ret && !(*flags & MS_RDONLY))
++			ocfs2_susp_quotas(osb, 1);
+ 	}
+ 
+ 	if (!ret) {
+@@ -623,6 +636,131 @@ static int ocfs2_verify_userspace_stack(struct ocfs2_super *osb,
+ 	return 0;
+ }
+ 
++static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend)
++{
++	int type;
++	struct super_block *sb = osb->sb;
++	unsigned int feature[MAXQUOTAS] = { OCFS2_FEATURE_RO_COMPAT_USRQUOTA,
++					     OCFS2_FEATURE_RO_COMPAT_GRPQUOTA};
++	int status = 0;
 +
- MODULE_AUTHOR("Jan Kara");
- MODULE_DESCRIPTION("Quota format v2 support");
- MODULE_LICENSE("GPL");
-@@ -129,8 +130,8 @@ static void mem2diskdqb(struct v2_disk_dqblk *d, struct mem_dqblk *m, qid_t id)
- 	d->dqb_isoftlimit = cpu_to_le32(m->dqb_isoftlimit);
- 	d->dqb_curinodes = cpu_to_le32(m->dqb_curinodes);
- 	d->dqb_itime = cpu_to_le64(m->dqb_itime);
--	d->dqb_bhardlimit = cpu_to_le32(v2_qbtos(m->dqb_bhardlimit));
--	d->dqb_bsoftlimit = cpu_to_le32(v2_qbtos(m->dqb_bsoftlimit));
-+	d->dqb_bhardlimit = cpu_to_le32(v2_stoqb(m->dqb_bhardlimit));
-+	d->dqb_bsoftlimit = cpu_to_le32(v2_stoqb(m->dqb_bsoftlimit));
- 	d->dqb_curspace = cpu_to_le64(m->dqb_curspace);
- 	d->dqb_btime = cpu_to_le64(m->dqb_btime);
- 	d->dqb_id = cpu_to_le32(id);
-diff --git a/fs/quotaio_v1.h b/fs/quotaio_v1.h
-new file mode 100644
-index 0000000..746654b
---- /dev/null
-+++ b/fs/quotaio_v1.h
-@@ -0,0 +1,33 @@
-+#ifndef _LINUX_QUOTAIO_V1_H
-+#define _LINUX_QUOTAIO_V1_H
-+
-+#include <linux/types.h>
-+
-+/*
-+ * The following constants define the amount of time given a user
-+ * before the soft limits are treated as hard limits (usually resulting
-+ * in an allocation failure). The timer is started when the user crosses
-+ * their soft limit, it is reset when they go below their soft limit.
-+ */
-+#define MAX_IQ_TIME  604800	/* (7*24*60*60) 1 week */
-+#define MAX_DQ_TIME  604800	/* (7*24*60*60) 1 week */
-+
-+/*
-+ * The following structure defines the format of the disk quota file
-+ * (as it appears on disk) - the file is an array of these structures
-+ * indexed by user or group number.
-+ */
-+struct v1_disk_dqblk {
-+	__u32 dqb_bhardlimit;	/* absolute limit on disk blks alloc */
-+	__u32 dqb_bsoftlimit;	/* preferred limit on disk blks */
-+	__u32 dqb_curblocks;	/* current block count */
-+	__u32 dqb_ihardlimit;	/* absolute limit on allocated inodes */
-+	__u32 dqb_isoftlimit;	/* preferred inode limit */
-+	__u32 dqb_curinodes;	/* current # allocated inodes */
-+	time_t dqb_btime;	/* time limit for excessive disk use */
-+	time_t dqb_itime;	/* time limit for excessive inode use */
-+};
-+
-+#define v1_dqoff(UID)      ((loff_t)((UID) * sizeof (struct v1_disk_dqblk)))
-+
-+#endif	/* _LINUX_QUOTAIO_V1_H */
-diff --git a/fs/quotaio_v2.h b/fs/quotaio_v2.h
-new file mode 100644
-index 0000000..303d7cb
---- /dev/null
-+++ b/fs/quotaio_v2.h
-@@ -0,0 +1,79 @@
-+/*
-+ *	Definitions of structures for vfsv0 quota format
-+ */
-+
-+#ifndef _LINUX_QUOTAIO_V2_H
-+#define _LINUX_QUOTAIO_V2_H
-+
-+#include <linux/types.h>
-+#include <linux/quota.h>
-+
-+/*
-+ * Definitions of magics and versions of current quota files
-+ */
-+#define V2_INITQMAGICS {\
-+	0xd9c01f11,	/* USRQUOTA */\
-+	0xd9c01927	/* GRPQUOTA */\
++	for (type = 0; type < MAXQUOTAS; type++) {
++		if (!OCFS2_HAS_RO_COMPAT_FEATURE(sb, feature[type]))
++			continue;
++		if (unsuspend)
++			status = vfs_quota_enable(
++					sb_dqopt(sb)->files[type],
++					type, QFMT_OCFS2,
++					DQUOT_SUSPENDED);
++		else
++			status = vfs_quota_disable(sb, type,
++						   DQUOT_SUSPENDED);
++		if (status < 0)
++			break;
++	}
++	if (status < 0)
++		mlog(ML_ERROR, "Failed to suspend/unsuspend quotas on "
++		     "remount (error = %d).\n", status);
++	return status;
 +}
 +
-+#define V2_INITQVERSIONS {\
-+	0,		/* USRQUOTA */\
-+	0		/* GRPQUOTA */\
++static int ocfs2_enable_quotas(struct ocfs2_super *osb)
++{
++	struct inode *inode[MAXQUOTAS] = { NULL, NULL };
++	struct super_block *sb = osb->sb;
++	unsigned int feature[MAXQUOTAS] = { OCFS2_FEATURE_RO_COMPAT_USRQUOTA,
++					     OCFS2_FEATURE_RO_COMPAT_GRPQUOTA};
++	unsigned int ino[MAXQUOTAS] = { LOCAL_USER_QUOTA_SYSTEM_INODE,
++					LOCAL_GROUP_QUOTA_SYSTEM_INODE };
++	int status;
++	int type;
++
++	sb_dqopt(sb)->flags |= DQUOT_QUOTA_SYS_FILE | DQUOT_NEGATIVE_USAGE;
++	for (type = 0; type < MAXQUOTAS; type++) {
++		if (!OCFS2_HAS_RO_COMPAT_FEATURE(sb, feature[type]))
++			continue;
++		inode[type] = ocfs2_get_system_file_inode(osb, ino[type],
++							osb->slot_num);
++		if (!inode[type]) {
++			status = -ENOENT;
++			goto out_quota_off;
++		}
++		status = vfs_quota_enable(inode[type], type, QFMT_OCFS2,
++						DQUOT_USAGE_ENABLED);
++		if (status < 0)
++			goto out_quota_off;
++	}
++
++	for (type = 0; type < MAXQUOTAS; type++)
++		iput(inode[type]);
++	return 0;
++out_quota_off:
++	ocfs2_disable_quotas(osb);
++	for (type = 0; type < MAXQUOTAS; type++)
++		iput(inode[type]);
++	mlog_errno(status);
++	return status;
 +}
 +
-+/*
-+ * The following structure defines the format of the disk quota file
-+ * (as it appears on disk) - the file is a radix tree whose leaves point
-+ * to blocks of these structures.
-+ */
-+struct v2_disk_dqblk {
-+	__le32 dqb_id;		/* id this quota applies to */
-+	__le32 dqb_ihardlimit;	/* absolute limit on allocated inodes */
-+	__le32 dqb_isoftlimit;	/* preferred inode limit */
-+	__le32 dqb_curinodes;	/* current # allocated inodes */
-+	__le32 dqb_bhardlimit;	/* absolute limit on disk space (in QUOTABLOCK_SIZE) */
-+	__le32 dqb_bsoftlimit;	/* preferred limit on disk space (in QUOTABLOCK_SIZE) */
-+	__le64 dqb_curspace;	/* current space occupied (in bytes) */
-+	__le64 dqb_btime;	/* time limit for excessive disk use */
-+	__le64 dqb_itime;	/* time limit for excessive inode use */
++static void ocfs2_disable_quotas(struct ocfs2_super *osb)
++{
++	int type;
++	struct inode *inode;
++	struct super_block *sb = osb->sb;
++
++	/* We mostly ignore errors in this function because there's not much
++	 * we can do when we see them */
++	for (type = 0; type < MAXQUOTAS; type++) {
++		if (!sb_has_quota_loaded(sb, type))
++			continue;
++		inode = igrab(sb->s_dquot.files[type]);
++		/* Turn off quotas. This will remove all dquot structures from
++		 * memory and so they will be automatically synced to global
++		 * quota files */
++		vfs_quota_disable(sb, type, DQUOT_USAGE_ENABLED |
++					    DQUOT_LIMITS_ENABLED);
++		if (!inode)
++			continue;
++		iput(inode);
++	}
++}
++
++/* Handle quota on quotactl */
++static int ocfs2_quota_on(struct super_block *sb, int type, int format_id,
++			  char *path, int remount)
++{
++	unsigned int feature[MAXQUOTAS] = { OCFS2_FEATURE_RO_COMPAT_USRQUOTA,
++					     OCFS2_FEATURE_RO_COMPAT_GRPQUOTA};
++
++	if (!OCFS2_HAS_RO_COMPAT_FEATURE(sb, feature[type]))
++		return -EINVAL;
++
++	if (remount)
++		return 0;	/* Just ignore it has been handled in
++				 * ocfs2_remount() */
++	return vfs_quota_enable(sb_dqopt(sb)->files[type], type,
++				    format_id, DQUOT_LIMITS_ENABLED);
++}
++
++/* Handle quota off quotactl */
++static int ocfs2_quota_off(struct super_block *sb, int type, int remount)
++{
++	if (remount)
++		return 0;	/* Ignore now and handle later in
++				 * ocfs2_remount() */
++	return vfs_quota_disable(sb, type, DQUOT_LIMITS_ENABLED);
++}
++
++static struct quotactl_ops ocfs2_quotactl_ops = {
++	.quota_on	= ocfs2_quota_on,
++	.quota_off	= ocfs2_quota_off,
++	.quota_sync	= vfs_quota_sync,
++	.get_info	= vfs_get_dqinfo,
++	.set_info	= vfs_set_dqinfo,
++	.get_dqblk	= vfs_get_dqblk,
++	.set_dqblk	= vfs_set_dqblk,
 +};
 +
-+/*
-+ * Here are header structures as written on disk and their in-memory copies
-+ */
-+/* First generic header */
-+struct v2_disk_dqheader {
-+	__le32 dqh_magic;	/* Magic number identifying file */
-+	__le32 dqh_version;	/* File version */
-+};
+ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ {
+ 	struct dentry *root;
+@@ -660,6 +798,22 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 	osb->preferred_slot = parsed_options.slot;
+ 	osb->osb_commit_interval = parsed_options.commit_interval;
+ 	osb->local_alloc_size = parsed_options.localalloc_opt;
++	if (osb->s_mount_opt & OCFS2_MOUNT_USRQUOTA &&
++	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
++					 OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
++		status = -EINVAL;
++		mlog(ML_ERROR, "User quota requested but filesystem feature "
++			       "is not set\n");
++		goto read_super_error;
++	}
++	if (osb->s_mount_opt & OCFS2_MOUNT_GRPQUOTA &&
++	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
++					 OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
++		status = -EINVAL;
++		mlog(ML_ERROR, "Group quota requested but filesystem feature "
++			       "is not set\n");
++		goto read_super_error;
++	}
+ 
+ 	status = ocfs2_verify_userspace_stack(osb, &parsed_options);
+ 	if (status)
+@@ -745,6 +899,13 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 
+ 	sb->s_root = root;
+ 
++	/* Initialize quotas before we start truncation log recovery */
++	status = ocfs2_enable_quotas(osb);
++	if (status < 0) {
++		mlog_errno(status);
++		goto read_super_error;
++	}
 +
-+/* Header with type and version specific information */
-+struct v2_disk_dqinfo {
-+	__le32 dqi_bgrace;	/* Time before block soft limit becomes hard limit */
-+	__le32 dqi_igrace;	/* Time before inode soft limit becomes hard limit */
-+	__le32 dqi_flags;	/* Flags for quotafile (DQF_*) */
-+	__le32 dqi_blocks;	/* Number of blocks in file */
-+	__le32 dqi_free_blk;	/* Number of first free block in the list */
-+	__le32 dqi_free_entry;	/* Number of block with at least one free entry */
-+};
+ 	ocfs2_complete_mount_recovery(osb);
+ 
+ 	if (ocfs2_mount_local(osb))
+@@ -940,6 +1101,28 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 			       OCFS2_STACK_LABEL_LEN);
+ 			mopt->cluster_stack[OCFS2_STACK_LABEL_LEN] = '\0';
+ 			break;
++		case Opt_usrquota:
++			/* We check only on remount, otherwise features
++			 * aren't yet initialized. */
++			if (is_remount && !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
++			    OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
++				mlog(ML_ERROR, "User quota requested but "
++				     "filesystem feature is not set\n");
++				status = 0;
++				goto bail;
++			}
++			mopt->mount_opt |= OCFS2_MOUNT_USRQUOTA;
++			break;
++		case Opt_grpquota:
++			if (is_remount && !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
++			    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
++				mlog(ML_ERROR, "Group quota requested but "
++				     "filesystem feature is not set\n");
++				status = 0;
++				goto bail;
++			}
++			mopt->mount_opt |= OCFS2_MOUNT_GRPQUOTA;
++			break;
+ 		default:
+ 			mlog(ML_ERROR,
+ 			     "Unrecognized mount option \"%s\" "
+@@ -1001,6 +1184,10 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
+ 	if (osb->osb_cluster_stack[0])
+ 		seq_printf(s, ",cluster_stack=%.*s", OCFS2_STACK_LABEL_LEN,
+ 			   osb->osb_cluster_stack);
++	if (opts & OCFS2_MOUNT_USRQUOTA)
++		seq_printf(s, ",usrquota");
++	if (opts & OCFS2_MOUNT_GRPQUOTA)
++		seq_printf(s, ",grpquota");
+ 
+ 	return 0;
+ }
+@@ -1313,6 +1500,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+ 	osb = OCFS2_SB(sb);
+ 	BUG_ON(!osb);
+ 
++	ocfs2_disable_quotas(osb);
 +
-+/*
-+ *  Structure of header of block with quota structures. It is padded to 16 bytes so
-+ *  there will be space for exactly 21 quota-entries in a block
-+ */
-+struct v2_disk_dqdbheader {
-+	__le32 dqdh_next_free;	/* Number of next block with free entry */
-+	__le32 dqdh_prev_free;	/* Number of previous block with free entry */
-+	__le16 dqdh_entries;	/* Number of valid entries in block */
-+	__le16 dqdh_pad1;
-+	__le32 dqdh_pad2;
-+};
-+
-+#define V2_DQINFOOFF	sizeof(struct v2_disk_dqheader)	/* Offset of info header in file */
-+#define V2_DQBLKSIZE_BITS	10
-+#define V2_DQBLKSIZE	(1 << V2_DQBLKSIZE_BITS)	/* Size of block with quota structures */
-+#define V2_DQTREEOFF	1		/* Offset of tree in file in blocks */
-+#define V2_DQTREEDEPTH	4		/* Depth of quota tree */
-+#define V2_DQSTRINBLK	((V2_DQBLKSIZE - sizeof(struct v2_disk_dqdbheader)) / sizeof(struct v2_disk_dqblk))	/* Number of entries in one blocks */
-+
-+#endif /* _LINUX_QUOTAIO_V2_H */
-diff --git a/include/linux/quotaio_v1.h b/include/linux/quotaio_v1.h
-deleted file mode 100644
-index 746654b..0000000
---- a/include/linux/quotaio_v1.h
-+++ /dev/null
-@@ -1,33 +0,0 @@
--#ifndef _LINUX_QUOTAIO_V1_H
--#define _LINUX_QUOTAIO_V1_H
--
--#include <linux/types.h>
--
--/*
-- * The following constants define the amount of time given a user
-- * before the soft limits are treated as hard limits (usually resulting
-- * in an allocation failure). The timer is started when the user crosses
-- * their soft limit, it is reset when they go below their soft limit.
-- */
--#define MAX_IQ_TIME  604800	/* (7*24*60*60) 1 week */
--#define MAX_DQ_TIME  604800	/* (7*24*60*60) 1 week */
--
--/*
-- * The following structure defines the format of the disk quota file
-- * (as it appears on disk) - the file is an array of these structures
-- * indexed by user or group number.
-- */
--struct v1_disk_dqblk {
--	__u32 dqb_bhardlimit;	/* absolute limit on disk blks alloc */
--	__u32 dqb_bsoftlimit;	/* preferred limit on disk blks */
--	__u32 dqb_curblocks;	/* current block count */
--	__u32 dqb_ihardlimit;	/* absolute limit on allocated inodes */
--	__u32 dqb_isoftlimit;	/* preferred inode limit */
--	__u32 dqb_curinodes;	/* current # allocated inodes */
--	time_t dqb_btime;	/* time limit for excessive disk use */
--	time_t dqb_itime;	/* time limit for excessive inode use */
--};
--
--#define v1_dqoff(UID)      ((loff_t)((UID) * sizeof (struct v1_disk_dqblk)))
--
--#endif	/* _LINUX_QUOTAIO_V1_H */
-diff --git a/include/linux/quotaio_v2.h b/include/linux/quotaio_v2.h
-deleted file mode 100644
-index 303d7cb..0000000
---- a/include/linux/quotaio_v2.h
-+++ /dev/null
-@@ -1,79 +0,0 @@
--/*
-- *	Definitions of structures for vfsv0 quota format
-- */
--
--#ifndef _LINUX_QUOTAIO_V2_H
--#define _LINUX_QUOTAIO_V2_H
--
--#include <linux/types.h>
--#include <linux/quota.h>
--
--/*
-- * Definitions of magics and versions of current quota files
-- */
--#define V2_INITQMAGICS {\
--	0xd9c01f11,	/* USRQUOTA */\
--	0xd9c01927	/* GRPQUOTA */\
--}
--
--#define V2_INITQVERSIONS {\
--	0,		/* USRQUOTA */\
--	0		/* GRPQUOTA */\
--}
--
--/*
-- * The following structure defines the format of the disk quota file
-- * (as it appears on disk) - the file is a radix tree whose leaves point
-- * to blocks of these structures.
-- */
--struct v2_disk_dqblk {
--	__le32 dqb_id;		/* id this quota applies to */
--	__le32 dqb_ihardlimit;	/* absolute limit on allocated inodes */
--	__le32 dqb_isoftlimit;	/* preferred inode limit */
--	__le32 dqb_curinodes;	/* current # allocated inodes */
--	__le32 dqb_bhardlimit;	/* absolute limit on disk space (in QUOTABLOCK_SIZE) */
--	__le32 dqb_bsoftlimit;	/* preferred limit on disk space (in QUOTABLOCK_SIZE) */
--	__le64 dqb_curspace;	/* current space occupied (in bytes) */
--	__le64 dqb_btime;	/* time limit for excessive disk use */
--	__le64 dqb_itime;	/* time limit for excessive inode use */
--};
--
--/*
-- * Here are header structures as written on disk and their in-memory copies
-- */
--/* First generic header */
--struct v2_disk_dqheader {
--	__le32 dqh_magic;	/* Magic number identifying file */
--	__le32 dqh_version;	/* File version */
--};
--
--/* Header with type and version specific information */
--struct v2_disk_dqinfo {
--	__le32 dqi_bgrace;	/* Time before block soft limit becomes hard limit */
--	__le32 dqi_igrace;	/* Time before inode soft limit becomes hard limit */
--	__le32 dqi_flags;	/* Flags for quotafile (DQF_*) */
--	__le32 dqi_blocks;	/* Number of blocks in file */
--	__le32 dqi_free_blk;	/* Number of first free block in the list */
--	__le32 dqi_free_entry;	/* Number of block with at least one free entry */
--};
--
--/*
-- *  Structure of header of block with quota structures. It is padded to 16 bytes so
-- *  there will be space for exactly 21 quota-entries in a block
-- */
--struct v2_disk_dqdbheader {
--	__le32 dqdh_next_free;	/* Number of next block with free entry */
--	__le32 dqdh_prev_free;	/* Number of previous block with free entry */
--	__le16 dqdh_entries;	/* Number of valid entries in block */
--	__le16 dqdh_pad1;
--	__le32 dqdh_pad2;
--};
--
--#define V2_DQINFOOFF	sizeof(struct v2_disk_dqheader)	/* Offset of info header in file */
--#define V2_DQBLKSIZE_BITS	10
--#define V2_DQBLKSIZE	(1 << V2_DQBLKSIZE_BITS)	/* Size of block with quota structures */
--#define V2_DQTREEOFF	1		/* Offset of tree in file in blocks */
--#define V2_DQTREEDEPTH	4		/* Depth of quota tree */
--#define V2_DQSTRINBLK	((V2_DQBLKSIZE - sizeof(struct v2_disk_dqdbheader)) / sizeof(struct v2_disk_dqblk))	/* Number of entries in one blocks */
--
--#endif /* _LINUX_QUOTAIO_V2_H */
+ 	ocfs2_shutdown_local_alloc(osb);
+ 
+ 	ocfs2_truncate_log_shutdown(osb);
+@@ -1423,6 +1612,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	sb->s_fs_info = osb;
+ 	sb->s_op = &ocfs2_sops;
+ 	sb->s_export_op = &ocfs2_export_ops;
++	sb->s_qcop = &ocfs2_quotactl_ops;
++	sb->dq_op = &ocfs2_quota_operations;
+ 	sb->s_time_gran = 1;
+ 	sb->s_flags |= MS_NOATIME;
+ 	/* this is needed to support O_LARGEFILE */
 -- 
 1.5.2.4
