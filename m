@@ -1,82 +1,95 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 20 Oct 2008 19:23:51 +0200
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix check of return value of
-	ocfs2_start_trans()
+Date: Mon, 20 Oct 2008 19:23:50 +0200
+Subject: [Ocfs2-devel] [PATCH] quota: Implement function for scanning active
+	dquots
 In-Reply-To: y
 References: y
-Message-ID: <12245234424005-git-send-email-jack@suse.cz>
+Message-ID: <12245234421748-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On failure, ocfs2_start_trans() returns values like ERR_PTR(-ENOMEM).
-Thus checks for !handle are wrong. Fix them to use IS_ERR().
+OCFS2 needs to scan all active dquots once in a while and sync quota
+information among cluster nodes. Provide a helper function for it so
+that it does not have to reimplement internally a list which VFS
+already has. Moreover this function is probably going to be useful
+for other clustered filesystems if they decide to use VFS quotas.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/file.c |   20 ++++++++++----------
- 1 files changed, 10 insertions(+), 10 deletions(-)
+ fs/dquot.c               |   36 ++++++++++++++++++++++++++++++++++++
+ include/linux/quotaops.h |    3 +++
+ 2 files changed, 39 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index ec2ed15..89dc20e 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -246,8 +246,8 @@ int ocfs2_update_inode_atime(struct inode *inode,
- 	mlog_entry_void();
+diff --git a/fs/dquot.c b/fs/dquot.c
+index c5016a2..0a4fcd0 100644
+--- a/fs/dquot.c
++++ b/fs/dquot.c
+@@ -478,6 +478,41 @@ restart:
+ 	spin_unlock(&dq_list_lock);
+ }
  
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
-@@ -311,8 +311,8 @@ static int ocfs2_simple_size_update(struct inode *inode,
- 	handle_t *handle = NULL;
++/* Call callback for every active dquot on given filesystem */
++int dquot_scan_active(struct super_block *sb,
++		      int (*fn)(struct dquot *dquot, unsigned long priv),
++		      unsigned long priv)
++{
++	struct dquot *dquot, *old_dquot = NULL;
++	int ret = 0;
++
++	mutex_lock(&sb_dqopt(sb)->dqonoff_mutex);
++	spin_lock(&dq_list_lock);
++	list_for_each_entry(dquot, &inuse_list, dq_inuse) {
++		if (!test_bit(DQ_ACTIVE_B, &dquot->dq_flags))
++			continue;
++		if (dquot->dq_sb != sb)
++			continue;
++		/* Now we have active dquot so we can just increase use count */
++		atomic_inc(&dquot->dq_count);
++		dqstats.lookups++;
++		spin_unlock(&dq_list_lock);
++		dqput(old_dquot);
++		old_dquot = dquot;
++		ret = fn(dquot, priv);
++		if (ret < 0)
++			goto out;
++		spin_lock(&dq_list_lock);
++		/* We are safe to continue now because our dquot could not
++		 * be moved out of the inuse list while we hold the reference */
++	}
++	spin_unlock(&dq_list_lock);
++out:
++	dqput(old_dquot);
++	mutex_unlock(&sb_dqopt(sb)->dqonoff_mutex);
++	return ret;
++}
++
+ int vfs_quota_sync(struct super_block *sb, int type)
+ {
+ 	struct list_head *dirty;
+@@ -2318,6 +2353,7 @@ EXPORT_SYMBOL(vfs_quota_on_path);
+ EXPORT_SYMBOL(vfs_quota_on_mount);
+ EXPORT_SYMBOL(vfs_quota_disable);
+ EXPORT_SYMBOL(vfs_quota_off);
++EXPORT_SYMBOL(dquot_scan_active);
+ EXPORT_SYMBOL(vfs_quota_sync);
+ EXPORT_SYMBOL(vfs_get_dqinfo);
+ EXPORT_SYMBOL(vfs_set_dqinfo);
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index 4cb298d..f504e64 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -29,6 +29,9 @@ int dquot_initialize(struct inode *inode, int type);
+ int dquot_drop(struct inode *inode);
+ int dquot_drop_locked(struct inode *inode);
+ int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
++int dquot_scan_active(struct super_block *sb,
++		      int (*fn)(struct dquot *dquot, unsigned long priv),
++		      unsigned long priv);
  
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
-@@ -1209,8 +1209,8 @@ static int __ocfs2_write_remove_suid(struct inode *inode,
- 		   (unsigned long long)OCFS2_I(inode)->ip_blkno, inode->i_mode);
- 
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
-@@ -1412,8 +1412,8 @@ static int __ocfs2_remove_inode_range(struct inode *inode,
- 	}
- 
- 	handle = ocfs2_start_trans(osb, OCFS2_REMOVE_EXTENT_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
-@@ -1505,8 +1505,8 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
- 		goto out;
- 
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
+ int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
+ int dquot_alloc_inode(const struct inode *inode, qsize_t number);
 -- 
 1.5.2.4
