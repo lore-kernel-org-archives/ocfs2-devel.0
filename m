@@ -1,62 +1,72 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 20 Oct 2008 19:23:52 +0200
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Support nested transactions
+Date: Mon, 20 Oct 2008 19:23:46 +0200
+Subject: [Ocfs2-devel] [PATCH] quota: Allow negative usage of space and
+	inodes
 In-Reply-To: y
 References: y
-Message-ID: <12245234433804-git-send-email-jack@suse.cz>
+Message-ID: <1224523442371-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-OCFS2 can easily support nested transactions. We just have to
-take care and not spoil statistics acquire semaphore unnecessarily.
+For clustered filesystems, it can happen that space / inode usage goes
+negative temporarily (because some node is allocating another node
+is freeing and they are not completely in sync). So let quota code
+allow this and change qsize_t so a signed type so that we don't
+underflow the variables.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/journal.c |   14 +++++++-------
- 1 files changed, 7 insertions(+), 7 deletions(-)
+ fs/dquot.c            |    6 ++++--
+ include/linux/quota.h |    3 ++-
+ 2 files changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index c47bc2a..b3e24f9 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -256,11 +256,9 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
- 	BUG_ON(osb->journal->j_state == OCFS2_JOURNAL_FREE);
- 	BUG_ON(max_buffs <= 0);
+diff --git a/fs/dquot.c b/fs/dquot.c
+index 904bd67..f4258fe 100644
+--- a/fs/dquot.c
++++ b/fs/dquot.c
+@@ -845,7 +845,8 @@ static inline void dquot_incr_space(struct dquot *dquot, qsize_t number)
  
--	/* JBD might support this, but our journalling code doesn't yet. */
--	if (journal_current_handle()) {
--		mlog(ML_ERROR, "Recursive transaction attempted!\n");
--		BUG();
--	}
-+	/* Nested transaction? Just return the handle... */
-+	if (journal_current_handle())
-+		return journal_start(journal, max_buffs);
- 
- 	down_read(&osb->journal->j_trans_barrier);
- 
-@@ -285,16 +283,18 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
- int ocfs2_commit_trans(struct ocfs2_super *osb,
- 		       handle_t *handle)
+ static inline void dquot_decr_inodes(struct dquot *dquot, qsize_t number)
  {
--	int ret;
-+	int ret, nested;
- 	struct ocfs2_journal *journal = osb->journal;
+-	if (dquot->dq_dqb.dqb_curinodes > number)
++	if (sb_dqopt(dquot->dq_sb)->flags & DQUOT_NEGATIVE_USAGE ||
++	    dquot->dq_dqb.dqb_curinodes >= number)
+ 		dquot->dq_dqb.dqb_curinodes -= number;
+ 	else
+ 		dquot->dq_dqb.dqb_curinodes = 0;
+@@ -856,7 +857,8 @@ static inline void dquot_decr_inodes(struct dquot *dquot, qsize_t number)
  
- 	BUG_ON(!handle);
+ static inline void dquot_decr_space(struct dquot *dquot, qsize_t number)
+ {
+-	if (dquot->dq_dqb.dqb_curspace > number)
++	if (sb_dqopt(dquot->dq_sb)->flags & DQUOT_NEGATIVE_USAGE ||
++	    dquot->dq_dqb.dqb_curspace >= number)
+ 		dquot->dq_dqb.dqb_curspace -= number;
+ 	else
+ 		dquot->dq_dqb.dqb_curspace = 0;
+diff --git a/include/linux/quota.h b/include/linux/quota.h
+index 3dca22c..597e8e9 100644
+--- a/include/linux/quota.h
++++ b/include/linux/quota.h
+@@ -170,7 +170,7 @@ enum {
+ #include <asm/atomic.h>
  
-+	nested = handle->h_ref > 1;
- 	ret = journal_stop(handle);
- 	if (ret < 0)
- 		mlog_errno(ret);
+ typedef __kernel_uid32_t qid_t; /* Type in which we store ids in memory */
+-typedef __u64 qsize_t;          /* Type in which we store sizes */
++typedef __s64 qsize_t;          /* Type in which we store sizes */
  
--	up_read(&journal->j_trans_barrier);
-+	if (!nested)
-+		up_read(&journal->j_trans_barrier);
+ extern spinlock_t dq_data_lock;
  
- 	return ret;
- }
+@@ -341,6 +341,7 @@ enum {
+ 						 * responsible for setting
+ 						 * S_NOQUOTA, S_NOATIME flags
+ 						 */
++#define DQUOT_NEGATIVE_USAGE	(1 << 7)	/* Allow negative quota usage */
+ 
+ static inline unsigned int dquot_state_flag(unsigned int flags, int type)
+ {
 -- 
 1.5.2.4
