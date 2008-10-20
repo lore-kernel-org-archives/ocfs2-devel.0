@@ -1,95 +1,62 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 20 Oct 2008 19:23:50 +0200
-Subject: [Ocfs2-devel] [PATCH] quota: Implement function for scanning active
-	dquots
+Date: Mon, 20 Oct 2008 19:23:52 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Support nested transactions
 In-Reply-To: y
 References: y
-Message-ID: <12245234421748-git-send-email-jack@suse.cz>
+Message-ID: <12245234433804-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-OCFS2 needs to scan all active dquots once in a while and sync quota
-information among cluster nodes. Provide a helper function for it so
-that it does not have to reimplement internally a list which VFS
-already has. Moreover this function is probably going to be useful
-for other clustered filesystems if they decide to use VFS quotas.
+OCFS2 can easily support nested transactions. We just have to
+take care and not spoil statistics acquire semaphore unnecessarily.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/dquot.c               |   36 ++++++++++++++++++++++++++++++++++++
- include/linux/quotaops.h |    3 +++
- 2 files changed, 39 insertions(+), 0 deletions(-)
+ fs/ocfs2/journal.c |   14 +++++++-------
+ 1 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/fs/dquot.c b/fs/dquot.c
-index c5016a2..0a4fcd0 100644
---- a/fs/dquot.c
-+++ b/fs/dquot.c
-@@ -478,6 +478,41 @@ restart:
- 	spin_unlock(&dq_list_lock);
- }
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index c47bc2a..b3e24f9 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -256,11 +256,9 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
+ 	BUG_ON(osb->journal->j_state == OCFS2_JOURNAL_FREE);
+ 	BUG_ON(max_buffs <= 0);
  
-+/* Call callback for every active dquot on given filesystem */
-+int dquot_scan_active(struct super_block *sb,
-+		      int (*fn)(struct dquot *dquot, unsigned long priv),
-+		      unsigned long priv)
-+{
-+	struct dquot *dquot, *old_dquot = NULL;
-+	int ret = 0;
-+
-+	mutex_lock(&sb_dqopt(sb)->dqonoff_mutex);
-+	spin_lock(&dq_list_lock);
-+	list_for_each_entry(dquot, &inuse_list, dq_inuse) {
-+		if (!test_bit(DQ_ACTIVE_B, &dquot->dq_flags))
-+			continue;
-+		if (dquot->dq_sb != sb)
-+			continue;
-+		/* Now we have active dquot so we can just increase use count */
-+		atomic_inc(&dquot->dq_count);
-+		dqstats.lookups++;
-+		spin_unlock(&dq_list_lock);
-+		dqput(old_dquot);
-+		old_dquot = dquot;
-+		ret = fn(dquot, priv);
-+		if (ret < 0)
-+			goto out;
-+		spin_lock(&dq_list_lock);
-+		/* We are safe to continue now because our dquot could not
-+		 * be moved out of the inuse list while we hold the reference */
-+	}
-+	spin_unlock(&dq_list_lock);
-+out:
-+	dqput(old_dquot);
-+	mutex_unlock(&sb_dqopt(sb)->dqonoff_mutex);
-+	return ret;
-+}
-+
- int vfs_quota_sync(struct super_block *sb, int type)
+-	/* JBD might support this, but our journalling code doesn't yet. */
+-	if (journal_current_handle()) {
+-		mlog(ML_ERROR, "Recursive transaction attempted!\n");
+-		BUG();
+-	}
++	/* Nested transaction? Just return the handle... */
++	if (journal_current_handle())
++		return journal_start(journal, max_buffs);
+ 
+ 	down_read(&osb->journal->j_trans_barrier);
+ 
+@@ -285,16 +283,18 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
+ int ocfs2_commit_trans(struct ocfs2_super *osb,
+ 		       handle_t *handle)
  {
- 	struct list_head *dirty;
-@@ -2318,6 +2353,7 @@ EXPORT_SYMBOL(vfs_quota_on_path);
- EXPORT_SYMBOL(vfs_quota_on_mount);
- EXPORT_SYMBOL(vfs_quota_disable);
- EXPORT_SYMBOL(vfs_quota_off);
-+EXPORT_SYMBOL(dquot_scan_active);
- EXPORT_SYMBOL(vfs_quota_sync);
- EXPORT_SYMBOL(vfs_get_dqinfo);
- EXPORT_SYMBOL(vfs_set_dqinfo);
-diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index 4cb298d..f504e64 100644
---- a/include/linux/quotaops.h
-+++ b/include/linux/quotaops.h
-@@ -29,6 +29,9 @@ int dquot_initialize(struct inode *inode, int type);
- int dquot_drop(struct inode *inode);
- int dquot_drop_locked(struct inode *inode);
- int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
-+int dquot_scan_active(struct super_block *sb,
-+		      int (*fn)(struct dquot *dquot, unsigned long priv),
-+		      unsigned long priv);
+-	int ret;
++	int ret, nested;
+ 	struct ocfs2_journal *journal = osb->journal;
  
- int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
- int dquot_alloc_inode(const struct inode *inode, qsize_t number);
+ 	BUG_ON(!handle);
+ 
++	nested = handle->h_ref > 1;
+ 	ret = journal_stop(handle);
+ 	if (ret < 0)
+ 		mlog_errno(ret);
+ 
+-	up_read(&journal->j_trans_barrier);
++	if (!nested)
++		up_read(&journal->j_trans_barrier);
+ 
+ 	return ret;
+ }
 -- 
 1.5.2.4
