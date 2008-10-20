@@ -1,141 +1,113 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 20 Oct 2008 19:23:43 +0200
-Subject: [Ocfs2-devel] [PATCH] quota: Introduce DQUOT_QUOTA_SYS_FILE flag
+Date: Mon, 20 Oct 2008 19:23:47 +0200
+Subject: [Ocfs2-devel] [PATCH] quota: Keep which entries were set by
+	SETQUOTA quotactl
 In-Reply-To: y
 References: y
-Message-ID: <12245234411401-git-send-email-jack@suse.cz>
+Message-ID: <12245234423033-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-If filesystem can handle quota files as system files hidden from users, we can
-skip a lot of cache invalidation, syncing, inode flags setting etc. when
-turning quotas on, off and quota_sync. Allow filesystem to indicate that it is
-hiding quota files from users by DQUOT_QUOTA_SYS_FILE flag.
+Quota in a clustered environment needs to synchronize quota information
+among cluster nodes. This means we have to occasionally update some
+information in dquot from disk / network. On the other hand we have to
+be careful not to overwrite changes administrator did via SETQUOTA.
+So indicate in dquot->dq_flags which entries have been set by SETQUOTA
+and quota format can clear these flags when it properly propagated
+the changes.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/dquot.c            |   45 ++++++++++++++++++++++++++++++---------------
- fs/quota.c            |    3 +++
- include/linux/quota.h |    7 +++++++
- 3 files changed, 40 insertions(+), 15 deletions(-)
+ fs/dquot.c            |   12 ++++++++++--
+ include/linux/quota.h |   26 ++++++++++++++++++++------
+ 2 files changed, 30 insertions(+), 8 deletions(-)
 
 diff --git a/fs/dquot.c b/fs/dquot.c
-index bdfae7d..904bd67 100644
+index f4258fe..3fde18b 100644
 --- a/fs/dquot.c
 +++ b/fs/dquot.c
-@@ -1629,6 +1629,11 @@ int vfs_quota_disable(struct super_block *sb, int type, unsigned int flags)
- 		dqopt->ops[cnt] = NULL;
+@@ -2008,25 +2008,33 @@ static int do_set_dqblk(struct dquot *dquot, struct if_dqblk *di)
+ 	if (di->dqb_valid & QIF_SPACE) {
+ 		dm->dqb_curspace = di->dqb_curspace;
+ 		check_blim = 1;
++		__set_bit(DQ_LASTSET_B + QIF_SPACE_B, &dquot->dq_flags);
  	}
- 	mutex_unlock(&dqopt->dqonoff_mutex);
-+
-+	/* Skip syncing and setting flags if quota files are hidden */
-+	if (dqopt->flags & DQUOT_QUOTA_SYS_FILE)
-+		goto put_inodes;
-+
- 	/* Sync the superblock so that buffers with quota data are written to
- 	 * disk (and so userspace sees correct data afterwards). */
- 	if (sb->s_op->sync_fs)
-@@ -1653,6 +1658,12 @@ int vfs_quota_disable(struct super_block *sb, int type, unsigned int flags)
- 				mark_inode_dirty(toputinode[cnt]);
- 			}
- 			mutex_unlock(&dqopt->dqonoff_mutex);
-+		}
-+	if (sb->s_bdev)
-+		invalidate_bdev(sb->s_bdev);
-+put_inodes:
-+	for (cnt = 0; cnt < MAXQUOTAS; cnt++)
-+		if (toputinode[cnt]) {
- 			/* On remount RO, we keep the inode pointer so that we
- 			 * can reenable quota on the subsequent remount RW. We
- 			 * have to check 'flags' variable and not use sb_has_
-@@ -1665,8 +1676,6 @@ int vfs_quota_disable(struct super_block *sb, int type, unsigned int flags)
- 			else if (!toputinode[cnt]->i_nlink)
- 				ret = -EBUSY;
- 		}
--	if (sb->s_bdev)
--		invalidate_bdev(sb->s_bdev);
- 	return ret;
- }
- 
-@@ -1713,25 +1722,31 @@ static int vfs_load_quota_inode(struct inode *inode, int type, int format_id,
- 		goto out_fmt;
+ 	if (di->dqb_valid & QIF_BLIMITS) {
+ 		dm->dqb_bsoftlimit = qbtos(di->dqb_bsoftlimit);
+ 		dm->dqb_bhardlimit = qbtos(di->dqb_bhardlimit);
+ 		check_blim = 1;
++		__set_bit(DQ_LASTSET_B + QIF_BLIMITS_B, &dquot->dq_flags);
  	}
- 
--	/* As we bypass the pagecache we must now flush the inode so that
--	 * we see all the changes from userspace... */
--	write_inode_now(inode, 1);
--	/* And now flush the block cache so that kernel sees the changes */
--	invalidate_bdev(sb->s_bdev);
-+	if (!(dqopt->flags & DQUOT_QUOTA_SYS_FILE)) {
-+		/* As we bypass the pagecache we must now flush the inode so
-+		 * that we see all the changes from userspace... */
-+		write_inode_now(inode, 1);
-+		/* And now flush the block cache so that kernel sees the
-+		 * changes */
-+		invalidate_bdev(sb->s_bdev);
+ 	if (di->dqb_valid & QIF_INODES) {
+ 		dm->dqb_curinodes = di->dqb_curinodes;
+ 		check_ilim = 1;
++		__set_bit(DQ_LASTSET_B + QIF_INODES_B, &dquot->dq_flags);
+ 	}
+ 	if (di->dqb_valid & QIF_ILIMITS) {
+ 		dm->dqb_isoftlimit = di->dqb_isoftlimit;
+ 		dm->dqb_ihardlimit = di->dqb_ihardlimit;
+ 		check_ilim = 1;
++		__set_bit(DQ_LASTSET_B + QIF_ILIMITS_B, &dquot->dq_flags);
+ 	}
+-	if (di->dqb_valid & QIF_BTIME)
++	if (di->dqb_valid & QIF_BTIME) {
+ 		dm->dqb_btime = di->dqb_btime;
+-	if (di->dqb_valid & QIF_ITIME)
++		__set_bit(DQ_LASTSET_B + QIF_BTIME_B, &dquot->dq_flags);
 +	}
- 	mutex_lock(&inode->i_mutex);
- 	mutex_lock(&dqopt->dqonoff_mutex);
- 	if (sb_has_quota_loaded(sb, type)) {
- 		error = -EBUSY;
- 		goto out_lock;
- 	}
--	/* We don't want quota and atime on quota files (deadlocks possible)
--	 * Also nobody should write to the file - we use special IO operations
--	 * which ignore the immutable bit. */
--	down_write(&dqopt->dqptr_sem);
--	oldflags = inode->i_flags & (S_NOATIME | S_IMMUTABLE | S_NOQUOTA);
--	inode->i_flags |= S_NOQUOTA | S_NOATIME | S_IMMUTABLE;
--	up_write(&dqopt->dqptr_sem);
--	sb->dq_op->drop(inode);
-+
-+	if (!(dqopt->flags & DQUOT_QUOTA_SYS_FILE)) {
-+		/* We don't want quota and atime on quota files (deadlocks
-+		 * possible) Also nobody should write to the file - we use
-+		 * special IO operations which ignore the immutable bit. */
-+		down_write(&dqopt->dqptr_sem);
-+		oldflags = inode->i_flags & (S_NOATIME | S_IMMUTABLE | S_NOQUOTA);
-+		inode->i_flags |= S_NOQUOTA | S_NOATIME | S_IMMUTABLE;
-+		up_write(&dqopt->dqptr_sem);
-+		sb->dq_op->drop(inode);
++	if (di->dqb_valid & QIF_ITIME) {
+ 		dm->dqb_itime = di->dqb_itime;
++		__set_bit(DQ_LASTSET_B + QIF_ITIME_B, &dquot->dq_flags);
 +	}
  
- 	error = -EIO;
- 	dqopt->files[type] = igrab(inode);
-diff --git a/fs/quota.c b/fs/quota.c
-index a8026f1..2c6ea78 100644
---- a/fs/quota.c
-+++ b/fs/quota.c
-@@ -160,6 +160,9 @@ static void quota_sync_sb(struct super_block *sb, int type)
- 	int cnt;
- 
- 	sb->s_qcop->quota_sync(sb, type);
-+
-+	if (sb_dqopt(sb)->flags & DQUOT_QUOTA_SYS_FILE)
-+		return;
- 	/* This is not very clever (and fast) but currently I don't know about
- 	 * any other simple way of getting quota data to disk and we must get
- 	 * them there for userspace to be visible... */
+ 	if (check_blim) {
+ 		if (!dm->dqb_bsoftlimit || dm->dqb_curspace < dm->dqb_bsoftlimit) {
 diff --git a/include/linux/quota.h b/include/linux/quota.h
-index d6b82c3..3dca22c 100644
+index 597e8e9..3681747 100644
 --- a/include/linux/quota.h
 +++ b/include/linux/quota.h
-@@ -334,6 +334,13 @@ enum {
- #define DQUOT_SUSPENDED		(1 << _DQUOT_SUSPENDED)
- #define DQUOT_STATE_FLAGS	(DQUOT_USAGE_ENABLED | DQUOT_LIMITS_ENABLED | \
- 				 DQUOT_SUSPENDED)
-+/* Other quota flags */
-+#define DQUOT_QUOTA_SYS_FILE	(1 << 6)	/* Quota file is a special
-+						 * system file and user cannot
-+						 * touch it. Filesystem is
-+						 * responsible for setting
-+						 * S_NOQUOTA, S_NOATIME flags
-+						 */
+@@ -82,12 +82,21 @@
+  * Quota structure used for communication with userspace via quotactl
+  * Following flags are used to specify which fields are valid
+  */
+-#define QIF_BLIMITS	1
+-#define QIF_SPACE	2
+-#define QIF_ILIMITS	4
+-#define QIF_INODES	8
+-#define QIF_BTIME	16
+-#define QIF_ITIME	32
++enum {
++	QIF_BLIMITS_B = 0,
++	QIF_SPACE_B,
++	QIF_ILIMITS_B,
++	QIF_INODES_B,
++	QIF_BTIME_B,
++	QIF_ITIME_B,
++};
++
++#define QIF_BLIMITS	(1 << QIF_BLIMITS_B)
++#define QIF_SPACE	(1 << QIF_SPACE_B)
++#define QIF_ILIMITS	(1 << QIF_ILIMITS_B)
++#define QIF_INODES	(1 << QIF_INODES_B)
++#define QIF_BTIME	(1 << QIF_BTIME_B)
++#define QIF_ITIME	(1 << QIF_ITIME_B)
+ #define QIF_LIMITS	(QIF_BLIMITS | QIF_ILIMITS)
+ #define QIF_USAGE	(QIF_SPACE | QIF_INODES)
+ #define QIF_TIMES	(QIF_BTIME | QIF_ITIME)
+@@ -247,6 +256,11 @@ extern struct dqstats dqstats;
+ #define DQ_FAKE_B	3	/* no limits only usage */
+ #define DQ_READ_B	4	/* dquot was read into memory */
+ #define DQ_ACTIVE_B	5	/* dquot is active (dquot_release not called) */
++#define DQ_LASTSET_B	6	/* Following 6 bits (see QIF_) are reserved\
++				 * for the mask of entries set via SETQUOTA\
++				 * quotactl. They are set under dq_data_lock\
++				 * and the quota format handling dquot can\
++				 * clear them when it sees fit. */
  
- static inline unsigned int dquot_state_flag(unsigned int flags, int type)
- {
+ struct dquot {
+ 	struct hlist_node dq_hash;	/* Hash list in memory */
 -- 
 1.5.2.4
