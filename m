@@ -1,35 +1,46 @@
-From: Joel Becker <joel.becker@oracle.com>
-Date: Mon, 20 Oct 2008 19:08:15 -0700
-Subject: [Ocfs2-devel] [PATCH 2/5] ocfs2: Don't return -EFAULT from a
-	corrupt xattr entry.
-In-Reply-To: <1224554898-3928-1-git-send-email-joel.becker@oracle.com>
-References: <1224554898-3928-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1224554898-3928-3-git-send-email-joel.becker@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 21 Oct 2008 10:22:02 -0700
+Subject: [Ocfs2-devel] [PATCH] quota: Add callbacks for allocating
+	and	destroying dquot structures
+In-Reply-To: <12245234403083-git-send-email-jack@suse.cz>
+References: <12245234403083-git-send-email-jack@suse.cz>
+Message-ID: <20081021172201.GA10060@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-If the xattr disk structures are corrupt, return -EIO, not -EFAULT.
+On Mon, Oct 20, 2008 at 07:23:34PM +0200, Jan Kara wrote:
+> Some filesystems would like to keep private information together with each
+> dquot. Add callbacks alloc_dquot and destroy_dquot allowing filesystem to
+> allocate larger dquots from their private slab in a similar fashion we
+> currently allocate inodes.
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/xattr.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+...
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 44d58f1..ec262ef 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -1226,7 +1226,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 
- 	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
- 	if (free < 0)
--		return -EFAULT;
-+		return -EIO;
- 
- 	if (!xs->not_found) {
- 		size_t size = 0;
+> --- a/include/linux/quota.h
+> +++ b/include/linux/quota.h
+> @@ -294,6 +294,8 @@ struct dquot_operations {
+>  	int (*free_inode) (const struct inode *, unsigned long);
+>  	int (*transfer) (struct inode *, struct iattr *);
+>  	int (*write_dquot) (struct dquot *);		/* Ordinary dquot write */
+> +	struct dquot *(*alloc_dquot)(struct super_block *, int);	/* Allocate memory for new dquot (can be NULL if no special entries dquot are needed) */
+> +	void (*destroy_dquot)(struct dquot *);		/* Free memory for dquot */
+
+	Probably want to mention that ->destroy_dquot() is optional and
+really matches ->alloc_dquot().
+
+Joel
+
 -- 
-1.5.6.5
+
+"Every day I get up and look through the Forbes list of the richest
+ people in America. If I'm not there, I go to work."
+        - Robert Orben
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
