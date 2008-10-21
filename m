@@ -1,44 +1,46 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 21 Oct 2008 13:35:03 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix checking of return value
-	of	new_inode()
-In-Reply-To: <12245234434014-git-send-email-jack@suse.cz>
-References: <12245234434014-git-send-email-jack@suse.cz>
-Message-ID: <20081021203503.GE2871@mail.oracle.com>
+Date: Tue, 21 Oct 2008 13:39:45 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Let inode be really deleted
+	when	ocfs2_mknod_locked() fails
+In-Reply-To: <1224523443843-git-send-email-jack@suse.cz>
+References: <1224523443843-git-send-email-jack@suse.cz>
+Message-ID: <20081021203945.GF2871@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Oct 20, 2008 at 07:23:53PM +0200, Jan Kara wrote:
-> new_inode() does not return ERR_PTR() but NULL in case of failure. Correct
-> checking of the return value.
+On Mon, Oct 20, 2008 at 07:23:54PM +0200, Jan Kara wrote:
+> We forgot to set i_nlink to 0 when returning due to error from ocfs2_mknod_locked()
+> and thus inode was not properly released via ocfs2_delete_inode() (e.g. claimed
+> space was not released). Fix it.
 > 
 > Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 
-Another upstream candidate.
+For upstream too.
 
 > ---
->  fs/ocfs2/namei.c |    4 ++--
->  1 files changed, 2 insertions(+), 2 deletions(-)
+>  fs/ocfs2/namei.c |    4 +++-
+>  1 files changed, 3 insertions(+), 1 deletions(-)
 > 
 > diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index d5d808f..0372ef0 100644
+> index 0372ef0..ff1a56d 100644
 > --- a/fs/ocfs2/namei.c
 > +++ b/fs/ocfs2/namei.c
-> @@ -382,8 +382,8 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+> @@ -495,8 +495,10 @@ leave:
+>  			brelse(*new_fe_bh);
+>  			*new_fe_bh = NULL;
+>  		}
+> -		if (inode)
+> +		if (inode) {
+> +			clear_nlink(inode);
+>  			iput(inode);
+> +		}
 >  	}
 >  
->  	inode = new_inode(dir->i_sb);
-> -	if (IS_ERR(inode)) {
-> -		status = PTR_ERR(inode);
-> +	if (!inode) {
-> +		status = -ENOMEM;
->  		mlog(ML_ERROR, "new_inode failed!\n");
->  		goto leave;
->  	}
+>  	mlog_exit(status);
 > -- 
 > 1.5.2.4
 > 
@@ -50,8 +52,9 @@ Another upstream candidate.
 
 -- 
 
-"Well-timed silence hath more eloquence than speech."  
-         - Martin Fraquhar Tupper
+Life's Little Instruction Book #335
+
+	"Every so often, push your luck."
 
 Joel Becker
 Principal Software Developer
