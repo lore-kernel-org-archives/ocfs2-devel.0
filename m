@@ -1,69 +1,47 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 21 Oct 2008 16:34:46 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Add quota calls for allocation	and
-	freeing of inodes and space
-In-Reply-To: <1224523443806-git-send-email-jack@suse.cz>
-References: <1224523443806-git-send-email-jack@suse.cz>
-Message-ID: <20081021233446.GI2871@mail.oracle.com>
+Date: Tue, 21 Oct 2008 16:51:55 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Enable quota accounting on mount,
+	disable on umount
+In-Reply-To: <12245234432502-git-send-email-jack@suse.cz>
+References: <12245234432502-git-send-email-jack@suse.cz>
+Message-ID: <20081021235155.GJ2871@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Oct 20, 2008 at 07:23:58PM +0200, Jan Kara wrote:
-> Add quota calls for allocation and freeing of inodes and space, also update
-> estimates on number of needed credits for a transaction. Move out inode
-> allocation from ocfs2_mknod_locked() because vfs_dq_init() must be called
-> outside of a transaction.
+On Mon, Oct 20, 2008 at 07:23:59PM +0200, Jan Kara wrote:
+> Enable quota usage tracking on mount and disable it on umount. Also
+> add support for quota on and quota off quotactls and usrquota and
+> grpquota mount options.
 > 
 > Signed-off-by: Jan Kara <jack@suse.cz>
-> @@ -5954,6 +5955,8 @@ static int ocfs2_do_truncate(struct ocfs2_super *osb,
->  		goto bail;
->  	}
->  
-> +	vfs_dq_free_space_nodirty(inode,
-> +			ocfs2_clusters_to_bytes(osb->sb, clusters_to_del));
->  	spin_lock(&OCFS2_I(inode)->ip_lock);
->  	OCFS2_I(inode)->ip_clusters = le32_to_cpu(fe->i_clusters) -
->  				      clusters_to_del;
+> ---
 
-	In this one instance, you don't clean up the quota change on
-error, even though clusters_to_del might remain allocated.  How come?
-	On that note, I don't see us a) fixing the inode up on failure
-or b) writing out the new values.  Now, I remember from the past that we
-allow a smaller i_clusters than actually in the tree, because our alloc
-code can handle that.  So I'm sure that the fallout from us not fixing
-up i_clusters and/or writing it is safe.
-	But I wonder what the right behavior is with regards to quota.
+	Looks good, with one small comment.
 
-> @@ -908,7 +911,8 @@ void ocfs2_delete_inode(struct inode *inode)
->  
->  	mlog_entry("(inode->i_ino = %lu)\n", inode->i_ino);
->  
-> -	if (is_bad_inode(inode)) {
-> +	/* Inode left after unsuccessful inode allocation? */
-> +	if (is_bad_inode(inode) || !OCFS2_I(inode)->ip_blkno) {
->  		mlog(0, "Skipping delete of bad inode\n");
->  		goto bail;
->  	}
+> @@ -660,6 +798,22 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  	osb->preferred_slot = parsed_options.slot;
+>  	osb->osb_commit_interval = parsed_options.commit_interval;
+>  	osb->local_alloc_size = parsed_options.localalloc_opt;
+> +	if (osb->s_mount_opt & OCFS2_MOUNT_USRQUOTA &&
+> +	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
+> +					 OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
+> +		status = -EINVAL;
+> +		mlog(ML_ERROR, "User quota requested but filesystem feature "
+> +			       "is not set\n");
 
-	!ip_blkno is your way of saying you called
-ocfs2_get_init_inode() but failed ocfs2_claim_new_inode() in
-ocfs2_mknod_locked(), right?  Probably want to adjust your comment to
-point out that is_bad_inode() comes from read_inode(), !ip_blkno from
-mknod().
-	I checked into just having your failed mknod() call
-make_bad_inode(), but it doesn't fit.  We don't even want to get there.
+	Can we say "User quotas were requested, but this filesystem does not
+have the feature enabled.\n"?  The same for group quotas.
 
 Joel
 
 -- 
 
-"We will have to repent in this generation not merely for the
- vitriolic words and actions of the bad people, but for the 
- appalling silence of the good people."
-	- Rev. Dr. Martin Luther King, Jr.
+"Nothing is wrong with California that a rise in the ocean level
+ wouldn't cure."
+        - Ross MacDonald
 
 Joel Becker
 Principal Software Developer
