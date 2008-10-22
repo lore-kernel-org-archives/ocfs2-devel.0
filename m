@@ -1,84 +1,53 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 22 Oct 2008 10:31:49 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Add quota calls for allocation	and
-	freeing of inodes and space
-In-Reply-To: <20081022144900.GK13868@duck.suse.cz>
-References: <1224523443806-git-send-email-jack@suse.cz>
-	<20081021233446.GI2871@mail.oracle.com>
-	<20081022144900.GK13868@duck.suse.cz>
-Message-ID: <20081022173149.GD27819@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed, 22 Oct 2008 13:24:29 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Set journal descriptor to NULL
+	after journal shutdown
+Message-ID: <1224707069-14173-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 22, 2008 at 04:49:00PM +0200, Jan Kara wrote:
-> On Tue 21-10-08 16:34:46, Joel Becker wrote:
-> > On Mon, Oct 20, 2008 at 07:23:58PM +0200, Jan Kara wrote:
-> > > Add quota calls for allocation and freeing of inodes and space, also update
-> > > estimates on number of needed credits for a transaction. Move out inode
-> > > allocation from ocfs2_mknod_locked() because vfs_dq_init() must be called
-> > > outside of a transaction.
-> > > 
-> > > Signed-off-by: Jan Kara <jack@suse.cz>
-> > > @@ -5954,6 +5955,8 @@ static int ocfs2_do_truncate(struct ocfs2_super *osb,
-> > >  		goto bail;
-> > >  	}
-> > >  
-> > > +	vfs_dq_free_space_nodirty(inode,
-> > > +			ocfs2_clusters_to_bytes(osb->sb, clusters_to_del));
-> > >  	spin_lock(&OCFS2_I(inode)->ip_lock);
-> > >  	OCFS2_I(inode)->ip_clusters = le32_to_cpu(fe->i_clusters) -
-> > >  				      clusters_to_del;
-> > 
-> > 	In this one instance, you don't clean up the quota change on
-> > error, even though clusters_to_del might remain allocated.  How come?
->   Good point. Is there a way to find out how many clusters were actually
-> truncated before we failed?
+Patch sets journal descriptor to NULL after the journal is shutdown.
+This ensures that jbd2_journal_release_jbd_inode(), which removes the
+jbd2 inode from txn lists, can be called safely from ocfs2_clear_inode()
+even after the journal has been shutdown.
 
-	Not quite sure, really.  And this brings up the second question.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/inode.c   |    6 ++++++
+ fs/ocfs2/journal.c |    1 +
+ 2 files changed, 7 insertions(+), 0 deletions(-)
 
-> > 	On that note, I don't see us a) fixing the inode up on failure
-> > or b) writing out the new values.  Now, I remember from the past that we
-> > allow a smaller i_clusters than actually in the tree, because our alloc
-> > code can handle that.  So I'm sure that the fallout from us not fixing
-> > up i_clusters and/or writing it is safe.
-> > 	But I wonder what the right behavior is with regards to quota.
->   Well, quota usage must be always in sync with i_clusters - or better
-> i_blocks - because on chown or chgrp, that is what you're going to transfer
-> from one user to another one.
->   As a side note, I've actually noticed a few paths (even for cases of
-> ENOSPC) in OCFS2 where if we fail during allocation, we actually leave
-> behind allocated blocks not attached anywhere (i.e., only fsck can reclaim
-> them). I discussed it with Mark and it's not completely trivial to fix. So
-> I've worked it around so that quota allocation is done before allocating
-> any blocks and I also tried to take care that at least quota stays correct
-> after a failure.
-
-	Right, there are a couple places like this, and the second
-question is what matters for quota - what is supposed to be allocated
-(i_clusters) or what is really allocated (only different from i_clusters
-in these corner cases).
-	In that truncate case above, i_clusters on the ocfs2_dinode will
-stay at the "supposed to be truncated" number, but journal_dirty() isn't
-called.  If nothing else happens to that buffer, it won't be written.
-However, if it is written out due to another operation, the smaller
-i_clusters will appear on disk.  This is a safe behavior from the view
-of the file (truncate happened or did not).  The fact that the
-allocation remains in both cases is something we silently handle in the
-allocation paths and clean up in fsck when we spot it.
-
-Joel
-
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 4903688..7aa00d5 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1106,6 +1106,12 @@ void ocfs2_clear_inode(struct inode *inode)
+ 	oi->ip_last_trans = 0;
+ 	oi->ip_dir_start_lookup = 0;
+ 	oi->ip_blkno = 0ULL;
++
++	/*
++	 * ip_jinode is used to track txns against this inode. We ensure that
++	 * the journal is flushed before journal shutdown. Thus it is safe to
++	 * have inodes get cleaned up after journal shutdown.
++	 */
+ 	jbd2_journal_release_jbd_inode(OCFS2_SB(inode->i_sb)->journal->j_journal,
+ 				       &oi->ip_jinode);
+ 
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 81e4067..99fe9d5 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -690,6 +690,7 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
+ 
+ 	/* Shutdown the kernel journal system */
+ 	jbd2_journal_destroy(journal->j_journal);
++	journal->j_journal = NULL;
+ 
+ 	OCFS2_I(inode)->ip_open_count--;
+ 
 -- 
-
-Life's Little Instruction Book #267
-
-	"Lie on your back and look at the stars."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.4.3
