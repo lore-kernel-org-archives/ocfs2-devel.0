@@ -1,30 +1,97 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 22 Oct 2008 12:12:09 +0800
-Subject: [Ocfs2-devel] [PATCH 0/5] ocfs2: xattr fixups
-In-Reply-To: <1224554898-3928-1-git-send-email-joel.becker@oracle.com>
-References: <1224554898-3928-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <48FEA819.5080500@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 22 Oct 2008 12:07:20 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix check of return value
+	of	ocfs2_start_trans()
+In-Reply-To: <20081021202618.GC2871@mail.oracle.com>
+References: <12245234424005-git-send-email-jack@suse.cz>
+	<20081021202618.GC2871@mail.oracle.com>
+Message-ID: <20081022100720.GC13868@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel/Mark,
-	all the 5 patches look good to me. Thanks.
+On Tue 21-10-08 13:26:18, Joel Becker wrote:
+> On Mon, Oct 20, 2008 at 07:23:51PM +0200, Jan Kara wrote:
+> > On failure, ocfs2_start_trans() returns values like ERR_PTR(-ENOMEM).
+> > Thus checks for !handle are wrong. Fix them to use IS_ERR().
+> > 
+> > Signed-off-by: Jan Kara <jack@suse.cz>
+> Signed-off-by: Joel Becker <joel.becker@oracle.com>
+> 
+> This should go upstream.  There are two more in xattr.c (not in the
+> sources Jan had).
+  I have the feeling I even sent this patch to Mark once but maybe it got
+lost... Mark? Should I resend you the patch?
 
-Regards,
-Tao
+> > ---
+> >  fs/ocfs2/file.c |   20 ++++++++++----------
+> >  1 files changed, 10 insertions(+), 10 deletions(-)
+> > 
+> > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> > index ec2ed15..89dc20e 100644
+> > --- a/fs/ocfs2/file.c
+> > +++ b/fs/ocfs2/file.c
+> > @@ -246,8 +246,8 @@ int ocfs2_update_inode_atime(struct inode *inode,
+> >  	mlog_entry_void();
+> >  
+> >  	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+> > -	if (handle == NULL) {
+> > -		ret = -ENOMEM;
+> > +	if (IS_ERR(handle)) {
+> > +		ret = PTR_ERR(handle);
+> >  		mlog_errno(ret);
+> >  		goto out;
+> >  	}
+> > @@ -311,8 +311,8 @@ static int ocfs2_simple_size_update(struct inode *inode,
+> >  	handle_t *handle = NULL;
+> >  
+> >  	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+> > -	if (handle == NULL) {
+> > -		ret = -ENOMEM;
+> > +	if (IS_ERR(handle)) {
+> > +		ret = PTR_ERR(handle);
+> >  		mlog_errno(ret);
+> >  		goto out;
+> >  	}
+> > @@ -1209,8 +1209,8 @@ static int __ocfs2_write_remove_suid(struct inode *inode,
+> >  		   (unsigned long long)OCFS2_I(inode)->ip_blkno, inode->i_mode);
+> >  
+> >  	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+> > -	if (handle == NULL) {
+> > -		ret = -ENOMEM;
+> > +	if (IS_ERR(handle)) {
+> > +		ret = PTR_ERR(handle);
+> >  		mlog_errno(ret);
+> >  		goto out;
+> >  	}
+> > @@ -1412,8 +1412,8 @@ static int __ocfs2_remove_inode_range(struct inode *inode,
+> >  	}
+> >  
+> >  	handle = ocfs2_start_trans(osb, OCFS2_REMOVE_EXTENT_CREDITS);
+> > -	if (handle == NULL) {
+> > -		ret = -ENOMEM;
+> > +	if (IS_ERR(handle)) {
+> > +		ret = PTR_ERR(handle);
+> >  		mlog_errno(ret);
+> >  		goto out;
+> >  	}
+> > @@ -1505,8 +1505,8 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
+> >  		goto out;
+> >  
+> >  	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+> > -	if (handle == NULL) {
+> > -		ret = -ENOMEM;
+> > +	if (IS_ERR(handle)) {
+> > +		ret = PTR_ERR(handle);
+> >  		mlog_errno(ret);
+> >  		goto out;
+> >  	}
+> > -- 
+> > 1.5.2.4
 
-Joel Becker wrote:
-> Tao, Mark,
-> 	Here are four fixups for extended attributes that should go
-> upstream.  The fifth patch is a cleanup that I have no other place for
-> right now - it can probably go with, but I'd be fine with a different
-> resolution.
-> 	Tao, please review and make sure I didn't screw anything up.
-> Mark, they can also be pulled from my xattr-fixups branch.
-> 
-> Joel
-> 
-> 
+									Honza
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
