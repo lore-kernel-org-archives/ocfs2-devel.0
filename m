@@ -1,76 +1,108 @@
-From: wengang wang <wen.gang.wang@oracle.com>
-Date: Thu, 23 Oct 2008 16:33:32 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: fix for nfs getting stale
-	inode.
-In-Reply-To: <20081023081650.GA1580@mail.oracle.com>
-References: <200810230419.m9N4JLpn012453@localhost.localdomain>
-	<20081023081650.GA1580@mail.oracle.com>
-Message-ID: <490036DC.8000406@oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Thu, 23 Oct 2008 16:33:33 +0800
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: fix function declaration and
+	definition in xattr
+In-Reply-To: <49003524.3090405@oracle.com>
+References: <49003524.3090405@oracle.com>
+Message-ID: <1224750813-10901-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Joel,
+Because we merge split xattr files into one file, some functions
+no need declare or define in the head file.
 
-Joel Becker wrote:
-> On Thu, Oct 23, 2008 at 12:19:21PM +0800, wengang wang wrote:
->   
->> Ocfs2 supports exporting. 
->>
->> PROBLEM:
->> There are 2 problems
->> (1) Current version of ocfs2_get_dentry() may read from disk
->> the inode WITHOUT any cross cluster lock. This may lead to load a stale inode.
->> (2) for deleting an inode, ocfs2_remove_inode() doesn't sync/checkpoint to disk.
->> This also may lead ocfs2_get_dentry() from other node read out stale inode.
->>
->>     
-> <snip> 
->   
->> SOLUTION:
->> (I) adds cross cluster lock for deletion and reading inode from nfs. Deletion
->> takes EX lock which blocks readings on the same inode block; readings take PR
->> lock which blocks deleting the same inode block.
->> (II) checkpoints disk updates for deletion within the cross cluster lock.
->>     
->
-> 	Cluster locking in an already slow path really bothers me,
-> especially since I gotta believe we already have the state to do this
-> locally.
->   
-surely, it hurts performance.
-while, by my test, the ocfs2_get_dentry() is not called very frequently.
-actually we can take the cluster lock only when we need do disk read, 
-instead of each time
-ocfs2_get_dentry() is called.
-> 	What's the problem other than ESTALE?  That's perfectly valid in
-> the world of NFS.
->
->   
-ESTALE is not a big problem, what is important is that:
-it cause kernel panic during ocfs2_meta_lock_update() at later 
-operations when it updates metadata from disk.
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+---
+ fs/ocfs2/xattr.c |   28 +++++++++++++++++++++++-----
+ fs/ocfs2/xattr.h |   26 ++++----------------------
+ 2 files changed, 27 insertions(+), 27 deletions(-)
 
-code
----------------------------------------------------
-...
-                mlog_bug_on_msg(inode->i_generation !=
-                                le32_to_cpu(fe->i_generation),
-                                "Invalid dinode %"MLFu64" disk 
-generation: %u "
-                                "inode->i_generation: %u\n",
-                                oi->ip_blkno, le32_to_cpu(fe->i_generation),
-                                inode->i_generation);
-...
----------------------------------------------------
-
-see bug 
-https://bug.oraclecorp.com/pls/bug/webbug_edit.edit_info_top?rptno=7029797.
-
-the patch is my fix for that bug.
-by testing, seems it fixes that bug.
-
-thanks
-wengang.
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index baa4825..667525b 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -142,6 +142,24 @@ static int ocfs2_xattr_set_entry_index_block(struct inode *inode,
+ static int ocfs2_delete_xattr_index_block(struct inode *inode,
+ 					  struct buffer_head *xb_bh);
+ 
++static inline u16 ocfs2_xattr_buckets_per_cluster(struct ocfs2_super *osb)
++{
++	return (1 << osb->s_clustersize_bits) / OCFS2_XATTR_BUCKET_SIZE;
++}
++
++static inline u16 ocfs2_blocks_per_xattr_bucket(struct super_block *sb)
++{
++	return OCFS2_XATTR_BUCKET_SIZE / (1 << sb->s_blocksize_bits);
++}
++
++static inline u16 ocfs2_xattr_max_xe_in_bucket(struct super_block *sb)
++{
++	u16 len = sb->s_blocksize -
++		 offsetof(struct ocfs2_xattr_header, xh_entries);
++
++	return len / sizeof(struct ocfs2_xattr_entry);
++}
++
+ static inline const char *ocfs2_xattr_prefix(int name_index)
+ {
+ 	struct xattr_handler *handler = NULL;
+@@ -793,11 +811,11 @@ cleanup:
+  * Copy an extended attribute into the buffer provided.
+  * Buffer is NULL to compute the size of buffer required.
+  */
+-int ocfs2_xattr_get(struct inode *inode,
+-		    int name_index,
+-		    const char *name,
+-		    void *buffer,
+-		    size_t buffer_size)
++static int ocfs2_xattr_get(struct inode *inode,
++			   int name_index,
++			   const char *name,
++			   void *buffer,
++			   size_t buffer_size)
+ {
+ 	int ret;
+ 	struct ocfs2_dinode *di = NULL;
+diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
+index e4e45c8..1d8314c 100644
+--- a/fs/ocfs2/xattr.h
++++ b/fs/ocfs2/xattr.h
+@@ -32,29 +32,11 @@ enum ocfs2_xattr_type {
+ 
+ extern struct xattr_handler ocfs2_xattr_user_handler;
+ extern struct xattr_handler ocfs2_xattr_trusted_handler;
+-
+-extern ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
+-extern int ocfs2_xattr_get(struct inode *, int, const char *, void *, size_t);
+-extern int ocfs2_xattr_set(struct inode *, int, const char *, const void *,
+-			   size_t, int);
+-extern int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh);
+ extern struct xattr_handler *ocfs2_xattr_handlers[];
+ 
+-static inline u16 ocfs2_xattr_buckets_per_cluster(struct ocfs2_super *osb)
+-{
+-	return (1 << osb->s_clustersize_bits) / OCFS2_XATTR_BUCKET_SIZE;
+-}
+-
+-static inline u16 ocfs2_blocks_per_xattr_bucket(struct super_block *sb)
+-{
+-	return OCFS2_XATTR_BUCKET_SIZE / (1 << sb->s_blocksize_bits);
+-}
+-
+-static inline u16 ocfs2_xattr_max_xe_in_bucket(struct super_block *sb)
+-{
+-	u16 len = sb->s_blocksize -
+-		 offsetof(struct ocfs2_xattr_header, xh_entries);
++ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
++int ocfs2_xattr_set(struct inode *, int, const char *, const void *,
++		    size_t, int);
++int ocfs2_xattr_remove(struct inode *, struct buffer_head *);
+ 
+-	return len / sizeof(struct ocfs2_xattr_entry);
+-}
+ #endif /* OCFS2_XATTR_H */
+-- 
+1.5.4.1
