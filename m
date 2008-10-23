@@ -1,63 +1,34 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu, 23 Oct 2008 16:34:13 +0800
-Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2: remove duplicate definition in
-	xattr
+Date: Thu, 23 Oct 2008 16:34:44 +0800
+Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: add array bounds checking
 In-Reply-To: <49003524.3090405@oracle.com>
 References: <49003524.3090405@oracle.com>
-Message-ID: <1224750853-10922-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <1224750884-10976-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Include/linux/xattr.h already has the definition about xattr prefix,
-so remove the duplicate definitions in xattr.c.
+This could avoid arry bounds exceeded issue.
 
 Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/xattr.c |   11 ++---------
- 1 files changed, 2 insertions(+), 9 deletions(-)
+ fs/ocfs2/xattr.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 667525b..754e5fa 100644
+index 754e5fa..888641d 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -4830,14 +4830,11 @@ out:
- /*
-  * 'trusted' attributes support
-  */
--
--#define XATTR_TRUSTED_PREFIX "trusted."
--
- static size_t ocfs2_xattr_trusted_list(struct inode *inode, char *list,
- 				       size_t list_size, const char *name,
- 				       size_t name_len)
+@@ -164,7 +164,7 @@ static inline const char *ocfs2_xattr_prefix(int name_index)
  {
--	const size_t prefix_len = sizeof(XATTR_TRUSTED_PREFIX) - 1;
-+	const size_t prefix_len = XATTR_TRUSTED_PREFIX_LEN;
- 	const size_t total_len = prefix_len + name_len + 1;
+ 	struct xattr_handler *handler = NULL;
  
- 	if (list && total_len <= list_size) {
-@@ -4874,18 +4871,14 @@ struct xattr_handler ocfs2_xattr_trusted_handler = {
- 	.set	= ocfs2_xattr_trusted_set,
- };
+-	if (name_index > 0 && name_index < OCFS2_XATTR_MAX)
++	if (name_index > 0 && name_index < ARRAY_SIZE(ocfs2_xattr_handler_map))
+ 		handler = ocfs2_xattr_handler_map[name_index];
  
--
- /*
-  * 'user' attributes support
-  */
--
--#define XATTR_USER_PREFIX "user."
--
- static size_t ocfs2_xattr_user_list(struct inode *inode, char *list,
- 				    size_t list_size, const char *name,
- 				    size_t name_len)
- {
--	const size_t prefix_len = sizeof(XATTR_USER_PREFIX) - 1;
-+	const size_t prefix_len = XATTR_USER_PREFIX_LEN;
- 	const size_t total_len = prefix_len + name_len + 1;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
+ 	return handler ? handler->prefix : NULL;
 -- 
 1.5.4.1
