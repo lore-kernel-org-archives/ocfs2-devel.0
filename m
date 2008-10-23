@@ -1,70 +1,360 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 23 Oct 2008 15:09:13 -0700
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: add array bounds checking
-In-Reply-To: <49004CAD.6010308@oracle.com>
-References: <49003524.3090405@oracle.com>
-	<1224750884-10976-1-git-send-email-tiger.yang@oracle.com>
-	<20081023093026.GG1580@mail.oracle.com>
-	<49004CAD.6010308@oracle.com>
-Message-ID: <20081023220913.GD12751@mail.oracle.com>
+Date: Thu, 23 Oct 2008 16:20:30 -0700
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2/xattr: Proper hash
+	collision	handle in bucket division.v2
+In-Reply-To: <1224204876-26802-1-git-send-email-tao.ma@oracle.com>
+References: <1224218678-32196-3-git-send-email-tao.ma@oracle.com>
+	<1224204876-26802-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20081023232030.GE12751@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Oct 23, 2008 at 06:06:37PM +0800, Tiger Yang wrote:
-> Thanks for your quick review and suggestion.
-> I think your solutions is better than mine. It's more simple.
+On Fri, Oct 17, 2008 at 08:54:36AM +0800, Tao Ma wrote:
+> In ocfs2/xattr, we must make sure the xattrs which have the same
+> hash value exist in the same bucket so that the search schema can
+> work. But in the old implementation, when we want to extend a bucket,
+> we just move half number of xattrs to the new bucket. This works
+> in most cases, but if we are lucky enough we will make 2 xattrs
+> into 2 different buckets. This cause a problem that the xattr
+> existing in the previous bucket can be found any more. This patch
+> fix this problem by finding the right position during extending
+> the bucket and extend an empty bucket if needed.
 
-	I pulled your change but fixed it up this way.
+	This totally needs fixing, yes.
 
-Joel
-> 
-> thanks,
-> tiger
-> 
-> Joel Becker wrote:
-> > On Thu, Oct 23, 2008 at 04:34:44PM +0800, Tiger Yang wrote:
-> >> This could avoid arry bounds exceeded issue.
-> >>
-> >> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
-> >> ---
-> >>  fs/ocfs2/xattr.c |    2 +-
-> >>  1 files changed, 1 insertions(+), 1 deletions(-)
-> >>
-> >> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> >> index 754e5fa..888641d 100644
-> >> --- a/fs/ocfs2/xattr.c
-> >> +++ b/fs/ocfs2/xattr.c
-> >> @@ -164,7 +164,7 @@ static inline const char *ocfs2_xattr_prefix(int name_index)
-> >>  {
-> >>  	struct xattr_handler *handler = NULL;
-> >>  
-> >> -	if (name_index > 0 && name_index < OCFS2_XATTR_MAX)
-> >> +	if (name_index > 0 && name_index < ARRAY_SIZE(ocfs2_xattr_handler_map))
-> >>  		handler = ocfs2_xattr_handler_map[name_index];
-> > 
-> > 	Another option is to define the map as:
-> > 
-> > static struct xattr_handler *ocfs2_xattr_handler_map[OCFS2_ATTR_MAX] = {
-> > 
-> > This reuses our nice OCFS2_XATTR_MAX value.  But both methods work.
-> > 
-> > Joel
-> > 
+> @@ -3267,25 +3267,92 @@ static int ocfs2_read_xattr_bucket(struct inode *inode,
+>  }
+>  
+>  /*
+> - * Move half num of the xattrs in old bucket(blk) to new bucket(new_blk).
+> + * Find the suitable pos when we divide a bucket into 2.
+> + *
+> + * We have to make sure the xattrs with the same hash value exist in the same
+> + * bucket. So we start from the middle pos and go backward first and then
+> + * forward. If all the xattrs in this bucket have the same hash value, just
+> + * return count-1 and let the caller handle this.
+> + */
+> +static u16 ocfs2_xattr_find_divide_pos(struct ocfs2_xattr_header *xh)
+> +{
+> +	u16 middle, pos, count = le16_to_cpu(xh->xh_count);
+> +	struct ocfs2_xattr_entry *xe, *xe_low;
+> +
+> +	BUG_ON(count == 0);
+> +	middle = count / 2;
+> +
+> +	/*
+> +	 * If the bucket only have one xattr(for blocksize == 512 and large
+> +	 * xattr name, it could be possible), let it go.
+> +	 */
+> +	if (middle == 0)
+> +		return middle;
+> +
+> +	/*
+> +	 * Find a xe before middle which doesn't have the same hash value
+> +	 * with the previous one.
+> +	 */
+> +	pos = middle;
+> +	while (pos > 0) {
+> +		xe = &xh->xh_entries[pos];
+> +		xe_low = &xh->xh_entries[pos - 1];
+> +		if (le32_to_cpu(xe_low->xe_name_hash) !=
+> +		    le32_to_cpu(xe->xe_name_hash))
+> +			return pos;
+> +
+> +		pos--;
+> +	}
+> +
+> +	/* now all the xe before middle(include it) has the same hash value. */
+> +	if (middle == count - 1)
+> +		return middle;
+> +
+> +	/*
+> +	 * Find a xe after middle which doesn't have the same hash value
+> +	 * with the later one.
+> +	 */
+> +	pos = middle;
+> +	while (pos < count - 1) {
+> +		xe_low = &xh->xh_entries[pos];
+> +		xe = &xh->xh_entries[pos + 1];
+> +		if (le32_to_cpu(xe_low->xe_name_hash) !=
+> +		    le32_to_cpu(xe->xe_name_hash))
+> +			return pos + 1;
+> +
+> +		pos++;
+> +	}
+> +
+> +	/* now all the xe in the bucket hash the same hash value. */
+> +	return count - 1;
+> +}
+
+	Do we really need such a complex function?  Some of your
+bailouts don't even help much.  I *think* what you are doing here is
+trying to find the hash value change closest to the middle.
+Also, you don't need to pass around u16s.  It just makes the code
+more complex.
+	What about:
+
+/* In an ocfs2_xattr_header, are the hashes of entries n and n+1 equal?. */
+static inline int xe_cmp(struct ocfs2_xattr_entry *entres, int n)
+{
+	return le32_to_cpu(entries[n].xe_name_hash) ==
+		le32_to_cpu(entries[n + 1].xe_name_hash);
+}
+
+/*
+ * If this ocfs2_xattr_header covers more than one hash value, find a
+ * place where the hash value changes.  Try to find the most even split.
+ */
+static int ocfs2_xattr_find_divide_pos(struct ocfs2_xattr_header *xh)
+{
+	int i, middle, pos = 0, count = le16_to_cpu(xh->xh_count);
+
+	middle = count / 2;
+
+	/* It's important that this loop does nothing for count < 2 */
+	for (i = 0; i < (count - 1), i++) {
+		if (xe_cmp(xh->xh_entries, i)) {
+			/* If the hash flips at the middle, it's perfect */
+			if (i == middle)
+				return i;
+
+			/* Cache the highest pos before middle */
+			if (i < middle)
+				pos = i;
+			else {
+				/* Which is closer to middle, pos or i? */
+				if ((middle - pos) > (i - middle))
+					pos = i;
+				return pos;
+			}
+		}
+	}
+
+	/* If pos is 0, every entry had the same hash. */
+	if (!pos)
+		pos = count;
+
+	return pos;
+}
+
+> +
+> +/*
+> + * Move some xattrs in old bucket(blk) to new bucket(new_blk).
+>   * first_hash will record the 1st hash of the new bucket.
+> + *
+> + * Normally half nums will be moved. But we have to make sure
+> + * that the xattr with same hash value is stored in the same
+> + * bucket. If all the xattrs in this bucket has the same hash
+> + * value, the new bucket will be initialized as an empty one
+> + * and the first_hash will be initialized as (hash_value+1).
+>   */
+> -static int ocfs2_half_xattr_bucket(struct inode *inode,
+> -				   handle_t *handle,
+> -				   u64 blk,
+> -				   u64 new_blk,
+> -				   u32 *first_hash,
+> -				   int new_bucket_head)
+> +static int ocfs2_divide_xattr_bucket(struct inode *inode,
+> +				    handle_t *handle,
+> +				    u64 blk,
+> +				    u64 new_blk,
+> +				    u32 *first_hash,
+> +				    int new_bucket_head)
+>  {
+>  	int ret, i;
+> -	u16 count, start, len, name_value_len, xe_len, name_offset;
+> +	u16 count, start, len, name_value_len = 0, xe_len, name_offset = 0;
+
+	Most of these don't need to be u16s.  You ensure the range in
+other ways.
+
+>  	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+>  	struct buffer_head **s_bhs, **t_bhs = NULL;
+>  	struct ocfs2_xattr_header *xh;
+>  	struct ocfs2_xattr_entry *xe;
+>  	int blocksize = inode->i_sb->s_blocksize;
+>  
+> -	mlog(0, "move half of xattrs from bucket %llu to %llu\n",
+> +	mlog(0, "move some of xattrs from bucket %llu to %llu\n",
+>  	     blk, new_blk);
+>  
+>  	s_bhs = kcalloc(blk_per_bucket, sizeof(struct buffer_head *), GFP_NOFS);
+> @@ -3326,14 +3393,33 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
+>  		}
+>  	}
+>  
+> -	/* copy the whole bucket to the new first. */
+> -	for (i = 0; i < blk_per_bucket; i++)
+> -		memcpy(t_bhs[i]->b_data, s_bhs[i]->b_data, blocksize);
+> +	xh = (struct ocfs2_xattr_header *)s_bhs[0]->b_data;
+> +	count = le16_to_cpu(xh->xh_count);
+> +	start = ocfs2_xattr_find_divide_pos(xh);
+> +	xe = &xh->xh_entries[start];
+>  
+>  	/* update the new bucket. */
+>  	xh = (struct ocfs2_xattr_header *)t_bhs[0]->b_data;
+> -	count = le16_to_cpu(xh->xh_count);
+> -	start = count / 2;
+> +
+> +	if (start == count - 1) {
+
+	This becomes (start == count) if you use my function above.
+
+> +		/*
+> +		 * initialized a new empty bucket here.
+> +		 * The hash value is set as one larger than
+> +		 * that of the last entry in the previous bucket.
+> +		 */
+> +		for (i = 0; i < blk_per_bucket; i++)
+> +			memset(t_bhs[i]->b_data, 0, blocksize);
+> +
+> +		xh->xh_free_start = cpu_to_le16(blocksize);
+> +		xh->xh_entries[0].xe_name_hash = xe->xe_name_hash;
+> +		le32_add_cpu(&xh->xh_entries[0].xe_name_hash, 1);
+> +
+> +		goto set_num_buckets;
+> +	}
+> +
+> +	/* copy the whole bucket to the new first. */
+> +	for (i = 0; i < blk_per_bucket; i++)
+> +		memcpy(t_bhs[i]->b_data, s_bhs[i]->b_data, blocksize);
+>  
+>  	/*
+>  	 * Calculate the total name/value len and xh_free_start for
+> @@ -3390,6 +3476,7 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
+>  			xh->xh_free_start = xe->xe_name_offset;
+>  	}
+>  
+> +set_num_buckets:
+>  	/* set xh->xh_num_buckets for the new xh. */
+>  	if (new_bucket_head)
+>  		xh->xh_num_buckets = cpu_to_le16(1);
+> @@ -3406,10 +3493,12 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
+>  	if (first_hash)
+>  		*first_hash = le32_to_cpu(xh->xh_entries[0].xe_name_hash);
+>  
+> -	/*
+> -	 * Now only update the 1st block of the old bucket.
+> -	 * Please note that the entry has been sorted already above.
+> +	/* Now only update the 1st block of the old bucket.
+> +	 * If we just add a new empty bucket after it, no needs to modify it.
+>  	 */
+> +	if (start == count - 1)
+
+	Same here.
+
+> +		goto out;
+> +
+>  	xh = (struct ocfs2_xattr_header *)s_bhs[0]->b_data;
+>  	memset(&xh->xh_entries[start], 0,
+>  	       sizeof(struct ocfs2_xattr_entry) * (count - start));
+> @@ -3592,15 +3681,15 @@ out:
+>  }
+>  
+>  /*
+> - * Move half of the xattrs in this cluster to the new cluster.
+> + * Move some xattrs in this cluster to the new cluster.
+>   * This function should only be called when bucket size == cluster size.
+>   * Otherwise ocfs2_mv_xattr_bucket_cross_cluster should be used instead.
+>   */
+> -static int ocfs2_half_xattr_cluster(struct inode *inode,
+> -				    handle_t *handle,
+> -				    u64 prev_blk,
+> -				    u64 new_blk,
+> -				    u32 *first_hash)
+> +static int ocfs2_divide_xattr_cluster(struct inode *inode,
+> +				      handle_t *handle,
+> +				      u64 prev_blk,
+> +				      u64 new_blk,
+> +				      u32 *first_hash)
+>  {
+>  	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+>  	int ret, credits = 2 * blk_per_bucket;
+> @@ -3614,8 +3703,8 @@ static int ocfs2_half_xattr_cluster(struct inode *inode,
+>  	}
+>  
+>  	/* Move half of the xattr in start_blk to the next bucket. */
+> -	return  ocfs2_half_xattr_bucket(inode, handle, prev_blk,
+> -					new_blk, first_hash, 1);
+> +	return  ocfs2_divide_xattr_bucket(inode, handle, prev_blk,
+> +					  new_blk, first_hash, 1);
+>  }
+>  
+>  /*
+> @@ -3677,9 +3766,9 @@ static int ocfs2_adjust_xattr_cross_cluster(struct inode *inode,
+>  						     last_blk, new_blk,
+>  						     v_start);
+>  		else {
+> -			ret = ocfs2_half_xattr_cluster(inode, handle,
+> -						       last_blk, new_blk,
+> -						       v_start);
+> +			ret = ocfs2_divide_xattr_cluster(inode, handle,
+> +							 last_blk, new_blk,
+> +							 v_start);
+>  
+>  			if ((*header_bh)->b_blocknr == last_blk && extend)
+>  				*extend = 0;
+> @@ -3877,8 +3966,8 @@ static int ocfs2_extend_xattr_bucket(struct inode *inode,
+>  	}
+>  
+>  	/* Move half of the xattr in start_blk to the next bucket. */
+> -	ret = ocfs2_half_xattr_bucket(inode, handle, start_blk,
+> -				      start_blk + blk_per_bucket, NULL, 0);
+> +	ret = ocfs2_divide_xattr_bucket(inode, handle, start_blk,
+> +					start_blk + blk_per_bucket, NULL, 0);
+>  
+>  	le16_add_cpu(&first_xh->xh_num_buckets, 1);
+>  	ocfs2_journal_dirty(handle, first_bh);
+> @@ -4554,11 +4643,21 @@ out:
+>  	return ret;
+>  }
+>  
+> -/* check whether the xattr bucket is filled up with the same hash value. */
+> +/*
+> + * check whether the xattr bucket is filled up with the same hash value.
+> + * If we want to insert the xattr with the same hash, return -ENOSPC.
+> + * If we want to insert a xattr with different hash value, go ahead
+> + * and ocfs2_divide_xattr_bucket will handle this.
+> + */
+>  static int ocfs2_check_xattr_bucket_collision(struct inode *inode,
+> -					      struct ocfs2_xattr_bucket *bucket)
+> +					      struct ocfs2_xattr_bucket *bucket,
+> +					      const char *name)
+>  {
+>  	struct ocfs2_xattr_header *xh = bucket->xh;
+> +	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
+> +
+> +	if (name_hash != le32_to_cpu(xh->xh_entries[0].xe_name_hash))
+> +		return 0;
+>  
+>  	if (xh->xh_entries[le16_to_cpu(xh->xh_count) - 1].xe_name_hash ==
+>  	    xh->xh_entries[0].xe_name_hash) {
+> @@ -4684,7 +4783,9 @@ try_again:
+>  		 * one bucket's worth, so check it here whether we need to
+>  		 * add a new bucket for the insert.
+>  		 */
+> -		ret = ocfs2_check_xattr_bucket_collision(inode, &xs->bucket);
+> +		ret = ocfs2_check_xattr_bucket_collision(inode,
+> +							 &xs->bucket,
+> +							 xi->name);
+>  		if (ret) {
+>  			mlog_errno(ret);
+>  			goto out;
+> -- 
+> 1.5.4.GIT
 > 
 > 
 > _______________________________________________
 > Ocfs2-devel mailing list
 > Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
+> http://oss.oracle.com/mailman/listinfo/o
 -- 
 
-"What do you take me for, an idiot?"  
-        - General Charles de Gaulle, when a journalist asked him
-          if he was happy.
+"Vote early and vote often." 
+        - Al Capone
 
 Joel Becker
 Principal Software Developer
