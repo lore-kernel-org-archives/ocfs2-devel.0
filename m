@@ -1,35 +1,39 @@
 From: Jan Kara <jack@suse.cz>
-Date: Sat, 25 Oct 2008 00:08:11 +0200
-Subject: [Ocfs2-devel] [PATCH 18/29] mm: Export pdflush_operation()
+Date: Sat, 25 Oct 2008 00:08:17 +0200
+Subject: [Ocfs2-devel] [PATCH 24/29] ocfs2: Mark system files as not subject
+	to quota accounting
 In-Reply-To: <122488610212-git-send-email-jack@suse.cz>
 References: <122488610212-git-send-email-jack@suse.cz>
-Message-ID: <12248861043343-git-send-email-jack@suse.cz>
+Message-ID: <12248861041463-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-OCSF2 will need to queue up work for periodic syncing of quotas
-among nodes in the cluster. pdflush() is good thread for this so
-export it's controlling function so that OCFS2 can use it.
+Mark system files as not subject to quota accounting. This prevents
+possible recursions into quota code and thus deadlocks.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- mm/pdflush.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ fs/ocfs2/inode.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
-diff --git a/mm/pdflush.c b/mm/pdflush.c
-index 0cbe0c6..1127615 100644
---- a/mm/pdflush.c
-+++ b/mm/pdflush.c
-@@ -223,6 +223,7 @@ int pdflush_operation(void (*fn)(unsigned long), unsigned long arg0)
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index da3a360..738b63f 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -284,8 +284,10 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
  
- 	return ret;
- }
-+EXPORT_SYMBOL(pdflush_operation);
+ 	inode->i_nlink = le16_to_cpu(fe->i_links_count);
  
- static void start_one_pdflush_thread(void)
- {
+-	if (fe->i_flags & cpu_to_le32(OCFS2_SYSTEM_FL))
++	if (fe->i_flags & cpu_to_le32(OCFS2_SYSTEM_FL)) {
+ 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SYSTEM_FILE;
++		inode->i_flags |= S_NOQUOTA;
++	}
+ 
+ 	if (fe->i_flags & cpu_to_le32(OCFS2_LOCAL_ALLOC_FL)) {
+ 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_BITMAP;
 -- 
 1.5.2.4
