@@ -1,113 +1,132 @@
 From: Jan Kara <jack@suse.cz>
-Date: Sat, 25 Oct 2008 00:08:08 +0200
-Subject: [Ocfs2-devel] [PATCH 15/29] quota: Keep which entries were set by
-	SETQUOTA quotactl
+Date: Sat, 25 Oct 2008 00:08:09 +0200
+Subject: [Ocfs2-devel] [PATCH 16/29] quota: Add helpers to allow ocfs2
+	specific quota initialization, freeing and recovery
 In-Reply-To: <122488610212-git-send-email-jack@suse.cz>
 References: <122488610212-git-send-email-jack@suse.cz>
-Message-ID: <12248861032873-git-send-email-jack@suse.cz>
+Message-ID: <12248861033133-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Quota in a clustered environment needs to synchronize quota information
-among cluster nodes. This means we have to occasionally update some
-information in dquot from disk / network. On the other hand we have to
-be careful not to overwrite changes administrator did via SETQUOTA.
-So indicate in dquot->dq_flags which entries have been set by SETQUOTA
-and quota format can clear these flags when it properly propagated
-the changes.
+OCFS2 needs to peek whether quota structure is already in memory so
+that it can avoid expensive cluster locking in that case. Similarly
+when freeing dquots, it checks whether it is the last quota structure
+user or not. Finally, it needs to get reference to dquot structure for
+specified id and quota type when recovering quota file after crash.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/dquot.c            |   12 ++++++++++--
- include/linux/quota.h |   26 ++++++++++++++++++++------
- 2 files changed, 30 insertions(+), 8 deletions(-)
+ fs/dquot.c               |   38 ++++++++++++++++++++++++++++++++------
+ include/linux/quotaops.h |    4 ++++
+ 2 files changed, 36 insertions(+), 6 deletions(-)
 
 diff --git a/fs/dquot.c b/fs/dquot.c
-index 9d2a1f0..124a20a 100644
+index 124a20a..f6bcacd 100644
 --- a/fs/dquot.c
 +++ b/fs/dquot.c
-@@ -2006,25 +2006,33 @@ static int do_set_dqblk(struct dquot *dquot, struct if_dqblk *di)
- 	if (di->dqb_valid & QIF_SPACE) {
- 		dm->dqb_curspace = di->dqb_curspace;
- 		check_blim = 1;
-+		__set_bit(DQ_LASTSET_B + QIF_SPACE_B, &dquot->dq_flags);
- 	}
- 	if (di->dqb_valid & QIF_BLIMITS) {
- 		dm->dqb_bsoftlimit = qbtos(di->dqb_bsoftlimit);
- 		dm->dqb_bhardlimit = qbtos(di->dqb_bhardlimit);
- 		check_blim = 1;
-+		__set_bit(DQ_LASTSET_B + QIF_BLIMITS_B, &dquot->dq_flags);
- 	}
- 	if (di->dqb_valid & QIF_INODES) {
- 		dm->dqb_curinodes = di->dqb_curinodes;
- 		check_ilim = 1;
-+		__set_bit(DQ_LASTSET_B + QIF_INODES_B, &dquot->dq_flags);
- 	}
- 	if (di->dqb_valid & QIF_ILIMITS) {
- 		dm->dqb_isoftlimit = di->dqb_isoftlimit;
- 		dm->dqb_ihardlimit = di->dqb_ihardlimit;
- 		check_ilim = 1;
-+		__set_bit(DQ_LASTSET_B + QIF_ILIMITS_B, &dquot->dq_flags);
- 	}
--	if (di->dqb_valid & QIF_BTIME)
-+	if (di->dqb_valid & QIF_BTIME) {
- 		dm->dqb_btime = di->dqb_btime;
--	if (di->dqb_valid & QIF_ITIME)
-+		__set_bit(DQ_LASTSET_B + QIF_BTIME_B, &dquot->dq_flags);
-+	}
-+	if (di->dqb_valid & QIF_ITIME) {
- 		dm->dqb_itime = di->dqb_itime;
-+		__set_bit(DQ_LASTSET_B + QIF_ITIME_B, &dquot->dq_flags);
-+	}
+@@ -213,8 +213,6 @@ static struct hlist_head *dquot_hash;
  
- 	if (check_blim) {
- 		if (!dm->dqb_bsoftlimit || dm->dqb_curspace < dm->dqb_bsoftlimit) {
-diff --git a/include/linux/quota.h b/include/linux/quota.h
-index 0ee2a55..f81e80c 100644
---- a/include/linux/quota.h
-+++ b/include/linux/quota.h
-@@ -82,12 +82,21 @@
-  * Quota structure used for communication with userspace via quotactl
-  * Following flags are used to specify which fields are valid
+ struct dqstats dqstats;
+ 
+-static void dqput(struct dquot *dquot);
+-
+ static inline unsigned int
+ hashfn(const struct super_block *sb, unsigned int id, int type)
+ {
+@@ -568,7 +566,7 @@ static struct shrinker dqcache_shrinker = {
+  * NOTE: If you change this function please check whether dqput_blocks() works right...
+  * MUST be called with either dqptr_sem or dqonoff_mutex held
   */
--#define QIF_BLIMITS	1
--#define QIF_SPACE	2
--#define QIF_ILIMITS	4
--#define QIF_INODES	8
--#define QIF_BTIME	16
--#define QIF_ITIME	32
-+enum {
-+	QIF_BLIMITS_B = 0,
-+	QIF_SPACE_B,
-+	QIF_ILIMITS_B,
-+	QIF_INODES_B,
-+	QIF_BTIME_B,
-+	QIF_ITIME_B,
-+};
-+
-+#define QIF_BLIMITS	(1 << QIF_BLIMITS_B)
-+#define QIF_SPACE	(1 << QIF_SPACE_B)
-+#define QIF_ILIMITS	(1 << QIF_ILIMITS_B)
-+#define QIF_INODES	(1 << QIF_INODES_B)
-+#define QIF_BTIME	(1 << QIF_BTIME_B)
-+#define QIF_ITIME	(1 << QIF_ITIME_B)
- #define QIF_LIMITS	(QIF_BLIMITS | QIF_ILIMITS)
- #define QIF_USAGE	(QIF_SPACE | QIF_INODES)
- #define QIF_TIMES	(QIF_BTIME | QIF_ITIME)
-@@ -244,6 +253,11 @@ extern struct dqstats dqstats;
- #define DQ_FAKE_B	3	/* no limits only usage */
- #define DQ_READ_B	4	/* dquot was read into memory */
- #define DQ_ACTIVE_B	5	/* dquot is active (dquot_release not called) */
-+#define DQ_LASTSET_B	6	/* Following 6 bits (see QIF_) are reserved\
-+				 * for the mask of entries set via SETQUOTA\
-+				 * quotactl. They are set under dq_data_lock\
-+				 * and the quota format handling dquot can\
-+				 * clear them when it sees fit. */
+-static void dqput(struct dquot *dquot)
++void dqput(struct dquot *dquot)
+ {
+ 	int ret;
  
- struct dquot {
- 	struct hlist_node dq_hash;	/* Hash list in memory */
+@@ -660,10 +658,28 @@ static struct dquot *get_empty_dquot(struct super_block *sb, int type)
+ }
+ 
+ /*
++ * Check whether dquot is in memory.
++ * MUST be called with either dqptr_sem or dqonoff_mutex held
++ */
++int dquot_is_cached(struct super_block *sb, unsigned int id, int type)
++{
++	unsigned int hashent = hashfn(sb, id, type);
++	int ret = 0;
++
++        if (!sb_has_quota_active(sb, type))
++		return 0;
++	spin_lock(&dq_list_lock);
++	if (find_dquot(hashent, sb, id, type) != NODQUOT)
++		ret = 1;
++	spin_unlock(&dq_list_lock);
++	return ret;
++}
++
++/*
+  * Get reference to dquot
+  * MUST be called with either dqptr_sem or dqonoff_mutex held
+  */
+-static struct dquot *dqget(struct super_block *sb, unsigned int id, int type)
++struct dquot *dqget(struct super_block *sb, unsigned int id, int type)
+ {
+ 	unsigned int hashent = hashfn(sb, id, type);
+ 	struct dquot *dquot, *empty = NODQUOT;
+@@ -1182,17 +1198,23 @@ out_err:
+  * 	Release all quotas referenced by inode
+  *	Transaction must be started at an entry
+  */
+-int dquot_drop(struct inode *inode)
++int dquot_drop_locked(struct inode *inode)
+ {
+ 	int cnt;
+ 
+-	down_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
+ 	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
+ 		if (inode->i_dquot[cnt] != NODQUOT) {
+ 			dqput(inode->i_dquot[cnt]);
+ 			inode->i_dquot[cnt] = NODQUOT;
+ 		}
+ 	}
++	return 0;
++}
++
++int dquot_drop(struct inode *inode)
++{
++	down_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
++	dquot_drop_locked(inode);
+ 	up_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
+ 	return 0;
+ }
+@@ -2304,7 +2326,11 @@ EXPORT_SYMBOL(dquot_release);
+ EXPORT_SYMBOL(dquot_mark_dquot_dirty);
+ EXPORT_SYMBOL(dquot_initialize);
+ EXPORT_SYMBOL(dquot_drop);
++EXPORT_SYMBOL(dquot_drop_locked);
+ EXPORT_SYMBOL(vfs_dq_drop);
++EXPORT_SYMBOL(dqget);
++EXPORT_SYMBOL(dqput);
++EXPORT_SYMBOL(dquot_is_cached);
+ EXPORT_SYMBOL(dquot_alloc_space);
+ EXPORT_SYMBOL(dquot_alloc_inode);
+ EXPORT_SYMBOL(dquot_free_space);
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index 94f00ec..1f990f2 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -27,6 +27,10 @@ void sync_dquots(struct super_block *sb, int type);
+ 
+ int dquot_initialize(struct inode *inode, int type);
+ int dquot_drop(struct inode *inode);
++int dquot_drop_locked(struct inode *inode);
++struct dquot *dqget(struct super_block *sb, unsigned int id, int type);
++void dqput(struct dquot *dquot);
++int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
+ 
+ int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
+ int dquot_alloc_inode(const struct inode *inode, qsize_t number);
 -- 
 1.5.2.4
