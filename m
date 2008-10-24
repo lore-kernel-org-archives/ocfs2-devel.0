@@ -1,10 +1,10 @@
 From: Jan Kara <jack@suse.cz>
-Date: Sat, 25 Oct 2008 00:08:01 +0200
-Subject: [Ocfs2-devel] [PATCH 08/29] reiserfs: Use sb_any_quota_loaded()
-	instead of sb_any_quota_enabled().
+Date: Sat, 25 Oct 2008 00:08:00 +0200
+Subject: [Ocfs2-devel] [PATCH 07/29] ext4: Use sb_any_quota_loaded() instead
+	of sb_any_quota_enabled()
 In-Reply-To: <122488610212-git-send-email-jack@suse.cz>
 References: <122488610212-git-send-email-jack@suse.cz>
-Message-ID: <1224886103983-git-send-email-jack@suse.cz>
+Message-ID: <12248861033296-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,41 +13,51 @@ To: ocfs2-devel@oss.oracle.com
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/reiserfs/super.c |    8 +++-----
- 1 files changed, 3 insertions(+), 5 deletions(-)
+ fs/ext4/super.c |   11 ++++-------
+ 1 files changed, 4 insertions(+), 7 deletions(-)
 
-diff --git a/fs/reiserfs/super.c b/fs/reiserfs/super.c
-index d318c7e..6bf9de4 100644
---- a/fs/reiserfs/super.c
-+++ b/fs/reiserfs/super.c
-@@ -994,8 +994,7 @@ static int reiserfs_parse_options(struct super_block *s, char *options,	/* strin
- 		if (c == 'u' || c == 'g') {
- 			int qtype = c == 'u' ? USRQUOTA : GRPQUOTA;
- 
--			if ((sb_any_quota_enabled(s) ||
--			     sb_any_quota_suspended(s)) &&
-+			if (sb_any_quota_loaded(s) &&
- 			    (!*arg != !REISERFS_SB(s)->s_qf_names[qtype])) {
- 				reiserfs_warning(s,
- 						 "reiserfs_parse_options: cannot change journaled quota options when quota turned on.");
-@@ -1041,8 +1040,7 @@ static int reiserfs_parse_options(struct super_block *s, char *options,	/* strin
- 						 "reiserfs_parse_options: unknown quota format specified.");
+diff --git a/fs/ext4/super.c b/fs/ext4/super.c
+index dea8f13..ab8b8a1 100644
+--- a/fs/ext4/super.c
++++ b/fs/ext4/super.c
+@@ -1206,8 +1206,7 @@ static int parse_options(char *options, struct super_block *sb,
+ 		case Opt_grpjquota:
+ 			qtype = GRPQUOTA;
+ set_qf_name:
+-			if ((sb_any_quota_enabled(sb) ||
+-			     sb_any_quota_suspended(sb)) &&
++			if (sb_any_quota_loaded(sb) &&
+ 			    !sbi->s_qf_names[qtype]) {
+ 				printk(KERN_ERR
+ 				       "EXT4-fs: Cannot change journaled "
+@@ -1246,8 +1245,7 @@ set_qf_name:
+ 		case Opt_offgrpjquota:
+ 			qtype = GRPQUOTA;
+ clear_qf_name:
+-			if ((sb_any_quota_enabled(sb) ||
+-			     sb_any_quota_suspended(sb)) &&
++			if (sb_any_quota_loaded(sb) &&
+ 			    sbi->s_qf_names[qtype]) {
+ 				printk(KERN_ERR "EXT4-fs: Cannot change "
+ 					"journaled quota options when "
+@@ -1266,8 +1264,7 @@ clear_qf_name:
+ 		case Opt_jqfmt_vfsv0:
+ 			qfmt = QFMT_VFS_V0;
+ set_qf_format:
+-			if ((sb_any_quota_enabled(sb) ||
+-			     sb_any_quota_suspended(sb)) &&
++			if (sb_any_quota_loaded(sb) &&
+ 			    sbi->s_jquota_fmt != qfmt) {
+ 				printk(KERN_ERR "EXT4-fs: Cannot change "
+ 					"journaled quota options when "
+@@ -1286,7 +1283,7 @@ set_qf_format:
+ 			set_opt(sbi->s_mount_opt, GRPQUOTA);
+ 			break;
+ 		case Opt_noquota:
+-			if (sb_any_quota_enabled(sb)) {
++			if (sb_any_quota_loaded(sb)) {
+ 				printk(KERN_ERR "EXT4-fs: Cannot change quota "
+ 					"options when quota turned on.\n");
  				return 0;
- 			}
--			if ((sb_any_quota_enabled(s) ||
--			     sb_any_quota_suspended(s)) &&
-+			if (sb_any_quota_loaded(s) &&
- 			    *qfmt != REISERFS_SB(s)->s_jquota_fmt) {
- 				reiserfs_warning(s,
- 						 "reiserfs_parse_options: cannot change journaled quota options when quota turned on.");
-@@ -1067,7 +1065,7 @@ static int reiserfs_parse_options(struct super_block *s, char *options,	/* strin
- 	}
- 	/* This checking is not precise wrt the quota type but for our purposes it is sufficient */
- 	if (!(*mount_options & (1 << REISERFS_QUOTA))
--	    && sb_any_quota_enabled(s)) {
-+	    && sb_any_quota_loaded(s)) {
- 		reiserfs_warning(s,
- 				 "reiserfs_parse_options: quota options must be present when quota is turned on.");
- 		return 0;
 -- 
 1.5.2.4
