@@ -1,72 +1,13 @@
 From: Jan Kara <jack@suse.cz>
-Date: Sat, 25 Oct 2008 00:07:57 +0200
-Subject: [Ocfs2-devel] [PATCH 04/29] quota: Make _SUSPENDED just a flag
-In-Reply-To: <122488610212-git-send-email-jack@suse.cz>
-References: <122488610212-git-send-email-jack@suse.cz>
-Message-ID: <12248861022298-git-send-email-jack@suse.cz>
+Date: Sat, 25 Oct 2008 00:07:53 +0200
+Subject: [Ocfs2-devel] [PATCH 00/00] Implement quotas for OCFS2 (version 2)
+Message-ID: <122488610212-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Upto now, DQUOT_USR_SUSPENDED behaved like a state - i.e., either quota
-was enabled or suspended or none. Now allowed states are 0, ENABLED,
-ENABLED | SUSPENDED. This will be useful later when we implement separate
-enabling of quota usage tracking and limits enforcement because we need to
-keep track of a state which has been suspended.
+Oops, and now really the patch series... Sorry for the bad post.
 
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/dquot.c               |   10 ++++++----
- include/linux/quotaops.h |    6 ++++--
- 2 files changed, 10 insertions(+), 6 deletions(-)
-
-diff --git a/fs/dquot.c b/fs/dquot.c
-index 9eda830..46d46df 100644
---- a/fs/dquot.c
-+++ b/fs/dquot.c
-@@ -1566,18 +1566,20 @@ static inline void reset_enable_flags(struct quota_info *dqopt, int type,
- {
- 	switch (type) {
- 		case USRQUOTA:
--			dqopt->flags &= ~DQUOT_USR_ENABLED;
- 			if (remount)
- 				dqopt->flags |= DQUOT_USR_SUSPENDED;
--			else
-+			else {
-+				dqopt->flags &= ~DQUOT_USR_ENABLED;
- 				dqopt->flags &= ~DQUOT_USR_SUSPENDED;
-+			}
- 			break;
- 		case GRPQUOTA:
--			dqopt->flags &= ~DQUOT_GRP_ENABLED;
- 			if (remount)
- 				dqopt->flags |= DQUOT_GRP_SUSPENDED;
--			else
-+			else {
-+				dqopt->flags &= ~DQUOT_GRP_ENABLED;
- 				dqopt->flags &= ~DQUOT_GRP_SUSPENDED;
-+			}
- 			break;
- 	}
- }
-diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index 9e7bc4b..12363cc 100644
---- a/include/linux/quotaops.h
-+++ b/include/linux/quotaops.h
-@@ -70,8 +70,10 @@ static inline struct mem_dqinfo *sb_dqinfo(struct super_block *sb, int type)
- static inline int sb_has_quota_enabled(struct super_block *sb, int type)
- {
- 	if (type == USRQUOTA)
--		return sb_dqopt(sb)->flags & DQUOT_USR_ENABLED;
--	return sb_dqopt(sb)->flags & DQUOT_GRP_ENABLED;
-+		return (sb_dqopt(sb)->flags & DQUOT_USR_ENABLED)
-+			&& !(sb_dqopt(sb)->flags & DQUOT_USR_SUSPENDED);
-+	return (sb_dqopt(sb)->flags & DQUOT_GRP_ENABLED)
-+		&& !(sb_dqopt(sb)->flags & DQUOT_GROUP_SUSPENDED);
- }
- 
- static inline int sb_any_quota_enabled(struct super_block *sb)
--- 
-1.5.2.4
+							Honza
