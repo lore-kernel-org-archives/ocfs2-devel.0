@@ -1,37 +1,48 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 24 Oct 2008 15:47:49 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Set journal descriptor to	NULL
-	after journal shutdown
-In-Reply-To: <1224707069-14173-1-git-send-email-sunil.mushran@oracle.com>
-References: <1224707069-14173-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20081024224749.GH9302@mail.oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Sat, 25 Oct 2008 00:48:39 +0200
+Subject: [Ocfs2-devel] Bug in OCFS2 umount code
+In-Reply-To: <20081024224025.GF9302@mail.oracle.com>
+References: <20081024215702.GA10038@duck.suse.cz>
+	<20081024224025.GF9302@mail.oracle.com>
+Message-ID: <20081024224839.GA10359@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 22, 2008 at 01:24:29PM -0700, Sunil Mushran wrote:
-> Patch sets journal descriptor to NULL after the journal is shutdown.
-> This ensures that jbd2_journal_release_jbd_inode(), which removes the
-> jbd2 inode from txn lists, can be called safely from ocfs2_clear_inode()
-> even after the journal has been shutdown.
+On Fri 24-10-08 15:40:25, Joel Becker wrote:
+> On Fri, Oct 24, 2008 at 11:57:02PM +0200, Jan Kara wrote:
+> >   while playing with quota support I found two bugs in OCFS2 mount/umount
+> > code. The first problem is, that if mount fails, we call
+> > ocfs2_dismount_volume(). That is fine but after fill_super() returns an
+> > error, VFS calls sync_fs() and ocfs2_put_super() again - not a good idea.
+> > We usually oops...
 > 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+> 	I was trying to figure out why this happens, given that we've
+> never seen it before and we test failed mounts all the time (no cluster
+> stack, bad mount argument, bad features...).
+> 	The vfs only calls ->sync_fs() and ->put_super() if sb->s_root
+> exists.  So we cannot fail a mount after we've set sb->s_root.  If you
+> check ocfs2_fill_super(), you'll see that after we sb->s_root, we will
+> continue on to success (we return 'status', but status will be 0).
+> 	After we've set s_root, we must complete our mount tasks in
+> fill_super().  If you want to fail after that, you need to complete the
+> mount tasks but return non-zero status.  Then the VFS code will follow
+> to ->put_super() like you say and ocfs2_dismount_volume() will only be
+> called once.
+> 	So I don't see a bug in the code as I have it here in my tree.
+> I'm going to go check your quota patches to see if perhaps you jump to
+> read_super_error after s_root is set.  If so, we can just reorganize
+> that.  If not, we'll have to figure out what particular mount failure is
+> causing your problem, so we can see what's happening.
+  Ah, OK. I've noticed that when quota failed to turn on for some reason.
+So you are probably right, that I've added an error path which was not
+there. Just when I was looking at the mount code I didn't notice that
+I'm doing something different from the rest of the function :) Sorry for
+the noise.
 
-	This is now in my xattr-28 branch.
-
-Joel
-
+								Honza
 -- 
-
-Life's Little Instruction Book #197
-
-	"Don't forget, a person's greatest emotional need is to 
-	 feel appreciated."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
