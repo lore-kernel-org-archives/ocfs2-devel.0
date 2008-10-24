@@ -1,59 +1,63 @@
-From: Randy Dunlap <randy.dunlap@oracle.com>
-Date: Tue, 14 Oct 2008 18:20:37 -0700
-Subject: [Ocfs2-devel] [git patches] Ocfs2 features for 2.6.28 (build
-	errors)
-In-Reply-To: <20081014200319.GK15154@wotan.suse.de>
-References: <20081014200319.GK15154@wotan.suse.de>
-Message-ID: <20081014182037.38503fd0.randy.dunlap@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Fri, 24 Oct 2008 22:24:17 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/xattr: Fix some typos in xattr
+	annotations.
+Message-ID: <1224858257-4184-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, 14 Oct 2008 13:03:19 -0700 Mark Fasheh wrote:
+Hi Joel,
+	This patch should be simple enough to be in your xattr-28 branch.
+And you are free to change them since you are the native speaker. ;)
 
-> Hi Linus,
-> 
-> 	The majority of these Ocfs2 patches were sent to the list back in
-> September:
-> 
-> 	http://lkml.org/lkml/2008/9/24/383
-> 
-> All feedback has been incorporated - my original e-mail describing the
-> contents of our tree is attached below.
-> 
-> The only exception is that I added (after the initial send to lkml) an
-> internal api cleanup series from Joel. This doesn't really make any
-> functional changes, but simplifies our block I/O handling code in
-> anticipation of some features we're planning for 2.6.29. For reference,
-> these changes are the topmost 6 patches in the branch. I don't think they're
-> are particularly controversial or tricky.
-> 	--Mark
-> 
-> Please pull from 'upstream-linus' branch of
-> git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
+Fix some typos in xattr's annotations. Thank Coly for pointing them out.
 
-
-In 2.6.27-git5 I am seeing build errors as follow:
-
-fs/ocfs2/xattr.c: In function 'ocfs2_xattr_bucket_find':
-fs/ocfs2/xattr.c:2352: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
-fs/ocfs2/xattr.c:2352: error: (Each undeclared identifier is reported only once
-fs/ocfs2/xattr.c:2352: error: for each function it appears in.)
-fs/ocfs2/xattr.c: In function 'ocfs2_iterate_xattr_buckets':
-fs/ocfs2/xattr.c:2429: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
-fs/ocfs2/xattr.c: In function 'ocfs2_xattr_update_xattr_search':
-fs/ocfs2/xattr.c:2697: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
-fs/ocfs2/xattr.c: In function 'ocfs2_defrag_xattr_bucket':
-fs/ocfs2/xattr.c:2902: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
-fs/ocfs2/xattr.c: In function 'ocfs2_read_xattr_bucket':
-fs/ocfs2/xattr.c:3157: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
-fs/ocfs2/xattr.c: In function 'ocfs2_xattr_set_entry_in_bucket':
-fs/ocfs2/xattr.c:4104: error: 'OCFS2_BH_CACHED' undeclared (first use in this function)
-make[2]: *** [fs/ocfs2/xattr.o] Error 1
-
-
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Cc: Coly Li <coyli@suse.de>
 ---
-~Randy
+ fs/ocfs2/ocfs2_fs.h |   10 +++++-----
+ 1 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index f24ce3d..0280edc 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -742,12 +742,12 @@ struct ocfs2_group_desc
+  */
+ struct ocfs2_xattr_entry {
+ 	__le32	xe_name_hash;    /* hash value of xattr prefix+suffix. */
+-	__le16	xe_name_offset;  /* byte offset from the 1st etnry in the local
++	__le16	xe_name_offset;  /* byte offset from the 1st entry in the
+ 				    local xattr storage(inode, xattr block or
+ 				    xattr bucket). */
+ 	__u8	xe_name_len;	 /* xattr name len, does't include prefix. */
+-	__u8	xe_type;         /* the low 7 bits indicates the name prefix's
+-				  * type and the highest 1 bits indicate whether
++	__u8	xe_type;         /* the low 7 bits indicate the name prefix's
++				  * type and the highest 1 bit indicates whether
+ 				  * the EA is stored in the local storage. */
+ 	__le64	xe_value_size;	 /* real xattr value length. */
+ };
+@@ -766,7 +766,7 @@ struct ocfs2_xattr_header {
+ 						   xattr. */
+ 	__le16	xh_name_value_len;              /* total length of name/value
+ 						   length in this bucket. */
+-	__le16	xh_num_buckets;                 /* bucket nums in one extent
++	__le16	xh_num_buckets;                 /* buckets num in one extent
+ 						   record, only valid in the
+ 						   first bucket. */
+ 	__le64  xh_csum;
+@@ -776,7 +776,7 @@ struct ocfs2_xattr_header {
+ /*
+  * On disk structure for xattr value root.
+  *
+- * It is used when one extended attribute's size is larger, and we will save it
++ * It is used when one extended attribute's size is large, and we will save it
+  * in an outside cluster. It will stored in a b-tree like file content.
+  */
+ struct ocfs2_xattr_value_root {
+-- 
+1.5.4.GIT
