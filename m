@@ -1,39 +1,95 @@
 From: Jan Kara <jack@suse.cz>
-Date: Sat, 25 Oct 2008 00:08:17 +0200
-Subject: [Ocfs2-devel] [PATCH 24/29] ocfs2: Mark system files as not subject
-	to quota accounting
+Date: Sat, 25 Oct 2008 00:08:10 +0200
+Subject: [Ocfs2-devel] [PATCH 17/29] quota: Implement function for scanning
+	active dquots
 In-Reply-To: <122488610212-git-send-email-jack@suse.cz>
 References: <122488610212-git-send-email-jack@suse.cz>
-Message-ID: <12248861041463-git-send-email-jack@suse.cz>
+Message-ID: <1224886104388-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark system files as not subject to quota accounting. This prevents
-possible recursions into quota code and thus deadlocks.
+OCFS2 needs to scan all active dquots once in a while and sync quota
+information among cluster nodes. Provide a helper function for it so
+that it does not have to reimplement internally a list which VFS
+already has. Moreover this function is probably going to be useful
+for other clustered filesystems if they decide to use VFS quotas.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/inode.c |    4 +++-
- 1 files changed, 3 insertions(+), 1 deletions(-)
+ fs/dquot.c               |   36 ++++++++++++++++++++++++++++++++++++
+ include/linux/quotaops.h |    3 +++
+ 2 files changed, 39 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index da3a360..738b63f 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -284,8 +284,10 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+diff --git a/fs/dquot.c b/fs/dquot.c
+index f6bcacd..7be2a01 100644
+--- a/fs/dquot.c
++++ b/fs/dquot.c
+@@ -476,6 +476,41 @@ restart:
+ 	spin_unlock(&dq_list_lock);
+ }
  
- 	inode->i_nlink = le16_to_cpu(fe->i_links_count);
- 
--	if (fe->i_flags & cpu_to_le32(OCFS2_SYSTEM_FL))
-+	if (fe->i_flags & cpu_to_le32(OCFS2_SYSTEM_FL)) {
- 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SYSTEM_FILE;
-+		inode->i_flags |= S_NOQUOTA;
++/* Call callback for every active dquot on given filesystem */
++int dquot_scan_active(struct super_block *sb,
++		      int (*fn)(struct dquot *dquot, unsigned long priv),
++		      unsigned long priv)
++{
++	struct dquot *dquot, *old_dquot = NULL;
++	int ret = 0;
++
++	mutex_lock(&sb_dqopt(sb)->dqonoff_mutex);
++	spin_lock(&dq_list_lock);
++	list_for_each_entry(dquot, &inuse_list, dq_inuse) {
++		if (!test_bit(DQ_ACTIVE_B, &dquot->dq_flags))
++			continue;
++		if (dquot->dq_sb != sb)
++			continue;
++		/* Now we have active dquot so we can just increase use count */
++		atomic_inc(&dquot->dq_count);
++		dqstats.lookups++;
++		spin_unlock(&dq_list_lock);
++		dqput(old_dquot);
++		old_dquot = dquot;
++		ret = fn(dquot, priv);
++		if (ret < 0)
++			goto out;
++		spin_lock(&dq_list_lock);
++		/* We are safe to continue now because our dquot could not
++		 * be moved out of the inuse list while we hold the reference */
 +	}
++	spin_unlock(&dq_list_lock);
++out:
++	dqput(old_dquot);
++	mutex_unlock(&sb_dqopt(sb)->dqonoff_mutex);
++	return ret;
++}
++
+ int vfs_quota_sync(struct super_block *sb, int type)
+ {
+ 	struct list_head *dirty;
+@@ -2314,6 +2349,7 @@ EXPORT_SYMBOL(vfs_quota_on_path);
+ EXPORT_SYMBOL(vfs_quota_on_mount);
+ EXPORT_SYMBOL(vfs_quota_disable);
+ EXPORT_SYMBOL(vfs_quota_off);
++EXPORT_SYMBOL(dquot_scan_active);
+ EXPORT_SYMBOL(vfs_quota_sync);
+ EXPORT_SYMBOL(vfs_get_dqinfo);
+ EXPORT_SYMBOL(vfs_set_dqinfo);
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index 1f990f2..f2147eb 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -31,6 +31,9 @@ int dquot_drop_locked(struct inode *inode);
+ struct dquot *dqget(struct super_block *sb, unsigned int id, int type);
+ void dqput(struct dquot *dquot);
+ int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
++int dquot_scan_active(struct super_block *sb,
++		      int (*fn)(struct dquot *dquot, unsigned long priv),
++		      unsigned long priv);
  
- 	if (fe->i_flags & cpu_to_le32(OCFS2_LOCAL_ALLOC_FL)) {
- 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_BITMAP;
+ int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
+ int dquot_alloc_inode(const struct inode *inode, qsize_t number);
 -- 
 1.5.2.4
