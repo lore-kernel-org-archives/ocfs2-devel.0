@@ -1,132 +1,38 @@
 From: Jan Kara <jack@suse.cz>
-Date: Sat, 25 Oct 2008 00:08:09 +0200
-Subject: [Ocfs2-devel] [PATCH 16/29] quota: Add helpers to allow ocfs2
-	specific quota initialization, freeing and recovery
+Date: Sat, 25 Oct 2008 00:08:14 +0200
+Subject: [Ocfs2-devel] [PATCH 21/29] ocfs2: Fix checking of return value of
+	new_inode()
 In-Reply-To: <122488610212-git-send-email-jack@suse.cz>
 References: <122488610212-git-send-email-jack@suse.cz>
-Message-ID: <12248861033133-git-send-email-jack@suse.cz>
+Message-ID: <12248861041207-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-OCFS2 needs to peek whether quota structure is already in memory so
-that it can avoid expensive cluster locking in that case. Similarly
-when freeing dquots, it checks whether it is the last quota structure
-user or not. Finally, it needs to get reference to dquot structure for
-specified id and quota type when recovering quota file after crash.
+new_inode() does not return ERR_PTR() but NULL in case of failure. Correct
+checking of the return value.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/dquot.c               |   38 ++++++++++++++++++++++++++++++++------
- include/linux/quotaops.h |    4 ++++
- 2 files changed, 36 insertions(+), 6 deletions(-)
+ fs/ocfs2/namei.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/dquot.c b/fs/dquot.c
-index 124a20a..f6bcacd 100644
---- a/fs/dquot.c
-+++ b/fs/dquot.c
-@@ -213,8 +213,6 @@ static struct hlist_head *dquot_hash;
- 
- struct dqstats dqstats;
- 
--static void dqput(struct dquot *dquot);
--
- static inline unsigned int
- hashfn(const struct super_block *sb, unsigned int id, int type)
- {
-@@ -568,7 +566,7 @@ static struct shrinker dqcache_shrinker = {
-  * NOTE: If you change this function please check whether dqput_blocks() works right...
-  * MUST be called with either dqptr_sem or dqonoff_mutex held
-  */
--static void dqput(struct dquot *dquot)
-+void dqput(struct dquot *dquot)
- {
- 	int ret;
- 
-@@ -660,10 +658,28 @@ static struct dquot *get_empty_dquot(struct super_block *sb, int type)
- }
- 
- /*
-+ * Check whether dquot is in memory.
-+ * MUST be called with either dqptr_sem or dqonoff_mutex held
-+ */
-+int dquot_is_cached(struct super_block *sb, unsigned int id, int type)
-+{
-+	unsigned int hashent = hashfn(sb, id, type);
-+	int ret = 0;
-+
-+        if (!sb_has_quota_active(sb, type))
-+		return 0;
-+	spin_lock(&dq_list_lock);
-+	if (find_dquot(hashent, sb, id, type) != NODQUOT)
-+		ret = 1;
-+	spin_unlock(&dq_list_lock);
-+	return ret;
-+}
-+
-+/*
-  * Get reference to dquot
-  * MUST be called with either dqptr_sem or dqonoff_mutex held
-  */
--static struct dquot *dqget(struct super_block *sb, unsigned int id, int type)
-+struct dquot *dqget(struct super_block *sb, unsigned int id, int type)
- {
- 	unsigned int hashent = hashfn(sb, id, type);
- 	struct dquot *dquot, *empty = NODQUOT;
-@@ -1182,17 +1198,23 @@ out_err:
-  * 	Release all quotas referenced by inode
-  *	Transaction must be started at an entry
-  */
--int dquot_drop(struct inode *inode)
-+int dquot_drop_locked(struct inode *inode)
- {
- 	int cnt;
- 
--	down_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
- 	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
- 		if (inode->i_dquot[cnt] != NODQUOT) {
- 			dqput(inode->i_dquot[cnt]);
- 			inode->i_dquot[cnt] = NODQUOT;
- 		}
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 485a6aa..f594f30 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -378,8 +378,8 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
  	}
-+	return 0;
-+}
-+
-+int dquot_drop(struct inode *inode)
-+{
-+	down_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
-+	dquot_drop_locked(inode);
- 	up_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
- 	return 0;
- }
-@@ -2304,7 +2326,11 @@ EXPORT_SYMBOL(dquot_release);
- EXPORT_SYMBOL(dquot_mark_dquot_dirty);
- EXPORT_SYMBOL(dquot_initialize);
- EXPORT_SYMBOL(dquot_drop);
-+EXPORT_SYMBOL(dquot_drop_locked);
- EXPORT_SYMBOL(vfs_dq_drop);
-+EXPORT_SYMBOL(dqget);
-+EXPORT_SYMBOL(dqput);
-+EXPORT_SYMBOL(dquot_is_cached);
- EXPORT_SYMBOL(dquot_alloc_space);
- EXPORT_SYMBOL(dquot_alloc_inode);
- EXPORT_SYMBOL(dquot_free_space);
-diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index 94f00ec..1f990f2 100644
---- a/include/linux/quotaops.h
-+++ b/include/linux/quotaops.h
-@@ -27,6 +27,10 @@ void sync_dquots(struct super_block *sb, int type);
  
- int dquot_initialize(struct inode *inode, int type);
- int dquot_drop(struct inode *inode);
-+int dquot_drop_locked(struct inode *inode);
-+struct dquot *dqget(struct super_block *sb, unsigned int id, int type);
-+void dqput(struct dquot *dquot);
-+int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
- 
- int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
- int dquot_alloc_inode(const struct inode *inode, qsize_t number);
+ 	inode = new_inode(dir->i_sb);
+-	if (IS_ERR(inode)) {
+-		status = PTR_ERR(inode);
++	if (!inode) {
++		status = -ENOMEM;
+ 		mlog(ML_ERROR, "new_inode failed!\n");
+ 		goto leave;
+ 	}
 -- 
 1.5.2.4
