@@ -1,46 +1,42 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 24 Oct 2008 18:24:47 -0700
-Subject: [Ocfs2-devel] ACL support in OCFS2
-In-Reply-To: <E1306337AED1804282B19099556FB90A04C83847@sbem35exc1005.efd.intra.admin.ch>
-References: <E1306337AED1804282B19099556FB90A04C83847@sbem35exc1005.efd.intra.admin.ch>
-Message-ID: <4902755F.5020409@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Fri, 24 Oct 2008 18:54:28 -0700
+Subject: [Ocfs2-devel] Bug in OCFS2 umount code
+In-Reply-To: <20081024224839.GA10359@duck.suse.cz>
+References: <20081024215702.GA10038@duck.suse.cz>
+	<20081024224025.GF9302@mail.oracle.com>
+	<20081024224839.GA10359@duck.suse.cz>
+Message-ID: <20081025015428.GI9302@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Yes, it is being integrated. It should be available for enterprise
-users with sles11.
+On Sat, Oct 25, 2008 at 12:48:39AM +0200, Jan Kara wrote:
+> On Fri 24-10-08 15:40:25, Joel Becker wrote:
+> > 	So I don't see a bug in the code as I have it here in my tree.
+> > I'm going to go check your quota patches to see if perhaps you jump to
+> > read_super_error after s_root is set.  If so, we can just reorganize
+> > that.  If not, we'll have to figure out what particular mount failure is
+> > causing your problem, so we can see what's happening.
+>   Ah, OK. I've noticed that when quota failed to turn on for some reason.
+> So you are probably right, that I've added an error path which was not
+> there. Just when I was looking at the mount code I didn't notice that
+> I'm doing something different from the rest of the function :) Sorry for
+> the noise.
 
-Jean-Louis.Morard at bit.admin.ch wrote:
->
-> Dear All,
->
-> I have to introduce a cluster file system that is supported by Novell 
-> SLES 10 and that supports ACLs. OCFS is a good candidate as it is 
-> integrated in the standard Linux kernel. Unfortunately it doen't 
-> support ACLs. We noticed however that Tiger Yang posted a patch to 
-> support ACLs in OCFS2 
-> (_http://oss.oracle.com/pipermail/ocfs2-devel/2008-September/002837.html_). 
-> Is it possible to know if this patch will be integrated in the 
-> standard OCFS distribution and when? Or does any patch in a RPM format 
-> exist?
->
->
->
-> Freundliche Gr?sse
->
-> *Jean-Louis Morard*
-> Informationssystem-Architekt
->
-> Eidgen?ssisches Finanzdepartement EFD
-> Bundesamt f?r Informatik und Telekommunikation BIT
-> Innovation
->
-> Monbijoustrasse 74, 3003 Bern
-> Tel. +41 31 32 33793
-> Fax +41 31 32 59030
-> jean-louis.morard at bit.admin.ch
-> _www.bit.admin.ch_ <file://www.bit.admin.ch>
->
+	It's not noise.  We didn't know until we checked it out :-)
+Don't worry about bothering us.
+
+Joel
+
+-- 
+
+"Here's a nickle -- get yourself a better X server."
+	- Keith Packard
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
