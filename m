@@ -1,261 +1,204 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 27 Oct 2008 14:35:11 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/xattr: Proper hash collision
-	handle in	bucket division.v3
-In-Reply-To: <1225058784-15621-1-git-send-email-tao.ma@oracle.com>
-References: <1225058784-15621-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20081027213511.GC25974@mail.oracle.com>
+From: Joel Becker <joel.becker@oracle.com>
+Date: Mon, 27 Oct 2008 18:20:25 -0700
+Subject: [Ocfs2-devel] [PATCH 10/13] ocfs2: Use buckets in
+	ocfs2_xattr_bucket_find().
+In-Reply-To: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
+References: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
+Message-ID: <1225156828-32189-11-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Some comment text cleanups, but I'm good with this.  Mark, let's push it
-to fixes.
+Change the ocfs2_xattr_bucket_find() function to use ocfs2_xattr_bucket
+as its abstraction.  This makes for more efficient reads, as buckets are
+linear blocks, and also has improved caching characteristics.  It also
+reads better.
 
-Joel
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ fs/ocfs2/xattr.c |   89 +++++++++++++++++++-----------------------------------
+ 1 files changed, 31 insertions(+), 58 deletions(-)
 
-On Mon, Oct 27, 2008 at 06:06:24AM +0800, Tao Ma wrote:
-> Modification from V2 to V3:
-> Use a more pefect code suggested by Joel. Thank Joel for it.
-> 
-> In ocfs2/xattr, we must make sure the xattrs which have the same
-> hash value exist in the same bucket so that the search schema can
-> work. But in the old implementation, when we want to extend a bucket,
-> we just move half number of xattrs to the new bucket. This works
-> in most cases, but if we are lucky enough we will make 2 xattrs
-
-							move 2 xattrs
-with the same hash
-
-> into 2 different buckets. This cause a problem that the xattr
-
-				 means that an xattr from the
-previous bucket cannot be found anymore.
-
-> existing in the previous bucket can be found any more. This patch
-> fix this problem by finding the right position during extending
-> the bucket and extend an empty bucket if needed.
-> 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
-> Cc: Joel Becker <joel.becker@oracle.com>
-
-<snip>
-
-> +/*
-> + * Move some xattrs in old bucket(blk) to new bucket(new_blk).
->   * first_hash will record the 1st hash of the new bucket.
-> + *
-> + * Normally half nums will be moved. But we have to make sure
-
-Normally half of the xattrs will be moved.  But we have to make sure
-
-> + * that the xattr with same hash value is stored in the same
-
-that the xattrs with the same hash value are stored in the same
-
-> + * bucket. If all the xattrs in this bucket has the same hash
-
-						have
-
-> + * value, the new bucket will be initialized as an empty one
-> + * and the first_hash will be initialized as (hash_value+1).
->   */
-> -static int ocfs2_half_xattr_bucket(struct inode *inode,
-> -				   handle_t *handle,
-> -				   u64 blk,
-> -				   u64 new_blk,
-> -				   u32 *first_hash,
-> -				   int new_bucket_head)
-> +static int ocfs2_divide_xattr_bucket(struct inode *inode,
-> +				    handle_t *handle,
-> +				    u64 blk,
-> +				    u64 new_blk,
-> +				    u32 *first_hash,
-> +				    int new_bucket_head)
->  {
->  	int ret, i;
-> -	u16 count, start, len, name_value_len, xe_len, name_offset;
-> +	int count, start, len, name_value_len = 0, xe_len, name_offset = 0;
->  	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
->  	struct buffer_head **s_bhs, **t_bhs = NULL;
->  	struct ocfs2_xattr_header *xh;
->  	struct ocfs2_xattr_entry *xe;
->  	int blocksize = inode->i_sb->s_blocksize;
->  
-> -	mlog(0, "move half of xattrs from bucket %llu to %llu\n",
-> +	mlog(0, "move some of xattrs from bucket %llu to %llu\n",
->  	     blk, new_blk);
->  
->  	s_bhs = kcalloc(blk_per_bucket, sizeof(struct buffer_head *), GFP_NOFS);
-> @@ -3171,14 +3219,35 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
->  		}
->  	}
->  
-> +	xh = (struct ocfs2_xattr_header *)s_bhs[0]->b_data;
-> +	count = le16_to_cpu(xh->xh_count);
-> +	start = ocfs2_xattr_find_divide_pos(xh);
-> +
-> +	if (start == count) {
-> +		xe = &xh->xh_entries[start-1];
-> +
-> +		/*
-> +		 * initialized a new empty bucket here.
-> +		 * The hash value is set as one larger than
-> +		 * that of the last entry in the previous bucket.
-> +		 */
-> +		for (i = 0; i < blk_per_bucket; i++)
-> +			memset(t_bhs[i]->b_data, 0, blocksize);
-> +
-> +		xh = (struct ocfs2_xattr_header *)t_bhs[0]->b_data;
-> +		xh->xh_free_start = cpu_to_le16(blocksize);
-> +		xh->xh_entries[0].xe_name_hash = xe->xe_name_hash;
-> +		le32_add_cpu(&xh->xh_entries[0].xe_name_hash, 1);
-> +
-> +		goto set_num_buckets;
-> +	}
-> +
->  	/* copy the whole bucket to the new first. */
->  	for (i = 0; i < blk_per_bucket; i++)
->  		memcpy(t_bhs[i]->b_data, s_bhs[i]->b_data, blocksize);
->  
->  	/* update the new bucket. */
->  	xh = (struct ocfs2_xattr_header *)t_bhs[0]->b_data;
-> -	count = le16_to_cpu(xh->xh_count);
-> -	start = count / 2;
->  
->  	/*
->  	 * Calculate the total name/value len and xh_free_start for
-> @@ -3235,6 +3304,7 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
->  			xh->xh_free_start = xe->xe_name_offset;
->  	}
->  
-> +set_num_buckets:
->  	/* set xh->xh_num_buckets for the new xh. */
->  	if (new_bucket_head)
->  		xh->xh_num_buckets = cpu_to_le16(1);
-> @@ -3253,8 +3323,11 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
->  
->  	/*
->  	 * Now only update the 1st block of the old bucket.
-> -	 * Please note that the entry has been sorted already above.
-> +	 * If we just add a new empty bucket after it, no needs to modify it.
-
-	If we just added a new empty bucket, there is no need to modify it.
-
->  	 */
-> +	if (start == count)
-> +		goto out;
-> +
->  	xh = (struct ocfs2_xattr_header *)s_bhs[0]->b_data;
->  	memset(&xh->xh_entries[start], 0,
->  	       sizeof(struct ocfs2_xattr_entry) * (count - start));
-> @@ -3439,15 +3512,15 @@ out:
->  }
->  
->  /*
-> - * Move half of the xattrs in this cluster to the new cluster.
-> + * Move some xattrs in this cluster to the new cluster.
->   * This function should only be called when bucket size == cluster size.
->   * Otherwise ocfs2_mv_xattr_bucket_cross_cluster should be used instead.
->   */
-> -static int ocfs2_half_xattr_cluster(struct inode *inode,
-> -				    handle_t *handle,
-> -				    u64 prev_blk,
-> -				    u64 new_blk,
-> -				    u32 *first_hash)
-> +static int ocfs2_divide_xattr_cluster(struct inode *inode,
-> +				      handle_t *handle,
-> +				      u64 prev_blk,
-> +				      u64 new_blk,
-> +				      u32 *first_hash)
->  {
->  	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
->  	int ret, credits = 2 * blk_per_bucket;
-> @@ -3461,8 +3534,8 @@ static int ocfs2_half_xattr_cluster(struct inode *inode,
->  	}
->  
->  	/* Move half of the xattr in start_blk to the next bucket. */
-> -	return  ocfs2_half_xattr_bucket(inode, handle, prev_blk,
-> -					new_blk, first_hash, 1);
-> +	return  ocfs2_divide_xattr_bucket(inode, handle, prev_blk,
-> +					  new_blk, first_hash, 1);
->  }
->  
->  /*
-> @@ -3524,9 +3597,9 @@ static int ocfs2_adjust_xattr_cross_cluster(struct inode *inode,
->  						     last_blk, new_blk,
->  						     v_start);
->  		else {
-> -			ret = ocfs2_half_xattr_cluster(inode, handle,
-> -						       last_blk, new_blk,
-> -						       v_start);
-> +			ret = ocfs2_divide_xattr_cluster(inode, handle,
-> +							 last_blk, new_blk,
-> +							 v_start);
->  
->  			if ((*header_bh)->b_blocknr == last_blk && extend)
->  				*extend = 0;
-> @@ -3743,8 +3816,8 @@ static int ocfs2_extend_xattr_bucket(struct inode *inode,
->  	}
->  
->  	/* Move half of the xattr in start_blk to the next bucket. */
-> -	ret = ocfs2_half_xattr_bucket(inode, handle, start_blk,
-> -				      start_blk + blk_per_bucket, NULL, 0);
-> +	ret = ocfs2_divide_xattr_bucket(inode, handle, start_blk,
-> +					start_blk + blk_per_bucket, NULL, 0);
->  
->  	le16_add_cpu(&first_xh->xh_num_buckets, 1);
->  	ocfs2_journal_dirty(handle, first_bh);
-> @@ -4435,11 +4508,21 @@ out:
->  	return ret;
->  }
->  
-> -/* check whether the xattr bucket is filled up with the same hash value. */
-> +/*
-> + * check whether the xattr bucket is filled up with the same hash value.
-> + * If we want to insert the xattr with the same hash, return -ENOSPC.
-> + * If we want to insert a xattr with different hash value, go ahead
-> + * and ocfs2_divide_xattr_bucket will handle this.
-> + */
->  static int ocfs2_check_xattr_bucket_collision(struct inode *inode,
-> -					      struct ocfs2_xattr_bucket *bucket)
-> +					      struct ocfs2_xattr_bucket *bucket,
-> +					      const char *name)
->  {
->  	struct ocfs2_xattr_header *xh = bucket->xh;
-> +	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
-> +
-> +	if (name_hash != le32_to_cpu(xh->xh_entries[0].xe_name_hash))
-> +		return 0;
->  
->  	if (xh->xh_entries[le16_to_cpu(xh->xh_count) - 1].xe_name_hash ==
->  	    xh->xh_entries[0].xe_name_hash) {
-> @@ -4562,7 +4645,9 @@ try_again:
->  		 * one bucket's worth, so check it here whether we need to
->  		 * add a new bucket for the insert.
->  		 */
-> -		ret = ocfs2_check_xattr_bucket_collision(inode, &xs->bucket);
-> +		ret = ocfs2_check_xattr_bucket_collision(inode,
-> +							 &xs->bucket,
-> +							 xi->name);
->  		if (ret) {
->  			mlog_errno(ret);
->  			goto out;
-> -- 
-> 1.5.4.GIT
-> 
-
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index b922f00..2977c0d 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2244,7 +2244,7 @@ typedef int (xattr_bucket_func)(struct inode *inode,
+ 				void *para);
+ 
+ static int ocfs2_find_xe_in_bucket(struct inode *inode,
+-				   struct buffer_head *header_bh,
++				   struct ocfs2_xattr_bucket *bucket,
+ 				   int name_index,
+ 				   const char *name,
+ 				   u32 name_hash,
+@@ -2252,11 +2252,9 @@ static int ocfs2_find_xe_in_bucket(struct inode *inode,
+ 				   int *found)
+ {
+ 	int i, ret = 0, cmp = 1, block_off, new_offset;
+-	struct ocfs2_xattr_header *xh =
+-			(struct ocfs2_xattr_header *)header_bh->b_data;
++	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
+ 	size_t name_len = strlen(name);
+ 	struct ocfs2_xattr_entry *xe = NULL;
+-	struct buffer_head *name_bh = NULL;
+ 	char *xe_name;
+ 
+ 	/*
+@@ -2287,19 +2285,8 @@ static int ocfs2_find_xe_in_bucket(struct inode *inode,
+ 			break;
+ 		}
+ 
+-		ret = ocfs2_read_block(inode, header_bh->b_blocknr + block_off,
+-				       &name_bh);
+-		if (ret) {
+-			mlog_errno(ret);
+-			break;
+-		}
+-		xe_name = name_bh->b_data + new_offset;
+-
+-		cmp = memcmp(name, xe_name, name_len);
+-		brelse(name_bh);
+-		name_bh = NULL;
+-
+-		if (cmp == 0) {
++		xe_name = bucket_block(bucket, block_off) + new_offset;
++		if (!memcmp(name, xe_name, name_len)) {
+ 			*xe_index = i;
+ 			*found = 1;
+ 			ret = 0;
+@@ -2329,39 +2316,42 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 				   struct ocfs2_xattr_search *xs)
+ {
+ 	int ret, found = 0;
+-	struct buffer_head *bh = NULL;
+-	struct buffer_head *lower_bh = NULL;
+ 	struct ocfs2_xattr_header *xh = NULL;
+ 	struct ocfs2_xattr_entry *xe = NULL;
+ 	u16 index = 0;
+ 	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+ 	int low_bucket = 0, bucket, high_bucket;
++	struct ocfs2_xattr_bucket *search;
+ 	u32 last_hash;
+-	u64 blkno;
++	u64 blkno, lower_blkno = 0;
+ 
+-	ret = ocfs2_read_block(inode, p_blkno, &bh);
++	search = ocfs2_xattr_bucket_new(inode);
++	if (!search) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
++		goto out;
++	}
++
++	ret = ocfs2_read_xattr_bucket(search, p_blkno);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out;
+ 	}
+ 
+-	xh = (struct ocfs2_xattr_header *)bh->b_data;
++	xh = bucket_xh(search);
+ 	high_bucket = le16_to_cpu(xh->xh_num_buckets) - 1;
+-
+ 	while (low_bucket <= high_bucket) {
+-		brelse(bh);
+-		bh = NULL;
+-		bucket = (low_bucket + high_bucket) / 2;
++		ocfs2_xattr_bucket_relse(search);
+ 
++		bucket = (low_bucket + high_bucket) / 2;
+ 		blkno = p_blkno + bucket * blk_per_bucket;
+-
+-		ret = ocfs2_read_block(inode, blkno, &bh);
++		ret = ocfs2_read_xattr_bucket(search, blkno);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
+ 		}
+ 
+-		xh = (struct ocfs2_xattr_header *)bh->b_data;
++		xh = bucket_xh(search);
+ 		xe = &xh->xh_entries[0];
+ 		if (name_hash < le32_to_cpu(xe->xe_name_hash)) {
+ 			high_bucket = bucket - 1;
+@@ -2378,10 +2368,8 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 
+ 		last_hash = le32_to_cpu(xe->xe_name_hash);
+ 
+-		/* record lower_bh which may be the insert place. */
+-		brelse(lower_bh);
+-		lower_bh = bh;
+-		bh = NULL;
++		/* record lower_blkno which may be the insert place. */
++		lower_blkno = blkno;
+ 
+ 		if (name_hash > le32_to_cpu(xe->xe_name_hash)) {
+ 			low_bucket = bucket + 1;
+@@ -2389,7 +2377,7 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 		}
+ 
+ 		/* the searched xattr should reside in this bucket if exists. */
+-		ret = ocfs2_find_xe_in_bucket(inode, lower_bh,
++		ret = ocfs2_find_xe_in_bucket(inode, search,
+ 					      name_index, name, name_hash,
+ 					      &index, &found);
+ 		if (ret) {
+@@ -2404,35 +2392,21 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 	 * When the xattr's hash value is in the gap of 2 buckets, we will
+ 	 * always set it to the previous bucket.
+ 	 */
+-	if (!lower_bh) {
+-		/*
+-		 * We can't find any bucket whose first name_hash is less
+-		 * than the find name_hash.
+-		 */
+-		BUG_ON(bh->b_blocknr != p_blkno);
+-		lower_bh = bh;
+-		bh = NULL;
++	if (!lower_blkno)
++		lower_blkno = p_blkno;
++
++	/* This should be in cache - we just read it during the search */
++	ret = ocfs2_read_xattr_bucket(xs->bucket, lower_blkno);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
+ 	}
+-	xs->bucket->bu_bhs[0] = lower_bh;
+-	lower_bh = NULL;
+ 
+ 	xs->header = bucket_xh(xs->bucket);
+ 	xs->base = bucket_block(xs->bucket, 0);
+ 	xs->end = xs->base + inode->i_sb->s_blocksize;
+ 
+ 	if (found) {
+-		/*
+-		 * If we have found the xattr enty, read all the blocks in
+-		 * this bucket.
+-		 */
+-		ret = ocfs2_read_blocks(inode, bucket_blkno(xs->bucket) + 1,
+-					blk_per_bucket - 1, &xs->bucket->bu_bhs[1],
+-					0);
+-		if (ret) {
+-			mlog_errno(ret);
+-			goto out;
+-		}
+-
+ 		xs->here = &xs->header->xh_entries[index];
+ 		mlog(0, "find xattr %s in bucket %llu, entry = %u\n", name,
+ 		     (unsigned long long)bucket_blkno(xs->bucket), index);
+@@ -2440,8 +2414,7 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 		ret = -ENODATA;
+ 
+ out:
+-	brelse(bh);
+-	brelse(lower_bh);
++	ocfs2_xattr_bucket_free(search);
+ 	return ret;
+ }
+ 
 -- 
-
-You can use a screwdriver to screw in screws or to clean your ears,
-however, the latter needs real skill, determination and a lack of fear
-of injuring yourself.  It is much the same with JavaScript.
-	- Chris Heilmann
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.6.5
