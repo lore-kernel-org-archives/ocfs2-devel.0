@@ -1,272 +1,116 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Mon, 27 Oct 2008 18:20:22 -0700
-Subject: [Ocfs2-devel] [PATCH 07/13] ocfs2: Wrap
-	journal_access/journal_dirty for xattr buckets.
+Date: Mon, 27 Oct 2008 18:20:17 -0700
+Subject: [Ocfs2-devel] [PATCH 02/13] ocfs2: Convenient access to an xattr
+	bucket's block number.
 In-Reply-To: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
 References: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1225156828-32189-8-git-send-email-joel.becker@oracle.com>
+Message-ID: <1225156828-32189-3-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-A common action is to call ocfs2_journal_access() and
-ocfs2_journal_dirty() on the buffer heads of an xattr bucket.  Let's
-create nice wrappers.
-
-While we're there, let's drop the places that try to be smart by writing
-only the first and last blocks of a bucket.  A bucket is contiguous, so
-writing the whole thing is actually more efficient.
+The xattr code often wants to know the block number of an xattr bucket.
+This is usually found by dereferencing the first bh hanging off of the
+ocfs2_xattr_bucket structure.  Rather than do this all the time, let's
+provide a nice little macro.  The idea is ripped from the ocfs2_path
+code.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/xattr.c |  140 +++++++++++++++++++++++++-----------------------------
- 1 files changed, 64 insertions(+), 76 deletions(-)
+ fs/ocfs2/xattr.c |   20 +++++++++++---------
+ 1 files changed, 11 insertions(+), 9 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 61dee99..55e2c1a 100644
+index fb8b401..7b320b2 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -210,6 +210,37 @@ static int ocfs2_read_xattr_bucket(struct inode *inode,
- 	return rc;
+@@ -154,6 +154,8 @@ static inline u16 ocfs2_xattr_max_xe_in_bucket(struct super_block *sb)
+ 	return len / sizeof(struct ocfs2_xattr_entry);
  }
  
-+static int ocfs2_xattr_bucket_journal_access(handle_t *handle,
-+					     struct inode *inode,
-+					     struct ocfs2_xattr_bucket *bucket,
-+					     int type)
-+{
-+	int i, rc = 0;
-+	int blks = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
-+
-+	for (i = 0; i < blks; i++) {
-+		rc = ocfs2_journal_access(handle, inode,
-+					  bucket->bu_bhs[i], type);
-+		if (rc) {
-+			mlog_errno(rc);
-+			break;
-+		}
-+	}
-+
-+	return rc;
-+}
-+
-+static void ocfs2_xattr_bucket_journal_dirty(handle_t *handle,
-+					     struct inode *inode,
-+					     struct ocfs2_xattr_bucket *bucket)
-+{
-+	int i, blks = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
-+
-+	for (i = 0; i < blks; i++)
-+		ocfs2_journal_dirty(handle, bucket->bu_bhs[i]);
-+}
-+
++#define bucket_blkno(_b) ((_b)->bu_bhs[0]->b_blocknr)
 +
  static inline const char *ocfs2_xattr_prefix(int name_index)
  {
  	struct xattr_handler *handler = NULL;
-@@ -3162,8 +3193,8 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
- 		goto out;
- 	}
+@@ -2285,7 +2287,7 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 		 * If we have found the xattr enty, read all the blocks in
+ 		 * this bucket.
+ 		 */
+-		ret = ocfs2_read_blocks(inode, xs->bucket.bu_bhs[0]->b_blocknr + 1,
++		ret = ocfs2_read_blocks(inode, bucket_blkno(&xs->bucket) + 1,
+ 					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
+ 					0);
+ 		if (ret) {
+@@ -2295,7 +2297,7 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
  
--	ret = ocfs2_journal_access(handle, inode, s_bucket.bu_bhs[0],
--				   OCFS2_JOURNAL_ACCESS_WRITE);
-+	ret = ocfs2_xattr_bucket_journal_access(handle, inode, &s_bucket,
-+						OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -3179,15 +3210,13 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
- 		goto out;
- 	}
+ 		xs->here = &xs->header->xh_entries[index];
+ 		mlog(0, "find xattr %s in bucket %llu, entry = %u\n", name,
+-		     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr, index);
++		     (unsigned long long)bucket_blkno(&xs->bucket), index);
+ 	} else
+ 		ret = -ENODATA;
  
--	for (i = 0; i < blk_per_bucket; i++) {
--		ret = ocfs2_journal_access(handle, inode, t_bucket.bu_bhs[i],
--					   new_bucket_head ?
--					   OCFS2_JOURNAL_ACCESS_CREATE :
--					   OCFS2_JOURNAL_ACCESS_WRITE);
--		if (ret) {
--			mlog_errno(ret);
--			goto out;
--		}
-+	ret = ocfs2_xattr_bucket_journal_access(handle, inode, &t_bucket,
-+						new_bucket_head ?
-+						OCFS2_JOURNAL_ACCESS_CREATE :
-+						OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
- 	}
- 
- 	/* copy the whole bucket to the new first. */
-@@ -3261,11 +3290,7 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
- 	else
- 		xh->xh_num_buckets = 0;
- 
--	for (i = 0; i < blk_per_bucket; i++) {
--		ocfs2_journal_dirty(handle, t_bucket.bu_bhs[i]);
--		if (ret)
--			mlog_errno(ret);
--	}
-+	ocfs2_xattr_bucket_journal_dirty(handle, inode, &t_bucket);
- 
- 	/* store the first_hash of the new bucket. */
- 	if (first_hash)
-@@ -3282,9 +3307,7 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
- 	xh->xh_free_start = cpu_to_le16(name_offset);
- 	xh->xh_name_value_len = cpu_to_le16(name_value_len);
- 
--	ocfs2_journal_dirty(handle, s_bucket.bu_bhs[0]);
--	if (ret)
--		mlog_errno(ret);
-+	ocfs2_xattr_bucket_journal_dirty(handle, inode, &s_bucket);
- 
- out:
- 	ocfs2_xattr_bucket_relse(inode, &s_bucket);
-@@ -3330,20 +3353,18 @@ static int ocfs2_cp_xattr_bucket(struct inode *inode,
- 	if (ret)
- 		goto out;
- 
--	for (i = 0; i < blk_per_bucket; i++) {
--		ret = ocfs2_journal_access(handle, inode, t_bucket.bu_bhs[i],
--					   t_is_new ?
--					   OCFS2_JOURNAL_ACCESS_CREATE :
--					   OCFS2_JOURNAL_ACCESS_WRITE);
--		if (ret)
--			goto out;
--	}
-+	ret = ocfs2_xattr_bucket_journal_access(handle, inode, &t_bucket,
-+						t_is_new ?
-+						OCFS2_JOURNAL_ACCESS_CREATE :
-+						OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret)
-+		goto out;
- 
- 	for (i = 0; i < blk_per_bucket; i++) {
- 		memcpy(bucket_block(&t_bucket, i), bucket_block(&s_bucket, i),
- 		       blocksize);
--		ocfs2_journal_dirty(handle, t_bucket.bu_bhs[i]);
- 	}
-+	ocfs2_xattr_bucket_journal_dirty(handle, inode, &t_bucket);
- 
- out:
- 	ocfs2_xattr_bucket_relse(inode, &s_bucket);
-@@ -3714,9 +3735,9 @@ static int ocfs2_extend_xattr_bucket(struct inode *inode,
- 
- 	/*
- 	 * We will touch all the buckets after the start_bh(include it).
--	 * Add one more bucket and modify the first_bh.
-+	 * Then we add one more bucket.
- 	 */
--	credits = end_blk - start_blk + 2 * blk_per_bucket + 1;
-+	credits = end_blk - start_blk + 3 * blk_per_bucket + 1;
- 	handle = ocfs2_start_trans(osb, credits);
- 	if (IS_ERR(handle)) {
- 		ret = PTR_ERR(handle);
-@@ -3992,33 +4013,6 @@ set_new_name_value:
- 	return;
- }
- 
--static int ocfs2_xattr_bucket_handle_journal(struct inode *inode,
--					     handle_t *handle,
--					     struct ocfs2_xattr_search *xs,
--					     struct buffer_head **bhs,
--					     u16 bh_num)
--{
--	int ret = 0, off, block_off;
--	struct ocfs2_xattr_entry *xe = xs->here;
--
--	/*
--	 * First calculate all the blocks we should journal_access
--	 * and journal_dirty. The first block should always be touched.
--	 */
--	ret = ocfs2_journal_dirty(handle, bhs[0]);
--	if (ret)
--		mlog_errno(ret);
--
--	/* calc the data. */
--	off = le16_to_cpu(xe->xe_name_offset);
--	block_off = off >> inode->i_sb->s_blocksize_bits;
--	ret = ocfs2_journal_dirty(handle, bhs[block_off]);
--	if (ret)
--		mlog_errno(ret);
--
--	return ret;
--}
--
- /*
-  * Set the xattr entry in the specified bucket.
-  * The bucket is indicated by xs->bucket and it should have the enough
-@@ -4030,7 +4024,7 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
- 					   u32 name_hash,
- 					   int local)
- {
--	int i, ret;
-+	int ret;
- 	handle_t *handle = NULL;
+@@ -2630,7 +2632,7 @@ static int ocfs2_xattr_update_xattr_search(struct inode *inode,
+ 	if (!xs->not_found) {
+ 		if (OCFS2_XATTR_BUCKET_SIZE != blocksize) {
+ 			ret = ocfs2_read_blocks(inode,
+-					xs->bucket.bu_bhs[0]->b_blocknr + 1,
++					bucket_blkno(&xs->bucket) + 1,
+ 					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
+ 					0);
+ 			if (ret) {
+@@ -2827,7 +2829,7 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
+ 	size_t end, offset, len, value_len;
+ 	struct ocfs2_xattr_header *xh;
+ 	char *entries, *buf, *bucket_buf = NULL;
+-	u64 blkno = bucket->bu_bhs[0]->b_blocknr;
++	u64 blkno = bucket_blkno(bucket);
  	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-@@ -4058,22 +4052,16 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
- 		goto out;
+ 	u16 xh_free_start;
+ 	size_t blocksize = inode->i_sb->s_blocksize;
+@@ -4039,11 +4041,11 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
+ 
+ 	mlog(0, "Set xattr entry len = %lu index = %d in bucket %llu\n",
+ 	     (unsigned long)xi->value_len, xi->name_index,
+-	     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr);
++	     (unsigned long long)bucket_blkno(&xs->bucket));
+ 
+ 	if (!xs->bucket.bu_bhs[1]) {
+ 		ret = ocfs2_read_blocks(inode,
+-					xs->bucket.bu_bhs[0]->b_blocknr + 1,
++					bucket_blkno(&xs->bucket) + 1,
+ 					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
+ 					0);
+ 		if (ret) {
+@@ -4445,7 +4447,7 @@ static int ocfs2_check_xattr_bucket_collision(struct inode *inode,
+ 	    xh->xh_entries[0].xe_name_hash) {
+ 		mlog(ML_ERROR, "Too much hash collision in xattr bucket %llu, "
+ 		     "hash = %u\n",
+-		     (unsigned long long)bucket->bu_bhs[0]->b_blocknr,
++		     (unsigned long long)bucket_blkno(bucket),
+ 		     le32_to_cpu(xh->xh_entries[0].xe_name_hash));
+ 		return -ENOSPC;
  	}
+@@ -4479,7 +4481,7 @@ try_again:
  
--	for (i = 0; i < blk_per_bucket; i++) {
--		ret = ocfs2_journal_access(handle, inode, xs->bucket.bu_bhs[i],
--					   OCFS2_JOURNAL_ACCESS_WRITE);
--		if (ret < 0) {
--			mlog_errno(ret);
--			goto out;
--		}
-+	ret = ocfs2_xattr_bucket_journal_access(handle, inode, &xs->bucket,
-+						OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out;
- 	}
+ 	mlog_bug_on_msg(header_size > blocksize, "bucket %llu has header size "
+ 			"of %u which exceed block size\n",
+-			(unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr,
++			(unsigned long long)bucket_blkno(&xs->bucket),
+ 			header_size);
  
- 	ocfs2_xattr_set_entry_normal(inode, xi, xs, name_hash, local);
-+	ocfs2_xattr_bucket_journal_dirty(handle, inode, &xs->bucket);
+ 	if (xi->value && xi->value_len > OCFS2_XATTR_INLINE_SIZE)
+@@ -4519,7 +4521,7 @@ try_again:
+ 	mlog(0, "xs->not_found = %d, in xattr bucket %llu: free = %d, "
+ 	     "need = %d, max_free = %d, xh_free_start = %u, xh_name_value_len ="
+ 	     " %u\n", xs->not_found,
+-	     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr,
++	     (unsigned long long)bucket_blkno(&xs->bucket),
+ 	     free, need, max_free, le16_to_cpu(xh->xh_free_start),
+ 	     le16_to_cpu(xh->xh_name_value_len));
  
--	/*Only dirty the blocks we have touched in set xattr. */
--	ret = ocfs2_xattr_bucket_handle_journal(inode, handle, xs,
--						xs->bucket.bu_bhs, blk_per_bucket);
--	if (ret)
--		mlog_errno(ret);
- out:
- 	ocfs2_commit_trans(osb, handle);
- 
-@@ -4313,15 +4301,16 @@ static void ocfs2_xattr_bucket_remove_xs(struct inode *inode,
- 						le16_to_cpu(xh->xh_count) - 1];
- 	int ret = 0;
- 
--	handle = ocfs2_start_trans((OCFS2_SB(inode->i_sb)), 1);
-+	handle = ocfs2_start_trans((OCFS2_SB(inode->i_sb)),
-+				   ocfs2_blocks_per_xattr_bucket(inode->i_sb));
- 	if (IS_ERR(handle)) {
- 		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		return;
- 	}
- 
--	ret = ocfs2_journal_access(handle, inode, xs->bucket.bu_bhs[0],
--				   OCFS2_JOURNAL_ACCESS_WRITE);
-+	ret = ocfs2_xattr_bucket_journal_access(handle, inode, &xs->bucket,
-+						OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out_commit;
-@@ -4333,9 +4322,8 @@ static void ocfs2_xattr_bucket_remove_xs(struct inode *inode,
- 	memset(last, 0, sizeof(struct ocfs2_xattr_entry));
- 	le16_add_cpu(&xh->xh_count, -1);
- 
--	ret = ocfs2_journal_dirty(handle, xs->bucket.bu_bhs[0]);
--	if (ret < 0)
--		mlog_errno(ret);
-+	ocfs2_xattr_bucket_journal_dirty(handle, inode, &xs->bucket);
-+
- out_commit:
- 	ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
- }
 -- 
 1.5.6.5
