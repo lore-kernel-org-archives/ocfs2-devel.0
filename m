@@ -1,116 +1,123 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Mon, 27 Oct 2008 18:20:17 -0700
-Subject: [Ocfs2-devel] [PATCH 02/13] ocfs2: Convenient access to an xattr
-	bucket's block number.
+Date: Mon, 27 Oct 2008 18:20:20 -0700
+Subject: [Ocfs2-devel] [PATCH 05/13] ocfs2: Provide a wrapper to brelse()
+	xattr bucket buffers.
 In-Reply-To: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
 References: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1225156828-32189-3-git-send-email-joel.becker@oracle.com>
+Message-ID: <1225156828-32189-6-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The xattr code often wants to know the block number of an xattr bucket.
-This is usually found by dereferencing the first bh hanging off of the
-ocfs2_xattr_bucket structure.  Rather than do this all the time, let's
-provide a nice little macro.  The idea is ripped from the ocfs2_path
-code.
+A common theme is walking all the buffer heads on an ocfs2_xattr_bucket
+and releasing them.  Let's wrap that.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/xattr.c |   20 +++++++++++---------
- 1 files changed, 11 insertions(+), 9 deletions(-)
+ fs/ocfs2/xattr.c |   33 ++++++++++++++++++---------------
+ 1 files changed, 18 insertions(+), 15 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index fb8b401..7b320b2 100644
+index ff1cd6c..1f0569f 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -154,6 +154,8 @@ static inline u16 ocfs2_xattr_max_xe_in_bucket(struct super_block *sb)
- 	return len / sizeof(struct ocfs2_xattr_entry);
- }
+@@ -157,6 +157,17 @@ static inline u16 ocfs2_xattr_max_xe_in_bucket(struct super_block *sb)
+ #define bucket_block(_b, _n) ((_b)->bu_bhs[(_n)]->b_data)
+ #define bucket_xh(_b) ((struct ocfs2_xattr_header *)bucket_block((_b), 0))
  
-+#define bucket_blkno(_b) ((_b)->bu_bhs[0]->b_blocknr)
++static void ocfs2_xattr_bucket_relse(struct inode *inode,
++				     struct ocfs2_xattr_bucket *bucket)
++{
++	int i, blks = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
++
++	for (i = 0; i < blks; i++) {
++		brelse(bucket->bu_bhs[i]);
++		bucket->bu_bhs[i] = NULL;
++	}
++}
 +
  static inline const char *ocfs2_xattr_prefix(int name_index)
  {
  	struct xattr_handler *handler = NULL;
-@@ -2285,7 +2287,7 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
- 		 * If we have found the xattr enty, read all the blocks in
- 		 * this bucket.
- 		 */
--		ret = ocfs2_read_blocks(inode, xs->bucket.bu_bhs[0]->b_blocknr + 1,
-+		ret = ocfs2_read_blocks(inode, bucket_blkno(&xs->bucket) + 1,
- 					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
- 					0);
- 		if (ret) {
-@@ -2295,7 +2297,7 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
- 
- 		xs->here = &xs->header->xh_entries[index];
- 		mlog(0, "find xattr %s in bucket %llu, entry = %u\n", name,
--		     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr, index);
-+		     (unsigned long long)bucket_blkno(&xs->bucket), index);
- 	} else
- 		ret = -ENODATA;
- 
-@@ -2630,7 +2632,7 @@ static int ocfs2_xattr_update_xattr_search(struct inode *inode,
- 	if (!xs->not_found) {
- 		if (OCFS2_XATTR_BUCKET_SIZE != blocksize) {
- 			ret = ocfs2_read_blocks(inode,
--					xs->bucket.bu_bhs[0]->b_blocknr + 1,
-+					bucket_blkno(&xs->bucket) + 1,
- 					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
- 					0);
- 			if (ret) {
-@@ -2827,7 +2829,7 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 	size_t end, offset, len, value_len;
- 	struct ocfs2_xattr_header *xh;
- 	char *entries, *buf, *bucket_buf = NULL;
--	u64 blkno = bucket->bu_bhs[0]->b_blocknr;
-+	u64 blkno = bucket_blkno(bucket);
- 	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
- 	u16 xh_free_start;
- 	size_t blocksize = inode->i_sb->s_blocksize;
-@@ -4039,11 +4041,11 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
- 
- 	mlog(0, "Set xattr entry len = %lu index = %d in bucket %llu\n",
- 	     (unsigned long)xi->value_len, xi->name_index,
--	     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr);
-+	     (unsigned long long)bucket_blkno(&xs->bucket));
- 
- 	if (!xs->bucket.bu_bhs[1]) {
- 		ret = ocfs2_read_blocks(inode,
--					xs->bucket.bu_bhs[0]->b_blocknr + 1,
-+					bucket_blkno(&xs->bucket) + 1,
- 					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
- 					0);
- 		if (ret) {
-@@ -4445,7 +4447,7 @@ static int ocfs2_check_xattr_bucket_collision(struct inode *inode,
- 	    xh->xh_entries[0].xe_name_hash) {
- 		mlog(ML_ERROR, "Too much hash collision in xattr bucket %llu, "
- 		     "hash = %u\n",
--		     (unsigned long long)bucket->bu_bhs[0]->b_blocknr,
-+		     (unsigned long long)bucket_blkno(bucket),
- 		     le32_to_cpu(xh->xh_entries[0].xe_name_hash));
- 		return -ENOSPC;
+@@ -815,8 +826,7 @@ static int ocfs2_xattr_block_get(struct inode *inode,
  	}
-@@ -4479,7 +4481,7 @@ try_again:
+ 	ret = size;
+ cleanup:
+-	for (i = 0; i < OCFS2_XATTR_MAX_BLOCKS_PER_BUCKET; i++)
+-		brelse(xs->bucket.bu_bhs[i]);
++	ocfs2_xattr_bucket_relse(inode, &xs->bucket);
+ 	memset(&xs->bucket, 0, sizeof(xs->bucket));
  
- 	mlog_bug_on_msg(header_size > blocksize, "bucket %llu has header size "
- 			"of %u which exceed block size\n",
--			(unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr,
-+			(unsigned long long)bucket_blkno(&xs->bucket),
- 			header_size);
+ 	brelse(xs->xattr_bh);
+@@ -1927,7 +1937,6 @@ int ocfs2_xattr_set(struct inode *inode,
+ 	struct buffer_head *di_bh = NULL;
+ 	struct ocfs2_dinode *di;
+ 	int ret;
+-	u16 i, blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
  
- 	if (xi->value && xi->value_len > OCFS2_XATTR_INLINE_SIZE)
-@@ -4519,7 +4521,7 @@ try_again:
- 	mlog(0, "xs->not_found = %d, in xattr bucket %llu: free = %d, "
- 	     "need = %d, max_free = %d, xh_free_start = %u, xh_name_value_len ="
- 	     " %u\n", xs->not_found,
--	     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr,
-+	     (unsigned long long)bucket_blkno(&xs->bucket),
- 	     free, need, max_free, le16_to_cpu(xh->xh_free_start),
- 	     le16_to_cpu(xh->xh_name_value_len));
+ 	struct ocfs2_xattr_info xi = {
+ 		.name_index = name_index,
+@@ -2029,8 +2038,7 @@ cleanup:
+ 	ocfs2_inode_unlock(inode, 1);
+ 	brelse(di_bh);
+ 	brelse(xbs.xattr_bh);
+-	for (i = 0; i < blk_per_bucket; i++)
+-		brelse(xbs.bucket.bu_bhs[i]);
++	ocfs2_xattr_bucket_relse(inode, &xbs.bucket);
  
+ 	return ret;
+ }
+@@ -2352,7 +2360,7 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
+ 				       xattr_bucket_func *func,
+ 				       void *para)
+ {
+-	int i, j, ret = 0;
++	int i, ret = 0;
+ 	int blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+ 	u32 bpc = ocfs2_xattr_buckets_per_cluster(OCFS2_SB(inode->i_sb));
+ 	u32 num_buckets = clusters * bpc;
+@@ -2388,14 +2396,12 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
+ 			}
+ 		}
+ 
+-		for (j = 0; j < blk_per_bucket; j++)
+-			brelse(bucket.bu_bhs[j]);
++		ocfs2_xattr_bucket_relse(inode, &bucket);
+ 		memset(&bucket, 0, sizeof(bucket));
+ 	}
+ 
+ out:
+-	for (j = 0; j < blk_per_bucket; j++)
+-		brelse(bucket.bu_bhs[j]);
++	ocfs2_xattr_bucket_relse(inode, &bucket);
+ 
+ 	return ret;
+ }
+@@ -4459,11 +4465,10 @@ static int ocfs2_xattr_set_entry_index_block(struct inode *inode,
+ 	struct ocfs2_xattr_header *xh;
+ 	struct ocfs2_xattr_entry *xe;
+ 	u16 count, header_size, xh_free_start;
+-	int i, free, max_free, need, old;
++	int free, max_free, need, old;
+ 	size_t value_size = 0, name_len = strlen(xi->name);
+ 	size_t blocksize = inode->i_sb->s_blocksize;
+ 	int ret, allocation = 0;
+-	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+ 
+ 	mlog_entry("Set xattr %s in xattr index block\n", xi->name);
+ 
+@@ -4575,9 +4580,7 @@ try_again:
+ 			goto out;
+ 		}
+ 
+-		for (i = 0; i < blk_per_bucket; i++)
+-			brelse(xs->bucket.bu_bhs[i]);
+-
++		ocfs2_xattr_bucket_relse(inode, &xs->bucket);
+ 		memset(&xs->bucket, 0, sizeof(xs->bucket));
+ 
+ 		ret = ocfs2_xattr_index_block_find(inode, xs->xattr_bh,
 -- 
 1.5.6.5
