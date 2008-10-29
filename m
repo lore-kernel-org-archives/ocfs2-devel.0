@@ -1,58 +1,85 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 29 Oct 2008 03:51:39 -0700
-Subject: [Ocfs2-devel] [PATCH 25/29] ocfs2: Implementation of local
-	and	global quota file handling
-In-Reply-To: <20081029022902.GE24732@duck.suse.cz>
-References: <122488610212-git-send-email-jack@suse.cz>
-	<12248861041077-git-send-email-jack@suse.cz>
-	<20081028193652.GD17578@mail.oracle.com>
-	<20081029022902.GE24732@duck.suse.cz>
-Message-ID: <20081029105139.GA10080@ca-server1.us.oracle.com>
+From: tristan.ye <tristan.ye@oracle.com>
+Date: Wed, 29 Oct 2008 20:04:49 +0800
+Subject: [Ocfs2-devel] quota for ocfs2 do not warn a exceed for block
+	soft-limit sometimes
+Message-ID: <1225281889.6589.45.camel@tristan-laptop.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 29, 2008 at 03:29:02AM +0100, Jan Kara wrote:
-> > > +/* Structure with global user / group information. We reserve some space
-> > > + * for future use. */
-> > > +struct ocfs2_global_disk_dqblk {
-> > > +/*00*/	__le32 dqb_id;          /* ID the structure belongs to */
-> > > +	__le32 dqb_use_count;   /* Number of nodes having reference to this structure */
-> > > +	__le64 dqb_ihardlimit;  /* absolute limit on allocated inodes */
-> > > +/*10*/	__le64 dqb_isoftlimit;  /* preferred inode limit */
-> > > +	__le64 dqb_curinodes;   /* current # allocated inodes */
-> > > +/*20*/	__le64 dqb_bhardlimit;  /* absolute limit on disk space */
-> > > +	__le64 dqb_bsoftlimit;  /* preferred limit on disk space */
-> > > +/*30*/	__le64 dqb_curspace;    /* current space occupied */
-> > > +	__le64 dqb_btime;       /* time limit for excessive disk use */
-> > > +/*40*/	__le64 dqb_itime;       /* time limit for excessive inode use */
-> > > +	__le64 dqb_pad1;
-> > > +/*50*/	__le64 dqb_pad2;
-> > > +};
-> > 
-> > 	We also need space for the ecc data here.  It looks like ecc
-> > space wasn't added to this series.  Rather than comment on each
-> > structure, just let me know when that's ready.
->   What I did is, that in the end of each quotafile block there are 8 bytes
-> reserved for OCFS2 use (both in local and global quota files). So these
-> bytes are intended to be used for ECC. I hope that's fine.
+Jan,
 
-	So every block type (disk header, dq_block, etc) has the last 8
-bytes free?  This seems like something we should find a way to mention
-in the disk header.
+since i can not cc you mail address when filing a bug on oss
+bugzilla,just paste the bug description here.
 
-Joel
+Testing env,
 
--- 
+Kernel version:latest linus's mainline 2.6.27
+Testing Nodes:test5/6
 
-Bram's Law:
-	The easier a piece of software is to write, the worse it's
-	implemented in practice.
+Description:
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Jan,i used your provided quota tools,now it works for me:),currently,i'm
+doing a sanity check for the quota on ocfs2.
+
+Found a strange thing when comparing with the ext3,the quota sub-system
+sometimes did not warn me a tip when the soft-limit of space usage was
+exceeded.following are the steps to reproduce this issue:
+
+1.mkfs.ocfs2 --fs-features=usrquota,grpquota ...  /dev/sdc5
+
+2.mount -t ocfs2 -o usrquota,grpquota /dev/sdc5 /quota
+
+3.useradd -m quotauser
+
+4.setquota -u quotauser 1024 2048 10 20 -a /dev/sdc5
+
+5.quotaon -avug
+
+6.su - quotauser; cd /quota
+
+7. 
+dd if=/dev/zero of=./testfile1 bs=1024 count=1024
+1024+0 records in
+1024+0 records out
+1048576 bytes (1.0 MB) copied, 0.00825239 seconds, 127 MB/s
+
+dd if=/dev/zero of=./testfile2bs=1024 count=10
+sdc5: warning, user block quota exceeded.
+10+0 records in
+10+0 records out
+10240 bytes (10 kB) copied, 0.000133629 seconds, 76.6 MB/s
+
+at the first attempt,it successfully warn me a tip:
+sdc5: warning, user block quota exceeded.
+
+8.then I REMOVE all the dd created files by 'rm -rf testfile*',and try
+again with the same operations:
+
+ dd if=/dev/zero of=./testfile1 bs=1024 count=1024
+1024+0 records in
+1024+0 records out
+1048576 bytes (1.0 MB) copied, 0.00831317 seconds, 126 MB/s
+
+dd if=/dev/zero of=./testfile2 bs=1024 count=10
+10+0 records in
+10+0 records out
+10240 bytes (10 kB) copied, 0.000135853 seconds, 75.4 MB/s
+***here a warning should be printed to output******
+
+quota
+Disk quotas for user quotauser (uid 501): 
+     Filesystem  blocks   quota   limit   grace   files   quota   limit
+grace
+      /dev/sdc5    1056*   1024    2048   6days       2     100
+200   
+
+is that strange?
+
+     
+Thanks and regards,
+
+
+Tristan.
