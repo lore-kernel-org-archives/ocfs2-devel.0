@@ -1,35 +1,59 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 29 Oct 2008 15:58:32 -0700
-Subject: [Ocfs2-devel] [PATCH 00/00] Implement quotas for OCFS2 (version
-	2)
-In-Reply-To: <12248859043309-git-send-email-jack@suse.cz>
-References: <12248859043309-git-send-email-jack@suse.cz>
-Message-ID: <20081029225832.GH15154@wotan.suse.de>
+Date: Wed, 29 Oct 2008 16:09:34 -0700
+Subject: [Ocfs2-devel] [PATCH 10/29] quota: Introduce
+	DQUOT_QUOTA_SYS_FILE flag
+In-Reply-To: <12248861031533-git-send-email-jack@suse.cz>
+References: <122488610212-git-send-email-jack@suse.cz>
+	<12248861031533-git-send-email-jack@suse.cz>
+Message-ID: <20081029230934.GI15154@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, Oct 25, 2008 at 12:05:04AM +0200, Jan Kara wrote:
-> Hello,
+On Sat, Oct 25, 2008 at 12:08:03AM +0200, Jan Kara wrote:
+> If filesystem can handle quota files as system files hidden from users, we can
+> skip a lot of cache invalidation, syncing, inode flags setting etc. when
+> turning quotas on, off and quota_sync. Allow filesystem to indicate that it is
+> hiding quota files from users by DQUOT_QUOTA_SYS_FILE flag.
 > 
-> the following patch series implements quotas for OCFS2. The patch
-> series is based on:
-> git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git linux-next
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> ---
+>  fs/dquot.c            |   45 ++++++++++++++++++++++++++++++---------------
+>  fs/quota.c            |    3 +++
+>  include/linux/quota.h |    7 +++++++
+>  3 files changed, 40 insertions(+), 15 deletions(-)
+> 
+> diff --git a/fs/dquot.c b/fs/dquot.c
+> index 96ed45b..5b82722 100644
+> --- a/fs/dquot.c
+> +++ b/fs/dquot.c
+> @@ -1627,6 +1627,11 @@ int vfs_quota_disable(struct super_block *sb, int type, unsigned int flags)
+>  		dqopt->ops[cnt] = NULL;
+>  	}
+>  	mutex_unlock(&dqopt->dqonoff_mutex);
+> +
+> +	/* Skip syncing and setting flags if quota files are hidden */
+> +	if (dqopt->flags & DQUOT_QUOTA_SYS_FILE)
+> +		goto put_inodes;
+> +
+>  	/* Sync the superblock so that buffers with quota data are written to
+>  	 * disk (and so userspace sees correct data afterwards). */
+>  	if (sb->s_op->sync_fs)
+> @@ -1651,6 +1656,12 @@ int vfs_quota_disable(struct super_block *sb, int type, unsigned int flags)
+>  				mark_inode_dirty(toputinode[cnt]);
+>  			}
+>  			mutex_unlock(&dqopt->dqonoff_mutex);
+> +		}
+> +	if (sb->s_bdev)
+> +		invalidate_bdev(sb->s_bdev);
 
-Great, thanks for posting these again.
+Is the indentation here weird, or am I just reading this wrong?
 
 
-> I've adressed Joel's comments, also node recovery is now fully working
-> and I've fixed a few issues I found during my testing. So I'm currently
-> not aware of any bugs. Please review, test, comment. Thanks.
-
-How are we going to handle the vfs patches? I think realistically, they
-should just all go into the merge_window branch of ocfs2.git along with the
-Ocfs2 patches to add quoata support (and make use of the VFS features you
-added). The VFS patches at least though, should probably get posted to
-linux-fsdevel before I pick them up.
+Otherwise btw, this patch is a fantastic idea. I hadn't thought of it
+before, but this should save Ocfs2 a good amount of pain.
 	--Mark
 
 --
