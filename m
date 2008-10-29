@@ -1,63 +1,65 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 29 Oct 2008 03:30:46 +0100
-Subject: [Ocfs2-devel] [PATCH 29/29] ocfs2: Enable quota accounting
-	on	mount, disable on umount
-In-Reply-To: <20081028191103.GB28483@mail.oracle.com>
-References: <122488610212-git-send-email-jack@suse.cz>
-	<12248861051597-git-send-email-jack@suse.cz>
-	<20081028191103.GB28483@mail.oracle.com>
-Message-ID: <20081029023046.GF24732@duck.suse.cz>
+From: tristan.ye <tristan.ye@oracle.com>
+Date: Wed, 29 Oct 2008 10:32:17 +0800
+Subject: [Ocfs2-devel] [PATCH 00/00] Implement quotas for OCFS2 (version
+	2)
+In-Reply-To: <20081029015732.GB24732@duck.suse.cz>
+References: <12248859043309-git-send-email-jack@suse.cz>
+	<1225098534.6525.43.camel@tristan-laptop.cn.oracle.com>
+	<20081027112312.GA18903@duck.suse.cz>
+	<1225159789.6555.24.camel@tristan-laptop.cn.oracle.com>
+	<1225192987.17596.20.camel@tristan-laptop.cn.oracle.com>
+	<20081029015732.GB24732@duck.suse.cz>
+Message-ID: <1225247537.6589.7.camel@tristan-laptop.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue 28-10-08 12:11:03, Joel Becker wrote:
-> On Sat, Oct 25, 2008 at 12:08:22AM +0200, Jan Kara wrote:
-> > Enable quota usage tracking on mount and disable it on umount. Also
-> > add support for quota on and quota off quotactls and usrquota and
-> > grpquota mount options.
+On Wed, 2008-10-29 at 02:57 +0100, Jan Kara wrote:
+> > Jan,
 > > 
-> 
-> <snip>
-> 
-> > diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> > index 92539fe..bddc210 100644
-> > --- a/fs/ocfs2/super.c
-> > +++ b/fs/ocfs2/super.c
-> > @@ -780,6 +950,23 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
-> >  	atomic_set(&osb->vol_state, VOLUME_MOUNTED);
-> >  	wake_up(&osb->osb_mount_event);
-> >  
-> > +	/* Now we can initialize quotas because we can afford to wait
-> > +	 * for cluster locks recovery now. That also means that truncation
-> > +	 * log recovery can happen but that waits for proper quota setup */
-> > +	if (!(sb->s_flags & MS_RDONLY)) {
-> > +		status = ocfs2_enable_quotas(osb);
-> > +		if (status < 0) {
-> > +			mlog_errno(status);
-> > +			goto read_super_error;
-> > +		}
-> > +	}
-> > +
-> > +	ocfs2_complete_quota_recovery(osb);
-> > +
-> > +	/* Now we wake up again for processes waiting for quotas */
-> > +	atomic_set(&osb->vol_state, VOLUME_MOUNTED_QUOTAS);
-> > +	wake_up(&osb->osb_mount_event);
-> > +
-> >  	mlog_exit(status);
-> >  	return status;
-> >  
-> 
-> 	This hunk still has the bug where you are jumping to
-> read_super_error after setting sb->s_root.  I'm guessing you have that
-> fixed on your machine?
-  Not yet fixed but yeah, I have it on my todo list :). These patches went
-out before you pointed out the bug to me. Thanks for the review.
+> > Sorry for making the noise again:)
+>   I'm happy the patches finally appply fine for you :).
 
-								Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+Thanks a lot for your clarifications for my questions,I'll try your
+provided tools later.
+
+For the second version(26patches) patch set you've provided, i did not
+succeed to apply on your recommended kernel(Mark's linux-next branch),
+but only get it done with a success on linus's mainline-2.6.27 kernel.
+so it may make a little bit difference with your working environment,
+will it make any hurt for quota testing?
+
+Tristan.
+
+> 
+> > I'm just curious about one thing, as you said we choose quotaon to
+> > enforce the quota limitation on ocfs2 to keep the consistency with other
+> > fs, and the quotaon finally call the quoctl with the cmd word
+> > 'Q_QUOTAON', here i found the quoctl() need a agrumnet to point to  the
+> > path name of file containing the quotas for the filesystem,but
+> > unfortunately these files were hidden from userspace on ocfs2. so this
+> > quotactl call for turning on the quota will definitely fail, is that the
+> > case?
+>   No, the quotactl won't fail because OCFS2 kernel module overloads
+> function implementing the Q_QUOTAON handling and so filename is actually
+> ignored and it provides corresponding system inode instead.
+> 
+> > Since the existing POSIX quota tools did not work  under ocfs2
+> > currently, i've written a simple version of the quota tools(just
+> > including getquota,setquotas and quotactl) by the help of quotactl()
+> > API.  All of its binaries and src attached.
+>   It is strange that they don't work for you. Are you using the version of
+> quota-tools I sent you (like week ago after I sent the first set of
+> patches)? Because the changed version of quota-tools works here for me just
+> fine... I'm attaching it to this mail again just in case it got lost somewhere.
+> 
+> > As what i said above, my version of quotaon(invoked by 'quotactl -o')
+> > also did not work here ,and fortunately, we really do succeed to set/get
+> > the quota for usr/group.
+> > you can have a check in your env if you wish.
+>   Well, having your own tool for turning quotas on is possible as well, but
+> I think it would be better if you used provided quota-tools.
+> 
+> 								Honza
