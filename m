@@ -1,99 +1,63 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed, 29 Oct 2008 03:29:02 +0100
-Subject: [Ocfs2-devel] [PATCH 25/29] ocfs2: Implementation of local
-	and	global quota file handling
-In-Reply-To: <20081028193652.GD17578@mail.oracle.com>
+Date: Wed, 29 Oct 2008 03:30:46 +0100
+Subject: [Ocfs2-devel] [PATCH 29/29] ocfs2: Enable quota accounting
+	on	mount, disable on umount
+In-Reply-To: <20081028191103.GB28483@mail.oracle.com>
 References: <122488610212-git-send-email-jack@suse.cz>
-	<12248861041077-git-send-email-jack@suse.cz>
-	<20081028193652.GD17578@mail.oracle.com>
-Message-ID: <20081029022902.GE24732@duck.suse.cz>
+	<12248861051597-git-send-email-jack@suse.cz>
+	<20081028191103.GB28483@mail.oracle.com>
+Message-ID: <20081029023046.GF24732@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue 28-10-08 12:36:52, Joel Becker wrote:
-> On Sat, Oct 25, 2008 at 12:08:18AM +0200, Jan Kara wrote:
-> > For each quota type each node has local quota file. In this file it stores
-> > changes users have made to disk usage via this node. Once in a while this
-> > information is synced to global file (and thus with other nodes) so that
-> > limits enforcement at least aproximately works.
-> > diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-> > index dd17137..04bebd2 100644
-> > --- a/fs/ocfs2/ocfs2_fs.h
-> > +++ b/fs/ocfs2/ocfs2_fs.h
-> > @@ -878,6 +878,101 @@ static inline int ocfs2_xattr_get_type(struct ocfs2_xattr_entry *xe)
-> >  	return xe->xe_type & OCFS2_XATTR_TYPE_MASK;
-> >  }
+On Tue 28-10-08 12:11:03, Joel Becker wrote:
+> On Sat, Oct 25, 2008 at 12:08:22AM +0200, Jan Kara wrote:
+> > Enable quota usage tracking on mount and disable it on umount. Also
+> > add support for quota on and quota off quotactls and usrquota and
+> > grpquota mount options.
+> > 
+> 
+> <snip>
+> 
+> > diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> > index 92539fe..bddc210 100644
+> > --- a/fs/ocfs2/super.c
+> > +++ b/fs/ocfs2/super.c
+> > @@ -780,6 +950,23 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+> >  	atomic_set(&osb->vol_state, VOLUME_MOUNTED);
+> >  	wake_up(&osb->osb_mount_event);
 > >  
-> > +/*
-> > + *  On disk structures for global quota file
-> > + */
+> > +	/* Now we can initialize quotas because we can afford to wait
+> > +	 * for cluster locks recovery now. That also means that truncation
+> > +	 * log recovery can happen but that waits for proper quota setup */
+> > +	if (!(sb->s_flags & MS_RDONLY)) {
+> > +		status = ocfs2_enable_quotas(osb);
+> > +		if (status < 0) {
+> > +			mlog_errno(status);
+> > +			goto read_super_error;
+> > +		}
+> > +	}
 > > +
-> > +/* Magic numbers and known versions for global quota files */
-> > +#define OCFS2_GLOBAL_QMAGICS {\
-> > +	0x0cf52470, /* USRQUOTA */ \
-> > +	0x0cf52471  /* GRPQUOTA */ \
-> > +}
+> > +	ocfs2_complete_quota_recovery(osb);
 > > +
-> > +#define OCFS2_GLOBAL_QVERSIONS {\
-> > +	0, \
-> > +	0, \
-> > +}
+> > +	/* Now we wake up again for processes waiting for quotas */
+> > +	atomic_set(&osb->vol_state, VOLUME_MOUNTED_QUOTAS);
+> > +	wake_up(&osb->osb_mount_event);
 > > +
-> > +/* Generic header of all quota files */
-> > +struct ocfs2_disk_dqheader {
-> > +	__le32 dqh_magic;	/* Magic number identifying file */
-> > +	__le32 dqh_version;	/* Quota format version */
-> > +};
-> > +
-> > +#define OCFS2_GLOBAL_INFO_OFF (sizeof(struct ocfs2_disk_dqheader))
-> > +
-> > +/* Information header of global quota file (immediately follows the generic
-> > + * header) */
-> > +struct ocfs2_global_disk_dqinfo {
-> > +/*00*/	__le32 dqi_bgrace;
-> > +	__le32 dqi_igrace;
-> > +	__le32 dqi_syncms;
-> > +	__le32 dqi_blocks;
-> > +/*10*/	__le32 dqi_free_blk;
-> > +	__le32 dqi_free_entry;
-> > +};
+> >  	mlog_exit(status);
+> >  	return status;
+> >  
 > 
-> 	The way I read this, the first block of a quota file contains
-> first the disk_dqheader, and then the local info
-> (global_disk_dqinfo,local_disk_dqinfo).  Is that right?  I'd love to see
-> the ecc field (__le64 for now) in the disk_dqheader.
-  Yes. Actually, this set of patches already counts with ECC, but it's
-hidden ;). See below.
-
-> > +/* Structure with global user / group information. We reserve some space
-> > + * for future use. */
-> > +struct ocfs2_global_disk_dqblk {
-> > +/*00*/	__le32 dqb_id;          /* ID the structure belongs to */
-> > +	__le32 dqb_use_count;   /* Number of nodes having reference to this structure */
-> > +	__le64 dqb_ihardlimit;  /* absolute limit on allocated inodes */
-> > +/*10*/	__le64 dqb_isoftlimit;  /* preferred inode limit */
-> > +	__le64 dqb_curinodes;   /* current # allocated inodes */
-> > +/*20*/	__le64 dqb_bhardlimit;  /* absolute limit on disk space */
-> > +	__le64 dqb_bsoftlimit;  /* preferred limit on disk space */
-> > +/*30*/	__le64 dqb_curspace;    /* current space occupied */
-> > +	__le64 dqb_btime;       /* time limit for excessive disk use */
-> > +/*40*/	__le64 dqb_itime;       /* time limit for excessive inode use */
-> > +	__le64 dqb_pad1;
-> > +/*50*/	__le64 dqb_pad2;
-> > +};
-> 
-> 	We also need space for the ecc data here.  It looks like ecc
-> space wasn't added to this series.  Rather than comment on each
-> structure, just let me know when that's ready.
-  What I did is, that in the end of each quotafile block there are 8 bytes
-reserved for OCFS2 use (both in local and global quota files). So these
-bytes are intended to be used for ECC. I hope that's fine.
+> 	This hunk still has the bug where you are jumping to
+> read_super_error after setting sb->s_root.  I'm guessing you have that
+> fixed on your machine?
+  Not yet fixed but yeah, I have it on my todo list :). These patches went
+out before you pointed out the bug to me. Thanks for the review.
 
 								Honza
-
 -- 
 Jan Kara <jack@suse.cz>
 SUSE Labs, CR
