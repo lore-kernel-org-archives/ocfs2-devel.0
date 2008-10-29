@@ -1,61 +1,99 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed, 29 Oct 2008 02:57:32 +0100
-Subject: [Ocfs2-devel] [PATCH 00/00] Implement quotas for OCFS2 (version
-	2)
-In-Reply-To: <1225192987.17596.20.camel@tristan-laptop.cn.oracle.com>
-References: <12248859043309-git-send-email-jack@suse.cz>
-	<1225098534.6525.43.camel@tristan-laptop.cn.oracle.com>
-	<20081027112312.GA18903@duck.suse.cz>
-	<1225159789.6555.24.camel@tristan-laptop.cn.oracle.com>
-	<1225192987.17596.20.camel@tristan-laptop.cn.oracle.com>
-Message-ID: <20081029015732.GB24732@duck.suse.cz>
+Date: Wed, 29 Oct 2008 03:29:02 +0100
+Subject: [Ocfs2-devel] [PATCH 25/29] ocfs2: Implementation of local
+	and	global quota file handling
+In-Reply-To: <20081028193652.GD17578@mail.oracle.com>
+References: <122488610212-git-send-email-jack@suse.cz>
+	<12248861041077-git-send-email-jack@suse.cz>
+	<20081028193652.GD17578@mail.oracle.com>
+Message-ID: <20081029022902.GE24732@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-> Jan,
+On Tue 28-10-08 12:36:52, Joel Becker wrote:
+> On Sat, Oct 25, 2008 at 12:08:18AM +0200, Jan Kara wrote:
+> > For each quota type each node has local quota file. In this file it stores
+> > changes users have made to disk usage via this node. Once in a while this
+> > information is synced to global file (and thus with other nodes) so that
+> > limits enforcement at least aproximately works.
+> > diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+> > index dd17137..04bebd2 100644
+> > --- a/fs/ocfs2/ocfs2_fs.h
+> > +++ b/fs/ocfs2/ocfs2_fs.h
+> > @@ -878,6 +878,101 @@ static inline int ocfs2_xattr_get_type(struct ocfs2_xattr_entry *xe)
+> >  	return xe->xe_type & OCFS2_XATTR_TYPE_MASK;
+> >  }
+> >  
+> > +/*
+> > + *  On disk structures for global quota file
+> > + */
+> > +
+> > +/* Magic numbers and known versions for global quota files */
+> > +#define OCFS2_GLOBAL_QMAGICS {\
+> > +	0x0cf52470, /* USRQUOTA */ \
+> > +	0x0cf52471  /* GRPQUOTA */ \
+> > +}
+> > +
+> > +#define OCFS2_GLOBAL_QVERSIONS {\
+> > +	0, \
+> > +	0, \
+> > +}
+> > +
+> > +/* Generic header of all quota files */
+> > +struct ocfs2_disk_dqheader {
+> > +	__le32 dqh_magic;	/* Magic number identifying file */
+> > +	__le32 dqh_version;	/* Quota format version */
+> > +};
+> > +
+> > +#define OCFS2_GLOBAL_INFO_OFF (sizeof(struct ocfs2_disk_dqheader))
+> > +
+> > +/* Information header of global quota file (immediately follows the generic
+> > + * header) */
+> > +struct ocfs2_global_disk_dqinfo {
+> > +/*00*/	__le32 dqi_bgrace;
+> > +	__le32 dqi_igrace;
+> > +	__le32 dqi_syncms;
+> > +	__le32 dqi_blocks;
+> > +/*10*/	__le32 dqi_free_blk;
+> > +	__le32 dqi_free_entry;
+> > +};
 > 
-> Sorry for making the noise again:)
-  I'm happy the patches finally appply fine for you :).
+> 	The way I read this, the first block of a quota file contains
+> first the disk_dqheader, and then the local info
+> (global_disk_dqinfo,local_disk_dqinfo).  Is that right?  I'd love to see
+> the ecc field (__le64 for now) in the disk_dqheader.
+  Yes. Actually, this set of patches already counts with ECC, but it's
+hidden ;). See below.
 
-> I'm just curious about one thing, as you said we choose quotaon to
-> enforce the quota limitation on ocfs2 to keep the consistency with other
-> fs, and the quotaon finally call the quoctl with the cmd word
-> 'Q_QUOTAON', here i found the quoctl() need a agrumnet to point to  the
-> path name of file containing the quotas for the filesystem,but
-> unfortunately these files were hidden from userspace on ocfs2. so this
-> quotactl call for turning on the quota will definitely fail, is that the
-> case?
-  No, the quotactl won't fail because OCFS2 kernel module overloads
-function implementing the Q_QUOTAON handling and so filename is actually
-ignored and it provides corresponding system inode instead.
-
-> Since the existing POSIX quota tools did not work  under ocfs2
-> currently, i've written a simple version of the quota tools(just
-> including getquota,setquotas and quotactl) by the help of quotactl()
-> API.  All of its binaries and src attached.
-  It is strange that they don't work for you. Are you using the version of
-quota-tools I sent you (like week ago after I sent the first set of
-patches)? Because the changed version of quota-tools works here for me just
-fine... I'm attaching it to this mail again just in case it got lost somewhere.
-
-> As what i said above, my version of quotaon(invoked by 'quotactl -o')
-> also did not work here ,and fortunately, we really do succeed to set/get
-> the quota for usr/group.
-> you can have a check in your env if you wish.
-  Well, having your own tool for turning quotas on is possible as well, but
-I think it would be better if you used provided quota-tools.
+> > +/* Structure with global user / group information. We reserve some space
+> > + * for future use. */
+> > +struct ocfs2_global_disk_dqblk {
+> > +/*00*/	__le32 dqb_id;          /* ID the structure belongs to */
+> > +	__le32 dqb_use_count;   /* Number of nodes having reference to this structure */
+> > +	__le64 dqb_ihardlimit;  /* absolute limit on allocated inodes */
+> > +/*10*/	__le64 dqb_isoftlimit;  /* preferred inode limit */
+> > +	__le64 dqb_curinodes;   /* current # allocated inodes */
+> > +/*20*/	__le64 dqb_bhardlimit;  /* absolute limit on disk space */
+> > +	__le64 dqb_bsoftlimit;  /* preferred limit on disk space */
+> > +/*30*/	__le64 dqb_curspace;    /* current space occupied */
+> > +	__le64 dqb_btime;       /* time limit for excessive disk use */
+> > +/*40*/	__le64 dqb_itime;       /* time limit for excessive inode use */
+> > +	__le64 dqb_pad1;
+> > +/*50*/	__le64 dqb_pad2;
+> > +};
+> 
+> 	We also need space for the ecc data here.  It looks like ecc
+> space wasn't added to this series.  Rather than comment on each
+> structure, just let me know when that's ready.
+  What I did is, that in the end of each quotafile block there are 8 bytes
+reserved for OCFS2 use (both in local and global quota files). So these
+bytes are intended to be used for ECC. I hope that's fine.
 
 								Honza
+
 -- 
 Jan Kara <jack@suse.cz>
 SUSE Labs, CR
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: quota-tools-ocfs2.tar.gz
-Type: application/x-compressed-tar
-Size: 419370 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20081029/200da1c3/attachment-0001.bin 
