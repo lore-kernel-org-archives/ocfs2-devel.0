@@ -1,89 +1,83 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 29 Oct 2008 19:38:37 +0100
-Subject: [Ocfs2-devel] quota for ocfs2 do not warn a exceed for block
-	soft-limit	sometimes
-In-Reply-To: <1225281889.6589.45.camel@tristan-laptop.cn.oracle.com>
-References: <1225281889.6589.45.camel@tristan-laptop.cn.oracle.com>
-Message-ID: <20081029183837.GB27407@duck.suse.cz>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 29 Oct 2008 14:59:39 -0700
+Subject: [Ocfs2-devel] [Fwd: How do I printk <type> correctly?]
+Message-ID: <20081029215939.GG15154@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  Hello,
+Hi Folks,
 
-On Wed 29-10-08 20:04:49, tristan.ye wrote:
-> since i can not cc you mail address when filing a bug on oss
-> bugzilla,just paste the bug description here.
-  Thanks.
+	Please read the below post - I keep having to fix up printk-related
+build warnings, usually because I miss them on x86_64, then someone builds
+on ia64 or ppc, etc and e-mails me. This is trivial to avoid though - we
+keep making the same mistake:
 
-> Testing env,
-> 
-> Kernel version:latest linus's mainline 2.6.27
-> Testing Nodes:test5/6
-> 
-> Description:
-> 
-> Jan,i used your provided quota tools,now it works for me:),currently,i'm
-> doing a sanity check for the quota on ocfs2.
-> 
-> Found a strange thing when comparing with the ext3,the quota sub-system
-> sometimes did not warn me a tip when the soft-limit of space usage was
-> exceeded.following are the steps to reproduce this issue:
-> 
-> 1.mkfs.ocfs2 --fs-features=usrquota,grpquota ...  /dev/sdc5
-> 
-> 2.mount -t ocfs2 -o usrquota,grpquota /dev/sdc5 /quota
-> 
-> 3.useradd -m quotauser
-> 
-> 4.setquota -u quotauser 1024 2048 10 20 -a /dev/sdc5
-> 
-> 5.quotaon -avug
-> 
-> 6.su - quotauser; cd /quota
-> 
-> 7. 
-> dd if=/dev/zero of=./testfile1 bs=1024 count=1024
-> 1024+0 records in
-> 1024+0 records out
-> 1048576 bytes (1.0 MB) copied, 0.00825239 seconds, 127 MB/s
-> 
-> dd if=/dev/zero of=./testfile2bs=1024 count=10
-> sdc5: warning, user block quota exceeded.
-> 10+0 records in
-> 10+0 records out
-> 10240 bytes (10 kB) copied, 0.000133629 seconds, 76.6 MB/s
-> 
-> at the first attempt,it successfully warn me a tip:
-> sdc5: warning, user block quota exceeded.
-> 
-> 8.then I REMOVE all the dd created files by 'rm -rf testfile*',and try
-> again with the same operations:
-> 
->  dd if=/dev/zero of=./testfile1 bs=1024 count=1024
-> 1024+0 records in
-> 1024+0 records out
-> 1048576 bytes (1.0 MB) copied, 0.00831317 seconds, 126 MB/s
-> 
-> dd if=/dev/zero of=./testfile2 bs=1024 count=10
-> 10+0 records in
-> 10+0 records out
-> 10240 bytes (10 kB) copied, 0.000135853 seconds, 75.4 MB/s
-> ***here a warning should be printed to output******
-> 
-> quota
-> Disk quotas for user quotauser (uid 501): 
->      Filesystem  blocks   quota   limit   grace   files   quota   limit
-> grace
->       /dev/sdc5    1056*   1024    2048   6days       2     100
-> 200   
-> 
-> is that strange?
-  Yup, I see the bug. Thanks for report. I'll fix it.
+{
+	u64 block;
+	printk("block: %llu\n", block);
+}
 
-								Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+
+That code above will generate a warning similar to:
+fs/ocfs2/xxx.c:lineo: warning: long long unsigned int format, u64 arg (arg X)
+
+Instead, you must always cast 'u64' and 's64' to whatever you're asking
+printk to print. For example, the correct form of the above example would
+be:
+
+{
+	u64 block;
+	printk("block: %llu\n", (unsigned long long)block);
+}
+
+
+There's more regarding size_t, s64, etc below.
+	--Mark
+
+----- Forwarded message from Alexey Dobriyan <adobriyan@gmail.com> -----
+
+Date:	Thu, 23 Oct 2008 15:41:33 +0400
+From: Alexey Dobriyan <adobriyan@gmail.com>
+To: linux-kernel at vger.kernel.org
+Subject: How do I printk <type> correctly?
+User-Agent: Mutt/1.5.18 (2008-05-17)
+
+If variable is of Type	use	printk format specifier.
+---------------------------------------------------------
+		int			%d or %x
+		unsigned int		%u or %x
+		long			%ld ot %lx
+		unsigned long		%lu or %lx
+		long long		%lld or %llx
+		unsigned long long	%llu or %llx
+		size_t			%zu or %zx
+		ssize_t			%zd or %zx
+
+Raw pointer value SHOULD be printed with %p.
+
+u64 SHOULD be printed with %llu/%llx, (unsigned long long):
+
+	printk("%llu", (unsigned long long)u64_var);
+
+s64 SHOULD be printed with %lld/%llx, (long long):
+
+	printk("%lld", (long long)s64_var);
+
+If type is dependent on config option (sector_t), use format specifier
+of biggest type and explicitly cast to it.
+
+Reminder: sizeof() result is of type size_t.
+
+Thank you for your cooperation.
+--
+To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+the body of a message to majordomo at vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Please read the FAQ at  http://www.tux.org/lkml/
+
+----- End forwarded message -----
+--
+Mark Fasheh
