@@ -1,170 +1,130 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu, 30 Oct 2008 19:40:19 +0800
-Subject: [Ocfs2-devel] [PATCH 06/15] ocfs2: move new_inode out of the
-	transaction
+Date: Thu, 30 Oct 2008 19:40:38 +0800
+Subject: [Ocfs2-devel] [PATCH 07/15] ocfs2: add ocfs2_xattr_set_handle
 In-Reply-To: <49099B13.9030802@oracle.com>
 References: <49099B13.9030802@oracle.com>
-Message-ID: <1225366819-6286-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <1225366838-6338-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-we need know the security xattr size before start transaction,
-so mov new_inode out of mknod_unlock and populate i_mode to
-get the exact security xattr size.
+This function use to set xattr in a started transaction.
+It is similar to ocfs2_xattr_set.
 
 Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/namei.c |   53 +++++++++++++++++++++++++++++++++--------------------
- 1 files changed, 33 insertions(+), 20 deletions(-)
+ fs/ocfs2/xattr.c |   81 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/xattr.h |    4 ++
+ 2 files changed, 85 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f4967e6..dd4ee52 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -71,7 +71,7 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 			      struct buffer_head **new_fe_bh,
- 			      struct buffer_head *parent_fe_bh,
- 			      handle_t *handle,
--			      struct inode **ret_inode,
-+			      struct inode *inode,
- 			      struct ocfs2_alloc_context *inode_ac);
- 
- static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
-@@ -186,6 +186,21 @@ bail:
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 0e380c4..8c33a3f 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2319,6 +2319,87 @@ out:
  	return ret;
  }
  
-+static inline struct inode *ocfs2_make_init_inode(struct inode *dir, int mode)
++int ocfs2_xattr_set_handle(handle_t *handle,
++			   struct inode *inode,
++			   struct buffer_head *di_bh,
++			   int name_index,
++			   const char *name,
++			   const void *value,
++			   size_t value_len,
++			   int flags,
++			   struct ocfs2_alloc_context *meta_ac,
++			   struct ocfs2_alloc_context *data_ac)
 +{
-+	struct inode *inode;
++	struct ocfs2_dinode *di;
++	int ret, credits;
 +
-+	/*
-+	 * move new_inode out of the transanction and populate i_mode
-+	 * to get exact security xattr size.
-+	 */
-+	inode = new_inode(dir->i_sb);
-+	if (!IS_ERR(inode))
-+		inode->i_mode = mode;
++	struct ocfs2_xattr_info xi = {
++		.name_index = name_index,
++		.name = name,
++		.value = value,
++		.value_len = value_len,
++	};
 +
-+	return inode;
++	struct ocfs2_xattr_search xis = {
++		.not_found = -ENODATA,
++	};
++
++	struct ocfs2_xattr_search xbs = {
++		.not_found = -ENODATA,
++	};
++
++	struct ocfs2_xattr_set_ctxt ctxt = {
++		.handle = handle,
++		.meta_ac = meta_ac,
++		.data_ac = data_ac,
++	};
++
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return -EOPNOTSUPP;
++
++	xbs.bucket = ocfs2_xattr_bucket_new(inode);
++	if (!xbs.bucket) {
++		mlog_errno(-ENOMEM);
++		return -ENOMEM;
++	}
++
++	xis.inode_bh = xbs.inode_bh = di_bh;
++	di = (struct ocfs2_dinode *)di_bh->b_data;
++
++	down_write(&OCFS2_I(inode)->ip_xattr_sem);
++
++	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
++	if (ret)
++		goto cleanup;
++	if (xis.not_found) {
++		ret = ocfs2_xattr_block_find(inode, name_index, name, &xbs);
++		if (ret)
++			goto cleanup;
++	}
++
++	ret = ocfs2_calc_xattr_set_need(inode, di, &xi, &xis, &xbs,
++					NULL, NULL, &credits);
++	if (ret) {
++		mlog_errno(ret);
++		goto cleanup;
++	}
++
++	ret = ocfs2_extend_trans(handle, credits);
++	if (ret) {
++		mlog_errno(ret);
++		goto cleanup;
++	}
++
++	ret = __ocfs2_xattr_set_handle(inode, di, &xi, &xis, &xbs, &ctxt);
++
++cleanup:
++	up_write(&OCFS2_I(inode)->ip_xattr_sem);
++	brelse(xbs.xattr_bh);
++	ocfs2_xattr_bucket_free(xbs.bucket);
++
++	return ret;
 +}
 +
- static int ocfs2_mknod(struct inode *dir,
- 		       struct dentry *dentry,
- 		       int mode,
-@@ -250,6 +265,13 @@ static int ocfs2_mknod(struct inode *dir,
- 		goto leave;
- 	}
+ /*
+  * ocfs2_xattr_set()
+  *
+diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
+index 1d8314c..8fbdc16 100644
+--- a/fs/ocfs2/xattr.h
++++ b/fs/ocfs2/xattr.h
+@@ -37,6 +37,10 @@ extern struct xattr_handler *ocfs2_xattr_handlers[];
+ ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
+ int ocfs2_xattr_set(struct inode *, int, const char *, const void *,
+ 		    size_t, int);
++int ocfs2_xattr_set_handle(handle_t *, struct inode *, struct buffer_head *,
++			   int, const char *, const void *, size_t, int,
++			   struct ocfs2_alloc_context *,
++			   struct ocfs2_alloc_context *);
+ int ocfs2_xattr_remove(struct inode *, struct buffer_head *);
  
-+	inode = ocfs2_make_init_inode(dir, mode);
-+	if (IS_ERR(inode)) {
-+		status = PTR_ERR(inode);
-+		mlog(ML_ERROR, "new_inode failed!\n");
-+		goto leave;
-+	}
-+
- 	/* Reserve a cluster if creating an extent based directory. */
- 	if (S_ISDIR(mode) && !ocfs2_supports_inline_data(osb)) {
- 		status = ocfs2_reserve_clusters(osb, 1, &data_ac);
-@@ -271,7 +293,7 @@ static int ocfs2_mknod(struct inode *dir,
- 	/* do the real work now. */
- 	status = ocfs2_mknod_locked(osb, dir, dentry, mode, dev,
- 				    &new_fe_bh, parent_fe_bh, handle,
--				    &inode, inode_ac);
-+				    inode, inode_ac);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
-@@ -353,7 +375,7 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 			      struct buffer_head **new_fe_bh,
- 			      struct buffer_head *parent_fe_bh,
- 			      handle_t *handle,
--			      struct inode **ret_inode,
-+			      struct inode *inode,
- 			      struct ocfs2_alloc_context *inode_ac)
- {
- 	int status = 0;
-@@ -361,14 +383,12 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 	struct ocfs2_extent_list *fel;
- 	u64 fe_blkno = 0;
- 	u16 suballoc_bit;
--	struct inode *inode = NULL;
- 
- 	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry, mode,
- 		   (unsigned long)dev, dentry->d_name.len,
- 		   dentry->d_name.name);
- 
- 	*new_fe_bh = NULL;
--	*ret_inode = NULL;
- 
- 	status = ocfs2_claim_new_inode(osb, handle, inode_ac, &suballoc_bit,
- 				       &fe_blkno);
-@@ -377,13 +397,6 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 		goto leave;
- 	}
- 
--	inode = new_inode(dir->i_sb);
--	if (!inode) {
--		status = -ENOMEM;
--		mlog(ML_ERROR, "new_inode failed!\n");
--		goto leave;
--	}
--
- 	/* populate as many fields early on as possible - many of
- 	 * these are used by the support functions here and in
- 	 * callers. */
-@@ -393,7 +406,6 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 		inode->i_nlink = 2;
- 	else
- 		inode->i_nlink = 1;
--	inode->i_mode = mode;
- 	spin_lock(&osb->osb_lock);
- 	inode->i_generation = osb->s_next_generation++;
- 	spin_unlock(&osb->osb_lock);
-@@ -483,18 +495,12 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 
- 	status = 0; /* error in ocfs2_create_new_inode_locks is not
- 		     * critical */
--
--	*ret_inode = inode;
- leave:
- 	if (status < 0) {
- 		if (*new_fe_bh) {
- 			brelse(*new_fe_bh);
- 			*new_fe_bh = NULL;
- 		}
--		if (inode) {
--			clear_nlink(inode);
--			iput(inode);
--		}
- 	}
- 
- 	mlog_exit(status);
-@@ -1552,6 +1558,13 @@ static int ocfs2_symlink(struct inode *dir,
- 		}
- 	}
- 
-+	inode = ocfs2_make_init_inode(dir, (S_IFLNK | S_IRWXUGO));
-+	if (IS_ERR(inode)) {
-+		status = PTR_ERR(inode);
-+		mlog(ML_ERROR, "new_inode failed!\n");
-+		goto bail;
-+	}
-+
- 	handle = ocfs2_start_trans(osb, credits);
- 	if (IS_ERR(handle)) {
- 		status = PTR_ERR(handle);
-@@ -1563,7 +1576,7 @@ static int ocfs2_symlink(struct inode *dir,
- 	status = ocfs2_mknod_locked(osb, dir, dentry,
- 				    S_IFLNK | S_IRWXUGO, 0,
- 				    &new_fe_bh, parent_fe_bh, handle,
--				    &inode, inode_ac);
-+				    inode, inode_ac);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
+ #endif /* OCFS2_XATTR_H */
 -- 
 1.5.4.1
