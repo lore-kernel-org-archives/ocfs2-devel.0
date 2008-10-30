@@ -1,50 +1,55 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 30 Oct 2008 13:31:21 -0700
-Subject: [Ocfs2-devel] [PATCH 25/29] ocfs2: Implementation of local
-	and	global quota file handling
-In-Reply-To: <20081030073339.GD14500@duck.suse.cz>
-References: <122488610212-git-send-email-jack@suse.cz>
-	<12248861041077-git-send-email-jack@suse.cz>
-	<20081028193652.GD17578@mail.oracle.com>
-	<20081029022902.GE24732@duck.suse.cz>
-	<20081029105139.GA10080@ca-server1.us.oracle.com>
-	<20081030073339.GD14500@duck.suse.cz>
-Message-ID: <20081030203121.GA32103@mail.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Thu, 30 Oct 2008 16:32:34 -0700
+Subject: [Ocfs2-devel] [PATCH 00/00] Implement quotas for OCFS2 (version
+	2)
+In-Reply-To: <20081030050254.GA1138@duck.suse.cz>
+References: <12248859043309-git-send-email-jack@suse.cz>
+	<20081029225832.GH15154@wotan.suse.de>
+	<20081030050254.GA1138@duck.suse.cz>
+Message-ID: <20081030233234.GL15154@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Oct 30, 2008 at 08:33:39AM +0100, Jan Kara wrote:
-> On Wed 29-10-08 03:51:39, Joel Becker wrote:
-> > On Wed, Oct 29, 2008 at 03:29:02AM +0100, Jan Kara wrote:
-> > >   What I did is, that in the end of each quotafile block there are 8 bytes
-> > > reserved for OCFS2 use (both in local and global quota files). So these
-> > > bytes are intended to be used for ECC. I hope that's fine.
+On Thu, Oct 30, 2008 at 06:02:54AM +0100, Jan Kara wrote:
+> On Wed 29-10-08 15:58:32, Mark Fasheh wrote:
+> > On Sat, Oct 25, 2008 at 12:05:04AM +0200, Jan Kara wrote:
+> > > Hello,
+> > > 
+> > > the following patch series implements quotas for OCFS2. The patch
+> > > series is based on:
+> > > git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git linux-next
 > > 
-> > 	So every block type (disk header, dq_block, etc) has the last 8
-> > bytes free?
->   Yes.
-> 
-> > This seems like something we should find a way to mention
-> > in the disk header.
->   You mean like in the ocfs2_fs.h file? There is already a constant and
-> a comment in quota.h, but probably it makes sence to move it to ocfs2_fs.h.
+> > Great, thanks for posting these again.
+> > 
+> > > I've adressed Joel's comments, also node recovery is now fully working
+> > > and I've fixed a few issues I found during my testing. So I'm currently
+> > > not aware of any bugs. Please review, test, comment. Thanks.
+> > 
+> > How are we going to handle the vfs patches? I think realistically, they
+> > should just all go into the merge_window branch of ocfs2.git along with the
+> > Ocfs2 patches to add quoata support (and make use of the VFS features you
+> > added). The VFS patches at least though, should probably get posted to
+> > linux-fsdevel before I pick them up.
+>   Yup. I don't know if you've noticed but I've already sent majority of VFS
+> patches to Andrew Morton (linux-fsdevel CC'd) and they are in -mm. He had
+> some valuable comments and other people also tripped onto various minor
+> problems. I'm now incorporating all the changes and will send next version
+> of the patchset when I'm done.
 
-	Well, if other filesystems get it via quota.h too, it should
-stay there.  Perhaps just a comment in ocfs2_fs.h about it so readers
-are aware.
+Oh, ok great!
 
-Joel
 
--- 
+> Finally, I think it's the easiest if the patches go to Linus via your
+> tree. Probably I'll push via that path also 64-bit quota format patch
+> although it has nothing to do with OCFS2, since otherwise we would have to
+> synchronize unnecessarily.
 
- The zen have a saying:
- "When you learn how to listen, ANYONE can be your teacher."
+Yeah, that sounds good. Once they're all ready, we'll move it over to
+ocfs2.git. I certainly don't mind carrying any other patches for you either.
+	--Mark
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+--
+Mark Fasheh
