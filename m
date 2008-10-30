@@ -1,39 +1,170 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu, 30 Oct 2008 19:31:31 +0800
-Subject: [Ocfs2-devel] [PATCH 00/15] ocfs2: add security EA and ACL support
-	V4
-Message-ID: <49099B13.9030802@oracle.com>
+Date: Thu, 30 Oct 2008 19:40:19 +0800
+Subject: [Ocfs2-devel] [PATCH 06/15] ocfs2: move new_inode out of the
+	transaction
+In-Reply-To: <49099B13.9030802@oracle.com>
+References: <49099B13.9030802@oracle.com>
+Message-ID: <1225366819-6286-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-hi,
-This is the version 4 patches for add security EA and ACL support in 
-ocfs2. We have fixed many problems in version 3 and I split the previous 
-big patch into some small patches. Them based on joel's xattr_buckets 
-branch.
+we need know the security xattr size before start transaction,
+so mov new_inode out of mknod_unlock and populate i_mode to
+get the exact security xattr size.
 
-The first five patches from Tao Ma.
-1: only extend xattr bucket in need
-2: add cluster free in dealloc ctxt
-3: move clusters free into dealloc
-4: reserve meta data at the begining of ocfs2_xattr_set
-5: merge xattr set transactions
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+---
+ fs/ocfs2/namei.c |   53 +++++++++++++++++++++++++++++++++--------------------
+ 1 files changed, 33 insertions(+), 20 deletions(-)
 
-The next four patches add security EA support in ocfs2.
-6: move new_inode out of transaction
-7: add ocfs2_xattr_set_handle
-8: add security xattr API
-9: add ocfs2_init_security in mknod
-
-The final six patches add ACL support in ocfs2.
-10: add xattr_get_nolock
-11: add posix acl API
-12: add ocfs2_check_acl
-13: add ocfs2_acl_chmod
-14: add mount and Kconfig option for acl
-
-Best regards,
-tiger
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index f4967e6..dd4ee52 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -71,7 +71,7 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 			      struct buffer_head **new_fe_bh,
+ 			      struct buffer_head *parent_fe_bh,
+ 			      handle_t *handle,
+-			      struct inode **ret_inode,
++			      struct inode *inode,
+ 			      struct ocfs2_alloc_context *inode_ac);
+ 
+ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
+@@ -186,6 +186,21 @@ bail:
+ 	return ret;
+ }
+ 
++static inline struct inode *ocfs2_make_init_inode(struct inode *dir, int mode)
++{
++	struct inode *inode;
++
++	/*
++	 * move new_inode out of the transanction and populate i_mode
++	 * to get exact security xattr size.
++	 */
++	inode = new_inode(dir->i_sb);
++	if (!IS_ERR(inode))
++		inode->i_mode = mode;
++
++	return inode;
++}
++
+ static int ocfs2_mknod(struct inode *dir,
+ 		       struct dentry *dentry,
+ 		       int mode,
+@@ -250,6 +265,13 @@ static int ocfs2_mknod(struct inode *dir,
+ 		goto leave;
+ 	}
+ 
++	inode = ocfs2_make_init_inode(dir, mode);
++	if (IS_ERR(inode)) {
++		status = PTR_ERR(inode);
++		mlog(ML_ERROR, "new_inode failed!\n");
++		goto leave;
++	}
++
+ 	/* Reserve a cluster if creating an extent based directory. */
+ 	if (S_ISDIR(mode) && !ocfs2_supports_inline_data(osb)) {
+ 		status = ocfs2_reserve_clusters(osb, 1, &data_ac);
+@@ -271,7 +293,7 @@ static int ocfs2_mknod(struct inode *dir,
+ 	/* do the real work now. */
+ 	status = ocfs2_mknod_locked(osb, dir, dentry, mode, dev,
+ 				    &new_fe_bh, parent_fe_bh, handle,
+-				    &inode, inode_ac);
++				    inode, inode_ac);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto leave;
+@@ -353,7 +375,7 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 			      struct buffer_head **new_fe_bh,
+ 			      struct buffer_head *parent_fe_bh,
+ 			      handle_t *handle,
+-			      struct inode **ret_inode,
++			      struct inode *inode,
+ 			      struct ocfs2_alloc_context *inode_ac)
+ {
+ 	int status = 0;
+@@ -361,14 +383,12 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 	struct ocfs2_extent_list *fel;
+ 	u64 fe_blkno = 0;
+ 	u16 suballoc_bit;
+-	struct inode *inode = NULL;
+ 
+ 	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry, mode,
+ 		   (unsigned long)dev, dentry->d_name.len,
+ 		   dentry->d_name.name);
+ 
+ 	*new_fe_bh = NULL;
+-	*ret_inode = NULL;
+ 
+ 	status = ocfs2_claim_new_inode(osb, handle, inode_ac, &suballoc_bit,
+ 				       &fe_blkno);
+@@ -377,13 +397,6 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 		goto leave;
+ 	}
+ 
+-	inode = new_inode(dir->i_sb);
+-	if (!inode) {
+-		status = -ENOMEM;
+-		mlog(ML_ERROR, "new_inode failed!\n");
+-		goto leave;
+-	}
+-
+ 	/* populate as many fields early on as possible - many of
+ 	 * these are used by the support functions here and in
+ 	 * callers. */
+@@ -393,7 +406,6 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 		inode->i_nlink = 2;
+ 	else
+ 		inode->i_nlink = 1;
+-	inode->i_mode = mode;
+ 	spin_lock(&osb->osb_lock);
+ 	inode->i_generation = osb->s_next_generation++;
+ 	spin_unlock(&osb->osb_lock);
+@@ -483,18 +495,12 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 
+ 	status = 0; /* error in ocfs2_create_new_inode_locks is not
+ 		     * critical */
+-
+-	*ret_inode = inode;
+ leave:
+ 	if (status < 0) {
+ 		if (*new_fe_bh) {
+ 			brelse(*new_fe_bh);
+ 			*new_fe_bh = NULL;
+ 		}
+-		if (inode) {
+-			clear_nlink(inode);
+-			iput(inode);
+-		}
+ 	}
+ 
+ 	mlog_exit(status);
+@@ -1552,6 +1558,13 @@ static int ocfs2_symlink(struct inode *dir,
+ 		}
+ 	}
+ 
++	inode = ocfs2_make_init_inode(dir, (S_IFLNK | S_IRWXUGO));
++	if (IS_ERR(inode)) {
++		status = PTR_ERR(inode);
++		mlog(ML_ERROR, "new_inode failed!\n");
++		goto bail;
++	}
++
+ 	handle = ocfs2_start_trans(osb, credits);
+ 	if (IS_ERR(handle)) {
+ 		status = PTR_ERR(handle);
+@@ -1563,7 +1576,7 @@ static int ocfs2_symlink(struct inode *dir,
+ 	status = ocfs2_mknod_locked(osb, dir, dentry,
+ 				    S_IFLNK | S_IRWXUGO, 0,
+ 				    &new_fe_bh, parent_fe_bh, handle,
+-				    &inode, inode_ac);
++				    inode, inode_ac);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto bail;
+-- 
+1.5.4.1
