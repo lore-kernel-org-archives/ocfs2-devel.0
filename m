@@ -1,56 +1,39 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 30 Oct 2008 08:33:39 +0100
-Subject: [Ocfs2-devel] [PATCH 25/29] ocfs2: Implementation of local
-	and	global quota file handling
-In-Reply-To: <20081029105139.GA10080@ca-server1.us.oracle.com>
-References: <122488610212-git-send-email-jack@suse.cz>
-	<12248861041077-git-send-email-jack@suse.cz>
-	<20081028193652.GD17578@mail.oracle.com>
-	<20081029022902.GE24732@duck.suse.cz>
-	<20081029105139.GA10080@ca-server1.us.oracle.com>
-Message-ID: <20081030073339.GD14500@duck.suse.cz>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Thu, 30 Oct 2008 19:31:31 +0800
+Subject: [Ocfs2-devel] [PATCH 00/15] ocfs2: add security EA and ACL support
+	V4
+Message-ID: <49099B13.9030802@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed 29-10-08 03:51:39, Joel Becker wrote:
-> On Wed, Oct 29, 2008 at 03:29:02AM +0100, Jan Kara wrote:
-> > > > +/* Structure with global user / group information. We reserve some space
-> > > > + * for future use. */
-> > > > +struct ocfs2_global_disk_dqblk {
-> > > > +/*00*/	__le32 dqb_id;          /* ID the structure belongs to */
-> > > > +	__le32 dqb_use_count;   /* Number of nodes having reference to this structure */
-> > > > +	__le64 dqb_ihardlimit;  /* absolute limit on allocated inodes */
-> > > > +/*10*/	__le64 dqb_isoftlimit;  /* preferred inode limit */
-> > > > +	__le64 dqb_curinodes;   /* current # allocated inodes */
-> > > > +/*20*/	__le64 dqb_bhardlimit;  /* absolute limit on disk space */
-> > > > +	__le64 dqb_bsoftlimit;  /* preferred limit on disk space */
-> > > > +/*30*/	__le64 dqb_curspace;    /* current space occupied */
-> > > > +	__le64 dqb_btime;       /* time limit for excessive disk use */
-> > > > +/*40*/	__le64 dqb_itime;       /* time limit for excessive inode use */
-> > > > +	__le64 dqb_pad1;
-> > > > +/*50*/	__le64 dqb_pad2;
-> > > > +};
-> > > 
-> > > 	We also need space for the ecc data here.  It looks like ecc
-> > > space wasn't added to this series.  Rather than comment on each
-> > > structure, just let me know when that's ready.
-> >   What I did is, that in the end of each quotafile block there are 8 bytes
-> > reserved for OCFS2 use (both in local and global quota files). So these
-> > bytes are intended to be used for ECC. I hope that's fine.
-> 
-> 	So every block type (disk header, dq_block, etc) has the last 8
-> bytes free?
-  Yes.
+hi,
+This is the version 4 patches for add security EA and ACL support in 
+ocfs2. We have fixed many problems in version 3 and I split the previous 
+big patch into some small patches. Them based on joel's xattr_buckets 
+branch.
 
-> This seems like something we should find a way to mention
-> in the disk header.
-  You mean like in the ocfs2_fs.h file? There is already a constant and
-a comment in quota.h, but probably it makes sence to move it to ocfs2_fs.h.
+The first five patches from Tao Ma.
+1: only extend xattr bucket in need
+2: add cluster free in dealloc ctxt
+3: move clusters free into dealloc
+4: reserve meta data at the begining of ocfs2_xattr_set
+5: merge xattr set transactions
 
-								Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+The next four patches add security EA support in ocfs2.
+6: move new_inode out of transaction
+7: add ocfs2_xattr_set_handle
+8: add security xattr API
+9: add ocfs2_init_security in mknod
+
+The final six patches add ACL support in ocfs2.
+10: add xattr_get_nolock
+11: add posix acl API
+12: add ocfs2_check_acl
+13: add ocfs2_acl_chmod
+14: add mount and Kconfig option for acl
+
+Best regards,
+tiger
