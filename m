@@ -1,7 +1,7 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 31 Oct 2008 07:39:06 +0100
-Subject: [Ocfs2-devel] [PATCH 16/27] quota: Update version number
-In-Reply-To: <1225435158807-git-send-email-jack@suse.cz>
+Date: Fri, 31 Oct 2008 07:39:10 +0100
+Subject: [Ocfs2-devel] [PATCH 20/27] ocfs2: Support nested transactions
+In-Reply-To: <12254351592812-git-send-email-jack@suse.cz>
 References: y <12254351572189-git-send-email-jack@suse.cz>
 	<12254351571914-git-send-email-jack@suse.cz>
 	<1225435157625-git-send-email-jack@suse.cz>
@@ -18,34 +18,64 @@ References: y <12254351572189-git-send-email-jack@suse.cz>
 	<122543515838-git-send-email-jack@suse.cz>
 	<1225435158192-git-send-email-jack@suse.cz>
 	<1225435158807-git-send-email-jack@suse.cz>
-Message-ID: <1225435159130-git-send-email-jack@suse.cz>
+	<1225435159130-git-send-email-jack@suse.cz>
+	<12254351592930-git-send-email-jack@suse.cz>
+	<12254351592095-git-send-email-jack@suse.cz>
+	<12254351592812-git-send-email-jack@suse.cz>
+Message-ID: <12254351592495-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Increase reported version number of quota support since quota core has changed
-significantly. Also remove __DQUOT_NUM_VERSION__ since nobody uses it.
+OCFS2 can easily support nested transactions. We just have to
+take care and not spoil statistics acquire semaphore unnecessarily.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- include/linux/quota.h |    3 +--
- 1 files changed, 1 insertions(+), 2 deletions(-)
+ fs/ocfs2/journal.c |   14 +++++++-------
+ 1 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/quota.h b/include/linux/quota.h
-index 6d98885..ec82beb 100644
---- a/include/linux/quota.h
-+++ b/include/linux/quota.h
-@@ -36,8 +36,7 @@
- #include <linux/errno.h>
- #include <linux/types.h>
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 99fe9d5..a00ac02 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -256,11 +256,9 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
+ 	BUG_ON(osb->journal->j_state == OCFS2_JOURNAL_FREE);
+ 	BUG_ON(max_buffs <= 0);
  
--#define __DQUOT_VERSION__	"dquot_6.5.1"
--#define __DQUOT_NUM_VERSION__	6*10000+5*100+1
-+#define __DQUOT_VERSION__	"dquot_6.5.2"
+-	/* JBD might support this, but our journalling code doesn't yet. */
+-	if (journal_current_handle()) {
+-		mlog(ML_ERROR, "Recursive transaction attempted!\n");
+-		BUG();
+-	}
++	/* Nested transaction? Just return the handle... */
++	if (journal_current_handle())
++		return jbd2_journal_start(journal, max_buffs);
  
- #define MAXQUOTAS 2
- #define USRQUOTA  0		/* element used for user quotas */
+ 	down_read(&osb->journal->j_trans_barrier);
+ 
+@@ -285,16 +283,18 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
+ int ocfs2_commit_trans(struct ocfs2_super *osb,
+ 		       handle_t *handle)
+ {
+-	int ret;
++	int ret, nested;
+ 	struct ocfs2_journal *journal = osb->journal;
+ 
+ 	BUG_ON(!handle);
+ 
++	nested = handle->h_ref > 1;
+ 	ret = jbd2_journal_stop(handle);
+ 	if (ret < 0)
+ 		mlog_errno(ret);
+ 
+-	up_read(&journal->j_trans_barrier);
++	if (!nested)
++		up_read(&journal->j_trans_barrier);
+ 
+ 	return ret;
+ }
 -- 
 1.5.2.4
