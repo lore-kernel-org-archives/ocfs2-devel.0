@@ -1,8 +1,8 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 31 Oct 2008 07:39:11 +0100
-Subject: [Ocfs2-devel] [PATCH 21/27] ocfs2: Assign feature bits and system
-	inodes to quota feature and quota files
-In-Reply-To: <12254351592495-git-send-email-jack@suse.cz>
+Date: Fri, 31 Oct 2008 07:39:07 +0100
+Subject: [Ocfs2-devel] [PATCH 17/27] quota: Add helpers to allow ocfs2
+	specific quota initialization, freeing and recovery
+In-Reply-To: <1225435159130-git-send-email-jack@suse.cz>
 References: y <12254351572189-git-send-email-jack@suse.cz>
 	<12254351571914-git-send-email-jack@suse.cz>
 	<1225435157625-git-send-email-jack@suse.cz>
@@ -20,151 +20,129 @@ References: y <12254351572189-git-send-email-jack@suse.cz>
 	<1225435158192-git-send-email-jack@suse.cz>
 	<1225435158807-git-send-email-jack@suse.cz>
 	<1225435159130-git-send-email-jack@suse.cz>
-	<12254351592930-git-send-email-jack@suse.cz>
-	<12254351592095-git-send-email-jack@suse.cz>
-	<12254351592812-git-send-email-jack@suse.cz>
-	<12254351592495-git-send-email-jack@suse.cz>
-Message-ID: <12254351591416-git-send-email-jack@suse.cz>
+Message-ID: <12254351592930-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+OCFS2 needs to peek whether quota structure is already in memory so
+that it can avoid expensive cluster locking in that case. Similarly
+when freeing dquots, it checks whether it is the last quota structure
+user or not. Finally, it needs to get reference to dquot structure for
+specified id and quota type when recovering quota file after crash.
+
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/inode.c    |    2 ++
- fs/ocfs2/ocfs2_fs.h |   21 ++++++++++++++++++---
- fs/ocfs2/super.c    |   17 +++++++++++++++++
- 3 files changed, 37 insertions(+), 3 deletions(-)
+ fs/dquot.c               |   38 ++++++++++++++++++++++++++++++++------
+ include/linux/quotaops.h |    4 ++++
+ 2 files changed, 36 insertions(+), 6 deletions(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 7aa00d5..c80489d 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -292,6 +292,8 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
- 		mlog(0, "local alloc inode: i_ino=%lu\n", inode->i_ino);
- 	} else if (fe->i_flags & cpu_to_le32(OCFS2_BITMAP_FL)) {
- 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_BITMAP;
-+	} else if (fe->i_flags & cpu_to_le32(OCFS2_QUOTA_FL)) {
-+		inode->i_flags |= S_NOQUOTA;
- 	} else if (fe->i_flags & cpu_to_le32(OCFS2_SUPER_BLOCK_FL)) {
- 		mlog(0, "superblock inode: i_ino=%lu\n", inode->i_ino);
- 		/* we can't actually hit this as read_inode can't
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 5f180cf..2e1e771 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -93,7 +93,7 @@
- 					 | OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP \
- 					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK \
- 					 | OCFS2_FEATURE_INCOMPAT_XATTR)
--#define OCFS2_FEATURE_RO_COMPAT_SUPP	OCFS2_FEATURE_RO_COMPAT_UNWRITTEN
-+#define OCFS2_FEATURE_RO_COMPAT_SUPP	(OCFS2_FEATURE_RO_COMPAT_UNWRITTEN)
+diff --git a/fs/dquot.c b/fs/dquot.c
+index 6784892..8774be6 100644
+--- a/fs/dquot.c
++++ b/fs/dquot.c
+@@ -211,8 +211,6 @@ static struct hlist_head *dquot_hash;
  
- /*
-  * Heartbeat-only devices are missing journals and other files.  The
-@@ -157,6 +157,12 @@
+ struct dqstats dqstats;
+ 
+-static void dqput(struct dquot *dquot);
+-
+ static inline unsigned int
+ hashfn(const struct super_block *sb, unsigned int id, int type)
+ {
+@@ -568,7 +566,7 @@ static struct shrinker dqcache_shrinker = {
+  * NOTE: If you change this function please check whether dqput_blocks() works right...
+  * MUST be called with either dqptr_sem or dqonoff_mutex held
   */
- #define OCFS2_FEATURE_RO_COMPAT_UNWRITTEN	0x0001
+-static void dqput(struct dquot *dquot)
++void dqput(struct dquot *dquot)
+ {
+ 	int ret;
  
-+/*
-+ * Maintain quota information for this filesystem
-+ */
-+#define OCFS2_FEATURE_RO_COMPAT_USRQUOTA	0x0002
-+#define OCFS2_FEATURE_RO_COMPAT_GRPQUOTA	0x0004
-+
- /* The byte offset of the first backup block will be 1G.
-  * The following will be 4G, 16G, 64G, 256G and 1T.
-  */
-@@ -186,6 +192,7 @@
- #define OCFS2_HEARTBEAT_FL	(0x00000200)	/* Heartbeat area */
- #define OCFS2_CHAIN_FL		(0x00000400)	/* Chain allocator */
- #define OCFS2_DEALLOC_FL	(0x00000800)	/* Truncate log */
-+#define OCFS2_QUOTA_FL		(0x00001000)	/* Quota file */
- 
- /*
-  * Flags on ocfs2_dinode.i_dyn_features
-@@ -323,13 +330,17 @@ enum {
- #define OCFS2_FIRST_ONLINE_SYSTEM_INODE SLOT_MAP_SYSTEM_INODE
- 	HEARTBEAT_SYSTEM_INODE,
- 	GLOBAL_BITMAP_SYSTEM_INODE,
--#define OCFS2_LAST_GLOBAL_SYSTEM_INODE GLOBAL_BITMAP_SYSTEM_INODE
-+	USER_QUOTA_SYSTEM_INODE,
-+	GROUP_QUOTA_SYSTEM_INODE,
-+#define OCFS2_LAST_GLOBAL_SYSTEM_INODE GROUP_QUOTA_SYSTEM_INODE
- 	ORPHAN_DIR_SYSTEM_INODE,
- 	EXTENT_ALLOC_SYSTEM_INODE,
- 	INODE_ALLOC_SYSTEM_INODE,
- 	JOURNAL_SYSTEM_INODE,
- 	LOCAL_ALLOC_SYSTEM_INODE,
- 	TRUNCATE_LOG_SYSTEM_INODE,
-+	LOCAL_USER_QUOTA_SYSTEM_INODE,
-+	LOCAL_GROUP_QUOTA_SYSTEM_INODE,
- 	NUM_SYSTEM_INODES
- };
- 
-@@ -343,6 +354,8 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
- 	[SLOT_MAP_SYSTEM_INODE]			= { "slot_map", 0, S_IFREG | 0644 },
- 	[HEARTBEAT_SYSTEM_INODE]		= { "heartbeat", OCFS2_HEARTBEAT_FL, S_IFREG | 0644 },
- 	[GLOBAL_BITMAP_SYSTEM_INODE]		= { "global_bitmap", 0, S_IFREG | 0644 },
-+	[USER_QUOTA_SYSTEM_INODE]		= { "aquota.user", OCFS2_QUOTA_FL, S_IFREG | 0644 },
-+	[GROUP_QUOTA_SYSTEM_INODE]		= { "aquota.group", OCFS2_QUOTA_FL, S_IFREG | 0644 },
- 
- 	/* Slot-specific system inodes (one copy per slot) */
- 	[ORPHAN_DIR_SYSTEM_INODE]		= { "orphan_dir:%04d", 0, S_IFDIR | 0755 },
-@@ -350,7 +363,9 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
- 	[INODE_ALLOC_SYSTEM_INODE]		= { "inode_alloc:%04d", OCFS2_BITMAP_FL | OCFS2_CHAIN_FL, S_IFREG | 0644 },
- 	[JOURNAL_SYSTEM_INODE]			= { "journal:%04d", OCFS2_JOURNAL_FL, S_IFREG | 0644 },
- 	[LOCAL_ALLOC_SYSTEM_INODE]		= { "local_alloc:%04d", OCFS2_BITMAP_FL | OCFS2_LOCAL_ALLOC_FL, S_IFREG | 0644 },
--	[TRUNCATE_LOG_SYSTEM_INODE]		= { "truncate_log:%04d", OCFS2_DEALLOC_FL, S_IFREG | 0644 }
-+	[TRUNCATE_LOG_SYSTEM_INODE]		= { "truncate_log:%04d", OCFS2_DEALLOC_FL, S_IFREG | 0644 },
-+	[LOCAL_USER_QUOTA_SYSTEM_INODE]		= { "aquota%04d.user", OCFS2_QUOTA_FL, S_IFREG | 0644 },
-+	[LOCAL_GROUP_QUOTA_SYSTEM_INODE]	= { "aquota%04d.group", OCFS2_QUOTA_FL, S_IFREG | 0644 },
- };
- 
- /* Parameter passed from mount.ocfs2 to module */
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 304b63a..4712bc7 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -221,6 +221,19 @@ static int ocfs2_sync_fs(struct super_block *sb, int wait)
- 	return 0;
+@@ -662,10 +660,28 @@ static struct dquot *get_empty_dquot(struct super_block *sb, int type)
  }
  
-+static int ocfs2_need_system_inode(struct ocfs2_super *osb, int ino)
+ /*
++ * Check whether dquot is in memory.
++ * MUST be called with either dqptr_sem or dqonoff_mutex held
++ */
++int dquot_is_cached(struct super_block *sb, unsigned int id, int type)
 +{
-+	if (!OCFS2_HAS_RO_COMPAT_FEATURE(osb->sb, OCFS2_FEATURE_RO_COMPAT_USRQUOTA)
-+	    && (ino == USER_QUOTA_SYSTEM_INODE
-+		|| ino == LOCAL_USER_QUOTA_SYSTEM_INODE))
++	unsigned int hashent = hashfn(sb, id, type);
++	int ret = 0;
++
++        if (!sb_has_quota_active(sb, type))
 +		return 0;
-+	if (!OCFS2_HAS_RO_COMPAT_FEATURE(osb->sb, OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)
-+	    && (ino == GROUP_QUOTA_SYSTEM_INODE
-+		|| ino == LOCAL_GROUP_QUOTA_SYSTEM_INODE))
-+		return 0;
-+	return 1;
++	spin_lock(&dq_list_lock);
++	if (find_dquot(hashent, sb, id, type) != NODQUOT)
++		ret = 1;
++	spin_unlock(&dq_list_lock);
++	return ret;
 +}
 +
- static int ocfs2_init_global_system_inodes(struct ocfs2_super *osb)
++/*
+  * Get reference to dquot
+  * MUST be called with either dqptr_sem or dqonoff_mutex held
+  */
+-static struct dquot *dqget(struct super_block *sb, unsigned int id, int type)
++struct dquot *dqget(struct super_block *sb, unsigned int id, int type)
  {
- 	struct inode *new = NULL;
-@@ -247,6 +260,8 @@ static int ocfs2_init_global_system_inodes(struct ocfs2_super *osb)
+ 	unsigned int hashent = hashfn(sb, id, type);
+ 	struct dquot *dquot, *empty = NODQUOT;
+@@ -1184,17 +1200,23 @@ out_err:
+  * 	Release all quotas referenced by inode
+  *	Transaction must be started at an entry
+  */
+-int dquot_drop(struct inode *inode)
++int dquot_drop_locked(struct inode *inode)
+ {
+ 	int cnt;
  
- 	for (i = OCFS2_FIRST_ONLINE_SYSTEM_INODE;
- 	     i <= OCFS2_LAST_GLOBAL_SYSTEM_INODE; i++) {
-+		if (!ocfs2_need_system_inode(osb, i))
-+			continue;
- 		new = ocfs2_get_system_file_inode(osb, i, osb->slot_num);
- 		if (!new) {
- 			ocfs2_release_system_inodes(osb);
-@@ -277,6 +292,8 @@ static int ocfs2_init_local_system_inodes(struct ocfs2_super *osb)
- 	for (i = OCFS2_LAST_GLOBAL_SYSTEM_INODE + 1;
- 	     i < NUM_SYSTEM_INODES;
- 	     i++) {
-+		if (!ocfs2_need_system_inode(osb, i))
-+			continue;
- 		new = ocfs2_get_system_file_inode(osb, i, osb->slot_num);
- 		if (!new) {
- 			ocfs2_release_system_inodes(osb);
+-	down_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
+ 	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
+ 		if (inode->i_dquot[cnt] != NODQUOT) {
+ 			dqput(inode->i_dquot[cnt]);
+ 			inode->i_dquot[cnt] = NODQUOT;
+ 		}
+ 	}
++	return 0;
++}
++
++int dquot_drop(struct inode *inode)
++{
++	down_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
++	dquot_drop_locked(inode);
+ 	up_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
+ 	return 0;
+ }
+@@ -2308,7 +2330,11 @@ EXPORT_SYMBOL(dquot_release);
+ EXPORT_SYMBOL(dquot_mark_dquot_dirty);
+ EXPORT_SYMBOL(dquot_initialize);
+ EXPORT_SYMBOL(dquot_drop);
++EXPORT_SYMBOL(dquot_drop_locked);
+ EXPORT_SYMBOL(vfs_dq_drop);
++EXPORT_SYMBOL(dqget);
++EXPORT_SYMBOL(dqput);
++EXPORT_SYMBOL(dquot_is_cached);
+ EXPORT_SYMBOL(dquot_alloc_space);
+ EXPORT_SYMBOL(dquot_alloc_inode);
+ EXPORT_SYMBOL(dquot_free_space);
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index e840ca5..e3a1027 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -24,6 +24,10 @@ void sync_dquots(struct super_block *sb, int type);
+ 
+ int dquot_initialize(struct inode *inode, int type);
+ int dquot_drop(struct inode *inode);
++int dquot_drop_locked(struct inode *inode);
++struct dquot *dqget(struct super_block *sb, unsigned int id, int type);
++void dqput(struct dquot *dquot);
++int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
+ 
+ int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
+ int dquot_alloc_inode(const struct inode *inode, qsize_t number);
 -- 
 1.5.2.4
