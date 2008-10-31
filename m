@@ -1,8 +1,8 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 31 Oct 2008 07:38:58 +0100
-Subject: [Ocfs2-devel] [PATCH 08/27] reiserfs: Use sb_any_quota_loaded()
-	instead of sb_any_quota_enabled().
-In-Reply-To: <12254351581363-git-send-email-jack@suse.cz>
+Date: Fri, 31 Oct 2008 07:39:04 +0100
+Subject: [Ocfs2-devel] [PATCH 14/27] quota: Allow negative usage of space
+	and inodes
+In-Reply-To: <122543515838-git-send-email-jack@suse.cz>
 References: y <12254351572189-git-send-email-jack@suse.cz>
 	<12254351571914-git-send-email-jack@suse.cz>
 	<1225435157625-git-send-email-jack@suse.cz>
@@ -11,50 +11,75 @@ References: y <12254351572189-git-send-email-jack@suse.cz>
 	<1225435157894-git-send-email-jack@suse.cz>
 	<12254351582004-git-send-email-jack@suse.cz>
 	<12254351581363-git-send-email-jack@suse.cz>
-Message-ID: <12254351582759-git-send-email-jack@suse.cz>
+	<12254351582759-git-send-email-jack@suse.cz>
+	<12254351582523-git-send-email-jack@suse.cz>
+	<12254351583984-git-send-email-jack@suse.cz>
+	<12254351582475-git-send-email-jack@suse.cz>
+	<12254351583997-git-send-email-jack@suse.cz>
+	<122543515838-git-send-email-jack@suse.cz>
+Message-ID: <1225435158192-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+For clustered filesystems, it can happen that space / inode usage goes
+negative temporarily (because some node is allocating another node
+is freeing and they are not completely in sync). So let quota code
+allow this and change qsize_t so a signed type so that we don't
+underflow the variables.
+
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/reiserfs/super.c |    8 +++-----
- 1 files changed, 3 insertions(+), 5 deletions(-)
+ fs/dquot.c            |    6 ++++--
+ include/linux/quota.h |    3 ++-
+ 2 files changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/fs/reiserfs/super.c b/fs/reiserfs/super.c
-index 663a91f..a9b393a 100644
---- a/fs/reiserfs/super.c
-+++ b/fs/reiserfs/super.c
-@@ -994,8 +994,7 @@ static int reiserfs_parse_options(struct super_block *s, char *options,	/* strin
- 		if (c == 'u' || c == 'g') {
- 			int qtype = c == 'u' ? USRQUOTA : GRPQUOTA;
+diff --git a/fs/dquot.c b/fs/dquot.c
+index f4d6f7e..cf0dac7 100644
+--- a/fs/dquot.c
++++ b/fs/dquot.c
+@@ -847,7 +847,8 @@ static inline void dquot_incr_space(struct dquot *dquot, qsize_t number)
  
--			if ((sb_any_quota_enabled(s) ||
--			     sb_any_quota_suspended(s)) &&
-+			if (sb_any_quota_loaded(s) &&
- 			    (!*arg != !REISERFS_SB(s)->s_qf_names[qtype])) {
- 				reiserfs_warning(s,
- 						 "reiserfs_parse_options: cannot change journaled quota options when quota turned on.");
-@@ -1041,8 +1040,7 @@ static int reiserfs_parse_options(struct super_block *s, char *options,	/* strin
- 						 "reiserfs_parse_options: unknown quota format specified.");
- 				return 0;
- 			}
--			if ((sb_any_quota_enabled(s) ||
--			     sb_any_quota_suspended(s)) &&
-+			if (sb_any_quota_loaded(s) &&
- 			    *qfmt != REISERFS_SB(s)->s_jquota_fmt) {
- 				reiserfs_warning(s,
- 						 "reiserfs_parse_options: cannot change journaled quota options when quota turned on.");
-@@ -1067,7 +1065,7 @@ static int reiserfs_parse_options(struct super_block *s, char *options,	/* strin
- 	}
- 	/* This checking is not precise wrt the quota type but for our purposes it is sufficient */
- 	if (!(*mount_options & (1 << REISERFS_QUOTA))
--	    && sb_any_quota_enabled(s)) {
-+	    && sb_any_quota_loaded(s)) {
- 		reiserfs_warning(s,
- 				 "reiserfs_parse_options: quota options must be present when quota is turned on.");
- 		return 0;
+ static inline void dquot_decr_inodes(struct dquot *dquot, qsize_t number)
+ {
+-	if (dquot->dq_dqb.dqb_curinodes > number)
++	if (sb_dqopt(dquot->dq_sb)->flags & DQUOT_NEGATIVE_USAGE ||
++	    dquot->dq_dqb.dqb_curinodes >= number)
+ 		dquot->dq_dqb.dqb_curinodes -= number;
+ 	else
+ 		dquot->dq_dqb.dqb_curinodes = 0;
+@@ -858,7 +859,8 @@ static inline void dquot_decr_inodes(struct dquot *dquot, qsize_t number)
+ 
+ static inline void dquot_decr_space(struct dquot *dquot, qsize_t number)
+ {
+-	if (dquot->dq_dqb.dqb_curspace > number)
++	if (sb_dqopt(dquot->dq_sb)->flags & DQUOT_NEGATIVE_USAGE ||
++	    dquot->dq_dqb.dqb_curspace >= number)
+ 		dquot->dq_dqb.dqb_curspace -= number;
+ 	else
+ 		dquot->dq_dqb.dqb_curspace = 0;
+diff --git a/include/linux/quota.h b/include/linux/quota.h
+index e51dfdc..75bf761 100644
+--- a/include/linux/quota.h
++++ b/include/linux/quota.h
+@@ -168,7 +168,7 @@ enum {
+ #include <asm/atomic.h>
+ 
+ typedef __kernel_uid32_t qid_t; /* Type in which we store ids in memory */
+-typedef __u64 qsize_t;          /* Type in which we store sizes */
++typedef long long qsize_t;	/* Type in which we store sizes */
+ 
+ extern spinlock_t dq_data_lock;
+ 
+@@ -336,6 +336,7 @@ enum {
+ 						 * responsible for setting
+ 						 * S_NOQUOTA, S_NOATIME flags
+ 						 */
++#define DQUOT_NEGATIVE_USAGE	(1 << 7)	/* Allow negative quota usage */
+ 
+ static inline unsigned int dquot_state_flag(unsigned int flags, int type)
+ {
 -- 
 1.5.2.4
