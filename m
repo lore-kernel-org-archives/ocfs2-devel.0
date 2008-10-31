@@ -1,8 +1,7 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 31 Oct 2008 07:39:08 +0100
-Subject: [Ocfs2-devel] [PATCH 18/27] quota: Implement function for scanning
-	active dquots
-In-Reply-To: <12254351592930-git-send-email-jack@suse.cz>
+Date: Fri, 31 Oct 2008 07:39:15 +0100
+Subject: [Ocfs2-devel] [PATCH 25/27] ocfs2: Implement quota syncing thread
+In-Reply-To: <12254351592563-git-send-email-jack@suse.cz>
 References: y <12254351572189-git-send-email-jack@suse.cz>
 	<12254351571914-git-send-email-jack@suse.cz>
 	<1225435157625-git-send-email-jack@suse.cz>
@@ -21,92 +20,186 @@ References: y <12254351572189-git-send-email-jack@suse.cz>
 	<1225435158807-git-send-email-jack@suse.cz>
 	<1225435159130-git-send-email-jack@suse.cz>
 	<12254351592930-git-send-email-jack@suse.cz>
-Message-ID: <12254351592095-git-send-email-jack@suse.cz>
+	<12254351592095-git-send-email-jack@suse.cz>
+	<12254351592812-git-send-email-jack@suse.cz>
+	<12254351592495-git-send-email-jack@suse.cz>
+	<12254351591416-git-send-email-jack@suse.cz>
+	<12254351593189-git-send-email-jack@suse.cz>
+	<12254351592827-git-send-email-jack@suse.cz>
+	<12254351592563-git-send-email-jack@suse.cz>
+Message-ID: <12254351592722-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-OCFS2 needs to scan all active dquots once in a while and sync quota
-information among cluster nodes. Provide a helper function for it so
-that it does not have to reimplement internally a list which VFS
-already has. Moreover this function is probably going to be useful
-for other clustered filesystems if they decide to use VFS quotas.
+This patch implements functions and timer setup which handles periodic
+syncing of locally cached quota information to global quota file.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/dquot.c               |   36 ++++++++++++++++++++++++++++++++++++
- include/linux/quotaops.h |    3 +++
- 2 files changed, 39 insertions(+), 0 deletions(-)
+ fs/ocfs2/quota.h        |    3 ++
+ fs/ocfs2/quota_global.c |   71 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/quota_local.c  |    4 ++
+ 3 files changed, 78 insertions(+), 0 deletions(-)
 
-diff --git a/fs/dquot.c b/fs/dquot.c
-index 8774be6..6f7df91 100644
---- a/fs/dquot.c
-+++ b/fs/dquot.c
-@@ -476,6 +476,41 @@ restart:
- 	spin_unlock(&dq_list_lock);
+diff --git a/fs/ocfs2/quota.h b/fs/ocfs2/quota.h
+index 1f1c863..11cdff1 100644
+--- a/fs/ocfs2/quota.h
++++ b/fs/ocfs2/quota.h
+@@ -14,6 +14,7 @@
+ #include <linux/quota.h>
+ #include <linux/list.h>
+ #include <linux/dqblk_qtree.h>
++#include <linux/timer.h>
+ 
+ #include "ocfs2.h"
+ 
+@@ -39,6 +40,7 @@ struct ocfs2_mem_dqinfo {
+ 	unsigned int dqi_chunks;	/* Number of chunks in local quota file */
+ 	unsigned int dqi_blocks;	/* Number of blocks allocated for local quota file */
+ 	unsigned int dqi_syncms;	/* How often should we sync with other nodes */
++	unsigned int dqi_syncjiff;	/* Precomputed dqi_syncms in jiffies */
+ 	struct list_head dqi_chunk;	/* List of chunks */
+ 	struct inode *dqi_gqinode;	/* Global quota file inode */
+ 	struct ocfs2_lock_res dqi_gqlock;	/* Lock protecting quota information structure */
+@@ -47,6 +49,7 @@ struct ocfs2_mem_dqinfo {
+ 	struct buffer_head *dqi_lqi_bh;	/* Buffer head with local quota file inode */
+ 	struct buffer_head *dqi_ibh;	/* Buffer with information header */
+ 	struct qtree_mem_dqinfo dqi_gi;	/* Info about global file */
++	struct timer_list dqi_sync_timer;	/* Timer for syncing dquots */
+ };
+ 
+ static inline struct ocfs2_dquot *OCFS2_DQUOT(struct dquot *dquot)
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index 5872845..a59f5fe 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -1,10 +1,14 @@
+ /*
+  *  Implementation of operations over global quota file
+  */
++#include <linux/spinlock.h>
+ #include <linux/fs.h>
+ #include <linux/quota.h>
+ #include <linux/quotaops.h>
+ #include <linux/dqblk_qtree.h>
++#include <linux/jiffies.h>
++#include <linux/timer.h>
++#include <linux/writeback.h>
+ 
+ #define MLOG_MASK_PREFIX ML_QUOTA
+ #include <cluster/masklog.h>
+@@ -19,6 +23,8 @@
+ #include "dlmglue.h"
+ #include "quota.h"
+ 
++static void qsync_timer_fn(unsigned long oinfo_ptr);
++
+ static void ocfs2_global_disk2memdqb(struct dquot *dquot, void *dp)
+ {
+ 	struct ocfs2_global_disk_dqblk *d = dp;
+@@ -276,6 +282,7 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+ 	info->dqi_bgrace = le32_to_cpu(dinfo.dqi_bgrace);
+ 	info->dqi_igrace = le32_to_cpu(dinfo.dqi_igrace);
+ 	oinfo->dqi_syncms = le32_to_cpu(dinfo.dqi_syncms);
++	oinfo->dqi_syncjiff = msecs_to_jiffies(oinfo->dqi_syncms);
+ 	oinfo->dqi_gi.dqi_blocks = le32_to_cpu(dinfo.dqi_blocks);
+ 	oinfo->dqi_gi.dqi_free_blk = le32_to_cpu(dinfo.dqi_free_blk);
+ 	oinfo->dqi_gi.dqi_free_entry = le32_to_cpu(dinfo.dqi_free_entry);
+@@ -283,6 +290,10 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+ 	oinfo->dqi_gi.dqi_usable_bs = sb->s_blocksize -
+ 						OCFS2_QBLK_RESERVED_SPACE;
+ 	oinfo->dqi_gi.dqi_qtree_depth = qtree_depth(&oinfo->dqi_gi);
++	setup_timer(&oinfo->dqi_sync_timer, qsync_timer_fn,
++		    (unsigned long)oinfo);
++	mod_timer(&oinfo->dqi_sync_timer,
++		  round_jiffies(jiffies + oinfo->dqi_syncjiff));
+ out_err:
+ 	mlog_exit(status);
+ 	return status;
+@@ -483,6 +494,66 @@ out:
  }
  
-+/* Call callback for every active dquot on given filesystem */
-+int dquot_scan_active(struct super_block *sb,
-+		      int (*fn)(struct dquot *dquot, unsigned long priv),
-+		      unsigned long priv)
+ /*
++ *  Functions for periodic syncing of dquots with global file
++ */
++static int ocfs2_sync_dquot_helper(struct dquot *dquot, unsigned long type)
 +{
-+	struct dquot *dquot, *old_dquot = NULL;
-+	int ret = 0;
++	handle_t *handle;
++	struct super_block *sb = dquot->dq_sb;
++	struct ocfs2_mem_dqinfo *oinfo = sb_dqinfo(sb, type)->dqi_priv;
++	struct ocfs2_super *osb = OCFS2_SB(sb);
++	int status = 0;
 +
-+	mutex_lock(&sb_dqopt(sb)->dqonoff_mutex);
-+	spin_lock(&dq_list_lock);
-+	list_for_each_entry(dquot, &inuse_list, dq_inuse) {
-+		if (!test_bit(DQ_ACTIVE_B, &dquot->dq_flags))
-+			continue;
-+		if (dquot->dq_sb != sb)
-+			continue;
-+		/* Now we have active dquot so we can just increase use count */
-+		atomic_inc(&dquot->dq_count);
-+		dqstats.lookups++;
-+		spin_unlock(&dq_list_lock);
-+		dqput(old_dquot);
-+		old_dquot = dquot;
-+		ret = fn(dquot, priv);
-+		if (ret < 0)
-+			goto out;
-+		spin_lock(&dq_list_lock);
-+		/* We are safe to continue now because our dquot could not
-+		 * be moved out of the inuse list while we hold the reference */
++	mlog_entry("id=%u qtype=%u type=%lu device=%s\n", dquot->dq_id,
++		   dquot->dq_type, type, sb->s_id);
++	if (type != dquot->dq_type)
++		goto out;
++	status = ocfs2_lock_global_qf(oinfo, 1);
++	if (status < 0)
++		goto out;
++
++	handle = ocfs2_start_trans(osb, OCFS2_QSYNC_CREDITS);
++	if (IS_ERR(handle)) {
++		status = PTR_ERR(handle);
++		mlog_errno(status);
++		goto out_ilock;
 +	}
-+	spin_unlock(&dq_list_lock);
++	mutex_lock(&sb_dqopt(sb)->dqio_mutex);
++	status = ocfs2_sync_dquot(dquot);
++	mutex_unlock(&sb_dqopt(sb)->dqio_mutex);
++	if (status < 0)
++		mlog_errno(status);
++	/* We have to write local structure as well... */
++	dquot_mark_dquot_dirty(dquot);
++	status = dquot_commit(dquot);
++	if (status < 0)
++		mlog_errno(status);
++	ocfs2_commit_trans(osb, handle);
++out_ilock:
++	ocfs2_unlock_global_qf(oinfo, 1);
 +out:
-+	dqput(old_dquot);
-+	mutex_unlock(&sb_dqopt(sb)->dqonoff_mutex);
-+	return ret;
++	mlog_exit(status);
++	return status;
 +}
 +
- int vfs_quota_sync(struct super_block *sb, int type)
- {
- 	struct list_head *dirty;
-@@ -2318,6 +2353,7 @@ EXPORT_SYMBOL(vfs_quota_on_path);
- EXPORT_SYMBOL(vfs_quota_on_mount);
- EXPORT_SYMBOL(vfs_quota_disable);
- EXPORT_SYMBOL(vfs_quota_off);
-+EXPORT_SYMBOL(dquot_scan_active);
- EXPORT_SYMBOL(vfs_quota_sync);
- EXPORT_SYMBOL(vfs_get_dqinfo);
- EXPORT_SYMBOL(vfs_set_dqinfo);
-diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index e3a1027..f491394 100644
---- a/include/linux/quotaops.h
-+++ b/include/linux/quotaops.h
-@@ -28,6 +28,9 @@ int dquot_drop_locked(struct inode *inode);
- struct dquot *dqget(struct super_block *sb, unsigned int id, int type);
- void dqput(struct dquot *dquot);
- int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
-+int dquot_scan_active(struct super_block *sb,
-+		      int (*fn)(struct dquot *dquot, unsigned long priv),
-+		      unsigned long priv);
++static void ocfs2_do_qsync(unsigned long oinfo_ptr)
++{
++	struct ocfs2_mem_dqinfo *oinfo = (struct ocfs2_mem_dqinfo *)oinfo_ptr;
++	struct super_block *sb = oinfo->dqi_gqinode->i_sb;
++
++	dquot_scan_active(sb, ocfs2_sync_dquot_helper, oinfo->dqi_type);
++}
++
++static void qsync_timer_fn(unsigned long oinfo_ptr)
++{
++	struct ocfs2_mem_dqinfo *oinfo = (struct ocfs2_mem_dqinfo *)oinfo_ptr;
++
++	pdflush_operation(ocfs2_do_qsync, oinfo_ptr);
++	mod_timer(&oinfo->dqi_sync_timer,
++		  round_jiffies(jiffies + oinfo->dqi_syncjiff));
++}
++
++/*
+  *  Wrappers for generic quota functions
+  */
  
- int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
- int dquot_alloc_inode(const struct inode *inode, qsize_t number);
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index 55c3f2f..1db7a16 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -368,6 +368,10 @@ static int ocfs2_local_free_info(struct super_block *sb, int type)
+ 	int mark_clean = 1, len;
+ 	int status;
+ 
++	/* At this point we know there are no more dquots and thus
++	 * even if there's some sync in the pdflush queue, it won't
++	 * find any dquots and return without doing anything */
++	del_timer_sync(&oinfo->dqi_sync_timer);
+ 	iput(oinfo->dqi_gqinode);
+ 	ocfs2_simple_drop_lockres(OCFS2_SB(sb), &oinfo->dqi_gqlock);
+ 	ocfs2_lock_res_free(&oinfo->dqi_gqlock);
 -- 
 1.5.2.4
