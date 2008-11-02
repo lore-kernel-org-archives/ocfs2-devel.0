@@ -1,79 +1,48 @@
-From: tristan.ye <tristan.ye@oracle.com>
-Date: Sun, 02 Nov 2008 16:11:20 +0800
-Subject: [Ocfs2-devel] [PATCH 00/27] Quotas for OCFS2 (version 3)
-In-Reply-To: <1225443964.6631.55.camel@tristan-laptop.cn.oracle.com>
-References: y  <12254351572189-git-send-email-jack@suse.cz>
-	<1225443964.6631.55.camel@tristan-laptop.cn.oracle.com>
-Message-ID: <1225613480.10475.2.camel@tristan-laptop.cn.oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Sun,  2 Nov 2008 19:04:21 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: add search result checking in
+	block_get
+Message-ID: <1225623861-6394-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, 2008-10-31 at 17:06 +0800, tristan.ye wrote:
-> On Fri, 2008-10-31 at 07:38 +0100, Jan Kara wrote:
-> > Hi,
-> > 
-> > in this thread comes the third version of the patches implementing quotas for
-> > OCFS2 (sorry for spamming ocfs2-devel so often with such a big pile of patches
-> > ;). I've now addressed all Joel's comments (feature bits added among supported
-> > bits in the last patch, hopefully fixed an oops when enabling quota fails on
-> > mount), also fixed a bug Tristan reported (message about exceeding softlimit
-> > was not always properly printed), fixed a bug in node recovery leading to
-> > possible oops when filesystem was without quotas (reported by Andrew Beekhof)
-> > and also reported a few style things and compilation problems reported
-> > by Andrew Morton and other people getting the patches via -mm kernel.  As
-> > always, comments are welcome (but I won't respond quickly because I'll be
-> > mostly out of email for next two weeks).
-> > 								Honza
-> 
-> Thanks for the quick 3rd version of quota patches on ocfs2,is this patch
-> set based on mark's kernel tree or mainline? i'll soon check my reported
-> bug on your provided kernel:)
-> 
-> BTW, I've worked out a first version of sanity checker for quota on
-> ocfs2,now its only on a single-node mode,will try to work on
-> mutiple-nodes tests later for node crash,heavy parallel quota usage and
-> negative quota usage test etc.maybe by the help of openmpi tools:)
-> 
-> I've attached the singe-node test script by this mail,you may have it
-> for sanity check if you wish,it includes one user/one group/multiple
-> groups test for all quota related generic functions(also soft/hard/grace
-> time limitaion for inodes and space usage tested here),you also can tune
-> the workload extremely high to expect it as a stress puncher.
-> 
-> it can be used like,
-> 
-> ./quota_tests.sh -o quotalog -d /dev/sdc5 -t ocfs2 -i small /quota (here
-> -i specify the workload, small means for a generic test,medium and large
-> increase the stress sharply:)
-> 
-> I've tested you 2rd version of patch set by specifying a medium
-> workload,the result was good to me:)
-> 
-> The testing status and testing tools will be kept on
-> http://oss.oracle.com/osswiki/QuotaTest
+Because ocfs2_xattr_block_find may return zero when not found
+the xattr entry, and struct ocfs2_xattr_search may have not
+be initialized. So check the search result is necessary to
+avoid access NULL pointer.
 
-Sorry, 
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+---
+ fs/ocfs2/xattr.c |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
 
-The right URL of testing  wiki shoud be
-http://oss.oracle.com/osswiki/OCFS2/QuotaTest , the former one is going
-to be obsolete since it was under a wrong namespace.
-
-
-Regards,
-
-Tristan.
-
-> 
-> 
-> Regards,
-> 
-> Tristan.
-> 
-> > 
-> > _______________________________________________
-> > Ocfs2-devel mailing list
-> > Ocfs2-devel at oss.oracle.com
-> > http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 70baffe..054e2ef 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -777,6 +777,11 @@ static int ocfs2_xattr_block_get(struct inode *inode,
+ 		goto cleanup;
+ 	}
+ 
++	if (xs->not_found) {
++		ret = -ENODATA;
++		goto cleanup;
++	}
++
+ 	xb = (struct ocfs2_xattr_block *)xs->xattr_bh->b_data;
+ 	size = le64_to_cpu(xs->here->xe_value_size);
+ 	if (buffer) {
+@@ -860,7 +865,7 @@ static int ocfs2_xattr_get(struct inode *inode,
+ 	down_read(&oi->ip_xattr_sem);
+ 	ret = ocfs2_xattr_ibody_get(inode, name_index, name, buffer,
+ 				    buffer_size, &xis);
+-	if (ret == -ENODATA)
++	if (ret == -ENODATA && di->i_xattr_loc)
+ 		ret = ocfs2_xattr_block_get(inode, name_index, name, buffer,
+ 					    buffer_size, &xbs);
+ 	up_read(&oi->ip_xattr_sem);
+-- 
+1.5.4.1
