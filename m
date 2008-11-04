@@ -1,48 +1,24 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Sun,  2 Nov 2008 19:04:21 +0800
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Mon, 3 Nov 2008 16:20:37 -0800
 Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: add search result checking in
 	block_get
-Message-ID: <1225623861-6394-1-git-send-email-tiger.yang@oracle.com>
+In-Reply-To: <1225623861-6394-1-git-send-email-tiger.yang@oracle.com>
+References: <1225623861-6394-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <20081104002037.GQ15154@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Because ocfs2_xattr_block_find may return zero when not found
-the xattr entry, and struct ocfs2_xattr_search may have not
-be initialized. So check the search result is necessary to
-avoid access NULL pointer.
+On Sun, Nov 02, 2008 at 07:04:21PM +0800, Tiger Yang wrote:
+> Because ocfs2_xattr_block_find may return zero when not found
+> the xattr entry, and struct ocfs2_xattr_search may have not
+> be initialized. So check the search result is necessary to
+> avoid access NULL pointer.
 
-Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
----
- fs/ocfs2/xattr.c |    7 ++++++-
- 1 files changed, 6 insertions(+), 1 deletions(-)
+Ok, thanks. This is now in the fixes branch.
+	--Mark
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 70baffe..054e2ef 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -777,6 +777,11 @@ static int ocfs2_xattr_block_get(struct inode *inode,
- 		goto cleanup;
- 	}
- 
-+	if (xs->not_found) {
-+		ret = -ENODATA;
-+		goto cleanup;
-+	}
-+
- 	xb = (struct ocfs2_xattr_block *)xs->xattr_bh->b_data;
- 	size = le64_to_cpu(xs->here->xe_value_size);
- 	if (buffer) {
-@@ -860,7 +865,7 @@ static int ocfs2_xattr_get(struct inode *inode,
- 	down_read(&oi->ip_xattr_sem);
- 	ret = ocfs2_xattr_ibody_get(inode, name_index, name, buffer,
- 				    buffer_size, &xis);
--	if (ret == -ENODATA)
-+	if (ret == -ENODATA && di->i_xattr_loc)
- 		ret = ocfs2_xattr_block_get(inode, name_index, name, buffer,
- 					    buffer_size, &xbs);
- 	up_read(&oi->ip_xattr_sem);
--- 
-1.5.4.1
+--
+Mark Fasheh
