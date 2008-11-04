@@ -1,97 +1,33 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 4 Nov 2008 13:00:32 -0800
-Subject: [Ocfs2-devel] question of ocfs2_do_flock()
-In-Reply-To: <4910296E.4080301@suse.de>
-References: <4910296E.4080301@suse.de>
-Message-ID: <20081104210032.GU15154@wotan.suse.de>
+Date: Tue, 4 Nov 2008 13:04:10 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix printk format warnings in
+	xattr.c
+In-Reply-To: <a4423d670811041259r2acdcc9bgbd52e0da2f58b778@mail.gmail.com>
+References: <20081104110645.GB12456@orion>
+	<20081104181848.GS15154@wotan.suse.de>
+	<a4423d670811041259r2acdcc9bgbd52e0da2f58b778@mail.gmail.com>
+Message-ID: <20081104210410.GV15154@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Nov 04, 2008 at 06:52:30PM +0800, Coly Li wrote:
-> Hi list,
+On Tue, Nov 04, 2008 at 11:59:09PM +0300, Alexander Beregalov wrote:
+> > Hmm, can you check
+> > http://git.kernel.org/?p=linux/kernel/git/mfasheh/ocfs2.git;a=blobdiff;f=fs/ocfs2/xattr.c;h=70baffeb1812771620bf1a9d08f1e76d48927f68;hp=f3ea7efb48c63a1dff92f8b0e7eb33f12d02a9d9;hb=5b294cb920e60b8c271cfeabba056376cce7441f;hpb=c2e2c581ace8de4a9cff733bc54e3c5677ff3c37
+> >
+> > and make sure I don't already have these...
+> Yes, you have fixed it already.
 > 
-> These days I am working on a L3 bug on SLES10 SP2. When I read ocfs2_do_flock(), there are some
-> questions from me. Wish anybody can give me a little hint to understand the code. Thanks.
-> 
-> 
-> 
-> static int ocfs2_do_flock(struct file *file, struct inode *inode,
->                           int cmd, struct file_lock *fl)
-> {
->         int ret = 0, level = 0, trylock = 0;
->         struct ocfs2_file_private *fp = file->private_data;
->         struct ocfs2_lock_res *lockres = &fp->fp_flock;
-> 
->         if (fl->fl_type == F_WRLCK)
->                 level = 1;
->         if (!IS_SETLKW(cmd))
->                 trylock = 1;
-> 
->         mutex_lock(&fp->fp_mutex);
-> 
->         if (lockres->l_flags & OCFS2_LOCK_ATTACHED &&
->             lockres->l_level > LKM_NLMODE) {
->                 int old_level = 0;
-> 
->                 if (lockres->l_level == LKM_EXMODE)
->                         old_level = 1;
+> But what branch is it? I can not fetch the last fix using master or
+> linux-next branches.
+> http://git.kernel.org/?p=linux/kernel/git/mfasheh/ocfs2.git;a=history;f=fs/ocfs2;hb=5b294c
 
-Hmm, we shouldn't really be using LKM_* constants any more. This must have
-slipped past me in the last merge. There shouldn't be any real problem
-though since each dlm uses the same values for the locking mode constants.
-Still, we should fix this. There also seems to be some debug stuff in
-dlmglue.c which is doing this too.
+It's in the 'fixes' branch. Actually, it didn't make it into linux-next
+because I forgot to push it over there after merging it. It should be in
+there now (well, at least until Linus pulls my fixes). Sorry about that.
+	--Mark
 
-
-> 
->                 if (level == old_level)
->                         goto out;
-> -----------
-> Question: when level and oldlevel are not (0 and 0) or (1 and 1), I don't see any code does dlm lock
-> compatibility logic. I don't undersand why the code here can try to unlock directly.
-> 
-> -----------
-
-It's just as the below comment says - flock conversion between two modes is
-not guaranteed to be atomic. The easiest method for us to deal with these
-sorts of requests then, is to simply unlock and relock at the new level.
-From the flock man page:
-
-       Converting a lock (shared to exclusive, or vice versa) is  not guaran-
-       teed  to  be atomic: the existing lock is first removed, and then a new
-       lock is established.
-
-Dealing with upconversion and downconversion of locks at the distributed
-locking level is rather complex. Enough so that it's only worth the effort
-on locks which really need it.
-
-
->                 /*
->                  * Converting an existing lock is not guaranteed to be
->                  * atomic, so we can get away with simply unlocking
->                  * here and allowing the lock code to try at the new
->                  * level.
->                  */
-> 
->                 flock_lock_file_wait(file,
->                                      &(struct file_lock){.fl_type = F_UNLCK});
-> 
->                 ocfs2_file_unlock(file);
->         }
-> [snip]
-> }
-> 
-> Thanks in advance.
-> -- 
-> Coly Li
-> SuSE PRC Labs
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 --
 Mark Fasheh
