@@ -1,48 +1,147 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 7 Nov 2008 14:46:14 -0800
-Subject: [Ocfs2-devel] [PATCH 05/15] ocfs2/xattr: Merge xattr
-	set	transaction.
-In-Reply-To: <1225345335-11527-5-git-send-email-tao.ma@oracle.com>
-References: <49099B13.9030802@oracle.com>
-	<1225345335-11527-5-git-send-email-tao.ma@oracle.com>
-Message-ID: <20081107224614.GB28338@mail.oracle.com>
+From: Alexander Beregalov <a.beregalov@gmail.com>
+Date: Tue, 4 Nov 2008 14:06:45 +0300
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix printk format warnings in xattr.c
+Message-ID: <20081104110645.GB12456@orion>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Oct 30, 2008 at 01:42:15PM +0800, Tao Ma wrote:
-> In current ocfs2/xattr, the whole xattr set is divided into
-> many steps are many transaction are used, this make the
-> xattr set process isn't like a real transaction, so this
-> patch try to merge all the transaction into one. Another
-> benefit is that acl can use it easily now.
 
-	There's nothing in this patch that looks horribly wrong.  I will
-admit, I don't have enough of a grasp of this code to evaluate it
-deeply.  I think we should apply it, and as I finish up my bucket work
-on the new _set() path I'll mention anything I see as a go there.
 
-> I don't merge the transaction of deleting xattr when we
-> remove an inode. The reason is that if we have a large number
-> of xattrs and every xattrs has large values(large enough
-> for outside storage), the whole transaction will be very
-> huge and it looks like jbd can't handle it(I meet with a
-> jbd complain once). And the old inode removal is also divided
-> into many steps, so I'd like to leave as it is.
+Signed-off-by: Alexander Beregalov <a.beregalov@gmail.com>
+---
 
-	I think this is the right way to go.
+ fs/ocfs2/xattr.c |   34 ++++++++++++++++++++--------------
+ 1 files changed, 20 insertions(+), 14 deletions(-)
 
-Joel
-
--- 
-
-"When ideas fail, words come in very handy." 
-         - Goethe
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 802c414..c09030e 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2398,7 +2398,8 @@ static int ocfs2_xattr_index_block_find(struct inode *inode,
+ 	BUG_ON(p_blkno == 0 || num_clusters == 0 || first_hash > name_hash);
+ 
+ 	mlog(0, "find xattr extent rec %u clusters from %llu, the first hash "
+-	     "in the rec is %u\n", num_clusters, p_blkno, first_hash);
++	     "in the rec is %u\n", num_clusters, (unsigned long long)p_blkno,
++	     first_hash);
+ 
+ 	ret = ocfs2_xattr_bucket_find(inode, name_index, name, name_hash,
+ 				      p_blkno, first_hash, num_clusters, xs);
+@@ -2422,7 +2423,7 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
+ 	memset(&bucket, 0, sizeof(bucket));
+ 
+ 	mlog(0, "iterating xattr buckets in %u clusters starting from %llu\n",
+-	     clusters, blkno);
++	     clusters, (unsigned long long)blkno);
+ 
+ 	for (i = 0; i < num_buckets; i++, blkno += blk_per_bucket) {
+ 		ret = ocfs2_read_blocks(inode, blkno, blk_per_bucket,
+@@ -2440,7 +2441,8 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
+ 		if (i == 0)
+ 			num_buckets = le16_to_cpu(bucket.xh->xh_num_buckets);
+ 
+-		mlog(0, "iterating xattr bucket %llu, first hash %u\n", blkno,
++		mlog(0, "iterating xattr bucket %llu, first hash %u\n",
++		     (unsigned long long)blkno,
+ 		     le32_to_cpu(bucket.xh->xh_entries[0].xe_name_hash));
+ 		if (func) {
+ 			ret = func(inode, &bucket, para);
+@@ -2776,7 +2778,8 @@ static int ocfs2_xattr_create_index_block(struct inode *inode,
+ 	 */
+ 	blkno = ocfs2_clusters_to_blocks(inode->i_sb, bit_off);
+ 
+-	mlog(0, "allocate 1 cluster from %llu to xattr block\n", blkno);
++	mlog(0, "allocate 1 cluster from %llu to xattr block\n",
++	     (unsigned long long)blkno);
+ 
+ 	xh_bh = sb_getblk(inode->i_sb, blkno);
+ 	if (!xh_bh) {
+@@ -2941,8 +2944,8 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
+ 
+ 	mlog(0, "adjust xattr bucket in %llu, count = %u, "
+ 	     "xh_free_start = %u, xh_name_value_len = %u.\n",
+-	     blkno, le16_to_cpu(xh->xh_count), xh_free_start,
+-	     le16_to_cpu(xh->xh_name_value_len));
++	     (unsigned long long)blkno, le16_to_cpu(xh->xh_count),
++	     xh_free_start, le16_to_cpu(xh->xh_name_value_len));
+ 
+ 	/*
+ 	 * sort all the entries by their offset.
+@@ -3058,7 +3061,7 @@ static int ocfs2_mv_xattr_bucket_cross_cluster(struct inode *inode,
+ 	prev_blkno += (num_clusters - 1) * bpc + bpc / 2;
+ 
+ 	mlog(0, "move half of xattrs in cluster %llu to %llu\n",
+-	     prev_blkno, new_blkno);
++	     (unsigned long long)prev_blkno, (unsigned long long)new_blkno);
+ 
+ 	/*
+ 	 * We need to update the 1st half of the new cluster and
+@@ -3187,7 +3190,7 @@ static int ocfs2_half_xattr_bucket(struct inode *inode,
+ 	int blocksize = inode->i_sb->s_blocksize;
+ 
+ 	mlog(0, "move half of xattrs from bucket %llu to %llu\n",
+-	     blk, new_blk);
++	     (unsigned long long)blk, (unsigned long long)new_blk);
+ 
+ 	s_bhs = kcalloc(blk_per_bucket, sizeof(struct buffer_head *), GFP_NOFS);
+ 	if (!s_bhs)
+@@ -3358,7 +3361,8 @@ static int ocfs2_cp_xattr_bucket(struct inode *inode,
+ 	BUG_ON(s_blkno == t_blkno);
+ 
+ 	mlog(0, "cp bucket %llu to %llu, target is %d\n",
+-	     s_blkno, t_blkno, t_is_new);
++	     (unsigned long long)s_blkno, (unsigned long long)t_blkno,
++	     t_is_new);
+ 
+ 	s_bhs = kzalloc(sizeof(struct buffer_head *) * blk_per_bucket,
+ 			GFP_NOFS);
+@@ -3428,7 +3432,8 @@ static int ocfs2_cp_xattr_cluster(struct inode *inode,
+ 	struct ocfs2_xattr_header *xh;
+ 	u64 to_blk_start = to_blk;
+ 
+-	mlog(0, "cp xattrs from cluster %llu to %llu\n", src_blk, to_blk);
++	mlog(0, "cp xattrs from cluster %llu to %llu\n",
++	     (unsigned long long)src_blk, (unsigned long long)to_blk);
+ 
+ 	/*
+ 	 * We need to update the new cluster and 1 more for the update of
+@@ -3559,7 +3564,8 @@ static int ocfs2_adjust_xattr_cross_cluster(struct inode *inode,
+ 	int bpc = ocfs2_clusters_to_blocks(inode->i_sb, 1);
+ 
+ 	mlog(0, "adjust xattrs from cluster %llu len %u to %llu\n",
+-	     prev_blk, prev_clusters, new_blk);
++	     (unsigned long long)prev_blk, prev_clusters,
++	     (unsigned long long)new_blk);
+ 
+ 	if (ocfs2_xattr_buckets_per_cluster(OCFS2_SB(inode->i_sb)) > 1)
+ 		ret = ocfs2_mv_xattr_bucket_cross_cluster(inode,
+@@ -3629,7 +3635,7 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
+ 	mlog(0, "Add new xattr cluster for %llu, previous xattr hash = %u, "
+ 	     "previous xattr blkno = %llu\n",
+ 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+-	     prev_cpos, prev_blkno);
++	     prev_cpos, (unsigned long long)prev_blkno);
+ 
+ 	ocfs2_init_xattr_tree_extent_tree(&et, inode, root_bh);
+ 
+@@ -3716,7 +3722,7 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
+ 		}
+ 	}
+ 	mlog(0, "Insert %u clusters at block %llu for xattr at %u\n",
+-	     num_bits, block, v_start);
++	     num_bits, (unsigned long long)block, v_start);
+ 	ret = ocfs2_insert_extent(osb, handle, inode, &et, v_start, block,
+ 				  num_bits, 0, meta_ac);
+ 	if (ret < 0) {
+@@ -3761,7 +3767,7 @@ static int ocfs2_extend_xattr_bucket(struct inode *inode,
+ 	u16 bucket = le16_to_cpu(first_xh->xh_num_buckets);
+ 
+ 	mlog(0, "extend xattr bucket in %llu, xattr extend rec starting "
+-	     "from %llu, len = %u\n", start_blk,
++	     "from %llu, len = %u\n", (unsigned long long)start_blk,
+ 	     (unsigned long long)first_bh->b_blocknr, num_clusters);
+ 
+ 	BUG_ON(bucket >= num_buckets);
