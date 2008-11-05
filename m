@@ -1,209 +1,98 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed,  5 Nov 2008 07:25:23 +0800
-Subject: [Ocfs2-devel] [PATCH 02/15] ocfs2: Add clusters free in
-	dealloc_ctxt.v2
-In-Reply-To: <20081104011652.GH22137@mail.oracle.com>
-References: <20081104011652.GH22137@mail.oracle.com>
-Message-ID: <1225841123-3998-1-git-send-email-tao.ma@oracle.com>
+From: Coly Li <coyli@suse.de>
+Date: Wed, 05 Nov 2008 19:15:20 +0800
+Subject: [Ocfs2-devel] question of ocfs2_do_flock()
+In-Reply-To: <20081104210032.GU15154@wotan.suse.de>
+References: <4910296E.4080301@suse.de> <20081104210032.GU15154@wotan.suse.de>
+Message-ID: <49118048.2000600@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Modification from V1 to V2:
-1. Some typo fix from Joel.
-2. Adjust ocfs2_free_cached_clusters to handle the situation of
-   truncate log full. Most of codes are copied from 
-   ocfs2_complete_truncate_log_recovery.
 
-Now in ocfs2 xattr set, the whole process are divided into many small
-parts and they are wrapped into diffrent transactions and it make the
-set doesn't look like a real transaction. So we want to integrate it
-into a real one.
 
-In some cases we will allocate some clusters and free some in just one
-transaction. e.g, one xattr is larger than inline size, so it and its
-value root is stored within the inode while the value is outside in a
-cluster. Then we try to update it with a smaller value(larger than the
-size of root but smaller than inline size), we may need to free the
-outside cluster while allocate a new bucket(one cluster) since now the
-inode may be full. The old solution will lock the global_bitmap(if the
-local alloc failed in stress test) and then the truncate log. This will
-cause a ABBA lock with truncate log flush.
+Mark Fasheh Wrote:
+> On Tue, Nov 04, 2008 at 06:52:30PM +0800, Coly Li wrote:
+>> Hi list,
+>>
+>> These days I am working on a L3 bug on SLES10 SP2. When I read ocfs2_do_flock(), there are some
+>> questions from me. Wish anybody can give me a little hint to understand the code. Thanks.
+>>
+>>
+>>
+>> static int ocfs2_do_flock(struct file *file, struct inode *inode,
+>>                           int cmd, struct file_lock *fl)
+>> {
+>>         int ret = 0, level = 0, trylock = 0;
+>>         struct ocfs2_file_private *fp = file->private_data;
+>>         struct ocfs2_lock_res *lockres = &fp->fp_flock;
+>>
+>>         if (fl->fl_type == F_WRLCK)
+>>                 level = 1;
+>>         if (!IS_SETLKW(cmd))
+>>                 trylock = 1;
+>>
+>>         mutex_lock(&fp->fp_mutex);
+>>
+>>         if (lockres->l_flags & OCFS2_LOCK_ATTACHED &&
+>>             lockres->l_level > LKM_NLMODE) {
+>>                 int old_level = 0;
+>>
+>>                 if (lockres->l_level == LKM_EXMODE)
+>>                         old_level = 1;
+> 
+> Hmm, we shouldn't really be using LKM_* constants any more. This must have
+> slipped past me in the last merge. There shouldn't be any real problem
+> though since each dlm uses the same values for the locking mode constants.
+> Still, we should fix this. There also seems to be some debug stuff in
+> dlmglue.c which is doing this too.
 
-This patch add the clusters free in dealloc_ctxt, so that we can record
-the free clusters during the transaction and then free it after we
-release the global_bitmap in xattr set.
+So what we are using to replace LKM_* right now ?
+> 
+> 
+>>                 if (level == old_level)
+>>                         goto out;
+>> -----------
+>> Question: when level and oldlevel are not (0 and 0) or (1 and 1), I don't see any code does dlm lock
+>> compatibility logic. I don't undersand why the code here can try to unlock directly.
+>>
+>> -----------
+> 
+> It's just as the below comment says - flock conversion between two modes is
+> not guaranteed to be atomic. The easiest method for us to deal with these
+> sorts of requests then, is to simply unlock and relock at the new level.
+> From the flock man page:
+> 
+>        Converting a lock (shared to exclusive, or vice versa) is  not guaran-
+>        teed  to  be atomic: the existing lock is first removed, and then a new
+>        lock is established.
+> 
+> Dealing with upconversion and downconversion of locks at the distributed
+> locking level is rather complex. Enough so that it's only worth the effort
+> on locks which really need it.
+> 
+If the resource is PR locked by other holder, a caller wants to hold a CR lock, does it means the
+caller should wait for the resource to be unlocked firstly ?
+Is this what confused me here.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/alloc.c |  104 ++++++++++++++++++++++++++++++++++++++++++++++++++----
- fs/ocfs2/alloc.h |    4 ++
- 2 files changed, 101 insertions(+), 7 deletions(-)
+> 
+>>                 /*
+>>                  * Converting an existing lock is not guaranteed to be
+>>                  * atomic, so we can get away with simply unlocking
+>>                  * here and allowing the lock code to try at the new
+>>                  * level.
+>>                  */
+>>
+>>                 flock_lock_file_wait(file,
+>>                                      &(struct file_lock){.fl_type = F_UNLCK});
+>>
+>>                 ocfs2_file_unlock(file);
+>>         }
+>> [snip]
+>> }
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 0cc2deb..0894b68 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -5800,7 +5800,10 @@ int ocfs2_truncate_log_init(struct ocfs2_super *osb)
-  */
- 
- /*
-- * Describes a single block free from a suballocator
-+ * Describe a single bit freed from a suballocator.  For the block
-+ * suballocators, it represents one block.  For the global cluster
-+ * allocator, it represents some clusters and free_bit indicates
-+ * clusters number.
-  */
- struct ocfs2_cached_block_free {
- 	struct ocfs2_cached_block_free		*free_next;
-@@ -5815,10 +5818,10 @@ struct ocfs2_per_slot_free_list {
- 	struct ocfs2_cached_block_free		*f_first;
- };
- 
--static int ocfs2_free_cached_items(struct ocfs2_super *osb,
--				   int sysfile_type,
--				   int slot,
--				   struct ocfs2_cached_block_free *head)
-+static int ocfs2_free_cached_blocks(struct ocfs2_super *osb,
-+				    int sysfile_type,
-+				    int slot,
-+				    struct ocfs2_cached_block_free *head)
- {
- 	int ret;
- 	u64 bg_blkno;
-@@ -5893,6 +5896,82 @@ out:
- 	return ret;
- }
- 
-+int ocfs2_cache_cluster_dealloc(struct ocfs2_cached_dealloc_ctxt *ctxt,
-+				u64 blkno, unsigned int bit)
-+{
-+	int ret = 0;
-+	struct ocfs2_cached_block_free *item;
-+
-+	item = kmalloc(sizeof(*item), GFP_NOFS);
-+	if (item == NULL) {
-+		ret = -ENOMEM;
-+		mlog_errno(ret);
-+		return ret;
-+	}
-+
-+	mlog(0, "Insert clusters: (bit %u, blk %llu)\n",
-+	     bit, (unsigned long long)blkno);
-+
-+	item->free_blk = blkno;
-+	item->free_bit = bit;
-+	item->free_next = ctxt->c_global_allocator;
-+
-+	ctxt->c_global_allocator = item;
-+	return ret;
-+}
-+
-+static int ocfs2_free_cached_clusters(struct ocfs2_super *osb,
-+				      struct ocfs2_cached_block_free *head)
-+{
-+	struct ocfs2_cached_block_free *tmp;
-+	struct inode *tl_inode = osb->osb_tl_inode;
-+	handle_t *handle;
-+	int ret = 0;
-+
-+	mutex_lock(&tl_inode->i_mutex);
-+
-+	while (head) {
-+		if (ocfs2_truncate_log_needs_flush(osb)) {
-+			ret = __ocfs2_flush_truncate_log(osb);
-+			if (ret < 0) {
-+				mlog_errno(ret);
-+				break;
-+			}
-+		}
-+
-+		handle = ocfs2_start_trans(osb, OCFS2_TRUNCATE_LOG_UPDATE);
-+		if (IS_ERR(handle)) {
-+			ret = PTR_ERR(handle);
-+			mlog_errno(ret);
-+			break;
-+		}
-+
-+		ret = ocfs2_truncate_log_append(osb, handle, head->free_blk,
-+						head->free_bit);
-+
-+		ocfs2_commit_trans(osb, handle);
-+		tmp = head;
-+		head = head->free_next;
-+		kfree(tmp);
-+
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+	}
-+
-+	mutex_unlock(&tl_inode->i_mutex);
-+
-+	while (head) {
-+		/* Premature exit may have left some dangling items. */
-+		tmp = head;
-+		head = head->free_next;
-+		kfree(tmp);
-+	}
-+
-+	return ret;
-+}
-+
- int ocfs2_run_deallocs(struct ocfs2_super *osb,
- 		       struct ocfs2_cached_dealloc_ctxt *ctxt)
- {
-@@ -5908,8 +5987,10 @@ int ocfs2_run_deallocs(struct ocfs2_super *osb,
- 		if (fl->f_first) {
- 			mlog(0, "Free items: (type %u, slot %d)\n",
- 			     fl->f_inode_type, fl->f_slot);
--			ret2 = ocfs2_free_cached_items(osb, fl->f_inode_type,
--						       fl->f_slot, fl->f_first);
-+			ret2 = ocfs2_free_cached_blocks(osb,
-+							fl->f_inode_type,
-+							fl->f_slot,
-+							fl->f_first);
- 			if (ret2)
- 				mlog_errno(ret2);
- 			if (!ret)
-@@ -5920,6 +6001,15 @@ int ocfs2_run_deallocs(struct ocfs2_super *osb,
- 		kfree(fl);
- 	}
- 
-+	if (ctxt->c_global_allocator) {
-+		ret2 = ocfs2_free_cached_clusters(osb,
-+						  ctxt->c_global_allocator);
-+		if (ret2)
-+			mlog_errno(ret2);
-+		if (!ret)
-+			ret = ret2;
-+	}
-+
- 	return ret;
- }
- 
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 70257c8..c301cf2 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -167,11 +167,15 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
-  */
- struct ocfs2_cached_dealloc_ctxt {
- 	struct ocfs2_per_slot_free_list		*c_first_suballocator;
-+	struct ocfs2_cached_block_free 		*c_global_allocator;
- };
- static inline void ocfs2_init_dealloc_ctxt(struct ocfs2_cached_dealloc_ctxt *c)
- {
- 	c->c_first_suballocator = NULL;
-+	c->c_global_allocator = NULL;
- }
-+int ocfs2_cache_cluster_dealloc(struct ocfs2_cached_dealloc_ctxt *ctxt,
-+				u64 blkno, unsigned int bit);
- int ocfs2_run_deallocs(struct ocfs2_super *osb,
- 		       struct ocfs2_cached_dealloc_ctxt *ctxt);
- 
+
 -- 
-1.5.5
+Coly Li
+SuSE PRC Labs
