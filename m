@@ -1,28 +1,38 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 6 Nov 2008 11:45:31 -0800
-Subject: [Ocfs2-devel] [PATCH 01/15] ocfs2/xattr: Only extend xattr
-	bucket in need.
-In-Reply-To: <1225345335-11527-1-git-send-email-tao.ma@oracle.com>
-References: <49099B13.9030802@oracle.com>
-	<1225345335-11527-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20081106194531.GD15154@wotan.suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 6 Nov 2008 13:06:00 -0800
+Subject: [Ocfs2-devel] [PATCH 0/2] Two minor fixes for Joel's
+	xattr-buckets branch.
+In-Reply-To: <49129D87.5040600@oracle.com>
+References: <49129D87.5040600@oracle.com>
+Message-ID: <20081106210559.GH15220@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Oct 30, 2008 at 01:42:11PM +0800, Tao Ma wrote:
-> When the first block of a bucket is filled up with xattr
-> entries, we normally extend the bucket. But if we are
-> just replace one xattr with small length, we don't need
-> to extend it. This is important since we will calculate
-> what we need before the transaction and in this situation
-> no resources will be allocated.
+On Thu, Nov 06, 2008 at 03:32:23PM +0800, Tao Ma wrote:
+> Hi Joel,
+> 	These 2 patches are minor fixes and improvement for your xattr -buckets  
+> branch. Could you please review them? And if they are OK, please push  
+> them to your branch so that I can rebase my transaction merge patch set  
+> on it. One is for ocfs2_defrag_xattr_bucket improvement and another is  
+> for the ocfs2_buffer_uptodate check in ocfs2_init_xattr_bucket. I saw  
+> your branch haven't been updated for some days, so create these 2  
+> patches for you. ;)
 
-Ok, looks good. Am I correct in thinking that this is a fix which should go
-upstream before 2.6.28 is out?
-	--Mark
+	Thanks Tao, these are pushed to my xattr-buckets branch now.
 
---
-Mark Fasheh
+Joel
+
+-- 
+
+"In a crisis, don't hide behind anything or anybody. They're going
+ to find you anyway."
+	- Paul "Bear" Bryant
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
