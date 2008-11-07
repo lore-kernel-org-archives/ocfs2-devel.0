@@ -1,121 +1,60 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 6 Nov 2008 17:33:08 -0800
-Subject: [Ocfs2-devel] [PATCH 13/15] ocfs2: add ocfs2_acl_chmod
-In-Reply-To: <1225366931-6454-1-git-send-email-tiger.yang@oracle.com>
-References: <49099B13.9030802@oracle.com>
-	<1225366931-6454-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <20081107013308.GK15154@wotan.suse.de>
+Date: Fri, 7 Nov 2008 13:21:14 -0800
+Subject: [Ocfs2-devel] [PATCH 0/13] ocfs2: xattr bucket API
+In-Reply-To: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
+References: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
+Message-ID: <20081107212114.GN15154@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Oct 30, 2008 at 07:42:11PM +0800, Tiger Yang wrote:
-> This function use to update acl xattrs when
-> file mode was changed.
+On Mon, Oct 27, 2008 at 06:20:15PM -0700, Joel Becker wrote:
+> When the extended attribute namespace grows to a b-tree, the leaf
+> clusters are organized by means of 'buckets'.  Each bucket is 4K in
+> size, regardless of blocksize.  Thus, a bucket may be made of more than
+> one block.
 > 
-> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
-> ---
->  fs/ocfs2/acl.c  |   34 ++++++++++++++++++++++++++++++++++
->  fs/ocfs2/acl.h  |    7 +++++++
->  fs/ocfs2/file.c |    8 ++++++++
->  3 files changed, 49 insertions(+), 0 deletions(-)
+> fs/ocfs2/xattr.c has a nice little abstraction to wrap this, struct
+> ocfs2_xattr_bucket.  It contains a list of buffer_heads representing
+> these blocks, and there is even an API to fill it or initialize it.
 > 
-> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-> index 584da84..7c7e4d4 100644
-> --- a/fs/ocfs2/acl.c
-> +++ b/fs/ocfs2/acl.c
-> @@ -288,6 +288,40 @@ int ocfs2_check_acl(struct inode *inode, int mask)
->  	return -EAGAIN;
->  }
->  
-> +int ocfs2_acl_chmod(handle_t *handle,
-> +		    struct inode *inode,
-> +		    struct buffer_head *di_bh)
-> +{
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +	struct posix_acl *acl, *clone;
-> +	int ret;
-> +
-> +	if (S_ISLNK(inode->i_mode))
-> +		return -EOPNOTSUPP;
-> +
-> +	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
-> +		return 0;
-> +
-> +	acl = ocfs2_get_acl_nolock(inode, ACL_TYPE_ACCESS, di_bh);
-> +	if (IS_ERR(acl) || !acl)
-> +		return PTR_ERR(acl);
-> +	clone = posix_acl_clone(acl, GFP_KERNEL);
-> +	posix_acl_release(acl);
-> +	if (!clone)
-> +		return -ENOMEM;
-> +	ret = posix_acl_chmod_masq(clone, inode->i_mode);
-> +	if (!ret)
-> +		/*
-> +		 * only replace same size acl here, so wouldn't
-> +		 * reserve metadata and clusters.
-> +		 */
-> +		ret = ocfs2_set_acl_handle(handle, inode, di_bh,
-> +					   ACL_TYPE_ACCESS, clone,
-> +					   NULL, NULL);
-> +	posix_acl_release(clone);
-> +	return ret;
-> +}
-> +
->  static size_t ocfs2_xattr_list_acl_access(struct inode *inode,
->  					  char *list,
->  					  size_t list_len,
-> diff --git a/fs/ocfs2/acl.h b/fs/ocfs2/acl.h
-> index fef10f1..f7b1df7 100644
-> --- a/fs/ocfs2/acl.h
-> +++ b/fs/ocfs2/acl.h
-> @@ -29,10 +29,17 @@ struct ocfs2_acl_entry {
->  #ifdef CONFIG_OCFS2_FS_POSIX_ACL
->  
->  extern int ocfs2_check_acl(struct inode *, int);
-> +extern int ocfs2_acl_chmod(handle_t *, struct inode *, struct buffer_head *);
->  
->  #else /* CONFIG_OCFS2_FS_POSIX_ACL*/
->  
->  #define ocfs2_check_acl NULL
-> +static inline int ocfs2_acl_chmod(handle_t *handle,
-> +				  struct inode *inode,
-> +				  struct buffer_head *di_bh)
-> +{
-> +	return 0;
-> +}
->  
->  #endif /* CONFIG_OCFS2_FS_POSIX_ACL*/
->  
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 5a45b6b..66d5395 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -977,6 +977,14 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
->  		goto bail_commit;
->  	}
->  
-> +	if (attr->ia_valid & ATTR_MODE) {
-> +		status = ocfs2_acl_chmod(handle, inode, bh);
-> +		if (status < 0) {
-> +			mlog_errno(status);
-> +			goto bail_commit;
-> +		}
-> +	}
-> +
->  	status = ocfs2_mark_inode_dirty(handle, inode, bh);
->  	if (status < 0)
->  		mlog_errno(status);
+> However, the majority of the code does not use this abstraction.
+> Instead, it uses raw buffer_heads and jumps through other hoops.
+> This has two consequences.  First, it's harder to read.  Second, it is
+> less efficient.  Sometimes it reads the first and last block of a
+> bucket, when reading and writing all blocks at once is a streaming I/O.
+> 
+> This series expands the bucket API in a fashion similar to
+> fs/ocfs2/alloc.c's struct ocfs2_path.  The hope is that all bucket
+> operations can use this API and mostly avoid raw buffer_head work.
+> 
+> This is also needed for checksums of buckets, as the checksum
+> calculations need to read the entire bucket.  Since a 4K contig I/O is
+> just as cheap as a single block, this causes no loss of efficiency.
+> 
+> This path series is on top of my xattr-28 fixes branch.  Before going
+> upstream it will be rebased on top of at least the divide_bucket fix.
+> It only touches the xattr_get() and xattr_list() paths, becuase I need
+> Tao's single-transaction xattr_set() before I can do the xattr_set()
+> path.
+> 
+> All comments and review welcome.  I hope it's mostly self-explanatory.
 
-I think we need to increase the number of credits that the transaction
-started for this part of setattr uses.
+This looks great.
 
-This should be pretty easy though - the call to ocfs2_start_trans() is right
-above here, and it already takes OCFS2_INODE_UPDATE_CREDITS. I'd just use a
-'credits' variable and increase it by however many is the maximum that might
-be required if the fs is mounted with acls turned on.
+I rebased your branch and added my signoffs to start the new merge_window
+branch. Tao, this includes your latest fixes. Once Tao and Tiger have an
+updated set of acl / security attr patches, I'll drop those in right on top.
+
+One thing though - your patches are built on top of our 'fixes' branch,
+which is great for merging down the line. Right now, merge_window will just
+live alone, until Linus pulls our fixes. Once that happens, I'll rebase
+merge_window one more time and start pulling it into linux-next / ALL
+branches.
+
+Sound good?
 	--Mark
 
 --
