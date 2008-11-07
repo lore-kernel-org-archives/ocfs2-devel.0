@@ -1,33 +1,45 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 7 Nov 2008 13:36:02 -0800
-Subject: [Ocfs2-devel] [PATCH 0/13] ocfs2: xattr bucket API
-In-Reply-To: <20081107212114.GN15154@wotan.suse.de>
-References: <1225156828-32189-1-git-send-email-joel.becker@oracle.com>
-	<20081107212114.GN15154@wotan.suse.de>
-Message-ID: <20081107213602.GA28338@mail.oracle.com>
+Date: Fri, 7 Nov 2008 14:46:14 -0800
+Subject: [Ocfs2-devel] [PATCH 05/15] ocfs2/xattr: Merge xattr
+	set	transaction.
+In-Reply-To: <1225345335-11527-5-git-send-email-tao.ma@oracle.com>
+References: <49099B13.9030802@oracle.com>
+	<1225345335-11527-5-git-send-email-tao.ma@oracle.com>
+Message-ID: <20081107224614.GB28338@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Nov 07, 2008 at 01:21:14PM -0800, Mark Fasheh wrote:
-> One thing though - your patches are built on top of our 'fixes' branch,
-> which is great for merging down the line. Right now, merge_window will just
-> live alone, until Linus pulls our fixes. Once that happens, I'll rebase
-> merge_window one more time and start pulling it into linux-next / ALL
-> branches.
+On Thu, Oct 30, 2008 at 01:42:15PM +0800, Tao Ma wrote:
+> In current ocfs2/xattr, the whole xattr set is divided into
+> many steps are many transaction are used, this make the
+> xattr set process isn't like a real transaction, so this
+> patch try to merge all the transaction into one. Another
+> benefit is that acl can use it easily now.
 
-	I would think that merge_window should live atop our latest at
-all times, including 'fixes'.
+	There's nothing in this patch that looks horribly wrong.  I will
+admit, I don't have enough of a grasp of this code to evaluate it
+deeply.  I think we should apply it, and as I finish up my bucket work
+on the new _set() path I'll mention anything I see as a go there.
+
+> I don't merge the transaction of deleting xattr when we
+> remove an inode. The reason is that if we have a large number
+> of xattrs and every xattrs has large values(large enough
+> for outside storage), the whole transaction will be very
+> huge and it looks like jbd can't handle it(I meet with a
+> jbd complain once). And the old inode removal is also divided
+> into many steps, so I'd like to leave as it is.
+
+	I think this is the right way to go.
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #15
-
-	"Own a great stereo system."
+"When ideas fail, words come in very handy." 
+         - Goethe
 
 Joel Becker
 Principal Software Developer
