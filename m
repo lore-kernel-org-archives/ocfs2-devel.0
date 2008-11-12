@@ -1,37 +1,42 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 12 Nov 2008 16:20:51 +0800
-Subject: [Ocfs2-devel] [PATCH 0/5] ocfs2/xattr: transaction merge patch set.
-	v3
-Message-ID: <491A91E3.7010408@oracle.com>
+Date: Wed, 12 Nov 2008 08:26:57 +0800
+Subject: [Ocfs2-devel] [PATCH 1/5] ocfs2/xattr: Only extend xattr bucket in
+	need.
+In-Reply-To: <491A91E3.7010408@oracle.com>
+References: <491A91E3.7010408@oracle.com>
+Message-ID: <1226449621-23011-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
-	In current ocfs2/xattr, the whole xattr set is divided into many steps 
-are many transaction are used, this make the xattr set process isn't 
-like a real transaction, so this patch try to merge all the transaction 
-into one. Another benefit is that acl can use it easily now.
+When the first block of a bucket is filled up with xattr
+entries, we normally extend the bucket. But if we are
+just replace one xattr with small length, we don't need
+to extend it. This is important since we will calculate
+what we need before the transaction and in this situation
+no resources will be allocated.
 
-Modification from v2 to v3:
-patch 2: set c_global_allocator to NULL after we free the cluster.
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/xattr.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
-patch 4:
-   1) initialize ocfs2_xattr_set_ctxt in a more efficient way.
-   2) add one inline function ocfs2_dealloc_has_cluster so that we only 
-flush truncate log when dealloc has clusters to free(Mark, you are free 
-to change the name if it looks ugly. ;) ).
-
-Mark,
-	Since Joel and you have already reviewed this patch set, I'd like you 
-to push these patches to merge_window now. So I can ask tristan to pull 
-from your branch and do some test on this ASAP(actually I have already 
-done some, but I'd like to hear the voice of the really testers :)). 
-Another side effect is that Joel may need this for his bucket work on 
-the new _set() path. And what's more, tiger's acl can base on your 
-merge_window directly now.
-
-Regards,
-Tao
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 5244c5d..551ae56 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -4559,7 +4559,9 @@ try_again:
+ 	     free, need, max_free, le16_to_cpu(xh->xh_free_start),
+ 	     le16_to_cpu(xh->xh_name_value_len));
+ 
+-	if (free < need || count == ocfs2_xattr_max_xe_in_bucket(inode->i_sb)) {
++	if (free < need ||
++	    (xs->not_found &&
++	     count == ocfs2_xattr_max_xe_in_bucket(inode->i_sb))) {
+ 		if (need <= max_free &&
+ 		    count < ocfs2_xattr_max_xe_in_bucket(inode->i_sb)) {
+ 			/*
+-- 
+1.5.5
