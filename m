@@ -1,77 +1,125 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Thu, 13 Nov 2008 14:49:21 -0800
-Subject: [Ocfs2-devel] [PATCH 11/11] ocfs2: Convert ocfs2_read_dir_block()
-	to ocfs2_read_virt_blocks()
+Date: Thu, 13 Nov 2008 14:49:15 -0800
+Subject: [Ocfs2-devel] [PATCH 05/11] ocfs2: Morph the haphazard
+	OCFS2_IS_VALID_GROUP_DESC() checks.
 In-Reply-To: <1226616561-29942-1-git-send-email-joel.becker@oracle.com>
 References: <1226616561-29942-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1226616561-29942-12-git-send-email-joel.becker@oracle.com>
+Message-ID: <1226616561-29942-6-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Now that we've centralized the ocfs2_read_virt_blocks() code, let's use
-it in ocfs2_read_dir_block().
+Random places in the code would check a group descriptor bh to see if it
+was valid. The previous commit unified descriptor block reads,
+validating all block reads in the same place.  Thus, these checks are no
+longer necessary.  Rather than eliminate them, however, we change them
+to BUG_ON() checks.  This ensures the assumptions remain true.  All of
+the code paths to these checks have been audited to ensure they come
+from a validated descriptor read.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/dir.c |   38 +++++---------------------------------
- 1 files changed, 5 insertions(+), 33 deletions(-)
+ fs/ocfs2/ocfs2.h    |    7 -------
+ fs/ocfs2/suballoc.c |   39 ++++++++++++++-------------------------
+ 2 files changed, 14 insertions(+), 32 deletions(-)
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 7e863d4..d83cff9 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -231,44 +231,16 @@ static int ocfs2_read_dir_block(struct inode *inode, u64 v_block,
- {
- 	int rc = 0;
- 	struct buffer_head *tmp = *bh;
--	u64 p_blkno;
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 42cd355..d845092 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -457,13 +457,6 @@ static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
+ #define OCFS2_IS_VALID_GROUP_DESC(ptr)					\
+ 	(!strcmp((ptr)->bg_signature, OCFS2_GROUP_DESC_SIGNATURE))
  
--	if (((u64)v_block << inode->i_sb->s_blocksize_bits) >=
--	    i_size_read(inode)) {
--		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
--		goto out;
--	}
--
--	down_read(&OCFS2_I(inode)->ip_alloc_sem);
--	rc = ocfs2_extent_map_get_blocks(inode, v_block, &p_blkno, NULL,
--					 NULL);
--	up_read(&OCFS2_I(inode)->ip_alloc_sem);
--	if (rc) {
-+	rc = ocfs2_read_virt_blocks(inode, v_block, 1, &tmp, flags,
-+				    ocfs2_validate_dir_block);
-+	if (rc)
- 		mlog_errno(rc);
--		goto out;
--	}
+-#define OCFS2_RO_ON_INVALID_GROUP_DESC(__sb, __gd)	do {		\
+-	typeof(__gd) ____gd = (__gd);					\
+-		ocfs2_error((__sb),					\
+-		"Group Descriptor # %llu has bad signature %.*s",	\
+-		(unsigned long long)le64_to_cpu((____gd)->bg_blkno), 7, \
+-		(____gd)->bg_signature);				\
+-} while (0)
  
--	if (!p_blkno) {
--		rc = -EIO;
--		mlog(ML_ERROR,
--		     "Directory #%llu contains a hole at offset %llu\n",
--		     (unsigned long long)OCFS2_I(inode)->ip_blkno,
--		     (unsigned long long)v_block << inode->i_sb->s_blocksize_bits);
--		goto out;
--	}
--
--	rc = ocfs2_read_blocks(inode, p_blkno, 1, &tmp, flags,
--			       ocfs2_validate_dir_block);
--	if (rc) {
--		mlog_errno(rc);
--		goto out;
--	}
--
--	/* If ocfs2_read_blocks() got us a new bh, pass it up.  */
--	if (!*bh)
-+	/* If ocfs2_read_virt_blocks() got us a new bh, pass it up. */
-+	if (!rc && !*bh)
- 		*bh = tmp;
+ #define OCFS2_IS_VALID_XATTR_BLOCK(ptr)					\
+ 	(!strcmp((ptr)->xb_signature, OCFS2_XATTR_BLOCK_SIGNATURE))
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 797f509..766a00b 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -842,10 +842,9 @@ static int ocfs2_block_group_find_clear_bits(struct ocfs2_super *osb,
+ 	int offset, start, found, status = 0;
+ 	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
  
+-	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(osb->sb, bg);
+-		return -EIO;
+-	}
++	/* Callers got this descriptor from
++	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
+ 
+ 	found = start = best_offset = best_size = 0;
+ 	bitmap = bg->bg_bitmap;
+@@ -910,11 +909,9 @@ static inline int ocfs2_block_group_set_bits(handle_t *handle,
+ 
+ 	mlog_entry_void();
+ 
+-	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, bg);
+-		status = -EIO;
+-		goto bail;
+-	}
++	/* All callers get the descriptor via
++	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
+ 	BUG_ON(le16_to_cpu(bg->bg_free_bits_count) < num_bits);
+ 
+ 	mlog(0, "block_group_set_bits: off = %u, num = %u\n", bit_off,
+@@ -983,16 +980,10 @@ static int ocfs2_relink_block_group(handle_t *handle,
+ 	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
+ 	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
+ 
+-	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, bg);
+-		status = -EIO;
+-		goto out;
+-	}
+-	if (!OCFS2_IS_VALID_GROUP_DESC(prev_bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, prev_bg);
+-		status = -EIO;
+-		goto out;
+-	}
++	/* The caller got these descriptors from
++	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(prev_bg));
+ 
+ 	mlog(0, "Suballoc %llu, chain %u, move group %llu to top, prev = %llu\n",
+ 	     (unsigned long long)le64_to_cpu(fe->i_blkno), chain,
+@@ -1055,7 +1046,7 @@ out_rollback:
+ 		bg->bg_next_group = cpu_to_le64(bg_ptr);
+ 		prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+ 	}
 -out:
- 	return rc ? -EIO : 0;
++
+ 	mlog_exit(status);
+ 	return status;
  }
+@@ -1758,11 +1749,9 @@ static inline int ocfs2_block_group_clear_bits(handle_t *handle,
+ 
+ 	mlog_entry_void();
+ 
+-	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, bg);
+-		status = -EIO;
+-		goto bail;
+-	}
++	/* The caller got this descriptor from
++	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
+ 
+ 	mlog(0, "off = %u, num = %u\n", bit_off, num_bits);
  
 -- 
 1.5.6.5
