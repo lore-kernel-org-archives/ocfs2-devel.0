@@ -1,838 +1,1038 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 12 Nov 2008 18:24:06 -0800
-Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: Introduce dir lookup helper struct
+Date: Wed, 12 Nov 2008 18:24:08 -0800
+Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: Introduce dir free space list
 In-Reply-To: <1226543048-911-1-git-send-email-mfasheh@suse.com>
 References: <1226543048-911-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1226543048-911-3-git-send-email-mfasheh@suse.com>
+Message-ID: <1226543048-911-5-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Many directory manipulation calls pass around a tuple of dirent, and it's
-containing buffer_head. Dir indexing has a bit more state, but instead of
-adding yet more arguments to functions, we introduce 'struct
-ocfs2_dir_lookup_result'. In this patch, it simply holds the same tuple, but
-future patches will add more state.
+The only operation which doesn't get faster with directory indexing is
+insert, which still has to walk the entire unindexed directory portion to
+find a free block. This patch provides an improvement in directory insert
+performance by maintaining a singly linked list of directory leaf blocks
+which have space for additional dirents.
+
+As the disk format is now finalized, we also turn on directory indexing support.
 
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dir.c   |  103 ++++++++++++++++++++-----------------
- fs/ocfs2/dir.h   |   30 ++++++-----
- fs/ocfs2/namei.c |  150 ++++++++++++++++++++++++++++--------------------------
- 3 files changed, 150 insertions(+), 133 deletions(-)
+ fs/ocfs2/dir.c      |  536 +++++++++++++++++++++++++++++++++++++++++++++++----
+ fs/ocfs2/dir.h      |    4 +
+ fs/ocfs2/journal.h  |   12 +-
+ fs/ocfs2/namei.c    |    8 +-
+ fs/ocfs2/ocfs2_fs.h |   32 +++-
+ 5 files changed, 539 insertions(+), 53 deletions(-)
 
 diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 026e6eb..fa7870a 100644
+index f113704..479d2b7 100644
 --- a/fs/ocfs2/dir.c
 +++ b/fs/ocfs2/dir.c
-@@ -125,6 +125,11 @@ fail:
- 	return NULL;
+@@ -130,6 +130,89 @@ static int ocfs2_dir_indexed(struct inode *inode)
  }
  
-+void ocfs2_free_dir_lookup_result(struct ocfs2_dir_lookup_result *res)
+ /*
++ * These are distinct checks because future versions of the file system will
++ * want to have a trailing dirent structure independent of indexing.
++ */
++static int ocfs2_dir_has_trailer(struct inode *dir)
 +{
-+	brelse(res->dl_leaf_bh);
++	return ocfs2_dir_indexed(dir);
++}
++static int ocfs2_supports_dir_trailer(struct ocfs2_super *osb)
++{
++	return ocfs2_supports_indexed_dirs(osb);
 +}
 +
- /*
-  * bh passed here can be an inode block or a dir data block, depending
-  * on the inode inline data flag.
-@@ -352,42 +357,52 @@ cleanup_and_exit:
- /*
-  * Try to find an entry of the provided name within 'dir'.
-  *
-- * If nothing was found, NULL is returned. Otherwise, a buffer_head
-- * and pointer to the dir entry are passed back.
-+ * If nothing was found, -ENOENT is returned. Otherwise, zero is
-+ * returned and the struct 'res' will contain information useful to
-+ * other directory manipulation functions.
-  *
-  * Caller can NOT assume anything about the contents of the
-- * buffer_head - it is passed back only so that it can be passed into
-+ * buffer_heads - they are passed back only so that it can be passed into
-  * any one of the manipulation functions (add entry, delete entry,
-  * etc). As an example, bh in the extent directory case is a data
-  * block, in the inline-data case it actually points to an inode.
-  */
--struct buffer_head *ocfs2_find_entry(const char *name, int namelen,
--				     struct inode *dir,
--				     struct ocfs2_dir_entry **res_dir)
-+int ocfs2_find_entry(const char *name, int namelen,
-+		     struct inode *dir,
-+		     struct ocfs2_dir_lookup_result *lookup)
- {
--	*res_dir = NULL;
-+	struct buffer_head *bh;
-+	struct ocfs2_dir_entry *res_dir = NULL;
- 
- 	if (OCFS2_I(dir)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
--		return ocfs2_find_entry_id(name, namelen, dir, res_dir);
-+		bh = ocfs2_find_entry_id(name, namelen, dir, &res_dir);
-+	else
-+		bh = ocfs2_find_entry_el(name, namelen, dir, &res_dir);
++static inline unsigned int ocfs2_dir_trailer_blk_off(struct super_block *sb)
++{
++	return sb->s_blocksize - sizeof(struct ocfs2_dir_block_trailer);
++}
 +
-+	if (bh == NULL)
-+		return -ENOENT;
- 
--	return ocfs2_find_entry_el(name, namelen, dir, res_dir);
-+	lookup->dl_leaf_bh = bh;
-+	lookup->dl_entry = res_dir;
-+	return 0;
++#define ocfs2_trailer_from_bh(_bh, _sb) ((struct ocfs2_dir_block_trailer *) ((_bh)->b_data + ocfs2_dir_trailer_blk_off((_sb))))
++
++/*
++ * XXX: This is executed once on every dirent. We should consider optimizing
++ * it.
++ */
++static int ocfs2_skip_dir_trailer(struct inode *dir,
++				  struct ocfs2_dir_entry *de,
++				  unsigned long offset,
++				  unsigned long blklen)
++{
++	unsigned long toff = blklen - sizeof(struct ocfs2_dir_block_trailer);
++
++	if (!ocfs2_dir_has_trailer(dir))
++		return 0;
++
++	if (offset != toff)
++		return 0;
++
++	return 1;
++}
++
++static void ocfs2_init_dir_trailer(struct super_block *sb,
++				   struct buffer_head *bh, u16 rec_len)
++{
++	struct ocfs2_dir_block_trailer *trailer;
++
++	trailer = ocfs2_trailer_from_bh(bh, sb);
++	strcpy(trailer->db_signature, OCFS2_DIR_TRAILER_SIGNATURE);
++	trailer->db_compat_rec_len =
++			le16_to_cpu(sizeof(struct ocfs2_dir_block_trailer));
++	trailer->db_free_rec_len = cpu_to_le16(rec_len);
++}
++
++/*
++ * Link an unindexed block with a dir trailer structure into the index free
++ * list. This function will modify dirdata_bh, but assumes you've already
++ * passed it to the journal.
++ */
++static int ocfs2_dx_dir_link_trailer(struct inode *dir, handle_t *handle,
++				     struct buffer_head *dx_root_bh,
++				     struct buffer_head *dirdata_bh)
++{
++	int ret;
++	struct ocfs2_dx_root_block *dx_root;
++	struct ocfs2_dir_block_trailer *trailer;
++
++	ret = ocfs2_journal_access(handle, dir, dx_root_bh,
++				   OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++	trailer = ocfs2_trailer_from_bh(dirdata_bh, dir->i_sb);
++	dx_root = (struct ocfs2_dx_root_block *)dx_root_bh->b_data;
++
++	trailer->db_free_next = dx_root->dr_free_blk;
++	dx_root->dr_free_blk = cpu_to_le64(dirdata_bh->b_blocknr);
++
++	ocfs2_journal_dirty(handle, dx_root_bh);
++
++out:
++	return ret;
++}
++
++/*
+  * Hashing code adapted from ext3
+  */
+ #define DELTA 0x9E3779B9
+@@ -874,6 +957,45 @@ bail:
+ 	return status;
  }
  
- /*
-  * Update inode number and type of a previously found directory entry.
-  */
- int ocfs2_update_entry(struct inode *dir, handle_t *handle,
--		       struct buffer_head *de_bh, struct ocfs2_dir_entry *de,
-+		       struct ocfs2_dir_lookup_result *res,
- 		       struct inode *new_entry_inode)
++static unsigned int ocfs2_figure_dirent_hole(struct ocfs2_dir_entry *de)
++{
++	unsigned int hole;
++
++	if (le64_to_cpu(de->inode) == 0)
++		hole = le16_to_cpu(de->rec_len);
++	else
++		hole = le16_to_cpu(de->rec_len) -
++			OCFS2_DIR_REC_LEN(de->name_len);
++
++	return hole;	
++}
++
++static int ocfs2_find_max_rec_len(struct super_block *sb,
++				  struct buffer_head *dirblock_bh)
++{
++	int size, this_hole, largest_hole = 0;
++	char *trailer, *de_buf, *limit, *start = dirblock_bh->b_data;
++	struct ocfs2_dir_entry *de;
++
++	trailer = (char *)ocfs2_trailer_from_bh(dirblock_bh, sb);
++	size = ocfs2_dir_trailer_blk_off(sb);
++	limit = start + size;
++	de_buf = start;
++	de = (struct ocfs2_dir_entry *)de_buf;
++	do {
++		if (de_buf != trailer) {
++			this_hole = ocfs2_figure_dirent_hole(de);
++			if (this_hole > largest_hole)
++				largest_hole = this_hole;
++		}
++
++		de_buf += le16_to_cpu(de->rec_len);
++		de = (struct ocfs2_dir_entry *)de_buf;
++	} while (de_buf < limit);
++
++	return largest_hole;
++}
++
+ static void ocfs2_dx_leaf_remove_entry(struct ocfs2_dx_leaf *dx_leaf, int index)
  {
- 	int ret;
-+	struct ocfs2_dir_entry *de = res->dl_entry;
+ 	int num_used = le16_to_cpu(dx_leaf->dl_num_used);
+@@ -891,12 +1013,17 @@ clear:
+ }
  
- 	/*
- 	 * The same code works fine for both inline-data and extent
- 	 * based directories, so no need to split this up.
- 	 */
+ static int ocfs2_delete_entry_dx(handle_t *handle, struct inode *dir,
++				 struct buffer_head *dir_di_bh,
+ 				 struct ocfs2_dir_lookup_result *lookup)
+ {
+-	int ret, index;
++	int ret, index, max_rec_len;
+ 	struct buffer_head *leaf_bh = lookup->dl_leaf_bh;
++	struct buffer_head *dx_root_bh = NULL;
+ 	struct ocfs2_dx_leaf *dx_leaf;
+ 	struct ocfs2_dx_entry *dx_entry = lookup->dl_dx_entry;
++	struct ocfs2_dir_block_trailer *trailer;
++	struct ocfs2_dx_root_block *uninitialized_var(dx_root);
++	struct ocfs2_dinode *di = (struct ocfs2_dinode *)dir_di_bh->b_data;
  
--	ret = ocfs2_journal_access(handle, dir, de_bh,
-+	ret = ocfs2_journal_access(handle, dir, res->dl_leaf_bh,
- 				   OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
-@@ -397,7 +412,7 @@ int ocfs2_update_entry(struct inode *dir, handle_t *handle,
- 	de->inode = cpu_to_le64(OCFS2_I(new_entry_inode)->ip_blkno);
- 	ocfs2_set_de_type(de, new_entry_inode->i_mode);
+ 	dx_leaf = (struct ocfs2_dx_leaf *) lookup->dl_dx_leaf_bh->b_data;
+ 	/* Neither of these are a disk corruption - that should have
+@@ -914,6 +1041,25 @@ static int ocfs2_delete_entry_dx(handle_t *handle, struct inode *dir,
+ 		return -EIO;
+ 	}
  
--	ocfs2_journal_dirty(handle, de_bh);
-+	ocfs2_journal_dirty(handle, res->dl_leaf_bh);
++	trailer = ocfs2_trailer_from_bh(leaf_bh, dir->i_sb);
++	if (trailer->db_free_rec_len == 0) {
++		/* We'll have to put this block on the free list. */
++		ret = ocfs2_dx_dir_read_root(dir, di, &dx_root_bh);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
++		ret = ocfs2_journal_access(handle, dir, dx_root_bh,
++					   OCFS2_JOURNAL_ACCESS_WRITE);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
++		dx_root = (struct ocfs2_dx_root_block *)dx_root_bh->b_data;
++	}
++
+ 	mlog(0, "Dir %llu: delete entry at index: %d\n",
+ 	     (unsigned long long)OCFS2_I(dir)->ip_blkno, index);
+ 
+@@ -938,11 +1084,22 @@ static int ocfs2_delete_entry_dx(handle_t *handle, struct inode *dir,
+ 		goto out;
+ 	}
+ 
++	max_rec_len = ocfs2_find_max_rec_len(dir->i_sb, leaf_bh);
++	trailer->db_free_rec_len = cpu_to_le16(max_rec_len);
++	if (dx_root_bh) {
++		trailer->db_free_next = dx_root->dr_free_blk;
++		dx_root->dr_free_blk = cpu_to_le64(leaf_bh->b_blocknr);
++		ocfs2_journal_dirty(handle, dx_root_bh);
++	}
++	/* leaf_bh was journal_accessed for us in __ocfs2_delete_entry */
++	ocfs2_journal_dirty(handle, leaf_bh);
++
+ 	ocfs2_dx_leaf_remove_entry(dx_leaf, index);
+ 
+ 	ocfs2_journal_dirty(handle, lookup->dl_dx_leaf_bh);
  
  out:
++	brelse(dx_root_bh);
  	return ret;
-@@ -490,13 +505,14 @@ static inline int ocfs2_delete_entry_el(handle_t *handle,
+ }
+ 
+@@ -988,10 +1145,11 @@ static inline int ocfs2_delete_entry_el(handle_t *handle,
   */
  int ocfs2_delete_entry(handle_t *handle,
  		       struct inode *dir,
--		       struct ocfs2_dir_entry *de_del,
--		       struct buffer_head *bh)
-+		       struct ocfs2_dir_lookup_result *res)
++		       struct buffer_head *dir_di_bh,
+ 		       struct ocfs2_dir_lookup_result *lookup)
  {
- 	if (OCFS2_I(dir)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
--		return ocfs2_delete_entry_id(handle, dir, de_del, bh);
-+		return ocfs2_delete_entry_id(handle, dir, res->dl_entry,
-+					     res->dl_leaf_bh);
+ 	if (ocfs2_dir_indexed(dir))
+-		return ocfs2_delete_entry_dx(handle, dir, lookup);
++		return ocfs2_delete_entry_dx(handle, dir, dir_di_bh, lookup);
  
--	return ocfs2_delete_entry_el(handle, dir, de_del, bh);
-+	return ocfs2_delete_entry_el(handle, dir, res->dl_entry,
-+				     res->dl_leaf_bh);
+ 	if (OCFS2_I(dir)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
+ 		return ocfs2_delete_entry_id(handle, dir, lookup->dl_entry,
+@@ -1078,6 +1236,57 @@ static int ocfs2_dx_dir_leaf_insert(struct inode *dir, handle_t *handle,
+ 					  lookup->dl_dx_leaf_bh);
  }
  
- /*
-@@ -527,15 +543,15 @@ static inline int ocfs2_dirent_would_fit(struct ocfs2_dir_entry *de,
++static void ocfs2_remove_block_from_free_list(struct inode *dir,
++				       handle_t *handle,
++				       struct ocfs2_dir_lookup_result *lookup)
++{
++	struct ocfs2_dir_block_trailer *trailer, *prev;
++	struct ocfs2_dx_root_block *dx_root;
++	struct buffer_head *prev_bh = lookup->dl_prev_leaf_bh;
++
++	trailer = ocfs2_trailer_from_bh(lookup->dl_leaf_bh, dir->i_sb);
++
++	if (lookup->dl_prev_is_dx_root) {
++		dx_root = (struct ocfs2_dx_root_block *)prev_bh->b_data;
++		dx_root->dr_free_blk = trailer->db_free_next;
++	} else {
++		prev = ocfs2_trailer_from_bh(prev_bh, dir->i_sb);
++		prev->db_free_next = trailer->db_free_next;
++	}
++
++	trailer->db_free_rec_len = cpu_to_le16(0);
++	trailer->db_free_next = cpu_to_le64(0);
++
++	ocfs2_journal_dirty(handle, prev_bh);
++	ocfs2_journal_dirty(handle, lookup->dl_leaf_bh);
++}
++
++/*
++ * This expects that a journal write has been reserved on
++ * lookup->dl_prev_leaf_bh
++ */
++static void ocfs2_recalc_free_list(struct inode *dir, handle_t *handle,
++				   struct ocfs2_dir_lookup_result *lookup)
++{
++	int max_rec_len;
++	struct ocfs2_dir_block_trailer *trailer;
++
++	/* Walk dl_leaf_bh to figure out what the new free rec_len is. */
++	max_rec_len = ocfs2_find_max_rec_len(dir->i_sb, lookup->dl_leaf_bh);
++	if (max_rec_len) {
++		/*
++		 * There's still room in this block, so no need to remove it
++		 * from the free list. In this case, we just want to update
++		 * the rec len accounting.
++		 */
++		trailer = ocfs2_trailer_from_bh(lookup->dl_leaf_bh, dir->i_sb);
++		trailer->db_free_rec_len = cpu_to_le16(max_rec_len);
++		ocfs2_journal_dirty(handle, lookup->dl_leaf_bh);
++	} else {
++		ocfs2_remove_block_from_free_list(dir, handle, lookup);
++	}
++}
++
  /* we don't always have a dentry for what we want to add, so people
   * like orphan dir can call this instead.
   *
-- * If you pass me insert_bh, I'll skip the search of the other dir
-- * blocks and put the record in there.
-+ * The lookup context must have been filled from
-+ * ocfs2_prepare_dir_for_insert.
-  */
- int __ocfs2_add_entry(handle_t *handle,
- 		      struct inode *dir,
- 		      const char *name, int namelen,
- 		      struct inode *inode, u64 blkno,
- 		      struct buffer_head *parent_fe_bh,
--		      struct buffer_head *insert_bh)
-+		      struct ocfs2_dir_lookup_result *lookup)
+@@ -1106,7 +1315,23 @@ int __ocfs2_add_entry(handle_t *handle,
+ 	if (!namelen)
+ 		return -EINVAL;
+ 
+-	if (OCFS2_I(dir)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
++	if (ocfs2_dir_indexed(dir)) {
++		/*
++		 * An indexed dir may require that we update the free space
++		 * list. Reserve a write to the previous node in the list so
++		 * that we don't fail later.
++		 *
++		 * XXX: This can be either a dx_root_block, or an unindexed
++		 * directory tree leaf block.
++		 */
++		retval = ocfs2_journal_access(handle, dir,
++					      lookup->dl_prev_leaf_bh,
++					      OCFS2_JOURNAL_ACCESS_WRITE);
++		if (retval) {
++			mlog_errno(retval);
++			return retval;
++		}
++	} else if (OCFS2_I(dir)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
+ 		data_start = di->id2.i_data.id_data;
+ 		size = i_size_read(dir);
+ 
+@@ -1131,6 +1356,9 @@ int __ocfs2_add_entry(handle_t *handle,
+ 			goto bail;
+ 		}
+ 
++		if (ocfs2_skip_dir_trailer(dir, de, offset, size))
++			goto next;
++
+ 		if (ocfs2_dirent_would_fit(de, rec_len)) {
+ 			dir->i_mtime = dir->i_ctime = CURRENT_TIME;
+ 			retval = ocfs2_mark_inode_dirty(handle, dir, parent_fe_bh);
+@@ -1171,11 +1399,15 @@ int __ocfs2_add_entry(handle_t *handle,
+ 			de->name_len = namelen;
+ 			memcpy(de->name, name, namelen);
+ 
++			if (ocfs2_dir_indexed(dir))
++				ocfs2_recalc_free_list(dir, handle, lookup);
++
+ 			dir->i_version++;
+ 			status = ocfs2_journal_dirty(handle, insert_bh);
+ 			retval = 0;
+ 			goto bail;
+ 		}
++next:
+ 		offset += le16_to_cpu(de->rec_len);
+ 		de = (struct ocfs2_dir_entry *) ((char *) de + le16_to_cpu(de->rec_len));
+ 	}
+@@ -1609,9 +1841,15 @@ int ocfs2_empty_dir(struct inode *inode)
+ 	return !priv.seen_other;
+ }
+ 
+-static void ocfs2_fill_initial_dirents(struct inode *inode,
+-				       struct inode *parent,
+-				       char *start, unsigned int size)
++/*
++ * Fills "." and ".." dirents in a new directory block. Returns dirent for
++ * "..", which might be used during creation of a directory with a trailing
++ * header. It is otherwise safe to ignore the return code.
++ */
++static struct ocfs2_dir_entry *ocfs2_fill_initial_dirents(struct inode *inode,
++							  struct inode *parent,
++							  char *start,
++							  unsigned int size)
  {
- 	unsigned long offset;
- 	unsigned short rec_len;
-@@ -544,6 +560,7 @@ int __ocfs2_add_entry(handle_t *handle,
- 	struct super_block *sb = dir->i_sb;
- 	int retval, status;
- 	unsigned int size = sb->s_blocksize;
-+	struct buffer_head *insert_bh = lookup->dl_leaf_bh;
- 	char *data_start = insert_bh->b_data;
+ 	struct ocfs2_dir_entry *de = (struct ocfs2_dir_entry *)start;
+ 
+@@ -1628,6 +1866,8 @@ static void ocfs2_fill_initial_dirents(struct inode *inode,
+ 	de->name_len = 2;
+ 	strcpy(de->name, "..");
+ 	ocfs2_set_de_type(de, S_IFDIR);
++
++	return de;
+ }
+ 
+ /*
+@@ -1681,10 +1921,15 @@ static int ocfs2_fill_new_dir_el(struct ocfs2_super *osb,
+ 				 struct buffer_head **ret_new_bh)
+ {
+ 	int status;
++	unsigned int size = osb->sb->s_blocksize;
+ 	struct buffer_head *new_bh = NULL;
++	struct ocfs2_dir_entry *de;
  
  	mlog_entry_void();
-@@ -917,31 +934,22 @@ int ocfs2_find_files_on_disk(const char *name,
- 			     int namelen,
- 			     u64 *blkno,
- 			     struct inode *inode,
--			     struct buffer_head **dirent_bh,
--			     struct ocfs2_dir_entry **dirent)
-+			     struct ocfs2_dir_lookup_result *lookup)
+ 
++	if (ocfs2_supports_dir_trailer(osb))
++		size = ocfs2_dir_trailer_blk_off(parent->i_sb);
++
+ 	status = ocfs2_do_extend_dir(osb->sb, handle, inode, fe_bh,
+ 				     data_ac, NULL, &new_bh);
+ 	if (status < 0) {
+@@ -1702,8 +1947,11 @@ static int ocfs2_fill_new_dir_el(struct ocfs2_super *osb,
+ 	}
+ 	memset(new_bh->b_data, 0, osb->sb->s_blocksize);
+ 
+-	ocfs2_fill_initial_dirents(inode, parent, new_bh->b_data,
+-				   osb->sb->s_blocksize);
++	de = ocfs2_fill_initial_dirents(inode, parent, new_bh->b_data, size);
++
++	if (ocfs2_supports_dir_trailer(osb))
++		ocfs2_init_dir_trailer(parent->i_sb, new_bh,
++				       le16_to_cpu(de->rec_len));
+ 
+ 	status = ocfs2_journal_dirty(handle, new_bh);
+ 	if (status < 0) {
+@@ -1735,6 +1983,7 @@ bail:
+ static int ocfs2_dx_dir_attach_index(struct ocfs2_super *osb,
+ 				     handle_t *handle, struct inode *dir,
+ 				     struct buffer_head *di_bh,
++				     struct buffer_head *dirdata_bh,
+ 				     struct ocfs2_alloc_context *meta_ac,
+ 				     struct buffer_head **ret_dx_root_bh)
  {
- 	int status = -ENOENT;
+@@ -1781,6 +2030,7 @@ static int ocfs2_dx_dir_attach_index(struct ocfs2_super *osb,
+ 	dx_root->dr_dir_blkno = cpu_to_le64(OCFS2_I(dir)->ip_blkno);
+ 	dx_root->dr_list.l_count =
+ 		cpu_to_le16(ocfs2_extent_recs_per_dx_root(osb->sb));
++	dx_root->dr_free_blk = cpu_to_le64(dirdata_bh->b_blocknr);
  
--	mlog_entry("(name=%.*s, blkno=%p, inode=%p, dirent_bh=%p, dirent=%p)\n",
--		   namelen, name, blkno, inode, dirent_bh, dirent);
-+	mlog(0, "name=%.*s, blkno=%p, inode=%llu\n", namelen, name, blkno,
-+	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
- 
--	*dirent_bh = ocfs2_find_entry(name, namelen, inode, dirent);
--	if (!*dirent_bh || !*dirent) {
--		status = -ENOENT;
-+	status = ocfs2_find_entry(name, namelen, inode, lookup);
-+	if (status)
- 		goto leave;
--	}
- 
--	*blkno = le64_to_cpu((*dirent)->inode);
-+	*blkno = le64_to_cpu(lookup->dl_entry->inode);
- 
- 	status = 0;
- leave:
--	if (status < 0) {
--		*dirent = NULL;
--		brelse(*dirent_bh);
--		*dirent_bh = NULL;
--	}
- 
--	mlog_exit(status);
- 	return status;
- }
- 
-@@ -953,11 +961,10 @@ int ocfs2_lookup_ino_from_name(struct inode *dir, const char *name,
- 			       int namelen, u64 *blkno)
- {
- 	int ret;
--	struct buffer_head *bh = NULL;
--	struct ocfs2_dir_entry *dirent = NULL;
-+	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 
--	ret = ocfs2_find_files_on_disk(name, namelen, blkno, dir, &bh, &dirent);
--	brelse(bh);
-+	ret = ocfs2_find_files_on_disk(name, namelen, blkno, dir, &lookup);
-+	ocfs2_free_dir_lookup_result(&lookup);
- 
- 	return ret;
- }
-@@ -974,20 +981,18 @@ int ocfs2_check_dir_for_entry(struct inode *dir,
- 			      int namelen)
- {
- 	int ret;
--	struct buffer_head *dirent_bh = NULL;
--	struct ocfs2_dir_entry *dirent = NULL;
-+	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 
- 	mlog_entry("dir %llu, name '%.*s'\n",
- 		   (unsigned long long)OCFS2_I(dir)->ip_blkno, namelen, name);
- 
- 	ret = -EEXIST;
--	dirent_bh = ocfs2_find_entry(name, namelen, dir, &dirent);
--	if (dirent_bh)
-+	if (ocfs2_find_entry(name, namelen, dir, &lookup) == 0)
- 		goto bail;
- 
- 	ret = 0;
- bail:
--	brelse(dirent_bh);
-+	ocfs2_free_dir_lookup_result(&lookup);
- 
- 	mlog_exit(ret);
- 	return ret;
-@@ -1741,12 +1746,18 @@ bail:
- 	return status;
- }
- 
-+/*
-+ * Get a directory ready for insert. Any directory allocation required
-+ * happens here. Success returns zero, and enough context in the dir
-+ * lookup result that ocfs2_add_entry() will be able complete the task
-+ * with minimal performance impact.
-+ */
- int ocfs2_prepare_dir_for_insert(struct ocfs2_super *osb,
- 				 struct inode *dir,
- 				 struct buffer_head *parent_fe_bh,
- 				 const char *name,
- 				 int namelen,
--				 struct buffer_head **ret_de_bh)
-+				 struct ocfs2_dir_lookup_result *lookup)
- {
- 	int ret;
- 	unsigned int blocks_wanted = 1;
-@@ -1755,8 +1766,6 @@ int ocfs2_prepare_dir_for_insert(struct ocfs2_super *osb,
- 	mlog(0, "getting ready to insert namelen %d into dir %llu\n",
- 	     namelen, (unsigned long long)OCFS2_I(dir)->ip_blkno);
- 
--	*ret_de_bh = NULL;
--
- 	if (!namelen) {
- 		ret = -EINVAL;
- 		mlog_errno(ret);
-@@ -1791,7 +1800,7 @@ int ocfs2_prepare_dir_for_insert(struct ocfs2_super *osb,
- 		BUG_ON(!bh);
+ 	ret = ocfs2_journal_dirty(handle, dx_root_bh);
+ 	if (ret)
+@@ -2017,8 +2267,8 @@ static int ocfs2_fill_new_dir_dx(struct ocfs2_super *osb,
+ 		goto out;
  	}
  
--	*ret_de_bh = bh;
-+	lookup->dl_leaf_bh = bh;
- 	bh = NULL;
+-	ret = ocfs2_dx_dir_attach_index(osb, handle, inode, di_bh, meta_ac,
+-					&dx_root_bh);
++	ret = ocfs2_dx_dir_attach_index(osb, handle, inode, di_bh, leaf_bh,
++					meta_ac, &dx_root_bh);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out;
+@@ -2104,24 +2354,55 @@ out:
+ 	return ret;
+ }
+ 
+-static void ocfs2_expand_last_dirent(char *start, unsigned int old_size,
+-				     unsigned int new_size)
++/*
++ * Expand rec_len of the rightmost dirent in a directory block so that it
++ * contains the end of our valid space for dirents. We do this during
++ * expansion from an inline directory to one with extents. The first dir block
++ * in that case is taken from the inline data portion of the inode block.
++ *
++ * This will also return the largest amount of contiguous space for a dirent
++ * in the block. That value is *not* necessarily the last dirent, even after
++ * expansion. The directory indexing code wants this value for free space
++ * accounting. We do this here since we're already walking the entire dir
++ * block.
++ */
++static unsigned int ocfs2_expand_last_dirent(char *start, unsigned int old_size,
++					     struct super_block *sb)
+ {
+ 	struct ocfs2_dir_entry *de;
+ 	struct ocfs2_dir_entry *prev_de;
+ 	char *de_buf, *limit;
+-	unsigned int bytes = new_size - old_size;
++	unsigned int new_size = sb->s_blocksize;
++	unsigned int bytes, this_hole;
++	unsigned int largest_hole = 0;
++
++	if (ocfs2_supports_indexed_dirs(OCFS2_SB(sb)))
++		new_size = ocfs2_dir_trailer_blk_off(sb);
++
++	bytes = new_size - old_size;
+ 
+ 	limit = start + old_size;
+ 	de_buf = start;
+ 	de = (struct ocfs2_dir_entry *)de_buf;
+ 	do {
++		this_hole = ocfs2_figure_dirent_hole(de);
++		if (this_hole > largest_hole)
++			largest_hole = this_hole;
++
+ 		prev_de = de;
+ 		de_buf += le16_to_cpu(de->rec_len);
+ 		de = (struct ocfs2_dir_entry *)de_buf;
+ 	} while (de_buf < limit);
+ 
+ 	le16_add_cpu(&prev_de->rec_len, bytes);
++
++	/* We need to double check this after modification of the final
++	 * dirent. */
++	this_hole = ocfs2_figure_dirent_hole(prev_de);
++	if (this_hole > largest_hole)
++		largest_hole = this_hole;
++
++	return largest_hole;
+ }
+ 
+ /*
+@@ -2135,6 +2416,7 @@ static void ocfs2_expand_last_dirent(char *start, unsigned int old_size,
+ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 				   unsigned int blocks_wanted,
+ 				   struct ocfs2_dir_lookup_result *lookup,
++				   struct buffer_head **ret_dx_root_bh,
+ 				   struct buffer_head **first_block_bh)
+ {
+ 	int ret, i, num_dx_leaves = 0, credits = OCFS2_INLINE_TO_EXTENTS_CREDITS;
+@@ -2262,8 +2544,16 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 	memcpy(dirdata_bh->b_data, di->id2.i_data.id_data, i_size_read(dir));
+ 	memset(dirdata_bh->b_data + i_size_read(dir), 0,
+ 	       sb->s_blocksize - i_size_read(dir));
+-	ocfs2_expand_last_dirent(dirdata_bh->b_data, i_size_read(dir),
+-				 sb->s_blocksize);
++	i = ocfs2_expand_last_dirent(dirdata_bh->b_data, i_size_read(dir), sb);
++	if (ocfs2_supports_dir_trailer(osb)) {
++		/*
++		 * Prepare the dir trailer up front. It will otherwise look
++		 * like a valid dirent. Even if inserting the index fails
++		 * (unlikely), then all we'll have done is given first dir
++		 * block a small amount of fragmentation.
++		 */
++		ocfs2_init_dir_trailer(sb, dirdata_bh, i);
++	}
+ 
+ 	ret = ocfs2_journal_dirty(handle, dirdata_bh);
+ 	if (ret) {
+@@ -2334,7 +2624,8 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 
+ 	if (ocfs2_supports_indexed_dirs(osb)) {
+ 		ret = ocfs2_dx_dir_attach_index(osb, handle, dir, di_bh,
+-						meta_ac, &dx_root_bh);
++						dirdata_bh, meta_ac,
++						&dx_root_bh);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out_commit;
+@@ -2381,6 +2672,8 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 					    &lookup->dl_hinfo);
+ 		get_bh(dx_leaves[off]);
+ 		lookup->dl_dx_leaf_bh = dx_leaves[off];
++		*ret_dx_root_bh = dx_root_bh;
++		dx_root_bh = NULL;
+ 	}
+ 
+ out_commit:
+@@ -2463,12 +2756,15 @@ bail:
+  * is to be turned into an extent based one. The size of the dirent to
+  * insert might be larger than the space gained by growing to just one
+  * block, so we may have to grow the inode by two blocks in that case.
++ *
++ * If the directory is already indexed, dx_root_bh must be provided.
+  */
+ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 			    struct inode *dir,
+ 			    struct buffer_head *parent_fe_bh,
+ 			    unsigned int blocks_wanted,
+ 			    struct ocfs2_dir_lookup_result *lookup,
++			    struct buffer_head *dx_root_bh,
+ 			    struct buffer_head **new_de_bh)
+ {
+ 	int status = 0;
+@@ -2486,9 +2782,19 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 
+ 	mlog_entry_void();
+ 
++	if (dx_root_bh)
++		get_bh(dx_root_bh);
++
+ 	if (OCFS2_I(dir)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
++		/*
++		 * This would be a code error as an inline directory should
++		 * never have an index root.
++		 */
++		BUG_ON(dx_root_bh);
++
+ 		status = ocfs2_expand_inline_dir(dir, parent_fe_bh,
+ 						 blocks_wanted, lookup,
++						 &dx_root_bh,
+ 						 &new_bh);
+ 		if (status) {
+ 			mlog_errno(status);
+@@ -2558,6 +2864,10 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 	}
+ 
+ do_extend:
++	if (ocfs2_dir_indexed(dir))
++		credits++; /* For attaching the new dirent block to the
++			    * dx_root */
++
+ 	down_write(&OCFS2_I(dir)->ip_alloc_sem);
+ 	drop_alloc_sem = 1;
+ 
+@@ -2585,9 +2895,25 @@ do_extend:
+ 		goto bail;
+ 	}
+ 	memset(new_bh->b_data, 0, sb->s_blocksize);
++
+ 	de = (struct ocfs2_dir_entry *) new_bh->b_data;
+ 	de->inode = 0;
+-	de->rec_len = cpu_to_le16(sb->s_blocksize);
++	if (ocfs2_dir_has_trailer(dir)) {
++		de->rec_len = ocfs2_dir_trailer_blk_off(sb);
++
++		ocfs2_init_dir_trailer(sb, new_bh, le16_to_cpu(de->rec_len));
++
++		if (ocfs2_dir_indexed(dir)) {
++			status = ocfs2_dx_dir_link_trailer(dir, handle,
++							   dx_root_bh, new_bh);
++			if (status) {
++				mlog_errno(status);
++				goto bail;
++			}
++		}
++	} else {
++		de->rec_len = cpu_to_le16(sb->s_blocksize);
++	}
+ 	status = ocfs2_journal_dirty(handle, new_bh);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+@@ -2618,6 +2944,7 @@ bail:
+ 		ocfs2_free_alloc_context(meta_ac);
+ 
+ 	brelse(new_bh);
++	brelse(dx_root_bh);
+ 
+ 	mlog_exit(status);
+ 	return status;
+@@ -2629,11 +2956,21 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+ 				   unsigned int *blocks_wanted)
+ {
+ 	int ret;
++	struct super_block *sb = dir->i_sb;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+ 	struct ocfs2_dir_entry *de, *last_de = NULL;
+ 	char *de_buf, *limit;
+ 	unsigned long offset = 0;
+-	unsigned int rec_len, new_rec_len;
++	unsigned int rec_len, new_rec_len, free_space = dir->i_sb->s_blocksize;
++
++	/*
++	 * This calculates how many free bytes we'd have in block zero, should
++	 * this function force expansion to an extent tree.
++	 */
++	if (ocfs2_supports_indexed_dirs(OCFS2_SB(sb)))
++		free_space = ocfs2_dir_trailer_blk_off(sb) - i_size_read(dir);
++	else
++		free_space = dir->i_sb->s_blocksize - i_size_read(dir);
+ 
+ 	de_buf = di->id2.i_data.id_data;
+ 	limit = de_buf + i_size_read(dir);
+@@ -2650,6 +2987,11 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+ 			ret = -EEXIST;
+ 			goto out;
+ 		}
++		/*
++		 * No need to check for a trailing dirent record here as
++		 * they're not used for inline dirs.
++		 */
++
+ 		if (ocfs2_dirent_would_fit(de, rec_len)) {
+ 			/* Ok, we found a spot. Return this bh and let
+ 			 * the caller actually fill it in. */
+@@ -2670,7 +3012,7 @@ static int ocfs2_find_dir_space_id(struct inode *dir, struct buffer_head *di_bh,
+ 	 * dirent can be found.
+ 	 */
+ 	*blocks_wanted = 1;
+-	new_rec_len = le16_to_cpu(last_de->rec_len) + (dir->i_sb->s_blocksize - i_size_read(dir));
++	new_rec_len = le16_to_cpu(last_de->rec_len) + free_space;
+ 	if (new_rec_len < (rec_len + OCFS2_DIR_REC_LEN(last_de->name_len)))
+ 		*blocks_wanted = 2;
+ 
+@@ -2730,6 +3072,11 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+ 			status = -EEXIST;
+ 			goto bail;
+ 		}
++
++		if (ocfs2_skip_dir_trailer(dir, de, offset,
++					   dir->i_sb->s_blocksize))
++			goto next;
++
+ 		if (ocfs2_dirent_would_fit(de, rec_len)) {
+ 			/* Ok, we found a spot. Return this bh and let
+ 			 * the caller actually fill it in. */
+@@ -2738,6 +3085,7 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+ 			status = 0;
+ 			goto bail;
+ 		}
++next:
+ 		offset += le16_to_cpu(de->rec_len);
+ 		de = (struct ocfs2_dir_entry *)((char *) de + le16_to_cpu(de->rec_len));
+ 	}
+@@ -3130,25 +3478,18 @@ out:
+ }
+ 
+ static int ocfs2_find_dir_space_dx(struct ocfs2_super *osb, struct inode *dir,
+-				   struct buffer_head *di_bh, const char *name,
+-				   int namelen,
++				   struct buffer_head *di_bh,
++				   struct buffer_head *dx_root_bh,
++				   const char *name, int namelen,
+ 				   struct ocfs2_dir_lookup_result *lookup)
+ {
+ 	int ret, rebalanced = 0;
+-	struct buffer_head *dx_root_bh = NULL;
+ 	struct ocfs2_dx_root_block *dx_root;
+ 	struct buffer_head *dx_leaf_bh = NULL;
+ 	struct ocfs2_dx_leaf *dx_leaf;
+-	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+ 	u64 blkno;
+ 	u32 leaf_cpos;
+ 
+-	ret = ocfs2_dx_dir_read_root(dir, di, &dx_root_bh);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+ 	dx_root = (struct ocfs2_dx_root_block *)dx_root_bh->b_data;
+ 
+ restart_search:
+@@ -3211,6 +3552,125 @@ restart_search:
+ 
  out:
- 	brelse(bh);
+ 	brelse(dx_leaf_bh);
++	return ret;
++}
++
++static int ocfs2_search_dx_free_list(struct inode *dir,
++				     struct buffer_head *dx_root_bh,
++				     int namelen,
++				     struct ocfs2_dir_lookup_result *lookup)
++{
++	int ret = -ENOSPC;
++	struct buffer_head *leaf_bh = NULL, *prev_leaf_bh = NULL;
++	struct ocfs2_dir_block_trailer *db;
++	u64 next_block;
++	int rec_len = OCFS2_DIR_REC_LEN(namelen);
++	struct ocfs2_dx_root_block *dx_root;
++
++	dx_root = (struct ocfs2_dx_root_block *)dx_root_bh->b_data;
++	next_block = le64_to_cpu(dx_root->dr_free_blk);
++
++	while (next_block) {
++		brelse(prev_leaf_bh);
++		prev_leaf_bh = leaf_bh;
++		leaf_bh = NULL;
++
++		ret = ocfs2_read_block(dir, next_block, &leaf_bh);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
++		db = ocfs2_trailer_from_bh(leaf_bh, dir->i_sb);
++		if (rec_len <= le16_to_cpu(db->db_free_rec_len)) {
++			lookup->dl_leaf_bh = leaf_bh;
++			if (prev_leaf_bh)
++				lookup->dl_prev_leaf_bh = prev_leaf_bh;
++			else {
++				lookup->dl_prev_leaf_bh = dx_root_bh;
++				lookup->dl_prev_is_dx_root = 1;
++			}
++			leaf_bh = NULL;
++			prev_leaf_bh = NULL;
++			break;
++		}
++
++		next_block = le64_to_cpu(db->db_free_next);
++	}
++
++	if (!next_block)
++		ret = -ENOSPC;
++
++out:
++
++	brelse(leaf_bh);
++	brelse(prev_leaf_bh);
++	return ret;
++}
++
++static int ocfs2_prepare_dx_dir_for_insert(struct inode *dir, 
++					   struct buffer_head *di_bh,
++					   const char *name,
++					   int namelen,
++					   struct ocfs2_dir_lookup_result *lookup)
++{
++	int ret;
++	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
++	struct buffer_head *dx_root_bh = NULL;
++	struct buffer_head *leaf_bh = NULL;
++	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
++
++	ocfs2_dx_dir_name_hash(dir, name, namelen, &lookup->dl_hinfo);
++
++	ret = ocfs2_dx_dir_read_root(dir, di, &dx_root_bh);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	/*
++	 * Insert preparation for an indexed directory is split into two
++	 * steps. The call to find_dir_space_dx reserves room in the index for
++	 * an additional item. If we run out of space there, it's a real error
++	 * we can't continue on.
++	 */
++	ret = ocfs2_find_dir_space_dx(osb, dir, di_bh, dx_root_bh, name,
++				      namelen, lookup);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	/*
++	 * Next, we need to find space in the unindexed tree. This call
++	 * searches using the free space linked list. If the unindexed tree
++	 * lacks sufficient space, we'll expand it below. The expansion code
++	 * is smart enough to add any new blocks to the free space list.
++	 */
++	ret = ocfs2_search_dx_free_list(dir, dx_root_bh, namelen, lookup);
++	if (ret && ret != -ENOSPC) {
++		mlog_errno(ret);
++		goto out;
++	}
++	if (ret == -ENOSPC) {
++		ret = ocfs2_extend_dir(osb, dir, di_bh, 1, lookup, dx_root_bh,
++				       &leaf_bh);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
++		/*
++		 * We make the assumption here that new leaf blocks are added
++		 * to the front of our free list.
++		 */
++		get_bh(dx_root_bh);
++		lookup->dl_prev_leaf_bh = dx_root_bh;
++		lookup->dl_prev_is_dx_root = 1;
++		lookup->dl_leaf_bh = leaf_bh;
++	}
++
++out:
+ 	brelse(dx_root_bh);
+ 	return ret;
+ }
+@@ -3241,20 +3701,12 @@ int ocfs2_prepare_dir_for_insert(struct ocfs2_super *osb,
+ 		goto out;
+ 	}
+ 
+-	ocfs2_dx_dir_name_hash(dir, name, namelen, &lookup->dl_hinfo);
+-
+ 	if (ocfs2_dir_indexed(dir)) {
+-		ret = ocfs2_find_dir_space_dx(osb, dir, parent_fe_bh, name,
+-					      namelen, lookup);
+-		if (ret) {
++		ret = ocfs2_prepare_dx_dir_for_insert(dir, parent_fe_bh,
++						      name, namelen, lookup);
++		if (ret)
+ 			mlog_errno(ret);
+-			goto out;
+-		}
+-
+-		/*
+-		 * We intentionally fall through so that the unindexed
+-		 * tree can also be prepared.
+-		 */
++		goto out;
+ 	}
+ 
+ 	if (OCFS2_I(dir)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
+@@ -3275,7 +3727,7 @@ int ocfs2_prepare_dir_for_insert(struct ocfs2_super *osb,
+ 		BUG_ON(bh);
+ 
+ 		ret = ocfs2_extend_dir(osb, dir, parent_fe_bh, blocks_wanted,
+-				       lookup, &bh);
++				       lookup, NULL, &bh);
+ 		if (ret) {
+ 			if (ret != -ENOSPC)
+ 				mlog_errno(ret);
 diff --git a/fs/ocfs2/dir.h b/fs/ocfs2/dir.h
-index ce48b90..768ee9f 100644
+index d035b75..e35689b 100644
 --- a/fs/ocfs2/dir.h
 +++ b/fs/ocfs2/dir.h
-@@ -26,44 +26,48 @@
- #ifndef OCFS2_DIR_H
- #define OCFS2_DIR_H
- 
--struct buffer_head *ocfs2_find_entry(const char *name,
--				     int namelen,
--				     struct inode *dir,
--				     struct ocfs2_dir_entry **res_dir);
-+struct ocfs2_dir_lookup_result {
-+	struct buffer_head		*dl_leaf_bh;
-+	struct ocfs2_dir_entry		*dl_entry;
-+};
-+void ocfs2_free_dir_lookup_result(struct ocfs2_dir_lookup_result *res);
+@@ -38,6 +38,9 @@ struct ocfs2_dir_lookup_result {
+ 	struct buffer_head		*dl_dx_leaf_bh;
+ 	struct ocfs2_dx_entry		*dl_dx_entry;
+ 	struct ocfs2_dx_hinfo		dl_hinfo;
 +
-+int ocfs2_find_entry(const char *name, int namelen,
-+		     struct inode *dir,
-+		     struct ocfs2_dir_lookup_result *lookup);
++	struct buffer_head		*dl_prev_leaf_bh;
++	int				dl_prev_is_dx_root;
+ };
+ void ocfs2_free_dir_lookup_result(struct ocfs2_dir_lookup_result *res);
+ 
+@@ -46,6 +49,7 @@ int ocfs2_find_entry(const char *name, int namelen,
+ 		     struct ocfs2_dir_lookup_result *lookup);
  int ocfs2_delete_entry(handle_t *handle,
  		       struct inode *dir,
--		       struct ocfs2_dir_entry *de_del,
--		       struct buffer_head *bh);
-+		       struct ocfs2_dir_lookup_result *res);
++		       struct buffer_head *dir_di_bh,
+ 		       struct ocfs2_dir_lookup_result *res);
  int __ocfs2_add_entry(handle_t *handle,
  		      struct inode *dir,
- 		      const char *name, int namelen,
- 		      struct inode *inode, u64 blkno,
- 		      struct buffer_head *parent_fe_bh,
--		      struct buffer_head *insert_bh);
-+		      struct ocfs2_dir_lookup_result *lookup);
- static inline int ocfs2_add_entry(handle_t *handle,
- 				  struct dentry *dentry,
- 				  struct inode *inode, u64 blkno,
- 				  struct buffer_head *parent_fe_bh,
--				  struct buffer_head *insert_bh)
-+				  struct ocfs2_dir_lookup_result *lookup)
- {
- 	return __ocfs2_add_entry(handle, dentry->d_parent->d_inode,
- 				 dentry->d_name.name, dentry->d_name.len,
--				 inode, blkno, parent_fe_bh, insert_bh);
-+				 inode, blkno, parent_fe_bh, lookup);
- }
- int ocfs2_update_entry(struct inode *dir, handle_t *handle,
--		       struct buffer_head *de_bh, struct ocfs2_dir_entry *de,
-+		       struct ocfs2_dir_lookup_result *res,
- 		       struct inode *new_entry_inode);
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 354fd24..ba8f9bf 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -316,8 +316,8 @@ int                  ocfs2_journal_dirty_data(handle_t *handle,
+ #define OCFS2_REMOVE_EXTENT_CREDITS (OCFS2_TRUNCATE_LOG_UPDATE + OCFS2_INODE_UPDATE_CREDITS)
  
- int ocfs2_check_dir_for_entry(struct inode *dir,
- 			      const char *name,
- 			      int namelen);
- int ocfs2_empty_dir(struct inode *inode);
-+
- int ocfs2_find_files_on_disk(const char *name,
- 			     int namelen,
- 			     u64 *blkno,
- 			     struct inode *inode,
--			     struct buffer_head **dirent_bh,
--			     struct ocfs2_dir_entry **dirent);
-+			     struct ocfs2_dir_lookup_result *res);
- int ocfs2_lookup_ino_from_name(struct inode *dir, const char *name,
- 			       int namelen, u64 *blkno);
- int ocfs2_readdir(struct file *filp, void *dirent, filldir_t filldir);
-@@ -74,7 +78,7 @@ int ocfs2_prepare_dir_for_insert(struct ocfs2_super *osb,
- 				 struct buffer_head *parent_fe_bh,
- 				 const char *name,
- 				 int namelen,
--				 struct buffer_head **ret_de_bh);
-+				 struct ocfs2_dir_lookup_result *lookup);
- struct ocfs2_alloc_context;
- int ocfs2_fill_new_dir(struct ocfs2_super *osb,
- 		       handle_t *handle,
+ /* data block for new dir/symlink, 2 for bitmap updates (bitmap fe +
+- * bitmap block for the new bit) */
+-#define OCFS2_DIR_LINK_ADDITIONAL_CREDITS (1 + 2)
++ * bitmap block for the new bit) + dx_root update for free list */
++#define OCFS2_DIR_LINK_ADDITIONAL_CREDITS (1 + 2 + 1)
+ 
+ /* parent fe, parent block, new file entry, index leaf, inode
+  * alloc fe, inode alloc group descriptor + mkdir/symlink blocks */
+@@ -333,13 +333,13 @@ int                  ocfs2_journal_dirty_data(handle_t *handle,
+ #define OCFS2_SIMPLE_DIR_EXTEND_CREDITS (2)
+ 
+ /* file update (nlink, etc) + directory mtime/ctime + dir entry block
+- * + index leaf */
+-#define OCFS2_LINK_CREDITS  (2*OCFS2_INODE_UPDATE_CREDITS + 2)
++ * + index leaf + dx_root update for free list */
++#define OCFS2_LINK_CREDITS  (2*OCFS2_INODE_UPDATE_CREDITS + 3)
+ 
+ /* inode + dir inode (if we unlink a dir), + dir entry block + orphan
+- * dir inode link + dir inode index leaf */
++ * dir inode link + dir inode index leaf + dir index root */
+ #define OCFS2_UNLINK_CREDITS  (2 * OCFS2_INODE_UPDATE_CREDITS + 1             \
+-			      + OCFS2_LINK_CREDITS + 1)
++			      + OCFS2_LINK_CREDITS + 1 + 1)
+ 
+ /* dinode + orphan dir dinode + inode alloc dinode + orphan dir entry +
+  * inode alloc group descriptor + orphan dir index leaf */
 diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f4967e6..d136bdf 100644
+index 862c576..f726e70 100644
 --- a/fs/ocfs2/namei.c
 +++ b/fs/ocfs2/namei.c
-@@ -78,14 +78,14 @@ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
- 				    struct inode **ret_orphan_dir,
- 				    struct inode *inode,
- 				    char *name,
--				    struct buffer_head **de_bh);
-+				    struct ocfs2_dir_lookup_result *lookup);
- 
- static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 			    handle_t *handle,
- 			    struct inode *inode,
- 			    struct ocfs2_dinode *fe,
- 			    char *name,
--			    struct buffer_head *de_bh,
-+			    struct ocfs2_dir_lookup_result *lookup,
- 			    struct inode *orphan_dir_inode);
- 
- static int ocfs2_create_symlink_data(struct ocfs2_super *osb,
-@@ -197,10 +197,10 @@ static int ocfs2_mknod(struct inode *dir,
- 	struct ocfs2_super *osb;
- 	struct ocfs2_dinode *dirfe;
- 	struct buffer_head *new_fe_bh = NULL;
--	struct buffer_head *de_bh = NULL;
- 	struct inode *inode = NULL;
- 	struct ocfs2_alloc_context *inode_ac = NULL;
- 	struct ocfs2_alloc_context *data_ac = NULL;
-+	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 
- 	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry, mode,
- 		   (unsigned long)dev, dentry->d_name.len,
-@@ -236,7 +236,7 @@ static int ocfs2_mknod(struct inode *dir,
- 	/* get a spot inside the dir. */
- 	status = ocfs2_prepare_dir_for_insert(osb, dir, parent_fe_bh,
- 					      dentry->d_name.name,
--					      dentry->d_name.len, &de_bh);
-+					      dentry->d_name.len, &lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
-@@ -302,7 +302,7 @@ static int ocfs2_mknod(struct inode *dir,
- 
- 	status = ocfs2_add_entry(handle, dentry, inode,
- 				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
--				 de_bh);
-+				 &lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
-@@ -329,9 +329,10 @@ leave:
- 		mlog(0, "Disk is full\n");
- 
- 	brelse(new_fe_bh);
--	brelse(de_bh);
- 	brelse(parent_fe_bh);
- 
-+	ocfs2_free_dir_lookup_result(&lookup);
-+
- 	if ((status < 0) && inode)
- 		iput(inode);
- 
-@@ -539,9 +540,9 @@ static int ocfs2_link(struct dentry *old_dentry,
- 	int err;
- 	struct buffer_head *fe_bh = NULL;
- 	struct buffer_head *parent_fe_bh = NULL;
--	struct buffer_head *de_bh = NULL;
- 	struct ocfs2_dinode *fe = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
-+	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 
- 	mlog_entry("(inode=%lu, old='%.*s' new='%.*s')\n", inode->i_ino,
- 		   old_dentry->d_name.len, old_dentry->d_name.name,
-@@ -569,7 +570,7 @@ static int ocfs2_link(struct dentry *old_dentry,
- 
- 	err = ocfs2_prepare_dir_for_insert(osb, dir, parent_fe_bh,
- 					   dentry->d_name.name,
--					   dentry->d_name.len, &de_bh);
-+					   dentry->d_name.len, &lookup);
- 	if (err < 0) {
- 		mlog_errno(err);
- 		goto out;
-@@ -619,7 +620,7 @@ static int ocfs2_link(struct dentry *old_dentry,
- 
- 	err = ocfs2_add_entry(handle, dentry, inode,
- 			      OCFS2_I(inode)->ip_blkno,
--			      parent_fe_bh, de_bh);
-+			      parent_fe_bh, &lookup);
- 	if (err) {
- 		le16_add_cpu(&fe->i_links_count, -1);
- 		drop_nlink(inode);
-@@ -645,10 +646,11 @@ out_unlock_inode:
- out:
- 	ocfs2_inode_unlock(dir, 1);
- 
--	brelse(de_bh);
- 	brelse(fe_bh);
- 	brelse(parent_fe_bh);
- 
-+	ocfs2_free_dir_lookup_result(&lookup);
-+
- 	mlog_exit(err);
- 
- 	return err;
-@@ -697,10 +699,9 @@ static int ocfs2_unlink(struct inode *dir,
- 	struct buffer_head *fe_bh = NULL;
- 	struct buffer_head *parent_node_bh = NULL;
- 	handle_t *handle = NULL;
--	struct ocfs2_dir_entry *dirent = NULL;
--	struct buffer_head *dirent_bh = NULL;
- 	char orphan_name[OCFS2_ORPHAN_NAMELEN + 1];
--	struct buffer_head *orphan_entry_bh = NULL;
-+	struct ocfs2_dir_lookup_result lookup = { NULL, };
-+	struct ocfs2_dir_lookup_result orphan_insert = { NULL, };
- 
- 	mlog_entry("(0x%p, 0x%p, '%.*s')\n", dir, dentry,
- 		   dentry->d_name.len, dentry->d_name.name);
-@@ -722,8 +723,8 @@ static int ocfs2_unlink(struct inode *dir,
- 	}
- 
- 	status = ocfs2_find_files_on_disk(dentry->d_name.name,
--					  dentry->d_name.len, &blkno,
--					  dir, &dirent_bh, &dirent);
-+					  dentry->d_name.len, &blkno, dir,
-+					  &lookup);
- 	if (status < 0) {
- 		if (status != -ENOENT)
- 			mlog_errno(status);
-@@ -767,8 +768,7 @@ static int ocfs2_unlink(struct inode *dir,
- 
- 	if (inode_is_unlinkable(inode)) {
- 		status = ocfs2_prepare_orphan_dir(osb, &orphan_dir, inode,
--						  orphan_name,
--						  &orphan_entry_bh);
-+						  orphan_name, &orphan_insert);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto leave;
-@@ -794,7 +794,7 @@ static int ocfs2_unlink(struct inode *dir,
- 
- 	if (inode_is_unlinkable(inode)) {
- 		status = ocfs2_orphan_add(osb, handle, inode, fe, orphan_name,
--					  orphan_entry_bh, orphan_dir);
-+					  &orphan_insert, orphan_dir);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto leave;
-@@ -802,7 +802,7 @@ static int ocfs2_unlink(struct inode *dir,
+@@ -822,7 +822,7 @@ static int ocfs2_unlink(struct inode *dir,
  	}
  
  	/* delete the name from the parent dir */
--	status = ocfs2_delete_entry(handle, dir, dirent, dirent_bh);
-+	status = ocfs2_delete_entry(handle, dir, &lookup);
+-	status = ocfs2_delete_entry(handle, dir, &lookup);
++	status = ocfs2_delete_entry(handle, dir, parent_node_bh, &lookup);
  	if (status < 0) {
  		mlog_errno(status);
  		goto leave;
-@@ -847,9 +847,10 @@ leave:
- 	}
- 
- 	brelse(fe_bh);
--	brelse(dirent_bh);
- 	brelse(parent_node_bh);
--	brelse(orphan_entry_bh);
-+
-+	ocfs2_free_dir_lookup_result(&orphan_insert);
-+	ocfs2_free_dir_lookup_result(&lookup);
- 
- 	mlog_exit(status);
- 
-@@ -935,8 +936,8 @@ static int ocfs2_rename(struct inode *old_dir,
- 			struct inode *new_dir,
- 			struct dentry *new_dentry)
- {
--	int status = 0, rename_lock = 0, parents_locked = 0;
--	int old_child_locked = 0, new_child_locked = 0;
-+	int status = 0, rename_lock = 0, parents_locked = 0, target_exists = 0;
-+	int old_child_locked = 0, new_child_locked = 0, update_dot_dot = 0;
- 	struct inode *old_inode = old_dentry->d_inode;
- 	struct inode *new_inode = new_dentry->d_inode;
- 	struct inode *orphan_dir = NULL;
-@@ -951,13 +952,13 @@ static int ocfs2_rename(struct inode *old_dir,
- 	handle_t *handle = NULL;
- 	struct buffer_head *old_dir_bh = NULL;
- 	struct buffer_head *new_dir_bh = NULL;
--	struct ocfs2_dir_entry *old_inode_dot_dot_de = NULL, *old_de = NULL,
--		*new_de = NULL;
--	struct buffer_head *new_de_bh = NULL, *old_de_bh = NULL; // bhs for above
--	struct buffer_head *old_inode_de_bh = NULL; // if old_dentry is a dir,
--						    // this is the 1st dirent bh
- 	nlink_t old_dir_nlink = old_dir->i_nlink;
- 	struct ocfs2_dinode *old_di;
-+	struct ocfs2_dir_lookup_result old_inode_dot_dot_res = { NULL, };
-+	struct ocfs2_dir_lookup_result target_lookup_res = { NULL, };
-+	struct ocfs2_dir_lookup_result old_entry_lookup = { NULL, };
-+	struct ocfs2_dir_lookup_result orphan_insert = { NULL, };
-+	struct ocfs2_dir_lookup_result target_insert = { NULL, };
- 
- 	/* At some point it might be nice to break this function up a
- 	 * bit. */
-@@ -1039,9 +1040,10 @@ static int ocfs2_rename(struct inode *old_dir,
- 	if (S_ISDIR(old_inode->i_mode)) {
- 		u64 old_inode_parent;
- 
-+		update_dot_dot = 1;
- 		status = ocfs2_find_files_on_disk("..", 2, &old_inode_parent,
--						  old_inode, &old_inode_de_bh,
--						  &old_inode_dot_dot_de);
-+						  old_inode,
-+						  &old_inode_dot_dot_res);
- 		if (status) {
- 			status = -EIO;
- 			goto bail;
-@@ -1082,8 +1084,8 @@ static int ocfs2_rename(struct inode *old_dir,
- 	 * to delete it */
- 	status = ocfs2_find_files_on_disk(new_dentry->d_name.name,
- 					  new_dentry->d_name.len,
--					  &newfe_blkno, new_dir, &new_de_bh,
--					  &new_de);
-+					  &newfe_blkno, new_dir,
-+					  &target_lookup_res);
- 	/* The only error we allow here is -ENOENT because the new
- 	 * file not existing is perfectly valid. */
- 	if ((status < 0) && (status != -ENOENT)) {
-@@ -1092,8 +1094,10 @@ static int ocfs2_rename(struct inode *old_dir,
- 		mlog_errno(status);
+@@ -1295,7 +1295,8 @@ static int ocfs2_rename(struct inode *old_dir,
+ 	if (status)
  		goto bail;
- 	}
-+	if (status == 0)
-+		target_exists = 1;
  
--	if (!new_de && new_inode) {
-+	if (!target_exists && new_inode) {
- 		/*
- 		 * Target was unlinked by another node while we were
- 		 * waiting to get to ocfs2_rename(). There isn't
-@@ -1106,7 +1110,7 @@ static int ocfs2_rename(struct inode *old_dir,
- 
- 	/* In case we need to overwrite an existing file, we blow it
- 	 * away first */
--	if (new_de) {
-+	if (target_exists) {
- 		/* VFS didn't think there existed an inode here, but
- 		 * someone else in the cluster must have raced our
- 		 * rename to create one. Today we error cleanly, in
-@@ -1147,8 +1151,8 @@ static int ocfs2_rename(struct inode *old_dir,
- 
- 		newfe = (struct ocfs2_dinode *) newfe_bh->b_data;
- 
--		mlog(0, "aha rename over existing... new_de=%p new_blkno=%llu "
--		     "newfebh=%p bhblocknr=%llu\n", new_de,
-+		mlog(0, "aha rename over existing... new_blkno=%llu "
-+		     "newfebh=%p bhblocknr=%llu\n",
- 		     (unsigned long long)newfe_blkno, newfe_bh, newfe_bh ?
- 		     (unsigned long long)newfe_bh->b_blocknr : 0ULL);
- 
-@@ -1156,7 +1160,7 @@ static int ocfs2_rename(struct inode *old_dir,
- 			status = ocfs2_prepare_orphan_dir(osb, &orphan_dir,
- 							  new_inode,
- 							  orphan_name,
--							  &orphan_entry_bh);
-+							  &orphan_insert);
- 			if (status < 0) {
- 				mlog_errno(status);
- 				goto bail;
-@@ -1174,7 +1178,7 @@ static int ocfs2_rename(struct inode *old_dir,
- 		status = ocfs2_prepare_dir_for_insert(osb, new_dir, new_dir_bh,
- 						      new_dentry->d_name.name,
- 						      new_dentry->d_name.len,
--						      &insert_entry_bh);
-+						      &target_insert);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto bail;
-@@ -1189,7 +1193,7 @@ static int ocfs2_rename(struct inode *old_dir,
- 		goto bail;
- 	}
- 
--	if (new_de) {
-+	if (target_exists) {
- 		if (S_ISDIR(new_inode->i_mode)) {
- 			if (!ocfs2_empty_dir(new_inode) ||
- 			    new_inode->i_nlink != 2) {
-@@ -1208,7 +1212,7 @@ static int ocfs2_rename(struct inode *old_dir,
- 		    (newfe->i_links_count == cpu_to_le16(1))){
- 			status = ocfs2_orphan_add(osb, handle, new_inode,
- 						  newfe, orphan_name,
--						  orphan_entry_bh, orphan_dir);
-+						  &orphan_insert, orphan_dir);
- 			if (status < 0) {
- 				mlog_errno(status);
- 				goto bail;
-@@ -1216,8 +1220,8 @@ static int ocfs2_rename(struct inode *old_dir,
- 		}
- 
- 		/* change the dirent to point to the correct inode */
--		status = ocfs2_update_entry(new_dir, handle, new_de_bh,
--					    new_de, old_inode);
-+		status = ocfs2_update_entry(new_dir, handle, &target_lookup_res,
-+					    old_inode);
- 		if (status < 0) {
- 			mlog_errno(status);
- 			goto bail;
-@@ -1238,7 +1242,7 @@ static int ocfs2_rename(struct inode *old_dir,
- 		/* if the name was not found in new_dir, add it now */
- 		status = ocfs2_add_entry(handle, new_dentry, old_inode,
- 					 OCFS2_I(old_inode)->ip_blkno,
--					 new_dir_bh, insert_entry_bh);
-+					 new_dir_bh, &target_insert);
- 	}
- 
- 	old_inode->i_ctime = CURRENT_TIME;
-@@ -1265,15 +1269,13 @@ static int ocfs2_rename(struct inode *old_dir,
- 	 * because the insert might have changed the type of directory
- 	 * we're dealing with.
- 	 */
--	old_de_bh = ocfs2_find_entry(old_dentry->d_name.name,
--				     old_dentry->d_name.len,
--				     old_dir, &old_de);
--	if (!old_de_bh) {
--		status = -EIO;
-+	status = ocfs2_find_entry(old_dentry->d_name.name,
-+				  old_dentry->d_name.len, old_dir,
-+				  &old_entry_lookup);
-+	if (status)
- 		goto bail;
--	}
- 
--	status = ocfs2_delete_entry(handle, old_dir, old_de, old_de_bh);
-+	status = ocfs2_delete_entry(handle, old_dir, &old_entry_lookup);
+-	status = ocfs2_delete_entry(handle, old_dir, &old_entry_lookup);
++	status = ocfs2_delete_entry(handle, old_dir, old_dir_bh,
++				    &old_entry_lookup);
  	if (status < 0) {
  		mlog_errno(status);
  		goto bail;
-@@ -1284,9 +1286,10 @@ static int ocfs2_rename(struct inode *old_dir,
- 		new_inode->i_ctime = CURRENT_TIME;
- 	}
- 	old_dir->i_ctime = old_dir->i_mtime = CURRENT_TIME;
--	if (old_inode_de_bh) {
--		status = ocfs2_update_entry(old_inode, handle, old_inode_de_bh,
--					    old_inode_dot_dot_de, new_dir);
-+
-+	if (update_dot_dot) {
-+		status = ocfs2_update_entry(old_inode, handle,
-+					    &old_inode_dot_dot_res, new_dir);
- 		old_dir->i_nlink--;
- 		if (new_inode) {
- 			new_inode->i_nlink--;
-@@ -1360,13 +1363,17 @@ bail:
- 
- 	if (new_inode)
- 		iput(new_inode);
-+
-+	ocfs2_free_dir_lookup_result(&target_lookup_res);
-+	ocfs2_free_dir_lookup_result(&old_entry_lookup);
-+	ocfs2_free_dir_lookup_result(&old_inode_dot_dot_res);
-+	ocfs2_free_dir_lookup_result(&orphan_insert);
-+	ocfs2_free_dir_lookup_result(&target_insert);
-+
- 	brelse(newfe_bh);
- 	brelse(old_inode_bh);
- 	brelse(old_dir_bh);
- 	brelse(new_dir_bh);
--	brelse(new_de_bh);
--	brelse(old_de_bh);
--	brelse(old_inode_de_bh);
- 	brelse(orphan_entry_bh);
- 	brelse(insert_entry_bh);
- 
-@@ -1489,13 +1496,13 @@ static int ocfs2_symlink(struct inode *dir,
- 	struct inode *inode = NULL;
- 	struct super_block *sb;
- 	struct buffer_head *new_fe_bh = NULL;
--	struct buffer_head *de_bh = NULL;
- 	struct buffer_head *parent_fe_bh = NULL;
- 	struct ocfs2_dinode *fe = NULL;
- 	struct ocfs2_dinode *dirfe;
- 	handle_t *handle = NULL;
- 	struct ocfs2_alloc_context *inode_ac = NULL;
- 	struct ocfs2_alloc_context *data_ac = NULL;
-+	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 
- 	mlog_entry("(0x%p, 0x%p, symname='%s' actual='%.*s')\n", dir,
- 		   dentry, symname, dentry->d_name.len, dentry->d_name.name);
-@@ -1529,7 +1536,7 @@ static int ocfs2_symlink(struct inode *dir,
- 
- 	status = ocfs2_prepare_dir_for_insert(osb, dir, parent_fe_bh,
- 					      dentry->d_name.name,
--					      dentry->d_name.len, &de_bh);
-+					      dentry->d_name.len, &lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -1616,7 +1623,7 @@ static int ocfs2_symlink(struct inode *dir,
- 
- 	status = ocfs2_add_entry(handle, dentry, inode,
- 				 le64_to_cpu(fe->i_blkno), parent_fe_bh,
--				 de_bh);
-+				 &lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -1639,7 +1646,7 @@ bail:
- 
- 	brelse(new_fe_bh);
- 	brelse(parent_fe_bh);
--	brelse(de_bh);
-+	ocfs2_free_dir_lookup_result(&lookup);
- 	if (inode_ac)
- 		ocfs2_free_alloc_context(inode_ac);
- 	if (data_ac)
-@@ -1687,7 +1694,7 @@ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
- 				    struct inode **ret_orphan_dir,
- 				    struct inode *inode,
- 				    char *name,
--				    struct buffer_head **de_bh)
-+				    struct ocfs2_dir_lookup_result *lookup)
- {
- 	struct inode *orphan_dir_inode;
- 	struct buffer_head *orphan_dir_bh = NULL;
-@@ -1718,7 +1725,7 @@ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
- 
- 	status = ocfs2_prepare_dir_for_insert(osb, orphan_dir_inode,
- 					      orphan_dir_bh, name,
--					      OCFS2_ORPHAN_NAMELEN, de_bh);
-+					      OCFS2_ORPHAN_NAMELEN, lookup);
- 	if (status < 0) {
- 		ocfs2_inode_unlock(orphan_dir_inode, 1);
- 
-@@ -1745,7 +1752,7 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 			    struct inode *inode,
- 			    struct ocfs2_dinode *fe,
- 			    char *name,
--			    struct buffer_head *de_bh,
-+			    struct ocfs2_dir_lookup_result *lookup,
- 			    struct inode *orphan_dir_inode)
- {
- 	struct buffer_head *orphan_dir_bh = NULL;
-@@ -1785,7 +1792,7 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 	status = __ocfs2_add_entry(handle, orphan_dir_inode, name,
- 				   OCFS2_ORPHAN_NAMELEN, inode,
- 				   OCFS2_I(inode)->ip_blkno,
--				   orphan_dir_bh, de_bh);
-+				   orphan_dir_bh, lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
-@@ -1818,8 +1825,7 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
- 	char name[OCFS2_ORPHAN_NAMELEN + 1];
- 	struct ocfs2_dinode *orphan_fe;
- 	int status = 0;
--	struct buffer_head *target_de_bh = NULL;
--	struct ocfs2_dir_entry *target_de = NULL;
-+	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 
- 	mlog_entry_void();
- 
-@@ -1834,17 +1840,15 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
- 	     OCFS2_ORPHAN_NAMELEN);
- 
- 	/* find it's spot in the orphan directory */
--	target_de_bh = ocfs2_find_entry(name, OCFS2_ORPHAN_NAMELEN,
--					orphan_dir_inode, &target_de);
--	if (!target_de_bh) {
--		status = -ENOENT;
-+	status = ocfs2_find_entry(name, OCFS2_ORPHAN_NAMELEN, orphan_dir_inode,
-+				  &lookup);
-+	if (status) {
- 		mlog_errno(status);
- 		goto leave;
+@@ -1868,7 +1869,8 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
  	}
  
  	/* remove it from the orphan directory */
--	status = ocfs2_delete_entry(handle, orphan_dir_inode, target_de,
--				    target_de_bh);
-+	status = ocfs2_delete_entry(handle, orphan_dir_inode, &lookup);
+-	status = ocfs2_delete_entry(handle, orphan_dir_inode, &lookup);
++	status = ocfs2_delete_entry(handle, orphan_dir_inode, orphan_dir_bh,
++				    &lookup);
  	if (status < 0) {
  		mlog_errno(status);
  		goto leave;
-@@ -1870,7 +1874,7 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
- 	}
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index c723d5e..2e19869 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -67,6 +67,7 @@
+ #define OCFS2_XATTR_BLOCK_SIGNATURE	"XATTR01"
+ #define OCFS2_DX_ROOT_SIGNATURE		"DXDIR01"
+ #define OCFS2_DX_LEAF_SIGNATURE		"DXLEAF1"
++#define OCFS2_DIR_TRAILER_SIGNATURE	"DIRTRL1"
  
- leave:
--	brelse(target_de_bh);
-+	ocfs2_free_dir_lookup_result(&lookup);
+ /* Compatibility flags */
+ #define OCFS2_HAS_COMPAT_FEATURE(sb,mask)			\
+@@ -94,7 +95,8 @@
+ 					 | OCFS2_FEATURE_INCOMPAT_INLINE_DATA \
+ 					 | OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP \
+ 					 | OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK \
+-					 | OCFS2_FEATURE_INCOMPAT_XATTR)
++					 | OCFS2_FEATURE_INCOMPAT_XATTR	\
++					 | OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS)
+ #define OCFS2_FEATURE_RO_COMPAT_SUPP	OCFS2_FEATURE_RO_COMPAT_UNWRITTEN
  
- 	mlog_exit(status);
- 	return status;
+ /*
+@@ -716,6 +718,30 @@ struct ocfs2_dir_entry {
+ } __attribute__ ((packed));
+ 
+ /*
++ * Per-block record for the unindexed directory btree. This is carefully
++ * crafted so that the rec_len and name_len records of an ocfs2_dir_entry are
++ * mirrored. That way, the directory manipulation code needs a minimal amount
++ * of update.
++ *
++ * NOTE: Keep this structure aligned to a multiple of 4 bytes.
++ */
++struct ocfs2_dir_block_trailer {
++/*00*/	__le64		db_compat_inode;	/* Always zero. Was inode */
++
++	__le16		db_compat_rec_len;	/* Backwards compatible with
++						 * ocfs2_dir_entry. */
++	__u8		db_compat_name_len;	/* Always zero. Was name_len */
++	__u8		db_reserved0;
++	__le16		db_reserved1;
++	__le16		db_free_rec_len;	/* Size of largest empty hole
++						 * in this block. */
++	__u8		db_signature[8];	/* Signature for verification */
++	__le64		db_reserved2;
++	__le64		db_free_next;		/* Next block in list */
++	__le64		db_csum;		/* Checksum (unused) */
++};
++
++/*
+  * A directory indexing block. Each indexed directory has one of these,
+  * pointed to by ocfs2_dinode.
+  *
+@@ -738,7 +764,9 @@ struct ocfs2_dx_root_block {
+ 	__le32		dr_reserved1;
+ 	__le64		dr_dir_blkno;		/* Pointer to parent inode */
+ 	__le64		dr_reserved2;
+-	__le64		dr_reserved3[16];
++	__le64		dr_free_blk;		/* Pointer to head of free
++						 * unindexed block list. */
++	__le64		dr_reserved3[15];
+ 	struct ocfs2_extent_list	dr_list; /* Keep this aligned to 128
+ 						  * bits for maximum space
+ 						  * efficiency. */
 -- 
 1.5.4.1
