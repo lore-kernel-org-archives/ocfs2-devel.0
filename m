@@ -1,149 +1,248 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Thu, 13 Nov 2008 14:49:20 -0800
-Subject: [Ocfs2-devel] [PATCH 10/11] ocfs2: Wrap virtual block reads in
-	ocfs2_read_virt_blocks()
+Date: Thu, 13 Nov 2008 14:49:17 -0800
+Subject: [Ocfs2-devel] [PATCH 07/11] ocfs2: Wrap dirblock reads in a
+	dedicated function.
 In-Reply-To: <1226616561-29942-1-git-send-email-joel.becker@oracle.com>
 References: <1226616561-29942-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1226616561-29942-11-git-send-email-joel.becker@oracle.com>
+Message-ID: <1226616561-29942-8-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The ocfs2_read_dir_block() function really maps an inode's virtual
-blocks to physical ones before calling ocfs2_read_blocks().  Let's
-extract that to common code, because other places might want to do that.
-
-Other than the block number being virtual, ocfs2_read_virt_blocks()
-takes the same arguments as ocfs2_read_blocks().  It converts those
-virtual block numbers to physical before calling ocfs2_read_blocks()
-directly.  If the blocks asked for are discontiguous, this can mean
-multiple calls to ocfs2_read_blocks(), but this is mostly hidden from
-the caller.
-
-Like ocfs2_read_blocks(), the caller can pass in an existing
-buffer_head.  This is usually done to pick up some readahead I/O.
-ocfs2_read_virt_blocks() checks the buffer_head's block number
-against the extent map - it must match.
+We have ocfs2_bread() as a vestige of the original ext-based dir code.
+It's only used by directories, though.  Turn it into
+ocfs2_read_dir_block(), with a prototype matching the other metadata
+read functions.  It's set up to validate dirblocks when the time comes.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/extent_map.c |   71 +++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/extent_map.h |   24 ++++++++++++++++
- 2 files changed, 95 insertions(+), 0 deletions(-)
+ fs/ocfs2/dir.c |  150 +++++++++++++++++++++++++++++++++-----------------------
+ 1 files changed, 88 insertions(+), 62 deletions(-)
 
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index 0bd9d96..f2bb1a0 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -806,3 +806,74 @@ out:
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 5777045..c2f3fd9 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -82,49 +82,6 @@ static int ocfs2_do_extend_dir(struct super_block *sb,
+ 			       struct ocfs2_alloc_context *meta_ac,
+ 			       struct buffer_head **new_bh);
  
- 	return ret;
+-static struct buffer_head *ocfs2_bread(struct inode *inode,
+-				       int block, int *err, int reada)
+-{
+-	struct buffer_head *bh = NULL;
+-	int tmperr;
+-	u64 p_blkno;
+-	int readflags = 0;
+-
+-	if (reada)
+-		readflags |= OCFS2_BH_READAHEAD;
+-
+-	if (((u64)block << inode->i_sb->s_blocksize_bits) >=
+-	    i_size_read(inode)) {
+-		BUG_ON(!reada);
+-		return NULL;
+-	}
+-
+-	down_read(&OCFS2_I(inode)->ip_alloc_sem);
+-	tmperr = ocfs2_extent_map_get_blocks(inode, block, &p_blkno, NULL,
+-					     NULL);
+-	up_read(&OCFS2_I(inode)->ip_alloc_sem);
+-	if (tmperr < 0) {
+-		mlog_errno(tmperr);
+-		goto fail;
+-	}
+-
+-	tmperr = ocfs2_read_blocks(inode, p_blkno, 1, &bh, readflags);
+-	if (tmperr < 0)
+-		goto fail;
+-
+-	tmperr = 0;
+-
+-	*err = 0;
+-	return bh;
+-
+-fail:
+-	brelse(bh);
+-	bh = NULL;
+-
+-	*err = -EIO;
+-	return NULL;
+-}
+-
+ /*
+  * bh passed here can be an inode block or a dir data block, depending
+  * on the inode inline data flag.
+@@ -250,6 +207,76 @@ out:
+ 	return NULL;
  }
+ 
++static int ocfs2_validate_dir_block(struct super_block *sb,
++				    struct buffer_head *bh)
++{
++	/*
++	 * Nothing yet.  We don't validate dirents here, that's handled
++	 * in-place when the code walks them.
++	 */
 +
-+int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
-+			   struct buffer_head *bhs[], int flags,
-+			   int (*validate)(struct super_block *sb,
-+					   struct buffer_head *bh))
++	return 0;
++}
++
++/*
++ * This function forces all errors to -EIO for consistency with its
++ * predecessor, ocfs2_bread().  We haven't audited what returning the
++ * real error codes would do to callers.  We log the real codes with
++ * mlog_errno() before we squash them.
++ */
++static int ocfs2_read_dir_block(struct inode *inode, u64 v_block,
++				struct buffer_head **bh, int flags)
 +{
 +	int rc = 0;
-+	u64 p_block, p_count;
-+	int i, count, done = 0;
++	struct buffer_head *tmp = *bh;
++	u64 p_blkno;
 +
-+	mlog_entry("(inode = %p, v_block = %llu, nr = %d, bhs = %p, "
-+		   "flags = %x, validate = %p)\n",
-+		   inode, (unsigned long long)v_block, nr, bhs, flags,
-+		   validate);
-+
-+	if (((v_block + nr - 1) << inode->i_sb->s_blocksize_bits) >=
++	if (((u64)v_block << inode->i_sb->s_blocksize_bits) >=
 +	    i_size_read(inode)) {
 +		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
 +		goto out;
 +	}
 +
-+	while (done < nr) {
-+		down_read(&OCFS2_I(inode)->ip_alloc_sem);
-+		rc = ocfs2_extent_map_get_blocks(inode, v_block + done,
-+						 &p_block, &p_count, NULL);
-+		up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+		if (rc) {
-+			mlog_errno(rc);
-+			break;
-+		}
-+
-+		if (!p_block) {
-+			rc = -EIO;
-+			mlog(ML_ERROR,
-+			     "Inode #%llu contains a hole at offset %llu\n",
-+			     (unsigned long long)OCFS2_I(inode)->ip_blkno,
-+			     (unsigned long long)(v_block + done) <<
-+			     inode->i_sb->s_blocksize_bits);
-+			break;
-+		}
-+
-+		count = nr - done;
-+		if (p_count < count)
-+			count = p_count;
-+
-+		/*
-+		 * If the caller passed us bhs, they should have come
-+		 * from a previous readahead call to this function.  Thus,
-+		 * they should have the right b_blocknr.
-+		 */
-+		for (i = 0; i < count; i++) {
-+			if (!bhs[done + i])
-+				continue;
-+			BUG_ON(bhs[done + i]->b_blocknr != (p_block + i));
-+		}
-+
-+		rc = ocfs2_read_blocks(inode, p_block, count, bhs + done,
-+				       flags, validate);
-+		if (rc) {
-+			mlog_errno(rc);
-+			break;
-+		}
-+		done += count;
++	down_read(&OCFS2_I(inode)->ip_alloc_sem);
++	rc = ocfs2_extent_map_get_blocks(inode, v_block, &p_blkno, NULL,
++					 NULL);
++	up_read(&OCFS2_I(inode)->ip_alloc_sem);
++	if (rc) {
++		mlog_errno(rc);
++		goto out;
 +	}
++
++	if (!p_blkno) {
++		rc = -EIO;
++		mlog(ML_ERROR,
++		     "Directory #%llu contains a hole at offset %llu\n",
++		     (unsigned long long)OCFS2_I(inode)->ip_blkno,
++		     (unsigned long long)v_block << inode->i_sb->s_blocksize_bits);
++		goto out;
++	}
++
++	rc = ocfs2_read_blocks(inode, p_blkno, 1, &tmp, flags);
++	if (rc) {
++		mlog_errno(rc);
++		goto out;
++	}
++
++	if (!(flags & OCFS2_BH_READAHEAD)) {
++		rc = ocfs2_validate_dir_block(inode->i_sb, tmp);
++		if (rc) {
++			brelse(tmp);
++			goto out;
++		}
++	}
++
++	/* If ocfs2_read_blocks() got us a new bh, pass it up.  */
++	if (!*bh)
++		*bh = tmp;
 +
 +out:
-+	mlog_exit(rc);
-+	return rc;
++	return rc ? -EIO : 0;
 +}
 +
-+
-diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
-index 1c4aa8b..b7dd973 100644
---- a/fs/ocfs2/extent_map.h
-+++ b/fs/ocfs2/extent_map.h
-@@ -57,4 +57,28 @@ int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
- 			     u32 *p_cluster, u32 *num_clusters,
- 			     struct ocfs2_extent_list *el);
+ static struct buffer_head *ocfs2_find_entry_el(const char *name, int namelen,
+ 					       struct inode *dir,
+ 					       struct ocfs2_dir_entry **res_dir)
+@@ -296,15 +323,17 @@ restart:
+ 				}
+ 				num++;
  
-+int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
-+			   struct buffer_head *bhs[], int flags,
-+			   int (*validate)(struct super_block *sb,
-+					   struct buffer_head *bh));
-+static inline int ocfs2_read_virt_block(struct inode *inode, u64 v_block,
-+					struct buffer_head **bh,
-+					int (*validate)(struct super_block *sb,
-+							struct buffer_head *bh))
-+{
-+	int status = 0;
-+
-+	if (bh == NULL) {
-+		printk("ocfs2: bh == NULL\n");
-+		status = -EINVAL;
-+		goto bail;
-+	}
-+
-+	status = ocfs2_read_virt_blocks(inode, v_block, 1, bh, 0, validate);
-+
-+bail:
-+	return status;
-+}
-+
-+
- #endif  /* _EXTENT_MAP_H */
+-				bh = ocfs2_bread(dir, b++, &err, 1);
++				bh = NULL;
++				err = ocfs2_read_dir_block(dir, b++, &bh,
++							   OCFS2_BH_READAHEAD);
+ 				bh_use[ra_max] = bh;
+ 			}
+ 		}
+ 		if ((bh = bh_use[ra_ptr++]) == NULL)
+ 			goto next;
+-		if (ocfs2_read_block(dir, block, &bh)) {
++		if (ocfs2_read_dir_block(dir, block, &bh, 0)) {
+ 			/* read error, skip block & hope for the best.
+-			 * ocfs2_read_block() has released the bh. */
++			 * ocfs2_read_dir_block() has released the bh. */
+ 			ocfs2_error(dir->i_sb, "reading directory %llu, "
+ 				    "offset %lu\n",
+ 				    (unsigned long long)OCFS2_I(dir)->ip_blkno,
+@@ -724,7 +753,6 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+ 	int i, stored;
+ 	struct buffer_head * bh, * tmp;
+ 	struct ocfs2_dir_entry * de;
+-	int err;
+ 	struct super_block * sb = inode->i_sb;
+ 	unsigned int ra_sectors = 16;
+ 
+@@ -735,12 +763,8 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+ 
+ 	while (!error && !stored && *f_pos < i_size_read(inode)) {
+ 		blk = (*f_pos) >> sb->s_blocksize_bits;
+-		bh = ocfs2_bread(inode, blk, &err, 0);
+-		if (!bh) {
+-			mlog(ML_ERROR,
+-			     "directory #%llu contains a hole at offset %lld\n",
+-			     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+-			     *f_pos);
++		if (ocfs2_read_dir_block(inode, blk, &bh, 0)) {
++			/* Skip the corrupt dirblock and keep trying */
+ 			*f_pos += sb->s_blocksize - offset;
+ 			continue;
+ 		}
+@@ -754,8 +778,10 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+ 		    || (((last_ra_blk - blk) << 9) <= (ra_sectors / 2))) {
+ 			for (i = ra_sectors >> (sb->s_blocksize_bits - 9);
+ 			     i > 0; i--) {
+-				tmp = ocfs2_bread(inode, ++blk, &err, 1);
+-				brelse(tmp);
++				tmp = NULL;
++				if (!ocfs2_read_dir_block(inode, ++blk, &tmp,
++							  OCFS2_BH_READAHEAD))
++					brelse(tmp);
+ 			}
+ 			last_ra_blk = blk;
+ 			ra_sectors = 8;
+@@ -828,6 +854,7 @@ revalidate:
+ 		}
+ 		offset = 0;
+ 		brelse(bh);
++		bh = NULL;
+ 	}
+ 
+ 	stored = 0;
+@@ -1680,8 +1707,8 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+ 	struct super_block *sb = dir->i_sb;
+ 	int status;
+ 
+-	bh = ocfs2_bread(dir, 0, &status, 0);
+-	if (!bh) {
++	status = ocfs2_read_dir_block(dir, 0, &bh, 0);
++	if (status) {
+ 		mlog_errno(status);
+ 		goto bail;
+ 	}
+@@ -1702,11 +1729,10 @@ static int ocfs2_find_dir_space_el(struct inode *dir, const char *name,
+ 				status = -ENOSPC;
+ 				goto bail;
+ 			}
+-			bh = ocfs2_bread(dir,
+-					 offset >> sb->s_blocksize_bits,
+-					 &status,
+-					 0);
+-			if (!bh) {
++			status = ocfs2_read_dir_block(dir,
++					     offset >> sb->s_blocksize_bits,
++					     &bh, 0);
++			if (status) {
+ 				mlog_errno(status);
+ 				goto bail;
+ 			}
 -- 
 1.5.6.5
