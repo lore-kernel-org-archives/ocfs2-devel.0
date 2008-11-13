@@ -1,239 +1,68 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 12 Nov 2008 18:24:05 -0800
-Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: turn __ocfs2_remove_inode_range()
-	into ocfs2_remove_btree_range()
-In-Reply-To: <1226543048-911-1-git-send-email-mfasheh@suse.com>
-References: <1226543048-911-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1226543048-911-2-git-send-email-mfasheh@suse.com>
+Date: Wed, 12 Nov 2008 18:24:04 -0800
+Subject: [Ocfs2-devel] [RFC][PATCH 0/4] ocfs2: Directory indexing support
+Message-ID: <1226543048-911-1-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch genericizes the high level handling of extent removal.
-ocfs2_remove_btree_range() is nearly identical to
-__ocfs2_remove_inode_range(), except that extent tree operations have been
-used where necessary. We update ocfs2_remove_inode_range() to use the
-generic helper. Now extent tree based structures have an easy way to
-truncate ranges.
+The following patches implement indexed directory support in Ocfs2, mostly
+according to the design doc I wrote up a while ago:
 
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
----
- fs/ocfs2/alloc.c |   72 +++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/alloc.h |    5 +++
- fs/ocfs2/file.c  |   85 +++--------------------------------------------------
- 3 files changed, 82 insertions(+), 80 deletions(-)
+http://oss.oracle.com/osswiki/OCFS2/DesignDocs/IndexedDirectories
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 4614614..5592a2f 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -5255,6 +5255,78 @@ out:
- 	return ret;
- }
- 
-+int ocfs2_remove_btree_range(struct inode *inode,
-+			     struct ocfs2_extent_tree *et,
-+			     u32 cpos, u32 phys_cpos, u32 len,
-+			     struct ocfs2_cached_dealloc_ctxt *dealloc)
-+{
-+	int ret;
-+	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct inode *tl_inode = osb->osb_tl_inode;
-+	handle_t *handle;
-+	struct ocfs2_alloc_context *meta_ac = NULL;
-+
-+	ret = ocfs2_lock_allocators(inode, et, 0, 1, NULL, &meta_ac);
-+	if (ret) {
-+		mlog_errno(ret);
-+		return ret;
-+	}
-+
-+	mutex_lock(&tl_inode->i_mutex);
-+
-+	if (ocfs2_truncate_log_needs_flush(osb)) {
-+		ret = __ocfs2_flush_truncate_log(osb);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+	}
-+
-+	handle = ocfs2_start_trans(osb, OCFS2_REMOVE_EXTENT_CREDITS);
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_journal_access(handle, inode, et->et_root_bh,
-+				   OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_remove_extent(inode, et, cpos, len, handle, meta_ac,
-+				  dealloc);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	ocfs2_et_update_clusters(inode, et, -len);
-+
-+	ret = ocfs2_journal_dirty(handle, et->et_root_bh);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	ret = ocfs2_truncate_log_append(osb, handle, phys_blkno, len);
-+	if (ret)
-+		mlog_errno(ret);
-+
-+out_commit:
-+	ocfs2_commit_trans(osb, handle);
-+out:
-+	mutex_unlock(&tl_inode->i_mutex);
-+
-+	if (meta_ac)
-+		ocfs2_free_alloc_context(meta_ac);
-+
-+	return ret;
-+}
-+
- int ocfs2_truncate_log_needs_flush(struct ocfs2_super *osb)
- {
- 	struct buffer_head *tl_bh = osb->osb_tl_bh;
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 3eb735e..0fbf8fc 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -110,6 +110,11 @@ int ocfs2_remove_extent(struct inode *inode,
- 			u32 cpos, u32 len, handle_t *handle,
- 			struct ocfs2_alloc_context *meta_ac,
- 			struct ocfs2_cached_dealloc_ctxt *dealloc);
-+int ocfs2_remove_btree_range(struct inode *inode,
-+			     struct ocfs2_extent_tree *et,
-+			     u32 cpos, u32 phys_cpos, u32 len,
-+			     struct ocfs2_cached_dealloc_ctxt *dealloc);
-+
- int ocfs2_num_free_extents(struct ocfs2_super *osb,
- 			   struct inode *inode,
- 			   struct ocfs2_extent_tree *et);
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index e2570a3..3605491 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1226,83 +1226,6 @@ out:
- 	return ret;
- }
- 
--static int __ocfs2_remove_inode_range(struct inode *inode,
--				      struct buffer_head *di_bh,
--				      u32 cpos, u32 phys_cpos, u32 len,
--				      struct ocfs2_cached_dealloc_ctxt *dealloc)
--{
--	int ret;
--	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
--	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
--	struct inode *tl_inode = osb->osb_tl_inode;
--	handle_t *handle;
--	struct ocfs2_alloc_context *meta_ac = NULL;
--	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
--	struct ocfs2_extent_tree et;
--
--	ocfs2_init_dinode_extent_tree(&et, inode, di_bh);
--
--	ret = ocfs2_lock_allocators(inode, &et, 0, 1, NULL, &meta_ac);
--	if (ret) {
--		mlog_errno(ret);
--		return ret;
--	}
--
--	mutex_lock(&tl_inode->i_mutex);
--
--	if (ocfs2_truncate_log_needs_flush(osb)) {
--		ret = __ocfs2_flush_truncate_log(osb);
--		if (ret < 0) {
--			mlog_errno(ret);
--			goto out;
--		}
--	}
--
--	handle = ocfs2_start_trans(osb, OCFS2_REMOVE_EXTENT_CREDITS);
--	if (IS_ERR(handle)) {
--		ret = PTR_ERR(handle);
--		mlog_errno(ret);
--		goto out;
--	}
--
--	ret = ocfs2_journal_access(handle, inode, di_bh,
--				   OCFS2_JOURNAL_ACCESS_WRITE);
--	if (ret) {
--		mlog_errno(ret);
--		goto out;
--	}
--
--	ret = ocfs2_remove_extent(inode, &et, cpos, len, handle, meta_ac,
--				  dealloc);
--	if (ret) {
--		mlog_errno(ret);
--		goto out_commit;
--	}
--
--	OCFS2_I(inode)->ip_clusters -= len;
--	di->i_clusters = cpu_to_le32(OCFS2_I(inode)->ip_clusters);
--
--	ret = ocfs2_journal_dirty(handle, di_bh);
--	if (ret) {
--		mlog_errno(ret);
--		goto out_commit;
--	}
--
--	ret = ocfs2_truncate_log_append(osb, handle, phys_blkno, len);
--	if (ret)
--		mlog_errno(ret);
--
--out_commit:
--	ocfs2_commit_trans(osb, handle);
--out:
--	mutex_unlock(&tl_inode->i_mutex);
--
--	if (meta_ac)
--		ocfs2_free_alloc_context(meta_ac);
--
--	return ret;
--}
--
- /*
-  * Truncate a byte range, avoiding pages within partial clusters. This
-  * preserves those pages for the zeroing code to write to.
-@@ -1402,7 +1325,9 @@ static int ocfs2_remove_inode_range(struct inode *inode,
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct ocfs2_cached_dealloc_ctxt dealloc;
- 	struct address_space *mapping = inode->i_mapping;
-+	struct ocfs2_extent_tree et;
- 
-+	ocfs2_init_dinode_extent_tree(&et, inode, di_bh);
- 	ocfs2_init_dealloc_ctxt(&dealloc);
- 
- 	if (byte_len == 0)
-@@ -1458,9 +1383,9 @@ static int ocfs2_remove_inode_range(struct inode *inode,
- 
- 		/* Only do work for non-holes */
- 		if (phys_cpos != 0) {
--			ret = __ocfs2_remove_inode_range(inode, di_bh, cpos,
--							 phys_cpos, alloc_size,
--							 &dealloc);
-+			ret = ocfs2_remove_btree_range(inode, &et, cpos,
-+						       phys_cpos, alloc_size,
-+						       &dealloc);
- 			if (ret) {
- 				mlog_errno(ret);
- 				goto out;
--- 
-1.5.4.1
+The patches have been rebased on top of the current merge_window branch in
+Ocfs2. 
+
+Testing so far has mostly been kernel tree builds and unit tests from
+the ocfs2-test project. Everything seems pretty stable, but I'm sure we
+could pound on it some more. I have yet to test this particular set of
+patches - rebasing took longer than I thought it would, and I wanted to get
+these out to the list for early review :)  I will report back on testing
+results, as well as performance numbers in the next couple days.
+
+
+Very basic ocfs2-tools patches will also follow in the next couple days or
+so. This will mostly be mkfs and debugfs support. I think it might be best
+to build the libocfs2 support on top of whatever patches we have for
+extended attributes as the tree code will have to change for that.
+
+
+Future Improvements:
+
+We can optimize away the index reads for "medium" sized directories, if the
+number of blocks in the unindexed tree is less than the minimum number of
+reads required to read the index. Taking contiguousness into account might
+yield even better results.
+
+
+Open questions:
+
+Should we just drop the signature in ocfs2_dir_block_trailer? I can't help
+but feel that it might have limited usefulness as it's not at the front of
+the block (like the rest of our signatures) and that the nature of a dirent
+block might be that we can't trust the existence of the signature to
+actually mean there's a valid ocfs2_dir_block_trailer there. The answer is
+probably still to keep the signature, but I thought I'd throw this out
+there.
+
+
+Is it worth storing index (ocfs2_dx_entry) records inline inside of
+ocfs2_dx_root_block and only growing out to a tree when we exhaust the
+available space? Running the math, we could store between 18 (512 byte
+blocks) and 242 (4k blocksize) records in the space occupied by the extent
+list.
+
+
+In order to keep the code simple, I've gone with a single linked-list for
+the free dirent block search. There might be situations though, where this
+performs poorly. My plan is to version the free dirent block list so that we
+can 'upgrade' it (maybe to multiple lists) at a later point. Old versions
+would fall back to the less optimized unindexed leaf search. That way the
+upgrade would be seamless to the user.
+	--Mark
+
+--
+Mark Fasheh
