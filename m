@@ -1,273 +1,229 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Thu, 13 Nov 2008 14:49:12 -0800
-Subject: [Ocfs2-devel] [PATCH 02/11] ocfs2: Morph the haphazard
-	OCFS2_IS_VALID_DINODE() checks.
+Date: Thu, 13 Nov 2008 14:49:13 -0800
+Subject: [Ocfs2-devel] [PATCH 03/11] ocfs2: Consolidate validation of group
+	descriptors.
 In-Reply-To: <1226616561-29942-1-git-send-email-joel.becker@oracle.com>
 References: <1226616561-29942-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1226616561-29942-3-git-send-email-joel.becker@oracle.com>
+Message-ID: <1226616561-29942-4-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Random places in the code would check a dinode bh to see if it was
-valid.  Not only did they do different levels of validation, they
-handled errors in different ways.
+Currently the validation of group descriptors is directly duplicated so
+that one version can error the filesystem and the other (resize) can
+just report the problem.  Consolidate to one function that takes a
+boolean.  Wrap that function with the old call for the old users.
 
-The previous commit unified inode block reads, validating all block
-reads in the same place.  Thus, these haphazard checks are no longer
-necessary.  Rather than eliminate them, however, we change them to
-BUG_ON() checks.  This ensures the assumptions remain true.  All of the
-code paths to these checks have been audited to ensure they come from a
-validated inode read.
+This is in preparation for lifting the read+validate step into a
+single function.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/alloc.c    |   50 +++++++++++++++++++++-----------------------------
- fs/ocfs2/journal.c  |   17 +++++------------
- fs/ocfs2/ocfs2.h    |    8 --------
- fs/ocfs2/resize.c   |   10 ++++------
- fs/ocfs2/suballoc.c |   36 ++++++++++++++++--------------------
- 5 files changed, 46 insertions(+), 75 deletions(-)
+ fs/ocfs2/resize.c   |   40 +++++----------------------
+ fs/ocfs2/suballoc.c |   74 +++++++++++++++++++++++++++++---------------------
+ fs/ocfs2/suballoc.h |   20 +++++++++++--
+ 3 files changed, 68 insertions(+), 66 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 9c598ad..320545b 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -187,20 +187,12 @@ static int ocfs2_dinode_insert_check(struct inode *inode,
- static int ocfs2_dinode_sanity_check(struct inode *inode,
- 				     struct ocfs2_extent_tree *et)
- {
--	int ret = 0;
--	struct ocfs2_dinode *di;
-+	struct ocfs2_dinode *di = et->et_object;
- 
- 	BUG_ON(et->et_ops != &ocfs2_dinode_et_ops);
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
- 
--	di = et->et_object;
--	if (!OCFS2_IS_VALID_DINODE(di)) {
--		ret = -EIO;
--		ocfs2_error(inode->i_sb,
--			"Inode %llu has invalid path root",
--			(unsigned long long)OCFS2_I(inode)->ip_blkno);
--	}
--
--	return ret;
-+	return 0;
- }
- 
- static void ocfs2_dinode_fill_root_el(struct ocfs2_extent_tree *et)
-@@ -5380,13 +5372,13 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
- 	start_cluster = ocfs2_blocks_to_clusters(osb->sb, start_blk);
- 
- 	di = (struct ocfs2_dinode *) tl_bh->b_data;
--	tl = &di->id2.i_dealloc;
--	if (!OCFS2_IS_VALID_DINODE(di)) {
--		OCFS2_RO_ON_INVALID_DINODE(osb->sb, di);
--		status = -EIO;
--		goto bail;
--	}
- 
-+	/* tl_bh is loaded from ocfs2_truncate_log_init().  It's validated
-+	 * by the underlying call to ocfs2_read_inode_block(), so any
-+	 * corruption is a code bug */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
-+
-+	tl = &di->id2.i_dealloc;
- 	tl_count = le16_to_cpu(tl->tl_count);
- 	mlog_bug_on_msg(tl_count > ocfs2_truncate_recs_per_inode(osb->sb) ||
- 			tl_count == 0,
-@@ -5536,13 +5528,13 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb)
- 	BUG_ON(mutex_trylock(&tl_inode->i_mutex));
- 
- 	di = (struct ocfs2_dinode *) tl_bh->b_data;
--	tl = &di->id2.i_dealloc;
--	if (!OCFS2_IS_VALID_DINODE(di)) {
--		OCFS2_RO_ON_INVALID_DINODE(osb->sb, di);
--		status = -EIO;
--		goto out;
--	}
- 
-+	/* tl_bh is loaded from ocfs2_truncate_log_init().  It's validated
-+	 * by the underlying call to ocfs2_read_inode_block(), so any
-+	 * corruption is a code bug */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
-+
-+	tl = &di->id2.i_dealloc;
- 	num_to_flush = le16_to_cpu(tl->tl_used);
- 	mlog(0, "Flush %u records from truncate log #%llu\n",
- 	     num_to_flush, (unsigned long long)OCFS2_I(tl_inode)->ip_blkno);
-@@ -5697,13 +5689,13 @@ int ocfs2_begin_truncate_log_recovery(struct ocfs2_super *osb,
- 	}
- 
- 	di = (struct ocfs2_dinode *) tl_bh->b_data;
--	tl = &di->id2.i_dealloc;
--	if (!OCFS2_IS_VALID_DINODE(di)) {
--		OCFS2_RO_ON_INVALID_DINODE(tl_inode->i_sb, di);
--		status = -EIO;
--		goto bail;
--	}
- 
-+	/* tl_bh is loaded from ocfs2_get_truncate_log_info().  It's
-+	 * validated by the underlying call to ocfs2_read_inode_block(),
-+	 * so any corruption is a code bug */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(di));
-+
-+	tl = &di->id2.i_dealloc;
- 	if (le16_to_cpu(tl->tl_used)) {
- 		mlog(0, "We'll have %u logs to recover\n",
- 		     le16_to_cpu(tl->tl_used));
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 877aaa0..9223bfc 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -587,17 +587,11 @@ static int ocfs2_journal_toggle_dirty(struct ocfs2_super *osb,
- 	mlog_entry_void();
- 
- 	fe = (struct ocfs2_dinode *)bh->b_data;
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		/* This is called from startup/shutdown which will
--		 * handle the errors in a specific manner, so no need
--		 * to call ocfs2_error() here. */
--		mlog(ML_ERROR, "Journal dinode %llu  has invalid "
--		     "signature: %.*s",
--		     (unsigned long long)le64_to_cpu(fe->i_blkno), 7,
--		     fe->i_signature);
--		status = -EIO;
--		goto out;
--	}
-+
-+	/* The journal bh on the osb always comes from ocfs2_journal_init()
-+	 * and was validated there inside ocfs2_inode_lock_full().  It's a
-+	 * code bug if we mess it up. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
- 
- 	flags = le32_to_cpu(fe->id1.journal1.ij_flags);
- 	if (dirty)
-@@ -613,7 +607,6 @@ static int ocfs2_journal_toggle_dirty(struct ocfs2_super *osb,
- 	if (status < 0)
- 		mlog_errno(status);
- 
--out:
- 	mlog_exit(status);
- 	return status;
- }
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 3fed9e3..42cd355 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -443,14 +443,6 @@ static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
- #define OCFS2_IS_VALID_DINODE(ptr)					\
- 	(!strcmp((ptr)->i_signature, OCFS2_INODE_SIGNATURE))
- 
--#define OCFS2_RO_ON_INVALID_DINODE(__sb, __di)	do {			\
--	typeof(__di) ____di = (__di);					\
--	ocfs2_error((__sb), 						\
--		"Dinode # %llu has bad signature %.*s",			\
--		(unsigned long long)le64_to_cpu((____di)->i_blkno), 7, 	\
--		(____di)->i_signature);					\
--} while (0)
--
- #define OCFS2_IS_VALID_EXTENT_BLOCK(ptr)				\
- 	(!strcmp((ptr)->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE))
- 
 diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
-index ffd48db..739d452 100644
+index 739d452..a2de32a 100644
 --- a/fs/ocfs2/resize.c
 +++ b/fs/ocfs2/resize.c
-@@ -314,6 +314,10 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
+@@ -396,41 +396,16 @@ static int ocfs2_check_new_group(struct inode *inode,
+ 				 struct buffer_head *group_bh)
+ {
+ 	int ret;
+-	struct ocfs2_group_desc *gd;
++	struct ocfs2_group_desc *gd =
++		(struct ocfs2_group_desc *)group_bh->b_data;
+ 	u16 cl_bpc = le16_to_cpu(di->id2.i_chain.cl_bpc);
+-	unsigned int max_bits = le16_to_cpu(di->id2.i_chain.cl_cpg) *
+-				le16_to_cpu(di->id2.i_chain.cl_bpc);
  
- 	fe = (struct ocfs2_dinode *)main_bm_bh->b_data;
++	ret = ocfs2_validate_group_descriptor(inode->i_sb, di, gd, 1);
++	if (ret)
++		goto out;
  
-+	/* main_bm_bh is validated by inode read inside ocfs2_inode_lock(),
-+	 * so any corruption is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
-+
- 	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
- 				 ocfs2_group_bitmap_size(osb->sb) * 8) {
- 		mlog(ML_ERROR, "The disk is too old and small. "
-@@ -322,12 +326,6 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
- 		goto out_unlock;
- 	}
- 
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(main_bm_inode->i_sb, fe);
--		ret = -EIO;
--		goto out_unlock;
--	}
+-	gd = (struct ocfs2_group_desc *)group_bh->b_data;
 -
- 	first_new_cluster = le32_to_cpu(fe->i_clusters);
- 	lgd_blkno = ocfs2_which_cluster_group(main_bm_inode,
- 					      first_new_cluster - 1);
+-	ret = -EIO;
+-	if (!OCFS2_IS_VALID_GROUP_DESC(gd))
+-		mlog(ML_ERROR, "Group descriptor # %llu isn't valid.\n",
+-		     (unsigned long long)le64_to_cpu(gd->bg_blkno));
+-	else if (di->i_blkno != gd->bg_parent_dinode)
+-		mlog(ML_ERROR, "Group descriptor # %llu has bad parent "
+-		     "pointer (%llu, expected %llu)\n",
+-		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-		     (unsigned long long)le64_to_cpu(gd->bg_parent_dinode),
+-		     (unsigned long long)le64_to_cpu(di->i_blkno));
+-	else if (le16_to_cpu(gd->bg_bits) > max_bits)
+-		mlog(ML_ERROR, "Group descriptor # %llu has bit count of %u\n",
+-		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-		     le16_to_cpu(gd->bg_bits));
+-	else if (le16_to_cpu(gd->bg_free_bits_count) > le16_to_cpu(gd->bg_bits))
+-		mlog(ML_ERROR, "Group descriptor # %llu has bit count %u but "
+-		     "claims that %u are free\n",
+-		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-		     le16_to_cpu(gd->bg_bits),
+-		     le16_to_cpu(gd->bg_free_bits_count));
+-	else if (le16_to_cpu(gd->bg_bits) > (8 * le16_to_cpu(gd->bg_size)))
+-		mlog(ML_ERROR, "Group descriptor # %llu has bit count %u but "
+-		     "max bitmap bits of %u\n",
+-		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-		     le16_to_cpu(gd->bg_bits),
+-		     8 * le16_to_cpu(gd->bg_size));
+-	else if (le16_to_cpu(gd->bg_chain) != input->chain)
++	ret = -EINVAL;
++	if (le16_to_cpu(gd->bg_chain) != input->chain)
+ 		mlog(ML_ERROR, "Group descriptor # %llu has bad chain %u "
+ 		     "while input has %u set.\n",
+ 		     (unsigned long long)le64_to_cpu(gd->bg_blkno),
+@@ -449,6 +424,7 @@ static int ocfs2_check_new_group(struct inode *inode,
+ 	else
+ 		ret = 0;
+ 
++out:
+ 	return ret;
+ }
+ 
 diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index c5ff18b..95d432b 100644
+index 95d432b..ddba97d 100644
 --- a/fs/ocfs2/suballoc.c
 +++ b/fs/ocfs2/suballoc.c
-@@ -441,11 +441,11 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 	ac->ac_alloc_slot = slot;
+@@ -146,59 +146,71 @@ static u32 ocfs2_bits_per_group(struct ocfs2_chain_list *cl)
+ }
  
- 	fe = (struct ocfs2_dinode *) bh->b_data;
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(alloc_inode->i_sb, fe);
--		status = -EIO;
--		goto bail;
--	}
+ /* somewhat more expensive than our other checks, so use sparingly. */
+-int ocfs2_check_group_descriptor(struct super_block *sb,
+-				 struct ocfs2_dinode *di,
+-				 struct ocfs2_group_desc *gd)
++int ocfs2_validate_group_descriptor(struct super_block *sb,
++				    struct ocfs2_dinode *di,
++				    struct ocfs2_group_desc *gd,
++				    int clean_error)
+ {
+ 	unsigned int max_bits;
+ 
++#define do_error(fmt, ...)						\
++	do{								\
++		if (clean_error)					\
++			mlog(ML_ERROR, fmt "\n", ##__VA_ARGS__);	\
++		else							\
++			ocfs2_error(sb, fmt, ##__VA_ARGS__);		\
++	} while (0)
 +
-+	/* The bh was validated by the inode read inside
-+	 * ocfs2_inode_lock().  Any corruption is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
+ 	if (!OCFS2_IS_VALID_GROUP_DESC(gd)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(sb, gd);
+-		return -EIO;
++		do_error("Group Descriptor #%llu has bad signature %.*s",
++			 (unsigned long long)le64_to_cpu(gd->bg_blkno), 7,
++			 gd->bg_signature);
++		return -EINVAL;
+ 	}
+ 
+ 	if (di->i_blkno != gd->bg_parent_dinode) {
+-		ocfs2_error(sb, "Group descriptor # %llu has bad parent "
+-			    "pointer (%llu, expected %llu)",
+-			    (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-			    (unsigned long long)le64_to_cpu(gd->bg_parent_dinode),
+-			    (unsigned long long)le64_to_cpu(di->i_blkno));
+-		return -EIO;
++		do_error("Group descriptor # %llu has bad parent "
++			 "pointer (%llu, expected %llu)",
++			 (unsigned long long)le64_to_cpu(gd->bg_blkno),
++			 (unsigned long long)le64_to_cpu(gd->bg_parent_dinode),
++			 (unsigned long long)le64_to_cpu(di->i_blkno));
++		return -EINVAL;
+ 	}
+ 
+ 	max_bits = le16_to_cpu(di->id2.i_chain.cl_cpg) * le16_to_cpu(di->id2.i_chain.cl_bpc);
+ 	if (le16_to_cpu(gd->bg_bits) > max_bits) {
+-		ocfs2_error(sb, "Group descriptor # %llu has bit count of %u",
+-			    (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-			    le16_to_cpu(gd->bg_bits));
+-		return -EIO;
++		do_error("Group descriptor # %llu has bit count of %u",
++			 (unsigned long long)le64_to_cpu(gd->bg_blkno),
++			 le16_to_cpu(gd->bg_bits));
++		return -EINVAL;
+ 	}
+ 
+ 	if (le16_to_cpu(gd->bg_chain) >=
+ 	    le16_to_cpu(di->id2.i_chain.cl_next_free_rec)) {
+-		ocfs2_error(sb, "Group descriptor # %llu has bad chain %u",
+-			    (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-			    le16_to_cpu(gd->bg_chain));
+-		return -EIO;
++		do_error("Group descriptor # %llu has bad chain %u",
++			 (unsigned long long)le64_to_cpu(gd->bg_blkno),
++			 le16_to_cpu(gd->bg_chain));
++		return -EINVAL;
+ 	}
+ 
+ 	if (le16_to_cpu(gd->bg_free_bits_count) > le16_to_cpu(gd->bg_bits)) {
+-		ocfs2_error(sb, "Group descriptor # %llu has bit count %u but "
+-			    "claims that %u are free",
+-			    (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-			    le16_to_cpu(gd->bg_bits),
+-			    le16_to_cpu(gd->bg_free_bits_count));
+-		return -EIO;
++		do_error("Group descriptor # %llu has bit count %u but "
++			 "claims that %u are free",
++			 (unsigned long long)le64_to_cpu(gd->bg_blkno),
++			 le16_to_cpu(gd->bg_bits),
++			 le16_to_cpu(gd->bg_free_bits_count));
++		return -EINVAL;
+ 	}
+ 
+ 	if (le16_to_cpu(gd->bg_bits) > (8 * le16_to_cpu(gd->bg_size))) {
+-		ocfs2_error(sb, "Group descriptor # %llu has bit count %u but "
+-			    "max bitmap bits of %u",
+-			    (unsigned long long)le64_to_cpu(gd->bg_blkno),
+-			    le16_to_cpu(gd->bg_bits),
+-			    8 * le16_to_cpu(gd->bg_size));
+-		return -EIO;
++		do_error("Group descriptor # %llu has bit count %u but "
++			 "max bitmap bits of %u",
++			 (unsigned long long)le64_to_cpu(gd->bg_blkno),
++			 le16_to_cpu(gd->bg_bits),
++			 8 * le16_to_cpu(gd->bg_size));
++		return -EINVAL;
+ 	}
++#undef do_error
+ 
+ 	return 0;
+ }
+diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+index 4df159d..7adfcc4 100644
+--- a/fs/ocfs2/suballoc.h
++++ b/fs/ocfs2/suballoc.h
+@@ -165,9 +165,23 @@ void ocfs2_free_ac_resource(struct ocfs2_alloc_context *ac);
+ u64 ocfs2_which_cluster_group(struct inode *inode, u32 cluster);
+ 
+ /* somewhat more expensive than our other checks, so use sparingly. */
+-int ocfs2_check_group_descriptor(struct super_block *sb,
+-				 struct ocfs2_dinode *di,
+-				 struct ocfs2_group_desc *gd);
++/*
++ * By default, ocfs2_validate_group_descriptor() calls ocfs2_error() when it
++ * finds a problem.  A caller that wants to check a group descriptor
++ * without going readonly passes a nonzero clean_error.  This is only
++ * resize, really.
++ */
++int ocfs2_validate_group_descriptor(struct super_block *sb,
++				    struct ocfs2_dinode *di,
++				    struct ocfs2_group_desc *gd,
++				    int clean_error);
++static inline int ocfs2_check_group_descriptor(struct super_block *sb,
++					       struct ocfs2_dinode *di,
++					       struct ocfs2_group_desc *gd)
++{
++	return ocfs2_validate_group_descriptor(sb, di, gd, 0);
++}
 +
- 	if (!(fe->i_flags & cpu_to_le32(OCFS2_CHAIN_FL))) {
- 		ocfs2_error(alloc_inode->i_sb, "Invalid chain allocator %llu",
- 			    (unsigned long long)le64_to_cpu(fe->i_blkno));
-@@ -931,11 +931,6 @@ static int ocfs2_relink_block_group(handle_t *handle,
- 	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
- 	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
- 
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(alloc_inode->i_sb, fe);
--		status = -EIO;
--		goto out;
--	}
- 	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
- 		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, bg);
- 		status = -EIO;
-@@ -1392,11 +1387,11 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_super *osb,
- 	BUG_ON(!ac->ac_bh);
- 
- 	fe = (struct ocfs2_dinode *) ac->ac_bh->b_data;
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(osb->sb, fe);
--		status = -EIO;
--		goto bail;
--	}
-+
-+	/* The bh was validated by the inode read during
-+	 * ocfs2_reserve_suballoc_bits().  Any corruption is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
-+
- 	if (le32_to_cpu(fe->id1.bitmap1.i_used) >=
- 	    le32_to_cpu(fe->id1.bitmap1.i_total)) {
- 		ocfs2_error(osb->sb, "Chain allocator dinode %llu has %u used "
-@@ -1782,11 +1777,12 @@ int ocfs2_free_suballoc_bits(handle_t *handle,
- 
- 	mlog_entry_void();
- 
--	if (!OCFS2_IS_VALID_DINODE(fe)) {
--		OCFS2_RO_ON_INVALID_DINODE(alloc_inode->i_sb, fe);
--		status = -EIO;
--		goto bail;
--	}
-+	/* The alloc_bh comes from ocfs2_free_dinode() or
-+	 * ocfs2_free_clusters().  The callers have all locked the
-+	 * allocator and gotten alloc_bh from the lock call.  This
-+	 * validates the dinode buffer.  Any corruption that has happended
-+	 * is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
- 	BUG_ON((count + start_bit) > ocfs2_bits_per_group(cl));
- 
- 	mlog(0, "%llu: freeing %u bits from group %llu, starting at %u\n",
+ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_extent_tree *et,
+ 			  u32 clusters_to_add, u32 extents_to_split,
+ 			  struct ocfs2_alloc_context **data_ac,
 -- 
 1.5.6.5
