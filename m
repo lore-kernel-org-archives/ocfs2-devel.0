@@ -1,17 +1,24 @@
-From: Christine Caulfield <ccaulfie@redhat.com>
-Date: Fri, 14 Nov 2008 09:34:02 -0000
+From: Steven Whitehouse <swhiteho@redhat.com>
+Date: Fri, 14 Nov 2008 09:29:14 -0000
 Subject: [Ocfs2-devel] [Cluster-devel] [RFC] Splitting cluster.git into
 	separate	projects/trees
 In-Reply-To: <1226654293.4022.56.camel@daitarn-fedora.int.fabbione.net>
 References: <1226654293.4022.56.camel@daitarn-fedora.int.fabbione.net>
-Message-ID: <491D45FC.4090909@redhat.com>
+Message-ID: <1226654940.3517.4.camel@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Fabio M. Di Nitto wrote:
+Hi,
+
+I'm not so keen on option #2, but aside from that I have no strong
+opinions,
+
+Steve.
+
+On Fri, 2008-11-14 at 10:18 +0100, Fabio M. Di Nitto wrote:
 > Hi everybody,
 > 
 > as discussed and agreed at the Cluster Summit we need to split our tree
@@ -81,22 +88,6 @@ Fabio M. Di Nitto wrote:
 >  - more complex process to perform cherry-pick between branches.
 >  - higher risk to commit fixes in one branch and forget in another.
 >  - requires a lot more developer attention.
-
-
-I think I would votes for 3, 1, 2 in that order.
-
-3 is definitely the best option IMHO. The cons don't make much
-difference really - as I understand it, we're not splitting branches but
-projects so there will be no, or very little, need to copy fixes across
-git trees. Even for the few occasions when it might be necessary, git is
-quite capable of generating usable patches.
-
-2 is an inholy mess and an abuse of git's branching system I think.
-Please don't do this!
-
-1 is more trouble than it sounds - speaking from experience with the old
-RHEL4 tree. You have a tree that looks like it's self-contained, but you
-still have to install bits of it to make things build properly. That's
-just confusing and annoying.
-
-Chrissie
+> 
+> Fabio
+> 
