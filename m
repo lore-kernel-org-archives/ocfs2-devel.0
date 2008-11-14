@@ -1,260 +1,113 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Fri, 14 Nov 2008 11:15:44 +0800
-Subject: [Ocfs2-devel] [PATCH 01/10] ocfs2: move new inode allocation out of
-	the transaction
+Date: Fri, 14 Nov 2008 11:16:27 +0800
+Subject: [Ocfs2-devel] [PATCH 03/10] ocfs2: add security xattr API
 In-Reply-To: <491CEC4D.1090306@oracle.com>
 References: <491CEC4D.1090306@oracle.com>
-Message-ID: <1226632544-19859-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <1226632587-19899-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Move out inode allocation from ocfs2_mknod_locked() because
-vfs_dq_init() must be called outside of a transaction.
+This patch add security xattr set/get/list APIs to
+support security xattr in ocfs2.
 
-Signed-off-by: Jan Kara <jack@suse.cz>
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/namei.c |  108 ++++++++++++++++++++++++++++++++----------------------
- 1 files changed, 64 insertions(+), 44 deletions(-)
+ fs/ocfs2/xattr.c |   47 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/xattr.h |    1 +
+ 2 files changed, 48 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f4967e6..e9118fc 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -66,12 +66,12 @@
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 2d61d7b..9a1dc6a 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -35,6 +35,7 @@
+ #include <linux/init.h>
+ #include <linux/module.h>
+ #include <linux/string.h>
++#include <linux/security.h>
  
- static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 			      struct inode *dir,
--			      struct dentry *dentry, int mode,
-+			      struct inode *inode,
-+			      struct dentry *dentry,
- 			      dev_t dev,
- 			      struct buffer_head **new_fe_bh,
- 			      struct buffer_head *parent_fe_bh,
- 			      handle_t *handle,
--			      struct inode **ret_inode,
- 			      struct ocfs2_alloc_context *inode_ac);
+ #define MLOG_MASK_PREFIX ML_XATTR
+ #include <cluster/masklog.h>
+@@ -88,12 +89,14 @@ static struct ocfs2_xattr_def_value_root def_xv = {
+ struct xattr_handler *ocfs2_xattr_handlers[] = {
+ 	&ocfs2_xattr_user_handler,
+ 	&ocfs2_xattr_trusted_handler,
++	&ocfs2_xattr_security_handler,
+ 	NULL
+ };
  
- static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
-@@ -186,6 +186,34 @@ bail:
- 	return ret;
+ static struct xattr_handler *ocfs2_xattr_handler_map[OCFS2_XATTR_MAX] = {
+ 	[OCFS2_XATTR_INDEX_USER]	= &ocfs2_xattr_user_handler,
+ 	[OCFS2_XATTR_INDEX_TRUSTED]	= &ocfs2_xattr_trusted_handler,
++	[OCFS2_XATTR_INDEX_SECURITY]	= &ocfs2_xattr_security_handler,
+ };
+ 
+ struct ocfs2_xattr_info {
+@@ -4983,6 +4986,50 @@ out:
  }
  
-+static struct inode *ocfs2_get_init_inode(struct inode *dir, int mode)
+ /*
++ * 'security' attributes support
++ */
++static size_t ocfs2_xattr_security_list(struct inode *inode, char *list,
++					size_t list_size, const char *name,
++					size_t name_len)
 +{
-+	struct inode *inode;
++	const size_t prefix_len = XATTR_SECURITY_PREFIX_LEN;
++	const size_t total_len = prefix_len + name_len + 1;
 +
-+	inode = new_inode(dir->i_sb);
-+	if (!inode) {
-+		mlog(ML_ERROR, "new_inode failed!\n");
-+		return NULL;
++	if (list && total_len <= list_size) {
++		memcpy(list, XATTR_SECURITY_PREFIX, prefix_len);
++		memcpy(list + prefix_len, name, name_len);
++		list[prefix_len + name_len] = '\0';
 +	}
-+
-+	/* populate as many fields early on as possible - many of
-+	 * these are used by the support functions here and in
-+	 * callers. */
-+	if (S_ISDIR(mode))
-+		inode->i_nlink = 2;
-+	else
-+		inode->i_nlink = 1;
-+	inode->i_uid = current->fsuid;
-+	if (dir->i_mode & S_ISGID) {
-+		inode->i_gid = dir->i_gid;
-+		if (S_ISDIR(mode))
-+			mode |= S_ISGID;
-+	} else
-+		inode->i_gid = current->fsgid;
-+	inode->i_mode = mode;
-+	return inode;
++	return total_len;
 +}
 +
- static int ocfs2_mknod(struct inode *dir,
- 		       struct dentry *dentry,
- 		       int mode,
-@@ -250,6 +278,13 @@ static int ocfs2_mknod(struct inode *dir,
- 		goto leave;
- 	}
- 
-+	inode = ocfs2_get_init_inode(dir, mode);
-+	if (!inode) {
-+		status = -ENOMEM;
-+		mlog_errno(status);
-+		goto leave;
-+	}
++static int ocfs2_xattr_security_get(struct inode *inode, const char *name,
++				    void *buffer, size_t size)
++{
++	if (strcmp(name, "") == 0)
++		return -EINVAL;
++	return ocfs2_xattr_get(inode, OCFS2_XATTR_INDEX_SECURITY, name,
++			       buffer, size);
++}
 +
- 	/* Reserve a cluster if creating an extent based directory. */
- 	if (S_ISDIR(mode) && !ocfs2_supports_inline_data(osb)) {
- 		status = ocfs2_reserve_clusters(osb, 1, &data_ac);
-@@ -269,9 +304,9 @@ static int ocfs2_mknod(struct inode *dir,
- 	}
- 
- 	/* do the real work now. */
--	status = ocfs2_mknod_locked(osb, dir, dentry, mode, dev,
-+	status = ocfs2_mknod_locked(osb, dir, inode, dentry, dev,
- 				    &new_fe_bh, parent_fe_bh, handle,
--				    &inode, inode_ac);
-+				    inode_ac);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
-@@ -332,8 +367,10 @@ leave:
- 	brelse(de_bh);
- 	brelse(parent_fe_bh);
- 
--	if ((status < 0) && inode)
-+	if ((status < 0) && inode) {
-+		clear_nlink(inode);
- 		iput(inode);
-+	}
- 
- 	if (inode_ac)
- 		ocfs2_free_alloc_context(inode_ac);
-@@ -348,12 +385,12 @@ leave:
- 
- static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 			      struct inode *dir,
--			      struct dentry *dentry, int mode,
-+			      struct inode *inode,
-+			      struct dentry *dentry,
- 			      dev_t dev,
- 			      struct buffer_head **new_fe_bh,
- 			      struct buffer_head *parent_fe_bh,
- 			      handle_t *handle,
--			      struct inode **ret_inode,
- 			      struct ocfs2_alloc_context *inode_ac)
- {
- 	int status = 0;
-@@ -361,14 +398,12 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 	struct ocfs2_extent_list *fel;
- 	u64 fe_blkno = 0;
- 	u16 suballoc_bit;
--	struct inode *inode = NULL;
- 
--	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry, mode,
--		   (unsigned long)dev, dentry->d_name.len,
-+	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry,
-+		   inode->i_mode, (unsigned long)dev, dentry->d_name.len,
- 		   dentry->d_name.name);
- 
- 	*new_fe_bh = NULL;
--	*ret_inode = NULL;
- 
- 	status = ocfs2_claim_new_inode(osb, handle, inode_ac, &suballoc_bit,
- 				       &fe_blkno);
-@@ -377,23 +412,11 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 		goto leave;
- 	}
- 
--	inode = new_inode(dir->i_sb);
--	if (!inode) {
--		status = -ENOMEM;
--		mlog(ML_ERROR, "new_inode failed!\n");
--		goto leave;
--	}
--
- 	/* populate as many fields early on as possible - many of
- 	 * these are used by the support functions here and in
- 	 * callers. */
- 	inode->i_ino = ino_from_blkno(osb->sb, fe_blkno);
- 	OCFS2_I(inode)->ip_blkno = fe_blkno;
--	if (S_ISDIR(mode))
--		inode->i_nlink = 2;
--	else
--		inode->i_nlink = 1;
--	inode->i_mode = mode;
- 	spin_lock(&osb->osb_lock);
- 	inode->i_generation = osb->s_next_generation++;
- 	spin_unlock(&osb->osb_lock);
-@@ -421,17 +444,11 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 	fe->i_blkno = cpu_to_le64(fe_blkno);
- 	fe->i_suballoc_bit = cpu_to_le16(suballoc_bit);
- 	fe->i_suballoc_slot = cpu_to_le16(inode_ac->ac_alloc_slot);
--	fe->i_uid = cpu_to_le32(current->fsuid);
--	if (dir->i_mode & S_ISGID) {
--		fe->i_gid = cpu_to_le32(dir->i_gid);
--		if (S_ISDIR(mode))
--			mode |= S_ISGID;
--	} else
--		fe->i_gid = cpu_to_le32(current->fsgid);
--	fe->i_mode = cpu_to_le16(mode);
--	if (S_ISCHR(mode) || S_ISBLK(mode))
-+	fe->i_uid = cpu_to_le32(inode->i_uid);
-+	fe->i_gid = cpu_to_le32(inode->i_gid);
-+	fe->i_mode = cpu_to_le16(inode->i_mode);
-+	if (S_ISCHR(inode->i_mode) || S_ISBLK(inode->i_mode))
- 		fe->id1.dev1.i_rdev = cpu_to_le64(huge_encode_dev(dev));
--
- 	fe->i_links_count = cpu_to_le16(inode->i_nlink);
- 
- 	fe->i_last_eb_blk = 0;
-@@ -446,7 +463,7 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 	/*
- 	 * If supported, directories start with inline data.
- 	 */
--	if (S_ISDIR(mode) && ocfs2_supports_inline_data(osb)) {
-+	if (S_ISDIR(inode->i_mode) && ocfs2_supports_inline_data(osb)) {
- 		u16 feat = le16_to_cpu(fe->i_dyn_features);
- 
- 		fe->i_dyn_features = cpu_to_le16(feat | OCFS2_INLINE_DATA_FL);
-@@ -484,17 +501,12 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 	status = 0; /* error in ocfs2_create_new_inode_locks is not
- 		     * critical */
- 
--	*ret_inode = inode;
- leave:
- 	if (status < 0) {
- 		if (*new_fe_bh) {
- 			brelse(*new_fe_bh);
- 			*new_fe_bh = NULL;
- 		}
--		if (inode) {
--			clear_nlink(inode);
--			iput(inode);
--		}
- 	}
- 
- 	mlog_exit(status);
-@@ -1542,6 +1554,13 @@ static int ocfs2_symlink(struct inode *dir,
- 		goto bail;
- 	}
- 
-+	inode = ocfs2_get_init_inode(dir, S_IFLNK | S_IRWXUGO);
-+	if (!inode) {
-+		status = -ENOMEM;
-+		mlog_errno(status);
-+		goto bail;
-+	}
++static int ocfs2_xattr_security_set(struct inode *inode, const char *name,
++				    const void *value, size_t size, int flags)
++{
++	if (strcmp(name, "") == 0)
++		return -EINVAL;
 +
- 	/* don't reserve bitmap space for fast symlinks. */
- 	if (l > ocfs2_fast_symlink_chars(sb)) {
- 		status = ocfs2_reserve_clusters(osb, 1, &data_ac);
-@@ -1560,10 +1579,9 @@ static int ocfs2_symlink(struct inode *dir,
- 		goto bail;
- 	}
++	return ocfs2_xattr_set(inode, OCFS2_XATTR_INDEX_SECURITY, name, value,
++			       size, flags);
++}
++
++struct xattr_handler ocfs2_xattr_security_handler = {
++	.prefix	= XATTR_SECURITY_PREFIX,
++	.list	= ocfs2_xattr_security_list,
++	.get	= ocfs2_xattr_security_get,
++	.set	= ocfs2_xattr_security_set,
++};
++
++/*
+  * 'trusted' attributes support
+  */
+ static size_t ocfs2_xattr_trusted_list(struct inode *inode, char *list,
+diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
+index 8fbdc16..55c5256 100644
+--- a/fs/ocfs2/xattr.h
++++ b/fs/ocfs2/xattr.h
+@@ -32,6 +32,7 @@ enum ocfs2_xattr_type {
  
--	status = ocfs2_mknod_locked(osb, dir, dentry,
--				    S_IFLNK | S_IRWXUGO, 0,
--				    &new_fe_bh, parent_fe_bh, handle,
--				    &inode, inode_ac);
-+	status = ocfs2_mknod_locked(osb, dir, inode, dentry,
-+				    0, &new_fe_bh, parent_fe_bh, handle,
-+				    inode_ac);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -1644,8 +1662,10 @@ bail:
- 		ocfs2_free_alloc_context(inode_ac);
- 	if (data_ac)
- 		ocfs2_free_alloc_context(data_ac);
--	if ((status < 0) && inode)
-+	if ((status < 0) && inode) {
-+		clear_nlink(inode);
- 		iput(inode);
-+	}
+ extern struct xattr_handler ocfs2_xattr_user_handler;
+ extern struct xattr_handler ocfs2_xattr_trusted_handler;
++extern struct xattr_handler ocfs2_xattr_security_handler;
+ extern struct xattr_handler *ocfs2_xattr_handlers[];
  
- 	mlog_exit(status);
- 
+ ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
 -- 
 1.5.4.1
