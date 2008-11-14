@@ -1,39 +1,121 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Fri, 14 Nov 2008 11:11:09 +0800
-Subject: [Ocfs2-devel] [PATCH 00/15] ocfs2: add security EA and ACL support
-	V5
-Message-ID: <491CEC4D.1090306@oracle.com>
+Date: Fri, 14 Nov 2008 11:16:03 +0800
+Subject: [Ocfs2-devel] [PATCH 02/10] ocfs2: add ocfs2_xattr_set_handle
+In-Reply-To: <491CEC4D.1090306@oracle.com>
+References: <491CEC4D.1090306@oracle.com>
+Message-ID: <1226632563-19878-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi, all
+This function use to set xattr in a started transaction.
+It is only called during creating inode for init security/acl
+xattrs of the new inode. These xattrs could be put into
+ibody or extent block, so xattr bucket would not
+be use in this case. The transanction credits also
+be reserved in here.
 
-This the 5th version for add security EA and acl support in ocfs2.
-In this round I fixed many problem as Mark commented.
-Them based on Mark's merge_window branch.
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+---
+ fs/ocfs2/xattr.c |   68 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/xattr.h |    4 +++
+ 2 files changed, 72 insertions(+), 0 deletions(-)
 
-The top 4 patches are for security EA.
-1. move new inode allocation from transaction
-This patch actually is from Jan's patch
-http://oss.oracle.com/pipermail/ocfs2-devel/2008-October/003266.html
-2. ocfs2_xattr_set_handle
-I remove the extend_trans from this function as we have reserve credits 
-with start trans.
-3. add security xattr API
-4. add ocfs2_init_security in mknod
-calculate credits for security xattr before start trans.
-add setting security attribute on symlinks.
-
-The next 6 patches are for acl.
-5. add ocfs2_xattr_get_nolock
-6. add posix acl api
-combine ocfs2_acl_set_handle and ocfs2_acl_set into one function.
-7. add ocfs2_check_acl
-8. add ocfs2_acl_chmod
-move acl_chmod out of the transaction in ocfs2_setattr.
-9. add ocfs2_init_acl in mknod
-calculate credits for acl xattrs before start trans.
-10. add mount and Kconfig options for acl
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index d4d8d0c..2d61d7b 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2326,6 +2326,74 @@ out:
+ }
+ 
+ /*
++ * This function only called duing creating inode
++ * for init security/acl xattrs of the new inode.
++ * The xattrs could be put into ibody or extent block,
++ * xattr bucket would not be use in this case.
++ * transanction credits also be reserved in here.
++ */
++int ocfs2_xattr_set_handle(handle_t *handle,
++			   struct inode *inode,
++			   struct buffer_head *di_bh,
++			   int name_index,
++			   const char *name,
++			   const void *value,
++			   size_t value_len,
++			   int flags,
++			   struct ocfs2_alloc_context *meta_ac,
++			   struct ocfs2_alloc_context *data_ac)
++{
++	struct ocfs2_dinode *di;
++	int ret;
++
++	struct ocfs2_xattr_info xi = {
++		.name_index = name_index,
++		.name = name,
++		.value = value,
++		.value_len = value_len,
++	};
++
++	struct ocfs2_xattr_search xis = {
++		.not_found = -ENODATA,
++	};
++
++	struct ocfs2_xattr_search xbs = {
++		.not_found = -ENODATA,
++	};
++
++	struct ocfs2_xattr_set_ctxt ctxt = {
++		.handle = handle,
++		.meta_ac = meta_ac,
++		.data_ac = data_ac,
++	};
++
++	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
++		return -EOPNOTSUPP;
++
++	xis.inode_bh = xbs.inode_bh = di_bh;
++	di = (struct ocfs2_dinode *)di_bh->b_data;
++
++	down_write(&OCFS2_I(inode)->ip_xattr_sem);
++
++	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
++	if (ret)
++		goto cleanup;
++	if (xis.not_found) {
++		ret = ocfs2_xattr_block_find(inode, name_index, name, &xbs);
++		if (ret)
++			goto cleanup;
++	}
++
++	ret = __ocfs2_xattr_set_handle(inode, di, &xi, &xis, &xbs, &ctxt);
++
++cleanup:
++	up_write(&OCFS2_I(inode)->ip_xattr_sem);
++	brelse(xbs.xattr_bh);
++
++	return ret;
++}
++
++/*
+  * ocfs2_xattr_set()
+  *
+  * Set, replace or remove an extended attribute for this inode.
+diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
+index 1d8314c..8fbdc16 100644
+--- a/fs/ocfs2/xattr.h
++++ b/fs/ocfs2/xattr.h
+@@ -37,6 +37,10 @@ extern struct xattr_handler *ocfs2_xattr_handlers[];
+ ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
+ int ocfs2_xattr_set(struct inode *, int, const char *, const void *,
+ 		    size_t, int);
++int ocfs2_xattr_set_handle(handle_t *, struct inode *, struct buffer_head *,
++			   int, const char *, const void *, size_t, int,
++			   struct ocfs2_alloc_context *,
++			   struct ocfs2_alloc_context *);
+ int ocfs2_xattr_remove(struct inode *, struct buffer_head *);
+ 
+ #endif /* OCFS2_XATTR_H */
+-- 
+1.5.4.1
