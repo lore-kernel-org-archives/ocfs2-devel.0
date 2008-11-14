@@ -1,52 +1,53 @@
-From: Andrew Beekhof <beekhof@gmail.com>
-Date: Fri, 14 Nov 2008 12:34:43 +0100
-Subject: [Ocfs2-devel] [Pacemaker] [RFC] Splitting cluster.git into
+From: David Teigland <teigland@redhat.com>
+Date: Fri, 14 Nov 2008 11:25:30 -0600
+Subject: [Ocfs2-devel] [Cluster-devel] [RFC] Splitting cluster.git into
 	separate projects/trees
-In-Reply-To: <Pine.LNX.4.64.0811141055590.7841@trider-g7>
+In-Reply-To: <1226654293.4022.56.camel@daitarn-fedora.int.fabbione.net>
 References: <1226654293.4022.56.camel@daitarn-fedora.int.fabbione.net>
-	<26ef5e70811140150l7e789e8blc9df3de904a20a3c@mail.gmail.com>
-	<Pine.LNX.4.64.0811141055590.7841@trider-g7>
-Message-ID: <26ef5e70811140334n47618506u7a9cb11de1ca6adb@mail.gmail.com>
+Message-ID: <20081114172530.GB4054@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Ooops, resending for the CC'd lists
+On Fri, Nov 14, 2008 at 10:18:13AM +0100, Fabio M. Di Nitto wrote:
+> At this point we haven't really settled how many (sub) project will be
+> created out of this split. This will come once we agree how to split.
 
-On Fri, Nov 14, 2008 at 11:06, Fabio M. Di Nitto <fdinitto@redhat.com> wrote:
-> On Fri, 14 Nov 2008, Andrew Beekhof wrote:
->
->> Top-posting...
->>
->> #1 is what the current "situation" evolved from so I think its pretty
->> clear that despite the best of intentions, it doesn't work out (far
->> too easy for cross-dependancies to develop).
->>
->> #2 - I share chrissie's feelings on this one ;-)
->>
->> #3 - Thats got my vote - basically what we did with Pacemaker.
->>
->> The biggest question here is do you want old versions of the split out
->> code to be buildable?
->
-> I am not 100% sure I understand what you mean..
+I like the third option as long as the number of new git trees doesn't
+explode (obviously no one wants 10 new git trees.)  Not to get ahead of
+you, but for my own curiosity I looked at what minimum number of git trees
+I'd have to start juggling... it's not too bad, but more than this might
+get out of hand.
 
-Perhaps an example from our split...
+dlm.git:
+  libdlm, dlm_controld, libdlmcontrol, dlm_tool
 
-The Pacemaker repo includes the _entire_ Heartbeat history up until the split.
-This allows me to build versions of the crm from before the split
-(handy if you're doing "hg bisect" to track down which changeset broke
-something).
+fence.git:
+  libfence, fenced, libfenced, fence_tool, fence_node
 
-On the other hand, I don't care about old versions of the GUI... so
-the GUI repo only has the history of the files specific to the GUI.
-This means that you can't build the pre-split versions from there
-because the files that used to be in the same repo aren't there
-anymore.
+fence-agents.git:
+  <lots>
 
-You can of course switch to the Heartbeat repo and build the old GUI
-versions from there.
+cman.git:
+  libcman, cman_tool, cmannotifyd, qdiskd, mkqdisk
+  cluster/config/*
+  move plugins into corosync tree?
+  group_tool (groupd/libgroup won't exist, group_tool will just be a
+  wrapper/shortcut for fence_tool/dlm_tool/gfs_control queries;
+  maybe include queries of other related daemons, like ocfs2_controld?)
 
-Am I making sense now?
+gfs2-utils.git:
+  gfs_controld, libgfscontrol, gfs_control
+  mount.gfs2, mount.gfs, libgfs, libgfs2
+  gfs_debug, gfs_fsck, gfs_grow, gfs_jadd, gfs_mkfs, gfs_quota, gfs_tool
+  gfs2_convert, gfs2_edit, gfs2_fsck, gfs2_mkfs, gfs2_quota, gfs2_tool
+
+gfs-kernel.git:
+  gfs.ko
+
+rgmanager.git:
+
+gnbd goes away
+cmirror moves away
