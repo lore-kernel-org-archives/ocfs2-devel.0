@@ -1,345 +1,155 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Fri, 14 Nov 2008 11:16:41 +0800
-Subject: [Ocfs2-devel] [PATCH 04/10] ocfs2: add ocfs2_init_security in mknod
+Date: Fri, 14 Nov 2008 11:17:52 +0800
+Subject: [Ocfs2-devel] [PATCH 10/10] ocfs2: add mount option and Kconfig
+	option for acl
 In-Reply-To: <491CEC4D.1090306@oracle.com>
 References: <491CEC4D.1090306@oracle.com>
-Message-ID: <1226632601-19918-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <1226632672-20034-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-security xattr must be set when creating a new inode.
-we do this in three steps. first, get security xattr's
-name and value by security_operation, then calculate
-and reserve the meta data and clusters needed by this
-security xattr before starting transaction, finally set
-it before add_entry.
+This patch add Kconfig option "CONFIG_OCFS2_FS_POSIX_ACL"
+and mount option "acl" for enable acl.
 
 Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/namei.c |  107 ++++++++++++++++++++++++++++++++++++++++++++++++------
- fs/ocfs2/xattr.c |   70 +++++++++++++++++++++++++++++++++++
- fs/ocfs2/xattr.h |   17 +++++++++
- 3 files changed, 182 insertions(+), 12 deletions(-)
+ Documentation/filesystems/ocfs2.txt |    4 ++--
+ fs/Kconfig                          |    9 +++++++++
+ fs/ocfs2/super.c                    |   33 +++++++++++++++++++++++++++++++++
+ 3 files changed, 44 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index e9118fc..b361aec 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -229,6 +229,12 @@ static int ocfs2_mknod(struct inode *dir,
- 	struct inode *inode = NULL;
- 	struct ocfs2_alloc_context *inode_ac = NULL;
- 	struct ocfs2_alloc_context *data_ac = NULL;
-+	struct ocfs2_alloc_context *xattr_ac = NULL;
-+	int want_clusters = 0;
-+	int xattr_credits = 0;
-+	struct ocfs2_security_xattr_info si = {
-+		.enable = 1,
-+	};
+diff --git a/Documentation/filesystems/ocfs2.txt b/Documentation/filesystems/ocfs2.txt
+index 4340cc8..578209c 100644
+--- a/Documentation/filesystems/ocfs2.txt
++++ b/Documentation/filesystems/ocfs2.txt
+@@ -28,13 +28,11 @@ Manish Singh  <manish.singh@oracle.com>
+ Caveats
+ =======
+ Features which OCFS2 does not support yet:
+-	- extended attributes
+ 	- quotas
+ 	- cluster aware flock
+ 	- cluster aware lockf
+ 	- Directory change notification (F_NOTIFY)
+ 	- Distributed Caching (F_SETLEASE/F_GETLEASE/break_lease)
+-	- POSIX ACLs
  
- 	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry, mode,
- 		   (unsigned long)dev, dentry->d_name.len,
-@@ -285,17 +291,39 @@ static int ocfs2_mknod(struct inode *dir,
- 		goto leave;
- 	}
+ Mount options
+ =============
+@@ -82,3 +80,5 @@ inode64			Indicates that Ocfs2 is allowed to create inodes at
+ 			bits of significance.
+ user_xattr	(*)	Enables Extended User Attributes.
+ nouser_xattr		Disables Extended User Attributes.
++acl			Enables POSIX Access Control Lists support.
++noacl		(*)	Disables POSIX Access Control Lists support.
+diff --git a/fs/Kconfig b/fs/Kconfig
+index 522469a..3af6024 100644
+--- a/fs/Kconfig
++++ b/fs/Kconfig
+@@ -268,6 +268,15 @@ config OCFS2_COMPAT_JBD
+ 	  is backwards compatible with JBD.  It is safe to say N here.
+ 	  However, if you really want to use the original JBD, say Y here.
  
--	/* Reserve a cluster if creating an extent based directory. */
--	if (S_ISDIR(mode) && !ocfs2_supports_inline_data(osb)) {
--		status = ocfs2_reserve_clusters(osb, 1, &data_ac);
-+	/* get security xattr */
-+	status = ocfs2_init_security_get(inode, dir, &si);
-+	if (status) {
-+		if (status == -EOPNOTSUPP)
-+			si.enable = 0;
-+		else {
-+			mlog_errno(status);
-+			goto leave;
-+		}
-+	}
++config OCFS2_FS_POSIX_ACL
++	bool "OCFS2 POSIX Access Control Lists"
++	depends on OCFS2_FS
++	select FS_POSIX_ACL
++	default n
++	help
++	  Posix Access Control Lists (ACLs) support permissions for users and
++	  groups beyond the owner/group/world scheme.
 +
-+	/* calculate meta data/clusters for setting security xattr */
-+	if (si.enable) {
-+		status = ocfs2_calc_security_init(dir, &si, &want_clusters,
-+						  &xattr_credits, &xattr_ac);
- 		if (status < 0) {
--			if (status != -ENOSPC)
--				mlog_errno(status);
-+			mlog_errno(status);
- 			goto leave;
- 		}
- 	}
+ endif # BLOCK
  
--	handle = ocfs2_start_trans(osb, OCFS2_MKNOD_CREDITS);
-+	/* Reserve a cluster if creating an extent based directory. */
-+	if (S_ISDIR(mode) && !ocfs2_supports_inline_data(osb))
-+		want_clusters += 1;
-+
-+	status = ocfs2_reserve_clusters(osb, want_clusters, &data_ac);
-+	if (status < 0) {
-+		if (status != -ENOSPC)
-+			mlog_errno(status);
-+		goto leave;
-+	}
-+
-+	handle = ocfs2_start_trans(osb, OCFS2_MKNOD_CREDITS + xattr_credits);
- 	if (IS_ERR(handle)) {
- 		status = PTR_ERR(handle);
- 		handle = NULL;
-@@ -335,6 +363,15 @@ static int ocfs2_mknod(struct inode *dir,
- 		inc_nlink(dir);
- 	}
- 
-+	if (si.enable) {
-+		status = ocfs2_init_security_set(handle, inode, new_fe_bh, &si,
-+						 xattr_ac, data_ac);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto leave;
-+		}
-+	}
-+
- 	status = ocfs2_add_entry(handle, dentry, inode,
- 				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
- 				 de_bh);
-@@ -366,6 +403,8 @@ leave:
- 	brelse(new_fe_bh);
- 	brelse(de_bh);
- 	brelse(parent_fe_bh);
-+	kfree(si.name);
-+	kfree(si.value);
- 
- 	if ((status < 0) && inode) {
- 		clear_nlink(inode);
-@@ -378,6 +417,9 @@ leave:
- 	if (data_ac)
- 		ocfs2_free_alloc_context(data_ac);
- 
-+	if (xattr_ac)
-+		ocfs2_free_alloc_context(xattr_ac);
-+
- 	mlog_exit(status);
- 
- 	return status;
-@@ -1508,6 +1550,12 @@ static int ocfs2_symlink(struct inode *dir,
- 	handle_t *handle = NULL;
- 	struct ocfs2_alloc_context *inode_ac = NULL;
- 	struct ocfs2_alloc_context *data_ac = NULL;
-+	struct ocfs2_alloc_context *xattr_ac = NULL;
-+	int want_clusters = 0;
-+	int xattr_credits = 0;
-+	struct ocfs2_security_xattr_info si = {
-+		.enable = 1,
-+	};
- 
- 	mlog_entry("(0x%p, 0x%p, symname='%s' actual='%.*s')\n", dir,
- 		   dentry, symname, dentry->d_name.len, dentry->d_name.name);
-@@ -1561,17 +1609,39 @@ static int ocfs2_symlink(struct inode *dir,
- 		goto bail;
- 	}
- 
--	/* don't reserve bitmap space for fast symlinks. */
--	if (l > ocfs2_fast_symlink_chars(sb)) {
--		status = ocfs2_reserve_clusters(osb, 1, &data_ac);
-+	/* get security xattr */
-+	status = ocfs2_init_security_get(inode, dir, &si);
-+	if (status) {
-+		if (status == -EOPNOTSUPP)
-+			si.enable = 0;
-+		else {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
-+
-+	/* calculate meta data/clusters for setting security xattr */
-+	if (si.enable) {
-+		status = ocfs2_calc_security_init(dir, &si, &want_clusters,
-+						  &xattr_credits, &xattr_ac);
- 		if (status < 0) {
--			if (status != -ENOSPC)
--				mlog_errno(status);
-+			mlog_errno(status);
- 			goto bail;
- 		}
- 	}
- 
--	handle = ocfs2_start_trans(osb, credits);
-+	/* don't reserve bitmap space for fast symlinks. */
-+	if (l > ocfs2_fast_symlink_chars(sb))
-+		want_clusters += 1;
-+
-+	status = ocfs2_reserve_clusters(osb, want_clusters, &data_ac);
-+	if (status < 0) {
-+		if (status != -ENOSPC)
-+			mlog_errno(status);
-+		goto bail;
-+	}
-+
-+	handle = ocfs2_start_trans(osb, credits + xattr_credits);
- 	if (IS_ERR(handle)) {
- 		status = PTR_ERR(handle);
- 		handle = NULL;
-@@ -1632,6 +1702,15 @@ static int ocfs2_symlink(struct inode *dir,
- 		}
- 	}
- 
-+	if (si.enable) {
-+		status = ocfs2_init_security_set(handle, inode, new_fe_bh, &si,
-+						 xattr_ac, data_ac);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
-+
- 	status = ocfs2_add_entry(handle, dentry, inode,
- 				 le64_to_cpu(fe->i_blkno), parent_fe_bh,
- 				 de_bh);
-@@ -1658,10 +1737,14 @@ bail:
- 	brelse(new_fe_bh);
- 	brelse(parent_fe_bh);
- 	brelse(de_bh);
-+	kfree(si.name);
-+	kfree(si.value);
- 	if (inode_ac)
- 		ocfs2_free_alloc_context(inode_ac);
- 	if (data_ac)
- 		ocfs2_free_alloc_context(data_ac);
-+	if (xattr_ac)
-+		ocfs2_free_alloc_context(xattr_ac);
- 	if ((status < 0) && inode) {
- 		clear_nlink(inode);
- 		iput(inode);
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 9a1dc6a..9688862 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -81,6 +81,9 @@ struct ocfs2_xattr_set_ctxt {
- 
- #define OCFS2_XATTR_ROOT_SIZE	(sizeof(struct ocfs2_xattr_def_value_root))
- #define OCFS2_XATTR_INLINE_SIZE	80
-+#define OCFS2_XATTR_FREE_IN_IBODY	(OCFS2_MIN_XATTR_INLINE_SIZE \
-+					 - sizeof(struct ocfs2_xattr_header) \
-+					 - sizeof(__u32))
- 
- static struct ocfs2_xattr_def_value_root def_xv = {
- 	.xv.xr_list.l_count = cpu_to_le16(1),
-@@ -343,6 +346,52 @@ static void ocfs2_xattr_hash_entry(struct inode *inode,
- 	return;
- }
- 
-+static int ocfs2_xattr_entry_real_size(int name_len, size_t value_len)
-+{
-+	int size = 0;
-+
-+	if (value_len <= OCFS2_XATTR_INLINE_SIZE)
-+		size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_SIZE(value_len);
-+	else
-+		size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
-+	size += sizeof(struct ocfs2_xattr_entry);
-+
-+	return size;
-+}
-+
-+int ocfs2_calc_security_init(struct inode *dir,
-+			     struct ocfs2_security_xattr_info *si,
-+			     int *want_clusters,
-+			     int *xattr_credits,
-+			     struct ocfs2_alloc_context **xattr_ac)
-+{
-+	int ret = 0;
-+	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
-+	int s_size = ocfs2_xattr_entry_real_size(strlen(si->name),
-+						 si->value_len);
-+
-+	/*
-+	 * The max space of security xattr taken inline is
-+	 * 256(name) + 80(value) + 16(entry) = 352 bytes,
-+	 * So reserve one metadata block for it is ok.
-+	 */
-+	if (dir->i_sb->s_blocksize == OCFS2_MIN_BLOCKSIZE ||
-+	    s_size > OCFS2_XATTR_FREE_IN_IBODY) {
-+		ret = ocfs2_reserve_new_metadata_blocks(osb, 1, xattr_ac);
-+		if (ret) {
-+			mlog_errno(ret);
-+			return ret;
-+		}
-+		*xattr_credits += OCFS2_XATTR_BLOCK_CREATE_CREDITS;
-+	}
-+
-+	/* reserve clusters for xattr value which will be set in B tree*/
-+	if (si->value_len > OCFS2_XATTR_INLINE_SIZE)
-+		*want_clusters += ocfs2_clusters_for_bytes(dir->i_sb,
-+							   si->value_len);
-+	return ret;
-+}
-+
- static int ocfs2_xattr_extend_allocation(struct inode *inode,
- 					 u32 clusters_to_add,
- 					 struct buffer_head *xattr_bh,
-@@ -5022,6 +5071,27 @@ static int ocfs2_xattr_security_set(struct inode *inode, const char *name,
- 			       size, flags);
- }
- 
-+int ocfs2_init_security_get(struct inode *inode,
-+			    struct inode *dir,
-+			    struct ocfs2_security_xattr_info *si)
-+{
-+	return security_inode_init_security(inode, dir, &si->name, &si->value,
-+					    &si->value_len);
-+}
-+
-+int ocfs2_init_security_set(handle_t *handle,
-+			    struct inode *inode,
-+			    struct buffer_head *di_bh,
-+			    struct ocfs2_security_xattr_info *si,
-+			    struct ocfs2_alloc_context *xattr_ac,
-+			    struct ocfs2_alloc_context *data_ac)
-+{
-+	return ocfs2_xattr_set_handle(handle, inode, di_bh,
-+				     OCFS2_XATTR_INDEX_SECURITY,
-+				     si->name, si->value, si->value_len, 0,
-+				     xattr_ac, data_ac);
-+}
-+
- struct xattr_handler ocfs2_xattr_security_handler = {
- 	.prefix	= XATTR_SECURITY_PREFIX,
- 	.list	= ocfs2_xattr_security_list,
-diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-index 55c5256..188ef6b 100644
---- a/fs/ocfs2/xattr.h
-+++ b/fs/ocfs2/xattr.h
-@@ -30,6 +30,13 @@ enum ocfs2_xattr_type {
- 	OCFS2_XATTR_MAX
+ config DNOTIFY
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 304b63a..9e7accc 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -158,6 +158,8 @@ enum {
+ 	Opt_user_xattr,
+ 	Opt_nouser_xattr,
+ 	Opt_inode64,
++	Opt_acl,
++	Opt_noacl,
+ 	Opt_err,
  };
  
-+struct ocfs2_security_xattr_info {
-+	int enable;
-+	char *name;
-+	void *value;
-+	size_t value_len;
-+};
-+
- extern struct xattr_handler ocfs2_xattr_user_handler;
- extern struct xattr_handler ocfs2_xattr_trusted_handler;
- extern struct xattr_handler ocfs2_xattr_security_handler;
-@@ -43,5 +50,15 @@ int ocfs2_xattr_set_handle(handle_t *, struct inode *, struct buffer_head *,
- 			   struct ocfs2_alloc_context *,
- 			   struct ocfs2_alloc_context *);
- int ocfs2_xattr_remove(struct inode *, struct buffer_head *);
-+int ocfs2_init_security_get(struct inode *, struct inode *,
-+			    struct ocfs2_security_xattr_info *);
-+int ocfs2_init_security_set(handle_t *, struct inode *,
-+			    struct buffer_head *,
-+			    struct ocfs2_security_xattr_info *,
-+			    struct ocfs2_alloc_context *,
-+			    struct ocfs2_alloc_context *);
-+int ocfs2_calc_security_init(struct inode *,
-+			     struct ocfs2_security_xattr_info *,
-+			     int *, int *, struct ocfs2_alloc_context **);
+@@ -180,6 +182,8 @@ static const match_table_t tokens = {
+ 	{Opt_user_xattr, "user_xattr"},
+ 	{Opt_nouser_xattr, "nouser_xattr"},
+ 	{Opt_inode64, "inode64"},
++	{Opt_acl, "acl"},
++	{Opt_noacl, "noacl"},
+ 	{Opt_err, NULL}
+ };
  
- #endif /* OCFS2_XATTR_H */
+@@ -466,6 +470,8 @@ unlock_osb:
+ 	if (!ret) {
+ 		/* Only save off the new mount options in case of a successful
+ 		 * remount. */
++		if (!(osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_XATTR))
++			parsed_options.mount_opt &= ~OCFS2_MOUNT_POSIX_ACL;
+ 		osb->s_mount_opt = parsed_options.mount_opt;
+ 		osb->s_atime_quantum = parsed_options.atime_quantum;
+ 		osb->preferred_slot = parsed_options.slot;
+@@ -651,6 +657,10 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 	}
+ 	brelse(bh);
+ 	bh = NULL;
++
++	if (!(osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_XATTR))
++		parsed_options.mount_opt &= ~OCFS2_MOUNT_POSIX_ACL;
++
+ 	osb->s_mount_opt = parsed_options.mount_opt;
+ 	osb->s_atime_quantum = parsed_options.atime_quantum;
+ 	osb->preferred_slot = parsed_options.slot;
+@@ -664,6 +674,9 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 
+ 	sb->s_magic = OCFS2_SUPER_MAGIC;
+ 
++	sb->s_flags = (sb->s_flags & ~MS_POSIXACL) |
++		((osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) ? MS_POSIXACL : 0);
++
+ 	/* Hard readonly mode only if: bdev_read_only, MS_RDONLY,
+ 	 * heartbeat=none */
+ 	if (bdev_read_only(sb->s_bdev)) {
+@@ -945,6 +958,19 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 		case Opt_inode64:
+ 			mopt->mount_opt |= OCFS2_MOUNT_INODE64;
+ 			break;
++#ifdef CONFIG_OCFS2_FS_POSIX_ACL
++		case Opt_acl:
++			mopt->mount_opt |= OCFS2_MOUNT_POSIX_ACL;
++			break;
++		case Opt_noacl:
++			mopt->mount_opt &= ~OCFS2_MOUNT_POSIX_ACL;
++			break;
++#else
++		case Opt_acl:
++		case Opt_noacl:
++			printk(KERN_INFO "ocfs2 (no)acl options not supported\n");
++			break;
++#endif
+ 		default:
+ 			mlog(ML_ERROR,
+ 			     "Unrecognized mount option \"%s\" "
+@@ -1017,6 +1043,13 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
+ 	if (opts & OCFS2_MOUNT_INODE64)
+ 		seq_printf(s, ",inode64");
+ 
++#ifdef CONFIG_OCFS2_FS_POSIX_ACL
++	if (opts & OCFS2_MOUNT_POSIX_ACL)
++		seq_printf(s, ",acl");
++	else
++		seq_printf(s, ",noacl");
++#endif
++
+ 	return 0;
+ }
+ 
 -- 
 1.5.4.1
