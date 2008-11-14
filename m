@@ -1,152 +1,52 @@
-From: Fabio M. Di Nitto <fdinitto@redhat.com>
-Date: Fri, 14 Nov 2008 11:06:33 +0100 (CET)
+From: Andrew Beekhof <beekhof@gmail.com>
+Date: Fri, 14 Nov 2008 12:34:43 +0100
 Subject: [Ocfs2-devel] [Pacemaker] [RFC] Splitting cluster.git into
 	separate projects/trees
-In-Reply-To: <26ef5e70811140150l7e789e8blc9df3de904a20a3c@mail.gmail.com>
+In-Reply-To: <Pine.LNX.4.64.0811141055590.7841@trider-g7>
 References: <1226654293.4022.56.camel@daitarn-fedora.int.fabbione.net>
 	<26ef5e70811140150l7e789e8blc9df3de904a20a3c@mail.gmail.com>
-Message-ID: <Pine.LNX.4.64.0811141055590.7841@trider-g7>
+	<Pine.LNX.4.64.0811141055590.7841@trider-g7>
+Message-ID: <26ef5e70811140334n47618506u7a9cb11de1ca6adb@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, 14 Nov 2008, Andrew Beekhof wrote:
+Ooops, resending for the CC'd lists
 
-> Top-posting...
+On Fri, Nov 14, 2008 at 11:06, Fabio M. Di Nitto <fdinitto@redhat.com> wrote:
+> On Fri, 14 Nov 2008, Andrew Beekhof wrote:
 >
-> #1 is what the current "situation" evolved from so I think its pretty
-> clear that despite the best of intentions, it doesn't work out (far
-> too easy for cross-dependancies to develop).
+>> Top-posting...
+>>
+>> #1 is what the current "situation" evolved from so I think its pretty
+>> clear that despite the best of intentions, it doesn't work out (far
+>> too easy for cross-dependancies to develop).
+>>
+>> #2 - I share chrissie's feelings on this one ;-)
+>>
+>> #3 - Thats got my vote - basically what we did with Pacemaker.
+>>
+>> The biggest question here is do you want old versions of the split out
+>> code to be buildable?
 >
-> #2 - I share chrissie's feelings on this one ;-)
->
-> #3 - Thats got my vote - basically what we did with Pacemaker.
->
-> The biggest question here is do you want old versions of the split out
-> code to be buildable?
+> I am not 100% sure I understand what you mean..
 
-I am not 100% sure I understand what you mean..
+Perhaps an example from our split...
 
-> Obviously you'd keep the combined repo somewhere, but you may also
-> want to be able to build old versions from within the split-out repo.
-> If people don't want this, the split out repos _could_ be filtered
-> copies (smaller and only contains relevant history).
+The Pacemaker repo includes the _entire_ Heartbeat history up until the split.
+This allows me to build versions of the crm from before the split
+(handy if you're doing "hg bisect" to track down which changeset broke
+something).
 
-the only tree that will be authoritative for all versions before the split 
-will still be cluster.git. I'd like for all the other trees to preserve 
-history for that specific bit. Maybe git allows to purge all unrelated 
-commits from the history, but I personally don't know.
+On the other hand, I don't care about old versions of the GUI... so
+the GUI repo only has the history of the files specific to the GUI.
+This means that you can't build the pre-split versions from there
+because the files that used to be in the same repo aren't there
+anymore.
 
-Please remember that cluster.git will not die completely. Some RH specific 
-bits might still live there in future.
+You can of course switch to the Heartbeat repo and build the old GUI
+versions from there.
 
-So basically what will happen for #3 is (more or less):
-
-cp -rp cluster.git dlm.git
-
-clone/checkout dlm.git
-purge everything unrelated and cleanup all unrelated history/commits
-fix build system/Makefile
-tag and make first release
-remove dlm from cluster.git
-
-(optionally to keep the tree in a decent state while we split)
-make it buildable with external entity
-tag/release
-
-Fabio
-
-
->
->
-> On Fri, Nov 14, 2008 at 10:18, Fabio M. Di Nitto <fdinitto@redhat.com> wrote:
->> Hi everybody,
->>
->> as discussed and agreed at the Cluster Summit we need to split our tree
->> to make life easier in the long run (etc. etc.).
->>
->> We need to decide how we want to do it and there are different
->> approaches to that. I was able to think of 3. There might be more and I
->> might not have taken everything into consideration so comments and ideas
->> are welcome.
->>
->> At this point we haven't really settled how many (sub) project will be
->> created out of this split. This will come once we agree how to split.
->>
->> = first approach =
->>
->> We maintain cluster.git as single entity with all source code in one
->> place. We change the build system in such a way each single component
->> can be released standalone (similar to how it was done in the RHEL*
->> branches).
->>
->> Pro:
->>  - preserve current development model.
->>  - allow release of separate tarball for each (sub) project.
->>  - external users don't need to build the whole tree for one (sub)
->> project.
->>
->> Cons:
->>  - move all the burden to the build system (by duplicating tons of
->> stuff, maybe solvable but needs investigation) and release manager.
->>  - tagging for releases will require changes as it's not possible to tag
->> only one (sub) project.
->>
->> = second approach =
->>
->> We maintain cluster.git as single entity. Each (sub) project would
->> become a separate branch.
->>
->> So for example all the gnbd code will be branched into master-gnbd (and
->> so on for all the others).
->>
->> Checking out one specific HEAD will only show the code for that project.
->>
->> Pro:
->>  - cleaner look at the tree.
->>  - partially preserve current development model (still easy to cherry
->> pick changes between branches)
->>  - external users don't need to build the whole tree.
->>
->> Cons:
->>  - more expensive branch management.
->>  - tagging for releases will require small changes.
->>
->> = third approach =
->>
->> We copy cluster.git N times for each (sub) project, clean the master
->> branch to match only that (sub)project.
->>
->> Pro:
->>  - very clean tree from checkout
->>  - each (sub) project is really separated and will have its own
->> identity.
->>  - external users don't need to build the whole tree.
->>  - easier to fine tune access to each single component (for example we
->> can allow user foo to access dlm but not gfs... or whatever combination)
->>
->> Cons:
->>  - more complex process to perform cherry-pick between branches.
->>  - higher risk to commit fixes in one branch and forget in another.
->>  - requires a lot more developer attention.
->>
->> Fabio
->>
->>
->> _______________________________________________
->> Pacemaker mailing list
->> Pacemaker at clusterlabs.org
->> http://list.clusterlabs.org/mailman/listinfo/pacemaker
->>
->
-> _______________________________________________
-> Pacemaker mailing list
-> Pacemaker at clusterlabs.org
-> http://list.clusterlabs.org/mailman/listinfo/pacemaker
->
-
-
---
-I'm going to make him an offer he can't refuse.
+Am I making sense now?
