@@ -1,52 +1,51 @@
 From: Fabio M. Di Nitto <fdinitto@redhat.com>
-Date: Mon, 17 Nov 2008 06:46:43 +0100
+Date: Mon, 17 Nov 2008 06:52:57 +0100
 Subject: [Ocfs2-devel] [Cluster-devel] [RFC] Splitting cluster.git into
  separate projects/trees
-In-Reply-To: <26ef5e70811141311u54f5c2d6j873e5fd3977336ea@mail.gmail.com>
+In-Reply-To: <20081114215718.GA7394@redhat.com>
 References: <1226654293.4022.56.camel@daitarn-fedora.int.fabbione.net>
 	<20081114172530.GB4054@redhat.com>
 	<20081114173743.GC18678@ca-server1.us.oracle.com>
 	<26ef5e70811141311u54f5c2d6j873e5fd3977336ea@mail.gmail.com>
-Message-ID: <1226900803.2447.24.camel@daitarn-fedora.int.fabbione.net>
+	<20081114215718.GA7394@redhat.com>
+Message-ID: <1226901177.2447.30.camel@daitarn-fedora.int.fabbione.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, 2008-11-14 at 22:11 +0100, Andrew Beekhof wrote:
-> On Fri, Nov 14, 2008 at 18:37, Joel Becker <Joel.Becker@oracle.com> wrote:
-> > On Fri, Nov 14, 2008 at 11:25:30AM -0600, David Teigland wrote:
-> >> On Fri, Nov 14, 2008 at 10:18:13AM +0100, Fabio M. Di Nitto wrote:
-> >> > At this point we haven't really settled how many (sub) project will be
-> >> > created out of this split. This will come once we agree how to split.
-> >>
-> >> I like the third option as long as the number of new git trees doesn't
-> >> explode (obviously no one wants 10 new git trees.)  Not to get ahead of
-> >> you, but for my own curiosity I looked at what minimum number of git trees
-> >> I'd have to start juggling... it's not too bad, but more than this might
-> >> get out of hand.
-> >
-> >        Obviously I like the third option, as I proposed it :-)  But I
-> > think Dave's really nailed how to split it out.  Originally, I expected
-> > that his fence.git, fence-agents.git, cman.git, and rgmanager.git would
-> > stay together as one tree, and that gfs and its utilities would also be
-> > one tree.
+On Fri, 2008-11-14 at 15:57 -0600, David Teigland wrote:
+> On Fri, Nov 14, 2008 at 10:11:00PM +0100, Andrew Beekhof wrote:
+> > I'd have thought fence.git and fence-agents.git in one and cman.git
+> > and rgmanager.git in another.
+> > But I may be missing some of the interdependencies.
 > 
-> I'd have thought fence.git and fence-agents.git in one and cman.git
-> and rgmanager.git in another.
-> But I may be missing some of the interdependencies.
+> I wouldn't mind either of those combinations.  Maybe rgmanager's last
+> stand will be in cluster.git anyway... if so, then it's not a factor.
 > 
-> > Looking at it, though, I think he's right we split them out.
-> > That's a result from our plan at the summit to start converging fence
-> > agents and then eventually move fencing up the stack.
+> I didn't have much reason for separating fence/fence-agents.  We're
+> planning on unifying it all anyway, even if the agents are done sooner.
+> And I don't think packaging/releasing agents separately should have much
+> bearing on the source tree?  (I've heard interest in putting agents in
+> their own package for Fedora.)
 > 
-> I think we can do that and have them stay together - for instance
-> we're thinking of putting the resource agents and the lrmd which
-> drives them together in a repo - but I don't care that much either
-> way.
+> Dave
+> 
 
-Since you don't care, we should split them. agents are generally updated
-at a much higher ratio than daemons.
+There is actually an important difference for me to keep them separated.
+
+Each time we do a package update, the whole set of daemons will need to
+go through testing again, even if they didn't change a bit.
+If we release the 2 components together, users will get both updates at
+the same time. Unless you are a super paranoid sysadmin, a yum update or
+apt-get update will pull both fenced and fence-agents packages together
+(since they come from the same source).
+Updating a daemon requires a restart of one bit or another. Updating the
+agents no.
+
+I believe that in the long run, and for our users, there is enough time
+to save in testing/sysadmin tasks that's worth our initial effort in
+bootstrapping them into 2 trees.
 
 Fabio
