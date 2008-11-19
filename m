@@ -1,23 +1,64 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 19 Nov 2008 08:34:50 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix return value set in
-	init_dlmfs_fs()
-In-Reply-To: <4920F53E.5010800@suse.de>
-References: <4920F53E.5010800@suse.de>
-Message-ID: <20081119163450.GJ8378@wotan.suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 19 Nov 2008 10:10:13 -0800
+Subject: [Ocfs2-devel] New OCF edition of o2cb
+In-Reply-To: <1E49F7AE-BF12-4D12-8692-730BFDC84341@suse.de>
+References: <02292B9D-C88D-4262-AADF-3820512DC60E@suse.de>
+	<20081118231517.GD10451@mail.oracle.com>
+	<1E49F7AE-BF12-4D12-8692-730BFDC84341@suse.de>
+Message-ID: <20081119181012.GA16192@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Nov 17, 2008 at 12:38:22PM +0800, Coly Li wrote:
-> In init_dlmfs_fs(), if calling kmem_cache_create() failed, the code will use return value from
-> calling bdi_init(). The correct behavior should be set status as -ENOMEM before going to "bail:".
+On Wed, Nov 19, 2008 at 09:49:24AM +0100, Andrew Beekhof wrote:
+>> 	Why does it need to 'default' to any stack?  o2cb.init gets the
+>> answer out of /etc/sysconfig/o2cb, and I would assume OCF would have a
+>> similar sort of thing.
+>
+> Actually not.
 
-Thanks, this is in ocfs2.git now.
-	--Mark
+<snip>
 
+>         <primitive id="o2cb-cman" class="ocf" type="o2cb"  
+> provider="ocfs2">
+>           <instance_attributes id="o2cb-cman-attrs">
+>               <nvpair id="cman-stack" name="stack" value="cman"/>
+>           </instance_attributes>
+>         </primitive>
+>
+> and the Pacemaker version (which can use the advertised default for  
+> "stack") would be:
+>         <primitive id="o2cb-pcmk" class="ocf" type="o2cb"  
+> provider="ocfs2"/>
+>
+> If I had knowledge of cman, its likely I could automatically work out  
+> the "right" stack to use instead of just defaulting to pcmk.
+> But for the initial cut, I thought it best to provide a manual setting  
+> (that happened to favor the author :-) rather than an automatic one that 
+> was probably only half right.
 
---
-Mark Fasheh
+	Well, if you are just trying to figure out the value to stick in
+/sys/fs/ocfs2/cluster_stack, the answer is "cman", because I wrote those
+bits in ocfs2-tools ;-)
+
+> Np.
+> Do you want to fix that when you commit or shall I resend?
+
+	Why don't you resend so we don't have me stomping on it?
+
+Thanks,
+Joel
+
+-- 
+
+"Every day I get up and look through the Forbes list of the richest
+ people in America. If I'm not there, I go to work."
+        - Robert Orben
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
