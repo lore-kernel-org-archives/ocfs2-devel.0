@@ -1,42 +1,27 @@
-From: Andrew Beekhof <abeekhof@suse.de>
-Date: Wed, 19 Nov 2008 21:23:10 +0100
-Subject: [Ocfs2-devel] New OCF edition of o2cb
-In-Reply-To: <20081119181012.GA16192@mail.oracle.com>
-References: <02292B9D-C88D-4262-AADF-3820512DC60E@suse.de>
-	<20081118231517.GD10451@mail.oracle.com>
-	<1E49F7AE-BF12-4D12-8692-730BFDC84341@suse.de>
-	<20081119181012.GA16192@mail.oracle.com>
-Message-ID: <5D4218FE-BA85-4240-8F23-1FCD779A5566@suse.de>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 19 Nov 2008 15:32:11 -0800
+Subject: [Ocfs2-devel] [PATCH 0/2] 2 bug fix for xattr set transaction
+	merge.
+In-Reply-To: <4923D3E5.1090209@oracle.com>
+References: <4923D3E5.1090209@oracle.com>
+Message-ID: <20081119233211.GQ8378@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+On Wed, Nov 19, 2008 at 04:52:53PM +0800, Tao Ma wrote:
+> Hi Mark,
+> 	The 2 patches are 2 bug fix for my xattr set transaction merge 
+> 	patches. I don't know why tristan's powerful xattr test can't find it, and 
+> I will ask him to include the test case in it. The good news is that the 
+> merge patch set is still in your merge_window, so the bug fixes are not too 
+> late. They are both straightforward, so please push them to your 
+> merge_window.
 
-On Nov 19, 2008, at 7:10 PM, Joel Becker wrote:
+Yep, looks good. They're in merge_window now.
+	--Mark
 
-> 	Well, if you are just trying to figure out the value to stick in
-> /sys/fs/ocfs2/cluster_stack, the answer is "cman", because I wrote  
-> those
-> bits in ocfs2-tools ;-)
-
-Yeah, but pcmk is the future man :)
-
->> Np.
->> Do you want to fix that when you commit or shall I resend?
->
-> 	Why don't you resend so we don't have me stomping on it?
-
-attached
-I'll get together with Lon at some point and get the cman/pcmk auto- 
-detection working - will send a patch when its done.
-
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: o2cb.ocf
-Type: application/octet-stream
-Size: 10885 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20081119/0db265cd/attachment.obj 
--------------- next part --------------
+--
+Mark Fasheh
