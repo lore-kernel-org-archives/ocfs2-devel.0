@@ -1,125 +1,132 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 20 Nov 2008 15:53:15 +0100
-Subject: [Ocfs2-devel] [PATCH 25/29] ocfs2: Implementation of local and
-	global quota	file handling
-In-Reply-To: <20081105224920.GW15154@wotan.suse.de>
+Date: Thu, 20 Nov 2008 16:19:45 +0100
+Subject: [Ocfs2-devel] [PATCH 26/29] ocfs2: Add quota calls for
+	allocation and	freeing of inodes and space
+In-Reply-To: <20081106000629.GX15154@wotan.suse.de>
 References: <122488610212-git-send-email-jack@suse.cz>
-	<12248861041077-git-send-email-jack@suse.cz>
-	<20081105224920.GW15154@wotan.suse.de>
-Message-ID: <20081120145315.GC20118@duck.suse.cz>
+	<12248861041253-git-send-email-jack@suse.cz>
+	<20081106000629.GX15154@wotan.suse.de>
+Message-ID: <20081120151944.GD20118@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  Hi Mark!
-
-  Thanks for the review. Your comments which aren't deleted has been just
-silently implemented :).
-
-> > +static void ocfs2_global_mem2diskdqb(void *dp, struct dquot *dquot)
-> > +{
-> > +	struct ocfs2_global_disk_dqblk *d = dp;
-> > +	struct mem_dqblk *m = &dquot->dq_dqb;
-> > +
-> > +	d->dqb_id = cpu_to_le32(dquot->dq_id);
-> > +	d->dqb_use_count = cpu_to_le32(OCFS2_DQUOT(dquot)->dq_use_count);
-> > +	d->dqb_ihardlimit = cpu_to_le64(m->dqb_ihardlimit);
-> > +	d->dqb_isoftlimit = cpu_to_le64(m->dqb_isoftlimit);
-> > +	d->dqb_curinodes = cpu_to_le64(m->dqb_curinodes);
-> > +	d->dqb_bhardlimit = cpu_to_le64(m->dqb_bhardlimit);
-> > +	d->dqb_bsoftlimit = cpu_to_le64(m->dqb_bsoftlimit);
-> > +	d->dqb_curspace = cpu_to_le64(m->dqb_curspace);
-> > +	d->dqb_btime = cpu_to_le64(m->dqb_btime);
-> > +	d->dqb_itime = cpu_to_le64(m->dqb_itime);
-> > +	d->dqb_pad1 = d->dqb_pad2 = 0;
-> 
-> Just to be clear - do we definitely want to reset dqb_pad1 and dqb_pad2
-> every time the header is written? This means that a future version of the
-> quota code can't put values there without having them overwritten by nodes
-> which don't understand the new fields...
-  OK, done. Since the block is zeroed-out before it's reused, it's fine to
-not zero padding fields. OTOH I suspect that we'll have to require all
-nodes to understand new meaning of these fields when we start using them
-anyway. The only advantage is we will not have to change disk layout.
-
-> > +/* Write to quotafile (we know the transaction is already started and has
-> > + * enough credits) */
-> > +ssize_t ocfs2_quota_write(struct super_block *sb, int type,
-> > +			  const char *data, size_t len, loff_t off)
-> > +{
-> > +	struct mem_dqinfo *info = sb_dqinfo(sb, type);
-> > +	struct ocfs2_mem_dqinfo *oinfo = info->dqi_priv;
-> > +	struct inode *gqinode = oinfo->dqi_gqinode;
-> > +	int offset = off & (sb->s_blocksize - 1);
-> > +	sector_t blk = off >> sb->s_blocksize_bits;
-> > +	int err = 0;
-> > +	struct buffer_head *bh;
-> > +	handle_t *handle = journal_current_handle();
-> > +	size_t tocopy, towrite = len;
-> > +
-> > +	if (!handle) {
-> > +		mlog(ML_ERROR, "Quota write (off=%llu, len=%llu) cancelled "
-> > +		     "because transaction was not started.\n",
-> > +		     (unsigned long long)off, (unsigned long long)len);
-> > +		return -EIO;
+On Wed 05-11-08 16:06:29, Mark Fasheh wrote:
+> On Sat, Oct 25, 2008 at 12:08:19AM +0200, Jan Kara wrote:
+> > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> > index 9af16e0..75cdb0e 100644
+> > --- a/fs/ocfs2/file.c
+> > +++ b/fs/ocfs2/file.c
+> > @@ -35,6 +35,7 @@
+> >  #include <linux/mount.h>
+> >  #include <linux/writeback.h>
+> >  #include <linux/falloc.h>
+> > +#include <linux/quotaops.h>
+> >  
+> >  #define MLOG_MASK_PREFIX ML_INODE
+> >  #include <cluster/masklog.h>
+> > @@ -56,6 +57,7 @@
+> >  #include "suballoc.h"
+> >  #include "super.h"
+> >  #include "xattr.h"
+> > +#include "quota.h"
+> >  
+> >  #include "buffer_head_io.h"
+> >  
+> > @@ -536,6 +538,8 @@ static int __ocfs2_extend_allocation(struct inode *inode, u32 logical_start,
+> >  	enum ocfs2_alloc_restarted why;
+> >  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> >  	struct ocfs2_extent_tree et;
+> > +	u32 total_clusters = clusters_to_add;
+> > +	int did_quota = 0;
+> >  
+> >  	mlog_entry("(clusters_to_add = %u)\n", clusters_to_add);
+> >  
+> > @@ -584,6 +588,12 @@ restart_all:
+> >  		goto leave;
+> >  	}
+> >  
+> > +	if (!did_quota && vfs_dq_alloc_space_nodirty(inode,
+> > +	    ocfs2_clusters_to_bytes(osb->sb, total_clusters))) {
+> > +		status = -EDQUOT;
+> > +		goto leave;
 > > +	}
-> > +	mutex_lock_nested(&gqinode->i_mutex, I_MUTEX_QUOTA);
-> > +	if (gqinode->i_size < off + len) {
-> > +		down_write(&OCFS2_I(gqinode)->ip_alloc_sem);
-> > +		err = ocfs2_extend_no_holes(gqinode, off + len, off);
-> > +		up_write(&OCFS2_I(gqinode)->ip_alloc_sem);
-> > +		if (err < 0)
-> > +			goto out;
-> > +		err = ocfs2_simple_size_update(gqinode,
-> > +					       oinfo->dqi_gqi_bh,
-> > +					       off + len);
-> > +		if (err < 0)
-> > +			goto out;
+> > +	did_quota = 1;
+> >  restarted_transaction:
+> >  	/* reserve a write to the file entry early on - that we if we
+> >  	 * run out of credits in the allocation path, we can still
+> > @@ -654,6 +664,9 @@ restarted_transaction:
+> >  	     OCFS2_I(inode)->ip_clusters, (long long)i_size_read(inode));
+> >  
+> >  leave:
+> > +	if (status < 0 && did_quota)
+> > +		vfs_dq_free_space(inode,
+> > +			ocfs2_clusters_to_bytes(osb->sb, total_clusters));
 > 
-> Is it safe if we crash / error here, after the size has been extended but
-> before we've written into the newly allocated blocks? In particular, could
-> we wind up reading those blocks later and wrongly interpreting whatever data
-> happens to be there? Hmm ok, I guess ocfs2_zero_extend() from
-> ocfs2_extend_no_holes() fixes that for you, but it's using the page cache.
-> Does that interact reasonably with what we're doing below?
-  It should work fine. I actually don't use ocfs2_zero_extend() (note that
-I pass 'off' to ocfs2_extend_no_holes() as the third parameter). But when
-generic quota code decides to extend the file, it checks whether the write
-succeeded and if not, it just internally does not increase it's notion of
-quotafile size.
+> Shouldn't you subtract clusters_to_add clusters instead of total_clusters
+> here? In theory, we could have allocated *some* of the inode but failed
+> during a later pass.
+  True, actually to be correct WRT crash in the middle of the allocation,
+we have to release unused quota before we restart a transaction and then ask
+for remaining blocks again - quota operation must always belong to the same
+transaction as the allocation itself. It should be fixed now.
 
-> > +	}
-> > +	WARN_ON(off >> sb->s_blocksize_bits != \
-> > +		(off + len) >> sb->s_blocksize_bits);
-> > +	WARN_ON(((off + len) & ((1 << sb->s_blocksize_bits) - 1)) >
-> > +		sb->s_blocksize - OCFS2_QBLK_RESERVED_SPACE);
-> > +	for (towrite = len; towrite > 0; towrite -= tocopy) {
-> > +		tocopy = min(towrite, (size_t)(sb->s_blocksize - offset));
-> > +		bh = ocfs2_read_quota_block(gqinode, blk, &err);
-> > +		if (!bh) {
-> > +			mlog_errno(err);
-> > +			return err;
+> > @@ -956,11 +972,47 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+> >  		}
+> >  	}
+> >  
+> > -	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+> > -	if (IS_ERR(handle)) {
+> > -		status = PTR_ERR(handle);
+> > -		mlog_errno(status);
+> > -		goto bail_unlock;
+> > +	if ((attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
+> > +	    (attr->ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid)) {
+> > +		credits = OCFS2_INODE_UPDATE_CREDITS;
+> > +		if (attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid
+> > +		    && OCFS2_HAS_RO_COMPAT_FEATURE(sb,
+> > +		    OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
+> > +			oinfo = sb_dqinfo(sb, USRQUOTA)->dqi_priv;
+> > +			status = ocfs2_lock_global_qf(oinfo, 1);
+> > +			if (status < 0)
+> > +				goto bail_unlock;
+> > +			credits += ocfs2_calc_qinit_credits(sb, USRQUOTA) +
+> > +				ocfs2_calc_qdel_credits(sb, USRQUOTA);
+> > +			locked[USRQUOTA] = 1;
 > > +		}
-> > +		err = ocfs2_journal_access(handle, gqinode, bh,
-> > +						OCFS2_JOURNAL_ACCESS_WRITE);
-> > +		if (err < 0) {
-> > +			brelse(bh);
-> > +			goto out;
+> > +		if (attr->ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid
+> > +		    && OCFS2_HAS_RO_COMPAT_FEATURE(sb,
+> > +		    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
+> > +			oinfo = sb_dqinfo(sb, GRPQUOTA)->dqi_priv;
+> > +			status = ocfs2_lock_global_qf(oinfo, 1);
+> > +			if (status < 0)
+> > +				goto bail_unlock;
+> > +			credits += ocfs2_calc_qinit_credits(sb, GRPQUOTA) +
+> > +				   ocfs2_calc_qdel_credits(sb, GRPQUOTA);
+> > +			locked[GRPQUOTA] = 1;
 > > +		}
+> > +		handle = ocfs2_start_trans(osb, credits);
+> > +		if (IS_ERR(handle)) {
+> > +			status = PTR_ERR(handle);
+> > +			mlog_errno(status);
+> > +			goto bail_unlock;
+> > +		}
+> > +		status = vfs_dq_transfer(inode, attr) ? -EDQUOT : 0;
+> > +		if (status < 0)
+> > +			goto bail_commit;
 > 
-> We can optimize away the disk read if the block is newly allocated. There's
-> no need to read it off disk, so we can just sb_getblk() it. Likewise, you'd
-> want to use OCFS2_JOURNAL_ACCESS_CREATE for those. How often does the quota
-> file get extended though? If it's sufficiently rare, we could save this for
-> later. Otherwise, it's probably worth the effort imho.
-  Actually, extending quota file is really rare operation - happens only
-once per 20 new users of the cluster :). But your comment got me an idea,
-that we can save read in most rewrite cases because upper level quota code
-provides us with a complete content of the block. So I've rewritten the
-function to optimize this case. But please check whether the function is
-right when I submit next version of patches.
+> Ok, so this will all cause syncing on the global quota file because we need
+> to transfer one record to/from another? Is there any better way?
+  Yes, we take exclusive lock on global quota file because this file might
+be the first file user ever has (or the last file source user has) and so
+we have to create new quota structure for him (remove quota structure
+respectively). This is a rare case but has to be taken care of. Of course,
+we could play similar tricks as we do in ocfs2_dquot_initialize() to
+optimize for the common case where shared lock is enough because all
+structures already exist. But I felt chown/chgrp is rare enough so for now
+I took the simple way. If this is a problem, it can be changed.
 
 									Honza
 -- 
