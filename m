@@ -1,64 +1,208 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed, 26 Nov 2008 16:06:17 -0800
-Subject: [Ocfs2-devel] [PATCH 04/13] ocfs2: Explain t_is_new in
-	ocfs2_cp_xattr_cluster().
+Date: Wed, 26 Nov 2008 16:06:24 -0800
+Subject: [Ocfs2-devel] [PATCH 11/13] ocfs2: Move buckets up into
+	ocfs2_add_new_xattr_cluster().
 In-Reply-To: <1227744386-10502-1-git-send-email-joel.becker@oracle.com>
 References: <1227744386-10502-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1227744386-10502-5-git-send-email-joel.becker@oracle.com>
+Message-ID: <1227744386-10502-12-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I was unsure of the JOURNAL_ACCESS parameters in
-ocfs2_cp_xattr_cluster().  They're based on the function argument
-'t_is_new', but I couldn't quite figure out how t_is_new mapped to
-allocation.  ocfs2_cp_xattr_cluster() actually overwrites the target,
-regardless of t_is_new.
-
-Well, I just figured it out.  So I'm adding a big fat comment for those
-who come after me.  ocfs2_divide_xattr_cluster() has the same behavior.
+Lift the buckets from ocfs2_adjust_xattr_cross_cluster() up into
+ocfs2_add_new_xattr_cluster().  Now ocfs2_adjust_xattr_cross_cluster()
+doesn't deal with buffer_heads.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/xattr.c |   17 +++++++++++++++++
- 1 files changed, 17 insertions(+), 0 deletions(-)
+ fs/ocfs2/xattr.c |  100 ++++++++++++++++++++++++++---------------------------
+ 1 files changed, 49 insertions(+), 51 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 11b518a..cb71dcc 100644
+index 8ea4032..b9128aa 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -3753,6 +3753,11 @@ static int ocfs2_divide_xattr_bucket(struct inode *inode,
- 		goto out;
+@@ -4086,44 +4086,19 @@ static int ocfs2_divide_xattr_cluster(struct inode *inode,
+  */
+ static int ocfs2_adjust_xattr_cross_cluster(struct inode *inode,
+ 					    handle_t *handle,
+-					    struct buffer_head **first_bh,
+-					    struct buffer_head **header_bh,
++					    struct ocfs2_xattr_bucket *first,
++					    struct ocfs2_xattr_bucket *target,
+ 					    u64 new_blk,
+-					    u64 prev_blk,
+ 					    u32 prev_clusters,
+ 					    u32 *v_start,
+ 					    int *extend)
+ {
+ 	int ret;
+-	struct ocfs2_xattr_bucket *first, *target;
+ 
+ 	mlog(0, "adjust xattrs from cluster %llu len %u to %llu\n",
+-	     (unsigned long long)prev_blk, prev_clusters,
++	     (unsigned long long)bucket_blkno(first), prev_clusters,
+ 	     (unsigned long long)new_blk);
+ 
+-	/* The first bucket of the original extent */
+-	first = ocfs2_xattr_bucket_new(inode);
+-	/* The target bucket for insert */
+-	target = ocfs2_xattr_bucket_new(inode);
+-	if (!first || !target) {
+-		ret = -ENOMEM;
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	BUG_ON(prev_blk != (*first_bh)->b_blocknr);
+-	ret = ocfs2_read_xattr_bucket(first, prev_blk);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	ret = ocfs2_read_xattr_bucket(target, (*header_bh)->b_blocknr);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+ 	if (ocfs2_xattr_buckets_per_cluster(OCFS2_SB(inode->i_sb)) > 1) {
+ 		ret = ocfs2_mv_xattr_bucket_cross_cluster(inode,
+ 							  handle,
+@@ -4131,46 +4106,33 @@ static int ocfs2_adjust_xattr_cross_cluster(struct inode *inode,
+ 							  new_blk,
+ 							  prev_clusters,
+ 							  v_start);
+-		if (ret) {
++		if (ret)
+ 			mlog_errno(ret);
+-			goto out;
+-		}
+-
+-		/* Did first+target get moved? */
+-		if (prev_blk != bucket_blkno(first)) {
+-			brelse(*first_bh);
+-			*first_bh = first->bu_bhs[0];
+-			get_bh(*first_bh);
+-
+-			brelse(*header_bh);
+-			*header_bh = target->bu_bhs[0];
+-			get_bh(*header_bh);
+-		}
+ 	} else {
+ 		/* The start of the last cluster in the first extent */
+ 		u64 last_blk = bucket_blkno(first) +
+ 			((prev_clusters - 1) *
+ 			 ocfs2_clusters_to_blocks(inode->i_sb, 1));
+ 
+-		if (prev_clusters > 1 && bucket_blkno(target) != last_blk)
++		if (prev_clusters > 1 && bucket_blkno(target) != last_blk) {
+ 			ret = ocfs2_mv_xattr_buckets(inode, handle,
+ 						     bucket_blkno(first),
+ 						     last_blk, new_blk, 0,
+ 						     v_start);
+-		else {
++			if (ret)
++				mlog_errno(ret);
++		} else {
+ 			ret = ocfs2_divide_xattr_cluster(inode, handle,
+ 							 last_blk, new_blk,
+ 							 v_start);
++			if (ret)
++				mlog_errno(ret);
+ 
+ 			if ((bucket_blkno(target) == last_blk) && extend)
+ 				*extend = 0;
+ 		}
  	}
  
-+	/*
-+	 * Hey, if we're overwriting t_bucket, what difference does
-+	 * ACCESS_CREATE vs ACCESS_WRITE make?  See the comment in the
-+	 * same part of ocfs2_cp_xattr_bucket().
-+	 */
- 	ret = ocfs2_xattr_bucket_journal_access(handle, t_bucket,
- 						new_bucket_head ?
- 						OCFS2_JOURNAL_ACCESS_CREATE :
-@@ -3924,6 +3929,18 @@ static int ocfs2_cp_xattr_bucket(struct inode *inode,
- 	if (ret)
- 		goto out;
+-out:
+-	ocfs2_xattr_bucket_free(first);
+-	ocfs2_xattr_bucket_free(target);
+-
+ 	return ret;
+ }
  
-+	/*
-+	 * Hey, if we're overwriting t_bucket, what difference does
-+	 * ACCESS_CREATE vs ACCESS_WRITE make?  Well, if we allocated a new
-+	 * cluster to fill, we came here from ocfs2_cp_xattr_cluster(), and
-+	 * it is really new - ACCESS_CREATE is required.  But we also
-+	 * might have moved data out of t_bucket before extending back
-+	 * into it.  ocfs2_add_new_xattr_bucket() can do this - its call
-+	 * to ocfs2_add_new_xattr_cluster() may have created a new extent
-+	 * and copied out the end of the old extent.  Then it re-extends
-+	 * the old extent back to create space for new xattrs.  That's
-+	 * how we get here, and the bucket isn't really new.
-+	 */
- 	ret = ocfs2_xattr_bucket_journal_access(handle, t_bucket,
- 						t_is_new ?
- 						OCFS2_JOURNAL_ACCESS_CREATE :
+@@ -4208,6 +4170,7 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
+ 	handle_t *handle = ctxt->handle;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct ocfs2_extent_tree et;
++	struct ocfs2_xattr_bucket *first, *target;
+ 
+ 	mlog(0, "Add new xattr cluster for %llu, previous xattr hash = %u, "
+ 	     "previous xattr blkno = %llu\n",
+@@ -4216,6 +4179,29 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
+ 
+ 	ocfs2_init_xattr_tree_extent_tree(&et, inode, root_bh);
+ 
++	/* The first bucket of the original extent */
++	first = ocfs2_xattr_bucket_new(inode);
++	/* The target bucket for insert */
++	target = ocfs2_xattr_bucket_new(inode);
++	if (!first || !target) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
++		goto leave;
++	}
++
++	BUG_ON(prev_blkno != (*first_bh)->b_blocknr);
++	ret = ocfs2_read_xattr_bucket(first, prev_blkno);
++	if (ret) {
++		mlog_errno(ret);
++		goto leave;
++	}
++
++	ret = ocfs2_read_xattr_bucket(target, (*header_bh)->b_blocknr);
++	if (ret) {
++		mlog_errno(ret);
++		goto leave;
++	}
++
+ 	ret = ocfs2_journal_access(handle, inode, root_bh,
+ 				   OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret < 0) {
+@@ -4256,10 +4242,9 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
+ 	} else {
+ 		ret = ocfs2_adjust_xattr_cross_cluster(inode,
+ 						       handle,
+-						       first_bh,
+-						       header_bh,
++						       first,
++						       target,
+ 						       block,
+-						       prev_blkno,
+ 						       prev_clusters,
+ 						       &v_start,
+ 						       extend);
+@@ -4267,6 +4252,17 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
+ 			mlog_errno(ret);
+ 			goto leave;
+ 		}
++
++		/* Did first+target get moved? */
++		if (prev_blkno != bucket_blkno(first)) {
++			brelse(*first_bh);
++			*first_bh = first->bu_bhs[0];
++			get_bh(*first_bh);
++
++			brelse(*header_bh);
++			*header_bh = target->bu_bhs[0];
++			get_bh(*header_bh);
++		}
+ 	}
+ 
+ 	mlog(0, "Insert %u clusters at block %llu for xattr at %u\n",
+@@ -4283,6 +4279,8 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
+ 		mlog_errno(ret);
+ 
+ leave:
++	ocfs2_xattr_bucket_free(first);
++	ocfs2_xattr_bucket_free(target);
+ 	return ret;
+ }
+ 
 -- 
 1.5.6.5
