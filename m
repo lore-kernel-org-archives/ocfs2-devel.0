@@ -1,127 +1,114 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed, 26 Nov 2008 16:06:14 -0800
-Subject: [Ocfs2-devel] [PATCH 01/13] ocfs2: Dirty the entire bucket in
-	ocfs2_bucket_value_truncate()
+Date: Wed, 26 Nov 2008 16:06:22 -0800
+Subject: [Ocfs2-devel] [PATCH 09/13] ocfs2: Start using buckets in
+	ocfs2_adjust_xattr_cross_cluster().
 In-Reply-To: <1227744386-10502-1-git-send-email-joel.becker@oracle.com>
 References: <1227744386-10502-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1227744386-10502-2-git-send-email-joel.becker@oracle.com>
+Message-ID: <1227744386-10502-10-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_bucket_value_truncate() currently takes the first bh of the
-bucket, and magically plays around with the value bh - even though
-the bucket structure in the calling function already has it.
-
-In addition, future code wants to always dirty the entire bucket when it
-is changed.  So let's pass the entire bucket into this function, skip
-any block reads (we have them), and add the access/dirty logic
+We want to be passing around buckets instead of buffer_heads.  Let's get
+them into ocfs2_adjust_xattr_cross_cluster.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/xattr.c |   44 ++++++++++++++++++++++++++------------------
- 1 files changed, 26 insertions(+), 18 deletions(-)
+ fs/ocfs2/xattr.c |   46 ++++++++++++++++++++++++++++++++++++++--------
+ 1 files changed, 38 insertions(+), 8 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 7e0d62a..4571df8 100644
+index 2c9b673..4dcbc21 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -4619,7 +4619,7 @@ out:
-  * Copy the new updated xe and xe_value_root to new_xe and new_xv if needed.
-  */
- static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
--					     struct buffer_head *header_bh,
-+					     struct ocfs2_xattr_bucket *bucket,
- 					     int xe_off,
- 					     int len,
- 					     struct ocfs2_xattr_set_ctxt *ctxt)
-@@ -4629,8 +4629,7 @@ static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
- 	struct buffer_head *value_bh = NULL;
- 	struct ocfs2_xattr_value_root *xv;
- 	struct ocfs2_xattr_entry *xe;
--	struct ocfs2_xattr_header *xh =
--			(struct ocfs2_xattr_header *)header_bh->b_data;
-+	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
- 	size_t blocksize = inode->i_sb->s_blocksize;
+@@ -3613,7 +3613,7 @@ static int ocfs2_mv_xattr_bucket_cross_cluster(struct inode *inode,
+ 		 * These shouldn't fail - the buffers are in the
+ 		 * journal from ocfs2_cp_xattr_bucket().
+ 		 */
+-		ret = ocfs2_read_xattr_bucket(new_first, src_blkno);
++		ret = ocfs2_read_xattr_bucket(new_first, new_blkno);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
+@@ -4117,28 +4117,54 @@ static int ocfs2_adjust_xattr_cross_cluster(struct inode *inode,
+ 					    u32 *v_start,
+ 					    int *extend)
+ {
+-	int ret = 0;
+-	int bpc = ocfs2_clusters_to_blocks(inode->i_sb, 1);
++	int ret;
++	struct ocfs2_xattr_bucket *first, *target;
  
- 	xe = &xh->xh_entries[xe_off];
-@@ -4644,34 +4643,44 @@ static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
+ 	mlog(0, "adjust xattrs from cluster %llu len %u to %llu\n",
+ 	     (unsigned long long)prev_blk, prev_clusters,
+ 	     (unsigned long long)new_blk);
  
- 	/* We don't allow ocfs2_xattr_value to be stored in different block. */
- 	BUG_ON(value_blk != (offset + OCFS2_XATTR_ROOT_SIZE - 1) / blocksize);
--	value_blk += header_bh->b_blocknr;
- 
--	ret = ocfs2_read_block(inode, value_blk, &value_bh, NULL);
-+	value_bh = bucket->bu_bhs[value_blk];
-+	BUG_ON(!value_bh);
++	/* The first bucket of the original extent */
++	first = ocfs2_xattr_bucket_new(inode);
++	/* The target bucket for insert */
++	target = ocfs2_xattr_bucket_new(inode);
++	if (!first || !target) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
++		goto out;
++	}
 +
-+	xv = (struct ocfs2_xattr_value_root *)
-+		(value_bh->b_data + offset % blocksize);
++	BUG_ON(prev_blk != (*first_bh)->b_blocknr);
++	ret = ocfs2_read_xattr_bucket(first, prev_blk);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
 +
-+	ret = ocfs2_xattr_bucket_journal_access(ctxt->handle, bucket,
-+						OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
++	ret = ocfs2_read_xattr_bucket(target, (*header_bh)->b_blocknr);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
+ 	if (ocfs2_xattr_buckets_per_cluster(OCFS2_SB(inode->i_sb)) > 1)
+ 		ret = ocfs2_mv_xattr_bucket_cross_cluster(inode,
+ 							  handle,
+ 							  first_bh,
+ 							  header_bh,
+ 							  new_blk,
+-							  prev_blk,
++							  bucket_blkno(first),
+ 							  prev_clusters,
+ 							  v_start);
+ 	else {
+-		u64 last_blk = prev_blk + bpc * (prev_clusters - 1);
++		/* The start of the last cluster in the first extent */
++		u64 last_blk = bucket_blkno(first) +
++			((prev_clusters - 1) *
++			 ocfs2_clusters_to_blocks(inode->i_sb, 1));
+ 
+-		if (prev_clusters > 1 && (*header_bh)->b_blocknr != last_blk)
++		if (prev_clusters > 1 && bucket_blkno(target) != last_blk)
+ 			ret = ocfs2_mv_xattr_buckets(inode, handle,
+-						     (*first_bh)->b_blocknr,
++						     bucket_blkno(first),
+ 						     last_blk, new_blk, 0,
+ 						     v_start);
+ 		else {
+@@ -4146,11 +4172,15 @@ static int ocfs2_adjust_xattr_cross_cluster(struct inode *inode,
+ 							 last_blk, new_blk,
+ 							 v_start);
+ 
+-			if ((*header_bh)->b_blocknr == last_blk && extend)
++			if ((bucket_blkno(target) == last_blk) && extend)
+ 				*extend = 0;
+ 		}
  	}
  
--	xv = (struct ocfs2_xattr_value_root *)
--		(value_bh->b_data + offset % blocksize);
--
-+	/*
-+	 * From here on out we have to dirty the bucket.  The generic
-+	 * value calls only modify one of the bucket's bhs, but we need
-+	 * to send the bucket at once.  So if they error, they *could* have
-+	 * modified something.  We have to assume they did, and dirty
-+	 * the whole bucket.  This leaves us in a consistent state.
-+	 */
- 	mlog(0, "truncate %u in xattr bucket %llu to %d bytes.\n",
--	     xe_off, (unsigned long long)header_bh->b_blocknr, len);
-+	     xe_off, (unsigned long long)bucket_blkno(bucket), len);
- 	ret = ocfs2_xattr_value_truncate(inode, value_bh, xv, len, ctxt);
- 	if (ret) {
- 		mlog_errno(ret);
--		goto out;
-+		goto out_dirty;
- 	}
- 
- 	ret = ocfs2_xattr_value_update_size(inode, ctxt->handle,
--					    header_bh, xe, len);
--	if (ret) {
-+					    bucket->bu_bhs[0], xe, len);
-+	if (ret)
- 		mlog_errno(ret);
--		goto out;
--	}
++out:
++	ocfs2_xattr_bucket_free(first);
++	ocfs2_xattr_bucket_free(target);
 +
-+out_dirty:
-+	ocfs2_xattr_bucket_journal_dirty(ctxt->handle, bucket);
- 
- out:
--	brelse(value_bh);
  	return ret;
  }
  
-@@ -4687,7 +4696,7 @@ static int ocfs2_xattr_bucket_value_truncate_xs(struct inode *inode,
- 	BUG_ON(!xs->bucket->bu_bhs[0] || !xe || ocfs2_xattr_is_local(xe));
- 
- 	offset = xe - xh->xh_entries;
--	ret = ocfs2_xattr_bucket_value_truncate(inode, xs->bucket->bu_bhs[0],
-+	ret = ocfs2_xattr_bucket_value_truncate(inode, xs->bucket,
- 						offset, len, ctxt);
- 	if (ret)
- 		mlog_errno(ret);
-@@ -5129,8 +5138,7 @@ static int ocfs2_delete_xattr_in_bucket(struct inode *inode,
- 		if (ocfs2_xattr_is_local(xe))
- 			continue;
- 
--		ret = ocfs2_xattr_bucket_value_truncate(inode,
--							bucket->bu_bhs[0],
-+		ret = ocfs2_xattr_bucket_value_truncate(inode, bucket,
- 							i, 0, &ctxt);
- 		if (ret) {
- 			mlog_errno(ret);
 -- 
 1.5.6.5
