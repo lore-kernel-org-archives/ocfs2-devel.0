@@ -1,109 +1,57 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 28 Nov 2008 06:58:45 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Optimize inode group allocation by
-	recording last used group.
-In-Reply-To: <492F946F.1060409@oracle.com>
-References: <492F946F.1060409@oracle.com>
-Message-ID: <1227826725-13107-3-git-send-email-tao.ma@oracle.com>
+From: Coly Li <coyli@suse.de>
+Date: Fri, 28 Nov 2008 21:03:45 +0800
+Subject: [Ocfs2-devel] [nov 28] question of dlm_get_lock_resource()
+Message-ID: <492FEC31.5010907@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2, the block group search looks for the "emptiest" group
-to allocate from. So if the allocator has many equally(or almost
-equally) empty groups, new block group will tend to get spread
-out amongst them.
+Hi list,
 
-We add osb_last_alloc_group in ocfs2_super to record the last used
-allocation group so that next time we can allocate inode group
-directly from it.
-For more details, please see
-http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy.
+When I read code of dlm_get_lock_resource(), there is something not clear to me.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/ocfs2.h    |    3 +++
- fs/ocfs2/suballoc.c |   18 +++++++++++++++++-
- fs/ocfs2/super.c    |    1 +
- 3 files changed, 21 insertions(+), 1 deletions(-)
+ 719 lookup:
+ 720         spin_lock(&dlm->spinlock);
+ 721         tmpres = __dlm_lookup_lockres_full(dlm, lockid, namelen, hash);
+ 722         if (tmpres) {
+ 723                 int dropping_ref = 0;
+ 724
+ 725                 spin_lock(&tmpres->spinlock);
+ 726                 if (tmpres->owner == dlm->node_num) {
+ 727                         BUG_ON(tmpres->state & DLM_LOCK_RES_DROPPING_REF);
+ 728                         dlm_lockres_grab_inflight_ref(dlm, tmpres);
+ 729                 } else if (tmpres->state & DLM_LOCK_RES_DROPPING_REF)
+ 730                         dropping_ref = 1;
+ 731                 spin_unlock(&tmpres->spinlock);
+ 732                 spin_unlock(&dlm->spinlock);
+ 733
+ 734                 /* wait until done messaging the master, drop our ref to allow
+ 735                  * the lockres to be purged, start over. */
+ 736                 if (dropping_ref) {
+ 737                         spin_lock(&tmpres->spinlock);
+ 738                         __dlm_wait_on_lockres_flags(tmpres, DLM_LOCK_RES_DROPPING_REF);
+ 739                         spin_unlock(&tmpres->spinlock);
+ 740                         dlm_lockres_put(tmpres);
+ 741                         tmpres = NULL;
+ 742                         goto lookup;
+ 743                 }
+ 744
+ 745                 mlog(0, "found in hash!\n");
+ 746                 if (res)
+ 747                         dlm_lockres_put(res);
+ 748                 res = tmpres;
+ 749                 goto leave;
+ 750         }
 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 5c77798..a99b53e 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -335,6 +335,9 @@ struct ocfs2_super
- 	struct ocfs2_node_map		osb_recovering_orphan_dirs;
- 	unsigned int			*osb_orphan_wipes;
- 	wait_queue_head_t		osb_wipe_event;
-+
-+	/* the group we used to allocate inodes. */
-+	u64				osb_last_alloc_group;
- };
- 
- #define OCFS2_SB(sb)	    ((struct ocfs2_super *)(sb)->s_fs_info)
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 98e32b2..3ab1135 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -49,6 +49,7 @@
- #define NOT_ALLOC_NEW_GROUP		0
- #define ALLOC_NEW_GROUP			0x1
- #define ALLOC_NEW_GROUP_FROM_GLOBAL	0x2
-+#define ALLOC_USE_RECORD_GROUP		0x4
- 
- #define OCFS2_MAX_INODES_TO_STEAL	1024
- 
-@@ -411,6 +412,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 		goto bail;
- 	}
- 
-+	if (flags & ALLOC_USE_RECORD_GROUP && osb->osb_last_alloc_group) {
-+		mlog(0, "use old allocation group %llu\n",
-+		     (unsigned long long)osb->osb_last_alloc_group);
-+		ac->ac_last_group = osb->osb_last_alloc_group;
-+	}
- 	status = ocfs2_claim_clusters(osb,
- 				      handle,
- 				      ac,
-@@ -485,6 +491,15 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 	alloc_inode->i_blocks = ocfs2_inode_sector_count(alloc_inode);
- 
- 	status = 0;
-+
-+	if (flags & ALLOC_USE_RECORD_GROUP) {
-+		spin_lock(&osb->osb_lock);
-+		osb->osb_last_alloc_group = ac->ac_last_group;
-+		spin_unlock(&osb->osb_lock);
-+		mlog(0, "after reservation, new allocation group is "
-+		     "%llu\n", (unsigned long long)osb->osb_last_alloc_group);
-+	}
-+
- bail:
- 	if (handle)
- 		ocfs2_commit_trans(osb, handle);
-@@ -713,7 +728,8 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
- 					     INODE_ALLOC_SYSTEM_INODE,
- 					     osb->slot_num,
- 					     ALLOC_NEW_GROUP |
--					     ALLOC_NEW_GROUP_FROM_GLOBAL);
-+					     ALLOC_NEW_GROUP_FROM_GLOBAL |
-+					     ALLOC_USE_RECORD_GROUP);
- 	if (status >= 0) {
- 		status = 0;
- 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index bc43138..3593759 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -843,6 +843,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 	osb->osb_commit_interval = parsed_options.commit_interval;
- 	osb->local_alloc_default_bits = ocfs2_megabytes_to_clusters(sb, parsed_options.localalloc_opt);
- 	osb->local_alloc_bits = osb->local_alloc_default_bits;
-+	osb->osb_last_alloc_group = 0;
- 	if (osb->s_mount_opt & OCFS2_MOUNT_USRQUOTA &&
- 	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
- 					 OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
+If at line 721 tmpres found from hash, and its state is not DLM_LOCK_RES_DROPPING_REF (dropping_ref
+is 0), between line 733 and 748, is it possible to set tmpres->state to DLM_LOCK_RES_DROPPING_REF ?
+
+I don't see any protection for this race, maybe there is something I missed. Can anybody give me a
+hint ?
+
+Thanks.
 -- 
-1.5.4.GIT
+Coly Li
+SuSE PRC Labs
