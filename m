@@ -1,63 +1,37 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 01 Dec 2008 18:43:16 -0800
-Subject: [Ocfs2-devel] [nov 28] question of dlm_get_lock_resource()
-In-Reply-To: <492FEC31.5010907@suse.de>
-References: <492FEC31.5010907@suse.de>
-Message-ID: <4934A0C4.2090404@oracle.com>
+From: Coly Li <coyli@suse.de>
+Date: Tue, 02 Dec 2008 19:20:22 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: add comments on ocfs2_do_flock()
+Message-ID: <493519F6.5070308@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-No. dlm->spinlock prevents it racing the dlm_thread. Secondly, lookup
-also does a get.
+This patch adds a comment to explain when file is locked and F_SETLKW is set, -EWOULDBLOCK should be
+returned other than -EAGAIN.
+It helps the code to be more understandable.
 
-What scenario are you envisioning?
+Signed-off-by: Coly Li <coyli@suse.de>
+---
+ fs/ocfs2/locks.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-Coly Li wrote:
-> Hi list,
->
-> When I read code of dlm_get_lock_resource(), there is something not clear to me.
->
->  719 lookup:
->  720         spin_lock(&dlm->spinlock);
->  721         tmpres = __dlm_lookup_lockres_full(dlm, lockid, namelen, hash);
->  722         if (tmpres) {
->  723                 int dropping_ref = 0;
->  724
->  725                 spin_lock(&tmpres->spinlock);
->  726                 if (tmpres->owner == dlm->node_num) {
->  727                         BUG_ON(tmpres->state & DLM_LOCK_RES_DROPPING_REF);
->  728                         dlm_lockres_grab_inflight_ref(dlm, tmpres);
->  729                 } else if (tmpres->state & DLM_LOCK_RES_DROPPING_REF)
->  730                         dropping_ref = 1;
->  731                 spin_unlock(&tmpres->spinlock);
->  732                 spin_unlock(&dlm->spinlock);
->  733
->  734                 /* wait until done messaging the master, drop our ref to allow
->  735                  * the lockres to be purged, start over. */
->  736                 if (dropping_ref) {
->  737                         spin_lock(&tmpres->spinlock);
->  738                         __dlm_wait_on_lockres_flags(tmpres, DLM_LOCK_RES_DROPPING_REF);
->  739                         spin_unlock(&tmpres->spinlock);
->  740                         dlm_lockres_put(tmpres);
->  741                         tmpres = NULL;
->  742                         goto lookup;
->  743                 }
->  744
->  745                 mlog(0, "found in hash!\n");
->  746                 if (res)
->  747                         dlm_lockres_put(res);
->  748                 res = tmpres;
->  749                 goto leave;
->  750         }
->
-> If at line 721 tmpres found from hash, and its state is not DLM_LOCK_RES_DROPPING_REF (dropping_ref
-> is 0), between line 733 and 748, is it possible to set tmpres->state to DLM_LOCK_RES_DROPPING_REF ?
->
-> I don't see any protection for this race, maybe there is something I missed. Can anybody give me a
-> hint ?
->
-> Thanks.
->   
+diff --git a/fs/ocfs2/locks.c b/fs/ocfs2/locks.c
+index 544ac62..cc9d947 100644
+--- a/fs/ocfs2/locks.c
++++ b/fs/ocfs2/locks.c
+@@ -75,6 +75,9 @@ static int ocfs2_do_flock(struct file *file, struct inode *inode,
+
+ 	ret = ocfs2_file_lock(file, level, trylock);
+ 	if (ret) {
++		/* The file is locked and the F_SETLKW
++		 * flag is NOT set in cmd.
++		 */
+ 		if (ret == -EAGAIN && trylock)
+ 			ret = -EWOULDBLOCK;
+ 		else
+
+-- 
+Coly Li
+SuSE PRC Labs
