@@ -1,9 +1,9 @@
 From: Coly Li <coyli@suse.de>
-Date: Wed, 03 Dec 2008 00:37:32 +0800
-Subject: [Ocfs2-devel] [nov 29] what is ocfs2_lock() used for ?
-In-Reply-To: <49349CF9.5090801@oracle.com>
-References: <4930FDE8.3070103@suse.de> <49349CF9.5090801@oracle.com>
-Message-ID: <4935644C.3060700@suse.de>
+Date: Wed, 03 Dec 2008 00:49:50 +0800
+Subject: [Ocfs2-devel] [nov 28] question of dlm_get_lock_resource()
+In-Reply-To: <4934A0C4.2090404@oracle.com>
+References: <492FEC31.5010907@suse.de> <4934A0C4.2090404@oracle.com>
+Message-ID: <4935672E.6080800@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,26 +13,70 @@ To: ocfs2-devel@oss.oracle.com
 
 
 Sunil Mushran Wrote:
-> SLES10 SP2 is shipping OCFS2 1.4 + few HASF specific patches.
+> No. dlm->spinlock prevents it racing the dlm_thread. Secondly, lookup
+> also does a get.
 > 
-> If you want to see how 1.4 maps to ocfs2 in mainline, review the shortlog
-> on the 1.4 git tree. It tells you the full story.
-> http://oss.oracle.com/git/?p=ocfs2-1.4.git;a=summary
+> What scenario are you envisioning?
+IMHO, locking dlm->spinlock does not mean protecting to tmpres. Even line 727 gets false, how can we
+make sure in line 749 res->state is not modified to DLM_LOCK_RES_DROPPING_REF by other process ?
+
+I can not find the magic which make everything work in order, something important must be missed by me.
+
+Thanks.
+
 > 
-> As Tao has already posted, ocfs2_lock() adds posix lock support, which was
-> added after 1.4 was released.
-
-I will check the information. Thanks for the helpful info :)
-
-
 > Coly Li wrote:
->> Hi List,
+>> Hi list,
 >>
->> In Linus tree, I find ocfs2_lock() in fs/ocfs2/locks.c, this function
->> can not be found from sles10
->> sp2 tree. Also I don't find any other code calling ocfs2_lock().
+>> When I read code of dlm_get_lock_resource(), there is something not
+>> clear to me.
 >>
->> Can anybody tell me, what is ocfs2_lock() used for ?
+>>  719 lookup:
+>>  720         spin_lock(&dlm->spinlock);
+>>  721         tmpres = __dlm_lookup_lockres_full(dlm, lockid, namelen,
+>> hash);
+>>  722         if (tmpres) {
+>>  723                 int dropping_ref = 0;
+>>  724
+>>  725                 spin_lock(&tmpres->spinlock);
+>>  726                 if (tmpres->owner == dlm->node_num) {
+>>  727                         BUG_ON(tmpres->state &
+>> DLM_LOCK_RES_DROPPING_REF);
+>>  728                         dlm_lockres_grab_inflight_ref(dlm, tmpres);
+>>  729                 } else if (tmpres->state &
+>> DLM_LOCK_RES_DROPPING_REF)
+>>  730                         dropping_ref = 1;
+>>  731                 spin_unlock(&tmpres->spinlock);
+>>  732                 spin_unlock(&dlm->spinlock);
+>>  733
+>>  734                 /* wait until done messaging the master, drop our
+>> ref to allow
+>>  735                  * the lockres to be purged, start over. */
+>>  736                 if (dropping_ref) {
+>>  737                         spin_lock(&tmpres->spinlock);
+>>  738                         __dlm_wait_on_lockres_flags(tmpres,
+>> DLM_LOCK_RES_DROPPING_REF);
+>>  739                         spin_unlock(&tmpres->spinlock);
+>>  740                         dlm_lockres_put(tmpres);
+>>  741                         tmpres = NULL;
+>>  742                         goto lookup;
+>>  743                 }
+>>  744
+>>  745                 mlog(0, "found in hash!\n");
+>>  746                 if (res)
+>>  747                         dlm_lockres_put(res);
+>>  748                 res = tmpres;
+>>  749                 goto leave;
+>>  750         }
+>>
+>> If at line 721 tmpres found from hash, and its state is not
+>> DLM_LOCK_RES_DROPPING_REF (dropping_ref
+>> is 0), between line 733 and 748, is it possible to set tmpres->state
+>> to DLM_LOCK_RES_DROPPING_REF ?
+>>
+>> I don't see any protection for this race, maybe there is something I
+>> missed. Can anybody give me a
+>> hint ?
 
 -- 
 Coly Li
