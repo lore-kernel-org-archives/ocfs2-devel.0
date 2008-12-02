@@ -1,46 +1,51 @@
-From: Andrew Beekhof <beekhof@gmail.com>
-Date: Tue, 2 Dec 2008 15:09:29 +0100
-Subject: [Ocfs2-devel] New OCF edition of o2cb
-In-Reply-To: <5D4218FE-BA85-4240-8F23-1FCD779A5566@suse.de>
-References: <02292B9D-C88D-4262-AADF-3820512DC60E@suse.de>
-	<20081118231517.GD10451@mail.oracle.com>
-	<1E49F7AE-BF12-4D12-8692-730BFDC84341@suse.de>
-	<20081119181012.GA16192@mail.oracle.com>
-	<5D4218FE-BA85-4240-8F23-1FCD779A5566@suse.de>
-Message-ID: <26ef5e70812020609k9f4fe0ehda517fa4f352302e@mail.gmail.com>
+From: Coly Li <coyli@suse.de>
+Date: Wed, 03 Dec 2008 00:36:27 +0800
+Subject: [Ocfs2-devel] [nov 29] what is ocfs2_lock() used for ?
+In-Reply-To: <49348BF5.8040004@oracle.com>
+References: <4930FDE8.3070103@suse.de> <49348BF5.8040004@oracle.com>
+Message-ID: <4935640B.5010508@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Just wondering what the status of this (and the other non-lsb patches)
-is... you're not waiting on me to commit are you?
 
-On Wed, Nov 19, 2008 at 21:23, Andrew Beekhof <abeekhof@suse.de> wrote:
->
-> On Nov 19, 2008, at 7:10 PM, Joel Becker wrote:
->
->>        Well, if you are just trying to figure out the value to stick in
->> /sys/fs/ocfs2/cluster_stack, the answer is "cman", because I wrote those
->> bits in ocfs2-tools ;-)
->
-> Yeah, but pcmk is the future man :)
->
->>> Np.
->>> Do you want to fix that when you commit or shall I resend?
+
+Tao Ma Wrote:
+> 
+> 
+> Coly Li wrote:
+>> Hi List,
 >>
->>        Why don't you resend so we don't have me stomping on it?
->
-> attached
-> I'll get together with Lon at some point and get the cman/pcmk
-> auto-detection working - will send a patch when its done.
->
->
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+>> In Linus tree, I find ocfs2_lock() in fs/ocfs2/locks.c, this function
+>> can not be found from sles10
+>> sp2 tree. Also I don't find any other code calling ocfs2_lock().
+> It is an operation in file_operations. git log fs/ocfs2/locks.c shows
+> that it is added by commit 53da4939f349d4edd283b043219221ca5b78e4d4.
+> 
+> commit 53da4939f349d4edd283b043219221ca5b78e4d4
+> Author: Mark Fasheh <mfasheh@suse.com>
+> Date:   Mon Jul 21 14:29:16 2008 -0700
+> 
+>     ocfs2: POSIX file locks support
+> 
+>     This is actually pretty easy since fs/dlm already handles the bulk
+> of the work. The Ocfs2 userspace cluster stack module already uses
+> fs/dlm as the underlying lock manager, so I only had to add the right
+> calls.
+> 
+>     Cluster-aware POSIX locks ("plocks") can be turned off by the same
+> means at UNIX locks - mount with 'noflocks', or create a local-only
+> Ocfs2 volume. Internally, the file system uses two sets of
+> file_operations, depending on whether cluster aware plocks is required.
+> This turns out to be easier than implementing local-only versions of
+> ->lock.
+> 
+>     Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+
+Thanks for your explaining, really helpful.
+
+-- 
+Coly Li
+SuSE PRC Labs
