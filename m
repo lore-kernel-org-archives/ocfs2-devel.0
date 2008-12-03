@@ -1,71 +1,45 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed,  3 Dec 2008 14:40:32 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/xattr: Always updating ctime in xattr
-	set.
-Message-ID: <1228286432-13654-1-git-send-email-tao.ma@oracle.com>
+From: Coly Li <coyli@suse.de>
+Date: Thu, 04 Dec 2008 03:48:20 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix DLM_BADARGS error in
+ concurrent file locking
+In-Reply-To: <4935B20B.9040309@oracle.com>
+References: <493524C0.4090506@suse.de> <4935B20B.9040309@oracle.com>
+Message-ID: <4936E284.6030000@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In xattr set, we should always update ctime if the operation goes
-sucessfully. The old one mistakenly put it in ocfs2_xattr_set_entry
-which is only called when we set xattr in inode or xattr block. The
-side benefit is that it resolve the bug 1052 since in that scenario,
-ocfs2_calc_xattr_set_need only calc out the xattr set credits while
-ocfs2_xattr_set_entry update the inode also which isn't concerned with
-the process of xattr set.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/xattr.c |   20 ++++++++++++++++----
- 1 files changed, 16 insertions(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 7e0d62a..fa24067 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -1621,10 +1621,6 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 	oi->ip_dyn_features |= flag;
- 	di->i_dyn_features = cpu_to_le16(oi->ip_dyn_features);
- 	spin_unlock(&oi->ip_lock);
--	/* Update inode ctime */
--	inode->i_ctime = CURRENT_TIME;
--	di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
--	di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
- 
- 	ret = ocfs2_journal_dirty(handle, xs->inode_bh);
- 	if (ret < 0)
-@@ -2528,6 +2524,20 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
- 		}
- 	}
- 
-+	if (!ret) {
-+		/* Update inode ctime. */
-+		ret = ocfs2_journal_access(ctxt->handle, inode, xis->inode_bh,
-+					   OCFS2_JOURNAL_ACCESS_WRITE);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		inode->i_ctime = CURRENT_TIME;
-+		di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
-+		di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+		ocfs2_journal_dirty(ctxt->handle, xis->inode_bh);
-+	}
- out:
- 	return ret;
- }
-@@ -2704,6 +2714,8 @@ int ocfs2_xattr_set(struct inode *inode,
- 		goto cleanup;
- 	}
- 
-+	/* we need to update inode's ctime field, so add credit for it. */
-+	credits += OCFS2_INODE_UPDATE_CREDITS;
- 	ctxt.handle = ocfs2_start_trans(osb, credits);
- 	if (IS_ERR(ctxt.handle)) {
- 		ret = PTR_ERR(ctxt.handle);
+Sunil Mushran Wrote:
+[snip]
+
+> Corrections welcome.
+> 
+> Lastly, test the patch not only with the flock() test but also otherwise.
+> Say, with recovery. Part of fixing bugs is ensuring the fix does not break
+> existing functionality. Run all multinode tests in ocfs2-test.
+On a 8 nodes cluster setup by xen, I tested these test cases,
+- run_buildkernel.py
+- cross_delete.py
+- dlmstress1.sh
+- run_extend_and_write.py
+- run_lvb_torture.py
+- mmap_test
+- test_netfail.py
+
+Not tested cases are run_create_racer.py and open_delete.py, cause I encountered some error when
+setup them.
+
+When I ran dlmsress1.sh and test_netfail.py,
+- Kernel BUG at fs/ocfs2/dlm/dlmast.c:334 was triggered 3 times.
+- Kernel BUG at fs/ocfs2/dlm/dlmmaster.c:1694 was triggered once.
+Right now, there is not obvious clue they are directly related to this patch. They might stay there
+already, I will do more testing to confirm.
+
+Thanks.
 -- 
-1.5.4.GIT
+Coly Li
+SuSE PRC Labs
