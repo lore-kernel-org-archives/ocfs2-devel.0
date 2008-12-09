@@ -1,39 +1,33 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 17 Dec 2008 21:16:00 -0000
-Subject: [Ocfs2-devel] [xfs-masters] [PATCH][RFC] fs: Add new
-	pre-allocation ioctls to vfs for compatibility with legacy
-	xfs ioctls
-In-Reply-To: <494969C6.4090500@sandeen.net>
-References: <49460F88.2080408@ankitjain.org>
-	<20081217202815.GE8791@wotan.suse.de>
-	<494969C6.4090500@sandeen.net>
-Message-ID: <20081217211550.GF8791@wotan.suse.de>
+From: Nawaz, Nabil <nnawaz@epsilon.com>
+Date: Tue, 09 Dec 2008 20:28:07 -0000
+Subject: [Ocfs2-devel] Upgrade ocfs2 question?
+Message-ID: <FFFC4A06BD14664BB93DB6AA31A7D02D42173F8661@TXMAILPROD.tx.epsilon.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Eric Sandeen <sandeen@sandeen.net>
-Cc: Ankit Jain <me@ankitjain.org>, linux-kernel@vger.kernel.org, joel.becker@oracle.com, Christoph Hellwig <hch@infradead.org>, xfs-masters@oss.sgi.com, Al Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, Dec 17, 2008 at 03:06:14PM -0600, Eric Sandeen wrote:
-> >> There are some things that I'm not sure about:
-> >> 1. Should the struct space_resv be exposed to user-space? If not,
-> >> then what would be the right place to put it? And the ioctl
-> >> definitions?
-> > 
-> > Yes. As far as where to put it, I'm not sure. Maybe falloc.h?
-> 
-> I'd sort of rather not; why should that legacy struct space_resv be
-> available in a header... I thought this was for people already using the
-> xfs ioctl, in which case they are already using the xfs header... and if
-> they want preallocation in any new work, they should use fallocate()
-> instead, yes?
+OCFS2 development team,
 
-Actually, yeah agreed - I take that back. Old users are already getting them
-from file system headers, new ones should use fallocate. So there's no need
-to expose the ioctls to userspace, at least not if all we're talking about
-is the RESVP ioctls.
-	--Mark
+We are on RHEL5
 
---
-Mark Fasheh
+oracle-umawachorad01-+ASM1:/u00/app/oracle/admin/wachprd/bdump> uname -a
+Linux umawachorad01 2.6.18-92.el5 #1 SMP Tue Apr 29 13:16:15 EDT 2008 x86_64
+
+
+We want to upgrade our current OCFS2 version 1.2.8 to the latest release 1.4.1
+
+oracle-umawachorad01-+ASM1:/u00/app/oracle/admin/wachprd/bdump> cat /proc/fs/ocfs2/version
+OCFS2 1.2.8 Wed May 21 20:46:51 PDT 2008 (build 9c7ae8bb50ef6d8791df2912775adcc5)
+
+We would like the steps to do this. I presume we need to bring down our RAC lusterware and databases for this?
+
+Thanks,
+Nabil
+
+________________________________
+This e-mail and files transmitted with it are confidential, and are intended solely for the use of the individual or entity to whom this e-mail is addressed. If you are not the intended recipient, or the employee or agent responsible to deliver it to the intended recipient, you are hereby notified that any dissemination, distribution or copying of this communication is strictly prohibited. If you are not one of the named recipient(s) or otherwise have reason to believe that you received this message in error, please immediately notify sender by e-mail, and destroy the original message. Thank You.
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20081209/55ca1023/attachment-0001.html 
