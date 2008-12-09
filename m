@@ -1,66 +1,181 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon,  8 Dec 2008 18:28:20 -0800
-Subject: [Ocfs2-devel] [PATCH 11/11] ocfs2/dlm: Fix race during lockres
-	mastery
+Date: Mon,  8 Dec 2008 18:28:19 -0800
+Subject: [Ocfs2-devel] [PATCH 10/11] ocfs2/dlm: Fix race in adding/removing
+	lockres' to/from the tracking list
 In-Reply-To: <1228789700-8226-1-git-send-email-sunil.mushran@oracle.com>
 References: <1228789700-8226-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1228789700-8226-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1228789700-8226-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-dlm_get_lock_resource() is supposed to return a lock resource with a proper
-master. If multiple concurrent threads attempt to lookup the lockres for the
-same lockid while the lock mastery in underway, one or more threads are likely
-to return a lockres without a proper master.
+This patch adds a new lock, dlm->tracking_lock, to protect adding/removing
+lockres' to/from the dlm->tracking_list. We were previously using dlm->spinlock
+for the same, but that proved inadequate as we could be freeing a lockres from
+a context that did not hold that lock. As the new lock only protects this list,
+we can explicitly take it when removing the lockres from the tracking list.
 
-This patch makes the threads wait in dlm_get_lock_resource() while the mastery
-is underway, ensuring all threads return the lockres with a proper master.
+This bug was exposed when testing multiple processes concurrently flock() the
+same file.
 
-This issue is known to be limited to users using the flock() syscall. For all
-other fs operations, the dlmglue layer serializes the dlm op for each lockid.
-
-Patch fixes Novell bz#425491
-https://bugzilla.novell.com/show_bug.cgi?id=425491
-
-Users encountering this bug will see flock() return EINVAL and dmesg have the
-following error:
-ERROR: Dlm error "DLM_BADARGS" while calling dlmlock on resource <LOCKID>: bad api args
-
-Reported-by: Coly Li <coyli@suse.de>
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmmaster.c |    9 ++++++++-
- 1 files changed, 8 insertions(+), 1 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    3 ++
+ fs/ocfs2/dlm/dlmdebug.c  |   53 ++++++++++++++++++++-------------------------
+ fs/ocfs2/dlm/dlmdomain.c |    1 +
+ fs/ocfs2/dlm/dlmmaster.c |   10 ++++++++
+ 4 files changed, 38 insertions(+), 29 deletions(-)
 
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index 9add88d..a7ecccc 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -140,6 +140,7 @@ struct dlm_ctxt
+ 	unsigned int purge_count;
+ 	spinlock_t spinlock;
+ 	spinlock_t ast_lock;
++	spinlock_t track_lock;
+ 	char *name;
+ 	u8 node_num;
+ 	u32 key;
+@@ -316,6 +317,8 @@ struct dlm_lock_resource
+ 	 * put on a list for the dlm thread to run. */
+ 	unsigned long    last_used;
+ 
++	struct dlm_ctxt *dlm;
++
+ 	unsigned migration_pending:1;
+ 	atomic_t asts_reserved;
+ 	spinlock_t spinlock;
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 1b81dcb..b32f60a 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -630,43 +630,38 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
+ {
+ 	struct debug_lockres *dl = m->private;
+ 	struct dlm_ctxt *dlm = dl->dl_ctxt;
++	struct dlm_lock_resource *oldres = dl->dl_res;
+ 	struct dlm_lock_resource *res = NULL;
++	struct list_head *track_list;
+ 
+-	spin_lock(&dlm->spinlock);
++	spin_lock(&dlm->track_lock);
++	if (oldres)
++		track_list = &oldres->tracking;
++	else
++		track_list = &dlm->tracking_list;
+ 
+-	if (dl->dl_res) {
+-		list_for_each_entry(res, &dl->dl_res->tracking, tracking) {
+-			if (dl->dl_res) {
+-				dlm_lockres_put(dl->dl_res);
+-				dl->dl_res = NULL;
+-			}
+-			if (&res->tracking == &dlm->tracking_list) {
+-				mlog(0, "End of list found, %p\n", res);
+-				dl = NULL;
+-				break;
+-			}
++	list_for_each_entry(res, track_list, tracking) {
++		if (&res->tracking == &dlm->tracking_list)
++			res = NULL;
++		else
+ 			dlm_lockres_get(res);
+-			dl->dl_res = res;
+-			break;
+-		}
+-	} else {
+-		if (!list_empty(&dlm->tracking_list)) {
+-			list_for_each_entry(res, &dlm->tracking_list, tracking)
+-				break;
+-			dlm_lockres_get(res);
+-			dl->dl_res = res;
+-		} else
+-			dl = NULL;
++		break;
+ 	}
++	spin_unlock(&dlm->track_lock);
+ 
+-	if (dl) {
+-		spin_lock(&dl->dl_res->spinlock);
+-		dump_lockres(dl->dl_res, dl->dl_buf, dl->dl_len - 1);
+-		spin_unlock(&dl->dl_res->spinlock);
+-	}
++	if (oldres)
++		dlm_lockres_put(oldres);
+ 
+-	spin_unlock(&dlm->spinlock);
++	dl->dl_res = res;
++
++	if (res) {
++		spin_lock(&res->spinlock);
++		dump_lockres(res, dl->dl_buf, dl->dl_len - 1);
++		spin_unlock(&res->spinlock);
++	} else
++		dl = NULL;
+ 
++	/* passed to seq_show */
+ 	return dl;
+ }
+ 
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 2eff4a4..c2e192e 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1550,6 +1550,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	spin_lock_init(&dlm->spinlock);
+ 	spin_lock_init(&dlm->master_lock);
+ 	spin_lock_init(&dlm->ast_lock);
++	spin_lock_init(&dlm->track_lock);
+ 	INIT_LIST_HEAD(&dlm->list);
+ 	INIT_LIST_HEAD(&dlm->dirty_list);
+ 	INIT_LIST_HEAD(&dlm->reco.resources);
 diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 4d493f4..6bda3ab 100644
+index a575392..4d493f4 100644
 --- a/fs/ocfs2/dlm/dlmmaster.c
 +++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -736,14 +736,21 @@ lookup:
- 	if (tmpres) {
- 		int dropping_ref = 0;
+@@ -509,8 +509,10 @@ void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
+ static void dlm_lockres_release(struct kref *kref)
+ {
+ 	struct dlm_lock_resource *res;
++	struct dlm_ctxt *dlm;
  
-+		spin_unlock(&dlm->spinlock);
-+
- 		spin_lock(&tmpres->spinlock);
-+		/* We wait for the other thread that is mastering the resource */
-+		if (tmpres->owner == DLM_LOCK_RES_OWNER_UNKNOWN) {
-+			__dlm_wait_on_lockres(tmpres);
-+			BUG_ON(tmpres->owner == DLM_LOCK_RES_OWNER_UNKNOWN);
-+		}
-+
- 		if (tmpres->owner == dlm->node_num) {
- 			BUG_ON(tmpres->state & DLM_LOCK_RES_DROPPING_REF);
- 			dlm_lockres_grab_inflight_ref(dlm, tmpres);
- 		} else if (tmpres->state & DLM_LOCK_RES_DROPPING_REF)
- 			dropping_ref = 1;
- 		spin_unlock(&tmpres->spinlock);
--		spin_unlock(&dlm->spinlock);
+ 	res = container_of(kref, struct dlm_lock_resource, refs);
++	dlm = res->dlm;
  
- 		/* wait until done messaging the master, drop our ref to allow
- 		 * the lockres to be purged, start over. */
+ 	/* This should not happen -- all lockres' have a name
+ 	 * associated with them at init time. */
+@@ -519,6 +521,7 @@ static void dlm_lockres_release(struct kref *kref)
+ 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+ 	     res->lockname.name);
+ 
++	spin_lock(&dlm->track_lock);
+ 	if (!list_empty(&res->tracking))
+ 		list_del_init(&res->tracking);
+ 	else {
+@@ -526,6 +529,9 @@ static void dlm_lockres_release(struct kref *kref)
+ 		     res->lockname.len, res->lockname.name);
+ 		dlm_print_one_lock_resource(res);
+ 	}
++	spin_unlock(&dlm->track_lock);
++
++	dlm_put(dlm);
+ 
+ 	if (!hlist_unhashed(&res->hash_node) ||
+ 	    !list_empty(&res->granted) ||
+@@ -599,6 +605,10 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+ 	res->migration_pending = 0;
+ 	res->inflight_locks = 0;
+ 
++	/* put in dlm_lockres_release */
++	dlm_grab(dlm);
++	res->dlm = dlm;
++
+ 	kref_init(&res->refs);
+ 
+ 	/* just for consistency */
 -- 
 1.5.6.3
