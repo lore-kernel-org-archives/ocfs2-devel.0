@@ -1,100 +1,61 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Tue,  9 Dec 2008 17:09:48 -0800
-Subject: [Ocfs2-devel] [PATCH 11/18] ocfs2: Pull ocfs2_xattr_value_buf up
-	from __ocfs2_remove_xattr_range().
-In-Reply-To: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
-References: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1228871395-10273-12-git-send-email-joel.becker@oracle.com>
+Date: Tue,  9 Dec 2008 17:09:37 -0800
+Subject: [Ocfs2-devel] [PATCH 0/18] ocfs2: Add metadata ECC - almost there.
+Message-ID: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Place an ocfs2_xattr_value_buf in __ocfs2_xattr_shrink_size() and pass
-it down to __ocfs2_remove_xattr_range().
+These patches add the metadata ECC code to ocfs2.  They have one
+limitation - they do not ECC directory blocks yet.  However, that will
+only take a simple insertion of the dirblock trailer.  With xattr ECC
+completed, the patches are approaching a final form and are ready for
+initial review.  They are atop my xattr-buckets-2 branch.
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/xattr.c |   28 ++++++++++++++--------------
- 1 files changed, 14 insertions(+), 14 deletions(-)
+The first patch adds buffer triggers to JDB2.  This allows us to only
+calculate the ECC code when JBD2 is about to write a block to disk.
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index df35b7d..42e062c 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -636,8 +636,7 @@ leave:
- }
- 
- static int __ocfs2_remove_xattr_range(struct inode *inode,
--				      struct buffer_head *root_bh,
--				      struct ocfs2_xattr_value_root *xv,
-+				      struct ocfs2_xattr_value_buf *vb,
- 				      u32 cpos, u32 phys_cpos, u32 len,
- 				      struct ocfs2_xattr_set_ctxt *ctxt)
- {
-@@ -645,16 +644,11 @@ static int __ocfs2_remove_xattr_range(struct inode *inode,
- 	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
- 	handle_t *handle = ctxt->handle;
- 	struct ocfs2_extent_tree et;
--	struct ocfs2_xattr_value_buf vb = {
--		.vb_bh = root_bh,
--		.vb_xv = xv,
--		.vb_access = ocfs2_journal_access,
--	};
- 
--	ocfs2_init_xattr_value_extent_tree(&et, inode, &vb);
-+	ocfs2_init_xattr_value_extent_tree(&et, inode, vb);
- 
--	ret = vb.vb_access(handle, inode, vb.vb_bh,
--			   OCFS2_JOURNAL_ACCESS_WRITE);
-+	ret = vb->vb_access(handle, inode, vb->vb_bh,
-+			    OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -667,9 +661,9 @@ static int __ocfs2_remove_xattr_range(struct inode *inode,
- 		goto out;
- 	}
- 
--	le32_add_cpu(&vb.vb_xv->xr_clusters, -len);
-+	le32_add_cpu(&vb->vb_xv->xr_clusters, -len);
- 
--	ret = ocfs2_journal_dirty(handle, vb.vb_bh);
-+	ret = ocfs2_journal_dirty(handle, vb->vb_bh);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -693,6 +687,11 @@ static int ocfs2_xattr_shrink_size(struct inode *inode,
- 	int ret = 0;
- 	u32 trunc_len, cpos, phys_cpos, alloc_size;
- 	u64 block;
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = root_bh,
-+		.vb_xv = xv,
-+		.vb_access = ocfs2_journal_access,
-+	};
- 
- 	if (old_clusters <= new_clusters)
- 		return 0;
-@@ -701,7 +700,8 @@ static int ocfs2_xattr_shrink_size(struct inode *inode,
- 	trunc_len = old_clusters - new_clusters;
- 	while (trunc_len) {
- 		ret = ocfs2_xattr_get_clusters(inode, cpos, &phys_cpos,
--					       &alloc_size, &xv->xr_list);
-+					       &alloc_size,
-+					       &vb.vb_xv->xr_list);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -710,7 +710,7 @@ static int ocfs2_xattr_shrink_size(struct inode *inode,
- 		if (alloc_size > trunc_len)
- 			alloc_size = trunc_len;
- 
--		ret = __ocfs2_remove_xattr_range(inode, root_bh, xv, cpos,
-+		ret = __ocfs2_remove_xattr_range(inode, &vb, cpos,
- 						 phys_cpos, alloc_size,
- 						 ctxt);
- 		if (ret) {
--- 
-1.5.6.5
+Next, we add the actual blockcheck functions.  These are the functions
+that compute the checksum (using the kernel's crc32_le()) and the ECC
+bits (this is hamming code, implemented in blockcheck.c).
+
+Then we create metadata-type specific ocfs2_journal_access_*() functions
+to make sure each metadata type uses its own checksum field.  These are
+hooked up to the regular metadata types.
+
+We add ecc calculation to xattr buckets.  Because buckets can be
+multiple blocks, they cannot use journal triggers.  However, they are
+rarely updated, so the loss of efficiency isn't very important.
+
+Last, we refactor the xattr value setting code to make sure we know
+which metadata type an xattr value belongs to.  That way we can call the
+appropriate ocfs2_journal_access_*() function.
+
+The code is also available in my repository.
+
+[View]
+http://oss.oracle.com/git/?p=jlbec/linux-2.6.git;a=shortlog;h=metaecc
+[Pull]
+git://oss.oracle.com/git/jlbec/linux-2.6.git metaecc
+
+Joel Becker (18):
+      jbd2: Add buffer triggers
+      ocfs2: Add the on-disk structures for metadata checksums.
+      ocfs2: Add the underlying blockcheck code.
+      ocfs2: Add a validation hook for quota block reads.
+      ocfs2: block read meta ecc.
+      ocfs2: Add journal_access functions with jbd2 triggers.
+      ocfs2: Wrap up the common use cases of ocfs2_new_path().
+      ocfs2: Use metadata-specific ocfs2_journal_access_*() functions.
+      ocfs2: Add ecc and checksums to ocfs2 xattr buckets.
+      ocfs2: Create ocfs2_xattr_value_buf.
+      ocfs2: Pull ocfs2_xattr_value_buf up from __ocfs2_remove_xattr_range().
+      ocfs2: Pull ocfs2_xattr_value_buf up into ocfs2_xattr_value_truncate().
+      ocfs2: Pass ocfs2_xattr_value_buf into ocfs2_xattr_value_truncate().
+      ocfs2: Pass value buf to ocfs2_xattr_update_entry().
+      ocfs2: Use ocfs2_xattr_value_buf in ocfs2_xattr_set_entry().
+      ocfs2: Pass value buf to ocfs2_remove_value_outside().
+      ocfs2: Use proper journal_access function in xattr.c
+      ocfs2: Enable metadata checksums.
