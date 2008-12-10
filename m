@@ -1,282 +1,179 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Tue,  9 Dec 2008 17:09:42 -0800
-Subject: [Ocfs2-devel] [PATCH 05/18] ocfs2: block read meta ecc.
+Date: Tue,  9 Dec 2008 17:09:52 -0800
+Subject: [Ocfs2-devel] [PATCH 15/18] ocfs2: Use ocfs2_xattr_value_buf in
+	ocfs2_xattr_set_entry().
 In-Reply-To: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
 References: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1228871395-10273-6-git-send-email-joel.becker@oracle.com>
+Message-ID: <1228871395-10273-16-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add block check calls to the read_block validate functions.  This is the
-almost all of the read-side checking of metaecc.  xattr buckets are not checked
-yet.   Writes are also unchecked, and so a read-write mount will quickly fail.
+ocfs2_xattr_set_entry is the function that knows what type of block it
+is setting into.  This is what we wanted from ocfs2_xattr_value_buf.
+Plus, moving the value buf up into ocfs2_xattr_set_entry() allows us to
+pass it into ocfs2_xattr_set_value_outside() and ocfs2_xattr_cleanup().
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/alloc.c        |   17 +++++++++++++++++
- fs/ocfs2/blockcheck.c   |    9 +++++++++
- fs/ocfs2/inode.c        |   18 +++++++++++++++++-
- fs/ocfs2/quota_global.c |   13 +++++++++++--
- fs/ocfs2/suballoc.c     |   31 ++++++++++++++++++++++++++++++-
- fs/ocfs2/xattr.c        |   17 +++++++++++++++++
- 6 files changed, 101 insertions(+), 4 deletions(-)
+ fs/ocfs2/xattr.c |   53 +++++++++++++++++++++++++++++------------------------
+ 1 files changed, 29 insertions(+), 24 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 84a7bd4..6b27f74 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -37,6 +37,7 @@
- 
- #include "alloc.h"
- #include "aops.h"
-+#include "blockcheck.h"
- #include "dlmglue.h"
- #include "extent_map.h"
- #include "inode.h"
-@@ -682,12 +683,28 @@ struct ocfs2_merge_ctxt {
- static int ocfs2_validate_extent_block(struct super_block *sb,
- 				       struct buffer_head *bh)
- {
-+	int rc;
- 	struct ocfs2_extent_block *eb =
- 		(struct ocfs2_extent_block *)bh->b_data;
- 
- 	mlog(0, "Validating extent block %llu\n",
- 	     (unsigned long long)bh->b_blocknr);
- 
-+	BUG_ON(!buffer_uptodate(bh));
-+
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &eb->h_check);
-+	if (rc)
-+		return rc;
-+
-+	/*
-+	 * Errors after here are fatal.
-+	 */
-+
- 	if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
- 		ocfs2_error(sb,
- 			    "Extent block #%llu has bad signature %.*s",
-diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
-index 53498e3..48284e4 100644
---- a/fs/ocfs2/blockcheck.c
-+++ b/fs/ocfs2/blockcheck.c
-@@ -24,6 +24,8 @@
- #include <linux/bitops.h>
- #include <asm/byteorder.h>
- 
-+#include <cluster/masklog.h>
-+
- #include "ocfs2.h"
- 
- #include "blockcheck.h"
-@@ -267,6 +269,10 @@ int ocfs2_block_check_validate(void *data, size_t blocksize,
- 	if (crc == check.bc_crc32e)
- 		goto out;
- 
-+	mlog(ML_ERROR,
-+	     "CRC32 failed: stored: %u, computed %u.  Applying ECC.\n",
-+	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
-+
- 	/* Ok, try ECC fixups */
- 	ecc = ocfs2_hamming_encode_block(data, blocksize);
- 	ocfs2_hamming_fix_block(data, blocksize, ecc ^ check.bc_ecc);
-@@ -276,6 +282,9 @@ int ocfs2_block_check_validate(void *data, size_t blocksize,
- 	if (crc == check.bc_crc32e)
- 		goto out;
- 
-+	mlog(ML_ERROR, "Fixed CRC32 failed: stored: %u, computed %u\n",
-+	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
-+
- 	rc = -EIO;
- 
- out:
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 288512c..9370b65 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -38,6 +38,7 @@
- #include "ocfs2.h"
- 
- #include "alloc.h"
-+#include "blockcheck.h"
- #include "dlmglue.h"
- #include "extent_map.h"
- #include "file.h"
-@@ -1262,7 +1263,7 @@ void ocfs2_refresh_inode(struct inode *inode,
- int ocfs2_validate_inode_block(struct super_block *sb,
- 			       struct buffer_head *bh)
- {
--	int rc = -EINVAL;
-+	int rc;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
- 
- 	mlog(0, "Validating dinode %llu\n",
-@@ -1270,6 +1271,21 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 
- 	BUG_ON(!buffer_uptodate(bh));
- 
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &di->i_check);
-+	if (rc)
-+		goto bail;
-+
-+	/*
-+	 * Errors after here are fatal.
-+	 */
-+
-+	rc = -EINVAL;
-+
- 	if (!OCFS2_IS_VALID_DINODE(di)) {
- 		ocfs2_error(sb, "Invalid dinode #%llu: signature = %.*s\n",
- 			    (unsigned long long)bh->b_blocknr, 7,
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index 5b05f94..d338438 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -16,6 +16,7 @@
- #include "ocfs2_fs.h"
- #include "ocfs2.h"
- #include "alloc.h"
-+#include "blockcheck.h"
- #include "inode.h"
- #include "journal.h"
- #include "file.h"
-@@ -88,12 +89,20 @@ struct qtree_fmt_operations ocfs2_global_ops = {
- static int ocfs2_validate_quota_block(struct super_block *sb,
- 				      struct buffer_head *bh)
- {
--	struct ocfs2_disk_dqtrailer *dqt = ocfs2_dq_trailer(sb, bh->b_data);
-+	struct ocfs2_disk_dqtrailer *dqt =
-+		ocfs2_block_dqtrailer(sb->s_blocksize, bh->b_data);
- 
- 	mlog(0, "Validating quota block %llu\n",
- 	     (unsigned long long)bh->b_blocknr);
- 
--	return 0;
-+	BUG_ON(!buffer_uptodate(bh));
-+
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	return ocfs2_validate_meta_ecc(sb, bh->b_data, &dqt->dq_check);
- }
- 
- int ocfs2_read_quota_block(struct inode *inode, u64 v_block,
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 226fe21..7875576 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -35,6 +35,7 @@
- #include "ocfs2.h"
- 
- #include "alloc.h"
-+#include "blockcheck.h"
- #include "dlmglue.h"
- #include "inode.h"
- #include "journal.h"
-@@ -250,8 +251,18 @@ int ocfs2_check_group_descriptor(struct super_block *sb,
- 				 struct buffer_head *bh)
- {
- 	int rc;
-+	struct ocfs2_group_desc *gd = (struct ocfs2_group_desc *)bh->b_data;
-+
-+	BUG_ON(!buffer_uptodate(bh));
- 
--	rc = ocfs2_validate_gd_self(sb, bh, 1);
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &gd->bg_check);
-+	if (!rc)
-+		rc = ocfs2_validate_gd_self(sb, bh, 1);
- 	if (!rc)
- 		rc = ocfs2_validate_gd_parent(sb, di, bh, 1);
- 
-@@ -261,9 +272,27 @@ int ocfs2_check_group_descriptor(struct super_block *sb,
- static int ocfs2_validate_group_descriptor(struct super_block *sb,
- 					   struct buffer_head *bh)
- {
-+	int rc;
-+	struct ocfs2_group_desc *gd = (struct ocfs2_group_desc *)bh->b_data;
-+
- 	mlog(0, "Validating group descriptor %llu\n",
- 	     (unsigned long long)bh->b_blocknr);
- 
-+	BUG_ON(!buffer_uptodate(bh));
-+
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &gd->bg_check);
-+	if (rc)
-+		return rc;
-+
-+	/*
-+	 * Errors after here are fatal.
-+	 */
-+
- 	return ocfs2_validate_gd_self(sb, bh, 0);
- }
- 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 94cadbe..dcf26ad 100644
+index f1a7042..a33e2df 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -42,6 +42,7 @@
- 
- #include "ocfs2.h"
- #include "alloc.h"
-+#include "blockcheck.h"
- #include "dlmglue.h"
- #include "file.h"
- #include "symlink.h"
-@@ -322,12 +323,28 @@ static void ocfs2_xattr_bucket_copy_data(struct ocfs2_xattr_bucket *dest,
- static int ocfs2_validate_xattr_block(struct super_block *sb,
- 				      struct buffer_head *bh)
+@@ -1252,6 +1252,7 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
+ 			       handle_t *handle,
+ 			       struct ocfs2_xattr_info *xi,
+ 			       struct ocfs2_xattr_search *xs,
++			       struct ocfs2_xattr_value_buf *vb,
+ 			       size_t offs)
  {
-+	int rc;
- 	struct ocfs2_xattr_block *xb =
- 		(struct ocfs2_xattr_block *)bh->b_data;
+ 	int ret = 0;
+@@ -1259,8 +1260,8 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
+ 	void *val = xs->base + offs;
+ 	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
  
- 	mlog(0, "Validating xattr block %llu\n",
- 	     (unsigned long long)bh->b_blocknr);
+-	ret = ocfs2_journal_access(handle, inode, xs->xattr_bh,
+-				   OCFS2_JOURNAL_ACCESS_WRITE);
++	ret = vb->vb_access(handle, inode, vb->vb_bh,
++			    OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out;
+@@ -1271,7 +1272,7 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
+ 	memset((void *)xs->here, 0, sizeof(struct ocfs2_xattr_entry));
+ 	memset(val, 0, size);
  
-+	BUG_ON(!buffer_uptodate(bh));
+-	ret = ocfs2_journal_dirty(handle, xs->xattr_bh);
++	ret = ocfs2_journal_dirty(handle, vb->vb_bh);
+ 	if (ret < 0)
+ 		mlog_errno(ret);
+ out:
+@@ -1318,6 +1319,7 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
+ 					 struct ocfs2_xattr_info *xi,
+ 					 struct ocfs2_xattr_search *xs,
+ 					 struct ocfs2_xattr_set_ctxt *ctxt,
++					 struct ocfs2_xattr_value_buf *vb,
+ 					 size_t offs)
+ {
+ 	size_t name_len = strlen(xi->name);
+@@ -1325,10 +1327,6 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
+ 	struct ocfs2_xattr_value_root *xv = NULL;
+ 	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
+ 	int ret = 0;
+-	struct ocfs2_xattr_value_buf vb = {
+-		.vb_bh = xs->xattr_bh,
+-		.vb_access = ocfs2_journal_access
+-	};
+ 
+ 	memset(val, 0, size);
+ 	memcpy(val, xi->name, name_len);
+@@ -1339,19 +1337,19 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
+ 	xv->xr_list.l_tree_depth = 0;
+ 	xv->xr_list.l_count = cpu_to_le16(1);
+ 	xv->xr_list.l_next_free_rec = 0;
+-	vb.vb_xv = xv;
++	vb->vb_xv = xv;
+ 
+-	ret = ocfs2_xattr_value_truncate(inode, &vb, xi->value_len, ctxt);
++	ret = ocfs2_xattr_value_truncate(inode, vb, xi->value_len, ctxt);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+ 		return ret;
+ 	}
+-	ret = ocfs2_xattr_update_entry(inode, ctxt->handle, xi, xs, &vb, offs);
++	ret = ocfs2_xattr_update_entry(inode, ctxt->handle, xi, xs, vb, offs);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+ 		return ret;
+ 	}
+-	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, vb.vb_xv,
++	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, vb->vb_xv,
+ 					      xi->value, xi->value_len);
+ 	if (ret < 0)
+ 		mlog_errno(ret);
+@@ -1488,6 +1486,16 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 		.value = xi->value,
+ 		.value_len = xi->value_len,
+ 	};
++	struct ocfs2_xattr_value_buf vb = {
++		.vb_bh = xs->xattr_bh,
++		.vb_access = ocfs2_journal_access_di,
++	};
 +
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &xb->xb_check);
-+	if (rc)
-+		return rc;
-+
-+	/*
-+	 * Errors after here are fatal
-+	 */
-+
- 	if (!OCFS2_IS_VALID_XATTR_BLOCK(xb)) {
- 		ocfs2_error(sb,
- 			    "Extended attribute block #%llu has bad "
++	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
++		BUG_ON(xs->xattr_bh == xs->inode_bh);
++		vb.vb_access = ocfs2_journal_access_xb;
++	} else
++		BUG_ON(xs->xattr_bh != xs->inode_bh);
+ 
+ 	/* Compute min_offs, last and free space. */
+ 	last = xs->header->xh_entries;
+@@ -1543,18 +1551,14 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 		if (ocfs2_xattr_is_local(xs->here) && size == size_l) {
+ 			/* Replace existing local xattr with tree root */
+ 			ret = ocfs2_xattr_set_value_outside(inode, xi, xs,
+-							    ctxt, offs);
++							    ctxt, &vb, offs);
+ 			if (ret < 0)
+ 				mlog_errno(ret);
+ 			goto out;
+ 		} else if (!ocfs2_xattr_is_local(xs->here)) {
+ 			/* For existing xattr which has value outside */
+-			struct ocfs2_xattr_value_buf vb = {
+-				.vb_bh = xs->xattr_bh,
+-				.vb_xv = (struct ocfs2_xattr_value_root *)
+-					(val + OCFS2_XATTR_SIZE(name_len)),
+-				.vb_access = ocfs2_journal_access,
+-			};
++			vb.vb_xv = (struct ocfs2_xattr_value_root *)
++				(val + OCFS2_XATTR_SIZE(name_len));
+ 
+ 			if (xi->value_len > OCFS2_XATTR_INLINE_SIZE) {
+ 				/*
+@@ -1605,16 +1609,16 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 		}
+ 	}
+ 
+-	ret = ocfs2_journal_access(handle, inode, xs->inode_bh,
+-				   OCFS2_JOURNAL_ACCESS_WRITE);
++	ret = ocfs2_journal_access_di(handle, inode, xs->inode_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out;
+ 	}
+ 
+ 	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
+-		ret = ocfs2_journal_access(handle, inode, xs->xattr_bh,
+-					   OCFS2_JOURNAL_ACCESS_WRITE);
++		ret = vb.vb_access(handle, inode, vb.vb_bh,
++				   OCFS2_JOURNAL_ACCESS_WRITE);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
+@@ -1674,7 +1678,8 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 		 * This is the second step for value size > INLINE_SIZE.
+ 		 */
+ 		size_t offs = le16_to_cpu(xs->here->xe_name_offset);
+-		ret = ocfs2_xattr_set_value_outside(inode, xi, xs, ctxt, offs);
++		ret = ocfs2_xattr_set_value_outside(inode, xi, xs, ctxt,
++						    &vb, offs);
+ 		if (ret < 0) {
+ 			int ret2;
+ 
+@@ -1684,7 +1689,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 			 * the junk tree root we have already set in local.
+ 			 */
+ 			ret2 = ocfs2_xattr_cleanup(inode, ctxt->handle,
+-						   xi, xs, offs);
++						   xi, xs, &vb, offs);
+ 			if (ret2 < 0)
+ 				mlog_errno(ret2);
+ 		}
 -- 
 1.5.6.5
