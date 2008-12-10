@@ -1,203 +1,186 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Tue,  9 Dec 2008 17:09:50 -0800
-Subject: [Ocfs2-devel] [PATCH 13/18] ocfs2: Pass ocfs2_xattr_value_buf into
-	ocfs2_xattr_value_truncate().
+Date: Tue,  9 Dec 2008 17:09:44 -0800
+Subject: [Ocfs2-devel] [PATCH 07/18] ocfs2: Wrap up the common use cases of
+	ocfs2_new_path().
 In-Reply-To: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
 References: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1228871395-10273-14-git-send-email-joel.becker@oracle.com>
+Message-ID: <1228871395-10273-8-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The callers of ocfs2_xattr_value_truncate() now pass in
-ocfs2_xattr_value_bufs.  These callers are the ones that calculated the
-xv location, so they are the right starting point.
+The majority of ocfs2_new_path() calls are:
+
+	ocfs2_new_path(path_root_bh(otherpath),
+		       path_root_el(otherpath));
+
+Let's call that ocfs2_new_path_from_path().  The rest do similar things
+from struct ocfs2_extent_tree.  Let's call those
+ocfs2_new_path_from_et().  This will make the next change easier.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/xattr.c |   66 +++++++++++++++++++++++++++--------------------------
- 1 files changed, 34 insertions(+), 32 deletions(-)
+ fs/ocfs2/alloc.c |   48 ++++++++++++++++++++++++------------------------
+ 1 files changed, 24 insertions(+), 24 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index a53f49d..316bc37 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -718,19 +718,13 @@ out:
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 6b27f74..c22ff49 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -532,6 +532,16 @@ static struct ocfs2_path *ocfs2_new_path(struct buffer_head *root_bh,
+ 	return path;
  }
  
- static int ocfs2_xattr_value_truncate(struct inode *inode,
--				      struct buffer_head *root_bh,
--				      struct ocfs2_xattr_value_root *xv,
-+				      struct ocfs2_xattr_value_buf *vb,
- 				      int len,
- 				      struct ocfs2_xattr_set_ctxt *ctxt)
- {
- 	int ret;
- 	u32 new_clusters = ocfs2_clusters_for_bytes(inode->i_sb, len);
--	u32 old_clusters = le32_to_cpu(xv->xr_clusters);
--	struct ocfs2_xattr_value_buf vb = {
--		.vb_bh = root_bh,
--		.vb_xv = xv,
--		.vb_access = ocfs2_journal_access,
--	};
-+	u32 old_clusters = le32_to_cpu(vb->vb_xv->xr_clusters);
++static struct ocfs2_path *ocfs2_new_path_from_path(struct ocfs2_path *path)
++{
++	return ocfs2_new_path(path_root_bh(path), path_root_el(path));
++}
++
++static struct ocfs2_path *ocfs2_new_path_from_et(struct ocfs2_extent_tree *et)
++{
++	return ocfs2_new_path(et->et_root_bh, et->et_root_el);
++}
++
+ /*
+  * Convenience function to journal all components in a path.
+  */
+@@ -2150,8 +2160,7 @@ static int ocfs2_rotate_tree_right(struct inode *inode,
  
- 	if (new_clusters == old_clusters)
- 		return 0;
-@@ -738,11 +732,11 @@ static int ocfs2_xattr_value_truncate(struct inode *inode,
- 	if (new_clusters > old_clusters)
- 		ret = ocfs2_xattr_extend_allocation(inode,
- 						    new_clusters - old_clusters,
--						    &vb, ctxt);
-+						    vb, ctxt);
- 	else
- 		ret = ocfs2_xattr_shrink_size(inode,
- 					      old_clusters, new_clusters,
--					      &vb, ctxt);
-+					      vb, ctxt);
+ 	*ret_left_path = NULL;
  
- 	return ret;
- }
-@@ -1330,6 +1324,10 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 	struct ocfs2_xattr_value_root *xv = NULL;
- 	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
- 	int ret = 0;
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = xs->xattr_bh,
-+		.vb_access = ocfs2_journal_access
-+	};
- 
- 	memset(val, 0, size);
- 	memcpy(val, xi->name, name_len);
-@@ -1340,9 +1338,9 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 	xv->xr_list.l_tree_depth = 0;
- 	xv->xr_list.l_count = cpu_to_le16(1);
- 	xv->xr_list.l_next_free_rec = 0;
-+	vb.vb_xv = xv;
- 
--	ret = ocfs2_xattr_value_truncate(inode, xs->xattr_bh, xv,
--					 xi->value_len, ctxt);
-+	ret = ocfs2_xattr_value_truncate(inode, &vb, xi->value_len, ctxt);
- 	if (ret < 0) {
+-	left_path = ocfs2_new_path(path_root_bh(right_path),
+-				   path_root_el(right_path));
++	left_path = ocfs2_new_path_from_path(right_path);
+ 	if (!left_path) {
+ 		ret = -ENOMEM;
  		mlog_errno(ret);
- 		return ret;
-@@ -1352,7 +1350,7 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 		mlog_errno(ret);
- 		return ret;
+@@ -2692,8 +2701,7 @@ static int __ocfs2_rotate_tree_left(struct inode *inode,
+ 		goto out;
  	}
--	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, xv,
-+	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, vb.vb_xv,
- 					      xi->value, xi->value_len);
- 	if (ret < 0)
+ 
+-	left_path = ocfs2_new_path(path_root_bh(path),
+-				   path_root_el(path));
++	left_path = ocfs2_new_path_from_path(path);
+ 	if (!left_path) {
+ 		ret = -ENOMEM;
  		mlog_errno(ret);
-@@ -1550,9 +1548,12 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 			goto out;
- 		} else if (!ocfs2_xattr_is_local(xs->here)) {
- 			/* For existing xattr which has value outside */
--			struct ocfs2_xattr_value_root *xv = NULL;
--			xv = (struct ocfs2_xattr_value_root *)(val +
--				OCFS2_XATTR_SIZE(name_len));
-+			struct ocfs2_xattr_value_buf vb = {
-+				.vb_bh = xs->xattr_bh,
-+				.vb_xv = (struct ocfs2_xattr_value_root *)
-+					(val + OCFS2_XATTR_SIZE(name_len)),
-+				.vb_access = ocfs2_journal_access,
-+			};
+@@ -2702,8 +2710,7 @@ static int __ocfs2_rotate_tree_left(struct inode *inode,
  
- 			if (xi->value_len > OCFS2_XATTR_INLINE_SIZE) {
- 				/*
-@@ -1561,8 +1562,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 				 * then set new value with set_value_outside().
- 				 */
- 				ret = ocfs2_xattr_value_truncate(inode,
--								 xs->xattr_bh,
--								 xv,
-+								 &vb,
- 								 xi->value_len,
- 								 ctxt);
- 				if (ret < 0) {
-@@ -1582,7 +1582,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 	ocfs2_cp_path(left_path, path);
  
- 				ret = __ocfs2_xattr_set_value_outside(inode,
- 								handle,
--								xv,
-+								vb.vb_xv,
- 								xi->value,
- 								xi->value_len);
- 				if (ret < 0)
-@@ -1594,8 +1594,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 				 * just trucate old value to zero.
- 				 */
- 				 ret = ocfs2_xattr_value_truncate(inode,
--								  xs->xattr_bh,
--								  xv,
-+								  &vb,
- 								  0,
- 								  ctxt);
- 				if (ret < 0)
-@@ -1714,15 +1713,17 @@ static int ocfs2_remove_value_outside(struct inode*inode,
- 		struct ocfs2_xattr_entry *entry = &header->xh_entries[i];
+-	right_path = ocfs2_new_path(path_root_bh(path),
+-				    path_root_el(path));
++	right_path = ocfs2_new_path_from_path(path);
+ 	if (!right_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -2833,8 +2840,7 @@ static int ocfs2_remove_rightmost_path(struct inode *inode, handle_t *handle,
+ 		 * We have a path to the left of this one - it needs
+ 		 * an update too.
+ 		 */
+-		left_path = ocfs2_new_path(path_root_bh(path),
+-					   path_root_el(path));
++		left_path = ocfs2_new_path_from_path(path);
+ 		if (!left_path) {
+ 			ret = -ENOMEM;
+ 			mlog_errno(ret);
+@@ -3075,8 +3081,7 @@ static int ocfs2_get_right_path(struct inode *inode,
+ 	/* This function shouldn't be called for the rightmost leaf. */
+ 	BUG_ON(right_cpos == 0);
  
- 		if (!ocfs2_xattr_is_local(entry)) {
--			struct ocfs2_xattr_value_root *xv;
-+			struct ocfs2_xattr_value_buf vb = {
-+				.vb_bh = bh,
-+				.vb_access = ocfs2_journal_access,
-+			};
- 			void *val;
+-	right_path = ocfs2_new_path(path_root_bh(left_path),
+-				    path_root_el(left_path));
++	right_path = ocfs2_new_path_from_path(left_path);
+ 	if (!right_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -3247,8 +3252,7 @@ static int ocfs2_get_left_path(struct inode *inode,
+ 	/* This function shouldn't be called for the leftmost leaf. */
+ 	BUG_ON(left_cpos == 0);
  
- 			val = (void *)header +
- 				le16_to_cpu(entry->xe_name_offset);
--			xv = (struct ocfs2_xattr_value_root *)
-+			vb.vb_xv = (struct ocfs2_xattr_value_root *)
- 				(val + OCFS2_XATTR_SIZE(entry->xe_name_len));
--			ret = ocfs2_xattr_value_truncate(inode, bh, xv,
--							 0, &ctxt);
-+			ret = ocfs2_xattr_value_truncate(inode, &vb, 0, &ctxt);
- 			if (ret < 0) {
+-	left_path = ocfs2_new_path(path_root_bh(right_path),
+-				   path_root_el(right_path));
++	left_path = ocfs2_new_path_from_path(right_path);
+ 	if (!left_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -3780,8 +3784,7 @@ static int ocfs2_append_rec_to_path(struct inode *inode, handle_t *handle,
+ 		 * leftmost leaf.
+ 		 */
+ 		if (left_cpos) {
+-			left_path = ocfs2_new_path(path_root_bh(right_path),
+-						   path_root_el(right_path));
++			left_path = ocfs2_new_path_from_path(right_path);
+ 			if (!left_path) {
+ 				ret = -ENOMEM;
  				mlog_errno(ret);
- 				break;
-@@ -4659,11 +4660,12 @@ static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
- {
- 	int ret, offset;
- 	u64 value_blk;
--	struct buffer_head *value_bh = NULL;
--	struct ocfs2_xattr_value_root *xv;
- 	struct ocfs2_xattr_entry *xe;
- 	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
- 	size_t blocksize = inode->i_sb->s_blocksize;
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_access = ocfs2_journal_access,
-+	};
+@@ -4018,7 +4021,7 @@ static int ocfs2_do_insert_extent(struct inode *inode,
+ 		goto out_update_clusters;
+ 	}
  
- 	xe = &xh->xh_entries[xe_off];
- 
-@@ -4677,11 +4679,11 @@ static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
- 	/* We don't allow ocfs2_xattr_value to be stored in different block. */
- 	BUG_ON(value_blk != (offset + OCFS2_XATTR_ROOT_SIZE - 1) / blocksize);
- 
--	value_bh = bucket->bu_bhs[value_blk];
--	BUG_ON(!value_bh);
-+	vb.vb_bh = bucket->bu_bhs[value_blk];
-+	BUG_ON(!vb.vb_bh);
- 
--	xv = (struct ocfs2_xattr_value_root *)
--		(value_bh->b_data + offset % blocksize);
-+	vb.vb_xv = (struct ocfs2_xattr_value_root *)
-+		(vb.vb_bh->b_data + offset % blocksize);
- 
- 	ret = ocfs2_xattr_bucket_journal_access(ctxt->handle, bucket,
- 						OCFS2_JOURNAL_ACCESS_WRITE);
-@@ -4699,7 +4701,7 @@ static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
- 	 */
- 	mlog(0, "truncate %u in xattr bucket %llu to %d bytes.\n",
- 	     xe_off, (unsigned long long)bucket_blkno(bucket), len);
--	ret = ocfs2_xattr_value_truncate(inode, value_bh, xv, len, ctxt);
-+	ret = ocfs2_xattr_value_truncate(inode, &vb, len, ctxt);
- 	if (ret) {
+-	right_path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
++	right_path = ocfs2_new_path_from_et(et);
+ 	if (!right_path) {
+ 		ret = -ENOMEM;
  		mlog_errno(ret);
- 		goto out_dirty;
+@@ -4130,8 +4133,7 @@ ocfs2_figure_merge_contig_type(struct inode *inode, struct ocfs2_path *path,
+ 			goto out;
+ 
+ 		if (left_cpos != 0) {
+-			left_path = ocfs2_new_path(path_root_bh(path),
+-						   path_root_el(path));
++			left_path = ocfs2_new_path_from_path(path);
+ 			if (!left_path)
+ 				goto out;
+ 
+@@ -4187,8 +4189,7 @@ ocfs2_figure_merge_contig_type(struct inode *inode, struct ocfs2_path *path,
+ 		if (right_cpos == 0)
+ 			goto out;
+ 
+-		right_path = ocfs2_new_path(path_root_bh(path),
+-					    path_root_el(path));
++		right_path = ocfs2_new_path_from_path(path);
+ 		if (!right_path)
+ 			goto out;
+ 
+@@ -4381,7 +4382,7 @@ static int ocfs2_figure_insert_type(struct inode *inode,
+ 		return 0;
+ 	}
+ 
+-	path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
++	path = ocfs2_new_path_from_et(et);
+ 	if (!path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -4910,7 +4911,7 @@ int ocfs2_mark_extent_written(struct inode *inode,
+ 	if (et->et_ops == &ocfs2_dinode_et_ops)
+ 		ocfs2_extent_map_trunc(inode, 0);
+ 
+-	left_path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
++	left_path = ocfs2_new_path_from_et(et);
+ 	if (!left_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -5082,8 +5083,7 @@ static int ocfs2_truncate_rec(struct inode *inode, handle_t *handle,
+ 		}
+ 
+ 		if (left_cpos && le16_to_cpu(el->l_next_free_rec) > 1) {
+-			left_path = ocfs2_new_path(path_root_bh(path),
+-						   path_root_el(path));
++			left_path = ocfs2_new_path_from_path(path);
+ 			if (!left_path) {
+ 				ret = -ENOMEM;
+ 				mlog_errno(ret);
+@@ -5192,7 +5192,7 @@ int ocfs2_remove_extent(struct inode *inode,
+ 
+ 	ocfs2_extent_map_trunc(inode, 0);
+ 
+-	path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
++	path = ocfs2_new_path_from_et(et);
+ 	if (!path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
 -- 
 1.5.6.5
