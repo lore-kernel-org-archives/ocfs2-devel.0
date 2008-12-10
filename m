@@ -1,179 +1,142 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Tue,  9 Dec 2008 17:09:52 -0800
-Subject: [Ocfs2-devel] [PATCH 15/18] ocfs2: Use ocfs2_xattr_value_buf in
-	ocfs2_xattr_set_entry().
+Date: Tue,  9 Dec 2008 17:09:39 -0800
+Subject: [Ocfs2-devel] [PATCH 02/18] ocfs2: Add the on-disk structures for
+	metadata checksums.
 In-Reply-To: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
 References: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1228871395-10273-16-git-send-email-joel.becker@oracle.com>
+Message-ID: <1228871395-10273-3-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_xattr_set_entry is the function that knows what type of block it
-is setting into.  This is what we wanted from ocfs2_xattr_value_buf.
-Plus, moving the value buf up into ocfs2_xattr_set_entry() allows us to
-pass it into ocfs2_xattr_set_value_outside() and ocfs2_xattr_cleanup().
+Define struct ocfs2_block_check, an 8-byte structure containing a 32bit
+crc32_le and a 16bit hamming code ecc.  This will be used for metadata
+checksums.  Add the structure to free spaces in the various metadata
+structures.
+
+Add the OCFS2_FEATURE_INCOMPAT_META_ECC bit.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/xattr.c |   53 +++++++++++++++++++++++++++++------------------------
- 1 files changed, 29 insertions(+), 24 deletions(-)
+ fs/ocfs2/ocfs2_fs.h |   55 ++++++++++++++++++++++++++++++++++++++++++++++----
+ 1 files changed, 50 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index f1a7042..a33e2df 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -1252,6 +1252,7 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
- 			       handle_t *handle,
- 			       struct ocfs2_xattr_info *xi,
- 			       struct ocfs2_xattr_search *xs,
-+			       struct ocfs2_xattr_value_buf *vb,
- 			       size_t offs)
- {
- 	int ret = 0;
-@@ -1259,8 +1260,8 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
- 	void *val = xs->base + offs;
- 	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 4ae3984..4e20f50 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -148,6 +148,9 @@
+ /* Support for extended attributes */
+ #define OCFS2_FEATURE_INCOMPAT_XATTR		0x0200
  
--	ret = ocfs2_journal_access(handle, inode, xs->xattr_bh,
--				   OCFS2_JOURNAL_ACCESS_WRITE);
-+	ret = vb->vb_access(handle, inode, vb->vb_bh,
-+			    OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -1271,7 +1272,7 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
- 	memset((void *)xs->here, 0, sizeof(struct ocfs2_xattr_entry));
- 	memset(val, 0, size);
- 
--	ret = ocfs2_journal_dirty(handle, xs->xattr_bh);
-+	ret = ocfs2_journal_dirty(handle, vb->vb_bh);
- 	if (ret < 0)
- 		mlog_errno(ret);
- out:
-@@ -1318,6 +1319,7 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 					 struct ocfs2_xattr_info *xi,
- 					 struct ocfs2_xattr_search *xs,
- 					 struct ocfs2_xattr_set_ctxt *ctxt,
-+					 struct ocfs2_xattr_value_buf *vb,
- 					 size_t offs)
- {
- 	size_t name_len = strlen(xi->name);
-@@ -1325,10 +1327,6 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 	struct ocfs2_xattr_value_root *xv = NULL;
- 	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
- 	int ret = 0;
--	struct ocfs2_xattr_value_buf vb = {
--		.vb_bh = xs->xattr_bh,
--		.vb_access = ocfs2_journal_access
--	};
- 
- 	memset(val, 0, size);
- 	memcpy(val, xi->name, name_len);
-@@ -1339,19 +1337,19 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 	xv->xr_list.l_tree_depth = 0;
- 	xv->xr_list.l_count = cpu_to_le16(1);
- 	xv->xr_list.l_next_free_rec = 0;
--	vb.vb_xv = xv;
-+	vb->vb_xv = xv;
- 
--	ret = ocfs2_xattr_value_truncate(inode, &vb, xi->value_len, ctxt);
-+	ret = ocfs2_xattr_value_truncate(inode, vb, xi->value_len, ctxt);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		return ret;
- 	}
--	ret = ocfs2_xattr_update_entry(inode, ctxt->handle, xi, xs, &vb, offs);
-+	ret = ocfs2_xattr_update_entry(inode, ctxt->handle, xi, xs, vb, offs);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		return ret;
- 	}
--	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, vb.vb_xv,
-+	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, vb->vb_xv,
- 					      xi->value, xi->value_len);
- 	if (ret < 0)
- 		mlog_errno(ret);
-@@ -1488,6 +1486,16 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 		.value = xi->value,
- 		.value_len = xi->value_len,
- 	};
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = xs->xattr_bh,
-+		.vb_access = ocfs2_journal_access_di,
-+	};
++/* Metadata checksum and error correction */
++#define OCFS2_FEATURE_INCOMPAT_META_ECC		0x0800
 +
-+	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
-+		BUG_ON(xs->xattr_bh == xs->inode_bh);
-+		vb.vb_access = ocfs2_journal_access_xb;
-+	} else
-+		BUG_ON(xs->xattr_bh != xs->inode_bh);
+ /*
+  * backup superblock flag is used to indicate that this volume
+  * has backup superblocks.
+@@ -421,6 +424,22 @@ static unsigned char ocfs2_type_by_mode[S_IFMT >> S_SHIFT] = {
+ #define OCFS2_RAW_SB(dinode)		(&((dinode)->id2.i_super))
  
- 	/* Compute min_offs, last and free space. */
- 	last = xs->header->xh_entries;
-@@ -1543,18 +1551,14 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 		if (ocfs2_xattr_is_local(xs->here) && size == size_l) {
- 			/* Replace existing local xattr with tree root */
- 			ret = ocfs2_xattr_set_value_outside(inode, xi, xs,
--							    ctxt, offs);
-+							    ctxt, &vb, offs);
- 			if (ret < 0)
- 				mlog_errno(ret);
- 			goto out;
- 		} else if (!ocfs2_xattr_is_local(xs->here)) {
- 			/* For existing xattr which has value outside */
--			struct ocfs2_xattr_value_buf vb = {
--				.vb_bh = xs->xattr_bh,
--				.vb_xv = (struct ocfs2_xattr_value_root *)
--					(val + OCFS2_XATTR_SIZE(name_len)),
--				.vb_access = ocfs2_journal_access,
--			};
-+			vb.vb_xv = (struct ocfs2_xattr_value_root *)
-+				(val + OCFS2_XATTR_SIZE(name_len));
+ /*
++ * Block checking structure.  This is used in metadata to validate the
++ * contents.  If OCFS2_FEATURE_INCOMPAT_META_ECC is not set, it is all
++ * zeros.
++ */
++struct ocfs2_block_check {
++/*00*/	__le32 bc_crc32e;	/* 802.3 Ethernet II CRC32 */
++	__le16 bc_ecc;		/* Single-error-correction parity vector.
++				   This is a simple Hamming code dependant
++				   on the blocksize.  OCFS2's maximum
++				   blocksize, 4K, requires 16 parity bits,
++				   so we fit in __le16. */
++	__le16 bc_reserved1;
++/*08*/
++};
++
++/*
+  * On disk extent record for OCFS2
+  * It describes a range of clusters on disk.
+  *
+@@ -507,7 +526,7 @@ struct ocfs2_truncate_log {
+ struct ocfs2_extent_block
+ {
+ /*00*/	__u8 h_signature[8];		/* Signature for verification */
+-	__le64 h_reserved1;
++	struct ocfs2_block_check h_check;	/* Error checking */
+ /*10*/	__le16 h_suballoc_slot;		/* Slot suballocator this
+ 					   extent_header belongs to */
+ 	__le16 h_suballoc_bit;		/* Bit offset in suballocator
+@@ -677,7 +696,8 @@ struct ocfs2_dinode {
+ 					   was set in i_flags */
+ 	__le16 i_dyn_features;
+ 	__le64 i_xattr_loc;
+-/*80*/	__le64 i_reserved2[7];
++/*80*/	struct ocfs2_block_check i_check;	/* Error checking */
++/*88*/	__le64 i_reserved2[6];
+ /*B8*/	union {
+ 		__le64 i_pad1;		/* Generic way to refer to this
+ 					   64bit union */
+@@ -744,7 +764,8 @@ struct ocfs2_group_desc
+ /*20*/	__le64   bg_parent_dinode;       /* dinode which owns me, in
+ 					   blocks */
+ 	__le64   bg_blkno;               /* Offset on disk, in blocks */
+-/*30*/	__le64   bg_reserved2[2];
++/*30*/	struct ocfs2_block_check bg_check;	/* Error checking */
++	__le64   bg_reserved2;
+ /*40*/	__u8    bg_bitmap[0];
+ };
  
- 			if (xi->value_len > OCFS2_XATTR_INLINE_SIZE) {
- 				/*
-@@ -1605,16 +1609,16 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 		}
- 	}
+@@ -787,7 +808,12 @@ struct ocfs2_xattr_header {
+ 						   in this extent record,
+ 						   only valid in the first
+ 						   bucket. */
+-	__le64  xh_csum;
++	struct ocfs2_block_check xh_check;	/* Error checking
++						   (Note, this is only
++						    used for xattr
++						    buckets.  A block uses
++						    xb_check and sets
++						    this field to zero.) */
+ 	struct ocfs2_xattr_entry xh_entries[0]; /* xattr entry list. */
+ };
  
--	ret = ocfs2_journal_access(handle, inode, xs->inode_bh,
--				   OCFS2_JOURNAL_ACCESS_WRITE);
-+	ret = ocfs2_journal_access_di(handle, inode, xs->inode_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
+@@ -838,7 +864,7 @@ struct ocfs2_xattr_block {
+ 					block group */
+ 	__le32	xb_fs_generation;    /* Must match super block */
+ /*10*/	__le64	xb_blkno;            /* Offset on disk, in blocks */
+-	__le64	xb_csum;
++	struct ocfs2_block_check xb_check;	/* Error checking */
+ /*20*/	__le16	xb_flags;            /* Indicates whether this block contains
+ 					real xattr or a xattr tree. */
+ 	__le16	xb_reserved0;
+@@ -982,6 +1008,25 @@ struct ocfs2_local_disk_dqblk {
+ /*10*/	__le64 dqb_inodemod;	/* Change in the amount of used inodes */
+ };
  
- 	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
--		ret = ocfs2_journal_access(handle, inode, xs->xattr_bh,
--					   OCFS2_JOURNAL_ACCESS_WRITE);
-+		ret = vb.vb_access(handle, inode, vb.vb_bh,
-+				   OCFS2_JOURNAL_ACCESS_WRITE);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -1674,7 +1678,8 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 		 * This is the second step for value size > INLINE_SIZE.
- 		 */
- 		size_t offs = le16_to_cpu(xs->here->xe_name_offset);
--		ret = ocfs2_xattr_set_value_outside(inode, xi, xs, ctxt, offs);
-+		ret = ocfs2_xattr_set_value_outside(inode, xi, xs, ctxt,
-+						    &vb, offs);
- 		if (ret < 0) {
- 			int ret2;
- 
-@@ -1684,7 +1689,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 			 * the junk tree root we have already set in local.
- 			 */
- 			ret2 = ocfs2_xattr_cleanup(inode, ctxt->handle,
--						   xi, xs, offs);
-+						   xi, xs, &vb, offs);
- 			if (ret2 < 0)
- 				mlog_errno(ret2);
- 		}
++
++/*
++ * The quota trailer lives at the end of each quota block.
++ */
++
++struct ocfs2_disk_dqtrailer {
++/*00*/	struct ocfs2_block_check dq_check;	/* Error checking */
++/*08*/	/* Cannot be larger than OCFS2_QBLK_RESERVED_SPACE */
++};
++
++static inline struct ocfs2_disk_dqtrailer *ocfs2_block_dqtrailer(int blocksize,
++								 void *buf)
++{
++	char *ptr = buf;
++	ptr += blocksize - OCFS2_QBLK_RESERVED_SPACE;
++
++	return (struct ocfs2_disk_dqtrailer *)ptr;
++}
++
+ #ifdef __KERNEL__
+ static inline int ocfs2_fast_symlink_chars(struct super_block *sb)
+ {
 -- 
 1.5.6.5
