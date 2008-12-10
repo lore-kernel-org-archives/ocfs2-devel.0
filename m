@@ -1,61 +1,619 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Tue,  9 Dec 2008 17:09:37 -0800
-Subject: [Ocfs2-devel] [PATCH 0/18] ocfs2: Add metadata ECC - almost there.
-Message-ID: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
+Date: Tue,  9 Dec 2008 17:09:40 -0800
+Subject: [Ocfs2-devel] [PATCH 03/18] ocfs2: Add the underlying blockcheck
+	code.
+In-Reply-To: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
+References: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
+Message-ID: <1228871395-10273-4-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-These patches add the metadata ECC code to ocfs2.  They have one
-limitation - they do not ECC directory blocks yet.  However, that will
-only take a simple insertion of the dirblock trailer.  With xattr ECC
-completed, the patches are approaching a final form and are ready for
-initial review.  They are atop my xattr-buckets-2 branch.
+This is the code that computes crc32 and ecc for ocfs2 metadata blocks.
+There are high-level functions that check whether the filesystem has the
+ecc feature, mid-level functions that work on a single block or array of
+buffer_heads, and the low-level ecc hamming code that can handle
+multiple buffers like crc32_le().
 
-The first patch adds buffer triggers to JDB2.  This allows us to only
-calculate the ECC code when JBD2 is about to write a block to disk.
+It's not hooked up to the filesystem yet.
 
-Next, we add the actual blockcheck functions.  These are the functions
-that compute the checksum (using the kernel's crc32_le()) and the ECC
-bits (this is hamming code, implemented in blockcheck.c).
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Cc: Christoph Hellwig <hch@lst.de>
+---
+ fs/ocfs2/Makefile     |    1 +
+ fs/ocfs2/blockcheck.c |  455 +++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/blockcheck.h |   81 +++++++++
+ fs/ocfs2/ocfs2.h      |    8 +
+ 4 files changed, 545 insertions(+), 0 deletions(-)
+ create mode 100644 fs/ocfs2/blockcheck.c
+ create mode 100644 fs/ocfs2/blockcheck.h
 
-Then we create metadata-type specific ocfs2_journal_access_*() functions
-to make sure each metadata type uses its own checksum field.  These are
-hooked up to the regular metadata types.
-
-We add ecc calculation to xattr buckets.  Because buckets can be
-multiple blocks, they cannot use journal triggers.  However, they are
-rarely updated, so the loss of efficiency isn't very important.
-
-Last, we refactor the xattr value setting code to make sure we know
-which metadata type an xattr value belongs to.  That way we can call the
-appropriate ocfs2_journal_access_*() function.
-
-The code is also available in my repository.
-
-[View]
-http://oss.oracle.com/git/?p=jlbec/linux-2.6.git;a=shortlog;h=metaecc
-[Pull]
-git://oss.oracle.com/git/jlbec/linux-2.6.git metaecc
-
-Joel Becker (18):
-      jbd2: Add buffer triggers
-      ocfs2: Add the on-disk structures for metadata checksums.
-      ocfs2: Add the underlying blockcheck code.
-      ocfs2: Add a validation hook for quota block reads.
-      ocfs2: block read meta ecc.
-      ocfs2: Add journal_access functions with jbd2 triggers.
-      ocfs2: Wrap up the common use cases of ocfs2_new_path().
-      ocfs2: Use metadata-specific ocfs2_journal_access_*() functions.
-      ocfs2: Add ecc and checksums to ocfs2 xattr buckets.
-      ocfs2: Create ocfs2_xattr_value_buf.
-      ocfs2: Pull ocfs2_xattr_value_buf up from __ocfs2_remove_xattr_range().
-      ocfs2: Pull ocfs2_xattr_value_buf up into ocfs2_xattr_value_truncate().
-      ocfs2: Pass ocfs2_xattr_value_buf into ocfs2_xattr_value_truncate().
-      ocfs2: Pass value buf to ocfs2_xattr_update_entry().
-      ocfs2: Use ocfs2_xattr_value_buf in ocfs2_xattr_set_entry().
-      ocfs2: Pass value buf to ocfs2_remove_value_outside().
-      ocfs2: Use proper journal_access function in xattr.c
-      ocfs2: Enable metadata checksums.
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index 7e4b361..0159607 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -12,6 +12,7 @@ obj-$(CONFIG_OCFS2_FS_USERSPACE_CLUSTER) += ocfs2_stack_user.o
+ ocfs2-objs := \
+ 	alloc.o 		\
+ 	aops.o 			\
++	blockcheck.o		\
+ 	buffer_head_io.o	\
+ 	dcache.o 		\
+ 	dir.o 			\
+diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
+new file mode 100644
+index 0000000..53498e3
+--- /dev/null
++++ b/fs/ocfs2/blockcheck.c
+@@ -0,0 +1,455 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * blockcheck.c
++ *
++ * Checksum and ECC codes for the OCFS2 userspace library.
++ *
++ * Copyright (C) 2006, 2008 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License, version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ */
++
++#include <linux/kernel.h>
++#include <linux/types.h>
++#include <linux/crc32.h>
++#include <linux/buffer_head.h>
++#include <linux/bitops.h>
++#include <asm/byteorder.h>
++
++#include "ocfs2.h"
++
++#include "blockcheck.h"
++
++
++
++/*
++ * We use the following conventions:
++ *
++ * d = # data bits
++ * p = # parity bits
++ * c = # total code bits (d + p)
++ */
++static int calc_parity_bits(unsigned int d)
++{
++	unsigned int p;
++
++	/*
++	 * Bits required for Single Error Correction is as follows:
++	 *
++	 * d + p + 1 <= 2^p
++	 *
++	 * We're restricting ourselves to 31 bits of parity, that should be
++	 * sufficient.
++	 */
++	for (p = 1; p < 32; p++)
++	{
++		if ((d + p + 1) <= (1 << p))
++			return p;
++	}
++
++	return 0;
++}
++
++/*
++ * Calculate the bit offset in the hamming code buffer based on the bit's
++ * offset in the data buffer.  Since the hamming code reserves all
++ * power-of-two bits for parity, the data bit number and the code bit
++ * number are offest by all the parity bits beforehand.
++ *
++ * Recall that bit numbers in hamming code are 1-based.  This function
++ * takes the 0-based data bit from the caller.
++ *
++ * An example.  Take bit 1 of the data buffer.  1 is a power of two (2^0),
++ * so it's a parity bit.  2 is a power of two (2^1), so it's a parity bit.
++ * 3 is not a power of two.  So bit 1 of the data buffer ends up as bit 3
++ * in the code buffer.
++ */
++static unsigned int calc_code_bit(unsigned int i)
++{
++	unsigned int b, p;
++
++	/*
++	 * Data bits are 0-based, but we're talking code bits, which
++	 * are 1-based.
++	 */
++	b = i + 1;
++
++	/*
++	 * For every power of two below our bit number, bump our bit.
++	 *
++	 * We compare with (b + 1) becuase we have to compare with what b
++	 * would be _if_ it were bumped up by the parity bit.  Capice?
++	 */
++	for (p = 0; (1 << p) < (b + 1); p++)
++		b++;
++
++	return b;
++}
++
++/*
++ * This is the low level encoder function.  It can be called across
++ * multiple hunks just like the crc32 code.  'd' is the number of bits
++ * _in_this_hunk_.  nr is the bit offset of this hunk.  So, if you had
++ * two 512B buffers, you would do it like so:
++ *
++ * parity = ocfs2_hamming_encode(0, buf1, 512 * 8, 0);
++ * parity = ocfs2_hamming_encode(parity, buf2, 512 * 8, 512 * 8);
++ *
++ * If you just have one buffer, use ocfs2_hamming_encode_block().
++ */
++u32 ocfs2_hamming_encode(u32 parity, void *data, unsigned int d, unsigned int nr)
++{
++	unsigned int p = calc_parity_bits(nr + d);
++	unsigned int i, j, b;
++
++	BUG_ON(!p);
++
++	/*
++	 * b is the hamming code bit number.  Hamming code specifies a
++	 * 1-based array, but C uses 0-based.  So 'i' is for C, and 'b' is
++	 * for the algorithm.
++	 *
++	 * The i++ in the for loop is so that the start offset passed
++	 * to ocfs2_find_next_bit_set() is one greater than the previously
++	 * found bit.
++	 */
++	for (i = 0; (i = ocfs2_find_next_bit(data, d, i)) < d; i++)
++	{
++		/*
++		 * i is the offset in this hunk, nr + i is the total bit
++		 * offset.
++		 */
++		b = calc_code_bit(nr + i);
++
++		for (j = 0; j < p; j++)
++		{
++			/*
++			 * Data bits in the resultant code are checked by
++			 * parity bits that are part of the bit number
++			 * representation.  Huh?
++			 *
++			 * <wikipedia href="http://en.wikipedia.org/wiki/Hamming_code">
++			 * In other words, the parity bit at position 2^k
++			 * checks bits in positions having bit k set in
++			 * their binary representation.  Conversely, for
++			 * instance, bit 13, i.e. 1101(2), is checked by
++			 * bits 1000(2) = 8, 0100(2)=4 and 0001(2) = 1.
++			 * </wikipedia>
++			 *
++			 * Note that 'k' is the _code_ bit number.  'b' in
++			 * our loop.
++			 */
++			if (b & (1 << j))
++				parity ^= (1 << j);
++		}
++	}
++
++	/* While the data buffer was treated as little endian, the
++	 * return value is in host endian. */
++	return parity;
++}
++
++u32 ocfs2_hamming_encode_block(void *data, unsigned int blocksize)
++{
++	return ocfs2_hamming_encode(0, data, blocksize * 8, 0);
++}
++
++/*
++ * Like ocfs2_hamming_encode(), this can handle hunks.  nr is the bit
++ * offset of the current hunk.  If bit to be fixed is not part of the
++ * current hunk, this does nothing.
++ *
++ * If you only have one hunk, use ocfs2_hamming_fix_block().
++ */
++void ocfs2_hamming_fix(void *data, unsigned int d, int nr, unsigned int fix)
++{
++	unsigned int p = calc_parity_bits(nr + d);
++	unsigned int i, b;
++
++	BUG_ON(!p);
++
++	/*
++	 * If the bit to fix has an hweight of 1, it's a parity bit.  One
++	 * busted parity bit is its own error.  Nothing to do here.
++	 */
++	if (hweight32(fix) == 1)
++		return;
++
++	/* See hamming_encode() for a description of 'b' */
++	for (i = 0, b = 1; i < d; i++, b++)
++	{
++		/* Skip past parity bits */
++		while (hweight32(b) == 1)
++			b++;
++
++		if (b == fix)
++		{
++			if (ocfs2_test_bit(nr + i, data))
++				ocfs2_clear_bit(nr + i, data);
++			else
++				ocfs2_set_bit(nr + i, data);
++			break;
++		}
++	}
++}
++
++void ocfs2_hamming_fix_block(void *data, unsigned int blocksize,
++			     unsigned int fix)
++{
++	ocfs2_hamming_fix(data, blocksize * 8, 0, fix);
++}
++
++/*
++ * This function generates check information for a block.
++ * data is the block to be checked.  bc is a pointer to the
++ * ocfs2_block_check structure describing the crc32 and the ecc.
++ *
++ * bc should be a pointer inside data, as the function will
++ * take care of zeroing it before calculating the check information.  If
++ * bc does not point inside data, the caller must make sure any inline
++ * ocfs2_block_check structures are zeroed.
++ *
++ * The data buffer must be in on-disk endian (little endian for ocfs2).
++ * bc will be filled with little-endian values and will be ready to go to
++ * disk.
++ */
++void ocfs2_block_check_compute(void *data, size_t blocksize,
++			       struct ocfs2_block_check *bc)
++{
++	u32 crc;
++	u32 ecc;
++
++	memset(bc, 0, sizeof(struct ocfs2_block_check));
++
++	crc = crc32_le(~0, data, blocksize);
++	ecc = ocfs2_hamming_encode_block(data, blocksize);
++
++	/*
++	 * No ecc'd ocfs2 structure is larger than 4K, so ecc will be no
++	 * larger than 16 bits.
++	 */
++	BUG_ON(ecc > USHORT_MAX);
++
++	bc->bc_crc32e = cpu_to_le32(crc);
++	bc->bc_ecc = cpu_to_le16((u16)ecc);
++}
++
++/*
++ * This function validates existing check information.  Like _compute,
++ * the function will take care of zeroing bc before calculating check codes.
++ * If bc is not a pointer inside data, the caller must have zeroed any
++ * inline ocfs2_block_check structures.
++ *
++ * Again, the data passed in should be the on-disk endian.
++ */
++int ocfs2_block_check_validate(void *data, size_t blocksize,
++			       struct ocfs2_block_check *bc)
++{
++	int rc = 0;
++	struct ocfs2_block_check check;
++	u32 crc, ecc;
++
++	check.bc_crc32e = le32_to_cpu(bc->bc_crc32e);
++	check.bc_ecc = le16_to_cpu(bc->bc_ecc);
++
++	memset(bc, 0, sizeof(struct ocfs2_block_check));
++
++	/* Fast path - if the crc32 validates, we're good to go */
++	crc = crc32_le(~0, data, blocksize);
++	if (crc == check.bc_crc32e)
++		goto out;
++
++	/* Ok, try ECC fixups */
++	ecc = ocfs2_hamming_encode_block(data, blocksize);
++	ocfs2_hamming_fix_block(data, blocksize, ecc ^ check.bc_ecc);
++
++	/* And check the crc32 again */
++	crc = crc32_le(~0, data, blocksize);
++	if (crc == check.bc_crc32e)
++		goto out;
++
++	rc = -EIO;
++
++out:
++	bc->bc_crc32e = cpu_to_le32(check.bc_crc32e);
++	bc->bc_ecc = cpu_to_le16(check.bc_ecc);
++
++	return rc;
++}
++
++/*
++ * This function generates check information for a list of buffer_heads.
++ * bhs is the blocks to be checked.  bc is a pointer to the
++ * ocfs2_block_check structure describing the crc32 and the ecc.
++ *
++ * bc should be a pointer inside data, as the function will
++ * take care of zeroing it before calculating the check information.  If
++ * bc does not point inside data, the caller must make sure any inline
++ * ocfs2_block_check structures are zeroed.
++ *
++ * The data buffer must be in on-disk endian (little endian for ocfs2).
++ * bc will be filled with little-endian values and will be ready to go to
++ * disk.
++ */
++void ocfs2_block_check_compute_bhs(struct buffer_head **bhs, int nr,
++				   struct ocfs2_block_check *bc)
++{
++	int i;
++	u32 crc, ecc;
++
++	BUG_ON(nr < 0);
++
++	if (!nr)
++		return;
++
++	memset(bc, 0, sizeof(struct ocfs2_block_check));
++
++	for (i = 0, crc = ~0, ecc = 0; i < nr; i++) {
++		crc = crc32_le(crc, bhs[i]->b_data, bhs[i]->b_size);
++		/*
++		 * The number of bits in a buffer is obviously b_size*8.
++		 * The offset of this buffer is b_size*i, so the bit offset
++		 * of this buffer is b_size*8*i.
++		 */
++		ecc = (u16)ocfs2_hamming_encode(ecc, bhs[i]->b_data,
++						bhs[i]->b_size * 8,
++						bhs[i]->b_size * 8 * i);
++	}
++
++	/*
++	 * No ecc'd ocfs2 structure is larger than 4K, so ecc will be no
++	 * larger than 16 bits.
++	 */
++	BUG_ON(ecc > USHORT_MAX);
++
++	bc->bc_crc32e = cpu_to_le32(crc);
++	bc->bc_ecc = cpu_to_le16((u16)ecc);
++}
++
++/*
++ * This function validates existing check information on a list of
++ * buffer_heads.  Like _compute_bhs, the function will take care of
++ * zeroing bc before calculating check codes.  If bc is not a pointer
++ * inside data, the caller must have zeroed any inline
++ * ocfs2_block_check structures.
++ *
++ * Again, the data passed in should be the on-disk endian.
++ */
++int ocfs2_block_check_validate_bhs(struct buffer_head **bhs, int nr,
++				   struct ocfs2_block_check *bc)
++{
++	int i, rc = 0;
++	struct ocfs2_block_check check;
++	u32 crc, ecc, fix;
++
++	BUG_ON(nr < 0);
++
++	if (!nr)
++		return 0;
++
++	check.bc_crc32e = le32_to_cpu(bc->bc_crc32e);
++	check.bc_ecc = le16_to_cpu(bc->bc_ecc);
++
++	memset(bc, 0, sizeof(struct ocfs2_block_check));
++
++	/* Fast path - if the crc32 validates, we're good to go */
++	for (i = 0, crc = ~0; i < nr; i++)
++		crc = crc32_le(crc, bhs[i]->b_data, bhs[i]->b_size);
++	if (crc == check.bc_crc32e)
++		goto out;
++
++	mlog(ML_ERROR,
++	     "CRC32 failed: stored: %u, computed %u.  Applying ECC.\n",
++	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
++
++	/* Ok, try ECC fixups */
++	for (i = 0, ecc = 0; i < nr; i++) {
++		/*
++		 * The number of bits in a buffer is obviously b_size*8.
++		 * The offset of this buffer is b_size*i, so the bit offset
++		 * of this buffer is b_size*8*i.
++		 */
++		ecc = (u16)ocfs2_hamming_encode(ecc, bhs[i]->b_data,
++						bhs[i]->b_size * 8,
++						bhs[i]->b_size * 8 * i);
++	}
++	fix = ecc ^ check.bc_ecc;
++	for (i = 0; i < nr; i++) {
++		/*
++		 * Try the fix against each buffer.  It will only affect
++		 * one of them.
++		 */
++		ocfs2_hamming_fix(bhs[i]->b_data, bhs[i]->b_size * 8,
++				  bhs[i]->b_size * 8 * i, fix);
++	}
++
++	/* And check the crc32 again */
++	for (i = 0, crc = ~0; i < nr; i++)
++		crc = crc32_le(crc, bhs[i]->b_data, bhs[i]->b_size);
++	if (crc == check.bc_crc32e)
++		goto out;
++
++	mlog(ML_ERROR, "Fixed CRC32 failed: stored: %u, computed %u\n",
++	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
++
++	rc = -EIO;
++
++out:
++	bc->bc_crc32e = cpu_to_le32(check.bc_crc32e);
++	bc->bc_ecc = cpu_to_le16(check.bc_ecc);
++
++	return rc;
++}
++
++/*
++ * These are the main API.  They check the superblock flag before
++ * calling the underlying operations.
++ *
++ * They expect the buffer(s) to be in disk format.
++ */
++void ocfs2_compute_meta_ecc(struct super_block *sb, void *data,
++			    struct ocfs2_block_check *bc)
++{
++	if (ocfs2_meta_ecc(OCFS2_SB(sb)))
++		ocfs2_block_check_compute(data, sb->s_blocksize, bc);
++}
++
++int ocfs2_validate_meta_ecc(struct super_block *sb, void *data,
++			    struct ocfs2_block_check *bc)
++{
++	int rc = 0;
++
++	if (ocfs2_meta_ecc(OCFS2_SB(sb)))
++		rc = ocfs2_block_check_validate(data, sb->s_blocksize, bc);
++
++	return rc;
++}
++
++void ocfs2_compute_meta_ecc_bhs(struct super_block *sb,
++				struct buffer_head **bhs, int nr,
++				struct ocfs2_block_check *bc)
++{
++	if (ocfs2_meta_ecc(OCFS2_SB(sb)))
++		ocfs2_block_check_compute_bhs(bhs, nr, bc);
++}
++
++int ocfs2_validate_meta_ecc_bhs(struct super_block *sb,
++				struct buffer_head **bhs, int nr,
++				struct ocfs2_block_check *bc)
++{
++	int rc = 0;
++
++	if (ocfs2_meta_ecc(OCFS2_SB(sb)))
++		rc = ocfs2_block_check_validate_bhs(bhs, nr, bc);
++
++	return rc;
++}
++
+diff --git a/fs/ocfs2/blockcheck.h b/fs/ocfs2/blockcheck.h
+new file mode 100644
+index 0000000..504b761
+--- /dev/null
++++ b/fs/ocfs2/blockcheck.h
+@@ -0,0 +1,81 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * blockcheck.h
++ *
++ * Checksum and ECC codes for the OCFS2 userspace library.
++ *
++ * Copyright (C) 2004, 2008 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License, version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ */
++
++#ifndef OCFS2_BLOCKCHECK_H
++#define OCFS2_BLOCKCHECK_H
++
++
++/* High level block API */
++void ocfs2_compute_meta_ecc(struct super_block *sb, void *data,
++			    struct ocfs2_block_check *bc);
++int ocfs2_validate_meta_ecc(struct super_block *sb, void *data,
++			    struct ocfs2_block_check *bc);
++void ocfs2_compute_meta_ecc_bhs(struct super_block *sb,
++				struct buffer_head **bhs, int nr,
++				struct ocfs2_block_check *bc);
++int ocfs2_validate_meta_ecc_bhs(struct super_block *sb,
++				struct buffer_head **bhs, int nr,
++				struct ocfs2_block_check *bc);
++
++/* Lower level API */
++void ocfs2_block_check_compute(void *data, size_t blocksize,
++			       struct ocfs2_block_check *bc);
++int ocfs2_block_check_validate(void *data, size_t blocksize,
++			       struct ocfs2_block_check *bc);
++void ocfs2_block_check_compute_bhs(struct buffer_head **bhs, int nr,
++				   struct ocfs2_block_check *bc);
++int ocfs2_block_check_validate_bhs(struct buffer_head **bhs, int nr,
++				   struct ocfs2_block_check *bc);
++
++/*
++ * Hamming code functions
++ */
++
++/*
++ * Encoding hamming code parity bits for a buffer.
++ *
++ * This is the low level encoder function.  It can be called across
++ * multiple hunks just like the crc32 code.  'd' is the number of bits
++ * _in_this_hunk_.  nr is the bit offset of this hunk.  So, if you had
++ * two 512B buffers, you would do it like so:
++ *
++ * parity = ocfs2_hamming_encode(0, buf1, 512 * 8, 0);
++ * parity = ocfs2_hamming_encode(parity, buf2, 512 * 8, 512 * 8);
++ *
++ * If you just have one buffer, use ocfs2_hamming_encode_block().
++ */
++u32 ocfs2_hamming_encode(u32 parity, void *data, unsigned int d,
++			 unsigned int nr);
++/*
++ * Fix a buffer with a bit error.  The 'fix' is the original parity
++ * xor'd with the parity calculated now.
++ *
++ * Like ocfs2_hamming_encode(), this can handle hunks.  nr is the bit
++ * offset of the current hunk.  If bit to be fixed is not part of the
++ * current hunk, this does nothing.
++ *
++ * If you only have one buffer, use ocfs2_hamming_fix_block().
++ */
++void ocfs2_hamming_fix(void *data, unsigned int d, int nr, unsigned int fix);
++
++/* Convenience wrappers for a single buffer of data */
++extern u32 ocfs2_hamming_encode_block(void *data, unsigned int blocksize);
++extern void ocfs2_hamming_fix_block(void *data, unsigned int blocksize,
++				    unsigned int fix);
++#endif
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 5c77798..2bb389f 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -382,6 +382,13 @@ static inline int ocfs2_supports_xattr(struct ocfs2_super *osb)
+ 	return 0;
+ }
+ 
++static inline int ocfs2_meta_ecc(struct ocfs2_super *osb)
++{
++	if (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_META_ECC)
++		return 1;
++	return 0;
++}
++
+ /* set / clear functions because cluster events can make these happen
+  * in parallel so we want the transitions to be atomic. this also
+  * means that any future flags osb_flags must be protected by spinlock
+@@ -615,5 +622,6 @@ static inline s16 ocfs2_get_inode_steal_slot(struct ocfs2_super *osb)
+ #define ocfs2_clear_bit ext2_clear_bit
+ #define ocfs2_test_bit ext2_test_bit
+ #define ocfs2_find_next_zero_bit ext2_find_next_zero_bit
++#define ocfs2_find_next_bit ext2_find_next_bit
+ #endif  /* OCFS2_H */
+ 
+-- 
+1.5.6.5
