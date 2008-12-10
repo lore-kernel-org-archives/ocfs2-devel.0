@@ -1,34 +1,41 @@
 From: Andi Kleen <andi@firstfloor.org>
-Date: Wed, 10 Dec 2008 12:54:42 -0000
+Date: Wed, 10 Dec 2008 19:27:07 -0000
 Subject: [Ocfs2-devel] [PATCH 0/18] ocfs2: Add metadata ECC - almost
 	there.
-In-Reply-To: <1228871395-10273-1-git-send-email-joel.becker@oracle.com> (Joel
-	Becker's message of "Tue, 9 Dec 2008 17:09:37 -0800")
+In-Reply-To: <20081210181552.GH16888@ca-server1.us.oracle.com>
 References: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <87oczkchr8.fsf@basil.nowhere.org>
+	<87oczkchr8.fsf@basil.nowhere.org>
+	<20081210181552.GH16888@ca-server1.us.oracle.com>
+Message-ID: <20081210193836.GB25779@one.firstfloor.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Joel Becker <joel.becker@oracle.com> writes:
+On Wed, Dec 10, 2008 at 10:15:52AM -0800, Joel Becker wrote:
+> On Wed, Dec 10, 2008 at 01:54:51PM +0100, Andi Kleen wrote:
+> > Joel Becker <joel.becker@oracle.com> writes:
+> > 
+> > > These patches add the metadata ECC code to ocfs2.  They have one
+> > > limitation - they do not ECC directory blocks yet.  However, that will
+> > > only take a simple insertion of the dirblock trailer.  With xattr ECC
+> > > completed, the patches are approaching a final form and are ready for
+> > > initial review.  They are atop my xattr-buckets-2 branch.
+> > 
+> > Could you please expand a bit why you chose ECC over more standard CRCs?
+> > 
+> > My assumption would be normally that if there is disk corruption it won't
+> > be single flipped bits, but more large scale corruption. Do you have
+> > data/experiences on the contrary?
+> 
+> 	If you look at our block_check structure, you'll see that it
+> uses crc32c for the overall block, and then the ECC can attempt to
+> correct a single bit if the crc fails.
 
-> These patches add the metadata ECC code to ocfs2.  They have one
-> limitation - they do not ECC directory blocks yet.  However, that will
-> only take a simple insertion of the dirblock trailer.  With xattr ECC
-> completed, the patches are approaching a final form and are ready for
-> initial review.  They are atop my xattr-buckets-2 branch.
+Understood. But why did you decide you need ECC?
 
-Could you please expand a bit why you chose ECC over more standard CRCs?
-
-My assumption would be normally that if there is disk corruption it won't
-be single flipped bits, but more large scale corruption. Do you have
-data/experiences on the contrary?
-
-Thanks,
-
--andi
+-Andi
 
 -- 
 ak at linux.intel.com
