@@ -1,80 +1,102 @@
-From: tristan.ye <tristan.ye@oracle.com>
-Date: Thu, 11 Dec 2008 16:26:23 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix DLM_BADARGS
-	error	in	concurrent file locking
-In-Reply-To: <4940CC19.5010801@suse.de>
-References: <493524C0.4090506@suse.de> <4935B20B.9040309@oracle.com>
-	<4936E284.6030000@suse.de>
-	<1228354293.6492.6.camel@tristan-laptop.cn.oracle.com>
-	<4940CC19.5010801@suse.de>
-Message-ID: <1228983983.6611.18.camel@tristan-laptop.cn.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 11 Dec 2008 10:39:42 -0800
+Subject: [Ocfs2-devel] [PATCH 01/13] ocfs2: Dirty the entire bucket
+	in	ocfs2_bucket_value_truncate()
+In-Reply-To: <20081127030109.GC6259@mail.oracle.com>
+References: <1227744386-10502-1-git-send-email-joel.becker@oracle.com>
+	<1227744386-10502-2-git-send-email-joel.becker@oracle.com>
+	<492DF6A8.4080309@oracle.com>
+	<20081127030109.GC6259@mail.oracle.com>
+Message-ID: <20081211183942.GA12336@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, 2008-12-11 at 16:15 +0800, Coly Li wrote:
-> 
-> tristan.ye Wrote:
-> > On Thu, 2008-12-04 at 03:48 +0800, Coly Li wrote:
-> >> Sunil Mushran Wrote:
-> >> [snip]
-> >>
-> >>> Corrections welcome.
-> >>>
-> >>> Lastly, test the patch not only with the flock() test but also otherwise.
-> >>> Say, with recovery. Part of fixing bugs is ensuring the fix does not break
-> >>> existing functionality. Run all multinode tests in ocfs2-test.
-> >> On a 8 nodes cluster setup by xen, I tested these test cases,
-> >> - run_buildkernel.py
-> >> - cross_delete.py
-> >> - dlmstress1.sh
-> >> - run_extend_and_write.py
-> >> - run_lvb_torture.py
-> >> - mmap_test
-> >> - test_netfail.py
-> >>
-> >> Not tested cases are run_create_racer.py and open_delete.py, cause I encountered some error when
-> >> setup them.
-> > Hi Coly,
-> > 
-> > How did you setup the env for testing? are you using the latest
-> > testsuite from ocfs2-test.git? As for the cluster testing, we need to
-> I download the code by svn, here is my command,
-> svn co http://oss.oracle.com/projects/ocfs2-test/src ocfs2-test
-> Is it out of date ?
 
-Actually we've moved to git repository for ocfs2-test src management, so
-you'd better turn to our git repo for pulling latest test sources. Such
-as,
+On Wed, Nov 26, 2008 at 07:01:09PM -0800, Joel Becker wrote:
+> 	Good point.  Here's an updated version.
 
-1. git clone git://oss.oracle.com/git/ocfs2-test ocfs2-test
+	Tristan's testing revealed a bug in the credits calculation in
+ocfs2_delete_xattr_in_bucket(), which Tao found the fix for.  oss
+bugzilla 1059.  That's been merged into the patch.  
+	In addition, Tao added this change which I've added to my
+branch.
 
-2. ./autogen.sh 
+From a647d0ab5a278b7ddcee5075ef345c40f2783a33 Mon Sep 17 00:00:00 2001
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 11 Dec 2008 08:54:11 +0800
+Subject: [PATCH] ocfs2: Narrow the transaction for deleting xattrs from a bucket.
 
-3. make && make install DESTDIR=/your/dest/path
+We move the transaction into the loop because in
+ocfs2_remove_extent, we will double the credits in function
+ocfs2_extend_rotate_transaction. So if we have a large loop
+number, we will soon waste much the journal space.
 
-All testing binaries should be fairly ready for test if you've already
-configed your openmpi and ssh&rsh connection well.
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ fs/ocfs2/xattr.c |   18 +++++++++---------
+ 1 files changed, 9 insertions(+), 9 deletions(-)
 
-Just feel free to let Marcos and me know if you're being hindered by any
-problem during the testing:)
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 365b876..93c5668 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -5100,30 +5100,30 @@ static int ocfs2_delete_xattr_in_bucket(struct inode *inode,
+ 
+ 	ocfs2_init_dealloc_ctxt(&ctxt.dealloc);
+ 
+-	ctxt.handle = ocfs2_start_trans(osb, credits);
+-	if (IS_ERR(ctxt.handle)) {
+-		ret = PTR_ERR(ctxt.handle);
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+ 	for (i = 0; i < le16_to_cpu(xh->xh_count); i++) {
+ 		xe = &xh->xh_entries[i];
+ 		if (ocfs2_xattr_is_local(xe))
+ 			continue;
+ 
++		ctxt.handle = ocfs2_start_trans(osb, credits);
++		if (IS_ERR(ctxt.handle)) {
++			ret = PTR_ERR(ctxt.handle);
++			mlog_errno(ret);
++			break;
++		}
++
+ 		ret = ocfs2_xattr_bucket_value_truncate(inode, bucket,
+ 							i, 0, &ctxt);
++
++		ocfs2_commit_trans(osb, ctxt.handle);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			break;
+ 		}
+ 	}
+ 
+-	ret = ocfs2_commit_trans(osb, ctxt.handle);
+ 	ocfs2_schedule_truncate_log_flush(osb, 1);
+ 	ocfs2_run_deallocs(osb, &ctxt.dealloc);
+-out:
+ 	return ret;
+ }
+ 
+-- 
+1.5.6.5
 
 
-Regards,
-Tristan
+-- 
 
-> 
-> > install openmpi first, and setup passwordless ssh&rsh connection among
-> > all nodes.
-> > 
-> Yeah, I did that. There is very helpful document on ocfs2 wiki, thanks to the author :)
-> 
-> > Besides, all testing binaries need to be run from a installed BINDIR
-> > after a successful building&installation.
-> When I tried run_create_racer.py and open_delete.py, maybe I didn't input correct/proper parameters
-> to the scripts, I will start another thread to ask for help :)
-> [snip]
-> 
-> Thanks for your feedback. Since I switched my email address, my reply comes late ...
+ One look at the From:
+ understanding has blossomed
+ .procmailrc grows
+	- Alexander Viro
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
