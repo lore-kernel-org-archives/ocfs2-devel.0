@@ -1,71 +1,80 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 11 Dec 2008 10:46:33 +0800
-Subject: [Ocfs2-devel] [PATCH 0/18] ocfs2: Add metadata ECC - almost
-	there.
-In-Reply-To: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
-References: <1228871395-10273-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <49407F09.8030403@oracle.com>
+From: tristan.ye <tristan.ye@oracle.com>
+Date: Thu, 11 Dec 2008 16:26:23 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix DLM_BADARGS
+	error	in	concurrent file locking
+In-Reply-To: <4940CC19.5010801@suse.de>
+References: <493524C0.4090506@suse.de> <4935B20B.9040309@oracle.com>
+	<4936E284.6030000@suse.de>
+	<1228354293.6492.6.camel@tristan-laptop.cn.oracle.com>
+	<4940CC19.5010801@suse.de>
+Message-ID: <1228983983.6611.18.camel@tristan-laptop.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+On Thu, 2008-12-11 at 16:15 +0800, Coly Li wrote:
+> 
+> tristan.ye Wrote:
+> > On Thu, 2008-12-04 at 03:48 +0800, Coly Li wrote:
+> >> Sunil Mushran Wrote:
+> >> [snip]
+> >>
+> >>> Corrections welcome.
+> >>>
+> >>> Lastly, test the patch not only with the flock() test but also otherwise.
+> >>> Say, with recovery. Part of fixing bugs is ensuring the fix does not break
+> >>> existing functionality. Run all multinode tests in ocfs2-test.
+> >> On a 8 nodes cluster setup by xen, I tested these test cases,
+> >> - run_buildkernel.py
+> >> - cross_delete.py
+> >> - dlmstress1.sh
+> >> - run_extend_and_write.py
+> >> - run_lvb_torture.py
+> >> - mmap_test
+> >> - test_netfail.py
+> >>
+> >> Not tested cases are run_create_racer.py and open_delete.py, cause I encountered some error when
+> >> setup them.
+> > Hi Coly,
+> > 
+> > How did you setup the env for testing? are you using the latest
+> > testsuite from ocfs2-test.git? As for the cluster testing, we need to
+> I download the code by svn, here is my command,
+> svn co http://oss.oracle.com/projects/ocfs2-test/src ocfs2-test
+> Is it out of date ?
+
+Actually we've moved to git repository for ocfs2-test src management, so
+you'd better turn to our git repo for pulling latest test sources. Such
+as,
+
+1. git clone git://oss.oracle.com/git/ocfs2-test ocfs2-test
+
+2. ./autogen.sh 
+
+3. make && make install DESTDIR=/your/dest/path
+
+All testing binaries should be fairly ready for test if you've already
+configed your openmpi and ssh&rsh connection well.
+
+Just feel free to let Marcos and me know if you're being hindered by any
+problem during the testing:)
 
 
-Joel Becker wrote:
-> These patches add the metadata ECC code to ocfs2.  They have one
-> limitation - they do not ECC directory blocks yet.  However, that will
-> only take a simple insertion of the dirblock trailer.  With xattr ECC
-> completed, the patches are approaching a final form and are ready for
-> initial review.  They are atop my xattr-buckets-2 branch.
-> 
-> The first patch adds buffer triggers to JDB2.  This allows us to only
-> calculate the ECC code when JBD2 is about to write a block to disk.
-> 
-> Next, we add the actual blockcheck functions.  These are the functions
-> that compute the checksum (using the kernel's crc32_le()) and the ECC
-> bits (this is hamming code, implemented in blockcheck.c).
-> 
-> Then we create metadata-type specific ocfs2_journal_access_*() functions
-> to make sure each metadata type uses its own checksum field.  These are
-> hooked up to the regular metadata types.
-> 
-> We add ecc calculation to xattr buckets.  Because buckets can be
-> multiple blocks, they cannot use journal triggers.  However, they are
-> rarely updated, so the loss of efficiency isn't very important.
-> 
-> Last, we refactor the xattr value setting code to make sure we know
-> which metadata type an xattr value belongs to.  That way we can call the
-> appropriate ocfs2_journal_access_*() function.
-> 
-> The code is also available in my repository.
-> 
-> [View]
-> http://oss.oracle.com/git/?p=jlbec/linux-2.6.git;a=shortlog;h=metaecc
-> [Pull]
-> git://oss.oracle.com/git/jlbec/linux-2.6.git metaecc
-> 
-> Joel Becker (18):
->       jbd2: Add buffer triggers
->       ocfs2: Add the on-disk structures for metadata checksums.
->       ocfs2: Add the underlying blockcheck code.
->       ocfs2: Add a validation hook for quota block reads.
->       ocfs2: block read meta ecc.
->       ocfs2: Add journal_access functions with jbd2 triggers.
->       ocfs2: Wrap up the common use cases of ocfs2_new_path().
->       ocfs2: Use metadata-specific ocfs2_journal_access_*() functions.
->       ocfs2: Add ecc and checksums to ocfs2 xattr buckets.
->       ocfs2: Create ocfs2_xattr_value_buf.
->       ocfs2: Pull ocfs2_xattr_value_buf up from __ocfs2_remove_xattr_range().
->       ocfs2: Pull ocfs2_xattr_value_buf up into ocfs2_xattr_value_truncate().
->       ocfs2: Pass ocfs2_xattr_value_buf into ocfs2_xattr_value_truncate().
->       ocfs2: Pass value buf to ocfs2_xattr_update_entry().
->       ocfs2: Use ocfs2_xattr_value_buf in ocfs2_xattr_set_entry().
->       ocfs2: Pass value buf to ocfs2_remove_value_outside().
->       ocfs2: Use proper journal_access function in xattr.c
->       ocfs2: Enable metadata checksums.
+Regards,
+Tristan
 
-Acked-by: Tao Ma <tao.ma@oracle.com>
 > 
+> > install openmpi first, and setup passwordless ssh&rsh connection among
+> > all nodes.
+> > 
+> Yeah, I did that. There is very helpful document on ocfs2 wiki, thanks to the author :)
 > 
+> > Besides, all testing binaries need to be run from a installed BINDIR
+> > after a successful building&installation.
+> When I tried run_create_racer.py and open_delete.py, maybe I didn't input correct/proper parameters
+> to the scripts, I will start another thread to ask for help :)
+> [snip]
+> 
+> Thanks for your feedback. Since I switched my email address, my reply comes late ...
