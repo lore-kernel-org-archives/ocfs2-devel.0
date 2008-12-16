@@ -1,248 +1,181 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 16 Dec 2008 15:49:15 -0800
-Subject: [Ocfs2-devel] [PATCH 1/9] ocfs2/hb: Exposes list of heartbeating
-	nodes via debugfs
+Date: Tue, 16 Dec 2008 15:49:22 -0800
+Subject: [Ocfs2-devel] [PATCH 8/9] ocfs2/dlm: Fix race in adding/removing
+	lockres' to/from the tracking list
 In-Reply-To: <1229471363-15887-1-git-send-email-sunil.mushran@oracle.com>
 References: <1229471363-15887-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1229471363-15887-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1229471363-15887-9-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Patch creates a debugfs file, o2hb/livesnodes, which exposes the aggregate
-list of heartbeating node across all heartbeat regions.
+This patch adds a new lock, dlm->tracking_lock, to protect adding/removing
+lockres' to/from the dlm->tracking_list. We were previously using dlm->spinlock
+for the same, but that proved inadequate as we could be freeing a lockres from
+a context that did not hold that lock. As the new lock only protects this list,
+we can explicitly take it when removing the lockres from the tracking list.
+
+This bug was exposed when testing multiple processes concurrently flock() the
+same file.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c   |  140 +++++++++++++++++++++++++++++++++++++++-
- fs/ocfs2/cluster/heartbeat.h   |    3 +-
- fs/ocfs2/cluster/nodemanager.c |    9 ++-
- 3 files changed, 148 insertions(+), 4 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    3 ++
+ fs/ocfs2/dlm/dlmdebug.c  |   53 ++++++++++++++++++++-------------------------
+ fs/ocfs2/dlm/dlmdomain.c |    1 +
+ fs/ocfs2/dlm/dlmmaster.c |   10 ++++++++
+ 4 files changed, 38 insertions(+), 29 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 6ebaa58..7e9d25c 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -33,6 +33,7 @@
- #include <linux/random.h>
- #include <linux/crc32.h>
- #include <linux/time.h>
-+#include <linux/debugfs.h>
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index d5a86fb..bb53714 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -140,6 +140,7 @@ struct dlm_ctxt
+ 	unsigned int purge_count;
+ 	spinlock_t spinlock;
+ 	spinlock_t ast_lock;
++	spinlock_t track_lock;
+ 	char *name;
+ 	u8 node_num;
+ 	u32 key;
+@@ -316,6 +317,8 @@ struct dlm_lock_resource
+ 	 * put on a list for the dlm thread to run. */
+ 	unsigned long    last_used;
  
- #include "heartbeat.h"
- #include "tcp.h"
-@@ -60,6 +61,11 @@ static unsigned long o2hb_live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
- static LIST_HEAD(o2hb_node_events);
- static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
- 
-+#define O2HB_DEBUG_DIR			"o2hb"
-+#define O2HB_DEBUG_LIVENODES		"livenodes"
-+static struct dentry *o2hb_debug_dir;
-+static struct dentry *o2hb_debug_livenodes;
++	struct dlm_ctxt *dlm;
 +
- static LIST_HEAD(o2hb_all_regions);
- 
- static struct o2hb_callback {
-@@ -905,7 +911,121 @@ static int o2hb_thread(void *data)
- 	return 0;
- }
- 
--void o2hb_init(void)
-+#ifdef CONFIG_DEBUG_FS
-+struct o2hb_debug_buffer {
-+	int len;
-+	char *buf;
-+};
-+
-+static int o2hb_debug_open(struct inode *inode, struct file *file)
-+{
-+	unsigned long map[BITS_TO_LONGS(O2NM_MAX_NODES)];
-+	struct o2hb_debug_buffer *odb = NULL;
-+	int i = -1;
-+	int out = 0;
-+
-+	odb = kzalloc(sizeof(struct o2hb_debug_buffer), GFP_KERNEL);
-+	if (!odb)
-+		goto bail;
-+
-+	odb->len = PAGE_SIZE;
-+	odb->buf = kmalloc(odb->len, GFP_KERNEL);
-+	if (!odb->buf) {
-+		kfree(odb);
-+		goto bail;
-+	}
-+
-+	o2hb_fill_node_map(map, sizeof(map));
-+
-+	while ((i = find_next_bit(map, O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES)
-+		out += snprintf(odb->buf + out, odb->len - out, "%d ", i);
-+	out += snprintf(odb->buf + out, odb->len - out, "\n");
-+
-+	odb->len = out;
-+
-+	file->private_data = odb;
-+
-+	return 0;
-+bail:
-+	return -ENOMEM;
-+}
-+
-+static int o2hb_debug_release(struct inode *inode, struct file *file)
-+{
-+	struct o2hb_debug_buffer *odb =
-+			(struct o2hb_debug_buffer *)file->private_data;
-+
-+	kfree(odb->buf);
-+	kfree(odb);
-+
-+	return 0;
-+}
-+
-+static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
-+				 size_t nbytes, loff_t *ppos)
-+{
-+	struct o2hb_debug_buffer *odb =
-+			(struct o2hb_debug_buffer *)file->private_data;
-+
-+	return simple_read_from_buffer(buf, nbytes, ppos, odb->buf, odb->len);
-+}
-+
-+static loff_t o2hb_debug_llseek(struct file *file, loff_t off, int whence)
-+{
-+	struct o2hb_debug_buffer *odb =
-+			(struct o2hb_debug_buffer *)file->private_data;
-+	loff_t new = -1;
-+
-+	switch (whence) {
-+	case 0:
-+		new = off;
-+		break;
-+	case 1:
-+		new = file->f_pos + off;
-+		break;
-+	}
-+
-+	if (new < 0 || new > odb->len)
-+		return -EINVAL;
-+
-+	return (file->f_pos = new);
-+}
-+#else
-+static int o2hb_debug_open(struct inode *inode, struct file *file)
-+{
-+	return 0;
-+}
-+static int o2hb_debug_release(struct inode *inode, struct file *file)
-+{
-+	return 0;
-+}
-+static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
-+			       size_t nbytes, loff_t *ppos)
-+{
-+	return 0;
-+}
-+static loff_t o2hb_debug_llseek(struct file *file, loff_t off, int whence)
-+{
-+	return 0;
-+}
-+#endif  /* CONFIG_DEBUG_FS */
-+
-+static struct file_operations o2hb_debug_fops = {
-+	.open =		o2hb_debug_open,
-+	.release =	o2hb_debug_release,
-+	.read =		o2hb_debug_read,
-+	.llseek =	o2hb_debug_llseek,
-+};
-+
-+void o2hb_exit(void)
-+{
-+	if (o2hb_debug_livenodes)
-+		debugfs_remove(o2hb_debug_livenodes);
-+	if (o2hb_debug_dir)
-+		debugfs_remove(o2hb_debug_dir);
-+}
-+
-+int o2hb_init(void)
+ 	unsigned migration_pending:1;
+ 	atomic_t asts_reserved;
+ 	spinlock_t spinlock;
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 1b81dcb..b32f60a 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -630,43 +630,38 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
  {
- 	int i;
+ 	struct debug_lockres *dl = m->private;
+ 	struct dlm_ctxt *dlm = dl->dl_ctxt;
++	struct dlm_lock_resource *oldres = dl->dl_res;
+ 	struct dlm_lock_resource *res = NULL;
++	struct list_head *track_list;
  
-@@ -918,6 +1038,24 @@ void o2hb_init(void)
- 	INIT_LIST_HEAD(&o2hb_node_events);
+-	spin_lock(&dlm->spinlock);
++	spin_lock(&dlm->track_lock);
++	if (oldres)
++		track_list = &oldres->tracking;
++	else
++		track_list = &dlm->tracking_list;
  
- 	memset(o2hb_live_node_bitmap, 0, sizeof(o2hb_live_node_bitmap));
+-	if (dl->dl_res) {
+-		list_for_each_entry(res, &dl->dl_res->tracking, tracking) {
+-			if (dl->dl_res) {
+-				dlm_lockres_put(dl->dl_res);
+-				dl->dl_res = NULL;
+-			}
+-			if (&res->tracking == &dlm->tracking_list) {
+-				mlog(0, "End of list found, %p\n", res);
+-				dl = NULL;
+-				break;
+-			}
++	list_for_each_entry(res, track_list, tracking) {
++		if (&res->tracking == &dlm->tracking_list)
++			res = NULL;
++		else
+ 			dlm_lockres_get(res);
+-			dl->dl_res = res;
+-			break;
+-		}
+-	} else {
+-		if (!list_empty(&dlm->tracking_list)) {
+-			list_for_each_entry(res, &dlm->tracking_list, tracking)
+-				break;
+-			dlm_lockres_get(res);
+-			dl->dl_res = res;
+-		} else
+-			dl = NULL;
++		break;
+ 	}
++	spin_unlock(&dlm->track_lock);
+ 
+-	if (dl) {
+-		spin_lock(&dl->dl_res->spinlock);
+-		dump_lockres(dl->dl_res, dl->dl_buf, dl->dl_len - 1);
+-		spin_unlock(&dl->dl_res->spinlock);
+-	}
++	if (oldres)
++		dlm_lockres_put(oldres);
+ 
+-	spin_unlock(&dlm->spinlock);
++	dl->dl_res = res;
 +
-+	o2hb_debug_dir = debugfs_create_dir(O2HB_DEBUG_DIR, NULL);
-+	if (!o2hb_debug_dir) {
-+		mlog_errno(-ENOMEM);
-+		return -ENOMEM;
-+	}
-+
-+	o2hb_debug_livenodes = debugfs_create_file(O2HB_DEBUG_LIVENODES,
-+						   S_IFREG|S_IRUSR,
-+						   o2hb_debug_dir, NULL,
-+						   &o2hb_debug_fops);
-+	if (!o2hb_debug_livenodes) {
-+		mlog_errno(-ENOMEM);
-+		debugfs_remove(o2hb_debug_dir);
-+		return -ENOMEM;
-+	}
-+
-+	return 0;
++	if (res) {
++		spin_lock(&res->spinlock);
++		dump_lockres(res, dl->dl_buf, dl->dl_len - 1);
++		spin_unlock(&res->spinlock);
++	} else
++		dl = NULL;
+ 
++	/* passed to seq_show */
+ 	return dl;
  }
  
- /* if we're already in a callback then we're already serialized by the sem */
-diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
-index e511339..2f16492 100644
---- a/fs/ocfs2/cluster/heartbeat.h
-+++ b/fs/ocfs2/cluster/heartbeat.h
-@@ -75,7 +75,8 @@ void o2hb_unregister_callback(const char *region_uuid,
- 			      struct o2hb_callback_func *hc);
- void o2hb_fill_node_map(unsigned long *map,
- 			unsigned bytes);
--void o2hb_init(void);
-+void o2hb_exit(void);
-+int o2hb_init(void);
- int o2hb_check_node_heartbeating(u8 node_num);
- int o2hb_check_node_heartbeating_from_callback(u8 node_num);
- int o2hb_check_local_node_heartbeating(void);
-diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
-index 816a3f6..2ce28d7 100644
---- a/fs/ocfs2/cluster/nodemanager.c
-+++ b/fs/ocfs2/cluster/nodemanager.c
-@@ -881,6 +881,7 @@ static void __exit exit_o2nm(void)
- 	o2cb_sys_shutdown();
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 63f8125..d8d578f 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1550,6 +1550,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	spin_lock_init(&dlm->spinlock);
+ 	spin_lock_init(&dlm->master_lock);
+ 	spin_lock_init(&dlm->ast_lock);
++	spin_lock_init(&dlm->track_lock);
+ 	INIT_LIST_HEAD(&dlm->list);
+ 	INIT_LIST_HEAD(&dlm->dirty_list);
+ 	INIT_LIST_HEAD(&dlm->reco.resources);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 92fd1d7..cbf3abe 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -505,8 +505,10 @@ void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
+ static void dlm_lockres_release(struct kref *kref)
+ {
+ 	struct dlm_lock_resource *res;
++	struct dlm_ctxt *dlm;
  
- 	o2net_exit();
-+	o2hb_exit();
- }
+ 	res = container_of(kref, struct dlm_lock_resource, refs);
++	dlm = res->dlm;
  
- static int __init init_o2nm(void)
-@@ -889,11 +890,13 @@ static int __init init_o2nm(void)
+ 	/* This should not happen -- all lockres' have a name
+ 	 * associated with them at init time. */
+@@ -515,6 +517,7 @@ static void dlm_lockres_release(struct kref *kref)
+ 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+ 	     res->lockname.name);
  
- 	cluster_print_version();
++	spin_lock(&dlm->track_lock);
+ 	if (!list_empty(&res->tracking))
+ 		list_del_init(&res->tracking);
+ 	else {
+@@ -522,6 +525,9 @@ static void dlm_lockres_release(struct kref *kref)
+ 		     res->lockname.len, res->lockname.name);
+ 		dlm_print_one_lock_resource(res);
+ 	}
++	spin_unlock(&dlm->track_lock);
++
++	dlm_put(dlm);
  
--	o2hb_init();
-+	ret = o2hb_init();
-+	if (ret)
-+		goto out;
+ 	if (!hlist_unhashed(&res->hash_node) ||
+ 	    !list_empty(&res->granted) ||
+@@ -595,6 +601,10 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+ 	res->migration_pending = 0;
+ 	res->inflight_locks = 0;
  
- 	ret = o2net_init();
- 	if (ret)
--		goto out;
-+		goto out_o2hb;
++	/* put in dlm_lockres_release */
++	dlm_grab(dlm);
++	res->dlm = dlm;
++
+ 	kref_init(&res->refs);
  
- 	ret = o2net_register_hb_callbacks();
- 	if (ret)
-@@ -916,6 +919,8 @@ out_callbacks:
- 	o2net_unregister_hb_callbacks();
- out_o2net:
- 	o2net_exit();
-+out_o2hb:
-+	o2hb_exit();
- out:
- 	return ret;
- }
+ 	/* just for consistency */
 -- 
 1.5.6.3
