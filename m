@@ -1,26 +1,165 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 16 Dec 2008 13:40:12 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Always update xattr search when
-	creating bucket.
-In-Reply-To: <1228439650-5101-1-git-send-email-tao.ma@oracle.com>
-References: <1228439650-5101-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20081216214012.GY8791@wotan.suse.de>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue, 16 Dec 2008 15:49:18 -0800
+Subject: [Ocfs2-devel] [PATCH 4/9] ocfs2: Remove debugfs file
+	local_alloc_stats
+In-Reply-To: <1229471363-15887-1-git-send-email-sunil.mushran@oracle.com>
+References: <1229471363-15887-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1229471363-15887-5-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 05, 2008 at 09:14:10AM +0800, Tao Ma wrote:
-> When we create xattr bucket during the process of xattr set, we always
-> need to update the ocfs2_xattr_search since even if the bucket size is
-> the same as block size, the offset will change because of the removal
-> of the ocfs2_xattr_block header.
+This patch removes the debugfs file local_alloc_stats as that information
+is now included in the fs_state debugfs file.
 
-Ok, this is in the fixes branch now. I will send it upstream tommorrow. By
-the way - am I correct in that merge_window seems to have fixed this
-already?
-	--Mark
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/localalloc.c |   86 -------------------------------------------------
+ fs/ocfs2/ocfs2.h      |    5 ---
+ 2 files changed, 0 insertions(+), 91 deletions(-)
 
---
-Mark Fasheh
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index 687b287..500f34d 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -28,7 +28,6 @@
+ #include <linux/slab.h>
+ #include <linux/highmem.h>
+ #include <linux/bitops.h>
+-#include <linux/debugfs.h>
+ 
+ #define MLOG_MASK_PREFIX ML_DISK_ALLOC
+ #include <cluster/masklog.h>
+@@ -74,84 +73,6 @@ static int ocfs2_local_alloc_new_window(struct ocfs2_super *osb,
+ static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
+ 					  struct inode *local_alloc_inode);
+ 
+-#ifdef CONFIG_OCFS2_FS_STATS
+-
+-static int ocfs2_la_debug_open(struct inode *inode, struct file *file)
+-{
+-	file->private_data = inode->i_private;
+-	return 0;
+-}
+-
+-#define LA_DEBUG_BUF_SZ	PAGE_CACHE_SIZE
+-#define LA_DEBUG_VER	1
+-static ssize_t ocfs2_la_debug_read(struct file *file, char __user *userbuf,
+-				   size_t count, loff_t *ppos)
+-{
+-	static DEFINE_MUTEX(la_debug_mutex);
+-	struct ocfs2_super *osb = file->private_data;
+-	int written, ret;
+-	char *buf = osb->local_alloc_debug_buf;
+-
+-	mutex_lock(&la_debug_mutex);
+-	memset(buf, 0, LA_DEBUG_BUF_SZ);
+-
+-	written = snprintf(buf, LA_DEBUG_BUF_SZ,
+-			   "0x%x\t0x%llx\t%u\t%u\t0x%x\n",
+-			   LA_DEBUG_VER,
+-			   (unsigned long long)osb->la_last_gd,
+-			   osb->local_alloc_default_bits,
+-			   osb->local_alloc_bits, osb->local_alloc_state);
+-
+-	ret = simple_read_from_buffer(userbuf, count, ppos, buf, written);
+-
+-	mutex_unlock(&la_debug_mutex);
+-	return ret;
+-}
+-
+-static const struct file_operations ocfs2_la_debug_fops = {
+-	.open =		ocfs2_la_debug_open,
+-	.read =		ocfs2_la_debug_read,
+-};
+-
+-static void ocfs2_init_la_debug(struct ocfs2_super *osb)
+-{
+-	osb->local_alloc_debug_buf = kmalloc(LA_DEBUG_BUF_SZ, GFP_NOFS);
+-	if (!osb->local_alloc_debug_buf)
+-		return;
+-
+-	osb->local_alloc_debug = debugfs_create_file("local_alloc_stats",
+-						     S_IFREG|S_IRUSR,
+-						     osb->osb_debug_root,
+-						     osb,
+-						     &ocfs2_la_debug_fops);
+-	if (!osb->local_alloc_debug) {
+-		kfree(osb->local_alloc_debug_buf);
+-		osb->local_alloc_debug_buf = NULL;
+-	}
+-}
+-
+-static void ocfs2_shutdown_la_debug(struct ocfs2_super *osb)
+-{
+-	if (osb->local_alloc_debug)
+-		debugfs_remove(osb->local_alloc_debug);
+-
+-	if (osb->local_alloc_debug_buf)
+-		kfree(osb->local_alloc_debug_buf);
+-
+-	osb->local_alloc_debug_buf = NULL;
+-	osb->local_alloc_debug = NULL;
+-}
+-#else	/* CONFIG_OCFS2_FS_STATS */
+-static void ocfs2_init_la_debug(struct ocfs2_super *osb)
+-{
+-	return;
+-}
+-static void ocfs2_shutdown_la_debug(struct ocfs2_super *osb)
+-{
+-	return;
+-}
+-#endif
+-
+ static inline int ocfs2_la_state_enabled(struct ocfs2_super *osb)
+ {
+ 	return (osb->local_alloc_state == OCFS2_LA_THROTTLED ||
+@@ -225,8 +146,6 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+ 
+ 	mlog_entry_void();
+ 
+-	ocfs2_init_la_debug(osb);
+-
+ 	if (osb->local_alloc_bits == 0)
+ 		goto bail;
+ 
+@@ -298,9 +217,6 @@ bail:
+ 	if (inode)
+ 		iput(inode);
+ 
+-	if (status < 0)
+-		ocfs2_shutdown_la_debug(osb);
+-
+ 	mlog(0, "Local alloc window bits = %d\n", osb->local_alloc_bits);
+ 
+ 	mlog_exit(status);
+@@ -330,8 +246,6 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
+ 	cancel_delayed_work(&osb->la_enable_wq);
+ 	flush_workqueue(ocfs2_wq);
+ 
+-	ocfs2_shutdown_la_debug(osb);
+-
+ 	if (osb->local_alloc_state == OCFS2_LA_UNUSED)
+ 		goto out;
+ 
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index d912b70..22711d4 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -281,11 +281,6 @@ struct ocfs2_super
+ 
+ 	u64 la_last_gd;
+ 
+-#ifdef CONFIG_OCFS2_FS_STATS
+-	struct dentry *local_alloc_debug;
+-	char *local_alloc_debug_buf;
+-#endif
+-
+ 	/* Next two fields are for local node slot recovery during
+ 	 * mount. */
+ 	int dirty;
+-- 
+1.5.6.3
