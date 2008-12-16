@@ -1,181 +1,65 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 16 Dec 2008 15:49:22 -0800
-Subject: [Ocfs2-devel] [PATCH 8/9] ocfs2/dlm: Fix race in adding/removing
-	lockres' to/from the tracking list
+Date: Tue, 16 Dec 2008 15:49:16 -0800
+Subject: [Ocfs2-devel] [PATCH 2/9] ocfs2: Moves struct recovery_map to a
+	header file
 In-Reply-To: <1229471363-15887-1-git-send-email-sunil.mushran@oracle.com>
 References: <1229471363-15887-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1229471363-15887-9-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1229471363-15887-3-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch adds a new lock, dlm->tracking_lock, to protect adding/removing
-lockres' to/from the dlm->tracking_list. We were previously using dlm->spinlock
-for the same, but that proved inadequate as we could be freeing a lockres from
-a context that did not hold that lock. As the new lock only protects this list,
-we can explicitly take it when removing the lockres from the tracking list.
-
-This bug was exposed when testing multiple processes concurrently flock() the
-same file.
+Moves the definition of struct recovery_map from journal.c to ocfs2.h.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |    3 ++
- fs/ocfs2/dlm/dlmdebug.c  |   53 ++++++++++++++++++++-------------------------
- fs/ocfs2/dlm/dlmdomain.c |    1 +
- fs/ocfs2/dlm/dlmmaster.c |   10 ++++++++
- 4 files changed, 38 insertions(+), 29 deletions(-)
+ fs/ocfs2/journal.c |   11 -----------
+ fs/ocfs2/journal.h |    9 +++++++++
+ 2 files changed, 9 insertions(+), 11 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index d5a86fb..bb53714 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -140,6 +140,7 @@ struct dlm_ctxt
- 	unsigned int purge_count;
- 	spinlock_t spinlock;
- 	spinlock_t ast_lock;
-+	spinlock_t track_lock;
- 	char *name;
- 	u8 node_num;
- 	u32 key;
-@@ -316,6 +317,8 @@ struct dlm_lock_resource
- 	 * put on a list for the dlm thread to run. */
- 	unsigned long    last_used;
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 99fe9d5..3d2c81f 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -64,17 +64,6 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
+ 				 int slot);
+ static int ocfs2_commit_thread(void *arg);
  
-+	struct dlm_ctxt *dlm;
-+
- 	unsigned migration_pending:1;
- 	atomic_t asts_reserved;
- 	spinlock_t spinlock;
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index 1b81dcb..b32f60a 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -630,43 +630,38 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
+-
+-/*
+- * The recovery_list is a simple linked list of node numbers to recover.
+- * It is protected by the recovery_lock.
+- */
+-
+-struct ocfs2_recovery_map {
+-	unsigned int rm_used;
+-	unsigned int *rm_entries;
+-};
+-
+ int ocfs2_recovery_init(struct ocfs2_super *osb)
  {
- 	struct debug_lockres *dl = m->private;
- 	struct dlm_ctxt *dlm = dl->dl_ctxt;
-+	struct dlm_lock_resource *oldres = dl->dl_res;
- 	struct dlm_lock_resource *res = NULL;
-+	struct list_head *track_list;
+ 	struct ocfs2_recovery_map *rm;
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index d4d14e9..efbcf8e 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -43,6 +43,15 @@ enum ocfs2_journal_state {
+ struct ocfs2_super;
+ struct ocfs2_dinode;
  
--	spin_lock(&dlm->spinlock);
-+	spin_lock(&dlm->track_lock);
-+	if (oldres)
-+		track_list = &oldres->tracking;
-+	else
-+		track_list = &dlm->tracking_list;
- 
--	if (dl->dl_res) {
--		list_for_each_entry(res, &dl->dl_res->tracking, tracking) {
--			if (dl->dl_res) {
--				dlm_lockres_put(dl->dl_res);
--				dl->dl_res = NULL;
--			}
--			if (&res->tracking == &dlm->tracking_list) {
--				mlog(0, "End of list found, %p\n", res);
--				dl = NULL;
--				break;
--			}
-+	list_for_each_entry(res, track_list, tracking) {
-+		if (&res->tracking == &dlm->tracking_list)
-+			res = NULL;
-+		else
- 			dlm_lockres_get(res);
--			dl->dl_res = res;
--			break;
--		}
--	} else {
--		if (!list_empty(&dlm->tracking_list)) {
--			list_for_each_entry(res, &dlm->tracking_list, tracking)
--				break;
--			dlm_lockres_get(res);
--			dl->dl_res = res;
--		} else
--			dl = NULL;
-+		break;
- 	}
-+	spin_unlock(&dlm->track_lock);
- 
--	if (dl) {
--		spin_lock(&dl->dl_res->spinlock);
--		dump_lockres(dl->dl_res, dl->dl_buf, dl->dl_len - 1);
--		spin_unlock(&dl->dl_res->spinlock);
--	}
-+	if (oldres)
-+		dlm_lockres_put(oldres);
- 
--	spin_unlock(&dlm->spinlock);
-+	dl->dl_res = res;
++/*
++ * The recovery_list is a simple linked list of node numbers to recover.
++ * It is protected by the recovery_lock.
++ */
++struct ocfs2_recovery_map {
++	unsigned int rm_used;
++	unsigned int *rm_entries;
++};
 +
-+	if (res) {
-+		spin_lock(&res->spinlock);
-+		dump_lockres(res, dl->dl_buf, dl->dl_len - 1);
-+		spin_unlock(&res->spinlock);
-+	} else
-+		dl = NULL;
+ struct ocfs2_journal {
+ 	enum ocfs2_journal_state   j_state;    /* Journals current state   */
  
-+	/* passed to seq_show */
- 	return dl;
- }
- 
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 63f8125..d8d578f 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1550,6 +1550,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
- 	spin_lock_init(&dlm->spinlock);
- 	spin_lock_init(&dlm->master_lock);
- 	spin_lock_init(&dlm->ast_lock);
-+	spin_lock_init(&dlm->track_lock);
- 	INIT_LIST_HEAD(&dlm->list);
- 	INIT_LIST_HEAD(&dlm->dirty_list);
- 	INIT_LIST_HEAD(&dlm->reco.resources);
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 92fd1d7..cbf3abe 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -505,8 +505,10 @@ void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
- static void dlm_lockres_release(struct kref *kref)
- {
- 	struct dlm_lock_resource *res;
-+	struct dlm_ctxt *dlm;
- 
- 	res = container_of(kref, struct dlm_lock_resource, refs);
-+	dlm = res->dlm;
- 
- 	/* This should not happen -- all lockres' have a name
- 	 * associated with them at init time. */
-@@ -515,6 +517,7 @@ static void dlm_lockres_release(struct kref *kref)
- 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
- 	     res->lockname.name);
- 
-+	spin_lock(&dlm->track_lock);
- 	if (!list_empty(&res->tracking))
- 		list_del_init(&res->tracking);
- 	else {
-@@ -522,6 +525,9 @@ static void dlm_lockres_release(struct kref *kref)
- 		     res->lockname.len, res->lockname.name);
- 		dlm_print_one_lock_resource(res);
- 	}
-+	spin_unlock(&dlm->track_lock);
-+
-+	dlm_put(dlm);
- 
- 	if (!hlist_unhashed(&res->hash_node) ||
- 	    !list_empty(&res->granted) ||
-@@ -595,6 +601,10 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
- 	res->migration_pending = 0;
- 	res->inflight_locks = 0;
- 
-+	/* put in dlm_lockres_release */
-+	dlm_grab(dlm);
-+	res->dlm = dlm;
-+
- 	kref_init(&res->refs);
- 
- 	/* just for consistency */
 -- 
 1.5.6.3
