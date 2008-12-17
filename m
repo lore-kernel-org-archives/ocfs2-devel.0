@@ -1,110 +1,238 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 17 Dec 2008 12:28:15 -0800
-Subject: [Ocfs2-devel] [PATCH][RFC] fs: Add new pre-allocation ioctls to
-	vfs for compatibility with legacy xfs ioctls
-In-Reply-To: <49460F88.2080408@ankitjain.org>
-References: <49460F88.2080408@ankitjain.org>
-Message-ID: <20081217202815.GE8791@wotan.suse.de>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed, 17 Dec 2008 14:17:43 -0800
+Subject: [Ocfs2-devel] [PATCH 3/9] ocfs2: Exposes the file system state via
+	debugfs
+In-Reply-To: <1229552263-23741-1-git-send-email-sunil.mushran@oracle.com>
+References: <1229552263-23741-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1229552263-23741-3-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ankit Jain <me@ankitjain.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, xfs@oss.sgi.com
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Dec 15, 2008 at 01:34:24PM +0530, Ankit Jain wrote:
-> This patch adds ioctls to vfs for compatibility with legacy XFS
-> pre-allocation ioctls (XFS_IOC_*RESVP*). The implementation
-> effectively invokes sys_fallocate for the new ioctls.
-> Note: These legacy ioctls are also implemented by OCFS2.
-> 
-> There are some things that I'm not sure about:
-> 1. Should the struct space_resv be exposed to user-space? If not,
-> then what would be the right place to put it? And the ioctl
-> definitions?
+Patch creates a per mount debugfs file, fs_state, which exposes information
+like, cluster stack in use, states of the downconvert, recovery and commit
+threads, number of journal txns, some allocation stats, list of all slots, etc.
 
-Yes. As far as where to put it, I'm not sure. Maybe falloc.h?
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/ocfs2.h |    1 +
+ fs/ocfs2/super.c |  176 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 177 insertions(+), 0 deletions(-)
 
-
-> 2. Should the corresponding ioctls be removed from ocfs2?
-
-Well, a small amount of the code in fs/ocfs2/ioctl.c can certainly go away.
-Shouldn't we be talking about doing the same for xfs too?
-
-
-> Signed-off-by: Ankit Jain <me@ankitjain.org>
-> ---
->  fs/ioctl.c             |   37 +++++++++++++++++++++++++++
->  fs/open.c              |   51 ++++++++++++++++++-------------------
->  include/linux/falloc.h |   19 ++++++++++++++
->  include/linux/fs.h     |    2 +
->  4 files changed, 83 insertions(+), 26 deletions(-)
-> 
-> diff --git a/fs/ioctl.c b/fs/ioctl.c
-> index 43e8b2c..5e565c8 100644
-> --- a/fs/ioctl.c
-> +++ b/fs/ioctl.c
-> @@ -15,6 +15,7 @@
->  #include <linux/uaccess.h>
->  #include <linux/writeback.h>
->  #include <linux/buffer_head.h>
-> +#include <linux/falloc.h>
->  
->  #include <asm/ioctls.h>
->  
-> @@ -346,6 +347,37 @@ EXPORT_SYMBOL(generic_block_fiemap);
->  
->  #endif  /*  CONFIG_BLOCK  */
->  
-> +/*
-> + * This provides compatibility with legacy XFS pre-allocation ioctls
-> + * which predate the fallocate syscall.
-> + *
-> + * Only the l_start, l_len and l_whence fields of the 'struct space_resv'
-> + * are used here, rest are ignored.
-> + */
-> +static int ioctl_preallocate(struct file *filp, unsigned long arg)
-> +{
-> +	struct inode *inode = filp->f_path.dentry->d_inode;
-> +	struct space_resv sr;
-> +
-> +	if (copy_from_user(&sr, (struct space_resv __user *) arg, sizeof(sr)))
-> +		return -EFAULT;
-> +
-> +	switch (sr.l_whence) {
-> +	case SEEK_SET:
-> +		break;
-> +	case SEEK_CUR:
-> +		sr.l_start += filp->f_pos;
-> +		break;
-> +	case SEEK_END:
-> +		sr.l_start += i_size_read(inode);
-> +		break;
-> +	default:
-> +		return -EINVAL;
-> +	}
-> +
-> +	return do_fallocate(filp, FALLOC_FL_KEEP_SIZE, sr.l_start, sr.l_len);
-> +}
-> +
->  static int file_ioctl(struct file *filp, unsigned int cmd,
->  		unsigned long arg)
->  {
-> @@ -361,6 +393,11 @@ static int file_ioctl(struct file *filp, unsigned int cmd,
->  		return put_user(inode->i_sb->s_blocksize, p);
->  	case FIONREAD:
->  		return put_user(i_size_read(inode) - filp->f_pos, p);
-> +	case F_IOC_RESVSP:
-> +	case F_IOC_RESVSP64:
-> +	case F_IOC_UNRESVSP:
-> +	case F_IOC_UNRESVSP64:
-> +		return ioctl_preallocate(filp, arg);
-
-This patch is not implementing proper support for F_IOC_UNRESVSP and
-F_IOC_UNRESVSP64, so why are you catching those here? To be more clear,
-those are used for freeing space in a file ("puching holes"), which
-fallocate is not set up to do right now.
-	--Mark
-
---
-Mark Fasheh
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 3fed9e3..d912b70 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -301,6 +301,7 @@ struct ocfs2_super
+ 	struct ocfs2_dlm_debug *osb_dlm_debug;
+ 
+ 	struct dentry *osb_debug_root;
++	struct dentry *osb_ctxt;
+ 
+ 	wait_queue_head_t recovery_event;
+ 
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 304b63a..77a60e3 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -619,6 +619,170 @@ static int ocfs2_verify_userspace_stack(struct ocfs2_super *osb,
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_DEBUG_FS
++static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
++{
++	int out = 0;
++	int i;
++	struct ocfs2_cluster_connection *cconn = osb->cconn;
++	struct ocfs2_recovery_map *rm = osb->recovery_map;
++
++	out += snprintf(buf + out, len - out,
++			"%10s => Id: %-s  Uuid: %-s  Gen: 0x%X  Label: %-s\n",
++			"Device", osb->dev_str, osb->uuid_str,
++			osb->fs_generation, osb->vol_label);
++
++	out += snprintf(buf + out, len - out,
++			"%10s => State: %d  Flags: 0x%lX\n", "Volume",
++			atomic_read(&osb->vol_state), osb->osb_flags);
++
++	out += snprintf(buf + out, len - out,
++			"%10s => Block: %lu  Cluster: %d\n", "Sizes",
++			osb->sb->s_blocksize, osb->s_clustersize);
++
++	out += snprintf(buf + out, len - out,
++			"%10s => Compat: 0x%X  Incompat: 0x%X  "
++			"ROcompat: 0x%X\n",
++			"Features", osb->s_feature_compat,
++			osb->s_feature_incompat, osb->s_feature_ro_compat);
++
++	out += snprintf(buf + out, len - out,
++			"%10s => Opts: 0x%lX  AtimeQuanta: %u\n", "Mount",
++			osb->s_mount_opt, osb->s_atime_quantum);
++
++	out += snprintf(buf + out, len - out,
++			"%10s => Stack: %s  Name: %*s  Version: %d.%d\n",
++			"Cluster",
++			(*osb->osb_cluster_stack == '\0' ?
++			 "o2cb" : osb->osb_cluster_stack),
++			cconn->cc_namelen, cconn->cc_name,
++			cconn->cc_version.pv_major, cconn->cc_version.pv_minor);
++
++	spin_lock(&osb->dc_task_lock);
++	out += snprintf(buf + out, len - out,
++			"%10s => Pid: %d  Count: %lu  WakeSeq: %lu  "
++			"WorkSeq: %lu\n", "DownCnvt",
++			task_pid_nr(osb->dc_task), osb->blocked_lock_count,
++			osb->dc_wake_sequence, osb->dc_work_sequence);
++	spin_unlock(&osb->dc_task_lock);
++
++	spin_lock(&osb->osb_lock);
++	out += snprintf(buf + out, len - out, "%10s => Pid: %d  Nodes:",
++			"Recovery",
++			(osb->recovery_thread_task ?
++			 task_pid_nr(osb->recovery_thread_task) : -1));
++	if (rm->rm_used == 0)
++		out += snprintf(buf + out, len - out, " None\n");
++	else {
++		for (i = 0; i < rm->rm_used; i++)
++			out += snprintf(buf + out, len - out, " %d",
++					rm->rm_entries[i]);
++		out += snprintf(buf + out, len - out, "\n");
++	}
++	spin_unlock(&osb->osb_lock);
++
++	out += snprintf(buf + out, len - out,
++			"%10s => Pid: %d  Interval: %lu  Needs: %d\n", "Commit",
++			task_pid_nr(osb->commit_task), osb->osb_commit_interval,
++			atomic_read(&osb->needs_checkpoint));
++
++	out += snprintf(buf + out, len - out,
++			"%10s => State: %d  NumTxns: %d  TxnId: %lu\n",
++			"Journal", osb->journal->j_state,
++			atomic_read(&osb->journal->j_num_trans),
++			osb->journal->j_trans_id);
++
++	out += snprintf(buf + out, len - out,
++			"%10s => GlobalAllocs: %d  LocalAllocs: %d  "
++			"SubAllocs: %d  LAWinMoves: %d  SAExtends: %d\n",
++			"Stats",
++			atomic_read(&osb->alloc_stats.bitmap_data),
++			atomic_read(&osb->alloc_stats.local_data),
++			atomic_read(&osb->alloc_stats.bg_allocs),
++			atomic_read(&osb->alloc_stats.moves),
++			atomic_read(&osb->alloc_stats.bg_extends));
++
++	out += snprintf(buf + out, len - out,
++			"%10s => State: %u  Descriptor: %llu  Size: %u bits  "
++			"Default: %u bits\n",
++			"LocalAlloc", osb->local_alloc_state,
++			(unsigned long long)osb->la_last_gd,
++			osb->local_alloc_bits, osb->local_alloc_default_bits);
++
++	spin_lock(&osb->osb_lock);
++	out += snprintf(buf + out, len - out,
++			"%10s => Slot: %d  NumStolen: %d\n", "Steal",
++			osb->s_inode_steal_slot,
++			atomic_read(&osb->s_num_inodes_stolen));
++	spin_unlock(&osb->osb_lock);
++
++	out += snprintf(buf + out, len - out, "%10s => %3s  %10s\n",
++			"Slots", "Num", "RecoGen");
++
++	for (i = 0; i < osb->max_slots; ++i) {
++		out += snprintf(buf + out, len - out,
++				"%10s  %c %3d  %10d\n",
++				" ",
++				(i == osb->slot_num ? '*' : ' '),
++				i, osb->slot_recovery_generations[i]);
++	}
++
++	return out;
++}
++
++static int ocfs2_osb_debug_open(struct inode *inode, struct file *file)
++{
++	struct ocfs2_super *osb = inode->i_private;
++	char *buf = NULL;
++
++	buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
++	if (!buf)
++		goto bail;
++
++	i_size_write(inode, ocfs2_osb_dump(osb, buf, PAGE_SIZE));
++
++	file->private_data = buf;
++
++	return 0;
++bail:
++	return -ENOMEM;
++}
++
++static int ocfs2_debug_release(struct inode *inode, struct file *file)
++{
++	kfree(file->private_data);
++	return 0;
++}
++
++static ssize_t ocfs2_debug_read(struct file *file, char __user *buf,
++				size_t nbytes, loff_t *ppos)
++{
++	return simple_read_from_buffer(buf, nbytes, ppos, file->private_data,
++				       i_size_read(file->f_mapping->host));
++}
++#else
++static int ocfs2_osb_debug_open(struct inode *inode, struct file *file)
++{
++	return 0;
++}
++static int ocfs2_debug_release(struct inode *inode, struct file *file)
++{
++	return 0;
++}
++static ssize_t ocfs2_debug_read(struct file *file, char __user *buf,
++				size_t nbytes, loff_t *ppos)
++{
++	return 0;
++}
++#endif	/* CONFIG_DEBUG_FS */
++
++static struct file_operations ocfs2_osb_debug_fops = {
++	.open =		ocfs2_osb_debug_open,
++	.release =	ocfs2_debug_release,
++	.read =		ocfs2_debug_read,
++	.llseek =	generic_file_llseek,
++};
++
+ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ {
+ 	struct dentry *root;
+@@ -720,6 +884,16 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 		goto read_super_error;
+ 	}
+ 
++	osb->osb_ctxt = debugfs_create_file("fs_state", S_IFREG|S_IRUSR,
++					    osb->osb_debug_root,
++					    osb,
++					    &ocfs2_osb_debug_fops);
++	if (!osb->osb_ctxt) {
++		status = -EINVAL;
++		mlog_errno(status);
++		goto read_super_error;
++	}
++
+ 	status = ocfs2_mount_volume(sb);
+ 	if (osb->root_inode)
+ 		inode = igrab(osb->root_inode);
+@@ -1303,6 +1477,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+ 	osb = OCFS2_SB(sb);
+ 	BUG_ON(!osb);
+ 
++	debugfs_remove(osb->osb_ctxt);
++
+ 	ocfs2_shutdown_local_alloc(osb);
+ 
+ 	ocfs2_truncate_log_shutdown(osb);
+-- 
+1.5.6.3
