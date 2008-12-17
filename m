@@ -1,167 +1,74 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 17 Dec 2008 14:17:43 -0800
-Subject: [Ocfs2-devel] [PATCH 3/9] ocfs2: Exposes the file system state via
-	debugfs
+Date: Wed, 17 Dec 2008 14:17:42 -0800
+Subject: [Ocfs2-devel] [PATCH 1/9] ocfs2/hb: Exposes list of heartbeating
+	nodes via debugfs
 In-Reply-To: <1229552263-23741-1-git-send-email-sunil.mushran@oracle.com>
 References: <1229552263-23741-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1229552263-23741-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1229552263-23741-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Patch creates a per mount debugfs file, fs_state, which exposes information
-like, cluster stack in use, states of the downconvert, recovery and commit
-threads, number of journal txns, some allocation stats, list of all slots, etc.
+Patch creates a debugfs file, o2hb/livesnodes, which exposes the aggregate
+list of heartbeating node across all heartbeat regions.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/ocfs2.h |    1 +
- fs/ocfs2/super.c |  176 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 177 insertions(+), 0 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c   |   96 +++++++++++++++++++++++++++++++++++++++-
+ fs/ocfs2/cluster/heartbeat.h   |    3 +-
+ fs/ocfs2/cluster/nodemanager.c |    9 +++-
+ 3 files changed, 104 insertions(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 3fed9e3..d912b70 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -301,6 +301,7 @@ struct ocfs2_super
- 	struct ocfs2_dlm_debug *osb_dlm_debug;
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 6ebaa58..0c2bba5 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -33,6 +33,7 @@
+ #include <linux/random.h>
+ #include <linux/crc32.h>
+ #include <linux/time.h>
++#include <linux/debugfs.h>
  
- 	struct dentry *osb_debug_root;
-+	struct dentry *osb_ctxt;
+ #include "heartbeat.h"
+ #include "tcp.h"
+@@ -60,6 +61,11 @@ static unsigned long o2hb_live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ static LIST_HEAD(o2hb_node_events);
+ static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
  
- 	wait_queue_head_t recovery_event;
++#define O2HB_DEBUG_DIR			"o2hb"
++#define O2HB_DEBUG_LIVENODES		"livenodes"
++static struct dentry *o2hb_debug_dir;
++static struct dentry *o2hb_debug_livenodes;
++
+ static LIST_HEAD(o2hb_all_regions);
  
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 304b63a..77a60e3 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -619,6 +619,170 @@ static int ocfs2_verify_userspace_stack(struct ocfs2_super *osb,
+ static struct o2hb_callback {
+@@ -905,7 +911,77 @@ static int o2hb_thread(void *data)
  	return 0;
  }
  
+-void o2hb_init(void)
 +#ifdef CONFIG_DEBUG_FS
-+static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
++static int o2hb_debug_open(struct inode *inode, struct file *file)
 +{
-+	int out = 0;
-+	int i;
-+	struct ocfs2_cluster_connection *cconn = osb->cconn;
-+	struct ocfs2_recovery_map *rm = osb->recovery_map;
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => Id: %-s  Uuid: %-s  Gen: 0x%X  Label: %-s\n",
-+			"Device", osb->dev_str, osb->uuid_str,
-+			osb->fs_generation, osb->vol_label);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => State: %d  Flags: 0x%lX\n", "Volume",
-+			atomic_read(&osb->vol_state), osb->osb_flags);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => Block: %lu  Cluster: %d\n", "Sizes",
-+			osb->sb->s_blocksize, osb->s_clustersize);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => Compat: 0x%X  Incompat: 0x%X  "
-+			"ROcompat: 0x%X\n",
-+			"Features", osb->s_feature_compat,
-+			osb->s_feature_incompat, osb->s_feature_ro_compat);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => Opts: 0x%lX  AtimeQuanta: %u\n", "Mount",
-+			osb->s_mount_opt, osb->s_atime_quantum);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => Stack: %s  Name: %*s  Version: %d.%d\n",
-+			"Cluster",
-+			(*osb->osb_cluster_stack == '\0' ?
-+			 "o2cb" : osb->osb_cluster_stack),
-+			cconn->cc_namelen, cconn->cc_name,
-+			cconn->cc_version.pv_major, cconn->cc_version.pv_minor);
-+
-+	spin_lock(&osb->dc_task_lock);
-+	out += snprintf(buf + out, len - out,
-+			"%10s => Pid: %d  Count: %lu  WakeSeq: %lu  "
-+			"WorkSeq: %lu\n", "DownCnvt",
-+			task_pid_nr(osb->dc_task), osb->blocked_lock_count,
-+			osb->dc_wake_sequence, osb->dc_work_sequence);
-+	spin_unlock(&osb->dc_task_lock);
-+
-+	spin_lock(&osb->osb_lock);
-+	out += snprintf(buf + out, len - out, "%10s => Pid: %d  Nodes:",
-+			"Recovery",
-+			(osb->recovery_thread_task ?
-+			 task_pid_nr(osb->recovery_thread_task) : -1));
-+	if (rm->rm_used == 0)
-+		out += snprintf(buf + out, len - out, " None\n");
-+	else {
-+		for (i = 0; i < rm->rm_used; i++)
-+			out += snprintf(buf + out, len - out, " %d",
-+					rm->rm_entries[i]);
-+		out += snprintf(buf + out, len - out, "\n");
-+	}
-+	spin_unlock(&osb->osb_lock);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => Pid: %d  Interval: %lu  Needs: %d\n", "Commit",
-+			task_pid_nr(osb->commit_task), osb->osb_commit_interval,
-+			atomic_read(&osb->needs_checkpoint));
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => State: %d  NumTxns: %d  TxnId: %lu\n",
-+			"Journal", osb->journal->j_state,
-+			atomic_read(&osb->journal->j_num_trans),
-+			osb->journal->j_trans_id);
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => GlobalAllocs: %d  LocalAllocs: %d  "
-+			"SubAllocs: %d  LAWinMoves: %d  SAExtends: %d\n",
-+			"Stats",
-+			atomic_read(&osb->alloc_stats.bitmap_data),
-+			atomic_read(&osb->alloc_stats.local_data),
-+			atomic_read(&osb->alloc_stats.bg_allocs),
-+			atomic_read(&osb->alloc_stats.moves),
-+			atomic_read(&osb->alloc_stats.bg_extends));
-+
-+	out += snprintf(buf + out, len - out,
-+			"%10s => State: %u  Descriptor: %llu  Size: %u bits  "
-+			"Default: %u bits\n",
-+			"LocalAlloc", osb->local_alloc_state,
-+			(unsigned long long)osb->la_last_gd,
-+			osb->local_alloc_bits, osb->local_alloc_default_bits);
-+
-+	spin_lock(&osb->osb_lock);
-+	out += snprintf(buf + out, len - out,
-+			"%10s => Slot: %d  NumStolen: %d\n", "Steal",
-+			osb->s_inode_steal_slot,
-+			atomic_read(&osb->s_num_inodes_stolen));
-+	spin_unlock(&osb->osb_lock);
-+
-+	out += snprintf(buf + out, len - out, "%10s => %3s  %10s\n",
-+			"Slots", "Num", "RecoGen");
-+
-+	for (i = 0; i < osb->max_slots; ++i) {
-+		out += snprintf(buf + out, len - out,
-+				"%10s  %c %3d  %10d\n",
-+				" ",
-+				(i == osb->slot_num ? '*' : ' '),
-+				i, osb->slot_recovery_generations[i]);
-+	}
-+
-+	return out;
-+}
-+
-+static int ocfs2_osb_debug_open(struct inode *inode, struct file *file)
-+{
-+	struct ocfs2_super *osb = inode->i_private;
++	unsigned long map[BITS_TO_LONGS(O2NM_MAX_NODES)];
 +	char *buf = NULL;
++	int i = -1;
++	int out = 0;
 +
 +	buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
 +	if (!buf)
 +		goto bail;
 +
-+	i_size_write(inode, ocfs2_osb_dump(osb, buf, PAGE_SIZE));
++	o2hb_fill_node_map(map, sizeof(map));
++
++	while ((i = find_next_bit(map, O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES)
++		out += snprintf(buf + out, PAGE_SIZE - out, "%d ", i);
++	out += snprintf(buf + out, PAGE_SIZE - out, "\n");
++
++	i_size_write(inode, out);
 +
 +	file->private_data = buf;
 +
@@ -170,69 +77,128 @@ index 304b63a..77a60e3 100644
 +	return -ENOMEM;
 +}
 +
-+static int ocfs2_debug_release(struct inode *inode, struct file *file)
++static int o2hb_debug_release(struct inode *inode, struct file *file)
 +{
 +	kfree(file->private_data);
 +	return 0;
 +}
 +
-+static ssize_t ocfs2_debug_read(struct file *file, char __user *buf,
-+				size_t nbytes, loff_t *ppos)
++static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
++				 size_t nbytes, loff_t *ppos)
 +{
 +	return simple_read_from_buffer(buf, nbytes, ppos, file->private_data,
 +				       i_size_read(file->f_mapping->host));
 +}
 +#else
-+static int ocfs2_osb_debug_open(struct inode *inode, struct file *file)
++static int o2hb_debug_open(struct inode *inode, struct file *file)
 +{
 +	return 0;
 +}
-+static int ocfs2_debug_release(struct inode *inode, struct file *file)
++static int o2hb_debug_release(struct inode *inode, struct file *file)
 +{
 +	return 0;
 +}
-+static ssize_t ocfs2_debug_read(struct file *file, char __user *buf,
-+				size_t nbytes, loff_t *ppos)
++static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
++			       size_t nbytes, loff_t *ppos)
 +{
 +	return 0;
 +}
-+#endif	/* CONFIG_DEBUG_FS */
++#endif  /* CONFIG_DEBUG_FS */
 +
-+static struct file_operations ocfs2_osb_debug_fops = {
-+	.open =		ocfs2_osb_debug_open,
-+	.release =	ocfs2_debug_release,
-+	.read =		ocfs2_debug_read,
++static struct file_operations o2hb_debug_fops = {
++	.open =		o2hb_debug_open,
++	.release =	o2hb_debug_release,
++	.read =		o2hb_debug_read,
 +	.llseek =	generic_file_llseek,
 +};
 +
- static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
++void o2hb_exit(void)
++{
++	if (o2hb_debug_livenodes)
++		debugfs_remove(o2hb_debug_livenodes);
++	if (o2hb_debug_dir)
++		debugfs_remove(o2hb_debug_dir);
++}
++
++int o2hb_init(void)
  {
- 	struct dentry *root;
-@@ -720,6 +884,16 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 		goto read_super_error;
- 	}
+ 	int i;
  
-+	osb->osb_ctxt = debugfs_create_file("fs_state", S_IFREG|S_IRUSR,
-+					    osb->osb_debug_root,
-+					    osb,
-+					    &ocfs2_osb_debug_fops);
-+	if (!osb->osb_ctxt) {
-+		status = -EINVAL;
-+		mlog_errno(status);
-+		goto read_super_error;
+@@ -918,6 +994,24 @@ void o2hb_init(void)
+ 	INIT_LIST_HEAD(&o2hb_node_events);
+ 
+ 	memset(o2hb_live_node_bitmap, 0, sizeof(o2hb_live_node_bitmap));
++
++	o2hb_debug_dir = debugfs_create_dir(O2HB_DEBUG_DIR, NULL);
++	if (!o2hb_debug_dir) {
++		mlog_errno(-ENOMEM);
++		return -ENOMEM;
 +	}
 +
- 	status = ocfs2_mount_volume(sb);
- 	if (osb->root_inode)
- 		inode = igrab(osb->root_inode);
-@@ -1303,6 +1477,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 	osb = OCFS2_SB(sb);
- 	BUG_ON(!osb);
- 
-+	debugfs_remove(osb->osb_ctxt);
++	o2hb_debug_livenodes = debugfs_create_file(O2HB_DEBUG_LIVENODES,
++						   S_IFREG|S_IRUSR,
++						   o2hb_debug_dir, NULL,
++						   &o2hb_debug_fops);
++	if (!o2hb_debug_livenodes) {
++		mlog_errno(-ENOMEM);
++		debugfs_remove(o2hb_debug_dir);
++		return -ENOMEM;
++	}
 +
- 	ocfs2_shutdown_local_alloc(osb);
++	return 0;
+ }
  
- 	ocfs2_truncate_log_shutdown(osb);
+ /* if we're already in a callback then we're already serialized by the sem */
+diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
+index e511339..2f16492 100644
+--- a/fs/ocfs2/cluster/heartbeat.h
++++ b/fs/ocfs2/cluster/heartbeat.h
+@@ -75,7 +75,8 @@ void o2hb_unregister_callback(const char *region_uuid,
+ 			      struct o2hb_callback_func *hc);
+ void o2hb_fill_node_map(unsigned long *map,
+ 			unsigned bytes);
+-void o2hb_init(void);
++void o2hb_exit(void);
++int o2hb_init(void);
+ int o2hb_check_node_heartbeating(u8 node_num);
+ int o2hb_check_node_heartbeating_from_callback(u8 node_num);
+ int o2hb_check_local_node_heartbeating(void);
+diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+index 816a3f6..2ce28d7 100644
+--- a/fs/ocfs2/cluster/nodemanager.c
++++ b/fs/ocfs2/cluster/nodemanager.c
+@@ -881,6 +881,7 @@ static void __exit exit_o2nm(void)
+ 	o2cb_sys_shutdown();
+ 
+ 	o2net_exit();
++	o2hb_exit();
+ }
+ 
+ static int __init init_o2nm(void)
+@@ -889,11 +890,13 @@ static int __init init_o2nm(void)
+ 
+ 	cluster_print_version();
+ 
+-	o2hb_init();
++	ret = o2hb_init();
++	if (ret)
++		goto out;
+ 
+ 	ret = o2net_init();
+ 	if (ret)
+-		goto out;
++		goto out_o2hb;
+ 
+ 	ret = o2net_register_hb_callbacks();
+ 	if (ret)
+@@ -916,6 +919,8 @@ out_callbacks:
+ 	o2net_unregister_hb_callbacks();
+ out_o2net:
+ 	o2net_exit();
++out_o2hb:
++	o2hb_exit();
+ out:
+ 	return ret;
+ }
 -- 
 1.5.6.3
