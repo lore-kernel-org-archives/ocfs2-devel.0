@@ -1,34 +1,30 @@
 From: Ankit Jain <me@ankitjain.org>
-Date: Thu, 18 Dec 2008 09:51:10 -0000
-Subject: [Ocfs2-devel] [xfs-masters] [PATCH][RFC] fs: Add new
- pre-allocation ioctls to vfs for compatibility with legacy xfs ioctls
-In-Reply-To: <20081217211550.GF8791@wotan.suse.de>
+Date: Thu, 18 Dec 2008 09:55:26 -0000
+Subject: [Ocfs2-devel] [PATCH][RFC] fs: Add new pre-allocation ioctls to
+ vfs for compatibility with legacy xfs ioctls
+In-Reply-To: <9D2593C9-08EB-486C-AAF5-E83A1EAEE9B9@sgi.com>
 References: <49460F88.2080408@ankitjain.org>
-	<20081217202815.GE8791@wotan.suse.de>
-	<494969C6.4090500@sandeen.net>
-	<20081217211550.GF8791@wotan.suse.de>
-Message-ID: <494A1CE5.8020007@ankitjain.org>
+	<9D2593C9-08EB-486C-AAF5-E83A1EAEE9B9@sgi.com>
+Message-ID: <494A1DE3.5090203@ankitjain.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>
-Cc: Eric Sandeen <sandeen@sandeen.net>, linux-kernel@vger.kernel.org, joel.becker@oracle.com, Christoph Hellwig <hch@infradead.org>, xfs-masters@oss.sgi.com, Al Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
+To: Felix Blyakher <felixb@sgi.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, mfasheh@suse.com, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, xfs@oss.sgi.com
 
-Mark Fasheh wrote:
-> On Wed, Dec 17, 2008 at 03:06:14PM -0600, Eric Sandeen wrote:
+Felix Blyakher wrote:
 > 
-> Actually, yeah agreed - I take that back. Old users are already getting them
-> from file system headers, new ones should use fallocate. So there's no need
-> to expose the ioctls to userspace, at least not if all we're talking about
-> is the RESVP ioctls.
+>> This patch adds ioctls to vfs for compatibility with legacy XFS
+>> pre-allocation ioctls (XFS_IOC_*RESVP*). The implementation
+>> effectively invokes sys_fallocate for the new ioctls.
+> 
+> I don't think we can use sys_fallocate for XFS_IOC_UNRESVSP*
+> commands, which suppose to release currently allocated file
+> blocks.
+> See more comments below.
 
-Makes sense. So I can just keep them in falloc.h in a #ifdef __KERNEL__ ? Or
-should this be in a new ioctl.h ?
+My bad :( I'll drop the *UNRESV* completely from the new ioctl and
+post an updated patch.
 
 -Ankit
-
-> 	--Mark
-> 
-> --
-> Mark Fasheh
