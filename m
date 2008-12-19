@@ -1,135 +1,372 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Dec 2008 13:53:19 -0800
-Subject: [Ocfs2-devel] [git patches] Ocfs2 patches for merge window,
-	batch 1/3
-Message-ID: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
+Date: Fri, 19 Dec 2008 13:53:20 -0800
+Subject: [Ocfs2-devel] [PATCH 01/45] ocfs2: Field prefixes for the
+	xattr_bucket structure
+In-Reply-To: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
+References: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
+Message-ID: <1229723644-13630-2-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-Hi,
+From: Joel Becker <joel.becker@oracle.com>
 
-As of right now, the upstream-linus branch in ocfs2.git has 136 patches for
-the next merge window. Luckily, a large chunk of those are either small or
-easily read. Also, many of them are generic quota changes (which already
-have appropriate review and signoffs) which I carried in ocfs2.git because
-Ocfs2 quotas depended on them.
+The ocfs2_xattr_bucket structure keeps track of the buffers for one
+xattr bucket.  Let's prefix the fields for easier code navigation.
 
-Regardless, I plan to post the ocfs2 merge window patches in 3 batches to
-make review easier. The first set of patches follows this mail. The final
-two will be sent early next week and will include the generic quota patches.
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+---
+ fs/ocfs2/xattr.c |  100 +++++++++++++++++++++++++++---------------------------
+ 1 files changed, 50 insertions(+), 50 deletions(-)
 
-Aside from some xattr cleanups and fixes, these patches include supoprt for
-POSIX ACLs and security attributes. These are implemented as special
-extended attributes in a similar manner to other file systems.
-
-2.6.28 added Ocfs2 support for JBD2, and made it the default. A patch is in
-here which drops support for JBD completely from Ocfs2. This should make
-coding up new features easier as we only have one journaling layer to
-target. Users will see no difference as JBD2 is already backwards
-compatible with JBD formatted journals.
-
-The other set of cleanups in this series is to our meta data I/O paths. Joel
-did a lot of work to seperate those paths into block specific calls (with an
-appropriate generic helper). This not only reduced arguments at each call
-site, but it allowed us to do more efficient checking for corrupted meta
-data. In the 3rd round, these internal hooks will be used to enable meta
-data checksums on Ocfs2.
-	--Mark
-
-Please pull from 'upstream-round1' branch of
-git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-round1
-
-to receive the following updates:
-
- Documentation/filesystems/ocfs2.txt |    3 +-
- fs/Kconfig                          |   11 +-
- fs/ocfs2/Makefile                   |    4 +
- fs/ocfs2/acl.c                      |  479 ++++++++
- fs/ocfs2/acl.h                      |   58 +
- fs/ocfs2/alloc.c                    |  381 +++++--
- fs/ocfs2/alloc.h                    |   21 +
- fs/ocfs2/aops.c                     |   35 +-
- fs/ocfs2/buffer_head_io.c           |   33 +-
- fs/ocfs2/buffer_head_io.h           |   27 +-
- fs/ocfs2/dir.c                      |  123 +-
- fs/ocfs2/dlmglue.c                  |   12 +-
- fs/ocfs2/extent_map.c               |   96 ++-
- fs/ocfs2/extent_map.h               |   24 +
- fs/ocfs2/file.c                     |  115 +--
- fs/ocfs2/inode.c                    |  128 ++-
- fs/ocfs2/inode.h                    |   16 +-
- fs/ocfs2/journal.c                  |   34 +-
- fs/ocfs2/journal.h                  |   11 +-
- fs/ocfs2/localalloc.c               |    8 +-
- fs/ocfs2/namei.c                    |  238 +++--
- fs/ocfs2/ocfs2.h                    |   24 +-
- fs/ocfs2/ocfs2_jbd_compat.h         |   82 --
- fs/ocfs2/resize.c                   |   60 +-
- fs/ocfs2/slot_map.c                 |    4 +-
- fs/ocfs2/suballoc.c                 |  278 +++--
- fs/ocfs2/suballoc.h                 |   18 +-
- fs/ocfs2/super.c                    |   33 +
- fs/ocfs2/symlink.c                  |    2 +-
- fs/ocfs2/xattr.c                    | 2257 +++++++++++++++++++++--------------
- fs/ocfs2/xattr.h                    |   31 +
- 31 files changed, 3006 insertions(+), 1640 deletions(-)
- create mode 100644 fs/ocfs2/acl.c
- create mode 100644 fs/ocfs2/acl.h
- delete mode 100644 fs/ocfs2/ocfs2_jbd_compat.h
-
-Joel Becker (24):
-      ocfs2: Field prefixes for the xattr_bucket structure
-      ocfs2: Convenient access to an xattr bucket's block number.
-      ocfs2: Convenient access to xattr bucket data blocks.
-      ocfs2: Convenient access to an xattr bucket's header.
-      ocfs2: Provide a wrapper to brelse() xattr bucket buffers.
-      ocfs2: Improve ocfs2_read_xattr_bucket().
-      ocfs2: Wrap journal_access/journal_dirty for xattr buckets.
-      ocfs2: Copy xattr buckets with a dedicated function.
-      ocfs2: Take ocfs2_xattr_bucket structures off of the stack.
-      ocfs2: Use buckets in ocfs2_xattr_bucket_find().
-      ocfs2: Use buckets in ocfs2_xattr_create_index_block().
-      ocfs2: Use buckets in ocfs2_defrag_xattr_bucket().
-      ocfs2: Use buckets in ocfs2_xattr_set_entry_in_bucket().
-      ocfs2: Wrap inode block reads in a dedicated function.
-      ocfs2: Morph the haphazard OCFS2_IS_VALID_DINODE() checks.
-      ocfs2: Consolidate validation of group descriptors.
-      ocfs2: Wrap group descriptor reads in a dedicated function.
-      ocfs2: Morph the haphazard OCFS2_IS_VALID_GROUP_DESC() checks.
-      ocfs2: Wrap extent block reads in a dedicated function.
-      ocfs2: Wrap dirblock reads in a dedicated function.
-      ocfs2: Wrap xattr block reads in a dedicated function
-      ocfs2: Validate metadata only when it's read from disk.
-      ocfs2: Wrap virtual block reads in ocfs2_read_virt_blocks()
-      ocfs2: Convert ocfs2_read_dir_block() to ocfs2_read_virt_blocks()
-
-Mark Fasheh (2):
-      ocfs2: turn __ocfs2_remove_inode_range() into ocfs2_remove_btree_range()
-      ocfs2: Remove JBD compatibility layer
-
-Tao Ma (9):
-      ocfs2/xattr: Remove additional bucket allocation in bucket defragment.
-      ocfs2/xattr: Only set buffer update if it doesn't exist in cache.
-      ocfs2/xattr: Only extend xattr bucket in need.
-      ocfs2: Add clusters free in dealloc_ctxt.
-      ocfs2/xattr: Move clusters free into dealloc.
-      ocfs2/xattr: Reserve meta/data at the beginning of ocfs2_xattr_set.
-      ocfs2/xattr: Merge xattr set transaction.
-      ocfs2/xattr: Fix a bug in xattr allocation estimation
-      ocfs2/xattr: Restore not_found in xis
-
-Tiger Yang (10):
-      ocfs2: move new inode allocation out of the transaction
-      ocfs2: add ocfs2_xattr_set_handle
-      ocfs2: add security xattr API
-      ocfs2: add ocfs2_init_security in during file create
-      ocfs2: add ocfs2_xattr_get_nolock
-      ocfs2: add POSIX ACL API
-      ocfs2: add ocfs2_check_acl
-      ocfs2: add ocfs2_acl_chmod
-      ocfs2: add ocfs2_init_acl in mknod
-      ocfs2: add mount option and Kconfig option for acl
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 74d7367..9c0ee42 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -61,8 +61,8 @@ struct ocfs2_xattr_def_value_root {
+ };
+ 
+ struct ocfs2_xattr_bucket {
+-	struct buffer_head *bhs[OCFS2_XATTR_MAX_BLOCKS_PER_BUCKET];
+-	struct ocfs2_xattr_header *xh;
++	struct buffer_head *bu_bhs[OCFS2_XATTR_MAX_BLOCKS_PER_BUCKET];
++	struct ocfs2_xattr_header *bu_xh;
+ };
+ 
+ #define OCFS2_XATTR_ROOT_SIZE	(sizeof(struct ocfs2_xattr_def_value_root))
+@@ -795,11 +795,11 @@ static int ocfs2_xattr_block_get(struct inode *inode,
+ 
+ 		if (le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED) {
+ 			ret = ocfs2_xattr_bucket_get_name_value(inode,
+-								xs->bucket.xh,
++								xs->bucket.bu_xh,
+ 								i,
+ 								&block_off,
+ 								&name_offset);
+-			xs->base = xs->bucket.bhs[block_off]->b_data;
++			xs->base = xs->bucket.bu_bhs[block_off]->b_data;
+ 		}
+ 		if (ocfs2_xattr_is_local(xs->here)) {
+ 			memcpy(buffer, (void *)xs->base +
+@@ -818,7 +818,7 @@ static int ocfs2_xattr_block_get(struct inode *inode,
+ 	ret = size;
+ cleanup:
+ 	for (i = 0; i < OCFS2_XATTR_MAX_BLOCKS_PER_BUCKET; i++)
+-		brelse(xs->bucket.bhs[i]);
++		brelse(xs->bucket.bu_bhs[i]);
+ 	memset(&xs->bucket, 0, sizeof(xs->bucket));
+ 
+ 	brelse(xs->xattr_bh);
+@@ -2032,7 +2032,7 @@ cleanup:
+ 	brelse(di_bh);
+ 	brelse(xbs.xattr_bh);
+ 	for (i = 0; i < blk_per_bucket; i++)
+-		brelse(xbs.bucket.bhs[i]);
++		brelse(xbs.bucket.bu_bhs[i]);
+ 
+ 	return ret;
+ }
+@@ -2276,13 +2276,13 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 		lower_bh = bh;
+ 		bh = NULL;
+ 	}
+-	xs->bucket.bhs[0] = lower_bh;
+-	xs->bucket.xh = (struct ocfs2_xattr_header *)
+-					xs->bucket.bhs[0]->b_data;
++	xs->bucket.bu_bhs[0] = lower_bh;
++	xs->bucket.bu_xh = (struct ocfs2_xattr_header *)
++					xs->bucket.bu_bhs[0]->b_data;
+ 	lower_bh = NULL;
+ 
+-	xs->header = xs->bucket.xh;
+-	xs->base = xs->bucket.bhs[0]->b_data;
++	xs->header = xs->bucket.bu_xh;
++	xs->base = xs->bucket.bu_bhs[0]->b_data;
+ 	xs->end = xs->base + inode->i_sb->s_blocksize;
+ 
+ 	if (found) {
+@@ -2290,8 +2290,8 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 		 * If we have found the xattr enty, read all the blocks in
+ 		 * this bucket.
+ 		 */
+-		ret = ocfs2_read_blocks(inode, xs->bucket.bhs[0]->b_blocknr + 1,
+-					blk_per_bucket - 1, &xs->bucket.bhs[1],
++		ret = ocfs2_read_blocks(inode, xs->bucket.bu_bhs[0]->b_blocknr + 1,
++					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
+ 					0);
+ 		if (ret) {
+ 			mlog_errno(ret);
+@@ -2300,7 +2300,7 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 
+ 		xs->here = &xs->header->xh_entries[index];
+ 		mlog(0, "find xattr %s in bucket %llu, entry = %u\n", name,
+-		     (unsigned long long)xs->bucket.bhs[0]->b_blocknr, index);
++		     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr, index);
+ 	} else
+ 		ret = -ENODATA;
+ 
+@@ -2370,23 +2370,23 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
+ 
+ 	for (i = 0; i < num_buckets; i++, blkno += blk_per_bucket) {
+ 		ret = ocfs2_read_blocks(inode, blkno, blk_per_bucket,
+-					bucket.bhs, 0);
++					bucket.bu_bhs, 0);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
+ 		}
+ 
+-		bucket.xh = (struct ocfs2_xattr_header *)bucket.bhs[0]->b_data;
++		bucket.bu_xh = (struct ocfs2_xattr_header *)bucket.bu_bhs[0]->b_data;
+ 		/*
+ 		 * The real bucket num in this series of blocks is stored
+ 		 * in the 1st bucket.
+ 		 */
+ 		if (i == 0)
+-			num_buckets = le16_to_cpu(bucket.xh->xh_num_buckets);
++			num_buckets = le16_to_cpu(bucket.bu_xh->xh_num_buckets);
+ 
+ 		mlog(0, "iterating xattr bucket %llu, first hash %u\n",
+ 		     (unsigned long long)blkno,
+-		     le32_to_cpu(bucket.xh->xh_entries[0].xe_name_hash));
++		     le32_to_cpu(bucket.bu_xh->xh_entries[0].xe_name_hash));
+ 		if (func) {
+ 			ret = func(inode, &bucket, para);
+ 			if (ret) {
+@@ -2396,13 +2396,13 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
+ 		}
+ 
+ 		for (j = 0; j < blk_per_bucket; j++)
+-			brelse(bucket.bhs[j]);
++			brelse(bucket.bu_bhs[j]);
+ 		memset(&bucket, 0, sizeof(bucket));
+ 	}
+ 
+ out:
+ 	for (j = 0; j < blk_per_bucket; j++)
+-		brelse(bucket.bhs[j]);
++		brelse(bucket.bu_bhs[j]);
+ 
+ 	return ret;
+ }
+@@ -2441,21 +2441,21 @@ static int ocfs2_list_xattr_bucket(struct inode *inode,
+ 	int i, block_off, new_offset;
+ 	const char *prefix, *name;
+ 
+-	for (i = 0 ; i < le16_to_cpu(bucket->xh->xh_count); i++) {
+-		struct ocfs2_xattr_entry *entry = &bucket->xh->xh_entries[i];
++	for (i = 0 ; i < le16_to_cpu(bucket->bu_xh->xh_count); i++) {
++		struct ocfs2_xattr_entry *entry = &bucket->bu_xh->xh_entries[i];
+ 		type = ocfs2_xattr_get_type(entry);
+ 		prefix = ocfs2_xattr_prefix(type);
+ 
+ 		if (prefix) {
+ 			ret = ocfs2_xattr_bucket_get_name_value(inode,
+-								bucket->xh,
++								bucket->bu_xh,
+ 								i,
+ 								&block_off,
+ 								&new_offset);
+ 			if (ret)
+ 				break;
+ 
+-			name = (const char *)bucket->bhs[block_off]->b_data +
++			name = (const char *)bucket->bu_bhs[block_off]->b_data +
+ 				new_offset;
+ 			ret = ocfs2_xattr_list_entry(xl->buffer,
+ 						     xl->buffer_size,
+@@ -2626,10 +2626,10 @@ static int ocfs2_xattr_update_xattr_search(struct inode *inode,
+ 	int i, blocksize = inode->i_sb->s_blocksize;
+ 	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+ 
+-	xs->bucket.bhs[0] = new_bh;
++	xs->bucket.bu_bhs[0] = new_bh;
+ 	get_bh(new_bh);
+-	xs->bucket.xh = (struct ocfs2_xattr_header *)xs->bucket.bhs[0]->b_data;
+-	xs->header = xs->bucket.xh;
++	xs->bucket.bu_xh = (struct ocfs2_xattr_header *)xs->bucket.bu_bhs[0]->b_data;
++	xs->header = xs->bucket.bu_xh;
+ 
+ 	xs->base = new_bh->b_data;
+ 	xs->end = xs->base + inode->i_sb->s_blocksize;
+@@ -2637,8 +2637,8 @@ static int ocfs2_xattr_update_xattr_search(struct inode *inode,
+ 	if (!xs->not_found) {
+ 		if (OCFS2_XATTR_BUCKET_SIZE != blocksize) {
+ 			ret = ocfs2_read_blocks(inode,
+-					xs->bucket.bhs[0]->b_blocknr + 1,
+-					blk_per_bucket - 1, &xs->bucket.bhs[1],
++					xs->bucket.bu_bhs[0]->b_blocknr + 1,
++					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
+ 					0);
+ 			if (ret) {
+ 				mlog_errno(ret);
+@@ -2835,7 +2835,7 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
+ 	size_t end, offset, len, value_len;
+ 	struct ocfs2_xattr_header *xh;
+ 	char *entries, *buf, *bucket_buf = NULL;
+-	u64 blkno = bucket->bhs[0]->b_blocknr;
++	u64 blkno = bucket->bu_bhs[0]->b_blocknr;
+ 	u16 blk_per_bucket = ocfs2_blocks_per_xattr_bucket(inode->i_sb);
+ 	u16 xh_free_start;
+ 	size_t blocksize = inode->i_sb->s_blocksize;
+@@ -3929,7 +3929,7 @@ static inline char *ocfs2_xattr_bucket_get_val(struct inode *inode,
+ 	int block_off = offs >> inode->i_sb->s_blocksize_bits;
+ 
+ 	offs = offs % inode->i_sb->s_blocksize;
+-	return bucket->bhs[block_off]->b_data + offs;
++	return bucket->bu_bhs[block_off]->b_data + offs;
+ }
+ 
+ /*
+@@ -4124,12 +4124,12 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
+ 
+ 	mlog(0, "Set xattr entry len = %lu index = %d in bucket %llu\n",
+ 	     (unsigned long)xi->value_len, xi->name_index,
+-	     (unsigned long long)xs->bucket.bhs[0]->b_blocknr);
++	     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr);
+ 
+-	if (!xs->bucket.bhs[1]) {
++	if (!xs->bucket.bu_bhs[1]) {
+ 		ret = ocfs2_read_blocks(inode,
+-					xs->bucket.bhs[0]->b_blocknr + 1,
+-					blk_per_bucket - 1, &xs->bucket.bhs[1],
++					xs->bucket.bu_bhs[0]->b_blocknr + 1,
++					blk_per_bucket - 1, &xs->bucket.bu_bhs[1],
+ 					0);
+ 		if (ret) {
+ 			mlog_errno(ret);
+@@ -4146,7 +4146,7 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
+ 	}
+ 
+ 	for (i = 0; i < blk_per_bucket; i++) {
+-		ret = ocfs2_journal_access(handle, inode, xs->bucket.bhs[i],
++		ret = ocfs2_journal_access(handle, inode, xs->bucket.bu_bhs[i],
+ 					   OCFS2_JOURNAL_ACCESS_WRITE);
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+@@ -4158,7 +4158,7 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
+ 
+ 	/*Only dirty the blocks we have touched in set xattr. */
+ 	ret = ocfs2_xattr_bucket_handle_journal(inode, handle, xs,
+-						xs->bucket.bhs, blk_per_bucket);
++						xs->bucket.bu_bhs, blk_per_bucket);
+ 	if (ret)
+ 		mlog_errno(ret);
+ out:
+@@ -4272,10 +4272,10 @@ static int ocfs2_xattr_bucket_value_truncate_xs(struct inode *inode,
+ 	struct ocfs2_xattr_entry *xe = xs->here;
+ 	struct ocfs2_xattr_header *xh = (struct ocfs2_xattr_header *)xs->base;
+ 
+-	BUG_ON(!xs->bucket.bhs[0] || !xe || ocfs2_xattr_is_local(xe));
++	BUG_ON(!xs->bucket.bu_bhs[0] || !xe || ocfs2_xattr_is_local(xe));
+ 
+ 	offset = xe - xh->xh_entries;
+-	ret = ocfs2_xattr_bucket_value_truncate(inode, xs->bucket.bhs[0],
++	ret = ocfs2_xattr_bucket_value_truncate(inode, xs->bucket.bu_bhs[0],
+ 						offset, len);
+ 	if (ret)
+ 		mlog_errno(ret);
+@@ -4395,7 +4395,7 @@ static void ocfs2_xattr_bucket_remove_xs(struct inode *inode,
+ 					 struct ocfs2_xattr_search *xs)
+ {
+ 	handle_t *handle = NULL;
+-	struct ocfs2_xattr_header *xh = xs->bucket.xh;
++	struct ocfs2_xattr_header *xh = xs->bucket.bu_xh;
+ 	struct ocfs2_xattr_entry *last = &xh->xh_entries[
+ 						le16_to_cpu(xh->xh_count) - 1];
+ 	int ret = 0;
+@@ -4407,7 +4407,7 @@ static void ocfs2_xattr_bucket_remove_xs(struct inode *inode,
+ 		return;
+ 	}
+ 
+-	ret = ocfs2_journal_access(handle, inode, xs->bucket.bhs[0],
++	ret = ocfs2_journal_access(handle, inode, xs->bucket.bu_bhs[0],
+ 				   OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret) {
+ 		mlog_errno(ret);
+@@ -4420,7 +4420,7 @@ static void ocfs2_xattr_bucket_remove_xs(struct inode *inode,
+ 	memset(last, 0, sizeof(struct ocfs2_xattr_entry));
+ 	le16_add_cpu(&xh->xh_count, -1);
+ 
+-	ret = ocfs2_journal_dirty(handle, xs->bucket.bhs[0]);
++	ret = ocfs2_journal_dirty(handle, xs->bucket.bu_bhs[0]);
+ 	if (ret < 0)
+ 		mlog_errno(ret);
+ out_commit:
+@@ -4530,7 +4530,7 @@ static int ocfs2_check_xattr_bucket_collision(struct inode *inode,
+ 					      struct ocfs2_xattr_bucket *bucket,
+ 					      const char *name)
+ {
+-	struct ocfs2_xattr_header *xh = bucket->xh;
++	struct ocfs2_xattr_header *xh = bucket->bu_xh;
+ 	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
+ 
+ 	if (name_hash != le32_to_cpu(xh->xh_entries[0].xe_name_hash))
+@@ -4540,7 +4540,7 @@ static int ocfs2_check_xattr_bucket_collision(struct inode *inode,
+ 	    xh->xh_entries[0].xe_name_hash) {
+ 		mlog(ML_ERROR, "Too much hash collision in xattr bucket %llu, "
+ 		     "hash = %u\n",
+-		     (unsigned long long)bucket->bhs[0]->b_blocknr,
++		     (unsigned long long)bucket->bu_bhs[0]->b_blocknr,
+ 		     le32_to_cpu(xh->xh_entries[0].xe_name_hash));
+ 		return -ENOSPC;
+ 	}
+@@ -4574,7 +4574,7 @@ try_again:
+ 
+ 	mlog_bug_on_msg(header_size > blocksize, "bucket %llu has header size "
+ 			"of %u which exceed block size\n",
+-			(unsigned long long)xs->bucket.bhs[0]->b_blocknr,
++			(unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr,
+ 			header_size);
+ 
+ 	if (xi->value && xi->value_len > OCFS2_XATTR_INLINE_SIZE)
+@@ -4614,7 +4614,7 @@ try_again:
+ 	mlog(0, "xs->not_found = %d, in xattr bucket %llu: free = %d, "
+ 	     "need = %d, max_free = %d, xh_free_start = %u, xh_name_value_len ="
+ 	     " %u\n", xs->not_found,
+-	     (unsigned long long)xs->bucket.bhs[0]->b_blocknr,
++	     (unsigned long long)xs->bucket.bu_bhs[0]->b_blocknr,
+ 	     free, need, max_free, le16_to_cpu(xh->xh_free_start),
+ 	     le16_to_cpu(xh->xh_name_value_len));
+ 
+@@ -4667,14 +4667,14 @@ try_again:
+ 
+ 		ret = ocfs2_add_new_xattr_bucket(inode,
+ 						 xs->xattr_bh,
+-						 xs->bucket.bhs[0]);
++						 xs->bucket.bu_bhs[0]);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
+ 		}
+ 
+ 		for (i = 0; i < blk_per_bucket; i++)
+-			brelse(xs->bucket.bhs[i]);
++			brelse(xs->bucket.bu_bhs[i]);
+ 
+ 		memset(&xs->bucket, 0, sizeof(xs->bucket));
+ 
+@@ -4700,7 +4700,7 @@ static int ocfs2_delete_xattr_in_bucket(struct inode *inode,
+ 					void *para)
+ {
+ 	int ret = 0;
+-	struct ocfs2_xattr_header *xh = bucket->xh;
++	struct ocfs2_xattr_header *xh = bucket->bu_xh;
+ 	u16 i;
+ 	struct ocfs2_xattr_entry *xe;
+ 
+@@ -4710,7 +4710,7 @@ static int ocfs2_delete_xattr_in_bucket(struct inode *inode,
+ 			continue;
+ 
+ 		ret = ocfs2_xattr_bucket_value_truncate(inode,
+-							bucket->bhs[0],
++							bucket->bu_bhs[0],
+ 							i, 0);
+ 		if (ret) {
+ 			mlog_errno(ret);
+-- 
+1.5.6
