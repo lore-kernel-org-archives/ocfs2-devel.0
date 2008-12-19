@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Dec 2008 13:53:33 -0800
-Subject: [Ocfs2-devel] [PATCH 14/45] ocfs2/xattr: Remove additional bucket
-	allocation in bucket defragment.
+Date: Fri, 19 Dec 2008 13:53:34 -0800
+Subject: [Ocfs2-devel] [PATCH 15/45] ocfs2/xattr: Only set buffer update if
+	it doesn't exist in cache.
 In-Reply-To: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
 References: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229723644-13630-15-git-send-email-mfasheh@suse.com>
+Message-ID: <1229723644-13630-16-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,80 +14,35 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <ta
 
 From: Tao Ma <tao.ma@oracle.com>
 
-Joel has refactored xattr bucket and make xattr bucket a general
-wrapper. So in ocfs2_defrag_xattr_bucket, we have already passed the
-bucket in, so there is no need to allocate a new one and read it.
+When we call ocfs2_init_xattr_bucket, we deem that the new buffer head
+will be written to disk immediately, so we just use sb_getblk. But in
+some cases the buffer may have already been in ocfs2 uptodate cache,
+so we only call ocfs2_set_buffer_uptodate if the buffer head isn't
+in the cache.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   26 +++++++-------------------
- 1 files changed, 7 insertions(+), 19 deletions(-)
+ fs/ocfs2/xattr.c |    6 ++++--
+ 1 files changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 029a9f4..87cf39d 100644
+index 87cf39d..d8fc714 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -2898,7 +2898,6 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 	size_t blocksize = inode->i_sb->s_blocksize;
- 	handle_t *handle;
- 	struct ocfs2_xattr_entry *xe;
--	struct ocfs2_xattr_bucket *wb = NULL;
+@@ -219,8 +219,10 @@ static int ocfs2_init_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
+ 			break;
+ 		}
  
- 	/*
- 	 * In order to make the operation more efficient and generic,
-@@ -2912,21 +2911,11 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 		goto out;
+-		ocfs2_set_new_buffer_uptodate(bucket->bu_inode,
+-					      bucket->bu_bhs[i]);
++		if (!ocfs2_buffer_uptodate(bucket->bu_inode,
++					   bucket->bu_bhs[i]))
++			ocfs2_set_new_buffer_uptodate(bucket->bu_inode,
++						      bucket->bu_bhs[i]);
  	}
  
--	wb = ocfs2_xattr_bucket_new(inode);
--	if (!wb) {
--		ret = -ENOMEM;
--		goto out;
--	}
--
--	ret = ocfs2_read_xattr_bucket(wb, blkno);
--	if (ret)
--		goto out;
--
- 	buf = bucket_buf;
--	for (i = 0; i < wb->bu_blocks; i++, buf += blocksize)
--		memcpy(buf, bucket_block(wb, i), blocksize);
-+	for (i = 0; i < bucket->bu_blocks; i++, buf += blocksize)
-+		memcpy(buf, bucket_block(bucket, i), blocksize);
- 
--	handle = ocfs2_start_trans((OCFS2_SB(inode->i_sb)), wb->bu_blocks);
-+	handle = ocfs2_start_trans((OCFS2_SB(inode->i_sb)), bucket->bu_blocks);
- 	if (IS_ERR(handle)) {
- 		ret = PTR_ERR(handle);
- 		handle = NULL;
-@@ -2934,7 +2923,7 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 		goto out;
- 	}
- 
--	ret = ocfs2_xattr_bucket_journal_access(handle, wb,
-+	ret = ocfs2_xattr_bucket_journal_access(handle, bucket,
- 						OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret < 0) {
- 		mlog_errno(ret);
-@@ -3007,14 +2996,13 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 	     cmp_xe, swap_xe);
- 
- 	buf = bucket_buf;
--	for (i = 0; i < wb->bu_blocks; i++, buf += blocksize)
--		memcpy(bucket_block(wb, i), buf, blocksize);
--	ocfs2_xattr_bucket_journal_dirty(handle, wb);
-+	for (i = 0; i < bucket->bu_blocks; i++, buf += blocksize)
-+		memcpy(bucket_block(bucket, i), buf, blocksize);
-+	ocfs2_xattr_bucket_journal_dirty(handle, bucket);
- 
- commit:
- 	ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
- out:
--	ocfs2_xattr_bucket_free(wb);
- 	kfree(bucket_buf);
- 	return ret;
- }
+ 	if (rc)
 -- 
 1.5.6
