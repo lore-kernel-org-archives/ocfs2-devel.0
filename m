@@ -1,81 +1,73 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Dec 2008 13:54:01 -0800
-Subject: [Ocfs2-devel] [PATCH 42/45] ocfs2: Convert ocfs2_read_dir_block()
-	to ocfs2_read_virt_blocks()
+Date: Fri, 19 Dec 2008 13:54:04 -0800
+Subject: [Ocfs2-devel] [PATCH 45/45] ocfs2/xattr: Restore not_found in xis
 In-Reply-To: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
 References: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229723644-13630-43-git-send-email-mfasheh@suse.com>
+Message-ID: <1229723644-13630-46-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <tao.ma@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-From: Joel Becker <joel.becker@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
 
-Now that we've centralized the ocfs2_read_virt_blocks() code, let's use
-it in ocfs2_read_dir_block().
+During an xattr set, when we move a xattr which was stored in inode to the
+outside bucket, we have to delete it and it will use the old value of
+xis->not_found. xis->not_found is removed by ocfs2_calc_xattr_set_need
+though, so we must restore it.
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dir.c |   38 +++++---------------------------------
- 1 files changed, 5 insertions(+), 33 deletions(-)
+ fs/ocfs2/xattr.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 7e863d4..d83cff9 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -231,44 +231,16 @@ static int ocfs2_read_dir_block(struct inode *inode, u64 v_block,
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index d0b94ed..9cb71e1 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2414,7 +2414,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
+ 				    struct ocfs2_xattr_search *xbs,
+ 				    struct ocfs2_xattr_set_ctxt *ctxt)
  {
- 	int rc = 0;
- 	struct buffer_head *tmp = *bh;
--	u64 p_blkno;
+-	int ret = 0, credits;
++	int ret = 0, credits, old_found;
  
--	if (((u64)v_block << inode->i_sb->s_blocksize_bits) >=
--	    i_size_read(inode)) {
--		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
--		goto out;
--	}
--
--	down_read(&OCFS2_I(inode)->ip_alloc_sem);
--	rc = ocfs2_extent_map_get_blocks(inode, v_block, &p_blkno, NULL,
--					 NULL);
--	up_read(&OCFS2_I(inode)->ip_alloc_sem);
--	if (rc) {
-+	rc = ocfs2_read_virt_blocks(inode, v_block, 1, &tmp, flags,
-+				    ocfs2_validate_dir_block);
-+	if (rc)
- 		mlog_errno(rc);
--		goto out;
--	}
+ 	if (!xi->value) {
+ 		/* Remove existing extended attribute */
+@@ -2433,6 +2433,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
+ 			xi->value = NULL;
+ 			xi->value_len = 0;
  
--	if (!p_blkno) {
--		rc = -EIO;
--		mlog(ML_ERROR,
--		     "Directory #%llu contains a hole at offset %llu\n",
--		     (unsigned long long)OCFS2_I(inode)->ip_blkno,
--		     (unsigned long long)v_block << inode->i_sb->s_blocksize_bits);
--		goto out;
--	}
--
--	rc = ocfs2_read_blocks(inode, p_blkno, 1, &tmp, flags,
--			       ocfs2_validate_dir_block);
--	if (rc) {
--		mlog_errno(rc);
--		goto out;
--	}
--
--	/* If ocfs2_read_blocks() got us a new bh, pass it up.  */
--	if (!*bh)
-+	/* If ocfs2_read_virt_blocks() got us a new bh, pass it up. */
-+	if (!rc && !*bh)
- 		*bh = tmp;
++			old_found = xis->not_found;
+ 			xis->not_found = -ENODATA;
+ 			ret = ocfs2_calc_xattr_set_need(inode,
+ 							di,
+@@ -2442,6 +2443,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
+ 							NULL,
+ 							NULL,
+ 							&credits);
++			xis->not_found = old_found;
+ 			if (ret) {
+ 				mlog_errno(ret);
+ 				goto out;
+@@ -2462,6 +2464,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
+ 				if (ret)
+ 					goto out;
  
--out:
- 	return rc ? -EIO : 0;
- }
- 
++				old_found = xis->not_found;
+ 				xis->not_found = -ENODATA;
+ 				ret = ocfs2_calc_xattr_set_need(inode,
+ 								di,
+@@ -2471,6 +2474,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
+ 								NULL,
+ 								NULL,
+ 								&credits);
++				xis->not_found = old_found;
+ 				if (ret) {
+ 					mlog_errno(ret);
+ 					goto out;
 -- 
 1.5.6
