@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Dec 2008 13:53:58 -0800
-Subject: [Ocfs2-devel] [PATCH 39/45] ocfs2: Wrap xattr block reads in a
-	dedicated function
+Date: Fri, 19 Dec 2008 13:54:00 -0800
+Subject: [Ocfs2-devel] [PATCH 41/45] ocfs2: Wrap virtual block reads in
+	ocfs2_read_virt_blocks()
 In-Reply-To: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
 References: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229723644-13630-40-git-send-email-mfasheh@suse.com>
+Message-ID: <1229723644-13630-42-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,179 +14,140 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fashe
 
 From: Joel Becker <joel.becker@oracle.com>
 
-We weren't consistently checking xattr blocks after we read them.
-Most places checked the signature, but none checked xb_blkno or
-xb_fs_signature.  Create a toplevel ocfs2_read_xattr_block() that does
-the read and the validation.
+The ocfs2_read_dir_block() function really maps an inode's virtual
+blocks to physical ones before calling ocfs2_read_blocks().  Let's
+extract that to common code, because other places might want to do that.
+
+Other than the block number being virtual, ocfs2_read_virt_blocks()
+takes the same arguments as ocfs2_read_blocks().  It converts those
+virtual block numbers to physical before calling ocfs2_read_blocks()
+directly.  If the blocks asked for are discontiguous, this can mean
+multiple calls to ocfs2_read_blocks(), but this is mostly hidden from
+the caller.
+
+Like ocfs2_read_blocks(), the caller can pass in an existing
+buffer_head.  This is usually done to pick up some readahead I/O.
+ocfs2_read_virt_blocks() checks the buffer_head's block number
+against the extent map - it must match.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   94 ++++++++++++++++++++++++++++++++++++++++--------------
- 1 files changed, 70 insertions(+), 24 deletions(-)
+ fs/ocfs2/extent_map.c |   71 +++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/extent_map.h |   24 ++++++++++++++++
+ 2 files changed, 95 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 3cc8385..ef4aa54 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -314,6 +314,65 @@ static void ocfs2_xattr_bucket_copy_data(struct ocfs2_xattr_bucket *dest,
- 	}
- }
+diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+index 0bd9d96..f2bb1a0 100644
+--- a/fs/ocfs2/extent_map.c
++++ b/fs/ocfs2/extent_map.c
+@@ -806,3 +806,74 @@ out:
  
-+static int ocfs2_validate_xattr_block(struct super_block *sb,
-+				      struct buffer_head *bh)
+ 	return ret;
+ }
++
++int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
++			   struct buffer_head *bhs[], int flags,
++			   int (*validate)(struct super_block *sb,
++					   struct buffer_head *bh))
 +{
-+	struct ocfs2_xattr_block *xb =
-+		(struct ocfs2_xattr_block *)bh->b_data;
++	int rc = 0;
++	u64 p_block, p_count;
++	int i, count, done = 0;
 +
-+	mlog(0, "Validating xattr block %llu\n",
-+	     (unsigned long long)bh->b_blocknr);
++	mlog_entry("(inode = %p, v_block = %llu, nr = %d, bhs = %p, "
++		   "flags = %x, validate = %p)\n",
++		   inode, (unsigned long long)v_block, nr, bhs, flags,
++		   validate);
 +
-+	if (!OCFS2_IS_VALID_XATTR_BLOCK(xb)) {
-+		ocfs2_error(sb,
-+			    "Extended attribute block #%llu has bad "
-+			    "signature %.*s",
-+			    (unsigned long long)bh->b_blocknr, 7,
-+			    xb->xb_signature);
-+		return -EINVAL;
++	if (((v_block + nr - 1) << inode->i_sb->s_blocksize_bits) >=
++	    i_size_read(inode)) {
++		BUG_ON(!(flags & OCFS2_BH_READAHEAD));
++		goto out;
 +	}
 +
-+	if (le64_to_cpu(xb->xb_blkno) != bh->b_blocknr) {
-+		ocfs2_error(sb,
-+			    "Extended attribute block #%llu has an "
-+			    "invalid xb_blkno of %llu",
-+			    (unsigned long long)bh->b_blocknr,
-+			    (unsigned long long)le64_to_cpu(xb->xb_blkno));
-+		return -EINVAL;
++	while (done < nr) {
++		down_read(&OCFS2_I(inode)->ip_alloc_sem);
++		rc = ocfs2_extent_map_get_blocks(inode, v_block + done,
++						 &p_block, &p_count, NULL);
++		up_read(&OCFS2_I(inode)->ip_alloc_sem);
++		if (rc) {
++			mlog_errno(rc);
++			break;
++		}
++
++		if (!p_block) {
++			rc = -EIO;
++			mlog(ML_ERROR,
++			     "Inode #%llu contains a hole at offset %llu\n",
++			     (unsigned long long)OCFS2_I(inode)->ip_blkno,
++			     (unsigned long long)(v_block + done) <<
++			     inode->i_sb->s_blocksize_bits);
++			break;
++		}
++
++		count = nr - done;
++		if (p_count < count)
++			count = p_count;
++
++		/*
++		 * If the caller passed us bhs, they should have come
++		 * from a previous readahead call to this function.  Thus,
++		 * they should have the right b_blocknr.
++		 */
++		for (i = 0; i < count; i++) {
++			if (!bhs[done + i])
++				continue;
++			BUG_ON(bhs[done + i]->b_blocknr != (p_block + i));
++		}
++
++		rc = ocfs2_read_blocks(inode, p_block, count, bhs + done,
++				       flags, validate);
++		if (rc) {
++			mlog_errno(rc);
++			break;
++		}
++		done += count;
 +	}
 +
-+	if (le32_to_cpu(xb->xb_fs_generation) != OCFS2_SB(sb)->fs_generation) {
-+		ocfs2_error(sb,
-+			    "Extended attribute block #%llu has an invalid "
-+			    "xb_fs_generation of #%u",
-+			    (unsigned long long)bh->b_blocknr,
-+			    le32_to_cpu(xb->xb_fs_generation));
-+		return -EINVAL;
-+	}
-+
-+	return 0;
-+}
-+
-+static int ocfs2_read_xattr_block(struct inode *inode, u64 xb_blkno,
-+				  struct buffer_head **bh)
-+{
-+	int rc;
-+	struct buffer_head *tmp = *bh;
-+
-+	rc = ocfs2_read_block(inode, xb_blkno, &tmp);
-+	if (!rc) {
-+		rc = ocfs2_validate_xattr_block(inode->i_sb, tmp);
-+		if (rc)
-+			brelse(tmp);
-+	}
-+
-+	/* If ocfs2_read_block() got us a new bh, pass it up. */
-+	if (!rc && !*bh)
-+		*bh = tmp;
-+
++out:
++	mlog_exit(rc);
 +	return rc;
 +}
 +
- static inline const char *ocfs2_xattr_prefix(int name_index)
- {
- 	struct xattr_handler *handler = NULL;
-@@ -739,18 +798,14 @@ static int ocfs2_xattr_block_list(struct inode *inode,
- 	if (!di->i_xattr_loc)
- 		return ret;
- 
--	ret = ocfs2_read_block(inode, le64_to_cpu(di->i_xattr_loc), &blk_bh);
-+	ret = ocfs2_read_xattr_block(inode, le64_to_cpu(di->i_xattr_loc),
-+				     &blk_bh);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		return ret;
- 	}
- 
- 	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
--	if (!OCFS2_IS_VALID_XATTR_BLOCK(xb)) {
--		ret = -EIO;
--		goto cleanup;
--	}
--
- 	if (!(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED)) {
- 		struct ocfs2_xattr_header *header = &xb->xb_attrs.xb_header;
- 		ret = ocfs2_xattr_list_entries(inode, header,
-@@ -760,7 +815,7 @@ static int ocfs2_xattr_block_list(struct inode *inode,
- 		ret = ocfs2_xattr_tree_list_index_block(inode, xt,
- 						   buffer, buffer_size);
- 	}
--cleanup:
 +
- 	brelse(blk_bh);
+diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
+index 1c4aa8b..b7dd973 100644
+--- a/fs/ocfs2/extent_map.h
++++ b/fs/ocfs2/extent_map.h
+@@ -57,4 +57,28 @@ int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
+ 			     u32 *p_cluster, u32 *num_clusters,
+ 			     struct ocfs2_extent_list *el);
  
- 	return ret;
-@@ -1693,24 +1748,19 @@ static int ocfs2_xattr_free_block(struct inode *inode,
- 	u64 blk, bg_blkno;
- 	u16 bit;
- 
--	ret = ocfs2_read_block(inode, block, &blk_bh);
-+	ret = ocfs2_read_xattr_block(inode, block, &blk_bh);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
- 
--	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
--	if (!OCFS2_IS_VALID_XATTR_BLOCK(xb)) {
--		ret = -EIO;
--		goto out;
--	}
--
- 	ret = ocfs2_xattr_block_remove(inode, blk_bh);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
- 
-+	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
- 	blk = le64_to_cpu(xb->xb_blkno);
- 	bit = le16_to_cpu(xb->xb_suballoc_bit);
- 	bg_blkno = ocfs2_which_suballoc_group(blk, bit);
-@@ -1950,19 +2000,15 @@ static int ocfs2_xattr_block_find(struct inode *inode,
- 	if (!di->i_xattr_loc)
- 		return ret;
- 
--	ret = ocfs2_read_block(inode, le64_to_cpu(di->i_xattr_loc), &blk_bh);
-+	ret = ocfs2_read_xattr_block(inode, le64_to_cpu(di->i_xattr_loc),
-+				     &blk_bh);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		return ret;
- 	}
- 
--	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
--	if (!OCFS2_IS_VALID_XATTR_BLOCK(xb)) {
--		ret = -EIO;
--		goto cleanup;
--	}
--
- 	xs->xattr_bh = blk_bh;
-+	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
- 
- 	if (!(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED)) {
- 		xs->header = &xb->xb_attrs.xb_header;
-@@ -2259,9 +2305,9 @@ meta_guess:
- 	/* calculate metadata allocation. */
- 	if (di->i_xattr_loc) {
- 		if (!xbs->xattr_bh) {
--			ret = ocfs2_read_block(inode,
--					       le64_to_cpu(di->i_xattr_loc),
--					       &bh);
-+			ret = ocfs2_read_xattr_block(inode,
-+						     le64_to_cpu(di->i_xattr_loc),
-+						     &bh);
- 			if (ret) {
- 				mlog_errno(ret);
- 				goto out;
++int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
++			   struct buffer_head *bhs[], int flags,
++			   int (*validate)(struct super_block *sb,
++					   struct buffer_head *bh));
++static inline int ocfs2_read_virt_block(struct inode *inode, u64 v_block,
++					struct buffer_head **bh,
++					int (*validate)(struct super_block *sb,
++							struct buffer_head *bh))
++{
++	int status = 0;
++
++	if (bh == NULL) {
++		printk("ocfs2: bh == NULL\n");
++		status = -EINVAL;
++		goto bail;
++	}
++
++	status = ocfs2_read_virt_blocks(inode, v_block, 1, bh, 0, validate);
++
++bail:
++	return status;
++}
++
++
+ #endif  /* _EXTENT_MAP_H */
 -- 
 1.5.6
