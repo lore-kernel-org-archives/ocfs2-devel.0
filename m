@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Dec 2008 13:53:36 -0800
-Subject: [Ocfs2-devel] [PATCH 17/45] ocfs2: Add clusters free in
-	dealloc_ctxt.
+Date: Fri, 19 Dec 2008 13:53:37 -0800
+Subject: [Ocfs2-devel] [PATCH 18/45] ocfs2/xattr: Move clusters free into
+	dealloc.
 In-Reply-To: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
 References: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229723644-13630-18-git-send-email-mfasheh@suse.com>
+Message-ID: <1229723644-13630-19-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,196 +14,59 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <ta
 
 From: Tao Ma <tao.ma@oracle.com>
 
-Now in ocfs2 xattr set, the whole process are divided into many small
-parts and they are wrapped into diffrent transactions and it make the
-set doesn't look like a real transaction. So we want to integrate it
-into a real one.
-
-In some cases we will allocate some clusters and free some in just one
-transaction. e.g, one xattr is larger than inline size, so it and its
-value root is stored within the inode while the value is outside in a
-cluster. Then we try to update it with a smaller value(larger than the
-size of root but smaller than inline size), we may need to free the
-outside cluster while allocate a new bucket(one cluster) since now the
-inode may be full. The old solution will lock the global_bitmap(if the
-local alloc failed in stress test) and then the truncate log. This will
-cause a ABBA lock with truncate log flush.
-
-This patch add the clusters free in dealloc_ctxt, so that we can record
-the free clusters during the transaction and then free it after we
-release the global_bitmap in xattr set.
+Move clusters free process into dealloc context so that
+they can be freed after the transaction.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/alloc.c |  106 ++++++++++++++++++++++++++++++++++++++++++++++++++----
- fs/ocfs2/alloc.h |    4 ++
- 2 files changed, 103 insertions(+), 7 deletions(-)
+ fs/ocfs2/xattr.c |   14 +-------------
+ 1 files changed, 1 insertions(+), 13 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 0cc2deb..4614614 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -5800,7 +5800,10 @@ int ocfs2_truncate_log_init(struct ocfs2_super *osb)
-  */
- 
- /*
-- * Describes a single block free from a suballocator
-+ * Describe a single bit freed from a suballocator.  For the block
-+ * suballocators, it represents one block.  For the global cluster
-+ * allocator, it represents some clusters and free_bit indicates
-+ * clusters number.
-  */
- struct ocfs2_cached_block_free {
- 	struct ocfs2_cached_block_free		*free_next;
-@@ -5815,10 +5818,10 @@ struct ocfs2_per_slot_free_list {
- 	struct ocfs2_cached_block_free		*f_first;
- };
- 
--static int ocfs2_free_cached_items(struct ocfs2_super *osb,
--				   int sysfile_type,
--				   int slot,
--				   struct ocfs2_cached_block_free *head)
-+static int ocfs2_free_cached_blocks(struct ocfs2_super *osb,
-+				    int sysfile_type,
-+				    int slot,
-+				    struct ocfs2_cached_block_free *head)
- {
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 4501c63..f1da381 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -457,7 +457,6 @@ static int __ocfs2_remove_xattr_range(struct inode *inode,
  	int ret;
- 	u64 bg_blkno;
-@@ -5893,6 +5896,82 @@ out:
- 	return ret;
- }
- 
-+int ocfs2_cache_cluster_dealloc(struct ocfs2_cached_dealloc_ctxt *ctxt,
-+				u64 blkno, unsigned int bit)
-+{
-+	int ret = 0;
-+	struct ocfs2_cached_block_free *item;
-+
-+	item = kmalloc(sizeof(*item), GFP_NOFS);
-+	if (item == NULL) {
-+		ret = -ENOMEM;
-+		mlog_errno(ret);
-+		return ret;
-+	}
-+
-+	mlog(0, "Insert clusters: (bit %u, blk %llu)\n",
-+	     bit, (unsigned long long)blkno);
-+
-+	item->free_blk = blkno;
-+	item->free_bit = bit;
-+	item->free_next = ctxt->c_global_allocator;
-+
-+	ctxt->c_global_allocator = item;
-+	return ret;
-+}
-+
-+static int ocfs2_free_cached_clusters(struct ocfs2_super *osb,
-+				      struct ocfs2_cached_block_free *head)
-+{
-+	struct ocfs2_cached_block_free *tmp;
-+	struct inode *tl_inode = osb->osb_tl_inode;
-+	handle_t *handle;
-+	int ret = 0;
-+
-+	mutex_lock(&tl_inode->i_mutex);
-+
-+	while (head) {
-+		if (ocfs2_truncate_log_needs_flush(osb)) {
-+			ret = __ocfs2_flush_truncate_log(osb);
-+			if (ret < 0) {
-+				mlog_errno(ret);
-+				break;
-+			}
-+		}
-+
-+		handle = ocfs2_start_trans(osb, OCFS2_TRUNCATE_LOG_UPDATE);
-+		if (IS_ERR(handle)) {
-+			ret = PTR_ERR(handle);
-+			mlog_errno(ret);
-+			break;
-+		}
-+
-+		ret = ocfs2_truncate_log_append(osb, handle, head->free_blk,
-+						head->free_bit);
-+
-+		ocfs2_commit_trans(osb, handle);
-+		tmp = head;
-+		head = head->free_next;
-+		kfree(tmp);
-+
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+	}
-+
-+	mutex_unlock(&tl_inode->i_mutex);
-+
-+	while (head) {
-+		/* Premature exit may have left some dangling items. */
-+		tmp = head;
-+		head = head->free_next;
-+		kfree(tmp);
-+	}
-+
-+	return ret;
-+}
-+
- int ocfs2_run_deallocs(struct ocfs2_super *osb,
- 		       struct ocfs2_cached_dealloc_ctxt *ctxt)
- {
-@@ -5908,8 +5987,10 @@ int ocfs2_run_deallocs(struct ocfs2_super *osb,
- 		if (fl->f_first) {
- 			mlog(0, "Free items: (type %u, slot %d)\n",
- 			     fl->f_inode_type, fl->f_slot);
--			ret2 = ocfs2_free_cached_items(osb, fl->f_inode_type,
--						       fl->f_slot, fl->f_first);
-+			ret2 = ocfs2_free_cached_blocks(osb,
-+							fl->f_inode_type,
-+							fl->f_slot,
-+							fl->f_first);
- 			if (ret2)
- 				mlog_errno(ret2);
- 			if (!ret)
-@@ -5920,6 +6001,17 @@ int ocfs2_run_deallocs(struct ocfs2_super *osb,
- 		kfree(fl);
+ 	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	struct inode *tl_inode = osb->osb_tl_inode;
+ 	handle_t *handle;
+ 	struct ocfs2_alloc_context *meta_ac = NULL;
+ 	struct ocfs2_extent_tree et;
+@@ -470,16 +469,6 @@ static int __ocfs2_remove_xattr_range(struct inode *inode,
+ 		return ret;
  	}
  
-+	if (ctxt->c_global_allocator) {
-+		ret2 = ocfs2_free_cached_clusters(osb,
-+						  ctxt->c_global_allocator);
-+		if (ret2)
-+			mlog_errno(ret2);
-+		if (!ret)
-+			ret = ret2;
-+
-+		ctxt->c_global_allocator = NULL;
-+	}
-+
- 	return ret;
- }
+-	mutex_lock(&tl_inode->i_mutex);
+-
+-	if (ocfs2_truncate_log_needs_flush(osb)) {
+-		ret = __ocfs2_flush_truncate_log(osb);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			goto out;
+-		}
+-	}
+-
+ 	handle = ocfs2_start_trans(osb, OCFS2_REMOVE_EXTENT_CREDITS);
+ 	if (IS_ERR(handle)) {
+ 		ret = PTR_ERR(handle);
+@@ -509,14 +498,13 @@ static int __ocfs2_remove_xattr_range(struct inode *inode,
+ 		goto out_commit;
+ 	}
  
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 70257c8..c301cf2 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -167,11 +167,15 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb);
-  */
- struct ocfs2_cached_dealloc_ctxt {
- 	struct ocfs2_per_slot_free_list		*c_first_suballocator;
-+	struct ocfs2_cached_block_free 		*c_global_allocator;
- };
- static inline void ocfs2_init_dealloc_ctxt(struct ocfs2_cached_dealloc_ctxt *c)
- {
- 	c->c_first_suballocator = NULL;
-+	c->c_global_allocator = NULL;
- }
-+int ocfs2_cache_cluster_dealloc(struct ocfs2_cached_dealloc_ctxt *ctxt,
-+				u64 blkno, unsigned int bit);
- int ocfs2_run_deallocs(struct ocfs2_super *osb,
- 		       struct ocfs2_cached_dealloc_ctxt *ctxt);
+-	ret = ocfs2_truncate_log_append(osb, handle, phys_blkno, len);
++	ret = ocfs2_cache_cluster_dealloc(dealloc, phys_blkno, len);
+ 	if (ret)
+ 		mlog_errno(ret);
  
+ out_commit:
+ 	ocfs2_commit_trans(osb, handle);
+ out:
+-	mutex_unlock(&tl_inode->i_mutex);
+ 
+ 	if (meta_ac)
+ 		ocfs2_free_alloc_context(meta_ac);
 -- 
 1.5.6
