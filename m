@@ -1,111 +1,129 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Dec 2008 13:53:45 -0800
-Subject: [Ocfs2-devel] [PATCH 26/45] ocfs2: add ocfs2_xattr_get_nolock
+Date: Fri, 19 Dec 2008 13:53:55 -0800
+Subject: [Ocfs2-devel] [PATCH 36/45] ocfs2: Morph the haphazard
+	OCFS2_IS_VALID_GROUP_DESC() checks.
 In-Reply-To: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
 References: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229723644-13630-27-git-send-email-mfasheh@suse.com>
+Message-ID: <1229723644-13630-37-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tiger Yang <tiger.yang@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-From: Tiger Yang <tiger.yang@oracle.com>
+From: Joel Becker <joel.becker@oracle.com>
 
-This function does the work of ocfs2_xattr_get under an open lock.
+Random places in the code would check a group descriptor bh to see if it
+was valid. The previous commit unified descriptor block reads,
+validating all block reads in the same place.  Thus, these checks are no
+longer necessary.  Rather than eliminate them, however, we change them
+to BUG_ON() checks.  This ensures the assumptions remain true.  All of
+the code paths to these checks have been audited to ensure they come
+from a validated descriptor read.
 
-Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   40 ++++++++++++++++++++++++++++------------
- fs/ocfs2/xattr.h |    2 ++
- 2 files changed, 30 insertions(+), 12 deletions(-)
+ fs/ocfs2/ocfs2.h    |    7 -------
+ fs/ocfs2/suballoc.c |   39 ++++++++++++++-------------------------
+ 2 files changed, 14 insertions(+), 32 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 2cab0d6..ba9b870 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -925,12 +925,8 @@ cleanup:
- 	return ret;
- }
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 467bdb6..82ba887 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -458,13 +458,6 @@ static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
+ #define OCFS2_IS_VALID_GROUP_DESC(ptr)					\
+ 	(!strcmp((ptr)->bg_signature, OCFS2_GROUP_DESC_SIGNATURE))
  
--/* ocfs2_xattr_get()
-- *
-- * Copy an extended attribute into the buffer provided.
-- * Buffer is NULL to compute the size of buffer required.
-- */
--static int ocfs2_xattr_get(struct inode *inode,
-+int ocfs2_xattr_get_nolock(struct inode *inode,
-+			   struct buffer_head *di_bh,
- 			   int name_index,
- 			   const char *name,
- 			   void *buffer,
-@@ -938,7 +934,6 @@ static int ocfs2_xattr_get(struct inode *inode,
- {
- 	int ret;
- 	struct ocfs2_dinode *di = NULL;
--	struct buffer_head *di_bh = NULL;
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct ocfs2_xattr_search xis = {
- 		.not_found = -ENODATA,
-@@ -953,11 +948,6 @@ static int ocfs2_xattr_get(struct inode *inode,
- 	if (!(oi->ip_dyn_features & OCFS2_HAS_XATTR_FL))
- 		ret = -ENODATA;
+-#define OCFS2_RO_ON_INVALID_GROUP_DESC(__sb, __gd)	do {		\
+-	typeof(__gd) ____gd = (__gd);					\
+-		ocfs2_error((__sb),					\
+-		"Group Descriptor # %llu has bad signature %.*s",	\
+-		(unsigned long long)le64_to_cpu((____gd)->bg_blkno), 7, \
+-		(____gd)->bg_signature);				\
+-} while (0)
  
--	ret = ocfs2_inode_lock(inode, &di_bh, 0);
--	if (ret < 0) {
--		mlog_errno(ret);
--		return ret;
+ #define OCFS2_IS_VALID_XATTR_BLOCK(ptr)					\
+ 	(!strcmp((ptr)->xb_signature, OCFS2_XATTR_BLOCK_SIGNATURE))
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 797f509..766a00b 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -842,10 +842,9 @@ static int ocfs2_block_group_find_clear_bits(struct ocfs2_super *osb,
+ 	int offset, start, found, status = 0;
+ 	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
+ 
+-	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(osb->sb, bg);
+-		return -EIO;
 -	}
- 	xis.inode_bh = xbs.inode_bh = di_bh;
- 	di = (struct ocfs2_dinode *)di_bh->b_data;
++	/* Callers got this descriptor from
++	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
  
-@@ -968,6 +958,32 @@ static int ocfs2_xattr_get(struct inode *inode,
- 		ret = ocfs2_xattr_block_get(inode, name_index, name, buffer,
- 					    buffer_size, &xbs);
- 	up_read(&oi->ip_xattr_sem);
-+
-+	return ret;
-+}
-+
-+/* ocfs2_xattr_get()
-+ *
-+ * Copy an extended attribute into the buffer provided.
-+ * Buffer is NULL to compute the size of buffer required.
-+ */
-+static int ocfs2_xattr_get(struct inode *inode,
-+			   int name_index,
-+			   const char *name,
-+			   void *buffer,
-+			   size_t buffer_size)
-+{
-+	int ret;
-+	struct buffer_head *di_bh = NULL;
-+
-+	ret = ocfs2_inode_lock(inode, &di_bh, 0);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		return ret;
-+	}
-+	ret = ocfs2_xattr_get_nolock(inode, di_bh, name_index,
-+				     name, buffer, buffer_size);
-+
- 	ocfs2_inode_unlock(inode, 0);
+ 	found = start = best_offset = best_size = 0;
+ 	bitmap = bg->bg_bitmap;
+@@ -910,11 +909,9 @@ static inline int ocfs2_block_group_set_bits(handle_t *handle,
  
- 	brelse(di_bh);
-diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-index 188ef6b..86aa10f 100644
---- a/fs/ocfs2/xattr.h
-+++ b/fs/ocfs2/xattr.h
-@@ -43,6 +43,8 @@ extern struct xattr_handler ocfs2_xattr_security_handler;
- extern struct xattr_handler *ocfs2_xattr_handlers[];
+ 	mlog_entry_void();
  
- ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
-+int ocfs2_xattr_get_nolock(struct inode *, struct buffer_head *, int,
-+			   const char *, void *, size_t);
- int ocfs2_xattr_set(struct inode *, int, const char *, const void *,
- 		    size_t, int);
- int ocfs2_xattr_set_handle(handle_t *, struct inode *, struct buffer_head *,
+-	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, bg);
+-		status = -EIO;
+-		goto bail;
+-	}
++	/* All callers get the descriptor via
++	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
+ 	BUG_ON(le16_to_cpu(bg->bg_free_bits_count) < num_bits);
+ 
+ 	mlog(0, "block_group_set_bits: off = %u, num = %u\n", bit_off,
+@@ -983,16 +980,10 @@ static int ocfs2_relink_block_group(handle_t *handle,
+ 	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
+ 	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
+ 
+-	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, bg);
+-		status = -EIO;
+-		goto out;
+-	}
+-	if (!OCFS2_IS_VALID_GROUP_DESC(prev_bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, prev_bg);
+-		status = -EIO;
+-		goto out;
+-	}
++	/* The caller got these descriptors from
++	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(prev_bg));
+ 
+ 	mlog(0, "Suballoc %llu, chain %u, move group %llu to top, prev = %llu\n",
+ 	     (unsigned long long)le64_to_cpu(fe->i_blkno), chain,
+@@ -1055,7 +1046,7 @@ out_rollback:
+ 		bg->bg_next_group = cpu_to_le64(bg_ptr);
+ 		prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+ 	}
+-out:
++
+ 	mlog_exit(status);
+ 	return status;
+ }
+@@ -1758,11 +1749,9 @@ static inline int ocfs2_block_group_clear_bits(handle_t *handle,
+ 
+ 	mlog_entry_void();
+ 
+-	if (!OCFS2_IS_VALID_GROUP_DESC(bg)) {
+-		OCFS2_RO_ON_INVALID_GROUP_DESC(alloc_inode->i_sb, bg);
+-		status = -EIO;
+-		goto bail;
+-	}
++	/* The caller got this descriptor from
++	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
++	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
+ 
+ 	mlog(0, "off = %u, num = %u\n", bit_off, num_bits);
+ 
 -- 
 1.5.6
