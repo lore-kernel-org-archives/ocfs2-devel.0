@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Dec 2008 13:53:34 -0800
-Subject: [Ocfs2-devel] [PATCH 15/45] ocfs2/xattr: Only set buffer update if
-	it doesn't exist in cache.
+Date: Fri, 19 Dec 2008 13:53:35 -0800
+Subject: [Ocfs2-devel] [PATCH 16/45] ocfs2/xattr: Only extend xattr bucket
+	in need.
 In-Reply-To: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
 References: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229723644-13630-16-git-send-email-mfasheh@suse.com>
+Message-ID: <1229723644-13630-17-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,35 +14,33 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <ta
 
 From: Tao Ma <tao.ma@oracle.com>
 
-When we call ocfs2_init_xattr_bucket, we deem that the new buffer head
-will be written to disk immediately, so we just use sb_getblk. But in
-some cases the buffer may have already been in ocfs2 uptodate cache,
-so we only call ocfs2_set_buffer_uptodate if the buffer head isn't
-in the cache.
+When the first block of a bucket is filled up with xattr
+entries, we normally extend the bucket. But if we are
+just replace one xattr with small length, we don't need
+to extend it. This is important since we will calculate
+what we need before the transaction and in this situation
+no resources will be allocated.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |    6 ++++--
- 1 files changed, 4 insertions(+), 2 deletions(-)
+ fs/ocfs2/xattr.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 87cf39d..d8fc714 100644
+index d8fc714..4501c63 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -219,8 +219,10 @@ static int ocfs2_init_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
- 			break;
- 		}
+@@ -4564,7 +4564,9 @@ try_again:
+ 	     free, need, max_free, le16_to_cpu(xh->xh_free_start),
+ 	     le16_to_cpu(xh->xh_name_value_len));
  
--		ocfs2_set_new_buffer_uptodate(bucket->bu_inode,
--					      bucket->bu_bhs[i]);
-+		if (!ocfs2_buffer_uptodate(bucket->bu_inode,
-+					   bucket->bu_bhs[i]))
-+			ocfs2_set_new_buffer_uptodate(bucket->bu_inode,
-+						      bucket->bu_bhs[i]);
- 	}
- 
- 	if (rc)
+-	if (free < need || count == ocfs2_xattr_max_xe_in_bucket(inode->i_sb)) {
++	if (free < need ||
++	    (xs->not_found &&
++	     count == ocfs2_xattr_max_xe_in_bucket(inode->i_sb))) {
+ 		if (need <= max_free &&
+ 		    count < ocfs2_xattr_max_xe_in_bucket(inode->i_sb)) {
+ 			/*
 -- 
 1.5.6
