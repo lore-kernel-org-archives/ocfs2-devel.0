@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Mon, 22 Dec 2008 13:47:55 -0800
-Subject: [Ocfs2-devel] [PATCH 14/56] quota: Allow negative usage of space
-	and inodes
+Date: Mon, 22 Dec 2008 13:47:56 -0800
+Subject: [Ocfs2-devel] [PATCH 15/56] quota: Keep which entries were set by
+	SETQUOTA quotactl
 In-Reply-To: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
 References: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229982517-3455-15-git-send-email-mfasheh@suse.com>
+Message-ID: <1229982517-3455-16-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,63 +14,104 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Jan Kara <
 
 From: Jan Kara <jack@suse.cz>
 
-For clustered filesystems, it can happen that space / inode usage goes
-negative temporarily (because some node is allocating another node
-is freeing and they are not completely in sync). So let quota code
-allow this and change qsize_t so a signed type so that we don't
-underflow the variables.
+Quota in a clustered environment needs to synchronize quota information
+among cluster nodes. This means we have to occasionally update some
+information in dquot from disk / network. On the other hand we have to
+be careful not to overwrite changes administrator did via SETQUOTA.
+So indicate in dquot->dq_flags which entries have been set by SETQUOTA
+and quota format can clear these flags when it properly propagated
+the changes.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/dquot.c            |    6 ++++--
- include/linux/quota.h |    3 ++-
- 2 files changed, 6 insertions(+), 3 deletions(-)
+ fs/dquot.c            |   12 ++++++++++--
+ include/linux/quota.h |   26 ++++++++++++++++++++------
+ 2 files changed, 30 insertions(+), 8 deletions(-)
 
 diff --git a/fs/dquot.c b/fs/dquot.c
-index f4d6f7e..cf0dac7 100644
+index cf0dac7..6784892 100644
 --- a/fs/dquot.c
 +++ b/fs/dquot.c
-@@ -847,7 +847,8 @@ static inline void dquot_incr_space(struct dquot *dquot, qsize_t number)
+@@ -2010,25 +2010,33 @@ static int do_set_dqblk(struct dquot *dquot, struct if_dqblk *di)
+ 	if (di->dqb_valid & QIF_SPACE) {
+ 		dm->dqb_curspace = di->dqb_curspace;
+ 		check_blim = 1;
++		__set_bit(DQ_LASTSET_B + QIF_SPACE_B, &dquot->dq_flags);
+ 	}
+ 	if (di->dqb_valid & QIF_BLIMITS) {
+ 		dm->dqb_bsoftlimit = qbtos(di->dqb_bsoftlimit);
+ 		dm->dqb_bhardlimit = qbtos(di->dqb_bhardlimit);
+ 		check_blim = 1;
++		__set_bit(DQ_LASTSET_B + QIF_BLIMITS_B, &dquot->dq_flags);
+ 	}
+ 	if (di->dqb_valid & QIF_INODES) {
+ 		dm->dqb_curinodes = di->dqb_curinodes;
+ 		check_ilim = 1;
++		__set_bit(DQ_LASTSET_B + QIF_INODES_B, &dquot->dq_flags);
+ 	}
+ 	if (di->dqb_valid & QIF_ILIMITS) {
+ 		dm->dqb_isoftlimit = di->dqb_isoftlimit;
+ 		dm->dqb_ihardlimit = di->dqb_ihardlimit;
+ 		check_ilim = 1;
++		__set_bit(DQ_LASTSET_B + QIF_ILIMITS_B, &dquot->dq_flags);
+ 	}
+-	if (di->dqb_valid & QIF_BTIME)
++	if (di->dqb_valid & QIF_BTIME) {
+ 		dm->dqb_btime = di->dqb_btime;
+-	if (di->dqb_valid & QIF_ITIME)
++		__set_bit(DQ_LASTSET_B + QIF_BTIME_B, &dquot->dq_flags);
++	}
++	if (di->dqb_valid & QIF_ITIME) {
+ 		dm->dqb_itime = di->dqb_itime;
++		__set_bit(DQ_LASTSET_B + QIF_ITIME_B, &dquot->dq_flags);
++	}
  
- static inline void dquot_decr_inodes(struct dquot *dquot, qsize_t number)
- {
--	if (dquot->dq_dqb.dqb_curinodes > number)
-+	if (sb_dqopt(dquot->dq_sb)->flags & DQUOT_NEGATIVE_USAGE ||
-+	    dquot->dq_dqb.dqb_curinodes >= number)
- 		dquot->dq_dqb.dqb_curinodes -= number;
- 	else
- 		dquot->dq_dqb.dqb_curinodes = 0;
-@@ -858,7 +859,8 @@ static inline void dquot_decr_inodes(struct dquot *dquot, qsize_t number)
- 
- static inline void dquot_decr_space(struct dquot *dquot, qsize_t number)
- {
--	if (dquot->dq_dqb.dqb_curspace > number)
-+	if (sb_dqopt(dquot->dq_sb)->flags & DQUOT_NEGATIVE_USAGE ||
-+	    dquot->dq_dqb.dqb_curspace >= number)
- 		dquot->dq_dqb.dqb_curspace -= number;
- 	else
- 		dquot->dq_dqb.dqb_curspace = 0;
+ 	if (check_blim) {
+ 		if (!dm->dqb_bsoftlimit || dm->dqb_curspace < dm->dqb_bsoftlimit) {
 diff --git a/include/linux/quota.h b/include/linux/quota.h
-index e51dfdc..75bf761 100644
+index 75bf761..6d98885 100644
 --- a/include/linux/quota.h
 +++ b/include/linux/quota.h
-@@ -168,7 +168,7 @@ enum {
- #include <asm/atomic.h>
+@@ -80,12 +80,21 @@
+  * Quota structure used for communication with userspace via quotactl
+  * Following flags are used to specify which fields are valid
+  */
+-#define QIF_BLIMITS	1
+-#define QIF_SPACE	2
+-#define QIF_ILIMITS	4
+-#define QIF_INODES	8
+-#define QIF_BTIME	16
+-#define QIF_ITIME	32
++enum {
++	QIF_BLIMITS_B = 0,
++	QIF_SPACE_B,
++	QIF_ILIMITS_B,
++	QIF_INODES_B,
++	QIF_BTIME_B,
++	QIF_ITIME_B,
++};
++
++#define QIF_BLIMITS	(1 << QIF_BLIMITS_B)
++#define QIF_SPACE	(1 << QIF_SPACE_B)
++#define QIF_ILIMITS	(1 << QIF_ILIMITS_B)
++#define QIF_INODES	(1 << QIF_INODES_B)
++#define QIF_BTIME	(1 << QIF_BTIME_B)
++#define QIF_ITIME	(1 << QIF_ITIME_B)
+ #define QIF_LIMITS	(QIF_BLIMITS | QIF_ILIMITS)
+ #define QIF_USAGE	(QIF_SPACE | QIF_INODES)
+ #define QIF_TIMES	(QIF_BTIME | QIF_ITIME)
+@@ -242,6 +251,11 @@ extern struct dqstats dqstats;
+ #define DQ_FAKE_B	3	/* no limits only usage */
+ #define DQ_READ_B	4	/* dquot was read into memory */
+ #define DQ_ACTIVE_B	5	/* dquot is active (dquot_release not called) */
++#define DQ_LASTSET_B	6	/* Following 6 bits (see QIF_) are reserved\
++				 * for the mask of entries set via SETQUOTA\
++				 * quotactl. They are set under dq_data_lock\
++				 * and the quota format handling dquot can\
++				 * clear them when it sees fit. */
  
- typedef __kernel_uid32_t qid_t; /* Type in which we store ids in memory */
--typedef __u64 qsize_t;          /* Type in which we store sizes */
-+typedef long long qsize_t;	/* Type in which we store sizes */
- 
- extern spinlock_t dq_data_lock;
- 
-@@ -336,6 +336,7 @@ enum {
- 						 * responsible for setting
- 						 * S_NOQUOTA, S_NOATIME flags
- 						 */
-+#define DQUOT_NEGATIVE_USAGE	(1 << 7)	/* Allow negative quota usage */
- 
- static inline unsigned int dquot_state_flag(unsigned int flags, int type)
- {
+ struct dquot {
+ 	struct hlist_node dq_hash;	/* Hash list in memory */
 -- 
 1.5.6
