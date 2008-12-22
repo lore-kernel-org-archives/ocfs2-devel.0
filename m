@@ -1,157 +1,370 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Mon, 22 Dec 2008 13:47:41 -0800
-Subject: [Ocfs2-devel] [git patches] Ocfs2 patches for merge window,
-	batch 2/3
-Message-ID: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
+Date: Mon, 22 Dec 2008 13:47:43 -0800
+Subject: [Ocfs2-devel] [PATCH 02/56] quota: Increase size of variables for
+	limits and inode usage
+In-Reply-To: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
+References: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
+Message-ID: <1229982517-3455-3-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Jan Kara <jack@suse.cz>, Mark Fasheh <mfasheh@suse.com>
 
-Hi,
+From: Jan Kara <jack@suse.cz>
 
-This is the second batch of Ocfs2 patches intended for the merge window. The
-1st batch were sent out previously:
+So far quota was fine with quota block limits and inode limits/numbers in
+a 32-bit type. Now with rapid increase in storage sizes there are coming
+requests to be able to handle quota limits above 4TB / more that 2^32 inodes.
+So bump up sizes of types in mem_dqblk structure to 64-bits to be able to
+handle this. Also update inode allocation / checking functions to use qsize_t
+and make global structure keep quota limits in bytes so that things are
+consistent.
 
-http://lkml.org/lkml/2008/12/19/280
+Signed-off-by: Jan Kara <jack@suse.cz>
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+---
+ fs/dquot.c               |   50 ++++++++++++++++++++++++++-------------------
+ fs/quota_v1.c            |   25 +++++++++++++++++-----
+ fs/quota_v2.c            |   21 +++++++++++++++---
+ include/linux/quota.h    |   28 +++++++++++--------------
+ include/linux/quotaops.h |    4 +-
+ 5 files changed, 79 insertions(+), 49 deletions(-)
 
-The bulk of this set is comprised of Jan Kara's patches to add quota support
-to Ocfs2. Many of the quota patches are to generic code, which I carried to
-make merging of the Ocfs2 support easier. All of the non-ocfs2 patches
-should have appropriate signoffs. Quota is handled a bit differently in
-Ocfs2 than other file systems. We keep a set of node local quota files (user
-and group), which periodically sync with a global file. This allows for a
-higher level of concurrency on multi-node clusters. Additionally, a small
-portion of each quota block is reserved for later use as a checksum field.
-
-The other non-trivial part of this series is comprised of some more meta
-data I/O cleanups by Joel. This time the focus is on writing of leaves in
-indexed xattr trees and managing those changes in a fashion which makes the
-meta data checksum patches in round 3 more straight forward.
-	--Mark
-
-Please pull from 'upstream-round2' branch of
-git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-round2
-
-to receive the following updates:
-
- fs/Kconfig                         |    7 +
- fs/Makefile                        |    1 +
- fs/dquot.c                         |  436 +++++++++----
- fs/ext3/super.c                    |   16 +-
- fs/ext4/super.c                    |   15 +-
- fs/ocfs2/Makefile                  |    2 +
- fs/ocfs2/alloc.c                   |   20 +-
- fs/ocfs2/aops.c                    |   16 +-
- fs/ocfs2/buffer_head_io.c          |    5 +-
- fs/ocfs2/cluster/masklog.c         |    1 +
- fs/ocfs2/cluster/masklog.h         |    1 +
- fs/ocfs2/dir.c                     |   24 +-
- fs/ocfs2/dlmglue.c                 |  146 +++++
- fs/ocfs2/dlmglue.h                 |   19 +
- fs/ocfs2/file.c                    |   78 ++-
- fs/ocfs2/file.h                    |    3 +
- fs/ocfs2/inode.c                   |   16 +-
- fs/ocfs2/inode.h                   |    2 +
- fs/ocfs2/journal.c                 |  142 ++++-
- fs/ocfs2/journal.h                 |   85 ++-
- fs/ocfs2/namei.c                   |   44 ++-
- fs/ocfs2/ocfs2.h                   |    7 +-
- fs/ocfs2/ocfs2_fs.h                |  126 ++++-
- fs/ocfs2/ocfs2_lockid.h            |    5 +
- fs/ocfs2/quota.h                   |  117 ++++
- fs/ocfs2/quota_global.c            |  990 ++++++++++++++++++++++++++++
- fs/ocfs2/quota_local.c             | 1253 ++++++++++++++++++++++++++++++++++++
- fs/ocfs2/super.c                   |  277 ++++++++-
- fs/ocfs2/xattr.c                   |  567 +++++++++--------
- fs/quota.c                         |   11 +-
- fs/quota_tree.c                    |  645 +++++++++++++++++++
- fs/quota_tree.h                    |   25 +
- fs/quota_v1.c                      |   28 +-
- fs/quota_v2.c                      |  631 +++----------------
- {include/linux => fs}/quotaio_v1.h |    0 
- {include/linux => fs}/quotaio_v2.h |   33 +-
- fs/reiserfs/super.c                |   10 +-
- include/linux/Kbuild               |    4 -
- include/linux/dqblk_qtree.h        |   56 ++
- include/linux/dqblk_v1.h           |    7 -
- include/linux/dqblk_v2.h           |   22 +-
- include/linux/jbd2.h               |    1 +
- include/linux/quota.h              |  108 +++-
- include/linux/quotaops.h           |   96 +++-
- mm/pdflush.c                       |    1 +
- 45 files changed, 4925 insertions(+), 1174 deletions(-)
- create mode 100644 fs/ocfs2/quota.h
- create mode 100644 fs/ocfs2/quota_global.c
- create mode 100644 fs/ocfs2/quota_local.c
- create mode 100644 fs/quota_tree.c
- create mode 100644 fs/quota_tree.h
- rename {include/linux => fs}/quotaio_v1.h (100%)
- rename {include/linux => fs}/quotaio_v2.h (68%)
- create mode 100644 include/linux/dqblk_qtree.h
-
-Jan Kara (36):
-      quota: Add callbacks for allocating and destroying dquot structures
-      quota: Increase size of variables for limits and inode usage
-      quota: Remove bogus 'optimization' in check_idq() and check_bdq()
-      quota: Make _SUSPENDED just a flag
-      quota: Allow to separately enable quota accounting and enforcing limits
-      ext3: Use sb_any_quota_loaded() instead of sb_any_quota_enabled()
-      ext4: Use sb_any_quota_loaded() instead of sb_any_quota_enabled()
-      reiserfs: Use sb_any_quota_loaded() instead of sb_any_quota_enabled().
-      quota: Remove compatibility function sb_any_quota_enabled()
-      quota: Introduce DQUOT_QUOTA_SYS_FILE flag
-      quota: Move quotaio_v[12].h from include/linux/ to fs/
-      quota: Split off quota tree handling into a separate file
-      quota: Convert union in mem_dqinfo to a pointer
-      quota: Allow negative usage of space and inodes
-      quota: Keep which entries were set by SETQUOTA quotactl
-      quota: Update version number
-      quota: Add helpers to allow ocfs2 specific quota initialization, freeing and recovery
-      quota: Implement function for scanning active dquots
-      mm: Export pdflush_operation()
-      ocfs2: Support nested transactions
-      ocfs2: Assign feature bits and system inodes to quota feature and quota files
-      ocfs2: Mark system files as not subject to quota accounting
-      ocfs2: Implementation of local and global quota file handling
-      ocfs2: Add quota calls for allocation and freeing of inodes and space
-      ocfs2: Implement quota syncing thread
-      ocfs2: Implement quota recovery
-      ocfs2: Enable quota accounting on mount, disable on umount
-      ocfs2: Add missing initialization
-      ocfs2: Fix oops when extending quota files
-      ocfs2: Make ocfs2_get_quota_block() consistent with ocfs2_read_quota_block()
-      ocfs2: Fix build warnings (64-bit types vs long long)
-      quota: Unexport dqblk_v1.h and dqblk_v2.h
-      quota: Export dquot_alloc() and dquot_destroy() functions
-      reiserfs: Add default allocation routines for quota structures
-      ext3: Add default allocation routines for quota structures
-      ext4: Add default allocation routines for quota structures
-
-Joel Becker (14):
-      ocfs2: Fix ocfs2_read_quota_block() error handling.
-      ocfs2: Dirty the entire bucket in ocfs2_bucket_value_truncate()
-      ocfs2: Dirty the entire first bucket in ocfs2_extend_xattr_bucket()
-      ocfs2: Dirty the entire first bucket in ocfs2_cp_xattr_cluster().
-      ocfs2: Explain t_is_new in ocfs2_cp_xattr_cluster().
-      ocfs2: Use ocfs2_cp_xattr_bucket() in ocfs2_mv_xattr_bucket_cross_cluster().
-      ocfs2: Rename ocfs2_cp_xattr_cluster() to ocfs2_mv_xattr_buckets().
-      ocfs2: ocfs2_mv_xattr_buckets() can handle a partial cluster now.
-      ocfs2: Use ocfs2_mv_xattr_buckets() in ocfs2_mv_xattr_bucket_cross_cluster().
-      ocfs2: Start using buckets in ocfs2_adjust_xattr_cross_cluster().
-      ocfs2: Pass buckets into ocfs2_mv_xattr_bucket_cross_cluster().
-      ocfs2: Move buckets up into ocfs2_add_new_xattr_cluster().
-      ocfs2: Move buckets up into ocfs2_add_new_xattr_bucket().
-      ocfs2: Pass xs->bucket into ocfs2_add_new_xattr_bucket().
-
-Mark Fasheh (2):
-      jbd2: Add BH_JBDPrivateStart
-      ocfs2: Use BH_JBDPrivateStart instead of BH_Unshadow
-
-Tao Ma (4):
-      ocfs2: fix indendation in ocfs2_dquot_drop_slow
-      ocfs2/quota: sparse fixes for quota
-      ocfs2: Narrow the transaction for deleting xattrs from a bucket.
-      ocfs2/quota: Add QUOTA in mlog_attribute.
+diff --git a/fs/dquot.c b/fs/dquot.c
+index 5512e38..59e8aea 100644
+--- a/fs/dquot.c
++++ b/fs/dquot.c
+@@ -835,7 +835,7 @@ static void drop_dquot_ref(struct super_block *sb, int type)
+ 	}
+ }
+ 
+-static inline void dquot_incr_inodes(struct dquot *dquot, unsigned long number)
++static inline void dquot_incr_inodes(struct dquot *dquot, qsize_t number)
+ {
+ 	dquot->dq_dqb.dqb_curinodes += number;
+ }
+@@ -845,7 +845,7 @@ static inline void dquot_incr_space(struct dquot *dquot, qsize_t number)
+ 	dquot->dq_dqb.dqb_curspace += number;
+ }
+ 
+-static inline void dquot_decr_inodes(struct dquot *dquot, unsigned long number)
++static inline void dquot_decr_inodes(struct dquot *dquot, qsize_t number)
+ {
+ 	if (dquot->dq_dqb.dqb_curinodes > number)
+ 		dquot->dq_dqb.dqb_curinodes -= number;
+@@ -862,7 +862,7 @@ static inline void dquot_decr_space(struct dquot *dquot, qsize_t number)
+ 		dquot->dq_dqb.dqb_curspace -= number;
+ 	else
+ 		dquot->dq_dqb.dqb_curspace = 0;
+-	if (toqb(dquot->dq_dqb.dqb_curspace) <= dquot->dq_dqb.dqb_bsoftlimit)
++	if (dquot->dq_dqb.dqb_curspace <= dquot->dq_dqb.dqb_bsoftlimit)
+ 		dquot->dq_dqb.dqb_btime = (time_t) 0;
+ 	clear_bit(DQ_BLKS_B, &dquot->dq_flags);
+ }
+@@ -1038,7 +1038,7 @@ static inline char ignore_hardlimit(struct dquot *dquot)
+ }
+ 
+ /* needs dq_data_lock */
+-static int check_idq(struct dquot *dquot, ulong inodes, char *warntype)
++static int check_idq(struct dquot *dquot, qsize_t inodes, char *warntype)
+ {
+ 	*warntype = QUOTA_NL_NOWARN;
+ 	if (inodes <= 0 || test_bit(DQ_FAKE_B, &dquot->dq_flags))
+@@ -1077,7 +1077,7 @@ static int check_bdq(struct dquot *dquot, qsize_t space, int prealloc, char *war
+ 		return QUOTA_OK;
+ 
+ 	if (dquot->dq_dqb.dqb_bhardlimit &&
+-	   toqb(dquot->dq_dqb.dqb_curspace + space) > dquot->dq_dqb.dqb_bhardlimit &&
++	    dquot->dq_dqb.dqb_curspace + space > dquot->dq_dqb.dqb_bhardlimit &&
+             !ignore_hardlimit(dquot)) {
+ 		if (!prealloc)
+ 			*warntype = QUOTA_NL_BHARDWARN;
+@@ -1085,7 +1085,7 @@ static int check_bdq(struct dquot *dquot, qsize_t space, int prealloc, char *war
+ 	}
+ 
+ 	if (dquot->dq_dqb.dqb_bsoftlimit &&
+-	   toqb(dquot->dq_dqb.dqb_curspace + space) > dquot->dq_dqb.dqb_bsoftlimit &&
++	    dquot->dq_dqb.dqb_curspace + space > dquot->dq_dqb.dqb_bsoftlimit &&
+ 	    dquot->dq_dqb.dqb_btime && get_seconds() >= dquot->dq_dqb.dqb_btime &&
+             !ignore_hardlimit(dquot)) {
+ 		if (!prealloc)
+@@ -1094,7 +1094,7 @@ static int check_bdq(struct dquot *dquot, qsize_t space, int prealloc, char *war
+ 	}
+ 
+ 	if (dquot->dq_dqb.dqb_bsoftlimit &&
+-	   toqb(dquot->dq_dqb.dqb_curspace + space) > dquot->dq_dqb.dqb_bsoftlimit &&
++	    dquot->dq_dqb.dqb_curspace + space > dquot->dq_dqb.dqb_bsoftlimit &&
+ 	    dquot->dq_dqb.dqb_btime == 0) {
+ 		if (!prealloc) {
+ 			*warntype = QUOTA_NL_BSOFTWARN;
+@@ -1111,7 +1111,7 @@ static int check_bdq(struct dquot *dquot, qsize_t space, int prealloc, char *war
+ 	return QUOTA_OK;
+ }
+ 
+-static int info_idq_free(struct dquot *dquot, ulong inodes)
++static int info_idq_free(struct dquot *dquot, qsize_t inodes)
+ {
+ 	if (test_bit(DQ_FAKE_B, &dquot->dq_flags) ||
+ 	    dquot->dq_dqb.dqb_curinodes <= dquot->dq_dqb.dqb_isoftlimit)
+@@ -1128,15 +1128,13 @@ static int info_idq_free(struct dquot *dquot, ulong inodes)
+ static int info_bdq_free(struct dquot *dquot, qsize_t space)
+ {
+ 	if (test_bit(DQ_FAKE_B, &dquot->dq_flags) ||
+-	    toqb(dquot->dq_dqb.dqb_curspace) <= dquot->dq_dqb.dqb_bsoftlimit)
++	    dquot->dq_dqb.dqb_curspace <= dquot->dq_dqb.dqb_bsoftlimit)
+ 		return QUOTA_NL_NOWARN;
+ 
+-	if (toqb(dquot->dq_dqb.dqb_curspace - space) <=
+-	    dquot->dq_dqb.dqb_bsoftlimit)
++	if (dquot->dq_dqb.dqb_curspace - space <= dquot->dq_dqb.dqb_bsoftlimit)
+ 		return QUOTA_NL_BSOFTBELOW;
+-	if (toqb(dquot->dq_dqb.dqb_curspace) >= dquot->dq_dqb.dqb_bhardlimit &&
+-	    toqb(dquot->dq_dqb.dqb_curspace - space) <
+-						dquot->dq_dqb.dqb_bhardlimit)
++	if (dquot->dq_dqb.dqb_curspace >= dquot->dq_dqb.dqb_bhardlimit &&
++	    dquot->dq_dqb.dqb_curspace - space < dquot->dq_dqb.dqb_bhardlimit)
+ 		return QUOTA_NL_BHARDBELOW;
+ 	return QUOTA_NL_NOWARN;
+ }
+@@ -1279,7 +1277,7 @@ warn_put_all:
+ /*
+  * This operation can block, but only after everything is updated
+  */
+-int dquot_alloc_inode(const struct inode *inode, unsigned long number)
++int dquot_alloc_inode(const struct inode *inode, qsize_t number)
+ {
+ 	int cnt, ret = NO_QUOTA;
+ 	char warntype[MAXQUOTAS];
+@@ -1364,7 +1362,7 @@ out_sub:
+ /*
+  * This operation can block, but only after everything is updated
+  */
+-int dquot_free_inode(const struct inode *inode, unsigned long number)
++int dquot_free_inode(const struct inode *inode, qsize_t number)
+ {
+ 	unsigned int cnt;
+ 	char warntype[MAXQUOTAS];
+@@ -1883,14 +1881,24 @@ int vfs_dq_quota_on_remount(struct super_block *sb)
+ 	return ret;
+ }
+ 
++static inline qsize_t qbtos(qsize_t blocks)
++{
++	return blocks << QIF_DQBLKSIZE_BITS;
++}
++
++static inline qsize_t stoqb(qsize_t space)
++{
++	return (space + QIF_DQBLKSIZE - 1) >> QIF_DQBLKSIZE_BITS;
++}
++
+ /* Generic routine for getting common part of quota structure */
+ static void do_get_dqblk(struct dquot *dquot, struct if_dqblk *di)
+ {
+ 	struct mem_dqblk *dm = &dquot->dq_dqb;
+ 
+ 	spin_lock(&dq_data_lock);
+-	di->dqb_bhardlimit = dm->dqb_bhardlimit;
+-	di->dqb_bsoftlimit = dm->dqb_bsoftlimit;
++	di->dqb_bhardlimit = stoqb(dm->dqb_bhardlimit);
++	di->dqb_bsoftlimit = stoqb(dm->dqb_bsoftlimit);
+ 	di->dqb_curspace = dm->dqb_curspace;
+ 	di->dqb_ihardlimit = dm->dqb_ihardlimit;
+ 	di->dqb_isoftlimit = dm->dqb_isoftlimit;
+@@ -1937,8 +1945,8 @@ static int do_set_dqblk(struct dquot *dquot, struct if_dqblk *di)
+ 		check_blim = 1;
+ 	}
+ 	if (di->dqb_valid & QIF_BLIMITS) {
+-		dm->dqb_bsoftlimit = di->dqb_bsoftlimit;
+-		dm->dqb_bhardlimit = di->dqb_bhardlimit;
++		dm->dqb_bsoftlimit = qbtos(di->dqb_bsoftlimit);
++		dm->dqb_bhardlimit = qbtos(di->dqb_bhardlimit);
+ 		check_blim = 1;
+ 	}
+ 	if (di->dqb_valid & QIF_INODES) {
+@@ -1956,7 +1964,7 @@ static int do_set_dqblk(struct dquot *dquot, struct if_dqblk *di)
+ 		dm->dqb_itime = di->dqb_itime;
+ 
+ 	if (check_blim) {
+-		if (!dm->dqb_bsoftlimit || toqb(dm->dqb_curspace) < dm->dqb_bsoftlimit) {
++		if (!dm->dqb_bsoftlimit || dm->dqb_curspace < dm->dqb_bsoftlimit) {
+ 			dm->dqb_btime = 0;
+ 			clear_bit(DQ_BLKS_B, &dquot->dq_flags);
+ 		}
+diff --git a/fs/quota_v1.c b/fs/quota_v1.c
+index 5ae15b1..3e078ee 100644
+--- a/fs/quota_v1.c
++++ b/fs/quota_v1.c
+@@ -14,14 +14,27 @@ MODULE_AUTHOR("Jan Kara");
+ MODULE_DESCRIPTION("Old quota format support");
+ MODULE_LICENSE("GPL");
+ 
++#define QUOTABLOCK_BITS 10
++#define QUOTABLOCK_SIZE (1 << QUOTABLOCK_BITS)
++
++static inline qsize_t v1_stoqb(qsize_t space)
++{
++	return (space + QUOTABLOCK_SIZE - 1) >> QUOTABLOCK_BITS;
++}
++
++static inline qsize_t v1_qbtos(qsize_t blocks)
++{
++	return blocks << QUOTABLOCK_BITS;
++}
++
+ static void v1_disk2mem_dqblk(struct mem_dqblk *m, struct v1_disk_dqblk *d)
+ {
+ 	m->dqb_ihardlimit = d->dqb_ihardlimit;
+ 	m->dqb_isoftlimit = d->dqb_isoftlimit;
+ 	m->dqb_curinodes = d->dqb_curinodes;
+-	m->dqb_bhardlimit = d->dqb_bhardlimit;
+-	m->dqb_bsoftlimit = d->dqb_bsoftlimit;
+-	m->dqb_curspace = ((qsize_t)d->dqb_curblocks) << QUOTABLOCK_BITS;
++	m->dqb_bhardlimit = v1_qbtos(d->dqb_bhardlimit);
++	m->dqb_bsoftlimit = v1_qbtos(d->dqb_bsoftlimit);
++	m->dqb_curspace = v1_qbtos(d->dqb_curblocks);
+ 	m->dqb_itime = d->dqb_itime;
+ 	m->dqb_btime = d->dqb_btime;
+ }
+@@ -31,9 +44,9 @@ static void v1_mem2disk_dqblk(struct v1_disk_dqblk *d, struct mem_dqblk *m)
+ 	d->dqb_ihardlimit = m->dqb_ihardlimit;
+ 	d->dqb_isoftlimit = m->dqb_isoftlimit;
+ 	d->dqb_curinodes = m->dqb_curinodes;
+-	d->dqb_bhardlimit = m->dqb_bhardlimit;
+-	d->dqb_bsoftlimit = m->dqb_bsoftlimit;
+-	d->dqb_curblocks = toqb(m->dqb_curspace);
++	d->dqb_bhardlimit = v1_stoqb(m->dqb_bhardlimit);
++	d->dqb_bsoftlimit = v1_stoqb(m->dqb_bsoftlimit);
++	d->dqb_curblocks = v1_stoqb(m->dqb_curspace);
+ 	d->dqb_itime = m->dqb_itime;
+ 	d->dqb_btime = m->dqb_btime;
+ }
+diff --git a/fs/quota_v2.c b/fs/quota_v2.c
+index b53827d..51c4717 100644
+--- a/fs/quota_v2.c
++++ b/fs/quota_v2.c
+@@ -26,6 +26,19 @@ typedef char *dqbuf_t;
+ #define GETIDINDEX(id, depth) (((id) >> ((V2_DQTREEDEPTH-(depth)-1)*8)) & 0xff)
+ #define GETENTRIES(buf) ((struct v2_disk_dqblk *)(((char *)buf)+sizeof(struct v2_disk_dqdbheader)))
+ 
++#define QUOTABLOCK_BITS 10
++#define QUOTABLOCK_SIZE (1 << QUOTABLOCK_BITS)
++
++static inline qsize_t v2_stoqb(qsize_t space)
++{
++	return (space + QUOTABLOCK_SIZE - 1) >> QUOTABLOCK_BITS;
++}
++
++static inline qsize_t v2_qbtos(qsize_t blocks)
++{
++	return blocks << QUOTABLOCK_BITS;
++}
++
+ /* Check whether given file is really vfsv0 quotafile */
+ static int v2_check_quota_file(struct super_block *sb, int type)
+ {
+@@ -104,8 +117,8 @@ static void disk2memdqb(struct mem_dqblk *m, struct v2_disk_dqblk *d)
+ 	m->dqb_isoftlimit = le32_to_cpu(d->dqb_isoftlimit);
+ 	m->dqb_curinodes = le32_to_cpu(d->dqb_curinodes);
+ 	m->dqb_itime = le64_to_cpu(d->dqb_itime);
+-	m->dqb_bhardlimit = le32_to_cpu(d->dqb_bhardlimit);
+-	m->dqb_bsoftlimit = le32_to_cpu(d->dqb_bsoftlimit);
++	m->dqb_bhardlimit = v2_qbtos(le32_to_cpu(d->dqb_bhardlimit));
++	m->dqb_bsoftlimit = v2_qbtos(le32_to_cpu(d->dqb_bsoftlimit));
+ 	m->dqb_curspace = le64_to_cpu(d->dqb_curspace);
+ 	m->dqb_btime = le64_to_cpu(d->dqb_btime);
+ }
+@@ -116,8 +129,8 @@ static void mem2diskdqb(struct v2_disk_dqblk *d, struct mem_dqblk *m, qid_t id)
+ 	d->dqb_isoftlimit = cpu_to_le32(m->dqb_isoftlimit);
+ 	d->dqb_curinodes = cpu_to_le32(m->dqb_curinodes);
+ 	d->dqb_itime = cpu_to_le64(m->dqb_itime);
+-	d->dqb_bhardlimit = cpu_to_le32(m->dqb_bhardlimit);
+-	d->dqb_bsoftlimit = cpu_to_le32(m->dqb_bsoftlimit);
++	d->dqb_bhardlimit = cpu_to_le32(v2_qbtos(m->dqb_bhardlimit));
++	d->dqb_bsoftlimit = cpu_to_le32(v2_qbtos(m->dqb_bsoftlimit));
+ 	d->dqb_curspace = cpu_to_le64(m->dqb_curspace);
+ 	d->dqb_btime = cpu_to_le64(m->dqb_btime);
+ 	d->dqb_id = cpu_to_le32(id);
+diff --git a/include/linux/quota.h b/include/linux/quota.h
+index 3ce708c..9ea4683 100644
+--- a/include/linux/quota.h
++++ b/include/linux/quota.h
+@@ -39,15 +39,6 @@
+ #define __DQUOT_VERSION__	"dquot_6.5.1"
+ #define __DQUOT_NUM_VERSION__	6*10000+5*100+1
+ 
+-/* Size of blocks in which are counted size limits */
+-#define QUOTABLOCK_BITS 10
+-#define QUOTABLOCK_SIZE (1 << QUOTABLOCK_BITS)
+-
+-/* Conversion routines from and to quota blocks */
+-#define qb2kb(x) ((x) << (QUOTABLOCK_BITS-10))
+-#define kb2qb(x) ((x) >> (QUOTABLOCK_BITS-10))
+-#define toqb(x) (((x) + QUOTABLOCK_SIZE - 1) >> QUOTABLOCK_BITS)
+-
+ #define MAXQUOTAS 2
+ #define USRQUOTA  0		/* element used for user quotas */
+ #define GRPQUOTA  1		/* element used for group quotas */
+@@ -80,6 +71,11 @@
+ #define Q_GETQUOTA 0x800007	/* get user quota structure */
+ #define Q_SETQUOTA 0x800008	/* set user quota structure */
+ 
++/* Size of block in which space limits are passed through the quota
++ * interface */
++#define QIF_DQBLKSIZE_BITS 10
++#define QIF_DQBLKSIZE (1 << QIF_DQBLKSIZE_BITS)
++
+ /*
+  * Quota structure used for communication with userspace via quotactl
+  * Following flags are used to specify which fields are valid
+@@ -187,12 +183,12 @@ extern spinlock_t dq_data_lock;
+  * Data for one user/group kept in memory
+  */
+ struct mem_dqblk {
+-	__u32 dqb_bhardlimit;	/* absolute limit on disk blks alloc */
+-	__u32 dqb_bsoftlimit;	/* preferred limit on disk blks */
++	qsize_t dqb_bhardlimit;	/* absolute limit on disk blks alloc */
++	qsize_t dqb_bsoftlimit;	/* preferred limit on disk blks */
+ 	qsize_t dqb_curspace;	/* current used space */
+-	__u32 dqb_ihardlimit;	/* absolute limit on allocated inodes */
+-	__u32 dqb_isoftlimit;	/* preferred inode limit */
+-	__u32 dqb_curinodes;	/* current # allocated inodes */
++	qsize_t dqb_ihardlimit;	/* absolute limit on allocated inodes */
++	qsize_t dqb_isoftlimit;	/* preferred inode limit */
++	qsize_t dqb_curinodes;	/* current # allocated inodes */
+ 	time_t dqb_btime;	/* time limit for excessive disk use */
+ 	time_t dqb_itime;	/* time limit for excessive inode use */
+ };
+@@ -287,9 +283,9 @@ struct dquot_operations {
+ 	int (*initialize) (struct inode *, int);
+ 	int (*drop) (struct inode *);
+ 	int (*alloc_space) (struct inode *, qsize_t, int);
+-	int (*alloc_inode) (const struct inode *, unsigned long);
++	int (*alloc_inode) (const struct inode *, qsize_t);
+ 	int (*free_space) (struct inode *, qsize_t);
+-	int (*free_inode) (const struct inode *, unsigned long);
++	int (*free_inode) (const struct inode *, qsize_t);
+ 	int (*transfer) (struct inode *, struct iattr *);
+ 	int (*write_dquot) (struct dquot *);		/* Ordinary dquot write */
+ 	struct dquot *(*alloc_dquot)(struct super_block *, int);	/* Allocate memory for new dquot */
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index a558a4c..adcc7ba 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -26,10 +26,10 @@ int dquot_initialize(struct inode *inode, int type);
+ int dquot_drop(struct inode *inode);
+ 
+ int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
+-int dquot_alloc_inode(const struct inode *inode, unsigned long number);
++int dquot_alloc_inode(const struct inode *inode, qsize_t number);
+ 
+ int dquot_free_space(struct inode *inode, qsize_t number);
+-int dquot_free_inode(const struct inode *inode, unsigned long number);
++int dquot_free_inode(const struct inode *inode, qsize_t number);
+ 
+ int dquot_transfer(struct inode *inode, struct iattr *iattr);
+ int dquot_commit(struct dquot *dquot);
+-- 
+1.5.6
