@@ -1,73 +1,136 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Dec 2008 13:54:04 -0800
-Subject: [Ocfs2-devel] [PATCH 45/45] ocfs2/xattr: Restore not_found in xis
-In-Reply-To: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
-References: <1229723644-13630-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229723644-13630-46-git-send-email-mfasheh@suse.com>
+Date: Mon, 22 Dec 2008 13:47:58 -0800
+Subject: [Ocfs2-devel] [PATCH 17/56] quota: Add helpers to allow ocfs2
+	specific quota initialization, freeing and recovery
+In-Reply-To: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
+References: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
+Message-ID: <1229982517-3455-18-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <tao.ma@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Jan Kara <jack@suse.cz>, Mark Fasheh <mfasheh@suse.com>
 
-From: Tao Ma <tao.ma@oracle.com>
+From: Jan Kara <jack@suse.cz>
 
-During an xattr set, when we move a xattr which was stored in inode to the
-outside bucket, we have to delete it and it will use the old value of
-xis->not_found. xis->not_found is removed by ocfs2_calc_xattr_set_need
-though, so we must restore it.
+OCFS2 needs to peek whether quota structure is already in memory so
+that it can avoid expensive cluster locking in that case. Similarly
+when freeing dquots, it checks whether it is the last quota structure
+user or not. Finally, it needs to get reference to dquot structure for
+specified id and quota type when recovering quota file after crash.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |    6 +++++-
- 1 files changed, 5 insertions(+), 1 deletions(-)
+ fs/dquot.c               |   38 ++++++++++++++++++++++++++++++++------
+ include/linux/quotaops.h |    4 ++++
+ 2 files changed, 36 insertions(+), 6 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index d0b94ed..9cb71e1 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -2414,7 +2414,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
- 				    struct ocfs2_xattr_search *xbs,
- 				    struct ocfs2_xattr_set_ctxt *ctxt)
+diff --git a/fs/dquot.c b/fs/dquot.c
+index 6784892..8774be6 100644
+--- a/fs/dquot.c
++++ b/fs/dquot.c
+@@ -211,8 +211,6 @@ static struct hlist_head *dquot_hash;
+ 
+ struct dqstats dqstats;
+ 
+-static void dqput(struct dquot *dquot);
+-
+ static inline unsigned int
+ hashfn(const struct super_block *sb, unsigned int id, int type)
  {
--	int ret = 0, credits;
-+	int ret = 0, credits, old_found;
+@@ -568,7 +566,7 @@ static struct shrinker dqcache_shrinker = {
+  * NOTE: If you change this function please check whether dqput_blocks() works right...
+  * MUST be called with either dqptr_sem or dqonoff_mutex held
+  */
+-static void dqput(struct dquot *dquot)
++void dqput(struct dquot *dquot)
+ {
+ 	int ret;
  
- 	if (!xi->value) {
- 		/* Remove existing extended attribute */
-@@ -2433,6 +2433,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
- 			xi->value = NULL;
- 			xi->value_len = 0;
+@@ -662,10 +660,28 @@ static struct dquot *get_empty_dquot(struct super_block *sb, int type)
+ }
  
-+			old_found = xis->not_found;
- 			xis->not_found = -ENODATA;
- 			ret = ocfs2_calc_xattr_set_need(inode,
- 							di,
-@@ -2442,6 +2443,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
- 							NULL,
- 							NULL,
- 							&credits);
-+			xis->not_found = old_found;
- 			if (ret) {
- 				mlog_errno(ret);
- 				goto out;
-@@ -2462,6 +2464,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
- 				if (ret)
- 					goto out;
+ /*
++ * Check whether dquot is in memory.
++ * MUST be called with either dqptr_sem or dqonoff_mutex held
++ */
++int dquot_is_cached(struct super_block *sb, unsigned int id, int type)
++{
++	unsigned int hashent = hashfn(sb, id, type);
++	int ret = 0;
++
++        if (!sb_has_quota_active(sb, type))
++		return 0;
++	spin_lock(&dq_list_lock);
++	if (find_dquot(hashent, sb, id, type) != NODQUOT)
++		ret = 1;
++	spin_unlock(&dq_list_lock);
++	return ret;
++}
++
++/*
+  * Get reference to dquot
+  * MUST be called with either dqptr_sem or dqonoff_mutex held
+  */
+-static struct dquot *dqget(struct super_block *sb, unsigned int id, int type)
++struct dquot *dqget(struct super_block *sb, unsigned int id, int type)
+ {
+ 	unsigned int hashent = hashfn(sb, id, type);
+ 	struct dquot *dquot, *empty = NODQUOT;
+@@ -1184,17 +1200,23 @@ out_err:
+  * 	Release all quotas referenced by inode
+  *	Transaction must be started at an entry
+  */
+-int dquot_drop(struct inode *inode)
++int dquot_drop_locked(struct inode *inode)
+ {
+ 	int cnt;
  
-+				old_found = xis->not_found;
- 				xis->not_found = -ENODATA;
- 				ret = ocfs2_calc_xattr_set_need(inode,
- 								di,
-@@ -2471,6 +2474,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
- 								NULL,
- 								NULL,
- 								&credits);
-+				xis->not_found = old_found;
- 				if (ret) {
- 					mlog_errno(ret);
- 					goto out;
+-	down_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
+ 	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
+ 		if (inode->i_dquot[cnt] != NODQUOT) {
+ 			dqput(inode->i_dquot[cnt]);
+ 			inode->i_dquot[cnt] = NODQUOT;
+ 		}
+ 	}
++	return 0;
++}
++
++int dquot_drop(struct inode *inode)
++{
++	down_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
++	dquot_drop_locked(inode);
+ 	up_write(&sb_dqopt(inode->i_sb)->dqptr_sem);
+ 	return 0;
+ }
+@@ -2308,7 +2330,11 @@ EXPORT_SYMBOL(dquot_release);
+ EXPORT_SYMBOL(dquot_mark_dquot_dirty);
+ EXPORT_SYMBOL(dquot_initialize);
+ EXPORT_SYMBOL(dquot_drop);
++EXPORT_SYMBOL(dquot_drop_locked);
+ EXPORT_SYMBOL(vfs_dq_drop);
++EXPORT_SYMBOL(dqget);
++EXPORT_SYMBOL(dqput);
++EXPORT_SYMBOL(dquot_is_cached);
+ EXPORT_SYMBOL(dquot_alloc_space);
+ EXPORT_SYMBOL(dquot_alloc_inode);
+ EXPORT_SYMBOL(dquot_free_space);
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index e840ca5..e3a1027 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -24,6 +24,10 @@ void sync_dquots(struct super_block *sb, int type);
+ 
+ int dquot_initialize(struct inode *inode, int type);
+ int dquot_drop(struct inode *inode);
++int dquot_drop_locked(struct inode *inode);
++struct dquot *dqget(struct super_block *sb, unsigned int id, int type);
++void dqput(struct dquot *dquot);
++int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
+ 
+ int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
+ int dquot_alloc_inode(const struct inode *inode, qsize_t number);
 -- 
 1.5.6
