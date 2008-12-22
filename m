@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Mon, 22 Dec 2008 13:48:14 -0800
-Subject: [Ocfs2-devel] [PATCH 33/56] ocfs2: Make ocfs2_get_quota_block()
-	consistent with ocfs2_read_quota_block()
+Date: Mon, 22 Dec 2008 13:48:17 -0800
+Subject: [Ocfs2-devel] [PATCH 36/56] quota: Export dquot_alloc() and
+	dquot_destroy() functions
 In-Reply-To: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
 References: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229982517-3455-34-git-send-email-mfasheh@suse.com>
+Message-ID: <1229982517-3455-37-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,66 +14,58 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Jan Kara <
 
 From: Jan Kara <jack@suse.cz>
 
-Make function return error status and not buffer pointer so that it's
-consistent with ocfs2_read_quota_block().
+These are default functions for creating and destroying quota structures
+and they should be used from filesystems.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/quota_global.c |   27 +++++++++++++--------------
- 1 files changed, 13 insertions(+), 14 deletions(-)
+ fs/dquot.c               |    6 ++++--
+ include/linux/quotaops.h |    2 ++
+ 2 files changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index 339c98a..27a8123 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -102,26 +102,25 @@ int ocfs2_read_quota_block(struct inode *inode, u64 v_block,
- 	return rc;
+diff --git a/fs/dquot.c b/fs/dquot.c
+index 6f7df91..c724586 100644
+--- a/fs/dquot.c
++++ b/fs/dquot.c
+@@ -413,10 +413,11 @@ out_dqlock:
+ 	return ret;
  }
  
--static struct buffer_head *ocfs2_get_quota_block(struct inode *inode,
--						 int block, int *err)
-+static int ocfs2_get_quota_block(struct inode *inode, int block,
-+				 struct buffer_head **bh)
+-static void dquot_destroy(struct dquot *dquot)
++void dquot_destroy(struct dquot *dquot)
  {
- 	u64 pblock, pcount;
--	struct buffer_head *bh;
-+	int err;
+ 	kmem_cache_free(dquot_cachep, dquot);
+ }
++EXPORT_SYMBOL(dquot_destroy);
  
- 	down_read(&OCFS2_I(inode)->ip_alloc_sem);
--	*err = ocfs2_extent_map_get_blocks(inode, block, &pblock, &pcount,
--					   NULL);
-+	err = ocfs2_extent_map_get_blocks(inode, block, &pblock, &pcount, NULL);
- 	up_read(&OCFS2_I(inode)->ip_alloc_sem);
--	if (*err) {
--		mlog_errno(*err);
--		return NULL;
-+	if (err) {
-+		mlog_errno(err);
-+		return err;
- 	}
--	bh = sb_getblk(inode->i_sb, pblock);
--	if (!bh) {
--		*err = -EIO;
--		mlog_errno(*err);
-+	*bh = sb_getblk(inode->i_sb, pblock);
-+	if (!*bh) {
-+		err = -EIO;
-+		mlog_errno(err);
- 	}
--	return bh;
-+	return err;;
+ static inline void do_destroy_dquot(struct dquot *dquot)
+ {
+@@ -668,10 +669,11 @@ we_slept:
+ 	spin_unlock(&dq_list_lock);
  }
  
- /* Read data from global quotafile - avoid pagecache and such because we cannot
-@@ -207,7 +206,7 @@ ssize_t ocfs2_quota_write(struct super_block *sb, int type,
- 		err = ocfs2_read_quota_block(gqinode, blk, &bh);
- 		ja_type = OCFS2_JOURNAL_ACCESS_WRITE;
- 	} else {
--		bh = ocfs2_get_quota_block(gqinode, blk, &err);
-+		err = ocfs2_get_quota_block(gqinode, blk, &bh);
- 		ja_type = OCFS2_JOURNAL_ACCESS_CREATE;
- 	}
- 	if (err) {
+-static struct dquot *dquot_alloc(struct super_block *sb, int type)
++struct dquot *dquot_alloc(struct super_block *sb, int type)
+ {
+ 	return kmem_cache_zalloc(dquot_cachep, GFP_NOFS);
+ }
++EXPORT_SYMBOL(dquot_alloc);
+ 
+ static struct dquot *get_empty_dquot(struct super_block *sb, int type)
+ {
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index f491394..21b781a 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -31,6 +31,8 @@ int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
+ int dquot_scan_active(struct super_block *sb,
+ 		      int (*fn)(struct dquot *dquot, unsigned long priv),
+ 		      unsigned long priv);
++struct dquot *dquot_alloc(struct super_block *sb, int type);
++void dquot_destroy(struct dquot *dquot);
+ 
+ int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
+ int dquot_alloc_inode(const struct inode *inode, qsize_t number);
 -- 
 1.5.6
