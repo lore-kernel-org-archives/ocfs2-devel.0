@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Mon, 22 Dec 2008 13:48:17 -0800
-Subject: [Ocfs2-devel] [PATCH 36/56] quota: Export dquot_alloc() and
-	dquot_destroy() functions
+Date: Mon, 22 Dec 2008 13:48:18 -0800
+Subject: [Ocfs2-devel] [PATCH 37/56] reiserfs: Add default allocation
+	routines for quota structures
 In-Reply-To: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
 References: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229982517-3455-37-git-send-email-mfasheh@suse.com>
+Message-ID: <1229982517-3455-38-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,58 +14,24 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Jan Kara <
 
 From: Jan Kara <jack@suse.cz>
 
-These are default functions for creating and destroying quota structures
-and they should be used from filesystems.
-
 Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/dquot.c               |    6 ++++--
- include/linux/quotaops.h |    2 ++
- 2 files changed, 6 insertions(+), 2 deletions(-)
+ fs/reiserfs/super.c |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
-diff --git a/fs/dquot.c b/fs/dquot.c
-index 6f7df91..c724586 100644
---- a/fs/dquot.c
-+++ b/fs/dquot.c
-@@ -413,10 +413,11 @@ out_dqlock:
- 	return ret;
- }
+diff --git a/fs/reiserfs/super.c b/fs/reiserfs/super.c
+index a9b393a..c55651f 100644
+--- a/fs/reiserfs/super.c
++++ b/fs/reiserfs/super.c
+@@ -649,6 +649,8 @@ static struct dquot_operations reiserfs_quota_operations = {
+ 	.release_dquot = reiserfs_release_dquot,
+ 	.mark_dirty = reiserfs_mark_dquot_dirty,
+ 	.write_info = reiserfs_write_info,
++	.alloc_dquot	= dquot_alloc,
++	.destroy_dquot	= dquot_destroy,
+ };
  
--static void dquot_destroy(struct dquot *dquot)
-+void dquot_destroy(struct dquot *dquot)
- {
- 	kmem_cache_free(dquot_cachep, dquot);
- }
-+EXPORT_SYMBOL(dquot_destroy);
- 
- static inline void do_destroy_dquot(struct dquot *dquot)
- {
-@@ -668,10 +669,11 @@ we_slept:
- 	spin_unlock(&dq_list_lock);
- }
- 
--static struct dquot *dquot_alloc(struct super_block *sb, int type)
-+struct dquot *dquot_alloc(struct super_block *sb, int type)
- {
- 	return kmem_cache_zalloc(dquot_cachep, GFP_NOFS);
- }
-+EXPORT_SYMBOL(dquot_alloc);
- 
- static struct dquot *get_empty_dquot(struct super_block *sb, int type)
- {
-diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index f491394..21b781a 100644
---- a/include/linux/quotaops.h
-+++ b/include/linux/quotaops.h
-@@ -31,6 +31,8 @@ int dquot_is_cached(struct super_block *sb, unsigned int id, int type);
- int dquot_scan_active(struct super_block *sb,
- 		      int (*fn)(struct dquot *dquot, unsigned long priv),
- 		      unsigned long priv);
-+struct dquot *dquot_alloc(struct super_block *sb, int type);
-+void dquot_destroy(struct dquot *dquot);
- 
- int dquot_alloc_space(struct inode *inode, qsize_t number, int prealloc);
- int dquot_alloc_inode(const struct inode *inode, qsize_t number);
+ static struct quotactl_ops reiserfs_qctl_operations = {
 -- 
 1.5.6
