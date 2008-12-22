@@ -1,185 +1,157 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Mon, 22 Dec 2008 13:48:06 -0800
-Subject: [Ocfs2-devel] [PATCH 25/56] ocfs2: Implement quota syncing thread
-In-Reply-To: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
-References: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1229982517-3455-26-git-send-email-mfasheh@suse.com>
+Date: Mon, 22 Dec 2008 13:47:41 -0800
+Subject: [Ocfs2-devel] [git patches] Ocfs2 patches for merge window,
+	batch 2/3
+Message-ID: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Jan Kara <jack@suse.cz>, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
 
-From: Jan Kara <jack@suse.cz>
+Hi,
 
-This patch implements functions and timer setup which handles periodic
-syncing of locally cached quota information to global quota file.
+This is the second batch of Ocfs2 patches intended for the merge window. The
+1st batch were sent out previously:
 
-Signed-off-by: Jan Kara <jack@suse.cz>
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
----
- fs/ocfs2/quota.h        |    3 ++
- fs/ocfs2/quota_global.c |   71 +++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/quota_local.c  |    4 ++
- 3 files changed, 78 insertions(+), 0 deletions(-)
+http://lkml.org/lkml/2008/12/19/280
 
-diff --git a/fs/ocfs2/quota.h b/fs/ocfs2/quota.h
-index 1f1c863..11cdff1 100644
---- a/fs/ocfs2/quota.h
-+++ b/fs/ocfs2/quota.h
-@@ -14,6 +14,7 @@
- #include <linux/quota.h>
- #include <linux/list.h>
- #include <linux/dqblk_qtree.h>
-+#include <linux/timer.h>
- 
- #include "ocfs2.h"
- 
-@@ -39,6 +40,7 @@ struct ocfs2_mem_dqinfo {
- 	unsigned int dqi_chunks;	/* Number of chunks in local quota file */
- 	unsigned int dqi_blocks;	/* Number of blocks allocated for local quota file */
- 	unsigned int dqi_syncms;	/* How often should we sync with other nodes */
-+	unsigned int dqi_syncjiff;	/* Precomputed dqi_syncms in jiffies */
- 	struct list_head dqi_chunk;	/* List of chunks */
- 	struct inode *dqi_gqinode;	/* Global quota file inode */
- 	struct ocfs2_lock_res dqi_gqlock;	/* Lock protecting quota information structure */
-@@ -47,6 +49,7 @@ struct ocfs2_mem_dqinfo {
- 	struct buffer_head *dqi_lqi_bh;	/* Buffer head with local quota file inode */
- 	struct buffer_head *dqi_ibh;	/* Buffer with information header */
- 	struct qtree_mem_dqinfo dqi_gi;	/* Info about global file */
-+	struct timer_list dqi_sync_timer;	/* Timer for syncing dquots */
- };
- 
- static inline struct ocfs2_dquot *OCFS2_DQUOT(struct dquot *dquot)
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index af8340c..4a5bc09 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -1,10 +1,14 @@
- /*
-  *  Implementation of operations over global quota file
-  */
-+#include <linux/spinlock.h>
- #include <linux/fs.h>
- #include <linux/quota.h>
- #include <linux/quotaops.h>
- #include <linux/dqblk_qtree.h>
-+#include <linux/jiffies.h>
-+#include <linux/timer.h>
-+#include <linux/writeback.h>
- 
- #define MLOG_MASK_PREFIX ML_QUOTA
- #include <cluster/masklog.h>
-@@ -20,6 +24,8 @@
- #include "uptodate.h"
- #include "quota.h"
- 
-+static void qsync_timer_fn(unsigned long oinfo_ptr);
-+
- static void ocfs2_global_disk2memdqb(struct dquot *dquot, void *dp)
- {
- 	struct ocfs2_global_disk_dqblk *d = dp;
-@@ -313,6 +319,7 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
- 	info->dqi_bgrace = le32_to_cpu(dinfo.dqi_bgrace);
- 	info->dqi_igrace = le32_to_cpu(dinfo.dqi_igrace);
- 	oinfo->dqi_syncms = le32_to_cpu(dinfo.dqi_syncms);
-+	oinfo->dqi_syncjiff = msecs_to_jiffies(oinfo->dqi_syncms);
- 	oinfo->dqi_gi.dqi_blocks = le32_to_cpu(dinfo.dqi_blocks);
- 	oinfo->dqi_gi.dqi_free_blk = le32_to_cpu(dinfo.dqi_free_blk);
- 	oinfo->dqi_gi.dqi_free_entry = le32_to_cpu(dinfo.dqi_free_entry);
-@@ -320,6 +327,10 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
- 	oinfo->dqi_gi.dqi_usable_bs = sb->s_blocksize -
- 						OCFS2_QBLK_RESERVED_SPACE;
- 	oinfo->dqi_gi.dqi_qtree_depth = qtree_depth(&oinfo->dqi_gi);
-+	setup_timer(&oinfo->dqi_sync_timer, qsync_timer_fn,
-+		    (unsigned long)oinfo);
-+	mod_timer(&oinfo->dqi_sync_timer,
-+		  round_jiffies(jiffies + oinfo->dqi_syncjiff));
- out_err:
- 	mlog_exit(status);
- 	return status;
-@@ -520,6 +531,66 @@ out:
- }
- 
- /*
-+ *  Functions for periodic syncing of dquots with global file
-+ */
-+static int ocfs2_sync_dquot_helper(struct dquot *dquot, unsigned long type)
-+{
-+	handle_t *handle;
-+	struct super_block *sb = dquot->dq_sb;
-+	struct ocfs2_mem_dqinfo *oinfo = sb_dqinfo(sb, type)->dqi_priv;
-+	struct ocfs2_super *osb = OCFS2_SB(sb);
-+	int status = 0;
-+
-+	mlog_entry("id=%u qtype=%u type=%lu device=%s\n", dquot->dq_id,
-+		   dquot->dq_type, type, sb->s_id);
-+	if (type != dquot->dq_type)
-+		goto out;
-+	status = ocfs2_lock_global_qf(oinfo, 1);
-+	if (status < 0)
-+		goto out;
-+
-+	handle = ocfs2_start_trans(osb, OCFS2_QSYNC_CREDITS);
-+	if (IS_ERR(handle)) {
-+		status = PTR_ERR(handle);
-+		mlog_errno(status);
-+		goto out_ilock;
-+	}
-+	mutex_lock(&sb_dqopt(sb)->dqio_mutex);
-+	status = ocfs2_sync_dquot(dquot);
-+	mutex_unlock(&sb_dqopt(sb)->dqio_mutex);
-+	if (status < 0)
-+		mlog_errno(status);
-+	/* We have to write local structure as well... */
-+	dquot_mark_dquot_dirty(dquot);
-+	status = dquot_commit(dquot);
-+	if (status < 0)
-+		mlog_errno(status);
-+	ocfs2_commit_trans(osb, handle);
-+out_ilock:
-+	ocfs2_unlock_global_qf(oinfo, 1);
-+out:
-+	mlog_exit(status);
-+	return status;
-+}
-+
-+static void ocfs2_do_qsync(unsigned long oinfo_ptr)
-+{
-+	struct ocfs2_mem_dqinfo *oinfo = (struct ocfs2_mem_dqinfo *)oinfo_ptr;
-+	struct super_block *sb = oinfo->dqi_gqinode->i_sb;
-+
-+	dquot_scan_active(sb, ocfs2_sync_dquot_helper, oinfo->dqi_type);
-+}
-+
-+static void qsync_timer_fn(unsigned long oinfo_ptr)
-+{
-+	struct ocfs2_mem_dqinfo *oinfo = (struct ocfs2_mem_dqinfo *)oinfo_ptr;
-+
-+	pdflush_operation(ocfs2_do_qsync, oinfo_ptr);
-+	mod_timer(&oinfo->dqi_sync_timer,
-+		  round_jiffies(jiffies + oinfo->dqi_syncjiff));
-+}
-+
-+/*
-  *  Wrappers for generic quota functions
-  */
- 
-diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-index 55c3f2f..1db7a16 100644
---- a/fs/ocfs2/quota_local.c
-+++ b/fs/ocfs2/quota_local.c
-@@ -368,6 +368,10 @@ static int ocfs2_local_free_info(struct super_block *sb, int type)
- 	int mark_clean = 1, len;
- 	int status;
- 
-+	/* At this point we know there are no more dquots and thus
-+	 * even if there's some sync in the pdflush queue, it won't
-+	 * find any dquots and return without doing anything */
-+	del_timer_sync(&oinfo->dqi_sync_timer);
- 	iput(oinfo->dqi_gqinode);
- 	ocfs2_simple_drop_lockres(OCFS2_SB(sb), &oinfo->dqi_gqlock);
- 	ocfs2_lock_res_free(&oinfo->dqi_gqlock);
--- 
-1.5.6
+The bulk of this set is comprised of Jan Kara's patches to add quota support
+to Ocfs2. Many of the quota patches are to generic code, which I carried to
+make merging of the Ocfs2 support easier. All of the non-ocfs2 patches
+should have appropriate signoffs. Quota is handled a bit differently in
+Ocfs2 than other file systems. We keep a set of node local quota files (user
+and group), which periodically sync with a global file. This allows for a
+higher level of concurrency on multi-node clusters. Additionally, a small
+portion of each quota block is reserved for later use as a checksum field.
+
+The other non-trivial part of this series is comprised of some more meta
+data I/O cleanups by Joel. This time the focus is on writing of leaves in
+indexed xattr trees and managing those changes in a fashion which makes the
+meta data checksum patches in round 3 more straight forward.
+	--Mark
+
+Please pull from 'upstream-round2' branch of
+git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-round2
+
+to receive the following updates:
+
+ fs/Kconfig                         |    7 +
+ fs/Makefile                        |    1 +
+ fs/dquot.c                         |  436 +++++++++----
+ fs/ext3/super.c                    |   16 +-
+ fs/ext4/super.c                    |   15 +-
+ fs/ocfs2/Makefile                  |    2 +
+ fs/ocfs2/alloc.c                   |   20 +-
+ fs/ocfs2/aops.c                    |   16 +-
+ fs/ocfs2/buffer_head_io.c          |    5 +-
+ fs/ocfs2/cluster/masklog.c         |    1 +
+ fs/ocfs2/cluster/masklog.h         |    1 +
+ fs/ocfs2/dir.c                     |   24 +-
+ fs/ocfs2/dlmglue.c                 |  146 +++++
+ fs/ocfs2/dlmglue.h                 |   19 +
+ fs/ocfs2/file.c                    |   78 ++-
+ fs/ocfs2/file.h                    |    3 +
+ fs/ocfs2/inode.c                   |   16 +-
+ fs/ocfs2/inode.h                   |    2 +
+ fs/ocfs2/journal.c                 |  142 ++++-
+ fs/ocfs2/journal.h                 |   85 ++-
+ fs/ocfs2/namei.c                   |   44 ++-
+ fs/ocfs2/ocfs2.h                   |    7 +-
+ fs/ocfs2/ocfs2_fs.h                |  126 ++++-
+ fs/ocfs2/ocfs2_lockid.h            |    5 +
+ fs/ocfs2/quota.h                   |  117 ++++
+ fs/ocfs2/quota_global.c            |  990 ++++++++++++++++++++++++++++
+ fs/ocfs2/quota_local.c             | 1253 ++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/super.c                   |  277 ++++++++-
+ fs/ocfs2/xattr.c                   |  567 +++++++++--------
+ fs/quota.c                         |   11 +-
+ fs/quota_tree.c                    |  645 +++++++++++++++++++
+ fs/quota_tree.h                    |   25 +
+ fs/quota_v1.c                      |   28 +-
+ fs/quota_v2.c                      |  631 +++----------------
+ {include/linux => fs}/quotaio_v1.h |    0 
+ {include/linux => fs}/quotaio_v2.h |   33 +-
+ fs/reiserfs/super.c                |   10 +-
+ include/linux/Kbuild               |    4 -
+ include/linux/dqblk_qtree.h        |   56 ++
+ include/linux/dqblk_v1.h           |    7 -
+ include/linux/dqblk_v2.h           |   22 +-
+ include/linux/jbd2.h               |    1 +
+ include/linux/quota.h              |  108 +++-
+ include/linux/quotaops.h           |   96 +++-
+ mm/pdflush.c                       |    1 +
+ 45 files changed, 4925 insertions(+), 1174 deletions(-)
+ create mode 100644 fs/ocfs2/quota.h
+ create mode 100644 fs/ocfs2/quota_global.c
+ create mode 100644 fs/ocfs2/quota_local.c
+ create mode 100644 fs/quota_tree.c
+ create mode 100644 fs/quota_tree.h
+ rename {include/linux => fs}/quotaio_v1.h (100%)
+ rename {include/linux => fs}/quotaio_v2.h (68%)
+ create mode 100644 include/linux/dqblk_qtree.h
+
+Jan Kara (36):
+      quota: Add callbacks for allocating and destroying dquot structures
+      quota: Increase size of variables for limits and inode usage
+      quota: Remove bogus 'optimization' in check_idq() and check_bdq()
+      quota: Make _SUSPENDED just a flag
+      quota: Allow to separately enable quota accounting and enforcing limits
+      ext3: Use sb_any_quota_loaded() instead of sb_any_quota_enabled()
+      ext4: Use sb_any_quota_loaded() instead of sb_any_quota_enabled()
+      reiserfs: Use sb_any_quota_loaded() instead of sb_any_quota_enabled().
+      quota: Remove compatibility function sb_any_quota_enabled()
+      quota: Introduce DQUOT_QUOTA_SYS_FILE flag
+      quota: Move quotaio_v[12].h from include/linux/ to fs/
+      quota: Split off quota tree handling into a separate file
+      quota: Convert union in mem_dqinfo to a pointer
+      quota: Allow negative usage of space and inodes
+      quota: Keep which entries were set by SETQUOTA quotactl
+      quota: Update version number
+      quota: Add helpers to allow ocfs2 specific quota initialization, freeing and recovery
+      quota: Implement function for scanning active dquots
+      mm: Export pdflush_operation()
+      ocfs2: Support nested transactions
+      ocfs2: Assign feature bits and system inodes to quota feature and quota files
+      ocfs2: Mark system files as not subject to quota accounting
+      ocfs2: Implementation of local and global quota file handling
+      ocfs2: Add quota calls for allocation and freeing of inodes and space
+      ocfs2: Implement quota syncing thread
+      ocfs2: Implement quota recovery
+      ocfs2: Enable quota accounting on mount, disable on umount
+      ocfs2: Add missing initialization
+      ocfs2: Fix oops when extending quota files
+      ocfs2: Make ocfs2_get_quota_block() consistent with ocfs2_read_quota_block()
+      ocfs2: Fix build warnings (64-bit types vs long long)
+      quota: Unexport dqblk_v1.h and dqblk_v2.h
+      quota: Export dquot_alloc() and dquot_destroy() functions
+      reiserfs: Add default allocation routines for quota structures
+      ext3: Add default allocation routines for quota structures
+      ext4: Add default allocation routines for quota structures
+
+Joel Becker (14):
+      ocfs2: Fix ocfs2_read_quota_block() error handling.
+      ocfs2: Dirty the entire bucket in ocfs2_bucket_value_truncate()
+      ocfs2: Dirty the entire first bucket in ocfs2_extend_xattr_bucket()
+      ocfs2: Dirty the entire first bucket in ocfs2_cp_xattr_cluster().
+      ocfs2: Explain t_is_new in ocfs2_cp_xattr_cluster().
+      ocfs2: Use ocfs2_cp_xattr_bucket() in ocfs2_mv_xattr_bucket_cross_cluster().
+      ocfs2: Rename ocfs2_cp_xattr_cluster() to ocfs2_mv_xattr_buckets().
+      ocfs2: ocfs2_mv_xattr_buckets() can handle a partial cluster now.
+      ocfs2: Use ocfs2_mv_xattr_buckets() in ocfs2_mv_xattr_bucket_cross_cluster().
+      ocfs2: Start using buckets in ocfs2_adjust_xattr_cross_cluster().
+      ocfs2: Pass buckets into ocfs2_mv_xattr_bucket_cross_cluster().
+      ocfs2: Move buckets up into ocfs2_add_new_xattr_cluster().
+      ocfs2: Move buckets up into ocfs2_add_new_xattr_bucket().
+      ocfs2: Pass xs->bucket into ocfs2_add_new_xattr_bucket().
+
+Mark Fasheh (2):
+      jbd2: Add BH_JBDPrivateStart
+      ocfs2: Use BH_JBDPrivateStart instead of BH_Unshadow
+
+Tao Ma (4):
+      ocfs2: fix indendation in ocfs2_dquot_drop_slow
+      ocfs2/quota: sparse fixes for quota
+      ocfs2: Narrow the transaction for deleting xattrs from a bucket.
+      ocfs2/quota: Add QUOTA in mlog_attribute.
