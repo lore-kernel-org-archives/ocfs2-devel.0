@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:45 -0800
-Subject: [Ocfs2-devel] [PATCH 30/35] ocfs2/xattr: Remove extend_trans call
-	and add its credits from the beginning
+Date: Thu, 25 Dec 2008 10:04:47 -0800
+Subject: [Ocfs2-devel] [PATCH 32/35] ocfs2/xattr: fix credits calculation
+	during index create
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-31-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-33-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,65 +14,42 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <ta
 
 From: Tao Ma <tao.ma@oracle.com>
 
-Actually, when setting a new xattr value, we know it from the very
-beginning, and it isn't like the extension of bucket in which case
-we can't figure it out. So remove ocfs2_extend_trans in that function
-and calculate it before the transaction. It also relieve acl operation
-from the worry about the side effect of ocfs2_extend_trans.
+When creating a xattr index block, the old calculation forget
+to add credits for the meta change of the alloc file. So add
+more credits and more comments to explain it.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   23 ++++++++++-------------
- 1 files changed, 10 insertions(+), 13 deletions(-)
+ fs/ocfs2/xattr.c |   10 +++++++++-
+ 1 files changed, 9 insertions(+), 1 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 17028aa..93a1ab4 100644
+index 3e2e92d..73fb9f7 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -1169,7 +1169,7 @@ static int __ocfs2_xattr_set_value_outside(struct inode *inode,
- 					   const void *value,
- 					   int value_len)
- {
--	int ret = 0, i, cp_len, credits;
-+	int ret = 0, i, cp_len;
- 	u16 blocksize = inode->i_sb->s_blocksize;
- 	u32 p_cluster, num_clusters;
- 	u32 cpos = 0, bpc = ocfs2_clusters_to_blocks(inode->i_sb, 1);
-@@ -1179,18 +1179,6 @@ static int __ocfs2_xattr_set_value_outside(struct inode *inode,
+@@ -2359,13 +2359,21 @@ meta_guess:
+ 		} else
+ 			xb = (struct ocfs2_xattr_block *)xbs->xattr_bh->b_data;
  
- 	BUG_ON(clusters > le32_to_cpu(xv->xr_clusters));
++		/*
++		 * If there is already an xattr tree, good, we can calculate
++		 * like other b-trees. Otherwise we may have the chance of
++		 * create a tree, the credit calculation is borrowed from
++		 * ocfs2_calc_extend_credits with root_el = NULL. And the
++		 * new tree will be cluster based, so no meta is needed.
++		 */
+ 		if (le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED) {
+ 			struct ocfs2_extent_list *el =
+ 				 &xb->xb_attrs.xb_root.xt_list;
+ 			meta_add += ocfs2_extend_meta_needed(el);
+ 			credits += ocfs2_calc_extend_credits(inode->i_sb,
+ 							     el, 1);
+-		}
++		} else
++			credits += OCFS2_SUBALLOC_ALLOC + 1;
  
--	/*
--	 * In __ocfs2_xattr_set_value_outside has already been dirtied,
--	 * so we don't need to worry about whether ocfs2_extend_trans
--	 * will create a new transactio for us or not.
--	 */
--	credits = clusters * bpc;
--	ret = ocfs2_extend_trans(handle, credits);
--	if (ret) {
--		mlog_errno(ret);
--		goto out;
--	}
--
- 	while (cpos < clusters) {
- 		ret = ocfs2_xattr_get_clusters(inode, cpos, &p_cluster,
- 					       &num_clusters, &xv->xr_list);
-@@ -2233,6 +2221,15 @@ static int ocfs2_calc_xattr_set_need(struct inode *inode,
- 						    xi->value_len);
- 	u64 value_size;
- 
-+	/*
-+	 * Calculate the clusters we need to write.
-+	 * No matter whether we replace an old one or add a new one,
-+	 * we need this for writing.
-+	 */
-+	if (xi->value_len > OCFS2_XATTR_INLINE_SIZE)
-+		credits += new_clusters *
-+			   ocfs2_clusters_to_blocks(inode->i_sb, 1);
-+
- 	if (xis->not_found && xbs->not_found) {
- 		credits += ocfs2_blocks_per_xattr_bucket(inode->i_sb);
- 
+ 		/*
+ 		 * This cluster will be used either for new bucket or for
 -- 
 1.5.6
