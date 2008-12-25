@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:26 -0800
-Subject: [Ocfs2-devel] [PATCH 11/35] ocfs2: Pull ocfs2_xattr_value_buf up
-	from __ocfs2_remove_xattr_range().
+Date: Thu, 25 Dec 2008 10:04:21 -0800
+Subject: [Ocfs2-devel] [PATCH 06/35] ocfs2: Add journal_access functions
+	with jbd2 triggers.
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-12-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-7-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,91 +14,259 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fashe
 
 From: Joel Becker <joel.becker@oracle.com>
 
-Place an ocfs2_xattr_value_buf in __ocfs2_xattr_shrink_size() and pass
-it down to __ocfs2_remove_xattr_range().
+We create wrappers for ocfs2_journal_access() that are specific to the
+type of metadata block.  This allows us to associate jbd2 commit
+triggers with the block.  The triggers will compute metadata ecc in a
+future commit.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   28 ++++++++++++++--------------
- 1 files changed, 14 insertions(+), 14 deletions(-)
+ fs/ocfs2/journal.c |  159 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ fs/ocfs2/journal.h |   31 +++++++++--
+ 2 files changed, 181 insertions(+), 9 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 123d378..3b059cf 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -636,8 +636,7 @@ leave:
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 302f114..2daa584 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -35,6 +35,7 @@
+ #include "ocfs2.h"
+ 
+ #include "alloc.h"
++#include "blockcheck.h"
+ #include "dir.h"
+ #include "dlmglue.h"
+ #include "extent_map.h"
+@@ -369,10 +370,110 @@ bail:
+ 	return status;
  }
  
- static int __ocfs2_remove_xattr_range(struct inode *inode,
--				      struct buffer_head *root_bh,
--				      struct ocfs2_xattr_value_root *xv,
-+				      struct ocfs2_xattr_value_buf *vb,
- 				      u32 cpos, u32 phys_cpos, u32 len,
- 				      struct ocfs2_xattr_set_ctxt *ctxt)
+-int ocfs2_journal_access(handle_t *handle,
+-			 struct inode *inode,
+-			 struct buffer_head *bh,
+-			 int type)
++struct ocfs2_triggers {
++	struct jbd2_buffer_trigger_type	ot_triggers;
++	int				ot_offset;
++};
++
++static inline struct ocfs2_triggers *to_ocfs2_trigger(struct jbd2_buffer_trigger_type *triggers)
++{
++	return container_of(triggers, struct ocfs2_triggers, ot_triggers);
++}
++
++static void ocfs2_commit_trigger(struct jbd2_buffer_trigger_type *triggers,
++				 struct buffer_head *bh,
++				 void *data, size_t size)
++{
++	struct ocfs2_triggers *ot = to_ocfs2_trigger(triggers);
++
++	/*
++	 * We aren't guaranteed to have the superblock here, so we
++	 * must unconditionally compute the ecc data.
++	 * __ocfs2_journal_access() will only set the triggers if
++	 * metaecc is enabled.
++	 */
++	ocfs2_block_check_compute(data, size, data + ot->ot_offset);
++}
++
++/*
++ * Quota blocks have their own trigger because the struct ocfs2_block_check
++ * offset depends on the blocksize.
++ */
++static void ocfs2_dq_commit_trigger(struct jbd2_buffer_trigger_type *triggers,
++				 struct buffer_head *bh,
++				 void *data, size_t size)
++{
++	struct ocfs2_disk_dqtrailer *dqt =
++		ocfs2_block_dqtrailer(size, data);
++
++	/*
++	 * We aren't guaranteed to have the superblock here, so we
++	 * must unconditionally compute the ecc data.
++	 * __ocfs2_journal_access() will only set the triggers if
++	 * metaecc is enabled.
++	 */
++	ocfs2_block_check_compute(data, size, &dqt->dq_check);
++}
++
++static void ocfs2_abort_trigger(struct jbd2_buffer_trigger_type *triggers,
++				struct buffer_head *bh)
++{
++	mlog(ML_ERROR,
++	     "ocfs2_abort_trigger called by JBD2.  bh = 0x%lx, "
++	     "bh->b_blocknr = %llu\n",
++	     (unsigned long)bh,
++	     (unsigned long long)bh->b_blocknr);
++
++	/* We aren't guaranteed to have the superblock here - but if we
++	 * don't, it'll just crash. */
++	ocfs2_error(bh->b_assoc_map->host->i_sb,
++		    "JBD2 has aborted our journal, ocfs2 cannot continue\n");
++}
++
++static struct ocfs2_triggers di_triggers = {
++	.ot_triggers = {
++		.t_commit = ocfs2_commit_trigger,
++		.t_abort = ocfs2_abort_trigger,
++	},
++	.ot_offset	= offsetof(struct ocfs2_dinode, i_check),
++};
++
++static struct ocfs2_triggers eb_triggers = {
++	.ot_triggers = {
++		.t_commit = ocfs2_commit_trigger,
++		.t_abort = ocfs2_abort_trigger,
++	},
++	.ot_offset	= offsetof(struct ocfs2_extent_block, h_check),
++};
++
++static struct ocfs2_triggers gd_triggers = {
++	.ot_triggers = {
++		.t_commit = ocfs2_commit_trigger,
++		.t_abort = ocfs2_abort_trigger,
++	},
++	.ot_offset	= offsetof(struct ocfs2_group_desc, bg_check),
++};
++
++static struct ocfs2_triggers xb_triggers = {
++	.ot_triggers = {
++		.t_commit = ocfs2_commit_trigger,
++		.t_abort = ocfs2_abort_trigger,
++	},
++	.ot_offset	= offsetof(struct ocfs2_xattr_block, xb_check),
++};
++
++static struct ocfs2_triggers dq_triggers = {
++	.ot_triggers = {
++		.t_commit = ocfs2_dq_commit_trigger,
++		.t_abort = ocfs2_abort_trigger,
++	},
++};
++
++static int __ocfs2_journal_access(handle_t *handle,
++				  struct inode *inode,
++				  struct buffer_head *bh,
++				  struct ocfs2_triggers *triggers,
++				  int type)
  {
-@@ -645,16 +644,11 @@ static int __ocfs2_remove_xattr_range(struct inode *inode,
- 	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
- 	handle_t *handle = ctxt->handle;
- 	struct ocfs2_extent_tree et;
--	struct ocfs2_xattr_value_buf vb = {
--		.vb_bh = root_bh,
--		.vb_xv = xv,
--		.vb_access = ocfs2_journal_access,
--	};
+ 	int status;
  
--	ocfs2_init_xattr_value_extent_tree(&et, inode, &vb);
-+	ocfs2_init_xattr_value_extent_tree(&et, inode, vb);
- 
--	ret = vb.vb_access(handle, inode, vb.vb_bh,
--			   OCFS2_JOURNAL_ACCESS_WRITE);
-+	ret = vb->vb_access(handle, inode, vb->vb_bh,
-+			    OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -667,9 +661,9 @@ static int __ocfs2_remove_xattr_range(struct inode *inode,
- 		goto out;
+@@ -418,6 +519,8 @@ int ocfs2_journal_access(handle_t *handle,
+ 		status = -EINVAL;
+ 		mlog(ML_ERROR, "Uknown access type!\n");
  	}
++	if (!status && ocfs2_meta_ecc(OCFS2_SB(inode->i_sb)) && triggers)
++		jbd2_journal_set_triggers(bh, &triggers->ot_triggers);
+ 	mutex_unlock(&OCFS2_I(inode)->ip_io_mutex);
  
--	le32_add_cpu(&vb.vb_xv->xr_clusters, -len);
-+	le32_add_cpu(&vb->vb_xv->xr_clusters, -len);
+ 	if (status < 0)
+@@ -428,6 +531,54 @@ int ocfs2_journal_access(handle_t *handle,
+ 	return status;
+ }
  
--	ret = ocfs2_journal_dirty(handle, vb.vb_bh);
-+	ret = ocfs2_journal_dirty(handle, vb->vb_bh);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -693,6 +687,11 @@ static int ocfs2_xattr_shrink_size(struct inode *inode,
- 	int ret = 0;
- 	u32 trunc_len, cpos, phys_cpos, alloc_size;
- 	u64 block;
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = root_bh,
-+		.vb_xv = xv,
-+		.vb_access = ocfs2_journal_access,
-+	};
++int ocfs2_journal_access_di(handle_t *handle, struct inode *inode,
++			       struct buffer_head *bh, int type)
++{
++	return __ocfs2_journal_access(handle, inode, bh, &di_triggers,
++				      type);
++}
++
++int ocfs2_journal_access_eb(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type)
++{
++	return __ocfs2_journal_access(handle, inode, bh, &eb_triggers,
++				      type);
++}
++
++int ocfs2_journal_access_gd(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type)
++{
++	return __ocfs2_journal_access(handle, inode, bh, &gd_triggers,
++				      type);
++}
++
++int ocfs2_journal_access_db(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type)
++{
++	/* Right now, nothing for dirblocks */
++	return __ocfs2_journal_access(handle, inode, bh, NULL, type);
++}
++
++int ocfs2_journal_access_xb(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type)
++{
++	return __ocfs2_journal_access(handle, inode, bh, &xb_triggers,
++				      type);
++}
++
++int ocfs2_journal_access_dq(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type)
++{
++	return __ocfs2_journal_access(handle, inode, bh, &dq_triggers,
++				      type);
++}
++
++int ocfs2_journal_access(handle_t *handle, struct inode *inode,
++			 struct buffer_head *bh, int type)
++{
++	return __ocfs2_journal_access(handle, inode, bh, NULL, type);
++}
++
+ int ocfs2_journal_dirty(handle_t *handle,
+ 			struct buffer_head *bh)
+ {
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 37013bf..bca370d 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -212,9 +212,12 @@ static inline void ocfs2_checkpoint_inode(struct inode *inode)
+  *  ocfs2_extend_trans     - Extend a handle by nblocks credits. This may
+  *                          commit the handle to disk in the process, but will
+  *                          not release any locks taken during the transaction.
+- *  ocfs2_journal_access   - Notify the handle that we want to journal this
++ *  ocfs2_journal_access* - Notify the handle that we want to journal this
+  *                          buffer. Will have to call ocfs2_journal_dirty once
+  *                          we've actually dirtied it. Type is one of . or .
++ *                          Always call the specific flavor of
++ *                          ocfs2_journal_access_*() unless you intend to
++ *                          manage the checksum by hand.
+  *  ocfs2_journal_dirty    - Mark a journalled buffer as having dirty data.
+  *  ocfs2_jbd2_file_inode  - Mark an inode so that its data goes out before
+  *                           the current handle commits.
+@@ -244,10 +247,28 @@ int			     ocfs2_extend_trans(handle_t *handle, int nblocks);
+ #define OCFS2_JOURNAL_ACCESS_WRITE  1
+ #define OCFS2_JOURNAL_ACCESS_UNDO   2
  
- 	if (old_clusters <= new_clusters)
- 		return 0;
-@@ -701,7 +700,8 @@ static int ocfs2_xattr_shrink_size(struct inode *inode,
- 	trunc_len = old_clusters - new_clusters;
- 	while (trunc_len) {
- 		ret = ocfs2_xattr_get_clusters(inode, cpos, &phys_cpos,
--					       &alloc_size, &xv->xr_list);
-+					       &alloc_size,
-+					       &vb.vb_xv->xr_list);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -710,7 +710,7 @@ static int ocfs2_xattr_shrink_size(struct inode *inode,
- 		if (alloc_size > trunc_len)
- 			alloc_size = trunc_len;
- 
--		ret = __ocfs2_remove_xattr_range(inode, root_bh, xv, cpos,
-+		ret = __ocfs2_remove_xattr_range(inode, &vb, cpos,
- 						 phys_cpos, alloc_size,
- 						 ctxt);
- 		if (ret) {
+-int                  ocfs2_journal_access(handle_t *handle,
+-					  struct inode *inode,
+-					  struct buffer_head *bh,
+-					  int type);
++/* ocfs2_inode */
++int ocfs2_journal_access_di(handle_t *handle, struct inode *inode,
++			       struct buffer_head *bh, int type);
++/* ocfs2_extent_block */
++int ocfs2_journal_access_eb(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type);
++/* ocfs2_group_desc */
++int ocfs2_journal_access_gd(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type);
++/* ocfs2_xattr_block */
++int ocfs2_journal_access_xb(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type);
++/* quota blocks */
++int ocfs2_journal_access_dq(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type);
++/* dirblock */
++int ocfs2_journal_access_db(handle_t *handle, struct inode *inode,
++			    struct buffer_head *bh, int type);
++/* Anything that has no ecc */
++int ocfs2_journal_access(handle_t *handle, struct inode *inode,
++			 struct buffer_head *bh, int type);
++
+ /*
+  * A word about the journal_access/journal_dirty "dance". It is
+  * entirely legal to journal_access a buffer more than once (as long
 -- 
 1.5.6
