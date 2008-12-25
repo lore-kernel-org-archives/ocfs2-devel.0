@@ -1,9 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:20 -0800
-Subject: [Ocfs2-devel] [PATCH 05/35] ocfs2: block read meta ecc.
+Date: Thu, 25 Dec 2008 10:04:22 -0800
+Subject: [Ocfs2-devel] [PATCH 07/35] ocfs2: Wrap up the common use cases of
+	ocfs2_new_path().
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-6-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-8-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,274 +14,177 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fashe
 
 From: Joel Becker <joel.becker@oracle.com>
 
-Add block check calls to the read_block validate functions.  This is the
-almost all of the read-side checking of metaecc.  xattr buckets are not checked
-yet.   Writes are also unchecked, and so a read-write mount will quickly fail.
+The majority of ocfs2_new_path() calls are:
+
+	ocfs2_new_path(path_root_bh(otherpath),
+		       path_root_el(otherpath));
+
+Let's call that ocfs2_new_path_from_path().  The rest do similar things
+from struct ocfs2_extent_tree.  Let's call those
+ocfs2_new_path_from_et().  This will make the next change easier.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/alloc.c        |   17 +++++++++++++++++
- fs/ocfs2/blockcheck.c   |    9 +++++++++
- fs/ocfs2/inode.c        |   18 +++++++++++++++++-
- fs/ocfs2/quota_global.c |   13 +++++++++++--
- fs/ocfs2/suballoc.c     |   31 ++++++++++++++++++++++++++++++-
- fs/ocfs2/xattr.c        |   17 +++++++++++++++++
- 6 files changed, 101 insertions(+), 4 deletions(-)
+ fs/ocfs2/alloc.c |   48 ++++++++++++++++++++++++------------------------
+ 1 files changed, 24 insertions(+), 24 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 84a7bd4..6b27f74 100644
+index 6b27f74..c22ff49 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -37,6 +37,7 @@
- 
- #include "alloc.h"
- #include "aops.h"
-+#include "blockcheck.h"
- #include "dlmglue.h"
- #include "extent_map.h"
- #include "inode.h"
-@@ -682,12 +683,28 @@ struct ocfs2_merge_ctxt {
- static int ocfs2_validate_extent_block(struct super_block *sb,
- 				       struct buffer_head *bh)
- {
-+	int rc;
- 	struct ocfs2_extent_block *eb =
- 		(struct ocfs2_extent_block *)bh->b_data;
- 
- 	mlog(0, "Validating extent block %llu\n",
- 	     (unsigned long long)bh->b_blocknr);
- 
-+	BUG_ON(!buffer_uptodate(bh));
-+
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &eb->h_check);
-+	if (rc)
-+		return rc;
-+
-+	/*
-+	 * Errors after here are fatal.
-+	 */
-+
- 	if (!OCFS2_IS_VALID_EXTENT_BLOCK(eb)) {
- 		ocfs2_error(sb,
- 			    "Extent block #%llu has bad signature %.*s",
-diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
-index 2bf3d7f..2ce6ae5 100644
---- a/fs/ocfs2/blockcheck.c
-+++ b/fs/ocfs2/blockcheck.c
-@@ -24,6 +24,8 @@
- #include <linux/bitops.h>
- #include <asm/byteorder.h>
- 
-+#include <cluster/masklog.h>
-+
- #include "ocfs2.h"
- 
- #include "blockcheck.h"
-@@ -292,6 +294,10 @@ int ocfs2_block_check_validate(void *data, size_t blocksize,
- 	if (crc == check.bc_crc32e)
- 		goto out;
- 
-+	mlog(ML_ERROR,
-+	     "CRC32 failed: stored: %u, computed %u.  Applying ECC.\n",
-+	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
-+
- 	/* Ok, try ECC fixups */
- 	ecc = ocfs2_hamming_encode_block(data, blocksize);
- 	ocfs2_hamming_fix_block(data, blocksize, ecc ^ check.bc_ecc);
-@@ -301,6 +307,9 @@ int ocfs2_block_check_validate(void *data, size_t blocksize,
- 	if (crc == check.bc_crc32e)
- 		goto out;
- 
-+	mlog(ML_ERROR, "Fixed CRC32 failed: stored: %u, computed %u\n",
-+	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
-+
- 	rc = -EIO;
- 
- out:
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 288512c..9370b65 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -38,6 +38,7 @@
- #include "ocfs2.h"
- 
- #include "alloc.h"
-+#include "blockcheck.h"
- #include "dlmglue.h"
- #include "extent_map.h"
- #include "file.h"
-@@ -1262,7 +1263,7 @@ void ocfs2_refresh_inode(struct inode *inode,
- int ocfs2_validate_inode_block(struct super_block *sb,
- 			       struct buffer_head *bh)
- {
--	int rc = -EINVAL;
-+	int rc;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
- 
- 	mlog(0, "Validating dinode %llu\n",
-@@ -1270,6 +1271,21 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 
- 	BUG_ON(!buffer_uptodate(bh));
- 
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &di->i_check);
-+	if (rc)
-+		goto bail;
-+
-+	/*
-+	 * Errors after here are fatal.
-+	 */
-+
-+	rc = -EINVAL;
-+
- 	if (!OCFS2_IS_VALID_DINODE(di)) {
- 		ocfs2_error(sb, "Invalid dinode #%llu: signature = %.*s\n",
- 			    (unsigned long long)bh->b_blocknr, 7,
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index 5b05f94..d338438 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -16,6 +16,7 @@
- #include "ocfs2_fs.h"
- #include "ocfs2.h"
- #include "alloc.h"
-+#include "blockcheck.h"
- #include "inode.h"
- #include "journal.h"
- #include "file.h"
-@@ -88,12 +89,20 @@ struct qtree_fmt_operations ocfs2_global_ops = {
- static int ocfs2_validate_quota_block(struct super_block *sb,
- 				      struct buffer_head *bh)
- {
--	struct ocfs2_disk_dqtrailer *dqt = ocfs2_dq_trailer(sb, bh->b_data);
-+	struct ocfs2_disk_dqtrailer *dqt =
-+		ocfs2_block_dqtrailer(sb->s_blocksize, bh->b_data);
- 
- 	mlog(0, "Validating quota block %llu\n",
- 	     (unsigned long long)bh->b_blocknr);
- 
--	return 0;
-+	BUG_ON(!buffer_uptodate(bh));
-+
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	return ocfs2_validate_meta_ecc(sb, bh->b_data, &dqt->dq_check);
+@@ -532,6 +532,16 @@ static struct ocfs2_path *ocfs2_new_path(struct buffer_head *root_bh,
+ 	return path;
  }
  
- int ocfs2_read_quota_block(struct inode *inode, u64 v_block,
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 226fe21..7875576 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -35,6 +35,7 @@
- #include "ocfs2.h"
- 
- #include "alloc.h"
-+#include "blockcheck.h"
- #include "dlmglue.h"
- #include "inode.h"
- #include "journal.h"
-@@ -250,8 +251,18 @@ int ocfs2_check_group_descriptor(struct super_block *sb,
- 				 struct buffer_head *bh)
- {
- 	int rc;
-+	struct ocfs2_group_desc *gd = (struct ocfs2_group_desc *)bh->b_data;
++static struct ocfs2_path *ocfs2_new_path_from_path(struct ocfs2_path *path)
++{
++	return ocfs2_new_path(path_root_bh(path), path_root_el(path));
++}
 +
-+	BUG_ON(!buffer_uptodate(bh));
- 
--	rc = ocfs2_validate_gd_self(sb, bh, 1);
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &gd->bg_check);
-+	if (!rc)
-+		rc = ocfs2_validate_gd_self(sb, bh, 1);
- 	if (!rc)
- 		rc = ocfs2_validate_gd_parent(sb, di, bh, 1);
- 
-@@ -261,9 +272,27 @@ int ocfs2_check_group_descriptor(struct super_block *sb,
- static int ocfs2_validate_group_descriptor(struct super_block *sb,
- 					   struct buffer_head *bh)
- {
-+	int rc;
-+	struct ocfs2_group_desc *gd = (struct ocfs2_group_desc *)bh->b_data;
++static struct ocfs2_path *ocfs2_new_path_from_et(struct ocfs2_extent_tree *et)
++{
++	return ocfs2_new_path(et->et_root_bh, et->et_root_el);
++}
 +
- 	mlog(0, "Validating group descriptor %llu\n",
- 	     (unsigned long long)bh->b_blocknr);
+ /*
+  * Convenience function to journal all components in a path.
+  */
+@@ -2150,8 +2160,7 @@ static int ocfs2_rotate_tree_right(struct inode *inode,
  
-+	BUG_ON(!buffer_uptodate(bh));
-+
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &gd->bg_check);
-+	if (rc)
-+		return rc;
-+
-+	/*
-+	 * Errors after here are fatal.
-+	 */
-+
- 	return ocfs2_validate_gd_self(sb, bh, 0);
- }
+ 	*ret_left_path = NULL;
  
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index dfc51c3..bc822d6 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -42,6 +42,7 @@
+-	left_path = ocfs2_new_path(path_root_bh(right_path),
+-				   path_root_el(right_path));
++	left_path = ocfs2_new_path_from_path(right_path);
+ 	if (!left_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -2692,8 +2701,7 @@ static int __ocfs2_rotate_tree_left(struct inode *inode,
+ 		goto out;
+ 	}
  
- #include "ocfs2.h"
- #include "alloc.h"
-+#include "blockcheck.h"
- #include "dlmglue.h"
- #include "file.h"
- #include "symlink.h"
-@@ -322,12 +323,28 @@ static void ocfs2_xattr_bucket_copy_data(struct ocfs2_xattr_bucket *dest,
- static int ocfs2_validate_xattr_block(struct super_block *sb,
- 				      struct buffer_head *bh)
- {
-+	int rc;
- 	struct ocfs2_xattr_block *xb =
- 		(struct ocfs2_xattr_block *)bh->b_data;
+-	left_path = ocfs2_new_path(path_root_bh(path),
+-				   path_root_el(path));
++	left_path = ocfs2_new_path_from_path(path);
+ 	if (!left_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -2702,8 +2710,7 @@ static int __ocfs2_rotate_tree_left(struct inode *inode,
  
- 	mlog(0, "Validating xattr block %llu\n",
- 	     (unsigned long long)bh->b_blocknr);
+ 	ocfs2_cp_path(left_path, path);
  
-+	BUG_ON(!buffer_uptodate(bh));
-+
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &xb->xb_check);
-+	if (rc)
-+		return rc;
-+
-+	/*
-+	 * Errors after here are fatal
-+	 */
-+
- 	if (!OCFS2_IS_VALID_XATTR_BLOCK(xb)) {
- 		ocfs2_error(sb,
- 			    "Extended attribute block #%llu has bad "
+-	right_path = ocfs2_new_path(path_root_bh(path),
+-				    path_root_el(path));
++	right_path = ocfs2_new_path_from_path(path);
+ 	if (!right_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -2833,8 +2840,7 @@ static int ocfs2_remove_rightmost_path(struct inode *inode, handle_t *handle,
+ 		 * We have a path to the left of this one - it needs
+ 		 * an update too.
+ 		 */
+-		left_path = ocfs2_new_path(path_root_bh(path),
+-					   path_root_el(path));
++		left_path = ocfs2_new_path_from_path(path);
+ 		if (!left_path) {
+ 			ret = -ENOMEM;
+ 			mlog_errno(ret);
+@@ -3075,8 +3081,7 @@ static int ocfs2_get_right_path(struct inode *inode,
+ 	/* This function shouldn't be called for the rightmost leaf. */
+ 	BUG_ON(right_cpos == 0);
+ 
+-	right_path = ocfs2_new_path(path_root_bh(left_path),
+-				    path_root_el(left_path));
++	right_path = ocfs2_new_path_from_path(left_path);
+ 	if (!right_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -3247,8 +3252,7 @@ static int ocfs2_get_left_path(struct inode *inode,
+ 	/* This function shouldn't be called for the leftmost leaf. */
+ 	BUG_ON(left_cpos == 0);
+ 
+-	left_path = ocfs2_new_path(path_root_bh(right_path),
+-				   path_root_el(right_path));
++	left_path = ocfs2_new_path_from_path(right_path);
+ 	if (!left_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -3780,8 +3784,7 @@ static int ocfs2_append_rec_to_path(struct inode *inode, handle_t *handle,
+ 		 * leftmost leaf.
+ 		 */
+ 		if (left_cpos) {
+-			left_path = ocfs2_new_path(path_root_bh(right_path),
+-						   path_root_el(right_path));
++			left_path = ocfs2_new_path_from_path(right_path);
+ 			if (!left_path) {
+ 				ret = -ENOMEM;
+ 				mlog_errno(ret);
+@@ -4018,7 +4021,7 @@ static int ocfs2_do_insert_extent(struct inode *inode,
+ 		goto out_update_clusters;
+ 	}
+ 
+-	right_path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
++	right_path = ocfs2_new_path_from_et(et);
+ 	if (!right_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -4130,8 +4133,7 @@ ocfs2_figure_merge_contig_type(struct inode *inode, struct ocfs2_path *path,
+ 			goto out;
+ 
+ 		if (left_cpos != 0) {
+-			left_path = ocfs2_new_path(path_root_bh(path),
+-						   path_root_el(path));
++			left_path = ocfs2_new_path_from_path(path);
+ 			if (!left_path)
+ 				goto out;
+ 
+@@ -4187,8 +4189,7 @@ ocfs2_figure_merge_contig_type(struct inode *inode, struct ocfs2_path *path,
+ 		if (right_cpos == 0)
+ 			goto out;
+ 
+-		right_path = ocfs2_new_path(path_root_bh(path),
+-					    path_root_el(path));
++		right_path = ocfs2_new_path_from_path(path);
+ 		if (!right_path)
+ 			goto out;
+ 
+@@ -4381,7 +4382,7 @@ static int ocfs2_figure_insert_type(struct inode *inode,
+ 		return 0;
+ 	}
+ 
+-	path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
++	path = ocfs2_new_path_from_et(et);
+ 	if (!path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -4910,7 +4911,7 @@ int ocfs2_mark_extent_written(struct inode *inode,
+ 	if (et->et_ops == &ocfs2_dinode_et_ops)
+ 		ocfs2_extent_map_trunc(inode, 0);
+ 
+-	left_path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
++	left_path = ocfs2_new_path_from_et(et);
+ 	if (!left_path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+@@ -5082,8 +5083,7 @@ static int ocfs2_truncate_rec(struct inode *inode, handle_t *handle,
+ 		}
+ 
+ 		if (left_cpos && le16_to_cpu(el->l_next_free_rec) > 1) {
+-			left_path = ocfs2_new_path(path_root_bh(path),
+-						   path_root_el(path));
++			left_path = ocfs2_new_path_from_path(path);
+ 			if (!left_path) {
+ 				ret = -ENOMEM;
+ 				mlog_errno(ret);
+@@ -5192,7 +5192,7 @@ int ocfs2_remove_extent(struct inode *inode,
+ 
+ 	ocfs2_extent_map_trunc(inode, 0);
+ 
+-	path = ocfs2_new_path(et->et_root_bh, et->et_root_el);
++	path = ocfs2_new_path_from_et(et);
+ 	if (!path) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
 -- 
 1.5.6
