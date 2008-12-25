@@ -1,295 +1,146 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:16 -0800
-Subject: [Ocfs2-devel] [PATCH 01/35] jbd2: Add buffer triggers
+Date: Thu, 25 Dec 2008 10:04:17 -0800
+Subject: [Ocfs2-devel] [PATCH 02/35] ocfs2: Add the on-disk structures for
+	metadata checksums.
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-2-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-3-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Theodore Ts'o <tytso@mit.edu>, linux-ext4@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
 From: Joel Becker <joel.becker@oracle.com>
 
-Filesystems often to do compute intensive operation on some
-metadata.  If this operation is repeated many times, it can be very
-expensive.  It would be much nicer if the operation could be performed
-once before a buffer goes to disk.
+Define struct ocfs2_block_check, an 8-byte structure containing a 32bit
+crc32_le and a 16bit hamming code ecc.  This will be used for metadata
+checksums.  Add the structure to free spaces in the various metadata
+structures.
 
-This adds triggers to jbd2 buffer heads.  Just before writing a metadata
-buffer to the journal, jbd2 will optionally call a commit trigger associated
-with the buffer.  If the journal is aborted, an abort trigger will be
-called on any dirty buffers as they are dropped from pending
-transactions.
-
-ocfs2 will use this feature.
-
-Initially I tried to come up with a more generic trigger that could be
-used for non-buffer-related events like transaction completion.  It
-doesn't tie nicely, because the information a buffer trigger needs
-(specific to a journal_head) isn't the same as what a transaction
-trigger needs (specific to a tranaction_t or perhaps journal_t).  So I
-implemented a buffer set, with the understanding that
-journal/transaction wide triggers should be implemented separately.
-
-There is only one trigger set allowed per buffer.  I can't think of any
-reason to attach more than one set.  Contrast this with a journal or
-transaction in which multiple places may want to watch the entire
-transaction separately.
-
-The trigger sets are considered static allocation from the jbd2
-perspective.  ocfs2 will just have one trigger set per block type,
-setting the same set on every bh of the same type.
+Add the OCFS2_FEATURE_INCOMPAT_META_ECC bit.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
-Cc: "Theodore Ts'o" <tytso@mit.edu>
-Cc: <linux-ext4@vger.kernel.org>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/jbd2/commit.c             |    9 ++++++++
- fs/jbd2/journal.c            |   19 +++++++++++++++++
- fs/jbd2/transaction.c        |   47 ++++++++++++++++++++++++++++++++++++++++++
- include/linux/jbd2.h         |   31 +++++++++++++++++++++++++++
- include/linux/journal-head.h |    8 +++++++
- 5 files changed, 114 insertions(+), 0 deletions(-)
+ fs/ocfs2/ocfs2_fs.h |   55 ++++++++++++++++++++++++++++++++++++++++++++++----
+ 1 files changed, 50 insertions(+), 5 deletions(-)
 
-diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
-index ebc667b..c8a1bac 100644
---- a/fs/jbd2/commit.c
-+++ b/fs/jbd2/commit.c
-@@ -509,6 +509,10 @@ void jbd2_journal_commit_transaction(journal_t *journal)
- 		if (is_journal_aborted(journal)) {
- 			clear_buffer_jbddirty(jh2bh(jh));
- 			JBUFFER_TRACE(jh, "journal is aborting: refile");
-+			jbd2_buffer_abort_trigger(jh,
-+						  jh->b_frozen_data ?
-+						  jh->b_frozen_triggers :
-+						  jh->b_triggers);
- 			jbd2_journal_refile_buffer(journal, jh);
- 			/* If that was the last one, we need to clean up
- 			 * any descriptor buffers which may have been
-@@ -844,6 +848,9 @@ restart_loop:
- 		 * data.
- 		 *
- 		 * Otherwise, we can just throw away the frozen data now.
-+		 *
-+		 * We also know that the frozen data has already fired
-+		 * its triggers if they exist, so we can clear that too.
- 		 */
- 		if (jh->b_committed_data) {
- 			jbd2_free(jh->b_committed_data, bh->b_size);
-@@ -851,10 +858,12 @@ restart_loop:
- 			if (jh->b_frozen_data) {
- 				jh->b_committed_data = jh->b_frozen_data;
- 				jh->b_frozen_data = NULL;
-+				jh->b_frozen_triggers = NULL;
- 			}
- 		} else if (jh->b_frozen_data) {
- 			jbd2_free(jh->b_frozen_data, bh->b_size);
- 			jh->b_frozen_data = NULL;
-+			jh->b_frozen_triggers = NULL;
- 		}
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 359732e..290fa26 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -149,6 +149,9 @@
+ /* Support for extended attributes */
+ #define OCFS2_FEATURE_INCOMPAT_XATTR		0x0200
  
- 		spin_lock(&journal->j_list_lock);
-diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
-index e70d657..f6bff9d 100644
---- a/fs/jbd2/journal.c
-+++ b/fs/jbd2/journal.c
-@@ -50,6 +50,7 @@ EXPORT_SYMBOL(jbd2_journal_unlock_updates);
- EXPORT_SYMBOL(jbd2_journal_get_write_access);
- EXPORT_SYMBOL(jbd2_journal_get_create_access);
- EXPORT_SYMBOL(jbd2_journal_get_undo_access);
-+EXPORT_SYMBOL(jbd2_journal_set_triggers);
- EXPORT_SYMBOL(jbd2_journal_dirty_metadata);
- EXPORT_SYMBOL(jbd2_journal_release_buffer);
- EXPORT_SYMBOL(jbd2_journal_forget);
-@@ -290,6 +291,7 @@ int jbd2_journal_write_metadata_buffer(transaction_t *transaction,
- 	struct page *new_page;
- 	unsigned int new_offset;
- 	struct buffer_head *bh_in = jh2bh(jh_in);
-+	struct jbd2_buffer_trigger_type *triggers;
- 
- 	/*
- 	 * The buffer really shouldn't be locked: only the current committing
-@@ -314,13 +316,23 @@ repeat:
- 		done_copy_out = 1;
- 		new_page = virt_to_page(jh_in->b_frozen_data);
- 		new_offset = offset_in_page(jh_in->b_frozen_data);
-+		triggers = jh_in->b_frozen_triggers;
- 	} else {
- 		new_page = jh2bh(jh_in)->b_page;
- 		new_offset = offset_in_page(jh2bh(jh_in)->b_data);
-+		triggers = jh_in->b_triggers;
- 	}
- 
- 	mapped_data = kmap_atomic(new_page, KM_USER0);
- 	/*
-+	 * Fire any commit trigger.  Do this before checking for escaping,
-+	 * as the trigger may modify the magic offset.  If a copy-out
-+	 * happens afterwards, it will have the correct data in the buffer.
-+	 */
-+	jbd2_buffer_commit_trigger(jh_in, mapped_data + new_offset,
-+				   triggers);
++/* Metadata checksum and error correction */
++#define OCFS2_FEATURE_INCOMPAT_META_ECC		0x0800
 +
-+	/*
- 	 * Check for escaping
- 	 */
- 	if (*((__be32 *)(mapped_data + new_offset)) ==
-@@ -352,6 +364,13 @@ repeat:
- 		new_page = virt_to_page(tmp);
- 		new_offset = offset_in_page(tmp);
- 		done_copy_out = 1;
-+
-+		/*
-+		 * This isn't strictly necessary, as we're using frozen
-+		 * data for the escaping, but it keeps consistency with
-+		 * b_frozen_data usage.
-+		 */
-+		jh_in->b_frozen_triggers = jh_in->b_triggers;
- 	}
+ /*
+  * backup superblock flag is used to indicate that this volume
+  * has backup superblocks.
+@@ -427,6 +430,22 @@ static unsigned char ocfs2_type_by_mode[S_IFMT >> S_SHIFT] = {
+ #define OCFS2_RAW_SB(dinode)		(&((dinode)->id2.i_super))
  
- 	/*
-diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
-index 39b7805..4f925a4 100644
---- a/fs/jbd2/transaction.c
-+++ b/fs/jbd2/transaction.c
-@@ -741,6 +741,12 @@ done:
- 		source = kmap_atomic(page, KM_USER0);
- 		memcpy(jh->b_frozen_data, source+offset, jh2bh(jh)->b_size);
- 		kunmap_atomic(source, KM_USER0);
-+
-+		/*
-+		 * Now that the frozen data is saved off, we need to store
-+		 * any matching triggers.
-+		 */
-+		jh->b_frozen_triggers = jh->b_triggers;
- 	}
- 	jbd_unlock_bh_state(bh);
- 
-@@ -944,6 +950,47 @@ out:
- }
- 
- /**
-+ * void jbd2_journal_set_triggers() - Add triggers for commit writeout
-+ * @bh: buffer to trigger on
-+ * @type: struct jbd2_buffer_trigger_type containing the trigger(s).
-+ *
-+ * Set any triggers on this journal_head.  This is always safe, because
-+ * triggers for a committing buffer will be saved off, and triggers for
-+ * a running transaction will match the buffer in that transaction.
-+ *
-+ * Call with NULL to clear the triggers.
+ /*
++ * Block checking structure.  This is used in metadata to validate the
++ * contents.  If OCFS2_FEATURE_INCOMPAT_META_ECC is not set, it is all
++ * zeros.
 + */
-+void jbd2_journal_set_triggers(struct buffer_head *bh,
-+			       struct jbd2_buffer_trigger_type *type)
-+{
-+	struct journal_head *jh = bh2jh(bh);
++struct ocfs2_block_check {
++/*00*/	__le32 bc_crc32e;	/* 802.3 Ethernet II CRC32 */
++	__le16 bc_ecc;		/* Single-error-correction parity vector.
++				   This is a simple Hamming code dependant
++				   on the blocksize.  OCFS2's maximum
++				   blocksize, 4K, requires 16 parity bits,
++				   so we fit in __le16. */
++	__le16 bc_reserved1;
++/*08*/
++};
 +
-+	jh->b_triggers = type;
-+}
-+
-+void jbd2_buffer_commit_trigger(struct journal_head *jh, void *mapped_data,
-+				struct jbd2_buffer_trigger_type *triggers)
-+{
-+	struct buffer_head *bh = jh2bh(jh);
-+
-+	if (!triggers || !triggers->t_commit)
-+		return;
-+
-+	triggers->t_commit(triggers, bh, mapped_data, bh->b_size);
-+}
-+
-+void jbd2_buffer_abort_trigger(struct journal_head *jh,
-+			       struct jbd2_buffer_trigger_type *triggers)
-+{
-+	if (!triggers || !triggers->t_abort)
-+		return;
-+
-+	triggers->t_abort(triggers, jh2bh(jh));
-+}
-+
-+
-+
-+/**
-  * int jbd2_journal_dirty_metadata() -  mark a buffer as containing dirty metadata
-  * @handle: transaction to add buffer to.
-  * @bh: buffer to mark
-diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
-index f366457..3445647 100644
---- a/include/linux/jbd2.h
-+++ b/include/linux/jbd2.h
-@@ -1008,6 +1008,35 @@ int __jbd2_journal_clean_checkpoint_list(journal_t *journal);
- int __jbd2_journal_remove_checkpoint(struct journal_head *);
- void __jbd2_journal_insert_checkpoint(struct journal_head *, transaction_t *);
++/*
+  * On disk extent record for OCFS2
+  * It describes a range of clusters on disk.
+  *
+@@ -513,7 +532,7 @@ struct ocfs2_truncate_log {
+ struct ocfs2_extent_block
+ {
+ /*00*/	__u8 h_signature[8];		/* Signature for verification */
+-	__le64 h_reserved1;
++	struct ocfs2_block_check h_check;	/* Error checking */
+ /*10*/	__le16 h_suballoc_slot;		/* Slot suballocator this
+ 					   extent_header belongs to */
+ 	__le16 h_suballoc_bit;		/* Bit offset in suballocator
+@@ -683,7 +702,8 @@ struct ocfs2_dinode {
+ 					   was set in i_flags */
+ 	__le16 i_dyn_features;
+ 	__le64 i_xattr_loc;
+-/*80*/	__le64 i_reserved2[7];
++/*80*/	struct ocfs2_block_check i_check;	/* Error checking */
++/*88*/	__le64 i_reserved2[6];
+ /*B8*/	union {
+ 		__le64 i_pad1;		/* Generic way to refer to this
+ 					   64bit union */
+@@ -750,7 +770,8 @@ struct ocfs2_group_desc
+ /*20*/	__le64   bg_parent_dinode;       /* dinode which owns me, in
+ 					   blocks */
+ 	__le64   bg_blkno;               /* Offset on disk, in blocks */
+-/*30*/	__le64   bg_reserved2[2];
++/*30*/	struct ocfs2_block_check bg_check;	/* Error checking */
++	__le64   bg_reserved2;
+ /*40*/	__u8    bg_bitmap[0];
+ };
+ 
+@@ -793,7 +814,12 @@ struct ocfs2_xattr_header {
+ 						   in this extent record,
+ 						   only valid in the first
+ 						   bucket. */
+-	__le64  xh_csum;
++	struct ocfs2_block_check xh_check;	/* Error checking
++						   (Note, this is only
++						    used for xattr
++						    buckets.  A block uses
++						    xb_check and sets
++						    this field to zero.) */
+ 	struct ocfs2_xattr_entry xh_entries[0]; /* xattr entry list. */
+ };
+ 
+@@ -844,7 +870,7 @@ struct ocfs2_xattr_block {
+ 					block group */
+ 	__le32	xb_fs_generation;    /* Must match super block */
+ /*10*/	__le64	xb_blkno;            /* Offset on disk, in blocks */
+-	__le64	xb_csum;
++	struct ocfs2_block_check xb_check;	/* Error checking */
+ /*20*/	__le16	xb_flags;            /* Indicates whether this block contains
+ 					real xattr or a xattr tree. */
+ 	__le16	xb_reserved0;
+@@ -988,6 +1014,25 @@ struct ocfs2_local_disk_dqblk {
+ /*10*/	__le64 dqb_inodemod;	/* Change in the amount of used inodes */
+ };
  
 +
 +/*
-+ * Triggers
++ * The quota trailer lives at the end of each quota block.
 + */
 +
-+struct jbd2_buffer_trigger_type {
-+	/*
-+	 * Fired just before a buffer is written to the journal.
-+	 * mapped_data is a mapped buffer that is the frozen data for
-+	 * commit.
-+	 */
-+	void (*t_commit)(struct jbd2_buffer_trigger_type *type,
-+			 struct buffer_head *bh, void *mapped_data,
-+			 size_t size);
-+
-+	/*
-+	 * Fired during journal abort for dirty buffers that will not be
-+	 * committed.
-+	 */
-+	void (*t_abort)(struct jbd2_buffer_trigger_type *type,
-+			struct buffer_head *bh);
++struct ocfs2_disk_dqtrailer {
++/*00*/	struct ocfs2_block_check dq_check;	/* Error checking */
++/*08*/	/* Cannot be larger than OCFS2_QBLK_RESERVED_SPACE */
 +};
 +
-+extern void jbd2_buffer_commit_trigger(struct journal_head *jh,
-+				       void *mapped_data,
-+				       struct jbd2_buffer_trigger_type *triggers);
-+extern void jbd2_buffer_abort_trigger(struct journal_head *jh,
-+				      struct jbd2_buffer_trigger_type *triggers);
++static inline struct ocfs2_disk_dqtrailer *ocfs2_block_dqtrailer(int blocksize,
++								 void *buf)
++{
++	char *ptr = buf;
++	ptr += blocksize - OCFS2_QBLK_RESERVED_SPACE;
 +
- /* Buffer IO */
- extern int
- jbd2_journal_write_metadata_buffer(transaction_t	  *transaction,
-@@ -1046,6 +1075,8 @@ extern int	 jbd2_journal_extend (handle_t *, int nblocks);
- extern int	 jbd2_journal_get_write_access(handle_t *, struct buffer_head *);
- extern int	 jbd2_journal_get_create_access (handle_t *, struct buffer_head *);
- extern int	 jbd2_journal_get_undo_access(handle_t *, struct buffer_head *);
-+void		 jbd2_journal_set_triggers(struct buffer_head *,
-+					   struct jbd2_buffer_trigger_type *type);
- extern int	 jbd2_journal_dirty_metadata (handle_t *, struct buffer_head *);
- extern void	 jbd2_journal_release_buffer (handle_t *, struct buffer_head *);
- extern int	 jbd2_journal_forget (handle_t *, struct buffer_head *);
-diff --git a/include/linux/journal-head.h b/include/linux/journal-head.h
-index bb70ebb..525aac3 100644
---- a/include/linux/journal-head.h
-+++ b/include/linux/journal-head.h
-@@ -12,6 +12,8 @@
- 
- typedef unsigned int		tid_t;		/* Unique transaction ID */
- typedef struct transaction_s	transaction_t;	/* Compound transaction type */
++	return (struct ocfs2_disk_dqtrailer *)ptr;
++}
 +
-+
- struct buffer_head;
- 
- struct journal_head {
-@@ -87,6 +89,12 @@ struct journal_head {
- 	 * [j_list_lock]
- 	 */
- 	struct journal_head *b_cpnext, *b_cpprev;
-+
-+	/* Trigger type */
-+	struct jbd2_buffer_trigger_type *b_triggers;
-+
-+	/* Trigger type for the committing transaction's frozen data */
-+	struct jbd2_buffer_trigger_type *b_frozen_triggers;
- };
- 
- #endif		/* JOURNAL_HEAD_H_INCLUDED */
+ #ifdef __KERNEL__
+ static inline int ocfs2_fast_symlink_chars(struct super_block *sb)
+ {
 -- 
 1.5.6
