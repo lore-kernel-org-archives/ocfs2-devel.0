@@ -1,126 +1,185 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:15 -0800
-Subject: [Ocfs2-devel] [git patches] Ocfs2 patches for merge window,
-	batch 3/3
-Message-ID: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
+Date: Thu, 25 Dec 2008 10:04:43 -0800
+Subject: [Ocfs2-devel] [PATCH 28/35] ocfs2/dlm: Fix race in adding/removing
+	lockres' to/from the tracking list
+In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
+References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-29-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Sunil Mushran <sunil.mushran@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-Hi,
+From: Sunil Mushran <sunil.mushran@oracle.com>
 
-This is the 3rd and final batch of Ocfs2 patches intended for the merge
-window. The 2nd batch were sent out previously:
+This patch adds a new lock, dlm->tracking_lock, to protect adding/removing
+lockres' to/from the dlm->tracking_list. We were previously using dlm->spinlock
+for the same, but that proved inadequate as we could be freeing a lockres from
+a context that did not hold that lock. As the new lock only protects this list,
+we can explicitly take it when removing the lockres from the tracking list.
 
-http://lkml.org/lkml/2008/12/22/213
+This bug was exposed when testing multiple processes concurrently flock() the
+same file.
 
-This batch includes some more xattr fixes, some dlm fixes from Sunil and
-meta data checksumming support from Joel.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+---
+ fs/ocfs2/dlm/dlmcommon.h |    3 ++
+ fs/ocfs2/dlm/dlmdebug.c  |   53 ++++++++++++++++++++-------------------------
+ fs/ocfs2/dlm/dlmdomain.c |    1 +
+ fs/ocfs2/dlm/dlmmaster.c |   10 ++++++++
+ 4 files changed, 38 insertions(+), 29 deletions(-)
 
-With all the other prep patches, the checksumming patches become pretty
-straight forward. Mostly it's a matter of finding the right spot in our disk
-structures. For most blocks, we just take an unused field. Directory data
-gets a hidden structure at the end of every block. We'll actually be making
-use of this structure in the future for directory indexing support. The
-checksum code stores an ECC in each 64 bit field, so single bit errors can
-be corrected as those blocks are read.
-
-Checking on read is done with the per-metadata-type callbacks we previously
-added. Write checks are done via a new jbd2 mechanism - 'buffer triggers',
-which is implemented in the 1st patch of this series. The first version of
-the buffer triggers patch got Ted's sign off, but we made some changes and
-sent another version to the ext4 list. The version sent here is the latest
-one. if I got my git send-email command right, Ted and the Ext4 list should
-be CC'd.
-        --Mark
-
-Please pull from 'upstream-round3' branch of
-git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-round3
-
-to receive the following updates:
-
- fs/jbd2/commit.c             |    9 +
- fs/jbd2/journal.c            |   19 ++
- fs/jbd2/transaction.c        |   47 ++++
- fs/ocfs2/Makefile            |    1 +
- fs/ocfs2/alloc.c             |  315 ++++++++++++++++------------
- fs/ocfs2/alloc.h             |    9 +-
- fs/ocfs2/aops.c              |    8 +-
- fs/ocfs2/blockcheck.c        |  477 ++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/blockcheck.h        |   82 +++++++
- fs/ocfs2/dir.c               |  282 ++++++++++++++++++++++---
- fs/ocfs2/dir.h               |    2 +
- fs/ocfs2/dlm/dlmast.c        |   52 +++---
- fs/ocfs2/dlm/dlmcommon.h     |    3 +
- fs/ocfs2/dlm/dlmdebug.c      |   53 ++---
- fs/ocfs2/dlm/dlmdomain.c     |    1 +
- fs/ocfs2/dlm/dlmmaster.c     |   42 ++++-
- fs/ocfs2/dlm/dlmthread.c     |    3 +-
- fs/ocfs2/file.c              |   16 +-
- fs/ocfs2/inode.c             |   33 +++-
- fs/ocfs2/journal.c           |  188 ++++++++++++++++-
- fs/ocfs2/journal.h           |   32 +++-
- fs/ocfs2/localalloc.c        |   18 +-
- fs/ocfs2/namei.c             |   38 ++--
- fs/ocfs2/ocfs2.h             |   15 ++
- fs/ocfs2/ocfs2_fs.h          |   87 +++++++-
- fs/ocfs2/quota_global.c      |   25 ++-
- fs/ocfs2/quota_local.c       |   18 +-
- fs/ocfs2/resize.c            |   16 +-
- fs/ocfs2/suballoc.c          |   87 ++++++---
- fs/ocfs2/super.c             |   11 +
- fs/ocfs2/xattr.c             |  312 ++++++++++++++++++----------
- fs/ocfs2/xattr.h             |   14 ++
- include/linux/jbd2.h         |   31 +++
- include/linux/journal-head.h |    8 +
- 34 files changed, 1910 insertions(+), 444 deletions(-)
- create mode 100644 fs/ocfs2/blockcheck.c
- create mode 100644 fs/ocfs2/blockcheck.h
-
-Joel Becker (23):
-      jbd2: Add buffer triggers
-      ocfs2: Add the on-disk structures for metadata checksums.
-      ocfs2: Add the underlying blockcheck code.
-      ocfs2: Add a validation hook for quota block reads.
-      ocfs2: block read meta ecc.
-      ocfs2: Add journal_access functions with jbd2 triggers.
-      ocfs2: Wrap up the common use cases of ocfs2_new_path().
-      ocfs2: Use metadata-specific ocfs2_journal_access_*() functions.
-      ocfs2: Add ecc and checksums to ocfs2 xattr buckets.
-      ocfs2: Create ocfs2_xattr_value_buf.
-      ocfs2: Pull ocfs2_xattr_value_buf up from __ocfs2_remove_xattr_range().
-      ocfs2: Pull ocfs2_xattr_value_buf up into ocfs2_xattr_value_truncate().
-      ocfs2: Pass ocfs2_xattr_value_buf into ocfs2_xattr_value_truncate().
-      ocfs2: Pass value buf to ocfs2_xattr_update_entry().
-      ocfs2: Use ocfs2_xattr_value_buf in ocfs2_xattr_set_entry().
-      ocfs2: Pass value buf to ocfs2_remove_value_outside().
-      ocfs2: Use proper journal_access function in xattr.c
-      ocfs2: Checksum and ECC for directory blocks.
-      ocfs2: Validate superblock with checksum and ecc.
-      ocfs2: Enable metadata checksums.
-      ocfs2: Don't hand-code xor in ocfs2_hamming_encode().
-      ocfs2: Another hamming code optimization.
-      ocfs2: One more hamming code optimization.
-
-Mark Fasheh (1):
-      ocfs2: Add directory block trailers.
-
-Sunil Mushran (5):
-      ocfs2/dlm: Fix a race between migrate request and exit domain
-      ocfs2/dlm: Clean up errors in dlm_proxy_ast_handler()
-      ocfs2/dlm: Hold off sending lockres drop ref message while lockres is migrating
-      ocfs2/dlm: Fix race in adding/removing lockres' to/from the tracking list
-      ocfs2/dlm: Fix race during lockres mastery
-
-Tao Ma (3):
-      ocfs2/xattr: Remove extend_trans call and add its credits from the beginning
-      ocfs2/xattr: Always updating ctime during xattr set.
-      ocfs2/xattr: fix credits calculation during index create
-
-Tiger Yang (3):
-      ocfs2: calculate and reserve credits for xattr value in mknod
-      ocfs2: alloc xattr bucket in ocfs2_xattr_set_handle
-      ocfs2: Add xattr support checking in init_security
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index d5a86fb..bb53714 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -140,6 +140,7 @@ struct dlm_ctxt
+ 	unsigned int purge_count;
+ 	spinlock_t spinlock;
+ 	spinlock_t ast_lock;
++	spinlock_t track_lock;
+ 	char *name;
+ 	u8 node_num;
+ 	u32 key;
+@@ -316,6 +317,8 @@ struct dlm_lock_resource
+ 	 * put on a list for the dlm thread to run. */
+ 	unsigned long    last_used;
+ 
++	struct dlm_ctxt *dlm;
++
+ 	unsigned migration_pending:1;
+ 	atomic_t asts_reserved;
+ 	spinlock_t spinlock;
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 1b81dcb..b32f60a 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -630,43 +630,38 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
+ {
+ 	struct debug_lockres *dl = m->private;
+ 	struct dlm_ctxt *dlm = dl->dl_ctxt;
++	struct dlm_lock_resource *oldres = dl->dl_res;
+ 	struct dlm_lock_resource *res = NULL;
++	struct list_head *track_list;
+ 
+-	spin_lock(&dlm->spinlock);
++	spin_lock(&dlm->track_lock);
++	if (oldres)
++		track_list = &oldres->tracking;
++	else
++		track_list = &dlm->tracking_list;
+ 
+-	if (dl->dl_res) {
+-		list_for_each_entry(res, &dl->dl_res->tracking, tracking) {
+-			if (dl->dl_res) {
+-				dlm_lockres_put(dl->dl_res);
+-				dl->dl_res = NULL;
+-			}
+-			if (&res->tracking == &dlm->tracking_list) {
+-				mlog(0, "End of list found, %p\n", res);
+-				dl = NULL;
+-				break;
+-			}
++	list_for_each_entry(res, track_list, tracking) {
++		if (&res->tracking == &dlm->tracking_list)
++			res = NULL;
++		else
+ 			dlm_lockres_get(res);
+-			dl->dl_res = res;
+-			break;
+-		}
+-	} else {
+-		if (!list_empty(&dlm->tracking_list)) {
+-			list_for_each_entry(res, &dlm->tracking_list, tracking)
+-				break;
+-			dlm_lockres_get(res);
+-			dl->dl_res = res;
+-		} else
+-			dl = NULL;
++		break;
+ 	}
++	spin_unlock(&dlm->track_lock);
+ 
+-	if (dl) {
+-		spin_lock(&dl->dl_res->spinlock);
+-		dump_lockres(dl->dl_res, dl->dl_buf, dl->dl_len - 1);
+-		spin_unlock(&dl->dl_res->spinlock);
+-	}
++	if (oldres)
++		dlm_lockres_put(oldres);
+ 
+-	spin_unlock(&dlm->spinlock);
++	dl->dl_res = res;
++
++	if (res) {
++		spin_lock(&res->spinlock);
++		dump_lockres(res, dl->dl_buf, dl->dl_len - 1);
++		spin_unlock(&res->spinlock);
++	} else
++		dl = NULL;
+ 
++	/* passed to seq_show */
+ 	return dl;
+ }
+ 
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 63f8125..d8d578f 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1550,6 +1550,7 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	spin_lock_init(&dlm->spinlock);
+ 	spin_lock_init(&dlm->master_lock);
+ 	spin_lock_init(&dlm->ast_lock);
++	spin_lock_init(&dlm->track_lock);
+ 	INIT_LIST_HEAD(&dlm->list);
+ 	INIT_LIST_HEAD(&dlm->dirty_list);
+ 	INIT_LIST_HEAD(&dlm->reco.resources);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 92fd1d7..cbf3abe 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -505,8 +505,10 @@ void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
+ static void dlm_lockres_release(struct kref *kref)
+ {
+ 	struct dlm_lock_resource *res;
++	struct dlm_ctxt *dlm;
+ 
+ 	res = container_of(kref, struct dlm_lock_resource, refs);
++	dlm = res->dlm;
+ 
+ 	/* This should not happen -- all lockres' have a name
+ 	 * associated with them at init time. */
+@@ -515,6 +517,7 @@ static void dlm_lockres_release(struct kref *kref)
+ 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+ 	     res->lockname.name);
+ 
++	spin_lock(&dlm->track_lock);
+ 	if (!list_empty(&res->tracking))
+ 		list_del_init(&res->tracking);
+ 	else {
+@@ -522,6 +525,9 @@ static void dlm_lockres_release(struct kref *kref)
+ 		     res->lockname.len, res->lockname.name);
+ 		dlm_print_one_lock_resource(res);
+ 	}
++	spin_unlock(&dlm->track_lock);
++
++	dlm_put(dlm);
+ 
+ 	if (!hlist_unhashed(&res->hash_node) ||
+ 	    !list_empty(&res->granted) ||
+@@ -595,6 +601,10 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+ 	res->migration_pending = 0;
+ 	res->inflight_locks = 0;
+ 
++	/* put in dlm_lockres_release */
++	dlm_grab(dlm);
++	res->dlm = dlm;
++
+ 	kref_init(&res->refs);
+ 
+ 	/* just for consistency */
+-- 
+1.5.6
