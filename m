@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:30 -0800
-Subject: [Ocfs2-devel] [PATCH 15/35] ocfs2: Use ocfs2_xattr_value_buf in
-	ocfs2_xattr_set_entry().
+Date: Thu, 25 Dec 2008 10:04:38 -0800
+Subject: [Ocfs2-devel] [PATCH 23/35] ocfs2: Another hamming code
+	optimization.
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-16-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-24-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,170 +14,82 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fashe
 
 From: Joel Becker <joel.becker@oracle.com>
 
-ocfs2_xattr_set_entry is the function that knows what type of block it
-is setting into.  This is what we wanted from ocfs2_xattr_value_buf.
-Plus, moving the value buf up into ocfs2_xattr_set_entry() allows us to
-pass it into ocfs2_xattr_set_value_outside() and ocfs2_xattr_cleanup().
+In the calc_code_bit() function, we must find all powers of two beneath
+the code bit number, *after* it's shifted by those powers of two.  This
+requires a loop to see where it ends up.
+
+We can optimize it by starting at its most significant bit.  This shaves
+32% off the time, for a total of 67.6% shaved off of the original, naive
+implementation.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   53 +++++++++++++++++++++++++++++------------------------
- 1 files changed, 29 insertions(+), 24 deletions(-)
+ fs/ocfs2/blockcheck.c |   40 +++++++++++++++++++++++++++++++++++++++-
+ 1 files changed, 39 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 6a05612..c08b5e8 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -1252,6 +1252,7 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
- 			       handle_t *handle,
- 			       struct ocfs2_xattr_info *xi,
- 			       struct ocfs2_xattr_search *xs,
-+			       struct ocfs2_xattr_value_buf *vb,
- 			       size_t offs)
- {
- 	int ret = 0;
-@@ -1259,8 +1260,8 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
- 	void *val = xs->base + offs;
- 	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
+diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
+index 1d5083c..f102ec9 100644
+--- a/fs/ocfs2/blockcheck.c
++++ b/fs/ocfs2/blockcheck.c
+@@ -39,6 +39,35 @@
+  * c = # total code bits (d + p)
+  */
  
--	ret = ocfs2_journal_access(handle, inode, xs->xattr_bh,
--				   OCFS2_JOURNAL_ACCESS_WRITE);
-+	ret = vb->vb_access(handle, inode, vb->vb_bh,
-+			    OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -1271,7 +1272,7 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
- 	memset((void *)xs->here, 0, sizeof(struct ocfs2_xattr_entry));
- 	memset(val, 0, size);
- 
--	ret = ocfs2_journal_dirty(handle, xs->xattr_bh);
-+	ret = ocfs2_journal_dirty(handle, vb->vb_bh);
- 	if (ret < 0)
- 		mlog_errno(ret);
- out:
-@@ -1318,6 +1319,7 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 					 struct ocfs2_xattr_info *xi,
- 					 struct ocfs2_xattr_search *xs,
- 					 struct ocfs2_xattr_set_ctxt *ctxt,
-+					 struct ocfs2_xattr_value_buf *vb,
- 					 size_t offs)
- {
- 	size_t name_len = strlen(xi->name);
-@@ -1325,10 +1327,6 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 	struct ocfs2_xattr_value_root *xv = NULL;
- 	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
- 	int ret = 0;
--	struct ocfs2_xattr_value_buf vb = {
--		.vb_bh = xs->xattr_bh,
--		.vb_access = ocfs2_journal_access
--	};
- 
- 	memset(val, 0, size);
- 	memcpy(val, xi->name, name_len);
-@@ -1339,19 +1337,19 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- 	xv->xr_list.l_tree_depth = 0;
- 	xv->xr_list.l_count = cpu_to_le16(1);
- 	xv->xr_list.l_next_free_rec = 0;
--	vb.vb_xv = xv;
-+	vb->vb_xv = xv;
- 
--	ret = ocfs2_xattr_value_truncate(inode, &vb, xi->value_len, ctxt);
-+	ret = ocfs2_xattr_value_truncate(inode, vb, xi->value_len, ctxt);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		return ret;
- 	}
--	ret = ocfs2_xattr_update_entry(inode, ctxt->handle, xi, xs, &vb, offs);
-+	ret = ocfs2_xattr_update_entry(inode, ctxt->handle, xi, xs, vb, offs);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		return ret;
- 	}
--	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, vb.vb_xv,
-+	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, vb->vb_xv,
- 					      xi->value, xi->value_len);
- 	if (ret < 0)
- 		mlog_errno(ret);
-@@ -1488,6 +1486,16 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 		.value = xi->value,
- 		.value_len = xi->value_len,
- 	};
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = xs->xattr_bh,
-+		.vb_access = ocfs2_journal_access_di,
++
++/*
++ * Find the log base 2 of 32-bit v.
++ *
++ * Algorithm found on http://graphics.stanford.edu/~seander/bithacks.html,
++ * by Sean Eron Anderson.  Code on the page is in the public domain unless
++ * otherwise noted.
++ *
++ * This particular algorithm is credited to Eric Cole.
++ */
++static int find_highest_bit_set(unsigned int v)
++{
++
++	static const int MultiplyDeBruijnBitPosition[32] =
++	{
++		0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
++		31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
 +	};
 +
-+	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
-+		BUG_ON(xs->xattr_bh == xs->inode_bh);
-+		vb.vb_access = ocfs2_journal_access_xb;
-+	} else
-+		BUG_ON(xs->xattr_bh != xs->inode_bh);
++	v |= v >> 1; /* first round down to power of 2 */
++	v |= v >> 2;
++	v |= v >> 4;
++	v |= v >> 8;
++	v |= v >> 16;
++	v = (v >> 1) + 1;
++
++	return MultiplyDeBruijnBitPosition[(u32)(v * 0x077CB531UL) >> 27];
++}
++
+ /*
+  * Calculate the bit offset in the hamming code buffer based on the bit's
+  * offset in the data buffer.  Since the hamming code reserves all
+@@ -64,12 +93,21 @@ static unsigned int calc_code_bit(unsigned int i)
+ 	b = i + 1;
  
- 	/* Compute min_offs, last and free space. */
- 	last = xs->header->xh_entries;
-@@ -1543,18 +1551,14 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 		if (ocfs2_xattr_is_local(xs->here) && size == size_l) {
- 			/* Replace existing local xattr with tree root */
- 			ret = ocfs2_xattr_set_value_outside(inode, xi, xs,
--							    ctxt, offs);
-+							    ctxt, &vb, offs);
- 			if (ret < 0)
- 				mlog_errno(ret);
- 			goto out;
- 		} else if (!ocfs2_xattr_is_local(xs->here)) {
- 			/* For existing xattr which has value outside */
--			struct ocfs2_xattr_value_buf vb = {
--				.vb_bh = xs->xattr_bh,
--				.vb_xv = (struct ocfs2_xattr_value_root *)
--					(val + OCFS2_XATTR_SIZE(name_len)),
--				.vb_access = ocfs2_journal_access,
--			};
-+			vb.vb_xv = (struct ocfs2_xattr_value_root *)
-+				(val + OCFS2_XATTR_SIZE(name_len));
+ 	/*
++	 * As a cheat, we know that all bits below b's highest bit must be
++	 * parity bits, so we can start there.
++	 */
++        p = find_highest_bit_set(b);
++        b += p;
++
++	/*
+ 	 * For every power of two below our bit number, bump our bit.
+ 	 *
+ 	 * We compare with (b + 1) becuase we have to compare with what b
+ 	 * would be _if_ it were bumped up by the parity bit.  Capice?
++	 *
++	 * We start p at 2^p because of the cheat above.
+ 	 */
+-	for (p = 0; (1 << p) < (b + 1); p++)
++	for (p = (1 << p); p < (b + 1); p <<= 1)
+ 		b++;
  
- 			if (xi->value_len > OCFS2_XATTR_INLINE_SIZE) {
- 				/*
-@@ -1605,16 +1609,16 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 		}
- 	}
- 
--	ret = ocfs2_journal_access(handle, inode, xs->inode_bh,
--				   OCFS2_JOURNAL_ACCESS_WRITE);
-+	ret = ocfs2_journal_access_di(handle, inode, xs->inode_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
- 
- 	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
--		ret = ocfs2_journal_access(handle, inode, xs->xattr_bh,
--					   OCFS2_JOURNAL_ACCESS_WRITE);
-+		ret = vb.vb_access(handle, inode, vb.vb_bh,
-+				   OCFS2_JOURNAL_ACCESS_WRITE);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -1674,7 +1678,8 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 		 * This is the second step for value size > INLINE_SIZE.
- 		 */
- 		size_t offs = le16_to_cpu(xs->here->xe_name_offset);
--		ret = ocfs2_xattr_set_value_outside(inode, xi, xs, ctxt, offs);
-+		ret = ocfs2_xattr_set_value_outside(inode, xi, xs, ctxt,
-+						    &vb, offs);
- 		if (ret < 0) {
- 			int ret2;
- 
-@@ -1684,7 +1689,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 			 * the junk tree root we have already set in local.
- 			 */
- 			ret2 = ocfs2_xattr_cleanup(inode, ctxt->handle,
--						   xi, xs, offs);
-+						   xi, xs, &vb, offs);
- 			if (ret2 < 0)
- 				mlog_errno(ret2);
- 		}
+ 	return b;
 -- 
 1.5.6
