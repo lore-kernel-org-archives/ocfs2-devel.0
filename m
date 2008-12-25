@@ -1,77 +1,97 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:46 -0800
-Subject: [Ocfs2-devel] [PATCH 31/35] ocfs2/xattr: Always updating ctime
-	during xattr set.
+Date: Thu, 25 Dec 2008 10:04:48 -0800
+Subject: [Ocfs2-devel] [PATCH 33/35] ocfs2: calculate and reserve credits
+	for xattr value in mknod
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-32-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-34-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <tao.ma@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tiger Yang <tiger.yang@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-From: Tao Ma <tao.ma@oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
 
-In xattr set, we should always update ctime if the operation goes
-sucessfully. The old one mistakenly put it in ocfs2_xattr_set_entry
-which is only called when we set xattr in inode or xattr block. The
-side benefit is that it resolve the bug 1052 since in that scenario,
-ocfs2_calc_xattr_set_need only calc out the xattr set credits while
-ocfs2_xattr_set_entry update the inode also which isn't concerned with
-the process of xattr set.
+We extend the credits for xattr's large value in set_value_outside
+before, this can give rise to a credits issue when we set one security
+entry and two acl entries duing mknod. As we remove extend_trans form
+set_value_outside, we must calculate and reserve the credits for
+xattr's large value in mknod.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   20 ++++++++++++++++----
- 1 files changed, 16 insertions(+), 4 deletions(-)
+ fs/ocfs2/xattr.c |   40 ++++++++++++++++++++++++++--------------
+ 1 files changed, 26 insertions(+), 14 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 93a1ab4..3e2e92d 100644
+index 73fb9f7..e5be470 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -1651,10 +1651,6 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 	oi->ip_dyn_features |= flag;
- 	di->i_dyn_features = cpu_to_le16(oi->ip_dyn_features);
- 	spin_unlock(&oi->ip_lock);
--	/* Update inode ctime */
--	inode->i_ctime = CURRENT_TIME;
--	di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
--	di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
- 
- 	ret = ocfs2_journal_dirty(handle, xs->inode_bh);
- 	if (ret < 0)
-@@ -2574,6 +2570,20 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
- 		}
+@@ -490,9 +490,14 @@ int ocfs2_calc_security_init(struct inode *dir,
  	}
  
-+	if (!ret) {
-+		/* Update inode ctime. */
-+		ret = ocfs2_journal_access(ctxt->handle, inode, xis->inode_bh,
-+					   OCFS2_JOURNAL_ACCESS_WRITE);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
+ 	/* reserve clusters for xattr value which will be set in B tree*/
+-	if (si->value_len > OCFS2_XATTR_INLINE_SIZE)
+-		*want_clusters += ocfs2_clusters_for_bytes(dir->i_sb,
+-							   si->value_len);
++	if (si->value_len > OCFS2_XATTR_INLINE_SIZE) {
++		int new_clusters = ocfs2_clusters_for_bytes(dir->i_sb,
++							    si->value_len);
 +
-+		inode->i_ctime = CURRENT_TIME;
-+		di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
-+		di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
-+		ocfs2_journal_dirty(ctxt->handle, xis->inode_bh);
++		*xattr_credits += ocfs2_clusters_to_blocks(dir->i_sb,
++							   new_clusters);
++		*want_clusters += new_clusters;
 +	}
- out:
  	return ret;
  }
-@@ -2750,6 +2760,8 @@ int ocfs2_xattr_set(struct inode *inode,
- 		goto cleanup;
+ 
+@@ -506,9 +511,7 @@ int ocfs2_calc_xattr_init(struct inode *dir,
+ {
+ 	int ret = 0;
+ 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+-	int s_size = 0;
+-	int a_size = 0;
+-	int acl_len = 0;
++	int s_size = 0, a_size = 0, acl_len = 0, new_clusters;
+ 
+ 	if (si->enable)
+ 		s_size = ocfs2_xattr_entry_real_size(strlen(si->name),
+@@ -556,16 +559,25 @@ int ocfs2_calc_xattr_init(struct inode *dir,
+ 		*xattr_credits += ocfs2_blocks_per_xattr_bucket(dir->i_sb);
  	}
  
-+	/* we need to update inode's ctime field, so add credit for it. */
-+	credits += OCFS2_INODE_UPDATE_CREDITS;
- 	ctxt.handle = ocfs2_start_trans(osb, credits);
- 	if (IS_ERR(ctxt.handle)) {
- 		ret = PTR_ERR(ctxt.handle);
+-	/* reserve clusters for xattr value which will be set in B tree*/
+-	if (si->enable && si->value_len > OCFS2_XATTR_INLINE_SIZE)
+-		*want_clusters += ocfs2_clusters_for_bytes(dir->i_sb,
+-							   si->value_len);
++	/*
++	 * reserve credits and clusters for xattrs which has large value
++	 * and have to be set outside
++	 */
++	if (si->enable && si->value_len > OCFS2_XATTR_INLINE_SIZE) {
++		new_clusters = ocfs2_clusters_for_bytes(dir->i_sb,
++							si->value_len);
++		*xattr_credits += ocfs2_clusters_to_blocks(dir->i_sb,
++							   new_clusters);
++		*want_clusters += new_clusters;
++	}
+ 	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL &&
+ 	    acl_len > OCFS2_XATTR_INLINE_SIZE) {
+-		*want_clusters += ocfs2_clusters_for_bytes(dir->i_sb, acl_len);
+-		if (S_ISDIR(mode))
+-			*want_clusters += ocfs2_clusters_for_bytes(dir->i_sb,
+-								   acl_len);
++		/* for directory, it has DEFAULT and ACCESS two types of acls */
++		new_clusters = (S_ISDIR(mode) ? 2 : 1) *
++				ocfs2_clusters_for_bytes(dir->i_sb, acl_len);
++		*xattr_credits += ocfs2_clusters_to_blocks(dir->i_sb,
++							   new_clusters);
++		*want_clusters += new_clusters;
+ 	}
+ 
+ 	return ret;
 -- 
 1.5.6
