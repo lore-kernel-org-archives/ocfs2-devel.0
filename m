@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:31 -0800
-Subject: [Ocfs2-devel] [PATCH 16/35] ocfs2: Pass value buf to
-	ocfs2_remove_value_outside().
+Date: Thu, 25 Dec 2008 10:04:32 -0800
+Subject: [Ocfs2-devel] [PATCH 17/35] ocfs2: Use proper journal_access
+	function in xattr.c
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-17-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-18-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,82 +14,85 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fashe
 
 From: Joel Becker <joel.becker@oracle.com>
 
-ocfs2_remove_value_outside() needs to know the type of buffer it is
-looking at.  Pass in an ocfs2_xattr_value_buf.
+Change the rest of the naked ocfs2_journal_access() calls in
+fs/ocfs2/xattr.c to use the appropriate ocfs2_journal_access_*() call
+for their metadata type.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   22 +++++++++++++---------
- 1 files changed, 13 insertions(+), 9 deletions(-)
+ fs/ocfs2/xattr.c |   24 ++++++++++++------------
+ 1 files changed, 12 insertions(+), 12 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index c08b5e8..d2760e6 100644
+index d2760e6..17028aa 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -1699,7 +1699,7 @@ out:
- }
- 
- static int ocfs2_remove_value_outside(struct inode*inode,
--				      struct buffer_head *bh,
-+				      struct ocfs2_xattr_value_buf *vb,
- 				      struct ocfs2_xattr_header *header)
- {
- 	int ret = 0, i;
-@@ -1720,17 +1720,13 @@ static int ocfs2_remove_value_outside(struct inode*inode,
- 		struct ocfs2_xattr_entry *entry = &header->xh_entries[i];
- 
- 		if (!ocfs2_xattr_is_local(entry)) {
--			struct ocfs2_xattr_value_buf vb = {
--				.vb_bh = bh,
--				.vb_access = ocfs2_journal_access,
--			};
- 			void *val;
- 
- 			val = (void *)header +
- 				le16_to_cpu(entry->xe_name_offset);
--			vb.vb_xv = (struct ocfs2_xattr_value_root *)
-+			vb->vb_xv = (struct ocfs2_xattr_value_root *)
- 				(val + OCFS2_XATTR_SIZE(entry->xe_name_len));
--			ret = ocfs2_xattr_value_truncate(inode, &vb, 0, &ctxt);
-+			ret = ocfs2_xattr_value_truncate(inode, vb, 0, &ctxt);
- 			if (ret < 0) {
- 				mlog_errno(ret);
- 				break;
-@@ -1752,12 +1748,16 @@ static int ocfs2_xattr_ibody_remove(struct inode *inode,
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
- 	struct ocfs2_xattr_header *header;
+@@ -1894,8 +1894,8 @@ int ocfs2_xattr_remove(struct inode *inode, struct buffer_head *di_bh)
+ 		mlog_errno(ret);
+ 		goto out;
+ 	}
+-	ret = ocfs2_journal_access(handle, inode, di_bh,
+-				   OCFS2_JOURNAL_ACCESS_WRITE);
++	ret = ocfs2_journal_access_di(handle, inode, di_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out_commit;
+@@ -2103,8 +2103,8 @@ static int ocfs2_xattr_block_set(struct inode *inode,
  	int ret;
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = di_bh,
-+		.vb_access = ocfs2_journal_access_di,
-+	};
  
- 	header = (struct ocfs2_xattr_header *)
- 		 ((void *)di + inode->i_sb->s_blocksize -
- 		 le16_to_cpu(di->i_xattr_inline_size));
+ 	if (!xs->xattr_bh) {
+-		ret = ocfs2_journal_access(handle, inode, xs->inode_bh,
+-					   OCFS2_JOURNAL_ACCESS_CREATE);
++		ret = ocfs2_journal_access_di(handle, inode, xs->inode_bh,
++					      OCFS2_JOURNAL_ACCESS_CREATE);
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+ 			goto end;
+@@ -2121,8 +2121,8 @@ static int ocfs2_xattr_block_set(struct inode *inode,
+ 		new_bh = sb_getblk(inode->i_sb, first_blkno);
+ 		ocfs2_set_new_buffer_uptodate(inode, new_bh);
  
--	ret = ocfs2_remove_value_outside(inode, di_bh, header);
-+	ret = ocfs2_remove_value_outside(inode, &vb, header);
+-		ret = ocfs2_journal_access(handle, inode, new_bh,
+-					   OCFS2_JOURNAL_ACCESS_CREATE);
++		ret = ocfs2_journal_access_xb(handle, inode, new_bh,
++					      OCFS2_JOURNAL_ACCESS_CREATE);
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+ 			goto end;
+@@ -3377,8 +3377,8 @@ static int ocfs2_xattr_create_index_block(struct inode *inode,
+ 	 */
+ 	down_write(&oi->ip_alloc_sem);
  
- 	return ret;
- }
-@@ -1767,11 +1767,15 @@ static int ocfs2_xattr_block_remove(struct inode *inode,
- {
- 	struct ocfs2_xattr_block *xb;
- 	int ret = 0;
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = blk_bh,
-+		.vb_access = ocfs2_journal_access_xb,
-+	};
+-	ret = ocfs2_journal_access(handle, inode, xb_bh,
+-				   OCFS2_JOURNAL_ACCESS_WRITE);
++	ret = ocfs2_journal_access_xb(handle, inode, xb_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out;
+@@ -4216,8 +4216,8 @@ static int ocfs2_add_new_xattr_cluster(struct inode *inode,
  
- 	xb = (struct ocfs2_xattr_block *)blk_bh->b_data;
- 	if (!(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED)) {
- 		struct ocfs2_xattr_header *header = &(xb->xb_attrs.xb_header);
--		ret = ocfs2_remove_value_outside(inode, blk_bh, header);
-+		ret = ocfs2_remove_value_outside(inode, &vb, header);
- 	} else
- 		ret = ocfs2_delete_xattr_index_block(inode, blk_bh);
+ 	ocfs2_init_xattr_tree_extent_tree(&et, inode, root_bh);
  
+-	ret = ocfs2_journal_access(handle, inode, root_bh,
+-				   OCFS2_JOURNAL_ACCESS_WRITE);
++	ret = ocfs2_journal_access_xb(handle, inode, root_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+ 		goto leave;
+@@ -4808,8 +4808,8 @@ static int ocfs2_rm_xattr_cluster(struct inode *inode,
+ 		goto out;
+ 	}
+ 
+-	ret = ocfs2_journal_access(handle, inode, root_bh,
+-				   OCFS2_JOURNAL_ACCESS_WRITE);
++	ret = ocfs2_journal_access_xb(handle, inode, root_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out_commit;
 -- 
 1.5.6
