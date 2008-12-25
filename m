@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:27 -0800
-Subject: [Ocfs2-devel] [PATCH 12/35] ocfs2: Pull ocfs2_xattr_value_buf up
-	into ocfs2_xattr_value_truncate().
+Date: Thu, 25 Dec 2008 10:04:28 -0800
+Subject: [Ocfs2-devel] [PATCH 13/35] ocfs2: Pass ocfs2_xattr_value_buf into
+	ocfs2_xattr_value_truncate().
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-13-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-14-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,139 +14,194 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fashe
 
 From: Joel Becker <joel.becker@oracle.com>
 
-Place an ocfs2_xattr_value_buf in ocfs2_xattr_value_truncate() and pass
-it down to ocfs2_xattr_shrink_size().  We can also pass it into
-ocfs2_xattr_extend_allocation(), replacing its ocfs2_xattr_value_buf.
+The callers of ocfs2_xattr_value_truncate() now pass in
+ocfs2_xattr_value_bufs.  These callers are the ones that calculated the
+xv location, so they are the right starting point.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/xattr.c |   41 +++++++++++++++++------------------------
- 1 files changed, 17 insertions(+), 24 deletions(-)
+ fs/ocfs2/xattr.c |   66 +++++++++++++++++++++++++++--------------------------
+ 1 files changed, 34 insertions(+), 32 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 3b059cf..4ce8019 100644
+index 4ce8019..409f9ee 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -573,34 +573,28 @@ int ocfs2_calc_xattr_init(struct inode *dir,
+@@ -718,19 +718,13 @@ out:
+ }
  
- static int ocfs2_xattr_extend_allocation(struct inode *inode,
- 					 u32 clusters_to_add,
--					 struct buffer_head *xattr_bh,
--					 struct ocfs2_xattr_value_root *xv,
-+					 struct ocfs2_xattr_value_buf *vb,
- 					 struct ocfs2_xattr_set_ctxt *ctxt)
+ static int ocfs2_xattr_value_truncate(struct inode *inode,
+-				      struct buffer_head *root_bh,
+-				      struct ocfs2_xattr_value_root *xv,
++				      struct ocfs2_xattr_value_buf *vb,
+ 				      int len,
+ 				      struct ocfs2_xattr_set_ctxt *ctxt)
  {
- 	int status = 0;
- 	handle_t *handle = ctxt->handle;
- 	enum ocfs2_alloc_restarted why;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
--	struct ocfs2_xattr_value_buf vb = {
--		.vb_bh	= xattr_bh,
--		.vb_xv = xv,
--		.vb_access = ocfs2_journal_access,
--	};
--	u32 prev_clusters, logical_start = le32_to_cpu(vb.vb_xv->xr_clusters);
-+	u32 prev_clusters, logical_start = le32_to_cpu(vb->vb_xv->xr_clusters);
- 	struct ocfs2_extent_tree et;
- 
- 	mlog(0, "(clusters_to_add for xattr= %u)\n", clusters_to_add);
- 
--	ocfs2_init_xattr_value_extent_tree(&et, inode, &vb);
-+	ocfs2_init_xattr_value_extent_tree(&et, inode, vb);
- 
--	status = vb.vb_access(handle, inode, vb.vb_bh,
-+	status = vb->vb_access(handle, inode, vb->vb_bh,
- 			      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
- 	}
- 
--	prev_clusters = le32_to_cpu(vb.vb_xv->xr_clusters);
-+	prev_clusters = le32_to_cpu(vb->vb_xv->xr_clusters);
- 	status = ocfs2_add_clusters_in_btree(osb,
- 					     inode,
- 					     &logical_start,
-@@ -616,13 +610,13 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
- 		goto leave;
- 	}
- 
--	status = ocfs2_journal_dirty(handle, vb.vb_bh);
-+	status = ocfs2_journal_dirty(handle, vb->vb_bh);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
- 	}
- 
--	clusters_to_add -= le32_to_cpu(vb.vb_xv->xr_clusters) - prev_clusters;
-+	clusters_to_add -= le32_to_cpu(vb->vb_xv->xr_clusters) - prev_clusters;
- 
- 	/*
- 	 * We should have already allocated enough space before the transaction,
-@@ -680,18 +674,12 @@ out:
- static int ocfs2_xattr_shrink_size(struct inode *inode,
- 				   u32 old_clusters,
- 				   u32 new_clusters,
--				   struct buffer_head *root_bh,
--				   struct ocfs2_xattr_value_root *xv,
-+				   struct ocfs2_xattr_value_buf *vb,
- 				   struct ocfs2_xattr_set_ctxt *ctxt)
- {
- 	int ret = 0;
- 	u32 trunc_len, cpos, phys_cpos, alloc_size;
- 	u64 block;
+ 	int ret;
+ 	u32 new_clusters = ocfs2_clusters_for_bytes(inode->i_sb, len);
+-	u32 old_clusters = le32_to_cpu(xv->xr_clusters);
 -	struct ocfs2_xattr_value_buf vb = {
 -		.vb_bh = root_bh,
 -		.vb_xv = xv,
 -		.vb_access = ocfs2_journal_access,
 -	};
- 
- 	if (old_clusters <= new_clusters)
- 		return 0;
-@@ -701,7 +689,7 @@ static int ocfs2_xattr_shrink_size(struct inode *inode,
- 	while (trunc_len) {
- 		ret = ocfs2_xattr_get_clusters(inode, cpos, &phys_cpos,
- 					       &alloc_size,
--					       &vb.vb_xv->xr_list);
-+					       &vb->vb_xv->xr_list);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -710,7 +698,7 @@ static int ocfs2_xattr_shrink_size(struct inode *inode,
- 		if (alloc_size > trunc_len)
- 			alloc_size = trunc_len;
- 
--		ret = __ocfs2_remove_xattr_range(inode, &vb, cpos,
-+		ret = __ocfs2_remove_xattr_range(inode, vb, cpos,
- 						 phys_cpos, alloc_size,
- 						 ctxt);
- 		if (ret) {
-@@ -738,6 +726,11 @@ static int ocfs2_xattr_value_truncate(struct inode *inode,
- 	int ret;
- 	u32 new_clusters = ocfs2_clusters_for_bytes(inode->i_sb, len);
- 	u32 old_clusters = le32_to_cpu(xv->xr_clusters);
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = root_bh,
-+		.vb_xv = xv,
-+		.vb_access = ocfs2_journal_access,
-+	};
++	u32 old_clusters = le32_to_cpu(vb->vb_xv->xr_clusters);
  
  	if (new_clusters == old_clusters)
  		return 0;
-@@ -745,11 +738,11 @@ static int ocfs2_xattr_value_truncate(struct inode *inode,
+@@ -738,11 +732,11 @@ static int ocfs2_xattr_value_truncate(struct inode *inode,
  	if (new_clusters > old_clusters)
  		ret = ocfs2_xattr_extend_allocation(inode,
  						    new_clusters - old_clusters,
--						    root_bh, xv, ctxt);
-+						    &vb, ctxt);
+-						    &vb, ctxt);
++						    vb, ctxt);
  	else
  		ret = ocfs2_xattr_shrink_size(inode,
  					      old_clusters, new_clusters,
--					      root_bh, xv, ctxt);
-+					      &vb, ctxt);
+-					      &vb, ctxt);
++					      vb, ctxt);
  
  	return ret;
  }
+@@ -1330,6 +1324,10 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
+ 	struct ocfs2_xattr_value_root *xv = NULL;
+ 	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
+ 	int ret = 0;
++	struct ocfs2_xattr_value_buf vb = {
++		.vb_bh = xs->xattr_bh,
++		.vb_access = ocfs2_journal_access
++	};
+ 
+ 	memset(val, 0, size);
+ 	memcpy(val, xi->name, name_len);
+@@ -1340,9 +1338,9 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
+ 	xv->xr_list.l_tree_depth = 0;
+ 	xv->xr_list.l_count = cpu_to_le16(1);
+ 	xv->xr_list.l_next_free_rec = 0;
++	vb.vb_xv = xv;
+ 
+-	ret = ocfs2_xattr_value_truncate(inode, xs->xattr_bh, xv,
+-					 xi->value_len, ctxt);
++	ret = ocfs2_xattr_value_truncate(inode, &vb, xi->value_len, ctxt);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+ 		return ret;
+@@ -1352,7 +1350,7 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
+ 		mlog_errno(ret);
+ 		return ret;
+ 	}
+-	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, xv,
++	ret = __ocfs2_xattr_set_value_outside(inode, ctxt->handle, vb.vb_xv,
+ 					      xi->value, xi->value_len);
+ 	if (ret < 0)
+ 		mlog_errno(ret);
+@@ -1550,9 +1548,12 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 			goto out;
+ 		} else if (!ocfs2_xattr_is_local(xs->here)) {
+ 			/* For existing xattr which has value outside */
+-			struct ocfs2_xattr_value_root *xv = NULL;
+-			xv = (struct ocfs2_xattr_value_root *)(val +
+-				OCFS2_XATTR_SIZE(name_len));
++			struct ocfs2_xattr_value_buf vb = {
++				.vb_bh = xs->xattr_bh,
++				.vb_xv = (struct ocfs2_xattr_value_root *)
++					(val + OCFS2_XATTR_SIZE(name_len)),
++				.vb_access = ocfs2_journal_access,
++			};
+ 
+ 			if (xi->value_len > OCFS2_XATTR_INLINE_SIZE) {
+ 				/*
+@@ -1561,8 +1562,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 				 * then set new value with set_value_outside().
+ 				 */
+ 				ret = ocfs2_xattr_value_truncate(inode,
+-								 xs->xattr_bh,
+-								 xv,
++								 &vb,
+ 								 xi->value_len,
+ 								 ctxt);
+ 				if (ret < 0) {
+@@ -1582,7 +1582,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 
+ 				ret = __ocfs2_xattr_set_value_outside(inode,
+ 								handle,
+-								xv,
++								vb.vb_xv,
+ 								xi->value,
+ 								xi->value_len);
+ 				if (ret < 0)
+@@ -1594,8 +1594,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 				 * just trucate old value to zero.
+ 				 */
+ 				 ret = ocfs2_xattr_value_truncate(inode,
+-								  xs->xattr_bh,
+-								  xv,
++								  &vb,
+ 								  0,
+ 								  ctxt);
+ 				if (ret < 0)
+@@ -1714,15 +1713,17 @@ static int ocfs2_remove_value_outside(struct inode*inode,
+ 		struct ocfs2_xattr_entry *entry = &header->xh_entries[i];
+ 
+ 		if (!ocfs2_xattr_is_local(entry)) {
+-			struct ocfs2_xattr_value_root *xv;
++			struct ocfs2_xattr_value_buf vb = {
++				.vb_bh = bh,
++				.vb_access = ocfs2_journal_access,
++			};
+ 			void *val;
+ 
+ 			val = (void *)header +
+ 				le16_to_cpu(entry->xe_name_offset);
+-			xv = (struct ocfs2_xattr_value_root *)
++			vb.vb_xv = (struct ocfs2_xattr_value_root *)
+ 				(val + OCFS2_XATTR_SIZE(entry->xe_name_len));
+-			ret = ocfs2_xattr_value_truncate(inode, bh, xv,
+-							 0, &ctxt);
++			ret = ocfs2_xattr_value_truncate(inode, &vb, 0, &ctxt);
+ 			if (ret < 0) {
+ 				mlog_errno(ret);
+ 				break;
+@@ -4651,11 +4652,12 @@ static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
+ {
+ 	int ret, offset;
+ 	u64 value_blk;
+-	struct buffer_head *value_bh = NULL;
+-	struct ocfs2_xattr_value_root *xv;
+ 	struct ocfs2_xattr_entry *xe;
+ 	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
+ 	size_t blocksize = inode->i_sb->s_blocksize;
++	struct ocfs2_xattr_value_buf vb = {
++		.vb_access = ocfs2_journal_access,
++	};
+ 
+ 	xe = &xh->xh_entries[xe_off];
+ 
+@@ -4669,11 +4671,11 @@ static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
+ 	/* We don't allow ocfs2_xattr_value to be stored in different block. */
+ 	BUG_ON(value_blk != (offset + OCFS2_XATTR_ROOT_SIZE - 1) / blocksize);
+ 
+-	value_bh = bucket->bu_bhs[value_blk];
+-	BUG_ON(!value_bh);
++	vb.vb_bh = bucket->bu_bhs[value_blk];
++	BUG_ON(!vb.vb_bh);
+ 
+-	xv = (struct ocfs2_xattr_value_root *)
+-		(value_bh->b_data + offset % blocksize);
++	vb.vb_xv = (struct ocfs2_xattr_value_root *)
++		(vb.vb_bh->b_data + offset % blocksize);
+ 
+ 	ret = ocfs2_xattr_bucket_journal_access(ctxt->handle, bucket,
+ 						OCFS2_JOURNAL_ACCESS_WRITE);
+@@ -4691,7 +4693,7 @@ static int ocfs2_xattr_bucket_value_truncate(struct inode *inode,
+ 	 */
+ 	mlog(0, "truncate %u in xattr bucket %llu to %d bytes.\n",
+ 	     xe_off, (unsigned long long)bucket_blkno(bucket), len);
+-	ret = ocfs2_xattr_value_truncate(inode, value_bh, xv, len, ctxt);
++	ret = ocfs2_xattr_value_truncate(inode, &vb, len, ctxt);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out_dirty;
 -- 
 1.5.6
