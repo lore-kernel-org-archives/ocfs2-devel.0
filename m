@@ -1,160 +1,73 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 25 Dec 2008 10:04:39 -0800
-Subject: [Ocfs2-devel] [PATCH 24/35] ocfs2: One more hamming code
-	optimization.
+Date: Thu, 25 Dec 2008 10:04:40 -0800
+Subject: [Ocfs2-devel] [PATCH 25/35] ocfs2/dlm: Fix a race between migrate
+	request and exit domain
 In-Reply-To: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
 References: <1230228290-22803-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1230228290-22803-25-git-send-email-mfasheh@suse.com>
+Message-ID: <1230228290-22803-26-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Sunil Mushran <sunil.mushran@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-From: Joel Becker <joel.becker@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
 
-The previous optimization used a fast find-highest-bit-set operation to
-give us a good starting point in calc_code_bit().  This version lets the
-caller cache the previous code buffer bit offset.  Thus, the next call
-always starts where the last one left off.
+Patch address a racing migrate request message and an exit domain message.
+Instead of blocking exit domains for the duration of the migrate, we ignore
+failure to deliver that message. This is because an exiting domain should
+not have any active locks and thus has no role to play in the migration.
 
-This reduces the calculation another 39%, for a total 80% reduction from
-the original, naive implementation.  At least, on my machine.  This also
-brings the parity calculation to within an order of magnitude of the
-crc32 calculation.
-
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/blockcheck.c |   61 +++++++++++++++---------------------------------
- 1 files changed, 19 insertions(+), 42 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |   23 +++++++++++++++++++----
+ 1 files changed, 19 insertions(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
-index f102ec9..2a947c4 100644
---- a/fs/ocfs2/blockcheck.c
-+++ b/fs/ocfs2/blockcheck.c
-@@ -41,34 +41,6 @@
- 
- 
- /*
-- * Find the log base 2 of 32-bit v.
-- *
-- * Algorithm found on http://graphics.stanford.edu/~seander/bithacks.html,
-- * by Sean Eron Anderson.  Code on the page is in the public domain unless
-- * otherwise noted.
-- *
-- * This particular algorithm is credited to Eric Cole.
-- */
--static int find_highest_bit_set(unsigned int v)
--{
--
--	static const int MultiplyDeBruijnBitPosition[32] =
--	{
--		0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
--		31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
--	};
--
--	v |= v >> 1; /* first round down to power of 2 */
--	v |= v >> 2;
--	v |= v >> 4;
--	v |= v >> 8;
--	v |= v >> 16;
--	v = (v >> 1) + 1;
--
--	return MultiplyDeBruijnBitPosition[(u32)(v * 0x077CB531UL) >> 27];
--}
--
--/*
-  * Calculate the bit offset in the hamming code buffer based on the bit's
-  * offset in the data buffer.  Since the hamming code reserves all
-  * power-of-two bits for parity, the data bit number and the code bit
-@@ -81,10 +53,14 @@ static int find_highest_bit_set(unsigned int v)
-  * so it's a parity bit.  2 is a power of two (2^1), so it's a parity bit.
-  * 3 is not a power of two.  So bit 1 of the data buffer ends up as bit 3
-  * in the code buffer.
-+ *
-+ * The caller can pass in *p if it wants to keep track of the most recent
-+ * number of parity bits added.  This allows the function to start the
-+ * calculation at the last place.
-  */
--static unsigned int calc_code_bit(unsigned int i)
-+static unsigned int calc_code_bit(unsigned int i, unsigned int *p_cache)
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 44f87ca..92fd1d7 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -2949,7 +2949,7 @@ static int dlm_do_migrate_request(struct dlm_ctxt *dlm,
+ 				  struct dlm_node_iter *iter)
  {
--	unsigned int b, p;
-+	unsigned int b, p = 0;
+ 	struct dlm_migrate_request migrate;
+-	int ret, status = 0;
++	int ret, skip, status = 0;
+ 	int nodenum;
  
- 	/*
- 	 * Data bits are 0-based, but we're talking code bits, which
-@@ -92,24 +68,25 @@ static unsigned int calc_code_bit(unsigned int i)
- 	 */
- 	b = i + 1;
+ 	memset(&migrate, 0, sizeof(migrate));
+@@ -2966,12 +2966,27 @@ static int dlm_do_migrate_request(struct dlm_ctxt *dlm,
+ 		    nodenum == new_master)
+ 			continue;
  
--	/*
--	 * As a cheat, we know that all bits below b's highest bit must be
--	 * parity bits, so we can start there.
--	 */
--        p = find_highest_bit_set(b);
-+	/* Use the cache if it is there */
-+	if (p_cache)
-+		p = *p_cache;
-         b += p;
- 
- 	/*
- 	 * For every power of two below our bit number, bump our bit.
- 	 *
--	 * We compare with (b + 1) becuase we have to compare with what b
-+	 * We compare with (b + 1) because we have to compare with what b
- 	 * would be _if_ it were bumped up by the parity bit.  Capice?
- 	 *
--	 * We start p at 2^p because of the cheat above.
-+	 * p is set above.
- 	 */
--	for (p = (1 << p); p < (b + 1); p <<= 1)
-+	for (; (1 << p) < (b + 1); p++)
- 		b++;
- 
-+	if (p_cache)
-+		*p_cache = p;
++		/* We could race exit domain. If exited, skip. */
++		spin_lock(&dlm->spinlock);
++		skip = (!test_bit(nodenum, dlm->domain_map));
++		spin_unlock(&dlm->spinlock);
++		if (skip) {
++			clear_bit(nodenum, iter->node_map);
++			continue;
++		}
 +
- 	return b;
- }
- 
-@@ -126,7 +103,7 @@ static unsigned int calc_code_bit(unsigned int i)
-  */
- u32 ocfs2_hamming_encode(u32 parity, void *data, unsigned int d, unsigned int nr)
- {
--	unsigned int i, b;
-+	unsigned int i, b, p = 0;
- 
- 	BUG_ON(!d);
- 
-@@ -145,7 +122,7 @@ u32 ocfs2_hamming_encode(u32 parity, void *data, unsigned int d, unsigned int nr
- 		 * i is the offset in this hunk, nr + i is the total bit
- 		 * offset.
- 		 */
--		b = calc_code_bit(nr + i);
-+		b = calc_code_bit(nr + i, &p);
- 
- 		/*
- 		 * Data bits in the resultant code are checked by
-@@ -201,7 +178,7 @@ void ocfs2_hamming_fix(void *data, unsigned int d, unsigned int nr,
- 	 * nr + d is the bit right past the data hunk we're looking at.
- 	 * If fix after that, nothing to do
- 	 */
--	if (fix >= calc_code_bit(nr + d))
-+	if (fix >= calc_code_bit(nr + d, NULL))
- 		return;
- 
- 	/*
-@@ -209,7 +186,7 @@ void ocfs2_hamming_fix(void *data, unsigned int d, unsigned int nr,
- 	 * start b at the offset in the code buffer.  See hamming_encode()
- 	 * for a more detailed description of 'b'.
- 	 */
--	b = calc_code_bit(nr);
-+	b = calc_code_bit(nr, NULL);
- 	/* If the fix is before this hunk, nothing to do */
- 	if (fix < b)
- 		return;
+ 		ret = o2net_send_message(DLM_MIGRATE_REQUEST_MSG, dlm->key,
+ 					 &migrate, sizeof(migrate), nodenum,
+ 					 &status);
+-		if (ret < 0)
+-			mlog_errno(ret);
+-		else if (status < 0) {
++		if (ret < 0) {
++			mlog(0, "migrate_request returned %d!\n", ret);
++			if (!dlm_is_host_down(ret)) {
++				mlog(ML_ERROR, "unhandled error=%d!\n", ret);
++				BUG();
++			}
++			clear_bit(nodenum, iter->node_map);
++			ret = 0;
++		} else if (status < 0) {
+ 			mlog(0, "migrate request (node %u) returned %d!\n",
+ 			     nodenum, status);
+ 			ret = status;
 -- 
 1.5.6
