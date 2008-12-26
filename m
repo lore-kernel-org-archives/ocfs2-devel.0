@@ -1,50 +1,37 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 25 Dec 2008 18:29:41 -0800
-Subject: [Ocfs2-devel] [PATCH 23/56] ocfs2: Implementation of local and
- global quota file handling
-In-Reply-To: <20081225002923.GA17410@wotan.suse.de>
-References: <1229982517-3455-1-git-send-email-mfasheh@suse.com>
-	<1229982517-3455-24-git-send-email-mfasheh@suse.com>
-	<20081222161138.779cbffa.akpm@linux-foundation.org>
-	<20081225002923.GA17410@wotan.suse.de>
-Message-ID: <20081225182941.7fdadc83.akpm@linux-foundation.org>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Fri, 26 Dec 2008 14:24:27 -0800
+Subject: [Ocfs2-devel] [PATCH 2/2] features: Make inline-data a default
+	feature
+In-Reply-To: <1230330267-1975-1-git-send-email-mfasheh@suse.com>
+References: <1230330267-1975-1-git-send-email-mfasheh@suse.com>
+Message-ID: <1230330267-1975-2-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, joel.becker@oracle.com, jack@suse.cz
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, 24 Dec 2008 16:29:23 -0800 Mark Fasheh <mfasheh@suse.com> wrote:
+Kernels since 2.6.24 have supported this, I think it's time to make it a
+default feature.
 
-> > 
-> > put_bh() is more efficient and modern, in the case where bh is known to
-> > not be NULL.
-> 
-> How about __brelse()? Won't we lose the ref counting check if we go straight
-> to put_bh()?
-> 
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+---
+ libocfs2/feature_string.c |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-That would work, if you value the debug check.
-
->
-> ...
->
-> > > +/* Write to quotafile (we know the transaction is already started and has
-> > > + * enough credits) */
-> > > +ssize_t ocfs2_quota_write(struct super_block *sb, int type,
-> > > +			  const char *data, size_t len, loff_t off)
-> > > +{
-> > > +	struct mem_dqinfo *info = sb_dqinfo(sb, type);
-> > > +	struct ocfs2_mem_dqinfo *oinfo = info->dqi_priv;
-> > > +	struct inode *gqinode = oinfo->dqi_gqinode;
-> > > +	int offset = off & (sb->s_blocksize - 1);
-> > > +	sector_t blk = off >> sb->s_blocksize_bits;
-> > 
-> > does ocfs2 attempt to support CONFIG_LBD=n?
-> 
-> It should... What's the problem here?
-
-Idle curiosity.  I noticed that the above expression could result in
-truncation when writing a 64-bit value into a 32-bit one, which makes
-one wonder whether this all works and is tested, etc.
+diff --git a/libocfs2/feature_string.c b/libocfs2/feature_string.c
+index 7b1f93e..e6633da 100644
+--- a/libocfs2/feature_string.c
++++ b/libocfs2/feature_string.c
+@@ -62,7 +62,8 @@ static struct feature_level_translation ocfs2_feature_levels_table[] = {
+ 
+ static ocfs2_fs_options feature_level_defaults[] = {
+ 	{OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
+-	 OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC,
++	 OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC |
++	 OCFS2_FEATURE_INCOMPAT_INLINE_DATA,
+ 	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN},  /* OCFS2_FEATURE_LEVEL_DEFAULT */
+ 
+ 	{OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
+-- 
+1.5.6
