@@ -1,66 +1,174 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 26 Dec 2008 14:28:24 -0800
-Subject: [Ocfs2-devel] [PATCH 2/2] features: Make inline-data a default
-	feature
-In-Reply-To: <1230330267-1975-2-git-send-email-mfasheh@suse.com>
-References: <1230330267-1975-1-git-send-email-mfasheh@suse.com>
-	<1230330267-1975-2-git-send-email-mfasheh@suse.com>
-Message-ID: <20081226222824.GD17410@wotan.suse.de>
+Date: Fri, 26 Dec 2008 14:39:04 -0800
+Subject: [Ocfs2-devel] [PATCH] debugfs.ocfs2: Allow dumping dlm locks
+	from a file
+In-Reply-To: <20081205061450.GJ8791@wotan.suse.de>
+References: <20081205061450.GJ8791@wotan.suse.de>
+Message-ID: <20081226223904.GF17410@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 26, 2008 at 02:24:27PM -0800, Mark Fasheh wrote:
-> Kernels since 2.6.24 have supported this, I think it's time to make it a
-> default feature.
-> 
-> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
-
-Whoops, forgot to add inline-data to the list of default features in the
-mkfs.ocfs2 man page... Updated patch attached.
+Anyone get a chance to sob this? It's pretty much a copy of the fs locks
+patch...
 	--Mark
 
-From: Mark Fasheh <mfasheh@suse.com>
-
-[PATCH 2/2] features: Make inline-data a default feature
-
-Kernels since 2.6.24 have supported this, I think it's time to make it a
-default feature.
-
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
----
- libocfs2/feature_string.c  |    3 ++-
- mkfs.ocfs2/mkfs.ocfs2.8.in |    2 +-
- 2 files changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/libocfs2/feature_string.c b/libocfs2/feature_string.c
-index 7b1f93e..e6633da 100644
---- a/libocfs2/feature_string.c
-+++ b/libocfs2/feature_string.c
-@@ -62,7 +62,8 @@ static struct feature_level_translation ocfs2_feature_levels_table[] = {
- 
- static ocfs2_fs_options feature_level_defaults[] = {
- 	{OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
--	 OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC,
-+	 OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC |
-+	 OCFS2_FEATURE_INCOMPAT_INLINE_DATA,
- 	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN},  /* OCFS2_FEATURE_LEVEL_DEFAULT */
- 
- 	{OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
-diff --git a/mkfs.ocfs2/mkfs.ocfs2.8.in b/mkfs.ocfs2/mkfs.ocfs2.8.in
-index 8b5dbed..a89a4d8 100644
---- a/mkfs.ocfs2/mkfs.ocfs2.8.in
-+++ b/mkfs.ocfs2/mkfs.ocfs2.8.in
-@@ -153,7 +153,7 @@ Chooses fewer features but ensures that the file system can be mounted from olde
- .RS 1.2i
- .TP
- \fBdefault\fR
--The default feature set tries to strike a balance between providing new features and maintaining compatibility with relatively recent versions of \fIOCFS2\fR. It currently enables \fBsparse\fR and \fBunwritten\fR.
-+The default feature set tries to strike a balance between providing new features and maintaining compatibility with relatively recent versions of \fIOCFS2\fR. It currently enables \fBsparse\fR, \fBunwritten\fR and \fBinline-data\fR.
- .RE
- .RS 1.2i
- .TP
--- 
-1.5.6
+On Thu, Dec 04, 2008 at 10:14:50PM -0800, Mark Fasheh wrote:
+> This way we can review locking state even if all a customer provides us is
+> the contents of /sys/kernel/debug/o2dlm/locking_state.
+> 
+> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+> ---
+>  debugfs.ocfs2/commands.c               |   36 ++++++++++++++++++++++-------
+>  debugfs.ocfs2/dump_dlm_locks.c         |   38 ++++++++++++++++++++-----------
+>  debugfs.ocfs2/include/dump_dlm_locks.h |    2 +-
+>  3 files changed, 52 insertions(+), 24 deletions(-)
+> 
+> diff --git a/debugfs.ocfs2/commands.c b/debugfs.ocfs2/commands.c
+> index 0e46151..06b6c98 100644
+> --- a/debugfs.ocfs2/commands.c
+> +++ b/debugfs.ocfs2/commands.c
+> @@ -831,7 +831,7 @@ static void do_help (char **args)
+>  	printf ("controld dump\t\t\tObtain information from ocfs2_controld\n");
+>  	printf ("curdev\t\t\t\t\tShow current device\n");
+>  	printf ("decode <lockname#> ...\t\t\tDecode block#(s) from the lockname(s)\n");
+> -	printf ("dlm_locks [-l] lockname\t\t\tShow live dlm locking state\n");
+> +	printf ("dlm_locks [-f <file>] [-l] lockname\t\t\tShow live dlm locking state\n");
+>  	printf ("dump [-p] <filespec> <outfile>\t\tDumps file to outfile on a mounted fs\n");
+>  	printf ("encode <filespec>\t\t\tShow lock name\n");
+>  	printf ("extent <block#>\t\t\t\tShow extent block\n");
+> @@ -1485,26 +1485,44 @@ static void do_dlm_locks(char **args)
+>  	int dump_lvbs = 0;
+>  	int i;
+>  	struct list_head locklist;
+> -
+> -	if (check_device_open())
+> -		return;
+> +	char *path = NULL, *uuid_str = NULL;
+> +	int c, argc;
+>  
+>  	init_stringlist(&locklist);
+>  
+> -	i = 1;
+> -	if (args[i] && strlen(args[i])) {
+> -		if (!strcmp("-l", args[i])) {
+> +	for (argc = 0; (args[argc]); ++argc);
+> +	optind = 0;
+> +
+> +	while ((c = getopt(argc, args, "lf:")) != -1) {
+> +		switch (c) {
+> +		case 'l':
+>  			dump_lvbs = 1;
+> -			i++;
+> +			break;
+> +		case 'f':
+> +			path = optarg;
+> +			break;
+> +		default:
+> +			break;
+>  		}
+> +	}
+> +	if ((path == NULL)) {
+> +		/* Only error for a missing device if we're asked to
+> +		 * read from a live file system. */
+> +		if (check_device_open())
+> +			return;
+> +
+> +		uuid_str = gbls.fs->uuid_str;
+> +	}
+>  
+> +	i = optind;
+> +	if (args[i] && strlen(args[i])) {
+>  		for ( ; args[i] && strlen(args[i]); ++i)
+>  			if (add_to_stringlist(args[i], &locklist))
+>  				break;
+>  	}
+>  
+>  	out = open_pager(gbls.interactive);
+> -	dump_dlm_locks(gbls.fs->uuid_str, out, dump_lvbs, &locklist);
+> +	dump_dlm_locks(uuid_str, out, path, dump_lvbs, &locklist);
+>  	close_pager(out);
+>  
+>  	free_stringlist(&locklist);
+> diff --git a/debugfs.ocfs2/dump_dlm_locks.c b/debugfs.ocfs2/dump_dlm_locks.c
+> index b946821..6344ff1 100644
+> --- a/debugfs.ocfs2/dump_dlm_locks.c
+> +++ b/debugfs.ocfs2/dump_dlm_locks.c
+> @@ -411,7 +411,7 @@ static int get_next_dlm_lockname(FILE *file, char *name, int len)
+>  	return 0;
+>  }
+>  
+> -void dump_dlm_locks(char *uuid, FILE *out, int dump_lvbs,
+> +void dump_dlm_locks(char *uuid, FILE *out, char *path, int dump_lvbs,
+>  		    struct list_head *locklist)
+>  {
+>  	errcode_t ret;
+> @@ -421,20 +421,30 @@ void dump_dlm_locks(char *uuid, FILE *out, int dump_lvbs,
+>  	struct lockres res;
+>  	int show_all_locks = 0;
+>  
+> -	ret = get_debugfs_path(debugfs_path, sizeof(debugfs_path));
+> -	if (ret) {
+> -		fprintf(stderr, "Could not locate debugfs file system. "
+> -			"Perhaps it is not mounted?\n");
+> -		return;
+> -	}
+> +	if (path == NULL) {
+> +		ret = get_debugfs_path(debugfs_path, sizeof(debugfs_path));
+> +		if (ret) {
+> +			fprintf(stderr, "Could not locate debugfs file system. "
+> +				"Perhaps it is not mounted?\n");
+> +			return;
+> +		}
+>  
+> -	ret = open_debugfs_file(debugfs_path, "o2dlm", uuid, "locking_state",
+> -				&file);
+> -	if (ret) {
+> -		fprintf(stderr, "Could not open debug state for \"%s\".\n"
+> -			"Perhaps that OCFS2 file system is not mounted?\n",
+> -			uuid);
+> -		return;
+> +		ret = open_debugfs_file(debugfs_path, "o2dlm", uuid,
+> +					"locking_state", &file);
+> +		if (ret) {
+> +			fprintf(stderr,
+> +				"Could not open debug state for \"%s\".\n"
+> +				"Perhaps that OCFS2 file system is not mounted?\n",
+> +				uuid);
+> +			return;
+> +		}
+> +	} else {
+> +		file = fopen(path, "r");
+> +		if (!file) {
+> +			fprintf(stderr, "Could not open file at \"%s\"\n",
+> +				path);
+> +			return;
+> +		}
+>  	}
+>  
+>  	show_all_locks = list_empty(locklist);
+> diff --git a/debugfs.ocfs2/include/dump_dlm_locks.h b/debugfs.ocfs2/include/dump_dlm_locks.h
+> index 2cbb72a..7bc35ba 100644
+> --- a/debugfs.ocfs2/include/dump_dlm_locks.h
+> +++ b/debugfs.ocfs2/include/dump_dlm_locks.h
+> @@ -74,7 +74,7 @@ struct lock {
+>  	struct list_head list;
+>  };
+>  
+> -void dump_dlm_locks(char *uuid, FILE *out, int dump_lvbs,
+> +void dump_dlm_locks(char *uuid, FILE *out, char *path, int dump_lvbs,
+>  		    struct list_head *locklist);
+>  
+>  #endif		/* _DUMP_DLM_LOCKS_H_ */
+> -- 
+> 1.6.0.2
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+--
+Mark Fasheh
