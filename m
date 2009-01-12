@@ -1,43 +1,212 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 12 Jan 2009 23:20:32 +0100
-Subject: [Ocfs2-devel] [PATCH 4/5] ocfs2: Fix possible deadlock in
-	ocfs2_write_dquot()
-In-Reply-To: <1231798833-6850-4-git-send-email-jack@suse.cz>
+Date: Mon, 12 Jan 2009 23:20:30 +0100
+Subject: [Ocfs2-devel] [PATCH 2/5] ocfs2: Remove ocfs2_dquot_initialize()
+	and ocfs2_dquot_drop()
+In-Reply-To: <1231798833-6850-2-git-send-email-jack@suse.cz>
 References: <y> <1231798833-6850-1-git-send-email-jack@suse.cz>
 	<1231798833-6850-2-git-send-email-jack@suse.cz>
-	<1231798833-6850-3-git-send-email-jack@suse.cz>
-	<1231798833-6850-4-git-send-email-jack@suse.cz>
-Message-ID: <1231798833-6850-5-git-send-email-jack@suse.cz>
+Message-ID: <1231798833-6850-3-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-It could happen that some limit has been set via quotactl() and in parallel
-->mark_dirty() is called from another thread doing e.g. dquot_alloc_space(). In
-such case ocfs2_write_dquot() must not try to sync the dquot because that needs
-global quota lock but that ranks above transaction start.
+Since ->acquire_dquot and ->release_dquot callbacks aren't called under
+dqptr_sem anymore, we don't have to start a transaction and obtain locks
+so early. So we can just remove all this complicated stuff.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/quota_global.c |    4 +++-
- 1 files changed, 3 insertions(+), 1 deletions(-)
+ fs/ocfs2/quota_global.c |  169 +----------------------------------------------
+ 1 files changed, 2 insertions(+), 167 deletions(-)
 
 diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index f4efa89..1ed0f7c 100644
+index 6aff8f2..f4efa89 100644
 --- a/fs/ocfs2/quota_global.c
 +++ b/fs/ocfs2/quota_global.c
-@@ -754,7 +754,9 @@ static int ocfs2_mark_dquot_dirty(struct dquot *dquot)
- 	if (dquot->dq_flags & mask)
- 		sync = 1;
- 	spin_unlock(&dq_data_lock);
--	if (!sync) {
-+	/* This is a slight hack but we can't afford getting global quota
-+	 * lock if we already have a transaction started. */
-+	if (!sync || journal_current_handle()) {
- 		status = ocfs2_write_dquot(dquot);
- 		goto out;
- 	}
+@@ -810,171 +810,6 @@ out:
+ 	return status;
+ }
+ 
+-/* This is difficult. We have to lock quota inode and start transaction
+- * in this function but we don't want to take the penalty of exlusive
+- * quota file lock when we are just going to use cached structures. So
+- * we just take read lock check whether we have dquot cached and if so,
+- * we don't have to take the write lock... */
+-static int ocfs2_dquot_initialize(struct inode *inode, int type)
+-{
+-	handle_t *handle = NULL;
+-	int status = 0;
+-	struct super_block *sb = inode->i_sb;
+-	struct ocfs2_mem_dqinfo *oinfo;
+-	int exclusive = 0;
+-	int cnt;
+-	qid_t id;
+-
+-	mlog_entry_void();
+-
+-	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
+-		if (type != -1 && cnt != type)
+-			continue;
+-		if (!sb_has_quota_active(sb, cnt))
+-			continue;
+-		oinfo = sb_dqinfo(sb, cnt)->dqi_priv;
+-		status = ocfs2_lock_global_qf(oinfo, 0);
+-		if (status < 0)
+-			goto out;
+-		/* This is just a performance optimization not a reliable test.
+-		 * Since we hold an inode lock, noone can actually release
+-		 * the structure until we are finished with initialization. */
+-		if (inode->i_dquot[cnt] != NODQUOT) {
+-			ocfs2_unlock_global_qf(oinfo, 0);
+-			continue;
+-		}
+-		/* When we have inode lock, we know that no dquot_release() can
+-		 * run and thus we can safely check whether we need to
+-		 * read+modify global file to get quota information or whether
+-		 * our node already has it. */
+-		if (cnt == USRQUOTA)
+-			id = inode->i_uid;
+-		else if (cnt == GRPQUOTA)
+-			id = inode->i_gid;
+-		else
+-			BUG();
+-		/* Obtain exclusion from quota off... */
+-		down_write(&sb_dqopt(sb)->dqptr_sem);
+-		exclusive = !dquot_is_cached(sb, id, cnt);
+-		up_write(&sb_dqopt(sb)->dqptr_sem);
+-		if (exclusive) {
+-			status = ocfs2_lock_global_qf(oinfo, 1);
+-			if (status < 0) {
+-				exclusive = 0;
+-				mlog_errno(status);
+-				goto out_ilock;
+-			}
+-			handle = ocfs2_start_trans(OCFS2_SB(sb),
+-					ocfs2_calc_qinit_credits(sb, cnt));
+-			if (IS_ERR(handle)) {
+-				status = PTR_ERR(handle);
+-				mlog_errno(status);
+-				goto out_ilock;
+-			}
+-		}
+-		dquot_initialize(inode, cnt);
+-		if (exclusive) {
+-			ocfs2_commit_trans(OCFS2_SB(sb), handle);
+-			ocfs2_unlock_global_qf(oinfo, 1);
+-		}
+-		ocfs2_unlock_global_qf(oinfo, 0);
+-	}
+-	mlog_exit(0);
+-	return 0;
+-out_ilock:
+-	if (exclusive)
+-		ocfs2_unlock_global_qf(oinfo, 1);
+-	ocfs2_unlock_global_qf(oinfo, 0);
+-out:
+-	mlog_exit(status);
+-	return status;
+-}
+-
+-static int ocfs2_dquot_drop_slow(struct inode *inode)
+-{
+-	int status = 0;
+-	int cnt;
+-	int got_lock[MAXQUOTAS] = {0, 0};
+-	handle_t *handle;
+-	struct super_block *sb = inode->i_sb;
+-	struct ocfs2_mem_dqinfo *oinfo;
+-
+-	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
+-		if (!sb_has_quota_active(sb, cnt))
+-			continue;
+-		oinfo = sb_dqinfo(sb, cnt)->dqi_priv;
+-		status = ocfs2_lock_global_qf(oinfo, 1);
+-		if (status < 0)
+-			goto out;
+-		got_lock[cnt] = 1;
+-	}
+-	handle = ocfs2_start_trans(OCFS2_SB(sb),
+-			ocfs2_calc_qinit_credits(sb, USRQUOTA) +
+-			ocfs2_calc_qinit_credits(sb, GRPQUOTA));
+-	if (IS_ERR(handle)) {
+-		status = PTR_ERR(handle);
+-		mlog_errno(status);
+-		goto out;
+-	}
+-	dquot_drop(inode);
+-	ocfs2_commit_trans(OCFS2_SB(sb), handle);
+-out:
+-	for (cnt = 0; cnt < MAXQUOTAS; cnt++)
+-		if (got_lock[cnt]) {
+-			oinfo = sb_dqinfo(sb, cnt)->dqi_priv;
+-			ocfs2_unlock_global_qf(oinfo, 1);
+-		}
+-	return status;
+-}
+-
+-/* See the comment before ocfs2_dquot_initialize. */
+-static int ocfs2_dquot_drop(struct inode *inode)
+-{
+-	int status = 0;
+-	struct super_block *sb = inode->i_sb;
+-	struct ocfs2_mem_dqinfo *oinfo;
+-	int exclusive = 0;
+-	int cnt;
+-	int got_lock[MAXQUOTAS] = {0, 0};
+-
+-	mlog_entry_void();
+-	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
+-		if (!sb_has_quota_active(sb, cnt))
+-			continue;
+-		oinfo = sb_dqinfo(sb, cnt)->dqi_priv;
+-		status = ocfs2_lock_global_qf(oinfo, 0);
+-		if (status < 0)
+-			goto out;
+-		got_lock[cnt] = 1;
+-	}
+-	/* Lock against anyone releasing references so that when when we check
+-	 * we know we are not going to be last ones to release dquot */
+-	down_write(&sb_dqopt(sb)->dqptr_sem);
+-	/* Urgh, this is a terrible hack :( */
+-	for (cnt = 0; cnt < MAXQUOTAS; cnt++) {
+-		if (inode->i_dquot[cnt] != NODQUOT &&
+-		    atomic_read(&inode->i_dquot[cnt]->dq_count) > 1) {
+-			exclusive = 1;
+-			break;
+-		}
+-	}
+-	if (!exclusive)
+-		dquot_drop_locked(inode);
+-	up_write(&sb_dqopt(sb)->dqptr_sem);
+-out:
+-	for (cnt = 0; cnt < MAXQUOTAS; cnt++)
+-		if (got_lock[cnt]) {
+-			oinfo = sb_dqinfo(sb, cnt)->dqi_priv;
+-			ocfs2_unlock_global_qf(oinfo, 0);
+-		}
+-	/* In case we bailed out because we had to do expensive locking
+-	 * do it now... */
+-	if (exclusive)
+-		status = ocfs2_dquot_drop_slow(inode);
+-	mlog_exit(status);
+-	return status;
+-}
+-
+ static struct dquot *ocfs2_alloc_dquot(struct super_block *sb, int type)
+ {
+ 	struct ocfs2_dquot *dquot =
+@@ -991,8 +826,8 @@ static void ocfs2_destroy_dquot(struct dquot *dquot)
+ }
+ 
+ struct dquot_operations ocfs2_quota_operations = {
+-	.initialize	= ocfs2_dquot_initialize,
+-	.drop		= ocfs2_dquot_drop,
++	.initialize	= dquot_initialize,
++	.drop		= dquot_drop,
+ 	.alloc_space	= dquot_alloc_space,
+ 	.alloc_inode	= dquot_alloc_inode,
+ 	.free_space	= dquot_free_space,
 -- 
 1.6.0.2
