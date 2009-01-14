@@ -1,72 +1,67 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 13 Jan 2009 17:47:20 -0800
-Subject: [Ocfs2-devel] [PATCH 15/15] typos: fix similar typos to successfull
+Date: Tue, 13 Jan 2009 17:47:18 -0800
+Subject: [Ocfs2-devel] [PATCH 13/15] ocfs2/dlm: Fix race during lockres
+	mastery
 In-Reply-To: <1231897640-31410-1-git-send-email-sunil.mushran@oracle.com>
 References: <1231897640-31410-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1231897640-31410-16-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1231897640-31410-14-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Coly Li <coyli@suse.de>
+Mainline commit 7b791d68562e4ce5ab57cbacb10a1ad4ee33956e
 
-Mainline commit 73ac36ea14fd18ea3dc057e41b16ff31a3c0bd5a
+dlm_get_lock_resource() is supposed to return a lock resource with a proper
+master. If multiple concurrent threads attempt to lookup the lockres for the
+same lockid while the lock mastery in underway, one or more threads are likely
+to return a lockres without a proper master.
 
-When I review ocfs2 code, find there are 2 typos to "successfull".  After
-doing grep "successfull " in kernel tree, 22 typos found totally -- great
-minds always think alike :)
+This patch makes the threads wait in dlm_get_lock_resource() while the mastery
+is underway, ensuring all threads return the lockres with a proper master.
 
-This patch fixes all the similar typos. Thanks for Randy's ack and comments.
+This issue is known to be limited to users using the flock() syscall. For all
+other fs operations, the ocfs2 dlmglue layer serializes the dlm op for each
+lockid.
 
-Signed-off-by: Coly Li <coyli@suse.de>
-Acked-by: Randy Dunlap <randy.dunlap@oracle.com>
-Acked-by: Roland Dreier <rolandd@cisco.com>
-Cc: Jeremy Kerr <jk@ozlabs.org>
-Cc: Jeff Garzik <jeff@garzik.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Theodore Ts'o <tytso@mit.edu>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Vlad Yasevich <vladislav.yasevich@hp.com>
-Cc: Sridhar Samudrala <sri@us.ibm.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Users encountering this bug will see flock() return EINVAL and dmesg have the
+following error:
+ERROR: Dlm error "DLM_BADARGS" while calling dlmlock on resource <LOCKID>: bad api args
+
+Reported-by: Coly Li <coyli@suse.de>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlmglue.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |    9 ++++++++-
+ 1 files changed, 8 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index fce142b..7eceb0a 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -978,7 +978,7 @@ static int ocfs2_lock_create(struct ocfs2_super *osb,
- 		ocfs2_recover_from_dlm_error(lockres, 1);
- 	}
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index ec52d90..b0ea529 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -732,14 +732,21 @@ lookup:
+ 	if (tmpres) {
+ 		int dropping_ref = 0;
  
--	mlog(0, "lock %s, successfull return from dlmlock\n", lockres->l_name);
-+	mlog(0, "lock %s, successful return from dlmlock\n", lockres->l_name);
++		spin_unlock(&dlm->spinlock);
++
+ 		spin_lock(&tmpres->spinlock);
++		/* We wait for the other thread that is mastering the resource */
++		if (tmpres->owner == DLM_LOCK_RES_OWNER_UNKNOWN) {
++			__dlm_wait_on_lockres(tmpres);
++			BUG_ON(tmpres->owner == DLM_LOCK_RES_OWNER_UNKNOWN);
++		}
++
+ 		if (tmpres->owner == dlm->node_num) {
+ 			BUG_ON(tmpres->state & DLM_LOCK_RES_DROPPING_REF);
+ 			dlm_lockres_grab_inflight_ref(dlm, tmpres);
+ 		} else if (tmpres->state & DLM_LOCK_RES_DROPPING_REF)
+ 			dropping_ref = 1;
+ 		spin_unlock(&tmpres->spinlock);
+-		spin_unlock(&dlm->spinlock);
  
- bail:
- 	mlog_exit(ret);
-@@ -1189,7 +1189,7 @@ again:
- 			goto out;
- 		}
- 
--		mlog(0, "lock %s, successfull return from dlmlock\n",
-+		mlog(0, "lock %s, successful return from dlmlock\n",
- 		     lockres->l_name);
- 
- 		/* At this point we've gone inside the dlm and need to
-@@ -2837,7 +2837,7 @@ static int ocfs2_drop_lock(struct ocfs2_super *osb,
- 		dlm_print_one_lock(lockres->l_lksb.lockid);
- 		BUG();
- 	}
--	mlog(0, "lock %s, successfull return from dlmunlock\n",
-+	mlog(0, "lock %s, successful return from dlmunlock\n",
- 	     lockres->l_name);
- 
- 	ocfs2_wait_on_busy_lock(lockres);
+ 		/* wait until done messaging the master, drop our ref to allow
+ 		 * the lockres to be purged, start over. */
 -- 
 1.5.6.3
