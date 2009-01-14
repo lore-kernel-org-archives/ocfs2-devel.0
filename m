@@ -1,67 +1,43 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 13 Jan 2009 17:47:18 -0800
-Subject: [Ocfs2-devel] [PATCH 13/15] ocfs2/dlm: Fix race during lockres
-	mastery
+Date: Tue, 13 Jan 2009 17:47:16 -0800
+Subject: [Ocfs2-devel] [PATCH 11/15] ocfs2/dlm: Hold off sending lockres
+	drop ref message while lockres is migrating
 In-Reply-To: <1231897640-31410-1-git-send-email-sunil.mushran@oracle.com>
 References: <1231897640-31410-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1231897640-31410-14-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1231897640-31410-12-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 7b791d68562e4ce5ab57cbacb10a1ad4ee33956e
+Mainline commit d4f7e650e55af6b235871126f747da88600e8040
 
-dlm_get_lock_resource() is supposed to return a lock resource with a proper
-master. If multiple concurrent threads attempt to lookup the lockres for the
-same lockid while the lock mastery in underway, one or more threads are likely
-to return a lockres without a proper master.
+During lockres purge, o2dlm sends a drop reference message to the lockres
+master. This patch delays the message if the lockres is being migrated.
 
-This patch makes the threads wait in dlm_get_lock_resource() while the mastery
-is underway, ensuring all threads return the lockres with a proper master.
+Fixes oss bugzilla#1012
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1012
 
-This issue is known to be limited to users using the flock() syscall. For all
-other fs operations, the ocfs2 dlmglue layer serializes the dlm op for each
-lockid.
-
-Users encountering this bug will see flock() return EINVAL and dmesg have the
-following error:
-ERROR: Dlm error "DLM_BADARGS" while calling dlmlock on resource <LOCKID>: bad api args
-
-Reported-by: Coly Li <coyli@suse.de>
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlm/dlmmaster.c |    9 ++++++++-
- 1 files changed, 8 insertions(+), 1 deletions(-)
+ fs/ocfs2/dlm/dlmthread.c |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index ec52d90..b0ea529 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -732,14 +732,21 @@ lookup:
- 	if (tmpres) {
- 		int dropping_ref = 0;
+diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+index 4060bb3..d129520 100644
+--- a/fs/ocfs2/dlm/dlmthread.c
++++ b/fs/ocfs2/dlm/dlmthread.c
+@@ -181,7 +181,8 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
  
-+		spin_unlock(&dlm->spinlock);
-+
- 		spin_lock(&tmpres->spinlock);
-+		/* We wait for the other thread that is mastering the resource */
-+		if (tmpres->owner == DLM_LOCK_RES_OWNER_UNKNOWN) {
-+			__dlm_wait_on_lockres(tmpres);
-+			BUG_ON(tmpres->owner == DLM_LOCK_RES_OWNER_UNKNOWN);
-+		}
-+
- 		if (tmpres->owner == dlm->node_num) {
- 			BUG_ON(tmpres->state & DLM_LOCK_RES_DROPPING_REF);
- 			dlm_lockres_grab_inflight_ref(dlm, tmpres);
- 		} else if (tmpres->state & DLM_LOCK_RES_DROPPING_REF)
- 			dropping_ref = 1;
- 		spin_unlock(&tmpres->spinlock);
--		spin_unlock(&dlm->spinlock);
+ 		spin_lock(&res->spinlock);
+ 		/* This ensures that clear refmap is sent after the set */
+-		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_SETREF_INPROG);
++		__dlm_wait_on_lockres_flags(res, (DLM_LOCK_RES_SETREF_INPROG |
++						  DLM_LOCK_RES_MIGRATING));
+ 		spin_unlock(&res->spinlock);
  
- 		/* wait until done messaging the master, drop our ref to allow
- 		 * the lockres to be purged, start over. */
+ 		/* clear our bit from the master's refmap, ignore errors */
 -- 
 1.5.6.3
