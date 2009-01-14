@@ -1,88 +1,49 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 13 Jan 2009 17:47:06 -0800
-Subject: [Ocfs2-devel] [PATCH 01/15] ocfs2: Fix check of return value of
-	ocfs2_start_trans()
+Date: Tue, 13 Jan 2009 17:47:10 -0800
+Subject: [Ocfs2-devel] [PATCH 05/15] ocfs2: return 0 in page_mkwrite to let
+	VFS retry.
 In-Reply-To: <1231897640-31410-1-git-send-email-sunil.mushran@oracle.com>
 References: <1231897640-31410-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1231897640-31410-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1231897640-31410-6-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Jan Kara <jack@suse.cz>
+From: Tao Ma <tao.ma@oracle.com>
 
-Mainline commit fa38e92cb34e27e60d0faf1035934eb9b44aa1d4
+Mainline commit 4c1bbf1ba631d7db61ce3462349a3f5d14ae3009
 
-On failure, ocfs2_start_trans() returns values like ERR_PTR(-ENOMEM).
-Thus checks for !handle are wrong. Fix them to use IS_ERR().
+In ocfs2_page_mkwrite, we return -EINVAL when we found the page mapping
+isn't updated, and it will cause the user space program get SIGBUS and
+exit. The reason is that during race writeable mmap, we will do
+unmap_mapping_range in ocfs2_data_downconvert_worker. The good thing is
+that if we reuturn 0 in page_mkwrite, VFS will retry fault and then
+call page_mkwrite again, so it is safe to return 0 here.
 
-Signed-off-by: Jan Kara <jack@suse.cz>
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/file.c |   20 ++++++++++----------
- 1 files changed, 10 insertions(+), 10 deletions(-)
+ fs/ocfs2/mmap.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 6877dea..2871b45 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -252,8 +252,8 @@ int ocfs2_update_inode_atime(struct inode *inode,
- 	mlog_entry_void();
- 
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
+diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+index ff5dc1d..4a07c4a 100644
+--- a/fs/ocfs2/mmap.c
++++ b/fs/ocfs2/mmap.c
+@@ -147,7 +147,11 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
+ 	 * ocfs2_write_begin_nolock().
+ 	 */
+ 	if (!PageUptodate(page) || page->mapping != inode->i_mapping) {
+-		ret = -EINVAL;
++		/*
++		 * the page has been umapped in ocfs2_data_downconvert_worker.
++		 * So return 0 here and let VFS retry.
++		 */
++		ret = 0;
  		goto out;
- 	}
-@@ -317,8 +317,8 @@ static int ocfs2_simple_size_update(struct inode *inode,
- 	handle_t *handle = NULL;
- 
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
-@@ -1212,8 +1212,8 @@ static int __ocfs2_write_remove_suid(struct inode *inode,
- 		   (unsigned long long)OCFS2_I(inode)->ip_blkno, inode->i_mode);
- 
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
-@@ -1415,8 +1415,8 @@ static int __ocfs2_remove_inode_range(struct inode *inode,
  	}
  
- 	handle = ocfs2_start_trans(osb, OCFS2_REMOVE_EXTENT_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
-@@ -1508,8 +1508,8 @@ static int ocfs2_zero_partial_clusters(struct inode *inode,
- 		goto out;
- 
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
--	if (handle == NULL) {
--		ret = -ENOMEM;
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
- 		goto out;
- 	}
 -- 
 1.5.6.3
