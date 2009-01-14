@@ -1,57 +1,102 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 14 Jan 2009 12:24:27 +0100
-Subject: [Ocfs2-devel] [PATCH 0/5] OCFS2 quota fixes
-In-Reply-To: <1231897864.6716.1.camel@tristan-laptop.cn.oracle.com>
-References: <1231798833-6850-1-git-send-email-jack@suse.cz>
-	<496C2E20.2040705@oracle.com> <20090113111950.GA10064@duck.suse.cz>
-	<1231897864.6716.1.camel@tristan-laptop.cn.oracle.com>
-Message-ID: <20090114112427.GB19950@duck.suse.cz>
+From: Bret Palsson <bret@getjive.com>
+Date: Wed, 14 Jan 2009 13:34:07 -0700
+Subject: [Ocfs2-devel] Transport endpoint is not connected while mounting....
+Message-ID: <37791C54-243B-403A-A38D-7EC35101A9AA@getjive.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed 14-01-09 09:51:04, tristan.ye wrote:
-> On Tue, 2009-01-13 at 12:19 +0100, Jan Kara wrote:
-> > Hello,
-> > 
-> > On Tue 13-01-09 14:01:04, tristan.ye wrote:
-> > > Jan Kara wrote:
-> > >> the following series of patches fixes some issues with OCFS2 quotas.
-> > >> The first patch modifies VFS quota locking, the next patch uses the
-> > >> fact to simplify OCFS2 quota locking and solves a few deadlock issues.
-> > >> The third and the fourth patches fix another possible deadlocks in OCFS2
-> > >> quota code and the last patch is a minor cleanup.
-> > >>   
-> > > Hi Jan,
-> > >
-> > > Would you like to show me the kernel tree/branch where your patches're 
-> > > going to be applied?
-> >   I've generated the patches against a master branch of Mark's git as of
-> > yesterday. But they aren't very intrusive so I guess they should apply also
-> > to other branches just fine.
-> > 
-> > > Btw, I'm also wondering if your latest patches which resolves some deadlock 
-> > > issues can also be applicable for bug 1043&1067(deadlock on inode removal) 
-> > > on bugzilla:
-> > > http://oss.oracle.com/bugzilla/show_bug.cgi?id=1043
-> >   Yes, they're exactly meant to solve these issues. I'm not able to trigger
-> > the deadlock with these patches anymore. I was to tired to update the
-> > bugzilla yesterday evening, I wanted to do it when Mark takes the patches.
-> > 
-> > > At last, It will be greatly appreciated if you can offer me your newly 
-> > > released quota-tools for OCFS2. Just simply attach the src tarball in 
-> > > replying mail is OK, or let me know the URL where your quota-tools for 
-> > > OCFS2 released:-)
-> >   You can download the source tarball from quota-tools Sourceforge pages:
-> > http://sourceforge.net/project/showfiles.php?group_id=18136&package_id=13522
-> 
-> The quota-tools above was not ocfs2-specific?  it's generic for both
-> ext3 and ocfs2? right?
-  Yes. I've merged changes needed for OCFS2 to general quota tools.
+Does anyone have any idea what to try next? Here are the steps I have  
+taken and the problem:     (I wanted to post my question on the first  
+line before I explained the problem and what I have tried)
 
-								Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+----------
+
+Node 0 has the file system mounted just fine and works great.
+
+When trying to mount on Node 1: `mount.ocfs2 /dev/mapper/data /cluster/ 
+data`  I get this error after about 30 seconds: mount.ocfs2: Transport  
+endpoint is not connected while mounting /dev/mapper/data on /cluster/ 
+data. Check 'dmesg' for more information on this error.
+
+
+Here is the output of dmesg:
+(3130,1):o2net_connect_expired:1659 ERROR: no connection established  
+with node 0 after 30.0 seconds, giving up and returning errors.
+(4670,1):dlm_request_join:1033 ERROR: status = -107
+(4670,1):dlm_try_to_join_domain:1207 ERROR: status = -107
+(4670,1):dlm_join_domain:1485 ERROR: status = -107
+(4670,1):dlm_register_domain:1732 ERROR: status = -107
+(4670,1):o2cb_cluster_connect:302 ERROR: status = -107
+(4670,1):ocfs2_dlm_init:2753 ERROR: status = -107
+(4670,1):ocfs2_mount_volume:1274 ERROR: status = -107
+ocfs2: Unmounting device (253,2) on (node 0)
+(3130,0):o2net_connect_expired:1659 ERROR: no connection established  
+with node 0 after 30.0 seconds, giving up and returning errors.
+(5558,1):dlm_request_join:1033 ERROR: status = -107
+(5558,1):dlm_try_to_join_domain:1207 ERROR: status = -107
+(5558,1):dlm_join_domain:1485 ERROR: status = -107
+(5558,1):dlm_register_domain:1732 ERROR: status = -107
+(5558,1):o2cb_cluster_connect:302 ERROR: status = -107
+(5558,1):ocfs2_dlm_init:2753 ERROR: status = -107
+(5558,1):ocfs2_mount_volume:1274 ERROR: status = -107
+ocfs2: Unmounting device (253,2) on (node 0)
+
+
+So I figured that It must be a firewall issue. I first disabled  
+iptables on both machines and got the same results so I started ip  
+talbes adding an exception on both machines: `iptables -A INPUT -p tcp  
+--dport 7777 -j ACCEPT ; service iptables save`
+
+The machines can ping each other. and they have the exact same config:
+cluster:
+	node_count = 2
+	name = ocfs2
+node:
+	ip_port = 7777
+	ip_address = 10.128.255.3
+	number = 0
+	name = m3.c12.jiveip.net
+	cluster = ocfs2
+node:
+	ip_port = 7777
+	ip_address = 10.128.7.33
+	number = 1
+	name = pbx_33.c12.jiveip.net
+	cluster = ocfs2
+
+
+I then decided to use tcpdump to see what's up (on both machines):
+`tcpdump -i eth0 port 7777 -v`
+
+Here is a TCP dump showing port 7777 is not blocked (I added an  
+exception in IP tables)
+(Node 0)
+13:13:11.711539 IP (tos 0x0, ttl  64, id 18286, offset 0, flags [DF],  
+proto: TCP (6), length: 60) 10.128.7.33.47601 > 10.128.255.3.cbt: S,  
+cksum 0xd272 (correct), 3820380795:3820380795(0) win 5840 <mss  
+1460,sackOK,timestamp 4294911253 0,nop,wscale 6>
+13:13:14.710703 IP (tos 0x0, ttl  64, id 18287, offset 0, flags [DF],  
+proto: TCP (6), length: 60) 10.128.7.33.47601 > 10.128.255.3.cbt: S,  
+cksum 0xc6ba (correct), 3820380795:3820380795(0) win 5840 <mss  
+1460,sackOK,timestamp 4294914253 0,nop,wscale 6>
+13:13:14.711213 IP (tos 0x0, ttl  64, id 2241, offset 0, flags [DF],  
+proto: TCP (6), length: 60) 10.128.7.33.54763 > 10.128.255.3.cbt: S,  
+cksum 0xd2ae (correct), 3862378508:3862378508(0) win 5840 <mss  
+1460,sackOK,timestamp 4294914253 0,nop,wscale 6>
+
+(Node 1)
+13:13:09.956999 IP (tos 0x0, ttl  64, id 18286, offset 0, flags [DF],  
+proto: TCP (6), length: 60) 10.128.7.33.47601 > 10.128.255.3.cbt: S,  
+cksum 0xd272 (correct), 3820380795:3820380795(0) win 5840 <mss  
+1460,sackOK,timestamp 4294911253 0,nop,wscale 6>
+13:13:12.956999 IP (tos 0x0, ttl  64, id 18287, offset 0, flags [DF],  
+proto: TCP (6), length: 60) 10.128.7.33.47601 > 10.128.255.3.cbt: S,  
+cksum 0xc6ba (correct), 3820380795:3820380795(0) win 5840 <mss  
+1460,sackOK,timestamp 4294914253 0,nop,wscale 6>
+13:13:12.956999 IP (tos 0x0, ttl  64, id 2241, offset 0, flags [DF],  
+proto: TCP (6), length: 60) 10.128.7.33.54763 > 10.128.255.3.cbt: S,  
+cksum 0xd2ae (correct), 3862378508:3862378508(0) win 5840 <mss  
+1460,sackOK,timestamp 4294914253 0,nop,wscale 6>
