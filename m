@@ -1,107 +1,158 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 16 Jan 2009 05:58:39 +0800
-Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: Inode Allocation Strategy
-	Improvement.v2
-Message-ID: <1232056719-27716-1-git-send-email-tao.ma@oracle.com>
+Date: Fri, 16 Jan 2009 06:00:38 +0800
+Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: Optimize inode allocation by
+	remembering last group.
+In-Reply-To: <1232056719-27716-1-git-send-email-tao.ma@oracle.com>
+References: <1232056719-27716-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <1232056840-27736-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Changelog from V1 to V2:
-1. Modify some codes according to Mark's advice.
-2. Attach some test statistics in the commit log of patch 3 and in
-this e-mail also. See below.
+In ocfs2, the inode block search looks for the "emptiest" inode
+group to allocate from. So if an inode alloc file has many equally
+(or almost equally) empty groups, new inodes will tend to get
+spread out amongst them, which in turn can put them all over the
+disk. This is undesirable because directory operations on conceptually
+"nearby" inodes force a large number of seeks.
 
-Hi all,
-	In ocfs2, when we create a fresh file system and create inodes in it, 
-they are contiguous and good for readdir+stat. While if we delete all 
-the inodes and created again, the new inodes will get spread out and 
-that isn't what we need. The core problem here is that the inode block 
-search looks for the "emptiest" inode group to allocate from. So if an 
-inode alloc file has many equally (or almost equally) empty groups, new 
-inodes will tend to get spread out amongst them, which in turn can put 
-them all over the disk. This is undesirable because directory operations 
-on conceptually "nearby" inodes force a large number of seeks. For more 
-details, please see 
-http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy. 
-
-So this patch set try to fix this problem.
-patch 1: Optimize inode allocation by remembering last group.
-We add ip_last_used_group in core directory inodes which records
+So we add ip_last_used_group in core directory inodes which records
 the last used allocation group. Another field named ip_last_used_slot
 is also added in case inode stealing happens. When claiming new inode,
 we passed in directory's inode so that the allocation can use this
 information.
+For more details, please see
+http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy.
 
-patch 2: let the Inode group allocs use the global bitmap directly.
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/inode.c    |    2 ++
+ fs/ocfs2/inode.h    |    4 ++++
+ fs/ocfs2/namei.c    |    4 ++--
+ fs/ocfs2/suballoc.c |   36 ++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/suballoc.h |    2 ++
+ 5 files changed, 46 insertions(+), 2 deletions(-)
 
-patch 3: we add osb_last_alloc_group in ocfs2_super to record the last
-used allocation group so that we can make inode groups contiguous enough.
-
-I have done some basic test and the results are cool.
-1. single node test:
-first column is the result without inode allocation patches, and the
-second one with inode allocation patched enabled. You see we have
-great improvement with the second "ls -lR".
-
-echo 'y'|mkfs.ocfs2 -b 4K -C 4K -M local /dev/sda11
-
-mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-time tar jxvf /home/taoma/linux-2.6.28.tar.bz2 -C /mnt/ocfs2/ 1>/dev/null
-
-real	0m20.548s 0m20.106s
-
-umount /mnt/ocfs2/
-echo 2 > /proc/sys/vm/drop_caches
-mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-time ls -lR /mnt/ocfs2/ 1>/dev/null
-
-real	0m13.965s 0m13.766s
-
-umount /mnt/ocfs2/
-echo 2 > /proc/sys/vm/drop_caches
-mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-time rm /mnt/ocfs2/linux-2.6.28/ -rf
-
-real	0m13.198s 0m13.091s
-
-umount /mnt/ocfs2/
-echo 2 > /proc/sys/vm/drop_caches
-mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-time tar jxvf /home/taoma/linux-2.6.28.tar.bz2 -C /mnt/ocfs2/ 1>/dev/null
-
-real	0m23.022s 0m21.360s
-
-umount /mnt/ocfs2/
-echo 2 > /proc/sys/vm/drop_caches
-mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-time ls -lR /mnt/ocfs2/ 1>/dev/null
-
-real	2m45.189s 0m15.019s 
-yes, that is it. ;) I don't know we can improve so much when I start up.
-
-2. Tested with 4 nodes(megabyte switch for both cross-node
-communication and iscsi), with the same command sequence(using
-openmpi to run the command simultaneously). Although we spend
-a lot of time in cross-node communication, we still have some
-performance improvement.
-
-the 1st tar:
-real	356.22s  357.70s
-
-the 1st ls -lR:
-real	187.33s  187.32s
-
-the rm:
-real	260.68s  262.42s
-
-the 2nd tar:
-real	371.92s  358.47s
-
-the 2nd ls:
-real	197.16s  188.36s
-
-Regards,
-Tao
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 229e707..0435000 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -351,6 +351,8 @@ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 
+ 	ocfs2_set_inode_flags(inode);
+ 
++	OCFS2_I(inode)->ip_last_used_slot = 0;
++	OCFS2_I(inode)->ip_last_used_group = 0;
+ 	mlog_exit_void();
+ }
+ 
+diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+index eb3c302..e1978ac 100644
+--- a/fs/ocfs2/inode.h
++++ b/fs/ocfs2/inode.h
+@@ -72,6 +72,10 @@ struct ocfs2_inode_info
+ 
+ 	struct inode			vfs_inode;
+ 	struct jbd2_inode		ip_jinode;
++
++	/* Only valid if the inode is the dir. */
++	u32				ip_last_used_slot;
++	u64				ip_last_used_group;
+ };
+ 
+ /*
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 084aba8..9372b23 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -469,8 +469,8 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 
+ 	*new_fe_bh = NULL;
+ 
+-	status = ocfs2_claim_new_inode(osb, handle, inode_ac, &suballoc_bit,
+-				       &fe_blkno);
++	status = ocfs2_claim_new_inode(osb, handle, dir, parent_fe_bh,
++				       inode_ac, &suballoc_bit, &fe_blkno);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto leave;
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index a696286..487f00c 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1618,8 +1618,41 @@ bail:
+ 	return status;
+ }
+ 
++static void ocfs2_init_inode_ac_group(struct inode *dir,
++				      struct buffer_head *parent_fe_bh,
++				      struct ocfs2_alloc_context *ac)
++{
++	struct ocfs2_dinode *fe = (struct ocfs2_dinode *)parent_fe_bh->b_data;
++	/*
++	 * Try to allocate inodes from some specific group.
++	 *
++	 * If the parent dir has recorded the last group used in allocation,
++	 * cool, use it. Otherwise if we try to allocate new inode from the
++	 * same slot the parent dir belongs to, use the same chunk.
++	 *
++	 * We are very careful here to avoid the mistake of setting
++	 * ac_last_group to a group descriptor from a different (unlocked) slot.
++	 */
++	if (OCFS2_I(dir)->ip_last_used_group &&
++	    OCFS2_I(dir)->ip_last_used_slot == ac->ac_alloc_slot)
++		ac->ac_last_group = OCFS2_I(dir)->ip_last_used_group;
++	else if (le16_to_cpu(fe->i_suballoc_slot) == ac->ac_alloc_slot)
++		ac->ac_last_group = ocfs2_which_suballoc_group(
++					le64_to_cpu(fe->i_blkno),
++					le16_to_cpu(fe->i_suballoc_bit));
++}
++
++static inline void ocfs2_save_inode_ac_group(struct inode *dir,
++					     struct ocfs2_alloc_context *ac)
++{
++	OCFS2_I(dir)->ip_last_used_group = ac->ac_last_group;
++	OCFS2_I(dir)->ip_last_used_slot = ac->ac_alloc_slot;
++}
++
+ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
+ 			  handle_t *handle,
++			  struct inode *dir,
++			  struct buffer_head *parent_fe_bh,
+ 			  struct ocfs2_alloc_context *ac,
+ 			  u16 *suballoc_bit,
+ 			  u64 *fe_blkno)
+@@ -1635,6 +1668,8 @@ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
+ 	BUG_ON(ac->ac_bits_wanted != 1);
+ 	BUG_ON(ac->ac_which != OCFS2_AC_USE_INODE);
+ 
++	ocfs2_init_inode_ac_group(dir, parent_fe_bh, ac);
++
+ 	status = ocfs2_claim_suballoc_bits(osb,
+ 					   ac,
+ 					   handle,
+@@ -1653,6 +1688,7 @@ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
+ 
+ 	*fe_blkno = bg_blkno + (u64) (*suballoc_bit);
+ 	ac->ac_bits_given++;
++	ocfs2_save_inode_ac_group(dir, ac);
+ 	status = 0;
+ bail:
+ 	mlog_exit(status);
+diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+index e3c13c7..ea85a4c 100644
+--- a/fs/ocfs2/suballoc.h
++++ b/fs/ocfs2/suballoc.h
+@@ -88,6 +88,8 @@ int ocfs2_claim_metadata(struct ocfs2_super *osb,
+ 			 u64 *blkno_start);
+ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
+ 			  handle_t *handle,
++			  struct inode *dir,
++			  struct buffer_head *parent_fe_bh,
+ 			  struct ocfs2_alloc_context *ac,
+ 			  u16 *suballoc_bit,
+ 			  u64 *fe_blkno);
+-- 
+1.5.5
