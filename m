@@ -1,16 +1,17 @@
 From: Coly Li <coly.li@suse.de>
-Date: Fri, 16 Jan 2009 03:07:03 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: return f_fsid info in ocfs2_statfs()
-Message-ID: <496F8957.3000201@suse.de>
+Date: Fri, 16 Jan 2009 03:20:12 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: return f_fsid info in ocfs2_statfs(),
+	v2
+Message-ID: <496F8C6C.4020305@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Currently f_fsid of struct kstatfs returned from ocfs2_statfs() is undefined (at least it should be
-filled with 0). Since in some conditions, f_fsid value might be used as (f_fsid, ino) pare to
-uniquely identify a file, ocfs2 should return a defined unique f_fsid value from ocfs2_statfs().
+Currently f_fsid of struct kstatfs returned from ocfs2_statfs() is undefined (vfs layer fills 0 as
+default). Since in some conditions, f_fsid value might be used as (f_fsid, ino) pair to
+uniquely identify a file, ocfs2 should return a unique defined f_fsid value from ocfs2_statfs().
 
 This patch uses uuid_hash as a unique ID to initiate f_fsid value, the 32bits width is enough for
 ocfs2 membership so far.
