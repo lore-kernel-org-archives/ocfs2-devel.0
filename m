@@ -1,75 +1,27 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 14 Jan 2009 17:59:22 -0800
-Subject: [Ocfs2-devel] Bug in inode deletion code leading to stale inodes
-In-Reply-To: <20090112220635.GD31811@duck.suse.cz>
-References: <20090112220635.GD31811@duck.suse.cz>
-Message-ID: <20090115015922.GZ17410@wotan.suse.de>
+Date: Wed, 14 Jan 2009 18:19:38 -0800
+Subject: [Ocfs2-devel] [PATCH 0/5] OCFS2 quota fixes
+In-Reply-To: <1231798833-6850-1-git-send-email-jack@suse.cz>
+References: <1231798833-6850-1-git-send-email-jack@suse.cz>
+Message-ID: <20090115021938.GA17410@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jan 12, 2009 at 11:06:35PM +0100, Jan Kara wrote:
->   I've hit a bug in OCFS2 delete code which results in inodes being left on
-> disk without any links to them. The workload triggering this creates
-> directories on one node and deletes them on another node in the cluster.
-> The inode is not deleted because both nodes bail out from
-> ocfs2_delete_inode() with:
-> Skipping delete of 100405 because it is in use on other nodes
+On Mon, Jan 12, 2009 at 11:20:28PM +0100, Jan Kara wrote:
+> Hello,
 > 
->   The scenario which I think is happening is as follows:
-> 
->   node1					node2
-> 					rmdir("d");
-> 					  ocfs2_remote_dentry_delete()
->   ocfs2_dentry_convert_worker()
-> 					  finishes ocfs2_unlink()
-> 					  eventually enters ocfs2_delete_inode()
-> 					    ocfs2_inode_lock()
-> 					    ocfs2_query_inode_wipe() -> fail
-> 					    ocfs2_inode_unlock()
->   ocfs2_dentry_post_unlock()
->     ocfs2_drop_dentry_lock()
->       iput()
->        ocfs2_delete_inode()
->          ocfs2_inode_lock()
-> 	 ocfs2_query_inode_wipe() -> fail
-> 	 ocfs2_inode_unlock()
->          clear_inode()
-> 					    clear_inode()
+> the following series of patches fixes some issues with OCFS2 quotas.
+> The first patch modifies VFS quota locking, the next patch uses the
+> fact to simplify OCFS2 quota locking and solves a few deadlock issues.
+> The third and the fourth patches fix another possible deadlocks in OCFS2
+> quota code and the last patch is a minor cleanup.
+Ok, patches 1-4 are in Ocfs2.git. I think we should send them upstream
+during this cycle. Do you want to post these on linux-fsdevel too?
+        --Mark        
 
-FWIW, your analysis looks correct to me.
-
-
->   The question is how to avoid this. It seems to me that we have to really
-> do open_lock() and not just trylock to avoid the race. Is there any reason
-> why we cannot move the open_lock() before inode_lock() in
-> ocfs2_delete_inode()?
-
-We can't do that because open_lock() will deadlock with nodes still using
-the inode.
-
-The way the open lock works is that each node takes a RO on it when the
-inode is instantiated. That PR is dropped in ocfs2_clear_inode(). If a node
-wants to delete an inode, it will trylock at EX to see if any other nodes
-have an active lock.
-
-
-I think we have to look at how the downconvert thread deals with these
-locks. Either we push some parts to a work queue, or we figure out how to
-reorder some of the operations.
-
-The problem with pushing off to a work queue, is we run the risk of slowing
-down unlink related ops. Pushing the dentry downconvert away will result in
-high unlink() latency, while pushing the final iput() away runs the risk of
-bouncing the orphan dir lock (if the iput() comes after the deleting nodes
-query in ->delete_inode())
-
-
-Do you think there's a way we could just reverse the order - iput the inode,
-BEFORE downconverting the dentry lock?
-	--Mark
 
 --
 Mark Fasheh
