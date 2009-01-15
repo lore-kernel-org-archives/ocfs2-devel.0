@@ -1,102 +1,75 @@
-From: Bret Palsson <bret@getjive.com>
-Date: Wed, 14 Jan 2009 13:34:07 -0700
-Subject: [Ocfs2-devel] Transport endpoint is not connected while mounting....
-Message-ID: <37791C54-243B-403A-A38D-7EC35101A9AA@getjive.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 14 Jan 2009 17:59:22 -0800
+Subject: [Ocfs2-devel] Bug in inode deletion code leading to stale inodes
+In-Reply-To: <20090112220635.GD31811@duck.suse.cz>
+References: <20090112220635.GD31811@duck.suse.cz>
+Message-ID: <20090115015922.GZ17410@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Does anyone have any idea what to try next? Here are the steps I have  
-taken and the problem:     (I wanted to post my question on the first  
-line before I explained the problem and what I have tried)
+On Mon, Jan 12, 2009 at 11:06:35PM +0100, Jan Kara wrote:
+>   I've hit a bug in OCFS2 delete code which results in inodes being left on
+> disk without any links to them. The workload triggering this creates
+> directories on one node and deletes them on another node in the cluster.
+> The inode is not deleted because both nodes bail out from
+> ocfs2_delete_inode() with:
+> Skipping delete of 100405 because it is in use on other nodes
+> 
+>   The scenario which I think is happening is as follows:
+> 
+>   node1					node2
+> 					rmdir("d");
+> 					  ocfs2_remote_dentry_delete()
+>   ocfs2_dentry_convert_worker()
+> 					  finishes ocfs2_unlink()
+> 					  eventually enters ocfs2_delete_inode()
+> 					    ocfs2_inode_lock()
+> 					    ocfs2_query_inode_wipe() -> fail
+> 					    ocfs2_inode_unlock()
+>   ocfs2_dentry_post_unlock()
+>     ocfs2_drop_dentry_lock()
+>       iput()
+>        ocfs2_delete_inode()
+>          ocfs2_inode_lock()
+> 	 ocfs2_query_inode_wipe() -> fail
+> 	 ocfs2_inode_unlock()
+>          clear_inode()
+> 					    clear_inode()
 
-----------
-
-Node 0 has the file system mounted just fine and works great.
-
-When trying to mount on Node 1: `mount.ocfs2 /dev/mapper/data /cluster/ 
-data`  I get this error after about 30 seconds: mount.ocfs2: Transport  
-endpoint is not connected while mounting /dev/mapper/data on /cluster/ 
-data. Check 'dmesg' for more information on this error.
-
-
-Here is the output of dmesg:
-(3130,1):o2net_connect_expired:1659 ERROR: no connection established  
-with node 0 after 30.0 seconds, giving up and returning errors.
-(4670,1):dlm_request_join:1033 ERROR: status = -107
-(4670,1):dlm_try_to_join_domain:1207 ERROR: status = -107
-(4670,1):dlm_join_domain:1485 ERROR: status = -107
-(4670,1):dlm_register_domain:1732 ERROR: status = -107
-(4670,1):o2cb_cluster_connect:302 ERROR: status = -107
-(4670,1):ocfs2_dlm_init:2753 ERROR: status = -107
-(4670,1):ocfs2_mount_volume:1274 ERROR: status = -107
-ocfs2: Unmounting device (253,2) on (node 0)
-(3130,0):o2net_connect_expired:1659 ERROR: no connection established  
-with node 0 after 30.0 seconds, giving up and returning errors.
-(5558,1):dlm_request_join:1033 ERROR: status = -107
-(5558,1):dlm_try_to_join_domain:1207 ERROR: status = -107
-(5558,1):dlm_join_domain:1485 ERROR: status = -107
-(5558,1):dlm_register_domain:1732 ERROR: status = -107
-(5558,1):o2cb_cluster_connect:302 ERROR: status = -107
-(5558,1):ocfs2_dlm_init:2753 ERROR: status = -107
-(5558,1):ocfs2_mount_volume:1274 ERROR: status = -107
-ocfs2: Unmounting device (253,2) on (node 0)
+FWIW, your analysis looks correct to me.
 
 
-So I figured that It must be a firewall issue. I first disabled  
-iptables on both machines and got the same results so I started ip  
-talbes adding an exception on both machines: `iptables -A INPUT -p tcp  
---dport 7777 -j ACCEPT ; service iptables save`
+>   The question is how to avoid this. It seems to me that we have to really
+> do open_lock() and not just trylock to avoid the race. Is there any reason
+> why we cannot move the open_lock() before inode_lock() in
+> ocfs2_delete_inode()?
 
-The machines can ping each other. and they have the exact same config:
-cluster:
-	node_count = 2
-	name = ocfs2
-node:
-	ip_port = 7777
-	ip_address = 10.128.255.3
-	number = 0
-	name = m3.c12.jiveip.net
-	cluster = ocfs2
-node:
-	ip_port = 7777
-	ip_address = 10.128.7.33
-	number = 1
-	name = pbx_33.c12.jiveip.net
-	cluster = ocfs2
+We can't do that because open_lock() will deadlock with nodes still using
+the inode.
+
+The way the open lock works is that each node takes a RO on it when the
+inode is instantiated. That PR is dropped in ocfs2_clear_inode(). If a node
+wants to delete an inode, it will trylock at EX to see if any other nodes
+have an active lock.
 
 
-I then decided to use tcpdump to see what's up (on both machines):
-`tcpdump -i eth0 port 7777 -v`
+I think we have to look at how the downconvert thread deals with these
+locks. Either we push some parts to a work queue, or we figure out how to
+reorder some of the operations.
 
-Here is a TCP dump showing port 7777 is not blocked (I added an  
-exception in IP tables)
-(Node 0)
-13:13:11.711539 IP (tos 0x0, ttl  64, id 18286, offset 0, flags [DF],  
-proto: TCP (6), length: 60) 10.128.7.33.47601 > 10.128.255.3.cbt: S,  
-cksum 0xd272 (correct), 3820380795:3820380795(0) win 5840 <mss  
-1460,sackOK,timestamp 4294911253 0,nop,wscale 6>
-13:13:14.710703 IP (tos 0x0, ttl  64, id 18287, offset 0, flags [DF],  
-proto: TCP (6), length: 60) 10.128.7.33.47601 > 10.128.255.3.cbt: S,  
-cksum 0xc6ba (correct), 3820380795:3820380795(0) win 5840 <mss  
-1460,sackOK,timestamp 4294914253 0,nop,wscale 6>
-13:13:14.711213 IP (tos 0x0, ttl  64, id 2241, offset 0, flags [DF],  
-proto: TCP (6), length: 60) 10.128.7.33.54763 > 10.128.255.3.cbt: S,  
-cksum 0xd2ae (correct), 3862378508:3862378508(0) win 5840 <mss  
-1460,sackOK,timestamp 4294914253 0,nop,wscale 6>
+The problem with pushing off to a work queue, is we run the risk of slowing
+down unlink related ops. Pushing the dentry downconvert away will result in
+high unlink() latency, while pushing the final iput() away runs the risk of
+bouncing the orphan dir lock (if the iput() comes after the deleting nodes
+query in ->delete_inode())
 
-(Node 1)
-13:13:09.956999 IP (tos 0x0, ttl  64, id 18286, offset 0, flags [DF],  
-proto: TCP (6), length: 60) 10.128.7.33.47601 > 10.128.255.3.cbt: S,  
-cksum 0xd272 (correct), 3820380795:3820380795(0) win 5840 <mss  
-1460,sackOK,timestamp 4294911253 0,nop,wscale 6>
-13:13:12.956999 IP (tos 0x0, ttl  64, id 18287, offset 0, flags [DF],  
-proto: TCP (6), length: 60) 10.128.7.33.47601 > 10.128.255.3.cbt: S,  
-cksum 0xc6ba (correct), 3820380795:3820380795(0) win 5840 <mss  
-1460,sackOK,timestamp 4294914253 0,nop,wscale 6>
-13:13:12.956999 IP (tos 0x0, ttl  64, id 2241, offset 0, flags [DF],  
-proto: TCP (6), length: 60) 10.128.7.33.54763 > 10.128.255.3.cbt: S,  
-cksum 0xd2ae (correct), 3862378508:3862378508(0) win 5840 <mss  
-1460,sackOK,timestamp 4294914253 0,nop,wscale 6>
+
+Do you think there's a way we could just reverse the order - iput the inode,
+BEFORE downconverting the dentry lock?
+	--Mark
+
+--
+Mark Fasheh
