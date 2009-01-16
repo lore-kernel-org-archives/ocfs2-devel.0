@@ -1,142 +1,92 @@
-From: tristan.ye <tristan.ye@oracle.com>
-Date: Sat, 17 Jan 2009 00:08:55 +0800
-Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: Inode Allocation
-	Strategy	Improvement.v2
-In-Reply-To: <49704272.4080000@oracle.com>
-References: <1232056719-27716-1-git-send-email-tao.ma@oracle.com>
-	<1232093128.6601.12.camel@tristan-laptop.cn.oracle.com>
-	<49704272.4080000@oracle.com>
-Message-ID: <1232122135.6601.51.camel@tristan-laptop.cn.oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Fri, 16 Jan 2009 17:18:30 +0100
+Subject: [Ocfs2-devel] Bug in inode deletion code leading to stale	inodes
+In-Reply-To: <20090115015922.GZ17410@wotan.suse.de>
+References: <20090112220635.GD31811@duck.suse.cz>
+	<20090115015922.GZ17410@wotan.suse.de>
+Message-ID: <20090116161830.GD10617@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, 2009-01-16 at 16:16 +0800, Tao Ma wrote:
+On Wed 14-01-09 17:59:22, Mark Fasheh wrote:
+> On Mon, Jan 12, 2009 at 11:06:35PM +0100, Jan Kara wrote:
+> >   I've hit a bug in OCFS2 delete code which results in inodes being left on
+> > disk without any links to them. The workload triggering this creates
+> > directories on one node and deletes them on another node in the cluster.
+> > The inode is not deleted because both nodes bail out from
+> > ocfs2_delete_inode() with:
+> > Skipping delete of 100405 because it is in use on other nodes
+> > 
+> >   The scenario which I think is happening is as follows:
+> > 
+> >   node1					node2
+> > 					rmdir("d");
+> > 					  ocfs2_remote_dentry_delete()
+> >   ocfs2_dentry_convert_worker()
+> > 					  finishes ocfs2_unlink()
+> > 					  eventually enters ocfs2_delete_inode()
+> > 					    ocfs2_inode_lock()
+> > 					    ocfs2_query_inode_wipe() -> fail
+> > 					    ocfs2_inode_unlock()
+> >   ocfs2_dentry_post_unlock()
+> >     ocfs2_drop_dentry_lock()
+> >       iput()
+> >        ocfs2_delete_inode()
+> >          ocfs2_inode_lock()
+> > 	 ocfs2_query_inode_wipe() -> fail
+> > 	 ocfs2_inode_unlock()
+> >          clear_inode()
+> > 					    clear_inode()
 > 
-> tristan.ye wrote:
-> > On Fri, 2009-01-16 at 05:58 +0800, Tao Ma wrote:
-> >> Changelog from V1 to V2:
-> >> 1. Modify some codes according to Mark's advice.
-> >> 2. Attach some test statistics in the commit log of patch 3 and in
-> >> this e-mail also. See below.
-> >>
-> >> Hi all,
-> >> 	In ocfs2, when we create a fresh file system and create inodes in it, 
-> >> they are contiguous and good for readdir+stat. While if we delete all 
-> >> the inodes and created again, the new inodes will get spread out and 
-> >> that isn't what we need. The core problem here is that the inode block 
-> >> search looks for the "emptiest" inode group to allocate from. So if an 
-> >> inode alloc file has many equally (or almost equally) empty groups, new 
-> >> inodes will tend to get spread out amongst them, which in turn can put 
-> >> them all over the disk. This is undesirable because directory operations 
-> >> on conceptually "nearby" inodes force a large number of seeks. For more 
-> >> details, please see 
-> >> http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy. 
-> <snip>
-> >> echo 'y'|mkfs.ocfs2 -b 4K -C 4K -M local /dev/sda11
-> >>
-> >> mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-> >> time tar jxvf /home/taoma/linux-2.6.28.tar.bz2 -C /mnt/ocfs2/ 1>/dev/null
-> >>
-> >> real	0m20.548s 0m20.106s
-> >>
-> >> umount /mnt/ocfs2/
-> >> echo 2 > /proc/sys/vm/drop_caches
-> >> mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-> >> time ls -lR /mnt/ocfs2/ 1>/dev/null
-> >>
-> >> real	0m13.965s 0m13.766s
-> >>
-> >> umount /mnt/ocfs2/
-> >> echo 2 > /proc/sys/vm/drop_caches
-> >> mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-> >> time rm /mnt/ocfs2/linux-2.6.28/ -rf
-> >>
-> >> real	0m13.198s 0m13.091s
-> >>
-> >> umount /mnt/ocfs2/
-> >> echo 2 > /proc/sys/vm/drop_caches
-> >> mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-> >> time tar jxvf /home/taoma/linux-2.6.28.tar.bz2 -C /mnt/ocfs2/ 1>/dev/null
-> >>
-> >> real	0m23.022s 0m21.360s
-> >>
-> >> umount /mnt/ocfs2/
-> >> echo 2 > /proc/sys/vm/drop_caches
-> >> mount -t ocfs2 /dev/sda11 /mnt/ocfs2/
-> >> time ls -lR /mnt/ocfs2/ 1>/dev/null
-> >>
-> >> real	2m45.189s 0m15.019s 
-> >> yes, that is it. ;) I don't know we can improve so much when I start up.
-> > 
-> > Tao,
-> > 
-> > I'm wondering why the 1st 'ls -lR' did not show us such a huge
-> > enhancement, are the system load(by uptime) simliar when doing your 2rd
-> > 'ls -lR' contrast tests? if so, that's a really significant
-> > gain!!!!:-),great congs!
-> Because when we do the 1st 'ls -lR', the inodes are almost contiguous. 
-> So the read is very fast. But with the 2nd 'ls -lR' because the old '2nd 
-> tar' spread inodes, so we have a poor performance. See
-> http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy 
-> for more details.
-> > 
-> > To get more persuasive testing results, i suggest you do the same tests
-> > by considerable times,and then a average statistic results should be
-> > more attractive to us:-), and it also minimize the influence of some
-> > exceptional system loads:-)
-> I don't have that many times to do a large number of tests. ;) Actually 
-> I only run my test cases about 2~3 times and give the average time. btw, 
-> I have left test env there, if you are interested, you can run it as you 
-> wish and give us a complete test result. :)
-Tao,
-
-I've done 10 times tests with single-node testcase repeatly, following
-is a average statistic reports
-=============== Tests with 10 times iteration================ 
-
-1st 'Tar xjvf' result:
-
-Average real time with 10 times: 
-Original kernel                            kernel with enhanced patches
- 0m 43.578s                                       0m 49.355s
-
-1st 'ls -lR' result:
-Average real time with 10 times: 
-Original kernel                            kernel with enhanced patches
- 0m 23.622s                                        0m 23.508s
-
-1st 'rm -rf' result:
-Average real time with 10 times: 
-Original kernel                            kernel with enhanced patches
- 0m 57.039s                                       0m 58.612s
-
-2rd 'Tar xjvf' result:
-Average real time with 10 times: 
-Original kernel                            kernel with enhanced patches
- 0m 49.550s                                       0m 52.214s
-
-2rd 'ls -lR' result:
-Average real time with 10 times: 
-Original kernel                            kernel with enhanced patches
-
-0m 23.591s                                       0m 23.487s
-
-===============Tests end============================ 
-
-
-From above tests, we really have had a speed-up performance gain when
-traversing files  by 'ls -lR' against a kernel tree:),but seems also
-encountered a performance lose when populating the files by 'tar xvjf'
-according to the contrast tests.
-
-
-Regards,
-
-Tristan
-
+> FWIW, your analysis looks correct to me.
 > 
-> Regards,
-> Tao
+> 
+> >   The question is how to avoid this. It seems to me that we have to really
+> > do open_lock() and not just trylock to avoid the race. Is there any reason
+> > why we cannot move the open_lock() before inode_lock() in
+> > ocfs2_delete_inode()?
+> 
+> We can't do that because open_lock() will deadlock with nodes still using
+> the inode.
+  Yes, true.
+
+> The way the open lock works is that each node takes a RO on it when the
+> inode is instantiated. That PR is dropped in ocfs2_clear_inode(). If a node
+> wants to delete an inode, it will trylock at EX to see if any other nodes
+> have an active lock.
+  Hmm, I was so concentrated on the case when both nodes are dropping the
+lock that I forgot about the obvious case when one node is still using the
+inode :).
+
+> I think we have to look at how the downconvert thread deals with these
+> locks. Either we push some parts to a work queue, or we figure out how to
+> reorder some of the operations.
+> 
+> The problem with pushing off to a work queue, is we run the risk of slowing
+> down unlink related ops. Pushing the dentry downconvert away will result in
+> high unlink() latency, while pushing the final iput() away runs the risk of
+> bouncing the orphan dir lock (if the iput() comes after the deleting nodes
+> query in ->delete_inode())
+> 
+> Do you think there's a way we could just reverse the order - iput the inode,
+> BEFORE downconverting the dentry lock?
+  Definitely not easily - dentry_convert_worker() heavily uses the inode
+pointer (it actually alters the inode) and we cannot do this when we've
+already iput() the inode.
+  We could maybe solve the problem by only releasing open_lock under
+inode_lock (which we acquire in ocfs2_delete_inode() anyway). That would
+synchronize releasing of open_lock and ocfs2_query_inode_wipe() on another
+node and thus solve the race.
+  There are just two issues:
+    1) Whether we can afford to release open lock already earlier
+(principially I see no reason why it should be a problem)
+    2) Whether it is guaranteed that unlocks of inode_lock and open_lock
+cannot be reordered (either by DLM or by networking).
+
+									Honza
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
