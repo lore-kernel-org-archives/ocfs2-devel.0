@@ -1,164 +1,69 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 20 Jan 2009 18:37:11 -0800
-Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: Inode Allocation Strategy
-	Improvement.v2
-In-Reply-To: <1232418889.6542.5.camel@tristan-laptop.cn.oracle.com>
-References: <1232056719-27716-1-git-send-email-tao.ma@oracle.com>	
-	<1232093128.6601.12.camel@tristan-laptop.cn.oracle.com>	
-	<49704272.4080000@oracle.com>	
-	<1232122135.6601.51.camel@tristan-laptop.cn.oracle.com>	
-	<4972EF47.5090202@oracle.com>	
-	<73490225-F30E-4CF1-ACCE-FBCA845ACBDC@oracle.com>	
-	<1232348850.6623.16.camel@tristan-laptop.cn.oracle.com>	
-	<4974287F.5040103@oracle.com>	
-	<1232369820.6623.41.camel@tristan-laptop.cn.oracle.com>	
-	<0C5C8B58-F057-4AA3-80EB-B9ABED8533CD@oracle.com>
-	<1232418889.6542.5.camel@tristan-laptop.cn.oracle.com>
-Message-ID: <49768A57.8040508@oracle.com>
+From: Fabio M. Di Nitto <fdinitto@redhat.com>
+Date: Mon, 26 Jan 2009 13:05:13 +0100
+Subject: [Ocfs2-devel] Cluster IRC meeting - Monday 2nd of Feb 2pm UTC/GMT
+Message-ID: <1232971513.10253.16.camel@cerberus.int.fabbione.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-:)
+Hi everybody,
 
-tristan.ye wrote:
-> On Mon, 2009-01-19 at 10:35 -0800, Sunil Mushran wrote:
->   
->> Good numbers. Did you a 2nd rm -rf too? It should show the largest  
->> improvement of all.
->>     
->
-> Yes, fairly cool, we also got up to 3 mins performance gain during 2nd
-> rm -rf test:
->
-> =============== Tests with 10 times iteration================
->  2nd 'rm -rf' result:
->
-> Average real time with 10 times: 
-> Original kernel                            kernel with enhanced patches
->  4m3.425ss                                      0m59.423ss
->
->
->
->
-> Regards,
-> Tristan
->
->   
->> On Jan 19, 2009, at 4:57 AM, "tristan.ye" <tristan.ye@oracle.com> wrote:
->>
->>     
->>> On Mon, 2009-01-19 at 15:15 +0800, Tao Ma wrote:
->>>       
->>>> tristan.ye wrote:
->>>>         
->>>>> On Sun, 2009-01-18 at 07:17 -0800, Sunil Mushran wrote:
->>>>>           
->>>>>> How big is this disk? Maybe one kernel tree untar is not be  
->>>>>> enough to
->>>>>> expose the original issue. Also, use ls -i and/or debugfs to see if
->>>>>> the inodes have some locality.
->>>>>>             
->>>>> Tao, sunil
->>>>>
->>>>> I've tested it out with more attempts, it may have something to do  
->>>>> with
->>>>> the disk size. but the root pause why i did not get a excited  
->>>>> speed-up
->>>>> performance gain was due to the iscsi-target(iscsi server) cache.  
->>>>> the
->>>>> operation in your testcase which was meant for cache dropping is  
->>>>> aimed
->>>>> at client side(a 'echo 2>/proc/sys/vm/drop_cache' only flush the  
->>>>> fs's
->>>>> cache for iscsi initor(isci client)).
->>>>>
->>>>> Tao,
->>>>>
->>>>> You can verify this by pausing the tests at the right point before  
->>>>> we
->>>>> start '2rd ls -lR', then flush the iscsi-target's cache by 'service
->>>>> iscsi-target restart'(there may be a more graceful way to do  
->>>>> this),after
->>>>> this done, resume the tests, then you'll find the the realtime it
->>>>> consumed will be up to 3 mins around:)
->>>>>           
->>>> cool, so I am very glad that you got the same result as mine. ;)
->>>>         
->>>>> Btw, i really saw lots of locality by 'ls -li' for inodes under a  
->>>>> same
->>>>> dir, take /mnt/ocfs2/linux-2.6.28/include/linux for instance,  
->>>>> almost all
->>>>> of its inodes are contiguous one by one regarding to its inode  
->>>>> number.
->>>>>           
->>>> yeah, that is the desired behaviour with my 3 patches. :)
->>>>
->>>> Then do you have any updated test statistics?
->>>>         
->>> Tao,
->>>
->>> With iscsi-target cache flushed everytime before tests getting  
->>> started,
->>> following is the updated testing result:
->>>
->>> Testing node:test7
->>> Testing volume: iscsi sdd1
->>>
->>> =============== Tests with 10 times iteration================
->>>
->>> 1st 'Tar xjvf' result:
->>>
->>> Average real time with 10 times:
->>> Original kernel                            kernel with enhanced  
->>> patches
->>> 0m 22.468s                                       0m 23.472s
->>>
->>> 1st 'ls -lR' result:
->>> Average real time with 10 times:
->>> Original kernel                            kernel with enhanced  
->>> patches
->>> 0m 30.682s                                        0m 30.414s
->>>
->>> 1st 'rm -rf' result:
->>> Average real time with 10 times:
->>> Original kernel                            kernel with enhanced  
->>> patches
->>> 0m 1m5.715s                                       0m 1m3.835s
->>>
->>> 2rd 'Tar xjvf' result:
->>> Average real time with 10 times:
->>> Original kernel                            kernel with enhanced  
->>> patches
->>> 0m 31.550s                                       0m 28.726s
->>>
->>> 2rd 'ls -lR' result:
->>> Average real time with 10 times:
->>> Original kernel                            kernel with enhanced  
->>> patches
->>>
->>> 0m 3m5.772s                                       0m 30.274s
->>>
->>> ===============Tests end============================
->>>
->>> Glad to see your guy's patch has greatly improved the performance of
->>> inodes traversing:),
->>>
->>> Unfortunately, the 1st Tar testcase still get a performance
->>> penality(around 1s) everytime.
->>>
->>> I've kept the testing env on test7 for your verification.
->>>
->>>
->>> Regards,
->>>
->>> Tristan
->>>
->>>       
->>>> Regards,
->>>> Tao
->>>>         
->
->   
+When  : Monday 2nd of Feb 2pm UTC/GMT (*)(**)
+Where : irc.freenode.net #linux-cluster
+Who   : everybody interested is invited to participate
+Agenda: http://sources.redhat.com/cluster/wiki/Meetings/2009-Feb-02
+
+This is our second IRC meeting and it is supposed to last approx. 1
+hour. Be prepared that it might last longer.
+
+In order to give more space to open discussion please prepare yourself:
+
+- everybody can add topics to the Agenda in the "Voice to the community"
+  section.
+- prepare a 5/10 lines summary for your topic before the meeting. Typing
+  realtime takes too long.
+
+- How it should work -
+
+For each item on the agenda:
+
+- fabbione (me on IRC) will make a call on the person that should talk
+  about the item.
+- The intersted person will copy/paste her/his own summary.
+- Discussion/question on the specific item. If the discussion takes
+  longer than 5 minutes, we will postpone it at the end of the meeting.
+  This is to allow everybody to cast her/his own voice in the agenda.
+  The meeting moderator will call on the time.
+
+Some golden rules:
+
+- please respect the person that is talking and give her/him time to
+  complete what she/he is saying. Communication on IRC can be slow.
+- Avoid to interrupt the discussion with Off-Topic items. We don't
+  want to use moderation powers if we can avoid it.
+- if, for any reason, your internet connection drops during the meeting,
+  please message me and I will copy paste the last bits of the
+  conversation.
+
+After the meeting:
+
+- please update the wiki for Actions (in case there are any to take)
+- mail me with comments/suggestions on how was the meeting. It is
+  perfectly ok to say "it's really bad" but it would also be nice to 
+  know if it was a good experience.
+
+Fabio
+
+(*) To convert from UTC/GMT to your local time:
+http://www.timeanddate.com/worldclock/converter.html
+http://www.timezoneconverter.com/cgi-bin/tzc.tzc
+
+(**) some tools report UTC, others GMT.
+For our simple usage of time, they can be considered the same. 
+http://en.wikipedia.org/wiki/Coordinated_Universal_Time for the curious 
+people out there.
+
+--
+I'm going to make him an offer he can't refuse.
