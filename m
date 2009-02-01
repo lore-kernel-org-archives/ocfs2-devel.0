@@ -1,122 +1,85 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 25 Feb 2009 08:58:28 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V4)
-In-Reply-To: <49A54E5C.4090705@oracle.com>
-References: <200902200924.n1K9Oqp1029041@rgminet15.oracle.com>
-	<20090225020855.GB5209@mail.oracle.com>
-	<49A4BE80.4010003@oracle.com>
-	<20090225112710.GB26476@ca-server1.us.oracle.com>
-	<49A54E5C.4090705@oracle.com>
-Message-ID: <20090225165828.GC26476@ca-server1.us.oracle.com>
+From: Boaz Harrosh <bharrosh@panasas.com>
+Date: Sun, 01 Feb 2009 09:48:54 -0000
+Subject: [Ocfs2-devel] [PATCH] fs: Add new pre-allocation ioctls to vfs
+ for compatibility with legacy xfs ioctls
+In-Reply-To: <200901310248.42820.arnd@arndb.de>
+References: <4980C71F.1010804@ankitjain.org> <200901310138.34164.arnd@arndb.de>
+	<20090130171423.f99c88d0.akpm@linux-foundation.org>
+	<200901310248.42820.arnd@arndb.de>
+Message-ID: <49856FE6.8020601@panasas.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ankit Jain <me@ankitjain.org>, viro@zeniv.linux.org.uk, hch@infradead.org, linux-fsdevel@vger.kernel.org, mfasheh@suse.com, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, xfs@oss.sgi.com
 
-On Wed, Feb 25, 2009 at 09:57:48PM +0800, Wengang Wang wrote:
-> Joel Becker wrote:
->> On Wed, Feb 25, 2009 at 11:44:00AM +0800, Wengang Wang wrote:
->>>>> +	status = ocfs2_test_inode_bit(osb, blkno, &set);
->>>>> +	if (status < 0) {
->>>>> +		if (status == -EINVAL) {
->>>>> +			/* meta block never be re-allocated as data block.
->>>>> +			 * nfsd gives us wrong blkno */
->>>>> +			status = -EEXIST;
->>>>> +		} else {
->>>>> +			mlog(ML_ERROR, "test inode bit failed %d\n", status);
->>>>> +		}
->>>>> +		goto unlock_nfs_sync;
->>>>> +	}
->>>> 	This looks very nice, but it should return -ESTALE instead
->>>> of -EEXIST; 
->>> why? I think it's an EEXIST.
->>> if you say nfs don't know how to deal with the EEXIST, I agree to change 
->>> it.
->>> it most likely does not exist, and nfs knows how to handle
->>>> that error.
->> 	EEXIST means "the file exists", which it clearly does not.
->> I think you mean ENOENT.  
->
-> Sorry, yes I meant ENOENT.
-> also, the following EEXIST is wrong too(and also in some existing codes).
->
-> +	inode_alloc_inode =
-> +		ocfs2_get_system_file_inode(osb, INODE_ALLOC_SYSTEM_INODE,
-> +					    suballoc_slot);
-> +	if (!inode_alloc_inode) {
-> +		/* the error code could be inaccurate, but we are not able to
-> +		 * get the correct one. */
-> +		status = -EEXIST;
->
-> here, we don't have the accurate reason. I suggest we return PTR_ERR(xxx) 
-> instead of NULL for ocfs2_get_system_file_inode() ( 
-> _ocfs2_get_system_file_inode() actually) and change code where 
-> ocfs2_get_system_file_inode() is called.
+Arnd Bergmann wrote:
+> On Saturday 31 January 2009, Andrew Morton wrote:
+>> Is this written in a standard somewhere?  Is it guaranteed?
+> 
+> Alignment is defined in the architecture psABI documents. 
+> Unfortunately, many of them were written before the 'long long'
+> type became part of the C standard, so it's not strictly guaranteed.
+> AFAICT, the alignment of __u64 on x86 is the same as the alignment
+> of 'double' by convention.
+> 
+> However, the problem is well-understood: x86 is the only one
+> that has a problem in 32/64 bit compat mode. m68k has similar
+> issues with 16/32 bit integers, but those don't apply here.
+> 
+>> If some (perhaps non-gcc) compiler were to lay this out differently
+>> (perhaps with suitable command-line options) then that's liveable
+>> with - as long as the kernel never changes the layout.  Of course
+>> it would be better to avoid this if poss.
+> 
+> If a compiler was using irregular structure alignment, all sorts of
+> library interfaces would break. The kernel ABI is only a small part
+> of the problem then.
+> 
+>> The other potential issue with a structure like this is that there's a
+>> risk that it will lead us to copy four bytes of uninitialised kernel
+>> memory out to userspace.
+>>
+>> IOW, it seems a generally bad idea to rely upon compiler-added padding
+>> for this sort of thing.
+> 
+> Agreed in general, but the whole point of this particular patch was to
+> provide compatibility with an interface that has been part of XFS for
+> many years.
+> Linux already has a better interface for new users (sys_fallocate), so
+> changing the patch would not be helpful and not provide any advantage.
+> 
+> There is also no leak of uninitialized data here, because this structure
+> is only read, never written.
+> 
+> 	Arnd <><
+Arnd Bergmann wrote:
+> +struct space_resv {
+> +	__s16		l_type;
+> +	__s16		l_whence;
+> +	__s64		l_start;
+> +	__s64		l_len;		/* len == 0 means until end of file */
+> +	__s32		l_sysid;
+> +	__u32		l_pid;
+> +	__s32		l_pad[4];	/* reserve area			    */
+> +};
 
-	Yeah, I noticed that we don't have an error from
-ocfs2_get_system_file_inode().  But we don't have any need to fix that
-right now.  That can be a later patch if we care.
+What about telling the compiler exactly what you said above, just
+to be sure we all mean the same thing. (And as documentation for new
+comers):
 
->> But what is really happening here is nfs asks
->> "I used to have file XXX, is it still there?"  The correct response
->> seems to me to be "Um, not anymore - it's stale".
->
-> yes, your case is the "normal" stale case.
-> checking where EINVAL is returned, it's either 
-> (!OCFS2_IS_VALID_DINODE(inode_fe)) or alloc slot out of range.
-> in the two cases, I prefer nfs passed a wrong fh(blkno) instead of a stale 
-> one, that's nfs does a buggy request.
-> well, returning ESTALE is also OK. I just think ENOENT is more accurate.
++struct space_resv_64 {
++	__s16		l_type;
++	__s16		l_whence;
++	__u32		reserved;
++	__s64		l_start;
++	__s64		l_len;		/* len == 0 means until end of file */
++	__s32		l_sysid;
++	__u32		l_pid;
++	__s32		l_pad[4];	/* reserve area			    */
++} __packed;
 
-	I agree with you that ENOENT is more accurate, but right now
-we're playing nice with nfsd.  Actually, return -ENOENT from the test
-function, but in ocfs2_get_dentry() change it to -ESTALE for nfsd.
+And define another one for x86_32
 
-> if my understand is correct:),
-> yes, when there could be a new group added to a chain. and the chain list 
-> changed(pointers). and there could be a chain 
-> relink(ocfs2_relink_block_group()).
-> but I don't understand why it affects the group in question.
-> the group in question is gotten by reading the block which is numbered of 
-> inode blkno minus alloc bit. that doesn't involve any pointer.
-> so, could you tell me more detail?
-
-	I agree it probably doesn't affect this direct block group.  At
-least, unless we change the code to do some walking or whatever.  But we
-want this function to be right no matter the behavior.
-
->> 	Also, it is a correctness issue.  Your way may happen to work
->> for the stale inode checking, but that's by sheer luck.
->
-> until I got clear your idea about the groups, I persist :P.
->
->>  Putting the
->> access of the group inside the lock is definitively correct.
->
-> Yes, agree.
-> I just want a better performance when we are correct.
-
-	We will never sacrifice correctness for performance.  You don't
-access data outside of locks unless you have some really, really good
-reason.  This won't hurt any performance - it's a standard operation we
-do all the time: "take lock, do something with group descriptor, drop
-lock".  If it was a performance problem it would be a problem
-everywhere, and we'd solve it in a correct fashion.
-	Secondly, if some later code decides to use this function, they
-certainly won't expect it to be doing unsafe things.  And they won't be
-inside a very specific nfs code path.
-
-Joel
-
--- 
-
-Life's Little Instruction Book #69
-
-	"Whistle"
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Boaz
