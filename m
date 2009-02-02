@@ -1,69 +1,72 @@
-From: Boaz Harrosh <bharrosh@panasas.com>
-Date: Mon, 02 Feb 2009 09:34:06 -0000
+From: Jamie Lokier <jamie@shareable.org>
+Date: Mon, 02 Feb 2009 20:53:07 -0000
 Subject: [Ocfs2-devel] [xfs-masters] [PATCH] fs: Add new pre-allocation
- ioctls to vfs for compatibility with legacy xfs ioctls
-In-Reply-To: <Pine.LNX.4.64.0902020942230.11930@anakin>
+	ioctls to vfs for compatibility with legacy xfs ioctls
+In-Reply-To: <4986BE07.6090000@panasas.com>
 References: <20090130171423.f99c88d0.akpm@linux-foundation.org>
 	<20090201164130.GA32276@infradead.org>
 	<4985D48A.6090007@panasas.com> <200902020131.04203.arnd@arndb.de>
 	<4986AEE8.5040609@panasas.com>
 	<Pine.LNX.4.64.0902020942230.11930@anakin>
-Message-ID: <4986BE07.6090000@panasas.com>
+	<4986BE07.6090000@panasas.com>
+Message-ID: <20090202205102.GG28129@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Eric Sandeen <sandeen@sandeen.net>, mfasheh@suse.com, joel.becker@oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, viro@zeniv.linux.org.uk, Ankit Jain <me@ankitjain.org>, linux-fsdevel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
+To: Boaz Harrosh <bharrosh@panasas.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Eric Sandeen <sandeen@sandeen.net>, mfasheh@suse.com, joel.becker@oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, viro@zeniv.linux.org.uk, Ankit Jain <me@ankitjain.org>, linux-fsdevel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-Geert Uytterhoeven wrote:
-> On Mon, 2 Feb 2009, Boaz Harrosh wrote:
->> Arnd Bergmann wrote:
->>> No, the compiler is correct, it has to generate more complex code
->>> if it cannot assume that data is naturally aligned and the architecture
->>> does not support unaligned loads. If you don't understand this, please
->>> at least read the list archives about the last five times this came up
->>> before claiming that the compiler is broken.
->>>
->> Wrong!! Sorry, you guys don't listen.
->> I'm talking of the case where the structures are EXACTLY the same anyway
->> you look at them. sizeof(foo) == sizeof(foo_packed) and 
->> offsetof(foo_memmber) == offsetof(foo_packed_member) for every member of
->> the structure. foo && foo_packed are declared exactly the same but with
->> __attribute__((packed(1))) applied to the later.
->>
->> THEN in ia64 case the compiler is brain dead, because it relates
->> "unalignment" to packed(1) which are two different things.
-> 
-> The natural alignment of a structure is max(alignment(member)), for all
-> members. With __attribute__((packed)), the natural alignment of the structure
-> is 1, so the compiler cannot assume anything.
-> 
+Boaz Harrosh wrote:
+> No the natural alignment is what it is, after the application of
+> __attribute__((packed(1))). In a well defined structure that is a no-opt.
+> But yes in ai64 the gcc programmers got lazy and did not make that analysis
+> after laying out the structure.
 
-No the natural alignment is what it is, after the application of
-__attribute__((packed(1))). In a well defined structure that is a no-opt.
-But yes in ai64 the gcc programmers got lazy and did not make that analysis
-after laying out the structure.
+No.  That's what you *want* packed to mean, but it doesn't mean that.
 
-> While the ints in the structure may still be at offsets 0, 4, 8, and so on,
-> this doesn't say anything about their actual memory addresses, as the struct
-> base address itself may be unaligned.
-> 
+__attribute__ packed on a struct definition means to pack the
+structure _and_ set its assumed alignment to 1.
 
-The base address can be unaligned even if the structure is aligned. In that
-case you need the __atrubute__((aligned)) thingy. It is true that if the sizeof(foo_packed)
-is though unaligned, the compiler will have to assume unalignment in array operations.
-but if the sizeof(foo_packed) is naturally aligned at the output then the compiler
-has all the needed information to know that even if I declared __packed, it calculated
-and knows that it is well aligned at the end.
+This is what the packed attribute historically means, and it cannot be
+changed without breaking existing code.
 
-> Gr{oetje,eeting}s,
-> 
-> 						Geert
-> 
+If you want to remove padding from a structure, but still keep its
+natural alignment, you do it with two attributes together:
+__attribute__((packed, aligned(4))).  You have to choose the alignment
+you want in that case.
 
-Please note that I gave up on the compiler and understand that the use of __packed
-is dangerous in some cases, sigh. My standing point is to make sure there are no guesses
-left, and a BUILD_BUG_ON to make sure of that.
+GCC manual:
+     When used on a struct, or struct member, the `aligned' attribute
+     can only increase the alignment; in order to decrease it, the
+     `packed' attribute must be specified as well.  When used as part
+     of a typedef, the `aligned' attribute can both increase and
+     decrease alignment, and specifying the `packed' attribute will
+     generate a warning.
 
-Boaz
+It's a counterintuitive, because you must use
+__attribute__((aligned(1))) when declaring a variable to reduce its
+alignment, but you must use __attribute__((packed)) when declaring a
+struct type.  Doing it at the end of a struct typedef is a weird mix
+of semantics, so don't do that.
+
+By the way, this discussion is why the "-Wpacked" and "-Wpadding"
+options are available.
+
+> The base address can be unaligned even if the structure is aligned. In that
+> case you need the __atrubute__((aligned)) thingy.
+
+No, because __attribute__((packed)) on a struct doesn't mean what you
+want it to mean.  Use __attribute((packed,aligned(4))) if that's what
+you want.
+
+> Please note that I gave up on the compiler and understand that the
+> use of __packed is dangerous in some cases, sigh. My standing point
+> is to make sure there are no guesses left, and a BUILD_BUG_ON to
+> make sure of that.
+
+In this code, it's not a bug because it must be backward compatible
+with existing binary code.  "Fixing" the padding breaks
+compatibility, which is pointless for this patch.
+
+-- Jamie
