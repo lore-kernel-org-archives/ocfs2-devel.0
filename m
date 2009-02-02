@@ -1,54 +1,52 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Sat, 31 Jan 2009 01:49:17 -0000
-Subject: [Ocfs2-devel] [PATCH] fs: Add new pre-allocation ioctls to vfs
-	for compatibility with legacy xfs ioctls
-In-Reply-To: <20090130171423.f99c88d0.akpm@linux-foundation.org>
-References: <4980C71F.1010804@ankitjain.org> <200901310138.34164.arnd@arndb.de>
-	<20090130171423.f99c88d0.akpm@linux-foundation.org>
-Message-ID: <200901310248.42820.arnd@arndb.de>
+From: Jan Kara <jack@suse.cz>
+Date: Mon, 2 Feb 2009 11:05:24 +0100
+Subject: [Ocfs2-devel] [PATCH 7/7] ocfs2: add quota call to
+	ocfs2_remove_btree_range()
+In-Reply-To: <1233351753-14640-8-git-send-email-mfasheh@suse.com>
+References: <1233351753-14640-1-git-send-email-mfasheh@suse.com>
+	<1233351753-14640-8-git-send-email-mfasheh@suse.com>
+Message-ID: <20090202100524.GA7145@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Ankit Jain <me@ankitjain.org>, viro@zeniv.linux.org.uk, hch@infradead.org, linux-fsdevel@vger.kernel.org, mfasheh@suse.com, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, xfs@oss.sgi.com
+To: ocfs2-devel@oss.oracle.com
 
-On Saturday 31 January 2009, Andrew Morton wrote:
-> Is this written in a standard somewhere? ?Is it guaranteed?
-
-Alignment is defined in the architecture psABI documents. 
-Unfortunately, many of them were written before the 'long long'
-type became part of the C standard, so it's not strictly guaranteed.
-AFAICT, the alignment of __u64 on x86 is the same as the alignment
-of 'double' by convention.
-
-However, the problem is well-understood: x86 is the only one
-that has a problem in 32/64 bit compat mode. m68k has similar
-issues with 16/32 bit integers, but those don't apply here.
-
-> If some (perhaps non-gcc) compiler were to lay this out differently
-> (perhaps with suitable command-line options) then that's liveable
-> with - as long as the kernel never changes the layout. ?Of course
-> it would be better to avoid this if poss.
-
-If a compiler was using irregular structure alignment, all sorts of
-library interfaces would break. The kernel ABI is only a small part
-of the problem then.
-
-> The other potential issue with a structure like this is that there's a
-> risk that it will lead us to copy four bytes of uninitialised kernel
-> memory out to userspace.
+On Fri 30-01-09 13:42:33, Mark Fasheh wrote:
+> We weren't reclaiming the clusters which get free'd from this function,
+> so any user punching holes in a file would still have those bytes accounted
+> against him/her. Add the call to vfs_dq_free_space_nodirty() to fix this.
+> Interestingly enough, the journal credits calculation already took this into
+> account.
 > 
-> IOW, it seems a generally bad idea to rely upon compiler-added padding
-> for this sort of thing.
+> Cc: Jan Kara <jack@suse.cz>
+> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+  Looks fine. Thanks for finding this.
+Acked-by: Jan Kara <jack@suse.cz>
 
-Agreed in general, but the whole point of this particular patch was to
-provide compatibility with an interface that has been part of XFS for
-many years.
-Linux already has a better interface for new users (sys_fallocate), so
-changing the patch would not be helpful and not provide any advantage.
+									Honza
 
-There is also no leak of uninitialized data here, because this structure
-is only read, never written.
-
-	Arnd <><
+> ---
+>  fs/ocfs2/alloc.c |    3 +++
+>  1 files changed, 3 insertions(+), 0 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index cf96a05..b20af53 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -5447,6 +5447,9 @@ int ocfs2_remove_btree_range(struct inode *inode,
+>  		goto out;
+>  	}
+>  
+> +	vfs_dq_free_space_nodirty(inode,
+> +				  ocfs2_clusters_to_bytes(inode->i_sb, len));
+> +
+>  	ret = ocfs2_remove_extent(inode, et, cpos, len, handle, meta_ac,
+>  				  dealloc);
+>  	if (ret) {
+> -- 
+> 1.5.6
+> 
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
