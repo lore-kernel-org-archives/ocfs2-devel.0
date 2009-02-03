@@ -1,8 +1,8 @@
-From: Boaz Harrosh <bharrosh@panasas.com>
-Date: Tue, 03 Feb 2009 07:32:05 -0000
+From: Jamie Lokier <jamie@shareable.org>
+Date: Tue, 03 Feb 2009 11:21:49 -0000
 Subject: [Ocfs2-devel] [xfs-masters] [PATCH] fs: Add new pre-allocation
- ioctls to vfs for compatibility with legacy xfs ioctls
-In-Reply-To: <20090202205102.GG28129@shareable.org>
+	ioctls to vfs for compatibility with legacy xfs ioctls
+In-Reply-To: <4987F2B8.9070700@panasas.com>
 References: <20090130171423.f99c88d0.akpm@linux-foundation.org>
 	<20090201164130.GA32276@infradead.org>
 	<4985D48A.6090007@panasas.com> <200902020131.04203.arnd@arndb.de>
@@ -10,83 +10,44 @@ References: <20090130171423.f99c88d0.akpm@linux-foundation.org>
 	<Pine.LNX.4.64.0902020942230.11930@anakin>
 	<4986BE07.6090000@panasas.com>
 	<20090202205102.GG28129@shareable.org>
-Message-ID: <4987F2B8.9070700@panasas.com>
+	<4987F2B8.9070700@panasas.com>
+Message-ID: <20090203112105.GD11926@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jamie Lokier <jamie@shareable.org>
+To: Boaz Harrosh <bharrosh@panasas.com>
 Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Eric Sandeen <sandeen@sandeen.net>, mfasheh@suse.com, joel.becker@oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, viro@zeniv.linux.org.uk, Ankit Jain <me@ankitjain.org>, linux-fsdevel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-Jamie Lokier wrote:
-> Boaz Harrosh wrote:
->> No the natural alignment is what it is, after the application of
->> __attribute__((packed(1))). In a well defined structure that is a no-opt.
->> But yes in ai64 the gcc programmers got lazy and did not make that analysis
->> after laying out the structure.
-> 
-> No.  That's what you *want* packed to mean, but it doesn't mean that.
-> 
-> __attribute__ packed on a struct definition means to pack the
-> structure _and_ set its assumed alignment to 1.
-> 
-> This is what the packed attribute historically means, and it cannot be
-> changed without breaking existing code.
-> 
-> If you want to remove padding from a structure, but still keep its
-> natural alignment, you do it with two attributes together:
-> __attribute__((packed, aligned(4))).  You have to choose the alignment
-> you want in that case.
-> 
-> GCC manual:
->      When used on a struct, or struct member, the `aligned' attribute
->      can only increase the alignment; in order to decrease it, the
->      `packed' attribute must be specified as well.  When used as part
->      of a typedef, the `aligned' attribute can both increase and
->      decrease alignment, and specifying the `packed' attribute will
->      generate a warning.
-> 
-> It's a counterintuitive, because you must use
-> __attribute__((aligned(1))) when declaring a variable to reduce its
-> alignment, but you must use __attribute__((packed)) when declaring a
-> struct type.  Doing it at the end of a struct typedef is a weird mix
-> of semantics, so don't do that.
-> 
-> By the way, this discussion is why the "-Wpacked" and "-Wpadding"
-> options are available.
-> 
->> The base address can be unaligned even if the structure is aligned. In that
->> case you need the __atrubute__((aligned)) thingy.
-> 
-> No, because __attribute__((packed)) on a struct doesn't mean what you
-> want it to mean.  Use __attribute((packed,aligned(4))) if that's what
-> you want.
-> 
+Boaz Harrosh wrote:
+> I would at least expect a big fat comment explaining what happened to the
+> structure on what known ARCHs, and how it is expected to look in memory.
+> And a BUILD_BUG_ON to make sure of that.
 
-OK Thanks I'll use that then. 
-(And BUILD_BUG_ON to make sure)
+You may have a point.
 
->> Please note that I gave up on the compiler and understand that the
->> use of __packed is dangerous in some cases, sigh. My standing point
->> is to make sure there are no guesses left, and a BUILD_BUG_ON to
->> make sure of that.
-> 
-> In this code, it's not a bug because it must be backward compatible
-> with existing binary code.  "Fixing" the padding breaks
-> compatibility, which is pointless for this patch.
-> 
+Struct layout on some architectures changes between compiler default
+ABIs in these implicit-padding cases.  Kernel binary compatibility
+will be affected.  It is a good reason why we have explicit padding to
+natural alignment normally.
 
-That's what I don't like. In compatibility problems situation, we actually
-have two kind of structures. I rather that they are spelled out explicitly
-and chosen from at the appropriate places. But I'll give up it is probably
-just me. (Though proof that it was not me who raised the subject)
+From http://wiki.debian.org/ArmEabiPort
 
-I would at least expect a big fat comment explaining what happened to the
-structure on what known ARCHs, and how it is expected to look in memory.
-And a BUILD_BUG_ON to make sure of that.
+    "With the new ABI, default structure packing changes, as do some
+    default data sizes and alignment (which also have a knock-on effect on
+    structure packing). In particular the minimum size and alignment of a
+    structure was 4 bytes. Under the EABI there is no minimum and the
+    alignment is determined by the types of the components it
+    contains. This will break programs that know too much about the way
+    structures are packed and can break code that writes binary files by
+    dumping and reading structures."
 
-> -- Jamie
+    "One of the key differences between the traditional GNU/Linux ABI
+    and the EABI is that 64-bit types (like long long) are aligned
+    differently. In the traditional ABI, these types had 4-byte alignment;
+    in the EABI they have 8-byte alignment. As a result, if you use the
+    same structure definitions (in a header file) and include it in code
+    used in both the kernel and in application code, you may find that the
+    structure size and alignment differ."
 
-Thanks, the __attribute((packed,aligned(__WORD_SIZE))) is new for me
-
-Boaz
+-- Jamie
