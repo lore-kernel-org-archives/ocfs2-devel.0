@@ -1,133 +1,278 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue,  3 Feb 2009 12:48:15 -0800
-Subject: [Ocfs2-devel] [PATCH 01/10] ocfs2/dlm: Encapsulate adding and
-	removing of mle from dlm->master_list
+Date: Tue,  3 Feb 2009 12:48:19 -0800
+Subject: [Ocfs2-devel] [PATCH 05/10] ocfs2/dlm: Activate dlm->master_hash
+	for master list entries
 In-Reply-To: <1233694104-29710-1-git-send-email-sunil.mushran@oracle.com>
 References: <1233694104-29710-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1233694104-29710-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1233694104-29710-6-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch encapsulates adding and removing of the mle from the
-dlm->master_list. This patch is part of the series of patches that
-converts the mle list to a mle hash.
+With this patch, the mles are stored in a hash and not a simple list.
+This should improve the mle lookup time when the number of outstanding
+masteries is large.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |    3 +++
- fs/ocfs2/dlm/dlmmaster.c |   34 +++++++++++++++++++++++-----------
- 2 files changed, 26 insertions(+), 11 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    4 +-
+ fs/ocfs2/dlm/dlmdebug.c  |   24 ++++++++++++-------
+ fs/ocfs2/dlm/dlmdomain.c |    1 -
+ fs/ocfs2/dlm/dlmmaster.c |   58 ++++++++++++++++++++++++++++++++-------------
+ 4 files changed, 58 insertions(+), 29 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index bb53714..261e265 100644
+index 425653f..aa55271 100644
 --- a/fs/ocfs2/dlm/dlmcommon.h
 +++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -1008,6 +1008,9 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
- 					  DLM_LOCK_RES_MIGRATING));
- }
+@@ -56,12 +56,13 @@ enum dlm_mle_type {
+ };
  
-+void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle);
-+void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle);
-+
- /* create/destroy slab caches */
- int dlm_init_master_caches(void);
- void dlm_destroy_master_caches(void);
+ struct dlm_lock_name {
++	unsigned int hash;
+ 	unsigned int len;
+ 	unsigned char name[DLM_LOCKID_NAME_MAX];
+ };
+ 
+ struct dlm_master_list_entry {
+-	struct list_head list;
++	struct hlist_node master_hash_node;
+ 	struct list_head hb_events;
+ 	struct dlm_ctxt *dlm;
+ 	spinlock_t spinlock;
+@@ -152,7 +153,6 @@ struct dlm_ctxt
+ 	struct dlm_recovery_ctxt reco;
+ 	spinlock_t master_lock;
+ 	struct hlist_head **master_hash;
+-	struct list_head master_list;
+ 	struct list_head mle_hb_events;
+ 
+ 	/* these give a really vague idea of the system load */
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index c82feb7..336a98e 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -501,18 +501,25 @@ static struct file_operations debug_purgelist_fops = {
+ static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ {
+ 	struct dlm_master_list_entry *mle;
+-	int out = 0;
++	struct hlist_head *bucket;
++	struct hlist_node *list;
++	int i, out = 0;
+ 	unsigned long total = 0;
+ 
+ 	out += snprintf(db->buf + out, db->len - out,
+ 			"Dumping MLEs for Domain: %s\n", dlm->name);
+ 
+ 	spin_lock(&dlm->master_lock);
+-	list_for_each_entry(mle, &dlm->master_list, list) {
+-		++total;
+-		if (db->len - out < 200)
+-			continue;
+-		out += dump_mle(mle, db->buf + out, db->len - out);
++	for (i = 0; i < DLM_HASH_BUCKETS; i++) {
++		bucket = dlm_master_hash(dlm, i);
++		hlist_for_each(list, bucket) {
++			mle = hlist_entry(list, struct dlm_master_list_entry,
++					  master_hash_node);
++			++total;
++			if (db->len - out < 200)
++				continue;
++			out += dump_mle(mle, db->buf + out, db->len - out);
++		}
+ 	}
+ 	spin_unlock(&dlm->master_lock);
+ 
+@@ -813,12 +820,11 @@ static int debug_state_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ 	/* Lists: Dirty=Empty  Purge=InUse  PendingASTs=Empty  ... */
+ 	out += snprintf(db->buf + out, db->len - out,
+ 			"Lists: Dirty=%s  Purge=%s  PendingASTs=%s  "
+-			"PendingBASTs=%s  Master=%s\n",
++			"PendingBASTs=%s\n",
+ 			(list_empty(&dlm->dirty_list) ? "Empty" : "InUse"),
+ 			(list_empty(&dlm->purge_list) ? "Empty" : "InUse"),
+ 			(list_empty(&dlm->pending_asts) ? "Empty" : "InUse"),
+-			(list_empty(&dlm->pending_basts) ? "Empty" : "InUse"),
+-			(list_empty(&dlm->master_list) ? "Empty" : "InUse"));
++			(list_empty(&dlm->pending_basts) ? "Empty" : "InUse"));
+ 
+ 	/* Purge Count: xxx  Refs: xxx */
+ 	out += snprintf(db->buf + out, db->len - out,
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 4531504..869648c 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1597,7 +1597,6 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	init_waitqueue_head(&dlm->reco.event);
+ 	init_waitqueue_head(&dlm->ast_wq);
+ 	init_waitqueue_head(&dlm->migration_wq);
+-	INIT_LIST_HEAD(&dlm->master_list);
+ 	INIT_LIST_HEAD(&dlm->mle_hb_events);
+ 
+ 	dlm->joining_node = DLM_LOCK_RES_OWNER_UNKNOWN;
 diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 0a28139..0aa4b04 100644
+index d25fbdd..8045581 100644
 --- a/fs/ocfs2/dlm/dlmmaster.c
 +++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -318,6 +318,21 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
- 	__dlm_mle_attach_hb_events(dlm, mle);
+@@ -79,9 +79,13 @@ static inline void __dlm_mle_name(struct dlm_master_list_entry *mle,
+ 	if (mle->type != DLM_MLE_MASTER) {
+ 		*name = mle->u.mlename.name;
+ 		*namelen = mle->u.mlename.len;
++		if (namehash)
++			*namehash = mle->u.mlename.hash;
+ 	} else {
+ 		*name  = (unsigned char *)mle->u.mleres->lockname.name;
+ 		*namelen = mle->u.mleres->lockname.len;
++		if (namehash)
++			*namehash = mle->u.mleres->lockname.hash;
+ 	}
  }
  
-+void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
-+{
-+	assert_spin_locked(&dlm->spinlock);
-+	assert_spin_locked(&dlm->master_lock);
-+
-+	if (!list_empty(&mle->list))
-+		list_del_init(&mle->list);
-+}
-+
-+void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
-+{
-+	assert_spin_locked(&dlm->master_lock);
-+
-+	list_add(&mle->list, &dlm->master_list);
-+}
+@@ -96,7 +100,7 @@ static inline int dlm_mle_equal(struct dlm_ctxt *dlm,
+ 	if (dlm != mle->dlm)
+ 		return 0;
  
- /* returns 1 if found, 0 if not */
- static int dlm_find_mle(struct dlm_ctxt *dlm,
-@@ -420,8 +435,7 @@ static void dlm_mle_release(struct kref *kref)
+-	__dlm_mle_name(mle, &mlename, &mlelen);
++	__dlm_mle_name(mle, &mlename, &mlelen, NULL);
+ 
+ 	if (namelen != mlelen || memcmp(name, mlename, namelen) != 0)
+ 		return 0;
+@@ -295,7 +299,7 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
+ 
+ 	mle->dlm = dlm;
+ 	mle->type = type;
+-	INIT_LIST_HEAD(&mle->list);
++	INIT_HLIST_NODE(&mle->master_hash_node);
+ 	INIT_LIST_HEAD(&mle->hb_events);
+ 	memset(mle->maybe_map, 0, sizeof(mle->maybe_map));
+ 	spin_lock_init(&mle->spinlock);
+@@ -318,6 +322,7 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
+ 		BUG_ON(!name);
+ 		memcpy(mle->u.mlename.name, name, namelen);
+ 		mle->u.mlename.len = namelen;
++		mle->u.mlename.hash = dlm_lockid_hash(name, namelen);
+ 	}
+ 
+ 	/* copy off the node_map and register hb callbacks on our copy */
+@@ -335,15 +340,21 @@ void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
+ 	assert_spin_locked(&dlm->spinlock);
  	assert_spin_locked(&dlm->master_lock);
  
- 	/* remove from list if not already */
 -	if (!list_empty(&mle->list))
 -		list_del_init(&mle->list);
-+	__dlm_unlink_mle(dlm, mle);
- 
- 	/* detach the mle from the domain node up/down events */
- 	__dlm_mle_detach_hb_events(dlm, mle);
-@@ -843,7 +857,7 @@ lookup:
- 		alloc_mle = NULL;
- 		dlm_init_mle(mle, DLM_MLE_MASTER, dlm, res, NULL, 0);
- 		set_bit(dlm->node_num, mle->maybe_map);
--		list_add(&mle->list, &dlm->master_list);
-+		__dlm_insert_mle(dlm, mle);
- 
- 		/* still holding the dlm spinlock, check the recovery map
- 		 * to see if there are any nodes that still need to be 
-@@ -1575,7 +1589,7 @@ way_up_top:
- 		// "add the block.\n");
- 		dlm_init_mle(mle, DLM_MLE_BLOCK, dlm, NULL, name, namelen);
- 		set_bit(request->node_idx, mle->maybe_map);
--		list_add(&mle->list, &dlm->master_list);
-+		__dlm_insert_mle(dlm, mle);
- 		response = DLM_MASTER_RESP_NO;
- 	} else {
- 		// mlog(0, "mle was found\n");
-@@ -1967,7 +1981,7 @@ ok:
- 			     assert->node_idx, rr, extra_ref, mle->inuse);
- 			dlm_print_one_mle(mle);
- 		}
--		list_del_init(&mle->list);
-+		__dlm_unlink_mle(dlm, mle);
- 		__dlm_mle_detach_hb_events(dlm, mle);
- 		__dlm_put_mle(mle);
- 		if (extra_ref) {
-@@ -3159,10 +3173,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
- 			tmp->master = master;
- 			atomic_set(&tmp->woken, 1);
- 			wake_up(&tmp->wq);
--			/* remove it from the list so that only one
--			 * mle will be found */
--			list_del_init(&tmp->list);
--			/* this was obviously WRONG.  mle is uninited here.  should be tmp. */
-+			/* remove it so that only one mle will be found */
-+			__dlm_unlink_mle(dlm, tmp);
- 			__dlm_mle_detach_hb_events(dlm, tmp);
- 			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
- 			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
-@@ -3181,7 +3193,7 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
- 	mle->master = master;
- 	/* do this for consistency with other mle types */
- 	set_bit(new_master, mle->maybe_map);
--	list_add(&mle->list, &dlm->master_list);
-+	__dlm_insert_mle(dlm, mle);
- 
- 	return ret;
++	if (!hlist_unhashed(&mle->master_hash_node))
++		hlist_del_init(&mle->master_hash_node);
  }
-@@ -3264,7 +3276,7 @@ top:
- 		 * list_head while in list_for_each_safe */
- 		__dlm_mle_detach_hb_events(dlm, mle);
- 		spin_lock(&mle->spinlock);
--		list_del_init(&mle->list);
-+		__dlm_unlink_mle(dlm, mle);
- 		atomic_set(&mle->woken, 1);
- 		spin_unlock(&mle->spinlock);
- 		wake_up(&mle->wq);
+ 
+ void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
+ {
++	struct hlist_head *bucket;
++	unsigned char *mname;
++	unsigned int mlen, hash;
++
+ 	assert_spin_locked(&dlm->master_lock);
+ 
+-	list_add(&mle->list, &dlm->master_list);
++	__dlm_mle_name(mle, &mname, &mlen, &hash);
++	bucket = dlm_master_hash(dlm, hash);
++	hlist_add_head(&mle->master_hash_node, bucket);
+ }
+ 
+ /* returns 1 if found, 0 if not */
+@@ -352,10 +363,17 @@ static int dlm_find_mle(struct dlm_ctxt *dlm,
+ 			char *name, unsigned int namelen)
+ {
+ 	struct dlm_master_list_entry *tmpmle;
++	struct hlist_head *bucket;
++	struct hlist_node *list;
++	unsigned int hash;
+ 
+ 	assert_spin_locked(&dlm->master_lock);
+ 
+-	list_for_each_entry(tmpmle, &dlm->master_list, list) {
++	hash = dlm_lockid_hash(name, namelen);
++	bucket = dlm_master_hash(dlm, hash);
++	hlist_for_each(list, bucket) {
++		tmpmle = hlist_entry(list, struct dlm_master_list_entry,
++				     master_hash_node);
+ 		if (!dlm_mle_equal(dlm, tmpmle, name, namelen))
+ 			continue;
+ 		dlm_get_mle(tmpmle);
+@@ -429,23 +447,20 @@ static void dlm_mle_release(struct kref *kref)
+ {
+ 	struct dlm_master_list_entry *mle;
+ 	struct dlm_ctxt *dlm;
++	unsigned char *mname;
++	unsigned int mlen;
+ 
+ 	mlog_entry_void();
+ 
+ 	mle = container_of(kref, struct dlm_master_list_entry, mle_refs);
+ 	dlm = mle->dlm;
+ 
+-	if (mle->type != DLM_MLE_MASTER) {
+-		mlog(0, "calling mle_release for %.*s, type %d\n",
+-		     mle->u.mlename.len, mle->u.mlename.name, mle->type);
+-	} else {
+-		mlog(0, "calling mle_release for %.*s, type %d\n",
+-		     mle->u.mleres->lockname.len,
+-		     mle->u.mleres->lockname.name, mle->type);
+-	}
+ 	assert_spin_locked(&dlm->spinlock);
+ 	assert_spin_locked(&dlm->master_lock);
+ 
++	__dlm_mle_name(mle, &mname, &mlen, NULL);
++	mlog(0, "Releasing mle for %.*s, type %d\n", mlen, mname, mle->type);
++
+ 	/* remove from list if not already */
+ 	__dlm_unlink_mle(dlm, mle);
+ 
+@@ -1343,7 +1358,7 @@ static int dlm_do_master_request(struct dlm_lock_resource *res,
+ 
+ 	BUG_ON(mle->type == DLM_MLE_MIGRATION);
+ 
+-	__dlm_mle_name(mle, &mlename, &mlenamelen);
++	__dlm_mle_name(mle, &mlename, &mlenamelen, NULL);
+ 
+ 	request.namelen = (u8)mlenamelen;
+ 	memcpy(request.name, mlename, request.namelen);
+@@ -3287,8 +3302,11 @@ static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
+ 
+ void dlm_clean_master_list(struct dlm_ctxt *dlm, u8 dead_node)
+ {
+-	struct dlm_master_list_entry *mle, *next;
++	struct dlm_master_list_entry *mle;
+ 	struct dlm_lock_resource *res;
++	struct hlist_head *bucket;
++	struct hlist_node *list;
++	unsigned int i;
+ 
+ 	mlog_entry("dlm=%s, dead node=%u\n", dlm->name, dead_node);
+ top:
+@@ -3296,7 +3314,12 @@ top:
+ 
+ 	/* clean the master list */
+ 	spin_lock(&dlm->master_lock);
+-	list_for_each_entry_safe(mle, next, &dlm->master_list, list) {
++	for (i = 0; i < DLM_HASH_BUCKETS; i++) {
++		bucket = dlm_master_hash(dlm, i);
++		hlist_for_each(list, bucket) {
++			mle = hlist_entry(list, struct dlm_master_list_entry,
++					  master_hash_node);
++
+ 		BUG_ON(mle->type != DLM_MLE_BLOCK &&
+ 		       mle->type != DLM_MLE_MASTER &&
+ 		       mle->type != DLM_MLE_MIGRATION);
+@@ -3352,6 +3375,7 @@ top:
+ 		/* this may be the last reference */
+ 		__dlm_put_mle(mle);
+ 	}
++	}
+ 	spin_unlock(&dlm->master_lock);
+ }
+ 
 -- 
 1.5.6.3
