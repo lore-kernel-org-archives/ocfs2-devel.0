@@ -1,76 +1,92 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue,  3 Feb 2009 12:48:24 -0800
-Subject: [Ocfs2-devel] [PATCH 10/10] ocfs2/dlm: Show the number of
-	lockres/mles in dlm_state
+Date: Tue,  3 Feb 2009 12:48:23 -0800
+Subject: [Ocfs2-devel] [PATCH 09/10] ocfs2/dlm: dlm_set_lockres_owner() and
+	dlm_change_lockres_owner() inlined
 In-Reply-To: <1233694104-29710-1-git-send-email-sunil.mushran@oracle.com>
 References: <1233694104-29710-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1233694104-29710-11-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1233694104-29710-10-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch shows the number of lockres' and mles in the debugfs file, dlm_state.
+This patch inlines dlm_set_lockres_owner() and dlm_change_lockres_owner().
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmdebug.c |   36 ++++++++++++++++++++++++++++++++++++
- 1 files changed, 36 insertions(+), 0 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |   21 ++++++++++++++++++---
+ fs/ocfs2/dlm/dlmmaster.c |   19 -------------------
+ 2 files changed, 18 insertions(+), 22 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index d7decaa..bf9fa27 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -763,6 +763,8 @@ static int debug_state_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
- 	int out = 0;
- 	struct dlm_reco_node_data *node;
- 	char *state;
-+	int cur_mles = 0, tot_mles = 0;
-+	int i;
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index e5026ce..266fde9 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -858,9 +858,7 @@ struct dlm_lock_resource * dlm_lookup_lockres(struct dlm_ctxt *dlm,
+ 					      unsigned int len);
  
- 	spin_lock(&dlm->spinlock);
+ int dlm_is_host_down(int errno);
+-void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
+-			      struct dlm_lock_resource *res,
+-			      u8 owner);
++
+ struct dlm_lock_resource * dlm_get_lock_resource(struct dlm_ctxt *dlm,
+ 						 const char *lockid,
+ 						 int namelen,
+@@ -1123,6 +1121,23 @@ static inline int dlm_node_iter_next(struct dlm_node_iter *iter)
+ 	return bit;
+ }
  
-@@ -805,6 +807,40 @@ static int debug_state_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
- 				 db->buf + out, db->len - out);
- 	out += snprintf(db->buf + out, db->len - out, "\n");
++static inline void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
++					 struct dlm_lock_resource *res,
++					 u8 owner)
++{
++	assert_spin_locked(&res->spinlock);
++
++	res->owner = owner;
++}
  
-+	/* Lock Resources: xxx (xxx) */
-+	out += snprintf(db->buf + out, db->len - out,
-+			"Lock Resources: %d (%d)\n",
-+			atomic_read(&dlm->res_cur_count),
-+			atomic_read(&dlm->res_tot_count));
++static inline void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
++					    struct dlm_lock_resource *res,
++					    u8 owner)
++{
++	assert_spin_locked(&res->spinlock);
 +
-+	for (i = 0; i < DLM_MLE_NUM_TYPES; ++i)
-+		tot_mles += atomic_read(&dlm->mle_tot_count[i]);
-+
-+	for (i = 0; i < DLM_MLE_NUM_TYPES; ++i)
-+		cur_mles += atomic_read(&dlm->mle_cur_count[i]);
-+
-+	/* MLEs: xxx (xxx) */
-+	out += snprintf(db->buf + out, db->len - out,
-+			"MLEs: %d (%d)\n", cur_mles, tot_mles);
-+
-+	/*  Blocking: xxx (xxx) */
-+	out += snprintf(db->buf + out, db->len - out,
-+			"  Blocking: %d (%d)\n",
-+			atomic_read(&dlm->mle_cur_count[DLM_MLE_BLOCK]),
-+			atomic_read(&dlm->mle_tot_count[DLM_MLE_BLOCK]));
-+
-+	/*  Mastery: xxx (xxx) */
-+	out += snprintf(db->buf + out, db->len - out,
-+			"  Mastery: %d (%d)\n",
-+			atomic_read(&dlm->mle_cur_count[DLM_MLE_MASTER]),
-+			atomic_read(&dlm->mle_tot_count[DLM_MLE_MASTER]));
-+
-+	/*  Migration: xxx (xxx) */
-+	out += snprintf(db->buf + out, db->len - out,
-+			"  Migration: %d (%d)\n",
-+			atomic_read(&dlm->mle_cur_count[DLM_MLE_MIGRATION]),
-+			atomic_read(&dlm->mle_tot_count[DLM_MLE_MIGRATION]));
-+
- 	/* Lists: Dirty=Empty  Purge=InUse  PendingASTs=Empty  ... */
- 	out += snprintf(db->buf + out, db->len - out,
- 			"Lists: Dirty=%s  Purge=%s  PendingASTs=%s  "
++	if (owner != res->owner)
++		dlm_set_lockres_owner(dlm, res, owner);
++}
+ 
+ #endif /* DLMCOMMON_H */
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index d70cdd5..d9c5c5a 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -511,25 +511,6 @@ void dlm_destroy_master_caches(void)
+ 		kmem_cache_destroy(dlm_lockres_cache);
+ }
+ 
+-static void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
+-				  struct dlm_lock_resource *res,
+-				  u8 owner)
+-{
+-	assert_spin_locked(&res->spinlock);
+-
+-	res->owner = owner;
+-}
+-
+-void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
+-			      struct dlm_lock_resource *res, u8 owner)
+-{
+-	assert_spin_locked(&res->spinlock);
+-
+-	if (owner != res->owner)
+-		dlm_set_lockres_owner(dlm, res, owner);
+-}
+-
+-
+ static void dlm_lockres_release(struct kref *kref)
+ {
+ 	struct dlm_lock_resource *res;
 -- 
 1.5.6.3
