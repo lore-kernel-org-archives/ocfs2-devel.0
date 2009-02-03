@@ -1,51 +1,45 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue,  3 Feb 2009 12:37:16 -0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2/dlm: Make
-	dlm_assert_master_handler() kill itself instead of the asserter
+Date: Tue,  3 Feb 2009 12:37:14 -0800
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: Cleanup the lockname print in
+	dlmglue.c
 In-Reply-To: <1233693436-29263-1-git-send-email-sunil.mushran@oracle.com>
 References: <1233693436-29263-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1233693436-29263-4-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1233693436-29263-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In dlm_assert_master_handler(), if we get an incorrect assert master from a node
-that, we reply with EINVAL asking the asserter to die. The problem is that an
-assert is sent after so many hoops, it is invariably the node that thinks the
-asserter is wrong, is actually wrong. So instead of killing the asserter, this
-patch kills the assertee.
-
-This patch papers over a race that is still being addressed.
+The dentry lock has a different format than other locks. This patch fixes
+ocfs2_log_dlm_error() macro to make it print the dentry lock correctly.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmmaster.c |   12 ++++++------
- 1 files changed, 6 insertions(+), 6 deletions(-)
+ fs/ocfs2/dlmglue.c |   11 ++++++++---
+ 1 files changed, 8 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 54e182a..0a28139 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -1849,12 +1849,12 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
- 		if (!mle) {
- 			if (res->owner != DLM_LOCK_RES_OWNER_UNKNOWN &&
- 			    res->owner != assert->node_idx) {
--				mlog(ML_ERROR, "assert_master from "
--					  "%u, but current owner is "
--					  "%u! (%.*s)\n",
--				       assert->node_idx, res->owner,
--				       namelen, name);
--				goto kill;
-+				mlog(ML_ERROR, "DIE! Mastery assert from %u, "
-+				     "but current owner is %u! (%.*s)\n",
-+				     assert->node_idx, res->owner, namelen,
-+				     name);
-+				__dlm_print_one_lock_resource(res);
-+				BUG();
- 			}
- 		} else if (mle->type != DLM_MLE_MIGRATION) {
- 			if (res->owner != DLM_LOCK_RES_OWNER_UNKNOWN) {
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 206a237..7219a86 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -320,9 +320,14 @@ static void ocfs2_schedule_blocked_lock(struct ocfs2_super *osb,
+ 					struct ocfs2_lock_res *lockres);
+ static inline void ocfs2_recover_from_dlm_error(struct ocfs2_lock_res *lockres,
+ 						int convert);
+-#define ocfs2_log_dlm_error(_func, _err, _lockres) do {			\
+-	mlog(ML_ERROR, "DLM error %d while calling %s on resource %s\n", \
+-	     _err, _func, _lockres->l_name);				\
++#define ocfs2_log_dlm_error(_func, _err, _lockres) do {					\
++	if ((_lockres)->l_type != OCFS2_LOCK_TYPE_DENTRY)				\
++		mlog(ML_ERROR, "DLM error %d while calling %s on resource %s\n",	\
++		     _err, _func, _lockres->l_name);					\
++	else										\
++		mlog(ML_ERROR, "DLM error %d while calling %s on resource %.*s%08x\n",	\
++		     _err, _func, OCFS2_DENTRY_LOCK_INO_START - 1, (_lockres)->l_name,	\
++		     (unsigned int)ocfs2_get_dentry_lock_ino(_lockres));		\
+ } while (0)
+ static int ocfs2_downconvert_thread(void *arg);
+ static void ocfs2_downconvert_on_unlock(struct ocfs2_super *osb,
 -- 
 1.5.6.3
