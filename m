@@ -1,29 +1,34 @@
-From: Fabio M. Di Nitto <fdinitto@redhat.com>
-Date: Wed, 04 Feb 2009 08:27:39 +0100
-Subject: [Ocfs2-devel] [Cluster-devel] Cluster IRC meeting - Monday 2nd
-	of Feb 2pm	UTC/GMT
-In-Reply-To: <1232971513.10253.16.camel@cerberus.int.fabbione.net>
-References: <1232971513.10253.16.camel@cerberus.int.fabbione.net>
-Message-ID: <1233732459.3835.19.camel@cerberus.int.fabbione.net>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 4 Feb 2009 09:50:16 -0800
+Subject: [Ocfs2-devel] [git patches] Ocfs2 and Configfs fixes
+In-Reply-To: <20090203212422.GT17410@wotan.suse.de>
+References: <20090203212422.GT17410@wotan.suse.de>
+Message-ID: <20090204175016.GU17410@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On Mon, 2009-01-26 at 13:05 +0100, Fabio M. Di Nitto wrote:
-> Hi everybody,
-> 
-> When  : Monday 2nd of Feb 2pm UTC/GMT (*)(**)
-> Where : irc.freenode.net #linux-cluster
-> Who   : everybody interested is invited to participate
-> Agenda: http://sources.redhat.com/cluster/wiki/Meetings/2009-Feb-02
+Linus,
+
+Can you please pull again? I mistakenly included a version of the configfs
+patch which is in the process of being reworked. This pull reverts it. Thank
+you.
+	--Mark
+
+Please pull from 'upstream-linus' branch of
+git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git upstream-linus
+
+to receive the following updates:
+
+ fs/configfs/dir.c |   59 -----------------------------------------------------
+ 1 files changed, 0 insertions(+), 59 deletions(-)
+
+Mark Fasheh (1):
+      Revert "configfs: Silence lockdep on mkdir(), rmdir() and configfs_depend_item()"
 
 
-http://sources.redhat.com/cluster/wiki/Meetings/2009-Feb-02/irclogs
-
-
-IRC logs of the meeting are now available at the above URL.
-
-Cheers
-Fabio
+--
+Mark Fasheh
