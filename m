@@ -1,41 +1,58 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon,  9 Feb 2009 05:56:29 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/security: Check xattr support in
-	security_init.
-Message-ID: <1234130189-8091-1-git-send-email-tao.ma@oracle.com>
+From: Rafael Emerick <rafael.rezo@gmail.com>
+Date: Mon, 9 Feb 2009 18:15:53 -0200
+Subject: [Ocfs2-devel] Problema to Mount drbd0
+Message-ID: <9112ced60902091215u1ede078eo17eb0773d2bb1594@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-If the system supports selinux, we will return sucessfully from
-ocfs2_init_security_get if it is called for the mount point.
-And in that case if the volume doesn't have xattr support, we
-will not be able to create a new inode in the mount dir because
-ocfs2_mknod will try to set security attributes for a new created
-inode. This patch check xattr support in ocfs2_init_security_get,
-so it will let ocfs2_mknod knows that we don't support xattr and
-it don't need to init security for the new inode in that case.
+Hi!
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/xattr.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+I found a similar problem in an user maillist about my problem, but didnt
+work here.
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 5aec833..8a7db21 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -5289,6 +5289,9 @@ int ocfs2_init_security_get(struct inode *inode,
- 			    struct inode *dir,
- 			    struct ocfs2_security_xattr_info *si)
- {
-+	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
-+		return -EOPNOTSUPP;
-+
- 	return security_inode_init_security(inode, dir, &si->name, &si->value,
- 					    &si->value_len);
- }
+Im using a CentOS 5.2, with a Xen 2.6.18 kernel and a compiled Drbd 8.
+
+So, a load a ocfs2 module and use the mkfs.ocfs2 successfully with
+/dev/drbd0
+But, when i try to mount it a take this log:
+
+# mount.ocfs2 /dev/drbd0 /mnt
+mount.ocfs2: I/O error on channel while trying to join the group
+
+# tail /var/log/messages
+Feb  9 18:11:08 tundra kernel: (31249,0):o2hb_setup_one_bio:290 ERROR: Error
+adding page to bio i = 7, vec_len = 4096, len = 0
+Feb  9 18:11:08 tundra kernel: , start = 0
+Feb  9 18:11:08 tundra kernel: (31249,0):o2hb_read_slots:385 ERROR: status =
+-5
+Feb  9 18:11:08 tundra kernel: (31249,0):o2hb_populate_slot_data:1299 ERROR:
+status = -5
+Feb  9 18:11:08 tundra kernel: (31249,0):o2hb_region_dev_write:1399 ERROR:
+status = -5
+Feb  9 18:11:42 tundra kernel: (31259,0):o2hb_setup_one_bio:290 ERROR: Error
+adding page to bio i = 7, vec_len = 4096, len = 0
+Feb  9 18:11:42 tundra kernel: , start = 0
+Feb  9 18:11:42 tundra kernel: (31259,0):o2hb_read_slots:385 ERROR: status =
+-5
+Feb  9 18:11:42 tundra kernel: (31259,0):o2hb_populate_slot_data:1299 ERROR:
+status = -5
+Feb  9 18:11:42 tundra kernel: (31259,0):o2hb_region_dev_write:1399 ERROR:
+status = -5
+
+The o2cb loaded successfully, but whet i run /etc/init.d/ocfs2 start/status
+i do not have an answer
+
+Can you help me?
+thank you for your attention
+
+Rgs
+
+
 -- 
-1.5.4.4
+Rafael Emerick Z. de Oliveira
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090209/279292ea/attachment.html 
