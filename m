@@ -1,61 +1,67 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 10 Feb 2009 11:11:57 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/security: Check xattr support in
-	security_init.
-In-Reply-To: <4990EAD8.6030501@oracle.com>
-References: <1234130189-8091-1-git-send-email-tao.ma@oracle.com>
-	<4990EAD8.6030501@oracle.com>
-Message-ID: <4990F07D.6020308@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 9 Feb 2009 19:19:17 -0800
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Add journal parameter
+	to	jbd2_journal_begin_ordered_truncate()
+In-Reply-To: <1233845582-954-4-git-send-email-jack@suse.cz>
+References: <1233845582-954-1-git-send-email-jack@suse.cz>
+	<1233845582-954-2-git-send-email-jack@suse.cz>
+	<1233845582-954-3-git-send-email-jack@suse.cz>
+	<1233845582-954-4-git-send-email-jack@suse.cz>
+Message-ID: <20090210031917.GD4341@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.cz>
+Cc: linux-ext4@vger.kernel.org, mfasheh@suse.de, mfasheh@suse.com, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com
 
-
-
-Tiger Yang wrote:
-> Hi, Tao
+On Thu, Feb 05, 2009 at 03:53:02PM +0100, Jan Kara wrote:
+> Add new parameter of the function.
 > 
-> I already fixed this issue :)
-> http://oss.oracle.com/pipermail/ocfs2-devel/2008-December/003559.html
-aha, yes, It looks that my repository is a little older. Let me rebase it.
+> CC: ocfs2-devel at oss.oracle.com
+> CC: mfasheh at suse.de
+> Signed-off-by: Jan Kara <jack@suse.cz>
+Acked-by: Joel Becker <joel.becker@oracle.com>
 
-Sorry for the noise.
+> ---
+>  fs/ocfs2/journal.h |    6 ++++--
+>  1 files changed, 4 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+> index 3c3532e..172850a 100644
+> --- a/fs/ocfs2/journal.h
+> +++ b/fs/ocfs2/journal.h
+> @@ -513,8 +513,10 @@ static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode)
+>  static inline int ocfs2_begin_ordered_truncate(struct inode *inode,
+>  					       loff_t new_size)
+>  {
+> -	return jbd2_journal_begin_ordered_truncate(&OCFS2_I(inode)->ip_jinode,
+> -						   new_size);
+> +	return jbd2_journal_begin_ordered_truncate(
+> +				OCFS2_SB(inode->i_sb)->journal->j_journal,
+> +				&OCFS2_I(inode)->ip_jinode,
+> +				new_size);
+>  }
+>  
+>  #endif /* OCFS2_JOURNAL_H */
+> -- 
+> 1.6.0.2
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
-Regards,
-Tao
-> 
-> Thanks,
-> tiger
-> 
-> Tao Ma wrote:
->> If the system supports selinux, we will return sucessfully from
->> ocfs2_init_security_get if it is called for the mount point.
->> And in that case if the volume doesn't have xattr support, we
->> will not be able to create a new inode in the mount dir because
->> ocfs2_mknod will try to set security attributes for a new created
->> inode. This patch check xattr support in ocfs2_init_security_get,
->> so it will let ocfs2_mknod knows that we don't support xattr and
->> it don't need to init security for the new inode in that case.
->>
->> Signed-off-by: Tao Ma <tao.ma@oracle.com>
->> ---
->>  fs/ocfs2/xattr.c |    3 +++
->>  1 files changed, 3 insertions(+), 0 deletions(-)
->>
->> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
->> index 5aec833..8a7db21 100644
->> --- a/fs/ocfs2/xattr.c
->> +++ b/fs/ocfs2/xattr.c
->> @@ -5289,6 +5289,9 @@ int ocfs2_init_security_get(struct inode *inode,
->>                  struct inode *dir,
->>                  struct ocfs2_security_xattr_info *si)
->>  {
->> +    if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
->> +        return -EOPNOTSUPP;
->> +
->>      return security_inode_init_security(inode, dir, &si->name, 
->> &si->value,
->>                          &si->value_len);
->>  }
+-- 
+
+Life's Little Instruction Book #464
+
+	"Don't miss the magic of the moment by focusing on what's
+	 to come."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
