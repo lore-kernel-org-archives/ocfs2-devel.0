@@ -1,61 +1,40 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 9 Feb 2009 19:23:37 -0800
-Subject: [Ocfs2-devel] Problem with ordered mode handling on truncate
-In-Reply-To: <20090203153415.GC24630@duck.suse.cz>
-References: <20090203153415.GC24630@duck.suse.cz>
-Message-ID: <20090210032337.GE4341@mail.oracle.com>
+Date: Mon, 9 Feb 2009 19:25:54 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V2).
+In-Reply-To: <4990D968.1050703@oracle.com>
+References: <200812120900.mBC90imR012722@localhost.localdomain>
+	<20090130011115.GF12502@mail.oracle.com>
+	<4990D968.1050703@oracle.com>
+Message-ID: <20090210032554.GF4341@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Feb 03, 2009 at 04:34:16PM +0100, Jan Kara wrote:
->   Hi,
-> 
->   I've looked at how OCFS2 call jbd2_journal_begin_ordered_truncate()
-> (because I've been adding some comments about how is should be used) and
-> noticed that OCFS2 has a potential race in truncate vs transaction commit
-> leading to stale data in file. In particular: There is a race if someone
-> writes new data and we start committing the transaction after
-> jbd2_journal_begin_ordered_truncate() is called but before transaction
-> adding inode to orphan list is started. Because then data written by the new
-> write are discarded in the truncate but if we crash before the truncate
-> itself is committed, we see old data instead of newly written one.
-> Maybe more understandable as a diagram:
-> 	   CPU 1:					CPU 2:
-> jbd2_journal_begin_ordered_truncate(inode, 0)
-> 							write(trans, inode, ...)
-> discard data of "inode"
-> 							commit "trans"
-> ---- CRASH
-> 
->   The correct fix to this problem is to call
-> jbd2_journal_begin_ordered_truncate() after inode has been added to orphan
-> list (new i_size written respectively). That function is called from two
-> places:
-> 1) ocfs2_truncate_for_delete() - easy to fix, just move the call just after
->    the write of the inode.
-> 2) ocfs2_setattr() - we can move the call into ocfs2_truncate_file() but
->    that would mean calling jbd2_journal_begin_ordered_truncate()
->    and consequently ocfs2_write_page() under ip_alloc_sem - not too nice.
->    Furthermore ocfs2_orphan_for_truncate() zeros the last cluster
->    beyond i_size and we cannot do that before writing out previous
->    content... Not sure how to solve that yet.
-> 
->   Any ideas welcome.
+On Tue, Feb 10, 2009 at 09:33:28AM +0800, Wengang Wang wrote:
+> one thing is that, the "nfs_sync_lock" will be one in count or more than 
+> one?
+> I think having lots of this kind of lock(one for each meta block) will 
+> bring us least performance impact for deletions.
+> well so much locks eat memory. for balancing, how about setting up 16(or 
+> 32) such locks? different inode goes to different lock according to its 
+> block number. and 16(or 32) such locks won't take much memory. --just 
+> like the idea in my original patch.
 
-	Well, we don't actually orphan the inode ;-)
-	Is this the same crash as you specified in the later patch to
-lock the journal?  Or something different and ocfs2-specific?
+	No, we'll have one lock per superblock.  There's no performance
+impact unless you have stale NFS clients.  We take the lock in PR mode
+in delete_inode, and the lock caching mechanism will keep it for us.
+The lock will only be unlocked when a stale NFS client wants to lookup
+its handle.  Otherwise, all nodes will share the PR lock.
 
 Joel
 
 -- 
 
-"Reader, suppose you were and idiot.  And suppose you were a member of
- Congress.  But I repeat myself."
-	- Mark Twain
+"Here's something to think about:  How come you never see a headline
+ like ``Psychic Wins Lottery''?"
+	- Jay Leno
 
 Joel Becker
 Principal Software Developer
