@@ -1,155 +1,169 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 10 Feb 2009 23:37:48 -0800
-Subject: [Ocfs2-devel] [PATCH 01/10] ocfs2/dlm: Encapsulate adding
-	and	removing of mle from dlm->master_list
-In-Reply-To: <1233694104-29710-2-git-send-email-sunil.mushran@oracle.com>
-References: <1233694104-29710-1-git-send-email-sunil.mushran@oracle.com>
-	<1233694104-29710-2-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20090211073747.GE9512@mail.oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 11 Feb 2009 10:25:38 +0100
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Add journal parameter
+	to	jbd2_journal_begin_ordered_truncate()
+In-Reply-To: <20090210151255.GE30689@mini-me.lan>
+References: <1233845582-954-1-git-send-email-jack@suse.cz>
+	<1233845582-954-2-git-send-email-jack@suse.cz>
+	<1233845582-954-3-git-send-email-jack@suse.cz>
+	<1233845582-954-4-git-send-email-jack@suse.cz>
+	<20090210151255.GE30689@mini-me.lan>
+Message-ID: <20090211092538.GA8118@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Theodore Tso <tytso@mit.edu>
+Cc: linux-ext4@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, mfasheh@suse.com, ocfs2-devel@oss.oracle.com, mfasheh@suse.de
 
-On Tue, Feb 03, 2009 at 12:48:15PM -0800, Sunil Mushran wrote:
-> This patch encapsulates adding and removing of the mle from the
-> dlm->master_list. This patch is part of the series of patches that
-> converts the mle list to a mle hash.
+On Tue 10-02-09 10:12:55, Theodore Tso wrote:
+> The problem with separating out the patch into three separate commits
+> is that it can potentially break a "git bisect".  To fix this, I
+> believe the right thing to do is to combine the three patches into a
+> single commit, and to push this via the ext4 tree; any objections?
+  On a second thought, this is probably the best for such simple change.
+So please go ahead. Thanks.
+
+								Honza
+
+> jbd2: Avoid possible NULL dereference in jbd2_journal_begin_ordered_truncate()
 > 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-
-sob
-
+> From: Jan Kara <jack@suse.cz>
+> 
+> If we race with commit code setting i_transaction to NULL, we could
+> possibly dereference it.  Proper locking requires the journal pointer
+> (to access journal->j_list_lock), which we don't have.  So we have to
+> change the prototype of the function so that filesystem passes us the
+> journal pointer.  Also add a more detailed comment about why the
+> function jbd2_journal_begin_ordered_truncate() does what it does and
+> how it should be used.
+> 
+> Thanks to Dan Carpenter <error27@gmail.com> for pointing to the
+> suspitious code.
+> 
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
+> Acked-by: Joel Becker <joel.becker@oracle.com>
+> CC: linux-ext4 at vger.kernel.org
+> CC: ocfs2-devel at oss.oracle.com
+> CC: mfasheh at suse.de
+> CC: Dan Carpenter <error27@gmail.com>
 > ---
->  fs/ocfs2/dlm/dlmcommon.h |    3 +++
->  fs/ocfs2/dlm/dlmmaster.c |   34 +++++++++++++++++++++++-----------
->  2 files changed, 26 insertions(+), 11 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-> index bb53714..261e265 100644
-> --- a/fs/ocfs2/dlm/dlmcommon.h
-> +++ b/fs/ocfs2/dlm/dlmcommon.h
-> @@ -1008,6 +1008,9 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
->  					  DLM_LOCK_RES_MIGRATING));
+>  fs/ext4/inode.c       |    6 ++++--
+>  fs/jbd2/transaction.c |   42 +++++++++++++++++++++++++++++++-----------
+>  fs/ocfs2/journal.h    |    6 ++++--
+>  include/linux/jbd2.h  |    3 ++-
+>  4 files changed, 41 insertions(+), 16 deletions(-)
+> diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+> index 03ba20b..658c4a7 100644
+> --- a/fs/ext4/inode.c
+> +++ b/fs/ext4/inode.c
+> @@ -47,8 +47,10 @@
+>  static inline int ext4_begin_ordered_truncate(struct inode *inode,
+>  					      loff_t new_size)
+>  {
+> -	return jbd2_journal_begin_ordered_truncate(&EXT4_I(inode)->jinode,
+> -						   new_size);
+> +	return jbd2_journal_begin_ordered_truncate(
+> +					EXT4_SB(inode->i_sb)->s_journal,
+> +					&EXT4_I(inode)->jinode,
+> +					new_size);
 >  }
 >  
-> +void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle);
-> +void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle);
-> +
->  /* create/destroy slab caches */
->  int dlm_init_master_caches(void);
->  void dlm_destroy_master_caches(void);
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 0a28139..0aa4b04 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -318,6 +318,21 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
->  	__dlm_mle_attach_hb_events(dlm, mle);
+>  static void ext4_invalidatepage(struct page *page, unsigned long offset);
+> diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+> index 46b4e34..28ce21d 100644
+> --- a/fs/jbd2/transaction.c
+> +++ b/fs/jbd2/transaction.c
+> @@ -2129,26 +2129,46 @@ done:
 >  }
 >  
-> +void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
-> +{
-> +	assert_spin_locked(&dlm->spinlock);
-> +	assert_spin_locked(&dlm->master_lock);
-> +
-> +	if (!list_empty(&mle->list))
-> +		list_del_init(&mle->list);
-> +}
-> +
-> +void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
-> +{
-> +	assert_spin_locked(&dlm->master_lock);
-> +
-> +	list_add(&mle->list, &dlm->master_list);
-> +}
+>  /*
+> - * This function must be called when inode is journaled in ordered mode
+> - * before truncation happens. It starts writeout of truncated part in
+> - * case it is in the committing transaction so that we stand to ordered
+> - * mode consistency guarantees.
+> + * File truncate and transaction commit interact with each other in a
+> + * non-trivial way.  If a transaction writing data block A is
+> + * committing, we cannot discard the data by truncate until we have
+> + * written them.  Otherwise if we crashed after the transaction with
+> + * write has committed but before the transaction with truncate has
+> + * committed, we could see stale data in block A.  This function is a
+> + * helper to solve this problem.  It starts writeout of the truncated
+> + * part in case it is in the committing transaction.
+> + *
+> + * Filesystem code must call this function when inode is journaled in
+> + * ordered mode before truncation happens and after the inode has been
+> + * placed on orphan list with the new inode size. The second condition
+> + * avoids the race that someone writes new data and we start
+> + * committing the transaction after this function has been called but
+> + * before a transaction for truncate is started (and furthermore it
+> + * allows us to optimize the case where the addition to orphan list
+> + * happens in the same transaction as write --- we don't have to write
+> + * any data in such case).
+>   */
+> -int jbd2_journal_begin_ordered_truncate(struct jbd2_inode *inode,
+> +int jbd2_journal_begin_ordered_truncate(journal_t *journal,
+> +					struct jbd2_inode *jinode,
+>  					loff_t new_size)
+>  {
+> -	journal_t *journal;
+> -	transaction_t *commit_trans;
+> +	transaction_t *inode_trans, *commit_trans;
+>  	int ret = 0;
 >  
->  /* returns 1 if found, 0 if not */
->  static int dlm_find_mle(struct dlm_ctxt *dlm,
-> @@ -420,8 +435,7 @@ static void dlm_mle_release(struct kref *kref)
->  	assert_spin_locked(&dlm->master_lock);
->  
->  	/* remove from list if not already */
-> -	if (!list_empty(&mle->list))
-> -		list_del_init(&mle->list);
-> +	__dlm_unlink_mle(dlm, mle);
->  
->  	/* detach the mle from the domain node up/down events */
->  	__dlm_mle_detach_hb_events(dlm, mle);
-> @@ -843,7 +857,7 @@ lookup:
->  		alloc_mle = NULL;
->  		dlm_init_mle(mle, DLM_MLE_MASTER, dlm, res, NULL, 0);
->  		set_bit(dlm->node_num, mle->maybe_map);
-> -		list_add(&mle->list, &dlm->master_list);
-> +		__dlm_insert_mle(dlm, mle);
->  
->  		/* still holding the dlm spinlock, check the recovery map
->  		 * to see if there are any nodes that still need to be 
-> @@ -1575,7 +1589,7 @@ way_up_top:
->  		// "add the block.\n");
->  		dlm_init_mle(mle, DLM_MLE_BLOCK, dlm, NULL, name, namelen);
->  		set_bit(request->node_idx, mle->maybe_map);
-> -		list_add(&mle->list, &dlm->master_list);
-> +		__dlm_insert_mle(dlm, mle);
->  		response = DLM_MASTER_RESP_NO;
->  	} else {
->  		// mlog(0, "mle was found\n");
-> @@ -1967,7 +1981,7 @@ ok:
->  			     assert->node_idx, rr, extra_ref, mle->inuse);
->  			dlm_print_one_mle(mle);
->  		}
-> -		list_del_init(&mle->list);
-> +		__dlm_unlink_mle(dlm, mle);
->  		__dlm_mle_detach_hb_events(dlm, mle);
->  		__dlm_put_mle(mle);
->  		if (extra_ref) {
-> @@ -3159,10 +3173,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
->  			tmp->master = master;
->  			atomic_set(&tmp->woken, 1);
->  			wake_up(&tmp->wq);
-> -			/* remove it from the list so that only one
-> -			 * mle will be found */
-> -			list_del_init(&tmp->list);
-> -			/* this was obviously WRONG.  mle is uninited here.  should be tmp. */
-> +			/* remove it so that only one mle will be found */
-> +			__dlm_unlink_mle(dlm, tmp);
->  			__dlm_mle_detach_hb_events(dlm, tmp);
->  			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
->  			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
-> @@ -3181,7 +3193,7 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
->  	mle->master = master;
->  	/* do this for consistency with other mle types */
->  	set_bit(new_master, mle->maybe_map);
-> -	list_add(&mle->list, &dlm->master_list);
-> +	__dlm_insert_mle(dlm, mle);
->  
->  	return ret;
+> -	if (!inode->i_transaction && !inode->i_next_transaction)
+> +	/* This is a quick check to avoid locking if not necessary */
+> +	if (!jinode->i_transaction)
+>  		goto out;
+> -	journal = inode->i_transaction->t_journal;
+> +	/* Locks are here just to force reading of recent values, it is
+> +	 * enough that the transaction was not committing before we started
+> +	 * a transaction adding the inode to orphan list */
+>  	spin_lock(&journal->j_state_lock);
+>  	commit_trans = journal->j_committing_transaction;
+>  	spin_unlock(&journal->j_state_lock);
+> -	if (inode->i_transaction == commit_trans) {
+> -		ret = filemap_fdatawrite_range(inode->i_vfs_inode->i_mapping,
+> +	spin_lock(&journal->j_list_lock);
+> +	inode_trans = jinode->i_transaction;
+> +	spin_unlock(&journal->j_list_lock);
+> +	if (inode_trans == commit_trans) {
+> +		ret = filemap_fdatawrite_range(jinode->i_vfs_inode->i_mapping,
+>  			new_size, LLONG_MAX);
+>  		if (ret)
+>  			jbd2_journal_abort(journal, ret);
+> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+> index 3c3532e..172850a 100644
+> --- a/fs/ocfs2/journal.h
+> +++ b/fs/ocfs2/journal.h
+> @@ -513,8 +513,10 @@ static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode)
+>  static inline int ocfs2_begin_ordered_truncate(struct inode *inode,
+>  					       loff_t new_size)
+>  {
+> -	return jbd2_journal_begin_ordered_truncate(&OCFS2_I(inode)->ip_jinode,
+> -						   new_size);
+> +	return jbd2_journal_begin_ordered_truncate(
+> +				OCFS2_SB(inode->i_sb)->journal->j_journal,
+> +				&OCFS2_I(inode)->ip_jinode,
+> +				new_size);
 >  }
-> @@ -3264,7 +3276,7 @@ top:
->  		 * list_head while in list_for_each_safe */
->  		__dlm_mle_detach_hb_events(dlm, mle);
->  		spin_lock(&mle->spinlock);
-> -		list_del_init(&mle->list);
-> +		__dlm_unlink_mle(dlm, mle);
->  		atomic_set(&mle->woken, 1);
->  		spin_unlock(&mle->spinlock);
->  		wake_up(&mle->wq);
-> -- 
-> 1.5.6.3
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
+>  
+>  #endif /* OCFS2_JOURNAL_H */
+> diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
+> index b28b37e..4d248b3 100644
+> --- a/include/linux/jbd2.h
+> +++ b/include/linux/jbd2.h
+> @@ -1150,7 +1150,8 @@ extern int	   jbd2_journal_clear_err  (journal_t *);
+>  extern int	   jbd2_journal_bmap(journal_t *, unsigned long, unsigned long long *);
+>  extern int	   jbd2_journal_force_commit(journal_t *);
+>  extern int	   jbd2_journal_file_inode(handle_t *handle, struct jbd2_inode *inode);
+> -extern int	   jbd2_journal_begin_ordered_truncate(struct jbd2_inode *inode, loff_t new_size);
+> +extern int	   jbd2_journal_begin_ordered_truncate(journal_t *journal,
+> +				struct jbd2_inode *inode, loff_t new_size);
+>  extern void	   jbd2_journal_init_jbd_inode(struct jbd2_inode *jinode, struct inode *inode);
+>  extern void	   jbd2_journal_release_jbd_inode(journal_t *journal, struct jbd2_inode *jinode);
+>  
 -- 
-
-"We'd better get back, `cause it'll be dark soon,
- and they mostly come at night.  Mostly."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
