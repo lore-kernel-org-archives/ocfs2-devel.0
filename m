@@ -1,30 +1,39 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 11 Feb 2009 13:01:28 -0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Add journal parameter to
-	jbd2_journal_begin_ordered_truncate()
-In-Reply-To: <20090210151255.GE30689@mini-me.lan>
-References: <1233845582-954-1-git-send-email-jack@suse.cz>
-	<1233845582-954-2-git-send-email-jack@suse.cz>
-	<1233845582-954-3-git-send-email-jack@suse.cz>
-	<1233845582-954-4-git-send-email-jack@suse.cz>
-	<20090210151255.GE30689@mini-me.lan>
-Message-ID: <20090211210128.GD17410@wotan.suse.de>
+Date: Wed, 11 Feb 2009 15:52:37 -0800
+Subject: [Ocfs2-devel] Possible lock inversion in directory locking
+In-Reply-To: <20090211175834.GD13817@duck.suse.cz>
+References: <20090211175834.GD13817@duck.suse.cz>
+Message-ID: <20090211235237.GE17410@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Tso <tytso@mit.edu>
-Cc: Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Feb 10, 2009 at 10:12:55AM -0500, Theodore Tso wrote:
-> The problem with separating out the patch into three separate commits
-> is that it can potentially break a "git bisect".  To fix this, I
-> believe the right thing to do is to combine the three patches into a
-> single commit, and to push this via the ext4 tree; any objections?
+On Wed, Feb 11, 2009 at 06:58:34PM +0100, Jan Kara wrote:
+>   I've been playing lately with lockdep annotations of OCFS2. I seem to
+> have most of the false positives sorted out and currently I hit the report
+> below.
 
-That's fine with me. Btw, you forgot my:
+Cool!
 
-Acked-by: Mark Fasheh <mfasheh@suse.com>
+
+>   I've analyzed that ocfs2_extend_dir() does first lock local alloc inode
+> in ocfs2_reserve_clusters() and then acquires ip_alloc_sem from the
+> directory. The usual ordering e.g. in ocfs2_write_begin() is to first
+> acquire ip_alloc_sem and then lock local alloc. Now these two paths
+> obviously cannot deadlock against each other because one works only for
+> directories and another only for files. But there are some code paths that
+> are shared among all inodes and I see some potential for deadlock there. So
+> my question: Is this locking difference between regular files and
+> directories intentional? If not, would you agree with changing the lock
+> ordering in ocfs2_extend_dir() (because I think different locking in this
+> area will bite us sooner or later)?
+
+
+It's not intentional, no. In fact, we didn't really use ip_alloc_sem for
+directories much until recently when Joel standardized it. As far as fixing
+this, I'd say it's best to re-order the locks properly.
 	--Mark
 
 --
