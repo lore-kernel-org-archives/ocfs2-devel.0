@@ -1,140 +1,297 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 11 Feb 2009 18:58:34 +0100
-Subject: [Ocfs2-devel] Possible lock inversion in directory locking
-Message-ID: <20090211175834.GD13817@duck.suse.cz>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 11 Feb 2009 10:50:08 -0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: set xh_free_start when xattr
+	header in	inode/block
+In-Reply-To: <1234319891-7020-1-git-send-email-tiger.yang@oracle.com>
+References: <499238F3.9010208@oracle.com>
+	<1234319891-7020-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <20090211185007.GJ9512@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  Hi,
+On Wed, Feb 11, 2009 at 10:38:11AM +0800, Tiger Yang wrote:
+> This patch update fields about xh_free_start and
+> xh_name_value_len when xattr header in inode/block.
+> Those fields only be used for bucket before.
+> With xh_free_start, we are free to calculate minimum
+> offset of xattr name/value.
 
-  I've been playing lately with lockdep annotations of OCFS2. I seem to
-have most of the false positives sorted out and currently I hit the report
-below.
-  I've analyzed that ocfs2_extend_dir() does first lock local alloc inode
-in ocfs2_reserve_clusters() and then acquires ip_alloc_sem from the
-directory. The usual ordering e.g. in ocfs2_write_begin() is to first
-acquire ip_alloc_sem and then lock local alloc. Now these two paths
-obviously cannot deadlock against each other because one works only for
-directories and another only for files. But there are some code paths that
-are shared among all inodes and I see some potential for deadlock there. So
-my question: Is this locking difference between regular files and
-directories intentional? If not, would you agree with changing the lock
-ordering in ocfs2_extend_dir() (because I think different locking in this
-area will bite us sooner or later)?
+	The math of the patch is fine, but it doesn't take into account
+filesystems in the wild.  xattrs were released with .28, which means
+there are filesystems in the wild that have xh_free_start==0.  This
+patch removes the old math that calculated offsets without
+xh_free_start.  We probably should checking for xh_free_start==0 and
+recalculating it.
+	The places in this patch and the next patch where you pad the
+space with 4 bytes shouldn't use 'sizeof(__u32)'.  Create a #define
+(something like OCFS2_XATTR_HEADER_GAP == 4).
 
-									Honza
-=======================================================
-[ INFO: possible circular locking dependency detected ]
-2.6.29-rc3-default #5
--------------------------------------------------------
-cp/3919 is trying to acquire lock:
- (&oi->ip_alloc_sem){----}, at: [<ffffffffa02e789e>] ocfs2_prepare_dir_for_insert+0x13d3/0x1999 [ocfs2]
+Joel
 
-but task is already holding lock:
- (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#4){--..}, at: [<ffffffffa03017ff>] ocfs2_reserve_local_alloc_bits+0xf6/0xdec [ocfs2]
-
-which lock already depends on the new lock.
-
-
-the existing dependency chain (in reverse order) is:
-
--> #1 (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#4){--..}:
-       [<ffffffff80249be9>] add_lock_to_list+0x74/0xb3
-       [<ffffffff8024ce4d>] __lock_acquire+0x1208/0x156e
-       [<ffffffffa03017ff>] ocfs2_reserve_local_alloc_bits+0xf6/0xdec [ocfs2]
-       [<ffffffff80297840>] igrab+0x10/0x36
-       [<ffffffff8024d205>] lock_acquire+0x52/0x6c
-       [<ffffffffa03017ff>] ocfs2_reserve_local_alloc_bits+0xf6/0xdec [ocfs2]
-       [<ffffffff80466933>] mutex_lock_nested+0xf6/0x278
-       [<ffffffffa03017ff>] ocfs2_reserve_local_alloc_bits+0xf6/0xdec [ocfs2]
-       [<ffffffff80468376>] _spin_unlock+0x17/0x20
-       [<ffffffffa03017ff>] ocfs2_reserve_local_alloc_bits+0xf6/0xdec [ocfs2]
-       [<ffffffff80468376>] _spin_unlock+0x17/0x20
-       [<ffffffffa03012e9>] ocfs2_alloc_should_use_local+0x9e/0xa9 [ocfs2]
-       [<ffffffffa030f782>] ocfs2_reserve_clusters_with_limit+0xf4/0x242 [ocfs2]
-       [<ffffffffa0310954>] ocfs2_lock_allocators+0x15d/0x1e8 [ocfs2]
-       [<ffffffffa02e25ce>] ocfs2_write_begin_nolock+0x9f6/0x1a99 [ocfs2]
-       [<ffffffff80249424>] find_usage_backwards+0xc7/0xe8
-       [<ffffffff8024cf83>] __lock_acquire+0x133e/0x156e
-       [<ffffffff80249be9>] add_lock_to_list+0x74/0xb3
-       [<ffffffff80467e1f>] __down_write_nested+0x17/0xa3
-       [<ffffffff80467e1f>] __down_write_nested+0x17/0xa3
-       [<ffffffffa0300719>] ocfs2_journal_access_di+0x0/0xf [ocfs2]
-       [<ffffffffa02e377e>] ocfs2_write_begin+0x10d/0x1c0 [ocfs2]
-       [<ffffffff802608a9>] generic_file_buffered_write+0x132/0x2ee
-       [<ffffffff8029ac8a>] mnt_want_write+0x10/0x80
-       [<ffffffff80260f50>] __generic_file_aio_write_nolock+0x34c/0x380
-       [<ffffffff8026162b>] generic_file_aio_write_nolock+0x33/0x7f
-       [<ffffffffa02f4a43>] ocfs2_file_aio_write+0x438/0x558 [ocfs2]
-       [<ffffffff80286e7a>] do_sync_write+0xce/0x113
-       [<ffffffff80221336>] do_page_fault+0x442/0x7bc
-       [<ffffffff80240db5>] autoremove_wake_function+0x0/0x2e
-       [<ffffffff802876c5>] vfs_write+0xad/0x123
-       [<ffffffff802877f7>] sys_write+0x45/0x6e
-       [<ffffffff8020be5b>] system_call_fastpath+0x16/0x1b
-       [<ffffffffffffffff>] 0xffffffffffffffff
-
--> #0 (&oi->ip_alloc_sem){----}:
-       [<ffffffff8024b835>] print_circular_bug_tail+0x87/0xc7
-       [<ffffffff8024b68f>] print_circular_bug_header+0xcc/0xd3
-       [<ffffffff8024cb25>] __lock_acquire+0xee0/0x156e
-       [<ffffffff80468376>] _spin_unlock+0x17/0x20
-       [<ffffffff8024d205>] lock_acquire+0x52/0x6c
-       [<ffffffffa02e789e>] ocfs2_prepare_dir_for_insert+0x13d3/0x1999 [ocfs2]
-       [<ffffffff804672e7>] down_write+0x3f/0x4a
-       [<ffffffffa02e789e>] ocfs2_prepare_dir_for_insert+0x13d3/0x1999 [ocfs2]
-       [<ffffffffa02e789e>] ocfs2_prepare_dir_for_insert+0x13d3/0x1999 [ocfs2]
-       [<ffffffffa02e56d3>] ocfs2_read_dir_block+0x37/0x1ce [ocfs2]
-       [<ffffffff80466710>] __mutex_unlock_slowpath+0x100/0x108
-       [<ffffffffa02f8e92>] ocfs2_validate_inode_block+0x0/0x197 [ocfs2]
-       [<ffffffffa0300719>] ocfs2_journal_access_di+0x0/0xf [ocfs2]
-       [<ffffffffa02e92e5>] ocfs2_check_dir_for_entry+0x82/0xe8 [ocfs2]
-       [<ffffffffa0307cec>] ocfs2_mknod+0x236/0xc42 [ocfs2]
-       [<ffffffffa0308854>] ocfs2_create+0x83/0xd9 [ocfs2]
-       [<ffffffff8028f601>] vfs_create+0xd0/0xfe
-       [<ffffffff8029179e>] do_filp_open+0x22b/0x806
-       [<ffffffff80468376>] _spin_unlock+0x17/0x20
-       [<ffffffff80299edf>] alloc_fd+0x106/0x117
-       [<ffffffff802857f6>] do_sys_open+0x48/0xcc
-       [<ffffffff8020be5b>] system_call_fastpath+0x16/0x1b
-       [<ffffffffffffffff>] 0xffffffffffffffff
-
-other info that might help us debug this:
-
-3 locks held by cp/3919:
- #0:  (&sb->s_type->i_mutex_key#13){--..}, at: [<ffffffff802916c6>] do_filp_open+0x153/0x806
- #1:  (Meta){----}, at: [<ffffffffa0307bde>] ocfs2_mknod+0x128/0xc42 [ocfs2]
- #2:  (&ocfs2_sysfile_lock_key[args->fi_sysfile_type]#4){--..}, at: [<ffffffffa03017ff>] ocfs2_reserve_local_alloc_bits+0xf6/0xdec [ocfs2]
-
-stack backtrace:
-Pid: 3919, comm: cp Not tainted 2.6.29-rc3-default #5
-Call Trace:
- [<ffffffff8024b86c>] print_circular_bug_tail+0xbe/0xc7
- [<ffffffff8024b68f>] print_circular_bug_header+0xcc/0xd3
- [<ffffffff8024cb25>] __lock_acquire+0xee0/0x156e
- [<ffffffff80468376>] _spin_unlock+0x17/0x20
- [<ffffffff8024d205>] lock_acquire+0x52/0x6c
- [<ffffffffa02e789e>] ocfs2_prepare_dir_for_insert+0x13d3/0x1999 [ocfs2]
- [<ffffffff804672e7>] down_write+0x3f/0x4a
- [<ffffffffa02e789e>] ocfs2_prepare_dir_for_insert+0x13d3/0x1999 [ocfs2]
- [<ffffffffa02e789e>] ocfs2_prepare_dir_for_insert+0x13d3/0x1999 [ocfs2]
- [<ffffffffa02e56d3>] ocfs2_read_dir_block+0x37/0x1ce [ocfs2]
- [<ffffffff80466710>] __mutex_unlock_slowpath+0x100/0x108
- [<ffffffffa02f8e92>] ocfs2_validate_inode_block+0x0/0x197 [ocfs2]
- [<ffffffffa0300719>] ocfs2_journal_access_di+0x0/0xf [ocfs2]
- [<ffffffffa02e92e5>] ocfs2_check_dir_for_entry+0x82/0xe8 [ocfs2]
- [<ffffffffa0307cec>] ocfs2_mknod+0x236/0xc42 [ocfs2]
- [<ffffffffa0308854>] ocfs2_create+0x83/0xd9 [ocfs2]
- [<ffffffff8028f601>] vfs_create+0xd0/0xfe
- [<ffffffff8029179e>] do_filp_open+0x22b/0x806
- [<ffffffff80468376>] _spin_unlock+0x17/0x20
- [<ffffffff80299edf>] alloc_fd+0x106/0x117
- [<ffffffff802857f6>] do_sys_open+0x48/0xcc
- [<ffffffff8020be5b>] system_call_fastpath+0x16/0x1b
+> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+> ---
+>  fs/ocfs2/ocfs2_fs.h |    2 +-
+>  fs/ocfs2/xattr.c    |  118 ++++++++++++++++++---------------------------------
+>  2 files changed, 42 insertions(+), 78 deletions(-)
+> 
+> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+> index c7ae45a..597d047 100644
+> --- a/fs/ocfs2/ocfs2_fs.h
+> +++ b/fs/ocfs2/ocfs2_fs.h
+> @@ -839,7 +839,7 @@ struct ocfs2_xattr_header {
+>  	__le16	xh_free_start;                  /* current offset for storing
+>  						   xattr. */
+>  	__le16	xh_name_value_len;              /* total length of name/value
+> -						   length in this bucket. */
+> +						   length in this object. */
+>  	__le16	xh_num_buckets;                 /* Number of xattr buckets
+>  						   in this extent record,
+>  						   only valid in the first
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 915039f..ce793af 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -89,6 +89,9 @@ struct ocfs2_xattr_set_ctxt {
+>  					 - sizeof(struct ocfs2_xattr_block) \
+>  					 - sizeof(struct ocfs2_xattr_header) \
+>  					 - sizeof(__u32))
+> +#define OCFS2_XATTR_HEADER_SIZE(ptr)	(le16_to_cpu((ptr)->xh_count) \
+> +					 * sizeof(struct ocfs2_xattr_entry) \
+> +					 + sizeof(struct ocfs2_xattr_header))
+>  
+>  static struct ocfs2_xattr_def_value_root def_xv = {
+>  	.xv.xr_list.l_count = cpu_to_le16(1),
+> @@ -1365,8 +1368,7 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
+>  static void ocfs2_xattr_set_entry_local(struct inode *inode,
+>  					struct ocfs2_xattr_info *xi,
+>  					struct ocfs2_xattr_search *xs,
+> -					struct ocfs2_xattr_entry *last,
+> -					size_t min_offs)
+> +					struct ocfs2_xattr_entry *last)
+>  {
+>  	size_t name_len = strlen(xi->name);
+>  	int i;
+> @@ -1382,7 +1384,7 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
+>  		void *val;
+>  		size_t offs, size;
+>  
+> -		first_val = xs->base + min_offs;
+> +		first_val = xs->base + le16_to_cpu(xs->header->xh_free_start);
+>  		offs = le16_to_cpu(xs->here->xe_name_offset);
+>  		val = xs->base + offs;
+>  
+> @@ -1417,7 +1419,8 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
+>  		ocfs2_xattr_set_local(xs->here, 1);
+>  		xs->here->xe_value_size = 0;
+>  
+> -		min_offs += size;
+> +		le16_add_cpu(&xs->header->xh_free_start, size);
+> +		le16_add_cpu(&xs->header->xh_name_value_len, -size);
+>  
+>  		/* Adjust all value offsets. */
+>  		last = xs->header->xh_entries;
+> @@ -1440,11 +1443,14 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
+>  	}
+>  	if (xi->value) {
+>  		/* Insert the new name+value. */
+> +		void *val;
+>  		size_t size = OCFS2_XATTR_SIZE(name_len) +
+>  				OCFS2_XATTR_SIZE(xi->value_len);
+> -		void *val = xs->base + min_offs - size;
+>  
+> -		xs->here->xe_name_offset = cpu_to_le16(min_offs - size);
+> +		le16_add_cpu(&xs->header->xh_free_start, -size);
+> +		le16_add_cpu(&xs->header->xh_name_value_len, size);
+> +		val = xs->base + le16_to_cpu(xs->header->xh_free_start);
+> +		xs->here->xe_name_offset = xs->header->xh_free_start;
+>  		memset(val, 0, size);
+>  		memcpy(val, xi->name, name_len);
+>  		memcpy(val + OCFS2_XATTR_SIZE(name_len),
+> @@ -1476,10 +1482,10 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+>  	struct ocfs2_xattr_entry *last;
+>  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)xs->inode_bh->b_data;
+> -	size_t min_offs = xs->end - xs->base, name_len = strlen(xi->name);
+> +	size_t name_len = strlen(xi->name);
+>  	size_t size_l = 0;
+>  	handle_t *handle = ctxt->handle;
+> -	int free, i, ret;
+> +	int free, ret;
+>  	struct ocfs2_xattr_info xi_l = {
+>  		.name_index = xi->name_index,
+>  		.name = xi->name,
+> @@ -1497,17 +1503,10 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+>  	} else
+>  		BUG_ON(xs->xattr_bh != xs->inode_bh);
+>  
+> -	/* Compute min_offs, last and free space. */
+> -	last = xs->header->xh_entries;
+> -
+> -	for (i = 0 ; i < le16_to_cpu(xs->header->xh_count); i++) {
+> -		size_t offs = le16_to_cpu(last->xe_name_offset);
+> -		if (offs < min_offs)
+> -			min_offs = offs;
+> -		last += 1;
+> -	}
+> -
+> -	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
+> +	/* Compute last entry and free space. */
+> +	last = &xs->header->xh_entries[le16_to_cpu(xs->header->xh_count)];
+> +	free = le16_to_cpu(xs->header->xh_free_start) -
+> +		OCFS2_XATTR_HEADER_SIZE(xs->header) - sizeof(__u32);
+>  	if (free < 0)
+>  		return -EIO;
+>  
+> @@ -1522,22 +1521,17 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+>  		free += (size + sizeof(struct ocfs2_xattr_entry));
+>  	}
+>  	/* Check free space in inode or block */
+> -	if (xi->value && xi->value_len > OCFS2_XATTR_INLINE_SIZE) {
+> -		if (free < sizeof(struct ocfs2_xattr_entry) +
+> -			   OCFS2_XATTR_SIZE(name_len) +
+> -			   OCFS2_XATTR_ROOT_SIZE) {
+> +	if (xi->value) {
+> +		if (ocfs2_xattr_entry_real_size(name_len,
+> +						xi->value_len) > free) {
+>  			ret = -ENOSPC;
+>  			goto out;
+>  		}
+> -		size_l = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
+> -		xi_l.value = (void *)&def_xv;
+> -		xi_l.value_len = OCFS2_XATTR_ROOT_SIZE;
+> -	} else if (xi->value) {
+> -		if (free < sizeof(struct ocfs2_xattr_entry) +
+> -			   OCFS2_XATTR_SIZE(name_len) +
+> -			   OCFS2_XATTR_SIZE(xi->value_len)) {
+> -			ret = -ENOSPC;
+> -			goto out;
+> +		if (xi->value_len > OCFS2_XATTR_INLINE_SIZE) {
+> +			size_l = OCFS2_XATTR_SIZE(name_len) +
+> +				 OCFS2_XATTR_ROOT_SIZE;
+> +			xi_l.value = (void *)&def_xv;
+> +			xi_l.value_len = OCFS2_XATTR_ROOT_SIZE;
+>  		}
+>  	}
+>  
+> @@ -1629,7 +1623,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+>  	 * Set value in local, include set tree root in local.
+>  	 * This is the first step for value size >INLINE_SIZE.
+>  	 */
+> -	ocfs2_xattr_set_entry_local(inode, &xi_l, xs, last, min_offs);
+> +	ocfs2_xattr_set_entry_local(inode, &xi_l, xs, last);
+>  
+>  	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
+>  		ret = ocfs2_journal_dirty(handle, xs->xattr_bh);
+> @@ -1973,9 +1967,12 @@ static int ocfs2_xattr_ibody_find(struct inode *inode,
+>  	if (oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL)
+>  		xs->header = (struct ocfs2_xattr_header *)
+>  			(xs->end - le16_to_cpu(di->i_xattr_inline_size));
+> -	else
+> +	else {
+>  		xs->header = (struct ocfs2_xattr_header *)
+>  			(xs->end - OCFS2_SB(inode->i_sb)->s_xattr_inline_size);
+> +		xs->header->xh_free_start = cpu_to_le16(
+> +				OCFS2_SB(inode->i_sb)->s_xattr_inline_size);
+> +	}
+>  	xs->base = (void *)xs->header;
+>  	xs->here = xs->header->xh_entries;
+>  
+> @@ -2138,6 +2135,8 @@ static int ocfs2_xattr_block_set(struct inode *inode,
+>  		xs->base = (void *)xs->header;
+>  		xs->end = (void *)xblk + inode->i_sb->s_blocksize;
+>  		xs->here = xs->header->xh_entries;
+> +		xblk->xb_attrs.xb_header.xh_free_start =
+> +					cpu_to_le16(xs->end - xs->base);
+>  
+>  		ret = ocfs2_journal_dirty(handle, new_bh);
+>  		if (ret < 0) {
+> @@ -2168,46 +2167,6 @@ end:
+>  	return ret;
+>  }
+>  
+> -/* Check whether the new xattr can be inserted into the inode. */
+> -static int ocfs2_xattr_can_be_in_inode(struct inode *inode,
+> -				       struct ocfs2_xattr_info *xi,
+> -				       struct ocfs2_xattr_search *xs)
+> -{
+> -	u64 value_size;
+> -	struct ocfs2_xattr_entry *last;
+> -	int free, i;
+> -	size_t min_offs = xs->end - xs->base;
+> -
+> -	if (!xs->header)
+> -		return 0;
+> -
+> -	last = xs->header->xh_entries;
+> -
+> -	for (i = 0; i < le16_to_cpu(xs->header->xh_count); i++) {
+> -		size_t offs = le16_to_cpu(last->xe_name_offset);
+> -		if (offs < min_offs)
+> -			min_offs = offs;
+> -		last += 1;
+> -	}
+> -
+> -	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
+> -	if (free < 0)
+> -		return 0;
+> -
+> -	BUG_ON(!xs->not_found);
+> -
+> -	if (xi->value_len > OCFS2_XATTR_INLINE_SIZE)
+> -		value_size = OCFS2_XATTR_ROOT_SIZE;
+> -	else
+> -		value_size = OCFS2_XATTR_SIZE(xi->value_len);
+> -
+> -	if (free >= sizeof(struct ocfs2_xattr_entry) +
+> -		   OCFS2_XATTR_SIZE(strlen(xi->name)) + value_size)
+> -		return 1;
+> -
+> -	return 0;
+> -}
+> -
+>  static int ocfs2_calc_xattr_set_need(struct inode *inode,
+>  				     struct ocfs2_dinode *di,
+>  				     struct ocfs2_xattr_info *xi,
+> @@ -2303,7 +2262,13 @@ static int ocfs2_calc_xattr_set_need(struct inode *inode,
+>  		 * one will be removed from the xattr block, and this xattr
+>  		 * will be inserted into inode as a new xattr in inode.
+>  		 */
+> -		if (ocfs2_xattr_can_be_in_inode(inode, xi, xis)) {
+> +		int free = le16_to_cpu(xis->header->xh_free_start) -
+> +			   OCFS2_XATTR_HEADER_SIZE(xis->header) -
+> +			   sizeof(__u32);
+> +		int size = ocfs2_xattr_entry_real_size(strlen(xi->name),
+> +						       xi->value_len);
+> +
+> +		if (size <= free) {
+>  			clusters_add += new_clusters;
+>  			credits += ocfs2_remove_extent_credits(inode->i_sb) +
+>  				    OCFS2_INODE_UPDATE_CREDITS;
+> @@ -5058,8 +5023,7 @@ try_again:
+>  	xh = xs->header;
+>  	count = le16_to_cpu(xh->xh_count);
+>  	xh_free_start = le16_to_cpu(xh->xh_free_start);
+> -	header_size = sizeof(struct ocfs2_xattr_header) +
+> -			count * sizeof(struct ocfs2_xattr_entry);
+> +	header_size = OCFS2_XATTR_HEADER_SIZE(xh);
+>  	max_free = OCFS2_XATTR_BUCKET_SIZE -
+>  		le16_to_cpu(xh->xh_name_value_len) - header_size;
+>  
+> -- 
+> 1.5.4.1
+> 
 
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+
+"I am working for the time when unqualified blacks, browns, and
+ women join the unqualified men in running our overnment."
+	- Sissy Farenthold
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
