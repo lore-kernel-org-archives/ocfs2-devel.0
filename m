@@ -1,29 +1,26 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 12 Feb 2009 11:23:42 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add IO error check in
- ocfs2_get_sector() -v2
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 12 Feb 2009 11:45:25 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add IO error check
+	in	ocfs2_get_sector() -v2
 In-Reply-To: <200902120748.n1C7mVqx020705@acsinet13.oracle.com>
 References: <200902120748.n1C7mVqx020705@acsinet13.oracle.com>
-Message-ID: <4994773E.6020609@oracle.com>
+Message-ID: <20090212194525.GB14638@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The matching brelse() is in ocfs2_fill_super(). So you shouldn't
-need it. Cross check though please.
-
-Secondly, when you make a patch, please make it against mainline.
-ocfs2 1.4 pulls in patches from mainline.
-
-Sunil
-
-wengang wang wrote:
+On Thu, Feb 12, 2009 at 03:47:26PM +0800, wengang wang wrote:
 > checks IO error in ocfs2_get_sector().
->
+> 
 > this patch is based on 1.4 git.
->
+
+	This patch is good, but definitely needs to be against mainline.
+
+sobby
+
+> 
 > Signed-off-by: Wengang wang <wen.gang.wang@oracle.com>
 > --
 > Index: fs/ocfs2/super.c
@@ -43,9 +40,22 @@ wengang wang wrote:
 >  	return 0;
 >  }
 >  
->
+> 
 > _______________________________________________
 > Ocfs2-devel mailing list
 > Ocfs2-devel at oss.oracle.com
 > http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->   
+
+-- 
+
+The Graham Corollary:
+
+	The longer a socially-moderated news website exists, the
+	probability of an old Paul Graham link appearing at the top
+	approaches certainty.
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
