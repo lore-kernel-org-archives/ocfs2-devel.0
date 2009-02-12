@@ -1,8 +1,8 @@
 From: wengang wang <wen.gang.wang@oracle.com>
-Date: Thu, 12 Feb 2009 15:27:53 +0800
+Date: Thu, 12 Feb 2009 15:47:26 +0800
 Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add IO error check in
-	ocfs2_get_sector()
-Message-ID: <200902120728.n1C7Srh9008018@rgminet15.oracle.com>
+	ocfs2_get_sector() -v2
+Message-ID: <200902120748.n1C7mVqx020705@acsinet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -19,12 +19,13 @@ Index: fs/ocfs2/super.c
 ===================================================================
 --- fs/ocfs2/super.c	(revision 128)
 +++ fs/ocfs2/super.c	(working copy)
-@@ -1203,6 +1203,11 @@ static int ocfs2_get_sector(struct super
+@@ -1203,6 +1203,12 @@ static int ocfs2_get_sector(struct super
  	unlock_buffer(*bh);
  	ll_rw_block(READ, 1, bh);
  	wait_on_buffer(*bh);
 +	if (!buffer_uptodate(*bh)) {
 +		mlog_errno(-EIO);
++		brelse(*bh);
 +		return -EIO;
 +	}
 +
