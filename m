@@ -1,50 +1,41 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 12 Feb 2009 14:43:47 -0800
-Subject: [Ocfs2-devel] mount point is not unique among all nodes
-In-Reply-To: <20090212221740.GB12965@mail.oracle.com>
-References: <499481EF.40609@suse.de> <20090212221740.GB12965@mail.oracle.com>
-Message-ID: <20090212224347.GC12965@mail.oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Fri, 13 Feb 2009 00:38:17 +0100
+Subject: [Ocfs2-devel] Deadlock in rename path
+Message-ID: <20090212233816.GA3525@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Feb 12, 2009 at 02:17:40PM -0800, Joel Becker wrote:
-> On Fri, Feb 13, 2009 at 04:09:19AM +0800, Coly Li wrote:
-> > Hi list,
-> > 
-> > Here is a bug report on novell bugzilla (https://bugzilla.novell.com/show_bug.cgi?id=456280) that
-> > mount point inside node A can be removed from node B.
-> 
-> 	Can't access the bug.
-> 
-> > The problem is, node B does not know an empty dir is be using as mount point on another node. Is
-> > there any solution to return -EBUSY when a dir is be using as mount point on another node ?
-> 
-> 	This is a good question.  As of right now, we don't have a way
-> to do it.
+  Hello,
 
-	Sunil and I took a look.  It would seem we need to mark the
-dentry lock LVB with a mountpoint count.  That way, ocfs2_unlink() could
-check that right before calling ocfs2_remote_dentry_delete().
-	The problem is that the VFS doesn't notify us when one of our
-directories is mounted over.  Somewhere in do_add_mount() it would need
-to tell ocfs2 about it, so that ocfs2 could take the EX on the dentry
-lock and bump the mount count in the LVB.
-	So, that's what we'll do when we get around to it.  I don't
-think it's a high priority; we haven't actually run into this until now.
+  I've been looking at ocfs2_rename() and I think there are two possible
+deadlocks:
+  1) ocfs2_double_lock() locks directories in the inode number order. But
+for a directory structure like:
+   d1
+  /  \
+ f1  d2
+    /
+   f2
 
-Joel
+if you do 'mv f1 f2' and in parallel do something like 'rmdir d2' then
+ocfs2_double_lock() can try locking directories in order 'd2','d1' but
+ocfs2_rmdir() tries locking directories in order 'd1', 'd2' -> deadlock.
+The solution could be to mimic VFS behavior in lock_rename() and check
+whether one of the directories is not parent of the other one and lock
+in appropriate order. But the problem with this is that we don't have
+directory dentries in ocfs2_rename(). Hopefully obtaining them via i_dentry
+should be possible but I'm not completely certain about interactions with
+bind mounts etc...
+  2) ocfs2_rename() also first locks old_inode (to unlink it) and then
+new_inode (to create new link to it). Now in the directory structure where
+are files 'a' and 'b' linked to two directories 'd1' and 'd2', there can be
+two renames racing against each other. One does 'mv d1/a d1/b' the other
+does 'mv d2/b d2/a'. Again, they try to obtain locks for file inodes in
+different order resulting in deadlock. The question is how to solve this
+one. I would introduce double lock function similar as for directories.
+It is nasty but it should work fine. What do you think?
 
--- 
-
-"The question of whether computers can think is just like the question
- of whether submarines can swim."
-	- Edsger W. Dijkstra
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+								Honza
