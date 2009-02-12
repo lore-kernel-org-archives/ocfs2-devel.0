@@ -1,30 +1,22 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 12 Feb 2009 11:55:30 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add IO error check in
- ocfs2_get_sector() -v2
-In-Reply-To: <20090212194626.GC14638@ca-server1.us.oracle.com>
-References: <200902120748.n1C7mVqx020705@acsinet13.oracle.com>
-	<4994773E.6020609@oracle.com>
-	<20090212194626.GC14638@ca-server1.us.oracle.com>
-Message-ID: <49947EB2.5090503@oracle.com>
+From: Coly Li <coly.li@suse.de>
+Date: Fri, 13 Feb 2009 04:09:19 +0800
+Subject: [Ocfs2-devel] mount point is not unique among all nodes
+Message-ID: <499481EF.40609@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I am looking at the brelse() in ocfs2_fill_super().
+Hi list,
 
-Joel Becker wrote:
-> On Thu, Feb 12, 2009 at 11:23:42AM -0800, Sunil Mushran wrote:
->   
->> The matching brelse() is in ocfs2_fill_super(). So you shouldn't
->> need it. Cross check though please.
->>     
->
-> 	No, if we get an error from ocfs2_get_sector() we return without
-> brelse().  So the patch is correct.
->
-> Joel
->
->   
+Here is a bug report on novell bugzilla (https://bugzilla.novell.com/show_bug.cgi?id=456280) that
+mount point inside node A can be removed from node B.
+
+The problem is, node B does not know an empty dir is be using as mount point on another node. Is
+there any solution to return -EBUSY when a dir is be using as mount point on another node ?
+
+Thanks in advance.
+-- 
+Coly Li
+SuSE Labs
