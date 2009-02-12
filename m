@@ -1,55 +1,36 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 12 Feb 2009 14:15:10 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add IO error check
-	in	ocfs2_get_sector() -v2
-In-Reply-To: <49947EB2.5090503@oracle.com>
-References: <200902120748.n1C7mVqx020705@acsinet13.oracle.com>
-	<4994773E.6020609@oracle.com>
-	<20090212194626.GC14638@ca-server1.us.oracle.com>
-	<49947EB2.5090503@oracle.com>
-Message-ID: <20090212221510.GA12965@mail.oracle.com>
+Date: Thu, 12 Feb 2009 14:17:40 -0800
+Subject: [Ocfs2-devel] mount point is not unique among all nodes
+In-Reply-To: <499481EF.40609@suse.de>
+References: <499481EF.40609@suse.de>
+Message-ID: <20090212221740.GB12965@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Feb 12, 2009 at 11:55:30AM -0800, Sunil Mushran wrote:
-> I am looking at the brelse() in ocfs2_fill_super().
+On Fri, Feb 13, 2009 at 04:09:19AM +0800, Coly Li wrote:
+> Hi list,
+> 
+> Here is a bug report on novell bugzilla (https://bugzilla.novell.com/show_bug.cgi?id=456280) that
+> mount point inside node A can be removed from node B.
 
-	Oh, right.  Then Wengang's patch should null out *bh when
-brelsing it.  No point in passing a garbage bh all the way up.
+	Can't access the bug.
 
+> The problem is, node B does not know an empty dir is be using as mount point on another node. Is
+> there any solution to return -EBUSY when a dir is be using as mount point on another node ?
+
+	This is a good question.  As of right now, we don't have a way
+to do it.
 
 Joel
 
-> 
-> Joel Becker wrote:
-> > On Thu, Feb 12, 2009 at 11:23:42AM -0800, Sunil Mushran wrote:
-> >   
-> >> The matching brelse() is in ocfs2_fill_super(). So you shouldn't
-> >> need it. Cross check though please.
-> >>     
-> >
-> > 	No, if we get an error from ocfs2_get_sector() we return without
-> > brelse().  So the patch is correct.
-> >
-> > Joel
-> >
-> >   
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
 -- 
 
-"The one important thing i have learned over the years is the
- difference between taking one's work seriously and taking one's self
- seriously.  The first is imperative and the second is disastrous."
-	-Margot Fonteyn
+"I always thought the hardest questions were those I could not answer.
+ Now I know they are the ones I can never ask."
+			- Charlie Watkins
 
 Joel Becker
 Principal Software Developer
