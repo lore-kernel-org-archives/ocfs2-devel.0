@@ -1,174 +1,136 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Fri, 13 Feb 2009 14:15:54 -0800
-Subject: [Ocfs2-devel] [PATCH 07/40] ocfs2: Store the ocfs2_caching_info on
-	ocfs2_extent_tree.
-In-Reply-To: <1234563387-17101-1-git-send-email-joel.becker@oracle.com>
-References: <1234563387-17101-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1234563387-17101-8-git-send-email-joel.becker@oracle.com>
+Date: Fri, 13 Feb 2009 14:15:47 -0800
+Subject: [Ocfs2-devel] [PATCH 0/40] ocfs2: Detach ocfs2 metadata I/O from
+	struct inode
+Message-ID: <1234563387-17101-1-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-What do we cache?  Metadata blocks.  What are most of our non-inode metadata
-blocks?  Extent blocks for our btrees.  struct ocfs2_extent_tree is the
-main structure for managing those.  So let's store the associated
-ocfs2_caching_info there.
+The following series of patches attempts to detach metadata I/O from
+struct inode.   They are currently tied together pretty tightly.
+Metadata reads happen via the ocfs2_read_blocks() functions, writes via
+both jbd2 and ocfs2_write_blocks().
 
-This means that ocfs2_et_root_journal_access() doesn't need struct inode
-anymore, and any place that has an et can refer to et->et_ci instead of
-INODE_CACHE(inode).
+- Each inode has a cache of associated metadata blocks stored on its
+  ip_metadata_cache member.  The ocfs2_read/write_blocks() functions
+  take a struct inode to access this member.
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/alloc.c |   26 +++++++++++++-------------
- fs/ocfs2/alloc.h |    4 +++-
- 2 files changed, 16 insertions(+), 14 deletions(-)
+- The journal mostly doesn't care about inodes.  It does, however, need
+  to set the transaction id on the inode so that dlmglue knows when an
+  inode needs to checkpoint.
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 84ecf90..2c87173 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -302,6 +302,7 @@ static void __ocfs2_init_extent_tree(struct ocfs2_extent_tree *et,
- {
- 	et->et_ops = ops;
- 	et->et_root_bh = bh;
-+	et->et_ci = INODE_CACHE(inode);
- 	et->et_root_journal_access = access;
- 	if (!obj)
- 		obj = (void *)bh->b_data;
-@@ -357,11 +358,10 @@ static inline void ocfs2_et_update_clusters(struct inode *inode,
- }
- 
- static inline int ocfs2_et_root_journal_access(handle_t *handle,
--					       struct ocfs2_caching_info *ci,
- 					       struct ocfs2_extent_tree *et,
- 					       int type)
- {
--	return et->et_root_journal_access(handle, ci, et->et_root_bh,
-+	return et->et_root_journal_access(handle, et->et_ci, et->et_root_bh,
- 					  type);
- }
- 
-@@ -1079,7 +1079,7 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
- 		mlog_errno(status);
- 		goto bail;
- 	}
--	status = ocfs2_et_root_journal_access(handle, INODE_CACHE(inode), et,
-+	status = ocfs2_et_root_journal_access(handle, et,
- 					      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (status < 0) {
- 		mlog_errno(status);
-@@ -1195,7 +1195,7 @@ static int ocfs2_shift_tree_depth(struct ocfs2_super *osb,
- 		goto bail;
- 	}
- 
--	status = ocfs2_et_root_journal_access(handle, INODE_CACHE(inode), et,
-+	status = ocfs2_et_root_journal_access(handle, et,
- 					      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (status < 0) {
- 		mlog_errno(status);
-@@ -2519,7 +2519,7 @@ static int ocfs2_rotate_subtree_left(struct inode *inode, handle_t *handle,
- 		 * We have to update i_last_eb_blk during the meta
- 		 * data delete.
- 		 */
--		ret = ocfs2_et_root_journal_access(handle, INODE_CACHE(inode), et,
-+		ret = ocfs2_et_root_journal_access(handle, et,
- 						   OCFS2_JOURNAL_ACCESS_WRITE);
- 		if (ret) {
- 			mlog_errno(ret);
-@@ -2866,7 +2866,7 @@ static int ocfs2_remove_rightmost_path(struct inode *inode, handle_t *handle,
- 		goto out;
- 	}
- 
--	ret = ocfs2_journal_access_path(INODE_CACHE(inode), handle, path);
-+	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -2896,7 +2896,7 @@ static int ocfs2_remove_rightmost_path(struct inode *inode, handle_t *handle,
- 			goto out;
- 		}
- 
--		ret = ocfs2_journal_access_path(INODE_CACHE(inode), handle, left_path);
-+		ret = ocfs2_journal_access_path(et->et_ci, handle, left_path);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-@@ -4047,7 +4047,7 @@ static int ocfs2_do_insert_extent(struct inode *inode,
- 
- 	el = et->et_root_el;
- 
--	ret = ocfs2_et_root_journal_access(handle, INODE_CACHE(inode), et,
-+	ret = ocfs2_et_root_journal_access(handle, et,
- 					   OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
-@@ -4109,7 +4109,7 @@ static int ocfs2_do_insert_extent(struct inode *inode,
- 		 * ocfs2_rotate_tree_right() might have extended the
- 		 * transaction without re-journaling our tree root.
- 		 */
--		ret = ocfs2_et_root_journal_access(handle, INODE_CACHE(inode), et,
-+		ret = ocfs2_et_root_journal_access(handle, et,
- 						   OCFS2_JOURNAL_ACCESS_WRITE);
- 		if (ret) {
- 			mlog_errno(ret);
-@@ -4632,7 +4632,7 @@ int ocfs2_add_clusters_in_btree(struct ocfs2_super *osb,
- 	BUG_ON(num_bits > clusters_to_add);
- 
- 	/* reserve our write early -- insert_extent may update the tree root */
--	status = ocfs2_et_root_journal_access(handle, INODE_CACHE(inode), et,
-+	status = ocfs2_et_root_journal_access(handle, et,
- 					      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (status < 0) {
- 		mlog_errno(status);
-@@ -5144,13 +5144,13 @@ static int ocfs2_truncate_rec(struct inode *inode, handle_t *handle,
- 		goto out;
- 	}
- 
--	ret = ocfs2_journal_access_path(INODE_CACHE(inode), handle, path);
-+	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
- 
--	ret = ocfs2_journal_access_path(INODE_CACHE(inode), handle, left_path);
-+	ret = ocfs2_journal_access_path(et->et_ci, handle, left_path);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -5385,7 +5385,7 @@ int ocfs2_remove_btree_range(struct inode *inode,
- 		goto out;
- 	}
- 
--	ret = ocfs2_et_root_journal_access(handle, INODE_CACHE(inode), et,
-+	ret = ocfs2_et_root_journal_access(handle, et,
- 					   OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
- 		mlog_errno(ret);
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index cceff5c..b16e32c 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -45,7 +45,8 @@
-  *
-  * ocfs2_extent_tree contains info for the root of the b-tree, it must have a
-  * root ocfs2_extent_list and a root_bh so that they can be used in the b-tree
-- * functions.  With metadata ecc, we now call different journal_access
-+ * functions.  It needs the ocfs2_caching_info structure associated with
-+ * I/O on the tree.  With metadata ecc, we now call different journal_access
-  * functions for each type of metadata, so it must have the
-  * root_journal_access function.
-  * ocfs2_extent_tree_operations abstract the normal operations we do for
-@@ -56,6 +57,7 @@ struct ocfs2_extent_tree {
- 	struct ocfs2_extent_tree_operations	*et_ops;
- 	struct buffer_head			*et_root_bh;
- 	struct ocfs2_extent_list		*et_root_el;
-+	struct ocfs2_caching_info		*et_ci;
- 	ocfs2_journal_access_func		et_root_journal_access;
- 	void					*et_object;
- 	unsigned int				et_max_leaf_clusters;
--- 
-1.5.6.5
+- All the metadata I/O paths use ip_io_mutex to synchronize their
+  actions against each other.
+
+The problem is that if someone wants to use our metadata I/O facilities,
+they have to have a struct inode.  But not everything in ocfs2 is an
+inode (even if it seems that way sometimes).  So we want to disconnect
+them.
+
+It turns out that most of what goes on is about ocfs2_caching_info.  So
+if we move the last few relevant bits to ocfs2_caching_info, we can then
+embed ocfs2_caching_info into another structure just as easily as we do
+inside struct inode.  That's the theory, anyway.
+
+The first three patches move the cache code to ocfs2_caching_info
+entirely.  The functions affecting the metadata cache, like
+ocfs2_set_buffer_uptodate(), etc, take a struct ocfs2_caching_info
+instead of a struct inode.  That sort of thing.  It's nice and easy.
+
+The next three patches move the journal transaction ids to struct
+ocfs2_caching_info.  When they are done, the ocfs2_journal_access*()
+functions take a stuct ocfs2_caching_info, and the dlmglue checks the
+ocfs2_caching_info regarding checkpoints.  So it only takes us six
+patches to isolate ocfs2_caching_info in the metadata I/O API.
+
+The remaining 34 patches slowly but surely move alloc.c to the new API.
+Our btree code is heavily invested in the idea that all btrees are
+rooted, somehow, at an inode.  Since we want to root a btree at a
+non-inode, we need to fix that.  The good news, of course, is that the
+ocfs2_extent_tree abstraction is already there to rescue us.  We attach
+the ocfs2_caching_info to a particular ocfs2_extent_tree, and we can
+then send that ocfs2_extent_tree down through the btree code.  At the
+end of this series, the generic btree code doesn't reference struct
+inode at all.
+
+There are a lot of patches because this entire series is supposed to be
+isomorphic.  No behavior is to change, just the flexibility of our API.
+Thus, each patch tries to be readily understandable.  Thank you for your
+patience!
+
+[View]
+http://oss.oracle.com/git/?p=jlbec/linux-2.6.git;a=shortlog;h=cacheme
+[Pull]
+git://oss.oracle.com/git/jlbec/linux-2.6.git cacheme
+
+Joel Becker (40):
+      ocfs2: Make the ocfs2_caching_info structure self-contained.
+      ocfs2: Change metadata caching locks to an operations structure.
+      ocfs2: Take the inode out of the metadata read/write paths.
+      ocfs2: move ip_last_trans to struct ocfs2_caching_info
+      ocfs2: move ip_created_trans to struct ocfs2_caching_info
+      ocfs2: Pass struct ocfs2_caching_info to the journal functions.
+      ocfs2: Store the ocfs2_caching_info on ocfs2_extent_tree.
+      ocfs2: Pass ocfs2_caching_info to ocfs2_read_extent_block().
+      ocfs2: ocfs2_find_path() only needs the caching info
+      ocfs2: ocfs2_create_new_meta_bhs() doesn't need struct inode.
+      ocfs2: Pass ocfs2_extent_tree to ocfs2_unlink_path()
+      ocfs2: ocfs2_complete_edge_insert() doesn't need struct inode at all.
+      ocfs2: Get inode out of ocfs2_rotate_subtree_root_right().
+      ocfs2: Pass ocfs2_extent_tree to ocfs2_get_subtree_root()
+      ocfs2: Drop struct inode from ocfs2_extent_tree_operations.
+      ocfs2: ocfs2_rotate_tree_right() doesn't need struct inode.
+      ocfs2: ocfs2_update_edge_lengths() doesn't need struct inode.
+      ocfs2: ocfs2_rotate_subtree_left() doesn't need struct inode.
+      ocfs2: __ocfs2_rotate_tree_left() doesn't need struct inode.
+      ocfs2: ocfs2_rotate_tree_left() no longer needs struct inode.
+      ocfs2: ocfs2_merge_rec_left/right() no longer need struct inode.
+      ocfs2: ocfs2_try_to_merge_extent() doesn't need struct inode.
+      ocfs2: ocfs2_grow_branch() no longer needs struct inode.
+      ocfs2: ocfs2_append_rec_to_path() loses struct inode.
+      ocfs2: ocfs2_truncate_rec() doesn't need struct inode.
+      ocfs2: Make truncating the extent map an extent_tree_operation.
+      ocfs2: ocfs2_insert_at_leaf() doesn't need struct inode.
+      ocfs2: Give ocfs2_split_record() an extent_tree instead of an inode.
+      ocfs2: ocfs2_do_insert_extent() and ocfs2_insert_path() no longer need an 
+      ocfs2: ocfs2_extent_contig() only requires the superblock.
+      ocfs2: Swap inode for extent_tree in ocfs2_figure_merge_contig_type().
+      ocfs2: Remove inode from ocfs2_figure_extent_contig().
+      ocfs2: ocfs2_figure_insert_type() no longer needs struct inode.
+      ocfs2: Make extent map insertion an extent_tree_operation.
+      ocfs2: ocfs2_insert_extent() no longer needs struct inode.
+      ocfs2: ocfs2_add_clusters_in_btree() no longer needs struct inode.
+      ocfs2: ocfs2_remove_extent() no longer needs struct inode.
+      ocfs2: ocfs2_split_and_insert() no longer needs struct inode.
+      ocfs2: __ocfs2_mark_extent_written() doesn't need struct inode.
+      ocfs2: Pass ocfs2_caching_info into ocfs_init_*_extent_tree().
+
+ alloc.c          |  896 ++++++++++++++++++++++++++++---------------------------
+ alloc.h          |   33 --
+ aops.c           |   10 
+ buffer_head_io.c |   47 +-
+ buffer_head_io.h |    8 
+ dir.c            |   38 +-
+ dlmglue.c        |    4 
+ extent_map.c     |   14 
+ file.c           |   21 -
+ inode.c          |   80 ++++
+ inode.h          |   20 -
+ journal.c        |   53 +--
+ journal.h        |   70 ++--
+ localalloc.c     |   12 
+ namei.c          |   37 +-
+ ocfs2.h          |   38 ++
+ quota_global.c   |    5 
+ quota_local.c    |   16 
+ resize.c         |   16 
+ slot_map.c       |   10 
+ suballoc.c       |   35 +-
+ super.c          |    5 
+ uptodate.c       |  265 +++++++++-------
+ uptodate.h       |   51 ++-
+ xattr.c          |   81 ++--
+ 25 files changed, 1056 insertions(+), 809 deletions(-)
