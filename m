@@ -1,80 +1,133 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Fri, 13 Feb 2009 14:15:57 -0800
-Subject: [Ocfs2-devel] [PATCH 10/40] ocfs2: ocfs2_create_new_meta_bhs()
-	doesn't need struct inode.
+Date: Fri, 13 Feb 2009 14:16:23 -0800
+Subject: [Ocfs2-devel] [PATCH 36/40] ocfs2: ocfs2_add_clusters_in_btree() no
+	longer needs struct inode.
 In-Reply-To: <1234563387-17101-1-git-send-email-joel.becker@oracle.com>
 References: <1234563387-17101-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1234563387-17101-11-git-send-email-joel.becker@oracle.com>
+Message-ID: <1234563387-17101-37-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Pass struct ocfs2_extent_tree into ocfs2_create_new_meta_bhs().  It no
-longer needs struct inode or ocfs2_super.
+One more function that doesn't need a struct inode to pass to its
+children.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/alloc.c |   17 +++++++++--------
- 1 files changed, 9 insertions(+), 8 deletions(-)
+ fs/ocfs2/alloc.c |   13 +++++++------
+ fs/ocfs2/alloc.h |    6 ++----
+ fs/ocfs2/file.c  |    7 +++----
+ fs/ocfs2/xattr.c |    7 ++-----
+ 4 files changed, 14 insertions(+), 19 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 40fa2d9..cf6c7e4 100644
+index 54324a0..0f513af 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -850,9 +850,8 @@ bail:
-  * sets h_signature, h_blkno, h_suballoc_bit, h_suballoc_slot, and
-  * l_count for you
+@@ -4596,13 +4596,11 @@ bail:
+  * it is not limited to the file storage. Any extent tree can use this
+  * function if it implements the proper ocfs2_extent_tree.
   */
--static int ocfs2_create_new_meta_bhs(struct ocfs2_super *osb,
--				     handle_t *handle,
--				     struct inode *inode,
-+static int ocfs2_create_new_meta_bhs(handle_t *handle,
-+				     struct ocfs2_extent_tree *et,
- 				     int wanted,
- 				     struct ocfs2_alloc_context *meta_ac,
- 				     struct buffer_head *bhs[])
-@@ -861,6 +860,8 @@ static int ocfs2_create_new_meta_bhs(struct ocfs2_super *osb,
- 	u16 suballoc_bit_start;
- 	u32 num_got;
- 	u64 first_blkno;
+-int ocfs2_add_clusters_in_btree(struct ocfs2_super *osb,
+-				struct inode *inode,
++int ocfs2_add_clusters_in_btree(handle_t *handle,
++				struct ocfs2_extent_tree *et,
+ 				u32 *logical_offset,
+ 				u32 clusters_to_add,
+ 				int mark_unwritten,
+-				struct ocfs2_extent_tree *et,
+-				handle_t *handle,
+ 				struct ocfs2_alloc_context *data_ac,
+ 				struct ocfs2_alloc_context *meta_ac,
+ 				enum ocfs2_alloc_restarted *reason_ret)
+@@ -4613,6 +4611,8 @@ int ocfs2_add_clusters_in_btree(struct ocfs2_super *osb,
+ 	u32 bit_off, num_bits;
+ 	u64 block;
+ 	u8 flags = 0;
 +	struct ocfs2_super *osb =
 +		OCFS2_SB(ocfs2_metadata_cache_get_super(et->et_ci));
- 	struct ocfs2_extent_block *eb;
  
- 	mlog_entry_void();
-@@ -886,10 +887,10 @@ static int ocfs2_create_new_meta_bhs(struct ocfs2_super *osb,
- 				mlog_errno(status);
- 				goto bail;
- 			}
--			ocfs2_set_new_buffer_uptodate(INODE_CACHE(inode),
--						      bhs[i]);
-+			ocfs2_set_new_buffer_uptodate(et->et_ci, bhs[i]);
+ 	BUG_ON(!clusters_to_add);
  
--			status = ocfs2_journal_access_eb(handle, INODE_CACHE(inode), bhs[i],
-+			status = ocfs2_journal_access_eb(handle, et->et_ci,
-+							 bhs[i],
- 							 OCFS2_JOURNAL_ACCESS_CREATE);
- 			if (status < 0) {
- 				mlog_errno(status);
-@@ -1008,7 +1009,7 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
- 		goto bail;
+@@ -4664,8 +4664,9 @@ int ocfs2_add_clusters_in_btree(struct ocfs2_super *osb,
  	}
  
--	status = ocfs2_create_new_meta_bhs(osb, handle, inode, new_blocks,
-+	status = ocfs2_create_new_meta_bhs(handle, et, new_blocks,
- 					   meta_ac, new_eb_bhs);
+ 	block = ocfs2_clusters_to_blocks(osb->sb, bit_off);
+-	mlog(0, "Allocating %u clusters at block %u for inode %llu\n",
+-	     num_bits, bit_off, (unsigned long long)OCFS2_I(inode)->ip_blkno);
++	mlog(0, "Allocating %u clusters at block %u for owner %llu\n",
++	     num_bits, bit_off,
++	     (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci));
+ 	status = ocfs2_insert_extent(handle, et, *logical_offset, block,
+ 				     num_bits, flags, meta_ac);
  	if (status < 0) {
- 		mlog_errno(status);
-@@ -1162,7 +1163,7 @@ static int ocfs2_shift_tree_depth(struct ocfs2_super *osb,
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index bd6fa7a..380670f 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -100,13 +100,11 @@ enum ocfs2_alloc_restarted {
+ 	RESTART_TRANS,
+ 	RESTART_META
+ };
+-int ocfs2_add_clusters_in_btree(struct ocfs2_super *osb,
+-				struct inode *inode,
++int ocfs2_add_clusters_in_btree(handle_t *handle,
++				struct ocfs2_extent_tree *et,
+ 				u32 *logical_offset,
+ 				u32 clusters_to_add,
+ 				int mark_unwritten,
+-				struct ocfs2_extent_tree *et,
+-				handle_t *handle,
+ 				struct ocfs2_alloc_context *data_ac,
+ 				struct ocfs2_alloc_context *meta_ac,
+ 				enum ocfs2_alloc_restarted *reason_ret);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 67acf0b..1d0de23 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -513,10 +513,9 @@ int ocfs2_add_inode_data(struct ocfs2_super *osb,
+ 	struct ocfs2_extent_tree et;
  
- 	mlog_entry_void();
+ 	ocfs2_init_dinode_extent_tree(&et, inode, fe_bh);
+-	ret = ocfs2_add_clusters_in_btree(osb, inode, logical_offset,
+-					   clusters_to_add, mark_unwritten,
+-					   &et, handle,
+-					   data_ac, meta_ac, reason_ret);
++	ret = ocfs2_add_clusters_in_btree(handle, &et, logical_offset,
++					  clusters_to_add, mark_unwritten,
++					  data_ac, meta_ac, reason_ret);
  
--	status = ocfs2_create_new_meta_bhs(osb, handle, inode, 1, meta_ac,
-+	status = ocfs2_create_new_meta_bhs(handle, et, 1, meta_ac,
- 					   &new_eb_bh);
- 	if (status < 0) {
- 		mlog_errno(status);
+ 	return ret;
+ }
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index c1833b4..dba7d45 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -592,7 +592,6 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
+ 	int status = 0;
+ 	handle_t *handle = ctxt->handle;
+ 	enum ocfs2_alloc_restarted why;
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	u32 prev_clusters, logical_start = le32_to_cpu(vb->vb_xv->xr_clusters);
+ 	struct ocfs2_extent_tree et;
+ 
+@@ -608,13 +607,11 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
+ 	}
+ 
+ 	prev_clusters = le32_to_cpu(vb->vb_xv->xr_clusters);
+-	status = ocfs2_add_clusters_in_btree(osb,
+-					     inode,
++	status = ocfs2_add_clusters_in_btree(handle,
++					     &et,
+ 					     &logical_start,
+ 					     clusters_to_add,
+ 					     0,
+-					     &et,
+-					     handle,
+ 					     ctxt->data_ac,
+ 					     ctxt->meta_ac,
+ 					     &why);
 -- 
 1.5.6.5
