@@ -1,91 +1,124 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Fri, 13 Feb 2009 14:16:05 -0800
-Subject: [Ocfs2-devel] [PATCH 18/40] ocfs2: ocfs2_rotate_subtree_left()
-	doesn't need struct inode.
+Date: Fri, 13 Feb 2009 14:16:11 -0800
+Subject: [Ocfs2-devel] [PATCH 24/40] ocfs2: ocfs2_append_rec_to_path() loses
+	struct inode.
 In-Reply-To: <1234563387-17101-1-git-send-email-joel.becker@oracle.com>
 References: <1234563387-17101-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1234563387-17101-19-git-send-email-joel.becker@oracle.com>
+Message-ID: <1234563387-17101-25-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-It already has struct ocfs2_extent_tree, which has the caching info.  So
-we don't need to pass it struct inode.
+It can be swapped with an ocfs2_extent_tree.  The function
+ocfs2_adjust_rightmost_records() goes along for the ride.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/alloc.c |   18 +++++++++---------
- 1 files changed, 9 insertions(+), 9 deletions(-)
+ fs/ocfs2/alloc.c |   29 +++++++++++++++--------------
+ 1 files changed, 15 insertions(+), 14 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index ada1049..2dc0334 100644
+index cfa390c..e2c4825 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -2449,13 +2449,13 @@ static void ocfs2_unlink_subtree(handle_t *handle,
- 			  subtree_index + 1);
+@@ -3710,8 +3710,8 @@ rotate:
+ 	ocfs2_rotate_leaf(el, insert_rec);
  }
  
--static int ocfs2_rotate_subtree_left(struct inode *inode, handle_t *handle,
-+static int ocfs2_rotate_subtree_left(handle_t *handle,
-+				     struct ocfs2_extent_tree *et,
- 				     struct ocfs2_path *left_path,
- 				     struct ocfs2_path *right_path,
- 				     int subtree_index,
- 				     struct ocfs2_cached_dealloc_ctxt *dealloc,
--				     int *deleted,
--				     struct ocfs2_extent_tree *et)
-+				     int *deleted)
+-static void ocfs2_adjust_rightmost_records(struct inode *inode,
+-					   handle_t *handle,
++static void ocfs2_adjust_rightmost_records(handle_t *handle,
++					   struct ocfs2_extent_tree *et,
+ 					   struct ocfs2_path *path,
+ 					   struct ocfs2_extent_rec *insert_rec)
  {
- 	int ret, i, del_right_subtree = 0, right_has_empty = 0;
- 	struct buffer_head *root_bh, *et_root_bh = path_root_bh(right_path);
-@@ -2491,7 +2491,7 @@ static int ocfs2_rotate_subtree_left(struct inode *inode, handle_t *handle,
- 			return -EAGAIN;
+@@ -3729,9 +3729,9 @@ static void ocfs2_adjust_rightmost_records(struct inode *inode,
  
- 		if (le16_to_cpu(right_leaf_el->l_next_free_rec) > 1) {
--			ret = ocfs2_journal_access_eb(handle, INODE_CACHE(inode),
-+			ret = ocfs2_journal_access_eb(handle, et->et_ci,
- 						      path_leaf_bh(right_path),
- 						      OCFS2_JOURNAL_ACCESS_WRITE);
+ 		next_free = le16_to_cpu(el->l_next_free_rec);
+ 		if (next_free == 0) {
+-			ocfs2_error(inode->i_sb,
+-				    "Dinode %llu has a bad extent list",
+-				    (unsigned long long)OCFS2_I(inode)->ip_blkno);
++			ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
++				    "Owner %llu has a bad extent list",
++				    (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci));
+ 			ret = -EIO;
+ 			return;
+ 		}
+@@ -3751,7 +3751,8 @@ static void ocfs2_adjust_rightmost_records(struct inode *inode,
+ 	}
+ }
+ 
+-static int ocfs2_append_rec_to_path(struct inode *inode, handle_t *handle,
++static int ocfs2_append_rec_to_path(handle_t *handle,
++				    struct ocfs2_extent_tree *et,
+ 				    struct ocfs2_extent_rec *insert_rec,
+ 				    struct ocfs2_path *right_path,
+ 				    struct ocfs2_path **ret_left_path)
+@@ -3779,8 +3780,8 @@ static int ocfs2_append_rec_to_path(struct inode *inode, handle_t *handle,
+ 	    (next_free == 1 && ocfs2_is_empty_extent(&el->l_recs[0]))) {
+ 		u32 left_cpos;
+ 
+-		ret = ocfs2_find_cpos_for_left_leaf(inode->i_sb, right_path,
+-						    &left_cpos);
++		ret = ocfs2_find_cpos_for_left_leaf(ocfs2_metadata_cache_get_super(et->et_ci),
++						    right_path, &left_cpos);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
+@@ -3802,7 +3803,7 @@ static int ocfs2_append_rec_to_path(struct inode *inode, handle_t *handle,
+ 				goto out;
+ 			}
+ 
+-			ret = ocfs2_find_path(INODE_CACHE(inode), left_path,
++			ret = ocfs2_find_path(et->et_ci, left_path,
+ 					      left_cpos);
  			if (ret) {
-@@ -2526,7 +2526,7 @@ static int ocfs2_rotate_subtree_left(struct inode *inode, handle_t *handle,
- 	 */
- 	BUG_ON(right_has_empty && !del_right_subtree);
- 
--	ret = ocfs2_path_bh_journal_access(handle, INODE_CACHE(inode), right_path,
-+	ret = ocfs2_path_bh_journal_access(handle, et->et_ci, right_path,
- 					   subtree_index);
- 	if (ret) {
- 		mlog_errno(ret);
-@@ -2534,14 +2534,14 @@ static int ocfs2_rotate_subtree_left(struct inode *inode, handle_t *handle,
+ 				mlog_errno(ret);
+@@ -3816,13 +3817,13 @@ static int ocfs2_append_rec_to_path(struct inode *inode, handle_t *handle,
+ 		}
  	}
  
- 	for(i = subtree_index + 1; i < path_num_items(right_path); i++) {
--		ret = ocfs2_path_bh_journal_access(handle, INODE_CACHE(inode),
-+		ret = ocfs2_path_bh_journal_access(handle, et->et_ci,
- 						   right_path, i);
+-	ret = ocfs2_journal_access_path(INODE_CACHE(inode), handle, right_path);
++	ret = ocfs2_journal_access_path(et->et_ci, handle, right_path);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out;
+ 	}
+ 
+-	ocfs2_adjust_rightmost_records(inode, handle, right_path, insert_rec);
++	ocfs2_adjust_rightmost_records(handle, et, right_path, insert_rec);
+ 
+ 	*ret_left_path = left_path;
+ 	ret = 0;
+@@ -4092,7 +4093,7 @@ static int ocfs2_do_insert_extent(struct inode *inode,
+ 		}
+ 	} else if (type->ins_appending == APPEND_TAIL
+ 		   && type->ins_contig != CONTIG_LEFT) {
+-		ret = ocfs2_append_rec_to_path(inode, handle, insert_rec,
++		ret = ocfs2_append_rec_to_path(handle, et, insert_rec,
+ 					       right_path, &left_path);
  		if (ret) {
  			mlog_errno(ret);
- 			goto out;
+@@ -5150,7 +5151,7 @@ static int ocfs2_truncate_rec(struct inode *inode, handle_t *handle,
+ 			 * be deleted by the rotate code.
+ 			 */
+ 			rec = &el->l_recs[next_free - 1];
+-			ocfs2_adjust_rightmost_records(inode, handle, path,
++			ocfs2_adjust_rightmost_records(handle, et, path,
+ 						       rec);
  		}
- 
--		ret = ocfs2_path_bh_journal_access(handle, INODE_CACHE(inode),
-+		ret = ocfs2_path_bh_journal_access(handle, et->et_ci,
- 						   left_path, i);
- 		if (ret) {
- 			mlog_errno(ret);
-@@ -2786,9 +2786,9 @@ static int __ocfs2_rotate_tree_left(struct inode *inode,
- 			goto out;
- 		}
- 
--		ret = ocfs2_rotate_subtree_left(inode, handle, left_path,
-+		ret = ocfs2_rotate_subtree_left(handle, et, left_path,
- 						right_path, subtree_root,
--						dealloc, &deleted, et);
-+						dealloc, &deleted);
- 		if (ret == -EAGAIN) {
- 			/*
- 			 * The rotation has to temporarily stop due to
+ 	} else if (le32_to_cpu(rec->e_cpos) == cpos) {
+@@ -5162,7 +5163,7 @@ static int ocfs2_truncate_rec(struct inode *inode, handle_t *handle,
+ 		/* Remove rightmost portion of the record */
+ 		le16_add_cpu(&rec->e_leaf_clusters, -len);
+ 		if (is_rightmost_tree_rec)
+-			ocfs2_adjust_rightmost_records(inode, handle, path, rec);
++			ocfs2_adjust_rightmost_records(handle, et, path, rec);
+ 	} else {
+ 		/* Caller should have trapped this. */
+ 		mlog(ML_ERROR, "Inode %llu: Invalid record truncate: (%u, %u) "
 -- 
 1.5.6.5
