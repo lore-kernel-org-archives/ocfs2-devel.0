@@ -1,85 +1,61 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Mon, 16 Feb 2009 15:43:40 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: set gap to seperate entry and
-	value when xattr in bucket
-In-Reply-To: <49991812.3090005@oracle.com>
-References: <49991812.3090005@oracle.com>
-Message-ID: <1234770220-9946-1-git-send-email-tiger.yang@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 16 Feb 2009 21:34:53 -0800
+Subject: [Ocfs2-devel] [PATCH 05/40] ocfs2: move ip_created_trans to
+	struct	ocfs2_caching_info
+In-Reply-To: <4998BCCF.8070906@oracle.com>
+References: <1234563387-17101-1-git-send-email-joel.becker@oracle.com>
+	<1234563387-17101-6-git-send-email-joel.becker@oracle.com>
+	<4998BCCF.8070906@oracle.com>
+Message-ID: <20090217053452.GA5489@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch set a gap (4 bytes) between xattr entry and
-name/value when xattr in bucket. This gap use to seperate
-entry and name/value when a bucket is full. It had already
-been set when xattr in inode/block.
+On Mon, Feb 16, 2009 at 09:09:35AM +0800, Tao Ma wrote:
+> Joel Becker wrote:
+>> Similar ip_last_trans, ip_created_trans tracks the creation of a journal
+>> managed inode.  This specifically tracks what transaction created the
+>> inode.  This is so the code can know if the inode has ever been written
+>> to disk.
+>>
+>> This behavior is desirable for any journal managed object.  We move it
+>> to struct ocfs2_caching_info as ci_created_trans so that any object
+>> using ocfs2_caching_info can rely on this behavior.
+>>
+>> Signed-off-by: Joel Becker <joel.becker@oracle.com>
+> <snip>
+>> index ef75dbb..ff4b526 100644
+>> --- a/fs/ocfs2/journal.h
+>> +++ b/fs/ocfs2/journal.h
+>> @@ -118,9 +118,9 @@ static inline int ocfs2_inode_is_new(struct inode *inode)
+>>  		return 0;
+>>  	spin_lock(&trans_inc_lock);
+>>  	ret = !(time_after(OCFS2_SB(inode->i_sb)->journal->j_trans_id,
+>> -			   OCFS2_I(inode)->ip_created_trans));
+>> +			   INODE_CACHE(inode)->ci_created_trans));
+>>  	if (!ret)
+>> -		OCFS2_I(inode)->ip_created_trans = 0;
+>> +		INODE_CACHE(inode)->ci_created_trans = 0;
+>>  	spin_unlock(&trans_inc_lock);
+>>  	return ret;
+>>  }
+> A question unrelated to your modification. Why we use "!time_after" and  
+> then check "!ret". I guess a "time_after" and "ret" is ok.
 
-Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
----
- fs/ocfs2/xattr.c |   14 ++++++++------
- 1 files changed, 8 insertions(+), 6 deletions(-)
+	I presume because we're returning ret to the caller.  We want
+ret to be 1 if the time_after() is false.
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 41c9c5d..880bcb3 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -82,6 +82,7 @@ struct ocfs2_xattr_set_ctxt {
- 
- #define OCFS2_XATTR_ROOT_SIZE	(sizeof(struct ocfs2_xattr_def_value_root))
- #define OCFS2_XATTR_INLINE_SIZE	80
-+#define OCFS2_XATTR_HEADER_GAP	4
- #define OCFS2_XATTR_FREE_IN_IBODY	(OCFS2_MIN_XATTR_INLINE_SIZE \
- 					 - sizeof(struct ocfs2_xattr_header) \
- 					 - sizeof(__u32))
-@@ -1506,7 +1507,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 	/* Compute last entry and free space. */
- 	last = &xs->header->xh_entries[le16_to_cpu(xs->header->xh_count)];
- 	free = le16_to_cpu(xs->header->xh_free_start) -
--		OCFS2_XATTR_HEADER_SIZE(xs->header) - sizeof(__u32);
-+		OCFS2_XATTR_HEADER_SIZE(xs->header) - OCFS2_XATTR_HEADER_GAP;
- 	if (free < 0)
- 		return -EIO;
- 
-@@ -2294,7 +2295,7 @@ static int ocfs2_calc_xattr_set_need(struct inode *inode,
- 		 */
- 		int free = le16_to_cpu(xis->header->xh_free_start) -
- 			   OCFS2_XATTR_HEADER_SIZE(xis->header) -
--			   sizeof(__u32);
-+			   OCFS2_XATTR_HEADER_GAP;
- 		int size = ocfs2_xattr_entry_real_size(strlen(xi->name),
- 						       xi->value_len);
- 
-@@ -5054,8 +5055,8 @@ try_again:
- 	count = le16_to_cpu(xh->xh_count);
- 	xh_free_start = le16_to_cpu(xh->xh_free_start);
- 	header_size = OCFS2_XATTR_HEADER_SIZE(xh);
--	max_free = OCFS2_XATTR_BUCKET_SIZE -
--		le16_to_cpu(xh->xh_name_value_len) - header_size;
-+	max_free = OCFS2_XATTR_BUCKET_SIZE - header_size -
-+		le16_to_cpu(xh->xh_name_value_len) - OCFS2_XATTR_HEADER_GAP;
- 
- 	mlog_bug_on_msg(header_size > blocksize, "bucket %llu has header size "
- 			"of %u which exceed block size\n",
-@@ -5088,7 +5089,7 @@ try_again:
- 			need = 0;
- 	}
- 
--	free = xh_free_start - header_size;
-+	free = xh_free_start - header_size - OCFS2_XATTR_HEADER_GAP;
- 	/*
- 	 * We need to make sure the new name/value pair
- 	 * can exist in the same block.
-@@ -5121,7 +5122,8 @@ try_again:
- 			}
- 
- 			xh_free_start = le16_to_cpu(xh->xh_free_start);
--			free = xh_free_start - header_size;
-+			free = xh_free_start - header_size
-+				- OCFS2_XATTR_HEADER_GAP;
- 			if (xh_free_start % blocksize < need)
- 				free -= xh_free_start % blocksize;
- 
+Joel
+
 -- 
-1.5.4.1
+
+"Against stupidity the Gods themselves contend in vain."
+	- Friedrich von Schiller
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
