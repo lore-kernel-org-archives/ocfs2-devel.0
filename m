@@ -1,51 +1,38 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 18 Feb 2009 16:30:13 +0800
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 18 Feb 2009 09:43:50 -0800
 Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V3)
-In-Reply-To: <20090218013700.GA26431@mail.oracle.com>
+In-Reply-To: <499BC715.2000701@oracle.com>
 References: <200902171255.n1HCsxeo017544@acsinet13.oracle.com>
 	<20090218013700.GA26431@mail.oracle.com>
-Message-ID: <499BC715.2000701@oracle.com>
+	<499BC715.2000701@oracle.com>
+Message-ID: <20090218174350.GB9020@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
->> this patch is based on 1.4 git.
-> 
-> 	Going forward, fixes really need to be against mainline.  Let's
-> finish out this patch against 1.4 and then you can port it to mainline.
-> But for the future, we fix against mainline and backport.
-> 
-Ok, I will follow that from next posting.
+On Wed, Feb 18, 2009 at 04:30:13PM +0800, Wengang Wang wrote:
+>>> +	if (suballoc_slot)
+>>> +		*suballoc_slot = le16_to_cpu(inode_fe->i_suballoc_slot);
+>> 	Probably want to validate that suballoc_slot is within the range
+>> of valid slot numbers.  Just in case.
+> in what case could the suballoc_slot be out of range?
 
-> 
-> 	You can drop the suballocator lock here.  Taking the lock has
-> made sure that other nodes flushed their journals.  You have just
-> validated that the bit is set, and other nodes cannot clear the bit
-> until they get the nfs_sync lock, which you already hold.  So it is safe
-> to call ocfs2_inode_unlock(inode_alloc_inode, 0) and
-> mutex_unlock(&inode_alloc_inode->i_mutex) before calling ocfs2_iget().
-> 	This has two benefits.  Number 1, we don't take the suballoc
-> lock and the inode lock (in iget()) at the same time.  The fewer locks
-> we take at the same time, the better.  Number 2, this means the entire
-> suballocator lookup code above can be made into a subfunction.  This
-> improves the readability of the code.
->
-good point! will revise the code.
+	Filesystem corruption or a bad NFS handle of some sort.  It's
+easy to check that i_suballoc_slot is either OCFS2_INVALID_SLOT or
+within osb->max_slots.
 
->> +	if (suballoc_slot)
->> +		*suballoc_slot = le16_to_cpu(inode_fe->i_suballoc_slot);
-> 
-> 	Probably want to validate that suballoc_slot is within the range
-> of valid slot numbers.  Just in case.
-in what case could the suballoc_slot be out of range?
+Joel
 
-> 	Otherwise, everything looks good.  The nfs_sync_lock is good.
-> It will need to be added to debugfs.ocfs2's lock displays.
+-- 
 
-next post will be against mainline. and the patch for debugfs.ocfs2 will
-be available later to ocfs2-tools-devel@
+Dort wo man B?cher verbrennt, verbrennt man am Ende auch Mensch.
+(Wherever they burn books, they will also end up burning people.)
+	- Heinrich Heine
 
-thanks,
-wengang.
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
