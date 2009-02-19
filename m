@@ -1,46 +1,37 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 19 Feb 2009 09:38:43 -0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: set xh_free_start when xattr
-	header in	inode/block
-In-Reply-To: <499BB514.7020709@oracle.com>
-References: <49991812.3090005@oracle.com>
-	<1234770198-9926-1-git-send-email-tiger.yang@oracle.com>
-	<499BB514.7020709@oracle.com>
-Message-ID: <20090219173843.GC15753@ca-server1.us.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 19 Feb 2009 11:29:17 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V3)
+In-Reply-To: <499D5A42.90702@oracle.com>
+References: <200902171255.n1HCsxeo017544@acsinet13.oracle.com>	<20090218013700.GA26431@mail.oracle.com>
+	<499D5A42.90702@oracle.com>
+Message-ID: <499DB30D.9070005@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Feb 18, 2009 at 03:13:24PM +0800, Tiger Yang wrote:
-> Hi, Joel and Mark,
+Finish the kernel bits first. Once that is checked in, the following
+files in the tools will need to be updated.
+=> libocfs2/lockid.c
+=> include/ocfs2-kernel/ocfs2_lockid.h (copy from kernel)
+
+Wengang Wang wrote:
+>> It will need to be added to debugfs.ocfs2's lock displays.
+>>     
+> what's this in detail?
+> the display for "debugfs.ocfs2 -d <lockres>"? such as the rename lock
 >
-> I suddenly found there might be a potential problem in this patch.
+> [root at ocfs2-2 ~]# debugfs.ocfs2 -d R000000000000000000000000000000
+> Lockres:    R000000000000000000000000000000
+> Type:       Rename
+> Block:      0
+> Generation: 0x00000000
 >
-> If user setting EAs sometimes with .28 kernel and sometimes with .29 
-> kernel, xh_free_start will go stale. And fsck will make it worse.
+> ?
 >
-> If this really a problem I withdraw this patch but I think the second patch 
-> is OK.
-
-Tiger,
-	I think you are right.  We're going to have to give up on
-updating xh_free_start in inode/block.  fsck will just have to try to
-verify that the entrys and values don't overlap.
-	Please respin the second patch without the first, code up fsck
-appropriately.
-
-Joel
-
--- 
-
-"Under capitalism, man exploits man.  Under Communism, it's just 
-   the opposite."
-				 - John Kenneth Galbraith
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>   
