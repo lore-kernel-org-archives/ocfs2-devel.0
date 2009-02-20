@@ -1,14 +1,15 @@
 From: wengang wang <wen.gang.wang@oracle.com>
-Date: Fri, 20 Feb 2009 22:52:01 +0800
+Date: Fri, 20 Feb 2009 23:05:14 +0800
 Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add error check for
 	ocfs2_read_locked_inode() call
-Message-ID: <200902201453.n1KEr91o011340@acsinet13.oracle.com>
+Message-ID: <200902201506.n1KF6GQp004110@rgminet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+(resend if my first attemp not failed)
 add error check for ocfs2_read_locked_inode() call.
 
 Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
