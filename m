@@ -1,18 +1,28 @@
-From: Theodore Ts'o <tytso@mit.edu>
-Date: Tue, 24 Feb 2009 12:14:50 -0500
+From: Theodore Tso <tytso@mit.edu>
+Date: Tue, 24 Feb 2009 16:13:18 -0500
 Subject: [Ocfs2-devel] [STABLE,
-	2.6.27.y] jbd2: Avoid possible NULL dereference in
-	jbd2_journal_begin_ordered_truncate()
-In-Reply-To: <1235495694-8116-2-git-send-email-tytso@mit.edu>
+	2.6.27.y] jbd2: Avoid possible NULL dereference
+	in	jbd2_journal_begin_ordered_truncate()
+In-Reply-To: <1235495694-8116-3-git-send-email-tytso@mit.edu>
 References: <1235495694-8116-1-git-send-email-tytso@mit.edu>
 	<1235495694-8116-2-git-send-email-tytso@mit.edu>
-Message-ID: <1235495694-8116-3-git-send-email-tytso@mit.edu>
+	<1235495694-8116-3-git-send-email-tytso@mit.edu>
+Message-ID: <20090224211318.GC7064@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: stable@kernel.org
-Cc: Jan Kara <jack@suse.cz>, Theodore Ts'o <tytso@mit.edu>, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, mfasheh@suse.de, Dan Carpenter <error27@gmail.com>
+Cc: Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, mfasheh@suse.de, Dan Carpenter <error27@gmail.com>
+
+Oops, it turns out the ocfs2 chunk is not needed for 2.6.27, and in
+fact causes problem.  Please replace the patch I sent with this one,
+which removes the diff chunk which patches fs/ocfs2/journal.h; it's
+not needed for the 2.6.27.y backport, apparently.
+
+						- Ted
+----------------
+jbd2: Avoid possible NULL dereference in jbd2_journal_begin_ordered_truncate()
 
 From: Jan Kara <jack@suse.cz>
 
@@ -31,14 +41,12 @@ Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
 Acked-by: Joel Becker <joel.becker@oracle.com>
 CC: linux-ext4 at vger.kernel.org
-CC: ocfs2-devel at oss.oracle.com
 CC: mfasheh at suse.de
 CC: Dan Carpenter <error27@gmail.com>
 (cherry picked from commit 7f5aa215088b817add9c71914b83650bdd49f8a9)
 ---
  fs/ext4/inode.c       |    6 ++++--
  fs/jbd2/transaction.c |   42 +++++++++++++++++++++++++++++++-----------
- fs/ocfs2/journal.h    |   13 +++++++++++++
  include/linux/jbd2.h  |    3 ++-
  4 files changed, 50 insertions(+), 14 deletions(-)
 
@@ -121,28 +129,6 @@ index e5d5405..92d77c9 100644
  			new_size, LLONG_MAX);
  		if (ret)
  			jbd2_journal_abort(journal, ret);
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 2178ebf..d4de187 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -415,4 +415,17 @@ static inline int ocfs2_calc_tree_trunc_credits(struct super_block *sb,
- 	return credits;
- }
- 
-+static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode)
-+{
-+	return jbd2_journal_file_inode(handle, &OCFS2_I(inode)->ip_jinode);
-+}
-+
-+static inline int ocfs2_begin_ordered_truncate(struct inode *inode,
-+					       loff_t new_size)
-+{
-+	return jbd2_journal_begin_ordered_truncate(
-+				OCFS2_SB(inode->i_sb)->journal->j_journal,
-+				&OCFS2_I(inode)->ip_jinode,
-+				new_size);
-+}
- #endif /* OCFS2_JOURNAL_H */
 diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
 index 0e1bd70..df4137e 100644
 --- a/include/linux/jbd2.h
@@ -159,3 +145,8 @@ index 0e1bd70..df4137e 100644
  
 -- 
 1.5.6.3
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-ext4" in
+the body of a message to majordomo at vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
