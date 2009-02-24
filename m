@@ -1,115 +1,156 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 24 Feb 2009 17:41:10 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: set gap to seperate entry and
-	value when	xattr in bucket
-In-Reply-To: <1235099510-14128-1-git-send-email-tiger.yang@oracle.com>
-References: <1235099510-14128-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <20090225014109.GA5209@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Wed, 25 Feb 2009 00:53:23 +0800
+Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: Optimize inode allocation by
+	remembering last group.
+Message-ID: <1235494405-11779-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Feb 20, 2009 at 11:11:50AM +0800, Tiger Yang wrote:
-> This patch set a gap (4 bytes) between xattr entry and
-> name/value when xattr in bucket. This gap use to seperate
-> entry and name/value when a bucket is full. It had already
-> been set when xattr in inode/block.
-> 
-> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+In ocfs2, the inode block search looks for the "emptiest" inode
+group to allocate from. So if an inode alloc file has many equally
+(or almost equally) empty groups, new inodes will tend to get
+spread out amongst them, which in turn can put them all over the
+disk. This is undesirable because directory operations on conceptually
+"nearby" inodes force a large number of seeks.
 
-Acked-by: Joel Becker <joel.becker@oracle.com>
+So we add ip_last_used_group in core directory inodes which records
+the last used allocation group. Another field named ip_last_used_slot
+is also added in case inode stealing happens. When claiming new inode,
+we passed in directory's inode so that the allocation can use this
+information.
+For more details, please see
+http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy.
 
-Has this passed tristan's tests?
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/inode.c    |    2 ++
+ fs/ocfs2/inode.h    |    4 ++++
+ fs/ocfs2/namei.c    |    4 ++--
+ fs/ocfs2/suballoc.c |   36 ++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/suballoc.h |    2 ++
+ 5 files changed, 46 insertions(+), 2 deletions(-)
 
-Joel
-
-> ---
->  fs/ocfs2/xattr.c |   18 ++++++++++--------
->  1 files changed, 10 insertions(+), 8 deletions(-)
-> 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 915039f..dedede1 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -82,13 +82,14 @@ struct ocfs2_xattr_set_ctxt {
->  
->  #define OCFS2_XATTR_ROOT_SIZE	(sizeof(struct ocfs2_xattr_def_value_root))
->  #define OCFS2_XATTR_INLINE_SIZE	80
-> +#define OCFS2_XATTR_HEADER_GAP	4
->  #define OCFS2_XATTR_FREE_IN_IBODY	(OCFS2_MIN_XATTR_INLINE_SIZE \
->  					 - sizeof(struct ocfs2_xattr_header) \
-> -					 - sizeof(__u32))
-> +					 - OCFS2_XATTR_HEADER_GAP)
->  #define OCFS2_XATTR_FREE_IN_BLOCK(ptr)	((ptr)->i_sb->s_blocksize \
->  					 - sizeof(struct ocfs2_xattr_block) \
->  					 - sizeof(struct ocfs2_xattr_header) \
-> -					 - sizeof(__u32))
-> +					 - OCFS2_XATTR_HEADER_GAP)
->  
->  static struct ocfs2_xattr_def_value_root def_xv = {
->  	.xv.xr_list.l_count = cpu_to_le16(1),
-> @@ -1507,7 +1508,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
->  		last += 1;
->  	}
->  
-> -	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
-> +	free = min_offs - ((void *)last - xs->base) - OCFS2_XATTR_HEADER_GAP;
->  	if (free < 0)
->  		return -EIO;
->  
-> @@ -2190,7 +2191,7 @@ static int ocfs2_xattr_can_be_in_inode(struct inode *inode,
->  		last += 1;
->  	}
->  
-> -	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
-> +	free = min_offs - ((void *)last - xs->base) - OCFS2_XATTR_HEADER_GAP;
->  	if (free < 0)
->  		return 0;
->  
-> @@ -5060,8 +5061,8 @@ try_again:
->  	xh_free_start = le16_to_cpu(xh->xh_free_start);
->  	header_size = sizeof(struct ocfs2_xattr_header) +
->  			count * sizeof(struct ocfs2_xattr_entry);
-> -	max_free = OCFS2_XATTR_BUCKET_SIZE -
-> -		le16_to_cpu(xh->xh_name_value_len) - header_size;
-> +	max_free = OCFS2_XATTR_BUCKET_SIZE - header_size -
-> +		le16_to_cpu(xh->xh_name_value_len) - OCFS2_XATTR_HEADER_GAP;
->  
->  	mlog_bug_on_msg(header_size > blocksize, "bucket %llu has header size "
->  			"of %u which exceed block size\n",
-> @@ -5094,7 +5095,7 @@ try_again:
->  			need = 0;
->  	}
->  
-> -	free = xh_free_start - header_size;
-> +	free = xh_free_start - header_size - OCFS2_XATTR_HEADER_GAP;
->  	/*
->  	 * We need to make sure the new name/value pair
->  	 * can exist in the same block.
-> @@ -5127,7 +5128,8 @@ try_again:
->  			}
->  
->  			xh_free_start = le16_to_cpu(xh->xh_free_start);
-> -			free = xh_free_start - header_size;
-> +			free = xh_free_start - header_size
-> +				- OCFS2_XATTR_HEADER_GAP;
->  			if (xh_free_start % blocksize < need)
->  				free -= xh_free_start % blocksize;
->  
-> -- 
-> 1.5.4.1
-> 
-
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index f1f77b2..4a88bce 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -352,6 +352,8 @@ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 
+ 	ocfs2_set_inode_flags(inode);
+ 
++	OCFS2_I(inode)->ip_last_used_slot = 0;
++	OCFS2_I(inode)->ip_last_used_group = 0;
+ 	mlog_exit_void();
+ }
+ 
+diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+index eb3c302..e1978ac 100644
+--- a/fs/ocfs2/inode.h
++++ b/fs/ocfs2/inode.h
+@@ -72,6 +72,10 @@ struct ocfs2_inode_info
+ 
+ 	struct inode			vfs_inode;
+ 	struct jbd2_inode		ip_jinode;
++
++	/* Only valid if the inode is the dir. */
++	u32				ip_last_used_slot;
++	u64				ip_last_used_group;
+ };
+ 
+ /*
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 7cb55ce..9363ddd 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -485,8 +485,8 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 
+ 	*new_fe_bh = NULL;
+ 
+-	status = ocfs2_claim_new_inode(osb, handle, inode_ac, &suballoc_bit,
+-				       &fe_blkno);
++	status = ocfs2_claim_new_inode(osb, handle, dir, parent_fe_bh,
++				       inode_ac, &suballoc_bit, &fe_blkno);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto leave;
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index a696286..487f00c 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1618,8 +1618,41 @@ bail:
+ 	return status;
+ }
+ 
++static void ocfs2_init_inode_ac_group(struct inode *dir,
++				      struct buffer_head *parent_fe_bh,
++				      struct ocfs2_alloc_context *ac)
++{
++	struct ocfs2_dinode *fe = (struct ocfs2_dinode *)parent_fe_bh->b_data;
++	/*
++	 * Try to allocate inodes from some specific group.
++	 *
++	 * If the parent dir has recorded the last group used in allocation,
++	 * cool, use it. Otherwise if we try to allocate new inode from the
++	 * same slot the parent dir belongs to, use the same chunk.
++	 *
++	 * We are very careful here to avoid the mistake of setting
++	 * ac_last_group to a group descriptor from a different (unlocked) slot.
++	 */
++	if (OCFS2_I(dir)->ip_last_used_group &&
++	    OCFS2_I(dir)->ip_last_used_slot == ac->ac_alloc_slot)
++		ac->ac_last_group = OCFS2_I(dir)->ip_last_used_group;
++	else if (le16_to_cpu(fe->i_suballoc_slot) == ac->ac_alloc_slot)
++		ac->ac_last_group = ocfs2_which_suballoc_group(
++					le64_to_cpu(fe->i_blkno),
++					le16_to_cpu(fe->i_suballoc_bit));
++}
++
++static inline void ocfs2_save_inode_ac_group(struct inode *dir,
++					     struct ocfs2_alloc_context *ac)
++{
++	OCFS2_I(dir)->ip_last_used_group = ac->ac_last_group;
++	OCFS2_I(dir)->ip_last_used_slot = ac->ac_alloc_slot;
++}
++
+ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
+ 			  handle_t *handle,
++			  struct inode *dir,
++			  struct buffer_head *parent_fe_bh,
+ 			  struct ocfs2_alloc_context *ac,
+ 			  u16 *suballoc_bit,
+ 			  u64 *fe_blkno)
+@@ -1635,6 +1668,8 @@ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
+ 	BUG_ON(ac->ac_bits_wanted != 1);
+ 	BUG_ON(ac->ac_which != OCFS2_AC_USE_INODE);
+ 
++	ocfs2_init_inode_ac_group(dir, parent_fe_bh, ac);
++
+ 	status = ocfs2_claim_suballoc_bits(osb,
+ 					   ac,
+ 					   handle,
+@@ -1653,6 +1688,7 @@ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
+ 
+ 	*fe_blkno = bg_blkno + (u64) (*suballoc_bit);
+ 	ac->ac_bits_given++;
++	ocfs2_save_inode_ac_group(dir, ac);
+ 	status = 0;
+ bail:
+ 	mlog_exit(status);
+diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+index e3c13c7..ea85a4c 100644
+--- a/fs/ocfs2/suballoc.h
++++ b/fs/ocfs2/suballoc.h
+@@ -88,6 +88,8 @@ int ocfs2_claim_metadata(struct ocfs2_super *osb,
+ 			 u64 *blkno_start);
+ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
+ 			  handle_t *handle,
++			  struct inode *dir,
++			  struct buffer_head *parent_fe_bh,
+ 			  struct ocfs2_alloc_context *ac,
+ 			  u16 *suballoc_bit,
+ 			  u64 *fe_blkno);
 -- 
-
-"The doctrine of human equality reposes on this: that there is no
- man really clever who has not found that he is stupid."
-	- Gilbert K. Chesterson
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.5
