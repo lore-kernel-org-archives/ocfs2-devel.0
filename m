@@ -1,28 +1,18 @@
-From: Theodore Tso <tytso@mit.edu>
-Date: Tue, 24 Feb 2009 16:13:18 -0500
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Tue, 24 Feb 2009 12:14:43 -0500
 Subject: [Ocfs2-devel] [STABLE,
-	2.6.27.y] jbd2: Avoid possible NULL dereference
-	in	jbd2_journal_begin_ordered_truncate()
-In-Reply-To: <1235495694-8116-3-git-send-email-tytso@mit.edu>
-References: <1235495694-8116-1-git-send-email-tytso@mit.edu>
-	<1235495694-8116-2-git-send-email-tytso@mit.edu>
-	<1235495694-8116-3-git-send-email-tytso@mit.edu>
-Message-ID: <20090224211318.GC7064@mit.edu>
+	2.6.28.y] jbd2: Avoid possible NULL dereference in
+	jbd2_journal_begin_ordered_truncate()
+In-Reply-To: <1235495688-8044-2-git-send-email-tytso@mit.edu>
+References: <1235495688-8044-1-git-send-email-tytso@mit.edu>
+	<1235495688-8044-2-git-send-email-tytso@mit.edu>
+Message-ID: <1235495688-8044-3-git-send-email-tytso@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: stable@kernel.org
-Cc: Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, mfasheh@suse.de, Dan Carpenter <error27@gmail.com>
-
-Oops, it turns out the ocfs2 chunk is not needed for 2.6.27, and in
-fact causes problem.  Please replace the patch I sent with this one,
-which removes the diff chunk which patches fs/ocfs2/journal.h; it's
-not needed for the 2.6.27.y backport, apparently.
-
-						- Ted
-----------------
-jbd2: Avoid possible NULL dereference in jbd2_journal_begin_ordered_truncate()
+Cc: Jan Kara <jack@suse.cz>, Theodore Ts'o <tytso@mit.edu>, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, mfasheh@suse.de, Dan Carpenter <error27@gmail.com>
 
 From: Jan Kara <jack@suse.cz>
 
@@ -41,17 +31,19 @@ Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
 Acked-by: Joel Becker <joel.becker@oracle.com>
 CC: linux-ext4 at vger.kernel.org
+CC: ocfs2-devel at oss.oracle.com
 CC: mfasheh at suse.de
 CC: Dan Carpenter <error27@gmail.com>
 (cherry picked from commit 7f5aa215088b817add9c71914b83650bdd49f8a9)
 ---
  fs/ext4/inode.c       |    6 ++++--
  fs/jbd2/transaction.c |   42 +++++++++++++++++++++++++++++++-----------
+ fs/ocfs2/journal.h    |    6 ++++--
  include/linux/jbd2.h  |    3 ++-
- 4 files changed, 50 insertions(+), 14 deletions(-)
+ 4 files changed, 41 insertions(+), 16 deletions(-)
 
 diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
-index 6e7f085..7b063d4 100644
+index ccb6947..7353def 100644
 --- a/fs/ext4/inode.c
 +++ b/fs/ext4/inode.c
 @@ -46,8 +46,10 @@
@@ -68,10 +60,10 @@ index 6e7f085..7b063d4 100644
  
  static void ext4_invalidatepage(struct page *page, unsigned long offset);
 diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
-index e5d5405..92d77c9 100644
+index 39b7805..89f63ba 100644
 --- a/fs/jbd2/transaction.c
 +++ b/fs/jbd2/transaction.c
-@@ -2049,26 +2049,46 @@ done:
+@@ -2050,26 +2050,46 @@ done:
  }
  
  /*
@@ -129,11 +121,28 @@ index e5d5405..92d77c9 100644
  			new_size, LLONG_MAX);
  		if (ret)
  			jbd2_journal_abort(journal, ret);
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index d4d14e9..3657926 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -445,8 +445,10 @@ static inline int ocfs2_jbd2_file_inode(handle_t *handle, struct inode *inode)
+ static inline int ocfs2_begin_ordered_truncate(struct inode *inode,
+ 					       loff_t new_size)
+ {
+-	return jbd2_journal_begin_ordered_truncate(&OCFS2_I(inode)->ip_jinode,
+-						   new_size);
++	return jbd2_journal_begin_ordered_truncate(
++				OCFS2_SB(inode->i_sb)->journal->j_journal,
++				&OCFS2_I(inode)->ip_jinode,
++				new_size);
+ }
+ 
+ #endif /* OCFS2_JOURNAL_H */
 diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
-index 0e1bd70..df4137e 100644
+index 7c31d67..56593cb 100644
 --- a/include/linux/jbd2.h
 +++ b/include/linux/jbd2.h
-@@ -1075,7 +1075,8 @@ extern int	   jbd2_journal_clear_err  (journal_t *);
+@@ -1087,7 +1087,8 @@ extern int	   jbd2_journal_clear_err  (journal_t *);
  extern int	   jbd2_journal_bmap(journal_t *, unsigned long, unsigned long long *);
  extern int	   jbd2_journal_force_commit(journal_t *);
  extern int	   jbd2_journal_file_inode(handle_t *handle, struct jbd2_inode *inode);
@@ -145,8 +154,3 @@ index 0e1bd70..df4137e 100644
  
 -- 
 1.5.6.3
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-ext4" in
-the body of a message to majordomo at vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
