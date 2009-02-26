@@ -1,59 +1,131 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 26 Feb 2009 21:15:00 +0100
-Subject: [Ocfs2-devel] [PATCH 2/7] ocfs2: Fix lock inversion in
-	ocfs2_local_read_info()
-In-Reply-To: <1235679305-3920-2-git-send-email-jack@suse.cz>
+Date: Thu, 26 Feb 2009 21:15:01 +0100
+Subject: [Ocfs2-devel] [PATCH 3/7] ocfs2: Fix possible deadlock with quotas
+	in ocfs2_setattr()
+In-Reply-To: <1235679305-3920-3-git-send-email-jack@suse.cz>
 References: <y> <1235679305-3920-1-git-send-email-jack@suse.cz>
 	<1235679305-3920-2-git-send-email-jack@suse.cz>
-Message-ID: <1235679305-3920-3-git-send-email-jack@suse.cz>
+	<1235679305-3920-3-git-send-email-jack@suse.cz>
+Message-ID: <1235679305-3920-4-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This function is called with dqio_mutex held but it has to acquire lock
-from global quota file which ranks above this lock. This is not deadlockable
-lock inversion since this code path is take only during mount when noone
-else can race with us but let's clean this up to silence lockdep.
+We called vfs_dq_transfer() with global quota file lock held. This can lead
+to deadlocks as if vfs_dq_transfer() has to allocate new quota structure,
+it calls ocfs2_dquot_acquire() which tries to get quota file lock again and
+this can block if another node requested the lock in the mean time.
 
-We just drop the dqio_mutex in the beginning of the function and reacquire
-it in the end since we don't need it - noone can race with us at this moment.
+Since we have to call vfs_dq_transfer() with transaction already started
+and quota file lock ranks above the transaction start, we cannot just rely
+on ocfs2_dquot_acquire() or ocfs2_dquot_release() on getting the lock
+if they need it. We fix the problem by acquiring pointers to all quota
+structures needed by vfs_dq_transfer() already before calling the function.
+By this we are sure that all quota structures are properly allocated and
+they can be freed only after we drop references to them. Thus we don't need
+quota file lock anywhere inside vfs_dq_transfer().
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/quota_local.c |    5 +++++
- 1 files changed, 5 insertions(+), 0 deletions(-)
+ fs/ocfs2/file.c |   53 ++++++++++++++++++++++++++++++-----------------------
+ 1 files changed, 30 insertions(+), 23 deletions(-)
 
-diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-index 07deec5..71cf410 100644
---- a/fs/ocfs2/quota_local.c
-+++ b/fs/ocfs2/quota_local.c
-@@ -655,6 +655,9 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
- 	struct ocfs2_quota_recovery *rec;
- 	int locked = 0;
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index a5887df..87f2156 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -894,9 +894,9 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 	struct buffer_head *bh = NULL;
+ 	handle_t *handle = NULL;
+-	int locked[MAXQUOTAS] = {0, 0};
+-	int credits, qtype;
+-	struct ocfs2_mem_dqinfo *oinfo;
++	int qtype;
++	struct dquot *transfer_from[MAXQUOTAS] = { };
++	struct dquot *transfer_to[MAXQUOTAS] = { };
  
-+	/* We don't need the lock and we have to acquire quota file locks
-+	 * which will later depend on this lock */
-+	mutex_unlock(&sb_dqopt(sb)->dqio_mutex);
- 	info->dqi_maxblimit = 0x7fffffffffffffffLL;
- 	info->dqi_maxilimit = 0x7fffffffffffffffLL;
- 	oinfo = kmalloc(sizeof(struct ocfs2_mem_dqinfo), GFP_NOFS);
-@@ -733,6 +736,7 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
- 		goto out_err;
- 	}
+ 	mlog_entry("(0x%p, '%.*s')\n", dentry,
+ 	           dentry->d_name.len, dentry->d_name.name);
+@@ -969,30 +969,37 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
  
-+	mutex_lock(&sb_dqopt(sb)->dqio_mutex);
- 	return 0;
- out_err:
- 	if (oinfo) {
-@@ -746,6 +750,7 @@ out_err:
- 		kfree(oinfo);
- 	}
+ 	if ((attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
+ 	    (attr->ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid)) {
+-		credits = OCFS2_INODE_UPDATE_CREDITS;
++		/*
++		 * Gather pointers to quota structures so that allocation /
++		 * freeing of quota structures happens here and not inside
++		 * vfs_dq_transfer() where we have problems with lock ordering
++		 */
+ 		if (attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid
+ 		    && OCFS2_HAS_RO_COMPAT_FEATURE(sb,
+ 		    OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
+-			oinfo = sb_dqinfo(sb, USRQUOTA)->dqi_priv;
+-			status = ocfs2_lock_global_qf(oinfo, 1);
+-			if (status < 0)
++			transfer_to[USRQUOTA] = dqget(sb, attr->ia_uid,
++						      USRQUOTA);
++			transfer_from[USRQUOTA] = dqget(sb, inode->i_uid,
++							USRQUOTA);
++			if (!transfer_to[USRQUOTA] || !transfer_from[USRQUOTA]) {
++				status = -ESRCH;
+ 				goto bail_unlock;
+-			credits += ocfs2_calc_qinit_credits(sb, USRQUOTA) +
+-				ocfs2_calc_qdel_credits(sb, USRQUOTA);
+-			locked[USRQUOTA] = 1;
++			}
+ 		}
+ 		if (attr->ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid
+ 		    && OCFS2_HAS_RO_COMPAT_FEATURE(sb,
+ 		    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
+-			oinfo = sb_dqinfo(sb, GRPQUOTA)->dqi_priv;
+-			status = ocfs2_lock_global_qf(oinfo, 1);
+-			if (status < 0)
++			transfer_to[GRPQUOTA] = dqget(sb, attr->ia_gid,
++						      GRPQUOTA);
++			transfer_from[GRPQUOTA] = dqget(sb, inode->i_gid,
++							GRPQUOTA);
++			if (!transfer_to[GRPQUOTA] || !transfer_from[GRPQUOTA]) {
++				status = -ESRCH;
+ 				goto bail_unlock;
+-			credits += ocfs2_calc_qinit_credits(sb, GRPQUOTA) +
+-				   ocfs2_calc_qdel_credits(sb, GRPQUOTA);
+-			locked[GRPQUOTA] = 1;
++			}
+ 		}
+-		handle = ocfs2_start_trans(osb, credits);
++		handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS +
++					   2 * ocfs2_quota_trans_credits(sb));
+ 		if (IS_ERR(handle)) {
+ 			status = PTR_ERR(handle);
+ 			mlog_errno(status);
+@@ -1030,12 +1037,6 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ bail_commit:
+ 	ocfs2_commit_trans(osb, handle);
+ bail_unlock:
+-	for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
+-		if (!locked[qtype])
+-			continue;
+-		oinfo = sb_dqinfo(sb, qtype)->dqi_priv;
+-		ocfs2_unlock_global_qf(oinfo, 1);
+-	}
+ 	ocfs2_inode_unlock(inode, 1);
+ bail_unlock_rw:
+ 	if (size_change)
+@@ -1043,6 +1044,12 @@ bail_unlock_rw:
+ bail:
  	brelse(bh);
-+	mutex_lock(&sb_dqopt(sb)->dqio_mutex);
- 	return -1;
- }
  
++	/* Release quota pointers in case we acquired them */
++	for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
++		dqput(transfer_to[qtype]);
++		dqput(transfer_from[qtype]);
++	}
++
+ 	if (!status && attr->ia_valid & ATTR_MODE) {
+ 		status = ocfs2_acl_chmod(inode);
+ 		if (status < 0)
 -- 
 1.6.0.2
