@@ -1,133 +1,91 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 26 Feb 2009 15:00:37 -0800
-Subject: [Ocfs2-devel] [PATCH 01/13] ocfs2/dlm: Encapsulate adding and
-	removing of mle from dlm->master_list
+Date: Thu, 26 Feb 2009 15:00:40 -0800
+Subject: [Ocfs2-devel] [PATCH 04/13] ocfs2/dlm: Create and destroy the
+	dlm->master_hash
 In-Reply-To: <1235689249-2693-1-git-send-email-sunil.mushran@oracle.com>
 References: <1235689249-2693-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1235689249-2693-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1235689249-2693-5-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch encapsulates adding and removing of the mle from the
-dlm->master_list. This patch is part of the series of patches that
-converts the mle list to a mle hash.
+This patch adds code to create and destroy the dlm->master_hash.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |    3 +++
- fs/ocfs2/dlm/dlmmaster.c |   34 +++++++++++++++++++++++-----------
- 2 files changed, 26 insertions(+), 11 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    8 ++++++++
+ fs/ocfs2/dlm/dlmdomain.c |   18 ++++++++++++++++++
+ 2 files changed, 26 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index bb53714..261e265 100644
+index b232aa0..425653f 100644
 --- a/fs/ocfs2/dlm/dlmcommon.h
 +++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -1008,6 +1008,9 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
- 					  DLM_LOCK_RES_MIGRATING));
+@@ -151,6 +151,7 @@ struct dlm_ctxt
+ 	unsigned long recovery_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ 	struct dlm_recovery_ctxt reco;
+ 	spinlock_t master_lock;
++	struct hlist_head **master_hash;
+ 	struct list_head master_list;
+ 	struct list_head mle_hb_events;
+ 
+@@ -195,6 +196,13 @@ static inline struct hlist_head *dlm_lockres_hash(struct dlm_ctxt *dlm, unsigned
+ 	return dlm->lockres_hash[(i / DLM_BUCKETS_PER_PAGE) % DLM_HASH_PAGES] + (i % DLM_BUCKETS_PER_PAGE);
  }
  
-+void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle);
-+void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle);
-+
- /* create/destroy slab caches */
- int dlm_init_master_caches(void);
- void dlm_destroy_master_caches(void);
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 54e182a..3b77703 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -318,6 +318,21 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
- 	__dlm_mle_attach_hb_events(dlm, mle);
- }
- 
-+void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
++static inline struct hlist_head *dlm_master_hash(struct dlm_ctxt *dlm,
++						 unsigned i)
 +{
-+	assert_spin_locked(&dlm->spinlock);
-+	assert_spin_locked(&dlm->master_lock);
-+
-+	if (!list_empty(&mle->list))
-+		list_del_init(&mle->list);
++	return dlm->master_hash[(i / DLM_BUCKETS_PER_PAGE) % DLM_HASH_PAGES] +
++			(i % DLM_BUCKETS_PER_PAGE);
 +}
 +
-+void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
-+{
-+	assert_spin_locked(&dlm->master_lock);
+ /* these keventd work queue items are for less-frequently
+  * called functions that cannot be directly called from the
+  * net message handlers for some reason, usually because
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index d8d578f..4531504 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -304,6 +304,9 @@ static void dlm_free_ctxt_mem(struct dlm_ctxt *dlm)
+ 	if (dlm->lockres_hash)
+ 		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
+ 
++	if (dlm->master_hash)
++		dlm_free_pagevec((void **)dlm->master_hash, DLM_HASH_PAGES);
 +
-+	list_add(&mle->list, &dlm->master_list);
-+}
+ 	if (dlm->name)
+ 		kfree(dlm->name);
  
- /* returns 1 if found, 0 if not */
- static int dlm_find_mle(struct dlm_ctxt *dlm,
-@@ -420,8 +435,7 @@ static void dlm_mle_release(struct kref *kref)
- 	assert_spin_locked(&dlm->master_lock);
+@@ -1534,12 +1537,27 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	for (i = 0; i < DLM_HASH_BUCKETS; i++)
+ 		INIT_HLIST_HEAD(dlm_lockres_hash(dlm, i));
  
- 	/* remove from list if not already */
--	if (!list_empty(&mle->list))
--		list_del_init(&mle->list);
-+	__dlm_unlink_mle(dlm, mle);
++	dlm->master_hash = (struct hlist_head **)
++				dlm_alloc_pagevec(DLM_HASH_PAGES);
++	if (!dlm->master_hash) {
++		mlog_errno(-ENOMEM);
++		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
++		kfree(dlm->name);
++		kfree(dlm);
++		dlm = NULL;
++		goto leave;
++	}
++
++	for (i = 0; i < DLM_HASH_BUCKETS; i++)
++		INIT_HLIST_HEAD(dlm_master_hash(dlm, i));
++
+ 	strcpy(dlm->name, domain);
+ 	dlm->key = key;
+ 	dlm->node_num = o2nm_this_node();
  
- 	/* detach the mle from the domain node up/down events */
- 	__dlm_mle_detach_hb_events(dlm, mle);
-@@ -843,7 +857,7 @@ lookup:
- 		alloc_mle = NULL;
- 		dlm_init_mle(mle, DLM_MLE_MASTER, dlm, res, NULL, 0);
- 		set_bit(dlm->node_num, mle->maybe_map);
--		list_add(&mle->list, &dlm->master_list);
-+		__dlm_insert_mle(dlm, mle);
- 
- 		/* still holding the dlm spinlock, check the recovery map
- 		 * to see if there are any nodes that still need to be 
-@@ -1575,7 +1589,7 @@ way_up_top:
- 		// "add the block.\n");
- 		dlm_init_mle(mle, DLM_MLE_BLOCK, dlm, NULL, name, namelen);
- 		set_bit(request->node_idx, mle->maybe_map);
--		list_add(&mle->list, &dlm->master_list);
-+		__dlm_insert_mle(dlm, mle);
- 		response = DLM_MASTER_RESP_NO;
- 	} else {
- 		// mlog(0, "mle was found\n");
-@@ -1967,7 +1981,7 @@ ok:
- 			     assert->node_idx, rr, extra_ref, mle->inuse);
- 			dlm_print_one_mle(mle);
- 		}
--		list_del_init(&mle->list);
-+		__dlm_unlink_mle(dlm, mle);
- 		__dlm_mle_detach_hb_events(dlm, mle);
- 		__dlm_put_mle(mle);
- 		if (extra_ref) {
-@@ -3159,10 +3173,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
- 			tmp->master = master;
- 			atomic_set(&tmp->woken, 1);
- 			wake_up(&tmp->wq);
--			/* remove it from the list so that only one
--			 * mle will be found */
--			list_del_init(&tmp->list);
--			/* this was obviously WRONG.  mle is uninited here.  should be tmp. */
-+			/* remove it so that only one mle will be found */
-+			__dlm_unlink_mle(dlm, tmp);
- 			__dlm_mle_detach_hb_events(dlm, tmp);
- 			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
- 			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
-@@ -3181,7 +3193,7 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
- 	mle->master = master;
- 	/* do this for consistency with other mle types */
- 	set_bit(new_master, mle->maybe_map);
--	list_add(&mle->list, &dlm->master_list);
-+	__dlm_insert_mle(dlm, mle);
- 
- 	return ret;
- }
-@@ -3264,7 +3276,7 @@ top:
- 		 * list_head while in list_for_each_safe */
- 		__dlm_mle_detach_hb_events(dlm, mle);
- 		spin_lock(&mle->spinlock);
--		list_del_init(&mle->list);
-+		__dlm_unlink_mle(dlm, mle);
- 		atomic_set(&mle->woken, 1);
- 		spin_unlock(&mle->spinlock);
- 		wake_up(&mle->wq);
+ 	ret = dlm_create_debugfs_subroot(dlm);
+ 	if (ret < 0) {
++		dlm_free_pagevec((void **)dlm->master_hash, DLM_HASH_PAGES);
+ 		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
+ 		kfree(dlm->name);
+ 		kfree(dlm);
 -- 
 1.5.6.3
