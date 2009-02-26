@@ -1,92 +1,55 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 26 Feb 2009 15:00:45 -0800
-Subject: [Ocfs2-devel] [PATCH 09/13] ocfs2/dlm: dlm_set_lockres_owner() and
-	dlm_change_lockres_owner() inlined
+Date: Thu, 26 Feb 2009 15:00:49 -0800
+Subject: [Ocfs2-devel] [PATCH 13/13] ocfs2/dlm: Tweak mle_state output
 In-Reply-To: <1235689249-2693-1-git-send-email-sunil.mushran@oracle.com>
 References: <1235689249-2693-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1235689249-2693-10-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1235689249-2693-14-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch inlines dlm_set_lockres_owner() and dlm_change_lockres_owner().
+The debugfs file, mle_state, now prints the number of largest number of mles
+in one hash link.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |   21 ++++++++++++++++++---
- fs/ocfs2/dlm/dlmmaster.c |   19 -------------------
- 2 files changed, 18 insertions(+), 22 deletions(-)
+ fs/ocfs2/dlm/dlmdebug.c |    7 +++++--
+ 1 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index e5026ce..266fde9 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -858,9 +858,7 @@ struct dlm_lock_resource * dlm_lookup_lockres(struct dlm_ctxt *dlm,
- 					      unsigned int len);
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index bdf1c78..df52f70 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -494,7 +494,7 @@ static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ 	struct hlist_head *bucket;
+ 	struct hlist_node *list;
+ 	int i, out = 0;
+-	unsigned long total = 0;
++	unsigned long total = 0, longest = 0, bktcnt;
  
- int dlm_is_host_down(int errno);
--void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
--			      struct dlm_lock_resource *res,
--			      u8 owner);
-+
- struct dlm_lock_resource * dlm_get_lock_resource(struct dlm_ctxt *dlm,
- 						 const char *lockid,
- 						 int namelen,
-@@ -1123,6 +1121,23 @@ static inline int dlm_node_iter_next(struct dlm_node_iter *iter)
- 	return bit;
+ 	out += snprintf(db->buf + out, db->len - out,
+ 			"Dumping MLEs for Domain: %s\n", dlm->name);
+@@ -506,15 +506,18 @@ static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ 			mle = hlist_entry(list, struct dlm_master_list_entry,
+ 					  master_hash_node);
+ 			++total;
++			++bktcnt;
+ 			if (db->len - out < 200)
+ 				continue;
+ 			out += dump_mle(mle, db->buf + out, db->len - out);
+ 		}
++		longest = max(longest, bktcnt);
++		bktcnt = 0;
+ 	}
+ 	spin_unlock(&dlm->master_lock);
+ 
+ 	out += snprintf(db->buf + out, db->len - out,
+-			"Total on list: %ld\n", total);
++			"Total: %ld, Longest: %ld\n", total, longest);
+ 	return out;
  }
  
-+static inline void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
-+					 struct dlm_lock_resource *res,
-+					 u8 owner)
-+{
-+	assert_spin_locked(&res->spinlock);
-+
-+	res->owner = owner;
-+}
- 
-+static inline void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
-+					    struct dlm_lock_resource *res,
-+					    u8 owner)
-+{
-+	assert_spin_locked(&res->spinlock);
-+
-+	if (owner != res->owner)
-+		dlm_set_lockres_owner(dlm, res, owner);
-+}
- 
- #endif /* DLMCOMMON_H */
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 13df364..2093133 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -511,25 +511,6 @@ void dlm_destroy_master_caches(void)
- 		kmem_cache_destroy(dlm_lockres_cache);
- }
- 
--static void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
--				  struct dlm_lock_resource *res,
--				  u8 owner)
--{
--	assert_spin_locked(&res->spinlock);
--
--	res->owner = owner;
--}
--
--void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
--			      struct dlm_lock_resource *res, u8 owner)
--{
--	assert_spin_locked(&res->spinlock);
--
--	if (owner != res->owner)
--		dlm_set_lockres_owner(dlm, res, owner);
--}
--
--
- static void dlm_lockres_release(struct kref *kref)
- {
- 	struct dlm_lock_resource *res;
 -- 
 1.5.6.3
