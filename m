@@ -1,166 +1,119 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 26 Feb 2009 05:34:01 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2-1.4: Optimize inode group
-	allocation by recording last used group.
-In-Reply-To: <49A6369F.5030208@oracle.com>
-References: <49A6369F.5030208@oracle.com>
-Message-ID: <1235597641-5840-3-git-send-email-tao.ma@oracle.com>
+From: tristan.ye <tristan.ye@oracle.com>
+Date: Thu, 26 Feb 2009 17:30:48 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: set gap to seperate entry
+	and	value when	xattr in bucket
+In-Reply-To: <20090225014109.GA5209@mail.oracle.com>
+References: <1235099510-14128-1-git-send-email-tiger.yang@oracle.com>
+	<20090225014109.GA5209@mail.oracle.com>
+Message-ID: <1235640649.6727.19.camel@tristan-laptop.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2, the block group search looks for the "emptiest" group
-to allocate from. So if the allocator has many equally(or almost
-equally) empty groups, new block group will tend to get spread
-out amongst them.
+On Tue, 2009-02-24 at 17:41 -0800, Joel Becker wrote:
+> On Fri, Feb 20, 2009 at 11:11:50AM +0800, Tiger Yang wrote:
+> > This patch set a gap (4 bytes) between xattr entry and
+> > name/value when xattr in bucket. This gap use to seperate
+> > entry and name/value when a bucket is full. It had already
+> > been set when xattr in inode/block.
+> > 
+> > Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+> 
+> Acked-by: Joel Becker <joel.becker@oracle.com>
+> 
+> Has this passed tristan's tests?
 
-So we add osb_inode_alloc_group in ocfs2_super to record the last
-used inode allocation group.
-For more details, please see
-http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy.
+Tiger, 
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/ocfs2.h    |    3 +++
- fs/ocfs2/suballoc.c |   32 ++++++++++++++++++++++++++++----
- 2 files changed, 31 insertions(+), 4 deletions(-)
+Don't worry about the patch, I've tested it out with tao's spinlock
+patch,
+the result was fairly cool, all tests passed.
 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 83a30a0..12fcf60 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -321,6 +321,9 @@ struct ocfs2_super
- 	struct ocfs2_node_map		osb_recovering_orphan_dirs;
- 	unsigned int			*osb_orphan_wipes;
- 	wait_queue_head_t		osb_wipe_event;
-+
-+	/* the group we used to allocate inodes. */
-+	u64				osb_inode_alloc_group;
- };
- 
- #define OCFS2_SB(sb)	    ((struct ocfs2_super *)(sb)->s_fs_info)
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 13e7b88..ca91445 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -64,6 +64,7 @@ static int ocfs2_block_group_fill(handle_t *handle,
- static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 				   struct inode *alloc_inode,
- 				   struct buffer_head *bh,
-+				   u64 *last_alloc_group,
- 				   int flags);
- 
- static int ocfs2_cluster_group_search(struct inode *inode,
-@@ -281,6 +282,7 @@ static inline u16 ocfs2_find_smallest_chain(struct ocfs2_chain_list *cl)
- static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 				   struct inode *alloc_inode,
- 				   struct buffer_head *bh,
-+				   u64 *last_alloc_group,
- 				   int flags)
- {
- 	int status, credits;
-@@ -318,6 +320,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 		goto bail;
- 	}
- 
-+	if (last_alloc_group && *last_alloc_group != 0) {
-+		mlog(0, "use old allocation group %llu for block group alloc\n",
-+		     (unsigned long long)*last_alloc_group);
-+		ac->ac_last_group = *last_alloc_group;
-+	}
- 	status = ocfs2_claim_clusters(osb,
- 				      handle,
- 				      ac,
-@@ -392,6 +399,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 	alloc_inode->i_blocks = ocfs2_inode_sector_count(alloc_inode);
- 
- 	status = 0;
-+
-+	/* save the new last alloc group so that the caller can cache it. */
-+	if (last_alloc_group)
-+		*last_alloc_group = ac->ac_last_group;
-+
- bail:
- 	if (handle)
- 		ocfs2_commit_trans(osb, handle);
-@@ -409,6 +421,7 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 				       struct ocfs2_alloc_context *ac,
- 				       int type,
- 				       u32 slot,
-+				       u64 *last_alloc_group,
- 				       int flags)
- {
- 	int status;
-@@ -473,7 +486,8 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 			goto bail;
- 		}
- 
--		status = ocfs2_block_group_alloc(osb, alloc_inode, bh, flags);
-+		status = ocfs2_block_group_alloc(osb, alloc_inode, bh,
-+						 last_alloc_group, flags);
- 		if (status < 0) {
- 			if (status != -ENOSPC)
- 				mlog_errno(status);
-@@ -517,7 +531,7 @@ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
- 
- 	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
- 					     EXTENT_ALLOC_SYSTEM_INODE,
--					     slot, ALLOC_NEW_GROUP);
-+					     slot, NULL, ALLOC_NEW_GROUP);
- 	if (status < 0) {
- 		if (status != -ENOSPC)
- 			mlog_errno(status);
-@@ -554,7 +568,8 @@ static int ocfs2_steal_inode_from_other_nodes(struct ocfs2_super *osb,
- 
- 		status = ocfs2_reserve_suballoc_bits(osb, ac,
- 						     INODE_ALLOC_SYSTEM_INODE,
--						     slot, NOT_ALLOC_NEW_GROUP);
-+						     slot, NULL,
-+						     NOT_ALLOC_NEW_GROUP);
- 		if (status >= 0) {
- 			ocfs2_set_inode_steal_slot(osb, slot);
- 			break;
-@@ -571,6 +586,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
- {
- 	int status;
- 	s16 slot = ocfs2_get_inode_steal_slot(osb);
-+	u64 alloc_group;
- 
- 	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
- 	if (!(*ac)) {
-@@ -598,14 +614,22 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
- 		goto inode_steal;
- 
- 	atomic_set(&osb->s_num_inodes_stolen, 0);
-+	alloc_group = osb->osb_inode_alloc_group;
- 	status = ocfs2_reserve_suballoc_bits(osb, *ac,
- 					     INODE_ALLOC_SYSTEM_INODE,
- 					     osb->slot_num,
-+					     &alloc_group,
- 					     ALLOC_NEW_GROUP |
- 					     ALLOC_GROUPS_FROM_GLOBAL);
- 	if (status >= 0) {
- 		status = 0;
- 
-+		spin_lock(&osb->osb_lock);
-+		osb->osb_inode_alloc_group = alloc_group;
-+		spin_unlock(&osb->osb_lock);
-+		mlog(0, "after reservation, new allocation group is "
-+		     "%llu\n", (unsigned long long)alloc_group);
-+
- 		/*
- 		 * Some inodes must be freed by us, so try to allocate
- 		 * from our own next time.
-@@ -652,7 +676,7 @@ int ocfs2_reserve_cluster_bitmap_bits(struct ocfs2_super *osb,
- 
- 	status = ocfs2_reserve_suballoc_bits(osb, ac,
- 					     GLOBAL_BITMAP_SYSTEM_INODE,
--					     OCFS2_INVALID_SLOT,
-+					     OCFS2_INVALID_SLOT, NULL,
- 					     ALLOC_NEW_GROUP);
- 	if (status < 0 && status != -ENOSPC) {
- 		mlog_errno(status);
--- 
-1.5.5
+Refer to following URL for a detail testing info:
+
+
+Regards,
+Tristan
+
+> 
+> Joel
+> 
+> > ---
+> >  fs/ocfs2/xattr.c |   18 ++++++++++--------
+> >  1 files changed, 10 insertions(+), 8 deletions(-)
+> > 
+> > diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> > index 915039f..dedede1 100644
+> > --- a/fs/ocfs2/xattr.c
+> > +++ b/fs/ocfs2/xattr.c
+> > @@ -82,13 +82,14 @@ struct ocfs2_xattr_set_ctxt {
+> >  
+> >  #define OCFS2_XATTR_ROOT_SIZE	(sizeof(struct ocfs2_xattr_def_value_root))
+> >  #define OCFS2_XATTR_INLINE_SIZE	80
+> > +#define OCFS2_XATTR_HEADER_GAP	4
+> >  #define OCFS2_XATTR_FREE_IN_IBODY	(OCFS2_MIN_XATTR_INLINE_SIZE \
+> >  					 - sizeof(struct ocfs2_xattr_header) \
+> > -					 - sizeof(__u32))
+> > +					 - OCFS2_XATTR_HEADER_GAP)
+> >  #define OCFS2_XATTR_FREE_IN_BLOCK(ptr)	((ptr)->i_sb->s_blocksize \
+> >  					 - sizeof(struct ocfs2_xattr_block) \
+> >  					 - sizeof(struct ocfs2_xattr_header) \
+> > -					 - sizeof(__u32))
+> > +					 - OCFS2_XATTR_HEADER_GAP)
+> >  
+> >  static struct ocfs2_xattr_def_value_root def_xv = {
+> >  	.xv.xr_list.l_count = cpu_to_le16(1),
+> > @@ -1507,7 +1508,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+> >  		last += 1;
+> >  	}
+> >  
+> > -	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
+> > +	free = min_offs - ((void *)last - xs->base) - OCFS2_XATTR_HEADER_GAP;
+> >  	if (free < 0)
+> >  		return -EIO;
+> >  
+> > @@ -2190,7 +2191,7 @@ static int ocfs2_xattr_can_be_in_inode(struct inode *inode,
+> >  		last += 1;
+> >  	}
+> >  
+> > -	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
+> > +	free = min_offs - ((void *)last - xs->base) - OCFS2_XATTR_HEADER_GAP;
+> >  	if (free < 0)
+> >  		return 0;
+> >  
+> > @@ -5060,8 +5061,8 @@ try_again:
+> >  	xh_free_start = le16_to_cpu(xh->xh_free_start);
+> >  	header_size = sizeof(struct ocfs2_xattr_header) +
+> >  			count * sizeof(struct ocfs2_xattr_entry);
+> > -	max_free = OCFS2_XATTR_BUCKET_SIZE -
+> > -		le16_to_cpu(xh->xh_name_value_len) - header_size;
+> > +	max_free = OCFS2_XATTR_BUCKET_SIZE - header_size -
+> > +		le16_to_cpu(xh->xh_name_value_len) - OCFS2_XATTR_HEADER_GAP;
+> >  
+> >  	mlog_bug_on_msg(header_size > blocksize, "bucket %llu has header size "
+> >  			"of %u which exceed block size\n",
+> > @@ -5094,7 +5095,7 @@ try_again:
+> >  			need = 0;
+> >  	}
+> >  
+> > -	free = xh_free_start - header_size;
+> > +	free = xh_free_start - header_size - OCFS2_XATTR_HEADER_GAP;
+> >  	/*
+> >  	 * We need to make sure the new name/value pair
+> >  	 * can exist in the same block.
+> > @@ -5127,7 +5128,8 @@ try_again:
+> >  			}
+> >  
+> >  			xh_free_start = le16_to_cpu(xh->xh_free_start);
+> > -			free = xh_free_start - header_size;
+> > +			free = xh_free_start - header_size
+> > +				- OCFS2_XATTR_HEADER_GAP;
+> >  			if (xh_free_start % blocksize < need)
+> >  				free -= xh_free_start % blocksize;
+> >  
+> > -- 
+> > 1.5.4.1
+> > 
+> 
