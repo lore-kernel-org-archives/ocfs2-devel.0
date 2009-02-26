@@ -1,119 +1,133 @@
-From: tristan.ye <tristan.ye@oracle.com>
-Date: Thu, 26 Feb 2009 17:30:48 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: set gap to seperate entry
-	and	value when	xattr in bucket
-In-Reply-To: <20090225014109.GA5209@mail.oracle.com>
-References: <1235099510-14128-1-git-send-email-tiger.yang@oracle.com>
-	<20090225014109.GA5209@mail.oracle.com>
-Message-ID: <1235640649.6727.19.camel@tristan-laptop.cn.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 26 Feb 2009 15:00:37 -0800
+Subject: [Ocfs2-devel] [PATCH 01/13] ocfs2/dlm: Encapsulate adding and
+	removing of mle from dlm->master_list
+In-Reply-To: <1235689249-2693-1-git-send-email-sunil.mushran@oracle.com>
+References: <1235689249-2693-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1235689249-2693-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, 2009-02-24 at 17:41 -0800, Joel Becker wrote:
-> On Fri, Feb 20, 2009 at 11:11:50AM +0800, Tiger Yang wrote:
-> > This patch set a gap (4 bytes) between xattr entry and
-> > name/value when xattr in bucket. This gap use to seperate
-> > entry and name/value when a bucket is full. It had already
-> > been set when xattr in inode/block.
-> > 
-> > Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
-> 
-> Acked-by: Joel Becker <joel.becker@oracle.com>
-> 
-> Has this passed tristan's tests?
+This patch encapsulates adding and removing of the mle from the
+dlm->master_list. This patch is part of the series of patches that
+converts the mle list to a mle hash.
 
-Tiger, 
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/dlm/dlmcommon.h |    3 +++
+ fs/ocfs2/dlm/dlmmaster.c |   34 +++++++++++++++++++++++-----------
+ 2 files changed, 26 insertions(+), 11 deletions(-)
 
-Don't worry about the patch, I've tested it out with tao's spinlock
-patch,
-the result was fairly cool, all tests passed.
-
-Refer to following URL for a detail testing info:
-
-
-Regards,
-Tristan
-
-> 
-> Joel
-> 
-> > ---
-> >  fs/ocfs2/xattr.c |   18 ++++++++++--------
-> >  1 files changed, 10 insertions(+), 8 deletions(-)
-> > 
-> > diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> > index 915039f..dedede1 100644
-> > --- a/fs/ocfs2/xattr.c
-> > +++ b/fs/ocfs2/xattr.c
-> > @@ -82,13 +82,14 @@ struct ocfs2_xattr_set_ctxt {
-> >  
-> >  #define OCFS2_XATTR_ROOT_SIZE	(sizeof(struct ocfs2_xattr_def_value_root))
-> >  #define OCFS2_XATTR_INLINE_SIZE	80
-> > +#define OCFS2_XATTR_HEADER_GAP	4
-> >  #define OCFS2_XATTR_FREE_IN_IBODY	(OCFS2_MIN_XATTR_INLINE_SIZE \
-> >  					 - sizeof(struct ocfs2_xattr_header) \
-> > -					 - sizeof(__u32))
-> > +					 - OCFS2_XATTR_HEADER_GAP)
-> >  #define OCFS2_XATTR_FREE_IN_BLOCK(ptr)	((ptr)->i_sb->s_blocksize \
-> >  					 - sizeof(struct ocfs2_xattr_block) \
-> >  					 - sizeof(struct ocfs2_xattr_header) \
-> > -					 - sizeof(__u32))
-> > +					 - OCFS2_XATTR_HEADER_GAP)
-> >  
-> >  static struct ocfs2_xattr_def_value_root def_xv = {
-> >  	.xv.xr_list.l_count = cpu_to_le16(1),
-> > @@ -1507,7 +1508,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
-> >  		last += 1;
-> >  	}
-> >  
-> > -	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
-> > +	free = min_offs - ((void *)last - xs->base) - OCFS2_XATTR_HEADER_GAP;
-> >  	if (free < 0)
-> >  		return -EIO;
-> >  
-> > @@ -2190,7 +2191,7 @@ static int ocfs2_xattr_can_be_in_inode(struct inode *inode,
-> >  		last += 1;
-> >  	}
-> >  
-> > -	free = min_offs - ((void *)last - xs->base) - sizeof(__u32);
-> > +	free = min_offs - ((void *)last - xs->base) - OCFS2_XATTR_HEADER_GAP;
-> >  	if (free < 0)
-> >  		return 0;
-> >  
-> > @@ -5060,8 +5061,8 @@ try_again:
-> >  	xh_free_start = le16_to_cpu(xh->xh_free_start);
-> >  	header_size = sizeof(struct ocfs2_xattr_header) +
-> >  			count * sizeof(struct ocfs2_xattr_entry);
-> > -	max_free = OCFS2_XATTR_BUCKET_SIZE -
-> > -		le16_to_cpu(xh->xh_name_value_len) - header_size;
-> > +	max_free = OCFS2_XATTR_BUCKET_SIZE - header_size -
-> > +		le16_to_cpu(xh->xh_name_value_len) - OCFS2_XATTR_HEADER_GAP;
-> >  
-> >  	mlog_bug_on_msg(header_size > blocksize, "bucket %llu has header size "
-> >  			"of %u which exceed block size\n",
-> > @@ -5094,7 +5095,7 @@ try_again:
-> >  			need = 0;
-> >  	}
-> >  
-> > -	free = xh_free_start - header_size;
-> > +	free = xh_free_start - header_size - OCFS2_XATTR_HEADER_GAP;
-> >  	/*
-> >  	 * We need to make sure the new name/value pair
-> >  	 * can exist in the same block.
-> > @@ -5127,7 +5128,8 @@ try_again:
-> >  			}
-> >  
-> >  			xh_free_start = le16_to_cpu(xh->xh_free_start);
-> > -			free = xh_free_start - header_size;
-> > +			free = xh_free_start - header_size
-> > +				- OCFS2_XATTR_HEADER_GAP;
-> >  			if (xh_free_start % blocksize < need)
-> >  				free -= xh_free_start % blocksize;
-> >  
-> > -- 
-> > 1.5.4.1
-> > 
-> 
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index bb53714..261e265 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -1008,6 +1008,9 @@ static inline void __dlm_wait_on_lockres(struct dlm_lock_resource *res)
+ 					  DLM_LOCK_RES_MIGRATING));
+ }
+ 
++void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle);
++void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle);
++
+ /* create/destroy slab caches */
+ int dlm_init_master_caches(void);
+ void dlm_destroy_master_caches(void);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 54e182a..3b77703 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -318,6 +318,21 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
+ 	__dlm_mle_attach_hb_events(dlm, mle);
+ }
+ 
++void __dlm_unlink_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
++{
++	assert_spin_locked(&dlm->spinlock);
++	assert_spin_locked(&dlm->master_lock);
++
++	if (!list_empty(&mle->list))
++		list_del_init(&mle->list);
++}
++
++void __dlm_insert_mle(struct dlm_ctxt *dlm, struct dlm_master_list_entry *mle)
++{
++	assert_spin_locked(&dlm->master_lock);
++
++	list_add(&mle->list, &dlm->master_list);
++}
+ 
+ /* returns 1 if found, 0 if not */
+ static int dlm_find_mle(struct dlm_ctxt *dlm,
+@@ -420,8 +435,7 @@ static void dlm_mle_release(struct kref *kref)
+ 	assert_spin_locked(&dlm->master_lock);
+ 
+ 	/* remove from list if not already */
+-	if (!list_empty(&mle->list))
+-		list_del_init(&mle->list);
++	__dlm_unlink_mle(dlm, mle);
+ 
+ 	/* detach the mle from the domain node up/down events */
+ 	__dlm_mle_detach_hb_events(dlm, mle);
+@@ -843,7 +857,7 @@ lookup:
+ 		alloc_mle = NULL;
+ 		dlm_init_mle(mle, DLM_MLE_MASTER, dlm, res, NULL, 0);
+ 		set_bit(dlm->node_num, mle->maybe_map);
+-		list_add(&mle->list, &dlm->master_list);
++		__dlm_insert_mle(dlm, mle);
+ 
+ 		/* still holding the dlm spinlock, check the recovery map
+ 		 * to see if there are any nodes that still need to be 
+@@ -1575,7 +1589,7 @@ way_up_top:
+ 		// "add the block.\n");
+ 		dlm_init_mle(mle, DLM_MLE_BLOCK, dlm, NULL, name, namelen);
+ 		set_bit(request->node_idx, mle->maybe_map);
+-		list_add(&mle->list, &dlm->master_list);
++		__dlm_insert_mle(dlm, mle);
+ 		response = DLM_MASTER_RESP_NO;
+ 	} else {
+ 		// mlog(0, "mle was found\n");
+@@ -1967,7 +1981,7 @@ ok:
+ 			     assert->node_idx, rr, extra_ref, mle->inuse);
+ 			dlm_print_one_mle(mle);
+ 		}
+-		list_del_init(&mle->list);
++		__dlm_unlink_mle(dlm, mle);
+ 		__dlm_mle_detach_hb_events(dlm, mle);
+ 		__dlm_put_mle(mle);
+ 		if (extra_ref) {
+@@ -3159,10 +3173,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
+ 			tmp->master = master;
+ 			atomic_set(&tmp->woken, 1);
+ 			wake_up(&tmp->wq);
+-			/* remove it from the list so that only one
+-			 * mle will be found */
+-			list_del_init(&tmp->list);
+-			/* this was obviously WRONG.  mle is uninited here.  should be tmp. */
++			/* remove it so that only one mle will be found */
++			__dlm_unlink_mle(dlm, tmp);
+ 			__dlm_mle_detach_hb_events(dlm, tmp);
+ 			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
+ 			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
+@@ -3181,7 +3193,7 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
+ 	mle->master = master;
+ 	/* do this for consistency with other mle types */
+ 	set_bit(new_master, mle->maybe_map);
+-	list_add(&mle->list, &dlm->master_list);
++	__dlm_insert_mle(dlm, mle);
+ 
+ 	return ret;
+ }
+@@ -3264,7 +3276,7 @@ top:
+ 		 * list_head while in list_for_each_safe */
+ 		__dlm_mle_detach_hb_events(dlm, mle);
+ 		spin_lock(&mle->spinlock);
+-		list_del_init(&mle->list);
++		__dlm_unlink_mle(dlm, mle);
+ 		atomic_set(&mle->woken, 1);
+ 		spin_unlock(&mle->spinlock);
+ 		wake_up(&mle->wq);
+-- 
+1.5.6.3
