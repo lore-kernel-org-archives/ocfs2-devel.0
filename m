@@ -1,208 +1,119 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 26 Feb 2009 15:00:39 -0800
-Subject: [Ocfs2-devel] [PATCH 03/13] ocfs2/dlm: Refactor
-	dlm_clean_master_list()
-In-Reply-To: <1235689249-2693-1-git-send-email-sunil.mushran@oracle.com>
-References: <1235689249-2693-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1235689249-2693-4-git-send-email-sunil.mushran@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Fri, 27 Feb 2009 14:48:14 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V4)
+In-Reply-To: <20090225165828.GC26476@ca-server1.us.oracle.com>
+References: <200902200924.n1K9Oqp1029041@rgminet15.oracle.com>
+	<20090225020855.GB5209@mail.oracle.com>
+	<49A4BE80.4010003@oracle.com>
+	<20090225112710.GB26476@ca-server1.us.oracle.com>
+	<49A54E5C.4090705@oracle.com>
+	<20090225165828.GC26476@ca-server1.us.oracle.com>
+Message-ID: <49A78CAE.2060807@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch refactors dlm_clean_master_list() so as to make it
-easier to convert the mle list to a hash.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/dlm/dlmmaster.c |  148 ++++++++++++++++++++++++++-------------------
- 1 files changed, 85 insertions(+), 63 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index e566d5e..a29f132 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -3207,12 +3207,87 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
- 	return ret;
- }
- 
-+/*
-+ * Sets the owner of the lockres, associated to the mle, to UNKNOWN
-+ */
-+static struct dlm_lock_resource *dlm_reset_mleres_owner(struct dlm_ctxt *dlm,
-+					struct dlm_master_list_entry *mle)
-+{
-+	struct dlm_lock_resource *res;
-+	unsigned int hash;
-+
-+	/* Find the lockres associated to the mle and set its owner to UNK */
-+	hash = dlm_lockid_hash(mle->u.mlename.name, mle->u.mlename.len);
-+	res = __dlm_lookup_lockres(dlm, mle->u.mlename.name, mle->u.mlename.len,
-+				   hash);
-+	if (res) {
-+		spin_unlock(&dlm->master_lock);
-+
-+		/* move lockres onto recovery list */
-+		spin_lock(&res->spinlock);
-+		dlm_set_lockres_owner(dlm, res, DLM_LOCK_RES_OWNER_UNKNOWN);
-+		dlm_move_lockres_to_recovery_list(dlm, res);
-+		spin_unlock(&res->spinlock);
-+		dlm_lockres_put(res);
-+
-+		/* about to get rid of mle, detach from heartbeat */
-+		__dlm_mle_detach_hb_events(dlm, mle);
-+
-+		/* dump the mle */
-+		spin_lock(&dlm->master_lock);
-+		__dlm_put_mle(mle);
-+		spin_unlock(&dlm->master_lock);
-+	}
-+
-+	return res;
-+}
-+
-+static void dlm_clean_migration_mle(struct dlm_ctxt *dlm,
-+				    struct dlm_master_list_entry *mle)
-+{
-+	__dlm_mle_detach_hb_events(dlm, mle);
-+
-+	spin_lock(&mle->spinlock);
-+	__dlm_unlink_mle(dlm, mle);
-+	atomic_set(&mle->woken, 1);
-+	spin_unlock(&mle->spinlock);
-+
-+	wake_up(&mle->wq);
-+}
-+
-+static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
-+				struct dlm_master_list_entry *mle, u8 dead_node)
-+{
-+	int bit;
-+
-+	BUG_ON(mle->type != DLM_MLE_BLOCK);
-+
-+	spin_lock(&mle->spinlock);
-+	bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
-+	if (bit != dead_node) {
-+		mlog(0, "mle found, but dead node %u would not have been "
-+		     "master\n", dead_node);
-+		spin_unlock(&mle->spinlock);
-+	} else {
-+		/* Must drop the refcount by one since the assert_master will
-+		 * never arrive. This may result in the mle being unlinked and
-+		 * freed, but there may still be a process waiting in the
-+		 * dlmlock path which is fine. */
-+		mlog(0, "node %u was expected master\n", dead_node);
-+		atomic_set(&mle->woken, 1);
-+		spin_unlock(&mle->spinlock);
-+		wake_up(&mle->wq);
-+
-+		/* Do not need events any longer, so detach from heartbeat */
-+		__dlm_mle_detach_hb_events(dlm, mle);
-+		__dlm_put_mle(mle);
-+	}
-+}
- 
- void dlm_clean_master_list(struct dlm_ctxt *dlm, u8 dead_node)
- {
- 	struct dlm_master_list_entry *mle, *next;
- 	struct dlm_lock_resource *res;
--	unsigned int hash;
- 
- 	mlog_entry("dlm=%s, dead node=%u\n", dlm->name, dead_node);
- top:
-@@ -3236,30 +3311,7 @@ top:
- 		 * need to clean up if the dead node would have
- 		 * been the master. */
- 		if (mle->type == DLM_MLE_BLOCK) {
--			int bit;
--
--			spin_lock(&mle->spinlock);
--			bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
--			if (bit != dead_node) {
--				mlog(0, "mle found, but dead node %u would "
--				     "not have been master\n", dead_node);
--				spin_unlock(&mle->spinlock);
--			} else {
--				/* must drop the refcount by one since the
--				 * assert_master will never arrive.  this
--				 * may result in the mle being unlinked and
--				 * freed, but there may still be a process
--				 * waiting in the dlmlock path which is fine. */
--				mlog(0, "node %u was expected master\n",
--				     dead_node);
--				atomic_set(&mle->woken, 1);
--				spin_unlock(&mle->spinlock);
--				wake_up(&mle->wq);
--				/* do not need events any longer, so detach 
--				 * from heartbeat */
--				__dlm_mle_detach_hb_events(dlm, mle);
--				__dlm_put_mle(mle);
--			}
-+			dlm_clean_block_mle(dlm, mle, dead_node);
- 			continue;
- 		}
- 
-@@ -3280,51 +3332,21 @@ top:
- 
- 		/* if we have reached this point, this mle needs to
- 		 * be removed from the list and freed. */
--
--		/* remove from the list early.  NOTE: unlinking
--		 * list_head while in list_for_each_safe */
--		__dlm_mle_detach_hb_events(dlm, mle);
--		spin_lock(&mle->spinlock);
--		__dlm_unlink_mle(dlm, mle);
--		atomic_set(&mle->woken, 1);
--		spin_unlock(&mle->spinlock);
--		wake_up(&mle->wq);
-+		dlm_clean_migration_mle(dlm, mle);
- 
- 		mlog(0, "%s: node %u died during migration from "
- 		     "%u to %u!\n", dlm->name, dead_node,
- 		     mle->master, mle->new_master);
--		/* if there is a lockres associated with this
--	 	 * mle, find it and set its owner to UNKNOWN */
--		hash = dlm_lockid_hash(mle->u.mlename.name, mle->u.mlename.len);
--		res = __dlm_lookup_lockres(dlm, mle->u.mlename.name,
--					   mle->u.mlename.len, hash);
--		if (res) {
--			/* unfortunately if we hit this rare case, our
--		 	 * lock ordering is messed.  we need to drop
--		 	 * the master lock so that we can take the
--		  	 * lockres lock, meaning that we will have to
--			 * restart from the head of list. */
--			spin_unlock(&dlm->master_lock);
--
--			/* move lockres onto recovery list */
--			spin_lock(&res->spinlock);
--			dlm_set_lockres_owner(dlm, res,
--				      	DLM_LOCK_RES_OWNER_UNKNOWN);
--			dlm_move_lockres_to_recovery_list(dlm, res);
--			spin_unlock(&res->spinlock);
--			dlm_lockres_put(res);
--
--			/* about to get rid of mle, detach from heartbeat */
--			__dlm_mle_detach_hb_events(dlm, mle);
--
--			/* dump the mle */
--			spin_lock(&dlm->master_lock);
--			__dlm_put_mle(mle);
--			spin_unlock(&dlm->master_lock);
- 
-+		/* If we find a lockres associated with the mle, we've
-+		 * hit this rare case that messes up our lock ordering.
-+		 * If so, we need to drop the master lock so that we can
-+		 * take the lockres lock, meaning that we will have to
-+		 * restart from the head of list. */
-+		res = dlm_reset_mleres_owner(dlm, mle);
-+		if (res)
- 			/* restart */
- 			goto top;
--		}
- 
- 		/* this may be the last reference */
- 		__dlm_put_mle(mle);
--- 
-1.5.6.3
+Joel Becker wrote:
+> On Wed, Feb 25, 2009 at 09:57:48PM +0800, Wengang Wang wrote:
+>> Joel Becker wrote:
+>>> On Wed, Feb 25, 2009 at 11:44:00AM +0800, Wengang Wang wrote:
+>>>>>> +	status = ocfs2_test_inode_bit(osb, blkno, &set);
+>>>>>> +	if (status < 0) {
+>>>>>> +		if (status == -EINVAL) {
+>>>>>> +			/* meta block never be re-allocated as data block.
+>>>>>> +			 * nfsd gives us wrong blkno */
+>>>>>> +			status = -EEXIST;
+>>>>>> +		} else {
+>>>>>> +			mlog(ML_ERROR, "test inode bit failed %d\n", status);
+>>>>>> +		}
+>>>>>> +		goto unlock_nfs_sync;
+>>>>>> +	}
+>>>>> 	This looks very nice, but it should return -ESTALE instead
+>>>>> of -EEXIST; 
+>>>> why? I think it's an EEXIST.
+>>>> if you say nfs don't know how to deal with the EEXIST, I agree to change 
+>>>> it.
+>>>> it most likely does not exist, and nfs knows how to handle
+>>>>> that error.
+>>> 	EEXIST means "the file exists", which it clearly does not.
+>>> I think you mean ENOENT.  
+>> Sorry, yes I meant ENOENT.
+>> also, the following EEXIST is wrong too(and also in some existing codes).
+>>
+>> +	inode_alloc_inode =
+>> +		ocfs2_get_system_file_inode(osb, INODE_ALLOC_SYSTEM_INODE,
+>> +					    suballoc_slot);
+>> +	if (!inode_alloc_inode) {
+>> +		/* the error code could be inaccurate, but we are not able to
+>> +		 * get the correct one. */
+>> +		status = -EEXIST;
+>>
+>> here, we don't have the accurate reason. I suggest we return PTR_ERR(xxx) 
+>> instead of NULL for ocfs2_get_system_file_inode() ( 
+>> _ocfs2_get_system_file_inode() actually) and change code where 
+>> ocfs2_get_system_file_inode() is called.
+> 
+> 	Yeah, I noticed that we don't have an error from
+> ocfs2_get_system_file_inode().  But we don't have any need to fix that
+> right now.  That can be a later patch if we care.
+> 
+
+Ok.
+
+>>> But what is really happening here is nfs asks
+>>> "I used to have file XXX, is it still there?"  The correct response
+>>> seems to me to be "Um, not anymore - it's stale".
+>> yes, your case is the "normal" stale case.
+>> checking where EINVAL is returned, it's either 
+>> (!OCFS2_IS_VALID_DINODE(inode_fe)) or alloc slot out of range.
+>> in the two cases, I prefer nfs passed a wrong fh(blkno) instead of a stale 
+>> one, that's nfs does a buggy request.
+>> well, returning ESTALE is also OK. I just think ENOENT is more accurate.
+> 
+> 	I agree with you that ENOENT is more accurate, but right now
+> we're playing nice with nfsd.  Actually, return -ENOENT from the test
+> function, but in ocfs2_get_dentry() change it to -ESTALE for nfsd.
+> 
+Ok.
+
+>> if my understand is correct:),
+>> yes, when there could be a new group added to a chain. and the chain list 
+>> changed(pointers). and there could be a chain 
+>> relink(ocfs2_relink_block_group()).
+>> but I don't understand why it affects the group in question.
+>> the group in question is gotten by reading the block which is numbered of 
+>> inode blkno minus alloc bit. that doesn't involve any pointer.
+>> so, could you tell me more detail?
+> 
+> 	I agree it probably doesn't affect this direct block group.  At
+> least, unless we change the code to do some walking or whatever.  But we
+> want this function to be right no matter the behavior.
+> 
+Ok.
+
+>>> 	Also, it is a correctness issue.  Your way may happen to work
+>>> for the stale inode checking, but that's by sheer luck.
+>> until I got clear your idea about the groups, I persist :P.
+>>
+>>>  Putting the
+>>> access of the group inside the lock is definitively correct.
+>> Yes, agree.
+>> I just want a better performance when we are correct.
+> 
+> 	We will never sacrifice correctness for performance.  You don't
+> access data outside of locks unless you have some really, really good
+> reason.  This won't hurt any performance - it's a standard operation we
+> do all the time: "take lock, do something with group descriptor, drop
+> lock".  If it was a performance problem it would be a problem
+> everywhere, and we'd solve it in a correct fashion.
+> 	Secondly, if some later code decides to use this function, they
+> certainly won't expect it to be doing unsafe things.  And they won't be
+> inside a very specific nfs code path.
+Yeah, as a common function it shouldn't be nfs specific.
+
+thanks,
+wengang.
