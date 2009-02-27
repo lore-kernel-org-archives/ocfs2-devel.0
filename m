@@ -1,119 +1,521 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 27 Feb 2009 14:48:14 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V4)
-In-Reply-To: <20090225165828.GC26476@ca-server1.us.oracle.com>
-References: <200902200924.n1K9Oqp1029041@rgminet15.oracle.com>
-	<20090225020855.GB5209@mail.oracle.com>
-	<49A4BE80.4010003@oracle.com>
-	<20090225112710.GB26476@ca-server1.us.oracle.com>
-	<49A54E5C.4090705@oracle.com>
-	<20090225165828.GC26476@ca-server1.us.oracle.com>
-Message-ID: <49A78CAE.2060807@oracle.com>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Fri, 27 Feb 2009 20:33:28 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V5)
+Message-ID: <200902271234.n1RCYbZ2022526@rgminet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+changes from v4:
+1, let suballoc lock covers the checking of the group.
 
+2, add/correct some log messages.
 
-Joel Becker wrote:
-> On Wed, Feb 25, 2009 at 09:57:48PM +0800, Wengang Wang wrote:
->> Joel Becker wrote:
->>> On Wed, Feb 25, 2009 at 11:44:00AM +0800, Wengang Wang wrote:
->>>>>> +	status = ocfs2_test_inode_bit(osb, blkno, &set);
->>>>>> +	if (status < 0) {
->>>>>> +		if (status == -EINVAL) {
->>>>>> +			/* meta block never be re-allocated as data block.
->>>>>> +			 * nfsd gives us wrong blkno */
->>>>>> +			status = -EEXIST;
->>>>>> +		} else {
->>>>>> +			mlog(ML_ERROR, "test inode bit failed %d\n", status);
->>>>>> +		}
->>>>>> +		goto unlock_nfs_sync;
->>>>>> +	}
->>>>> 	This looks very nice, but it should return -ESTALE instead
->>>>> of -EEXIST; 
->>>> why? I think it's an EEXIST.
->>>> if you say nfs don't know how to deal with the EEXIST, I agree to change 
->>>> it.
->>>> it most likely does not exist, and nfs knows how to handle
->>>>> that error.
->>> 	EEXIST means "the file exists", which it clearly does not.
->>> I think you mean ENOENT.  
->> Sorry, yes I meant ENOENT.
->> also, the following EEXIST is wrong too(and also in some existing codes).
->>
->> +	inode_alloc_inode =
->> +		ocfs2_get_system_file_inode(osb, INODE_ALLOC_SYSTEM_INODE,
->> +					    suballoc_slot);
->> +	if (!inode_alloc_inode) {
->> +		/* the error code could be inaccurate, but we are not able to
->> +		 * get the correct one. */
->> +		status = -EEXIST;
->>
->> here, we don't have the accurate reason. I suggest we return PTR_ERR(xxx) 
->> instead of NULL for ocfs2_get_system_file_inode() ( 
->> _ocfs2_get_system_file_inode() actually) and change code where 
->> ocfs2_get_system_file_inode() is called.
-> 
-> 	Yeah, I noticed that we don't have an error from
-> ocfs2_get_system_file_inode().  But we don't have any need to fix that
-> right now.  That can be a later patch if we care.
-> 
+3, use ocfs2_read_group_descriptor() instead of diry reading the group.
 
-Ok.
-
->>> But what is really happening here is nfs asks
->>> "I used to have file XXX, is it still there?"  The correct response
->>> seems to me to be "Um, not anymore - it's stale".
->> yes, your case is the "normal" stale case.
->> checking where EINVAL is returned, it's either 
->> (!OCFS2_IS_VALID_DINODE(inode_fe)) or alloc slot out of range.
->> in the two cases, I prefer nfs passed a wrong fh(blkno) instead of a stale 
->> one, that's nfs does a buggy request.
->> well, returning ESTALE is also OK. I just think ENOENT is more accurate.
-> 
-> 	I agree with you that ENOENT is more accurate, but right now
-> we're playing nice with nfsd.  Actually, return -ENOENT from the test
-> function, but in ocfs2_get_dentry() change it to -ESTALE for nfsd.
-> 
-Ok.
-
->> if my understand is correct:),
->> yes, when there could be a new group added to a chain. and the chain list 
->> changed(pointers). and there could be a chain 
->> relink(ocfs2_relink_block_group()).
->> but I don't understand why it affects the group in question.
->> the group in question is gotten by reading the block which is numbered of 
->> inode blkno minus alloc bit. that doesn't involve any pointer.
->> so, could you tell me more detail?
-> 
-> 	I agree it probably doesn't affect this direct block group.  At
-> least, unless we change the code to do some walking or whatever.  But we
-> want this function to be right no matter the behavior.
-> 
-Ok.
-
->>> 	Also, it is a correctness issue.  Your way may happen to work
->>> for the stale inode checking, but that's by sheer luck.
->> until I got clear your idea about the groups, I persist :P.
->>
->>>  Putting the
->>> access of the group inside the lock is definitively correct.
->> Yes, agree.
->> I just want a better performance when we are correct.
-> 
-> 	We will never sacrifice correctness for performance.  You don't
-> access data outside of locks unless you have some really, really good
-> reason.  This won't hurt any performance - it's a standard operation we
-> do all the time: "take lock, do something with group descriptor, drop
-> lock".  If it was a performance problem it would be a problem
-> everywhere, and we'd solve it in a correct fashion.
-> 	Secondly, if some later code decides to use this function, they
-> certainly won't expect it to be doing unsafe things.  And they won't be
-> inside a very specific nfs code path.
-Yeah, as a common function it shouldn't be nfs specific.
-
-thanks,
-wengang.
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+--
+ dlmglue.c      |   45 ++++++++++++++++
+ dlmglue.h      |    2
+ export.c       |   77 +++++++++++++++++++++++++--
+ inode.c        |   24 ++++++++
+ inode.h        |    1
+ ocfs2.h        |    1
+ ocfs2_lockid.h |    4 +
+ suballoc.c     |  157 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ suballoc.h     |    2
+ 9 files changed, 304 insertions(+), 9 deletions(-)
+Index: dlmglue.h
+===================================================================
+--- dlmglue.h	(revision 139)
++++ dlmglue.h	(working copy)
+@@ -115,6 +115,8 @@ void ocfs2_super_unlock(struct ocfs2_sup
+ 			int ex);
+ int ocfs2_rename_lock(struct ocfs2_super *osb);
+ void ocfs2_rename_unlock(struct ocfs2_super *osb);
++int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex);
++void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex);
+ int ocfs2_dentry_lock(struct dentry *dentry, int ex);
+ void ocfs2_dentry_unlock(struct dentry *dentry, int ex);
+ int ocfs2_file_lock(struct file *file, int ex, int trylock);
+Index: export.c
+===================================================================
+--- export.c	(revision 139)
++++ export.c	(working copy)
+@@ -38,6 +38,7 @@
+ #include "inode.h"
+ 
+ #include "buffer_head_io.h"
++#include "suballoc.h"
+ 
+ struct ocfs2_inode_handle
+ {
+@@ -49,29 +50,89 @@ static struct dentry *ocfs2_get_dentry(s
+ 		struct ocfs2_inode_handle *handle)
+ {
+ 	struct inode *inode;
++	struct ocfs2_super *osb = OCFS2_SB(sb);
++	u64 blkno = handle->ih_blkno;
++	int status, set;
+ 	struct dentry *result;
+ 
+ 	mlog_entry("(0x%p, 0x%p)\n", sb, handle);
+ 
+-	if (handle->ih_blkno == 0) {
+-		mlog_errno(-ESTALE);
+-		return ERR_PTR(-ESTALE);
++	if (blkno == 0) {
++		mlog(0, "nfs wants inode with blkno: 0\n");
++		result = ERR_PTR(-ESTALE);
++		goto bail;
++	}
++
++	inode = ocfs2_ilookup(sb, blkno);
++	/* found in-memory inode, goes to check generation */
++	if (inode)
++		goto check_gen;
++
++	/* takes nfs_sync_lock in EX mode */
++	status = ocfs2_nfs_sync_lock(osb, 1);
++	if (status < 0) {
++		mlog(ML_ERROR, "getting nfs sync lock(EX) failed %d\n", status);
++		goto check_err;
+ 	}
+ 
+-	inode = ocfs2_iget(OCFS2_SB(sb), handle->ih_blkno, 0, 0);
++	status = ocfs2_test_inode_bit(osb, blkno, &set);
++	if (status < 0) {
++		if (status == -EINVAL) {
++			/* meta block never be re-allocated as data block.
++			 * nfs gives us wrong blkno, we return ESTALE though */
++			mlog(0, "test inode bit failed %d\n", status);
++			status = -ESTALE;
++		} else {
++			mlog(ML_ERROR, "test inode bit failed %d\n", status);
++		}
++		goto unlock_nfs_sync;
++	}
++
++	/* allocate bit is clear, inode is a stale inode */
++	if (!set) {
++		mlog(0, "inode %llu suballoc bit is clear\n", blkno);
++		status = -ESTALE;
++		goto unlock_nfs_sync;
++	}
++
++	inode = ocfs2_iget(osb, blkno, 0, 0);
++
++unlock_nfs_sync:
++	ocfs2_nfs_sync_unlock(osb, 1);
+ 
+-	if (IS_ERR(inode))
+-		return (void *)inode;
++check_err:
++	if (status < 0) {
++		if (status == -ESTALE) {
++			mlog(0, "stale inode ino: %llu generation: %u\n",
++			     blkno, handle->ih_generation);
++		}
++		result = ERR_PTR(status);
++		goto bail;
++	}
+ 
++	if (IS_ERR(inode)) {
++		mlog_errno(PTR_ERR(inode));
++		result = (void *)inode;
++		goto bail;
++	}
++
++check_gen:
+ 	if (handle->ih_generation != inode->i_generation) {
+ 		iput(inode);
+-		return ERR_PTR(-ESTALE);
++		mlog(0, "stale inode ino: %llu generation: %u\n", blkno,
++		     handle->ih_generation);
++		result = ERR_PTR(-ESTALE);
++		goto bail;
+ 	}
+ 
+ 	result = d_obtain_alias(inode);
+-	if (!IS_ERR(result))
++	if (!IS_ERR(result)) {
+ 		result->d_op = &ocfs2_dentry_ops;
++	} else {
++		mlog_errno(PTR_ERR(result));
++	}
+ 
++bail:
+ 	mlog_exit_ptr(result);
+ 	return result;
+ }
+Index: inode.c
+===================================================================
+--- inode.c	(revision 139)
++++ inode.c	(working copy)
+@@ -112,6 +112,17 @@ void ocfs2_get_inode_flags(struct ocfs2_
+ 		oi->ip_attr |= OCFS2_DIRSYNC_FL;
+ }
+ 
++struct inode *ocfs2_ilookup(struct super_block *sb, u64 blkno)
++{
++	struct ocfs2_find_inode_args args;
++
++	args.fi_blkno = blkno;
++	args.fi_flags = 0;
++	args.fi_ino = ino_from_blkno(sb, blkno);
++	args.fi_sysfile_type = 0;
++
++	return ilookup5(sb, blkno, ocfs2_find_actor, &args);
++}
+ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
+ 			 int sysfile_type)
+ {
+@@ -949,6 +960,13 @@ void ocfs2_delete_inode(struct inode *in
+ 		goto bail;
+ 	}
+ 
++	/* Lock down the nfs_sync lock in PR mode */
++	status = ocfs2_nfs_sync_lock(OCFS2_SB(inode->i_sb), 0);
++	if (status < 0) {
++		mlog(ML_ERROR, "getting nfs sync lock(PR) failed %d\n", status);
++		ocfs2_cleanup_delete_inode(inode, 0);
++		goto bail_unblock;
++	}
+ 	/* Lock down the inode. This gives us an up to date view of
+ 	 * it's metadata (for verification), and allows us to
+ 	 * serialize delete_inode on multiple nodes.
+@@ -962,7 +980,7 @@ void ocfs2_delete_inode(struct inode *in
+ 		if (status != -ENOENT)
+ 			mlog_errno(status);
+ 		ocfs2_cleanup_delete_inode(inode, 0);
+-		goto bail_unblock;
++		goto bail_unlock_nfs_sync;
+ 	}
+ 
+ 	/* Query the cluster. This will be the final decision made
+@@ -1005,6 +1023,10 @@ void ocfs2_delete_inode(struct inode *in
+ bail_unlock_inode:
+ 	ocfs2_inode_unlock(inode, 1);
+ 	brelse(di_bh);
++
++bail_unlock_nfs_sync:
++	ocfs2_nfs_sync_unlock(OCFS2_SB(inode->i_sb), 0);
++
+ bail_unblock:
+ 	status = sigprocmask(SIG_SETMASK, &oldset, NULL);
+ 	if (status < 0)
+Index: inode.h
+===================================================================
+--- inode.h	(revision 139)
++++ inode.h	(working copy)
+@@ -124,6 +124,7 @@ void ocfs2_drop_inode(struct inode *inod
+ /* Flags for ocfs2_iget() */
+ #define OCFS2_FI_FLAG_SYSFILE		0x1
+ #define OCFS2_FI_FLAG_ORPHAN_RECOVERY	0x2
++struct inode *ocfs2_ilookup(struct super_block *sb, u64 feoff);
+ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 feoff, unsigned flags,
+ 			 int sysfile_type);
+ int ocfs2_inode_init_private(struct inode *inode);
+Index: ocfs2_lockid.h
+===================================================================
+--- ocfs2_lockid.h	(revision 139)
++++ ocfs2_lockid.h	(working copy)
+@@ -47,6 +47,7 @@ enum ocfs2_lock_type {
+ 	OCFS2_LOCK_TYPE_OPEN,
+ 	OCFS2_LOCK_TYPE_FLOCK,
+ 	OCFS2_LOCK_TYPE_QINFO,
++	OCFS2_LOCK_TYPE_NFS_SYNC,
+ 	OCFS2_NUM_LOCK_TYPES
+ };
+ 
+@@ -81,6 +82,9 @@ static inline char ocfs2_lock_type_char(
+ 		case OCFS2_LOCK_TYPE_QINFO:
+ 			c = 'Q';
+ 			break;
++		case OCFS2_LOCK_TYPE_NFS_SYNC:
++			c = 'Y';
++			break;
+ 		default:
+ 			c = '\0';
+ 	}
+Index: suballoc.c
+===================================================================
+--- suballoc.c	(revision 139)
++++ suballoc.c	(working copy)
+@@ -2116,3 +2116,160 @@ out:
+ 
+ 	return ret;
+ }
++
++/* reads(hit disk) the inode specified by blkno to get suballoc_slot
++ * and suballoc_bit
++ * */
++static int ocfs2_get_suballoc_slot_bit(struct ocfs2_super *osb, u64 blkno,
++				u16 *suballoc_slot, u16 *suballoc_bit)
++{
++	int status;
++	struct buffer_head *inode_bh = NULL;
++	struct ocfs2_dinode *inode_fe;
++
++	mlog_entry("blkno: %llu\n", blkno);
++
++	/* dirty read disk */
++	status = ocfs2_read_blocks_sync(osb, blkno, 1, &inode_bh);
++	if (status < 0) {
++		mlog(ML_ERROR, "read block %llu failed %d\n", blkno, status);
++		goto bail;
++	}
++
++	inode_fe = (struct ocfs2_dinode *) inode_bh->b_data;
++	if (!OCFS2_IS_VALID_DINODE(inode_fe)) {
++		mlog(ML_ERROR, "invalid inode %llu requested\n", blkno);
++		status = -EINVAL;
++		goto bail;
++	}
++
++	if (le16_to_cpu(inode_fe->i_suballoc_slot) != OCFS2_INVALID_SLOT &&
++	    (u32)le16_to_cpu(inode_fe->i_suballoc_slot) > osb->max_slots -1) {
++		mlog(ML_ERROR, "inode %llu has invalid suballoc slot %u\n",
++		     blkno, (u32)le16_to_cpu(inode_fe->i_suballoc_slot));
++		status = -EINVAL;
++		goto bail;
++	}
++	if (suballoc_slot)
++		*suballoc_slot = le16_to_cpu(inode_fe->i_suballoc_slot);
++	if (suballoc_bit)
++		*suballoc_bit= le16_to_cpu(inode_fe->i_suballoc_bit);
++
++bail:
++	brelse(inode_bh);
++
++	mlog_exit(status);
++	return status;
++}
++
++/* test whether bit is SET in allocator bitmap or not.
++ * on success, 0 is returned and *res is 1 for SET; 0 otherwise.
++ * when fails, errno is returned and *res is meaningless.
++ * calls this after you have cluster locked against suballoc, or you may
++ * get a result based on non-up2date contents
++ * */
++static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb, struct inode *suballoc,
++			    struct buffer_head *alloc_bh, u64 blkno, u16 bit,
++			    int *res)
++{
++	struct ocfs2_dinode *alloc_fe;
++	struct ocfs2_group_desc *group;
++	struct buffer_head *group_bh = NULL;
++	u64 bg_blkno;
++	int status;
++
++	mlog_entry("blkno: %llu bit: %u\n", blkno, (unsigned int)bit);
++
++	alloc_fe = (struct ocfs2_dinode *)alloc_bh->b_data;
++	if ((bit + 1) > ocfs2_bits_per_group(&alloc_fe->id2.i_chain)) {
++		mlog(ML_ERROR, "suballoc bit %u out of range of %u\n", 
++		     (unsigned int)bit,
++		     ocfs2_bits_per_group(&alloc_fe->id2.i_chain));
++		status = -EINVAL;
++		goto bail;
++	}
++
++	bg_blkno = ocfs2_which_suballoc_group(blkno, bit);
++	status = ocfs2_read_group_descriptor(suballoc, alloc_fe, bg_blkno,
++					     &group_bh);
++	if (status < 0) {
++		mlog(ML_ERROR, "read group %llu failed %d\n", bg_blkno, status);
++		goto bail;
++	}
++
++	status = ocfs2_check_group_descriptor(osb->sb, alloc_fe, group_bh);
++	if (status < 0) {
++		mlog(ML_ERROR, "check group %llu faild %d\n", bg_blkno, status);
++		goto bail;
++	}
++
++	group = (struct ocfs2_group_desc *) group_bh->b_data;
++	*res = ocfs2_test_bit(bit, (unsigned long *)group->bg_bitmap);
++
++bail:
++	brelse(group_bh);
++
++	mlog_exit(status);
++	return status;
++}
++
++/* test if the bit, which is for the inode specified by blkno, in suballoc is
++ * set or not.
++ * on success, 0 is returned and *res is 1 for SET; 0 otherwise.
++ * when fails, errno is returned and *res is meaningless.
++ * MAKE SURE to hold nfs_sync_lock to revent ocfs2_delete_inode() on another
++ * node from accessing the same suballoc concurrently.
++ * */
++int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
++{
++	int status;
++	u16 suballoc_bit = 0, suballoc_slot = 0;
++	struct inode *inode_alloc_inode;
++	struct buffer_head *alloc_bh = NULL;
++
++	/* MAKE SURE nfs_sync_lock is held */
++
++	mlog_entry("blkno: %llu", blkno);
++
++	status = ocfs2_get_suballoc_slot_bit(osb, blkno, &suballoc_slot,
++					     &suballoc_bit);
++	if (status < 0) {
++		mlog(ML_ERROR, "get alloc slot and bit failed %d\n", status);
++		goto bail;
++	}
++
++	inode_alloc_inode =
++		ocfs2_get_system_file_inode(osb, INODE_ALLOC_SYSTEM_INODE,
++					    suballoc_slot);
++	if (!inode_alloc_inode) {
++		/* the error code could be inaccurate, but we are not able to
++		 * get the correct one. */
++		status = -EINVAL;
++		mlog(ML_ERROR, "unable to get alloc inode in slot %u\n",
++		     (u32)suballoc_slot);
++		goto bail;
++	}
++
++	mutex_lock(&inode_alloc_inode->i_mutex);
++	status = ocfs2_inode_lock(inode_alloc_inode, &alloc_bh, 0);
++	if (status < 0) {
++		mutex_unlock(&inode_alloc_inode->i_mutex);
++		mlog(ML_ERROR, "lock on alloc inode on slot %u failed %d\n",
++		     (u32)suballoc_slot, status);
++		goto bail;
++	}
++
++	status = ocfs2_test_suballoc_bit(osb, inode_alloc_inode, alloc_bh,
++					 blkno, suballoc_bit, res);
++	if (status < 0)
++		mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
++
++	ocfs2_inode_unlock(inode_alloc_inode, 0);
++	mutex_unlock(&inode_alloc_inode->i_mutex);
++
++	iput(inode_alloc_inode);
++	brelse(alloc_bh);
++bail:
++	mlog_exit(status);
++	return status;
++}
+Index: suballoc.h
+===================================================================
+--- suballoc.h	(revision 139)
++++ suballoc.h	(working copy)
+@@ -186,4 +186,6 @@ int ocfs2_lock_allocators(struct inode *
+ 			  u32 clusters_to_add, u32 extents_to_split,
+ 			  struct ocfs2_alloc_context **data_ac,
+ 			  struct ocfs2_alloc_context **meta_ac);
++
++int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res);
+ #endif /* _CHAINALLOC_H_ */
+Index: ocfs2.h
+===================================================================
+--- ocfs2.h	(revision 139)
++++ ocfs2.h	(working copy)
+@@ -305,6 +305,7 @@ struct ocfs2_super
+ 	struct ocfs2_cluster_connection *cconn;
+ 	struct ocfs2_lock_res osb_super_lockres;
+ 	struct ocfs2_lock_res osb_rename_lockres;
++	struct ocfs2_lock_res osb_nfs_sync_lockres;
+ 	struct ocfs2_dlm_debug *osb_dlm_debug;
+ 
+ 	struct dentry *osb_debug_root;
+Index: dlmglue.c
+===================================================================
+--- dlmglue.c	(revision 139)
++++ dlmglue.c	(working copy)
+@@ -244,6 +244,10 @@ static struct ocfs2_lock_res_ops ocfs2_r
+ 	.flags		= 0,
+ };
+ 
++static struct ocfs2_lock_res_ops ocfs2_nfs_sync_lops = {
++	.flags		= 0,
++};
++
+ static struct ocfs2_lock_res_ops ocfs2_dentry_lops = {
+ 	.get_osb	= ocfs2_get_dentry_osb,
+ 	.post_unlock	= ocfs2_dentry_post_unlock,
+@@ -617,6 +621,17 @@ static void ocfs2_rename_lock_res_init(s
+ 				   &ocfs2_rename_lops, osb);
+ }
+ 
++static void ocfs2_nfs_sync_lock_res_init(struct ocfs2_lock_res *res,
++					 struct ocfs2_super *osb)
++{
++	/* nfs_sync lockres doesn't come from a slab so we call init
++	 * once on it manually.  */
++	ocfs2_lock_res_init_once(res);
++	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_NFS_SYNC, 0, 0, res->l_name);
++	ocfs2_lock_res_init_common(osb, res, OCFS2_LOCK_TYPE_NFS_SYNC,
++				   &ocfs2_nfs_sync_lops, osb);
++}
++
+ void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
+ 			      struct ocfs2_file_private *fp)
+ {
+@@ -2412,6 +2427,33 @@ void ocfs2_rename_unlock(struct ocfs2_su
+ 		ocfs2_cluster_unlock(osb, lockres, DLM_LOCK_EX);
+ }
+ 
++int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex)
++{
++	int status;
++	struct ocfs2_lock_res *lockres = &osb->osb_nfs_sync_lockres;
++
++	if (ocfs2_is_hard_readonly(osb))
++		return -EROFS;
++
++	if (ocfs2_mount_local(osb))
++		return 0;
++
++	status = ocfs2_cluster_lock(osb, lockres, ex?LKM_EXMODE:LKM_PRMODE, 0,
++				    0);
++	if (status < 0)
++		mlog(ML_ERROR, "lock on nfs sync lock failed %d\n", status);
++
++	return status;
++}
++
++void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex)
++{
++	struct ocfs2_lock_res *lockres = &osb->osb_nfs_sync_lockres;
++
++	if (!ocfs2_mount_local(osb))
++		ocfs2_cluster_unlock(osb, lockres, ex?LKM_EXMODE:LKM_PRMODE);
++}
++
+ int ocfs2_dentry_lock(struct dentry *dentry, int ex)
+ {
+ 	int ret;
+@@ -2793,6 +2835,7 @@ int ocfs2_dlm_init(struct ocfs2_super *o
+ local:
+ 	ocfs2_super_lock_res_init(&osb->osb_super_lockres, osb);
+ 	ocfs2_rename_lock_res_init(&osb->osb_rename_lockres, osb);
++	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
+ 
+ 	osb->cconn = conn;
+ 
+@@ -2828,6 +2871,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_sup
+ 
+ 	ocfs2_lock_res_free(&osb->osb_super_lockres);
+ 	ocfs2_lock_res_free(&osb->osb_rename_lockres);
++	ocfs2_lock_res_free(&osb->osb_nfs_sync_lockres);
+ 
+ 	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
+ 	osb->cconn = NULL;
+@@ -3010,6 +3054,7 @@ static void ocfs2_drop_osb_locks(struct 
+ {
+ 	ocfs2_simple_drop_lockres(osb, &osb->osb_super_lockres);
+ 	ocfs2_simple_drop_lockres(osb, &osb->osb_rename_lockres);
++	ocfs2_simple_drop_lockres(osb, &osb->osb_nfs_sync_lockres);
+ }
+ 
+ int ocfs2_drop_inode_locks(struct inode *inode)
