@@ -1,78 +1,59 @@
 From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Fri, 27 Feb 2009 18:00:54 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Patch to move ocfs2_slot_info to
-	slot_map.h
-In-Reply-To: <1235786454-17019-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1235786454-17019-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <1235786454-17019-2-git-send-email-srinivas.eeda@oracle.com>
+Date: Fri, 27 Feb 2009 18:01:24 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Patch to recover orphans from the slot
+	during mount
+Message-ID: <1235786484-17784-1-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch is required to access slot_info struct for a patch that recovers
-orphans from offline slots.
+Currently we only queue recovery during mount if the journal is dirty.
+
+If the last node holding orphans in other node's orphan directory dies and
+is the first one to mount then it only recovers its orphan directory which
+leaves the orphans in other nodes slots. Since the other nodes journals are
+clean they will not queue to recover their orphan directory.
+
+This patch queues to recover orphans when the slot is next used.
 
 Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 ---
- fs/ocfs2/slot_map.c |   17 -----------------
- fs/ocfs2/slot_map.h |   15 +++++++++++++++
- 2 files changed, 15 insertions(+), 17 deletions(-)
+ fs/ocfs2/journal.c |   21 ++++++++-------------
+ 1 files changed, 8 insertions(+), 13 deletions(-)
 
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index 40661e7..9f82a5f 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -42,23 +42,6 @@
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 57d7d25..71b2ea4 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -1181,19 +1181,14 @@ void ocfs2_complete_mount_recovery(struct ocfs2_super *osb)
+ {
+ 	struct ocfs2_journal *journal = osb->journal;
  
- #include "buffer_head_io.h"
- 
+-	if (osb->dirty) {
+-		/* No need to queue up our truncate_log as regular
+-		 * cleanup will catch that. */
+-		ocfs2_queue_recovery_completion(journal,
+-						osb->slot_num,
+-						osb->local_alloc_copy,
+-						NULL,
+-						NULL);
+-		ocfs2_schedule_truncate_log_flush(osb, 0);
 -
--struct ocfs2_slot {
--	int sl_valid;
--	unsigned int sl_node_num;
--};
--
--struct ocfs2_slot_info {
--	int si_extended;
--	int si_slots_per_block;
--	struct inode *si_inode;
--	unsigned int si_blocks;
--	struct buffer_head **si_bh;
--	unsigned int si_num_slots;
--	struct ocfs2_slot *si_slots;
--};
--
--
- static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
- 				    unsigned int node_num);
- 
-diff --git a/fs/ocfs2/slot_map.h b/fs/ocfs2/slot_map.h
-index 601c95f..12afe24 100644
---- a/fs/ocfs2/slot_map.h
-+++ b/fs/ocfs2/slot_map.h
-@@ -27,6 +27,21 @@
- #ifndef SLOTMAP_H
- #define SLOTMAP_H
- 
-+struct ocfs2_slot {
-+	int sl_valid;
-+	unsigned int sl_node_num;
-+};
+-		osb->local_alloc_copy = NULL;
+-		osb->dirty = 0;
+-	}
++	/* No need to queue up our truncate_log as regular cleanup will
++	 * catch that. */
++	ocfs2_queue_recovery_completion(journal, osb->slot_num,
++					osb->local_alloc_copy, NULL, NULL);
++	ocfs2_schedule_truncate_log_flush(osb, 0);
 +
-+struct ocfs2_slot_info {
-+	int si_extended;
-+	int si_slots_per_block;
-+	struct inode *si_inode;
-+	unsigned int si_blocks;
-+	struct buffer_head **si_bh;
-+	unsigned int si_num_slots;
-+	struct ocfs2_slot *si_slots;
-+};
-+
- int ocfs2_init_slot_info(struct ocfs2_super *osb);
- void ocfs2_free_slot_info(struct ocfs2_super *osb);
++	osb->local_alloc_copy = NULL;
++	osb->dirty = 0;
+ }
  
+ void ocfs2_complete_quota_recovery(struct ocfs2_super *osb)
 -- 
 1.5.6.5
