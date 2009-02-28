@@ -1,80 +1,78 @@
 From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Fri, 27 Feb 2009 18:02:06 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Patch to recover orphans in offline slots
-	during recovery.
-Message-ID: <1235786526-17868-1-git-send-email-srinivas.eeda@oracle.com>
+Date: Fri, 27 Feb 2009 18:00:54 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Patch to move ocfs2_slot_info to
+	slot_map.h
+In-Reply-To: <1235786454-17019-1-git-send-email-srinivas.eeda@oracle.com>
+References: <1235786454-17019-1-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <1235786454-17019-2-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In the current recovery procedure, recovering node recovers orphans from the
-slot it is holding and the slots that dead nodes were holding. Other online
-nodes recover orphans from their slots. But orphans in offline slots are left
-un-recovered.
-
-This patch queues recovery_completion for offline slots.
+This patch is required to access slot_info struct for a patch that recovers
+orphans from offline slots.
 
 Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 ---
- fs/ocfs2/journal.c |   21 ++++++++++++++++-----
- 1 files changed, 16 insertions(+), 5 deletions(-)
+ fs/ocfs2/slot_map.c |   17 -----------------
+ fs/ocfs2/slot_map.h |   15 +++++++++++++++
+ 2 files changed, 15 insertions(+), 17 deletions(-)
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 71b2ea4..5434eb4 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -1209,8 +1209,9 @@ static int __ocfs2_recovery_thread(void *arg)
- 	struct ocfs2_super *osb = arg;
- 	struct ocfs2_recovery_map *rm = osb->recovery_map;
- 	int *rm_quota = NULL;
--	int rm_quota_used = 0, i;
-+	int rm_quota_used = 0, i, saveslots = 1;
- 	struct ocfs2_quota_recovery *qrec;
-+	int slot_arr[OCFS2_MAX_SLOTS];
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index 40661e7..9f82a5f 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -42,23 +42,6 @@
  
- 	mlog_entry_void();
+ #include "buffer_head_io.h"
  
-@@ -1224,6 +1225,7 @@ static int __ocfs2_recovery_thread(void *arg)
- 		status = -ENOMEM;
- 		goto bail;
- 	}
+-
+-struct ocfs2_slot {
+-	int sl_valid;
+-	unsigned int sl_node_num;
+-};
+-
+-struct ocfs2_slot_info {
+-	int si_extended;
+-	int si_slots_per_block;
+-	struct inode *si_inode;
+-	unsigned int si_blocks;
+-	struct buffer_head **si_bh;
+-	unsigned int si_num_slots;
+-	struct ocfs2_slot *si_slots;
+-};
+-
+-
+ static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
+ 				    unsigned int node_num);
+ 
+diff --git a/fs/ocfs2/slot_map.h b/fs/ocfs2/slot_map.h
+index 601c95f..12afe24 100644
+--- a/fs/ocfs2/slot_map.h
++++ b/fs/ocfs2/slot_map.h
+@@ -27,6 +27,21 @@
+ #ifndef SLOTMAP_H
+ #define SLOTMAP_H
+ 
++struct ocfs2_slot {
++	int sl_valid;
++	unsigned int sl_node_num;
++};
 +
- restart:
- 	status = ocfs2_super_lock(osb, 1);
- 	if (status < 0) {
-@@ -1231,6 +1233,13 @@ restart:
- 		goto bail;
- 	}
- 
-+	/* save slots status so we can recover offline slots */
-+	if (saveslots) {
-+		saveslots = 0;
-+		for (i = 0; i < osb->slot_info->si_num_slots; i++)
-+			slot_arr[i] = osb->slot_info->si_slots[i].sl_valid;
-+	}
++struct ocfs2_slot_info {
++	int si_extended;
++	int si_slots_per_block;
++	struct inode *si_inode;
++	unsigned int si_blocks;
++	struct buffer_head **si_bh;
++	unsigned int si_num_slots;
++	struct ocfs2_slot *si_slots;
++};
 +
- 	spin_lock(&osb->osb_lock);
- 	while (rm->rm_used) {
- 		/* It's always safe to remove entry zero, as we won't
-@@ -1296,11 +1305,13 @@ skip_recovery:
+ int ocfs2_init_slot_info(struct ocfs2_super *osb);
+ void ocfs2_free_slot_info(struct ocfs2_super *osb);
  
- 	ocfs2_super_unlock(osb, 1);
- 
--	/* We always run recovery on our own orphan dir - the dead
--	 * node(s) may have disallowd a previos inode delete. Re-processing
-+	/* We always run recovery on our own and offline orphan slots - the dead
-+	 * node(s) may have disallowed a previous inode delete. Re-processing
- 	 * is therefore required. */
--	ocfs2_queue_recovery_completion(osb->journal, osb->slot_num, NULL,
--					NULL, NULL);
-+	for (i = 0; i < osb->slot_info->si_num_slots; i++)
-+		if ((!slot_arr[i]) || osb->slot_num == i)
-+			ocfs2_queue_recovery_completion(osb->journal, i,
-+							NULL, NULL, NULL);
- 
- bail:
- 	mutex_lock(&osb->recovery_lock);
 -- 
 1.5.6.5
