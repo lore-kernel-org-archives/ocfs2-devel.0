@@ -1,55 +1,34 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 27 Feb 2009 18:22:36 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V5)
-In-Reply-To: <200902271234.n1RCYbZ2022526@rgminet15.oracle.com>
-References: <200902271234.n1RCYbZ2022526@rgminet15.oracle.com>
-Message-ID: <20090228022236.GK10695@mail.oracle.com>
+Date: Fri, 27 Feb 2009 18:31:01 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Patch to move ocfs2_slot_info
+	to	slot_map.h
+In-Reply-To: <1235786454-17019-2-git-send-email-srinivas.eeda@oracle.com>
+References: <1235786454-17019-1-git-send-email-srinivas.eeda@oracle.com>
+	<1235786454-17019-2-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <20090228023101.GL10695@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Feb 27, 2009 at 08:33:28PM +0800, wengang wang wrote:
-> changes from v4:
-> 1, let suballoc lock covers the checking of the group.
-> 
-> 2, add/correct some log messages.
-> 
-> 3, use ocfs2_read_group_descriptor() instead of diry reading the group.
-> 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+On Fri, Feb 27, 2009 at 06:00:54PM -0800, Srinivas Eeda wrote:
+> This patch is required to access slot_info struct for a patch that recovers
+> orphans from offline slots.
 
-Almost there!
-
-> +	bg_blkno = ocfs2_which_suballoc_group(blkno, bit);
-> +	status = ocfs2_read_group_descriptor(suballoc, alloc_fe, bg_blkno,
-> +					     &group_bh);
-> +	if (status < 0) {
-> +		mlog(ML_ERROR, "read group %llu failed %d\n", bg_blkno, status);
-> +		goto bail;
-> +	}
-> +
-> +	status = ocfs2_check_group_descriptor(osb->sb, alloc_fe, group_bh);
-> +	if (status < 0) {
-> +		mlog(ML_ERROR, "check group %llu faild %d\n", bg_blkno, status);
-> +		goto bail;
-> +	}
-
-	The call to ocfs2_read_group_descriptor() already does the same
-checkin as ocfs2_check_group_descriptor(), so you don't need to call
-ocfs2_check_group_descriptor().  
-	Other than that, I think this patch is done!  Do you have a test
-to test it?
+	Looking at your later code, it really looks like you need a set
+of accessor functions.  There's no reason to expose slot_info in the
+header.
 
 Joel
 
 -- 
 
- One look at the From:
- understanding has blossomed
- .procmailrc grows
-	- Alexander Viro
+"You must remember this:
+ A kiss is just a kiss,
+ A sigh is just a sigh.
+ The fundamental rules apply
+ As time goes by."
 
 Joel Becker
 Principal Software Developer
