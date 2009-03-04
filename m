@@ -1,31 +1,46 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Wed, 04 Mar 2009 11:18:19 +0800
-Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: two bug fixes about xattr and
-	inline-data
-Message-ID: <49ADF2FB.6060503@oracle.com>
+Date: Wed,  4 Mar 2009 11:21:38 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix check condition of max inline
+	data
+In-Reply-To: <49ADF2FB.6060503@oracle.com>
+References: <49ADF2FB.6060503@oracle.com>
+Message-ID: <1236136898-3999-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark and Joel,
+We should consider the inline xattr when
+we try to write inline data.
 
-I found two serious bugs about xattr and inline-data.
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+---
+ fs/ocfs2/aops.c |    5 ++++-
+ 1 files changed, 4 insertions(+), 1 deletions(-)
 
-the first bug:
-in ocfs2_mknod(), we check and found the ACL or security xattr entry 
-could be set into inode in ocfs2_calc_xattr_init(), then don't reserve 
-block for them. But in ocfs2_mknod_locked(), if we found ocfs2 support 
-inline-data, then set id_count with the max_inline_data. After that, we 
-set acl/security xattr entry in ocfs2_init_acl() or 
-ocfs2_init_security_set(), but in there we found inode is full, then 
-panic at ocfs2_claim_metadata in ocfs2_xattr_block_set.
-
-the second bug:
-we don't check inline xattr in ocfs2_try_to_write_inline_data(), so the 
-inline data may overwrite the xattr entries which have already in inode.
-
-
-thanks,
-tiger
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index a067a6c..dc6d734 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1555,6 +1555,7 @@ static int ocfs2_try_to_write_inline_data(struct address_space *mapping,
+ 	int ret, written = 0;
+ 	loff_t end = pos + len;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
++	struct ocfs2_dinode *di = NULL;
+ 
+ 	mlog(0, "Inode %llu, write of %u bytes at off %llu. features: 0x%x\n",
+ 	     (unsigned long long)oi->ip_blkno, len, (unsigned long long)pos,
+@@ -1587,7 +1588,9 @@ static int ocfs2_try_to_write_inline_data(struct address_space *mapping,
+ 	/*
+ 	 * Check whether the write can fit.
+ 	 */
+-	if (mmap_page || end > ocfs2_max_inline_data(inode->i_sb))
++	di = (struct ocfs2_dinode *)wc->w_di_bh->b_data;
++	if (mmap_page ||
++	    end > ocfs2_max_inline_data_with_xattr(inode->i_sb, di))
+ 		return 0;
+ 
+ do_inline_write:
+-- 
+1.5.4.1
