@@ -1,49 +1,102 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Sat, 28 Mar 2009 22:54:39 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: 64-bit inode number for
-	getattr() instead of 32-bit value
-In-Reply-To: <200903270708.n2R78IMi021731@acsinet13.oracle.com>
-References: <200903270708.n2R78IMi021731@acsinet13.oracle.com>
-Message-ID: <44766EC3-898E-4EAE-970D-41B17CF06437@oracle.com>
+From: Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp>
+Date: Thu, 05 Mar 2009 08:25:50 -0000
+Subject: [Ocfs2-devel] [PATCH] OCFS2: Pagecache usage optimization on OCFS2
+Message-ID: <6.0.0.20.2.20090305172216.06b83408@172.19.0.2>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Last I checked one could not have 64 bit inode numbers on 32 bit  
-systems. Meaning this patch is not required.
+Hi.
 
-On Mar 27, 2009, at 12:06 AM, wengang wang <wen.gang.wang@oracle.com>  
-wrote:
+I introduced "is_partially_uptodate" aops for OCFS2.
 
-> ocfs2_getattr() uses generic_fillattr() to set inode number(and other
-> attributes). generic_fillattr() inturn fills inode number with inode- 
-> >i_ino
-> which is a 32-bit(unsigned long) value.
->
-> if the ocfs2 partition is huge enough, that may become an incorrect
-> value.
-> the fix is filling it again after generic_fillattr() with  
-> ip_blkno(u64).
->
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> --
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index a5887df..ffe7d34 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -1076,6 +1076,8 @@ int ocfs2_getattr(struct vfsmount *mnt,
->    /* We set the blksize from the cluster size for performance */
->    stat->blksize = osb->s_clustersize;
->
-> +    stat->ino = OCFS2_I(inode)->ip_blkno;
-> +
-> bail:
->    mlog_exit(err);
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+A page can have multiple buffers and even if a page is not uptodate, some buffers 
+can be uptodate on pagesize != blocksize environment.
+This aops checks that all buffers which correspond to a part of a file 
+that we want to read are uptodate. If so, we do not have to issue actual 
+read IO to HDD even if a page is not uptodate because the portion we 
+want to read are uptodate. 
+"block_is_partially_uptodate" function is already used by ext2/3/4.
+With the following patch random read/write mixed workloads or random read after 
+random write workloads can be optimized and we can get performance improvement.
+
+I did a performance test using the sysbench.
+
+#sysbench --num-threads=16 --max-requests=150000 --test=fileio --file-num=1 
+--file-block-size=8K --file-total-size=1G --file-test-mode=rndrw 
+--file-fsync-freq=0 --file-rw-ratio=0.5  run
+
+-2.6.29-rc7
+Test execution summary:
+    total time:                          82.3114s
+    total number of events:              150000
+    total time taken by event execution: 989.1867
+    per-request statistics:
+         min:                            0.0000s
+         avg:                            0.0066s
+         max:                            0.4400s
+         approx.  95 percentile:         0.0417s
+
+Threads fairness:
+    events (avg/stddev):           9375.0000/257.65
+    execution time (avg/stddev):   61.8242/0.01
+
+
+-2.6.29-rc7-patched
+Test execution summary:
+    total time:                          71.9416s
+    total number of events:              150000
+    total time taken by event execution: 845.7592
+    per-request statistics:
+         min:                            0.0000s
+         avg:                            0.0056s
+         max:                            0.5892s
+         approx.  95 percentile:         0.0374s
+
+Threads fairness:
+    events (avg/stddev):           9375.0000/263.46
+    execution time (avg/stddev):   52.8600/0.01
+
+
+arch: ia64
+pagesize: 16k
+blocksize: 4k
+
+Please merge following patch.
+Thanks.
+
+Signed-off-by: Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp>
+
+diff -Nrup linux-2.6.29-rc7.org/fs/ocfs2/aops.c linux-2.6.29-rc7/fs/ocfs2/aops.c
+--- linux-2.6.29-rc7.org/fs/ocfs2/aops.c	2009-03-05 13:46:07.000000000 +0900
++++ linux-2.6.29-rc7/fs/ocfs2/aops.c	2009-03-05 13:50:59.000000000 +0900
+@@ -1953,15 +1953,16 @@ static int ocfs2_write_end(struct file *
+ }
+ 
+ const struct address_space_operations ocfs2_aops = {
+-	.readpage	= ocfs2_readpage,
+-	.readpages	= ocfs2_readpages,
+-	.writepage	= ocfs2_writepage,
+-	.write_begin	= ocfs2_write_begin,
+-	.write_end	= ocfs2_write_end,
+-	.bmap		= ocfs2_bmap,
+-	.sync_page	= block_sync_page,
+-	.direct_IO	= ocfs2_direct_IO,
+-	.invalidatepage	= ocfs2_invalidatepage,
+-	.releasepage	= ocfs2_releasepage,
+-	.migratepage	= buffer_migrate_page,
++	.readpage		= ocfs2_readpage,
++	.readpages		= ocfs2_readpages,
++	.writepage		= ocfs2_writepage,
++	.write_begin		= ocfs2_write_begin,
++	.write_end		= ocfs2_write_end,
++	.bmap			= ocfs2_bmap,
++	.sync_page		= block_sync_page,
++	.direct_IO		= ocfs2_direct_IO,
++	.invalidatepage		= ocfs2_invalidatepage,
++	.releasepage		= ocfs2_releasepage,
++	.migratepage		= buffer_migrate_page,
++	.is_partially_uptodate	= block_is_partially_uptodate,
+ };
