@@ -1,106 +1,37 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 5 Mar 2009 15:28:34 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Patch to recover orphans in
-	offline	slots during recovery and mount
-In-Reply-To: <1236246813-16263-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1236246813-16263-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20090305232833.GA27682@mail.oracle.com>
+Date: Thu, 5 Mar 2009 15:30:27 -0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: reserve xattr block for
+	new	directory with inline data
+In-Reply-To: <49AF443A.4040305@oracle.com>
+References: <49AF40A9.8050601@oracle.com>
+	<1236222358-10447-1-git-send-email-tiger.yang@oracle.com>
+	<49AF443A.4040305@oracle.com>
+Message-ID: <20090305233027.GB27682@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 05, 2009 at 01:53:33AM -0800, Srinivas Eeda wrote:
-> During recovery, a node recovers orphans in it's slot and the dead node(s). But
-> if the dead nodes were holding orphans in offline slots, they will be left
-> unrecovered.
-> 
-> If the dead node is the last one to die and is holding orphans in other slots
-> and is the first one to mount, then it only recovers it's own slot, which
-> leaves orphans in offline slots.
-> 
-> This patch queues complete_recovery to clean orphans for all offline slots
-> during mount and node recovery.
+On Thu, Mar 05, 2009 at 11:17:14AM +0800, Tao Ma wrote:
+> Hi tiger,
+> 	I guess Joel's idea is that you add comment above the code. Not in the 
+> commit log. ;)
 
-	A couple comments.
-
-> +/*
-> + * This replay_map is to track online/offline slots, so we could recover
-> + * offline slots during recovery and mount
-> + */
-> +
-> +enum ocfs2_replay_state {
-> +	REPLAY_UNNEEDED,
-> +	REPLAY_NEEDED,
-> +	REPLAY_DONE
-> +};
-
-	Let's define the states in comments on the enum.
-
-	/* Replay is not needed, so ignore this map */
-	/* Replay is needed, queue the slots specified in rm_replay_slots */
-	/* Replay was already queued */
-
-> +void ocfs2_replay_map_set_state(struct ocfs2_super *osb, int state)
-> +{
-> +	if (!osb->replay_map)
-> +		return;
-
-	/* If we've already queued the replay, we don't have any more to do */
-	if (osb->replay_map->rm_state == REPLAY_DONE)
-		return;
-
-> +	osb->replay_map->rm_state = state;
-> +}
-> +
-> +int ocfs2_compute_replay_slots(struct ocfs2_super *osb)
-> +{
-> +	struct ocfs2_replay_map *replay_map;
-> +	int i, node_num;
-> +
-> +	replay_map = osb->replay_map;
-> +
-> +	if (!replay_map)
-> +		replay_map = kzalloc(sizeof(struct ocfs2_replay_map) +
-> +				     (osb->max_slots * sizeof(char)),
-> +				     GFP_KERNEL);
-
-	We don't want to recompute the replay map.  If osb->replay_map
-is set, just return out of this function, like you did in the previous
-patch.
-
-> +
-> +	if (!replay_map) {
-> +		mlog_errno(-ENOMEM);
-> +		return -ENOMEM;
-> +	}
-> +
-> +	spin_lock(&osb->osb_lock);
-> +
-> +	replay_map->rm_slots = osb->max_slots;
-> +	replay_map->rm_state = REPLAY_UNNEEDED;
-> +
-> +	/* set rm_replay_slots for offline slot(s) */
-> +	for (i = 0; i < replay_map->rm_slots; i++) {
-> +		if (ocfs2_slot_to_node_num_locked(osb, i, &node_num) == -ENOENT)
-> +			replay_map->rm_replay_slots[i] = 1;
-> +	}
-> +
-> +	osb->replay_map = replay_map;
-> +	spin_unlock(&osb->osb_lock);
-> +	return 0;
-> +}
-
-	Otherwise, the rest looks good.
+	The commit log is good, but the comment should also be added to
+the code.  Tao is right that's what I was asking for :-)  You'll note
+that the comment above the if() describes the cases in which we skip
+inline xattrs.  You've added another reason to skip inline xattrs, so
+that comment should include your reason.
+	Literally, cut and past your commit log into that comment block.
 
 Joel
 
 -- 
 
-"What do you take me for, an idiot?"  
-        - General Charles de Gaulle, when a journalist asked him
-          if he was happy.
+"The question of whether computers can think is just like the question
+ of whether submarines can swim."
+	- Edsger W. Dijkstra
 
 Joel Becker
 Principal Software Developer
