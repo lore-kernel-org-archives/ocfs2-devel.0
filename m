@@ -1,14 +1,15 @@
 From: wengang wang <wen.gang.wang@oracle.com>
-Date: Fri,  6 Mar 2009 21:29:10 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V6.3)
-Message-ID: <200903061330.n26DUHHU001770@rgminet15.oracle.com>
+Date: Fri,  6 Mar 2009 21:29:56 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (for
+	1.4git)
+Message-ID: <200903061331.n26DVFIX003385@acsinet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-#against V6.2, add indentation.
+Back porting from mainline.
 
 For nfs exporting, ocfs2_get_dentry() returns the dentry for fh.
 ocfs2_get_dentry() may read from disk(when inode not in memory) without
@@ -35,21 +36,21 @@ that mutliple ocfs2_delete_inode() can run concurrently in normal case.
 
 Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 --
- dlmglue.c      |   46 +++++++++++++++++
+ dlmglue.c      |   45 ++++++++++++++++
  dlmglue.h      |    2
- export.c       |   74 ++++++++++++++++++++++++---
- inode.c        |   24 ++++++++
+ export.c       |   79 +++++++++++++++++++++++++---
+ inode.c        |   25 ++++++++-
  inode.h        |    1
  ocfs2.h        |    1
  ocfs2_lockid.h |    4 +
- suballoc.c     |  153 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ suballoc.c     |  157 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  suballoc.h     |    2
- 9 files changed, 299 insertions(+), 8 deletions(-)
+ 9 files changed, 305 insertions(+), 11 deletions(-)
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 206a237..740b19b 100644
+index 7eceb0a..5327bb9 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
-@@ -244,6 +244,10 @@ static struct ocfs2_lock_res_ops ocfs2_rename_lops = {
+@@ -246,6 +246,10 @@ static struct ocfs2_lock_res_ops ocfs2_rename_lops = {
  	.flags		= 0,
  };
  
@@ -60,7 +61,7 @@ index 206a237..740b19b 100644
  static struct ocfs2_lock_res_ops ocfs2_dentry_lops = {
  	.get_osb	= ocfs2_get_dentry_osb,
  	.post_unlock	= ocfs2_dentry_post_unlock,
-@@ -617,6 +621,17 @@ static void ocfs2_rename_lock_res_init(struct ocfs2_lock_res *res,
+@@ -624,6 +628,17 @@ static void ocfs2_rename_lock_res_init(struct ocfs2_lock_res *res,
  				   &ocfs2_rename_lops, osb);
  }
  
@@ -78,8 +79,8 @@ index 206a237..740b19b 100644
  void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
  			      struct ocfs2_file_private *fp)
  {
-@@ -2412,6 +2427,34 @@ void ocfs2_rename_unlock(struct ocfs2_super *osb)
- 		ocfs2_cluster_unlock(osb, lockres, DLM_LOCK_EX);
+@@ -2290,6 +2305,33 @@ void ocfs2_rename_unlock(struct ocfs2_super *osb)
+ 		ocfs2_cluster_unlock(osb, lockres, LKM_EXMODE);
  }
  
 +int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex)
@@ -97,7 +98,6 @@ index 206a237..740b19b 100644
 +				    0, 0);
 +	if (status < 0)
 +		mlog(ML_ERROR, "lock on nfs sync lock failed %d\n", status);
-+
 +	return status;
 +}
 +
@@ -113,23 +113,23 @@ index 206a237..740b19b 100644
  int ocfs2_dentry_lock(struct dentry *dentry, int ex)
  {
  	int ret;
-@@ -2793,6 +2836,7 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
+@@ -2668,6 +2710,7 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
  local:
  	ocfs2_super_lock_res_init(&osb->osb_super_lockres, osb);
  	ocfs2_rename_lock_res_init(&osb->osb_rename_lockres, osb);
 +	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
  
- 	osb->cconn = conn;
+ 	osb->dlm = dlm;
  
-@@ -2828,6 +2872,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
+@@ -2698,6 +2741,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb)
  
  	ocfs2_lock_res_free(&osb->osb_super_lockres);
  	ocfs2_lock_res_free(&osb->osb_rename_lockres);
 +	ocfs2_lock_res_free(&osb->osb_nfs_sync_lockres);
  
- 	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
- 	osb->cconn = NULL;
-@@ -3010,6 +3055,7 @@ static void ocfs2_drop_osb_locks(struct ocfs2_super *osb)
+ 	dlm_unregister_domain(osb->dlm);
+ 	osb->dlm = NULL;
+@@ -2892,6 +2936,7 @@ static void ocfs2_drop_osb_locks(struct ocfs2_super *osb)
  {
  	ocfs2_simple_drop_lockres(osb, &osb->osb_super_lockres);
  	ocfs2_simple_drop_lockres(osb, &osb->osb_rename_lockres);
@@ -138,10 +138,10 @@ index 206a237..740b19b 100644
  
  int ocfs2_drop_inode_locks(struct inode *inode)
 diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-index 3f8d998..e1fd572 100644
+index e3cf902..af69294 100644
 --- a/fs/ocfs2/dlmglue.h
 +++ b/fs/ocfs2/dlmglue.h
-@@ -115,6 +115,8 @@ void ocfs2_super_unlock(struct ocfs2_super *osb,
+@@ -99,6 +99,8 @@ void ocfs2_super_unlock(struct ocfs2_super *osb,
  			int ex);
  int ocfs2_rename_lock(struct ocfs2_super *osb);
  void ocfs2_rename_unlock(struct ocfs2_super *osb);
@@ -151,25 +151,26 @@ index 3f8d998..e1fd572 100644
  void ocfs2_dentry_unlock(struct dentry *dentry, int ex);
  int ocfs2_file_lock(struct file *file, int ex, int trylock);
 diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
-index 2f27b33..e28ff06 100644
+index 649f3c8..e2db2a0 100644
 --- a/fs/ocfs2/export.c
 +++ b/fs/ocfs2/export.c
-@@ -38,6 +38,7 @@
+@@ -38,6 +38,8 @@
  #include "inode.h"
  
  #include "buffer_head_io.h"
++#include "sysfile.h"
 +#include "suballoc.h"
  
  struct ocfs2_inode_handle
  {
-@@ -49,29 +50,88 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb,
- 		struct ocfs2_inode_handle *handle)
+@@ -49,34 +51,91 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb, void *vobjp)
  {
+ 	struct ocfs2_inode_handle *handle = vobjp;
  	struct inode *inode;
 +	struct ocfs2_super *osb = OCFS2_SB(sb);
 +	u64 blkno = handle->ih_blkno;
-+	int status, set;
  	struct dentry *result;
++	int status, set;
  
  	mlog_entry("(0x%p, 0x%p)\n", sb, handle);
  
@@ -248,21 +249,27 @@ index 2f27b33..e28ff06 100644
 +		goto bail;
  	}
  
- 	result = d_obtain_alias(inode);
- 	if (!IS_ERR(result))
- 		result->d_op = &ocfs2_dentry_ops;
-+	else
-+		mlog_errno(PTR_ERR(result));
+ 	result = d_alloc_anon(inode);
+-
+ 	if (!result) {
+ 		iput(inode);
+-		mlog_errno(-ENOMEM);
+-		return ERR_PTR(-ENOMEM);
++		result = ERR_PTR(-ENOMEM);
++		goto bail;
+ 	}
++
+ 	result->d_op = &ocfs2_dentry_ops;
  
 +bail:
  	mlog_exit_ptr(result);
  	return result;
  }
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 229e707..84f7a60 100644
+index ee6bf13..6235bc7 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -112,6 +112,17 @@ void ocfs2_get_inode_flags(struct ocfs2_inode_info *oi)
+@@ -111,6 +111,18 @@ void ocfs2_get_inode_flags(struct ocfs2_inode_info *oi)
  		oi->ip_attr |= OCFS2_DIRSYNC_FL;
  }
  
@@ -277,10 +284,11 @@ index 229e707..84f7a60 100644
 +
 +	return ilookup5(sb, blkno, ocfs2_find_actor, &args);
 +}
++
  struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
  			 int sysfile_type)
  {
-@@ -949,6 +960,13 @@ void ocfs2_delete_inode(struct inode *inode)
+@@ -933,6 +945,13 @@ void ocfs2_delete_inode(struct inode *inode)
  		goto bail;
  	}
  
@@ -294,7 +302,7 @@ index 229e707..84f7a60 100644
  	/* Lock down the inode. This gives us an up to date view of
  	 * it's metadata (for verification), and allows us to
  	 * serialize delete_inode on multiple nodes.
-@@ -962,7 +980,7 @@ void ocfs2_delete_inode(struct inode *inode)
+@@ -946,7 +965,7 @@ void ocfs2_delete_inode(struct inode *inode)
  		if (status != -ENOENT)
  			mlog_errno(status);
  		ocfs2_cleanup_delete_inode(inode, 0);
@@ -303,7 +311,7 @@ index 229e707..84f7a60 100644
  	}
  
  	/* Query the cluster. This will be the final decision made
-@@ -1005,6 +1023,10 @@ void ocfs2_delete_inode(struct inode *inode)
+@@ -989,6 +1008,10 @@ void ocfs2_delete_inode(struct inode *inode)
  bail_unlock_inode:
  	ocfs2_inode_unlock(inode, 1);
  	brelse(di_bh);
@@ -315,10 +323,10 @@ index 229e707..84f7a60 100644
  	status = sigprocmask(SIG_SETMASK, &oldset, NULL);
  	if (status < 0)
 diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index eb3c302..1c543f0 100644
+index 01437ca..6076cd0 100644
 --- a/fs/ocfs2/inode.h
 +++ b/fs/ocfs2/inode.h
-@@ -124,6 +124,7 @@ void ocfs2_drop_inode(struct inode *inode);
+@@ -126,6 +126,7 @@ void ocfs2_drop_inode(struct inode *inode);
  /* Flags for ocfs2_iget() */
  #define OCFS2_FI_FLAG_SYSFILE		0x1
  #define OCFS2_FI_FLAG_ORPHAN_RECOVERY	0x2
@@ -327,32 +335,32 @@ index eb3c302..1c543f0 100644
  			 int sysfile_type);
  int ocfs2_inode_init_private(struct inode *inode);
 diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 0773841..8e7b15d 100644
+index 83a30a0..7d0929a 100644
 --- a/fs/ocfs2/ocfs2.h
 +++ b/fs/ocfs2/ocfs2.h
-@@ -305,6 +305,7 @@ struct ocfs2_super
- 	struct ocfs2_cluster_connection *cconn;
+@@ -288,6 +288,7 @@ struct ocfs2_super
+ 	struct dlm_ctxt *dlm;
  	struct ocfs2_lock_res osb_super_lockres;
  	struct ocfs2_lock_res osb_rename_lockres;
 +	struct ocfs2_lock_res osb_nfs_sync_lockres;
+ 	struct dlm_eviction_cb osb_eviction_cb;
  	struct ocfs2_dlm_debug *osb_dlm_debug;
- 
- 	struct dentry *osb_debug_root;
+ 	struct dlm_protocol_version osb_locking_proto;
 diff --git a/fs/ocfs2/ocfs2_lockid.h b/fs/ocfs2/ocfs2_lockid.h
-index eb6f50c..a53ce87 100644
+index 86f3e37..690ac27 100644
 --- a/fs/ocfs2/ocfs2_lockid.h
 +++ b/fs/ocfs2/ocfs2_lockid.h
-@@ -47,6 +47,7 @@ enum ocfs2_lock_type {
+@@ -46,6 +46,7 @@ enum ocfs2_lock_type {
+ 	OCFS2_LOCK_TYPE_DENTRY,
  	OCFS2_LOCK_TYPE_OPEN,
  	OCFS2_LOCK_TYPE_FLOCK,
- 	OCFS2_LOCK_TYPE_QINFO,
 +	OCFS2_LOCK_TYPE_NFS_SYNC,
  	OCFS2_NUM_LOCK_TYPES
  };
  
-@@ -81,6 +82,9 @@ static inline char ocfs2_lock_type_char(enum ocfs2_lock_type type)
- 		case OCFS2_LOCK_TYPE_QINFO:
- 			c = 'Q';
+@@ -77,6 +78,9 @@ static inline char ocfs2_lock_type_char(enum ocfs2_lock_type type)
+ 		case OCFS2_LOCK_TYPE_FLOCK:
+ 			c = 'F';
  			break;
 +		case OCFS2_LOCK_TYPE_NFS_SYNC:
 +			c = 'Y';
@@ -361,12 +369,12 @@ index eb6f50c..a53ce87 100644
  			c = '\0';
  	}
 diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index a696286..b30533b 100644
+index 228bf1c..40ead64 100644
 --- a/fs/ocfs2/suballoc.c
 +++ b/fs/ocfs2/suballoc.c
-@@ -2116,3 +2116,156 @@ out:
- 
- 	return ret;
+@@ -1886,3 +1886,160 @@ static inline void ocfs2_debug_suballoc_inode(struct ocfs2_dinode *fe)
+ 		       (unsigned long long)fe->id2.i_chain.cl_recs[i].c_blkno);
+ 	}
  }
 +
 +/* reads(hit disk) the inode specified by blkno to get suballoc_slot
@@ -382,7 +390,7 @@ index a696286..b30533b 100644
 +	mlog_entry("blkno: %llu\n", blkno);
 +
 +	/* dirty read disk */
-+	status = ocfs2_read_blocks_sync(osb, blkno, 1, &inode_bh);
++	status = ocfs2_read_block(osb, blkno, &inode_bh, 0, NULL);
 +	if (status < 0) {
 +		mlog(ML_ERROR, "read block %llu failed %d\n", blkno, status);
 +		goto bail;
@@ -444,14 +452,18 @@ index a696286..b30533b 100644
 +	}
 +
 +	bg_blkno = ocfs2_which_suballoc_group(blkno, bit);
-+	status = ocfs2_read_group_descriptor(suballoc, alloc_fe, bg_blkno,
-+					     &group_bh);
++	status = ocfs2_read_block(osb, bg_blkno, &group_bh, OCFS2_BH_CACHED,
++				  suballoc);
 +	if (status < 0) {
 +		mlog(ML_ERROR, "read group %llu failed %d\n", bg_blkno, status);
 +		goto bail;
 +	}
 +
 +	group = (struct ocfs2_group_desc *) group_bh->b_data;
++	status = ocfs2_check_group_descriptor(osb->sb, alloc_fe, group);
++	if (status < 0)
++		goto bail;
++
 +	*res = ocfs2_test_bit(bit, (unsigned long *)group->bg_bitmap);
 +
 +bail:
@@ -522,13 +534,13 @@ index a696286..b30533b 100644
 +	return status;
 +}
 diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-index e3c13c7..62d1f94 100644
+index 40d51da..327256f 100644
 --- a/fs/ocfs2/suballoc.h
 +++ b/fs/ocfs2/suballoc.h
-@@ -186,4 +186,6 @@ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_extent_tree *et,
- 			  u32 clusters_to_add, u32 extents_to_split,
- 			  struct ocfs2_alloc_context **data_ac,
- 			  struct ocfs2_alloc_context **meta_ac);
+@@ -157,4 +157,6 @@ u64 ocfs2_which_cluster_group(struct inode *inode, u32 cluster);
+ int ocfs2_check_group_descriptor(struct super_block *sb,
+ 				 struct ocfs2_dinode *di,
+ 				 struct ocfs2_group_desc *gd);
 +
 +int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res);
  #endif /* _CHAINALLOC_H_ */
