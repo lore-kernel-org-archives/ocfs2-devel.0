@@ -1,34 +1,78 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 9 Mar 2009 23:45:19 -0700
-Subject: [Ocfs2-devel] OCFS2 Version for redhat
-	kernel	vmlinux-2.6.18-128.1.1.el5
-In-Reply-To: <84428344B3238B478CDC5E91637B2FE503C37D4E@EX01.zentrale.zv.fhg.de>
-References: <84428344B3238B478CDC5E91637B2FE503C37D4E@EX01.zentrale.zv.fhg.de>
-Message-ID: <20090310064519.GA9692@ca-server1.us.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 10 Mar 2009 07:49:33 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Use xs->bucket to set xattr value
+	outside.
+Message-ID: <1236642573-4073-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Mar 09, 2009 at 11:54:13AM +0100, ralf.buchhold at zv.fraunhofer.de wrote:
-> Hello together,
->  
-> is the ocfs2 (version 1.2) driver for redhat kernel
-> vmlinux-2.6.18-128.1.1.el5 available ?
+Tristan,
+	could you please run your xattr test against it?
 
-	It is now!  Sorry about the delay.
+xs->base used to be allocated a 4K size and all the contents in the
+bucket are copied to the it. So in ocfs2_xattr_bucket_set_value_outside,
+we are safe to use xs->base + offset. Now we use ocfs2_xattr_bucket to
+abstract xattr bucket and xs->base is initialized to the start of the
+bu_bhs[0]. So xs->base + offset will overflow when the value root is
+stored outside the first block.
 
-Joel
+Then why we can survive the xattr test by now? It is because we always
+read the bucket contiguously now and kernel mm allocate continguous
+memory for us. We are lucky, but we should fix it. So just get the
+right value root as other callers do.
 
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/xattr.c |   27 +++++++++++++++++++++------
+ 1 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index f1b9af1..503a1d7 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -4795,19 +4795,34 @@ static int ocfs2_xattr_bucket_set_value_outside(struct inode *inode,
+ 						char *val,
+ 						int value_len)
+ {
+-	int offset;
++	int ret, offset, block_off;
+ 	struct ocfs2_xattr_value_root *xv;
+ 	struct ocfs2_xattr_entry *xe = xs->here;
++	struct ocfs2_xattr_bucket *bucket = xs->bucket;
++	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
++	void *base;
+ 
+ 	BUG_ON(!xs->base || !xe || ocfs2_xattr_is_local(xe));
+ 
+-	offset = le16_to_cpu(xe->xe_name_offset) +
+-		 OCFS2_XATTR_SIZE(xe->xe_name_len);
++	ret = ocfs2_xattr_bucket_get_name_value(inode, xh,
++						xe - xh->xh_entries,
++						&block_off,
++						&offset);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
+ 
+-	xv = (struct ocfs2_xattr_value_root *)(xs->base + offset);
++	base = bucket_block(xs->bucket, block_off);
++	xv = (struct ocfs2_xattr_value_root *)(base + offset +
++		 OCFS2_XATTR_SIZE(xe->xe_name_len));
+ 
+-	return __ocfs2_xattr_set_value_outside(inode, handle,
+-					       xv, val, value_len);
++	ret = __ocfs2_xattr_set_value_outside(inode, handle,
++					      xv, val, value_len);
++	if (ret)
++		mlog_errno(ret);
++out:
++	return ret;
+ }
+ 
+ static int ocfs2_rm_xattr_cluster(struct inode *inode,
 -- 
-
-Life's Little Instruction Book #252
-
-	"Take good care of those you love."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.6.2.rc2.16.gf474c
