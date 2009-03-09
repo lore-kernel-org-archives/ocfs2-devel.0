@@ -1,27 +1,49 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon, 09 Mar 2009 18:48:35 +0800
-Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: two bug fixes about xattr and
- inline-data
-In-Reply-To: <49B4F1EB.4060601@oracle.com>
-References: <49ADF2FB.6060503@oracle.com>		<20090305023617.GA18729@mail.oracle.com>		<1236572226.6816.30.camel@tristan-laptop.cn.oracle.com>		<49B4A1B8.10806@oracle.com>		<1236575084.6816.35.camel@tristan-laptop.cn.oracle.com>		<49B4AC58.4090400@oracle.com>		<1236579270.6816.39.camel@tristan-laptop.cn.oracle.com>		<49B4B8B8.7030108@oracle.com>	<20090309064711.GB27610@mail.oracle.com>	<1236581684.6816.45.camel@tristan-laptop.cn.oracle.com>	<49B4BF02.3080100@oracle.com>	<49B4C41B.1060708@oracle.com>	<49B4F123.8070204@oracle.com>
-	<49B4F1EB.4060601@oracle.com>
-Message-ID: <49B4F403.5070907@oracle.com>
+From: ralf.buchhold at zv.fraunhofer.de <ralf.buchhold@zv.fraunhofer.de>
+Date: Mon, 9 Mar 2009 11:54:13 +0100
+Subject: [Ocfs2-devel] OCFS2 Version for redhat kernel
+	vmlinux-2.6.18-128.1.1.el5
+Message-ID: <84428344B3238B478CDC5E91637B2FE503C37D4E@EX01.zentrale.zv.fhg.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hello together,
+ 
+is the ocfs2 (version 1.2) driver for redhat kernel
+vmlinux-2.6.18-128.1.1.el5 available ?
+ 
 
 
-Wengang Wang wrote:
->> He runs the command "dd if=/dev/zero of=testfile bs=1 count=3641" which 
->> can not hit the bug2. But I found "dd if=/dev/zero of=testfile bs=3641 
->> count=1" will hit the bug2.
-> 
-> 3641, cool number!
-Hey, 3641 is the max_inline_size_with_xattr + 1 when bs = 4K. ;) So you 
-see, they create it intentionally.
+Many greetings from Munich
 
-Regards,
-Tao
+Ralf Buchhold
+SIGMA-Systemtechnik
+
+-----------------------------------------------
+Fraunhofer Gesellschaft e.V.
+Hansastra?e 27c
+80686 M?nchen
+Telefon: 089/1205-3421
+Telefax: 089/1205-77-3421
+E-Mail:  Ralf.Buchhold at zv.fraunhofer.de
+----------------------------------------------- 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090309/fdffa2c1/attachment-0001.html 
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: Ralf Buchhold.vcf
+Type: text/x-vcard
+Size: 377 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090309/fdffa2c1/attachment-0001.vcf 
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: smime.p7s
+Type: application/x-pkcs7-signature
+Size: 5088 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090309/fdffa2c1/attachment-0001.bin 
