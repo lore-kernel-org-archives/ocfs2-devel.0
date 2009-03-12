@@ -1,10 +1,10 @@
 From: tristan.ye <tristan.ye@oracle.com>
-Date: Tue, 10 Mar 2009 17:30:20 +0800
+Date: Thu, 12 Mar 2009 10:28:50 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: Use xs->bucket to set xattr
 	value	outside.
 In-Reply-To: <1236642573-4073-1-git-send-email-tao.ma@oracle.com>
 References: <1236642573-4073-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <1236677420.6816.55.camel@tristan-laptop.cn.oracle.com>
+Message-ID: <1236824930.6816.142.camel@tristan-laptop.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,9 +15,15 @@ On Tue, 2009-03-10 at 07:49 +0800, Tao Ma wrote:
 > Tristan,
 > 	could you please run your xattr test against it?
 
-Sure, tests will be carried on soon:-)
+Awesome! All single&multi-nodes xattr tests passed!
 
-Tristan.
+
+For detail testing info, refer to:
+http://oss.oracle.com/osswiki/OCFS2/XattrTest
+
+
+Regards,
+Tristan
 
 > 
 > xs->base used to be allocated a 4K size and all the contents in the
