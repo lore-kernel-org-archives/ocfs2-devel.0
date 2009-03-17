@@ -1,212 +1,291 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 17 Mar 2009 13:01:09 -0700
-Subject: [Ocfs2-devel] [PATCH 19/32] ocfs2/dlm: Refactor
-	dlm_clean_master_list()
+Date: Tue, 17 Mar 2009 13:00:59 -0700
+Subject: [Ocfs2-devel] [PATCH 09/32] ocfs2: Increase max links count
 In-Reply-To: <1237320082-12921-1-git-send-email-mfasheh@suse.com>
 References: <1237320082-12921-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1237320082-12921-20-git-send-email-mfasheh@suse.com>
+Message-ID: <1237320082-12921-10-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Sunil Mushran <sunil.mushran@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-From: Sunil Mushran <sunil.mushran@oracle.com>
+Since we've now got a directory format capable of handling a large number of
+entries, we can increase the maximum link count supported. This only gets
+increased if the directory indexing feature is turned on.
 
-This patch refactors dlm_clean_master_list() so as to make it
-easier to convert the mle list to a hash.
-
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+Acked-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/dlm/dlmmaster.c |  148 ++++++++++++++++++++++++++-------------------
- 1 files changed, 85 insertions(+), 63 deletions(-)
+ fs/ocfs2/inode.c    |    6 +++---
+ fs/ocfs2/namei.c    |   44 ++++++++++++++++++++++----------------------
+ fs/ocfs2/ocfs2.h    |   38 ++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/ocfs2_fs.h |    4 +++-
+ 4 files changed, 66 insertions(+), 26 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 040581e..ec6da3c 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -3207,12 +3207,87 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
- 	return ret;
- }
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index d273c4a..f1f77b2 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -276,7 +276,7 @@ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 		     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 		     (unsigned long long)le64_to_cpu(fe->i_blkno));
  
-+/*
-+ * Sets the owner of the lockres, associated to the mle, to UNKNOWN
-+ */
-+static struct dlm_lock_resource *dlm_reset_mleres_owner(struct dlm_ctxt *dlm,
-+					struct dlm_master_list_entry *mle)
-+{
-+	struct dlm_lock_resource *res;
-+	unsigned int hash;
-+
-+	/* Find the lockres associated to the mle and set its owner to UNK */
-+	hash = dlm_lockid_hash(mle->u.mlename.name, mle->u.mlename.len);
-+	res = __dlm_lookup_lockres(dlm, mle->u.mlename.name, mle->u.mlename.len,
-+				   hash);
-+	if (res) {
-+		spin_unlock(&dlm->master_lock);
-+
-+		/* move lockres onto recovery list */
-+		spin_lock(&res->spinlock);
-+		dlm_set_lockres_owner(dlm, res, DLM_LOCK_RES_OWNER_UNKNOWN);
-+		dlm_move_lockres_to_recovery_list(dlm, res);
-+		spin_unlock(&res->spinlock);
-+		dlm_lockres_put(res);
-+
-+		/* about to get rid of mle, detach from heartbeat */
-+		__dlm_mle_detach_hb_events(dlm, mle);
-+
-+		/* dump the mle */
-+		spin_lock(&dlm->master_lock);
-+		__dlm_put_mle(mle);
-+		spin_unlock(&dlm->master_lock);
-+	}
-+
-+	return res;
-+}
-+
-+static void dlm_clean_migration_mle(struct dlm_ctxt *dlm,
-+				    struct dlm_master_list_entry *mle)
-+{
-+	__dlm_mle_detach_hb_events(dlm, mle);
-+
-+	spin_lock(&mle->spinlock);
-+	__dlm_unlink_mle(dlm, mle);
-+	atomic_set(&mle->woken, 1);
-+	spin_unlock(&mle->spinlock);
-+
-+	wake_up(&mle->wq);
-+}
-+
-+static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
-+				struct dlm_master_list_entry *mle, u8 dead_node)
-+{
-+	int bit;
-+
-+	BUG_ON(mle->type != DLM_MLE_BLOCK);
-+
-+	spin_lock(&mle->spinlock);
-+	bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
-+	if (bit != dead_node) {
-+		mlog(0, "mle found, but dead node %u would not have been "
-+		     "master\n", dead_node);
-+		spin_unlock(&mle->spinlock);
-+	} else {
-+		/* Must drop the refcount by one since the assert_master will
-+		 * never arrive. This may result in the mle being unlinked and
-+		 * freed, but there may still be a process waiting in the
-+		 * dlmlock path which is fine. */
-+		mlog(0, "node %u was expected master\n", dead_node);
-+		atomic_set(&mle->woken, 1);
-+		spin_unlock(&mle->spinlock);
-+		wake_up(&mle->wq);
-+
-+		/* Do not need events any longer, so detach from heartbeat */
-+		__dlm_mle_detach_hb_events(dlm, mle);
-+		__dlm_put_mle(mle);
-+	}
-+}
+-	inode->i_nlink = le16_to_cpu(fe->i_links_count);
++	inode->i_nlink = ocfs2_read_links_count(fe);
  
- void dlm_clean_master_list(struct dlm_ctxt *dlm, u8 dead_node)
- {
- 	struct dlm_master_list_entry *mle, *next;
- 	struct dlm_lock_resource *res;
--	unsigned int hash;
+ 	if (fe->i_flags & cpu_to_le32(OCFS2_SYSTEM_FL)) {
+ 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SYSTEM_FILE;
+@@ -1215,7 +1215,7 @@ int ocfs2_mark_inode_dirty(handle_t *handle,
+ 	spin_unlock(&OCFS2_I(inode)->ip_lock);
  
- 	mlog_entry("dlm=%s, dead node=%u\n", dlm->name, dead_node);
- top:
-@@ -3236,30 +3311,7 @@ top:
- 		 * need to clean up if the dead node would have
- 		 * been the master. */
- 		if (mle->type == DLM_MLE_BLOCK) {
--			int bit;
--
--			spin_lock(&mle->spinlock);
--			bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
--			if (bit != dead_node) {
--				mlog(0, "mle found, but dead node %u would "
--				     "not have been master\n", dead_node);
--				spin_unlock(&mle->spinlock);
--			} else {
--				/* must drop the refcount by one since the
--				 * assert_master will never arrive.  this
--				 * may result in the mle being unlinked and
--				 * freed, but there may still be a process
--				 * waiting in the dlmlock path which is fine. */
--				mlog(0, "node %u was expected master\n",
--				     dead_node);
--				atomic_set(&mle->woken, 1);
--				spin_unlock(&mle->spinlock);
--				wake_up(&mle->wq);
--				/* do not need events any longer, so detach 
--				 * from heartbeat */
--				__dlm_mle_detach_hb_events(dlm, mle);
--				__dlm_put_mle(mle);
--			}
-+			dlm_clean_block_mle(dlm, mle, dead_node);
- 			continue;
+ 	fe->i_size = cpu_to_le64(i_size_read(inode));
+-	fe->i_links_count = cpu_to_le16(inode->i_nlink);
++	ocfs2_set_links_count(fe, inode->i_nlink);
+ 	fe->i_uid = cpu_to_le32(inode->i_uid);
+ 	fe->i_gid = cpu_to_le32(inode->i_gid);
+ 	fe->i_mode = cpu_to_le16(inode->i_mode);
+@@ -1252,7 +1252,7 @@ void ocfs2_refresh_inode(struct inode *inode,
+ 	OCFS2_I(inode)->ip_dyn_features = le16_to_cpu(fe->i_dyn_features);
+ 	ocfs2_set_inode_flags(inode);
+ 	i_size_write(inode, le64_to_cpu(fe->i_size));
+-	inode->i_nlink = le16_to_cpu(fe->i_links_count);
++	inode->i_nlink = ocfs2_read_links_count(fe);
+ 	inode->i_uid = le32_to_cpu(fe->i_uid);
+ 	inode->i_gid = le32_to_cpu(fe->i_gid);
+ 	inode->i_mode = le16_to_cpu(fe->i_mode);
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index f911edc..67113cf 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -255,13 +255,13 @@ static int ocfs2_mknod(struct inode *dir,
+ 		return status;
+ 	}
+ 
+-	if (S_ISDIR(mode) && (dir->i_nlink >= OCFS2_LINK_MAX)) {
++	if (S_ISDIR(mode) && (dir->i_nlink >= ocfs2_link_max(osb))) {
+ 		status = -EMLINK;
+ 		goto leave;
+ 	}
+ 
+ 	dirfe = (struct ocfs2_dinode *) parent_fe_bh->b_data;
+-	if (!dirfe->i_links_count) {
++	if (!ocfs2_read_links_count(dirfe)) {
+ 		/* can't make a file in a deleted directory. */
+ 		status = -ENOENT;
+ 		goto leave;
+@@ -381,7 +381,7 @@ static int ocfs2_mknod(struct inode *dir,
+ 			mlog_errno(status);
+ 			goto leave;
+ 		}
+-		le16_add_cpu(&dirfe->i_links_count, 1);
++		ocfs2_add_links_count(dirfe, 1);
+ 		status = ocfs2_journal_dirty(handle, parent_fe_bh);
+ 		if (status < 0) {
+ 			mlog_errno(status);
+@@ -529,7 +529,8 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 	fe->i_mode = cpu_to_le16(inode->i_mode);
+ 	if (S_ISCHR(inode->i_mode) || S_ISBLK(inode->i_mode))
+ 		fe->id1.dev1.i_rdev = cpu_to_le64(huge_encode_dev(dev));
+-	fe->i_links_count = cpu_to_le16(inode->i_nlink);
++
++	ocfs2_set_links_count(fe, inode->i_nlink);
+ 
+ 	fe->i_last_eb_blk = 0;
+ 	strcpy(fe->i_signature, OCFS2_INODE_SIGNATURE);
+@@ -668,7 +669,7 @@ static int ocfs2_link(struct dentry *old_dentry,
+ 	}
+ 
+ 	fe = (struct ocfs2_dinode *) fe_bh->b_data;
+-	if (le16_to_cpu(fe->i_links_count) >= OCFS2_LINK_MAX) {
++	if (ocfs2_read_links_count(fe) >= ocfs2_link_max(osb)) {
+ 		err = -EMLINK;
+ 		goto out_unlock_inode;
+ 	}
+@@ -690,13 +691,13 @@ static int ocfs2_link(struct dentry *old_dentry,
+ 
+ 	inc_nlink(inode);
+ 	inode->i_ctime = CURRENT_TIME;
+-	fe->i_links_count = cpu_to_le16(inode->i_nlink);
++	ocfs2_set_links_count(fe, inode->i_nlink);
+ 	fe->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
+ 	fe->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
+ 
+ 	err = ocfs2_journal_dirty(handle, fe_bh);
+ 	if (err < 0) {
+-		le16_add_cpu(&fe->i_links_count, -1);
++		ocfs2_add_links_count(fe, -1);
+ 		drop_nlink(inode);
+ 		mlog_errno(err);
+ 		goto out_commit;
+@@ -706,7 +707,7 @@ static int ocfs2_link(struct dentry *old_dentry,
+ 			      OCFS2_I(inode)->ip_blkno,
+ 			      parent_fe_bh, &lookup);
+ 	if (err) {
+-		le16_add_cpu(&fe->i_links_count, -1);
++		ocfs2_add_links_count(fe, -1);
+ 		drop_nlink(inode);
+ 		mlog_errno(err);
+ 		goto out_commit;
+@@ -895,7 +896,7 @@ static int ocfs2_unlink(struct inode *dir,
+ 	if (S_ISDIR(inode->i_mode))
+ 		drop_nlink(inode);
+ 	drop_nlink(inode);
+-	fe->i_links_count = cpu_to_le16(inode->i_nlink);
++	ocfs2_set_links_count(fe, inode->i_nlink);
+ 
+ 	status = ocfs2_journal_dirty(handle, fe_bh);
+ 	if (status < 0) {
+@@ -1139,7 +1140,7 @@ static int ocfs2_rename(struct inode *old_dir,
  		}
  
-@@ -3280,51 +3332,21 @@ top:
+ 		if (!new_inode && new_dir != old_dir &&
+-		    new_dir->i_nlink >= OCFS2_LINK_MAX) {
++		    new_dir->i_nlink >= ocfs2_link_max(osb)) {
+ 			status = -EMLINK;
+ 			goto bail;
+ 		}
+@@ -1293,7 +1294,7 @@ static int ocfs2_rename(struct inode *old_dir,
+ 		}
  
- 		/* if we have reached this point, this mle needs to
- 		 * be removed from the list and freed. */
--
--		/* remove from the list early.  NOTE: unlinking
--		 * list_head while in list_for_each_safe */
--		__dlm_mle_detach_hb_events(dlm, mle);
--		spin_lock(&mle->spinlock);
--		__dlm_unlink_mle(dlm, mle);
--		atomic_set(&mle->woken, 1);
--		spin_unlock(&mle->spinlock);
--		wake_up(&mle->wq);
-+		dlm_clean_migration_mle(dlm, mle);
+ 		if (S_ISDIR(new_inode->i_mode) ||
+-		    (newfe->i_links_count == cpu_to_le16(1))){
++		    (ocfs2_read_links_count(newfe) == 1)) {
+ 			status = ocfs2_orphan_add(osb, handle, new_inode,
+ 						  newfe, orphan_name,
+ 						  &orphan_insert, orphan_dir);
+@@ -1313,9 +1314,9 @@ static int ocfs2_rename(struct inode *old_dir,
+ 		new_dir->i_version++;
  
- 		mlog(0, "%s: node %u died during migration from "
- 		     "%u to %u!\n", dlm->name, dead_node,
- 		     mle->master, mle->new_master);
--		/* if there is a lockres associated with this
--	 	 * mle, find it and set its owner to UNKNOWN */
--		hash = dlm_lockid_hash(mle->u.mlename.name, mle->u.mlename.len);
--		res = __dlm_lookup_lockres(dlm, mle->u.mlename.name,
--					   mle->u.mlename.len, hash);
--		if (res) {
--			/* unfortunately if we hit this rare case, our
--		 	 * lock ordering is messed.  we need to drop
--		 	 * the master lock so that we can take the
--		  	 * lockres lock, meaning that we will have to
--			 * restart from the head of list. */
--			spin_unlock(&dlm->master_lock);
--
--			/* move lockres onto recovery list */
--			spin_lock(&res->spinlock);
--			dlm_set_lockres_owner(dlm, res,
--				      	DLM_LOCK_RES_OWNER_UNKNOWN);
--			dlm_move_lockres_to_recovery_list(dlm, res);
--			spin_unlock(&res->spinlock);
--			dlm_lockres_put(res);
--
--			/* about to get rid of mle, detach from heartbeat */
--			__dlm_mle_detach_hb_events(dlm, mle);
--
--			/* dump the mle */
--			spin_lock(&dlm->master_lock);
--			__dlm_put_mle(mle);
--			spin_unlock(&dlm->master_lock);
+ 		if (S_ISDIR(new_inode->i_mode))
+-			newfe->i_links_count = 0;
++			ocfs2_set_links_count(newfe, 0);
+ 		else
+-			le16_add_cpu(&newfe->i_links_count, -1);
++			ocfs2_add_links_count(newfe, -1);
  
-+		/* If we find a lockres associated with the mle, we've
-+		 * hit this rare case that messes up our lock ordering.
-+		 * If so, we need to drop the master lock so that we can
-+		 * take the lockres lock, meaning that we will have to
-+		 * restart from the head of list. */
-+		res = dlm_reset_mleres_owner(dlm, mle);
-+		if (res)
- 			/* restart */
- 			goto top;
--		}
+ 		status = ocfs2_journal_dirty(handle, newfe_bh);
+ 		if (status < 0) {
+@@ -1409,14 +1410,13 @@ static int ocfs2_rename(struct inode *old_dir,
+ 		} else {
+ 			struct ocfs2_dinode *fe;
+ 			status = ocfs2_journal_access_di(handle, old_dir,
+-							 old_dir_bh,
+-							 OCFS2_JOURNAL_ACCESS_WRITE);
++						      old_dir_bh,
++						      OCFS2_JOURNAL_ACCESS_WRITE);
+ 			fe = (struct ocfs2_dinode *) old_dir_bh->b_data;
+-			fe->i_links_count = cpu_to_le16(old_dir->i_nlink);
++			ocfs2_set_links_count(fe, old_dir->i_nlink);
+ 			status = ocfs2_journal_dirty(handle, old_dir_bh);
+ 		}
+ 	}
+-
+ 	ocfs2_dentry_move(old_dentry, new_dentry, old_dir, new_dir);
+ 	status = 0;
+ bail:
+@@ -1614,7 +1614,7 @@ static int ocfs2_symlink(struct inode *dir,
+ 	}
  
- 		/* this may be the last reference */
- 		__dlm_put_mle(mle);
+ 	dirfe = (struct ocfs2_dinode *) parent_fe_bh->b_data;
+-	if (!dirfe->i_links_count) {
++	if (!ocfs2_read_links_count(dirfe)) {
+ 		/* can't make a file in a deleted directory. */
+ 		status = -ENOENT;
+ 		goto bail;
+@@ -1932,8 +1932,8 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 	 * underneath us... */
+ 	orphan_fe = (struct ocfs2_dinode *) orphan_dir_bh->b_data;
+ 	if (S_ISDIR(inode->i_mode))
+-		le16_add_cpu(&orphan_fe->i_links_count, 1);
+-	orphan_dir_inode->i_nlink = le16_to_cpu(orphan_fe->i_links_count);
++		ocfs2_add_links_count(orphan_fe, 1);
++	orphan_dir_inode->i_nlink = ocfs2_read_links_count(orphan_fe);
+ 
+ 	status = ocfs2_journal_dirty(handle, orphan_dir_bh);
+ 	if (status < 0) {
+@@ -2016,8 +2016,8 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
+ 	/* do the i_nlink dance! :) */
+ 	orphan_fe = (struct ocfs2_dinode *) orphan_dir_bh->b_data;
+ 	if (S_ISDIR(inode->i_mode))
+-		le16_add_cpu(&orphan_fe->i_links_count, -1);
+-	orphan_dir_inode->i_nlink = le16_to_cpu(orphan_fe->i_links_count);
++		ocfs2_add_links_count(orphan_fe, -1);
++	orphan_dir_inode->i_nlink = ocfs2_read_links_count(orphan_fe);
+ 
+ 	status = ocfs2_journal_dirty(handle, orphan_dir_bh);
+ 	if (status < 0) {
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 3749c32..fa3c6d3 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -408,6 +408,44 @@ static inline int ocfs2_supports_indexed_dirs(struct ocfs2_super *osb)
+ 	return 0;
+ }
+ 
++static inline unsigned int ocfs2_link_max(struct ocfs2_super *osb)
++{
++	if (ocfs2_supports_indexed_dirs(osb))
++		return OCFS2_DX_LINK_MAX;
++	return OCFS2_LINK_MAX;
++}
++
++static inline unsigned int ocfs2_read_links_count(struct ocfs2_dinode *di)
++{
++	u32 nlink = le16_to_cpu(di->i_links_count);
++	u32 hi = le16_to_cpu(di->i_links_count_hi);
++
++	if (di->i_dyn_features & cpu_to_le16(OCFS2_INDEXED_DIR_FL))
++		nlink |= (hi << OCFS2_LINKS_HI_SHIFT);
++
++	return nlink;
++}
++
++static inline void ocfs2_set_links_count(struct ocfs2_dinode *di, u32 nlink)
++{
++	u16 lo, hi;
++
++	lo = nlink;
++	hi = nlink >> OCFS2_LINKS_HI_SHIFT;
++
++	di->i_links_count = cpu_to_le16(lo);
++	di->i_links_count_hi = cpu_to_le16(hi);
++}
++
++static inline void ocfs2_add_links_count(struct ocfs2_dinode *di, int n)
++{
++	u32 links = ocfs2_read_links_count(di);
++
++	links += n;
++
++	ocfs2_set_links_count(di, links);
++}
++
+ /* set / clear functions because cluster events can make these happen
+  * in parallel so we want the transitions to be atomic. this also
+  * means that any future flags osb_flags must be protected by spinlock
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index d549b17..43da76e 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -419,6 +419,8 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
+ #define OCFS2_DIR_MIN_REC_LEN	OCFS2_DIR_REC_LEN(1)
+ 
+ #define OCFS2_LINK_MAX		32000
++#define	OCFS2_DX_LINK_MAX	((1U << 31) - 1U)
++#define	OCFS2_LINKS_HI_SHIFT	16
+ 
+ #define S_SHIFT			12
+ static unsigned char ocfs2_type_by_mode[S_IFMT >> S_SHIFT] = {
+@@ -686,7 +688,7 @@ struct ocfs2_dinode {
+ 					   belongs to */
+ 	__le16 i_suballoc_bit;		/* Bit offset in suballocator
+ 					   block group */
+-/*10*/	__le16 i_reserved0;
++/*10*/	__le16 i_links_count_hi;	/* High 16 bits of links count */
+ 	__le16 i_xattr_inline_size;
+ 	__le32 i_clusters;		/* Cluster count */
+ 	__le32 i_uid;			/* Owner UID */
 -- 
 1.5.6
