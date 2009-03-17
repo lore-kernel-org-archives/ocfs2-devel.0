@@ -1,10 +1,9 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 17 Mar 2009 13:00:54 -0700
-Subject: [Ocfs2-devel] [PATCH 04/32] ocfs2: Remove debugfs file
-	local_alloc_stats
+Date: Tue, 17 Mar 2009 13:01:14 -0700
+Subject: [Ocfs2-devel] [PATCH 24/32] ocfs2/dlm: Improve lockres counts
 In-Reply-To: <1237320082-12921-1-git-send-email-mfasheh@suse.com>
 References: <1237320082-12921-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1237320082-12921-5-git-send-email-mfasheh@suse.com>
+Message-ID: <1237320082-12921-25-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,156 +13,144 @@ Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Sunil Mush
 
 From: Sunil Mushran <sunil.mushran@oracle.com>
 
-This patch removes the debugfs file local_alloc_stats as that information
-is now included in the fs_state debugfs file.
+This patch replaces the lockres counts that tracked the number number of
+locally and remotely mastered lockres' with a current and total count. The
+total count is the number of lockres' that have been created since the dlm
+domain was created.
+
+The number of locally and remotely mastered counts can be computed using
+the locking_state output.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/localalloc.c |   86 -------------------------------------------------
- fs/ocfs2/ocfs2.h      |    5 ---
- 2 files changed, 0 insertions(+), 91 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    5 ++---
+ fs/ocfs2/dlm/dlmdebug.c  |   12 ------------
+ fs/ocfs2/dlm/dlmdomain.c |    5 ++---
+ fs/ocfs2/dlm/dlmmaster.c |   27 +++++++--------------------
+ 4 files changed, 11 insertions(+), 38 deletions(-)
 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index ec70cdb..bac7e6a 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -28,7 +28,6 @@
- #include <linux/slab.h>
- #include <linux/highmem.h>
- #include <linux/bitops.h>
--#include <linux/debugfs.h>
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index 67b3447..e5026ce 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -159,9 +159,8 @@ struct dlm_ctxt
+ 	/* these give a really vague idea of the system load */
+ 	atomic_t mle_tot_count[DLM_MLE_NUM_TYPES];
+ 	atomic_t mle_cur_count[DLM_MLE_NUM_TYPES];
+-	atomic_t local_resources;
+-	atomic_t remote_resources;
+-	atomic_t unknown_resources;
++	atomic_t res_tot_count;
++	atomic_t res_cur_count;
  
- #define MLOG_MASK_PREFIX ML_DISK_ALLOC
- #include <cluster/masklog.h>
-@@ -75,84 +74,6 @@ static int ocfs2_local_alloc_new_window(struct ocfs2_super *osb,
- static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
- 					  struct inode *local_alloc_inode);
+ 	struct dlm_debug_ctxt *dlm_debug_ctxt;
+ 	struct dentry *dlm_debugfs_subroot;
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 336a98e..d7decaa 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -763,12 +763,6 @@ static int debug_state_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ 	int out = 0;
+ 	struct dlm_reco_node_data *node;
+ 	char *state;
+-	int lres, rres, ures, tres;
+-
+-	lres = atomic_read(&dlm->local_resources);
+-	rres = atomic_read(&dlm->remote_resources);
+-	ures = atomic_read(&dlm->unknown_resources);
+-	tres = lres + rres + ures;
  
--#ifdef CONFIG_OCFS2_FS_STATS
+ 	spin_lock(&dlm->spinlock);
+ 
+@@ -811,12 +805,6 @@ static int debug_state_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ 				 db->buf + out, db->len - out);
+ 	out += snprintf(db->buf + out, db->len - out, "\n");
+ 
+-	/* Mastered Resources Total: xxx  Locally: xxx  Remotely: ... */
+-	out += snprintf(db->buf + out, db->len - out,
+-			"Mastered Resources Total: %d  Locally: %d  "
+-			"Remotely: %d  Unknown: %d\n",
+-			tres, lres, rres, ures);
 -
--static int ocfs2_la_debug_open(struct inode *inode, struct file *file)
--{
--	file->private_data = inode->i_private;
--	return 0;
--}
+ 	/* Lists: Dirty=Empty  Purge=InUse  PendingASTs=Empty  ... */
+ 	out += snprintf(db->buf + out, db->len - out,
+ 			"Lists: Dirty=%s  Purge=%s  PendingASTs=%s  "
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 0479bdf..4d9e6b2 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1604,10 +1604,9 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 
+ 	dlm->reco.new_master = O2NM_INVALID_NODE_NUM;
+ 	dlm->reco.dead_node = O2NM_INVALID_NODE_NUM;
+-	atomic_set(&dlm->local_resources, 0);
+-	atomic_set(&dlm->remote_resources, 0);
+-	atomic_set(&dlm->unknown_resources, 0);
+ 
++	atomic_set(&dlm->res_tot_count, 0);
++	atomic_set(&dlm->res_cur_count, 0);
+ 	for (i = 0; i < DLM_MLE_NUM_TYPES; ++i) {
+ 		atomic_set(&dlm->mle_tot_count[i], 0);
+ 		atomic_set(&dlm->mle_cur_count[i], 0);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index acfc928..d70cdd5 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -517,15 +517,6 @@ static void dlm_set_lockres_owner(struct dlm_ctxt *dlm,
+ {
+ 	assert_spin_locked(&res->spinlock);
+ 
+-	mlog_entry("%.*s, %u\n", res->lockname.len, res->lockname.name, owner);
 -
--#define LA_DEBUG_BUF_SZ	PAGE_CACHE_SIZE
--#define LA_DEBUG_VER	1
--static ssize_t ocfs2_la_debug_read(struct file *file, char __user *userbuf,
--				   size_t count, loff_t *ppos)
--{
--	static DEFINE_MUTEX(la_debug_mutex);
--	struct ocfs2_super *osb = file->private_data;
--	int written, ret;
--	char *buf = osb->local_alloc_debug_buf;
+-	if (owner == dlm->node_num)
+-		atomic_inc(&dlm->local_resources);
+-	else if (owner == DLM_LOCK_RES_OWNER_UNKNOWN)
+-		atomic_inc(&dlm->unknown_resources);
+-	else
+-		atomic_inc(&dlm->remote_resources);
 -
--	mutex_lock(&la_debug_mutex);
--	memset(buf, 0, LA_DEBUG_BUF_SZ);
--
--	written = snprintf(buf, LA_DEBUG_BUF_SZ,
--			   "0x%x\t0x%llx\t%u\t%u\t0x%x\n",
--			   LA_DEBUG_VER,
--			   (unsigned long long)osb->la_last_gd,
--			   osb->local_alloc_default_bits,
--			   osb->local_alloc_bits, osb->local_alloc_state);
--
--	ret = simple_read_from_buffer(userbuf, count, ppos, buf, written);
--
--	mutex_unlock(&la_debug_mutex);
--	return ret;
--}
--
--static const struct file_operations ocfs2_la_debug_fops = {
--	.open =		ocfs2_la_debug_open,
--	.read =		ocfs2_la_debug_read,
--};
--
--static void ocfs2_init_la_debug(struct ocfs2_super *osb)
--{
--	osb->local_alloc_debug_buf = kmalloc(LA_DEBUG_BUF_SZ, GFP_NOFS);
--	if (!osb->local_alloc_debug_buf)
+ 	res->owner = owner;
+ }
+ 
+@@ -534,17 +525,8 @@ void dlm_change_lockres_owner(struct dlm_ctxt *dlm,
+ {
+ 	assert_spin_locked(&res->spinlock);
+ 
+-	if (owner == res->owner)
 -		return;
 -
--	osb->local_alloc_debug = debugfs_create_file("local_alloc_stats",
--						     S_IFREG|S_IRUSR,
--						     osb->osb_debug_root,
--						     osb,
--						     &ocfs2_la_debug_fops);
--	if (!osb->local_alloc_debug) {
--		kfree(osb->local_alloc_debug_buf);
--		osb->local_alloc_debug_buf = NULL;
--	}
--}
+-	if (res->owner == dlm->node_num)
+-		atomic_dec(&dlm->local_resources);
+-	else if (res->owner == DLM_LOCK_RES_OWNER_UNKNOWN)
+-		atomic_dec(&dlm->unknown_resources);
+-	else
+-		atomic_dec(&dlm->remote_resources);
 -
--static void ocfs2_shutdown_la_debug(struct ocfs2_super *osb)
--{
--	if (osb->local_alloc_debug)
--		debugfs_remove(osb->local_alloc_debug);
--
--	if (osb->local_alloc_debug_buf)
--		kfree(osb->local_alloc_debug_buf);
--
--	osb->local_alloc_debug_buf = NULL;
--	osb->local_alloc_debug = NULL;
--}
--#else	/* CONFIG_OCFS2_FS_STATS */
--static void ocfs2_init_la_debug(struct ocfs2_super *osb)
--{
--	return;
--}
--static void ocfs2_shutdown_la_debug(struct ocfs2_super *osb)
--{
--	return;
--}
--#endif
--
- static inline int ocfs2_la_state_enabled(struct ocfs2_super *osb)
- {
- 	return (osb->local_alloc_state == OCFS2_LA_THROTTLED ||
-@@ -226,8 +147,6 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+-	dlm_set_lockres_owner(dlm, res, owner);
++	if (owner != res->owner)
++		dlm_set_lockres_owner(dlm, res, owner);
+ }
  
- 	mlog_entry_void();
  
--	ocfs2_init_la_debug(osb);
--
- 	if (osb->local_alloc_bits == 0)
- 		goto bail;
+@@ -573,6 +555,8 @@ static void dlm_lockres_release(struct kref *kref)
+ 	}
+ 	spin_unlock(&dlm->track_lock);
  
-@@ -299,9 +218,6 @@ bail:
- 	if (inode)
- 		iput(inode);
++	atomic_dec(&dlm->res_cur_count);
++
+ 	dlm_put(dlm);
  
--	if (status < 0)
--		ocfs2_shutdown_la_debug(osb);
--
- 	mlog(0, "Local alloc window bits = %d\n", osb->local_alloc_bits);
+ 	if (!hlist_unhashed(&res->hash_node) ||
+@@ -653,6 +637,9 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
  
- 	mlog_exit(status);
-@@ -331,8 +247,6 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
- 	cancel_delayed_work(&osb->la_enable_wq);
- 	flush_workqueue(ocfs2_wq);
+ 	kref_init(&res->refs);
  
--	ocfs2_shutdown_la_debug(osb);
--
- 	if (osb->local_alloc_state == OCFS2_LA_UNUSED)
- 		goto out;
- 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 18d8542..a7c8369 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -287,11 +287,6 @@ struct ocfs2_super
- 
- 	u64 la_last_gd;
- 
--#ifdef CONFIG_OCFS2_FS_STATS
--	struct dentry *local_alloc_debug;
--	char *local_alloc_debug_buf;
--#endif
--
- 	/* Next three fields are for local node slot recovery during
- 	 * mount. */
- 	int dirty;
++	atomic_inc(&dlm->res_tot_count);
++	atomic_inc(&dlm->res_cur_count);
++
+ 	/* just for consistency */
+ 	spin_lock(&res->spinlock);
+ 	dlm_set_lockres_owner(dlm, res, DLM_LOCK_RES_OWNER_UNKNOWN);
 -- 
 1.5.6
