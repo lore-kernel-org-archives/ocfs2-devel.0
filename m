@@ -1,17 +1,102 @@
-From: Greg KH <gregkh@suse.de>
-Date: Sat, 14 Mar 2009 01:21:16 -0000
-Subject: [Ocfs2-devel] [patch 091/114] jbd2: Avoid possible NULL dereference
-	in jbd2_journal_begin_ordered_truncate()
-In-Reply-To: <20090314011649.GA26170@kroah.com>
-References: <20090314010937.416083662@mini.kroah.org>
-Message-ID: <20090314011044.850951987@mini.kroah.org>
+From: Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp>
+Date: Tue, 17 Mar 2009 04:12:33 -0000
+Subject: [Ocfs2-devel] [PATCH] OCFS2: Pagecache usage optimization on OCFS2
+Message-ID: <6.0.0.20.2.20090316155231.070bd0f8@172.19.0.2>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org, stable@kernel.org
-Cc: Justin Forbes <jmforbes@linuxtx.org>, Zwane Mwaikambo <zwane@arm.linux.org.uk>, Theodore Ts'o <tytso@mit.edu>, Randy Dunlap <rdunlap@xenotime.net>, Dave Jones <davej@redhat.com>, Chuck Wolber <chuckw@quantumlinux.com>, Chris Wedgwood <reviews@ml.cw.f00f.org>, Michael Krufky <mkrufky@linuxtv.org>, Chuck Ebbert <cebbert@redhat.com>, Domenico Andreoli <cavokz@gmail.com>, Willy Tarreau <w@1wt.eu>, Rodrigo Rubira Branco <rbranco@la.checkpoint.com>, Jake Edge <jake@lwn.net>, Eugene Teo <eteo@redhat.com>, torvalds@linux-foundation.org, akpm@linux-foundation.org, alan@lxorguk.ukuu.org.uk, Dan Carpenter <error27@gmail.com>, mfasheh@suse.de, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-An embedded and charset-unspecified text was scrubbed...
-Name: jbd2-avoid-possible-null-dereference-in-jbd2_journal_begin_ordered_truncate.patch
-Url: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090314/01c46374/attachment.pl 
+Hi Mark.
+
+I introduced "is_partially_uptodate" aops for OCFS2.
+
+A page can have multiple buffers and even if a page is not uptodate, some buffers 
+can be uptodate on pagesize != blocksize environment.
+This aops checks that all buffers which correspond to a part of a file 
+that we want to read are uptodate. If so, we do not have to issue actual 
+read IO to HDD even if a page is not uptodate because the portion we 
+want to read are uptodate. 
+"block_is_partially_uptodate" function is already used by ext2/3/4.
+With the following patch random read/write mixed workloads or random read after 
+random write workloads can be optimized and we can get performance improvement.
+
+I did a performance test using the sysbench.
+
+#sysbench --num-threads=16 --max-requests=150000 --test=fileio --file-num=1 
+--file-block-size=8K --file-total-size=1G --file-test-mode=rndrw 
+--file-fsync-freq=0 --file-rw-ratio=0.5  run
+
+-2.6.29-rc7
+Test execution summary:
+    total time:                          82.3114s
+    total number of events:              150000
+    total time taken by event execution: 989.1867
+    per-request statistics:
+         min:                            0.0000s
+         avg:                            0.0066s
+         max:                            0.4400s
+         approx.  95 percentile:         0.0417s
+
+Threads fairness:
+    events (avg/stddev):           9375.0000/257.65
+    execution time (avg/stddev):   61.8242/0.01
+
+
+-2.6.29-rc7-patched
+Test execution summary:
+    total time:                          71.9416s
+    total number of events:              150000
+    total time taken by event execution: 845.7592
+    per-request statistics:
+         min:                            0.0000s
+         avg:                            0.0056s
+         max:                            0.5892s
+         approx.  95 percentile:         0.0374s
+
+Threads fairness:
+    events (avg/stddev):           9375.0000/263.46
+    execution time (avg/stddev):   52.8600/0.01
+
+
+arch: ia64
+pagesize: 16k
+blocksize: 4k
+
+Please merge following patch.
+Thanks.
+
+Signed-off-by: Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp>
+
+diff -Nrup linux-2.6.29-rc8.org/fs/ocfs2/aops.c linux-2.6.29-rc8.ocfs2/fs/ocfs2/aops.c
+--- linux-2.6.29-rc8.org/fs/ocfs2/aops.c	2009-03-16 15:52:58.000000000 +0900
++++ linux-2.6.29-rc8.ocfs2/fs/ocfs2/aops.c	2009-03-16 16:15:42.000000000 +0900
+@@ -1953,15 +1953,16 @@ static int ocfs2_write_end(struct file *
+ }
+ 
+ const struct address_space_operations ocfs2_aops = {
+-	.readpage	= ocfs2_readpage,
+-	.readpages	= ocfs2_readpages,
+-	.writepage	= ocfs2_writepage,
+-	.write_begin	= ocfs2_write_begin,
+-	.write_end	= ocfs2_write_end,
+-	.bmap		= ocfs2_bmap,
+-	.sync_page	= block_sync_page,
+-	.direct_IO	= ocfs2_direct_IO,
+-	.invalidatepage	= ocfs2_invalidatepage,
+-	.releasepage	= ocfs2_releasepage,
+-	.migratepage	= buffer_migrate_page,
++	.readpage		= ocfs2_readpage,
++	.readpages		= ocfs2_readpages,
++	.writepage		= ocfs2_writepage,
++	.write_begin		= ocfs2_write_begin,
++	.write_end		= ocfs2_write_end,
++	.bmap			= ocfs2_bmap,
++	.sync_page		= block_sync_page,
++	.direct_IO		= ocfs2_direct_IO,
++	.invalidatepage		= ocfs2_invalidatepage,
++	.releasepage		= ocfs2_releasepage,
++	.migratepage		= buffer_migrate_page,
++	.is_partially_uptodate	= block_is_partially_uptodate,
+ };
