@@ -1,173 +1,93 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 17 Mar 2009 13:01:06 -0700
-Subject: [Ocfs2-devel] [PATCH 16/32] ocfs2: Optimize inode group allocation
-	by recording last used group.
+Date: Tue, 17 Mar 2009 13:01:13 -0700
+Subject: [Ocfs2-devel] [PATCH 23/32] ocfs2/dlm: Track number of mles
 In-Reply-To: <1237320082-12921-1-git-send-email-mfasheh@suse.com>
 References: <1237320082-12921-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1237320082-12921-17-git-send-email-mfasheh@suse.com>
+Message-ID: <1237320082-12921-24-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Tao Ma <tao.ma@oracle.com>, Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Sunil Mushran <sunil.mushran@oracle.com>, Mark Fasheh <mfasheh@suse.com>
 
-From: Tao Ma <tao.ma@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
 
-In ocfs2, the block group search looks for the "emptiest" group
-to allocate from. So if the allocator has many equally(or almost
-equally) empty groups, new block group will tend to get spread
-out amongst them.
+The lifetime of a mle is limited to the duration of the lockres mastery
+process. While typically this lifetime is fairly short, we have noticed
+the number of mles explode under certain circumstances. This patch tracks
+the number of each different types of mles and should help us determine
+how best to speed up the mastery process.
 
-So we add osb_inode_alloc_group in ocfs2_super to record the last
-used inode allocation group.
-For more details, please see
-http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy.
-
-I have done some basic test and the results are a ten times improvement on
-some cold-cache stat workloads.
-
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/ocfs2.h    |    3 +++
- fs/ocfs2/suballoc.c |   32 ++++++++++++++++++++++++++++----
- 2 files changed, 31 insertions(+), 4 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    5 ++++-
+ fs/ocfs2/dlm/dlmdomain.c |    5 +++++
+ fs/ocfs2/dlm/dlmmaster.c |    5 +++++
+ 3 files changed, 14 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index e1844d5..b65d19c 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -343,6 +343,9 @@ struct ocfs2_super
- 
- 	unsigned int			osb_dx_mask;
- 	u32				osb_dx_seed[4];
-+
-+	/* the group we used to allocate inodes. */
-+	u64				osb_inode_alloc_group;
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index aa55271..67b3447 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -52,7 +52,8 @@
+ enum dlm_mle_type {
+ 	DLM_MLE_BLOCK,
+ 	DLM_MLE_MASTER,
+-	DLM_MLE_MIGRATION
++	DLM_MLE_MIGRATION,
++	DLM_MLE_NUM_TYPES
  };
  
- #define OCFS2_SB(sb)	    ((struct ocfs2_super *)(sb)->s_fs_info)
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index b7a065e..4c1399c 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -66,6 +66,7 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 				   struct inode *alloc_inode,
- 				   struct buffer_head *bh,
- 				   u64 max_block,
-+				   u64 *last_alloc_group,
- 				   int flags);
+ struct dlm_lock_name {
+@@ -156,6 +157,8 @@ struct dlm_ctxt
+ 	struct list_head mle_hb_events;
  
- static int ocfs2_cluster_group_search(struct inode *inode,
-@@ -407,6 +408,7 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 				   struct inode *alloc_inode,
- 				   struct buffer_head *bh,
- 				   u64 max_block,
-+				   u64 *last_alloc_group,
- 				   int flags)
- {
- 	int status, credits;
-@@ -444,6 +446,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 		goto bail;
+ 	/* these give a really vague idea of the system load */
++	atomic_t mle_tot_count[DLM_MLE_NUM_TYPES];
++	atomic_t mle_cur_count[DLM_MLE_NUM_TYPES];
+ 	atomic_t local_resources;
+ 	atomic_t remote_resources;
+ 	atomic_t unknown_resources;
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 869648c..0479bdf 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1608,6 +1608,11 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	atomic_set(&dlm->remote_resources, 0);
+ 	atomic_set(&dlm->unknown_resources, 0);
+ 
++	for (i = 0; i < DLM_MLE_NUM_TYPES; ++i) {
++		atomic_set(&dlm->mle_tot_count[i], 0);
++		atomic_set(&dlm->mle_cur_count[i], 0);
++	}
++
+ 	spin_lock_init(&dlm->work_lock);
+ 	INIT_LIST_HEAD(&dlm->work_list);
+ 	INIT_WORK(&dlm->dispatched_work, dlm_dispatch_work);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 604552e..acfc928 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -325,6 +325,9 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
+ 		mle->u.mlename.hash = dlm_lockid_hash(name, namelen);
  	}
  
-+	if (last_alloc_group && *last_alloc_group != 0) {
-+		mlog(0, "use old allocation group %llu for block group alloc\n",
-+		     (unsigned long long)*last_alloc_group);
-+		ac->ac_last_group = *last_alloc_group;
-+	}
- 	status = ocfs2_claim_clusters(osb,
- 				      handle,
- 				      ac,
-@@ -518,6 +525,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 	alloc_inode->i_blocks = ocfs2_inode_sector_count(alloc_inode);
- 
- 	status = 0;
++	atomic_inc(&dlm->mle_tot_count[mle->type]);
++	atomic_inc(&dlm->mle_cur_count[mle->type]);
 +
-+	/* save the new last alloc group so that the caller can cache it. */
-+	if (last_alloc_group)
-+		*last_alloc_group = ac->ac_last_group;
+ 	/* copy off the node_map and register hb callbacks on our copy */
+ 	memcpy(mle->node_map, dlm->domain_map, sizeof(mle->node_map));
+ 	memcpy(mle->vote_map, dlm->domain_map, sizeof(mle->vote_map));
+@@ -467,6 +470,8 @@ static void dlm_mle_release(struct kref *kref)
+ 	/* detach the mle from the domain node up/down events */
+ 	__dlm_mle_detach_hb_events(dlm, mle);
+ 
++	atomic_dec(&dlm->mle_cur_count[mle->type]);
 +
- bail:
- 	if (handle)
- 		ocfs2_commit_trans(osb, handle);
-@@ -535,6 +547,7 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 				       struct ocfs2_alloc_context *ac,
- 				       int type,
- 				       u32 slot,
-+				       u64 *last_alloc_group,
- 				       int flags)
- {
- 	int status;
-@@ -600,7 +613,8 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 		}
- 
- 		status = ocfs2_block_group_alloc(osb, alloc_inode, bh,
--						 ac->ac_max_block, flags);
-+						 ac->ac_max_block,
-+						 last_alloc_group, flags);
- 		if (status < 0) {
- 			if (status != -ENOSPC)
- 				mlog_errno(status);
-@@ -644,7 +658,7 @@ int ocfs2_reserve_new_metadata_blocks(struct ocfs2_super *osb,
- 
- 	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
- 					     EXTENT_ALLOC_SYSTEM_INODE,
--					     slot, ALLOC_NEW_GROUP);
-+					     slot, NULL, ALLOC_NEW_GROUP);
- 	if (status < 0) {
- 		if (status != -ENOSPC)
- 			mlog_errno(status);
-@@ -690,7 +704,8 @@ static int ocfs2_steal_inode_from_other_nodes(struct ocfs2_super *osb,
- 
- 		status = ocfs2_reserve_suballoc_bits(osb, ac,
- 						     INODE_ALLOC_SYSTEM_INODE,
--						     slot, NOT_ALLOC_NEW_GROUP);
-+						     slot, NULL,
-+						     NOT_ALLOC_NEW_GROUP);
- 		if (status >= 0) {
- 			ocfs2_set_inode_steal_slot(osb, slot);
- 			break;
-@@ -707,6 +722,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
- {
- 	int status;
- 	s16 slot = ocfs2_get_inode_steal_slot(osb);
-+	u64 alloc_group;
- 
- 	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
- 	if (!(*ac)) {
-@@ -742,14 +758,22 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
- 		goto inode_steal;
- 
- 	atomic_set(&osb->s_num_inodes_stolen, 0);
-+	alloc_group = osb->osb_inode_alloc_group;
- 	status = ocfs2_reserve_suballoc_bits(osb, *ac,
- 					     INODE_ALLOC_SYSTEM_INODE,
- 					     osb->slot_num,
-+					     &alloc_group,
- 					     ALLOC_NEW_GROUP |
- 					     ALLOC_GROUPS_FROM_GLOBAL);
- 	if (status >= 0) {
- 		status = 0;
- 
-+		spin_lock(&osb->osb_lock);
-+		osb->osb_inode_alloc_group = alloc_group;
-+		spin_unlock(&osb->osb_lock);
-+		mlog(0, "after reservation, new allocation group is "
-+		     "%llu\n", (unsigned long long)alloc_group);
-+
- 		/*
- 		 * Some inodes must be freed by us, so try to allocate
- 		 * from our own next time.
-@@ -796,7 +820,7 @@ int ocfs2_reserve_cluster_bitmap_bits(struct ocfs2_super *osb,
- 
- 	status = ocfs2_reserve_suballoc_bits(osb, ac,
- 					     GLOBAL_BITMAP_SYSTEM_INODE,
--					     OCFS2_INVALID_SLOT,
-+					     OCFS2_INVALID_SLOT, NULL,
- 					     ALLOC_NEW_GROUP);
- 	if (status < 0 && status != -ENOSPC) {
- 		mlog_errno(status);
+ 	/* NOTE: kfree under spinlock here.
+ 	 * if this is bad, we can move this to a freelist. */
+ 	kmem_cache_free(dlm_mle_cache, mle);
 -- 
 1.5.6
