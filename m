@@ -1,85 +1,52 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 18 Mar 2009 21:57:48 +0800
-Subject: [Ocfs2-devel] [RFC] metadata alloc fix in machines which has
-	PAGE_SIZE > CLUSTER_SIZE
-Message-ID: <49C0FDDC.2030704@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 18 Mar 2009 10:07:13 -0700
+Subject: [Ocfs2-devel] shutdown by o2net_idle_timer causes Xen to hang
+In-Reply-To: <8C38B97A-7440-4F01-ADFE-FCF3777D6486@zeec.biz>
+References: <8C38B97A-7440-4F01-ADFE-FCF3777D6486@zeec.biz>
+Message-ID: <20090318170713.GB23209@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark/Joel,
-	I meet with some meta allocation bugs when I implement reflink these 
-days. And after some investigation, I think we should have the same 
-problem when we have PAGE_SIZE > CLUSTER_SIZE. So I create a scenario 
-today in one ppc box and try. the box panic as I expected. ;)
+On Wed, Mar 18, 2009 at 12:17:36PM +0100, David Winter wrote:
+> Hello,
+> 
+> we've had some serious trouble with a two-node Xen-based OCFS2  
+> cluster. In brief: we had two incidents where one node detects an idle  
+> timeout and shuts the other node down which causes the other node and  
+> the Dom0 to hang. Both times this could only be resolved by rebooting  
+> the whole machine using the built-in IPMI card.
+> 
+> All machines (including the other DomUs) run Centos 5.2 and the OCFS2  
+> nodes use ocfs2-tools-1.4.1-1.el5 and  
+> ocfs2-2.6.18-92.1.13.el5xen-1.4.1-1.el5.
+> 
+> Unfortunately there wasn't logged much of relevance, except for the / 
+> var/log/messages of the node that issued the shutdown (see below) and  
+> the nearly five hour gap in the logs of the other node.
 
-The scenario is that: Create a file with the disk layout like this(with
-bs=512, and cs=4K).
+	Just to clarify, the o2cb stack doesn't shut down other nodes.
+Nodes can only self-fence.  The 'shutting it down' message in the logs
+is about the connection.  In other words, cod-2 is already hanging.
+ugc-1 notices and closes the network connection.
+	So you want to figure out why cod-2 hung or crashed.  Sunil is
+right that you'll want netconsole for a better idea of what's going on.
+We can't diagnose cod-2 from this information.
+	If your dom0 is hanging, that's a separate issue.  A hanging
+domU, no matter the cause, shouldn't hang dom0.
 
-debugfs: stat 15151
-	Inode: 66072   Mode: 0644   Generation: 59969160 (0x3930e88)
-<snip>
-	Tree Depth: 1   Count: 19   Next Free Rec: 2
-	## Offset        Clusters       Block#
-	0  0             258            86365
-	1  258           66             86367
-	SubAlloc Bit: 21   SubAlloc Slot: 0
-	Blknum: 86365   Next Leaf: 86367
-	CRC32: N/A   ECC: N/A
-	Tree Depth: 0   Count: 28   Next Free Rec: 28
-	## Offset        Clusters       Block#          Flags
-	0  0             1              116696          0x0
-<snip>
-	25 25            1              117096          0x0
-	26 256           1              117112          0x1
-	27 257           1              117120          0x0
-	SubAlloc Bit: 23   SubAlloc Slot: 0
-	Blknum: 86367   Next Leaf: 0
-	CRC32: N/A   ECC: N/A
-	Tree Depth: 0   Count: 28   Next Free Rec: 2
-	## Offset        Clusters       Block#          Flags
-	0  258           2              117128          0x1
-	1  260           64             117176          0x1
+Joel
 
-Please note the extent record from "26" to "0" of the next block are
-contiguous allocated with unwritten and then divide it by write to the
-256 with 1 cluster.
+-- 
 
-Now if we try to write 40960 bytes at offset 256. We will panic. Why?
-The reason is that:
-1. with ppc box, we have page_size=64K. So in one
-ocfs2_write_begin_no_lock we will try to handle 40960 bytes together.
-2. in ocfs2_lock_allocators we will get that no metadata is need since
-the 2nd extent block has so many empty extent recs.
-3. then write begin one cluster by one in ocfs2_write_cluster.
-   1) The 1st cluster(256) nothing special.
-   2) the 2nd (257), it will be merged with 256.
-   3) the 3rd (258), be merged with 256.
-   4) the 4th (259), be merged. Now 256-259 will be merged into 1 extent
-rec, so the 2nd extent block will be removed. and we will get.
-	26 256           4              117112          0x0
-	27 260           64             117176          0x1
-   5) Now comes the 260, we need to split and call ocfs2_add_branch to
-allocate a new block. But wait, we have no metadata reserved. So we
-panic here.
+"Sometimes when reading Goethe I have the paralyzing suspicion
+ that he is trying to be funny."
+         - Guy Davenport
 
-So my thought is that can we reuse the freed extent block? I guess we 
-can. We just need to store the pointer of ocfs2_cached_dealloc_ctxt in 
-ocfs2_alloc_context. So whenever we allocate a new metadata, we try to 
-search ocfs2_cached_dealloc_ctxt first, if there is some, we use it 
-directly and delete it from ocfs2_cached_dealloc_ctxt. The same can go 
-for cluster allocation I guess although I don't know whether we have 
-such case for clusters.
-
-make sense?
-
-btw, this is critical because we often meet with this type of issue in 
-reflink(the 1st step delete a leaf extent block because of merge while 
-the 2nd step want to create one because of merge while no metadata are 
-reserved). And even worse, I met with a scenario that the process of 
-delete/add goes for 6 times.
-
-Regards,
-Tao
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
