@@ -1,161 +1,131 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 27 Mar 2009 07:02:20 +0800
-Subject: [Ocfs2-devel] [PATCH 14/42] ocfs2: Add support of decrementing
-	refcount for delete.
+Date: Fri, 27 Mar 2009 07:02:21 +0800
+Subject: [Ocfs2-devel] [PATCH 15/42] ocfs2: Add functions for extents
+	refcounted.
 In-Reply-To: <49CC86FC.2070906@oracle.com>
 References: <49CC86FC.2070906@oracle.com>
-Message-ID: <1238108568-23740-14-git-send-email-tao.ma@oracle.com>
+Message-ID: <1238108568-23740-15-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-    Given a physical cpos and length, decrement the refcount
-in the tree. If the refcount for any portion of the extent goes
-to zero, that portion is queued for freeing.
+Add function ocfs2_mark_extent_refcounted which can mark
+an extent refcounted.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/refcounttree.c |  115 +++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/refcounttree.h |    4 ++
- 2 files changed, 119 insertions(+), 0 deletions(-)
+ fs/ocfs2/alloc.c        |   12 ++++++------
+ fs/ocfs2/alloc.h        |    6 ++++++
+ fs/ocfs2/ocfs2.h        |    7 +++++++
+ fs/ocfs2/refcounttree.c |   39 +++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 58 insertions(+), 6 deletions(-)
 
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 7221073..bbfb15a 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -5067,12 +5067,12 @@ out:
+ 	return ret;
+ }
+ 
+-static int ocfs2_change_extent_flag(handle_t *handle,
+-				    struct ocfs2_extent_tree *et,
+-				    u32 cpos, u32 len, u32 phys,
+-				    struct ocfs2_alloc_context *meta_ac,
+-				    struct ocfs2_cached_dealloc_ctxt *dealloc,
+-				    int new_flags, int clear_flags)
++int ocfs2_change_extent_flag(handle_t *handle,
++			     struct ocfs2_extent_tree *et,
++			     u32 cpos, u32 len, u32 phys,
++			     struct ocfs2_alloc_context *meta_ac,
++			     struct ocfs2_cached_dealloc_ctxt *dealloc,
++			     int new_flags, int clear_flags)
+ {
+ 	int ret, index;
+ 	struct super_block *sb = ocfs2_metadata_cache_get_super(et->et_ci);
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index c89197a..6ea9ecf 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -122,6 +122,12 @@ int ocfs2_mark_extent_written(struct inode *inode,
+ 			      handle_t *handle, u32 cpos, u32 len, u32 phys,
+ 			      struct ocfs2_alloc_context *meta_ac,
+ 			      struct ocfs2_cached_dealloc_ctxt *dealloc);
++int ocfs2_change_extent_flag(handle_t *handle,
++			     struct ocfs2_extent_tree *et,
++			     u32 cpos, u32 len, u32 phys,
++			     struct ocfs2_alloc_context *meta_ac,
++			     struct ocfs2_cached_dealloc_ctxt *dealloc,
++			     int new_flags, int clear_flags);
+ int ocfs2_remove_extent(handle_t *handle, struct ocfs2_extent_tree *et,
+ 			u32 cpos, u32 len,
+ 			struct ocfs2_alloc_context *meta_ac,
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index fb2d092..74db43f 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -431,6 +431,13 @@ static inline int ocfs2_meta_ecc(struct ocfs2_super *osb)
+ 	return 0;
+ }
+ 
++static inline int ocfs2_refcount_tree(struct ocfs2_super *osb)
++{
++	if (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE)
++		return 1;
++	return 0;
++}
++
+ /* set / clear functions because cluster events can make these happen
+  * in parallel so we want the transitions to be atomic. this also
+  * means that any future flags osb_flags must be protected by spinlock
 diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 3b6f327..6b42ce8 100644
+index 6b42ce8..73b49cd 100644
 --- a/fs/ocfs2/refcounttree.c
 +++ b/fs/ocfs2/refcounttree.c
-@@ -563,3 +563,118 @@ out:
- 	ocfs2_free_path(path);
+@@ -678,3 +678,42 @@ out:
+ 	brelse(ref_bh);
  	return ret;
  }
 +
-+static int __ocfs2_decrease_refcount(handle_t *handle,
-+				     struct ocfs2_extent_tree *et,
-+				     u32 cpos, u32 len,
-+				     struct ocfs2_alloc_context *meta_ac,
-+				     struct ocfs2_cached_dealloc_ctxt *dealloc)
-+{
-+	int ret = 0, index = 0;
-+	struct ocfs2_extent_rec rec;
-+	unsigned int r_count = 0, r_len;
-+	struct ocfs2_path *path = NULL;
-+	struct super_block *sb = ocfs2_metadata_cache_get_super(et->et_ci);
-+
-+	path = ocfs2_new_path_from_et(et);
-+	if (!path) {
-+		ret = -ENOMEM;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	mlog(0, "Tree owner %llu, decrease refcount start %u, len %u\n",
-+	     (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci),
-+	     cpos, len);
-+
-+	while (len) {
-+		ret = ocfs2_get_refcount_rec(et->et_ci, path, cpos, len,
-+					     &rec, &index);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		r_count = le32_to_cpu(rec.e_refcount);
-+		BUG_ON(r_count == 0);
-+
-+		r_len = min((u32)(cpos + len), le32_to_cpu(rec.e_cpos) +
-+			      le16_to_cpu(rec.e_leaf_clusters)) - cpos;
-+
-+		/*
-+		 * Now decrease the refcount:
-+		 *
-+		 * 1. r_count == 1, remove it from refcount tree and queue
-+		 *    clusters for free.
-+		 * 2. r_count > 2, split the record.
-+		 */
-+		if (le32_to_cpu(rec.e_refcount) == 1) {
-+			ret = ocfs2_remove_extent(handle, et, cpos, r_len,
-+						  meta_ac, dealloc);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+
-+			ret = ocfs2_cache_cluster_dealloc(dealloc,
-+					  ocfs2_clusters_to_blocks(sb, cpos),
-+							  r_len);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+		} else {
-+			rec.e_cpos = cpu_to_le32(cpos);
-+			rec.e_leaf_clusters = cpu_to_le16(r_len);
-+
-+			le32_add_cpu(&rec.e_refcount, -1);
-+
-+			ret = ocfs2_split_extent(handle, et, path, index,
-+						 &rec, meta_ac, dealloc);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+		}
-+
-+		cpos += r_len;
-+		len -= r_len;
-+		ocfs2_reinit_path(path, 1);
-+	}
-+
-+out:
-+	ocfs2_free_path(path);
-+	return ret;
-+}
-+
-+int ocfs2_decrease_refcount(struct inode *inode, struct buffer_head *di_bh,
-+			    handle_t *handle, u32 cpos, u32 len,
-+			    struct ocfs2_alloc_context *meta_ac,
-+			    struct ocfs2_cached_dealloc_ctxt *dealloc)
++/*
++ * Mark the already-existing extent at cpos as refcounted for len clusters.
++ * This adds the refcount extent flag.
++ *
++ * If the existing extent is larger than the request, initiate a
++ * split. An attempt will be made at merging with adjacent extents.
++ *
++ * The caller is responsible for passing down meta_ac if we'll need it.
++ */
++static int ocfs2_mark_extent_refcounted(struct inode *inode,
++				struct ocfs2_extent_tree *et,
++				handle_t *handle, u32 cpos,
++				u32 len, u32 phys,
++				struct ocfs2_alloc_context *meta_ac,
++				struct ocfs2_cached_dealloc_ctxt *dealloc)
 +{
 +	int ret;
-+	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-+	struct buffer_head *ref_bh = NULL;
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
-+	struct ocfs2_extent_tree et;
 +
-+	BUG_ON(!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL));
-+	BUG_ON(!di->i_refcount_loc);
++	mlog(0, "Inode %lu refcount tree cpos %u, len %u, phys cluster %u\n",
++	     inode->i_ino, cpos, len, phys);
 +
-+	ret = ocfs2_read_refcount_block(INODE_CACHE(inode),
-+					le64_to_cpu(di->i_refcount_loc),
-+					&ref_bh);
-+	if (ret) {
-+		mlog_errno(ret);
++	if (!ocfs2_refcount_tree(OCFS2_SB(inode->i_sb))) {
++		ocfs2_error(inode->i_sb, "Inode %lu want to use refcount "
++			    "tree, but the feature bit is not set in the "
++			    "super block.", inode->i_ino);
++		ret = -EROFS;
 +		goto out;
 +	}
 +
-+	ocfs2_init_refcount_extent_tree(&et, INODE_CACHE(inode), ref_bh);
-+	ret = __ocfs2_decrease_refcount(handle, &et,
-+					cpos, len, meta_ac, dealloc);
++	ret = ocfs2_change_extent_flag(handle, et, cpos,
++				       len, phys, meta_ac, dealloc,
++				       OCFS2_EXT_REFCOUNTED, 0);
 +	if (ret)
 +		mlog_errno(ret);
++
 +out:
-+	brelse(ref_bh);
 +	return ret;
 +}
-diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
-index 9f4bdac..92fe116 100644
---- a/fs/ocfs2/refcounttree.h
-+++ b/fs/ocfs2/refcounttree.h
-@@ -23,4 +23,8 @@ int ocfs2_set_refcount_tree(struct inode *inode,
- 			    u64 blkno);
- int ocfs2_remove_refcount_tree(struct inode *inode, struct buffer_head *di_bh);
- 
-+int ocfs2_decrease_refcount(struct inode *inode, struct buffer_head *di_bh,
-+			    handle_t *handle, u32 cpos, u32 len,
-+			    struct ocfs2_alloc_context *meta_ac,
-+			    struct ocfs2_cached_dealloc_ctxt *dealloc);
- #endif /* OCFS2_REFCOUNTTREE_H */
 -- 
 1.6.2.rc2.16.gf474c
