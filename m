@@ -1,37 +1,34 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 20 Mar 2009 08:45:47 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix 2 warning during ocfs2 make.
-In-Reply-To: <20090320003846.GD13065@wotan.suse.de>
-References: <1237410523-8639-1-git-send-email-tao.ma@oracle.com>
-	<20090320003846.GD13065@wotan.suse.de>
-Message-ID: <49C2E73B.3000909@oracle.com>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Fri, 27 Mar 2009 15:06:56 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: 64-bit inode number for getattr()
+	instead of 32-bit value
+Message-ID: <200903270708.n2R78IMi021731@acsinet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-	I saw this in your upstream-merge_window. And I compared it with your 
-merge_window, the upstream one has more patches than the other, it looks 
-like the branch you mentioned in "Ocfs2 updates for 2.6.30". The bug is 
-found there.
+ocfs2_getattr() uses generic_fillattr() to set inode number(and other
+attributes). generic_fillattr() inturn fills inode number with inode->i_ino
+which is a 32-bit(unsigned long) value.
 
-Regards,
-Tao
+if the ocfs2 partition is huge enough, that may become an incorrect
+value.
+the fix is filling it again after generic_fillattr() with ip_blkno(u64).
 
-Mark Fasheh wrote:
-> On Thu, Mar 19, 2009 at 05:08:43AM +0800, Tao Ma wrote:
->> fs/ocfs2/dir.c: In function ?ocfs2_extend_dir?:
->> fs/ocfs2/dir.c:2700: warning: ?ret? may be used uninitialized in this function
->>
->> fs/ocfs2/suballoc.c: In function ?ocfs2_get_suballoc_slot_bit?:
->> fs/ocfs2/suballoc.c:2216: warning: comparison is always true due to limited range of data type
-> 
-> Does the 2nd bug still exist in merge_window? I didn't see it, so I just
-> merged the 1st one into merge_window.
-> 	--Mark
-> 
-> 
-> --
-> Mark Fasheh
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+--
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index a5887df..ffe7d34 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1076,6 +1076,8 @@ int ocfs2_getattr(struct vfsmount *mnt,
+ 	/* We set the blksize from the cluster size for performance */
+ 	stat->blksize = osb->s_clustersize;
+ 
++	stat->ino = OCFS2_I(inode)->ip_blkno;
++
+ bail:
+ 	mlog_exit(err);
+ 
