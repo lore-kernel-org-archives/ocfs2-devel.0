@@ -1,28 +1,45 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 21 Apr 2009 15:00:44 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Add missing iput() during
-	error handling in ocfs2_dentry_attach_lock()
-In-Reply-To: <1240288458-14162-1-git-send-email-sunil.mushran@oracle.com>
-References: <1240288458-14162-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20090421220044.GD4585@wotan.suse.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 03 Apr 2009 19:16:04 -0000
+Subject: [Ocfs2-devel] [git patches] Ocfs2 updates for 2.6.30
+In-Reply-To: <20090403184605.GC14571@wotan.suse.de>
+References: <20090403184605.GC14571@wotan.suse.de>
+Message-ID: <alpine.LFD.2.00.0904031208490.4015@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
 
-On Mon, Apr 20, 2009 at 09:34:18PM -0700, Sunil Mushran wrote:
-> In ocfs2_dentry_attach_lock(), if unable to get the dentry lock(), we need to
-> call iput(inode) because a failure here means no d_instantiate(), which means
-> the normally matching iput() will not be called during dput(dentry).
-> 
-> This patch fixes the oops that accompanies the following message:
-> (3996,1):dlm_empty_lockres:2708 ERROR: lockres W00000000000000000a1046b06a4382 still has local locks!
-> kernel BUG in dlm_empty_lockres at /rpmbuild/smushran/BUILD/ocfs2-1.4.2/fs/ocfs2/dlm/dlmmaster.c:2709!
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-Acked-by: Mark Fasheh <mfasheh@suse.com>
-	--Mark
 
---
-Mark Fasheh
+
+On Fri, 3 Apr 2009, Mark Fasheh wrote:
+> 
+> 	Here is the Ocfs2 changes for this merge window. I sent all these
+> patches out to the list a couple weeks ago. Original mail is attached.
+
+Hmm. And I can _guarantee_ that none of these patches were actually tested 
+as-is, because they were all rebased just minutes before the send.
+
+ - top commit:
+
+	Commit:     Mark Fasheh <mfasheh@suse.com>
+	CommitDate: Fri Apr 3 11:39:26 2009 -0700
+
+ - email:
+
+	Date: Fri, 3 Apr 2009 11:46:05 -0700
+	From: Mark Fasheh <mfasheh@suse.com>
+
+So any possible subtle interactions with any other changes would never 
+have been tested very much before the "please pull".
+
+Are they likely? Probably not. But that's not the point. The point is that 
+you barely had time to compile that thing, much less give it any testing.
+
+The whole "it compiles, it's perfect, ship it" mentality is _strictly_ 
+only for me.
+
+Quod licet Jovi, non licet bovi.
+
+		Linus
