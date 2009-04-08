@@ -1,33 +1,35 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 03 Apr 2009 19:20:28 -0000
-Subject: [Ocfs2-devel] [git patches] Ocfs2 updates for 2.6.30
-In-Reply-To: <alpine.LFD.2.00.0904031208490.4015@localhost.localdomain>
-References: <20090403184605.GC14571@wotan.suse.de>
-	<alpine.LFD.2.00.0904031208490.4015@localhost.localdomain>
-Message-ID: <alpine.LFD.2.00.0904031214260.4015@localhost.localdomain>
+From: Dan Carpenter <error27@gmail.com>
+Date: Wed, 8 Apr 2009 13:48:23 +0300 (EAT)
+Subject: [Ocfs2-devel] [patch] unlock i_mutex in error path
+Message-ID: <alpine.DEB.2.00.0904071935520.26512@bicker>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Andrew Morton <akpm@linux-foundation.org>
+To: ocfs2-devel@oss.oracle.com
 
+There is an error path in ocfs2_quota_write() that doesn't unlock 
+&gqinode->i_mutex().  That seems unintentional.
 
+Found by smatch (http://repo.or.cz/w/smatch.git).  Compile tested.
 
-On Fri, 3 Apr 2009, Linus Torvalds wrote:
->
-> Are they likely? Probably not. But that's not the point. The point is that 
-> you barely had time to compile that thing, much less give it any testing.
+regards,
+dan carpenter
 
-Gaah. I pulled it anyway. Today, I just can't find it in me to care about 
-ocfs2 testing.
+Signed-off-by: Dan Carpenter <error27@gmail.com>
 
-But please - keep this in mind. Even if the commit is old, when you rebase 
-it, you really do move it into a whole new world order. And yes, it 
-_usually_ works just fine. 
-
-But to make sure, please do spend some time after setting up the tree to 
-make sure that what I get really is something that you know is what I want 
-to get.
-
-		Linus
+--- orig/fs/ocfs2/quota_global.c	2009-04-07 19:34:22.000000000 +0300
++++ devel/fs/ocfs2/quota_global.c	2009-04-07 19:34:25.000000000 +0300
+@@ -232,10 +232,8 @@
+ 		err = ocfs2_get_quota_block(gqinode, blk, &bh);
+ 		ja_type = OCFS2_JOURNAL_ACCESS_CREATE;
+ 	}
+-	if (err) {
+-		mlog_errno(err);
+-		return err;
+-	}
++	if (err) 
++		goto out;
+ 	lock_buffer(bh);
+ 	if (new)
+ 		memset(bh->b_data, 0, sb->s_blocksize);
