@@ -1,40 +1,30 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 10 Apr 2009 08:50:25 -0400
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: anti stale inode for nfs (V3)
-In-Reply-To: <499DB30D.9070005@oracle.com>
-References: <200902171255.n1HCsxeo017544@acsinet13.oracle.com>	<20090218013700.GA26431@mail.oracle.com>
-	<499D5A42.90702@oracle.com> <499DB30D.9070005@oracle.com>
-Message-ID: <49DF4091.1080907@oracle.com>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Fri, 10 Apr 2009 13:34:30 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: add NFS Sync lock type string.
+Message-ID: <200904100535.n3A5ZaEm026946@rgminet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Sunil,
+The lock type string for NFS Sync lock is missing from the last patch
+http://oss.oracle.com/pipermail/ocfs2-devel/2009-March/004117.html
 
-There is still something left for ocfs2 tools to support nfs_sync lock.
+This patch is to add the lock type string.
+This patch also applies to 1.4 git.
 
-Sunil Mushran wrote:
-> Finish the kernel bits first. Once that is checked in, the following
-> files in the tools will need to be updated.
-here you meant checked in 1.4git or mainline?
-
-thanks,
-wengang.
-> => libocfs2/lockid.c
-> => include/ocfs2-kernel/ocfs2_lockid.h (copy from kernel)
->
-> Wengang Wang wrote:
->>> It will need to be added to debugfs.ocfs2's lock displays.
->>>     
->> what's this in detail?
->> the display for "debugfs.ocfs2 -d <lockres>"? such as the rename lock
->>
->> [root at ocfs2-2 ~]# debugfs.ocfs2 -d R000000000000000000000000000000
->> Lockres:    R000000000000000000000000000000
->> Type:       Rename
->> Block:      0
->> Generation: 0x00000000
->>
->> ?
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+--
+diff --git a/fs/ocfs2/ocfs2_lockid.h b/fs/ocfs2/ocfs2_lockid.h
+index a53ce87..e95cc7b 100644
+--- a/fs/ocfs2/ocfs2_lockid.h
++++ b/fs/ocfs2/ocfs2_lockid.h
+@@ -104,6 +104,7 @@ static char *ocfs2_lock_type_strings[] = {
+ 	[OCFS2_LOCK_TYPE_OPEN] = "Open",
+ 	[OCFS2_LOCK_TYPE_FLOCK] = "Flock",
+ 	[OCFS2_LOCK_TYPE_QINFO] = "Quota",
++	[OCFS2_LOCK_TYPE_NFS_SYNC] = "NFS_Sync",
+ };
+ 
+ static inline const char *ocfs2_lock_type_string(enum ocfs2_lock_type type)
