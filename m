@@ -1,36 +1,71 @@
-From: Lars Marowsky-Bree <lmb@suse.de>
-Date: Tue, 14 Apr 2009 18:47:28 +0200
-Subject: [Ocfs2-devel] [Openais] Linux Plumbers Conference mini-conf
-	on	clustering?
-In-Reply-To: <20090413233135.GC8778@mail.oracle.com>
-References: <20090413225353.GF6147@suse.de>
-	<20090413233135.GC8778@mail.oracle.com>
-Message-ID: <20090414164728.GK6147@suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 14 Apr 2009 16:39:35 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2_controld: Handle simultaneous group
+	join.
+In-Reply-To: <20090408222237.GC8561@mail.oracle.com>
+References: <20090408213317.GC11662@redhat.com>
+	<20090408222237.GC8561@mail.oracle.com>
+Message-ID: <20090414233935.GF6692@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2009-04-13T16:31:35, Joel Becker <Joel.Becker@oracle.com> wrote:
+More than one ocfs2_controld can join the cpg group at the same time,
+even for the first members of a group.  So 'jouners == 1' is not a valid
+check to see if this controld is the first one.
 
-> 	I think its a great idea.
+We change the code to pick the controld with the lowest node number to
+set up the daemon control group.
 
-Ok, all respondents were in favor, so I will submit a miniconf proposal.
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ ocfs2_controld/cpg.c |   13 ++++++++++++-
+ 1 files changed, 12 insertions(+), 1 deletions(-)
 
-> We actually have progress, with a lot
-> of work that we talked about in Prague starting to see the light of day
-> in STABLE3, so it would be good to nail that down.
-
-Right, I know we have impressive progress in many(!) areas - the (lack
-of) was only mentioned to note that we aren't done yet.
-
-
-
-Regards,
-    Lars
+diff --git a/ocfs2_controld/cpg.c b/ocfs2_controld/cpg.c
+index a2d8ae1..5e166b0 100644
+--- a/ocfs2_controld/cpg.c
++++ b/ocfs2_controld/cpg.c
+@@ -728,6 +728,8 @@ out:
+ 
+ static void daemon_set_cgroup(struct cgroup *cg, void *user_data)
+ {
++	int i, first = 1;
++
+ 	void (*daemon_joined)(int first) = user_data;
+ 
+ 	if (cg != &daemon_group) {
+@@ -735,7 +737,16 @@ static void daemon_set_cgroup(struct cgroup *cg, void *user_data)
+ 		return;
+ 	}
+ 
+-	daemon_joined(daemon_group.cg_member_count == 1);
++	if (daemon_group.cg_cb_member_count != daemon_group.cg_cb_joined_count)
++		first = 0;
++	else {
++		for (i = 0; i < daemon_group.cg_cb_joined_count; i++) {
++			if (daemon_group.cg_cb_joined[i].nodeid < our_nodeid)
++				first = 0;
++		}
++	}
++
++	daemon_joined(first);
+ }
+ 
+ int setup_cpg(void (*daemon_joined)(int first))
+-- 
+1.6.1.3
 
 -- 
-Teamlead Kernel, SuSE Labs, Research and Development
-SUSE LINUX Products GmbH, GF: Markus Rex, HRB 16746 (AG N?rnberg)
-"Experience is the name everyone gives to their mistakes." -- Oscar Wilde
+
+Life's Little Instruction Book #139
+
+	"Never deprive someone of hope; it might be all they have."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
