@@ -1,168 +1,211 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 17 Apr 2009 13:37:22 -0700
-Subject: [Ocfs2-devel] [PATCH 09/26] ocfs2: Remove debugfs file
-	local_alloc_stats
+Date: Fri, 17 Apr 2009 13:37:28 -0700
+Subject: [Ocfs2-devel] [PATCH 15/26] ocfs2/dlm: Refactor
+	dlm_clean_master_list()
 In-Reply-To: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
 References: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1240000659-6201-10-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1240000659-6201-16-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 59b526a30722f29e5dba6210a6e0fc34e3149b94
+Mainline commit c2cd4a44333034203cb198915e2b75c3227d41bf
 
-This patch removes the debugfs file local_alloc_stats as that information
-is now included in the fs_state debugfs file.
+This patch refactors dlm_clean_master_list() so as to make it
+easier to convert the mle list to a hash.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/localalloc.c |   86 -------------------------------------------------
- fs/ocfs2/ocfs2.h      |    5 ---
- 2 files changed, 0 insertions(+), 91 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |  148 ++++++++++++++++++++++++++-------------------
+ 1 files changed, 85 insertions(+), 63 deletions(-)
 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index 2be8152..d4ff66a 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -28,7 +28,6 @@
- #include <linux/slab.h>
- #include <linux/highmem.h>
- #include <linux/bitops.h>
--#include <linux/debugfs.h>
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index c388d21..cde4153 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -3207,12 +3207,87 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
+ 	return ret;
+ }
  
- #define MLOG_MASK_PREFIX ML_DISK_ALLOC
- #include <cluster/masklog.h>
-@@ -74,84 +73,6 @@ static int ocfs2_local_alloc_new_window(struct ocfs2_super *osb,
- static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
- 					  struct inode *local_alloc_inode);
++/*
++ * Sets the owner of the lockres, associated to the mle, to UNKNOWN
++ */
++static struct dlm_lock_resource *dlm_reset_mleres_owner(struct dlm_ctxt *dlm,
++					struct dlm_master_list_entry *mle)
++{
++	struct dlm_lock_resource *res;
++	unsigned int hash;
++
++	/* Find the lockres associated to the mle and set its owner to UNK */
++	hash = dlm_lockid_hash(mle->u.mlename.name, mle->u.mlename.len);
++	res = __dlm_lookup_lockres(dlm, mle->u.mlename.name, mle->u.mlename.len,
++				   hash);
++	if (res) {
++		spin_unlock(&dlm->master_lock);
++
++		/* move lockres onto recovery list */
++		spin_lock(&res->spinlock);
++		dlm_set_lockres_owner(dlm, res, DLM_LOCK_RES_OWNER_UNKNOWN);
++		dlm_move_lockres_to_recovery_list(dlm, res);
++		spin_unlock(&res->spinlock);
++		dlm_lockres_put(res);
++
++		/* about to get rid of mle, detach from heartbeat */
++		__dlm_mle_detach_hb_events(dlm, mle);
++
++		/* dump the mle */
++		spin_lock(&dlm->master_lock);
++		__dlm_put_mle(mle);
++		spin_unlock(&dlm->master_lock);
++	}
++
++	return res;
++}
++
++static void dlm_clean_migration_mle(struct dlm_ctxt *dlm,
++				    struct dlm_master_list_entry *mle)
++{
++	__dlm_mle_detach_hb_events(dlm, mle);
++
++	spin_lock(&mle->spinlock);
++	__dlm_unlink_mle(dlm, mle);
++	atomic_set(&mle->woken, 1);
++	spin_unlock(&mle->spinlock);
++
++	wake_up(&mle->wq);
++}
++
++static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
++				struct dlm_master_list_entry *mle, u8 dead_node)
++{
++	int bit;
++
++	BUG_ON(mle->type != DLM_MLE_BLOCK);
++
++	spin_lock(&mle->spinlock);
++	bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
++	if (bit != dead_node) {
++		mlog(0, "mle found, but dead node %u would not have been "
++		     "master\n", dead_node);
++		spin_unlock(&mle->spinlock);
++	} else {
++		/* Must drop the refcount by one since the assert_master will
++		 * never arrive. This may result in the mle being unlinked and
++		 * freed, but there may still be a process waiting in the
++		 * dlmlock path which is fine. */
++		mlog(0, "node %u was expected master\n", dead_node);
++		atomic_set(&mle->woken, 1);
++		spin_unlock(&mle->spinlock);
++		wake_up(&mle->wq);
++
++		/* Do not need events any longer, so detach from heartbeat */
++		__dlm_mle_detach_hb_events(dlm, mle);
++		__dlm_put_mle(mle);
++	}
++}
  
--#ifdef CONFIG_OCFS2_FS_STATS
--
--static int ocfs2_la_debug_open(struct inode *inode, struct file *file)
--{
--	file->private_data = inode->i_private;
--	return 0;
--}
--
--#define LA_DEBUG_BUF_SZ	PAGE_CACHE_SIZE
--#define LA_DEBUG_VER	1
--static ssize_t ocfs2_la_debug_read(struct file *file, char __user *userbuf,
--				   size_t count, loff_t *ppos)
--{
--	static DEFINE_MUTEX(la_debug_mutex);
--	struct ocfs2_super *osb = file->private_data;
--	int written, ret;
--	char *buf = osb->local_alloc_debug_buf;
--
--	mutex_lock(&la_debug_mutex);
--	memset(buf, 0, LA_DEBUG_BUF_SZ);
--
--	written = snprintf(buf, LA_DEBUG_BUF_SZ,
--			   "0x%x\t0x%llx\t%u\t%u\t0x%x\n",
--			   LA_DEBUG_VER,
--			   (unsigned long long)osb->la_last_gd,
--			   osb->local_alloc_default_bits,
--			   osb->local_alloc_bits, osb->local_alloc_state);
--
--	ret = simple_read_from_buffer(userbuf, count, ppos, buf, written);
--
--	mutex_unlock(&la_debug_mutex);
--	return ret;
--}
--
--static const struct file_operations ocfs2_la_debug_fops = {
--	.open =		ocfs2_la_debug_open,
--	.read =		ocfs2_la_debug_read,
--};
--
--static void ocfs2_init_la_debug(struct ocfs2_super *osb)
--{
--	osb->local_alloc_debug_buf = kmalloc(LA_DEBUG_BUF_SZ, GFP_NOFS);
--	if (!osb->local_alloc_debug_buf)
--		return;
--
--	osb->local_alloc_debug = debugfs_create_file("local_alloc_stats",
--						     S_IFREG|S_IRUSR,
--						     osb->osb_debug_root,
--						     osb,
--						     &ocfs2_la_debug_fops);
--	if (!osb->local_alloc_debug) {
--		kfree(osb->local_alloc_debug_buf);
--		osb->local_alloc_debug_buf = NULL;
--	}
--}
--
--static void ocfs2_shutdown_la_debug(struct ocfs2_super *osb)
--{
--	if (osb->local_alloc_debug)
--		debugfs_remove(osb->local_alloc_debug);
--
--	if (osb->local_alloc_debug_buf)
--		kfree(osb->local_alloc_debug_buf);
--
--	osb->local_alloc_debug_buf = NULL;
--	osb->local_alloc_debug = NULL;
--}
--#else	/* CONFIG_OCFS2_FS_STATS */
--static void ocfs2_init_la_debug(struct ocfs2_super *osb)
--{
--	return;
--}
--static void ocfs2_shutdown_la_debug(struct ocfs2_super *osb)
--{
--	return;
--}
--#endif
--
- static inline int ocfs2_la_state_enabled(struct ocfs2_super *osb)
+ void dlm_clean_master_list(struct dlm_ctxt *dlm, u8 dead_node)
  {
- 	return (osb->local_alloc_state == OCFS2_LA_THROTTLED ||
-@@ -225,8 +146,6 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+ 	struct dlm_master_list_entry *mle, *next;
+ 	struct dlm_lock_resource *res;
+-	unsigned int hash;
  
- 	mlog_entry_void();
- 
--	ocfs2_init_la_debug(osb);
+ 	mlog_entry("dlm=%s, dead node=%u\n", dlm->name, dead_node);
+ top:
+@@ -3236,30 +3311,7 @@ top:
+ 		 * need to clean up if the dead node would have
+ 		 * been the master. */
+ 		if (mle->type == DLM_MLE_BLOCK) {
+-			int bit;
 -
- 	if (osb->local_alloc_bits == 0)
- 		goto bail;
+-			spin_lock(&mle->spinlock);
+-			bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
+-			if (bit != dead_node) {
+-				mlog(0, "mle found, but dead node %u would "
+-				     "not have been master\n", dead_node);
+-				spin_unlock(&mle->spinlock);
+-			} else {
+-				/* must drop the refcount by one since the
+-				 * assert_master will never arrive.  this
+-				 * may result in the mle being unlinked and
+-				 * freed, but there may still be a process
+-				 * waiting in the dlmlock path which is fine. */
+-				mlog(0, "node %u was expected master\n",
+-				     dead_node);
+-				atomic_set(&mle->woken, 1);
+-				spin_unlock(&mle->spinlock);
+-				wake_up(&mle->wq);
+-				/* do not need events any longer, so detach 
+-				 * from heartbeat */
+-				__dlm_mle_detach_hb_events(dlm, mle);
+-				__dlm_put_mle(mle);
+-			}
++			dlm_clean_block_mle(dlm, mle, dead_node);
+ 			continue;
+ 		}
  
-@@ -298,9 +217,6 @@ bail:
- 	if (inode)
- 		iput(inode);
+@@ -3280,51 +3332,21 @@ top:
  
--	if (status < 0)
--		ocfs2_shutdown_la_debug(osb);
+ 		/* if we have reached this point, this mle needs to
+ 		 * be removed from the list and freed. */
 -
- 	mlog(0, "Local alloc window bits = %d\n", osb->local_alloc_bits);
+-		/* remove from the list early.  NOTE: unlinking
+-		 * list_head while in list_for_each_safe */
+-		__dlm_mle_detach_hb_events(dlm, mle);
+-		spin_lock(&mle->spinlock);
+-		__dlm_unlink_mle(dlm, mle);
+-		atomic_set(&mle->woken, 1);
+-		spin_unlock(&mle->spinlock);
+-		wake_up(&mle->wq);
++		dlm_clean_migration_mle(dlm, mle);
  
- 	mlog_exit(status);
-@@ -330,8 +246,6 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
- 	cancel_delayed_work(&osb->la_enable_wq);
- 	flush_workqueue(ocfs2_wq);
- 
--	ocfs2_shutdown_la_debug(osb);
+ 		mlog(0, "%s: node %u died during migration from "
+ 		     "%u to %u!\n", dlm->name, dead_node,
+ 		     mle->master, mle->new_master);
+-		/* if there is a lockres associated with this
+-	 	 * mle, find it and set its owner to UNKNOWN */
+-		hash = dlm_lockid_hash(mle->u.mlename.name, mle->u.mlename.len);
+-		res = __dlm_lookup_lockres(dlm, mle->u.mlename.name,
+-					   mle->u.mlename.len, hash);
+-		if (res) {
+-			/* unfortunately if we hit this rare case, our
+-		 	 * lock ordering is messed.  we need to drop
+-		 	 * the master lock so that we can take the
+-		  	 * lockres lock, meaning that we will have to
+-			 * restart from the head of list. */
+-			spin_unlock(&dlm->master_lock);
 -
- 	if (osb->local_alloc_state == OCFS2_LA_UNUSED)
- 		goto out;
- 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index e523a9c..aa4fa41 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -272,11 +272,6 @@ struct ocfs2_super
- 
- 	u64 la_last_gd;
- 
--#ifdef CONFIG_OCFS2_FS_STATS
--	struct dentry *local_alloc_debug;
--	char *local_alloc_debug_buf;
--#endif
+-			/* move lockres onto recovery list */
+-			spin_lock(&res->spinlock);
+-			dlm_set_lockres_owner(dlm, res,
+-				      	DLM_LOCK_RES_OWNER_UNKNOWN);
+-			dlm_move_lockres_to_recovery_list(dlm, res);
+-			spin_unlock(&res->spinlock);
+-			dlm_lockres_put(res);
 -
- 	/* Next two fields are for local node slot recovery during
- 	 * mount. */
- 	int dirty;
+-			/* about to get rid of mle, detach from heartbeat */
+-			__dlm_mle_detach_hb_events(dlm, mle);
+-
+-			/* dump the mle */
+-			spin_lock(&dlm->master_lock);
+-			__dlm_put_mle(mle);
+-			spin_unlock(&dlm->master_lock);
+ 
++		/* If we find a lockres associated with the mle, we've
++		 * hit this rare case that messes up our lock ordering.
++		 * If so, we need to drop the master lock so that we can
++		 * take the lockres lock, meaning that we will have to
++		 * restart from the head of list. */
++		res = dlm_reset_mleres_owner(dlm, mle);
++		if (res)
+ 			/* restart */
+ 			goto top;
+-		}
+ 
+ 		/* this may be the last reference */
+ 		__dlm_put_mle(mle);
 -- 
 1.5.6.3
