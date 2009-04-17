@@ -1,45 +1,92 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 17 Apr 2009 13:37:17 -0700
-Subject: [Ocfs2-devel] [PATCH 04/26] ocfs2/dlm: Use ast_lock to protect
-	ast_list
+Date: Fri, 17 Apr 2009 13:37:32 -0700
+Subject: [Ocfs2-devel] [PATCH 19/26] ocfs2/dlm: Track number of mles
 In-Reply-To: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
 References: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1240000659-6201-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1240000659-6201-20-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit dabc47de7a23f57522dc762d9d2ad875700d3497
+Mainline commit 2041d8fdcec7603401829f60810c1dbd5e96c043
 
-The code was using dlm->spinlock instead of dlm->ast_lock to protect the
-ast_list. This patch fixes the issue.
+The lifetime of a mle is limited to the duration of the lockres mastery
+process. While typically this lifetime is fairly short, we have noticed
+the number of mles explode under certain circumstances. This patch tracks
+the number of each different types of mles and should help us determine
+how best to speed up the mastery process.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-Acked-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlm/dlmunlock.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |    5 ++++-
+ fs/ocfs2/dlm/dlmdomain.c |    5 +++++
+ fs/ocfs2/dlm/dlmmaster.c |    5 +++++
+ 3 files changed, 14 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-index 86ca085..fcf879e 100644
---- a/fs/ocfs2/dlm/dlmunlock.c
-+++ b/fs/ocfs2/dlm/dlmunlock.c
-@@ -117,11 +117,11 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
- 	else
- 		BUG_ON(res->owner == dlm->node_num);
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index 3024f60..c339172 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -52,7 +52,8 @@
+ enum dlm_mle_type {
+ 	DLM_MLE_BLOCK,
+ 	DLM_MLE_MASTER,
+-	DLM_MLE_MIGRATION
++	DLM_MLE_MIGRATION,
++	DLM_MLE_NUM_TYPES
+ };
  
--	spin_lock(&dlm->spinlock);
-+	spin_lock(&dlm->ast_lock);
- 	/* We want to be sure that we're not freeing a lock
- 	 * that still has AST's pending... */
- 	in_use = !list_empty(&lock->ast_list);
--	spin_unlock(&dlm->spinlock);
-+	spin_unlock(&dlm->ast_lock);
- 	if (in_use) {
- 	       mlog(ML_ERROR, "lockres %.*s: Someone is calling dlmunlock "
- 		    "while waiting for an ast!", res->lockname.len,
+ struct dlm_lock_name {
+@@ -156,6 +157,8 @@ struct dlm_ctxt
+ 	struct list_head mle_hb_events;
+ 
+ 	/* these give a really vague idea of the system load */
++	atomic_t mle_tot_count[DLM_MLE_NUM_TYPES];
++	atomic_t mle_cur_count[DLM_MLE_NUM_TYPES];
+ 	atomic_t local_resources;
+ 	atomic_t remote_resources;
+ 	atomic_t unknown_resources;
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 780e0d7..49a3ae0 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1608,6 +1608,11 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	atomic_set(&dlm->remote_resources, 0);
+ 	atomic_set(&dlm->unknown_resources, 0);
+ 
++	for (i = 0; i < DLM_MLE_NUM_TYPES; ++i) {
++		atomic_set(&dlm->mle_tot_count[i], 0);
++		atomic_set(&dlm->mle_cur_count[i], 0);
++	}
++
+ 	spin_lock_init(&dlm->work_lock);
+ 	INIT_LIST_HEAD(&dlm->work_list);
+ 	KAPI_INIT_WORK(&dlm->dispatched_work, dlm_dispatch_work, dlm);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 699c6d0..c53041b 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -325,6 +325,9 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
+ 		mle->u.mlename.hash = dlm_lockid_hash(name, namelen);
+ 	}
+ 
++	atomic_inc(&dlm->mle_tot_count[mle->type]);
++	atomic_inc(&dlm->mle_cur_count[mle->type]);
++
+ 	/* copy off the node_map and register hb callbacks on our copy */
+ 	memcpy(mle->node_map, dlm->domain_map, sizeof(mle->node_map));
+ 	memcpy(mle->vote_map, dlm->domain_map, sizeof(mle->vote_map));
+@@ -467,6 +470,8 @@ static void dlm_mle_release(struct kref *kref)
+ 	/* detach the mle from the domain node up/down events */
+ 	__dlm_mle_detach_hb_events(dlm, mle);
+ 
++	atomic_dec(&dlm->mle_cur_count[mle->type]);
++
+ 	/* NOTE: kfree under spinlock here.
+ 	 * if this is bad, we can move this to a freelist. */
+ 	kmem_cache_free(dlm_mle_cache, mle);
 -- 
 1.5.6.3
