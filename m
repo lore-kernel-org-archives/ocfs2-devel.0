@@ -1,60 +1,45 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 17 Apr 2009 13:37:37 -0700
-Subject: [Ocfs2-devel] [PATCH 24/26] ocfs2/dlm: Do not purge lockres that is
-	being migrated dlm_purge_lockres()
+Date: Fri, 17 Apr 2009 13:37:19 -0700
+Subject: [Ocfs2-devel] [PATCH 06/26] ocfs2: add IO error check in
+	ocfs2_get_sector()
 In-Reply-To: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
 References: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1240000659-6201-25-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1240000659-6201-7-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 516b7e52abc7efd61c084b217c61985a403828ed
+From: wengang wang <wen.gang.wang@oracle.com>
 
-This patch attempts to fix a fine race between purging and migration.
+Mainline commit 28d57d437786eb3e44f1ca3f0f41e7cfe29c6dd4
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Check for IO error in ocfs2_get_sector().
+
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlm/dlmthread.c |   20 ++++++++++++++++++--
- 1 files changed, 18 insertions(+), 2 deletions(-)
+ fs/ocfs2/super.c |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index 4060bb3..d490b66 100644
---- a/fs/ocfs2/dlm/dlmthread.c
-+++ b/fs/ocfs2/dlm/dlmthread.c
-@@ -162,12 +162,28 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
- 
- 	spin_lock(&res->spinlock);
- 	if (!__dlm_lockres_unused(res)) {
--		spin_unlock(&res->spinlock);
- 		mlog(0, "%s:%.*s: tried to purge but not unused\n",
- 		     dlm->name, res->lockname.len, res->lockname.name);
--		return -ENOTEMPTY;
-+		__dlm_print_one_lock_resource(res);
-+		spin_unlock(&res->spinlock);
-+		BUG();
- 	}
-+
-+	if (res->state & DLM_LOCK_RES_MIGRATING) {
-+		mlog(0, "%s:%.*s: Delay dropref as this lockres is "
-+		     "being remastered\n", dlm->name, res->lockname.len,
-+		     res->lockname.name);
-+		/* Re-add the lockres to the end of the purge list */
-+		if (!list_empty(&res->purge)) {
-+			list_del_init(&res->purge);
-+			list_add_tail(&res->purge, &dlm->purge_list);
-+		}
-+		spin_unlock(&res->spinlock);
-+		return 0;
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 535ccb5..5f5cb0f 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1203,6 +1203,13 @@ static int ocfs2_get_sector(struct super_block *sb,
+ 	unlock_buffer(*bh);
+ 	ll_rw_block(READ, 1, bh);
+ 	wait_on_buffer(*bh);
++	if (!buffer_uptodate(*bh)) {
++		mlog_errno(-EIO);
++		brelse(*bh);
++		*bh = NULL;
++		return -EIO;
 +	}
 +
- 	master = (res->owner == dlm->node_num);
-+
- 	if (!master)
- 		res->state |= DLM_LOCK_RES_DROPPING_REF;
- 	spin_unlock(&res->spinlock);
+ 	return 0;
+ }
+ 
 -- 
 1.5.6.3
