@@ -1,54 +1,35 @@
-From: wengang wang <wen.gang.wang@oracle.com>
-Date: Fri, 17 Apr 2009 15:38:59 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: Log -EIO errors just when hit them.
-Message-ID: <200904170744.n3H7iJac013765@acsinet15.oracle.com>
+From: Coly Li <coly.li@suse.de>
+Date: Fri, 17 Apr 2009 19:17:50 +0800
+Subject: [Ocfs2-devel] hang with fsdlm
+In-Reply-To: <49E692D7.5030009@oracle.com>
+References: <20090415165717.GD22705@redhat.com> <49E692D7.5030009@oracle.com>
+Message-ID: <49E8655E.1090403@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch logs(ERROR) -EIO errors just when they are hitted.
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
---
-diff -up ./linux-2.6.29.y.build/fs/ocfs2/buffer_head_io.c.orig ./linux-2.6.29.y.build/fs/ocfs2/buffer_head_io.c
---- ./linux-2.6.29.y.build/fs/ocfs2/buffer_head_io.c.orig	2009-04-17 13:55:52.000000000 +0800
-+++ ./linux-2.6.29.y.build/fs/ocfs2/buffer_head_io.c	2009-04-17 14:19:54.000000000 +0800
-@@ -91,6 +91,8 @@ int ocfs2_write_block(struct ocfs2_super
- 		 * information for this bh as it's not marked locally
- 		 * uptodate. */
- 		ret = -EIO;
-+		mlog(ML_ERROR, "writing block %llu failed with %d\n",
-+		     (u64)bh->b_blocknr, ret);
- 		put_bh(bh);
- 	}
- 
-@@ -168,6 +170,8 @@ int ocfs2_read_blocks_sync(struct ocfs2_
- 			 * so we can safely record this and loop back
- 			 * to cleanup the other buffers. */
- 			status = -EIO;
-+			mlog(ML_ERROR, "reading block %llu failed with %d\n",
-+			     (u64)bh->b_blocknr, status);
- 			put_bh(bh);
- 			bhs[i - 1] = NULL;
- 		}
-@@ -340,6 +344,9 @@ int ocfs2_read_blocks(struct inode *inod
- 				 * for this bh as it's not marked locally
- 				 * uptodate. */
- 				status = -EIO;
-+				mlog(ML_ERROR, "reading block %llu failed with"
-+				     " %d\n",
-+				     (u64)bh->b_blocknr, status);
- 				put_bh(bh);
- 				bhs[i] = NULL;
- 				continue;
-@@ -431,6 +438,8 @@ int ocfs2_write_super_or_backup(struct o
- 
- 	if (!buffer_uptodate(bh)) {
- 		ret = -EIO;
-+		mlog(ML_ERROR, "writing block %llu failed with %d\n",
-+		     (u64)bh->b_blocknr, ret);
- 		put_bh(bh);
- 	}
- 
+
+Sunil Mushran Wrote:
+> David,
+> 
+> So it's the same issue. bull-02 knows it is blocking an EX, has no
+> holders, but is not doing anything to downconvert.
+> 
+> Coly Li is working on this same issue on novellbz#492055.
+> https://bugzilla.novell.com/show_bug.cgi?id=492055
+> 
+> He is unable to reproduce with the sles11 kernel. The dlm bits should
+> be the same as mainline. I think. I've asked him to run with mainline.
+> 
+I setup a 4 nodes cluster with 2.6.30rc2 upstream kernel. Wish David's
+suggestion, I create a new ocfs2 volume, it's quite easy to reproduce this issue
+by running make_panic within 5 seconds.
+
+Continue to track down.
+
+-- 
+Coly Li
+SuSE Labs
