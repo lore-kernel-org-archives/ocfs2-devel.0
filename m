@@ -1,94 +1,150 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 17 Apr 2009 13:37:29 -0700
-Subject: [Ocfs2-devel] [PATCH 16/26] ocfs2/dlm: Create and destroy the
-	dlm->master_hash
+Date: Fri, 17 Apr 2009 13:37:31 -0700
+Subject: [Ocfs2-devel] [PATCH 18/26] ocfs2/dlm: Indent
+	dlm_cleanup_master_list()
 In-Reply-To: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
 References: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1240000659-6201-17-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1240000659-6201-19-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit e2b66ddcce922529e058cf74d839c4c49c8379a1
+Mainline commit 67ae1f0604da3bcf3ed6dec59ac71d07e54a404c
 
-This patch adds code to create and destroy the dlm->master_hash.
+The previous patch explicitly did not indent dlm_cleanup_master_list()
+so as to make the patch readable. This patch properly indents the
+function.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h |    8 ++++++++
- fs/ocfs2/dlm/dlmdomain.c |   18 ++++++++++++++++++
- 2 files changed, 26 insertions(+), 0 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |  106 ++++++++++++++++++++++-----------------------
+ 1 files changed, 52 insertions(+), 54 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 00c1dd1..d9dba0a 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -151,6 +151,7 @@ struct dlm_ctxt
- 	unsigned long recovery_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
- 	struct dlm_recovery_ctxt reco;
- 	spinlock_t master_lock;
-+	struct hlist_head **master_hash;
- 	struct list_head master_list;
- 	struct list_head mle_hb_events;
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index c50eabe..699c6d0 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -3320,66 +3320,64 @@ top:
+ 			mle = hlist_entry(list, struct dlm_master_list_entry,
+ 					  master_hash_node);
  
-@@ -195,6 +196,13 @@ static inline struct hlist_head *dlm_lockres_hash(struct dlm_ctxt *dlm, unsigned
- 	return dlm->lockres_hash[(i / DLM_BUCKETS_PER_PAGE) % DLM_HASH_PAGES] + (i % DLM_BUCKETS_PER_PAGE);
+-		BUG_ON(mle->type != DLM_MLE_BLOCK &&
+-		       mle->type != DLM_MLE_MASTER &&
+-		       mle->type != DLM_MLE_MIGRATION);
+-
+-		/* MASTER mles are initiated locally.  the waiting
+-		 * process will notice the node map change
+-		 * shortly.  let that happen as normal. */
+-		if (mle->type == DLM_MLE_MASTER)
+-			continue;
+-
++			BUG_ON(mle->type != DLM_MLE_BLOCK &&
++			       mle->type != DLM_MLE_MASTER &&
++			       mle->type != DLM_MLE_MIGRATION);
++
++			/* MASTER mles are initiated locally. The waiting
++			 * process will notice the node map change shortly.
++			 * Let that happen as normal. */
++			if (mle->type == DLM_MLE_MASTER)
++				continue;
++
++			/* BLOCK mles are initiated by other nodes. Need to
++			 * clean up if the dead node would have been the
++			 * master. */
++			if (mle->type == DLM_MLE_BLOCK) {
++				dlm_clean_block_mle(dlm, mle, dead_node);
++				continue;
++			}
+ 
+-		/* BLOCK mles are initiated by other nodes.
+-		 * need to clean up if the dead node would have
+-		 * been the master. */
+-		if (mle->type == DLM_MLE_BLOCK) {
+-			dlm_clean_block_mle(dlm, mle, dead_node);
+-			continue;
++			/* Everything else is a MIGRATION mle */
++
++			/* The rule for MIGRATION mles is that the master
++			 * becomes UNKNOWN if *either* the original or the new
++			 * master dies. All UNKNOWN lockres' are sent to
++			 * whichever node becomes the recovery master. The new
++			 * master is responsible for determining if there is
++			 * still a master for this lockres, or if he needs to
++			 * take over mastery. Either way, this node should
++			 * expect another message to resolve this. */
++
++			if (mle->master != dead_node &&
++			    mle->new_master != dead_node)
++				continue;
++
++			/* If we have reached this point, this mle needs to be
++			 * removed from the list and freed. */
++			dlm_clean_migration_mle(dlm, mle);
++
++			mlog(0, "%s: node %u died during migration from "
++			     "%u to %u!\n", dlm->name, dead_node, mle->master,
++			     mle->new_master);
++
++			/* If we find a lockres associated with the mle, we've
++			 * hit this rare case that messes up our lock ordering.
++			 * If so, we need to drop the master lock so that we can
++			 * take the lockres lock, meaning that we will have to
++			 * restart from the head of list. */
++			res = dlm_reset_mleres_owner(dlm, mle);
++			if (res)
++				/* restart */
++				goto top;
++
++			/* This may be the last reference */
++			__dlm_put_mle(mle);
+ 		}
+-
+-		/* everything else is a MIGRATION mle */
+-
+-		/* the rule for MIGRATION mles is that the master
+-		 * becomes UNKNOWN if *either* the original or
+-		 * the new master dies.  all UNKNOWN lockreses
+-		 * are sent to whichever node becomes the recovery
+-		 * master.  the new master is responsible for
+-		 * determining if there is still a master for
+-		 * this lockres, or if he needs to take over
+-		 * mastery.  either way, this node should expect
+-		 * another message to resolve this. */
+-		if (mle->master != dead_node &&
+-		    mle->new_master != dead_node)
+-			continue;
+-
+-		/* if we have reached this point, this mle needs to
+-		 * be removed from the list and freed. */
+-		dlm_clean_migration_mle(dlm, mle);
+-
+-		mlog(0, "%s: node %u died during migration from "
+-		     "%u to %u!\n", dlm->name, dead_node,
+-		     mle->master, mle->new_master);
+-
+-		/* If we find a lockres associated with the mle, we've
+-		 * hit this rare case that messes up our lock ordering.
+-		 * If so, we need to drop the master lock so that we can
+-		 * take the lockres lock, meaning that we will have to
+-		 * restart from the head of list. */
+-		res = dlm_reset_mleres_owner(dlm, mle);
+-		if (res)
+-			/* restart */
+-			goto top;
+-
+-		/* this may be the last reference */
+-		__dlm_put_mle(mle);
+-	}
+ 	}
+ 	spin_unlock(&dlm->master_lock);
  }
  
-+static inline struct hlist_head *dlm_master_hash(struct dlm_ctxt *dlm,
-+						 unsigned i)
-+{
-+	return dlm->master_hash[(i / DLM_BUCKETS_PER_PAGE) % DLM_HASH_PAGES] +
-+			(i % DLM_BUCKETS_PER_PAGE);
-+}
-+
- /* these keventd work queue items are for less-frequently
-  * called functions that cannot be directly called from the
-  * net message handlers for some reason, usually because
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index c2e192e..7c95956 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -304,6 +304,9 @@ static void dlm_free_ctxt_mem(struct dlm_ctxt *dlm)
- 	if (dlm->lockres_hash)
- 		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
- 
-+	if (dlm->master_hash)
-+		dlm_free_pagevec((void **)dlm->master_hash, DLM_HASH_PAGES);
-+
- 	if (dlm->name)
- 		kfree(dlm->name);
- 
-@@ -1534,12 +1537,27 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
- 	for (i = 0; i < DLM_HASH_BUCKETS; i++)
- 		INIT_HLIST_HEAD(dlm_lockres_hash(dlm, i));
- 
-+	dlm->master_hash = (struct hlist_head **)
-+				dlm_alloc_pagevec(DLM_HASH_PAGES);
-+	if (!dlm->master_hash) {
-+		mlog_errno(-ENOMEM);
-+		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
-+		kfree(dlm->name);
-+		kfree(dlm);
-+		dlm = NULL;
-+		goto leave;
-+	}
-+
-+	for (i = 0; i < DLM_HASH_BUCKETS; i++)
-+		INIT_HLIST_HEAD(dlm_master_hash(dlm, i));
-+
- 	strcpy(dlm->name, domain);
- 	dlm->key = key;
- 	dlm->node_num = o2nm_this_node();
- 
- 	ret = dlm_create_debugfs_subroot(dlm);
- 	if (ret < 0) {
-+		dlm_free_pagevec((void **)dlm->master_hash, DLM_HASH_PAGES);
- 		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
- 		kfree(dlm->name);
- 		kfree(dlm);
+-
+ int dlm_finish_migration(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+ 			 u8 old_master)
+ {
 -- 
 1.5.6.3
