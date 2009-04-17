@@ -1,162 +1,58 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 17 Apr 2009 13:37:23 -0700
-Subject: [Ocfs2-devel] [PATCH 10/26] ocfs2: Optimize inode allocation by
-	remembering last group
+Date: Fri, 17 Apr 2009 13:37:38 -0700
+Subject: [Ocfs2-devel] [PATCH 25/26] ocfs2/dlm: Tweak mle_state output
 In-Reply-To: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
 References: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1240000659-6201-11-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1240000659-6201-26-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Tao Ma <tao.ma@oracle.com>
+Mainline commit 9405dccfd3201d2b76e120949bec81ba8cfbd2d0
 
-Mainline commit 138211515c102807a16c02fdc15feef1f6ef8124
+The debugfs file, mle_state, now prints the number of largest number of mles
+in one hash link.
 
-In ocfs2, the inode block search looks for the "emptiest" inode
-group to allocate from. So if an inode alloc file has many equally
-(or almost equally) empty groups, new inodes will tend to get
-spread out amongst them, which in turn can put them all over the
-disk. This is undesirable because directory operations on conceptually
-"nearby" inodes force a large number of seeks.
-
-So we add ip_last_used_group in core directory inodes which records
-the last used allocation group. Another field named ip_last_used_slot
-is also added in case inode stealing happens. When claiming new inode,
-we passed in directory's inode so that the allocation can use this
-information.
-For more details, please see
-http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy.
-
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/inode.c    |    2 ++
- fs/ocfs2/inode.h    |    4 ++++
- fs/ocfs2/namei.c    |    4 ++--
- fs/ocfs2/suballoc.c |   36 ++++++++++++++++++++++++++++++++++++
- fs/ocfs2/suballoc.h |    2 ++
- 5 files changed, 46 insertions(+), 2 deletions(-)
+ fs/ocfs2/dlm/dlmdebug.c |    7 +++++--
+ 1 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index ee6bf13..784761c 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -346,6 +346,8 @@ int ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index bdf1c78..df52f70 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -494,7 +494,7 @@ static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ 	struct hlist_head *bucket;
+ 	struct hlist_node *list;
+ 	int i, out = 0;
+-	unsigned long total = 0;
++	unsigned long total = 0, longest = 0, bktcnt;
  
- 	ocfs2_set_inode_flags(inode);
+ 	out += snprintf(db->buf + out, db->len - out,
+ 			"Dumping MLEs for Domain: %s\n", dlm->name);
+@@ -506,15 +506,18 @@ static int debug_mle_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ 			mle = hlist_entry(list, struct dlm_master_list_entry,
+ 					  master_hash_node);
+ 			++total;
++			++bktcnt;
+ 			if (db->len - out < 200)
+ 				continue;
+ 			out += dump_mle(mle, db->buf + out, db->len - out);
+ 		}
++		longest = max(longest, bktcnt);
++		bktcnt = 0;
+ 	}
+ 	spin_unlock(&dlm->master_lock);
  
-+	OCFS2_I(inode)->ip_last_used_slot = 0;
-+	OCFS2_I(inode)->ip_last_used_group = 0;
- 	status = 0;
- bail:
- 	mlog_exit(status);
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 01437ca..077eb59 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -68,6 +68,10 @@ struct ocfs2_inode_info
- 	struct ocfs2_extent_map		ip_extent_map;
- 
- 	struct inode			vfs_inode;
-+
-+	/* Only valid if the inode is the dir. */
-+	u32				ip_last_used_slot;
-+	u64				ip_last_used_group;
- };
- 
- /*
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index c8206f9..eba1148 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -369,8 +369,8 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 	*new_fe_bh = NULL;
- 	*ret_inode = NULL;
- 
--	status = ocfs2_claim_new_inode(osb, handle, inode_ac, &suballoc_bit,
--				       &fe_blkno);
-+	status = ocfs2_claim_new_inode(osb, handle, dir, parent_fe_bh,
-+				       inode_ac, &suballoc_bit, &fe_blkno);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 228bf1c..0f1f2e9 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -1462,8 +1462,41 @@ bail:
- 	return status;
+ 	out += snprintf(db->buf + out, db->len - out,
+-			"Total on list: %ld\n", total);
++			"Total: %ld, Longest: %ld\n", total, longest);
+ 	return out;
  }
  
-+static void ocfs2_init_inode_ac_group(struct inode *dir,
-+				      struct buffer_head *parent_fe_bh,
-+				      struct ocfs2_alloc_context *ac)
-+{
-+	struct ocfs2_dinode *fe = (struct ocfs2_dinode *)parent_fe_bh->b_data;
-+	/*
-+	 * Try to allocate inodes from some specific group.
-+	 *
-+	 * If the parent dir has recorded the last group used in allocation,
-+	 * cool, use it. Otherwise if we try to allocate new inode from the
-+	 * same slot the parent dir belongs to, use the same chunk.
-+	 *
-+	 * We are very careful here to avoid the mistake of setting
-+	 * ac_last_group to a group descriptor from a different (unlocked) slot.
-+	 */
-+	if (OCFS2_I(dir)->ip_last_used_group &&
-+	    OCFS2_I(dir)->ip_last_used_slot == ac->ac_alloc_slot)
-+		ac->ac_last_group = OCFS2_I(dir)->ip_last_used_group;
-+	else if (le16_to_cpu(fe->i_suballoc_slot) == ac->ac_alloc_slot)
-+		ac->ac_last_group = ocfs2_which_suballoc_group(
-+					le64_to_cpu(fe->i_blkno),
-+					le16_to_cpu(fe->i_suballoc_bit));
-+}
-+
-+static inline void ocfs2_save_inode_ac_group(struct inode *dir,
-+					     struct ocfs2_alloc_context *ac)
-+{
-+	OCFS2_I(dir)->ip_last_used_group = ac->ac_last_group;
-+	OCFS2_I(dir)->ip_last_used_slot = ac->ac_alloc_slot;
-+}
-+
- int ocfs2_claim_new_inode(struct ocfs2_super *osb,
- 			  handle_t *handle,
-+			  struct inode *dir,
-+			  struct buffer_head *parent_fe_bh,
- 			  struct ocfs2_alloc_context *ac,
- 			  u16 *suballoc_bit,
- 			  u64 *fe_blkno)
-@@ -1479,6 +1512,8 @@ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
- 	BUG_ON(ac->ac_bits_wanted != 1);
- 	BUG_ON(ac->ac_which != OCFS2_AC_USE_INODE);
- 
-+	ocfs2_init_inode_ac_group(dir, parent_fe_bh, ac);
-+
- 	status = ocfs2_claim_suballoc_bits(osb,
- 					   ac,
- 					   handle,
-@@ -1497,6 +1532,7 @@ int ocfs2_claim_new_inode(struct ocfs2_super *osb,
- 
- 	*fe_blkno = bg_blkno + (u64) (*suballoc_bit);
- 	ac->ac_bits_given++;
-+	ocfs2_save_inode_ac_group(dir, ac);
- 	status = 0;
- bail:
- 	mlog_exit(status);
-diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-index 40d51da..16f9c9c 100644
---- a/fs/ocfs2/suballoc.h
-+++ b/fs/ocfs2/suballoc.h
-@@ -77,6 +77,8 @@ int ocfs2_claim_metadata(struct ocfs2_super *osb,
- 			 u64 *blkno_start);
- int ocfs2_claim_new_inode(struct ocfs2_super *osb,
- 			  handle_t *handle,
-+			  struct inode *dir,
-+			  struct buffer_head *parent_fe_bh,
- 			  struct ocfs2_alloc_context *ac,
- 			  u16 *suballoc_bit,
- 			  u64 *fe_blkno);
 -- 
 1.5.6.3
