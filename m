@@ -1,207 +1,170 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 17 Apr 2009 13:37:20 -0700
-Subject: [Ocfs2-devel] [PATCH 07/26] ocfs2/hb: Expose the list of
-	heartbeating nodes via debugfs
+Date: Fri, 17 Apr 2009 13:37:25 -0700
+Subject: [Ocfs2-devel] [PATCH 12/26] ocfs2: Optimize inode group allocation
+	by recording last used group.
 In-Reply-To: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
 References: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1240000659-6201-8-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1240000659-6201-13-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 87d3d3f3931f3e0fca44fbb5c06ad45fc4dca9bc
+From: Tao Ma <tao.ma@oracle.com>
 
-This patch creates a debugfs file, o2hb/livesnodes, which exposes the
-aggregate list of heartbeating node across all heartbeat regions.
+Mainline commit feb473a6e8bd19297d0f3bb377b25055c0228c0a
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+In ocfs2, the block group search looks for the "emptiest" group
+to allocate from. So if the allocator has many equally(or almost
+equally) empty groups, new block group will tend to get spread
+out amongst them.
+
+So we add osb_inode_alloc_group in ocfs2_super to record the last
+used inode allocation group.
+For more details, please see
+http://oss.oracle.com/osswiki/OCFS2/DesignDocs/InodeAllocationStrategy.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c   |   96 +++++++++++++++++++++++++++++++++++++++-
- fs/ocfs2/cluster/heartbeat.h   |    3 +-
- fs/ocfs2/cluster/nodemanager.c |    9 +++-
- 3 files changed, 104 insertions(+), 4 deletions(-)
+ fs/ocfs2/ocfs2.h    |    3 +++
+ fs/ocfs2/suballoc.c |   32 ++++++++++++++++++++++++++++----
+ 2 files changed, 31 insertions(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 3e52fa3..af5861d 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -33,6 +33,7 @@
- #include <linux/random.h>
- #include <linux/crc32.h>
- #include <linux/time.h>
-+#include <linux/debugfs.h>
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index aa4fa41..7c79c84 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -317,6 +317,9 @@ struct ocfs2_super
+ 	struct ocfs2_node_map		osb_recovering_orphan_dirs;
+ 	unsigned int			*osb_orphan_wipes;
+ 	wait_queue_head_t		osb_wipe_event;
++
++	/* the group we used to allocate inodes. */
++	u64				osb_inode_alloc_group;
+ };
  
- #include "heartbeat.h"
- #include "tcp.h"
-@@ -60,6 +61,11 @@ static unsigned long o2hb_live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
- static LIST_HEAD(o2hb_node_events);
- static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
+ #define OCFS2_SB(sb)	    ((struct ocfs2_super *)(sb)->s_fs_info)
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 13e7b88..ca91445 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -64,6 +64,7 @@ static int ocfs2_block_group_fill(handle_t *handle,
+ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
+ 				   struct inode *alloc_inode,
+ 				   struct buffer_head *bh,
++				   u64 *last_alloc_group,
+ 				   int flags);
  
-+#define O2HB_DEBUG_DIR			"o2hb"
-+#define O2HB_DEBUG_LIVENODES		"livenodes"
-+static struct dentry *o2hb_debug_dir;
-+static struct dentry *o2hb_debug_livenodes;
-+
- static LIST_HEAD(o2hb_all_regions);
- 
- static struct o2hb_callback {
-@@ -913,7 +919,77 @@ static int o2hb_thread(void *data)
- 	return 0;
- }
- 
--void o2hb_init(void)
-+#ifdef CONFIG_DEBUG_FS
-+static int o2hb_debug_open(struct inode *inode, struct file *file)
-+{
-+	unsigned long map[BITS_TO_LONGS(O2NM_MAX_NODES)];
-+	char *buf = NULL;
-+	int i = -1;
-+	int out = 0;
-+
-+	buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
-+	if (!buf)
-+		goto bail;
-+
-+	o2hb_fill_node_map(map, sizeof(map));
-+
-+	while ((i = find_next_bit(map, O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES)
-+		out += snprintf(buf + out, PAGE_SIZE - out, "%d ", i);
-+	out += snprintf(buf + out, PAGE_SIZE - out, "\n");
-+
-+	i_size_write(inode, out);
-+
-+	file->private_data = buf;
-+
-+	return 0;
-+bail:
-+	return -ENOMEM;
-+}
-+
-+static int o2hb_debug_release(struct inode *inode, struct file *file)
-+{
-+	kfree(file->private_data);
-+	return 0;
-+}
-+
-+static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
-+				 size_t nbytes, loff_t *ppos)
-+{
-+	return simple_read_from_buffer(buf, nbytes, ppos, file->private_data,
-+				       i_size_read(file->f_mapping->host));
-+}
-+#else
-+static int o2hb_debug_open(struct inode *inode, struct file *file)
-+{
-+	return 0;
-+}
-+static int o2hb_debug_release(struct inode *inode, struct file *file)
-+{
-+	return 0;
-+}
-+static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
-+			       size_t nbytes, loff_t *ppos)
-+{
-+	return 0;
-+}
-+#endif  /* CONFIG_DEBUG_FS */
-+
-+static struct file_operations o2hb_debug_fops = {
-+	.open =		o2hb_debug_open,
-+	.release =	o2hb_debug_release,
-+	.read =		o2hb_debug_read,
-+	.llseek =	generic_file_llseek,
-+};
-+
-+void o2hb_exit(void)
-+{
-+	if (o2hb_debug_livenodes)
-+		debugfs_remove(o2hb_debug_livenodes);
-+	if (o2hb_debug_dir)
-+		debugfs_remove(o2hb_debug_dir);
-+}
-+
-+int o2hb_init(void)
+ static int ocfs2_cluster_group_search(struct inode *inode,
+@@ -281,6 +282,7 @@ static inline u16 ocfs2_find_smallest_chain(struct ocfs2_chain_list *cl)
+ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
+ 				   struct inode *alloc_inode,
+ 				   struct buffer_head *bh,
++				   u64 *last_alloc_group,
+ 				   int flags)
  {
- 	int i;
+ 	int status, credits;
+@@ -318,6 +320,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
+ 		goto bail;
+ 	}
  
-@@ -926,6 +1002,24 @@ void o2hb_init(void)
- 	INIT_LIST_HEAD(&o2hb_node_events);
- 
- 	memset(o2hb_live_node_bitmap, 0, sizeof(o2hb_live_node_bitmap));
-+
-+	o2hb_debug_dir = debugfs_create_dir(O2HB_DEBUG_DIR, NULL);
-+	if (!o2hb_debug_dir) {
-+		mlog_errno(-ENOMEM);
-+		return -ENOMEM;
++	if (last_alloc_group && *last_alloc_group != 0) {
++		mlog(0, "use old allocation group %llu for block group alloc\n",
++		     (unsigned long long)*last_alloc_group);
++		ac->ac_last_group = *last_alloc_group;
 +	}
+ 	status = ocfs2_claim_clusters(osb,
+ 				      handle,
+ 				      ac,
+@@ -392,6 +399,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
+ 	alloc_inode->i_blocks = ocfs2_inode_sector_count(alloc_inode);
+ 
+ 	status = 0;
 +
-+	o2hb_debug_livenodes = debugfs_create_file(O2HB_DEBUG_LIVENODES,
-+						   S_IFREG|S_IRUSR,
-+						   o2hb_debug_dir, NULL,
-+						   &o2hb_debug_fops);
-+	if (!o2hb_debug_livenodes) {
-+		mlog_errno(-ENOMEM);
-+		debugfs_remove(o2hb_debug_dir);
-+		return -ENOMEM;
-+	}
++	/* save the new last alloc group so that the caller can cache it. */
++	if (last_alloc_group)
++		*last_alloc_group = ac->ac_last_group;
 +
-+	return 0;
- }
+ bail:
+ 	if (handle)
+ 		ocfs2_commit_trans(osb, handle);
+@@ -409,6 +421,7 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
+ 				       struct ocfs2_alloc_context *ac,
+ 				       int type,
+ 				       u32 slot,
++				       u64 *last_alloc_group,
+ 				       int flags)
+ {
+ 	int status;
+@@ -473,7 +486,8 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
+ 			goto bail;
+ 		}
  
- /* if we're already in a callback then we're already serialized by the sem */
-diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
-index e511339..2f16492 100644
---- a/fs/ocfs2/cluster/heartbeat.h
-+++ b/fs/ocfs2/cluster/heartbeat.h
-@@ -75,7 +75,8 @@ void o2hb_unregister_callback(const char *region_uuid,
- 			      struct o2hb_callback_func *hc);
- void o2hb_fill_node_map(unsigned long *map,
- 			unsigned bytes);
--void o2hb_init(void);
-+void o2hb_exit(void);
-+int o2hb_init(void);
- int o2hb_check_node_heartbeating(u8 node_num);
- int o2hb_check_node_heartbeating_from_callback(u8 node_num);
- int o2hb_check_local_node_heartbeating(void);
-diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
-index 8eff5bf..4378986 100644
---- a/fs/ocfs2/cluster/nodemanager.c
-+++ b/fs/ocfs2/cluster/nodemanager.c
-@@ -950,6 +950,7 @@ static void __exit exit_o2nm(void)
- 	o2cb_sys_shutdown();
+-		status = ocfs2_block_group_alloc(osb, alloc_inode, bh, flags);
++		status = ocfs2_block_group_alloc(osb, alloc_inode, bh,
++						 last_alloc_group, flags);
+ 		if (status < 0) {
+ 			if (status != -ENOSPC)
+ 				mlog_errno(status);
+@@ -517,7 +531,7 @@ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
  
- 	o2net_exit();
-+	o2hb_exit();
- }
+ 	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
+ 					     EXTENT_ALLOC_SYSTEM_INODE,
+-					     slot, ALLOC_NEW_GROUP);
++					     slot, NULL, ALLOC_NEW_GROUP);
+ 	if (status < 0) {
+ 		if (status != -ENOSPC)
+ 			mlog_errno(status);
+@@ -554,7 +568,8 @@ static int ocfs2_steal_inode_from_other_nodes(struct ocfs2_super *osb,
  
- static int __init init_o2nm(void)
-@@ -958,11 +959,13 @@ static int __init init_o2nm(void)
+ 		status = ocfs2_reserve_suballoc_bits(osb, ac,
+ 						     INODE_ALLOC_SYSTEM_INODE,
+-						     slot, NOT_ALLOC_NEW_GROUP);
++						     slot, NULL,
++						     NOT_ALLOC_NEW_GROUP);
+ 		if (status >= 0) {
+ 			ocfs2_set_inode_steal_slot(osb, slot);
+ 			break;
+@@ -571,6 +586,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+ {
+ 	int status;
+ 	s16 slot = ocfs2_get_inode_steal_slot(osb);
++	u64 alloc_group;
  
- 	cluster_print_version();
+ 	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+ 	if (!(*ac)) {
+@@ -598,14 +614,22 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+ 		goto inode_steal;
  
--	o2hb_init();
-+	ret = o2hb_init();
-+	if (ret)
-+		goto out;
+ 	atomic_set(&osb->s_num_inodes_stolen, 0);
++	alloc_group = osb->osb_inode_alloc_group;
+ 	status = ocfs2_reserve_suballoc_bits(osb, *ac,
+ 					     INODE_ALLOC_SYSTEM_INODE,
+ 					     osb->slot_num,
++					     &alloc_group,
+ 					     ALLOC_NEW_GROUP |
+ 					     ALLOC_GROUPS_FROM_GLOBAL);
+ 	if (status >= 0) {
+ 		status = 0;
  
- 	ret = o2net_init();
- 	if (ret)
--		goto out;
-+		goto out_o2hb;
++		spin_lock(&osb->osb_lock);
++		osb->osb_inode_alloc_group = alloc_group;
++		spin_unlock(&osb->osb_lock);
++		mlog(0, "after reservation, new allocation group is "
++		     "%llu\n", (unsigned long long)alloc_group);
++
+ 		/*
+ 		 * Some inodes must be freed by us, so try to allocate
+ 		 * from our own next time.
+@@ -652,7 +676,7 @@ int ocfs2_reserve_cluster_bitmap_bits(struct ocfs2_super *osb,
  
- 	ocfs2_table_header = kapi_register_sysctl_table(ocfs2_root_table);
- 	if (!ocfs2_table_header) {
-@@ -994,6 +997,8 @@ out_sysctl:
- 	unregister_sysctl_table(ocfs2_table_header);
- out_o2net:
- 	o2net_exit();
-+out_o2hb:
-+	o2hb_exit();
- out:
- 	return ret;
- }
+ 	status = ocfs2_reserve_suballoc_bits(osb, ac,
+ 					     GLOBAL_BITMAP_SYSTEM_INODE,
+-					     OCFS2_INVALID_SLOT,
++					     OCFS2_INVALID_SLOT, NULL,
+ 					     ALLOC_NEW_GROUP);
+ 	if (status < 0 && status != -ENOSPC) {
+ 		mlog_errno(status);
 -- 
 1.5.6.3
