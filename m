@@ -1,46 +1,45 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 17 Apr 2009 13:37:15 -0700
-Subject: [Ocfs2-devel] [PATCH 02/26] ocfs2/dlm: Retract fix for race between
-	purge and migrate
+Date: Fri, 17 Apr 2009 13:37:17 -0700
+Subject: [Ocfs2-devel] [PATCH 04/26] ocfs2/dlm: Use ast_lock to protect
+	ast_list
 In-Reply-To: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
 References: <1240000659-6201-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1240000659-6201-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1240000659-6201-5-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 7dc102b737e9f49dac426161294cb2d326a97d8e
+Mainline commit dabc47de7a23f57522dc762d9d2ad875700d3497
 
-Mainline commit d4f7e650e55af6b235871126f747da88600e8040 attempts to delay
-the dlm_thread from sending the drop ref message if the lockres is being
-migrated. The problem is that we make the dlm_thread wait for the migration
-to complete. This causes a deadlock as dlm_thread also participates in the
-lockres migration process.
-
-A better fix for the original oss bugzilla#1012 is in testing.
+The code was using dlm->spinlock instead of dlm->ast_lock to protect the
+ast_list. This patch fixes the issue.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 Acked-by: Joel Becker <joel.becker@oracle.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/dlm/dlmthread.c |    3 +--
- 1 files changed, 1 insertions(+), 2 deletions(-)
+ fs/ocfs2/dlm/dlmunlock.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index d129520..4060bb3 100644
---- a/fs/ocfs2/dlm/dlmthread.c
-+++ b/fs/ocfs2/dlm/dlmthread.c
-@@ -181,8 +181,7 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+index 86ca085..fcf879e 100644
+--- a/fs/ocfs2/dlm/dlmunlock.c
++++ b/fs/ocfs2/dlm/dlmunlock.c
+@@ -117,11 +117,11 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+ 	else
+ 		BUG_ON(res->owner == dlm->node_num);
  
- 		spin_lock(&res->spinlock);
- 		/* This ensures that clear refmap is sent after the set */
--		__dlm_wait_on_lockres_flags(res, (DLM_LOCK_RES_SETREF_INPROG |
--						  DLM_LOCK_RES_MIGRATING));
-+		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_SETREF_INPROG);
- 		spin_unlock(&res->spinlock);
- 
- 		/* clear our bit from the master's refmap, ignore errors */
+-	spin_lock(&dlm->spinlock);
++	spin_lock(&dlm->ast_lock);
+ 	/* We want to be sure that we're not freeing a lock
+ 	 * that still has AST's pending... */
+ 	in_use = !list_empty(&lock->ast_list);
+-	spin_unlock(&dlm->spinlock);
++	spin_unlock(&dlm->ast_lock);
+ 	if (in_use) {
+ 	       mlog(ML_ERROR, "lockres %.*s: Someone is calling dlmunlock "
+ 		    "while waiting for an ast!", res->lockname.len,
 -- 
 1.5.6.3
