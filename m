@@ -1,37 +1,52 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 17 Apr 2009 15:54:08 -0700
-Subject: [Ocfs2-devel] The ocfs2.git tree is moving!
-Message-ID: <20090417225408.GF12273@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 20 Apr 2009 21:34:18 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Add missing iput() during error
+	handling in ocfs2_dentry_attach_lock()
+Message-ID: <1240288458-14162-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2 fans!
-	The ocfs2.git tree is a little bored with life in the
-suburbs, and so it is moving to the city!  Starting today, I'll be
-feeding it and watering it at
-git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git.  All your
-usual branchy goodness will be there.
-	Don't worry, Mark still is my co-maintainer.  He's done all the
-heavy tree lifting for over two years, and its high time I shared the
-load.  We'll both review patches, etc, but I'll be the one merging them
-and pushing them.
+In ocfs2_dentry_attach_lock(), if unable to get the dentry lock(), we need to
+call iput(inode) because a failure here means no d_instantiate(), which means
+the normally matching iput() will not be called during dput(dentry).
 
-Pull: git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git
-Web:  http://git.kernel.org/?p=linux/kernel/git/jlbec/ocfs2.git
+This patch fixes the oops that accompanies the following message:
+(3996,1):dlm_empty_lockres:2708 ERROR: lockres W00000000000000000a1046b06a4382 still has local locks!
+kernel BUG in dlm_empty_lockres at /rpmbuild/smushran/BUILD/ocfs2-1.4.2/fs/ocfs2/dlm/dlmmaster.c:2709!
 
-Joel
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/dcache.c |   15 +++++++++++++++
+ 1 files changed, 15 insertions(+), 0 deletions(-)
 
+diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
+index 7d60448..b574431 100644
+--- a/fs/ocfs2/dcache.c
++++ b/fs/ocfs2/dcache.c
+@@ -290,6 +290,21 @@ out_attach:
+ 	else
+ 		mlog_errno(ret);
+ 
++	/*
++	 * In case of error, manually free the allocation and do the iput().
++	 * We need to do this because error here means no d_instantiate(),
++	 * which means iput() will not be called during dput(dentry).
++	 */
++	if (ret < 0 && !alias) {
++		ocfs2_lock_res_free(&dl->dl_lockres);
++		BUG_ON(dl->dl_count != 1);
++		spin_lock(&dentry_attach_lock);
++		dentry->d_fsdata = NULL;
++		spin_unlock(&dentry_attach_lock);
++		kfree(dl);
++		iput(inode);
++	}
++
+ 	dput(alias);
+ 
+ 	return ret;
 -- 
-
-"The doctrine of human equality reposes on this: that there is no
- man really clever who has not found that he is stupid."
-	- Gilbert K. Chesterson
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.6.3
