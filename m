@@ -1,35 +1,45 @@
-From: Dan Carpenter <error27@gmail.com>
-Date: Wed, 8 Apr 2009 13:48:23 +0300 (EAT)
-Subject: [Ocfs2-devel] [patch] unlock i_mutex in error path
-Message-ID: <alpine.DEB.2.00.0904071935520.26512@bicker>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 21 Apr 2009 16:36:56 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Change repository in MAINTAINERS.
+Message-ID: <20090421233656.GE10294@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-There is an error path in ocfs2_quota_write() that doesn't unlock 
-&gqinode->i_mutex().  That seems unintentional.
+The ocfs2.git repository is moving to my kernel.org account.
 
-Found by smatch (http://repo.or.cz/w/smatch.git).  Compile tested.
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ MAINTAINERS |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-regards,
-dan carpenter
+diff --git a/MAINTAINERS b/MAINTAINERS
+index abbedb6..a2ccae5 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -4112,7 +4112,7 @@ P:	Joel Becker
+ M:	joel.becker at oracle.com
+ L:	ocfs2-devel at oss.oracle.com (moderated for non-subscribers)
+ W:	http://oss.oracle.com/projects/ocfs2/
+-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2.git
++T:	git git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git
+ S:	Supported
+ F:	Documentation/filesystems/ocfs2.txt
+ F:	Documentation/filesystems/dlmfs.txt
+-- 
+1.6.1.3
 
-Signed-off-by: Dan Carpenter <error27@gmail.com>
 
---- orig/fs/ocfs2/quota_global.c	2009-04-07 19:34:22.000000000 +0300
-+++ devel/fs/ocfs2/quota_global.c	2009-04-07 19:34:25.000000000 +0300
-@@ -232,10 +232,8 @@
- 		err = ocfs2_get_quota_block(gqinode, blk, &bh);
- 		ja_type = OCFS2_JOURNAL_ACCESS_CREATE;
- 	}
--	if (err) {
--		mlog_errno(err);
--		return err;
--	}
-+	if (err) 
-+		goto out;
- 	lock_buffer(bh);
- 	if (new)
- 		memset(bh->b_data, 0, sb->s_blocksize);
+-- 
+
+Life's Little Instruction Book #139
+
+	"Never deprive someone of hope; it might be all they have."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
