@@ -1,448 +1,215 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 30 Apr 2009 06:58:44 +0800
-Subject: [Ocfs2-devel] [PATCH 32/39] ocfs2: Attach xattr clusters to
-	refcount tree.
+Date: Thu, 30 Apr 2009 06:58:45 +0800
+Subject: [Ocfs2-devel] [PATCH 33/39] ocfs2: Call refcount tree remove
+	process properly.
 In-Reply-To: <49F95A79.6040806@oracle.com>
 References: <49F95A79.6040806@oracle.com>
-Message-ID: <1241045931-24607-32-git-send-email-tao.ma@oracle.com>
+Message-ID: <1241045931-24607-33-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2, when xattr's value is larger than OCFS2_XATTR_INLINE_SIZE,
-it will be kept outside of the blocks we store xattr entry. And they
-are stored in a b-tree also. So this patch try to attach all these
-clusters to refcount tree also.
+Now with xattr refcount support, we need to check whether
+we have xattr refcounted before we remove the refcount tree.
+
+Now the mechanism is:
+1) Check whether i_clusters == 0, if no, exit.
+2) check whether we have i_xattr_loc in dinode. if yes, exit.
+2) Check whether we have inline xattr stored outside, if yes, exit.
+4) Remove the tree.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/refcounttree.c |   40 +++++--
- fs/ocfs2/refcounttree.h |    7 +
- fs/ocfs2/xattr.c        |  291 +++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/xattr.h        |    6 +-
- 4 files changed, 334 insertions(+), 10 deletions(-)
+ fs/ocfs2/alloc.c        |    5 -----
+ fs/ocfs2/file.c         |    3 +++
+ fs/ocfs2/inode.c        |    7 +++++++
+ fs/ocfs2/refcounttree.c |   36 ++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/refcounttree.h |    2 ++
+ fs/ocfs2/xattr.c        |   23 +++++++++++++++++++++++
+ fs/ocfs2/xattr.h        |    2 ++
+ 7 files changed, 73 insertions(+), 5 deletions(-)
 
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 2646f0c..82319e8 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -7441,11 +7441,6 @@ start:
+ 	goto start;
+ 
+ bail:
+-	if (!status && OCFS2_I(inode)->ip_clusters == 0) {
+-		/* remove the refcount tree. */
+-		status = ocfs2_remove_refcount_tree(inode, fe_bh);
+-	}
+-
+ 	ocfs2_schedule_truncate_log_flush(osb, 1);
+ 
+ 	if (tl_sem)
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 44920a7..fef77e9 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -59,6 +59,7 @@
+ #include "xattr.h"
+ #include "acl.h"
+ #include "quota.h"
++#include "refcounttree.h"
+ 
+ #include "buffer_head_io.h"
+ 
+@@ -483,6 +484,8 @@ bail_unlock_sem:
+ 	up_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 
+ bail:
++	if (!status && OCFS2_I(inode)->ip_clusters == 0)
++		status = ocfs2_try_remove_refcount_tree(inode, di_bh);
+ 
+ 	mlog_exit(status);
+ 	return status;
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index e7c6b70..868f857 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -53,6 +53,7 @@
+ #include "sysfile.h"
+ #include "uptodate.h"
+ #include "xattr.h"
++#include "refcounttree.h"
+ 
+ #include "buffer_head_io.h"
+ 
+@@ -771,6 +772,12 @@ static int ocfs2_wipe_inode(struct inode *inode,
+ 		goto bail_unlock_dir;
+ 	}
+ 
++	status = ocfs2_remove_refcount_tree(inode, di_bh);
++	if (status < 0) {
++		mlog_errno(status);
++		goto bail_unlock_dir;
++	}
++
+ 	status = ocfs2_remove_inode(inode, di_bh, orphan_dir_inode,
+ 				    orphan_dir_bh);
+ 	if (status < 0)
 diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 96948b0..5356a71 100644
+index 5356a71..b986c7c 100644
 --- a/fs/ocfs2/refcounttree.c
 +++ b/fs/ocfs2/refcounttree.c
-@@ -2790,12 +2790,13 @@ out:
-  * Insert a new extent into refcount tree and mark a extent rec
-  * as refcounted in the dinode tree.
-  */
--static int ocfs2_add_refcount_flag(struct inode *inode,
--				   struct ocfs2_extent_tree *di_et,
--				   struct ocfs2_caching_info *ref_ci,
--				   struct buffer_head *ref_root_bh,
--				   u32 cpos, u32 p_cluster, u32 num_clusters,
--				   struct ocfs2_cached_dealloc_ctxt *dealloc)
-+int ocfs2_add_refcount_flag(struct inode *inode,
-+			    struct ocfs2_extent_tree *data_et,
-+			    struct ocfs2_caching_info *ref_ci,
-+			    struct buffer_head *ref_root_bh,
-+			    u32 cpos, u32 p_cluster, u32 num_clusters,
-+			    struct ocfs2_cached_dealloc_ctxt *dealloc,
-+			    struct ocfs2_post_refcount *post)
- {
- 	int ret;
- 	handle_t *handle;
-@@ -2824,6 +2825,9 @@ static int ocfs2_add_refcount_flag(struct inode *inode,
- 		}
- 	}
- 
-+	if (post)
-+		credits += post->credits;
-+
- 	handle = ocfs2_start_trans(osb, credits);
- 	if (IS_ERR(handle)) {
- 		ret = PTR_ERR(handle);
-@@ -2831,7 +2835,7 @@ static int ocfs2_add_refcount_flag(struct inode *inode,
- 		goto out;
- 	}
- 
--	ret = ocfs2_mark_extent_refcounted(inode, di_et, handle,
-+	ret = ocfs2_mark_extent_refcounted(inode, data_et, handle,
- 					   cpos, num_clusters, p_cluster,
- 					   meta_ac, dealloc);
- 	if (ret) {
-@@ -2842,8 +2846,16 @@ static int ocfs2_add_refcount_flag(struct inode *inode,
- 	ret = __ocfs2_increase_refcount(handle, ref_ci, ref_root_bh,
- 					p_cluster, num_clusters,
- 					meta_ac, dealloc);
--	if (ret)
-+	if (ret) {
- 		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	if (post && post->func) {
-+		ret = post->func(inode, handle, post->para);
-+		if (ret)
-+			mlog_errno(ret);
-+	}
- 
- out_commit:
- 	ocfs2_commit_trans(osb, handle);
-@@ -2905,7 +2917,7 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
- 					      &ref_tree->rf_ci, ref_root_bh,
- 					      cpos - num_clusters,
- 					      p_cluster, num_clusters,
--					      &dealloc);
-+					      &dealloc, NULL);
- 		if (ret) {
- 			mlog_errno(ret);
- 			break;
-@@ -2917,6 +2929,16 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
- 	 * record from the disk.
- 	 */
- 	ocfs2_extent_map_trunc(inode, 0);
-+
-+	if (oi->ip_dyn_features & OCFS2_HAS_XATTR_FL) {
-+		ret = ocfs2_xattr_attach_refcount_tree(inode, fe_bh,
-+						       &ref_tree->rf_ci,
-+						       ref_root_bh,
-+						       &dealloc);
-+		if (ret)
-+			mlog_errno(ret);
-+	}
-+
- 	ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
- 	brelse(ref_root_bh);
- 
-diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
-index 1dda219..0f9b7a5 100644
---- a/fs/ocfs2/refcounttree.h
-+++ b/fs/ocfs2/refcounttree.h
-@@ -100,4 +100,11 @@ int ocfs2_refcount_cow_xattr(struct inode *inode,
- 			     struct buffer_head *ref_root_bh,
- 			     u32 cpos, u32 write_len,
- 			     struct ocfs2_post_refcount *post);
-+int ocfs2_add_refcount_flag(struct inode *inode,
-+			    struct ocfs2_extent_tree *data_et,
-+			    struct ocfs2_caching_info *ref_ci,
-+			    struct buffer_head *ref_root_bh,
-+			    u32 cpos, u32 p_cluster, u32 num_clusters,
-+			    struct ocfs2_cached_dealloc_ctxt *dealloc,
-+			    struct ocfs2_post_refcount *post);
- #endif /* OCFS2_REFCOUNTTREE_H */
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 527cfe8..0687852 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -5549,6 +5549,297 @@ out:
+@@ -475,6 +475,42 @@ out:
+ 	return;
  }
- 
  /*
-+ * Add the REFCOUNTED flags for all the extent rec in ocfs2_xattr_value_root.
-+ * The physical clusters will be added to refcount tree.
++ * Try to remove refcount tree. The mechanism is:
++ * 1) Check whether i_clusters == 0, if no, exit.
++ * 2) check whether we have i_xattr_loc in dinode. if yes, exit.
++ * 3) Check whether we have inline xattr stored outside, if yes, exit.
++ * 4) Remove the tree.
 + */
-+static int ocfs2_xattr_value_attach_refcount(struct inode *inode,
-+				struct ocfs2_xattr_value_root *xv,
-+				struct ocfs2_extent_tree *value_et,
-+				struct ocfs2_caching_info *ref_ci,
-+				struct buffer_head *ref_root_bh,
-+				struct ocfs2_cached_dealloc_ctxt *dealloc,
-+				struct ocfs2_post_refcount *refcount)
-+{
-+	int ret = 0;
-+	u32 clusters = le32_to_cpu(xv->xr_clusters);
-+	u32 cpos, p_cluster, num_clusters;
-+	struct ocfs2_extent_list *el = &xv->xr_list;
-+	unsigned int ext_flags;
-+
-+	cpos = 0;
-+	while (cpos < clusters) {
-+		ret = ocfs2_xattr_get_clusters(inode, cpos, &p_cluster,
-+					       &num_clusters, el, &ext_flags);
-+
-+		cpos += num_clusters;
-+		if ((ext_flags & OCFS2_EXT_REFCOUNTED))
-+			continue;
-+
-+		BUG_ON(!p_cluster);
-+
-+		ret = ocfs2_add_refcount_flag(inode, value_et,
-+					      ref_ci, ref_root_bh,
-+					      cpos - num_clusters,
-+					      p_cluster, num_clusters,
-+					      dealloc, refcount);
-+		if (ret) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+	}
-+
-+	return ret;
-+}
-+
-+/*
-+ * Given a normal ocfs2_xattr_header, refcount all the entries which
-+ * have value stored outside.
-+ * Used for xattrs stored in inode and ocfs2_xattr_block.
-+ */
-+static int ocfs2_xattr_attach_refcount_normal(struct inode *inode,
-+				struct ocfs2_xattr_value_buf *vb,
-+				struct ocfs2_xattr_header *header,
-+				struct ocfs2_caching_info *ref_ci,
-+				struct buffer_head *ref_root_bh,
-+				struct ocfs2_cached_dealloc_ctxt *dealloc)
-+{
-+
-+	struct ocfs2_xattr_entry *xe;
-+	struct ocfs2_xattr_value_root *xv;
-+	struct ocfs2_extent_tree et;
-+	int i, ret = 0;
-+
-+	for (i = 0; i < le16_to_cpu(header->xh_count); i++) {
-+		xe = &header->xh_entries[i];
-+
-+		if (ocfs2_xattr_is_local(xe))
-+			continue;
-+
-+		xv = (struct ocfs2_xattr_value_root *)((void *)header +
-+			le16_to_cpu(xe->xe_name_offset) +
-+			OCFS2_XATTR_SIZE(xe->xe_name_len));
-+
-+		vb->vb_xv = xv;
-+		ocfs2_init_xattr_value_extent_tree(&et, INODE_CACHE(inode), vb);
-+
-+		ret = ocfs2_xattr_value_attach_refcount(inode, xv, &et,
-+							ref_ci, ref_root_bh,
-+							dealloc, NULL);
-+		if (ret) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+	}
-+
-+	return ret;
-+}
-+
-+static int ocfs2_xattr_inline_attach_refcount(struct inode *inode,
-+				struct buffer_head *fe_bh,
-+				struct ocfs2_caching_info *ref_ci,
-+				struct buffer_head *ref_root_bh,
-+				struct ocfs2_cached_dealloc_ctxt *dealloc)
-+{
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)fe_bh->b_data;
-+	struct ocfs2_xattr_header *header = (struct ocfs2_xattr_header *)
-+				(fe_bh->b_data + inode->i_sb->s_blocksize -
-+				le16_to_cpu(di->i_xattr_inline_size));
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_bh = fe_bh,
-+		.vb_access = ocfs2_journal_access_di,
-+	};
-+
-+	return ocfs2_xattr_attach_refcount_normal(inode, &vb, header,
-+						  ref_ci, ref_root_bh, dealloc);
-+}
-+
-+struct ocfs2_xattr_tree_value_refcount_para {
-+	struct ocfs2_caching_info *ref_ci;
-+	struct buffer_head *ref_root_bh;
-+	struct ocfs2_cached_dealloc_ctxt *dealloc;
-+};
-+
-+static int ocfs2_get_xattr_tree_value_root(struct super_block *sb,
-+					   struct ocfs2_xattr_bucket *bucket,
-+					   int offset,
-+					   struct ocfs2_xattr_value_root **xv,
-+					   struct buffer_head **bh)
-+{
-+	int ret, block_off, name_offset;
-+	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
-+	struct ocfs2_xattr_entry *xe = &xh->xh_entries[offset];
-+	void *base;
-+
-+	ret = ocfs2_xattr_bucket_get_name_value(sb,
-+						bucket_xh(bucket),
-+						offset,
-+						&block_off,
-+						&name_offset);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	base = bucket_block(bucket, block_off);
-+
-+	*xv = (struct ocfs2_xattr_value_root *)(base + name_offset +
-+			 OCFS2_XATTR_SIZE(xe->xe_name_len));
-+
-+	if (bh)
-+		*bh = bucket->bu_bhs[block_off];
-+out:
-+	return ret;
-+}
-+
-+/*
-+ * For a given xattr bucket, refcount all the entries which
-+ * have value stored outside.
-+ */
-+static int ocfs2_xattr_bucket_value_refcount(struct inode *inode,
-+					     struct ocfs2_xattr_bucket *bucket,
-+					     void *para)
-+{
-+	int i, ret = 0;
-+	struct ocfs2_extent_tree et;
-+	struct ocfs2_xattr_tree_value_refcount_para *ref =
-+			(struct ocfs2_xattr_tree_value_refcount_para *)para;
-+	struct ocfs2_xattr_header *xh =
-+			(struct ocfs2_xattr_header *)bucket->bu_bhs[0]->b_data;
-+	struct ocfs2_xattr_entry *xe;
-+	struct ocfs2_xattr_value_buf vb = {
-+		.vb_access = ocfs2_journal_access,
-+	};
-+	struct ocfs2_post_refcount refcount = {
-+		.credits = bucket->bu_blocks,
-+		.para = bucket,
-+		.func = ocfs2_xattr_bucket_post_refcount,
-+	};
-+	struct ocfs2_post_refcount *p = NULL;
-+
-+	/* We only need post_refcount if we support metaecc. */
-+	if (ocfs2_meta_ecc(OCFS2_SB(inode->i_sb)))
-+		p = &refcount;
-+
-+	mlog(0, "refcount bucket %llu, count = %u\n",
-+	     (unsigned long long)bucket_blkno(bucket),
-+	     le16_to_cpu(xh->xh_count));
-+	for (i = 0; i < le16_to_cpu(xh->xh_count); i++) {
-+		xe = &xh->xh_entries[i];
-+
-+		if (ocfs2_xattr_is_local(xe))
-+			continue;
-+
-+		ret = ocfs2_get_xattr_tree_value_root(inode->i_sb, bucket, i,
-+						      &vb.vb_xv, &vb.vb_bh);
-+		if (ret) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+
-+		ocfs2_init_xattr_value_extent_tree(&et,
-+						   INODE_CACHE(inode), &vb);
-+
-+		ret = ocfs2_xattr_value_attach_refcount(inode, vb.vb_xv,
-+							&et, ref->ref_ci,
-+							ref->ref_root_bh,
-+							ref->dealloc, p);
-+		if (ret) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+	}
-+
-+	return ret;
-+
-+}
-+
-+static int ocfs2_refcount_xattr_tree_rec(struct inode *inode,
-+				     struct buffer_head *root_bh,
-+				     u64 blkno, u32 cpos, u32 len, void *para)
-+{
-+	return ocfs2_iterate_xattr_buckets(inode, blkno, len,
-+					   ocfs2_xattr_bucket_value_refcount,
-+					   para);
-+}
-+
-+static int ocfs2_xattr_block_attach_refcount(struct inode *inode,
-+				struct buffer_head *blk_bh,
-+				struct ocfs2_caching_info *ref_ci,
-+				struct buffer_head *ref_root_bh,
-+				struct ocfs2_cached_dealloc_ctxt *dealloc)
-+{
-+	int ret = 0;
-+	struct ocfs2_xattr_block *xb =
-+				(struct ocfs2_xattr_block *)blk_bh->b_data;
-+
-+	if (!(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED)) {
-+		struct ocfs2_xattr_header *header = &xb->xb_attrs.xb_header;
-+		struct ocfs2_xattr_value_buf vb = {
-+			.vb_bh = blk_bh,
-+			.vb_access = ocfs2_journal_access_xb,
-+		};
-+
-+		ret = ocfs2_xattr_attach_refcount_normal(inode, &vb, header,
-+							 ref_ci, ref_root_bh,
-+							 dealloc);
-+	} else {
-+		struct ocfs2_xattr_tree_value_refcount_para para = {
-+			.ref_ci = ref_ci,
-+			.ref_root_bh = ref_root_bh,
-+			.dealloc = dealloc,
-+		};
-+
-+		ret = ocfs2_iterate_xattr_index_block(inode, blk_bh,
-+						ocfs2_refcount_xattr_tree_rec,
-+						&para);
-+	}
-+
-+	return ret;
-+}
-+
-+int ocfs2_xattr_attach_refcount_tree(struct inode *inode,
-+				     struct buffer_head *fe_bh,
-+				     struct ocfs2_caching_info *ref_ci,
-+				     struct buffer_head *ref_root_bh,
-+				     struct ocfs2_cached_dealloc_ctxt *dealloc)
++int ocfs2_try_remove_refcount_tree(struct inode *inode,
++				   struct buffer_head *di_bh)
 +{
 +	int ret;
 +	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)fe_bh->b_data;
-+	struct buffer_head *blk_bh = NULL;
++	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
 +
-+	if (oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL) {
-+		ret = ocfs2_xattr_inline_attach_refcount(inode, fe_bh,
-+							 ref_ci, ref_root_bh,
-+							 dealloc);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+	}
++	down_write(&oi->ip_xattr_sem);
++	down_write(&oi->ip_alloc_sem);
 +
-+	if (!di->i_xattr_loc)
++	if (oi->ip_clusters)
 +		goto out;
 +
-+	ret = ocfs2_read_xattr_block(inode, le64_to_cpu(di->i_xattr_loc),
-+				     &blk_bh);
-+	if (ret < 0) {
-+		mlog_errno(ret);
++	if ((oi->ip_dyn_features & OCFS2_HAS_XATTR_FL) && di->i_xattr_loc)
 +		goto out;
-+	}
 +
-+	ret = ocfs2_xattr_block_attach_refcount(inode, blk_bh, ref_ci,
-+						ref_root_bh, dealloc);
++	if (oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL &&
++	    ocfs2_has_inline_xattr_value_outside(inode, di))
++		goto out;
++
++	ret = ocfs2_remove_refcount_tree(inode, di_bh);
 +	if (ret)
 +		mlog_errno(ret);
-+
-+	brelse(blk_bh);
 +out:
-+
-+	return ret;
++	up_write(&oi->ip_alloc_sem);
++	up_write(&oi->ip_xattr_sem);
++	return 0;
 +}
 +
 +/*
-  * 'security' attributes support
-  */
- static size_t ocfs2_xattr_security_list(struct inode *inode, char *list,
+  * Given a cpos and len, try to find the refcount record which contains cpos.
+  * 1. If cpos can be found in one refcount record, return the record.
+  * 2. If cpos can't be found, return a fake record which start from cpos
+diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
+index 0f9b7a5..014aaab 100644
+--- a/fs/ocfs2/refcounttree.h
++++ b/fs/ocfs2/refcounttree.h
+@@ -47,6 +47,8 @@ int ocfs2_set_refcount_tree(struct inode *inode,
+ 			    struct buffer_head *di_bh,
+ 			    u64 blkno);
+ int ocfs2_remove_refcount_tree(struct inode *inode, struct buffer_head *di_bh);
++int ocfs2_try_remove_refcount_tree(struct inode *inode,
++				   struct buffer_head *di_bh);
+ 
+ int ocfs2_decrease_refcount(struct inode *inode,
+ 			    handle_t *handle, u32 cpos, u32 len,
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 0687852..455f216 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -840,6 +840,23 @@ static int ocfs2_xattr_list_entries(struct inode *inode,
+ 	return result;
+ }
+ 
++int ocfs2_has_inline_xattr_value_outside(struct inode *inode,
++					 struct ocfs2_dinode *di)
++{
++	struct ocfs2_xattr_header *xh;
++	int i;
++
++	xh = (struct ocfs2_xattr_header *)
++		 ((void *)di + inode->i_sb->s_blocksize -
++		 le16_to_cpu(di->i_xattr_inline_size));
++
++	for (i = 0; i < le16_to_cpu(xh->xh_count); i++)
++		if (!ocfs2_xattr_is_local(&xh->xh_entries[i]))
++			return 1;
++
++	return 0;
++}
++
+ static int ocfs2_xattr_ibody_list(struct inode *inode,
+ 				  struct ocfs2_dinode *di,
+ 				  char *buffer,
+@@ -2897,10 +2914,16 @@ int ocfs2_xattr_set(struct inode *inode,
+ 	if (ocfs2_dealloc_has_cluster(&ctxt.dealloc))
+ 		ocfs2_schedule_truncate_log_flush(osb, 1);
+ 	ocfs2_run_deallocs(osb, &ctxt.dealloc);
++
+ cleanup:
+ 	if (ref_tree)
+ 		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
+ 	up_write(&OCFS2_I(inode)->ip_xattr_sem);
++	if (!value && !ret) {
++		ret = ocfs2_try_remove_refcount_tree(inode, di_bh);
++		if (ret)
++			mlog_errno(ret);
++	}
+ 	ocfs2_inode_unlock(inode, 1);
+ cleanup_nolock:
+ 	brelse(di_bh);
 diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-index 1ca7e9a..a3295d7 100644
+index a3295d7..e74703f 100644
 --- a/fs/ocfs2/xattr.h
 +++ b/fs/ocfs2/xattr.h
-@@ -83,5 +83,9 @@ struct ocfs2_xattr_value_buf {
- 	struct ocfs2_xattr_value_root	*vb_xv;
- };
- 
--
-+int ocfs2_xattr_attach_refcount_tree(struct inode *inode,
-+				     struct buffer_head *fe_bh,
-+				     struct ocfs2_caching_info *ref_ci,
-+				     struct buffer_head *ref_root_bh,
-+				     struct ocfs2_cached_dealloc_ctxt *dealloc);
- #endif /* OCFS2_XATTR_H */
+@@ -55,6 +55,8 @@ int ocfs2_xattr_set_handle(handle_t *, struct inode *, struct buffer_head *,
+ 			   int, const char *, const void *, size_t, int,
+ 			   struct ocfs2_alloc_context *,
+ 			   struct ocfs2_alloc_context *);
++int ocfs2_has_inline_xattr_value_outside(struct inode *inode,
++					 struct ocfs2_dinode *di);
+ int ocfs2_xattr_remove(struct inode *, struct buffer_head *);
+ int ocfs2_init_security_get(struct inode *, struct inode *,
+ 			    struct ocfs2_security_xattr_info *);
 -- 
 1.6.2.rc2.16.gf474c
