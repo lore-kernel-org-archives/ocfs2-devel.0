@@ -1,151 +1,243 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 30 Apr 2009 06:58:18 +0800
-Subject: [Ocfs2-devel] [PATCH 06/39] ocfs2: Wrap ocfs2_extent_contig in
-	ocfs2_extent_tree.
+Date: Thu, 30 Apr 2009 06:58:19 +0800
+Subject: [Ocfs2-devel] [PATCH 07/39] ocfs2: Abstract extent split process.
 In-Reply-To: <49F95A79.6040806@oracle.com>
 References: <49F95A79.6040806@oracle.com>
-Message-ID: <1241045931-24607-6-git-send-email-tao.ma@oracle.com>
+Message-ID: <1241045931-24607-7-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add a new operation eo_ocfs2_extent_contig int extent tree's
-operation. So that with the new refcount tree, we can calculate
-whether they are contiguous in its own function.
+ocfs2_mark_extent_written actually does the following things:
+1. check the parameters.
+2. initialize the left_path and split_rec.
+3. call __ocfs2_mark_extent_written. it will do:
+   1) check the flags of unwritten
+   2) do the real split work.
+The whole process is packed tightly somehow. So this patch
+will abstract 2 different functions so that future b-tree
+operation can work with it.
+
+1. __ocfs2_split_extent will accept path and split_rec and do
+  the real split work.
+2. ocfs2_change_extent_flag will accept a new flag and initialize
+   path and split_rec.
+
+So now ocfs2_mark_extent_written will do:
+1. check the parameters.
+2. call ocfs2_change_extent_flag.
+   1) initalize the left_path and split_rec.
+   2) check whether the new flags conflict with the old one.
+   3) call __ocfs2_split_extent to do the split.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/alloc.c |   57 ++++++++++++++++++++++++++++++++++++++---------------
- 1 files changed, 41 insertions(+), 16 deletions(-)
+ fs/ocfs2/alloc.c |  142 ++++++++++++++++++++++++++++++++----------------------
+ 1 files changed, 85 insertions(+), 57 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 0c96b27..1fc56f3 100644
+index 1fc56f3..b06db13 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -53,7 +53,17 @@
- #include "buffer_head_io.h"
- #include "refcounttree.h"
+@@ -4926,10 +4926,9 @@ out:
+ }
  
-+enum ocfs2_contig_type {
-+	CONTIG_NONE = 0,
-+	CONTIG_LEFT,
-+	CONTIG_RIGHT,
-+	CONTIG_LEFTRIGHT,
-+};
- 
-+static enum ocfs2_contig_type
-+	ocfs2_extent_rec_contig(struct super_block *sb,
-+				struct ocfs2_extent_rec *ext,
-+				struct ocfs2_extent_rec *insert_rec);
  /*
-  * Operations for a specific extent tree type.
+- * Mark part or all of the extent record at split_index in the leaf
+- * pointed to by path as written. This removes the unwritten
+- * extent flag.
+- *
++ * Split part or all of the extent record at split_index in the leaf
++ * pointed to by path. Merge with the contiguous extent record if needed.
++
+  * Care is taken to handle contiguousness so as to not grow the tree.
   *
-@@ -123,6 +133,16 @@ struct ocfs2_extent_tree_operations {
- 	 * to 0 (unlimited).  Optional.
- 	 */
- 	void (*eo_fill_max_leaf_clusters)(struct ocfs2_extent_tree *et);
-+
-+	/*
-+	 * ->eo_ocfs2_extent_contig test whether the 2 ocfs2_extent_rec
-+	 * are contiguous or not. Optional. Don't need to set it if use
-+	 * ocfs2_extent_rec as the tree leaf.
-+	 */
-+	enum ocfs2_contig_type
-+		(*eo_ocfs2_extent_contig)(struct super_block *sb,
-+					  struct ocfs2_extent_rec *ext,
-+					  struct ocfs2_extent_rec *insert_rec);
- };
- 
- 
-@@ -386,6 +406,9 @@ static void __ocfs2_init_extent_tree(struct ocfs2_extent_tree *et,
- 		et->et_max_leaf_clusters = 0;
- 	else
- 		et->et_ops->eo_fill_max_leaf_clusters(et);
-+
-+	if (!et->et_ops->eo_ocfs2_extent_contig)
-+		et->et_ops->eo_ocfs2_extent_contig = ocfs2_extent_rec_contig;
- }
- 
- void ocfs2_init_dinode_extent_tree(struct ocfs2_extent_tree *et,
-@@ -459,6 +482,16 @@ static inline int ocfs2_et_root_journal_access(handle_t *handle,
- 					  type);
- }
- 
-+static inline enum ocfs2_contig_type
-+	ocfs2_et_extent_contig(struct ocfs2_extent_tree *et,
-+			       struct ocfs2_extent_rec *ext,
-+			       struct ocfs2_extent_rec *insert_rec)
-+{
-+	return et->et_ops->eo_ocfs2_extent_contig(
-+			ocfs2_metadata_cache_get_super(et->et_ci),
-+			ext, insert_rec);
-+}
-+
- static inline int ocfs2_et_insert_check(struct ocfs2_extent_tree *et,
- 					struct ocfs2_extent_rec *rec)
+  * meta_ac is not strictly necessary - we only truly need it if growth
+@@ -4945,13 +4944,13 @@ out:
+  * have been brought into cache (and pinned via the journal), so the
+  * extra overhead is not expressed in terms of disk reads.
+  */
+-static int __ocfs2_mark_extent_written(handle_t *handle,
+-				       struct ocfs2_extent_tree *et,
+-				       struct ocfs2_path *path,
+-				       int split_index,
+-				       struct ocfs2_extent_rec *split_rec,
+-				       struct ocfs2_alloc_context *meta_ac,
+-				       struct ocfs2_cached_dealloc_ctxt *dealloc)
++static int __ocfs2_split_extent(handle_t *handle,
++				struct ocfs2_extent_tree *et,
++				struct ocfs2_path *path,
++				int split_index,
++				struct ocfs2_extent_rec *split_rec,
++				struct ocfs2_alloc_context *meta_ac,
++				struct ocfs2_cached_dealloc_ctxt *dealloc)
  {
-@@ -731,17 +764,9 @@ int ocfs2_search_extent_list(struct ocfs2_extent_list *el, u32 v_cluster)
+ 	int ret = 0;
+ 	struct ocfs2_extent_list *el = path_leaf_el(path);
+@@ -4960,12 +4959,6 @@ static int __ocfs2_mark_extent_written(handle_t *handle,
+ 	struct ocfs2_merge_ctxt ctxt;
+ 	struct ocfs2_extent_list *rightmost_el;
+ 
+-	if (!(rec->e_flags & OCFS2_EXT_UNWRITTEN)) {
+-		ret = -EIO;
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+ 	if (le32_to_cpu(rec->e_cpos) > le32_to_cpu(split_rec->e_cpos) ||
+ 	    ((le32_to_cpu(rec->e_cpos) + le16_to_cpu(rec->e_leaf_clusters)) <
+ 	     (le32_to_cpu(split_rec->e_cpos) + le16_to_cpu(split_rec->e_leaf_clusters)))) {
+@@ -5034,43 +5027,20 @@ out:
  	return ret;
  }
  
--enum ocfs2_contig_type {
--	CONTIG_NONE = 0,
--	CONTIG_LEFT,
--	CONTIG_RIGHT,
--	CONTIG_LEFTRIGHT,
--};
--
--
- /*
-  * NOTE: ocfs2_block_extent_contig(), ocfs2_extents_adjacent() and
-- * ocfs2_extent_contig only work properly against leaf nodes!
-+ * ocfs2_extent_rec_contig only work properly against leaf nodes!
-  */
- static int ocfs2_block_extent_contig(struct super_block *sb,
- 				     struct ocfs2_extent_rec *ext,
-@@ -767,9 +792,9 @@ static int ocfs2_extents_adjacent(struct ocfs2_extent_rec *left,
- }
- 
- static enum ocfs2_contig_type
--	ocfs2_extent_contig(struct super_block *sb,
--			    struct ocfs2_extent_rec *ext,
--			    struct ocfs2_extent_rec *insert_rec)
-+	ocfs2_extent_rec_contig(struct super_block *sb,
-+				struct ocfs2_extent_rec *ext,
-+				struct ocfs2_extent_rec *insert_rec)
+-/*
+- * Mark the already-existing extent at cpos as written for len clusters.
+- *
+- * If the existing extent is larger than the request, initiate a
+- * split. An attempt will be made at merging with adjacent extents.
+- *
+- * The caller is responsible for passing down meta_ac if we'll need it.
+- */
+-int ocfs2_mark_extent_written(struct inode *inode,
+-			      struct ocfs2_extent_tree *et,
+-			      handle_t *handle, u32 cpos, u32 len, u32 phys,
+-			      struct ocfs2_alloc_context *meta_ac,
+-			      struct ocfs2_cached_dealloc_ctxt *dealloc)
++static int ocfs2_change_extent_flag(handle_t *handle,
++				    struct ocfs2_extent_tree *et,
++				    u32 cpos, u32 len, u32 phys,
++				    struct ocfs2_alloc_context *meta_ac,
++				    struct ocfs2_cached_dealloc_ctxt *dealloc,
++				    int new_flags, int clear_flags)
  {
- 	u64 blkno = le64_to_cpu(insert_rec->e_blkno);
+ 	int ret, index;
+-	u64 start_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys);
++	struct super_block *sb = ocfs2_metadata_cache_get_super(et->et_ci);
++	u64 start_blkno = ocfs2_clusters_to_blocks(sb, phys);
+ 	struct ocfs2_extent_rec split_rec;
+ 	struct ocfs2_path *left_path = NULL;
+ 	struct ocfs2_extent_list *el;
+-
+-	mlog(0, "Inode %lu cpos %u, len %u, phys %u (%llu)\n",
+-	     inode->i_ino, cpos, len, phys, (unsigned long long)start_blkno);
+-
+-	if (!ocfs2_writes_unwritten_extents(OCFS2_SB(inode->i_sb))) {
+-		ocfs2_error(inode->i_sb, "Inode %llu has unwritten extents "
+-			    "that are being written to, but the feature bit "
+-			    "is not set in the super block.",
+-			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
+-		ret = -EROFS;
+-		goto out;
+-	}
+-
+-	/*
+-	 * XXX: This should be fixed up so that we just re-insert the
+-	 * next extent records.
+-	 */
+-	ocfs2_et_extent_map_truncate(et, 0);
++	struct ocfs2_extent_rec *rec;
  
-@@ -4294,7 +4319,7 @@ ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
- 			if (split_rec->e_cpos == el->l_recs[index].e_cpos)
- 				ret = CONTIG_RIGHT;
- 		} else {
--			ret = ocfs2_extent_contig(sb, rec, split_rec);
-+			ret = ocfs2_et_extent_contig(et, rec, split_rec);
- 		}
+ 	left_path = ocfs2_new_path_from_et(et);
+ 	if (!left_path) {
+@@ -5088,30 +5058,88 @@ int ocfs2_mark_extent_written(struct inode *inode,
+ 
+ 	index = ocfs2_search_extent_list(el, cpos);
+ 	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
+-		ocfs2_error(inode->i_sb,
+-			    "Inode %llu has an extent at cpos %u which can no "
++		ocfs2_error(sb,
++			    "Owner %llu has an extent at cpos %u which can no "
+ 			    "longer be found.\n",
+-			    (unsigned long long)OCFS2_I(inode)->ip_blkno, cpos);
++			     (unsigned long long)
++			     ocfs2_metadata_cache_owner(et->et_ci), cpos);
+ 		ret = -EROFS;
+ 		goto out;
  	}
  
-@@ -4339,7 +4364,7 @@ ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
- 	if (rec) {
- 		enum ocfs2_contig_type contig_type;
++	rec = &el->l_recs[index];
++	if ((new_flags && (rec->e_flags & new_flags)) ||
++	    (clear_flags && !(rec->e_flags & clear_flags))) {
++		ret = -EIO;
++		mlog_errno(ret);
++		goto out;
++	}
++
+ 	memset(&split_rec, 0, sizeof(struct ocfs2_extent_rec));
+ 	split_rec.e_cpos = cpu_to_le32(cpos);
+ 	split_rec.e_leaf_clusters = cpu_to_le16(len);
+ 	split_rec.e_blkno = cpu_to_le64(start_blkno);
+-	split_rec.e_flags = path_leaf_el(left_path)->l_recs[index].e_flags;
+-	split_rec.e_flags &= ~OCFS2_EXT_UNWRITTEN;
++	split_rec.e_flags = rec->e_flags;
++	if (new_flags)
++		split_rec.e_flags |= new_flags;
++	else
++		split_rec.e_flags &= ~clear_flags;
  
--		contig_type = ocfs2_extent_contig(sb, rec, split_rec);
-+		contig_type = ocfs2_et_extent_contig(et, rec, split_rec);
+-	ret = __ocfs2_mark_extent_written(handle, et, left_path,
+-					  index, &split_rec, meta_ac,
+-					  dealloc);
++	ret = __ocfs2_split_extent(handle, et, left_path,
++				  index, &split_rec, meta_ac,
++				  dealloc);
+ 	if (ret)
+ 		mlog_errno(ret);
  
- 		if (contig_type == CONTIG_LEFT && ret == CONTIG_RIGHT)
- 			ret = CONTIG_LEFTRIGHT;
-@@ -4367,8 +4392,8 @@ static void ocfs2_figure_contig_type(struct ocfs2_extent_tree *et,
- 	BUG_ON(le16_to_cpu(el->l_tree_depth) != 0);
+ out:
+ 	ocfs2_free_path(left_path);
+ 	return ret;
++
++}
++
++/*
++ * Mark the already-existing extent at cpos as written for len clusters.
++ * This removes the unwritten extent flag.
++ *
++ * If the existing extent is larger than the request, initiate a
++ * split. An attempt will be made at merging with adjacent extents.
++ *
++ * The caller is responsible for passing down meta_ac if we'll need it.
++ */
++int ocfs2_mark_extent_written(struct inode *inode,
++			      struct ocfs2_extent_tree *et,
++			      handle_t *handle, u32 cpos, u32 len, u32 phys,
++			      struct ocfs2_alloc_context *meta_ac,
++			      struct ocfs2_cached_dealloc_ctxt *dealloc)
++{
++	int ret;
++
++	mlog(0, "Inode %lu cpos %u, len %u, phys clusters %u\n",
++	     inode->i_ino, cpos, len, phys);
++
++	if (!ocfs2_writes_unwritten_extents(OCFS2_SB(inode->i_sb))) {
++		ocfs2_error(inode->i_sb, "Inode %llu has unwritten extents "
++			    "that are being written to, but the feature bit "
++			    "is not set in the super block.",
++			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
++		ret = -EROFS;
++		goto out;
++	}
++
++	/*
++	 * XXX: This should be fixed up so that we just re-insert the
++	 * next extent records.
++	 */
++	ocfs2_et_extent_map_truncate(et, 0);
++
++	ret = ocfs2_change_extent_flag(handle, et, cpos,
++				       len, phys, meta_ac, dealloc,
++				       0, OCFS2_EXT_UNWRITTEN);
++	if (ret)
++		mlog_errno(ret);
++
++out:
++	return ret;
+ }
  
- 	for(i = 0; i < le16_to_cpu(el->l_next_free_rec); i++) {
--		contig_type = ocfs2_extent_contig(ocfs2_metadata_cache_get_super(et->et_ci),
--						  &el->l_recs[i], insert_rec);
-+		contig_type = ocfs2_et_extent_contig(et, &el->l_recs[i],
-+						     insert_rec);
- 		if (contig_type != CONTIG_NONE) {
- 			insert->ins_contig_index = i;
- 			break;
+ static int ocfs2_split_tree(handle_t *handle, struct ocfs2_extent_tree *et,
 -- 
 1.6.2.rc2.16.gf474c
