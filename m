@@ -1,32 +1,32 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 29 Apr 2009 11:03:58 -0700
-Subject: [Ocfs2-devel] Inode not orphaned
-In-Reply-To: <49F893CD.50607@oracle.com>
-References: <20090429173041.GA11607@mail.oracle.com>
-	<49F893CD.50607@oracle.com>
-Message-ID: <20090429180358.GB4743@mail.oracle.com>
+Date: Wed, 29 Apr 2009 11:28:26 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Remove unused variable in
+	ocfs2_rename.
+In-Reply-To: <1240939255-22590-1-git-send-email-tao.ma@oracle.com>
+References: <1240939255-22590-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20090429182826.GD4743@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Apr 29, 2009 at 01:52:13PM -0400, Marcos E. Matsunaga wrote:
-> I ran into that in January 27th.. I don't remember what I was running.
-> That was it. Nothing after that on all my nodes..
+On Wed, Apr 29, 2009 at 01:20:55AM +0800, Tao Ma wrote:
+> With indexed dir enabled, now we use ocfs2_dir_lookup_result to
+> wrap all the bh used for dir. So remove the 2 unused variables.
+> 
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-	Ok reported as
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1102  If it's
-intermittent, we should keep track of our data on it.
+Thanks Tao, this is added to the fixes branch.
 
 Joel
 
 
 -- 
 
-"Any man who is under 30, and is not a liberal, has not heart;
- and any man who is over 30, and is not a conservative, has no brains."
-         - Sir Winston Churchill 
+"The real reason GNU ls is 8-bit-clean is so that they can
+ start using ISO-8859-1 option characters."
+	- Christopher Davis (ckd at loiosh.kei.com)
 
 Joel Becker
 Principal Software Developer
