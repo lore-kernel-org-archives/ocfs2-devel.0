@@ -1,243 +1,170 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 30 Apr 2009 06:58:19 +0800
-Subject: [Ocfs2-devel] [PATCH 07/39] ocfs2: Abstract extent split process.
+Date: Thu, 30 Apr 2009 06:58:42 +0800
+Subject: [Ocfs2-devel] [PATCH 30/39] ocfs2: Abstract the creation of xattr
+	block.
 In-Reply-To: <49F95A79.6040806@oracle.com>
 References: <49F95A79.6040806@oracle.com>
-Message-ID: <1241045931-24607-7-git-send-email-tao.ma@oracle.com>
+Message-ID: <1241045931-24607-30-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_mark_extent_written actually does the following things:
-1. check the parameters.
-2. initialize the left_path and split_rec.
-3. call __ocfs2_mark_extent_written. it will do:
-   1) check the flags of unwritten
-   2) do the real split work.
-The whole process is packed tightly somehow. So this patch
-will abstract 2 different functions so that future b-tree
-operation can work with it.
-
-1. __ocfs2_split_extent will accept path and split_rec and do
-  the real split work.
-2. ocfs2_change_extent_flag will accept a new flag and initialize
-   path and split_rec.
-
-So now ocfs2_mark_extent_written will do:
-1. check the parameters.
-2. call ocfs2_change_extent_flag.
-   1) initalize the left_path and split_rec.
-   2) check whether the new flags conflict with the old one.
-   3) call __ocfs2_split_extent to do the split.
+In xattr reflink, we also need to create xattr block, so
+abstract the process out.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/alloc.c |  142 ++++++++++++++++++++++++++++++++----------------------
- 1 files changed, 85 insertions(+), 57 deletions(-)
+ fs/ocfs2/xattr.c |  115 +++++++++++++++++++++++++++++++++---------------------
+ 1 files changed, 70 insertions(+), 45 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 1fc56f3..b06db13 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -4926,10 +4926,9 @@ out:
- }
- 
- /*
-- * Mark part or all of the extent record at split_index in the leaf
-- * pointed to by path as written. This removes the unwritten
-- * extent flag.
-- *
-+ * Split part or all of the extent record at split_index in the leaf
-+ * pointed to by path. Merge with the contiguous extent record if needed.
-+
-  * Care is taken to handle contiguousness so as to not grow the tree.
-  *
-  * meta_ac is not strictly necessary - we only truly need it if growth
-@@ -4945,13 +4944,13 @@ out:
-  * have been brought into cache (and pinned via the journal), so the
-  * extra overhead is not expressed in terms of disk reads.
-  */
--static int __ocfs2_mark_extent_written(handle_t *handle,
--				       struct ocfs2_extent_tree *et,
--				       struct ocfs2_path *path,
--				       int split_index,
--				       struct ocfs2_extent_rec *split_rec,
--				       struct ocfs2_alloc_context *meta_ac,
--				       struct ocfs2_cached_dealloc_ctxt *dealloc)
-+static int __ocfs2_split_extent(handle_t *handle,
-+				struct ocfs2_extent_tree *et,
-+				struct ocfs2_path *path,
-+				int split_index,
-+				struct ocfs2_extent_rec *split_rec,
-+				struct ocfs2_alloc_context *meta_ac,
-+				struct ocfs2_cached_dealloc_ctxt *dealloc)
- {
- 	int ret = 0;
- 	struct ocfs2_extent_list *el = path_leaf_el(path);
-@@ -4960,12 +4959,6 @@ static int __ocfs2_mark_extent_written(handle_t *handle,
- 	struct ocfs2_merge_ctxt ctxt;
- 	struct ocfs2_extent_list *rightmost_el;
- 
--	if (!(rec->e_flags & OCFS2_EXT_UNWRITTEN)) {
--		ret = -EIO;
--		mlog_errno(ret);
--		goto out;
--	}
--
- 	if (le32_to_cpu(rec->e_cpos) > le32_to_cpu(split_rec->e_cpos) ||
- 	    ((le32_to_cpu(rec->e_cpos) + le16_to_cpu(rec->e_leaf_clusters)) <
- 	     (le32_to_cpu(split_rec->e_cpos) + le16_to_cpu(split_rec->e_leaf_clusters)))) {
-@@ -5034,43 +5027,20 @@ out:
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 82f260b..e3910a1 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2104,6 +2104,72 @@ cleanup:
  	return ret;
  }
  
--/*
-- * Mark the already-existing extent at cpos as written for len clusters.
-- *
-- * If the existing extent is larger than the request, initiate a
-- * split. An attempt will be made at merging with adjacent extents.
-- *
-- * The caller is responsible for passing down meta_ac if we'll need it.
-- */
--int ocfs2_mark_extent_written(struct inode *inode,
--			      struct ocfs2_extent_tree *et,
--			      handle_t *handle, u32 cpos, u32 len, u32 phys,
--			      struct ocfs2_alloc_context *meta_ac,
--			      struct ocfs2_cached_dealloc_ctxt *dealloc)
-+static int ocfs2_change_extent_flag(handle_t *handle,
-+				    struct ocfs2_extent_tree *et,
-+				    u32 cpos, u32 len, u32 phys,
++static int ocfs2_create_xattr_block(handle_t *handle,
++				    struct inode *inode,
++				    struct buffer_head *inode_bh,
 +				    struct ocfs2_alloc_context *meta_ac,
-+				    struct ocfs2_cached_dealloc_ctxt *dealloc,
-+				    int new_flags, int clear_flags)
- {
- 	int ret, index;
--	u64 start_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys);
-+	struct super_block *sb = ocfs2_metadata_cache_get_super(et->et_ci);
-+	u64 start_blkno = ocfs2_clusters_to_blocks(sb, phys);
- 	struct ocfs2_extent_rec split_rec;
- 	struct ocfs2_path *left_path = NULL;
- 	struct ocfs2_extent_list *el;
--
--	mlog(0, "Inode %lu cpos %u, len %u, phys %u (%llu)\n",
--	     inode->i_ino, cpos, len, phys, (unsigned long long)start_blkno);
--
--	if (!ocfs2_writes_unwritten_extents(OCFS2_SB(inode->i_sb))) {
--		ocfs2_error(inode->i_sb, "Inode %llu has unwritten extents "
--			    "that are being written to, but the feature bit "
--			    "is not set in the super block.",
--			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
--		ret = -EROFS;
--		goto out;
--	}
--
--	/*
--	 * XXX: This should be fixed up so that we just re-insert the
--	 * next extent records.
--	 */
--	ocfs2_et_extent_map_truncate(et, 0);
-+	struct ocfs2_extent_rec *rec;
- 
- 	left_path = ocfs2_new_path_from_et(et);
- 	if (!left_path) {
-@@ -5088,30 +5058,88 @@ int ocfs2_mark_extent_written(struct inode *inode,
- 
- 	index = ocfs2_search_extent_list(el, cpos);
- 	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
--		ocfs2_error(inode->i_sb,
--			    "Inode %llu has an extent at cpos %u which can no "
-+		ocfs2_error(sb,
-+			    "Owner %llu has an extent at cpos %u which can no "
- 			    "longer be found.\n",
--			    (unsigned long long)OCFS2_I(inode)->ip_blkno, cpos);
-+			     (unsigned long long)
-+			     ocfs2_metadata_cache_owner(et->et_ci), cpos);
- 		ret = -EROFS;
- 		goto out;
- 	}
- 
-+	rec = &el->l_recs[index];
-+	if ((new_flags && (rec->e_flags & new_flags)) ||
-+	    (clear_flags && !(rec->e_flags & clear_flags))) {
-+		ret = -EIO;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
- 	memset(&split_rec, 0, sizeof(struct ocfs2_extent_rec));
- 	split_rec.e_cpos = cpu_to_le32(cpos);
- 	split_rec.e_leaf_clusters = cpu_to_le16(len);
- 	split_rec.e_blkno = cpu_to_le64(start_blkno);
--	split_rec.e_flags = path_leaf_el(left_path)->l_recs[index].e_flags;
--	split_rec.e_flags &= ~OCFS2_EXT_UNWRITTEN;
-+	split_rec.e_flags = rec->e_flags;
-+	if (new_flags)
-+		split_rec.e_flags |= new_flags;
-+	else
-+		split_rec.e_flags &= ~clear_flags;
- 
--	ret = __ocfs2_mark_extent_written(handle, et, left_path,
--					  index, &split_rec, meta_ac,
--					  dealloc);
-+	ret = __ocfs2_split_extent(handle, et, left_path,
-+				  index, &split_rec, meta_ac,
-+				  dealloc);
- 	if (ret)
- 		mlog_errno(ret);
- 
- out:
- 	ocfs2_free_path(left_path);
- 	return ret;
-+
-+}
-+
-+/*
-+ * Mark the already-existing extent at cpos as written for len clusters.
-+ * This removes the unwritten extent flag.
-+ *
-+ * If the existing extent is larger than the request, initiate a
-+ * split. An attempt will be made at merging with adjacent extents.
-+ *
-+ * The caller is responsible for passing down meta_ac if we'll need it.
-+ */
-+int ocfs2_mark_extent_written(struct inode *inode,
-+			      struct ocfs2_extent_tree *et,
-+			      handle_t *handle, u32 cpos, u32 len, u32 phys,
-+			      struct ocfs2_alloc_context *meta_ac,
-+			      struct ocfs2_cached_dealloc_ctxt *dealloc)
++				    struct buffer_head **ret_bh)
 +{
 +	int ret;
++	u16 suballoc_bit_start;
++	u32 num_got;
++	u64 first_blkno;
++	struct ocfs2_dinode *di =  (struct ocfs2_dinode *)inode_bh->b_data;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	struct buffer_head *new_bh = NULL;
++	struct ocfs2_xattr_block *xblk;
 +
-+	mlog(0, "Inode %lu cpos %u, len %u, phys clusters %u\n",
-+	     inode->i_ino, cpos, len, phys);
-+
-+	if (!ocfs2_writes_unwritten_extents(OCFS2_SB(inode->i_sb))) {
-+		ocfs2_error(inode->i_sb, "Inode %llu has unwritten extents "
-+			    "that are being written to, but the feature bit "
-+			    "is not set in the super block.",
-+			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
-+		ret = -EROFS;
-+		goto out;
++	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), inode_bh,
++				      OCFS2_JOURNAL_ACCESS_CREATE);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto end;
 +	}
 +
-+	/*
-+	 * XXX: This should be fixed up so that we just re-insert the
-+	 * next extent records.
-+	 */
-+	ocfs2_et_extent_map_truncate(et, 0);
-+
-+	ret = ocfs2_change_extent_flag(handle, et, cpos,
-+				       len, phys, meta_ac, dealloc,
-+				       0, OCFS2_EXT_UNWRITTEN);
-+	if (ret)
++	ret = ocfs2_claim_metadata(osb, handle, meta_ac, 1,
++				   &suballoc_bit_start, &num_got,
++				   &first_blkno);
++	if (ret < 0) {
 +		mlog_errno(ret);
++		goto end;
++	}
 +
-+out:
++	new_bh = sb_getblk(inode->i_sb, first_blkno);
++	ocfs2_set_new_buffer_uptodate(INODE_CACHE(inode), new_bh);
++
++	ret = ocfs2_journal_access_xb(handle, INODE_CACHE(inode),
++				      new_bh,
++				      OCFS2_JOURNAL_ACCESS_CREATE);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto end;
++	}
++
++	/* Initialize ocfs2_xattr_block */
++	xblk = (struct ocfs2_xattr_block *)new_bh->b_data;
++	memset(xblk, 0, inode->i_sb->s_blocksize);
++	strcpy((void *)xblk, OCFS2_XATTR_BLOCK_SIGNATURE);
++	xblk->xb_suballoc_slot = cpu_to_le16(osb->slot_num);
++	xblk->xb_suballoc_bit = cpu_to_le16(suballoc_bit_start);
++	xblk->xb_fs_generation = cpu_to_le32(osb->fs_generation);
++	xblk->xb_blkno = cpu_to_le64(first_blkno);
++
++	ret = ocfs2_journal_dirty(handle, new_bh);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto end;
++	}
++	di->i_xattr_loc = cpu_to_le64(first_blkno);
++	ocfs2_journal_dirty(handle, inode_bh);
++
++	*ret_bh = new_bh;
++	new_bh = NULL;
++
++end:
++	brelse(new_bh);
 +	return ret;
- }
++}
++
+ /*
+  * ocfs2_xattr_block_set()
+  *
+@@ -2116,65 +2182,24 @@ static int ocfs2_xattr_block_set(struct inode *inode,
+ 				 struct ocfs2_xattr_set_ctxt *ctxt)
+ {
+ 	struct buffer_head *new_bh = NULL;
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	struct ocfs2_dinode *di =  (struct ocfs2_dinode *)xs->inode_bh->b_data;
+ 	handle_t *handle = ctxt->handle;
+ 	struct ocfs2_xattr_block *xblk = NULL;
+-	u16 suballoc_bit_start;
+-	u32 num_got;
+-	u64 first_blkno;
+ 	int ret;
  
- static int ocfs2_split_tree(handle_t *handle, struct ocfs2_extent_tree *et,
+ 	if (!xs->xattr_bh) {
+-		ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode),
+-					      xs->inode_bh,
+-					      OCFS2_JOURNAL_ACCESS_CREATE);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			goto end;
+-		}
+-
+-		ret = ocfs2_claim_metadata(osb, handle, ctxt->meta_ac, 1,
+-					   &suballoc_bit_start, &num_got,
+-					   &first_blkno);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			goto end;
+-		}
+-
+-		new_bh = sb_getblk(inode->i_sb, first_blkno);
+-		ocfs2_set_new_buffer_uptodate(INODE_CACHE(inode), new_bh);
+-
+-		ret = ocfs2_journal_access_xb(handle, INODE_CACHE(inode),
+-					      new_bh,
+-					      OCFS2_JOURNAL_ACCESS_CREATE);
+-		if (ret < 0) {
++		ret = ocfs2_create_xattr_block(handle, inode, xs->inode_bh,
++					       ctxt->meta_ac, &new_bh);
++		if (ret) {
+ 			mlog_errno(ret);
+ 			goto end;
+ 		}
+ 
+-		/* Initialize ocfs2_xattr_block */
+ 		xs->xattr_bh = new_bh;
+-		xblk = (struct ocfs2_xattr_block *)new_bh->b_data;
+-		memset(xblk, 0, inode->i_sb->s_blocksize);
+-		strcpy((void *)xblk, OCFS2_XATTR_BLOCK_SIGNATURE);
+-		xblk->xb_suballoc_slot = cpu_to_le16(osb->slot_num);
+-		xblk->xb_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+-		xblk->xb_fs_generation = cpu_to_le32(osb->fs_generation);
+-		xblk->xb_blkno = cpu_to_le64(first_blkno);
+-
++		xblk = (struct ocfs2_xattr_block *)xs->xattr_bh->b_data;
+ 		xs->header = &xblk->xb_attrs.xb_header;
+ 		xs->base = (void *)xs->header;
+ 		xs->end = (void *)xblk + inode->i_sb->s_blocksize;
+ 		xs->here = xs->header->xh_entries;
+-
+-		ret = ocfs2_journal_dirty(handle, new_bh);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			goto end;
+-		}
+-		di->i_xattr_loc = cpu_to_le64(first_blkno);
+-		ocfs2_journal_dirty(handle, xs->inode_bh);
+ 	} else
+ 		xblk = (struct ocfs2_xattr_block *)xs->xattr_bh->b_data;
+ 
 -- 
 1.6.2.rc2.16.gf474c
