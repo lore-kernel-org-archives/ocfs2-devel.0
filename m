@@ -1,62 +1,217 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 30 Apr 2009 06:58:32 +0800
-Subject: [Ocfs2-devel] [PATCH 20/39] ocfs2: Abstract caching info checkpoint.
+Date: Thu, 30 Apr 2009 06:58:33 +0800
+Subject: [Ocfs2-devel] [PATCH 21/39] ocfs2: Add new refcount tree lock
+	resource.
 In-Reply-To: <49F95A79.6040806@oracle.com>
 References: <49F95A79.6040806@oracle.com>
-Message-ID: <1241045931-24607-20-git-send-email-tao.ma@oracle.com>
+Message-ID: <1241045931-24607-21-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In meta downconvert, we need to checkpoint the metadata in an inode.
-For refcount tree, we also need it. So abstract the process out.
+refcount tree lock resource is used to protect refcount
+tree read/write among multiple nodes.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/dlmglue.c |   18 +++++++++++++-----
- 1 files changed, 13 insertions(+), 5 deletions(-)
+ fs/ocfs2/dlmglue.c      |   68 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlmglue.h      |    4 +++
+ fs/ocfs2/ocfs2_lockid.h |    5 +++
+ fs/ocfs2/refcounttree.h |   14 +++++++++
+ 4 files changed, 91 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index be00c74..030e66f 100644
+index 030e66f..f8d0d30 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
-@@ -3388,11 +3388,11 @@ out:
- 	return UNBLOCK_CONTINUE;
- }
+@@ -53,6 +53,7 @@
+ #include "super.h"
+ #include "uptodate.h"
+ #include "quota.h"
++#include "refcounttree.h"
  
--static int ocfs2_check_meta_downconvert(struct ocfs2_lock_res *lockres,
--					int new_level)
-+static int ocfs2_ci_checkpointed(struct ocfs2_caching_info *ci,
-+				 struct ocfs2_lock_res *lockres,
-+				 int new_level)
- {
--	struct inode *inode = ocfs2_lock_res_inode(lockres);
--	int checkpointed = ocfs2_ci_fully_checkpointed(INODE_CACHE(inode));
-+	int checkpointed = ocfs2_ci_fully_checkpointed(ci);
+ #include "buffer_head_io.h"
  
- 	BUG_ON(new_level != DLM_LOCK_NL && new_level != DLM_LOCK_PR);
- 	BUG_ON(lockres->l_level != DLM_LOCK_EX && !checkpointed);
-@@ -3400,10 +3400,18 @@ static int ocfs2_check_meta_downconvert(struct ocfs2_lock_res *lockres,
- 	if (checkpointed)
- 		return 1;
+@@ -107,6 +108,11 @@ static void ocfs2_dentry_post_unlock(struct ocfs2_super *osb,
  
--	ocfs2_start_checkpoint(OCFS2_SB(inode->i_sb));
-+	ocfs2_start_checkpoint(OCFS2_SB(ocfs2_metadata_cache_get_super(ci)));
- 	return 0;
- }
+ static void ocfs2_set_qinfo_lvb(struct ocfs2_lock_res *lockres);
  
-+static int ocfs2_check_meta_downconvert(struct ocfs2_lock_res *lockres,
-+					int new_level)
-+{
-+	struct inode *inode = ocfs2_lock_res_inode(lockres);
++static int ocfs2_check_refcount_downconvert(struct ocfs2_lock_res *lockres,
++					    int new_level);
++static int ocfs2_refcount_convert_worker(struct ocfs2_lock_res *lockres,
++					 int blocking);
 +
-+	return ocfs2_ci_checkpointed(INODE_CACHE(inode), lockres, new_level);
+ #define mlog_meta_lvb(__level, __lockres) ocfs2_dump_meta_lvb_info(__level, __PRETTY_FUNCTION__, __LINE__, __lockres)
+ 
+ /* This aids in debugging situations where a bad LVB might be involved. */
+@@ -271,6 +277,12 @@ static struct ocfs2_lock_res_ops ocfs2_qinfo_lops = {
+ 	.flags		= LOCK_TYPE_REQUIRES_REFRESH | LOCK_TYPE_USES_LVB,
+ };
+ 
++static struct ocfs2_lock_res_ops ocfs2_refcount_block_lops = {
++	.check_downconvert = ocfs2_check_refcount_downconvert,
++	.downconvert_worker = ocfs2_refcount_convert_worker,
++	.flags		= 0,
++};
++
+ static inline int ocfs2_is_inode_lock(struct ocfs2_lock_res *lockres)
+ {
+ 	return lockres->l_type == OCFS2_LOCK_TYPE_META ||
+@@ -663,6 +675,16 @@ void ocfs2_qinfo_lock_res_init(struct ocfs2_lock_res *lockres,
+ 				   info);
+ }
+ 
++void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
++				  struct ocfs2_super *osb, u64 ref_blkno)
++{
++	ocfs2_lock_res_init_once(lockres);
++	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_REFCOUNT, ref_blkno,
++			      0, lockres->l_name);
++	ocfs2_lock_res_init_common(osb, lockres, OCFS2_LOCK_TYPE_REFCOUNT,
++				   &ocfs2_refcount_block_lops, osb);
 +}
 +
- static void ocfs2_set_meta_lvb(struct ocfs2_lock_res *lockres)
+ void ocfs2_lock_res_free(struct ocfs2_lock_res *res)
  {
- 	struct inode *inode = ocfs2_lock_res_inode(lockres);
+ 	mlog_entry_void();
+@@ -3541,6 +3563,24 @@ static int ocfs2_dentry_convert_worker(struct ocfs2_lock_res *lockres,
+ 	return UNBLOCK_CONTINUE_POST;
+ }
+ 
++static int ocfs2_check_refcount_downconvert(struct ocfs2_lock_res *lockres,
++					    int new_level)
++{
++	struct ocfs2_refcount_tree *tree = OCFS2_REF_ITEM(lockres);
++
++	return ocfs2_ci_checkpointed(&tree->rf_ci, lockres, new_level);
++}
++
++static int ocfs2_refcount_convert_worker(struct ocfs2_lock_res *lockres,
++					 int blocking)
++{
++	struct ocfs2_refcount_tree *tree = OCFS2_REF_ITEM(lockres);
++
++	ocfs2_metadata_cache_purge(&tree->rf_ci);
++
++	return UNBLOCK_CONTINUE;
++}
++
+ static void ocfs2_set_qinfo_lvb(struct ocfs2_lock_res *lockres)
+ {
+ 	struct ocfs2_qinfo_lvb *lvb;
+@@ -3652,6 +3692,34 @@ bail:
+ 	return status;
+ }
+ 
++int ocfs2_refcount_lock(struct ocfs2_lock_res *lockres, int ex)
++{
++	int status;
++	int level = ex ? DLM_LOCK_EX : DLM_LOCK_PR;
++	struct ocfs2_super *osb = lockres->l_priv;
++
++	if (ocfs2_is_hard_readonly(osb))
++		return -EROFS;
++
++	if (ocfs2_mount_local(osb))
++		return 0;
++
++	status = ocfs2_cluster_lock(osb, lockres, level, 0, 0);
++	if (status < 0)
++		mlog_errno(status);
++
++	return status;
++}
++
++void ocfs2_refcount_unlock(struct ocfs2_lock_res *lockres, int ex)
++{
++	int level = ex ? DLM_LOCK_EX : DLM_LOCK_PR;
++	struct ocfs2_super *osb = lockres->l_priv;
++
++	if (!ocfs2_mount_local(osb))
++		ocfs2_cluster_unlock(osb, lockres, level);
++}
++
+ /*
+  * This is the filesystem locking protocol.  It provides the lock handling
+  * hooks for the underlying DLM.  It has a maximum version number.
+diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
+index e1fd572..b2700d2 100644
+--- a/fs/ocfs2/dlmglue.h
++++ b/fs/ocfs2/dlmglue.h
+@@ -85,6 +85,8 @@ void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
+ struct ocfs2_mem_dqinfo;
+ void ocfs2_qinfo_lock_res_init(struct ocfs2_lock_res *lockres,
+                                struct ocfs2_mem_dqinfo *info);
++void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
++				  struct ocfs2_super *osb, u64 ref_blkno);
+ void ocfs2_lock_res_free(struct ocfs2_lock_res *res);
+ int ocfs2_create_new_inode_locks(struct inode *inode);
+ int ocfs2_drop_inode_locks(struct inode *inode);
+@@ -123,6 +125,8 @@ int ocfs2_file_lock(struct file *file, int ex, int trylock);
+ void ocfs2_file_unlock(struct file *file);
+ int ocfs2_qinfo_lock(struct ocfs2_mem_dqinfo *oinfo, int ex);
+ void ocfs2_qinfo_unlock(struct ocfs2_mem_dqinfo *oinfo, int ex);
++int ocfs2_refcount_lock(struct ocfs2_lock_res *lockres, int ex);
++void ocfs2_refcount_unlock(struct ocfs2_lock_res *lockres, int ex);
+ 
+ 
+ void ocfs2_mark_lockres_freeing(struct ocfs2_lock_res *lockres);
+diff --git a/fs/ocfs2/ocfs2_lockid.h b/fs/ocfs2/ocfs2_lockid.h
+index a53ce87..f63e56f 100644
+--- a/fs/ocfs2/ocfs2_lockid.h
++++ b/fs/ocfs2/ocfs2_lockid.h
+@@ -48,6 +48,7 @@ enum ocfs2_lock_type {
+ 	OCFS2_LOCK_TYPE_FLOCK,
+ 	OCFS2_LOCK_TYPE_QINFO,
+ 	OCFS2_LOCK_TYPE_NFS_SYNC,
++	OCFS2_LOCK_TYPE_REFCOUNT,
+ 	OCFS2_NUM_LOCK_TYPES
+ };
+ 
+@@ -85,6 +86,9 @@ static inline char ocfs2_lock_type_char(enum ocfs2_lock_type type)
+ 		case OCFS2_LOCK_TYPE_NFS_SYNC:
+ 			c = 'Y';
+ 			break;
++		case OCFS2_LOCK_TYPE_REFCOUNT:
++			c = 'T';
++			break;
+ 		default:
+ 			c = '\0';
+ 	}
+@@ -104,6 +108,7 @@ static char *ocfs2_lock_type_strings[] = {
+ 	[OCFS2_LOCK_TYPE_OPEN] = "Open",
+ 	[OCFS2_LOCK_TYPE_FLOCK] = "Flock",
+ 	[OCFS2_LOCK_TYPE_QINFO] = "Quota",
++	[OCFS2_LOCK_TYPE_REFCOUNT] = "Refcount",
+ };
+ 
+ static inline const char *ocfs2_lock_type_string(enum ocfs2_lock_type type)
+diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
+index 7f44093..428bd6e 100644
+--- a/fs/ocfs2/refcounttree.h
++++ b/fs/ocfs2/refcounttree.h
+@@ -17,6 +17,20 @@
+ #ifndef OCFS2_REFCOUNTTREE_H
+ #define OCFS2_REFCOUNTTREE_H
+ 
++struct ocfs2_refcount_tree {
++	struct rb_node rf_node;
++	u64 rf_blkno;
++	struct rw_semaphore rf_sem;
++	struct ocfs2_lock_res rf_lockres;
++	struct ocfs2_caching_info rf_ci;
++};
++
++static inline struct ocfs2_refcount_tree *
++OCFS2_REF_ITEM(struct ocfs2_lock_res *res)
++{
++	return container_of(res, struct ocfs2_refcount_tree, rf_lockres);
++}
++
+ int ocfs2_create_refcount_tree(struct inode *inode, struct buffer_head *di_bh);
+ int ocfs2_set_refcount_tree(struct inode *inode,
+ 			    struct buffer_head *di_bh,
 -- 
 1.6.2.rc2.16.gf474c
