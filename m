@@ -1,31 +1,55 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 30 Apr 2009 11:00:03 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix a missing credit when deleting
-	from indexed	directories.
-In-Reply-To: <20090430010449.GE27450@mail.oracle.com>
-References: <20090430010449.GE27450@mail.oracle.com>
-Message-ID: <20090430180003.GJ4585@wotan.suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 30 Apr 2009 11:53:46 -0700
+Subject: [Ocfs2-devel] orphan cleanup
+Message-ID: <20090430185346.GE2762@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Apr 29, 2009 at 06:04:51PM -0700, Joel Becker wrote:
-> The ocfs2 directory index updates two blocks when we remove an entry -
-> the dx root and the dx leaf.  OCFS2_DELETE_INODE_CREDITS was only
-> accounting for the dx leaf.  This shows up when ocfs2_delete_inode()
-> runs out of credits in jbd2_journal_dirty_metadata() at
-> "J_ASSERT_JH(jh, handle->h_buffer_credits > 0);".
-> 
-> The test that caught this was running dirop_file_racer from the
-> ocfs2-test suite with a 250-character filename PREFIX.  Run on a 512B
-> blocksize, it forces the orphan dir index to grow large enough to
-> trigger.
-> 
-> Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Srini,
+	Ok, you can go ahead and cook up the background orphan cleaner.
+Now, we can do this in a workqueue, a thread, or a timer.  I don't see
+why a timer doesn't work.  When the timer fires, you do this:
 
-Acked-by: Mark Fasheh <mark.fasheh@oracle.com>
+1. Take EX on a new orphan_scan lock.
+2. check the LVB for the last scan time.  If it's less than the scan
+   timeout, reset the timer for (timeout - last scan), drop the EX, and
+   exit.
+3. Call ocfs2_queue_recovery_completion() for all slots with NULL, NULL,
+   NULL on the non-orphan-dir arguments.  This sets up the orphan
+   recovery.
+4. Update the LVB with the current scan time.
+5. Drop the EX to an NL.
+6. Reset the timer for the scan timeout.
 
---
-Mark Fasheh
+	Points about this scheme:
+
+- Doesn't need a process.
+- Don't need to change the locking protocol version, as older versions
+  just ignore this problem.
+- Ensures only one node runs the scan each timeout period.
+- Uses our existing orphan recovery code unchanged.
+- We don't need to keep a PR on the orphan scan lock.  It's just extra
+  network traffic and downconvert processing we don't care about.
+  Better to wake up once when our timeout fires than to wake up every
+  time another node goes to make a scan.
+- I realize that I've updated the scan time at the queue of the scan,
+  not at the completion.  It doesn't really make much of a difference
+  with many-minute scan periods, and it is a lot simpler than trying to
+  add code to wait on all the orphans.
+
+Joel
+
+-- 
+
+Life's Little Instruction Book #232
+
+	"Keep your promises."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
