@@ -1,51 +1,69 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 30 Apr 2009 16:17:11 -0700
-Subject: [Ocfs2-devel] [PATCH 03/39] ocfs2:
-	Add	ocfs2_read_refcount_block.
-In-Reply-To: <1241045931-24607-3-git-send-email-tao.ma@oracle.com>
+Date: Thu, 30 Apr 2009 16:33:48 -0700
+Subject: [Ocfs2-devel] [PATCH 04/39] ocfs2: Basic tree root operation.
+In-Reply-To: <1241045931-24607-4-git-send-email-tao.ma@oracle.com>
 References: <49F95A79.6040806@oracle.com>
-	<1241045931-24607-3-git-send-email-tao.ma@oracle.com>
-Message-ID: <20090430231711.GI2762@mail.oracle.com>
+	<1241045931-24607-4-git-send-email-tao.ma@oracle.com>
+Message-ID: <20090430233348.GJ2762@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Apr 30, 2009 at 06:58:15AM +0800, Tao Ma wrote:
-> +static int ocfs2_validate_refcount_block(struct super_block *sb,
-> +					 struct buffer_head *bh)
-> +{
-> +	int rc;
-> +	struct ocfs2_refcount_block *rb =
-> +		(struct ocfs2_refcount_block *)bh->b_data;
-> +
-> +	mlog(0, "Validating refcount block %llu\n",
-> +	     (unsigned long long)bh->b_blocknr);
-> +
-> +	BUG_ON(!buffer_uptodate(bh));
-> +
-> +	/*
-> +	 * If the ecc fails, we return the error but otherwise
-> +	 * leave the filesystem running.  We know any error is
-> +	 * local to this block.
-> +	 */
-> +	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &rb->rf_check);
-> +	if (rc) {
-> +		mlog(ML_ERROR, "Checksum failed for extent block %llu\n",
-> +		     (unsigned long long)bh->b_blocknr);
+On Thu, Apr 30, 2009 at 06:58:16AM +0800, Tao Ma wrote:
+> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+> index 08196e0..bfd5942 100644
+> --- a/fs/ocfs2/journal.h
+> +++ b/fs/ocfs2/journal.h
+> @@ -482,6 +482,9 @@ static inline int ocfs2_calc_dxi_expand_credits(struct super_block *sb)
+>  	return credits;
+>  }
+>  
+> +#define OCFS2_REFCOUNT_TREE_CREATE_CREDITS (OCFS2_INODE_UPDATE_CREDITS + \
+> +					    + OCFS2_SUBALLOC_ALLOC + 1)
+> +#define OCFS2_REFCOUNT_TREE_SET_CREDITS (OCFS2_INODE_UPDATE_CREDITS + 1)
 
-	'refcount block' instead of 'extent block' :-)
+	Please put comments on these credits defines.  We want to know
+what each credit is for.
+
+> +	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
+> +	BUG_ON(di->i_refcount_loc);
+
+	Don't BUG_ON(di->i_refcount_loc).  That's an on-disk structure
+that could be garbage, and there's no point in crashing becasue of it.
+We actually don't care if it is zero, because we know we're safe to
+attach the new refcount tree.  The same goes for set_tree.
+
+> +	rb = (struct ocfs2_refcount_block *)ref_root_bh->b_data;
+> +	le32_add_cpu(&rb->rf_count, 1);
+
+	I see you have no locking for the refcount tree right now
+(spinlock or cluster lock).  I assume that's coming in a later patch.
+
+> +int ocfs2_remove_refcount_tree(struct inode *inode, struct buffer_head *di_bh)
+> +{
+> +	int ret;
+> +	handle_t *handle = NULL;
+> +	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+> +	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> +	struct ocfs2_refcount_block *rb;
+> +	struct inode *alloc_inode = NULL;
+> +	struct buffer_head *alloc_bh = NULL;
+> +	struct buffer_head *blk_bh = NULL;
+> +	int credits = OCFS2_INODE_UPDATE_CREDITS + 1;
+
+	This should be an OCFS2_REFCOUNT_TREE_REMOVE_CREDITS define,
+with appropriate comment.
 
 Joel
 
 -- 
 
-"The lawgiver, of all beings, most owes the law allegiance.  He of all
- men should behave as though the law compelled him.  But it is the
- universal weakness of mankind that what we are given to administer we
- presently imagine we own."
-        - H.G. Wells
+"For every complex problem there exists a solution that is brief,
+     concise, and totally wrong."
+                                        -Unknown
 
 Joel Becker
 Principal Software Developer
