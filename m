@@ -1,69 +1,53 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 30 Apr 2009 16:33:48 -0700
-Subject: [Ocfs2-devel] [PATCH 04/39] ocfs2: Basic tree root operation.
-In-Reply-To: <1241045931-24607-4-git-send-email-tao.ma@oracle.com>
+Date: Thu, 30 Apr 2009 16:35:59 -0700
+Subject: [Ocfs2-devel] [PATCH 05/39] ocfs2: hook remove refcount
+	tree	into truncate.
+In-Reply-To: <1241045931-24607-5-git-send-email-tao.ma@oracle.com>
 References: <49F95A79.6040806@oracle.com>
-	<1241045931-24607-4-git-send-email-tao.ma@oracle.com>
-Message-ID: <20090430233348.GJ2762@mail.oracle.com>
+	<1241045931-24607-5-git-send-email-tao.ma@oracle.com>
+Message-ID: <20090430233559.GK2762@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Apr 30, 2009 at 06:58:16AM +0800, Tao Ma wrote:
-> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-> index 08196e0..bfd5942 100644
-> --- a/fs/ocfs2/journal.h
-> +++ b/fs/ocfs2/journal.h
-> @@ -482,6 +482,9 @@ static inline int ocfs2_calc_dxi_expand_credits(struct super_block *sb)
->  	return credits;
->  }
+On Thu, Apr 30, 2009 at 06:58:17AM +0800, Tao Ma wrote:
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> ---
+>  fs/ocfs2/alloc.c |    5 +++++
+>  1 files changed, 5 insertions(+), 0 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 6f20f30..0c96b27 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -51,6 +51,7 @@
+>  #include "xattr.h"
 >  
-> +#define OCFS2_REFCOUNT_TREE_CREATE_CREDITS (OCFS2_INODE_UPDATE_CREDITS + \
-> +					    + OCFS2_SUBALLOC_ALLOC + 1)
-> +#define OCFS2_REFCOUNT_TREE_SET_CREDITS (OCFS2_INODE_UPDATE_CREDITS + 1)
+>  #include "buffer_head_io.h"
+> +#include "refcounttree.h"
+>  
+>  
+>  /*
+> @@ -7305,6 +7306,10 @@ start:
+>  	goto start;
+>  
+>  bail:
+> +	if (!status && OCFS2_I(inode)->ip_clusters == 0) {
+> +		/* remove the refcount tree. */
+> +		status = ocfs2_remove_refcount_tree(inode, fe_bh);
+> +	}
 
-	Please put comments on these credits defines.  We want to know
-what each credit is for.
-
-> +	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
-> +	BUG_ON(di->i_refcount_loc);
-
-	Don't BUG_ON(di->i_refcount_loc).  That's an on-disk structure
-that could be garbage, and there's no point in crashing becasue of it.
-We actually don't care if it is zero, because we know we're safe to
-attach the new refcount tree.  The same goes for set_tree.
-
-> +	rb = (struct ocfs2_refcount_block *)ref_root_bh->b_data;
-> +	le32_add_cpu(&rb->rf_count, 1);
-
-	I see you have no locking for the refcount tree right now
-(spinlock or cluster lock).  I assume that's coming in a later patch.
-
-> +int ocfs2_remove_refcount_tree(struct inode *inode, struct buffer_head *di_bh)
-> +{
-> +	int ret;
-> +	handle_t *handle = NULL;
-> +	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
-> +	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +	struct ocfs2_refcount_block *rb;
-> +	struct inode *alloc_inode = NULL;
-> +	struct buffer_head *alloc_bh = NULL;
-> +	struct buffer_head *blk_bh = NULL;
-> +	int credits = OCFS2_INODE_UPDATE_CREDITS + 1;
-
-	This should be an OCFS2_REFCOUNT_TREE_REMOVE_CREDITS define,
-with appropriate comment.
+	Locking and xattr clusters need to be accounted for.  I'm
+assuming they come later, but I'm noting it down for later reference.
 
 Joel
 
 -- 
 
-"For every complex problem there exists a solution that is brief,
-     concise, and totally wrong."
-                                        -Unknown
+"Against stupidity the Gods themselves contend in vain."
+	- Friedrich von Schiller
 
 Joel Becker
 Principal Software Developer
