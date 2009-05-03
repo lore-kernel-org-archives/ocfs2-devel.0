@@ -1,10 +1,9 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Sat,  2 May 2009 23:15:02 -0700
-Subject: [Ocfs2-devel] [PATCH 2/3] fs: Add vfs_reflink() and the ->reflink()
-	inode operation.
+Date: Sat,  2 May 2009 23:15:03 -0700
+Subject: [Ocfs2-devel] [PATCH 3/3] fs: Add the reflink(2) system call.
 In-Reply-To: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1241331303-23753-3-git-send-email-joel.becker@oracle.com>
+Message-ID: <1241331303-23753-4-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,102 +11,107 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-Implement vfs_reflink(), which calls iops->reflink().  See
+This implements reflinkat(2) and reflink(2).  See
 Documentation/reflink.txt for a description of the reflink(2) system
 call.
 
-I'm not quite certain of the security model to follow.
-security_inode_link() is clearly not correct as the resulting file is
-not the source inode.  I have chosen security_inode_create() to reflect
-the creation of a new file in the directory.  This matches the
-fsnotify_create() I've decided to use.  However, it does not reflect
-that the new file will have the same contents as the source file.  The
-real solution is probably either to check read access on the source or
-define a new security_inode_reflink().
+XXX: Currently only adds the x86_32 linkage.  The rest of the
+architectures belong here too.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/namei.c         |   40 ++++++++++++++++++++++++++++++++++++++++
- include/linux/fs.h |    2 ++
- 2 files changed, 42 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/unistd_32.h   |    1 +
+ arch/x86/kernel/syscall_table_32.S |    1 +
+ fs/namei.c                         |   56 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 58 insertions(+), 0 deletions(-)
 
+diff --git a/arch/x86/include/asm/unistd_32.h b/arch/x86/include/asm/unistd_32.h
+index 6e72d74..ea8eb94 100644
+--- a/arch/x86/include/asm/unistd_32.h
++++ b/arch/x86/include/asm/unistd_32.h
+@@ -340,6 +340,7 @@
+ #define __NR_inotify_init1	332
+ #define __NR_preadv		333
+ #define __NR_pwritev		334
++#define __NR_reflink		335
+ 
+ #ifdef __KERNEL__
+ 
+diff --git a/arch/x86/kernel/syscall_table_32.S b/arch/x86/kernel/syscall_table_32.S
+index ff5c873..866705d 100644
+--- a/arch/x86/kernel/syscall_table_32.S
++++ b/arch/x86/kernel/syscall_table_32.S
+@@ -334,3 +334,4 @@ ENTRY(sys_call_table)
+ 	.long sys_inotify_init1
+ 	.long sys_preadv
+ 	.long sys_pwritev
++	.long sys_reflink		/* 335 */
 diff --git a/fs/namei.c b/fs/namei.c
-index 78f253c..45cbe7a 100644
+index 45cbe7a..cf739a3 100644
 --- a/fs/namei.c
 +++ b/fs/namei.c
-@@ -2486,6 +2486,45 @@ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname
- 	return sys_linkat(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+@@ -2524,6 +2524,62 @@ int vfs_reflink(struct dentry *old_dentry, struct inode *dir, struct dentry *new
+ 	return error;
  }
  
-+int vfs_reflink(struct dentry *old_dentry, struct inode *dir, struct dentry *new_dentry)
++SYSCALL_DEFINE5(reflinkat, int, olddfd, const char __user *, oldname,
++		int, newdfd, const char __user *, newname, int, flags)
 +{
-+	struct inode *inode = old_dentry->d_inode;
++	struct dentry *new_dentry;
++	struct nameidata nd;
++	struct path old_path;
 +	int error;
++	char *to;
 +
-+	if (!inode)
-+		return -ENOENT;
++	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
++		return -EINVAL;
 +
-+	error = may_create(dir, new_dentry);
++	error = user_path_at(olddfd, oldname,
++			     flags & AT_SYMLINK_FOLLOW ? LOOKUP_FOLLOW : 0,
++			     &old_path);
 +	if (error)
 +		return error;
 +
-+	if (dir->i_sb != inode->i_sb)
-+		return -EXDEV;
-+
-+	/*
-+	 * A reflink to an append-only or immutable file cannot be created.
-+	 */
-+	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
-+		return -EPERM;
-+	if (!dir->i_op->reflink)
-+		return -EPERM;
-+	if (S_ISDIR(inode->i_mode))
-+		return -EPERM;
-+
-+	error = security_inode_create(dir, new_dentry, inode->i_mode);
++	error = user_path_parent(newdfd, newname, &nd, &to);
 +	if (error)
-+		return error;
++		goto out;
++	error = -EXDEV;
++	if (old_path.mnt != nd.path.mnt)
++		goto out_release;
++	new_dentry = lookup_create(&nd, 0);
++	error = PTR_ERR(new_dentry);
++	if (IS_ERR(new_dentry))
++		goto out_unlock;
++	error = mnt_want_write(nd.path.mnt);
++	if (error)
++		goto out_dput;
++	error = security_path_mknod(&nd.path, new_dentry,
++				    old_path.dentry->d_inode->i_mode, 0);
++	if (error)
++		goto out_drop_write;
++	error = vfs_reflink(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
++out_drop_write:
++	mnt_drop_write(nd.path.mnt);
++out_dput:
++	dput(new_dentry);
++out_unlock:
++	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
++out_release:
++	path_put(&nd.path);
++	putname(to);
++out:
++	path_put(&old_path);
 +
-+	mutex_lock(&inode->i_mutex);
-+	vfs_dq_init(dir);
-+	error = dir->i_op->reflink(old_dentry, dir, new_dentry);
-+	mutex_unlock(&inode->i_mutex);
-+	if (!error)
-+		fsnotify_create(dir, new_dentry);
 +	return error;
 +}
 +
++SYSCALL_DEFINE2(reflink, const char __user *, oldname, const char __user *, newname)
++{
++	return sys_reflinkat(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
++}
 +
+ 
  /*
   * The worst of all namespace operations - renaming directory. "Perverted"
-  * doesn't even start to describe it. Somebody in UCB had a heck of a trip...
-@@ -2890,6 +2929,7 @@ EXPORT_SYMBOL(unlock_rename);
- EXPORT_SYMBOL(vfs_create);
- EXPORT_SYMBOL(vfs_follow_link);
- EXPORT_SYMBOL(vfs_link);
-+EXPORT_SYMBOL(vfs_reflink);
- EXPORT_SYMBOL(vfs_mkdir);
- EXPORT_SYMBOL(vfs_mknod);
- EXPORT_SYMBOL(generic_permission);
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index 5bed436..3c9e4ec 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -1415,6 +1415,7 @@ extern int vfs_link(struct dentry *, struct inode *, struct dentry *);
- extern int vfs_rmdir(struct inode *, struct dentry *);
- extern int vfs_unlink(struct inode *, struct dentry *);
- extern int vfs_rename(struct inode *, struct dentry *, struct inode *, struct dentry *);
-+extern int vfs_reflink(struct dentry *, struct inode *, struct dentry *);
- 
- /*
-  * VFS dentry helper functions.
-@@ -1537,6 +1538,7 @@ struct inode_operations {
- 			  loff_t len);
- 	int (*fiemap)(struct inode *, struct fiemap_extent_info *, u64 start,
- 		      u64 len);
-+	int (*reflink) (struct dentry *,struct inode *,struct dentry *);
- };
- 
- struct seq_file;
 -- 
 1.6.1.3
