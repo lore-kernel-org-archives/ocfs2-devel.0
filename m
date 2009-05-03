@@ -1,9 +1,10 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Sat,  2 May 2009 23:15:01 -0700
-Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system call.
+Date: Sat,  2 May 2009 23:15:02 -0700
+Subject: [Ocfs2-devel] [PATCH 2/3] fs: Add vfs_reflink() and the ->reflink()
+	inode operation.
 In-Reply-To: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1241331303-23753-2-git-send-email-joel.becker@oracle.com>
+Message-ID: <1241331303-23753-3-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,176 +12,102 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-int reflink(const char *oldpath, const char *newpath);
+Implement vfs_reflink(), which calls iops->reflink().  See
+Documentation/reflink.txt for a description of the reflink(2) system
+call.
 
-The reflink(2) system call creates reference-counted links.  It creates
-a new file that shares the data extents of the source file in a
-copy-on-write fashion.  Its calling semantics are identical to link(2).
-Once complete, programs see the new file as a completely separate entry.
+I'm not quite certain of the security model to follow.
+security_inode_link() is clearly not correct as the resulting file is
+not the source inode.  I have chosen security_inode_create() to reflect
+the creation of a new file in the directory.  This matches the
+fsnotify_create() I've decided to use.  However, it does not reflect
+that the new file will have the same contents as the source file.  The
+real solution is probably either to check read access on the source or
+define a new security_inode_reflink().
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- Documentation/filesystems/reflink.txt |  129 +++++++++++++++++++++++++++++++++
- Documentation/filesystems/vfs.txt     |    4 +
- 2 files changed, 133 insertions(+), 0 deletions(-)
- create mode 100644 Documentation/filesystems/reflink.txt
+ fs/namei.c         |   40 ++++++++++++++++++++++++++++++++++++++++
+ include/linux/fs.h |    2 ++
+ 2 files changed, 42 insertions(+), 0 deletions(-)
 
-diff --git a/Documentation/filesystems/reflink.txt b/Documentation/filesystems/reflink.txt
-new file mode 100644
-index 0000000..f3620f0
---- /dev/null
-+++ b/Documentation/filesystems/reflink.txt
-@@ -0,0 +1,129 @@
-+reflink(2)
-+==========
+diff --git a/fs/namei.c b/fs/namei.c
+index 78f253c..45cbe7a 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -2486,6 +2486,45 @@ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname
+ 	return sys_linkat(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
+ }
+ 
++int vfs_reflink(struct dentry *old_dentry, struct inode *dir, struct dentry *new_dentry)
++{
++	struct inode *inode = old_dentry->d_inode;
++	int error;
 +
-+NAME
-+----
-+reflink - make a reference-counted link of a file
++	if (!inode)
++		return -ENOENT;
++
++	error = may_create(dir, new_dentry);
++	if (error)
++		return error;
++
++	if (dir->i_sb != inode->i_sb)
++		return -EXDEV;
++
++	/*
++	 * A reflink to an append-only or immutable file cannot be created.
++	 */
++	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
++		return -EPERM;
++	if (!dir->i_op->reflink)
++		return -EPERM;
++	if (S_ISDIR(inode->i_mode))
++		return -EPERM;
++
++	error = security_inode_create(dir, new_dentry, inode->i_mode);
++	if (error)
++		return error;
++
++	mutex_lock(&inode->i_mutex);
++	vfs_dq_init(dir);
++	error = dir->i_op->reflink(old_dentry, dir, new_dentry);
++	mutex_unlock(&inode->i_mutex);
++	if (!error)
++		fsnotify_create(dir, new_dentry);
++	return error;
++}
 +
 +
-+SYNOPSIS
-+--------
-+#include <unistd.h>
-+
-+int reflink(const char *oldpath, const char *newpath);
-+
-+DESCRIPTION
-+-----------
-+reflink() creates a new reflink (also known as a reference-counted link)
-+to an existing file.  This reflink is a new file object that shares the
-+attributes and data extents of the source object in a copy-on-write fashion.
-+
-+An easy way to think of it is that the semantics of the reflink() call
-+are identical to the link(2) system call, but the resulting file object
-+behaves as if it were a copy with identical attributes.
-+
-+Like the link(2) system call, if newpath exists, it will not be overwritten.
-+oldpath must be a regular file.  oldpath and newpath must be on the same
-+mounted filesystem.
-+
-+All data extents of the new file must be shared with the source file in
-+a copy-on-write fashion.  This includes data extents for extended
-+attributes.  If either the source or new files are written to, the
-+changes do not show up in the other file.
-+
-+All file attributes and extended attributes of the new file must
-+identical to the source file with the following exceptions:
-+
-+- The new file must have a new inode number.  This allows POSIX
-+  programs to treat the source and new files as separate objects.  From
-+  the view of the POSIX application, the files are distinct.  The
-+  sharing is invisible outside the filesystem.
-+- The ctime of the source file only changes if the source's metadata
-+  must be changed to accommodate the copy-on-write linkage.  The ctime of
-+  the new file is set to represent its creation.
-+- The mtime of the source file is unmodified, and the mtime of the new file
-+  is set identical to the source file.  This reflects that the data is
-+  unchanged.
-+- The link count of the source file is unchanged, and the link count of
-+  the new file is one.
-+
-+RETURN VALUE
-+------------
-+On success, zero is returned.  On error, -1 is returned, and errno is
-+set appropriately.
-+
-+ERRORS
-+------
-+EACCES::
-+	Write access to the directory containing newpath is denied, or
-+	search permission is denied for one of the directories in the
-+	path prefix of oldpath or newpath.  (See also path_resolution(7).)
-+
-+EEXIST::
-+	newpath already exists.
-+
-+EFAULT::
-+	oldpath or newpath points outside your accessible address space.
-+
-+EIO::
-+	An I/O error occurred.
-+
-+ELOOP::
-+	Too many symbolic links were encountered in resolving oldpath or
-+	newpath.
-+
-+ENAMETOOLONG::
-+	oldpath or newpath was too long.
-+
-+ENOENT::
-+	A directory component in oldpath or newpath does not exist or is
-+	a dangling symbolic link.
-+
-+ENOMEM::
-+	Insufficient kernel memory was available.
-+
-+ENOSPC::
-+	The device containing the file has no room for the new directory
-+	entry or file object.
-+
-+ENOTDIR::
-+	A component used as a directory in oldpath or newpath is not, in
-+	fact, a directory.
-+
-+EPERM::
-+	oldpath is a directory.
-+
-+EPERM::
-+	The file system containing oldpath and newpath does not support
-+	the creation of reference-counted links.
-+
-+EROFS::
-+	The file is on a read-only file system.
-+
-+EXDEV::
-+	oldpath and newpath are not on the same mounted file system.
-+	(Linux permits a file system to be mounted at multiple points,
-+	but reflink() does not work across different mount points, even if
-+	the same file system is mounted on both.)
-+
-+VERSIONS
-+--------
-+reflink() is available on Linux since kernel 2.6.31.
-+
-+CONFORMING TO
-+-------------
-+reflink() is Linux-specific.
-+
-+NOTES
-+-----
-+reflink() deferences symbolic links in the same manner that link(2)
-+does.  For precise control over the treatment of symbolic links, see
-+reflinkat().
-+
-+In the case of a crash, the new file must not appear partially complete
-+in the filesystem.
-+
-+SEE ALSO
-+--------
-+ln(1), reflink(1), reflinkat(2), path_resolution(7)
-+
-diff --git a/Documentation/filesystems/vfs.txt b/Documentation/filesystems/vfs.txt
-index f49eecf..01cd810 100644
---- a/Documentation/filesystems/vfs.txt
-+++ b/Documentation/filesystems/vfs.txt
-@@ -333,6 +333,7 @@ struct inode_operations {
- 	ssize_t (*listxattr) (struct dentry *, char *, size_t);
- 	int (*removexattr) (struct dentry *, const char *);
- 	void (*truncate_range)(struct inode *, loff_t, loff_t);
+ /*
+  * The worst of all namespace operations - renaming directory. "Perverted"
+  * doesn't even start to describe it. Somebody in UCB had a heck of a trip...
+@@ -2890,6 +2929,7 @@ EXPORT_SYMBOL(unlock_rename);
+ EXPORT_SYMBOL(vfs_create);
+ EXPORT_SYMBOL(vfs_follow_link);
+ EXPORT_SYMBOL(vfs_link);
++EXPORT_SYMBOL(vfs_reflink);
+ EXPORT_SYMBOL(vfs_mkdir);
+ EXPORT_SYMBOL(vfs_mknod);
+ EXPORT_SYMBOL(generic_permission);
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 5bed436..3c9e4ec 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -1415,6 +1415,7 @@ extern int vfs_link(struct dentry *, struct inode *, struct dentry *);
+ extern int vfs_rmdir(struct inode *, struct dentry *);
+ extern int vfs_unlink(struct inode *, struct dentry *);
+ extern int vfs_rename(struct inode *, struct dentry *, struct inode *, struct dentry *);
++extern int vfs_reflink(struct dentry *, struct inode *, struct dentry *);
+ 
+ /*
+  * VFS dentry helper functions.
+@@ -1537,6 +1538,7 @@ struct inode_operations {
+ 			  loff_t len);
+ 	int (*fiemap)(struct inode *, struct fiemap_extent_info *, u64 start,
+ 		      u64 len);
 +	int (*reflink) (struct dentry *,struct inode *,struct dentry *);
  };
  
- Again, all methods are called without any locks being held, unless
-@@ -431,6 +432,9 @@ otherwise noted.
- 
-   truncate_range: a method provided by the underlying filesystem to truncate a
-   	range of blocks , i.e. punch a hole somewhere in a file.
-+  reflink: called by the reflink(2) system call. Only required if you want
-+	to support reflinks.  For further information, see
-+	Documentation/filesystems/reflink.txt.
- 
- 
- The Address Space Object
+ struct seq_file;
 -- 
 1.6.1.3
