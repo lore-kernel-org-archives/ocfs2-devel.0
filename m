@@ -1,38 +1,32 @@
-From: Jan Kucera <xatrix101@gmail.com>
-Date: Sun, 3 May 2009 22:33:18 +0200
-Subject: [Ocfs2-devel] Deadlock in dlmmaster.c
-Message-ID: <ef67228d0905031333i782ad1efhe532cd555e58b604@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Date: Mon, 4 May 2009 00:08:56 +0100
+Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
+	call.
+In-Reply-To: <49FD976B.3000508@panasas.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
+	<49FD976B.3000508@panasas.com>
+Message-ID: <20090503230856.GE8633@ZenIV.linux.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, joel.becker@oracle.com
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Boaz Harrosh <bharrosh@panasas.com>
+Cc: Joel Becker <joel.becker@oracle.com>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com
 
-Hi,
+On Sun, May 03, 2009 at 04:08:59PM +0300, Boaz Harrosh wrote:
 
-I've found some possible deadlock in fs/ocfs2/dlm/dlmmaster.c - version
-2.6.28 (probably this code is in newer versions too).
-Could someone confirm this? Thank you.
+> As my first impression when I read the title of the patch, an English reflink
+> I would imagine is something more to the left of above graph, between hard-link
+> and soft-link, something like: link to an invisible dir-entry that is gone once
+> all soft-links to it are gone.
+> 
+> So form my point of view. Call it something different like Copy-On-Write or
+> COW.
+> 
+> I do understand that there is something very fundamental in my misunderstanding,
+> but it was not explained below, in fact the below terminology confused me even
+> more. Please explain?
 
-
-fs/ocfs2/dlm/dlmmaster.c
-==================
-
-function dlm_master_request_handler: (res->spinlock <- dlm->master_lock)
------------------------------------
-spin_lock(&res->spinlock); at line 1427
-spin_lock(&dlm->master_lock); at line 1475
-
-function dlm_migrate_request_handler: (dlm->master_lock <- res->spinlock)
--------------------------------------------------------
-spin_lock(&dlm->master_lock) at line 3036
-spin_lock(&res->spinlock); at line 3039
-
-
-
-caught by Stanse
-(http://iti.fi.muni.cz/stanse/)
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090503/7592bfb1/attachment-0001.html 
+It's simply a lazy copy, with interface for creating it similar to link(2).
+That's all.
