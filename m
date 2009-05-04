@@ -1,45 +1,46 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 4 May 2009 11:25:52 -0700
-Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
-	call.
-In-Reply-To: <49FE4880.3010208@oracle.com>
-References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
-	<20090503234518.GB17044@mit.edu> <49FE4880.3010208@oracle.com>
-Message-ID: <20090504182552.GF31249@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 04 May 2009 12:30:17 -0700
+Subject: [Ocfs2-devel] Deadlock in dlmmaster.c
+In-Reply-To: <ef67228d0905031333i782ad1efhe532cd555e58b604@mail.gmail.com>
+References: <ef67228d0905031333i782ad1efhe532cd555e58b604@mail.gmail.com>
+Message-ID: <49FF4249.7030907@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Tao Ma <tao.ma@oracle.com>
-Cc: linux-fsdevel@vger.kernel.org, Theodore Tso <tytso@mit.edu>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: Jan Kucera <xatrix101@gmail.com>
+Cc: mfasheh@suse.com, joel.becker@oracle.com, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Mon, May 04, 2009 at 09:44:32AM +0800, Tao Ma wrote:
-> Theodore Tso wrote:
->> On Sat, May 02, 2009 at 11:15:01PM -0700, Joel Becker wrote:
->> How should quota handle reflinks?  Since there are separate inodes,
->> the two files could be owned by different user ID's.  Since the data
->> blocks exist only once, I can imagine a number of different ways of
->> handling it:
-<snip>
-> yeah, agree. So I will pick #3 in my ocfs2 reflink implementation.
+Jan Kucera wrote:
+> I've found some possible deadlock in fs/ocfs2/dlm/dlmmaster.c - 
+> version 2.6.28 (probably this code is in newer versions too).
+> Could someone confirm this? Thank you.
+>
+>
+> fs/ocfs2/dlm/dlmmaster.c
+> ==================
+>
+> function dlm_master_request_handler: (res->spinlock <- dlm->master_lock)
+> -----------------------------------
+> spin_lock(&res->spinlock); at line 1427
+> spin_lock(&dlm->master_lock); at line 1475
+>
+> function dlm_migrate_request_handler: (dlm->master_lock <- res->spinlock)
+> -------------------------------------------------------
+> spin_lock(&dlm->master_lock) at line 3036
+> spin_lock(&res->spinlock); at line 3039
 
-	While at first I was all "sure, this makes sense," now I'm
-thinking otherwise.  Because reflink() means the file attributes are
-unmodified.  So the original owner owns the new file, and thus the quota
-charge doesn't matter.  If and when the new file is changed to another
-owner, then the normal quota code will adjust the quotas.
+So this should not happen.
 
-Joel
+The first condition can only be hit if the resource has no master and is in
+the process of being mastered.
 
--- 
+The second condition will only be hit if the resource has a master and is
+currently being migrated (remastered) from one node to another.
 
-"If you are ever in doubt as to whether or not to kiss a pretty girl, 
- give her the benefit of the doubt"
-                                        -Thomas Carlyle
+The two appear to be mutually exclusive. But feel free to file a bugzilla
+so that I remember to look into it more carefully when I have more time.
+http://oss.oracle.com/bugzilla
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Thanks
+Sunil
