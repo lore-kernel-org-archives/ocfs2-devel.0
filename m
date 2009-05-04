@@ -1,46 +1,39 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sun, 3 May 2009 19:51:44 -0700
-Subject: [Ocfs2-devel] [PATCH 2/3] fs: Add vfs_reflink() and the
-	->reflink() inode	operation.
-In-Reply-To: <20090503080324.GB27287@infradead.org>
+Date: Sun, 3 May 2009 19:53:02 -0700
+Subject: [Ocfs2-devel] [PATCH 3/3] fs: Add the reflink(2) system call.
+In-Reply-To: <20090503062756.GO8822@parisc-linux.org>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<1241331303-23753-3-git-send-email-joel.becker@oracle.com>
-	<20090503080324.GB27287@infradead.org>
-Message-ID: <20090504025144.GD24653@mail.oracle.com>
+	<1241331303-23753-4-git-send-email-joel.becker@oracle.com>
+	<20090503062756.GO8822@parisc-linux.org>
+Message-ID: <20090504025302.GE24653@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@infradead.org>
+To: Matthew Wilcox <matthew@wil.cx>
 Cc: linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On Sun, May 03, 2009 at 04:03:25AM -0400, Christoph Hellwig wrote:
-> > +int vfs_reflink(struct dentry *old_dentry, struct inode *dir, struct dentry *new_dentry)
-> >
-> >+{
+On Sun, May 03, 2009 at 12:27:57AM -0600, Matthew Wilcox wrote:
+> On Sat, May 02, 2009 at 11:15:03PM -0700, Joel Becker wrote:
+> > This implements reflinkat(2) and reflink(2).  See
+> > Documentation/reflink.txt for a description of the reflink(2) system
+> > call.
 > 
-> Would be nice to have a little kerneldoc comment for it.  Also please
-> avoid the > 80 har lines
+> Do we need to add sys_reflink()?  Since sys_reflinkat() has a superset
+> of the functionality, presumably glibc can provide both reflink() and
+> reflinkat() calls, and userspace need never know that glibc is calling
+> sys_reflinkat() for both.
 
-	Both good points.
+	Sure, that works.
 
-> > +EXPORT_SYMBOL(vfs_reflink);
-> 
-> No really good reason to export this.  Most vfs_ helpers are exported
-> for nfsd, and I can't really see nfsd use this anytime soon.
-
-	While we're going forward with the system call, ocfs2's going to
-support the ioctl for older kernels.  I was planning to have mainline
-just reroute the ioctl to vfs_reflink(), rather than have the ioctl
-just break.
- 
 Joel
 
 -- 
 
-Life's Little Instruction Book #222
-
-	"Think twice before burdening a friend with a secret."
+"Always give your best, never get discouraged, never be petty; always
+ remember, others may hate you.  Those who hate you don't win unless
+ you hate them.  And then you destroy yourself."
+	- Richard M. Nixon
 
 Joel Becker
 Principal Software Developer
