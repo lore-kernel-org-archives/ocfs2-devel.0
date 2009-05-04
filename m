@@ -1,51 +1,55 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon,  4 May 2009 05:18:09 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Don't print error when listing too
-	many xattrs.
-Message-ID: <1241385489-24389-1-git-send-email-tao.ma@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 4 May 2009 00:12:39 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
+	call.
+In-Reply-To: <cfd18e0f0905032336v4e43cf77l4c4d02555ba9fe7a@mail.gmail.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
+	<20090503080112.GA27287@infradead.org>
+	<20090504024612.GB24653@mail.oracle.com>
+	<cfd18e0f0905032336v4e43cf77l4c4d02555ba9fe7a@mail.gmail.com>
+Message-ID: <20090504071239.GI24653@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mtk.manpages@gmail.com
+Cc: Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-Currently, when listing xattrs, kernel define XATTR_LIST_MAX as 65536
-in include/linux/limits.h, so it can't handle too many xattrs.
+On Mon, May 04, 2009 at 06:36:58PM +1200, Michael Kerrisk wrote:
+> On Mon, May 4, 2009 at 2:46 PM, Joel Becker <Joel.Becker@oracle.com> wrote:
+> > On Sun, May 03, 2009 at 04:01:12AM -0400, Christoph Hellwig wrote:
+> >> On Sat, May 02, 2009 at 11:15:01PM -0700, Joel Becker wrote:
+> >> > int reflink(const char *oldpath, const char *newpath);
+> >> >
+> >> > The reflink(2) system call creates reference-counted links. ?It creates
+> >> > a new file that shares the data extents of the source file in a
+> >> > copy-on-write fashion. ?Its calling semantics are identical to link(2).
+> >> > Once complete, programs see the new file as a completely separate entry.
+> >>
+> >> Just send this as a manpage to Michael, no need to duplicate a
+> >> pseudo-manpage in the kernel tree.
+> >
+> > ? ? ? ?The manpage style was just a convenient way to organize my
+> > thoughts. ?The goal was to document the behavior of reflink() for
+> > implementors. ?If the pseudo-manpage doesn't work, perhaps I'll try some
+> > other form.
+> 
+> So, I'm late to this thread.  Is reflink() (to be) a user-visible syscall?
 
-But with ocfs2 xattr tree, we actually have no limit for the number.
-And it will pollute the message with something like this when listing.
-(27738,0):ocfs2_iterate_xattr_buckets:3158 ERROR: status = -34
-(27738,0):ocfs2_xattr_tree_list_index_block:3264 ERROR: status = -34
+	Yes.  The actual call will be reflinkat(), as they're correct
+that userspace can wrap reflink() around it.  I did have you on my todo
+for notification as it settled down.
 
-So don't print "ERROR" message as this is not an ocfs2 error.
+Joel
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/xattr.c |    5 +++--
- 1 files changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 1563101..ba320e2 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -3154,7 +3154,7 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
- 		     le32_to_cpu(bucket_xh(bucket)->xh_entries[0].xe_name_hash));
- 		if (func) {
- 			ret = func(inode, bucket, para);
--			if (ret)
-+			if (ret && ret != -ERANGE)
- 				mlog_errno(ret);
- 			/* Fall through to bucket_relse() */
- 		}
-@@ -3261,7 +3261,8 @@ static int ocfs2_xattr_tree_list_index_block(struct inode *inode,
- 						  ocfs2_list_xattr_bucket,
- 						  &xl);
- 		if (ret) {
--			mlog_errno(ret);
-+			if (ret != -ERANGE)
-+				mlog_errno(ret);
- 			goto out;
- 		}
- 
 -- 
-1.5.5
+
+"Well-timed silence hath more eloquence than speech."  
+         - Martin Fraquhar Tupper
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
