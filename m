@@ -1,151 +1,63 @@
-From: keyur patel <keyur.patel@oracle.com>
-Date: Mon, 4 May 2009 15:43:35 -0400
-Subject: [Ocfs2-devel] FW: Oracle 9204 installation on linux x86-64 on
- ocfs
-In-Reply-To: <49FF1FD1.2050401@oracle.com>
-Message-ID: <20090504154335406.00000004236@kpatel-us>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 4 May 2009 14:18:54 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2)
+	system	call.
+In-Reply-To: <20090504182552.GF31249@mail.oracle.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
+	<20090503234518.GB17044@mit.edu> <49FE4880.3010208@oracle.com>
+	<20090504182552.GF31249@mail.oracle.com>
+Message-ID: <20090504211854.GC25313@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Tao Ma <tao.ma@oracle.com>, Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-Thanks Srinivas. That was the problem. Things worked after I mounted it using following options. how should I make this changes into /etc/fstab. Should it look like as below ? Can you please confirm it ?
+On Mon, May 04, 2009 at 11:25:52AM -0700, Joel Becker wrote:
+> On Mon, May 04, 2009 at 09:44:32AM +0800, Tao Ma wrote:
+> > Theodore Tso wrote:
+> >> On Sat, May 02, 2009 at 11:15:01PM -0700, Joel Becker wrote:
+> >> How should quota handle reflinks?  Since there are separate inodes,
+> >> the two files could be owned by different user ID's.  Since the data
+> >> blocks exist only once, I can imagine a number of different ways of
+> >> handling it:
+> <snip>
+> > yeah, agree. So I will pick #3 in my ocfs2 reflink implementation.
+> 
+> 	While at first I was all "sure, this makes sense," now I'm
+> thinking otherwise.  Because reflink() means the file attributes are
+> unmodified.  So the original owner owns the new file, and thus the quota
+> charge doesn't matter.  If and when the new file is changed to another
+> owner, then the normal quota code will adjust the quotas.
 
-/dev/sde        /u04    ocfs2   _netdev,defaults,datavolume, nointr        0       0
+	More thinking.  It looks like we'll restrict reflink() to owners
+or people with CAP_FCHOWN.  This prevents some quota DoS behavior.
+	We need to pre-charge all quota.  That means a reflink must be
+charged the entire size of the file.  So, if I do:
 
-Thanks
+  # dd if=/dev/zero bs=1M count=1 of=foo
+  # reflink foo bar
 
-` Keyur
------Original Message-----
-From: Srinivas Eeda [mailto:srinivas.eeda at oracle.com]
-Sent: Monday, May 04, 2009 1:03 PM
-To: keyur.patel at oracle.com
-Cc: ocfs2-devel at oss.oracle.com; ocfs2-users at oss.oracle.com
-Subject: Re: [Ocfs2-devel] FW: Oracle 9204 installation on linux x86-64
-on ocfs
+I am now charged 2MB of quota, even though foo and bar share the same
+1MB of space.
+	Why?  Because if I only mark 1M of quota and then do "chown
+tao.tao bar", we can't sanely keep track of fractional quota.  Wheras if
+we charge the 2MB up front, the chown just moves the quota over to tao.
+Copy-on-write is even cleaner - since you were pre-charged for the
+quota, you don't do any quota adjustments for the data blocks in the CoW
+operation (though any new metadata is a new charge).
 
+Joel  
 
-did you use "-o datavolume, nointr" options for mounting?
+-- 
 
-keyur patel wrote:
-> Hello All,
->
-> I have installed Oracle Cluster Manager on linux x86-64 nit. I am
-> using ocfs file system for quorum file. But I am getting following
-> error. Please see ocfs configureation below. I would appreciate, if
-> someone could help me to understand if I am doing something wrong.
-> Thanks in advance.
-> --------------------------------------------------cm.log file
-> ----------------------------
-> oracm, version[ AMD64.9.2.0.4.0.00 ] started {Mon May  4 05:34:38 2009 }
-> >TRACE:    Can't read registry value for HeartBeat, tid =
-> main:182895169120 file = unixinc.c, line = 1077 {Mon May  4 05:34:38
-> 2009 }
-> >TRACE:    Can't read registry value for PollInterval, tid =
-> main:182895169120 file = unixinc.c, line = 1077 {Mon May  4 05:34:38
-> 2009 }
-> >TRACE:    Can't read registry value for WatchdogTimerMargin, tid =
-> main:182895169120 file = unixinc.c, line = 1077 {Mon May  4 05:34:38
-> 2009 }
-> >TRACE:    Can't read registry value for WatchdogSafetyMargin, tid =
-> main:182895169120 file = unixinc.c, line = 1077 {Mon May  4 05:34:38
-> 2009 }
-> KernelModuleName is hangcheck-timer {Mon May  4 05:34:38 2009 }
-> >TRACE:    Can't read registry value for ClientTimeout, tid =
-> main:182895169120 file = unixinc.c, line = 1077 {Mon May  4 05:34:38
-> 2009 }
-> >TRACE:    InitNMInfo:  setting clientTimeout to 143s based on
-> MissCount 215 and PollInterval 1000ms, tid = main:182895169120 file =
-> nmconfig.c, line = 138 {Mon May  4 05:34:38 2009 }
-> >TRACE:    InitClusterDb(): getservbyname on CMSrvr failed - 0 :
-> assigning 9998, tid = main:182895169120 file = nmconfig.c, line = 208
-> {Mon May  4 05:34:38 2009 }
-> OemNodeConfig(): Network Address of node0: 1.1.1.1 (port 9998)
->  {Mon May  4 05:34:38 2009 }
-> OemNodeConfig(): Network Address of node1: 1.1.1.2 (port 9998)
->  {Mon May  4 05:34:38 2009 }
-> >TRACE:    OemCreateListenPort:  bound at 9998, tid =
-> main:182895169120 file = oem.c, line = 858 {Mon May  4 05:34:38 2009 }
-> >TRACE:    InitClusterDb():  found my node info at 1 name
-> s602749nj3el19, priv s602749nj3el19priv, port 3623, tid =
-> main:182895169120 file = nmconfig.c, line = 261 {Mon May  4 05:34:38
-> 2009 }
-> OemNodeConfig(): Network Address of node2: 1.1.1.3 (port 9998)
->  {Mon May  4 05:34:38 2009 }
-> OemNodeConfig(): Network Address of node3: 1.1.1.4 (port 9998)
->  {Mon May  4 05:34:38 2009 }
-> >TRACE:    InitClusterDb(): Local Node(1)
-> NodeName[s602749nj3el19priv], tid = main:182895169120 file =
-> nmconfig.c, line = 279 {Mon May  4 05:34:38 2009 }
-> >TRACE:    InitClusterDb(): Cluster(Oracle) with (4) Defined Nodes,
-> tid = main:182895169120 file = nmconfig.c, line = 282 {Mon May  4
-> 05:34:38 2009 }
-> >TRACE:    OEMInits(): CM Disk File (/u04/quorum/quorum.dbf), tid =
-> main:182895169120 file = oem.c, line = 243 {Mon May  4 05:34:38 2009 }
-> >ERROR:    OemInit2: Attempting to open the CMDiskFile for a
-> multi-node RAC on a non-NFS, non-OCFS, or non-raw device cluster, tid
-> = main:182895169120 file = oem.c, line = 482 {Mon May  4 05:34:38 2009 }
-> >ERROR:    OemInit2: If the CMDiskFile is supposed to be an NFS or
-> OCFS file, please make sure that the relevant shared file system is
-> mounted properly, tid = main:182895169120 file = oem.c, line = 483
-> {Mon May  4 05:34:38 2009 }
-> >ERROR:    OemInit2: If the CMDiskFile is supposed to be a raw device,
-> please make sure that it has been created properly, tid =
-> main:182895169120 file = oem.c, line = 484 {Mon May  4 05:34:38 2009 }
-> --- End Dump ---
-> -------------------------------------------- OCFS setup
-> -----------------------------
-> [root at s602749nj3el19 bin]# mounted.ocfs2 -f
-> Device                FS     Nodes
-> /dev/sdc              ocfs2  s602749nj3el18, s602749nj3el19,
-> s602749nj3el21, s602749nj3el20
-> /dev/sdd              ocfs2  s602749nj3el18, s602749nj3el19,
-> s602749nj3el21, s602749nj3el20
-> /dev/sde              ocfs2  s602749nj3el18, s602749nj3el19,
-> s602749nj3el21, s602749nj3el20
-> /dev/sdf              ocfs2  s602749nj3el18, s602749nj3el19,
-> s602749nj3el21, s602749nj3el20
-> [root at s602749nj3el19 bin]# df -kh
-> Filesystem            Size  Used Avail Use% Mounted on
-> /dev/mapper/VolGroup00-LogVol00
->                       2.0G  368M  1.6G  20% /
-> /dev/sda1              61M   24M   35M  41% /boot
-> /dev/mapper/VolGroup00-LogVol05
->                        19G   11G  7.6G  58% /data01
-> none                  7.9G     0  7.9G   0% /dev/shm
-> /dev/mapper/VolGroup00-LogVol04
->                       2.0G   53M  1.9G   3% /tmp
-> /dev/mapper/VolGroup00-LogVol02
->                       3.0G  1.8G  1.1G  64% /usr
-> /dev/mapper/VolGroup00-LogVol03
->                       2.0G   94M  1.8G   5% /var
-> /dev/mapper/VolGroup01-u01
->                       148G   93M  141G   1% /u01
-> /dev/sdc              600G  1.1G  599G   1% /u02
-> /dev/sdd              300G  1.1G  299G   1% /u03
-> /dev/sde              1.0G  274M  751M  27% /u04/quorum
-> /dev/sdf              1.0G  262M  763M  26% /u05
-> [root at s602749nj3el19 bin]# cd /u04/quorum/
-> [root at s602749nj3el19 quorum]# ls -ltr
-> total 8
-> drwxrwxr-x  2 oracle orainventory 4096 May  1 21:43 lost+found
-> drwxrwxr-x  2 oracle orainventory 4096 May  4 05:14 quorum.dbf
-> [root at s602749nj3el19 quorum]#
->
->
-> <http://www.oracle.com/>
-> Keyur Patel | Principal Service Delivery Engineer | Voice:
-> 919.257.2509  | cell: 551.998.4037
-> Oracle Advanced Customer Services
-> 8010 Arco Corporate Drive | Raleigh, NC 27617
->
->
->
->
-> ------------------------------------------------------------------------
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+"The whole principle is wrong; it's like demanding that grown men 
+ live on skim milk because the baby can't eat steak."
+        - author Robert A. Heinlein on censorship
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
