@@ -1,35 +1,43 @@
-From: James Morris <jmorris@namei.org>
-Date: Wed, 6 May 2009 08:32:07 +1000 (EST)
+From: Jamie Lokier <jamie@shareable.org>
+Date: Tue, 5 May 2009 23:36:00 +0100
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
-In-Reply-To: <20090505222131.GO7835@mail.oracle.com>
-References: <20090505130114.GD17486@mit.edu>
-	<20090505131907.GF25328@shareable.org>
-	<1241530798.7244.65.camel@think.oraclecorp.com>
-	<20090505153629.GB31100@shareable.org>
-	<1241538102.7244.72.camel@think.oraclecorp.com>
-	<20090505160313.GF31100@shareable.org>
-	<4A00A634.4020008@hp.com> <20090505215711.GA7574@shareable.org>
-	<20090505220459.GN7835@mail.oracle.com>
-	<20090505221236.GE7574@shareable.org>
-	<20090505222131.GO7835@mail.oracle.com>
-Message-ID: <alpine.LRH.2.00.0905060826510.9995@tundra.namei.org>
+In-Reply-To: <20090505172949.GG17486@mit.edu>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
+	<20090505010703.GA12731@shareable.org>
+	<20090505071608.GB10258@mail.oracle.com>
+	<20090505130114.GD17486@mit.edu>
+	<20090505170058.GD7835@mail.oracle.com>
+	<20090505172949.GG17486@mit.edu>
+Message-ID: <20090505223600.GG7574@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: Jamie Lokier <jamie@shareable.org>, jim owens <jowens@hp.com>, Chris Mason <chris.mason@oracle.com>, Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, "Daniel P. Berrange" <berrange@redhat.com>
+To: Theodore Tso <tytso@mit.edu>
+Cc: linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On Tue, 5 May 2009, Joel Becker wrote:
+Theodore Tso wrote:
+ But in that case, if in every user-visible sense of the
+> word, it's equivalent to a file copy --- which is to say, it gets a
+> new inode number, and, then why not make it work *exactly* like a file
+> copy, which is to say make the ownership be the user who asked for the
+> reflink to be created?  That way /bin/cp could potentially use
+> reflinks, and aside from the fact that a cp -r of an existing
+> directory hierarchy takes no extra disk space and runs *much* faster,
+> a reflink acts exactly like a file copy.  The semantics are easy to
+> describe, we don't need CAP_FOWNER nonsense, it becomes much easier to
+> deal with the semantics vis-a-vis quota, etc.
 
-> 	And if your file is actually a disk image, you get snapping of
-> disks for free :-)
+reflink() seems to be designed to copy a file _and_ clone the file's
+attributes exactly, and to do it all atomically.
 
-Indeed... I think a great use-case scenario for this will be snapshotting 
-VM images, as well as fast and space-efficient instantiation of VMs.
+So how about relaxing a bit and, since reflinkat() takes flags, giving
+it a flag to make cloning the attributes optional.
 
+I imagine there's little implementation difference between cloning the
+attributes and giving it new file attributes, and both behaviours are
+useful for different things.
 
--- 
-James Morris
-<jmorris@namei.org>
+-- Jamie
