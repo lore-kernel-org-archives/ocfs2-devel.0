@@ -1,69 +1,35 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 5 May 2009 15:37:30 -0700
+From: James Morris <jmorris@namei.org>
+Date: Wed, 6 May 2009 08:32:07 +1000 (EST)
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
-In-Reply-To: <20090505223016.GF7574@shareable.org>
-References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
-	<20090505010703.GA12731@shareable.org>
-	<20090505071608.GB10258@mail.oracle.com>
-	<20090505130114.GD17486@mit.edu>
-	<20090505170058.GD7835@mail.oracle.com>
-	<20090505223016.GF7574@shareable.org>
-Message-ID: <20090505223730.GR7835@mail.oracle.com>
+In-Reply-To: <20090505222131.GO7835@mail.oracle.com>
+References: <20090505130114.GD17486@mit.edu>
+	<20090505131907.GF25328@shareable.org>
+	<1241530798.7244.65.camel@think.oraclecorp.com>
+	<20090505153629.GB31100@shareable.org>
+	<1241538102.7244.72.camel@think.oraclecorp.com>
+	<20090505160313.GF31100@shareable.org>
+	<4A00A634.4020008@hp.com> <20090505215711.GA7574@shareable.org>
+	<20090505220459.GN7835@mail.oracle.com>
+	<20090505221236.GE7574@shareable.org>
+	<20090505222131.GO7835@mail.oracle.com>
+Message-ID: <alpine.LRH.2.00.0905060826510.9995@tundra.namei.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jamie Lokier <jamie@shareable.org>
-Cc: linux-fsdevel@vger.kernel.org, Theodore Tso <tytso@mit.edu>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Jamie Lokier <jamie@shareable.org>, jim owens <jowens@hp.com>, Chris Mason <chris.mason@oracle.com>, Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, "Daniel P. Berrange" <berrange@redhat.com>
 
-On Tue, May 05, 2009 at 11:30:16PM +0100, Jamie Lokier wrote:
-> Joel Becker wrote:
-> > 	I think I'm confusing you.  ocfs2 creates a new inode, with a
-> > new tree of extent blocks, pointing to the same data extents as the
-> > source.  You can do *anything* POSIX to that new inode.  You can chown
-> > it, chmod it, truncate it, futimes it, whatever.  The only thing at
-> > issue is what the state of the inode is at the return of the reflink()
-> > call.
-> 
-> Ok, but does chown/chmod/futimes trigger a COW copy, unsharing the data?
-> This is still not clear. :-)
+On Tue, 5 May 2009, Joel Becker wrote:
 
-	No, of course it doesn't.  That would be awful!
+> 	And if your file is actually a disk image, you get snapping of
+> disks for free :-)
 
-> But assuming it stays shared until you modify the actual data, could
-> the documentation make this important fact a bit more prominent:
-> 
->     reflink() creates a new file which initially shares the same
->     underlying data storage as the source file, and has all the same
->     attributes including security context and extended attributes.
-> 
->     After creating the new file, you can do *anything* POSIX to that
->     new file.  You can chown it, chmod it, futimes it, truncate it,
->     write to it, whatever.  When the data is modified, that will
->     trigger a copy-on-write operation so that the underlying data is
->     not completely shared any more.
-> 
->     The amount and timing of copying is filesystem-dependent, but only
->     happens when a data write or extended attribute change takes place.
-> 
->     Opening a file, reading it, read-only or private mappings, and
->     simple attribute updates (chown, chmod, futimes, as well as
->     automatic atime updates) will not trigger copy-on-write and will
->     not return ENOSPC errors.
+Indeed... I think a great use-case scenario for this will be snapshotting 
+VM images, as well as fast and space-efficient instantiation of VMs.
 
-	You got it.
-
-Joel
 
 -- 
-
-"In the room the women come and go
- Talking of Michaelangelo."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+James Morris
+<jmorris@namei.org>
