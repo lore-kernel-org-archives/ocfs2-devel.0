@@ -1,43 +1,54 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon,  4 May 2009 16:10:31 -0700
-Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: Hold mmap_sem while calling
-	get_user_pages()
-In-Reply-To: <1241478632-16369-1-git-send-email-sunil.mushran@oracle.com>
-References: <1241478632-16369-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1241478632-16369-2-git-send-email-sunil.mushran@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 05 May 2009 09:40:31 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Don't print error when listing too
+	many xattrs.
+In-Reply-To: <20090504170624.GC31249@mail.oracle.com>
+References: <1241385489-24389-1-git-send-email-tao.ma@oracle.com>
+	<20090504170624.GC31249@mail.oracle.com>
+Message-ID: <49FF990F.4020308@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Kurt Garloff <garloff@novell.com>
+Hi Joel,
 
-This patch adds locking around get_user_pages() in ocfs2_get_write_source()
-so as to prevent the vmas from changing underneath.
+Joel Becker wrote:
+> On Mon, May 04, 2009 at 05:18:09AM +0800, Tao Ma wrote:
+>> Currently, when listing xattrs, kernel define XATTR_LIST_MAX as 65536
+>> in include/linux/limits.h, so it can't handle too many xattrs.
+>>
+>> But with ocfs2 xattr tree, we actually have no limit for the number.
+>> And it will pollute the message with something like this when listing.
+>> (27738,0):ocfs2_iterate_xattr_buckets:3158 ERROR: status = -34
+>> (27738,0):ocfs2_xattr_tree_list_index_block:3264 ERROR: status = -34
+>>
+>> So don't print "ERROR" message as this is not an ocfs2 error.
+> 
+> 	Hmm, but this will stop iteration of the xattrs right where we
+> hit the large one.  I don't think that's correct.  At the very least, we
+> should go on listing with the following xattrs.
+> 	Now, the xattr with a too-long name - should we skip it, or
+> should we list a truncated name?  That I'm not sure of.
+I think we should stop at where we are, return errors and let the user 
+space handle this.
 
-Fixes Novell bugzilla# 485827
+Just give you an example.
+1. for((i=0;i<20000;i++))do setfattr -n "user.name$i" -v "aaaaa" 
+/mnt/ocfs2/a;done
+This will create a very long name list.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/file.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+2. getfattr /mnt/ocfs2/a
+/mnt/ocfs2/a: Argument list too long
+So you see it says clearly that the name list is too long.
+and the same goes for listxattr(2).
+If the size of the list buffer is too small to hold the result, errno is 
+set to ERANGE.
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 0c8e03a..267389c 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1967,9 +1967,11 @@ static struct page * ocfs2_get_write_source(char **ret_src_buf,
- 		 * of the meta data locks in order to preserve locking
- 		 * order in case of page fault.
- 		 */
-+		down_read(&current->mm->mmap_sem);
- 		ret = get_user_pages(current, current->mm,
- 				     (unsigned long)buf & PAGE_CACHE_MASK, 1,
- 				     0, 0, &src_page, NULL);
-+		up_read(&current->mm->mmap_sem);
- 		if (ret == 1)
- 			*ret_src_buf = kmap(src_page) + off;
- 		else
--- 
-1.5.6.3
+But if you go ahead and don't return errors. we will get a name list of 
+about ~5000 xattrs and no error is returned. So the user may wonder why 
+I set 20000 xattrs, but only get 5000 xattrs and look@this as a bug.
+
+Regards,
+Tao
