@@ -1,73 +1,77 @@
-From: Andreas Dilger <adilger@sun.com>
-Date: Tue, 05 May 2009 02:09:36 -0600
-Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
-	call.
-In-Reply-To: <20090505071608.GB10258@mail.oracle.com>
-References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
-	<20090505010703.GA12731@shareable.org>
-	<20090505071608.GB10258@mail.oracle.com>
-Message-ID: <20090505080936.GG3209@webber.adilger.int>
+From: Coly Li <coly.li@suse.de>
+Date: Tue, 05 May 2009 20:03:28 +0800
+Subject: [Ocfs2-devel] [RFC][PATCH] masklog: update comments in masklog.h
+Message-ID: <4A002B10.1070004@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jamie Lokier <jamie@shareable.org>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: ocfs2-devel@oss.oracle.com
 
-On May 05, 2009  00:16 -0700, Joel Becker wrote:
-> On Tue, May 05, 2009 at 02:07:03AM +0100, Jamie Lokier wrote:
-> > Being able to have different attributes would allow:
-> > 
-> >    - reflink() to be used for fast space-efficient copying, i.e. an
-> >      optimisation to "cp", "git checkout" and things like that.
-> 
-> 	It can right now, just not of other people's files.  Actually,
-> the only real difficult with doing it to other people's files is quota.
-> But I can't come up with a way to prevent quota DoS.
+In upstream ocfs2 code, /proc interface for mask log is updated into files under
+/sys/fs/o2cb/masklog, comments in fs/ocfs2/cluster/masklog.h are out of date.
 
-If the reflink caller is always charged for the full space used (as if
-it were a real copy) by virtue of the user doing the reflink() owning the
-new inode.  Doing anything else seems broken.  If the owner of the file
-wasn't charged for the reflink's quota then if the reflink inode was
-chowned the new owner would be charged for the new file, but the quota
-code would have to special case the decrement of EACH of the reflink's
-blocks because otherwise the original owner might "release" quota that
-it was never originally charged.
+This patch modifies the commens in cluster/masklog.h, which also provides a bash
+script example on how to change the log mask bits.
 
-> 	Here's another fun trick.  Overwriting rsync, instead of copying
-> blocks from the already-existing source could reflink the source to the
-> .temporary, then only write the changed blocks.  And since you own both
-> files, it just works.  If you're overwriting someone else's file?  The
-> old copy behavior is fine.
+Signed-off-by: Coly Li <coly.li@suse.de>
+---
+ fs/ocfs2/cluster/masklog.h |   33 ++++++++++++++-------------------
+ 1 files changed, 14 insertions(+), 19 deletions(-)
 
-Well, "fine" as in it works, but if there are only a few changed blocks,
-and the old copy is now part of a snapshot (so it won't be released when
-rsync is finished) the space consumption has doubled instead of just
-using a few extra blocks.
+diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
+index 7e72a81..54a78be 100644
+--- a/fs/ocfs2/cluster/masklog.h
++++ b/fs/ocfs2/cluster/masklog.h
+@@ -48,34 +48,29 @@
+  * only emit the appropriage printk() when the caller passes in a constant
+  * mask, as is almost always the case.
+  *
+- * All this bitmask nonsense is hidden from the /proc interface so that Joel
+- * doesn't have an aneurism.  Reading the file gives a straight forward
+- * indication of which bits are on or off:
+- * 	ENTRY off
+- * 	EXIT off
++ * All this bitmask nonsense is hidden from the filesunder /sys/fs/o2cb/logmask/.
++ * Reading the files gives a straight forward indication of which bits are
++ * allowed (allow) or denied (off/deny).
++ * 	ENTRY deny
++ * 	EXIT deny
+  * 	TCP off
+  * 	MSG off
+  * 	SOCKET off
+- * 	ERROR off
+- * 	NOTICE on
++ * 	ERROR allow
++ * 	NOTICE allow
+  *
+  * Writing changes the state of a given bit and requires a strictly formatted
+  * single write() call:
+  *
+- * 	write(fd, "ENTRY on", 8);
++ * 	write(fd, "allow", 5);
+  *
+- * would turn the entry bit on.  "1" is also accepted in the place of "on", and
+- * "off" and "0" behave as expected.
++ * Echo allow/deny/off string into the logmask files can flip the bits on or
++ * off as expected, here is the bash script for example:
+  *
+- * Some trivial shell can flip all the bits on or off:
+- *
+- * log_mask="/proc/fs/ocfs2_nodemanager/log_mask"
+- * cat $log_mask | (
+- * 	while read bit status; do
+- * 		# $1 is "on" or "off", say
+- * 		echo "$bit $1" > $log_mask
+- * 	done
+- * )
++ * log_mask="/sys/fs/o2cb/log_mask"
++ * for node in ENTRY EXIT TCP MSG SOCKET ERROR NOTICE; do
++ *	echo allow >"$log_mask"/"$node"
++ * done
+  */
 
-> > Requiring all attributes except nlink and ino to be identical makes
-> > reflink() unsuitable for transparently doing those things, except in
-> > cases where they happen to have the same attributes anyway.
->
->        We've had a lot of fun thinking up many uses for reflink(), and
->	almost all of them are within the context of one's own files.
-
-Is there anything about changing the owner/group of the new inode during
-reflink that makes the implementation more complex?  If the process doing
-the reflink is the same as the file owner then the semantics are unchanged
-from what you have proposed.
-
-> > I'm thinking particularly of file permissions, owner/group and atime.
-> 
-> 	People do cp -p all the time.  I don't see how keeping those
-> things the same will break anything.  It's a new call, not an existing
-> semantic.
-
-Though "cp -p" doesn't keep the owner/group of the original file if you
-are not root.
-
-Cheers, Andreas
---
-Andreas Dilger
-Sr. Staff Engineer, Lustre Group
-Sun Microsystems of Canada, Inc.
+ /* for task_struct */
+-- 
+Coly Li
+SuSE Labs
