@@ -1,77 +1,101 @@
-From: jim owens <jowens@hp.com>
-Date: Tue, 05 May 2009 16:48:52 -0400
+From: Andreas Dilger <adilger@sun.com>
+Date: Tue, 05 May 2009 15:24:17 -0600
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
-In-Reply-To: <20090505160313.GF31100@shareable.org>
+In-Reply-To: <20090505165628.GC7835@mail.oracle.com>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
 	<20090505010703.GA12731@shareable.org>
 	<20090505071608.GB10258@mail.oracle.com>
-	<20090505130114.GD17486@mit.edu>
-	<20090505131907.GF25328@shareable.org>
-	<1241530798.7244.65.camel@think.oraclecorp.com>
-	<20090505153629.GB31100@shareable.org>
-	<1241538102.7244.72.camel@think.oraclecorp.com>
-	<20090505160313.GF31100@shareable.org>
-Message-ID: <4A00A634.4020008@hp.com>
+	<20090505080936.GG3209@webber.adilger.int>
+	<20090505165628.GC7835@mail.oracle.com>
+Message-ID: <20090505212417.GO3209@webber.adilger.int>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: joel.becker@oracle.com
-Cc: Jamie Lokier <jamie@shareable.org>, Chris Mason <chris.mason@oracle.com>, Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: Jamie Lokier <jamie@shareable.org>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-Not surprising that the discussion is all over the place
-as far as what this should do.  Whether is is better to
-implement one do many things syscall or several different
-syscalls for different features can be debated after we
-set some rules.  Going back to Joel's patch, I think the
-first rules we need agreement on are:
+On May 05, 2009  09:56 -0700, Joel Becker wrote:
+> On Tue, May 05, 2009 at 02:09:36AM -0600, Andreas Dilger wrote:
+> > If the reflink caller is always charged for the full space used (as if
+> > it were a real copy) by virtue of the user doing the reflink() owning the
+> > new inode.  Doing anything else seems broken.  If the owner of the file
+> > wasn't charged for the reflink's quota then if the reflink inode was
+> > chowned the new owner would be charged for the new file, but the quota
+> > code would have to special case the decrement of EACH of the reflink's
+> > blocks because otherwise the original owner might "release" quota that
+> > it was never originally charged.
+> 
+>  If the caller is creating an inode in someone else's name, then
+> who do you charge for the quota?
 
-1) is only for filesystems with COW operation,
-    if the fs does not support COW it returns ENOSYS.
+IMHO, it shouldn't be possible to create an inode in someone else's
+name (CAP_* excluded), just like it isn't possible to create a new
+file in someone elses name.  The caller of reflink() should be the
+one creating the file, hence the owner of the file, and the owner of
+the quota.
 
-    the rational is that while we could allow it to
-    be a copyfile, it would not save space so "cp -a".
+> If you charge the caller, how do you know to decrement the caller's
+> quota when the actual owner does truncate, given that the inode has
+> no knowledge of the caller anymore.
 
-2) is only for regular files, all others return EPERM
+No, if the owner of the inode (== caller) is charged the quota then
+when the inode is truncated (regardless of who does the truncate)
+the quota will just work correctly.
 
-    *note* as-coded the patch only traps S_ISDIR, but
-    other file types could be a problem on some fs and
-    I don't see any value in supporting more than regular
-    files unless we support directory COW and then we are
-    really jumping into the swamp.
+> 	You've hit the nail on the head - without backrefs for each
+> refcounted hunk, you can't figure out who it owns it from a quota
+> perspective.  And that's just a non-starter to try and maintain.
 
-3) the granularity of the COW (1-byte write may cause
-    1-block up through whole file copy) is fs-dependent.
+No, I don't think my proposal is _more_ complex than the original.
+It is actually _less_ complex, because the fact that this is a reflink
+and not a complete file copy is a purely internal detail of the filesystem
+and is not exposed outside the filesystem.  The fact that a reflink
+consumes less space and is faster than a real copy is an implementation
+detail, not really any different than if the file were compressed by
+the filesystem internally.
 
-4) post-reflink changes done to data or attributes
-    in either the original or new file are independent.
+> > > 	Here's another fun trick.  Overwriting rsync, instead of copying
+> > > blocks from the already-existing source could reflink the source to the
+> > > .temporary, then only write the changed blocks.  And since you own both
+> > > files, it just works.  If you're overwriting someone else's file?  The
+> > > old copy behavior is fine.
+> > 
+> > Well, "fine" as in it works, but if there are only a few changed blocks,
+> > and the old copy is now part of a snapshot (so it won't be released when
+> > rsync is finished) the space consumption has doubled instead of just
+> > using a few extra blocks.
+> 
+> 	No, because the last thing rsync will do is rename(.temporary,
+> source).  All the references from the source will be decremented, and
+> any blocks only owned by the source will be freed.  Space usage is
+> identical before and after, like a copying rsync, but there is less
+> space used and less I/O done during the rsync process.
 
-next rules if we assume reflink(2) matches Joel's
-manpage and call arguments and any other features are
-a different api definition:
+What I was objecting to is "when overwriting someone elses file, the old
+copy behaviour is fine".  If we are implementing a copy-on-write API,
+why hamstring it to not work in the expected manner by a normal "cp"?
 
-5) you must be the file owner or have CAP_FCHOWN
+> > Is there anything about changing the owner/group of the new inode during
+> > reflink that makes the implementation more complex?  If the process doing
+> > the reflink is the same as the file owner then the semantics are unchanged
+> > from what you have proposed.
+> 
+> 	If you define that 'reflink sets the attributes as if it was a
+> new file', then you should be creating the file with a new security
+> context, not with the security context from the existing inode.  And
+> then you can't really snapshot.
+> 	A mixed behavior, like "if you own it, I'll preserve the entire
+> security context, but if not I will treat it with a new context" is
+> confusing at best.
 
-    because...
+I don't find it confusing.  The security context would be inherited from
+the creating process, just like creating a new file would.  If it is the
+same user as the file owner then the security context will be the same.
 
-6) all non-time file attributes (owner, security, etc),
-    atime, and mtime match the original file.  ctime is
-    when the reflink was created.
-
-but the hard part is the quota accounting rule:
-
-7) pre-charge all quotas so a reflink double-counts inodes
-    and blocks against the original owner/group
-
-    pro - easiest, does not allow owner to bypass limits,
-          quota utilities just work
-
-    con - admin snapshot can trip user quota-limit failures,
-          du/df will wildly disagree on space used
-
-so is that what we want or do we want to just say the
-behavior is fs-specific with respect to quotas.
-
-jim
+Cheers, Andreas
+--
+Andreas Dilger
+Sr. Staff Engineer, Lustre Group
+Sun Microsystems of Canada, Inc.
