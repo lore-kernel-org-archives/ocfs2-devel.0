@@ -1,81 +1,88 @@
 From: Theodore Tso <tytso@mit.edu>
-Date: Tue, 5 May 2009 09:01:14 -0400
+Date: Tue, 5 May 2009 10:21:02 -0400
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
-In-Reply-To: <20090505071608.GB10258@mail.oracle.com>
+In-Reply-To: <20090505131907.GF25328@shareable.org>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
 	<20090505010703.GA12731@shareable.org>
 	<20090505071608.GB10258@mail.oracle.com>
-Message-ID: <20090505130114.GD17486@mit.edu>
+	<20090505130114.GD17486@mit.edu>
+	<20090505131907.GF25328@shareable.org>
+Message-ID: <20090505142102.GE17486@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jamie Lokier <jamie@shareable.org>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: Jamie Lokier <jamie@shareable.org>
+Cc: linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On Tue, May 05, 2009 at 12:16:09AM -0700, Joel Becker wrote:
-> On Tue, May 05, 2009 at 02:07:03AM +0100, Jamie Lokier wrote:
-> > Joel Becker wrote:
-> > > +All file attributes and extended attributes of the new file must
-> > > +identical to the source file with the following exceptions:
-> > 
-> > reflink() sounds useful already, but is there a compelling reason why
-> > both files must have the same attributes, and changing attributes will
-> > break the COW?
+On Tue, May 05, 2009 at 02:19:07PM +0100, Jamie Lokier wrote:
+> There was an attempt at something like that for ext3 a year or two ago.
+> Search for "cowlink" if you're interested.
+
+Yeah, I remember that discussion.  The hard part was always the VM
+infrastructure, not the fs metadata.
+
+> Instead of a circular list, a proposed implementation was to create a
+> separate "host" inode on the first reflink, converting the source
+> inode to a reflink inode and moving the data block references to the
+> new host inode.  Each reflink was simply a reference to the host
+> inode, much like your design, and the host inode was only to hold the
+> data blocks, with it's i_nlink counting the number of reflinks
+> pointing to it.
 > 
-> 	Yeah, because without it you can't use it for snapshotting.
-> That's where the original design came from - inode snapshots.  The big
-> thing that excited me was that defining reflink() as I did, instead of
-> a more specific snapshot call, allows all sorts of generic uses (some of
-> which you outline below).
+> Using a circular list means the space must be reserved in every inode,
+> even those which are not (yet) reflinks.  It also does a bit more
+> writing sometimes, because of having to update next and previous
+> entries on the list.
 
-I guess it depends on your implementation.  At least the way I would
-implement this in ext4, for example, I'd simply set a new flag
-indicating this was a "reflink", and then the i_data[0..3] field would
-contain the inode number of the "host" inode, and i_data [4..7] and
-i_data[8..11] would contain a circular linked list of all reflinks
-associated with that inode.  I'd then grab a spare inode field so the
-"host" inode could point to the reflink'ed inodes.
+It's a tradeoff.  If you use a separate "host" inode on the first
+reflink, then then if you burn 3 inodes instead of two for which is
+"copied"/"reflinked" once.  The only reason why we need to reserve an
+extra field in the inode structure is for the pointer from the "host"
+inode to the circular linked list.  (The space for the circular linked
+list gets stored in i_data in the reflink inodes.)  If we are using
+256 byte inodes we have the space to spare --- and if we really cared
+about not utilizing the space in the inode structure if it wasn't
+necessary, it could always be stored as an extended attribute
+(although that has a greater overhead).
 
-If you ever need to delete the host inode, you simply pick one of the
-reflink inodes and copy i_data from the host inode one of the reflink
-inodes and promote it to be the "host" inode, and then update all of
-the other reflink inodes to point at the new host inode.
+The question of which of these design tradeoffs is preferable is
+really one of how many inodes will get copied via reflinks, and how
+many times will a particular inode will be copied by a reflink.  If it
+is common (for example, in a virtualization or container workload) for
+a single file to be copied via reflink 50 or 100 times, then the extra
+inode created when you create the first reflink is no big deal.  If
+most of the time a file is only going to be reflink'ed once or twice,
+then the overhead is much bigger.
 
-The advantage of this scheme is not only does the reflink'ed inode
-have a new inode number (as in your design), it actually has an
-entirely new inode.  So we can change the ownership, the mtime, ctime;
-it behaves *entirely* as a separate, free-standing inode except it is
-sharing the data blocks.
+This is really a design detail, though.
 
-This allows me to easily set a new owner, and indeed any other inode
-metadata, on the reflink'ed inode, which I would argue is a Good
-Thing.
+The bigger questions, which we really need to answer are:
 
-I'm guessing that OCFS2 has implemented (or is planning on
-implementing) reflinks, you can't modify the metadata?  Or is there
-some really important reason why it's not a good idea for OCFS2?
+1) If someone other than the owner of a file uses reflink to "make a
+copy" of the file, is it new inode, with the new inode number, owned
+by the original owner (making it look more like a link), or owned by
+the person creating the reflink (making it look more like a copy).
 
-> > Since each reflink has its own nlink and ino, I'm wondering why the
-> > other attributes cannot also be separate.  (I realise extended
-> > attributes complicate the picture and it's desirable to share them,
-> > especially if they are large).
-> 
-> 	The biggest reason is snapshotting.
+2) Does changing the metadata --- atime, user/group ownership, ctime,
+etc., break the COW link and cause a copy?
 
-I guess this doesn't mean much to me.  Can you say more about what you
-have in mind when you say "snapshotting"?  Is this in the WAFL sense?
-What's the use case?
+(2) could be a per-filesystem implementation detail, but (1) goes to
+the semantics of the how the reflink() system call will work, so I
+think we need to have a common answer which is the same across all
+filesystems.  
 
-> > Can you hard link to the source file and the reflink afterwards,
-> > incrementing the reflink's link count?  (I presume yes).  Can you
-> > reflink to both of them too?
-> 
-> 	Yes, absolutely.  Once reflinked, they look like two separate
-> POSIX files.
+Maybe some filesystems could simply refuse to support a user who isn't
+the owner creating a reflink, but saying that some filesystems might
+CAP_FOWNER (because the inode will be created with owner of the uid)
+would still mean that in the case where you had a setuid binary, or if
+the system supports fine-grained capability support, so a user with a
+non-zero UID has CAP_FOWNER, it would be unfortunate if a file owned
+by uid 23, when copied via reflink by uid 45 with CAP_FOWNER privs, on
+some filesystems creates a reflinked inode which when stat'ed, st_uid
+is 23, and on other filesystems creates a reflink inode which when
+stat'ed, st_uid is 45.
 
-... but in your implementation, if you ever chown or chmod (or even
-touch the atime?) of the file, it instantly does a copy-on-write?
-
-            	  	     	       	  - Ted
+							- Ted
