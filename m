@@ -1,55 +1,41 @@
-From: Theodore Tso <tytso@mit.edu>
-Date: Tue, 5 May 2009 13:29:49 -0400
+From: Jamie Lokier <jamie@shareable.org>
+Date: Tue, 5 May 2009 16:32:17 +0100
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
-In-Reply-To: <20090505170058.GD7835@mail.oracle.com>
+In-Reply-To: <20090505142102.GE17486@mit.edu>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
 	<20090505010703.GA12731@shareable.org>
 	<20090505071608.GB10258@mail.oracle.com>
 	<20090505130114.GD17486@mit.edu>
-	<20090505170058.GD7835@mail.oracle.com>
-Message-ID: <20090505172949.GG17486@mit.edu>
+	<20090505131907.GF25328@shareable.org>
+	<20090505142102.GE17486@mit.edu>
+Message-ID: <20090505153217.GA31100@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jamie Lokier <jamie@shareable.org>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: Theodore Tso <tytso@mit.edu>
+Cc: linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On Tue, May 05, 2009 at 10:00:58AM -0700, Joel Becker wrote:
-> On Tue, May 05, 2009 at 09:01:14AM -0400, Theodore Tso wrote:
-> > I'm guessing that OCFS2 has implemented (or is planning on
-> > implementing) reflinks, you can't modify the metadata?  Or is there
-> > some really important reason why it's not a good idea for OCFS2?
+Theodore Tso wrote:
+> 1) If someone other than the owner of a file uses reflink to "make a
+> copy" of the file, is it new inode, with the new inode number, owned
+> by the original owner (making it look more like a link), or owned by
+> the person creating the reflink (making it look more like a copy).
 > 
-> 	I think I'm confusing you.  ocfs2 creates a new inode, with a
-> new tree of extent blocks, pointing to the same data extents as the
-> source.  You can do *anything* POSIX to that new inode.  You can chown
-> it, chmod it, truncate it, futimes it, whatever.  The only thing at
-> issue is what the state of the inode is at the return of the reflink()
-> call.
+> 2) Does changing the metadata --- atime, user/group ownership, ctime,
+> etc., break the COW link and cause a copy?
+> 
+> (2) could be a per-filesystem implementation detail, but (1) goes to
+> the semantics of the how the reflink() system call will work, so I
+> think we need to have a common answer which is the same across all
+> filesystems.  
 
-OK, cool.  But in that case, if in every user-visible sense of the
-word, it's equivalent to a file copy --- which is to say, it gets a
-new inode number, and, then why not make it work *exactly* like a file
-copy, which is to say make the ownership be the user who asked for the
-reflink to be created?  That way /bin/cp could potentially use
-reflinks, and aside from the fact that a cp -r of an existing
-directory hierarchy takes no extra disk space and runs *much* faster,
-a reflink acts exactly like a file copy.  The semantics are easy to
-describe, we don't need CAP_FOWNER nonsense, it becomes much easier to
-deal with the semantics vis-a-vis quota, etc.
+I agree on both.
 
-> 	I'm not defining reflink() as "creates a new inode" because I
-> can see something like btrfs using the same storage inode with a new
-> inode number until it needs to CoW.  But from the user-visible
-> perspective, that's exactly what happens.
+user/group ownership seems to raise the most questions.
 
-Well, we can talk about inodes even for filesystems like FAT that
-don't really have inodes; the user-visible perspective is the only
-thing that we really care when we try to define the semantics of the
-system call in a way that causes the least amount of surprise; given
-that the new file gets a new inode number, it is *not* a hard link,
-and it looks much more like a file copy.
+Can we settle the hopefully simpler question of ctime, atime, mode changes?
 
-       	     	       	      	   - Ted
+-- Jamie
