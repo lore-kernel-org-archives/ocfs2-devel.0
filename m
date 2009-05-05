@@ -1,39 +1,40 @@
-From: jim owens <jowens@hp.com>
-Date: Tue, 05 May 2009 19:08:07 -0400
-Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
-	call.
-In-Reply-To: <20090505223016.GF7574@shareable.org>
-References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
-	<20090505010703.GA12731@shareable.org>
-	<20090505071608.GB10258@mail.oracle.com>
-	<20090505130114.GD17486@mit.edu>
-	<20090505170058.GD7835@mail.oracle.com>
-	<20090505223016.GF7574@shareable.org>
-Message-ID: <4A00C6D7.9040308@hp.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 5 May 2009 16:11:50 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Don't print error when listing too
+	many xattrs.
+In-Reply-To: <1241385489-24389-1-git-send-email-tao.ma@oracle.com>
+References: <1241385489-24389-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20090505231150.GT7835@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jamie Lokier <jamie@shareable.org>, joel.becker@oracle.com
-Cc: Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: ocfs2-devel@oss.oracle.com
 
-Jamie Lokier wrote:
-> But assuming it stays shared until you modify the actual data, could
-> the documentation make this important fact a bit more prominent:
+On Mon, May 04, 2009 at 05:18:09AM +0800, Tao Ma wrote:
+> Currently, when listing xattrs, kernel define XATTR_LIST_MAX as 65536
+> in include/linux/limits.h, so it can't handle too many xattrs.
+> 
+> But with ocfs2 xattr tree, we actually have no limit for the number.
+> And it will pollute the message with something like this when listing.
+> (27738,0):ocfs2_iterate_xattr_buckets:3158 ERROR: status = -34
+> (27738,0):ocfs2_xattr_tree_list_index_block:3264 ERROR: status = -34
+> 
+> So don't print "ERROR" message as this is not an ocfs2 error.
+> 
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
->     Opening a file, reading it, read-only or private mappings, and
->     simple attribute updates (chown, chmod, futimes, as well as
->     automatic atime updates) will not trigger copy-on-write and will
->     not return ENOSPC errors.
+	This is in 'fixes' now.
 
-almost... more like:
+Joel
 
-     automatic atime updates) will not trigger file data copy-on-write
-     and will not return ENOSPC errors unless the filesytem would have
-     returned ENOSPC if the file had no reflink.
+-- 
 
-filesystems such as btrfs that COW metadata changes can
-generate ENOSPC on any attribute update!
+"Egotist: a person more interested in himself than in me."
+         - Ambrose Bierce 
 
-jim
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
