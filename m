@@ -1,40 +1,39 @@
-From: James Morris <jmorris@namei.org>
-Date: Wed, 6 May 2009 08:49:59 +1000 (EST)
+From: jim owens <jowens@hp.com>
+Date: Tue, 05 May 2009 19:08:07 -0400
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
-In-Reply-To: <20090505142102.GE17486@mit.edu>
+In-Reply-To: <20090505223016.GF7574@shareable.org>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
 	<20090505010703.GA12731@shareable.org>
 	<20090505071608.GB10258@mail.oracle.com>
 	<20090505130114.GD17486@mit.edu>
-	<20090505131907.GF25328@shareable.org> <20090505142102.GE17486@mit.edu>
-Message-ID: <alpine.LRH.2.00.0905060836490.9995@tundra.namei.org>
+	<20090505170058.GD7835@mail.oracle.com>
+	<20090505223016.GF7574@shareable.org>
+Message-ID: <4A00C6D7.9040308@hp.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Tso <tytso@mit.edu>
-Cc: Jamie Lokier <jamie@shareable.org>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, linux-security-module@vger.kernel.org
+To: Jamie Lokier <jamie@shareable.org>, joel.becker@oracle.com
+Cc: Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On Tue, 5 May 2009, Theodore Tso wrote:
+Jamie Lokier wrote:
+> But assuming it stays shared until you modify the actual data, could
+> the documentation make this important fact a bit more prominent:
 
-> The bigger questions, which we really need to answer are:
-> 
-> 1) If someone other than the owner of a file uses reflink to "make a
-> copy" of the file, is it new inode, with the new inode number, owned
-> by the original owner (making it look more like a link), or owned by
-> the person creating the reflink (making it look more like a copy).
+>     Opening a file, reading it, read-only or private mappings, and
+>     simple attribute updates (chown, chmod, futimes, as well as
+>     automatic atime updates) will not trigger copy-on-write and will
+>     not return ENOSPC errors.
 
-Changing the owner fundamentally changes the character of the call 
-(certainly, the SELinux security logic would be quite different), and I 
-think application writers would often be asking "what type of reflink call 
-am I supposed to be using here?", and possibly getting it wrong much of 
-the time.  It might be better to create a separate syscall for the copy 
-case, with its own distinct semantics, if it is desired.
+almost... more like:
 
+     automatic atime updates) will not trigger file data copy-on-write
+     and will not return ENOSPC errors unless the filesytem would have
+     returned ENOSPC if the file had no reflink.
 
-- James
--- 
-James Morris
-<jmorris@namei.org>
+filesystems such as btrfs that COW metadata changes can
+generate ENOSPC on any attribute update!
+
+jim
