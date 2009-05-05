@@ -1,65 +1,66 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 5 May 2009 15:24:18 -0700
+From: Jamie Lokier <jamie@shareable.org>
+Date: Tue, 5 May 2009 23:30:16 +0100
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
-In-Reply-To: <20090505221101.GD7574@shareable.org>
-References: <20090505130114.GD17486@mit.edu>
-	<20090505131907.GF25328@shareable.org>
-	<1241530798.7244.65.camel@think.oraclecorp.com>
-	<20090505153629.GB31100@shareable.org>
-	<1241538102.7244.72.camel@think.oraclecorp.com>
-	<20090505160313.GF31100@shareable.org>
-	<4A00A634.4020008@hp.com> <20090505215711.GA7574@shareable.org>
-	<20090505220459.GN7835@mail.oracle.com>
-	<20090505221101.GD7574@shareable.org>
-Message-ID: <20090505222418.GP7835@mail.oracle.com>
+In-Reply-To: <20090505170058.GD7835@mail.oracle.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
+	<20090505010703.GA12731@shareable.org>
+	<20090505071608.GB10258@mail.oracle.com>
+	<20090505130114.GD17486@mit.edu>
+	<20090505170058.GD7835@mail.oracle.com>
+Message-ID: <20090505223016.GF7574@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jamie Lokier <jamie@shareable.org>
-Cc: jim owens <jowens@hp.com>, Chris Mason <chris.mason@oracle.com>, Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On Tue, May 05, 2009 at 11:11:01PM +0100, Jamie Lokier wrote:
-> Joel Becker wrote:
-> > 	"Shares the data extents of the source file".  I should hope
-> > that chmod doesn't require copying out all the data.
-> 
-> Oh... I was under the impression that it would, because the
-> man-page-of-sorts says attributes must be the same and the following
-> question:
-> 
-> > Jamie Lokier wrote:
-> > > reflink() sounds useful already, but is there a compelling reason why
-> > > both files must have the same attributes, and changing attributes will
->                                                   ------------------------
-> > > break the COW?
->     --------------
-> >
-> > Yeah, because without it you can't use it for snapshotting.
->   ----
-> 
-> If that's not true, then I change my tune substantially and like
-> reflink() semantics a lot more. :-)
+Joel Becker wrote:
+> 	I think I'm confusing you.  ocfs2 creates a new inode, with a
+> new tree of extent blocks, pointing to the same data extents as the
+> source.  You can do *anything* POSIX to that new inode.  You can chown
+> it, chmod it, truncate it, futimes it, whatever.  The only thing at
+> issue is what the state of the inode is at the return of the reflink()
+> call.
 
-	I was yeah'ing the first part.  The explicit requirement of
-reflink is sharing the data extents (including xattr extents).  So, for
-example, both the btrfs and ocfs2 implementations can
-chmod/chown/utimes/etc all they want after the reflink is done, and no
-data sharing is broken.  The data sharing is broken only via data
-modification.  Both btrfs and ocfs2 will only copy the hunk modified,
-leaving the rest of the file shared; you won't have long wait times for
-the CoW of large files just because you modified one byte.
+Ok, but does chown/chmod/futimes trigger a COW copy, unsharing the data?
+This is still not clear. :-)
 
-Joel
+Behaviourally, whether a massive copy is triggered by chmod is quite a
+significant thing.  It dictates whether programs and scripts should be
+careful to avoid chmod on reflinked files because it may very
+expensive (think chmod triggering a 200GB copy), or can do so cheaply.
 
--- 
+> 	I'm not defining reflink() as "creates a new inode" because I
+> can see something like btrfs using the same storage inode with a new
+> inode number until it needs to CoW.  But from the user-visible
+> perspective, that's exactly what happens.
 
-"Get right to the heart of matters.
- It's the heart that matters more."
+I'm still not clear from the above explanation whether full data
+unsharing (i.e. it's all copied, takes a long time, can trigger
+ENOSPC) happens on chown/chmod etc.
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+But assuming it stays shared until you modify the actual data, could
+the documentation make this important fact a bit more prominent:
+
+    reflink() creates a new file which initially shares the same
+    underlying data storage as the source file, and has all the same
+    attributes including security context and extended attributes.
+
+    After creating the new file, you can do *anything* POSIX to that
+    new file.  You can chown it, chmod it, futimes it, truncate it,
+    write to it, whatever.  When the data is modified, that will
+    trigger a copy-on-write operation so that the underlying data is
+    not completely shared any more.
+
+    The amount and timing of copying is filesystem-dependent, but only
+    happens when a data write or extended attribute change takes place.
+
+    Opening a file, reading it, read-only or private mappings, and
+    simple attribute updates (chown, chmod, futimes, as well as
+    automatic atime updates) will not trigger copy-on-write and will
+    not return ENOSPC errors.
+
+Thanks,
+-- Jamie
