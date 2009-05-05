@@ -1,41 +1,52 @@
 From: Jamie Lokier <jamie@shareable.org>
-Date: Tue, 5 May 2009 16:32:17 +0100
+Date: Tue, 5 May 2009 16:36:29 +0100
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
-In-Reply-To: <20090505142102.GE17486@mit.edu>
+In-Reply-To: <1241530798.7244.65.camel@think.oraclecorp.com>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
 	<20090505010703.GA12731@shareable.org>
 	<20090505071608.GB10258@mail.oracle.com>
 	<20090505130114.GD17486@mit.edu>
 	<20090505131907.GF25328@shareable.org>
-	<20090505142102.GE17486@mit.edu>
-Message-ID: <20090505153217.GA31100@shareable.org>
+	<1241530798.7244.65.camel@think.oraclecorp.com>
+Message-ID: <20090505153629.GB31100@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Tso <tytso@mit.edu>
-Cc: linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: Chris Mason <chris.mason@oracle.com>
+Cc: Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-Theodore Tso wrote:
-> 1) If someone other than the owner of a file uses reflink to "make a
-> copy" of the file, is it new inode, with the new inode number, owned
-> by the original owner (making it look more like a link), or owned by
-> the person creating the reflink (making it look more like a copy).
+Chris Mason wrote:
+> The btrfs implementation is just that you have two separate files
+> pointing to the same extents on disk.  Each file has a reference on each
+> extent, and deleting or chowning fileA doesn't change the metadata in
+> fileB.
 > 
-> 2) Does changing the metadata --- atime, user/group ownership, ctime,
-> etc., break the COW link and cause a copy?
-> 
-> (2) could be a per-filesystem implementation detail, but (1) goes to
-> the semantics of the how the reflink() system call will work, so I
-> think we need to have a common answer which is the same across all
-> filesystems.  
+> The btrfs cow code makes sure that modifications in either file (even
+> when mounted in -o nodatacow) are written to new extents instead of
+> changing the original.  If you write one block in a 1TB file, the new
+> space used by the clone is only one block.  (Thanks to the ceph
+> developers for coding all of this up a while ago).
 
-I agree on both.
+Ooh, nice.
 
-user/group ownership seems to raise the most questions.
+> The main difference between reflink and the btrfs ioctl is that in the
+> btrfs ioctl the destination file must already exist.  The btrfs code can
+> also do range replacements in the destination file, but I'd agree with
+> Joel that we don't want to toss the kitchen sink into something nice and
+> clean like reflink.
 
-Can we settle the hopefully simpler question of ctime, atime, mode changes?
+Ah, now that I know about the BTRFS data-cloning ioctl... :-)
+
+I'm wondering why reflink() is needed at all.  Can't it be done in
+userspace, using the BTRFS ioctl?  The hard part in userspace seems to
+be copying the file attributes, but "cp -a" and other tools manage.
+
+What is the advantage of adding the system call for the special case
+of reflink(), when we choose not to have, say, a copyfile() system
+call which does what "cp -a" does because doing it in user space is
+good enough?
 
 -- Jamie
