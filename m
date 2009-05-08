@@ -1,54 +1,63 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 08 May 2009 09:50:13 +0800
-Subject: [Ocfs2-devel] [PATCH 24/39] ocfs2: Add caching info for
- refcount tree.
-In-Reply-To: <20090508013258.GE31624@mail.oracle.com>
-References: <49F95A79.6040806@oracle.com>
-	<1241045931-24607-24-git-send-email-tao.ma@oracle.com>
-	<20090508013258.GE31624@mail.oracle.com>
-Message-ID: <4A038FD5.8020803@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 7 May 2009 18:49:16 -0700
+Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v2.
+In-Reply-To: <alpine.LRH.2.00.0905081124540.2761@tundra.namei.org>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<20090507221535.GA31624@mail.oracle.com>
+	<alpine.LRH.2.00.0905081124540.2761@tundra.namei.org>
+Message-ID: <20090508014916.GG31624@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: James Morris <jmorris@namei.org>
+Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org
 
-
-
-Joel Becker wrote:
-> On Thu, Apr 30, 2009 at 06:58:36AM +0800, Tao Ma wrote:
->> +/* Caller must hold refcount tree lock. */
->>  int ocfs2_decrease_refcount(struct inode *inode, struct buffer_head *di_bh,
->>  			    handle_t *handle, u32 cpos, u32 len,
->>  			    struct ocfs2_alloc_context *meta_ac,
->> @@ -1528,11 +1544,19 @@ int ocfs2_decrease_refcount(struct inode *inode, struct buffer_head *di_bh,
->>  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
->>  	struct buffer_head *ref_root_bh = NULL;
->>  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
->> +	struct ocfs2_refcount_tree *tree;
+On Fri, May 08, 2009 at 11:39:53AM +1000, James Morris wrote:
+> On Thu, 7 May 2009, Joel Becker wrote:
 > 
-> 	If the caller holds the lock, don't they have the tree
-> structure?  Can they pass it in?
-I have thought of them before. But the most painful thing is in xattr 
-part. There are so many places in xattr.c which will call 
-ocfs2_decrease_refcount(in-body xattr set, in block xattr set, bucket 
-xattr set, xattr final remove etc),  and I finally gave it up because 
-there are so many functions that is needed to change. And what's more, 
-if the xattr isn't refcounted, we passed so many NULL and used up too 
-much stack.
-
->>  static int ocfs2_replace_cow(struct inode *inode,
->>  			     struct buffer_head *di_bh,
->>  			     struct buffer_head *ref_root_bh,
->> +			     struct ocfs2_caching_info *ref_ci,
->>  			     u32 cow_start, u32 cow_len,
->>  			     struct page **pages,
->>  			     int num_pages)
 > 
-> 	It would seem that you could pass the tree in here instead of
-> just ref_ci.  Then if you need to change what the functions do with the
-> refcount_tree fields, it's already there.
-yeah, you are right. Will do. Thanks.
+> > @@ -1402,6 +1419,8 @@ struct security_operations {
+> >  			  struct dentry *new_dentry);
+> >  	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
+> >  			    struct path *new_dir, struct dentry *new_dentry);
+> > +	int (*path_reflink) (struct dentry *old_dentry, struct path *new_dir,
+> > +			     struct dentry *new_dentry);
+> >  #endif
+> >  
+> 
+> The TOMOYO folk don't need a path hook, so it would be unused, and should 
+> not be added unless someone responsible for an in-tree LSM establishes a 
+> case for it.
 
-Regards,
-Tao
+	Oh, I misread what they said:
+
+> TOMOYO wants to prevent reflink(".htpasswd", "readme.html").
+> But security_path_mknod() can't know the source file's name.
+> Therefore, TOMOYO wants security_path_link() rather than security_path_mknod().
+> So far I don't feel TOMOYO needs to introduce security_path_reflink() > because
+> modifications after reflink() will be checked by other LSM hooks.
+
+	So I should change the path_reflink() call to path_link() in
+reflinkat(2)?
+
+> > +int security_inode_reflink(struct dentry *old_dentry, struct inode *dir,
+> > +			   struct dentry *new_dentry);
+> 
+> We don't need the new_dentry argument (this is correct in the low-level 
+> hook, and doesn't compile with CONFIG_SECURITY=y).
+
+	Eek, missed that.
+
+Joel
+
+-- 
+
+"The cynics are right nine times out of ten."  
+        - H. L. Mencken
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
