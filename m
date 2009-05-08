@@ -1,37 +1,38 @@
-From: Coly Li <coly.li@suse.de>
-Date: Fri, 08 May 2009 15:57:20 +0800
-Subject: [Ocfs2-devel] question of dentry number
-In-Reply-To: <20090508073827.GA14278@ca-server1.us.oracle.com>
-References: <4A03DF23.8090903@suse.de>
-	<20090508073827.GA14278@ca-server1.us.oracle.com>
-Message-ID: <4A03E5E0.3070806@suse.de>
+From: jim owens <jowens@hp.com>
+Date: Fri, 08 May 2009 07:53:21 -0400
+Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v2.
+In-Reply-To: <20090508031018.GB8611@mail.oracle.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
+	<20090508031018.GB8611@mail.oracle.com>
+Message-ID: <4A041D31.1030009@hp.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: jim owens <jowens@hp.com>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-
-
-Joel Becker Wrote:
-> On Fri, May 08, 2009 at 03:28:35PM +0800, Coly Li wrote:
->> then run this script on ocfs2 volume of both nodes for 10 seconds, ls -al:
->> total 32
->> drwxr-xr-x 2 root root      4096 2009-05-08 15:34 .
->> drwxr-xr-x 4 root root      4096 2009-05-08 15:29 ..
->> -rw-r--r-- 1 root root 939787135 2009-05-08 15:34 file0000000000
->> -rw-r--r-- 1 root root 922127231 2009-05-08 15:34 file0000000001
->> -rw-r--r-- 1 root root         0 2009-05-08 15:34 file0000000002
->> -rw-r--r-- 1 root root 503703844 2009-05-08 15:34 file0000000003
+Joel Becker wrote:
+> On Thu, May 07, 2009 at 10:59:04PM -0400, jim owens wrote:
+>> You certainly did not address:
 >>
->> I don't understand how there are 32 dentries in the directory. Can anybody tell
->> me the magic ? Or it's a bug.
->>
+>> - desire for one single system call to handle both
+>>   owner preservation and create with current owner.
 > 
-> 	total is the number of directory blocks.
-> 
-mixed with link reference number, brain short dot...
+> 	Nope, and I don't intend to.  reflink() is a snapshotting call,
+> not a kitchen sink.
 
--- 
-Coly Li
-SuSE Labs
+I'm not a maintainer but if I was, in that case I would
+NAK this since more people wanted the cowfile() definition
+than your reflink definition.
+
+If you persist that you are only doing the snapshot
+then call it snaplink(2) or something.
+
+The reflink() name makes no sense because all references are
+internal to the file system.  There is absolutely no way via
+"ls" to determine the reference between the original and new.
+
+With hard links and symlinks you can easily associate them.
+
+jim
