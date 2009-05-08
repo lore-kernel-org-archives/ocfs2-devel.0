@@ -1,42 +1,36 @@
-From: jim owens <jowens@hp.com>
-Date: Thu, 07 May 2009 22:59:04 -0400
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 7 May 2009 20:10:18 -0700
 Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v2.
-In-Reply-To: <20090507221535.GA31624@mail.oracle.com>
+In-Reply-To: <4A039FF8.7090807@hp.com>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<20090507221535.GA31624@mail.oracle.com>
-Message-ID: <4A039FF8.7090807@hp.com>
+	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
+Message-ID: <20090508031018.GB8611@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, joel.becker@oracle.com
-Cc: linux-fsdevel@vger.kernel.org
+To: jim owens <jowens@hp.com>
+Cc: jmorris@namei.org, linux-security-module@vger.kernel.org, mtk.manpages@gmail.com, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-Joel Becker wrote:
-> Hi again,
-> 	Here's version 2 of reflink.  Changes since the first version:
-> 
-> - One patch, not three.
-> - Documentation/filesystems/reflink.txt is no longer a pseudo-manpage.
->   It also tries to encapsulate all the feedback from the discussion to
->   make the operation clearer.
+On Thu, May 07, 2009 at 10:59:04PM -0400, jim owens wrote:
+> You certainly did not address:
+>
+> - desire for one single system call to handle both
+>   owner preservation and create with current owner.
 
-You certainly did not address:
+	Nope, and I don't intend to.  reflink() is a snapshotting call,
+not a kitchen sink.
 
-- desire for one single system call to handle both
-   owner preservation and create with current owner.
+Joel
 
-   I see no reason to have 2 vfs_xxx and 2 inode functions for those.
+-- 
 
-- please just add the flag to the defined reflink API...
-   there is no reason to keep saying "it is just like link(2)".
-   that not true and you will just cause confusion.
+Life's Little Instruction Book #444
 
-- fix the
-+	if (S_ISDIR(inode->i_mode))
-+		return -EPERM;
+	"Never underestimate the power of a kind word or deed."
 
-   to be an ISREG check unless you have an argument for
-   special files and symlinks being COWed.
-
-jim
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
