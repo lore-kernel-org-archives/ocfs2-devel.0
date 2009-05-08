@@ -1,42 +1,50 @@
-From: Coly Li <coly.li@suse.de>
-Date: Fri, 08 May 2009 15:28:35 +0800
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Fri, 8 May 2009 00:38:27 -0700
 Subject: [Ocfs2-devel] question of dentry number
-Message-ID: <4A03DF23.8090903@suse.de>
+In-Reply-To: <4A03DF23.8090903@suse.de>
+References: <4A03DF23.8090903@suse.de>
+Message-ID: <20090508073827.GA14278@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I observer interesting dentry number during the dlm stress testing. The ocfs2
-cluster stack is user space "pcmk".
+On Fri, May 08, 2009 at 03:28:35PM +0800, Coly Li wrote:
+> then run this script on ocfs2 volume of both nodes for 10 seconds, ls -al:
+> total 32
+> drwxr-xr-x 2 root root      4096 2009-05-08 15:34 .
+> drwxr-xr-x 4 root root      4096 2009-05-08 15:29 ..
+> -rw-r--r-- 1 root root 939787135 2009-05-08 15:34 file0000000000
+> -rw-r--r-- 1 root root 922127231 2009-05-08 15:34 file0000000001
+> -rw-r--r-- 1 root root         0 2009-05-08 15:34 file0000000002
+> -rw-r--r-- 1 root root 503703844 2009-05-08 15:34 file0000000003
+> 
+> I don't understand how there are 32 dentries in the directory. Can anybody tell
+> me the magic ? Or it's a bug.
+> 
 
-creating a empty directory, ls -al:
-total 8
-drwxr-xr-x 2 root root 4096 2009-05-08 15:29 .
-drwxr-xr-x 4 root root 4096 2009-05-08 15:29 ..
+	total is the number of directory blocks.
 
+Joel
 
-run script make_panic on single node, for 10 seconds, ls -al:
-total 12
-drwxr-xr-x 2 root root      4096 2009-05-08 15:33 .
-drwxr-xr-x 4 root root      4096 2009-05-08 15:29 ..
--rw-r--r-- 1 root root         0 2009-05-08 15:33 file0000000001
--rw-r--r-- 1 root root 459611068 2009-05-08 15:33 file0000000003
+> -- 
+> Coly Li
+> SuSE Labs
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
-then run this script on ocfs2 volume of both nodes for 10 seconds, ls -al:
-total 32
-drwxr-xr-x 2 root root      4096 2009-05-08 15:34 .
-drwxr-xr-x 4 root root      4096 2009-05-08 15:29 ..
--rw-r--r-- 1 root root 939787135 2009-05-08 15:34 file0000000000
--rw-r--r-- 1 root root 922127231 2009-05-08 15:34 file0000000001
--rw-r--r-- 1 root root         0 2009-05-08 15:34 file0000000002
--rw-r--r-- 1 root root 503703844 2009-05-08 15:34 file0000000003
-
-I don't understand how there are 32 dentries in the directory. Can anybody tell
-me the magic ? Or it's a bug.
-
-Thanks.
 -- 
-Coly Li
-SuSE Labs
+
+Life's Little Instruction Book #109
+
+	"Know how to drive a stick shift."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
