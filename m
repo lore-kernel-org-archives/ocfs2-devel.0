@@ -1,82 +1,41 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 08 May 2009 09:41:54 +0800
-Subject: [Ocfs2-devel] [PATCH 22/39] ocfs2: Add refcount tree lock
-	mechanism.
-In-Reply-To: <20090508011735.GC31624@mail.oracle.com>
-References: <49F95A79.6040806@oracle.com>
-	<1241045931-24607-22-git-send-email-tao.ma@oracle.com>
-	<20090508011735.GC31624@mail.oracle.com>
-Message-ID: <4A038DE2.30607@oracle.com>
+From: James Morris <jmorris@namei.org>
+Date: Fri, 8 May 2009 11:39:53 +1000 (EST)
+Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v2.
+In-Reply-To: <20090507221535.GA31624@mail.oracle.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<20090507221535.GA31624@mail.oracle.com>
+Message-ID: <alpine.LRH.2.00.0905081124540.2761@tundra.namei.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org
+
+On Thu, 7 May 2009, Joel Becker wrote:
 
 
+> @@ -1402,6 +1419,8 @@ struct security_operations {
+>  			  struct dentry *new_dentry);
+>  	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
+>  			    struct path *new_dir, struct dentry *new_dentry);
+> +	int (*path_reflink) (struct dentry *old_dentry, struct path *new_dir,
+> +			     struct dentry *new_dentry);
+>  #endif
+>  
 
-Joel Becker wrote:
-> On Thu, Apr 30, 2009 at 06:58:34AM +0800, Tao Ma wrote:
->> +/*
->> + * Lock the refcount tree pointed by ref_blkno and return the tree.
->> + * In most case, we lock the tree and read the refcount block.
->> + * So read it here if the caller really need it.
->> + */
->> +int ocfs2_lock_refcount_tree(struct ocfs2_super *osb, u64 ref_blkno, int rw,
->> +			     struct ocfs2_refcount_tree **ret_tree,
->> +			     struct buffer_head **ref_bh)
->> +{
->> +	int ret;
->> +	struct ocfs2_refcount_tree *tree = NULL;
->> +
->> +	ret = ocfs2_get_refcount_tree(osb, ref_blkno, &tree);
->> +	if (ret) {
->> +		mlog_errno(ret);
->> +		goto out;
->> +	}
->> +
->> +	ret = ocfs2_refcount_lock(&tree->rf_lockres, rw);
->> +	if (ret) {
->> +		mlog_errno(ret);
->> +		goto out;
->> +	}
->> +
->> +	if (rw)
->> +		down_write(&tree->rf_sem);
->> +	else
->> +		down_read(&tree->rf_sem);
->> +
->> +	if (ref_bh) {
->> +		ret = ocfs2_read_refcount_block(&tree->rf_ci,
->> +						ref_blkno, ref_bh);
->> +		if (ret) {
->> +			mlog_errno(ret);
->> +			ocfs2_unlock_refcount_tree(osb, tree, rw);
->> +			goto out;
->> +		}
->> +	}
->> +
->> +	*ret_tree = tree;
->> +out:
->> +	return ret;
->> +}
->> +
->> +void ocfs2_unlock_refcount_tree(struct ocfs2_super *osb,
->> +				struct ocfs2_refcount_tree *tree, int rw)
->> +{
->> +	ocfs2_refcount_unlock(&tree->rf_lockres, rw);
->> +
->> +	if (rw)
->> +		up_write(&tree->rf_sem);
->> +	else
->> +		up_read(&tree->rf_sem);
->> +}
-> 
-> 	You lock "cluster, mutex", but you also unlock "cluster, mutex".
-> I would think you'd want to unlock "mutex, cluster".
-yeah, I should use the reverse order.
+The TOMOYO folk don't need a path hook, so it would be unused, and should 
+not be added unless someone responsible for an in-tree LSM establishes a 
+case for it.
 
-Thanks.
+> +int security_inode_reflink(struct dentry *old_dentry, struct inode *dir,
+> +			   struct dentry *new_dentry);
 
-Regards,
-Tao
+We don't need the new_dentry argument (this is correct in the low-level 
+hook, and doesn't compile with CONFIG_SECURITY=y).
+
+
+- James
+-- 
+James Morris
+<jmorris@namei.org>
