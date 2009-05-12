@@ -1,68 +1,42 @@
 From: Jamie Lokier <jamie@shareable.org>
-Date: Tue, 12 May 2009 21:11:12 +0100
-Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
-	call.
-In-Reply-To: <4A09CFFF.20707@hp.com>
-References: <20090505010703.GA12731@shareable.org>
-	<20090505071608.GB10258@mail.oracle.com>
-	<20090505080936.GG3209@webber.adilger.int>
-	<20090505165628.GC7835@mail.oracle.com>
-	<20090505212417.GO3209@webber.adilger.int>
-	<20090505213206.GM7835@mail.oracle.com>
-	<20090506071531.GB6976@mit.edu> <4A019DA9.4050700@hp.com>
-	<20090512191129.GA10436@shareable.org> <4A09CFFF.20707@hp.com>
-Message-ID: <20090512201112.GE10436@shareable.org>
+Date: Tue, 12 May 2009 21:24:57 +0100
+Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
+In-Reply-To: <4A0975B1.90703@hp.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
+	<20090508031018.GB8611@mail.oracle.com>
+	<20090511204011.GB30293@mail.oracle.com>
+	<20090512113152.GE6585@logfs.org> <4A0975B1.90703@hp.com>
+Message-ID: <20090512202457.GF10436@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: jim owens <jowens@hp.com>
-Cc: Theodore Tso <tytso@mit.edu>, joel.becker@oracle.com, Andreas Dilger <adilger@sun.com>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: =?iso-8859-1?Q?J=F6rn?= Engel <joern@logfs.org>, Joel Becker <Joel.Becker@oracle.com>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
 jim owens wrote:
-> >One last annoyance.  If you're making a new file, then like open() you
-> >need another argument, which is the new file's mode which is combined
-> >with umask.
-> 
-> But that only works for minimal traditional permissions.  If you
-> want to adjust ACL or MAC, you need to do something else anyway,
-> so is it really worth having the old-style mode parameter?
+> It passes the test that 99% of the time for any user (including
+> root), "it just works the way I want it to".  In my experience,
+> root and setuid programs really don't want to take ownership,
+> they want to replicate it.
 
-You have a point, and mode+umask is sort of ugly, but:
+Unfortunately in the other 1%, as I've explained in detail in another
+mail, it's a lot of work and sometimes impossible for a program to set
+the attributes to be those of a new file.
 
-ACLs and MACs have are intentionally designed so that in 99.9% of
-cases, there is no need to do anything else after open(), even in
-programs that use different mode arguments for security and don't know
-anything about non-traditional permissions.  So very few apps need to
-do anything else afterwards.  The ACL/MAC defaults have been carefully
-designed to have the right security properties, and people writing
-security policies understand how that works.
+Whereas an explicit choice between snapshot attributes and new-file
+attributes never causes problems, because it's trivial to provide the
+automatic "-p" switch by trying one then the other.
 
-The most often used mode parameters are almost certainly 0666 meaning
-"use what umask says", and 0600 meaning "most restricted useful
-permissions" for a new file.
+To human-optimise, make your reflink _program_ do that.
+Humans don't call system calls themselves :-)
 
-If you want to create a file with restricted permissions without
-altering umask, which isn't safe in a threaded program, you must _not_
-use 0666 _and then_ narrow the permissions - it's important that the
-initial permissions are <= the final ones that you need.
+> The behavior matches "cp -p" or "tar -x"
 
-So without the parameter, what's the sane default?
+Actually it doesn't, but even if it did, not having any way to turn
+off the "-p" would be just as annoying as if you couldn't do that with "cp".
 
-For typical cowlink uses it should be equivalent to open(...,0666) as
-you don't want to umask+chmod afterwards.  I wouldn't be surprised if
-umask+chmod afterwards gave different ACL/MAC results.
-
-But if you need restricted permission on the file afterwards, since
-it's not safe to start wide and then narrow, 0666 is not a suitable
-default.
-
-You could say "just change the umask!" but that is bad in a threaded
-program, unfortunately.  (Imho they should have made umask
-thread-specific; oh well.  In fact you emulate per-thread umask by
-adjusting the mode argument in some environments :-)
-
-The mode argument, though ugly, is@least well understood and
-security policies (inside apps and outside) do the right thing with it.
+If you like root to have "cp -p", put it in /root/.bashrc :-)
 
 -- Jamie
