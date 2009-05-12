@@ -1,26 +1,44 @@
-From: Jamie Lokier <jamie@shareable.org>
-Date: Tue, 12 May 2009 21:36:09 +0100
-Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v2.
-In-Reply-To: <20090511234624.GC28209@mail.oracle.com>
-References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
-	<20090511204924.GC30293@mail.oracle.com> <4A08AB5D.7090706@hp.com>
-	<20090511234624.GC28209@mail.oracle.com>
-Message-ID: <20090512203609.GH10436@shareable.org>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue, 12 May 2009 16:37:48 -0700
+Subject: [Ocfs2-devel] add error check for ocfs2_read_locked_inode() call
+In-Reply-To: <4A096203.2040806@telecom.by>
+References: <4A096203.2040806@telecom.by>
+Message-ID: <4A0A084C.4040402@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: jim owens <jowens@hp.com>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-Joel Becker wrote:
-> 	Someone else pointed out that a naive user might reflink a block
-> device file and expect the device contents to be copied-on-write.
-> Obviously wrong if you understand filesystems, but let's just prevent
-> that misunderstanding.  S_ISREG() it is.
+Oleg Gawriloff wrote:
+> After upgrading from 2.6.28.10 to 2.6.29.3 I've saw following new errors 
+> in kernel log:
+> May 12 14:46:41 falcon-cl5
+> May 12 14:46:41 falcon-cl5 (6757,7):ocfs2_read_locked_inode:466 ERROR: 
+> status = -22
+>
+> Only one node is mounted volumes in cluster:
+> /dev/sde on /home/apache/users/D1 type ocfs2 
+> (rw,_netdev,noatime,heartbeat=local)
+> /dev/sdd on /home/apache/users/D2 type ocfs2 
+> (rw,_netdev,noatime,heartbeat=local)
+> /dev/sdc on /home/apache/users/D3 type ocfs2 
+> (rw,_netdev,noatime,heartbeat=local)
+> The error appears multiple times per second and only numbers is different.
+> May 12 14:47:09 falcon-cl5 (6755,6):ocfs2_read_locked_inode:466 ERROR: 
+> status = -22
+> May 12 14:47:09 falcon-cl5
+> May 12 14:47:09 falcon-cl5 (6755,2):ocfs2_read_locked_inode:466 ERROR: 
+> status = -22
+> May 12 14:47:09 falcon-cl5
+> May 12 14:47:09 falcon-cl5 (6755,1):ocfs2_read_locked_inode:466 ERROR: 
+> status = -22
+>
+> What does it means, any suggestions?
 
-I think S_ISLNK() should be allowed too if the filesystem allows, as
-it is harmless, behaves as expected, saves a little space, and copying
-symlink attributes is meaningful too.
+I went thru the relevant code in 2.6.29-3. There has to be another
+message. That is, other than the one listed.
 
--- Jamie
+http://git.kernel.org/?p=linux/kernel/git/stable/linux-2.6.29.y.git;a=blob;f=fs/ocfs2/inode.c;h=229e707bc050629c0ad372b14c75194bf4b97f3d;hb=e18346d68f807c62bb8e5de0f809d3a1a2f093de
+
+Did you modify the code? Apply some patches?
