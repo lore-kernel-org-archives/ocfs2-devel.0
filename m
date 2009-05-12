@@ -1,5 +1,5 @@
 From: Jamie Lokier <jamie@shareable.org>
-Date: Tue, 12 May 2009 20:20:53 +0100
+Date: Tue, 12 May 2009 20:30:37 +0100
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
 	call.
 In-Reply-To: <4A01CDD0.6090102@hp.com>
@@ -11,7 +11,7 @@ References: <20090505010703.GA12731@shareable.org>
 	<20090505213206.GM7835@mail.oracle.com>
 	<20090506071531.GB6976@mit.edu> <4A019DA9.4050700@hp.com>
 	<4A019F21.2020907@hp.com> <4A01CDD0.6090102@hp.com>
-Message-ID: <20090512192053.GB10436@shareable.org>
+Message-ID: <20090512193037.GC10436@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -20,31 +20,31 @@ To: jim owens <jowens@hp.com>
 Cc: Theodore Tso <tytso@mit.edu>, joel.becker@oracle.com, Andreas Dilger <adilger@sun.com>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
 jim owens wrote:
-> Quota accounting and disk space used for the original file will
-> be as if there were 0 reflinks.  Quota accounting and disk space
-> reported for the new reflink file is filesystem specific and may
-> or may not include shared disk space.
+> du rules
 
-One little thing:
+In general, hard :-)
 
-If the original file is deleted,
+See the difficulties reporting process memory usage given shared
+libraries for how tricky it gets.
 
-   1. The data must still be accounted at least once.
+Imho, the simplest is for du to report how much space it would take if
+all the files were fully unCOWed, either by being modified or copied
+to another filesystem.  In other words, just return the data blocks
+assigned to a file as usual; the COW difference is the same block can
+be assigned to more than one file.  Sometimes knowing the unCOWed
+space would even be useful.
 
-   2. After deleting the original, the space must not be charged to
-      the owner of the original file if different from the owners of
-      reflinks which remain, because that would be a quota attack.
+Of course knowing the COWed space is also useful.  (Both together
+would give you a nice feel for how much space COW is saving.)  I
+suspect that would need changes to du to give useful answers (and
+similar changes to "Disk Usage Analyzer" if you like that tool).
 
-Less important:
-
-   3. The combination of 1 and 2 probably shouldn't cause the quota
-      charge of other users (who created reflinks and aren't the
-      original file owner) to increase as it might push them over their
-      quota, in a way that's difficult for them to know beforehand.
-
-One way to satisfy that is for the reflink's data to be charged at
-least once to each distinct owner who references that data.  Maybe it
-can be done by charging it when the owner of a new reflink is
-different from the original, and something appropriate during chown.
+du detects hard links by i_nlink!=1 and inode number, and merges the
+accounting.  For partially shared files, I'm not sure how best to get
+the right information out.  FIEMAP is inherently a lot slower than
+stat() because it can do much more disk access, and it might not
+always work (depending on how data is represented on disk), and it
+might not always be permitted.  Worse, there's no i_nlink!=1
+equivalent to decide when FIEMAP does not need to be called.
 
 -- Jamie
