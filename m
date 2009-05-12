@@ -1,54 +1,48 @@
 From: jim owens <jowens@hp.com>
-Date: Tue, 12 May 2009 09:12:17 -0400
+Date: Tue, 12 May 2009 11:23:08 -0400
 Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
-In-Reply-To: <20090512113152.GE6585@logfs.org>
+In-Reply-To: <Pine.LNX.4.64.0905120748310.18625@cobra.newdream.net>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
 	<20090508031018.GB8611@mail.oracle.com>
 	<20090511204011.GB30293@mail.oracle.com>
-	<20090512113152.GE6585@logfs.org>
-Message-ID: <4A0975B1.90703@hp.com>
+	<Pine.LNX.4.64.0905120748310.18625@cobra.newdream.net>
+Message-ID: <4A09945C.2080002@hp.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: =?UTF-8?B?SsO2cm4gRW5nZWw=?= <joern@logfs.org>
+To: Sage Weil <sage@newdream.net>
 Cc: Joel Becker <Joel.Becker@oracle.com>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-J?rn Engel wrote:
-> On Mon, 11 May 2009 13:40:11 -0700, Joel Becker wrote:
+Sage Weil wrote:
+> On Mon, 11 May 2009, Joel Becker wrote:
 >> 	Here's v4 of reflink().  If you have the privileges, you get the
 >> full snapshot.  If you don't, you must have read access, and then you
 >> get the entire snapshot (data and extended attributes) except that the
 >> security context is reinitialized.  That's it.  It fits with most of the
 >> other ops, and it's a clean degradation.
 > 
-> Let me see if I understand this correctly.  File "/tmp/foo" belongs to
-> Joel, file "/tmp/bar" belongs to Joern.  Everyone has read access to
-> those files.  Now if you reflink them to your home directory, both files
-> belong to you.  If I reflink them to my home directory, both files
-> belong to me.  And if root reflinks them to /root, one file belongs to
-> Joel, the other to Joern.  Is that correct?
+> What would a 'cp' without '-p' be expected to do here when it has the 
+> privileges?  Call reflink(2), then explicitly clear out any copied 
+> security attributes ensure that any copied attributes are removed, and 
+> otherwise jump through hoops to make the newly created file look like it 
+> should?  Should it check whether it has the privileges and act accordingly 
+> (_can_ it even do that reliably/atomically?), or unconditionally verify 
+> the attributes look like a new file's should?
 
-yes
+I don't understand what you think is hard about cp doing the
+"if not preserve then update attributes".  It does not have to check
+the reflink() attr result, it just assigns the expected new attributes.
 
-> Because if it is, I would call that behaviour rather confusing.  A
-> system call that behaves differently depending on who calls it - or
-> on whether the binary is installed suid root - is something I would like
-> to avoid.
+Only the -p snapshot needs atomicity.
 
-Avoiding that just gives us other confusing operations unless
-you have a really good alternative.
+> To me, a simple 'cp' type operation (assuming it gets wired up the way it 
+> could) seems like at least as common a use case than a 'snapshot' 
 
-This design is very elegant, I wish I had thought of it :)
-
-It passes the test that 99% of the time for any user (including
-root), "it just works the way I want it to".  In my experience,
-root and setuid programs really don't want to take ownership,
-they want to replicate it.
-
-The behavior matches "cp -p" or "tar -x" and yes those are not
-system calls but so what.  What matters is the documentation is
-clear about what happens and the most useful result occurs.
+I don't think changing "cp" is a good idea since users have a
+long history that cp means make a data copy, not cow.  Adding
+a new flag is IMO not be as good as a new utility.  Particularly
+since we can not do directories.
 
 jim
