@@ -1,37 +1,40 @@
-From: jim owens <jowens@hp.com>
-Date: Tue, 12 May 2009 15:37:35 -0400
+From: Jamie Lokier <jamie@shareable.org>
+Date: Tue, 12 May 2009 20:40:39 +0100
 Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
- call.
-In-Reply-To: <20090512191129.GA10436@shareable.org>
-References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
-	<20090505010703.GA12731@shareable.org>
-	<20090505071608.GB10258@mail.oracle.com>
-	<20090505080936.GG3209@webber.adilger.int>
-	<20090505165628.GC7835@mail.oracle.com>
-	<20090505212417.GO3209@webber.adilger.int>
-	<20090505213206.GM7835@mail.oracle.com>
-	<20090506071531.GB6976@mit.edu> <4A019DA9.4050700@hp.com>
-	<20090512191129.GA10436@shareable.org>
-Message-ID: <4A09CFFF.20707@hp.com>
+	call.
+In-Reply-To: <alpine.LRH.2.00.0905060826510.9995@tundra.namei.org>
+References: <1241530798.7244.65.camel@think.oraclecorp.com>
+	<20090505153629.GB31100@shareable.org>
+	<1241538102.7244.72.camel@think.oraclecorp.com>
+	<20090505160313.GF31100@shareable.org>
+	<4A00A634.4020008@hp.com> <20090505215711.GA7574@shareable.org>
+	<20090505220459.GN7835@mail.oracle.com>
+	<20090505221236.GE7574@shareable.org>
+	<20090505222131.GO7835@mail.oracle.com>
+	<alpine.LRH.2.00.0905060826510.9995@tundra.namei.org>
+Message-ID: <20090512194039.GD10436@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Theodore Tso <tytso@mit.edu>, joel.becker@oracle.com, Andreas Dilger <adilger@sun.com>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: James Morris <jmorris@namei.org>
+Cc: Joel Becker <Joel.Becker@oracle.com>, jim owens <jowens@hp.com>, Chris Mason <chris.mason@oracle.com>, Theodore Tso <tytso@mit.edu>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, "Daniel P. Berrange" <berrange@redhat.com>
 
-I don't write applications so I won't argue when
-what they want does not make sense to me :)
+James Morris wrote:
+> Indeed... I think a great use-case scenario for this will be snapshotting 
+> VM images, as well as fast and space-efficient instantiation of VMs.
 
-Jamie Lokier wrote:
-> 
-> One last annoyance.  If you're making a new file, then like open() you
-> need another argument, which is the new file's mode which is combined
-> with umask.
+I agree, except beware of the illusion that atomic file snapshots mean
+safe VM snapshots...
 
-But that only works for minimal traditional permissions.  If you
-want to adjust ACL or MAC, you need to do something else anyway,
-so is it really worth having the old-style mode parameter?
+To snapshot a live VM safely, you need to atomically snapshot both
+the running state (memory and CPU) _and_ all its disk images
+simultaneously.
 
-jim
+Otherwise you're asking for guest filesystem corruption.
+
+reflink() won't do that by itself, but the VM implementation could use
+reflink() to make fast snapshots without significantly pausing a
+running VM.
+
+-- Jamie
