@@ -1,53 +1,56 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 12 May 2009 10:28:02 -0700
+From: jim owens <jowens@hp.com>
+Date: Tue, 12 May 2009 13:45:45 -0400
 Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
-In-Reply-To: <Pine.LNX.4.64.0905120748310.18625@cobra.newdream.net>
+In-Reply-To: <Pine.LNX.4.64.0905120838040.18625@cobra.newdream.net>
 References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
 	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
 	<20090508031018.GB8611@mail.oracle.com>
 	<20090511204011.GB30293@mail.oracle.com>
 	<Pine.LNX.4.64.0905120748310.18625@cobra.newdream.net>
-Message-ID: <20090512172802.GD6896@mail.oracle.com>
+	<4A09945C.2080002@hp.com>
+	<Pine.LNX.4.64.0905120838040.18625@cobra.newdream.net>
+Message-ID: <4A09B5C9.1000307@hp.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Sage Weil <sage@newdream.net>
-Cc: jim owens <jowens@hp.com>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Cc: Joel Becker <Joel.Becker@oracle.com>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-On Tue, May 12, 2009 at 08:04:21AM -0700, Sage Weil wrote:
-> To me, a simple 'cp' type operation (assuming it gets wired up the way it 
-> could) seems like at least as common a use case than a 'snapshot' 
-> operation.  I know that's not what your main goal here, but I don't 
-> understand the resistance to two syscalls.  Mixing the two might give you 
-> the right answer in many cases, but certainly not all, and it makes for 
-> confusing application interface semantics that we won't be able to change 
-> down the line.
+Sage Weil wrote:
+> Maybe not, but that's a separate question from the interface issue.  We 
+> shouldn't preclude the possibility creating tools that preserve attributes 
+> (or warn if they can't) and tools that simply want to cow data to a new 
+> file.  AFAICS reflink(2) as proposed doesn't quite let you do either one 
+> without extra hackery to compensate for its dual-mode behavior. If this 
+> thread has demonstrated anything, it's that some users want snapshot-like 
+> semantics (cp -p) and some want cowfile()-like semantics (cp).  What is 
+> the benefit of combining the two into a single call?  If I want 
+> snapshot-like semantics, I would rather get -EPERM if I lack the necessary 
+> permissions than silently get an approximation.
 
-	I'm not against two syscalls, but I'm not writing copyfile()
-here, just reflink().  Someone clearly could write copyfile() later and
-link into some of the same underlying mechanisms.
-	It's important to distinguish the semantics, though, and that's
-why I'm doing one thing.  For example, reflink() is a snapshot (a
-"reference-counted link") and has behaviors based on that.  libc should
-never fake it, because the callers expect those behaviors.  Whereas
-copyfile() would be fakeable in libc with a read/write cycle on
-filesystems that don't support it.  Things like that.
-	Heck, I think you could use reflink() to create a copyfile() in
-libc that uses no additional syscall.  But you couldn't use copyfile()
-to create reflink().
+I'm not fighting against two syscalls but the reason I like
+the V4 definition is the opposite of knowing I failed to snapshot.
 
-Joel
+It is really because in my experience as both root on multi-user
+systems and basic untrusted user, when root copies something from
+a user there are only two desired outcomes:
 
--- 
+  1) cp -p
 
-"Lately I've been talking in my sleep.
- Can't imagine what I'd have to say.
- Except my world will be right
- When love comes back my way."
+  2) cp, chown "someone" , chgrp "somegroup", chmod "new rights"
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+The common mistake is wanting #1 and forgetting the -p so it
+then produces an error and has to be fixed.
+
+Using root's default attributes is almost never desired.
+
+So with this reflink() definition, normal users get their own
+attributes and root automatically gets preserve but can change
+them later.
+
+IMO this is optimized for humans, and I don't really know
+of any privileged daemon things that are setuid and
+want to not preserve attributes.  Do you have examples?
+
+jim
