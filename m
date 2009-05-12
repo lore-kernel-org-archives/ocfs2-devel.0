@@ -1,77 +1,165 @@
-From: Stephen Smalley <sds@tycho.nsa.gov>
-Date: Tue, 12 May 2009 14:37:59 -0400
-Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
-In-Reply-To: <20090512182833.GI6896@mail.oracle.com>
-References: <20090508031018.GB8611@mail.oracle.com>
-	<20090511204011.GB30293@mail.oracle.com>
-	<alpine.LRH.2.00.0905120819460.3090@tundra.namei.org>
-	<20090511223414.GA28209@mail.oracle.com>
-	<alpine.LRH.2.00.0905121107400.4463@tundra.namei.org>
-	<1242130714.31807.25.camel@localhost.localdomain>
-	<20090512172200.GC6896@mail.oracle.com>
-	<1242149567.31807.90.camel@localhost.localdomain>
-	<20090512180339.GG6896@mail.oracle.com>
-	<1242151493.31807.94.camel@localhost.localdomain>
-	<20090512182833.GI6896@mail.oracle.com>
-Message-ID: <1242153479.31807.107.camel@localhost.localdomain>
+From: Jamie Lokier <jamie@shareable.org>
+Date: Tue, 12 May 2009 20:11:29 +0100
+Subject: [Ocfs2-devel] [PATCH 1/3] fs: Document the reflink(2) system
+	call.
+In-Reply-To: <4A019DA9.4050700@hp.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<1241331303-23753-2-git-send-email-joel.becker@oracle.com>
+	<20090505010703.GA12731@shareable.org>
+	<20090505071608.GB10258@mail.oracle.com>
+	<20090505080936.GG3209@webber.adilger.int>
+	<20090505165628.GC7835@mail.oracle.com>
+	<20090505212417.GO3209@webber.adilger.int>
+	<20090505213206.GM7835@mail.oracle.com>
+	<20090506071531.GB6976@mit.edu> <4A019DA9.4050700@hp.com>
+Message-ID: <20090512191129.GA10436@shareable.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: James Morris <jmorris@namei.org>, jim owens <jowens@hp.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: jim owens <jowens@hp.com>
+Cc: Theodore Tso <tytso@mit.edu>, joel.becker@oracle.com, Andreas Dilger <adilger@sun.com>, linux-fsdevel@vger.kernel.org, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On Tue, 2009-05-12 at 11:28 -0700, Joel Becker wrote:
-> On Tue, May 12, 2009 at 02:04:53PM -0400, Stephen Smalley wrote:
-> > On Tue, 2009-05-12 at 11:03 -0700, Joel Becker wrote:
-> > > 	As an aside, do inodes ever have more than one security.*
-> > > attribute?  It would appear that security_inode_init_security() just
-> > > returns one attribute, but what if I had a system running under SMACK
-> > > and then changed to SELinux?  Would my (existing) inode then have
-> > > security.smack and security.selinux attributes?
-> > 
-> > No, there would be no security.selinux attribute and the file would be
-> > treated as having a well-defined 'unlabeled' attribute by SELinux.  Not
-> > something you have to worry about.
-> 
-> 	Even if I've run rstorecon?  Basically, I'm trying to understand
-> if, in the !preserve_security case, ocfs2 can just do "link up the
-> existing xattrs, then set whatever we got from
-> security_inode_init_security()", or if we have to go through and delete
-> all security.* attributes before installing the result of
-> security_inode_init_security().
+jim owens wrote:
+> You ask why not use a 2-step "cowfilecopy" and "attrfilecopy"
+> to do "snapfile"... because that is not an atomic snapshot.
 
-Likely a better example would be file capabilities
-(security.capability), as you might be using those simultaneously with
-SELinux (security.selinux).
+Understood, no problem with that.  (Though it would be nice to have a
+realistic example showing the atomicity being useful for a single file
+snapshot).
 
-security_inode_init_security() is only going to return security.selinux,
-as new files don't get any file capabilities assigned by default.  I
-guess you would want to delete security.capability from the reflink if
-preserve_security==0.
+Being able to create a _new file_ with the security attributes of an
+existing file is sometimes useful too.  Lots of programs do that, of
+course, but a lot of them get it wrong when non-traditional security
+attributes are used.
 
-> > > > I'd rather have two hooks, one to allow the security module to override
-> > > > preserve_security and one to allow the security module to deny the
-> > > > operation altogether.  The former hook only needs to be called if
-> > > > preserve_security is not already cleared by the DAC logic.  The latter
-> > > > hook needs to know the final verdict on preserve_security in order to
-> > > > determine the right set of checks to apply, which isn't necessarily
-> > > > limited to only checking read access.
-> > > 
-> > > 	Ok, is that two hooks or one hook with specific error returns?
-> > > I don't care, it's up to the LSM group.  I just can't come up with a
-> > > good distinguishing set of names if its two hooks :-)
-> > 
-> > I suppose you could coalesce them into a single hook ala:
-> > 	error = security_inode_reflink(old_dentry, dir, &preserve_security);
-> > 	if (error)
-> > 		return (error);
-> 
-> 	What fits in with the LSM convention.  That's more important
-> than one-hook-vs-two.
+reflink() followed by truncate() would be useful for that - and in
+that case, returning EPERM if it can't clone the attributes would be
+essential - because if a program which wants to copy "all the security
+attributes" without the knowledge to parse them itself and set them in
+the right order, then it won't have the code to check if they were
+cloned reliably either.
 
-I think that the above example fits with the LSM convention.
+> The security and "might not know about it" concerns are bogus:
+> No extra visibility exists to future updates of the original
+> file that would not exist without either snapfile or cowfilecopy.
+> That BOTH point at your old data is no different than if root
+> or raid was copying every disk block to permanent storage. If
+> you write it, someone can have it later.
 
--- 
-Stephen Smalley
-National Security Agency
+I agree with that _as long as_ reflink() does not permit you to clone
+a file when you are not the owner and you don't have read access.
+
+It looks like reflink() V4 does not permit in that case - good!
+
+(A more precise statement of the rule is "as long as you could not
+copy the file normally and then change its attributes to match what
+reflink() produces").
+
+That's different from link(), which _does_ allow links when you have
+no read access and aren't the owner, but it always bumps i_nlink.
+That's where I was coming from with the "might not know about it"
+concern, because it looked like earlier reflink() proposals applied
+the same weak permission checks as link().
+
+V4 seems much better.
+
+> So bottom line... I see no reason (except someone has to document)
+> why we should not have 2 system calls since there are good uses
+> and good definitions for both and the code is 99% identical.
+
+I doubt if anyone cares deeply if there are two system calls or one
+system call with a flag(*), since they are so similar.  The main thing
+is having useful behaviours.
+
+(*) Except for aesthetics.
+
+I'm with the folks who think it's better for userspace to explicitly
+request one behaviour or the other, rather than having reflink()
+"automatically" decide for itself whether it will clone the attributes
+or use new-file attributes.
+
+The reason is because the "automatic" behaviour will certainly require
+some applications to work around it, by guessing what it's going to do
+before (which is difficult to do accurately), or checking what it did
+afterwards.
+
+That will be these applications:
+
+   - Sometimes an app will want to clone the attributes, and tell the
+     user "sorry, no" if that's not possible.  So the app will have to
+     stat the file first, check the file owner against it's euid,
+     reflink, then stat the resulting file afterwards and check what
+     happened (because ownership might have changed between the first
+     stat and reflink calls, changing reflink's behaviour from what it
+     expected), and then call unlink if the wrong thing happend *and*
+     it will still be wrong 1% of the time when the security model is
+     not what the application expected.  Applications should not
+     have to hard-code every known security model.  And linking then
+     unlinking because you got it wrong is another security issue.
+
+     "cp --cow -a" might be in this category, so would "rsync --cow -a"
+     and generic backup applications.  I expect most applications
+     wanting to copy exactly care about this.
+
+   - Sometimes an app will want to warn the user if the attributes
+     couldn't be cloned, but succeed in making the copy.  reflink() V4
+     does that, but the app will have to check the new attributes against
+     the old ones to know whether to warn, and then guess what errno
+     would be appropriate.
+
+     Maybe "cp --cow -a" will be like this.
+
+   - Sometimes an app really just wants to copy a file with COW for
+     efficient data sharing.  It will have to change the resulting
+     attributes to "new file" attributes - and that will be wrong 1%
+     of the time because it's not necessarily easy to get those
+     attributes right, especially with non-standard security models.
+     Even with traditional security, getting setgid-directory
+     behaviour right is extremely difficult - because it depends on
+     the filesystem's mount options among other things.  Basically
+     "new file" attributes are something that should always be left to
+     the kernel.
+
+     While it might not be obvious when root would want to copy a file
+     without preserving attributes with COW performance, the argument
+     "I nearly always forget -p when writing cp" is arguing for "alias
+     cp='cp -p'" in your /root/.profile, not for making the system
+     call do it in a way you can't disable :-)
+
+     Besides I can think of when you would want it: When running *any*
+     shell script that you didn't write with the environment variable
+     CP_USE_COW_WHEN_POSSIBLE_TO_SAVE_SPACE set ;-)
+
+Now the opposite of "automatic" is the app requests whether to clone
+attributes or use "new file" attributes.  In contrast to the above
+problems, this doesn't cause any difficulty to applications, because
+any app wanting the automatic choice can just do this:
+
+     ret = reflink(a,b);
+     if (ret == -1 && errno == EPERM)
+         ret = cowlink(a,b);
+
+Ok, that's not perfect because EPERM can mean other things.
+
+Which brings us back to a flag ;-) like this:
+
+     REFLINK_ATTR_CLONE                    (EPERM if can't clone attributes)
+     REFLINK_ATTR_CLONE_IF_OWNER_OR_ROOT   (choose, as proposed in reflink V4)
+
+One last annoyance.  If you're making a new file, then like open() you
+need another argument, which is the new file's mode which is combined
+with umask.  But not if you're cloning the attributes.
+
+That's a good reason why there should be two functions for
+applications.  The names reflink/cowlink (and reflinkat/cowlinkat)
+make sense to me.  The cowlink functions have an extra mode argument,
+like the last argument to open().
+
+(They could all be one system call at the kernel level, but different
+in libc, as is already planned for the reflink/reflinkat distinction.)
+
+Oh, and please implement AT_SYMLINK_FOLLOW the same as link().
+
+Thanks :-)
+-- Jamie
