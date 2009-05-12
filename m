@@ -1,38 +1,34 @@
-From: James Morris <jmorris@namei.org>
-Date: Tue, 12 May 2009 11:12:04 +1000 (EST)
-Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
-In-Reply-To: <20090511223414.GA28209@mail.oracle.com>
-References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
-	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
-	<20090508031018.GB8611@mail.oracle.com>
-	<20090511204011.GB30293@mail.oracle.com>
-	<alpine.LRH.2.00.0905120819460.3090@tundra.namei.org>
-	<20090511223414.GA28209@mail.oracle.com>
-Message-ID: <alpine.LRH.2.00.0905121107400.4463@tundra.namei.org>
+From: Oleg Gawriloff <barzog@telecom.by>
+Date: Tue, 12 May 2009 14:48:19 +0300
+Subject: [Ocfs2-devel] add error check for ocfs2_read_locked_inode() call
+Message-ID: <4A096203.2040806@telecom.by>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: jim owens <jowens@hp.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, 11 May 2009, Joel Becker wrote:
+After upgrading from 2.6.28.10 to 2.6.29.3 I've saw following new errors 
+in kernel log:
+May 12 14:46:41 falcon-cl5
+May 12 14:46:41 falcon-cl5 (6757,7):ocfs2_read_locked_inode:466 ERROR: 
+status = -22
 
-> > e.g. SELinux will need to perform some checks on the operation, then 
-> > calculate a new security context for the new file.
-> 
-> 	Do I need to pass in preserve_security as well so SELinux knows
-> what the ownership check determined?
+Only one node is mounted volumes in cluster:
+/dev/sde on /home/apache/users/D1 type ocfs2 
+(rw,_netdev,noatime,heartbeat=local)
+/dev/sdd on /home/apache/users/D2 type ocfs2 
+(rw,_netdev,noatime,heartbeat=local)
+/dev/sdc on /home/apache/users/D3 type ocfs2 
+(rw,_netdev,noatime,heartbeat=local)
+The error appears multiple times per second and only numbers is different.
+May 12 14:47:09 falcon-cl5 (6755,6):ocfs2_read_locked_inode:466 ERROR: 
+status = -22
+May 12 14:47:09 falcon-cl5
+May 12 14:47:09 falcon-cl5 (6755,2):ocfs2_read_locked_inode:466 ERROR: 
+status = -22
+May 12 14:47:09 falcon-cl5
+May 12 14:47:09 falcon-cl5 (6755,1):ocfs2_read_locked_inode:466 ERROR: 
+status = -22
 
-Not for SELinux -- its security attributes are orthogonal to DAC, and it 
-will perform its own checks on them.
-
-Other LSMs should operate similarly (there is also the CAP_CHOWN check 
-which the LSM may hook), although if not, the flag can be added later if 
-required.
-
-
-- James
--- 
-James Morris
-<jmorris@namei.org>
+What does it means, any suggestions?
