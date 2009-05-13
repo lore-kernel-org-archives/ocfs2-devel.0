@@ -1,8 +1,9 @@
-From: Stephen Smalley <sds@tycho.nsa.gov>
-Date: Wed, 13 May 2009 13:23:58 -0400
+From: Casey Schaufler <casey@schaufler-ca.com>
+Date: Tue, 12 May 2009 18:47:04 -0700
 Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
-In-Reply-To: <20090513164259.GA32316@mail.oracle.com>
-References: <20090508031018.GB8611@mail.oracle.com>
+In-Reply-To: <20090512180339.GG6896@mail.oracle.com>
+References: <20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
+	<20090508031018.GB8611@mail.oracle.com>
 	<20090511204011.GB30293@mail.oracle.com>
 	<alpine.LRH.2.00.0905120819460.3090@tundra.namei.org>
 	<20090511223414.GA28209@mail.oracle.com>
@@ -11,63 +12,98 @@ References: <20090508031018.GB8611@mail.oracle.com>
 	<20090512172200.GC6896@mail.oracle.com>
 	<1242149567.31807.90.camel@localhost.localdomain>
 	<20090512180339.GG6896@mail.oracle.com>
-	<4A0A2698.2000208@schaufler-ca.com>
-	<20090513164259.GA32316@mail.oracle.com>
-Message-ID: <1242235438.9974.46.camel@localhost.localdomain>
+Message-ID: <4A0A2698.2000208@schaufler-ca.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: Casey Schaufler <casey@schaufler-ca.com>, James Morris <jmorris@namei.org>, jim owens <jowens@hp.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: Stephen Smalley <sds@tycho.nsa.gov>, James Morris <jmorris@namei.org>, jim owens <jowens@hp.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-se
 
-On Wed, 2009-05-13 at 09:43 -0700, Joel Becker wrote:
-> On Tue, May 12, 2009 at 06:47:04PM -0700, Casey Schaufler wrote:
-> > Joel Becker wrote:
-> > > 	Oh, absolutely.
-> > > 	As an aside, do inodes ever have more than one security.*
-> > > attribute?
-> > 
-> > ACLs, capability sets and Smack labels can all exist on a file at
-> > the same time. I know of at least one effort underway to create a
-> > multiple-label LSM.
-> 
-> 	So ACLs and cap sets live under security.*?  That's good.
+Joel Becker wrote:
+> On Tue, May 12, 2009 at 01:32:47PM -0400, Stephen Smalley wrote:
+>   
+>> On Tue, 2009-05-12 at 10:22 -0700, Joel Becker wrote:
+>>     
+>>> On Tue, May 12, 2009 at 08:18:34AM -0400, Stephen Smalley wrote:
+>>>       
+>>>> Is preserve_security supposed to also control the preservation of the
+>>>> SELinux security attribute (security.selinux extended attribute)?  I'd
+>>>> expect that either we preserve all the security-relevant attributes or
+>>>> none of them.  And if that is the case, then SELinux has to know about
+>>>> preserve_security in order to know what the security context of the new
+>>>> inode will be.  
+>>>>         
+>>> 	Thank you Stephen, you read my mind.  In the ocfs2 case, we're 
+>>> expecting to just reflink the extended attribute structures verbatim in
+>>> the preserve_security case.
+>>>       
+>> And in the preserve_security==0 case, you'll be calling
+>> security_inode_init_security() in order to get the attribute name/value
+>> pair to assign to the new inode just as in the normal file creation
+>> case?
+>>     
+>
+> 	Oh, absolutely.
+> 	As an aside, do inodes ever have more than one security.*
+> attribute?
 
-File capabilities live under security.*, but ACLs predate the security
-namespace and live in the system namespace as
-"system.posix_acl_access" (and if a directory, there is also a
-"system.posix_acl_default" attribute that specifies the default ACL for
-new files in that directory).
+ACLs, capability sets and Smack labels can all exist on a file at
+the same time. I know of at least one effort underway to create a
+multiple-label LSM.
 
-In the preserve_security==0 case, you'd want to:
-- drop all attributes under security.* on the new inode,
-- set (security.<name>, value) to the name:value pair provided by
-security_inode_init_security(),
-- set system.posix_acl_access to the default ACL associated with the
-parent directory (the "system.posix_acl_default" attribute on the
-parent).
+>   It would appear that security_inode_init_security() just
+> returns one attribute, but what if I had a system running under SMACK
+> and then changed to SELinux?  
 
-The latter two steps are what is already done in the new inode creation
-code path, so you hopefully can just reuse that code.
+The Smack attribute would hang around, it would just be unused.
 
-> > > Would my (existing) inode then have
-> > > security.smack and security.selinux attributes?
-> > >   
-> > 
-> > Yup. It happens all the time. Whenever someone converts a Fedora
-> > system to Smack they end up with a filesystem full of unused selinux
-> > labels. It does no harm.
-> 
-> 	At that runtime, sure.  But with reflink(), we may be reflinking
-> someone else's inode, and if we have to drop its security state, we
-> should clean the unused labels just in case they go back to selinux (or
-> back to smack, etc).  But if they are all under security.*, it's easy to
-> do.
-> 
-> Thanks!
+
+> Would my (existing) inode then have
+> security.smack and security.selinux attributes?
+>   
+
+Yup. It happens all the time. Whenever someone converts a Fedora
+system to Smack they end up with a filesystem full of unused selinux
+labels. It does no harm.
+
+>   
+>>>> Also, if you are going to automatically degrade reflink(2) behavior
+>>>> based on the owner_or_cap test, then you ought to allow the same to be
+>>>> true if the security module vetoes the attempt to preserve attributes.
+>>>> Either DAC or MAC logic may say that security attributes cannot be
+>>>> preserved.  Your current logic will only allow graceful degradation in
+>>>> the DAC case, but the MAC case will remain a hard failure.
+>>>>         
+>>> 	I did not think of this, and its a very good point as well.  I'm
+>>> not sure how to have the return value of security_inode_reflink()
+>>> distinguish between "disallow the reflink" and "disallow
+>>> preserve_security".  But since !preserve_security requires read access
+>>> only, perhaps we move security_inode_reflink up higher and say:
+>>>
+>>> 	error = security_inode_reflink(old_dentry, dir);
+>>> 	if (error)
+>>> 		preserve_security = 0;
+>>>
+>>> Here security_inode_reflink() does not need new_dentry, because it isn't
+>>> setting a security context.  If it's ok with the reflink, we'll be
+>>> copying the extended attribute.  If it's not OK, it falls through to the
+>>> inode_permission(inode, MAY_READ) check, which will check for plain old
+>>> read access.
+>>> 	What do we think?
+>>>       
+>> I'd rather have two hooks, one to allow the security module to override
+>> preserve_security and one to allow the security module to deny the
+>> operation altogether.  The former hook only needs to be called if
+>> preserve_security is not already cleared by the DAC logic.  The latter
+>> hook needs to know the final verdict on preserve_security in order to
+>> determine the right set of checks to apply, which isn't necessarily
+>> limited to only checking read access.
+>>     
+>
+> 	Ok, is that two hooks or one hook with specific error returns?
+> I don't care, it's up to the LSM group.  I just can't come up with a
+> good distinguishing set of names if its two hooks :-)
+>
 > Joel
-> 
--- 
-Stephen Smalley
-National Security Agency
+>
+>   
