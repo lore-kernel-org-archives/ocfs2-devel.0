@@ -1,102 +1,52 @@
 From: Stephen Smalley <sds@tycho.nsa.gov>
-Date: Thu, 14 May 2009 14:06:27 -0400
+Date: Thu, 14 May 2009 14:12:45 -0400
 Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
-In-Reply-To: <1242151493.31807.94.camel@localhost.localdomain>
-References: <20090507221535.GA31624@mail.oracle.com>
-	<4A039FF8.7090807@hp.com> <20090508031018.GB8611@mail.oracle.com>
-	<20090511204011.GB30293@mail.oracle.com>
-	<alpine.LRH.2.00.0905120819460.3090@tundra.namei.org>
-	<20090511223414.GA28209@mail.oracle.com>
-	<alpine.LRH.2.00.0905121107400.4463@tundra.namei.org>
-	<1242130714.31807.25.camel@localhost.localdomain>
-	<20090512172200.GC6896@mail.oracle.com>
-	<1242149567.31807.90.camel@localhost.localdomain>
-	<20090512180339.GG6896@mail.oracle.com>
-	<1242151493.31807.94.camel@localhost.localdomain>
-Message-ID: <1242324387.21772.92.camel@localhost.localdomain>
+In-Reply-To: <4A0B96C6.40702@mit.edu>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
+	<20090508031018.GB8611@mail.oracle.com>
+	<20090511204011.GB30293@mail.oracle.com>  <4A0B96C6.40702@mit.edu>
+Message-ID: <1242324765.21772.95.camel@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: James Morris <jmorris@namei.org>, jim owens <jowens@hp.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: Andy Lutomirski <luto@mit.edu>
+Cc: jim owens <jowens@hp.com>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-On Tue, 2009-05-12 at 14:04 -0400, Stephen Smalley wrote:
-> On Tue, 2009-05-12 at 11:03 -0700, Joel Becker wrote:
-> > On Tue, May 12, 2009 at 01:32:47PM -0400, Stephen Smalley wrote:
-> > > On Tue, 2009-05-12 at 10:22 -0700, Joel Becker wrote:
-> > > > On Tue, May 12, 2009 at 08:18:34AM -0400, Stephen Smalley wrote:
-> > > > > Is preserve_security supposed to also control the preservation of the
-> > > > > SELinux security attribute (security.selinux extended attribute)?  I'd
-> > > > > expect that either we preserve all the security-relevant attributes or
-> > > > > none of them.  And if that is the case, then SELinux has to know about
-> > > > > preserve_security in order to know what the security context of the new
-> > > > > inode will be.  
-> > > > 
-> > > > 	Thank you Stephen, you read my mind.  In the ocfs2 case, we're 
-> > > > expecting to just reflink the extended attribute structures verbatim in
-> > > > the preserve_security case.
-> > > 
-> > > And in the preserve_security==0 case, you'll be calling
-> > > security_inode_init_security() in order to get the attribute name/value
-> > > pair to assign to the new inode just as in the normal file creation
-> > > case?
-> > 
-> > 	Oh, absolutely.
-> > 	As an aside, do inodes ever have more than one security.*
-> > attribute?  It would appear that security_inode_init_security() just
-> > returns one attribute, but what if I had a system running under SMACK
-> > and then changed to SELinux?  Would my (existing) inode then have
-> > security.smack and security.selinux attributes?
+On Wed, 2009-05-13 at 23:57 -0400, Andy Lutomirski wrote:
+> Joel Becker wrote:
+> > +
+> > +Preserving the security context of the source file obviously requires
+> > +the privilege to do so.  Callers that do not own the source file and do
+> > +not have CAP_CHOWN will get a new reflink with all non-security
+> > +attributes preserved; the security context of the new reflink will be
+> > +as a newly created file by that user.
+> > +
 > 
-> No, there would be no security.selinux attribute and the file would be
-> treated as having a well-defined 'unlabeled' attribute by SELinux.  Not
-> something you have to worry about.
+> There are plenty of syscalls that require some privilege and fail if the 
+> caller doesn't have it.  But I can think of only one syscall that does 
+> *something different* depending on who called it: setuid.
 > 
-> > > > > Also, if you are going to automatically degrade reflink(2) behavior
-> > > > > based on the owner_or_cap test, then you ought to allow the same to be
-> > > > > true if the security module vetoes the attempt to preserve attributes.
-> > > > > Either DAC or MAC logic may say that security attributes cannot be
-> > > > > preserved.  Your current logic will only allow graceful degradation in
-> > > > > the DAC case, but the MAC case will remain a hard failure.
-> > > > 
-> > > > 	I did not think of this, and its a very good point as well.  I'm
-> > > > not sure how to have the return value of security_inode_reflink()
-> > > > distinguish between "disallow the reflink" and "disallow
-> > > > preserve_security".  But since !preserve_security requires read access
-> > > > only, perhaps we move security_inode_reflink up higher and say:
-> > > > 
-> > > > 	error = security_inode_reflink(old_dentry, dir);
-> > > > 	if (error)
-> > > > 		preserve_security = 0;
-> > > > 
-> > > > Here security_inode_reflink() does not need new_dentry, because it isn't
-> > > > setting a security context.  If it's ok with the reflink, we'll be
-> > > > copying the extended attribute.  If it's not OK, it falls through to the
-> > > > inode_permission(inode, MAY_READ) check, which will check for plain old
-> > > > read access.
-> > > > 	What do we think?
-> > > 
-> > > I'd rather have two hooks, one to allow the security module to override
-> > > preserve_security and one to allow the security module to deny the
-> > > operation altogether.  The former hook only needs to be called if
-> > > preserve_security is not already cleared by the DAC logic.  The latter
-> > > hook needs to know the final verdict on preserve_security in order to
-> > > determine the right set of checks to apply, which isn't necessarily
-> > > limited to only checking read access.
-> > 
-> > 	Ok, is that two hooks or one hook with specific error returns?
-> > I don't care, it's up to the LSM group.  I just can't come up with a
-> > good distinguishing set of names if its two hooks :-)
+> Please search the web and marvel at the disasters caused by setuid's 
+> magical caller-dependent behavior (the sendmail bug is probably the most 
+> famous [1]).  This proposal for reflink is just asking for bugs where an 
+> attacker gets some otherwise privileged program to call reflink but to 
+> somehow lack the privileges (CAP_CHOWN, selinux rights, or whatever) to 
+> copy security attributes, thus exposing a link with the wrong permissions.
 > 
-> I suppose you could coalesce them into a single hook ala:
-> 	error = security_inode_reflink(old_dentry, dir, &preserve_security);
-> 	if (error)
-> 		return (error);
+> Would it really be that hard to have two syscalls, or a flag, or 
+> whatever, where one of them preserves all security attributes and 
+> *fails* if the caller isn't allowed to do that and the other one makes 
+> the caller own the new link?
+> 
+> 
+> [1] http://www.cs.berkeley.edu/~daw/papers/setuid-usenix02.pdf
 
-On second thought (agreeing with Andy about making the interface
-explicit wrt preserve_security), I don't expect us to ever override
-preserve_security from SELinux, so you can just pass it in by value.
+Yes, I agree - the selection of whether or not to preserve the security
+attributes should be an explicit part of the kernel interface.  Then the
+application still has the freedom to fall back on the non-preserving
+form of the call if that is truly what it wants.
 
 -- 
 Stephen Smalley
