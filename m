@@ -1,44 +1,44 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 13 May 2009 12:24:27 -0700
-Subject: [Ocfs2-devel] add error check for ocfs2_read_locked_inode()	call
-In-Reply-To: <4A0B1B81.8080908@oracle.com>
-References: <4A096203.2040806@telecom.by> <4A0A084C.4040402@oracle.com>
-	<4A0AFEB4.2080000@telecom.by>
-	<20090513183924.GE32316@mail.oracle.com>
-	<4A0B1529.6030701@telecom.by> <4A0B1B81.8080908@oracle.com>
-Message-ID: <20090513192427.GH32316@mail.oracle.com>
+From: Andy Lutomirski <luto@mit.edu>
+Date: Wed, 13 May 2009 23:57:58 -0400
+Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
+In-Reply-To: <20090511204011.GB30293@mail.oracle.com>
+References: <1241331303-23753-1-git-send-email-joel.becker@oracle.com>
+	<20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
+	<20090508031018.GB8611@mail.oracle.com>
+	<20090511204011.GB30293@mail.oracle.com>
+Message-ID: <4A0B96C6.40702@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: jim owens <jowens@hp.com>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gmail.com, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-On Wed, May 13, 2009 at 12:12:01PM -0700, Sunil Mushran wrote:
-> Oleg Gawriloff wrote:
-> > May 13 21:35:55 falcon-cl5 (9369,5):ocfs2_begin_quota_recovery:374 
-> > Beginning quota recovery in slot 2
-> > May 13 21:35:55 falcon-cl5 (3127,2):ocfs2_finish_quota_recovery:564 
-> > Finishing quota recovery in slot 2
-> > May 13 21:35:56 falcon-cl5 (3127,4):ocfs2_finish_quota_recovery:564 
-> > Finishing quota recovery in slot 2
-> > May 13 21:35:56 falcon-cl5 (3127,4):ocfs2_finish_quota_recovery:564 
-> > Finishing quota recovery in slot 2
-> > May 13 21:35:57 falcon-cl5 o2net: connected to node falcon-cl1 (num 0) 
-> > at 172.16.2.228:7777
-> How did you enable quotas? While the fs has support for it, the tools don't.
-> Meaning users cannot enable it using the tools as-is.
+Joel Becker wrote:
+> +
+> +Preserving the security context of the source file obviously requires
+> +the privilege to do so.  Callers that do not own the source file and do
+> +not have CAP_CHOWN will get a new reflink with all non-security
+> +attributes preserved; the security context of the new reflink will be
+> +as a newly created file by that user.
+> +
 
-	I think the message is always there regardless.
+There are plenty of syscalls that require some privilege and fail if the 
+caller doesn't have it.  But I can think of only one syscall that does 
+*something different* depending on who called it: setuid.
 
-Joel
+Please search the web and marvel at the disasters caused by setuid's 
+magical caller-dependent behavior (the sendmail bug is probably the most 
+famous [1]).  This proposal for reflink is just asking for bugs where an 
+attacker gets some otherwise privileged program to call reflink but to 
+somehow lack the privileges (CAP_CHOWN, selinux rights, or whatever) to 
+copy security attributes, thus exposing a link with the wrong permissions.
 
--- 
+Would it really be that hard to have two syscalls, or a flag, or 
+whatever, where one of them preserves all security attributes and 
+*fails* if the caller isn't allowed to do that and the other one makes 
+the caller own the new link?
 
-"Here's a nickle -- get yourself a better X server."
-	- Keith Packard
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+[1] http://www.cs.berkeley.edu/~daw/papers/setuid-usenix02.pdf
+
+--Andy
