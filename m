@@ -1,9 +1,8 @@
-From: Shaya Potter <spotter@cs.columbia.edu>
-Date: Fri, 15 May 2009 13:01:10 -0400
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Fri, 15 May 2009 13:53:35 -0700
 Subject: [Ocfs2-devel] [RFC] The reflink(2) system call v4.
 In-Reply-To: <20090515164209.GD31454@mail.oracle.com>
-References: <20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
-	<20090508031018.GB8611@mail.oracle.com>
+References: <4A039FF8.7090807@hp.com> <20090508031018.GB8611@mail.oracle.com>
 	<20090511204011.GB30293@mail.oracle.com> <4A0B96C6.40702@mit.edu>
 	<1242324765.21772.95.camel@localhost.localdomain>
 	<20090514220029.GB30410@mail.oracle.com>
@@ -11,33 +10,23 @@ References: <20090507221535.GA31624@mail.oracle.com> <4A039FF8.7090807@hp.com>
 	<20090515152212.GA31454@mail.oracle.com>
 	<1242402925.29973.163.camel@localhost.localdomain>
 	<20090515164209.GD31454@mail.oracle.com>
-Message-ID: <4A0D9FD6.7070307@cs.columbia.edu>
+Message-ID: <20090515205335.GB25787@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Stephen Smalley <sds@tycho.nsa.gov>, Andy Lutomirski <luto@mit.edu>, jim owens <jowens@hp.com>, jmorris@namei.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk, mtk.manpages@gm
 
-Joel Becker wrote:
+On Fri, May 15, 2009 at 09:42:09AM -0700, Joel Becker wrote:
 > On Fri, May 15, 2009 at 11:55:25AM -0400, Stephen Smalley wrote:
->>> 	I wasn't being specific to injected code.  Assume we have a
->>> deliberate flag to reflinkat(2).  Then we provide reflink(3) in
->>> userspace that does the fallback, keeping it out of the kernel.  Doesn't
->>> that have the exact same problem?
->> You wouldn't always do the fallback in reflink(3), but instead provide a
->> helper interface that would perform the fallback for applications that
->> want that behavior.
-> 
-> 	But isn't that reflink(3)?  And the application that wants to
-> know uses reflinkat(2)?
->> Consider a program that wants to always preserve attributes on the
->> reflinks it creates.  If the interface allows the program to explicitly
->> request that behavior and returns an error when the request cannot be
->> honored, then the program knows that upon a successful return, the
->> attributes were in fact preserved.  If the interface instead silently
->> selects a behavior based on the current privileges of the process and
->> gives no indication to the caller as to what behavior was selected, then
->> the opportunity for error is great.
+> > Consider a program that wants to always preserve attributes on the
+> > reflinks it creates.  If the interface allows the program to explicitly
+> > request that behavior and returns an error when the request cannot be
+> > honored, then the program knows that upon a successful return, the
+> > attributes were in fact preserved.  If the interface instead silently
+> > selects a behavior based on the current privileges of the process and
+> > gives no indication to the caller as to what behavior was selected, then
+> > the opportunity for error is great.
 > 
 > 	I get that.  I'm looking at what the programming interface is.
 > What's the standard function for "I want the fallback behavior" called?
@@ -45,34 +34,65 @@ Joel Becker wrote:
 > "int reflink(oldpath, newpath)" has to pick one of the behaviors.  Which
 > is it?
 
-whenever there's hidden fallback behavior that changes the security
-semantics you will cause programming error.
+	Ok, I've been casting about how to solve the concern and provide
+a decent interface.  I'm not about to give up on either.  I think,
+though, that we do have to let the application signal its intent to the
+system.  And if we're doing that, let's add a little flexibility.
+	I think the interface will be this (ignoring the reflinkat(2)
+bit for now):
 
-the only correct way for an application to code that want the fallback
-functionality
+int reflink(const char *oldpath, const char *newpath, int preserve);
 
-if (initial_behavior()) {
-	if (fallback_behavior()) {
-		some sort of error
-	}
-}
+- Data and xattrs are reflinked always.
+- 'preserve is a bitfield describing which attributes to keep across the
+  reflink:
+ * REFLINK_ATTR_OWNER - Keeps uid/gid the same.  Requires ownership or
+   CAP_CHOWN.
+ * REFLINK_ATTR_SECURITY - Keeps the security state (SELinux/SMACK/etc)
+   the same.  This requires REFLINK_ATTR_OWNER (the security state makes
+   no sense if the ownership changes).  If not set, the filesystem wipes
+   all security.* xattrs and reinitializes with
+   security_inode_init_security() just like a new file.
+ * REFLINK_ATTR_MODE - Keeps the mode bits the same.  Requires ownership
+   or CAP_FOWNER.
+ * REFLINK_ATTR_ACL - Keeps the ACLs the same.  Requires
+   REFLINK_ATTR_MODE, as ACLs have to get adjusted when the mode
+   changes, and so you can't keep them the same if the mode wasn't
+   preserved.  If not set, the filesystem reinits the ACLs as for a new
+   file.
+- REFLINK_ATTR_NONE is 0 and REFLINK_ATTR_ALL is ~0.
 
-as that way the application knows what occured.  if that logic is
-wrapped in a single function (like , you would have to dosomething like
+	That's all the relevant attributes.  The timestamps behave as
+already described (ctime is now, mtime matches the source), which is the
+only sane behavior for this sort of thing.
+	So, a copy program would reflink(source, target,
+REFLINK_ATTR_NONE), a snapshot program would reflink(source, target,
+REFLINK_ATTR_ALL), and someone wanting the fallback behavior can do it
+easily.
+	In the kernel, security_inode_reflink() gets passed the preserve
+bits.  It's responsible for determining whether REFLINK_ATTR_SECURITY is
+allowed (vfs_reflink() will already have asserted REFLINK_ATTR_OWNER).
+It may do other checks on the reflink and the preserve bits, that's up
+to the LSM.
+        For scripting, we add the we add the '-p' and '-P' to "ln -r":
 
-if (ret == initial_and_fallbakc()) {
-	if (ret == 0) {
-		fallback = 0;
-	} else if (ret == 1) {
-		fallback == 1;
-	} else {
-		some sort of error
-	}
-}
+- ln -r == reflink(source, target, REFLINK_ATTR_NONE);
+- ln -r -P == reflink(source, target, REFLINK_ATTR_ALL);
+- ln -r -p == the fallback behavior.  This is like cp(1), where "cp -p"
+  is best-effort.
 
-which is much more prone to error.
+	Does this make everyone happy?
+Joel
 
-at the end of the day, a single function that has hidden fallback
-behavior does not really save lines of code in a well written
-application.  it does however make it easier to write a poorly written
-application that can cause security problems.
+-- 
+
+"In the beginning, the universe was created. This has made a lot 
+ of people very angry, and is generally considered to have been a 
+ bad move."
+        - Douglas Adams
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
