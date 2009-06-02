@@ -1,28 +1,31 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 02 Jun 2009 11:34:14 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] OCFS2: timer to queue scan of all
- orphan slots
-In-Reply-To: <4A256EDF.6080900@oracle.com>
-References: <1243923105-3339-1-git-send-email-srinivas.eeda@oracle.com>	<1243923105-3339-2-git-send-email-srinivas.eeda@oracle.com>
-	<4A256EDF.6080900@oracle.com>
-Message-ID: <4A2570A6.4090800@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 2 Jun 2009 11:43:00 -0700
+Subject: [Ocfs2-devel] [PATCH 0/7] [RESEND] Fix some deadlocks in quota
+	code and	implement lockdep for cluster locks
+In-Reply-To: <1243945445-25847-1-git-send-email-jack@suse.cz>
+References: <1243945445-25847-1-git-send-email-jack@suse.cz>
+Message-ID: <20090602184300.GB31976@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sunil Mushran wrote:
->> +	u64  			ds_seqno;       /* incremented on every scan */ 
->>     
->
-> $ echo $[4*1024*1024*1024/$[60*24*365]]
-> 8171
-> Even if we fire once every second, it will take us 8171 years to wrap 
-> u32. ;)
->   
+On Tue, Jun 02, 2009 at 02:23:58PM +0200, Jan Kara wrote:
+>   BTW: Currently lockdep complains about some configfs issue and turns itself
+> off so that's why I didn't get to finding more deadlocks ;)
 
-$ echo $[4*1024*1024*1024/$[60*60*24*365]]
-136
+	That's in linux-next of the configfs tree :-)
 
-duh... it's 136 years. But long enough, I think.
+Joel
+
+-- 
+
+"Hell is oneself, hell is alone, the other figures in it, merely projections."
+        - T. S. Eliot
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
