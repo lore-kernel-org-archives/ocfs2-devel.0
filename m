@@ -1,243 +1,457 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue,  2 Jun 2009 14:14:03 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Adjust rightmost path in
-	ocfs2_add_branch.
-Message-ID: <1243923243-5721-1-git-send-email-tao.ma@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue, 02 Jun 2009 11:26:39 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] OCFS2: timer to queue scan of all
+ orphan slots
+In-Reply-To: <1243923105-3339-2-git-send-email-srinivas.eeda@oracle.com>
+References: <1243923105-3339-1-git-send-email-srinivas.eeda@oracle.com>
+	<1243923105-3339-2-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <4A256EDF.6080900@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_add_branch, we use the rightmost rec of the leaf extent block
-to generate the e_cpos for the new added branch. In the most case, it
-is OK but if there is a gap between the the root(or branch) 's rightmost
-rec and the leaf, it will cause kernel panic if we insert some clusters
-in it. The message is something like:
-(7445,1):ocfs2_insert_at_leaf:3775 ERROR: bug expression:
-le16_to_cpu(el->l_next_free_rec) >= le16_to_cpu(el->l_count)
-(7445,1):ocfs2_insert_at_leaf:3775 ERROR: inode 66053, depth 0, count 28,
-next free 28, rec.cpos 270, rec.clusters 1, insert.cpos 275, insert.clusters 1
- [<fa7ad565>] ? ocfs2_do_insert_extent+0xb58/0xda0 [ocfs2]
- [<fa7b08f2>] ? ocfs2_insert_extent+0x5bd/0x6ba [ocfs2]
- [<fa7b1b8b>] ? ocfs2_add_clusters_in_btree+0x37f/0x564 [ocfs2]
-...
+Srinivas Eeda wrote:
+> In the current implementation, unlink is a two step process.
+> 1) The deleting node requests an EX on dentry lock and place the file in the
+>    orphan directory. The lock request causes other nodes to downcovert to NULL,
+>    and flag the inode as orphaned.
+>
+> 2) Each node that has inode cached will see the ORPHANED flag during iput and
+>    initiates a trylock on OPENLOCK. The node that does the final iput gets the
+>    OPENLOCK, and it wipes the file.
+>
+> But when there is memory pressure, a dentry could get flushed. During dput, it
+> removes the lock. So this node will not get a downconvert message on dentry lock
+> and hence will not flag the inode as ORPHANED.
+>
+> If this node does the final iput it is not aware that the file got ORPHANED and
+> hence will not try to wipe the file. This causes orpahns to be around.
+>
+> The following fix runs a periodic scan on the orphan slots. The scan is done by
+> one node at a time. It is done once every X seconds, where X is a value between
+> ORPHAN_SCAN_SCHEDULE_TIMEOUT/2 and ORPHAN_SCAN_SCHEDULE_TIMEOUT milliseconds.
+> Each time the scan is done by different node so eventually the node that has the
+> inode cached will get to wipe the file.
+>
+> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+>   
 
-The panic can be easily reproduced by the following small test case
-(with bs=512, cs=4K, and I remove all the error handling so that it looks
-clear enough for reading).
+How about this wording:
 
-int main(int argc, char **argv)
-{
-	int fd, i;
-	char buf[5] = "test";
+When a dentry is unlinked, the unlinking node takes an EX on the dentry lock
+before moving the dentry to the orphan directory. The other nodes, that 
+all had
+a PR on the same dentry lock, flag the corresponding inode as 
+MAYBE_ORPHANED
+during the downconvert. The inode is finally deleted when the last node 
+to iput
+the inode notices the MAYBE_ORPHANED flag.
 
-	fd = open(argv[1], O_RDWR|O_CREAT);
+However, if a node that is actively using an inode comes under memory 
+pressure
+that makes it shrink the dcache and thus free that dentry and its 
+corresponding
+dentry lock, will not be notified of the unlinking of the inode on 
+another node.
+If it so happens that this same node performs the final iput on the 
+inode, it
+will fail to delete that orphaned inode.
 
-	for (i = 0; i < 30; i++) {
-		lseek(fd, 40960 * i, SEEK_SET);
-		write(fd, buf, 5);
-	}
+This patch fixes this shortcoming by introducing a periodic scan of the 
+orphan
+directories to delete such inodes. Care has been taken to distribute the 
+workload
+across the cluster so that no one node has to perform the task all the 
+time.
 
-	ftruncate(fd, 1146880);
+> ---
+>  fs/ocfs2/dlmglue.c      |   43 ++++++++++++++++++
+>  fs/ocfs2/dlmglue.h      |    3 +
+>  fs/ocfs2/journal.c      |  114 +++++++++++++++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/journal.h      |    4 ++
+>  fs/ocfs2/ocfs2.h        |   10 ++++
+>  fs/ocfs2/ocfs2_lockid.h |    5 ++
+>  fs/ocfs2/super.c        |    9 ++++
+>  7 files changed, 188 insertions(+), 0 deletions(-)
+>
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index e15fc7d..663d779 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -248,6 +248,10 @@ static struct ocfs2_lock_res_ops ocfs2_nfs_sync_lops = {
+>  	.flags		= 0,
+>  };
+>  
+> +static struct ocfs2_lock_res_ops ocfs2_orphan_scan_lops = {
+> +	.flags		= LOCK_TYPE_REQUIRES_REFRESH|LOCK_TYPE_USES_LVB,
+> +};
+> +
+>  static struct ocfs2_lock_res_ops ocfs2_dentry_lops = {
+>  	.get_osb	= ocfs2_get_dentry_osb,
+>  	.post_unlock	= ocfs2_dentry_post_unlock,
+> @@ -637,6 +641,15 @@ static void ocfs2_nfs_sync_lock_res_init(struct ocfs2_lock_res *res,
+>  				   &ocfs2_nfs_sync_lops, osb);
+>  }
+>  
+> +static void ocfs2_orphan_scan_lock_res_init(struct ocfs2_lock_res *res,
+> +					    struct ocfs2_super *osb)
+> +{
+> +	ocfs2_lock_res_init_once(res);
+> +	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_ORPHAN_SCAN, 0, 0, res->l_name);
+> +	ocfs2_lock_res_init_common(osb, res, OCFS2_LOCK_TYPE_ORPHAN_SCAN,
+> +				   &ocfs2_orphan_scan_lops, osb);
+> +}
+> +
+>  void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
+>  			      struct ocfs2_file_private *fp)
+>  {
+> @@ -2352,6 +2365,33 @@ void ocfs2_inode_unlock(struct inode *inode,
+>  	mlog_exit_void();
+>  }
+>  
+> +/* lvb_imtime_packed is used to track a sequence number instead of mtime */
+>   
 
-	lseek(fd, 1126400, SEEK_SET);
-	write(fd, buf, 5);
+Don't overload the the meta_lvb. Create a orphan_scan_lvb. We have one
+for the quota lock too.
 
-	close(fd);
-	
-	return 0;
-}
+> +int ocfs2_orphan_scan_lock(struct ocfs2_super *osb, u64 *seqno, int ex)
+> +{
+> +	struct ocfs2_lock_res *lockres;
+> +	struct ocfs2_meta_lvb *lvb;
+> +	int level = ex ? DLM_LOCK_EX : DLM_LOCK_PR;
+> +	int status = 0;
+> +
+> +	lockres = &osb->osb_delayed_scan.ds_lockres;
+> +	status = ocfs2_cluster_lock(osb, lockres, level, 0, 0); 
+> +	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+> +	*seqno = be64_to_cpu(lvb->lvb_imtime_packed); 
+> +	return status;
+> +}
+> +
+> +void ocfs2_orphan_scan_unlock(struct ocfs2_super *osb, u64 seqno, int ex)
+> +{
+> +	struct ocfs2_lock_res *lockres;
+> +	struct ocfs2_meta_lvb *lvb;
+> +	int level = ex ? DLM_LOCK_EX : DLM_LOCK_PR;
+> +
+> +	lockres = &osb->osb_delayed_scan.ds_lockres;
+> +	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+> +	lvb->lvb_imtime_packed = cpu_to_be64(seqno);
+> +	ocfs2_cluster_unlock(osb, lockres, level); 
+> +}
+> +
+>  int ocfs2_super_lock(struct ocfs2_super *osb,
+>  		     int ex)
+>  {
+> @@ -2842,6 +2882,7 @@ local:
+>  	ocfs2_super_lock_res_init(&osb->osb_super_lockres, osb);
+>  	ocfs2_rename_lock_res_init(&osb->osb_rename_lockres, osb);
+>  	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
+> +	ocfs2_orphan_scan_lock_res_init(&osb->osb_delayed_scan.ds_lockres, osb);
+>  
+>  	osb->cconn = conn;
+>  
+> @@ -2878,6 +2919,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
+>  	ocfs2_lock_res_free(&osb->osb_super_lockres);
+>  	ocfs2_lock_res_free(&osb->osb_rename_lockres);
+>  	ocfs2_lock_res_free(&osb->osb_nfs_sync_lockres);
+> +	ocfs2_lock_res_free(&osb->osb_delayed_scan.ds_lockres);
+>  
+>  	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
+>  	osb->cconn = NULL;
+> @@ -3061,6 +3103,7 @@ static void ocfs2_drop_osb_locks(struct ocfs2_super *osb)
+>  	ocfs2_simple_drop_lockres(osb, &osb->osb_super_lockres);
+>  	ocfs2_simple_drop_lockres(osb, &osb->osb_rename_lockres);
+>  	ocfs2_simple_drop_lockres(osb, &osb->osb_nfs_sync_lockres);
+> +	ocfs2_simple_drop_lockres(osb, &osb->osb_delayed_scan.ds_lockres);
+>  }
+>  
+>  int ocfs2_drop_inode_locks(struct inode *inode)
+> diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
+> index e1fd572..7f26847 100644
+> --- a/fs/ocfs2/dlmglue.h
+> +++ b/fs/ocfs2/dlmglue.h
+> @@ -113,6 +113,9 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
+>  		     int ex);
+>  void ocfs2_super_unlock(struct ocfs2_super *osb,
+>  			int ex);
+> +int ocfs2_orphan_scan_lock(struct ocfs2_super *osb, u64 *seqno, int ex);
+> +void ocfs2_orphan_scan_unlock(struct ocfs2_super *osb, u64 seqno, int ex);
+> +
+>  int ocfs2_rename_lock(struct ocfs2_super *osb);
+>  void ocfs2_rename_unlock(struct ocfs2_super *osb);
+>  int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex);
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index a20a0f1..cee42ed 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -28,6 +28,8 @@
+>  #include <linux/slab.h>
+>  #include <linux/highmem.h>
+>  #include <linux/kthread.h>
+> +#include <linux/time.h>
+> +#include <linux/random.h>
+>  
+>  #define MLOG_MASK_PREFIX ML_JOURNAL
+>  #include <cluster/masklog.h>
+> @@ -52,6 +54,8 @@
+>  
+>  DEFINE_SPINLOCK(trans_inc_lock);
+>  
+> +#define ORPHAN_SCAN_SCHEDULE_TIMEOUT 600000
+> +
+>  static int ocfs2_force_read_journal(struct inode *inode);
+>  static int ocfs2_recover_node(struct ocfs2_super *osb,
+>  			      int node_num, int slot_num);
+> @@ -1841,6 +1845,116 @@ bail:
+>  	return status;
+>  }
+>  
+> +/*
+> + * Scan timer should get fired twice within ORPHAN_SCAN_SCHEDULE_TIMEOUT, so
+> + * return half of ORPHAN_SCAN_SCHEDULE_TIMEOUT. Add some randomness to the
+> + * timeout to minimize multple nodes firing the timer at the same time.
+> + */
+> +static inline unsigned long ocfs2_orphan_scan_timeout(void)
+> +{
+> +	unsigned long time;
+> +
+> +	get_random_bytes(&time, sizeof(time));
+> +	time = (time % 5000) + (ORPHAN_SCAN_SCHEDULE_TIMEOUT / 2);
+> +	return msecs_to_jiffies(time);
+> +}
+>   
 
-The reason of the panic is that:
-the 30 writes and the ftruncate makes the file's extent list looks like:
+Why not just make it half the value, 300000. This math is only necessary
+if we make this timeout end-user configurable. If so, we do the division
+during input. Improves code readability as we do not have to keep explaining
+that the timer is fired twice every timeout. Now the timer fires at every
+timeout but we only submit the scan job if the seq has not changed on
+back-to-back fires. 
 
-	Tree Depth: 1   Count: 19   Next Free Rec: 1
-	## Offset        Clusters       Block#
-	0  0             280            86183
-	SubAlloc Bit: 7   SubAlloc Slot: 0
-	Blknum: 86183   Next Leaf: 0
-	CRC32: 00000000   ECC: 0000
-	Tree Depth: 0   Count: 28   Next Free Rec: 28
-	## Offset        Clusters       Block#          Flags
-	0  0             1              143368          0x0
-	1  10            1              143376          0x0
-	...
-	26 260           1              143576          0x0
-	27 270           1              143584          0x0
+> +
+> +/*
+> + * ocfs2_queue_delayed_orphan_scan calls ocfs2_queue_recovery_completion for
+> + * every slot which queues a recovery of slot on ocfs2_wq thread. This is done
+> + * to cleanup any orphans that are left over in orphan slots.
+> + *
+> + * ocfs2_queue_delayed_orphan_scan gets called twice within a timeout value
+> + * defined by ORPHAN_SCAN_SCHEDULE_TIMEOUT. It gets an EX lock on ds_lockres and
+> + * checks sequence number stored in LVB. If the sequence number is changed it
+> + * means some node has done the scan. So, it skips the scan and tracks the
+> + * sequence number. If the sequence number didn't change, means a scan didn't
+> + * happen, so the node queues a scan and increments the sequence number in LVB.
+> + */ 
+> +void ocfs2_queue_delayed_orphan_scan(struct ocfs2_super *osb)
+> +{
+> +	struct ocfs2_delayed_orphan_scan *ds;
+> +	int level = DLM_LOCK_EX;
+> +	int status, i;
+> +	u64 seqno;
+> +
+> +	ds = &osb->osb_delayed_scan;
+> +
+> +	/* get an EX on orphan scan lock and sequence number in LVB */
+> +	status = ocfs2_orphan_scan_lock(osb, &seqno, level);
 
-Now another write at 1126400(275 cluster) whiich will write at the gap
-between 271 and 280 will trigger ocfs2_add_branch, but the result after
-the function looks like:
-	Tree Depth: 1   Count: 19   Next Free Rec: 1
-	## Offset        Clusters       Block#
-	0  0             280            86183
-	0  271           0             143592
-So the extent record is intersected and make the following operation bug out.
+Hard code DLM_LOCK_EX. This way you can get rid of the comment.
 
-This patch just try to remove the gap before we add the new branch, so that
-the root(branch) rightmost rec will cover the same right position. So in the
-above case, before adding branch the tree will be changed to
-	Tree Depth: 1   Count: 19   Next Free Rec: 1
-	## Offset        Clusters       Block#
-	0  0             271            86183
-	SubAlloc Bit: 7   SubAlloc Slot: 0
-	Blknum: 86183   Next Leaf: 0
-	CRC32: 00000000   ECC: 0000
-	Tree Depth: 0   Count: 28   Next Free Rec: 28
-	## Offset        Clusters       Block#          Flags
-	0  0             1              143368          0x0
-	1  10            1              143376          0x0
-	...
-	26 260           1              143576          0x0
-	27 270           1              143584          0x0
-And after branch add, the tree looks like 
-	Tree Depth: 1   Count: 19   Next Free Rec: 1
-	## Offset        Clusters       Block#
-	0  0             271            86183
-	0  271           0             143592
+> +	if (status < 0) {
+> +		if (status != -EAGAIN)
+> +			mlog_errno(status);
+> +		goto out;
+> +	}
+> +
+> +	/*
+> +	 * Check the sequence number in LVB. If it's different than what we knew
+> +	 * it means some node did the scan, so just track the seq# and skip
+> +	 * the scan. If the seq# didn't change, a scan didn't happen, so
+> +	 * continue and queue the scans.
+> +	 */
+> +	if (ds->ds_seqno != seqno) {
+> +		ds->ds_seqno = seqno;
+> +		goto unlock;
+> +	}
+> +
+>   
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/alloc.c |   98 +++++++++++++++++++++++++++++++++++++++++++++++++++--
- 1 files changed, 94 insertions(+), 4 deletions(-)
+The comment is repeated. The one above is sufficient.
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 678a067..7ce5e2f 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -475,6 +475,8 @@ struct ocfs2_path {
- #define path_leaf_el(_path) ((_path)->p_node[(_path)->p_tree_depth].el)
- #define path_num_items(_path) ((_path)->p_tree_depth + 1)
- 
-+static int ocfs2_find_path(struct inode *inode, struct ocfs2_path *path,
-+			   u32 cpos);
- /*
-  * Reset the actual path elements so that we can re-use the structure
-  * to build another path. Generally, this involves freeing the buffer
-@@ -1012,6 +1014,75 @@ static inline u32 ocfs2_sum_rightmost_rec(struct ocfs2_extent_list  *el)
- 		ocfs2_rec_clusters(el, &el->l_recs[i]);
- }
- 
-+static int ocfs2_adjust_new_end(handle_t *handle,
-+				struct inode *inode,
-+				struct ocfs2_extent_tree *et,
-+				u32 new_end)
-+{
-+	int status, i;
-+	struct ocfs2_path *path = NULL;
-+	struct ocfs2_extent_list *el;
-+	struct ocfs2_extent_rec *rec;
-+
-+	path = ocfs2_new_path_from_et(et);
-+	if (!path) {
-+		status = -ENOMEM;
-+		return status;
-+	}
-+
-+	status = ocfs2_find_path(inode, path, new_end);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto out;
-+	}
-+
-+	status = ocfs2_extend_trans(handle, handle->h_buffer_credits +
-+				    path_num_items(path));
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto out;
-+	}
-+
-+	status = ocfs2_et_root_journal_access(handle, inode, et,
-+					      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto out;
-+	}
-+
-+	/* Change all the branch except the leaf. */
-+	for (i = 1; i < path_num_items(path) - 1; i++) {
-+		status = ocfs2_journal_access_eb(handle, inode,
-+						 path->p_node[i].bh,
-+						 OCFS2_JOURNAL_ACCESS_WRITE);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto out;
-+		}
-+	}
-+
-+	el = path_root_el(path);
-+	rec = &el->l_recs[le32_to_cpu(el->l_next_free_rec) - 1];
-+	rec->e_int_clusters = cpu_to_le32(new_end -
-+				le32_to_cpu(rec->e_cpos));
-+
-+	for (i = 1; i < path_num_items(path) - 1; i++) {
-+		el = path->p_node[i].el;
-+		rec = &el->l_recs[le32_to_cpu(el->l_next_free_rec) - 1];
-+		rec->e_int_clusters = cpu_to_le32(new_end -
-+					le32_to_cpu(rec->e_cpos));
-+	}
-+
-+	for (i = 0; i < path_num_items(path) - 1; i++) {
-+		status = ocfs2_journal_dirty(handle, path->p_node[i].bh);
-+		if (status < 0)
-+			mlog_errno(status);
-+	}
-+out:
-+	ocfs2_free_path(path);
-+	return status;
-+}
-+
- /*
-  * Add an entire tree branch to our inode. eb_bh is the extent block
-  * to start at, if we don't want to start the branch@the dinode
-@@ -1038,7 +1109,7 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
- 	struct ocfs2_extent_block *eb;
- 	struct ocfs2_extent_list  *eb_el;
- 	struct ocfs2_extent_list  *el;
--	u32 new_cpos;
-+	u32 new_cpos, root_end;
- 
- 	mlog_entry_void();
- 
-@@ -1055,6 +1126,28 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
- 
- 	new_blocks = le16_to_cpu(el->l_tree_depth);
- 
-+	eb = (struct ocfs2_extent_block *)(*last_eb_bh)->b_data;
-+	new_cpos = ocfs2_sum_rightmost_rec(&eb->h_list);
-+	root_end = ocfs2_sum_rightmost_rec(et->et_root_el);
-+
-+	/*
-+	 * If there is a gap before the root end and the real end
-+	 * of the righmost leaf block, we need to remove the gap
-+	 * between new_cpos and root_end first so that the tree
-+	 * is consistent after we add a new branch(it will start
-+	 * from new_cpos).
-+	 */
-+	if (root_end > new_cpos) {
-+		mlog(0, "adjust the cluster end from %u to %u\n",
-+		     root_end, new_cpos);
-+		status = ocfs2_adjust_new_end(handle, inode,
-+					      et, new_cpos);
-+		if (status) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
-+
- 	/* allocate the number of new eb blocks we need */
- 	new_eb_bhs = kcalloc(new_blocks, sizeof(struct buffer_head *),
- 			     GFP_KERNEL);
-@@ -1071,9 +1164,6 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
- 		goto bail;
- 	}
- 
--	eb = (struct ocfs2_extent_block *)(*last_eb_bh)->b_data;
--	new_cpos = ocfs2_sum_rightmost_rec(&eb->h_list);
--
- 	/* Note: new_eb_bhs[new_blocks - 1] is the guy which will be
- 	 * linked with the rest of the tree.
- 	 * conversly, new_eb_bhs[0] is the new bottommost leaf.
--- 
-1.6.2.rc2.16.gf474c
+> +	for (i = 0; i < osb->max_slots; i++)
+> +		ocfs2_queue_recovery_completion(osb->journal, i, NULL, NULL,
+> +						NULL);
+> +	/*
+> +	 * We queued a recovery on orphan slots, so increment the sequence
+> +	 * number and update LVB so other node will skip the scan for a while
+> +	 */
+> +	seqno++;
+> +unlock:
+> +	ocfs2_orphan_scan_unlock(osb, seqno, level);
+> +out:
+> +	return;
+> +}
+> +
+> +/* Worker task that gets fired every ORPHAN_SCAN_SCHEDULE_TIMEOUT/2 millsec */
+> +void ocfs2_delayed_orphan_scan_work(struct work_struct *work)
+> +{
+> +	struct ocfs2_delayed_orphan_scan *ds;
+> +	struct ocfs2_super *osb;
+> +
+> +	ds = container_of(work, struct ocfs2_delayed_orphan_scan,
+> +			  ds_delayed_orphan_scan_work.work);
+> +	osb = ds->ds_osb;
+> +
+> +	mutex_lock(&ds->ds_lock);
+> +	ocfs2_queue_delayed_orphan_scan(osb);
+> +	schedule_delayed_work(&ds->ds_delayed_orphan_scan_work,
+> +			      ocfs2_orphan_scan_timeout());
+> +	mutex_unlock(&ds->ds_lock);
+> +}
+> +
+> +void ocfs2_delayed_orphan_scan_stop(struct ocfs2_super *osb)
+> +{
+> +	struct ocfs2_delayed_orphan_scan *ds;
+> +
+> +	ds = &osb->osb_delayed_scan;
+> +	mutex_lock(&ds->ds_lock);
+> +	cancel_delayed_work(&ds->ds_delayed_orphan_scan_work);
+> +	mutex_unlock(&ds->ds_lock);
+> +}
+> +
+> +int ocfs2_delayed_orphan_scan_init(struct ocfs2_super *osb)
+> +{
+> +	struct ocfs2_delayed_orphan_scan *ds;
+> +
+> +	ds = &osb->osb_delayed_scan;
+> +	ds->ds_osb = osb;
+> +	mutex_init(&ds->ds_lock);
+> +
+> +	INIT_DELAYED_WORK(&ds->ds_delayed_orphan_scan_work,
+> +			  ocfs2_delayed_orphan_scan_work);
+> +	schedule_delayed_work(&ds->ds_delayed_orphan_scan_work,
+> +			      ocfs2_orphan_scan_timeout());
+> +	return 0;
+> +}
+> +
+>  struct ocfs2_orphan_filldir_priv {
+>  	struct inode		*head;
+>  	struct ocfs2_super	*osb;
+> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+> index 619dd7f..8b62b97 100644
+> --- a/fs/ocfs2/journal.h
+> +++ b/fs/ocfs2/journal.h
+> @@ -144,6 +144,10 @@ static inline void ocfs2_inode_set_new(struct ocfs2_super *osb,
+>  }
+>  
+>  /* Exported only for the journal struct init code in super.c. Do not call. */
+> +int ocfs2_delayed_orphan_scan_init(struct ocfs2_super *osb);
+> +void ocfs2_delayed_orphan_scan_stop(struct ocfs2_super *osb);
+> +void ocfs2_delayed_orphan_scan_exit(struct ocfs2_super *osb);
+> +
+>  void ocfs2_complete_recovery(struct work_struct *work);
+>  void ocfs2_wait_for_recovery(struct ocfs2_super *osb);
+>  
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index 1386281..7dc23de 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -151,6 +151,14 @@ struct ocfs2_lock_res {
+>  #endif
+>  };
+>  
+> +struct ocfs2_delayed_orphan_scan {
+>   
+
+delayed is unnecessary. struct ocfs2_orphan_scan is enough.
+
+> +	struct mutex 		ds_lock;
+> +	struct ocfs2_super 	*ds_osb;
+> +	struct ocfs2_lock_res 	ds_lockres;     /* lock to synchronize scans */
+> +	struct delayed_work 	ds_delayed_orphan_scan_work;
+>   
+
+Again, remove delayed. ds_orphan_scan_work is good.
+
+> +	u64  			ds_seqno;       /* incremented on every scan */
+>   
+
+$ echo $[4*1024*1024*1024/$[60*24*365]]
+8171
+Even if we fire once every second, it will take us 8171 years to wrap 
+u32. ;)
+
+> +};
+> +
+>  struct ocfs2_dlm_debug {
+>  	struct kref d_refcnt;
+>  	struct dentry *d_locking_state;
+> @@ -341,6 +349,8 @@ struct ocfs2_super
+>  	unsigned int			*osb_orphan_wipes;
+>  	wait_queue_head_t		osb_wipe_event;
+>  
+> +	struct ocfs2_delayed_orphan_scan osb_delayed_scan; 
+> +
+>  	/* used to protect metaecc calculation check of xattr. */
+>  	spinlock_t osb_xattr_lock;
+>  
+> diff --git a/fs/ocfs2/ocfs2_lockid.h b/fs/ocfs2/ocfs2_lockid.h
+> index a53ce87..fcdba09 100644
+> --- a/fs/ocfs2/ocfs2_lockid.h
+> +++ b/fs/ocfs2/ocfs2_lockid.h
+> @@ -48,6 +48,7 @@ enum ocfs2_lock_type {
+>  	OCFS2_LOCK_TYPE_FLOCK,
+>  	OCFS2_LOCK_TYPE_QINFO,
+>  	OCFS2_LOCK_TYPE_NFS_SYNC,
+> +	OCFS2_LOCK_TYPE_ORPHAN_SCAN,
+>  	OCFS2_NUM_LOCK_TYPES
+>  };
+>  
+> @@ -85,6 +86,9 @@ static inline char ocfs2_lock_type_char(enum ocfs2_lock_type type)
+>  		case OCFS2_LOCK_TYPE_NFS_SYNC:
+>  			c = 'Y';
+>  			break;
+> +		case OCFS2_LOCK_TYPE_ORPHAN_SCAN:
+> +			c = 'P';
+> +			break;
+>  		default:
+>  			c = '\0';
+>  	}
+> @@ -104,6 +108,7 @@ static char *ocfs2_lock_type_strings[] = {
+>  	[OCFS2_LOCK_TYPE_OPEN] = "Open",
+>  	[OCFS2_LOCK_TYPE_FLOCK] = "Flock",
+>  	[OCFS2_LOCK_TYPE_QINFO] = "Quota",
+> +	[OCFS2_LOCK_TYPE_ORPHAN_SCAN] = "OrphanScan",
+>  };
+>  
+>  static inline const char *ocfs2_lock_type_string(enum ocfs2_lock_type type)
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 79ff8d9..06e139e 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1802,6 +1802,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+>  
+>  	ocfs2_truncate_log_shutdown(osb);
+>  
+> +	ocfs2_delayed_orphan_scan_stop(osb);
+> +
+>  	/* This will disable recovery and flush any recovery work. */
+>  	ocfs2_recovery_exit(osb);
+>  
+> @@ -1957,6 +1959,13 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  		goto bail;
+>  	}
+>  
+> +	status = ocfs2_delayed_orphan_scan_init(osb);
+> +	if (status) {
+> +		mlog(ML_ERROR, "Unable to initialize delayed orphan scan\n");
+> +		mlog_errno(status);
+> +		goto bail;
+> +	}
+> +
+>  	init_waitqueue_head(&osb->checkpoint_event);
+>  	atomic_set(&osb->needs_checkpoint, 0);
+>  
+>   
