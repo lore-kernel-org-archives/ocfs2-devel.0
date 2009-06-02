@@ -1,129 +1,80 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue,  2 Jun 2009 14:24:01 +0200
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix possible deadlock with quotas in
-	ocfs2_setattr()
+Date: Tue,  2 Jun 2009 14:24:02 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix possible deadlock in quota recovery
 In-Reply-To: <1243945445-25847-1-git-send-email-jack@suse.cz>
 References: <1243945445-25847-1-git-send-email-jack@suse.cz>
-Message-ID: <1243945445-25847-4-git-send-email-jack@suse.cz>
+Message-ID: <1243945445-25847-5-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We called vfs_dq_transfer() with global quota file lock held. This can lead
-to deadlocks as if vfs_dq_transfer() has to allocate new quota structure,
-it calls ocfs2_dquot_acquire() which tries to get quota file lock again and
-this can block if another node requested the lock in the mean time.
-
-Since we have to call vfs_dq_transfer() with transaction already started
-and quota file lock ranks above the transaction start, we cannot just rely
-on ocfs2_dquot_acquire() or ocfs2_dquot_release() on getting the lock
-if they need it. We fix the problem by acquiring pointers to all quota
-structures needed by vfs_dq_transfer() already before calling the function.
-By this we are sure that all quota structures are properly allocated and
-they can be freed only after we drop references to them. Thus we don't need
-quota file lock anywhere inside vfs_dq_transfer().
+In ocfs2_finish_quota_recovery() we acquired global quota file lock and started
+recovering local quota file. During this process we need to get quota
+structures, which calls ocfs2_dquot_acquire() which gets global quota file lock
+again. This second lock can block in case some other node has requested the
+quota file lock in the mean time. Fix the problem by moving quota file locking
+down into the function where it is really needed.  Then dqget() or dqput()
+won't be called with the lock held.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/file.c |   53 ++++++++++++++++++++++++++++++-----------------------
- 1 files changed, 30 insertions(+), 23 deletions(-)
+ fs/ocfs2/quota_local.c |   16 +++++++++-------
+ 1 files changed, 9 insertions(+), 7 deletions(-)
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index c2a87c8..1a96cac 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -894,9 +894,9 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 	struct ocfs2_super *osb = OCFS2_SB(sb);
- 	struct buffer_head *bh = NULL;
- 	handle_t *handle = NULL;
--	int locked[MAXQUOTAS] = {0, 0};
--	int credits, qtype;
--	struct ocfs2_mem_dqinfo *oinfo;
-+	int qtype;
-+	struct dquot *transfer_from[MAXQUOTAS] = { };
-+	struct dquot *transfer_to[MAXQUOTAS] = { };
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index 71cf410..5a460fa 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -444,10 +444,6 @@ static int ocfs2_recover_local_quota_file(struct inode *lqinode,
  
- 	mlog_entry("(0x%p, '%.*s')\n", dentry,
- 	           dentry->d_name.len, dentry->d_name.name);
-@@ -969,30 +969,37 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ 	mlog_entry("ino=%lu type=%u", (unsigned long)lqinode->i_ino, type);
  
- 	if ((attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
- 	    (attr->ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid)) {
--		credits = OCFS2_INODE_UPDATE_CREDITS;
-+		/*
-+		 * Gather pointers to quota structures so that allocation /
-+		 * freeing of quota structures happens here and not inside
-+		 * vfs_dq_transfer() where we have problems with lock ordering
-+		 */
- 		if (attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid
- 		    && OCFS2_HAS_RO_COMPAT_FEATURE(sb,
- 		    OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
--			oinfo = sb_dqinfo(sb, USRQUOTA)->dqi_priv;
--			status = ocfs2_lock_global_qf(oinfo, 1);
--			if (status < 0)
-+			transfer_to[USRQUOTA] = dqget(sb, attr->ia_uid,
-+						      USRQUOTA);
-+			transfer_from[USRQUOTA] = dqget(sb, inode->i_uid,
-+							USRQUOTA);
-+			if (!transfer_to[USRQUOTA] || !transfer_from[USRQUOTA]) {
-+				status = -ESRCH;
- 				goto bail_unlock;
--			credits += ocfs2_calc_qinit_credits(sb, USRQUOTA) +
--				ocfs2_calc_qdel_credits(sb, USRQUOTA);
--			locked[USRQUOTA] = 1;
+-	status = ocfs2_lock_global_qf(oinfo, 1);
+-	if (status < 0)
+-		goto out;
+-
+ 	list_for_each_entry_safe(rchunk, next, &(rec->r_list[type]), rc_list) {
+ 		chunk = rchunk->rc_chunk;
+ 		hbh = NULL;
+@@ -480,12 +476,18 @@ static int ocfs2_recover_local_quota_file(struct inode *lqinode,
+ 				     type);
+ 				goto out_put_bh;
+ 			}
++			status = ocfs2_lock_global_qf(oinfo, 1);
++			if (status < 0) {
++				mlog_errno(status);
++				goto out_put_dquot;
 +			}
- 		}
- 		if (attr->ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid
- 		    && OCFS2_HAS_RO_COMPAT_FEATURE(sb,
- 		    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
--			oinfo = sb_dqinfo(sb, GRPQUOTA)->dqi_priv;
--			status = ocfs2_lock_global_qf(oinfo, 1);
--			if (status < 0)
-+			transfer_to[GRPQUOTA] = dqget(sb, attr->ia_gid,
-+						      GRPQUOTA);
-+			transfer_from[GRPQUOTA] = dqget(sb, inode->i_gid,
-+							GRPQUOTA);
-+			if (!transfer_to[GRPQUOTA] || !transfer_from[GRPQUOTA]) {
-+				status = -ESRCH;
- 				goto bail_unlock;
--			credits += ocfs2_calc_qinit_credits(sb, GRPQUOTA) +
--				   ocfs2_calc_qdel_credits(sb, GRPQUOTA);
--			locked[GRPQUOTA] = 1;
-+			}
- 		}
--		handle = ocfs2_start_trans(osb, credits);
-+		handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS +
-+					   2 * ocfs2_quota_trans_credits(sb));
- 		if (IS_ERR(handle)) {
- 			status = PTR_ERR(handle);
- 			mlog_errno(status);
-@@ -1030,12 +1037,6 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- bail_commit:
- 	ocfs2_commit_trans(osb, handle);
- bail_unlock:
--	for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
--		if (!locked[qtype])
--			continue;
--		oinfo = sb_dqinfo(sb, qtype)->dqi_priv;
--		ocfs2_unlock_global_qf(oinfo, 1);
--	}
- 	ocfs2_inode_unlock(inode, 1);
- bail_unlock_rw:
- 	if (size_change)
-@@ -1043,6 +1044,12 @@ bail_unlock_rw:
- bail:
- 	brelse(bh);
- 
-+	/* Release quota pointers in case we acquired them */
-+	for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
-+		dqput(transfer_to[qtype]);
-+		dqput(transfer_from[qtype]);
-+	}
 +
- 	if (!status && attr->ia_valid & ATTR_MODE) {
- 		status = ocfs2_acl_chmod(inode);
+ 			handle = ocfs2_start_trans(OCFS2_SB(sb),
+ 						   OCFS2_QSYNC_CREDITS);
+ 			if (IS_ERR(handle)) {
+ 				status = PTR_ERR(handle);
+ 				mlog_errno(status);
+-				goto out_put_dquot;
++				goto out_drop_lock;
+ 			}
+ 			mutex_lock(&sb_dqopt(sb)->dqio_mutex);
+ 			spin_lock(&dq_data_lock);
+@@ -523,6 +525,8 @@ static int ocfs2_recover_local_quota_file(struct inode *lqinode,
+ out_commit:
+ 			mutex_unlock(&sb_dqopt(sb)->dqio_mutex);
+ 			ocfs2_commit_trans(OCFS2_SB(sb), handle);
++out_drop_lock:
++			ocfs2_unlock_global_qf(oinfo, 1);
+ out_put_dquot:
+ 			dqput(dquot);
+ out_put_bh:
+@@ -537,8 +541,6 @@ out_put_bh:
  		if (status < 0)
+ 			break;
+ 	}
+-	ocfs2_unlock_global_qf(oinfo, 1);
+-out:
+ 	if (status < 0)
+ 		free_recovery_list(&(rec->r_list[type]));
+ 	mlog_exit(status);
 -- 
 1.6.0.2
