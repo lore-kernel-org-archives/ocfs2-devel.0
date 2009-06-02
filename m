@@ -1,93 +1,129 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue,  2 Jun 2009 14:24:04 +0200
-Subject: [Ocfs2-devel] [PATCH] vfs: Set special lockdep map for dirs only if
-	not set by fs
+Date: Tue,  2 Jun 2009 14:24:01 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix possible deadlock with quotas in
+	ocfs2_setattr()
 In-Reply-To: <1243945445-25847-1-git-send-email-jack@suse.cz>
 References: <1243945445-25847-1-git-send-email-jack@suse.cz>
-Message-ID: <1243945445-25847-7-git-send-email-jack@suse.cz>
+Message-ID: <1243945445-25847-4-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Some filesystems need to set lockdep map for i_mutex differently for
-different directories. For example OCFS2 has system directories (for
-orphan inode tracking and for gathering all system files like journal
-or quota files into a single place) which have different locking
-locking rules than standard directories. For a filesystem setting
-lockdep map is naturaly done when the inode is read but we have to
-modify unlock_new_inode() not to overwrite the lockdep map the filesystem
-has set.
+We called vfs_dq_transfer() with global quota file lock held. This can lead
+to deadlocks as if vfs_dq_transfer() has to allocate new quota structure,
+it calls ocfs2_dquot_acquire() which tries to get quota file lock again and
+this can block if another node requested the lock in the mean time.
 
-CC: peterz at infradead.org
-CC: mingo at redhat.com
+Since we have to call vfs_dq_transfer() with transaction already started
+and quota file lock ranks above the transaction start, we cannot just rely
+on ocfs2_dquot_acquire() or ocfs2_dquot_release() on getting the lock
+if they need it. We fix the problem by acquiring pointers to all quota
+structures needed by vfs_dq_transfer() already before calling the function.
+By this we are sure that all quota structures are properly allocated and
+they can be freed only after we drop references to them. Thus we don't need
+quota file lock anywhere inside vfs_dq_transfer().
+
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/inode.c              |   17 +++++++++++------
- include/linux/lockdep.h |   15 +++++++++++++++
- 2 files changed, 26 insertions(+), 6 deletions(-)
+ fs/ocfs2/file.c |   53 ++++++++++++++++++++++++++++++-----------------------
+ 1 files changed, 30 insertions(+), 23 deletions(-)
 
-diff --git a/fs/inode.c b/fs/inode.c
-index 6ad14a1..44e1848 100644
---- a/fs/inode.c
-+++ b/fs/inode.c
-@@ -654,12 +654,17 @@ void unlock_new_inode(struct inode *inode)
- 	if (inode->i_mode & S_IFDIR) {
- 		struct file_system_type *type = inode->i_sb->s_type;
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index c2a87c8..1a96cac 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -894,9 +894,9 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 	struct buffer_head *bh = NULL;
+ 	handle_t *handle = NULL;
+-	int locked[MAXQUOTAS] = {0, 0};
+-	int credits, qtype;
+-	struct ocfs2_mem_dqinfo *oinfo;
++	int qtype;
++	struct dquot *transfer_from[MAXQUOTAS] = { };
++	struct dquot *transfer_to[MAXQUOTAS] = { };
  
--		/*
--		 * ensure nobody is actually holding i_mutex
--		 */
--		mutex_destroy(&inode->i_mutex);
--		mutex_init(&inode->i_mutex);
--		lockdep_set_class(&inode->i_mutex, &type->i_mutex_dir_key);
-+		/* Set new key only if filesystem hasn't already changed it */
-+		if (!lockdep_match_class(&inode->i_mutex,
-+		    &type->i_mutex_key)) {
-+			/*
-+			 * ensure nobody is actually holding i_mutex
-+			 */
-+			mutex_destroy(&inode->i_mutex);
-+			mutex_init(&inode->i_mutex);
-+			lockdep_set_class(&inode->i_mutex,
-+					  &type->i_mutex_dir_key);
-+		}
- 	}
- #endif
- 	/*
-diff --git a/include/linux/lockdep.h b/include/linux/lockdep.h
-index da5a5a1..b25d1b5 100644
---- a/include/linux/lockdep.h
-+++ b/include/linux/lockdep.h
-@@ -258,6 +258,16 @@ extern void lockdep_init_map(struct lockdep_map *lock, const char *name,
- #define lockdep_set_subclass(lock, sub)	\
- 		lockdep_init_map(&(lock)->dep_map, #lock, \
- 				 (lock)->dep_map.key, sub)
-+/*
-+ * Compare locking classes
-+ */
-+#define lockdep_match_class(lock, key) lockdep_match_key(&(lock)->dep_map, key)
+ 	mlog_entry("(0x%p, '%.*s')\n", dentry,
+ 	           dentry->d_name.len, dentry->d_name.name);
+@@ -969,30 +969,37 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ 
+ 	if ((attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
+ 	    (attr->ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid)) {
+-		credits = OCFS2_INODE_UPDATE_CREDITS;
++		/*
++		 * Gather pointers to quota structures so that allocation /
++		 * freeing of quota structures happens here and not inside
++		 * vfs_dq_transfer() where we have problems with lock ordering
++		 */
+ 		if (attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid
+ 		    && OCFS2_HAS_RO_COMPAT_FEATURE(sb,
+ 		    OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
+-			oinfo = sb_dqinfo(sb, USRQUOTA)->dqi_priv;
+-			status = ocfs2_lock_global_qf(oinfo, 1);
+-			if (status < 0)
++			transfer_to[USRQUOTA] = dqget(sb, attr->ia_uid,
++						      USRQUOTA);
++			transfer_from[USRQUOTA] = dqget(sb, inode->i_uid,
++							USRQUOTA);
++			if (!transfer_to[USRQUOTA] || !transfer_from[USRQUOTA]) {
++				status = -ESRCH;
+ 				goto bail_unlock;
+-			credits += ocfs2_calc_qinit_credits(sb, USRQUOTA) +
+-				ocfs2_calc_qdel_credits(sb, USRQUOTA);
+-			locked[USRQUOTA] = 1;
++			}
+ 		}
+ 		if (attr->ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid
+ 		    && OCFS2_HAS_RO_COMPAT_FEATURE(sb,
+ 		    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
+-			oinfo = sb_dqinfo(sb, GRPQUOTA)->dqi_priv;
+-			status = ocfs2_lock_global_qf(oinfo, 1);
+-			if (status < 0)
++			transfer_to[GRPQUOTA] = dqget(sb, attr->ia_gid,
++						      GRPQUOTA);
++			transfer_from[GRPQUOTA] = dqget(sb, inode->i_gid,
++							GRPQUOTA);
++			if (!transfer_to[GRPQUOTA] || !transfer_from[GRPQUOTA]) {
++				status = -ESRCH;
+ 				goto bail_unlock;
+-			credits += ocfs2_calc_qinit_credits(sb, GRPQUOTA) +
+-				   ocfs2_calc_qdel_credits(sb, GRPQUOTA);
+-			locked[GRPQUOTA] = 1;
++			}
+ 		}
+-		handle = ocfs2_start_trans(osb, credits);
++		handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS +
++					   2 * ocfs2_quota_trans_credits(sb));
+ 		if (IS_ERR(handle)) {
+ 			status = PTR_ERR(handle);
+ 			mlog_errno(status);
+@@ -1030,12 +1037,6 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+ bail_commit:
+ 	ocfs2_commit_trans(osb, handle);
+ bail_unlock:
+-	for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
+-		if (!locked[qtype])
+-			continue;
+-		oinfo = sb_dqinfo(sb, qtype)->dqi_priv;
+-		ocfs2_unlock_global_qf(oinfo, 1);
+-	}
+ 	ocfs2_inode_unlock(inode, 1);
+ bail_unlock_rw:
+ 	if (size_change)
+@@ -1043,6 +1044,12 @@ bail_unlock_rw:
+ bail:
+ 	brelse(bh);
+ 
++	/* Release quota pointers in case we acquired them */
++	for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
++		dqput(transfer_to[qtype]);
++		dqput(transfer_from[qtype]);
++	}
 +
-+static inline int lockdep_match_key(struct lockdep_map *lock,
-+				    struct lock_class_key *key)
-+{
-+	return lock->key == key;
-+}
- 
- /*
-  * Acquire a lock.
-@@ -326,6 +336,11 @@ static inline void lockdep_on(void)
- #define lockdep_set_class_and_subclass(lock, key, sub) \
- 		do { (void)(key); } while (0)
- #define lockdep_set_subclass(lock, sub)		do { } while (0)
-+/*
-+ * We don't define lockdep_match_class() and lockdep_match_key() for !LOCKDEP
-+ * case since the result is not well defined and the caller should rather
-+ * #ifdef the call himself.
-+ */
- 
- # define INIT_LOCKDEP
- # define lockdep_reset()		do { debug_locks = 1; } while (0)
+ 	if (!status && attr->ia_valid & ATTR_MODE) {
+ 		status = ocfs2_acl_chmod(inode);
+ 		if (status < 0)
 -- 
 1.6.0.2
