@@ -1,47 +1,106 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue,  2 Jun 2009 14:23:59 +0200
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix possible deadlock in
-	ocfs2_global_read_dquot()
+Date: Tue,  2 Jun 2009 14:24:03 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Correct ordering of ip_alloc_sem and
+	localloc locks for directories
 In-Reply-To: <1243945445-25847-1-git-send-email-jack@suse.cz>
 References: <1243945445-25847-1-git-send-email-jack@suse.cz>
-Message-ID: <1243945445-25847-2-git-send-email-jack@suse.cz>
+Message-ID: <1243945445-25847-6-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-It is not possible to get a read lock and then try to get the same write lock
-in one thread as that can block on downconvert being requested by other node
-leading to deadlock. So first drop the quota lock for reading and only after
-that get it for writing.
+We use ordering ip_alloc_sem -> local alloc locks in ocfs2_write_begin().
+So change lock ordering in ocfs2_extend_dir() and ocfs2_expand_inline_dir()
+to also use this lock ordering.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/quota_global.c |    4 +++-
- 1 files changed, 3 insertions(+), 1 deletions(-)
+ fs/ocfs2/dir.c |   21 ++++++++++-----------
+ 1 files changed, 10 insertions(+), 11 deletions(-)
 
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index 1ed0f7c..edfa60c 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -421,6 +421,7 @@ int ocfs2_global_read_dquot(struct dquot *dquot)
- 	OCFS2_DQUOT(dquot)->dq_originodes = dquot->dq_dqb.dqb_curinodes;
- 	if (!dquot->dq_off) {	/* No real quota entry? */
- 		/* Upgrade to exclusive lock for allocation */
-+		ocfs2_qinfo_unlock(info, 0);
- 		err = ocfs2_qinfo_lock(info, 1);
- 		if (err < 0)
- 			goto out_qlock;
-@@ -435,7 +436,8 @@ int ocfs2_global_read_dquot(struct dquot *dquot)
- out_qlock:
- 	if (ex)
- 		ocfs2_qinfo_unlock(info, 1);
--	ocfs2_qinfo_unlock(info, 0);
-+	else
-+		ocfs2_qinfo_unlock(info, 0);
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index c575230..b358f3b 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -2900,6 +2900,8 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 	alloc = ocfs2_clusters_for_bytes(sb, bytes);
+ 	dx_alloc = 0;
+ 
++	down_write(&oi->ip_alloc_sem);
++
+ 	if (ocfs2_supports_indexed_dirs(osb)) {
+ 		credits += ocfs2_add_dir_index_credits(sb);
+ 
+@@ -2940,8 +2942,6 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 		goto out;
+ 	}
+ 
+-	down_write(&oi->ip_alloc_sem);
+-
+ 	/*
+ 	 * Prepare for worst case allocation scenario of two separate
+ 	 * extents in the unindexed tree.
+@@ -2953,7 +2953,7 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 	if (IS_ERR(handle)) {
+ 		ret = PTR_ERR(handle);
+ 		mlog_errno(ret);
+-		goto out_sem;
++		goto out;
+ 	}
+ 
+ 	if (vfs_dq_alloc_space_nodirty(dir,
+@@ -3172,10 +3172,8 @@ out_commit:
+ 
+ 	ocfs2_commit_trans(osb, handle);
+ 
+-out_sem:
+-	up_write(&oi->ip_alloc_sem);
+-
  out:
- 	if (err < 0)
- 		mlog_errno(err);
++	up_write(&oi->ip_alloc_sem);
+ 	if (data_ac)
+ 		ocfs2_free_alloc_context(data_ac);
+ 	if (meta_ac)
+@@ -3322,11 +3320,15 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 		brelse(new_bh);
+ 		new_bh = NULL;
+ 
++		down_write(&OCFS2_I(dir)->ip_alloc_sem);
++		drop_alloc_sem = 1;
+ 		dir_i_size = i_size_read(dir);
+ 		credits = OCFS2_SIMPLE_DIR_EXTEND_CREDITS;
+ 		goto do_extend;
+ 	}
+ 
++	down_write(&OCFS2_I(dir)->ip_alloc_sem);
++	drop_alloc_sem = 1;
+ 	dir_i_size = i_size_read(dir);
+ 	mlog(0, "extending dir %llu (i_size = %lld)\n",
+ 	     (unsigned long long)OCFS2_I(dir)->ip_blkno, dir_i_size);
+@@ -3370,9 +3372,6 @@ do_extend:
+ 		credits++; /* For attaching the new dirent block to the
+ 			    * dx_root */
+ 
+-	down_write(&OCFS2_I(dir)->ip_alloc_sem);
+-	drop_alloc_sem = 1;
+-
+ 	handle = ocfs2_start_trans(osb, credits);
+ 	if (IS_ERR(handle)) {
+ 		status = PTR_ERR(handle);
+@@ -3435,10 +3434,10 @@ bail_bh:
+ 	*new_de_bh = new_bh;
+ 	get_bh(*new_de_bh);
+ bail:
+-	if (drop_alloc_sem)
+-		up_write(&OCFS2_I(dir)->ip_alloc_sem);
+ 	if (handle)
+ 		ocfs2_commit_trans(osb, handle);
++	if (drop_alloc_sem)
++		up_write(&OCFS2_I(dir)->ip_alloc_sem);
+ 
+ 	if (data_ac)
+ 		ocfs2_free_alloc_context(data_ac);
 -- 
 1.6.0.2
