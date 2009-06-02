@@ -1,26 +1,96 @@
-From: Jan Kara <jack@suse.cz>
-Date: Tue, 2 Jun 2009 14:25:48 +0200
-Subject: [Ocfs2-devel] Anything I'm missing for 2.6.31?
-In-Reply-To: <20090602010636.GB32688@mail.oracle.com>
-References: <20090602010636.GB32688@mail.oracle.com>
-Message-ID: <20090602122547.GC15010@duck.suse.cz>
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Tue, 02 Jun 2009 14:53:47 +0200
+Subject: [Ocfs2-devel] [PATCH] vfs: Set special lockdep map for dirs
+ only if not set by fs
+In-Reply-To: <1243945445-25847-7-git-send-email-jack@suse.cz>
+References: <1243945445-25847-1-git-send-email-jack@suse.cz>
+	<1243945445-25847-7-git-send-email-jack@suse.cz>
+Message-ID: <1243947227.23657.5964.camel@twins>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  Hi,
+On Tue, 2009-06-02 at 14:24 +0200, Jan Kara wrote:
+> Some filesystems need to set lockdep map for i_mutex differently for
+> different directories. For example OCFS2 has system directories (for
+> orphan inode tracking and for gathering all system files like journal
+> or quota files into a single place) which have different locking
+> locking rules than standard directories. For a filesystem setting
+> lockdep map is naturaly done when the inode is read but we have to
+> modify unlock_new_inode() not to overwrite the lockdep map the filesystem
+> has set.
 
-On Mon 01-06-09 18:06:36, Joel Becker wrote:
-> 	We're coming up on the next merge window, and I only have a
-> couple tiny fixes for ocfs2.  I thought I'd list up what I know is
-> outstanding, and I was hoping to find out if I was missing anything.  If
-> I am, I need to get it in linux-next and set for the merge window ASAP.
-  I've just sent off a patch series that may be worth merging for 2.6.31...
-It contains some quota fixes and lockdep support for cluster locks.
+Still looks good ;-)
 
-									Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+Acked-by: peterz at infradead.org
+
+> CC: mingo at redhat.com
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> ---
+>  fs/inode.c              |   17 +++++++++++------
+>  include/linux/lockdep.h |   15 +++++++++++++++
+>  2 files changed, 26 insertions(+), 6 deletions(-)
+> 
+> diff --git a/fs/inode.c b/fs/inode.c
+> index 6ad14a1..44e1848 100644
+> --- a/fs/inode.c
+> +++ b/fs/inode.c
+> @@ -654,12 +654,17 @@ void unlock_new_inode(struct inode *inode)
+>  	if (inode->i_mode & S_IFDIR) {
+>  		struct file_system_type *type = inode->i_sb->s_type;
+>  
+> -		/*
+> -		 * ensure nobody is actually holding i_mutex
+> -		 */
+> -		mutex_destroy(&inode->i_mutex);
+> -		mutex_init(&inode->i_mutex);
+> -		lockdep_set_class(&inode->i_mutex, &type->i_mutex_dir_key);
+> +		/* Set new key only if filesystem hasn't already changed it */
+> +		if (!lockdep_match_class(&inode->i_mutex,
+> +		    &type->i_mutex_key)) {
+> +			/*
+> +			 * ensure nobody is actually holding i_mutex
+> +			 */
+> +			mutex_destroy(&inode->i_mutex);
+> +			mutex_init(&inode->i_mutex);
+> +			lockdep_set_class(&inode->i_mutex,
+> +					  &type->i_mutex_dir_key);
+> +		}
+>  	}
+>  #endif
+>  	/*
+> diff --git a/include/linux/lockdep.h b/include/linux/lockdep.h
+> index da5a5a1..b25d1b5 100644
+> --- a/include/linux/lockdep.h
+> +++ b/include/linux/lockdep.h
+> @@ -258,6 +258,16 @@ extern void lockdep_init_map(struct lockdep_map *lock, const char *name,
+>  #define lockdep_set_subclass(lock, sub)	\
+>  		lockdep_init_map(&(lock)->dep_map, #lock, \
+>  				 (lock)->dep_map.key, sub)
+> +/*
+> + * Compare locking classes
+> + */
+> +#define lockdep_match_class(lock, key) lockdep_match_key(&(lock)->dep_map, key)
+> +
+> +static inline int lockdep_match_key(struct lockdep_map *lock,
+> +				    struct lock_class_key *key)
+> +{
+> +	return lock->key == key;
+> +}
+>  
+>  /*
+>   * Acquire a lock.
+> @@ -326,6 +336,11 @@ static inline void lockdep_on(void)
+>  #define lockdep_set_class_and_subclass(lock, key, sub) \
+>  		do { (void)(key); } while (0)
+>  #define lockdep_set_subclass(lock, sub)		do { } while (0)
+> +/*
+> + * We don't define lockdep_match_class() and lockdep_match_key() for !LOCKDEP
+> + * case since the result is not well defined and the caller should rather
+> + * #ifdef the call himself.
+> + */
+>  
+>  # define INIT_LOCKDEP
+>  # define lockdep_reset()		do { debug_locks = 1; } while (0)
