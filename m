@@ -1,26 +1,45 @@
-From: wengang wang <wen.gang.wang@oracle.com>
-Date: Mon,  8 Jun 2009 13:36:40 +0800
-Subject: [Ocfs2-devel] [SUGGESSTION 1/1] OCFS2: runtime tunable network idle
-	timeout
-Message-ID: <200906080538.n585cmss000404@acsinet15.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 08 Jun 2009 13:55:24 +0800
+Subject: [Ocfs2-devel] [SUGGESSTION 1/1] OCFS2: automatic dlm hash table
+ size
+In-Reply-To: <200906080515.n585F9Mu012898@rgminet15.oracle.com>
+References: <200906080515.n585F9Mu012898@rgminet15.oracle.com>
+Message-ID: <4A2CA7CC.7020407@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-backgroud:
-	there is a network idle timeout regarding which a node is considered dead or network partition occures. 
+Hi Wengang,
 
-problem:
-	for some product environment, there is a special time during a day. in this special time, a backup work is happening over private network. at the time that the backup is going on, there is very very high load on network. this can lead to ocfs2 network idle timeout and when it can't connect back in time, some nodes have to be fensed out the cluster domain which is not really what we want.
-	there is a configuration O2CB_IDLE_TIMEOUT_MS by which we can set the timeout value. but looks it takes effect on when o2cb service is restarted, so it's not possible to change it in the already running system.
+Regards,
+Tao
 
-suggestion:
-	if we can modify the timeout value at runtime, it's better. we can add a proc file under /proc/fs/ocfs2_nodemanager, for example, idle_timeout, so that a userspace application(such as debugfs.ocfs2) can read/write the timeout value. before the customer run the backup, set the value to a big value(or to no limit) and set it back when backup finished.
-	contents in /proc/fs/ocfs2_nodemanager/idle_timeout is the timeout value in MS. 0 means no limit.
+wengang wang wrote:
+> backgroud:
+> 	ocfs2 dlm uses a hash table to store dlm_lock_resource objects. the often used lookup is performed on the hash table.
+> 
+> problem:
+> 	for usages that there are huge number of inodes(thus huge number of dlm_lock_resource objects) in a ocfs2 volume, the lookup performance becomes a problem. the lookup holds spin_lock which could put all others cpus into the state of aquring the spinlock. if the lock is held long enough by the lookup process, some hardware watchdog  could reboot box since it's not fed in a time(the fed has no change to be scheduled).		Why do you think a dlm res lookup can lock up cpu for such a long time 
+that can lead to hardware watchdog reboot?
+	I am not object to this. But do you have any test statistics that 
+demonstrate your suggestion? I think people are more easy to be 
+convinced if they see some exciting numbers.
 
-if it's good, I'm glad to do it.
+> 
+> 	enlarging the hash table is the way to speed up the lookup. but we don't know how large is a good size. --too small, performance is bad; too large, there is a memory waste.
+> 
+> suggestion:
+> 	so I suggest a automatic resizing the dlm_lock_resource hash table feature. that means it can increase the size of the hash table per the number of dlm_lock_resource objects which are already in the hash table.
+> 	the default(smallest) size is 16 in shift bits. when the number of dlm_lock_resource rearches 250,0000, auto-resizing is triggered and the destination size is 17. and when rearches 500,0000, resize to 18, for 1000,0000, resize to 19... though the numbers need to be discussed yet.
+> 	with this we can use proper sized memory for runtime usage and keep good enough lookup performance.
+So concerning the autosize, do you think of the process of rehash?
 
-thanks,
-wengang.
+I think if you have reached 250,000 dlm entries, the rehash must hold 
+the spin lock for quite a long time. And as you said above, if the 
+hardware watchdog can even reboot for just one lock's lookup, it surely 
+can't wait for your rehash.
+
+Regards,
+Tao
