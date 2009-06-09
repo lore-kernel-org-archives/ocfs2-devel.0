@@ -1,111 +1,73 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 24 Jun 2009 13:42:37 -0700
-Subject: [Ocfs2-devel] [STABLE, 2.6.30.x] ocfs2: Fix ocfs2_osb_dump()
-Message-ID: <20090624204237.GA1631@mail.oracle.com>
+From: Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp>
+Date: Tue, 09 Jun 2009 07:52:46 -0000
+Subject: [Ocfs2-devel] [PATCH] OCFS2: fdatasync should skip unimportant
+ metadata writeout
+Message-ID: <6.0.0.20.2.20090609154314.0729f488@172.19.0.2>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Stable folks,
-	When a user creates a local (non-clustered) ocfs2 filesystem,
-accessing the /sys/kernel/debug/<uuid>/fs_state file will crash the
-system.  This patch fixes the crash by correctly handling local
-filesystems.  The problem was introduced with 2.6.30 and does not affect
-2.6.29.  It is mainline commit c3d38840abaa45c1c5a5fabbb8ffc9a0d1a764d1.
+Hi.
 
-Joel
+In ocfs2, fdatasync and fsync are identical.
+I think fdatasync should skip committing transaction when 
+inode->i_state is set just I_DIRTY_SYNC and this indicates
+only atime or/and mtime updates.
+Following patch improves fdatasync throughput.
 
-From: Sunil Mushran <sunil.mushran@oracle.com>
+#sysbench --num-threads=16 --max-requests=300000 --test=fileio 
+--file-block-size=4K --file-total-size=16G --file-test-mode=rndwr 
+--file-fsync-mode=fdatasync run
 
-Skip printing information that is not valid for local mounts.
+Results:
+-2.6.30-rc8
+Test execution summary:
+    total time:                          107.1445s
+    total number of events:              119559
+    total time taken by event execution: 116.1050
+    per-request statistics:
+         min:                            0.0000s
+         avg:                            0.0010s
+         max:                            0.1220s
+         approx.  95 percentile:         0.0016s
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/super.c |   32 ++++++++++++++++++--------------
- 1 files changed, 18 insertions(+), 14 deletions(-)
+Threads fairness:
+    events (avg/stddev):           7472.4375/303.60
+    execution time (avg/stddev):   7.2566/0.64
 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index d33767f..d64739b 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -234,20 +234,24 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
- 			"%10s => Opts: 0x%lX  AtimeQuanta: %u\n", "Mount",
- 			osb->s_mount_opt, osb->s_atime_quantum);
+
+-2.6.30-rc8-patched
+Test execution summary:
+    total time:                          86.8529s
+    total number of events:              300016
+    total time taken by event execution: 24.3077
+    per-request statistics:
+         min:                            0.0000s
+         avg:                            0.0001s
+         max:                            0.0336s
+         approx.  95 percentile:         0.0001s
+
+Threads fairness:
+    events (avg/stddev):           18751.0000/718.75
+    execution time (avg/stddev):   1.5192/0.05 
+
+
+Thanks.
+
+Signed-off-by: Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp>
+
+diff -Nrup linux-2.6.30-rc8.org/fs/ocfs2/file.c linux-2.6.30-rc8.ocfs2/fs/ocfs2/file.c
+--- linux-2.6.30-rc8.org/fs/ocfs2/file.c	2009-06-04 16:26:26.000000000 +0900
++++ linux-2.6.30-rc8.ocfs2/fs/ocfs2/file.c	2009-06-09 13:50:42.000000000 +0900
+@@ -187,6 +187,9 @@ static int ocfs2_sync_file(struct file *
+ 	if (err)
+ 		goto bail;
  
--	out += snprintf(buf + out, len - out,
--			"%10s => Stack: %s  Name: %*s  Version: %d.%d\n",
--			"Cluster",
--			(*osb->osb_cluster_stack == '\0' ?
--			 "o2cb" : osb->osb_cluster_stack),
--			cconn->cc_namelen, cconn->cc_name,
--			cconn->cc_version.pv_major, cconn->cc_version.pv_minor);
-+	if (cconn) {
-+		out += snprintf(buf + out, len - out,
-+				"%10s => Stack: %s  Name: %*s  "
-+				"Version: %d.%d\n", "Cluster",
-+				(*osb->osb_cluster_stack == '\0' ?
-+				 "o2cb" : osb->osb_cluster_stack),
-+				cconn->cc_namelen, cconn->cc_name,
-+				cconn->cc_version.pv_major,
-+				cconn->cc_version.pv_minor);
-+	}
++	if (datasync && !(inode->i_state & I_DIRTY_DATASYNC))
++		goto bail;
++
+ 	journal = osb->journal->j_journal;
+ 	err = jbd2_journal_force_commit(journal);
  
- 	spin_lock(&osb->dc_task_lock);
- 	out += snprintf(buf + out, len - out,
- 			"%10s => Pid: %d  Count: %lu  WakeSeq: %lu  "
- 			"WorkSeq: %lu\n", "DownCnvt",
--			task_pid_nr(osb->dc_task), osb->blocked_lock_count,
--			osb->dc_wake_sequence, osb->dc_work_sequence);
-+			(osb->dc_task ?  task_pid_nr(osb->dc_task) : -1),
-+			osb->blocked_lock_count, osb->dc_wake_sequence,
-+			osb->dc_work_sequence);
- 	spin_unlock(&osb->dc_task_lock);
- 
- 	spin_lock(&osb->osb_lock);
-@@ -267,14 +271,15 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
- 
- 	out += snprintf(buf + out, len - out,
- 			"%10s => Pid: %d  Interval: %lu  Needs: %d\n", "Commit",
--			task_pid_nr(osb->commit_task), osb->osb_commit_interval,
-+			(osb->commit_task ? task_pid_nr(osb->commit_task) : -1),
-+			osb->osb_commit_interval,
- 			atomic_read(&osb->needs_checkpoint));
- 
- 	out += snprintf(buf + out, len - out,
--			"%10s => State: %d  NumTxns: %d  TxnId: %lu\n",
-+			"%10s => State: %d  TxnId: %lu  NumTxns: %d\n",
- 			"Journal", osb->journal->j_state,
--			atomic_read(&osb->journal->j_num_trans),
--			osb->journal->j_trans_id);
-+			osb->journal->j_trans_id,
-+			atomic_read(&osb->journal->j_num_trans));
- 
- 	out += snprintf(buf + out, len - out,
- 			"%10s => GlobalAllocs: %d  LocalAllocs: %d  "
-@@ -302,7 +307,6 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
- 
- 	out += snprintf(buf + out, len - out, "%10s => %3s  %10s\n",
- 			"Slots", "Num", "RecoGen");
--
- 	for (i = 0; i < osb->max_slots; ++i) {
- 		out += snprintf(buf + out, len - out,
- 				"%10s  %c %3d  %10d\n",
--- 
-1.6.3.1
-
-
--- 
-
-A good programming language should have features that make the
-kind of people who use the phrase "software engineering" shake
-their heads disapprovingly.
-	- Paul Graham
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
