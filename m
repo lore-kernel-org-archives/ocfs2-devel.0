@@ -1,78 +1,50 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 10 Jun 2009 00:58:14 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: timer to queue scan of
-	all	orphan slots
-In-Reply-To: <4A2F46B1.5090301@oracle.com>
-References: <1244073776-18748-1-git-send-email-srinivas.eeda@oracle.com>
-	<1244073776-18748-2-git-send-email-srinivas.eeda@oracle.com>
-	<4A2F46B1.5090301@oracle.com>
-Message-ID: <20090610075814.GA30471@ca-server1.us.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 11 Jun 2009 05:03:55 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Prevent mount with "-o acl" if acl
+	isn't supported.
+Message-ID: <1244667835-16907-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 10, 2009 at 01:37:53PM +0800, Tao Ma wrote:
-> 	I also have some thoughts for it. Wish it isn't too late.
+Currently, if we don't enable CONFIG_OCFS2_FS_POSIX_ACL, ocfs2
+will not support acl. That is OK.
 
-	Well, if we come up with changes it will affect what I push, but
-that's OK.
+But in the following case:
+1. kernel isn't built to support acl.
+2. mount -t ocfs2 -o acl /dev/sdx /mnt/ocfs2.
+It sucesses. And what's more, if I do "mount|grep sdx" will get
+/dev/sdx on /mnt/ocfs2 type ocfs2 (rw,acl,heartbeat=none)
 
-> 	Currently, orphan scan just iterate all the slots and call 
-> ocfs2_queue_recovery_completion, but I don't think it is proper for a node 
-> to query another mounted one since that node will query it by 
-> itself.
+So a normal user will just think acl now is ok for the volume and
+he will surely be puzzled when he tries setfacl and fails with
+"Operation not supported".
 
-	Node 1 has an inode it was using.  The dentry went away due to
-memory pressure.  Node 1 closes the inode, but it's on the free list.
-The node has the open lock.
-	Node 2 unlinks the inode.  It grabs the dentry lock to notify
-others, but node 1 has no dentry and doesn't get the message.  It
-trylocks the open lock, sees that another node has a PR, and does
-nothing.
-	Later node 2 runs its orphan dir.  It igets the inode, trylocks
-the open lock, sees the PR still, and does nothing.
-	Basically, we have to trigger an orphan iput on node 1.  The
-only way for this to happen is if node 1 runs node 2's orphan dir.  This
-patch exists because that wasn't happening.
+The good thing is that the kernel already printk some useful
+information, so this patch just tries to prevent the user from
+mounting the volume.
 
->	What's more, it will affect reflink greatly.
-> In my current implementation of reflink, It will work like this:
-> 1. create a inode in orphan dir
-> 2. reflink all the extents.
-> 3. move the inode from orphan dir to the destination.
->
-> For efficiency, I just lock orphan dir in step 1 and 3, and release the 
-> lock in step 2 in case reflink will take a long time and we don't block 
-> other "unlink" process. And in step 1, the created inode looks really like 
-> a deleted one so that any crash in step 2 won't prevent it from being 
-> deleted by fsck or recovery.
->
-> But with your patch, we may have a race in step 2 that your recovery will 
-> delete the inode created in step 1. So my suggestion is that your orphan 
-> scan just skip the mounted node so it won't affect other nodes' ongoing 
-> reflink. As for the node itself, it is very easy to postpone the orphan 
-> scan by setting a flag in ocfs2_super when reflink is ongoing(I will do 
-> it).
+Cc: Tiger Yang <tiger.yang@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/super.c |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-	You should have an in-core inode, right?  That holds the open
-lock, preventing the others from deleting it.  If you crash, then your
-open lock goes away, and it can be recovered.
-	More importantly, your orphan dir can be run on regular recovery
-async as well.  It has to work in all cases.
-
-Joel
-
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 035af49..f570a24 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1206,7 +1206,8 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 		case Opt_acl:
+ 		case Opt_noacl:
+ 			printk(KERN_INFO "ocfs2 (no)acl options not supported\n");
+-			break;
++			status = 0;
++			goto bail;
+ #endif
+ 		default:
+ 			mlog(ML_ERROR,
 -- 
-
-"I'm drifting and drifting
- Just like a ship out on the sea.
- Cause I ain't got nobody, baby,
- In this world to care for me."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.5
