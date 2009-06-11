@@ -1,58 +1,50 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 11 Jun 2009 08:58:14 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Prevent mount with "-o acl" if	acl
-	isn't supported.
-In-Reply-To: <20090611154349.GD11636@ca-server1.us.oracle.com>
-References: <1244667835-16907-1-git-send-email-tao.ma@oracle.com>
-	<20090611154349.GD11636@ca-server1.us.oracle.com>
-Message-ID: <20090611155814.GE11636@ca-server1.us.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 11 Jun 2009 11:02:03 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/net: Use wait_event() in
+	o2net_send_message_vec()
+Message-ID: <1244743323-6949-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jun 11, 2009 at 08:43:49AM -0700, Joel Becker wrote:
-> On Thu, Jun 11, 2009 at 05:03:55AM +0800, Tao Ma wrote:
-> > Currently, if we don't enable CONFIG_OCFS2_FS_POSIX_ACL, ocfs2
-> > will not support acl. That is OK.
-> > 
-> > But in the following case:
-> > 1. kernel isn't built to support acl.
-> > 2. mount -t ocfs2 -o acl /dev/sdx /mnt/ocfs2.
-> > It sucesses. And what's more, if I do "mount|grep sdx" will get
-> > /dev/sdx on /mnt/ocfs2 type ocfs2 (rw,acl,heartbeat=none)
-> > 
-> > So a normal user will just think acl now is ok for the volume and
-> > he will surely be puzzled when he tries setfacl and fails with
-> > "Operation not supported".
-> > 
-> > The good thing is that the kernel already printk some useful
-> > information, so this patch just tries to prevent the user from
-> > mounting the volume.
-> 
-> 	Hmm, everyone else seems to do it the way we have been.  Trying
-> to think about the surprise you describe vs the surprise of ocfs2 being
-> different than other linux filesystms.
+Replace wait_event_interruptible() with wait_event() in o2net_send_message_vec().
+This is because this function is called by the dlm that expects signals to be
+blocked.
 
-	Ok, I bounced this off of various fs developers, and there was
-significant support for leaving it as-is.  Basically, it would suck for
-every filesystem in fstab to fail to mount just because you changed your
-kernel.
-	Chris and Cristoph pointed out that btrfs and xfs always assume
-'-o acl,user_xattr' if the feature is compiled in.  They are always on.
-btrfs only disables acls with '-o noacl'.  Might be worth considering.
+Fixes oss bugzilla#1126
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1126
 
-Joel
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/cluster/tcp.c |    7 ++-----
+ 1 files changed, 2 insertions(+), 5 deletions(-)
 
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 9fbe849..334f231 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -974,7 +974,7 @@ static int o2net_tx_can_proceed(struct o2net_node *nn,
+ int o2net_send_message_vec(u32 msg_type, u32 key, struct kvec *caller_vec,
+ 			   size_t caller_veclen, u8 target_node, int *status)
+ {
+-	int ret, error = 0;
++	int ret;
+ 	struct o2net_msg *msg = NULL;
+ 	size_t veclen, caller_bytes = 0;
+ 	struct kvec *vec = NULL;
+@@ -1015,10 +1015,7 @@ int o2net_send_message_vec(u32 msg_type, u32 key, struct kvec *caller_vec,
+ 
+ 	o2net_set_nst_sock_time(&nst);
+ 
+-	ret = wait_event_interruptible(nn->nn_sc_wq,
+-				       o2net_tx_can_proceed(nn, &sc, &error));
+-	if (!ret && error)
+-		ret = error;
++	wait_event(nn->nn_sc_wq, o2net_tx_can_proceed(nn, &sc, &ret));
+ 	if (ret)
+ 		goto out;
+ 
 -- 
-
-"I am working for the time when unqualified blacks, browns, and
- women join the unqualified men in running our overnment."
-	- Sissy Farenthold
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.6.0.4
