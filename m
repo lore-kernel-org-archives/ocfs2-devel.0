@@ -1,12 +1,11 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 12 Jun 2009 09:04:14 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Prevent mount with "-o acl" if acl
- isn't supported.
-In-Reply-To: <20090611155814.GE11636@ca-server1.us.oracle.com>
-References: <1244667835-16907-1-git-send-email-tao.ma@oracle.com>
-	<20090611154349.GD11636@ca-server1.us.oracle.com>
-	<20090611155814.GE11636@ca-server1.us.oracle.com>
-Message-ID: <4A31A98E.3030500@oracle.com>
+Date: Fri, 12 Jun 2009 09:29:15 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Adjust rightmost path in
+	ocfs2_add_branch.
+In-Reply-To: <20090612004550.GK10980@wotan.suse.de>
+References: <1243923243-5721-1-git-send-email-tao.ma@oracle.com>
+	<20090612004550.GK10980@wotan.suse.de>
+Message-ID: <4A31AF6B.70709@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,34 +14,268 @@ To: ocfs2-devel@oss.oracle.com
 
 
 
-Joel Becker wrote:
-> On Thu, Jun 11, 2009 at 08:43:49AM -0700, Joel Becker wrote:
->> On Thu, Jun 11, 2009 at 05:03:55AM +0800, Tao Ma wrote:
->>> Currently, if we don't enable CONFIG_OCFS2_FS_POSIX_ACL, ocfs2
->>> will not support acl. That is OK.
->>>
->>> But in the following case:
->>> 1. kernel isn't built to support acl.
->>> 2. mount -t ocfs2 -o acl /dev/sdx /mnt/ocfs2.
->>> It sucesses. And what's more, if I do "mount|grep sdx" will get
->>> /dev/sdx on /mnt/ocfs2 type ocfs2 (rw,acl,heartbeat=none)
->>>
->>> So a normal user will just think acl now is ok for the volume and
->>> he will surely be puzzled when he tries setfacl and fails with
->>> "Operation not supported".
->>>
->>> The good thing is that the kernel already printk some useful
->>> information, so this patch just tries to prevent the user from
->>> mounting the volume.
->> 	Hmm, everyone else seems to do it the way we have been.  Trying
->> to think about the surprise you describe vs the surprise of ocfs2 being
->> different than other linux filesystms.
+Mark Fasheh wrote:
+> On Tue, Jun 02, 2009 at 02:14:03PM +0800, Tao Ma wrote:
+>> In ocfs2_add_branch, we use the rightmost rec of the leaf extent block
+>> to generate the e_cpos for the new added branch. In the most case, it
+>> is OK but if there is a gap between the the root(or branch) 's rightmost
+>> rec and the leaf, it will cause kernel panic if we insert some clusters
+>> in it. The message is something like:
+>> (7445,1):ocfs2_insert_at_leaf:3775 ERROR: bug expression:
+>> le16_to_cpu(el->l_next_free_rec) >= le16_to_cpu(el->l_count)
+>> (7445,1):ocfs2_insert_at_leaf:3775 ERROR: inode 66053, depth 0, count 28,
+>> next free 28, rec.cpos 270, rec.clusters 1, insert.cpos 275, insert.clusters 1
+>>  [<fa7ad565>] ? ocfs2_do_insert_extent+0xb58/0xda0 [ocfs2]
+>>  [<fa7b08f2>] ? ocfs2_insert_extent+0x5bd/0x6ba [ocfs2]
+>>  [<fa7b1b8b>] ? ocfs2_add_clusters_in_btree+0x37f/0x564 [ocfs2]
+>> ...
+>>
+>> The panic can be easily reproduced by the following small test case
+>> (with bs=512, cs=4K, and I remove all the error handling so that it looks
+>> clear enough for reading).
+>>
+>> int main(int argc, char **argv)
+>> {
+>> 	int fd, i;
+>> 	char buf[5] = "test";
+>>
+>> 	fd = open(argv[1], O_RDWR|O_CREAT);
+>>
+>> 	for (i = 0; i < 30; i++) {
+>> 		lseek(fd, 40960 * i, SEEK_SET);
+>> 		write(fd, buf, 5);
+>> 	}
+>>
+>> 	ftruncate(fd, 1146880);
+>>
+>> 	lseek(fd, 1126400, SEEK_SET);
+>> 	write(fd, buf, 5);
+>>
+>> 	close(fd);
+>> 	
+>> 	return 0;
+>> }
+>>
+>> The reason of the panic is that:
+>> the 30 writes and the ftruncate makes the file's extent list looks like:
+>>
+>> 	Tree Depth: 1   Count: 19   Next Free Rec: 1
+>> 	## Offset        Clusters       Block#
+>> 	0  0             280            86183
+>> 	SubAlloc Bit: 7   SubAlloc Slot: 0
+>> 	Blknum: 86183   Next Leaf: 0
+>> 	CRC32: 00000000   ECC: 0000
+>> 	Tree Depth: 0   Count: 28   Next Free Rec: 28
+>> 	## Offset        Clusters       Block#          Flags
+>> 	0  0             1              143368          0x0
+>> 	1  10            1              143376          0x0
+>> 	...
+>> 	26 260           1              143576          0x0
+>> 	27 270           1              143584          0x0
+>>
+>> Now another write at 1126400(275 cluster) whiich will write at the gap
+>> between 271 and 280 will trigger ocfs2_add_branch, but the result after
+>> the function looks like:
+>> 	Tree Depth: 1   Count: 19   Next Free Rec: 1
+>> 	## Offset        Clusters       Block#
+>> 	0  0             280            86183
+>> 	0  271           0             143592
+>> So the extent record is intersected and make the following operation bug out.
 > 
-> 	Ok, I bounced this off of various fs developers, and there was
-> significant support for leaving it as-is.  Basically, it would suck for
-> every filesystem in fstab to fail to mount just because you changed your
-> kernel.
-OK, fair enough. Thank.
+> Is it possible for us to add another patch which changes the bug to
+> something that just goes readonly?
+No problem. I will generate another patch for it.
+> 
+> 
+>> This patch just try to remove the gap before we add the new branch, so that
+>> the root(branch) rightmost rec will cover the same right position. So in the
+>> above case, before adding branch the tree will be changed to
+>> 	Tree Depth: 1   Count: 19   Next Free Rec: 1
+>> 	## Offset        Clusters       Block#
+>> 	0  0             271            86183
+>> 	SubAlloc Bit: 7   SubAlloc Slot: 0
+>> 	Blknum: 86183   Next Leaf: 0
+>> 	CRC32: 00000000   ECC: 0000
+>> 	Tree Depth: 0   Count: 28   Next Free Rec: 28
+>> 	## Offset        Clusters       Block#          Flags
+>> 	0  0             1              143368          0x0
+>> 	1  10            1              143376          0x0
+>> 	...
+>> 	26 260           1              143576          0x0
+>> 	27 270           1              143584          0x0
+>> And after branch add, the tree looks like 
+>> 	Tree Depth: 1   Count: 19   Next Free Rec: 1
+>> 	## Offset        Clusters       Block#
+>> 	0  0             271            86183
+>> 	0  271           0             143592
+>>
+>> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+>> ---
+>>  fs/ocfs2/alloc.c |   98 +++++++++++++++++++++++++++++++++++++++++++++++++++--
+>>  1 files changed, 94 insertions(+), 4 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+>> index 678a067..7ce5e2f 100644
+>> --- a/fs/ocfs2/alloc.c
+>> +++ b/fs/ocfs2/alloc.c
+>> @@ -475,6 +475,8 @@ struct ocfs2_path {
+>>  #define path_leaf_el(_path) ((_path)->p_node[(_path)->p_tree_depth].el)
+>>  #define path_num_items(_path) ((_path)->p_tree_depth + 1)
+>>  
+>> +static int ocfs2_find_path(struct inode *inode, struct ocfs2_path *path,
+>> +			   u32 cpos);
+>>  /*
+>>   * Reset the actual path elements so that we can re-use the structure
+>>   * to build another path. Generally, this involves freeing the buffer
+>> @@ -1012,6 +1014,75 @@ static inline u32 ocfs2_sum_rightmost_rec(struct ocfs2_extent_list  *el)
+>>  		ocfs2_rec_clusters(el, &el->l_recs[i]);
+>>  }
+>>  
+>> +static int ocfs2_adjust_new_end(handle_t *handle,
+>> +				struct inode *inode,
+>> +				struct ocfs2_extent_tree *et,
+>> +				u32 new_end)
+>> +{
+>> +	int status, i;
+>> +	struct ocfs2_path *path = NULL;
+>> +	struct ocfs2_extent_list *el;
+>> +	struct ocfs2_extent_rec *rec;
+>> +
+>> +	path = ocfs2_new_path_from_et(et);
+>> +	if (!path) {
+>> +		status = -ENOMEM;
+>> +		return status;
+>> +	}
+>> +
+>> +	status = ocfs2_find_path(inode, path, new_end);
+>> +	if (status < 0) {
+>> +		mlog_errno(status);
+>> +		goto out;
+>> +	}
+>> +
+>> +	status = ocfs2_extend_trans(handle, handle->h_buffer_credits +
+>> +				    path_num_items(path));
+>> +	if (status < 0) {
+>> +		mlog_errno(status);
+>> +		goto out;
+>> +	}
+>> +
+>> +	status = ocfs2_et_root_journal_access(handle, inode, et,
+>> +					      OCFS2_JOURNAL_ACCESS_WRITE);
+>> +	if (status < 0) {
+>> +		mlog_errno(status);
+>> +		goto out;
+>> +	}
+>> +
+>> +	/* Change all the branch except the leaf. */
+>> +	for (i = 1; i < path_num_items(path) - 1; i++) {
+>> +		status = ocfs2_journal_access_eb(handle, inode,
+>> +						 path->p_node[i].bh,
+>> +						 OCFS2_JOURNAL_ACCESS_WRITE);
+>> +		if (status < 0) {
+>> +			mlog_errno(status);
+>> +			goto out;
+>> +		}
+>> +	}
+>> +
+>> +	el = path_root_el(path);
+>> +	rec = &el->l_recs[le32_to_cpu(el->l_next_free_rec) - 1];
+>> +	rec->e_int_clusters = cpu_to_le32(new_end -
+>> +				le32_to_cpu(rec->e_cpos));
+>> +
+>> +	for (i = 1; i < path_num_items(path) - 1; i++) {
+>> +		el = path->p_node[i].el;
+>> +		rec = &el->l_recs[le32_to_cpu(el->l_next_free_rec) - 1];
+>> +		rec->e_int_clusters = cpu_to_le32(new_end -
+>> +					le32_to_cpu(rec->e_cpos));
+>> +	}
+>> +
+>> +	for (i = 0; i < path_num_items(path) - 1; i++) {
+>> +		status = ocfs2_journal_dirty(handle, path->p_node[i].bh);
+>> +		if (status < 0)
+>> +			mlog_errno(status);
+>> +	}
+>> +out:
+>> +	ocfs2_free_path(path);
+>> +	return status;
+>> +}
+>> +
+>>  /*
+>>   * Add an entire tree branch to our inode. eb_bh is the extent block
+>>   * to start at, if we don't want to start the branch at the dinode
+>> @@ -1038,7 +1109,7 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
+>>  	struct ocfs2_extent_block *eb;
+>>  	struct ocfs2_extent_list  *eb_el;
+>>  	struct ocfs2_extent_list  *el;
+>> -	u32 new_cpos;
+>> +	u32 new_cpos, root_end;
+>>  
+>>  	mlog_entry_void();
+>>  
+>> @@ -1055,6 +1126,28 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
+>>  
+>>  	new_blocks = le16_to_cpu(el->l_tree_depth);
+>>  
+>> +	eb = (struct ocfs2_extent_block *)(*last_eb_bh)->b_data;
+>> +	new_cpos = ocfs2_sum_rightmost_rec(&eb->h_list);
+>> +	root_end = ocfs2_sum_rightmost_rec(et->et_root_el);
+>> +
+>> +	/*
+>> +	 * If there is a gap before the root end and the real end
+>> +	 * of the righmost leaf block, we need to remove the gap
+>> +	 * between new_cpos and root_end first so that the tree
+>> +	 * is consistent after we add a new branch(it will start
+>> +	 * from new_cpos).
+>> +	 */
+>> +	if (root_end > new_cpos) {
+>> +		mlog(0, "adjust the cluster end from %u to %u\n",
+>> +		     root_end, new_cpos);
+>> +		status = ocfs2_adjust_new_end(handle, inode,
+>> +					      et, new_cpos);
+>> +		if (status) {
+>> +			mlog_errno(status);
+>> +			goto bail;
+>> +		}
+>> +	}
+>> +
+> 
+> Your solution looks technically correct.
+> 
+> 
+> What I wanted to do is something like changing this section in
+> ocfs2_add_branch():
+> 
+> 	eb = (struct ocfs2_extent_block *)(*last_eb_bh)->b_data;
+> 	new_cpos = ocfs2_sum_rightmost_rec(&eb->h_list);
+> 
+> to something like:
+> 
+>         eb = (struct ocfs2_extent_block *)(*eb_bh)->b_data;
+>         new_cpos = ocfs2_sum_rightmost_rec(&eb->h_list);
+> 
+> 
+> That would fix up the starting cpos of our new branch. But we'll still wind
+> up with the gap in a non-dege path, which I believe is "illegal" for Ocfs2.
+This is my first thought, and actually I also tried it at the very 
+beginning. But you know what? It doesn't work in this case. :(
+The reason is that with this modification after ocfs2_add_branch the 
+b-tree structure will looks like:
+	Tree Depth: 1   Count: 19   Next Free Rec: 1
+	## Offset        Clusters       Block#
+	0  0             280            86183
+	0  280           0             143592
+
+So when I try to insert at 275, it will still find the 1st extent block 
+which is full. So panic again for the same reason. ;)
+
+> 
+> 
+> So, this is a better solution I think. Can we possibly make use of
+> ocfs2_adjust_rightmost_records() - it looks like it'd handle the bottommost
+> part of ocfs2_adjust_new_end() with extra checking...
+Yes, I can use it if you prefer. But that also means that insert_rec 
+should be the right most extent record of the leaf extent block, a bit 
+tricky, but it does work.
 
 Regards,
 Tao
