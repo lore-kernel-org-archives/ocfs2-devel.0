@@ -1,146 +1,228 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 12 Jun 2009 14:18:35 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: return EROFS instead of BUG in
-	ocfs2_insert_at_leaf.
+Date: Fri, 12 Jun 2009 14:18:36 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Adjust rightmost path in
+	ocfs2_add_branch.
 In-Reply-To: <4A326E26.4080002@oracle.com>
 References: <4A326E26.4080002@oracle.com>
-Message-ID: <1244787516-13475-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <1244787516-13475-2-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-As Mark's suggestion, change BUG to EROFS in ocfs2_insert_at_leaf.
+In ocfs2_add_branch, we use the rightmost rec of the leaf extent block
+to generate the e_cpos for the new added branch. In the most case, it
+is OK but if there is a gap between the the root(or branch) 's rightmost
+rec and the leaf, it will cause kernel panic if we insert some clusters
+in it. The message is something like:
+(7445,1):ocfs2_insert_at_leaf:3775 ERROR: bug expression:
+le16_to_cpu(el->l_next_free_rec) >= le16_to_cpu(el->l_count)
+(7445,1):ocfs2_insert_at_leaf:3775 ERROR: inode 66053, depth 0, count 28,
+next free 28, rec.cpos 270, rec.clusters 1, insert.cpos 275, insert.clusters 1
+ [<fa7ad565>] ? ocfs2_do_insert_extent+0xb58/0xda0 [ocfs2]
+ [<fa7b08f2>] ? ocfs2_insert_extent+0x5bd/0x6ba [ocfs2]
+ [<fa7b1b8b>] ? ocfs2_add_clusters_in_btree+0x37f/0x564 [ocfs2]
+...
+
+The panic can be easily reproduced by the following small test case
+(with bs=512, cs=4K, and I remove all the error handling so that it looks
+clear enough for reading).
+
+int main(int argc, char **argv)
+{
+	int fd, i;
+	char buf[5] = "test";
+
+	fd = open(argv[1], O_RDWR|O_CREAT);
+
+	for (i = 0; i < 30; i++) {
+		lseek(fd, 40960 * i, SEEK_SET);
+		write(fd, buf, 5);
+	}
+
+	ftruncate(fd, 1146880);
+
+	lseek(fd, 1126400, SEEK_SET);
+	write(fd, buf, 5);
+
+	close(fd);
+
+	return 0;
+}
+
+The reason of the panic is that:
+the 30 writes and the ftruncate makes the file's extent list looks like:
+
+	Tree Depth: 1   Count: 19   Next Free Rec: 1
+	## Offset        Clusters       Block#
+	0  0             280            86183
+	SubAlloc Bit: 7   SubAlloc Slot: 0
+	Blknum: 86183   Next Leaf: 0
+	CRC32: 00000000   ECC: 0000
+	Tree Depth: 0   Count: 28   Next Free Rec: 28
+	## Offset        Clusters       Block#          Flags
+	0  0             1              143368          0x0
+	1  10            1              143376          0x0
+	...
+	26 260           1              143576          0x0
+	27 270           1              143584          0x0
+
+Now another write at 1126400(275 cluster) whiich will write at the gap
+between 271 and 280 will trigger ocfs2_add_branch, but the result after
+the function looks like:
+	Tree Depth: 1   Count: 19   Next Free Rec: 1
+	## Offset        Clusters       Block#
+	0  0             280            86183
+	0  271           0             143592
+So the extent record is intersected and make the following operation bug out.
+
+This patch just try to remove the gap before we add the new branch, so that
+the root(branch) rightmost rec will cover the same right position. So in the
+above case, before adding branch the tree will be changed to
+	Tree Depth: 1   Count: 19   Next Free Rec: 1
+	## Offset        Clusters       Block#
+	0  0             271            86183
+	SubAlloc Bit: 7   SubAlloc Slot: 0
+	Blknum: 86183   Next Leaf: 0
+	CRC32: 00000000   ECC: 0000
+	Tree Depth: 0   Count: 28   Next Free Rec: 28
+	## Offset        Clusters       Block#          Flags
+	0  0             1              143368          0x0
+	1  10            1              143376          0x0
+	...
+	26 260           1              143576          0x0
+	27 270           1              143584          0x0
+And after branch add, the tree looks like
+	Tree Depth: 1   Count: 19   Next Free Rec: 1
+	## Offset        Clusters       Block#
+	0  0             271            86183
+	0  271           0             143592
+
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/alloc.c |   67 +++++++++++++++++++++++++++++++++---------------------
- 1 files changed, 41 insertions(+), 26 deletions(-)
+ fs/ocfs2/alloc.c |   80 +++++++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 files changed, 76 insertions(+), 4 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 19e3a96..4ac408b 100644
+index 4ac408b..16b69cd 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -3648,12 +3648,12 @@ static void ocfs2_subtract_from_rec(struct super_block *sb,
-  * list. If this leaf is part of an allocation tree, it is assumed
-  * that the tree above has been prepared.
-  */
--static void ocfs2_insert_at_leaf(struct ocfs2_extent_rec *insert_rec,
--				 struct ocfs2_extent_list *el,
--				 struct ocfs2_insert_type *insert,
--				 struct inode *inode)
-+static int ocfs2_insert_at_leaf(struct ocfs2_extent_rec *insert_rec,
-+				struct ocfs2_extent_list *el,
-+				struct ocfs2_insert_type *insert,
-+				struct inode *inode)
- {
--	int i = insert->ins_contig_index;
-+	int ret = 0, i = insert->ins_contig_index;
- 	unsigned int range;
- 	struct ocfs2_extent_rec *rec;
+@@ -418,6 +418,12 @@ struct ocfs2_path {
+ #define path_leaf_el(_path) ((_path)->p_node[(_path)->p_tree_depth].el)
+ #define path_num_items(_path) ((_path)->p_tree_depth + 1)
  
-@@ -3679,7 +3679,7 @@ static void ocfs2_insert_at_leaf(struct ocfs2_extent_rec *insert_rec,
- 		}
- 		le16_add_cpu(&rec->e_leaf_clusters,
- 			     le16_to_cpu(insert_rec->e_leaf_clusters));
--		return;
-+		goto out;
- 	}
- 
- 	/*
-@@ -3690,7 +3690,7 @@ static void ocfs2_insert_at_leaf(struct ocfs2_extent_rec *insert_rec,
- 	     ocfs2_is_empty_extent(&el->l_recs[0]))) {
- 		el->l_recs[0] = *insert_rec;
- 		el->l_next_free_rec = cpu_to_le16(1);
--		return;
-+		goto out;
- 	}
- 
- 	/*
-@@ -3703,23 +3703,28 @@ static void ocfs2_insert_at_leaf(struct ocfs2_extent_rec *insert_rec,
- 			+ le16_to_cpu(rec->e_leaf_clusters);
- 		BUG_ON(le32_to_cpu(insert_rec->e_cpos) < range);
- 
--		mlog_bug_on_msg(le16_to_cpu(el->l_next_free_rec) >=
--				le16_to_cpu(el->l_count),
--				"inode %lu, depth %u, count %u, next free %u, "
--				"rec.cpos %u, rec.clusters %u, "
--				"insert.cpos %u, insert.clusters %u\n",
--				inode->i_ino,
--				le16_to_cpu(el->l_tree_depth),
--				le16_to_cpu(el->l_count),
--				le16_to_cpu(el->l_next_free_rec),
--				le32_to_cpu(el->l_recs[i].e_cpos),
--				le16_to_cpu(el->l_recs[i].e_leaf_clusters),
--				le32_to_cpu(insert_rec->e_cpos),
--				le16_to_cpu(insert_rec->e_leaf_clusters));
-+		if (le16_to_cpu(el->l_next_free_rec) >=
-+		    le16_to_cpu(el->l_count)) {
-+			mlog(ML_ERROR, "l_next_free_rec > l_count, "
-+			     "inode %lu, depth %u, count %u, next free %u, "
-+			     "rec.cpos %u, rec.clusters %u, "
-+			     "insert.cpos %u, insert.clusters %u\n",
-+			     inode->i_ino,
-+			     le16_to_cpu(el->l_tree_depth),
-+			     le16_to_cpu(el->l_count),
-+			     le16_to_cpu(el->l_next_free_rec),
-+			     le32_to_cpu(el->l_recs[i].e_cpos),
-+			     le16_to_cpu(el->l_recs[i].e_leaf_clusters),
-+			     le32_to_cpu(insert_rec->e_cpos),
-+			     le16_to_cpu(insert_rec->e_leaf_clusters));
-+			ret = -EROFS;
-+			goto out;
-+		}
-+
- 		i++;
- 		el->l_recs[i] = *insert_rec;
- 		le16_add_cpu(&el->l_next_free_rec, 1);
--		return;
-+		goto out;
- 	}
- 
- rotate:
-@@ -3734,6 +3739,8 @@ rotate:
- 	 * extent record, or by virtue of an l_next_rec < l_count.
- 	 */
- 	ocfs2_rotate_leaf(el, insert_rec);
-+out:
-+	return ret;
++static int ocfs2_find_path(struct inode *inode, struct ocfs2_path *path,
++			   u32 cpos);
++static void ocfs2_adjust_rightmost_records(struct inode *inode,
++					   handle_t *handle,
++					   struct ocfs2_path *path,
++					   struct ocfs2_extent_rec *insert_rec);
+ /*
+  * Reset the actual path elements so that we can re-use the structure
+  * to build another path. Generally, this involves freeing the buffer
+@@ -956,6 +962,54 @@ static inline u32 ocfs2_sum_rightmost_rec(struct ocfs2_extent_list  *el)
  }
  
- static void ocfs2_adjust_rightmost_records(struct inode *inode,
-@@ -4006,10 +4013,14 @@ static int ocfs2_insert_path(struct inode *inode,
- 						  path_leaf_bh(left_path));
- 			if (ret)
- 				mlog_errno(ret);
--	} else
--		ocfs2_insert_at_leaf(insert_rec, path_leaf_el(right_path),
--				     insert, inode);
--
-+	} else {
-+		ret = ocfs2_insert_at_leaf(insert_rec, path_leaf_el(right_path),
-+					   insert, inode);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
+ /*
++ * Change range of the branches in the right most path according to the leaf
++ * extent block's rightmost record.
++ */
++static int ocfs2_adjust_rightmost_branch(handle_t *handle,
++					 struct inode *inode,
++					 struct ocfs2_extent_tree *et)
++{
++	int status;
++	struct ocfs2_path *path = NULL;
++	struct ocfs2_extent_list *el;
++	struct ocfs2_extent_rec *rec;
++
++	path = ocfs2_new_path_from_et(et);
++	if (!path) {
++		status = -ENOMEM;
++		return status;
++	}
++
++	status = ocfs2_find_path(inode, path, UINT_MAX);
++	if (status < 0) {
++		mlog_errno(status);
++		goto out;
++	}
++
++	status = ocfs2_extend_trans(handle, path_num_items(path) +
++				    handle->h_buffer_credits);
++	if (status < 0) {
++		mlog_errno(status);
++		goto out;
++	}
++
++	status = ocfs2_journal_access_path(inode, handle, path);
++	if (status < 0) {
++		mlog_errno(status);
++		goto out;
++	}
++
++	el = path_leaf_el(path);
++	rec = &el->l_recs[le32_to_cpu(el->l_next_free_rec) - 1];
++
++	ocfs2_adjust_rightmost_records(inode, handle, path, rec);
++
++out:
++	ocfs2_free_path(path);
++	return status;
++}
++
++/*
+  * Add an entire tree branch to our inode. eb_bh is the extent block
+  * to start at, if we don't want to start the branch at the dinode
+  * structure.
+@@ -981,7 +1035,7 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
+ 	struct ocfs2_extent_block *eb;
+ 	struct ocfs2_extent_list  *eb_el;
+ 	struct ocfs2_extent_list  *el;
+-	u32 new_cpos;
++	u32 new_cpos, root_end;
+ 
+ 	mlog_entry_void();
+ 
+@@ -998,6 +1052,27 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
+ 
+ 	new_blocks = le16_to_cpu(el->l_tree_depth);
+ 
++	eb = (struct ocfs2_extent_block *)(*last_eb_bh)->b_data;
++	new_cpos = ocfs2_sum_rightmost_rec(&eb->h_list);
++	root_end = ocfs2_sum_rightmost_rec(et->et_root_el);
++
++	/*
++	 * If there is a gap before the root end and the real end
++	 * of the righmost leaf block, we need to remove the gap
++	 * between new_cpos and root_end first so that the tree
++	 * is consistent after we add a new branch(it will start
++	 * from new_cpos).
++	 */
++	if (root_end > new_cpos) {
++		mlog(0, "adjust the cluster end from %u to %u\n",
++		     root_end, new_cpos);
++		status = ocfs2_adjust_rightmost_branch(handle, inode, et);
++		if (status) {
++			mlog_errno(status);
++			goto bail;
 +		}
 +	}
- 	ret = ocfs2_journal_dirty(handle, leaf_bh);
- 	if (ret)
- 		mlog_errno(ret);
-@@ -4054,7 +4065,11 @@ static int ocfs2_do_insert_extent(struct inode *inode,
++
+ 	/* allocate the number of new eb blocks we need */
+ 	new_eb_bhs = kcalloc(new_blocks, sizeof(struct buffer_head *),
+ 			     GFP_KERNEL);
+@@ -1014,9 +1089,6 @@ static int ocfs2_add_branch(struct ocfs2_super *osb,
+ 		goto bail;
  	}
  
- 	if (le16_to_cpu(el->l_tree_depth) == 0) {
--		ocfs2_insert_at_leaf(insert_rec, el, type, inode);
-+		ret = ocfs2_insert_at_leaf(insert_rec, el, type, inode);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
- 		goto out_update_clusters;
- 	}
- 
+-	eb = (struct ocfs2_extent_block *)(*last_eb_bh)->b_data;
+-	new_cpos = ocfs2_sum_rightmost_rec(&eb->h_list);
+-
+ 	/* Note: new_eb_bhs[new_blocks - 1] is the guy which will be
+ 	 * linked with the rest of the tree.
+ 	 * conversly, new_eb_bhs[0] is the new bottommost leaf.
 -- 
 1.6.2.rc2.16.gf474c
