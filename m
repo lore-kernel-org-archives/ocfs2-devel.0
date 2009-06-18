@@ -1,154 +1,112 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 17 Jun 2009 18:52:20 -0700
-Subject: [Ocfs2-devel] [PATCH 2/8] ocfs2: Use nd_set_link()
+Date: Wed, 17 Jun 2009 18:52:21 -0700
+Subject: [Ocfs2-devel] [PATCH 3/8] ocfs2: Correct ordering of ip_alloc_sem
+	and localloc locks for directories
 In-Reply-To: <1245289946-17136-1-git-send-email-sunil.mushran@oracle.com>
 References: <1245289946-17136-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1245289946-17136-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1245289946-17136-4-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Joel Becker <Joel.Becker@oracle.com>
+From: Jan Kara <jack@suse.cz>
 
-Mainline commit a731d12d6ddd1e703770cacb5dfecb155b03ee06
+Mainline commit edd45c08499a3e9d4c25431cd2b6a9ce5f692c92
 
-ocfs2 was hand-calling vfs_follow_link(), but there's no point to that.
-Let's use page_follow_link_light() and nd_set_link().
+We use ordering ip_alloc_sem -> local alloc locks in ocfs2_write_begin().
+So change lock ordering in ocfs2_extend_dir() and ocfs2_expand_inline_dir()
+to also use this lock ordering.
 
+Signed-off-by: Jan Kara <jack@suse.cz>
+Acked-by: Mark Fasheh <mfasheh@suse.com>
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/ocfs2/symlink.c |   76 +++++++++++++++++++++++++--------------------------
- 1 files changed, 37 insertions(+), 39 deletions(-)
+ fs/ocfs2/dir.c |   21 ++++++++++-----------
+ 1 files changed, 10 insertions(+), 11 deletions(-)
 
-diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
-index 3fee102..0dd4b2f 100644
---- a/fs/ocfs2/symlink.c
-+++ b/fs/ocfs2/symlink.c
-@@ -39,6 +39,7 @@
- #include <linux/slab.h>
- #include <linux/pagemap.h>
- #include <linux/utsname.h>
-+#include <linux/namei.h>
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 6389c05..f251c1a 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -1197,6 +1197,8 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
  
- #define MLOG_MASK_PREFIX ML_NAMEI
- #include <cluster/masklog.h>
-@@ -53,26 +54,6 @@
+ 	alloc = ocfs2_clusters_for_bytes(sb, bytes);
  
- #include "buffer_head_io.h"
- 
--static char *ocfs2_page_getlink(struct dentry * dentry,
--				struct page **ppage);
--static char *ocfs2_fast_symlink_getlink(struct inode *inode,
--					struct buffer_head **bh);
--
--/* get the link contents into pagecache */
--static char *ocfs2_page_getlink(struct dentry * dentry,
--				struct page **ppage)
--{
--	struct page * page;
--	struct address_space *mapping = dentry->d_inode->i_mapping;
--	page = read_mapping_page(mapping, 0, NULL);
--	if (IS_ERR(page))
--		goto sync_fail;
--	*ppage = page;
--	return kmap(page);
--
--sync_fail:
--	return (char*)page;
--}
- 
- static char *ocfs2_fast_symlink_getlink(struct inode *inode,
- 					struct buffer_head **bh)
-@@ -131,35 +112,50 @@ out:
- 	return ret;
- }
- 
--static void *ocfs2_follow_link(struct dentry *dentry,
--			       struct nameidata *nd)
-+static void *ocfs2_fast_follow_link(struct dentry *dentry,
-+				    struct nameidata *nd)
++	down_write(&oi->ip_alloc_sem);
 +
- {
--	int status;
--	char *link;
-+	int status = 0;
-+	int len;
-+	char *target, *link = ERR_PTR(-ENOMEM);
- 	struct inode *inode = dentry->d_inode;
--	struct page *page = NULL;
- 	struct buffer_head *bh = NULL;
- 	
--	if (ocfs2_inode_is_fast_symlink(inode))
--		link = ocfs2_fast_symlink_getlink(inode, &bh);
--	else
--		link = ocfs2_page_getlink(dentry, &page);
--	if (IS_ERR(link)) {
--		status = PTR_ERR(link);
-+	mlog_entry_void();
-+
-+	BUG_ON(!ocfs2_inode_is_fast_symlink(inode));
-+	target = ocfs2_fast_symlink_getlink(inode, &bh);
-+	if (IS_ERR(target)) {
-+		status = PTR_ERR(target);
- 		mlog_errno(status);
- 		goto bail;
+ 	/*
+ 	 * We should never need more than 2 clusters for this -
+ 	 * maximum dirent size is far less than one block. In fact,
+@@ -1213,8 +1215,6 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 		goto out;
  	}
  
--	status = vfs_follow_link(nd, link);
-+	/* Fast symlinks can't be large */
-+	len = strlen(target);
-+	link = kzalloc(len + 1, GFP_NOFS);
-+	if (!link) {
-+		status = -ENOMEM;
-+		mlog_errno(status);
-+		goto bail;
-+	}
-+
-+	memcpy(link, target, len);
-+	nd_set_link(nd, link);
+-	down_write(&oi->ip_alloc_sem);
+-
+ 	/*
+ 	 * Prepare for worst case allocation scenario of two separate
+ 	 * extents.
+@@ -1226,7 +1226,7 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 	if (IS_ERR(handle)) {
+ 		ret = PTR_ERR(handle);
+ 		mlog_errno(ret);
+-		goto out_sem;
++		goto out;
+ 	}
  
+ 	/*
+@@ -1353,10 +1353,8 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ out_commit:
+ 	ocfs2_commit_trans(osb, handle);
+ 
+-out_sem:
+-	up_write(&oi->ip_alloc_sem);
+-
+ out:
++	up_write(&oi->ip_alloc_sem);
+ 	if (data_ac)
+ 		ocfs2_free_alloc_context(data_ac);
+ 
+@@ -1468,11 +1466,15 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 		brelse(new_bh);
+ 		new_bh = NULL;
+ 
++		down_write(&OCFS2_I(dir)->ip_alloc_sem);
++		drop_alloc_sem = 1;
+ 		dir_i_size = i_size_read(dir);
+ 		credits = OCFS2_SIMPLE_DIR_EXTEND_CREDITS;
+ 		goto do_extend;
+ 	}
+ 
++	down_write(&OCFS2_I(dir)->ip_alloc_sem);
++	drop_alloc_sem = 1;
+ 	dir_i_size = i_size_read(dir);
+ 	mlog(0, "extending dir %llu (i_size = %lld)\n",
+ 	     (unsigned long long)OCFS2_I(dir)->ip_blkno, dir_i_size);
+@@ -1511,9 +1513,6 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
+ 	}
+ 
+ do_extend:
+-	down_write(&OCFS2_I(dir)->ip_alloc_sem);
+-	drop_alloc_sem = 1;
+-
+ 	handle = ocfs2_start_trans(osb, credits);
+ 	if (IS_ERR(handle)) {
+ 		status = PTR_ERR(handle);
+@@ -1560,10 +1559,10 @@ bail_bh:
+ 	*new_de_bh = new_bh;
+ 	get_bh(*new_de_bh);
  bail:
--	if (page) {
--		kunmap(page);
--		page_cache_release(page);
--	}
- 	brelse(bh);
+-	if (drop_alloc_sem)
+-		up_write(&OCFS2_I(dir)->ip_alloc_sem);
+ 	if (handle)
+ 		ocfs2_commit_trans(osb, handle);
++	if (drop_alloc_sem)
++		up_write(&OCFS2_I(dir)->ip_alloc_sem);
  
--	return ERR_PTR(status);
-+	mlog_exit(status);
-+	return status ? ERR_PTR(status) : link;
-+}
-+
-+static void ocfs2_fast_put_link(struct dentry *dentry, struct nameidata *nd, void *cookie)
-+{
-+	char *link = cookie;
-+
-+	kfree(link);
- }
- 
- #ifdef IOP_IS_NOT_CONST
-@@ -168,7 +164,8 @@ struct inode_operations ocfs2_symlink_inode_operations = {
- const struct inode_operations ocfs2_symlink_inode_operations = {
- #endif
- 	.readlink	= page_readlink,
--	.follow_link	= ocfs2_follow_link,
-+	.follow_link    = page_follow_link_light,
-+	.put_link       = page_put_link,
- 	.getattr	= ocfs2_getattr,
- 	.setattr        = ocfs2_setattr,
- };
-@@ -178,7 +175,8 @@ struct inode_operations ocfs2_fast_symlink_inode_operations = {
- const struct inode_operations ocfs2_fast_symlink_inode_operations = {
- #endif
- 	.readlink	= ocfs2_readlink,
--	.follow_link	= ocfs2_follow_link,
-+	.follow_link	= ocfs2_fast_follow_link,
-+	.put_link	= ocfs2_fast_put_link,
- 	.getattr	= ocfs2_getattr,
- 	.setattr        = ocfs2_setattr,
- };
+ 	if (data_ac)
+ 		ocfs2_free_alloc_context(data_ac);
 -- 
 1.6.0.4
