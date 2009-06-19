@@ -1,117 +1,197 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 19 Jun 2009 14:45:56 -0700
-Subject: [Ocfs2-devel] [PATCH 3/5] ocfs2: Stop orphan scan as early as
-	possible during umount
+Date: Fri, 19 Jun 2009 14:45:58 -0700
+Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2: Disable orphan scanning for local
+	and hard-ro mounts
 In-Reply-To: <1245447958-12996-1-git-send-email-sunil.mushran@oracle.com>
 References: <1245447958-12996-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1245447958-12996-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1245447958-12996-5-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Currently if the orphan scan fires a tick before the user issues the umount,
-the umount will wait for the queued orphan scan tasks to complete.
-
-This patch makes the umount stop the orphan scan as early as possible so as
-to reduce the probability of the queued tasks slowing down the umount.
+Local and Hard-RO mounts do not need orphan scanning.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/journal.c |   14 ++++++++++++--
- fs/ocfs2/ocfs2.h   |    3 +++
- fs/ocfs2/super.c   |    5 +++--
- 3 files changed, 18 insertions(+), 4 deletions(-)
+ fs/ocfs2/dlmglue.c |   18 +++++++++++++-----
+ fs/ocfs2/journal.c |   26 +++++++++++++++-----------
+ fs/ocfs2/journal.h |    2 +-
+ fs/ocfs2/super.c   |   33 ++++++++++++++++-----------------
+ 4 files changed, 45 insertions(+), 34 deletions(-)
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 4a3b9e6..e690483 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -1880,6 +1880,9 @@ void ocfs2_queue_orphan_scan(struct ocfs2_super *osb)
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 42ef595..697a192 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2372,6 +2372,12 @@ int ocfs2_orphan_scan_lock(struct ocfs2_super *osb, u32 *seqno, int ex)
+ 	int level = ex ? DLM_LOCK_EX : DLM_LOCK_PR;
+ 	int status = 0;
  
- 	os = &osb->osb_orphan_scan;
- 
-+	if (atomic_read(&os->os_status) == ORPHAN_SCAN_INACTIVE)
-+		goto out;
++	if (ocfs2_is_hard_readonly(osb))
++		return -EROFS;
 +
- 	status = ocfs2_orphan_scan_lock(osb, &seqno, DLM_LOCK_EX);
- 	if (status < 0) {
- 		if (status != -EAGAIN)
-@@ -1887,6 +1890,10 @@ void ocfs2_queue_orphan_scan(struct ocfs2_super *osb)
- 		goto out;
- 	}
- 
-+	/* Do no queue the tasks if the volume is being umounted */
-+	if (atomic_read(&os->os_status) == ORPHAN_SCAN_INACTIVE)
-+		goto unlock;
++	if (ocfs2_mount_local(osb))
++		return 0;
 +
- 	if (os->os_seqno != seqno) {
- 		os->os_seqno = seqno;
- 		goto unlock;
-@@ -1920,8 +1927,9 @@ void ocfs2_orphan_scan_work(struct work_struct *work)
+ 	lockres = &osb->osb_orphan_scan.os_lockres;
+ 	status = ocfs2_cluster_lock(osb, lockres, level, 0, 0);
+ 	if (status < 0)
+@@ -2396,11 +2402,13 @@ void ocfs2_orphan_scan_unlock(struct ocfs2_super *osb, u32 seqno, int ex)
+ 	struct ocfs2_orphan_scan_lvb *lvb;
+ 	int level = ex ? DLM_LOCK_EX : DLM_LOCK_PR;
  
- 	mutex_lock(&os->os_lock);
- 	ocfs2_queue_orphan_scan(osb);
--	schedule_delayed_work(&os->os_orphan_scan_work,
--			      ocfs2_orphan_scan_timeout());
-+	if (atomic_read(&os->os_status) == ORPHAN_SCAN_ACTIVE)
-+		schedule_delayed_work(&os->os_orphan_scan_work,
-+				      ocfs2_orphan_scan_timeout());
- 	mutex_unlock(&os->os_lock);
+-	lockres = &osb->osb_orphan_scan.os_lockres;
+-	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+-	lvb->lvb_version = OCFS2_ORPHAN_LVB_VERSION;
+-	lvb->lvb_os_seqno = cpu_to_be32(seqno);
+-	ocfs2_cluster_unlock(osb, lockres, level);
++	if (!ocfs2_is_hard_readonly(osb) && !ocfs2_mount_local(osb)) {
++		lockres = &osb->osb_orphan_scan.os_lockres;
++		lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
++		lvb->lvb_version = OCFS2_ORPHAN_LVB_VERSION;
++		lvb->lvb_os_seqno = cpu_to_be32(seqno);
++		ocfs2_cluster_unlock(osb, lockres, level);
++	}
  }
  
-@@ -1930,6 +1938,7 @@ void ocfs2_orphan_scan_stop(struct ocfs2_super *osb)
+ int ocfs2_super_lock(struct ocfs2_super *osb,
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 03a43c3..1e66efc 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -1938,29 +1938,33 @@ void ocfs2_orphan_scan_stop(struct ocfs2_super *osb)
  	struct ocfs2_orphan_scan *os;
  
  	os = &osb->osb_orphan_scan;
-+	atomic_set(&os->os_status, ORPHAN_SCAN_INACTIVE);
- 	mutex_lock(&os->os_lock);
- 	cancel_delayed_work(&os->os_orphan_scan_work);
- 	mutex_unlock(&os->os_lock);
-@@ -1940,6 +1949,7 @@ int ocfs2_orphan_scan_init(struct ocfs2_super *osb)
+-	atomic_set(&os->os_status, ORPHAN_SCAN_INACTIVE);
+-	mutex_lock(&os->os_lock);
+-	cancel_delayed_work(&os->os_orphan_scan_work);
+-	mutex_unlock(&os->os_lock);
++	if (atomic_read(&os->os_status) == ORPHAN_SCAN_ACTIVE) {
++		atomic_set(&os->os_status, ORPHAN_SCAN_INACTIVE);
++		mutex_lock(&os->os_lock);
++		cancel_delayed_work(&os->os_orphan_scan_work);
++		mutex_unlock(&os->os_lock);
++	}
+ }
+ 
+-int ocfs2_orphan_scan_init(struct ocfs2_super *osb)
++void ocfs2_orphan_scan_init(struct ocfs2_super *osb, int start)
+ {
  	struct ocfs2_orphan_scan *os;
  
  	os = &osb->osb_orphan_scan;
-+	atomic_set(&os->os_status, ORPHAN_SCAN_ACTIVE);
+-	atomic_set(&os->os_status, ORPHAN_SCAN_ACTIVE);
  	os->os_osb = osb;
  	os->os_count = 0;
+ 	os->os_seqno = 0;
  	os->os_scantime = CURRENT_TIME;
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 18c1d9e..6930b60 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -162,6 +162,9 @@ struct ocfs2_orphan_scan {
- 	struct timespec		os_scantime;  /* time this node ran the scan */
- 	u32			os_count;      /* tracks node specific scans */
- 	u32  			os_seqno;       /* tracks cluster wide scans */
-+#define ORPHAN_SCAN_ACTIVE	0
-+#define ORPHAN_SCAN_INACTIVE	1
-+	atomic_t		os_status;             /* ACTIVE or INACTIVE */
- };
+ 	mutex_init(&os->os_lock);
++	INIT_DELAYED_WORK(&os->os_orphan_scan_work, ocfs2_orphan_scan_work);
  
- struct ocfs2_dlm_debug {
+-	INIT_DELAYED_WORK(&os->os_orphan_scan_work,
+-			  ocfs2_orphan_scan_work);
+-	schedule_delayed_work(&os->os_orphan_scan_work,
+-			      ocfs2_orphan_scan_timeout());
+-	return 0;
++	if (!start)
++		atomic_set(&os->os_status, ORPHAN_SCAN_INACTIVE);
++	else {
++		atomic_set(&os->os_status, ORPHAN_SCAN_ACTIVE);
++		schedule_delayed_work(&os->os_orphan_scan_work,
++				      ocfs2_orphan_scan_timeout());
++	}
+ }
+ 
+ struct ocfs2_orphan_filldir_priv {
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 61045ee..24df8de 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -144,7 +144,7 @@ static inline void ocfs2_inode_set_new(struct ocfs2_super *osb,
+ }
+ 
+ /* Exported only for the journal struct init code in super.c. Do not call. */
+-int ocfs2_orphan_scan_init(struct ocfs2_super *osb);
++void ocfs2_orphan_scan_init(struct ocfs2_super *osb, int start);
+ void ocfs2_orphan_scan_stop(struct ocfs2_super *osb);
+ void ocfs2_orphan_scan_exit(struct ocfs2_super *osb);
+ 
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index d64739b..3e8a68b 100644
+index 3e8a68b..ca80d52 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -1814,14 +1814,15 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+@@ -205,11 +205,10 @@ static const match_table_t tokens = {
+ #ifdef CONFIG_DEBUG_FS
+ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ {
+-	int out = 0;
+-	int i;
+ 	struct ocfs2_cluster_connection *cconn = osb->cconn;
+ 	struct ocfs2_recovery_map *rm = osb->recovery_map;
+-	struct ocfs2_orphan_scan *os;
++	struct ocfs2_orphan_scan *os = &osb->osb_orphan_scan;
++	int i, out = 0;
  
- 	debugfs_remove(osb->osb_ctxt);
+ 	out += snprintf(buf + out, len - out,
+ 			"%10s => Id: %-s  Uuid: %-s  Gen: 0x%X  Label: %-s\n",
+@@ -305,6 +304,16 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ 			atomic_read(&osb->s_num_inodes_stolen));
+ 	spin_unlock(&osb->osb_lock);
  
-+	/* Orphan scan should be stopped as early as possible */
-+	ocfs2_orphan_scan_stop(osb);
++	out += snprintf(buf + out, len - out, "Orphan Scan=> ");
++	out += snprintf(buf + out, len - out, "Local: %u  Global: %u ",
++			os->os_count, os->os_seqno);
++	out += snprintf(buf + out, len - out, " Last Scan: ");
++	if (atomic_read(&os->os_status) == ORPHAN_SCAN_INACTIVE)
++		out += snprintf(buf + out, len - out, "Disabled\n");
++	else
++		out += snprintf(buf + out, len - out, "%lu seconds ago\n",
++				(get_seconds() - os->os_scantime.tv_sec));
 +
- 	ocfs2_disable_quotas(osb);
+ 	out += snprintf(buf + out, len - out, "%10s => %3s  %10s\n",
+ 			"Slots", "Num", "RecoGen");
+ 	for (i = 0; i < osb->max_slots; ++i) {
+@@ -315,13 +324,6 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ 				i, osb->slot_recovery_generations[i]);
+ 	}
  
- 	ocfs2_shutdown_local_alloc(osb);
- 
- 	ocfs2_truncate_log_shutdown(osb);
- 
--	ocfs2_orphan_scan_stop(osb);
+-	os = &osb->osb_orphan_scan;
+-	out += snprintf(buf + out, len - out, "Orphan Scan=> ");
+-	out += snprintf(buf + out, len - out, "Local: %u  Global: %u ",
+-			os->os_count, os->os_seqno);
+-	out += snprintf(buf + out, len - out, " Last Scan: %lu seconds ago\n",
+-			(get_seconds() - os->os_scantime.tv_sec));
 -
- 	/* This will disable recovery and flush any recovery work. */
- 	ocfs2_recovery_exit(osb);
+ 	return out;
+ }
  
+@@ -1983,13 +1985,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
+-	status = ocfs2_orphan_scan_init(osb);
+-	if (status) {
+-		mlog(ML_ERROR, "Unable to initialize delayed orphan scan\n");
+-		mlog_errno(status);
+-		goto bail;
+-	}
+-
+ 	init_waitqueue_head(&osb->checkpoint_event);
+ 	atomic_set(&osb->needs_checkpoint, 0);
+ 
+@@ -2196,6 +2191,10 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
++	/* No need to start orphan scan for local and hard-ro mounts */
++	ocfs2_orphan_scan_init(osb, (!ocfs2_is_hard_readonly(osb) &&
++				     !ocfs2_mount_local(osb)));
++
+ bail:
+ 	mlog_exit(status);
+ 	return status;
 -- 
 1.6.0.4
