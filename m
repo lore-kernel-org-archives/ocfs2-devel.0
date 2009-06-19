@@ -1,13 +1,18 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 19 Jun 2009 15:19:21 -0700
+Date: Fri, 19 Jun 2009 15:40:47 -0700
 Subject: [Ocfs2-devel] [PATCH] ocfs2: Provide the ocfs2_dlm_lvb_valid()
-	stack API.
-Message-ID: <20090619221921.GH29140@mail.oracle.com>
+ stack API. v2 stack API.
+In-Reply-To: <20090619221921.GH29140@mail.oracle.com>
+References: <20090619221921.GH29140@mail.oracle.com>
+Message-ID: <20090619224047.GK29140@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Changes from v1:
+- I totally failed to use the API in dlmglue.c!
 
 The Lock Value Block (LVB) of a DLM lock can be lost when nodes die and
 the DLM cannot reconstruct its state.  Clients of the DLM need to know
@@ -32,12 +37,47 @@ check VALNOTVALID.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
+ fs/ocfs2/dlmglue.c    |    9 ++++++---
  fs/ocfs2/stack_o2cb.c |   11 +++++++++++
  fs/ocfs2/stack_user.c |    8 ++++++++
  fs/ocfs2/stackglue.c  |   13 +++++++------
  fs/ocfs2/stackglue.h  |    6 ++++++
- 4 files changed, 32 insertions(+), 6 deletions(-)
+ 5 files changed, 38 insertions(+), 9 deletions(-)
 
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 6cdeaa7..83d2ddb 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -1989,7 +1989,8 @@ static inline int ocfs2_meta_lvb_is_trustable(struct inode *inode,
+ {
+ 	struct ocfs2_meta_lvb *lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+ 
+-	if (lvb->lvb_version == OCFS2_LVB_VERSION
++	if (ocfs2_dlm_lvb_valid(&lockres->l_lksb)
++	    && lvb->lvb_version == OCFS2_LVB_VERSION
+ 	    && be32_to_cpu(lvb->lvb_igeneration) == inode->i_generation)
+ 		return 1;
+ 	return 0;
+@@ -2382,7 +2383,8 @@ int ocfs2_orphan_scan_lock(struct ocfs2_super *osb, u32 *seqno, int ex)
+ 		return status;
+ 
+ 	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+-	if (lvb->lvb_version == OCFS2_ORPHAN_LVB_VERSION)
++	if (ocfs2_dlm_lvb_valid(&lockres->l_lksb) &&
++	    lvb->lvb_version == OCFS2_ORPHAN_LVB_VERSION)
+ 		*seqno = be32_to_cpu(lvb->lvb_os_seqno);
+ 	return status;
+ }
+@@ -3627,7 +3629,8 @@ static int ocfs2_refresh_qinfo(struct ocfs2_mem_dqinfo *oinfo)
+ 	struct ocfs2_global_disk_dqinfo *gdinfo;
+ 	int status = 0;
+ 
+-	if (lvb->lvb_version == OCFS2_QINFO_LVB_VERSION) {
++	if (ocfs2_dlm_lvb_valid(&lockres->l_lksb) &&
++	    lvb->lvb_version == OCFS2_QINFO_LVB_VERSION) {
+ 		info->dqi_bgrace = be32_to_cpu(lvb->lvb_bgrace);
+ 		info->dqi_igrace = be32_to_cpu(lvb->lvb_igrace);
+ 		oinfo->dqi_syncms = be32_to_cpu(lvb->lvb_syncms);
 diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
 index fcd120f..3f66137 100644
 --- a/fs/ocfs2/stack_o2cb.c
@@ -151,12 +191,10 @@ index c571af3..03a44d6 100644
 -- 
 1.6.3.1
 
-
 -- 
 
-"Heav'n hath no rage like love to hatred turn'd, nor Hell a fury,
- like a woman scorn'd."
-        - William Congreve
+"Behind every successful man there's a lot of unsuccessful years."
+        - Bob Brown
 
 Joel Becker
 Principal Software Developer
