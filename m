@@ -1,24 +1,22 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 19 Jun 2009 16:31:35 -0700
-Subject: [Ocfs2-devel] [PATCH 1/5] ocfs2: Pin journal head before
- accessing jh->b_committed_data
-In-Reply-To: <1245447958-12996-1-git-send-email-sunil.mushran@oracle.com>
-References: <1245447958-12996-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20090619233135.GN29140@mail.oracle.com>
+Date: Fri, 19 Jun 2009 16:32:12 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Update atime in splice read if
+	necessary.
+In-Reply-To: <1245397012-20648-1-git-send-email-tao.ma@oracle.com>
+References: <1245397012-20648-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20090619233212.GP29140@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jun 19, 2009 at 02:45:54PM -0700, Sunil Mushran wrote:
-> This patch adds jbd_lock_bh_state() and jbd_unlock_bh_state() around accessses
-> to jh->b_committed_data.
+On Fri, Jun 19, 2009 at 03:36:52PM +0800, Tao Ma wrote:
+> We should call ocfs2_inode_lock_atime instead of ocfs2_inode_lock
+> in ocfs2_file_splice_read like we do in ocfs2_file_aio_read so
+> that we can update atime in splice read if necessary.
 > 
-> Fixes oss bugzilla#1131
-> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1131
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
 This is now in the fixes branch of ocfs2.git.
 
@@ -26,9 +24,9 @@ Joel
 
 -- 
 
-Life's Little Instruction Book #207
-
-	"Swing for the fence."
+"Heav'n hath no rage like love to hatred turn'd, nor Hell a fury,
+ like a woman scorn'd."
+        - William Congreve
 
 Joel Becker
 Principal Software Developer
