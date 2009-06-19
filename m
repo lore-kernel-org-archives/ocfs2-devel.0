@@ -1,54 +1,71 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 19 Jun 2009 13:25:53 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Update atime in splice read if
-	necessary.
-In-Reply-To: <1245397012-20648-1-git-send-email-tao.ma@oracle.com>
-References: <1245397012-20648-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <4A3BF451.10000@oracle.com>
+Date: Fri, 19 Jun 2009 14:45:57 -0700
+Subject: [Ocfs2-devel] [PATCH 4/5] ocfs2: Do not initialize lvb in
+	ocfs2_orphan_scan_lock_res_init()
+In-Reply-To: <1245447958-12996-1-git-send-email-sunil.mushran@oracle.com>
+References: <1245447958-12996-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1245447958-12996-4-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+No need to call ocfs2_dlm_lvb() in ocfs2_orphan_scan_lock_res_init().
 
-Tao Ma wrote:
-> We should call ocfs2_inode_lock_atime instead of ocfs2_inode_lock
-> in ocfs2_file_splice_read like we do in ocfs2_file_aio_read so
-> that we can update atime in splice read if necessary.
->
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
-> ---
->  fs/ocfs2/file.c |    6 +++---
->  1 files changed, 3 insertions(+), 3 deletions(-)
->
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 775ac34..95cba48 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -2025,7 +2025,7 @@ static ssize_t ocfs2_file_splice_read(struct file *in,
->  				      size_t len,
->  				      unsigned int flags)
->  {
-> -	int ret = 0;
-> +	int ret = 0, lock_level = 0;
->  	struct inode *inode = in->f_path.dentry->d_inode;
->  
->  	mlog_entry("(0x%p, 0x%p, %u, '%.*s')\n", in, pipe,
-> @@ -2036,12 +2036,12 @@ static ssize_t ocfs2_file_splice_read(struct file *in,
->  	/*
->  	 * See the comment in ocfs2_file_aio_read()
->  	 */
-> -	ret = ocfs2_inode_lock(inode, NULL, 0);
-> +	ret = ocfs2_inode_lock_atime(inode, in->f_vfsmnt, &lock_level);
->  	if (ret < 0) {
->  		mlog_errno(ret);
->  		goto bail;
->  	}
-> -	ocfs2_inode_unlock(inode, 0);
-> +	ocfs2_inode_unlock(inode, lock_level);
->  
->  	ret = generic_file_splice_read(in, ppos, pipe, len, flags);
->  
->   
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/dlmglue.c |   11 +++++++----
+ fs/ocfs2/journal.c |    1 +
+ 2 files changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 6cdeaa7..42ef595 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -644,14 +644,10 @@ static void ocfs2_nfs_sync_lock_res_init(struct ocfs2_lock_res *res,
+ static void ocfs2_orphan_scan_lock_res_init(struct ocfs2_lock_res *res,
+ 					    struct ocfs2_super *osb)
+ {
+-	struct ocfs2_orphan_scan_lvb *lvb;
+-
+ 	ocfs2_lock_res_init_once(res);
+ 	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_ORPHAN_SCAN, 0, 0, res->l_name);
+ 	ocfs2_lock_res_init_common(osb, res, OCFS2_LOCK_TYPE_ORPHAN_SCAN,
+ 				   &ocfs2_orphan_scan_lops, osb);
+-	lvb = ocfs2_dlm_lvb(&res->l_lksb);
+-	lvb->lvb_version = OCFS2_ORPHAN_LVB_VERSION;
+ }
+ 
+ void ocfs2_file_lock_res_init(struct ocfs2_lock_res *lockres,
+@@ -2381,9 +2377,16 @@ int ocfs2_orphan_scan_lock(struct ocfs2_super *osb, u32 *seqno, int ex)
+ 	if (status < 0)
+ 		return status;
+ 
++	/*
++	 * TODO: Add handling for different lvb versions. It is blocked
++	 * on being able to detect valid lvb via stackglue.
++	 */
+ 	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+ 	if (lvb->lvb_version == OCFS2_ORPHAN_LVB_VERSION)
+ 		*seqno = be32_to_cpu(lvb->lvb_os_seqno);
++	else
++		*seqno = osb->osb_orphan_scan.os_seqno + 1;
++ 
+ 	return status;
+ }
+ 
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index e690483..03a43c3 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -1952,6 +1952,7 @@ int ocfs2_orphan_scan_init(struct ocfs2_super *osb)
+ 	atomic_set(&os->os_status, ORPHAN_SCAN_ACTIVE);
+ 	os->os_osb = osb;
+ 	os->os_count = 0;
++	os->os_seqno = 0;
+ 	os->os_scantime = CURRENT_TIME;
+ 	mutex_init(&os->os_lock);
+ 
+-- 
+1.6.0.4
