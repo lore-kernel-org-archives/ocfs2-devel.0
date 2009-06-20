@@ -1,34 +1,36 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 19 Jun 2009 23:04:52 -0700
-Subject: [Ocfs2-devel] [PATCH 3/5] ocfs2: Stop orphan scan as early as
- possible during umount
-In-Reply-To: <1245455599-23348-2-git-send-email-sunil.mushran@oracle.com>
-References: <1245455599-23348-1-git-send-email-sunil.mushran@oracle.com>
-	<1245455599-23348-2-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20090620060451.GC1993@mail.oracle.com>
+Date: Fri, 19 Jun 2009 23:06:37 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Wrap
+ ocfs2_sysfile_cluster_lock_key within define.
+In-Reply-To: <1245301926-17359-1-git-send-email-tao.ma@oracle.com>
+References: <1245301926-17359-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20090620060637.GE1993@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jun 19, 2009 at 04:53:17PM -0700, Sunil Mushran wrote:
-> Currently if the orphan scan fires a tick before the user issues the umount,
-> the umount will wait for the queued orphan scan tasks to complete.
+On Thu, Jun 18, 2009 at 01:12:06PM +0800, Tao Ma wrote:
+> Actually ocfs2_sysfile_cluster_lock_key is only used if we enable
+> CONFIG_DEBUG_LOCK_ALLOC. Wrap it so that we can avoid a building
+> warning.
+> fs/ocfs2/sysfile.c:53: warning: ?ocfs2_sysfile_cluster_lock_key?
+> defined but not used
 > 
-> This patch makes the umount stop the orphan scan as early as possible so as
-> to reduce the probability of the queued tasks slowing down the umount.
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-this is now in the fixes branch of ocfs2.git
+	This is now in the lockdep branch of ocfs2.git.
 
 Joel
 
 -- 
 
-"Reality is merely an illusion, albeit a very persistent one."
-        - Albert Einstien
+The Graham Corollary:
+
+	The longer a socially-moderated news website exists, the
+	probability of an old Paul Graham link appearing at the top
+	approaches certainty.
 
 Joel Becker
 Principal Software Developer
