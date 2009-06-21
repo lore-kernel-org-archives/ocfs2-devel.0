@@ -1,51 +1,34 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Fri, 19 Jun 2009 18:28:25 -0000
-Subject: [Ocfs2-devel] [PATCH] fs: Add new pre-allocation ioctls to vfs
-	for	compatibility with legacy xfs ioctls
-In-Reply-To: <4980C71F.1010804@ankitjain.org>
+From: Christoph Hellwig <hch@lst.de>
+Date: Sun, 21 Jun 2009 18:46:32 -0000
+Subject: [Ocfs2-devel] [xfs-masters] [PATCH] fs: Add new pre-allocation
+	ioctls to vfs for compatibility with legacy xfs ioctls
+In-Reply-To: <200906200813.59793.arnd@arndb.de>
 References: <4980C71F.1010804@ankitjain.org>
-Message-ID: <20090619182807.GA32683@infradead.org>
+	<20090619182807.GA32683@infradead.org>
+	<200906200813.59793.arnd@arndb.de>
+Message-ID: <20090621184154.GA3471@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ankit Jain <me@ankitjain.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, mfasheh@suse.com, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, xfs@oss.sgi.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@infradead.org>, mfasheh@suse.com, joel.becker@oracle.com, linux-kernel@vger.kernel.org, xfs-masters@oss.sgi.com, Al Viro <viro@zeniv.linux.org.uk>, Ankit Jain <me@ankitjain.org>, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, ocfs2-devel@oss.oracle.com
 
-On Thu, Jan 29, 2009 at 02:29:11AM +0530, Ankit Jain wrote:
-> Al, Could this be included in the vfs queue?
-> 
-> This patch adds ioctls to vfs for compatibility with legacy XFS
-> pre-allocation ioctls (XFS_IOC_*RESVP*). The implementation
-> effectively invokes sys_fallocate for the new ioctls.
-> Also handles the compat_ioctl case.
-> Note: These legacy ioctls are also implemented by OCFS2.
+On Sat, Jun 20, 2009 at 08:13:59AM +0000, Arnd Bergmann wrote:
+> I'd just define this using compat_s64 instead of __s64 __packed so we can
+> use the same code on all architectures, even at the small cost of extra
+> text size on non-x86 architectures.
 
-Still not in, but I remember Al pinged me because it broke on 64bit
-architectures due issues in the compat_ioctl support.
+I'm not a big fan of imposing the translation overhead to all
+architectures, but doing it allows using the good old HANDLE_IOCTL
+and futher simplifying things.
 
-Below is a version with that fixed and the ioctl renamed to FS_IOC_*
-instead of F_IOC_* to match other generic filesystem ioctls.
-
---
-
-Subject: fs: Add new pre-allocation ioctls to vfs for compatibility  with legacy xfs ioctls
-From: Ankit Jain <me@ankitjain.org>
-
-This patch adds ioctls to vfs for compatibility with legacy XFS
-pre-allocation ioctls (XFS_IOC_*RESVP*). The implementation
-effectively invokes sys_fallocate for the new ioctls.
-Also handles the compat_ioctl case.
-Note: These legacy ioctls are also implemented by OCFS2.
-
-Signed-off-by: Ankit Jain <me@ankitjain.org>
-Signed-off-by: Christoph Hellwig <hch@lst.de>
 
 
 Index: linux-2.6/fs/compat_ioctl.c
 ===================================================================
---- linux-2.6.orig/fs/compat_ioctl.c	2009-06-18 13:23:44.842814582 +0200
-+++ linux-2.6/fs/compat_ioctl.c	2009-06-19 10:45:22.061840838 +0200
+--- linux-2.6.orig/fs/compat_ioctl.c	2009-06-20 20:19:47.035930201 +0200
++++ linux-2.6/fs/compat_ioctl.c	2009-06-20 20:20:43.821833210 +0200
 @@ -31,6 +31,7 @@
  #include <linux/skbuff.h>
  #include <linux/netlink.h>
@@ -54,18 +37,16 @@ Index: linux-2.6/fs/compat_ioctl.c
  #include <linux/fs.h>
  #include <linux/file.h>
  #include <linux/ppp_defs.h>
-@@ -1820,6 +1821,41 @@ lp_timeout_trans(unsigned int fd, unsign
+@@ -1820,6 +1821,38 @@ lp_timeout_trans(unsigned int fd, unsign
  	return sys_ioctl(fd, cmd, (unsigned long)tn);
  }
  
 +/* on ia32 l_start is on a 32-bit boundary */
-+#if defined(CONFIG_IA64) || defined(CONFIG_X86_64)
 +struct space_resv_32 {
 +	__s16		l_type;
 +	__s16		l_whence;
-+	__s64		l_start	__attribute__((packed));
-+			/* len == 0 means until end of file */
-+	__s64		l_len __attribute__((packed));
++	compat_s64	l_start;
++	compat_s64	l_len;		/* len == 0 means until end of file */
 +	__s32		l_sysid;
 +	__u32		l_pid;
 +	__s32		l_pad[4];	/* reserve area */
@@ -75,7 +56,7 @@ Index: linux-2.6/fs/compat_ioctl.c
 +#define FS_IOC_RESVSP64_32	_IOW ('X', 42, struct space_resv_32)
 +
 +/* just account for different alignment */
-+static int compat_ioctl_preallocate(struct file *file, unsigned long arg)
++static int compat_ioctl_resvsp(unsigned fd, unsigned cmd, unsigned long arg)
 +{
 +	struct space_resv_32	__user *p32 = (void __user *)arg;
 +	struct space_resv	__user *p = compat_alloc_user_space(sizeof(*p));
@@ -89,36 +70,25 @@ Index: linux-2.6/fs/compat_ioctl.c
 +	    copy_in_user(&p->l_pad,	&p32->l_pad,	4*sizeof(u32)))
 +		return -EFAULT;
 +
-+	return ioctl_preallocate(file, p);
++	return sys_ioctl(fd, FS_IOC_RESVSP, p);
 +}
-+#endif
 +
  
  typedef int (*ioctl_trans_handler_t)(unsigned int, unsigned int,
  					unsigned long, struct file *);
-@@ -2808,6 +2844,18 @@ asmlinkage long compat_sys_ioctl(unsigne
- 	case FIOQSIZE:
- 		break;
- 
-+#if defined(CONFIG_IA64) || defined(CONFIG_X86_64)
-+	case FS_IOC_RESVSP_32:
-+	case FS_IOC_RESVSP64_32:
-+		error = compat_ioctl_preallocate(filp, arg);
-+		goto out_fput;
-+#else
-+	case FS_IOC_RESVSP:
-+	case FS_IOC_RESVSP64:
-+		error = ioctl_preallocate(filp, (void __user *)arg);
-+		goto out_fput;
-+#endif
-+
- 	case FIBMAP:
- 	case FIGETBSZ:
- 	case FIONREAD:
+@@ -1915,6 +1948,8 @@ COMPATIBLE_IOCTL(FIGETBSZ)
+ /* 'X' - originally XFS but some now in the VFS */
+ COMPATIBLE_IOCTL(FIFREEZE)
+ COMPATIBLE_IOCTL(FITHAW)
++HANDLE_IOCTL(FS_IOC_RESVSP_32, compat_ioctl_resvsp)
++HANDLE_IOCTL(FS_IOC_RESVSP64_32, compat_ioctl_resvsp)
+ /* RAID */
+ COMPATIBLE_IOCTL(RAID_VERSION)
+ COMPATIBLE_IOCTL(GET_ARRAY_INFO)
 Index: linux-2.6/fs/ioctl.c
 ===================================================================
---- linux-2.6.orig/fs/ioctl.c	2009-06-18 13:23:44.864813328 +0200
-+++ linux-2.6/fs/ioctl.c	2009-06-19 10:45:22.065891285 +0200
+--- linux-2.6.orig/fs/ioctl.c	2009-06-20 20:19:47.040930349 +0200
++++ linux-2.6/fs/ioctl.c	2009-06-20 20:20:43.821833210 +0200
 @@ -15,6 +15,7 @@
  #include <linux/uaccess.h>
  #include <linux/writeback.h>
@@ -138,7 +108,7 @@ Index: linux-2.6/fs/ioctl.c
 + * Only the l_start, l_len and l_whence fields of the 'struct space_resv'
 + * are used here, rest are ignored.
 + */
-+int ioctl_preallocate(struct file *filp, void __user *argp)
++static int ioctl_resvsp(struct file *filp, void __user *argp)
 +{
 +	struct inode *inode = filp->f_path.dentry->d_inode;
 +	struct space_resv sr;
@@ -171,14 +141,14 @@ Index: linux-2.6/fs/ioctl.c
  		return put_user(i_size_read(inode) - filp->f_pos, p);
 +	case FS_IOC_RESVSP:
 +	case FS_IOC_RESVSP64:
-+		return ioctl_preallocate(filp, p);
++		return ioctl_resvsp(filp, p);
  	}
  
  	return vfs_ioctl(filp, cmd, arg);
 Index: linux-2.6/fs/open.c
 ===================================================================
---- linux-2.6.orig/fs/open.c	2009-06-15 06:52:46.423947558 +0200
-+++ linux-2.6/fs/open.c	2009-06-19 10:45:22.071891142 +0200
+--- linux-2.6.orig/fs/open.c	2009-06-20 20:19:47.054929896 +0200
++++ linux-2.6/fs/open.c	2009-06-20 20:20:43.822836760 +0200
 @@ -378,63 +378,63 @@ SYSCALL_ALIAS(sys_ftruncate64, SyS_ftrun
  #endif
  #endif /* BITS_PER_LONG == 32 */
@@ -274,8 +244,8 @@ Index: linux-2.6/fs/open.c
  {
 Index: linux-2.6/include/linux/falloc.h
 ===================================================================
---- linux-2.6.orig/include/linux/falloc.h	2009-06-15 06:52:46.427939617 +0200
-+++ linux-2.6/include/linux/falloc.h	2009-06-19 10:45:22.077973761 +0200
+--- linux-2.6.orig/include/linux/falloc.h	2009-06-20 20:19:47.059930323 +0200
++++ linux-2.6/include/linux/falloc.h	2009-06-20 20:20:43.822836760 +0200
 @@ -3,4 +3,25 @@
  
  #define FALLOC_FL_KEEP_SIZE	0x01 /* default is extend size */
@@ -304,8 +274,8 @@ Index: linux-2.6/include/linux/falloc.h
  #endif /* _FALLOC_H_ */
 Index: linux-2.6/include/linux/fs.h
 ===================================================================
---- linux-2.6.orig/include/linux/fs.h	2009-06-17 11:49:42.162814358 +0200
-+++ linux-2.6/include/linux/fs.h	2009-06-19 10:45:22.081962259 +0200
+--- linux-2.6.orig/include/linux/fs.h	2009-06-20 20:19:47.065929969 +0200
++++ linux-2.6/include/linux/fs.h	2009-06-20 20:20:43.823832557 +0200
 @@ -1905,6 +1905,8 @@ static inline int break_lease(struct ino
  
  extern int do_truncate(struct dentry *, loff_t start, unsigned int time_attrs,
@@ -315,14 +285,3 @@ Index: linux-2.6/include/linux/fs.h
  extern long do_sys_open(int dfd, const char __user *filename, int flags,
  			int mode);
  extern struct file *filp_open(const char *, int, int);
-@@ -1913,6 +1915,10 @@ extern struct file * dentry_open(struct 
- extern int filp_close(struct file *, fl_owner_t id);
- extern char * getname(const char __user *);
- 
-+/* fs/ioctl.c */
-+
-+extern int ioctl_preallocate(struct file *filp, void __user *argp);
-+
- /* fs/dcache.c */
- extern void __init vfs_caches_init_early(void);
- extern void __init vfs_caches_init(unsigned long);
