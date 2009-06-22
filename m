@@ -1,36 +1,48 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 19 Jun 2009 23:06:37 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Wrap
- ocfs2_sysfile_cluster_lock_key within define.
-In-Reply-To: <1245301926-17359-1-git-send-email-tao.ma@oracle.com>
-References: <1245301926-17359-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20090620060637.GE1993@mail.oracle.com>
+Date: Mon, 22 Jun 2009 09:17:08 -0700
+Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2: Disable orphan scanning for
+ local and hard-ro mounts
+In-Reply-To: <20090620044129.GA1993@mail.oracle.com>
+References: <1245455599-23348-1-git-send-email-sunil.mushran@oracle.com>
+	<1245455599-23348-4-git-send-email-sunil.mushran@oracle.com>
+	<20090620044129.GA1993@mail.oracle.com>
+Message-ID: <20090622161707.GA8805@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jun 18, 2009 at 01:12:06PM +0800, Tao Ma wrote:
-> Actually ocfs2_sysfile_cluster_lock_key is only used if we enable
-> CONFIG_DEBUG_LOCK_ALLOC. Wrap it so that we can avoid a building
-> warning.
-> fs/ocfs2/sysfile.c:53: warning: ?ocfs2_sysfile_cluster_lock_key?
-> defined but not used
+On Fri, Jun 19, 2009 at 09:41:30PM -0700, Joel Becker wrote:
+> On Fri, Jun 19, 2009 at 04:53:19PM -0700, Sunil Mushran wrote:
+> > @@ -2392,11 +2398,13 @@ void ocfs2_orphan_scan_unlock(struct ocfs2_super *osb, u32 seqno, int ex)
+> >  	struct ocfs2_orphan_scan_lvb *lvb;
+> >  	int level = ex ? DLM_LOCK_EX : DLM_LOCK_PR;
+> >  
+> > -	lockres = &osb->osb_orphan_scan.os_lockres;
+> > -	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+> > -	lvb->lvb_version = OCFS2_ORPHAN_LVB_VERSION;
+> > -	lvb->lvb_os_seqno = cpu_to_be32(seqno);
+> > -	ocfs2_cluster_unlock(osb, lockres, level);
+> > +	if (!ocfs2_is_hard_readonly(osb) && !ocfs2_mount_local(osb)) {
+> > +		lockres = &osb->osb_orphan_scan.os_lockres;
+> > +		lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+> > +		lvb->lvb_version = OCFS2_ORPHAN_LVB_VERSION;
+> > +		lvb->lvb_os_seqno = cpu_to_be32(seqno);
+> > +		ocfs2_cluster_unlock(osb, lockres, level);
 > 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> 	This should only be setting the LVB if the level was EX.
 
-	This is now in the lockdep branch of ocfs2.git.
+	Actually, this lock is only ever taken as EX.  Why is there even
+an ex argument to the function?
 
 Joel
 
 -- 
 
-The Graham Corollary:
+Life's Little Instruction Book #30
 
-	The longer a socially-moderated news website exists, the
-	probability of an old Paul Graham link appearing at the top
-	approaches certainty.
+	"Never buy a house without a fireplace."
 
 Joel Becker
 Principal Software Developer
