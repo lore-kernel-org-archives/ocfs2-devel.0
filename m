@@ -1,71 +1,108 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 23 Jun 2009 17:28:55 -0700
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 updates for 2.6.31, take 2
-Message-ID: <20090624002855.GA17214@mail.oracle.com>
+Date: Wed, 24 Jun 2009 13:42:37 -0700
+Subject: [Ocfs2-devel] [STABLE, 2.6.30.x] ocfs2: Fix ocfs2_osb_dump()
+Message-ID: <20090624204237.GA1631@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Linus, et al,
-	Here are some more ocfs2 updates for 2.6.31.  More bug fixes,
-mostly.  The one non-fix is lockdep annotation for ocfs2's cluster
-locking.  Thanks to Jan Kara for that.  Please pull.
+Stable folks,
+	When a user creates a local (non-clustered) ocfs2 filesystem,
+accessing the /sys/kernel/debug/<uuid>/fs_state file will crash the
+system.  This patch fixes the crash by correctly handling local
+filesystems.  The problem was introduced with 2.6.30 and does not affect
+2.6.29.  It is mainline commit c3d38840abaa45c1c5a5fabbb8ffc9a0d1a764d1.
 
 Joel
 
-The following changes since commit 3fe0344faf7fdcb158bd5c1a9aec960a8d70c8e8:
-  Linus Torvalds (1):
-        Merge branch 'kmemleak' of git://linux-arm.org/linux-2.6
+From: Sunil Mushran <sunil.mushran@oracle.com>
 
-are available in the git repository at:
+Skip printing information that is not valid for local mounts.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ fs/ocfs2/super.c |   32 ++++++++++++++++++--------------
+ 1 files changed, 18 insertions(+), 14 deletions(-)
 
-Jan Kara (2):
-      vfs: Set special lockdep map for dirs only if not set by fs
-      ocfs2: Add lockdep annotations
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index d33767f..d64739b 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -234,20 +234,24 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ 			"%10s => Opts: 0x%lX  AtimeQuanta: %u\n", "Mount",
+ 			osb->s_mount_opt, osb->s_atime_quantum);
+ 
+-	out += snprintf(buf + out, len - out,
+-			"%10s => Stack: %s  Name: %*s  Version: %d.%d\n",
+-			"Cluster",
+-			(*osb->osb_cluster_stack == '\0' ?
+-			 "o2cb" : osb->osb_cluster_stack),
+-			cconn->cc_namelen, cconn->cc_name,
+-			cconn->cc_version.pv_major, cconn->cc_version.pv_minor);
++	if (cconn) {
++		out += snprintf(buf + out, len - out,
++				"%10s => Stack: %s  Name: %*s  "
++				"Version: %d.%d\n", "Cluster",
++				(*osb->osb_cluster_stack == '\0' ?
++				 "o2cb" : osb->osb_cluster_stack),
++				cconn->cc_namelen, cconn->cc_name,
++				cconn->cc_version.pv_major,
++				cconn->cc_version.pv_minor);
++	}
+ 
+ 	spin_lock(&osb->dc_task_lock);
+ 	out += snprintf(buf + out, len - out,
+ 			"%10s => Pid: %d  Count: %lu  WakeSeq: %lu  "
+ 			"WorkSeq: %lu\n", "DownCnvt",
+-			task_pid_nr(osb->dc_task), osb->blocked_lock_count,
+-			osb->dc_wake_sequence, osb->dc_work_sequence);
++			(osb->dc_task ?  task_pid_nr(osb->dc_task) : -1),
++			osb->blocked_lock_count, osb->dc_wake_sequence,
++			osb->dc_work_sequence);
+ 	spin_unlock(&osb->dc_task_lock);
+ 
+ 	spin_lock(&osb->osb_lock);
+@@ -267,14 +271,15 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ 
+ 	out += snprintf(buf + out, len - out,
+ 			"%10s => Pid: %d  Interval: %lu  Needs: %d\n", "Commit",
+-			task_pid_nr(osb->commit_task), osb->osb_commit_interval,
++			(osb->commit_task ? task_pid_nr(osb->commit_task) : -1),
++			osb->osb_commit_interval,
+ 			atomic_read(&osb->needs_checkpoint));
+ 
+ 	out += snprintf(buf + out, len - out,
+-			"%10s => State: %d  NumTxns: %d  TxnId: %lu\n",
++			"%10s => State: %d  TxnId: %lu  NumTxns: %d\n",
+ 			"Journal", osb->journal->j_state,
+-			atomic_read(&osb->journal->j_num_trans),
+-			osb->journal->j_trans_id);
++			osb->journal->j_trans_id,
++			atomic_read(&osb->journal->j_num_trans));
+ 
+ 	out += snprintf(buf + out, len - out,
+ 			"%10s => GlobalAllocs: %d  LocalAllocs: %d  "
+@@ -302,7 +307,6 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ 
+ 	out += snprintf(buf + out, len - out, "%10s => %3s  %10s\n",
+ 			"Slots", "Num", "RecoGen");
+-
+ 	for (i = 0; i < osb->max_slots; ++i) {
+ 		out += snprintf(buf + out, len - out,
+ 				"%10s  %c %3d  %10d\n",
+-- 
+1.6.3.1
 
-Joel Becker (1):
-      ocfs2: Provide the ocfs2_dlm_lvb_valid() stack API.
-
-Sunil Mushran (5):
-      ocfs2: Pin journal head before accessing jh->b_committed_data
-      ocfs2: Fix ocfs2_osb_dump()
-      ocfs2: Stop orphan scan as early as possible during umount
-      ocfs2: Do not initialize lvb in ocfs2_orphan_scan_lock_res_init()
-      ocfs2: Disable orphan scanning for local and hard-ro mounts
-
-Tao Ma (2):
-      ocfs2: Update atime in splice read if necessary.
-      ocfs2/trivial: Wrap ocfs2_sysfile_cluster_lock_key within define.
-
- fs/inode.c              |   17 ++++--
- fs/ocfs2/dlmglue.c      |  123 ++++++++++++++++++++++++++++++++++-------------
- fs/ocfs2/dlmglue.h      |   24 +++++++--
- fs/ocfs2/file.c         |    6 +-
- fs/ocfs2/inode.c        |   11 ++++
- fs/ocfs2/journal.c      |   43 +++++++++++-----
- fs/ocfs2/journal.h      |    2 +-
- fs/ocfs2/namei.c        |   15 ++++--
- fs/ocfs2/ocfs2.h        |   10 ++++
- fs/ocfs2/stack_o2cb.c   |   11 ++++
- fs/ocfs2/stack_user.c   |    8 +++
- fs/ocfs2/stackglue.c    |   13 +++--
- fs/ocfs2/stackglue.h    |    6 ++
- fs/ocfs2/suballoc.c     |   28 +++++++++--
- fs/ocfs2/super.c        |   69 ++++++++++++++-------------
- fs/ocfs2/sysfile.c      |   19 +++++++
- include/linux/lockdep.h |   15 ++++++
- 17 files changed, 309 insertions(+), 111 deletions(-)
 
 -- 
 
-Life's Little Instruction Book #99
-
-	"Think big thoughts, but relish small pleasures."
+A good programming language should have features that make the
+kind of people who use the phrase "software engineering" shake
+their heads disapprovingly.
+	- Paul Graham
 
 Joel Becker
 Principal Software Developer
