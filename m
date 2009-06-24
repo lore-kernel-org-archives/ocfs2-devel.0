@@ -1,45 +1,71 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 22 Jun 2009 14:06:31 -0700
-Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2: Disable orphan scanning for
- local and hard-ro mounts
-In-Reply-To: <4A3FE900.30405@oracle.com>
-References: <1245696007-29494-1-git-send-email-sunil.mushran@oracle.com>
-	<1245696007-29494-2-git-send-email-sunil.mushran@oracle.com>
-	<20090622192509.GB3902@mail.oracle.com> <4A3FE900.30405@oracle.com>
-Message-ID: <20090622210631.GC3902@mail.oracle.com>
+Date: Tue, 23 Jun 2009 17:28:55 -0700
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 updates for 2.6.31, take 2
+Message-ID: <20090624002855.GA17214@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Mon, Jun 22, 2009 at 01:26:40PM -0700, Sunil Mushran wrote:
-> Joel Becker wrote:
-> > On Mon, Jun 22, 2009 at 11:40:07AM -0700, Sunil Mushran wrote:
-> >> Local and Hard-RO mounts do not need orphan scanning.
-> > 	I just realized that we hold the os->os_lock around everything
-> > we do here.  The orphan scan state doesn't need to be atomic_t.
-> 
-> No we don't hold it across all ops. In ocfs2_orphan_scan_stop(), we set
-> it inactive before taking the mutex. This allows ocfs2_queue_orphan_scan()
-> to bail out without queuing the tasks. The idea is to prevent umount 
-> slowdown
-> - as much as possible.
-
-	It still strikes me as over-optimized, but it was a criticism
-better leveled at the initial patch.  This patch is about local and
-hard-readonly, and it's ready to go.
+Linus, et al,
+	Here are some more ocfs2 updates for 2.6.31.  More bug fixes,
+mostly.  The one non-fix is lockdep annotation for ocfs2's cluster
+locking.  Thanks to Jan Kara for that.  Please pull.
 
 Joel
 
+The following changes since commit 3fe0344faf7fdcb158bd5c1a9aec960a8d70c8e8:
+  Linus Torvalds (1):
+        Merge branch 'kmemleak' of git://linux-arm.org/linux-2.6
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
+
+Jan Kara (2):
+      vfs: Set special lockdep map for dirs only if not set by fs
+      ocfs2: Add lockdep annotations
+
+Joel Becker (1):
+      ocfs2: Provide the ocfs2_dlm_lvb_valid() stack API.
+
+Sunil Mushran (5):
+      ocfs2: Pin journal head before accessing jh->b_committed_data
+      ocfs2: Fix ocfs2_osb_dump()
+      ocfs2: Stop orphan scan as early as possible during umount
+      ocfs2: Do not initialize lvb in ocfs2_orphan_scan_lock_res_init()
+      ocfs2: Disable orphan scanning for local and hard-ro mounts
+
+Tao Ma (2):
+      ocfs2: Update atime in splice read if necessary.
+      ocfs2/trivial: Wrap ocfs2_sysfile_cluster_lock_key within define.
+
+ fs/inode.c              |   17 ++++--
+ fs/ocfs2/dlmglue.c      |  123 ++++++++++++++++++++++++++++++++++-------------
+ fs/ocfs2/dlmglue.h      |   24 +++++++--
+ fs/ocfs2/file.c         |    6 +-
+ fs/ocfs2/inode.c        |   11 ++++
+ fs/ocfs2/journal.c      |   43 +++++++++++-----
+ fs/ocfs2/journal.h      |    2 +-
+ fs/ocfs2/namei.c        |   15 ++++--
+ fs/ocfs2/ocfs2.h        |   10 ++++
+ fs/ocfs2/stack_o2cb.c   |   11 ++++
+ fs/ocfs2/stack_user.c   |    8 +++
+ fs/ocfs2/stackglue.c    |   13 +++--
+ fs/ocfs2/stackglue.h    |    6 ++
+ fs/ocfs2/suballoc.c     |   28 +++++++++--
+ fs/ocfs2/super.c        |   69 ++++++++++++++-------------
+ fs/ocfs2/sysfile.c      |   19 +++++++
+ include/linux/lockdep.h |   15 ++++++
+ 17 files changed, 309 insertions(+), 111 deletions(-)
+
 -- 
 
-"But then she looks me in the eye
- And says, 'We're going to last forever,'
- And man you know I can't begin to doubt it.
- Cause it just feels so good and so free and so right,
- I know we ain't never going to change our minds about it, Hey!
- Here comes my girl."
+Life's Little Instruction Book #99
+
+	"Think big thoughts, but relish small pleasures."
 
 Joel Becker
 Principal Software Developer
