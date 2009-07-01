@@ -1,34 +1,69 @@
-From: Joe Perches <joe@perches.com>
-Date: Sun, 28 Jun 2009 16:30:56 -0000
-Subject: [Ocfs2-devel] [PATCH 59/62] fs/ocfs2/quota_global.c: Remove
-	unnecessary semicolons
-In-Reply-To: <cover.1246173664.git.joe@perches.com>
-References: <cover.1246173664.git.joe@perches.com>
-Message-ID: <c2fa65670abb3675e51442c2f046af62c7e6195e.1246173683.git.joe@perches.com>
+From: sylarrrrrrr at aim.com <sylarrrrrrr@aim.com>
+Date: Wed, 01 Jul 2009 07:31:44 -0400
+Subject: [Ocfs2-devel] mounting a snapshot for backup.
+Message-ID: <8CBC856A56D83A0-16F0-2692@FWM-M16.sysops.aol.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org
-Cc: trivial@kernel.org, Andrew Morton <akpm@linux-foundation.org>, Joel Becker <joel.becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Signed-off-by: Joe Perches <joe@perches.com>
----
- fs/ocfs2/quota_global.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index edfa60c..05ed815 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -143,7 +143,7 @@ static int ocfs2_get_quota_block(struct inode *inode, int block,
- 		err = -EIO;
- 		mlog_errno(err);
- 	}
--	return err;;
-+	return err;
- }
- 
- /* Read data from global quotafile - avoid pagecache and such because we cannot
--- 
-1.6.3.1.10.g659a0.dirty
+Hi
+
+
+
+I have an ocfs2 volume (1.4.1) on lvm2, which is made available on 2 nodes via dual primary drbd that is on it. I wanted to backup my volume, so naturally I made a snapshot of it via the lvm2, and tried to mount it for backing up. However, I got the following error in dmesg :
+
+
+
+[319981.478168] (23483,0):ocfs2_fill_super:700 ERROR: Unable to create per-mount debugfs root.
+
+
+
+I then searched a bit, and found that ocfs2 can't mount an already mounted volume, and I was suggested to change the UUID of the snapshot device in order to be able to mount it.
+
+
+
+So I tried using tunefs.ocfs2 and got the following error:
+
+
+
+tunefs.ocfs2 1.4.1
+tunefs.ocfs2: Trylock failed while locking down the cluster
+
+So I searched a bit and found that there was a patch suggestion for ?--force option to tunefs,
+
+
+
+
+http://oss.oracle.com/pipermail/ocfs2-devel/2008-July/002447.html
+
+
+
+and that it was rejected,
+
+
+
+http://oss.oracle.com/pipermail/ocfs2-devel/2008-July/002449.html
+
+
+
+and some ominous warnings,
+
+
+
+http://oss.oracle.com/pipermail/ocfs2-devel/2008-July/002450.html
+
+
+
+
+
+o well... now how am I supposed to backup my live ocfs2 volume? Make a virtual machine that will have just that snapshot device?
+
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090701/3ceba5f8/attachment.html 
