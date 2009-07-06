@@ -1,84 +1,84 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Sat, 4 Jul 2009 07:19:14 -0700
-Subject: [Ocfs2-devel] mounting a snapshot for backup.
-In-Reply-To: <8CBCABFFCDDF515-D5C-1800@FWM-M16.sysops.aol.com>
-References: <8CBC856A56D83A0-16F0-2692@FWM-M16.sysops.aol.com>
-	<4A4B5A61.1060408@oracle.com>
-	<8CBCABFFCDDF515-D5C-1800@FWM-M16.sysops.aol.com>
-Message-ID: <E7A93BD5-0540-4CEB-B326-2E869325EF06@oracle.com>
+From: Coly Li <coly.li@suse.de>
+Date: Mon, 06 Jul 2009 20:26:39 +0800
+Subject: [Ocfs2-devel] lvb length issue [was Re: [ocfs2-tools-devel]
+ question of ocfs2_controld (Jun 27)]
+In-Reply-To: <20090629080023.GB8373@mail.oracle.com>
+References: <4A451AB5.9070908@suse.de> <20090626193436.GC4478@mail.oracle.com>
+	<4A45257C.6040704@suse.de> <20090629080023.GB8373@mail.oracle.com>
+Message-ID: <4A51ED7F.2040105@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Tools is enough. It supports all existing versions of the kernel fs.
+Now the discussion moves to kernel space, I move the email from
+ocfs2-tools-devel to ocfs2-devel.
+The original discussion can be found from
+http://oss.oracle.com/pipermail/ocfs2-tools-devel/2009-June/001891.html
 
-On Jul 4, 2009, at 6:10 AM, sylarrrrrrr at aim.com wrote:
+Joel Becker Wrote:
+> On Sat, Jun 27, 2009 at 03:46:04AM +0800, Coly Li wrote:
+>> Joel Becker Wrote:
+>>> On Sat, Jun 27, 2009 at 03:00:05AM +0800, Coly Li wrote:
+>> [snip]
+>>>> My original purpose is to find where to initiate a lvb with 64bytes, but from
+>>>> mount.ocfs2 code, I don't find anywhere to create a dlm lockspace (before create
+>>>> a lock) so far.
+>>> 	I'm not sure why you need an LVB in mount.ocfs2, let alone a dlm
+>>> lockspace.
+>>>
+>> Hi Joel,
+>>
+>> I don't need a LVB in mount code. My purpose is to find out where (k/u space)
+>> creates a LVB with 64bytes length. The 64bytes LVB makes fs/dlm kernel code
+>> returns an internal logic error (which should be a busy lock error) to
+>> mkfs.ocfs2 when formating a mounted-by-other-node ocfs2 volume.
+> 
+> 	Can't fs/dlm take multiple LVB sizes?
+> 
+In this case, it cannot.
 
-> Hi,
->  Thanks :)
-> BTW, Do I need to upgrade the kernel module too, or just the ocfs2- 
-> tools package?
-> If I need to upgrade the module too ... I am having trouble  
-> compiling it under debian lenny, I have posted about it in the users  
-> gourps.
->
->
-> -----Original Message-----
-> From: Marcos E. Matsunaga <Marcos.Matsunaga@oracle.com>
-> To: sylarrrrrrr at aim.com
-> Cc: ocfs2-devel at oss.oracle.com
-> Sent: Wed, Jul 1, 2009 12:45 pm
-> Subject: Re: [Ocfs2-devel] mounting a snapshot for backup.
->
-> http://oss.oracle.com/projects/ocfs2-tools/news/article_7.html
->
->
-> see tunefs.ocfs2 note.
->
->
-> sylarrrrrrr at aim.com wrote:
->>
->> Hi
->> I have an ocfs2 volume (1.4.1) on lvm2, which is made avai lable on  
->> 2 nodes via dual primary drbd that is on it. I wanted to backup my  
->> volume, so naturally I made a snapshot of it via the lvm2, and  
->> tried to mount it for backing up. However, I got the following  
->> error in dmesg :
->> [319981.478168] (23483,0):ocfs2_fill_super:700 ERROR: Unable to  
->> create per-mount debugfs root.
->> I then searched a bit, and found that ocfs2 can't mount an already  
->> mounted volume, and I was suggested to change the UUID of the  
->> snapshot device in order to be able to mount it.
->> So I tried using tunefs.ocfs2 and got the following error:
->> tunefs.ocfs2 1.4.1
->> tunefs.ocfs2: Trylock failed while locking down the cluster
->>
->> So I searched a bit and found that there was a patch suggestion  
->> for  --force option to tunefs,
->> http://oss.oracle.com/pipe rmail/ocfs2-devel/2008-July/002447.html
->> and that it was rejected,
->> http://oss.oracle.com/pipermail/ocfs2-devel/20 08-July/002449.html
->> and some ominous warnings,
->> http://oss.oracle.com/pipermail/ocfs2-devel/2008-July/002450.html
->> o well... now how am I supposed to backup my live ocfs2 volume?  
->> Make a virtual machine that will have just that snapshot device?
->>
->> Dell Laptops: Huge Savings on Popular Laptops - Deals starting at  
->> $399
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
->
-> An Excellent Credit Score is 750. See Yours in Just 2 Easy Steps!
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090704/033ec7cd/attachment.html 
+During mkfs.ocfs2, libdlm gets called to create a new lockspace via ioctl
+handler inside fs/dlm, which (indeed) is fs/dlm/user.c:device_create_lockspace():
+404 static int device_create_lockspace(struct dlm_lspace_params *params)
+... ...
+412
+413  error = dlm_new_lockspace(params->name, strlen(params->name),
+414                   &lockspace, params->flags, DLM_USER_LVB_LEN);
+... ...
+431 }
+DLM_USER_LVB_LEN is defined to 32.
+
+When mounting an ocfs2 volume, ocfs2 code calls dlm_new_lockspace directly.
+Which is in fs/ocfs2/stack_user.c:user_cluster_connect():
+814 static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+815 {
+... ...
+842         rc = dlm_new_lockspace(conn->cc_name, strlen(conn->cc_name),
+843                                &fsdlm, DLM_LSFL_FS, DLM_LVB_LEN);
+... ...
+853 }
+DLM_LVB_LEN is 64.
+
+When mkfs.ocfs2 tries to operate on a mounted-already ocfs2 volume, mkfs.ocfs2
+calls libdlm routin and tries to create a lockspace with 32byte lvb length. The
+lvb lengh is hard coded inside fs/dlm, can not be specified in user space.
+
+When fs/dlm code tries to compare the 32bytes lvb to the 64bytes lvb which is
+created in user_cluster_connect(), fs/dlm results an internal logic error(-EINVAL).
+
+This error is misleading, if both sides use same length lvb, the returned error
+can be busy domain(-EEXIST:), which is the correct one to be expected.
+
+After checking the code of mkfs.ocfs2, mount.ocfs2, and libdlm, I don't find any
+user space solution to fix the lvb length issue.
+
+Therefore, I am locking for the possibility to use 32bytes lvb length for user
+space stack. IMHO, the modification needs a ocfs2 protocol version update (for
+nodes running different lvb length with user space stack), but fortunately does
+not hurt on-disk format.
+
+-- 
+Coly Li
+SuSE Labs
