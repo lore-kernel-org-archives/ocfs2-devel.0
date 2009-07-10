@@ -1,60 +1,32 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 9 Jul 2009 15:28:33 -0700
-Subject: [Ocfs2-devel] lvb length issue [was Re: [ocfs2-tools-devel]
- question of ocfs2_controld (Jun 27)]
-In-Reply-To: <20090709215504.GB11643@redhat.com>
-References: <20090626193436.GC4478@mail.oracle.com> <4A45257C.6040704@suse.de>
-	<20090629080023.GB8373@mail.oracle.com> <4A51ED7F.2040105@suse.de>
-	<20090707160113.GA9140@redhat.com>
-	<20090707174741.GA24163@mail.oracle.com>
-	<20090708141542.GA8778@redhat.com>
-	<20090709185338.GA11643@redhat.com>
-	<20090709205528.GA30460@mail.oracle.com>
-	<20090709215504.GB11643@redhat.com>
-Message-ID: <20090709222833.GB30460@mail.oracle.com>
+Date: Thu, 9 Jul 2009 17:50:35 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2-devel: trivial fix for
+ s/migrate/migration/ in dlmrecovery.c, line 1121
+In-Reply-To: <1246953100-8889-1-git-send-email-jeff.liu@oracle.com>
+References: <>
+ <1246953100-8889-1-git-send-email-jeff.liu@oracle.com>
+Message-ID: <20090710005034.GA8522@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jul 09, 2009 at 04:55:04PM -0500, David Teigland wrote:
-> On Thu, Jul 09, 2009 at 01:55:28PM -0700, Joel Becker wrote:
-> > On Thu, Jul 09, 2009 at 01:53:38PM -0500, David Teigland wrote:
-> > > Here's a kernel patch that I've not yet tried.  The code using libdlm will
-> > > need to add the flag 0x00000010 to dlm_new_lockspace().  (Until we've added
-> > > the new LVB64 define to libdlm.h.)
-> > > 
-> > > >From 75e92c78bb0b0002f0253bfe10bef8585a0d52d6 Mon Sep 17 00:00:00 2001
-> > > From: David Teigland <teigland@redhat.com>
-> > > Date: Thu, 9 Jul 2009 13:11:02 -0500
-> > > Subject: [PATCH] dlm: add DLM_LSFL_LVB64 for lockspace creation
-> > > 
-> > > Add a new flag DLM_LSFL_LVB64 to create lockspaces with 64 byte lvbs,
-> > > overriding the lvb length parameter.  It is useful to override the
-> > > fixed 32 byte lvb imposed by the user api when the lockspace is created
-> > > from userspace but used from the kernel.  Locking through the user api
-> > > can still only access 32 byte lvbs.
-> > 
-> > 	Hmm, you're tying a permanent flag to 64bytes, yet userspace
-> > can't get at them?  Seems a bit too ocfs2-tools specific, and yet it
-> > doesn't let ocfs2-tools eventually try to share the lvb.
+On Tue, Jul 07, 2009 at 03:51:40PM +0800, Jeff Liu wrote:
+> in dlmrecovery.c:1121, replace 'migrate' to 'migration' to keep the consistency
+> by comparing to other lines with the similar log info in the same file.
 > 
-> Yes, I think the only other sane option is to do full variable-sized lvb
-> support for userspace.  That would be nice, and I wouldn't mind doing it.  But
-> it would take significant user/kernel api work, and take some time, of course.
+> Signed-off-by: Jeff Liu <jeff.liu@oracle.com>
 
-	Well, my original idea of an IGNORE_LVB flag, with code in
-libdlm to error if the LVB functoins are used, would not be tied to a
-specific LVB size and would prevent miss-matched LVB ops.
+	This is now part of the fixes branch of ocfs2.git
 
 Joel
 
 -- 
 
-"Reader, suppose you were and idiot.  And suppose you were a member of
- Congress.  But I repeat myself."
-	- Mark Twain
+"You can get more with a kind word and a gun than you can with
+ a kind word alone."
+         - Al Capone
 
 Joel Becker
 Principal Software Developer
