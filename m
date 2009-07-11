@@ -1,34 +1,33 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 10 Jul 2009 16:55:43 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] a fix of logging return value.
-In-Reply-To: <200907100528.n6A5Sv4J030693@acsinet15.oracle.com>
-References: <200907100528.n6A5Sv4J030693@acsinet15.oracle.com>
-Message-ID: <20090710235543.GD20661@mail.oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Sat, 11 Jul 2009 10:57:27 -0500
+Subject: [Ocfs2-devel] Initialize count in aio_write before
+	generic_write_checks
+Message-ID: <20090711155727.GA11989@baloo.cartoons>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jul 10, 2009 at 01:26:04PM +0800, Wengang Wang wrote:
-> 	in ocfs2_file_aio_write(), log_exit() could don't log the value
-> which is really returned. this patch fixes it.
-> 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+generic_write_checks() expects count to be initialized to the size of
+the write.
+Writes to files open with O_DIRECT|O_LARGEFILE write 0 bytes because
+count in uninitialized.
 
-This patch is now in the fixes branch of ocfs2.git
+Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
 
-Joel
-
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index a5887df..5b9c8af 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1841,6 +1841,7 @@ relock:
+ 		if (ret)
+ 			goto out_dio;
+ 
++		count = ocount;
+ 		ret = generic_write_checks(file, ppos, &count,
+ 					   S_ISBLK(inode->i_mode));
+ 		if (ret)
 
 -- 
-
-Life's Little Instruction Book #207
-
-	"Swing for the fence."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Goldwyn
