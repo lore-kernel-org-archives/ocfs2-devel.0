@@ -1,33 +1,41 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 31 Jul 2009 13:48:56 -0700
-Subject: [Ocfs2-devel] [PATCH] Remove redundant BUG_ON in __dlm_queue_ast
-In-Reply-To: <20090731192802.GA13139@baloo.cartoons>
-References: <20090731192802.GA13139@baloo.cartoons>
-Message-ID: <20090731204856.GD30393@mail.oracle.com>
+From: Subrata Modak <subrata@linux.vnet.ibm.com>
+Date: Mon, 13 Jul 2009 19:49:50 -0000
+Subject: [Ocfs2-devel] [PATCH] Fix compilation warning for fs/ocfs2/xattr.c
+Message-ID: <20090713194928.32372.56679.sendpatchset@subratamodak.linux.ibm.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>
+Cc: Sachin P Sant <sachinp@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Subrata Modak <subrata@linux.vnet.ibm.com>, Balbir Singh <balbir@linux.vnet.ibm.com>, LKML <linux-kernel@vger.kernel.org>
 
-On Fri, Jul 31, 2009 at 02:28:02PM -0500, Goldwyn Rodrigues wrote:
->     Remove redundant BUG_ON()
-> 
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Hi,
 
-This is now in the fixes branch of ocfs2.git.
+gcc 4.4.1 generates the following build warning on i386:
 
-Joel
+CC [M]  fs/ocfs2/xattr.o
+fs/ocfs2/xattr.c: In function ???ocfs2_xattr_block_get???:
+fs/ocfs2/xattr.c:1055: warning: ???block_off??? may be used uninitialized in this function
 
--- 
+The following fix is based on a similar approach by David Howells
+few days back: http://lkml.org/lkml/2009/7/9/109,
 
-"Same dancers in the same old shoes.
- You get too careful with the steps you choose.
- You don't care about winning but you don't want to lose
- After the thrill is gone."
+Signed-off-by: Subrata Modak<subrata@linux.vnet.ibm.com>,
+---
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+--- a/fs/ocfs2/xattr.c	2009-06-17 17:47:21.000000000 +0530
++++ b/fs/ocfs2/xattr.c	2009-07-14 01:02:22.000000000 +0530
+@@ -1052,7 +1052,8 @@ static int ocfs2_xattr_block_get(struct 
+ 	struct ocfs2_xattr_block *xb;
+ 	struct ocfs2_xattr_value_root *xv;
+ 	size_t size;
+-	int ret = -ENODATA, name_offset, name_len, block_off, i;
++	int ret = -ENODATA, name_offset, name_len, i;
++	int uninitialized_var(block_off);
+ 
+ 	xs->bucket = ocfs2_xattr_bucket_new(inode);
+ 	if (!xs->bucket) {
+
+---
+Regards--
+Subrata
