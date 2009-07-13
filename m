@@ -1,32 +1,111 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Mon, 13 Jul 2009 11:38:58 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] fails ocfs2_get_block() immediately when
-	hit -EIO
-Message-ID: <200907130340.n6D3eBcx019309@rgminet15.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 13 Jul 2009 13:41:38 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Add extra credits and access the
+	modified bh in update_edge_lengths.
+Message-ID: <1247463698-24375-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  fails ocfs2_get_block() immediately when hit -EIO
+In normal tree rotation left process, we will never touch the tree
+branch above subtree_index and ocfs2_extend_rotate_transaction doesn't
+reserve the credits for them either.
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+But when we want to delete the rightmost extent block, we have to update
+the rightmost records for all the rightmost branch(See
+ocfs2_update_edge_lengths), so we have to allocate extra credits for them.
+What's more, we have to access them also.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/aops.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ fs/ocfs2/alloc.c |   46 +++++++++++++++++++++++++++++++++++++++++-----
+ 1 files changed, 41 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index a10c989..9dfdf46 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -195,6 +195,7 @@ static int ocfs2_get_block(struct inode *inode, sector_t iblock,
- 			     (unsigned long long)i_size_read(inode),
- 			     OCFS2_I(inode)->ip_clusters);
- 			dump_stack();
-+			goto bail;
- 		}
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 3331eec..2016ff7 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -2563,15 +2563,39 @@ out_ret_path:
+ 	return ret;
+ }
  
- 		past_eof = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
+-static void ocfs2_update_edge_lengths(handle_t *handle,
+-				      struct ocfs2_path *path)
++static int ocfs2_update_edge_lengths(handle_t *handle,
++				     struct ocfs2_extent_tree *et,
++				     int subtree_index,
++				     struct ocfs2_path *path)
+ {
+-	int i, idx;
++	int i, idx, ret;
+ 	struct ocfs2_extent_rec *rec;
+ 	struct ocfs2_extent_list *el;
+ 	struct ocfs2_extent_block *eb;
+ 	u32 range;
+ 
++	/*
++	 * In normal tree rotation process, we will never touch the
++	 * tree branch above subtree_index and ocfs2_extend_rotate_transaction
++	 * doesn't reserve the credits for them either.
++	 *
++	 * But we do have a special case here which will update the rightmost
++	 * records for all the bh in the path.
++	 * So we have to allocate extra credits and access them.
++	 */
++	ret = ocfs2_extend_trans(handle,
++				 handle->h_buffer_credits + subtree_index);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
+ 	/* Path should always be rightmost. */
+ 	eb = (struct ocfs2_extent_block *)path_leaf_bh(path)->b_data;
+ 	BUG_ON(eb->h_next_leaf_blk != 0ULL);
+@@ -2592,6 +2616,8 @@ static void ocfs2_update_edge_lengths(handle_t *handle,
+ 
+ 		ocfs2_journal_dirty(handle, path->p_node[i].bh);
+ 	}
++out:
++	return ret;
+ }
+ 
+ static void ocfs2_unlink_path(handle_t *handle,
+@@ -2806,7 +2832,12 @@ static int ocfs2_rotate_subtree_left(handle_t *handle,
+ 	if (del_right_subtree) {
+ 		ocfs2_unlink_subtree(handle, et, left_path, right_path,
+ 				     subtree_index, dealloc);
+-		ocfs2_update_edge_lengths(handle, left_path);
++		ret = ocfs2_update_edge_lengths(handle, et, subtree_index,
++						left_path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
+ 
+ 		eb = (struct ocfs2_extent_block *)path_leaf_bh(left_path)->b_data;
+ 		ocfs2_et_set_last_eb_blk(et, le64_to_cpu(eb->h_blkno));
+@@ -3124,7 +3155,12 @@ static int ocfs2_remove_rightmost_path(handle_t *handle,
+ 
+ 		ocfs2_unlink_subtree(handle, et, left_path, path,
+ 				     subtree_index, dealloc);
+-		ocfs2_update_edge_lengths(handle, left_path);
++		ret = ocfs2_update_edge_lengths(handle, et, subtree_index,
++						left_path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
+ 
+ 		eb = (struct ocfs2_extent_block *)path_leaf_bh(left_path)->b_data;
+ 		ocfs2_et_set_last_eb_blk(et, le64_to_cpu(eb->h_blkno));
 -- 
-1.6.2.5
+1.6.2.rc2.16.gf474c
