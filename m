@@ -1,48 +1,35 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed, 15 Jul 2009 17:54:59 +0200
-Subject: [Ocfs2-devel] [PATCH 1/6] ocfs2: Make global quota files blocksize
-	aligned
+Date: Wed, 15 Jul 2009 17:55:02 +0200
+Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2: Zero out padding of on disk dquot
+	structure
 In-Reply-To: <1247673304-31080-1-git-send-email-jack@suse.cz>
 References: <1247673304-31080-1-git-send-email-jack@suse.cz>
-Message-ID: <1247673304-31080-2-git-send-email-jack@suse.cz>
+Message-ID: <1247673304-31080-5-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Change i_size of global quota files so that it always remains aligned to block
-size. This is mainly because the end of quota block may contain checksum (if
-checksumming is enabled) and it's a bit awkward for it to be "outside" of quota
-file (and it makes life harder for ocfs2-tools).
+Padding fields of on-disk dquot structure were not zeroed. Zero them
+so that it's easier to use them later.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/quota_global.c |    6 ++++--
- 1 files changed, 4 insertions(+), 2 deletions(-)
+ fs/ocfs2/quota_global.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index edfa60c..5a4ae61 100644
+index 5a4ae61..8437c6b 100644
 --- a/fs/ocfs2/quota_global.c
 +++ b/fs/ocfs2/quota_global.c
-@@ -211,14 +211,16 @@ ssize_t ocfs2_quota_write(struct super_block *sb, int type,
+@@ -69,6 +69,7 @@ static void ocfs2_global_mem2diskdqb(void *dp, struct dquot *dquot)
+ 	d->dqb_curspace = cpu_to_le64(m->dqb_curspace);
+ 	d->dqb_btime = cpu_to_le64(m->dqb_btime);
+ 	d->dqb_itime = cpu_to_le64(m->dqb_itime);
++	d->dqb_pad1 = d->dqb_pad2 = 0;
+ }
  
- 	mutex_lock_nested(&gqinode->i_mutex, I_MUTEX_QUOTA);
- 	if (gqinode->i_size < off + len) {
-+		loff_t rounded_end = ALIGN(off + len, sb->s_blocksize);
-+
- 		down_write(&OCFS2_I(gqinode)->ip_alloc_sem);
--		err = ocfs2_extend_no_holes(gqinode, off + len, off);
-+		err = ocfs2_extend_no_holes(gqinode, rounded_end, off);
- 		up_write(&OCFS2_I(gqinode)->ip_alloc_sem);
- 		if (err < 0)
- 			goto out;
- 		err = ocfs2_simple_size_update(gqinode,
- 					       oinfo->dqi_gqi_bh,
--					       off + len);
-+					       rounded_end);
- 		if (err < 0)
- 			goto out;
- 		new = 1;
+ static int ocfs2_global_is_id(void *dp, struct dquot *dquot)
 -- 
 1.6.0.2
