@@ -1,28 +1,30 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 20 Jul 2009 15:47:21 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] adds mlogs to aops.c
-In-Reply-To: <200907130339.n6D3d7pB018215@rgminet15.oracle.com>
-References: <200907130339.n6D3d7pB018215@rgminet15.oracle.com>
-Message-ID: <20090720224720.GC7768@mail.oracle.com>
+Date: Mon, 20 Jul 2009 15:52:20 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Add extra credits and access the
+ modified bh in update_edge_lengths.
+In-Reply-To: <1247463698-24375-1-git-send-email-tao.ma@oracle.com>
+References: <1247463698-24375-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20090720225220.GD7768@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jul 13, 2009 at 11:37:39AM +0800, Wengang Wang wrote:
-> @@ -217,11 +219,16 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
->  	void *kaddr;
->  	loff_t size;
->  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
-> +	int status = 0;
-> +
-> +	mlog_entry("(%llu, %lu, %llu)\n", OCFS2_I(inode)->ip_blkno,
-> +		   page->index, (unsigned long long)di_bh->b_blocknr);
+On Mon, Jul 13, 2009 at 01:41:38PM +0800, Tao Ma wrote:
+> In normal tree rotation left process, we will never touch the tree
+> branch above subtree_index and ocfs2_extend_rotate_transaction doesn't
+> reserve the credits for them either.
+> 
+> But when we want to delete the rightmost extent block, we have to update
+> the rightmost records for all the rightmost branch(See
+> ocfs2_update_edge_lengths), so we have to allocate extra credits for them.
+> What's more, we have to access them also.
+> 
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-	You're printing OCFS2_I(inode)->ip_blkno with %llu but not
-casting it to unsigned long long.  It needs those casts for stricter
-platforms.  Make sure all your u64 mlog additions have the cast.
+Can I get a version against mainline?  This version appears to be
+against cacheme.
 
 Joel
 
