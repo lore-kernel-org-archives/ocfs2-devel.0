@@ -1,55 +1,36 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 20 Jul 2009 13:25:24 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: flush dentry lock drop when sync
- ocfs2 volume.
-In-Reply-To: <20090720190846.GA7768@mail.oracle.com>
-References: <1248080922-24908-1-git-send-email-tao.ma@oracle.com>
-	<20090720123401.GA15341@duck.suse.cz>
-	<20090720190846.GA7768@mail.oracle.com>
-Message-ID: <20090720202524.GB7768@mail.oracle.com>
+Date: Mon, 20 Jul 2009 15:47:21 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] adds mlogs to aops.c
+In-Reply-To: <200907130339.n6D3d7pB018215@rgminet15.oracle.com>
+References: <200907130339.n6D3d7pB018215@rgminet15.oracle.com>
+Message-ID: <20090720224720.GC7768@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jul 20, 2009 at 12:08:46PM -0700, Joel Becker wrote:
-> On Mon, Jul 20, 2009 at 02:34:01PM +0200, Jan Kara wrote:
-> > +void ocfs2_drop_dl_inodes(struct work_struct *work)
-> > +{
-> > +	struct ocfs2_super *osb = container_of(work, struct ocfs2_super,
-> > +					       dentry_lock_work);
-> > +
-> > +	__ocfs2_drop_dl_inodes(osb, DL_INODE_DROP_COUNT);
-> > +	/*
-> > +	 * Don't queue dropping if umount is in progress. We flush the
-> > +	 * list in ocfs2_dismount_volume
-> > +	 */
-> > +	spin_lock(&dentry_list_lock);
-> > +	if (osb->dentry_lock_list &&
-> > +	    !ocfs2_test_osb_flag(osb, OCFS2_OSB_UMOUNT))
-> >  		queue_work(ocfs2_wq, &osb->dentry_lock_work);
-> >  	spin_unlock(&dentry_list_lock);
-> >  }
-> 
-> 	The approach is good, but boy, I wish we could use vol_state
-> instead of a flag.  We are now tracking the mount/umount state in how
-> many places?
+On Mon, Jul 13, 2009 at 11:37:39AM +0800, Wengang Wang wrote:
+> @@ -217,11 +219,16 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
+>  	void *kaddr;
+>  	loff_t size;
+>  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+> +	int status = 0;
+> +
+> +	mlog_entry("(%llu, %lu, %llu)\n", OCFS2_I(inode)->ip_blkno,
+> +		   page->index, (unsigned long long)di_bh->b_blocknr);
 
-	A quick #ocfs2 discussion ensued.  Let's rename OCFS2_OSB_UMOUNT
-to OCFS2_OSB_DROP_DENTRY_LOCK_IMMED.  That flag doesn't mean anything
-other than the dentry lock behavior, so we'll name it specific to its
-purpose.
-	I think the rest of the patch looked good, so please resend with
-the renamed flag and a clean patch header and I'll verify and apply.
+	You're printing OCFS2_I(inode)->ip_blkno with %llu but not
+casting it to unsigned long long.  It needs those casts for stricter
+platforms.  Make sure all your u64 mlog additions have the cast.
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #20
+"I inject pure kryptonite into my brain.
+ It improves my kung fu, and it eases the pain."
 
-	"Be forgiving of yourself and others."
 
 Joel Becker
 Principal Software Developer
