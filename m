@@ -1,17 +1,12 @@
-From: wen.gang.wang at oracle.com <wen.gang.wang@oracle.com>
-Date: Tue, 21 Jul 2009 02:56:15 GMT
-Subject: [Ocfs2-devel] (no subject)
-Message-ID: <200907210256.n6L2uFJu017248@rgminet15.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Tue, 21 Jul 2009 10:52:52 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: adds mlogs to aops.c -V2
+Message-ID: <200907210258.n6L2wJ54002382@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-
-From c70adcaca99acf93bc00cf2edc4d549b83e2f95d Mon Sep 17 00:00:00 2001
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Tue, 21 Jul 2009 10:52:52 +0800
-Subject: [PATCH 1/1] ocfs2: adds mlogs to aops.c -V2
 
   this patch adds some mlogs to apos.c helping tracing and narrowing down bugs.
 
