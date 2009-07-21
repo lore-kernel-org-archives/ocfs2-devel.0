@@ -1,33 +1,38 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 20 Jul 2009 17:27:48 -0700
-Subject: [Ocfs2-devel] Initialize count in aio_write before
- generic_write_checks
-In-Reply-To: <20090711155727.GA11989@baloo.cartoons>
-References: <20090711155727.GA11989@baloo.cartoons>
-Message-ID: <20090721002748.GA9183@mail.oracle.com>
+Date: Mon, 20 Jul 2009 17:28:22 -0700
+Subject: [Ocfs2-devel] [PATCH] Fix compilation warning for
+	fs/ocfs2/xattr.c
+In-Reply-To: <20090713194928.32372.56679.sendpatchset@subratamodak.linux.ibm.com>
+References: <20090713194928.32372.56679.sendpatchset@subratamodak.linux.ibm.com>
+Message-ID: <20090721002822.GB9183@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Subrata Modak <subrata@linux.vnet.ibm.com>
+Cc: ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Sachin P Sant <sachinp@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Balbir Singh <balbir@linux.vnet.ibm.com>, LKML <linux-kernel@vger.kernel.org>
 
-On Sat, Jul 11, 2009 at 10:57:27AM -0500, Goldwyn Rodrigues wrote:
-> generic_write_checks() expects count to be initialized to the size of
-> the write.
-> Writes to files open with O_DIRECT|O_LARGEFILE write 0 bytes because
-> count in uninitialized.
+On Tue, Jul 14, 2009 at 01:19:31AM +0530, Subrata Modak wrote:
+> gcc 4.4.1 generates the following build warning on i386:
 > 
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+> CC [M]  fs/ocfs2/xattr.o
+> fs/ocfs2/xattr.c: In function ?ocfs2_xattr_block_get?:
+> fs/ocfs2/xattr.c:1055: warning: ?block_off? may be used uninitialized in this function
+> 
+> The following fix is based on a similar approach by David Howells
+> few days back: http://lkml.org/lkml/2009/7/9/109,
+> 
+> Signed-off-by: Subrata Modak<subrata@linux.vnet.ibm.com>,
 
-This is now in the fixes branch of ocfs2.git
+	This is now in the fixes branch of ocfs2.git.
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #237
+Life's Little Instruction Book #15
 
-	"Seek out the good in people."
+	"Own a great stereo system."
 
 Joel Becker
 Principal Software Developer
