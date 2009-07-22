@@ -1,85 +1,35 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 22 Jul 2009 09:53:59 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: adds mlogs to aops.c -V2
-In-Reply-To: <4A666867.7090503@oracle.com>
-References: <200907210258.n6L2wJ54002382@acsinet15.oracle.com>	<20090721213127.GB19170@mail.oracle.com>
-	<4A666616.90509@oracle.com> <4A666867.7090503@oracle.com>
-Message-ID: <4A667137.3080600@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 22 Jul 2009 13:17:18 +0200
+Subject: [Ocfs2-devel] [PATCH 4/7] ocfs2: Zero out padding of on disk dquot
+	structure
+In-Reply-To: <1248261441-29384-1-git-send-email-jack@suse.cz>
+References: <1248261441-29384-1-git-send-email-jack@suse.cz>
+Message-ID: <1248261441-29384-5-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sunil,
+Padding fields of on-disk dquot structure were not zeroed. Zero them
+so that it's easier to use them later.
 
-Sunil Mushran wrote:
-> Wengang,
-> 
-> Idea is to print stuff that will be useful. Instead of printing
-> all args, you can always prepend a 3 char code... flg=0x%x to
-> identify the args that you are printing. Remember the printk
-> buffer is limited.
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/quota_global.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-Ok, I will try to print useful stuff only.
-> 
-> Thanks for taking on this task.
-
-my pleasure!
-
-regards,
-wengang.
-> Sunil
-> 
-> Wengang Wang wrote:
->> Hi Joel,
->>
->> Joel Becker wrote:
->>
->>  
->>> On Tue, Jul 21, 2009 at 10:52:52AM +0800, Wengang Wang wrote:
->>>    
->>>> @@ -565,6 +603,8 @@ static int ocfs2_direct_IO_get_blocks(struct 
->>>> inode *inode, sector_t iblock,
->>>>       * Any write past EOF is not allowed because we'd be extending.
->>>>       */
->>>>      if (create && (iblock + max_blocks) > inode_blocks) {
->>>> +        mlog(0, "writting to EOF(%llu/%llu)\n",
->>>> +             iblock + max_blocks, inode_blocks);
->>>>          ret = -EIO;
->>>>          goto bail;
->>>>      }
->>>>       
->>>     iblock is a sector_t and requires a cast.
->>>
->>>    
->>>> @@ -1542,8 +1659,14 @@ int ocfs2_size_fits_inline_data(struct 
->>>> buffer_head *di_bh, u64 new_size)
->>>>  {
->>>>      struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
->>>>  
->>>> -    if (new_size <= le16_to_cpu(di->id2.i_data.id_count))
->>>> +    mlog_entry("(%llu, %llu)\n",
->>>> +           di_bh->b_blocknr, (unsigned long long)new_size);
->>>>       
->>>     b_blocknr is a sector_t and requires a cast.
->>>
->>>    
->>>> @@ -1655,6 +1786,10 @@ int ocfs2_write_begin_nolock(struct 
->>>> address_space *mapping,
->>>>      handle_t *handle;
->>>>      struct ocfs2_extent_tree et;
->>>>  
->>>> +    mlog_entry("(0x%p, %lld, %u, %u, .., %llu, %lu)\n",
->>>> +           mapping, pos, len, flags, di_bh->b_blocknr,
->>>> +           mmap_page->index);
->>>>       
->>>     b_blocknr is a sector_t and requies a cast.  Also, I'd rather you
->>> printed the **pagep pointer instead of "..".  Sure, it's a pointer to a
->>> pointer that we're going to fill, but it might be useful to know.  
->>> Please
->>> do this all the places you are printing "..".
->>>     
->>
->> Sorry for the miss of cast on sector_t.
->> it's Ok to print the pointer address. reposting will come soon.
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index a66cb82..7248db6 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -69,6 +69,7 @@ static void ocfs2_global_mem2diskdqb(void *dp, struct dquot *dquot)
+ 	d->dqb_curspace = cpu_to_le64(m->dqb_curspace);
+ 	d->dqb_btime = cpu_to_le64(m->dqb_btime);
+ 	d->dqb_itime = cpu_to_le64(m->dqb_itime);
++	d->dqb_pad1 = d->dqb_pad2 = 0;
+ }
+ 
+ static int ocfs2_global_is_id(void *dp, struct dquot *dquot)
+-- 
+1.6.0.2
