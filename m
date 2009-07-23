@@ -1,41 +1,35 @@
-From: Subrata Modak <subrata@linux.vnet.ibm.com>
-Date: Mon, 13 Jul 2009 19:49:50 -0000
-Subject: [Ocfs2-devel] [PATCH] Fix compilation warning for fs/ocfs2/xattr.c
-Message-ID: <20090713194928.32372.56679.sendpatchset@subratamodak.linux.ibm.com>
+From: Roel Kluin <roel.kluin@gmail.com>
+Date: Thu, 23 Jul 2009 16:23:23 -0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Keep index within status_map[]
+Message-ID: <4A688F02.7040100@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>
-Cc: Sachin P Sant <sachinp@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Subrata Modak <subrata@linux.vnet.ibm.com>, Balbir Singh <balbir@linux.vnet.ibm.com>, LKML <linux-kernel@vger.kernel.org>
+To: ocfs2-devel@oss.oracle.com
 
-Hi,
+Do not exceed array status_map[]
 
-gcc 4.4.1 generates the following build warning on i386:
-
-CC [M]  fs/ocfs2/xattr.o
-fs/ocfs2/xattr.c: In function ???ocfs2_xattr_block_get???:
-fs/ocfs2/xattr.c:1055: warning: ???block_off??? may be used uninitialized in this function
-
-The following fix is based on a similar approach by David Howells
-few days back: http://lkml.org/lkml/2009/7/9/109,
-
-Signed-off-by: Subrata Modak<subrata@linux.vnet.ibm.com>,
+Signed-off-by: Roel Kluin <roel.kluin@gmail.com>
 ---
-
---- a/fs/ocfs2/xattr.c	2009-06-17 17:47:21.000000000 +0530
-+++ b/fs/ocfs2/xattr.c	2009-07-14 01:02:22.000000000 +0530
-@@ -1052,7 +1052,8 @@ static int ocfs2_xattr_block_get(struct 
- 	struct ocfs2_xattr_block *xb;
- 	struct ocfs2_xattr_value_root *xv;
- 	size_t size;
--	int ret = -ENODATA, name_offset, name_len, block_off, i;
-+	int ret = -ENODATA, name_offset, name_len, i;
-+	int uninitialized_var(block_off);
+diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
+index 3f66137..e49c410 100644
+--- a/fs/ocfs2/stack_o2cb.c
++++ b/fs/ocfs2/stack_o2cb.c
+@@ -17,6 +17,7 @@
+  * General Public License for more details.
+  */
  
- 	xs->bucket = ocfs2_xattr_bucket_new(inode);
- 	if (!xs->bucket) {
-
----
-Regards--
-Subrata
++#include <linux/kernel.h>
+ #include <linux/crc32.h>
+ #include <linux/module.h>
+ 
+@@ -153,7 +154,7 @@ static int status_map[] = {
+ 
+ static int dlm_status_to_errno(enum dlm_status status)
+ {
+-	BUG_ON(status > (sizeof(status_map) / sizeof(status_map[0])));
++	BUG_ON(status < 0 || status >= ARRAY_SIZE(status_map));
+ 
+ 	return status_map[status];
+ }
