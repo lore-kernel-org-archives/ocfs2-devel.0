@@ -1,865 +1,1433 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 27 Jul 2009 19:53:35 +0200
-Subject: [Ocfs2-devel] [PATCH 7/8] Add quota support to tunefs.ocfs2
+Date: Mon, 27 Jul 2009 19:53:31 +0200
+Subject: [Ocfs2-devel] [PATCH 3/8] Implement quota functions to libocfs2
 In-Reply-To: <1248717216-26617-1-git-send-email-jack@suse.cz>
 References: <1248717216-26617-1-git-send-email-jack@suse.cz>
-Message-ID: <1248717216-26617-8-git-send-email-jack@suse.cz>
+Message-ID: <1248717216-26617-4-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Implement setting of quota feature via tunefs.ocfs2 and also properly
-create / delete local quota files when number of slots increases /
-decreases. Implement setting of interval in which we sync changes
-in local quota file to the global quota file.
-
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- tunefs.ocfs2/Makefile                     |    6 +-
- tunefs.ocfs2/feature_quota.c              |  418 +++++++++++++++++++++++++++++
- tunefs.ocfs2/ocfs2ne.c                    |   26 ++
- tunefs.ocfs2/op_features.c                |    4 +
- tunefs.ocfs2/op_set_quota_sync_interval.c |  170 ++++++++++++
- tunefs.ocfs2/op_set_slot_count.c          |   91 ++++++-
- 6 files changed, 712 insertions(+), 3 deletions(-)
- create mode 100644 tunefs.ocfs2/feature_quota.c
- create mode 100644 tunefs.ocfs2/op_set_quota_sync_interval.c
+ include/ocfs2/ocfs2.h     |   80 +++
+ libocfs2/Makefile         |    1 +
+ libocfs2/feature_string.c |   18 +
+ libocfs2/ocfs2_err.et     |    6 +
+ libocfs2/quota.c          | 1208 +++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1313 insertions(+), 0 deletions(-)
+ create mode 100644 libocfs2/quota.c
 
-diff --git a/tunefs.ocfs2/Makefile b/tunefs.ocfs2/Makefile
-index fd244d8..d28da81 100644
---- a/tunefs.ocfs2/Makefile
-+++ b/tunefs.ocfs2/Makefile
-@@ -24,7 +24,8 @@ OCFS2NE_FEATURES =			\
- 	feature_metaecc			\
- 	feature_sparse_files		\
- 	feature_unwritten_extents	\
--	feature_xattr
-+	feature_xattr			\
-+	feature_quota
+diff --git a/include/ocfs2/ocfs2.h b/include/ocfs2/ocfs2.h
+index ac16823..7f136ca 100644
+--- a/include/ocfs2/ocfs2.h
++++ b/include/ocfs2/ocfs2.h
+@@ -125,16 +125,36 @@
+ #define OCFS2_CHB_WAITING	2
+ #define OCFS2_CHB_COMPLETE	3
  
- OCFS2NE_OPERATIONS =			\
- 	op_cloned_volume		\
-@@ -36,7 +37,8 @@ OCFS2NE_OPERATIONS =			\
- 	op_set_label			\
- 	op_set_journal_size		\
- 	op_set_slot_count		\
--	op_update_cluster_stack
-+	op_update_cluster_stack		\
-+	op_set_quota_sync_interval	\
++/* Flags for global quotafile info */
++#define OCFS2_QF_INFO_DIRTY 1
++
+ typedef void (*ocfs2_chb_notify)(int state, char *progress, void *data);
  
- sbindir = $(root_sbindir)
- SBIN_PROGRAMS = tunefs.ocfs2
-diff --git a/tunefs.ocfs2/feature_quota.c b/tunefs.ocfs2/feature_quota.c
+ typedef struct _ocfs2_filesys ocfs2_filesys;
+ typedef struct _ocfs2_cached_inode ocfs2_cached_inode;
++typedef struct _ocfs2_cached_dquot ocfs2_cached_dquot;
+ typedef struct _io_channel io_channel;
+ typedef struct _ocfs2_inode_scan ocfs2_inode_scan;
+ typedef struct _ocfs2_dir_scan ocfs2_dir_scan;
+ typedef struct _ocfs2_bitmap ocfs2_bitmap;
+ typedef struct _ocfs2_devices ocfs2_devices;
+ 
++#define MAXQUOTAS 2
++#define USRQUOTA 0
++#define GRPQUOTA 1
++
++#define OCFS2_DEF_BLOCK_GRACE 604800 /* 1 week */
++#define OCFS2_DEF_INODE_GRACE 604800 /* 1 week */
++#define OCFS2_DEF_QUOTA_SYNC 10000   /* 10 seconds */
++
++struct _ocfs2_quota_info {
++	ocfs2_cached_inode *qi_inode;
++	int flags;
++	struct ocfs2_global_disk_dqinfo qi_info;
++};
++
++typedef struct _ocfs2_quota_info ocfs2_quota_info;
++
+ struct _ocfs2_filesys {
+ 	char *fs_devname;
+ 	uint32_t fs_flags;
+@@ -161,6 +181,8 @@ struct _ocfs2_filesys {
+ 	struct o2dlm_ctxt *fs_dlm_ctxt;
+ 	struct ocfs2_image_state *ost;
+ 
++	ocfs2_quota_info qinfo[MAXQUOTAS];
++
+ 	/* Reserved for the use of the calling application. */
+ 	void *fs_private;
+ };
+@@ -172,6 +194,15 @@ struct _ocfs2_cached_inode {
+ 	ocfs2_bitmap *ci_chains;
+ };
+ 
++typedef unsigned int qid_t;
++
++struct _ocfs2_cached_dquot {
++	loff_t d_off;	/* Offset of structure in the file */
++	struct _ocfs2_cached_dquot *d_next;	/* Next entry in hashchain */
++	struct _ocfs2_cached_dquot **d_pprev;	/* Previous pointer in hashchain */
++	struct ocfs2_global_disk_dqblk d_ddquot;	/* Quota entry */
++};
++
+ struct ocfs2_slot_data {
+ 	int		sd_valid;
+ 	unsigned int	sd_node_num;
+@@ -205,6 +236,14 @@ struct _ocfs2_fs_options {
+ 	uint32_t opt_ro_compat;
+ };
+ 
++struct _ocfs2_quota_hash {
++	int alloc_entries;
++	int used_entries;
++	ocfs2_cached_dquot **hash;
++};
++
++typedef struct _ocfs2_quota_hash ocfs2_quota_hash;
++
+ errcode_t ocfs2_malloc(unsigned long size, void *ptr);
+ errcode_t ocfs2_malloc0(unsigned long size, void *ptr);
+ errcode_t ocfs2_free(void *ptr);
+@@ -580,6 +619,47 @@ errcode_t ocfs2_meta_lock(ocfs2_filesys *fs, ocfs2_cached_inode *inode,
+ 
+ errcode_t ocfs2_meta_unlock(ocfs2_filesys *fs, ocfs2_cached_inode *ci);
+ 
++/* Quota operations */
++void ocfs2_swap_quota_header(struct ocfs2_disk_dqheader *header);
++void ocfs2_swap_quota_local_info(struct ocfs2_local_disk_dqinfo *info);
++void ocfs2_swap_quota_chunk_header(struct ocfs2_local_disk_chunk *chunk);
++void ocfs2_swap_quota_global_info(struct ocfs2_global_disk_dqinfo *info);
++void ocfs2_swap_quota_global_dqblk(struct ocfs2_global_disk_dqblk *dqblk);
++void ocfs2_swap_quota_leaf_block_header(struct ocfs2_global_disk_dqdbheader *bheader);
++errcode_t ocfs2_init_local_quota_file(ocfs2_filesys *fs, int type,
++				      uint64_t blkno);
++errcode_t ocfs2_init_local_quota_files(ocfs2_filesys *fs, int type);
++int ocfs2_qtree_depth(int blocksize);
++int ocfs2_qtree_entry_unused(struct ocfs2_global_disk_dqblk *ddquot);
++errcode_t ocfs2_init_global_quota_file(ocfs2_filesys *fs, int type);
++errcode_t ocfs2_init_fs_quota_info(ocfs2_filesys *fs, int type);
++errcode_t ocfs2_read_global_quota_info(ocfs2_filesys *fs, int type);
++errcode_t ocfs2_write_global_quota_info(ocfs2_filesys *fs, int type);
++errcode_t ocfs2_write_dquot(ocfs2_filesys *fs, int type,
++			    ocfs2_cached_dquot *dquot);
++errcode_t ocfs2_delete_dquot(ocfs2_filesys *fs, int type,
++			     ocfs2_cached_dquot *dquot);
++errcode_t ocfs2_read_dquot(ocfs2_filesys *fs, int type, qid_t id,
++			   ocfs2_cached_dquot **ret_dquot);
++errcode_t ocfs2_new_quota_hash(ocfs2_quota_hash **hashp);
++errcode_t ocfs2_free_quota_hash(ocfs2_quota_hash *hash);
++errcode_t ocfs2_insert_quota_hash(ocfs2_quota_hash *hash,
++				  ocfs2_cached_dquot *dquot);
++errcode_t ocfs2_remove_quota_hash(ocfs2_quota_hash *hash,
++				  ocfs2_cached_dquot *dquot);
++errcode_t ocfs2_find_quota_hash(ocfs2_quota_hash *hash, qid_t id,
++				ocfs2_cached_dquot **dquotp);
++errcode_t ocfs2_find_create_quota_hash(ocfs2_quota_hash *hash, qid_t id,
++				       ocfs2_cached_dquot **dquotp);
++errcode_t ocfs2_compute_quota_usage(ocfs2_filesys *fs,
++				    ocfs2_quota_hash *usr_hash,
++				    ocfs2_quota_hash *grp_hash);
++errcode_t ocfs2_iterate_quota_hash(ocfs2_quota_hash *hash,
++				   errcode_t (*f)(ocfs2_cached_dquot *, void *),
++				   void *data);
++errcode_t ocfs2_write_release_dquots(ocfs2_filesys *fs, int type,
++				     ocfs2_quota_hash *hash);
++
+ /* Low level */
+ void ocfs2_swap_slot_map(struct ocfs2_slot_map *sm, int num_slots);
+ void ocfs2_swap_slot_map_extended(struct ocfs2_slot_map_extended *se,
+diff --git a/libocfs2/Makefile b/libocfs2/Makefile
+index 48cfe80..eeb854a 100644
+--- a/libocfs2/Makefile
++++ b/libocfs2/Makefile
+@@ -73,6 +73,7 @@ CFILES = 		\
+ 	lockid.c	\
+ 	backup_super.c	\
+ 	feature_string.c\
++	quota.c		\
+ 	image.c		\
+ 	xattr.c
+ 
+diff --git a/libocfs2/feature_string.c b/libocfs2/feature_string.c
+index 17e2675..18ae6e9 100644
+--- a/libocfs2/feature_string.c
++++ b/libocfs2/feature_string.c
+@@ -123,6 +123,16 @@ static struct fs_feature_flags ocfs2_supported_features[] = {
+ 		{0, OCFS2_FEATURE_INCOMPAT_XATTR, 0},
+ 	},
+ 	{
++		"usrquota",
++		{0, 0, OCFS2_FEATURE_RO_COMPAT_USRQUOTA},
++		{0, 0, OCFS2_FEATURE_RO_COMPAT_USRQUOTA},
++	},
++	{
++		"grpquota",
++		{0, 0, OCFS2_FEATURE_RO_COMPAT_GRPQUOTA},
++		{0, 0, OCFS2_FEATURE_RO_COMPAT_GRPQUOTA},
++	},
++	{
+ 		NULL,
+ 		{0, 0, 0},
+ 		{0, 0, 0}
+@@ -190,6 +200,14 @@ static struct feature_name ocfs2_feature_names[] = {
+ 		.fn_flag = {0, OCFS2_FEATURE_INCOMPAT_XATTR, 0},
+ 	},
+ 	{
++		.fn_name = "usrquota",
++		.fn_flag = {0, 0, OCFS2_FEATURE_RO_COMPAT_USRQUOTA},
++	},
++	{
++		.fn_name = "grpquota",
++		.fn_flag = {0, 0, OCFS2_FEATURE_RO_COMPAT_GRPQUOTA},
++	},
++	{
+ 		.fn_name = NULL,
+ 	},
+ };
+diff --git a/libocfs2/ocfs2_err.et b/libocfs2/ocfs2_err.et
+index ddfa07c..13b03c4 100644
+--- a/libocfs2/ocfs2_err.et
++++ b/libocfs2/ocfs2_err.et
+@@ -183,7 +183,13 @@ ec	OCFS2_ET_BAD_XATTR_BLOCK_MAGIC,
+ ec	OCFS2_ET_UNKNOWN_FEATURE,
+ 	"Unknown feature"
+ 
++ec	OCFS2_ET_CORRUPT_QUOTA_FILE,
++	"Quota file is corrupted"
++
+ ec	OCFS2_ET_CANNOT_DETERMINE_SECTOR_SIZE,
+ 	"Cannot determine sector size"
+ 
++ec	OCFS2_ET_NONEMTY_QUOTA_HASH,
++	"Freeing non-empty quota hash"
++
+ 	end
+diff --git a/libocfs2/quota.c b/libocfs2/quota.c
 new file mode 100644
-index 0000000..b734d49
+index 0000000..f0ad301
 --- /dev/null
-+++ b/tunefs.ocfs2/feature_quota.c
-@@ -0,0 +1,418 @@
++++ b/libocfs2/quota.c
+@@ -0,0 +1,1208 @@
 +/* -*- mode: c; c-basic-offset: 8; -*-
 + * vim: noexpandtab sw=8 ts=8 sts=0:
 + *
-+ * feature_quota.c
++ * quota.c
 + *
-+ * ocfs2 tune utility for enabling and disabling quota support.
++ * Quota operations for the OCFS2 userspace library.
 + *
 + * Copyright (C) 2008 Novell.  All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or
 + * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
++ * License, version 2,  as published by the Free Software Foundation.
 + *
 + * This program is distributed in the hope that it will be useful,
 + * but WITHOUT ANY WARRANTY; without even the implied warranty of
 + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 + * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public
++ * License along with this program; if not, write to the
++ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++ * Boston, MA 021110-1307, USA.
 + */
 +
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <string.h>
-+#include <ctype.h>
 +#include <inttypes.h>
-+#include <assert.h>
 +
++#include "ocfs2/byteorder.h"
 +#include "ocfs2/ocfs2.h"
 +
-+#include "libocfs2ne.h"
-+
-+static char *type2name(int type)
++void ocfs2_swap_quota_header(struct ocfs2_disk_dqheader *header)
 +{
-+	if (type == USRQUOTA)
-+		return "user";
-+	return "group";
++	if (cpu_is_little_endian)
++		return;
++	header->dqh_magic = bswap_32(header->dqh_magic);
++	header->dqh_version = bswap_32(header->dqh_version);
 +}
 +
-+static errcode_t create_system_file(ocfs2_filesys *fs, int type, int node)
++void ocfs2_swap_quota_local_info(struct ocfs2_local_disk_dqinfo *info)
 +{
-+	char fname[OCFS2_MAX_FILENAME_LEN];
-+	uint64_t blkno;
-+	errcode_t ret;
++	if (cpu_is_little_endian)
++		return;
++	info->dqi_flags = bswap_32(info->dqi_flags);
++	info->dqi_chunks = bswap_32(info->dqi_chunks);
++	info->dqi_blocks = bswap_32(info->dqi_blocks);
++}
 +
-+	ocfs2_sprintf_system_inode_name(fname, sizeof(fname),
-+		type, node);
-+	ret = ocfs2_lookup(fs, fs->fs_sysdir_blkno, fname, strlen(fname), NULL,
-+			   &blkno);
-+	if (!ret) {
-+		verbosef(VL_APP, "System file \"%s\" already exists!\n",
-+			 fname);
++void ocfs2_swap_quota_chunk_header(struct ocfs2_local_disk_chunk *chunk)
++{
++	if (cpu_is_little_endian)
++		return;
++	chunk->dqc_free = bswap_32(chunk->dqc_free);
++}
++
++void ocfs2_swap_quota_global_info(struct ocfs2_global_disk_dqinfo *info)
++{
++	if (cpu_is_little_endian)
++		return;
++	info->dqi_bgrace = bswap_32(info->dqi_bgrace);
++	info->dqi_igrace = bswap_32(info->dqi_igrace);
++	info->dqi_syncms = bswap_32(info->dqi_syncms);
++	info->dqi_blocks = bswap_32(info->dqi_blocks);
++	info->dqi_free_blk = bswap_32(info->dqi_free_blk);
++	info->dqi_free_entry = bswap_32(info->dqi_free_entry);
++}
++
++void ocfs2_swap_quota_global_dqblk(struct ocfs2_global_disk_dqblk *dqblk)
++{
++	if (cpu_is_little_endian)
++		return;
++	dqblk->dqb_id = bswap_32(dqblk->dqb_id);
++	dqblk->dqb_use_count = bswap_32(dqblk->dqb_use_count);
++	dqblk->dqb_ihardlimit = bswap_64(dqblk->dqb_ihardlimit);
++	dqblk->dqb_isoftlimit = bswap_64(dqblk->dqb_isoftlimit);
++	dqblk->dqb_curinodes = bswap_64(dqblk->dqb_curinodes);
++	dqblk->dqb_bhardlimit = bswap_64(dqblk->dqb_bhardlimit);
++	dqblk->dqb_bsoftlimit = bswap_64(dqblk->dqb_bsoftlimit);
++	dqblk->dqb_curspace = bswap_64(dqblk->dqb_curspace);
++	dqblk->dqb_btime = bswap_64(dqblk->dqb_btime);
++	dqblk->dqb_itime = bswap_64(dqblk->dqb_itime);
++}
++
++void ocfs2_swap_quota_leaf_block_header(struct ocfs2_global_disk_dqdbheader *bheader)
++{
++	if (cpu_is_little_endian)
++		return;
++	bheader->dqdh_next_free = bswap_32(bheader->dqdh_next_free);
++	bheader->dqdh_prev_free = bswap_32(bheader->dqdh_prev_free);
++	bheader->dqdh_entries = bswap_16(bheader->dqdh_entries);
++}
++
++/* Should be power of two */
++#define DEFAULT_QUOTA_HASH_SIZE 8192
++#define MAX_QUOTA_HASH_SIZE (1<<21)	/* 16 MB on 64-bit arch*/
++
++errcode_t ocfs2_new_quota_hash(ocfs2_quota_hash **hashp)
++{
++	ocfs2_quota_hash *hash;
++	errcode_t err;
++
++	err = ocfs2_malloc(sizeof(ocfs2_quota_hash), &hash);
++	if (err)
++		return err;
++	hash->alloc_entries = DEFAULT_QUOTA_HASH_SIZE;
++	hash->used_entries = 0;
++	err = ocfs2_malloc0(sizeof(ocfs2_quota_hash *) *
++			    DEFAULT_QUOTA_HASH_SIZE, &hash->hash);
++	if (err) {
++		ocfs2_free(&hash);
++		return err;
++	}
++	*hashp = hash;
++	return 0;
++}
++
++errcode_t ocfs2_free_quota_hash(ocfs2_quota_hash *hash)
++{
++	errcode_t err = 0, ret;
++
++	if (hash->used_entries)
++		return OCFS2_ET_NONEMTY_QUOTA_HASH;
++	ret = ocfs2_free(&hash->hash);
++	if (!err && ret)
++		err = ret;
++	ret = ocfs2_free(&hash);
++	if (!err && ret)
++		err = ret;
++	return err;
++}
++
++static int quota_hash(ocfs2_quota_hash *hash, qid_t id)
++{
++	return (((unsigned long)id) * 5) & (hash->alloc_entries - 1);
++}
++
++static void quota_add_hash_chain(ocfs2_quota_hash *hash,
++				 ocfs2_cached_dquot *dquot)
++{
++	int hash_val = quota_hash(hash, dquot->d_ddquot.dqb_id);
++
++	dquot->d_next = hash->hash[hash_val];
++	if (dquot->d_next)
++		dquot->d_next->d_pprev = &dquot->d_next;
++	hash->hash[hash_val] = dquot;
++	dquot->d_pprev = hash->hash + hash_val;
++}
++
++errcode_t ocfs2_insert_quota_hash(ocfs2_quota_hash *hash,
++				  ocfs2_cached_dquot *dquot)
++{
++	errcode_t err;
++
++	if (hash->used_entries > hash->alloc_entries &&
++	    hash->alloc_entries * 2 < MAX_QUOTA_HASH_SIZE) {
++		ocfs2_cached_dquot **new_hash, **old_hash;
++		ocfs2_cached_dquot *h_dquot, *h_next;
++		int i;
++		int old_entries;
++
++		err = ocfs2_malloc0(sizeof(ocfs2_quota_hash *) *
++				    hash->alloc_entries * 2, &new_hash);
++		if (err)
++			return err;
++		old_entries = hash->alloc_entries;
++		old_hash = hash->hash;
++		hash->alloc_entries *= 2;
++		hash->hash = new_hash;
++		/* Rehash */
++		for (i = 0; i < old_entries; i++) {
++			for (h_dquot = old_hash[i]; h_dquot; h_dquot = h_next) {
++				h_next = h_dquot->d_next;
++				quota_add_hash_chain(hash, h_dquot);
++			}
++		}
++		err = ocfs2_free(&old_hash);
++		if (err)
++			return err;
++	}
++	quota_add_hash_chain(hash, dquot);
++	hash->used_entries++;
++	return 0;
++}
++
++errcode_t ocfs2_remove_quota_hash(ocfs2_quota_hash *hash,
++				  ocfs2_cached_dquot *dquot)
++{
++	*(dquot->d_pprev) = dquot->d_next;
++	if (dquot->d_next)
++		dquot->d_next->d_pprev = dquot->d_pprev;
++	hash->used_entries--;
++	return 0;
++}
++
++errcode_t ocfs2_find_quota_hash(ocfs2_quota_hash *hash, qid_t id,
++				ocfs2_cached_dquot **dquotp)
++{
++	int hash_val = quota_hash(hash, id);
++	ocfs2_cached_dquot *dquot;
++
++	for (dquot = hash->hash[hash_val]; dquot; dquot = dquot->d_next) {
++		if (dquot->d_ddquot.dqb_id == id) {
++			*dquotp = dquot;
++			return 0;
++		}
++	}
++	*dquotp = NULL;
++	return 0;
++}
++
++errcode_t ocfs2_find_create_quota_hash(ocfs2_quota_hash *hash, qid_t id,
++				       ocfs2_cached_dquot **dquotp)
++{
++	errcode_t err;
++
++	err = ocfs2_find_quota_hash(hash, id, dquotp);
++	if (err)
++		return err;
++	if (*dquotp)
 +		return 0;
-+	}
-+	ret = ocfs2_new_system_inode(fs, &blkno,
-+				ocfs2_system_inodes[type].si_mode,
-+				ocfs2_system_inodes[type].si_iflags);
-+	if (ret) {
-+		tcom_err(ret, "while creating system file \"%s\"", fname);
-+		return ret;
-+	}
-+
-+	ret = ocfs2_link(fs, fs->fs_sysdir_blkno, fname, blkno,
-+			 OCFS2_FT_REG_FILE);
-+	if (ret) {
-+		tcom_err(ret, "while linking file \"%s\" in the system "
-+			 "directory", fname);
-+		return ret;
++	err = ocfs2_malloc0(sizeof(ocfs2_cached_dquot), dquotp);
++	if (err)
++		return err;
++	(*dquotp)->d_ddquot.dqb_id = id;
++	err = ocfs2_insert_quota_hash(hash, *dquotp);
++	if (err) {
++		ocfs2_free(dquotp);
++		return err;
 +	}
 +	return 0;
 +}
 +
-+static errcode_t create_quota_files(ocfs2_filesys *fs, int type,
-+				    struct tools_progress *prog)
++errcode_t ocfs2_compute_quota_usage(ocfs2_filesys *fs,
++				    ocfs2_quota_hash *usr_hash,
++				    ocfs2_quota_hash *grp_hash)
 +{
-+	ocfs2_quota_hash *hash;
-+	errcode_t ret;
-+	int num_slots = OCFS2_RAW_SB(fs->fs_super)->s_max_slots;
-+	int i;
-+	int local_type = (type == USRQUOTA) ?
-+				LOCAL_USER_QUOTA_SYSTEM_INODE :
-+				LOCAL_GROUP_QUOTA_SYSTEM_INODE;
-+	int global_type = (type == USRQUOTA) ?
-+				USER_QUOTA_SYSTEM_INODE :
-+				GROUP_QUOTA_SYSTEM_INODE;
++	errcode_t err = 0;
++	ocfs2_inode_scan *scan;
++	uint64_t blkno;
++	char *buf;
++	int close_scan = 0;
++	struct ocfs2_dinode *di;
++	ocfs2_cached_dquot *dquot;
 +
-+	verbosef(VL_APP, "Creating %s quota system files\n", type2name(type));
-+	ret = create_system_file(fs, global_type, 0);
-+	if (ret)
-+		return ret;
-+	for (i = 0; i < num_slots; i++) {
-+		ret = create_system_file(fs, local_type, i);
-+		if (ret)
-+			return ret;
-+	}
-+	tools_progress_step(prog, 1);
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++	di = (struct ocfs2_dinode *)buf;
 +
-+	verbosef(VL_APP, "Initializing global %s quota file\n",
-+		 type2name(type));
-+	ret = ocfs2_init_fs_quota_info(fs, type);
-+	if (ret) {
-+		tcom_err(ret, "while looking up global %s quota file",
-+			 type2name(type));
-+		return ret;
-+	}
-+	fs->qinfo[type].flags = 0;
-+	fs->qinfo[type].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
-+	fs->qinfo[type].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
-+	fs->qinfo[type].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
++	err = ocfs2_open_inode_scan(fs, &scan);
++	if (err)
++		goto out;
++	close_scan = 1;
 +
-+	ret = ocfs2_init_global_quota_file(fs, type);
-+	if (ret) {
-+		tcom_err(ret, "while initilizing global %s quota files",
-+			 type2name(type));
-+		return ret;
++	while (1) {
++		err = ocfs2_get_next_inode(scan, &blkno, buf);
++		if (err || !blkno)
++			break;
++		/*
++		 * Check whether the inode looks reasonable and interesting
++		 * for quota
++		 */
++		if (memcmp(di->i_signature, OCFS2_INODE_SIGNATURE,
++			   strlen(OCFS2_INODE_SIGNATURE)))
++			continue;
++		ocfs2_swap_inode_to_cpu(di, fs->fs_blocksize);
++		if (di->i_fs_generation != fs->fs_super->i_fs_generation)
++			continue;
++		if (!(di->i_flags & OCFS2_VALID_FL))
++			continue;
++		if (di->i_flags & OCFS2_SYSTEM_FL &&
++		    blkno != OCFS2_RAW_SB(fs->fs_super)->s_root_blkno)
++			continue;
++		if (usr_hash) {
++			err = ocfs2_find_create_quota_hash(usr_hash, di->i_uid,
++							   &dquot);
++			if (err)
++				break;
++			dquot->d_ddquot.dqb_curspace +=
++				ocfs2_clusters_to_bytes(fs, di->i_clusters);
++			dquot->d_ddquot.dqb_curinodes++;
++		}
++		if (grp_hash) {
++			err = ocfs2_find_create_quota_hash(grp_hash, di->i_gid,
++							   &dquot);
++			if (err)
++				break;
++			dquot->d_ddquot.dqb_curspace +=
++				ocfs2_clusters_to_bytes(fs, di->i_clusters);
++			dquot->d_ddquot.dqb_curinodes++;
++		}
 +	}
-+	tools_progress_step(prog, 1);
-+
-+	verbosef(VL_APP, "Initializing local %s quota files\n",
-+		 type2name(type));
-+	ret = ocfs2_init_local_quota_files(fs, type);
-+	if (ret) {
-+		tcom_err(ret, "while initilizing local %s quota files",
-+			 type2name(type));
-+		return ret;
-+	}
-+	tools_progress_step(prog, 1);
-+
-+	verbosef(VL_APP, "Computing %s quota usage\n",
-+		 type2name(type));
-+	ret = ocfs2_new_quota_hash(&hash);
-+	if (ret) {
-+		tcom_err(ret, "while creating quota hash");
-+		return ret;
-+	}
-+	if (type == USRQUOTA)
-+		ret = ocfs2_compute_quota_usage(fs, hash, NULL);
-+	else
-+		ret = ocfs2_compute_quota_usage(fs, NULL, hash);
-+	if (ret) {
-+		tcom_err(ret, "while scanning filesystem to gather "
-+			 "quota usage");
-+		return ret;
-+	}
-+	tools_progress_step(prog, 1);
-+
-+	verbosef(VL_APP, "Write %s quotas to file\n",
-+		 type2name(type));
-+	ret = ocfs2_write_release_dquots(fs, type, hash);
-+	if (ret) {
-+		tcom_err(ret, "while writing %s quota usage to disk",
-+			 type2name(type));
-+		return ret;
-+	}
-+	tools_progress_step(prog, 1);
-+
-+	ret = ocfs2_free_quota_hash(hash);
-+	if (ret)
-+		tcom_err(ret, "while freeing quota hash");
-+	return ret;
++out:
++	if (close_scan)
++		ocfs2_close_inode_scan(scan);
++	ocfs2_free(&buf);
++	return err;
 +}
 +
-+struct remove_quota_files_ctxt {
++errcode_t ocfs2_iterate_quota_hash(ocfs2_quota_hash *hash,
++				   errcode_t (*f)(ocfs2_cached_dquot *, void *),
++				   void *data)
++{
++	errcode_t err = 0;
++	int i;
++	ocfs2_cached_dquot *dquot, *next;
++
++	for (i = 0; i < hash->alloc_entries; i++)
++		for (dquot = hash->hash[i]; dquot; dquot = next) {
++			next = dquot->d_next;
++			err = f(dquot, data);
++			if (err)
++				goto out;
++		}
++out:
++	return err;
++}
++
++struct write_rel_ctx {
 +	ocfs2_filesys *fs;
-+	errcode_t err;
++	ocfs2_quota_hash *hash;
 +	int type;
 +};
 +
-+static int remove_quota_files_iterate(struct ocfs2_dir_entry *dirent,
-+				      int offset, int blocksize, char *buf,
-+				      void *priv_data)
++static errcode_t write_release_quota_hash(ocfs2_cached_dquot *dquot, void *p)
 +{
-+	struct remove_quota_files_ctxt *ctxt = priv_data;
-+	char dname[OCFS2_MAX_FILENAME_LEN];
-+	char wname[OCFS2_MAX_FILENAME_LEN];
-+	errcode_t ret;
-+	int tail, i;
-+	int ret_flags = 0;
++	struct write_rel_ctx *ctx = p;
++	errcode_t err;
 +
-+	strncpy(dname, dirent->name, dirent->name_len);
-+	dname[dirent->name_len] = 0;
++	if (!dquot->d_ddquot.dqb_isoftlimit ||
++	    dquot->d_ddquot.dqb_curinodes < dquot->d_ddquot.dqb_isoftlimit)
++		dquot->d_ddquot.dqb_itime = 0;
++	if (!dquot->d_ddquot.dqb_bsoftlimit ||
++	    dquot->d_ddquot.dqb_curspace < dquot->d_ddquot.dqb_bsoftlimit)
++		dquot->d_ddquot.dqb_btime = 0;
 +
-+	/* Check whether entry is quota file of type we want - i.e. matching
-+	 * aquota.user:[0-9][0-9][0-9][0-9] or aquota.user for type == USRQUOTA
-+	 * and similarly for type == GRPQUOTA */
-+	strcpy(wname, "aquota.");
-+	strcat(wname, type2name(ctxt->type));
-+	tail = strlen(wname);
-+	if (strncmp(dname, wname, tail))
-+		return 0;
-+	if (dname[tail] == ':') {	/* May be local file? */
-+		tail++;
-+		for (i = 0; i < 4; i++)
-+			if (dname[tail + i] < '0' || dname[tail + i] > '9')
-+				return 0;
-+		if (dname[tail + i])
-+			return 0;
-+	} else if (dname[tail])		/* May be global file? */
-+		return 0;
++	err = ocfs2_write_dquot(ctx->fs, ctx->type, dquot);
++	if (err)
++		return err;
++	err = ocfs2_remove_quota_hash(ctx->hash, dquot);
++	if (err)
++		return err;
++	return ocfs2_free(&dquot);
++}
 +
-+	verbosef(VL_APP, "Deleting quota file %s\n",
-+		 dname);
-+	ret = ocfs2_truncate(ctxt->fs, dirent->inode, 0);
-+	if (ret) {
-+		tcom_err(ret, "while truncating quota file \"%s\"", dname);
-+		ret_flags |= OCFS2_DIRENT_ERROR;
-+		ctxt->err = ret;
++errcode_t ocfs2_write_release_dquots(ocfs2_filesys *fs, int type,
++				     ocfs2_quota_hash *hash)
++{
++	struct write_rel_ctx ctx;
++
++	ctx.fs = fs;
++	ctx.hash = hash;
++	ctx.type = type;
++
++	return ocfs2_iterate_quota_hash(hash, write_release_quota_hash, &ctx);
++}
++
++static void mark_quotafile_info_dirty(ocfs2_filesys *fs, int type)
++{
++	fs->qinfo[type].flags |= OCFS2_QF_INFO_DIRTY;
++}
++
++static void ocfs2_checksum_quota_block(ocfs2_filesys *fs, char *buf)
++{
++	struct ocfs2_disk_dqtrailer *dqt =
++			ocfs2_block_dqtrailer(fs->fs_blocksize, buf);
++
++	ocfs2_compute_meta_ecc(fs, buf, &dqt->dq_check);
++}
++
++errcode_t ocfs2_init_local_quota_file(ocfs2_filesys *fs, int type,
++				      uint64_t blkno)
++{
++	ocfs2_cached_inode *ci = NULL;
++	struct ocfs2_dinode *di;
++	struct ocfs2_disk_dqheader *header;
++	struct ocfs2_local_disk_dqinfo *info;
++	unsigned int magics[] = OCFS2_LOCAL_QMAGICS;
++	int versions[] = OCFS2_LOCAL_QVERSIONS;
++	char *buf = NULL;
++	unsigned int written;
++	errcode_t err;
++
++	err = ocfs2_read_cached_inode(fs, blkno, &ci);
++	if (err)
++		goto out;
++
++	if (!(ci->ci_inode->i_flags & OCFS2_VALID_FL) ||
++	    !(ci->ci_inode->i_flags & OCFS2_SYSTEM_FL) ||
++	    !(ci->ci_inode->i_flags & OCFS2_QUOTA_FL)) {
++		err = OCFS2_ET_INTERNAL_FAILURE;
 +		goto out;
 +	}
-+	ret = ocfs2_delete_inode(ctxt->fs, dirent->inode);
-+	if (ret) {
-+		tcom_err(ret, "while deleting quota file \"%s\"", dname);
-+		ret_flags |= OCFS2_DIRENT_ERROR;
-+		ctxt->err = ret;
-+	} else {
-+		dirent->inode = 0;
-+		ret_flags |= OCFS2_DIRENT_CHANGED;
++	di = ci->ci_inode;
++
++	/* We need at least two blocks */
++	err = ocfs2_cached_inode_extend_allocation(ci, (2 * fs->fs_blocksize +
++			fs->fs_clustersize - 1) / fs->fs_clustersize);
++	if (err)
++		goto out;
++	di->i_size = 2 * fs->fs_blocksize;
++	di->i_mtime = time(NULL);
++	err = ocfs2_write_inode(fs, blkno, (char *)di);
++	if (err)
++		goto out;
++
++	err = ocfs2_malloc_blocks(fs->fs_io, fs->fs_blocksize * 2, &buf);
++	if (err)
++		goto out;
++	memset(buf, 0, 2 * fs->fs_blocksize);
++
++	header = (struct ocfs2_disk_dqheader *)buf;
++	header->dqh_magic = magics[type];
++	header->dqh_version = versions[type];
++	ocfs2_swap_quota_header(header);
++
++	info = (struct ocfs2_local_disk_dqinfo *)(buf + OCFS2_LOCAL_INFO_OFF);
++	info->dqi_chunks = 1;
++	info->dqi_blocks = 2;
++	info->dqi_flags = OLQF_CLEAN;
++	ocfs2_swap_quota_local_info(info);
++
++	/* There are no free chunks because there are no blocks allocated for
++	 * them yet. So chunk header is all-zero and needs no initialization */
++	ocfs2_checksum_quota_block(fs, buf);
++	ocfs2_checksum_quota_block(fs, buf + fs->fs_blocksize);
++	err = ocfs2_file_write(ci, buf, 2 * fs->fs_blocksize, 0, &written);
++	if (!err && written != 2 * fs->fs_blocksize) {
++		err = OCFS2_ET_INTERNAL_FAILURE;
++		goto out;
 +	}
 +out:
-+	return ret_flags;
++	if (ci)
++		ocfs2_free_cached_inode(fs, ci);
++	if (buf)
++		ocfs2_free(&buf);
++	return err;
 +}
 +
-+static errcode_t remove_quota_files(ocfs2_filesys *fs, int type,
-+				    struct tools_progress *prog)
++errcode_t ocfs2_init_local_quota_files(ocfs2_filesys *fs, int type)
 +{
-+	struct remove_quota_files_ctxt ctxt = {
-+		.fs = fs,
-+		.type = type,
-+		.err = 0,
-+	};
-+
-+	ocfs2_dir_iterate(fs, fs->fs_sysdir_blkno,
-+			  OCFS2_DIRENT_FLAG_EXCLUDE_DOTS, NULL,
-+			  remove_quota_files_iterate, &ctxt);
-+	tools_progress_step(prog, 1);
-+	return ctxt.err;
-+}
-+
-+static int enable_usrquota(ocfs2_filesys *fs, int flags)
-+{
-+	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
++	int num_slots = OCFS2_RAW_SB(fs->fs_super)->s_max_slots;
++	char fname[OCFS2_MAX_FILENAME_LEN];
 +	errcode_t ret;
-+	struct tools_progress *prog = NULL;
++	uint64_t blkno;
++	int local_type = (type == USRQUOTA) ? LOCAL_USER_QUOTA_SYSTEM_INODE :
++					      LOCAL_GROUP_QUOTA_SYSTEM_INODE;
++	int i;
 +
-+	if (OCFS2_HAS_RO_COMPAT_FEATURE(super,
-+	    OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
-+		verbosef(VL_APP, "User quotas are already enabled; "
-+			 "nothing to enable\n");
-+		return 0;
++	for (i = 0; i < num_slots; i++) {
++		ocfs2_sprintf_system_inode_name(fname, sizeof(fname),
++						local_type, i);
++		ret = ocfs2_lookup(fs, fs->fs_sysdir_blkno, fname,
++				   strlen(fname), NULL, &blkno);
++		if (ret)
++			return ret;
++		/* This is here mainly for fsck... */
++		ret = ocfs2_truncate(fs, blkno, 0);
++		if (ret)
++			return ret;
++		ret = ocfs2_init_local_quota_file(fs, type, blkno);
++		if (ret)
++			return ret;
 +	}
-+
-+	if (!tools_interact("Enable user quota feature on device "
-+			    "\"%s\"? ",
-+			    fs->fs_devname))
-+		return 0;
-+
-+	prog = tools_progress_start("Enabling user quota", "usrquota", 6);
-+	if (!prog) {
-+		ret = TUNEFS_ET_NO_MEMORY;
-+		tcom_err(ret, "while initializing progress display");
-+		return ret;
-+	}
-+	tunefs_block_signals();
-+	ret = create_quota_files(fs, USRQUOTA, prog);
-+	if (ret) {
-+		tcom_err(ret, "while creating user quota files");
-+		goto bail;
-+	}
-+	OCFS2_SET_RO_COMPAT_FEATURE(super,
-+				    OCFS2_FEATURE_RO_COMPAT_USRQUOTA);
-+	ret = ocfs2_write_super(fs);
-+	tools_progress_step(prog, 1);
-+bail:
-+	tunefs_unblock_signals();
-+	tools_progress_stop(prog);
-+	return ret;
-+}
-+
-+static int disable_usrquota(ocfs2_filesys *fs, int flags)
-+{
-+	errcode_t ret;
-+	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
-+	struct tools_progress *prog = NULL;
-+
-+	if (!OCFS2_HAS_RO_COMPAT_FEATURE(super,
-+	    OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
-+		verbosef(VL_APP, "User quotas are already disabled; "
-+			 "nothing to disable\n");
-+		return 0;
-+	}
-+
-+	if (!tools_interact("Disable user quota feature on device "
-+			    "\"%s\"? ",
-+			    fs->fs_devname))
-+		return 0;
-+
-+	prog = tools_progress_start("Disabling user quota", "nousrquota", 2);
-+	if (!prog) {
-+		ret = TUNEFS_ET_NO_MEMORY;
-+		tcom_err(ret, "while initializing progress display");
-+		return ret;
-+	}
-+	tunefs_block_signals();
-+	ret = remove_quota_files(fs, USRQUOTA, prog);
-+	if (ret) {
-+		tcom_err(ret, "while removing user quota files");
-+		goto bail;
-+	}
-+	OCFS2_CLEAR_RO_COMPAT_FEATURE(super,
-+				      OCFS2_FEATURE_RO_COMPAT_USRQUOTA);
-+	ret = ocfs2_write_super(fs);
-+	tools_progress_step(prog, 1);
-+bail:
-+	tunefs_unblock_signals();
-+	tools_progress_stop(prog);
-+	return ret;
-+}
-+
-+static int enable_grpquota(ocfs2_filesys *fs, int flags)
-+{
-+	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
-+	errcode_t ret;
-+	struct tools_progress *prog = NULL;
-+
-+	if (OCFS2_HAS_RO_COMPAT_FEATURE(super,
-+	    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
-+		verbosef(VL_APP, "Group quotas are already enabled; "
-+			 "nothing to enable\n");
-+		return 0;
-+	}
-+
-+	if (!tools_interact("Enable group quota feature on device "
-+			    "\"%s\"? ",
-+			    fs->fs_devname))
-+		return 0;
-+	prog = tools_progress_start("Enabling group quota", "grpquota", 6);
-+	if (!prog) {
-+		ret = TUNEFS_ET_NO_MEMORY;
-+		tcom_err(ret, "while initializing progress display");
-+		return ret;
-+	}
-+
-+	tunefs_block_signals();
-+	ret = create_quota_files(fs, GRPQUOTA, prog);
-+	if (ret) {
-+		tcom_err(ret, "while creating group quota files");
-+		goto bail;
-+	}
-+	OCFS2_SET_RO_COMPAT_FEATURE(super,
-+				    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA);
-+	ret = ocfs2_write_super(fs);
-+	tools_progress_step(prog, 1);
-+bail:
-+	tools_progress_stop(prog);
-+	tunefs_unblock_signals();
-+	return ret;
-+}
-+
-+static int disable_grpquota(ocfs2_filesys *fs, int flags)
-+{
-+	errcode_t ret;
-+	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
-+	struct tools_progress *prog = NULL;
-+
-+	if (!OCFS2_HAS_RO_COMPAT_FEATURE(super,
-+	    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
-+		verbosef(VL_APP, "Group quotas are already disabled; "
-+			 "nothing to disable\n");
-+		return 0;
-+	}
-+
-+	if (!tools_interact("Disable group quota feature on device "
-+			    "\"%s\"? ",
-+			    fs->fs_devname))
-+		return 0;
-+	prog = tools_progress_start("Disabling user quota", "nousrquota", 2);
-+	if (!prog) {
-+		ret = TUNEFS_ET_NO_MEMORY;
-+		tcom_err(ret, "while initializing progress display");
-+		return ret;
-+	}
-+
-+	tunefs_block_signals();
-+	ret = remove_quota_files(fs, GRPQUOTA, prog);
-+	if (ret) {
-+		tcom_err(ret, "while removing group quota files");
-+		goto bail;
-+	}
-+	OCFS2_CLEAR_RO_COMPAT_FEATURE(super,
-+				      OCFS2_FEATURE_RO_COMPAT_GRPQUOTA);
-+	ret = ocfs2_write_super(fs);
-+	tools_progress_step(prog, 1);
-+bail:
-+	tools_progress_stop(prog);
-+	tunefs_unblock_signals();
-+	return ret;
-+}
-+
-+DEFINE_TUNEFS_FEATURE_RO_COMPAT(usrquota,
-+				OCFS2_FEATURE_RO_COMPAT_USRQUOTA,
-+				TUNEFS_FLAG_RW | TUNEFS_FLAG_ALLOCATION,
-+				enable_usrquota,
-+				disable_usrquota);
-+
-+DEFINE_TUNEFS_FEATURE_RO_COMPAT(grpquota,
-+				OCFS2_FEATURE_RO_COMPAT_GRPQUOTA,
-+				TUNEFS_FLAG_RW | TUNEFS_FLAG_ALLOCATION,
-+				enable_grpquota,
-+				disable_grpquota);
-+#ifdef DEBUG_EXE
-+int main(int argc, char *argv[])
-+{
-+	int ret;
-+
-+	ret = tunefs_feature_main(argc, argv, &usrquota_feature);
-+	if (ret)
-+		return ret;
-+	return tunefs_feature_main(argc, argv, &grpquota_feature);
-+}
-+#endif
-diff --git a/tunefs.ocfs2/ocfs2ne.c b/tunefs.ocfs2/ocfs2ne.c
-index c9051a4..48760c6 100644
---- a/tunefs.ocfs2/ocfs2ne.c
-+++ b/tunefs.ocfs2/ocfs2ne.c
-@@ -98,6 +98,8 @@ extern struct tunefs_operation set_label_op;
- extern struct tunefs_operation set_slot_count_op;
- extern struct tunefs_operation update_cluster_stack_op;
- extern struct tunefs_operation cloned_volume_op;
-+extern struct tunefs_operation set_usrquota_sync_interval_op;
-+extern struct tunefs_operation set_grpquota_sync_interval_op;
- 
- /* List of operations we're going to run */
- static LIST_HEAD(tunefs_run_list);
-@@ -583,6 +585,28 @@ static struct tunefs_option journal_option = {
- 	.opt_handle	= handle_journal_arg,
- };
- 
-+static struct tunefs_option set_usrquota_sync_interval_option = {
-+	.opt_option	= {
-+		.name		= "usrquota-sync-interval",
-+		.val		= 256,
-+		.has_arg	= 1,
-+	},
-+	.opt_help	= "   --usrquota-sync-interval <interval>",
-+	.opt_handle	= generic_handle_arg,
-+	.opt_op		= &set_usrquota_sync_interval_op,
-+};
-+
-+static struct tunefs_option set_grpquota_sync_interval_option = {
-+	.opt_option	= {
-+		.name		= "grpquota-sync-interval",
-+		.val		= 257,
-+		.has_arg	= 1,
-+	},
-+	.opt_help	= "   --grpquota-sync-interval <interval>",
-+	.opt_handle	= generic_handle_arg,
-+	.opt_op		= &set_grpquota_sync_interval_op,
-+};
-+
- /* The order here creates the order in print_usage() */
- static struct tunefs_option *options[] = {
- 	&help_option,
-@@ -603,6 +627,8 @@ static struct tunefs_option *options[] = {
- 	&features_option,
- 	&update_cluster_stack_option,
- 	&cloned_volume_option,
-+	&set_usrquota_sync_interval_option,
-+	&set_grpquota_sync_interval_option,
- 	&yes_option,
- 	&no_option,
- 	NULL,
-diff --git a/tunefs.ocfs2/op_features.c b/tunefs.ocfs2/op_features.c
-index ee9442e..afcc1f4 100644
---- a/tunefs.ocfs2/op_features.c
-+++ b/tunefs.ocfs2/op_features.c
-@@ -41,6 +41,8 @@ extern struct tunefs_feature metaecc_feature;
- extern struct tunefs_feature sparse_files_feature;
- extern struct tunefs_feature unwritten_extents_feature;
- extern struct tunefs_feature xattr_feature;
-+extern struct tunefs_feature usrquota_feature;
-+extern struct tunefs_feature grpquota_feature;
- 
- /* List of features supported by ocfs2ne */
- static struct tunefs_feature *features[] = {
-@@ -52,6 +54,8 @@ static struct tunefs_feature *features[] = {
- 	&sparse_files_feature,
- 	&unwritten_extents_feature,
- 	&xattr_feature,
-+	&usrquota_feature,
-+	&grpquota_feature,
- 	NULL,
- };
- 
-diff --git a/tunefs.ocfs2/op_set_quota_sync_interval.c b/tunefs.ocfs2/op_set_quota_sync_interval.c
-new file mode 100644
-index 0000000..12b70b5
---- /dev/null
-+++ b/tunefs.ocfs2/op_set_quota_sync_interval.c
-@@ -0,0 +1,170 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * op_set_quota_sync_interval.c
-+ *
-+ * ocfs2 tune utility for updating interval for syncing quota structures
-+ * to global quota file.
-+ *
-+ * Copyright (C) 2009 Novell.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ */
-+
-+#include <stdio.h>
-+#include <string.h>
-+#include <ctype.h>
-+#include <inttypes.h>
-+
-+#include "ocfs2/ocfs2.h"
-+
-+#include "libocfs2ne.h"
-+
-+static char *type2name(int type)
-+{
-+	if (type == USRQUOTA)
-+		return "user";
-+	return "group";
-+}
-+
-+static int update_sync_interval(ocfs2_filesys *fs, int type,
-+				unsigned long syncms)
-+{
-+	errcode_t err;
-+	struct tools_progress *prog;
-+	int feature = (type == USRQUOTA) ? OCFS2_FEATURE_RO_COMPAT_USRQUOTA :
-+					   OCFS2_FEATURE_RO_COMPAT_GRPQUOTA;
-+	struct ocfs2_global_disk_dqinfo *qinfo;
-+
-+	if (!OCFS2_HAS_RO_COMPAT_FEATURE(OCFS2_RAW_SB(fs->fs_super), feature)) {
-+		errorf("The %s quota is not enabled on device \"%s\"\n",
-+		       type2name(type), fs->fs_devname);
-+		return 1;
-+	}
-+	err = ocfs2_init_fs_quota_info(fs, type);
-+	if (err) {
-+		tcom_err(err, "while looking up %s quota file on device "
-+			 "\"%s\"", type2name(type), fs->fs_devname);
-+		return 1;
-+	}
-+	err = ocfs2_read_global_quota_info(fs, type);
-+	if (err) {
-+		tcom_err(err, "while reading %s quota info on device \"%s\"",
-+			 type2name(type), fs->fs_devname);
-+		return 1;
-+	}
-+	qinfo = &fs->qinfo[type].qi_info;
-+	if (qinfo->dqi_syncms == syncms) {
-+		verbosef(VL_APP,
-+			 "Device \"%s\" already has interval %lu set; "
-+			 "nothing to do\n", fs->fs_devname, syncms);
-+		return 0;
-+	}
-+
-+	if (!tools_interact("Change quota syncing interval on device \"%s\" "
-+			    "from %lu to %lu? ", fs->fs_devname,
-+			    (unsigned long)qinfo->dqi_syncms, syncms))
-+		return 0;
-+
-+	prog = tools_progress_start("Setting syncing interval", "interval", 1);
-+	if (!prog) {
-+		tcom_err(err, "while initializing the progress display");
-+		return 1;
-+	}
-+
-+	tunefs_block_signals();
-+	qinfo->dqi_syncms = syncms;
-+	err = ocfs2_write_global_quota_info(fs, type);
-+	tunefs_unblock_signals();
-+
-+	tools_progress_step(prog, 1);
-+	tools_progress_stop(prog);
-+
-+	if (err) {
-+		tcom_err(err,
-+			 "- unable to update %s quota syncing interval on "
-+			 "device \"%s\"", type2name(type), fs->fs_devname);
-+		return 1;
-+	}
-+
 +	return 0;
 +}
 +
-+static int set_quota_sync_interval_parse_option(struct tunefs_operation *op,
-+						char *arg)
++/* Return depth of quota tree in global file */
++int ocfs2_qtree_depth(int blocksize)
 +{
-+	int rc = 1;
-+	unsigned long interval;
-+	char *ptr;
++	unsigned int epb = (blocksize - OCFS2_QBLK_RESERVED_SPACE) >> 2;
++	unsigned long long entries = epb;
++	int i;
 +
-+	if (!arg) {
-+		errorf("No interval specified\n");
-+		goto out;
-+	}
-+
-+	interval = strtoul(arg, &ptr, 10);
-+	if (*ptr != 0) {
-+		errorf("Invalid number: %s", arg);
-+		goto out;
-+	}
-+
-+	if (interval < 100 || interval == ULONG_MAX ||
-+	    interval > ~(uint32_t)0) {
-+		errorf("Quota sync interval is out of range (minimum is 100,"
-+		       " maximum is 4294967295): %s\n", arg);
-+		goto out;
-+	}
-+
-+	op->to_private = (void *)interval;
-+	rc = 0;
-+out:
-+	return rc;
++	for (i = 1; entries < (1ULL << 32); i++)
++		entries *= epb;
++	return i;
 +}
 +
-+static int set_usrquota_sync_interval_run(struct tunefs_operation *op,
-+					  ocfs2_filesys *fs,
-+					  int flags)
++/* Returns index of next block in the tree of dquots */
++static int ocfs2_qtree_index(int blocksize, qid_t id, int depth)
 +{
-+	return update_sync_interval(fs, USRQUOTA,
-+				    (unsigned long)op->to_private);
++	unsigned int epb = (blocksize - OCFS2_QBLK_RESERVED_SPACE) >> 2;
++
++	depth = ocfs2_qtree_depth(blocksize) - depth - 1;
++	while (depth--)
++		id /= epb;
++	return id % epb;
 +}
 +
-+static int set_grpquota_sync_interval_run(struct tunefs_operation *op,
-+					  ocfs2_filesys *fs,
-+					  int flags)
++/* Is given leaf entry unused? */
++int ocfs2_qtree_entry_unused(struct ocfs2_global_disk_dqblk *ddquot)
 +{
-+	return update_sync_interval(fs, GRPQUOTA,
-+				    (unsigned long)op->to_private);
++	static struct ocfs2_global_disk_dqblk empty;
++
++	return !memcmp(&empty, ddquot, sizeof(empty));
 +}
 +
-+
-+DEFINE_TUNEFS_OP(set_usrquota_sync_interval,
-+		 "Usage: op_set_usrquota_sync_interval [opts] <device> <interval in ms>\n",
-+		 TUNEFS_FLAG_RW,
-+		 set_quota_sync_interval_parse_option,
-+		 set_usrquota_sync_interval_run);
-+
-+DEFINE_TUNEFS_OP(set_grpquota_sync_interval,
-+		 "Usage: op_set_grpquota_sync_interval [opts] <device> <interval in ms>\n",
-+		 TUNEFS_FLAG_RW,
-+		 set_quota_sync_interval_parse_option,
-+		 set_grpquota_sync_interval_run);
-+
-+#ifdef DEBUG_EXE
-+int main(int argc, char *argv[])
++errcode_t ocfs2_init_fs_quota_info(ocfs2_filesys *fs, int type)
 +{
-+	int ret;
-+
-+	ret = tunefs_op_main(argc, argv, &set_usrquota_sync_interval_op);
-+	if (ret)
-+		return ret;
-+	return tunefs_op_main(argc, argv, &set_grpquota_sync_interval_op);
-+}
-+#endif
-diff --git a/tunefs.ocfs2/op_set_slot_count.c b/tunefs.ocfs2/op_set_slot_count.c
-index 7d94b98..46ce2de 100644
---- a/tunefs.ocfs2/op_set_slot_count.c
-+++ b/tunefs.ocfs2/op_set_slot_count.c
-@@ -56,6 +56,7 @@ static errcode_t add_slots(ocfs2_filesys *fs, int num_slots)
- {
- 	errcode_t ret;
- 	uint16_t old_num = OCFS2_RAW_SB(fs->fs_super)->s_max_slots;
-+	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
- 	char fname[OCFS2_MAX_FILENAME_LEN];
- 	uint64_t blkno;
- 	int i, j, max_slots;
-@@ -83,6 +84,14 @@ static errcode_t add_slots(ocfs2_filesys *fs, int num_slots)
- 
- 	ret = 0;
- 	for (i = OCFS2_LAST_GLOBAL_SYSTEM_INODE + 1; i < NUM_SYSTEM_INODES; ++i) {
-+		if (i == LOCAL_USER_QUOTA_SYSTEM_INODE &&
-+		    !OCFS2_HAS_RO_COMPAT_FEATURE(super,
-+					OCFS2_FEATURE_RO_COMPAT_USRQUOTA))
-+			continue;
-+		if (i == LOCAL_GROUP_QUOTA_SYSTEM_INODE &&
-+		    !OCFS2_HAS_RO_COMPAT_FEATURE(super,
-+					OCFS2_FEATURE_RO_COMPAT_GRPQUOTA))
-+			continue;
- 		for (j = old_num; j < num_slots; ++j) {
- 			ocfs2_sprintf_system_inode_name(fname,
- 							OCFS2_MAX_FILENAME_LEN,
-@@ -141,6 +150,32 @@ static errcode_t add_slots(ocfs2_filesys *fs, int num_slots)
- 					error_message(ret), blkno, fname);
- 				goto bail;
- 			}
-+			/* Initialize quota files */
-+			if (i == LOCAL_USER_QUOTA_SYSTEM_INODE) {
-+				verbosef(VL_APP, "Initializing local user "
-+					 "quota file\n");
-+				ret = ocfs2_init_local_quota_file(fs, USRQUOTA,
-+								  blkno);
-+				if (ret) {
-+					verbosef(VL_APP,
-+						 "%s while initializing user "
-+						 "quota file %s\n",
-+						 error_message(ret), fname);
-+					goto bail;
-+				}
-+			} else if (i == LOCAL_GROUP_QUOTA_SYSTEM_INODE) {
-+				verbosef(VL_APP, "Initializing local group "
-+					 "quota file\n");
-+				ret = ocfs2_init_local_quota_file(fs, GRPQUOTA,
-+								  blkno);
-+				if (ret) {
-+					verbosef(VL_APP,
-+						 "%s while initializing group "
-+						 "quota file %s\n",
-+						 error_message(ret), fname);
-+					goto bail;
-+				}
-+			}
- 			verbosef(VL_APP, "System file \"%s\" created\n",
- 				 fname);
- 			tools_progress_step(prog, 1);
-@@ -585,6 +620,54 @@ bail:
- 	return ret;
- }
- 
-+static errcode_t truncate_quota_file(ocfs2_filesys *fs,
-+				     uint16_t removed_slot,
-+				     int type)
-+{
-+	errcode_t ret;
++	int global_type = (type == USRQUOTA) ?
++				USER_QUOTA_SYSTEM_INODE :
++				GROUP_QUOTA_SYSTEM_INODE;
 +	uint64_t blkno;
 +	char fname[OCFS2_MAX_FILENAME_LEN];
-+	int local_type = (type == USRQUOTA) ? LOCAL_USER_QUOTA_SYSTEM_INODE :
-+					      LOCAL_GROUP_QUOTA_SYSTEM_INODE;
++	errcode_t ret;
 +
-+	ocfs2_sprintf_system_inode_name(fname, OCFS2_MAX_FILENAME_LEN,
-+					local_type, removed_slot);
-+	verbosef(VL_APP, "Truncating quota file \"%s\"\n", fname);
-+
-+	ret = ocfs2_lookup_system_inode(fs, local_type, removed_slot, &blkno);
-+	if (!ret) {
-+		ret = ocfs2_truncate(fs, blkno, 0);
-+		if (!ret)
-+			verbosef(VL_APP, "Quota file \"%s\" truncated\n",
-+				 fname);
-+		else
-+			verbosef(VL_APP,
-+				 "%s while truncating quota file \"%s\"\n",
-+				 error_message(ret), fname);
-+	} else
-+		verbosef(VL_APP,
-+			 "%s while looking up quota file \"%s\"\n",
-+			 error_message(ret), fname);
-+
-+	return ret;
-+}
-+
-+static errcode_t truncate_quota_files(ocfs2_filesys *fs,
-+				      uint16_t removed_slot)
-+{
-+	errcode_t ret = 0;
-+
-+	if (OCFS2_HAS_RO_COMPAT_FEATURE(OCFS2_RAW_SB(fs->fs_super),
-+					OCFS2_FEATURE_RO_COMPAT_USRQUOTA))
-+		ret = truncate_quota_file(fs, removed_slot, USRQUOTA);
++	ocfs2_sprintf_system_inode_name(fname, sizeof(fname),
++		global_type, 0);
++	ret = ocfs2_lookup(fs, fs->fs_sysdir_blkno, fname, strlen(fname),
++			   NULL, &blkno);
 +	if (ret)
 +		return ret;
-+	if (OCFS2_HAS_RO_COMPAT_FEATURE(OCFS2_RAW_SB(fs->fs_super),
-+					OCFS2_FEATURE_RO_COMPAT_GRPQUOTA))
-+		ret = truncate_quota_file(fs, removed_slot, GRPQUOTA);
++	ret = ocfs2_read_cached_inode(fs, blkno, &(fs->qinfo[type].qi_inode));
++	if (ret)
++		return ret;
++	return 0;
++}
++
++/* Read given block */
++static errcode_t read_blk(ocfs2_filesys *fs, int type, uint blk, char *buf)
++{
++	errcode_t err;
++	uint32_t got;
++	struct ocfs2_disk_dqtrailer *dqt =
++			ocfs2_block_dqtrailer(fs->fs_blocksize, buf);
++
++	err = ocfs2_file_read(fs->qinfo[type].qi_inode, buf,
++			      fs->fs_blocksize, blk * fs->fs_blocksize, &got);
++	if (err)
++		return err;
++	if (got != fs->fs_blocksize)
++		return OCFS2_ET_SHORT_READ;
++
++	return ocfs2_validate_meta_ecc(fs, buf, &dqt->dq_check);
++}
++
++/* Write given block */
++static errcode_t write_blk(ocfs2_filesys *fs, int type, uint blk, char *buf)
++{
++	errcode_t err;
++	uint32_t written;
++
++	ocfs2_checksum_quota_block(fs, buf);
++
++	err = ocfs2_file_write(fs->qinfo[type].qi_inode, buf, fs->fs_blocksize,
++			       blk * fs->fs_blocksize, &written);
++	if (err)
++		return err;
++	if (written != fs->fs_blocksize)
++		return OCFS2_ET_SHORT_WRITE;
++	return 0;
++}
++
++errcode_t ocfs2_read_global_quota_info(ocfs2_filesys *fs, int type)
++{
++	char *buf;
++	errcode_t ret;
++	struct ocfs2_global_disk_dqinfo *info;
++
++	ret = ocfs2_malloc_blocks(fs->fs_io, fs->fs_blocksize, &buf);
++	if (ret)
++		return ret;
++
++	ret = read_blk(fs, type, 0, buf);
++	if (ret)
++		return ret;
++	info = (struct ocfs2_global_disk_dqinfo *)(buf + OCFS2_GLOBAL_INFO_OFF);
++	ocfs2_swap_quota_global_info(info);
++	memcpy(&(fs->qinfo[type].qi_info), info,
++	       sizeof(struct ocfs2_global_disk_dqinfo));
++	return 0;
++}
++
++errcode_t ocfs2_write_global_quota_info(ocfs2_filesys *fs, int type)
++{
++	errcode_t ret;
++	char *buf;
++	struct ocfs2_disk_dqheader *header;
++	struct ocfs2_global_disk_dqinfo *info;
++	unsigned int magics[] = OCFS2_GLOBAL_QMAGICS;
++	int versions[] = OCFS2_GLOBAL_QVERSIONS;
++
++	ret = ocfs2_malloc_blocks(fs->fs_io, fs->fs_blocksize, &buf);
++	if (ret)
++		return ret;
++	header = (struct ocfs2_disk_dqheader *)buf;
++	header->dqh_magic = magics[type];
++	header->dqh_version = versions[type];
++	ocfs2_swap_quota_header(header);
++
++	info = (struct ocfs2_global_disk_dqinfo *)(buf + OCFS2_GLOBAL_INFO_OFF);
++	memcpy(info, &(fs->qinfo[type].qi_info),
++	       sizeof(struct ocfs2_global_disk_dqinfo));
++	ocfs2_swap_quota_global_info(info);
++	ret = write_blk(fs, type, 0, buf);
++	if (ret)
++		goto bail;
++bail:
++	ocfs2_free(&buf);
 +	return ret;
 +}
 +
- static errcode_t truncate_orphan_dir(ocfs2_filesys *fs,
- 				     uint16_t removed_slot)
- {
-@@ -887,7 +970,7 @@ static errcode_t remove_slots(ocfs2_filesys *fs, int num_slots)
- 
- 	/* We have seven steps in removing each slot */
- 	prog = tools_progress_start("Removing slots", "rmslots",
--				    (old_num - num_slots) * 7);
-+				    (old_num - num_slots) * 8);
- 	if (!prog) {
- 		ret = TUNEFS_ET_NO_MEMORY;
- 		goto bail;
-@@ -930,6 +1013,12 @@ static errcode_t remove_slots(ocfs2_filesys *fs, int num_slots)
- 			goto bail;
- 		tools_progress_step(prog, 1);
- 
-+		/* truncate local quota files */
-+		ret = truncate_quota_files(fs, removed_slot);
-+		if (ret)
-+			goto bail;
-+		tools_progress_step(prog, 1);
++errcode_t ocfs2_init_global_quota_file(ocfs2_filesys *fs, int type)
++{
++	ocfs2_cached_inode *ci = fs->qinfo[type].qi_inode;
++	struct ocfs2_dinode *di;
++	char *buf = NULL;
++	struct ocfs2_disk_dqheader *header;
++	struct ocfs2_global_disk_dqinfo *info;
++	unsigned int magics[] = OCFS2_GLOBAL_QMAGICS;
++	int versions[] = OCFS2_GLOBAL_QVERSIONS;
++	errcode_t err;
++	int i, blocks = 2;
 +
- 		/* Now, we decrease the max_slots first and then remove the
- 		 * slots for the reason that:
- 		 *
++	if (!(ci->ci_inode->i_flags & OCFS2_VALID_FL) ||
++	    !(ci->ci_inode->i_flags & OCFS2_SYSTEM_FL) ||
++	    !(ci->ci_inode->i_flags & OCFS2_QUOTA_FL)) {
++		err = OCFS2_ET_INTERNAL_FAILURE;
++		goto out;
++	}
++	err = ocfs2_cached_inode_extend_allocation(ci,
++			(blocks * fs->fs_blocksize + fs->fs_clustersize - 1) /
++			fs->fs_clustersize);
++	if (err)
++		goto out;
++
++	/* Mark info dirty so that quota inode gets written */
++	mark_quotafile_info_dirty(fs, type);
++
++	di = ci->ci_inode;
++	di->i_size = blocks * fs->fs_blocksize;
++	di->i_mtime = time(NULL);
++
++	err = ocfs2_malloc_blocks(fs->fs_io, fs->fs_blocksize * blocks, &buf);
++	if (err)
++		goto out;
++	memset(buf, 0, fs->fs_blocksize * blocks);
++
++	header = (struct ocfs2_disk_dqheader *)buf;
++	header->dqh_magic = magics[type];
++	header->dqh_version = versions[type];
++	ocfs2_swap_quota_header(header);
++
++	fs->qinfo[type].qi_info.dqi_blocks = blocks;
++	fs->qinfo[type].qi_info.dqi_free_blk = 0;
++	fs->qinfo[type].qi_info.dqi_free_entry = 0;
++
++	info = (struct ocfs2_global_disk_dqinfo *)(buf + OCFS2_GLOBAL_INFO_OFF);
++	info->dqi_bgrace = fs->qinfo[type].qi_info.dqi_bgrace;
++	info->dqi_igrace = fs->qinfo[type].qi_info.dqi_igrace;
++	info->dqi_syncms = fs->qinfo[type].qi_info.dqi_syncms;
++	info->dqi_blocks = blocks;
++	info->dqi_free_blk = 0;
++	info->dqi_free_entry = 0;
++	ocfs2_swap_quota_global_info(info);
++
++	/*
++	 * Write the buffer here so that all the headers are properly written.
++	 * Normally we don't write tree root block.
++	 */
++	for (i = 0; i < blocks; i++) {
++		err = write_blk(fs, type, i, buf + (i * fs->fs_blocksize));
++		if (err)
++			goto out;
++	}
++out:
++	if (buf)
++		ocfs2_free(&buf);
++	return err;
++}
++
++/* Is given dquot empty? */
++static int ocfs2_global_entry_unused(struct ocfs2_global_disk_dqblk *ddqblk)
++{
++	static struct ocfs2_global_disk_dqblk empty;
++
++	return !memcmp(&empty, ddqblk, sizeof(empty));
++}
++
++/* Get free block in file (either from free list or create new one) */
++static errcode_t ocfs2_get_free_dqblk(ocfs2_filesys *fs, int type, uint *blk)
++{
++	errcode_t err;
++	char *buf;
++	struct ocfs2_global_disk_dqdbheader *dh;
++	struct ocfs2_global_disk_dqinfo *info = &(fs->qinfo[type].qi_info);
++	ocfs2_cached_inode *ci = fs->qinfo[type].qi_inode;
++
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++	dh = (struct ocfs2_global_disk_dqdbheader *)buf;
++	if (info->dqi_free_blk) {
++		*blk = info->dqi_free_blk;
++		err = read_blk(fs, type, *blk, buf);
++		if (err)
++			goto bail;
++		info->dqi_free_blk = le32_to_cpu(dh->dqdh_next_free);
++	}
++	else {
++		if (info->dqi_blocks ==
++		    ocfs2_clusters_to_blocks(fs, ci->ci_inode->i_clusters)) {
++			err = ocfs2_cached_inode_extend_allocation(ci, 1);
++			if (err)
++				goto bail;
++		}
++		*blk = info->dqi_blocks++;
++		ci->ci_inode->i_size = info->dqi_blocks * fs->fs_blocksize;
++	}
++	mark_quotafile_info_dirty(fs, type);
++bail:
++	ocfs2_free(&buf);
++	return err;
++}
++
++/* Put given block to free list */
++static errcode_t ocfs2_put_free_dqblk(ocfs2_filesys *fs, int type,
++				      char *buf, uint blk)
++{
++	errcode_t err;
++	struct ocfs2_global_disk_dqdbheader *dh =
++				(struct ocfs2_global_disk_dqdbheader *)buf;
++	struct ocfs2_global_disk_dqinfo *info = &(fs->qinfo[type].qi_info);
++
++	dh->dqdh_next_free = info->dqi_free_blk;
++	dh->dqdh_prev_free = 0;
++	dh->dqdh_entries = 0;
++	ocfs2_swap_quota_leaf_block_header(dh);
++	err = write_blk(fs, type, blk, buf);
++	ocfs2_swap_quota_leaf_block_header(dh);
++	if (err)
++		return err;
++	info->dqi_free_blk = blk;
++	mark_quotafile_info_dirty(fs, type);
++	return 0;
++}
++
++/* Remove given block from the list of blocks with free entries */
++static errcode_t ocfs2_remove_free_dqentry(ocfs2_filesys *fs, int type,
++					   char *buf, uint blk)
++{
++	errcode_t err;
++	char *tmpbuf;
++	struct ocfs2_global_disk_dqdbheader *dh, *tdh;
++	uint nextblk, prevblk;
++
++	err = ocfs2_malloc_block(fs->fs_io, &tmpbuf);
++	if (err)
++		return err;
++	dh = (struct ocfs2_global_disk_dqdbheader *)buf;
++	tdh = (struct ocfs2_global_disk_dqdbheader *)tmpbuf;
++	nextblk = dh->dqdh_next_free;
++	prevblk = dh->dqdh_prev_free;
++
++	if (nextblk) {
++		err = read_blk(fs, type, nextblk, tmpbuf);
++		if (err)
++			goto bail;
++		ocfs2_swap_quota_leaf_block_header(tdh);
++		tdh->dqdh_prev_free = prevblk;
++		ocfs2_swap_quota_leaf_block_header(tdh);
++		err = write_blk(fs, type, nextblk, tmpbuf);
++		if (err)
++			goto bail;
++	}
++	if (prevblk) {
++		/* Failure here is bad since we potentially corrupt free list.
++		 * OTOH something must be really wrong when read/write fails */
++		err = read_blk(fs, type, prevblk, tmpbuf);
++		if (err)
++			goto bail;
++		ocfs2_swap_quota_leaf_block_header(tdh);
++		tdh->dqdh_next_free = nextblk;
++		ocfs2_swap_quota_leaf_block_header(tdh);
++		err = write_blk(fs, type, prevblk, tmpbuf);
++		if (err)
++			goto bail;
++	}
++	else {
++		fs->qinfo[type].qi_info.dqi_free_entry = nextblk;
++		mark_quotafile_info_dirty(fs, type);
++	}
++	dh->dqdh_next_free = dh->dqdh_prev_free = 0;
++	ocfs2_swap_quota_leaf_block_header(dh);
++	/* No matter whether write succeeds block is out of list */
++	write_blk(fs, type, blk, buf);
++	ocfs2_swap_quota_leaf_block_header(dh);
++bail:
++	ocfs2_free(&tmpbuf);
++	return err;
++}
++
++/* Insert given block to the beginning of list with free entries */
++static errcode_t ocfs2_insert_free_dqentry(ocfs2_filesys *fs, int type,
++					   char *buf, uint blk)
++{
++	errcode_t err;
++	char *tmpbuf;
++	struct ocfs2_global_disk_dqdbheader *tdh, *dh =
++				(struct ocfs2_global_disk_dqdbheader *)buf;
++	struct ocfs2_global_disk_dqinfo *info = &(fs->qinfo[type].qi_info);
++
++	err = ocfs2_malloc_block(fs->fs_io, &tmpbuf);
++	if (err)
++		return err;
++	dh->dqdh_next_free = info->dqi_free_entry;
++	dh->dqdh_prev_free = 0;
++	ocfs2_swap_quota_leaf_block_header(dh);
++	err = write_blk(fs, type, blk, buf);
++	ocfs2_swap_quota_leaf_block_header(dh);
++	if (err)
++		goto bail;
++
++	if (info->dqi_free_entry) {
++		tdh = (struct ocfs2_global_disk_dqdbheader *)tmpbuf;
++		err = read_blk(fs, type, info->dqi_free_entry, tmpbuf);
++		if (err)
++			goto bail;
++		ocfs2_swap_quota_leaf_block_header(tdh);
++		tdh->dqdh_prev_free = blk;
++		ocfs2_swap_quota_leaf_block_header(tdh);
++		err = write_blk(fs, type, info->dqi_free_entry, tmpbuf);
++		if (err)
++			goto bail;
++	}
++	info->dqi_free_entry = blk;
++	mark_quotafile_info_dirty(fs, type);
++bail:
++	ocfs2_free(&tmpbuf);
++	return err;
++}
++
++/* Find space for dquot */
++static errcode_t ocfs2_find_free_dqentry(ocfs2_filesys *fs, int type,
++					 uint *treeblk, loff_t *off)
++{
++	errcode_t err;
++	unsigned int blk, i;
++	struct ocfs2_global_disk_dqblk *ddquot;
++	struct ocfs2_global_disk_dqdbheader *dh;
++	struct ocfs2_global_disk_dqinfo *info = &(fs->qinfo[type].qi_info);
++	char *buf;
++
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++	dh = (struct ocfs2_global_disk_dqdbheader *)buf;
++	ddquot = (struct ocfs2_global_disk_dqblk *)(buf +
++		 sizeof(struct ocfs2_global_disk_dqdbheader));
++	if (info->dqi_free_entry) {
++		blk = info->dqi_free_entry;
++		err = read_blk(fs, type, blk, buf);
++		if (err)
++			goto bail;
++		ocfs2_swap_quota_leaf_block_header(dh);
++	}
++	else {
++		err = ocfs2_get_free_dqblk(fs, type, &blk);
++		if (err)
++			goto bail;
++		memset(buf, 0, fs->fs_blocksize);
++		info->dqi_free_entry = blk;
++		mark_quotafile_info_dirty(fs, type);
++	}
++	/* Block will be full? */
++	if (dh->dqdh_entries + 1 >=
++	    ocfs2_global_dqstr_in_blk(fs->fs_blocksize)) {
++		err = ocfs2_remove_free_dqentry(fs, type, buf, blk);
++		if (err)
++			goto bail;
++	}
++	dh->dqdh_entries++;
++	/* Find free structure in block */
++	for (i = 0;
++	     i < ocfs2_global_dqstr_in_blk(fs->fs_blocksize) &&
++	     !ocfs2_global_entry_unused(ddquot + i);
++	     i++);
++	if (i == ocfs2_global_dqstr_in_blk(fs->fs_blocksize)) {
++		err = OCFS2_ET_CORRUPT_QUOTA_FILE;
++		goto bail;
++	}
++	ocfs2_swap_quota_leaf_block_header(dh);
++	err = write_blk(fs, type, blk, buf);
++	if (err)
++		goto bail;
++	*off = (blk * fs->fs_blocksize) +
++	       sizeof(struct ocfs2_global_disk_dqdbheader) +
++	       i * sizeof(struct ocfs2_global_disk_dqblk);
++	*treeblk = blk;
++bail:
++	ocfs2_free(&buf);
++	return err;
++}
++
++/* Insert reference to structure into the trie */
++static errcode_t ocfs2_do_insert_tree(ocfs2_filesys *fs, int type, qid_t id,
++				      uint *treeblk, int depth, loff_t *off)
++{
++	char *buf;
++	int newson = 0, newact = 0;
++	u_int32_t *ref;
++	uint newblk;
++	errcode_t err;
++
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++	if (!*treeblk) {
++		err = ocfs2_get_free_dqblk(fs, type, &newblk);
++		if (err)
++			goto bail;
++		*treeblk = newblk;
++		memset(buf, 0, fs->fs_blocksize);
++		newact = 1;
++	}
++	else {
++		err = read_blk(fs, type, *treeblk, buf);
++		if (err)
++			goto bail;
++	}
++	ref = (u_int32_t *) buf;
++	newblk = le32_to_cpu(ref[
++		 ocfs2_qtree_index(fs->fs_blocksize, id, depth)]);
++	if (!newblk)
++		newson = 1;
++	if (depth == ocfs2_qtree_depth(fs->fs_blocksize) - 1) {
++		if (newblk) {
++			err = OCFS2_ET_CORRUPT_QUOTA_FILE;
++			goto bail;
++		}
++		err = ocfs2_find_free_dqentry(fs, type, &newblk, off);
++	}
++	else
++		err = ocfs2_do_insert_tree(fs, type, id, &newblk, depth + 1,
++					   off);
++	if (newson && !err) {
++		ref[ocfs2_qtree_index(fs->fs_blocksize, id, depth)] =
++							cpu_to_le32(newblk);
++		err = write_blk(fs, type, *treeblk, buf);
++	}
++	else if (newact && err)
++		ocfs2_put_free_dqblk(fs, type, buf, *treeblk);
++bail:
++	ocfs2_free(&buf);
++	return err;
++}
++
++/* Wrapper for inserting quota structure into tree */
++static errcode_t ocfs2_insert_qtree(ocfs2_filesys *fs, int type, qid_t id,
++				    loff_t *off)
++{
++	uint tmp = OCFS2_GLOBAL_TREE_BLK;
++
++	return ocfs2_do_insert_tree(fs, type, id, &tmp, 0, off);
++}
++
++/* Write dquot to file */
++errcode_t ocfs2_write_dquot(ocfs2_filesys *fs, int type,
++			    ocfs2_cached_dquot *dquot)
++{
++	errcode_t err;
++	char *buf;
++	struct ocfs2_global_disk_dqblk *ddquot;
++
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++
++	if (!dquot->d_off) {
++		err = ocfs2_insert_qtree(fs, type, dquot->d_ddquot.dqb_id,
++					 &dquot->d_off);
++		if (err)
++			goto bail;
++	}
++	err = read_blk(fs, type, dquot->d_off / fs->fs_blocksize, buf);
++	if (err)
++		goto bail;
++	ddquot = (struct ocfs2_global_disk_dqblk *)(buf +
++					(dquot->d_off % fs->fs_blocksize));
++	memcpy(ddquot, &dquot->d_ddquot,
++	       sizeof(struct ocfs2_global_disk_dqblk));
++	ddquot->dqb_pad1 = 0;
++	ddquot->dqb_pad2 = 0;
++	ocfs2_swap_quota_global_dqblk(ddquot);
++	err = write_blk(fs, type, dquot->d_off / fs->fs_blocksize, buf);
++bail:
++	ocfs2_free(&buf);
++	return err;
++}
++
++/* Remove dquot entry from its data block */
++static errcode_t ocfs2_remove_leaf_dqentry(ocfs2_filesys *fs,
++					   int type,
++					   ocfs2_cached_dquot *dquot,
++					   uint blk)
++{
++	errcode_t err;
++	char *buf;
++	struct ocfs2_global_disk_dqdbheader *dh;
++
++	if (blk != dquot->d_off / fs->fs_blocksize)
++		return OCFS2_ET_CORRUPT_QUOTA_FILE;
++
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++
++	err = read_blk(fs, type, blk, buf);
++	if (err)
++		goto bail;
++
++	dh = (struct ocfs2_global_disk_dqdbheader *)buf;
++	ocfs2_swap_quota_leaf_block_header(dh);
++	dh->dqdh_entries--;
++	if (!dh->dqdh_entries) {	/* Block got free? */
++		err = ocfs2_remove_free_dqentry(fs, type, buf, blk);
++		if (err)
++			goto bail;
++		err = ocfs2_put_free_dqblk(fs, type, buf, blk);
++		if (err)
++			goto bail;
++	}
++	else {
++		memset(buf + (dquot->d_off & (fs->fs_blocksize - 1)), 0,
++		       sizeof(struct ocfs2_global_disk_dqblk));
++
++		/* First free entry? */
++		if (dh->dqdh_entries ==
++		    ocfs2_global_dqstr_in_blk(fs->fs_blocksize) - 1) {
++			/* This will also write data block */
++			err = ocfs2_insert_free_dqentry(fs, type, buf, blk);
++		}
++		else
++			err = write_blk(fs, type, blk, buf);
++	}
++	dquot->d_off = 0;
++bail:
++	ocfs2_free(&buf);
++
++	return err;
++}
++
++/* Remove reference to dquot from tree */
++static errcode_t ocfs2_remove_tree_dqentry(ocfs2_filesys *fs,
++					   int type,
++					   ocfs2_cached_dquot *dquot,
++					   uint *blk,
++					   int depth)
++{
++	errcode_t err;
++	char *buf;
++	uint newblk;
++	u_int32_t *ref;
++
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++
++	err = read_blk(fs, type, *blk, buf);
++	if (err)
++		goto bail;
++
++	ref = (u_int32_t *)buf;
++	newblk = le32_to_cpu(ref[ocfs2_qtree_index(fs->fs_blocksize,
++		 dquot->d_ddquot.dqb_id, depth)]);
++	if (depth == ocfs2_qtree_depth(fs->fs_blocksize) - 1) {
++		err = ocfs2_remove_leaf_dqentry(fs, type, dquot, newblk);
++		newblk = 0;
++	}
++	else
++		err = ocfs2_remove_tree_dqentry(fs, type, dquot, &newblk,
++						depth + 1);
++	if (err)
++		goto bail;
++
++	if (!newblk) {
++		int i;
++
++		ref[ocfs2_qtree_index(fs->fs_blocksize,
++				      dquot->d_ddquot.dqb_id,
++				      depth)] = cpu_to_le32(0);
++		/* Block got empty? */
++		for (i = 0; i < fs->fs_blocksize - OCFS2_QBLK_RESERVED_SPACE &&
++		     !buf[i]; i++);
++		/* Don't put the root block into the free block list */
++		if (i == fs->fs_blocksize - OCFS2_QBLK_RESERVED_SPACE &&
++		    *blk != OCFS2_GLOBAL_TREE_BLK) {
++			err = ocfs2_put_free_dqblk(fs, type, buf, *blk);
++			if (err)
++				goto bail;
++			*blk = 0;
++		}
++		else
++			err = write_blk(fs, type, *blk, buf);
++	}
++bail:
++	ocfs2_free(&buf);
++
++	return err;
++}
++
++/* Delete dquot from tree */
++errcode_t ocfs2_delete_dquot(ocfs2_filesys *fs, int type,
++			     ocfs2_cached_dquot *dquot)
++{
++	uint tmp = OCFS2_GLOBAL_TREE_BLK;
++
++	if (!dquot->d_off)	/* Even not allocated? */
++		return 0;
++	return ocfs2_remove_tree_dqentry(fs, type, dquot, &tmp, 0);
++}
++
++/* Find entry in block */
++static errcode_t ocfs2_find_block_dqentry(ocfs2_filesys *fs, int type,
++					  ocfs2_cached_dquot *dquot, uint blk)
++{
++	char *buf;
++	errcode_t err;
++	int i;
++	struct ocfs2_global_disk_dqblk *ddquot;
++
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++
++	err = read_blk(fs, type, blk, buf);
++	if (err)
++		goto bail;
++
++	ddquot = (struct ocfs2_global_disk_dqblk *)(buf +
++		 sizeof(struct ocfs2_global_disk_dqdbheader));
++
++	for (i = 0; i < ocfs2_global_dqstr_in_blk(fs->fs_blocksize);
++	     i++, ddquot++) {
++		if (le32_to_cpu(ddquot->dqb_id) == dquot->d_ddquot.dqb_id) {
++			if (dquot->d_ddquot.dqb_id == 0 &&
++			    ocfs2_qtree_entry_unused(ddquot))
++				continue;
++			break;
++		}
++	}
++	if (i == ocfs2_global_dqstr_in_blk(fs->fs_blocksize)) {
++		err = OCFS2_ET_CORRUPT_QUOTA_FILE;
++		goto bail;
++	}
++	dquot->d_off = blk * fs->fs_blocksize + ((char *)ddquot - buf);
++	memcpy(&dquot->d_ddquot, ddquot,
++	       sizeof(struct ocfs2_global_disk_dqblk));
++	ocfs2_swap_quota_global_dqblk(&dquot->d_ddquot);
++bail:
++	ocfs2_free(&buf);
++	return err;
++}
++
++/* Find entry for given id in the tree */
++static errcode_t ocfs2_find_tree_dqentry(ocfs2_filesys *fs,
++					 int type,
++					 ocfs2_cached_dquot *dquot,
++					 uint blk,
++					 int depth)
++{
++	errcode_t err;
++	char *buf;
++	u_int32_t *ref;
++
++	err = ocfs2_malloc_block(fs->fs_io, &buf);
++	if (err)
++		return err;
++
++	err = read_blk(fs, type, blk, buf);
++	if (err)
++		goto bail;
++	ref = (u_int32_t *)buf;
++	blk = le32_to_cpu(ref[ocfs2_qtree_index(fs->fs_blocksize,
++	      dquot->d_ddquot.dqb_id, depth)]);
++	if (!blk)		/* No reference? */
++		goto bail;
++	if (depth < ocfs2_qtree_depth(fs->fs_blocksize) - 1)
++		err = ocfs2_find_tree_dqentry(fs, type, dquot, blk, depth + 1);
++	else
++		err = ocfs2_find_block_dqentry(fs, type, dquot, blk);
++bail:
++	ocfs2_free(&buf);
++	return err;
++}
++
++/*
++ *  Read dquot from disk
++ */
++errcode_t ocfs2_read_dquot(ocfs2_filesys *fs, int type, qid_t id,
++			   ocfs2_cached_dquot **ret_dquot)
++{
++	errcode_t err;
++	ocfs2_cached_dquot *dquot;
++
++	err = ocfs2_malloc0(sizeof(ocfs2_cached_dquot), &dquot);
++	if (err)
++		return err;
++
++	err = ocfs2_find_tree_dqentry(fs, type, dquot,
++				      OCFS2_GLOBAL_TREE_BLK, 0);
++	if (err)
++		goto bail;
++	*ret_dquot = dquot;
++	return 0;
++bail:
++	ocfs2_free(&dquot);
++	return err;
++}
 -- 
 1.6.0.2
