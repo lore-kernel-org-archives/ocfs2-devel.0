@@ -1,48 +1,33 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 28 Jul 2009 14:47:44 -0700
-Subject: [Ocfs2-devel] [PATCH 2/8] Provide
-	ocfs2_cached_inode_extend_allocation()
-In-Reply-To: <1248717216-26617-3-git-send-email-jack@suse.cz>
+Date: Tue, 28 Jul 2009 15:52:45 -0700
+Subject: [Ocfs2-devel] [PATCH 3/8] Implement quota functions to libocfs2
+In-Reply-To: <20090728100829.GA14484@duck.suse.cz>
 References: <1248717216-26617-1-git-send-email-jack@suse.cz>
-	<1248717216-26617-3-git-send-email-jack@suse.cz>
-Message-ID: <20090728214744.GE8420@mail.oracle.com>
+	<1248717216-26617-4-git-send-email-jack@suse.cz>
+	<4A6EAEF2.10705@oracle.com> <20090728084055.GB5880@duck.suse.cz>
+	<4A6EBA4A.1030107@oracle.com> <20090728100829.GA14484@duck.suse.cz>
+Message-ID: <20090728225244.GA20595@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jul 27, 2009 at 07:53:30PM +0200, Jan Kara wrote:
-> So far we had only ocfs2_extend_allocation() which read the inode from
-> disk. Provide also the cached variant.
-> 
-> Signed-off-by: Jan Kara <jack@suse.cz>
-> ---
->  include/ocfs2/ocfs2.h  |    2 +
->  libocfs2/extend_file.c |   51 ++++++++++++++++++++++++++---------------------
->  2 files changed, 30 insertions(+), 23 deletions(-)
-> 
-> diff --git a/include/ocfs2/ocfs2.h b/include/ocfs2/ocfs2.h
-> index 4dbbf43..ac16823 100644
-> --- a/include/ocfs2/ocfs2.h
-> +++ b/include/ocfs2/ocfs2.h
-> @@ -505,6 +505,8 @@ errcode_t ocfs2_delete_extent_block(ocfs2_filesys *fs, uint64_t blkno);
->   */
->  errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
->  				  uint32_t new_clusters);
-> +/* Ditto for cached inode */
-> +errcode_t ocfs2_cached_inode_extend_allocation(ocfs2_cached_inode *ci, uint32_t new_clusters);
+On Tue, Jul 28, 2009 at 12:08:29PM +0200, Jan Kara wrote:
+> +/* Read given block */
+> +static errcode_t read_blk(ocfs2_filesys *fs, int type, uint blk, char *buf)
 
-	Break the long line, but otherwise this patch looks good.  I'm
-assuming you want to work on cached inodes later.
+	You're sure quota files will never be larger than a uint?  Also,
+we tend to do 'unsigned int', not 'uint'.
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #313
-
-	"Never underestimate the power of love."
+"When I am working on a problem I never think about beauty. I
+ only think about how to solve the problem. But when I have finished, if
+ the solution is not beautiful, I know it is wrong."
+         - Buckminster Fuller
 
 Joel Becker
 Principal Software Developer
