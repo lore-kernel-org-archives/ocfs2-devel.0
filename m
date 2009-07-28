@@ -1,33 +1,35 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 28 Jul 2009 15:52:45 -0700
-Subject: [Ocfs2-devel] [PATCH 3/8] Implement quota functions to libocfs2
-In-Reply-To: <20090728100829.GA14484@duck.suse.cz>
+Date: Tue, 28 Jul 2009 15:53:56 -0700
+Subject: [Ocfs2-devel] [PATCH 4/8] Write out quota info changes on
+	ocfs2_close()
+In-Reply-To: <1248717216-26617-5-git-send-email-jack@suse.cz>
 References: <1248717216-26617-1-git-send-email-jack@suse.cz>
-	<1248717216-26617-4-git-send-email-jack@suse.cz>
-	<4A6EAEF2.10705@oracle.com> <20090728084055.GB5880@duck.suse.cz>
-	<4A6EBA4A.1030107@oracle.com> <20090728100829.GA14484@duck.suse.cz>
-Message-ID: <20090728225244.GA20595@mail.oracle.com>
+	<1248717216-26617-5-git-send-email-jack@suse.cz>
+Message-ID: <20090728225356.GB20595@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jul 28, 2009 at 12:08:29PM +0200, Jan Kara wrote:
-> +/* Read given block */
-> +static errcode_t read_blk(ocfs2_filesys *fs, int type, uint blk, char *buf)
+On Mon, Jul 27, 2009 at 07:53:32PM +0200, Jan Kara wrote:
+> We don't write out change of information in quota file header on each change,
+> we rather cache it in ocfs2_filesys structure. So write out all the
+> information when ocfs2_close() is called.
+> 
+> Signed-off-by: Jan Kara <jack@suse.cz>
 
-	You're sure quota files will never be larger than a uint?  Also,
-we tend to do 'unsigned int', not 'uint'.
+This looks good as long as all quota ops keep those ocfs2_cached_inodes
+up to date.
 
 Joel
 
 -- 
 
-"When I am working on a problem I never think about beauty. I
- only think about how to solve the problem. But when I have finished, if
- the solution is not beautiful, I know it is wrong."
-         - Buckminster Fuller
+"In the beginning, the universe was created. This has made a lot 
+ of people very angry, and is generally considered to have been a 
+ bad move."
+        - Douglas Adams
 
 Joel Becker
 Principal Software Developer
