@@ -1,87 +1,70 @@
-From: Jan Kara <jack@suse.cz>
-Date: Tue, 28 Jul 2009 10:43:28 +0200
-Subject: [Ocfs2-devel] [PATCH 6/8] Quota support for mkfs.ocfs2
-In-Reply-To: <4A6EB295.6080203@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 28 Jul 2009 16:43:54 +0800
+Subject: [Ocfs2-devel] [PATCH 3/8] Implement quota functions to libocfs2
+In-Reply-To: <20090728084055.GB5880@duck.suse.cz>
 References: <1248717216-26617-1-git-send-email-jack@suse.cz>
-	<1248717216-26617-7-git-send-email-jack@suse.cz>
-	<4A6EB295.6080203@oracle.com>
-Message-ID: <20090728084328.GC5880@duck.suse.cz>
+	<1248717216-26617-4-git-send-email-jack@suse.cz>
+	<4A6EAEF2.10705@oracle.com> <20090728084055.GB5880@duck.suse.cz>
+Message-ID: <4A6EBA4A.1030107@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  Hi,
 
-On Tue 28-07-09 16:11:01, Tao Ma wrote:
-> Jan Kara wrote:
->> Signed-off-by: Jan Kara <jack@suse.cz>
->> ---
->>  mkfs.ocfs2/mkfs.c          |  146 +++++++++++++++++++++++++++++++++++++++++++-
->>  mkfs.ocfs2/mkfs.h          |    1 +
->>  mkfs.ocfs2/mkfs.ocfs2.8.in |   16 +++++
->>  3 files changed, 162 insertions(+), 1 deletions(-)
+
+Jan Kara wrote:
+> On Tue 28-07-09 15:55:30, Tao Ma wrote:
+>> Hi Jan,
 >>
->> diff --git a/mkfs.ocfs2/mkfs.c b/mkfs.ocfs2/mkfs.c
->> index 6acc6e6..8496d03 100644
->> --- a/mkfs.ocfs2/mkfs.c
->> +++ b/mkfs.ocfs2/mkfs.c
->> +static void format_quota_files(State *s, ocfs2_filesys *fs)
->> +{
->> +	errcode_t ret;
->> +	ocfs2_quota_hash *usr_hash = NULL, *grp_hash = NULL;
->> +
->> +	/* Write correct data into quota files */
->> +	if (!feature_skip(s, USER_QUOTA_SYSTEM_INODE)) {
->> +		ret = ocfs2_init_fs_quota_info(fs, USRQUOTA);
->> +		if (ret) {
->> +			com_err(s->progname, ret,
->> +				"while looking up global user quota file");
->> +			goto error;
->> +		}
->> +		fs->qinfo[USRQUOTA].flags = 0;
->> +		fs->qinfo[USRQUOTA].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
->> +		fs->qinfo[USRQUOTA].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
->> +		fs->qinfo[USRQUOTA].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
->> +
->> +		ret = ocfs2_new_quota_hash(&usr_hash);
->> +		if (ret) {
->> +			com_err(s->progname, ret,
->> +				"while creating user quota hash.");
->> +			goto error;
->> +		}
->> +		ret = ocfs2_init_global_quota_file(fs, USRQUOTA);
->> +		if (ret) {
->> +			com_err(s->progname, ret, "while creating global user "
->> +				"quota file");
->> +			goto error;
->> +		}
->> +		ret = ocfs2_init_local_quota_files(fs, USRQUOTA);
->> +		if (ret) {
->> +			com_err(s->progname, ret,
->> +				"while initializing local user quota files");
->> +			goto error;
->> +		}
->> +	}
->> +	if (!feature_skip(s, GROUP_QUOTA_SYSTEM_INODE)) {
->> +		ret = ocfs2_init_fs_quota_info(fs, GRPQUOTA);
->> +		if (ret) {
->> +			com_err(s->progname, ret,
->> +				"while looking up global group quota file");
->> +			goto error;
->> +		}
->> +		fs->qinfo[GRPQUOTA].flags = 0;
->> +		fs->qinfo[GRPQUOTA].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
->> +		fs->qinfo[GRPQUOTA].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
->> +		fs->qinfo[GRPQUOTA].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
->> +		ret = ocfs2_new_quota_hash(&usr_hash);
-> grp_hash here?
-   Good catch! Obviously I didn't check that the group usage was set correctly
-:). Thanks for the review.
+>> Jan Kara wrote:
+>>> Signed-off-by: Jan Kara <jack@suse.cz>
+>>> ---
+>>>  include/ocfs2/ocfs2.h     |   80 +++
+>>>  libocfs2/Makefile         |    1 +
+>>>  libocfs2/feature_string.c |   18 +
+>>>  libocfs2/ocfs2_err.et     |    6 +
+>>>  libocfs2/quota.c          | 1208 +++++++++++++++++++++++++++++++++++++++++++++
+>>>  5 files changed, 1313 insertions(+), 0 deletions(-)
+>>>  create mode 100644 libocfs2/quota.c
+>>>
+>>> diff --git a/include/ocfs2/ocfs2.h b/include/ocfs2/ocfs2.h
+>>> index ac16823..7f136ca 100644
+>>> --- a/include/ocfs2/ocfs2.h
+>>> +++ b/include/ocfs2/ocfs2.h
+>>> @@ -125,16 +125,36 @@
+>>>  #define OCFS2_CHB_WAITING	2
+>>>  #define OCFS2_CHB_COMPLETE	3
+>>>  +/* Flags for global quotafile info */
+>>> +#define OCFS2_QF_INFO_DIRTY 1
+>>> +/* Should be power of two */
+>>> +#define DEFAULT_QUOTA_HASH_SIZE 8192
+>>> +#define MAX_QUOTA_HASH_SIZE (1<<21)	/* 16 MB on 64-bit arch*/
+>> 16MB is 1<<24?
+>   The comment is meant to say that the hash-table will occupy 16 MB on a
+> 64-bit architecture where each pointer has 8 bytes... I'll expand the
+> comment a bit.
+got it.
+>>> +	info->dqi_flags = OLQF_CLEAN;
+>>> +	ocfs2_swap_quota_local_info(info);
+>>> +
+>>> +	/* There are no free chunks because there are no blocks allocated for
+>>> +	 * them yet. So chunk header is all-zero and needs no initialization */
+>>> +	ocfs2_checksum_quota_block(fs, buf);
+>>> +	ocfs2_checksum_quota_block(fs, buf + fs->fs_blocksize);
+>>> +	err = ocfs2_file_write(ci, buf, 2 * fs->fs_blocksize, 0, &written);
+>>> +	if (!err && written != 2 * fs->fs_blocksize) {
+>>> +		err = OCFS2_ET_INTERNAL_FAILURE;
+>>> +		goto out;
+>>> +	}
+>> and here in ocfs2_init_global_quota_file you use write_blk which will 
+>> calculate ocfs2_checksum_quota_block. So we can use that function also 
+>> here?
+>   No, we cannot since write_blk() writes to a global quota file. Here we
+> need to write to a node-local quota file. Since there's only this place,
+> where we write to local quota file, I'd just leave the code as is.
+Oh, I see. Thanks for the explanation.
 
-										Honza
-
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+Regards,
+Tao
