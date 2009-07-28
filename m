@@ -1,133 +1,358 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 28 Jul 2009 16:05:09 -0700
-Subject: [Ocfs2-devel] [PATCH 5/8] Quota support for fsck.ocfs2
-In-Reply-To: <1248717216-26617-6-git-send-email-jack@suse.cz>
+Date: Tue, 28 Jul 2009 16:07:55 -0700
+Subject: [Ocfs2-devel] [PATCH 6/8] Quota support for mkfs.ocfs2
+In-Reply-To: <20090728100951.GB14484@duck.suse.cz>
 References: <1248717216-26617-1-git-send-email-jack@suse.cz>
-	<1248717216-26617-6-git-send-email-jack@suse.cz>
-Message-ID: <20090728230509.GC20595@mail.oracle.com>
+	<1248717216-26617-7-git-send-email-jack@suse.cz>
+	<4A6EB295.6080203@oracle.com> <20090728084328.GC5880@duck.suse.cz>
+	<20090728100951.GB14484@duck.suse.cz>
+Message-ID: <20090728230755.GD20595@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jul 27, 2009 at 07:53:33PM +0200, Jan Kara wrote:
-> diff --git a/fsck.ocfs2/include/pass5.h b/fsck.ocfs2/include/pass5.h
-> new file mode 100644
-> index 0000000..dfd27cd
-> --- /dev/null
-> +++ b/fsck.ocfs2/include/pass5.h
-> @@ -0,0 +1,32 @@
-> +/*
-> + * pass5.h
-> + *
-> + * Copyright (C) 2009 Novell Corporation.  All rights reserved.
-> + *
-> + * This program is free software; you can redistribute it and/or
-> + * modify it under the terms of the GNU General Public
-> + * License as published by the Free Software Foundation; either
-> + * version 2 of the License, or (at your option) any later version.
+Looks good to me.
 
-	We generally use GPL version 2 only, but you are welcome to
-license this 2-or-later.  I only mention this because...
-
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-> + * General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public
-> + * License along with this program; if not, write to the
-> + * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-> + * Boston, MA 021110-1307, USA.
-
-	Can you check http://kernel.us.oracle.com/~smushran/license.txt
-and update your header?  The last paragraph is no longer recommended by
-the FSF, and we'd love for this header to have the emacs/vim lines at
-the top.
-
-> + *
-> + * Author: Jan Kara
-> + */
-
-	Also, we deliberately drop author attribution from individual
-source files.  You can add yourself to MAINTAINERS.
-
-> +errcode_t o2fsck_pass5(o2fsck_state *ost)
+On Tue, Jul 28, 2009 at 12:09:51PM +0200, Jan Kara wrote:
+> On Tue 28-07-09 10:43:28, Jan Kara wrote:
+> >   Hi,
+> > On Tue 28-07-09 16:11:01, Tao Ma wrote:
+> > > Jan Kara wrote:
+> > >> Signed-off-by: Jan Kara <jack@suse.cz>
+> > >> ---
+> > >>  mkfs.ocfs2/mkfs.c          |  146 +++++++++++++++++++++++++++++++++++++++++++-
+> > >>  mkfs.ocfs2/mkfs.h          |    1 +
+> > >>  mkfs.ocfs2/mkfs.ocfs2.8.in |   16 +++++
+> > >>  3 files changed, 162 insertions(+), 1 deletions(-)
+> > >>
+> > >> diff --git a/mkfs.ocfs2/mkfs.c b/mkfs.ocfs2/mkfs.c
+> > >> index 6acc6e6..8496d03 100644
+> > >> --- a/mkfs.ocfs2/mkfs.c
+> > >> +++ b/mkfs.ocfs2/mkfs.c
+> > >> +static void format_quota_files(State *s, ocfs2_filesys *fs)
+> > >> +{
+> > >> +	errcode_t ret;
+> > >> +	ocfs2_quota_hash *usr_hash = NULL, *grp_hash = NULL;
+> > >> +
+> > >> +	/* Write correct data into quota files */
+> > >> +	if (!feature_skip(s, USER_QUOTA_SYSTEM_INODE)) {
+> > >> +		ret = ocfs2_init_fs_quota_info(fs, USRQUOTA);
+> > >> +		if (ret) {
+> > >> +			com_err(s->progname, ret,
+> > >> +				"while looking up global user quota file");
+> > >> +			goto error;
+> > >> +		}
+> > >> +		fs->qinfo[USRQUOTA].flags = 0;
+> > >> +		fs->qinfo[USRQUOTA].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
+> > >> +		fs->qinfo[USRQUOTA].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
+> > >> +		fs->qinfo[USRQUOTA].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
+> > >> +
+> > >> +		ret = ocfs2_new_quota_hash(&usr_hash);
+> > >> +		if (ret) {
+> > >> +			com_err(s->progname, ret,
+> > >> +				"while creating user quota hash.");
+> > >> +			goto error;
+> > >> +		}
+> > >> +		ret = ocfs2_init_global_quota_file(fs, USRQUOTA);
+> > >> +		if (ret) {
+> > >> +			com_err(s->progname, ret, "while creating global user "
+> > >> +				"quota file");
+> > >> +			goto error;
+> > >> +		}
+> > >> +		ret = ocfs2_init_local_quota_files(fs, USRQUOTA);
+> > >> +		if (ret) {
+> > >> +			com_err(s->progname, ret,
+> > >> +				"while initializing local user quota files");
+> > >> +			goto error;
+> > >> +		}
+> > >> +	}
+> > >> +	if (!feature_skip(s, GROUP_QUOTA_SYSTEM_INODE)) {
+> > >> +		ret = ocfs2_init_fs_quota_info(fs, GRPQUOTA);
+> > >> +		if (ret) {
+> > >> +			com_err(s->progname, ret,
+> > >> +				"while looking up global group quota file");
+> > >> +			goto error;
+> > >> +		}
+> > >> +		fs->qinfo[GRPQUOTA].flags = 0;
+> > >> +		fs->qinfo[GRPQUOTA].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
+> > >> +		fs->qinfo[GRPQUOTA].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
+> > >> +		fs->qinfo[GRPQUOTA].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
+> > >> +		ret = ocfs2_new_quota_hash(&usr_hash);
+> > > grp_hash here?
+> >    Good catch! Obviously I didn't check that the group usage was set correctly
+> > :). Thanks for the review.
+>   Below is an updated patch.
+> 
+> -- 
+> Jan Kara <jack@suse.cz>
+> SUSE Labs, CR
+> ---
+> 
+> >From 148eb11dc3e1de1907bb6069b8d976451a5ff54a Mon Sep 17 00:00:00 2001
+> From: Jan Kara <jack@suse.cz>
+> Date: Mon, 27 Jul 2009 19:36:22 +0200
+> Subject: [PATCH 06/10] Quota support for mkfs.ocfs2
+> 
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> ---
+>  mkfs.ocfs2/mkfs.c          |  146 +++++++++++++++++++++++++++++++++++++++++++-
+>  mkfs.ocfs2/mkfs.h          |    1 +
+>  mkfs.ocfs2/mkfs.ocfs2.8.in |   16 +++++
+>  3 files changed, 162 insertions(+), 1 deletions(-)
+> 
+> diff --git a/mkfs.ocfs2/mkfs.c b/mkfs.ocfs2/mkfs.c
+> index 6acc6e6..031b8a6 100644
+> --- a/mkfs.ocfs2/mkfs.c
+> +++ b/mkfs.ocfs2/mkfs.c
+> @@ -98,12 +98,16 @@ static SystemFileInfo system_files[] = {
+>  	{ "slot_map", SFI_OTHER, 1, S_IFREG | 0644 },
+>  	{ "heartbeat", SFI_HEARTBEAT, 1, S_IFREG | 0644 },
+>  	{ "global_bitmap", SFI_CLUSTER, 1, S_IFREG | 0644 },
+> +	{ "aquota.user", SFI_QUOTA, 1, S_IFREG | 0644 },
+> +	{ "aquota.group", SFI_QUOTA, 1, S_IFREG | 0644 },
+>  	{ "orphan_dir:%04d", SFI_OTHER, 0, S_IFDIR | 0755 },
+>  	{ "extent_alloc:%04d", SFI_CHAIN, 0, S_IFREG | 0644 },
+>  	{ "inode_alloc:%04d", SFI_CHAIN, 0, S_IFREG | 0644 },
+>  	{ "journal:%04d", SFI_JOURNAL, 0, S_IFREG | 0644 },
+>  	{ "local_alloc:%04d", SFI_LOCAL_ALLOC, 0, S_IFREG | 0644 },
+> -	{ "truncate_log:%04d", SFI_TRUNCATE_LOG, 0, S_IFREG | 0644 }
+> +	{ "truncate_log:%04d", SFI_TRUNCATE_LOG, 0, S_IFREG | 0644 },
+> +	{ "aquota.user:%04d", SFI_QUOTA, 0, S_IFREG | 0644 },
+> +	{ "aquota.group:%04d", SFI_QUOTA, 0, S_IFREG | 0644 },
+>  };
+>  
+>  struct fs_type_translation {
+> @@ -226,6 +230,23 @@ static void mkfs_init_dir_trailer(State *s, DirData *dir, void *buf)
+>  	}
+>  }
+>  
+> +/* Should we skip this inode because of features enabled / disabled? */
+> +static int feature_skip(State *s, int system_inode)
+> +{
+> +	switch (system_inode) {
+> +		case USER_QUOTA_SYSTEM_INODE:
+> +		case LOCAL_USER_QUOTA_SYSTEM_INODE:
+> +			return !(s->feature_flags.opt_ro_compat &
+> +					OCFS2_FEATURE_RO_COMPAT_USRQUOTA);
+> +		case GROUP_QUOTA_SYSTEM_INODE:
+> +		case LOCAL_GROUP_QUOTA_SYSTEM_INODE:
+> +			return !(s->feature_flags.opt_ro_compat &
+> +					OCFS2_FEATURE_RO_COMPAT_GRPQUOTA);
+> +		default:
+> +			return 0;
+> +	}
+> +}
+> +
+>  static inline uint32_t system_dir_bytes_needed(State *s)
+>  {
+>  	int each = OCFS2_DIR_REC_LEN(SYSTEM_FILE_NAME_MAX);
+> @@ -233,6 +254,114 @@ static inline uint32_t system_dir_bytes_needed(State *s)
+>  	return each * sys_blocks_needed(s->initial_slots);
+>  }
+>  
+> +static void format_quota_files(State *s, ocfs2_filesys *fs)
 > +{
 > +	errcode_t ret;
-> +	ocfs2_filesys *fs = ost->ost_fs;
-> +	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
-> +	int has_usrquota, has_grpquota;
+> +	ocfs2_quota_hash *usr_hash = NULL, *grp_hash = NULL;
 > +
-> +	has_usrquota = OCFS2_HAS_RO_COMPAT_FEATURE(super,
-> +				OCFS2_FEATURE_RO_COMPAT_USRQUOTA);
-> +	has_grpquota = OCFS2_HAS_RO_COMPAT_FEATURE(super,
-> +				OCFS2_FEATURE_RO_COMPAT_GRPQUOTA);
-> +	/* Nothing to check? */
-> +	if (!has_usrquota && !has_grpquota)
-> +		return 0;
-> +	printf("Pass 5: Checking quota information.\n");
-> +	if (has_usrquota) {
-> +		ret = ocfs2_new_quota_hash(qhash + USRQUOTA);
+> +	/* Write correct data into quota files */
+> +	if (!feature_skip(s, USER_QUOTA_SYSTEM_INODE)) {
+> +		ret = ocfs2_init_fs_quota_info(fs, USRQUOTA);
 > +		if (ret) {
-> +			com_err(whoami, ret,
-> +				"while allocating user quota hash");
-> +			goto out;
+> +			com_err(s->progname, ret,
+> +				"while looking up global user quota file");
+> +			goto error;
 > +		}
-> +		ret = load_quota_file(ost, USRQUOTA);
-> +		if (ret)
-> +			goto out;
-> +	}
-> +	if (has_grpquota) {
-> +		ret = ocfs2_new_quota_hash(qhash + GRPQUOTA);
+> +		fs->qinfo[USRQUOTA].flags = 0;
+> +		fs->qinfo[USRQUOTA].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
+> +		fs->qinfo[USRQUOTA].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
+> +		fs->qinfo[USRQUOTA].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
+> +
+> +		ret = ocfs2_new_quota_hash(&usr_hash);
 > +		if (ret) {
-> +			com_err(whoami, ret,
-> +				"while allocating group quota hash");
-> +			goto out;
+> +			com_err(s->progname, ret,
+> +				"while creating user quota hash.");
+> +			goto error;
 > +		}
-> +		ret = load_quota_file(ost, GRPQUOTA);
-> +		if (ret)
-> +			goto out;
+> +		ret = ocfs2_init_global_quota_file(fs, USRQUOTA);
+> +		if (ret) {
+> +			com_err(s->progname, ret, "while creating global user "
+> +				"quota file");
+> +			goto error;
+> +		}
+> +		ret = ocfs2_init_local_quota_files(fs, USRQUOTA);
+> +		if (ret) {
+> +			com_err(s->progname, ret,
+> +				"while initializing local user quota files");
+> +			goto error;
+> +		}
 > +	}
-> +	ret = ocfs2_compute_quota_usage(fs, qhash[USRQUOTA], qhash[GRPQUOTA]);
+> +	if (!feature_skip(s, GROUP_QUOTA_SYSTEM_INODE)) {
+> +		ret = ocfs2_init_fs_quota_info(fs, GRPQUOTA);
+> +		if (ret) {
+> +			com_err(s->progname, ret,
+> +				"while looking up global group quota file");
+> +			goto error;
+> +		}
+> +		fs->qinfo[GRPQUOTA].flags = 0;
+> +		fs->qinfo[GRPQUOTA].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
+> +		fs->qinfo[GRPQUOTA].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
+> +		fs->qinfo[GRPQUOTA].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
+> +		ret = ocfs2_new_quota_hash(&grp_hash);
+> +		if (ret) {
+> +			com_err(s->progname, ret,
+> +				"while creating group quota hash.");
+> +			goto error;
+> +		}
+> +		ret = ocfs2_init_global_quota_file(fs, GRPQUOTA);
+> +		if (ret) {
+> +			com_err(s->progname, ret, "while creating global group "
+> +				"quota file");
+> +			goto error;
+> +		}
+> +
+> +		ret = ocfs2_init_local_quota_files(fs, GRPQUOTA);
+> +		if (ret) {
+> +			com_err(s->progname, ret,
+> +				"while initializing local group quota files");
+> +			goto error;
+> +		}
+> +	}
+> +
+> +	ret = ocfs2_compute_quota_usage(fs, usr_hash, grp_hash);
 > +	if (ret) {
-> +		com_err(whoami, ret, "while computing quota usage");
-> +		goto out;
+> +		com_err(s->progname, ret, "while computing quota usage");
+> +		goto error;
 > +	}
-> +	if (has_usrquota) {
-> +		ret = recreate_quota_files(fs, USRQUOTA);
-> +		if (ret)
-> +			goto out;
-> +		ret = ocfs2_free_quota_hash(qhash[USRQUOTA]);
+> +	if (usr_hash) {
+> +		ret = ocfs2_write_release_dquots(fs, USRQUOTA, usr_hash);
 > +		if (ret) {
-> +			com_err(whoami, ret, "while release user quota hash");
-> +			goto out;
+> +			com_err(s->progname, ret,
+> +				"while writing user quota usage");
+> +			goto error;
+> +		}
+> +		ret = ocfs2_free_quota_hash(usr_hash);
+> +		if (ret) {
+> +			com_err(s->progname, ret,
+> +				"while releasing user quota hash");
+> +			goto error;
 > +		}
 > +	}
-> +	if (has_grpquota) {
-> +		ret = recreate_quota_files(fs, GRPQUOTA);
-> +		if (ret)
-> +			goto out;
-> +		ret = ocfs2_free_quota_hash(qhash[GRPQUOTA]);
+> +	if (grp_hash) {
+> +		ret = ocfs2_write_release_dquots(fs, GRPQUOTA, grp_hash);
 > +		if (ret) {
-> +			com_err(whoami, ret, "while release group quota hash");
-> +			goto out;
+> +			com_err(s->progname, ret,
+> +				"while writing group quota usage");
+> +			goto error;
+> +		}
+> +		ret = ocfs2_free_quota_hash(grp_hash);
+> +		if (ret) {
+> +			com_err(s->progname, ret,
+> +				"while releasing group quota hash");
+> +			goto error;
 > +		}
 > +	}
-
-	The way I read this, you check the existing quota structures,
-and then ignore them while recomputing the usage.  You just do a full-on
-recompute.  Then you write out the newly computed data.  Am I correct?
-
-Joel
+> +	return;
+> +error:
+> +	clear_both_ends(s);
+> +	exit(1);
+> +}
+> +
+>  static void finish_normal_format(State *s)
+>  {
+>  	errcode_t ret;
+> @@ -304,6 +433,14 @@ static void finish_normal_format(State *s)
+>  	if (!s->quiet)
+>  		printf("done\n");
+>  
+> +	if (!s->quiet)
+> +		printf("Formatting quota files: ");
+> +
+> +	format_quota_files(s, fs);
+> +
+> +	if (!s->quiet)
+> +		printf("done\n");
+> +
+>  	ocfs2_close(fs);
+>  }
+>  
+> @@ -471,6 +608,8 @@ main(int argc, char **argv)
+>  	for (i = 0; i < NUM_SYSTEM_INODES; i++) {
+>  		if (hb_dev_skip(s, i))
+>  			continue;
+> +		if (feature_skip(s, i))
+> +			continue;
+>  
+>  		num = (system_files[i].global) ? 1 : s->initial_slots;
+>  		for (j = 0; j < num; j++) {
+> @@ -529,6 +668,8 @@ main(int argc, char **argv)
+>  	for (i = 0; i < NUM_SYSTEM_INODES; i++) {
+>  		if (hb_dev_skip(s, i))
+>  			continue;
+> +		if (feature_skip(s, i))
+> +			continue;
+>  
+>  		num = system_files[i].global ? 1 : s->initial_slots;
+>  		for (j = 0; j < num; j++) {
+> @@ -2432,6 +2573,9 @@ init_record(State *s, SystemFileDiskRecord *rec, int type, int mode)
+>  	case SFI_TRUNCATE_LOG:
+>  		rec->flags |= OCFS2_DEALLOC_FL;
+>  		break;
+> +	case SFI_QUOTA:
+> +		rec->flags |= OCFS2_QUOTA_FL;
+> +		break;
+>  	case SFI_OTHER:
+>  		break;
+>  	}
+> diff --git a/mkfs.ocfs2/mkfs.h b/mkfs.ocfs2/mkfs.h
+> index bd8ac45..969e4df 100644
+> --- a/mkfs.ocfs2/mkfs.h
+> +++ b/mkfs.ocfs2/mkfs.h
+> @@ -96,6 +96,7 @@ enum {
+>  	SFI_HEARTBEAT,
+>  	SFI_CHAIN,
+>  	SFI_TRUNCATE_LOG,
+> +	SFI_QUOTA,
+>  	SFI_OTHER
+>  };
+>  
+> diff --git a/mkfs.ocfs2/mkfs.ocfs2.8.in b/mkfs.ocfs2/mkfs.ocfs2.8.in
+> index 38433ee..d1f4011 100644
+> --- a/mkfs.ocfs2/mkfs.ocfs2.8.in
+> +++ b/mkfs.ocfs2/mkfs.ocfs2.8.in
+> @@ -146,6 +146,22 @@ arbitrary binary data. Attributes can be attached to all types of inodes: regula
+>  symbolic links, device nodes, etc. This feature is required for users wanting to use extended security
+>  facilities like POSIX ACLs or SELinux.
+>  .RE
+> +.RS 1.2i
+> +.TP
+> +\fBusrquota\fR
+> +Enable user quota support. With this feature enabled, filesystem will track amount of space
+> +and number of inodes (files, directories, symbolic links) each user owns. It is then possible
+> +to limit the maximum amount of space or inodes user can have. See a documentation of
+> +quota-tools package for more details.
+> +.RE
+> +.RS 1.2i
+> +.TP
+> +\fBgrpquota\fR
+> +Enable group quota support. With this feature enabled, filesystem will track amount of space
+> +and number of inodes (files, directories, symbolic links) each group owns. It is then possible
+> +to limit the maximum amount of space or inodes user can have. See a documentation of
+> +quota-tools package for more details.
+> +.RE
+>  
+>  .TP
+>  \fB\-\-fs\-feature\-level=\fR\fR\fIfeature\-level\fR
+> -- 
+> 1.6.0.2
+> 
 
 -- 
 
-You can use a screwdriver to screw in screws or to clean your ears,
-however, the latter needs real skill, determination and a lack of fear
-of injuring yourself.  It is much the same with JavaScript.
-	- Chris Heilmann
+"Behind every successful man there's a lot of unsuccessful years."
+        - Bob Brown
 
 Joel Becker
 Principal Software Developer
