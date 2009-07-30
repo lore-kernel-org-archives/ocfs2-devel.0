@@ -1,124 +1,84 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 30 Jul 2009 19:14:17 +0200
-Subject: [Ocfs2-devel] [PATCH 2/9] Provide
-	ocfs2_cached_inode_extend_allocation()
+Date: Thu, 30 Jul 2009 19:14:16 +0200
+Subject: [Ocfs2-devel] [PATCH 1/9] Update ocfs2_fs.h to contain all
+	necessary quota structures and constants, create quota_tree.h
 In-Reply-To: <1248974064-29462-1-git-send-email-jack@suse.cz>
 References: <1248974064-29462-1-git-send-email-jack@suse.cz>
-Message-ID: <1248974064-29462-3-git-send-email-jack@suse.cz>
+Message-ID: <1248974064-29462-2-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-So far we had only ocfs2_extend_allocation() which read the inode from
-disk. Provide also the cached variant.
-
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- include/ocfs2/ocfs2.h  |    3 ++
- libocfs2/extend_file.c |   52 +++++++++++++++++++++++++----------------------
- 2 files changed, 31 insertions(+), 24 deletions(-)
+ include/ocfs2-kernel/ocfs2_fs.h   |   10 +++++++++-
+ include/ocfs2-kernel/quota_tree.h |   15 +++++++++++++++
+ 2 files changed, 24 insertions(+), 1 deletions(-)
+ create mode 100644 include/ocfs2-kernel/quota_tree.h
 
-diff --git a/include/ocfs2/ocfs2.h b/include/ocfs2/ocfs2.h
-index 4dbbf43..47fede3 100644
---- a/include/ocfs2/ocfs2.h
-+++ b/include/ocfs2/ocfs2.h
-@@ -505,6 +505,9 @@ errcode_t ocfs2_delete_extent_block(ocfs2_filesys *fs, uint64_t blkno);
-  */
- errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
- 				  uint32_t new_clusters);
-+/* Ditto for cached inode */
-+errcode_t ocfs2_cached_inode_extend_allocation(ocfs2_cached_inode *ci,
-+					       uint32_t new_clusters);
- /* Extend the file to the new size. No clusters will be allocated. */
- errcode_t ocfs2_extend_file(ocfs2_filesys *fs, uint64_t ino, uint64_t new_size);
+diff --git a/include/ocfs2-kernel/ocfs2_fs.h b/include/ocfs2-kernel/ocfs2_fs.h
+index 2140bb3..f3c9b53 100644
+--- a/include/ocfs2-kernel/ocfs2_fs.h
++++ b/include/ocfs2-kernel/ocfs2_fs.h
+@@ -344,13 +344,17 @@ enum {
+ #define OCFS2_FIRST_ONLINE_SYSTEM_INODE SLOT_MAP_SYSTEM_INODE
+ 	HEARTBEAT_SYSTEM_INODE,
+ 	GLOBAL_BITMAP_SYSTEM_INODE,
+-#define OCFS2_LAST_GLOBAL_SYSTEM_INODE GLOBAL_BITMAP_SYSTEM_INODE
++	USER_QUOTA_SYSTEM_INODE,
++	GROUP_QUOTA_SYSTEM_INODE,
++#define OCFS2_LAST_GLOBAL_SYSTEM_INODE GROUP_QUOTA_SYSTEM_INODE
+ 	ORPHAN_DIR_SYSTEM_INODE,
+ 	EXTENT_ALLOC_SYSTEM_INODE,
+ 	INODE_ALLOC_SYSTEM_INODE,
+ 	JOURNAL_SYSTEM_INODE,
+ 	LOCAL_ALLOC_SYSTEM_INODE,
+ 	TRUNCATE_LOG_SYSTEM_INODE,
++	LOCAL_USER_QUOTA_SYSTEM_INODE,
++	LOCAL_GROUP_QUOTA_SYSTEM_INODE,
+ 	NUM_SYSTEM_INODES
+ };
  
-diff --git a/libocfs2/extend_file.c b/libocfs2/extend_file.c
-index a27b478..65d3133 100644
---- a/libocfs2/extend_file.c
-+++ b/libocfs2/extend_file.c
-@@ -3764,29 +3764,15 @@ out:
- 	return ret;
- }
+@@ -364,6 +368,8 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
+ 	[SLOT_MAP_SYSTEM_INODE]			= { "slot_map", 0, S_IFREG | 0644 },
+ 	[HEARTBEAT_SYSTEM_INODE]		= { "heartbeat", OCFS2_HEARTBEAT_FL, S_IFREG | 0644 },
+ 	[GLOBAL_BITMAP_SYSTEM_INODE]		= { "global_bitmap", 0, S_IFREG | 0644 },
++	[USER_QUOTA_SYSTEM_INODE]		= { "aquota.user", OCFS2_QUOTA_FL, S_IFREG | 0644 },
++	[GROUP_QUOTA_SYSTEM_INODE]		= { "aquota.group", OCFS2_QUOTA_FL, S_IFREG | 0644 },
  
--errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
--				  uint32_t new_clusters)
-+errcode_t ocfs2_cached_inode_extend_allocation(ocfs2_cached_inode *ci,
-+					       uint32_t new_clusters)
- {
- 	errcode_t ret = 0;
- 	uint32_t n_clusters = 0, cpos;
- 	uint64_t blkno, file_size;
--	char *buf = NULL;
--	struct ocfs2_dinode* di = NULL;
--
--	if (!(fs->fs_flags & OCFS2_FLAG_RW))
--		return OCFS2_ET_RO_FILESYS;
--
--	ret = ocfs2_malloc_block(fs->fs_io, &buf);
--	if (ret)
--		goto out_free_buf;
--
--	ret = ocfs2_read_inode(fs, ino, buf);
--	if (ret)
--		goto out_free_buf;
--
--	di = (struct ocfs2_dinode *)buf;
-+	ocfs2_filesys *fs = ci->ci_fs;
+ 	/* Slot-specific system inodes (one copy per slot) */
+ 	[ORPHAN_DIR_SYSTEM_INODE]		= { "orphan_dir:%04d", 0, S_IFDIR | 0755 },
+@@ -372,6 +378,8 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
+ 	[JOURNAL_SYSTEM_INODE]			= { "journal:%04d", OCFS2_JOURNAL_FL, S_IFREG | 0644 },
+ 	[LOCAL_ALLOC_SYSTEM_INODE]		= { "local_alloc:%04d", OCFS2_BITMAP_FL | OCFS2_LOCAL_ALLOC_FL, S_IFREG | 0644 },
+ 	[TRUNCATE_LOG_SYSTEM_INODE]		= { "truncate_log:%04d", OCFS2_DEALLOC_FL, S_IFREG | 0644 },
++	[LOCAL_USER_QUOTA_SYSTEM_INODE]		= { "aquota.user:%04d", OCFS2_QUOTA_FL, S_IFREG | 0644 },
++	[LOCAL_GROUP_QUOTA_SYSTEM_INODE]	= { "aquota.group:%04d", OCFS2_QUOTA_FL, S_IFREG | 0644 },
+ };
  
--	file_size = di->i_size;
-+	file_size = ci->ci_inode->i_size;
- 	cpos = (file_size + fs->fs_clustersize - 1) / fs->fs_clustersize;
- 	while (new_clusters) {
- 		n_clusters = 1;
-@@ -3795,23 +3781,41 @@ errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
- 		if (ret)
- 			break;
- 
--		ret = ocfs2_insert_extent(fs, ino, cpos, blkno, n_clusters,
--					  0);
-+		ret = ocfs2_cached_inode_insert_extent(ci, cpos, blkno,
-+						       n_clusters, 0);
- 		if (ret) {
- 			/* XXX: We don't wan't to overwrite the error
- 			 * from insert_extent().  But we probably need
- 			 * to BE LOUDLY UPSET. */
- 			ocfs2_free_clusters(fs, n_clusters, blkno);
--			goto out_free_buf;
-+			break;
- 		}
- 
- 	 	new_clusters -= n_clusters;
- 		cpos += n_clusters;
- 	}
-+	return ret;
-+}
+ /* Parameter passed from mount.ocfs2 to module */
+diff --git a/include/ocfs2-kernel/quota_tree.h b/include/ocfs2-kernel/quota_tree.h
+new file mode 100644
+index 0000000..9dbe835
+--- /dev/null
++++ b/include/ocfs2-kernel/quota_tree.h
+@@ -0,0 +1,15 @@
++#ifndef _QUOTA_TREE_H
++#define _QUOTA_TREE_H
 +
-+errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
-+				  uint32_t new_clusters)
-+{
-+	errcode_t ret;
-+	ocfs2_cached_inode *ci = NULL;
++#define QT_TREEOFF 1
 +
-+	ret = ocfs2_read_cached_inode(fs, ino, &ci);
-+	if (ret)
-+		goto bail;
++/* Header of leaf tree block */
++struct qt_disk_dqdbheader {
++	__le32 dqdh_next_free;	/* Number of next block with free entry */
++	__le32 dqdh_prev_free;	/* Number of previous block with free entry */
++	__le16 dqdh_entries;	/* Number of valid entries in block */
++	__le16 dqdh_pad1;
++	__le32 dqdh_pad2;
++};
 +
-+	ret = ocfs2_cached_inode_extend_allocation(ci, new_clusters);
-+	if (ret)
-+		goto bail;
-+
-+	ret = ocfs2_write_cached_inode(fs, ci);
-+bail:
-+	if (ci)
-+		ocfs2_free_cached_inode(fs, ci);
- 
--out_free_buf:
--	if (buf)
--		ocfs2_free(&buf);
- 	return ret;
- }
- 
++#endif
 -- 
 1.6.0.2
