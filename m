@@ -1,43 +1,35 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 29 Jul 2009 11:32:51 -0700
-Subject: [Ocfs2-devel] [PATCH 09/10] Implement quota support for
- disabling SPARSE feature
-In-Reply-To: <20090729101245.GE19209@duck.suse.cz>
-References: <1248776322-14987-1-git-send-email-jack@suse.cz>
-	<1248776322-14987-2-git-send-email-jack@suse.cz>
-	<20090729013945.GF20595@mail.oracle.com>
-	<20090729101245.GE19209@duck.suse.cz>
-Message-ID: <20090729183251.GC5849@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 30 Jul 2009 16:07:10 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/quota: Release lock for error in
+	ocfs2_quota_write.
+Message-ID: <1248941230-9113-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jul 29, 2009 at 12:12:45PM +0200, Jan Kara wrote:
-> On Tue 28-07-09 18:39:45, Joel Becker wrote:
-> > I read this as we adjust the quota but don't enforce it.  That is, if
-> > filling a hole will make a user over quota, we allow that to happen.
-> > Right?
->   Yes, that's what I've decided makes the most sense. It's in the spirit
-> of "superuser ignores quota limits". Alternatively, we could issue a
-> warning or even fail the conversion when some user would go over quota
-> limit but I don't really see the use case.
+ocfs2_quota_write needs to release the lock if it fails to
+read quota block. So use "goto out" instead of "return err".
 
-	I agree, the superuser is asking for sparse to be removed, and
-they have no quota.  Upon remount, the regular user obviously can't
-create anything until they get below quota.  So this is the right
-behavior.
+Cc: Jan Kara <jack@suse.cz>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/quota_global.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Joel
-
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index edfa60c..e1c40e3 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -234,7 +234,7 @@ ssize_t ocfs2_quota_write(struct super_block *sb, int type,
+ 	}
+ 	if (err) {
+ 		mlog_errno(err);
+-		return err;
++		goto out;
+ 	}
+ 	lock_buffer(bh);
+ 	if (new)
 -- 
-
-"Sometimes one pays most for the things one gets for nothing."
-        - Albert Einstein
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.6.0.4
