@@ -1,10 +1,9 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 30 Jul 2009 19:14:16 +0200
-Subject: [Ocfs2-devel] [PATCH 1/9] Update ocfs2_fs.h to contain all
-	necessary quota structures and constants, create quota_tree.h
+Date: Thu, 30 Jul 2009 19:14:21 +0200
+Subject: [Ocfs2-devel] [PATCH 6/9] Quota support for mkfs.ocfs2
 In-Reply-To: <1248974064-29462-1-git-send-email-jack@suse.cz>
 References: <1248974064-29462-1-git-send-email-jack@suse.cz>
-Message-ID: <1248974064-29462-2-git-send-email-jack@suse.cz>
+Message-ID: <1248974064-29462-7-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,72 +12,253 @@ To: ocfs2-devel@oss.oracle.com
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- include/ocfs2-kernel/ocfs2_fs.h   |   10 +++++++++-
- include/ocfs2-kernel/quota_tree.h |   15 +++++++++++++++
- 2 files changed, 24 insertions(+), 1 deletions(-)
- create mode 100644 include/ocfs2-kernel/quota_tree.h
+ mkfs.ocfs2/mkfs.c          |  146 +++++++++++++++++++++++++++++++++++++++++++-
+ mkfs.ocfs2/mkfs.h          |    1 +
+ mkfs.ocfs2/mkfs.ocfs2.8.in |   16 +++++
+ 3 files changed, 162 insertions(+), 1 deletions(-)
 
-diff --git a/include/ocfs2-kernel/ocfs2_fs.h b/include/ocfs2-kernel/ocfs2_fs.h
-index 2140bb3..f3c9b53 100644
---- a/include/ocfs2-kernel/ocfs2_fs.h
-+++ b/include/ocfs2-kernel/ocfs2_fs.h
-@@ -344,13 +344,17 @@ enum {
- #define OCFS2_FIRST_ONLINE_SYSTEM_INODE SLOT_MAP_SYSTEM_INODE
- 	HEARTBEAT_SYSTEM_INODE,
- 	GLOBAL_BITMAP_SYSTEM_INODE,
--#define OCFS2_LAST_GLOBAL_SYSTEM_INODE GLOBAL_BITMAP_SYSTEM_INODE
-+	USER_QUOTA_SYSTEM_INODE,
-+	GROUP_QUOTA_SYSTEM_INODE,
-+#define OCFS2_LAST_GLOBAL_SYSTEM_INODE GROUP_QUOTA_SYSTEM_INODE
- 	ORPHAN_DIR_SYSTEM_INODE,
- 	EXTENT_ALLOC_SYSTEM_INODE,
- 	INODE_ALLOC_SYSTEM_INODE,
- 	JOURNAL_SYSTEM_INODE,
- 	LOCAL_ALLOC_SYSTEM_INODE,
- 	TRUNCATE_LOG_SYSTEM_INODE,
-+	LOCAL_USER_QUOTA_SYSTEM_INODE,
-+	LOCAL_GROUP_QUOTA_SYSTEM_INODE,
- 	NUM_SYSTEM_INODES
+diff --git a/mkfs.ocfs2/mkfs.c b/mkfs.ocfs2/mkfs.c
+index 6acc6e6..031b8a6 100644
+--- a/mkfs.ocfs2/mkfs.c
++++ b/mkfs.ocfs2/mkfs.c
+@@ -98,12 +98,16 @@ static SystemFileInfo system_files[] = {
+ 	{ "slot_map", SFI_OTHER, 1, S_IFREG | 0644 },
+ 	{ "heartbeat", SFI_HEARTBEAT, 1, S_IFREG | 0644 },
+ 	{ "global_bitmap", SFI_CLUSTER, 1, S_IFREG | 0644 },
++	{ "aquota.user", SFI_QUOTA, 1, S_IFREG | 0644 },
++	{ "aquota.group", SFI_QUOTA, 1, S_IFREG | 0644 },
+ 	{ "orphan_dir:%04d", SFI_OTHER, 0, S_IFDIR | 0755 },
+ 	{ "extent_alloc:%04d", SFI_CHAIN, 0, S_IFREG | 0644 },
+ 	{ "inode_alloc:%04d", SFI_CHAIN, 0, S_IFREG | 0644 },
+ 	{ "journal:%04d", SFI_JOURNAL, 0, S_IFREG | 0644 },
+ 	{ "local_alloc:%04d", SFI_LOCAL_ALLOC, 0, S_IFREG | 0644 },
+-	{ "truncate_log:%04d", SFI_TRUNCATE_LOG, 0, S_IFREG | 0644 }
++	{ "truncate_log:%04d", SFI_TRUNCATE_LOG, 0, S_IFREG | 0644 },
++	{ "aquota.user:%04d", SFI_QUOTA, 0, S_IFREG | 0644 },
++	{ "aquota.group:%04d", SFI_QUOTA, 0, S_IFREG | 0644 },
  };
  
-@@ -364,6 +368,8 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
- 	[SLOT_MAP_SYSTEM_INODE]			= { "slot_map", 0, S_IFREG | 0644 },
- 	[HEARTBEAT_SYSTEM_INODE]		= { "heartbeat", OCFS2_HEARTBEAT_FL, S_IFREG | 0644 },
- 	[GLOBAL_BITMAP_SYSTEM_INODE]		= { "global_bitmap", 0, S_IFREG | 0644 },
-+	[USER_QUOTA_SYSTEM_INODE]		= { "aquota.user", OCFS2_QUOTA_FL, S_IFREG | 0644 },
-+	[GROUP_QUOTA_SYSTEM_INODE]		= { "aquota.group", OCFS2_QUOTA_FL, S_IFREG | 0644 },
+ struct fs_type_translation {
+@@ -226,6 +230,23 @@ static void mkfs_init_dir_trailer(State *s, DirData *dir, void *buf)
+ 	}
+ }
  
- 	/* Slot-specific system inodes (one copy per slot) */
- 	[ORPHAN_DIR_SYSTEM_INODE]		= { "orphan_dir:%04d", 0, S_IFDIR | 0755 },
-@@ -372,6 +378,8 @@ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
- 	[JOURNAL_SYSTEM_INODE]			= { "journal:%04d", OCFS2_JOURNAL_FL, S_IFREG | 0644 },
- 	[LOCAL_ALLOC_SYSTEM_INODE]		= { "local_alloc:%04d", OCFS2_BITMAP_FL | OCFS2_LOCAL_ALLOC_FL, S_IFREG | 0644 },
- 	[TRUNCATE_LOG_SYSTEM_INODE]		= { "truncate_log:%04d", OCFS2_DEALLOC_FL, S_IFREG | 0644 },
-+	[LOCAL_USER_QUOTA_SYSTEM_INODE]		= { "aquota.user:%04d", OCFS2_QUOTA_FL, S_IFREG | 0644 },
-+	[LOCAL_GROUP_QUOTA_SYSTEM_INODE]	= { "aquota.group:%04d", OCFS2_QUOTA_FL, S_IFREG | 0644 },
++/* Should we skip this inode because of features enabled / disabled? */
++static int feature_skip(State *s, int system_inode)
++{
++	switch (system_inode) {
++		case USER_QUOTA_SYSTEM_INODE:
++		case LOCAL_USER_QUOTA_SYSTEM_INODE:
++			return !(s->feature_flags.opt_ro_compat &
++					OCFS2_FEATURE_RO_COMPAT_USRQUOTA);
++		case GROUP_QUOTA_SYSTEM_INODE:
++		case LOCAL_GROUP_QUOTA_SYSTEM_INODE:
++			return !(s->feature_flags.opt_ro_compat &
++					OCFS2_FEATURE_RO_COMPAT_GRPQUOTA);
++		default:
++			return 0;
++	}
++}
++
+ static inline uint32_t system_dir_bytes_needed(State *s)
+ {
+ 	int each = OCFS2_DIR_REC_LEN(SYSTEM_FILE_NAME_MAX);
+@@ -233,6 +254,114 @@ static inline uint32_t system_dir_bytes_needed(State *s)
+ 	return each * sys_blocks_needed(s->initial_slots);
+ }
+ 
++static void format_quota_files(State *s, ocfs2_filesys *fs)
++{
++	errcode_t ret;
++	ocfs2_quota_hash *usr_hash = NULL, *grp_hash = NULL;
++
++	/* Write correct data into quota files */
++	if (!feature_skip(s, USER_QUOTA_SYSTEM_INODE)) {
++		ret = ocfs2_init_fs_quota_info(fs, USRQUOTA);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while looking up global user quota file");
++			goto error;
++		}
++		fs->qinfo[USRQUOTA].flags = 0;
++		fs->qinfo[USRQUOTA].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
++		fs->qinfo[USRQUOTA].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
++		fs->qinfo[USRQUOTA].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
++
++		ret = ocfs2_new_quota_hash(&usr_hash);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while creating user quota hash.");
++			goto error;
++		}
++		ret = ocfs2_init_global_quota_file(fs, USRQUOTA);
++		if (ret) {
++			com_err(s->progname, ret, "while creating global user "
++				"quota file");
++			goto error;
++		}
++		ret = ocfs2_init_local_quota_files(fs, USRQUOTA);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while initializing local user quota files");
++			goto error;
++		}
++	}
++	if (!feature_skip(s, GROUP_QUOTA_SYSTEM_INODE)) {
++		ret = ocfs2_init_fs_quota_info(fs, GRPQUOTA);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while looking up global group quota file");
++			goto error;
++		}
++		fs->qinfo[GRPQUOTA].flags = 0;
++		fs->qinfo[GRPQUOTA].qi_info.dqi_syncms = OCFS2_DEF_QUOTA_SYNC;
++		fs->qinfo[GRPQUOTA].qi_info.dqi_bgrace = OCFS2_DEF_BLOCK_GRACE;
++		fs->qinfo[GRPQUOTA].qi_info.dqi_igrace = OCFS2_DEF_INODE_GRACE;
++		ret = ocfs2_new_quota_hash(&grp_hash);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while creating group quota hash.");
++			goto error;
++		}
++		ret = ocfs2_init_global_quota_file(fs, GRPQUOTA);
++		if (ret) {
++			com_err(s->progname, ret, "while creating global group "
++				"quota file");
++			goto error;
++		}
++
++		ret = ocfs2_init_local_quota_files(fs, GRPQUOTA);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while initializing local group quota files");
++			goto error;
++		}
++	}
++
++	ret = ocfs2_compute_quota_usage(fs, usr_hash, grp_hash);
++	if (ret) {
++		com_err(s->progname, ret, "while computing quota usage");
++		goto error;
++	}
++	if (usr_hash) {
++		ret = ocfs2_write_release_dquots(fs, USRQUOTA, usr_hash);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while writing user quota usage");
++			goto error;
++		}
++		ret = ocfs2_free_quota_hash(usr_hash);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while releasing user quota hash");
++			goto error;
++		}
++	}
++	if (grp_hash) {
++		ret = ocfs2_write_release_dquots(fs, GRPQUOTA, grp_hash);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while writing group quota usage");
++			goto error;
++		}
++		ret = ocfs2_free_quota_hash(grp_hash);
++		if (ret) {
++			com_err(s->progname, ret,
++				"while releasing group quota hash");
++			goto error;
++		}
++	}
++	return;
++error:
++	clear_both_ends(s);
++	exit(1);
++}
++
+ static void finish_normal_format(State *s)
+ {
+ 	errcode_t ret;
+@@ -304,6 +433,14 @@ static void finish_normal_format(State *s)
+ 	if (!s->quiet)
+ 		printf("done\n");
+ 
++	if (!s->quiet)
++		printf("Formatting quota files: ");
++
++	format_quota_files(s, fs);
++
++	if (!s->quiet)
++		printf("done\n");
++
+ 	ocfs2_close(fs);
+ }
+ 
+@@ -471,6 +608,8 @@ main(int argc, char **argv)
+ 	for (i = 0; i < NUM_SYSTEM_INODES; i++) {
+ 		if (hb_dev_skip(s, i))
+ 			continue;
++		if (feature_skip(s, i))
++			continue;
+ 
+ 		num = (system_files[i].global) ? 1 : s->initial_slots;
+ 		for (j = 0; j < num; j++) {
+@@ -529,6 +668,8 @@ main(int argc, char **argv)
+ 	for (i = 0; i < NUM_SYSTEM_INODES; i++) {
+ 		if (hb_dev_skip(s, i))
+ 			continue;
++		if (feature_skip(s, i))
++			continue;
+ 
+ 		num = system_files[i].global ? 1 : s->initial_slots;
+ 		for (j = 0; j < num; j++) {
+@@ -2432,6 +2573,9 @@ init_record(State *s, SystemFileDiskRecord *rec, int type, int mode)
+ 	case SFI_TRUNCATE_LOG:
+ 		rec->flags |= OCFS2_DEALLOC_FL;
+ 		break;
++	case SFI_QUOTA:
++		rec->flags |= OCFS2_QUOTA_FL;
++		break;
+ 	case SFI_OTHER:
+ 		break;
+ 	}
+diff --git a/mkfs.ocfs2/mkfs.h b/mkfs.ocfs2/mkfs.h
+index bd8ac45..969e4df 100644
+--- a/mkfs.ocfs2/mkfs.h
++++ b/mkfs.ocfs2/mkfs.h
+@@ -96,6 +96,7 @@ enum {
+ 	SFI_HEARTBEAT,
+ 	SFI_CHAIN,
+ 	SFI_TRUNCATE_LOG,
++	SFI_QUOTA,
+ 	SFI_OTHER
  };
  
- /* Parameter passed from mount.ocfs2 to module */
-diff --git a/include/ocfs2-kernel/quota_tree.h b/include/ocfs2-kernel/quota_tree.h
-new file mode 100644
-index 0000000..9dbe835
---- /dev/null
-+++ b/include/ocfs2-kernel/quota_tree.h
-@@ -0,0 +1,15 @@
-+#ifndef _QUOTA_TREE_H
-+#define _QUOTA_TREE_H
-+
-+#define QT_TREEOFF 1
-+
-+/* Header of leaf tree block */
-+struct qt_disk_dqdbheader {
-+	__le32 dqdh_next_free;	/* Number of next block with free entry */
-+	__le32 dqdh_prev_free;	/* Number of previous block with free entry */
-+	__le16 dqdh_entries;	/* Number of valid entries in block */
-+	__le16 dqdh_pad1;
-+	__le32 dqdh_pad2;
-+};
-+
-+#endif
+diff --git a/mkfs.ocfs2/mkfs.ocfs2.8.in b/mkfs.ocfs2/mkfs.ocfs2.8.in
+index 38433ee..d1f4011 100644
+--- a/mkfs.ocfs2/mkfs.ocfs2.8.in
++++ b/mkfs.ocfs2/mkfs.ocfs2.8.in
+@@ -146,6 +146,22 @@ arbitrary binary data. Attributes can be attached to all types of inodes: regula
+ symbolic links, device nodes, etc. This feature is required for users wanting to use extended security
+ facilities like POSIX ACLs or SELinux.
+ .RE
++.RS 1.2i
++.TP
++\fBusrquota\fR
++Enable user quota support. With this feature enabled, filesystem will track amount of space
++and number of inodes (files, directories, symbolic links) each user owns. It is then possible
++to limit the maximum amount of space or inodes user can have. See a documentation of
++quota-tools package for more details.
++.RE
++.RS 1.2i
++.TP
++\fBgrpquota\fR
++Enable group quota support. With this feature enabled, filesystem will track amount of space
++and number of inodes (files, directories, symbolic links) each group owns. It is then possible
++to limit the maximum amount of space or inodes user can have. See a documentation of
++quota-tools package for more details.
++.RE
+ 
+ .TP
+ \fB\-\-fs\-feature\-level=\fR\fR\fIfeature\-level\fR
 -- 
 1.6.0.2
