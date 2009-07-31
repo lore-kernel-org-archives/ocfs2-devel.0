@@ -1,120 +1,59 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 31 Jul 2009 10:46:02 +0800
-Subject: [Ocfs2-devel] [PATCH 3/9] Implement quota functions to libocfs2
-In-Reply-To: <1248974064-29462-4-git-send-email-jack@suse.cz>
-References: <1248974064-29462-1-git-send-email-jack@suse.cz>
-	<1248974064-29462-4-git-send-email-jack@suse.cz>
-Message-ID: <4A725AEA.5050107@oracle.com>
+From: Coly Li <coly.li@suse.de>
+Date: Fri, 31 Jul 2009 19:59:08 +0800
+Subject: [Ocfs2-devel] lvb length issue [was Re: [ocfs2-tools-devel]
+ question of ocfs2_controld (Jun 27)]
+In-Reply-To: <20090709185338.GA11643@redhat.com>
+References: <4A451AB5.9070908@suse.de> <20090626193436.GC4478@mail.oracle.com>
+	<4A45257C.6040704@suse.de> <20090629080023.GB8373@mail.oracle.com>
+	<4A51ED7F.2040105@suse.de> <20090707160113.GA9140@redhat.com>
+	<20090707174741.GA24163@mail.oracle.com>
+	<20090708141542.GA8778@redhat.com>
+	<20090709185338.GA11643@redhat.com>
+Message-ID: <4A72DC8C.303@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jan,
 
-Jan Kara wrote:
-> Signed-off-by: Jan Kara <jack@suse.cz>
-> ---
->  include/ocfs2/ocfs2.h     |   87 ++++
->  libocfs2/Makefile         |    1 +
->  libocfs2/feature_string.c |   18 +
->  libocfs2/ocfs2_err.et     |    6 +
->  libocfs2/quota.c          | 1216 +++++++++++++++++++++++++++++++++++++++++++++
->  5 files changed, 1328 insertions(+), 0 deletions(-)
->  create mode 100644 libocfs2/quota.c
+
+David Teigland Wrote:
+> On Wed, Jul 08, 2009 at 09:15:42AM -0500, David Teigland wrote:
+>> On Tue, Jul 07, 2009 at 10:47:42AM -0700, Joel Becker wrote:
+>>> 	In this case, it's userspace utilities locking to verify no one
+>>> else is doing anything in the cluster.  coly has noticed mkfs.ocfs2, but
+>>> tunefs.ocfs2 and fsck.ocfs2 do the same thing.
+>>> 	While a 64byte user lvb would be ideal, I think a flag to work
+>>> around it would be great.  If the flag says "I know this lockspace may
+>>> have !32byte LVBs, but I promise not to use them", and you can error
+>>> when someone tries to set/get LVBs in that case, I think it works.
 > 
-> diff --git a/include/ocfs2/ocfs2.h b/include/ocfs2/ocfs2.h
-> index 47fede3..9f861d6 100644
-> --- a/include/ocfs2/ocfs2.h
-> +++ b/include/ocfs2/ocfs2.h
-> +#define OCFS2_LOCAL_QF_INIT_BLOCKS 2
-> +
-> +errcode_t ocfs2_init_local_quota_file(ocfs2_filesys *fs, int type,
-> +				      uint64_t blkno)
-> +{
-> +	ocfs2_cached_inode *ci = NULL;
-> +	struct ocfs2_dinode *di;
-> +	struct ocfs2_disk_dqheader *header;
-> +	struct ocfs2_local_disk_dqinfo *info;
-> +	unsigned int magics[] = OCFS2_LOCAL_QMAGICS;
-> +	int versions[] = OCFS2_LOCAL_QVERSIONS;
-> +	char *buf = NULL;
-> +	unsigned int written;
-> +	int bytes = ocfs2_blocks_to_bytes(fs, OCFS2_LOCAL_QF_INIT_BLOCKS);
-> +	errcode_t err;
-> +
-> +	err = ocfs2_read_cached_inode(fs, blkno, &ci);
-> +	if (err)
-> +		goto out;
-> +
-> +	if (!(ci->ci_inode->i_flags & OCFS2_VALID_FL) ||
-> +	    !(ci->ci_inode->i_flags & OCFS2_SYSTEM_FL) ||
-> +	    !(ci->ci_inode->i_flags & OCFS2_QUOTA_FL)) {
-> +		err = OCFS2_ET_INTERNAL_FAILURE;
-> +		goto out;
-> +	}
-> +	di = ci->ci_inode;
-> +
-> +	/* We need at least two blocks */
-> +	err = ocfs2_cached_inode_extend_allocation(ci,
-> +		ocfs2_clusters_in_blocks(fs, OCFS2_LOCAL_QF_INIT_BLOCKS));
-> +	if (err)
-> +		goto out;
-> +	di->i_size = bytes;
-> +	di->i_mtime = time(NULL);
-> +	err = ocfs2_write_inode(fs, blkno, (char *)di);
-> +	if (err)
-> +		goto out;
-> +
-> +	err = ocfs2_malloc_blocks(fs->fs_io, bytes, &buf);
-hey, ocfs2_malloc_blocks need num_blocks, not "bytes". so maybe 
-OCFS2_LOCAL_QF_INIT_BLOCKS?
+> Here's a kernel patch that I've not yet tried.  The code using libdlm will
+> need to add the flag 0x00000010 to dlm_new_lockspace().  (Until we've added
+> the new LVB64 define to libdlm.h.)
+> 
+> +#define DLM_LSFL_LVB64		0x00000010
+>
+Another difficulty is user space libdlm interface. Right now, the interface
+mkfs.ocfs2 uses to create a lock space is,
+dlm_lshandle_t dlm_create_lockspace(const char *name, mode_t mode)
+{
+        return create_lockspace(name, mode, 0);
+}
 
-Oh, I just checked your v1, it was there. I am so sorry for not finding 
-it earlier. And please change all of them in this patch.
-> +/* Get free block in file (either from free list or create new one) */
-> +static errcode_t ocfs2_get_free_dqblk(ocfs2_filesys *fs, int type,
-> +				      unsigned int *blk)
-> +{
-> +	errcode_t err;
-> +	char *buf;
-> +	struct qt_disk_dqdbheader *dh;
-> +	struct ocfs2_global_disk_dqinfo *info = &(fs->qinfo[type].qi_info);
-> +	ocfs2_cached_inode *ci = fs->qinfo[type].qi_inode;
-> +
-> +	err = ocfs2_malloc_block(fs->fs_io, &buf);
-> +	if (err)
-> +		return err;
-> +	dh = (struct qt_disk_dqdbheader *)buf;
-> +	if (info->dqi_free_blk) {
-> +		*blk = info->dqi_free_blk;
-> +		err = read_blk(fs, type, *blk, buf);
-> +		if (err)
-> +			goto bail;
-> +		info->dqi_free_blk = le32_to_cpu(dh->dqdh_next_free);
-> +	}
-> +	else {
-> +		if (info->dqi_blocks ==
-> +		    ocfs2_clusters_to_blocks(fs, ci->ci_inode->i_clusters)) {
-> +			err = ocfs2_cached_inode_extend_allocation(ci, 1);
-> +			if (err)
-> +				goto bail;
-> +		}
-> +		*blk = info->dqi_blocks++;
-> +		ci->ci_inode->i_size =
-> +				ocfs2_blocks_to_bytes(fs, info->dqi_blocks);
-I am interested in this part. I read the kernel part yesterday. There 
-you often check whether we need to add a chunk header in which case we 
-need to extend the file by 2 blocks actually. But here we just extend 1 
-cluster? Is this a little different from the kernel part or we just 
-simplify the case in the userspace? Please help me clarify it. Thanks.
-> +	}
-> +	mark_quotafile_info_dirty(fs, type);
-> +bail:
-> +	ocfs2_free(&buf);
-> +	return err;
-> +}
+There is no way to set flags in dlm_create_lockspace() and it is set to 0 inside
+the interface.
 
-Regards,
-Tao
+Is it possible to export create_lockspace() and release_lockspace() from libdlm
+? So ocfs2-tools can load these symbols with dlopen() and calls these routines
+with flags (set DLM_LSFL_LVB64).
+
+Other 2 options might be,
+1) add flags in dlm_create_lockspace(), which will change libdlm api.
+2) update default lvb length from 32bytes to 64bytes.
+
+Thanks.
+-- 
+Coly Li
+SuSE Labs
