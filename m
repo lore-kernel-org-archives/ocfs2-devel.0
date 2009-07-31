@@ -1,88 +1,72 @@
-From: Jamie Lokier <jamie@shareable.org>
-Date: Sun, 30 Aug 2009 17:30:07 -0000
-Subject: [Ocfs2-devel] [PATCH 07/17] vfs: Introduce new helpers for
-	syncing after writing to O_SYNC file or IS_SYNC inode
-In-Reply-To: <20090830163917.GA23955@lst.de>
-References: <1250875447-15622-1-git-send-email-jack@suse.cz>
-	<1250875447-15622-8-git-send-email-jack@suse.cz>
-	<20090827173540.GA19115@infradead.org>
-	<20090830163551.GA7129@shareable.org>
-	<20090830163917.GA23955@lst.de>
-Message-ID: <20090830172959.GD7129@shareable.org>
+From: Coly Li <coly.li@suse.de>
+Date: Sat, 01 Aug 2009 00:49:11 +0800
+Subject: [Ocfs2-devel] lvb length issue [was Re: [ocfs2-tools-devel]
+ question of ocfs2_controld (Jun 27)]
+In-Reply-To: <20090731162112.GA24461@redhat.com>
+References: <4A451AB5.9070908@suse.de> <20090626193436.GC4478@mail.oracle.com>
+	<4A45257C.6040704@suse.de> <20090629080023.GB8373@mail.oracle.com>
+	<4A51ED7F.2040105@suse.de> <20090707160113.GA9140@redhat.com>
+	<20090707174741.GA24163@mail.oracle.com>
+	<20090708141542.GA8778@redhat.com>
+	<20090709185338.GA11643@redhat.com> <4A72DC8C.303@suse.de>
+	<20090731162112.GA24461@redhat.com>
+Message-ID: <4A732087.5040609@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: Christoph Hellwig <hch@infradead.org>, Jan Kara <jack@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, Evgeniy Polyakov <zbr@ioremap.net>, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Felix Blyakher <felixb@sgi.com>, xfs@oss.sgi.com, Anton Altaparmakov <aia21@cantab.net>, linux-ntfs-dev@lists.sourceforge.net, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, linux-ext4@vger.kernel.org, tytso@mit.edu
+To: ocfs2-devel@oss.oracle.com
 
-Christoph Hellwig wrote:
-> Linux has sync_file_range which currently is a perfect way to lose your
-> synced' data, but with two more flags and calls to ->fsync we could
-> turn it into range-fsync/fdatasync.
 
-Apart from the way it loses your data, the man page for
-sync_file_range never manages to explain quite why you should use the
-existing flags in various combinations.  It's only obvious if you've
-worked on a kernel yourself.
 
-Having asked this before, it appears one of the reasons for
-sync_file_range working as it does is to give the application more
-control over writeback order and to some extent, reduce the amount of
-blocking.
+David Teigland Wrote:
+> On Fri, Jul 31, 2009 at 07:59:08PM +0800, Coly Li wrote:
+>>
+>> David Teigland Wrote:
+>>> On Wed, Jul 08, 2009 at 09:15:42AM -0500, David Teigland wrote:
+>>>> On Tue, Jul 07, 2009 at 10:47:42AM -0700, Joel Becker wrote:
+>>>>> 	In this case, it's userspace utilities locking to verify no one
+>>>>> else is doing anything in the cluster.  coly has noticed mkfs.ocfs2, but
+>>>>> tunefs.ocfs2 and fsck.ocfs2 do the same thing.
+>>>>> 	While a 64byte user lvb would be ideal, I think a flag to work
+>>>>> around it would be great.  If the flag says "I know this lockspace may
+>>>>> have !32byte LVBs, but I promise not to use them", and you can error
+>>>>> when someone tries to set/get LVBs in that case, I think it works.
+>>> Here's a kernel patch that I've not yet tried.  The code using libdlm will
+>>> need to add the flag 0x00000010 to dlm_new_lockspace().  (Until we've added
+>>> the new LVB64 define to libdlm.h.)
+>>>
+>>> +#define DLM_LSFL_LVB64		0x00000010
+>>>
+>> Another difficulty is user space libdlm interface. Right now, the interface
+>> mkfs.ocfs2 uses to create a lock space is,
+>> dlm_lshandle_t dlm_create_lockspace(const char *name, mode_t mode)
+>> {
+>>         return create_lockspace(name, mode, 0);
+>> }
+>>
+>> There is no way to set flags in dlm_create_lockspace() and it is set to 0 inside
+>> the interface.
+>>
+>> Is it possible to export create_lockspace() and release_lockspace() from libdlm
+>> ? So ocfs2-tools can load these symbols with dlopen() and calls these routines
+>> with flags (set DLM_LSFL_LVB64).
+>>
+>> Other 2 options might be,
+>> 1) add flags in dlm_create_lockspace(), which will change libdlm api.
+>> 2) update default lvb length from 32bytes to 64bytes.
+> 
+> I don't think I'll bother with the LVB64 flag hack.  Instead, I'm planning to
+> do a larger API change to really support variable length lvb's from userspace.
+> 
+> It's actually dlm_new_lockspace() that you would use to pass flags, and once
+> we add variable length lvb's we'll need a new third call that adds an lvblen
+> parameter.
+> 
 
-But it's really difficult to manage the amount of blocking with it.
-You need to know the request queue size among other things, and even
-if you do it's dynamic.  Writeback order would be as easy with
-fdatasync_range, and if you want to reduce blocking, a good
-implementation of aio_fsync would be more useful.  Or, you have to use
-application writeback threads anyway, so fdatasync_range again.
+I see. Once the patches are available, I can help to test the new API.
 
-The one thing sync_file_range can do is let you submit multiple ranges
-which the elevators can sort for the hardware.  You can't do that with
-sequential calls to fdatasync_range, and it's not clear that aio_fsync
-is implemented well enough (but it's a fairly good API for it).
-
-Nick Piggin's idea to let fdatasync_range take multiple ranges might
-help with that, but it's not clear how much.
-
-> I'm not sure if that's a good
-> idea or if we should just add a sys_fdatasync_rage systems call.
-
-fdatasync_range has the advantage of being comprehensible.  People
-will use it because it makes sense.
-
-sync_file_range could be hijacked with new flags to implement
-fdatasync_range.  If that's done, I'd rename the system call, but keep
-it compatible with sync_file_range's flags, which would never be set
-when userspace uses the new functionality.
-
-> I don't quite see the point of a range-fsync, but it could be easily
-> implemented as a flag.
-
-A flags argument would be good anyway: to indicate if we want an
-ordinary fdatasync, or something which flushes the relevant bit of
-volatile hardware caches too.  With that as a capability, it is useful
-to offer fsync, because that'd be the only way to get a volatile
-hardware cache flush (or maybe the only way not to?).
-
-For that reason, it should be permitted to give an infinitely large range.
-
-I don't see the point of range-fsync either, but I'm not sure if I see
-any harm in it.  If permitted, range-fsync with a zero-byte range
-would flush just the inode state and none of the data.  If that's
-technically available, maybe O_ISYNC and "#define O_SYNC
-(O_DATASYNC|O_ISYNC)" isn't such as daft idea.
-
-I'd call it fsync_range for consistency with aio_fsync (POSIX), which
-takes flags O_DSYNC or O_SYNC to indicate the type of sync.  But I'd
-use new flag names, to keep the space clear for other flags.  Just
-sketching some ideas:
-
-/* One of FSYNC_RANGE_SYNC or FSYNC_RANGE_DATASYNC must be set. */
-
-#define FSYNC_RANGE_SYNC	(1 << 0)	/* Like fsync, O_SYNC. */
-#define FSYNC_RANGE_DATASYNC	(1 << 1)	/* Like fdatasync, O_DSYNC. */
-#define FSYNC_RANGE_NO_HWCACHE	(1 << 2)	/* Not hardware caches. */
-
--- Jamie
+Thanks.
+-- 
+Coly Li
+SuSE Labs
