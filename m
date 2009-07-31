@@ -1,16 +1,17 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 31 Jul 2009 12:39:34 -0700
+Date: Fri, 31 Jul 2009 13:10:43 -0700
 Subject: [Ocfs2-devel] [PATCH] Remove redundant BUG_ON in __dlm_queue_ast
 In-Reply-To: <20090731192802.GA13139@baloo.cartoons>
 References: <20090731192802.GA13139@baloo.cartoons>
-Message-ID: <4A734876.7070404@oracle.com>
+Message-ID: <4A734FC3.1050605@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Can you explain why you think it is redundant?
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+
 
 Goldwyn Rodrigues wrote:
 >     Remove redundant BUG_ON()
