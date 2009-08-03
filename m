@@ -1,54 +1,124 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon,  3 Aug 2009 15:23:34 +0200
-Subject: [Ocfs2-devel] [PATCH 4/9] Write out quota info changes on
-	ocfs2_close()
+Date: Mon,  3 Aug 2009 15:23:32 +0200
+Subject: [Ocfs2-devel] [PATCH 2/9] Provide
+	ocfs2_cached_inode_extend_allocation()
 In-Reply-To: <1249305819-7658-1-git-send-email-jack@suse.cz>
 References: <1249305819-7658-1-git-send-email-jack@suse.cz>
-Message-ID: <1249305819-7658-5-git-send-email-jack@suse.cz>
+Message-ID: <1249305819-7658-3-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We don't write out change of information in quota file header on each change,
-we rather cache it in ocfs2_filesys structure. So write out all the
-information when ocfs2_close() is called.
+So far we had only ocfs2_extend_allocation() which read the inode from
+disk. Provide also the cached variant.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- libocfs2/closefs.c |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
+ include/ocfs2/ocfs2.h  |    3 ++
+ libocfs2/extend_file.c |   52 +++++++++++++++++++++++++----------------------
+ 2 files changed, 31 insertions(+), 24 deletions(-)
 
-diff --git a/libocfs2/closefs.c b/libocfs2/closefs.c
-index 54411da..290bfd1 100644
---- a/libocfs2/closefs.c
-+++ b/libocfs2/closefs.c
-@@ -39,6 +39,7 @@ errcode_t ocfs2_flush(ocfs2_filesys *fs)
- errcode_t ocfs2_close(ocfs2_filesys *fs)
- {
- 	errcode_t ret;
-+	int type;
+diff --git a/include/ocfs2/ocfs2.h b/include/ocfs2/ocfs2.h
+index 4dbbf43..47fede3 100644
+--- a/include/ocfs2/ocfs2.h
++++ b/include/ocfs2/ocfs2.h
+@@ -505,6 +505,9 @@ errcode_t ocfs2_delete_extent_block(ocfs2_filesys *fs, uint64_t blkno);
+  */
+ errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
+ 				  uint32_t new_clusters);
++/* Ditto for cached inode */
++errcode_t ocfs2_cached_inode_extend_allocation(ocfs2_cached_inode *ci,
++					       uint32_t new_clusters);
+ /* Extend the file to the new size. No clusters will be allocated. */
+ errcode_t ocfs2_extend_file(ocfs2_filesys *fs, uint64_t ino, uint64_t new_size);
  
- 	if (fs->fs_flags & OCFS2_FLAG_DIRTY) {
- 		ret = ocfs2_flush(fs);
-@@ -46,6 +47,17 @@ errcode_t ocfs2_close(ocfs2_filesys *fs)
- 			return ret;
- 	}
- 
-+	for (type = 0; type < MAXQUOTAS; type++)
-+		if (fs->qinfo[type].flags & OCFS2_QF_INFO_DIRTY) {
-+			ret = ocfs2_write_global_quota_info(fs, type);
-+			if (ret)
-+				return ret;
-+			ret = ocfs2_write_cached_inode(fs,
-+						fs->qinfo[type].qi_inode);
-+			if (ret)
-+				return ret;
-+		}
-+
- 	ocfs2_freefs(fs);
- 	return 0;
+diff --git a/libocfs2/extend_file.c b/libocfs2/extend_file.c
+index a27b478..65d3133 100644
+--- a/libocfs2/extend_file.c
++++ b/libocfs2/extend_file.c
+@@ -3764,29 +3764,15 @@ out:
+ 	return ret;
  }
+ 
+-errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
+-				  uint32_t new_clusters)
++errcode_t ocfs2_cached_inode_extend_allocation(ocfs2_cached_inode *ci,
++					       uint32_t new_clusters)
+ {
+ 	errcode_t ret = 0;
+ 	uint32_t n_clusters = 0, cpos;
+ 	uint64_t blkno, file_size;
+-	char *buf = NULL;
+-	struct ocfs2_dinode* di = NULL;
+-
+-	if (!(fs->fs_flags & OCFS2_FLAG_RW))
+-		return OCFS2_ET_RO_FILESYS;
+-
+-	ret = ocfs2_malloc_block(fs->fs_io, &buf);
+-	if (ret)
+-		goto out_free_buf;
+-
+-	ret = ocfs2_read_inode(fs, ino, buf);
+-	if (ret)
+-		goto out_free_buf;
+-
+-	di = (struct ocfs2_dinode *)buf;
++	ocfs2_filesys *fs = ci->ci_fs;
+ 
+-	file_size = di->i_size;
++	file_size = ci->ci_inode->i_size;
+ 	cpos = (file_size + fs->fs_clustersize - 1) / fs->fs_clustersize;
+ 	while (new_clusters) {
+ 		n_clusters = 1;
+@@ -3795,23 +3781,41 @@ errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
+ 		if (ret)
+ 			break;
+ 
+-		ret = ocfs2_insert_extent(fs, ino, cpos, blkno, n_clusters,
+-					  0);
++		ret = ocfs2_cached_inode_insert_extent(ci, cpos, blkno,
++						       n_clusters, 0);
+ 		if (ret) {
+ 			/* XXX: We don't wan't to overwrite the error
+ 			 * from insert_extent().  But we probably need
+ 			 * to BE LOUDLY UPSET. */
+ 			ocfs2_free_clusters(fs, n_clusters, blkno);
+-			goto out_free_buf;
++			break;
+ 		}
+ 
+ 	 	new_clusters -= n_clusters;
+ 		cpos += n_clusters;
+ 	}
++	return ret;
++}
++
++errcode_t ocfs2_extend_allocation(ocfs2_filesys *fs, uint64_t ino,
++				  uint32_t new_clusters)
++{
++	errcode_t ret;
++	ocfs2_cached_inode *ci = NULL;
++
++	ret = ocfs2_read_cached_inode(fs, ino, &ci);
++	if (ret)
++		goto bail;
++
++	ret = ocfs2_cached_inode_extend_allocation(ci, new_clusters);
++	if (ret)
++		goto bail;
++
++	ret = ocfs2_write_cached_inode(fs, ci);
++bail:
++	if (ci)
++		ocfs2_free_cached_inode(fs, ci);
+ 
+-out_free_buf:
+-	if (buf)
+-		ocfs2_free(&buf);
+ 	return ret;
+ }
+ 
 -- 
 1.6.0.2
