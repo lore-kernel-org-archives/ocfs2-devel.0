@@ -1,36 +1,54 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon,  3 Aug 2009 15:23:39 +0200
-Subject: [Ocfs2-devel] [PATCH 9/9] Fix tunefs space check when disabling
-	SPARSE feature
+Date: Mon,  3 Aug 2009 15:23:34 +0200
+Subject: [Ocfs2-devel] [PATCH 4/9] Write out quota info changes on
+	ocfs2_close()
 In-Reply-To: <1249305819-7658-1-git-send-email-jack@suse.cz>
 References: <1249305819-7658-1-git-send-email-jack@suse.cz>
-Message-ID: <1249305819-7658-10-git-send-email-jack@suse.cz>
+Message-ID: <1249305819-7658-5-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Tunefs missed addition of number clusters needed to fill holes when disabling
-SPARSE feature and hence the check whether there's enough space in the
-filesystem didn't work.
+We don't write out change of information in quota file header on each change,
+we rather cache it in ocfs2_filesys structure. So write out all the
+information when ocfs2_close() is called.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- tunefs.ocfs2/feature_sparse_files.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ libocfs2/closefs.c |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
-diff --git a/tunefs.ocfs2/feature_sparse_files.c b/tunefs.ocfs2/feature_sparse_files.c
-index 65db46b..e5b3dab 100644
---- a/tunefs.ocfs2/feature_sparse_files.c
-+++ b/tunefs.ocfs2/feature_sparse_files.c
-@@ -321,6 +321,7 @@ static errcode_t hole_iterate(ocfs2_filesys *fs, struct ocfs2_dinode *di,
+diff --git a/libocfs2/closefs.c b/libocfs2/closefs.c
+index 54411da..290bfd1 100644
+--- a/libocfs2/closefs.c
++++ b/libocfs2/closefs.c
+@@ -39,6 +39,7 @@ errcode_t ocfs2_flush(ocfs2_filesys *fs)
+ errcode_t ocfs2_close(ocfs2_filesys *fs)
+ {
+ 	errcode_t ret;
++	int type;
  
- 	list_add_tail(&file->list, &ctxt->files);
- 	ctxt->holecount += file->holes_num;
-+	ctxt->more_clusters += file->hole_clusters;
+ 	if (fs->fs_flags & OCFS2_FLAG_DIRTY) {
+ 		ret = ocfs2_flush(fs);
+@@ -46,6 +47,17 @@ errcode_t ocfs2_close(ocfs2_filesys *fs)
+ 			return ret;
+ 	}
  
- 	tools_progress_step(ctxt->prog, 1);
- 
++	for (type = 0; type < MAXQUOTAS; type++)
++		if (fs->qinfo[type].flags & OCFS2_QF_INFO_DIRTY) {
++			ret = ocfs2_write_global_quota_info(fs, type);
++			if (ret)
++				return ret;
++			ret = ocfs2_write_cached_inode(fs,
++						fs->qinfo[type].qi_inode);
++			if (ret)
++				return ret;
++		}
++
+ 	ocfs2_freefs(fs);
+ 	return 0;
+ }
 -- 
 1.6.0.2
