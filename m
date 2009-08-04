@@ -1,29 +1,60 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Mon, 3 Aug 2009 14:15:28 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Initialize the cluster we're
-	writing to in a non-sparse extend
-In-Reply-To: <1249323209-28169-2-git-send-email-sunil.mushran@oracle.com>
-References: <1249323209-28169-1-git-send-email-sunil.mushran@oracle.com>
-	<1249323209-28169-2-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20090803211528.GA22913@wotan.suse.de>
+From: tristan.ye <tristan.ye@oracle.com>
+Date: Tue, 04 Aug 2009 13:18:22 +0800
+Subject: [Ocfs2-devel] [PATCH 4/9] Write out quota info changes
+	on	ocfs2_close()
+In-Reply-To: <1249305819-7658-5-git-send-email-jack@suse.cz>
+References: <1249305819-7658-1-git-send-email-jack@suse.cz>
+	<1249305819-7658-5-git-send-email-jack@suse.cz>
+Message-ID: <1249363102.6600.5.camel@tristan-laptop.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Aug 03, 2009 at 11:13:29AM -0700, Sunil Mushran wrote:
-> In a non-sparse extend, we correctly allocate (and zero) the clusters between
-> the old_i_size and pos, but we don't zero the portions of the cluster we're
-> writing to outside of pos<->len.
+On Mon, 2009-08-03 at 15:23 +0200, Jan Kara wrote:
+> We don't write out change of information in quota file header on each change,
+> we rather cache it in ocfs2_filesys structure. So write out all the
+> information when ocfs2_close() is called.
 > 
-> [Cleaned up by Joel Becker.]
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> ---
+>  libocfs2/closefs.c |   12 ++++++++++++
+>  1 files changed, 12 insertions(+), 0 deletions(-)
 > 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+> diff --git a/libocfs2/closefs.c b/libocfs2/closefs.c
+> index 54411da..290bfd1 100644
+> --- a/libocfs2/closefs.c
+> +++ b/libocfs2/closefs.c
+> @@ -39,6 +39,7 @@ errcode_t ocfs2_flush(ocfs2_filesys *fs)
+>  errcode_t ocfs2_close(ocfs2_filesys *fs)
+>  {
+>  	errcode_t ret;
+> +	int type;
+>  
+>  	if (fs->fs_flags & OCFS2_FLAG_DIRTY) {
+>  		ret = ocfs2_flush(fs);
+> @@ -46,6 +47,17 @@ errcode_t ocfs2_close(ocfs2_filesys *fs)
+>  			return ret;
+>  	}
+>  
+> +	for (type = 0; type < MAXQUOTAS; type++)
+> +		if (fs->qinfo[type].flags & OCFS2_QF_INFO_DIRTY) {
+> +			ret = ocfs2_write_global_quota_info(fs, type);
 
-Looks reasonable to me...
+Sometimes, some fields of 'fs' may get freed somehow(e.g, such as
+tunefs.ocfs2 case) before we call ocfs2_close(), then your
+ocfs2_write_global_quota_info() may suffer a segfault disaster somehow
+when it refers to 'fs_io' or some other fields.
 
-Acked-by: Mark Fasheh <mfasheh@suse.com>
-
---
-Mark Fasheh
+> +			if (ret)
+> +				return ret;
+> +			ret = ocfs2_write_cached_inode(fs,
+> +						fs->qinfo[type].qi_inode);
+> +			if (ret)
+> +				return ret;
+> +		}
+> +
+>  	ocfs2_freefs(fs);
+>  	return 0;
+>  }
