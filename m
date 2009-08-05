@@ -1,18 +1,18 @@
-From: tristan.ye <tristan.ye@oracle.com>
-Date: Wed, 05 Aug 2009 16:50:17 +0800
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 5 Aug 2009 13:56:43 +0200
 Subject: [Ocfs2-devel] [PATCH 3/9] Implement quota functions to libocfs2
 In-Reply-To: <1249461994.16709.8.camel@tristan-laptop.cn.oracle.com>
 References: <1249305819-7658-1-git-send-email-jack@suse.cz>
 	<1249305819-7658-4-git-send-email-jack@suse.cz>
 	<1249461994.16709.8.camel@tristan-laptop.cn.oracle.com>
-Message-ID: <1249462218.16709.9.camel@tristan-laptop.cn.oracle.com>
+Message-ID: <20090805115643.GB27505@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, 2009-08-05 at 16:46 +0800, tristan.ye wrote:
+On Wed 05-08-09 16:46:34, tristan.ye wrote:
 > On Mon, 2009-08-03 at 15:23 +0200, Jan Kara wrote:
 > > Signed-off-by: Jan Kara <jack@suse.cz>
 > > ---
@@ -1441,9 +1441,10 @@ On Wed, 2009-08-05 at 16:46 +0800, tristan.ye wrote:
 > > +			   ocfs2_cached_dquot **ret_dquot)
 > 
 > One concern, the second argument 'id' never in function.
-sorry for the type, it should be:
-the second argument 'id' never used in function.
-> 
+  Oh, good catch. The function works correctly only for the root user.
+Because it is used only when disabling sparse feature and I've tested that
+as root, I didn't notice.
+
 > Another thing is, you malloc the space for &dquot, then pass it to
 > caller's arguments, and we're noticing that the caller will be
 > responsible for the relasing of allocated space instead of function
@@ -1451,10 +1452,14 @@ the second argument 'id' never used in function.
 > 
 > unfortunately, i didn't see any caller(such as fill_sparse_files() in
 > tunefs.ocfs2) finally release the space...
-> 
+  And this is true as well. Thanks.
+
 > To keep consistent with other tool's code(such as ocfs2_read_inode()), i
 > think you may allocate/free the space by caller?
-> 
+  This is consistent with ocfs2_read_cached_inode() which allocates the
+cached structure. So I don't think it needs to be changed. I'll just fix
+fill_sparse_files() to properly release the structure.
+
 > > +{
 > > +	errcode_t err;
 > > +	ocfs2_cached_dquot *dquot;
@@ -1472,9 +1477,9 @@ the second argument 'id' never used in function.
 > > +	ocfs2_free(&dquot);
 > > +	return err;
 > > +}
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+  Thanks for review.
+
+								Honza
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
