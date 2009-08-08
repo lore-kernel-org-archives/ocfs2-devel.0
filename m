@@ -1,107 +1,102 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 07 Aug 2009 14:01:19 -0700
-Subject: [Ocfs2-devel] mkfs.ocfs2 bug?
-In-Reply-To: <1249678563.13937.685.camel@hermosa>
-References: <1249678563.13937.685.camel@hermosa>
-Message-ID: <4A7C961F.7090608@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Fri, 7 Aug 2009 17:10:05 -0700
+Subject: [Ocfs2-devel] New update for sync in reflink. [Re: some
+ thoughts about data integrity test for reflink.]
+In-Reply-To: <4A7C4708.9030303@oracle.com>
+References: <4A1B8E15.20005@oracle.com>
+	<1243322353.6616.18.camel@tristan-laptop.cn.oracle.com>
+	<4A1C8708.8050704@oracle.com>
+	<1243389610.6616.30.camel@tristan-laptop.cn.oracle.com>
+	<4A1DDFCF.4060203@oracle.com> <4A1E3B9A.7000807@oracle.com>
+	<20090528171406.GA315@mail.oracle.com>
+	<4A7C4708.9030303@oracle.com>
+Message-ID: <20090808001005.GE30923@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-1.4.0 is very old. sles needs to refresh the tools.
+[I've added ocfs2-devel to the Cc list.  Please copy the list, otherwise
+  we can't get Mark's thoughts, and he knows some of the code better
+  than I do. ]
 
-Peter W. Morreale wrote:
-> Hi all, I had the following happen when playing with adding the -C
-> option to mkfs.ocfs2 commandline.  Is this a known issue?   Should I
-> file a bug report?
->
-> Works fine as long as I do not specify a cluster size.
->
-> Best,
-> -PWM
->
-> silverton:/etc/slert # mkfs.ocfs2 -N 255 -C 32768 /dev/sdb3
-> mkfs.ocfs2 1.4.0
-> Filesystem label=
-> Block size=4096 (bits=12)
-> Cluster size=32768 (bits=15)
-> Volume size=142618099712 (4352359 clusters) (34818872 blocks)
-> 135 cluster groups (tail covers 30055 clusters, rest cover 32256
-> clusters)
-> Journal size=268435456
-> Initial number of node slots: 255
-> Creating bitmaps: done
-> Initializing superblock: done
-> Writing system files: *** glibc detected *** mkfs.ocfs2: double free or
-> corruption (!prev): 0x00000000009f2000 ***
-> ======= Backtrace: =========
-> /lib64/libc.so.6[0x2b7d7f5a131e]
-> /lib64/libc.so.6(__libc_free+0x6c)[0x2b7d7f5a2d7c]
-> mkfs.ocfs2[0x4041d5]
-> mkfs.ocfs2[0x4056c4]
-> /lib64/libc.so.6(__libc_start_main+0xf4)[0x2b7d7f553184]
-> mkfs.ocfs2[0x402439]
-> ======= Memory map: ========
-> 00400000-0041d000 r-xp 00000000 08:02
-> 377243                             /sbin/mkfs.ocfs2
-> 0051d000-0051e000 rw-p 0001d000 08:02
-> 377243                             /sbin/mkfs.ocfs2
-> 0051e000-00a10000 rw-p 0051e000 00:00 0
-> [heap]
-> 2b7d7f0fb000-2b7d7f116000 r-xp 00000000 08:02
-> 11567106                   /lib64/ld-2.4.so
-> 2b7d7f116000-2b7d7f117000 rw-p 2b7d7f116000 00:00 0 
-> 2b7d7f131000-2b7d7f132000 rw-p 2b7d7f131000 00:00 0 
-> 2b7d7f215000-2b7d7f217000 rw-p 0001a000 08:02
-> 11567106                   /lib64/ld-2.4.so
-> 2b7d7f217000-2b7d7f219000 r-xp 00000000 08:02
-> 11567181                   /lib64/libcom_err.so.2.1
-> 2b7d7f219000-2b7d7f318000 ---p 00002000 08:02
-> 11567181                   /lib64/libcom_err.so.2.1
-> 2b7d7f318000-2b7d7f319000 rw-p 00001000 08:02
-> 11567181                   /lib64/libcom_err.so.2.1
-> 2b7d7f319000-2b7d7f31c000 r-xp 00000000 08:02
-> 11567238                   /lib64/libuuid.so.1.2
-> 2b7d7f31c000-2b7d7f41b000 ---p 00003000 08:02
-> 11567238                   /lib64/libuuid.so.1.2
-> 2b7d7f41b000-2b7d7f41c000 rw-p 00002000 08:02
-> 11567238                   /lib64/libuuid.so.1.2
-> 2b7d7f41c000-2b7d7f430000 r-xp 00000000 08:02
-> 11567139                   /lib64/libpthread-2.4.so
-> 2b7d7f430000-2b7d7f52f000 ---p 00014000 08:02
-> 11567139                   /lib64/libpthread-2.4.so
-> 2b7d7f52f000-2b7d7f531000 rw-p 00013000 08:02
-> 11567139                   /lib64/libpthread-2.4.so
-> 2b7d7f531000-2b7d7f536000 rw-p 2b7d7f531000 00:00 0 
-> 2b7d7f536000-2b7d7f66c000 r-xp 00000000 08:02
-> 11567113                   /lib64/libc-2.4.so
-> 2b7d7f66c000-2b7d7f76c000 ---p 00136000 08:02
-> 11567113                   /lib64/libc-2.4.so
-> 2b7d7f76c000-2b7d7f76f000 r--p 00136000 08:02
-> 11567113                   /lib64/libc-2.4.so
-> 2b7d7f76f000-2b7d7f771000 rw-p 00139000 08:02
-> 11567113                   /lib64/libc-2.4.so
-> 2b7d7f771000-2b7d7f777000 rw-p 2b7d7f771000 00:00 0 
-> 2b7d7f800000-2b7d7f821000 rw-p 2b7d7f800000 00:00 0 
-> 2b7d7f821000-2b7d7f900000 ---p 2b7d7f821000 00:00 0 
-> 2b7d7f900000-2b7d7f90d000 r-xp 00000000 08:02
-> 11567169                   /lib64/libgcc_s.so.1
-> 2b7d7f90d000-2b7d7fa0c000 ---p 0000d000 08:02
-> 11567169                   /lib64/libgcc_s.so.1
-> 2b7d7fa0c000-2b7d7fa0d000 rw-p 0000c000 08:02
-> 11567169                   /lib64/libgcc_s.so.1
-> 7fff2b99a000-7fff2b9af000 rw-p 7fff2b99a000 00:00 0
-> [stack]
-> ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0
-> [vdso]
-> Aborted
->
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->   
+On Fri, Aug 07, 2009 at 11:23:52PM +0800, Tao Ma wrote:
+> Joel Becker wrote:
+> >>I called ocfs2_sync_inode before reflink to flush the page
+> >>cache.  So I  think we should get all B's and C's are missed.
+> >>The reason I call ocfs2_sync_inode is the following test case:
+> >>1. Write a file with all A's.
+> >>2. reflink A to B.
+> >>3. read B.
+> >>If the page cache of A isn't synced to the disk, we may get the
+> >>garbage  from reading of B.
+> >
+> >	We won't get garbage.  We get 'A's, which is a valid state of
+> >the file.  Whether it's valid in the face of relink is what we're trying
+> >to decide here.
+> We don't get 'A' here actually and we would get garbage. Strange,
+> uh? I just added some printk and it seems that while reading file B,
+> the buffer_head is created
+> and read from the disk. I used to think that while we write file A,
+> we will create buffer_head. And reading file B will use this
+> buffer_head.
+> But that is not the case actually. The only right sequence is that
+> we add a sync between step 1 and 2.
+
+	Um, what?
+	Oh, we do the check for PageDirty() in CoW, but not in straight
+read...
+
+> >	Now, whether we want a reflink to force a sync or not in the
+> >writeback case...on the one hand, people will probably expect write();
+> >reflink(); read() to work.  On the other hand, they really should
+> >write(); fsync(); reflink(); if they care.  We're already dealing
+> >with this regarding rename(), and its ugly.  Force the fsync() for them,
+> >and we help the naive caller but penalize (performance-wise) the
+> >intelligent caller.
+> I have checked my mount mode, it is data=ordered, so we also meet
+> with this issue in ordered mode.
+
+	Yes, the original discussion was concerning the page cache
+contents during CoW.  You've coded that up correctly.  Here we're
+talking about simple read.
+
+> >	I really lean towards just requiring the caller to deal with it.
+> >It's what unix-like systems do for all other operations.  I poked Chris,
+> >and he agrees.  So a caller if they knew they had such a situation, does
+> >'fsync(); reflink();'.
+> So a user always need to do fsync before he do reflink. Is it OK? If
+> yes, I will ask tristan to update his test case.
+
+	Well... I would normally say yes, because stale vs not-stale is
+one thing.  But complete garbage from before the first write is not OK.
+
+> >>I think it is OK if I call ocfs2_sync_inode before reflink?(See
+> >>my git  tree for details).
+> >
+> >	Calling it unconditionally is just a performance disaster
+> >waiting to happen.  Even if we want to require reflink() to happen with
+> >data flushed, you don't want to call ocfs2_sync_inode() in the ordered
+> >case.  You want the ordered journal to handle it.
+> Since it doesn't work in order mode which is more common for ocfs2
+> usage, do you change your mind here?
+
+	I do not.  Having to call ocfs2_sync_inode() for every reflink
+is a disaster.  We need to think about this.  Basically, how can the
+reflink target notice it has to either sync the source or perhaps copy
+the data over?
+
+Joel
+
+-- 
+
+Life's Little Instruction Book #43
+
+	"Never give up on somebody.  Miracles happen every day."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
