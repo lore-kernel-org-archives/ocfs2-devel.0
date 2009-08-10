@@ -1,8 +1,8 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Sat, 08 Aug 2009 22:28:34 +0800
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 10 Aug 2009 11:59:34 -0700
 Subject: [Ocfs2-devel] New update for sync in reflink. [Re: some
  thoughts about data integrity test for reflink.]
-In-Reply-To: <20090808001005.GE30923@mail.oracle.com>
+In-Reply-To: <4A7D8B92.5090906@oracle.com>
 References: <4A1B8E15.20005@oracle.com>
 	<1243322353.6616.18.camel@tristan-laptop.cn.oracle.com>
 	<4A1C8708.8050704@oracle.com>
@@ -11,107 +11,55 @@ References: <4A1B8E15.20005@oracle.com>
 	<20090528171406.GA315@mail.oracle.com>
 	<4A7C4708.9030303@oracle.com>
 	<20090808001005.GE30923@mail.oracle.com>
-Message-ID: <4A7D8B92.5090906@oracle.com>
+	<4A7D8B92.5090906@oracle.com>
+Message-ID: <20090810185934.GB31168@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+On Sat, Aug 08, 2009 at 10:28:34PM +0800, Tao Ma wrote:
+> > 	I do not.  Having to call ocfs2_sync_inode() for every reflink
+> > is a disaster.  We need to think about this.  Basically, how can the
+> > reflink target notice it has to either sync the source or perhaps copy
+> > the data over?
+> >   
+> OK, I agree with you for ocfs2_sync_inode part. I am just a little 
+> worried about the above case I mentioned, so if we can
+> resolve it gracefully, I would be very glad about it.
 
+	Well, I can't find a good solution.  But we're not going to use
+ocfs2_sync_inode(), as that syncs metadata, which is pointless for
+reflink.  Also, we need to code up waiting on the sync
+(ocfs2_sync_inode() starts the sync, but does not wait on it).  We need
+to start the sync as early as possible.
+	As an aside, ocfs2_sync_inode() is a completely useless
+function.  filemap_fdatawrite() is called by the vfs fsync code, and we
+don't use the mapping buffers so sync_mapping_buffers() is a noop.  A
+future patch should just remove ocfs2_sync_inode().
+	So, here's what needs to happen.  At the very top of
+__ocfs2_reflink(), right after you have ip_alloc_sem and have locked out
+concurrent writers, you need to call filemap_fdatawrite().  This will
+start the writeback in the background while you go on to building the
+refcount trees.  At the very bottom of __ocfs2_reflink(), before you
+drop the locks on the new_inode, you then filemap_fdatawait().
+	I think that this means we can drop ocfs2_cow_sync_writeback()
+because the data must have been up to date before the reflink could have
+been CoWd.  We can also drop the filemap_fdatawrite_range() in
+ocfs2_refcount_cow().  In ocfs2_duplicate_clusters() PageDirty() is now
+a BUG_ON().  Right?
 
-Joel Becker wrote:
-> [I've added ocfs2-devel to the Cc list.  Please copy the list, otherwise
->   we can't get Mark's thoughts, and he knows some of the code better
->   than I do. ]
->
-> On Fri, Aug 07, 2009 at 11:23:52PM +0800, Tao Ma wrote:
->   
->> Joel Becker wrote:
->>     
->>>> I called ocfs2_sync_inode before reflink to flush the page
->>>> cache.  So I  think we should get all B's and C's are missed.
->>>> The reason I call ocfs2_sync_inode is the following test case:
->>>> 1. Write a file with all A's.
->>>> 2. reflink A to B.
->>>> 3. read B.
->>>> If the page cache of A isn't synced to the disk, we may get the
->>>> garbage  from reading of B.
->>>>         
->>> 	We won't get garbage.  We get 'A's, which is a valid state of
->>> the file.  Whether it's valid in the face of relink is what we're trying
->>> to decide here.
->>>       
->> We don't get 'A' here actually and we would get garbage. Strange,
->> uh? I just added some printk and it seems that while reading file B,
->> the buffer_head is created
->> and read from the disk. I used to think that while we write file A,
->> we will create buffer_head. And reading file B will use this
->> buffer_head.
->> But that is not the case actually. The only right sequence is that
->> we add a sync between step 1 and 2.
->>     
->
-> 	Um, what?
-> 	Oh, we do the check for PageDirty() in CoW, but not in straight
-> read...
->   
-So what do you mean here? I need to add another patch for straight read 
-check because of reflink?
-I am lack of this type of technique. So please give me some tips. Thanks.
->   
->>> 	Now, whether we want a reflink to force a sync or not in the
->>> writeback case...on the one hand, people will probably expect write();
->>> reflink(); read() to work.  On the other hand, they really should
->>> write(); fsync(); reflink(); if they care.  We're already dealing
->>> with this regarding rename(), and its ugly.  Force the fsync() for them,
->>> and we help the naive caller but penalize (performance-wise) the
->>> intelligent caller.
->>>       
->> I have checked my mount mode, it is data=ordered, so we also meet
->> with this issue in ordered mode.
->>     
->
-> 	Yes, the original discussion was concerning the page cache
-> contents during CoW.  You've coded that up correctly.  Here we're
-> talking about simple read.
->
->   
->>> 	I really lean towards just requiring the caller to deal with it.
->>> It's what unix-like systems do for all other operations.  I poked Chris,
->>> and he agrees.  So a caller if they knew they had such a situation, does
->>> 'fsync(); reflink();'.
->>>       
->> So a user always need to do fsync before he do reflink. Is it OK? If
->> yes, I will ask tristan to update his test case.
->>     
->
-> 	Well... I would normally say yes, because stale vs not-stale is
-> one thing.  But complete garbage from before the first write is not OK.
->   
-No problem, I will ask tristan to do it. And we may also need to add 
-some explanations about it when we finally release reflink.
->   
->>>> I think it is OK if I call ocfs2_sync_inode before reflink?(See
->>>> my git  tree for details).
->>>>         
->>> 	Calling it unconditionally is just a performance disaster
->>> waiting to happen.  Even if we want to require reflink() to happen with
->>> data flushed, you don't want to call ocfs2_sync_inode() in the ordered
->>> case.  You want the ordered journal to handle it.
->>>       
->> Since it doesn't work in order mode which is more common for ocfs2
->> usage, do you change your mind here?
->>     
->
-> 	I do not.  Having to call ocfs2_sync_inode() for every reflink
-> is a disaster.  We need to think about this.  Basically, how can the
-> reflink target notice it has to either sync the source or perhaps copy
-> the data over?
->   
-OK, I agree with you for ocfs2_sync_inode part. I am just a little 
-worried about the above case I mentioned, so if we can
-resolve it gracefully, I would be very glad about it.
+Joel
 
-Regards,
-Tao
+-- 
+
+"If the human brain were so simple we could understand it, we would
+ be so simple that we could not."
+	- W. A. Clouston
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
