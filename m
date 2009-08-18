@@ -1,179 +1,62 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 18 Aug 2009 14:19:04 +0800
-Subject: [Ocfs2-devel] [PATCH 03/41] ocfs2: Add ocfs2_read_refcount_block.
+Date: Tue, 18 Aug 2009 14:19:05 +0800
+Subject: [Ocfs2-devel] [PATCH 04/41] ocfs2: Abstract caching info checkpoint.
 In-Reply-To: <4A8A47DF.8020707@oracle.com>
 References: <4A8A47DF.8020707@oracle.com>
-Message-ID: <1250576382-27080-3-git-send-email-tao.ma@oracle.com>
+Message-ID: <1250576382-27080-4-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+In meta downconvert, we need to checkpoint the metadata in an inode.
+For refcount tree, we also need it. So abstract the process out.
+
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/Makefile          |    1 +
- fs/ocfs2/cluster/masklog.c |    1 +
- fs/ocfs2/cluster/masklog.h |    1 +
- fs/ocfs2/ocfs2.h           |    3 +
- fs/ocfs2/refcounttree.c    |   99 ++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 105 insertions(+), 0 deletions(-)
- create mode 100644 fs/ocfs2/refcounttree.c
+ fs/ocfs2/dlmglue.c |   18 +++++++++++++-----
+ 1 files changed, 13 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 0159607..31f25ce 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -28,6 +28,7 @@ ocfs2-objs := \
- 	locks.o			\
- 	mmap.o 			\
- 	namei.o 		\
-+	refcounttree.o		\
- 	resize.o		\
- 	slot_map.o 		\
- 	suballoc.o 		\
-diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-index 96df541..1cd2934 100644
---- a/fs/ocfs2/cluster/masklog.c
-+++ b/fs/ocfs2/cluster/masklog.c
-@@ -111,6 +111,7 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
- 	define_mask(EXPORT),
- 	define_mask(XATTR),
- 	define_mask(QUOTA),
-+	define_mask(REFCOUNT),
- 	define_mask(ERROR),
- 	define_mask(NOTICE),
- 	define_mask(KTHREAD),
-diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
-index 696c32e..9b4d117 100644
---- a/fs/ocfs2/cluster/masklog.h
-+++ b/fs/ocfs2/cluster/masklog.h
-@@ -113,6 +113,7 @@
- #define ML_EXPORT	0x0000000010000000ULL /* ocfs2 export operations */
- #define ML_XATTR	0x0000000020000000ULL /* ocfs2 extended attributes */
- #define ML_QUOTA	0x0000000040000000ULL /* ocfs2 quota operations */
-+#define ML_REFCOUNT	0x0000000080000000ULL /* refcount tree operations */
- /* bits that are infrequently given and frequently matched in the high word */
- #define ML_ERROR	0x0000000100000000ULL /* sent to KERN_ERR */
- #define ML_NOTICE	0x0000000200000000ULL /* setn to KERN_NOTICE */
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index d370262..6688d19 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -610,6 +610,9 @@ static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super *osb)
- #define OCFS2_IS_VALID_DX_LEAF(ptr)					\
- 	(!strcmp((ptr)->dl_signature, OCFS2_DX_LEAF_SIGNATURE))
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index f518d1b..79db055 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -3495,11 +3495,11 @@ out:
+ 	return UNBLOCK_CONTINUE;
+ }
  
-+#define OCFS2_IS_VALID_REFCOUNT_BLOCK(ptr)				\
-+	(!strcmp((ptr)->rf_signature, OCFS2_REFCOUNT_BLOCK_SIGNATURE))
-+
- static inline unsigned long ino_from_blkno(struct super_block *sb,
- 					   u64 blkno)
+-static int ocfs2_check_meta_downconvert(struct ocfs2_lock_res *lockres,
+-					int new_level)
++static int ocfs2_ci_checkpointed(struct ocfs2_caching_info *ci,
++				 struct ocfs2_lock_res *lockres,
++				 int new_level)
  {
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-new file mode 100644
-index 0000000..a923535
---- /dev/null
-+++ b/fs/ocfs2/refcounttree.c
-@@ -0,0 +1,99 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * refcounttree.c
-+ *
-+ * Copyright (C) 2009 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ */
-+
-+#define MLOG_MASK_PREFIX ML_REFCOUNT
-+#include <cluster/masklog.h>
-+#include "ocfs2.h"
-+#include "inode.h"
-+#include "alloc.h"
-+#include "suballoc.h"
-+#include "journal.h"
-+#include "uptodate.h"
-+#include "super.h"
-+#include "buffer_head_io.h"
-+#include "blockcheck.h"
-+
-+static int ocfs2_validate_refcount_block(struct super_block *sb,
-+					 struct buffer_head *bh)
+-	struct inode *inode = ocfs2_lock_res_inode(lockres);
+-	int checkpointed = ocfs2_ci_fully_checkpointed(INODE_CACHE(inode));
++	int checkpointed = ocfs2_ci_fully_checkpointed(ci);
+ 
+ 	BUG_ON(new_level != DLM_LOCK_NL && new_level != DLM_LOCK_PR);
+ 	BUG_ON(lockres->l_level != DLM_LOCK_EX && !checkpointed);
+@@ -3507,10 +3507,18 @@ static int ocfs2_check_meta_downconvert(struct ocfs2_lock_res *lockres,
+ 	if (checkpointed)
+ 		return 1;
+ 
+-	ocfs2_start_checkpoint(OCFS2_SB(inode->i_sb));
++	ocfs2_start_checkpoint(OCFS2_SB(ocfs2_metadata_cache_get_super(ci)));
+ 	return 0;
+ }
+ 
++static int ocfs2_check_meta_downconvert(struct ocfs2_lock_res *lockres,
++					int new_level)
 +{
-+	int rc;
-+	struct ocfs2_refcount_block *rb =
-+		(struct ocfs2_refcount_block *)bh->b_data;
++	struct inode *inode = ocfs2_lock_res_inode(lockres);
 +
-+	mlog(0, "Validating refcount block %llu\n",
-+	     (unsigned long long)bh->b_blocknr);
-+
-+	BUG_ON(!buffer_uptodate(bh));
-+
-+	/*
-+	 * If the ecc fails, we return the error but otherwise
-+	 * leave the filesystem running.  We know any error is
-+	 * local to this block.
-+	 */
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &rb->rf_check);
-+	if (rc) {
-+		mlog(ML_ERROR, "Checksum failed for refcount block %llu\n",
-+		     (unsigned long long)bh->b_blocknr);
-+		return rc;
-+	}
-+
-+
-+	if (!OCFS2_IS_VALID_REFCOUNT_BLOCK(rb)) {
-+		ocfs2_error(sb,
-+			    "Refcount block #%llu has bad signature %.*s",
-+			    (unsigned long long)bh->b_blocknr, 7,
-+			    rb->rf_signature);
-+		return -EINVAL;
-+	}
-+
-+	if (le64_to_cpu(rb->rf_blkno) != bh->b_blocknr) {
-+		ocfs2_error(sb,
-+			    "Refcount block #%llu has an invalid rf_blkno "
-+			    "of %llu",
-+			    (unsigned long long)bh->b_blocknr,
-+			    (unsigned long long)le64_to_cpu(rb->rf_blkno));
-+		return -EINVAL;
-+	}
-+
-+	if (le32_to_cpu(rb->rf_fs_generation) != OCFS2_SB(sb)->fs_generation) {
-+		ocfs2_error(sb,
-+			    "Refcount block #%llu has an invalid "
-+			    "rf_fs_generation of #%u",
-+			    (unsigned long long)bh->b_blocknr,
-+			    le32_to_cpu(rb->rf_fs_generation));
-+		return -EINVAL;
-+	}
-+
-+	return 0;
++	return ocfs2_ci_checkpointed(INODE_CACHE(inode), lockres, new_level);
 +}
 +
-+static int ocfs2_read_refcount_block(struct ocfs2_caching_info *ci,
-+				     u64 rb_blkno,
-+				     struct buffer_head **bh)
-+{
-+	int rc;
-+	struct buffer_head *tmp = *bh;
-+
-+	rc = ocfs2_read_block(ci, rb_blkno, &tmp,
-+			      ocfs2_validate_refcount_block);
-+
-+	/* If ocfs2_read_block() got us a new bh, pass it up. */
-+	if (!rc && !*bh)
-+		*bh = tmp;
-+
-+	return rc;
-+}
+ static void ocfs2_set_meta_lvb(struct ocfs2_lock_res *lockres)
+ {
+ 	struct inode *inode = ocfs2_lock_res_inode(lockres);
 -- 
 1.6.2.rc2.16.gf474c
