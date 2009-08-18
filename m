@@ -1,326 +1,204 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 18 Aug 2009 14:19:22 +0800
-Subject: [Ocfs2-devel] [PATCH 21/41] ocfs2: Add normal functions for reflink
-	a normal file's extents.
+Date: Tue, 18 Aug 2009 14:19:23 +0800
+Subject: [Ocfs2-devel] [PATCH 22/41] ocfs2: handle file attributes issue for
+	reflink.
 In-Reply-To: <4A8A47DF.8020707@oracle.com>
 References: <4A8A47DF.8020707@oracle.com>
-Message-ID: <1250576382-27080-21-git-send-email-tao.ma@oracle.com>
+Message-ID: <1250576382-27080-22-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-2 major functions are added in this patch.
+A reflink creates a snapshot of a file, that means the attributes
+must be identical except for three exceptions - nlink, ino, and ctime.
 
-ocfs2_attach_refcount_tree will create a new refcount tree to the
-old file if it doesn't have one and insert all the extent records
-to the tree if they are not refcounted.
+As for time changes, Here is a brief description:
 
-ocfs2_create_reflink_node will:
-1. set the refcount tree to the new file.
-2. call ocfs2_duplicate_extent_list which will iterate all the
-   extents for the old file, insert it to the new file and increase
-   the corresponding referennce count.
+1. Source file:
+   1) atime: Ignore. Let the lazy atime code handle that.
+   2) mtime: don't touch.
+   3) ctime: If we change the tree (adding REFCOUNTED to at least one
+             extent), update it.
+2. Destination file:
+   1) atime: ignore.
+   2) mtime: we want it to appear identical to the source.
+   3) ctime: update.
+
+The idea here is that an ls -l will show the same time for the
+src and target - it shows mtime.  Backup software like rsync and tar
+will treat the new file correctly too.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/refcounttree.c |  286 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 286 insertions(+), 0 deletions(-)
+ fs/ocfs2/refcounttree.c |  122 ++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 files changed, 120 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 0231f17..ec07518 100644
+index ec07518..efcccb4 100644
 --- a/fs/ocfs2/refcounttree.c
 +++ b/fs/ocfs2/refcounttree.c
-@@ -3139,3 +3139,289 @@ int ocfs2_refcount_cow(struct inode *inode,
- out:
+@@ -3207,10 +3207,44 @@ out:
  	return ret;
  }
-+
-+/*
-+ * Insert a new extent into refcount tree and mark a extent rec
-+ * as refcounted in the dinode tree.
-+ */
-+int ocfs2_add_refcount_flag(struct inode *inode,
-+			    struct ocfs2_extent_tree *data_et,
-+			    struct ocfs2_caching_info *ref_ci,
-+			    struct buffer_head *ref_root_bh,
-+			    u32 cpos, u32 p_cluster, u32 num_clusters,
-+			    struct ocfs2_cached_dealloc_ctxt *dealloc)
+ 
++static int ocfs2_change_ctime(struct inode *inode,
++			      struct buffer_head *di_bh)
 +{
 +	int ret;
 +	handle_t *handle;
-+	int credits = 1, ref_blocks = 0;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct ocfs2_alloc_context *meta_ac = NULL;
-+
-+	ret = ocfs2_calc_refcount_meta_credits(inode->i_sb,
-+					       ref_ci, ref_root_bh,
-+					       p_cluster, num_clusters,
-+					       &ref_blocks, &credits);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	mlog(0, "reserve new metadata %d, credits = %d\n",
-+	     ref_blocks, credits);
-+
-+	if (ref_blocks) {
-+		ret = ocfs2_reserve_new_metadata_blocks(OCFS2_SB(inode->i_sb),
-+							ref_blocks, &meta_ac);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+	}
-+
-+	handle = ocfs2_start_trans(osb, credits);
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_mark_extent_refcounted(inode, data_et, handle,
-+					   cpos, num_clusters, p_cluster,
-+					   meta_ac, dealloc);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	ret = __ocfs2_increase_refcount(handle, ref_ci, ref_root_bh,
-+					p_cluster, num_clusters,
-+					meta_ac, dealloc);
-+	if (ret)
-+		mlog_errno(ret);
-+
-+out_commit:
-+	ocfs2_commit_trans(osb, handle);
-+out:
-+	if (meta_ac)
-+		ocfs2_free_alloc_context(meta_ac);
-+	return ret;
-+}
-+
-+static int ocfs2_attach_refcount_tree(struct inode *inode,
-+				      struct buffer_head *di_bh)
-+{
-+	int ret;
-+	struct buffer_head *ref_root_bh = NULL;
-+	struct ocfs2_inode_info *oi = OCFS2_I(inode);
 +	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct ocfs2_refcount_tree *ref_tree;
-+	unsigned int ext_flags;
-+	loff_t size;
-+	u32 cpos, num_clusters, clusters, p_cluster;
-+	struct ocfs2_cached_dealloc_ctxt dealloc;
-+	struct ocfs2_extent_tree di_et;
 +
-+	ocfs2_init_dealloc_ctxt(&dealloc);
-+
-+	if (!(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL)) {
-+		ret = ocfs2_create_refcount_tree(inode, di_bh);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+	}
-+
-+	BUG_ON(!di->i_refcount_loc);
-+	ret = ocfs2_lock_refcount_tree(osb,
-+				       le64_to_cpu(di->i_refcount_loc), 1,
-+				       &ref_tree, &ref_root_bh);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ocfs2_init_dinode_extent_tree(&di_et, INODE_CACHE(inode), di_bh);
-+
-+	size = i_size_read(inode);
-+	clusters = ocfs2_clusters_for_bytes(inode->i_sb, size);
-+
-+	cpos = 0;
-+	while (cpos < clusters) {
-+		ret = ocfs2_get_clusters(inode, cpos, &p_cluster,
-+					 &num_clusters, &ext_flags);
-+
-+		if (p_cluster && !(ext_flags & OCFS2_EXT_REFCOUNTED)) {
-+			ret = ocfs2_add_refcount_flag(inode, &di_et,
-+						      &ref_tree->rf_ci,
-+						      ref_root_bh, cpos,
-+						      p_cluster, num_clusters,
-+						      &dealloc);
-+			if (ret) {
-+				mlog_errno(ret);
-+				break;
-+			}
-+		}
-+		cpos += num_clusters;
-+	}
-+
-+	ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
-+	brelse(ref_root_bh);
-+
-+	if (!ret && ocfs2_dealloc_has_cluster(&dealloc)) {
-+		ocfs2_schedule_truncate_log_flush(osb, 1);
-+		ocfs2_run_deallocs(osb, &dealloc);
-+	}
-+out:
-+	/*
-+	 * Empty the extent map so that we may get the right extent
-+	 * record from the disk.
-+	 */
-+	ocfs2_extent_map_trunc(inode, 0);
-+
-+	return ret;
-+}
-+
-+static int ocfs2_add_refcounted_extent(struct inode *inode,
-+				   struct ocfs2_extent_tree *et,
-+				   struct ocfs2_caching_info *ref_ci,
-+				   struct buffer_head *ref_root_bh,
-+				   u32 cpos, u32 p_cluster, u32 num_clusters,
-+				   unsigned int ext_flags,
-+				   struct ocfs2_cached_dealloc_ctxt *dealloc)
-+{
-+	int ret;
-+	handle_t *handle;
-+	int credits = 0;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct ocfs2_alloc_context *meta_ac = NULL;
-+
-+	ret = ocfs2_lock_refcount_allocators(inode->i_sb,
-+					     p_cluster, num_clusters,
-+					     et, ref_ci,
-+					     ref_root_bh, &meta_ac,
-+					     NULL, &credits);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	handle = ocfs2_start_trans(osb, credits);
++	handle = ocfs2_start_trans(OCFS2_SB(inode->i_sb),
++				   OCFS2_INODE_UPDATE_CREDITS);
 +	if (IS_ERR(handle)) {
 +		ret = PTR_ERR(handle);
 +		mlog_errno(ret);
 +		goto out;
 +	}
 +
-+	ret = ocfs2_insert_extent(handle, et, cpos,
-+			cpu_to_le64(ocfs2_clusters_to_blocks(inode->i_sb,
-+							     p_cluster)),
-+			num_clusters, ext_flags, meta_ac);
++	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
 +	if (ret) {
 +		mlog_errno(ret);
 +		goto out_commit;
 +	}
 +
-+	ret = __ocfs2_increase_refcount(handle, ref_ci, ref_root_bh,
-+					p_cluster, num_clusters,
-+					meta_ac, dealloc);
-+	if (ret)
-+		mlog_errno(ret);
++	inode->i_ctime = CURRENT_TIME;
++	di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
++	di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
++
++	ocfs2_journal_dirty(handle, di_bh);
 +
 +out_commit:
-+	ocfs2_commit_trans(osb, handle);
++	ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
 +out:
-+	if (meta_ac)
-+		ocfs2_free_alloc_context(meta_ac);
 +	return ret;
 +}
 +
-+static int ocfs2_duplicate_extent_list(struct inode *s_inode,
-+				struct inode *t_inode,
-+				struct buffer_head *t_bh,
-+				struct ocfs2_caching_info *ref_ci,
-+				struct buffer_head *ref_root_bh,
-+				struct ocfs2_cached_dealloc_ctxt *dealloc)
-+{
-+	int ret = 0;
-+	u32 p_cluster, num_clusters, clusters, cpos;
-+	loff_t size;
-+	unsigned int ext_flags;
-+	struct ocfs2_extent_tree et;
+ static int ocfs2_attach_refcount_tree(struct inode *inode,
+ 				      struct buffer_head *di_bh)
+ {
+-	int ret;
++	int ret, data_changed = 0;
+ 	struct buffer_head *ref_root_bh = NULL;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+@@ -3259,12 +3293,21 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
+ 						      &dealloc);
+ 			if (ret) {
+ 				mlog_errno(ret);
+-				break;
++				goto unlock;
+ 			}
 +
-+	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(t_inode), t_bh);
-+
-+	size = i_size_read(s_inode);
-+	clusters = ocfs2_clusters_for_bytes(s_inode->i_sb, size);
-+
-+	cpos = 0;
-+	while (cpos < clusters) {
-+		ret = ocfs2_get_clusters(s_inode, cpos, &p_cluster,
-+					 &num_clusters, &ext_flags);
-+
-+		if (p_cluster) {
-+			ret = ocfs2_add_refcounted_extent(t_inode, &et,
-+							  ref_ci, ref_root_bh,
-+							  cpos, p_cluster,
-+							  num_clusters,
-+							  ext_flags,
-+							  dealloc);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+		}
-+
-+		cpos += num_clusters;
++			data_changed = 1;
+ 		}
+ 		cpos += num_clusters;
+ 	}
+ 
++	if (data_changed) {
++		ret = ocfs2_change_ctime(inode, di_bh);
++		if (ret)
++			mlog_errno(ret);
 +	}
 +
-+out:
-+	return ret;
-+}
-+
-+static int ocfs2_create_reflink_node(struct inode *s_inode,
-+				     struct buffer_head *s_bh,
-+				     struct inode *t_inode,
-+				     struct buffer_head *t_bh)
++unlock:
+ 	ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
+ 	brelse(ref_root_bh);
+ 
+@@ -3379,6 +3422,74 @@ out:
+ 	return ret;
+ }
+ 
++/*
++ * change the new file's attributes to the src.
++ *
++ * reflink creates a snapshot of a file, that means the attributes
++ * must be identical except for three exceptions - nlink, ino, and ctime.
++ */
++static int ocfs2_complete_reflink(struct inode *s_inode,
++				  struct buffer_head *s_bh,
++				  struct inode *t_inode,
++				  struct buffer_head *t_bh)
 +{
 +	int ret;
-+	struct buffer_head *ref_root_bh = NULL;
-+	struct ocfs2_cached_dealloc_ctxt dealloc;
-+	struct ocfs2_super *osb = OCFS2_SB(s_inode->i_sb);
-+	struct ocfs2_refcount_block *rb;
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)s_bh->b_data;
-+	struct ocfs2_refcount_tree *ref_tree;
++	handle_t *handle;
++	struct ocfs2_dinode *s_di = (struct ocfs2_dinode *)s_bh->b_data;
++	struct ocfs2_dinode *di = (struct ocfs2_dinode *)t_bh->b_data;
++	loff_t size = i_size_read(s_inode);
 +
-+	ocfs2_init_dealloc_ctxt(&dealloc);
++	handle = ocfs2_start_trans(OCFS2_SB(t_inode->i_sb),
++				   OCFS2_INODE_UPDATE_CREDITS);
++	if (IS_ERR(handle)) {
++		ret = PTR_ERR(handle);
++		mlog_errno(ret);
++		return ret;
++	}
 +
-+	ret = ocfs2_set_refcount_tree(t_inode, t_bh,
-+				      le64_to_cpu(di->i_refcount_loc));
++	ret = ocfs2_journal_access_di(handle, INODE_CACHE(t_inode), t_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
 +	if (ret) {
 +		mlog_errno(ret);
-+		goto out;
++		goto out_commit;
 +	}
 +
-+	ret = ocfs2_lock_refcount_tree(osb, le64_to_cpu(di->i_refcount_loc),
-+				       1, &ref_tree, &ref_root_bh);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+	rb = (struct ocfs2_refcount_block *)ref_root_bh->b_data;
++	spin_lock(&OCFS2_I(t_inode)->ip_lock);
++	OCFS2_I(t_inode)->ip_clusters = OCFS2_I(s_inode)->ip_clusters;
++	OCFS2_I(t_inode)->ip_attr = OCFS2_I(s_inode)->ip_attr;
++	OCFS2_I(t_inode)->ip_dyn_features = OCFS2_I(s_inode)->ip_dyn_features;
++	spin_unlock(&OCFS2_I(t_inode)->ip_lock);
++	i_size_write(t_inode, size);
 +
-+	ret = ocfs2_duplicate_extent_list(s_inode, t_inode, t_bh,
-+					  &ref_tree->rf_ci, ref_root_bh,
-+					  &dealloc);
-+	if (ret)
-+		mlog_errno(ret);
++	di->i_xattr_inline_size = s_di->i_xattr_inline_size;
++	di->i_clusters = s_di->i_clusters;
++	di->i_size = s_di->i_size;
++	di->i_dyn_features = s_di->i_dyn_features;
++	di->i_attr = s_di->i_attr;
++	di->i_uid = s_di->i_uid;
++	di->i_gid = s_di->i_gid;
++	di->i_mode = s_di->i_mode;
 +
-+	ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
-+	brelse(ref_root_bh);
-+out:
-+	if (ocfs2_dealloc_has_cluster(&dealloc)) {
-+		ocfs2_schedule_truncate_log_flush(osb, 1);
-+		ocfs2_run_deallocs(osb, &dealloc);
-+	}
++	/*
++	 * update time.
++	 * we want mtime to appear identical to the source and update ctime.
++	 */
++	t_inode->i_ctime = CURRENT_TIME;
 +
++	di->i_ctime = cpu_to_le64(t_inode->i_ctime.tv_sec);
++	di->i_ctime_nsec = cpu_to_le32(t_inode->i_ctime.tv_nsec);
++
++	t_inode->i_mtime = s_inode->i_mtime;
++	di->i_mtime = s_di->i_mtime;
++	di->i_mtime_nsec = s_di->i_mtime_nsec;
++
++	ocfs2_journal_dirty(handle, t_bh);
++
++out_commit:
++	ocfs2_commit_trans(OCFS2_SB(t_inode->i_sb), handle);
 +	return ret;
 +}
++
+ static int ocfs2_create_reflink_node(struct inode *s_inode,
+ 				     struct buffer_head *s_bh,
+ 				     struct inode *t_inode,
+@@ -3412,9 +3523,16 @@ static int ocfs2_create_reflink_node(struct inode *s_inode,
+ 	ret = ocfs2_duplicate_extent_list(s_inode, t_inode, t_bh,
+ 					  &ref_tree->rf_ci, ref_root_bh,
+ 					  &dealloc);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_unlock_refcount;
++	}
++
++	ret = ocfs2_complete_reflink(s_inode, s_bh, t_inode, t_bh);
+ 	if (ret)
+ 		mlog_errno(ret);
+ 
++out_unlock_refcount:
+ 	ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
+ 	brelse(ref_root_bh);
+ out:
 -- 
 1.6.2.rc2.16.gf474c
