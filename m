@@ -1,190 +1,222 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 18 Aug 2009 14:19:40 +0800
-Subject: [Ocfs2-devel] [PATCH 39/41] ocfs2: Implement ocfs2_reflink.
+Date: Tue, 18 Aug 2009 14:19:42 +0800
+Subject: [Ocfs2-devel] [PATCH 41/41] ocfs2: Add ioctl for reflink.
 In-Reply-To: <4A8A47DF.8020707@oracle.com>
 References: <4A8A47DF.8020707@oracle.com>
-Message-ID: <1250576382-27080-39-git-send-email-tao.ma@oracle.com>
+Message-ID: <1250576382-27080-41-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Implement ocfs2_reflink.
+The ioctl will take 3 parameters: old_path, new_path and
+preserve and call vfs_reflink. It is useful when we backport
+reflink features to old kernels.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/namei.c        |    2 +
- fs/ocfs2/refcounttree.c |  123 +++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/refcounttree.h |    2 +
- 3 files changed, 127 insertions(+), 0 deletions(-)
+ fs/ocfs2/ioctl.c        |   14 ++++++
+ fs/ocfs2/ocfs2_fs.h     |    9 ++++
+ fs/ocfs2/refcounttree.c |  102 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/refcounttree.h |    4 ++
+ 4 files changed, 129 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f010b22..589ecde 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -63,6 +63,7 @@
- #include "uptodate.h"
- #include "xattr.h"
- #include "acl.h"
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index 9fcd36d..a68d0e4 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -22,6 +22,7 @@
+ #include "ocfs2_fs.h"
+ #include "ioctl.h"
+ #include "resize.h"
 +#include "refcounttree.h"
  
- #include "buffer_head_io.h"
+ #include <linux/ext2_fs.h>
  
-@@ -2326,4 +2327,5 @@ const struct inode_operations ocfs2_dir_iops = {
- 	.getxattr	= generic_getxattr,
- 	.listxattr	= ocfs2_listxattr,
- 	.removexattr	= generic_removexattr,
-+	.reflink	= ocfs2_reflink,
- };
+@@ -116,6 +117,9 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 	int status;
+ 	struct ocfs2_space_resv sr;
+ 	struct ocfs2_new_group_input input;
++	struct reflink_arguments args;
++	const char *old_path, *new_path;
++	bool preserve;
+ 
+ 	switch (cmd) {
+ 	case OCFS2_IOC_GETFLAGS:
+@@ -161,6 +165,15 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 			return -EFAULT;
+ 
+ 		return ocfs2_group_add(inode, &input);
++	case OCFS2_IOC_REFLINK:
++		if (copy_from_user(&args, (struct reflink_arguments *)arg,
++				   sizeof(args)))
++			return -EFAULT;
++		old_path = (const char *)(unsigned long)args.old_path;
++		new_path = (const char *)(unsigned long)args.new_path;
++		preserve = (args.preserve != 0);
++
++		return ocfs2_reflink_ioctl(inode, old_path, new_path, preserve);
+ 	default:
+ 		return -ENOTTY;
+ 	}
+@@ -183,6 +196,7 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+ 	case OCFS2_IOC_GROUP_EXTEND:
+ 	case OCFS2_IOC_GROUP_ADD:
+ 	case OCFS2_IOC_GROUP_ADD64:
++	case OCFS2_IOC_REFLINK:
+ 		break;
+ 	default:
+ 		return -ENOIOCTLCMD;
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 4a4565b..e9431e4 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -301,6 +301,15 @@ struct ocfs2_new_group_input {
+ #define OCFS2_IOC_GROUP_ADD	_IOW('o', 2,struct ocfs2_new_group_input)
+ #define OCFS2_IOC_GROUP_ADD64	_IOW('o', 3,struct ocfs2_new_group_input)
+ 
++/* Used to pass 2 file names to reflink. */
++struct reflink_arguments {
++	__u64 old_path;
++	__u64 new_path;
++	__u64 preserve;
++};
++#define OCFS2_IOC_REFLINK	_IOW('o', 4, struct reflink_arguments)
++
++
+ /*
+  * Journal Flags (ocfs2_dinode.id1.journal1.i_flags)
+  */
 diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 05e7f18..711d5b0 100644
+index 711d5b0..d59860d 100644
 --- a/fs/ocfs2/refcounttree.c
 +++ b/fs/ocfs2/refcounttree.c
-@@ -33,6 +33,7 @@
- #include "extent_map.h"
- #include "aops.h"
- #include "xattr.h"
-+#include "namei.h"
+@@ -42,6 +42,11 @@
+ #include <linux/writeback.h>
+ #include <linux/pagevec.h>
+ #include <linux/swap.h>
++#include <linux/security.h>
++#include <linux/fsnotify.h>
++#include <linux/quotaops.h>
++#include <linux/namei.h>
++#include <linux/mount.h>
  
- #include <linux/bio.h>
- #include <linux/blkdev.h>
-@@ -3879,3 +3880,125 @@ out:
+ struct ocfs2_cow_context {
+ 	struct inode *inode;
+@@ -4002,3 +4007,100 @@ out:
  
- 	return ret;
+ 	return error;
  }
 +
-+static int __ocfs2_reflink(struct dentry *old_dentry,
-+			   struct buffer_head *old_bh,
-+			   struct inode *new_inode,
-+			   bool preserve)
++/*
++ * Below here are the bits used by OCFS2_IOC_REFLINK() to fake
++ * sys_reflink().  This will go away when vfs_reflink() exists in
++ * fs/namei.c.
++ */
++
++/* copied from may_create in VFS. */
++static inline int ocfs2_may_create(struct inode *dir, struct dentry *child)
 +{
-+	int ret;
-+	struct inode *inode = old_dentry->d_inode;
-+	struct buffer_head *new_bh = NULL;
-+
-+	ret = filemap_fdatawrite(inode->i_mapping);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_attach_refcount_tree(inode, old_bh);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	mutex_lock(&new_inode->i_mutex);
-+	ret = ocfs2_inode_lock(new_inode, &new_bh, 1);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_unlock;
-+	}
-+
-+	ret = ocfs2_create_reflink_node(inode, old_bh,
-+					new_inode, new_bh, preserve);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto inode_unlock;
-+	}
-+
-+	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_XATTR_FL) {
-+		ret = ocfs2_reflink_xattrs(inode, old_bh,
-+					   new_inode, new_bh,
-+					   preserve);
-+		if (ret)
-+			mlog_errno(ret);
-+	}
-+inode_unlock:
-+	ocfs2_inode_unlock(new_inode, 1);
-+	brelse(new_bh);
-+out_unlock:
-+	mutex_unlock(&new_inode->i_mutex);
-+out:
-+	if (!ret) {
-+		ret = filemap_fdatawait(inode->i_mapping);
-+		if (ret)
-+			mlog_errno(ret);
-+	}
-+	return ret;
++	if (child->d_inode)
++		return -EEXIST;
++	if (IS_DEADDIR(dir))
++		return -ENOENT;
++	return inode_permission(dir, MAY_WRITE | MAY_EXEC);
 +}
 +
-+int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
-+		  struct dentry *new_dentry, bool preserve)
++/* copied from user_path_parent. */
++static int ocfs2_user_path_parent(const char __user *path,
++				  struct nameidata *nd, char **name)
 +{
++	char *s = getname(path);
 +	int error;
-+	struct inode *inode = old_dentry->d_inode;
-+	struct buffer_head *old_bh = NULL;
-+	struct inode *new_orphan_inode = NULL;
++
++	if (IS_ERR(s))
++		return PTR_ERR(s);
++
++	error = path_lookup(s, LOOKUP_PARENT, nd);
++	if (error)
++		putname(s);
++	else
++		*name = s;
++
++	return error;
++}
++
++/*
++ * Most codes are copied from sys_linkat.
++ */
++int ocfs2_reflink_ioctl(struct inode *inode,
++			const char __user *oldname,
++			const char __user *newname,
++			bool preserve)
++{
++	struct dentry *new_dentry;
++	struct nameidata nd;
++	struct path old_path;
++	int error;
++	char *to = NULL;
 +
 +	if (!ocfs2_refcount_tree(OCFS2_SB(inode->i_sb)))
 +		return -EOPNOTSUPP;
 +
-+	error = ocfs2_create_inode_in_orphan(dir, inode->i_mode,
-+					     &new_orphan_inode);
++	error = user_path_at(AT_FDCWD, oldname, 0, &old_path);
++	if (error) {
++		mlog_errno(error);
++		return error;
++	}
++
++	error = ocfs2_user_path_parent(newname, &nd, &to);
 +	if (error) {
 +		mlog_errno(error);
 +		goto out;
 +	}
 +
-+	error = ocfs2_inode_lock(inode, &old_bh, 1);
++	error = -EXDEV;
++	if (old_path.mnt != nd.path.mnt)
++		goto out_release;
++	new_dentry = lookup_create(&nd, 0);
++	error = PTR_ERR(new_dentry);
++	if (IS_ERR(new_dentry)) {
++		mlog_errno(error);
++		goto out_unlock;
++	}
++
++	error = mnt_want_write(nd.path.mnt);
 +	if (error) {
 +		mlog_errno(error);
-+		goto out;
++		goto out_dput;
 +	}
 +
-+	down_write(&OCFS2_I(inode)->ip_xattr_sem);
-+	down_write(&OCFS2_I(inode)->ip_alloc_sem);
-+	error = __ocfs2_reflink(old_dentry, old_bh,
-+				new_orphan_inode, preserve);
-+	up_write(&OCFS2_I(inode)->ip_alloc_sem);
-+	up_write(&OCFS2_I(inode)->ip_xattr_sem);
-+
-+	ocfs2_inode_unlock(inode, 1);
-+	brelse(old_bh);
-+
-+	if (error) {
-+		mlog_errno(error);
-+		goto out;
-+	}
-+
-+	/* If the security isn't preserved, we need to re-initialize them. */
-+	if (!preserve) {
-+		error = ocfs2_init_security_and_acl(dir, new_orphan_inode);
-+		if (error)
-+			mlog_errno(error);
-+	}
++	error = vfs_reflink(old_path.dentry,
++			    nd.path.dentry->d_inode,
++			    new_dentry, preserve);
++	mnt_drop_write(nd.path.mnt);
++out_dput:
++	dput(new_dentry);
++out_unlock:
++	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
++out_release:
++	path_put(&nd.path);
++	putname(to);
 +out:
-+	if (!error) {
-+		error = ocfs2_mv_orphaned_inode_to_new(dir, new_orphan_inode,
-+						       new_dentry);
-+		if (error)
-+			mlog_errno(error);
-+	}
-+
-+	if (new_orphan_inode) {
-+		/*
-+		 * We need to open_unlock the inode no matter whether we
-+		 * succeed or not, so that other nodes can delete it later.
-+		 */
-+		ocfs2_open_unlock(new_orphan_inode);
-+		if (error)
-+			iput(new_orphan_inode);
-+	}
++	path_put(&old_path);
 +
 +	return error;
 +}
 diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
-index 7b769b0..89d55ef 100644
+index 89d55ef..4bdf45a 100644
 --- a/fs/ocfs2/refcounttree.h
 +++ b/fs/ocfs2/refcounttree.h
-@@ -99,4 +99,6 @@ int ocfs2_increase_refcount(handle_t *handle,
- 			    u64 cpos, u32 len,
- 			    struct ocfs2_alloc_context *meta_ac,
+@@ -101,4 +101,8 @@ int ocfs2_increase_refcount(handle_t *handle,
  			    struct ocfs2_cached_dealloc_ctxt *dealloc);
-+int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
-+		  struct dentry *new_dentry, bool preserve);
+ int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
+ 		  struct dentry *new_dentry, bool preserve);
++int ocfs2_reflink_ioctl(struct inode *inode,
++			const char __user *oldname,
++			const char __user *newname,
++			bool preserve);
  #endif /* OCFS2_REFCOUNTTREE_H */
 -- 
 1.6.2.rc2.16.gf474c
