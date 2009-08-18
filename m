@@ -1,53 +1,135 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 18 Aug 2009 14:19:36 +0800
-Subject: [Ocfs2-devel] [PATCH 35/41] ocfs2: Make transaction extend more
-	efficient.
+Date: Tue, 18 Aug 2009 14:19:37 +0800
+Subject: [Ocfs2-devel] [PATCH 36/41] ocfs2: Use proper parameter for some
+	inode operation.
 In-Reply-To: <4A8A47DF.8020707@oracle.com>
 References: <4A8A47DF.8020707@oracle.com>
-Message-ID: <1250576382-27080-35-git-send-email-tao.ma@oracle.com>
+Message-ID: <1250576382-27080-36-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_extend_rotate_transaction, op_credits is the orignal
-credits in the handle and we only want to extend the credits
-for the rotation, but the old solution always double it. It
-is harmless for some minor operations, but for actions like
-reflink we may rotate tree many times and cause the credits
-increase dramatically. So this patch try to only increase
-the desired credits.
+In order to make the original function more suitable for reflink,
+we modify the following inode operations. Both are tiny.
+
+1. ocfs2_mknod_locked only use dentry for mlog, so move it to
+   the caller so that reflink can use it without dentry.
+2. ocfs2_prepare_orphan_dir only want inode to get its ip_blkno.
+   So use ip_blkno instead.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/alloc.c |   12 ++++++++++--
- 1 files changed, 10 insertions(+), 2 deletions(-)
+ fs/ocfs2/namei.c |   32 +++++++++++++++++---------------
+ 1 files changed, 17 insertions(+), 15 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 7c879fc..38a42f5 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -2326,10 +2326,18 @@ static int ocfs2_extend_rotate_transaction(handle_t *handle, int subtree_depth,
- 					   int op_credits,
- 					   struct ocfs2_path *path)
- {
-+	int ret;
- 	int credits = (path->p_tree_depth - subtree_depth) * 2 + 1 + op_credits;
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index c07217a..818df58 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -69,7 +69,6 @@
+ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 			      struct inode *dir,
+ 			      struct inode *inode,
+-			      struct dentry *dentry,
+ 			      dev_t dev,
+ 			      struct buffer_head **new_fe_bh,
+ 			      struct buffer_head *parent_fe_bh,
+@@ -78,7 +77,7 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
  
--	if (handle->h_buffer_credits < credits)
--		return ocfs2_extend_trans(handle, credits);
-+	if (handle->h_buffer_credits < credits) {
-+		ret = ocfs2_extend_trans(handle,
-+					 credits - handle->h_buffer_credits);
-+		if (ret)
-+			return ret;
+ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
+ 				    struct inode **ret_orphan_dir,
+-				    struct inode *inode,
++				    u64 blkno,
+ 				    char *name,
+ 				    struct ocfs2_dir_lookup_result *lookup);
+ 
+@@ -358,8 +357,12 @@ static int ocfs2_mknod(struct inode *dir,
+ 	}
+ 	did_quota_inode = 1;
+ 
++	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry,
++		   inode->i_mode, (unsigned long)dev, dentry->d_name.len,
++		   dentry->d_name.name);
 +
-+		if (unlikely(handle->h_buffer_credits < credits))
-+			return ocfs2_extend_trans(handle, credits);
-+	}
+ 	/* do the real work now. */
+-	status = ocfs2_mknod_locked(osb, dir, inode, dentry, dev,
++	status = ocfs2_mknod_locked(osb, dir, inode, dev,
+ 				    &new_fe_bh, parent_fe_bh, handle,
+ 				    inode_ac);
+ 	if (status < 0) {
+@@ -466,7 +469,6 @@ leave:
+ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 			      struct inode *dir,
+ 			      struct inode *inode,
+-			      struct dentry *dentry,
+ 			      dev_t dev,
+ 			      struct buffer_head **new_fe_bh,
+ 			      struct buffer_head *parent_fe_bh,
+@@ -480,10 +482,6 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
+ 	u16 suballoc_bit;
+ 	u16 feat;
  
- 	return 0;
- }
+-	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry,
+-		   inode->i_mode, (unsigned long)dev, dentry->d_name.len,
+-		   dentry->d_name.name);
+-
+ 	*new_fe_bh = NULL;
+ 
+ 	status = ocfs2_claim_new_inode(osb, handle, dir, parent_fe_bh,
+@@ -852,7 +850,8 @@ static int ocfs2_unlink(struct inode *dir,
+ 	}
+ 
+ 	if (inode_is_unlinkable(inode)) {
+-		status = ocfs2_prepare_orphan_dir(osb, &orphan_dir, inode,
++		status = ocfs2_prepare_orphan_dir(osb, &orphan_dir,
++						  OCFS2_I(inode)->ip_blkno,
+ 						  orphan_name, &orphan_insert);
+ 		if (status < 0) {
+ 			mlog_errno(status);
+@@ -1243,9 +1242,8 @@ static int ocfs2_rename(struct inode *old_dir,
+ 
+ 		if (S_ISDIR(new_inode->i_mode) || (new_inode->i_nlink == 1)) {
+ 			status = ocfs2_prepare_orphan_dir(osb, &orphan_dir,
+-							  new_inode,
+-							  orphan_name,
+-							  &orphan_insert);
++						OCFS2_I(new_inode)->ip_blkno,
++						orphan_name, &orphan_insert);
+ 			if (status < 0) {
+ 				mlog_errno(status);
+ 				goto bail;
+@@ -1699,7 +1697,11 @@ static int ocfs2_symlink(struct inode *dir,
+ 	}
+ 	did_quota_inode = 1;
+ 
+-	status = ocfs2_mknod_locked(osb, dir, inode, dentry,
++	mlog_entry("(0x%p, 0x%p, %d, '%.*s')\n", dir, dentry,
++		   inode->i_mode, dentry->d_name.len,
++		   dentry->d_name.name);
++
++	status = ocfs2_mknod_locked(osb, dir, inode,
+ 				    0, &new_fe_bh, parent_fe_bh, handle,
+ 				    inode_ac);
+ 	if (status < 0) {
+@@ -1849,7 +1851,7 @@ bail:
+ 
+ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
+ 				    struct inode **ret_orphan_dir,
+-				    struct inode *inode,
++				    u64 blkno,
+ 				    char *name,
+ 				    struct ocfs2_dir_lookup_result *lookup)
+ {
+@@ -1857,7 +1859,7 @@ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
+ 	struct buffer_head *orphan_dir_bh = NULL;
+ 	int status = 0;
+ 
+-	status = ocfs2_blkno_stringify(OCFS2_I(inode)->ip_blkno, name);
++	status = ocfs2_blkno_stringify(blkno, name);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		return status;
 -- 
 1.6.2.rc2.16.gf474c
