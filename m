@@ -1,340 +1,327 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed, 19 Aug 2009 12:54:26 -0700
-Subject: [Ocfs2-devel] [PATCH 01/14] ocfs2: Introduce ocfs2_xa_loc
+Date: Wed, 19 Aug 2009 12:54:29 -0700
+Subject: [Ocfs2-devel] [PATCH 04/14] ocfs2: Add a name_len field to
+	ocfs2_xattr_info.
 In-Reply-To: <1250711679-12441-1-git-send-email-joel.becker@oracle.com>
 References: <1250711679-12441-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1250711679-12441-2-git-send-email-joel.becker@oracle.com>
+Message-ID: <1250711679-12441-5-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The ocfs2 extended attribute (xattr) code is very flexible.  It can
-store xattrs in the inode itself, in an external block, or in a tree of
-data structures.  This allows the number of xattrs to be bounded by the
-filesystem size.
-
-However, the code that manages each possible storage location is
-different.  Maintaining the ocfs2 xattr code requires changing each hunk
-separately.
-
-This patch is the start of a series introducing the ocfs2_xa_loc
-structure.  This structure wraps the on-disk details of an xattr
-entry.  The goal is that the generic xattr routines can use
-ocfs2_xa_loc without knowing the underlying storage location.
-
-This first pass merely implements the basic structure, initializing it,
-and wiping the name+value pair of the entry.
+Rather than calculating strlen all over the place, let's store the
+name length directly on ocfs2_xattr_info.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/xattr.c |  243 ++++++++++++++++++++++++++++++++++++++++++++++++++----
- 1 files changed, 228 insertions(+), 15 deletions(-)
+ fs/ocfs2/xattr.c |   84 ++++++++++++++++++++++++++++-------------------------
+ 1 files changed, 44 insertions(+), 40 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index d1a27cd..953cf32 100644
+index 606235a..53d04b2 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -140,6 +140,51 @@ struct ocfs2_xattr_search {
- 	int not_found;
+@@ -121,6 +121,7 @@ static struct xattr_handler *ocfs2_xattr_handler_map[OCFS2_XATTR_MAX] = {
+ struct ocfs2_xattr_info {
+ 	int		xi_name_index;
+ 	const char	*xi_name;
++	int		xi_name_len;
+ 	const void	*xi_value;
+ 	size_t		xi_value_len;
  };
- 
-+/* Operations on struct ocfs2_xa_entry */
-+struct ocfs2_xa_loc;
-+struct ocfs2_xa_loc_operations {
-+	/*
-+	 * Return a pointer to the appropriate buffer in loc->xl_storage
-+	 * at the given offset from loc->xl_header.
-+	 */
-+	void *(*xlo_offset_pointer)(struct ocfs2_xa_loc *loc, int offset);
-+
-+	/*
-+	 * Remove the name+value at this location.  Do whatever is
-+	 * appropriate with the remaining name+value pairs.
-+	 */
-+	void (*xlo_wipe_namevalue)(struct ocfs2_xa_loc *loc);
-+};
-+
-+/*
-+ * Describes an xattr entry location.  This is a memory structure
-+ * tracking the on-disk structure.
-+ */
-+struct ocfs2_xa_loc {
-+	/* The ocfs2_xattr_header inside the on-disk storage. Not NULL. */
-+	struct ocfs2_xattr_header *xl_header;
-+
-+	/* Bytes from xl_header to the end of the storage */
-+	int xl_size;
-+
-+	/*
-+	 * The ocfs2_xattr_entry this location describes.  If this is
-+	 * NULL, this location describes the on-disk structure where it
-+	 * would have been.
-+	 */
-+	struct ocfs2_xattr_entry *xl_entry;
-+
-+	/*
-+	 * Internal housekeeping
-+	 */
-+
-+	/* Buffer(s) containing this entry */
-+	void *xl_storage;
-+
-+	/* Operations on the storage backing this location */
-+	const struct ocfs2_xa_loc_operations *xl_ops;
-+};
-+
- static int ocfs2_xattr_bucket_get_name_value(struct inode *inode,
- 					     struct ocfs2_xattr_header *xh,
- 					     int index,
-@@ -1364,6 +1409,171 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
- }
- 
- /*
-+ * Wipe the name+value pair and allow the storage to reclaim it.  This
-+ * must be followed by either removal of the entry or a call to
-+ * ocfs2_xa_add_namevalue().
-+ */
-+static void ocfs2_xa_wipe_namevalue(struct ocfs2_xa_loc *loc)
-+{
-+	loc->xl_ops->xlo_wipe_namevalue(loc);
-+}
-+
-+static void *ocfs2_xa_block_offset_pointer(struct ocfs2_xa_loc *loc,
-+					   int offset)
-+{
-+	struct buffer_head *bh = loc->xl_storage;
-+
-+	BUG_ON(offset >= bh->b_size);
-+	return bh->b_data + offset;
-+}
-+
-+/*
-+ * Block storage for xattrs keeps the name+value pairs compacted.  When
-+ * we remove one, we have to shift any that preceded it towards the end.
-+ */
-+static void ocfs2_xa_block_wipe_namevalue(struct ocfs2_xa_loc *loc)
-+{
-+	int i, offset;
-+	int namevalue_offset, first_namevalue_offset, namevalue_size;
-+	struct ocfs2_xattr_entry *entry = loc->xl_entry;
-+	struct ocfs2_xattr_header *xh = loc->xl_header;
-+	u64 value_size = le64_to_cpu(entry->xe_value_size);
-+	int count = le16_to_cpu(xh->xh_count);
-+
-+	namevalue_offset = le16_to_cpu(entry->xe_name_offset);
-+	namevalue_size = OCFS2_XATTR_SIZE(entry->xe_name_len);
-+	if (value_size > OCFS2_XATTR_INLINE_SIZE)
-+		namevalue_size += OCFS2_XATTR_ROOT_SIZE;
-+	else
-+		namevalue_size += OCFS2_XATTR_SIZE(value_size);
-+
-+	for (i = 0, first_namevalue_offset = loc->xl_size;
-+	     i < count; i++) {
-+		offset = le16_to_cpu(xh->xh_entries[i].xe_name_offset);
-+		if (offset < first_namevalue_offset)
-+			first_namevalue_offset = offset;
-+	}
-+
-+	/* Shift the name+value pairs */
-+	memmove((char *)xh + first_namevalue_offset + namevalue_size,
-+		(char *)xh + first_namevalue_offset,
-+		namevalue_offset - first_namevalue_offset);
-+	memset((char *)xh + first_namevalue_offset, 0, namevalue_size);
-+
-+	/* Now tell xh->xh_entries about it */
-+	for (i = 0; i < count; i++) {
-+		offset = le16_to_cpu(xh->xh_entries[i].xe_name_offset);
-+		if (offset < namevalue_offset)
-+			le16_add_cpu(&xh->xh_entries[i].xe_name_offset,
-+				     namevalue_size);
-+	}
-+
-+	/*
-+	 * Note that we don't update xh_free_start or xh_name_value_len
-+	 * because they're not used in block-stored xattrs.
-+	 */
-+}
-+
-+/*
-+ * Operations for xattrs stored in blocks.  This includes inline inode
-+ * storage and unindexed ocfs2_xattr_blocks.
-+ */
-+static const struct ocfs2_xa_loc_operations ocfs2_xa_block_loc_ops = {
-+	.xlo_offset_pointer	= ocfs2_xa_block_offset_pointer,
-+	.xlo_wipe_namevalue	= ocfs2_xa_block_wipe_namevalue,
-+};
-+
-+static void *ocfs2_xa_bucket_offset_pointer(struct ocfs2_xa_loc *loc,
-+					    int offset)
-+{
-+	struct ocfs2_xattr_bucket *bucket = loc->xl_storage;
-+	int block, block_offset;
-+
-+	BUG_ON(offset >= OCFS2_XATTR_BUCKET_SIZE);
-+
-+	block = offset >> bucket->bu_inode->i_sb->s_blocksize_bits;
-+	block_offset = offset % bucket->bu_inode->i_sb->s_blocksize;
-+
-+	return bucket_block(bucket, block) + block_offset;
-+}
-+
-+static void ocfs2_xa_bucket_wipe_namevalue(struct ocfs2_xa_loc *loc)
-+{
-+	int namevalue_size;
-+	struct ocfs2_xattr_entry *entry = loc->xl_entry;
-+	u64 value_size = le64_to_cpu(entry->xe_value_size);
-+
-+	namevalue_size = OCFS2_XATTR_SIZE(entry->xe_name_len);
-+	if (value_size > OCFS2_XATTR_INLINE_SIZE)
-+		namevalue_size += OCFS2_XATTR_ROOT_SIZE;
-+	else
-+		namevalue_size += OCFS2_XATTR_SIZE(value_size);
-+
-+	le16_add_cpu(&loc->xl_header->xh_name_value_len, -namevalue_size);
-+}
-+
-+/* Operations for xattrs stored in buckets. */
-+static const struct ocfs2_xa_loc_operations ocfs2_xa_bucket_loc_ops = {
-+	.xlo_offset_pointer	= ocfs2_xa_bucket_offset_pointer,
-+	.xlo_wipe_namevalue	= ocfs2_xa_bucket_wipe_namevalue,
-+};
-+
-+static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
-+{
-+	ocfs2_xa_wipe_namevalue(loc);
-+}
-+
-+static void ocfs2_init_dinode_xa_loc(struct ocfs2_xa_loc *loc,
-+				     struct inode *inode,
-+				     struct buffer_head *bh,
-+				     struct ocfs2_xattr_entry *entry)
-+{
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
-+
-+	loc->xl_ops = &ocfs2_xa_block_loc_ops;
-+	loc->xl_storage = bh;
-+	loc->xl_entry = entry;
-+
-+	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_XATTR_FL)
-+		loc->xl_size = le16_to_cpu(di->i_xattr_inline_size);
-+	else {
-+		BUG_ON(entry);
-+		loc->xl_size = OCFS2_SB(inode->i_sb)->s_xattr_inline_size;
-+	}
-+	loc->xl_header =
-+		(struct ocfs2_xattr_header *)(bh->b_data + bh->b_size -
-+					      loc->xl_size);
-+}
-+
-+static void ocfs2_init_xattr_block_xa_loc(struct ocfs2_xa_loc *loc,
-+					  struct buffer_head *bh,
-+					  struct ocfs2_xattr_entry *entry)
-+{
-+	struct ocfs2_xattr_block *xb =
-+		(struct ocfs2_xattr_block *)bh->b_data;
-+
-+	BUG_ON(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED);
-+
-+	loc->xl_ops = &ocfs2_xa_block_loc_ops;
-+	loc->xl_storage = bh;
-+	loc->xl_header = &(xb->xb_attrs.xb_header);
-+	loc->xl_entry = entry;
-+	loc->xl_size = bh->b_size - offsetof(struct ocfs2_xattr_block,
-+					     xb_attrs.xb_header);
-+}
-+
-+static void ocfs2_init_xattr_bucket_xa_loc(struct ocfs2_xa_loc *loc,
-+					   struct ocfs2_xattr_bucket *bucket,
-+					   struct ocfs2_xattr_entry *entry)
-+{
-+	loc->xl_ops = &ocfs2_xa_bucket_loc_ops;
-+	loc->xl_storage = bucket;
-+	loc->xl_header = bucket_xh(bucket);
-+	loc->xl_entry = entry;
-+	loc->xl_size = OCFS2_XATTR_BUCKET_SIZE;
-+}
-+
-+/*
-  * ocfs2_xattr_set_entry_local()
-  *
-  * Set, replace or remove extended attribute in local.
-@@ -1376,7 +1586,14 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
+@@ -1307,9 +1308,9 @@ static int ocfs2_xattr_cleanup(struct inode *inode,
+ 			       size_t offs)
  {
- 	size_t name_len = strlen(xi->name);
- 	int i;
-+	struct ocfs2_xa_loc loc;
+ 	int ret = 0;
+-	size_t name_len = strlen(xi->xi_name);
+ 	void *val = xs->base + offs;
+-	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
++	size_t size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
++		OCFS2_XATTR_ROOT_SIZE;
  
-+	if (xs->xattr_bh == xs->inode_bh)
-+		ocfs2_init_dinode_xa_loc(&loc, inode, xs->inode_bh,
-+					 xs->not_found ? NULL : xs->here);
-+	else
-+		ocfs2_init_xattr_block_xa_loc(&loc, xs->xattr_bh,
-+					      xs->not_found ? NULL : xs->here);
- 	if (xi->value && xs->not_found) {
- 		/* Insert the new xattr entry. */
+ 	ret = vb->vb_access(handle, inode, vb->vb_bh,
+ 			    OCFS2_JOURNAL_ACCESS_WRITE);
+@@ -1373,16 +1374,16 @@ static int ocfs2_xattr_set_value_outside(struct inode *inode,
+ 					 struct ocfs2_xattr_value_buf *vb,
+ 					 size_t offs)
+ {
+-	size_t name_len = strlen(xi->xi_name);
+ 	void *val = xs->base + offs;
+ 	struct ocfs2_xattr_value_root *xv = NULL;
+-	size_t size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
++	size_t size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
++		OCFS2_XATTR_ROOT_SIZE;
+ 	int ret = 0;
+ 
+ 	memset(val, 0, size);
+-	memcpy(val, xi->xi_name, name_len);
++	memcpy(val, xi->xi_name, xi->xi_name_len);
+ 	xv = (struct ocfs2_xattr_value_root *)
+-		(val + OCFS2_XATTR_SIZE(name_len));
++		(val + OCFS2_XATTR_SIZE(xi->xi_name_len));
+ 	xv->xr_clusters = 0;
+ 	xv->xr_last_eb_blk = 0;
+ 	xv->xr_list.l_tree_depth = 0;
+@@ -1605,7 +1606,6 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
+ 					struct ocfs2_xattr_entry *last,
+ 					size_t min_offs)
+ {
+-	size_t name_len = strlen(xi->xi_name);
+ 	struct ocfs2_xa_loc loc;
+ 
+ 	if (xs->xattr_bh == xs->inode_bh)
+@@ -1619,7 +1619,7 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
  		le16_add_cpu(&xs->header->xh_count, 1);
-@@ -1415,9 +1632,9 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
- 			       xi->value_len);
+ 		ocfs2_xattr_set_type(last, xi->xi_name_index);
+ 		ocfs2_xattr_set_local(last, 1);
+-		last->xe_name_len = name_len;
++		last->xe_name_len = xi->xi_name_len;
+ 	} else {
+ 		void *first_val;
+ 		void *val;
+@@ -1631,23 +1631,23 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
+ 
+ 		if (le64_to_cpu(xs->here->xe_value_size) >
+ 		    OCFS2_XATTR_INLINE_SIZE)
+-			size = OCFS2_XATTR_SIZE(name_len) +
++			size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 				OCFS2_XATTR_ROOT_SIZE;
+ 		else
+-			size = OCFS2_XATTR_SIZE(name_len) +
++			size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 			OCFS2_XATTR_SIZE(le64_to_cpu(xs->here->xe_value_size));
+ 
+-		if (xi->xi_value && size == OCFS2_XATTR_SIZE(name_len) +
++		if (xi->xi_value && size == OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 				OCFS2_XATTR_SIZE(xi->xi_value_len)) {
+ 			/* The old and the new value have the
+ 			   same size. Just replace the value. */
+ 			ocfs2_xattr_set_local(xs->here, 1);
+ 			xs->here->xe_value_size = cpu_to_le64(xi->xi_value_len);
+ 			/* Clear value bytes. */
+-			memset(val + OCFS2_XATTR_SIZE(name_len),
++			memset(val + OCFS2_XATTR_SIZE(xi->xi_name_len),
+ 			       0,
+ 			       OCFS2_XATTR_SIZE(xi->xi_value_len));
+-			memcpy(val + OCFS2_XATTR_SIZE(name_len),
++			memcpy(val + OCFS2_XATTR_SIZE(xi->xi_name_len),
+ 			       xi->xi_value,
+ 			       xi->xi_value_len);
  			return;
- 		}
-+
- 		/* Remove the old name+value. */
--		memmove(first_val + size, first_val, val - first_val);
--		memset(first_val, 0, size);
-+		ocfs2_xa_wipe_namevalue(&loc);
- 		xs->here->xe_name_hash = 0;
- 		xs->here->xe_name_offset = 0;
- 		ocfs2_xattr_set_local(xs->here, 1);
-@@ -1425,23 +1642,16 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
- 
- 		min_offs += size;
- 
--		/* Adjust all value offsets. */
--		last = xs->header->xh_entries;
--		for (i = 0 ; i < le16_to_cpu(xs->header->xh_count); i++) {
--			size_t o = le16_to_cpu(last->xe_name_offset);
--
--			if (o < offs)
--				last->xe_name_offset = cpu_to_le16(o + size);
--			last += 1;
--		}
--
- 		if (!xi->value) {
- 			/* Remove the old entry. */
--			last -= 1;
-+			i = le16_to_cpu(xs->header->xh_count);
-+			i--;
-+			last = &xs->header->xh_entries[i - 1];
-+			xs->header->xh_count = cpu_to_le16(i);
-+
- 			memmove(xs->here, xs->here + 1,
- 				(void *)last - (void *)xs->here);
- 			memset(last, 0, sizeof(struct ocfs2_xattr_entry));
--			le16_add_cpu(&xs->header->xh_count, -1);
- 		}
+@@ -1662,14 +1662,14 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
  	}
- 	if (xi->value) {
-@@ -4527,7 +4737,10 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
- 	size_t blocksize = inode->i_sb->s_blocksize;
- 	char *val;
- 	size_t offs, size, new_size;
-+	struct ocfs2_xa_loc loc;
+ 	if (xi->xi_value) {
+ 		/* Insert the new name+value. */
+-		size_t size = OCFS2_XATTR_SIZE(name_len) +
++		size_t size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 				OCFS2_XATTR_SIZE(xi->xi_value_len);
+ 		void *val = xs->base + min_offs - size;
  
-+	ocfs2_init_xattr_bucket_xa_loc(&loc, xs->bucket,
-+				       xs->not_found ? NULL : xs->here);
- 	last = &xh->xh_entries[count];
+ 		xs->here->xe_name_offset = cpu_to_le16(min_offs - size);
+ 		memset(val, 0, size);
+-		memcpy(val, xi->xi_name, name_len);
+-		memcpy(val + OCFS2_XATTR_SIZE(name_len),
++		memcpy(val, xi->xi_name, xi->xi_name_len);
++		memcpy(val + OCFS2_XATTR_SIZE(xi->xi_name_len),
+ 		       xi->xi_value,
+ 		       xi->xi_value_len);
+ 		xs->here->xe_value_size = cpu_to_le64(xi->xi_value_len);
+@@ -1698,13 +1698,14 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 	struct ocfs2_xattr_entry *last;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)xs->inode_bh->b_data;
+-	size_t min_offs = xs->end - xs->base, name_len = strlen(xi->xi_name);
++	size_t min_offs = xs->end - xs->base;
+ 	size_t size_l = 0;
+ 	handle_t *handle = ctxt->handle;
+ 	int free, i, ret;
+ 	struct ocfs2_xattr_info xi_l = {
+ 		.xi_name_index = xi->xi_name_index,
+ 		.xi_name = xi->xi_name,
++		.xi_name_len = xi->xi_name_len,
+ 		.xi_value = xi->xi_value,
+ 		.xi_value_len = xi->xi_value_len,
+ 	};
+@@ -1736,27 +1737,28 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
  	if (!xs->not_found) {
- 		xe = xs->here;
-@@ -4548,7 +4761,7 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
- 		new_size = OCFS2_XATTR_SIZE(name_len) +
- 			   OCFS2_XATTR_SIZE(xi->value_len);
+ 		size_t size = 0;
+ 		if (ocfs2_xattr_is_local(xs->here))
+-			size = OCFS2_XATTR_SIZE(name_len) +
++			size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 			OCFS2_XATTR_SIZE(le64_to_cpu(xs->here->xe_value_size));
+ 		else
+-			size = OCFS2_XATTR_SIZE(name_len) +
++			size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 				OCFS2_XATTR_ROOT_SIZE;
+ 		free += (size + sizeof(struct ocfs2_xattr_entry));
+ 	}
+ 	/* Check free space in inode or block */
+ 	if (xi->xi_value && xi->xi_value_len > OCFS2_XATTR_INLINE_SIZE) {
+ 		if (free < sizeof(struct ocfs2_xattr_entry) +
+-			   OCFS2_XATTR_SIZE(name_len) +
++			   OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 			   OCFS2_XATTR_ROOT_SIZE) {
+ 			ret = -ENOSPC;
+ 			goto out;
+ 		}
+-		size_l = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_ROOT_SIZE;
++		size_l = OCFS2_XATTR_SIZE(xi->xi_name_len) +
++			OCFS2_XATTR_ROOT_SIZE;
+ 		xi_l.xi_value = (void *)&def_xv;
+ 		xi_l.xi_value_len = OCFS2_XATTR_ROOT_SIZE;
+ 	} else if (xi->xi_value) {
+ 		if (free < sizeof(struct ocfs2_xattr_entry) +
+-			   OCFS2_XATTR_SIZE(name_len) +
++			   OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 			   OCFS2_XATTR_SIZE(xi->xi_value_len)) {
+ 			ret = -ENOSPC;
+ 			goto out;
+@@ -1765,7 +1767,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
  
--		le16_add_cpu(&xh->xh_name_value_len, -size);
-+		ocfs2_xa_wipe_namevalue(&loc);
- 		if (xi->value) {
- 			if (new_size > size)
- 				goto set_new_name_value;
+ 	if (!xs->not_found) {
+ 		/* For existing extended attribute */
+-		size_t size = OCFS2_XATTR_SIZE(name_len) +
++		size_t size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 			OCFS2_XATTR_SIZE(le64_to_cpu(xs->here->xe_value_size));
+ 		size_t offs = le16_to_cpu(xs->here->xe_name_offset);
+ 		void *val = xs->base + offs;
+@@ -1780,7 +1782,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 		} else if (!ocfs2_xattr_is_local(xs->here)) {
+ 			/* For existing xattr which has value outside */
+ 			vb.vb_xv = (struct ocfs2_xattr_value_root *)
+-				(val + OCFS2_XATTR_SIZE(name_len));
++				(val + OCFS2_XATTR_SIZE(xi->xi_name_len));
+ 
+ 			if (xi->xi_value_len > OCFS2_XATTR_INLINE_SIZE) {
+ 				/*
+@@ -2424,7 +2426,7 @@ static int ocfs2_xattr_can_be_in_inode(struct inode *inode,
+ 		value_size = OCFS2_XATTR_SIZE(xi->xi_value_len);
+ 
+ 	if (free >= sizeof(struct ocfs2_xattr_entry) +
+-		   OCFS2_XATTR_SIZE(strlen(xi->xi_name)) + value_size)
++		   OCFS2_XATTR_SIZE(xi->xi_name_len) + value_size)
+ 		return 1;
+ 
+ 	return 0;
+@@ -2854,6 +2856,7 @@ int ocfs2_xattr_set_handle(handle_t *handle,
+ 	struct ocfs2_xattr_info xi = {
+ 		.xi_name_index = name_index,
+ 		.xi_name = name,
++		.xi_name_len = strlen(name),
+ 		.xi_value = value,
+ 		.xi_value_len = value_len,
+ 	};
+@@ -2936,6 +2939,7 @@ int ocfs2_xattr_set(struct inode *inode,
+ 	struct ocfs2_xattr_info xi = {
+ 		.xi_name_index = name_index,
+ 		.xi_name = name,
++		.xi_name_len = strlen(name),
+ 		.xi_value = value,
+ 		.xi_value_len = value_len,
+ 	};
+@@ -4738,7 +4742,6 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
+ 					 int local)
+ {
+ 	struct ocfs2_xattr_entry *last, *xe;
+-	int name_len = strlen(xi->xi_name);
+ 	struct ocfs2_xattr_header *xh = xs->header;
+ 	u16 count = le16_to_cpu(xh->xh_count), start;
+ 	size_t blocksize = inode->i_sb->s_blocksize;
+@@ -4753,10 +4756,10 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
+ 		xe = xs->here;
+ 		offs = le16_to_cpu(xe->xe_name_offset);
+ 		if (ocfs2_xattr_is_local(xe))
+-			size = OCFS2_XATTR_SIZE(name_len) +
++			size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 			OCFS2_XATTR_SIZE(le64_to_cpu(xe->xe_value_size));
+ 		else
+-			size = OCFS2_XATTR_SIZE(name_len) +
++			size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 			OCFS2_XATTR_SIZE(OCFS2_XATTR_ROOT_SIZE);
+ 
+ 		/*
+@@ -4766,7 +4769,7 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
+ 		 * new_size safely here.
+ 		 * See ocfs2_xattr_set_in_bucket.
+ 		 */
+-		new_size = OCFS2_XATTR_SIZE(name_len) +
++		new_size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
+ 			   OCFS2_XATTR_SIZE(xi->xi_value_len);
+ 
+ 		if (xi->xi_value) {
+@@ -4783,10 +4786,10 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
+ 
+ 			val = ocfs2_xattr_bucket_get_val(inode,
+ 							 xs->bucket, offs);
+-			memset(val + OCFS2_XATTR_SIZE(name_len), 0,
+-			       size - OCFS2_XATTR_SIZE(name_len));
++			memset(val + OCFS2_XATTR_SIZE(xi->xi_name_len), 0,
++			       size - OCFS2_XATTR_SIZE(xi->xi_name_len));
+ 			if (OCFS2_XATTR_SIZE(xi->xi_value_len) > 0)
+-				memcpy(val + OCFS2_XATTR_SIZE(name_len),
++				memcpy(val + OCFS2_XATTR_SIZE(xi->xi_name_len),
+ 				       xi->xi_value, xi->xi_value_len);
+ 
+ 			le16_add_cpu(&xh->xh_name_value_len, new_size);
+@@ -4827,13 +4830,14 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
+ 		le16_add_cpu(&xh->xh_count, 1);
+ 		memset(xe, 0, sizeof(struct ocfs2_xattr_entry));
+ 		xe->xe_name_hash = cpu_to_le32(name_hash);
+-		xe->xe_name_len = name_len;
++		xe->xe_name_len = xi->xi_name_len;
+ 		ocfs2_xattr_set_type(xe, xi->xi_name_index);
+ 	}
+ 
+ set_new_name_value:
+ 	/* Insert the new name+value. */
+-	size = OCFS2_XATTR_SIZE(name_len) + OCFS2_XATTR_SIZE(xi->xi_value_len);
++	size = OCFS2_XATTR_SIZE(xi->xi_name_len) +
++		OCFS2_XATTR_SIZE(xi->xi_value_len);
+ 
+ 	/*
+ 	 * We must make sure that the name/value pair
+@@ -4852,8 +4856,8 @@ set_new_name_value:
+ 	xe->xe_name_offset = cpu_to_le16(offs - size);
+ 
+ 	memset(val, 0, size);
+-	memcpy(val, xi->xi_name, name_len);
+-	memcpy(val + OCFS2_XATTR_SIZE(name_len), xi->xi_value,
++	memcpy(val, xi->xi_name, xi->xi_name_len);
++	memcpy(val + OCFS2_XATTR_SIZE(xi->xi_name_len), xi->xi_value,
+ 	       xi->xi_value_len);
+ 
+ 	xe->xe_value_size = cpu_to_le64(xi->xi_value_len);
+@@ -5168,7 +5172,7 @@ static int ocfs2_xattr_set_in_bucket(struct inode *inode,
+ 	char *val = (char *)xi->xi_value;
+ 	struct ocfs2_xattr_entry *xe = xs->here;
+ 	u32 name_hash = ocfs2_xattr_name_hash(inode, xi->xi_name,
+-					      strlen(xi->xi_name));
++					      xi->xi_name_len);
+ 
+ 	if (!xs->not_found && !ocfs2_xattr_is_local(xe)) {
+ 		/*
+@@ -5281,7 +5285,7 @@ static int ocfs2_xattr_set_entry_index_block(struct inode *inode,
+ 	struct ocfs2_xattr_entry *xe;
+ 	u16 count, header_size, xh_free_start;
+ 	int free, max_free, need, old;
+-	size_t value_size = 0, name_len = strlen(xi->xi_name);
++	size_t value_size = 0;
+ 	size_t blocksize = inode->i_sb->s_blocksize;
+ 	int ret, allocation = 0;
+ 
+@@ -5308,9 +5312,9 @@ try_again:
+ 
+ 	if (xs->not_found)
+ 		need = sizeof(struct ocfs2_xattr_entry) +
+-			OCFS2_XATTR_SIZE(name_len) + value_size;
++			OCFS2_XATTR_SIZE(xi->xi_name_len) + value_size;
+ 	else {
+-		need = value_size + OCFS2_XATTR_SIZE(name_len);
++		need = value_size + OCFS2_XATTR_SIZE(xi->xi_name_len);
+ 
+ 		/*
+ 		 * We only replace the old value if the new length is smaller
 -- 
 1.6.3.3
