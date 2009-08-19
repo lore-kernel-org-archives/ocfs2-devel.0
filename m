@@ -1,73 +1,127 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Wed, 19 Aug 2009 12:18:53 -0400
-Subject: [Ocfs2-devel] [PATCH 03/17] vfs: Remove syncing
-	from	generic_file_direct_write() and generic_file_buffered_write()
-In-Reply-To: <1250697884-22288-4-git-send-email-jack@suse.cz>
-References: <1250697884-22288-1-git-send-email-jack@suse.cz>
-	<1250697884-22288-4-git-send-email-jack@suse.cz>
-Message-ID: <20090819161853.GC6150@infradead.org>
+From: Joel Becker <joel.becker@oracle.com>
+Date: Wed, 19 Aug 2009 12:54:27 -0700
+Subject: [Ocfs2-devel] [PATCH 02/14] ocfs2: Remove xattrs via ocfs2_xa_loc
+In-Reply-To: <1250711679-12441-1-git-send-email-joel.becker@oracle.com>
+References: <1250711679-12441-1-git-send-email-joel.becker@oracle.com>
+Message-ID: <1250711679-12441-3-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: LKML <linux-kernel@vger.kernel.org>, xfs@oss.sgi.com, hch@infradead.org, Joel Becker <joel.becker@oracle.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, Aug 19, 2009 at 06:04:30PM +0200, Jan Kara wrote:
-> generic_file_direct_write() and generic_file_buffered_write() called
-> generic_osync_inode() if it was called on O_SYNC file or IS_SYNC inode. But
-> this is superfluous since generic_file_aio_write() does the syncing as well.
-> Also XFS and OCFS2 which call these functions directly handle syncing
-> themselves. So let's have a single place where syncing happens:
-> generic_file_aio_write().
+Add ocfs2_xa_remove_entry(), which will remove an xattr entry from its
+storage via the ocfs2_xa_loc descriptor.
 
-Yeah, this is something that never made any sense to me.
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ fs/ocfs2/xattr.c |   62 ++++++++++++++++++++++++-----------------------------
+ 1 files changed, 28 insertions(+), 34 deletions(-)
 
-> @@ -2187,20 +2187,7 @@ generic_file_direct_write(struct kiocb *iocb, const struct iovec *iov,
->  		}
->  		*ppos = end;
->  	}
-> -
-> -	/*
-> -	 * Sync the fs metadata but not the minor inode changes and
-> -	 * of course not the data as we did direct DMA for the IO.
-> -	 * i_mutex is held, which protects generic_osync_inode() from
-> -	 * livelocking.  AIO O_DIRECT ops attempt to sync metadata here.
-> -	 */
->  out:
-> -	if ((written >= 0 || written == -EIOCBQUEUED) &&
-> -	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
-> -		int err = generic_osync_inode(inode, mapping, OSYNC_METADATA);
-> -		if (err < 0)
-> -			written = err;
-> -	}
->  	return written;
-
-Here we check (written >= 0 || written == -EIOCBQUEUED), but
-generic_file_aio_write only cares about positive return values.  We
-defintively do have a change here for partial AIO requests.  The
-question is if the previous behaviour made in sense.  If do have an
-O_SYNC aio+dio request we would have to flush out the metadata after the
-request has completed and not here.
-
-> @@ -2343,16 +2328,6 @@ generic_file_buffered_write(struct kiocb *iocb, const struct iovec *iov,
->  	if (likely(status >= 0)) {
->  		written += status;
->  		*ppos = pos + status;
-> -
-> -		/*
-> -		 * For now, when the user asks for O_SYNC, we'll actually give
-> -		 * O_DSYNC
-> -		 */
-> -		if (unlikely((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
-> -			if (!a_ops->writepage || !is_sync_kiocb(iocb))
-> -				status = generic_osync_inode(inode, mapping,
-> -						OSYNC_METADATA|OSYNC_DATA);
-> -		}
->    	}
-
-No problem with -EIOCBQUEUED here, but we change from doing
-generic_osync_inode with OSYNC_DATA which does a full writeout of the
-data to sync_page_range which only does the range writeout here.  That
-should be fine (as we only need to sync that range), but should probably
-be documented in the patch description.
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 953cf32..f42edb1 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -1520,7 +1520,28 @@ static const struct ocfs2_xa_loc_operations ocfs2_xa_bucket_loc_ops = {
+ 
+ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
+ {
++	int index, count;
++	struct ocfs2_xattr_header *xh = loc->xl_header;
++	struct ocfs2_xattr_entry *entry = loc->xl_entry;
++
+ 	ocfs2_xa_wipe_namevalue(loc);
++
++	le16_add_cpu(&xh->xh_count, -1);
++	count = le16_to_cpu(xh->xh_count);
++
++	/*
++	 * Only zero out the entry if there are more remaining.  This is
++	 * important for an empty bucket, as it keeps track of the
++	 * bucket's hash value.  It doesn't hurt empty block storage.
++	 */
++	if (count) {
++		index = ((char *)entry - (char *)&xh->xh_entries) /
++			sizeof(struct ocfs2_xattr_entry);
++		memmove(&xh->xh_entries[index], &xh->xh_entries[index + 1],
++			(count - index) * sizeof(struct ocfs2_xattr_entry));
++		memset(&xh->xh_entries[count], 0,
++		       sizeof(struct ocfs2_xattr_entry));
++	}
+ }
+ 
+ static void ocfs2_init_dinode_xa_loc(struct ocfs2_xa_loc *loc,
+@@ -1585,7 +1606,6 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
+ 					size_t min_offs)
+ {
+ 	size_t name_len = strlen(xi->name);
+-	int i;
+ 	struct ocfs2_xa_loc loc;
+ 
+ 	if (xs->xattr_bh == xs->inode_bh)
+@@ -1633,26 +1653,12 @@ static void ocfs2_xattr_set_entry_local(struct inode *inode,
+ 			return;
+ 		}
+ 
+-		/* Remove the old name+value. */
+-		ocfs2_xa_wipe_namevalue(&loc);
+-		xs->here->xe_name_hash = 0;
+-		xs->here->xe_name_offset = 0;
+-		ocfs2_xattr_set_local(xs->here, 1);
+-		xs->here->xe_value_size = 0;
++		if (!xi->value)
++			ocfs2_xa_remove_entry(&loc);
++		else
++			ocfs2_xa_wipe_namevalue(&loc);
+ 
+ 		min_offs += size;
+-
+-		if (!xi->value) {
+-			/* Remove the old entry. */
+-			i = le16_to_cpu(xs->header->xh_count);
+-			i--;
+-			last = &xs->header->xh_entries[i - 1];
+-			xs->header->xh_count = cpu_to_le16(i);
+-
+-			memmove(xs->here, xs->here + 1,
+-				(void *)last - (void *)xs->here);
+-			memset(last, 0, sizeof(struct ocfs2_xattr_entry));
+-		}
+ 	}
+ 	if (xi->value) {
+ 		/* Insert the new name+value. */
+@@ -4761,8 +4767,8 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
+ 		new_size = OCFS2_XATTR_SIZE(name_len) +
+ 			   OCFS2_XATTR_SIZE(xi->value_len);
+ 
+-		ocfs2_xa_wipe_namevalue(&loc);
+ 		if (xi->value) {
++			ocfs2_xa_wipe_namevalue(&loc);
+ 			if (new_size > size)
+ 				goto set_new_name_value;
+ 
+@@ -4784,20 +4790,8 @@ static void ocfs2_xattr_set_entry_normal(struct inode *inode,
+ 			ocfs2_xattr_set_local(xe, local);
+ 			return;
+ 		} else {
+-			/*
+-			 * Remove the old entry if there is more than one.
+-			 * We don't remove the last entry so that we can
+-			 * use it to indicate the hash value of the empty
+-			 * bucket.
+-			 */
+-			last -= 1;
+-			le16_add_cpu(&xh->xh_count, -1);
+-			if (xh->xh_count) {
+-				memmove(xe, xe + 1,
+-					(void *)last - (void *)xe);
+-				memset(last, 0,
+-				       sizeof(struct ocfs2_xattr_entry));
+-			} else
++			ocfs2_xa_remove_entry(&loc);
++			if (!xh->xh_count)
+ 				xh->xh_free_start =
+ 					cpu_to_le16(OCFS2_XATTR_BUCKET_SIZE);
+ 
+-- 
+1.6.3.3
