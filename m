@@ -1,10 +1,10 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 21 Aug 2009 17:00:08 -0000
+Date: Fri, 21 Aug 2009 17:24:14 -0000
 Subject: [Ocfs2-devel] [PATCH 07/17] vfs: Introduce new helpers for syncing
 	after writing to O_SYNC file or IS_SYNC inode
-In-Reply-To: <1250874001-15483-1-git-send-email-jack@suse.cz>
-References: <1250874001-15483-1-git-send-email-jack@suse.cz>
-Message-ID: <1250874001-15483-7-git-send-email-jack@suse.cz>
+In-Reply-To: <1250875447-15622-1-git-send-email-jack@suse.cz>
+References: <1250875447-15622-1-git-send-email-jack@suse.cz>
+Message-ID: <1250875447-15622-8-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -222,7 +222,7 @@ index 29fc8da..648001c 100644
  extern void emergency_sync(void);
  extern void emergency_remount(void);
 diff --git a/mm/filemap.c b/mm/filemap.c
-index ef9f635..d0802a9 100644
+index 3955f7e..70988a1 100644
 --- a/mm/filemap.c
 +++ b/mm/filemap.c
 @@ -39,11 +39,10 @@
@@ -257,7 +257,7 @@ index ef9f635..d0802a9 100644
  
 -		err = sync_page_range_nolock(inode, mapping, pos, ret);
 +		err = generic_write_sync(file, pos, ret);
- 		if (err < 0)
+ 		if (err < 0 && ret > 0)
  			ret = err;
  	}
 @@ -2515,8 +2511,7 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
@@ -281,7 +281,7 @@ index ef9f635..d0802a9 100644
  
 -		err = sync_page_range(inode, mapping, pos, ret);
 +		err = generic_write_sync(file, pos, ret);
- 		if (err < 0)
+ 		if (err < 0 && ret > 0)
  			ret = err;
  	}
 -- 
