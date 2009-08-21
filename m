@@ -1,96 +1,85 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 21 Aug 2009 10:12:27 +0800
-Subject: [Ocfs2-devel] [PATCH 19/41] ocfs2: Integrate CoW in file write.
-In-Reply-To: <20090821010443.GF10558@mail.oracle.com>
+From: Joel Becker <Joel.Becker@ORACLE.COM>
+Date: Thu, 20 Aug 2009 19:51:36 -0700
+Subject: [Ocfs2-devel] [PATCH 17/41] ocfs2: Add CoW support.
+In-Reply-To: <4A8E00A2.1050902@oracle.com>
 References: <4A8A47DF.8020707@oracle.com>
-	<1250576382-27080-19-git-send-email-tao.ma@oracle.com>
-	<20090821010443.GF10558@mail.oracle.com>
-Message-ID: <4A8E028B.50802@oracle.com>
+	<1250576382-27080-17-git-send-email-tao.ma@oracle.com>
+	<20090821005932.GE10558@mail.oracle.com>
+	<4A8E00A2.1050902@oracle.com>
+Message-ID: <20090821025136.GK10558@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
+On Fri, Aug 21, 2009 at 10:04:18AM +0800, Tao Ma wrote:
+> Joel Becker wrote:
+> > On Tue, Aug 18, 2009 at 02:19:18PM +0800, Tao Ma wrote:
+> >> +		if (*cow_len + leaf_clusters >= max_clusters) {
+> >> +			if (*cow_len == 0) {
+> >> +				/*
+> >> +				 * cpos is in a very large extent record.
+> >> +				 * So just split max_clusters from the
+> >> +				 * extent record.
+> >> +				 */
+> >> +				if ((rec_end - cpos) <= max_clusters) {
+> >> +					/*
+> >> +					 * We can take max_clusters off
+> >> +					 * the end and cover all of our
+> >> +					 * write.
+> >> +					 */
+> >> +					*cow_start = rec_end - max_clusters;
+> oh, yes, this is really a bug. I guess the reason why tristan's test 
+> case can't find it is that we are now called from ocfs2_write_begin. 
+> Normally the write_len will at most be a PAGE_SIZE and the start is 
+> aligned to PAGE_SIZE also. With our x86_64 boxes, PAGE_SIZE=4096, we 
+> always CoW the right pos. But with PAGE_SIZE=64k, it will be exposed.
+> So how about change the first check to:
+> 			if (((rec_end - cpos) <= max_clusters) &&
+> 			    (cpos + write_len <= rec_end)) {
 
-Joel Becker wrote:
-> On Tue, Aug 18, 2009 at 02:19:20PM +0800, Tao Ma wrote:
->> @@ -1674,6 +1692,7 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
->>  	struct ocfs2_alloc_context *meta_ac = NULL;
->>  	handle_t *handle;
->>  	struct ocfs2_extent_tree et;
->> +	unsigned int refcounted_cpos, cow_len;
->>  
->>  	ret = ocfs2_alloc_write_ctxt(&wc, osb, pos, len, di_bh);
->>  	if (ret) {
->> @@ -1701,12 +1720,36 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
->>  	}
->>  
->>  	ret = ocfs2_populate_write_desc(inode, wc, &clusters_to_alloc,
->> -					&extents_to_split);
->> -	if (ret) {
->> +					&extents_to_split, &refcounted_cpos);
->> +	if (ret && ret != -ETXTBSY) {
->>  		mlog_errno(ret);
->>  		goto out;
->>  	}
->>  
->> +	if (ret == -ETXTBSY) {
->> +		BUG_ON(refcounted_cpos == UINT_MAX);
->> +		cow_len = wc->w_clen - (refcounted_cpos - wc->w_cpos);
->> +
->> +		ret = ocfs2_refcount_cow(inode, di_bh,
->> +					 refcounted_cpos, cow_len);
->> +		if (ret) {
->> +			mlog_errno(ret);
->> +			goto out;
->> +		}
->> +
->> +		/* reinitialize write_desc and populate it again. */
->> +		ocfs2_clear_write_desc(wc);
->> +		ret = ocfs2_populate_write_desc(inode, wc, &clusters_to_alloc,
->> +						&extents_to_split,
->> +						&refcounted_cpos);
->> +		if (ret) {
->> +			mlog_errno(ret);
->> +			goto out;
->> +		}
->> +
->> +		BUG_ON(refcounted_cpos != UINT_MAX);
->> +	}
-> 
-> 	First see my comment on the ocfs2_refcount_cal_clusters() and a
-> possible short CoW.
-> 	Basically, ocfs2_refcount_cow() can do a short CoW in two
-> situations.  First, the one I described about
-> ocfs2_refcount_cal_clusters().  The second is if the write wants to
-> cover three extents, the middle of which is not refcounted:
-> 
->   |--refcounted--|--not refcounted--]--refcounted--|
-> 
-> ocfs2_refcount_cal_cow_clusters() will be called on the first extent.
-> It will set up *cow_len to cover that first extent, but then it will hit
-> the second extent and break out.  ocfs2_refcount_cow() will then replace
-> the first extent.  We end up with:
-> 
->   |--not refcounted--|--not refcounted--]--refcounted--|
-> 
-> 
-> 	Now we call to ocfs2_prepare_write_desc() again.  It will see
-> the first and second extents as not refcounted, but then it will hit
-> the third extent and return -ETXTBSY.  refcounted_cpos will be set to
-> the third extent.  Then in ocfs2_write_begin_nolock(), we'll hit:
-> 
-> 		BUG_ON(refcounted_cpos != UINT_MAX);
-> 
-> Am I missing something?
-you are right.
+	This doesn't quite work either, because we'll then fall to the
+else{, which is for ranges in the middle of a big cluster.
+	Essentially, the problem is one of max_clusters not seeing the
+extra stuff we've done on the front of the I/O.  And I think that comes
+down to the confusion of max_clusters vs write_len.  We want to CoW at
+least cpos+write_len, but we want large extents broken on the 1MB
+boundary. 
+	We have another problem.  What if we have two refcounted
+extents each of 1MB in size.  We're doing a 1.5MB starting@the
+beginning of the first extent.  First we get 1MB from the first extent.
+We go back around the loop to the second extent.  We see that *cow_len +
+leaf_clusters (1MB + 1MB) is greater than the 1.5MB we're trying to
+write.  So we set *cow_len to our 1.5MB.  But this is going to break the
+second extent up into two .5MB extents.  What we really want is to cow
+that entire second 1MB extent.
 
-ocfs2_write_begin normally only write one page and with my x86_64 box, 
-we have PAGE_SIZE <= CLUSTER_SIZE, so we never hit this issue before.
-So maybe I have to add a new function which will iterate from pos to 
-pos+len to make sure all the refcounted extents are CoWed. Thanks.
+> >> +				} else if ((*cow_start + max_clusters) >
+> >> +					   (cpos + write_len)) {
+> > 
+> > 	Should this be >=?  I think it should be, and I think it's my
+> > fault.  But check to make sure.
+> yeah, ">=" will be more accurate. Actually, with ">", we can survive in 
+> a less efficient way since the "else" will cover this case and CoW a 
+> different part(start from another pos).
 
-Regards,
-Tao
+	Let's do the >=, which is best.
+
+	I'm halfway through a modification of this code that splits out
+MAX_COW_BYTES from write_len.  Let me finish it tomorrow.
+
+Joel
+
+-- 
+
+"Conservative, n.  A statesman who is enamoured of existing evils,
+ as distinguished from the Liberal, who wishes to replace them
+ with others."
+	- Ambrose Bierce, The Devil's Dictionary
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
