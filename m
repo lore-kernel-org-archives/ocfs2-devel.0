@@ -1,147 +1,96 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 21 Aug 2009 10:04:18 +0800
-Subject: [Ocfs2-devel] [PATCH 17/41] ocfs2: Add CoW support.
-In-Reply-To: <20090821005932.GE10558@mail.oracle.com>
+Date: Fri, 21 Aug 2009 10:12:27 +0800
+Subject: [Ocfs2-devel] [PATCH 19/41] ocfs2: Integrate CoW in file write.
+In-Reply-To: <20090821010443.GF10558@mail.oracle.com>
 References: <4A8A47DF.8020707@oracle.com>
-	<1250576382-27080-17-git-send-email-tao.ma@oracle.com>
-	<20090821005932.GE10558@mail.oracle.com>
-Message-ID: <4A8E00A2.1050902@oracle.com>
+	<1250576382-27080-19-git-send-email-tao.ma@oracle.com>
+	<20090821010443.GF10558@mail.oracle.com>
+Message-ID: <4A8E028B.50802@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-
+Hi Joel,
 
 Joel Becker wrote:
-> On Tue, Aug 18, 2009 at 02:19:18PM +0800, Tao Ma wrote:
->> +		if (*cow_len + leaf_clusters >= max_clusters) {
->> +			if (*cow_len == 0) {
->> +				/*
->> +				 * cpos is in a very large extent record.
->> +				 * So just split max_clusters from the
->> +				 * extent record.
->> +				 */
->> +				if ((rec_end - cpos) <= max_clusters) {
->> +					/*
->> +					 * We can take max_clusters off
->> +					 * the end and cover all of our
->> +					 * write.
->> +					 */
->> +					*cow_start = rec_end - max_clusters;
+> On Tue, Aug 18, 2009 at 02:19:20PM +0800, Tao Ma wrote:
+>> @@ -1674,6 +1692,7 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+>>  	struct ocfs2_alloc_context *meta_ac = NULL;
+>>  	handle_t *handle;
+>>  	struct ocfs2_extent_tree et;
+>> +	unsigned int refcounted_cpos, cow_len;
+>>  
+>>  	ret = ocfs2_alloc_write_ctxt(&wc, osb, pos, len, di_bh);
+>>  	if (ret) {
+>> @@ -1701,12 +1720,36 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+>>  	}
+>>  
+>>  	ret = ocfs2_populate_write_desc(inode, wc, &clusters_to_alloc,
+>> -					&extents_to_split);
+>> -	if (ret) {
+>> +					&extents_to_split, &refcounted_cpos);
+>> +	if (ret && ret != -ETXTBSY) {
+>>  		mlog_errno(ret);
+>>  		goto out;
+>>  	}
+>>  
+>> +	if (ret == -ETXTBSY) {
+>> +		BUG_ON(refcounted_cpos == UINT_MAX);
+>> +		cow_len = wc->w_clen - (refcounted_cpos - wc->w_cpos);
+>> +
+>> +		ret = ocfs2_refcount_cow(inode, di_bh,
+>> +					 refcounted_cpos, cow_len);
+>> +		if (ret) {
+>> +			mlog_errno(ret);
+>> +			goto out;
+>> +		}
+>> +
+>> +		/* reinitialize write_desc and populate it again. */
+>> +		ocfs2_clear_write_desc(wc);
+>> +		ret = ocfs2_populate_write_desc(inode, wc, &clusters_to_alloc,
+>> +						&extents_to_split,
+>> +						&refcounted_cpos);
+>> +		if (ret) {
+>> +			mlog_errno(ret);
+>> +			goto out;
+>> +		}
+>> +
+>> +		BUG_ON(refcounted_cpos != UINT_MAX);
+>> +	}
 > 
-> 	I just had a thought.  What if leaf_clusters is more than
-> max_clusters, but our cpos is near the end of the extent?  This only
-> works for the first pass (*cow_len == 0).  Imagine we have an extent of
-> 1.5MB, and our cpos is at 1MB, and we want to write 1MB.  Clustersize of
-> 256K.
+> 	First see my comment on the ocfs2_refcount_cal_clusters() and a
+> possible short CoW.
+> 	Basically, ocfs2_refcount_cow() can do a short CoW in two
+> situations.  First, the one I described about
+> ocfs2_refcount_cal_clusters().  The second is if the write wants to
+> cover three extents, the middle of which is not refcounted:
 > 
->   |<-- rec->e_cpo ==0                   leaf_clusters == 6 -->|
->   |--<256>--|--<256>--|--<256>--|--<256>--|--<256>--|--<256>--|
->                                           `cpos
+>   |--refcounted--|--not refcounted--]--refcounted--|
 > 
-> When we get here, *cow_len is 0, *cow_start is 0 (rec->e_cpos), rec_end
-> is 6 (leaf_clusters), cpos is 4 because the user wants to write at 1MB
-> into the file, max_clusters is 4 (1MB) and write_len is 4 (1MB write).
+> ocfs2_refcount_cal_cow_clusters() will be called on the first extent.
+> It will set up *cow_len to cover that first extent, but then it will hit
+> the second extent and break out.  ocfs2_refcount_cow() will then replace
+> the first extent.  We end up with:
 > 
-> 1. *cow_len + leaf_clusters >= max_clusters
->    0        + 6             >= 4  -> TRUE
+>   |--not refcounted--|--not refcounted--]--refcounted--|
 > 
-> 2. (rec_end - cpos) <= max_clusters
->    6        - 4     <= 4  -> TRUE
 > 
-> 3. *cow_start = rec_end - max_clusters
->               = 6       - 4  -> 2
+> 	Now we call to ocfs2_prepare_write_desc() again.  It will see
+> the first and second extents as not refcounted, but then it will hit
+> the third extent and return -ETXTBSY.  refcounted_cpos will be set to
+> the third extent.  Then in ocfs2_write_begin_nolock(), we'll hit:
 > 
-> 4. *cow_len = max_clusters
->             = 4
+> 		BUG_ON(refcounted_cpos != UINT_MAX);
 > 
-> 	This leaves us with a *cow_start of 2 and a *cow_len of 4.  This
-> *correctly gets us the last MB of the extent.  That's good.
-> However, our write was 1MB from cpos 4.  We're returning to the caller
-> 1MB from cpos 2.  We're going to do a short write.
-oh, yes, this is really a bug. I guess the reason why tristan's test 
-case can't find it is that we are now called from ocfs2_write_begin. 
-Normally the write_len will at most be a PAGE_SIZE and the start is 
-aligned to PAGE_SIZE also. With our x86_64 boxes, PAGE_SIZE=4096, we 
-always CoW the right pos. But with PAGE_SIZE=64k, it will be exposed.
-So how about change the first check to:
-			if (((rec_end - cpos) <= max_clusters) &&
-			    (cpos + write_len <= rec_end)) {
+> Am I missing something?
+you are right.
 
-> 
->> +				} else if ((*cow_start + max_clusters) >
->> +					   (cpos + write_len)) {
-> 
-> 	Should this be >=?  I think it should be, and I think it's my
-> fault.  But check to make sure.
-yeah, ">=" will be more accurate. Actually, with ">", we can survive in 
-a less efficient way since the "else" will cover this case and CoW a 
-different part(start from another pos).
+ocfs2_write_begin normally only write one page and with my x86_64 box, 
+we have PAGE_SIZE <= CLUSTER_SIZE, so we never hit this issue before.
+So maybe I have to add a new function which will iterate from pos to 
+pos+len to make sure all the refcounted extents are CoWed. Thanks.
 
 Regards,
 Tao
-> 
->> +					/*
->> +					 * We can take max_clusters off
->> +					 * the front and cover all of
->> +					 * our write.
->> +					 */
->> +					/* NOOP, *cow_start is already set */
->> +				} else {
->> +					/*
->> +					 * We're CoWing more data than
->> +					 * write_len for contiguousness,
->> +					 * but it doesn't fit at the
->> +					 * front or end of this extent.
->> +					 * Let's try to slice the extent
->> +					 * up nicely.  Optimally, our
->> +					 * CoW region starts at a
->> +					 * multiple of max_clusters.  If
->> +					 * that doesn't fit, we give up
->> +					 * and just CoW at cpos.
->> +					 */
->> +					*cow_start +=
->> +						(cpos - *cow_start) &
->> +							~(max_clusters - 1);
->> +					if ((*cow_start + max_clusters) <
->> +					    (cpos + write_len))
->> +						*cow_start = cpos;
->> +				}
->> +			}
->> +			*cow_len = max_clusters;
->> +			break;
->> +		} else
->> +			*cow_len += leaf_clusters;
->> +
->> +		/*
->> +		 * If we reach the end of the extent block and don't get enough
->> +		 * clusters, continue with the next extent block if possible.
->> +		 */
->> +		if (i + 1 == le16_to_cpu(el->l_next_free_rec) &&
->> +		    eb && eb->h_next_leaf_blk) {
->> +			brelse(eb_bh);
->> +			eb_bh = NULL;
->> +
->> +			ret = ocfs2_read_extent_block(INODE_CACHE(inode),
->> +					       le64_to_cpu(eb->h_next_leaf_blk),
->> +					       &eb_bh);
->> +			if (ret) {
->> +				mlog_errno(ret);
->> +				goto out;
->> +			}
->> +
->> +			eb = (struct ocfs2_extent_block *) eb_bh->b_data;
->> +			el = &eb->h_list;
->> +			i = -1;
->> +		}
->> +	}
->> +
->> +out:
->> +	brelse(eb_bh);
->> +	return ret;
->> +}
-> 
-> Joel
-> 
