@@ -1,33 +1,39 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 21 Aug 2009 09:39:32 +0800
-Subject: [Ocfs2-devel] [PATCH 00/41] ocfs2: Add reflink file support. V4
-In-Reply-To: <20090821012448.GH10558@mail.oracle.com>
-References: <4A8A47DF.8020707@oracle.com>
-	<20090821012448.GH10558@mail.oracle.com>
-Message-ID: <4A8DFAD4.7090104@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 20 Aug 2009 18:49:23 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: Wait on lockres instead of
+ erroring cancel requests
+In-Reply-To: <241c7a2b0908201143i3e9add05t87e2422465bc13b1@mail.gmail.com>
+References: <241c7a2b0908201143i3e9add05t87e2422465bc13b1@mail.gmail.com>
+Message-ID: <20090821014922.GJ10558@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-
-
-Joel Becker wrote:
-> On Tue, Aug 18, 2009 at 02:19:11PM +0800, Tao Ma wrote:
->> Hi all,
->>     So I have finally finished the v4 of reflink for ocfs2. Great
->> thanks for Joel's review.
+On Thu, Aug 20, 2009 at 01:43:19PM -0500, Goldwyn Rodrigues wrote:
+> In case a downconvert is queued, and a flock receives a signal,
+> BUG_ON(lockres->l_action != OCFS2_AST_INVALID) is triggered
+> because a lock cancel triggers a dlmunlock while an AST is
+> scheduled.
 > 
-> 	Ok, I'm done with the review.  I basically skimmed or skipped
-> all the patches I already liked.  You didn't change anything outside of
-> responding to reviews of v3, right?
-sure, I don't change other things except your review advice. again, 
-thanks for the review.
-> 	We're in great shape.  Hopefully you'll be able to answer my
-> questions and comments tomorrow and we can get this sucker into
-> merge-window Monday or Tuesday!
-I am now reading your comments. Hopefully we can get it in ASAP.
+> To avoid this, allow a LKM_CANCEL to pass through, and let it
+> wait on __dlm_wait_on_lockres().
+> 
+> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 
-Regards,
-Tao
+This patch is now part of the fixes branch of ocfs2.git.
+
+Joel
+
+-- 
+
+"Friends may come and go, but enemies accumulate." 
+        - Thomas Jones
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
