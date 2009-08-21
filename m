@@ -1,116 +1,70 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 21 Aug 2009 19:23:53 +0200
-Subject: [Ocfs2-devel] [PATCH 03/17] vfs: Remove syncing from
-	generic_file_direct_write() and generic_file_buffered_write()
+Date: Fri, 21 Aug 2009 19:24:02 +0200
+Subject: [Ocfs2-devel] [PATCH 12/17] ocfs2: Update syncing after splicing to
+	match generic version
 In-Reply-To: <1250875447-15622-1-git-send-email-jack@suse.cz>
 References: <1250875447-15622-1-git-send-email-jack@suse.cz>
-Message-ID: <1250875447-15622-4-git-send-email-jack@suse.cz>
+Message-ID: <1250875447-15622-13-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Jan Kara <jack@suse.cz>, Felix Blyakher <felixb@sgi.com>, xfs@oss.sgi.com, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+Cc: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com, Joel Becker <Joel.Becker@oracle.com>
 
-generic_file_direct_write() and generic_file_buffered_write() called
-generic_osync_inode() if it was called on O_SYNC file or IS_SYNC inode. But
-this is superfluous since generic_file_aio_write() does the syncing as well.
-Also XFS and OCFS2 which call these functions directly handle syncing
-themselves. So let's have a single place where syncing happens:
-generic_file_aio_write().
+Update ocfs2 specific splicing code to use generic syncing helper. The sync now
+does not happen under rw_lock because generic_write_sync() acquires i_mutex
+which ranks above rw_lock. That should not matter because standard fsync path
+does not hold it either.
 
-We slightly change the behavior by syncing only the range of file to which the
-write happened for buffered writes but that should be all that is required.
-
+CC: Joel Becker <Joel.Becker@oracle.com>
 CC: ocfs2-devel at oss.oracle.com
-CC: Joel Becker <joel.becker@oracle.com>
-CC: Felix Blyakher <felixb@sgi.com>
-CC: xfs at oss.sgi.com
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- mm/filemap.c |   35 ++++++-----------------------------
- 1 files changed, 6 insertions(+), 29 deletions(-)
+ fs/ocfs2/file.c |   27 ++++++---------------------
+ 1 files changed, 6 insertions(+), 21 deletions(-)
 
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 554a396..f863e1d 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -2187,20 +2187,7 @@ generic_file_direct_write(struct kiocb *iocb, const struct iovec *iov,
- 		}
- 		*ppos = end;
- 	}
--
--	/*
--	 * Sync the fs metadata but not the minor inode changes and
--	 * of course not the data as we did direct DMA for the IO.
--	 * i_mutex is held, which protects generic_osync_inode() from
--	 * livelocking.  AIO O_DIRECT ops attempt to sync metadata here.
--	 */
- out:
--	if ((written >= 0 || written == -EIOCBQUEUED) &&
--	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
--		int err = generic_osync_inode(inode, mapping, OSYNC_METADATA);
--		if (err < 0)
--			written = err;
--	}
- 	return written;
- }
- EXPORT_SYMBOL(generic_file_direct_write);
-@@ -2332,8 +2319,6 @@ generic_file_buffered_write(struct kiocb *iocb, const struct iovec *iov,
- {
- 	struct file *file = iocb->ki_filp;
- 	struct address_space *mapping = file->f_mapping;
--	const struct address_space_operations *a_ops = mapping->a_ops;
--	struct inode *inode = mapping->host;
- 	ssize_t status;
- 	struct iov_iter i;
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 1c71f0a..bd7fdf8 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1990,31 +1990,16 @@ static ssize_t ocfs2_file_splice_write(struct pipe_inode_info *pipe,
  
-@@ -2343,16 +2328,6 @@ generic_file_buffered_write(struct kiocb *iocb, const struct iovec *iov,
- 	if (likely(status >= 0)) {
- 		written += status;
- 		*ppos = pos + status;
--
+ 	if (ret > 0) {
+ 		unsigned long nr_pages;
++		int err;
+ 
+-		*ppos += ret;
+ 		nr_pages = (ret + PAGE_CACHE_SIZE - 1) >> PAGE_CACHE_SHIFT;
+ 
 -		/*
--		 * For now, when the user asks for O_SYNC, we'll actually give
--		 * O_DSYNC
+-		 * If file or inode is SYNC and we actually wrote some data,
+-		 * sync it.
 -		 */
--		if (unlikely((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
--			if (!a_ops->writepage || !is_sync_kiocb(iocb))
--				status = generic_osync_inode(inode, mapping,
--						OSYNC_METADATA|OSYNC_DATA);
+-		if (unlikely((out->f_flags & O_SYNC) || IS_SYNC(inode))) {
+-			int err;
+-
+-			mutex_lock(&inode->i_mutex);
+-			err = ocfs2_rw_lock(inode, 1);
+-			if (err < 0) {
+-				mlog_errno(err);
+-			} else {
+-				err = generic_osync_inode(inode, mapping,
+-						  OSYNC_METADATA|OSYNC_DATA);
+-				ocfs2_rw_unlock(inode, 1);
+-			}
+-			mutex_unlock(&inode->i_mutex);
++		err = generic_write_sync(out, *ppos, ret);
++		if (err)
++			ret = err;
++		else
++			*ppos += ret;
+ 
+-			if (err)
+-				ret = err;
 -		}
-   	}
- 	
- 	/*
-@@ -2514,11 +2489,12 @@ ssize_t generic_file_aio_write_nolock(struct kiocb *iocb,
- 
- 	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
- 
--	if (ret > 0 && ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
-+	if ((ret > 0 || ret == -EIOCBQUEUED) &&
-+	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
- 		ssize_t err;
- 
- 		err = sync_page_range_nolock(inode, mapping, pos, ret);
--		if (err < 0)
-+		if (err < 0 && ret > 0)
- 			ret = err;
+ 		balance_dirty_pages_ratelimited_nr(mapping, nr_pages);
  	}
- 	return ret;
-@@ -2550,11 +2526,12 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
- 	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
- 	mutex_unlock(&inode->i_mutex);
  
--	if (ret > 0 && ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
-+	if ((ret > 0 || ret == -EIOCBQUEUED) &&
-+	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
- 		ssize_t err;
- 
- 		err = sync_page_range(inode, mapping, pos, ret);
--		if (err < 0)
-+		if (err < 0 && ret > 0)
- 			ret = err;
- 	}
- 	return ret;
 -- 
 1.6.0.2
