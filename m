@@ -1,82 +1,106 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 21 Aug 2009 22:55:52 +0800
-Subject: [Ocfs2-devel] [PATCH 19/41] ocfs2: Integrate CoW in file write.
-In-Reply-To: <4A8E028B.50802@oracle.com>
-References: <4A8E028B.50802@oracle.com>
-Message-ID: <1250866552-10333-1-git-send-email-tao.ma@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Fri, 21 Aug 2009 18:59:47 +0200
+Subject: [Ocfs2-devel] [PATCH 03/17] vfs: Remove syncing from
+	generic_file_direct_write() and generic_file_buffered_write()
+In-Reply-To: <1250874001-15483-1-git-send-email-jack@suse.cz>
+References: <1250874001-15483-1-git-send-email-jack@suse.cz>
+Message-ID: <1250874001-15483-3-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Jan Kara <jack@suse.cz>, Felix Blyakher <felixb@sgi.com>, xfs@oss.sgi.com, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Hi Joel,
-	Here is the solution for refcounted+non-refcounted+refcounted issues.
-	Please review.
+generic_file_direct_write() and generic_file_buffered_write() called
+generic_osync_inode() if it was called on O_SYNC file or IS_SYNC inode. But
+this is superfluous since generic_file_aio_write() does the syncing as well.
+Also XFS and OCFS2 which call these functions directly handle syncing
+themselves. So let's have a single place where syncing happens:
+generic_file_aio_write().
 
-Regards,
-Tao
+We slightly change the behavior by syncing only the range of file to which the
+write happened for buffered writes but that should be all that is required.
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 02244bb..0978abe 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1677,6 +1677,47 @@ static int ocfs2_expand_nonsparse_inode(struct inode *inode, loff_t pos,
- 	return ret;
+CC: ocfs2-devel at oss.oracle.com
+CC: Joel Becker <joel.becker@oracle.com>
+CC: Felix Blyakher <felixb@sgi.com>
+CC: xfs at oss.sgi.com
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ mm/filemap.c |   31 ++++---------------------------
+ 1 files changed, 4 insertions(+), 27 deletions(-)
+
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 554a396..b523e42 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2187,20 +2187,7 @@ generic_file_direct_write(struct kiocb *iocb, const struct iovec *iov,
+ 		}
+ 		*ppos = end;
+ 	}
+-
+-	/*
+-	 * Sync the fs metadata but not the minor inode changes and
+-	 * of course not the data as we did direct DMA for the IO.
+-	 * i_mutex is held, which protects generic_osync_inode() from
+-	 * livelocking.  AIO O_DIRECT ops attempt to sync metadata here.
+-	 */
+ out:
+-	if ((written >= 0 || written == -EIOCBQUEUED) &&
+-	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
+-		int err = generic_osync_inode(inode, mapping, OSYNC_METADATA);
+-		if (err < 0)
+-			written = err;
+-	}
+ 	return written;
  }
+ EXPORT_SYMBOL(generic_file_direct_write);
+@@ -2332,8 +2319,6 @@ generic_file_buffered_write(struct kiocb *iocb, const struct iovec *iov,
+ {
+ 	struct file *file = iocb->ki_filp;
+ 	struct address_space *mapping = file->f_mapping;
+-	const struct address_space_operations *a_ops = mapping->a_ops;
+-	struct inode *inode = mapping->host;
+ 	ssize_t status;
+ 	struct iov_iter i;
  
-+/*
-+ * CoW all refcounted clusters within [cow_start, cow_start + cow_len).
-+ *
-+ * Note: We may meet with non-refcounted clusters or even holes, just skip
-+ * them and iterate until we reach cow_start + cow_len.
-+ */
-+static int ocfs2_refcount_clusters(struct inode *inode,
-+				   struct buffer_head *di_bh,
-+				   u32 cow_start, u32 cow_len)
-+{
-+	int ret = 0;
-+	u32 p_cluster, num_clusters;
-+	unsigned int ext_flags;
-+
-+	while (cow_len) {
-+		ret = ocfs2_get_clusters(inode, cow_start, &p_cluster,
-+					 &num_clusters, &ext_flags);
-+		if (ret) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+
-+		if (cow_len < num_clusters)
-+			num_clusters = cow_len;
-+
-+		if (ext_flags & OCFS2_EXT_REFCOUNTED) {
-+			ret = ocfs2_refcount_cow(inode, di_bh, cow_start,
-+						 num_clusters);
-+			if (ret) {
-+				mlog_errno(ret);
-+				break;
-+			}
-+		}
-+
-+		cow_len -= num_clusters;
-+		cow_start += num_clusters;
-+	}
-+
-+	return ret;
-+}
-+
- int ocfs2_write_begin_nolock(struct address_space *mapping,
- 			     loff_t pos, unsigned len, unsigned flags,
- 			     struct page **pagep, void **fsdata,
-@@ -1730,8 +1771,8 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
- 		BUG_ON(refcounted_cpos == UINT_MAX);
- 		cow_len = wc->w_clen - (refcounted_cpos - wc->w_cpos);
+@@ -2343,16 +2328,6 @@ generic_file_buffered_write(struct kiocb *iocb, const struct iovec *iov,
+ 	if (likely(status >= 0)) {
+ 		written += status;
+ 		*ppos = pos + status;
+-
+-		/*
+-		 * For now, when the user asks for O_SYNC, we'll actually give
+-		 * O_DSYNC
+-		 */
+-		if (unlikely((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
+-			if (!a_ops->writepage || !is_sync_kiocb(iocb))
+-				status = generic_osync_inode(inode, mapping,
+-						OSYNC_METADATA|OSYNC_DATA);
+-		}
+   	}
+ 	
+ 	/*
+@@ -2514,7 +2489,8 @@ ssize_t generic_file_aio_write_nolock(struct kiocb *iocb,
  
--		ret = ocfs2_refcount_cow(inode, di_bh,
--					 refcounted_cpos, cow_len);
-+		ret = ocfs2_refcount_clusters(inode, di_bh,
-+					      refcounted_cpos, cow_len);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
+ 	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
+ 
+-	if (ret > 0 && ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
++	if ((ret > 0 || ret == -EIOCBQUEUED) &&
++	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
+ 		ssize_t err;
+ 
+ 		err = sync_page_range_nolock(inode, mapping, pos, ret);
+@@ -2550,7 +2526,8 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
+ 	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
+ 	mutex_unlock(&inode->i_mutex);
+ 
+-	if (ret > 0 && ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
++	if ((ret > 0 || ret == -EIOCBQUEUED) &&
++	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
+ 		ssize_t err;
+ 
+ 		err = sync_page_range(inode, mapping, pos, ret);
+-- 
+1.6.0.2
