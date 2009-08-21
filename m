@@ -1,16 +1,16 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 21 Aug 2009 18:59:49 +0200
+Date: Fri, 21 Aug 2009 19:23:55 +0200
 Subject: [Ocfs2-devel] [PATCH 05/17] ocfs2: Use __generic_file_aio_write
 	instead of generic_file_aio_write_nolock
-In-Reply-To: <1250874001-15483-1-git-send-email-jack@suse.cz>
-References: <1250874001-15483-1-git-send-email-jack@suse.cz>
-Message-ID: <1250874001-15483-5-git-send-email-jack@suse.cz>
+In-Reply-To: <1250875447-15622-1-git-send-email-jack@suse.cz>
+References: <1250875447-15622-1-git-send-email-jack@suse.cz>
+Message-ID: <1250875447-15622-6-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: hch@lst.de, linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>
+Cc: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com
 
 Use the new helper. We have to submit data pages ourselves in case of O_SYNC
 write because __generic_file_aio_write does not do it for us. OCFS2 developpers
