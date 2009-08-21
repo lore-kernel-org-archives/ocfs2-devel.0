@@ -1,199 +1,76 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 21 Aug 2009 16:24:25 +0800
-Subject: [Ocfs2-devel] [PATCH 17/41] ocfs2: Add CoW support.
-In-Reply-To: <20090821070737.GB20755@mail.oracle.com>
-References: <20090821070737.GB20755@mail.oracle.com>
-Message-ID: <1250843065-6381-1-git-send-email-tao.ma@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Fri, 21 Aug 2009 16:30:49 +0200
+Subject: [Ocfs2-devel] [PATCH 13/17] ocfs2: Update syncing
+	after	splicing to match generic version
+In-Reply-To: <20090821013617.GI10558@mail.oracle.com>
+References: <1250697884-22288-1-git-send-email-jack@suse.cz>
+	<1250697884-22288-14-git-send-email-jack@suse.cz>
+	<20090821013617.GI10558@mail.oracle.com>
+Message-ID: <20090821143049.GC3007@duck.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Jan Kara <jack@suse.cz>, LKML <linux-kernel@vger.kernel.org>, hch@infradead.org, ocfs2-devel@oss.oracle.com, mfasheh@suse.com
 
-Hi Joel,
-	As our talk in irc, here is the updated one. Please review.
+On Thu 20-08-09 18:36:17, Joel Becker wrote:
+> On Wed, Aug 19, 2009 at 06:04:40PM +0200, Jan Kara wrote:
+> > Update ocfs2 specific splicing code to use generic syncing helper.
+> > 
+> > CC: Joel Becker <Joel.Becker@oracle.com>
+> > CC: ocfs2-devel at oss.oracle.com
+> > Signed-off-by: Jan Kara <jack@suse.cz>
+> > ---
+> >  fs/ocfs2/file.c |   27 ++++++---------------------
+> >  1 files changed, 6 insertions(+), 21 deletions(-)
+> > 
+> > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> > index 1c71f0a..bd7fdf8 100644
+> > --- a/fs/ocfs2/file.c
+> > +++ b/fs/ocfs2/file.c
+> > @@ -1990,31 +1990,16 @@ static ssize_t ocfs2_file_splice_write(struct pipe_inode_info *pipe,
+> >  
+> >  	if (ret > 0) {
+> >  		unsigned long nr_pages;
+> > +		int err;
+> >  
+> > -		*ppos += ret;
+> >  		nr_pages = (ret + PAGE_CACHE_SIZE - 1) >> PAGE_CACHE_SHIFT;
+> >  
+> > -		/*
+> > -		 * If file or inode is SYNC and we actually wrote some data,
+> > -		 * sync it.
+> > -		 */
+> > -		if (unlikely((out->f_flags & O_SYNC) || IS_SYNC(inode))) {
+> > -			int err;
+> > -
+> > -			mutex_lock(&inode->i_mutex);
+> > -			err = ocfs2_rw_lock(inode, 1);
+> > -			if (err < 0) {
+> > -				mlog_errno(err);
+> > -			} else {
+> > -				err = generic_osync_inode(inode, mapping,
+> > -						  OSYNC_METADATA|OSYNC_DATA);
+> > -				ocfs2_rw_unlock(inode, 1);
+> > -			}
+> > -			mutex_unlock(&inode->i_mutex);
+> > +		err = generic_write_sync(out, *ppos, ret);
+> > +		if (err)
+> > +			ret = err;
+> > +		else
+> > +			*ppos += ret;
+> 
+> 	You've removed the rw_lock around the sync.  Any reason why?
+  Ah, I should have written in the changelog: generic_write_sync() will
+acquire i_mutex so to preserve lock ordering (i_mutex -> rw_lock) we cannot
+hold it while calling generic_write_sync(). Furthermore, I didn't see point
+for holding it while calling generic_write_sync() since we don't hold it
+in fsync() path either.
+  I'll add something like this to the changelog.
 
-Regards,
-Tao
+									Honza
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index cfaf59e..e659dc5 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2499,7 +2499,7 @@ out:
- 	return ret;
- }
- 
--#define	MAX_COW_BYTES	1048576
-+#define	MAX_CONTIG_BYTES	1048576
- /*
-  * Calculate out the start and number of virtual clusters we need to to CoW.
-  *
-@@ -2508,9 +2508,8 @@ out:
-  * max_cpos is the place where we want to stop CoW intentionally.
-  *
-  * Normal we will start CoW from the beginning of extent record cotaining cpos.
-- * And We will try to Cow as much clusters as we can until we reach
-- * MAX_COW_BYTES. If the write_len is larger than MAX_COW_BYTES, we will
-- * use that value as the maximum clusters.
-+ * We try to break up extents on boundaries of MAX_CONTIG_BYTES so that we
-+ * get good I/O from the resulting extent tree.
-  */
- static int ocfs2_refcount_cal_cow_clusters(struct inode *inode,
- 					   struct ocfs2_extent_list *el,
-@@ -2525,10 +2524,11 @@ static int ocfs2_refcount_cal_cow_clusters(struct inode *inode,
- 	struct buffer_head *eb_bh = NULL;
- 	struct ocfs2_extent_block *eb = NULL;
- 	struct ocfs2_extent_rec *rec;
--	int max_clusters = ocfs2_clusters_for_bytes(inode->i_sb, MAX_COW_BYTES);
-+	int want_clusters;
-+	int contig_clusters =
-+		ocfs2_clusters_for_bytes(inode->i_sb, MAX_CONTIG_BYTES);
- 	int leaf_clusters, rec_end = 0;
- 
--	max_clusters = max_clusters < write_len ? write_len : max_clusters;
- 	if (tree_height > 0) {
- 		ret = ocfs2_find_leaf(INODE_CACHE(inode), el, cpos, &eb_bh);
- 		if (ret) {
-@@ -2588,53 +2588,95 @@ static int ocfs2_refcount_cal_cow_clusters(struct inode *inode,
- 			leaf_clusters = rec_end - le32_to_cpu(rec->e_cpos);
- 		}
- 
--		if (*cow_len + leaf_clusters >= max_clusters) {
--			if (*cow_len == 0) {
--				/*
--				 * cpos is in a very large extent record.
--				 * So just split max_clusters from the
--				 * extent record.
--				 */
--				if ((rec_end - cpos) <= max_clusters) {
--					/*
--					 * We can take max_clusters off
--					 * the end and cover all of our
--					 * write.
--					 */
--					*cow_start = rec_end - max_clusters;
--				} else if ((*cow_start + max_clusters) >
--					   (cpos + write_len)) {
--					/*
--					 * We can take max_clusters off
--					 * the front and cover all of
--					 * our write.
--					 */
--					/* NOOP, *cow_start is already set */
--				} else {
--					/*
--					 * We're CoWing more data than
--					 * write_len for contiguousness,
--					 * but it doesn't fit at the
--					 * front or end of this extent.
--					 * Let's try to slice the extent
--					 * up nicely.  Optimally, our
--					 * CoW region starts at a
--					 * multiple of max_clusters.  If
--					 * that doesn't fit, we give up
--					 * and just CoW at cpos.
--					 */
--					*cow_start +=
--						(cpos - *cow_start) &
--							~(max_clusters - 1);
--					if ((*cow_start + max_clusters) <
--					    (cpos + write_len))
--						*cow_start = cpos;
--				}
--			}
--			*cow_len = max_clusters;
--			break;
--		} else
-+		/*
-+		 * How many clusters do we actually need from
-+		 * this extent?  First we see how many we actually
-+		 * need to complete the write.  If that's smaller
-+		 * than contig_clusters, we try for
-+		 * contig_clustes.
-+		 */
-+		if (!*cow_len)
-+			want_clusters = write_len;
-+		else
-+			want_clusters = (cpos + write_len) -
-+				(*cow_start + *cow_len);
-+		if (want_clusters < contig_clusters)
-+			want_clusters = contig_clusters;
-+
-+		/*
-+		 * If the write does not cover the whole extent, we
-+		 * need to calculate how we're going to split the extent.
-+		 * We try to do it on contig_clusters boundaries.
-+		 *
-+		 * Any extent smaller than contig_clusters will be
-+		 * CoWed in its entirety.
-+		 */
-+		if (leaf_clusters <= contig_clusters)
- 			*cow_len += leaf_clusters;
-+		else if (*cow_len || (*cow_start == cpos)) {
-+			/*
-+			 * This extent needs to be CoW'd from its
-+			 * beginning, so all we have to do is compute
-+			 * how many clusters to grab.
-+			 * We align the want_clusters to the edge of
-+			 * contig_clusters to get better I/O.
-+			 */
-+			want_clusters = (want_clusters + contig_clusters - 1) /
-+					contig_clusters * contig_clusters;
-+
-+			if (leaf_clusters < want_clusters)
-+				*cow_len += leaf_clusters;
-+			else
-+				*cow_len += want_clusters;
-+		} else if ((*cow_start + contig_clusters) >=
-+			   (cpos + write_len)) {
-+			/*
-+			 * Breaking off contig_clusters at the front
-+			 * of the extent will cover our write.  That's
-+			 * easy.
-+			 */
-+			*cow_len = contig_clusters;
-+		} else if ((rec_end - cpos) <= contig_clusters) {
-+			/*
-+			 * Breaking off contig_clusters at the tail of
-+			 * this extent will cover cpos.
-+			 */
-+			*cow_start = rec_end - cpos;
-+			*cow_len = contig_clusters;
-+		} else if ((rec_end - cpos) <= want_clusters) {
-+			/*
-+			 * While we can't fit the entire write in this
-+			 * extent, we know that the write goes from cpos
-+			 * to the end of the extent.  Break that off.
-+			 * We try to break it in the aligned range, if not
-+			 * CoW the whole extent.
-+			 */
-+			*cow_start += (cpos - *cow_start) &
-+					~(contig_clusters - 1);
-+			*cow_len = rec_end - *cow_start;
-+		} else {
-+			/*
-+			 * Ok, the entire write lives in the middle of
-+			 * this extent.
-+			 * Let's try to slice the extentup nicely.
-+			 * Optimally, our CoW region starts@a
-+			 * multiple of contig_clusters.
-+			 */
-+			*cow_start += (cpos - *cow_start) &
-+				~(contig_clusters - 1);
-+
-+			want_clusters = (cpos + write_len) - *cow_start;
-+			want_clusters = (want_clusters + contig_clusters - 1) /
-+					contig_clusters * contig_clusters;
-+			if (*cow_start + want_clusters <= rec_end)
-+				*cow_len = want_clusters;
-+			else
-+				*cow_len = rec_end - *cow_start;
-+		}
-+
-+		/* Have we covered our entire write yet? */
-+		if ((*cow_start + *cow_len) >= (cpos + write_len))
-+			break;
- 
- 		/*
- 		 * If we reach the end of the extent block and don't get enough
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
