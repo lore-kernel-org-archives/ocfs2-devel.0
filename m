@@ -1,66 +1,39 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Sat, 22 Aug 2009 08:31:28 +0800
-Subject: [Ocfs2-devel] [PATCH 19/41] ocfs2: Integrate CoW in file write.
-In-Reply-To: <20090821234210.GH4330@mail.oracle.com>
+From: TaoMa <tao.ma@oracle.com>
+Date: Tue, 25 Aug 2009 07:11:51 +0800
+Subject: [Ocfs2-devel] [PATCH 00/41] ocfs2: Add reflink file support. V4
+In-Reply-To: <20090821012448.GH10558@mail.oracle.com>
 References: <4A8A47DF.8020707@oracle.com>
-	<1250576382-27080-19-git-send-email-tao.ma@oracle.com>
-	<20090821211259.GD4330@mail.oracle.com>
-	<4A8F2B23.9060903@oracle.com>
-	<20090821234210.GH4330@mail.oracle.com>
-Message-ID: <4A8F3C60.4070905@oracle.com>
+	<20090821012448.GH10558@mail.oracle.com>
+Message-ID: <4A931E37.8040202@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-
-
+Hi Joel,
 Joel Becker wrote:
-> On Sat, Aug 22, 2009 at 07:17:55AM +0800, Tao Ma wrote:
+> On Tue, Aug 18, 2009 at 02:19:11PM +0800, Tao Ma wrote:
 >   
->> Joel Becker wrote:
->> yes, that is anticipated. We CoW 1MB at most at a time.
+>> Hi all,
+>>     So I have finally finished the v4 of reflink for ocfs2. Great
+>> thanks for Joel's review.
 >>     
 >
-> 	No!  We want to CoW the entire write_len at once!  That's why I
-> wrote cal_cow_cluters() the way I did!
+> 	Ok, I'm done with the review.  I basically skimmed or skipped
+> all the patches I already liked.  You didn't change anything outside of
+> responding to reviews of v3, right?
+> 	We're in great shape.  Hopefully you'll be able to answer my
+> questions and comments tomorrow and we can get this sucker into
+> merge-window Monday or Tuesday!
 >   
-oh, yes. My brain is stuck in the old "MAX_COW_BYTES".  now we have 
-"MAX_CONTIG_BYTES".
->   
->> yes, we can put a check there, but we can't resolve the 1MB issue
->> you mentioned above either. Maybe we can make ocfs2_refcount_cow
->> more intelligent? But I would say let us leave it as-is and this can
->> be a future improvement.
->>     
->
-> 	If you make ocfs2_refcount_cow() into ocfs2_refcount_cow_hunk()
-> like I described in my email, make the your ocfs2_refcount_cluters()
-> into a new ocfs2_refcount_cow() like I described, then we can CoW the
-> entire write at once.
->
->   
->> oh, yes, this is really a bug. I don't think of O_DIRECT when I
->> created this patch set. So I may really need to add a check in
->> ocfs2_prepare_inode_for_write(I guess just need to call
->> ocfs2_refcount_cow and make write_len<=1MB).
->>     
->
-> 	No, you pass a write_len of the full I/O!  We don't want to
-> fragment the thing, and there's no reason to :-)
->   
-yes.
->   
->> This also make me think that we can cal ocfs2_refcount_cow right
->> before we populate_write_desc, so that we don't need to call it
->> twice and we can directly BUG_ON(ext_flags & REFCOUNTED) in it.
->>     
->
-> 	With the new ocfs2_refcount_cow() that loops over the entire
-> write, absolutely.
->   
-sure.
+I have sent updated 17 and 19 patches. Please review.
+
+btw I have also done some minor change(add the comments and add an error 
+checker) etc and push the latest one into
+my git tree in git://oss.oracle.com/git/tma/linux-2.6.git refcount.
+So do I need to re-send the whole patch set or you can just pull from my 
+tree?
 
 Regards,
 Tao
