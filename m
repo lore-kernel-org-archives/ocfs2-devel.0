@@ -1,35 +1,41 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 25 Aug 2009 11:58:39 -0700
-Subject: [Ocfs2-devel] [PATCH 05/17] ocfs2: Use __generic_file_aio_write
- instead of generic_file_aio_write_nolock
-In-Reply-To: <1250875447-15622-6-git-send-email-jack@suse.cz>
-References: <1250875447-15622-1-git-send-email-jack@suse.cz>
-	<1250875447-15622-6-git-send-email-jack@suse.cz>
-Message-ID: <20090825185839.GB9812@mail.oracle.com>
+Date: Tue, 25 Aug 2009 12:30:53 -0700
+Subject: [Ocfs2-devel] [PATCH 17/41] ocfs2: Add CoW support.
+In-Reply-To: <1251126252-8276-1-git-send-email-tao.ma@oracle.com>
+References: <20090821205800.GC4330@mail.oracle.com>
+	<1251126252-8276-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20090825193053.GC9812@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: linux-fsdevel@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Aug 21, 2009 at 07:23:55PM +0200, Jan Kara wrote:
-> Use the new helper. We have to submit data pages ourselves in case of O_SYNC
-> write because __generic_file_aio_write does not do it for us. OCFS2 developpers
-> might think about moving the sync out of i_mutex which seems to be easily
-> possible but that's out of scope of this patch.
-> 
-> CC: ocfs2-devel at oss.oracle.com
-> CC: Joel Becker <joel.becker@oracle.com>
-> Signed-off-by: Jan Kara <jack@suse.cz>
-Acked-by: Joel Becker <joel.becker@oracle.com>
- 
+On Mon, Aug 24, 2009 at 11:04:12PM +0800, Tao Ma wrote:
+> This patch try CoW support for a refcounted record.
+
+	Overall the series looks good.  It needs to be rebased against
+the latest merge-window branch.
+	I was wondering, though.  In ocfs2_refcount_cow(), should we
+make sure that write_len is sane wrt max_cpos?  You added that (correct)
+check for max_cpos in cal_cow_clusters().  but ocfs2_refcount_cow() is
+defined as ensuring cpos+write_len is safe.
+	Now, I think this is correct in the code.  The truncate CoW
+passes a write_len of 1 and a max_cpos of cpos+1.  So perhaps at the top
+of ocfs2_refcount_cal_cow_clusters() we should BUG_ON(cpos+write_len >
+max_cpos)?  Does that sound correct to you?
+	If yes, add it.  If no, don't.  Rebase against merge-window and
+I'll pull later tonight or in the morning (my time) depending on when I
+see it.
+	It's ready to go, thank you for all the hard work!
+
+Joel
 
 -- 
 
-"The real reason GNU ls is 8-bit-clean is so that they can
- start using ISO-8859-1 option characters."
-	- Christopher Davis (ckd at loiosh.kei.com)
+Life's Little Instruction Book #510
+
+	"Count your blessings."
 
 Joel Becker
 Principal Software Developer
