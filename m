@@ -1,210 +1,45 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 25 Aug 2009 08:12:26 +0800
-Subject: [Ocfs2-devel] [PATCH 19/41] ocfs2: Integrate CoW in file write(add
-	refcount check).
-In-Reply-To: <20090824183207.GB7698@mail.oracle.com>
-References: <20090824183207.GB7698@mail.oracle.com>
-Message-ID: <1251159146-17414-1-git-send-email-tao.ma@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Tue, 25 Aug 2009 15:13:25 +0200
+Subject: [Ocfs2-devel] [PATCH 12/17] ocfs2: Update syncing
+	after	splicing to match generic version
+In-Reply-To: <20090824184009.GC7698@mail.oracle.com>
+References: <1250875447-15622-1-git-send-email-jack@suse.cz>
+	<1250875447-15622-13-git-send-email-jack@suse.cz>
+	<20090824183543.GF2818@wotan.suse.de>
+	<20090824184009.GC7698@mail.oracle.com>
+Message-ID: <20090825131325.GE405@duck.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Mark Fasheh <mfasheh@suse.com>, Jan Kara <jack@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-changelog:
-1. add refcount check in ocfs2_check_range_for_refcount.
-2. export ocfs2_check_range_for_refcount and use it in
-   ocfs2_write_begin_no_lock.
+On Mon 24-08-09 11:40:09, Joel Becker wrote:
+> On Mon, Aug 24, 2009 at 11:35:43AM -0700, Mark Fasheh wrote:
+> > On Fri, Aug 21, 2009 at 07:24:02PM +0200, Jan Kara wrote:
+> > > Update ocfs2 specific splicing code to use generic syncing helper. The sync now
+> > > does not happen under rw_lock because generic_write_sync() acquires i_mutex
+> > > which ranks above rw_lock. That should not matter because standard fsync path
+> > > does not hold it either.
+> > 
+> > Thanks Jan,
+> > 
+> > Acked-by: Mark Fasheh <mfasheh@suse.com>
+> 
+> <aol>Me too!</aol>
+> Acked-by: Joel Becker <joel.becker@oracle.com>
+  Thanks. BTW: There's also the patch
+ocfs2: Use __generic_file_aio_write instead of generic_file_aio_write_nolock
+  in the series you might want to have a look at. Actually, I did a
+straightforward opencoding of generic_osync_inode() but if you agree it's
+a good thing to do, I can move the whole sync to the end of the function
+out of i_mutex because AFAICS there's no real reason why
+filemap_fdatawrite_range() or jbd2_journal_force_commit() should need any
+cluster lock or mutex. We probably only need to decide under those locks,
+whether we need to call jbd2_journal_force_commit() or not.
 
-When we use mmap, we CoW the refcountd clusters in
-ocfs2_write_begin_nolock. While for normal file
-io(including directio), we do CoW in
-ocfs2_prepare_inode_for_write.
-
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/aops.c |   19 ++++++++++++
- fs/ocfs2/file.c |   84 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-
- fs/ocfs2/file.h |    2 +
- 3 files changed, 104 insertions(+), 1 deletions(-)
-
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 65e17b3..0bc1942 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -44,6 +44,7 @@
- #include "suballoc.h"
- #include "super.h"
- #include "symlink.h"
-+#include "refcounttree.h"
- 
- #include "buffer_head_io.h"
- 
-@@ -590,6 +591,8 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 		goto bail;
- 	}
- 
-+	/* We should already CoW the refcounted extent. */
-+	BUG_ON(ext_flags & OCFS2_EXT_REFCOUNTED);
- 	/*
- 	 * get_more_blocks() expects us to describe a hole by clearing
- 	 * the mapped bit on bh_result().
-@@ -1449,6 +1452,9 @@ static int ocfs2_populate_write_desc(struct inode *inode,
- 				goto out;
- 			}
- 
-+			/* We should already CoW the refcountd extent. */
-+			BUG_ON(ext_flags & OCFS2_EXT_REFCOUNTED);
-+
- 			/*
- 			 * Assume worst case - that we're writing in
- 			 * the middle of the extent.
-@@ -1700,6 +1706,19 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
- 		goto out;
- 	}
- 
-+	ret = ocfs2_check_range_for_refcount(inode, pos, len);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out;
-+	} else if (ret == 1) {
-+		ret = ocfs2_refcount_cow(inode, di_bh,
-+					 wc->w_cpos, wc->w_clen);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+	}
-+
- 	ret = ocfs2_populate_write_desc(inode, wc, &clusters_to_alloc,
- 					&extents_to_split);
- 	if (ret) {
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 4921b4e..6ee20e8 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -59,6 +59,7 @@
- #include "xattr.h"
- #include "acl.h"
- #include "quota.h"
-+#include "refcounttree.h"
- 
- #include "buffer_head_io.h"
- 
-@@ -1656,6 +1657,70 @@ static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
- 					 OCFS2_IOC_RESVSP64, &sr, change_size);
- }
- 
-+int ocfs2_check_range_for_refcount(struct inode *inode, loff_t pos,
-+				   size_t count)
-+{
-+	int ret = 0;
-+	unsigned int extent_flags;
-+	u32 cpos, clusters, extent_len, phys_cpos;
-+	struct super_block *sb = inode->i_sb;
-+
-+	if (!ocfs2_refcount_tree(OCFS2_SB(inode->i_sb)) ||
-+	    !(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL))
-+		return 0;
-+
-+	cpos = pos >> OCFS2_SB(sb)->s_clustersize_bits;
-+	clusters = ocfs2_clusters_for_bytes(sb, pos + count) - cpos;
-+
-+	while (clusters) {
-+		ret = ocfs2_get_clusters(inode, cpos, &phys_cpos, &extent_len,
-+					 &extent_flags);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		if (phys_cpos && (extent_flags & OCFS2_EXT_REFCOUNTED)) {
-+			ret = 1;
-+			break;
-+		}
-+
-+		if (extent_len > clusters)
-+			extent_len = clusters;
-+
-+		clusters -= extent_len;
-+		cpos += extent_len;
-+	}
-+out:
-+	return ret;
-+}
-+
-+static int ocfs2_prepare_inode_for_refcount(struct inode *inode,
-+					    loff_t pos, size_t count,
-+					    int *meta_level)
-+{
-+	int ret;
-+	struct buffer_head *di_bh = NULL;
-+	u32 cpos = pos >> OCFS2_SB(inode->i_sb)->s_clustersize_bits;
-+	u32 clusters =
-+		ocfs2_clusters_for_bytes(inode->i_sb, pos + count) - cpos;
-+
-+	ret = ocfs2_inode_lock(inode, &di_bh, 1);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	*meta_level = 1;
-+
-+	ret = ocfs2_refcount_cow(inode, di_bh, cpos, clusters);
-+	if (ret)
-+		mlog_errno(ret);
-+out:
-+	brelse(di_bh);
-+	return ret;
-+}
-+
- static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
- 					 loff_t *ppos,
- 					 size_t count,
-@@ -1712,6 +1777,22 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
- 
- 		end = saved_pos + count;
- 
-+		ret = ocfs2_check_range_for_refcount(inode, saved_pos, count);
-+		if (ret == 1) {
-+			ocfs2_inode_unlock(inode, meta_level);
-+			meta_level = -1;
-+
-+			ret = ocfs2_prepare_inode_for_refcount(inode,
-+							       saved_pos,
-+							       count,
-+							       &meta_level);
-+		}
-+
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out_unlock;
-+		}
-+
- 		/*
- 		 * Skip the O_DIRECT checks if we don't need
- 		 * them.
-@@ -1758,7 +1839,8 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
- 		*ppos = saved_pos;
- 
- out_unlock:
--	ocfs2_inode_unlock(inode, meta_level);
-+	if (meta_level >= 0)
-+		ocfs2_inode_unlock(inode, meta_level);
- 
- out:
- 	return ret;
-diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
-index 172f9fb..d66cf4f 100644
---- a/fs/ocfs2/file.h
-+++ b/fs/ocfs2/file.h
-@@ -69,4 +69,6 @@ int ocfs2_update_inode_atime(struct inode *inode,
- int ocfs2_change_file_space(struct file *file, unsigned int cmd,
- 			    struct ocfs2_space_resv *sr);
- 
-+int ocfs2_check_range_for_refcount(struct inode *inode, loff_t pos,
-+				   size_t count);
- #endif /* OCFS2_FILE_H */
+									Honza
 -- 
-1.6.2.rc2.16.gf474c
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
