@@ -1,42 +1,38 @@
-From: TaoMa <tao.ma@oracle.com>
-Date: Wed, 26 Aug 2009 16:17:00 +0800
-Subject: [Ocfs2-devel] [PATCH 17/41] ocfs2: Add CoW support.
-In-Reply-To: <20090825193053.GC9812@mail.oracle.com>
-References: <20090821205800.GC4330@mail.oracle.com>
-	<1251126252-8276-1-git-send-email-tao.ma@oracle.com>
-	<20090825193053.GC9812@mail.oracle.com>
-Message-ID: <4A94EF7C.7020706@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 25 Aug 2009 21:39:16 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: __ocfs2_abort() should not
+ enable panic for local mounts
+In-Reply-To: <1250720161-29360-1-git-send-email-sunil.mushran@oracle.com>
+References: <1250720161-29360-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20090826043916.GB21669@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Joel Becker wrote:
-> On Mon, Aug 24, 2009 at 11:04:12PM +0800, Tao Ma wrote:
->   
->> This patch try CoW support for a refcounted record.
->>     
->
-> 	Overall the series looks good.  It needs to be rebased against
-> the latest merge-window branch.
-> 	I was wondering, though.  In ocfs2_refcount_cow(), should we
-> make sure that write_len is sane wrt max_cpos?  You added that (correct)
-> check for max_cpos in cal_cow_clusters().  but ocfs2_refcount_cow() is
-> defined as ensuring cpos+write_len is safe.
-> 	Now, I think this is correct in the code.  The truncate CoW
-> passes a write_len of 1 and a max_cpos of cpos+1.  So perhaps at the top
-> of ocfs2_refcount_cal_cow_clusters() we should BUG_ON(cpos+write_len >
-> max_cpos)?  Does that sound correct to you?
->   
-should be. Although our current code handle this gracefully, we can't 
-tell whether future caller forget this basic condition.  So I have no 
-objection to it. I will add it later.
-> 	If yes, add it.  If no, don't.  Rebase against merge-window and
-> I'll pull later tonight or in the morning (my time) depending on when I
-> see it.
->   
-Sure. thanks.
+On Wed, Aug 19, 2009 at 03:16:01PM -0700, Sunil Mushran wrote:
+> In a clustered setup, we have to panic the box on journal abort. This is
+> because we don't have the facility to go hard readonly. With hard ro, another
+> node would detect node failure and initiate recovery.
+> 
+> Having said that, we shouldn't force panic if the volume is mounted locally.
+> This patch defers the handling to the mount option, errors.
+> 
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-Regards,
-Tao
+This is now in the merge-window branch of ocfs2.git.
+
+Joel
+
+-- 
+
+"Here's something to think about:  How come you never see a headline
+ like ``Psychic Wins Lottery''?"
+	- Jay Leno
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
