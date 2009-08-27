@@ -1,14 +1,15 @@
 From: Christoph Hellwig <hch@infradead.org>
-Date: Wed, 26 Aug 2009 18:22:47 -0000
+Date: Thu, 27 Aug 2009 00:04:30 -0000
 Subject: [Ocfs2-devel] [PATCH 07/17] vfs: Introduce new helpers for
 	syncing after	writing to O_SYNC file or IS_SYNC inode
-In-Reply-To: <20090820162729.GA24659@infradead.org>
+In-Reply-To: <20090826182236.GA1290@infradead.org>
 References: <1250697884-22288-1-git-send-email-jack@suse.cz>
 	<1250697884-22288-8-git-send-email-jack@suse.cz>
 	<20090819162638.GE6150@infradead.org>
 	<20090820121531.GC16486@duck.novell.com>
 	<20090820162729.GA24659@infradead.org>
-Message-ID: <20090826182236.GA1290@infradead.org>
+	<20090826182236.GA1290@infradead.org>
+Message-ID: <20090827000423.GA30076@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -16,24 +17,30 @@ Content-Transfer-Encoding: 7bit
 To: Jan Kara <jack@suse.cz>
 Cc: Christoph Hellwig <hch@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Evgeniy Polyakov <zbr@ioremap.net>, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Felix Blyakher <felixb@sgi.com>, xfs@oss.sgi.com, Anton Altaparmakov <aia21@cantab.net>, linux-ntfs-dev@lists.sourceforge.net, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, linux-ext4@vger.kernel.org, tytso@mit.edu
 
-On Thu, Aug 20, 2009 at 12:27:29PM -0400, Christoph Hellwig wrote:
-> Maybe you can help brain storming, but I still can't see any way in that
-> the
+On Wed, Aug 26, 2009 at 02:22:36PM -0400, Christoph Hellwig wrote:
+> On Thu, Aug 20, 2009 at 12:27:29PM -0400, Christoph Hellwig wrote:
+> > Maybe you can help brain storming, but I still can't see any way in that
+> > the
+> > 
+> >   - write data
+> >   - write inode
+> >   - wait for data
+> > 
+> > actually is a benefit in terms of semantics (I agree that it could be
+> > faster in theory, but even that is debatable with todays seek latencies
+> > in disks)
 > 
->   - write data
->   - write inode
->   - wait for data
+> Btw, another reason why our current default is actively harmful:
 > 
-> actually is a benefit in terms of semantics (I agree that it could be
-> faster in theory, but even that is debatable with todays seek latencies
-> in disks)
+> 	barriers
+> 
+> With volatile write caches we do have to flush the disk write cache in
+> ->fsync, either implicitly by a metadata operation, or explicitly if
+> only data changed.  Unless the filesystems waits itself for the data
+> to hit the disk like XFS or btrfs will be issue the cache flush
+> potentially before the data write has actually reached the disk cache.
 
-Btw, another reason why our current default is actively harmful:
-
-	barriers
-
-With volatile write caches we do have to flush the disk write cache in
-->fsync, either implicitly by a metadata operation, or explicitly if
-only data changed.  Unless the filesystems waits itself for the data
-to hit the disk like XFS or btrfs will be issue the cache flush
-potentially before the data write has actually reached the disk cache.
+Ok, this one failed the reality check - no matter how hard I tried
+I could not reproduce that case in my test harness.  It turns out
+cache flush request are quite sensibly treated as barriers by the block
+layer and thus we drain the queue before issueing the cache flush.
