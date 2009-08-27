@@ -1,38 +1,52 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 25 Aug 2009 21:39:16 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: __ocfs2_abort() should not
- enable panic for local mounts
-In-Reply-To: <1250720161-29360-1-git-send-email-sunil.mushran@oracle.com>
-References: <1250720161-29360-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20090826043916.GB21669@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 27 Aug 2009 14:46:56 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: invalidate dentry if its dentry_lock
+	isn't initialized.
+Message-ID: <1251355616-6779-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Aug 19, 2009 at 03:16:01PM -0700, Sunil Mushran wrote:
-> In a clustered setup, we have to panic the box on journal abort. This is
-> because we don't have the facility to go hard readonly. With hard ro, another
-> node would detect node failure and initiate recovery.
-> 
-> Having said that, we shouldn't force panic if the volume is mounted locally.
-> This patch defers the handling to the mount option, errors.
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+In commit a5a0a630922a2f6a774b6dac19f70cb5abd86bb0, when
+ocfs2_attch_dentry_lock fails, we call an extra iput and reset
+dentry->d_fsdata to NULL. This resolve a bug, but it isn't
+completed and the dentry is still there. When we want to use
+it again, ocfs2_dentry_revalidate doesn't catch it and return
+true. That make future ocfs2_dentry_lock panic out.
+One bug is http://oss.oracle.com/bugzilla/show_bug.cgi?id=1162.
 
-This is now in the merge-window branch of ocfs2.git.
+The resolution is to add a check for dentry->d_fsdata in
+revalidate process and return false if dentry->d_fsdata is NULL,
+so that a new ocfs2_lookup will be called again.
 
-Joel
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/dcache.c |   11 +++++++++++
+ 1 files changed, 11 insertions(+), 0 deletions(-)
 
+diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
+index 2f28b7d..b4957c7 100644
+--- a/fs/ocfs2/dcache.c
++++ b/fs/ocfs2/dcache.c
+@@ -85,6 +85,17 @@ static int ocfs2_dentry_revalidate(struct dentry *dentry,
+ 		goto bail;
+ 	}
+ 
++	/*
++	 * If the last lookup failed to create dentry lock, let us
++	 * redo it.
++	 */
++	if (!dentry->d_fsdata) {
++		mlog(0, "Inode %llu doesn't have dentry lock, "
++		     "returning false\n",
++		     (unsigned long long)OCFS2_I(inode)->ip_blkno);
++		goto bail;
++	}
++
+ 	ret = 1;
+ 
+ bail:
 -- 
-
-"Here's something to think about:  How come you never see a headline
- like ``Psychic Wins Lottery''?"
-	- Jay Leno
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.5
