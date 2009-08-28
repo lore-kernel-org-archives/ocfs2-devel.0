@@ -1,286 +1,255 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Fri, 28 Aug 2009 01:35:58 -0700
-Subject: [Ocfs2-devel] [PATCH 09/14] ocfs2: Teach ocfs2_xa_loc how to do its
-	own journal work
+Date: Fri, 28 Aug 2009 01:36:02 -0700
+Subject: [Ocfs2-devel] [PATCH 13/14] ocfs2: Set xattr block entries with
+	ocfs2_xa_set()
 In-Reply-To: <1251448563-12508-1-git-send-email-joel.becker@oracle.com>
 References: <1251448563-12508-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1251448563-12508-10-git-send-email-joel.becker@oracle.com>
+Message-ID: <1251448563-12508-14-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We're going to want to make sure our buffers get accessed and dirtied
-correctly.  So have the xa_loc do the work.  This includes storing the
-inode on ocfs2_xa_loc.
+ocfs2_xattr_block_set() calls into ocfs2_xattr_set_entry() with just the
+HAS_XATTR flag.  Most of the machinery of ocfs2_xattr_set_entry() is
+skipped.  All that really happens other than the call to ocfs2_xa_set()
+is making sure the HAS_XATTR flag is set on the inode.
+
+But HAS_XATTR should be set when we also set di->i_xattr_loc.  And
+that's done in ocfs2_xattr_block_set().  So let's move it there, and
+then ocfs2_xattr_block_set() can just call ocfs2_xa_set().
+
+While we're there, ocfs2_create_xattr_block() can take the set_ctxt for
+a smaller argument list.  It also learns to set HAS_XATTR_FL, because it
+knows for sure.  ocfs2_create_empty_xatttr_block() in the reflink path
+fakes a set_ctxt to call ocfs2_create_xattr_block().
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/xattr.c |  115 ++++++++++++++++++++++++++++++++++++++++--------------
- 1 files changed, 86 insertions(+), 29 deletions(-)
+ fs/ocfs2/xattr.c |   97 ++++++++++++++++++++++++++---------------------------
+ 1 files changed, 48 insertions(+), 49 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index cb5357e..1bc12fa 100644
+index e400d64..862c56d 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -146,6 +146,13 @@ struct ocfs2_xattr_search {
- struct ocfs2_xa_loc;
- struct ocfs2_xa_loc_operations {
- 	/*
-+	 * Journal functions
-+	 */
-+	int (*xlo_journal_access)(handle_t *handle, struct ocfs2_xa_loc *loc,
-+				  int type);
-+	void (*xlo_journal_dirty)(handle_t *handle, struct ocfs2_xa_loc *loc);
-+
-+	/*
- 	 * Return a pointer to the appropriate buffer in loc->xl_storage
- 	 * at the given offset from loc->xl_header.
- 	 */
-@@ -190,6 +197,9 @@ struct ocfs2_xa_loc_operations {
-  * tracking the on-disk structure.
-  */
- struct ocfs2_xa_loc {
-+	/* This xattr belongs to this inode */
-+	struct inode *xl_inode;
-+
- 	/* The ocfs2_xattr_header inside the on-disk storage. Not NULL. */
- 	struct ocfs2_xattr_header *xl_header;
+@@ -2157,10 +2157,8 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 	int ret;
+ 	struct ocfs2_xa_loc loc;
  
-@@ -1543,6 +1553,17 @@ static int ocfs2_xa_has_space_helper(int needed_space, int free_start,
- 	return 0;
- }
+-	if (!(flag & OCFS2_INLINE_XATTR_FL))
+-		BUG_ON(xs->xattr_bh == xs->inode_bh);
+-	else
+-		BUG_ON(xs->xattr_bh != xs->inode_bh);
++	BUG_ON(!(flag & OCFS2_INLINE_XATTR_FL));
++	BUG_ON(xs->xattr_bh != xs->inode_bh);
  
-+static int ocfs2_xa_journal_access(handle_t *handle, struct ocfs2_xa_loc *loc,
-+				   int type)
-+{
-+	return loc->xl_ops->xlo_journal_access(handle, loc, type);
-+}
-+
-+static void ocfs2_xa_journal_dirty(handle_t *handle, struct ocfs2_xa_loc *loc)
-+{
-+	loc->xl_ops->xlo_journal_dirty(handle, loc);
-+}
-+
- /* Give a pointer into the storage for the given offset */
- static void *ocfs2_xa_offset_pointer(struct ocfs2_xa_loc *loc, int offset)
- {
-@@ -1630,6 +1651,29 @@ static void ocfs2_xa_fill_value_buf(struct ocfs2_xa_loc *loc,
- 							name_size);
- }
- 
-+static int ocfs2_xa_block_journal_access(handle_t *handle,
-+					 struct ocfs2_xa_loc *loc, int type)
-+{
-+	struct buffer_head *bh = loc->xl_storage;
-+	ocfs2_journal_access_func access;
-+
-+	if (loc->xl_size == (bh->b_size -
-+			     offsetof(struct ocfs2_xattr_block,
-+				      xb_attrs.xb_header)))
-+		access = ocfs2_journal_access_xb;
-+	else
-+		access = ocfs2_journal_access_di;
-+	return access(handle, INODE_CACHE(loc->xl_inode), bh, type);
-+}
-+
-+static void ocfs2_xa_block_journal_dirty(handle_t *handle,
-+					 struct ocfs2_xa_loc *loc)
-+{
-+	struct buffer_head *bh = loc->xl_storage;
-+
-+	ocfs2_journal_dirty(handle, bh);
-+}
-+
- static void *ocfs2_xa_block_offset_pointer(struct ocfs2_xa_loc *loc,
- 					   int offset)
- {
-@@ -1759,6 +1803,8 @@ static void ocfs2_xa_block_fill_value_buf(struct ocfs2_xa_loc *loc,
-  * storage and unindexed ocfs2_xattr_blocks.
-  */
- static const struct ocfs2_xa_loc_operations ocfs2_xa_block_loc_ops = {
-+	.xlo_journal_access	= ocfs2_xa_block_journal_access,
-+	.xlo_journal_dirty	= ocfs2_xa_block_journal_dirty,
- 	.xlo_offset_pointer	= ocfs2_xa_block_offset_pointer,
- 	.xlo_has_space		= ocfs2_xa_block_has_space,
- 	.xlo_can_reuse		= ocfs2_xa_block_can_reuse,
-@@ -1769,6 +1815,22 @@ static const struct ocfs2_xa_loc_operations ocfs2_xa_block_loc_ops = {
- 	.xlo_fill_value_buf	= ocfs2_xa_block_fill_value_buf,
- };
- 
-+static int ocfs2_xa_bucket_journal_access(handle_t *handle,
-+					  struct ocfs2_xa_loc *loc, int type)
-+{
-+	struct ocfs2_xattr_bucket *bucket = loc->xl_storage;
-+
-+	return ocfs2_xattr_bucket_journal_access(handle, bucket, type);
-+}
-+
-+static void ocfs2_xa_bucket_journal_dirty(handle_t *handle,
-+					  struct ocfs2_xa_loc *loc)
-+{
-+	struct ocfs2_xattr_bucket *bucket = loc->xl_storage;
-+
-+	ocfs2_xattr_bucket_journal_dirty(handle, bucket);
-+}
-+
- static void *ocfs2_xa_bucket_offset_pointer(struct ocfs2_xa_loc *loc,
- 					    int offset)
- {
-@@ -1777,8 +1839,8 @@ static void *ocfs2_xa_bucket_offset_pointer(struct ocfs2_xa_loc *loc,
- 
- 	BUG_ON(offset >= OCFS2_XATTR_BUCKET_SIZE);
- 
--	block = offset >> bucket->bu_inode->i_sb->s_blocksize_bits;
--	block_offset = offset % bucket->bu_inode->i_sb->s_blocksize;
-+	block = offset >> loc->xl_inode->i_sb->s_blocksize_bits;
-+	block_offset = offset % loc->xl_inode->i_sb->s_blocksize;
- 
- 	return bucket_block(bucket, block) + block_offset;
- }
-@@ -1817,8 +1879,7 @@ static int ocfs2_xa_bucket_has_space(struct ocfs2_xa_loc *loc,
- 	int free_start = ocfs2_xa_get_free_start(loc);
- 	int needed_space = ocfs2_xi_entry_usage(xi);
- 	int size = namevalue_size_xi(xi);
--	struct ocfs2_xattr_bucket *bucket = loc->xl_storage;
--	struct super_block *sb = bucket->bu_inode->i_sb;
-+	struct super_block *sb = loc->xl_inode->i_sb;
- 
- 	/*
- 	 * Bucket storage does not reclaim name+value pairs it cannot
-@@ -1884,8 +1945,7 @@ static void ocfs2_xa_bucket_add_namevalue(struct ocfs2_xa_loc *loc, int size)
- {
- 	int free_start = ocfs2_xa_get_free_start(loc);
- 	struct ocfs2_xattr_header *xh = loc->xl_header;
--	struct ocfs2_xattr_bucket *bucket = loc->xl_storage;
--	struct super_block *sb = bucket->bu_inode->i_sb;
-+	struct super_block *sb = loc->xl_inode->i_sb;
- 	int nameval_offset;
- 
- 	free_start = ocfs2_bucket_align_free_start(sb, free_start, size);
-@@ -1900,7 +1960,7 @@ static void ocfs2_xa_bucket_fill_value_buf(struct ocfs2_xa_loc *loc,
- 					   struct ocfs2_xattr_value_buf *vb)
- {
- 	struct ocfs2_xattr_bucket *bucket = loc->xl_storage;
--	struct super_block *sb = bucket->bu_inode->i_sb;
-+	struct super_block *sb = loc->xl_inode->i_sb;
- 	int nameval_offset = le16_to_cpu(loc->xl_entry->xe_name_offset);
- 	int size = namevalue_size_xe(loc->xl_entry);
- 	int block_offset = nameval_offset >> sb->s_blocksize_bits;
-@@ -1917,6 +1977,8 @@ static void ocfs2_xa_bucket_fill_value_buf(struct ocfs2_xa_loc *loc,
- 
- /* Operations for xattrs stored in buckets. */
- static const struct ocfs2_xa_loc_operations ocfs2_xa_bucket_loc_ops = {
-+	.xlo_journal_access	= ocfs2_xa_bucket_journal_access,
-+	.xlo_journal_dirty	= ocfs2_xa_bucket_journal_dirty,
- 	.xlo_offset_pointer	= ocfs2_xa_bucket_offset_pointer,
- 	.xlo_has_space		= ocfs2_xa_bucket_has_space,
- 	.xlo_can_reuse		= ocfs2_xa_bucket_can_reuse,
-@@ -2033,6 +2095,7 @@ static void ocfs2_init_dinode_xa_loc(struct ocfs2_xa_loc *loc,
- {
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
- 
-+	loc->xl_inode = inode;
- 	loc->xl_ops = &ocfs2_xa_block_loc_ops;
- 	loc->xl_storage = bh;
- 	loc->xl_entry = entry;
-@@ -2049,6 +2112,7 @@ static void ocfs2_init_dinode_xa_loc(struct ocfs2_xa_loc *loc,
- }
- 
- static void ocfs2_init_xattr_block_xa_loc(struct ocfs2_xa_loc *loc,
-+					  struct inode *inode,
- 					  struct buffer_head *bh,
- 					  struct ocfs2_xattr_entry *entry)
- {
-@@ -2057,6 +2121,7 @@ static void ocfs2_init_xattr_block_xa_loc(struct ocfs2_xa_loc *loc,
- 
- 	BUG_ON(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED);
- 
-+	loc->xl_inode = inode;
- 	loc->xl_ops = &ocfs2_xa_block_loc_ops;
- 	loc->xl_storage = bh;
- 	loc->xl_header = &(xb->xb_attrs.xb_header);
-@@ -2069,6 +2134,7 @@ static void ocfs2_init_xattr_bucket_xa_loc(struct ocfs2_xa_loc *loc,
- 					   struct ocfs2_xattr_bucket *bucket,
- 					   struct ocfs2_xattr_entry *entry)
- {
-+	loc->xl_inode = bucket->bu_inode;
- 	loc->xl_ops = &ocfs2_xa_bucket_loc_ops;
- 	loc->xl_storage = bucket;
- 	loc->xl_header = bucket_xh(bucket);
-@@ -2210,21 +2276,18 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), xs->inode_bh,
+ 				      OCFS2_JOURNAL_ACCESS_WRITE);
+@@ -2169,13 +2167,8 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
  		goto out;
  	}
  
--	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
--		ret = vb.vb_access(handle, INODE_CACHE(inode), vb.vb_bh,
--				   OCFS2_JOURNAL_ACCESS_WRITE);
--		if (ret) {
--			mlog_errno(ret);
--			goto out;
--		}
--	}
+-	if (xs->xattr_bh == xs->inode_bh)
+-		ocfs2_init_dinode_xa_loc(&loc, inode, xs->inode_bh,
+-					 xs->not_found ? NULL : xs->here);
+-	else
+-		ocfs2_init_xattr_block_xa_loc(&loc, inode, xs->xattr_bh,
+-					      xs->not_found ? NULL : xs->here);
 -
- 	if (xs->xattr_bh == xs->inode_bh)
- 		ocfs2_init_dinode_xa_loc(&loc, inode, xs->inode_bh,
- 					 xs->not_found ? NULL : xs->here);
- 	else
--		ocfs2_init_xattr_block_xa_loc(&loc, xs->xattr_bh,
-+		ocfs2_init_xattr_block_xa_loc(&loc, inode, xs->xattr_bh,
- 					      xs->not_found ? NULL : xs->here);
-+	ret = ocfs2_xa_journal_access(handle, &loc,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
- 
- 	/*
- 	 * Prepare our entry and insert the inline value.  This will
-@@ -2242,13 +2305,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
- 	ocfs2_xa_store_inline_value(&loc, xi);
++	ocfs2_init_dinode_xa_loc(&loc, inode, xs->inode_bh,
++				 xs->not_found ? NULL : xs->here);
+ 	ret = ocfs2_xa_set(&loc, xi, ctxt);
+ 	if (ret) {
+ 		if (ret != -ENOSPC)
+@@ -2184,8 +2177,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 	}
  	xs->here = loc.xl_entry;
  
--	if (!(flag & OCFS2_INLINE_XATTR_FL)) {
--		ret = ocfs2_journal_dirty(handle, xs->xattr_bh);
--		if (ret < 0) {
--			mlog_errno(ret);
--			goto out;
--		}
--	}
-+	ocfs2_xa_journal_dirty(handle, &loc);
+-	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL) &&
+-	    (flag & OCFS2_INLINE_XATTR_FL)) {
++	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL)) {
+ 		struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 		unsigned int xattrsize = osb->s_xattr_inline_size;
  
- 	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL) &&
- 	    (flag & OCFS2_INLINE_XATTR_FL)) {
-@@ -5309,15 +5366,15 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
- 		}
+@@ -2205,7 +2197,7 @@ static int ocfs2_xattr_set_entry(struct inode *inode,
+ 	}
+ 	/* Update xattr flag */
+ 	spin_lock(&oi->ip_lock);
+-	oi->ip_dyn_features |= flag;
++	oi->ip_dyn_features |= OCFS2_INLINE_XATTR_FL;
+ 	di->i_dyn_features = cpu_to_le16(oi->ip_dyn_features);
+ 	spin_unlock(&oi->ip_lock);
+ 
+@@ -2699,12 +2691,11 @@ cleanup:
+ 	return ret;
+ }
+ 
+-static int ocfs2_create_xattr_block(handle_t *handle,
+-				    struct inode *inode,
++static int ocfs2_create_xattr_block(struct inode *inode,
+ 				    struct buffer_head *inode_bh,
+-				    struct ocfs2_alloc_context *meta_ac,
+-				    struct buffer_head **ret_bh,
+-				    int indexed)
++				    struct ocfs2_xattr_set_ctxt *ctxt,
++				    int indexed,
++				    struct buffer_head **ret_bh)
+ {
+ 	int ret;
+ 	u16 suballoc_bit_start;
+@@ -2715,14 +2706,14 @@ static int ocfs2_create_xattr_block(handle_t *handle,
+ 	struct buffer_head *new_bh = NULL;
+ 	struct ocfs2_xattr_block *xblk;
+ 
+-	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), inode_bh,
+-				      OCFS2_JOURNAL_ACCESS_CREATE);
++	ret = ocfs2_journal_access_di(ctxt->handle, INODE_CACHE(inode),
++				      inode_bh, OCFS2_JOURNAL_ACCESS_CREATE);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+ 		goto end;
  	}
  
--	ret = ocfs2_xattr_bucket_journal_access(handle, xs->bucket,
--						OCFS2_JOURNAL_ACCESS_WRITE);
-+	ocfs2_init_xattr_bucket_xa_loc(&loc, xs->bucket,
-+				       xs->not_found ? NULL : xs->here);
-+	ret = ocfs2_xa_journal_access(handle, &loc,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
+-	ret = ocfs2_claim_metadata(osb, handle, meta_ac, 1,
++	ret = ocfs2_claim_metadata(osb, ctxt->handle, ctxt->meta_ac, 1,
+ 				   &suballoc_bit_start, &num_got,
+ 				   &first_blkno);
  	if (ret < 0) {
+@@ -2733,7 +2724,7 @@ static int ocfs2_create_xattr_block(handle_t *handle,
+ 	new_bh = sb_getblk(inode->i_sb, first_blkno);
+ 	ocfs2_set_new_buffer_uptodate(INODE_CACHE(inode), new_bh);
+ 
+-	ret = ocfs2_journal_access_xb(handle, INODE_CACHE(inode),
++	ret = ocfs2_journal_access_xb(ctxt->handle, INODE_CACHE(inode),
+ 				      new_bh,
+ 				      OCFS2_JOURNAL_ACCESS_CREATE);
+ 	if (ret < 0) {
+@@ -2749,7 +2740,6 @@ static int ocfs2_create_xattr_block(handle_t *handle,
+ 	xblk->xb_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+ 	xblk->xb_fs_generation = cpu_to_le32(osb->fs_generation);
+ 	xblk->xb_blkno = cpu_to_le64(first_blkno);
+-
+ 	if (indexed) {
+ 		struct ocfs2_xattr_tree_root *xr = &xblk->xb_attrs.xb_root;
+ 		xr->xt_clusters = cpu_to_le32(1);
+@@ -2760,14 +2750,17 @@ static int ocfs2_create_xattr_block(handle_t *handle,
+ 		xr->xt_list.l_next_free_rec = cpu_to_le16(1);
+ 		xblk->xb_flags = cpu_to_le16(OCFS2_XATTR_INDEXED);
+ 	}
++	ocfs2_journal_dirty(ctxt->handle, new_bh);
+ 
+-	ret = ocfs2_journal_dirty(handle, new_bh);
+-	if (ret < 0) {
+-		mlog_errno(ret);
+-		goto end;
+-	}
++	/* Add it to the inode */
+ 	di->i_xattr_loc = cpu_to_le64(first_blkno);
+-	ocfs2_journal_dirty(handle, inode_bh);
++
++	spin_lock(&OCFS2_I(inode)->ip_lock);
++	OCFS2_I(inode)->ip_dyn_features |= OCFS2_HAS_XATTR_FL;
++	di->i_dyn_features = cpu_to_le16(OCFS2_I(inode)->ip_dyn_features);
++	spin_unlock(&OCFS2_I(inode)->ip_lock);
++
++	ocfs2_journal_dirty(ctxt->handle, inode_bh);
+ 
+ 	*ret_bh = new_bh;
+ 	new_bh = NULL;
+@@ -2789,13 +2782,13 @@ static int ocfs2_xattr_block_set(struct inode *inode,
+ 				 struct ocfs2_xattr_set_ctxt *ctxt)
+ {
+ 	struct buffer_head *new_bh = NULL;
+-	handle_t *handle = ctxt->handle;
+ 	struct ocfs2_xattr_block *xblk = NULL;
+ 	int ret;
++	struct ocfs2_xa_loc loc;
+ 
+ 	if (!xs->xattr_bh) {
+-		ret = ocfs2_create_xattr_block(handle, inode, xs->inode_bh,
+-					       ctxt->meta_ac, &new_bh, 0);
++		ret = ocfs2_create_xattr_block(inode, xs->inode_bh, ctxt,
++					       0, &new_bh);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto end;
+@@ -2811,21 +2804,25 @@ static int ocfs2_xattr_block_set(struct inode *inode,
+ 		xblk = (struct ocfs2_xattr_block *)xs->xattr_bh->b_data;
+ 
+ 	if (!(le16_to_cpu(xblk->xb_flags) & OCFS2_XATTR_INDEXED)) {
+-		/* Set extended attribute into external block */
+-		ret = ocfs2_xattr_set_entry(inode, xi, xs, ctxt,
+-					    OCFS2_HAS_XATTR_FL);
+-		if (!ret || ret != -ENOSPC)
+-			goto end;
++		ocfs2_init_xattr_block_xa_loc(&loc, inode, xs->xattr_bh,
++					      xs->not_found ? NULL : xs->here);
+ 
+-		ret = ocfs2_xattr_create_index_block(inode, xs, ctxt);
+-		if (ret)
++		ret = ocfs2_xa_set(&loc, xi, ctxt);
++		if (!ret)
++			xs->here = loc.xl_entry;
++		else if (ret != -ENOSPC)
+ 			goto end;
++		else {
++			ret = ocfs2_xattr_create_index_block(inode, xs, ctxt);
++			if (ret)
++				goto end;
++		}
+ 	}
+ 
+-	ret = ocfs2_xattr_set_entry_index_block(inode, xi, xs, ctxt);
++	if (le16_to_cpu(xblk->xb_flags) & OCFS2_XATTR_INDEXED)
++		ret = ocfs2_xattr_set_entry_index_block(inode, xi, xs, ctxt);
+ 
+ end:
+-
+ 	return ret;
+ }
+ 
+@@ -6366,9 +6363,11 @@ static int ocfs2_create_empty_xattr_block(struct inode *inode,
+ 					  int indexed)
+ {
+ 	int ret;
+-	handle_t *handle;
+ 	struct ocfs2_alloc_context *meta_ac;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	struct ocfs2_xattr_set_ctxt ctxt = {
++		.meta_ac = meta_ac,
++	};
+ 
+ 	ret = ocfs2_reserve_new_metadata_blocks(osb, 1, &meta_ac);
+ 	if (ret < 0) {
+@@ -6376,21 +6375,21 @@ static int ocfs2_create_empty_xattr_block(struct inode *inode,
+ 		return ret;
+ 	}
+ 
+-	handle = ocfs2_start_trans(osb, OCFS2_XATTR_BLOCK_CREATE_CREDITS);
+-	if (IS_ERR(handle)) {
+-		ret = PTR_ERR(handle);
++	ctxt.handle = ocfs2_start_trans(osb, OCFS2_XATTR_BLOCK_CREATE_CREDITS);
++	if (IS_ERR(ctxt.handle)) {
++		ret = PTR_ERR(ctxt.handle);
  		mlog_errno(ret);
  		goto out;
  	}
  
--	ocfs2_init_xattr_bucket_xa_loc(&loc, xs->bucket,
--				       xs->not_found ? NULL : xs->here);
- 	ret = ocfs2_xa_prepare_entry(&loc, xi, name_hash);
- 	if (ret) {
- 		if (ret != -ENOSPC)
-@@ -5329,7 +5386,7 @@ static int ocfs2_xattr_set_entry_in_bucket(struct inode *inode,
- 	ocfs2_xa_store_inline_value(&loc, xi);
- 	xs->here = loc.xl_entry;
+ 	mlog(0, "create new xattr block for inode %llu, index = %d\n",
+ 	     (unsigned long long)fe_bh->b_blocknr, indexed);
+-	ret = ocfs2_create_xattr_block(handle, inode, fe_bh,
+-				       meta_ac, ret_bh, indexed);
++	ret = ocfs2_create_xattr_block(inode, fe_bh, &ctxt, indexed,
++				       ret_bh);
+ 	if (ret)
+ 		mlog_errno(ret);
  
--	ocfs2_xattr_bucket_journal_dirty(handle, xs->bucket);
-+	ocfs2_xa_journal_dirty(handle, &loc);
- 
+-	ocfs2_commit_trans(osb, handle);
++	ocfs2_commit_trans(osb, ctxt.handle);
  out:
+ 	ocfs2_free_alloc_context(meta_ac);
  	return ret;
 -- 
 1.6.3.3
