@@ -1,72 +1,89 @@
-From: Coly Li <coly.li@suse.de>
-Date: Sat, 01 Aug 2009 00:49:11 +0800
-Subject: [Ocfs2-devel] lvb length issue [was Re: [ocfs2-tools-devel]
- question of ocfs2_controld (Jun 27)]
-In-Reply-To: <20090731162112.GA24461@redhat.com>
-References: <4A451AB5.9070908@suse.de> <20090626193436.GC4478@mail.oracle.com>
-	<4A45257C.6040704@suse.de> <20090629080023.GB8373@mail.oracle.com>
-	<4A51ED7F.2040105@suse.de> <20090707160113.GA9140@redhat.com>
-	<20090707174741.GA24163@mail.oracle.com>
-	<20090708141542.GA8778@redhat.com>
-	<20090709185338.GA11643@redhat.com> <4A72DC8C.303@suse.de>
-	<20090731162112.GA24461@redhat.com>
-Message-ID: <4A732087.5040609@suse.de>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 01 Sep 2009 15:33:07 +0800
+Subject: [Ocfs2-devel] [PATCH 06/14] ocfs2: Set the xattr name+value
+	pair in one place
+In-Reply-To: <1251448563-12508-7-git-send-email-joel.becker@oracle.com>
+References: <1251448563-12508-1-git-send-email-joel.becker@oracle.com>
+	<1251448563-12508-7-git-send-email-joel.becker@oracle.com>
+Message-ID: <4A9CCE33.2070506@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Joel,
 
-
-David Teigland Wrote:
-> On Fri, Jul 31, 2009 at 07:59:08PM +0800, Coly Li wrote:
->>
->> David Teigland Wrote:
->>> On Wed, Jul 08, 2009 at 09:15:42AM -0500, David Teigland wrote:
->>>> On Tue, Jul 07, 2009 at 10:47:42AM -0700, Joel Becker wrote:
->>>>> 	In this case, it's userspace utilities locking to verify no one
->>>>> else is doing anything in the cluster.  coly has noticed mkfs.ocfs2, but
->>>>> tunefs.ocfs2 and fsck.ocfs2 do the same thing.
->>>>> 	While a 64byte user lvb would be ideal, I think a flag to work
->>>>> around it would be great.  If the flag says "I know this lockspace may
->>>>> have !32byte LVBs, but I promise not to use them", and you can error
->>>>> when someone tries to set/get LVBs in that case, I think it works.
->>> Here's a kernel patch that I've not yet tried.  The code using libdlm will
->>> need to add the flag 0x00000010 to dlm_new_lockspace().  (Until we've added
->>> the new LVB64 define to libdlm.h.)
->>>
->>> +#define DLM_LSFL_LVB64		0x00000010
->>>
->> Another difficulty is user space libdlm interface. Right now, the interface
->> mkfs.ocfs2 uses to create a lock space is,
->> dlm_lshandle_t dlm_create_lockspace(const char *name, mode_t mode)
->> {
->>         return create_lockspace(name, mode, 0);
->> }
->>
->> There is no way to set flags in dlm_create_lockspace() and it is set to 0 inside
->> the interface.
->>
->> Is it possible to export create_lockspace() and release_lockspace() from libdlm
->> ? So ocfs2-tools can load these symbols with dlopen() and calls these routines
->> with flags (set DLM_LSFL_LVB64).
->>
->> Other 2 options might be,
->> 1) add flags in dlm_create_lockspace(), which will change libdlm api.
->> 2) update default lvb length from 32bytes to 64bytes.
+Joel Becker wrote:
+> We create two new functions on ocfs2_xa_loc, ocfs2_xa_prepare_entry()
+> and ocfs2_xa_store_inline_value().
 > 
-> I don't think I'll bother with the LVB64 flag hack.  Instead, I'm planning to
-> do a larger API change to really support variable length lvb's from userspace.
+> ocfs2_xa_prepare_entry() makes sure that the xl_entry field of
+> ocfs2_xa_loc is ready to receive an xattr.  The entry will point to an
+> appropriately sized name+value region in storage.  If an existing entry
+> can be reused, it will be.  If no entry already exists, it will be
+> allocated.  If there isn't space to allocate it, -ENOSPC will be
+> returned.
 > 
-> It's actually dlm_new_lockspace() that you would use to pass flags, and once
-> we add variable length lvb's we'll need a new third call that adds an lvblen
-> parameter.
+> ocfs2_xa_store_inline_value() stores the data that goes into the 'value'
+> part of the name+value pair.  For values that don't fit directly, this
+> stores the value tree root.
 > 
+> A number of operations are added to ocfs2_xa_loc_operations to support
+> these functions.  This reflects the disparate behaviors of xattr blocks
+> and buckets.
+> 
+> With these functions, the overlapping ocfs2_xattr_set_entry_local() and
+> ocfs2_xattr_set_entry_normal() can be replaced with a single call
+> scheme.
+> 
+> Signed-off-by: Joel Becker <joel.becker@oracle.com>
+> ---
+>  fs/ocfs2/xattr.c |  606 ++++++++++++++++++++++++++++++++++--------------------
+>  1 files changed, 386 insertions(+), 220 deletions(-)
+> 
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 4c5c566..3d14c1c 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+<snip>
+> +/*
+> + * Prepares loc->xl_entry to receive the new xattr.  This includes
+> + * properly setting up the name+value pair region.  If loc->xl_entry
+> + * already exists, it will take care of modifying it appropriately.
+> + * This also includes deleting entries, but don't call this to remove
+> + * a non-existant entry.  That's just a bug.
+> + *
+> + * Note that this modifies the data.  You did journal_access already,
+> + * right?
+> + */
+> +static int ocfs2_xa_prepare_entry(struct ocfs2_xa_loc *loc,
+> +				  struct ocfs2_xattr_info *xi,
+> +				  u32 name_hash)
+> +{
+> +	int rc = 0;
+> +	int name_size = OCFS2_XATTR_SIZE(xi->xi_name_len);
+> +	char *nameval_buf;
+> +
+> +	if (!xi->xi_value) {
+> +		ocfs2_xa_remove_entry(loc);
+> +		goto out;
+> +	}
+> +
+> +	rc = ocfs2_xa_has_space(loc, xi);
+> +	if (rc)
+> +		goto out;
+could you please add some comments here or change the function name.
+when I read ocfs2_xa_has_space, I always think that "if we have space, 
+goto out". But actually we get 0 here if we have space.
+> +
+> +	if (loc->xl_entry) {
+> +		if (ocfs2_xa_can_reuse_entry(loc, xi)) {
+> +			nameval_buf = ocfs2_xa_offset_pointer(loc,
+> +				le16_to_cpu(loc->xl_entry->xe_name_offset));
+oh, I see you use ocfs2_xa_offset_pointer and offset = xe_name_offset 
+here. So in patch 01/14, that is really a bug in 
+ocfs2_xa_block_offset_pointer.
 
-I see. Once the patches are available, I can help to test the new API.
-
-Thanks.
--- 
-Coly Li
-SuSE Labs
+Regards,
+Tao
