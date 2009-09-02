@@ -1,11 +1,14 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 02 Sep 2009 10:58:03 +0800
-Subject: [Ocfs2-devel] [PATCH 14/14] ocfs2: Set inline xattr entries
-	with ocfs2_xa_set()
-In-Reply-To: <1251448563-12508-15-git-send-email-joel.becker@oracle.com>
+Date: Wed, 02 Sep 2009 12:59:43 +0800
+Subject: [Ocfs2-devel] [PATCH 10/14] ocfs2: Allocation in
+ ocfs2_xa_prepare_entry() values in ocfs2_xa_store_value()
+In-Reply-To: <20090902015158.GA9165@mail.oracle.com>
 References: <1251448563-12508-1-git-send-email-joel.becker@oracle.com>
-	<1251448563-12508-15-git-send-email-joel.becker@oracle.com>
-Message-ID: <4A9DDF3B.4090906@oracle.com>
+	<1251448563-12508-11-git-send-email-joel.becker@oracle.com>
+	<4A9CE168.6050107@oracle.com>
+	<20090901202111.GH3826@mail.oracle.com>
+	<20090902015158.GA9165@mail.oracle.com>
+Message-ID: <4A9DFBBF.1010102@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,57 +18,137 @@ To: ocfs2-devel@oss.oracle.com
 
 
 Joel Becker wrote:
-> ocfs2_xattr_ibody_set() is the only remaining user of
-> ocfs2_xattr_set_entry().  ocfs2_xattr_set_entry() actually does two
-> things: it calls ocfs2_xa_set(), and it initializes the inline xattrs.
-> Initializing the inline space really belongs in its own call.
+> On Tue, Sep 01, 2009 at 01:21:12PM -0700, Joel Becker wrote:
+> There are multiple problems to have.
 > 
-> We lift the initialization to ocfs2_xattr_ibody_init(), called from
-> ocfs2_xattr_ibody_set() only when necessary.  Now
-> ocfs2_xattr_ibody_set() can call ocfs2_xa_set() directly.
-> ocfs2_xattr_set_entry() goes away.
+> 1) We have trouble allocating space for a new xattr.  This leaves us
+>    with an empty xattr.
+> 2) We overwrote an existing local xattr with a value root, and now we
+>    have an error allocating the storage.  This leaves us an empty xattr.
+>    where there used to be a value.  The value is lost.
+> 3) We have trouble truncating a reused value.  This leaves us with the
+>    original entry pointing to the truncated original value.  The value
+>    is lost.
+> 4) We have trouble extending the storage on a reused value.  This leaves
+>    us with the original value safely in place, but with more storage
+>    allocated when needed.
 > 
-> Another nice fact is that ocfs2_init_dinode_xa_loc() can trust
-> i_xattr_inline_size.
+> This doesn't consider storing local xattrs (values that don't require a
+> btree).  Those only fail when the journal fails.
+> 
+> Case (1) is easy.  We just remove the xattr we added.  We leak the
+> storage because we can't safely remove it, but otherwise everything is
+> happy.  We'll print a warning about the leak.
+> 
+> Case (4) is easy.  We still have the original value in place.  We can
+> just leave the extra storage attached to this xattr.  We return the
+> error, but the old value is untouched.  We print a warning about the
+> storage.
+> 
+> Case (2) and (3) are hard because we've lost the original values.  In
+> the old code, we ended up with values that could be partially read.
+> That's not good.  Instead, we just wipe the xattr entry and leak the
+> storage.  It stinks that the original value is lost, but now there isn't
+> a partial value to be read.  We'll print a big fat warning.
+actually case (2) is rarely to happen since we should have already 
+reserved enough clusters before we start the transaction. As for (3), 
+the only chance is that the b-tree is corrupted. And in this case, I 
+think remove the corrupted b-tree root is OK for me.
+
+small comments for the patch.
 > 
 > Signed-off-by: Joel Becker <joel.becker@oracle.com>
 > ---
->  fs/ocfs2/xattr.c |  156 +++++++++++++++++++++++++-----------------------------
->  1 files changed, 72 insertions(+), 84 deletions(-)
+>  fs/ocfs2/xattr.c |  141 +++++++++++++++++++++++++++++++++++++++++++++++------
+>  1 files changed, 125 insertions(+), 16 deletions(-)
 > 
 > diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 862c56d..d485932 100644
+> index f62985a..20323bb 100644
 > --- a/fs/ocfs2/xattr.c
 > +++ b/fs/ocfs2/xattr.c
-> @@ -2088,17 +2088,13 @@ static void ocfs2_init_dinode_xa_loc(struct ocfs2_xa_loc *loc,
->  {
->  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
-> @@ -2615,9 +2586,10 @@ static int ocfs2_xattr_ibody_set(struct inode *inode,
->  				 struct ocfs2_xattr_search *xs,
->  				 struct ocfs2_xattr_set_ctxt *ctxt)
->  {
-> +	int ret;
->  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
->  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)xs->inode_bh->b_data;
-> -	int ret;
-> +	struct ocfs2_xa_loc loc;
->  
->  	if (inode->i_sb->s_blocksize == OCFS2_MIN_BLOCKSIZE)
->  		return -ENOSPC;
-> @@ -2630,8 +2602,24 @@ static int ocfs2_xattr_ibody_set(struct inode *inode,
->  		}
+> @@ -1897,17 +1908,87 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
 >  	}
+>  }
 >  
-> -	ret = ocfs2_xattr_set_entry(inode, xi, xs, ctxt,
-> -				(OCFS2_INLINE_XATTR_FL | OCFS2_HAS_XATTR_FL));
-> +	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL)) {
-> +		ret = ocfs2_xattr_ibody_init(inode, xs->inode_bh, ctxt);
-> +		if (ret) {
-> +			mlog_errno(ret);
-if ret == -ENOSPC, we don't need to print error message.
+> + * If the value tree grew, it obviously didn't grow enough for the
+> + * new entry.  We're not going to try and reclaim those clusters either.
+> + * If there was already an external value there (orig_clusters != 0),
+> + * the new clusters are attached safely and we can just leave the old
+> + * value in place.  If there was no external value there, we remove
+> + * then entry.
+the entry.
+> + *
+> + * This way, the xattr block we store in the journal will be consistent.
+> + * If the size change broke because of the journal, no changes will hit
+> + * disk anyway.
+> + */
+> +static void ocfs2_xa_cleanup_value_truncate(struct ocfs2_xa_loc *loc,
+> +					    const char *what,
+> +					    unsigned int orig_clusters)
+> +{
+> +	unsigned int new_clusters = ocfs2_xa_value_clusters(loc);
+> +	char *nameval_buf = ocfs2_xa_offset_pointer(loc,
+> +				le16_to_cpu(loc->xl_entry->xe_name_offset));
+> +
+> +	if (new_clusters < orig_clusters) {
+> +		mlog(ML_ERROR,
+> +		     "Partial truncate while %s xattr %.*s.  Leaking "
+> +		     "%u clusters and removing the entry\n",
+> +		     what, loc->xl_entry->xe_name_len, nameval_buf,
+> +		     orig_clusters - new_clusters);
+> +		ocfs2_xa_remove_entry(loc);
+> +	} else if (!orig_clusters) {
+> +		mlog(ML_ERROR,
+> +		     "Unable to allocate an external value for xattr "
+> +		     "%.*s safely.  Leaking %u clusters and removing the "
+> +		     "entry\n",
+> +		     loc->xl_entry->xe_name_len, nameval_buf,
+> +		     new_clusters - orig_clusters);
+> +		ocfs2_xa_remove_entry(loc);
+> +	} else if (new_clusters > orig_clusters)
+> +		mlog(ML_ERROR,
+> +		     "Unable to grow xattr %.*s safely.  %u new clusters "
+> +		     "have been added, but the value will not be "
+> +		     "modified\n",
+> +		     loc->xl_entry->xe_name_len, nameval_buf,
+> +		     new_clusters - orig_clusters);
+> +}
+> +
+>  static int ocfs2_xa_remove(struct ocfs2_xa_loc *loc,
+>  			   struct ocfs2_xattr_set_ctxt *ctxt)
+>  {
+>  	int rc;
+> +	unsigned int orig_clusters;
+>  
+>  	if (!ocfs2_xattr_is_local(loc->xl_entry)) {
+> +		orig_clusters = ocfs2_xa_value_clusters(loc);
+>  		rc = ocfs2_xa_value_truncate(loc, 0, ctxt);
+>  		if (rc) {
+>  			mlog_errno(rc);
+> -			goto out;
+> +			/*
+> +			 * Since this is remove, we can return 0 if
+> +			 * ocfs2_xa_cleanup_value_truncate() is going to
+> +			 * wipe the entry anyway.  So we check the
+> +			 * cluster count as well.
+> +			 */
+> +			if (orig_clusters != ocfs2_xa_value_clusters(loc))
+> +				rc = 0;
+> +			ocfs2_xa_cleanup_value_truncate(loc, "removing",
+> +							orig_clusters);
+>  		}
+> +
+> +		if (rc)
 > +			goto out;
-> +		}
-> +	}
+move this after ocfs2_xa_cleanup_value_truncate. No need to check it 
+twice. And even if you set rc = 0 above, in 
+ocfs2_xa_cleanup_value_truncate(new_clusters < orig_clusters) we will 
+remove the entry I think. So we don't need to call ocfs2_xa_remove_entry 
+below.
+
+OK, I think I have finished reviewing the whole patch set. Thanks for 
+the work. You can add my ACK to this set now. And once it get merged 
+into merge-window, I can ask tristan to run it with his xattr test case.
 
 Regards,
 Tao
