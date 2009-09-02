@@ -1,10 +1,10 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed,  2 Sep 2009 15:59:15 +0200
-Subject: [Ocfs2-devel] [PATCH 05/16] ocfs2: Use __generic_file_aio_write
-	instead of generic_file_aio_write_nolock
+Date: Wed,  2 Sep 2009 15:59:12 +0200
+Subject: [Ocfs2-devel] [PATCH 02/16] vfs: Export __generic_file_aio_write()
+	and add some comments
 In-Reply-To: <1251899966-7316-1-git-send-email-jack@suse.cz>
 References: <1251899966-7316-1-git-send-email-jack@suse.cz>
-Message-ID: <1251899966-7316-6-git-send-email-jack@suse.cz>
+Message-ID: <1251899966-7316-3-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,61 +12,129 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: Jan Kara <jack@suse.cz>, LKML <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-Use the new helper. We have to submit data pages ourselves in case of O_SYNC
-write because __generic_file_aio_write does not do it for us. OCFS2 developpers
-might think about moving the sync out of i_mutex which seems to be easily
-possible but that's out of scope of this patch.
+Rename __generic_file_aio_write_nolock() to __generic_file_aio_write(), add
+comments to write helpers explaining how they should be used and export
+__generic_file_aio_write() since it will be used by some filesystems.
 
 CC: ocfs2-devel at oss.oracle.com
-Acked-by: Joel Becker <joel.becker@oracle.com>
+CC: Joel Becker <joel.becker@oracle.com>
+Acked-by: Evgeniy Polyakov <zbr@ioremap.net>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/file.c |   22 ++++++++++++----------
- 1 files changed, 12 insertions(+), 10 deletions(-)
+ include/linux/fs.h |    2 +
+ mm/filemap.c       |   57 +++++++++++++++++++++++++++++++++++++++++++++------
+ 2 files changed, 52 insertions(+), 7 deletions(-)
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index aa501d3..6002273 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1871,8 +1871,7 @@ relock:
- 			goto out_dio;
- 		}
- 	} else {
--		written = generic_file_aio_write_nolock(iocb, iov, nr_segs,
--							*ppos);
-+		written = __generic_file_aio_write(iocb, iov, nr_segs, ppos);
- 	}
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index dde471a..4f4e7f6 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -2195,6 +2195,8 @@ extern int generic_file_readonly_mmap(struct file *, struct vm_area_struct *);
+ extern int file_read_actor(read_descriptor_t * desc, struct page *page, unsigned long offset, unsigned long size);
+ int generic_write_checks(struct file *file, loff_t *pos, size_t *count, int isblk);
+ extern ssize_t generic_file_aio_read(struct kiocb *, const struct iovec *, unsigned long, loff_t);
++extern ssize_t __generic_file_aio_write(struct kiocb *, const struct iovec *, unsigned long,
++		loff_t *);
+ extern ssize_t generic_file_aio_write(struct kiocb *, const struct iovec *, unsigned long, loff_t);
+ extern ssize_t generic_file_aio_write_nolock(struct kiocb *, const struct iovec *,
+ 		unsigned long, loff_t);
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 65b2e50..554a396 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2368,9 +2368,27 @@ generic_file_buffered_write(struct kiocb *iocb, const struct iovec *iov,
+ }
+ EXPORT_SYMBOL(generic_file_buffered_write);
  
- out_dio:
-@@ -1880,18 +1879,21 @@ out_dio:
- 	BUG_ON(ret == -EIOCBQUEUED && !(file->f_flags & O_DIRECT));
- 
- 	if ((file->f_flags & O_SYNC && !direct_io) || IS_SYNC(inode)) {
--		/*
--		 * The generic write paths have handled getting data
--		 * to disk, but since we don't make use of the dirty
--		 * inode list, a manual journal commit is necessary
--		 * here.
--		 */
--		if (old_size != i_size_read(inode) ||
--		    old_clusters != OCFS2_I(inode)->ip_clusters) {
-+		ret = filemap_fdatawrite_range(file->f_mapping, pos,
-+					       pos + count - 1);
-+		if (ret < 0)
-+			written = ret;
+-static ssize_t
+-__generic_file_aio_write_nolock(struct kiocb *iocb, const struct iovec *iov,
+-				unsigned long nr_segs, loff_t *ppos)
++/**
++ * __generic_file_aio_write - write data to a file
++ * @iocb:	IO state structure (file, offset, etc.)
++ * @iov:	vector with data to write
++ * @nr_segs:	number of segments in the vector
++ * @ppos:	position where to write
++ *
++ * This function does all the work needed for actually writing data to a
++ * file. It does all basic checks, removes SUID from the file, updates
++ * modification times and calls proper subroutines depending on whether we
++ * do direct IO or a standard buffered write.
++ *
++ * It expects i_mutex to be grabbed unless we work on a block device or similar
++ * object which does not need locking at all.
++ *
++ * This function does *not* take care of syncing data in case of O_SYNC write.
++ * A caller has to handle it. This is mainly due to the fact that we want to
++ * avoid syncing under i_mutex.
++ */
++ssize_t __generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
++				 unsigned long nr_segs, loff_t *ppos)
+ {
+ 	struct file *file = iocb->ki_filp;
+ 	struct address_space * mapping = file->f_mapping;
+@@ -2467,7 +2485,23 @@ out:
+ 	current->backing_dev_info = NULL;
+ 	return written ? written : err;
+ }
++EXPORT_SYMBOL(__generic_file_aio_write);
 +
-+		if (!ret && (old_size != i_size_read(inode) ||
-+		    old_clusters != OCFS2_I(inode)->ip_clusters)) {
- 			ret = jbd2_journal_force_commit(osb->journal->j_journal);
- 			if (ret < 0)
- 				written = ret;
- 		}
-+
-+		if (!ret)
-+			ret = filemap_fdatawait_range(file->f_mapping, pos,
-+						      pos + count - 1);
- 	}
  
- 	/* 
++/**
++ * generic_file_aio_write_nolock - write data, usually to a device
++ * @iocb:	IO state structure
++ * @iov:	vector with data to write
++ * @nr_segs:	number of segments in the vector
++ * @pos:	position in file where to write
++ *
++ * This is a wrapper around __generic_file_aio_write() which takes care of
++ * syncing the file in case of O_SYNC file. It does not take i_mutex for the
++ * write itself but may do so during syncing. It is meant for users like block
++ * devices which do not need i_mutex during write. If your filesystem needs to
++ * do a write but already holds i_mutex, use __generic_file_aio_write()
++ * directly and then sync the file like generic_file_aio_write().
++ */
+ ssize_t generic_file_aio_write_nolock(struct kiocb *iocb,
+ 		const struct iovec *iov, unsigned long nr_segs, loff_t pos)
+ {
+@@ -2478,8 +2512,7 @@ ssize_t generic_file_aio_write_nolock(struct kiocb *iocb,
+ 
+ 	BUG_ON(iocb->ki_pos != pos);
+ 
+-	ret = __generic_file_aio_write_nolock(iocb, iov, nr_segs,
+-			&iocb->ki_pos);
++	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
+ 
+ 	if (ret > 0 && ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
+ 		ssize_t err;
+@@ -2492,6 +2525,17 @@ ssize_t generic_file_aio_write_nolock(struct kiocb *iocb,
+ }
+ EXPORT_SYMBOL(generic_file_aio_write_nolock);
+ 
++/**
++ * generic_file_aio_write - write data to a file
++ * @iocb:	IO state structure
++ * @iov:	vector with data to write
++ * @nr_segs:	number of segments in the vector
++ * @pos:	position in file where to write
++ *
++ * This is a wrapper around __generic_file_aio_write() to be used by most
++ * filesystems. It takes care of syncing the file in case of O_SYNC file
++ * and acquires i_mutex as needed.
++ */
+ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
+ 		unsigned long nr_segs, loff_t pos)
+ {
+@@ -2503,8 +2547,7 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
+ 	BUG_ON(iocb->ki_pos != pos);
+ 
+ 	mutex_lock(&inode->i_mutex);
+-	ret = __generic_file_aio_write_nolock(iocb, iov, nr_segs,
+-			&iocb->ki_pos);
++	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
+ 	mutex_unlock(&inode->i_mutex);
+ 
+ 	if (ret > 0 && ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
 -- 
 1.6.0.2
