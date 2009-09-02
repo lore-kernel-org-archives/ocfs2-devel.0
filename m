@@ -1,197 +1,258 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 17 Sep 2009 09:29:14 -0700 (PDT)
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 changes for 2.6.32
-In-Reply-To: <20090916044047.GA30453@mail.oracle.com>
-References: <20090914221434.GA4507@mail.oracle.com>
-	<alpine.LFD.2.01.0909141614350.4950@localhost.localdomain>
-	<20090915000417.GC4507@mail.oracle.com>
-	<alpine.LFD.2.01.0909141727150.4950@localhost.localdomain>
-	<20090915005417.GD4507@mail.oracle.com>
-	<alpine.LFD.2.01.0909141828070.4950@localhost.localdomain>
-	<20090915040601.GE4507@mail.oracle.com>
-	<alpine.LFD.2.01.0909150923180.4950@localhost.localdomain>
-	<20090915214530.GA11060@mail.oracle.com>
-	<alpine.LFD.2.01.0909152116180.4950@localhost.localdomain>
-	<20090916044047.GA30453@mail.oracle.com>
-Message-ID: <alpine.LFD.2.01.0909170856050.4950@localhost.localdomain>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 02 Sep 2009 13:59:35 -0000
+Subject: [Ocfs2-devel] [PATCH 07/16] vfs: Introduce new helpers for syncing
+	after writing to O_SYNC file or IS_SYNC inode
+In-Reply-To: <1251899966-7316-1-git-send-email-jack@suse.cz>
+References: <1251899966-7316-1-git-send-email-jack@suse.cz>
+Message-ID: <1251899966-7316-8-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, hch@lst.de, Jan Kara <jack@suse.cz>, Evgeniy Polyakov <zbr@ioremap.net>, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Felix Blyakher <felixb@sgi.com>, xfs@oss.sgi.com, Anton Altaparmakov <aia21@cantab.net>, linux-ntfs-dev@lists.sourceforge.net, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, linux-ext4@vger.kernel.org, tytso@mit.edu
 
+Introduce new function for generic inode syncing (vfs_fsync_range) and use
+it from fsync() path. Introduce also new helper for syncing after a sync
+write (generic_write_sync) using the generic function.
 
+Use these new helpers for syncing from generic VFS functions. This makes
+O_SYNC writes to block devices acquire i_mutex for syncing. If we really
+care about this, we can make block_fsync() drop the i_mutex and reacquire
+it before it returns.
 
-On Tue, 15 Sep 2009, Joel Becker wrote:
-> 
-> 	Ok.  Where do you see the exposure level?  What I mean is, I
-> just defined a vfs op that handles these things, but accessed it via two
-> syscalls, sys_snapfile() and sys_copyfile().  We could also just provide
-> one system call and allow userspace to use these flags itself, creating
-> snapfile(3) and copyfile(3) in libc
+CC: Evgeniy Polyakov <zbr@ioremap.net>
+CC: ocfs2-devel at oss.oracle.com
+CC: Joel Becker <joel.becker@oracle.com>
+CC: Felix Blyakher <felixb@sgi.com>
+CC: xfs at oss.sgi.com
+CC: Anton Altaparmakov <aia21@cantab.net>
+CC: linux-ntfs-dev at lists.sourceforge.net
+CC: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
+CC: linux-ext4 at vger.kernel.org
+CC: tytso at mit.edu
+Acked-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/splice.c        |   22 +++++---------------
+ fs/sync.c          |   55 +++++++++++++++++++++++++++++++++++++++++++++------
+ include/linux/fs.h |    3 ++
+ mm/filemap.c       |   18 +++++-----------
+ 4 files changed, 63 insertions(+), 35 deletions(-)
 
-Why would anybody want to hide it at all? Why even the libc hiding?
-
-Nobody is going to use this except for special apps. Let them see what 
-they can do, in all its glory. 
-
-> > I still worry that especially the non-atomic case will want some kind of 
-> > partial-copy updates (think graphical file managers that want to show the 
-> > progress of the copy), and that (think EINTR and continuing) makes me 
-> > think "that could get really complex really quickly", but that's something 
-> > that the NFS/SMB people would have to pipe up on. I'm pretty sure the NFS 
-> > spec has some kind "partial completion notification" model, I dunno about 
-> > SMB.
-> 
-> 	I'm really wary of combining a ranged interface with this one.
-> Not only does it make no sense for snapshots, but I think it falls down
-> in any "create a new inode" scheme entirely.
-
-Oh, I wouldn't suggest a ranged interface, just one that allows for status 
-updates and cancelling - _if_ the initial op isn't atomic to begin with. 
-There's also the issue of concurrency in IO: maybe you want to start 
-several things without necessarily waiting for them (think high-throughput 
-"cp -R" on NFS or something like that).
-
-So I'd suggest something like having two system calls: one to start the 
-operation, and one to control it. And for a filesystem that does atomic 
-copies, the 'start' one obviously would also finish it, so the 'control' 
-it would be a no-op, because there would never be any outstanding ones.
-
-See what I'm saying? It wouldn't complicate _your_ life, but it would 
-allow for filesystems that can't do it atomically (or even quickly).
-
-So the first one would be something like
-
-	int copyfile(const char *src, const char *dest, unsigned long flags);
-
-which would return:
-
- - zero on success
- - negative (with errno) on error
- - positive cookie on "I started it, here's my cookie". For extra bonus 
-   points, maybe the cookie would actually be a file descriptor (for 
-   poll/select users), but it would _not_ be a file descriptor to the 
-   resulting _file_, it would literally be a "cookie" to the actual 
-   copyfile event.
-
-and then for ocfs2 you'd never return positive cookies. You'd never have 
-to worry about it.
-
-Then the second interface would be something like
-
-	int copyfile_ctrl(long cookie, unsigned long cmd);
-
-where you'd just have some way to wait for completion and ask how much has 
-been copied. The 'cmd' would be some set of 'cancel', 'status' or 
-'uninterruptible wait' or whatever, and the return value would again be
-
- - negative (with errno) for errors (copy failed) - cookie released
- - zero for 'done' - cookie released
- - positive for 'percent remaining' or whatever - cookie still valid
-
-and this would be another callback into the filesystem code, but you'd 
-never have to worry about it, since you'd never see it (just leave it 
-NULL).
-
-NOTE! The above is a rough idea - I have not spent tons of time thinking 
-about it, or looking at exactly what something like NFS would really want. 
-But the _concept_ is simple, and usage should be pretty trivial. A simple 
-case would be something like this:
-
-   int copy_file(const char *src, const char *dst)
-   {
-	/* Start a file copy */
-	int cookie = copyfile(src, dst, 0);
-
-	/* Async case? */
-	if (cookie > 0) {
-		int ret;
-
-		while ((ret = copyfile_ctrl(cookie, COPYFILE_WAIT)) > 0)
-			/* nothing */;
-
-		/* Error handling is shared for async/sync */
-		cookie = ret;
-	}
-	if (cookie < 0) {
-		perror("copyfile failed");
-		return -1;
-	}
-	return 0;
-   }
-
-doesn't that look fairly easy to use?
-
-And the advantage here is that you _can_ - still fairly easily - do much 
-more involved things. For example, let's say that you wanted to do a very 
-efficient parallel copy, so you'd do something like this:
-
-	#define MAX_PEND 10
-	static int pending[MAX_PEND];
-	static int nr_pending = 0;
-
-	static int wait_for_completion(int nr_left)
-	{
-		int ret;
-
-		while (nr_pending > nr_left) {
-			int cookie = pending[0], i;
-
-			/* Wait for completion of the oldest entry */
-			while ((i = copyfile_ctrl(cookie, COPYFILE_WAIT)) > 0)
-				/* nothing */;
-
-			/* Save the "we had an error" case */
-			if (i < 0)
-				ret = i;
-
-			/* Move the other entries down */
-			memmove(pending, pending+1, sizeof(int)*--nr_pending);
-		}
-		return ret;
-	}
-
-	int start_copy(src, dst)
-	{
-		int cookie, ret;
-
-		cookie = copyfile(src, dst, 0);
-		if (cookie <= 0)
-			return cookie;
-
-		ret = 0;
-		if (nr_pending == MAX_PENDING)
-			ret = wait_for_completion(pending, MAX_PENDING/2);
-
-		pending[nr_pending++] = cookie;
-		return ret;
-	}
-
-	int stop_copy(void)
-	{
-		return wait_for_completion(pending, 0);
-	}
-
-which basically ends up having ten copyfile() calls outstanding (and when 
-we hit the limit, we wait for half of them to complete), so now you can do 
-an efficient "cp -R" with concurrent server-side IO. And it wasn't so 
-hard, was it?
-
-(Ok, so the above would need to be fleshed out to remember the filenames 
-so that you can report _which_ file failed etc, but you get the idea).
-
-And again, it wouldn't be any more complicated for your case. Your 
-copyfile would always just return 0 or negative for error. But it would be 
-_way_ more powerful for filesystems that want to do potentially lots of IO 
-for the file copy.
-
-I dunno. The above seems like a fairly simple and powerful interface, and 
-I _think_ it would be ok for NFS and CIFS. And in fact, if that whole 
-"background copy" ends up being used a lot, maybe even a local filesystem 
-would implement it just to get easy overlapping IO - even if it would just 
-be a trivial common wrapper function that says "start a thread to do a 
-trivial manual copy".
-
-			Linus
+diff --git a/fs/splice.c b/fs/splice.c
+index 73766d2..8190237 100644
+--- a/fs/splice.c
++++ b/fs/splice.c
+@@ -976,25 +976,15 @@ generic_file_splice_write(struct pipe_inode_info *pipe, struct file *out,
+ 
+ 	if (ret > 0) {
+ 		unsigned long nr_pages;
++		int err;
+ 
+-		*ppos += ret;
+ 		nr_pages = (ret + PAGE_CACHE_SIZE - 1) >> PAGE_CACHE_SHIFT;
+ 
+-		/*
+-		 * If file or inode is SYNC and we actually wrote some data,
+-		 * sync it.
+-		 */
+-		if (unlikely((out->f_flags & O_SYNC) || IS_SYNC(inode))) {
+-			int err;
+-
+-			mutex_lock(&inode->i_mutex);
+-			err = generic_osync_inode(inode, mapping,
+-						  OSYNC_METADATA|OSYNC_DATA);
+-			mutex_unlock(&inode->i_mutex);
+-
+-			if (err)
+-				ret = err;
+-		}
++		err = generic_write_sync(out, *ppos, ret);
++		if (err)
++			ret = err;
++		else
++			*ppos += ret;
+ 		balance_dirty_pages_ratelimited_nr(mapping, nr_pages);
+ 	}
+ 
+diff --git a/fs/sync.c b/fs/sync.c
+index 3422ba6..6fe72e6 100644
+--- a/fs/sync.c
++++ b/fs/sync.c
+@@ -176,19 +176,23 @@ int file_fsync(struct file *filp, struct dentry *dentry, int datasync)
+ }
+ 
+ /**
+- * vfs_fsync - perform a fsync or fdatasync on a file
++ * vfs_fsync_range - helper to sync a range of data & metadata to disk
+  * @file:		file to sync
+  * @dentry:		dentry of @file
+- * @data:		only perform a fdatasync operation
++ * @start:		offset in bytes of the beginning of data range to sync
++ * @end:		offset in bytes of the end of data range (inclusive)
++ * @datasync:		perform only datasync
+  *
+- * Write back data and metadata for @file to disk.  If @datasync is
+- * set only metadata needed to access modified file data is written.
++ * Write back data in range @start.. at end and metadata for @file to disk.  If
++ * @datasync is set only metadata needed to access modified file data is
++ * written.
+  *
+  * In case this function is called from nfsd @file may be %NULL and
+  * only @dentry is set.  This can only happen when the filesystem
+  * implements the export_operations API.
+  */
+-int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
++int vfs_fsync_range(struct file *file, struct dentry *dentry, loff_t start,
++		    loff_t end, int datasync)
+ {
+ 	const struct file_operations *fop;
+ 	struct address_space *mapping;
+@@ -212,7 +216,7 @@ int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
+ 		goto out;
+ 	}
+ 
+-	ret = filemap_fdatawrite(mapping);
++	ret = filemap_fdatawrite_range(mapping, start, end);
+ 
+ 	/*
+ 	 * We need to protect against concurrent writers, which could cause
+@@ -223,12 +227,32 @@ int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
+ 	if (!ret)
+ 		ret = err;
+ 	mutex_unlock(&mapping->host->i_mutex);
+-	err = filemap_fdatawait(mapping);
++
++	err = filemap_fdatawait_range(mapping, start, end);
+ 	if (!ret)
+ 		ret = err;
+ out:
+ 	return ret;
+ }
++EXPORT_SYMBOL(vfs_fsync_range);
++
++/**
++ * vfs_fsync - perform a fsync or fdatasync on a file
++ * @file:		file to sync
++ * @dentry:		dentry of @file
++ * @datasync:		only perform a fdatasync operation
++ *
++ * Write back data and metadata for @file to disk.  If @datasync is
++ * set only metadata needed to access modified file data is written.
++ *
++ * In case this function is called from nfsd @file may be %NULL and
++ * only @dentry is set.  This can only happen when the filesystem
++ * implements the export_operations API.
++ */
++int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
++{
++	return vfs_fsync_range(file, dentry, 0, LLONG_MAX, datasync);
++}
+ EXPORT_SYMBOL(vfs_fsync);
+ 
+ static int do_fsync(unsigned int fd, int datasync)
+@@ -254,6 +278,23 @@ SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
+ 	return do_fsync(fd, 1);
+ }
+ 
++/**
++ * generic_write_sync - perform syncing after a write if file / inode is sync
++ * @file:	file to which the write happened
++ * @pos:	offset where the write started
++ * @count:	length of the write
++ *
++ * This is just a simple wrapper about our general syncing function.
++ */
++int generic_write_sync(struct file *file, loff_t pos, loff_t count)
++{
++	if (!(file->f_flags & O_SYNC) && !IS_SYNC(file->f_mapping->host))
++		return 0;
++	return vfs_fsync_range(file, file->f_path.dentry, pos,
++			       pos + count - 1, 1);
++}
++EXPORT_SYMBOL(generic_write_sync);
++
+ /*
+  * sys_sync_file_range() permits finely controlled syncing over a segment of
+  * a file in the range offset .. (offset+nbytes-1) inclusive.  If nbytes is
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index bc7f0f1..18acaec 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -2088,7 +2088,10 @@ extern int __filemap_fdatawrite_range(struct address_space *mapping,
+ extern int filemap_fdatawrite_range(struct address_space *mapping,
+ 				loff_t start, loff_t end);
+ 
++extern int vfs_fsync_range(struct file *file, struct dentry *dentry,
++			   loff_t start, loff_t end, int datasync);
+ extern int vfs_fsync(struct file *file, struct dentry *dentry, int datasync);
++extern int generic_write_sync(struct file *file, loff_t pos, loff_t count);
+ extern void sync_supers(void);
+ extern void emergency_sync(void);
+ extern void emergency_remount(void);
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 3955f7e..70988a1 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -39,11 +39,10 @@
+ /*
+  * FIXME: remove all knowledge of the buffer layer from the core VM
+  */
+-#include <linux/buffer_head.h> /* for generic_osync_inode */
++#include <linux/buffer_head.h> /* for try_to_free_buffers */
+ 
+ #include <asm/mman.h>
+ 
+-
+ /*
+  * Shared mappings implemented 30.11.1994. It's not fully working yet,
+  * though.
+@@ -2480,19 +2479,16 @@ ssize_t device_aio_write(struct kiocb *iocb, const struct iovec *iov,
+ 			 unsigned long nr_segs, loff_t pos)
+ {
+ 	struct file *file = iocb->ki_filp;
+-	struct address_space *mapping = file->f_mapping;
+-	struct inode *inode = mapping->host;
+ 	ssize_t ret;
+ 
+ 	BUG_ON(iocb->ki_pos != pos);
+ 
+ 	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
+ 
+-	if ((ret > 0 || ret == -EIOCBQUEUED) &&
+-	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
++	if (ret > 0 || ret == -EIOCBQUEUED) {
+ 		ssize_t err;
+ 
+-		err = sync_page_range_nolock(inode, mapping, pos, ret);
++		err = generic_write_sync(file, pos, ret);
+ 		if (err < 0 && ret > 0)
+ 			ret = err;
+ 	}
+@@ -2515,8 +2511,7 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
+ 		unsigned long nr_segs, loff_t pos)
+ {
+ 	struct file *file = iocb->ki_filp;
+-	struct address_space *mapping = file->f_mapping;
+-	struct inode *inode = mapping->host;
++	struct inode *inode = file->f_mapping->host;
+ 	ssize_t ret;
+ 
+ 	BUG_ON(iocb->ki_pos != pos);
+@@ -2525,11 +2520,10 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
+ 	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
+ 	mutex_unlock(&inode->i_mutex);
+ 
+-	if ((ret > 0 || ret == -EIOCBQUEUED) &&
+-	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
++	if (ret > 0 || ret == -EIOCBQUEUED) {
+ 		ssize_t err;
+ 
+-		err = sync_page_range(inode, mapping, pos, ret);
++		err = generic_write_sync(file, pos, ret);
+ 		if (err < 0 && ret > 0)
+ 			ret = err;
+ 	}
+-- 
+1.6.0.2
