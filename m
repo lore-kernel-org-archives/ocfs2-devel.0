@@ -1,60 +1,71 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 2 Sep 2009 03:31:24 -0700
-Subject: [Ocfs2-devel] [PATCH 10/14] ocfs2: Allocation in
- ocfs2_xa_prepare_entry() values in ocfs2_xa_store_value()
-In-Reply-To: <20090902102412.GC10257@mail.oracle.com>
-References: <1251448563-12508-1-git-send-email-joel.becker@oracle.com>
-	<1251448563-12508-11-git-send-email-joel.becker@oracle.com>
-	<4A9CE168.6050107@oracle.com>
-	<20090901202111.GH3826@mail.oracle.com>
-	<20090902015158.GA9165@mail.oracle.com>
-	<4A9DFBBF.1010102@oracle.com>
-	<20090902083711.GB10257@mail.oracle.com>
-	<1251882070.6862.28.camel@tristan-laptop.cn.oracle.com>
-	<20090902102412.GC10257@mail.oracle.com>
-Message-ID: <20090902103124.GE10257@mail.oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed,  2 Sep 2009 15:59:22 +0200
+Subject: [Ocfs2-devel] [PATCH 12/16] ocfs2: Update syncing after splicing to
+	match generic version
+In-Reply-To: <1251899966-7316-1-git-send-email-jack@suse.cz>
+References: <1251899966-7316-1-git-send-email-jack@suse.cz>
+Message-ID: <1251899966-7316-13-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: Jan Kara <jack@suse.cz>, LKML <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-On Wed, Sep 02, 2009 at 03:24:13AM -0700, Joel Becker wrote:
-> On Wed, Sep 02, 2009 at 05:01:10PM +0800, tristan.ye wrote:
-> > On Wed, 2009-09-02 at 01:37 -0700, Joel Becker wrote:
-> > > On Wed, Sep 02, 2009 at 12:59:43PM +0800, Tao Ma wrote:
-> > > > OK, I think I have finished reviewing the whole patch set. Thanks
-> > > > for the work. You can add my ACK to this set now. And once it get
-> > > > merged into merge-window, I can ask tristan to run it with his xattr
-> > > > test case.
-> > > 
-> > > 	All of the changes are in xa_loc.  Can you have tristan against
-> > > that first?  I don't want to push this into merge_window without at
-> > > least a quick pass to make sure there isn't a disasterous idea in there
-> > > :-)
-> > 
-> > Joel,
-> > 
-> > Ok, let me know the kernel branch where all your updated patches
-> > applied, then I can run the tests for you guys.
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git xa_loc
+Update ocfs2 specific splicing code to use generic syncing helper. The sync now
+does not happen under rw_lock because generic_write_sync() acquires i_mutex
+which ranks above rw_lock. That should not matter because standard fsync path
+does not hold it either.
 
-	Make sure the xa_loc you get is commit id
-c221d964ba14e3e32c904b8769b6d5aeb23543bf.  I just fixed a bug Tiger
-found.
+Acked-by: Joel Becker <Joel.Becker@oracle.com>
+Acked-by: Mark Fasheh <mfasheh@suse.com>
+CC: ocfs2-devel at oss.oracle.com
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/file.c |   27 ++++++---------------------
+ 1 files changed, 6 insertions(+), 21 deletions(-)
 
-Joel
-
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 6002273..221c5e9 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1993,31 +1993,16 @@ static ssize_t ocfs2_file_splice_write(struct pipe_inode_info *pipe,
+ 
+ 	if (ret > 0) {
+ 		unsigned long nr_pages;
++		int err;
+ 
+-		*ppos += ret;
+ 		nr_pages = (ret + PAGE_CACHE_SIZE - 1) >> PAGE_CACHE_SHIFT;
+ 
+-		/*
+-		 * If file or inode is SYNC and we actually wrote some data,
+-		 * sync it.
+-		 */
+-		if (unlikely((out->f_flags & O_SYNC) || IS_SYNC(inode))) {
+-			int err;
+-
+-			mutex_lock(&inode->i_mutex);
+-			err = ocfs2_rw_lock(inode, 1);
+-			if (err < 0) {
+-				mlog_errno(err);
+-			} else {
+-				err = generic_osync_inode(inode, mapping,
+-						  OSYNC_METADATA|OSYNC_DATA);
+-				ocfs2_rw_unlock(inode, 1);
+-			}
+-			mutex_unlock(&inode->i_mutex);
++		err = generic_write_sync(out, *ppos, ret);
++		if (err)
++			ret = err;
++		else
++			*ppos += ret;
+ 
+-			if (err)
+-				ret = err;
+-		}
+ 		balance_dirty_pages_ratelimited_nr(mapping, nr_pages);
+ 	}
+ 
 -- 
-
-"But all my words come back to me
- In shades of mediocrity.
- Like emptiness in harmony
- I need someone to comfort me."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.6.0.2
