@@ -1,57 +1,47 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 03 Sep 2009 09:24:12 -0700
-Subject: [Ocfs2-devel] dlm stress test hangs OCFS2
-In-Reply-To: <4A9FEDA8.3080108@suse.de>
-References: <4A8B0083.8030400@suse.de> <4A8B6C29.30802@oracle.com>
-	<4A9EA759.5090906@suse.de> <4A9EEB26.2080204@oracle.com>
-	<4A9FEDA8.3080108@suse.de>
-Message-ID: <4A9FEDAC.50704@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 3 Sep 2009 12:12:32 -0700
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Use MAY_CREATE in
+ ocfs2_permission()
+In-Reply-To: <4A9F1FCB.5020406@oracle.com>
+References: <1251940014-20963-1-git-send-email-joel.becker@oracle.com>
+	<1251940014-20963-3-git-send-email-joel.becker@oracle.com>
+	<4A9F1FCB.5020406@oracle.com>
+Message-ID: <20090903191232.GA11525@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Sunil Mushran <sunil.mushran@oracle.com>
+Cc: hch@infradead.org, viro@zeniv.linux.org.uk, ocfs2-devel@oss.oracle.com, linux-fsdevel@kernel.org
 
-You will have to trace thru process_blocked_lock() to make sense of this.
+On Wed, Sep 02, 2009 at 06:45:47PM -0700, Sunil Mushran wrote:
+> Joel Becker wrote:
+> >@@ -1108,6 +1117,10 @@ int ocfs2_permission(struct inode *inode, int mask)
+> > 	ret = generic_permission(inode, mask, ocfs2_check_acl);
+> > 	ocfs2_inode_unlock(inode, 0);
+> >+
+> >+	if (mask & MAY_CREATE)
+> >+		ocfs2_unblock_signals(&oldset);
+> >+
+> > out:
+> > 	mlog_exit(ret);
+> > 	return ret;
+> 
+> Maybe I am missing something but shouldn't we be unblocking the signal
+> after the out label.
 
-Coly Li wrote:
-> Sunil Mushran Wrote:
->   
->> So the thread is removing the lockres from the list (thus making
->> the count 0), and then calling ocfs2_process_blocked_lock() which
->> is adding that lockres back in the list (thus 1).
->>
->> Trace ocfs2_process_blocked_lock() to see as to why it is putting it
->> back on the list.
->>     
->>> 2) when the blocking happens, the number sequence of
->>> osb->blocked_lock_count is
->>> always like this,
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
->>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
->>> (all are 0-1-0-1-0-1-... in a regular sequence)
->>>
->>>       
->
-> I also observed even when no file is created or unlinked, I did nothing. From
-> dmesg output, the above information still infinite running, on both nodes.
->
->
->
->   
+	Yes.
+
+Joel
+
+-- 
+
+"Heav'n hath no rage like love to hatred turn'd, nor Hell a fury,
+ like a woman scorn'd."
+        - William Congreve
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
