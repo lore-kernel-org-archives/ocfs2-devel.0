@@ -1,46 +1,59 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 3 Sep 2009 15:56:33 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1]ocfs2: add spinlock protection when
-	dealing with lockres->purge.
-Message-ID: <200909030758.n837wl02001895@rgminet13.oracle.com>
+From: tristan.ye <tristan.ye@oracle.com>
+Date: Thu, 03 Sep 2009 18:48:41 +0800
+Subject: [Ocfs2-devel] [PATCH 10/14] ocfs2: Allocation
+	in	ocfs2_xa_prepare_entry() values in ocfs2_xa_store_value()
+In-Reply-To: <20090902083711.GB10257@mail.oracle.com>
+References: <1251448563-12508-1-git-send-email-joel.becker@oracle.com>
+	<1251448563-12508-11-git-send-email-joel.becker@oracle.com>
+	<4A9CE168.6050107@oracle.com> <20090901202111.GH3826@mail.oracle.com>
+	<20090902015158.GA9165@mail.oracle.com> <4A9DFBBF.1010102@oracle.com>
+	<20090902083711.GB10257@mail.oracle.com>
+Message-ID: <1251974921.6862.44.camel@tristan-laptop.cn.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-when we check/modify lockres->purge, we should with the protection of lockres->spinlock.
-in dlm_purge_lockres(), the checking/modifying is not with the protectin.
-this patch fixes it.
+On Wed, 2009-09-02 at 01:37 -0700, Joel Becker wrote:
+> On Wed, Sep 02, 2009 at 12:59:43PM +0800, Tao Ma wrote:
+> > OK, I think I have finished reviewing the whole patch set. Thanks
+> > for the work. You can add my ACK to this set now. And once it get
+> > merged into merge-window, I can ask tristan to run it with his xattr
+> > test case.
+> 
+> 	All of the changes are in xa_loc.  Can you have tristan against
+> that first?  I don't want to push this into merge_window without at
+> least a quick pass to make sure there isn't a disasterous idea in there
+> :-)
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
----
- fs/ocfs2/dlm/dlmthread.c |    6 +++++-
- 1 files changed, 5 insertions(+), 1 deletions(-)
+Joel,
 
-diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index d490b66..98569e8 100644
---- a/fs/ocfs2/dlm/dlmthread.c
-+++ b/fs/ocfs2/dlm/dlmthread.c
-@@ -212,14 +212,18 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
- 		spin_lock(&dlm->spinlock);
- 	}
- 
-+	spin_lock(&res->spinlock);
- 	if (!list_empty(&res->purge)) {
- 		mlog(0, "removing lockres %.*s:%p from purgelist, "
- 		     "master = %d\n", res->lockname.len, res->lockname.name,
- 		     res, master);
- 		list_del_init(&res->purge);
-+		spin_unlock(&res->spinlock);
- 		dlm_lockres_put(res);
- 		dlm->purge_count--;
--	}
-+	} else
-+		spin_unlock(&res->spinlock);
-+
- 	__dlm_unhash_lockres(res);
- 
- 	/* lockres is not in the hash now.  drop the flag and wake up
--- 
-1.6.2.5
+Your patches set against xattr on xa_loc branch made the life of
+xattr-testing be suffering:-(
+
+The tests failed at the very beginning with a lite workload... I also
+tried to do some tests manually aiming to narrow down the problem,
+following bugs can provide you detailed info when I hit error/panic. I'm
+not sure whether they were in same kind or not, just filed them
+separately with different symptoms.
+
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1168
+
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1169
+
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1170
+
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1171
+
+
+Regards,
+Tristan.
+
+
+
+
+
+> 
+> Joel
+> 
