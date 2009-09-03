@@ -1,26 +1,46 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 03 Sep 2009 14:14:41 +0800
-Subject: [Ocfs2-devel] [PATCH] add assertions to stuffs with
- purge/unused lockres
-In-Reply-To: <13788945-83AC-49B8-ABC7-EA8762F6DDAE@oracle.com>
-References: <200908280821.n7S8L8ut026709@rgminet15.oracle.com>
-	<4A9F2677.4030406@oracle.com> <4A9F3627.7050407@oracle.com>
-	<13788945-83AC-49B8-ABC7-EA8762F6DDAE@oracle.com>
-Message-ID: <4A9F5ED1.6000805@oracle.com>
+Date: Thu, 3 Sep 2009 15:56:33 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1]ocfs2: add spinlock protection when
+	dealing with lockres->purge.
+Message-ID: <200909030758.n837wl02001895@rgminet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Sunil,
+when we check/modify lockres->purge, we should with the protection of lockres->spinlock.
+in dlm_purge_lockres(), the checking/modifying is not with the protectin.
+this patch fixes it.
 
-Sunil Mushran wrote:
-> It's too intrusive for a debug patch. And big too. Maybe we need this 
-> eventually. But for right now, it will be easier if we can narrow down 
-> the scope of the issue as quickly as possible.
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmthread.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
 
-Ok. I will use the lockres dumping first.
-
-regards,
-wengang.
+diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+index d490b66..98569e8 100644
+--- a/fs/ocfs2/dlm/dlmthread.c
++++ b/fs/ocfs2/dlm/dlmthread.c
+@@ -212,14 +212,18 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+ 		spin_lock(&dlm->spinlock);
+ 	}
+ 
++	spin_lock(&res->spinlock);
+ 	if (!list_empty(&res->purge)) {
+ 		mlog(0, "removing lockres %.*s:%p from purgelist, "
+ 		     "master = %d\n", res->lockname.len, res->lockname.name,
+ 		     res, master);
+ 		list_del_init(&res->purge);
++		spin_unlock(&res->spinlock);
+ 		dlm_lockres_put(res);
+ 		dlm->purge_count--;
+-	}
++	} else
++		spin_unlock(&res->spinlock);
++
+ 	__dlm_unhash_lockres(res);
+ 
+ 	/* lockres is not in the hash now.  drop the flag and wake up
+-- 
+1.6.2.5
