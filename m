@@ -1,59 +1,54 @@
-From: tristan.ye <tristan.ye@oracle.com>
-Date: Thu, 03 Sep 2009 18:48:41 +0800
-Subject: [Ocfs2-devel] [PATCH 10/14] ocfs2: Allocation
-	in	ocfs2_xa_prepare_entry() values in ocfs2_xa_store_value()
-In-Reply-To: <20090902083711.GB10257@mail.oracle.com>
-References: <1251448563-12508-1-git-send-email-joel.becker@oracle.com>
-	<1251448563-12508-11-git-send-email-joel.becker@oracle.com>
-	<4A9CE168.6050107@oracle.com> <20090901202111.GH3826@mail.oracle.com>
-	<20090902015158.GA9165@mail.oracle.com> <4A9DFBBF.1010102@oracle.com>
-	<20090902083711.GB10257@mail.oracle.com>
-Message-ID: <1251974921.6862.44.camel@tristan-laptop.cn.oracle.com>
+From: Coly Li <coly.li@suse.de>
+Date: Fri, 04 Sep 2009 00:24:08 +0800
+Subject: [Ocfs2-devel] dlm stress test hangs OCFS2
+In-Reply-To: <4A9EEB26.2080204@oracle.com>
+References: <4A8B0083.8030400@suse.de> <4A8B6C29.30802@oracle.com>
+	<4A9EA759.5090906@suse.de> <4A9EEB26.2080204@oracle.com>
+Message-ID: <4A9FEDA8.3080108@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, 2009-09-02 at 01:37 -0700, Joel Becker wrote:
-> On Wed, Sep 02, 2009 at 12:59:43PM +0800, Tao Ma wrote:
-> > OK, I think I have finished reviewing the whole patch set. Thanks
-> > for the work. You can add my ACK to this set now. And once it get
-> > merged into merge-window, I can ask tristan to run it with his xattr
-> > test case.
+
+
+Sunil Mushran Wrote:
+> So the thread is removing the lockres from the list (thus making
+> the count 0), and then calling ocfs2_process_blocked_lock() which
+> is adding that lockres back in the list (thus 1).
 > 
-> 	All of the changes are in xa_loc.  Can you have tristan against
-> that first?  I don't want to push this into merge_window without at
-> least a quick pass to make sure there isn't a disasterous idea in there
-> :-)
+> Trace ocfs2_process_blocked_lock() to see as to why it is putting it
+> back on the list.
+>> 2) when the blocking happens, the number sequence of
+>> osb->blocked_lock_count is
+>> always like this,
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 0
+>> ocfs2_downconvert_thread_do_work:3725: osb->blocked_lock_count: 1
+>> (all are 0-1-0-1-0-1-... in a regular sequence)
+>>
 
-Joel,
-
-Your patches set against xattr on xa_loc branch made the life of
-xattr-testing be suffering:-(
-
-The tests failed at the very beginning with a lite workload... I also
-tried to do some tests manually aiming to narrow down the problem,
-following bugs can provide you detailed info when I hit error/panic. I'm
-not sure whether they were in same kind or not, just filed them
-separately with different symptoms.
-
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1168
-
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1169
-
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1170
-
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1171
-
-
-Regards,
-Tristan.
-
-
-
+I also observed even when no file is created or unlinked, I did nothing. From
+dmesg output, the above information still infinite running, on both nodes.
 
 
-> 
-> Joel
-> 
+
+-- 
+Coly Li
+SuSE Labs
