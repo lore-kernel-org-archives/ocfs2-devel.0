@@ -1,55 +1,57 @@
-From: tristan.ye <tristan.ye@oracle.com>
-Date: Tue, 08 Sep 2009 09:25:14 +0800
-Subject: [Ocfs2-devel] [PATCH 10/14] ocfs2: Allocation
-	in	ocfs2_xa_prepare_entry() values in ocfs2_xa_store_value()
-In-Reply-To: <20090905013529.GD945@mail.oracle.com>
-References: <1251448563-12508-1-git-send-email-joel.becker@oracle.com>
-	<1251448563-12508-11-git-send-email-joel.becker@oracle.com>
-	<4A9CE168.6050107@oracle.com> <20090901202111.GH3826@mail.oracle.com>
-	<20090902015158.GA9165@mail.oracle.com> <4A9DFBBF.1010102@oracle.com>
-	<20090902083711.GB10257@mail.oracle.com>
-	<1251974921.6862.44.camel@tristan-laptop.cn.oracle.com>
-	<20090905013529.GD945@mail.oracle.com>
-Message-ID: <1252373114.23803.1.camel@tristan-laptop.cn.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Fri, 4 Sep 2009 10:48:38 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: adds mlog_errno to aops.c -V2
+Message-ID: <200909080621.n886L8pH028023@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, 2009-09-04 at 18:35 -0700, Joel Becker wrote:
-> On Thu, Sep 03, 2009 at 06:48:41PM +0800, tristan.ye wrote:
-> > Your patches set against xattr on xa_loc branch made the life of
-> > xattr-testing be suffering:-(
-> > 
-> > The tests failed at the very beginning with a lite workload... I also
-> > tried to do some tests manually aiming to narrow down the problem,
-> > following bugs can provide you detailed info when I hit error/panic. I'm
-> > not sure whether they were in same kind or not, just filed them
-> > separately with different symptoms.
-> 
-> 	It was all dumb mistakes by me.  Thanks for the excellent tests,
-> they helped me narrow down each problem.
-> 
-> > http://oss.oracle.com/bugzilla/show_bug.cgi?id=1168
-> > http://oss.oracle.com/bugzilla/show_bug.cgi?id=1169
-> > http://oss.oracle.com/bugzilla/show_bug.cgi?id=1170
-> > http://oss.oracle.com/bugzilla/show_bug.cgi?id=1171
-> 
-> 	These all have patches now.  The fixes are pushed to the xa_loc
-> branch, so if you regrab that, they should be fixed.  Let me know what
-> else I broke :-)
+  when an error is hit, printing the error number is helpful.
+this patch adds prints in such cases in aops.c.
 
-The above bugs got fixed applying your latest patches, but test still
-gets blocked by following bug:
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ aops.c |   10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1172
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index b2c52b3..97ea4f6 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -349,8 +349,11 @@ static int ocfs2_readpages(struct file *filp, struct address_space *mapping,
+ 	 * lock inversion, but don't bother with retrying.
+ 	 */
+ 	ret = ocfs2_inode_lock_full(inode, NULL, 0, OCFS2_LOCK_NONBLOCK);
+-	if (ret)
++	if (ret) {
++		if (ret != -EAGAIN && ret != -EIOCBRETRY && ret != -ENOENT)
++			mlog_errno(ret);
+ 		return err;
++	}
+ 
+ 	if (down_read_trylock(&oi->ip_alloc_sem) == 0) {
+ 		ocfs2_inode_unlock(inode, 0);
+@@ -842,8 +845,10 @@ int ocfs2_map_page_blocks(struct page *page, u64 *p_blkno,
+ 	 */
+ 	while(wait_bh > wait) {
+ 		wait_on_buffer(*--wait_bh);
+-		if (!buffer_uptodate(*wait_bh))
++		if (!buffer_uptodate(*wait_bh)) {
+ 			ret = -EIO;
++			mlog_errno(ret);
++		}
+ 	}
+ 
+ 	if (ret == 0 || !new)
+@@ -1527,6 +1532,7 @@ static int ocfs2_write_begin_inline(struct address_space *mapping,
+ 	if (!PageUptodate(page)) {
+ 		ret = ocfs2_read_inline_data(inode, page, wc->w_di_bh);
+ 		if (ret) {
++			mlog_errno(ret);
+ 			ocfs2_commit_trans(osb, handle);
+ 
+ 			goto out;
 
-
-Regards,
-Tristan
-
-
-> 
-> Joel
-> 
+1.6.2.5
