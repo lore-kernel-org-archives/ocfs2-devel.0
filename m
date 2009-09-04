@@ -1,56 +1,36 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 4 Sep 2009 10:48:38 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: adds mlog_errno to aops.c
-Message-ID: <200909040249.n842n0W7027642@acsinet15.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Fri,  4 Sep 2009 11:12:01 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: ocfs2_write_begin_nolock() should
+	handle len=0
+Message-ID: <1252087921-24123-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  when an error is hit, printing the error number is helpful.
-this patch adds prints in such cases in aops.c.
+Bug introduced by mainline commit e7432675f8ca868a4af365759a8d4c3779a3d922
+The bug causes ocfs2_write_begin_nolock() to oops when len=0.
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/aops.c |    9 +++++++--
- 1 files changed, 7 insertions(+), 2 deletions(-)
+ fs/ocfs2/aops.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index b2c52b3..04e0760 100644
+index b401654..8a1e615 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
-@@ -349,8 +349,10 @@ static int ocfs2_readpages(struct file *filp, struct address_space *mapping,
- 	 * lock inversion, but don't bother with retrying.
+@@ -1747,8 +1747,8 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+ 	 * we know zeros will only be needed in the first and/or last cluster.
  	 */
- 	ret = ocfs2_inode_lock_full(inode, NULL, 0, OCFS2_LOCK_NONBLOCK);
--	if (ret)
-+	if (ret) {
-+		mlog_errno(ret);
- 		return err;
-+	}
- 
- 	if (down_read_trylock(&oi->ip_alloc_sem) == 0) {
- 		ocfs2_inode_unlock(inode, 0);
-@@ -842,8 +844,10 @@ int ocfs2_map_page_blocks(struct page *page, u64 *p_blkno,
- 	 */
- 	while(wait_bh > wait) {
- 		wait_on_buffer(*--wait_bh);
--		if (!buffer_uptodate(*wait_bh))
-+		if (!buffer_uptodate(*wait_bh)) {
- 			ret = -EIO;
-+			mlog_errno(ret);
-+		}
- 	}
- 
- 	if (ret == 0 || !new)
-@@ -1527,6 +1531,7 @@ static int ocfs2_write_begin_inline(struct address_space *mapping,
- 	if (!PageUptodate(page)) {
- 		ret = ocfs2_read_inline_data(inode, page, wc->w_di_bh);
- 		if (ret) {
-+			mlog_errno(ret);
- 			ocfs2_commit_trans(osb, handle);
- 
- 			goto out;
+ 	if (clusters_to_alloc || extents_to_split ||
+-	    wc->w_desc[0].c_needs_zero ||
+-	    wc->w_desc[wc->w_clen - 1].c_needs_zero)
++	    (wc->w_clen && (wc->w_desc[0].c_needs_zero ||
++			    wc->w_desc[wc->w_clen - 1].c_needs_zero)))
+ 		cluster_of_pages = 1;
+ 	else
+ 		cluster_of_pages = 0;
 -- 
-1.6.2.5
+1.6.0.4
