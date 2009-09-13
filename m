@@ -1,36 +1,56 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 11 Sep 2009 15:57:10 -0700
+From: Coly Li <coly.li@suse.de>
+Date: Sun, 13 Sep 2009 22:08:43 +0800
 Subject: [Ocfs2-devel] dlm stress test hangs OCFS2
-In-Reply-To: <4AA890ED.3040406@suse.de>
+In-Reply-To: <4AAAD5C6.4000800@oracle.com>
 References: <4A8B0083.8030400@suse.de> <4A8B6C29.30802@oracle.com>
 	<4A9EA759.5090906@suse.de> <4A9EEB26.2080204@oracle.com>
 	<4A9FEDA8.3080108@suse.de> <4A9FEDAC.50704@oracle.com>
 	<4AA80AE4.9090105@suse.de> <4AA82136.9000403@oracle.com>
-	<4AA890ED.3040406@suse.de>
-Message-ID: <4AAAD5C6.4000800@oracle.com>
+	<4AA890ED.3040406@suse.de> <4AAAD5C6.4000800@oracle.com>
+Message-ID: <4AACFCEB.4060902@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Thanks, Coly.
+Hi Sunil,
 
-So dlmglue calls dlmlock to downconvert the lock from EX => NL.
-However, in the next iteration, we see lock at PR. Strange.
+Here is the printk info from your patch. I patched it into 2.6.31-rc8.
 
-Anycase, I have created a patch that should provide more info.
-The patch is against the current mainline. It should apply against
-older trees. But may require a bit of tlc.
+This time it's quite easy to wait for the open file blocking happens. All the
+trace info on all 2 nodes (x1, and x2) are taken in blocking time.
 
-Please re-run with the the following patch.
-http://oss.oracle.com/~smushran/0001-ocfs2-Patch-to-debug-hang-in-dlmglue-when-running-d.patch
+Thanks.
 
-Coly Li wrote:
->
-> Sunil Mushran Wrote:
->> Can you send me the raw trace output.
->>
-> Here is the compressed trace info.
->
-> Thanks.
+Sunil Mushran Wrote:
+> Thanks, Coly.
+> 
+> So dlmglue calls dlmlock to downconvert the lock from EX => NL.
+> However, in the next iteration, we see lock at PR. Strange.
+> 
+> Anycase, I have created a patch that should provide more info.
+> The patch is against the current mainline. It should apply against
+> older trees. But may require a bit of tlc.
+> 
+> Please re-run with the the following patch.
+> http://oss.oracle.com/~smushran/0001-ocfs2-Patch-to-debug-hang-in-dlmglue-when-running-d.patch
+> 
+
+-- 
+Coly Li
+SuSE Labs
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: calltrace_x1.bz2
+Type: application/x-bzip
+Size: 23847 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090913/c0ec60ca/attachment-0002.bin 
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: calltrace_x2.bz2
+Type: application/x-bzip
+Size: 29115 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090913/c0ec60ca/attachment-0003.bin 
