@@ -1,52 +1,51 @@
-From: Coly Li <coly.li@suse.de>
-Date: Tue, 15 Sep 2009 04:23:40 +0800
-Subject: [Ocfs2-devel] dlm stress test hangs OCFS2
-In-Reply-To: <4AAE99DF.3030005@oracle.com>
-References: <4A8B0083.8030400@suse.de> <4A8B6C29.30802@oracle.com>
-	<4A9EA759.5090906@suse.de> <4A9EEB26.2080204@oracle.com>
-	<4A9FEDA8.3080108@suse.de> <4A9FEDAC.50704@oracle.com>
-	<4AA80AE4.9090105@suse.de> <4AA82136.9000403@oracle.com>
-	<4AA890ED.3040406@suse.de> <4AAAD5C6.4000800@oracle.com>
-	<4AACFCEB.4060902@suse.de> <4AAE99DF.3030005@oracle.com>
-Message-ID: <4AAEA64C.3030607@suse.de>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 14 Sep 2009 14:32:36 -0700 (PDT)
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 changes for 2.6.32
+In-Reply-To: <20090911200458.GA15416@mail.oracle.com>
+References: <20090911200458.GA15416@mail.oracle.com>
+Message-ID: <alpine.LFD.2.01.0909141417180.4950@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
 
 
-Sunil Mushran Wrote:
-> Thanks. Can you email me the _full_ trace log.
-> 
-Hi Sunil,
+On Fri, 11 Sep 2009, Joel Becker wrote:
+>
+> Linus, et al,
+> 	Here are the ocfs2 feature changes for 2.6.32.  The big ticket
+> item is the reflinkat(2) system call and ocfs2's support for it.  The
+> ocfs2 support accounts for all but a handful of the changes.  The
+> remaining few patches are fixes.
 
-Here is the full trace log from boot to shutdown, on both nodes.
+I _really_ want some kind of ack's for new filesystem system calls like 
+this. I'm not going to pull a new 'reflink[at]()' system call just based 
+on a single filesystem.
 
-On node x1, I run 2 make_panic process (the simplified bash script).
-On node x2, I run 1 make_panic process.
+Yes, there's clearly been _some_ discussion, but (a) I've not seen it 
+(since it's been on 'fsdevel', which is one of those single-topic mailing 
+lists that I'm totally uninterested in, since they tend to become clique 
+groups) and (b) you don't even say whether the thing has been acked by 
+things like the security angle etc.
 
-The above operation can reproduce the blocking very fast. I wait for several
-minutes, when no any new file created on both nodes. Then I shut the nodes.
+So I'm not pulling this. Not until I get the feeling that there is 
+consensus.
 
-Please check the attachment for trace log.
+I also don't understand why it's called 'reflink'. Why not 'copyfile'? We 
+should not name things by implementation, we should name things by what 
+they _do_. And I'm not seeing what is so 'reflink' about this that it's 
+not a 'copyfile'. I also am not entirely clear on why you need the source 
+name, and not - for example - an 'fd'.
 
-Thanks.
--- 
-Coly Li
-SuSE Labs
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: calltrace_x1.bz2
-Type: application/x-bzip
-Size: 49891 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090915/264a25bf/attachment-0002.bin 
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: calltrace_x2.bz2
-Type: application/x-bzip
-Size: 48514 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090915/264a25bf/attachment-0003.bin 
+Are we going to add 'freflink[at]()' at some point?
+
+So I want explanations for the naming, I want sign-offs from other 
+filesystem (and security) people, etc. What I do _not_ want is to get a 
+"please pull" request for a filesystem, and notice that it's suddenly not 
+all about just that particular filesystem, without any indication of who 
+you've been talking to etc etc.
+
+			Linus
