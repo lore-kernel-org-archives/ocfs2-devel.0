@@ -1,35 +1,46 @@
-From: Jan Kara <jack@suse.cz>
-Date: Mon, 14 Sep 2009 16:56:22 +0200
-Subject: [Ocfs2-devel] [PATCH] [RFC] Mount option trap for users
-Message-ID: <20090914145622.GK24075@duck.suse.cz>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 14 Sep 2009 12:30:39 -0700
+Subject: [Ocfs2-devel] dlm stress test hangs OCFS2
+In-Reply-To: <4AACFCEB.4060902@suse.de>
+References: <4A8B0083.8030400@suse.de> <4A8B6C29.30802@oracle.com>
+	<4A9EA759.5090906@suse.de> <4A9EEB26.2080204@oracle.com>
+	<4A9FEDA8.3080108@suse.de> <4A9FEDAC.50704@oracle.com>
+	<4AA80AE4.9090105@suse.de> <4AA82136.9000403@oracle.com>
+	<4AA890ED.3040406@suse.de> <4AAAD5C6.4000800@oracle.com>
+	<4AACFCEB.4060902@suse.de>
+Message-ID: <4AAE99DF.3030005@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  Hello,
+Thanks. Can you email me the _full_ trace log.
 
-  OCFS2 mount option 'acl' is a small trap for users. When xattr feature
-is not enabled and 'acl' mount option is specified, it is just silently
-cleared during mount. IMHO that's not a good behavior - when admin requests
-ACLs and we are not able to provide them, we should just fail the mount.
-The trap is even more dangerous because the mount command is not aware that
-we've cleared the 'acl' mount option and thus it records in /etc/mtab that
-the filesystem is mounted with 'acl' mount option. So the output of mount
-command looks as if ACLs were really in use. The only way to find out they
-are not is to look into /proc/mounts or to try to get/set some ACL.
-  Attached patch makes the mount fail if 'acl' mount option is specified
-but xattr feature is disabled.
-
-								Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: 0001-ocfs2-Fail-the-mount-when-acl-mount-option-is-spe.patch
-Type: text/x-patch
-Size: 2512 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090914/bef0a2a5/attachment.bin 
+Coly Li wrote:
+> Hi Sunil,
+>
+> Here is the printk info from your patch. I patched it into 2.6.31-rc8.
+>
+> This time it's quite easy to wait for the open file blocking happens. All the
+> trace info on all 2 nodes (x1, and x2) are taken in blocking time.
+>
+> Thanks.
+>
+> Sunil Mushran Wrote:
+>   
+>> Thanks, Coly.
+>>
+>> So dlmglue calls dlmlock to downconvert the lock from EX => NL.
+>> However, in the next iteration, we see lock at PR. Strange.
+>>
+>> Anycase, I have created a patch that should provide more info.
+>> The patch is against the current mainline. It should apply against
+>> older trees. But may require a bit of tlc.
+>>
+>> Please re-run with the the following patch.
+>> http://oss.oracle.com/~smushran/0001-ocfs2-Patch-to-debug-hang-in-dlmglue-when-running-d.patch
+>>
+>>     
+>
+>   
