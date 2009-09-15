@@ -1,258 +1,54 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 02 Sep 2009 13:59:35 -0000
-Subject: [Ocfs2-devel] [PATCH 07/16] vfs: Introduce new helpers for syncing
-	after writing to O_SYNC file or IS_SYNC inode
-In-Reply-To: <1251899966-7316-1-git-send-email-jack@suse.cz>
-References: <1251899966-7316-1-git-send-email-jack@suse.cz>
-Message-ID: <1251899966-7316-8-git-send-email-jack@suse.cz>
+From: Arjan van de Ven <arjan@infradead.org>
+Date: Tue, 15 Sep 2009 06:05:59 +0200
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 changes for 2.6.32
+In-Reply-To: <alpine.LFD.2.01.0909141828070.4950@localhost.localdomain>
+References: <20090911200458.GA15416@mail.oracle.com>
+	<alpine.LFD.2.01.0909141417180.4950@localhost.localdomain>
+	<20090914221434.GA4507@mail.oracle.com>
+	<alpine.LFD.2.01.0909141614350.4950@localhost.localdomain>
+	<20090915000417.GC4507@mail.oracle.com>
+	<alpine.LFD.2.01.0909141727150.4950@localhost.localdomain>
+	<20090915005417.GD4507@mail.oracle.com>
+	<alpine.LFD.2.01.0909141828070.4950@localhost.localdomain>
+Message-ID: <20090915060559.5b0a2574@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: LKML <linux-kernel@vger.kernel.org>, hch@lst.de, Jan Kara <jack@suse.cz>, Evgeniy Polyakov <zbr@ioremap.net>, ocfs2-devel@oss.oracle.com, Joel Becker <joel.becker@oracle.com>, Felix Blyakher <felixb@sgi.com>, xfs@oss.sgi.com, Anton Altaparmakov <aia21@cantab.net>, linux-ntfs-dev@lists.sourceforge.net, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, linux-ext4@vger.kernel.org, tytso@mit.edu
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Joel Becker <Joel.Becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-Introduce new function for generic inode syncing (vfs_fsync_range) and use
-it from fsync() path. Introduce also new helper for syncing after a sync
-write (generic_write_sync) using the generic function.
+On Mon, 14 Sep 2009 19:01:06 -0700 (PDT)
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Use these new helpers for syncing from generic VFS functions. This makes
-O_SYNC writes to block devices acquire i_mutex for syncing. If we really
-care about this, we can make block_fsync() drop the i_mutex and reacquire
-it before it returns.
+> 
+> 
+> On Mon, 14 Sep 2009, Joel Becker wrote:
+> >
+> > 	In the reflink discussion before, I proposed that a separate
+> > copyfile() syscall could be written that uses the same ->reflink()
+> > inode operation but allows degradation in the storage handling.
+> 
+> .. exactly how?
+> 
+> If you're talking about falling back to manually just copying the
+> data, then nobody is interested in that. User space can do that
+> better with a simple read-write loop or with splice, or whatever.
+> There's no reaason what-so-ever to do that.
+> 
+> But the thing is, network filesystems may be able to do server-side 
+> copies, and the point being that they can do so _without_
+> transferring the data to the client (and back). And if we do
+> 'copyfile' (under whatever name) for one filesystem, then I think we
+> should strive to make sure that it's useful for other filesystems too.
 
-CC: Evgeniy Polyakov <zbr@ioremap.net>
-CC: ocfs2-devel at oss.oracle.com
-CC: Joel Becker <joel.becker@oracle.com>
-CC: Felix Blyakher <felixb@sgi.com>
-CC: xfs at oss.sgi.com
-CC: Anton Altaparmakov <aia21@cantab.net>
-CC: linux-ntfs-dev at lists.sourceforge.net
-CC: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
-CC: linux-ext4 at vger.kernel.org
-CC: tytso at mit.edu
-Acked-by: Christoph Hellwig <hch@lst.de>
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/splice.c        |   22 +++++---------------
- fs/sync.c          |   55 +++++++++++++++++++++++++++++++++++++++++++++------
- include/linux/fs.h |    3 ++
- mm/filemap.c       |   18 +++++-----------
- 4 files changed, 63 insertions(+), 35 deletions(-)
+COW filesystems like btrfs may also be able to do interesting things
+with copyfile() btw by just sharing all data blocks COW.
 
-diff --git a/fs/splice.c b/fs/splice.c
-index 73766d2..8190237 100644
---- a/fs/splice.c
-+++ b/fs/splice.c
-@@ -976,25 +976,15 @@ generic_file_splice_write(struct pipe_inode_info *pipe, struct file *out,
- 
- 	if (ret > 0) {
- 		unsigned long nr_pages;
-+		int err;
- 
--		*ppos += ret;
- 		nr_pages = (ret + PAGE_CACHE_SIZE - 1) >> PAGE_CACHE_SHIFT;
- 
--		/*
--		 * If file or inode is SYNC and we actually wrote some data,
--		 * sync it.
--		 */
--		if (unlikely((out->f_flags & O_SYNC) || IS_SYNC(inode))) {
--			int err;
--
--			mutex_lock(&inode->i_mutex);
--			err = generic_osync_inode(inode, mapping,
--						  OSYNC_METADATA|OSYNC_DATA);
--			mutex_unlock(&inode->i_mutex);
--
--			if (err)
--				ret = err;
--		}
-+		err = generic_write_sync(out, *ppos, ret);
-+		if (err)
-+			ret = err;
-+		else
-+			*ppos += ret;
- 		balance_dirty_pages_ratelimited_nr(mapping, nr_pages);
- 	}
- 
-diff --git a/fs/sync.c b/fs/sync.c
-index 3422ba6..6fe72e6 100644
---- a/fs/sync.c
-+++ b/fs/sync.c
-@@ -176,19 +176,23 @@ int file_fsync(struct file *filp, struct dentry *dentry, int datasync)
- }
- 
- /**
-- * vfs_fsync - perform a fsync or fdatasync on a file
-+ * vfs_fsync_range - helper to sync a range of data & metadata to disk
-  * @file:		file to sync
-  * @dentry:		dentry of @file
-- * @data:		only perform a fdatasync operation
-+ * @start:		offset in bytes of the beginning of data range to sync
-+ * @end:		offset in bytes of the end of data range (inclusive)
-+ * @datasync:		perform only datasync
-  *
-- * Write back data and metadata for @file to disk.  If @datasync is
-- * set only metadata needed to access modified file data is written.
-+ * Write back data in range @start.. at end and metadata for @file to disk.  If
-+ * @datasync is set only metadata needed to access modified file data is
-+ * written.
-  *
-  * In case this function is called from nfsd @file may be %NULL and
-  * only @dentry is set.  This can only happen when the filesystem
-  * implements the export_operations API.
-  */
--int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
-+int vfs_fsync_range(struct file *file, struct dentry *dentry, loff_t start,
-+		    loff_t end, int datasync)
- {
- 	const struct file_operations *fop;
- 	struct address_space *mapping;
-@@ -212,7 +216,7 @@ int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
- 		goto out;
- 	}
- 
--	ret = filemap_fdatawrite(mapping);
-+	ret = filemap_fdatawrite_range(mapping, start, end);
- 
- 	/*
- 	 * We need to protect against concurrent writers, which could cause
-@@ -223,12 +227,32 @@ int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
- 	if (!ret)
- 		ret = err;
- 	mutex_unlock(&mapping->host->i_mutex);
--	err = filemap_fdatawait(mapping);
-+
-+	err = filemap_fdatawait_range(mapping, start, end);
- 	if (!ret)
- 		ret = err;
- out:
- 	return ret;
- }
-+EXPORT_SYMBOL(vfs_fsync_range);
-+
-+/**
-+ * vfs_fsync - perform a fsync or fdatasync on a file
-+ * @file:		file to sync
-+ * @dentry:		dentry of @file
-+ * @datasync:		only perform a fdatasync operation
-+ *
-+ * Write back data and metadata for @file to disk.  If @datasync is
-+ * set only metadata needed to access modified file data is written.
-+ *
-+ * In case this function is called from nfsd @file may be %NULL and
-+ * only @dentry is set.  This can only happen when the filesystem
-+ * implements the export_operations API.
-+ */
-+int vfs_fsync(struct file *file, struct dentry *dentry, int datasync)
-+{
-+	return vfs_fsync_range(file, dentry, 0, LLONG_MAX, datasync);
-+}
- EXPORT_SYMBOL(vfs_fsync);
- 
- static int do_fsync(unsigned int fd, int datasync)
-@@ -254,6 +278,23 @@ SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
- 	return do_fsync(fd, 1);
- }
- 
-+/**
-+ * generic_write_sync - perform syncing after a write if file / inode is sync
-+ * @file:	file to which the write happened
-+ * @pos:	offset where the write started
-+ * @count:	length of the write
-+ *
-+ * This is just a simple wrapper about our general syncing function.
-+ */
-+int generic_write_sync(struct file *file, loff_t pos, loff_t count)
-+{
-+	if (!(file->f_flags & O_SYNC) && !IS_SYNC(file->f_mapping->host))
-+		return 0;
-+	return vfs_fsync_range(file, file->f_path.dentry, pos,
-+			       pos + count - 1, 1);
-+}
-+EXPORT_SYMBOL(generic_write_sync);
-+
- /*
-  * sys_sync_file_range() permits finely controlled syncing over a segment of
-  * a file in the range offset .. (offset+nbytes-1) inclusive.  If nbytes is
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index bc7f0f1..18acaec 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -2088,7 +2088,10 @@ extern int __filemap_fdatawrite_range(struct address_space *mapping,
- extern int filemap_fdatawrite_range(struct address_space *mapping,
- 				loff_t start, loff_t end);
- 
-+extern int vfs_fsync_range(struct file *file, struct dentry *dentry,
-+			   loff_t start, loff_t end, int datasync);
- extern int vfs_fsync(struct file *file, struct dentry *dentry, int datasync);
-+extern int generic_write_sync(struct file *file, loff_t pos, loff_t count);
- extern void sync_supers(void);
- extern void emergency_sync(void);
- extern void emergency_remount(void);
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 3955f7e..70988a1 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -39,11 +39,10 @@
- /*
-  * FIXME: remove all knowledge of the buffer layer from the core VM
-  */
--#include <linux/buffer_head.h> /* for generic_osync_inode */
-+#include <linux/buffer_head.h> /* for try_to_free_buffers */
- 
- #include <asm/mman.h>
- 
--
- /*
-  * Shared mappings implemented 30.11.1994. It's not fully working yet,
-  * though.
-@@ -2480,19 +2479,16 @@ ssize_t device_aio_write(struct kiocb *iocb, const struct iovec *iov,
- 			 unsigned long nr_segs, loff_t pos)
- {
- 	struct file *file = iocb->ki_filp;
--	struct address_space *mapping = file->f_mapping;
--	struct inode *inode = mapping->host;
- 	ssize_t ret;
- 
- 	BUG_ON(iocb->ki_pos != pos);
- 
- 	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
- 
--	if ((ret > 0 || ret == -EIOCBQUEUED) &&
--	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
-+	if (ret > 0 || ret == -EIOCBQUEUED) {
- 		ssize_t err;
- 
--		err = sync_page_range_nolock(inode, mapping, pos, ret);
-+		err = generic_write_sync(file, pos, ret);
- 		if (err < 0 && ret > 0)
- 			ret = err;
- 	}
-@@ -2515,8 +2511,7 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
- 		unsigned long nr_segs, loff_t pos)
- {
- 	struct file *file = iocb->ki_filp;
--	struct address_space *mapping = file->f_mapping;
--	struct inode *inode = mapping->host;
-+	struct inode *inode = file->f_mapping->host;
- 	ssize_t ret;
- 
- 	BUG_ON(iocb->ki_pos != pos);
-@@ -2525,11 +2520,10 @@ ssize_t generic_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
- 	ret = __generic_file_aio_write(iocb, iov, nr_segs, &iocb->ki_pos);
- 	mutex_unlock(&inode->i_mutex);
- 
--	if ((ret > 0 || ret == -EIOCBQUEUED) &&
--	    ((file->f_flags & O_SYNC) || IS_SYNC(inode))) {
-+	if (ret > 0 || ret == -EIOCBQUEUED) {
- 		ssize_t err;
- 
--		err = sync_page_range(inode, mapping, pos, ret);
-+		err = generic_write_sync(file, pos, ret);
- 		if (err < 0 && ret > 0)
- 			ret = err;
- 	}
+That would make copyfile() useful for me, much more so than the network
+filesystem side...
+
 -- 
-1.6.0.2
+Arjan van de Ven 	Intel Open Source Technology Centre
+For development, discussion and tips for power savings, 
+visit http://www.lesswatts.org
