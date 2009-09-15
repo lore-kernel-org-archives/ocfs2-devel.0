@@ -1,62 +1,38 @@
-From: Coly Li <coly.li@suse.de>
-Date: Tue, 15 Sep 2009 15:11:32 +0800
-Subject: [Ocfs2-devel] dlm stress test hangs OCFS2
-In-Reply-To: <4AAED882.9020601@oracle.com>
-References: <4A8B0083.8030400@suse.de> <4A8B6C29.30802@oracle.com>
-	<4A9EA759.5090906@suse.de> <4A9EEB26.2080204@oracle.com>
-	<4A9FEDA8.3080108@suse.de> <4A9FEDAC.50704@oracle.com>
-	<4AA80AE4.9090105@suse.de> <4AA82136.9000403@oracle.com>
-	<4AA890ED.3040406@suse.de> <4AAAD5C6.4000800@oracle.com>
-	<4AACFCEB.4060902@suse.de> <4AAE99DF.3030005@oracle.com>
-	<4AAEA64C.3030607@suse.de> <4AAED882.9020601@oracle.com>
-Message-ID: <4AAF3E24.9050207@suse.de>
+From: Jan Kara <jack@suse.cz>
+Date: Tue, 15 Sep 2009 11:24:24 +0200
+Subject: [Ocfs2-devel] [PATCH] [RFC] Mount option trap for users
+In-Reply-To: <20090914194404.GA28473@mail.oracle.com>
+References: <20090914145622.GK24075@duck.suse.cz>
+	<20090914194404.GA28473@mail.oracle.com>
+Message-ID: <20090915092424.GB12169@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-
-
-Sunil Mushran Wrote:
-> The full trace is available here.
-> http://oss.oracle.com/~smushran/calltrace_x1
+On Mon 14-09-09 12:44:05, Joel Becker wrote:
+> On Mon, Sep 14, 2009 at 04:56:22PM +0200, Jan Kara wrote:
+> >   OCFS2 mount option 'acl' is a small trap for users. When xattr feature
+> > is not enabled and 'acl' mount option is specified, it is just silently
+> > cleared during mount. IMHO that's not a good behavior - when admin requests
+> > ACLs and we are not able to provide them, we should just fail the mount.
 > 
-> So one sees the following block repeated. It shows that the lock is
-> being downconverted from EX to NL but also upconverted presumably to EX.
-> 
-> 
-> Coli, Can you map the pids to the process names.
-> 
+> 	See
+> http://www.mail-archive.com/ocfs2-devel at oss.oracle.com/msg03836.html for
+> previous discussion.
+  Thanks for the pointer. I didn't know about this discussion. Actually,
+this is a bit different situation because you won't so easily disable the
+feature on the filesystem as opposed to just booting a kernel without ACL
+support.
+  Also filesystems like ext3/ext4/reiserfs just silently enable the XATTR
+feature when you use is for the first time and the kernel supports it (for
+these filesystems XATTRs are implemented as COMPAT features). OCFS2 will
+fail the syscall (and it cannot really silently enable the feature because
+it is an INCOMPAT one) so that's a difference anyway... So I still think
+my change makes sence.
 
-Hi Sunil,
-
-In the attached trace info, I add current->comm after the pid.
-
-Here is the steps I reproduce the blocking,
-- This time I only run 1 make_panic process on each node.
-- I ran make_panic on x1 firstly, then on x2.
-- On node x1, after creating 3-4 files, I start the make_panic script on node x2.
-- On node x2, make_panic blocked immediately, no file created. On node x1, after
-creating 13 files, make_panic blocked too.
-- After waiting for several minutes, still blocked. I stop gathering trace info.
-
-Please check the attachment. Thank.
-
+								Honza
 -- 
-Coly Li
-SuSE Labs
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: calltrace_x1.bz2
-Type: application/x-bzip
-Size: 46329 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090915/f528a475/attachment-0002.bin 
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: calltrace_x2.bz2
-Type: application/x-bzip
-Size: 44701 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20090915/f528a475/attachment-0003.bin 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
