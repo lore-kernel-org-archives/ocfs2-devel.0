@@ -1,115 +1,64 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 14 Sep 2009 16:57:54 -0700
-Subject: [Ocfs2-devel] dlm stress test hangs OCFS2
-In-Reply-To: <4AAEA64C.3030607@suse.de>
-References: <4A8B0083.8030400@suse.de> <4A8B6C29.30802@oracle.com>
-	<4A9EA759.5090906@suse.de> <4A9EEB26.2080204@oracle.com>
-	<4A9FEDA8.3080108@suse.de> <4A9FEDAC.50704@oracle.com>
-	<4AA80AE4.9090105@suse.de> <4AA82136.9000403@oracle.com>
-	<4AA890ED.3040406@suse.de> <4AAAD5C6.4000800@oracle.com>
-	<4AACFCEB.4060902@suse.de> <4AAE99DF.3030005@oracle.com>
-	<4AAEA64C.3030607@suse.de>
-Message-ID: <4AAED882.9020601@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 14 Sep 2009 17:04:17 -0700
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 changes for 2.6.32
+In-Reply-To: <alpine.LFD.2.01.0909141614350.4950@localhost.localdomain>
+References: <20090911200458.GA15416@mail.oracle.com>
+	<alpine.LFD.2.01.0909141417180.4950@localhost.localdomain>
+	<20090914221434.GA4507@mail.oracle.com>
+	<alpine.LFD.2.01.0909141614350.4950@localhost.localdomain>
+Message-ID: <20090915000417.GC4507@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-The full trace is available here.
-http://oss.oracle.com/~smushran/calltrace_x1
+On Mon, Sep 14, 2009 at 04:27:59PM -0700, Linus Torvalds wrote:
+> On Mon, 14 Sep 2009, Joel Becker wrote:
+> >From all but a performance standpoint, it's a copy. It has absolutely 
+> _zero_ "link" semantics. When you do a symlink or a hardlink, you see it 
+> in the resulting semantics: changing one changes the other. 
 
-So one sees the following block repeated. It shows that the lock is
-being downconverted from EX to NL but also upconverted presumably to EX.
+	It's creating a new entry in the name space based on an old one.
 
-==============================================================
-[412.378525] (12732,0):ocfs2_blocking_ast:1025 BAST fired for lockres 
-M0000000000000000085e0200000000, blocking 5, level 5 type Meta
-[412.378532] (12731,0):ocfs2_process_blocked_lock:3839 lockres 
-M0000000000000000085e0200000000 blocked.
-[412.378537] (12731,0):ocfs2_prepare_downconvert:3232 lock 
-M0000000000000000085e0200000000, new_level = 0, l_blocking = 5
-[412.378542] (12731,0):ocfs2_downconvert_lock:3252 lock 
-M0000000000000000085e0200000000, level 5 => 0
-[412.378554] (12731,0):__lockres_clear_pending:978 lock 
-M0000000000000000085e0200000000 Clear; flg=0x557, lpg=268, gen=268
-[412.378558] (12731,0):ocfs2_process_blocked_lock:3863 lockres 
-M0000000000000000085e0200000000, requeue = no.
-[412.378578] (12732,0):ocfs2_locking_ast:1069 lock 
-M0000000000000000085e0200000000, action 3, unlock 0
-[412.378584] (12732,0):__lockres_clear_pending:972 lock 
-M0000000000000000085e0200000000 Abort; flg=0x51, lpg=269, gen=269
-[412.378596] (9370,0):__lockres_clear_pending:978 lock 
-M0000000000000000085e0200000000 Clear; flg=0x453, lpg=269, gen=269
-[412.578719] (12732,0):ocfs2_locking_ast:1069 lock 
-M0000000000000000085e0200000000, action 2, unlock 0
-[412.578727] (12732,0):__lockres_clear_pending:972 lock 
-M0000000000000000085e0200000000 Abort; flg=0x51, lpg=270, gen=270
-==============================================================
+> And the thing to note is that it doesn't even have to be optimized as a 
+> "link". Think about network filesystems: maybe they want to implement this 
+> thing as a server-side "copy" operation (with atomicity guarantees).
 
-The BAST
-[412.378525] (12732,0):ocfs2_blocking_ast:1025 BAST fired for lockres 
-M0000000000000000085e0200000000, blocking 5, level 5 type Meta
-[412.378532] (12731,0):ocfs2_process_blocked_lock:3839 lockres 
-M0000000000000000085e0200000000 blocked.
+	reflink doesn't merely guarantee atomicity, it guarantees the
+shared data extents.  Under the auspices of reflink a network filesystem
+cannot merely provide an atomic copy.  A separate copyfile call might
+allow that, but reflink doesn't.  This is deliberate, because the caller
+wants the shared storage, not just a copy.
 
-Lock is at EX (5) and new level is NL (0).
-[412.378537] (12731,0):ocfs2_prepare_downconvert:3232 lock 
-M0000000000000000085e0200000000, new_level = 0, l_blocking = 5
-[412.378542] (12731,0):ocfs2_downconvert_lock:3252 lock 
-M0000000000000000085e0200000000, level 5 => 0
+> I also still didn't get any answer to the "freflink()" question. You just 
+> said that we wouldn't do it, with no explanation. Why? We've discussed 
+> 'flink()' in the past, I just want to know that when we do a new system 
+> call there is some _reason_ why it's not going to explode into many 
+> different variants later...
 
-Flags: 0x557 => PENDING QUEUED INITIALIZED NEEDS_REFRESH BLOCKED BUSY 
-ATTACHED
-[412.378554] (12731,0):__lockres_clear_pending:978 lock 
-M0000000000000000085e0200000000 Clear; flg=0x557, lpg=268, gen=268
+	Well, obviously I started from the fact that we don't have
+flink().  But it doesn't really fit anyway.  reflink is a namespace
+operation - give me a new item in the namespace that shares the data
+extents of the old item.  So working from a file descriptor doesn't
+quite fit.  Plus, flink and freflink would have to deal with
+recovering already-orphaned inodes.
+	Where do you stand on flink?  If it actually makes sense to
+you, then perhaps we should consider it and freflinkat.  It doesn't
+strike me as the way to go, but throughout all the discussion I'm quite
+willing to be convinced.
 
-requeue no means there is no need to delay the downconvert
-[412.378558] (12731,0):ocfs2_process_blocked_lock:3863 lockres 
-M0000000000000000085e0200000000, requeue = no.
+Joel
 
-Action 3 means DOWNCONVERT
-[412.378578] (12732,0):ocfs2_locking_ast:1069 lock 
-M0000000000000000085e0200000000, action 3, unlock 0
+-- 
 
-Flags: 0x51 => INITIALIZED NEEDS_REFRESH ATTACHED
-[412.378584] (12732,0):__lockres_clear_pending:972 lock 
-M0000000000000000085e0200000000 Abort; flg=0x51, lpg=269, gen=269
+"I don't know anything about music. In my line you don't have
+ to."
+        - Elvis Presley
 
-Flags: 0x453 => PENDING INITIALIZED NEEDS_REFRESH BUSY ATTACHED
-[412.378596] (9370,0):__lockres_clear_pending:978 lock 
-M0000000000000000085e0200000000 Clear; flg=0x453, lpg=269, gen=269
-
-Action 2 means CONVERT
-[412.578719] (12732,0):ocfs2_locking_ast:1069 lock 
-M0000000000000000085e0200000000, action 2, unlock 0
-[412.578727] (12732,0):__lockres_clear_pending:972 lock 
-M0000000000000000085e0200000000 Abort; flg=0x51, lpg=270, gen=270
-
-A quick scan shows the CONVERT is consistently 200 usecs (??) after the 
-DOWNCONVERT.
-
-Coli, Can you map the pids to the process names.
-
-Sunil
-
-Coly Li wrote:
-> Sunil Mushran Wrote:
->   
->> Thanks. Can you email me the _full_ trace log.
->>
->>     
-> Hi Sunil,
->
-> Here is the full trace log from boot to shutdown, on both nodes.
->
-> On node x1, I run 2 make_panic process (the simplified bash script).
-> On node x2, I run 1 make_panic process.
->
-> The above operation can reproduce the blocking very fast. I wait for several
-> minutes, when no any new file created on both nodes. Then I shut the nodes.
->
-> Please check the attachment for trace log.
->
-> Thanks.
->   
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
