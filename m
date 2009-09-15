@@ -1,85 +1,72 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 14 Sep 2009 17:54:17 -0700
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 14 Sep 2009 19:01:06 -0700 (PDT)
 Subject: [Ocfs2-devel] [GIT PULL] ocfs2 changes for 2.6.32
-In-Reply-To: <alpine.LFD.2.01.0909141727150.4950@localhost.localdomain>
+In-Reply-To: <20090915005417.GD4507@mail.oracle.com>
 References: <20090911200458.GA15416@mail.oracle.com>
 	<alpine.LFD.2.01.0909141417180.4950@localhost.localdomain>
 	<20090914221434.GA4507@mail.oracle.com>
 	<alpine.LFD.2.01.0909141614350.4950@localhost.localdomain>
 	<20090915000417.GC4507@mail.oracle.com>
 	<alpine.LFD.2.01.0909141727150.4950@localhost.localdomain>
-Message-ID: <20090915005417.GD4507@mail.oracle.com>
+	<20090915005417.GD4507@mail.oracle.com>
+Message-ID: <alpine.LFD.2.01.0909141828070.4950@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-On Mon, Sep 14, 2009 at 05:31:27PM -0700, Linus Torvalds wrote:
-> On Mon, 14 Sep 2009, Joel Becker wrote:
-> > 	reflink doesn't merely guarantee atomicity, it guarantees the
-> > shared data extents.
-> 
-> Why?
-> 
-> That just limits its usefulness. What's the reason for that sophistry, 
-> except to try to argue for a name that makes no sense?
 
-	This originally came from the idea of creating file snapshots.
-That was our original goal, but the more generic reflink call allows
-more than snapshots to be built.  You can use it to implement copyfile
-or clone or a variety of things.  But the snapshot capability is what
-really motivates, and removing the shared data requirement means
-removing that capability.  Like any API we have, if it can degrade, you
-have to assume it degraded.  A reflink/copyfile that can just copy means
-you have assume it copied and didn't conserve space.  This makes it
-useless for snapshotting or cloning.
-	In the reflink discussion before, I proposed that a separate
-copyfile() syscall could be written that uses the same ->reflink() inode
-operation but allows degradation in the storage handling.  This would be
-a little more capable than a glibc copyfile() written around reflink
-because it would get the atomicity right.  The separate copyfile/reflink
-calls would handle the different requirements of storage handling.  I
-just concentrated on reflink and didn't worry about that alternate
-copyfile at the time being.
-	I'm open to another proposal on how to do it.  As a user, I need
-a way to ask for a reflink/copyfile that fails if it can't share the
-data.  Things like snapshots and cloning gold VM images can't be
-doubling the storage.  They become pointless.
-	 About the name, the reflink name came out of "you call it like
-link(2)" and "the storage is reference counted CoW".  It really works
-well as "ln -r".  Folks at the filesystem summit liked it, so I didn't
-change it.  It's not so much that it has to be "reflink", but I've
-avoided "copyfile" because copyfile intuitively sounds like you
-describe, including the plain-copy fallback.  Want me to call the
-requires-shared-data-because-its-a-snap version snapfileat(2)?
-Something better?
 
-> > 	Well, obviously I started from the fact that we don't have
-> > flink().  But it doesn't really fit anyway.  reflink is a namespace
-> > operation - give me a new item in the namespace that shares the data
-> > extents of the old item.
-> 
-> That's not a namespace op, EXCEPT FOR THE NEW NAME.
-> 
-> The data you share from has no namespace component to it, except as a 
-> lookup. But a 'fd' is equally descriptive of the shared data.
+On Mon, 14 Sep 2009, Joel Becker wrote:
+>
+> 	In the reflink discussion before, I proposed that a separate
+> copyfile() syscall could be written that uses the same ->reflink() inode
+> operation but allows degradation in the storage handling.
 
-	Ok, I gather that you find freflink (and by extension, flink)
-compelling.  I can certainly implement it.
+.. exactly how?
 
-Joel
+If you're talking about falling back to manually just copying the data, 
+then nobody is interested in that. User space can do that better with a 
+simple read-write loop or with splice, or whatever. There's no reaason 
+what-so-ever to do that.
 
--- 
+But the thing is, network filesystems may be able to do server-side 
+copies, and the point being that they can do so _without_ transferring the 
+data to the client (and back). And if we do 'copyfile' (under whatever 
+name) for one filesystem, then I think we should strive to make sure that 
+it's useful for other filesystems too.
 
-A good programming language should have features that make the
-kind of people who use the phrase "software engineering" shake
-their heads disapprovingly.
-	- Paul Graham
+Just google for "NFS Server-side Copy". And SMB has had a COPY command 
+from the very beginning, I think.
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+And as far as I can tell, neither NFS nor CIFS could use your definition 
+of 'reflink()'. They aren't reflinks. Or rather, _could_ be, on the 
+server, of course, but what some people want to do is to avoid moving data 
+over the network. So it's not about "don't use more diskspace" for that 
+kind of application.
+
+Do we really want to introduce a new filesystem operation that is likely 
+to be broken for something like that?
+
+Now, it's possible that nobody will ever care, and that NFS server-side 
+copy goes the way of a lot of other failed trials. But I really hope you 
+have at least _talked_ to some CIFS/NFS people about this.
+
+[ Btw, it's quite possible that CIFS/NFS people would want more than a 
+  single entrypoint. I think they might want partial copies and status 
+  updates etc, which would likely mean that a single ->copyfile() thing 
+  isn't sufficient.
+
+  Maybe it's not worth it, and the complexity of something like that gets 
+  to be too annoying. But I don't get the feeling that you've even _tried_ 
+  to see if this can be generalized to something that would be much more 
+  widely useful ]
+
+Now, I can see that you might want to say "fail rather than use double 
+the diskspace for data". But why not just do that as a flag? You already 
+have flags for 'copy extended attributes or not'. Why not have a flag that 
+says 'copy only if you can do it without any extra space'?
+
+			Linus
