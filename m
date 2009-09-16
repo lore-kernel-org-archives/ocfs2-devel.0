@@ -1,138 +1,98 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 15 Sep 2009 14:45:30 -0700
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 changes for 2.6.32
-In-Reply-To: <alpine.LFD.2.01.0909150923180.4950@localhost.localdomain>
-References: <20090911200458.GA15416@mail.oracle.com>
-	<alpine.LFD.2.01.0909141417180.4950@localhost.localdomain>
-	<20090914221434.GA4507@mail.oracle.com>
-	<alpine.LFD.2.01.0909141614350.4950@localhost.localdomain>
-	<20090915000417.GC4507@mail.oracle.com>
-	<alpine.LFD.2.01.0909141727150.4950@localhost.localdomain>
-	<20090915005417.GD4507@mail.oracle.com>
-	<alpine.LFD.2.01.0909141828070.4950@localhost.localdomain>
-	<20090915040601.GE4507@mail.oracle.com>
-	<alpine.LFD.2.01.0909150923180.4950@localhost.localdomain>
-Message-ID: <20090915214530.GA11060@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue, 15 Sep 2009 17:49:15 -0700
+Subject: [Ocfs2-devel] dlm stress test hangs OCFS2
+In-Reply-To: <4AAF3E24.9050207@suse.de>
+References: <4A8B0083.8030400@suse.de> <4A8B6C29.30802@oracle.com>
+	<4A9EA759.5090906@suse.de> <4A9EEB26.2080204@oracle.com>
+	<4A9FEDA8.3080108@suse.de> <4A9FEDAC.50704@oracle.com>
+	<4AA80AE4.9090105@suse.de> <4AA82136.9000403@oracle.com>
+	<4AA890ED.3040406@suse.de> <4AAAD5C6.4000800@oracle.com>
+	<4AACFCEB.4060902@suse.de> <4AAE99DF.3030005@oracle.com>
+	<4AAEA64C.3030607@suse.de> <4AAED882.9020601@oracle.com>
+	<4AAF3E24.9050207@suse.de>
+Message-ID: <4AB0360B.4050602@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Sep 15, 2009 at 09:30:54AM -0700, Linus Torvalds wrote:
-> HOW?
-> 
-> We need to have a per-filesystem interface to that. 
+So originally my thinking was that the dc thread was not getting kicked.
+That is not the case. The lock is getting downconverted. But it is getting
+upconverted shortly thereafter. This just could be the case in which dlmglue
+is slow to increment the holders to block the dc thread from downconverting
+the lock. The snippet shows that BAST is received 16 usecs after the 
+upconvert.
 
-	No argument here.
+Coly, I have another patch. Pop out the older patch before applying this 
+one.
+http://oss.oracle.com/~smushran/0001-ocfs2-Patch-to-debug-hang-in-dlmglue-when-running-d.patch
 
-> But don't you see how _idiotic_ it is to then also having a '->reflink()' 
-> function that does _conceptually_ the exact same thing, except it does it 
-> by incrementing a usage count instead?
-> 
-> Do you see why I'm so unhappy to add a ->reflink() function? 
+BAST:
+[368.807757] (2572,dlm_astd,0):ocfs2_blocking_ast:1025 BAST fired for 
+lockres M0000000000000000085e0200000000, blocking 5, level 3 type Meta
+[368.807767] (2571,ocfs2dc,0):ocfs2_process_blocked_lock:3839 lockres 
+M0000000000000000085e0200000000 blocked.
+[368.807774] (2571,ocfs2dc,0):ocfs2_prepare_downconvert:3232 lock 
+M0000000000000000085e0200000000, new_level = 0, l_blocking = 5
+[368.807779] (2571,ocfs2dc,0):ocfs2_downconvert_lock:3252 lock 
+M0000000000000000085e0200000000, level 3 => 0
+[368.807799] (2571,ocfs2dc,0):ocfs2_process_blocked_lock:3863 lockres 
+M0000000000000000085e0200000000, requeue = no.
 
-	I got it the first time.  You see reflink() as a copyfile(), and
-distinguishing the inode operations doesn't make sense to you.   Quite
-frankly, it doesn't to me either.  There is the user<->kernel interface
-of the system call, and there is the filesystem interface of the inode
-operation.  One inode op that can support multiple variations of
-user<->kernel is find with me!
-	Let's step back a second.  I'm not married to the name
-'reflink'.  I'm not opposed to a copyfile() syscall.  I think I have a
-clearer idea of what I see.  More below.
+Downconvert AST:
+[368.807806] (2572,dlm_astd,0):ocfs2_locking_ast:1069 lock 
+M0000000000000000085e0200000000, action 3, unlock 0
 
-> Would that be a 'reflink()' or not? I have no way of knowing, because you 
-> have decided on reflink on a purely ocfs2-specific implementation basis. 
-> But I do know that such a filesystem would be perfectly happy to have a 
-> 'copyfile' function.
+Upconvert AST:
+[369.007930] (2572,dlm_astd,0):ocfs2_locking_ast:1069 lock 
+M0000000000000000085e0200000000, action 2, unlock 0
 
-	That's not fair.  I deliberately defined it as something outside
-of the ocfs2 implementation.  Apparently I didn't do a good enough job.
+BAST:
+[369.007946] (2572,dlm_astd,0):ocfs2_blocking_ast:1025 BAST fired for 
+lockres M0000000000000000085e0200000000, blocking 5, level 3 type Meta
+[369.007956] (2571,ocfs2dc,0):ocfs2_process_blocked_lock:3839 lockres 
+M0000000000000000085e0200000000 blocked.
+[369.007962] (2571,ocfs2dc,0):ocfs2_prepare_downconvert:3232 lock 
+M0000000000000000085e0200000000, new_level = 0, l_blocking = 5
+[369.007967] (2571,ocfs2dc,0):ocfs2_downconvert_lock:3252 lock 
+M0000000000000000085e0200000000, level 3 => 0
+[369.007987] (2571,ocfs2dc,0):ocfs2_process_blocked_lock:3863 lockres 
+M0000000000000000085e0200000000, requeue = no.
 
-> This is why I want the VFS pointers to be about _semantics_, not about 
-> some random implementation detail.
+Downconvert AST:
+[369.007994] (2572,dlm_astd,0):ocfs2_locking_ast:1069 lock 
+M0000000000000000085e0200000000, action 3, unlock 0
 
-	Again, no argument here.  The syscall interface better be
-reasonably obvious to the userspace programmer.  The VFS pointer better
-be an efficient and clean way to implement the syscall interface.
-	I'm seeing three things here:
+Upconvert AST:
+[369.208048] (2572,dlm_astd,0):ocfs2_locking_ast:1069 lock 
+M0000000000000000085e0200000000, action 2, unlock 0
 
-1. A CoW snapshot of an inode.  This is reflink.  It expressly defines
-   metadata as copyable, but data must be shared in a CoW fashion (to
-   answer your question about indirect blocks).  You either get a
-   snapshot or nothing.  Call it snapfile() if you like.  Don't care.
 
-2. An efficient copy.  This is what you're talking about with CIFS COPY,
-   etc.  You want to be guaranteed it does NOT do CoW, because it would
-   be great for a naive cp(1) to use it without the ENOSPC surprise of
-   CoW.  You'd like the kernel call to fail if you're just going to get
-   read-write-loops, because userspace can implement that better.  Maybe
-   we have it such that only network filesystems implement this action,
-   all the others return -ENOTSUPP, and then glibc handles the
-   read-write-loop.  This allows everyone to call copyfile() and get
-   what they expected.
-
-3. A space-saving copy.  This is doing CoW linkup of the data storage if
-   possible, like a snapshot but without the atomicity guarantee.  It
-   has the ENOSPC surprise, but someone using it should know that.
- 
-	I think it would be great for Linux to provide all three.  I
-chose to only attack (1) because I could define it well.  I left (2) and
-(3), what I see as copyfile(), for later work.  And I fully expected
-that the VFS operation could change later - it's an internal thing,
-after all.  I want to get a good user<->kernel interface, because that's
-the one that is set in stone.  What I didn't want was to create another
-kitchen-sink call, or another POSIXy thing that has a million special
-cases that trip folks up.
-	I'm glad you've taken an interest, because you're pretty damned
-good at architecture.  If we can expand to cover copyfile sanely too,
-win-win.  To me, the user<->kernel interface really is two system calls:
-reflink/snapfile for (1) and copyfile for (2) & (3).  The kernel VFS
-interface I would think you could do in one inode operation.  If you
-want to name it ->copyfile, that's fine.
-	Perhaps ->copyfile takes the following flags:
-
-#define ALLOW_COW_SHARED	0x0001
-#define REQUIRE_COW_SHARED	0x0002
-#define REQUIRE_BASIC_ATTRS	0x0004
-#define REQUIRE_FULL_ATTRS	0x0008
-#define REQUIRE_ATOMIC		0x0010
-#define SNAPSHOT		(REQUIRE_COW_SHARED |
-				 REQUIRE_BASIC_ATTRS |
-				 REQUIRE_ATOMIC)
-#define SNAPSHOT_PRESERVE	(SNAPSHOT | REQUIRE_FULL_ATTRS)
-
-Thus, sys_reflink/sys_snapfile(oldpath, newpath, 0) becomes:
-
-  ->copyfile(oldpath, newpath, SNAPSHOT)
-
-and sys_reflink/sys_snapfile(oldpath, newpath, ATTR_PRESERVE) becomes:
-
-  ->copyfile(oldpath, newpath, SNAPSHOT_PRESERVE)
-
-while sys_copyfile(oldpath, newpath, 0) is:
-
-  ->copyfile(oldpath, newpath, 0)
-
-and sys_copyfile(oldpath, newpath, ALLOW_COW) is:
-
-  ->copyfile(oldpath, newpath, ALLOW_COW_SHARED)
-
-	What do you think?  Other ideas?
-
-Joel
--- 
-
-"The lawgiver, of all beings, most owes the law allegiance.  He of all
- men should behave as though the law compelled him.  But it is the
- universal weakness of mankind that what we are given to administer we
- presently imagine we own."
-        - H.G. Wells
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Coly Li wrote:
+>
+> Sunil Mushran Wrote:
+>> The full trace is available here.
+>> http://oss.oracle.com/~smushran/calltrace_x1
+>>
+>> So one sees the following block repeated. It shows that the lock is
+>> being downconverted from EX to NL but also upconverted presumably to EX.
+>>
+>>
+>> Coli, Can you map the pids to the process names.
+>>
+>
+> Hi Sunil,
+>
+> In the attached trace info, I add current->comm after the pid.
+>
+> Here is the steps I reproduce the blocking,
+> - This time I only run 1 make_panic process on each node.
+> - I ran make_panic on x1 firstly, then on x2.
+> - On node x1, after creating 3-4 files, I start the make_panic script on node x2.
+> - On node x2, make_panic blocked immediately, no file created. On node x1, after
+> creating 13 files, make_panic blocked too.
+> - After waiting for several minutes, still blocked. I stop gathering trace info.
+>
+> Please check the attachment. Thank.
+>
