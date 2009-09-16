@@ -1,47 +1,43 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
 Date: Thu, 17 Sep 2009 06:19:44 +0800
-Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: add trace event support for ocfs2
-Message-ID: <200909170419.n8H4JFWY027973@rgminet13.oracle.com>
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: add trace event header for ocfs2
+Message-ID: <200909170419.n8H4JQAI019684@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-following patches add trace event support for ocfs2.
-for tracepoint, see Documentation/trace/tracepoints.txt
-for trace events, see Documentation/trace/events.txt
+add trace event header for ocfs2.
 
-the first patch add file include/trace/events/ocfs2.h to kernel tree. it is used
-to store trace declarations. it's contents are self-explained.
-NOTE that each ocfs2 header file should be above "#include <linux/tracepoint.h>"
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ include/trace/events/ocfs2.h |   17 +++++++++++++++++
+ 1 files changed, 17 insertions(+), 0 deletions(-)
+ create mode 100644 include/trace/events/ocfs2.h
 
-the second one is an example which adds trace event to ocfs2_file_aio_read().
-NOTE that CREATE_TRACE_POINTS must be defined before including trace/event/ocfs2.h
-when trace event is used.
-
-enable/disable the trace event:
-1) debugfs is need to be mount for using trace event.
-	mount -t debugfs debugfs /sys/kernel/debug(or somewhere else)
-2) enable/disable some specific event,
-	echo '1'/'0'>/sys/kernel/debug/tracing/events/ocfs2/ocfs2_file_aio_read/enable
-3) to see the trace log,
-	cat /sys/kernel/debug/tracing/trace
-
-an output example is:
-[root at cool ocfs2_file_aio_read]# cat /sys/kernel/debug/tracing/trace
-# tracer: nop                                      
-#                                                  
-#           TASK-PID    CPU#    TIMESTAMP  FUNCTION
-#              | |       |          |         |    
-             cat-2587  [001]   708.929889: ocfs2_file_aio_read: 0xf544bed8 0xf544bf5c 1 0
-
-             cat-2587  [000]   708.944128: ocfs2_file_aio_read: 0xf544bed8 0xf544bf5c 1 43
-
-examples of using filter.
-1) if pid is 0, do the trace:
-	echo "common_pid == 0" >/sys/kernel/debug/tracing/events/ocfs2/ocfs2_file_aio_read/filter
-2) if group id not 0, do the trace:
-	echo "common_tgid != 0" >filter
-
-for filter expression, so far, see http://article.gmane.org/gmane.linux.kernel/887690?
+diff --git a/include/trace/events/ocfs2.h b/include/trace/events/ocfs2.h
+new file mode 100644
+index 0000000..fa86758
+--- /dev/null
++++ b/include/trace/events/ocfs2.h
+@@ -0,0 +1,17 @@
++#if !defined(_TRACE_OCFS2_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_OCFS2_H
++
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM ocfs2
++/* add ocfs2 relevant header files below */
++
++/* add ocfs2 relevant header files above */
++#include <linux/tracepoint.h>
++
++/* add tracing declarations below */
++
++/* add tracing declarations above */
++#endif /* _TRACE_OCFS2_H */
++
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+-- 
+1.6.2.5
