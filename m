@@ -1,43 +1,87 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 17 Sep 2009 06:19:44 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: add trace event header for ocfs2
-Message-ID: <200909170419.n8H4JQAI019684@acsinet15.oracle.com>
+Date: Thu, 17 Sep 2009 19:56:39 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: add trace event for
+	ocfs2_file_aio_read
+Message-ID: <200909170419.n8H4JcaQ020085@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-add trace event header for ocfs2.
+add trace event for ocfs2_file_aio_read().
 
 Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 ---
- include/trace/events/ocfs2.h |   17 +++++++++++++++++
- 1 files changed, 17 insertions(+), 0 deletions(-)
- create mode 100644 include/trace/events/ocfs2.h
+ fs/ocfs2/file.c              |    8 ++++----
+ include/trace/events/ocfs2.h |   25 +++++++++++++++++++++++++
+ 2 files changed, 29 insertions(+), 4 deletions(-)
 
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 221c5e9..a1587ee 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -62,6 +62,9 @@
+ 
+ #include "buffer_head_io.h"
+ 
++#define CREATE_TRACE_POINTS
++#include <trace/events/ocfs2.h>
++
+ static int ocfs2_sync_inode(struct inode *inode)
+ {
+ 	filemap_fdatawrite(inode->i_mapping);
+@@ -2050,10 +2053,7 @@ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
+ 	struct file *filp = iocb->ki_filp;
+ 	struct inode *inode = filp->f_path.dentry->d_inode;
+ 
+-	mlog_entry("(0x%p, %u, '%.*s')\n", filp,
+-		   (unsigned int)nr_segs,
+-		   filp->f_path.dentry->d_name.len,
+-		   filp->f_path.dentry->d_name.name);
++	trace_ocfs2_file_aio_read(iocb, iov, nr_segs, pos);
+ 
+ 	if (!inode) {
+ 		ret = -EINVAL;
 diff --git a/include/trace/events/ocfs2.h b/include/trace/events/ocfs2.h
-new file mode 100644
-index 0000000..fa86758
---- /dev/null
+index fa86758..5310901 100644
+--- a/include/trace/events/ocfs2.h
 +++ b/include/trace/events/ocfs2.h
-@@ -0,0 +1,17 @@
-+#if !defined(_TRACE_OCFS2_H) || defined(TRACE_HEADER_MULTI_READ)
-+#define _TRACE_OCFS2_H
+@@ -5,10 +5,35 @@
+ #define TRACE_SYSTEM ocfs2
+ /* add ocfs2 relevant header files below */
+ 
++#include "../../../fs/ocfs2/ocfs2.h"
+ /* add ocfs2 relevant header files above */
+ #include <linux/tracepoint.h>
+ 
+ /* add tracing declarations below */
++TRACE_EVENT(ocfs2_file_aio_read,
 +
-+#undef TRACE_SYSTEM
-+#define TRACE_SYSTEM ocfs2
-+/* add ocfs2 relevant header files below */
++	TP_PROTO(struct kiocb *iocb, const struct iovec *iov,
++		 unsigned long nr_segs, loff_t pos),
 +
-+/* add ocfs2 relevant header files above */
-+#include <linux/tracepoint.h>
++	TP_ARGS(iocb, iov, nr_segs, pos),
 +
-+/* add tracing declarations below */
++	TP_STRUCT__entry(
++		__field(        void *,         iocb            )
++		__field(        void *,         iov             )
++		__field(        unsigned long,  nr_segs         )
++		__field(        loff_t,         pos             )
++	),
 +
-+/* add tracing declarations above */
-+#endif /* _TRACE_OCFS2_H */
++	TP_fast_assign(
++		__entry->iocb           = (void*)iocb;
++		__entry->iov            = (void*)iov;
++		__entry->nr_segs        = nr_segs;
++		__entry->pos            = pos;
++	),
 +
-+/* This part must be outside protection */
-+#include <trace/define_trace.h>
++	TP_printk("0x%p 0x%p %lu %llu\n",
++		  __entry->iocb, __entry->iov, __entry->nr_segs, __entry->pos)
++);
+ 
+ /* add tracing declarations above */
+ #endif /* _TRACE_OCFS2_H */
 -- 
 1.6.2.5
