@@ -1,54 +1,36 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 14 Oct 2009 12:09:14 +0200
-Subject: [Ocfs2-devel] [PATCH] [RFC] Mount option trap for users
-In-Reply-To: <20091014100335.GB4530@mail.oracle.com>
-References: <20090914145622.GK24075@duck.suse.cz>
-	<20090914194404.GA28473@mail.oracle.com>
-	<20090915092424.GB12169@duck.suse.cz>
-	<20090917230037.GG11402@wotan.suse.de>
-	<20091006171743.GF22781@duck.suse.cz>
-	<20091013194615.GA23257@mail.oracle.com>
-	<20091014002752.GA19960@lst.de>
-	<20091014003859.GP23257@mail.oracle.com>
-	<20091014094129.GA12701@duck.suse.cz>
-	<20091014100335.GB4530@mail.oracle.com>
-Message-ID: <20091014100914.GB12701@duck.suse.cz>
+From: Laszlo Attila Toth <toth.laszlo.attila@balabit.hu>
+Date: Mon, 12 Oct 2009 11:16:44 +0200
+Subject: [Ocfs2-devel] [PATCH] Set return value to -EINVAL if superblock
+	probe failed
+Message-ID: <1255339004-20310-1-git-send-email-toth.laszlo.attila@balabit.hu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed 14-10-09 03:03:35, Joel Becker wrote:
-> On Wed, Oct 14, 2009 at 11:41:29AM +0200, Jan Kara wrote:
-> > On Tue 13-10-09 17:38:59, Joel Becker wrote:
-> > > 	You *are* paying attention :-)  I believe this is for hysterical
-> > > raisins.  We copied ext3 on this.  I'm totally in support of ripping
-> > > ACLs out of Kconfig.
-> >   Yes, this would certainly simplify the situation. And looking at the
-> > code, disabling CONFIG_OCFS2_POSIX_ACL does not seem to bring any
-> > significant code-size or speed advantage... So I'm in favor of this.
-> 
-> 	So let's do this:
-> 
-> 1) Rip out CONFIG_OCFS2_POSIX_ACL.  The code is always built in.
-> 2) Always enable acls if a filesystem has xattrs.  This is a noop if no
->    one ever calls setacl.
-> 3) If a user explicitly puts -oacl on the mount command line, but the
->    filesystem doesn't have xattrs, fail the mount.  This is a safe place
->    to catch people changing kernels, as a too-old kernel driver likely
->    doesn't have xattrs anyway.
-> 4) If a user explicitly puts -onoacl on the mount command line, they get
->    what they asked for.
-> 
-> 	This behavior matches the other 'modern' filesystems.  The only
-> weirdness is in the cluster case, and the most common users will be
-> using released versions with ACL support.  Anyone compiling recent
-> drivers or kernels can't leave the support out.
-> 	Mark, Jan?
-  Yes, this looks good to me.
+In case of non-modular kernels the root filesystem is mounted by trying
+several filesystems. If ocfs2 is tried before the actual filesystem type,
+such as squashfs, the mount is failed because ocfs2_fill_super's return
+value was -EAGAIN and normally it should return with -EINVAL, which means
+the filesystem is non-ocfs2.
 
-								Honza
+Signed-off-by: Laszlo Attila Toth <panther@balabit.hu>
+---
+ fs/ocfs2/super.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 476d488..1f506de 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -621,6 +621,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 	/* probe for superblock */
+ 	status = ocfs2_sb_probe(sb, &bh, &sector_size);
+ 	if (status < 0) {
++		status = -EINVAL;
+ 		mlog(ML_ERROR, "superblock probe failed!\n");
+ 		goto read_super_error;
+ 	}
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+1.6.4.rc2
