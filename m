@@ -1,36 +1,43 @@
-From: Laszlo Attila Toth <toth.laszlo.attila@balabit.hu>
-Date: Mon, 12 Oct 2009 11:16:44 +0200
-Subject: [Ocfs2-devel] [PATCH] Set return value to -EINVAL if superblock
-	probe failed
-Message-ID: <1255339004-20310-1-git-send-email-toth.laszlo.attila@balabit.hu>
+From: Massimo "CtRiX" Cetra <ctrix@navynet.it>
+Date: Mon, 12 Oct 2009 17:07:00 +0200
+Subject: [Ocfs2-devel] [Bug #14378] Problems with net/core/skbuff.c
+In-Reply-To: <20091012.034224.64980795.davem@davemloft.net>
+References: <zJ_pXHNwoHC.A.akB.Aal0KB@chimera>	<r-4Wjt4coy.A.CwC.Wal0KB@chimera>
+	<20091012.034224.64980795.davem@davemloft.net>
+Message-ID: <4AD34614.6070701@navynet.it>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: David Miller <davem@davemloft.net>
+Cc: rjw@sisk.pl, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, kernel-testers@vger.kernel.org
 
-In case of non-modular kernels the root filesystem is mounted by trying
-several filesystems. If ocfs2 is tried before the actual filesystem type,
-such as squashfs, the mount is failed because ocfs2_fill_super's return
-value was -EAGAIN and normally it should return with -EINVAL, which means
-the filesystem is non-ocfs2.
+David Miller ha scritto:
+> From: "Rafael J. Wysocki" <rjw@sisk.pl>
+> Date: Mon, 12 Oct 2009 00:22:04 +0200 (CEST)
+> 
+>> Bug-Entry	: http://bugzilla.kernel.org/show_bug.cgi?id=14378
+>> Subject		: Problems with net/core/skbuff.c
+>> Submitter	: Massimo Cetra <mcetra@navynet.it>
+>> Date		: 2009-10-08 14:51 (4 days old)
+>> References	: http://marc.info/?l=linux-kernel&m=125501488220358&w=4
+> 
+> I don't know what to do about this one.
+> 
+> The user indicates that they have the vserver patches applied,
+> so maybe there is some interaction with that stuff.
 
-Signed-off-by: Laszlo Attila Toth <panther@balabit.hu>
----
- fs/ocfs2/super.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+Actually i don't think that it's Vserver related.
 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 476d488..1f506de 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -621,6 +621,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 	/* probe for superblock */
- 	status = ocfs2_sb_probe(sb, &bh, &sector_size);
- 	if (status < 0) {
-+		status = -EINVAL;
- 		mlog(ML_ERROR, "superblock probe failed!\n");
- 		goto read_super_error;
- 	}
--- 
-1.6.4.rc2
+I'm not a kernel hacker but the vserver patch doesn't seems to have much 
+relation with networking (for who don't know vserver, it's a sort of 
+advanced chroot).
+
+I'm using OCFS2 and drbd. Both of those 2 things make heavy use of 
+networking to share data between two hosts.
+
+The backtrace seems to begin in the "world" of OFCS2.
+I'm CC'ing ocfs mailing list where someome may have some clues.
+
+Thanks,
+Max
