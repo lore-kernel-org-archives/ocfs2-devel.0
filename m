@@ -1,57 +1,90 @@
-From: Jan Kara <jack@suse.cz>
-Date: Tue, 6 Oct 2009 19:17:43 +0200
-Subject: [Ocfs2-devel] [PATCH] [RFC] Mount option trap for users
-In-Reply-To: <20090917230037.GG11402@wotan.suse.de>
-References: <20090914145622.GK24075@duck.suse.cz>
-	<20090914194404.GA28473@mail.oracle.com>
-	<20090915092424.GB12169@duck.suse.cz>
-	<20090917230037.GG11402@wotan.suse.de>
-Message-ID: <20091006171743.GF22781@duck.suse.cz>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Mon, 12 Oct 2009 01:58:57 -0000
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: add trace event for
+	ocfs2_file_aio_read -v2
+Message-ID: <200910120159.n9BCZBJ7001462@rgminet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu 17-09-09 16:00:37, Mark Fasheh wrote:
-> On Tue, Sep 15, 2009 at 11:24:24AM +0200, Jan Kara wrote:
-> > On Mon 14-09-09 12:44:05, Joel Becker wrote:
-> > > On Mon, Sep 14, 2009 at 04:56:22PM +0200, Jan Kara wrote:
-> > > >   OCFS2 mount option 'acl' is a small trap for users. When xattr feature
-> > > > is not enabled and 'acl' mount option is specified, it is just silently
-> > > > cleared during mount. IMHO that's not a good behavior - when admin requests
-> > > > ACLs and we are not able to provide them, we should just fail the mount.
-> > > 
-> > > 	See
-> > > http://www.mail-archive.com/ocfs2-devel at oss.oracle.com/msg03836.html for
-> > > previous discussion.
-> >   Thanks for the pointer. I didn't know about this discussion. Actually,
-> > this is a bit different situation because you won't so easily disable the
-> > feature on the filesystem as opposed to just booting a kernel without ACL
-> > support.
-> >   Also filesystems like ext3/ext4/reiserfs just silently enable the XATTR
-> > feature when you use is for the first time and the kernel supports it (for
-> > these filesystems XATTRs are implemented as COMPAT features). OCFS2 will
-> > fail the syscall (and it cannot really silently enable the feature because
-> > it is an INCOMPAT one) so that's a difference anyway... So I still think
-> > my change makes sence.
-> 
-> Another thing to consider is which scenario is more likely - a user
-> compiling their kernel without acl support (because really, all major
-> distros have this turned on), or a user mounts an existing (nor newly
-> created with the wrong mkfs options) ocfs2 file system with '-oacl' that
-> doesn't have acl turned on in the feature flags.
-> 
-> Regarding other file systems, I really wish we could do it their way, but as
-> Jan points out we can't magically enable acls like they can and we
-> definitely can't assume they're always on. So really, today's behavior is
-> *NOT* like those file systems in the first place - instead of magically
-> enabling the feature, we silently ignore the acl flag.
-  Joel, so what is your final decision? I still think we should fail the
-mount when acl mount option is specified but xattr feature is disabled...
-  Should I resend the patch?
+add trace event for ocfs2_file_aio_read().
 
-									Honza
+diff with v1:
+TP_printk() treats the log as a single line, so we remove the new line mark(\n).
+
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/file.c              |    8 ++++----
+ include/trace/events/ocfs2.h |   25 +++++++++++++++++++++++++
+ 2 files changed, 29 insertions(+), 4 deletions(-)
+
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 221c5e9..a1587ee 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -62,6 +62,9 @@
+ 
+ #include "buffer_head_io.h"
+ 
++#define CREATE_TRACE_POINTS
++#include <trace/events/ocfs2.h>
++
+ static int ocfs2_sync_inode(struct inode *inode)
+ {
+ 	filemap_fdatawrite(inode->i_mapping);
+@@ -2050,10 +2053,7 @@ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
+ 	struct file *filp = iocb->ki_filp;
+ 	struct inode *inode = filp->f_path.dentry->d_inode;
+ 
+-	mlog_entry("(0x%p, %u, '%.*s')\n", filp,
+-		   (unsigned int)nr_segs,
+-		   filp->f_path.dentry->d_name.len,
+-		   filp->f_path.dentry->d_name.name);
++	trace_ocfs2_file_aio_read(iocb, iov, nr_segs, pos);
+ 
+ 	if (!inode) {
+ 		ret = -EINVAL;
+diff --git a/include/trace/events/ocfs2.h b/include/trace/events/ocfs2.h
+index fa86758..5310901 100644
+--- a/include/trace/events/ocfs2.h
++++ b/include/trace/events/ocfs2.h
+@@ -5,10 +5,35 @@
+ #define TRACE_SYSTEM ocfs2
+ /* add ocfs2 relevant header files below */
+ 
++#include "../../../fs/ocfs2/ocfs2.h"
+ /* add ocfs2 relevant header files above */
+ #include <linux/tracepoint.h>
+ 
+ /* add tracing declarations below */
++TRACE_EVENT(ocfs2_file_aio_read,
++
++	TP_PROTO(struct kiocb *iocb, const struct iovec *iov,
++		 unsigned long nr_segs, loff_t pos),
++
++	TP_ARGS(iocb, iov, nr_segs, pos),
++
++	TP_STRUCT__entry(
++		__field(        void *,         iocb            )
++		__field(        void *,         iov             )
++		__field(        unsigned long,  nr_segs         )
++		__field(        loff_t,         pos             )
++	),
++
++	TP_fast_assign(
++		__entry->iocb           = (void*)iocb;
++		__entry->iov            = (void*)iov;
++		__entry->nr_segs        = nr_segs;
++		__entry->pos            = pos;
++	),
++
++	TP_printk("0x%p 0x%p %lu %llu",
++		  __entry->iocb, __entry->iov, __entry->nr_segs, __entry->pos)
++);
+ 
+ /* add tracing declarations above */
+ #endif /* _TRACE_OCFS2_H */
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+1.6.2.5
