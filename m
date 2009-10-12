@@ -1,90 +1,111 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Mon, 12 Oct 2009 01:58:57 -0000
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: add trace event for
-	ocfs2_file_aio_read -v2
-Message-ID: <200910120159.n9BCZBJ7001462@rgminet13.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 12 Oct 2009 15:29:49 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: duplicate inline data properly during
+	reflink.
+Message-ID: <1255332589-12578-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-add trace event for ocfs2_file_aio_read().
+The old reflink fails to handle inline-data and can cause kernel
+oops. So this patch fix it. It will try to copy the whole inline
+content to the new inode and set the corresponding feature flag.
 
-diff with v1:
-TP_printk() treats the log as a single line, so we remove the new line mark(\n).
-
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/file.c              |    8 ++++----
- include/trace/events/ocfs2.h |   25 +++++++++++++++++++++++++
- 2 files changed, 29 insertions(+), 4 deletions(-)
+ fs/ocfs2/refcounttree.c |   57 ++++++++++++++++++++++++++++++++++++++++++++--
+ 1 files changed, 54 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 221c5e9..a1587ee 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -62,6 +62,9 @@
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 60287fc..9b73cbf 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -3743,6 +3743,9 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
+ 		goto out;
+ 	}
  
- #include "buffer_head_io.h"
- 
-+#define CREATE_TRACE_POINTS
-+#include <trace/events/ocfs2.h>
++	if (oi->ip_dyn_features & OCFS2_INLINE_DATA_FL)
++		goto attach_xattr;
 +
- static int ocfs2_sync_inode(struct inode *inode)
- {
- 	filemap_fdatawrite(inode->i_mapping);
-@@ -2050,10 +2053,7 @@ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
- 	struct file *filp = iocb->ki_filp;
- 	struct inode *inode = filp->f_path.dentry->d_inode;
+ 	ocfs2_init_dinode_extent_tree(&di_et, INODE_CACHE(inode), di_bh);
  
--	mlog_entry("(0x%p, %u, '%.*s')\n", filp,
--		   (unsigned int)nr_segs,
--		   filp->f_path.dentry->d_name.len,
--		   filp->f_path.dentry->d_name.name);
-+	trace_ocfs2_file_aio_read(iocb, iov, nr_segs, pos);
+ 	size = i_size_read(inode);
+@@ -3769,6 +3772,7 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
+ 		cpos += num_clusters;
+ 	}
  
- 	if (!inode) {
- 		ret = -EINVAL;
-diff --git a/include/trace/events/ocfs2.h b/include/trace/events/ocfs2.h
-index fa86758..5310901 100644
---- a/include/trace/events/ocfs2.h
-+++ b/include/trace/events/ocfs2.h
-@@ -5,10 +5,35 @@
- #define TRACE_SYSTEM ocfs2
- /* add ocfs2 relevant header files below */
++attach_xattr:
+ 	if (oi->ip_dyn_features & OCFS2_HAS_XATTR_FL) {
+ 		ret = ocfs2_xattr_attach_refcount_tree(inode, di_bh,
+ 						       &ref_tree->rf_ci,
+@@ -3858,6 +3862,49 @@ out:
+ 	return ret;
+ }
  
-+#include "../../../fs/ocfs2/ocfs2.h"
- /* add ocfs2 relevant header files above */
- #include <linux/tracepoint.h>
++static int ocfs2_duplicate_inline_data(struct inode *s_inode,
++				       struct buffer_head *s_bh,
++				       struct inode *t_inode,
++				       struct buffer_head *t_bh)
++{
++	int ret;
++	handle_t *handle;
++	struct ocfs2_super *osb = OCFS2_SB(s_inode->i_sb);
++	struct ocfs2_dinode *s_di = (struct ocfs2_dinode *)s_bh->b_data;
++	struct ocfs2_dinode *t_di = (struct ocfs2_dinode *)t_bh->b_data;
++
++	BUG_ON(!(OCFS2_I(s_inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL));
++
++	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
++	if (IS_ERR(handle)) {
++		ret = PTR_ERR(handle);
++		mlog_errno(ret);
++		goto out;
++	}
++
++	ret = ocfs2_journal_access_di(handle, INODE_CACHE(t_inode), t_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	t_di->id2.i_data.id_count = s_di->id2.i_data.id_count;
++	memcpy(t_di->id2.i_data.id_data, s_di->id2.i_data.id_data,
++	       le16_to_cpu(s_di->id2.i_data.id_count));
++	spin_lock(&OCFS2_I(t_inode)->ip_lock);
++	OCFS2_I(t_inode)->ip_dyn_features |= OCFS2_INLINE_DATA_FL;
++	t_di->i_dyn_features = cpu_to_le16(OCFS2_I(t_inode)->ip_dyn_features);
++	spin_unlock(&OCFS2_I(t_inode)->ip_lock);
++
++	ocfs2_journal_dirty(handle, t_bh);
++
++out_commit:
++	ocfs2_commit_trans(osb, handle);
++out:
++	return ret;
++}
++
+ static int ocfs2_duplicate_extent_list(struct inode *s_inode,
+ 				struct inode *t_inode,
+ 				struct buffer_head *t_bh,
+@@ -4005,9 +4052,13 @@ static int ocfs2_create_reflink_node(struct inode *s_inode,
+ 	}
+ 	rb = (struct ocfs2_refcount_block *)ref_root_bh->b_data;
  
- /* add tracing declarations below */
-+TRACE_EVENT(ocfs2_file_aio_read,
-+
-+	TP_PROTO(struct kiocb *iocb, const struct iovec *iov,
-+		 unsigned long nr_segs, loff_t pos),
-+
-+	TP_ARGS(iocb, iov, nr_segs, pos),
-+
-+	TP_STRUCT__entry(
-+		__field(        void *,         iocb            )
-+		__field(        void *,         iov             )
-+		__field(        unsigned long,  nr_segs         )
-+		__field(        loff_t,         pos             )
-+	),
-+
-+	TP_fast_assign(
-+		__entry->iocb           = (void*)iocb;
-+		__entry->iov            = (void*)iov;
-+		__entry->nr_segs        = nr_segs;
-+		__entry->pos            = pos;
-+	),
-+
-+	TP_printk("0x%p 0x%p %lu %llu",
-+		  __entry->iocb, __entry->iov, __entry->nr_segs, __entry->pos)
-+);
- 
- /* add tracing declarations above */
- #endif /* _TRACE_OCFS2_H */
+-	ret = ocfs2_duplicate_extent_list(s_inode, t_inode, t_bh,
+-					  &ref_tree->rf_ci, ref_root_bh,
+-					  &dealloc);
++	if (OCFS2_I(s_inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
++		ret = ocfs2_duplicate_inline_data(s_inode, s_bh,
++						  t_inode, t_bh);
++	else
++		ret = ocfs2_duplicate_extent_list(s_inode, t_inode, t_bh,
++						  &ref_tree->rf_ci, ref_root_bh,
++						  &dealloc);
+ 	if (ret) {
+ 		mlog_errno(ret);
+ 		goto out_unlock_refcount;
 -- 
-1.6.2.5
+1.6.2.rc2.16.gf474c
