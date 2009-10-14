@@ -1,43 +1,43 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 14 Oct 2009 09:07:49 +0800
-Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: add trace event support for
- ocfs2
-In-Reply-To: <20091013203346.GC23257@mail.oracle.com>
-References: <200909170419.n8H4JFWY027973@rgminet13.oracle.com>
-	<20091013203346.GC23257@mail.oracle.com>
-Message-ID: <4AD52465.9010104@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 14 Oct 2009 11:41:29 +0200
+Subject: [Ocfs2-devel] [PATCH] [RFC] Mount option trap for users
+In-Reply-To: <20091014003859.GP23257@mail.oracle.com>
+References: <20090914145622.GK24075@duck.suse.cz>
+	<20090914194404.GA28473@mail.oracle.com>
+	<20090915092424.GB12169@duck.suse.cz>
+	<20090917230037.GG11402@wotan.suse.de>
+	<20091006171743.GF22781@duck.suse.cz>
+	<20091013194615.GA23257@mail.oracle.com>
+	<20091014002752.GA19960@lst.de>
+	<20091014003859.GP23257@mail.oracle.com>
+Message-ID: <20091014094129.GA12701@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
-
-Joel Becker wrote:
-> On Thu, Sep 17, 2009 at 06:19:44AM +0800, Wengang Wang wrote:
->> following patches add trace event support for ocfs2.
+On Tue 13-10-09 17:38:59, Joel Becker wrote:
+> On Wed, Oct 14, 2009 at 02:27:52AM +0200, Christoph Hellwig wrote:
+> > On Tue, Oct 13, 2009 at 12:46:16PM -0700, Joel Becker wrote:
+> > > 	Actually, I just realized where we really differ from the other
+> > > filesystems.  We're clustered, but CONFIG_OCFS2_POSIX_ACL isn't a
+> > > feature flag.  We can, in theory, have two nodes.  Both have xattrs
+> > > enabled, but only one has acls compiled into the kernel.  Now we're
+> > > fucked.
+> > > 	As far as I can tell, there is no way for the non-acl driver to
+> > > notice that other nodes are using acls and reject the mount.  Thoughts?
+> > 
+> > So why do you allow compiling ocfs2 without ACLs at all?
 > 
-> Wengang,
-> 	This looks like a nice start.  Thank you for getting this going.
-> I'm sorry I haven't gotten back until now, I've been busy.
+> 	You *are* paying attention :-)  I believe this is for hysterical
+> raisins.  We copied ext3 on this.  I'm totally in support of ripping
+> ACLs out of Kconfig.
+  Yes, this would certainly simplify the situation. And looking at the
+code, disabling CONFIG_OCFS2_POSIX_ACL does not seem to bring any
+significant code-size or speed advantage... So I'm in favor of this.
 
-Joel, no problem!
-
-> 	What I'd like to do next is get a small starting set of
-> tracepoints.  You have one tracepoint in this patch as a good example,
-> but we should get a few more.  I don't want every mlog changed into a
-> tracepoint.  Some of them are old and useless :-)  Instead, I'd like to
-> find information we often want while debugging.
-
-yes, I understand that.
-
-> 	Tao, Tiger, and Sunil, what are parts of the code you often come
-> across when debugging?  Certain mlog() prints you always find really
-> important to see.  If you point them out, Wengang can cook up
-> tracepoints for them.
-
-and yes, welcome to give me suggests for the trace points!!
-
-regards,
-wengang.
+								Honza
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
