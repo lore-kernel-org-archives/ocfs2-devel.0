@@ -1,168 +1,57 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed, 14 Oct 2009 20:08:58 +0200
-Subject: [Ocfs2-devel] [PATCH 4/5] Convert disabling of sparse feature to
-	use new code in libocfs2
-In-Reply-To: <1255543739-23844-1-git-send-email-jack@suse.cz>
-References: <1255543739-23844-1-git-send-email-jack@suse.cz>
-Message-ID: <1255543739-23844-5-git-send-email-jack@suse.cz>
+Date: Wed, 14 Oct 2009 20:11:48 +0200
+Subject: [Ocfs2-devel] [PATCH] [RFC] Mount option trap for users
+In-Reply-To: <20091014162751.GX11402@wotan.suse.de>
+References: <20090914194404.GA28473@mail.oracle.com>
+	<20090915092424.GB12169@duck.suse.cz>
+	<20090917230037.GG11402@wotan.suse.de>
+	<20091006171743.GF22781@duck.suse.cz>
+	<20091013194615.GA23257@mail.oracle.com>
+	<20091014002752.GA19960@lst.de>
+	<20091014003859.GP23257@mail.oracle.com>
+	<20091014094129.GA12701@duck.suse.cz>
+	<20091014100335.GB4530@mail.oracle.com>
+	<20091014162751.GX11402@wotan.suse.de>
+Message-ID: <20091014181148.GH12701@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Make code handling update of quota information when disabling
-sparse feature use new generic code in libocfs2.
+On Wed 14-10-09 09:27:51, Mark Fasheh wrote:
+> On Wed, Oct 14, 2009 at 03:03:35AM -0700, Joel Becker wrote:
+> > On Wed, Oct 14, 2009 at 11:41:29AM +0200, Jan Kara wrote:
+> > > On Tue 13-10-09 17:38:59, Joel Becker wrote:
+> > > > 	You *are* paying attention :-)  I believe this is for hysterical
+> > > > raisins.  We copied ext3 on this.  I'm totally in support of ripping
+> > > > ACLs out of Kconfig.
+> > >   Yes, this would certainly simplify the situation. And looking at the
+> > > code, disabling CONFIG_OCFS2_POSIX_ACL does not seem to bring any
+> > > significant code-size or speed advantage... So I'm in favor of this.
+> > 
+> > 	So let's do this:
+> > 
+> > 1) Rip out CONFIG_OCFS2_POSIX_ACL.  The code is always built in.
+> > 2) Always enable acls if a filesystem has xattrs.  This is a noop if no
+> >    one ever calls setacl.
+> > 3) If a user explicitly puts -oacl on the mount command line, but the
+> >    filesystem doesn't have xattrs, fail the mount.  This is a safe place
+> >    to catch people changing kernels, as a too-old kernel driver likely
+> >    doesn't have xattrs anyway.
+> > 4) If a user explicitly puts -onoacl on the mount command line, they get
+> >    what they asked for.
+> > 
+> > 	This behavior matches the other 'modern' filesystems.  The only
+> > weirdness is in the cluster case, and the most common users will be
+> > using released versions with ACL support.  Anyone compiling recent
+> > drivers or kernels can't leave the support out.
+> > 	Mark, Jan?
+> 
+> Yes, yes, yes and yes.  ;)
+  OK, so should I implement it? Or Joel, will you take care of it?
 
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- tunefs.ocfs2/feature_sparse_files.c |  100 ++++++----------------------------
- 1 files changed, 18 insertions(+), 82 deletions(-)
-
-diff --git a/tunefs.ocfs2/feature_sparse_files.c b/tunefs.ocfs2/feature_sparse_files.c
-index d4dff34..4f8c0db 100644
---- a/tunefs.ocfs2/feature_sparse_files.c
-+++ b/tunefs.ocfs2/feature_sparse_files.c
-@@ -448,8 +448,6 @@ static errcode_t fill_sparse_files(ocfs2_filesys *fs,
- 	struct list_head *pos;
- 	struct sparse_file *file;
- 	struct tools_progress *prog;
--	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
--	int has_usrquota, has_grpquota;
- 	ocfs2_quota_hash *usrhash = NULL, *grphash = NULL;
- 
- 	prog = tools_progress_start("Filling holes", "filling",
-@@ -459,32 +457,14 @@ static errcode_t fill_sparse_files(ocfs2_filesys *fs,
- 		goto out;
- 	}
- 
--	has_usrquota = OCFS2_HAS_RO_COMPAT_FEATURE(super,
--					OCFS2_FEATURE_RO_COMPAT_USRQUOTA);
--	has_grpquota = OCFS2_HAS_RO_COMPAT_FEATURE(super,
--					OCFS2_FEATURE_RO_COMPAT_GRPQUOTA);
--	if (has_usrquota) {
--		ret = ocfs2_init_fs_quota_info(fs, USRQUOTA);
--		if (ret)
--			goto out;
--		ret = ocfs2_read_global_quota_info(fs, USRQUOTA);
--		if (ret)
--			goto out;
--		ret = ocfs2_new_quota_hash(&usrhash);
--		if (ret)
--			goto out;
--	}
--	if (has_grpquota) {
--		ret = ocfs2_init_fs_quota_info(fs, GRPQUOTA);
--		if (ret)
--			goto out;
--		ret = ocfs2_read_global_quota_info(fs, GRPQUOTA);
--		if (ret)
--			goto out;
--		ret = ocfs2_new_quota_hash(&grphash);
--		if (ret)
--			goto out;
--	}
-+
-+	ret = ocfs2_load_fs_quota_info(fs);
-+	if (ret)
-+		goto out;
-+
-+	ret = ocfs2_init_quota_change(fs, &usrhash, &grphash);
-+	if (ret)
-+		goto out;
- 
- 	ret = ocfs2_malloc_block(fs->fs_io, &buf);
- 	if (ret)
-@@ -497,7 +477,7 @@ static errcode_t fill_sparse_files(ocfs2_filesys *fs,
- 		if (ret)
- 			break;
- 
--		if (!file->truncate && !has_usrquota && !has_grpquota)
-+		if (!file->truncate && !usrhash && !grphash)
- 			continue;
- 
- 		ret = ocfs2_read_inode(fs, file->blkno, buf);
-@@ -511,7 +491,6 @@ static errcode_t fill_sparse_files(ocfs2_filesys *fs,
- 		}
- 		if (di->i_clusters != file->old_clusters) {
- 			long long change;
--			ocfs2_cached_dquot *udquot = NULL, *gdquot = NULL;
- 
- 			if (di->i_clusters > file->old_clusters) {
- 				change = ocfs2_clusters_to_bytes(fs,
-@@ -521,64 +500,21 @@ static errcode_t fill_sparse_files(ocfs2_filesys *fs,
- 					file->old_clusters - di->i_clusters);
- 			}
- 
--			if (has_usrquota) {
--				ret = ocfs2_find_quota_hash(usrhash, di->i_uid,
--							    &udquot);
--				if (ret)
--					break;
--				if (!udquot) {
--					ret = ocfs2_read_dquot(fs, USRQUOTA,
--							       di->i_uid,
--							       &udquot);
--					if (ret)
--						break;
--					ret = ocfs2_insert_quota_hash(usrhash,
--								      udquot);
--					if (ret)
--						break;
--				}
--				udquot->d_ddquot.dqb_curspace += change;
--			}
--			if (has_grpquota) {
--				ret = ocfs2_find_quota_hash(grphash, di->i_gid,
--							    &gdquot);
--				if (ret)
--					break;
--				if (!gdquot) {
--					ret = ocfs2_read_dquot(fs, GRPQUOTA,
--							       di->i_gid,
--							       &gdquot);
--					if (ret)
--						break;
--					ret = ocfs2_insert_quota_hash(grphash,
--								      gdquot);
--					if (ret)
--						break;
--				}
--				gdquot->d_ddquot.dqb_curspace += change;
--			}
-+			ret = ocfs2_apply_quota_change(fs, usrhash, grphash,
-+						       di->i_uid, di->i_gid,
-+						       change, 0);
-+			if (ret)
-+				break;
- 		}
- 	}
- 
- 	ocfs2_free(&buf);
- 
- out:
--	if (usrhash) {
--		err = ocfs2_write_release_dquots(fs, USRQUOTA, usrhash);
--		if (!ret)
--			ret = err;
--		err = ocfs2_free_quota_hash(usrhash);
--		if (!ret)
--			ret = err;
--	}
--	if (grphash) {
--		err = ocfs2_write_release_dquots(fs, GRPQUOTA, grphash);
--		if (!ret)
--			ret = err;
--		err = ocfs2_free_quota_hash(grphash);
--		if (!ret)
--			ret = err;
--	}
-+	err = ocfs2_finish_quota_change(fs, usrhash, grphash);
-+	if (!ret)
-+		ret = err;
-+
- 	if (prog)
- 		tools_progress_stop(prog);
- 
+								Honza
 -- 
-1.6.0.2
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
