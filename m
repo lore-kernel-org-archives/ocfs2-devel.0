@@ -1,68 +1,39 @@
-From: Joel Becker <joel.becker@ORACLE.COM>
-Date: Wed, 14 Oct 2009 02:57:41 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Use MAY_CREATE in
-	ocfs2_permission()
-In-Reply-To: <1255514261-25823-1-git-send-email-joel.becker@oracle.com>
-References: <1255514261-25823-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1255514261-25823-3-git-send-email-joel.becker@oracle.com>
+From: Joel Becker <joel.becker@oracle.com>
+Date: Wed, 14 Oct 2009 02:57:39 -0700
+Subject: [Ocfs2-devel] [PATCH 0/2] [RFC] Adding the MAY_CREATE flag to
+	->permission()
+Message-ID: <1255514261-25823-1-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk, hch@infradead.org, torvalds@linux-foundation.org
 
-ocfs2 has a problem with open(O_CREAT|O_EXCL).  Once you've created the
-file, you can't restart the open(), because O_CREAT|O_EXCL will trigger
--EEXIST.
+Hey,
+	Ran into a fun problem in ocfs2.  ocfs2, being a cluster
+filesystem, has cluster locks.  Being nice to our users, we allow
+signals to interrupt the cluster locking layer if it hasn't gotten too
+far yet (sleeping on local locking rather than the cluster).
+	Now, system calls are only allowed to return -ERESTARTSYS if
+they can be safely restarted.  In ocfs2_mknod(), which underlies
+mkdir(2), mknod(2), and creat(2), we allow signals to interrupt us while
+we gather our locks, but once we start changing things, there's no going
+back.  Everyone else does the same thing.
+	The problem is open(O_CREAT|O_EXCL).  See, ocfs2_mknod() will
+successfully create the file.  Then we get back to
+__open_namei_create(), which promptly calls may_open().  This is
+backended by ocfs2_permission(), and it needs the cluster lock to
+check the new inode's permissions.  Send a signal here, and the ocfs2
+code will return -ERESTARTSYS.  (This is easily verified via
+'git-checkout').  When entry.S restarts the open(O_CREAT|O_EXCL), it
+gets -EEXIST.  Ouch!
+	We can't naively block signals in ocfs2_permission().  The
+majority of calls are not for O_CREAT|O_EXCL.  So how do we let
+ocfs2_permission() know about this case?
+	Christoph's suggestion was a new flag to ->permission().  I've
+picked MAY_CREATE, but I'm totally open to a better name.  I'm open to a
+better solution too.
+	Following this are the MAY_CREATE patch and the ocfs2 patch to
+make use of it.
 
-The problem is that ocfs2 is catching the signal ->permission(), called
-by may_open().  This happens after ->create() has successfully created
-the file.  ocfs2_permission() has to get a cluster lock, and this is
-what can be interrupted by a signal.  Now, obviously we want to block
-signals in the O_CREAT|O_EXCL case, but ocfs2_permission() has no way of
-knowing it just got called from open_namei_create().
-
-We key on the MAY_CREATE flag passed to permission to block signals.
-
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/file.c |   13 +++++++++++++
- 1 files changed, 13 insertions(+), 0 deletions(-)
-
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 89fc8ee..b8749fa 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1141,9 +1141,18 @@ bail:
- int ocfs2_permission(struct inode *inode, int mask)
- {
- 	int ret;
-+	sigset_t oldset;
- 
- 	mlog_entry_void();
- 
-+	/*
-+	 * If this inode was just created by open(O_CREAT|O_EXCL), we
-+	 * can't allow signal restarting.  So we need to block signals
-+	 * around the cluster locking.
-+	 */
-+	if (mask & MAY_CREATE)
-+		ocfs2_block_signals(&oldset);
-+
- 	ret = ocfs2_inode_lock(inode, NULL, 0);
- 	if (ret) {
- 		if (ret != -ENOENT)
-@@ -1154,7 +1163,11 @@ int ocfs2_permission(struct inode *inode, int mask)
- 	ret = generic_permission(inode, mask, ocfs2_check_acl);
- 
- 	ocfs2_inode_unlock(inode, 0);
-+
- out:
-+	if (mask & MAY_CREATE)
-+		ocfs2_unblock_signals(&oldset);
-+
- 	mlog_exit(ret);
- 	return ret;
- }
--- 
-1.6.3.3
+Joel
