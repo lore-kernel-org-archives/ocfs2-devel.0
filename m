@@ -1,189 +1,190 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 15 Oct 2009 14:54:04 +0200
-Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: Change acl mount option handling
+Date: Thu, 15 Oct 2009 14:54:03 +0200
+Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: Make ACLs always compiled into the
+	kernel
 In-Reply-To: <1255611245-27340-1-git-send-email-jack@suse.cz>
 References: <1255611245-27340-1-git-send-email-jack@suse.cz>
-Message-ID: <1255611245-27340-3-git-send-email-jack@suse.cz>
+Message-ID: <1255611245-27340-2-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Change acl mount options handling to match the one of XFS and BTRFS and
-hopefully it is also easier to use now. When admin does not specify any
-acl mount option, acls are enabled if and only if the filesystem has
-xattr feature enabled. If admin specifies 'acl' mount option, we fail
-the mount if the filesystem does not have xattr feature and thus acls
-cannot be enabled.
+To become consistent with filesystems such as XFS or BTRFS, make posix
+ACLs always compiled into the kernel. This also reduces possibility
+of misconfiguration on admin's side.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/ocfs2.h |    8 +++--
- fs/ocfs2/super.c |   82 +++++++++++++++++++++++++++++-------------------------
- 2 files changed, 49 insertions(+), 41 deletions(-)
+ fs/ocfs2/Kconfig  |   10 +---------
+ fs/ocfs2/Makefile |    7 ++-----
+ fs/ocfs2/acl.h    |   22 ----------------------
+ fs/ocfs2/super.c  |    9 ---------
+ fs/ocfs2/xattr.c  |    4 ----
+ fs/ocfs2/xattr.h  |    2 --
+ 6 files changed, 3 insertions(+), 51 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index eae4046..35ad46c 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -250,9 +250,11 @@ enum ocfs2_mount_options
- 	OCFS2_MOUNT_LOCALFLOCKS = 1 << 5, /* No cluster aware user file locks */
- 	OCFS2_MOUNT_NOUSERXATTR = 1 << 6, /* No user xattr */
- 	OCFS2_MOUNT_INODE64 = 1 << 7,	/* Allow inode numbers > 2^32 */
--	OCFS2_MOUNT_POSIX_ACL = 1 << 8,	/* POSIX access control lists */
--	OCFS2_MOUNT_USRQUOTA = 1 << 9, /* We support user quotas */
--	OCFS2_MOUNT_GRPQUOTA = 1 << 10, /* We support group quotas */
-+	OCFS2_MOUNT_POSIX_ACL = 1 << 8,	/* Force POSIX access control lists */
-+	OCFS2_MOUNT_NO_POSIX_ACL = 1 << 9,	/* Disable POSIX access
-+						   control lists */
-+	OCFS2_MOUNT_USRQUOTA = 1 << 10, /* We support user quotas */
-+	OCFS2_MOUNT_GRPQUOTA = 1 << 11, /* We support group quotas */
+diff --git a/fs/ocfs2/Kconfig b/fs/ocfs2/Kconfig
+index 701b7a3..0d84066 100644
+--- a/fs/ocfs2/Kconfig
++++ b/fs/ocfs2/Kconfig
+@@ -6,6 +6,7 @@ config OCFS2_FS
+ 	select CRC32
+ 	select QUOTA
+ 	select QUOTA_TREE
++	select FS_POSIX_ACL
+ 	help
+ 	  OCFS2 is a general purpose extent based shared disk cluster file
+ 	  system with many similarities to ext3. It supports 64 bit inode
+@@ -74,12 +75,3 @@ config OCFS2_DEBUG_FS
+ 	  This option will enable expensive consistency checks. Enable
+ 	  this option for debugging only as it is likely to decrease
+ 	  performance of the filesystem.
+-
+-config OCFS2_FS_POSIX_ACL
+-	bool "OCFS2 POSIX Access Control Lists"
+-	depends on OCFS2_FS
+-	select FS_POSIX_ACL
+-	default n
+-	help
+-	  Posix Access Control Lists (ACLs) support permissions for users and
+-	  groups beyond the owner/group/world scheme.
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index 31f25ce..600d2d2 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -39,11 +39,8 @@ ocfs2-objs := \
+ 	ver.o			\
+ 	quota_local.o		\
+ 	quota_global.o		\
+-	xattr.o
+-
+-ifeq ($(CONFIG_OCFS2_FS_POSIX_ACL),y)
+-ocfs2-objs += acl.o
+-endif
++	xattr.o			\
++	acl.o
+ 
+ ocfs2_stackglue-objs := stackglue.o
+ ocfs2_stack_o2cb-objs := stack_o2cb.o
+diff --git a/fs/ocfs2/acl.h b/fs/ocfs2/acl.h
+index 8f6389e..5c5d31f 100644
+--- a/fs/ocfs2/acl.h
++++ b/fs/ocfs2/acl.h
+@@ -26,8 +26,6 @@ struct ocfs2_acl_entry {
+ 	__le32 e_id;
  };
  
- #define OCFS2_OSB_SOFT_RO			0x0001
+-#ifdef CONFIG_OCFS2_FS_POSIX_ACL
+-
+ extern int ocfs2_check_acl(struct inode *, int);
+ extern int ocfs2_acl_chmod(struct inode *);
+ extern int ocfs2_init_acl(handle_t *, struct inode *, struct inode *,
+@@ -35,24 +33,4 @@ extern int ocfs2_init_acl(handle_t *, struct inode *, struct inode *,
+ 			  struct ocfs2_alloc_context *,
+ 			  struct ocfs2_alloc_context *);
+ 
+-#else /* CONFIG_OCFS2_FS_POSIX_ACL*/
+-
+-#define ocfs2_check_acl NULL
+-static inline int ocfs2_acl_chmod(struct inode *inode)
+-{
+-	return 0;
+-}
+-static inline int ocfs2_init_acl(handle_t *handle,
+-				 struct inode *inode,
+-				 struct inode *dir,
+-				 struct buffer_head *di_bh,
+-				 struct buffer_head *dir_bh,
+-				 struct ocfs2_alloc_context *meta_ac,
+-				 struct ocfs2_alloc_context *data_ac)
+-{
+-	return 0;
+-}
+-
+-#endif /* CONFIG_OCFS2_FS_POSIX_ACL*/
+-
+ #endif /* OCFS2_ACL_H */
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index f2413f8..d6a0d6a 100644
+index 154e625..f2413f8 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -101,6 +101,8 @@ struct mount_options
- static int ocfs2_parse_options(struct super_block *sb, char *options,
- 			       struct mount_options *mopt,
- 			       int is_remount);
-+static int ocfs2_check_set_options(struct super_block *sb,
-+				   struct mount_options *options);
- static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt);
- static void ocfs2_put_super(struct super_block *sb);
- static int ocfs2_mount_volume(struct super_block *sb);
-@@ -601,7 +603,8 @@ static int ocfs2_remount(struct super_block *sb, int *flags, char *data)
- 
- 	lock_kernel();
- 
--	if (!ocfs2_parse_options(sb, data, &parsed_options, 1)) {
-+	if (!ocfs2_parse_options(sb, data, &parsed_options, 1) ||
-+	    !ocfs2_check_set_options(sb, &parsed_options)) {
- 		ret = -EINVAL;
- 		goto out;
- 	}
-@@ -692,8 +695,6 @@ unlock_osb:
- 	if (!ret) {
- 		/* Only save off the new mount options in case of a successful
- 		 * remount. */
--		if (!(osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_XATTR))
--			parsed_options.mount_opt &= ~OCFS2_MOUNT_POSIX_ACL;
- 		osb->s_mount_opt = parsed_options.mount_opt;
- 		osb->s_atime_quantum = parsed_options.atime_quantum;
- 		osb->preferred_slot = parsed_options.slot;
-@@ -1010,31 +1011,16 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
- 	brelse(bh);
- 	bh = NULL;
- 
--	if (!(osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_XATTR))
--		parsed_options.mount_opt &= ~OCFS2_MOUNT_POSIX_ACL;
--
-+	if (!ocfs2_check_set_options(sb, &parsed_options)) {
-+		status = -EINVAL;
-+		goto read_super_error;
-+	}
- 	osb->s_mount_opt = parsed_options.mount_opt;
- 	osb->s_atime_quantum = parsed_options.atime_quantum;
- 	osb->preferred_slot = parsed_options.slot;
- 	osb->osb_commit_interval = parsed_options.commit_interval;
- 	osb->local_alloc_default_bits = ocfs2_megabytes_to_clusters(sb, parsed_options.localalloc_opt);
- 	osb->local_alloc_bits = osb->local_alloc_default_bits;
--	if (osb->s_mount_opt & OCFS2_MOUNT_USRQUOTA &&
--	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
--					 OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
--		status = -EINVAL;
--		mlog(ML_ERROR, "User quotas were requested, but this "
--		     "filesystem does not have the feature enabled.\n");
--		goto read_super_error;
--	}
--	if (osb->s_mount_opt & OCFS2_MOUNT_GRPQUOTA &&
--	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
--					 OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
--		status = -EINVAL;
--		mlog(ML_ERROR, "Group quotas were requested, but this "
--		     "filesystem does not have the feature enabled.\n");
--		goto read_super_error;
--	}
- 
- 	status = ocfs2_verify_userspace_stack(osb, &parsed_options);
- 	if (status)
-@@ -1244,6 +1230,40 @@ static struct file_system_type ocfs2_fs_type = {
- 	.next           = NULL
- };
- 
-+static int ocfs2_check_set_options(struct super_block *sb,
-+				   struct mount_options *options)
-+{
-+	if (options->mount_opt & OCFS2_MOUNT_USRQUOTA &&
-+	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
-+					 OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
-+		mlog(ML_ERROR, "User quotas were requested, but this "
-+		     "filesystem does not have the feature enabled.\n");
-+		return 0;
-+	}
-+	if (options->mount_opt & OCFS2_MOUNT_GRPQUOTA &&
-+	    !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
-+					 OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
-+		mlog(ML_ERROR, "Group quotas were requested, but this "
-+		     "filesystem does not have the feature enabled.\n");
-+		return 0;
-+	}
-+	if (options->mount_opt & OCFS2_MOUNT_POSIX_ACL &&
-+	    !OCFS2_HAS_INCOMPAT_FEATURE(sb, OCFS2_FEATURE_INCOMPAT_XATTR)) {
-+		mlog(ML_ERROR, "ACL support requested but extended attributes "
-+		     "feature is not enabled\n");
-+		return 0;
-+	}
-+	/* No ACL setting specified? Use XATTR feature... */
-+	if (!(options->mount_opt & (OCFS2_MOUNT_POSIX_ACL |
-+				    OCFS2_MOUNT_NO_POSIX_ACL))) {
-+		if (OCFS2_HAS_INCOMPAT_FEATURE(sb, OCFS2_FEATURE_INCOMPAT_XATTR))
-+			options->mount_opt |= OCFS2_MOUNT_POSIX_ACL;
-+		else
-+			options->mount_opt |= OCFS2_MOUNT_NO_POSIX_ACL;
-+	}
-+	return 1;
-+}
-+
- static int ocfs2_parse_options(struct super_block *sb,
- 			       char *options,
- 			       struct mount_options *mopt,
-@@ -1391,31 +1411,17 @@ static int ocfs2_parse_options(struct super_block *sb,
- 			mopt->mount_opt |= OCFS2_MOUNT_INODE64;
- 			break;
- 		case Opt_usrquota:
--			/* We check only on remount, otherwise features
--			 * aren't yet initialized. */
--			if (is_remount && !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
--			    OCFS2_FEATURE_RO_COMPAT_USRQUOTA)) {
--				mlog(ML_ERROR, "User quota requested but "
--				     "filesystem feature is not set\n");
--				status = 0;
--				goto bail;
--			}
- 			mopt->mount_opt |= OCFS2_MOUNT_USRQUOTA;
- 			break;
- 		case Opt_grpquota:
--			if (is_remount && !OCFS2_HAS_RO_COMPAT_FEATURE(sb,
--			    OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)) {
--				mlog(ML_ERROR, "Group quota requested but "
--				     "filesystem feature is not set\n");
--				status = 0;
--				goto bail;
--			}
+@@ -1412,19 +1412,12 @@ static int ocfs2_parse_options(struct super_block *sb,
+ 			}
  			mopt->mount_opt |= OCFS2_MOUNT_GRPQUOTA;
  			break;
+-#ifdef CONFIG_OCFS2_FS_POSIX_ACL
  		case Opt_acl:
  			mopt->mount_opt |= OCFS2_MOUNT_POSIX_ACL;
-+			mopt->mount_opt &= ~OCFS2_MOUNT_NO_POSIX_ACL;
  			break;
  		case Opt_noacl:
-+			mopt->mount_opt |= OCFS2_MOUNT_NO_POSIX_ACL;
  			mopt->mount_opt &= ~OCFS2_MOUNT_POSIX_ACL;
  			break;
+-#else
+-		case Opt_acl:
+-		case Opt_noacl:
+-			printk(KERN_INFO "ocfs2 (no)acl options not supported\n");
+-			break;
+-#endif
  		default:
+ 			mlog(ML_ERROR,
+ 			     "Unrecognized mount option \"%s\" "
+@@ -1501,12 +1494,10 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
+ 	if (opts & OCFS2_MOUNT_INODE64)
+ 		seq_printf(s, ",inode64");
+ 
+-#ifdef CONFIG_OCFS2_FS_POSIX_ACL
+ 	if (opts & OCFS2_MOUNT_POSIX_ACL)
+ 		seq_printf(s, ",acl");
+ 	else
+ 		seq_printf(s, ",noacl");
+-#endif
+ 
+ 	return 0;
+ }
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index fe34190..923e950 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -98,10 +98,8 @@ static struct ocfs2_xattr_def_value_root def_xv = {
+ 
+ struct xattr_handler *ocfs2_xattr_handlers[] = {
+ 	&ocfs2_xattr_user_handler,
+-#ifdef CONFIG_OCFS2_FS_POSIX_ACL
+ 	&ocfs2_xattr_acl_access_handler,
+ 	&ocfs2_xattr_acl_default_handler,
+-#endif
+ 	&ocfs2_xattr_trusted_handler,
+ 	&ocfs2_xattr_security_handler,
+ 	NULL
+@@ -109,12 +107,10 @@ struct xattr_handler *ocfs2_xattr_handlers[] = {
+ 
+ static struct xattr_handler *ocfs2_xattr_handler_map[OCFS2_XATTR_MAX] = {
+ 	[OCFS2_XATTR_INDEX_USER]	= &ocfs2_xattr_user_handler,
+-#ifdef CONFIG_OCFS2_FS_POSIX_ACL
+ 	[OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS]
+ 					= &ocfs2_xattr_acl_access_handler,
+ 	[OCFS2_XATTR_INDEX_POSIX_ACL_DEFAULT]
+ 					= &ocfs2_xattr_acl_default_handler,
+-#endif
+ 	[OCFS2_XATTR_INDEX_TRUSTED]	= &ocfs2_xattr_trusted_handler,
+ 	[OCFS2_XATTR_INDEX_SECURITY]	= &ocfs2_xattr_security_handler,
+ };
+diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
+index 08e3638..abd72a4 100644
+--- a/fs/ocfs2/xattr.h
++++ b/fs/ocfs2/xattr.h
+@@ -40,10 +40,8 @@ struct ocfs2_security_xattr_info {
+ extern struct xattr_handler ocfs2_xattr_user_handler;
+ extern struct xattr_handler ocfs2_xattr_trusted_handler;
+ extern struct xattr_handler ocfs2_xattr_security_handler;
+-#ifdef CONFIG_OCFS2_FS_POSIX_ACL
+ extern struct xattr_handler ocfs2_xattr_acl_access_handler;
+ extern struct xattr_handler ocfs2_xattr_acl_default_handler;
+-#endif
+ extern struct xattr_handler *ocfs2_xattr_handlers[];
+ 
+ ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
 -- 
 1.6.0.2
