@@ -1,43 +1,59 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 15 Oct 2009 11:05:45 +0800
-Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: add trace event support for
- ocfs2
-In-Reply-To: <20091013203346.GC23257@mail.oracle.com>
-References: <200909170419.n8H4JFWY027973@rgminet13.oracle.com>
-	<20091013203346.GC23257@mail.oracle.com>
-Message-ID: <4AD69189.601@oracle.com>
+Date: Thu, 15 Oct 2009 11:10:48 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Move ocfs2_complete_reflink to the
+	right place.
+In-Reply-To: <4AD691CD.4080400@oracle.com>
+References: <4AD691CD.4080400@oracle.com>
+Message-ID: <1255576249-29735-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel/Wengang,
+As its name ocfs2_complete_reflink indicates, it should
+be called after all the work for reflink is done, so
+it really should be called after we reflink xattr
+successfully.
 
-Joel Becker wrote:
-> On Thu, Sep 17, 2009 at 06:19:44AM +0800, Wengang Wang wrote:
->> following patches add trace event support for ocfs2.
-> 
-> Wengang,
-> 	This looks like a nice start.  Thank you for getting this going.
-> I'm sorry I haven't gotten back until now, I've been busy.
-> 	What I'd like to do next is get a small starting set of
-> tracepoints.  You have one tracepoint in this patch as a good example,
-> but we should get a few more.  I don't want every mlog changed into a
-> tracepoint.  Some of them are old and useless :-)  Instead, I'd like to
-> find information we often want while debugging.
-> 	Tao, Tiger, and Sunil, what are parts of the code you often come
-> across when debugging?  Certain mlog() prints you always find really
-> important to see.  If you point them out, Wengang can cook up
-> tracepoints for them.
-aops.c maybe? And recovery/dlm(The most awesome part)?
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/refcounttree.c |   14 +++++++++-----
+ 1 files changed, 9 insertions(+), 5 deletions(-)
 
-btw, I think the whole mechanism of b-tree(alloc.c) is quite stable now 
-after tristan's stress test case for refcount tree. :) So no urgent need 
-for this file by now.
-
-Regards,
-Tao
-> 
-> Joel
-> 
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 60287fc..9d439b2 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -4013,10 +4013,6 @@ static int ocfs2_create_reflink_node(struct inode *s_inode,
+ 		goto out_unlock_refcount;
+ 	}
+ 
+-	ret = ocfs2_complete_reflink(s_inode, s_bh, t_inode, t_bh, preserve);
+-	if (ret)
+-		mlog_errno(ret);
+-
+ out_unlock_refcount:
+ 	ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
+ 	brelse(ref_root_bh);
+@@ -4068,9 +4064,17 @@ static int __ocfs2_reflink(struct dentry *old_dentry,
+ 		ret = ocfs2_reflink_xattrs(inode, old_bh,
+ 					   new_inode, new_bh,
+ 					   preserve);
+-		if (ret)
++		if (ret) {
+ 			mlog_errno(ret);
++			goto inode_unlock;
++		}
+ 	}
++
++	ret = ocfs2_complete_reflink(inode, old_bh,
++				     new_inode, new_bh, preserve);
++	if (ret)
++		mlog_errno(ret);
++
+ inode_unlock:
+ 	ocfs2_inode_unlock(new_inode, 1);
+ 	brelse(new_bh);
+-- 
+1.6.2.rc2.16.gf474c
