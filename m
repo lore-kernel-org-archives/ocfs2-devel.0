@@ -1,126 +1,57 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 15 Oct 2009 11:10:49 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: duplicate inline data properly
-	during reflink.
-In-Reply-To: <4AD691CD.4080400@oracle.com>
-References: <4AD691CD.4080400@oracle.com>
-Message-ID: <1255576249-29735-2-git-send-email-tao.ma@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 15 Oct 2009 02:15:24 -0700
+Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: add trace event support for
+ ocfs2
+In-Reply-To: <4AD69189.601@oracle.com>
+References: <200909170419.n8H4JFWY027973@rgminet13.oracle.com>
+	<20091013203346.GC23257@mail.oracle.com> <4AD69189.601@oracle.com>
+Message-ID: <20091015091524.GC14500@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The old reflink fails to handle inline-data and can cause kernel
-oops. So this patch fix it. It will try to copy the whole inline
-content to the new inode and set the corresponding feature flag.
+On Thu, Oct 15, 2009 at 11:05:45AM +0800, Tao Ma wrote:
+> Hi Joel/Wengang,
+> 
+> Joel Becker wrote:
+> > On Thu, Sep 17, 2009 at 06:19:44AM +0800, Wengang Wang wrote:
+> >> following patches add trace event support for ocfs2.
+> > 
+> > Wengang,
+> > 	This looks like a nice start.  Thank you for getting this going.
+> > I'm sorry I haven't gotten back until now, I've been busy.
+> > 	What I'd like to do next is get a small starting set of
+> > tracepoints.  You have one tracepoint in this patch as a good example,
+> > but we should get a few more.  I don't want every mlog changed into a
+> > tracepoint.  Some of them are old and useless :-)  Instead, I'd like to
+> > find information we often want while debugging.
+> > 	Tao, Tiger, and Sunil, what are parts of the code you often come
+> > across when debugging?  Certain mlog() prints you always find really
+> > important to see.  If you point them out, Wengang can cook up
+> > tracepoints for them.
+> aops.c maybe? And recovery/dlm(The most awesome part)?
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/file.c         |    3 +-
- fs/ocfs2/refcounttree.c |   55 +++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 57 insertions(+), 1 deletions(-)
+	But what things?  We're not just going to replace every mlog,
+and we're not going to do every function.  We really want to figure out
+what information is actually useful and add tracepoints for it.  So if
+you have particular functions you need data on, or particular mlog()
+calls you always like to see, we'd love to hear about it.
+	Wengang, dlmglue.c is definitely a place to look at.  I'd love
+to see events for the inc/dec of l_ro_holders and l_ex_holders.  I'd
+also love to see the mlogs for 'BAST fired' and 'UNLOCK AST fired'
+converted, and a similar event for the regular AST.
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 89fc8ee..de059f4 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1712,7 +1712,8 @@ int ocfs2_check_range_for_refcount(struct inode *inode, loff_t pos,
- 	struct super_block *sb = inode->i_sb;
- 
- 	if (!ocfs2_refcount_tree(OCFS2_SB(inode->i_sb)) ||
--	    !(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL))
-+	    !(OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) ||
-+	    OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
- 		return 0;
- 
- 	cpos = pos >> OCFS2_SB(sb)->s_clustersize_bits;
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 9d439b2..3a0df7a 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -3743,6 +3743,9 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
- 		goto out;
- 	}
- 
-+	if (oi->ip_dyn_features & OCFS2_INLINE_DATA_FL)
-+		goto attach_xattr;
-+
- 	ocfs2_init_dinode_extent_tree(&di_et, INODE_CACHE(inode), di_bh);
- 
- 	size = i_size_read(inode);
-@@ -3769,6 +3772,7 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
- 		cpos += num_clusters;
- 	}
- 
-+attach_xattr:
- 	if (oi->ip_dyn_features & OCFS2_HAS_XATTR_FL) {
- 		ret = ocfs2_xattr_attach_refcount_tree(inode, di_bh,
- 						       &ref_tree->rf_ci,
-@@ -3858,6 +3862,49 @@ out:
- 	return ret;
- }
- 
-+static int ocfs2_duplicate_inline_data(struct inode *s_inode,
-+				       struct buffer_head *s_bh,
-+				       struct inode *t_inode,
-+				       struct buffer_head *t_bh)
-+{
-+	int ret;
-+	handle_t *handle;
-+	struct ocfs2_super *osb = OCFS2_SB(s_inode->i_sb);
-+	struct ocfs2_dinode *s_di = (struct ocfs2_dinode *)s_bh->b_data;
-+	struct ocfs2_dinode *t_di = (struct ocfs2_dinode *)t_bh->b_data;
-+
-+	BUG_ON(!(OCFS2_I(s_inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL));
-+
-+	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_journal_access_di(handle, INODE_CACHE(t_inode), t_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	t_di->id2.i_data.id_count = s_di->id2.i_data.id_count;
-+	memcpy(t_di->id2.i_data.id_data, s_di->id2.i_data.id_data,
-+	       le16_to_cpu(s_di->id2.i_data.id_count));
-+	spin_lock(&OCFS2_I(t_inode)->ip_lock);
-+	OCFS2_I(t_inode)->ip_dyn_features |= OCFS2_INLINE_DATA_FL;
-+	t_di->i_dyn_features = cpu_to_le16(OCFS2_I(t_inode)->ip_dyn_features);
-+	spin_unlock(&OCFS2_I(t_inode)->ip_lock);
-+
-+	ocfs2_journal_dirty(handle, t_bh);
-+
-+out_commit:
-+	ocfs2_commit_trans(osb, handle);
-+out:
-+	return ret;
-+}
-+
- static int ocfs2_duplicate_extent_list(struct inode *s_inode,
- 				struct inode *t_inode,
- 				struct buffer_head *t_bh,
-@@ -3997,6 +4044,14 @@ static int ocfs2_create_reflink_node(struct inode *s_inode,
- 		goto out;
- 	}
- 
-+	if (OCFS2_I(s_inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
-+		ret = ocfs2_duplicate_inline_data(s_inode, s_bh,
-+						  t_inode, t_bh);
-+		if (ret)
-+			mlog_errno(ret);
-+		goto out;
-+	}
-+
- 	ret = ocfs2_lock_refcount_tree(osb, le64_to_cpu(di->i_refcount_loc),
- 				       1, &ref_tree, &ref_root_bh);
- 	if (ret) {
+Joel
+
 -- 
-1.6.2.rc2.16.gf474c
+
+"To fall in love is to create a religion that has a fallible god."
+        -Jorge Luis Borges
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
