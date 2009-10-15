@@ -1,64 +1,48 @@
-From: TaoMa <tao.ma@oracle.com>
-Date: Fri, 16 Oct 2009 06:29:00 +0800
-Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: add trace event support for
- ocfs2
-In-Reply-To: <20091015091524.GC14500@mail.oracle.com>
-References: <200909170419.n8H4JFWY027973@rgminet13.oracle.com>
-	<20091013203346.GC23257@mail.oracle.com> <4AD69189.601@oracle.com>
-	<20091015091524.GC14500@mail.oracle.com>
-Message-ID: <4AD7A22C.2060706@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 15 Oct 2009 14:07:31 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: Make ACLs always compiled into
+ the kernel
+In-Reply-To: <20091015134200.GD5971@duck.suse.cz>
+References: <1255611245-27340-1-git-send-email-jack@suse.cz>
+	<1255611245-27340-2-git-send-email-jack@suse.cz>
+	<20091015130344.GA5677@lst.de> <20091015134200.GD5971@duck.suse.cz>
+Message-ID: <20091015210731.GF3112@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Joel Becker wrote:
-> On Thu, Oct 15, 2009 at 11:05:45AM +0800, Tao Ma wrote:
->   
->> Hi Joel/Wengang,
->>
->> Joel Becker wrote:
->>     
->>> On Thu, Sep 17, 2009 at 06:19:44AM +0800, Wengang Wang wrote:
->>>       
->>>> following patches add trace event support for ocfs2.
->>>>         
->>> Wengang,
->>> 	This looks like a nice start.  Thank you for getting this going.
->>> I'm sorry I haven't gotten back until now, I've been busy.
->>> 	What I'd like to do next is get a small starting set of
->>> tracepoints.  You have one tracepoint in this patch as a good example,
->>> but we should get a few more.  I don't want every mlog changed into a
->>> tracepoint.  Some of them are old and useless :-)  Instead, I'd like to
->>> find information we often want while debugging.
->>> 	Tao, Tiger, and Sunil, what are parts of the code you often come
->>> across when debugging?  Certain mlog() prints you always find really
->>> important to see.  If you point them out, Wengang can cook up
->>> tracepoints for them.
->>>       
->> aops.c maybe? And recovery/dlm(The most awesome part)?
->>     
->
-> 	But what things?  We're not just going to replace every mlog,
-> and we're not going to do every function.  We really want to figure out
-> what information is actually useful and add tracepoints for it.  So if
-> you have particular functions you need data on, or particular mlog()
-> calls you always like to see, we'd love to hear about it.
->   
-No idea of recovery/dlm since I don't have much experience in it.
-As for aops.c, I think the most important part is ocfs2_write_begin_no_lock.
-It is very complicated, sometimes it will write inline_data, sometimes 
-CoW a refcount record, sometimes makes a extent written. It is helpful 
-for us to know some detail information about it.
+On Thu, Oct 15, 2009 at 03:42:00PM +0200, Jan Kara wrote:
+> On Thu 15-10-09 15:03:44, Christoph Hellwig wrote:
+> > On Thu, Oct 15, 2009 at 02:54:03PM +0200, Jan Kara wrote:
+> > > -#ifdef CONFIG_OCFS2_FS_POSIX_ACL
+> > >  	if (opts & OCFS2_MOUNT_POSIX_ACL)
+> > >  		seq_printf(s, ",acl");
+> > >  	else
+> > >  		seq_printf(s, ",noacl");
+> > > -#endif
+> > 
+> > It might be a good idea to always print acl here for backwards
+> > compatiblity.
+>   I don't understand here - why would printing 'acl' even if acls are
+> disabled be more backward compatible?
 
-Regards,
-Tao
-> 	Wengang, dlmglue.c is definitely a place to look at.  I'd love
-> to see events for the inc/dec of l_ro_holders and l_ex_holders.  I'd
-> also love to see the mlogs for 'BAST fired' and 'UNLOCK AST fired'
-> converted, and a similar event for the regular AST.
->
-> Joel
->
->   
+	I think he's saying "if you don't provide any acl option at all,
+they will default to enabled but you will not print 'acl'.
+	I think the correct solution is to start mount_op with
+OCFS2_MOUNT_POSIX_ACL set.  This correctly describes the behavior.  Then
+'case Opt_acl' only does the check for xattrs and 'case Opt_noacl' does
+the clearing of the option.
+
+Joel
+
+-- 
+
+"People with narrow minds usually have broad tongues."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
