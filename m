@@ -1,190 +1,38 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 15 Oct 2009 14:54:03 +0200
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: Make ACLs always compiled into the
-	kernel
+Date: Thu, 15 Oct 2009 14:54:05 +0200
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Set MS_POSIXACL on remount
 In-Reply-To: <1255611245-27340-1-git-send-email-jack@suse.cz>
 References: <1255611245-27340-1-git-send-email-jack@suse.cz>
-Message-ID: <1255611245-27340-2-git-send-email-jack@suse.cz>
+Message-ID: <1255611245-27340-4-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-To become consistent with filesystems such as XFS or BTRFS, make posix
-ACLs always compiled into the kernel. This also reduces possibility
-of misconfiguration on admin's side.
+We have to set MS_POSIXACL on remount as well. Otherwise VFS
+would not know we started supporting ACLs after remount and
+thus ACLs would not work.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/Kconfig  |   10 +---------
- fs/ocfs2/Makefile |    7 ++-----
- fs/ocfs2/acl.h    |   22 ----------------------
- fs/ocfs2/super.c  |    9 ---------
- fs/ocfs2/xattr.c  |    4 ----
- fs/ocfs2/xattr.h  |    2 --
- 6 files changed, 3 insertions(+), 51 deletions(-)
+ fs/ocfs2/super.c |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/Kconfig b/fs/ocfs2/Kconfig
-index 701b7a3..0d84066 100644
---- a/fs/ocfs2/Kconfig
-+++ b/fs/ocfs2/Kconfig
-@@ -6,6 +6,7 @@ config OCFS2_FS
- 	select CRC32
- 	select QUOTA
- 	select QUOTA_TREE
-+	select FS_POSIX_ACL
- 	help
- 	  OCFS2 is a general purpose extent based shared disk cluster file
- 	  system with many similarities to ext3. It supports 64 bit inode
-@@ -74,12 +75,3 @@ config OCFS2_DEBUG_FS
- 	  This option will enable expensive consistency checks. Enable
- 	  this option for debugging only as it is likely to decrease
- 	  performance of the filesystem.
--
--config OCFS2_FS_POSIX_ACL
--	bool "OCFS2 POSIX Access Control Lists"
--	depends on OCFS2_FS
--	select FS_POSIX_ACL
--	default n
--	help
--	  Posix Access Control Lists (ACLs) support permissions for users and
--	  groups beyond the owner/group/world scheme.
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 31f25ce..600d2d2 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -39,11 +39,8 @@ ocfs2-objs := \
- 	ver.o			\
- 	quota_local.o		\
- 	quota_global.o		\
--	xattr.o
--
--ifeq ($(CONFIG_OCFS2_FS_POSIX_ACL),y)
--ocfs2-objs += acl.o
--endif
-+	xattr.o			\
-+	acl.o
- 
- ocfs2_stackglue-objs := stackglue.o
- ocfs2_stack_o2cb-objs := stack_o2cb.o
-diff --git a/fs/ocfs2/acl.h b/fs/ocfs2/acl.h
-index 8f6389e..5c5d31f 100644
---- a/fs/ocfs2/acl.h
-+++ b/fs/ocfs2/acl.h
-@@ -26,8 +26,6 @@ struct ocfs2_acl_entry {
- 	__le32 e_id;
- };
- 
--#ifdef CONFIG_OCFS2_FS_POSIX_ACL
--
- extern int ocfs2_check_acl(struct inode *, int);
- extern int ocfs2_acl_chmod(struct inode *);
- extern int ocfs2_init_acl(handle_t *, struct inode *, struct inode *,
-@@ -35,24 +33,4 @@ extern int ocfs2_init_acl(handle_t *, struct inode *, struct inode *,
- 			  struct ocfs2_alloc_context *,
- 			  struct ocfs2_alloc_context *);
- 
--#else /* CONFIG_OCFS2_FS_POSIX_ACL*/
--
--#define ocfs2_check_acl NULL
--static inline int ocfs2_acl_chmod(struct inode *inode)
--{
--	return 0;
--}
--static inline int ocfs2_init_acl(handle_t *handle,
--				 struct inode *inode,
--				 struct inode *dir,
--				 struct buffer_head *di_bh,
--				 struct buffer_head *dir_bh,
--				 struct ocfs2_alloc_context *meta_ac,
--				 struct ocfs2_alloc_context *data_ac)
--{
--	return 0;
--}
--
--#endif /* CONFIG_OCFS2_FS_POSIX_ACL*/
--
- #endif /* OCFS2_ACL_H */
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 154e625..f2413f8 100644
+index d6a0d6a..8118043 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -1412,19 +1412,12 @@ static int ocfs2_parse_options(struct super_block *sb,
- 			}
- 			mopt->mount_opt |= OCFS2_MOUNT_GRPQUOTA;
- 			break;
--#ifdef CONFIG_OCFS2_FS_POSIX_ACL
- 		case Opt_acl:
- 			mopt->mount_opt |= OCFS2_MOUNT_POSIX_ACL;
- 			break;
- 		case Opt_noacl:
- 			mopt->mount_opt &= ~OCFS2_MOUNT_POSIX_ACL;
- 			break;
--#else
--		case Opt_acl:
--		case Opt_noacl:
--			printk(KERN_INFO "ocfs2 (no)acl options not supported\n");
--			break;
--#endif
- 		default:
- 			mlog(ML_ERROR,
- 			     "Unrecognized mount option \"%s\" "
-@@ -1501,12 +1494,10 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
- 	if (opts & OCFS2_MOUNT_INODE64)
- 		seq_printf(s, ",inode64");
+@@ -703,6 +703,10 @@ unlock_osb:
  
--#ifdef CONFIG_OCFS2_FS_POSIX_ACL
- 	if (opts & OCFS2_MOUNT_POSIX_ACL)
- 		seq_printf(s, ",acl");
- 	else
- 		seq_printf(s, ",noacl");
--#endif
- 
- 	return 0;
- }
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index fe34190..923e950 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -98,10 +98,8 @@ static struct ocfs2_xattr_def_value_root def_xv = {
- 
- struct xattr_handler *ocfs2_xattr_handlers[] = {
- 	&ocfs2_xattr_user_handler,
--#ifdef CONFIG_OCFS2_FS_POSIX_ACL
- 	&ocfs2_xattr_acl_access_handler,
- 	&ocfs2_xattr_acl_default_handler,
--#endif
- 	&ocfs2_xattr_trusted_handler,
- 	&ocfs2_xattr_security_handler,
- 	NULL
-@@ -109,12 +107,10 @@ struct xattr_handler *ocfs2_xattr_handlers[] = {
- 
- static struct xattr_handler *ocfs2_xattr_handler_map[OCFS2_XATTR_MAX] = {
- 	[OCFS2_XATTR_INDEX_USER]	= &ocfs2_xattr_user_handler,
--#ifdef CONFIG_OCFS2_FS_POSIX_ACL
- 	[OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS]
- 					= &ocfs2_xattr_acl_access_handler,
- 	[OCFS2_XATTR_INDEX_POSIX_ACL_DEFAULT]
- 					= &ocfs2_xattr_acl_default_handler,
--#endif
- 	[OCFS2_XATTR_INDEX_TRUSTED]	= &ocfs2_xattr_trusted_handler,
- 	[OCFS2_XATTR_INDEX_SECURITY]	= &ocfs2_xattr_security_handler,
- };
-diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-index 08e3638..abd72a4 100644
---- a/fs/ocfs2/xattr.h
-+++ b/fs/ocfs2/xattr.h
-@@ -40,10 +40,8 @@ struct ocfs2_security_xattr_info {
- extern struct xattr_handler ocfs2_xattr_user_handler;
- extern struct xattr_handler ocfs2_xattr_trusted_handler;
- extern struct xattr_handler ocfs2_xattr_security_handler;
--#ifdef CONFIG_OCFS2_FS_POSIX_ACL
- extern struct xattr_handler ocfs2_xattr_acl_access_handler;
- extern struct xattr_handler ocfs2_xattr_acl_default_handler;
--#endif
- extern struct xattr_handler *ocfs2_xattr_handlers[];
- 
- ssize_t ocfs2_listxattr(struct dentry *, char *, size_t);
+ 		if (!ocfs2_is_hard_readonly(osb))
+ 			ocfs2_set_journal_params(osb);
++
++		sb->s_flags = (sb->s_flags & ~MS_POSIXACL) |
++			((osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) ?
++							MS_POSIXACL : 0);
+ 	}
+ out:
+ 	unlock_kernel();
 -- 
 1.6.0.2
