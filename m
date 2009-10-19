@@ -1,50 +1,35 @@
-From: Jan Kara <jack@suse.cz>
-Date: Mon, 19 Oct 2009 08:55:55 +0200
-Subject: [Ocfs2-devel] [PATCH 4/5] Convert disabling of sparse feature
-	to use new	code in libocfs2
-In-Reply-To: <4AD82BF6.4030802@oracle.com>
+From: Tristan <tristan.ye@oracle.com>
+Date: Mon, 19 Oct 2009 15:06:43 +0800
+Subject: [Ocfs2-devel] [PATCH 0/5] Quota support for disabling
+ inline-data feature (v2) and a fix
+In-Reply-To: <1255543739-23844-1-git-send-email-jack@suse.cz>
 References: <1255543739-23844-1-git-send-email-jack@suse.cz>
-	<1255543739-23844-5-git-send-email-jack@suse.cz>
-	<4AD82BF6.4030802@oracle.com>
-Message-ID: <20091019065555.GA31860@duck.suse.cz>
+Message-ID: <4ADC1003.9080102@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri 16-10-09 16:16:54, Tristan wrote:
-> Jan Kara wrote:
->> Make code handling update of quota information when disabling
->> sparse feature use new generic code in libocfs2.
->>
->> Signed-off-by: Jan Kara <jack@suse.cz>
->> ---
->>  tunefs.ocfs2/feature_sparse_files.c |  100 ++++++----------------------------
->>  1 files changed, 18 insertions(+), 82 deletions(-)
->>
->> diff --git a/tunefs.ocfs2/feature_sparse_files.c b/tunefs.ocfs2/feature_sparse_files.c
->> index d4dff34..4f8c0db 100644
->> --- a/tunefs.ocfs2/feature_sparse_files.c
->> +++ b/tunefs.ocfs2/feature_sparse_files.c
->> @@ -448,8 +448,6 @@ static errcode_t fill_sparse_files(ocfs2_filesys *fs,
->>  	struct list_head *pos;
->>  	struct sparse_file *file;
->>  	struct tools_progress *prog;
->>   
->
->> -	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
->>   
-> Please don't remove this variable though it will not be used in this patch 
-> anymore, your following patch(patch5) however will use this structure 
-> again, see:
->
-> [PATCH 5/5] Don't account space used for system files when disabling sparse 
-> feature
-  Thanks for spotting this. Fixed. Since I've got no further comments I'm
-reposting the series and hopefully it can be merged.
+Jan,
 
-									Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+Other than an error I've pointed out in patch 4, this patch series can 
+be very much alive from my quota-tools-test.
+
+Tested-By Tristan.
+
+
+Jan Kara wrote:
+>   Hi,
+>
+>   here is a new version of the patch to implement quota support for disabling
+> inline-data feature. Now, main functions for changing quotas are implemented
+> in libocfs2 as Joel asked and used from tunefs.ocfs2. Disabling of sparse
+> feature is changed to use these functions as well.
+>   Finally, the series contains a fix to not load quota information from disk
+> when it's already in memory (happens when tunefs is asked to do several
+> operations at once) and a rebased patch to do not account for space used
+> by sparse system files when disabling sparse feature.
+>
+> 								Honza
+>   
