@@ -1,50 +1,50 @@
 From: Jan Kara <jack@suse.cz>
-Date: Sat, 17 Oct 2009 11:44:22 +0200
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: Make ACLs always compiled	into
-	the kernel
-In-Reply-To: <20091015210731.GF3112@mail.oracle.com>
-References: <1255611245-27340-1-git-send-email-jack@suse.cz>
-	<1255611245-27340-2-git-send-email-jack@suse.cz>
-	<20091015130344.GA5677@lst.de> <20091015134200.GD5971@duck.suse.cz>
-	<20091015210731.GF3112@mail.oracle.com>
-Message-ID: <20091017094422.GA31412@duck.suse.cz>
+Date: Mon, 19 Oct 2009 08:55:55 +0200
+Subject: [Ocfs2-devel] [PATCH 4/5] Convert disabling of sparse feature
+	to use new	code in libocfs2
+In-Reply-To: <4AD82BF6.4030802@oracle.com>
+References: <1255543739-23844-1-git-send-email-jack@suse.cz>
+	<1255543739-23844-5-git-send-email-jack@suse.cz>
+	<4AD82BF6.4030802@oracle.com>
+Message-ID: <20091019065555.GA31860@duck.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu 15-10-09 14:07:31, Joel Becker wrote:
-> On Thu, Oct 15, 2009 at 03:42:00PM +0200, Jan Kara wrote:
-> > On Thu 15-10-09 15:03:44, Christoph Hellwig wrote:
-> > > On Thu, Oct 15, 2009 at 02:54:03PM +0200, Jan Kara wrote:
-> > > > -#ifdef CONFIG_OCFS2_FS_POSIX_ACL
-> > > >  	if (opts & OCFS2_MOUNT_POSIX_ACL)
-> > > >  		seq_printf(s, ",acl");
-> > > >  	else
-> > > >  		seq_printf(s, ",noacl");
-> > > > -#endif
-> > > 
-> > > It might be a good idea to always print acl here for backwards
-> > > compatiblity.
-> >   I don't understand here - why would printing 'acl' even if acls are
-> > disabled be more backward compatible?
-> 
-> 	I think he's saying "if you don't provide any acl option at all,
-> they will default to enabled but you will not print 'acl'.
-  We will print 'acl' - what the code does is that
-ocfs2_check_set_options() sets OCFS2_MOUNT_POSIX_ACL in case 'noacl' hasn't
-been specified.
+On Fri 16-10-09 16:16:54, Tristan wrote:
+> Jan Kara wrote:
+>> Make code handling update of quota information when disabling
+>> sparse feature use new generic code in libocfs2.
+>>
+>> Signed-off-by: Jan Kara <jack@suse.cz>
+>> ---
+>>  tunefs.ocfs2/feature_sparse_files.c |  100 ++++++----------------------------
+>>  1 files changed, 18 insertions(+), 82 deletions(-)
+>>
+>> diff --git a/tunefs.ocfs2/feature_sparse_files.c b/tunefs.ocfs2/feature_sparse_files.c
+>> index d4dff34..4f8c0db 100644
+>> --- a/tunefs.ocfs2/feature_sparse_files.c
+>> +++ b/tunefs.ocfs2/feature_sparse_files.c
+>> @@ -448,8 +448,6 @@ static errcode_t fill_sparse_files(ocfs2_filesys *fs,
+>>  	struct list_head *pos;
+>>  	struct sparse_file *file;
+>>  	struct tools_progress *prog;
+>>   
+>
+>> -	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
+>>   
+> Please don't remove this variable though it will not be used in this patch 
+> anymore, your following patch(patch5) however will use this structure 
+> again, see:
+>
+> [PATCH 5/5] Don't account space used for system files when disabling sparse 
+> feature
+  Thanks for spotting this. Fixed. Since I've got no further comments I'm
+reposting the series and hopefully it can be merged.
 
-> 	I think the correct solution is to start mount_op with
-> OCFS2_MOUNT_POSIX_ACL set.  This correctly describes the behavior.  Then
-> 'case Opt_acl' only does the check for xattrs and 'case Opt_noacl' does
-> the clearing of the option.
-  This won't quite work because at the time parse_options is called during
-mount, we don't have filesystem features available yet. That's why I go
-through the hoops described above.
-
-								Honza
+									Honza
 -- 
 Jan Kara <jack@suse.cz>
 SUSE Labs, CR
