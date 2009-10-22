@@ -1,34 +1,35 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 21 Oct 2009 18:05:09 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Use FIEMAP_EXTENT_SHARED
+Date: Wed, 21 Oct 2009 18:05:08 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] fiemap: Add new extent flag
+	FIEMAP_EXTENT_SHARED
 In-Reply-To: <1256173509-2831-1-git-send-email-sunil.mushran@oracle.com>
 References: <1256173509-2831-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1256173509-2831-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1256173509-2831-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Adds FIEMAP_EXTENT_SHARED flag to refcounted extents.
+Patch adds flag FIEMAP_EXTENT_SHARED to denote extents that are
+shared with other inodes.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/extent_map.c |    2 ++
+ include/linux/fiemap.h |    2 ++
  1 files changed, 2 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index 843db64..cdce5f8 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -786,6 +786,8 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
- 		fe_flags = 0;
- 		if (rec.e_flags & OCFS2_EXT_UNWRITTEN)
- 			fe_flags |= FIEMAP_EXTENT_UNWRITTEN;
-+		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
-+			fe_flags |= FIEMAP_EXTENT_SHARED;
- 		if (is_last)
- 			fe_flags |= FIEMAP_EXTENT_LAST;
- 		len_bytes = (u64)le16_to_cpu(rec.e_leaf_clusters) << osb->s_clustersize_bits;
+diff --git a/include/linux/fiemap.h b/include/linux/fiemap.h
+index 934e22d..d830747 100644
+--- a/include/linux/fiemap.h
++++ b/include/linux/fiemap.h
+@@ -62,5 +62,7 @@ struct fiemap {
+ #define FIEMAP_EXTENT_MERGED		0x00001000 /* File does not natively
+ 						    * support extents. Result
+ 						    * merged for efficiency. */
++#define FIEMAP_EXTENT_SHARED		0x00002000 /* Space shared with other
++						    * files. */
+ 
+ #endif /* _LINUX_FIEMAP_H */
 -- 
 1.6.0.4
