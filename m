@@ -1,28 +1,29 @@
-From: Coly Li <coly.li@suse.de>
-Date: Thu, 22 Oct 2009 14:07:47 +0800
-Subject: [Ocfs2-devel] [PATCH] indexed-dirs: fix brelse order in
- ocfs2_find_entry_dx(), v2
-In-Reply-To: <4ADFF406.5010700@suse.de>
-References: <4ADFF406.5010700@suse.de>
-Message-ID: <4ADFF6B3.4000406@suse.de>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Fri, 23 Oct 2009 11:00:34 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] fiemap: Add new extent flag
+	FIEMAP_EXTENT_SHARED
+In-Reply-To: <1256173509-2831-2-git-send-email-sunil.mushran@oracle.com>
+References: <1256173509-2831-1-git-send-email-sunil.mushran@oracle.com>
+	<1256173509-2831-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20091023180034.GA11402@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Sunil Mushran <sunil.mushran@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+
+On Wed, Oct 21, 2009 at 06:05:08PM -0700, Sunil Mushran wrote:
+> Patch adds flag FIEMAP_EXTENT_SHARED to denote extents that are
+> shared with other inodes.
+
+This looks pretty sane to me. Thanks Sunil.
 
 
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-Coly Li Wrote:
-> In ocfs2_find_entry_dx(), if ocfs2_read_inode_block() failed, both di_bh and dx_root_bh are both released. In this case,
-> for dx_root_bh, it's unnecessary (even buggy if refcount of dx_root_bh is non-zero).
-> 
-> This patch fixes this issue by change brelse order of di_bh and dx_root_bh.
-> 
-Hmm, I find di_bh and dx_root_bh are initialized to NULL in ocfs2_read_inode_block(). Therefore there is no issue
-described in this patch. Please ignore this patch.
+Acked-by: Mark Fasheh <mfasheh@suse.com>
+	--Mark
 
-Thanks.
--- 
-Coly Li
-SuSE Labs
+--
+Mark Fasheh
