@@ -1,174 +1,198 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon,  9 Nov 2009 16:08:56 -0800
-Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2: Fix ocfs2 makefile
+Date: Mon,  9 Nov 2009 16:08:54 -0800
+Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: Add .gitignore
 In-Reply-To: <1257811737-10835-1-git-send-email-sunil.mushran@oracle.com>
 References: <1257811737-10835-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1257811737-10835-4-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1257811737-10835-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Teach the makefile to handle stackglue and friends.
-
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/Makefile |  115 ++++++++++++++++-------------------------------------
- 1 files changed, 34 insertions(+), 81 deletions(-)
+ .gitignore                  |   43 +++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/.gitignore         |   35 +++++++++++++++++++++++++++++++++++
+ fs/ocfs2/cluster/.gitignore |   35 +++++++++++++++++++++++++++++++++++
+ fs/ocfs2/dlm/.gitignore     |   35 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 148 insertions(+), 0 deletions(-)
+ create mode 100644 .gitignore
+ create mode 100644 fs/ocfs2/.gitignore
+ create mode 100644 fs/ocfs2/cluster/.gitignore
+ create mode 100644 fs/ocfs2/dlm/.gitignore
 
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 7438431..8222d03 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -14,8 +14,12 @@ endif
- 
- COMPAT_SOURCES =
- COMPAT_HEADERS =
--SOURCES =
--HEADERS =
-+FS_SOURCES =
-+FS_HEADERS =
-+GLUE_SOURCES =
-+GLUE_HEADERS =
-+O2CB_SOURCES =
-+USER_SOURCES =
- 
- EXTRA_CFLAGS += -I$(OUR_TOPDIR)/fs/ocfs2
- 
-@@ -26,8 +30,6 @@ endif
- 
- EXTRA_CFLAGS += -DCATCH_BH_JBD_RACES -DOCFS2_ORACORE_WORKAROUNDS
- 
--EXTRA_CFLAGS += -DOCFS2_CDSL
--
- EXTRA_CFLAGS += -DCONFIG_OCFS2_DEBUG_MASKLOG
- 
- EXTRA_CFLAGS += -DCONFIG_OCFS2_FS_STATS
-@@ -38,88 +40,37 @@ EXTRA_CFLAGS += -DCONFIG_OCFS2_FS_STATS
- #
- SAFE_SUBDIRS = cluster dlm
- 
--SOURCES +=			\
--	acl.c			\
--	alloc.c 		\
--	aops.c 			\
--	blockcheck.c		\
--	buffer_head_io.c	\
--	dcache.c 		\
--	dir.c 			\
--	dlmglue.c 		\
--	export.c		\
--	extent_map.c 		\
--	file.c 			\
--	heartbeat.c 		\
--	inode.c 		\
--	ioctl.c			\
--	journal.c 		\
--	localalloc.c 		\
--	locks.c			\
--	mmap.c 			\
--	namei.c 		\
--	quota_global.c		\
--	quota_local.c		\
--	resize.c		\
--	slot_map.c 		\
--	stackglue.c		\
--	stack_o2cb.c		\
--	stack_user.c		\
--	suballoc.c 		\
--	super.c 		\
--	symlink.c 		\
--	sysfile.c 		\
--	uptodate.c		\
--	ver.c			\
--	xattr.c
--
--HEADERS += 			\
--	acl.h			\
--	alloc.h			\
--	aops.h			\
--	blockcheck.h		\
--	buffer_head_io.h	\
--	dcache.h		\
--	dir.h			\
--	dlmglue.h		\
--	export.h		\
--	extent_map.h		\
--	file.h			\
--	heartbeat.h		\
--	inode.h			\
--	ioctl.h			\
--	journal.h		\
--	localalloc.h		\
--	locks.h			\
--	mmap.h			\
--	namei.h			\
--	ocfs1_fs_compat.h	\
--	ocfs2_fs.h		\
--	ocfs2.h			\
--	ocfs2_lockid.h		\
--	ocfs2_lockingver.h	\
--	quota.h			\
--	resize.h		\
--	slot_map.h		\
--	stackglue.h		\
--	suballoc.h		\
--	super.h			\
--	symlink.h		\
--	sysfile.h		\
--	uptodate.h		\
--	ver.h			\
--	xattr.h
--
--OBJECTS = $(subst .c,.o,$(SOURCES))
--VERSION_FILES = $(SOURCES) $(HEADERS) $(COMPAT_SOURCES) $(COMPAT_HEADERS)
-+GLUE_SOURCES = stackglue.c
-+GLUE_HEADERS = stackglue.h
-+O2CB_SOURCES = stack_o2cb.c
-+USER_SOURCES = stack_user.c
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..9346a6d
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,43 @@
++#
++# Normal rules
++#
++#
++.*
++*.o
++*.o.*
++*.a
++*.s
++*.ko
++*.mod.c
++*.i
++.*.sw?
++*.pc
 +
-+FS_SOURCES += acl.c alloc.c aops.c blockcheck.c buffer_head_io.c dcache.c	\
-+	dir.c dlmglue.c export.c extent_map.c file.c heartbeat.c inode.c	\
-+	ioctl.c journal.c localalloc.c locks.c mmap.c namei.c quota_global.c	\
-+	quota_local.c refcounttree.c resize.c slot_map.c suballoc.c super.c	\
-+	symlink.c sysfile.c uptodate.c ver.c xattr.c
++#
++# Top-level generic files
++#
++!.gitignore
++!.mailmap
 +
-+FS_HEADERS += acl.h alloc.h aops.h blockcheck.h buffer_head_io.h dcache.h	\
-+	dir.h dlmglue.h export.h extent_map.h file.h heartbeat.h inode.h	\
-+	ioctl.h journal.h localalloc.h locks.h mmap.h namei.h ocfs1_fs_compat.h	\
-+	ocfs2_fs.h ocfs2.h ocfs2_lockid.h ocfs2_lockingver.h quota.h		\
-+	refcounttree.h resize.h slot_map.h suballoc.h super.h symlink.h		\
-+	sysfile.h uptodate.h ver.h xattr.h
++# cscope files
++cscope.*
++ncscope.*
 +
-+FS_OBJECTS = $(subst .c,.o,$(FS_SOURCES))
-+VERSION_FILES = $(FS_SOURCES) $(FS_HEADERS) $(COMPAT_SOURCES) $(COMPAT_HEADERS)
- VERSION_SRC = ver.c
- VERSION_PREFIX = OCFS2
- 
- INSTALL_MOD_DIR := fs/ocfs2
- 
--obj-m := ocfs2.o
-+obj-m := ocfs2.o ocfs2_stackglue.o ocfs2_stack_o2cb.o ocfs2_stack_user.o
- 
--ocfs2-objs := $(OBJECTS)
-+ocfs2-objs := $(FS_OBJECTS)
-+ocfs2_stackglue-objs := stackglue.o
-+ocfs2_stack_o2cb-objs := stack_o2cb.o
-+ocfs2_stack_user-objs := stack_user.o
- 
- ifneq ($(KERNELRELEASE),)
- #
-@@ -137,7 +88,9 @@ ifeq ($(KERNELRELEASE),)
- # Called from a regular "make". Just forward to kbuild.
- #
- 
--DIST_FILES = $(SOURCES) $(HEADERS) $(COMPAT_SOURCES) $(COMPAT_HEADERS)
-+DIST_FILES = $(FS_SOURCES) $(FS_HEADERS) $(COMPAT_SOURCES) $(COMPAT_HEADERS) \
-+		$(GLUE_SOURCES) $(GLUE_HEADERS) $(O2CB_SOURCES) $(O2CB_HEADERS) \
-+		$(USER_SOURCES) $(USER_HEADERS)
- 
- ALL_RULES = stamp-md5 build-modules
- 
++# autoconf files
++Config.make
++autom4te.cache
++config.log
++config.status
++configure
++
++# misc
++stamp-md5
++*.orig
++*~
++\#*#
++
++Module.markers
++Module.symvers
++
++ocfs2-*.src.rpm
++ocfs2-*.tar.gz
+diff --git a/fs/ocfs2/.gitignore b/fs/ocfs2/.gitignore
+new file mode 100644
+index 0000000..eca2a17
+--- /dev/null
++++ b/fs/ocfs2/.gitignore
+@@ -0,0 +1,35 @@
++#
++# Normal rules
++#
++#
++.*
++*.o
++*.o.*
++*.a
++*.s
++*.ko
++*.mod.c
++*.i
++
++#
++# Top-level generic files
++#
++!.gitignore
++!.mailmap
++
++# cscope files
++cscope.*
++ncscope.*
++
++# autoconf files
++Config.make
++autom4te.cache
++config.log
++config.status
++configure
++
++# misc
++stamp-md5
++*.orig
++*~
++\#*#
+diff --git a/fs/ocfs2/cluster/.gitignore b/fs/ocfs2/cluster/.gitignore
+new file mode 100644
+index 0000000..eca2a17
+--- /dev/null
++++ b/fs/ocfs2/cluster/.gitignore
+@@ -0,0 +1,35 @@
++#
++# Normal rules
++#
++#
++.*
++*.o
++*.o.*
++*.a
++*.s
++*.ko
++*.mod.c
++*.i
++
++#
++# Top-level generic files
++#
++!.gitignore
++!.mailmap
++
++# cscope files
++cscope.*
++ncscope.*
++
++# autoconf files
++Config.make
++autom4te.cache
++config.log
++config.status
++configure
++
++# misc
++stamp-md5
++*.orig
++*~
++\#*#
+diff --git a/fs/ocfs2/dlm/.gitignore b/fs/ocfs2/dlm/.gitignore
+new file mode 100644
+index 0000000..eca2a17
+--- /dev/null
++++ b/fs/ocfs2/dlm/.gitignore
+@@ -0,0 +1,35 @@
++#
++# Normal rules
++#
++#
++.*
++*.o
++*.o.*
++*.a
++*.s
++*.ko
++*.mod.c
++*.i
++
++#
++# Top-level generic files
++#
++!.gitignore
++!.mailmap
++
++# cscope files
++cscope.*
++ncscope.*
++
++# autoconf files
++Config.make
++autom4te.cache
++config.log
++config.status
++configure
++
++# misc
++stamp-md5
++*.orig
++*~
++\#*#
 -- 
 1.5.6.5
