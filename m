@@ -1,36 +1,17 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri,  6 Nov 2009 15:24:24 -0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Use FIEMAP_EXTENT_SHARED
-In-Reply-To: <1257549864-18901-1-git-send-email-sunil.mushran@oracle.com>
-References: <1257549864-18901-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1257549864-18901-3-git-send-email-sunil.mushran@oracle.com>
+Date: Mon,  9 Nov 2009 16:08:53 -0800
+Subject: [Ocfs2-devel] Initial patches for ocfs2 1.6
+Message-ID: <1257811737-10835-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: akpm@linux-foundation.org, viro@ZenIV.linux.org.uk, hch@lst.de
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Adds FIEMAP_EXTENT_SHARED flag to refcounted extents.
+So the ocfs2 1.6 repository is up. It is a copy of the fs in the mainline.
+I have some 70-80 patches that will make it run atop el5 u4. The patches
+will be posted in smaller batches so as to make it easier to review.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-Acked-by: Mark Fasheh <mfasheh@suse.com>
----
- fs/ocfs2/extent_map.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+The first set handles the makefiles, etc.
 
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index 843db64..cdce5f8 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -786,6 +786,8 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
- 		fe_flags = 0;
- 		if (rec.e_flags & OCFS2_EXT_UNWRITTEN)
- 			fe_flags |= FIEMAP_EXTENT_UNWRITTEN;
-+		if (rec.e_flags & OCFS2_EXT_REFCOUNTED)
-+			fe_flags |= FIEMAP_EXTENT_SHARED;
- 		if (is_last)
- 			fe_flags |= FIEMAP_EXTENT_LAST;
- 		len_bytes = (u64)le16_to_cpu(rec.e_leaf_clusters) << osb->s_clustersize_bits;
--- 
-1.5.6.5
+Sunil
