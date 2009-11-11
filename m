@@ -1,72 +1,39 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 11 Nov 2009 19:39:58 -0800
-Subject: [Ocfs2-devel] [PATCH 1/8] ocfs2: Handle missing macro MNT_RELATIME
-In-Reply-To: <1257997205-18055-1-git-send-email-sunil.mushran@oracle.com>
-References: <1257997205-18055-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1257997205-18055-2-git-send-email-sunil.mushran@oracle.com>
+From: Roel Kluin <roel.kluin@gmail.com>
+Date: Wed, 11 Nov 2009 22:45:10 +0100
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Should error return be negative?
+Message-ID: <4AFB3066.4080102@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, mfasheh@suse.com, joel.becker@oracle.com, ocfs2-devel@oss.oracle.com
 
-Mainline commit 47ae32d6a54955a041cdc30b06d0bb16e75f68d5 added macro MNT_RELATIME.
+Return a negative error value instead of a positive
 
-It should be noted that the functionality will not be available on EL5
-as the vfs support is missing.
-
-TODO: This feature needs to be enabled by parsing the realtime mount
-option in ocfs2 itself.
-
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Roel Kluin <roel.kluin@gmail.com>
 ---
- Makefile                       |    3 ++-
- configure.in                   |    5 +++++
- kapi-compat/include/relatime.h |    6 ++++++
- 3 files changed, 13 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/relatime.h
+ fs/ocfs2/dlm/dlmrecovery.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 06ddabf..6676daf 100644
---- a/Makefile
-+++ b/Makefile
-@@ -16,7 +16,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/sync_mapping.h		\
- 	kapi-compat/include/fpath.h			\
- 	kapi-compat/include/ushortmax.h			\
--	kapi-compat/include/fversion.h
-+	kapi-compat/include/fversion.h			\
-+	kapi-compat/include/relatime.h
+The return of a positive error is unusual for oracle:
+
+[roel at zoinx linux-git]$ git grep -n -E "return E[[:upper:]]*;" -- fs/ocfs2/ | wc -l
+1
+[roel at zoinx linux-git]$ git grep -n -E "return -E[[:upper:]]*;" -- fs/ocfs2/ | wc -l
+251
+
+is this maybe required?
+
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index d9fa3d2..0a8a6a4 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2639,7 +2639,7 @@ int dlm_begin_reco_handler(struct o2net_msg *msg, u32 len, void *data,
+ 		     dlm->name, br->node_idx, br->dead_node,
+ 		     dlm->reco.dead_node, dlm->reco.new_master);
+ 		spin_unlock(&dlm->spinlock);
+-		return EAGAIN;
++		return -EAGAIN;
+ 	}
+ 	spin_unlock(&dlm->spinlock);
  
- PATCH_FILES =
- 
-diff --git a/configure.in b/configure.in
-index 26b9f80..07325c3 100644
---- a/configure.in
-+++ b/configure.in
-@@ -271,6 +271,11 @@ OCFS2_CHECK_KERNEL([seq_open() has const struct seq_operations * in seq_file.h],
-  , SEQOP_IS_NOT_CONST=yes, [int seq_open(struct file \*, const struct seq_operations \*);])
- AC_SUBST(SEQOP_IS_NOT_CONST)
- 
-+relatime_compat_header=""
-+OCFS2_CHECK_KERNEL([MNT_RELATIME in mount.h], mount.h,
-+  , relatime_compat_header=relatime.h, [^#define MNT_RELATIME])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $relatime_compat_header"
-+
- 
- # End kapi_compat checks
- 
-diff --git a/kapi-compat/include/relatime.h b/kapi-compat/include/relatime.h
-new file mode 100644
-index 0000000..34c5d38
---- /dev/null
-+++ b/kapi-compat/include/relatime.h
-@@ -0,0 +1,6 @@
-+#ifndef KAPI_RELATIME_H
-+#define KAPI_RELATIME_H
-+
-+#define MNT_RELATIME    0x20
-+
-+#endif
--- 
-1.5.6.5
