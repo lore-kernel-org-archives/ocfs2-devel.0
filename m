@@ -1,40 +1,31 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 11 Nov 2009 14:57:07 -0800
-Subject: [Ocfs2-devel] [PATCH 02/10] ocfs2: Handle missing dlmconstants.h
-In-Reply-To: <4AFB1024.3050707@oracle.com>
-References: <1257818413-32014-1-git-send-email-sunil.mushran@oracle.com>
-	<1257818413-32014-3-git-send-email-sunil.mushran@oracle.com>
-	<20091111025956.GC17774@mail.oracle.com>
-	<4AFB1024.3050707@oracle.com>
-Message-ID: <20091111225707.GG17774@mail.oracle.com>
+Date: Wed, 11 Nov 2009 15:03:12 -0800
+Subject: [Ocfs2-devel] [PATCH 02/11] ocfs2: Handle workqueue changes
+In-Reply-To: <1257972298-15590-3-git-send-email-sunil.mushran@oracle.com>
+References: <1257972298-15590-1-git-send-email-sunil.mushran@oracle.com>
+	<1257972298-15590-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20091111230311.GH17774@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Nov 11, 2009 at 11:27:32AM -0800, Sunil Mushran wrote:
-> Joel Becker wrote:
-> > Then maybe change this to
-> >
-> > #ifndef DLM_LOCK_NL
-> > # include <linux/dlmconstants.h>
-> > #endif
-> >   
-> 
-> Not sure why we need to do this.
+On Wed, Nov 11, 2009 at 12:44:55PM -0800, Sunil Mushran wrote:
+> Mainline commit 52bad64d95bd89e08c49ec5a071fa6dcbe5a1a9c introduced
+> struct delayed_work to separate delayable and non-delayable work.
 
-	Because if we are against mainline, we will not include the
-kapi-compat header.  Then we have to include linux/dlmconstants.h.  Or
-are you asking why do this instead of checking the NO_DLMCONSTANTS
-define?  That works too.  -EDONTCARE
+	In patches like this, the commit message should describe how we
+handled it.  Here, we'd say: "we create initialization and access
+wrappers to handle the different APIs," or somethign like that.
 
 Joel
 
 -- 
 
-"Sometimes one pays most for the things one gets for nothing."
-        - Albert Einstein
+Life's Little Instruction Book #24
+
+	"Drink champagne for no reason at all."
 
 Joel Becker
 Principal Software Developer
