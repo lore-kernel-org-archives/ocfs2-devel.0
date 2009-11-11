@@ -1,101 +1,83 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 10 Nov 2009 17:38:25 -0800
-Subject: [Ocfs2-devel] [PATCH 3/8] ocfs2: Handle non-const dentry->d_op
+Date: Tue, 10 Nov 2009 17:38:23 -0800
+Subject: [Ocfs2-devel] [PATCH 1/8] ocfs2: Handle non-const seq_operations
 In-Reply-To: <1257903510-29198-1-git-send-email-sunil.mushran@oracle.com>
 References: <1257903510-29198-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1257903510-29198-4-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1257903510-29198-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit e56980d451904b623573ef4966cbab768e433c79 const-ified dentry->d_op.
+Mainline commit 15ad7cdcfd76450d4beebc789ec646664238184d const-ified seq_file->op.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Config.make.in    |    1 +
- configure.in      |    6 ++++++
- fs/ocfs2/Makefile |    4 ++++
- fs/ocfs2/dcache.c |    4 ++++
- fs/ocfs2/dcache.h |    4 ++++
- 5 files changed, 19 insertions(+), 0 deletions(-)
+ Config.make.in     |    1 +
+ configure.in       |    5 +++++
+ fs/ocfs2/Makefile  |    4 ++++
+ fs/ocfs2/dlmglue.c |    4 ++++
+ 4 files changed, 14 insertions(+), 0 deletions(-)
 
 diff --git a/Config.make.in b/Config.make.in
-index 2c18b6f..7cda5cb 100644
+index ba72950..18edfa8 100644
 --- a/Config.make.in
 +++ b/Config.make.in
-@@ -64,6 +64,7 @@ ADDRESS_SPACE_OPS_EXT = @ADDRESS_SPACE_OPS_EXT@
+@@ -62,6 +62,7 @@ NO_DLMCONSTANTS_HEADER = @NO_DLMCONSTANTS_HEADER@
+ NO_F_PATH_IN_STRUCT_FILE = @NO_F_PATH_IN_STRUCT_FILE@
+ ADDRESS_SPACE_OPS_EXT = @ADDRESS_SPACE_OPS_EXT@
  FVERSION_IS_ULONG = @FVERSION_IS_ULONG@
- SEQ_OPS_IS_NOT_CONST = @SEQ_OPS_IS_NOT_CONST@
- IOP_IS_NOT_CONST = @IOP_IS_NOT_CONST@
-+DOP_IS_NOT_CONST = @DOP_IS_NOT_CONST@
++SEQ_OPS_IS_NOT_CONST = @SEQ_OPS_IS_NOT_CONST@
  
  
  OCFS_DEBUG = @OCFS_DEBUG@
 diff --git a/configure.in b/configure.in
-index 16d02c3..f79da91 100644
+index 7ee2d34..b1aaf4e 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -242,6 +242,12 @@ OCFS2_CHECK_KERNEL([inode->i_op has the const modifier in fs.h], fs.h,
- AC_SUBST(IOP_IS_NOT_CONST)
+@@ -231,6 +231,11 @@ if test "x$FVERSION_IS_ULONG" = "x" ; then
+ fi
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS fversion.h"
  
++SEQ_OPS_IS_NOT_CONST=
++OCFS2_CHECK_KERNEL([const struct seq_operations in seq_file.h], seq_file.h,
++  , SEQ_OPS_IS_NOT_CONST=yes, [const struct seq_operations \*op;])
++AC_SUBST(SEQ_OPS_IS_NOT_CONST)
++
  
-+DOP_IS_NOT_CONST=
-+OCFS2_CHECK_KERNEL([dentry->d_op has the const modifier in dcache.h], dcache.h,
-+  , DOP_IS_NOT_CONST=yes, [^.*const struct dentry_operations \*d_op;])
-+AC_SUBST(DOP_IS_NOT_CONST)
-+
-+
  # End kapi_compat checks
  
- # using -include has two advantages:
 diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index e66665a..4e1a0e6 100644
+index e6b5801..37d3009 100644
 --- a/fs/ocfs2/Makefile
 +++ b/fs/ocfs2/Makefile
-@@ -64,6 +64,10 @@ ifdef IOP_IS_NOT_CONST
- EXTRA_CFLAGS += -DIOP_IS_NOT_CONST
+@@ -56,6 +56,10 @@ ifdef FVERSION_IS_ULONG
+ EXTRA_CFLAGS += -DFVERSION_IS_ULONG
  endif
  
-+ifdef DOP_IS_NOT_CONST
-+EXTRA_CFLAGS += -DDOP_IS_NOT_CONST
++ifdef SEQ_OPS_IS_NOT_CONST
++EXTRA_CFLAGS += -DSEQ_OPS_IS_NOT_CONST
 +endif
 +
  #
  # Since SUBDIRS means something to kbuild, define them safely.  Do not
  # include trailing slashes.
-diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
-index 8ad82bc..55a3fdb 100644
---- a/fs/ocfs2/dcache.c
-+++ b/fs/ocfs2/dcache.c
-@@ -500,7 +500,11 @@ out_move:
- 	d_move(dentry, target);
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 0d38d67..0b73382 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2834,7 +2834,11 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ 	return 0;
  }
  
-+#ifdef DOP_IS_NOT_CONST
-+struct dentry_operations ocfs2_dentry_ops = {
++#ifndef SEQ_OPS_IS_NOT_CONST
+ static const struct seq_operations ocfs2_dlm_seq_ops = {
 +#else
- const struct dentry_operations ocfs2_dentry_ops = {
++static struct seq_operations ocfs2_dlm_seq_ops = {
 +#endif
- 	.d_revalidate		= ocfs2_dentry_revalidate,
- 	.d_iput			= ocfs2_dentry_iput,
- };
-diff --git a/fs/ocfs2/dcache.h b/fs/ocfs2/dcache.h
-index d13a087..2703a1a 100644
---- a/fs/ocfs2/dcache.h
-+++ b/fs/ocfs2/dcache.h
-@@ -26,7 +26,11 @@
- #ifndef OCFS2_DCACHE_H
- #define OCFS2_DCACHE_H
- 
-+#ifdef DOP_IS_NOT_CONST
-+extern struct dentry_operations ocfs2_dentry_ops;
-+#else
- extern const struct dentry_operations ocfs2_dentry_ops;
-+#endif
- 
- struct ocfs2_dentry_lock {
- 	/* Use count of dentry lock */
+ 	.start =	ocfs2_dlm_seq_start,
+ 	.stop =		ocfs2_dlm_seq_stop,
+ 	.next =		ocfs2_dlm_seq_next,
 -- 
 1.5.6.5
