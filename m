@@ -1,130 +1,66 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 10 Nov 2009 17:38:30 -0800
-Subject: [Ocfs2-devel] [PATCH 8/8] ocfs2: Handle missing const modifier in
-	seq_open()
-In-Reply-To: <1257903510-29198-1-git-send-email-sunil.mushran@oracle.com>
-References: <1257903510-29198-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1257903510-29198-9-git-send-email-sunil.mushran@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 10 Nov 2009 18:57:46 -0800
+Subject: [Ocfs2-devel] [PATCH 01/10] ocfs2: Handle workqueue changes
+In-Reply-To: <1257818413-32014-2-git-send-email-sunil.mushran@oracle.com>
+References: <1257818413-32014-1-git-send-email-sunil.mushran@oracle.com>
+	<1257818413-32014-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20091111025746.GB17774@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 15ad7cdcfd76450d4beebc789ec646664238184d added the const
-modifier to struct seq_operations * in seq_open().
+On Mon, Nov 09, 2009 at 06:00:04PM -0800, Sunil Mushran wrote:
+> diff --git a/kapi-compat/include/workqueue.h b/kapi-compat/include/workqueue.h
+> new file mode 100644
+> index 0000000..24dfe2d
+> --- /dev/null
+> +++ b/kapi-compat/include/workqueue.h
+> @@ -0,0 +1,17 @@
+> +#ifndef KAPI_WORKQUEUE_H
+> +#define KAPI_WORKQUEUE_H
+> +
+> +#ifdef NO_DELAYED_WORK_STRUCT
+> +# define delayed_work				work_struct
+> +typedef void kapi_work_struct_t;
+> +# define work_to_object(a, b, c)		(a)
+> +# define KAPI_INIT_WORK(a, b, c)		INIT_WORK(a, b, c)
+> +# define KAPI_INIT_DELAYED_WORK(a, b, c)	INIT_WORK(a, b, c)
+> +#else
+> +typedef struct work_struct kapi_work_struct_t;
+> +# define work_to_object(a, b, c)		container_of(a, b, c)
+> +# define KAPI_INIT_WORK(a, b, c)		INIT_WORK(a, b)
+> +# define KAPI_INIT_DELAYED_WORK(a, b, c)	INIT_DELAYED_WORK(a, b)
+> +#endif
+> +
+> +#endif
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- Config.make.in              |    1 +
- configure.in                |    5 +++++
- fs/ocfs2/cluster/Makefile   |    4 ++++
- fs/ocfs2/cluster/netdebug.c |    8 ++++++++
- fs/ocfs2/dlm/Makefile       |    4 ++++
- fs/ocfs2/dlm/dlmdebug.c     |    4 ++++
- 6 files changed, 26 insertions(+), 0 deletions(-)
+	Rather than include kapi-compat/include/workqueue.h at all
+times, I'd really like to only include it when necessary.  That way you
+can build the driver against mainline even when there is no kapi-compat
+directory.
+	Can't we have an fs/ocfs2/kapi-default.h that has defines for
+when we're against mainline?  Include it from fs/ocfs2/ocfs2.h.  For
+this patch, it would include:
 
-diff --git a/Config.make.in b/Config.make.in
-index 32d99a8..2e5ff54 100644
---- a/Config.make.in
-+++ b/Config.make.in
-@@ -69,6 +69,7 @@ SOP_IS_NOT_CONST = @SOP_IS_NOT_CONST@
- EXPORTOP_IS_NOT_CONST = @EXPORTOP_IS_NOT_CONST@
- MATCHTABLE_IS_NOT_CONST = @MATCHTABLE_IS_NOT_CONST@
- VMOP_IS_NOT_CONST = @VMOP_IS_NOT_CONST@
-+SEQOP_IS_NOT_CONST = @SEQOP_IS_NOT_CONST@
- 
- 
- OCFS_DEBUG = @OCFS_DEBUG@
-diff --git a/configure.in b/configure.in
-index e7939c4..cdadf77 100644
---- a/configure.in
-+++ b/configure.in
-@@ -267,6 +267,11 @@ OCFS2_CHECK_KERNEL([vm_area_struct->vm_ops has the const modifier in mm.h], mm.h
-   , VMOP_IS_NOT_CONST=yes, [^.*const struct vm_operations_struct \*vm_ops;])
- AC_SUBST(VMOP_IS_NOT_CONST)
- 
-+SEQOP_IS_NOT_CONST=
-+OCFS2_CHECK_KERNEL([seq_open() has const struct seq_operations * in seq_file.h], seq_file.h,
-+ , SEQOP_IS_NOT_CONST=yes, [int seq_open(struct file \*, const struct seq_operations \*);])
-+AC_SUBST(SEQOP_IS_NOT_CONST)
-+
- 
- # End kapi_compat checks
- 
-diff --git a/fs/ocfs2/cluster/Makefile b/fs/ocfs2/cluster/Makefile
-index c1f4f31..d89112d 100644
---- a/fs/ocfs2/cluster/Makefile
-+++ b/fs/ocfs2/cluster/Makefile
-@@ -22,6 +22,10 @@ ifdef NO_DELAYED_WORK_STRUCT
- EXTRA_CFLAGS += -DNO_DELAYED_WORK_STRUCT
- endif
- 
-+ifdef SEQOP_IS_NOT_CONST
-+EXTRA_CFLAGS += -DSEQOP_IS_NOT_CONST
-+endif
-+
- SOURCES +=			\
- 	heartbeat.c		\
- 	masklog.c		\
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index da794bc..cacd83f 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -163,7 +163,11 @@ static void nst_seq_stop(struct seq_file *seq, void *v)
- {
- }
- 
-+#ifdef SEQOP_IS_NOT_CONST
-+static struct seq_operations nst_seq_ops = {
-+#else
- static const struct seq_operations nst_seq_ops = {
-+#endif
- 	.start = nst_seq_start,
- 	.next = nst_seq_next,
- 	.stop = nst_seq_stop,
-@@ -344,7 +348,11 @@ static void sc_seq_stop(struct seq_file *seq, void *v)
- {
- }
- 
-+#ifdef SEQOP_IS_NOT_CONST
-+static struct seq_operations sc_seq_ops = {
-+#else
- static const struct seq_operations sc_seq_ops = {
-+#endif
- 	.start = sc_seq_start,
- 	.next = sc_seq_next,
- 	.stop = sc_seq_stop,
-diff --git a/fs/ocfs2/dlm/Makefile b/fs/ocfs2/dlm/Makefile
-index b70058d..122b370 100644
---- a/fs/ocfs2/dlm/Makefile
-+++ b/fs/ocfs2/dlm/Makefile
-@@ -38,6 +38,10 @@ ifdef SOP_IS_NOT_CONST
- EXTRA_CFLAGS += -DSOP_IS_NOT_CONST
- endif
- 
-+ifdef SEQOP_IS_NOT_CONST
-+EXTRA_CFLAGS += -DSEQOP_IS_NOT_CONST
-+endif
-+
- DLM_SOURCES +=			\
- 	dlmast.c		\
- 	dlmconvert.c		\
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index 42b0bad..f18afe9 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -682,7 +682,11 @@ static int lockres_seq_show(struct seq_file *s, void *v)
- 	return 0;
- }
- 
-+#ifdef SEQOP_IS_NOT_CONST
-+static struct seq_operations debug_lockres_ops = {
-+#else
- static const struct seq_operations debug_lockres_ops = {
-+#endif
- 	.start =	lockres_seq_start,
- 	.stop =		lockres_seq_stop,
- 	.next =		lockres_seq_next,
+#ifndef KAPI_INIT_WORK
+typedef struct work_struct kapi_work_struct_t;
+# define work_to_object(a, b, c)		container_of(a, b, c)
+# define KAPI_INIT_WORK(a, b, c)		INIT_WORK(a, b)
+# define KAPI_INIT_DELAYED_WORK(a, b, c)	INIT_DELAYED_WORK(a, b)
+#endif
+
+Joel
+
 -- 
-1.5.6.5
+
+#!/bin/perl -sp0777i<X+d*lMLa^*lN%0]dsXx++lMlN/dsM0<j]dsj
+$/=unpack('H*',$_);$_=`echo 16dio\U$k"SK$/SM$n\EsN0p[lN*1
+lK[d2%Sa2/d0$^Ixp"|dc`;s/\W//g;$_=pack('H*',/((..)*)$/)
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
