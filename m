@@ -1,30 +1,36 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 10 Nov 2009 19:03:35 -0800
-Subject: [Ocfs2-devel] [PATCH 07/10] ocfs2: Handle struct f_path in
- struct file
-In-Reply-To: <1257818413-32014-8-git-send-email-sunil.mushran@oracle.com>
+Date: Tue, 10 Nov 2009 19:13:14 -0800
+Subject: [Ocfs2-devel] [PATCH 10/10] ocfs2: Handle different f_version
+ types
+In-Reply-To: <1257818413-32014-11-git-send-email-sunil.mushran@oracle.com>
 References: <1257818413-32014-1-git-send-email-sunil.mushran@oracle.com>
-	<1257818413-32014-8-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20091111030334.GD17774@mail.oracle.com>
+	<1257818413-32014-11-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20091111031313.GE17774@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Nov 09, 2009 at 06:00:10PM -0800, Sunil Mushran wrote:
-> Mainline commit 0f7fc9e4d03987fe29f6dd4aa67e4c56eb7ecb05 added
-> struct path into struct file.
+On Mon, Nov 09, 2009 at 06:00:13PM -0800, Sunil Mushran wrote:
+> Mainline commit 2b47c3611de05c585e2d81204f6c7e3e255a3461 changed type of
+> file->f_version from unsigned long to u64. This patch allows building with
+> kernels having either definition. Build fails if the type is something else.
 
-	Again, put #ifndef filp_dentry() in fs/ocfs2/kapi-defaults.h and
-only include kapi-include/fpath.h if necessary.
+	I was trying to come up with a way to not create f_version_t.
+You know, pass around a u64 and cast it when comparing to
+inode->i_version.  But I'm not terribly happy with that, so I guess we
+leave f_version_t.  Please reorganize it so that kapi-include/ is not
+needed for mainline.
 
 Joel
 
 -- 
 
-"Get right to the heart of matters.
- It's the heart that matters more."
+"In the beginning, the universe was created. This has made a lot 
+ of people very angry, and is generally considered to have been a 
+ bad move."
+        - Douglas Adams
 
 Joel Becker
 Principal Software Developer
