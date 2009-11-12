@@ -1,79 +1,69 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 11 Nov 2009 19:40:02 -0800
-Subject: [Ocfs2-devel] [PATCH 5/8] ocfs2: Handle missing helper
-	current_fsuid()
+Date: Wed, 11 Nov 2009 19:40:03 -0800
+Subject: [Ocfs2-devel] [PATCH 6/8] ocfs2: Handle missing enum umh_wait
 In-Reply-To: <1257997205-18055-1-git-send-email-sunil.mushran@oracle.com>
 References: <1257997205-18055-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1257997205-18055-6-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1257997205-18055-7-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit 86a264abe542cfececb4df129bc45a0338d8cdb9 added helper current_fsuid().
-
-An earlier commit grouped security credentials in struct task in struct cred.
-The patch ensures that if the above helper is not found, that struct cred is
-missing. If not, build fails.
+Mainline commit 86313c488a6848b7ec2ba04e74f25f79dd32a0b7 added enum umh_wait in kmod.h.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Makefile                    |    3 ++-
- configure.in                |   13 +++++++++++++
- kapi-compat/include/fsuid.h |    7 +++++++
- 3 files changed, 22 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/fsuid.h
+ Makefile                       |    3 ++-
+ configure.in                   |    5 +++++
+ kapi-compat/include/umh_wait.h |   10 ++++++++++
+ 3 files changed, 17 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/umh_wait.h
 
 diff --git a/Makefile b/Makefile
-index b9d5c5f..46c7218 100644
+index 46c7218..01b0033 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -19,7 +19,8 @@ KAPI_COMPAT_FILES = \
- 	kapi-compat/include/fversion.h			\
+@@ -20,7 +20,8 @@ KAPI_COMPAT_FILES = \
  	kapi-compat/include/relatime.h			\
  	kapi-compat/include/aiovec.h			\
--	kapi-compat/include/mandatory_lock.h
-+	kapi-compat/include/mandatory_lock.h		\
-+	kapi-compat/include/fsuid.h
+ 	kapi-compat/include/mandatory_lock.h		\
+-	kapi-compat/include/fsuid.h
++	kapi-compat/include/fsuid.h			\
++	kapi-compat/include/umh_wait.h
  
  PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index d0d1d18..3548225 100644
+index 3548225..9cfdbe3 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -300,6 +300,19 @@ OCFS2_CHECK_KERNEL([mandatory_lock() in fs.h], fs.h,
-  , mandatory_lock_header=mandatory_lock.h, [^static inline int mandatory_lock(])
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $mandatory_lock_header"
+@@ -313,6 +313,11 @@ if test "x$no_current_fsuid" = "xfsuid.h" ; then
+ fi
+ KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $no_current_fsuid"
  
-+no_current_fsuid=
-+OCFS2_CHECK_KERNEL([current_fsuid() in cred.h], cred.h,
-+ , no_current_fsuid=fsuid.h, [#define current_fsuid()])
-+if test "x$no_current_fsuid" = "xfsuid.h" ; then
-+  fsuid_in_task=
-+  OCFS2_CHECK_KERNEL([	fsuid in struct task in sched.h], sched.h,
-+  fsuid_in_task=yes, , [uid_t uid,euid,suid,fsuid;])
-+  if test "x$fsuid_in_task" = "x" ; then
-+    AC_MSG_ERROR(Cannot build with kernel that is missing fsuid and struct cred in struct task)
-+  fi
-+fi
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $no_current_fsuid"
++kmod_compat_header=
++OCFS2_CHECK_KERNEL([enum umh_wait in kmod.h], kmod.h,
++  , kmod_compat_header=umh_wait.h, [enum umh_wait {])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $kmod_compat_header"
 +
  # End kapi_compat checks
  
  # using -include has two advantages:
-diff --git a/kapi-compat/include/fsuid.h b/kapi-compat/include/fsuid.h
+diff --git a/kapi-compat/include/umh_wait.h b/kapi-compat/include/umh_wait.h
 new file mode 100644
-index 0000000..08d0915
+index 0000000..42a082b
 --- /dev/null
-+++ b/kapi-compat/include/fsuid.h
-@@ -0,0 +1,7 @@
-+#ifndef KAPI_FSUID_H
-+#define KAPI_FSUID_H
++++ b/kapi-compat/include/umh_wait.h
+@@ -0,0 +1,10 @@
++#ifndef KAPI_KMOD_H
++#define KAPI_KMOD_H
 +
-+#define current_fsuid()		(current->fsuid)
-+#define current_fsgid()		(current->fsgid)
++enum umh_wait {
++	UMH_NO_WAIT = -1,	/* don't wait at all */
++	UMH_WAIT_EXEC = 0,	/* wait for the exec, but not the process */
++	UMH_WAIT_PROC = 1,	/* wait for the process to complete */
++};
 +
 +#endif
 -- 
