@@ -1,85 +1,72 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 11 Nov 2009 19:40:01 -0800
-Subject: [Ocfs2-devel] [PATCH 4/8] ocfs2: Handle missing helper
-	mandatory_lock()
+Date: Wed, 11 Nov 2009 19:39:58 -0800
+Subject: [Ocfs2-devel] [PATCH 1/8] ocfs2: Handle missing macro MNT_RELATIME
 In-Reply-To: <1257997205-18055-1-git-send-email-sunil.mushran@oracle.com>
 References: <1257997205-18055-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1257997205-18055-5-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1257997205-18055-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit a16877ca9cec211708a161057a7cbfbf2cbc3a53 added helper mandatory_lock().
+Mainline commit 47ae32d6a54955a041cdc30b06d0bb16e75f68d5 added macro MNT_RELATIME.
+
+It should be noted that the functionality will not be available on EL5
+as the vfs support is missing.
+
+TODO: This feature needs to be enabled by parsing the realtime mount
+option in ocfs2 itself.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Makefile                             |    3 ++-
- configure.in                         |    4 ++++
- kapi-compat/include/mandatory_lock.h |   25 +++++++++++++++++++++++++
- 3 files changed, 31 insertions(+), 1 deletions(-)
- create mode 100644 kapi-compat/include/mandatory_lock.h
+ Makefile                       |    3 ++-
+ configure.in                   |    5 +++++
+ kapi-compat/include/relatime.h |    6 ++++++
+ 3 files changed, 13 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/relatime.h
 
 diff --git a/Makefile b/Makefile
-index 140b9cd..b9d5c5f 100644
+index 06ddabf..6676daf 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -18,7 +18,8 @@ KAPI_COMPAT_FILES = \
+@@ -16,7 +16,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/sync_mapping.h		\
+ 	kapi-compat/include/fpath.h			\
  	kapi-compat/include/ushortmax.h			\
- 	kapi-compat/include/fversion.h			\
- 	kapi-compat/include/relatime.h			\
--	kapi-compat/include/aiovec.h
-+	kapi-compat/include/aiovec.h			\
-+	kapi-compat/include/mandatory_lock.h
+-	kapi-compat/include/fversion.h
++	kapi-compat/include/fversion.h			\
++	kapi-compat/include/relatime.h
  
  PATCH_FILES =
  
 diff --git a/configure.in b/configure.in
-index a1c4255..d0d1d18 100644
+index 26b9f80..07325c3 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -295,6 +295,10 @@ if test "x$OLD_PERSMISSION" = "x" ; then
-   fi
- fi
+@@ -271,6 +271,11 @@ OCFS2_CHECK_KERNEL([seq_open() has const struct seq_operations * in seq_file.h],
+  , SEQOP_IS_NOT_CONST=yes, [int seq_open(struct file \*, const struct seq_operations \*);])
+ AC_SUBST(SEQOP_IS_NOT_CONST)
  
-+mandatory_lock_header=
-+OCFS2_CHECK_KERNEL([mandatory_lock() in fs.h], fs.h,
-+ , mandatory_lock_header=mandatory_lock.h, [^static inline int mandatory_lock(])
-+KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $mandatory_lock_header"
++relatime_compat_header=""
++OCFS2_CHECK_KERNEL([MNT_RELATIME in mount.h], mount.h,
++  , relatime_compat_header=relatime.h, [^#define MNT_RELATIME])
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $relatime_compat_header"
++
  
  # End kapi_compat checks
  
-diff --git a/kapi-compat/include/mandatory_lock.h b/kapi-compat/include/mandatory_lock.h
+diff --git a/kapi-compat/include/relatime.h b/kapi-compat/include/relatime.h
 new file mode 100644
-index 0000000..9c9f937
+index 0000000..34c5d38
 --- /dev/null
-+++ b/kapi-compat/include/mandatory_lock.h
-@@ -0,0 +1,25 @@
-+#ifndef KAPI_MANDATORY_LOCK_H
-+#define KAPI_MANDATORY_LOCK_H
++++ b/kapi-compat/include/relatime.h
+@@ -0,0 +1,6 @@
++#ifndef KAPI_RELATIME_H
++#define KAPI_RELATIME_H
 +
-+#include <linux/fs.h>
-+/*
-+ * Candidates for mandatory locking have the setgid bit set
-+ * but no group execute bit -  an otherwise meaningless combination.
-+ */
++#define MNT_RELATIME    0x20
 +
-+static inline int __mandatory_lock(struct inode *ino)
-+{
-+        return (ino->i_mode & (S_ISGID | S_IXGRP)) == S_ISGID;
-+}
-+
-+/*
-+ * ... and these candidates should be on MS_MANDLOCK mounted fs,
-+ * otherwise these will be advisory locks
-+ */
-+
-+static inline int mandatory_lock(struct inode *ino)
-+{
-+        return IS_MANDLOCK(ino) && __mandatory_lock(ino);
-+}
-+
-+#endif /* KAPI_MANDATORY_LOCK_H */
++#endif
 -- 
 1.5.6.5
