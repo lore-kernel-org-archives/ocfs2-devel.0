@@ -1,57 +1,43 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 12 Nov 2009 17:47:23 -0800
-Subject: [Ocfs2-devel] [PATCH 02/18] ocfs2: Add KAPI_INIT_WORK macro in
-	kapi-default.h
-In-Reply-To: <1258076859-13538-1-git-send-email-sunil.mushran@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 12 Nov 2009 18:17:53 -0800
+Subject: [Ocfs2-devel] [PATCH 03/18] ocfs2: Handle missing dtor in
+ kmem_cache_create()
+In-Reply-To: <1258076859-13538-4-git-send-email-sunil.mushran@oracle.com>
 References: <1258076859-13538-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1258076859-13538-3-git-send-email-sunil.mushran@oracle.com>
+	<1258076859-13538-4-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20091113021753.GA21197@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit dbc80b8f391820b719db97004219327c8cf050bc added KAPI_INIT_WORK
-macros to fs/ocfs2/kapi-default.h. This patch adds the same to the
-same header in dlm and cluster sub-directories.
+On Thu, Nov 12, 2009 at 05:47:24PM -0800, Sunil Mushran wrote:
+> Mainline commit 20c2df83d25c6a95affe6157a4c9cac4cf5ffaac removed the
+> dtor arg from kmem_cache_create(). Patch adds a kapi macro that adds
+> a dtor arg when building against EL5 kernels.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/cluster/kapi-default.h |    6 ++++++
- fs/ocfs2/dlm/kapi-default.h     |    6 ++++++
- 2 files changed, 12 insertions(+), 0 deletions(-)
+	Question: Do you want to support an assortment of mainline
+kernels, or only "2.6.32" and "2.6.18-el"?  Because there are a number
+of slab things that happened.  I'm not sure which all apply to el5
+anymore.  Not only did the destructor go away, so did the flag
+SLAB_CTOR_VERIFY, and the init_once constructors changed prototype.
+	Here was my solution:
 
-diff --git a/fs/ocfs2/cluster/kapi-default.h b/fs/ocfs2/cluster/kapi-default.h
-index fcf3ac9..21e5e3a 100644
---- a/fs/ocfs2/cluster/kapi-default.h
-+++ b/fs/ocfs2/cluster/kapi-default.h
-@@ -22,5 +22,11 @@
- #ifndef KAPI_DEFAULT_H
- #define KAPI_DEFAULT_H
- 
-+#ifndef KAPI_INIT_WORK
-+typedef struct work_struct kapi_work_struct_t;
-+# define work_to_object(a, b, c)		container_of(a, b, c)
-+# define KAPI_INIT_WORK(a, b, c)		INIT_WORK(a, b)
-+# define KAPI_INIT_DELAYED_WORK(a, b, c)	INIT_DELAYED_WORK(a, b)
-+#endif
- 
- #endif
-diff --git a/fs/ocfs2/dlm/kapi-default.h b/fs/ocfs2/dlm/kapi-default.h
-index fcf3ac9..21e5e3a 100644
---- a/fs/ocfs2/dlm/kapi-default.h
-+++ b/fs/ocfs2/dlm/kapi-default.h
-@@ -22,5 +22,11 @@
- #ifndef KAPI_DEFAULT_H
- #define KAPI_DEFAULT_H
- 
-+#ifndef KAPI_INIT_WORK
-+typedef struct work_struct kapi_work_struct_t;
-+# define work_to_object(a, b, c)		container_of(a, b, c)
-+# define KAPI_INIT_WORK(a, b, c)		INIT_WORK(a, b)
-+# define KAPI_INIT_DELAYED_WORK(a, b, c)	INIT_DELAYED_WORK(a, b)
-+#endif
- 
- #endif
+http://oss.oracle.com/git/oracleasm.git/?p=oracleasm.git;a=commit;h=0888fd1be3d15ab3c7f504c8969c101f7d5d39fd
+
+(Note that there are a couple of later commits to fix typos)
+
+Joel
+
 -- 
-1.5.6.5
+
+Life's Little Instruction Book #182
+
+	"Be romantic."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
