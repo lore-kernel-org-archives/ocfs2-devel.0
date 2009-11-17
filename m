@@ -1,31 +1,163 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 13 Nov 2009 15:54:07 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Refresh documentation
-In-Reply-To: <1257197890-16493-1-git-send-email-sunil.mushran@oracle.com>
-References: <1257197890-16493-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20091113235407.GC9739@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue, 17 Nov 2009 13:07:58 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/cluster: Make fence method
+	configurable
+Message-ID: <1258492078-32200-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Nov 02, 2009 at 01:38:10PM -0800, Sunil Mushran wrote:
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+By default, o2cb fences the box by calling emergency_restart(). While this
+scheme works well in production, it comes in the way during testing as it
+does not let the tester take stack/core dumps for analysis.
 
-In the "fixes" branch of ocfs2.git.
+This patch allows user to dynamically change the fence method to panic() by:
+# echo "panic" > /sys/kernel/config/cluster/<clustername>/fence_method
 
-Joel
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/cluster/nodemanager.c |   50 ++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/cluster/nodemanager.h |    7 +++++
+ fs/ocfs2/cluster/quorum.c      |   14 +++++++++-
+ 3 files changed, 69 insertions(+), 2 deletions(-)
 
-
+diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+index 7ee6188..77cdc09 100644
+--- a/fs/ocfs2/cluster/nodemanager.c
++++ b/fs/ocfs2/cluster/nodemanager.c
+@@ -35,6 +35,11 @@
+  * cluster references throughout where nodes are looked up */
+ struct o2nm_cluster *o2nm_single_cluster = NULL;
+ 
++char *o2nm_fence_method_desc[O2NM_FENCE_METHODS + 1] = {
++		"reset",	/* O2NM_FENCE_RESET */
++		"panic",	/* O2NM_FENCE_PANIC */
++		"unknown",
++};
+ 
+ struct o2nm_node *o2nm_get_node_by_num(u8 node_num)
+ {
+@@ -579,6 +584,41 @@ static ssize_t o2nm_cluster_attr_reconnect_delay_ms_write(
+ 	return o2nm_cluster_attr_write(page, count,
+ 	                               &cluster->cl_reconnect_delay_ms);
+ }
++
++static ssize_t o2nm_cluster_attr_fence_method_read(
++	struct o2nm_cluster *cluster, char *page)
++{
++	unsigned int i = O2NM_FENCE_METHODS;
++
++	if (cluster && cluster->cl_fence_method < O2NM_FENCE_METHODS)
++		i = cluster->cl_fence_method;
++
++	return sprintf(page, "%s\n", o2nm_fence_method_desc[i]);
++}
++
++static ssize_t o2nm_cluster_attr_fence_method_write(
++	struct o2nm_cluster *cluster, const char *page, size_t count)
++{
++	unsigned int i;
++
++	if (page[count - 1] != '\n')
++		goto bail;
++
++	for (i = 0; i < O2NM_FENCE_METHODS; ++i) {
++		if (count != strlen(o2nm_fence_method_desc[i]) + 1)
++		    continue;
++		if (!strncasecmp(page, o2nm_fence_method_desc[i], count - 1)) {
++			printk(KERN_INFO "ocfs2: Changing fence method to %s\n",
++			       o2nm_fence_method_desc[i]);
++			cluster->cl_fence_method = i;
++			return count;
++		}
++	}
++
++bail:
++	return -EINVAL;
++}
++
+ static struct o2nm_cluster_attribute o2nm_cluster_attr_idle_timeout_ms = {
+ 	.attr	= { .ca_owner = THIS_MODULE,
+ 		    .ca_name = "idle_timeout_ms",
+@@ -603,10 +643,19 @@ static struct o2nm_cluster_attribute o2nm_cluster_attr_reconnect_delay_ms = {
+ 	.store	= o2nm_cluster_attr_reconnect_delay_ms_write,
+ };
+ 
++static struct o2nm_cluster_attribute o2nm_cluster_attr_fence_method = {
++	.attr	= { .ca_owner = THIS_MODULE,
++		    .ca_name = "fence_method",
++		    .ca_mode = S_IRUGO | S_IWUSR },
++	.show	= o2nm_cluster_attr_fence_method_read,
++	.store	= o2nm_cluster_attr_fence_method_write,
++};
++
+ static struct configfs_attribute *o2nm_cluster_attrs[] = {
+ 	&o2nm_cluster_attr_idle_timeout_ms.attr,
+ 	&o2nm_cluster_attr_keepalive_delay_ms.attr,
+ 	&o2nm_cluster_attr_reconnect_delay_ms.attr,
++	&o2nm_cluster_attr_fence_method.attr,
+ 	NULL,
+ };
+ static ssize_t o2nm_cluster_show(struct config_item *item,
+@@ -778,6 +827,7 @@ static struct config_group *o2nm_cluster_group_make_group(struct config_group *g
+ 	cluster->cl_reconnect_delay_ms = O2NET_RECONNECT_DELAY_MS_DEFAULT;
+ 	cluster->cl_idle_timeout_ms    = O2NET_IDLE_TIMEOUT_MS_DEFAULT;
+ 	cluster->cl_keepalive_delay_ms = O2NET_KEEPALIVE_DELAY_MS_DEFAULT;
++	cluster->cl_fence_method       = O2NM_FENCE_RESET;
+ 
+ 	ret = &cluster->cl_group;
+ 	o2nm_single_cluster = cluster;
+diff --git a/fs/ocfs2/cluster/nodemanager.h b/fs/ocfs2/cluster/nodemanager.h
+index c992ea0..09ea2d3 100644
+--- a/fs/ocfs2/cluster/nodemanager.h
++++ b/fs/ocfs2/cluster/nodemanager.h
+@@ -33,6 +33,12 @@
+ #include <linux/configfs.h>
+ #include <linux/rbtree.h>
+ 
++enum o2nm_fence_method {
++	O2NM_FENCE_RESET	= 0,
++	O2NM_FENCE_PANIC,
++	O2NM_FENCE_METHODS,	/* Number of fence methods */
++};
++
+ struct o2nm_node {
+ 	spinlock_t		nd_lock;
+ 	struct config_item	nd_item;
+@@ -58,6 +64,7 @@ struct o2nm_cluster {
+ 	unsigned int		cl_idle_timeout_ms;
+ 	unsigned int		cl_keepalive_delay_ms;
+ 	unsigned int		cl_reconnect_delay_ms;
++	enum o2nm_fence_method	cl_fence_method;
+ 
+ 	/* this bitmap is part of a hack for disk bitmap.. will go eventually. - zab */
+ 	unsigned long	cl_nodes_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+diff --git a/fs/ocfs2/cluster/quorum.c b/fs/ocfs2/cluster/quorum.c
+index bbacf7d..cc6ed4e 100644
+--- a/fs/ocfs2/cluster/quorum.c
++++ b/fs/ocfs2/cluster/quorum.c
+@@ -74,8 +74,18 @@ static void o2quo_fence_self(void)
+ 	 * threads can still schedule, etc, etc */
+ 	o2hb_stop_all_regions();
+ 
+-	printk("ocfs2 is very sorry to be fencing this system by restarting\n");
+-	emergency_restart();
++	switch (o2nm_single_cluster->cl_fence_method) {
++	case O2NM_FENCE_PANIC:
++		panic("*** ocfs2 is very sorry to be fencing this system by "
++		      "panicing ***\n");
++		break;
++	case O2NM_FENCE_RESET:
++	default:
++		printk("*** ocfs2 is very sorry to be fencing this system by "
++		       "restarting ***\n");
++		emergency_restart();
++		break;
++	};
+ }
+ 
+ /* Indicate that a timeout occured on a hearbeat region write. The
 -- 
-
- Joel's First Law:
-
-	Nature abhors a GUI.
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.6.5
