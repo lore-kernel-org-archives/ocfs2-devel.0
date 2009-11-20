@@ -1,67 +1,59 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu, 19 Nov 2009 10:17:46 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: return -EAGAIN instead of EAGAIN
-	in dlm
-In-Reply-To: <4B0474A7.9020506@oracle.com>
-References: <4B0474A7.9020506@oracle.com>
-Message-ID: <1258597066-9227-1-git-send-email-tiger.yang@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 19 Nov 2009 18:47:02 -0800
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 updates for 2.6.32-rc8
+Message-ID: <20091120024701.GA12968@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-We used to return positive EAGAIN to indicate a retry action
-is needed in dlm_begin_reco_handler(). Now we return negative
--EAGAIN to erase the confusion caused by this error code.
+Linus et al,
+	Here are a few small fixes for ocfs2.  The most important one 
+fixes a crash when duplicating inline data properly.
+	Please pull.
 
-Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
----
- fs/ocfs2/dlm/dlmrecovery.c |   18 +++++++++---------
- 1 files changed, 9 insertions(+), 9 deletions(-)
+Joel
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index d9fa3d2..2f9e4e1 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2589,6 +2589,14 @@ retry:
- 			     "begin reco msg (%d)\n", dlm->name, nodenum, ret);
- 			ret = 0;
- 		}
-+		if (ret == -EAGAIN) {
-+			mlog(0, "%s: trying to start recovery of node "
-+			     "%u, but node %u is waiting for last recovery "
-+			     "to complete, backoff for a bit\n", dlm->name,
-+			     dead_node, nodenum);
-+			msleep(100);
-+			goto retry;
-+		}
- 		if (ret < 0) {
- 			struct dlm_lock_resource *res;
- 			/* this is now a serious problem, possibly ENOMEM 
-@@ -2608,14 +2616,6 @@ retry:
- 			 * another ENOMEM */
- 			msleep(100);
- 			goto retry;
--		} else if (ret == EAGAIN) {
--			mlog(0, "%s: trying to start recovery of node "
--			     "%u, but node %u is waiting for last recovery "
--			     "to complete, backoff for a bit\n", dlm->name,
--			     dead_node, nodenum);
--			/* TODO Look into replacing msleep with cond_resched() */
--			msleep(100);
--			goto retry;
- 		}
- 	}
- 
-@@ -2639,7 +2639,7 @@ int dlm_begin_reco_handler(struct o2net_msg *msg, u32 len, void *data,
- 		     dlm->name, br->node_idx, br->dead_node,
- 		     dlm->reco.dead_node, dlm->reco.new_master);
- 		spin_unlock(&dlm->spinlock);
--		return EAGAIN;
-+		return -EAGAIN;
- 	}
- 	spin_unlock(&dlm->spinlock);
- 
+The following changes since commit 964fe080d94db82a3268443e9b9ece4c60246414:
+  Linus Torvalds (1):
+        Merge git://git.kernel.org/.../rusty/linux-2.6-for-linus
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
+
+Coly Li (1):
+      ocfs2: return f_fsid info in ocfs2_statfs()
+
+Joel Becker (1):
+      ocfs2: Return -EINVAL when a device is not ocfs2.
+
+Sunil Mushran (2):
+      ocfs2: Refresh documentation
+      ocfs2: Trivial cleanup of jbd compatibility layer removal
+
+Tao Ma (2):
+      ocfs2: Move ocfs2_complete_reflink to the right place.
+      ocfs2: duplicate inline data properly during reflink.
+
+ Documentation/filesystems/ocfs2.txt |    6 ++--
+ fs/ocfs2/file.c                     |    3 +-
+ fs/ocfs2/ocfs2.h                    |    7 +---
+ fs/ocfs2/refcounttree.c             |   69 ++++++++++++++++++++++++++++++++---
+ fs/ocfs2/super.c                    |   20 +++++++----
+ fs/ocfs2/uptodate.c                 |    5 ---
+ 6 files changed, 83 insertions(+), 27 deletions(-)
+
 -- 
-1.6.2.5
+
+Life's Little Instruction Book #232
+
+	"Keep your promises."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
