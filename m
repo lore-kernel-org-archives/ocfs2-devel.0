@@ -1,84 +1,76 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 20 Nov 2009 17:12:53 -0800
-Subject: [Ocfs2-devel] [PATCH 06/10] ocfs2/dlm: Handle missing name in
-	backing_dev_info
+Date: Fri, 20 Nov 2009 17:12:48 -0800
+Subject: [Ocfs2-devel] [PATCH 01/10] ocfs2: Reduce stack usage in the
+	vectorized io kapi patch
 In-Reply-To: <1258765977-4334-1-git-send-email-sunil.mushran@oracle.com>
 References: <1258765977-4334-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1258765977-4334-7-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1258765977-4334-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit d993831fa7ffeb89e994f046f93eeb09ec91df08 added name
-in struct backing_dev_info. When built on older kernels, patch ifdefs
-out the name in the structure.
+This patch improves changes in commit 1c87a8619515dba3a5a040daa272088b2cb90dc2
+by reducing the stack footprint of the vectorized io kapi code.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- Config.make.in        |    1 +
- configure.in          |    5 +++++
- fs/ocfs2/dlm/Makefile |    4 ++++
- fs/ocfs2/dlm/dlmfs.c  |    2 ++
- 4 files changed, 12 insertions(+), 0 deletions(-)
+ fs/ocfs2/kapi-default.h      |    2 +-
+ kapi-compat/include/aiovec.h |   11 +++++------
+ 2 files changed, 6 insertions(+), 7 deletions(-)
 
-diff --git a/Config.make.in b/Config.make.in
-index 5a81e44..0107e2e 100644
---- a/Config.make.in
-+++ b/Config.make.in
-@@ -80,6 +80,7 @@ NO_SHOULD_REMOVE_SUID = @NO_SHOULD_REMOVE_SUID@
- HAS_FOPS_SENDFILE = @HAS_FOPS_SENDFILE@
- SKIP_SPLICE = @SKIP_SPLICE@
- SKIP_BUFFER_TRIGGERS = @SKIP_BUFFER_TRIGGERS@
-+NO_NAME_IN_BACKING_DEV_INFO=@NO_NAME_IN_BACKING_DEV_INFO@
+diff --git a/fs/ocfs2/kapi-default.h b/fs/ocfs2/kapi-default.h
+index b1afdcf..80f04ff 100644
+--- a/fs/ocfs2/kapi-default.h
++++ b/fs/ocfs2/kapi-default.h
+@@ -39,7 +39,7 @@ typedef struct work_struct kapi_work_struct_t;
+ typedef u64 f_version_t;
+ #endif
  
- 
- OCFS_DEBUG = @OCFS_DEBUG@
-diff --git a/configure.in b/configure.in
-index d042f9c..0a3a356 100644
---- a/configure.in
-+++ b/configure.in
-@@ -435,6 +435,11 @@ OCFS2_CHECK_KERNEL([struct jbd2_buffer_trigger_type in jbd2.h], jbd2.h,
- AC_SUBST(SKIP_BUFFER_TRIGGERS)
- KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $SKIP_BUFFER_TRIGGERS"
- 
-+NO_NAME_IN_BACKING_DEV_INFO=
-+OCFS2_CHECK_KERNEL([name in backing-dev.h], backing-dev.h,
-+ , NO_NAME_IN_BACKING_DEV_INFO=yes, [char.*\*name;$])
-+AC_SUBST(NO_NAME_IN_BACKING_DEV_INFO)
+-#ifndef kapi_generic_file_aio_read
++#ifndef NO_VECTORIZED_AIO
+ # define kapi_generic_file_aio_read(a, b, c, d) \
+ 				generic_file_aio_read(a, b, c, d)
+ # define ocfs2_file_aio_read	__ocfs2_file_aio_read
+diff --git a/kapi-compat/include/aiovec.h b/kapi-compat/include/aiovec.h
+index 0c4c312..a10d5b5 100644
+--- a/kapi-compat/include/aiovec.h
++++ b/kapi-compat/include/aiovec.h
+@@ -11,8 +11,9 @@ static ssize_t kapi_generic_file_aio_read(struct kiocb *iocb,
+ 					  unsigned long nr_segs,
+ 					  loff_t pos)
+ {
+-	BUG_ON(nr_segs != 1);
+-	return generic_file_aio_read(iocb, iov->iov_base, iov->iov_len, pos);
++	BUG_ON(iocb->ki_pos != pos);
 +
- # End kapi_compat checks
- 
- # using -include has two advantages:
-diff --git a/fs/ocfs2/dlm/Makefile b/fs/ocfs2/dlm/Makefile
-index 907e390..f868c0e 100644
---- a/fs/ocfs2/dlm/Makefile
-+++ b/fs/ocfs2/dlm/Makefile
-@@ -46,6 +46,10 @@ ifdef KMEM_CACHE_CREATE_DTOR
- EXTRA_CFLAGS += -DKMEM_CACHE_CREATE_DTOR
- endif
- 
-+ifdef NO_NAME_IN_BACKING_DEV_INFO
-+EXTRA_CFLAGS += -DNO_NAME_IN_BACKING_DEV_INFO
-+endif
-+
- DLM_SOURCES +=			\
- 	dlmast.c		\
- 	dlmconvert.c		\
-diff --git a/fs/ocfs2/dlm/dlmfs.c b/fs/ocfs2/dlm/dlmfs.c
-index 6d97173..576d3ec 100644
---- a/fs/ocfs2/dlm/dlmfs.c
-+++ b/fs/ocfs2/dlm/dlmfs.c
-@@ -340,7 +340,9 @@ clear_fields:
++	return __generic_file_aio_read(iocb, iov, nr_segs, &pos);
  }
  
- static struct backing_dev_info dlmfs_backing_dev_info = {
-+#ifndef NO_NAME_IN_BACKING_DEV_INFO
- 	.name		= "ocfs2-dlmfs",
-+#endif
- 	.ra_pages	= 0,	/* No readahead */
- 	.capabilities	= BDI_CAP_NO_ACCT_AND_WRITEBACK,
- };
+ static ssize_t __ocfs2_file_aio_read(struct kiocb *iocb,
+@@ -28,9 +29,8 @@ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
+ 	struct iovec iov_local = { .iov_base = (void __user *)buf,
+ 				   .iov_len  = buflen };
+ 	const struct iovec *iov = &iov_local;
+-	unsigned long nr_segs = 1;
+ 
+-	return __ocfs2_file_aio_read(iocb, iov, nr_segs, pos);
++	return __ocfs2_file_aio_read(iocb, iov, 1, pos);
+ }
+ 
+ static ssize_t __ocfs2_file_aio_write(struct kiocb *iocb,
+@@ -46,10 +46,9 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
+ 	struct iovec iov_local = { .iov_base = (void __user *)buf,
+ 				   .iov_len  = buflen };
+ 	const struct iovec *iov = &iov_local;
+-	unsigned long nr_segs = 1;
+ 
+ 	iocb->ki_left = buflen;
+-	return __ocfs2_file_aio_write(iocb, iov, nr_segs, pos);
++	return __ocfs2_file_aio_write(iocb, iov, 1, pos);
+ }
+ 
+ #endif
 -- 
 1.5.6.5
