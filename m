@@ -1,56 +1,44 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 25 Nov 2009 15:59:46 +0800
-Subject: [Ocfs2-devel] what is global bitmap, block group, suballocator,
- etc
-In-Reply-To: <4B0CE011.3030403@suse.de>
-References: <4B0CE011.3030403@suse.de>
-Message-ID: <4B0CE3F2.8040503@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 26 Nov 2009 20:15:21 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: add trace event header file for
+	ocfs2
+Message-ID: <200911261218.nAPNOPgj001897@rgminet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Coly,
+add trace event header file for ocfs2.
 
-Coly Li wrote:
-> Hi list,
-> 
-> There are some ocfs2 terminologies that I don't understand very well. After checking the ocfs2 wiki and kernel/tools
-> code, I am still not sure whether I understand them correctly.
-> 
-> - Global bitmap
->   What's the usage of global bitmap? Which kind of resource allocation will set global bitmap?
-global bitmap is a system file which indicates the usage of clusters in 
-  the whole volume. It is a chain file. So it has a ocfs2_chain_list in 
-its ocfs2_dinode.id2. And the chain_list is a chain of many groups. A 
-group is a range of clusters and the 1st block of a group has a bitmap 
-to indicate which cluster(or block, cpg is used here) is allocated or not.
-> 
-> - Cluster group
->   It seems cluster group is similar to block group of ext3/4. Does each node of the cluster has its own data/metadata
-> bitmap inode in every cluster group ?
-See group above.
-> 
-> - Block group
->   From Tiger's slide, I don't find block group. But from fs/ocfs2 code, I see block group. Is it same to cluster group ?
-you mean ocfs2_block_group_alloc? Actually we allocates clusters from 
-the allocators(see ocfs2_claim_clusters) and then call 
-ocfs2_block_group_fill to fill it into different system 
-file(inode_alloc, extent_alloc).
-> 
-> - Suballocator & Suballocator slot
->   I don't find related document explains what is suballocator and how it works. I am checking the code now, but not
-> clear to me yet.
-suballocator is used so that when a node try to get some resource, it 
-will try its own suballocator first. If it can't get the resource it 
-wants, we have to lock the global_bitmap(there are some cases we can try 
-local_alloc first and if it fails, then try global_bitmap) and ask from 
-that(it will need a global lock which needs more time). We we the 
-suballocator grows, it will request a large hunk from the global bitmap 
-so that the next attempt can success in suballocator. There are 
-inode_alloc for inode, extent_alloc for extent, and local_alloc(it can 
-be used by extent_alloc allocation or cluster allocation).
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ include/trace/events/ocfs2.h |   17 +++++++++++++++++
+ 1 files changed, 17 insertions(+), 0 deletions(-)
+ create mode 100644 include/trace/events/ocfs2.h
 
-Regards,
-Tao
+diff --git a/include/trace/events/ocfs2.h b/include/trace/events/ocfs2.h
+new file mode 100644
+index 0000000..fa86758
+--- /dev/null
++++ b/include/trace/events/ocfs2.h
+@@ -0,0 +1,17 @@
++#if !defined(_TRACE_OCFS2_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_OCFS2_H
++
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM ocfs2
++/* add ocfs2 relevant header files below */
++
++/* add ocfs2 relevant header files above */
++#include <linux/tracepoint.h>
++
++/* add tracing declarations below */
++
++/* add tracing declarations above */
++#endif /* _TRACE_OCFS2_H */
++
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+-- 
+1.6.2.5
