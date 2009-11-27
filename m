@@ -1,121 +1,230 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 27 Nov 2009 16:24:35 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Add new ioctls prototype and
-	corresponding data structure to ocfs2 header.
-Message-ID: <1259310276-7782-1-git-send-email-tristan.ye@oracle.com>
+Date: Fri, 27 Nov 2009 16:24:36 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Implement new OCFS2_IOC_INFO ioctl
+	for ocfs2.
+In-Reply-To: <1259310276-7782-1-git-send-email-tristan.ye@oracle.com>
+References: <1259310276-7782-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1259310276-7782-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We use OCFS2_IOC_INFO to manipulate the new ioctl, the requests can
-be stored in a array of (struct ocfs2_info_request), which should be
-NULL-terminated, kernel therefore can recoginze and fill them one by
-one.
+We implement the request as simple as possible to avoid
+a possible extending if disk format get changed.
 
-The reason why we need these ioctls is to offer the none-privileged
-end-user a possibility to get filesys info gathering.
+Completenss of a request include the info required and a flag(FL_FILLED)
+filled being returned to the end-user.
 
-Idea here is to make the spearated request small enough to guarantee
-a better backward&forward compatibility since a small piece of request
-would be less likely to be broken if filesys on raw disk get changed.
-
-Currently, the first version include following request type:
-
-	OCFS2_INFO_CLUSTERSIZE,
-	OCFS2_INFO_BLOCKSIZE,
-	OCFS2_INFO_SLOTNUM,
-	OCFS2_INFO_LABEL,
-	OCFS2_INFO_UUID,
-	OCFS2_INFO_FS_FEATURES
-
-It may be grown from time to time:)
+Note: the requests in a series from userspace should be NULL-terminated.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/ocfs2_fs.h |   69 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 69 insertions(+), 0 deletions(-)
+ fs/ocfs2/ioctl.c |  184 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 184 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index e9431e4..dac7f4c 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -309,6 +309,75 @@ struct reflink_arguments {
- };
- #define OCFS2_IOC_REFLINK	_IOW('o', 4, struct reflink_arguments)
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index 31fbb06..0ac5218 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -108,6 +108,188 @@ bail:
+ 	return status;
+ }
  
-+#define OCFS2_UUID_LEN              16
-+#define OCFS2_MAX_LABEL_LEN         64
++static int ocfs2_get_request_info(struct inode *inode,
++				  unsigned long arg)
++{
 +
-+/*
-+ * Used to query fs information for none-privileged 
-+ * users by using OCFS2_IOC_INFO ioctols, a series of
-+ * following requests need to be NULL-terminated.
-+ *
-+ * Always try to separate info request into small pieces to
-+ * guarantee the backward&forward compatibility.
-+ */
-+struct ocfs2_info_request {
-+	__u32 ir_code;	/* Info request code */
-+	__u32 ir_flags; /* Request flags */
-+};
++	int ret = 0, i = 0, num_reqs = 0;
 +
-+struct ocfs2_info_request_clustersize {
-+	struct ocfs2_info_request ir_request;
-+	__u32 ir_clustersize;
-+};
++	struct ocfs2_info_request req, *preq = NULL;
++	struct ocfs2_info_request **reqs;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
 +
-+struct ocfs2_info_request_blocksize {
-+	struct ocfs2_info_request ir_request;
-+	__u32 ir_blocksize;
-+};
++	typedef struct ocfs2_info_request OIR, *POIR;
++	typedef struct ocfs2_info_request_clustersize OIRC, *POIRC;
++	typedef struct ocfs2_info_request_blocksize OIRB, *POIRB;
++	typedef struct ocfs2_info_request_slotnum OIRS, *POIRS;
++	typedef struct ocfs2_info_request_label OIRL, *POIRL;
++	typedef struct ocfs2_info_request_uuid OIRU, *POIRU;
++	typedef struct ocfs2_info_request_fs_features OIRF, *POIRF;
 +
-+struct ocfs2_info_request_slotnum {
-+	struct ocfs2_info_request ir_request;
-+	__u16 ir_slotnum;
-+};
++	/*
++	 * The requests series from userspace need to be NULL-terminated.
++	 */
++	do {
++		preq = *((POIR *)((char *)arg + i * sizeof(POIR)));
++		if (!preq)
++			break;
++		i++;
 +
-+struct ocfs2_info_request_label {
-+	struct ocfs2_info_request ir_request;
-+	__u8	ir_label[OCFS2_MAX_LABEL_LEN];
-+};
++	} while (preq);
 +
-+struct ocfs2_info_request_uuid {
-+	struct ocfs2_info_request ir_request;
-+	__u8	ir_uuid[OCFS2_UUID_LEN];
-+};
++	num_reqs = i;
 +
-+struct ocfs2_info_request_fs_features {
-+	struct ocfs2_info_request ir_quest;
-+	__u32 ir_compat_features;
-+	__u32 ir_incompat_features;
-+	__u32 ir_ro_compat_features;
-+};
++	reqs = kmalloc(sizeof(POIR) * num_reqs, GFP_KERNEL);
++	if (!reqs) {
++		ret = -ENOMEM;
++		goto bail;
++	}
 +
-+/* Codes for cfs2_info_request */
++	ret = ocfs2_inode_lock(inode, NULL, 0);
++	if (ret < 0) {
++		mlog_errno(ret);
++		goto bail;
++	}
 +
-+#define OCFS2_INFO_CLUSTERSIZE	0x00000001
-+#define OCFS2_INFO_BLOCKSIZE	0x00000002
-+#define OCFS2_INFO_SLOTNUM      0x00000004
-+#define OCFS2_INFO_LABEL        0x00000008
-+#define OCFS2_INFO_UUID         0x00000010
-+#define OCFS2_INFO_FS_FEATURES	0x00000020
++	for (i = 0; i < num_reqs; i++) {
 +
-+/* Flags for struct ocfs2_info_request */
-+/* Filled by the caller */
-+#define OCFS2_INFO_FL_NON_COHERENT  0x00000001  /* Cluster coherency not required.
-+						   This is a hint.  It is up to
-+						   ocfs2 whether the request can
-+						   be fulfilled without locking. */
-+/* Filled by ocfs2 */
-+#define OCFS2_INFO_FL_FILLED        0x80000000  /* Filesystem understood this
-+						   request and filled in the
-+						   answer */
++		reqs[i] = NULL;
 +
-+#define OCFS2_IOC_INFO		_IOR('o', 5, struct ocfs2_info_request)
++		preq = *((POIR *)((char *)arg + i * sizeof(POIR)));
++
++		if (copy_from_user(&req, preq, sizeof(req))) {
++			ret = -EFAULT;
++			goto bail;
++		}
++
++		switch (req.ir_code) {
++		case OCFS2_INFO_CLUSTERSIZE:
++			reqs[i] = kmalloc(sizeof(OIRC), GFP_KERNEL);
++
++			if (copy_from_user(reqs[i], preq, sizeof(OIRC))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			((POIRC)(reqs[i]))->ir_clustersize = osb->s_clustersize;
++			reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
++
++			if (copy_to_user(preq, reqs[i], sizeof(OIRC))) {
++				ret = EFAULT;
++				goto bail;
++			}
++
++			break;
++		case OCFS2_INFO_BLOCKSIZE:
++			reqs[i] = kmalloc(sizeof(OIRB), GFP_KERNEL);
++
++			if (copy_from_user(reqs[i], preq, sizeof(OIRB))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			((POIRB)(reqs[i]))->ir_blocksize =
++					inode->i_sb->s_blocksize;
++			reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
++
++			if (copy_to_user(preq, reqs[i], sizeof(OIRB))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			break;
++		case OCFS2_INFO_SLOTNUM:
++			reqs[i] = kmalloc(sizeof(OIRS), GFP_KERNEL);
++
++			if (copy_from_user(reqs[i], preq, sizeof(OIRS))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			((POIRS)(reqs[i]))->ir_slotnum = osb->max_slots;
++			reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
++
++			if (copy_to_user(preq, reqs[i], sizeof(OIRS))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			break;
++		case OCFS2_INFO_LABEL:
++			reqs[i] = kmalloc(sizeof(OIRL), GFP_KERNEL);
++
++			if (copy_from_user(reqs[i], preq, sizeof(OIRL))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			memmove(((POIRL)(reqs[i]))->ir_label, osb->vol_label,
++				OCFS2_MAX_VOL_LABEL_LEN);
++			reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
++
++			if (copy_to_user(preq, reqs[i], sizeof(OIRL))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			break;
++		case OCFS2_INFO_UUID:
++			reqs[i] = kmalloc(sizeof(OIRU), GFP_KERNEL);
++
++			if (copy_from_user(reqs[i], preq, sizeof(OIRU))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			memmove(((POIRU)(reqs[i]))->ir_uuid, osb->uuid,
++				OCFS2_VOL_UUID_LEN);
++			reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
++
++			if (copy_to_user(preq, reqs[i], sizeof(OIRU))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			break;
++		case OCFS2_INFO_FS_FEATURES:
++			reqs[i] = kmalloc(sizeof(OIRF), GFP_KERNEL);
++
++			if (copy_from_user(reqs[i], preq, sizeof(OIRF))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			((POIRF)(reqs[i]))->ir_compat_features =
++						osb->s_feature_compat;
++			((POIRF)(reqs[i]))->ir_incompat_features =
++						osb->s_feature_incompat;
++			((POIRF)(reqs[i]))->ir_ro_compat_features =
++						osb->s_feature_ro_compat;
++			reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
++
++			if (copy_to_user(preq, reqs[i], sizeof(OIRF))) {
++				ret = -EFAULT;
++				goto bail;
++			}
++
++			break;
++		default:
++			break;
++		}
++
++	}
++bail:
++	for (i = 0; i < num_reqs; i++)
++		kfree(reqs[i]);
++
++	kfree(reqs);
++
++	ocfs2_inode_unlock(inode, 0);
++
++	mlog_exit(ret);
++	return ret;
++}
++
+ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
+ 	struct inode *inode = filp->f_path.dentry->d_inode;
+@@ -173,6 +355,8 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 		preserve = (args.preserve != 0);
  
- /*
-  * Journal Flags (ocfs2_dinode.id1.journal1.i_flags)
+ 		return ocfs2_reflink_ioctl(inode, old_path, new_path, preserve);
++	case OCFS2_IOC_INFO:
++		return ocfs2_get_request_info(inode, arg);
+ 	default:
+ 		return -ENOTTY;
+ 	}
 -- 
 1.5.5
