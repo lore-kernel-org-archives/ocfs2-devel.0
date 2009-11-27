@@ -1,50 +1,121 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 27 Nov 2009 16:14:20 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Need to initialize uuid when
-	setuping the osb.
-Message-ID: <1259309660-7732-1-git-send-email-tristan.ye@oracle.com>
+Date: Fri, 27 Nov 2009 16:24:35 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Add new ioctls prototype and
+	corresponding data structure to ocfs2 header.
+Message-ID: <1259310276-7782-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I accidently found this when adding new ioctls for ocfs2
-to request fs info from none-prvileged users.
+We use OCFS2_IOC_INFO to manipulate the new ioctl, the requests can
+be stored in a array of (struct ocfs2_info_request), which should be
+NULL-terminated, kernel therefore can recoginze and fill them one by
+one.
 
-ocfs2_super osb has successfully setuped osb.uuid_str, but
-it did leave the osb.uuid field NULL without proper initializing
-and bytes filling, it should be corrected I guess.
+The reason why we need these ioctls is to offer the none-privileged
+end-user a possibility to get filesys info gathering.
+
+Idea here is to make the spearated request small enough to guarantee
+a better backward&forward compatibility since a small piece of request
+would be less likely to be broken if filesys on raw disk get changed.
+
+Currently, the first version include following request type:
+
+	OCFS2_INFO_CLUSTERSIZE,
+	OCFS2_INFO_BLOCKSIZE,
+	OCFS2_INFO_SLOTNUM,
+	OCFS2_INFO_LABEL,
+	OCFS2_INFO_UUID,
+	OCFS2_INFO_FS_FEATURES
+
+It may be grown from time to time:)
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/super.c |    7 +++++++
- 1 files changed, 7 insertions(+), 0 deletions(-)
+ fs/ocfs2/ocfs2_fs.h |   69 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 69 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index c0e48ae..f15fea7 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1920,6 +1920,12 @@ static int ocfs2_setup_osb_uuid(struct ocfs2_super *osb, const unsigned char *uu
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index e9431e4..dac7f4c 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -309,6 +309,75 @@ struct reflink_arguments {
+ };
+ #define OCFS2_IOC_REFLINK	_IOW('o', 4, struct reflink_arguments)
  
- 	BUG_ON(uuid_bytes != OCFS2_VOL_UUID_LEN);
++#define OCFS2_UUID_LEN              16
++#define OCFS2_MAX_LABEL_LEN         64
++
++/*
++ * Used to query fs information for none-privileged 
++ * users by using OCFS2_IOC_INFO ioctols, a series of
++ * following requests need to be NULL-terminated.
++ *
++ * Always try to separate info request into small pieces to
++ * guarantee the backward&forward compatibility.
++ */
++struct ocfs2_info_request {
++	__u32 ir_code;	/* Info request code */
++	__u32 ir_flags; /* Request flags */
++};
++
++struct ocfs2_info_request_clustersize {
++	struct ocfs2_info_request ir_request;
++	__u32 ir_clustersize;
++};
++
++struct ocfs2_info_request_blocksize {
++	struct ocfs2_info_request ir_request;
++	__u32 ir_blocksize;
++};
++
++struct ocfs2_info_request_slotnum {
++	struct ocfs2_info_request ir_request;
++	__u16 ir_slotnum;
++};
++
++struct ocfs2_info_request_label {
++	struct ocfs2_info_request ir_request;
++	__u8	ir_label[OCFS2_MAX_LABEL_LEN];
++};
++
++struct ocfs2_info_request_uuid {
++	struct ocfs2_info_request ir_request;
++	__u8	ir_uuid[OCFS2_UUID_LEN];
++};
++
++struct ocfs2_info_request_fs_features {
++	struct ocfs2_info_request ir_quest;
++	__u32 ir_compat_features;
++	__u32 ir_incompat_features;
++	__u32 ir_ro_compat_features;
++};
++
++/* Codes for cfs2_info_request */
++
++#define OCFS2_INFO_CLUSTERSIZE	0x00000001
++#define OCFS2_INFO_BLOCKSIZE	0x00000002
++#define OCFS2_INFO_SLOTNUM      0x00000004
++#define OCFS2_INFO_LABEL        0x00000008
++#define OCFS2_INFO_UUID         0x00000010
++#define OCFS2_INFO_FS_FEATURES	0x00000020
++
++/* Flags for struct ocfs2_info_request */
++/* Filled by the caller */
++#define OCFS2_INFO_FL_NON_COHERENT  0x00000001  /* Cluster coherency not required.
++						   This is a hint.  It is up to
++						   ocfs2 whether the request can
++						   be fulfilled without locking. */
++/* Filled by ocfs2 */
++#define OCFS2_INFO_FL_FILLED        0x80000000  /* Filesystem understood this
++						   request and filled in the
++						   answer */
++
++#define OCFS2_IOC_INFO		_IOR('o', 5, struct ocfs2_info_request)
  
-+	osb->uuid = kzalloc(OCFS2_VOL_UUID_LEN, GFP_KERNEL);
-+	if (osb->uuid == NULL)
-+		return -ENOMEM;
-+
-+	memmove(osb->uuid, uuid, OCFS2_VOL_UUID_LEN);
-+
- 	osb->uuid_str = kzalloc(OCFS2_VOL_UUID_LEN * 2 + 1, GFP_KERNEL);
- 	if (osb->uuid_str == NULL)
- 		return -ENOMEM;
-@@ -2415,6 +2421,7 @@ static void ocfs2_delete_osb(struct ocfs2_super *osb)
- 	kfree(osb->journal);
- 	if (osb->local_alloc_copy)
- 		kfree(osb->local_alloc_copy);
-+	kfree(osb->uuid);
- 	kfree(osb->uuid_str);
- 	ocfs2_put_dlm_debug(osb->osb_dlm_debug);
- 	memset(osb, 0, sizeof(struct ocfs2_super));
+ /*
+  * Journal Flags (ocfs2_dinode.id1.journal1.i_flags)
 -- 
 1.5.5
