@@ -1,36 +1,61 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 30 Nov 2009 01:36:42 -0800
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Implement new OCFS2_IOC_INFO
- ioctl for ocfs2.
-In-Reply-To: <87tywf4szb.fsf@basil.nowhere.org>
-References: <1259310276-7782-1-git-send-email-tristan.ye@oracle.com>
-	<1259310276-7782-2-git-send-email-tristan.ye@oracle.com>
-	<87tywf4szb.fsf@basil.nowhere.org>
-Message-ID: <20091130093641.GA5456@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 30 Nov 2009 14:07:31 -0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Need to initialize uuid when
+ setuping the osb.
+In-Reply-To: <1259309660-7732-1-git-send-email-tristan.ye@oracle.com>
+References: <1259309660-7732-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <4B144223.8060804@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Nov 27, 2009 at 09:23:36PM +0100, Andi Kleen wrote:
-> It's unclear why you just can't use separate ioctls for each request.
+Tristan Ye wrote:
+> I accidently found this when adding new ioctls for ocfs2
+> to request fs info from none-prvileged users.
+>
+> ocfs2_super osb has successfully setuped osb.uuid_str, but
+> it did leave the osb.uuid field NULL without proper initializing
+> and bytes filling, it should be corrected I guess.
+>
+> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+> ---
+>  fs/ocfs2/super.c |    7 +++++++
+>  1 files changed, 7 insertions(+), 0 deletions(-)
+>
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index c0e48ae..f15fea7 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1920,6 +1920,12 @@ static int ocfs2_setup_osb_uuid(struct ocfs2_super *osb, const unsigned char *uu
+>  
+>  	BUG_ON(uuid_bytes != OCFS2_VOL_UUID_LEN);
+>  
+> +	osb->uuid = kzalloc(OCFS2_VOL_UUID_LEN, GFP_KERNEL);
+> +	if (osb->uuid == NULL)
+> +		return -ENOMEM;
+> +
+> +	memmove(osb->uuid, uuid, OCFS2_VOL_UUID_LEN);
+>   
 
-	Because we're going to be adding many info requests, with more
-over time.  Much nicer to pass in a list of requests than have a hundred
-or more ioctls.  Plus we can do fun versioning.
+memmove() is an overkill when we know the areas do not overlap.
+Use memcpy().
 
-Joel
+> +
+>  	osb->uuid_str = kzalloc(OCFS2_VOL_UUID_LEN * 2 + 1, GFP_KERNEL);
+>  	if (osb->uuid_str == NULL)
+>  		return -ENOMEM;
+> @@ -2415,6 +2421,7 @@ static void ocfs2_delete_osb(struct ocfs2_super *osb)
+>  	kfree(osb->journal);
+>  	if (osb->local_alloc_copy)
+>  		kfree(osb->local_alloc_copy);
+> +	kfree(osb->uuid);
+>  	kfree(osb->uuid_str);
+>  	ocfs2_put_dlm_debug(osb->osb_dlm_debug);
+>  	memset(osb, 0, sizeof(struct ocfs2_super));
+>   
 
--- 
 
-"Sometimes I think the surest sign intelligent
- life exists elsewhere in the universe is that
- none of it has tried to contact us."
-                                -Calvin & Hobbes
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+So we only use the string representation of the uuid. So I see no
+use of this. Maybe we should just remove osb->uuid.
