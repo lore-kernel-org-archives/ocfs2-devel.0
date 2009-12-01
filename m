@@ -1,46 +1,69 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 31 Dec 2009 12:13:13 -0800
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Add new OCFS2_INFO_IOC ioctls
- for ocfs2 v4.
-In-Reply-To: <1262247524-26824-2-git-send-email-tristan.ye@oracle.com>
-References: <1262247524-26824-1-git-send-email-tristan.ye@oracle.com>
-	<1262247524-26824-2-git-send-email-tristan.ye@oracle.com>
-Message-ID: <20091231201313.GC3301@mail.oracle.com>
+From: Tristan <tristan.ye@oracle.com>
+Date: Tue, 01 Dec 2009 09:08:45 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Need to initialize uuid when
+ setuping the osb.
+In-Reply-To: <4B144223.8060804@oracle.com>
+References: <1259309660-7732-1-git-send-email-tristan.ye@oracle.com>
+	<4B144223.8060804@oracle.com>
+Message-ID: <4B146C9D.5050305@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Dec 31, 2009 at 04:18:44PM +0800, Tristan Ye wrote:
-> +int ocfs2_info_handle_unknown(struct inode *inode,
-> +			      struct ocfs2_info_request __user *user_req)
-> +{
-> +	int status = 0;
-> +	struct ocfs2_info_request req;
-> +
-> +	if (copy_from_user(&req, user_req, sizeof(struct ocfs2_info_request))) {
-> +		status = -EFAULT;
-> +		goto bail;
-> +	}
-> +
-> +	req.ir_flags &= ~OCFS2_INFO_FL_FILLED;
-> +
-> +	if (copy_to_user((struct ocfs2_info_request __user *)user_req, &req,
-> +			 sizeof(struct ocfs2_info_request))) {
+Sunil Mushran wrote:
+> Tristan Ye wrote:
+>> I accidently found this when adding new ioctls for ocfs2
+>> to request fs info from none-prvileged users.
+>>
+>> ocfs2_super osb has successfully setuped osb.uuid_str, but
+>> it did leave the osb.uuid field NULL without proper initializing
+>> and bytes filling, it should be corrected I guess.
+>>
+>> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+>> ---
+>> fs/ocfs2/super.c | 7 +++++++
+>> 1 files changed, 7 insertions(+), 0 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+>> index c0e48ae..f15fea7 100644
+>> --- a/fs/ocfs2/super.c
+>> +++ b/fs/ocfs2/super.c
+>> @@ -1920,6 +1920,12 @@ static int ocfs2_setup_osb_uuid(struct 
+>> ocfs2_super *osb, const unsigned char *uu
+>>
+>> BUG_ON(uuid_bytes != OCFS2_VOL_UUID_LEN);
+>>
+>> + osb->uuid = kzalloc(OCFS2_VOL_UUID_LEN, GFP_KERNEL);
+>> + if (osb->uuid == NULL)
+>> + return -ENOMEM;
+>> +
+>> + memmove(osb->uuid, uuid, OCFS2_VOL_UUID_LEN);
+>
+> memmove() is an overkill when we know the areas do not overlap.
+> Use memcpy().
+>
+>> +
+>> osb->uuid_str = kzalloc(OCFS2_VOL_UUID_LEN * 2 + 1, GFP_KERNEL);
+>> if (osb->uuid_str == NULL)
+>> return -ENOMEM;
+>> @@ -2415,6 +2421,7 @@ static void ocfs2_delete_osb(struct ocfs2_super 
+>> *osb)
+>> kfree(osb->journal);
+>> if (osb->local_alloc_copy)
+>> kfree(osb->local_alloc_copy);
+>> + kfree(osb->uuid);
+>> kfree(osb->uuid_str);
+>> ocfs2_put_dlm_debug(osb->osb_dlm_debug);
+>> memset(osb, 0, sizeof(struct ocfs2_super));
+>
+>
+> So we only use the string representation of the uuid. So I see no
+> use of this. Maybe we should just remove osb->uuid.
 
-	Don't need the cast of user_req here.  It's already of the
-correct type.
+uuid field only takes up 16 bytes, while uuid_str needs 32 bytes...
 
-Joel
+why not just remove uuid_str instead?
 
--- 
-
-"When ideas fail, words come in very handy." 
-         - Goethe
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Tristan
