@@ -1,58 +1,38 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 23 Dec 2009 13:16:46 -0800
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 fixes for 2.6.33
-Message-ID: <20091223211645.GA5502@mail.oracle.com>
+From: Dave Suri <dave.suri@oracle.com>
+Date: Tue, 01 Dec 2009 18:07:43 -0000
+Subject: [Ocfs2-devel] FW: ocfs2 perf stat runs...
+Message-ID: <2b1af66f-f8dc-42ba-992c-89abe6ddd691@default>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Hey Linus,
-	This is the first of a couple small ocfs2 pulls for this cycle.
-Sorry they are after the merge window; fixes kept dribbling in, and
-eventually picked up a conflict against already merged stuff.
-	This first batch is before that conflict and consists entirely
-of fixes.  I'm sending them as tested rather than rebasing them.  The
-next batch will be both fixes and small functional changes.
-	Please pull.
+Forwarding this email to the distribution lists.  I am hoping someone can answer my questions.
 
-The following changes since commit 56f3f55cf9b604b924353ab6fcdac5fee5637ae3:
-  Linus Torvalds (1):
-        Merge branch 'for-linus' of git://git.kernel.org/.../sameo/mfd-2.6
+Thanks very much!
 
-are available in the git repository at:
+Dave
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
+-----Original Message-----
+From: Dave Suri 
+Sent: Tuesday, December 01, 2009 1:05 PM
+To: Tommy Reynolds
+Cc: Isam Alyousfi; Abdalhadi Alatasi
+Subject: ocfs2 perf stat runs...
 
-Tao Ma (4):
-      ocfs2: Find proper end cpos for a leaf refcount block.
-      ocfs2: refcounttree.c cleanup.
-      ocfs2: Add reflinked file's inode to inode hash eariler.
-      ocfs2: Set i_nlink properly during reflink.
 
- fs/ocfs2/alloc.c        |   10 ++--
- fs/ocfs2/alloc.h        |    5 ++
- fs/ocfs2/namei.c        |    5 +-
- fs/ocfs2/refcounttree.c |  150 ++++++++++++++++++++++++++++++++++++----------
- 4 files changed, 131 insertions(+), 39 deletions(-)
--- 
+Tommy:
 
-"But then she looks me in the eye
- And says, 'We're going to last forever,'
- And man you know I can't begin to doubt it.
- Cause it just feels so good and so free and so right,
- I know we ain't never going to change our minds about it, Hey!
- Here comes my girl."
+Hi.  I am Dave from the EBS Performance team.  I heard that there will be a certification project around using EBS and OCFS2.  I got your name and contact information from bug# 9163548 and was hoping you had some time to answer a few questions.  If you dont have time or are busy to answer them, can you please forward this email to someone in the OCFS2 team?
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1) Is OCFS2 considered to be a generic filesystem compared to linux ext2/ext3?  Or is it primarily used just for RAC?
+2) Does the kernel driver expose any perf metrics about its performance?  (similar to perf monitor on windows?)
+3) Are there are any whitepapers / perf docs / website related to OCFS2 performance vs linux ext2/ext3 vs ASM vs NFS vs RAW devices?
 
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel at oss.oracle.com
-http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Thanks!
+
+Dave
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20091201/e003d9a0/attachment-0001.html 
