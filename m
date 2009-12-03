@@ -1,29 +1,35 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 2 Dec 2009 17:37:47 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: refcounttree.c cleanup.
-In-Reply-To: <1259564920-9833-1-git-send-email-tao.ma@oracle.com>
-References: <1259564920-9833-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20091203013747.GD31647@mail.oracle.com>
+Date: Wed, 2 Dec 2009 17:38:27 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: Make fence method
+ configurable - v2
+In-Reply-To: <1258504159-19981-1-git-send-email-sunil.mushran@oracle.com>
+References: <1258504159-19981-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20091203013827.GE31647@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Nov 30, 2009 at 03:08:40PM +0800, Tao Ma wrote:
-> sparse check finds some endian problem and some other minor issues.
-> There is an obsolete function which should be removed.
-> So this patch resolve all these.
+On Tue, Nov 17, 2009 at 04:29:19PM -0800, Sunil Mushran wrote:
+> By default, o2cb fences the box by calling emergency_restart(). While this
+> scheme works well in production, it comes in the way during testing as it
+> does not let the tester take stack/core dumps for analysis.
+> 
+> This patch allows user to dynamically change the fence method to panic() by:
+> # echo "panic" > /sys/kernel/config/cluster/<clustername>/fence_method
+> 
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-	This is now in the fixes branch of ocfs2.git
+	This is now in the merge-window branch of ocfs2.git
 
 Joel
 
 -- 
 
-"The whole problem with the world is that fools and fanatics are always
- so certain of themselves, and wiser people so full of doubts."
-	- Bertrand Russell
+"Nothing is wrong with California that a rise in the ocean level
+ wouldn't cure."
+        - Ross MacDonald
 
 Joel Becker
 Principal Software Developer
