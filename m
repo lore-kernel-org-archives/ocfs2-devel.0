@@ -1,34 +1,34 @@
-From: Coly Li <coly.li@suse.de>
-Date: Fri, 04 Dec 2009 02:02:35 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: explicit declare uninitialized var in
-	user_cluster_connect()
-Message-ID: <4B17FD3B.1050503@suse.de>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu,  3 Dec 2009 11:18:12 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Incorrect address of pos passed to
+	__generic_file_aio_read()
+Message-ID: <1259867892-1635-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch explicitly declares an uninitialized local variable in user_cluster_connect(), to remove a compiling warning.
+__generic_file_aio_read() was being passed as incorrect address for pos
+leading to a run-away read.
 
-Signed-off-by: Coly Li <coly.li@suse.de>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/stack_user.c |    2 +-
+ kapi-compat/include/aiovec.h |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index ff4c798..da78a2a 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -814,7 +814,7 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
- static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+diff --git a/kapi-compat/include/aiovec.h b/kapi-compat/include/aiovec.h
+index a10d5b5..a8896f1 100644
+--- a/kapi-compat/include/aiovec.h
++++ b/kapi-compat/include/aiovec.h
+@@ -13,7 +13,7 @@ static ssize_t kapi_generic_file_aio_read(struct kiocb *iocb,
  {
- 	dlm_lockspace_t *fsdlm;
--	struct ocfs2_live_connection *control;
-+	struct ocfs2_live_connection *uninitialized_var(control);
- 	int rc = 0;
-
- 	BUG_ON(conn == NULL);
+ 	BUG_ON(iocb->ki_pos != pos);
+ 
+-	return __generic_file_aio_read(iocb, iov, nr_segs, &pos);
++	return __generic_file_aio_read(iocb, iov, nr_segs, &iocb->ki_pos);
+ }
+ 
+ static ssize_t __ocfs2_file_aio_read(struct kiocb *iocb,
 -- 
-Coly Li
-SuSE Labs
+1.5.6.5
