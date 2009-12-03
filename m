@@ -1,32 +1,31 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 2 Dec 2009 14:56:37 -0800
-Subject: [Ocfs2-devel] [PATCH] o2net: delay ENOTCONN for sends receives
- till quorum decision
-In-Reply-To: <1258703846-23212-2-git-send-email-srinivas.eeda@oracle.com>
-References: <1258703846-23212-1-git-send-email-srinivas.eeda@oracle.com>
-	<1258703846-23212-2-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20091202225637.GB31647@mail.oracle.com>
+Date: Wed, 2 Dec 2009 17:37:26 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Find proper end cpos for a leaf
+	refcount block.
+In-Reply-To: <1259562739-9767-1-git-send-email-tao.ma@oracle.com>
+References: <1259562739-9767-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20091203013726.GC31647@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Nov 19, 2009 at 11:57:26PM -0800, Srinivas Eeda wrote:
-> -	o2net_hand->o2net_reconnect_delay_ms = cpu_to_be32(
-> -		o2net_reconnect_delay());
+On Mon, Nov 30, 2009 at 02:32:19PM +0800, Tao Ma wrote:
+> The reason is that if the ocfs2_extent_rec is the last record
+> in a leaf extent block, the old solution fails to find the
+> suitable end cpos. So this patch try to walk through the b-tree,
+> find the next sub root and get the c_pos the next sub-tree starts
+> from.
 
-	You take out the reconnect delay here, but you don't remove the
-configfs attribute.  What are we still using the delay for?
+	This is now in the fixes branch of ocfs2.git
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #197
-
-	"Don't forget, a person's greatest emotional need is to 
-	 feel appreciated."
+"I don't even butter my bread; I consider that cooking."
+         - Katherine Cebrian
 
 Joel Becker
 Principal Software Developer
