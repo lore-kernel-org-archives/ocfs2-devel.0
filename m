@@ -1,7 +1,10 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  3 Dec 2009 12:46:50 -0800
-Subject: [Ocfs2-devel] Add FIEMAP_EXTENT_SHARED flag
-Message-ID: <1259873212-20107-1-git-send-email-sunil.mushran@oracle.com>
+Date: Thu,  3 Dec 2009 12:46:51 -0800
+Subject: [Ocfs2-devel] [PATCH 1/2] fiemap: Add new extent flag
+	FIEMAP_EXTENT_SHARED
+In-Reply-To: <1259873212-20107-1-git-send-email-sunil.mushran@oracle.com>
+References: <1259873212-20107-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1259873212-20107-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,11 +12,26 @@ Content-Transfer-Encoding: 7bit
 To: akpm@linux-foundation.org
 Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Andrew,
+Patch adds flag FIEMAP_EXTENT_SHARED to denote extents that are
+shared with other inodes.
 
-Please could you Ack this patch. This adds a new FIEMAP flag to denote
-shared extents which we are using to identify such exents in reflinked
-files.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Acked-by: Mark Fasheh <mfasheh@suse.com>
+---
+ include/linux/fiemap.h |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
-Thanks
-Sunil
+diff --git a/include/linux/fiemap.h b/include/linux/fiemap.h
+index 934e22d..d830747 100644
+--- a/include/linux/fiemap.h
++++ b/include/linux/fiemap.h
+@@ -62,5 +62,7 @@ struct fiemap {
+ #define FIEMAP_EXTENT_MERGED		0x00001000 /* File does not natively
+ 						    * support extents. Result
+ 						    * merged for efficiency. */
++#define FIEMAP_EXTENT_SHARED		0x00002000 /* Space shared with other
++						    * files. */
+ 
+ #endif /* _LINUX_FIEMAP_H */
+-- 
+1.5.6.5
