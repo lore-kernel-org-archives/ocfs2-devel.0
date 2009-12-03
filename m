@@ -1,35 +1,33 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 2 Dec 2009 17:38:27 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/cluster: Make fence method
- configurable - v2
-In-Reply-To: <1258504159-19981-1-git-send-email-sunil.mushran@oracle.com>
-References: <1258504159-19981-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20091203013827.GE31647@mail.oracle.com>
+Date: Wed, 2 Dec 2009 17:38:50 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: return -EAGAIN instead of
+	EAGAIN in dlm
+In-Reply-To: <1258597066-9227-1-git-send-email-tiger.yang@oracle.com>
+References: <4B0474A7.9020506@oracle.com>
+	<1258597066-9227-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <20091203013850.GF31647@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Nov 17, 2009 at 04:29:19PM -0800, Sunil Mushran wrote:
-> By default, o2cb fences the box by calling emergency_restart(). While this
-> scheme works well in production, it comes in the way during testing as it
-> does not let the tester take stack/core dumps for analysis.
+On Thu, Nov 19, 2009 at 10:17:46AM +0800, Tiger Yang wrote:
+> We used to return positive EAGAIN to indicate a retry action
+> is needed in dlm_begin_reco_handler(). Now we return negative
+> -EAGAIN to erase the confusion caused by this error code.
 > 
-> This patch allows user to dynamically change the fence method to panic() by:
-> # echo "panic" > /sys/kernel/config/cluster/<clustername>/fence_method
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 
-	This is now in the merge-window branch of ocfs2.git
+	This is now in the 'merge-window' branch of ocfs2.git.
 
 Joel
 
 -- 
 
-"Nothing is wrong with California that a rise in the ocean level
- wouldn't cure."
-        - Ross MacDonald
+"I always thought the hardest questions were those I could not answer.
+ Now I know they are the ones I can never ask."
+			- Charlie Watkins
 
 Joel Becker
 Principal Software Developer
