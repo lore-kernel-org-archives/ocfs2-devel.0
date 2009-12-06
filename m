@@ -1,29 +1,33 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sat, 5 Dec 2009 15:19:39 -0800
-Subject: [Ocfs2-devel] ocfs2-1.6 nfs workie patches
-In-Reply-To: <1259978046-5692-1-git-send-email-sunil.mushran@oracle.com>
-References: <1259978046-5692-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20091205231938.GA20325@mail.oracle.com>
+From: Coly Li <coly.li@suse.de>
+Date: Sun, 06 Dec 2009 22:38:53 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: replace u8 by __u8 in ocfs2_fs.h
+Message-ID: <4B1BC1FD.90803@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 04, 2009 at 05:54:03PM -0800, Sunil Mushran wrote:
-> So next round. This has Mark's fix for sendfile() which was pushed to 1.4.
-> The other two enable NFS support.
+This patch replaces date type 'u8' with '__u8', which follows the coding style of ocfs2_fs.h, and portable to user space
+for ocfs2-tools.
 
-ack 
+Signed-off-by: Coly Li <coly.li@suse.de>
+---
+ fs/ocfs2/ocfs2_fs.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index e9431e4..1a1a679 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -1202,7 +1202,7 @@ struct ocfs2_local_disk_dqinfo {
+ /* Header of one chunk of a quota file */
+ struct ocfs2_local_disk_chunk {
+ 	__le32 dqc_free;	/* Number of free entries in the bitmap */
+-	u8 dqc_bitmap[0];	/* Bitmap of entries in the corresponding
++	__u8 dqc_bitmap[0];	/* Bitmap of entries in the corresponding
+ 				 * chunk of quota file */
+ };
 -- 
-
-"When I am working on a problem I never think about beauty. I
- only think about how to solve the problem. But when I have finished, if
- the solution is not beautiful, I know it is wrong."
-         - Buckminster Fuller
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Coly Li
+SuSE Labs
