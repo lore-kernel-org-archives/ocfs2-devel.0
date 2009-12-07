@@ -1,33 +1,43 @@
-From: Coly Li <coly.li@suse.de>
-Date: Sun, 06 Dec 2009 22:38:53 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: replace u8 by __u8 in ocfs2_fs.h
-Message-ID: <4B1BC1FD.90803@suse.de>
+From: wengang wang <wen.gang.wang@oracle.com>
+Date: Mon,  7 Dec 2009 22:52:29 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: don't leave free'd mle attached to
+	hb events
+Message-ID: <200912071453.nB6Mhdbo021627@rgminet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch replaces date type 'u8' with '__u8', which follows the coding style of ocfs2_fs.h, and portable to user space
-for ocfs2-tools.
+don't leave free'd mle attached to hb events.
+    
+in dlm_add_migration_mle() the mle is attched to "heartbeat events" anyway no
+matter there is an existing mle with same name(returns -EEXIST).
+dlm_migrate_lockres() calls dlm_add_migration_mle(). in case the later function
+returning -EEXIST, dlm_migrate_lockres() frees the (new) mle without detaching
+it from "hb events". so that later "hb events" related operations could improperly
+operate against wrong mle objects or against an invalid memory address.
 
-Signed-off-by: Coly Li <coly.li@suse.de>
----
- fs/ocfs2/ocfs2_fs.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+the patch fixes above problem. it marks the mle as "added" just after
+dlm_add_migration_mle() is called.
 
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index e9431e4..1a1a679 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -1202,7 +1202,7 @@ struct ocfs2_local_disk_dqinfo {
- /* Header of one chunk of a quota file */
- struct ocfs2_local_disk_chunk {
- 	__le32 dqc_free;	/* Number of free entries in the bitmap */
--	u8 dqc_bitmap[0];	/* Bitmap of entries in the corresponding
-+	__u8 dqc_bitmap[0];	/* Bitmap of entries in the corresponding
- 				 * chunk of quota file */
- };
--- 
-Coly Li
-SuSE Labs
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 83bcaf2..0df80e9 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -2498,11 +2498,12 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
+ 	spin_unlock(&dlm->master_lock);
+ 	spin_unlock(&dlm->spinlock);
+ 
++	mle_added = 1;
++
+ 	if (ret == -EEXIST) {
+ 		mlog(0, "another process is already migrating it\n");
+ 		goto fail;
+ 	}
+-	mle_added = 1;
+ 
+ 	/*
+ 	 * set the MIGRATING flag and flush asts
