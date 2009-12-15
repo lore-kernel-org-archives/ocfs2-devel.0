@@ -1,93 +1,52 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 15 Dec 2009 16:04:53 +0800
-Subject: [Ocfs2-devel] ocfs2: add extent block stealing for ocfs2 v1
-In-Reply-To: <4B2617D0.7060504@oracle.com>
-References: <4B2617D0.7060504@oracle.com>
-Message-ID: <4B274325.1050505@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Tue, 15 Dec 2009 14:48:39 -0800
+Subject: [Ocfs2-devel] [RFC 0/4] Ocfs2 allocation reservations
+Message-ID: <1260917320-15959-1-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Tiger,
+Hi, the following patches implement allocation reservations for Ocfs2. Right
+now I'd consider them to be beta quality - simple operations work but the
+code likely won't survive a kernel build. As it is implemented, the code
+only takes reservations on the local alloc bitmap. I've divorced the
+structures from any bitmap type however, so we can extend this to the chain
+allocators with only a small amount of code. Also, there's nothing in
+reservations.c which depends on a struct inode.
 
-@@ -731,36 +715,39 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
- 		goto bail;
- 	}
- 
--	(*ac)->ac_bits_wanted = 1;
--	(*ac)->ac_which = OCFS2_AC_USE_INODE;
--
-+	(*ac)->ac_bits_wanted = blocks;
- 	(*ac)->ac_group_search = ocfs2_block_group_search;
-+	if (type == INODE_ALLOC_SYSTEM_INODE)
-+		(*ac)->ac_which = OCFS2_AC_USE_INODE;
-+	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
-+		(*ac)->ac_which = OCFS2_AC_USE_META;
- 
- 	/*
- 	 * stat(2) can't handle i_ino > 32bits, so we tell the
- 	 * lower levels not to allocate us a block group past that
- 	 * limit.  The 'inode64' mount option avoids this behavior.
- 	 */
--	if (!(osb->s_mount_opt & OCFS2_MOUNT_INODE64))
-+	if (type == INODE_ALLOC_SYSTEM_INODE &&
-+	    !(osb->s_mount_opt & OCFS2_MOUNT_INODE64))
- 		(*ac)->ac_max_block = (u32)~0U;
- 
- 	/*
--	 * slot is set when we successfully steal inode from other nodes.
--	 * It is reset in 3 places:
-+	 * slot is set when we successfully steal inode/extent
-+	 * from other nodes. It is reset in 3 places:
- 	 * 1. when we flush the truncate log
- 	 * 2. when we complete local alloc recovery.
- 	 * 3. when we successfully allocate from our own slot.
--	 * After it is set, we will go on stealing inodes until we find the
-+	 * After it is set, we will go on stealing resource until we find the
- 	 * need to check our slots to see whether there is some space for us.
- 	 */
- 	if (slot != OCFS2_INVALID_SLOT &&
--	    atomic_read(&osb->s_num_inodes_stolen) < OCFS2_MAX_INODES_TO_STEAL)
--		goto inode_steal;
-+	    ocfs2_could_steal_resource(osb, type))
-+		goto resource_steal;
- 
--	atomic_set(&osb->s_num_inodes_stolen, 0);
-+	ATOMIC_ZERO_RESOURCE_NUMBER(type);
- 	alloc_group = osb->osb_inode_alloc_group;
-here, you use the alloc_group which is only used in inode alloc and reset it
-after the reservation succeed. I am afraid extent alloc shouldn't use and
-change it?
-
- 	status = ocfs2_reserve_suballoc_bits(osb, *ac,
--					     INODE_ALLOC_SYSTEM_INODE,
-+					     type,
- 					     osb->slot_num,
- 					     &alloc_group,
- 					     ALLOC_NEW_GROUP |
+Also worth mentioning is that the mount option ("resv_level=") was kind of
+hastily put together. I think we definitely want the option to control how
+aggressive the code is with reservations, but I'm not sure I'm happy with the
+implementation of that knob.
 
 
-    I am also curious about one thing. Have you written the test script 
-for it to see whether it works?
-You can take ocfs2-tests/programs/inode_stealing/inode_stealing.sh for 
-reference.
+I still need to do some tuning, but already an increase in contiguousness
+can be shown in this small test:
 
-Regards,
-Tao
+/root/extendo /ocfs2/try1 4 1000 32 & \
+/root/extendo /ocfs2/try2 4 1000 32 & \
+/root/extendo /ocfs2/try3 4 1000 32 &
 
-Jun Yang wrote:
-> Hi, Joel,
->
-> The attached patch is the first version about extent stealing. Please 
-> feel free to correct me about the codes or function name or comments.
->
-> thanks,
-> tiger
-> ------------------------------------------------------------------------
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+So that runs 3 instances of 'extendo' (from ocfs2-test) which should write
+about 4k 32 times, with a 1 second wait in between runs. Test file system was
+formatted with 4k clusters and inline-data turned off.
+
+Without reservations turned on, we get perfect fragmentation.
+
+Inode: 66007    % fragmented: 100.00    clusters: 32    extents: 32
+Inode: 66009    % fragmented: 100.00    clusters: 32    extents: 32
+Inode: 66008    % fragmented: 100.00    clusters: 32    extents: 32
+
+This version of the reservations code shows the following improvements:
+
+Inode: 66007    % fragmented: 50.00     clusters: 32    extents: 16
+Inode: 66009    % fragmented: 68.75     clusters: 32    extents: 22
+Inode: 66008    % fragmented: 43.75     clusters: 32    extents: 14
+
+All comments are appreciated.
+	--Mark
+
+--
+Mark Fasheh
