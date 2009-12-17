@@ -1,36 +1,38 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 17 Dec 2009 22:00:07 +0800
-Subject: [Ocfs2-devel] ocfs2: add extent block stealing for ocfs2 v1
-In-Reply-To: <4B29FE85.1070704@oracle.com>
-References: <4B2617D0.7060504@oracle.com> <4B274325.1050505@oracle.com>
-	<4B29FE85.1070704@oracle.com>
-Message-ID: <4B2A3967.4020600@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 17 Dec 2009 10:33:32 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Should ocfs2 support fiemap
+ for S_IFDIR inode?
+In-Reply-To: <1261046536-4502-1-git-send-email-tristan.ye@oracle.com>
+References: <1261046536-4502-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <4B2A797C.7090606@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Jun Yang wrote:
-> On 12/15/2009 04:04 PM, Tao Ma wrote:
->> alloc_group = osb->osb_inode_alloc_group;
->> here, you use the alloc_group which is only used in inode alloc and
->> reset it
->> after the reservation succeed. I am afraid extent alloc shouldn't use 
->> and
->> change it?
-> Yes, It's a mistake. It seems I would better not merge those two 
-> functions.
-oh, you can merge them. Just make sure not mess extent_alloc with 
-inode_alloc.
->
->> I am also curious about one thing. Have you written the test script for
->> it to see whether it works?
->> You can take ocfs2-tests/programs/inode_stealing/inode_stealing.sh for
->> reference.
-> thanks for your advice. I will make a similar test for extent block 
-> stealing patches.
-cool.
+Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-Regards,
-Tao
+I see no reason why we should not add it to symlink and
+fast_symlink too. But that would need testing. Make that a
+separate patch. This one looks good as is.
+
+Tristan Ye wrote:
+> Let userspace have a chance to get the extent info of a
+> directory just like extN did.
+>
+> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+> ---
+>  fs/ocfs2/namei.c |    1 +
+>  1 files changed, 1 insertions(+), 0 deletions(-)
+>
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index f010b22..0b9f35e 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -2326,4 +2326,5 @@ const struct inode_operations ocfs2_dir_iops = {
+>  	.getxattr	= generic_getxattr,
+>  	.listxattr	= ocfs2_listxattr,
+>  	.removexattr	= generic_removexattr,
+> +	.fiemap         = ocfs2_fiemap,
+>  };
