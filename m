@@ -1,41 +1,29 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 16 Dec 2009 09:40:40 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: add trace event log to alloc.c
-In-Reply-To: <20091215235342.GA21998@mail.oracle.com>
-References: <200911261218.nAPMpBYX026104@rgminet15.oracle.com>
-	<20091215235342.GA21998@mail.oracle.com>
-Message-ID: <4B283A98.9040605@oracle.com>
+From: Jun Yang <tiger.yang@oracle.com>
+Date: Thu, 17 Dec 2009 17:48:53 +0800
+Subject: [Ocfs2-devel] ocfs2: add extent block stealing for ocfs2 v1
+In-Reply-To: <4B274325.1050505@oracle.com>
+References: <4B2617D0.7060504@oracle.com> <4B274325.1050505@oracle.com>
+Message-ID: <4B29FE85.1070704@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
+On 12/15/2009 04:04 PM, Tao Ma wrote:
+> alloc_group = osb->osb_inode_alloc_group;
+> here, you use the alloc_group which is only used in inode alloc and
+> reset it
+> after the reservation succeed. I am afraid extent alloc shouldn't use and
+> change it?
+Yes, It's a mistake. It seems I would better not merge those two functions.
 
-Joel Becker wrote:
-> On Thu, Nov 26, 2009 at 08:15:32PM +0800, Wengang Wang wrote:
->> this patche adds trace event log to alloc.c.
->>
->> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> 
-> Hey Wengang,
-> 	Sorry I didn't respond sooner and left you hanging.  This is
-> good work.  Thank you for taking this on.
-> 	Unfortunately, it brought up another problem.  The tracing
-> infrastructure is not on el5.  If we apply your patches to mainline,
-> we'll have an awful time backporting anything to 1.6, because mainline
-> will have trace_* functions and 1.6 will have mlog functions.  Not your
-> fault, of course.
-> 	The easy solution is to hold off until el6 comes out.  el6 will
-> have the tracing code.  Another possibility is to fake the tracing
-> infrastructure in 1.6.  We haven't come up with a sane way to do that
-> yet.  So for now, we're going to hold off.
-> 	Please keep these patches handy.  We'll be using them when the
-> time comes.
-> 
+> I am also curious about one thing. Have you written the test script for
+> it to see whether it works?
+> You can take ocfs2-tests/programs/inode_stealing/inode_stealing.sh for
+> reference.
+thanks for your advice. I will make a similar test for extent block 
+stealing patches.
 
-Understand. I will keep the patches handy.
-
-regards,
-wengang.
+Thanks,
+tiger
