@@ -1,39 +1,38 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 17 Dec 2009 21:41:10 -0800
-Subject: [Ocfs2-devel] [PATCH 0/2] 2 bug fixes for reflink in ocfs2.
-In-Reply-To: <4B2AE488.8070602@oracle.com>
-References: <4B2AE488.8070602@oracle.com>
-Message-ID: <20091218054110.GE20149@mail.oracle.com>
+From: Andreas Dilger <adilger@sun.com>
+Date: Fri, 18 Dec 2009 14:24:09 -0700
+Subject: [Ocfs2-devel] Add FIEMAP_EXTENT_SHARED flag
+In-Reply-To: <20091218051040.GB20149@mail.oracle.com>
+References: <1259873212-20107-1-git-send-email-sunil.mushran@oracle.com>
+	<20091218051040.GB20149@mail.oracle.com>
+Message-ID: <2D18A332-D252-455A-B0DC-BFC1E2E4C8A2@sun.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Sunil Mushran <sunil.mushran@oracle.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, ext4 development <linux-ext4@vger.kernel.org>
 
-On Fri, Dec 18, 2009 at 10:10:16AM +0800, Tao Ma wrote:
-> 	These are 2 bug fixes for reflink.
-> 	Although these 2 are both one line fix, they are important.
-> [PATCH 1/2] resolves a bug tristan found serveral months ago. I
-> tracked it down recently. It is really race.
-> [PATCH 2/2] is found when I tested a corruption in reflink. It
-> resolved a bug that the file can't be replayed successfully in
-> orphan dir.
-> 
-> I have run tristan's test cases against these 2 fixes the whole
-> week. They should be stable enough to be integrated.
+On 2009-12-17, at 22:10, Joel Becker wrote:
+> On Thu, Dec 03, 2009 at 12:46:50PM -0800, Sunil Mushran wrote:
+>> Please could you Ack this patch. This adds a new FIEMAP flag to  
+>> denote
+>> shared extents which we are using to identify such exents in  
+>> reflinked
+>> files.
+>
+> 	These patches are now in ocfs2.git.  If anyone has any concerns,
+> let me know.
 
-	They are both in the 'fixes' branch of ocfs2.git.
 
-Joel
+Hi Joel,
+are there any plans to submit an e2fsprogs patch to print out the  
+"shared" extent flag from "filefrag"?
 
--- 
+At first glance it would also seem to make sense to set this flag for  
+ext2/3/4 xattrs that are sharing an external extent block.
 
-"Depend on the rabbit's foot if you will, but remember, it didn't
- help the rabbit."
-	- R. E. Shay
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Cheers, Andreas
+--
+Andreas Dilger
+Sr. Staff Engineer, Lustre Group
+Sun Microsystems of Canada, Inc.
