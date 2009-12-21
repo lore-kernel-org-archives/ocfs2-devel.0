@@ -1,38 +1,50 @@
-From: Dave Suri <dave.suri@oracle.com>
-Date: Tue, 01 Dec 2009 18:07:43 -0000
-Subject: [Ocfs2-devel] FW: ocfs2 perf stat runs...
-Message-ID: <2b1af66f-f8dc-42ba-992c-89abe6ddd691@default>
+From: Liuwenyi <qingshenlwy@gmail.com>
+Date: Mon, 21 Dec 2009 20:01:00 +0800
+Subject: [Ocfs2-devel] [PATCHv2 10/12]posix_acl: Add the check items
+Message-ID: <4B2F637C.2080506@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: mfasheh@suse.com, joel.becker@oracle.com, tiger.yang@oracle.com, viro@zeniv.linux.org.uk, jmorris@namei.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, strongzgy@gmail.com, onlyflyer@gmail.com
 
-Forwarding this email to the distribution lists.  I am hoping someone can answer my questions.
+move the ACL validation check in to fs/posix_acl.c.
+Including nullpointer check and PTR_ERR check.
 
-Thanks very much!
+---
+Signed-off-by: Liuwenyi <qingshenlwy@gmail.com>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <joel.becker@oracle.com>
+Cc: Tiger Yang <tiger.yang@oracle.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: James Morris <jmorris@namei.org>
+Cc: ocfs2-devel at oss.oracle.com
+Cc: linux-kernel at vger.kernel.org
 
-Dave
+---
+diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+index e3e4741..b11c72c 100644
+--- a/fs/ocfs2/acl.c
++++ b/fs/ocfs2/acl.c
+@@ -408,13 +408,9 @@ static int ocfs2_xattr_set_acl(struct dentry
+*dentry, const char *name,
 
------Original Message-----
-From: Dave Suri 
-Sent: Tuesday, December 01, 2009 1:05 PM
-To: Tommy Reynolds
-Cc: Isam Alyousfi; Abdalhadi Alatasi
-Subject: ocfs2 perf stat runs...
+if (value) {
+acl = posix_acl_from_xattr(value, size);
+- if (IS_ERR(acl))
+- return PTR_ERR(acl);
+- else if (acl) {
+- ret = posix_acl_valid(acl);
+- if (ret)
+- goto cleanup;
+- }
++ ret = posix_acl_valid(acl);
++ if (ret)
++ goto cleanup;
+} else
+acl = NULL;
 
 
-Tommy:
-
-Hi.  I am Dave from the EBS Performance team.  I heard that there will be a certification project around using EBS and OCFS2.  I got your name and contact information from bug# 9163548 and was hoping you had some time to answer a few questions.  If you dont have time or are busy to answer them, can you please forward this email to someone in the OCFS2 team?
-
-1) Is OCFS2 considered to be a generic filesystem compared to linux ext2/ext3?  Or is it primarily used just for RAC?
-2) Does the kernel driver expose any perf metrics about its performance?  (similar to perf monitor on windows?)
-3) Are there are any whitepapers / perf docs / website related to OCFS2 performance vs linux ext2/ext3 vs ASM vs NFS vs RAW devices?
-
-Thanks!
-
-Dave
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20091201/e003d9a0/attachment-0001.html 
+-- 
+Best Regards,
+Liuwenyi
