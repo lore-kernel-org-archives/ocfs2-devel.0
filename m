@@ -1,50 +1,37 @@
-From: Liuwenyi <qingshenlwy@gmail.com>
-Date: Mon, 21 Dec 2009 20:01:00 +0800
-Subject: [Ocfs2-devel] [PATCHv2 10/12]posix_acl: Add the check items
-Message-ID: <4B2F637C.2080506@gmail.com>
+From: liu weni <qingshenlwy@gmail.com>
+Date: Mon, 21 Dec 2009 22:15:26 +0800
+Subject: [Ocfs2-devel] [PATCHv2 00/12]posix_acl: Add the check items
+In-Reply-To: <20091221123654.GA9201@lst.de>
+References: <4B2F6153.8010609@gmail.com> <20091221123654.GA9201@lst.de>
+Message-ID: <b3657a100912210615q1d55c334g73667e1c3a97ce05@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, joel.becker@oracle.com, tiger.yang@oracle.com, viro@zeniv.linux.org.uk, jmorris@namei.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, strongzgy@gmail.com, onlyflyer@gmail.com
+To: Christoph Hellwig <hch@lst.de>
+Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, joel.becker@oracle.com, cjb@laptop.org, jmorris@namei.org, serue@us.ibm.com, akpm@linux-foundation.org, adilger@sun.com, jack@suse.cz, tytso@mit.edu, dwmw2@infradead.xn.org.cpa, swhiteho@redhat.com, bfields@fieldses.org, neilb@suse.de, ffilzlnx@us.ibm.com, bharrosh@panasas.com, mfasheh@suse.com, tiger.yang@oracle.com, jeffm@suse.com, aelder@sgi.com, sandeen@sandeen.net, xfs-masters@oss.sgi.com, xfs@oss.sgi.com, reiserfs-devel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-nfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, cluster-devel@redhat.com, linux-mtd@lists.infradead.org, strongzgy@gmail.com, onlyflyer@gmail.com
 
-move the ACL validation check in to fs/posix_acl.c.
-Including nullpointer check and PTR_ERR check.
+Thanks for your suggestion.
 
----
-Signed-off-by: Liuwenyi <qingshenlwy@gmail.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <joel.becker@oracle.com>
-Cc: Tiger Yang <tiger.yang@oracle.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: James Morris <jmorris@namei.org>
-Cc: ocfs2-devel at oss.oracle.com
-Cc: linux-kernel at vger.kernel.org
+In my opinion the null point is a incorrect state for the acl, then I
+return -EINVAL.
 
----
-diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-index e3e4741..b11c72c 100644
---- a/fs/ocfs2/acl.c
-+++ b/fs/ocfs2/acl.c
-@@ -408,13 +408,9 @@ static int ocfs2_xattr_set_acl(struct dentry
-*dentry, const char *name,
+I will check this state transition in XFS.
 
-if (value) {
-acl = posix_acl_from_xattr(value, size);
-- if (IS_ERR(acl))
-- return PTR_ERR(acl);
-- else if (acl) {
-- ret = posix_acl_valid(acl);
-- if (ret)
-- goto cleanup;
-- }
-+ ret = posix_acl_valid(acl);
-+ if (ret)
-+ goto cleanup;
-} else
-acl = NULL;
-
-
--- 
-Best Regards,
-Liuwenyi
+2009/12/21 Christoph Hellwig <hch@lst.de>:
+> I like taking these checks into posix_acl_valid, but I think the patch
+> submission needs a bit more work.
+>
+> All the patches are extremly whitespace mangled. ?And I don't think
+> splitting them up makes a whole lot of sense, when we do API changes
+> like this we usually fix up all callers. ?So please try to fix your
+> mailer, merged them all into one, and maybe also chose a more
+> descriptive subject line, e.g.
+>
+> Subject: take checks for NULL and error pointers into posix_acl_valid()
+>
+>
+> And btw, at least the XFS change seems incorrect - previously we
+> returned NULL acl pointer and this patch changes it to -EINVAL.
+>
+>
