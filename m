@@ -1,102 +1,38 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 22 Dec 2009 09:11:58 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Let ocfs2 support fiemap for
-	symlink and fast symlink.
-Message-ID: <1261444318-6610-1-git-send-email-tristan.ye@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 21 Dec 2009 17:50:13 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Add default mask log for
+ heartbeat.c
+In-Reply-To: <4B3022DE.1070006@oracle.com>
+References: <1261375896-11322-1-git-send-email-tao.ma@oracle.com>
+	<4B2FF89B.3040101@oracle.com> <4B3022DE.1070006@oracle.com>
+Message-ID: <4B3025D5.3040503@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-For fast symlink, it can be treated the same as inlined files since
-the data extent we want to return of both case all were stored in
-metadata block. For symlink, it can be simply treated the same as we
-did for regular files.
+Tao Ma wrote:
+> Sunil Mushran wrote:
+>> Maybe better if we changed the two mlog(0,... to mlog(ML_HEARTBEAT,...
+>>
+>> Now I don't know why we don't have a default mask in that file but 
+>> instead
+>> have distinct mlogs for HEARTBEAT and HB_BIO. One reason could have 
+>> been to
+>> limit the logging of hb_bio. If that is correct, then adding a 
+>> default mask
+>> will defeat the purpose.
+> yeah, I just got that two mlog(0,...) and tried to find the default 
+> mask and failed. Don't know the real reason for it. Will redo the 
+> patch as you like.
+>
+> But the point I don't get is that why add a default mask will have an 
+> effect on mlog(ML_HB_BIO,...)?
 
-Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
-Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/extent_map.c |   23 +++++++++++++++++++----
- fs/ocfs2/symlink.c    |    2 ++
- 2 files changed, 21 insertions(+), 4 deletions(-)
+Reverse. As in, if we make that the default, then the mlogs marked hb_bio
+will also print when we only want heartbeat.
 
-diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-index 843db64..b925783 100644
---- a/fs/ocfs2/extent_map.c
-+++ b/fs/ocfs2/extent_map.c
-@@ -37,6 +37,7 @@
- #include "extent_map.h"
- #include "inode.h"
- #include "super.h"
-+#include "symlink.h"
- 
- #include "buffer_head_io.h"
- 
-@@ -703,6 +704,12 @@ out:
- 	return ret;
- }
- 
-+/*
-+ * The ocfs2_fiemap_inline() may be a little bit misleading, since
-+ * it not only handles the fiemap for inlined files, but also deals
-+ * with the fast symlink, cause they have no difference for extent
-+ * mapping per se.
-+ */
- static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
- 			       struct fiemap_extent_info *fieinfo,
- 			       u64 map_start)
-@@ -715,11 +722,18 @@ static int ocfs2_fiemap_inline(struct inode *inode, struct buffer_head *di_bh,
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 
- 	di = (struct ocfs2_dinode *)di_bh->b_data;
--	id_count = le16_to_cpu(di->id2.i_data.id_count);
-+	if (ocfs2_inode_is_fast_symlink(inode))
-+		id_count = ocfs2_fast_symlink_chars(inode->i_sb);
-+	else
-+		id_count = le16_to_cpu(di->id2.i_data.id_count);
- 
- 	if (map_start < id_count) {
- 		phys = oi->ip_blkno << inode->i_sb->s_blocksize_bits;
--		phys += offsetof(struct ocfs2_dinode, id2.i_data.id_data);
-+		if (ocfs2_inode_is_fast_symlink(inode))
-+			phys += offsetof(struct ocfs2_dinode, id2.i_symlink);
-+		else
-+			phys += offsetof(struct ocfs2_dinode,
-+					 id2.i_data.id_data);
- 
- 		ret = fiemap_fill_next_extent(fieinfo, 0, phys, id_count,
- 					      flags);
-@@ -756,9 +770,10 @@ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
- 	down_read(&OCFS2_I(inode)->ip_alloc_sem);
- 
- 	/*
--	 * Handle inline-data separately.
-+	 * Handle inline-data and fast symlink separately.
- 	 */
--	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
-+	if ((OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
-+	    ocfs2_inode_is_fast_symlink(inode)) {
- 		ret = ocfs2_fiemap_inline(inode, di_bh, fieinfo, map_start);
- 		goto out_unlock;
- 	}
-diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
-index e342103..49b133c 100644
---- a/fs/ocfs2/symlink.c
-+++ b/fs/ocfs2/symlink.c
-@@ -163,6 +163,7 @@ const struct inode_operations ocfs2_symlink_inode_operations = {
- 	.getxattr	= generic_getxattr,
- 	.listxattr	= ocfs2_listxattr,
- 	.removexattr	= generic_removexattr,
-+	.fiemap		= ocfs2_fiemap,
- };
- const struct inode_operations ocfs2_fast_symlink_inode_operations = {
- 	.readlink	= ocfs2_readlink,
-@@ -174,4 +175,5 @@ const struct inode_operations ocfs2_fast_symlink_inode_operations = {
- 	.getxattr	= generic_getxattr,
- 	.listxattr	= ocfs2_listxattr,
- 	.removexattr	= generic_removexattr,
-+	.fiemap		= ocfs2_fiemap,
- };
--- 
-1.5.5
+Now how does that matter? Probably very little, if at all. But we will be
+revisiting tracing/logging sometime next year. So I would make minimal
+changes in this area right now.
