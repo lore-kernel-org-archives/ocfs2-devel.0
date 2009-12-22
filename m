@@ -1,47 +1,47 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 22 Dec 2009 10:04:18 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Add default mask log for
- heartbeat.c
-In-Reply-To: <4B3025D5.3040503@oracle.com>
-References: <1261375896-11322-1-git-send-email-tao.ma@oracle.com>
-	<4B2FF89B.3040101@oracle.com> <4B3022DE.1070006@oracle.com>
-	<4B3025D5.3040503@oracle.com>
-Message-ID: <4B302922.3000802@oracle.com>
+Date: Tue, 22 Dec 2009 10:32:15 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Use proper mask for 2 places
+	in hearbeat.c
+Message-ID: <1261449135-13065-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+I just noticed today that there are 2 places of "mlog(0,...)"
+in  fs/ocfs2/cluster/heartbeat.c, but actually have no default
+mask prefix in that file.
+So change them to mlog(ML_HEARTBEAT,...).
 
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/cluster/heartbeat.c |    6 ++++--
+ 1 files changed, 4 insertions(+), 2 deletions(-)
 
-Sunil Mushran wrote:
-> Tao Ma wrote:
->> Sunil Mushran wrote:
->>> Maybe better if we changed the two mlog(0,... to mlog(ML_HEARTBEAT,...
->>>
->>> Now I don't know why we don't have a default mask in that file but 
->>> instead
->>> have distinct mlogs for HEARTBEAT and HB_BIO. One reason could have 
->>> been to
->>> limit the logging of hb_bio. If that is correct, then adding a 
->>> default mask
->>> will defeat the purpose.
->> yeah, I just got that two mlog(0,...) and tried to find the default 
->> mask and failed. Don't know the real reason for it. Will redo the 
->> patch as you like.
->>
->> But the point I don't get is that why add a default mask will have an 
->> effect on mlog(ML_HB_BIO,...)?
-> 
-> Reverse. As in, if we make that the default, then the mlogs marked hb_bio
-> will also print when we only want heartbeat.
-oh, I see. thanks for the explanation.
-> 
-> Now how does that matter? Probably very little, if at all. But we will be
-> revisiting tracing/logging sometime next year. So I would make minimal
-> changes in this area right now.
-ok, no problem. I will regenerate the patch.
-
-Regards,
-Tao
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index c452d11..eda5b8b 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -176,7 +176,8 @@ static void o2hb_write_timeout(struct work_struct *work)
+ 
+ static void o2hb_arm_write_timeout(struct o2hb_region *reg)
+ {
+-	mlog(0, "Queue write timeout for %u ms\n", O2HB_MAX_WRITE_TIMEOUT_MS);
++	mlog(ML_HEARTBEAT, "Queue write timeout for %u ms\n",
++	     O2HB_MAX_WRITE_TIMEOUT_MS);
+ 
+ 	cancel_delayed_work(&reg->hr_write_timeout_work);
+ 	reg->hr_last_timeout_start = jiffies;
+@@ -874,7 +875,8 @@ static int o2hb_thread(void *data)
+ 		do_gettimeofday(&after_hb);
+ 		elapsed_msec = o2hb_elapsed_msecs(&before_hb, &after_hb);
+ 
+-		mlog(0, "start = %lu.%lu, end = %lu.%lu, msec = %u\n",
++		mlog(ML_HEARTBEAT,
++		     "start = %lu.%lu, end = %lu.%lu, msec = %u\n",
+ 		     before_hb.tv_sec, (unsigned long) before_hb.tv_usec,
+ 		     after_hb.tv_sec, (unsigned long) after_hb.tv_usec,
+ 		     elapsed_msec);
+-- 
+1.5.5
