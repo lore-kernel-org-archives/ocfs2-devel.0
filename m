@@ -1,38 +1,73 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 23 Dec 2009 10:48:04 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Use le16_to_cpu for a disk
- value in xattr.c
-In-Reply-To: <1261549875-14192-1-git-send-email-tao.ma@oracle.com>
-References: <1261549875-14192-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <4B3265E4.9060000@oracle.com>
+Date: Wed, 23 Dec 2009 10:27:22 -0800
+Subject: [Ocfs2-devel] OCFS2 support over veritas disks
+In-Reply-To: <3079FCE0CBCA164983F73328423F7ADFDCE4AF@WOSNPNTCMX018.DS.WOLSELEY.COM>
+References: <3079FCE0CBCA164983F73328423F7ADFDCE4AF@WOSNPNTCMX018.DS.WOLSELEY.COM>
+Message-ID: <4B32610A.20304@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Ack.
+The mounted.ocfs2 utility is not multipath-aware. We are working
+on making it dm-mutipath aware.
 
-Tao Ma wrote:
-> In ocfs2_value_metas_in_xattr_header, we should Use
-> le16_to_cpu for ocfs2_extent_list.l_next_free_rec.
+But that should not affect the fs functioning. Multipathing is transparent
+to the fs. As long as it works, as in fails over within the timeout, it 
+should
+work fine with ocfs2.
+
+Martin.Francis at ferguson.com wrote:
 >
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
-> ---
->  fs/ocfs2/xattr.c |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
+> Hi
 >
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index fe34190..8c0bfa2 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -6066,7 +6066,7 @@ static int ocfs2_value_metas_in_xattr_header(struct super_block *sb,
->  		 * to the extent block, so just calculate a maximum record num.
->  		 */
->  		if (!xv->xr_list.l_tree_depth)
-> -			*num_recs += xv->xr_list.l_next_free_rec;
-> +			*num_recs += le16_to_cpu(xv->xr_list.l_next_free_rec);
->  		else
->  			*num_recs += ocfs2_clusters_for_bytes(sb,
->  							      XATTR_SIZE_MAX);
->   
+> I have a support question on OCFS2 over multipath disks
+>
+> I am setting up OCFS2 disks on RHEL5. (2.6.18-128.1.10.el5)
+>
+> OCFS2 doc refers to using native disk names like /dev/sda, but doesnt 
+> seem to describe how to use multipathed devices as in linux native 
+> dm-multipath or veritas dmp
+>
+> So I decided to experiment with veritas dmp devices,
+>
+> I created an OCFS2 over veritas multipathed device sdf ( which is dmp 
+> node with two underlying paths sdf and sdl )
+>
+> *mkfs.ocfs2 -b 4K -C 32K -L ocr_vote /dev/vx/rdmp/sdf*
+>
+> The filesystem seems to work just fine.I disabled the individual paths 
+> to the LUNS using veritas DMP commands and OCFS2 did not encounter any 
+> issues.
+>
+> But OCFS2 doesn?t seem to take the DMP metanode, instead it uses 
+> individual paths as in output below ( sdf and sdl ).
+>
+> So I don?t know if the load balancing and other dmp features are 
+> effective. Is this the usual behavior of OCFS2 handling multipath 
+> devices ?
+>
+> *mounted.ocfs2 -f*
+>
+> *Device FS Nodes*
+>
+> */dev/sdf ocfs2 a00062, a00060*
+>
+> */dev/sdl ocfs2 a00062, a00060*
+>
+> Is there any official support statement on what multipath vendors are 
+> supported and recommended configurations for multipathing
+>
+> *________________________________________________*
+>
+> *Martin Francis*
+>
+> *Systems Engineering/Infrastructure Services - Engineering*
+>
+> Wolseley 12500 Jefferson Avenue.Newport News,VA 23602
+>
+> Phone:757-969-2816 Cell:602-315-7648
+>
+> www.wolseley.com
+>
