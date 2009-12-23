@@ -1,62 +1,34 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 21 Dec 2009 18:41:42 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Use proper mask for 2
-	places in hearbeat.c
-In-Reply-To: <1261449135-13065-1-git-send-email-tao.ma@oracle.com>
-References: <1261449135-13065-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <1B682337-3AEE-42FD-BE26-7D159871DDDF@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Wed, 23 Dec 2009 14:31:15 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Use le16_to_cpu for a disk
+	value in xattr.c
+Message-ID: <1261549875-14192-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Ack
+In ocfs2_value_metas_in_xattr_header, we should Use
+le16_to_cpu for ocfs2_extent_list.l_next_free_rec.
 
-On Dec 21, 2009, at 6:32 PM, Tao Ma <tao.ma@oracle.com> wrote:
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/xattr.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-> I just noticed today that there are 2 places of "mlog(0,...)"
-> in  fs/ocfs2/cluster/heartbeat.c, but actually have no default
-> mask prefix in that file.
-> So change them to mlog(ML_HEARTBEAT,...).
->
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
-> ---
-> fs/ocfs2/cluster/heartbeat.c |    6 ++++--
-> 1 files changed, 4 insertions(+), 2 deletions(-)
->
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/ 
-> heartbeat.c
-> index c452d11..eda5b8b 100644
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> @@ -176,7 +176,8 @@ static void o2hb_write_timeout(struct  
-> work_struct *work)
->
-> static void o2hb_arm_write_timeout(struct o2hb_region *reg)
-> {
-> -    mlog(0, "Queue write timeout for %u ms\n",  
-> O2HB_MAX_WRITE_TIMEOUT_MS);
-> +    mlog(ML_HEARTBEAT, "Queue write timeout for %u ms\n",
-> +         O2HB_MAX_WRITE_TIMEOUT_MS);
->
->    cancel_delayed_work(&reg->hr_write_timeout_work);
->    reg->hr_last_timeout_start = jiffies;
-> @@ -874,7 +875,8 @@ static int o2hb_thread(void *data)
->        do_gettimeofday(&after_hb);
->        elapsed_msec = o2hb_elapsed_msecs(&before_hb, &after_hb);
->
-> -        mlog(0, "start = %lu.%lu, end = %lu.%lu, msec = %u\n",
-> +        mlog(ML_HEARTBEAT,
-> +             "start = %lu.%lu, end = %lu.%lu, msec = %u\n",
->             before_hb.tv_sec, (unsigned long) before_hb.tv_usec,
->             after_hb.tv_sec, (unsigned long) after_hb.tv_usec,
->             elapsed_msec);
-> -- 
-> 1.5.5
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index fe34190..8c0bfa2 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -6066,7 +6066,7 @@ static int ocfs2_value_metas_in_xattr_header(struct super_block *sb,
+ 		 * to the extent block, so just calculate a maximum record num.
+ 		 */
+ 		if (!xv->xr_list.l_tree_depth)
+-			*num_recs += xv->xr_list.l_next_free_rec;
++			*num_recs += le16_to_cpu(xv->xr_list.l_next_free_rec);
+ 		else
+ 			*num_recs += ocfs2_clusters_for_bytes(sb,
+ 							      XATTR_SIZE_MAX);
+-- 
+1.5.5
