@@ -1,37 +1,86 @@
-From: liu weni <qingshenlwy@gmail.com>
-Date: Mon, 21 Dec 2009 22:15:26 +0800
-Subject: [Ocfs2-devel] [PATCHv2 00/12]posix_acl: Add the check items
-In-Reply-To: <20091221123654.GA9201@lst.de>
-References: <4B2F6153.8010609@gmail.com> <20091221123654.GA9201@lst.de>
-Message-ID: <b3657a100912210615q1d55c334g73667e1c3a97ce05@mail.gmail.com>
+From: Martin.Francis at ferguson.com <Martin.Francis@ferguson.com>
+Date: Wed, 23 Dec 2009 11:18:47 -0500
+Subject: [Ocfs2-devel] OCFS2 support over veritas disks
+Message-ID: <3079FCE0CBCA164983F73328423F7ADFDCE4AF@WOSNPNTCMX018.DS.WOLSELEY.COM>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, joel.becker@oracle.com, cjb@laptop.org, jmorris@namei.org, serue@us.ibm.com, akpm@linux-foundation.org, adilger@sun.com, jack@suse.cz, tytso@mit.edu, dwmw2@infradead.xn.org.cpa, swhiteho@redhat.com, bfields@fieldses.org, neilb@suse.de, ffilzlnx@us.ibm.com, bharrosh@panasas.com, mfasheh@suse.com, tiger.yang@oracle.com, jeffm@suse.com, aelder@sgi.com, sandeen@sandeen.net, xfs-masters@oss.sgi.com, xfs@oss.sgi.com, reiserfs-devel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-nfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, cluster-devel@redhat.com, linux-mtd@lists.infradead.org, strongzgy@gmail.com, onlyflyer@gmail.com
+To: ocfs2-devel@oss.oracle.com
 
-Thanks for your suggestion.
+Hi
 
-In my opinion the null point is a incorrect state for the acl, then I
-return -EINVAL.
+I  have a support question on OCFS2 over multipath  disks
 
-I will check this state transition in XFS.
+I am setting up OCFS2 disks on RHEL5. (2.6.18-128.1.10.el5)
 
-2009/12/21 Christoph Hellwig <hch@lst.de>:
-> I like taking these checks into posix_acl_valid, but I think the patch
-> submission needs a bit more work.
->
-> All the patches are extremly whitespace mangled. ?And I don't think
-> splitting them up makes a whole lot of sense, when we do API changes
-> like this we usually fix up all callers. ?So please try to fix your
-> mailer, merged them all into one, and maybe also chose a more
-> descriptive subject line, e.g.
->
-> Subject: take checks for NULL and error pointers into posix_acl_valid()
->
->
-> And btw, at least the XFS change seems incorrect - previously we
-> returned NULL acl pointer and this patch changes it to -EINVAL.
->
->
+ 
+
+OCFS2 doc refers to using native disk names like /dev/sda, but doesnt
+seem to describe how to use multipathed devices as in linux native
+dm-multipath or veritas dmp
+
+So I decided to experiment with veritas dmp devices,
+
+ 
+
+I created an OCFS2 over veritas multipathed device sdf ( which is dmp
+node with two underlying paths sdf and sdl )
+
+ 
+
+ 
+
+mkfs.ocfs2 -b 4K -C 32K -L ocr_vote /dev/vx/rdmp/sdf
+
+ 
+
+The filesystem seems to work just fine.I disabled the individual paths
+to the LUNS using veritas DMP commands and OCFS2 did not encounter any
+issues.
+
+ 
+
+But OCFS2 doesn't seem to take the DMP metanode, instead it uses
+individual paths as in output below ( sdf and sdl ).
+
+So I don't know if the load balancing and other dmp features are
+effective.  Is this the usual behavior of OCFS2 handling multipath
+devices ?
+
+ 
+
+mounted.ocfs2 -f
+
+Device                FS     Nodes
+
+/dev/sdf              ocfs2  a00062, a00060
+
+/dev/sdl              ocfs2  a00062, a00060
+
+ 
+
+Is there any official support statement on what multipath vendors are
+supported and recommended configurations for multipathing
+
+ 
+
+ 
+
+________________________________________________
+
+Martin Francis
+
+Systems Engineering/Infrastructure Services - Engineering
+
+Wolseley 12500 Jefferson Avenue.Newport News,VA 23602
+
+Phone:757-969-2816 Cell:602-315-7648
+
+www.wolseley.com
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20091223/7425f790/attachment-0001.html 
