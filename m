@@ -1,100 +1,157 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 31 Dec 2009 16:19:03 +0800
-Subject: [Ocfs2-devel] 40TB RAID and OCFS2 woes (inode64, JDB2,
- huge partition support,
- Volume might try to write to blocks beyond what jbd can address in 32 bits)
-In-Reply-To: <1D016AC1-13F8-4433-9E1D-6540302C0373@wansecurity.com>
-References: <9A9AABD3-F67F-46D3-B08C-4FD89CA16149@wansecurity.com>	<20091230203426.GA7272@mail.oracle.com>
-	<1D016AC1-13F8-4433-9E1D-6540302C0373@wansecurity.com>
-Message-ID: <4B3C5E77.60407@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Thu, 31 Dec 2009 16:18:43 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Add stuffs associated with
+	ocfs2_info_request ioctls to ioctl.h
+Message-ID: <1262247524-26824-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Robert,
+Currently we were adding ioctl cmds/structures for ocfs2 into ocfs2_fs.h
+which was used for define ocfs2 on-disk layout. That sounds a little bit
+confusing, and it can be quickly polluted espcially when growing the
+ocfs2_info_request ioctls afterwards. The appropriate place to kept in-memory
+ioctl structures is ioctl.h I guess.
 
-Robert Smith wrote:
-> Dear Joel, I am using a custom compiled kernel version 2.6.32.2, using the stock ubuntu 9.10 server-config for the kernel config.
-> 
-> root at s2-replay01:~# uname -a
-> Linux s2-replay01 2.6.32.2.31337 #1 SMP Wed Dec 30 11:36:40 CST 2009 x86_64 GNU/Linux
-> root at s2-replay01:~# 
-> 
-> root at s2-replay01:~# grep OCFS2 /usr/src/linux-2.6.32.2/.config
-> CONFIG_OCFS2_FS=m
-> CONFIG_OCFS2_FS_O2CB=m
-> CONFIG_OCFS2_FS_USERSPACE_CLUSTER=m
-> CONFIG_OCFS2_FS_STATS=y
-> CONFIG_OCFS2_DEBUG_MASKLOG=y
-> # CONFIG_OCFS2_DEBUG_FS is not set
-> CONFIG_OCFS2_FS_POSIX_ACL=y
-> root at s2-replay01:~# 
-> 
-> root at s2-replay01:~# grep -i ocfs /proc/filesystems 
-> nodev   ocfs2_dlmfs
->         ocfs2
-> root at s2-replay01:~#
-> 
-> 
-> the mkfs.ocfs2 does not throw an error. It did not throw an error on the ocfs2 1.4 modules downloaded for Redhat5 either. I've changed the OS to Ubuntu because I was having all sorts of trouble getting a kernel to compile and boot on CentOS. I'm a lot more comfortable in Debian/Ubuntu anyhow. I was hoping the absolute newest kernel would fix this issue, but it did not. I have also compiled the ocfs2-tools-1.4.3. It broke on fsck, but i was able to get the mount.ocfs2 binary to compile. I again used the mount -o inode64 option with the exact same errors as before. Appears it's still using JDB instead of JDB2.
-Just answer the problem of building ocfs2-tools in ubuntu 9.10.
+I'm only adding ocfs2_info related ioctls into ioctl.h, while existed ioctls still
+stay unchanged there, in case it may hurt some others who add their ioctls in ocfs2_fs.h
+originally. If possible, separate other patches can be dedicated for the transfer later.
 
-You need to configure like this:
-./autogen.sh --enable-dynamic-fsck=yes --enable-dynamic-ctl=yes
-and then make.
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/ioctl.h |  118 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 118 insertions(+), 0 deletions(-)
 
-Regards,
-Tao
-> 
-> 
-> Anything else I can give you to help debug?
-> 
-> 
-> -Robert
-> 
-> 
-> On Dec 31, 2009, at 5:34 AM, Joel Becker wrote:
-> 
->> On Wed, Dec 30, 2009 at 11:30:43PM +0900, Robert Smith wrote:
->>> Is there a distribution available or at least what real version number of the tools, and the FS driver to I really need to make this work?
->>>
->>> I have a 40TB partition that I want to format an cluster as a single OCFS2 cluster partition. After about 20 hours of reading and messing around with different solutions, and patches, everything seems to fall back to the following error:
->> 	You need an ocfs2 from Linux 2.6.27 or newer.  Are you using
->> such a kernel?
->>
->>
->>> root at s2-replay01:~# time mkfs.ocfs2 -N 2 -J block64 -F -v -b 4096 -T mail -M cluster --fs-feature-level=max-features /dev/replays/replay-data 
->> 	This looks right.  It doesn't throw you an error.
->>
->>> root at s2-replay01:~# mount.ocfs2 -o inode64 /dev/replays/replay-data /data/storage/
->>> mount.ocfs2: Invalid argument while mounting /dev/replays/replay-data on /data/storage/. Check 'dmesg' for more information on this error.
->> 	If your kernel driver doesn't understand inode64, it isn't new
->> enough.  Where did your kernel driver come from?
->>
->>> I've tried compiling the new tools, and FS driver, but it looks like the most recent version is using some old constructs or API and won't compile against the most recent kernel versions without a patch.
->> 	What do you mean by most recent version of the kernel driver?  Do
->> you mean any version of ocfs2 1.4?  ocfs2 1.4 does not have the support
->> for this.
->> 	Go get 2.6.32.  Compile, install, and boot it.  You will now
->> have support for your large volume.
->>
->> Joel
->>
->> -- 
->>
->> "Here's a nickle -- get yourself a better X server."
->> 	- Keith Packard
->>
->> Joel Becker
->> Principal Software Developer
->> Oracle
->> E-mail: joel.becker at oracle.com
->> Phone: (650) 506-8127
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+diff --git a/fs/ocfs2/ioctl.h b/fs/ocfs2/ioctl.h
+index cf9a5ee..a1b7b54 100644
+--- a/fs/ocfs2/ioctl.h
++++ b/fs/ocfs2/ioctl.h
+@@ -10,6 +10,124 @@
+ #ifndef OCFS2_IOCTL_H
+ #define OCFS2_IOCTL_H
+ 
++/*
++ * ioctl commands
++ */
++
++/* Following definition dedicated for ocfs2_info_request ioctls. */
++#define OCFS2_INFO_VOL_UUID_LEN		(16)
++#define OCFS2_INFO_MAX_VOL_LABEL_LEN	(64)
++#define OCFS2_INFO_VOL_UUIDSTR_LEN	(OCFS2_INFO_VOL_UUID_LEN * 2 + 1)
++#define OCFS2_INFO_MAX_SLOTS		(255)
++#define OCFS2_INFO_MAX_HIST		(32)
++
++#define OCFS2_INFO_MAX_REQUEST		(50)
++
++/* Magic number of all requests */
++#define OCFS2_INFO_MAGIC		(0x4F32494E)
++
++/*
++ * Always try to separate info request into small pieces to
++ * guarantee the backward&forward compatibility.
++ */
++
++struct ocfs2_info {
++	__u64 info_requests;	/* Array of __u64 pointers to requests */
++	__u32 info_count;	/* Number of requests in info_requests */
++};
++
++struct ocfs2_info_request {
++/*00*/	__u32 ir_magic;	/* Magic number */
++	__u32 ir_code;	/* Info request code */
++	__u32 ir_size;	/* Size of request */
++	__u32 ir_flags;	/* Request flags */
++/*10*/	/* Request specific fields */
++};
++
++struct ocfs2_info_clustersize {
++	struct ocfs2_info_request ir_request;
++	__u32 ir_clustersize;
++};
++
++struct ocfs2_info_blocksize {
++	struct ocfs2_info_request ir_request;
++	__u32 ir_blocksize;
++};
++
++struct ocfs2_info_slotnum {
++	struct ocfs2_info_request ir_request;
++	__u16 ir_slotnum;
++};
++
++struct ocfs2_info_label {
++	struct ocfs2_info_request ir_request;
++	__u8	ir_label[OCFS2_INFO_MAX_VOL_LABEL_LEN];
++};
++
++struct ocfs2_info_uuid {
++	struct ocfs2_info_request ir_request;
++	__u8	ir_uuid_str[OCFS2_INFO_VOL_UUIDSTR_LEN];
++};
++
++struct ocfs2_info_fs_features {
++	struct ocfs2_info_request ir_request;
++	__u32 ir_compat_features;
++	__u32 ir_incompat_features;
++	__u32 ir_ro_compat_features;
++};
++
++struct ocfs2_info_freefrag {
++	struct ocfs2_info_request ir_request;
++	__u32 ir_chunksize; /* chunksize in clusters(in) */
++	struct ocfs2_info_freefrag_stats { /* (out) */
++		__u32 ir_clusters;
++		__u32 ir_free_clusters;
++		__u32 ir_free_chunks;
++		__u32 ir_free_chunks_real;
++		__u32 ir_min; /* Minimum free chunksize in clusters */
++		__u32 ir_max;
++		__u32 ir_avg;
++		struct ocfs2_info_free_chunk_list {
++			__u32 ir_fc_chunks[OCFS2_INFO_MAX_HIST];
++			__u32 ir_fc_clusters[OCFS2_INFO_MAX_HIST];
++		} ir_fc_hist;
++	} ir_ffg;
++};
++
++struct ocfs2_info_freeinode {
++	struct ocfs2_info_request ir_request;
++	__u32 ir_slotnum; /* out */
++	struct ocfs2_info_local_fi {
++		__u64 ir_total;
++		__u64 ir_free;
++	} ir_fi_stat[OCFS2_MAX_SLOTS];
++};
++
++/* Codes for ocfs2_info_request */
++
++#define OCFS2_INFO_CLUSTERSIZE	(0x00000001)
++#define OCFS2_INFO_BLOCKSIZE	(0x00000002)
++#define OCFS2_INFO_SLOTNUM	(0x00000004)
++#define OCFS2_INFO_LABEL	(0x00000008)
++#define OCFS2_INFO_UUID	(0x00000010)
++#define OCFS2_INFO_FS_FEATURES	(0x00000020)
++#define OCFS2_INFO_FREEFRAG	(0x00000040)
++#define OCFS2_INFO_FREEINODE	(0x00000080)
++
++/* Flags for struct ocfs2_info_request */
++/* Filled by the caller */
++#define OCFS2_INFO_FL_NON_COHERENT	(0x00000001)	/* Cluster coherency not
++							   required. This is a hint.
++							   It is up to ocfs2 whether
++							   the request can be fulfilled
++							   without locking. */
++/* Filled by ocfs2 */
++#define OCFS2_INFO_FL_FILLED		(0x80000000)	/* Filesystem understood
++							   this request and
++							   filled in the answer */
++
++#define OCFS2_IOC_INFO		_IOR('o', 5, struct ocfs2_info)
++
+ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg);
+ 
+-- 
+1.5.5
