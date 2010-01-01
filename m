@@ -1,304 +1,77 @@
-From: Tristan <tristan.ye@oracle.com>
-Date: Tue, 01 Dec 2009 11:20:25 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Implement new OCFS2_IOC_INFO
- ioctl for ocfs2.
-In-Reply-To: <4B145A07.3070107@oracle.com>
-References: <1259310276-7782-1-git-send-email-tristan.ye@oracle.com>
-	<1259310276-7782-2-git-send-email-tristan.ye@oracle.com>
-	<4B145A07.3070107@oracle.com>
-Message-ID: <4B148B79.4090100@oracle.com>
+From: Robert Smith <spamfree@wansecurity.com>
+Date: Sat, 2 Jan 2010 04:47:58 +0900
+Subject: [Ocfs2-devel] 40TB RAID and OCFS2 woes (inode64, JDB2,
+	huge partition support,
+	Volume might try to write to blocks beyond what jbd can address in 32
+	bits)
+In-Reply-To: <20091231200836.GA3301@mail.oracle.com>
+References: <9A9AABD3-F67F-46D3-B08C-4FD89CA16149@wansecurity.com>
+	<20091230203426.GA7272@mail.oracle.com>
+	<1D016AC1-13F8-4433-9E1D-6540302C0373@wansecurity.com>
+	<20091231034243.GA2560@mail.oracle.com>
+	<E8CB0062-5A3B-4853-9804-8F345404A635@wansecurity.com>
+	<4B3CF610.4070603@oracle.com>
+	<6575F4FA-312C-4CB4-AA92-6AF7ECEF3EEA@wansecurity.com>
+	<20091231200836.GA3301@mail.oracle.com>
+Message-ID: <7DDC187D-D7DB-4640-91D7-92F7CF5CA704@wansecurity.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sunil Mushran wrote:
-> Tristan Ye wrote:
->> We implement the request as simple as possible to avoid
->> a possible extending if disk format get changed.
->>
->> Completenss of a request include the info required and a flag(FL_FILLED)
->> filled being returned to the end-user.
->>
->> Note: the requests in a series from userspace should be NULL-terminated.
->
-> Pass in the buffer length. Expecting null-termination is asking for 
-> trouble.
->
->>
->> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
->> ---
->> fs/ocfs2/ioctl.c | 184 
->> ++++++++++++++++++++++++++++++++++++++++++++++++++++++
->> 1 files changed, 184 insertions(+), 0 deletions(-)
->>
->> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
->> index 31fbb06..0ac5218 100644
->> --- a/fs/ocfs2/ioctl.c
->> +++ b/fs/ocfs2/ioctl.c
->> @@ -108,6 +108,188 @@ bail:
->> return status;
->> }
->>
->> +static int ocfs2_get_request_info(struct inode *inode,
->> + unsigned long arg)
->> +{
->> +
->> + int ret = 0, i = 0, num_reqs = 0;
->> +
->> + struct ocfs2_info_request req, *preq = NULL;
->> + struct ocfs2_info_request **reqs;
->> + struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->> +
->> + typedef struct ocfs2_info_request OIR, *POIR;
->> + typedef struct ocfs2_info_request_clustersize OIRC, *POIRC;
->> + typedef struct ocfs2_info_request_blocksize OIRB, *POIRB;
->> + typedef struct ocfs2_info_request_slotnum OIRS, *POIRS;
->> + typedef struct ocfs2_info_request_label OIRL, *POIRL;
->> + typedef struct ocfs2_info_request_uuid OIRU, *POIRU;
->> + typedef struct ocfs2_info_request_fs_features OIRF, *POIRF;
->> +
->
-> Three no-nos.
-> 1. Do not typedef structures.
-> 2. Use all-caps only for #defines.
-> 3. Do not pre-pend type to the variable name.
->
-> For more refer to the kernel coding style.
-> http://lxr.linux.no/source/Documentation/CodingStyle
->
->> + /*
->> + * The requests series from userspace need to be NULL-terminated.
->> + */
->> + do {
->> + preq = *((POIR *)((char *)arg + i * sizeof(POIR)));
->> + if (!preq)
->> + break;
->> + i++;
->> +
->> + } while (preq);
->> +
->> + num_reqs = i;
->
-> If we pass in the length of the buffer, then num_reqs = len / 
-> sizeof(struct ...);
+Just thought I would let you guys know that creating a 20TB file was successful. I even appended data to the end of it. Any operations on the file are completely useless because they take way to long. A appended "hello" to the end of the file no problem, but tail -n 1 {filename} yielded nothing except a lot of disk read after 159minutes of waiting.
 
-Size of each request may differ from type to type, think about:
+I don't really even know if this is good information or common knowledge.
 
-struct ocfs2_info_label {
-struct ocfs2_info ir_request;
-__u8 ir_label[OCFS2_MAX_VOL_LABEL_LEN];
-};
+dd bs=1000M count=20000 if=/dev/zero of=/data/storage/ReplayDataVolume001/biggest_yet_file
 
-struct ocfs2_info_uuid {
-struct ocfs2_info ir_request;
-__u8 ir_uuid_str[OCFS2_VOL_UUIDSTR_LEN];
-};
+root at s2-replay02:/data/storage/ReplayDataVolume001# ls -aFl
+total 1266312192
+drwxr-xr-x 3 root root           3896 2009-12-31 23:31 ./
+drwxr-xr-x 3 root root             88 2010-01-01 11:02 ../
+-rw-r--r-- 1 root root     1048576000 2009-12-31 23:23 big_file
+-rw-r--r-- 1 root root    10485760000 2009-12-31 23:24 bigger_file
+-rw-r--r-- 1 root root   104857600000 2009-12-31 23:28 biggest_file
+-rw-r--r-- 1 root root 20971520000006 2010-01-01 11:03 biggest_yet_file
+drwxr-xr-x 2 root root           3896 2009-12-31 11:53 lost+found/
+root at s2-replay02:/data/storage/ReplayDataVolume001#
 
-struct ocfs2_info_fs_features {
-struct ocfs2_info ir_quest;
-__u32 ir_compat_features;
-__u32 ir_incompat_features;
-__u32 ir_ro_compat_features;
-};
-
-So a len/sizeof() way may not provide the real number of requests, to 
-pass a count of request from userspace to kernel may make more sense. 
-but it was more like a workaround anyway,
-
-The most graceful way I guess is to treat request one by one, end-users 
-deliver just one request each time, it's just a matter of calling 
-ioctl() repeatly for users, and we still use just one ioctl type for all 
-of the requests(OCFS2_IOC_INFO), different requests can be recognized by 
-ir_code as we specified.
+-Robert
 
 
-Tristan.
+On Jan 1, 2010, at 5:08 AM, Joel Becker wrote:
 
-
->
->> +
->> + reqs = kmalloc(sizeof(POIR) * num_reqs, GFP_KERNEL);
->> + if (!reqs) {
->> + ret = -ENOMEM;
->> + goto bail;
->> + }
->
-> We can then copy_from_user the buffer in one go. The remaining
-> code have to change accordingly.
->
->> +
->> + ret = ocfs2_inode_lock(inode, NULL, 0);
->> + if (ret < 0) {
->> + mlog_errno(ret);
->> + goto bail;
->> + }
->
-> The superblock lock is special. See ocfs2_super_lock().
->
-> You'll need to traverse to the osb to use super_lock.
-> struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->
-> Also, make use of OCFS2_INFO_FL_NON_COHERENT.
->
->> +
->> + for (i = 0; i < num_reqs; i++) {
->> +
->> + reqs[i] = NULL;
->> +
->> + preq = *((POIR *)((char *)arg + i * sizeof(POIR)));
->> +
->> + if (copy_from_user(&req, preq, sizeof(req))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + switch (req.ir_code) {
->> + case OCFS2_INFO_CLUSTERSIZE:
->> + reqs[i] = kmalloc(sizeof(OIRC), GFP_KERNEL);
->> +
->> + if (copy_from_user(reqs[i], preq, sizeof(OIRC))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + ((POIRC)(reqs[i]))->ir_clustersize = osb->s_clustersize;
->> + reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
->> +
->> + if (copy_to_user(preq, reqs[i], sizeof(OIRC))) {
->> + ret = EFAULT;
->
-> -EFAULT.
->
->> + goto bail;
->> + }
->> +
->> + break;
->> + case OCFS2_INFO_BLOCKSIZE:
->> + reqs[i] = kmalloc(sizeof(OIRB), GFP_KERNEL);
->> +
->> + if (copy_from_user(reqs[i], preq, sizeof(OIRB))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + ((POIRB)(reqs[i]))->ir_blocksize =
->> + inode->i_sb->s_blocksize;
->> + reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
->> +
->> + if (copy_to_user(preq, reqs[i], sizeof(OIRB))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + break;
->> + case OCFS2_INFO_SLOTNUM:
->> + reqs[i] = kmalloc(sizeof(OIRS), GFP_KERNEL);
->> +
->> + if (copy_from_user(reqs[i], preq, sizeof(OIRS))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + ((POIRS)(reqs[i]))->ir_slotnum = osb->max_slots;
->> + reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
->> +
->> + if (copy_to_user(preq, reqs[i], sizeof(OIRS))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + break;
->> + case OCFS2_INFO_LABEL:
->> + reqs[i] = kmalloc(sizeof(OIRL), GFP_KERNEL);
->> +
->> + if (copy_from_user(reqs[i], preq, sizeof(OIRL))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + memmove(((POIRL)(reqs[i]))->ir_label, osb->vol_label,
->> + OCFS2_MAX_VOL_LABEL_LEN);
->
-> Why memmove() when memcpy() will do?
->
->> + reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
->> +
->> + if (copy_to_user(preq, reqs[i], sizeof(OIRL))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + break;
->> + case OCFS2_INFO_UUID:
->> + reqs[i] = kmalloc(sizeof(OIRU), GFP_KERNEL);
->> +
->> + if (copy_from_user(reqs[i], preq, sizeof(OIRU))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + memmove(((POIRU)(reqs[i]))->ir_uuid, osb->uuid,
->> + OCFS2_VOL_UUID_LEN);
->> + reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
->> +
->> + if (copy_to_user(preq, reqs[i], sizeof(OIRU))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + break;
->> + case OCFS2_INFO_FS_FEATURES:
->> + reqs[i] = kmalloc(sizeof(OIRF), GFP_KERNEL);
->> +
->> + if (copy_from_user(reqs[i], preq, sizeof(OIRF))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + ((POIRF)(reqs[i]))->ir_compat_features =
->> + osb->s_feature_compat;
->> + ((POIRF)(reqs[i]))->ir_incompat_features =
->> + osb->s_feature_incompat;
->> + ((POIRF)(reqs[i]))->ir_ro_compat_features =
->> + osb->s_feature_ro_compat;
->> + reqs[i]->ir_flags |= OCFS2_INFO_FL_FILLED;
->> +
->> + if (copy_to_user(preq, reqs[i], sizeof(OIRF))) {
->> + ret = -EFAULT;
->> + goto bail;
->> + }
->> +
->> + break;
->> + default:
->> + break;
->> + }
->> +
->> + }
->> +bail:
->> + for (i = 0; i < num_reqs; i++)
->> + kfree(reqs[i]);
->> +
->> + kfree(reqs);
->> +
->> + ocfs2_inode_unlock(inode, 0);
->> +
->> + mlog_exit(ret);
->> + return ret;
->> +}
->> +
->> long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
->> {
->> struct inode *inode = filp->f_path.dentry->d_inode;
->> @@ -173,6 +355,8 @@ long ocfs2_ioctl(struct file *filp, unsigned int 
->> cmd, unsigned long arg)
->> preserve = (args.preserve != 0);
->>
->> return ocfs2_reflink_ioctl(inode, old_path, new_path, preserve);
->> + case OCFS2_IOC_INFO:
->> + return ocfs2_get_request_info(inode, arg);
->> default:
->> return -ENOTTY;
->> }
->
+> On Fri, Jan 01, 2010 at 04:36:02AM +0900, Robert Smith wrote:
+>> Oh, I found it at line #2163 of fs/ocfs2/super.c.
+>> 
+>> I imagine that something as simple as the following would work, but perhaps I'll wait for your feedback.
+>> 
+>> 
+>> /*
+>>        if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
+>>> (u32)~0UL) {
+>>                mlog(ML_ERROR, "Volume might try to write to blocks beyond "
+>>                     "what jbd can address in 32 bits.\n");
+>>                status = -EINVAL;
+>>                goto bail;
+>>        }
+>> */
+> 
+> 	That should work.  The real solution will check based on the
+> journal flags.  Be warned, there be tygers in here.
+> 
+> Joel
+> 
+> -- 
+> 
+> "But all my words come back to me
+> In shades of mediocrity.
+> Like emptiness in harmony
+> I need someone to comfort me."
+> 
+> Joel Becker
+> Principal Software Developer
+> Oracle
+> E-mail: joel.becker at oracle.com
+> Phone: (650) 506-8127
