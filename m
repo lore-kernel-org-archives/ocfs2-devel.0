@@ -1,48 +1,49 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 4 Jan 2010 17:38:23 -0800
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 update for 2.6.33
-Message-ID: <20100105013823.GD19331@mail.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Wed,  6 Jan 2010 01:05:37 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: set OCFS2_LOCK_BLOCKED properly
+Message-ID: <201001051707.o05Gxath022586@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Sunil Mushran <sunil.mushran@oracle.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Hey Linus,
-	Here's the one fix that conflicted against master.  I rebased it
-atop master and let it stew in linux-next for a little bit.  It's an
-important fix, getting O_DIRECT correct as we CoW a refcounted cluster.
-	Please pull.
+for most cases ocfs2_generic_handle_bast() return 1 meaning that some down-
+converting work should be done. but when it return 0, the OCFS2_LOCK_BLOCKED is
+set inproperly.
+OCFS2_LOCK_BLOCKED is cleared in a down-convertion(dc) is done. if no dc is needed
+any more(done by another lock request queued before this one), OCFS2_LOCK_BLOCKED
+stays there unexpectly.
 
-Joel
+the fix is that setting that flag when dc(s) is really needed.
 
-The following changes since commit 6b7b284958d47b77d06745b36bc7f36dab769d9b:
-  Linus Torvalds (1):
-        Linux 2.6.33-rc2
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlmglue.c |    5 +++--
+ 1 files changed, 3 insertions(+), 2 deletions(-)
 
-are available in the git repository at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2 upstream-linus
-
-Tao Ma (1):
-      ocfs2: Handle O_DIRECT when writing to a refcounted cluster.
-
- fs/ocfs2/file.c |   21 +++++++++++++++------
- 1 files changed, 15 insertions(+), 6 deletions(-)
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index c5e4a49..e18eadf 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -907,8 +907,6 @@ static int ocfs2_generic_handle_bast(struct ocfs2_lock_res *lockres,
+ 
+ 	assert_spin_locked(&lockres->l_lock);
+ 
+-	lockres_or_flags(lockres, OCFS2_LOCK_BLOCKED);
+-
+ 	if (level > lockres->l_blocking) {
+ 		/* only schedule a downconvert if we haven't already scheduled
+ 		 * one that goes low enough to satisfy the level we're
+@@ -921,6 +919,9 @@ static int ocfs2_generic_handle_bast(struct ocfs2_lock_res *lockres,
+ 		lockres->l_blocking = level;
+ 	}
+ 
++	if (needs_downconvert)
++		lockres_or_flags(lockres, OCFS2_LOCK_BLOCKED);
++		
+ 	mlog_exit(needs_downconvert);
+ 	return needs_downconvert;
+ }
 -- 
-
-"Every day I get up and look through the Forbes list of the richest
- people in America. If I'm not there, I go to work."
-        - Robert Orben
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
-
-_______________________________________________
-Ocfs2-devel mailing list
-Ocfs2-devel at oss.oracle.com
-http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+1.6.2.5
