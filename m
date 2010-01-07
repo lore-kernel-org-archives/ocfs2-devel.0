@@ -1,32 +1,64 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 6 Jan 2010 18:50:39 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: set OCFS2_LOCK_BLOCKED properly
-In-Reply-To: <20100107021006.GA3270@laptop.oracle.com>
-References: <201001051707.o05Gxath022586@acsinet15.oracle.com>
-	<4B437BE9.7090803@oracle.com>
-	<20100107010319.GZ11402@wotan.suse.de>
-	<20100107021006.GA3270@laptop.oracle.com>
-Message-ID: <20100107025039.GA11402@wotan.suse.de>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 7 Jan 2010 13:22:31 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix __ocfs2_cluster_lock()
+	dead	lock
+In-Reply-To: <20100107020005.GC20095@mail.oracle.com>
+References: <201001060835.o067n0EO000623@rcsinet13.oracle.com>
+	<20100107020005.GC20095@mail.oracle.com>
+Message-ID: <20100107052230.GB3270@laptop.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jan 07, 2010 at 10:10:06AM +0800, Wengang Wang wrote:
-> sorry that I have no test case and it's not from a bug.
-> I found it when reading code.
+Hi Joel,
 
-Ok, I forgot to ack the patch previously:
+On 10-01-06 18:00, Joel Becker wrote:
+> On Wed, Jan 06, 2010 at 04:34:44PM +0800, Wengang Wang wrote:
+> > there is deadlock possibility in __ocfs2_cluster_lock().
+> > the case is like following.
+> > 
+> > #in time order
+> > 1) node A(the lock owner) is doing an up-convert(UC, PR->EX). it got the lock
+> > but didn't check BUSY flag again.
+> > 
+> > 2) node B requested an UC on the same lock resource. since node A has an EX on
+> > the lockres, a bast is issued and OCFS2_LOCK_BLOCKED flag is set to the lockres
+> > meanting that a DC is should be done. the DC asks for agreement of node A to
+> > release EX. and for now node A refuses that(still in process of getting that
+> > lock:) ).
+> > 
+> > 3) the UC on node A runs into the phrase of checking OCFS2_LOCK_BLOCKED flag and
+> > if it can continue without waiting for any DC. code is:
+> > 
+> >         if (lockres->l_flags & OCFS2_LOCK_BLOCKED &&
+> >             !ocfs2_may_continue_on_blocked_lock(lockres, level)) {
+> > 
+> > analysis:
+> > the BLOCKED flag is set in 2), and the UC can't continue to get the lock(
+> > ocfs2_may_continue_on_blocked_lock() returns false), so it the DC to finish.
+> > 
+> > so both UC and DC are waiting for each other --a dead lock.
+> 
+> 1) Do you have a test case?  Have you seen this happen, or are you just
+>    postulating from reading the code?
 
-Acked-by: Mark Fasheh <mfasheh@suse.com>
+yes, I have test case for this. when I was testing freeze/thaw, it was
+hit. while, the code for freeze/thaw is not sent out yet :P
 
-> actually I found it as a side product while I was working on
-> freeze/thaw. and the main bug/problem is described in my email titled 
-> "ocfs2: fix __ocfs2_cluster_lock() dead lock".
+the main cluster lock iterations is like this:
+0) a cluster lock for freeze/thaw is added. it works like open lock on
+inode. so node A and node B both have PR lock on it.
 
-Ok, I'll look there.
-	--Mark
+1) node A want to freeze the fs, so requested for a EX.
 
---
-Mark Fasheh
+2) node B released PR. and very immediately requests a PR waiting for
+thawing.
+
+3) things described above happened.
+
+regards,
+wengang.
+> 2) It sure looks like you're right.
+> 3) I hate our locking spaghetti!
