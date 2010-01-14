@@ -1,146 +1,22 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 14 Jan 2010 15:32:50 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Prevent a livelock in dlmglue
-In-Reply-To: <1263511970-24071-1-git-send-email-sunil.mushran@oracle.com>
-References: <1263511970-24071-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1263511970-24071-2-git-send-email-sunil.mushran@oracle.com>
+Date: Thu, 14 Jan 2010 15:32:49 -0800
+Subject: [Ocfs2-devel] Yet another attempt to fix the livelock issue
+Message-ID: <1263511970-24071-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-There is possibility of a livelock in __ocfs2_cluster_lock(). If a node were
-to get an ast for an upconvert request, followed immediately by a bast, there
-is a small probability the fs may downconvert the lock before the process, that
-requested the upconvert, is able to take the lock.
+All,
 
-This patch adds a new flag to indicate that the upconvert is still in progress
-and that the dc thread should not downconvert it right now.
+So the following email has the patch that is the yet-another-stab at the
+problem.
 
-Wengang Wang <wen.gang.wang@oracle.com> and Joel Becker <joel.becker@oracle.com>
-contributed heavily to this patch.
+Note: I have not tested the patch. Not even lightly. Our test servers
+are all running some long running test that I cannot stop right now.
 
-Reported-by: David Teigland <teigland@redhat.com>
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/dlmglue.c |   44 +++++++++++++++++++++++++++++++++++++++++---
- fs/ocfs2/ocfs2.h   |    4 ++++
- 2 files changed, 45 insertions(+), 3 deletions(-)
+Any feedback would be appreciated.
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 0190f31..b75d778 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -875,6 +875,14 @@ static inline void ocfs2_generic_handle_convert_action(struct ocfs2_lock_res *lo
- 		lockres_or_flags(lockres, OCFS2_LOCK_NEEDS_REFRESH);
- 
- 	lockres->l_level = lockres->l_requested;
-+
-+	/*
-+	 * We set the OCFS2_LOCK_UPCONVERT_FINISHING flag before clearing
-+	 * the OCFS2_LOCK_BUSY flag to prevent the dc thread from
-+	 * downconverting the lock before the upconvert has fully completed.
-+	 */
-+	lockres_or_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
-+
- 	lockres_clear_flags(lockres, OCFS2_LOCK_BUSY);
- 
- 	mlog_exit_void();
-@@ -1134,6 +1142,7 @@ static inline void ocfs2_recover_from_dlm_error(struct ocfs2_lock_res *lockres,
- 	mlog_entry_void();
- 	spin_lock_irqsave(&lockres->l_lock, flags);
- 	lockres_clear_flags(lockres, OCFS2_LOCK_BUSY);
-+	lockres_clear_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
- 	if (convert)
- 		lockres->l_action = OCFS2_AST_INVALID;
- 	else
-@@ -1324,13 +1333,13 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
- again:
- 	wait = 0;
- 
-+	spin_lock_irqsave(&lockres->l_lock, flags);
-+
- 	if (catch_signals && signal_pending(current)) {
- 		ret = -ERESTARTSYS;
--		goto out;
-+		goto unlock;
- 	}
- 
--	spin_lock_irqsave(&lockres->l_lock, flags);
--
- 	mlog_bug_on_msg(lockres->l_flags & OCFS2_LOCK_FREEING,
- 			"Cluster lock called on freeing lockres %s! flags "
- 			"0x%lx\n", lockres->l_name, lockres->l_flags);
-@@ -1347,6 +1356,20 @@ again:
- 		goto unlock;
- 	}
- 
-+	if (lockres->l_flags & OCFS2_LOCK_UPCONVERT_FINISHING) {
-+		/*
-+		 * We've attempted to upconvert, and the lock now has
-+		 * a level we can work with.  If we fell through to the
-+		 * next checks, we could spin in an upconvert->downconvert
-+		 * cycle as other nodes pounded us.  Instead, we jump
-+		 * out and let the caller do some work.  If a downconvert
-+		 * has come in, it will do its thing as soon as the caller
-+		 * is done.
-+		 */
-+		BUG_ON(level > lockres->l_level);
-+		goto update_holders;
-+	}
-+
- 	if (lockres->l_flags & OCFS2_LOCK_BLOCKED &&
- 	    !ocfs2_may_continue_on_blocked_lock(lockres, level)) {
- 		/* is the lock is currently blocked on behalf of
-@@ -1417,11 +1440,14 @@ again:
- 		goto again;
- 	}
- 
-+update_holders:
- 	/* Ok, if we get here then we're good to go. */
- 	ocfs2_inc_holders(lockres, level);
- 
- 	ret = 0;
- unlock:
-+	lockres_clear_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
-+
- 	spin_unlock_irqrestore(&lockres->l_lock, flags);
- out:
- 	/*
-@@ -3402,6 +3428,18 @@ recheck:
- 		goto leave;
- 	}
- 
-+	/*
-+	 * This prevents livelocks. OCFS2_LOCK_UPCONVERT_FINISHING flag is
-+	 * set when the ast is received for an upconvert just before the
-+	 * OCFS2_LOCK_BUSY flag is cleared. Now if the fs received a bast
-+	 * on the heels of the ast, we want to delay the downconvert just
-+	 * enough to allow the up requestor to do its task. Because this
-+	 * lock is in the blocked queue, the lock will be downconverted
-+	 * as soon as the requestor is done with the lock.
-+	 */
-+	if (lockres->l_flags & OCFS2_LOCK_UPCONVERT_FINISHING)
-+		goto leave_requeue;
-+
- 	/* if we're blocking an exclusive and we have *any* holders,
- 	 * then requeue. */
- 	if ((lockres->l_blocking == DLM_LOCK_EX)
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index d963d86..782e77d 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -136,6 +136,10 @@ enum ocfs2_unlock_action {
- #define OCFS2_LOCK_PENDING       (0x00000400) /* This lockres is pending a
- 						 call to dlm_lock.  Only
- 						 exists with BUSY set. */
-+#define OCFS2_LOCK_UPCONVERT_FINISHING (0x00000800) /* blocks the dc thread
-+						     * from downconverting
-+						     * before the upconvert
-+						     * has completed */
- 
- struct ocfs2_lock_res_ops;
- 
--- 
-1.6.3.3
+Thanks
+Sunil
