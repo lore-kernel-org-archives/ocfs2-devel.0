@@ -1,10 +1,10 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 14 Jan 2010 17:47:52 -0800
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2:freeze-thaw: add freeze cluster
- lock
-In-Reply-To: <201001091802.o09I2Z1v013097@rcsinet13.oracle.com>
-References: <201001091802.o09I2Z1v013097@rcsinet13.oracle.com>
-Message-ID: <4B4FC948.7020800@oracle.com>
+Date: Thu, 14 Jan 2010 17:53:20 -0800
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2:freeze-thaw: initialization and
+ cleanup
+In-Reply-To: <201001091802.o09I2ZlW017091@acsinet15.oracle.com>
+References: <201001091802.o09I2ZlW017091@acsinet15.oracle.com>
+Message-ID: <4B4FCA90.1090601@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,141 +12,196 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 Wengang Wang wrote:
-> add cluster lock for freeze/thaw.
-> change dlm version from 1.0 to 1.1
+> this patch does some initialization and cleanup for freeze/thaw.
 >
+>   
+
+Please capitalize the first letter of a sentence. ;)
+
 > Authored-by: Tiger Yang <tiger.yang@oracle.com>
 > Authored-by: Wengang Wang <wen.gang.wang@oracle.com>
 > Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
->   
-
-Removed Authored by tags. Just note that these patches
-were originally authored by Tiger.
-
-> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-> index 0334000..6e8bcb6 100644
-> --- a/fs/ocfs2/dlm/dlmdomain.c
-> +++ b/fs/ocfs2/dlm/dlmdomain.c
-> @@ -128,10 +128,14 @@ static DECLARE_WAIT_QUEUE_HEAD(dlm_domain_events);
->   * will have a negotiated version with the same major number and a minor
->   * number equal or smaller.  The dlm_ctxt->dlm_locking_proto field should
->   * be used to determine what a running domain is actually using.
-> + *
-> + * dlm protocal history:
-> + * 1.0:	base
-> + * 1.1:	freeze lock support added
->   */
->  static const struct dlm_protocol_version dlm_protocol = {
->  	.pv_major = 1,
-> -	.pv_minor = 0,
-> +	.pv_minor = 1,
->  };
->   
-
-Sorry. I told you to change the dlm protocol. But it should
-be the fs protocol as we are adding a new lock type. We would
-change the dlm protocol if were were adding a new dlm message
-type, etc.
-
-Same change. Up the minor by one.
-
+> ---
+>  fs/ocfs2/dlm/dlmapi.h  |    1 +
+>  fs/ocfs2/dlm/dlmlock.c |   12 ++++++++++++
+>  fs/ocfs2/dlmglue.c     |   24 ++++++++++++++++++++++++
+>  fs/ocfs2/super.c       |   21 +++++++++++++++++++++
+>  4 files changed, 58 insertions(+), 0 deletions(-)
+>
+> diff --git a/fs/ocfs2/dlm/dlmapi.h b/fs/ocfs2/dlm/dlmapi.h
+> index b5786a7..489c599 100644
+> --- a/fs/ocfs2/dlm/dlmapi.h
+> +++ b/fs/ocfs2/dlm/dlmapi.h
+> @@ -217,4 +217,5 @@ void dlm_register_eviction_cb(struct dlm_ctxt *dlm,
+>  			      struct dlm_eviction_cb *cb);
+>  void dlm_unregister_eviction_cb(struct dlm_eviction_cb *cb);
 >  
->  #define DLM_DOMAIN_BACKOFF_MS 200
+> +int dlm_freeze_lock_supported(struct dlm_ctxt *dlm);
+>  #endif /* DLMAPI_H */
+> diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+> index 437698e..ad15a66 100644
+> --- a/fs/ocfs2/dlm/dlmlock.c
+> +++ b/fs/ocfs2/dlm/dlmlock.c
+> @@ -764,3 +764,15 @@ error:
+>  	return status;
+>  }
+>  EXPORT_SYMBOL_GPL(dlmlock);
+> +
+> +int dlm_freeze_lock_supported(struct dlm_ctxt *dlm)
+> +{
+> +	if (dlm->dlm_locking_proto.pv_major == 1)
+> +		return (dlm->dlm_locking_proto.pv_minor >= 1);
+> +
+> +	if (dlm->dlm_locking_proto.pv_major > 1)
+> +		return 1;
+> +
+> +	return 0;
+> +}
+> +EXPORT_SYMBOL_GPL(dlm_freeze_lock_supported);
+>   
+
+Change the fs protocol. We shouldn't need to export any symbols.
+
 > diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index c5e4a49..0caa69e 100644
+> index 0caa69e..cf88af2 100644
 > --- a/fs/ocfs2/dlmglue.c
 > +++ b/fs/ocfs2/dlmglue.c
-> @@ -2894,6 +2894,34 @@ static const struct file_operations ocfs2_dlm_debug_fops = {
->  	.llseek =	seq_lseek,
+> @@ -115,6 +115,8 @@ static int ocfs2_check_refcount_downconvert(struct ocfs2_lock_res *lockres,
+>  					    int new_level);
+>  static int ocfs2_refcount_convert_worker(struct ocfs2_lock_res *lockres,
+>  					 int blocking);
+> +static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
+> +					  int new_level);
+>  
+>  #define mlog_meta_lvb(__level, __lockres) ocfs2_dump_meta_lvb_info(__level, __PRETTY_FUNCTION__, __LINE__, __lockres)
+>  
+> @@ -290,6 +292,11 @@ static struct ocfs2_lock_res_ops ocfs2_refcount_block_lops = {
+>  	.flags		= 0,
 >  };
 >  
-> +int ocfs2_freeze_lock(struct ocfs2_super *osb, int ex)
-> +{
-> +	int ret;
-> +	int level = ex ? LKM_EXMODE : LKM_PRMODE;
-> +	struct ocfs2_lock_res *lockres = &osb->osb_freeze_lockres;
+> +static struct ocfs2_lock_res_ops ocfs2_freeze_lops = {
+> +	.check_downconvert = ocfs2_check_freeze_downconvert,
+> +	.flags		= 0,
+> +};
 > +
-> +	if (ocfs2_is_hard_readonly(osb))
-> +		return -EROFS;
-> +
-> +	if (ocfs2_mount_local(osb))
-> +		return 0;
-> +
-> +	ret = ocfs2_cluster_lock(osb, lockres, level, 0, 0);
-> +	if (ret < 0)
-> +		mlog_errno(ret);
-> +
-> +	return ret;
-> +}
-> +
-> +void ocfs2_freeze_unlock(struct ocfs2_super *osb, int ex)
-> +{
-> +	int level = ex ? LKM_EXMODE : LKM_PRMODE;
-> +	struct ocfs2_lock_res *lockres = &osb->osb_freeze_lockres;
-> +
-> +	if (!ocfs2_mount_local(osb))
-> +		ocfs2_cluster_unlock(osb, lockres, level);
-> +}
-> +
->  static int ocfs2_dlm_init_debug(struct ocfs2_super *osb)
+>  static inline int ocfs2_is_inode_lock(struct ocfs2_lock_res *lockres)
 >  {
->  	int ret = 0;
-> diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-> index d1ce48e..8687b81 100644
-> --- a/fs/ocfs2/dlmglue.h
-> +++ b/fs/ocfs2/dlmglue.h
-> @@ -155,6 +155,8 @@ struct ocfs2_refcount_tree;
->  int ocfs2_refcount_lock(struct ocfs2_refcount_tree *ref_tree, int ex);
->  void ocfs2_refcount_unlock(struct ocfs2_refcount_tree *ref_tree, int ex);
+>  	return lockres->l_type == OCFS2_LOCK_TYPE_META ||
+> @@ -722,6 +729,15 @@ void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
+>  				   &ocfs2_refcount_block_lops, osb);
+>  }
 >  
-> +int ocfs2_freeze_lock(struct ocfs2_super *osb, int ex);
-> +void ocfs2_freeze_unlock(struct ocfs2_super *osb, int ex);
+> +static void ocfs2_freeze_lock_res_init(struct ocfs2_lock_res *res,
+> +				       struct ocfs2_super *osb)
+> +{
+> +	ocfs2_lock_res_init_once(res);
+> +	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_FREEZE, 0, 0, res->l_name);
+> +	ocfs2_lock_res_init_common(osb, res, OCFS2_LOCK_TYPE_FREEZE,
+> +				   &ocfs2_freeze_lops, osb);
+> +}
+> +
+>  void ocfs2_lock_res_free(struct ocfs2_lock_res *res)
+>  {
+>  	mlog_entry_void();
+> @@ -3006,6 +3022,7 @@ local:
+>  	ocfs2_rename_lock_res_init(&osb->osb_rename_lockres, osb);
+>  	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
+>  	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
+> +	ocfs2_freeze_lock_res_init(&osb->osb_freeze_lockres, osb);
 >  
->  void ocfs2_mark_lockres_freeing(struct ocfs2_lock_res *lockres);
->  void ocfs2_simple_drop_lockres(struct ocfs2_super *osb,
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index d963d86..bf66978 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -355,6 +355,7 @@ struct ocfs2_super
->  	struct ocfs2_lock_res osb_super_lockres;
->  	struct ocfs2_lock_res osb_rename_lockres;
->  	struct ocfs2_lock_res osb_nfs_sync_lockres;
-> +	struct ocfs2_lock_res osb_freeze_lockres;
->  	struct ocfs2_dlm_debug *osb_dlm_debug;
+>  	osb->cconn = conn;
 >  
->  	struct dentry *osb_debug_root;
-> diff --git a/fs/ocfs2/ocfs2_lockid.h b/fs/ocfs2/ocfs2_lockid.h
-> index d277aab..3c29924 100644
-> --- a/fs/ocfs2/ocfs2_lockid.h
-> +++ b/fs/ocfs2/ocfs2_lockid.h
-> @@ -50,6 +50,7 @@ enum ocfs2_lock_type {
->  	OCFS2_LOCK_TYPE_NFS_SYNC,
->  	OCFS2_LOCK_TYPE_ORPHAN_SCAN,
->  	OCFS2_LOCK_TYPE_REFCOUNT,
-> +	OCFS2_LOCK_TYPE_FREEZE,
->  	OCFS2_NUM_LOCK_TYPES
->  };
+> @@ -3043,6 +3060,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
+>  	ocfs2_lock_res_free(&osb->osb_rename_lockres);
+>  	ocfs2_lock_res_free(&osb->osb_nfs_sync_lockres);
+>  	ocfs2_lock_res_free(&osb->osb_orphan_scan.os_lockres);
+> +	ocfs2_lock_res_free(&osb->osb_freeze_lockres);
+>  
+>  	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
+>  	osb->cconn = NULL;
+> @@ -3228,6 +3246,7 @@ static void ocfs2_drop_osb_locks(struct ocfs2_super *osb)
+>  	ocfs2_simple_drop_lockres(osb, &osb->osb_rename_lockres);
+>  	ocfs2_simple_drop_lockres(osb, &osb->osb_nfs_sync_lockres);
+>  	ocfs2_simple_drop_lockres(osb, &osb->osb_orphan_scan.os_lockres);
+> +	ocfs2_simple_drop_lockres(osb, &osb->osb_freeze_lockres);
+>  }
+>  
+>  int ocfs2_drop_inode_locks(struct inode *inode)
+> @@ -3909,6 +3928,11 @@ void ocfs2_set_locking_protocol(void)
+>  	ocfs2_stack_glue_set_locking_protocol(&lproto);
+>  }
+>  
+> +static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
+> +					  int new_level)
+> +{
+> +	return 1; //change me
+> +}
 >   
 
-OCFS2_LOCK_TYPE_FREEZEFS sounds better.
+If it's going to return 1 always, then we don't need it.
 
-> @@ -93,6 +94,9 @@ static inline char ocfs2_lock_type_char(enum ocfs2_lock_type type)
->  		case OCFS2_LOCK_TYPE_REFCOUNT:
->  			c = 'T';
->  			break;
-> +		case OCFS2_LOCK_TYPE_FREEZE:
-> +			c = 'Z';
-> +			break;
->  		default:
->  			c = '\0';
->  	}
-> @@ -115,6 +119,7 @@ static char *ocfs2_lock_type_strings[] = {
->  	[OCFS2_LOCK_TYPE_NFS_SYNC] = "NFSSync",
->  	[OCFS2_LOCK_TYPE_ORPHAN_SCAN] = "OrphanScan",
->  	[OCFS2_LOCK_TYPE_REFCOUNT] = "Refcount",
-> +	[OCFS2_LOCK_TYPE_FREEZE] = "Freeze",
->  };
 >  
->  static inline const char *ocfs2_lock_type_string(enum ocfs2_lock_type type)
+>  static void ocfs2_process_blocked_lock(struct ocfs2_super *osb,
+>  				       struct ocfs2_lock_res *lockres)
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 14f47d2..9127760 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -134,6 +134,7 @@ static void ocfs2_destroy_inode(struct inode *inode);
+>  static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend);
+>  static int ocfs2_enable_quotas(struct ocfs2_super *osb);
+>  static void ocfs2_disable_quotas(struct ocfs2_super *osb);
+> +static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb);
+>  
+>  static const struct super_operations ocfs2_sops = {
+>  	.statfs		= ocfs2_statfs,
+> @@ -1772,10 +1773,18 @@ static int ocfs2_get_sector(struct super_block *sb,
+>  	return 0;
+>  }
+>  
+> +static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb)
+> +{
+> +	if (!osb->cconn || !osb->cconn->cc_lockspace)
+> +		return 0;
+> +	return dlm_freeze_lock_supported(osb->cconn->cc_lockspace);
+> +}
+> +
+>  static int ocfs2_mount_volume(struct super_block *sb)
+>  {
+>  	int status = 0;
+>  	int unlock_super = 0;
+> +	int unlock_freeze = 0;
+>  	struct ocfs2_super *osb = OCFS2_SB(sb);
+>  
+>  	mlog_entry_void();
+> @@ -1796,6 +1805,15 @@ static int ocfs2_mount_volume(struct super_block *sb)
+>  	}
+>  	unlock_super = 1;
+>  
+> +	if (ocfs2_freeze_lock_supported(osb)) {
+> +		status = ocfs2_freeze_lock(osb, 0);
+> +		if (status < 0) {
+> +			mlog_errno(status);
+> +			goto leave;
+> +		}
+> +		unlock_freeze = 1;
+> +	}
+> +
+>  	/* This will load up the node map and add ourselves to it. */
+>  	status = ocfs2_find_slot(osb);
+>  	if (status < 0) {
+> @@ -1821,6 +1839,9 @@ static int ocfs2_mount_volume(struct super_block *sb)
+>  		mlog_errno(status);
+>  
+>  leave:
+> +	if (ocfs2_freeze_lock_supported(osb) && unlock_freeze)
+> +		ocfs2_freeze_unlock(osb, 0);
+> +
+>  	if (unlock_super)
+>  		ocfs2_super_unlock(osb, 1);
+>   
+
+What about cleanup in umount?
+
+>  
 >   
