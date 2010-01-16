@@ -1,396 +1,394 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 15 Jan 2010 18:22:16 -0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2:freeze-thaw: make it work
-In-Reply-To: <201001091802.o09I2bB1013187@rcsinet13.oracle.com>
-References: <201001091802.o09I2bB1013187@rcsinet13.oracle.com>
-Message-ID: <4B5122D8.9030400@oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Sat, 16 Jan 2010 17:45:15 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: add extent block stealing for ocfs2
+In-Reply-To: <>
+References: <>
+Message-ID: <1263635115-4930-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Apart from this, you have to handle edge conditions. Like umount
-and mount. What if the freeze is issued just before a node is about
-to umount. Or, another node tries to mount the volume while it is
-frozen.
+This patch add extent(metadata) block stealing mechanism for
+extent allocation. This mechanism is same as the inode stealing.
+ocfs2_steal_from_other_nodes was introducted to steal the
+resources(inode or extent block) from other slot.
 
-Also, recovery. What if a node dies when a node is frozen. Think
-how you will handle that.
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+---
+ fs/ocfs2/alloc.c        |    5 +-
+ fs/ocfs2/dir.c          |    2 +-
+ fs/ocfs2/localalloc.c   |    2 +-
+ fs/ocfs2/ocfs2.h        |   38 ++++++++++++++---
+ fs/ocfs2/refcounttree.c |    6 +-
+ fs/ocfs2/suballoc.c     |  104 +++++++++++++++++++++++++++++-----------------
+ fs/ocfs2/super.c        |    9 +++-
+ fs/ocfs2/xattr.c        |    2 +-
+ 8 files changed, 111 insertions(+), 57 deletions(-)
 
-Sunil
-
-Wengang Wang wrote:
-> adds freeze_fs()/unfreeze_fs() for ocfs2 so that it supports freeze/thaw.
->
-> Authored-by: Tiger Yang <tiger.yang@oracle.com>
-> Authored-by: Wengang Wang <wen.gang.wang@oracle.com>
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> ---
->  fs/ocfs2/dlmglue.c |  108 +++++++++++++++++++++++++++++++++++++++++++++++-
->  fs/ocfs2/dlmglue.h |    1 +
->  fs/ocfs2/journal.c |    1 +
->  fs/ocfs2/ocfs2.h   |    5 ++
->  fs/ocfs2/super.c   |  117 ++++++++++++++++++++++++++++++++++++++++++++++++++++
->  5 files changed, 231 insertions(+), 1 deletions(-)
->
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index cf88af2..b1b8690 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -3928,10 +3928,116 @@ void ocfs2_set_locking_protocol(void)
->  	ocfs2_stack_glue_set_locking_protocol(&lproto);
->  }
->  
-> +/*
-> + * This is only ever run on behalf of another node.
-> + */
-> +void ocfs2_freeze_worker(struct work_struct *work)
-> +{
-> +	struct super_block *sb;
-> +	int err = 0, err2;
-> +	struct ocfs2_super *osb = container_of(work, struct ocfs2_super,
-> +					       osb_freeze_work);
-> +
-> +	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-> +
-> +	sb = freeze_bdev(osb->sb->s_bdev);
-> +	if (IS_ERR(sb)) {
-> +		/* the error is returned by ocfs2_freeze_fs() */
-> +		err = PTR_ERR(sb);
-> +		if (err == -ENOTSUPP) {
-> +			/* we got freeze request but we don't support it */
-> +			BUG();
-> +		} else {
-> +			/* we don't issue cluster lock in ocfs2_freeze_fs() for
-> +			 * a freeze request(from other node). no other error
-> +			 * should be returned.
-> +			 */
-> +			BUG();
-> +		}
-> +	}
->   
-
-Why not one BUG. This needs some more thought. See if
-we can gracefully handle these errors.
-
-BUG should be reserved to detect code errors. Or, really weird
-errors we don't expect. Like memory corruption. This is a simple
-error. We should try to handle this gracefully.
-
-> +
-> +	osb->frozen_by_master = 1;
-> +	spin_lock(&osb->osb_lock);
-> +	osb->osb_flags &= ~OCFS2_OSB_FREEZE_INPROG;
-> +	spin_unlock(&osb->osb_lock);
-> +
-> +	/* kick downconvert thread */
-> +	ocfs2_wake_downconvert_thread(osb);
-> +
-> +	/* waiting for THAW */
-> +	err = ocfs2_freeze_lock(osb, 0);
-> +	if (err)
-> +		mlog(ML_ERROR, "getting PR on freeze_lock failed,"
-> +		     "but going to thaw block device %s\n",  osb->dev_str);
-> +
-> +	err2 = thaw_bdev(osb->sb->s_bdev, osb->sb);
-> +	if (err2) {
-> +		if (err2 == -ENOTSUPP) {
-> +			/* we got freeze request but we don't support it */
-> +			BUG();
-> +		}
-> +		printk(KERN_WARNING "ocfs2: Thawing %s failed\n", osb->dev_str);
-> +	}
-> +
-> +	osb->frozen_by_master = 0;
-> +
-> +	if (!err)
-> +		ocfs2_freeze_unlock(osb, 0);
-> +}
-> +	
-> +static void ocfs2_queue_freeze_worker(struct ocfs2_super *osb)
-> +{
-> +	spin_lock(&osb->osb_lock);
-> +	if (!(osb->osb_flags & OCFS2_OSB_FREEZE_INPROG)) {
-> +		osb->osb_flags |= OCFS2_OSB_FREEZE_INPROG;
-> +		queue_work(ocfs2_wq, &osb->osb_freeze_work);
-> +	}
-> +	spin_unlock(&osb->osb_lock);
-> +}
-> +
->  static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
->  					  int new_level)
->  {
-> -	return 1; //change me
-> +	struct ocfs2_super *osb = ocfs2_get_lockres_osb(lockres);
-> +	struct super_block *sb = osb->sb;
-> +
-> +	mlog(0, "flags=0x%lx, frozen=%d, level=%d, newlevel=%d\n",
-> +	     osb->osb_flags, sb->s_frozen, lockres->l_level, new_level);
-> +
-> +	if (new_level == LKM_PRMODE) {
-> +		/* other node is during mount or is waiting for THAW */
-> +		if (sb->s_frozen) {
-> +			/* this node didn't thaw yet, try later */
-> +			return 0;
-> +		} else {
-> +			/* this node has unlocked freeze_locky, it's ok to
-> +			 * downconvert it.
-> +			 */
-> +			return 1;
-> +		}
-> +	}
-> +
-> +	/* now new_level is NL. other node wants to freeze cluster.
-> +	 * the request shouldn't come when this node is still holding freeze_lock
-> +	 */
-> +	BUG_ON(lockres->l_ex_holders);
-> +
-> +	/* now this node is holding PR or is caching PR */
-> +	if (lockres->l_ro_holders) {
-> +		/* this node is during mount or is thawing, try later */
-> +		return 0;
-> +	}
-> +
-> +	/* now this node is caching PR, it's Ok to freeze for the request */
-> +	if (sb->s_frozen &&
-> +	    !(osb->osb_flags & OCFS2_OSB_FREEZE_INPROG)) {
-> +		/* ok, this node is frozen for the request */
-> +		return 1;
-> +	}
-> +
-> +	/* queue a work to do freeze for the request */
-> +	ocfs2_queue_freeze_worker(osb);
-> +	return 0;
->  }
->  
->  static void ocfs2_process_blocked_lock(struct ocfs2_super *osb,
-> diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-> index 8687b81..96e0dae 100644
-> --- a/fs/ocfs2/dlmglue.h
-> +++ b/fs/ocfs2/dlmglue.h
-> @@ -168,6 +168,7 @@ void ocfs2_wake_downconvert_thread(struct ocfs2_super *osb);
->  struct ocfs2_dlm_debug *ocfs2_new_dlm_debug(void);
->  void ocfs2_put_dlm_debug(struct ocfs2_dlm_debug *dlm_debug);
->  
-> +void ocfs2_freeze_worker(struct work_struct *work);
->  /* To set the locking protocol on module initialization */
->  void ocfs2_set_locking_protocol(void);
->  #endif	/* DLMGLUE_H */
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index bf34c49..45c5bfe 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -355,6 +355,7 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
->  	if (ocfs2_is_hard_readonly(osb))
->  		return ERR_PTR(-EROFS);
->  
-> +	vfs_check_frozen(osb->sb, SB_FREEZE_TRANS);
->  	BUG_ON(osb->journal->j_state == OCFS2_JOURNAL_FREE);
->  	BUG_ON(max_buffs <= 0);
->  
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index bf66978..62e1819 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -254,6 +254,7 @@ enum ocfs2_mount_options
->  #define OCFS2_OSB_HARD_RO			0x0002
->  #define OCFS2_OSB_ERROR_FS			0x0004
->  #define OCFS2_OSB_DROP_DENTRY_LOCK_IMMED	0x0008
-> +#define OCFS2_OSB_FREEZE_INPROG			0x0010
->  
->  #define OCFS2_DEFAULT_ATIME_QUANTUM		60
->  
-> @@ -356,6 +357,8 @@ struct ocfs2_super
->  	struct ocfs2_lock_res osb_rename_lockres;
->  	struct ocfs2_lock_res osb_nfs_sync_lockres;
->  	struct ocfs2_lock_res osb_freeze_lockres;
-> +	int frozen_by_master;		/* a flag. 1 if FS is frozen on behalf
-> +					 * of another node */
->  	struct ocfs2_dlm_debug *osb_dlm_debug;
->  
->  	struct dentry *osb_debug_root;
-> @@ -394,6 +397,8 @@ struct ocfs2_super
->  	unsigned int			*osb_orphan_wipes;
->  	wait_queue_head_t		osb_wipe_event;
->  
-> +	/* osb_freeze_work is protected by osb->s_bdev->bd_fsfreeze_mutex */
-> +	struct work_struct		osb_freeze_work;
->  	struct ocfs2_orphan_scan	osb_orphan_scan;
->  
->  	/* used to protect metaecc calculation check of xattr. */
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 9127760..4493163 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -135,6 +135,10 @@ static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend);
->  static int ocfs2_enable_quotas(struct ocfs2_super *osb);
->  static void ocfs2_disable_quotas(struct ocfs2_super *osb);
->  static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb);
-> +static int is_kernel_thread(void);
-> +static int ocfs2_freeze_fs(struct super_block *sb);
-> +static int is_freeze_master(struct ocfs2_super *osb);
-> +static int ocfs2_unfreeze_fs(struct super_block *sb);
->  
->  static const struct super_operations ocfs2_sops = {
->  	.statfs		= ocfs2_statfs,
-> @@ -149,6 +153,8 @@ static const struct super_operations ocfs2_sops = {
->  	.show_options   = ocfs2_show_options,
->  	.quota_read	= ocfs2_quota_read,
->  	.quota_write	= ocfs2_quota_write,
-> +	.freeze_fs	= ocfs2_freeze_fs,
-> +	.unfreeze_fs	= ocfs2_unfreeze_fs,
->  };
->  
->  enum {
-> @@ -2167,6 +2173,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	INIT_WORK(&osb->dentry_lock_work, ocfs2_drop_dl_inodes);
->  	osb->dentry_lock_list = NULL;
->  
-> +	INIT_WORK(&osb->osb_freeze_work, ocfs2_freeze_worker);
-> +
->  	/* get some pseudo constants for clustersize bits */
->  	osb->s_clustersize_bits =
->  		le32_to_cpu(di->id2.i_super.s_clustersize_bits);
-> @@ -2525,5 +2533,114 @@ void __ocfs2_abort(struct super_block* sb,
->  	ocfs2_handle_error(sb);
->  }
->  
-> +static int is_kernel_thread()
-> +{
-> +	if (current->flags & PF_KTHREAD)
-> +		return 1;
-> +	return 0;
-> +}
->   
-
-static inline
-return (current->flags & PF_KTHREAD);
-
-> +
-> +/* ocfs2_freeze_fs()/ocfs2_unfreeze_fs() are always called by freeze_bdev()/
-> + * thaw_bdev(). bdev->bd_fsfreeze_mutex is used for synchronization. an extra
-> + * ocfs2 mutex is not needed.
-> + */
-> +static int ocfs2_freeze_fs(struct super_block *sb)
-> +{
-> +	int ret = 0;
-> +	struct ocfs2_super *osb = OCFS2_SB(sb);
-> +
-> +	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-> +
-> +	if (!ocfs2_freeze_lock_supported(osb)) {
-> +		return -ENOTSUPP;
-> +	}
-> +
-> +	printk(KERN_INFO "ocfs2: Request to freeze block device (%s)\n",
-> +	       osb->dev_str);
->   
-
-remove this printk
-
-> +
-> +	/* cluster lock is issued only when this is the IOCTL process.(other
-> +	 * case ocfs2_freeze_fs() is called in ocfs2_wq thread)
-> +	 */
-> +
-> +	if (!is_kernel_thread()) {
-> +		/* this is ioctl thread, issues cluster lock */
-> +		ret = ocfs2_freeze_lock(osb, 1);
-> +		if (ret) {
-> +			mlog_errno(ret);
-> +		} else {
-> +			printk(KERN_INFO "ocfs2: Block device (%s) frozen by local\n",
-> +			       osb->dev_str);
-> +		}
-> +	} else {
-> +		/* this is ocfs2_wq kernel thread. we do freeze on behalf of
-> +		 * the requesting node, don't issue cluster lock again.
-> +		 */
-> +		printk(KERN_INFO "ocfs2: Block device (%s) frozen by remote\n",
-> +		       osb->dev_str);
-> +	}
->   
-
-Make these KERN_NOTICEs.
-
-> +
-> +	return ret;
-> +}
-> +
-> +static int is_freeze_master(struct ocfs2_super *osb)
-> +{
-> +	BUG_ON(osb->osb_freeze_lockres.l_ex_holders > 1);
-> +
-> +	if (osb->osb_freeze_lockres.l_ex_holders)
-> +		return 1;
-> +
-> +	return 0;
-> +}
-> +
-> +static int ocfs2_unfreeze_fs(struct super_block *sb)
-> +{
-> +	struct ocfs2_super *osb = OCFS2_SB(sb);
-> +
-> +	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-> +
-> +	if (!ocfs2_freeze_lock_supported(osb))
-> +		return -ENOTSUPP;
->   
-
-This check should move into the if below because then we can
-make it a BUG_ON for the remote case.
-
-> +
-> +	if (!is_kernel_thread()) {
-> +		/* this is the ioctl user thread. */
-> +		if (!is_freeze_master(osb)) {
-> +			/* THAW ioctl on a node other than the one on with cluster
-> +			 * is frozen. don't thaw in the case. returns -EINVAL so
-> +			 * that osb->sb->s_bdev->bd_fsfreeze_count can be decreased.
-> +			 */
-> +
-> +			if (!osb->frozen_by_master) {
-> +				/* this is from a nested cross cluster thaw
-> +				 * case:
-> +				 * frozen from another node(node A)
-> +				 * frozen from this node(not suppored though)
-> +				 * thawed from node A
-> +				 * thawed from this node(coming here)
-> +				 *
-> +				 * thaw this node only.
-> +				 */
->   
-
-If we don't support nested freeze, then why add this code.
-
-> +				printk(KERN_INFO "ocfs2: Block device (%s) thawed"
-> +				       " by local\n", osb->dev_str);
-> +				goto bail;
-> +			}
-> +
-> +			/* now the cluster still frozen by another node,
-> +			 * fails this request
-> +			 */
-> +			printk(KERN_INFO "ocfs2: thawing %s on invalid node\n",
-> +			       osb->dev_str);
-> +			return -EINVAL;
-> +		}
->   
-
-EINVAL is enough. No need for printks.
-
-> +		ocfs2_freeze_unlock(osb, 1);
-> +		printk(KERN_INFO "ocfs2: Block device (%s) thawed by local\n", osb->dev_str);
-> +	} else {
-> +		/* this is ocfs2_wq kernel thread. nothing to do. */
-> +		printk(KERN_INFO "ocfs2: Block device (%s) thawed by remote\n", osb->dev_str);
-> +	}
-> +bail:
-> +	return 0;
-> +}
-> +
-> +
->  module_init(ocfs2_init);
->  module_exit(ocfs2_exit);
->   
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index d17bdc7..cae72f0 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -1050,7 +1050,8 @@ static int ocfs2_create_new_meta_bhs(handle_t *handle,
+ 			strcpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
+ 			eb->h_blkno = cpu_to_le64(first_blkno);
+ 			eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
+-			eb->h_suballoc_slot = cpu_to_le16(osb->slot_num);
++			eb->h_suballoc_slot =
++				cpu_to_le16(meta_ac->ac_alloc_slot);
+ 			eb->h_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+ 			eb->h_list.l_count =
+ 				cpu_to_le16(ocfs2_extent_recs_per_eb(osb->sb));
+@@ -6037,7 +6038,7 @@ static void ocfs2_truncate_log_worker(struct work_struct *work)
+ 	if (status < 0)
+ 		mlog_errno(status);
+ 	else
+-		ocfs2_init_inode_steal_slot(osb);
++		ocfs2_init_all_steal_slot(osb);
+ 
+ 	mlog_exit(status);
+ }
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 28c3ec2..765d66c 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -2439,7 +2439,7 @@ static int ocfs2_dx_dir_attach_index(struct ocfs2_super *osb,
+ 	dx_root = (struct ocfs2_dx_root_block *)dx_root_bh->b_data;
+ 	memset(dx_root, 0, osb->sb->s_blocksize);
+ 	strcpy(dx_root->dr_signature, OCFS2_DX_ROOT_SIGNATURE);
+-	dx_root->dr_suballoc_slot = cpu_to_le16(osb->slot_num);
++	dx_root->dr_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
+ 	dx_root->dr_suballoc_bit = cpu_to_le16(dr_suballoc_bit);
+ 	dx_root->dr_fs_generation = cpu_to_le32(osb->fs_generation);
+ 	dx_root->dr_blkno = cpu_to_le64(dr_blkno);
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index ac10f83..70480ce 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -476,7 +476,7 @@ out_mutex:
+ 
+ out:
+ 	if (!status)
+-		ocfs2_init_inode_steal_slot(osb);
++		ocfs2_init_all_steal_slot(osb);
+ 	mlog_exit(status);
+ 	return status;
+ }
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 9362eea..989570c 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -301,7 +301,9 @@ struct ocfs2_super
+ 	u32 s_next_generation;
+ 	unsigned long osb_flags;
+ 	s16 s_inode_steal_slot;
++	s16 s_extent_steal_slot;
+ 	atomic_t s_num_inodes_stolen;
++	atomic_t s_num_extents_stolen;
+ 
+ 	unsigned long s_mount_opt;
+ 	unsigned int s_atime_quantum;
+@@ -756,28 +758,50 @@ static inline unsigned int ocfs2_megabytes_to_clusters(struct super_block *sb,
+ 	return megs << (20 - OCFS2_SB(sb)->s_clustersize_bits);
+ }
+ 
+-static inline void ocfs2_init_inode_steal_slot(struct ocfs2_super *osb)
++static inline void ocfs2_init_all_steal_slot(struct ocfs2_super *osb)
+ {
+ 	spin_lock(&osb->osb_lock);
+ 	osb->s_inode_steal_slot = OCFS2_INVALID_SLOT;
++	osb->s_extent_steal_slot = OCFS2_INVALID_SLOT;
+ 	spin_unlock(&osb->osb_lock);
+ 	atomic_set(&osb->s_num_inodes_stolen, 0);
++	atomic_set(&osb->s_num_extents_stolen, 0);
+ }
+ 
+-static inline void ocfs2_set_inode_steal_slot(struct ocfs2_super *osb,
+-					      s16 slot)
++static inline void ocfs2_init_steal_slot(struct ocfs2_super *osb, int type)
+ {
+ 	spin_lock(&osb->osb_lock);
+-	osb->s_inode_steal_slot = slot;
++	if (type == INODE_ALLOC_SYSTEM_INODE)
++		osb->s_inode_steal_slot = OCFS2_INVALID_SLOT;
++	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
++		osb->s_extent_steal_slot = OCFS2_INVALID_SLOT;
+ 	spin_unlock(&osb->osb_lock);
++	if (type == INODE_ALLOC_SYSTEM_INODE)
++		atomic_set(&osb->s_num_inodes_stolen, 0);
++	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
++		atomic_set(&osb->s_num_extents_stolen, 0);
+ }
+ 
+-static inline s16 ocfs2_get_inode_steal_slot(struct ocfs2_super *osb)
++static inline void ocfs2_set_steal_slot(struct ocfs2_super *osb,
++					int slot, int type)
+ {
+-	s16 slot;
++	spin_lock(&osb->osb_lock);
++	if (type == INODE_ALLOC_SYSTEM_INODE)
++		osb->s_inode_steal_slot = slot;
++	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
++		osb->s_extent_steal_slot = slot;
++	spin_unlock(&osb->osb_lock);
++}
++
++static inline int ocfs2_get_steal_slot(struct ocfs2_super *osb, int type)
++{
++	int slot = OCFS2_INVALID_SLOT;
+ 
+ 	spin_lock(&osb->osb_lock);
+-	slot = osb->s_inode_steal_slot;
++	if (type == INODE_ALLOC_SYSTEM_INODE)
++		slot = osb->s_inode_steal_slot;
++	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
++		slot = osb->s_extent_steal_slot;
+ 	spin_unlock(&osb->osb_lock);
+ 
+ 	return slot;
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 74db2be..56abab3 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -626,7 +626,7 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
+ 	rb = (struct ocfs2_refcount_block *)new_bh->b_data;
+ 	memset(rb, 0, inode->i_sb->s_blocksize);
+ 	strcpy((void *)rb, OCFS2_REFCOUNT_BLOCK_SIGNATURE);
+-	rb->rf_suballoc_slot = cpu_to_le16(osb->slot_num);
++	rb->rf_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
+ 	rb->rf_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+ 	rb->rf_fs_generation = cpu_to_le32(osb->fs_generation);
+ 	rb->rf_blkno = cpu_to_le64(first_blkno);
+@@ -1330,7 +1330,7 @@ static int ocfs2_expand_inline_ref_root(handle_t *handle,
+ 	memcpy(new_bh->b_data, ref_root_bh->b_data, sb->s_blocksize);
+ 
+ 	new_rb = (struct ocfs2_refcount_block *)new_bh->b_data;
+-	new_rb->rf_suballoc_slot = cpu_to_le16(OCFS2_SB(sb)->slot_num);
++	new_rb->rf_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
+ 	new_rb->rf_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+ 	new_rb->rf_blkno = cpu_to_le64(blkno);
+ 	new_rb->rf_cpos = cpu_to_le32(0);
+@@ -1576,7 +1576,7 @@ static int ocfs2_new_leaf_refcount_block(handle_t *handle,
+ 	new_rb = (struct ocfs2_refcount_block *)new_bh->b_data;
+ 	memset(new_rb, 0, sb->s_blocksize);
+ 	strcpy((void *)new_rb, OCFS2_REFCOUNT_BLOCK_SIGNATURE);
+-	new_rb->rf_suballoc_slot = cpu_to_le16(OCFS2_SB(sb)->slot_num);
++	new_rb->rf_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
+ 	new_rb->rf_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+ 	new_rb->rf_fs_generation = cpu_to_le32(OCFS2_SB(sb)->fs_generation);
+ 	new_rb->rf_blkno = cpu_to_le64(blkno);
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index c30b644..2b39ee8 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -52,6 +52,7 @@
+ #define ALLOC_GROUPS_FROM_GLOBAL	0x2
+ 
+ #define OCFS2_MAX_INODES_TO_STEAL	1024
++#define OCFS2_MAX_EXTENTS_TO_STEAL	1024
+ 
+ static inline void ocfs2_debug_bg(struct ocfs2_group_desc *bg);
+ static inline void ocfs2_debug_suballoc_inode(struct ocfs2_dinode *fe);
+@@ -637,12 +638,45 @@ bail:
+ 	return status;
+ }
+ 
++static int ocfs2_steal_from_other_nodes(struct ocfs2_super *osb,
++					struct ocfs2_alloc_context *ac,
++					int type)
++{
++	int i, status = -ENOSPC;
++	int slot = ocfs2_get_steal_slot(osb, type);
++
++	/* Start to steal resource from the first slot after ours. */
++	if (slot == OCFS2_INVALID_SLOT)
++		slot = osb->slot_num + 1;
++
++	for (i = 0; i < osb->max_slots; i++, slot++) {
++		if (slot == osb->max_slots)
++			slot = 0;
++
++		if (slot == osb->slot_num)
++			continue;
++
++		status = ocfs2_reserve_suballoc_bits(osb, ac,
++						     type,
++						     (u32)slot, NULL,
++						     NOT_ALLOC_NEW_GROUP);
++		if (status >= 0) {
++			ocfs2_set_steal_slot(osb, slot, type);
++			break;
++		}
++
++		ocfs2_free_ac_resource(ac);
++	}
++
++	return status;
++}
++
+ int ocfs2_reserve_new_metadata_blocks(struct ocfs2_super *osb,
+ 				      int blocks,
+ 				      struct ocfs2_alloc_context **ac)
+ {
+ 	int status;
+-	u32 slot;
++	int slot = ocfs2_get_steal_slot(osb, EXTENT_ALLOC_SYSTEM_INODE);
+ 
+ 	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+ 	if (!(*ac)) {
+@@ -653,12 +687,35 @@ int ocfs2_reserve_new_metadata_blocks(struct ocfs2_super *osb,
+ 
+ 	(*ac)->ac_bits_wanted = blocks;
+ 	(*ac)->ac_which = OCFS2_AC_USE_META;
+-	slot = osb->slot_num;
+ 	(*ac)->ac_group_search = ocfs2_block_group_search;
+ 
++	if (slot != OCFS2_INVALID_SLOT &&
++		atomic_read(&osb->s_num_extents_stolen) <
++		OCFS2_MAX_EXTENTS_TO_STEAL)
++		goto extent_steal;
++
+ 	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
+ 					     EXTENT_ALLOC_SYSTEM_INODE,
+-					     slot, NULL, ALLOC_NEW_GROUP);
++					     (u32)osb->slot_num, NULL,
++					     ALLOC_NEW_GROUP);
++
++
++	if (status >= 0) {
++		status = 0;
++		if (slot != OCFS2_INVALID_SLOT)
++			ocfs2_init_steal_slot(osb, EXTENT_ALLOC_SYSTEM_INODE);
++		goto bail;
++	} else if (status < 0 && status != -ENOSPC) {
++		mlog_errno(status);
++		goto bail;
++	}
++
++	ocfs2_free_ac_resource(*ac);
++
++extent_steal:
++	status = ocfs2_steal_from_other_nodes(osb, *ac,
++					      EXTENT_ALLOC_SYSTEM_INODE);
++	atomic_inc(&osb->s_num_extents_stolen);
+ 	if (status < 0) {
+ 		if (status != -ENOSPC)
+ 			mlog_errno(status);
+@@ -685,43 +742,11 @@ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
+ 					ac);
+ }
+ 
+-static int ocfs2_steal_inode_from_other_nodes(struct ocfs2_super *osb,
+-					      struct ocfs2_alloc_context *ac)
+-{
+-	int i, status = -ENOSPC;
+-	s16 slot = ocfs2_get_inode_steal_slot(osb);
+-
+-	/* Start to steal inodes from the first slot after ours. */
+-	if (slot == OCFS2_INVALID_SLOT)
+-		slot = osb->slot_num + 1;
+-
+-	for (i = 0; i < osb->max_slots; i++, slot++) {
+-		if (slot == osb->max_slots)
+-			slot = 0;
+-
+-		if (slot == osb->slot_num)
+-			continue;
+-
+-		status = ocfs2_reserve_suballoc_bits(osb, ac,
+-						     INODE_ALLOC_SYSTEM_INODE,
+-						     slot, NULL,
+-						     NOT_ALLOC_NEW_GROUP);
+-		if (status >= 0) {
+-			ocfs2_set_inode_steal_slot(osb, slot);
+-			break;
+-		}
+-
+-		ocfs2_free_ac_resource(ac);
+-	}
+-
+-	return status;
+-}
+-
+ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+ 			    struct ocfs2_alloc_context **ac)
+ {
+ 	int status;
+-	s16 slot = ocfs2_get_inode_steal_slot(osb);
++	int slot = ocfs2_get_steal_slot(osb, INODE_ALLOC_SYSTEM_INODE);
+ 	u64 alloc_group;
+ 
+ 	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+@@ -761,7 +786,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+ 	alloc_group = osb->osb_inode_alloc_group;
+ 	status = ocfs2_reserve_suballoc_bits(osb, *ac,
+ 					     INODE_ALLOC_SYSTEM_INODE,
+-					     osb->slot_num,
++					     (u32)osb->slot_num,
+ 					     &alloc_group,
+ 					     ALLOC_NEW_GROUP |
+ 					     ALLOC_GROUPS_FROM_GLOBAL);
+@@ -779,7 +804,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+ 		 * from our own next time.
+ 		 */
+ 		if (slot != OCFS2_INVALID_SLOT)
+-			ocfs2_init_inode_steal_slot(osb);
++			ocfs2_init_steal_slot(osb, INODE_ALLOC_SYSTEM_INODE);
+ 		goto bail;
+ 	} else if (status < 0 && status != -ENOSPC) {
+ 		mlog_errno(status);
+@@ -789,7 +814,8 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+ 	ocfs2_free_ac_resource(*ac);
+ 
+ inode_steal:
+-	status = ocfs2_steal_inode_from_other_nodes(osb, *ac);
++	status = ocfs2_steal_from_other_nodes(osb, *ac,
++					      INODE_ALLOC_SYSTEM_INODE);
+ 	atomic_inc(&osb->s_num_inodes_stolen);
+ 	if (status < 0) {
+ 		if (status != -ENOSPC)
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 2606991..a87c1c5 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -301,9 +301,12 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+ 
+ 	spin_lock(&osb->osb_lock);
+ 	out += snprintf(buf + out, len - out,
+-			"%10s => Slot: %d  NumStolen: %d\n", "Steal",
++			"%10s => I_Slot: %d  I_NumStolen : %d, EB_Slot: %d  "
++			"EB_NumStolen : %d\n", "Steal",
+ 			osb->s_inode_steal_slot,
+-			atomic_read(&osb->s_num_inodes_stolen));
++			atomic_read(&osb->s_num_inodes_stolen),
++			osb->s_extent_steal_slot,
++			atomic_read(&osb->s_num_extents_stolen));
+ 	spin_unlock(&osb->osb_lock);
+ 
+ 	out += snprintf(buf + out, len - out, "OrphanScan => ");
+@@ -1997,7 +2000,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	osb->blocked_lock_count = 0;
+ 	spin_lock_init(&osb->osb_lock);
+ 	spin_lock_init(&osb->osb_xattr_lock);
+-	ocfs2_init_inode_steal_slot(osb);
++	ocfs2_init_all_steal_slot(osb);
+ 
+ 	atomic_set(&osb->alloc_stats.moves, 0);
+ 	atomic_set(&osb->alloc_stats.local_data, 0);
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 8fc6fb0..8ae4e5d 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2282,7 +2282,7 @@ static int ocfs2_create_xattr_block(handle_t *handle,
+ 	xblk = (struct ocfs2_xattr_block *)new_bh->b_data;
+ 	memset(xblk, 0, inode->i_sb->s_blocksize);
+ 	strcpy((void *)xblk, OCFS2_XATTR_BLOCK_SIGNATURE);
+-	xblk->xb_suballoc_slot = cpu_to_le16(osb->slot_num);
++	xblk->xb_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
+ 	xblk->xb_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+ 	xblk->xb_fs_generation = cpu_to_le32(osb->fs_generation);
+ 	xblk->xb_blkno = cpu_to_le64(first_blkno);
+-- 
+1.5.4.3
