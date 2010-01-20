@@ -1,94 +1,91 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 20 Jan 2010 14:43:19 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: add extent block stealing for
-	ocfs2
-In-Reply-To: <4B542738.90003@oracle.com>
-References: <> <1263635115-4930-1-git-send-email-tiger.yang@oracle.com>
-	<4B542738.90003@oracle.com>
-Message-ID: <20100120224319.GC4333@mail.oracle.com>
+Date: Wed, 20 Jan 2010 15:09:46 -0800
+Subject: [Ocfs2-devel] [RFC 1/3] ocfs2: allocation reservations
+In-Reply-To: <1260917898-16078-1-git-send-email-mfasheh@suse.com>
+References: <1260917320-15959-1-git-send-email-mfasheh@suse.com>
+	<1260917898-16078-1-git-send-email-mfasheh@suse.com>
+Message-ID: <20100120230946.GD4333@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jan 18, 2010 at 05:17:44PM +0800, Tiger Yang wrote:
-> @@ -756,28 +758,50 @@ static inline unsigned int ocfs2_megabytes_to_clusters(struct super_block *sb,
->  	return megs << (20 - OCFS2_SB(sb)->s_clustersize_bits);
->  }
->  
-> -static inline void ocfs2_init_inode_steal_slot(struct ocfs2_super *osb)
-> +static inline void ocfs2_init_all_steal_slot(struct ocfs2_super *osb)
->  {
->  	spin_lock(&osb->osb_lock);
->  	osb->s_inode_steal_slot = OCFS2_INVALID_SLOT;
-> +	osb->s_extent_steal_slot = OCFS2_INVALID_SLOT;
->  	spin_unlock(&osb->osb_lock);
->  	atomic_set(&osb->s_num_inodes_stolen, 0);
-> +	atomic_set(&osb->s_num_extents_stolen, 0);
->  }
+On Tue, Dec 15, 2009 at 02:58:16PM -0800, Mark Fasheh wrote:
+> diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
+> new file mode 100644
+> index 0000000..8879e28
+> --- /dev/null
+> +++ b/fs/ocfs2/reservations.c
+> @@ -0,0 +1,624 @@
+> +/* -*- mode: c; c-basic-offset: 8; -*-
+> + * vim: noexpandtab sw=8 ts=8 sts=0:
+> + *
+> + * reservations.c
+> + *
+> + * Allocation reservations implementation
+> + *
+> + * Some code borrowed from fs/ext3/balloc.c
 
-	Call this ocfs2_init_steal_slots().  The 'all' is redundant.
+	Does that file have copyright info.  Probably should include
+that here.
 
-> -static inline void ocfs2_set_inode_steal_slot(struct ocfs2_super *osb,
-> -					      s16 slot)
-> +static inline void ocfs2_init_steal_slot(struct ocfs2_super *osb, int type)
->  {
->  	spin_lock(&osb->osb_lock);
-> -	osb->s_inode_steal_slot = slot;
-> +	if (type == INODE_ALLOC_SYSTEM_INODE)
-> +		osb->s_inode_steal_slot = OCFS2_INVALID_SLOT;
-> +	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
-> +		osb->s_extent_steal_slot = OCFS2_INVALID_SLOT;
->  	spin_unlock(&osb->osb_lock);
-> +	if (type == INODE_ALLOC_SYSTEM_INODE)
-> +		atomic_set(&osb->s_num_inodes_stolen, 0);
-> +	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
-> +		atomic_set(&osb->s_num_extents_stolen, 0);
->  }
+> + *
+> + * Copyright (C) 2009 Novell.  All rights reserved.
+> + *
+> + * This program is free software; you can redistribute it and/or
+> + * modify it under the terms of the GNU General Public
+> + * License as published by the Free Software Foundation; either
+> + * version 2 of the License, or (at your option) any later version.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+> + * General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public
+> + * License along with this program; if not, write to the
+> + * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+> + * Boston, MA 021110-1307, USA.
 
-	Don't pass in 'type' to steal slot functions.  Instead, call
-them by name.  ocfs2_get_inode_steal_slot(),
-ocfs2_get_meta_steal_slot(), etc.  You can, of course, wrap a common
-function.  But the actual users are much more readable with good names:
+	Drop this last paragraph.  It's no longer accurate, and GNU says
+drop it rather than correct it.
 
-    ocfs2_get_meta_steal_slot(osb);
+> +static void ocfs2_resmap_clear_all_resv(struct ocfs2_reservation_map *resmap)
+> +{
+> +	struct rb_node *node;
+> +	struct ocfs2_alloc_reservation *resv;
+> +
+> +	assert_spin_locked(&resv_lock);
+> +
+> +	while ((node = rb_last(&resmap->m_reservations)) != NULL) {
+> +		resv = rb_entry(node, struct ocfs2_alloc_reservation, r_node);
+> +
+> +		__ocfs2_resv_trunc(resv);
+> +		rb_erase(&resv->r_node, &resmap->m_reservations);
+> +	}
+> +}
 
-vs
+	Ugh, this always walks to the end of the tree on each iteration
+of the while loop.  That's O(nlogn).  But it looks like everyone does
+this.  Joy.
 
-    ocfs2_get_steal_slot(osb, INODE_ALLOC_SYSTEM_INODE);
+> +static struct ocfs2_alloc_reservation *
+> +ocfs2_find_resv(struct ocfs2_reservation_map *resmap, unsigned int goal)
+> +static void ocfs2_resv_find_window(struct ocfs2_reservation_map *resmap,
+> +				   struct ocfs2_alloc_reservation *resv)
 
-There's no need for the callers to have to know the type enum.
-
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index c30b644..a3b9997 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -52,6 +52,7 @@
->  #define ALLOC_GROUPS_FROM_GLOBAL	0x2
->  
->  #define OCFS2_MAX_INODES_TO_STEAL	1024
-> +#define OCFS2_MAX_EXTENTS_TO_STEAL	1024
-
-	Since this is the same number, just have one stealing constant.
-Maybe OCFS2_MAX_TO_STEAL?
-
-> +static int ocfs2_steal_from_other_nodes(struct ocfs2_super *osb,
-> +					struct ocfs2_alloc_context *ac,
-> +					int type)
-
-	Again, have to functions for stealing: ocfs2_steal_inode() and
-ocfs2_steal_meta().  You can have them call this version with a type
-field, but that should be hidden from the call sites.  You don't need
-"_from_other_nodes" in the name.
+	At first this confused me, but then I figured out you're asking
+"where can I stick my reservation?"  This is why the reservation object
+doesn't need a backref to the inode.
 
 Joel
 
 -- 
 
-"Nearly all men can stand adversity, but if you really want to
- test a man's character, give him power."
-	- Abraham Lincoln
+Life's Little Instruction Book #407
+
+	"Every once in a while, take the scenic route."
 
 Joel Becker
 Principal Software Developer
