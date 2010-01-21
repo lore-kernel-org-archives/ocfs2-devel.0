@@ -1,25 +1,36 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 20 Jan 2010 18:32:05 -0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2:freeze-thaw: make it work
-In-Reply-To: <20100121021811.GA3691@laptop.oracle.com>
-References: <201001091802.o09I2bB1013187@rcsinet13.oracle.com>
-	<4B5122D8.9030400@oracle.com>
-	<20100118130638.GA3549@laptop.oracle.com>
-	<4B565355.8050406@oracle.com>
-	<20100120045531.GA3794@laptop.oracle.com>
-	<4B5749CF.6070004@oracle.com>
-	<20100121021811.GA3691@laptop.oracle.com>
-Message-ID: <4B57BCA5.5070305@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 21 Jan 2010 14:59:26 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix memory overflow in cow_by_page.
+Message-ID: <1264057166-21316-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Wengang Wang wrote:
-> then you only meant the timer works for canceling ocfs2_freeze_lock()
-> for an EX. remember ocfs2_freeze_lock() is also called for a PR waiting
-> for thawing.
+In ocfs2_duplicate_clusters_by_page, we calculate map_end
+by shifting page_index. But actually in case we meet with
+a large offset(say in a i686 box, poff_t is only 32 bits
+and page_index=2056240), we will overflow. So change it
+by adding PAGE_CACHE_SIZE to offset.
 
-Yes. Only for EX because that's what the node issuing the freeze
-command takes.
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/refcounttree.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 74db2be..6db863d 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2945,7 +2945,7 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 
+ 	while (offset < end) {
+ 		page_index = offset >> PAGE_CACHE_SHIFT;
+-		map_end = (page_index + 1) << PAGE_CACHE_SHIFT;
++		map_end = offset + PAGE_CACHE_SIZE;
+ 		if (map_end > end)
+ 			map_end = end;
+ 
+-- 
+1.6.3.3
