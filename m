@@ -1,61 +1,49 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 22 Jan 2010 13:51:13 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a misleading variable name
-In-Reply-To: <201001221359.o0MDwHkW015414@acsinet15.oracle.com>
-References: <201001221359.o0MDwHkW015414@acsinet15.oracle.com>
-Message-ID: <4B5A1DD1.1010703@oracle.com>
+Date: Fri, 22 Jan 2010 14:35:35 -0800
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2:freeze-thaw: make it work
+In-Reply-To: <20100122042214.GA3797@laptop.oracle.com>
+References: <201001091802.o09I2bB1013187@rcsinet13.oracle.com>
+	<4B5122D8.9030400@oracle.com>
+	<20100118130638.GA3549@laptop.oracle.com>
+	<4B565355.8050406@oracle.com>
+	<20100120045531.GA3794@laptop.oracle.com>
+	<20100122042214.GA3797@laptop.oracle.com>
+Message-ID: <4B5A2837.2000304@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Ack
-
 Wengang Wang wrote:
-> a local variable "dlm_version" is used as a fs locking version.
-> rename it fs_version.
+>>>> Though we don't support it, we hope to make the operation succeed.
+>>>> the big pain is the we have no way to know if a nested freeze is done
+>>>> againt ocfs2 volume. the second freeze doesn't come to ocfs2, it returns
+>>>> by vfs(in freeze_bdev()). so we can prevent user to do a nested freeze.
+>>>>
+>>>> we can't return error. if we do, the thaw fails with volume still frozen
+>>>> and no further operation can recover the state.
+>>>>
+>>> Taking the superblock lock will prevent this.
 >
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> ---
->  fs/ocfs2/stack_o2cb.c |   12 ++++++------
->  1 files changed, 6 insertions(+), 6 deletions(-)
->
-> diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-> index e49c410..3038c92 100644
-> --- a/fs/ocfs2/stack_o2cb.c
-> +++ b/fs/ocfs2/stack_o2cb.c
-> @@ -277,7 +277,7 @@ static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
->  	u32 dlm_key;
->  	struct dlm_ctxt *dlm;
->  	struct o2dlm_private *priv;
-> -	struct dlm_protocol_version dlm_version;
-> +	struct dlm_protocol_version fs_version;
->  
->  	BUG_ON(conn == NULL);
->  	BUG_ON(o2cb_stack.sp_proto == NULL);
-> @@ -304,18 +304,18 @@ static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
->  	/* used by the dlm code to make message headers unique, each
->  	 * node in this domain must agree on this. */
->  	dlm_key = crc32_le(0, conn->cc_name, conn->cc_namelen);
-> -	dlm_version.pv_major = conn->cc_version.pv_major;
-> -	dlm_version.pv_minor = conn->cc_version.pv_minor;
-> +	fs_version.pv_major = conn->cc_version.pv_major;
-> +	fs_version.pv_minor = conn->cc_version.pv_minor;
->  
-> -	dlm = dlm_register_domain(conn->cc_name, dlm_key, &dlm_version);
-> +	dlm = dlm_register_domain(conn->cc_name, dlm_key, &fs_version);
->  	if (IS_ERR(dlm)) {
->  		rc = PTR_ERR(dlm);
->  		mlog_errno(rc);
->  		goto out_free;
->  	}
->  
-> -	conn->cc_version.pv_major = dlm_version.pv_major;
-> -	conn->cc_version.pv_minor = dlm_version.pv_minor;
-> +	conn->cc_version.pv_major = fs_version.pv_major;
-> +	conn->cc_version.pv_minor = fs_version.pv_minor;
->  	conn->cc_lockspace = dlm;
->  
->  	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
->   
+> could you give me the detail for that?
+
+So is your concern racing freeze requests on multiple nodes?
+
+Multiple freeze requests on a single node should work as is because
+we only care about the final thaw().
+
+But if there are multiple freeze requests on multiple nodes, both nodes
+will race in freeze_fs(sb). The first node to get the sb lock, will attempt
+to take the freeze lock. The loser will wait, but it will get the bast 
+on the
+freeze lock. In it, it will do mutex_trylock(&sb->bdev->bd_fsfreeze_mutex)
+and fail.
+
+One solution is for this node to refuse to downconvert the freeze lock. Wait
+for the timeout at which time the freezer node will be forced to cancel 
+convert.
+At that time the loser node will get the freeze lock and everyone will live
+happily ever after. ;)
+
+Get my drift.
