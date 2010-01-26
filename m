@@ -1,44 +1,63 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 25 Jan 2010 17:58:30 -0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2/dlm: Handle EAGAIN for
-	compatibility - v2
-Message-ID: <1264471110-9740-1-git-send-email-sunil.mushran@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 25 Jan 2010 19:19:56 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix memory overflow in cow_by_page.
+In-Reply-To: <1264057166-21316-1-git-send-email-tao.ma@oracle.com>
+References: <1264057166-21316-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100126031956.GC15982@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit aad1b15310b9bcd59fa81ab8f2b1513b59553ea8 made the
-dlm_begin_reco_handler() return -EAGAIN instead of EAGAIN.
+On Thu, Jan 21, 2010 at 02:59:26PM +0800, Tao Ma wrote:
+> In ocfs2_duplicate_clusters_by_page, we calculate map_end
+> by shifting page_index. But actually in case we meet with
+> a large offset(say in a i686 box, poff_t is only 32 bits
+> and page_index=2056240), we will overflow. So change it
+> by adding PAGE_CACHE_SIZE to offset.
+> 
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> ---
+>  fs/ocfs2/refcounttree.c |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 74db2be..6db863d 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -2945,7 +2945,7 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+>  
+>  	while (offset < end) {
+>  		page_index = offset >> PAGE_CACHE_SHIFT;
+> -		map_end = (page_index + 1) << PAGE_CACHE_SHIFT;
+> +		map_end = offset + PAGE_CACHE_SIZE;
 
-As this error is transmitted over the wire, we want the receiver,
-dlm_send_begin_reco_message(), to understand both the older EAGAIN and
-the newer -EAGAIN, to allow rolling upgrade of the cluster nodes.
+	First, we can't be computing by offset, because map_end is
+supposed to be page bounded, right?  Also, what if we have an offset
+that is the last page possible?  Won't that wrap as well, setting
+map_end to 0?
+	Why aren't we computing map_end like we compute end, as a loff_t
+value?
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/dlm/dlmrecovery.c |    8 +++++++-
- 1 files changed, 7 insertions(+), 1 deletions(-)
+  		page_index = offset >> PAGE_CACHE_SHIFT;
+- 		map_end = (page_index + 1) << PAGE_CACHE_SHIFT;
++ 		map_end = ((loff_t)page_index + 1) << PAGE_CACHE_SHIFT;
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index cfb2ae9..ad71221 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2639,7 +2639,13 @@ retry:
- 			     "begin reco msg (%d)\n", dlm->name, nodenum, ret);
- 			ret = 0;
- 		}
--		if (ret == -EAGAIN) {
-+
-+		/*
-+		 * Prior to commit aad1b15310b9bcd59fa81ab8f2b1513b59553ea8,
-+		 * dlm_begin_reco_handler() returned EAGAIN and not -EAGAIN.
-+		 * We are handling both for compatibility reasons.
-+		 */
-+		if (ret == -EAGAIN || ret == EAGAIN) {
- 			mlog(0, "%s: trying to start recovery of node "
- 			     "%u, but node %u is waiting for last recovery "
- 			     "to complete, backoff for a bit\n", dlm->name,
+  		if (map_end > end)
+  			map_end = end;
+
+The map_end>end check will catch anything too big.
+
+Joel
+
 -- 
-1.5.6.5
+
+"You don't make the poor richer by making the rich poorer."
+	- Sir Winston Churchill
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
