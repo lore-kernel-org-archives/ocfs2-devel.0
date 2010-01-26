@@ -1,58 +1,69 @@
-From: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
-Date: Mon, 11 Jan 2010 18:37:50 -0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix refcnt leak on
-	ocfs2_fast_follow_link() error path
-Message-ID: <87eilwjxmu.fsf@devron.myhome.or.jp>
+From: Alexander Beregalov <a.beregalov@gmail.com>
+Date: Tue, 26 Jan 2010 16:42:15 +0300
+Subject: [Ocfs2-devel] 2.6.32.6: OCFS2: NULL pointer dereference
+Message-ID: <a4423d671001260542j6531f34fl31f9f6543bc83d14@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org
 
+Hi
 
-If ->follow_link handler return the error, it should decrement
-nd->path refcnt. But, ocfs2_fast_follow_link() doesn't decrement.
+Host is x86_32 SMP.
+Trying to mount AoE exported block device:
 
-This patch fix it by using usual nd_set_link() style error handling,
-instead of playing with nd->path.
+(mkfs.ocfs2 -N 30 -T mail /dev/..)
 
-Signed-off-by: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
----
-
- fs/ocfs2/symlink.c |   10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
-
-diff -puN fs/ocfs2/symlink.c~namei-ocfs2-follow_link-fix fs/ocfs2/symlink.c
---- linux-2.6/fs/ocfs2/symlink.c~namei-ocfs2-follow_link-fix	2010-01-12 00:15:14.000000000 +0900
-+++ linux-2.6-hirofumi/fs/ocfs2/symlink.c	2010-01-12 00:15:14.000000000 +0900
-@@ -137,20 +137,20 @@ static void *ocfs2_fast_follow_link(stru
- 	}
- 
- 	memcpy(link, target, len);
--	nd_set_link(nd, link);
- 
- bail:
-+	nd_set_link(nd, status ? ERR_PTR(status) : link);
- 	brelse(bh);
- 
- 	mlog_exit(status);
--	return status ? ERR_PTR(status) : link;
-+	return NULL;
- }
- 
- static void ocfs2_fast_put_link(struct dentry *dentry, struct nameidata *nd, void *cookie)
- {
--	char *link = cookie;
--
--	kfree(link);
-+	char *link = nd_get_link(nd);
-+	if (!IS_ERR(link))
-+		kfree(link);
- }
- 
- const struct inode_operations ocfs2_symlink_inode_operations = {
-_
-
--- 
-OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
+OCFS2 Node Manager 1.5.0
+OCFS2 DLM 1.5.0
+ocfs2: Registered cluster interface o2cb
+OCFS2 DLMFS 1.5.0
+OCFS2 User DLM kernel interface loaded
+OCFS2 1.5.0
+ocfs2_dlm: Nodes in domain (C987785CC2BE4476BBD74BB02A853654): 22
+JBD: Ignoring recovery information on journal
+ocfs2: Mounting device (152,5632) on (node 22, slot 1) with ordered data mode.
+(10881,0):ocfs2_replay_journal:1607 Recovering node 7 from slot 0 on
+device (152,5632)
+BUG: unable to handle kernel NULL pointer dereference at 0000001f
+IP: [<f8f4a168>] ocfs2_update_disk_slot_old+0x11/0x4c [ocfs2]
+*pde = 00000000
+Oops: 0000 [#1] SMP
+last sysfs file: /sys/fs/o2cb/interface_revision
+Modules linked in: ocfs2 jbd2 quota_tree ocfs2_dlmfs ocfs2_stack_o2cb
+ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs aoe dm_mirror
+dm_region_hash dm_log dm_multipath ohci_hcd usbcore nls_base tg3
+libphy [last unloaded: microcode]
+Pid: 10881, comm: ocfs2rec Not tainted (2.6.32.6 #1) eserver xSeries
+335 -[8676L1X]-
+EIP: 0060:[<f8f4a168>] EFLAGS: 00010297 CPU: 0
+EIP is at ocfs2_update_disk_slot_old+0x11/0x4c [ocfs2]
+EAX: 00000007 EBX: f5be1800 ECX: f6896fd8 EDX: 00000000
+ESI: f5be1800 EDI: f6a95f08 EBP: 00000000 ESP: f6a95edc
+ DS: 007b ES: 007b FS: 00d8 GS: 0000 SS: 0068
+Process ocfs2rec (pid: 10881, ti=f6a94000 task=f5bf06e0 task.ti=f6a94000)
+Stack:
+ f65bc800 f5be1800 00000000 f8f4a200 e4b5c0c0 f6a95f3c f5ec4b08 f279c800
+<0> 00000007 f5f89080 f5ec4008 f8f4a56a 00000000 00000007 f65bc800 f8f2b3e2
+<0> f65bc9c4 00000000 f8f124c4 00000000 00000000 00000000 00000001 00000016
+Call Trace:
+ [<f8f4a200>] ? ocfs2_update_disk_slot+0x5d/0x109 [ocfs2]
+ [<f8f4a56a>] ? ocfs2_clear_slot+0x22/0x3d [ocfs2]
+ [<f8f2b3e2>] ? ocfs2_recover_node+0x91/0x49e [ocfs2]
+ [<f8f124c4>] ? ocfs2_super_lock+0x9f/0x481 [ocfs2]
+ [<f8f29e94>] ? __ocfs2_recovery_thread+0x181/0x87e [ocfs2]
+ [<c124ea51>] ? schedule+0x1b1/0x4b1
+ [<c1022a9f>] ? __wake_up_common+0x3a/0x66
+ [<f8f29d13>] ? __ocfs2_recovery_thread+0x0/0x87e [ocfs2]
+ [<c1022bf6>] ? complete+0x37/0x46
+ [<f8f29d13>] ? __ocfs2_recovery_thread+0x0/0x87e [ocfs2]
+ [<c10377c8>] ? kthread+0x68/0x6d
+ [<c1037760>] ? kthread+0x0/0x6d
+ [<c100369f>] ? kernel_thread_helper+0x7/0x18
+Code: 04 89 44 fe 04 8b 43 10 8b 04 88 89 45 00 83 c4 04 5b 5e 5f 5d
+c3 0f 0b eb fe 57 31 d2 89 cf 56 53 89 c3 8b 48 10 3b 53 14 8b 01 <8b>
+70 18 3e 72 12 eb 2b 8b 44 d0 04 66 89 04 56 83 c2 01 3b 53
+EIP: [<f8f4a168>] ocfs2_update_disk_slot_old+0x11/0x4c [ocfs2] SS:ESP
+0068:f6a95edc
+CR2: 000000000000001f
