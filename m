@@ -1,106 +1,99 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 25 Jan 2010 16:57:40 -0800
-Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2/dlm: Print more messages during
-	lock migration
+Date: Mon, 25 Jan 2010 16:57:39 -0800
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2/dlm: Ignore LVBs of locks in the
+	Blocked list
 In-Reply-To: <1264467461-1881-1-git-send-email-sunil.mushran@oracle.com>
 References: <1264467461-1881-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1264467461-1881-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1264467461-1881-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When a lock resource is migrated, the dlm compares the migrated
-locks with that that was already existing on the new node. If the
-comparison fails, it BUGs. This patch prints more messages when the
-comparison fails inorder to help with the root cause analyis.
+During lock resource migration, o2dlm fills the packet with a LVB from the
+first valid lock. For sanity, it ensures that the other valid locks have the
+same LVB. If not, it BUGs.
 
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1206
-This does not fix bz1206. However, if we run into it again, we will
-have more information to chew on.
+The valid locks are ones that have granted EX or PR lock levels and are either
+on the Granted or Converting lists. Locks in the Blocked list cannot have a
+valid LVB.
+
+This patch ensures that we skip the locks in the Blocked list.
+
+Fixes oss bugzilla#1202
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1202
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmrecovery.c |   46 ++++++++++++++++++++++++++++++++++++-------
- 1 files changed, 38 insertions(+), 8 deletions(-)
+ fs/ocfs2/dlm/dlmrecovery.c |   48 +++++++++++++++++++++++++++++++------------
+ 1 files changed, 34 insertions(+), 14 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 9d67894..cfb2ae9 100644
+index 57736d3..9d67894 100644
 --- a/fs/ocfs2/dlm/dlmrecovery.c
 +++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1750,6 +1750,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
- 	struct dlm_lock *lock = NULL;
- 	u8 from = O2NM_MAX_NODES;
- 	unsigned int added = 0;
-+	__be64 c;
+@@ -1164,6 +1164,39 @@ static void dlm_init_migratable_lockres(struct dlm_migratable_lockres *mres,
+ 	mres->master = master;
+ }
  
- 	mlog(0, "running %d locks for this lockres\n", mres->num_locks);
- 	for (i=0; i<mres->num_locks; i++) {
-@@ -1797,19 +1798,48 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
- 			/* lock is always created locally first, and
- 			 * destroyed locally last.  it must be on the list */
- 			if (!lock) {
--				__be64 c = ml->cookie;
--				mlog(ML_ERROR, "could not find local lock "
--					       "with cookie %u:%llu!\n",
-+				c = ml->cookie;
-+				mlog(ML_ERROR, "Could not find local lock "
-+					       "with cookie %u:%llu, node %u, "
-+					       "list %u, flags 0x%x, type %d, "
-+					       "conv %d, highest blocked %d\n",
- 				     dlm_get_lock_cookie_node(be64_to_cpu(c)),
--				     dlm_get_lock_cookie_seq(be64_to_cpu(c)));
-+				     dlm_get_lock_cookie_seq(be64_to_cpu(c)),
-+				     ml->node, ml->list, ml->flags, ml->type,
-+				     ml->convert_type, ml->highest_blocked);
-+				__dlm_print_one_lock_resource(res);
-+				BUG();
-+			}
++static void dlm_prepare_lvb_for_migration(struct dlm_lock *lock,
++					  struct dlm_migratable_lockres *mres,
++					  int queue)
++{
++	if (!lock->lksb)
++	       return;
 +
-+			if (lock->ml.node != ml->node) {
-+				c = lock->ml.cookie;
-+				mlog(ML_ERROR, "Mismatched node# in lock "
-+				     "cookie %u:%llu, name %.*s, node %u\n",
-+				     dlm_get_lock_cookie_node(be64_to_cpu(c)),
-+				     dlm_get_lock_cookie_seq(be64_to_cpu(c)),
-+				     res->lockname.len, res->lockname.name,
-+				     lock->ml.node);
-+				c = ml->cookie;
-+				mlog(ML_ERROR, "Migrate lock cookie %u:%llu, "
-+				     "node %u, list %u, flags 0x%x, type %d, "
-+				     "conv %d, highest blocked %d\n",
-+				     dlm_get_lock_cookie_node(be64_to_cpu(c)),
-+				     dlm_get_lock_cookie_seq(be64_to_cpu(c)),
-+				     ml->node, ml->list, ml->flags, ml->type,
-+				     ml->convert_type, ml->highest_blocked);
- 				__dlm_print_one_lock_resource(res);
- 				BUG();
- 			}
--			BUG_ON(lock->ml.node != ml->node);
++	/* Ignore lvb in all locks in the blocked list */
++	if (queue == DLM_BLOCKED_LIST)
++		return;
++
++	/* Only consider lvbs in locks with granted EX or PR lock levels */
++	if (lock->ml.type != LKM_EXMODE && lock->ml.type != LKM_PRMODE)
++		return;
++
++	if (dlm_lvb_is_empty(mres->lvb)) {
++		memcpy(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN);
++		return;
++	}
++
++	/* Ensure the lvb copied for migration matches in other valid locks */
++	if (!memcmp(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN))
++		return;
++
++	mlog(ML_ERROR, "Mismatched lvb in lock cookie=%u:%llu, name=%.*s, "
++	     "node=%u\n",
++	     dlm_get_lock_cookie_node(be64_to_cpu(lock->ml.cookie)),
++	     dlm_get_lock_cookie_seq(be64_to_cpu(lock->ml.cookie)),
++	     lock->lockres->lockname.len, lock->lockres->lockname.name,
++	     lock->ml.node);
++	dlm_print_one_lock_resource(lock->lockres);
++	BUG();
++}
  
- 			if (tmpq != queue) {
--				mlog(0, "lock was on %u instead of %u for %.*s\n",
--				     j, ml->list, res->lockname.len, res->lockname.name);
-+				c = ml->cookie;
-+				mlog(0, "Lock cookie %u:%llu was on list %u "
-+				     "instead of list %u for %.*s\n",
-+				     dlm_get_lock_cookie_node(be64_to_cpu(c)),
-+				     dlm_get_lock_cookie_seq(be64_to_cpu(c)),
-+				     j, ml->list, res->lockname.len,
-+				     res->lockname.name);
-+				__dlm_print_one_lock_resource(res);
- 				spin_unlock(&res->spinlock);
- 				continue;
- 			}
-@@ -1906,7 +1936,7 @@ skip_lvb:
- 		spin_lock(&res->spinlock);
- 		list_for_each_entry(lock, queue, list) {
- 			if (lock->ml.cookie == ml->cookie) {
--				__be64 c = lock->ml.cookie;
-+				c = lock->ml.cookie;
- 				mlog(ML_ERROR, "%s:%.*s: %u:%llu: lock already "
- 				     "exists on this lockres!\n", dlm->name,
- 				     res->lockname.len, res->lockname.name,
+ /* returns 1 if this lock fills the network structure,
+  * 0 otherwise */
+@@ -1181,20 +1214,7 @@ static int dlm_add_lock_to_array(struct dlm_lock *lock,
+ 	ml->list = queue;
+ 	if (lock->lksb) {
+ 		ml->flags = lock->lksb->flags;
+-		/* send our current lvb */
+-		if (ml->type == LKM_EXMODE ||
+-		    ml->type == LKM_PRMODE) {
+-			/* if it is already set, this had better be a PR
+-			 * and it has to match */
+-			if (!dlm_lvb_is_empty(mres->lvb) &&
+-			    (ml->type == LKM_EXMODE ||
+-			     memcmp(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN))) {
+-				mlog(ML_ERROR, "mismatched lvbs!\n");
+-				dlm_print_one_lock_resource(lock->lockres);
+-				BUG();
+-			}
+-			memcpy(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN);
+-		}
++		dlm_prepare_lvb_for_migration(lock, mres, queue);
+ 	}
+ 	ml->node = lock->ml.node;
+ 	mres->num_locks++;
 -- 
 1.5.6.5
