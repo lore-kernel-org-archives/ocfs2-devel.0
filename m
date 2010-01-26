@@ -1,97 +1,591 @@
 From: Jeff Liu <jeff.liu@oracle.com>
-Date: Tue, 26 Jan 2010 16:00:08 +0800
-Subject: [Ocfs2-devel] [PATCH 3/4] du_enhancement: add fiemap header
-In-Reply-To: <1264492809-13848-2-git-send-email-jeff.liu@oracle.com>
-References: <> <1264492809-13848-1-git-send-email-jeff.liu@oracle.com>
-	<1264492809-13848-2-git-send-email-jeff.liu@oracle.com>
-Message-ID: <1264492809-13848-3-git-send-email-jeff.liu@oracle.com>
+Date: Tue, 26 Jan 2010 16:00:07 +0800
+Subject: [Ocfs2-devel] [PATCH 2/4] du_enhancement: add rbtree algorithm
+	support
+In-Reply-To: <1264492809-13848-1-git-send-email-jeff.liu@oracle.com>
+References: <>
+ <1264492809-13848-1-git-send-email-jeff.liu@oracle.com>
+Message-ID: <1264492809-13848-2-git-send-email-jeff.liu@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-copy to source dir for the moment, is it a proper place?
+rbtree algorithm copy from ocfs2-tools
 
 Signed-off-by: Jeff Liu <jeff.liu@oracle.com>
 ---
- src/fiemap.h |   68 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 68 insertions(+), 0 deletions(-)
- create mode 100644 src/fiemap.h
+ lib/Makefile.am |    3 +-
+ lib/rbtree.c    |  395 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ lib/rbtree.h    |  143 ++++++++++++++++++++
+ 3 files changed, 540 insertions(+), 1 deletions(-)
+ create mode 100644 lib/rbtree.c
+ create mode 100644 lib/rbtree.h
 
-diff --git a/src/fiemap.h b/src/fiemap.h
+diff --git a/lib/Makefile.am b/lib/Makefile.am
+index c89ef75..2b814d8 100644
+--- a/lib/Makefile.am
++++ b/lib/Makefile.am
+@@ -21,7 +21,8 @@ AM_CFLAGS += $(GNULIB_WARN_CFLAGS) $(WERROR_CFLAGS)
+ 
+ libcoreutils_a_SOURCES += \
+   buffer-lcm.c buffer-lcm.h \
+-  xmemxfrm.c xmemxfrm.h
++  xmemxfrm.c xmemxfrm.h \
++  rbtree.c rbtree.h
+ 
+ libcoreutils_a_LIBADD += $(LIBOBJS)
+ libcoreutils_a_DEPENDENCIES += $(LIBOBJS)
+diff --git a/lib/rbtree.c b/lib/rbtree.c
 new file mode 100644
-index 0000000..df3a32c
+index 0000000..a497d28
 --- /dev/null
-+++ b/src/fiemap.h
-@@ -0,0 +1,68 @@
-+/*
-+ * FS_IOC_FIEMAP ioctl infrastructure.
++++ b/lib/rbtree.c
+@@ -0,0 +1,395 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
 + *
-+ * Some portions copyright (C) 2007 Cluster File Systems, Inc
++ * kernel-rbtree.c
 + *
-+ * Authors: Mark Fasheh <mfasheh@suse.com>
-+ *          Kalpak Shah <kalpak.shah@sun.com>
-+ *          Andreas Dilger <adilger@sun.com>
++ * This is imported from the Linux kernel to give us a tested and
++ * portable tree library.
 + */
++/*
++  Red Black Trees
++  (C) 1999  Andrea Arcangeli <andrea@suse.de>
++  (C) 2002  David Woodhouse <dwmw2@infradead.org>
 +
-+#ifndef _LINUX_FIEMAP_H
-+#define _LINUX_FIEMAP_H
++  This program is free software; you can redistribute it and/or modify
++  it under the terms of the GNU General Public License as published by
++  the Free Software Foundation; either version 2 of the License, or
++  (at your option) any later version.
 +
-+#include <linux/types.h>
++  This program is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
 +
-+struct fiemap_extent {
-+  uint64_t fe_logical;  /* logical offset in bytes for the start of
-+                         * the extent from the beginning of the file */
-+  uint64_t fe_physical; /* physical offset in bytes for the start
-+                         * of the extent from the beginning of the disk */
-+  uint64_t fe_length;   /* length in bytes for this extent */
-+  uint64_t fe_reserved64[2];
-+  uint32_t fe_flags;    /* FIEMAP_EXTENT_* flags for this extent */
-+  uint32_t fe_reserved[3];
-+};
++  You should have received a copy of the GNU General Public License
++  along with this program; if not, write to the Free Software
++  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 +
-+struct fiemap {
-+  uint64_t fm_start;                  /* logical offset (inclusive) at
-+				       * which to start mapping (in) */
-+  uint64_t fm_length;                 /* logical length of mapping which
-+				       * userspace wants (in) */
-+  uint32_t fm_flags;                  /* FIEMAP_FLAG_* flags for request (in/out) */
-+  uint32_t fm_mapped_extents;         /* number of extents that were mapped (out) */
-+  uint32_t fm_extent_count;           /* size of fm_extents array (in) */
-+  uint32_t fm_reserved;
-+  struct fiemap_extent fm_extents[0]; /* array of mapped extents (out) */
-+};
++  linux/lib/rbtree.c
++*/
 +
-+#define FIEMAP_MAX_OFFSET	(~0ULL)
++#include "rbtree.h"
 +
-+#define FIEMAP_FLAG_SYNC	0x00000001 /* sync file data before map */
-+#define FIEMAP_FLAG_XATTR	0x00000002 /* map extended attribute tree */
++static void __rb_rotate_left (struct rb_node *node, struct rb_root *root)
++{
++  struct rb_node *right = node->rb_right;
 +
-+#define FIEMAP_FLAGS_COMPAT	(FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR)
++  if ((node->rb_right = right->rb_left))
++    right->rb_left->rb_parent = node;
++  right->rb_left = node;
 +
-+#define FIEMAP_EXTENT_LAST		0x00000001 /* Last extent in file. */
-+#define FIEMAP_EXTENT_UNKNOWN		0x00000002 /* Data location unknown. */
-+#define FIEMAP_EXTENT_DELALLOC		0x00000004 /* Location still pending.
-+						    * Sets EXTENT_UNKNOWN. */
-+#define FIEMAP_EXTENT_ENCODED		0x00000008 /* Data can not be read
-+						    * while fs is unmounted */
-+#define FIEMAP_EXTENT_DATA_ENCRYPTED	0x00000080 /* Data is encrypted by fs.
-+						    * Sets EXTENT_NO_BYPASS. */
-+#define FIEMAP_EXTENT_NOT_ALIGNED	0x00000100 /* Extent offsets may not be
-+						    * block aligned. */
-+#define FIEMAP_EXTENT_DATA_INLINE	0x00000200 /* Data mixed with metadata.
-+						    * Sets EXTENT_NOT_ALIGNED.*/
-+#define FIEMAP_EXTENT_DATA_TAIL		0x00000400 /* Multiple files in block.
-+						    * Sets EXTENT_NOT_ALIGNED.*/
-+#define FIEMAP_EXTENT_UNWRITTEN		0x00000800 /* Space allocated, but
-+						    * no data (i.e. zero). */
-+#define FIEMAP_EXTENT_MERGED		0x00001000 /* File does not natively
-+						    * support extents. Result
-+						    * merged for efficiency. */
-+#define FIEMAP_EXTENT_SHARED		0x00002000 /* Space shared with other
-+						    * files. */
++  if ((right->rb_parent = node->rb_parent))
++    {
++      if (node == node->rb_parent->rb_left)
++        node->rb_parent->rb_left = right;
++      else
++        node->rb_parent->rb_right = right;
++    }
++  else
++    root->rb_node = right;
++    node->rb_parent = right;
++}
 +
-+#endif /* _LINUX_FIEMAP_H */
++static void __rb_rotate_right (struct rb_node *node, struct rb_root *root)
++{
++  struct rb_node *left = node->rb_left;
++
++  if ((node->rb_left = left->rb_right))
++    left->rb_right->rb_parent = node;
++  left->rb_right = node;
++
++  if ((left->rb_parent = node->rb_parent))
++    {
++      if (node == node->rb_parent->rb_right)
++        node->rb_parent->rb_right = left;
++      else
++        node->rb_parent->rb_left = left;
++    }
++  else
++    root->rb_node = left;
++
++  node->rb_parent = left;
++}
++
++void rb_insert_color (struct rb_node *node, struct rb_root *root)
++{
++  struct rb_node *parent, *gparent;
++
++  while ((parent = node->rb_parent) && parent->rb_color == RB_RED)
++    {
++      gparent = parent->rb_parent;
++
++      if (parent == gparent->rb_left)
++        {
++          {
++            register struct rb_node *uncle = gparent->rb_right;
++            if (uncle && uncle->rb_color == RB_RED)
++              {
++                uncle->rb_color = RB_BLACK;
++                parent->rb_color = RB_BLACK;
++                gparent->rb_color = RB_RED;
++                node = gparent;
++                continue;
++              }
++          }
++
++          if (parent->rb_right == node)
++            {
++              register struct rb_node *tmp;
++              __rb_rotate_left(parent, root);
++              tmp = parent;
++              parent = node;
++              node = tmp;
++            }
++
++        parent->rb_color = RB_BLACK;
++        gparent->rb_color = RB_RED;
++        __rb_rotate_right(gparent, root);
++        }
++      else
++        {
++          {
++            register struct rb_node *uncle = gparent->rb_left;
++            if (uncle && uncle->rb_color == RB_RED)
++              {
++                uncle->rb_color = RB_BLACK;
++                parent->rb_color = RB_BLACK;
++                gparent->rb_color = RB_RED;
++                node = gparent;
++                continue;
++              }
++          }
++
++          if (parent->rb_left == node)
++            {
++              register struct rb_node *tmp;
++              __rb_rotate_right(parent, root);
++              tmp = parent;
++              parent = node;
++              node = tmp;
++            }
++
++          parent->rb_color = RB_BLACK;
++          gparent->rb_color = RB_RED;
++          __rb_rotate_left(gparent, root);
++        }
++    }
++
++  root->rb_node->rb_color = RB_BLACK;
++}
++
++static void __rb_erase_color (struct rb_node *node, struct rb_node *parent,
++			      struct rb_root *root)
++{
++  struct rb_node *other;
++
++  while ((!node || node->rb_color == RB_BLACK) && node != root->rb_node)
++    {
++      if (parent->rb_left == node)
++        {
++          other = parent->rb_right;
++          if (other->rb_color == RB_RED)
++            {
++              other->rb_color = RB_BLACK;
++              parent->rb_color = RB_RED;
++              __rb_rotate_left(parent, root);
++              other = parent->rb_right;
++            }
++          if ((!other->rb_left || other->rb_left->rb_color == RB_BLACK) &&
++              (!other->rb_right || other->rb_right->rb_color == RB_BLACK))
++            {
++              other->rb_color = RB_RED;
++              node = parent;
++              parent = node->rb_parent;
++            }
++          else
++            {
++              if (!other->rb_right || other->rb_right->rb_color == RB_BLACK)
++                {
++                  register struct rb_node *o_left;
++                  if ((o_left = other->rb_left))
++                    o_left->rb_color = RB_BLACK;
++                  other->rb_color = RB_RED;
++                  __rb_rotate_right(other, root);
++                  other = parent->rb_right;
++                }
++              other->rb_color = parent->rb_color;
++              parent->rb_color = RB_BLACK;
++              if (other->rb_right)
++                other->rb_right->rb_color = RB_BLACK;
++              __rb_rotate_left(parent, root);
++              node = root->rb_node;
++              break;
++            }
++        }
++      else
++        {
++          other = parent->rb_left;
++          if (other->rb_color == RB_RED)
++            {
++              other->rb_color = RB_BLACK;
++              parent->rb_color = RB_RED;
++              __rb_rotate_right(parent, root);
++              other = parent->rb_left;
++            }
++          if ((!other->rb_left || other->rb_left->rb_color == RB_BLACK) &&
++              (!other->rb_right || other->rb_right->rb_color == RB_BLACK))
++            {
++              other->rb_color = RB_RED;
++              node = parent;
++              parent = node->rb_parent;
++            }
++          else
++            {
++              if (!other->rb_left || other->rb_left->rb_color == RB_BLACK)
++                {
++                  register struct rb_node *o_right;
++                  if ((o_right = other->rb_right))
++                    o_right->rb_color = RB_BLACK;
++                  other->rb_color = RB_RED;
++                  __rb_rotate_left(other, root);
++                  other = parent->rb_left;
++                }
++              other->rb_color = parent->rb_color;
++              parent->rb_color = RB_BLACK;
++
++              if (other->rb_left)
++                other->rb_left->rb_color = RB_BLACK;
++              __rb_rotate_right(parent, root);
++              node = root->rb_node;
++              break;
++            }
++        }
++    }
++  if (node)
++    node->rb_color = RB_BLACK;
++}
++
++void rb_erase (struct rb_node *node, struct rb_root *root)
++{
++  struct rb_node *child, *parent;
++  int color;
++
++  if (!node->rb_left)
++    child = node->rb_right;
++  else if (!node->rb_right)
++    child = node->rb_left;
++  else
++    {
++      struct rb_node *old = node, *left;
++
++      node = node->rb_right;
++      while ((left = node->rb_left) != NULL)
++        node = left;
++      child = node->rb_right;
++      parent = node->rb_parent;
++      color = node->rb_color;
++
++      if (child)
++        child->rb_parent = parent;
++      if (parent)
++        {
++          if (parent->rb_left == node)
++            parent->rb_left = child;
++          else
++            parent->rb_right = child;
++        }
++      else
++        root->rb_node = child;
++
++      if (node->rb_parent == old)
++        parent = node;
++      node->rb_parent = old->rb_parent;
++      node->rb_color = old->rb_color;
++      node->rb_right = old->rb_right;
++      node->rb_left = old->rb_left;
++
++      if (old->rb_parent)
++        {
++          if (old->rb_parent->rb_left == old)
++            old->rb_parent->rb_left = node;
++          else
++            old->rb_parent->rb_right = node;
++        } else
++          root->rb_node = node;
++
++      old->rb_left->rb_parent = node;
++      if (old->rb_right)
++        old->rb_right->rb_parent = node;
++      goto color;
++  }
++
++  parent = node->rb_parent;
++  color = node->rb_color;
++
++  if (child)
++    child->rb_parent = parent;
++  if (parent)
++    {
++      if (parent->rb_left == node)
++        parent->rb_left = child;
++      else
++        parent->rb_right = child;
++    }
++  else
++    root->rb_node = child;
++
++color:
++if (color == RB_BLACK)
++  __rb_erase_color(child, parent, root);
++}
++
++/*
++ * This function returns the first node (in sort order) of the tree.
++ */
++struct rb_node *rb_first (struct rb_root *root)
++{
++  struct rb_node *n;
++
++  n = root->rb_node;
++  if (!n)
++    return NULL;
++  while (n->rb_left)
++    n = n->rb_left;
++  return n;
++}
++
++struct rb_node *rb_last (struct rb_root *root)
++{
++  struct rb_node *n;
++
++  n = root->rb_node;
++  if (!n)
++    return NULL;
++  while (n->rb_right)
++    n = n->rb_right;
++  return n;
++}
++
++struct rb_node *rb_next (struct rb_node *node)
++{
++  /* If we have a right-hand child, go down and then left as far
++   * as we can. */
++  if (node->rb_right)
++    {
++      node = node->rb_right;
++      while (node->rb_left)
++        node=node->rb_left;
++      return node;
++    }
++
++  /* No right-hand children.  Everything down and left is
++   * smaller than us, so any 'next' node must be in the general
++   * direction of our parent. Go up the tree; any time the
++   * ancestor is a right-hand child of its parent, keep going
++   * up. First time it's a left-hand child of its parent, said
++   * parent is our 'next' node. */
++  while (node->rb_parent && node == node->rb_parent->rb_right)
++    node = node->rb_parent;
++
++  return node->rb_parent;
++}
++
++struct rb_node *rb_prev (struct rb_node *node)
++{
++  /* If we have a left-hand child, go down and then right as far
++   * as we can. */
++  if (node->rb_left)
++    {
++      node = node->rb_left;
++      while (node->rb_right)
++        node=node->rb_right;
++      return node;
++    }
++
++  /* No left-hand children. Go up till we find an ancestor which
++   * is a right-hand child of its parent */
++  while (node->rb_parent && node == node->rb_parent->rb_left)
++    node = node->rb_parent;
++
++  return node->rb_parent;
++}
++
++void rb_replace_node (struct rb_node *victim, struct rb_node *new,
++		     struct rb_root *root)
++{
++  struct rb_node *parent = victim->rb_parent;
++
++  /* Set the surrounding nodes to point to the replacement */
++  if (parent) {
++    if (victim == parent->rb_left)
++      parent->rb_left = new;
++    else
++      parent->rb_right = new;
++  } else {
++    root->rb_node = new;
++  }
++
++  if (victim->rb_left)
++    victim->rb_left->rb_parent = new;
++  if (victim->rb_right)
++    victim->rb_right->rb_parent = new;
++
++  /* Copy the pointers/colour from the victim to the replacement */
++  *new = *victim;
++}
+diff --git a/lib/rbtree.h b/lib/rbtree.h
+new file mode 100644
+index 0000000..ad646b1
+--- /dev/null
++++ b/lib/rbtree.h
+@@ -0,0 +1,143 @@
++/*
++  Red Black Trees
++  (C) 1999  Andrea Arcangeli <andrea@suse.de>
++
++  This program is free software; you can redistribute it and/or modify
++  it under the terms of the GNU General Public License as published by
++  the Free Software Foundation; either version 2 of the License, or
++  (at your option) any later version.
++
++  This program is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++
++  You should have received a copy of the GNU General Public License
++  along with this program; if not, write to the Free Software
++  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++  rbtree.h
++
++  To use rbtrees you'll have to implement your own insert and search cores.
++  This will avoid us to use callbacks and to drop drammatically performances.
++  I know it's not the cleaner way,  but in C (not in C++) to get
++  performances and genericity...
++
++  Some example of insert and search follows here. The search is a plain
++  normal search over an ordered tree. The insert instead must be implemented
++  int two steps: as first thing the code must insert the element in
++  order as a red leaf in the tree, then the support library function
++  rb_insert_color() must be called. Such function will do the
++  not trivial work to rebalance the rbtree if necessary.
++
++-----------------------------------------------------------------------
++static inline struct page * rb_search_page_cache (struct inode * inode,
++						  unsigned long offset)
++{
++  struct rb_node * n = inode->i_rb_page_cache.rb_node;
++  struct page * page;
++
++  while (n)
++    {
++      page = rb_entry (n, struct page, rb_page_cache);
++
++      if (offset < page->offset)
++        n = n->rb_left;
++      else if (offset > page->offset)
++        n = n->rb_right;
++      else
++        return page;
++    }
++  return NULL;
++}
++
++static inline struct page * __rb_insert_page_cache (struct inode * inode,
++						    unsigned long offset,
++						    struct rb_node * node)
++{
++  struct rb_node ** p = &inode->i_rb_page_cache.rb_node;
++  struct rb_node * parent = NULL;
++  struct page * page;
++
++  while (*p)
++    {
++      parent = *p;
++      page = rb_entry (parent, struct page, rb_page_cache);
++
++      if (offset < page->offset)
++        p = &(*p)->rb_left;
++      else if (offset > page->offset)
++        p = &(*p)->rb_right;
++      else
++        return page;
++    }
++
++  rb_link_node (node, parent, p);
++
++  return NULL;
++}
++
++static inline struct page * rb_insert_page_cache (struct inode * inode,
++						  unsigned long offset,
++						  struct rb_node * node)
++{
++  struct page * ret;
++  if ((ret = __rb_insert_page_cache (inode, offset, node)))
++    goto out;
++  rb_insert_color (node, &inode->i_rb_page_cache);
++ out:
++	return ret;
++}
++-----------------------------------------------------------------------
++*/
++
++#ifndef	_LINUX_RBTREE_H
++#define	_LINUX_RBTREE_H
++
++#include <stdlib.h>
++
++struct rb_node
++  {
++    struct rb_node *rb_parent;
++    int rb_color;
++#define	RB_RED    0
++#define	RB_BLACK  1
++    struct rb_node *rb_right;
++    struct rb_node *rb_left;
++  };
++
++struct rb_root
++  {
++    struct rb_node *rb_node;
++  };
++
++#define RB_ROOT	(struct rb_root) { NULL, }
++#define	rb_entry (ptr, type, member)                              \
++  ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
++
++extern void rb_insert_color (struct rb_node *, struct rb_root *);
++extern void rb_erase (struct rb_node *, struct rb_root *);
++
++/* Find logical next and previous nodes in a tree */
++extern struct rb_node *rb_next (struct rb_node *);
++extern struct rb_node *rb_prev (struct rb_node *);
++extern struct rb_node *rb_first (struct rb_root *);
++extern struct rb_node *rb_last (struct rb_root *);
++
++/* Fast replacement of a single node without remove/rebalance/add/rebalance */
++extern void rb_replace_node (struct rb_node *victim,
++                             struct rb_node *new,
++                             struct rb_root *root);
++
++static inline void rb_link_node (struct rb_node * node,
++                                 struct rb_node * parent,
++                                 struct rb_node ** rb_link)
++{
++  node->rb_parent = parent;
++  node->rb_color = RB_RED;
++  node->rb_left = node->rb_right = NULL;
++
++  *rb_link = node;
++}
++
++#endif	/* _LINUX_RBTREE_H */
 -- 
 1.5.4.3
