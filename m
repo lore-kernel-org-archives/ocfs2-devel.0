@@ -1,219 +1,95 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Wed, 27 Jan 2010 19:22:04 +0800
-Subject: [Ocfs2-devel] [PATCH 1/3] Ocfs2: Change ocfs2_remove_btree_range()
-	a bit to consider refcount case.
-Message-ID: <1264591326-24591-1-git-send-email-tristan.ye@oracle.com>
+Date: Wed, 27 Jan 2010 19:22:05 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] Ocfs2: Change
+	ocfs2_prepare_refcount_change_for_del() a bit to defer blocks
+	reservation.
+In-Reply-To: <1264591326-24591-1-git-send-email-tristan.ye@oracle.com>
+References: <1264591326-24591-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1264591326-24591-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Truncating and punching holes codes need to take refcount into account when
-removing a extent record, it has to decrease refcount on refcount tree.
+As ocfs2_prepare_refcount_change_for_del() only called from ocfs2_commit_truncate for
+now(punching holes are going to use that soon I guess), we're safe to defer metadata
+blocks reservation unitl ocfs2_remove_btree_range(), who is also reserving blocks for
+extent btree adjusting, so it will be nice to do these in one go.
 
-As in, credits and blocks reserved from allocator for refcount should be calculated
-beforehand in caller who revokes ocfs2_remove_btree_range(), it will not hurt anyone
-who're using this function, if you want an extra credits and reserved blocks be taken
-into account, just pass in, otherwise, leave it as 0.
-
-Originally it's made for truncating codes who is being optimized to use ocfs2_remove_btree_range
-for straightfoward purpose, our punching holes codes however, will also benenfit from this patch
-as well.
-
-The patch also add a new func ocfs2_lock_allocator_with_extra_blocks() in suballoc.c,
-which was almost the same as ocfs2_lock_allocators(), except it accepts some blocks
-for extra use(e.g. we may need more blocks to reserve when truncating a file to consider
-refcount case), and and it only handles meta data allocations, for now, it's only called
-by ocfs2_remove_btree_range() to handle truncating and punching holes.
+Instead, it will return the blocks calculated to caller, to let him know how many extra
+blocks for refcount tree should be reserved next.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/alloc.c    |   28 ++++++++++++++++++++++------
- fs/ocfs2/alloc.h    |    3 ++-
- fs/ocfs2/dir.c      |    2 +-
- fs/ocfs2/file.c     |    2 +-
- fs/ocfs2/suballoc.c |   51 +++++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/suballoc.h |    6 ++++++
- 6 files changed, 83 insertions(+), 9 deletions(-)
+ fs/ocfs2/refcounttree.c |   21 +++++++--------------
+ fs/ocfs2/refcounttree.h |    2 +-
+ 2 files changed, 8 insertions(+), 15 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 38a42f5..6c5f1de 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -5673,7 +5673,8 @@ out:
- int ocfs2_remove_btree_range(struct inode *inode,
- 			     struct ocfs2_extent_tree *et,
- 			     u32 cpos, u32 phys_cpos, u32 len,
--			     struct ocfs2_cached_dealloc_ctxt *dealloc)
-+			     struct ocfs2_cached_dealloc_ctxt *dealloc,
-+			     int credits, int extra_blocks, int flags)
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 60287fc..42a8446 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2432,8 +2432,8 @@ out:
+  *
+  * Normally the refcount blocks store these refcount should be
+  * continguous also, so that we can get the number easily.
+- * As for meta_ac, we will at most add split 2 refcount record and
+- * 2 more refcount block, so just check it in a rough way.
++ * We will at most add split 2 refcount records and 2 more
++ * refcount block, so just check it in a rough way.
+  *
+  * Caller must hold refcount tree lock.
+  */
+@@ -2442,9 +2442,9 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+ 					  u64 phys_blkno,
+ 					  u32 clusters,
+ 					  int *credits,
+-					  struct ocfs2_alloc_context **meta_ac)
++					  int *ref_blocks)
  {
- 	int ret;
- 	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
-@@ -5682,7 +5683,8 @@ int ocfs2_remove_btree_range(struct inode *inode,
- 	handle_t *handle;
- 	struct ocfs2_alloc_context *meta_ac = NULL;
- 
--	ret = ocfs2_lock_allocators(inode, et, 0, 1, NULL, &meta_ac);
-+	ret = ocfs2_lock_allocator_with_extra_blocks(inode, et, 1,
-+						     &meta_ac, extra_blocks);
+-	int ret, ref_blocks = 0;
++	int ret;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct buffer_head *ref_root_bh = NULL;
+@@ -2480,21 +2480,14 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+ 					       &tree->rf_ci,
+ 					       ref_root_bh,
+ 					       start_cpos, clusters,
+-					       &ref_blocks, credits);
++					       ref_blocks, credits);
  	if (ret) {
  		mlog_errno(ret);
- 		return ret;
-@@ -5698,7 +5700,8 @@ int ocfs2_remove_btree_range(struct inode *inode,
- 		}
+ 		goto out;
  	}
  
--	handle = ocfs2_start_trans(osb, ocfs2_remove_extent_credits(osb->sb));
-+	handle = ocfs2_start_trans(osb,
-+			ocfs2_remove_extent_credits(osb->sb) + credits);
- 	if (IS_ERR(handle)) {
- 		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
-@@ -5729,9 +5732,22 @@ int ocfs2_remove_btree_range(struct inode *inode,
- 		goto out_commit;
- 	}
+-	mlog(0, "reserve new metadata %d, credits = %d\n",
+-	     ref_blocks, *credits);
+-
+-	if (ref_blocks) {
+-		ret = ocfs2_reserve_new_metadata_blocks(OCFS2_SB(inode->i_sb),
+-							ref_blocks, meta_ac);
+-		if (ret)
+-			mlog_errno(ret);
+-	}
++	mlog(0, "reserve new metadata %d blocks, credits = %d\n",
++	     *ref_blocks, *credits);
  
--	ret = ocfs2_truncate_log_append(osb, handle, phys_blkno, len);
--	if (ret)
--		mlog_errno(ret);
-+	if (phys_blkno) {
-+		if (flags & OCFS2_EXT_REFCOUNTED) {
-+			ret = ocfs2_decrease_refcount(inode, handle,
-+                                        ocfs2_blocks_to_clusters(osb->sb,
-+                                                                 phys_blkno),
-+                                        len, meta_ac,
-+                                        dealloc, 1);
-+		}
-+
-+		else
-+			ret = ocfs2_truncate_log_append(osb, handle,
-+							phys_blkno, len);
-+		if (ret)
-+                        mlog_errno(ret );
-+
-+	}
+ out:
+ 	brelse(ref_root_bh);
+diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
+index c1d19b1..f4bf110 100644
+--- a/fs/ocfs2/refcounttree.h
++++ b/fs/ocfs2/refcounttree.h
+@@ -51,7 +51,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+ 					  u64 phys_blkno,
+ 					  u32 clusters,
+ 					  int *credits,
+-					  struct ocfs2_alloc_context **meta_ac);
++					  int *ref_blocks);
+ int ocfs2_refcount_cow(struct inode *inode, struct buffer_head *di_bh,
+ 		       u32 cpos, u32 write_len, u32 max_cpos);
  
- out_commit:
- 	ocfs2_commit_trans(osb, handle);
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 9c122d5..483cdf1 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -141,7 +141,8 @@ int ocfs2_remove_extent(handle_t *handle, struct ocfs2_extent_tree *et,
- int ocfs2_remove_btree_range(struct inode *inode,
- 			     struct ocfs2_extent_tree *et,
- 			     u32 cpos, u32 phys_cpos, u32 len,
--			     struct ocfs2_cached_dealloc_ctxt *dealloc);
-+			     struct ocfs2_cached_dealloc_ctxt *dealloc,
-+			     int credits, int ref_blocks, int flags);
- 
- int ocfs2_num_free_extents(struct ocfs2_super *osb,
- 			   struct ocfs2_extent_tree *et);
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 28c3ec2..3aff1e1 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -4557,7 +4557,7 @@ int ocfs2_dx_dir_truncate(struct inode *dir, struct buffer_head *di_bh)
- 		p_cpos = ocfs2_blocks_to_clusters(dir->i_sb, blkno);
- 
- 		ret = ocfs2_remove_btree_range(dir, &et, cpos, p_cpos, clen,
--					       &dealloc);
-+					       &dealloc, 0, 0, 0);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 89fc8ee..3bebb3b 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1499,7 +1499,7 @@ static int ocfs2_remove_inode_range(struct inode *inode,
- 		if (phys_cpos != 0) {
- 			ret = ocfs2_remove_btree_range(inode, &et, cpos,
- 						       phys_cpos, alloc_size,
--						       &dealloc);
-+						       &dealloc, 0, 0, 0);
- 			if (ret) {
- 				mlog_errno(ret);
- 				goto out;
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index c30b644..8bf4523 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -2208,6 +2208,57 @@ out:
- }
- 
- /*
-+ * ocfs2_lock_allocator_with_extra_blocks() would look almost the
-+ * same as ocfs2_lock_alloctors(), except for it accepts a blocks
-+ * number to reserve some extra blocks, and it only handles meta
-+ * data allocations.
-+ *
-+ * Currently, only ocfs2_remove_btree_range() uses it for truncating
-+ * and punching holes.
-+ */
-+int ocfs2_lock_allocator_with_extra_blocks(struct inode *inode,
-+					   struct ocfs2_extent_tree *et,
-+					   u32 extents_to_split,
-+					   struct ocfs2_alloc_context **meta_ac,
-+					   int extra_blocks)
-+{
-+	int ret = 0, num_free_extents, blocks;
-+	unsigned int max_recs_needed = 2 * extents_to_split;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+
-+	*meta_ac = NULL;
-+
-+	num_free_extents = ocfs2_num_free_extents(osb, et);
-+	if (num_free_extents < 0) {
-+		ret = num_free_extents;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	if (!num_free_extents ||
-+	    (ocfs2_sparse_alloc(osb) && num_free_extents < max_recs_needed)) {
-+		blocks = ocfs2_extend_meta_needed(et->et_root_el) +
-+				extra_blocks;
-+		ret = ocfs2_reserve_new_metadata_blocks(osb, blocks, meta_ac);
-+		if (ret < 0) {
-+			if (ret != -ENOSPC)
-+				mlog_errno(ret);
-+			goto out;
-+		}
-+	}
-+
-+out:
-+	if (ret) {
-+		if (*meta_ac) {
-+			ocfs2_free_alloc_context(*meta_ac);
-+			*meta_ac = NULL;
-+		}
-+	}
-+
-+	return ret;
-+}
-+
-+/*
-  * Read the inode specified by blkno to get suballoc_slot and
-  * suballoc_bit.
-  */
-diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-index 8c9a78a..fe39f5e 100644
---- a/fs/ocfs2/suballoc.h
-+++ b/fs/ocfs2/suballoc.h
-@@ -189,5 +189,11 @@ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_extent_tree *et,
- 			  struct ocfs2_alloc_context **data_ac,
- 			  struct ocfs2_alloc_context **meta_ac);
- 
-+int ocfs2_lock_allocator_with_extra_blocks(struct inode *inode,
-+					   struct ocfs2_extent_tree *et,
-+					   u32 extents_to_split,
-+					   struct ocfs2_alloc_context **meta_ac,
-+					   int extra_blocks);
-+
- int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res);
- #endif /* _CHAINALLOC_H_ */
 -- 
 1.5.5
