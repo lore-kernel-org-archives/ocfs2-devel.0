@@ -1,55 +1,65 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon,  1 Feb 2010 17:05:33 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Only bug out when page size is larger
-	than cluster size.
-Message-ID: <1265015133-12775-1-git-send-email-tao.ma@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Mon,  1 Feb 2010 18:29:33 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Fix punching hole codes to
+	correctly do CoW during cluster zeroing.
+In-Reply-To: <1265020173-14623-1-git-send-email-tristan.ye@oracle.com>
+References: <1265020173-14623-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1265020173-14623-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In CoW, we have to make sure that the page is already written
-out to the disk. So we have a BUG_ON(PageDirty(page)).
+Based on the former patch of truncating optimization, bugfix for refcount on
+punching holes can be fairly easy and straightforward since most of work we
+should take into account for refcounting have been completed already in func
+ocfs2_remove_btree_range(), which is also being used by our truncating codes.
 
-In ppc platform we have pagesize=64K, so if the cs=4K, if the
-file have fragmented clusters, we will map the page many times.
-See this file as an example.
-Tree Depth: 0   Count: 19   Next Free Rec: 14
-	## Offset        Clusters       Block#          Flags
-	0  0             4              2164864         0x2 Refcounted
-	1  4             2              9302792         0x2 Refcounted
-...
+The patch just did CoW for reflinks when a hole is being punched whose start
+and end offset were within one cluster, which means partial zeroing for a cluster
+will be performed soon.
 
-We have to replace the extent recs one by one, so the page with index 0
-will be mapped and dirtied twice.
+The patch has been tested fixing the following bug:
 
-I'd like to leave the BUG_ON there while adding a check so that in
-case we meet with an error in other platforms, we can find it easily.
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1216
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/refcounttree.c |    8 ++++++--
- 1 files changed, 6 insertions(+), 2 deletions(-)
+ fs/ocfs2/file.c |   21 +++++++++++++++++++++
+ 1 files changed, 21 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 5b64468..8ae65c9 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2957,8 +2957,12 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index e0c9d1c..bb15a1e 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1458,6 +1458,27 @@ static int ocfs2_remove_inode_range(struct inode *inode,
+ 		goto out;
+ 	}
  
- 		page = grab_cache_page(mapping, page_index);
- 
--		/* This page can't be dirtied before we CoW it out. */
--		BUG_ON(PageDirty(page));
-+		/*
-+		 * In case PAGE_CACHE_SIZE <= CLUSTER_SIZE, This page
-+		 * can't be dirtied before we CoW it out.
-+		 */
-+		if (PAGE_CACHE_SIZE <= OCFS2_SB(sb)->s_clustersize)
-+			BUG_ON(PageDirty(page));
- 
- 		if (!PageUptodate(page)) {
- 			ret = block_read_full_page(page, ocfs2_get_block);
++	/*
++	 * For reflinks, we may need to CoW 2 clusters which might be
++	 * partially zero'd later, if hole's start and end offset were
++	 * within one cluster(means is not exactly aligned to clustersize).
++	 */
++
++	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
++
++		ret = ocfs2_cow_file_pos(inode, di_bh, byte_start);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
++		ret = ocfs2_cow_file_pos(inode, di_bh, byte_start + byte_len);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++	}
++
+ 	trunc_start = ocfs2_clusters_for_bytes(osb->sb, byte_start);
+ 	trunc_len = (byte_start + byte_len) >> osb->s_clustersize_bits;
+ 	if (trunc_len >= trunc_start)
 -- 
-1.6.3.3
+1.5.5
