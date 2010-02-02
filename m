@@ -1,12 +1,11 @@
 From: tristan <tristan.ye@oracle.com>
-Date: Tue, 02 Feb 2010 09:24:53 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Fix punching hole codes to
- correctly do CoW during cluster zeroing.
-In-Reply-To: <4B675212.7080706@oracle.com>
+Date: Tue, 02 Feb 2010 09:32:26 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Optimize truncting codes for
+ ocfs2 to use ocfs2_remove_btree_range instead.
+In-Reply-To: <4B67539E.5060201@oracle.com>
 References: <1265020173-14623-1-git-send-email-tristan.ye@oracle.com>
-	<1265020173-14623-2-git-send-email-tristan.ye@oracle.com>
-	<4B675212.7080706@oracle.com>
-Message-ID: <4B677EE5.8050001@oracle.com>
+	<4B67539E.5060201@oracle.com>
+Message-ID: <4B6780AA.2070701@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -16,66 +15,71 @@ To: ocfs2-devel@oss.oracle.com
 TaoMa wrote:
 > Hi Tristan,
 > Tristan Ye wrote:
->> Based on the former patch of truncating optimization, bugfix for 
->> refcount on
->> punching holes can be fairly easy and straightforward since most of 
->> work we
->> should take into account for refcounting have been completed already 
->> in func
->> ocfs2_remove_btree_range(), which is also being used by our 
->> truncating codes.
->>
->> The patch just did CoW for reflinks when a hole is being punched 
->> whose start
->> and end offset were within one cluster, which means partial zeroing 
->> for a cluster
->> will be performed soon.
->>
->> The patch has been tested fixing the following bug:
->>
->> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1216
->>
 >> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 >> ---
->>  fs/ocfs2/file.c |   21 +++++++++++++++++++++
->>  1 files changed, 21 insertions(+), 0 deletions(-)
+>>  fs/ocfs2/alloc.c        |  695 
+>> +++++++++++------------------------------------
+>>  fs/ocfs2/alloc.h        |    6 +-
+>>  fs/ocfs2/dir.c          |    2 +-
+>>  fs/ocfs2/file.c         |   11 +-
+>>  fs/ocfs2/inode.c        |    9 +-
+>>  fs/ocfs2/refcounttree.c |   29 +--
+>>  fs/ocfs2/refcounttree.h |    4 +-
+>>  7 files changed, 177 insertions(+), 579 deletions(-)
 >>
->> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->> index e0c9d1c..bb15a1e 100644
->> --- a/fs/ocfs2/file.c
->> +++ b/fs/ocfs2/file.c
->> @@ -1458,6 +1458,27 @@ static int ocfs2_remove_inode_range(struct 
->> inode *inode,
->>          goto out;
->>      }
+>> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+>> index 38a42f5..bad3feb 100644
+>> --- a/fs/ocfs2/alloc.c
+>> +++ b/fs/ocfs2/alloc.c
+>> @@ -5670,19 +5670,97 @@ out:
+>>      return ret;
+>>  }
 >>  
->> +    /*
->> +     * For reflinks, we may need to CoW 2 clusters which might be
->> +     * partially zero'd later, if hole's start and end offset were
->> +     * within one cluster(means is not exactly aligned to clustersize).
->> +     */
+>>   
+> <snip>
+>> +static int ocfs2_reserve_blocks_for_rec_trunc(struct inode *inode,
+>> +                          struct ocfs2_extent_tree *et,
+>> +                          u32 extents_to_split,
+>> +                          struct ocfs2_alloc_context **ac,
+>> +                          int extra_blocks)
+>> +{
+>> +    int ret = 0, num_free_extents, blocks = extra_blocks;
+>> +    unsigned int max_recs_needed = 2 * extents_to_split;
+>> +    struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
 >> +
->> +    if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
+>> +    *ac = NULL;
 >> +
->> +        ret = ocfs2_cow_file_pos(inode, di_bh, byte_start);
->> +        if (ret) {
->> +            mlog_errno(ret);
->> +            goto out;
->> +        }
->> +
->> +        ret = ocfs2_cow_file_pos(inode, di_bh, byte_start + byte_len);
->> +        if (ret) {
->> +            mlog_errno(ret);
->> +            goto out;
->> +        }
+>> +    num_free_extents = ocfs2_num_free_extents(osb, et);
+>> +    if (num_free_extents < 0) {
+>> +        ret = num_free_extents;
+>> +        mlog_errno(ret);
+>> +        goto out;
 >> +    }
 >> +
+>> +    if (!num_free_extents ||
+>> +        (ocfs2_sparse_alloc(osb) && num_free_extents < 
+>> max_recs_needed))
+>> +        blocks += ocfs2_extend_meta_needed(et->et_root_el);
+>> +
+>> +    if (!blocks) {
+>> +        ret = ocfs2_reserve_new_metadata_blocks(osb, blocks, ac);
 >>   
-> If the bytes_start and bytes_sart + byte_len are in alignment with 
-> cluster size, we don't need to do CoW.
+> Oh, this is a bug. I just wonder why I didn't find it earlier. Sorry.
+> the check condition should be
+>    if (blocks) {
 
-Do we really need this? I saw ocfs2_cow_file_pos() has already handled 
-the situation you mentioned.
+Exactly, that's my fault.  a stupid bug...
+
+
+
+>
+> So do please run some stress test on these 2 patches.
+
+ You're right, testcases against these 2 patches were not comprehensive 
+enough to expose some stupid bug like above, I'll try some tests with 
+heavier workload.
+
+Thanks, tao
 
 >
 > Regards,
