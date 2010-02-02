@@ -1,48 +1,82 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon,  1 Feb 2010 16:55:50 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Remove overzealous BUG_ON during
-	blocked lock processing
-Message-ID: <1265072150-29894-1-git-send-email-sunil.mushran@oracle.com>
+From: tristan <tristan.ye@oracle.com>
+Date: Tue, 02 Feb 2010 09:24:53 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Fix punching hole codes to
+ correctly do CoW during cluster zeroing.
+In-Reply-To: <4B675212.7080706@oracle.com>
+References: <1265020173-14623-1-git-send-email-tristan.ye@oracle.com>
+	<1265020173-14623-2-git-send-email-tristan.ye@oracle.com>
+	<4B675212.7080706@oracle.com>
+Message-ID: <4B677EE5.8050001@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-During blocked lock processing, we should consider the possibility that the
-lock is no longer blocking.
+TaoMa wrote:
+> Hi Tristan,
+> Tristan Ye wrote:
+>> Based on the former patch of truncating optimization, bugfix for 
+>> refcount on
+>> punching holes can be fairly easy and straightforward since most of 
+>> work we
+>> should take into account for refcounting have been completed already 
+>> in func
+>> ocfs2_remove_btree_range(), which is also being used by our 
+>> truncating codes.
+>>
+>> The patch just did CoW for reflinks when a hole is being punched 
+>> whose start
+>> and end offset were within one cluster, which means partial zeroing 
+>> for a cluster
+>> will be performed soon.
+>>
+>> The patch has been tested fixing the following bug:
+>>
+>> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1216
+>>
+>> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+>> ---
+>>  fs/ocfs2/file.c |   21 +++++++++++++++++++++
+>>  1 files changed, 21 insertions(+), 0 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>> index e0c9d1c..bb15a1e 100644
+>> --- a/fs/ocfs2/file.c
+>> +++ b/fs/ocfs2/file.c
+>> @@ -1458,6 +1458,27 @@ static int ocfs2_remove_inode_range(struct 
+>> inode *inode,
+>>          goto out;
+>>      }
+>>  
+>> +    /*
+>> +     * For reflinks, we may need to CoW 2 clusters which might be
+>> +     * partially zero'd later, if hole's start and end offset were
+>> +     * within one cluster(means is not exactly aligned to clustersize).
+>> +     */
+>> +
+>> +    if (OCFS2_I(inode)->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL) {
+>> +
+>> +        ret = ocfs2_cow_file_pos(inode, di_bh, byte_start);
+>> +        if (ret) {
+>> +            mlog_errno(ret);
+>> +            goto out;
+>> +        }
+>> +
+>> +        ret = ocfs2_cow_file_pos(inode, di_bh, byte_start + byte_len);
+>> +        if (ret) {
+>> +            mlog_errno(ret);
+>> +            goto out;
+>> +        }
+>> +    }
+>> +
+>>   
+> If the bytes_start and bytes_sart + byte_len are in alignment with 
+> cluster size, we don't need to do CoW.
 
-Joel Becker <joel.becker@oracle.com> assisted in fixing this issue.
+Do we really need this? I saw ocfs2_cow_file_pos() has already handled 
+the situation you mentioned.
 
-Reported-by: David Teigland <teigland@redhat.com>
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/dlmglue.c |   12 ++++++++++--
- 1 files changed, 10 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 2918c2c..1c4d704 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3392,9 +3392,17 @@ static int ocfs2_unblock_lock(struct ocfs2_super *osb,
- 
- 	spin_lock_irqsave(&lockres->l_lock, flags);
- 
--	BUG_ON(!(lockres->l_flags & OCFS2_LOCK_BLOCKED));
--
- recheck:
-+	/*
-+	 * Is it still blocking? If not, we have no more work to do.
-+	 */
-+	if (!(lockres->l_flags & OCFS2_LOCK_BLOCKED)) {
-+		BUG_ON(lockres->l_blocking != DLM_LOCK_NL);
-+		spin_unlock_irqrestore(&lockres->l_lock, flags);
-+		ret = 0;
-+		goto leave;
-+	}
-+
- 	if (lockres->l_flags & OCFS2_LOCK_BUSY) {
- 		/* XXX
- 		 * This is a *big* race.  The OCFS2_LOCK_PENDING flag
--- 
-1.6.3.3
+>
+> Regards,
+> Tao
