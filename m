@@ -1,40 +1,56 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Thu, 04 Feb 2010 19:35:03 +0800
-Subject: [Ocfs2-devel] [PATCH 0/3] Ocfs2: Optimize truncting and
-	punching-hole codes.
-Message-ID: <4B6AB0E7.1000505@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 4 Feb 2010 16:20:18 -0500
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a refcount condition checking
+Message-ID: <201002041330.o145sMME005597@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Tao, Joel,
+Hi Joel/Tao,
 
+I don't know the reflink very well, so please ignore this patch if I am wrong.
 
-These three patches were for truncate and punching-hole optimization.
+I think in ocfs2_prepare_inode_for_write(), we disable DIO write if the inode
+has reflink.
+If am right, the way we determine if the inode has reflink is wrong in case
+(!has_refcount && direct_io).
 
-1st patch was all about optimization of truncating.
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/file.c |    5 +++--
+ 1 files changed, 3 insertions(+), 2 deletions(-)
 
-2nd patch was a fixup of bz1216, based on 1st patch
-
-3rd patch was for optimization of punching hole, based on former 2 patches.
-
-
-#1 and #2 patch has been tested well, should be a somewhat stable 
-version now,
-while #3 patch is a rough v1 one, still needs more tests though simple 
-comparion test
-and sanity check have been done. the reason why I sent it  out with 
-former 2 stable ones
-together is just to let it get reviewed earlier.
-
-Joel,
-
-Therefore, you  can only merge the  first  2 patches if things are in a 
-hurry.
-
-
-
-Regards,
-Tristan.
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 06ccf6a..77ebb6e 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1775,7 +1775,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
+ 					 int *direct_io,
+ 					 int *has_refcount)
+ {
+-	int ret = 0, meta_level = 0;
++	int ret = 0, meta_level = 0, refcount = 0;
+ 	struct inode *inode = dentry->d_inode;
+ 	loff_t saved_pos, end;
+ 
+@@ -1834,6 +1834,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
+ 							       saved_pos,
+ 							       count,
+ 							       &meta_level);
++			refcount = 1;
+ 			if (has_refcount)
+ 				*has_refcount = 1;
+ 		}
+@@ -1859,7 +1860,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
+ 			break;
+ 		}
+ 
+-		if (has_refcount && *has_refcount == 1) {
++		if (refcount) {
+ 			*direct_io = 0;
+ 			break;
+ 		}
+-- 
+1.6.6
