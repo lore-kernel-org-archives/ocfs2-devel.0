@@ -1,32 +1,36 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 5 Feb 2010 15:24:44 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix contiguousness check in
- ocfs2_try_to_merge_extent_map()
-In-Reply-To: <4B6BE443.5000307@gmail.com>
-References: <4B6BE443.5000307@gmail.com>
-Message-ID: <20100205232443.GF3416@mail.oracle.com>
+Date: Fri, 5 Feb 2010 15:30:16 -0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Add new OCFS2_IOC_INFO ioctl
+ for	ocfs2 v6.
+In-Reply-To: <20100205162739.GA25027@lst.de>
+References: <1265363960-13329-1-git-send-email-tristan.ye@oracle.com>
+	<1265363960-13329-2-git-send-email-tristan.ye@oracle.com>
+	<20100205162739.GA25027@lst.de>
+Message-ID: <20100205233016.GG3416@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Roel Kluin <roel.kluin@gmail.com>
-Cc: Mark Fasheh <mfasheh@suse.com>, tao.ma@oracle.com, ocfs2-devel@oss.oracle.com, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Feb 05, 2010 at 10:26:27AM +0100, Roel Kluin wrote:
-> The wrong member was compared in the continguousness check.
-> 
-> Acked-by: Tao Ma <tao.ma@oracle.com>
-> Signed-off-by: Roel Kluin <roel.kluin@gmail.com>
+On Fri, Feb 05, 2010 at 05:27:39PM +0100, Christoph Hellwig wrote:
+> On Fri, Feb 05, 2010 at 05:59:20PM +0800, Tristan Ye wrote:
+> I think you've totally overshoot the target here.  Just add a normal
+> ioctls returning a structure with all interesting information without
+> all that crap around it.  If it needs to be revisited it's trivial to
+> just add another ioctl containing more fields.
 
-This patch is now in the fixes branch of ocfs2.git.
+	Related question: I notice that dvb has decided to use 'o' as
+their ioctl letter as well.  Are we supposed to be trying to avoid their
+_IOW('o', XX, ...) numbers, or can we just overlap?
 
 Joel
 
 -- 
 
-"Sometimes when reading Goethe I have the paralyzing suspicion
- that he is trying to be funny."
-         - Guy Davenport
+Life's Little Instruction Book #335
+
+	"Every so often, push your luck."
 
 Joel Becker
 Principal Software Developer
