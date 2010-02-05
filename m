@@ -1,67 +1,44 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 05 Feb 2010 08:58:45 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a refcount condition checking
-In-Reply-To: <201002041330.o145sMME005597@acsinet15.oracle.com>
-References: <201002041330.o145sMME005597@acsinet15.oracle.com>
-Message-ID: <4B6B6D45.30206@oracle.com>
+Date: Fri, 05 Feb 2010 09:18:13 +0800
+Subject: [Ocfs2-devel] ocfs2: ei_cpos/phys confusion?
+In-Reply-To: <4B65B58F.1010601@gmail.com>
+References: <4B65B58F.1010601@gmail.com>
+Message-ID: <4B6B71D5.8050405@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi wengang,
+Hi Roel,
 
-Wengang Wang wrote:
-> Hi Joel/Tao,
+Roel Kluin wrote:
+> in ocfs2_try_to_merge_extent_map(), vi fs/ocfs2/extent_map.c +185
 > 
-> I don't know the reflink very well, so please ignore this patch if I am wrong.
+>         if (ins->ei_phys == (emi->ei_phys + emi->ei_clusters) &&
+>             ins->ei_cpos == (emi->ei_cpos + emi->ei_clusters) &&
+>             ins->ei_flags == emi->ei_flags) {
+>                 emi->ei_clusters += ins->ei_clusters;
+>                 return 1;
+>         } else if ((ins->ei_phys + ins->ei_clusters) == emi->ei_phys &&
+>                    (ins->ei_cpos + ins->ei_clusters) == emi->ei_phys &&
+> ----------------------------------------------------------------^^^^
+>                    ins->ei_flags == emi->ei_flags) {
+>                 emi->ei_phys = ins->ei_phys;
+>                 emi->ei_cpos = ins->ei_cpos;
+>                 emi->ei_clusters += ins->ei_clusters;
+>                 return 1;
+>         }
 > 
-> I think in ocfs2_prepare_inode_for_write(), we disable DIO write if the inode
-> has reflink.
-> If am right, the way we determine if the inode has reflink is wrong in case
-> (!has_refcount && direct_io).
-I just check the caller, all these 2 parameters are either set or NULL 
-simultaneously. You patch only make sense in (!has_refcount && 
-direct_io), but currently we don't have such a case. So why bother 
-adding redundant code for a not-exist case?
+> should that 2nd emi->ei_phys be emi->ei_cpos?
+oh, yes, you are right. Do you want to provide a patch?
 
 Regards,
 Tao
-
 > 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> ---
->  fs/ocfs2/file.c |    5 +++--
->  1 files changed, 3 insertions(+), 2 deletions(-)
+> Roel
 > 
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 06ccf6a..77ebb6e 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -1775,7 +1775,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
->  					 int *direct_io,
->  					 int *has_refcount)
->  {
-> -	int ret = 0, meta_level = 0;
-> +	int ret = 0, meta_level = 0, refcount = 0;
->  	struct inode *inode = dentry->d_inode;
->  	loff_t saved_pos, end;
->  
-> @@ -1834,6 +1834,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
->  							       saved_pos,
->  							       count,
->  							       &meta_level);
-> +			refcount = 1;
->  			if (has_refcount)
->  				*has_refcount = 1;
->  		}
-> @@ -1859,7 +1860,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
->  			break;
->  		}
->  
-> -		if (has_refcount && *has_refcount == 1) {
-> +		if (refcount) {
->  			*direct_io = 0;
->  			break;
->  		}
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
