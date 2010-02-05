@@ -1,42 +1,48 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 5 Feb 2010 15:09:14 -0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Move ocfs2 ioctl definitions
- from ocfs2_fs.h to new added ocfs2_ioctl.h.
-In-Reply-To: <1262940717-16769-1-git-send-email-tristan.ye@oracle.com>
-References: <1262940717-16769-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <20100205230914.GC3416@mail.oracle.com>
+Date: Fri, 5 Feb 2010 15:14:19 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Treat ocfs2 truncate as a
+ special case of punching holes v1.
+In-Reply-To: <4B5ED495.60001@oracle.com>
+References: <1264148107-9341-1-git-send-email-tristan.ye@oracle.com>
+	<4B5CFE12.9010503@oracle.com> <4B5ED495.60001@oracle.com>
+Message-ID: <20100205231419.GD3416@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jan 08, 2010 at 04:51:56PM +0800, Tristan Ye wrote:
-> Currently we were adding ioctl cmds/structures for ocfs2 into ocfs2_fs.h
-> which was used for define ocfs2 on-disk layout. That sounds a little bit
-> confusing, and it may be quickly polluted espcially when growing the
-> ocfs2_info_request ioctls afterwards(it will grow i bet).
-> 
-> As a result, such OCFS2 IOCs do need to be placed somewhere other than ocfs2_fs.h,
-> a separated ocfs2_ioctl.h will be added to store such ioctl structures and definitions
-> which could also be used from userspace to invoke the ioctls.
-> 
-> What's more, the patch also introduces new structures and definitions for the new
-> OCFS2_IOC_INFO.
+On Tue, Jan 26, 2010 at 07:40:05PM +0800, tristan wrote:
+> Tao Ma wrote:
+> You're absolutely right, as what we expected, the original logic for 
+> truncate was the most efficient one, new method using 
 
-	Can I get a version of this patch that does not inlude
-OCFS2_IOC_INFO?  Separate out adding the INFO definitions.  They can go
-in the second patch, as they match the operations.
-	That way I can apply this patch even before INFO is ready.
+<snip>
+
+> 1. Original logic:
+> 0.00user 33.06system 0:33.11elapsed 99%CPU
+> 
+> 2. New logic(using ocfs2_remove_btree_range) from begin to end:
+> 0.00user 0.35system 0:00.52elapsed 67%CPU
+> 
+> 3. New logic(using ocfs2_remove_btree_range) from end to begin:
+> 0.00user 1.15system 0:01.16elapsed 98%CPU
+> 
+> 
+> Look, method 1 was up to 100 times efficient than method 2, and 3 times 
+> efficient than method 3.
+
+	I'm confused.  You state above that the original method was the
+most efficient, yet it took 33 seconds. The remove_btree_range functions
+took .35s and 1.15s.  By that measure the original is the worst.  Or am
+I reading this wrong?
 
 Joel
 
 -- 
 
-"Always give your best, never get discouraged, never be petty; always
- remember, others may hate you.  Those who hate you don't win unless
- you hate them.  And then you destroy yourself."
-	- Richard M. Nixon
+"Up and down that road in our worn out shoes,
+ Talking bout good things and singing the blues."
 
 Joel Becker
 Principal Software Developer
