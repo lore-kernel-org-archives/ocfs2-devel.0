@@ -1,9 +1,10 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Thu,  4 Feb 2010 16:54:56 -0800
-Subject: [Ocfs2-devel] [PATCH 03/10] ocfs2_dlmfs: Move to its own directory
+Date: Thu,  4 Feb 2010 16:55:03 -0800
+Subject: [Ocfs2-devel] [PATCH 10/10] ocfs2_dlmfs: Enable the use of user
+	cluster stacks.
 In-Reply-To: <1265331303-19881-1-git-send-email-joel.becker@oracle.com>
 References: <1265331303-19881-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1265331303-19881-4-git-send-email-joel.becker@oracle.com>
+Message-ID: <1265331303-19881-11-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,108 +12,121 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 Cc: linux-kernel@vger.kernel.org, mfasheh@suse.com
 
-We're going to remove the tie between ocfs2_dlmfs and o2dlm.
-ocfs2_dlmfs doesn't belong in the fs/ocfs2/dlm directory anymore.  Here
-we move it to fs/ocfs2/dlmfs.
+Unlike ocfs2, dlmfs has no permanent storage.  It can't store off a
+cluster stack it is supposed to be using.  So it can't specify the stack
+name in ocfs2_cluster_connect().
+
+Instead, we create ocfs2_cluster_connect_agnostic(), which simply uses
+the stack that is currently enabled.  This is find for dlmfs, which will
+rely on the stack initialization.
+
+We add the "stackglue" capability to dlmfs's capability list.  This lets
+userspace know dlmfs can be used with all cluster stacks.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/Makefile                  |    1 +
- fs/ocfs2/dlm/Makefile              |    3 +--
- fs/ocfs2/dlmfs/Makefile            |    5 +++++
- fs/ocfs2/{dlm => dlmfs}/dlmfs.c    |    2 +-
- fs/ocfs2/{dlm => dlmfs}/dlmfsver.c |    0
- fs/ocfs2/{dlm => dlmfs}/dlmfsver.h |    0
- fs/ocfs2/{dlm => dlmfs}/userdlm.c  |    2 +-
- fs/ocfs2/{dlm => dlmfs}/userdlm.h  |    0
- 8 files changed, 9 insertions(+), 4 deletions(-)
- create mode 100644 fs/ocfs2/dlmfs/Makefile
- rename fs/ocfs2/{dlm => dlmfs}/dlmfs.c (99%)
- rename fs/ocfs2/{dlm => dlmfs}/dlmfsver.c (100%)
- rename fs/ocfs2/{dlm => dlmfs}/dlmfsver.h (100%)
- rename fs/ocfs2/{dlm => dlmfs}/userdlm.c (99%)
- rename fs/ocfs2/{dlm => dlmfs}/userdlm.h (100%)
+ fs/ocfs2/dlmfs/dlmfs.c      |    2 +-
+ fs/ocfs2/dlmfs/userdlm.c    |    8 ++++----
+ fs/ocfs2/ocfs2_lockingver.h |    2 ++
+ fs/ocfs2/stackglue.c        |   18 ++++++++++++++++++
+ fs/ocfs2/stackglue.h        |   11 +++++++++++
+ 5 files changed, 36 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 600d2d2..791c088 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -46,6 +46,7 @@ ocfs2_stackglue-objs := stackglue.o
- ocfs2_stack_o2cb-objs := stack_o2cb.o
- ocfs2_stack_user-objs := stack_user.o
- 
-+obj-$(CONFIG_OCFS2_FS) += dlmfs/
- # cluster/ is always needed when OCFS2_FS for masklog support
- obj-$(CONFIG_OCFS2_FS) += cluster/
- obj-$(CONFIG_OCFS2_FS_O2CB) += dlm/
-diff --git a/fs/ocfs2/dlm/Makefile b/fs/ocfs2/dlm/Makefile
-index 1903613..dcebf0d 100644
---- a/fs/ocfs2/dlm/Makefile
-+++ b/fs/ocfs2/dlm/Makefile
-@@ -1,8 +1,7 @@
- EXTRA_CFLAGS += -Ifs/ocfs2
- 
--obj-$(CONFIG_OCFS2_FS_O2CB) += ocfs2_dlm.o ocfs2_dlmfs.o
-+obj-$(CONFIG_OCFS2_FS_O2CB) += ocfs2_dlm.o
- 
- ocfs2_dlm-objs := dlmdomain.o dlmdebug.o dlmthread.o dlmrecovery.o \
- 	dlmmaster.o dlmast.o dlmconvert.o dlmlock.o dlmunlock.o dlmver.o
- 
--ocfs2_dlmfs-objs := userdlm.o dlmfs.o dlmfsver.o
-diff --git a/fs/ocfs2/dlmfs/Makefile b/fs/ocfs2/dlmfs/Makefile
-new file mode 100644
-index 0000000..df69b48
---- /dev/null
-+++ b/fs/ocfs2/dlmfs/Makefile
-@@ -0,0 +1,5 @@
-+EXTRA_CFLAGS += -Ifs/ocfs2
-+
-+obj-$(CONFIG_OCFS2_FS) += ocfs2_dlmfs.o
-+
-+ocfs2_dlmfs-objs := userdlm.o dlmfs.o dlmfsver.o
-diff --git a/fs/ocfs2/dlm/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
-similarity index 99%
-rename from fs/ocfs2/dlm/dlmfs.c
-rename to fs/ocfs2/dlmfs/dlmfs.c
-index ddf55da..e21ce0e 100644
---- a/fs/ocfs2/dlm/dlmfs.c
+diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+index 3c836d7..dee874d 100644
+--- a/fs/ocfs2/dlmfs/dlmfs.c
 +++ b/fs/ocfs2/dlmfs/dlmfs.c
-@@ -52,7 +52,7 @@
- #include "cluster/heartbeat.h"
- #include "cluster/tcp.h"
- 
--#include "dlmapi.h"
-+#include "dlm/dlmapi.h"
- 
- #include "userdlm.h"
- 
-diff --git a/fs/ocfs2/dlm/dlmfsver.c b/fs/ocfs2/dlmfs/dlmfsver.c
-similarity index 100%
-rename from fs/ocfs2/dlm/dlmfsver.c
-rename to fs/ocfs2/dlmfs/dlmfsver.c
-diff --git a/fs/ocfs2/dlm/dlmfsver.h b/fs/ocfs2/dlmfs/dlmfsver.h
-similarity index 100%
-rename from fs/ocfs2/dlm/dlmfsver.h
-rename to fs/ocfs2/dlmfs/dlmfsver.h
-diff --git a/fs/ocfs2/dlm/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
-similarity index 99%
-rename from fs/ocfs2/dlm/userdlm.c
-rename to fs/ocfs2/dlmfs/userdlm.c
-index 4cb1d3d..6adae70 100644
---- a/fs/ocfs2/dlm/userdlm.c
+@@ -87,7 +87,7 @@ struct workqueue_struct *user_dlm_worker;
+  * - bast	: POLLIN against the file descriptor of a held lock
+  *		  signifies a bast fired on the lock.
+  */
+-#define DLMFS_CAPABILITIES "bast"
++#define DLMFS_CAPABILITIES "bast stackglue"
+ extern int param_set_dlmfs_capabilities(const char *val,
+ 					struct kernel_param *kp)
+ {
+diff --git a/fs/ocfs2/dlmfs/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
+index 1e2afe4..7c5097c 100644
+--- a/fs/ocfs2/dlmfs/userdlm.c
 +++ b/fs/ocfs2/dlmfs/userdlm.c
-@@ -39,7 +39,7 @@
- #include "cluster/heartbeat.h"
- #include "cluster/tcp.h"
+@@ -661,10 +661,10 @@ struct ocfs2_cluster_connection *user_dlm_register(struct qstr *name)
+ 	int rc;
+ 	struct ocfs2_cluster_connection *conn;
  
--#include "dlmapi.h"
-+#include "dlm/dlmapi.h"
+-	rc = ocfs2_cluster_connect("o2cb", name->name, name->len,
+-				   &user_dlm_lproto,
+-				   user_dlm_recovery_handler_noop,
+-				   NULL, &conn);
++	rc = ocfs2_cluster_connect_agnostic(name->name, name->len,
++					    &user_dlm_lproto,
++					    user_dlm_recovery_handler_noop,
++					    NULL, &conn);
+ 	if (rc)
+ 		mlog_errno(rc);
  
- #include "userdlm.h"
+diff --git a/fs/ocfs2/ocfs2_lockingver.h b/fs/ocfs2/ocfs2_lockingver.h
+index 82d5eea..2e45c8d 100644
+--- a/fs/ocfs2/ocfs2_lockingver.h
++++ b/fs/ocfs2/ocfs2_lockingver.h
+@@ -23,6 +23,8 @@
+ /*
+  * The protocol version for ocfs2 cluster locking.  See dlmglue.c for
+  * more details.
++ *
++ * 1.0 - Initial locking version from ocfs2 1.4.
+  */
+ #define OCFS2_LOCKING_PROTOCOL_MAJOR 1
+ #define OCFS2_LOCKING_PROTOCOL_MINOR 0
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 31db2e8..39abf89 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -373,6 +373,24 @@ out:
+ }
+ EXPORT_SYMBOL_GPL(ocfs2_cluster_connect);
  
-diff --git a/fs/ocfs2/dlm/userdlm.h b/fs/ocfs2/dlmfs/userdlm.h
-similarity index 100%
-rename from fs/ocfs2/dlm/userdlm.h
-rename to fs/ocfs2/dlmfs/userdlm.h
++/* The caller will ensure all nodes have the same cluster stack */
++int ocfs2_cluster_connect_agnostic(const char *group,
++				   int grouplen,
++				   struct ocfs2_locking_protocol *lproto,
++				   void (*recovery_handler)(int node_num,
++							    void *recovery_data),
++				   void *recovery_data,
++				   struct ocfs2_cluster_connection **conn)
++{
++	char *stack_name = NULL;
++
++	if (cluster_stack_name[0])
++		stack_name = cluster_stack_name;
++	return ocfs2_cluster_connect(stack_name, group, grouplen, lproto,
++				     recovery_handler, recovery_data, conn);
++}
++EXPORT_SYMBOL_GPL(ocfs2_cluster_connect_agnostic);
++
+ /* If hangup_pending is 0, the stack driver will be dropped */
+ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
+ 			     int hangup_pending)
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index b1981ba..8ce7398 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -246,6 +246,17 @@ int ocfs2_cluster_connect(const char *stack_name,
+ 						   void *recovery_data),
+ 			  void *recovery_data,
+ 			  struct ocfs2_cluster_connection **conn);
++/*
++ * Used by callers that don't store their stack name.  They must ensure
++ * all nodes have the same stack.
++ */
++int ocfs2_cluster_connect_agnostic(const char *group,
++				   int grouplen,
++				   struct ocfs2_locking_protocol *lproto,
++				   void (*recovery_handler)(int node_num,
++							    void *recovery_data),
++				   void *recovery_data,
++				   struct ocfs2_cluster_connection **conn);
+ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
+ 			     int hangup_pending);
+ void ocfs2_cluster_hangup(const char *group, int grouplen);
 -- 
 1.6.6.1
