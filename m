@@ -1,17 +1,18 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri,  5 Feb 2010 17:59:20 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Add new OCFS2_IOC_INFO ioctl
-	for	ocfs2 v6.
-In-Reply-To: <1265363960-13329-1-git-send-email-tristan.ye@oracle.com>
-References: <1265363960-13329-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1265363960-13329-2-git-send-email-tristan.ye@oracle.com>
+Date: Fri,  5 Feb 2010 18:15:13 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Add new OCFS2_IOC_INFO ioctl for
+	ocfs2 v6.
+Message-ID: <1265364913-14265-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Major changes from v4 to v5:
+Please ignore the former patch(miss to include a header linux/compat.h),
+sorry for the noise.
+
+Major changes from v5 to v6:
 
 Fix a ptr passing bug on PPC machine, that is, 32bits binary running
 on 64bits kernel needs to use compat_ptr() to reterive the right ptr
@@ -73,14 +74,14 @@ The ioctl is only specific to OCFS2.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/ioctl.c |  667 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 667 insertions(+), 0 deletions(-)
+ fs/ocfs2/ioctl.c |  668 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 668 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 31fbb06..3684ad6 100644
+index 31fbb06..96c73f0 100644
 --- a/fs/ocfs2/ioctl.c
 +++ b/fs/ocfs2/ioctl.c
-@@ -20,8 +20,12 @@
+@@ -20,10 +20,15 @@
  
  #include "ocfs2_fs.h"
  #include "ioctl.h"
@@ -92,8 +93,11 @@ index 31fbb06..3684ad6 100644
 +#include "suballoc.h"
  
  #include <linux/ext2_fs.h>
++#include <linux/compat.h>
  
-@@ -108,6 +112,661 @@ bail:
+ static int ocfs2_get_inode_attr(struct inode *inode, unsigned *flags)
+ {
+@@ -108,6 +113,661 @@ bail:
  	return status;
  }
  
@@ -755,7 +759,7 @@ index 31fbb06..3684ad6 100644
  long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
  {
  	struct inode *inode = filp->f_path.dentry->d_inode;
-@@ -117,6 +776,7 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+@@ -117,6 +777,7 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
  	struct ocfs2_space_resv sr;
  	struct ocfs2_new_group_input input;
  	struct reflink_arguments args;
@@ -763,7 +767,7 @@ index 31fbb06..3684ad6 100644
  	const char *old_path, *new_path;
  	bool preserve;
  
-@@ -173,6 +833,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+@@ -173,6 +834,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
  		preserve = (args.preserve != 0);
  
  		return ocfs2_reflink_ioctl(inode, old_path, new_path, preserve);
@@ -776,7 +780,7 @@ index 31fbb06..3684ad6 100644
  	default:
  		return -ENOTTY;
  	}
-@@ -196,6 +862,7 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+@@ -196,6 +863,7 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
  	case OCFS2_IOC_GROUP_ADD:
  	case OCFS2_IOC_GROUP_ADD64:
  	case OCFS2_IOC_REFLINK:
