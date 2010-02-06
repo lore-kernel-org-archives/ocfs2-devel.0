@@ -1,67 +1,48 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Sat, 06 Feb 2010 08:47:13 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Treat ocfs2 truncate as a
- special case of punching holes v1.
-In-Reply-To: <20100205231419.GD3416@mail.oracle.com>
-References: <1264148107-9341-1-git-send-email-tristan.ye@oracle.com>
-	<4B5CFE12.9010503@oracle.com> <4B5ED495.60001@oracle.com>
-	<20100205231419.GD3416@mail.oracle.com>
-Message-ID: <4B6CBC11.5040801@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Fri, 05 Feb 2010 17:14:32 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: Fix printing of lockname
+In-Reply-To: <20100205235733.GJ11402@wotan.suse.de>
+References: <1265413284-17330-1-git-send-email-sunil.mushran@oracle.com>
+	<1265413284-17330-2-git-send-email-sunil.mushran@oracle.com>
+	<20100205235733.GJ11402@wotan.suse.de>
+Message-ID: <4B6CC278.2050307@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
-
-Joel Becker wrote:
-> On Tue, Jan 26, 2010 at 07:40:05PM +0800, tristan wrote:
+Mark Fasheh wrote:
+> On Fri, Feb 05, 2010 at 03:41:24PM -0800, Sunil Mushran wrote:
 >   
->> Tao Ma wrote:
->> You're absolutely right, as what we expected, the original logic for 
->> truncate was the most efficient one, new method using 
+>> The debug call printing the name of the lock resource was chopping
+>> off the last character. This patch fixes the problem.
+>>
+>> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+>> ---
+>>  fs/ocfs2/dlm/dlmdebug.c |    4 ++--
+>>  1 files changed, 2 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+>> index f18afe9..7b4d1c1 100644
+>> --- a/fs/ocfs2/dlm/dlmdebug.c
+>> +++ b/fs/ocfs2/dlm/dlmdebug.c
+>> @@ -97,12 +97,12 @@ void __dlm_print_one_lock_resource(struct dlm_lock_resource *res)
+>>  {
+>>  	struct list_head *iter2;
+>>  	struct dlm_lock *lock;
+>> -	char buf[DLM_LOCKID_NAME_MAX];
+>> +	char buf[DLM_LOCKID_NAME_MAX+1];
+>>  
+>>  	assert_spin_locked(&res->spinlock);
+>>  
+>>  	stringify_lockname(res->lockname.name, res->lockname.len,
+>> -			   buf, sizeof(buf) - 1);
+>> +			   buf, sizeof(buf));
 >>     
 >
-> <snip>
->
+> I'm confused - isn't this part then increasing the value of the parameter
+> by 2?
+> 	--Mark
 >   
->> 1. Original logic:
->> 0.00user 33.06system 0:33.11elapsed 99%CPU
->>
->> 2. New logic(using ocfs2_remove_btree_range) from begin to end:
->> 0.00user 0.35system 0:00.52elapsed 67%CPU
->>
->> 3. New logic(using ocfs2_remove_btree_range) from end to begin:
->> 0.00user 1.15system 0:01.16elapsed 98%CPU
->>
->>
->> Look, method 1 was up to 100 times efficient than method 2, and 3 times 
->> efficient than method 3.
->>     
->
-> 	I'm confused.  You state above that the original method was the
-> most efficient, yet it took 33 seconds. The remove_btree_range functions
-> took .35s and 1.15s.  By that measure the original is the worst.  Or am
-> I reading this wrong?
->   
-I guess Tristan pasted the wrong numbers here.
-The original one is the most efficient since it dive into the b-tree 
-internals and no b-tree check up in ocfs2_remove_extent is not necessary.
-The 2nd method is Tristan's original v1 patch, he call 
-ocfs2_remove_extent from i_size to end, so every time we need to 
-rotate_tree_left, so
-the performance would be a disaster.
-The 3rd method is what I suggest him to change. Although it is not as 
-efficient as 1, but it use ocfs2_remove_extent and truncate from the end
-to the new i_size.
-
-btw, tristan has pasted the newest patches. I don't know why he didn't 
-put a version number in it.
-But please have a look at
-http://oss.oracle.com/pipermail/ocfs2-devel/2010-February/005864.html
-and http://oss.oracle.com/pipermail/ocfs2-devel/2010-February/005863.html
-I guess they are ready to go.
-
-Regards,
-Tao
+1 is for luck. ;) I'll resend the patch.
