@@ -1,12 +1,11 @@
 From: tristan <tristan.ye@oracle.com>
-Date: Mon, 08 Feb 2010 09:44:48 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Treat ocfs2 truncate as a
- special case of punching holes v1.
-In-Reply-To: <20100205231419.GD3416@mail.oracle.com>
-References: <1264148107-9341-1-git-send-email-tristan.ye@oracle.com>
-	<4B5CFE12.9010503@oracle.com> <4B5ED495.60001@oracle.com>
-	<20100205231419.GD3416@mail.oracle.com>
-Message-ID: <4B6F6C90.9010002@oracle.com>
+Date: Mon, 08 Feb 2010 09:45:53 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Journaling i_flags and
+ i_orphaned_slot when adding inode to orphan dir.
+In-Reply-To: <20100205232121.GE3416@mail.oracle.com>
+References: <1265270565-15883-1-git-send-email-tristan.ye@oracle.com>
+	<20100205232121.GE3416@mail.oracle.com>
+Message-ID: <4B6F6CD1.2080100@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,47 +13,30 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 Joel Becker wrote:
-> On Tue, Jan 26, 2010 at 07:40:05PM +0800, tristan wrote:
+> On Thu, Feb 04, 2010 at 04:02:45PM +0800, Tristan Ye wrote:
 >   
->> Tao Ma wrote:
->> You're absolutely right, as what we expected, the original logic for 
->> truncate was the most efficient one, new method using 
+>> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+>> index f010b22..a24caca 100644
+>> --- a/fs/ocfs2/namei.c
+>> +++ b/fs/ocfs2/namei.c
+>> @@ -84,7 +84,7 @@ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
+>>  static int ocfs2_orphan_add(struct ocfs2_super *osb,
+>>  			    handle_t *handle,
+>>  			    struct inode *inode,
+>> -			    struct ocfs2_dinode *fe,
+>> +			    struct buffer_head *fe_bh,
 >>     
 >
-> <snip>
->
->   
->> 1. Original logic:
->> 0.00user 33.06system 0:33.11elapsed 99%CPU
->>
->> 2. New logic(using ocfs2_remove_btree_range) from begin to end:
->> 0.00user 0.35system 0:00.52elapsed 67%CPU
->>
->> 3. New logic(using ocfs2_remove_btree_range) from end to begin:
->> 0.00user 1.15system 0:01.16elapsed 98%CPU
->>
->>
->> Look, method 1 was up to 100 times efficient than method 2, and 3 times 
->> efficient than method 3.
->>     
->
-> 	I'm confused.  You state above that the original method was the
-> most efficient, yet it took 33 seconds. The remove_btree_range functions
-> took .35s and 1.15s.  By that measure the original is the worst.  Or am
-> I reading this wrong?
+> 	When you're changing these things, can you call them 'di' for
+> ocfs2_dinode instead of 'fe'?  The same for 'di_bh' instead of 'fe_bh'.
+> specially when adding variables to new functions.  The 'fe' terminology
+> is ancient and makes no sense to anyone that hasn't seen ocfs.  
 >   
 
-Oh, that's my fault, I misplaced the #1 and #2 logics. original logic 
-should be:
+Thank you joel,
 
-0.00user 0.35system 0:00.52elapsed 67%CPU,   while new logic (using ocfs2_remove_btree_range) from begin to end should be:
+Got it.
 
-
-0.00user 33.06system 0:33.11elapsed 99%CPU.
-
-Sorry for the confusion,
-
-Tristan.
 
 
 > Joel
