@@ -1,182 +1,247 @@
-From: jeff.liu <jeff.liu@oracle.com>
-Date: Mon, 08 Feb 2010 17:32:41 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] du_enhancement: show the shared
- extents per file and the footprint
-In-Reply-To: <4B6FC95F.205@oracle.com>
-References: <>
-	<1264492809-13848-1-git-send-email-jeff.liu@oracle.com>	<1264492809-13848-2-git-send-email-jeff.liu@oracle.com>	<1264492809-13848-3-git-send-email-jeff.liu@oracle.com>
-	<1264492809-13848-4-git-send-email-jeff.liu@oracle.com>
-	<4B6FC95F.205@oracle.com>
-Message-ID: <4B6FDA39.9030505@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Mon,  8 Feb 2010 17:21:58 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Move ocfs2 ioctl definitions from
+	ocfs2_fs.h to new added ocfs2_ioctl.h.
+Message-ID: <1265620919-7970-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Tao,
+Joel,
 
-Thanks for your help review.
+Now the patch was regenerated atop of your fixes branch. and separated from
+o2info.
 
-Tao Ma ??:
-> Hi Jeff,
-> Thanks for the work. and sorry for the delay of review.
->
-> Jeff Liu wrote:
->> this patch add fiemap feature support in du, du show the shared
->> extents size in parens per file
->> as well as the footprint for each request with either '--shared-size'
->> or '-E' option.
->>
->> the footprint which is total minus the sum total of all extents in
->> the rbtree
->> that have ei_shared_count > 0.
->>
->> Signed-off-by: Jeff Liu <jeff.liu@oracle.com>
->> ---
->> lib/rbtree.h | 4 +-
->> src/du.c | 378
->> +++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
->> 2 files changed, 378 insertions(+), 4 deletions(-)
->>
->> diff --git a/lib/rbtree.h b/lib/rbtree.h
->> index ad646b1..bb23391 100644
->> --- a/lib/rbtree.h
->> +++ b/lib/rbtree.h
->> @@ -112,8 +112,8 @@ struct rb_root
->> };
->>
->> #define RB_ROOT (struct rb_root) { NULL, }
->> -#define rb_entry (ptr, type, member) \
->> - ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
->> +#define rb_entry(ptr, type, member) \
->> + ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
-> I haven't found what you change for this 2 lines. Just change the
-> place of '\"?
-There were 2 minor syntax changes here to satisfy the compiler.
-First is to omit the 'blank space' between 'rb_entry' and '('.
-actually, add a 'blank space' between the function name and '(' is the
-GNU coding style, we should abide by.
+Currently we were adding ioctl cmds/structures for ocfs2 into ocfs2_fs.h
+which was used for define ocfs2 on-disk layout. That sounds a little bit
+confusing, and it may be quickly polluted espcially when growing the
+ocfs2_info_request ioctls afterwards(it will grow i bet).
 
-Another is place change of the '\' just as you mentioned above, or the
-compile process will broken as well.
->>
->> extern void rb_insert_color (struct rb_node *, struct rb_root *);
->> extern void rb_erase (struct rb_node *, struct rb_root *);
-> <snip>
->> +/* Split the new extent into mutiple items if there is overlap
->> + with the search returned, insert each item or increase the
->> + existed items shared count for the shared part. */
->> +
->> +static void
->> +split_extent (uint64_t extent_physical_offset,
->> + uint64_t extent_length)
->> +{
->> + struct rb_node *parent = NULL;
->> + struct rb_node *prev_parent = NULL;
->> + struct extent_info *this;
->> + uint64_t pb_start = extent_physical_offset;
->> + uint64_t ext_len = extent_length;
->> + uint64_t new_pb_start;
->> + uint64_t new_ext_len;
->> + uint64_t old_ext_len;
->> + size_t ext_shared_count = 0;
->> +
->> + parent = lookup_leftmost_extent_info (pb_start);
->> +
->> + while (ext_len)
->> + {
->> + if (!parent)
->> + {
->> + insert_new_extent_info (prev_parent, pb_start, ext_len,
->> ext_shared_count);
->> + break;
->> + }
->> +
->> + this = rb_entry (parent, struct extent_info, ei_node);
->> +
-> Could you please add more comments on the later codes? It is a little
-> complicated for analysis.
-That's really needed.
->> + if (pb_start < this->ei_physical)
->> + {
->> + new_ext_len = min (this->ei_physical - pb_start, ext_len);
->> + insert_new_extent_info (parent, pb_start, new_ext_len,
->> ext_shared_count);
-> here is a bug, you need to set ext_shared_count to 0 since the later
-> code will change it.
-Thanks for the point out.
->> +
->> + pb_start += new_ext_len;
->> + ext_len -= new_ext_len;
->> + continue;
->> + }
->> +
->> + if (pb_start == this->ei_physical)
->> + {
->> + ext_shared_count = this->ei_shared_count;
->> + old_ext_len = this->ei_length;
->> + new_ext_len = min (ext_len, this->ei_length);
->> +
->> + this->ei_length = new_ext_len;
->> + this->ei_shared_count++;
->> +
->> + pb_start += new_ext_len;
->> + ext_len -= new_ext_len;
->> +
->> + if (old_ext_len > new_ext_len)
->> + {
->> + new_pb_start = this->ei_physical + this->ei_length;
->> + new_ext_len = old_ext_len - new_ext_len;
->> + insert_new_extent_info (parent, new_pb_start, new_ext_len,
->> ext_shared_count);
-> here you have add a new extent info but forget to increase pb_start
-> and decrease ext_len. Also we need to reset ext_shared_count to 0
-> before insert.
-Good catch.
->> + }
->> +
->> + prev_parent = parent;
->> + parent = rb_next (parent);
->> + continue;
->> + }
->> +
->> + if (pb_start < this->ei_physical + this->ei_length)
->> + {
->> + old_ext_len = this->ei_physical + this->ei_length - pb_start;
->> + new_ext_len = min (ext_len, old_ext_len);
->> +
->> + ext_shared_count = this->ei_shared_count;
->> + if (new_ext_len < old_ext_len)
->> + insert_new_extent_info (parent, pb_start, new_ext_len,
->> ext_shared_count);
->> + else
->> + insert_new_extent_info (parent, pb_start, old_ext_len,
->> ext_shared_count);
-> We need to ext_shared_count++ for the insert_new_extent_info?
-Yes, its need, the new insert extent is overlapped with it was before.
-> btw, only one line is enough:
-> insert_new_extent_info(parent, pb_start, new_ext_len, ext_shared_count);
-> new_ext_len is <= old_ext_len because of the above min, so we are safe
-> for the above 2 cases.
-Hmm, that's true, why I do such stupid thing at that time. :-P
->> +
->> + this->ei_length = pb_start - this->ei_physical;
->> +
->> + pb_start += new_ext_len;
->> + ext_len -= new_ext_len;
->> + parent = rb_next (parent);
->> + continue;
->> + }
->> +
->> + prev_parent = parent;
->> + parent = rb_next (parent);
->> + }
->> +}
->
-BTW, Maybe I will have to delay the new patch submits time due to my
-current works and the spring Festival annual leave.
-> Regards,
-> Tao
-Thanks,
--Jeff
+As a result, such OCFS2 IOCs do need to be placed somewhere other than
+ocfs2_fs.h, a separated ocfs2_ioctl.h will be added to store such ioctl
+structures and definitions which could also be used from userspace to
+invoke ioctls call.
+
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/file.h        |    2 +
+ fs/ocfs2/ioctl.c       |    1 +
+ fs/ocfs2/ioctl.h       |    6 ++--
+ fs/ocfs2/ocfs2_fs.h    |   57 ----------------------------------
+ fs/ocfs2/ocfs2_ioctl.h |   79 ++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/resize.c      |    1 +
+ 6 files changed, 86 insertions(+), 60 deletions(-)
+ create mode 100644 fs/ocfs2/ocfs2_ioctl.h
+
+diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
+index d66cf4f..eb891db 100644
+--- a/fs/ocfs2/file.h
++++ b/fs/ocfs2/file.h
+@@ -26,6 +26,8 @@
+ #ifndef OCFS2_FILE_H
+ #define OCFS2_FILE_H
+ 
++#include "ocfs2_ioctl.h"
++
+ extern const struct file_operations ocfs2_fops;
+ extern const struct file_operations ocfs2_dops;
+ extern const struct file_operations ocfs2_fops_no_plocks;
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index 7d9d9c1..d88e5f0 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -21,6 +21,7 @@
+ 
+ #include "ocfs2_fs.h"
+ #include "ioctl.h"
++#include "ocfs2_ioctl.h"
+ #include "resize.h"
+ #include "refcounttree.h"
+ 
+diff --git a/fs/ocfs2/ioctl.h b/fs/ocfs2/ioctl.h
+index cf9a5ee..0cd5323 100644
+--- a/fs/ocfs2/ioctl.h
++++ b/fs/ocfs2/ioctl.h
+@@ -7,10 +7,10 @@
+  *
+  */
+ 
+-#ifndef OCFS2_IOCTL_H
+-#define OCFS2_IOCTL_H
++#ifndef OCFS2_IOCTL_PROTO_H
++#define OCFS2_IOCTL_PROTO_H
+ 
+ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg);
+ 
+-#endif /* OCFS2_IOCTL_H */
++#endif /* OCFS2_IOCTL_PROTO_H */
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 7638a38..bb37218 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -254,63 +254,6 @@
+ 						 * refcount tree */
+ 
+ /*
+- * ioctl commands
+- */
+-#define OCFS2_IOC_GETFLAGS	_IOR('f', 1, long)
+-#define OCFS2_IOC_SETFLAGS	_IOW('f', 2, long)
+-#define OCFS2_IOC32_GETFLAGS	_IOR('f', 1, int)
+-#define OCFS2_IOC32_SETFLAGS	_IOW('f', 2, int)
+-
+-/*
+- * Space reservation / allocation / free ioctls and argument structure
+- * are designed to be compatible with XFS.
+- *
+- * ALLOCSP* and FREESP* are not and will never be supported, but are
+- * included here for completeness.
+- */
+-struct ocfs2_space_resv {
+-	__s16		l_type;
+-	__s16		l_whence;
+-	__s64		l_start;
+-	__s64		l_len;		/* len == 0 means until end of file */
+-	__s32		l_sysid;
+-	__u32		l_pid;
+-	__s32		l_pad[4];	/* reserve area			    */
+-};
+-
+-#define OCFS2_IOC_ALLOCSP		_IOW ('X', 10, struct ocfs2_space_resv)
+-#define OCFS2_IOC_FREESP		_IOW ('X', 11, struct ocfs2_space_resv)
+-#define OCFS2_IOC_RESVSP		_IOW ('X', 40, struct ocfs2_space_resv)
+-#define OCFS2_IOC_UNRESVSP	_IOW ('X', 41, struct ocfs2_space_resv)
+-#define OCFS2_IOC_ALLOCSP64	_IOW ('X', 36, struct ocfs2_space_resv)
+-#define OCFS2_IOC_FREESP64	_IOW ('X', 37, struct ocfs2_space_resv)
+-#define OCFS2_IOC_RESVSP64	_IOW ('X', 42, struct ocfs2_space_resv)
+-#define OCFS2_IOC_UNRESVSP64	_IOW ('X', 43, struct ocfs2_space_resv)
+-
+-/* Used to pass group descriptor data when online resize is done */
+-struct ocfs2_new_group_input {
+-	__u64 group;		/* Group descriptor's blkno. */
+-	__u32 clusters;		/* Total number of clusters in this group */
+-	__u32 frees;		/* Total free clusters in this group */
+-	__u16 chain;		/* Chain for this group */
+-	__u16 reserved1;
+-	__u32 reserved2;
+-};
+-
+-#define OCFS2_IOC_GROUP_EXTEND	_IOW('o', 1, int)
+-#define OCFS2_IOC_GROUP_ADD	_IOW('o', 2,struct ocfs2_new_group_input)
+-#define OCFS2_IOC_GROUP_ADD64	_IOW('o', 3,struct ocfs2_new_group_input)
+-
+-/* Used to pass 2 file names to reflink. */
+-struct reflink_arguments {
+-	__u64 old_path;
+-	__u64 new_path;
+-	__u64 preserve;
+-};
+-#define OCFS2_IOC_REFLINK	_IOW('o', 4, struct reflink_arguments)
+-
+-
+-/*
+  * Journal Flags (ocfs2_dinode.id1.journal1.i_flags)
+  */
+ #define OCFS2_JOURNAL_DIRTY_FL	(0x00000001)	/* Journal needs recovery */
+diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
+new file mode 100644
+index 0000000..2d3420a
+--- /dev/null
++++ b/fs/ocfs2/ocfs2_ioctl.h
+@@ -0,0 +1,79 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * ocfs2_ioctl.h
++ *
++ * Defines OCFS2 ioctls.
++ *
++ * Copyright (C) 2010 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License, version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ */
++
++#ifndef OCFS2_IOCTL_H
++#define OCFS2_IOCTL_H
++
++/*
++ * ioctl commands
++ */
++#define OCFS2_IOC_GETFLAGS	_IOR('f', 1, long)
++#define OCFS2_IOC_SETFLAGS	_IOW('f', 2, long)
++#define OCFS2_IOC32_GETFLAGS	_IOR('f', 1, int)
++#define OCFS2_IOC32_SETFLAGS	_IOW('f', 2, int)
++
++/*
++ * Space reservation / allocation / free ioctls and argument structure
++ * are designed to be compatible with XFS.
++ *
++ * ALLOCSP* and FREESP* are not and will never be supported, but are
++ * included here for completeness.
++ */
++struct ocfs2_space_resv {
++	__s16		l_type;
++	__s16		l_whence;
++	__s64		l_start;
++	__s64		l_len;		/* len == 0 means until end of file */
++	__s32		l_sysid;
++	__u32		l_pid;
++	__s32		l_pad[4];	/* reserve area			    */
++};
++
++#define OCFS2_IOC_ALLOCSP		_IOW ('X', 10, struct ocfs2_space_resv)
++#define OCFS2_IOC_FREESP		_IOW ('X', 11, struct ocfs2_space_resv)
++#define OCFS2_IOC_RESVSP		_IOW ('X', 40, struct ocfs2_space_resv)
++#define OCFS2_IOC_UNRESVSP	_IOW ('X', 41, struct ocfs2_space_resv)
++#define OCFS2_IOC_ALLOCSP64	_IOW ('X', 36, struct ocfs2_space_resv)
++#define OCFS2_IOC_FREESP64	_IOW ('X', 37, struct ocfs2_space_resv)
++#define OCFS2_IOC_RESVSP64	_IOW ('X', 42, struct ocfs2_space_resv)
++#define OCFS2_IOC_UNRESVSP64	_IOW ('X', 43, struct ocfs2_space_resv)
++
++/* Used to pass group descriptor data when online resize is done */
++struct ocfs2_new_group_input {
++	__u64 group;		/* Group descriptor's blkno. */
++	__u32 clusters;		/* Total number of clusters in this group */
++	__u32 frees;		/* Total free clusters in this group */
++	__u16 chain;		/* Chain for this group */
++	__u16 reserved1;
++	__u32 reserved2;
++};
++
++#define OCFS2_IOC_GROUP_EXTEND	_IOW('o', 1, int)
++#define OCFS2_IOC_GROUP_ADD	_IOW('o', 2,struct ocfs2_new_group_input)
++#define OCFS2_IOC_GROUP_ADD64	_IOW('o', 3,struct ocfs2_new_group_input)
++
++/* Used to pass 2 file names to reflink. */
++struct reflink_arguments {
++	__u64 old_path;
++	__u64 new_path;
++	__u64 preserve;
++};
++#define OCFS2_IOC_REFLINK	_IOW('o', 4, struct reflink_arguments)
++
++#endif /* OCFS2_IOCTL_H */
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index 3c3d673..f2b3c4b 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -31,6 +31,7 @@
+ #include <cluster/masklog.h>
+ 
+ #include "ocfs2.h"
++#include "ocfs2_ioctl.h"
+ 
+ #include "alloc.h"
+ #include "dlmglue.h"
+-- 
+1.5.5
