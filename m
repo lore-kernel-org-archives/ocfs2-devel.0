@@ -1,56 +1,66 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Tue, 09 Feb 2010 09:12:07 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Optimize truncting codes for
- ocfs2 to use ocfs2_remove_btree_range instead.
-In-Reply-To: <20100209004756.GF1832@mail.oracle.com>
-References: <1265366732-15895-1-git-send-email-tristan.ye@oracle.com>
-	<20100209004756.GF1832@mail.oracle.com>
-Message-ID: <4B70B667.6070103@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 09 Feb 2010 09:15:42 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a refcount condition checking
+In-Reply-To: <20100209010639.GI1832@mail.oracle.com>
+References: <201002041330.o145sMME005597@acsinet15.oracle.com>
+	<20100209010639.GI1832@mail.oracle.com>
+Message-ID: <4B70B73E.20306@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+
+
 Joel Becker wrote:
-> On Fri, Feb 05, 2010 at 06:45:31PM +0800, Tristan Ye wrote:
->   
->> I merge the following steps into one patch since they may be logically doing one thing,
->> Though I knew it looks a little bit fat to review.
->>
->> 1). Remove redundant codes used by ocfs2_commit_truncate before, since we're moving to
->>     ocfs2_remove_btree_range anyway.
->>
->> 2). Add a new func ocfs2_reserve_blocks_for_rec_trunc() for purpose of accepting  some
->>     extra blocks to reserve.
->>
->> 3). Change ocfs2_prepare_refcount_change_for_del() a bit to fit our needs, it's safe to
->>     do this since it's only being called by truncating codes.
->>
->> 4). Change ocfs2_remove_btree_range() a bit to take refcount case into account.
->>
->> 5). Finally, we change ocfs2_commit_truncate() to call ocfs2_remove_btree_range() in
->>     a proper way.
->>     
->
-> 	I was going to be mad that these 5 things weren't five patches,
-> but actually it reads pretty well as a patch.  I'm OK with it being one
-> patch.
->   
+> On Thu, Feb 04, 2010 at 04:20:18PM -0500, Wengang Wang wrote:
+>> index 06ccf6a..77ebb6e 100644
+>> --- a/fs/ocfs2/file.c
+>> +++ b/fs/ocfs2/file.c
+>> @@ -1775,7 +1775,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
+>>  					 int *direct_io,
+>>  					 int *has_refcount)
+>>  {
+>> -	int ret = 0, meta_level = 0;
+>> +	int ret = 0, meta_level = 0, refcount = 0;
+>>  	struct inode *inode = dentry->d_inode;
+>>  	loff_t saved_pos, end;
+>>  
+>> @@ -1834,6 +1834,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
+>>  							       saved_pos,
+>>  							       count,
+>>  							       &meta_level);
+>> +			refcount = 1;
+>>  			if (has_refcount)
+>>  				*has_refcount = 1;
+>>  		}
+> 
+> 	Tao is right that this is redundant - we're setting two refcount
+> bits, which is pointless.
+> 	Here's the thing: we know that refcounted extents mean no direct
+> io.  Instead of adding your 'refcount' bit or Tao's comment, why not
+> just clear direct_io right here?
+> 
+> @@ -1834,6 +1834,8 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
+>  							       saved_pos,
+>  							       count,
+>  							       &meta_level);
+>  			if (has_refcount)
+>  				*has_refcount = 1;
+> +			if (direct_io)
+> +				*direct_io = 0;
+>  		}
+> 
+> It's safe to clear if it exists - whether it was zero before, it must be
+> zero now.
+yeah, this is better.
+btw, we also need to remove the latter lines.
 
-Joel,
+-	if (has_refcount && *has_refcount == 1) {
+-		*direct_io = 0;
+-		break;
+-}
 
-Yes, it actually was doing one thing logically, the reason why I listed 
-the steps is try to make things straightforward.
-
-To separate the patch into five smaller ones was really a bad idea, 
-which turns the code into a inconsistent state after applying each.
-
-Thanks,
-Tristan.
-
-> 	Mark, can I get an Ack?
->
-> Joel
->
->   
+Regards,
+Tao
