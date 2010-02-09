@@ -1,66 +1,55 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 09 Feb 2010 09:15:42 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a refcount condition checking
-In-Reply-To: <20100209010639.GI1832@mail.oracle.com>
-References: <201002041330.o145sMME005597@acsinet15.oracle.com>
-	<20100209010639.GI1832@mail.oracle.com>
-Message-ID: <4B70B73E.20306@oracle.com>
+From: tristan <tristan.ye@oracle.com>
+Date: Tue, 09 Feb 2010 09:19:11 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] Ocfs2: Change
+ ocfs2_prepare_refcount_change_for_del() a bit to defer blocks reservation.
+In-Reply-To: <20100209005916.GH1832@mail.oracle.com>
+References: <1264591326-24591-1-git-send-email-tristan.ye@oracle.com>
+	<1264591326-24591-2-git-send-email-tristan.ye@oracle.com>
+	<4B60BB4A.3030008@oracle.com> <4B60E84C.6060800@oracle.com>
+	<20100209005916.GH1832@mail.oracle.com>
+Message-ID: <4B70B80F.8000101@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-
-
 Joel Becker wrote:
-> On Thu, Feb 04, 2010 at 04:20:18PM -0500, Wengang Wang wrote:
->> index 06ccf6a..77ebb6e 100644
->> --- a/fs/ocfs2/file.c
->> +++ b/fs/ocfs2/file.c
->> @@ -1775,7 +1775,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
->>  					 int *direct_io,
->>  					 int *has_refcount)
->>  {
->> -	int ret = 0, meta_level = 0;
->> +	int ret = 0, meta_level = 0, refcount = 0;
->>  	struct inode *inode = dentry->d_inode;
->>  	loff_t saved_pos, end;
->>  
->> @@ -1834,6 +1834,7 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
->>  							       saved_pos,
->>  							       count,
->>  							       &meta_level);
->> +			refcount = 1;
->>  			if (has_refcount)
->>  				*has_refcount = 1;
->>  		}
-> 
-> 	Tao is right that this is redundant - we're setting two refcount
-> bits, which is pointless.
-> 	Here's the thing: we know that refcounted extents mean no direct
-> io.  Instead of adding your 'refcount' bit or Tao's comment, why not
-> just clear direct_io right here?
-> 
-> @@ -1834,6 +1834,8 @@ static int ocfs2_prepare_inode_for_write(struct dentry *dentry,
->  							       saved_pos,
->  							       count,
->  							       &meta_level);
->  			if (has_refcount)
->  				*has_refcount = 1;
-> +			if (direct_io)
-> +				*direct_io = 0;
->  		}
-> 
-> It's safe to clear if it exists - whether it was zero before, it must be
-> zero now.
-yeah, this is better.
-btw, we also need to remove the latter lines.
+> On Thu, Jan 28, 2010 at 09:28:44AM +0800, tristan wrote:
+>   
+>> TaoMa wrote:
+>>     
+>>> Hi Tristan,
+>>>    you'd better integrate this patch with patch 3/3. otherwise we 
+>>> can't build successfully if we apply this one and don't apply the next 
+>>> one(in some git bisect case).
+>>>       
+>> Yes I see, here I just split the patches as small as possible to be 
+>> logically separate,  for the convenience of your reviewing:)
+>>     
+>
+> Tristan,
+> 	Your instinct is good, but Tao is right, every commit has to
+> compile and work.  The next patches you work on, keep trying to break it
+> up into logical things, but have working code.  One of the best tricks
+> is doing the isomorphic changes (changes that don't actually affect the
+> behavior yet) first.  I use this trick a lot.  I can add an argument to
+> a function or change what is passed through without actually changing
+> the functionality.  Once I've used this methodology to restructure the
+> code, then I can change the behavior.
+>   
 
--	if (has_refcount && *has_refcount == 1) {
--		*direct_io = 0;
--		break;
--}
+Joel, tao,
 
-Regards,
-Tao
+Your help really makes sense, thank you guys for sharing the experience:)
+
+
+Tristan.
+
+
+> 	For this particular change, I'm OK with it being one patch as I
+> stated in my other email.
+>
+> Joel
+>
+>   
