@@ -1,36 +1,29 @@
-From: srinivas eeda <srinivas.eeda@oracle.com>
-Date: Wed, 17 Feb 2010 17:55:15 -0800
-Subject: [Ocfs2-devel] [PATCH 3/3] o2net: correct keepalive message
-	protocol
-In-Reply-To: <20100218014915.GA5215@mail.oracle.com>
-References: <1264740671-908-1-git-send-email-srinivas.eeda@oracle.com>
-	<1264740671-908-4-git-send-email-srinivas.eeda@oracle.com>
-	<20100217055641.GI13798@mail.oracle.com>
-	<4B7C345E.6000504@oracle.com>
-	<20100218014915.GA5215@mail.oracle.com>
-Message-ID: <4B7C9E03.4020603@oracle.com>
+From: Dan Carpenter <error27@gmail.com>
+Date: Tue, 9 Feb 2010 11:09:44 +0300
+Subject: [Ocfs2-devel] ocfs2: bug in dlm_process_recovery_data()
+Message-ID: <20100209080944.GA13283@bicker>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Yea, they don't expect/wait for a response for keep alive message.
+I noticed a change was merged to dlm_process_recovery_data() so I 
+thought you might want to fix this as well.
 
-On 2/17/2010 5:49 PM, Joel Becker wrote:
-> On Wed, Feb 17, 2010 at 10:24:30AM -0800, Srinivas Eeda wrote:
->   
->> Each node that has this patch would send a O2NET_MSG_KEEP_REQ_MAGIC
->> every 2 seconds(default). So, nodes without this patch would always
->> receive a heartbeat message every 2 seconds.
->>     
->
-> 	So, old nodes do not care if they never receive RESP_MAGIC as
-> long as they got some other message?
->
-> Joel
->
->   
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20100217/09dedd52/attachment.html 
+fs/ocfs2/dlm/dlmrecovery.c
+  1788                                  list_for_each_entry(lock, tmpq, list) {
+  1789                                          if (lock->ml.cookie != ml->cookie)
+  1790                                                  lock = NULL;
+
+	We dereference lock in list_for_each_entry().  Maybe you want 
+	list_for_each_entry_safe() or something?
+
+  1791                                          else
+  1792                                                  break;
+  1793                                  }
+  1794                                  if (lock)
+  1795                                          break;
+
+regards,
+dan carpenter
