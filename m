@@ -1,51 +1,34 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue,  9 Feb 2010 16:02:00 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Ignore BASTs fired after an AST for a
-	drop lock
-Message-ID: <1265760120-4416-1-git-send-email-sunil.mushran@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Wed, 10 Feb 2010 16:44:29 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2-1.6: Use filep_dentry in compat_ctl.
+Message-ID: <1265791469-15876-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-dlmglue should ignore BASTs fired after an AST for a drop lock.
+17fb03bb01b4ae34643b16f2029049e5bab350e is backported from
+mainline, but the structure has changed somehow since 2.6.18.
+So get inode like we do in ioctl.
 
-Reported-by: David Teigland <teigland@redhat.com>
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/dlmglue.c |   11 +++++++----
- 1 files changed, 7 insertions(+), 4 deletions(-)
+ fs/ocfs2/ioctl.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 1dab85b..a34b821 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -920,8 +920,10 @@ static int ocfs2_generic_handle_bast(struct ocfs2_lock_res *lockres,
- 		 * one that goes low enough to satisfy the level we're
- 		 * blocking.  this also catches the case where we get
- 		 * duplicate BASTs */
--		if (ocfs2_highest_compat_lock_level(level) <
--		    ocfs2_highest_compat_lock_level(lockres->l_blocking))
-+		if ((ocfs2_highest_compat_lock_level(level) <
-+		     lockres->l_level) &&
-+		    (ocfs2_highest_compat_lock_level(level) <
-+		     ocfs2_highest_compat_lock_level(lockres->l_blocking)))
- 			needs_downconvert = 1;
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index 1d3f828..56dba61 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -184,7 +184,7 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+ {
+ 	bool preserve;
+ 	struct reflink_arguments args;
+-	struct inode *inode = file->f_path.dentry->d_inode;
++	struct inode *inode = filp_dentry(file)->d_inode;
  
- 		lockres->l_blocking = level;
-@@ -3478,9 +3480,10 @@ recheck:
- 	/*
- 	 * How can we block and yet be at NL?  We were trying to upconvert
- 	 * from NL and got canceled.  The code comes back here, and now
--	 * we notice and clear BLOCKING.
-+	 * we notice and clear BLOCKING. It could be IV if the unlock ast
-+	 * for the drop lock was received before the bast.
- 	 */
--	if (lockres->l_level == DLM_LOCK_NL) {
-+	if (lockres->l_level <= DLM_LOCK_NL) {
- 		BUG_ON(lockres->l_ex_holders || lockres->l_ro_holders);
- 		mlog(ML_NOTICE, "lock %s, Aborting dc\n", lockres->l_name);
- 		lockres->l_blocking = DLM_LOCK_NL;
+ 	switch (cmd) {
+ 	case OCFS2_IOC32_GETFLAGS:
 -- 
-1.6.3.3
+1.5.5
