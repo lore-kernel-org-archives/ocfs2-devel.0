@@ -1,9 +1,10 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed, 10 Feb 2010 01:27:46 -0800
-Subject: [Ocfs2-devel] [PATCH 03/11] ocfs2_dlmfs: Move to its own directory
+Date: Wed, 10 Feb 2010 01:27:52 -0800
+Subject: [Ocfs2-devel] [PATCH 09/11] ocfs2_dlmfs: Don't honor truncate. The
+	size of a dlmfs file is LVB_LEN
 In-Reply-To: <1265794074-19539-1-git-send-email-joel.becker@oracle.com>
 References: <1265794074-19539-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1265794074-19539-4-git-send-email-joel.becker@oracle.com>
+Message-ID: <1265794074-19539-10-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,108 +12,50 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 Cc: linux-kernel@vger.kernel.org, mfasheh@suse.com
 
-We're going to remove the tie between ocfs2_dlmfs and o2dlm.
-ocfs2_dlmfs doesn't belong in the fs/ocfs2/dlm directory anymore.  Here
-we move it to fs/ocfs2/dlmfs.
+We want folks using dlmfs to be able to use the LVB in places other than
+just write(2)/read(2).  By ignoring truncate requests, we allow 'echo
+"contents" > /dlm/space/lockname' to work.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/Makefile                  |    1 +
- fs/ocfs2/dlm/Makefile              |    3 +--
- fs/ocfs2/dlmfs/Makefile            |    5 +++++
- fs/ocfs2/{dlm => dlmfs}/dlmfs.c    |    2 +-
- fs/ocfs2/{dlm => dlmfs}/dlmfsver.c |    0
- fs/ocfs2/{dlm => dlmfs}/dlmfsver.h |    0
- fs/ocfs2/{dlm => dlmfs}/userdlm.c  |    2 +-
- fs/ocfs2/{dlm => dlmfs}/userdlm.h  |    0
- 8 files changed, 9 insertions(+), 4 deletions(-)
- create mode 100644 fs/ocfs2/dlmfs/Makefile
- rename fs/ocfs2/{dlm => dlmfs}/dlmfs.c (99%)
- rename fs/ocfs2/{dlm => dlmfs}/dlmfsver.c (100%)
- rename fs/ocfs2/{dlm => dlmfs}/dlmfsver.h (100%)
- rename fs/ocfs2/{dlm => dlmfs}/userdlm.c (99%)
- rename fs/ocfs2/{dlm => dlmfs}/userdlm.h (100%)
+ fs/ocfs2/dlmfs/dlmfs.c |   18 ++++++++++++++++++
+ 1 files changed, 18 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index 600d2d2..791c088 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -46,6 +46,7 @@ ocfs2_stackglue-objs := stackglue.o
- ocfs2_stack_o2cb-objs := stack_o2cb.o
- ocfs2_stack_user-objs := stack_user.o
- 
-+obj-$(CONFIG_OCFS2_FS) += dlmfs/
- # cluster/ is always needed when OCFS2_FS for masklog support
- obj-$(CONFIG_OCFS2_FS) += cluster/
- obj-$(CONFIG_OCFS2_FS_O2CB) += dlm/
-diff --git a/fs/ocfs2/dlm/Makefile b/fs/ocfs2/dlm/Makefile
-index 1903613..dcebf0d 100644
---- a/fs/ocfs2/dlm/Makefile
-+++ b/fs/ocfs2/dlm/Makefile
-@@ -1,8 +1,7 @@
- EXTRA_CFLAGS += -Ifs/ocfs2
- 
--obj-$(CONFIG_OCFS2_FS_O2CB) += ocfs2_dlm.o ocfs2_dlmfs.o
-+obj-$(CONFIG_OCFS2_FS_O2CB) += ocfs2_dlm.o
- 
- ocfs2_dlm-objs := dlmdomain.o dlmdebug.o dlmthread.o dlmrecovery.o \
- 	dlmmaster.o dlmast.o dlmconvert.o dlmlock.o dlmunlock.o dlmver.o
- 
--ocfs2_dlmfs-objs := userdlm.o dlmfs.o dlmfsver.o
-diff --git a/fs/ocfs2/dlmfs/Makefile b/fs/ocfs2/dlmfs/Makefile
-new file mode 100644
-index 0000000..df69b48
---- /dev/null
-+++ b/fs/ocfs2/dlmfs/Makefile
-@@ -0,0 +1,5 @@
-+EXTRA_CFLAGS += -Ifs/ocfs2
-+
-+obj-$(CONFIG_OCFS2_FS) += ocfs2_dlmfs.o
-+
-+ocfs2_dlmfs-objs := userdlm.o dlmfs.o dlmfsver.o
-diff --git a/fs/ocfs2/dlm/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
-similarity index 99%
-rename from fs/ocfs2/dlm/dlmfs.c
-rename to fs/ocfs2/dlmfs/dlmfs.c
-index ddf55da..e21ce0e 100644
---- a/fs/ocfs2/dlm/dlmfs.c
+diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+index e21ce0e..13ac2bf 100644
+--- a/fs/ocfs2/dlmfs/dlmfs.c
 +++ b/fs/ocfs2/dlmfs/dlmfs.c
-@@ -52,7 +52,7 @@
- #include "cluster/heartbeat.h"
- #include "cluster/tcp.h"
+@@ -220,6 +220,23 @@ static int dlmfs_file_release(struct inode *inode,
+ 	return 0;
+ }
  
--#include "dlmapi.h"
-+#include "dlm/dlmapi.h"
++/*
++ * We do ->setattr() just to override size changes.  Our size is the size
++ * of the LVB and nothing else.
++ */
++static int dlmfs_file_setattr(struct dentry *dentry, struct iattr *attr)
++{
++	int error;
++	struct inode *inode = dentry->d_inode;
++
++	attr->ia_valid &= ~ATTR_SIZE;
++	error = inode_change_ok(inode, attr);
++	if (!error)
++		error = inode_setattr(inode, attr);
++
++	return error;
++}
++
+ static unsigned int dlmfs_file_poll(struct file *file, poll_table *wait)
+ {
+ 	int event = 0;
+@@ -634,6 +651,7 @@ static const struct super_operations dlmfs_ops = {
  
- #include "userdlm.h"
+ static const struct inode_operations dlmfs_file_inode_operations = {
+ 	.getattr	= simple_getattr,
++	.setattr	= dlmfs_file_setattr,
+ };
  
-diff --git a/fs/ocfs2/dlm/dlmfsver.c b/fs/ocfs2/dlmfs/dlmfsver.c
-similarity index 100%
-rename from fs/ocfs2/dlm/dlmfsver.c
-rename to fs/ocfs2/dlmfs/dlmfsver.c
-diff --git a/fs/ocfs2/dlm/dlmfsver.h b/fs/ocfs2/dlmfs/dlmfsver.h
-similarity index 100%
-rename from fs/ocfs2/dlm/dlmfsver.h
-rename to fs/ocfs2/dlmfs/dlmfsver.h
-diff --git a/fs/ocfs2/dlm/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
-similarity index 99%
-rename from fs/ocfs2/dlm/userdlm.c
-rename to fs/ocfs2/dlmfs/userdlm.c
-index 4cb1d3d..6adae70 100644
---- a/fs/ocfs2/dlm/userdlm.c
-+++ b/fs/ocfs2/dlmfs/userdlm.c
-@@ -39,7 +39,7 @@
- #include "cluster/heartbeat.h"
- #include "cluster/tcp.h"
- 
--#include "dlmapi.h"
-+#include "dlm/dlmapi.h"
- 
- #include "userdlm.h"
- 
-diff --git a/fs/ocfs2/dlm/userdlm.h b/fs/ocfs2/dlmfs/userdlm.h
-similarity index 100%
-rename from fs/ocfs2/dlm/userdlm.h
-rename to fs/ocfs2/dlmfs/userdlm.h
+ static int dlmfs_get_sb(struct file_system_type *fs_type,
 -- 
 1.6.6.1
