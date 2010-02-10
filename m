@@ -1,48 +1,51 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 09 Feb 2010 13:49:12 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Plugs race between the dc thread
- and an unlock ast message
-In-Reply-To: <20100209205508.GF29766@redhat.com>
-References: <1265221014-10591-1-git-send-email-sunil.mushran@oracle.com>
-	<20100204102729.GA4339@laptop.oracle.com>
-	<4B6B21BE.10708@oracle.com> <20100205060148.GA3416@mail.oracle.com>
-	<4B6C65F3.8000805@oracle.com>
-	<20100205193313.GG11402@wotan.suse.de>
-	<4B6CABA7.4020502@oracle.com> <20100209205508.GF29766@redhat.com>
-Message-ID: <4B71D858.8050002@oracle.com>
+Date: Tue,  9 Feb 2010 16:02:00 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Ignore BASTs fired after an AST for a
+	drop lock
+Message-ID: <1265760120-4416-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-David Teigland wrote:
-> BUG hit just five minutes after starting make_panic and alternate on four
-> nodes.  (I can send history before this if you need.)
->
+dlmglue should ignore BASTs fired after an AST for a drop lock.
 
-Feb 9 14:09:52 bull-05 kernel: (6983,0,dlm_astd):
+Reported-by: David Teigland <teigland@redhat.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/dlmglue.c |   11 +++++++----
+ 1 files changed, 7 insertions(+), 4 deletions(-)
 
-ocfs2_locking_ast:1104 lock M000000000000000009732800000000, action 2, 
-unlock 0, level 0, newlevel 5
-ocfs2_unlock_ast:3075 UNLOCK AST called on lock 
-M000000000000000009732800000000, action = 2 (DROP_LOCK)
-ocfs2_blocking_ast:1059 BAST fired for lockres 
-M000000000000000009732800000000, blocking 5, level -1 type Meta
-ocfs2_generic_handle_bast:932 lockres M000000000000000009732800000000, 
-block 5, level -1, l_block 5, dwn 1
-
-Feb 9 14:09:52 bull-05 kernel: (7009,2,ocfs2dc):
-
-ocfs2_process_blocked_lock:4004 lockres M000000000000000009732800000000 
-blocked.
-ocfs2_prepare_downconvert:3295 ERROR: lock 
-M000000000000000009732800000000, lvl -1 <= 0, blcklst 1, mask 1, type 0, 
-flags 0x104, h
-
-
-So the BAST fires after the UNLOCK AST (DROP_LOCK). That is what
-we thought.
-
-Why does ocfs2_generic_handle_bast() not take into account the current
-lockres->l_level?
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 1dab85b..a34b821 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -920,8 +920,10 @@ static int ocfs2_generic_handle_bast(struct ocfs2_lock_res *lockres,
+ 		 * one that goes low enough to satisfy the level we're
+ 		 * blocking.  this also catches the case where we get
+ 		 * duplicate BASTs */
+-		if (ocfs2_highest_compat_lock_level(level) <
+-		    ocfs2_highest_compat_lock_level(lockres->l_blocking))
++		if ((ocfs2_highest_compat_lock_level(level) <
++		     lockres->l_level) &&
++		    (ocfs2_highest_compat_lock_level(level) <
++		     ocfs2_highest_compat_lock_level(lockres->l_blocking)))
+ 			needs_downconvert = 1;
+ 
+ 		lockres->l_blocking = level;
+@@ -3478,9 +3480,10 @@ recheck:
+ 	/*
+ 	 * How can we block and yet be at NL?  We were trying to upconvert
+ 	 * from NL and got canceled.  The code comes back here, and now
+-	 * we notice and clear BLOCKING.
++	 * we notice and clear BLOCKING. It could be IV if the unlock ast
++	 * for the drop lock was received before the bast.
+ 	 */
+-	if (lockres->l_level == DLM_LOCK_NL) {
++	if (lockres->l_level <= DLM_LOCK_NL) {
+ 		BUG_ON(lockres->l_ex_holders || lockres->l_ro_holders);
+ 		mlog(ML_NOTICE, "lock %s, Aborting dc\n", lockres->l_name);
+ 		lockres->l_blocking = DLM_LOCK_NL;
+-- 
+1.6.3.3
