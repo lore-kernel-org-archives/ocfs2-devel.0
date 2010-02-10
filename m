@@ -1,10 +1,10 @@
 From: Joel Becker <joel.becker@oracle.com>
-Date: Wed, 10 Feb 2010 01:27:50 -0800
-Subject: [Ocfs2-devel] [PATCH 07/11] ocfs2: Remove the ast pointers from
-	ocfs2_stack_plugins
+Date: Wed, 10 Feb 2010 01:27:54 -0800
+Subject: [Ocfs2-devel] [PATCH 11/11] ocfs2_dlmfs: Enable the use of user
+	cluster stacks.
 In-Reply-To: <1265794074-19539-1-git-send-email-joel.becker@oracle.com>
 References: <1265794074-19539-1-git-send-email-joel.becker@oracle.com>
-Message-ID: <1265794074-19539-8-git-send-email-joel.becker@oracle.com>
+Message-ID: <1265794074-19539-12-git-send-email-joel.becker@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,79 +12,121 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 Cc: linux-kernel@vger.kernel.org, mfasheh@suse.com
 
-With the full ocfs2_locking_protocol hanging off of the
-ocfs2_cluster_connection, ast wrappers can get the ast/bast pointers
-there.  They don't need to get them from their plugin structure.
+Unlike ocfs2, dlmfs has no permanent storage.  It can't store off a
+cluster stack it is supposed to be using.  So it can't specify the stack
+name in ocfs2_cluster_connect().
 
-The user plugin still needs the maximum locking protocol version,
-though.  This changes the plugin structure so that it only holds the max
-version, not the entire ocfs2_locking_protocol pointer.
+Instead, we create ocfs2_cluster_connect_agnostic(), which simply uses
+the stack that is currently enabled.  This is find for dlmfs, which will
+rely on the stack initialization.
+
+We add the "stackglue" capability to dlmfs's capability list.  This lets
+userspace know dlmfs can be used with all cluster stacks.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/stack_user.c |    6 +++---
- fs/ocfs2/stackglue.c  |    4 ++--
- fs/ocfs2/stackglue.h  |    2 +-
- 3 files changed, 6 insertions(+), 6 deletions(-)
+ fs/ocfs2/dlmfs/dlmfs.c      |    2 +-
+ fs/ocfs2/dlmfs/userdlm.c    |    8 ++++----
+ fs/ocfs2/ocfs2_lockingver.h |    2 ++
+ fs/ocfs2/stackglue.c        |   18 ++++++++++++++++++
+ fs/ocfs2/stackglue.h        |   11 +++++++++++
+ 5 files changed, 36 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index b4cf616..5ae8812 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -62,8 +62,8 @@
-  * negotiated by the client.  The client negotiates based on the maximum
-  * version advertised in /sys/fs/ocfs2/max_locking_protocol.  The major
-  * number from the "SETV" message must match
-- * ocfs2_user_plugin.sp_proto->lp_max_version.pv_major, and the minor number
-- * must be less than or equal to ...->lp_max_version.pv_minor.
-+ * ocfs2_user_plugin.sp_max_proto.pv_major, and the minor number
-+ * must be less than or equal to ...sp_max_version.pv_minor.
-  *
-  * Once this information has been set, mounts will be allowed.  From this
-  * point on, the "DOWN" message can be sent for node down notification.
-@@ -400,7 +400,7 @@ static int ocfs2_control_do_setversion_msg(struct file *file,
- 	char *ptr = NULL;
- 	struct ocfs2_control_private *p = file->private_data;
- 	struct ocfs2_protocol_version *max =
--		&ocfs2_user_plugin.sp_proto->lp_max_version;
-+		&ocfs2_user_plugin.sp_max_proto;
+diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+index 8697366..1b0de15 100644
+--- a/fs/ocfs2/dlmfs/dlmfs.c
++++ b/fs/ocfs2/dlmfs/dlmfs.c
+@@ -87,7 +87,7 @@ struct workqueue_struct *user_dlm_worker;
+  * - bast	: POLLIN against the file descriptor of a held lock
+  *		  signifies a bast fired on the lock.
+  */
+-#define DLMFS_CAPABILITIES "bast"
++#define DLMFS_CAPABILITIES "bast stackglue"
+ extern int param_set_dlmfs_capabilities(const char *val,
+ 					struct kernel_param *kp)
+ {
+diff --git a/fs/ocfs2/dlmfs/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
+index c1b6a56..2858ee6 100644
+--- a/fs/ocfs2/dlmfs/userdlm.c
++++ b/fs/ocfs2/dlmfs/userdlm.c
+@@ -666,10 +666,10 @@ struct ocfs2_cluster_connection *user_dlm_register(struct qstr *name)
+ 	int rc;
+ 	struct ocfs2_cluster_connection *conn;
  
- 	if (ocfs2_control_get_handshake_state(file) !=
- 	    OCFS2_CONTROL_HANDSHAKE_PROTOCOL)
+-	rc = ocfs2_cluster_connect("o2cb", name->name, name->len,
+-				   &user_dlm_lproto,
+-				   user_dlm_recovery_handler_noop,
+-				   NULL, &conn);
++	rc = ocfs2_cluster_connect_agnostic(name->name, name->len,
++					    &user_dlm_lproto,
++					    user_dlm_recovery_handler_noop,
++					    NULL, &conn);
+ 	if (rc)
+ 		mlog_errno(rc);
+ 
+diff --git a/fs/ocfs2/ocfs2_lockingver.h b/fs/ocfs2/ocfs2_lockingver.h
+index 82d5eea..2e45c8d 100644
+--- a/fs/ocfs2/ocfs2_lockingver.h
++++ b/fs/ocfs2/ocfs2_lockingver.h
+@@ -23,6 +23,8 @@
+ /*
+  * The protocol version for ocfs2 cluster locking.  See dlmglue.c for
+  * more details.
++ *
++ * 1.0 - Initial locking version from ocfs2 1.4.
+  */
+ #define OCFS2_LOCKING_PROTOCOL_MAJOR 1
+ #define OCFS2_LOCKING_PROTOCOL_MINOR 0
 diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 010ecab..fc184c7 100644
+index 31db2e8..39abf89 100644
 --- a/fs/ocfs2/stackglue.c
 +++ b/fs/ocfs2/stackglue.c
-@@ -176,7 +176,7 @@ int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin)
- 	spin_lock(&ocfs2_stack_lock);
- 	if (!ocfs2_stack_lookup(plugin->sp_name)) {
- 		plugin->sp_count = 0;
--		plugin->sp_proto = lproto;
-+		plugin->sp_max_proto = lproto->lp_max_version;
- 		list_add(&plugin->sp_list, &ocfs2_stack_list);
- 		printk(KERN_INFO "ocfs2: Registered cluster interface %s\n",
- 		       plugin->sp_name);
-@@ -224,7 +224,7 @@ void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto)
+@@ -373,6 +373,24 @@ out:
+ }
+ EXPORT_SYMBOL_GPL(ocfs2_cluster_connect);
  
- 	lproto = proto;
- 	list_for_each_entry(p, &ocfs2_stack_list, sp_list) {
--		p->sp_proto = lproto;
-+		p->sp_max_proto = lproto->lp_max_version;
- 	}
- 
- 	spin_unlock(&ocfs2_stack_lock);
++/* The caller will ensure all nodes have the same cluster stack */
++int ocfs2_cluster_connect_agnostic(const char *group,
++				   int grouplen,
++				   struct ocfs2_locking_protocol *lproto,
++				   void (*recovery_handler)(int node_num,
++							    void *recovery_data),
++				   void *recovery_data,
++				   struct ocfs2_cluster_connection **conn)
++{
++	char *stack_name = NULL;
++
++	if (cluster_stack_name[0])
++		stack_name = cluster_stack_name;
++	return ocfs2_cluster_connect(stack_name, group, grouplen, lproto,
++				     recovery_handler, recovery_data, conn);
++}
++EXPORT_SYMBOL_GPL(ocfs2_cluster_connect_agnostic);
++
+ /* If hangup_pending is 0, the stack driver will be dropped */
+ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
+ 			     int hangup_pending)
 diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index cf8bac2..77a7a9a 100644
+index b1981ba..8ce7398 100644
 --- a/fs/ocfs2/stackglue.h
 +++ b/fs/ocfs2/stackglue.h
-@@ -233,7 +233,7 @@ struct ocfs2_stack_plugin {
- 	/* These are managed by the stackglue code. */
- 	struct list_head sp_list;
- 	unsigned int sp_count;
--	struct ocfs2_locking_protocol *sp_proto;
-+	struct ocfs2_protocol_version sp_max_proto;
- };
- 
- 
+@@ -246,6 +246,17 @@ int ocfs2_cluster_connect(const char *stack_name,
+ 						   void *recovery_data),
+ 			  void *recovery_data,
+ 			  struct ocfs2_cluster_connection **conn);
++/*
++ * Used by callers that don't store their stack name.  They must ensure
++ * all nodes have the same stack.
++ */
++int ocfs2_cluster_connect_agnostic(const char *group,
++				   int grouplen,
++				   struct ocfs2_locking_protocol *lproto,
++				   void (*recovery_handler)(int node_num,
++							    void *recovery_data),
++				   void *recovery_data,
++				   struct ocfs2_cluster_connection **conn);
+ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
+ 			     int hangup_pending);
+ void ocfs2_cluster_hangup(const char *group, int grouplen);
 -- 
 1.6.6.1
