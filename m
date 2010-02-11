@@ -1,173 +1,86 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 11 Feb 2010 11:41:14 -0800
-Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2:freeze-thaw: freeze lock init
- and cleanup -v2
-In-Reply-To: <201001291425.o0TEPkUP000601@rcsinet13.oracle.com>
-References: <201001291425.o0TEPkUP000601@rcsinet13.oracle.com>
-Message-ID: <4B745D5A.707@oracle.com>
+Date: Thu, 11 Feb 2010 12:41:25 -0800
+Subject: [Ocfs2-devel] [PATCH 01/11] ocfs2_dlmfs: Add capabilities
+	parameter.
+In-Reply-To: <1265794074-19539-2-git-send-email-joel.becker@oracle.com>
+References: <1265794074-19539-1-git-send-email-joel.becker@oracle.com>
+	<1265794074-19539-2-git-send-email-joel.becker@oracle.com>
+Message-ID: <4B746B75.8010801@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <joel.becker@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, mfasheh@suse.com, linux-kernel@vger.kernel.org
 
-Please can you remove the timeout bit. Don't mention that
-in this series of patches. The patch that implements it can
-handle that. Remove all references to timeout in patches 2
-and 3.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-Thanks
-Sunil
 
-Wengang Wang wrote:
-> This patch does initialization and cleanup for freeze/thaw.
+Joel Becker wrote:
+> Over time, dlmfs has added some features that were not part of the
+> initial ABI.  Unfortunately, some of these features are not detectable
+> via standard usage.  For example, Linux's default poll always returns
+> POLLIN, so there is no way for a caller of poll(2) to know when dlmfs
+> added poll support.  Instead, we provide this list of new capabilities.
 >
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> Capabilities is a read-only attribute.  We do it as a module parameter
+> so we can discover it whether dlmfs is built in, loaded, or even not
+> loaded (via modinfo).
+>
+> The ABI features are local to this machine's dlmfs mount.  This is
+> distinct from the locking protocol, which is concerned with inter-node
+> interaction.
+>
+> Signed-off-by: Joel Becker <joel.becker@oracle.com>
 > ---
->  fs/ocfs2/dlmglue.c |   25 +++++++++++++++++++++++++
->  fs/ocfs2/dlmglue.h |    2 ++
->  fs/ocfs2/super.c   |   25 +++++++++++++++++++++++++
->  3 files changed, 52 insertions(+), 0 deletions(-)
+>  fs/ocfs2/dlm/dlmfs.c |   36 ++++++++++++++++++++++++++++++++++++
+>  1 files changed, 36 insertions(+), 0 deletions(-)
 >
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index cddaa62..785762d 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -115,6 +115,8 @@ static int ocfs2_check_refcount_downconvert(struct ocfs2_lock_res *lockres,
->  					    int new_level);
->  static int ocfs2_refcount_convert_worker(struct ocfs2_lock_res *lockres,
->  					 int blocking);
-> +static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
-> +					  int new_level);
->  
->  #define mlog_meta_lvb(__level, __lockres) ocfs2_dump_meta_lvb_info(__level, __PRETTY_FUNCTION__, __LINE__, __lockres)
->  
-> @@ -290,6 +292,11 @@ static struct ocfs2_lock_res_ops ocfs2_refcount_block_lops = {
->  	.flags		= 0,
+> diff --git a/fs/ocfs2/dlm/dlmfs.c b/fs/ocfs2/dlm/dlmfs.c
+> index 02bf178..77d0df4 100644
+> --- a/fs/ocfs2/dlm/dlmfs.c
+> +++ b/fs/ocfs2/dlm/dlmfs.c
+> @@ -81,6 +81,42 @@ static const struct dlm_protocol_version user_locking_protocol = {
+>  	.pv_minor = OCFS2_LOCKING_PROTOCOL_MINOR,
 >  };
 >  
-> +static struct ocfs2_lock_res_ops ocfs2_freeze_lops = {
-> +	.check_downconvert = ocfs2_check_freeze_downconvert,
-> +	.flags		= 0,
-> +};
 > +
->  static inline int ocfs2_is_inode_lock(struct ocfs2_lock_res *lockres)
->  {
->  	return lockres->l_type == OCFS2_LOCK_TYPE_META ||
-> @@ -722,6 +729,15 @@ void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
->  				   &ocfs2_refcount_block_lops, osb);
->  }
->  
-> +static void ocfs2_freeze_lock_res_init(struct ocfs2_lock_res *res,
-> +				       struct ocfs2_super *osb)
+> +/*
+> + * These are the ABI capabilities of dlmfs.
+> + *
+> + * Over time, dlmfs has added some features that were not part of the
+> + * initial ABI.  Unfortunately, some of these features are not detectable
+> + * via standard usage.  For example, Linux's default poll always returns
+> + * POLLIN, so there is no way for a caller of poll(2) to know when dlmfs
+> + * added poll support.  Instead, we provide this list of new capabilities.
+> + *
+> + * Capabilities is a read-only attribute.  We do it as a module parameter
+> + * so we can discover it whether dlmfs is built in, loaded, or even not
+> + * loaded.
+> + *
+> + * The ABI features are local to this machine's dlmfs mount.  This is
+> + * distinct from the locking protocol, which is concerned with inter-node
+> + * interaction.
+> + */
+> +#define DLMFS_CAPABILITIES ""
+> +extern int param_set_dlmfs_capabilities(const char *val,
+> +					struct kernel_param *kp)
 > +{
-> +	ocfs2_lock_res_init_once(res);
-> +	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_FREEZEFS, 0, 0, res->l_name);
-> +	ocfs2_lock_res_init_common(osb, res, OCFS2_LOCK_TYPE_FREEZEFS,
-> +				   &ocfs2_freeze_lops, osb);
+> +	printk(KERN_ERR "%s: readonly parameter\n", kp->name);
+> +	return -EINVAL;
 > +}
+> +static int param_get_dlmfs_capabilities(char *buffer,
+> +					struct kernel_param *kp)
+> +{
+> +	return strlcpy(buffer, DLMFS_CAPABILITIES,
+> +		       strlen(DLMFS_CAPABILITIES) + 1);
+> +}
+> +module_param_call(capabilities, param_set_dlmfs_capabilities,
+> +		  param_get_dlmfs_capabilities, NULL, 0444);
+> +MODULE_PARM_DESC(capabilities, DLMFS_CAPABILITIES);
 > +
->  void ocfs2_lock_res_free(struct ocfs2_lock_res *res)
->  {
->  	mlog_entry_void();
-> @@ -3007,6 +3023,7 @@ local:
->  	ocfs2_rename_lock_res_init(&osb->osb_rename_lockres, osb);
->  	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
->  	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
-> +	ocfs2_freeze_lock_res_init(&osb->osb_freeze_lockres, osb);
->  
->  	osb->cconn = conn;
->  
-> @@ -3044,6 +3061,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
->  	ocfs2_lock_res_free(&osb->osb_rename_lockres);
->  	ocfs2_lock_res_free(&osb->osb_nfs_sync_lockres);
->  	ocfs2_lock_res_free(&osb->osb_orphan_scan.os_lockres);
-> +	ocfs2_lock_res_free(&osb->osb_freeze_lockres);
->  
->  	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
->  	osb->cconn = NULL;
-> @@ -3229,6 +3247,7 @@ static void ocfs2_drop_osb_locks(struct ocfs2_super *osb)
->  	ocfs2_simple_drop_lockres(osb, &osb->osb_rename_lockres);
->  	ocfs2_simple_drop_lockres(osb, &osb->osb_nfs_sync_lockres);
->  	ocfs2_simple_drop_lockres(osb, &osb->osb_orphan_scan.os_lockres);
-> +	ocfs2_simple_drop_lockres(osb, &osb->osb_freeze_lockres);
->  }
->  
->  int ocfs2_drop_inode_locks(struct inode *inode)
-> @@ -3872,6 +3891,12 @@ void ocfs2_refcount_unlock(struct ocfs2_refcount_tree *ref_tree, int ex)
->  		ocfs2_cluster_unlock(osb, lockres, level);
->  }
->  
-> +static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
-> +					  int new_level)
-> +{
-> +	return 1; /* change me */
-> +}
 > +
 >  /*
->   * This is the filesystem locking protocol.  It provides the lock handling
->   * hooks for the underlying DLM.  It has a maximum version number.
-> diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-> index ac06e3a..17bf639 100644
-> --- a/fs/ocfs2/dlmglue.h
-> +++ b/fs/ocfs2/dlmglue.h
-> @@ -86,6 +86,8 @@ enum {
->  	OI_LS_RENAME2,
->  };
->  
-> +#define OCFS2_FREEZE_LOCK_TIMEOUT	30000   /* ms */
-> +
->  int ocfs2_dlm_init(struct ocfs2_super *osb);
->  void ocfs2_dlm_shutdown(struct ocfs2_super *osb, int hangup_pending);
->  void ocfs2_lock_res_init_once(struct ocfs2_lock_res *res);
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 14f47d2..de64a35 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -134,6 +134,7 @@ static void ocfs2_destroy_inode(struct inode *inode);
->  static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend);
->  static int ocfs2_enable_quotas(struct ocfs2_super *osb);
->  static void ocfs2_disable_quotas(struct ocfs2_super *osb);
-> +static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb);
->  
->  static const struct super_operations ocfs2_sops = {
->  	.statfs		= ocfs2_statfs,
-> @@ -1772,6 +1773,17 @@ static int ocfs2_get_sector(struct super_block *sb,
->  	return 0;
->  }
->  
-> +static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb)
-> +{
-> +	if (!osb->cconn)
-> +		return 0;
-> +	if (osb->cconn->cc_version.pv_major == 1)
-> +		return (osb->cconn->cc_version.pv_minor >= 1);
-> +	if (osb->cconn->cc_version.pv_major > 1)
-> +		return 1;
-> +	return 0;
-> +}
-> +
->  static int ocfs2_mount_volume(struct super_block *sb)
->  {
->  	int status = 0;
-> @@ -1789,6 +1801,19 @@ static int ocfs2_mount_volume(struct super_block *sb)
->  		goto leave;
->  	}
->  
-> +	if (ocfs2_freeze_lock_supported(osb)) {
-> +		/* we fail the mount if freeze lock timeout. the timeout can be
-> +		 * a normal case that the cluster is frozen when this node attempts
-> +		 * to join.
-> +		 */
-> +		status = ocfs2_freeze_lock_timeout(osb, 0, OCFS2_FREEZE_LOCK_TIMEOUT);
-> +		if (status < 0) {
-> +			mlog_errno(status);
-> +			goto leave;
-> +		}
-> +		ocfs2_freeze_unlock(osb, 0);
-> +	}
-> +
->  	status = ocfs2_super_lock(osb, 1);
->  	if (status < 0) {
->  		mlog_errno(status);
+>   * decodes a set of open flags into a valid lock level and a set of flags.
+>   * returns < 0 if we have invalid flags
 >   
