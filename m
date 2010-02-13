@@ -1,11 +1,11 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 12 Feb 2010 15:59:18 -0800
-Subject: [Ocfs2-devel] [PATCH 06/11] ocfs2: Hang the locking proto on
- the cluster conn and use it in asts.
-In-Reply-To: <1265794074-19539-7-git-send-email-joel.becker@oracle.com>
+Date: Fri, 12 Feb 2010 17:10:17 -0800
+Subject: [Ocfs2-devel] [PATCH 07/11] ocfs2: Remove the ast pointers from
+ ocfs2_stack_plugins
+In-Reply-To: <1265794074-19539-8-git-send-email-joel.becker@oracle.com>
 References: <1265794074-19539-1-git-send-email-joel.becker@oracle.com>
-	<1265794074-19539-7-git-send-email-joel.becker@oracle.com>
-Message-ID: <4B75EB56.9030708@oracle.com>
+	<1265794074-19539-8-git-send-email-joel.becker@oracle.com>
+Message-ID: <4B75FBF9.5030300@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -16,133 +16,78 @@ Cc: ocfs2-devel@oss.oracle.com, mfasheh@suse.com, linux-kernel@vger.kernel.org
 Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
 
 Joel Becker wrote:
-> With the ocfs2_cluster_connection hanging off of the ocfs2_dlm_lksb, we
-> have access to it in the ast and bast wrapper functions.  Attach the
-> ocfs2_locking_protocol to the conn.
+> With the full ocfs2_locking_protocol hanging off of the
+> ocfs2_cluster_connection, ast wrappers can get the ast/bast pointers
+> there.  They don't need to get them from their plugin structure.
 >
-> Now, instead of refering to a static variable for ast/bast pointers, the
-> wrappers can look at the connection.  This means different connections
-> can have different ast/bast pointers, and it reduces the need for the
-> static pointer.
+> The user plugin still needs the maximum locking protocol version,
+> though.  This changes the plugin structure so that it only holds the max
+> version, not the entire ocfs2_locking_protocol pointer.
 >
 > Signed-off-by: Joel Becker <joel.becker@oracle.com>
 > ---
->  fs/ocfs2/stack_o2cb.c |   15 ++++-----------
->  fs/ocfs2/stack_user.c |   10 +++-------
->  fs/ocfs2/stackglue.c  |    1 +
->  fs/ocfs2/stackglue.h  |    1 +
->  4 files changed, 9 insertions(+), 18 deletions(-)
+>  fs/ocfs2/stack_user.c |    6 +++---
+>  fs/ocfs2/stackglue.c  |    4 ++--
+>  fs/ocfs2/stackglue.h  |    2 +-
+>  3 files changed, 6 insertions(+), 6 deletions(-)
 >
-> diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-> index 41e6bad..abf696a 100644
-> --- a/fs/ocfs2/stack_o2cb.c
-> +++ b/fs/ocfs2/stack_o2cb.c
-> @@ -163,28 +163,21 @@ static void o2dlm_lock_ast_wrapper(void *astarg)
->  {
->  	struct ocfs2_dlm_lksb *lksb = astarg;
->  
-> -	BUG_ON(o2cb_stack.sp_proto == NULL);
-> -
-> -	o2cb_stack.sp_proto->lp_lock_ast(lksb);
-> +	lksb->lksb_conn->cc_proto->lp_lock_ast(lksb);
->  }
->  
->  static void o2dlm_blocking_ast_wrapper(void *astarg, int level)
->  {
->  	struct ocfs2_dlm_lksb *lksb = astarg;
->  
-> -	BUG_ON(o2cb_stack.sp_proto == NULL);
-> -
-> -	o2cb_stack.sp_proto->lp_blocking_ast(lksb, level);
-> +	lksb->lksb_conn->cc_proto->lp_blocking_ast(lksb, level);
->  }
->  
->  static void o2dlm_unlock_ast_wrapper(void *astarg, enum dlm_status status)
->  {
->  	struct ocfs2_dlm_lksb *lksb = astarg;
-> -
->  	int error = dlm_status_to_errno(status);
->  
-> -	BUG_ON(o2cb_stack.sp_proto == NULL);
-> -
->  	/*
->  	 * In o2dlm, you can get both the lock_ast() for the lock being
->  	 * granted and the unlock_ast() for the CANCEL failing.  A
-> @@ -199,7 +192,7 @@ static void o2dlm_unlock_ast_wrapper(void *astarg, enum dlm_status status)
->  	if (status == DLM_CANCELGRANT)
->  		return;
->  
-> -	o2cb_stack.sp_proto->lp_unlock_ast(lksb, error);
-> +	lksb->lksb_conn->cc_proto->lp_unlock_ast(lksb, error);
->  }
->  
->  static int o2cb_dlm_lock(struct ocfs2_cluster_connection *conn,
-> @@ -284,7 +277,7 @@ static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
->  	struct dlm_protocol_version dlm_version;
->  
->  	BUG_ON(conn == NULL);
-> -	BUG_ON(o2cb_stack.sp_proto == NULL);
-> +	BUG_ON(conn->cc_proto == NULL);
->  
->  	/* for now we only have one cluster/node, make sure we see it
->  	 * in the heartbeat universe */
 > diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-> index 31276ba..b4cf616 100644
+> index b4cf616..5ae8812 100644
 > --- a/fs/ocfs2/stack_user.c
 > +++ b/fs/ocfs2/stack_user.c
-> @@ -668,8 +668,6 @@ static void fsdlm_lock_ast_wrapper(void *astarg)
->  	struct ocfs2_dlm_lksb *lksb = astarg;
->  	int status = lksb->lksb_fsdlm.sb_status;
+> @@ -62,8 +62,8 @@
+>   * negotiated by the client.  The client negotiates based on the maximum
+>   * version advertised in /sys/fs/ocfs2/max_locking_protocol.  The major
+>   * number from the "SETV" message must match
+> - * ocfs2_user_plugin.sp_proto->lp_max_version.pv_major, and the minor number
+> - * must be less than or equal to ...->lp_max_version.pv_minor.
+> + * ocfs2_user_plugin.sp_max_proto.pv_major, and the minor number
+> + * must be less than or equal to ...sp_max_version.pv_minor.
+>   *
+>   * Once this information has been set, mounts will be allowed.  From this
+>   * point on, the "DOWN" message can be sent for node down notification.
+> @@ -400,7 +400,7 @@ static int ocfs2_control_do_setversion_msg(struct file *file,
+>  	char *ptr = NULL;
+>  	struct ocfs2_control_private *p = file->private_data;
+>  	struct ocfs2_protocol_version *max =
+> -		&ocfs2_user_plugin.sp_proto->lp_max_version;
+> +		&ocfs2_user_plugin.sp_max_proto;
 >  
-> -	BUG_ON(ocfs2_user_plugin.sp_proto == NULL);
-> -
->  	/*
->  	 * For now we're punting on the issue of other non-standard errors
->  	 * where we can't tell if the unlock_ast or lock_ast should be called.
-> @@ -681,18 +679,16 @@ static void fsdlm_lock_ast_wrapper(void *astarg)
->  	 */
->  
->  	if (status == -DLM_EUNLOCK || status == -DLM_ECANCEL)
-> -		ocfs2_user_plugin.sp_proto->lp_unlock_ast(lksb, 0);
-> +		lksb->lksb_conn->cc_proto->lp_unlock_ast(lksb, 0);
->  	else
-> -		ocfs2_user_plugin.sp_proto->lp_lock_ast(lksb);
-> +		lksb->lksb_conn->cc_proto->lp_lock_ast(lksb);
->  }
->  
->  static void fsdlm_blocking_ast_wrapper(void *astarg, int level)
->  {
->  	struct ocfs2_dlm_lksb *lksb = astarg;
->  
-> -	BUG_ON(ocfs2_user_plugin.sp_proto == NULL);
-> -
-> -	ocfs2_user_plugin.sp_proto->lp_blocking_ast(lksb, level);
-> +	lksb->lksb_conn->cc_proto->lp_blocking_ast(lksb, level);
->  }
->  
->  static int user_dlm_lock(struct ocfs2_cluster_connection *conn,
+>  	if (ocfs2_control_get_handshake_state(file) !=
+>  	    OCFS2_CONTROL_HANDSHAKE_PROTOCOL)
 > diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-> index 8ef9a57..010ecab 100644
+> index 010ecab..fc184c7 100644
 > --- a/fs/ocfs2/stackglue.c
 > +++ b/fs/ocfs2/stackglue.c
-> @@ -343,6 +343,7 @@ int ocfs2_cluster_connect(const char *stack_name,
->  	new_conn->cc_recovery_handler = recovery_handler;
->  	new_conn->cc_recovery_data = recovery_data;
+> @@ -176,7 +176,7 @@ int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin)
+>  	spin_lock(&ocfs2_stack_lock);
+>  	if (!ocfs2_stack_lookup(plugin->sp_name)) {
+>  		plugin->sp_count = 0;
+> -		plugin->sp_proto = lproto;
+> +		plugin->sp_max_proto = lproto->lp_max_version;
+>  		list_add(&plugin->sp_list, &ocfs2_stack_list);
+>  		printk(KERN_INFO "ocfs2: Registered cluster interface %s\n",
+>  		       plugin->sp_name);
+> @@ -224,7 +224,7 @@ void ocfs2_stack_glue_set_locking_protocol(struct ocfs2_locking_protocol *proto)
 >  
-> +	new_conn->cc_proto = lproto;
->  	/* Start the new connection at our maximum compatibility level */
->  	new_conn->cc_version = lproto->lp_max_version;
+>  	lproto = proto;
+>  	list_for_each_entry(p, &ocfs2_stack_list, sp_list) {
+> -		p->sp_proto = lproto;
+> +		p->sp_max_proto = lproto->lp_max_version;
+>  	}
 >  
+>  	spin_unlock(&ocfs2_stack_lock);
 > diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-> index bb32926..cf8bac2 100644
+> index cf8bac2..77a7a9a 100644
 > --- a/fs/ocfs2/stackglue.h
 > +++ b/fs/ocfs2/stackglue.h
-> @@ -100,6 +100,7 @@ struct ocfs2_cluster_connection {
->  	char cc_name[GROUP_NAME_MAX];
->  	int cc_namelen;
->  	struct ocfs2_protocol_version cc_version;
-> +	struct ocfs2_locking_protocol *cc_proto;
->  	void (*cc_recovery_handler)(int node_num, void *recovery_data);
->  	void *cc_recovery_data;
->  	void *cc_lockspace;
+> @@ -233,7 +233,7 @@ struct ocfs2_stack_plugin {
+>  	/* These are managed by the stackglue code. */
+>  	struct list_head sp_list;
+>  	unsigned int sp_count;
+> -	struct ocfs2_locking_protocol *sp_proto;
+> +	struct ocfs2_protocol_version sp_max_proto;
+>  };
+>  
+>  
 >   
