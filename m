@@ -1,72 +1,47 @@
-From: Dmitry Monakhov <dmonakhov@openvz.org>
-Date: Wed, 17 Feb 2010 21:43:26 +0300
-Subject: [Ocfs2-devel] [PATCH 12/19] ocfs2: replace inode uid, gid,
-	mode initialization with helper function
-In-Reply-To: <1266431353-8549-1-git-send-email-dmonakhov@openvz.org>
-References: <1266431353-8549-1-git-send-email-dmonakhov@openvz.org>
-Message-ID: <1266432206-9512-1-git-send-email-dmonakhov@openvz.org>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 17 Feb 2010 20:05:15 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Add current->comm in trace output
+In-Reply-To: <4B7C41CE.2020507@oracle.com>
+References: <1266012546-13865-1-git-send-email-sunil.mushran@oracle.com>
+	<20100217042908.GA13798@mail.oracle.com>
+	<4B7C41CE.2020507@oracle.com>
+Message-ID: <20100218040515.GB5215@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, Dmitry Monakhov <dmonakhov@openvz.org>
+To: ocfs2-devel@oss.oracle.com
 
+On Wed, Feb 17, 2010 at 11:21:50AM -0800, Sunil Mushran wrote:
+> Joel Becker wrote:
+> >On Fri, Feb 12, 2010 at 02:09:06PM -0800, Sunil Mushran wrote:
+> >>Add current->comm to the standard mlog() output to help with debugging.
+> >>
+> >>Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+> >	Do you have sample output?  This could get long, no?
+> 
+> It is a bit longer. But it is much more readable.
+> 
+> (thisisalongname,16751,0):ocfs2_drop_lock:3202 EXIT: 0
+> (thisisalongname,16751,0):ocfs2_lock_res_free:734 ENTRY:
+> (thisisalongname,16751,0):ocfs2_lock_res_free:761 EXIT
+> (kjournald2,16039,1):ocfs2_bmap:499 ENTRY:(block = 117)
+> (kjournald2,16039,1):ocfs2_bmap:533 EXIT: 33493
+> (kjournald2,16039,1):ocfs2_bmap:499 ENTRY:(block = 118)
 
-Signed-off-by: Dmitry Monakhov <dmonakhov@openvz.org>
----
- fs/ocfs2/dlm/dlmfs.c |   11 +----------
- fs/ocfs2/namei.c     |    9 +--------
- 2 files changed, 2 insertions(+), 18 deletions(-)
+	Yeah, this is nice.  It's now in the 'merge-window' branch of
+ocfs2.git.
 
-diff --git a/fs/ocfs2/dlm/dlmfs.c b/fs/ocfs2/dlm/dlmfs.c
-index 02bf178..248df45 100644
---- a/fs/ocfs2/dlm/dlmfs.c
-+++ b/fs/ocfs2/dlm/dlmfs.c
-@@ -364,9 +364,7 @@ static struct inode *dlmfs_get_inode(struct inode *parent,
- 	if (!inode)
- 		return NULL;
- 
--	inode->i_mode = mode;
--	inode->i_uid = current_fsuid();
--	inode->i_gid = current_fsgid();
-+	inode_init_owner(inode, parent, mode);
- 	inode->i_mapping->backing_dev_info = &dlmfs_backing_dev_info;
- 	inode->i_atime = inode->i_mtime = inode->i_ctime = CURRENT_TIME;
- 
-@@ -403,13 +401,6 @@ static struct inode *dlmfs_get_inode(struct inode *parent,
- 		inc_nlink(inode);
- 		break;
- 	}
--
--	if (parent->i_mode & S_ISGID) {
--		inode->i_gid = parent->i_gid;
--		if (S_ISDIR(mode))
--			inode->i_mode |= S_ISGID;
--	}
--
- 	return inode;
- }
- 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 50fb26a..2877404 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -204,14 +204,7 @@ static struct inode *ocfs2_get_init_inode(struct inode *dir, int mode)
- 		inode->i_nlink = 2;
- 	else
- 		inode->i_nlink = 1;
--	inode->i_uid = current_fsuid();
--	if (dir->i_mode & S_ISGID) {
--		inode->i_gid = dir->i_gid;
--		if (S_ISDIR(mode))
--			mode |= S_ISGID;
--	} else
--		inode->i_gid = current_fsgid();
--	inode->i_mode = mode;
-+	inode_init_owner(inode, dir, mode);
- 	vfs_dq_init(inode);
- 	return inode;
- }
+Joel
+
 -- 
-1.6.6
+
+Life's Little Instruction Book #452
+
+	"Never compromise your integrity."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
