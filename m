@@ -1,117 +1,74 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Sun, 21 Feb 2010 16:29:36 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Journaling i_flags and
-	i_orphaned_slot when adding inode to orphan dir.
-Message-ID: <1266740977-8638-1-git-send-email-tristan.ye@oracle.com>
+Date: Sun, 21 Feb 2010 16:29:37 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Handle deletion of refcounted
+	oprhan_inode correctly.
+In-Reply-To: <1266740977-8638-1-git-send-email-tristan.ye@oracle.com>
+References: <1266740977-8638-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1266740977-8638-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Currently, some callers were missing to journal the dirty inode after
-adding it to orphan dir.
-
-Now we're going to journal such modifications within the ocfs2_orphan_add()
-itself, It's safe to do so, though some existing caller may duplicate this,
-and it makes the logic look more straightforward anyway.
+Current ocfs2 semantic for reflinking a file firstly create a
+new orphan_inode in orphan_dir, then remove it to target dir
+after refcounting operation done, these 2 steps makes logic
+straightfoward, and guarantee a crash during reflinking can
+be replayed(half-refcounted inode can be removed), while it
+brings us another issue cause these 2 steps is acquiring the
+orphan_dir lock respectively, the problem is, orphan_scan()
+may detect the half-refcounted inode in orphan_dir as its
+proper candidates to wipe off in a later time. actually it's
+not of course, we'd handle this correctly.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/namei.c |   32 +++++++++++++++++++++++++++-----
- 1 files changed, 27 insertions(+), 5 deletions(-)
+ fs/ocfs2/inode.c |   32 ++++++++++++++++++++++++--------
+ 1 files changed, 24 insertions(+), 8 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 50fb26a..e501adf 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -84,7 +84,7 @@ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
- static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 			    handle_t *handle,
- 			    struct inode *inode,
--			    struct ocfs2_dinode *fe,
-+			    struct buffer_head *fe_bh,
- 			    char *name,
- 			    struct ocfs2_dir_lookup_result *lookup,
- 			    struct inode *orphan_dir_inode);
-@@ -877,7 +877,7 @@ static int ocfs2_unlink(struct inode *dir,
- 	fe = (struct ocfs2_dinode *) fe_bh->b_data;
- 
- 	if (inode_is_unlinkable(inode)) {
--		status = ocfs2_orphan_add(osb, handle, inode, fe, orphan_name,
-+		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
- 					  &orphan_insert, orphan_dir);
- 		if (status < 0) {
- 			mlog_errno(status);
-@@ -1295,7 +1295,7 @@ static int ocfs2_rename(struct inode *old_dir,
- 		if (S_ISDIR(new_inode->i_mode) ||
- 		    (ocfs2_read_links_count(newfe) == 1)) {
- 			status = ocfs2_orphan_add(osb, handle, new_inode,
--						  newfe, orphan_name,
-+						  newfe_bh, orphan_name,
- 						  &orphan_insert, orphan_dir);
- 			if (status < 0) {
- 				mlog_errno(status);
-@@ -1909,7 +1909,7 @@ leave:
- static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 			    handle_t *handle,
- 			    struct inode *inode,
--			    struct ocfs2_dinode *fe,
-+			    struct buffer_head *fe_bh,
- 			    char *name,
- 			    struct ocfs2_dir_lookup_result *lookup,
- 			    struct inode *orphan_dir_inode)
-@@ -1917,6 +1917,7 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 	struct buffer_head *orphan_dir_bh = NULL;
- 	int status = 0;
- 	struct ocfs2_dinode *orphan_fe;
-+	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) fe_bh->b_data;
- 
- 	mlog_entry("(inode->i_ino = %lu)\n", inode->i_ino);
- 
-@@ -1957,6 +1958,21 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 		goto leave;
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 88459bd..61fb546 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -892,14 +892,30 @@ static int ocfs2_query_inode_wipe(struct inode *inode,
+ 	di = (struct ocfs2_dinode *) di_bh->b_data;
+ 	if (!(di->i_flags & cpu_to_le32(OCFS2_ORPHANED_FL))) {
+ 		/* for lack of a better error? */
+-		status = -EEXIST;
+-		mlog(ML_ERROR,
+-		     "Inode %llu (on-disk %llu) not orphaned! "
+-		     "Disk flags  0x%x, inode flags 0x%x\n",
+-		     (unsigned long long)oi->ip_blkno,
+-		     (unsigned long long)le64_to_cpu(di->i_blkno),
+-		     le32_to_cpu(di->i_flags), oi->ip_flags);
+-		goto bail;
++		if (!(di->i_dyn_features &
++		      cpu_to_le16(OCFS2_HAS_REFCOUNT_FL))) {
++			status = -EEXIST;
++			mlog(ML_ERROR,
++			     "Inode %llu (on-disk %llu) not orphaned! "
++			     "Disk flags  0x%x, inode flags 0x%x\n",
++			     (unsigned long long)oi->ip_blkno,
++			     (unsigned long long)le64_to_cpu(di->i_blkno),
++			     le32_to_cpu(di->i_flags), oi->ip_flags);
++			goto bail;
++		} else {
++			/*
++			 * It did happen to us, though it's a rare case:
++			 * orphan_scan() detects the half-refcounted inode
++			 * in orphan_dir, and delete_inode() attempts to
++			 * wipe it after reflink operation done later. now
++			 * we're not allowed to delete such a valid inode,
++			 * instead, just bail out.
++			 */
++			mlog(0, "Skipping delete of %llu because it's a "
++			     "reflinked inode\n",
++			     (unsigned long long)oi->ip_blkno);
++			goto bail;
++		}
  	}
  
-+	/* 
-+	 * We're going to journal the change of i_flags and i_orphaned_slot.
-+	 * It's safe anyway, though some callers may duplicate the journaling.
-+	 * Journaling within the func just make the logic look more
-+	 * straightforward.
-+	 */
-+	status = ocfs2_journal_access_di(handle,
-+					 INODE_CACHE(inode),
-+					 fe_bh,
-+					 OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto leave;
-+	}
-+
- 	le32_add_cpu(&fe->i_flags, OCFS2_ORPHANED_FL);
- 
- 	/* Record which orphan dir our inode now resides
-@@ -1964,6 +1980,12 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 	 * dir to lock. */
- 	fe->i_orphaned_slot = cpu_to_le16(osb->slot_num);
- 
-+	status = ocfs2_journal_dirty(handle, fe_bh);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto leave;
-+	}
-+
- 	mlog(0, "Inode %llu orphaned in slot %d\n",
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno, osb->slot_num);
- 
-@@ -2125,7 +2147,7 @@ int ocfs2_create_inode_in_orphan(struct inode *dir,
- 	}
- 
- 	di = (struct ocfs2_dinode *)new_di_bh->b_data;
--	status = ocfs2_orphan_add(osb, handle, inode, di, orphan_name,
-+	status = ocfs2_orphan_add(osb, handle, inode, new_di_bh, orphan_name,
- 				  &orphan_insert, orphan_dir);
- 	if (status < 0) {
- 		mlog_errno(status);
+ 	/* has someone already deleted us?! baaad... */
 -- 
 1.5.5
