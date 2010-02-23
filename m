@@ -1,17 +1,20 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Tue, 23 Feb 2010 09:34:52 +0800
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 22 Feb 2010 16:51:46 -0800 (PST)
 Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Handle deletion of refcounted
  oprhan_inode correctly.
 In-Reply-To: <4B8321F9.6000203@oracle.com>
-References: <1266740977-8638-1-git-send-email-tristan.ye@oracle.com>	<1266740977-8638-2-git-send-email-tristan.ye@oracle.com>	<4B80F4F4.8020604@oracle.com>
-	<4B80F5A6.3070600@oracle.com> <4B80F71D.2030009@oracle.com>
-	<4B8321F9.6000203@oracle.com>
-Message-ID: <4B8330BC.1010805@oracle.com>
+References: <1266740977-8638-1-git-send-email-tristan.ye@oracle.com>
+	<1266740977-8638-2-git-send-email-tristan.ye@oracle.com>
+	<4B80F4F4.8020604@oracle.com> <4B80F5A6.3070600@oracle.com>
+	<4B80F71D.2030009@oracle.com> <4B8321F9.6000203@oracle.com>
+Message-ID: <4B8326A2.6010407@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Hi Sunil,
 
 Sunil Mushran wrote:
 > Tao Ma wrote:
@@ -78,52 +81,26 @@ Sunil Mushran wrote:
 >>>>> +                 (unsigned long long)oi->ip_blkno);
 >>>>> +            goto bail;
 >>>>> +        }
->>>> We set i_dyn_features when when attach the tree to the file. This 
->>>> is very early. So I am curious why i_dyn_features can tell you 
->>>> whether this isn't a crashed reflink inode? Oh, you mean you will 
->>>> never delete a reflinked inode in orphan scan?
+>>>> We set i_dyn_features when when attach the tree to the file. This is 
+>>>> very early. So I am curious why i_dyn_features can tell you whether 
+>>>> this isn't a crashed reflink inode? Oh, you mean you will never 
+>>>> delete a reflinked inode in orphan scan?
 >>> Tao,
 >>>
 >>> Not exactly, if it's reflink operation was crashed somehow, it's 
->>> OCFS2_ORPHANED_FL must be set:), and if it was the case, we then 
->>> will never skip the deletion which is really needed.
+>>> OCFS2_ORPHANED_FL must be set:), and if it was the case, we then will 
+>>> never skip the deletion which is really needed.
 >> oh, so this is really a hack for reflink. I am not sure whether it is 
 >> appropriate. So let Joel decide whether it is OK or not. ;)
->
+> 
 > I'm confused. How will the OCFS2_ORPHANED_FL be set for reflinked inodes
 > if the node crashed?
+when we create the reflinked inodes in orphan dir at the very beginning, 
+we put OCFS2_ORPHANED_FL in i_flags. And when all the work is done, this 
+flag is removed together with its moving to the dest directory. So if 
+the node crash between these 2 steps, the reflinked file in the orphan 
+dir can be replayed and deleted successfully.
 
-Sunil,
-
-Reflink separates all of its operation into 3 parts.
-
-1. Create target inode in orphan_dir.
-
-2. Do refcounting thing.
-
-3. Move target inode from orphan_dir into desired place.
-
-Once reflink operation crashed at step 1, no OCFS2_ORPHANED_FL set, and 
-also there is no entry in orphan_dir, and if nodes crashed at step2,3, 
-the reflinked inode still in orphan_dir with OCFS2_ORPHANED_FL set, so 
-it can be used for replaying when doing recovery.
-
-The reason why I used OCFS2_ORPHANED_FL for checking is that,
-
-As you know, our orphan_scan thread scans the orphan_dir at a fixed 
-interval, and put the oprhan inodes into a queue, which will be 
-iput()'ed in a later time. As a result, our half-refcounted inodes in 
-orphan_dir will be taken into account in that case, and 
-ocfs2_delete_inode() may be invoked as we set i_nlink=0 in reflink 
-codes, that's the root cause of bz1215 I guess. so OCFS2_ORPHANED_FL can 
-be used for determining if we're deleting the refcounted inode(in crash 
-case) at the recovery stage or we're trying to delete a alive 
-half-refcounted inode.
-
-
-Tao,
-
-How do you think about this?
-
-
-Tristan.
+Regards,
+Tao
+> 
