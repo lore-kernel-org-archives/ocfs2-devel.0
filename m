@@ -1,244 +1,398 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Wed, 24 Feb 2010 15:51:11 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Move ocfs2 ioctl definitions from
-	ocfs2_fs.h to new added ocfs2_ioctl.h.
-Message-ID: <1266997872-17091-1-git-send-email-tiger.yang@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 25 Feb 2010 13:58:09 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2-1.4: add extent block stealing
+In-Reply-To: <12666493991177-git-send-email-tiger.yang@oracle.com>
+References: <12666493991177-git-send-email-tiger.yang@oracle.com>
+Message-ID: <4B861171.9030005@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Tristan Ye <tristan.ye@oracle.com>
+ack.
 
-Currently we were adding ioctl cmds/structures for ocfs2 into ocfs2_fs.h
-which was used for define ocfs2 on-disk layout. That sounds a little bit
-confusing, and it may be quickly polluted espcially when growing the
-ocfs2_info_request ioctls afterwards(it will grow i bet).
-
-As a result, such OCFS2 IOCs do need to be placed somewhere other than
-ocfs2_fs.h, a separated ocfs2_ioctl.h will be added to store such ioctl
-structures and definitions which could also be used from userspace to
-invoke ioctls call.
-
-Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
----
- fs/ocfs2/file.h        |    2 +
- fs/ocfs2/ioctl.c       |    1 +
- fs/ocfs2/ioctl.h       |    6 ++--
- fs/ocfs2/ocfs2_fs.h    |   57 ----------------------------------
- fs/ocfs2/ocfs2_ioctl.h |   79 ++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/resize.c      |    1 +
- 6 files changed, 86 insertions(+), 60 deletions(-)
- create mode 100644 fs/ocfs2/ocfs2_ioctl.h
-
-diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
-index d66cf4f..eb891db 100644
---- a/fs/ocfs2/file.h
-+++ b/fs/ocfs2/file.h
-@@ -26,6 +26,8 @@
- #ifndef OCFS2_FILE_H
- #define OCFS2_FILE_H
- 
-+#include "ocfs2_ioctl.h"
-+
- extern const struct file_operations ocfs2_fops;
- extern const struct file_operations ocfs2_dops;
- extern const struct file_operations ocfs2_fops_no_plocks;
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 7d9d9c1..d88e5f0 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -21,6 +21,7 @@
- 
- #include "ocfs2_fs.h"
- #include "ioctl.h"
-+#include "ocfs2_ioctl.h"
- #include "resize.h"
- #include "refcounttree.h"
- 
-diff --git a/fs/ocfs2/ioctl.h b/fs/ocfs2/ioctl.h
-index cf9a5ee..0cd5323 100644
---- a/fs/ocfs2/ioctl.h
-+++ b/fs/ocfs2/ioctl.h
-@@ -7,10 +7,10 @@
-  *
-  */
- 
--#ifndef OCFS2_IOCTL_H
--#define OCFS2_IOCTL_H
-+#ifndef OCFS2_IOCTL_PROTO_H
-+#define OCFS2_IOCTL_PROTO_H
- 
- long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
- long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg);
- 
--#endif /* OCFS2_IOCTL_H */
-+#endif /* OCFS2_IOCTL_PROTO_H */
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 7638a38..bb37218 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -254,63 +254,6 @@
- 						 * refcount tree */
- 
- /*
-- * ioctl commands
-- */
--#define OCFS2_IOC_GETFLAGS	_IOR('f', 1, long)
--#define OCFS2_IOC_SETFLAGS	_IOW('f', 2, long)
--#define OCFS2_IOC32_GETFLAGS	_IOR('f', 1, int)
--#define OCFS2_IOC32_SETFLAGS	_IOW('f', 2, int)
--
--/*
-- * Space reservation / allocation / free ioctls and argument structure
-- * are designed to be compatible with XFS.
-- *
-- * ALLOCSP* and FREESP* are not and will never be supported, but are
-- * included here for completeness.
-- */
--struct ocfs2_space_resv {
--	__s16		l_type;
--	__s16		l_whence;
--	__s64		l_start;
--	__s64		l_len;		/* len == 0 means until end of file */
--	__s32		l_sysid;
--	__u32		l_pid;
--	__s32		l_pad[4];	/* reserve area			    */
--};
--
--#define OCFS2_IOC_ALLOCSP		_IOW ('X', 10, struct ocfs2_space_resv)
--#define OCFS2_IOC_FREESP		_IOW ('X', 11, struct ocfs2_space_resv)
--#define OCFS2_IOC_RESVSP		_IOW ('X', 40, struct ocfs2_space_resv)
--#define OCFS2_IOC_UNRESVSP	_IOW ('X', 41, struct ocfs2_space_resv)
--#define OCFS2_IOC_ALLOCSP64	_IOW ('X', 36, struct ocfs2_space_resv)
--#define OCFS2_IOC_FREESP64	_IOW ('X', 37, struct ocfs2_space_resv)
--#define OCFS2_IOC_RESVSP64	_IOW ('X', 42, struct ocfs2_space_resv)
--#define OCFS2_IOC_UNRESVSP64	_IOW ('X', 43, struct ocfs2_space_resv)
--
--/* Used to pass group descriptor data when online resize is done */
--struct ocfs2_new_group_input {
--	__u64 group;		/* Group descriptor's blkno. */
--	__u32 clusters;		/* Total number of clusters in this group */
--	__u32 frees;		/* Total free clusters in this group */
--	__u16 chain;		/* Chain for this group */
--	__u16 reserved1;
--	__u32 reserved2;
--};
--
--#define OCFS2_IOC_GROUP_EXTEND	_IOW('o', 1, int)
--#define OCFS2_IOC_GROUP_ADD	_IOW('o', 2,struct ocfs2_new_group_input)
--#define OCFS2_IOC_GROUP_ADD64	_IOW('o', 3,struct ocfs2_new_group_input)
--
--/* Used to pass 2 file names to reflink. */
--struct reflink_arguments {
--	__u64 old_path;
--	__u64 new_path;
--	__u64 preserve;
--};
--#define OCFS2_IOC_REFLINK	_IOW('o', 4, struct reflink_arguments)
--
--
--/*
-  * Journal Flags (ocfs2_dinode.id1.journal1.i_flags)
-  */
- #define OCFS2_JOURNAL_DIRTY_FL	(0x00000001)	/* Journal needs recovery */
-diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
-new file mode 100644
-index 0000000..2d3420a
---- /dev/null
-+++ b/fs/ocfs2/ocfs2_ioctl.h
-@@ -0,0 +1,79 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * ocfs2_ioctl.h
-+ *
-+ * Defines OCFS2 ioctls.
-+ *
-+ * Copyright (C) 2010 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License, version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ */
-+
-+#ifndef OCFS2_IOCTL_H
-+#define OCFS2_IOCTL_H
-+
-+/*
-+ * ioctl commands
-+ */
-+#define OCFS2_IOC_GETFLAGS	_IOR('f', 1, long)
-+#define OCFS2_IOC_SETFLAGS	_IOW('f', 2, long)
-+#define OCFS2_IOC32_GETFLAGS	_IOR('f', 1, int)
-+#define OCFS2_IOC32_SETFLAGS	_IOW('f', 2, int)
-+
-+/*
-+ * Space reservation / allocation / free ioctls and argument structure
-+ * are designed to be compatible with XFS.
-+ *
-+ * ALLOCSP* and FREESP* are not and will never be supported, but are
-+ * included here for completeness.
-+ */
-+struct ocfs2_space_resv {
-+	__s16		l_type;
-+	__s16		l_whence;
-+	__s64		l_start;
-+	__s64		l_len;		/* len == 0 means until end of file */
-+	__s32		l_sysid;
-+	__u32		l_pid;
-+	__s32		l_pad[4];	/* reserve area			    */
-+};
-+
-+#define OCFS2_IOC_ALLOCSP		_IOW ('X', 10, struct ocfs2_space_resv)
-+#define OCFS2_IOC_FREESP		_IOW ('X', 11, struct ocfs2_space_resv)
-+#define OCFS2_IOC_RESVSP		_IOW ('X', 40, struct ocfs2_space_resv)
-+#define OCFS2_IOC_UNRESVSP	_IOW ('X', 41, struct ocfs2_space_resv)
-+#define OCFS2_IOC_ALLOCSP64	_IOW ('X', 36, struct ocfs2_space_resv)
-+#define OCFS2_IOC_FREESP64	_IOW ('X', 37, struct ocfs2_space_resv)
-+#define OCFS2_IOC_RESVSP64	_IOW ('X', 42, struct ocfs2_space_resv)
-+#define OCFS2_IOC_UNRESVSP64	_IOW ('X', 43, struct ocfs2_space_resv)
-+
-+/* Used to pass group descriptor data when online resize is done */
-+struct ocfs2_new_group_input {
-+	__u64 group;		/* Group descriptor's blkno. */
-+	__u32 clusters;		/* Total number of clusters in this group */
-+	__u32 frees;		/* Total free clusters in this group */
-+	__u16 chain;		/* Chain for this group */
-+	__u16 reserved1;
-+	__u32 reserved2;
-+};
-+
-+#define OCFS2_IOC_GROUP_EXTEND	_IOW('o', 1, int)
-+#define OCFS2_IOC_GROUP_ADD	_IOW('o', 2,struct ocfs2_new_group_input)
-+#define OCFS2_IOC_GROUP_ADD64	_IOW('o', 3,struct ocfs2_new_group_input)
-+
-+/* Used to pass 2 file names to reflink. */
-+struct reflink_arguments {
-+	__u64 old_path;
-+	__u64 new_path;
-+	__u64 preserve;
-+};
-+#define OCFS2_IOC_REFLINK	_IOW('o', 4, struct reflink_arguments)
-+
-+#endif /* OCFS2_IOCTL_H */
-diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
-index 3c3d673..f2b3c4b 100644
---- a/fs/ocfs2/resize.c
-+++ b/fs/ocfs2/resize.c
-@@ -31,6 +31,7 @@
- #include <cluster/masklog.h>
- 
- #include "ocfs2.h"
-+#include "ocfs2_ioctl.h"
- 
- #include "alloc.h"
- #include "dlmglue.h"
--- 
-1.5.4.4
+Tiger Yang wrote:
+> This patch add extent block (metadata) stealing mechanism for
+> extent allocation. This mechanism is same as the inode stealing.
+> if no room in slot specific extent_alloc, we will try to
+> allocate extent block from the next slot.
+> 
+> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+> ---
+>  fs/ocfs2/alloc.c      |    5 +-
+>  fs/ocfs2/localalloc.c |    2 +-
+>  fs/ocfs2/ocfs2.h      |   29 +--------
+>  fs/ocfs2/suballoc.c   |  171 +++++++++++++++++++++++++++++++++++++------------
+>  fs/ocfs2/suballoc.h   |    1 +
+>  fs/ocfs2/super.c      |   10 ++-
+>  6 files changed, 145 insertions(+), 73 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 1833027..15b3672 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -467,7 +467,8 @@ static int ocfs2_create_new_meta_bhs(struct ocfs2_super *osb,
+>  			strcpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
+>  			eb->h_blkno = cpu_to_le64(first_blkno);
+>  			eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
+> -			eb->h_suballoc_slot = cpu_to_le16(osb->slot_num);
+> +			eb->h_suballoc_slot =
+> +				cpu_to_le16(meta_ac->ac_alloc_slot);
+>  			eb->h_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+>  			eb->h_list.l_count =
+>  				cpu_to_le16(ocfs2_extent_recs_per_eb(osb->sb));
+> @@ -5249,7 +5250,7 @@ static void ocfs2_truncate_log_worker(kapi_work_struct_t *work)
+>  	if (status < 0)
+>  		mlog_errno(status);
+>  	else
+> -		ocfs2_init_inode_steal_slot(osb);
+> +		ocfs2_init_steal_slots(osb);
+>  
+>  	mlog_exit(status);
+>  }
+> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+> index d4ff66a..fe36983 100644
+> --- a/fs/ocfs2/localalloc.c
+> +++ b/fs/ocfs2/localalloc.c
+> @@ -474,7 +474,7 @@ out_mutex:
+>  
+>  out:
+>  	if (!status)
+> -		ocfs2_init_inode_steal_slot(osb);
+> +		ocfs2_init_steal_slots(osb);
+>  	mlog_exit(status);
+>  	return status;
+>  }
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index a6d2df9..2d44a29 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -251,7 +251,9 @@ struct ocfs2_super
+>  	u32 s_next_generation;
+>  	unsigned long osb_flags;
+>  	s16 s_inode_steal_slot;
+> +	s16 s_meta_steal_slot;
+>  	atomic_t s_num_inodes_stolen;
+> +	atomic_t s_num_meta_stolen;
+>  
+>  	unsigned long s_mount_opt;
+>  	unsigned int s_atime_quantum;
+> @@ -588,33 +590,6 @@ static inline unsigned int ocfs2_megabytes_to_clusters(struct super_block *sb,
+>  	return megs << (20 - OCFS2_SB(sb)->s_clustersize_bits);
+>  }
+>  
+> -static inline void ocfs2_init_inode_steal_slot(struct ocfs2_super *osb)
+> -{
+> -	spin_lock(&osb->osb_lock);
+> -	osb->s_inode_steal_slot = OCFS2_INVALID_SLOT;
+> -	spin_unlock(&osb->osb_lock);
+> -	atomic_set(&osb->s_num_inodes_stolen, 0);
+> -}
+> -
+> -static inline void ocfs2_set_inode_steal_slot(struct ocfs2_super *osb,
+> -					      s16 slot)
+> -{
+> -	spin_lock(&osb->osb_lock);
+> -	osb->s_inode_steal_slot = slot;
+> -	spin_unlock(&osb->osb_lock);
+> -}
+> -
+> -static inline s16 ocfs2_get_inode_steal_slot(struct ocfs2_super *osb)
+> -{
+> -	s16 slot;
+> -
+> -	spin_lock(&osb->osb_lock);
+> -	slot = osb->s_inode_steal_slot;
+> -	spin_unlock(&osb->osb_lock);
+> -
+> -	return slot;
+> -}
+> -
+>  #define ocfs2_set_bit ext2_set_bit
+>  #define ocfs2_clear_bit ext2_clear_bit
+>  #define ocfs2_test_bit ext2_test_bit
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index d4858ee..48f0782 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -50,7 +50,7 @@
+>  #define ALLOC_NEW_GROUP			0x1
+>  #define ALLOC_GROUPS_FROM_GLOBAL	0x2
+>  
+> -#define OCFS2_MAX_INODES_TO_STEAL	1024
+> +#define OCFS2_MAX_TO_STEAL		1024
+>  
+>  static inline void ocfs2_debug_bg(struct ocfs2_group_desc *bg);
+>  static inline void ocfs2_debug_suballoc_inode(struct ocfs2_dinode *fe);
+> @@ -510,12 +510,113 @@ bail:
+>  	return status;
+>  }
+>  
+> +static void ocfs2_init_inode_steal_slot(struct ocfs2_super *osb)
+> +{
+> +	spin_lock(&osb->osb_lock);
+> +	osb->s_inode_steal_slot = OCFS2_INVALID_SLOT;
+> +	spin_unlock(&osb->osb_lock);
+> +	atomic_set(&osb->s_num_inodes_stolen, 0);
+> +}
+> +
+> +static void ocfs2_init_meta_steal_slot(struct ocfs2_super *osb)
+> +{
+> +	spin_lock(&osb->osb_lock);
+> +	osb->s_meta_steal_slot = OCFS2_INVALID_SLOT;
+> +	spin_unlock(&osb->osb_lock);
+> +	atomic_set(&osb->s_num_meta_stolen, 0);
+> +}
+> +
+> +void ocfs2_init_steal_slots(struct ocfs2_super *osb)
+> +{
+> +	ocfs2_init_inode_steal_slot(osb);
+> +	ocfs2_init_meta_steal_slot(osb);
+> +}
+> +
+> +static void __ocfs2_set_steal_slot(struct ocfs2_super *osb, int slot, int type)
+> +{
+> +	spin_lock(&osb->osb_lock);
+> +	if (type == INODE_ALLOC_SYSTEM_INODE)
+> +		osb->s_inode_steal_slot = slot;
+> +	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
+> +		osb->s_meta_steal_slot = slot;
+> +	spin_unlock(&osb->osb_lock);
+> +}
+> +
+> +static int __ocfs2_get_steal_slot(struct ocfs2_super *osb, int type)
+> +{
+> +	int slot = OCFS2_INVALID_SLOT;
+> +
+> +	spin_lock(&osb->osb_lock);
+> +	if (type == INODE_ALLOC_SYSTEM_INODE)
+> +		slot = osb->s_inode_steal_slot;
+> +	else if (type == EXTENT_ALLOC_SYSTEM_INODE)
+> +		slot = osb->s_meta_steal_slot;
+> +	spin_unlock(&osb->osb_lock);
+> +
+> +	return slot;
+> +}
+> +
+> +static int ocfs2_get_inode_steal_slot(struct ocfs2_super *osb)
+> +{
+> +	return __ocfs2_get_steal_slot(osb, INODE_ALLOC_SYSTEM_INODE);
+> +}
+> +
+> +static int ocfs2_get_meta_steal_slot(struct ocfs2_super *osb)
+> +{
+> +	return __ocfs2_get_steal_slot(osb, EXTENT_ALLOC_SYSTEM_INODE);
+> +}
+> +
+> +static int ocfs2_steal_resource(struct ocfs2_super *osb,
+> +				struct ocfs2_alloc_context *ac,
+> +				int type)
+> +{
+> +	int i, status = -ENOSPC;
+> +	int slot = __ocfs2_get_steal_slot(osb, type);
+> +
+> +	/* Start to steal resource from the first slot after ours. */
+> +	if (slot == OCFS2_INVALID_SLOT)
+> +		slot = osb->slot_num + 1;
+> +
+> +	for (i = 0; i < osb->max_slots; i++, slot++) {
+> +		if (slot == osb->max_slots)
+> +			slot = 0;
+> +
+> +		if (slot == osb->slot_num)
+> +			continue;
+> +
+> +		status = ocfs2_reserve_suballoc_bits(osb, ac,
+> +						     type,
+> +						     (u32)slot, NULL,
+> +						     NOT_ALLOC_NEW_GROUP);
+> +		if (status >= 0) {
+> +			__ocfs2_set_steal_slot(osb, slot, type);
+> +			break;
+> +		}
+> +
+> +		ocfs2_free_ac_resource(ac);
+> +	}
+> +
+> +	return status;
+> +}
+> +
+> +static int ocfs2_steal_inode(struct ocfs2_super *osb,
+> +			     struct ocfs2_alloc_context *ac)
+> +{
+> +	return ocfs2_steal_resource(osb, ac, INODE_ALLOC_SYSTEM_INODE);
+> +}
+> +
+> +static int ocfs2_steal_meta(struct ocfs2_super *osb,
+> +			    struct ocfs2_alloc_context *ac)
+> +{
+> +	return ocfs2_steal_resource(osb, ac, EXTENT_ALLOC_SYSTEM_INODE);
+> +}
+> +
+>  int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
+>  			       struct ocfs2_dinode *fe,
+>  			       struct ocfs2_alloc_context **ac)
+>  {
+>  	int status;
+> -	u32 slot;
+> +	int slot = ocfs2_get_meta_steal_slot(osb);
+>  
+>  	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+>  	if (!(*ac)) {
+> @@ -526,12 +627,34 @@ int ocfs2_reserve_new_metadata(struct ocfs2_super *osb,
+>  
+>  	(*ac)->ac_bits_wanted = ocfs2_extend_meta_needed(fe);
+>  	(*ac)->ac_which = OCFS2_AC_USE_META;
+> -	slot = osb->slot_num;
+>  	(*ac)->ac_group_search = ocfs2_block_group_search;
+>  
+> +	if (slot != OCFS2_INVALID_SLOT &&
+> +		atomic_read(&osb->s_num_meta_stolen) < OCFS2_MAX_TO_STEAL)
+> +		goto extent_steal;
+> +
+> +	atomic_set(&osb->s_num_meta_stolen, 0);
+>  	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
+>  					     EXTENT_ALLOC_SYSTEM_INODE,
+> -					     slot, NULL, ALLOC_NEW_GROUP);
+> +					     (u32)osb->slot_num, NULL,
+> +					     ALLOC_NEW_GROUP);
+> +
+> +
+> +	if (status >= 0) {
+> +		status = 0;
+> +		if (slot != OCFS2_INVALID_SLOT)
+> +			ocfs2_init_meta_steal_slot(osb);
+> +		goto bail;
+> +	} else if (status < 0 && status != -ENOSPC) {
+> +		mlog_errno(status);
+> +		goto bail;
+> +	}
+> +
+> +	ocfs2_free_ac_resource(*ac);
+> +
+> +extent_steal:
+> +	status = ocfs2_steal_meta(osb, *ac);
+> +	atomic_inc(&osb->s_num_meta_stolen);
+>  	if (status < 0) {
+>  		if (status != -ENOSPC)
+>  			mlog_errno(status);
+> @@ -549,43 +672,11 @@ bail:
+>  	return status;
+>  }
+>  
+> -static int ocfs2_steal_inode_from_other_nodes(struct ocfs2_super *osb,
+> -					      struct ocfs2_alloc_context *ac)
+> -{
+> -	int i, status = -ENOSPC;
+> -	s16 slot = ocfs2_get_inode_steal_slot(osb);
+> -
+> -	/* Start to steal inodes from the first slot after ours. */
+> -	if (slot == OCFS2_INVALID_SLOT)
+> -		slot = osb->slot_num + 1;
+> -
+> -	for (i = 0; i < osb->max_slots; i++, slot++) {
+> -		if (slot == osb->max_slots)
+> -			slot = 0;
+> -
+> -		if (slot == osb->slot_num)
+> -			continue;
+> -
+> -		status = ocfs2_reserve_suballoc_bits(osb, ac,
+> -						     INODE_ALLOC_SYSTEM_INODE,
+> -						     slot, NULL,
+> -						     NOT_ALLOC_NEW_GROUP);
+> -		if (status >= 0) {
+> -			ocfs2_set_inode_steal_slot(osb, slot);
+> -			break;
+> -		}
+> -
+> -		ocfs2_free_ac_resource(ac);
+> -	}
+> -
+> -	return status;
+> -}
+> -
+>  int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+>  			    struct ocfs2_alloc_context **ac)
+>  {
+>  	int status;
+> -	s16 slot = ocfs2_get_inode_steal_slot(osb);
+> +	int slot = ocfs2_get_inode_steal_slot(osb);
+>  	u64 alloc_group;
+>  
+>  	*ac = kzalloc(sizeof(struct ocfs2_alloc_context), GFP_KERNEL);
+> @@ -610,14 +701,14 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+>  	 * need to check our slots to see whether there is some space for us.
+>  	 */
+>  	if (slot != OCFS2_INVALID_SLOT &&
+> -	    atomic_read(&osb->s_num_inodes_stolen) < OCFS2_MAX_INODES_TO_STEAL)
+> +	    atomic_read(&osb->s_num_inodes_stolen) < OCFS2_MAX_TO_STEAL)
+>  		goto inode_steal;
+>  
+>  	atomic_set(&osb->s_num_inodes_stolen, 0);
+>  	alloc_group = osb->osb_inode_alloc_group;
+>  	status = ocfs2_reserve_suballoc_bits(osb, *ac,
+>  					     INODE_ALLOC_SYSTEM_INODE,
+> -					     osb->slot_num,
+> +					     (u32)osb->slot_num,
+>  					     &alloc_group,
+>  					     ALLOC_NEW_GROUP |
+>  					     ALLOC_GROUPS_FROM_GLOBAL);
+> @@ -645,7 +736,7 @@ int ocfs2_reserve_new_inode(struct ocfs2_super *osb,
+>  	ocfs2_free_ac_resource(*ac);
+>  
+>  inode_steal:
+> -	status = ocfs2_steal_inode_from_other_nodes(osb, *ac);
+> +	status = ocfs2_steal_inode(osb, *ac);
+>  	atomic_inc(&osb->s_num_inodes_stolen);
+>  	if (status < 0) {
+>  		if (status != -ENOSPC)
+> diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+> index 16f9c9c..35e2d69 100644
+> --- a/fs/ocfs2/suballoc.h
+> +++ b/fs/ocfs2/suballoc.h
+> @@ -53,6 +53,7 @@ struct ocfs2_alloc_context {
+>  	u64    ac_last_group;
+>  };
+>  
+> +void ocfs2_init_steal_slots(struct ocfs2_super *osb);
+>  void ocfs2_free_alloc_context(struct ocfs2_alloc_context *ac);
+>  static inline int ocfs2_alloc_context_bits_left(struct ocfs2_alloc_context *ac)
+>  {
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index b870a0f..4499b93 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -65,6 +65,7 @@
+>  #include "sysfile.h"
+>  #include "uptodate.h"
+>  #include "ver.h"
+> +#include "suballoc.h"
+>  
+>  #include "buffer_head_io.h"
+>  
+> @@ -276,9 +277,12 @@ static int ocfs2_osb_dump(struct ocfs2_super *osb, char *buf, int len)
+>  
+>  	spin_lock(&osb->osb_lock);
+>  	out += snprintf(buf + out, len - out,
+> -			"%10s => Slot: %d  NumStolen: %d\n", "Steal",
+> +			"%10s => InodeSlot: %d  StolenInodes: %d, "
+> +			"MetaSlot: %d  StolenMeta: %d\n", "Steal",
+>  			osb->s_inode_steal_slot,
+> -			atomic_read(&osb->s_num_inodes_stolen));
+> +			atomic_read(&osb->s_num_inodes_stolen),
+> +			osb->s_meta_steal_slot,
+> +			atomic_read(&osb->s_num_meta_stolen));
+>  	spin_unlock(&osb->osb_lock);
+>  
+>  	out += snprintf(buf + out, len - out, "OrphanScan => ");
+> @@ -1634,7 +1638,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>  	INIT_LIST_HEAD(&osb->blocked_lock_list);
+>  	osb->blocked_lock_count = 0;
+>  	spin_lock_init(&osb->osb_lock);
+> -	ocfs2_init_inode_steal_slot(osb);
+> +	ocfs2_init_steal_slots(osb);
+>  
+>  	atomic_set(&osb->alloc_stats.moves, 0);
+>  	atomic_set(&osb->alloc_stats.local_data, 0);
