@@ -1,41 +1,35 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 25 Feb 2010 22:00:59 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: send SIGXFSZ if new filesize exceeds
-	limit
-Message-ID: <201002251402.o1NFaue3024549@rcsinet13.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 25 Feb 2010 08:11:36 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: send SIGXFSZ if new filesize
+ exceeds limit
+In-Reply-To: <201002251402.o1NFaue3024549@rcsinet13.oracle.com>
+References: <201002251402.o1NFaue3024549@rcsinet13.oracle.com>
+Message-ID: <20100225161136.GB26801@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch makes ocfs2 send SIGXFSZ if new file size exceeds limit.
-No suprise that processes get SIGXFSZ on one node(in the cluster) while they
-don't on another if file size limits are different on the two nodes.
+On Thu, Feb 25, 2010 at 10:00:59PM +0800, Wengang Wang wrote:
+> This patch makes ocfs2 send SIGXFSZ if new file size exceeds limit.
+> No suprise that processes get SIGXFSZ on one node(in the cluster) while they
+> don't on another if file size limits are different on the two nodes.
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
----
- fs/ocfs2/file.c |    8 ++++++++
- 1 files changed, 8 insertions(+), 0 deletions(-)
+	Why aren't you using inode_newsize_ok()?
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 558ce03..13d7c68 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -993,6 +993,14 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 	}
- 
- 	if (size_change && attr->ia_size != i_size_read(inode)) {
-+		unsigned long limit;
-+
-+		limit = current->signal->rlim[RLIMIT_FSIZE].rlim_cur;
-+		if (limit != RLIM_INFINITY && attr->ia_size > limit) {
-+			status = -EFBIG;
-+			send_sig(SIGXFSZ, current, 0);
-+			goto bail_unlock;
-+		}
- 		if (attr->ia_size > sb->s_maxbytes) {
- 			status = -EFBIG;
- 			goto bail_unlock;
+Joel
+
 -- 
-1.6.6
+
+"You must remember this:
+ A kiss is just a kiss,
+ A sigh is just a sigh.
+ The fundamental rules apply
+ As time goes by."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
