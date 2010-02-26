@@ -1,27 +1,34 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 26 Feb 2010 14:49:16 -0800
-Subject: [Ocfs2-devel] Two dlmglue tracing patches
-In-Reply-To: <1267140451-21243-1-git-send-email-sunil.mushran@oracle.com>
-References: <1267140451-21243-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20100226224916.GA23730@mail.oracle.com>
+Date: Fri, 26 Feb 2010 14:50:09 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Only bug out in direct io write
+ for reflinked extent.
+In-Reply-To: <1267152892-15727-1-git-send-email-tao.ma@oracle.com>
+References: <1267152892-15727-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100226225009.GB23730@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Feb 25, 2010 at 03:27:29PM -0800, Sunil Mushran wrote:
-> So I've made a new masklog for ast/bast tracing. This was found to be
-> very useful when debugging issues with fs/dlm.
+On Fri, Feb 26, 2010 at 10:54:52AM +0800, Tao Ma wrote:
+> In ocfs2_direct_IO_get_blocks, we only need to bug out
+> in case of we are going to write a recounted extent rec.
+> 
+> What a silly bug introduced by me!
+> 
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-	Please rebase these on merge-window.  They don't apply cleanly.
+This patch is now in the merge-window branch of ocfs2.git
 
 Joel
 
 -- 
 
-"Sometimes one pays most for the things one gets for nothing."
-        - Albert Einstein
+ One look at the From:
+ understanding has blossomed
+ .procmailrc grows
+	- Alexander Viro
 
 Joel Becker
 Principal Software Developer
