@@ -1,97 +1,37 @@
-From: Jie Liu <jeff.liu@oracle.com>
-Date: Fri, 26 Feb 2010 23:28:27 +0800
-Subject: [Ocfs2-devel] [PATCH 2/3] du-enhancement: add fiemap header file v2
-In-Reply-To: <1267198108-7459-1-git-send-email-jeff.liu@oracle.com>
-References: <>
- <1267198108-7459-1-git-send-email-jeff.liu@oracle.com>
-Message-ID: <1267198108-7459-2-git-send-email-jeff.liu@oracle.com>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Fri, 26 Feb 2010 12:53:51 -0800
+Subject: [Ocfs2-devel] [PATCH] dlm: allow dlm do recovery during shutdown
+Message-ID: <1267217631-18593-1-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-add fiemap.h to src/ which will be used by du.c
+If a node down event happens while dlm shutdown in progress, dlm recovery
+should be done before dlm is shutdown. But dlm_reco_thread only does recovery
+if the dlm_state is in DLM_CTXT_JOINED.
 
-Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+dlm_reco_thread should do recovery if dlm_state is in DLM_CTXT_JOINED or
+DLM_CTXT_IN_SHUTDOWN.
+
+Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 ---
- coreutils-6.9/src/fiemap.h |   68 ++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 68 insertions(+), 0 deletions(-)
- create mode 100644 coreutils-6.9/src/fiemap.h
+ fs/ocfs2/dlm/dlmrecovery.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/coreutils-6.9/src/fiemap.h b/coreutils-6.9/src/fiemap.h
-new file mode 100644
-index 0000000..54222ba
---- /dev/null
-+++ b/coreutils-6.9/src/fiemap.h
-@@ -0,0 +1,68 @@
-+/*
-+ * FS_IOC_FIEMAP ioctl infrastructure.
-+ *
-+ * Some portions copyright (C) 2007 Cluster File Systems, Inc
-+ *
-+ * Authors: Mark Fasheh <mfasheh@suse.com>
-+ *          Kalpak Shah <kalpak.shah@sun.com>
-+ *          Andreas Dilger <adilger@sun.com>
-+*/
-+
-+#ifndef _LINUX_FIEMAP_H
-+#define _LINUX_FIEMAP_H
-+
-+#include <linux/types.h>
-+
-+struct fiemap_extent {
-+  uint64_t fe_logical;  /* logical offset in bytes for the start of
-+                        * the extent from the beginning of the file */
-+  uint64_t fe_physical; /* physical offset in bytes for the start
-+                         * of the extent from the beginning of the disk */
-+  uint64_t fe_length;   /* length in bytes for this extent */
-+  uint64_t fe_reserved64[2];
-+  uint32_t fe_flags;    /* FIEMAP_EXTENT_* flags for this extent */
-+  uint32_t fe_reserved[3];
-+};
-+
-+struct fiemap {
-+  uint64_t fm_start;                  /* logical offset (inclusive) at
-+				       * which to start mapping (in) */
-+  uint64_t fm_length;                 /* logical length of mapping which
-+				       * userspace wants (in) */
-+  uint32_t fm_flags;                  /* FIEMAP_FLAG_* flags for request (in/out) */
-+  uint32_t fm_mapped_extents;         /* number of extents that were mapped (out) */
-+  uint32_t fm_extent_count;           /* size of fm_extents array (in) */
-+  uint32_t fm_reserved;
-+  struct fiemap_extent fm_extents[0]; /* array of mapped extents (out) */
-+};
-+
-+#define FIEMAP_MAX_OFFSET	(~0ULL)
-+
-+#define FIEMAP_FLAG_SYNC	0x00000001 /* sync file data before map */
-+#define FIEMAP_FLAG_XATTR	0x00000002 /* map extended attribute tree */
-+
-+#define FIEMAP_FLAGS_COMPAT	(FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR)
-+
-+#define FIEMAP_EXTENT_LAST		0x00000001 /* Last extent in file. */
-+#define FIEMAP_EXTENT_UNKNOWN		0x00000002 /* Data location unknown. */
-+#define FIEMAP_EXTENT_DELALLOC		0x00000004 /* Location still pending.
-+						    * Sets EXTENT_UNKNOWN. */
-+#define FIEMAP_EXTENT_ENCODED		0x00000008 /* Data can not be read
-+						    * while fs is unmounted */
-+#define FIEMAP_EXTENT_DATA_ENCRYPTED	0x00000080 /* Data is encrypted by fs.
-+						    * Sets EXTENT_NO_BYPASS. */
-+#define FIEMAP_EXTENT_NOT_ALIGNED	0x00000100 /* Extent offsets may not be
-+						    * block aligned. */
-+#define FIEMAP_EXTENT_DATA_INLINE	0x00000200 /* Data mixed with metadata.
-+						    * Sets EXTENT_NOT_ALIGNED.*/
-+#define FIEMAP_EXTENT_DATA_TAIL		0x00000400 /* Multiple files in block.
-+						    * Sets EXTENT_NOT_ALIGNED.*/
-+#define FIEMAP_EXTENT_UNWRITTEN		0x00000800 /* Space allocated, but
-+						    * no data (i.e. zero). */
-+#define FIEMAP_EXTENT_MERGED		0x00001000 /* File does not natively
-+						    * support extents. Result
-+						    * merged for efficiency. */
-+#define FIEMAP_EXTENT_SHARED		0x00002000 /* Space shared with other
-+						    * files. */
-+
-+#endif /* _LINUX_FIEMAP_H */
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index d9fa3d2..e347b6a 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -310,7 +310,7 @@ static int dlm_recovery_thread(void *data)
+ 	mlog(0, "dlm thread running for %s...\n", dlm->name);
+ 
+ 	while (!kthread_should_stop()) {
+-		if (dlm_joined(dlm)) {
++		if (dlm_domain_fully_joined(dlm)) {
+ 			status = dlm_do_recovery(dlm);
+ 			if (status == -EAGAIN) {
+ 				/* do not sleep, recheck immediately. */
 -- 
-1.5.4.3
+1.5.6.5
