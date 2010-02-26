@@ -1,707 +1,602 @@
 From: Jie Liu <jeff.liu@oracle.com>
-Date: Fri, 26 Feb 2010 23:28:26 +0800
-Subject: [Ocfs2-devel] [PATCH 1/3] du-enhancement: add rbtree v2
-In-Reply-To: <>
-References: <>
-Message-ID: <1267198108-7459-1-git-send-email-jeff.liu@oracle.com>
+Date: Fri, 26 Feb 2010 23:28:28 +0800
+Subject: [Ocfs2-devel] [PATCH 3/3] du-enhancement: show the shared extents
+	per file and the footprint v2
+In-Reply-To: <1267198108-7459-2-git-send-email-jeff.liu@oracle.com>
+References: <> <1267198108-7459-1-git-send-email-jeff.liu@oracle.com>
+	<1267198108-7459-2-git-send-email-jeff.liu@oracle.com>
+Message-ID: <1267198108-7459-3-git-send-email-jeff.liu@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-rbtree copy from ocfs2-tools.
-add rbtree source code to lib/Makefile.am.
-This change also affect the corresponding Makefile.in in subdirs as well as the coreutils-6.9/configure script.
+this patch add fiemap feature support in du, du show the shared extents size in parens per file
+as well as the footprint for each request with either '--shared-size' or '-E' option.
+
+the footprint which is total minus the sum total of all extents in the rbtree
+that have ei_shared_count > 0.
 
 Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 ---
- coreutils-6.9/Makefile.in     |    3 +-
- coreutils-6.9/configure       |    2 +-
- coreutils-6.9/doc/Makefile.in |    3 +-
- coreutils-6.9/lib/Makefile.am |    3 +-
- coreutils-6.9/lib/Makefile.in |    5 +-
- coreutils-6.9/lib/rbtree.c    |  395 +++++++++++++++++++++++++++++++++++++++++
- coreutils-6.9/lib/rbtree.h    |  143 +++++++++++++++
- coreutils-6.9/po/Makefile.in  |    6 +-
- coreutils-6.9/src/Makefile.in |    2 +-
- 9 files changed, 552 insertions(+), 10 deletions(-)
- create mode 100644 coreutils-6.9/lib/rbtree.c
- create mode 100644 coreutils-6.9/lib/rbtree.h
+ coreutils-6.9/src/du.c |  444 +++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 files changed, 437 insertions(+), 7 deletions(-)
 
-diff --git a/coreutils-6.9/Makefile.in b/coreutils-6.9/Makefile.in
-index a2cd3ba..af95e47 100644
---- a/coreutils-6.9/Makefile.in
-+++ b/coreutils-6.9/Makefile.in
-@@ -57,7 +57,8 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
- 	build-aux/ChangeLog build-aux/compile build-aux/config.guess \
- 	build-aux/config.rpath build-aux/config.sub build-aux/depcomp \
- 	build-aux/install-sh build-aux/mdate-sh build-aux/missing \
--	build-aux/texinfo.tex build-aux/ylwrap
-+	build-aux/texinfo.tex build-aux/ylwrap depcomp install-sh \
-+	ylwrap
- ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
- am__aclocal_m4_deps = $(top_srcdir)/m4/absolute-header.m4 \
- 	$(top_srcdir)/m4/acl.m4 $(top_srcdir)/m4/alloca.m4 \
-diff --git a/coreutils-6.9/configure b/coreutils-6.9/configure
-index 8c903bd..67e2503 100755
---- a/coreutils-6.9/configure
-+++ b/coreutils-6.9/configure
-@@ -605,7 +605,7 @@ PACKAGE_NAME='GNU coreutils'
- PACKAGE_TARNAME='coreutils'
- PACKAGE_VERSION='6.9'
- PACKAGE_STRING='GNU coreutils 6.9'
--PACKAGE_BUGREPORT='http://oss.oracle.com/bugzilla'
-+PACKAGE_BUGREPORT='bug-coreutils at gnu.org'
- 
- ac_unique_file="src/ls.c"
- # Factoring default headers for most tests.
-diff --git a/coreutils-6.9/doc/Makefile.in b/coreutils-6.9/doc/Makefile.in
-index ca84e92..e5683c1 100644
---- a/coreutils-6.9/doc/Makefile.in
-+++ b/coreutils-6.9/doc/Makefile.in
-@@ -53,7 +53,8 @@ build_triplet = @build@
- host_triplet = @host@
- subdir = doc
- DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
--	$(srcdir)/stamp-vti $(srcdir)/version.texi ChangeLog
-+	$(srcdir)/stamp-vti $(srcdir)/version.texi ChangeLog mdate-sh \
-+	texinfo.tex
- ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
- am__aclocal_m4_deps = $(top_srcdir)/m4/absolute-header.m4 \
- 	$(top_srcdir)/m4/acl.m4 $(top_srcdir)/m4/alloca.m4 \
-diff --git a/coreutils-6.9/lib/Makefile.am b/coreutils-6.9/lib/Makefile.am
-index cfa22be..6e22f65 100644
---- a/coreutils-6.9/lib/Makefile.am
-+++ b/coreutils-6.9/lib/Makefile.am
-@@ -26,7 +26,8 @@ LDADD = $(noinst_LIBRARIES)
- 
- libcoreutils_a_SOURCES += \
-   buffer-lcm.c buffer-lcm.h \
--  xmemxfrm.c xmemxfrm.h
-+  xmemxfrm.c xmemxfrm.h \
-+  rbtree.c rbtree.h
- 
- libcoreutils_a_LIBADD += $(LIBOBJS)
- libcoreutils_a_DEPENDENCIES += $(LIBOBJS)
-diff --git a/coreutils-6.9/lib/Makefile.in b/coreutils-6.9/lib/Makefile.in
-index 772d8f3..8c08170 100644
---- a/coreutils-6.9/lib/Makefile.in
-+++ b/coreutils-6.9/lib/Makefile.in
-@@ -213,7 +213,7 @@ am_libcoreutils_a_OBJECTS = allocsa.$(OBJEXT) base64.$(OBJEXT) \
- 	xalloc-die.$(OBJEXT) xgethostname.$(OBJEXT) xmemcoll.$(OBJEXT) \
- 	xreadlink.$(OBJEXT) xreadlink-with-size.$(OBJEXT) \
- 	xstrndup.$(OBJEXT) xstrtoimax.$(OBJEXT) xstrtoumax.$(OBJEXT) \
--	buffer-lcm.$(OBJEXT) xmemxfrm.$(OBJEXT)
-+	buffer-lcm.$(OBJEXT) xmemxfrm.$(OBJEXT) rbtree.$(OBJEXT)
- libcoreutils_a_OBJECTS = $(am_libcoreutils_a_OBJECTS)
- LTLIBRARIES = $(noinst_LTLIBRARIES)
- PROGRAMS = $(noinst_PROGRAMS)
-@@ -643,7 +643,7 @@ libcoreutils_a_SOURCES = allocsa.h allocsa.c base64.h base64.c \
- 	xgethostname.h xgethostname.c xmemcoll.h xmemcoll.c \
- 	xreadlink.c xreadlink-with-size.c xstrndup.h xstrndup.c \
- 	xstrtoimax.c xstrtoumax.c buffer-lcm.c buffer-lcm.h xmemxfrm.c \
--	xmemxfrm.h
-+	xmemxfrm.h rbtree.c rbtree.h
- libcoreutils_a_LIBADD = $(gl_LIBOBJS) @ALLOCA@ $(LIBOBJS)
- libcoreutils_a_DEPENDENCIES = $(gl_LIBOBJS) @ALLOCA@ $(LIBOBJS)
- EXTRA_libcoreutils_a_SOURCES = acl.c acl_entries.c file-has-acl.c \
-@@ -915,6 +915,7 @@ distclean-compile:
- @AMDEP_TRUE@@am__include@ @am__quote at ./$(DEPDIR)/quote.Po at am__quote@
- @AMDEP_TRUE@@am__include@ @am__quote at ./$(DEPDIR)/quotearg.Po at am__quote@
- @AMDEP_TRUE@@am__include@ @am__quote at ./$(DEPDIR)/raise.Po at am__quote@
-+ at AMDEP_TRUE@@am__include@ @am__quote at ./$(DEPDIR)/rbtree.Po at am__quote@
- @AMDEP_TRUE@@am__include@ @am__quote at ./$(DEPDIR)/readlink.Po at am__quote@
- @AMDEP_TRUE@@am__include@ @am__quote at ./$(DEPDIR)/readtokens.Po at am__quote@
- @AMDEP_TRUE@@am__include@ @am__quote at ./$(DEPDIR)/readtokens0.Po at am__quote@
-diff --git a/coreutils-6.9/lib/rbtree.c b/coreutils-6.9/lib/rbtree.c
-new file mode 100644
-index 0000000..2e500e9
---- /dev/null
-+++ b/coreutils-6.9/lib/rbtree.c
-@@ -0,0 +1,395 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * kernel-rbtree.c
-+ *
-+ * This is imported from the Linux kernel to give us a tested and
-+ * portable tree library.
-+ */
-+/*
-+  Red Black Trees
-+  (C) 1999  Andrea Arcangeli <andrea@suse.de>
-+  (C) 2002  David Woodhouse <dwmw2@infradead.org>
+diff --git a/coreutils-6.9/src/du.c b/coreutils-6.9/src/du.c
+index 206d318..3adc3a8 100644
+--- a/coreutils-6.9/src/du.c
++++ b/coreutils-6.9/src/du.c
+@@ -28,6 +28,11 @@
+ #include <stdio.h>
+ #include <getopt.h>
+ #include <sys/types.h>
 +
-+  This program is free software; you can redistribute it and/or modify
-+  it under the terms of the GNU General Public License as published by
-+  the Free Software Foundation; either version 2 of the License, or
-+  (at your option) any later version.
++#if HAVE_SYS_IOCTL_H
++# include <sys/ioctl.h>
++#endif
 +
-+  This program is distributed in the hope that it will be useful,
-+  but WITHOUT ANY WARRANTY; without even the implied warranty of
-+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+  GNU General Public License for more details.
-+
-+  You should have received a copy of the GNU General Public License
-+  along with this program; if not, write to the Free Software
-+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-+
-+  linux/lib/rbtree.c
-+*/
-+
+ #include <assert.h>
+ #include "system.h"
+ #include "argmatch.h"
+@@ -44,6 +49,8 @@
+ #include "stat-time.h"
+ #include "xfts.h"
+ #include "xstrtol.h"
 +#include "rbtree.h"
++#include "fiemap.h"
+ 
+ extern bool fts_debug;
+ 
+@@ -64,6 +71,10 @@ extern bool fts_debug;
+ /* Initial size of the hash table.  */
+ #define INITIAL_TABLE_SIZE 103
+ 
++#if defined(_IOWR) && !defined(FS_IOC_FIEMAP)
++# define FS_IOC_FIEMAP _IOWR('f', 11, struct fiemap)
++#endif
 +
-+static void __rb_rotate_left (struct rb_node *node, struct rb_root *root)
+ /* Hash structure for inode and device numbers.  The separate entry
+    structure makes it easier to rehash "in place".  */
+ 
+@@ -174,6 +185,34 @@ static char const *time_style = NULL;
+ /* Format used to display date / time. Controlled by --time-style */
+ static char const *time_format = NULL;
+ 
++/* If true, display the size of the shared extents per file and show
++ * the footprint in the end.  */
++static bool print_shared_size = false;
++
++/* FIEMAP_FLAG_* flags for request.  */
++static uint32_t fiemap_bits_flags;
++
++/* Show the size of the shared extents per file.  */
++static uint64_t file_shared_extents;
++
++/* Initialize the root of extents tree.  */
++static struct rb_root fe_root;
++
++/* A structure for per extent info.  */
++struct extent_info {
++  /* rbtree node */
++  struct rb_node ei_node;
++
++  /* physical offset in bytes */
++  uint64_t ei_physical;
++
++  /* length in bytes for this extent */
++  uint64_t ei_length;
++
++  /* extent shared count */
++  size_t ei_shared_count;
++};
++
+ /* The units to use when printing sizes.  */
+ static uintmax_t output_block_size;
+ 
+@@ -205,7 +244,9 @@ enum
+   MEGABYTES_LONG_OPTION,
+ 
+   TIME_OPTION,
+-  TIME_STYLE_OPTION
++  TIME_STYLE_OPTION,
++  FIEMAP_FLAG_SYNC_OPTION,
++  FIEMAP_FLAG_XATTR_OPTION
+ };
+ 
+ static struct option const long_options[] =
+@@ -215,6 +256,9 @@ static struct option const long_options[] =
+   {"block-size", required_argument, NULL, 'B'},
+   {"bytes", no_argument, NULL, 'b'},
+   {"count-links", no_argument, NULL, 'l'},
++  {"shared-size", no_argument, NULL, 'E'},
++  {"fsync", no_argument, NULL, FIEMAP_FLAG_SYNC_OPTION},
++  {"fxattr", no_argument, NULL, FIEMAP_FLAG_XATTR_OPTION},
+   {"dereference", no_argument, NULL, 'L'},
+   {"dereference-args", no_argument, NULL, 'D'},
+   {"exclude", required_argument, NULL, EXCLUDE_OPTION},
+@@ -314,6 +358,11 @@ Mandatory arguments to long options are mandatory for short options too.\n\
+   -m                    like --block-size=1M\n\
+ "), stdout);
+       fputs (_("\
++  -E, --shared-size     show the size of the shared extents per file\n\
++      --fsync           sync file data before map\n\
++      --fxattr          map extended attribute tree\n\
++"), stdout);
++      fputs (_("\
+   -L, --dereference     dereference all symbolic links\n\
+   -P, --no-dereference  don't follow any symbolic links (this is the default)\n\
+   -0, --null            end each output line with 0 byte rather than newline\n\
+@@ -443,6 +492,22 @@ print_only_size (uintmax_t n_bytes)
+ 			 1, output_block_size), stdout);
+ }
+ 
++/* Print footprint follow by STRING. */
++
++static void
++print_footprint (const struct duinfo *pdui, uintmax_t footprint, const char *string)
 +{
-+  struct rb_node *right = node->rb_right;
-+
-+  if ((node->rb_right = right->rb_left))
-+    right->rb_left->rb_parent = node;
-+  right->rb_left = node;
-+
-+  if ((right->rb_parent = node->rb_parent))
++  print_only_size (footprint);
++  if (opt_time)
 +    {
-+      if (node == node->rb_parent->rb_left)
-+        node->rb_parent->rb_left = right;
-+      else
-+        node->rb_parent->rb_right = right;
-+    }
-+  else
-+    root->rb_node = right;
-+    node->rb_parent = right;
-+}
-+
-+static void __rb_rotate_right (struct rb_node *node, struct rb_root *root)
-+{
-+  struct rb_node *left = node->rb_left;
-+
-+  if ((node->rb_left = left->rb_right))
-+    left->rb_right->rb_parent = node;
-+  left->rb_right = node;
-+
-+  if ((left->rb_parent = node->rb_parent))
-+    {
-+      if (node == node->rb_parent->rb_right)
-+        node->rb_parent->rb_right = left;
-+      else
-+        node->rb_parent->rb_left = left;
-+   }
-+  else
-+    root->rb_node = left;
-+
-+  node->rb_parent = left;
-+}
-+
-+void rb_insert_color (struct rb_node *node, struct rb_root *root)
-+{
-+  struct rb_node *parent, *gparent;
-+
-+  while ((parent = node->rb_parent) && parent->rb_color == RB_RED)
-+    {
-+     gparent = parent->rb_parent;
-+
-+      if (parent == gparent->rb_left)
-+        {
-+          {
-+            register struct rb_node *uncle = gparent->rb_right;
-+            if (uncle && uncle->rb_color == RB_RED)
-+             {
-+                uncle->rb_color = RB_BLACK;
-+                parent->rb_color = RB_BLACK;
-+                gparent->rb_color = RB_RED;
-+                node = gparent;
-+                continue;
-+              }
-+          }
-+
-+          if (parent->rb_right == node)
-+            {
-+              register struct rb_node *tmp;
-+              __rb_rotate_left(parent, root);
-+              tmp = parent;
-+              parent = node;
-+              node = tmp;
-+            }
-+
-+        parent->rb_color = RB_BLACK;
-+        gparent->rb_color = RB_RED;
-+        __rb_rotate_right(gparent, root);
-+        }
-+      else
-+        {
-+          {
-+            register struct rb_node *uncle = gparent->rb_left;
-+            if (uncle && uncle->rb_color == RB_RED)
-+              {
-+                uncle->rb_color = RB_BLACK;
-+                parent->rb_color = RB_BLACK;
-+                gparent->rb_color = RB_RED;
-+                node = gparent;
-+                continue;
-+              }
-+          }
-+
-+          if (parent->rb_left == node)
-+            {
-+              register struct rb_node *tmp;
-+              __rb_rotate_right(parent, root);
-+              tmp = parent;
-+              parent = node;
-+              node = tmp;
-+            }
-+
-+          parent->rb_color = RB_BLACK;
-+          gparent->rb_color = RB_RED;
-+          __rb_rotate_left(gparent, root);
-+        }
++      putchar ('\t');
++      show_date (time_format, pdui->tmax);
 +    }
 +
-+  root->rb_node->rb_color = RB_BLACK;
++  printf ("\t%s%c", string, opt_nul_terminate_output ? '\0' : '\n');
++  fflush (stdout);
 +}
 +
-+static void __rb_erase_color (struct rb_node *node, struct rb_node *parent,
-+			      struct rb_root *root)
-+{
-+  struct rb_node *other;
-+
-+  while ((!node || node->rb_color == RB_BLACK) && node != root->rb_node)
+ /* Print size (and optionally time) indicated by *PDUI, followed by STRING.  */
+ 
+ static void
+@@ -454,10 +519,329 @@ print_size (const struct duinfo *pdui, const char *string)
+       putchar ('\t');
+       show_date (time_format, pdui->tmax);
+     }
++  if ((print_shared_size) && (file_shared_extents > 0))
 +    {
-+      if (parent->rb_left == node)
-+        {
-+          other = parent->rb_right;
-+          if (other->rb_color == RB_RED)
-+            {
-+              other->rb_color = RB_BLACK;
-+              parent->rb_color = RB_RED;
-+              __rb_rotate_left(parent, root);
-+              other = parent->rb_right;
-+            }
-+          if ((!other->rb_left || other->rb_left->rb_color == RB_BLACK) &&
-+              (!other->rb_right || other->rb_right->rb_color == RB_BLACK))
-+            {
-+              other->rb_color = RB_RED;
-+              node = parent;
-+              parent = node->rb_parent;
-+            }
-+          else
-+            {
-+              if (!other->rb_right || other->rb_right->rb_color == RB_BLACK)
-+                {
-+                  register struct rb_node *o_left;
-+                  if ((o_left = other->rb_left))
-+                    o_left->rb_color = RB_BLACK;
-+                  other->rb_color = RB_RED;
-+                  __rb_rotate_right(other, root);
-+                  other = parent->rb_right;
-+                }
-+              other->rb_color = parent->rb_color;
-+              parent->rb_color = RB_BLACK;
-+              if (other->rb_right)
-+                other->rb_right->rb_color = RB_BLACK;
-+              __rb_rotate_left(parent, root);
-+              node = root->rb_node;
-+              break;
-+            }
-+        }
-+      else
-+        {
-+          other = parent->rb_left;
-+          if (other->rb_color == RB_RED)
-+            {
-+              other->rb_color = RB_BLACK;
-+              parent->rb_color = RB_RED;
-+              __rb_rotate_right(parent, root);
-+              other = parent->rb_left;
-+            }
-+          if ((!other->rb_left || other->rb_left->rb_color == RB_BLACK) &&
-+              (!other->rb_right || other->rb_right->rb_color == RB_BLACK))
-+            {
-+              other->rb_color = RB_RED;
-+              node = parent;
-+              parent = node->rb_parent;
-+            }
-+          else
-+            {
-+              if (!other->rb_left || other->rb_left->rb_color == RB_BLACK)
-+                {
-+                  register struct rb_node *o_right;
-+                  if ((o_right = other->rb_right))
-+                    o_right->rb_color = RB_BLACK;
-+                  other->rb_color = RB_RED;
-+                  __rb_rotate_left(other, root);
-+                  other = parent->rb_left;
-+                }
-+             other->rb_color = parent->rb_color;
-+              parent->rb_color = RB_BLACK;
++      putchar ('\t');
++      putchar ('(');
 +
-+              if (other->rb_left)
-+                other->rb_left->rb_color = RB_BLACK;
-+              __rb_rotate_right(parent, root);
-+              node = root->rb_node;
-+              break;
-+            }
-+        }
++      if ((output_block_size == 1) && (file_shared_extents > pdui->size))
++        file_shared_extents = pdui->size;
++
++      print_only_size (file_shared_extents);
++      putchar (')');
++
++      file_shared_extents = 0;
 +    }
-+  if (node)
-+    node->rb_color = RB_BLACK;
+   printf ("\t%s%c", string, opt_nul_terminate_output ? '\0' : '\n');
+   fflush (stdout);
+ }
+ 
++/* Free all allocated extents info from the rbtree.  */
++
++static void
++free_extent_info (void)
++{
++  struct rb_node *node;
++  struct extent_info *ei;
++
++  while ((node = rb_first (&fe_root)))
++    {
++      ei = rb_entry (node, struct extent_info, ei_node);
++      rb_erase (&ei->ei_node, &fe_root);
++      free (ei);
++    }
 +}
 +
-+void rb_erase (struct rb_node *node, struct rb_root *root)
++/* Walkup the extents rbtree to figure out the total size
++   of shared extents which has ei_shared_count > 0.  */
++
++static uintmax_t
++figure_share_extent_size (void)
 +{
-+  struct rb_node *child, *parent;
-+  int color;
++  struct rb_node *node;
++  struct extent_info *ei;
++  static uintmax_t total_shared_extents = 0;
 +
-+  if (!node->rb_left)
-+    child = node->rb_right;
-+  else if (!node->rb_right)
-+    child = node->rb_left;
-+  else
-+    {
-+      struct rb_node *old = node, *left;
-+
-+      node = node->rb_right;
-+      while ((left = node->rb_left) != NULL)
-+        node = left;
-+      child = node->rb_right;
-+      parent = node->rb_parent;
-+     color = node->rb_color;
-+
-+      if (child)
-+        child->rb_parent = parent;
-+      if (parent)
-+        {
-+          if (parent->rb_left == node)
-+            parent->rb_left = child;
-+          else
-+            parent->rb_right = child;
-+        }
-+      else
-+        root->rb_node = child;
-+
-+      if (node->rb_parent == old)
-+        parent = node;
-+      node->rb_parent = old->rb_parent;
-+      node->rb_color = old->rb_color;
-+      node->rb_right = old->rb_right;
-+      node->rb_left = old->rb_left;
-+
-+      if (old->rb_parent)
-+        {
-+          if (old->rb_parent->rb_left == old)
-+            old->rb_parent->rb_left = node;
-+          else
-+            old->rb_parent->rb_right = node;
-+        } else
-+          root->rb_node = node;
-+
-+      old->rb_left->rb_parent = node;
-+      if (old->rb_right)
-+        old->rb_right->rb_parent = node;
-+      goto color;
++  for (node = rb_first (&fe_root); node; node = rb_next (node))
++  {
++    ei = rb_entry (node, struct extent_info, ei_node);
++    if (ei->ei_shared_count > 0)
++        total_shared_extents += ei->ei_length * ei->ei_shared_count;
 +  }
 +
-+  parent = node->rb_parent;
-+  color = node->rb_color;
++  return total_shared_extents;
++}
 +
-+  if (child)
-+    child->rb_parent = parent;
-+  if (parent)
++/* Insert new extent based on the new parent.  */
++
++static void
++insert_new_extent_info (struct rb_node *parent,
++                        uint64_t fe_physical,
++                        uint64_t fe_length,
++                        size_t extent_shared_count)
++{
++  struct rb_node **p = parent ? &parent : &((&fe_root)->rb_node);
++  struct rb_node *pp = NULL;
++  struct extent_info *this = NULL;
++  struct extent_info *ei;
++
++  while (*p)
 +    {
-+      if (parent->rb_left == node)
-+        parent->rb_left = child;
++      pp = *p;
++      this = rb_entry (*p, struct extent_info, ei_node);
++
++      if (this->ei_physical > fe_physical)
++        p = &(*p)->rb_left;
++      else if (this->ei_physical < fe_physical)
++	p = &(*p)->rb_right;
 +      else
-+        parent->rb_right = child;
-+    }
-+  else
-+    root->rb_node = child;
-+
-+color:
-+if (color == RB_BLACK)
-+  __rb_erase_color(child, parent, root);
-+}
-+
-+/*
-+ * This function returns the first node (in sort order) of the tree.
-+ */
-+struct rb_node *rb_first (struct rb_root *root)
-+{
-+  struct rb_node *n;
-+
-+  n = root->rb_node;
-+  if (!n)
-+    return NULL;
-+  while (n->rb_left)
-+    n = n->rb_left;
-+ return n;
-+}
-+
-+struct rb_node *rb_last (struct rb_root *root)
-+{
-+  struct rb_node *n;
-+
-+  n = root->rb_node;
-+  if (!n)
-+    return NULL;
-+  while (n->rb_right)
-+    n = n->rb_right;
-+  return n;
-+}
-+
-+struct rb_node *rb_next (struct rb_node *node)
-+{
-+  /* If we have a right-hand child, go down and then left as far
-+   * as we can. */
-+  if (node->rb_right)
-+    {
-+      node = node->rb_right;
-+      while (node->rb_left)
-+        node=node->rb_left;
-+      return node;
++	return;
 +    }
 +
-+  /* No right-hand children.  Everything down and left is
-+   * smaller than us, so any 'next' node must be in the general
-+   * direction of our parent. Go up the tree; any time the
-+   * ancestor is a right-hand child of its parent, keep going
-+   * up. First time it's a left-hand child of its parent, said
-+   * parent is our 'next' node. */
-+  while (node->rb_parent && node == node->rb_parent->rb_right)
-+    node = node->rb_parent;
++  ei = xcalloc (1, sizeof *ei);
++  ei->ei_physical = fe_physical;
++  ei->ei_length = fe_length;
++  ei->ei_shared_count += extent_shared_count;
 +
-+  return node->rb_parent;
++  rb_link_node (&ei->ei_node, pp, p);
++  rb_insert_color (&ei->ei_node, &fe_root);
 +}
 +
-+struct rb_node *rb_prev (struct rb_node *node)
++/* Find the left-most position to insert.  */
++
++static struct rb_node *
++lookup_leftmost_extent_info (uint64_t fe_physical)
 +{
-+  /* If we have a left-hand child, go down and then right as far
-+   * as we can. */
-+  if (node->rb_left)
-+    {
-+      node = node->rb_left;
-+      while (node->rb_right)
-+        node=node->rb_right;
-+      return node;
-+    }
-+
-+  /* No left-hand children. Go up till we find an ancestor which
-+   * is a right-hand child of its parent */
-+  while (node->rb_parent && node == node->rb_parent->rb_left)
-+    node = node->rb_parent;
-+
-+  return node->rb_parent;
-+}
-+
-+void rb_replace_node (struct rb_node *victim, struct rb_node *new,
-+		     struct rb_root *root)
-+{
-+  struct rb_node *parent = victim->rb_parent;
-+
-+  /* Set the surrounding nodes to point to the replacement */
-+  if (parent) {
-+    if (victim == parent->rb_left)
-+      parent->rb_left = new;
-+    else
-+      parent->rb_right = new;
-+  } else {
-+    root->rb_node = new;
-+  }
-+
-+  if (victim->rb_left)
-+    victim->rb_left->rb_parent = new;
-+  if (victim->rb_right)
-+    victim->rb_right->rb_parent = new;
-+
-+  /* Copy the pointers/colour from the victim to the replacement */
-+  *new = *victim;
-+}
-diff --git a/coreutils-6.9/lib/rbtree.h b/coreutils-6.9/lib/rbtree.h
-new file mode 100644
-index 0000000..28b1178
---- /dev/null
-+++ b/coreutils-6.9/lib/rbtree.h
-@@ -0,0 +1,143 @@
-+/*
-+  Red Black Trees
-+  (C) 1999  Andrea Arcangeli <andrea@suse.de>
-+
-+  This program is free software; you can redistribute it and/or modify
-+  it under the terms of the GNU General Public License as published by
-+  the Free Software Foundation; either version 2 of the License, or
-+  (at your option) any later version.
-+
-+  This program is distributed in the hope that it will be useful,
-+  but WITHOUT ANY WARRANTY; without even the implied warranty of
-+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+  GNU General Public License for more details.
-+
-+  You should have received a copy of the GNU General Public License
-+  along with this program; if not, write to the Free Software
-+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-+
-+  rbtree.h
-+
-+  To use rbtrees you'll have to implement your own insert and search cores.
-+  This will avoid us to use callbacks and to drop drammatically performances.
-+  I know it's not the cleaner way,  but in C (not in C++) to get
-+  performances and genericity...
-+
-+  Some example of insert and search follows here. The search is a plain
-+  normal search over an ordered tree. The insert instead must be implemented
-+  int two steps: as first thing the code must insert the element in
-+  order as a red leaf in the tree, then the support library function
-+  rb_insert_color() must be called. Such function will do the
-+  not trivial work to rebalance the rbtree if necessary.
-+
-+-----------------------------------------------------------------------
-+static inline struct page * rb_search_page_cache (struct inode * inode,
-+						  unsigned long offset)
-+{
-+  struct rb_node * n = inode->i_rb_page_cache.rb_node;
-+  struct page * page;
-+
-+ while (n)
-+    {
-+      page = rb_entry (n, struct page, rb_page_cache);
-+
-+      if (offset < page->offset)
-+        n = n->rb_left;
-+      else if (offset > page->offset)
-+        n = n->rb_right;
-+      else
-+        return page;
-+    }
-+  return NULL;
-+}
-+
-+static inline struct page * __rb_insert_page_cache (struct inode * inode,
-+						    unsigned long offset,
-+						    struct rb_node * node)
-+{
-+  struct rb_node ** p = &inode->i_rb_page_cache.rb_node;
-+  struct rb_node * parent = NULL;
-+  struct page * page;
++  struct rb_node **p = &((&fe_root)->rb_node);
++  struct rb_node *parent;
++  struct extent_info *this;
 +
 +  while (*p)
 +    {
 +      parent = *p;
-+      page = rb_entry (parent, struct page, rb_page_cache);
++      this = rb_entry (*p, struct extent_info, ei_node);
 +
-+      if (offset < page->offset)
-+        p = &(*p)->rb_left;
-+      else if (offset > page->offset)
-+        p = &(*p)->rb_right;
++      if (this->ei_physical > fe_physical)
++       p = &(*p)->rb_left;
++      else if (this->ei_physical < fe_physical)
++	p = &(*p)->rb_right;
 +      else
-+        return page;
++	break;
 +    }
 +
-+  rb_link_node (node, parent, p);
-+
-+  return NULL;
++  return parent;
 +}
 +
-+static inline struct page * rb_insert_page_cache (struct inode * inode,
-+						  unsigned long offset,
-+						  struct rb_node * node)
++/* Split the new extent into mutiple items if there is overlap
++   with the search returned, insert each item or increase the
++   existed items shared count for the shared part.  */
++
++static void
++split_extent (uint64_t extent_physical_offset,
++              uint64_t extent_length)
 +{
-+  struct page * ret;
-+  if ((ret = __rb_insert_page_cache (inode, offset, node)))
-+    goto out;
-+  rb_insert_color (node, &inode->i_rb_page_cache);
-+ out:
-+	return ret;
++  struct rb_node *parent = NULL;
++  struct rb_node *prev_parent = NULL;
++  struct extent_info *this;
++  uint64_t pb_start = extent_physical_offset;
++  uint64_t ext_len = extent_length;
++  uint64_t new_pb_start;
++  uint64_t new_ext_len;
++  uint64_t old_ext_len;
++  size_t ext_shared_count = 0;
++
++  parent = lookup_leftmost_extent_info (pb_start);
++
++  /* We make use of the extent physical offset as the comparative value by combine
++     with the extent length to decide how to split it into sub extents.
++     For each new extent, in short, there are 3 scenarios need to process against
++     the search returned:
++     . physical offset smaller than the searched.
++     . physical offset equal to the searched.
++     . physical offset greater than the searched.  */
++  while (ext_len)
++    {
++      if (!parent)
++        {
++          insert_new_extent_info (prev_parent, pb_start, ext_len, ext_shared_count);
++	  break;
++	}
++
++      this = rb_entry (parent, struct extent_info, ei_node);
++
++      /* The new extent physical offset is smaller than the search returned.
++         there are 3 scenarios need to check against the old one which shown
++	 as the following sketch.
++                   |---------| old
++         |------| new1
++         |---------------| new2
++         |------------------------| new3.  */
++
++      if (pb_start < this->ei_physical)
++	{
++	  new_ext_len = MIN (this->ei_physical - pb_start, ext_len);
++
++	  ext_shared_count = 0;
++          insert_new_extent_info (parent, pb_start, new_ext_len, ext_shared_count);
++
++          pb_start += new_ext_len;
++	  ext_len -= new_ext_len;
++          continue;
++        }
++
++      /* The new extent physical offset if equal to the search returned.
++         there are 3 scenarios need to check against the old one which shown
++	 as the following sketch.
++         |----------| old
++         |----------------| new1
++         |----------| new2
++         |-------| new3.  */
++      if (pb_start == this->ei_physical)
++        {
++          old_ext_len = this->ei_length;
++          new_ext_len = MIN (ext_len, this->ei_length);
++
++          /* Decrease the existed extent size to the minor, its shared count
++	     need to increase due to the overlap of them.  */
++          this->ei_length = new_ext_len;
++          this->ei_shared_count++;
++
++          pb_start += new_ext_len;
++          ext_len -= new_ext_len;
++
++          /* The search returned extent range includes the new, figure out the
++	   * not included range and insert it on the rbtree.  */
++          if (old_ext_len > new_ext_len)
++            {
++	      new_pb_start = this->ei_physical + this->ei_length;
++              new_ext_len = old_ext_len - new_ext_len;
++	      ext_shared_count = 0;
++	      insert_new_extent_info (parent, new_pb_start, new_ext_len, ext_shared_count);
++	    }
++
++          prev_parent = parent;
++          parent = rb_next (parent);
++          continue;
++        }
++
++      /* The new extent physical offset if greater than the search returned.
++         there are 3 scenarios need to check against the old one which shown
++	 as the following sketch.
++         |-----------| old
++           |----| new1
++           |-----------| new2
++           |---------------| new3.  */
++      if (pb_start < this->ei_physical + this->ei_length)
++        {
++	  old_ext_len = this->ei_physical + this->ei_length - pb_start;
++	  new_ext_len = MIN (ext_len, old_ext_len);
++
++          ext_shared_count = this->ei_shared_count;
++
++          /* The new extent overlapped with the old one, as a result, we
++	     need to increase its shared count before inserting.  */
++          ext_shared_count++;
++	  insert_new_extent_info (parent, pb_start, new_ext_len, ext_shared_count);
++
++          /* Decrease the search returned extent size and keep it on the tree.  */
++          this->ei_length = pb_start - this->ei_physical;
++
++	  pb_start += new_ext_len;
++	  ext_len -= new_ext_len;
++          parent = rb_next (parent);
++          continue;
++        }
++
++      prev_parent = parent;
++      parent = rb_next (parent);
++    }
 +}
-+-----------------------------------------------------------------------
-+*/
 +
-+#ifndef	_LINUX_RBTREE_H
-+#define	_LINUX_RBTREE_H
++/* This function is called once for every file system object that fts
++   encounters, get its extent mapping info for the proceeding extent
++   spliting operation.  */
 +
-+#include <stdlib.h>
-+
-+struct rb_node
-+  {
-+    struct rb_node *rb_parent;
-+    int rb_color;
-+#define	RB_RED    0
-+#define	RB_BLACK  1
-+    struct rb_node *rb_right;
-+    struct rb_node *rb_left;
-+  };
-+
-+struct rb_root
-+  {
-+    struct rb_node *rb_node;
-+  };
-+
-+#define RB_ROOT	(struct rb_root) { NULL, }
-+#define	rb_entry(ptr, type, member) \
-+  ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
-+
-+extern void rb_insert_color (struct rb_node *, struct rb_root *);
-+extern void rb_erase (struct rb_node *, struct rb_root *);
-+
-+/* Find logical next and previous nodes in a tree */
-+extern struct rb_node *rb_next (struct rb_node *);
-+extern struct rb_node *rb_prev (struct rb_node *);
-+extern struct rb_node *rb_first (struct rb_root *);
-+extern struct rb_node *rb_last (struct rb_root *);
-+
-+/* Fast replacement of a single node without remove/rebalance/add/rebalance */
-+extern void rb_replace_node (struct rb_node *victim,
-+                             struct rb_node *new,
-+                             struct rb_root *root);
-+
-+static inline void rb_link_node (struct rb_node * node,
-+                                 struct rb_node * parent,
-+                                 struct rb_node ** rb_link)
++static void
++process_extent(int cwd_fd, char const *file,
++               char const *file_full_name)
 +{
-+  node->rb_parent = parent;
-+  node->rb_color = RB_RED;
-+  node->rb_left = node->rb_right = NULL;
++  char buf[4096] = "";
++  struct fiemap *fiemap = (struct fiemap *)buf;
++  struct fiemap_extent *fm_ext = &fiemap->fm_extents[0];
++  uint32_t count = (sizeof (buf) - sizeof (*fiemap)) /
++               sizeof (struct fiemap_extent);
++  int last = 0;
 +
-+  *rb_link = node;
++  int fd = openat (cwd_fd, file, O_RDONLY);
++  if (fd < 0)
++    {
++      fd = open (file_full_name, O_RDONLY);
++      if (fd < 0)
++        {
++          error(0, errno, _("cannot open %s"), quote (file_full_name));
++          return;
++	}
++    }
++
++  memset (fiemap, 0, sizeof (*fiemap));
++
++  do {
++    fiemap->fm_length = ~0ULL;
++    fiemap->fm_flags = fiemap_bits_flags;
++    fiemap->fm_extent_count = count;
++
++    if (ioctl (fd, FS_IOC_FIEMAP, (unsigned long) fiemap) < 0)
++      {
++        if (errno == EBADR)
++            error (0, errno, _("%s FIEMAP failed with unsupported flags %x\n"),
++                                quote (file_full_name), fiemap->fm_flags);
++
++        error(0, errno, _("%s extent mapping failed"), quote (file_full_name));
++        goto close_file;
++      }
++
++    /* If 0 extents are returned, then more ioctls
++       are not needed.  */
++    if (fiemap->fm_mapped_extents == 0)
++      goto close_file;
++
++    uint64_t ext_phy_offset;
++    uint64_t ext_len;
++    size_t i;
++    for (i = 0; i < fiemap->fm_mapped_extents; i++)
++      {
++        ext_phy_offset = fm_ext[i].fe_physical;
++	ext_len = fm_ext[i].fe_length;
++
++        /* Skip inline file which its data mixed with metadata.  */
++        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_DATA_INLINE)
++	  {
++            if (fm_ext[i].fe_flags & FIEMAP_EXTENT_LAST)
++              {
++                last = 1;
++                break;
++	      }
++	    continue;
++	  }
++
++        /* Increase the shared extents size per file.  */
++        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_SHARED)
++          file_shared_extents += fm_ext[i].fe_length;
++
++        split_extent (ext_phy_offset, ext_len);
++
++        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_LAST)
++          last = 1;
++
++        fiemap->fm_start = (fm_ext[i-1].fe_logical + fm_ext[i-1].fe_length);
++      }
++    } while (last == 0);
++
++close_file:
++  if (close (fd) < 0)
++      error (0, errno, _("closing %s"), quote (file_full_name));
 +}
 +
-+#endif	/* _LINUX_RBTREE_H */
-diff --git a/coreutils-6.9/po/Makefile.in b/coreutils-6.9/po/Makefile.in
-index cc6e178..3373a4e 100644
---- a/coreutils-6.9/po/Makefile.in
-+++ b/coreutils-6.9/po/Makefile.in
-@@ -14,7 +14,7 @@
+ /* This function is called once for every file system object that fts
+    encounters.  fts does a depth-first traversal.  This function knows
+    that and accumulates per-directory totals based on changes in
+@@ -483,7 +867,8 @@ process_file (FTS *fts, FTSENT *ent)
+   static struct dulevel *dulvl;
+   bool print = true;
  
- PACKAGE = coreutils
- VERSION = 6.9
--PACKAGE_BUGREPORT = http://oss.oracle.com/bugzilla
-+PACKAGE_BUGREPORT = bug-coreutils at gnu.org
+-  const char *file = ent->fts_path;
++  const char *file_full_name = ent->fts_path;
++  const char *file = ent->fts_accpath;
+   const struct stat *sb = ent->fts_statp;
+   bool skip;
  
- SHELL = /bin/sh
+@@ -495,18 +880,18 @@ process_file (FTS *fts, FTSENT *ent)
+   switch (ent->fts_info)
+     {
+     case FTS_NS:
+-      error (0, ent->fts_errno, _("cannot access %s"), quote (file));
++      error (0, ent->fts_errno, _("cannot access %s"), quote (file_full_name));
+       return false;
  
-@@ -30,10 +30,10 @@ datadir = ${datarootdir}
- localedir = ${datarootdir}/locale
- gettextsrcdir = $(datadir)/gettext/po
+     case FTS_ERR:
+       /* if (S_ISDIR (ent->fts_statp->st_mode) && FIXME */
+-      error (0, ent->fts_errno, _("%s"), quote (file));
++      error (0, ent->fts_errno, _("%s"), quote (file_full_name));
+       return false;
  
--INSTALL = /usr/bin/install -c
-+INSTALL = /usr/local/bin/install -c
- INSTALL_DATA = ${INSTALL} -m 644
- mkinstalldirs = $(SHELL) $(SHELL) /var/autofs/ca-fileserver2/build/smushran/git/shared-du/coreutils-6.9/build-aux/install-sh -d
--mkdir_p = /bin/mkdir -p
-+mkdir_p = /usr/local/bin/mkdir -p
+     case FTS_DNR:
+       /* Don't return just yet, since although the directory is not readable,
+ 	 we were able to stat it, so we do have a size.  */
+-      error (0, ent->fts_errno, _("cannot read directory %s"), quote (file));
++      error (0, ent->fts_errno, _("cannot read directory %s"), quote (file_full_name));
+       ok = false;
+       break;
  
- GMSGFMT_ = /usr/bin/msgfmt
- GMSGFMT_no = /usr/bin/msgfmt
-diff --git a/coreutils-6.9/src/Makefile.in b/coreutils-6.9/src/Makefile.in
-index 18965a9..bbbc18c 100644
---- a/coreutils-6.9/src/Makefile.in
-+++ b/coreutils-6.9/src/Makefile.in
-@@ -1200,7 +1200,7 @@ uninstall-binPROGRAMS:
- 	done
+@@ -619,9 +1004,12 @@ process_file (FTS *fts, FTSENT *ent)
+   if (!print)
+     return ok;
  
- clean-binPROGRAMS:
--	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS) > /dev/null 2>&1 || /bin/rm -f $(bin_PROGRAMS)
-+	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
++  if (print_shared_size)
++    process_extent (fts->fts_cwd_fd, file, file_full_name);
++
+   if ((IS_DIR_TYPE (ent->fts_info) && level <= max_depth)
+       || ((opt_all && level <= max_depth) || level == 0))
+-    print_size (&dui_to_print, file);
++    print_size (&dui_to_print, file_full_name);
  
- clean-noinstPROGRAMS:
- 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
+   return ok;
+ }
+@@ -709,7 +1097,7 @@ main (int argc, char **argv)
+   human_output_opts = human_options (getenv ("DU_BLOCK_SIZE"), false,
+ 				     &output_block_size);
+ 
+-  while ((c = getopt_long (argc, argv, DEBUG_OPT "0abchHklmsxB:DLPSX:",
++  while ((c = getopt_long (argc, argv, DEBUG_OPT "0abchHklmsxB:DELPSX:",
+ 			   long_options, NULL)) != -1)
+     {
+       switch (c)
+@@ -834,6 +1222,27 @@ main (int argc, char **argv)
+ 	    }
+ 	  break;
+ 
++	case 'E':
++#ifndef FS_IOC_FIEMAP
++          error (EXIT_FAILURE, 0, _("Shared-du are not supported by this version"));
++#endif
++	  print_shared_size = true;
++	  break;
++
++	case FIEMAP_FLAG_SYNC_OPTION:
++#ifndef FS_IOC_FIEMAP
++          error (EXIT_FAILURE, 0, _("Shared-du are not supported by this version"));
++#endif
++	  fiemap_bits_flags |= FIEMAP_FLAG_SYNC;
++          break;
++
++        case FIEMAP_FLAG_XATTR_OPTION:
++#ifndef FS_IOC_FIEMAP
++          error (EXIT_FAILURE, 0, _("Shared-du are not supported by this version"));
++#endif
++	  fiemap_bits_flags |= FIEMAP_FLAG_XATTR;
++	  break;
++
+ 	case FILES0_FROM_OPTION:
+ 	  files_from = optarg;
+ 	  break;
+@@ -866,6 +1275,17 @@ main (int argc, char **argv)
+   if (!ok)
+     usage (EXIT_FAILURE);
+ 
++  if (((fiemap_bits_flags & FIEMAP_FLAG_SYNC) ||
++      (fiemap_bits_flags & FIEMAP_FLAG_XATTR)) &&
++      !print_shared_size)
++    {
++      error(0, 0, _("warning: fiemap flags must be combined with --shared-size"));
++      usage (EXIT_FAILURE);
++    }
++
++  if (print_shared_size)
++      fe_root = RB_ROOT;
++
+   if (opt_all & opt_summarize_only)
+     {
+       error (0, 0, _("cannot both summarize and show all entries"));
+@@ -1015,6 +1435,16 @@ main (int argc, char **argv)
+   if (files_from)
+     readtokens0_free (&tok);
+ 
++  if (print_shared_size)
++    {
++      uintmax_t tot_shared_extents = figure_share_extent_size ();
++      uintmax_t footprint = tot_dui.size - tot_shared_extents;
++
++      print_footprint(&tot_dui, footprint, _("footprint"));
++
++      free_extent_info ();
++    }
++
+   hash_free (htab);
+ 
+   exit (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 -- 
 1.5.4.3
