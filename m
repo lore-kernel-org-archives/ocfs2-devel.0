@@ -1,35 +1,37 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 26 Feb 2010 15:11:44 -0800
-Subject: [Ocfs2-devel] [PATCH] dlm: allow dlm do recovery during shutdown
-In-Reply-To: <1267217631-18593-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1267217631-18593-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20100226231143.GD23730@mail.oracle.com>
+Date: Fri, 26 Feb 2010 15:12:45 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Ignore BASTs fired after an AST
+	for a drop lock]
+In-Reply-To: <20100223214728.GH31495@redhat.com>
+References: <4B720386.7010301@oracle.com> <20100210193540.GA5062@redhat.com>
+	<4B73155C.2000602@oracle.com> <20100210203527.GB5062@redhat.com>
+	<20100223214728.GH31495@redhat.com>
+Message-ID: <20100226231245.GE23730@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Feb 26, 2010 at 12:53:51PM -0800, Srinivas Eeda wrote:
-> If a node down event happens while dlm shutdown in progress, dlm recovery
-> should be done before dlm is shutdown. But dlm_reco_thread only does recovery
-> if the dlm_state is in DLM_CTXT_JOINED.
+On Tue, Feb 23, 2010 at 01:47:28PM -0800, David Teigland wrote:
+> The dlm is indeed sending the bast before the cast.  With the fix
+> for that (attached), alternate is running fine again.  I'll now get
+> back to doing some long running tests of make_panic and alternate.
 > 
-> dlm_reco_thread should do recovery if dlm_state is in DLM_CTXT_JOINED or
-> DLM_CTXT_IN_SHUTDOWN.
-> 
-> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> I actually need to split up the fix into a couple different patches
+> and will then queue them up for the coming merge window.
 
-This patch is now in the 'merge-window' branch of ocfs2.git.
+	I saw your pull request.  Is it safe to say ocfs2 + fs/dlm +
+the bast/cast fixes now passes all your tests?
 
 Joel
 
 -- 
 
-"Nobody loves me,
- Nobody seems to care.
- Troubles and worries, people,
- You know I've had my share."
+"Sometimes I think the surest sign intelligent
+ life exists elsewhere in the universe is that
+ none of it has tried to contact us."
+                                -Calvin & Hobbes
 
 Joel Becker
 Principal Software Developer
