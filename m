@@ -1,149 +1,124 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 26 Feb 2010 19:42:45 -0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2/userdlm: Add tracing in userdlm
-In-Reply-To: <1267242165-30474-1-git-send-email-sunil.mushran@oracle.com>
-References: <1267242165-30474-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1267242165-30474-2-git-send-email-sunil.mushran@oracle.com>
+From: tristan ye <tristan.ye@oracle.com>
+Date: Sat, 27 Feb 2010 18:34:02 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Handle deletion of refcounted
+ oprhan_inode correctly.
+In-Reply-To: <20100226232807.GF23730@mail.oracle.com>
+References: <1266740977-8638-1-git-send-email-tristan.ye@oracle.com>
+	<1266740977-8638-2-git-send-email-tristan.ye@oracle.com>
+	<20100226232807.GF23730@mail.oracle.com>
+Message-ID: <4B88F51A.8070701@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Make use of the newly added BASTS masklog to trace ASTs and BASTs in userdlm.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/dlmfs/userdlm.c |   44 +++++++++++++++++++++++++-------------------
- 1 files changed, 25 insertions(+), 19 deletions(-)
 
-diff --git a/fs/ocfs2/dlmfs/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
-index 2858ee6..0499e3f 100644
---- a/fs/ocfs2/dlmfs/userdlm.c
-+++ b/fs/ocfs2/dlmfs/userdlm.c
-@@ -128,8 +128,9 @@ static void user_ast(struct ocfs2_dlm_lksb *lksb)
- 	struct user_lock_res *lockres = user_lksb_to_lock_res(lksb);
- 	int status;
- 
--	mlog(0, "AST fired for lockres %.*s\n", lockres->l_namelen,
--	     lockres->l_name);
-+	mlog(ML_BASTS, "AST fired for lockres %.*s, level %d => %d\n",
-+	     lockres->l_namelen, lockres->l_name, lockres->l_level,
-+	     lockres->l_requested);
- 
- 	spin_lock(&lockres->l_lock);
- 
-@@ -214,8 +215,8 @@ static void user_bast(struct ocfs2_dlm_lksb *lksb, int level)
- {
- 	struct user_lock_res *lockres = user_lksb_to_lock_res(lksb);
- 
--	mlog(0, "Blocking AST fired for lockres %.*s. Blocking level %d\n",
--	     lockres->l_namelen, lockres->l_name, level);
-+	mlog(ML_BASTS, "BAST fired for lockres %.*s, blocking %d, level %d\n",
-+	     lockres->l_namelen, lockres->l_name, level, lockres->l_level);
- 
- 	spin_lock(&lockres->l_lock);
- 	lockres->l_flags |= USER_LOCK_BLOCKED;
-@@ -232,8 +233,8 @@ static void user_unlock_ast(struct ocfs2_dlm_lksb *lksb, int status)
- {
- 	struct user_lock_res *lockres = user_lksb_to_lock_res(lksb);
- 
--	mlog(0, "UNLOCK AST called on lock %.*s\n", lockres->l_namelen,
--	     lockres->l_name);
-+	mlog(ML_BASTS, "UNLOCK AST fired for lockres %.*s, flags 0x%x\n",
-+	     lockres->l_namelen, lockres->l_name, lockres->l_flags);
- 
- 	if (status)
- 		mlog(ML_ERROR, "dlm returns status %d\n", status);
-@@ -302,8 +303,7 @@ static void user_dlm_unblock_lock(struct work_struct *work)
- 	struct ocfs2_cluster_connection *conn =
- 		cluster_connection_from_user_lockres(lockres);
- 
--	mlog(0, "processing lockres %.*s\n", lockres->l_namelen,
--	     lockres->l_name);
-+	mlog(0, "lockres %.*s\n", lockres->l_namelen, lockres->l_name);
- 
- 	spin_lock(&lockres->l_lock);
- 
-@@ -321,17 +321,23 @@ static void user_dlm_unblock_lock(struct work_struct *work)
- 	 * flag, and finally we might get another bast which re-queues
- 	 * us before our ast for the downconvert is called. */
- 	if (!(lockres->l_flags & USER_LOCK_BLOCKED)) {
-+		mlog(ML_BASTS, "lockres %.*s USER_LOCK_BLOCKED\n",
-+		     lockres->l_namelen, lockres->l_name);
- 		spin_unlock(&lockres->l_lock);
- 		goto drop_ref;
- 	}
- 
- 	if (lockres->l_flags & USER_LOCK_IN_TEARDOWN) {
-+		mlog(ML_BASTS, "lockres %.*s USER_LOCK_IN_TEARDOWN\n",
-+		     lockres->l_namelen, lockres->l_name);
- 		spin_unlock(&lockres->l_lock);
- 		goto drop_ref;
- 	}
- 
- 	if (lockres->l_flags & USER_LOCK_BUSY) {
- 		if (lockres->l_flags & USER_LOCK_IN_CANCEL) {
-+			mlog(ML_BASTS, "lockres %.*s USER_LOCK_IN_CANCEL\n",
-+			     lockres->l_namelen, lockres->l_name);
- 			spin_unlock(&lockres->l_lock);
- 			goto drop_ref;
- 		}
-@@ -352,16 +358,18 @@ static void user_dlm_unblock_lock(struct work_struct *work)
- 	if ((lockres->l_blocking == DLM_LOCK_EX)
- 	    && (lockres->l_ex_holders || lockres->l_ro_holders)) {
- 		spin_unlock(&lockres->l_lock);
--		mlog(0, "can't downconvert for ex: ro = %u, ex = %u\n",
--			lockres->l_ro_holders, lockres->l_ex_holders);
-+		mlog(ML_BASTS, "lockres %.*s, EX/PR Holders %u,%u\n",
-+		     lockres->l_namelen, lockres->l_name,
-+		     lockres->l_ex_holders, lockres->l_ro_holders);
- 		goto drop_ref;
- 	}
- 
- 	if ((lockres->l_blocking == DLM_LOCK_PR)
- 	    && lockres->l_ex_holders) {
- 		spin_unlock(&lockres->l_lock);
--		mlog(0, "can't downconvert for pr: ex = %u\n",
--			lockres->l_ex_holders);
-+		mlog(ML_BASTS, "lockres %.*s, EX Holders %u\n",
-+		     lockres->l_namelen, lockres->l_name,
-+		     lockres->l_ex_holders);
- 		goto drop_ref;
- 	}
- 
-@@ -369,8 +377,8 @@ static void user_dlm_unblock_lock(struct work_struct *work)
- 	new_level = user_highest_compat_lock_level(lockres->l_blocking);
- 	lockres->l_requested = new_level;
- 	lockres->l_flags |= USER_LOCK_BUSY;
--	mlog(0, "Downconvert lock from %d to %d\n",
--		lockres->l_level, new_level);
-+	mlog(ML_BASTS, "lockres %.*s, downconvert %d => %d\n",
-+	     lockres->l_namelen, lockres->l_name, lockres->l_level, new_level);
- 	spin_unlock(&lockres->l_lock);
- 
- 	/* need lock downconvert request now... */
-@@ -430,10 +438,8 @@ int user_dlm_cluster_lock(struct user_lock_res *lockres,
- 		goto bail;
- 	}
- 
--	mlog(0, "lockres %.*s: asking for %s lock, passed flags = 0x%x\n",
--	     lockres->l_namelen, lockres->l_name,
--	     (level == DLM_LOCK_EX) ? "DLM_LOCK_EX" : "DLM_LOCK_PR",
--	     lkm_flags);
-+	mlog(ML_BASTS, "lockres %.*s, level %d, flags = 0x%x\n",
-+	     lockres->l_namelen, lockres->l_name, level, lkm_flags);
- 
- again:
- 	if (signal_pending(current)) {
-@@ -603,7 +609,7 @@ int user_dlm_destroy_lock(struct user_lock_res *lockres)
- 	struct ocfs2_cluster_connection *conn =
- 		cluster_connection_from_user_lockres(lockres);
- 
--	mlog(0, "asked to destroy %.*s\n", lockres->l_namelen, lockres->l_name);
-+	mlog(ML_BASTS, "lockres %.*s\n", lockres->l_namelen, lockres->l_name);
- 
- 	spin_lock(&lockres->l_lock);
- 	if (lockres->l_flags & USER_LOCK_IN_TEARDOWN) {
--- 
-1.6.3.3
+Joel Becker wrote:
+> On Sun, Feb 21, 2010 at 04:29:37PM +0800, Tristan Ye wrote:
+>   
+>> Current ocfs2 semantic for reflinking a file firstly create a
+>> new orphan_inode in orphan_dir, then remove it to target dir
+>> after refcounting operation done, these 2 steps makes logic
+>> straightfoward, and guarantee a crash during reflinking can
+>> be replayed(half-refcounted inode can be removed), while it
+>> brings us another issue cause these 2 steps is acquiring the
+>> orphan_dir lock respectively, the problem is, orphan_scan()
+>> may detect the half-refcounted inode in orphan_dir as its
+>> proper candidates to wipe off in a later time. actually it's
+>> not of course, we'd handle this correctly.
+>>     
+>
+> 	Why is this necessary?  Don't we have the open lock on the
+> reflink target?  That should keep an orphan scan from wiping a life
+> refount target.  Tao, do we not have the open lock?
+>   
+
+Yes, we have the open lock all time during reflink operation, but we 
+didn't hold the orphan_dir's lock during this period, which means 
+orphan_scan would have a chance to add our half-refcounted target into 
+its working queue, which will be deferred to invoke ocfs2_inode_delete 
+after reflink operation done(actually it always be invoked after reflink 
+done since we hold the open lock of target inode all the time), in this 
+case, we definitely failed at  ocfs2_query_inode_wipe() as bug 1215 
+described, since the ORPHAN_FLAG here have been cleared by reflink 
+operation. that's not so good to me, we shouldn't have treated this as a 
+'ML_ERROR'.
+
+>   
+>> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+>> index 88459bd..61fb546 100644
+>> --- a/fs/ocfs2/inode.c
+>> +++ b/fs/ocfs2/inode.c
+>> @@ -892,14 +892,30 @@ static int ocfs2_query_inode_wipe(struct inode *inode,
+>>  	di = (struct ocfs2_dinode *) di_bh->b_data;
+>>  	if (!(di->i_flags & cpu_to_le32(OCFS2_ORPHANED_FL))) {
+>>  		/* for lack of a better error? */
+>> -		status = -EEXIST;
+>> -		mlog(ML_ERROR,
+>> -		     "Inode %llu (on-disk %llu) not orphaned! "
+>> -		     "Disk flags  0x%x, inode flags 0x%x\n",
+>> -		     (unsigned long long)oi->ip_blkno,
+>> -		     (unsigned long long)le64_to_cpu(di->i_blkno),
+>> -		     le32_to_cpu(di->i_flags), oi->ip_flags);
+>> -		goto bail;
+>>     
+>
+> 	This should not be inside the ORPHANED_FL check.  Every inode in
+> the orphan_dir, whether a reflink target or an unlinked inode, should
+> have ORPHANED_FL set.  I think this is why others were confused.
+>   
+
+Not exactly, after reflink operation, the flag will be unset, and then 
+ocfs2_delete_inode() was invoked immediately, we did meet bug 1215.
+
+> 	Tao, were you removing the ORPHANED_FL from reflink targets?
+>
+>   
+>> +		if (!(di->i_dyn_features &
+>> +		      cpu_to_le16(OCFS2_HAS_REFCOUNT_FL))) {
+>> +			status = -EEXIST;
+>> +			mlog(ML_ERROR,
+>> +			     "Inode %llu (on-disk %llu) not orphaned! "
+>> +			     "Disk flags  0x%x, inode flags 0x%x\n",
+>> +			     (unsigned long long)oi->ip_blkno,
+>> +			     (unsigned long long)le64_to_cpu(di->i_blkno),
+>> +			     le32_to_cpu(di->i_flags), oi->ip_flags);
+>> +			goto bail;
+>> +		} else {
+>> +			/*
+>> +			 * It did happen to us, though it's a rare case:
+>> +			 * orphan_scan() detects the half-refcounted inode
+>> +			 * in orphan_dir, and delete_inode() attempts to
+>> +			 * wipe it after reflink operation done later. now
+>> +			 * we're not allowed to delete such a valid inode,
+>> +			 * instead, just bail out.
+>> +			 */
+>> +			mlog(0, "Skipping delete of %llu because it's a "
+>> +			     "reflinked inode\n",
+>> +			     (unsigned long long)oi->ip_blkno);
+>> +			goto bail;
+>>     
+>
+> 	Second, this looks like it skips all reflink targets.  That's
+> not OK.  Sometimes they do need to be deleted.
+>   
+Not exactly, it will not skip a failed reflink target which is due to a 
+machine crash or other fatal failure.
+
+Look,  if reflink operation aborted in a abnormal way, it's 
+OCFS2_ORPHANED_FL on disk always there, that can be judged for us to 
+determine if it's a alive half-refcounted inode or a failed reflink target.
+
+So I guess this patch will not skip the real orphan inodes created 
+during a reflink failure.
+
+
+
+Regards,
+Tristan.
+
+> Joel
+>
+>   
