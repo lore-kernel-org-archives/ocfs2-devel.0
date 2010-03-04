@@ -1,236 +1,150 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 04 Mar 2010 07:39:33 -0000
-Subject: [Ocfs2-devel] [PATCH 3/3] du-enhancement: show the shared
- extents per file and the footprint v2
-In-Reply-To: <1267198108-7459-3-git-send-email-jeff.liu@oracle.com>
-References: <> <1267198108-7459-1-git-send-email-jeff.liu@oracle.com>
-	<1267198108-7459-2-git-send-email-jeff.liu@oracle.com>
-	<1267198108-7459-3-git-send-email-jeff.liu@oracle.com>
-Message-ID: <4BB44D82.7000403@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu,  4 Mar 2010 19:58:56 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2:freeze-thaw: freeze lock init and
+	cleanup -v3
+Message-ID: <201003041200.o24C0VvU027580@rcsinet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Jie Liu wrote:
-> this patch add fiemap feature support in du, du show the shared extents size in parens per file
-> as well as the footprint for each request with either '--shared-size' or '-E' option.
->
-> the footprint which is total minus the sum total of all extents in the rbtree
-> that have ei_shared_count > 0.
->
-> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
-> ---
->  coreutils-6.9/src/du.c |  444 +++++++++++++++++++++++++++++++++++++++++++++++-
->  1 files changed, 437 insertions(+), 7 deletions(-)
->
-> diff --git a/coreutils-6.9/src/du.c b/coreutils-6.9/src/du.c
-> index 206d318..3adc3a8 100644
-> --- a/coreutils-6.9/src/du.c
-> +++ b/coreutils-6.9/src/du.c
-> +/* Insert new extent based on the new parent.  */
-> +
-> +static void
-> +insert_new_extent_info (struct rb_node *parent,
-> +                        uint64_t fe_physical,
-> +                        uint64_t fe_length,
-> +                        size_t extent_shared_count)
-> +{
-> +  struct rb_node **p = parent ? &parent : &((&fe_root)->rb_node);
-> +  struct rb_node *pp = NULL;
-> +  struct extent_info *this = NULL;
-> +  struct extent_info *ei;
-> +
-> +  while (*p)
-> +    {
-> +      pp = *p;
-> +      this = rb_entry (*p, struct extent_info, ei_node);
-> +
-> +      if (this->ei_physical > fe_physical)
-> +        p = &(*p)->rb_left;
-> +      else if (this->ei_physical < fe_physical)
-> +	p = &(*p)->rb_right;
-> +      else
-> +	return;
->   
-I am just curious in your code the last "else" should never happen? If 
-yes, maybe if we meet with this, it means a bug in the code.
-So better assert here?
-> +    }
-> +
-> +/* Find the left-most position to insert.  */
-> +
-> +static struct rb_node *
-> +lookup_leftmost_extent_info (uint64_t fe_physical)
-> +{
-> +  struct rb_node **p = &((&fe_root)->rb_node);
-> +  struct rb_node *parent;
-> +  struct extent_info *this;
-> +
-> +  while (*p)
-> +    {
-> +      parent = *p;
-> +      this = rb_entry (*p, struct extent_info, ei_node);
-> +
-> +      if (this->ei_physical > fe_physical)
-> +       p = &(*p)->rb_left;
-> +      else if (this->ei_physical < fe_physical)
-> +	p = &(*p)->rb_right;
-> +      else
-> +	break;
-> +    }
-> +
-> +  return parent;
->   
-If the rb-tree is empty, the parent is uninitialized. So please set 
-parent to NULL in the declaration.
-> +}
-> +
-> +/* Split the new extent into mutiple items if there is overlap
-> +   with the search returned, insert each item or increase the
-> +   existed items shared count for the shared part.  */
-> +
-> +static void
-> +split_extent (uint64_t extent_physical_offset,
-> +              uint64_t extent_length)
-> +{
-> +  struct rb_node *parent = NULL;
-> +  struct rb_node *prev_parent = NULL;
-> +  struct extent_info *this;
-> +  uint64_t pb_start = extent_physical_offset;
-> +  uint64_t ext_len = extent_length;
-> +  uint64_t new_pb_start;
-> +  uint64_t new_ext_len;
-> +  uint64_t old_ext_len;
-> +  size_t ext_shared_count = 0;
-> +
-> +  parent = lookup_leftmost_extent_info (pb_start);
-> +
->   
-> +      /* The new extent physical offset if greater than the search returned.
-> +         there are 3 scenarios need to check against the old one which shown
-> +	 as the following sketch.
-> +         |-----------| old
-> +           |----| new1
-> +           |-----------| new2
-> +           |---------------| new3.  */
-> +      if (pb_start < this->ei_physical + this->ei_length)
-> +        {
-> +	  old_ext_len = this->ei_physical + this->ei_length - pb_start;
-> +	  new_ext_len = MIN (ext_len, old_ext_len);
-> +
-> +          ext_shared_count = this->ei_shared_count;
-> +
-> +          /* The new extent overlapped with the old one, as a result, we
-> +	     need to increase its shared count before inserting.  */
-> +          ext_shared_count++;
-> +	  insert_new_extent_info (parent, pb_start, new_ext_len, ext_shared_count);
-> +
-> +          /* Decrease the search returned extent size and keep it on the tree.  */
-> +          this->ei_length = pb_start - this->ei_physical;
-> +
-> +	  pb_start += new_ext_len;
-> +	  ext_len -= new_ext_len;
->   
-We also need prev_parent = parent here?
-> +          parent = rb_next (parent);
-> +          continue;
-> +        }
-> +
-> +      prev_parent = parent;
-> +      parent = rb_next (parent);
->   
-btw, in the above 3 cases, you always call "continue", so we have no 
-chance to arrive here actually.
-> +    }
-> +}
-> +
-> +/* This function is called once for every file system object that fts
-> +   encounters, get its extent mapping info for the proceeding extent
-> +   spliting operation.  */
-> +
-> +static void
-> +process_extent(int cwd_fd, char const *file,
-> +               char const *file_full_name)
-> +{
-> +  char buf[4096] = "";
-> +  struct fiemap *fiemap = (struct fiemap *)buf;
-> +  struct fiemap_extent *fm_ext = &fiemap->fm_extents[0];
-> +  uint32_t count = (sizeof (buf) - sizeof (*fiemap)) /
-> +               sizeof (struct fiemap_extent);
-> +  int last = 0;
-> +
-> +  int fd = openat (cwd_fd, file, O_RDONLY);
-> +  if (fd < 0)
-> +    {
-> +      fd = open (file_full_name, O_RDONLY);
-> +      if (fd < 0)
-> +        {
-> +          error(0, errno, _("cannot open %s"), quote (file_full_name));
-> +          return;
-> +	}
-> +    }
-> +
-> +  memset (fiemap, 0, sizeof (*fiemap));
-> +
-> +  do {
-> +    fiemap->fm_length = ~0ULL;
-> +    fiemap->fm_flags = fiemap_bits_flags;
-> +    fiemap->fm_extent_count = count;
-> +
-> +    if (ioctl (fd, FS_IOC_FIEMAP, (unsigned long) fiemap) < 0)
-> +      {
-> +        if (errno == EBADR)
-> +            error (0, errno, _("%s FIEMAP failed with unsupported flags %x\n"),
-> +                                quote (file_full_name), fiemap->fm_flags);
-> +
-> +        error(0, errno, _("%s extent mapping failed"), quote (file_full_name));
-> +        goto close_file;
-> +      }
-> +
-> +    /* If 0 extents are returned, then more ioctls
-> +       are not needed.  */
-> +    if (fiemap->fm_mapped_extents == 0)
-> +      goto close_file;
-> +
-> +    uint64_t ext_phy_offset;
-> +    uint64_t ext_len;
-> +    size_t i;
->   
-better move these declaration above.
-> +    for (i = 0; i < fiemap->fm_mapped_extents; i++)
-> +      {
-> +        ext_phy_offset = fm_ext[i].fe_physical;
-> +	ext_len = fm_ext[i].fe_length;
-> +
-> +        /* Skip inline file which its data mixed with metadata.  */
-> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_DATA_INLINE)
-> +	  {
-> +            if (fm_ext[i].fe_flags & FIEMAP_EXTENT_LAST)
-> +              {
-> +                last = 1;
-> +                break;
-> +	      }
-> +	    continue;
-> +	  }
-> +
-> +        /* Increase the shared extents size per file.  */
-> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_SHARED)
-> +          file_shared_extents += fm_ext[i].fe_length;
-> +
-> +        split_extent (ext_phy_offset, ext_len);
-> +
-> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_LAST)
-> +          last = 1;
-> +
-> +        fiemap->fm_start = (fm_ext[i-1].fe_logical + fm_ext[i-1].fe_length);
->   
-I am just curious you start from i=0, so how could fm_ext[-1] work? Or I 
-miss something here?
-> +      }
-> +    } while (last == 0);
-> +
->   
-Regards,
-Tao
+This patch does initialization and cleanup for freeze/thaw.
+
+
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlmglue.c |   25 +++++++++++++++++++++++++
+ fs/ocfs2/super.c   |   25 +++++++++++++++++++++++++
+ 2 files changed, 50 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 7876328..d673949 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -115,6 +115,8 @@ static int ocfs2_check_refcount_downconvert(struct ocfs2_lock_res *lockres,
+ 					    int new_level);
+ static int ocfs2_refcount_convert_worker(struct ocfs2_lock_res *lockres,
+ 					 int blocking);
++static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
++					  int new_level);
+ 
+ #define mlog_meta_lvb(__level, __lockres) ocfs2_dump_meta_lvb_info(__level, __PRETTY_FUNCTION__, __LINE__, __lockres)
+ 
+@@ -290,6 +292,11 @@ static struct ocfs2_lock_res_ops ocfs2_refcount_block_lops = {
+ 	.flags		= 0,
+ };
+ 
++static struct ocfs2_lock_res_ops ocfs2_freeze_lops = {
++	.check_downconvert = ocfs2_check_freeze_downconvert,
++	.flags		= 0,
++};
++
+ static inline int ocfs2_is_inode_lock(struct ocfs2_lock_res *lockres)
+ {
+ 	return lockres->l_type == OCFS2_LOCK_TYPE_META ||
+@@ -722,6 +729,15 @@ void ocfs2_refcount_lock_res_init(struct ocfs2_lock_res *lockres,
+ 				   &ocfs2_refcount_block_lops, osb);
+ }
+ 
++static void ocfs2_freeze_lock_res_init(struct ocfs2_lock_res *res,
++				       struct ocfs2_super *osb)
++{
++	ocfs2_lock_res_init_once(res);
++	ocfs2_build_lock_name(OCFS2_LOCK_TYPE_FREEZEFS, 0, 0, res->l_name);
++	ocfs2_lock_res_init_common(osb, res, OCFS2_LOCK_TYPE_FREEZEFS,
++				   &ocfs2_freeze_lops, osb);
++}
++
+ void ocfs2_lock_res_free(struct ocfs2_lock_res *res)
+ {
+ 	mlog_entry_void();
+@@ -3034,6 +3050,7 @@ local:
+ 	ocfs2_rename_lock_res_init(&osb->osb_rename_lockres, osb);
+ 	ocfs2_nfs_sync_lock_res_init(&osb->osb_nfs_sync_lockres, osb);
+ 	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
++	ocfs2_freeze_lock_res_init(&osb->osb_freeze_lockres, osb);
+ 
+ 	osb->cconn = conn;
+ 
+@@ -3071,6 +3088,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
+ 	ocfs2_lock_res_free(&osb->osb_rename_lockres);
+ 	ocfs2_lock_res_free(&osb->osb_nfs_sync_lockres);
+ 	ocfs2_lock_res_free(&osb->osb_orphan_scan.os_lockres);
++	ocfs2_lock_res_free(&osb->osb_freeze_lockres);
+ 
+ 	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
+ 	osb->cconn = NULL;
+@@ -3256,6 +3274,7 @@ static void ocfs2_drop_osb_locks(struct ocfs2_super *osb)
+ 	ocfs2_simple_drop_lockres(osb, &osb->osb_rename_lockres);
+ 	ocfs2_simple_drop_lockres(osb, &osb->osb_nfs_sync_lockres);
+ 	ocfs2_simple_drop_lockres(osb, &osb->osb_orphan_scan.os_lockres);
++	ocfs2_simple_drop_lockres(osb, &osb->osb_freeze_lockres);
+ }
+ 
+ int ocfs2_drop_inode_locks(struct inode *inode)
+@@ -3934,6 +3953,12 @@ void ocfs2_refcount_unlock(struct ocfs2_refcount_tree *ref_tree, int ex)
+ 		ocfs2_cluster_unlock(osb, lockres, level);
+ }
+ 
++static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
++					  int new_level)
++{
++	return 1; /* change me */
++}
++
+ /*
+  * This is the filesystem locking protocol.  It provides the lock handling
+  * hooks for the underlying DLM.  It has a maximum version number.
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 755cd49..7bdd87e 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -136,6 +136,7 @@ static void ocfs2_destroy_inode(struct inode *inode);
+ static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend);
+ static int ocfs2_enable_quotas(struct ocfs2_super *osb);
+ static void ocfs2_disable_quotas(struct ocfs2_super *osb);
++static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb);
+ 
+ static const struct super_operations ocfs2_sops = {
+ 	.statfs		= ocfs2_statfs,
+@@ -1773,6 +1774,17 @@ static int ocfs2_get_sector(struct super_block *sb,
+ 	return 0;
+ }
+ 
++static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb)
++{
++	if (!osb->cconn)
++		return 0;
++	if (osb->cconn->cc_version.pv_major == 1)
++		return (osb->cconn->cc_version.pv_minor >= 1);
++	if (osb->cconn->cc_version.pv_major > 1)
++		return 1;
++	return 0;
++}
++
+ static int ocfs2_mount_volume(struct super_block *sb)
+ {
+ 	int status = 0;
+@@ -1790,6 +1802,19 @@ static int ocfs2_mount_volume(struct super_block *sb)
+ 		goto leave;
+ 	}
+ 
++	if (ocfs2_freeze_lock_supported(osb)) {
++		/* we fail the mount if freeze lock timeout. the timeout can be
++		 * a normal case that the cluster is frozen when this node attempts
++		 * to join.
++		 */
++		status = ocfs2_freeze_lock(osb, 0);
++		if (status < 0) {
++			mlog_errno(status);
++			goto leave;
++		}
++		ocfs2_freeze_unlock(osb, 0);
++	}
++
+ 	status = ocfs2_super_lock(osb, 1);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-- 
+1.6.6.1
