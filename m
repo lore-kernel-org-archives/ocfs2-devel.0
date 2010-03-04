@@ -1,75 +1,236 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Wed,  3 Mar 2010 11:26:27 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Change bg_chain check for
-	ocfs2_validate_gd_parent.
-Message-ID: <1267586787-11303-1-git-send-email-tao.ma@oracle.com>
+Date: Thu, 04 Mar 2010 07:39:33 -0000
+Subject: [Ocfs2-devel] [PATCH 3/3] du-enhancement: show the shared
+ extents per file and the footprint v2
+In-Reply-To: <1267198108-7459-3-git-send-email-jeff.liu@oracle.com>
+References: <> <1267198108-7459-1-git-send-email-jeff.liu@oracle.com>
+	<1267198108-7459-2-git-send-email-jeff.liu@oracle.com>
+	<1267198108-7459-3-git-send-email-jeff.liu@oracle.com>
+Message-ID: <4BB44D82.7000403@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_validate_gd_parent, we check bg_chain against the
-cl_next_free_rec of the dinode. Actually in resize, we have
-the chance of bg_chain == cl_next_free_rec. So add some
-additional condition check for it.
-
-I also rename paramter "clean_error" to "resize", since the
-old one is not clearly enough to indicate that we should only
-meet with this case in resize.
-
-btw, the correpsonding bug is
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1230.
-
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/suballoc.c |   13 ++++++++-----
- 1 files changed, 8 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index c30b644..79b5dac 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -152,7 +152,7 @@ static u32 ocfs2_bits_per_group(struct ocfs2_chain_list *cl)
- 
- #define do_error(fmt, ...)						\
- 	do{								\
--		if (clean_error)					\
-+		if (resize)					\
- 			mlog(ML_ERROR, fmt "\n", ##__VA_ARGS__);	\
- 		else							\
- 			ocfs2_error(sb, fmt, ##__VA_ARGS__);		\
-@@ -160,7 +160,7 @@ static u32 ocfs2_bits_per_group(struct ocfs2_chain_list *cl)
- 
- static int ocfs2_validate_gd_self(struct super_block *sb,
- 				  struct buffer_head *bh,
--				  int clean_error)
-+				  int resize)
- {
- 	struct ocfs2_group_desc *gd = (struct ocfs2_group_desc *)bh->b_data;
- 
-@@ -211,7 +211,7 @@ static int ocfs2_validate_gd_self(struct super_block *sb,
- static int ocfs2_validate_gd_parent(struct super_block *sb,
- 				    struct ocfs2_dinode *di,
- 				    struct buffer_head *bh,
--				    int clean_error)
-+				    int resize)
- {
- 	unsigned int max_bits;
- 	struct ocfs2_group_desc *gd = (struct ocfs2_group_desc *)bh->b_data;
-@@ -233,8 +233,11 @@ static int ocfs2_validate_gd_parent(struct super_block *sb,
- 		return -EINVAL;
- 	}
- 
--	if (le16_to_cpu(gd->bg_chain) >=
--	    le16_to_cpu(di->id2.i_chain.cl_next_free_rec)) {
-+	/* In resize, we may meet the case bg_chain == cl_next_free_rec. */
-+	if ((le16_to_cpu(gd->bg_chain) >
-+	     le16_to_cpu(di->id2.i_chain.cl_next_free_rec)) ||
-+	    ((le16_to_cpu(gd->bg_chain) ==
-+	     le16_to_cpu(di->id2.i_chain.cl_next_free_rec)) && !resize)) {
- 		do_error("Group descriptor #%llu has bad chain %u",
- 			 (unsigned long long)bh->b_blocknr,
- 			 le16_to_cpu(gd->bg_chain));
--- 
-1.6.3.3.334.g916e1.dirty
+Jie Liu wrote:
+> this patch add fiemap feature support in du, du show the shared extents size in parens per file
+> as well as the footprint for each request with either '--shared-size' or '-E' option.
+>
+> the footprint which is total minus the sum total of all extents in the rbtree
+> that have ei_shared_count > 0.
+>
+> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+> ---
+>  coreutils-6.9/src/du.c |  444 +++++++++++++++++++++++++++++++++++++++++++++++-
+>  1 files changed, 437 insertions(+), 7 deletions(-)
+>
+> diff --git a/coreutils-6.9/src/du.c b/coreutils-6.9/src/du.c
+> index 206d318..3adc3a8 100644
+> --- a/coreutils-6.9/src/du.c
+> +++ b/coreutils-6.9/src/du.c
+> +/* Insert new extent based on the new parent.  */
+> +
+> +static void
+> +insert_new_extent_info (struct rb_node *parent,
+> +                        uint64_t fe_physical,
+> +                        uint64_t fe_length,
+> +                        size_t extent_shared_count)
+> +{
+> +  struct rb_node **p = parent ? &parent : &((&fe_root)->rb_node);
+> +  struct rb_node *pp = NULL;
+> +  struct extent_info *this = NULL;
+> +  struct extent_info *ei;
+> +
+> +  while (*p)
+> +    {
+> +      pp = *p;
+> +      this = rb_entry (*p, struct extent_info, ei_node);
+> +
+> +      if (this->ei_physical > fe_physical)
+> +        p = &(*p)->rb_left;
+> +      else if (this->ei_physical < fe_physical)
+> +	p = &(*p)->rb_right;
+> +      else
+> +	return;
+>   
+I am just curious in your code the last "else" should never happen? If 
+yes, maybe if we meet with this, it means a bug in the code.
+So better assert here?
+> +    }
+> +
+> +/* Find the left-most position to insert.  */
+> +
+> +static struct rb_node *
+> +lookup_leftmost_extent_info (uint64_t fe_physical)
+> +{
+> +  struct rb_node **p = &((&fe_root)->rb_node);
+> +  struct rb_node *parent;
+> +  struct extent_info *this;
+> +
+> +  while (*p)
+> +    {
+> +      parent = *p;
+> +      this = rb_entry (*p, struct extent_info, ei_node);
+> +
+> +      if (this->ei_physical > fe_physical)
+> +       p = &(*p)->rb_left;
+> +      else if (this->ei_physical < fe_physical)
+> +	p = &(*p)->rb_right;
+> +      else
+> +	break;
+> +    }
+> +
+> +  return parent;
+>   
+If the rb-tree is empty, the parent is uninitialized. So please set 
+parent to NULL in the declaration.
+> +}
+> +
+> +/* Split the new extent into mutiple items if there is overlap
+> +   with the search returned, insert each item or increase the
+> +   existed items shared count for the shared part.  */
+> +
+> +static void
+> +split_extent (uint64_t extent_physical_offset,
+> +              uint64_t extent_length)
+> +{
+> +  struct rb_node *parent = NULL;
+> +  struct rb_node *prev_parent = NULL;
+> +  struct extent_info *this;
+> +  uint64_t pb_start = extent_physical_offset;
+> +  uint64_t ext_len = extent_length;
+> +  uint64_t new_pb_start;
+> +  uint64_t new_ext_len;
+> +  uint64_t old_ext_len;
+> +  size_t ext_shared_count = 0;
+> +
+> +  parent = lookup_leftmost_extent_info (pb_start);
+> +
+>   
+> +      /* The new extent physical offset if greater than the search returned.
+> +         there are 3 scenarios need to check against the old one which shown
+> +	 as the following sketch.
+> +         |-----------| old
+> +           |----| new1
+> +           |-----------| new2
+> +           |---------------| new3.  */
+> +      if (pb_start < this->ei_physical + this->ei_length)
+> +        {
+> +	  old_ext_len = this->ei_physical + this->ei_length - pb_start;
+> +	  new_ext_len = MIN (ext_len, old_ext_len);
+> +
+> +          ext_shared_count = this->ei_shared_count;
+> +
+> +          /* The new extent overlapped with the old one, as a result, we
+> +	     need to increase its shared count before inserting.  */
+> +          ext_shared_count++;
+> +	  insert_new_extent_info (parent, pb_start, new_ext_len, ext_shared_count);
+> +
+> +          /* Decrease the search returned extent size and keep it on the tree.  */
+> +          this->ei_length = pb_start - this->ei_physical;
+> +
+> +	  pb_start += new_ext_len;
+> +	  ext_len -= new_ext_len;
+>   
+We also need prev_parent = parent here?
+> +          parent = rb_next (parent);
+> +          continue;
+> +        }
+> +
+> +      prev_parent = parent;
+> +      parent = rb_next (parent);
+>   
+btw, in the above 3 cases, you always call "continue", so we have no 
+chance to arrive here actually.
+> +    }
+> +}
+> +
+> +/* This function is called once for every file system object that fts
+> +   encounters, get its extent mapping info for the proceeding extent
+> +   spliting operation.  */
+> +
+> +static void
+> +process_extent(int cwd_fd, char const *file,
+> +               char const *file_full_name)
+> +{
+> +  char buf[4096] = "";
+> +  struct fiemap *fiemap = (struct fiemap *)buf;
+> +  struct fiemap_extent *fm_ext = &fiemap->fm_extents[0];
+> +  uint32_t count = (sizeof (buf) - sizeof (*fiemap)) /
+> +               sizeof (struct fiemap_extent);
+> +  int last = 0;
+> +
+> +  int fd = openat (cwd_fd, file, O_RDONLY);
+> +  if (fd < 0)
+> +    {
+> +      fd = open (file_full_name, O_RDONLY);
+> +      if (fd < 0)
+> +        {
+> +          error(0, errno, _("cannot open %s"), quote (file_full_name));
+> +          return;
+> +	}
+> +    }
+> +
+> +  memset (fiemap, 0, sizeof (*fiemap));
+> +
+> +  do {
+> +    fiemap->fm_length = ~0ULL;
+> +    fiemap->fm_flags = fiemap_bits_flags;
+> +    fiemap->fm_extent_count = count;
+> +
+> +    if (ioctl (fd, FS_IOC_FIEMAP, (unsigned long) fiemap) < 0)
+> +      {
+> +        if (errno == EBADR)
+> +            error (0, errno, _("%s FIEMAP failed with unsupported flags %x\n"),
+> +                                quote (file_full_name), fiemap->fm_flags);
+> +
+> +        error(0, errno, _("%s extent mapping failed"), quote (file_full_name));
+> +        goto close_file;
+> +      }
+> +
+> +    /* If 0 extents are returned, then more ioctls
+> +       are not needed.  */
+> +    if (fiemap->fm_mapped_extents == 0)
+> +      goto close_file;
+> +
+> +    uint64_t ext_phy_offset;
+> +    uint64_t ext_len;
+> +    size_t i;
+>   
+better move these declaration above.
+> +    for (i = 0; i < fiemap->fm_mapped_extents; i++)
+> +      {
+> +        ext_phy_offset = fm_ext[i].fe_physical;
+> +	ext_len = fm_ext[i].fe_length;
+> +
+> +        /* Skip inline file which its data mixed with metadata.  */
+> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_DATA_INLINE)
+> +	  {
+> +            if (fm_ext[i].fe_flags & FIEMAP_EXTENT_LAST)
+> +              {
+> +                last = 1;
+> +                break;
+> +	      }
+> +	    continue;
+> +	  }
+> +
+> +        /* Increase the shared extents size per file.  */
+> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_SHARED)
+> +          file_shared_extents += fm_ext[i].fe_length;
+> +
+> +        split_extent (ext_phy_offset, ext_len);
+> +
+> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_LAST)
+> +          last = 1;
+> +
+> +        fiemap->fm_start = (fm_ext[i-1].fe_logical + fm_ext[i-1].fe_length);
+>   
+I am just curious you start from i=0, so how could fm_ext[-1] work? Or I 
+miss something here?
+> +      }
+> +    } while (last == 0);
+> +
+>   
+Regards,
+Tao
