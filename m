@@ -1,395 +1,282 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu,  4 Mar 2010 19:59:10 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2:freeze-thaw: make it work -v3
-Message-ID: <201003041201.o24C1cUt015649@acsinet15.oracle.com>
+From: jeff.liu <jeff.liu@oracle.com>
+Date: Fri, 05 Mar 2010 15:59:12 +0800
+Subject: [Ocfs2-devel] [PATCH 3/3] du-enhancement: show the shared
+ extents per file and the footprint v2
+In-Reply-To: <4BB44D82.7000403@oracle.com>
+References: <> <1267198108-7459-1-git-send-email-jeff.liu@oracle.com>
+	<1267198108-7459-2-git-send-email-jeff.liu@oracle.com>
+	<1267198108-7459-3-git-send-email-jeff.liu@oracle.com>
+	<4BB44D82.7000403@oracle.com>
+Message-ID: <4B90B9D0.9030308@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch adds freeze_fs()/unfreeze_fs() for ocfs2 so that it supports freeze/thaw.
+Hi Tao,
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
----
- fs/ocfs2/dlmglue.c |  115 ++++++++++++++++++++++++++++++++++++++++++++++-
- fs/ocfs2/dlmglue.h |    2 +
- fs/ocfs2/journal.c |    1 +
- fs/ocfs2/ocfs2.h   |   12 +++++
- fs/ocfs2/super.c   |  129 +++++++++++++++++++++++++++++++++++++++++++++++++++-
- 5 files changed, 257 insertions(+), 2 deletions(-)
+Thanks for your comments.
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index d673949..673d046 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3953,10 +3953,123 @@ void ocfs2_refcount_unlock(struct ocfs2_refcount_tree *ref_tree, int ex)
- 		ocfs2_cluster_unlock(osb, lockres, level);
- }
- 
-+/*
-+ * This is only ever run on behalf of another node.
-+ */
-+void ocfs2_freeze_worker(struct work_struct *work)
-+{
-+	struct super_block *sb;
-+	int ret, do_unlock = 0;
-+	struct ocfs2_super *osb = container_of(work, struct ocfs2_super,
-+					       osb_freeze_work);
-+
-+	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-+
-+	/* If umount is in progress, wait it to complete. */
-+	ret = ocfs2_test_osb_flag(osb, OCFS2_OSB_UMOUNT_INPROG);
-+	if (ret) {
-+		mlog(0, "Unmount in progress, make the freeze request pending\n");
-+		/* Leave FREEZE_INPROG there so not queue the worker again */
-+		return;
-+	}
-+
-+	sb = freeze_bdev(osb->sb->s_bdev);
-+	if (IS_ERR(sb)) {
-+		/* ocfs2_freeze_fs() shouldn't return any error in the remote
-+		 * box. If it does it's a bug. But we deal with it gracefully.
-+		 */
-+		ret = PTR_ERR(sb);
-+		mlog_errno(ret);
-+		ocfs2_clear_osb_flag(osb, OCFS2_OSB_FREEZE_INPROG);
-+		return;
-+	}
-+
-+	spin_lock(&osb->osb_lock);
-+	osb->osb_flags &= ~OCFS2_OSB_FREEZE_INPROG;
-+	osb->osb_flags |= OCFS2_OSB_FROZEN_BY_REMOTE;
-+	spin_unlock(&osb->osb_lock);
-+
-+	ocfs2_wake_downconvert_thread(osb);
-+
-+	/* Waits for thaw */
-+wait_thaw:
-+	/* thaws the fs if unmount is in progress. */
-+	ret = ocfs2_test_osb_flag(osb, OCFS2_OSB_UMOUNT_INPROG);
-+	if (ret) {
-+		/* Leave FREEZE_INPROG there so not queue the worker again */
-+		goto thaw_dev;
-+
-+	}
-+
-+	ret = ocfs2_freeze_lock(osb, 0);
-+	if (ret == -EBUSY) {
-+		/* We suppose when it returns -EBUSY when timeout is hit.
-+		 * Change me if it's not.
-+		 */
-+		goto wait_thaw;
-+	} else if (ret) {
-+		mlog(ML_ERROR, "Getting PR on freeze_lock failed,"
-+		     "but going to thaw block device %s\n",  osb->dev_str);
-+	} else {
-+		do_unlock = 1;
-+	}
-+
-+thaw_dev:
-+	ret = thaw_bdev(osb->sb->s_bdev, osb->sb);
-+	if (ret) {
-+		/* this shouldn't happen */
-+		mlog_errno(ret);
-+		printk(KERN_WARNING "ocfs2: Thawing %s failed\n", osb->dev_str);
-+	}
-+
-+	ocfs2_clear_osb_flag(osb, OCFS2_OSB_FROZEN_BY_REMOTE);
-+
-+	if (do_unlock)
-+		ocfs2_freeze_unlock(osb, 0);
-+}
-+	
-+static void ocfs2_queue_freeze_worker(struct ocfs2_super *osb)
-+{
-+	int queue_it = 0;
-+
-+	spin_lock(&osb->osb_lock);
-+	if (!(osb->osb_flags & OCFS2_OSB_FREEZE_INPROG)) {
-+		osb->osb_flags |= OCFS2_OSB_FREEZE_INPROG;
-+		queue_it = 1;
-+	}
-+	spin_unlock(&osb->osb_lock);
-+
-+	if (queue_it)
-+		queue_work(ocfs2_wq, &osb->osb_freeze_work);
-+}
-+
- static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
- 					  int new_level)
- {
--	return 1; /* change me */
-+	struct ocfs2_super *osb = ocfs2_get_lockres_osb(lockres);
-+	struct super_block *sb = osb->sb;
-+	int frozen_by_remote;
-+
-+	mlog(0, "flags=0x%lx, frozen=%d, level=%d, newlevel=%d\n",
-+	     osb->osb_flags, sb->s_frozen, lockres->l_level, new_level);
-+
-+	if (new_level == LKM_PRMODE) {
-+		/* other node is during mount or is waiting for thaw. */
-+		if (sb->s_frozen)
-+			return 0;
-+		else
-+			return 1;
-+	}
-+
-+	/* now new_level is NL. other node wants to freeze cluster. */
-+	frozen_by_remote = ocfs2_test_osb_flag(osb, OCFS2_OSB_FROZEN_BY_REMOTE);
-+
-+	/* ok, this node is frozen for the request. */
-+	if (frozen_by_remote)
-+		return 1;
-+
-+	ocfs2_queue_freeze_worker(osb);
-+	return 0;
- }
- 
- /*
-diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-index 297b3a9..c6da138 100644
---- a/fs/ocfs2/dlmglue.h
-+++ b/fs/ocfs2/dlmglue.h
-@@ -167,6 +167,8 @@ void ocfs2_wake_downconvert_thread(struct ocfs2_super *osb);
- struct ocfs2_dlm_debug *ocfs2_new_dlm_debug(void);
- void ocfs2_put_dlm_debug(struct ocfs2_dlm_debug *dlm_debug);
- 
-+void ocfs2_freeze_worker(struct work_struct *work);
-+
- /* To set the locking protocol on module initialization */
- void ocfs2_set_locking_protocol(void);
- #endif	/* DLMGLUE_H */
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 9336c60..8f82525 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -355,6 +355,7 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
- 	if (ocfs2_is_hard_readonly(osb))
- 		return ERR_PTR(-EROFS);
- 
-+	vfs_check_frozen(osb->sb, SB_FREEZE_TRANS);
- 	BUG_ON(osb->journal->j_state == OCFS2_JOURNAL_FREE);
- 	BUG_ON(max_buffs <= 0);
- 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index e0d097e..a674f4b 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -260,6 +260,9 @@ enum ocfs2_mount_options
- #define OCFS2_OSB_HARD_RO			0x0002
- #define OCFS2_OSB_ERROR_FS			0x0004
- #define OCFS2_OSB_DROP_DENTRY_LOCK_IMMED	0x0008
-+#define OCFS2_OSB_FREEZE_INPROG			0x0010
-+#define OCFS2_OSB_UMOUNT_INPROG			0x0020
-+#define OCFS2_OSB_FROZEN_BY_REMOTE		0x0040	/* frozen by remote node */
- 
- #define OCFS2_DEFAULT_ATIME_QUANTUM		60
- 
-@@ -400,6 +403,8 @@ struct ocfs2_super
- 	unsigned int			*osb_orphan_wipes;
- 	wait_queue_head_t		osb_wipe_event;
- 
-+	/* osb_freeze_work is protected by osb->s_bdev->bd_fsfreeze_mutex */
-+	struct work_struct		osb_freeze_work;
- 	struct ocfs2_orphan_scan	osb_orphan_scan;
- 
- 	/* used to protect metaecc calculation check of xattr. */
-@@ -537,6 +542,13 @@ static inline void ocfs2_set_osb_flag(struct ocfs2_super *osb,
- 	spin_unlock(&osb->osb_lock);
- }
- 
-+static inline void ocfs2_clear_osb_flag(struct ocfs2_super *osb,
-+					unsigned long flag)
-+{
-+	spin_lock(&osb->osb_lock);
-+	osb->osb_flags &= ~flag;
-+	spin_unlock(&osb->osb_lock);
-+}
- 
- static inline unsigned long  ocfs2_test_osb_flag(struct ocfs2_super *osb,
- 						 unsigned long flag)
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 7bdd87e..35d7c52 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -137,6 +137,10 @@ static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend);
- static int ocfs2_enable_quotas(struct ocfs2_super *osb);
- static void ocfs2_disable_quotas(struct ocfs2_super *osb);
- static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb);
-+static int is_kernel_thread(void);
-+static int ocfs2_freeze_fs(struct super_block *sb);
-+static int is_freeze_master(struct ocfs2_super *osb);
-+static int ocfs2_unfreeze_fs(struct super_block *sb);
- 
- static const struct super_operations ocfs2_sops = {
- 	.statfs		= ocfs2_statfs,
-@@ -151,6 +155,8 @@ static const struct super_operations ocfs2_sops = {
- 	.show_options   = ocfs2_show_options,
- 	.quota_read	= ocfs2_quota_read,
- 	.quota_write	= ocfs2_quota_write,
-+	.freeze_fs	= ocfs2_freeze_fs,
-+	.unfreeze_fs	= ocfs2_unfreeze_fs,
- };
- 
- enum {
-@@ -385,7 +391,7 @@ static const struct file_operations ocfs2_osb_debug_fops = {
- 
- static int ocfs2_sync_fs(struct super_block *sb, int wait)
- {
--	int status;
-+	int status, flush_journal = 0;
- 	tid_t target;
- 	struct ocfs2_super *osb = OCFS2_SB(sb);
- 
-@@ -406,6 +412,17 @@ static int ocfs2_sync_fs(struct super_block *sb, int wait)
- 			jbd2_log_wait_commit(OCFS2_SB(sb)->journal->j_journal,
- 					     target);
- 	}
-+
-+	flush_journal = ocfs2_test_osb_flag(osb, OCFS2_OSB_FREEZE_INPROG);
-+
-+	/* flushes journal when it's during freeze_bdev(). so that we need not
-+	 * replay journal if this node crashes before thawed.
-+	 */
-+	if (unlikely(flush_journal)) {
-+		status = jbd2_journal_flush(OCFS2_SB(sb)->journal->j_journal);
-+		if (status)
-+			mlog(ML_ERROR, "flushing journal failed %d\n", status);
-+	}
- 	return 0;
- }
- 
-@@ -1215,6 +1232,9 @@ static void ocfs2_kill_sb(struct super_block *sb)
- 	if (!osb || atomic_read(&osb->vol_state) == VOLUME_DISABLED)
- 		goto out;
- 
-+	up_write(&sb->s_umount);
-+	ocfs2_set_osb_flag(osb, OCFS2_OSB_UMOUNT_INPROG);
-+	down_write(&sb->s_umount);
- 	/* Prevent further queueing of inode drop events */
- 	spin_lock(&dentry_list_lock);
- 	ocfs2_set_osb_flag(osb, OCFS2_OSB_DROP_DENTRY_LOCK_IMMED);
-@@ -2172,6 +2192,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	INIT_WORK(&osb->dentry_lock_work, ocfs2_drop_dl_inodes);
- 	osb->dentry_lock_list = NULL;
- 
-+	INIT_WORK(&osb->osb_freeze_work, ocfs2_freeze_worker);
-+
- 	/* get some pseudo constants for clustersize bits */
- 	osb->s_clustersize_bits =
- 		le32_to_cpu(di->id2.i_super.s_clustersize_bits);
-@@ -2530,5 +2552,110 @@ void __ocfs2_abort(struct super_block* sb,
- 	ocfs2_handle_error(sb);
- }
- 
-+static inline int is_kernel_thread()
-+{
-+	return (current->flags & PF_KTHREAD);
-+}
-+
-+/* ocfs2_freeze_fs()/ocfs2_unfreeze_fs() are always called by freeze_bdev()/
-+ * thaw_bdev(). bdev->bd_fsfreeze_mutex is used for synchronization. an extra
-+ * ocfs2 mutex is not needed.
-+ */
-+static int ocfs2_freeze_fs(struct super_block *sb)
-+{
-+	int ret = 0;
-+	struct ocfs2_super *osb = OCFS2_SB(sb);
-+
-+	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-+
-+	/* cluster lock is issued only when this is the IOCTL process.(other
-+	 * case ocfs2_freeze_fs() is called in ocfs2_wq thread)
-+	 */
-+
-+	if (is_kernel_thread()) {
-+		BUG_ON(!ocfs2_freeze_lock_supported(osb));
-+
-+		/* this is ocfs2_wq kernel thread. we do freeze on behalf of
-+		 * the requesting node, don't issue cluster lock again.
-+		 */
-+		printk(KERN_INFO "ocfs2: Block device (%s) frozen by remote\n",
-+		       osb->dev_str);
-+		return 0;
-+	}
-+
-+	/* this is ioctl thread, issues cluster lock */
-+
-+	if (!ocfs2_freeze_lock_supported(osb)) 
-+		return -ENOTSUPP;
-+
-+	ret = ocfs2_freeze_lock(osb, 1);
-+	if (ret) {
-+		mlog_errno(ret);
-+	} else {
-+		printk(KERN_INFO "ocfs2: Block device (%s) frozen by local\n",
-+		       osb->dev_str);
-+	}
-+
-+	return ret;
-+}
-+
-+static int is_freeze_master(struct ocfs2_super *osb)
-+{
-+	BUG_ON(osb->osb_freeze_lockres.l_ex_holders > 1);
-+	return osb->osb_freeze_lockres.l_ex_holders;
-+}
-+
-+static int ocfs2_unfreeze_fs(struct super_block *sb)
-+{
-+	struct ocfs2_super *osb = OCFS2_SB(sb);
-+
-+	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-+
-+	if (is_kernel_thread()) {
-+		/* this is ocfs2_wq kernel thread. nothing to do. */
-+		BUG_ON(!ocfs2_freeze_lock_supported(osb));
-+		printk(KERN_INFO "ocfs2: Block device (%s) thawed by remote\n",
-+		       osb->dev_str);
-+		return 0;
-+	}
-+
-+	/* this is the ioctl user thread. */
-+
-+	if (!ocfs2_freeze_lock_supported(osb))
-+		return -ENOTSUPP;
-+
-+	if (!is_freeze_master(osb)) {
-+		/* THAW ioctl on a node other than the one on with cluster is
-+		 * frozen. don't thaw in the case. returns -EINVAL so that
-+		 * osb->sb->s_bdev->bd_fsfreeze_count can be decreased.
-+		 */
-+
-+		if (!ocfs2_test_osb_flag(osb, OCFS2_OSB_FROZEN_BY_REMOTE)) {
-+			/* this is from a nested cross cluster thaw
-+			 * case:
-+			 * frozen from another node(node A)
-+			 * frozen from this node(not suppored though)
-+			 * thawed from node A
-+			 * thawed from this node(coming here)
-+			 *
-+			 * thaw this node only.
-+			 */
-+			printk(KERN_INFO "ocfs2: Block device (%s) thawed by "
-+			       "local\n", osb->dev_str);
-+			return 0;
-+		}
-+
-+		/* now the cluster still frozen by another node, fails this
-+		 * request.
-+		 */
-+		return -EINVAL;
-+	}
-+
-+	ocfs2_freeze_unlock(osb, 1);
-+
-+	printk(KERN_INFO "ocfs2: Block device (%s) thawed by local\n", osb->dev_str);
-+	return 0;
-+}
-+
- module_init(ocfs2_init);
- module_exit(ocfs2_exit);
--- 
-1.6.6.1
+Tao Ma wrote:
+> Jie Liu wrote:
+>> this patch add fiemap feature support in du, du show the shared
+>> extents size in parens per file
+>> as well as the footprint for each request with either '--shared-size'
+>> or '-E' option.
+>>
+>> the footprint which is total minus the sum total of all extents in the
+>> rbtree
+>> that have ei_shared_count > 0.
+>>
+>> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+>> ---
+>>  coreutils-6.9/src/du.c |  444
+>> +++++++++++++++++++++++++++++++++++++++++++++++-
+>>  1 files changed, 437 insertions(+), 7 deletions(-)
+>>
+>> diff --git a/coreutils-6.9/src/du.c b/coreutils-6.9/src/du.c
+>> index 206d318..3adc3a8 100644
+>> --- a/coreutils-6.9/src/du.c
+>> +++ b/coreutils-6.9/src/du.c
+>> +/* Insert new extent based on the new parent.  */
+>> +
+>> +static void
+>> +insert_new_extent_info (struct rb_node *parent,
+>> +                        uint64_t fe_physical,
+>> +                        uint64_t fe_length,
+>> +                        size_t extent_shared_count)
+>> +{
+>> +  struct rb_node **p = parent ? &parent : &((&fe_root)->rb_node);
+>> +  struct rb_node *pp = NULL;
+>> +  struct extent_info *this = NULL;
+>> +  struct extent_info *ei;
+>> +
+>> +  while (*p)
+>> +    {
+>> +      pp = *p;
+>> +      this = rb_entry (*p, struct extent_info, ei_node);
+>> +
+>> +      if (this->ei_physical > fe_physical)
+>> +        p = &(*p)->rb_left;
+>> +      else if (this->ei_physical < fe_physical)
+>> +    p = &(*p)->rb_right;
+>> +      else
+>> +    return;
+>>   
+> I am just curious in your code the last "else" should never happen? If
+> yes, maybe if we meet with this, it means a bug in the code.
+> So better assert here?
+IMHO, the last 'else' should not happen if the split algorithm works correctly.
+The current algorithm is designed to make sure there is no extent overlap occurrs in the rbtree.
+So I am prefer to abort the DU process by asserting there.
+
+>> +    }
+>> +
+>> +/* Find the left-most position to insert.  */
+>> +
+>> +static struct rb_node *
+>> +lookup_leftmost_extent_info (uint64_t fe_physical)
+>> +{
+>> +  struct rb_node **p = &((&fe_root)->rb_node);
+>> +  struct rb_node *parent;
+>> +  struct extent_info *this;
+>> +
+>> +  while (*p)
+>> +    {
+>> +      parent = *p;
+>> +      this = rb_entry (*p, struct extent_info, ei_node);
+>> +
+>> +      if (this->ei_physical > fe_physical)
+>> +       p = &(*p)->rb_left;
+>> +      else if (this->ei_physical < fe_physical)
+>> +    p = &(*p)->rb_right;
+>> +      else
+>> +    break;
+>> +    }
+>> +
+>> +  return parent;
+>>   
+> If the rb-tree is empty, the parent is uninitialized. So please set
+> parent to NULL in the declaration.
+Thanks, this will be fixed in the next patches submit.
+
+>> +}
+>> +
+>> +/* Split the new extent into mutiple items if there is overlap
+>> +   with the search returned, insert each item or increase the
+>> +   existed items shared count for the shared part.  */
+>> +
+>> +static void
+>> +split_extent (uint64_t extent_physical_offset,
+>> +              uint64_t extent_length)
+>> +{
+>> +  struct rb_node *parent = NULL;
+>> +  struct rb_node *prev_parent = NULL;
+>> +  struct extent_info *this;
+>> +  uint64_t pb_start = extent_physical_offset;
+>> +  uint64_t ext_len = extent_length;
+>> +  uint64_t new_pb_start;
+>> +  uint64_t new_ext_len;
+>> +  uint64_t old_ext_len;
+>> +  size_t ext_shared_count = 0;
+>> +
+>> +  parent = lookup_leftmost_extent_info (pb_start);
+>> +
+>>   +      /* The new extent physical offset if greater than the search
+>> returned.
+>> +         there are 3 scenarios need to check against the old one
+>> which shown
+>> +     as the following sketch.
+>> +         |-----------| old
+>> +           |----| new1
+>> +           |-----------| new2
+>> +           |---------------| new3.  */
+>> +      if (pb_start < this->ei_physical + this->ei_length)
+>> +        {
+>> +      old_ext_len = this->ei_physical + this->ei_length - pb_start;
+>> +      new_ext_len = MIN (ext_len, old_ext_len);
+>> +
+>> +          ext_shared_count = this->ei_shared_count;
+>> +
+>> +          /* The new extent overlapped with the old one, as a result, we
+>> +         need to increase its shared count before inserting.  */
+>> +          ext_shared_count++;
+>> +      insert_new_extent_info (parent, pb_start, new_ext_len,
+>> ext_shared_count);
+>> +
+>> +          /* Decrease the search returned extent size and keep it on
+>> the tree.  */
+>> +          this->ei_length = pb_start - this->ei_physical;
+>> +
+>> +      pb_start += new_ext_len;
+>> +      ext_len -= new_ext_len;
+>>   
+> We also need prev_parent = parent here?
+Yes, it needed.
+By combining with your following next comments.
+I will modify the logical as well.
+
+>> +          parent = rb_next (parent);
+>> +          continue;
+>> +        }
+>> +
+>> +      prev_parent = parent;
+>> +      parent = rb_next (parent);
+>>   
+> btw, in the above 3 cases, you always call "continue", so we have no
+> chance to arrive here actually.
+>> +    }
+>> +}
+>> +
+>> +/* This function is called once for every file system object that fts
+>> +   encounters, get its extent mapping info for the proceeding extent
+>> +   spliting operation.  */
+>> +
+>> +static void
+>> +process_extent(int cwd_fd, char const *file,
+>> +               char const *file_full_name)
+>> +{
+>> +  char buf[4096] = "";
+>> +  struct fiemap *fiemap = (struct fiemap *)buf;
+>> +  struct fiemap_extent *fm_ext = &fiemap->fm_extents[0];
+>> +  uint32_t count = (sizeof (buf) - sizeof (*fiemap)) /
+>> +               sizeof (struct fiemap_extent);
+>> +  int last = 0;
+>> +
+>> +  int fd = openat (cwd_fd, file, O_RDONLY);
+>> +  if (fd < 0)
+>> +    {
+>> +      fd = open (file_full_name, O_RDONLY);
+>> +      if (fd < 0)
+>> +        {
+>> +          error(0, errno, _("cannot open %s"), quote (file_full_name));
+>> +          return;
+>> +    }
+>> +    }
+>> +
+>> +  memset (fiemap, 0, sizeof (*fiemap));
+>> +
+>> +  do {
+>> +    fiemap->fm_length = ~0ULL;
+>> +    fiemap->fm_flags = fiemap_bits_flags;
+>> +    fiemap->fm_extent_count = count;
+>> +
+>> +    if (ioctl (fd, FS_IOC_FIEMAP, (unsigned long) fiemap) < 0)
+>> +      {
+>> +        if (errno == EBADR)
+>> +            error (0, errno, _("%s FIEMAP failed with unsupported
+>> flags %x\n"),
+>> +                                quote (file_full_name),
+>> fiemap->fm_flags);
+>> +
+>> +        error(0, errno, _("%s extent mapping failed"), quote
+>> (file_full_name));
+>> +        goto close_file;
+>> +      }
+>> +
+>> +    /* If 0 extents are returned, then more ioctls
+>> +       are not needed.  */
+>> +    if (fiemap->fm_mapped_extents == 0)
+>> +      goto close_file;
+>> +
+>> +    uint64_t ext_phy_offset;
+>> +    uint64_t ext_len;
+>> +    size_t i;
+>>   
+> better move these declaration above.
+Do you means this is a bad coding style?
+
+Due to these variables resides function exceeds 1 screen page, so I declares them here to
+facilitate the variables reference like type and name. or else, someone have to page up to refer to
+them.
+I'd like to keep the ext_phy_offset and ext_len in the bottom FOR logical, but move 'i' to the
+head of this function since it is well-known as an iterate counter.
+
+How do you think about that?
+I just want to make the code looks more professional.
+
+>> +    for (i = 0; i < fiemap->fm_mapped_extents; i++)
+>> +      {
+            uint64_t ext_phy_offset;
+            uint64_t ext_len;
+>> +        ext_phy_offset = fm_ext[i].fe_physical;
+>> +    ext_len = fm_ext[i].fe_length;
+>> +
+>> +        /* Skip inline file which its data mixed with metadata.  */
+>> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_DATA_INLINE)
+>> +      {
+>> +            if (fm_ext[i].fe_flags & FIEMAP_EXTENT_LAST)
+>> +              {
+>> +                last = 1;
+>> +                break;
+>> +          }
+>> +        continue;
+>> +      }
+>> +
+>> +        /* Increase the shared extents size per file.  */
+>> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_SHARED)
+>> +          file_shared_extents += fm_ext[i].fe_length;
+>> +
+>> +        split_extent (ext_phy_offset, ext_len);
+>> +
+>> +        if (fm_ext[i].fe_flags & FIEMAP_EXTENT_LAST)
+>> +          last = 1;
+>> +
+>> +        fiemap->fm_start = (fm_ext[i-1].fe_logical +
+>> fm_ext[i-1].fe_length);
+>>   
+> I am just curious you start from i=0, so how could fm_ext[-1] work? Or I
+> miss something here?
+No, you are right, that's my mistake, the new start offset should be calcuated outside the FOR loop.
+
+Thanks,
+-Jeff
+
+>> +      }
+>> +    } while (last == 0);
+>> +
+>>   
+> Regards,
+> Tao
+> 
