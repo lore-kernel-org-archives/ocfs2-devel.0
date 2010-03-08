@@ -1,97 +1,116 @@
-From: Jie Liu <jeff.liu@oracle.com>
-Date: Mon,  8 Mar 2010 23:31:44 +0800
-Subject: [Ocfs2-devel] [PATCH 2/3] du-enhancement: Add fiemap header file v3
-In-Reply-To: <1268062305-7677-1-git-send-email-jeff.liu@oracle.com>
-References: <>
- <1268062305-7677-1-git-send-email-jeff.liu@oracle.com>
-Message-ID: <1268062305-7677-2-git-send-email-jeff.liu@oracle.com>
+From: jeff.liu <jeff.liu@oracle.com>
+Date: Mon, 08 Mar 2010 23:44:00 +0800
+Subject: [Ocfs2-devel] du_enhancement v3
+In-Reply-To: <4B9517FD.10307@oracle.com>
+References: <4B9517FD.10307@oracle.com>
+Message-ID: <4B951B40.6010507@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add fiemap.h to src which will be used by du.c
+jeff.liu wrote:
+> Hello,
+> 
+> The following is the v3 patchset for du enhancement.
+> 
+> The bugs fixed according to Tao's comments.
+> 
+> For now, I faced with another problem need your guys help confirm:
+> I skipped the inline file processing which its data mixed with metadata.
+> IMHO, it has pretty minor effect for the precise measurement of footprint, as a result,
+> the rebree process overhead is unworthy for inline file.
+> 
+> Any thoughts or suggestions for this case?
+> 
+> 
+> I run a few simple testing, it works:
+> 
+>>>> 1542 - 1 - 21 - 99 - 512 - 105 - 5
+> 799
+> jeff at jeff-laptop:/shared-du  -E -m -c /ocfs2/*
+> 0	/ocfs2/lost+found
+> 1	/ocfs2/reflink
+> 1	(1)	/ocfs2/test1
+> 1	(1)	/ocfs2/test1r
+> 21	(21)	/ocfs2/test2
+> 21	(21)	/ocfs2/test2r
+> 99	(99)	/ocfs2/test3
+> 99	(99)	/ocfs2/test3r
+> 40	/ocfs2/test4
+> 22	(22)	/ocfs2/test4r
+> 512	(512)	/ocfs2/test5
+> 512	(512)	/ocfs2/test5r
+> 105	(105)	/ocfs2/test6
+> 105	(105)	/ocfs2/test6r
+> 0	/ocfs2/test7
+> 0	/ocfs2/test7r
+> 5	(5)	/ocfs2/test8
+> 0	(5)	/ocfs2/test8r
+> 1542	total
+> 799	footprint
+> 
+>>>> 1578232 - 5120 - 107520 - 524288 - 101376 - 1024 - 21504
+> 817400
+> jeff at jeff-laptop:./shared-du  -E -k -c /ocfs2/*
+> 0	/ocfs2/lost+found
+> 88	/ocfs2/reflink
+> 1024	(1024)	/ocfs2/test1
+> 1024	(1024)	/ocfs2/test1r
+> 21504	(21504)	/ocfs2/test2
+> 21504	(21504)	/ocfs2/test2r
+> 101376	(101376)	/ocfs2/test3
+> 101376	(101376)	/ocfs2/test3r
+> 40092	/ocfs2/test4
+> 21508	(21508)	/ocfs2/test4r
+> 524288	(524288)	/ocfs2/test5
+> 524288	(524288)	/ocfs2/test5r
+> 107520	(107520)	/ocfs2/test6
+> 107520	(107520)	/ocfs2/test6r
+> 0	/ocfs2/test7
+> 0	/ocfs2/test7r
+> 5120	(5120)	/ocfs2/test8
+> 0	(5120)	/ocfs2/test8r
+> 1578232	total
+> 817400	footprint
+> 
+>>>> 1621360142 - 5242880 - 110100480 - 536870912 - 103809024 - 22020096 - 1048576
+> 842268174
+> jeff at jeff-laptop:./shared-du  -E -b -c /ocfs2/*
+> 3896	/ocfs2/bind_mount
+> 3896	/ocfs2/lost+found
+> 86414	/ocfs2/reflink
+> 1048576	(1048576)	/ocfs2/test1
+> 1048576	(1048576)	/ocfs2/test1r
+> 22020096	(22020096)	/ocfs2/test2
+> 22020096	(22020096)	/ocfs2/test2r
+> 103809024	(103809024)	/ocfs2/test3
+> 103809024	(103809024)	/ocfs2/test3r
+> 41054208	/ocfs2/test4
+> 22024192	(22024192)	/ocfs2/test4r
+> 536870912	(536870912)	/ocfs2/test5
+> 536870912	(536870912)	/ocfs2/test5r
+> 110100480	(110100480)	/ocfs2/test6
+> 110100480	(110100480)	/ocfs2/test6r
+> 1800	/ocfs2/test7                             <<< inline file
+> 1800	/ocfs2/test7r
+for the inline file, maybe a better way is show its shared size as well, it is straightforward, but
+bypass split_extent() operation?
 
-Signed-off-by: Jie Liu <jeff.liu@oracle.com>
----
- coreutils-6.9/src/fiemap.h |   68 ++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 68 insertions(+), 0 deletions(-)
- create mode 100644 coreutils-6.9/src/fiemap.h
-
-diff --git a/coreutils-6.9/src/fiemap.h b/coreutils-6.9/src/fiemap.h
-new file mode 100644
-index 0000000..54222ba
---- /dev/null
-+++ b/coreutils-6.9/src/fiemap.h
-@@ -0,0 +1,68 @@
-+/*
-+ * FS_IOC_FIEMAP ioctl infrastructure.
-+ *
-+ * Some portions copyright (C) 2007 Cluster File Systems, Inc
-+ *
-+ * Authors: Mark Fasheh <mfasheh@suse.com>
-+ *          Kalpak Shah <kalpak.shah@sun.com>
-+ *          Andreas Dilger <adilger@sun.com>
-+*/
-+
-+#ifndef _LINUX_FIEMAP_H
-+#define _LINUX_FIEMAP_H
-+
-+#include <linux/types.h>
-+
-+struct fiemap_extent {
-+  uint64_t fe_logical;  /* logical offset in bytes for the start of
-+                        * the extent from the beginning of the file */
-+  uint64_t fe_physical; /* physical offset in bytes for the start
-+                         * of the extent from the beginning of the disk */
-+  uint64_t fe_length;   /* length in bytes for this extent */
-+  uint64_t fe_reserved64[2];
-+  uint32_t fe_flags;    /* FIEMAP_EXTENT_* flags for this extent */
-+  uint32_t fe_reserved[3];
-+};
-+
-+struct fiemap {
-+  uint64_t fm_start;                  /* logical offset (inclusive) at
-+				       * which to start mapping (in) */
-+  uint64_t fm_length;                 /* logical length of mapping which
-+				       * userspace wants (in) */
-+  uint32_t fm_flags;                  /* FIEMAP_FLAG_* flags for request (in/out) */
-+  uint32_t fm_mapped_extents;         /* number of extents that were mapped (out) */
-+  uint32_t fm_extent_count;           /* size of fm_extents array (in) */
-+  uint32_t fm_reserved;
-+  struct fiemap_extent fm_extents[0]; /* array of mapped extents (out) */
-+};
-+
-+#define FIEMAP_MAX_OFFSET	(~0ULL)
-+
-+#define FIEMAP_FLAG_SYNC	0x00000001 /* sync file data before map */
-+#define FIEMAP_FLAG_XATTR	0x00000002 /* map extended attribute tree */
-+
-+#define FIEMAP_FLAGS_COMPAT	(FIEMAP_FLAG_SYNC | FIEMAP_FLAG_XATTR)
-+
-+#define FIEMAP_EXTENT_LAST		0x00000001 /* Last extent in file. */
-+#define FIEMAP_EXTENT_UNKNOWN		0x00000002 /* Data location unknown. */
-+#define FIEMAP_EXTENT_DELALLOC		0x00000004 /* Location still pending.
-+						    * Sets EXTENT_UNKNOWN. */
-+#define FIEMAP_EXTENT_ENCODED		0x00000008 /* Data can not be read
-+						    * while fs is unmounted */
-+#define FIEMAP_EXTENT_DATA_ENCRYPTED	0x00000080 /* Data is encrypted by fs.
-+						    * Sets EXTENT_NO_BYPASS. */
-+#define FIEMAP_EXTENT_NOT_ALIGNED	0x00000100 /* Extent offsets may not be
-+						    * block aligned. */
-+#define FIEMAP_EXTENT_DATA_INLINE	0x00000200 /* Data mixed with metadata.
-+						    * Sets EXTENT_NOT_ALIGNED.*/
-+#define FIEMAP_EXTENT_DATA_TAIL		0x00000400 /* Multiple files in block.
-+						    * Sets EXTENT_NOT_ALIGNED.*/
-+#define FIEMAP_EXTENT_UNWRITTEN		0x00000800 /* Space allocated, but
-+						    * no data (i.e. zero). */
-+#define FIEMAP_EXTENT_MERGED		0x00001000 /* File does not natively
-+						    * support extents. Result
-+						    * merged for efficiency. */
-+#define FIEMAP_EXTENT_SHARED		0x00002000 /* Space shared with other
-+						    * files. */
-+
-+#endif /* _LINUX_FIEMAP_H */
--- 
-1.5.4.3
+> 5242880	(5242880)	/ocfs2/test8
+> 5242880	(5242880)	/ocfs2/test8r
+> 1621360142	total
+> 842268174	footprint
+> 
+> 
+> 
+> Please review, any comments are appreciated!
+> 
+> Thanks,
+> -Jeff
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
