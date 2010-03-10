@@ -1,60 +1,109 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue,  9 Mar 2010 18:29:04 -0800
-Subject: [Ocfs2-devel] [PATCH 0/4] Ocfs2 allocation reservations
-Message-ID: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
+Date: Tue,  9 Mar 2010 18:29:06 -0800
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: use allocation reservations during
+	file write
+In-Reply-To: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
+References: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
+Message-ID: <1268188148-5253-3-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following patches comprise my latest work on enabling larger contiguous
-allocations in Ocfs2 in the presence of multiple threads. The patches have
-been through much more testing since my last round. At this point, I'd say
-they're ready for wider consumption and of course, more review :)
+Add a per-inode reservations structure and pass it through to the
+reservations code.
 
-Similarly to the last series, reservations only operate on the local alloc
-bitmap. The code knows nothing of inodes and allocators however, so we can
-extend it to the global bitmap (should the need arise) at a future date.
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+---
+ fs/ocfs2/alloc.c |    2 ++
+ fs/ocfs2/aops.c  |    2 ++
+ fs/ocfs2/file.c  |    3 +++
+ fs/ocfs2/inode.c |    4 ++++
+ fs/ocfs2/inode.h |    2 ++
+ fs/ocfs2/super.c |    2 ++
+ 6 files changed, 15 insertions(+), 0 deletions(-)
 
-Changes from the last series are numerous. The biggest one however, is that
-reservations (when enabled) are no longer 'advisory' and represent an actual
-region of free bits in the local alloc file. The local alloc code obeys
-reservations unconditionally.
-
-The reason I made this change is because I saw a breakdown in allocation
-(back to worst-case) on longer running tests, or those with many threads. 
-Those tests it turned out, were exposing "corner cases" in the code where
-reservations could no longer be honored due to bits having been set in the
-local alloc bitmap. Better window replacement (and tracking) policy became
-quite convoluted when the state of the local alloc bitmap wasn't quite
-known. It is far simpler to just consult the bitmap for windows, and my
-testing results showed that it worked better too.
-
-This differs from file systems like ext4 (which I used for inspiration), but
-our allocation strategy differs greatly.  Whereas ext4 may have many
-different block groups in play during a multi-threaded write we only have
-the single (and relatively smaller) local alloc window.  Reservations can
-afford to be advisory for ext4, in Ocfs2 however we need them to be honored.
-
-
-As for results, I provide one of my recent test runs on a 4k/4k file
-system:
-
-dd if=/dev/urandom of=/ocfs2/1 bs=4096 count=10000 & dd if=/dev/urandom
-of=/ocfs2/2 bs=4096 count=10000 & dd if=/dev/urandom of=/ocfs2/3 bs=4096
-count=10000 &
-
-
-resv_level=0
-Inode: 16920    % fragmented: 93.48     clusters: 10000 extents: 9348 score: 23931
-Inode: 16921    % fragmented: 84.75     clusters: 10000 extents: 8475 score: 21696
-Inode: 16922    % fragmented: 95.50     clusters: 10000 extents: 9550 score: 24448
-
-resv_level=5 (defaults changed a bit, this means '128 blocks per reservation'):
-Inode: 16916    % fragmented: 1.66      clusters: 10000 extents: 166 score: 425
-Inode: 16917    % fragmented: 1.71      clusters: 10000 extents: 171 score: 438
-Inode: 16918    % fragmented: 1.58      clusters: 10000 extents: 158 score: 404
-
-Thanks in advance,
-	--Mark
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index d17bdc7..b8f0744 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -7307,6 +7307,8 @@ int ocfs2_convert_inline_data_to_extents(struct inode *inode,
+ 		}
+ 		did_quota = 1;
+ 
++		data_ac->ac_resv = &OCFS2_I(inode)->ip_la_data_resv;
++
+ 		ret = ocfs2_claim_clusters(osb, handle, data_ac, 1, &bit_off,
+ 					   &num);
+ 		if (ret) {
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 7e9df11..137d460 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1734,6 +1734,8 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+ 			goto out;
+ 		}
+ 
++		data_ac->ac_resv = &OCFS2_I(inode)->ip_la_data_resv;
++
+ 		credits = ocfs2_calc_extend_credits(inode->i_sb,
+ 						    &di->id2.i_list,
+ 						    clusters_to_alloc);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 558ce03..ff928a9 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -485,6 +485,9 @@ static int ocfs2_truncate_file(struct inode *inode,
+ 
+ 	down_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 
++	ocfs2_resv_discard(&osb->osb_la_resmap,
++			   &OCFS2_I(inode)->ip_la_data_resv);
++
+ 	/*
+ 	 * The inode lock forced other nodes to sync and drop their
+ 	 * pages, which (correctly) happens even if we have a truncate
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 88459bd..2a00c2d 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1097,6 +1097,10 @@ void ocfs2_clear_inode(struct inode *inode)
+ 	ocfs2_mark_lockres_freeing(&oi->ip_inode_lockres);
+ 	ocfs2_mark_lockres_freeing(&oi->ip_open_lockres);
+ 
++	ocfs2_resv_discard(&OCFS2_SB(inode->i_sb)->osb_la_resmap,
++			   &oi->ip_la_data_resv);
++	ocfs2_resv_init_once(&oi->ip_la_data_resv);
++
+ 	/* We very well may get a clear_inode before all an inodes
+ 	 * metadata has hit disk. Of course, we can't drop any cluster
+ 	 * locks until the journal has finished with it. The only
+diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+index ba4fe07..e45edca 100644
+--- a/fs/ocfs2/inode.h
++++ b/fs/ocfs2/inode.h
+@@ -70,6 +70,8 @@ struct ocfs2_inode_info
+ 	/* Only valid if the inode is the dir. */
+ 	u32				ip_last_used_slot;
+ 	u64				ip_last_used_group;
++
++	struct ocfs2_alloc_reservation	ip_la_data_resv;
+ };
+ 
+ /*
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index a6f9556..db354d1 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1703,6 +1703,8 @@ static void ocfs2_inode_init_once(void *data)
+ 	oi->ip_blkno = 0ULL;
+ 	oi->ip_clusters = 0;
+ 
++	ocfs2_resv_init_once(&oi->ip_la_data_resv);
++
+ 	ocfs2_lock_res_init_once(&oi->ip_rw_lockres);
+ 	ocfs2_lock_res_init_once(&oi->ip_inode_lockres);
+ 	ocfs2_lock_res_init_once(&oi->ip_open_lockres);
+-- 
+1.6.4.2
