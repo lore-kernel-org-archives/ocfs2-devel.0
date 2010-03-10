@@ -1,46 +1,60 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 10 Mar 2010 09:56:52 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Update i_blocks in reflink
-	operations.
-Message-ID: <1268186212-11949-1-git-send-email-tao.ma@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Tue,  9 Mar 2010 18:29:04 -0800
+Subject: [Ocfs2-devel] [PATCH 0/4] Ocfs2 allocation reservations
+Message-ID: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
->> +	t_inode->i_blocks = ocfs2_inode_sector_count(t_inode);
->	Curiously, why wouldn't it just be s_inode->i_blocks?
-	yeah, using i_blocks looks more natural. Here is the updated one.
+The following patches comprise my latest work on enabling larger contiguous
+allocations in Ocfs2 in the presence of multiple threads. The patches have
+been through much more testing since my last round. At this point, I'd say
+they're ready for wider consumption and of course, more review :)
 
-Regards,
-Tao
+Similarly to the last series, reservations only operate on the local alloc
+bitmap. The code knows nothing of inodes and allocators however, so we can
+extend it to the global bitmap (should the need arise) at a future date.
 
-From 08c37fec54533cf3a04285caceda908eccab9d57 Mon Sep 17 00:00:00 2001
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 10 Mar 2010 09:45:00 +0800
-Subject: [PATCH] ocfs2: Update i_blocks in reflink operations.
+Changes from the last series are numerous. The biggest one however, is that
+reservations (when enabled) are no longer 'advisory' and represent an actual
+region of free bits in the local alloc file. The local alloc code obeys
+reservations unconditionally.
 
-In reflink, we need to upate i_blocks for the target inode.
+The reason I made this change is because I saw a breakdown in allocation
+(back to worst-case) on longer running tests, or those with many threads. 
+Those tests it turned out, were exposing "corner cases" in the code where
+reservations could no longer be honored due to bits having been set in the
+local alloc bitmap. Better window replacement (and tracking) policy became
+quite convoluted when the state of the local alloc bitmap wasn't quite
+known. It is far simpler to just consult the bitmap for windows, and my
+testing results showed that it worked better too.
 
-Reported-by: Jie Liu <jeff.liu@oracle.com>
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/refcounttree.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+This differs from file systems like ext4 (which I used for inspiration), but
+our allocation strategy differs greatly.  Whereas ext4 may have many
+different block groups in play during a multi-threaded write we only have
+the single (and relatively smaller) local alloc window.  Reservations can
+afford to be advisory for ext4, in Ocfs2 however we need them to be honored.
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 9e96921..29405f2 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -4075,6 +4075,7 @@ static int ocfs2_complete_reflink(struct inode *s_inode,
- 	OCFS2_I(t_inode)->ip_dyn_features = OCFS2_I(s_inode)->ip_dyn_features;
- 	spin_unlock(&OCFS2_I(t_inode)->ip_lock);
- 	i_size_write(t_inode, size);
-+	t_inode->i_blocks = s_inode->i_blocks;
- 
- 	di->i_xattr_inline_size = s_di->i_xattr_inline_size;
- 	di->i_clusters = s_di->i_clusters;
--- 
-1.5.5
+
+As for results, I provide one of my recent test runs on a 4k/4k file
+system:
+
+dd if=/dev/urandom of=/ocfs2/1 bs=4096 count=10000 & dd if=/dev/urandom
+of=/ocfs2/2 bs=4096 count=10000 & dd if=/dev/urandom of=/ocfs2/3 bs=4096
+count=10000 &
+
+
+resv_level=0
+Inode: 16920    % fragmented: 93.48     clusters: 10000 extents: 9348 score: 23931
+Inode: 16921    % fragmented: 84.75     clusters: 10000 extents: 8475 score: 21696
+Inode: 16922    % fragmented: 95.50     clusters: 10000 extents: 9550 score: 24448
+
+resv_level=5 (defaults changed a bit, this means '128 blocks per reservation'):
+Inode: 16916    % fragmented: 1.66      clusters: 10000 extents: 166 score: 425
+Inode: 16917    % fragmented: 1.71      clusters: 10000 extents: 171 score: 438
+Inode: 16918    % fragmented: 1.58      clusters: 10000 extents: 158 score: 404
+
+Thanks in advance,
+	--Mark
