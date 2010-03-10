@@ -1,47 +1,108 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue,  9 Mar 2010 18:29:08 -0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: allocate btree internal block
-	groups from the global bitmap
-In-Reply-To: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
-References: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1268188148-5253-5-git-send-email-mfasheh@suse.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Wed, 10 Mar 2010 21:12:10 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: prints peer node number when sending
+	tcp msg failed
+Message-ID: <201003101313.o2ACClp1019681@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Otherwise, the need for a very large contiguous allocation tends to
-wreak havoc on many inode allocation reservations on the local alloc, thus
-ruining any chances for contiguousness.
+This patch adds prints of the number of peer node to which sending tcp message
+failed. It helps debugging.
 
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 ---
- fs/ocfs2/suballoc.c |    5 ++++-
- 1 files changed, 4 insertions(+), 1 deletions(-)
+ fs/ocfs2/cluster/masklog.h |    9 +++++++++
+ fs/ocfs2/cluster/tcp.c     |    9 +++++++--
+ fs/ocfs2/dlm/dlmast.c      |    2 +-
+ fs/ocfs2/dlm/dlmconvert.c  |    2 +-
+ fs/ocfs2/dlm/dlmunlock.c   |    2 +-
+ 5 files changed, 19 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 7b76926..62c570c 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -659,7 +659,8 @@ int ocfs2_reserve_new_metadata_blocks(struct ocfs2_super *osb,
+diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
+index 3dfddbe..2af7e93 100644
+--- a/fs/ocfs2/cluster/masklog.h
++++ b/fs/ocfs2/cluster/masklog.h
+@@ -219,6 +219,15 @@ extern struct mlog_bits mlog_and_bits, mlog_not_bits;
+ 		mlog(ML_ERROR, "status = %lld\n", (long long)_st);	\
+ } while (0)
  
- 	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
- 					     EXTENT_ALLOC_SYSTEM_INODE,
--					     slot, NULL, ALLOC_NEW_GROUP);
-+					     slot, NULL,
-+					     ALLOC_GROUPS_FROM_GLOBAL|ALLOC_NEW_GROUP);
- 	if (status < 0) {
- 		if (status != -ENOSPC)
- 			mlog_errno(status);
-@@ -1821,6 +1822,8 @@ int __ocfs2_claim_clusters(struct ocfs2_super *osb,
- 	       && ac->ac_which != OCFS2_AC_USE_MAIN);
- 
- 	if (ac->ac_which == OCFS2_AC_USE_LOCAL) {
-+		WARN_ON(min_clusters > 1);
++/* "node" is number of the node to which sending tcp msg failed */
++#define mlog_network_errno(st, node) do {				\
++	int _st = (st);							\
++	if (_st != -ERESTARTSYS && _st != -EINTR &&			\
++	    _st != AOP_TRUNCATED_PAGE && _st != -ENOSPC)		\
++		mlog(ML_ERROR, "failed to send msg to %u. "		\
++		     "errno: %lld\n", (u32)(node), (long long)_st);	\
++} while (0)
 +
- 		status = ocfs2_claim_local_alloc_bits(osb,
- 						      handle,
- 						      ac,
+ #if defined(CONFIG_OCFS2_DEBUG_MASKLOG)
+ #define mlog_entry(fmt, args...) do {					\
+ 	mlog(ML_ENTRY, "ENTRY:" fmt , ##args);				\
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index d8d0c65..bdc4e9a 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -1092,12 +1092,17 @@ EXPORT_SYMBOL_GPL(o2net_send_message_vec);
+ int o2net_send_message(u32 msg_type, u32 key, void *data, u32 len,
+ 		       u8 target_node, int *status)
+ {
++	int ret;
+ 	struct kvec vec = {
+ 		.iov_base = data,
+ 		.iov_len = len,
+ 	};
+-	return o2net_send_message_vec(msg_type, key, &vec, 1,
+-				      target_node, status);
++
++	ret = o2net_send_message_vec(msg_type, key, &vec, 1,
++				     target_node, status);
++	if (ret < 0)
++		mlog_network_errno(ret, target_node);
++	return ret;
+ }
+ EXPORT_SYMBOL_GPL(o2net_send_message);
+ 
+diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
+index dccc439..bc50076 100644
+--- a/fs/ocfs2/dlm/dlmast.c
++++ b/fs/ocfs2/dlm/dlmast.c
+@@ -453,7 +453,7 @@ int dlm_send_proxy_ast_msg(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+ 	ret = o2net_send_message_vec(DLM_PROXY_AST_MSG, dlm->key, vec, veclen,
+ 				     lock->ml.node, &status);
+ 	if (ret < 0)
+-		mlog_errno(ret);
++		mlog_network_errno(ret, lock->ml.node);
+ 	else {
+ 		if (status == DLM_RECOVERING) {
+ 			mlog(ML_ERROR, "sent AST to node %u, it thinks this "
+diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
+index f283bce..ba30234 100644
+--- a/fs/ocfs2/dlm/dlmconvert.c
++++ b/fs/ocfs2/dlm/dlmconvert.c
+@@ -391,7 +391,7 @@ static enum dlm_status dlm_send_remote_convert_request(struct dlm_ctxt *dlm,
+ 		} else if (ret != DLM_NORMAL && ret != DLM_NOTQUEUED)
+ 			dlm_error(ret);
+ 	} else {
+-		mlog_errno(tmpret);
++		mlog_network_errno(tmpret, res->owner);
+ 		if (dlm_is_host_down(tmpret)) {
+ 			/* instead of logging the same network error over
+ 			 * and over, sleep here and wait for the heartbeat
+diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+index 49e29ec..acdc7fc 100644
+--- a/fs/ocfs2/dlm/dlmunlock.c
++++ b/fs/ocfs2/dlm/dlmunlock.c
+@@ -355,7 +355,7 @@ static enum dlm_status dlm_send_remote_unlock_request(struct dlm_ctxt *dlm,
+ 			mlog(0, "master was in-progress.  retry\n");
+ 		ret = status;
+ 	} else {
+-		mlog_errno(tmpret);
++		mlog_network_errno(tmpret, owner);
+ 		if (dlm_is_host_down(tmpret)) {
+ 			/* NOTE: this seems strange, but it is what we want.
+ 			 * when the master goes down during a cancel or
 -- 
-1.6.4.2
+1.6.6.1
