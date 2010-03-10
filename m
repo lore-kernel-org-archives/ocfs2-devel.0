@@ -1,138 +1,47 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue,  9 Mar 2010 18:29:07 -0800
-Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2: use allocation reservations for
-	directory data
+Date: Tue,  9 Mar 2010 18:29:08 -0800
+Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: allocate btree internal block
+	groups from the global bitmap
 In-Reply-To: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
 References: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1268188148-5253-4-git-send-email-mfasheh@suse.com>
+Message-ID: <1268188148-5253-5-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Use the reservations system for unindexed dir tree allocations. We
-don't bother with the indexed tree as reads from it are mostly random
-anyway. By default this behavior is turned off and can be turned on
-via mount option 'dir_resv'. Workloads which create many large
-directories will want to turn it on.
-
-A future improvement will be to use a different window size for
-directory inodes. Once done, we should change the default for this
-feature to be enabled.
+Otherwise, the need for a very large contiguous allocation tends to
+wreak havoc on many inode allocation reservations on the local alloc, thus
+ruining any chances for contiguousness.
 
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- Documentation/filesystems/ocfs2.txt |    2 ++
- fs/ocfs2/dir.c                      |    4 ++++
- fs/ocfs2/ocfs2.h                    |    2 ++
- fs/ocfs2/suballoc.c                 |    1 +
- fs/ocfs2/super.c                    |   15 +++++++++++++++
- 5 files changed, 24 insertions(+), 0 deletions(-)
+ fs/ocfs2/suballoc.c |    5 ++++-
+ 1 files changed, 4 insertions(+), 1 deletions(-)
 
-diff --git a/Documentation/filesystems/ocfs2.txt b/Documentation/filesystems/ocfs2.txt
-index 412df90..40fc8d1 100644
---- a/Documentation/filesystems/ocfs2.txt
-+++ b/Documentation/filesystems/ocfs2.txt
-@@ -83,3 +83,5 @@ noacl		(*)	Disables POSIX Access Control Lists support.
- resv_level=4	(*)	Set how agressive allocation reservations will be.
- 			Valid values are between 0 (reservations off) to 8
- 			(maximum space for reservations).
-+no_dir_resv	(*)	Don't get allocation reservations on directory inodes.
-+dir_resv		Get allocation reservations on directory inodes.
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 28c3ec2..e74bd18 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -2993,6 +2993,8 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
- 	 * if we only get one now, that's enough to continue. The rest
- 	 * will be claimed after the conversion to extents.
- 	 */
-+	if (osb->s_mount_opt & OCFS2_MOUNT_DIR_RESV)
-+		data_ac->ac_resv = &oi->ip_la_data_resv;
- 	ret = ocfs2_claim_clusters(osb, handle, data_ac, 1, &bit_off, &len);
- 	if (ret) {
- 		mlog_errno(ret);
-@@ -3371,6 +3373,8 @@ static int ocfs2_extend_dir(struct ocfs2_super *osb,
- 				mlog_errno(status);
- 			goto bail;
- 		}
-+		if (osb->s_mount_opt & OCFS2_MOUNT_DIR_RESV)
-+			data_ac->ac_resv = &OCFS2_I(dir)->ip_la_data_resv;
- 
- 		credits = ocfs2_calc_extend_credits(sb, el, 1);
- 	} else {
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index e0c6d5e..c3e3758 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -255,6 +255,8 @@ enum ocfs2_mount_options
- 						   control lists */
- 	OCFS2_MOUNT_USRQUOTA = 1 << 10, /* We support user quotas */
- 	OCFS2_MOUNT_GRPQUOTA = 1 << 11, /* We support group quotas */
-+	OCFS2_MOUNT_DIR_RESV	= 1 << 12, /* Get reservations
-+					    * on directories */
- };
- 
- #define OCFS2_OSB_SOFT_RO			0x0001
 diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index c30b644..7b76926 100644
+index 7b76926..62c570c 100644
 --- a/fs/ocfs2/suballoc.c
 +++ b/fs/ocfs2/suballoc.c
-@@ -137,6 +137,7 @@ void ocfs2_free_ac_resource(struct ocfs2_alloc_context *ac)
- 	}
- 	brelse(ac->ac_bh);
- 	ac->ac_bh = NULL;
-+	ac->ac_resv = NULL;
- }
+@@ -659,7 +659,8 @@ int ocfs2_reserve_new_metadata_blocks(struct ocfs2_super *osb,
  
- void ocfs2_free_alloc_context(struct ocfs2_alloc_context *ac)
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index db354d1..b1bc5d2 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -177,6 +177,8 @@ enum {
- 	Opt_usrquota,
- 	Opt_grpquota,
- 	Opt_resv_level,
-+	Opt_dir_resv,
-+	Opt_no_dir_resv,
- 	Opt_err,
- };
+ 	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
+ 					     EXTENT_ALLOC_SYSTEM_INODE,
+-					     slot, NULL, ALLOC_NEW_GROUP);
++					     slot, NULL,
++					     ALLOC_GROUPS_FROM_GLOBAL|ALLOC_NEW_GROUP);
+ 	if (status < 0) {
+ 		if (status != -ENOSPC)
+ 			mlog_errno(status);
+@@ -1821,6 +1822,8 @@ int __ocfs2_claim_clusters(struct ocfs2_super *osb,
+ 	       && ac->ac_which != OCFS2_AC_USE_MAIN);
  
-@@ -204,6 +206,8 @@ static const match_table_t tokens = {
- 	{Opt_usrquota, "usrquota"},
- 	{Opt_grpquota, "grpquota"},
- 	{Opt_resv_level, "resv_level=%u"},
-+	{Opt_dir_resv, "dir_resv"},
-+	{Opt_no_dir_resv, "no_dir_resv"},
- 	{Opt_err, NULL}
- };
- 
-@@ -1445,6 +1449,12 @@ static int ocfs2_parse_options(struct super_block *sb,
- 			    option < OCFS2_MAX_RESV_LEVEL)
- 				mopt->resv_level = option;
- 			break;
-+		case Opt_dir_resv:
-+			mopt->mount_opt |= OCFS2_MOUNT_DIR_RESV;
-+			break;
-+		case Opt_no_dir_resv:
-+			mopt->mount_opt &= ~OCFS2_MOUNT_DIR_RESV;
-+			break;
- 		default:
- 			mlog(ML_ERROR,
- 			     "Unrecognized mount option \"%s\" "
-@@ -1529,6 +1539,11 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
- 	if (osb->osb_resv_level != OCFS2_DEFAULT_RESV_LEVEL)
- 		seq_printf(s, ",resv_level=%d", osb->osb_resv_level);
- 
-+	if (opts & OCFS2_MOUNT_DIR_RESV)
-+		seq_printf(s, ",dir_resv");
-+	else
-+		seq_printf(s, ",no_dir_resv");
+ 	if (ac->ac_which == OCFS2_AC_USE_LOCAL) {
++		WARN_ON(min_clusters > 1);
 +
- 	return 0;
- }
- 
+ 		status = ocfs2_claim_local_alloc_bits(osb,
+ 						      handle,
+ 						      ac,
 -- 
 1.6.4.2
