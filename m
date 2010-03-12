@@ -1,57 +1,69 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 12 Mar 2010 17:19:22 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2-1.6: add splice read/write
-	support
-In-Reply-To: <1268384856-3929-1-git-send-email-tiger.yang@oracle.com>
-References: <1268384742-3861-1-git-send-email-tiger.yang@oracle.com>
-	<1268384856-3929-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <4B9A071A.3030706@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Fri, 12 Mar 2010 10:27:14 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: prints peer node number when
+ sending tcp msg failed -v2
+In-Reply-To: <201003120730.o2C7UFZi008464@rcsinet15.oracle.com>
+References: <201003120730.o2C7UFZi008464@rcsinet15.oracle.com>
+Message-ID: <4B9A8782.1030706@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi tiger,
+Comments inline.
 
-Tiger Yang wrote:
-> This patch copied splice code in mainline 2.6.29
-> to allow support for splice io with enterprise
-> kernels based on 2.6.18.
-> 
-> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
-> ---
->  Config.make.in               |    1 +
->  configure.in                 |   10 ++-
->  fs/ocfs2/Makefile            |    7 +
->  fs/ocfs2/compat_splice.c     |  251 ++++++++++++++++++++++++++++++++++++++++++
->  fs/ocfs2/file.c              |   90 ++++-----------
->  fs/ocfs2/xattr.c             |    2 +-
->  kapi-compat/include/splice.h |   21 ++++
->  7 files changed, 314 insertions(+), 68 deletions(-)
->  create mode 100644 fs/ocfs2/compat_splice.c
->  create mode 100644 kapi-compat/include/splice.h
->  ifdef SKIP_BUFFER_TRIGGERS
-> diff --git a/fs/ocfs2/compat_splice.c b/fs/ocfs2/compat_splice.c
-> new file mode 100644
-> index 0000000..9533d37
-> --- /dev/null
-> +++ b/fs/ocfs2/compat_splice.c
-> @@ -0,0 +1,251 @@
-> +/*
-> + * compat_splice.c
-> + *
-> + * This code has been copied from mainline linux kernel 2.6.29
-> + * to allow ocfs2 to build against older kernels. For license,
-> + * refer to fs/splice.c in mainline linux kernel.
-> + */
-> +
-> +void pipe_wait(struct pipe_inode_info *pipe)
-I just see that el5 already has splice support, see 
-http://www.redhat.com/rhel/features/
+Wengang Wang wrote:
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index a659606..be24a13 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -1309,6 +1309,8 @@ again:
+>  	ret = o2net_send_message(DLM_MASTER_REQUEST_MSG, dlm->key, &request,
+>  				 sizeof(request), to, &response);
+>  	if (ret < 0)  {
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", ret, DLM_MASTER_REQUEST_MSG, dlm->key, to);
+>  		if (ret == -ESRCH) {
+>  			/* should never happen */
+>  			mlog(ML_ERROR, "TCP stack not ready!\n");
 
-So we still need to copy these functions back? At least in el5u2, I see 
-these functions like pipe_wait, pipe_to_file etc.
+Remove this one. The error messages below handle this.
 
-Regards,
-Tao
+> @@ -2637,14 +2643,16 @@ retry:
+>  		/* negative status is handled ok by caller here */
+>  		if (ret >= 0)
+>  			ret = status;
+> -		if (dlm_is_host_down(ret)) {
+> -			/* node is down.  not involved in recovery
+> -			 * so just keep going */
+> -			mlog(0, "%s: node %u was down when sending "
+> -			     "begin reco msg (%d)\n", dlm->name, nodenum, ret);
+> -			ret = 0;
+> +		else {
+> +			mlog(ML_ERROR, "Error %d when sending message %u (key "
+> +			     "0x%x) to node %u\n", ret, DLM_BEGIN_RECO_MSG,
+> +			     dlm->key, nodenum);
+> +			if (dlm_is_host_down(ret)) {
+> +				/* node is down.  not involved in recovery
+> +				 * so just keep going */
+> +				ret = 0;
+> +			}
+>  		}
+
+You are changing the logic here. Please remove this code.
+Maybe change 0 to ML_NOTICE in the original code.
+
+> -
+>  		/*
+>  		 * Prior to commit aad1b15310b9bcd59fa81ab8f2b1513b59553ea8,
+>  		 * dlm_begin_reco_handler() returned EAGAIN and not -EAGAIN.
+> @@ -2662,9 +2670,6 @@ retry:
+>  			struct dlm_lock_resource *res;
+>  			/* this is now a serious problem, possibly ENOMEM
+>  			 * in the network stack.  must retry */
+> -			mlog_errno(ret);
+> -			mlog(ML_ERROR, "begin reco of dlm %s to node %u "
+> -			    " returned %d\n", dlm->name, nodenum, ret);
+
+Again, leave the original code in.
