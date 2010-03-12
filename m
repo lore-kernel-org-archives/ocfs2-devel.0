@@ -1,278 +1,103 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 12 Mar 2010 15:28:53 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: prints peer node number when sending
-	tcp msg failed -v2
-Message-ID: <201003120730.o2C7UFZi008464@rcsinet15.oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Fri, 12 Mar 2010 17:05:42 +0800
+Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2-1.6: pipe operation pin() changes
+	to confirm()
+In-Reply-To: <>
+References: <>
+Message-ID: <1268384742-3861-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch adds prints of the number of peer node to which sending tcp message
-failed. It helps debugging.
+commit cac36bb06efe4880234524e117e0e712b10b1f16 in mainline
+changes pipe_buf_operations->pin() to ->confirm(). This patch
+allows building ocfs2 with kernels having/not having this change.
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/dlm/dlmast.c      |    4 +++-
- fs/ocfs2/dlm/dlmconvert.c  |    4 +++-
- fs/ocfs2/dlm/dlmdomain.c   |   17 +++++++++++------
- fs/ocfs2/dlm/dlmlock.c     |    4 +++-
- fs/ocfs2/dlm/dlmmaster.c   |   14 +++++++++++---
- fs/ocfs2/dlm/dlmrecovery.c |   41 ++++++++++++++++++++++++-----------------
- fs/ocfs2/dlm/dlmunlock.c   |    3 ++-
- 7 files changed, 57 insertions(+), 30 deletions(-)
+ Config.make.in                            |    1 +
+ Makefile                                  |    3 ++-
+ configure.in                              |    6 ++++++
+ fs/ocfs2/Makefile                         |    4 ++++
+ kapi-compat/include/pipe_buf_operations.h |   10 ++++++++++
+ 5 files changed, 23 insertions(+), 1 deletions(-)
+ create mode 100644 kapi-compat/include/pipe_buf_operations.h
 
-diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
-index dccc439..390a887 100644
---- a/fs/ocfs2/dlm/dlmast.c
-+++ b/fs/ocfs2/dlm/dlmast.c
-@@ -453,7 +453,9 @@ int dlm_send_proxy_ast_msg(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
- 	ret = o2net_send_message_vec(DLM_PROXY_AST_MSG, dlm->key, vec, veclen,
- 				     lock->ml.node, &status);
- 	if (ret < 0)
--		mlog_errno(ret);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", ret, DLM_PROXY_AST_MSG, dlm->key,
-+		     lock->ml.node);
- 	else {
- 		if (status == DLM_RECOVERING) {
- 			mlog(ML_ERROR, "sent AST to node %u, it thinks this "
-diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
-index f283bce..3028d05 100644
---- a/fs/ocfs2/dlm/dlmconvert.c
-+++ b/fs/ocfs2/dlm/dlmconvert.c
-@@ -391,7 +391,9 @@ static enum dlm_status dlm_send_remote_convert_request(struct dlm_ctxt *dlm,
- 		} else if (ret != DLM_NORMAL && ret != DLM_NOTQUEUED)
- 			dlm_error(ret);
- 	} else {
--		mlog_errno(tmpret);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", tmpret, DLM_CONVERT_LOCK_MSG, dlm->key,
-+		     res->owner);
- 		if (dlm_is_host_down(tmpret)) {
- 			/* instead of logging the same network error over
- 			 * and over, sleep here and wait for the heartbeat
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 988c905..c8ad4ab 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -565,7 +565,9 @@ static int dlm_send_one_domain_exit(struct dlm_ctxt *dlm,
- 	status = o2net_send_message(DLM_EXIT_DOMAIN_MSG, dlm->key,
- 				    &leave_msg, sizeof(leave_msg), node,
- 				    NULL);
--
-+	if (status < 0)
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", status, DLM_EXIT_DOMAIN_MSG, dlm->key, node);
- 	mlog(0, "status return %d from o2net_send_message\n", status);
+diff --git a/Config.make.in b/Config.make.in
+index 304fd76..b3f3572 100644
+--- a/Config.make.in
++++ b/Config.make.in
+@@ -78,6 +78,7 @@ NO_FAULT_IN_VMOPS = @NO_FAULT_IN_VMOPS@
+ GET_RETURNS_U64_IN_SIMPLE_ATTR_OPEN = @GET_RETURNS_U64_IN_SIMPLE_ATTR_OPEN@
+ NO_SHOULD_REMOVE_SUID = @NO_SHOULD_REMOVE_SUID@
+ HAS_FOPS_SENDFILE = @HAS_FOPS_SENDFILE@
++NO_CONFIRM_IN_PIPE_OPERATIONS = @NO_CONFIRM_IN_PIPE_OPERATIONS@
+ SKIP_SPLICE = @SKIP_SPLICE@
+ SKIP_BUFFER_TRIGGERS = @SKIP_BUFFER_TRIGGERS@
+ NO_NAME_IN_BACKING_DEV_INFO=@NO_NAME_IN_BACKING_DEV_INFO@
+diff --git a/Makefile b/Makefile
+index 5c6f080..eff8362 100644
+--- a/Makefile
++++ b/Makefile
+@@ -42,7 +42,8 @@ KAPI_COMPAT_FILES = \
+ 	kapi-compat/include/compat_kobject.h		\
+ 	kapi-compat/include/quotas.h			\
+ 	kapi-compat/include/cancel_work_sync.h		\
+-	kapi-compat/include/fiemap_shared.h
++	kapi-compat/include/fiemap_shared.h		\
++	kapi-compat/include/pipe_buf_operations.h
  
- 	return status;
-@@ -962,7 +964,8 @@ static int dlm_send_one_join_cancel(struct dlm_ctxt *dlm,
- 				    &cancel_msg, sizeof(cancel_msg), node,
- 				    NULL);
- 	if (status < 0) {
--		mlog_errno(status);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", status, DLM_CANCEL_JOIN_MSG, DLM_MOD_KEY, node);
- 		goto bail;
- 	}
+ PATCH_FILES =
  
-@@ -1029,10 +1032,10 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
- 	byte_copymap(join_msg.node_map, dlm->live_nodes_map, O2NM_MAX_NODES);
+diff --git a/configure.in b/configure.in
+index bda3636..2fc25ce 100644
+--- a/configure.in
++++ b/configure.in
+@@ -414,6 +414,12 @@ OCFS2_CHECK_KERNEL([	fops->sendfile() in fs.h], fs.h,
+   HAS_FOPS_SENDFILE=yes, , [^.*ssize_t (\*sendfile)])
+ AC_SUBST(HAS_FOPS_SENDFILE)
  
- 	status = o2net_send_message(DLM_QUERY_JOIN_MSG, DLM_MOD_KEY, &join_msg,
--				    sizeof(join_msg), node,
--				    &join_resp);
-+				    sizeof(join_msg), node, &join_resp);
- 	if (status < 0 && status != -ENOPROTOOPT) {
--		mlog_errno(status);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", status, DLM_QUERY_JOIN_MSG, DLM_MOD_KEY, node);
- 		goto bail;
- 	}
- 	dlm_query_join_wire_to_packet(join_resp, &packet);
-@@ -1103,7 +1106,9 @@ static int dlm_send_one_join_assert(struct dlm_ctxt *dlm,
- 				    &assert_msg, sizeof(assert_msg), node,
- 				    NULL);
- 	if (status < 0)
--		mlog_errno(status);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", status, DLM_ASSERT_JOINED_MSG, DLM_MOD_KEY,
-+		     node);
++NO_CONFIRM_IN_PIPE_OPERATIONS=
++OCFS2_CHECK_KERNEL([confirm() in struct pipe_buf_operations in pipe_fs_i.h], pipe_fs_i.h,
++ , NO_CONFIRM_IN_PIPE_OPERATIONS=pipe_buf_operations.h, [int (\*confirm)(struct pipe_inode_info \*])
++AC_SUBST(NO_CONFIRM_IN_PIPE_OPERATIONS)
++KAPI_COMPAT_HEADERS="$KAPI_COMPAT_HEADERS $NO_CONFIRM_IN_PIPE_OPERATIONS"
++
+ SKIP_SPLICE=
+ OCFS2_CHECK_KERNEL([splice.h], splice.h,
+   , SKIP_SPLICE=yes, [struct splice_desc {])
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index 5c49863..a408082 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -112,6 +112,10 @@ ifdef HAS_FOPS_SENDFILE
+ EXTRA_CFLAGS += -DHAS_FOPS_SENDFILE
+ endif
  
- 	return status;
- }
-diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-index 7333377..f1fba2a 100644
---- a/fs/ocfs2/dlm/dlmlock.c
-+++ b/fs/ocfs2/dlm/dlmlock.c
-@@ -329,7 +329,9 @@ static enum dlm_status dlm_send_remote_lock_request(struct dlm_ctxt *dlm,
- 			BUG();
- 		}
- 	} else {
--		mlog_errno(tmpret);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", tmpret, DLM_CREATE_LOCK_MSG, dlm->key,
-+		     res->owner);
- 		if (dlm_is_host_down(tmpret)) {
- 			ret = DLM_RECOVERING;
- 			mlog(0, "node %u died so returning DLM_RECOVERING "
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index a659606..be24a13 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -1309,6 +1309,8 @@ again:
- 	ret = o2net_send_message(DLM_MASTER_REQUEST_MSG, dlm->key, &request,
- 				 sizeof(request), to, &response);
- 	if (ret < 0)  {
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", ret, DLM_MASTER_REQUEST_MSG, dlm->key, to);
- 		if (ret == -ESRCH) {
- 			/* should never happen */
- 			mlog(ML_ERROR, "TCP stack not ready!\n");
-@@ -1666,7 +1668,9 @@ again:
- 		tmpret = o2net_send_message(DLM_ASSERT_MASTER_MSG, dlm->key,
- 					    &assert, sizeof(assert), to, &r);
- 		if (tmpret < 0) {
--			mlog(0, "assert_master returned %d!\n", tmpret);
-+			mlog(ML_ERROR, "Error %d when sending message %u (key "
-+			     "0x%x) to node %u\n", tmpret, DLM_ASSERT_MASTER_MSG,
-+			     dlm->key, to);
- 			if (!dlm_is_host_down(tmpret)) {
- 				mlog(ML_ERROR, "unhandled error=%d!\n", tmpret);
- 				BUG();
-@@ -2207,7 +2211,9 @@ int dlm_drop_lockres_ref(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
- 	ret = o2net_send_message(DLM_DEREF_LOCKRES_MSG, dlm->key,
- 				 &deref, sizeof(deref), res->owner, &r);
- 	if (ret < 0)
--		mlog_errno(ret);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", ret, DLM_DEREF_LOCKRES_MSG, dlm->key,
-+		     res->owner);
- 	else if (r < 0) {
- 		/* BAD.  other node says I did not have a ref. */
- 		mlog(ML_ERROR,"while dropping ref on %s:%.*s "
-@@ -2977,7 +2983,9 @@ static int dlm_do_migrate_request(struct dlm_ctxt *dlm,
- 					 &migrate, sizeof(migrate), nodenum,
- 					 &status);
- 		if (ret < 0) {
--			mlog(0, "migrate_request returned %d!\n", ret);
-+			mlog(ML_ERROR, "Error %d when sending message %u (key "
-+			     "0x%x) to node %u\n", ret, DLM_MIGRATE_REQUEST_MSG,
-+			     dlm->key, nodenum);
- 			if (!dlm_is_host_down(ret)) {
- 				mlog(ML_ERROR, "unhandled error=%d!\n", ret);
- 				BUG();
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index b4f99de..7f63642 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -803,7 +803,9 @@ static int dlm_request_all_locks(struct dlm_ctxt *dlm, u8 request_from,
- 
- 	/* negative status is handled by caller */
- 	if (ret < 0)
--		mlog_errno(ret);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key "
-+		     "0x%x) to node %u\n", ret, DLM_LOCK_REQUEST_MSG,
-+		     dlm->key, request_from);
- 
- 	// return from here, then
- 	// sleep until all received or error
-@@ -955,10 +957,10 @@ static int dlm_send_all_done_msg(struct dlm_ctxt *dlm, u8 dead_node, u8 send_to)
- 	ret = o2net_send_message(DLM_RECO_DATA_DONE_MSG, dlm->key, &done_msg,
- 				 sizeof(done_msg), send_to, &tmpret);
- 	if (ret < 0) {
-+		mlog(ML_ERROR, "Error %d when sending message %u (key "
-+		     "0x%x) to node %u\n", ret, DLM_RECO_DATA_DONE_MSG,
-+		     dlm->key, send_to);
- 		if (!dlm_is_host_down(ret)) {
--			mlog_errno(ret);
--			mlog(ML_ERROR, "%s: unknown error sending data-done "
--			     "to %u\n", dlm->name, send_to);
- 			BUG();
- 		}
- 	} else
-@@ -1126,7 +1128,9 @@ static int dlm_send_mig_lockres_msg(struct dlm_ctxt *dlm,
- 	if (ret < 0) {
- 		/* XXX: negative status is not handled.
- 		 * this will end up killing this node. */
--		mlog_errno(ret);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key "
-+		     "0x%x) to node %u\n", ret, DLM_MIG_LOCKRES_MSG,
-+		     dlm->key, send_to);
- 	} else {
- 		/* might get an -ENOMEM back here */
- 		ret = status;
-@@ -1642,7 +1646,9 @@ int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
- 				 &req, sizeof(req), nodenum, &status);
- 	/* XXX: negative status not handled properly here. */
- 	if (ret < 0)
--		mlog_errno(ret);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key "
-+		     "0x%x) to node %u\n", ret, DLM_MASTER_REQUERY_MSG,
-+		     dlm->key, nodenum);
- 	else {
- 		BUG_ON(status < 0);
- 		BUG_ON(status > DLM_LOCK_RES_OWNER_UNKNOWN);
-@@ -2637,14 +2643,16 @@ retry:
- 		/* negative status is handled ok by caller here */
- 		if (ret >= 0)
- 			ret = status;
--		if (dlm_is_host_down(ret)) {
--			/* node is down.  not involved in recovery
--			 * so just keep going */
--			mlog(0, "%s: node %u was down when sending "
--			     "begin reco msg (%d)\n", dlm->name, nodenum, ret);
--			ret = 0;
-+		else {
-+			mlog(ML_ERROR, "Error %d when sending message %u (key "
-+			     "0x%x) to node %u\n", ret, DLM_BEGIN_RECO_MSG,
-+			     dlm->key, nodenum);
-+			if (dlm_is_host_down(ret)) {
-+				/* node is down.  not involved in recovery
-+				 * so just keep going */
-+				ret = 0;
-+			}
- 		}
--
- 		/*
- 		 * Prior to commit aad1b15310b9bcd59fa81ab8f2b1513b59553ea8,
- 		 * dlm_begin_reco_handler() returned EAGAIN and not -EAGAIN.
-@@ -2662,9 +2670,6 @@ retry:
- 			struct dlm_lock_resource *res;
- 			/* this is now a serious problem, possibly ENOMEM
- 			 * in the network stack.  must retry */
--			mlog_errno(ret);
--			mlog(ML_ERROR, "begin reco of dlm %s to node %u "
--			    " returned %d\n", dlm->name, nodenum, ret);
- 			res = dlm_lookup_lockres(dlm, DLM_RECOVERY_LOCK_NAME,
- 						 DLM_RECOVERY_LOCK_NAME_LEN);
- 			if (res) {
-@@ -2789,7 +2794,9 @@ stage2:
- 		if (ret >= 0)
- 			ret = status;
- 		if (ret < 0) {
--			mlog_errno(ret);
-+			mlog(ML_ERROR, "Error %d when sending message %u (key "
-+			     "0x%x) to node %u\n", ret, DLM_FINALIZE_RECO_MSG,
-+			     dlm->key, nodenum);
- 			if (dlm_is_host_down(ret)) {
- 				/* this has no effect on this recovery
- 				 * session, so set the status to zero to
-diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-index 49e29ec..2c1f306 100644
---- a/fs/ocfs2/dlm/dlmunlock.c
-+++ b/fs/ocfs2/dlm/dlmunlock.c
-@@ -355,7 +355,8 @@ static enum dlm_status dlm_send_remote_unlock_request(struct dlm_ctxt *dlm,
- 			mlog(0, "master was in-progress.  retry\n");
- 		ret = status;
- 	} else {
--		mlog_errno(tmpret);
-+		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-+		     "node %u\n", tmpret, DLM_UNLOCK_LOCK_MSG, dlm->key, owner);
- 		if (dlm_is_host_down(tmpret)) {
- 			/* NOTE: this seems strange, but it is what we want.
- 			 * when the master goes down during a cancel or
++ifdef NO_CONFIRM_IN_PIPE_OPERATIONS
++EXTRA_CFLAGS += -DNO_CONFIRM_IN_PIPE_OPERATIONS
++endif
++
+ ifdef SKIP_SPLICE
+ EXTRA_CFLAGS += -DSKIP_SPLICE
+ endif
+diff --git a/kapi-compat/include/pipe_buf_operations.h b/kapi-compat/include/pipe_buf_operations.h
+new file mode 100644
+index 0000000..a867845
+--- /dev/null
++++ b/kapi-compat/include/pipe_buf_operations.h
+@@ -0,0 +1,10 @@
++#ifndef KAPI_PIPE_BUF_OPERATIONS_H
++#define KAPI_PIPE_BUF_OPERATIONS_H
++
++#ifdef NO_CONFIRM_IN_PIPE_OPERATIONS
++# define kapi_confirm(a, b) pin(a, b)
++#else
++# define kapi_confirm(a, b) confirm(a, b)
++#endif
++
++#endif
 -- 
-1.6.6.1
+1.5.2.3
