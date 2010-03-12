@@ -1,63 +1,278 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 12 Mar 2010 11:10:47 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: prints peer node number when
- sending tcp msg failed
-In-Reply-To: <4B99A21C.7020905@oracle.com>
-References: <201003101313.o2ACClp1019681@acsinet15.oracle.com>
-	<4B97E14E.3070902@oracle.com>
-	<20100311032125.GA2497@laptop.oracle.com>
-	<4B99A21C.7020905@oracle.com>
-Message-ID: <20100312031047.GD2566@laptop.oracle.com>
+Date: Fri, 12 Mar 2010 15:28:53 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: prints peer node number when sending
+	tcp msg failed -v2
+Message-ID: <201003120730.o2C7UFZi008464@rcsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10-03-11 18:08, Sunil Mushran wrote:
-> Maybe what you are doing is better. One downside of doing it in
-> o2net_send_message_vec() is that we'll get one additional message.
-> And we don't want that.
+This patch adds prints of the number of peer node to which sending tcp message
+failed. It helps debugging.
 
-If this is a consideration, I would like to print the log where
-o2net_send_message() is called instead of do it inside o2net_send_message().
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmast.c      |    4 +++-
+ fs/ocfs2/dlm/dlmconvert.c  |    4 +++-
+ fs/ocfs2/dlm/dlmdomain.c   |   17 +++++++++++------
+ fs/ocfs2/dlm/dlmlock.c     |    4 +++-
+ fs/ocfs2/dlm/dlmmaster.c   |   14 +++++++++++---
+ fs/ocfs2/dlm/dlmrecovery.c |   41 ++++++++++++++++++++++++-----------------
+ fs/ocfs2/dlm/dlmunlock.c   |    3 ++-
+ 7 files changed, 57 insertions(+), 30 deletions(-)
 
-> 
-> But no need to add a macro. Use mlog(ML_ERROR). It will let us add
-> more stuff to the msg.
-
-Ok. 
-> mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to node
-> %u\n", ...);
-
-Got it.
-
-regards,
-wengang.
-> 
-> Sunil
-> 
-> 
-> Wengang Wang wrote:
-> >Hi Sunil,
-> >
-> >On 10-03-10 10:13, Sunil Mushran wrote:
-> >>Yes knowing the node number will be very useful.
-> >>
-> >>Wondering why not just have the mlog in o2net_send_message_vec().
-> >>Fewer changes. Do you see any downside?
-> >
-> >No very good reason just that I think there is rule that callers print
-> >the error number returned by the callee.
-> >
-> >If the above doesn't matter, of course your suggestion is better.
-> >
-> >Or you meant we print the errno returned by o2net_send_tcp_msg() with
-> >node number in o2net_send_message_vec()?
-> >
-> >regards,
-> >wengang.
-> >>Wengang Wang wrote:
-> >>>This patch adds prints of the number of peer node to which sending tcp message
-> >>>failed. It helps debugging.
-> 
+diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
+index dccc439..390a887 100644
+--- a/fs/ocfs2/dlm/dlmast.c
++++ b/fs/ocfs2/dlm/dlmast.c
+@@ -453,7 +453,9 @@ int dlm_send_proxy_ast_msg(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+ 	ret = o2net_send_message_vec(DLM_PROXY_AST_MSG, dlm->key, vec, veclen,
+ 				     lock->ml.node, &status);
+ 	if (ret < 0)
+-		mlog_errno(ret);
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", ret, DLM_PROXY_AST_MSG, dlm->key,
++		     lock->ml.node);
+ 	else {
+ 		if (status == DLM_RECOVERING) {
+ 			mlog(ML_ERROR, "sent AST to node %u, it thinks this "
+diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
+index f283bce..3028d05 100644
+--- a/fs/ocfs2/dlm/dlmconvert.c
++++ b/fs/ocfs2/dlm/dlmconvert.c
+@@ -391,7 +391,9 @@ static enum dlm_status dlm_send_remote_convert_request(struct dlm_ctxt *dlm,
+ 		} else if (ret != DLM_NORMAL && ret != DLM_NOTQUEUED)
+ 			dlm_error(ret);
+ 	} else {
+-		mlog_errno(tmpret);
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", tmpret, DLM_CONVERT_LOCK_MSG, dlm->key,
++		     res->owner);
+ 		if (dlm_is_host_down(tmpret)) {
+ 			/* instead of logging the same network error over
+ 			 * and over, sleep here and wait for the heartbeat
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 988c905..c8ad4ab 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -565,7 +565,9 @@ static int dlm_send_one_domain_exit(struct dlm_ctxt *dlm,
+ 	status = o2net_send_message(DLM_EXIT_DOMAIN_MSG, dlm->key,
+ 				    &leave_msg, sizeof(leave_msg), node,
+ 				    NULL);
+-
++	if (status < 0)
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", status, DLM_EXIT_DOMAIN_MSG, dlm->key, node);
+ 	mlog(0, "status return %d from o2net_send_message\n", status);
+ 
+ 	return status;
+@@ -962,7 +964,8 @@ static int dlm_send_one_join_cancel(struct dlm_ctxt *dlm,
+ 				    &cancel_msg, sizeof(cancel_msg), node,
+ 				    NULL);
+ 	if (status < 0) {
+-		mlog_errno(status);
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", status, DLM_CANCEL_JOIN_MSG, DLM_MOD_KEY, node);
+ 		goto bail;
+ 	}
+ 
+@@ -1029,10 +1032,10 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
+ 	byte_copymap(join_msg.node_map, dlm->live_nodes_map, O2NM_MAX_NODES);
+ 
+ 	status = o2net_send_message(DLM_QUERY_JOIN_MSG, DLM_MOD_KEY, &join_msg,
+-				    sizeof(join_msg), node,
+-				    &join_resp);
++				    sizeof(join_msg), node, &join_resp);
+ 	if (status < 0 && status != -ENOPROTOOPT) {
+-		mlog_errno(status);
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", status, DLM_QUERY_JOIN_MSG, DLM_MOD_KEY, node);
+ 		goto bail;
+ 	}
+ 	dlm_query_join_wire_to_packet(join_resp, &packet);
+@@ -1103,7 +1106,9 @@ static int dlm_send_one_join_assert(struct dlm_ctxt *dlm,
+ 				    &assert_msg, sizeof(assert_msg), node,
+ 				    NULL);
+ 	if (status < 0)
+-		mlog_errno(status);
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", status, DLM_ASSERT_JOINED_MSG, DLM_MOD_KEY,
++		     node);
+ 
+ 	return status;
+ }
+diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+index 7333377..f1fba2a 100644
+--- a/fs/ocfs2/dlm/dlmlock.c
++++ b/fs/ocfs2/dlm/dlmlock.c
+@@ -329,7 +329,9 @@ static enum dlm_status dlm_send_remote_lock_request(struct dlm_ctxt *dlm,
+ 			BUG();
+ 		}
+ 	} else {
+-		mlog_errno(tmpret);
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", tmpret, DLM_CREATE_LOCK_MSG, dlm->key,
++		     res->owner);
+ 		if (dlm_is_host_down(tmpret)) {
+ 			ret = DLM_RECOVERING;
+ 			mlog(0, "node %u died so returning DLM_RECOVERING "
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index a659606..be24a13 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -1309,6 +1309,8 @@ again:
+ 	ret = o2net_send_message(DLM_MASTER_REQUEST_MSG, dlm->key, &request,
+ 				 sizeof(request), to, &response);
+ 	if (ret < 0)  {
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", ret, DLM_MASTER_REQUEST_MSG, dlm->key, to);
+ 		if (ret == -ESRCH) {
+ 			/* should never happen */
+ 			mlog(ML_ERROR, "TCP stack not ready!\n");
+@@ -1666,7 +1668,9 @@ again:
+ 		tmpret = o2net_send_message(DLM_ASSERT_MASTER_MSG, dlm->key,
+ 					    &assert, sizeof(assert), to, &r);
+ 		if (tmpret < 0) {
+-			mlog(0, "assert_master returned %d!\n", tmpret);
++			mlog(ML_ERROR, "Error %d when sending message %u (key "
++			     "0x%x) to node %u\n", tmpret, DLM_ASSERT_MASTER_MSG,
++			     dlm->key, to);
+ 			if (!dlm_is_host_down(tmpret)) {
+ 				mlog(ML_ERROR, "unhandled error=%d!\n", tmpret);
+ 				BUG();
+@@ -2207,7 +2211,9 @@ int dlm_drop_lockres_ref(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
+ 	ret = o2net_send_message(DLM_DEREF_LOCKRES_MSG, dlm->key,
+ 				 &deref, sizeof(deref), res->owner, &r);
+ 	if (ret < 0)
+-		mlog_errno(ret);
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", ret, DLM_DEREF_LOCKRES_MSG, dlm->key,
++		     res->owner);
+ 	else if (r < 0) {
+ 		/* BAD.  other node says I did not have a ref. */
+ 		mlog(ML_ERROR,"while dropping ref on %s:%.*s "
+@@ -2977,7 +2983,9 @@ static int dlm_do_migrate_request(struct dlm_ctxt *dlm,
+ 					 &migrate, sizeof(migrate), nodenum,
+ 					 &status);
+ 		if (ret < 0) {
+-			mlog(0, "migrate_request returned %d!\n", ret);
++			mlog(ML_ERROR, "Error %d when sending message %u (key "
++			     "0x%x) to node %u\n", ret, DLM_MIGRATE_REQUEST_MSG,
++			     dlm->key, nodenum);
+ 			if (!dlm_is_host_down(ret)) {
+ 				mlog(ML_ERROR, "unhandled error=%d!\n", ret);
+ 				BUG();
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index b4f99de..7f63642 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -803,7 +803,9 @@ static int dlm_request_all_locks(struct dlm_ctxt *dlm, u8 request_from,
+ 
+ 	/* negative status is handled by caller */
+ 	if (ret < 0)
+-		mlog_errno(ret);
++		mlog(ML_ERROR, "Error %d when sending message %u (key "
++		     "0x%x) to node %u\n", ret, DLM_LOCK_REQUEST_MSG,
++		     dlm->key, request_from);
+ 
+ 	// return from here, then
+ 	// sleep until all received or error
+@@ -955,10 +957,10 @@ static int dlm_send_all_done_msg(struct dlm_ctxt *dlm, u8 dead_node, u8 send_to)
+ 	ret = o2net_send_message(DLM_RECO_DATA_DONE_MSG, dlm->key, &done_msg,
+ 				 sizeof(done_msg), send_to, &tmpret);
+ 	if (ret < 0) {
++		mlog(ML_ERROR, "Error %d when sending message %u (key "
++		     "0x%x) to node %u\n", ret, DLM_RECO_DATA_DONE_MSG,
++		     dlm->key, send_to);
+ 		if (!dlm_is_host_down(ret)) {
+-			mlog_errno(ret);
+-			mlog(ML_ERROR, "%s: unknown error sending data-done "
+-			     "to %u\n", dlm->name, send_to);
+ 			BUG();
+ 		}
+ 	} else
+@@ -1126,7 +1128,9 @@ static int dlm_send_mig_lockres_msg(struct dlm_ctxt *dlm,
+ 	if (ret < 0) {
+ 		/* XXX: negative status is not handled.
+ 		 * this will end up killing this node. */
+-		mlog_errno(ret);
++		mlog(ML_ERROR, "Error %d when sending message %u (key "
++		     "0x%x) to node %u\n", ret, DLM_MIG_LOCKRES_MSG,
++		     dlm->key, send_to);
+ 	} else {
+ 		/* might get an -ENOMEM back here */
+ 		ret = status;
+@@ -1642,7 +1646,9 @@ int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+ 				 &req, sizeof(req), nodenum, &status);
+ 	/* XXX: negative status not handled properly here. */
+ 	if (ret < 0)
+-		mlog_errno(ret);
++		mlog(ML_ERROR, "Error %d when sending message %u (key "
++		     "0x%x) to node %u\n", ret, DLM_MASTER_REQUERY_MSG,
++		     dlm->key, nodenum);
+ 	else {
+ 		BUG_ON(status < 0);
+ 		BUG_ON(status > DLM_LOCK_RES_OWNER_UNKNOWN);
+@@ -2637,14 +2643,16 @@ retry:
+ 		/* negative status is handled ok by caller here */
+ 		if (ret >= 0)
+ 			ret = status;
+-		if (dlm_is_host_down(ret)) {
+-			/* node is down.  not involved in recovery
+-			 * so just keep going */
+-			mlog(0, "%s: node %u was down when sending "
+-			     "begin reco msg (%d)\n", dlm->name, nodenum, ret);
+-			ret = 0;
++		else {
++			mlog(ML_ERROR, "Error %d when sending message %u (key "
++			     "0x%x) to node %u\n", ret, DLM_BEGIN_RECO_MSG,
++			     dlm->key, nodenum);
++			if (dlm_is_host_down(ret)) {
++				/* node is down.  not involved in recovery
++				 * so just keep going */
++				ret = 0;
++			}
+ 		}
+-
+ 		/*
+ 		 * Prior to commit aad1b15310b9bcd59fa81ab8f2b1513b59553ea8,
+ 		 * dlm_begin_reco_handler() returned EAGAIN and not -EAGAIN.
+@@ -2662,9 +2670,6 @@ retry:
+ 			struct dlm_lock_resource *res;
+ 			/* this is now a serious problem, possibly ENOMEM
+ 			 * in the network stack.  must retry */
+-			mlog_errno(ret);
+-			mlog(ML_ERROR, "begin reco of dlm %s to node %u "
+-			    " returned %d\n", dlm->name, nodenum, ret);
+ 			res = dlm_lookup_lockres(dlm, DLM_RECOVERY_LOCK_NAME,
+ 						 DLM_RECOVERY_LOCK_NAME_LEN);
+ 			if (res) {
+@@ -2789,7 +2794,9 @@ stage2:
+ 		if (ret >= 0)
+ 			ret = status;
+ 		if (ret < 0) {
+-			mlog_errno(ret);
++			mlog(ML_ERROR, "Error %d when sending message %u (key "
++			     "0x%x) to node %u\n", ret, DLM_FINALIZE_RECO_MSG,
++			     dlm->key, nodenum);
+ 			if (dlm_is_host_down(ret)) {
+ 				/* this has no effect on this recovery
+ 				 * session, so set the status to zero to
+diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+index 49e29ec..2c1f306 100644
+--- a/fs/ocfs2/dlm/dlmunlock.c
++++ b/fs/ocfs2/dlm/dlmunlock.c
+@@ -355,7 +355,8 @@ static enum dlm_status dlm_send_remote_unlock_request(struct dlm_ctxt *dlm,
+ 			mlog(0, "master was in-progress.  retry\n");
+ 		ret = status;
+ 	} else {
+-		mlog_errno(tmpret);
++		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
++		     "node %u\n", tmpret, DLM_UNLOCK_LOCK_MSG, dlm->key, owner);
+ 		if (dlm_is_host_down(tmpret)) {
+ 			/* NOTE: this seems strange, but it is what we want.
+ 			 * when the master goes down during a cancel or
+-- 
+1.6.6.1
