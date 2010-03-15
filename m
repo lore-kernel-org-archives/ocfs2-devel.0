@@ -1,38 +1,153 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon, 15 Mar 2010 14:32:25 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2-1.6: add splice read/write
-	support
-In-Reply-To: <4B9DCF36.3020906@oracle.com>
-References: <1268384742-3861-1-git-send-email-tiger.yang@oracle.com>
-	<1268384856-3929-1-git-send-email-tiger.yang@oracle.com>
-	<4B9A071A.3030706@oracle.com> <4B9DCF36.3020906@oracle.com>
-Message-ID: <4B9DD479.3050100@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Mon, 15 Mar 2010 15:39:00 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: set i_mode on disk during acl
+	operations
+Message-ID: <20100315223900.GZ11402@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+ocfs2_set_acl() and ocfs2_init_acl() were setting i_mode on the in-memory
+inode, but never setting it on the disk copy. Thus, acls were some times not
+getting propagated between nodes. This patch fixes the issue by adding a
+helper function ocfs2_acl_set_mode() which does this the right way.
+ocfs2_set_acl() and ocfs2_init_acl() are then updated to call
+ocfs2_acl_set_mode().
 
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+---
+ fs/ocfs2/acl.c |   77 ++++++++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 files changed, 72 insertions(+), 5 deletions(-)
 
-Tiger Yang wrote:
-> Tao Ma wrote:
->>> +void pipe_wait(struct pipe_inode_info *pipe)
->> I just see that el5 already has splice support, see 
->> http://www.redhat.com/rhel/features/
->>
->> So we still need to copy these functions back? At least in el5u2, I 
->> see these functions like pipe_wait, pipe_to_file etc.
-> 
-> Yes. We need copy these functions because they are not exported by the 
-> kernel of el5.
-> 
-> Because the struct splice_desc has been changed since 2.6.30, it it 
-> difficult to back port the latest code in mainline. So I chose the 
-> splice code in 2.6.29 for back porting. I hope the latest code before 
-> change are more stable and efficient.
-oh, I see. I just checked the source code in 1.4. Thanks for the 
-explanation.
-
-Regards,
-Tao
+diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+index 0501974..6284066 100644
+--- a/fs/ocfs2/acl.c
++++ b/fs/ocfs2/acl.c
+@@ -30,6 +30,8 @@
+ #include "alloc.h"
+ #include "dlmglue.h"
+ #include "file.h"
++#include "inode.h"
++#include "journal.h"
+ #include "ocfs2_fs.h"
+ 
+ #include "xattr.h"
+@@ -166,6 +168,60 @@ static struct posix_acl *ocfs2_get_acl(struct inode *inode, int type)
+ }
+ 
+ /*
++ * Helper function to set i_mode in memory and disk. Some call pahs
++ * will not have di_bh or a journal handle to pass, in which case it
++ * will create it's own.
++ */
++static int ocfs2_acl_set_mode(struct inode *inode, struct buffer_head *di_bh,
++			      handle_t *handle, umode_t new_mode)
++{
++	int ret, commit_handle = 0;
++	struct ocfs2_dinode *di;
++
++	if (di_bh == NULL) {
++		ret = ocfs2_read_inode_block(inode, &di_bh);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++	} else
++		get_bh(di_bh);
++
++	if (handle == NULL) {
++		handle = ocfs2_start_trans(OCFS2_SB(inode->i_sb),
++					   OCFS2_INODE_UPDATE_CREDITS);
++		if (IS_ERR(handle)) {
++			ret = PTR_ERR(handle);
++			mlog_errno(ret);
++			goto out_brelse;
++		}
++
++		commit_handle = 1;
++	}
++
++	di = (struct ocfs2_dinode *)di_bh->b_data;
++	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	inode->i_mode = new_mode;
++	di->i_mode = cpu_to_le16(inode->i_mode);
++
++	ocfs2_journal_dirty(handle, di_bh);
++
++out_commit:
++	if (commit_handle)
++		ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
++out_brelse:
++	brelse(di_bh);
++out:
++	return ret;
++}
++
++/*
+  * Set the access or default ACL of an inode.
+  */
+ static int ocfs2_set_acl(handle_t *handle,
+@@ -193,9 +249,14 @@ static int ocfs2_set_acl(handle_t *handle,
+ 			if (ret < 0)
+ 				return ret;
+ 			else {
+-				inode->i_mode = mode;
+ 				if (ret == 0)
+ 					acl = NULL;
++
++				ret = ocfs2_acl_set_mode(inode, di_bh,
++							 handle, mode);
++				if (ret)
++					return ret;
++
+ 			}
+ 		}
+ 		break;
+@@ -283,6 +344,7 @@ int ocfs2_init_acl(handle_t *handle,
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct posix_acl *acl = NULL;
+ 	int ret = 0;
++	mode_t mode;
+ 
+ 	if (!S_ISLNK(inode->i_mode)) {
+ 		if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
+@@ -291,12 +353,17 @@ int ocfs2_init_acl(handle_t *handle,
+ 			if (IS_ERR(acl))
+ 				return PTR_ERR(acl);
+ 		}
+-		if (!acl)
+-			inode->i_mode &= ~current_umask();
++		if (!acl) {
++			mode = inode->i_mode & ~current_umask();
++			ret = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
++			if (ret) {
++				mlog_errno(ret);
++				goto cleanup;
++			}
++		}
+ 	}
+ 	if ((osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) && acl) {
+ 		struct posix_acl *clone;
+-		mode_t mode;
+ 
+ 		if (S_ISDIR(inode->i_mode)) {
+ 			ret = ocfs2_set_acl(handle, inode, di_bh,
+@@ -313,7 +380,7 @@ int ocfs2_init_acl(handle_t *handle,
+ 		mode = inode->i_mode;
+ 		ret = posix_acl_create_masq(clone, &mode);
+ 		if (ret >= 0) {
+-			inode->i_mode = mode;
++			ret = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
+ 			if (ret > 0) {
+ 				ret = ocfs2_set_acl(handle, inode,
+ 						    di_bh, ACL_TYPE_ACCESS,
+-- 
+1.6.4.2
