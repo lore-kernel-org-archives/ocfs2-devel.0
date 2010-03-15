@@ -1,69 +1,33 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 12 Mar 2010 10:27:14 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: prints peer node number when
- sending tcp msg failed -v2
-In-Reply-To: <201003120730.o2C7UFZi008464@rcsinet15.oracle.com>
-References: <201003120730.o2C7UFZi008464@rcsinet15.oracle.com>
-Message-ID: <4B9A8782.1030706@oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Mon, 15 Mar 2010 14:09:58 +0800
+Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2-1.6: add splice read/write
+	support
+In-Reply-To: <4B9A071A.3030706@oracle.com>
+References: <1268384742-3861-1-git-send-email-tiger.yang@oracle.com>
+	<1268384856-3929-1-git-send-email-tiger.yang@oracle.com>
+	<4B9A071A.3030706@oracle.com>
+Message-ID: <4B9DCF36.3020906@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Comments inline.
+Tao Ma wrote:
+>> +void pipe_wait(struct pipe_inode_info *pipe)
+> I just see that el5 already has splice support, see 
+> http://www.redhat.com/rhel/features/
+> 
+> So we still need to copy these functions back? At least in el5u2, I see 
+> these functions like pipe_wait, pipe_to_file etc.
 
-Wengang Wang wrote:
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index a659606..be24a13 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -1309,6 +1309,8 @@ again:
->  	ret = o2net_send_message(DLM_MASTER_REQUEST_MSG, dlm->key, &request,
->  				 sizeof(request), to, &response);
->  	if (ret < 0)  {
-> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
-> +		     "node %u\n", ret, DLM_MASTER_REQUEST_MSG, dlm->key, to);
->  		if (ret == -ESRCH) {
->  			/* should never happen */
->  			mlog(ML_ERROR, "TCP stack not ready!\n");
+Yes. We need copy these functions because they are not exported by the 
+kernel of el5.
 
-Remove this one. The error messages below handle this.
+Because the struct splice_desc has been changed since 2.6.30, it it 
+difficult to back port the latest code in mainline. So I chose the 
+splice code in 2.6.29 for back porting. I hope the latest code before 
+change are more stable and efficient.
 
-> @@ -2637,14 +2643,16 @@ retry:
->  		/* negative status is handled ok by caller here */
->  		if (ret >= 0)
->  			ret = status;
-> -		if (dlm_is_host_down(ret)) {
-> -			/* node is down.  not involved in recovery
-> -			 * so just keep going */
-> -			mlog(0, "%s: node %u was down when sending "
-> -			     "begin reco msg (%d)\n", dlm->name, nodenum, ret);
-> -			ret = 0;
-> +		else {
-> +			mlog(ML_ERROR, "Error %d when sending message %u (key "
-> +			     "0x%x) to node %u\n", ret, DLM_BEGIN_RECO_MSG,
-> +			     dlm->key, nodenum);
-> +			if (dlm_is_host_down(ret)) {
-> +				/* node is down.  not involved in recovery
-> +				 * so just keep going */
-> +				ret = 0;
-> +			}
->  		}
-
-You are changing the logic here. Please remove this code.
-Maybe change 0 to ML_NOTICE in the original code.
-
-> -
->  		/*
->  		 * Prior to commit aad1b15310b9bcd59fa81ab8f2b1513b59553ea8,
->  		 * dlm_begin_reco_handler() returned EAGAIN and not -EAGAIN.
-> @@ -2662,9 +2670,6 @@ retry:
->  			struct dlm_lock_resource *res;
->  			/* this is now a serious problem, possibly ENOMEM
->  			 * in the network stack.  must retry */
-> -			mlog_errno(ret);
-> -			mlog(ML_ERROR, "begin reco of dlm %s to node %u "
-> -			    " returned %d\n", dlm->name, nodenum, ret);
-
-Again, leave the original code in.
+thanks,
+tiger
