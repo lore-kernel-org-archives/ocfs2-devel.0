@@ -1,153 +1,48 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Mon, 15 Mar 2010 15:39:00 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: set i_mode on disk during acl
-	operations
-Message-ID: <20100315223900.GZ11402@wotan.suse.de>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 16 Mar 2010 17:19:25 +0800
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: use allocation reservations
+ during file write
+In-Reply-To: <1268188148-5253-3-git-send-email-mfasheh@suse.com>
+References: <1268188148-5253-1-git-send-email-mfasheh@suse.com>
+	<1268188148-5253-3-git-send-email-mfasheh@suse.com>
+Message-ID: <4B9F4D1D.7010009@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_set_acl() and ocfs2_init_acl() were setting i_mode on the in-memory
-inode, but never setting it on the disk copy. Thus, acls were some times not
-getting propagated between nodes. This patch fixes the issue by adding a
-helper function ocfs2_acl_set_mode() which does this the right way.
-ocfs2_set_acl() and ocfs2_init_acl() are then updated to call
-ocfs2_acl_set_mode().
+Hi Mark,
+Mark Fasheh wrote:
+> Add a per-inode reservations structure and pass it through to the
+> reservations code.
+> 
+> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+> ---
+>  fs/ocfs2/alloc.c |    2 ++
+>  fs/ocfs2/aops.c  |    2 ++
+>  fs/ocfs2/file.c  |    3 +++
+>  fs/ocfs2/inode.c |    4 ++++
+>  fs/ocfs2/inode.h |    2 ++
+>  fs/ocfs2/super.c |    2 ++
+>  6 files changed, 15 insertions(+), 0 deletions(-)
+<snip>
+> 
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 7e9df11..137d460 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1734,6 +1734,8 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
+>  			goto out;
+>  		}
+>  
+> +		data_ac->ac_resv = &OCFS2_I(inode)->ip_la_data_resv;
+> +
+Here is a bug. In case, we are writing the unwritten extents, we don't 
+have a valid data_ac.
+>  		credits = ocfs2_calc_extend_credits(inode->i_sb,
+>  						    &di->id2.i_list,
+>  						    clusters_to_alloc);
 
-Signed-off-by: Mark Fasheh <mfasheh@suse.com>
----
- fs/ocfs2/acl.c |   77 ++++++++++++++++++++++++++++++++++++++++++++++++++++---
- 1 files changed, 72 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-index 0501974..6284066 100644
---- a/fs/ocfs2/acl.c
-+++ b/fs/ocfs2/acl.c
-@@ -30,6 +30,8 @@
- #include "alloc.h"
- #include "dlmglue.h"
- #include "file.h"
-+#include "inode.h"
-+#include "journal.h"
- #include "ocfs2_fs.h"
- 
- #include "xattr.h"
-@@ -166,6 +168,60 @@ static struct posix_acl *ocfs2_get_acl(struct inode *inode, int type)
- }
- 
- /*
-+ * Helper function to set i_mode in memory and disk. Some call pahs
-+ * will not have di_bh or a journal handle to pass, in which case it
-+ * will create it's own.
-+ */
-+static int ocfs2_acl_set_mode(struct inode *inode, struct buffer_head *di_bh,
-+			      handle_t *handle, umode_t new_mode)
-+{
-+	int ret, commit_handle = 0;
-+	struct ocfs2_dinode *di;
-+
-+	if (di_bh == NULL) {
-+		ret = ocfs2_read_inode_block(inode, &di_bh);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+	} else
-+		get_bh(di_bh);
-+
-+	if (handle == NULL) {
-+		handle = ocfs2_start_trans(OCFS2_SB(inode->i_sb),
-+					   OCFS2_INODE_UPDATE_CREDITS);
-+		if (IS_ERR(handle)) {
-+			ret = PTR_ERR(handle);
-+			mlog_errno(ret);
-+			goto out_brelse;
-+		}
-+
-+		commit_handle = 1;
-+	}
-+
-+	di = (struct ocfs2_dinode *)di_bh->b_data;
-+	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	inode->i_mode = new_mode;
-+	di->i_mode = cpu_to_le16(inode->i_mode);
-+
-+	ocfs2_journal_dirty(handle, di_bh);
-+
-+out_commit:
-+	if (commit_handle)
-+		ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
-+out_brelse:
-+	brelse(di_bh);
-+out:
-+	return ret;
-+}
-+
-+/*
-  * Set the access or default ACL of an inode.
-  */
- static int ocfs2_set_acl(handle_t *handle,
-@@ -193,9 +249,14 @@ static int ocfs2_set_acl(handle_t *handle,
- 			if (ret < 0)
- 				return ret;
- 			else {
--				inode->i_mode = mode;
- 				if (ret == 0)
- 					acl = NULL;
-+
-+				ret = ocfs2_acl_set_mode(inode, di_bh,
-+							 handle, mode);
-+				if (ret)
-+					return ret;
-+
- 			}
- 		}
- 		break;
-@@ -283,6 +344,7 @@ int ocfs2_init_acl(handle_t *handle,
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct posix_acl *acl = NULL;
- 	int ret = 0;
-+	mode_t mode;
- 
- 	if (!S_ISLNK(inode->i_mode)) {
- 		if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
-@@ -291,12 +353,17 @@ int ocfs2_init_acl(handle_t *handle,
- 			if (IS_ERR(acl))
- 				return PTR_ERR(acl);
- 		}
--		if (!acl)
--			inode->i_mode &= ~current_umask();
-+		if (!acl) {
-+			mode = inode->i_mode & ~current_umask();
-+			ret = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto cleanup;
-+			}
-+		}
- 	}
- 	if ((osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) && acl) {
- 		struct posix_acl *clone;
--		mode_t mode;
- 
- 		if (S_ISDIR(inode->i_mode)) {
- 			ret = ocfs2_set_acl(handle, inode, di_bh,
-@@ -313,7 +380,7 @@ int ocfs2_init_acl(handle_t *handle,
- 		mode = inode->i_mode;
- 		ret = posix_acl_create_masq(clone, &mode);
- 		if (ret >= 0) {
--			inode->i_mode = mode;
-+			ret = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
- 			if (ret > 0) {
- 				ret = ocfs2_set_acl(handle, inode,
- 						    di_bh, ACL_TYPE_ACCESS,
--- 
-1.6.4.2
+Regards,
+Tao
