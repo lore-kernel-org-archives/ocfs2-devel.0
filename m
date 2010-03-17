@@ -1,47 +1,110 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 16 Mar 2010 23:59:13 -0700
-Subject: [Ocfs2-devel] [PATCH 4/5] ocfs2: allocate btree internal block
-	groups from the global bitmap
+Date: Tue, 16 Mar 2010 23:59:14 -0700
+Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2: remove ocfs2_local_alloc_in_range()
 In-Reply-To: <1268809154-1020-1-git-send-email-mfasheh@suse.com>
 References: <1268809154-1020-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1268809154-1020-5-git-send-email-mfasheh@suse.com>
+Message-ID: <1268809154-1020-6-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Otherwise, the need for a very large contiguous allocation tends to
-wreak havoc on many inode allocation reservations on the local alloc, thus
-ruining any chances for contiguousness.
+Inodes are always allocated from the global bitmap now so we don't need this
+any more. Also, the existing implementation bounces reservations around
+needlessly.
 
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/suballoc.c |    5 ++++-
- 1 files changed, 4 insertions(+), 1 deletions(-)
+ fs/ocfs2/localalloc.c |   51 -------------------------------------------------
+ fs/ocfs2/suballoc.c   |    6 +----
+ 2 files changed, 1 insertions(+), 56 deletions(-)
 
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index ebab3c0..6515ca7 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -484,46 +484,6 @@ out:
+ 	return status;
+ }
+ 
+-/* Check to see if the local alloc window is within ac->ac_max_block */
+-static int ocfs2_local_alloc_in_range(struct inode *inode,
+-				      struct ocfs2_alloc_context *ac,
+-				      u32 bits_wanted)
+-{
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	struct ocfs2_dinode *alloc;
+-	struct ocfs2_local_alloc *la;
+-	int start;
+-	u64 block_off;
+-
+-	if (!ac->ac_max_block)
+-		return 1;
+-
+-	alloc = (struct ocfs2_dinode *) osb->local_alloc_bh->b_data;
+-	la = OCFS2_LOCAL_ALLOC(alloc);
+-
+-	start = ocfs2_local_alloc_find_clear_bits(osb, alloc, &bits_wanted, NULL);
+-	if (start == -1) {
+-		mlog_errno(-ENOSPC);
+-		return 0;
+-	}
+-
+-	/*
+-	 * Converting (bm_off + start + bits_wanted) to blocks gives us
+-	 * the blkno just past our actual allocation.  This is perfect
+-	 * to compare with ac_max_block.
+-	 */
+-	block_off = ocfs2_clusters_to_blocks(inode->i_sb,
+-					     le32_to_cpu(la->la_bm_off) +
+-					     start + bits_wanted);
+-	mlog(0, "Checking %llu against %llu\n",
+-	     (unsigned long long)block_off,
+-	     (unsigned long long)ac->ac_max_block);
+-	if (block_off > ac->ac_max_block)
+-		return 0;
+-
+-	return 1;
+-}
+-
+ /*
+  * make sure we've got at least bits_wanted contiguous bits in the
+  * local alloc. You lose them when you drop i_mutex.
+@@ -616,17 +576,6 @@ int ocfs2_reserve_local_alloc_bits(struct ocfs2_super *osb,
+ 		mlog(0, "Calling in_range for max block %llu\n",
+ 		     (unsigned long long)ac->ac_max_block);
+ 
+-	if (!ocfs2_local_alloc_in_range(local_alloc_inode, ac,
+-					bits_wanted)) {
+-		/*
+-		 * The window is outside ac->ac_max_block.
+-		 * This errno tells the caller to keep localalloc enabled
+-		 * but to get the allocation from the main bitmap.
+-		 */
+-		status = -EFBIG;
+-		goto bail;
+-	}
+-
+ 	ac->ac_inode = local_alloc_inode;
+ 	/* We should never use localalloc from another slot */
+ 	ac->ac_alloc_slot = osb->slot_num;
 diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 7b76926..62c570c 100644
+index 62c570c..0120a4b 100644
 --- a/fs/ocfs2/suballoc.c
 +++ b/fs/ocfs2/suballoc.c
-@@ -659,7 +659,8 @@ int ocfs2_reserve_new_metadata_blocks(struct ocfs2_super *osb,
- 
- 	status = ocfs2_reserve_suballoc_bits(osb, (*ac),
- 					     EXTENT_ALLOC_SYSTEM_INODE,
--					     slot, NULL, ALLOC_NEW_GROUP);
-+					     slot, NULL,
-+					     ALLOC_GROUPS_FROM_GLOBAL|ALLOC_NEW_GROUP);
- 	if (status < 0) {
- 		if (status != -ENOSPC)
+@@ -861,11 +861,7 @@ static int ocfs2_reserve_clusters_with_limit(struct ocfs2_super *osb,
+ 		status = ocfs2_reserve_local_alloc_bits(osb,
+ 							bits_wanted,
+ 							*ac);
+-		if (status == -EFBIG) {
+-			/* The local alloc window is outside ac_max_block.
+-			 * use the main bitmap. */
+-			status = -ENOSPC;
+-		} else if ((status < 0) && (status != -ENOSPC)) {
++		if ((status < 0) && (status != -ENOSPC)) {
  			mlog_errno(status);
-@@ -1821,6 +1822,8 @@ int __ocfs2_claim_clusters(struct ocfs2_super *osb,
- 	       && ac->ac_which != OCFS2_AC_USE_MAIN);
- 
- 	if (ac->ac_which == OCFS2_AC_USE_LOCAL) {
-+		WARN_ON(min_clusters > 1);
-+
- 		status = ocfs2_claim_local_alloc_bits(osb,
- 						      handle,
- 						      ac,
+ 			goto bail;
+ 		}
 -- 
 1.6.4.2
