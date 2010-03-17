@@ -1,21 +1,25 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 17 Mar 2010 12:29:05 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Update i_blocks in reflink
-	operations.
-In-Reply-To: <1268186212-11949-1-git-send-email-tao.ma@oracle.com>
-References: <1268186212-11949-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100317192905.GC2930@mail.oracle.com>
+Date: Wed, 17 Mar 2010 12:29:36 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: set i_mode on disk during acl
+ operations
+In-Reply-To: <20100315223900.GZ11402@wotan.suse.de>
+References: <20100315223900.GZ11402@wotan.suse.de>
+Message-ID: <20100317192935.GD2930@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Mar 10, 2010 at 09:56:52AM +0800, Tao Ma wrote:
-> In reflink, we need to upate i_blocks for the target inode.
+On Mon, Mar 15, 2010 at 03:39:00PM -0700, Mark Fasheh wrote:
+> ocfs2_set_acl() and ocfs2_init_acl() were setting i_mode on the in-memory
+> inode, but never setting it on the disk copy. Thus, acls were some times not
+> getting propagated between nodes. This patch fixes the issue by adding a
+> helper function ocfs2_acl_set_mode() which does this the right way.
+> ocfs2_set_acl() and ocfs2_init_acl() are then updated to call
+> ocfs2_acl_set_mode().
 > 
-> Reported-by: Jie Liu <jeff.liu@oracle.com>
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 
 	This patch is now in the fixes branch of ocfs2.git.
 
@@ -23,8 +27,8 @@ Joel
 
 -- 
 
-"To fall in love is to create a religion that has a fallible god."
-        -Jorge Luis Borges
+"The only way to get rid of a temptation is to yield to it."
+         - Oscar Wilde 
 
 Joel Becker
 Principal Software Developer
