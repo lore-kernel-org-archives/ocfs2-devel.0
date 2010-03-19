@@ -1,59 +1,52 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 19 Mar 2010 15:04:23 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Increase name_offset for the
-	removed xattr.
-Message-ID: <1268982264-28121-1-git-send-email-tao.ma@oracle.com>
+Date: Fri, 19 Mar 2010 15:04:24 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Init meta_ac properly in
+	ocfs2_create_empty_xattr_block.
+In-Reply-To: <1268982264-28121-1-git-send-email-tao.ma@oracle.com>
+References: <1268982264-28121-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <1268982264-28121-2-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When replacing a xattr's value, in some case we wipe
-its name/value first and then adding them. The wipe
-is done by ocfs2_xa_block_wipe_namevalue when xattr
-is in inode or block. we decrease name_offset for all
-the entries which have offset < name_offset. This isn't
-enough in case the replaced one has the smallest offset.
-So the next time we will find the wrong free_start in
-ocfs2_xa_get_free_start and we will overflow finally.
-The solution is to increase the name_offset for the
-replaced one also so that we can survive.
-
-The following script can trigger a kernel panic easily.
-
-echo 'y'|mkfs.ocfs2 --fs-features=local,xattr -b 4K $DEVICE
-mount -t ocfs2 $DEVICE $MNT_DIR
-FILE=$MNT_DIR/$RANDOM
-for((i=0;i<76;i++))
-do
-string_76="a$string_76"
-done
-string_78="aa$string_76"
-string_82="aaaa$string_78"
-
-touch $FILE
-setfattr -n 'user.test1234567890' -v $string_76 $FILE
-setfattr -n 'user.test1234567890' -v $string_78 $FILE
-setfattr -n 'user.test1234567890' -v $string_82 $FILE
+Init ctxt.meta_ac properly in ocfs2_create_empty_xattr_block.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/xattr.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ fs/ocfs2/xattr.c |   10 ++++------
+ 1 files changed, 4 insertions(+), 6 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index d1b0d38..82c2a0b 100644
+index 82c2a0b..3e77730 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -1622,7 +1622,7 @@ static void ocfs2_xa_block_wipe_namevalue(struct ocfs2_xa_loc *loc)
- 	/* Now tell xh->xh_entries about it */
- 	for (i = 0; i < count; i++) {
- 		offset = le16_to_cpu(xh->xh_entries[i].xe_name_offset);
--		if (offset < namevalue_offset)
-+		if (offset <= namevalue_offset)
- 			le16_add_cpu(&xh->xh_entries[i].xe_name_offset,
- 				     namevalue_size);
- 	}
+@@ -6528,13 +6528,11 @@ static int ocfs2_create_empty_xattr_block(struct inode *inode,
+ 					  int indexed)
+ {
+ 	int ret;
+-	struct ocfs2_alloc_context *meta_ac;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	struct ocfs2_xattr_set_ctxt ctxt = {
+-		.meta_ac = meta_ac,
+-	};
++	struct ocfs2_xattr_set_ctxt ctxt;
+ 
+-	ret = ocfs2_reserve_new_metadata_blocks(osb, 1, &meta_ac);
++	memset(&ctxt, 0, sizeof(ctxt));
++	ret = ocfs2_reserve_new_metadata_blocks(osb, 1, &ctxt.meta_ac);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+ 		return ret;
+@@ -6556,7 +6554,7 @@ static int ocfs2_create_empty_xattr_block(struct inode *inode,
+ 
+ 	ocfs2_commit_trans(osb, ctxt.handle);
+ out:
+-	ocfs2_free_alloc_context(meta_ac);
++	ocfs2_free_alloc_context(ctxt.meta_ac);
+ 	return ret;
+ }
+ 
 -- 
 1.5.5
