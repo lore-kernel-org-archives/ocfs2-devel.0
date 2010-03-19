@@ -1,60 +1,89 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Fri, 19 Mar 2010 15:01:16 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Clear undo bits when local alloc
-	is freed
-In-Reply-To: <20100318215314.GA8122@mail.oracle.com>
-References: <20100312023109.GS11402@wotan.suse.de>
-	<20100318215314.GA8122@mail.oracle.com>
-Message-ID: <20100319220116.GH11402@wotan.suse.de>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Fri, 19 Mar 2010 15:40:47 -0700
+Subject: [Ocfs2-devel] [PATCH 1/5] ocfs2: allocation reservations
+In-Reply-To: <1268809154-1020-2-git-send-email-mfasheh@suse.com>
+References: <1268809154-1020-1-git-send-email-mfasheh@suse.com>
+	<1268809154-1020-2-git-send-email-mfasheh@suse.com>
+Message-ID: <20100319224047.GE15539@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 18, 2010 at 02:53:15PM -0700, Joel Becker wrote:
-> On Thu, Mar 11, 2010 at 06:31:09PM -0800, Mark Fasheh wrote:
-> > When the local alloc file changes windows, unused bits are freed back to the
-> > global bitmap. By defnition, those bits can not be in use by any file. Also,
-> > the local alloc will never have been able to allocate those bits if they
-> > were part of a previous truncate. Therefore it makes sense that we should
-> > clear unused local alloc bits in the undo buffer so that they can be used
-> > immediatly.
-> > 
-> > Signed-off-by: Mark Fasheh <mfasheh@suse.com>
-> > ---
-> >  fs/ocfs2/alloc.c        |    4 ++--
-> >  fs/ocfs2/dir.c          |    2 +-
-> >  fs/ocfs2/localalloc.c   |    2 +-
-> >  fs/ocfs2/refcounttree.c |    2 +-
-> >  fs/ocfs2/suballoc.c     |   44 ++++++++++++++++++++++++++++----------------
-> >  fs/ocfs2/suballoc.h     |    5 +++--
-> >  fs/ocfs2/xattr.c        |    2 +-
-> >  7 files changed, 37 insertions(+), 24 deletions(-)
-> > 
-> > diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> > index d17bdc7..c9608a5 100644
-> > --- a/fs/ocfs2/alloc.c
-> > +++ b/fs/ocfs2/alloc.c
-> > @@ -5921,7 +5921,7 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
-> >  
-> >  			status = ocfs2_free_clusters(handle, data_alloc_inode,
-> >  						     data_alloc_bh, start_blk,
-> > -						     num_clusters);
-> > +						     num_clusters, 0);
-> 
-> 	Seeing all these ', 0' arguments appear, I was confused until I
-> saw the actual ocfs2_free_clusters change later in the patch.  That made
-> me worry I would be re-confused coming back to this code six months from
-> now.
-> 	Here's my shot at leaving ocfs2_free_clusters() and
-> ocfs2_free_suballoc_bits() intact while providing the same
-> functionality.
+On Tue, Mar 16, 2010 at 11:59:10PM -0700, Mark Fasheh wrote:
+> Reservation windows are represented internally by a red-black
+> tree. Within that tree, each node represents the reservation window of
+> one inode. An LRU of active reservations is also maintained. When new
 
-Yeah, that patch looks better. Thanks for the cleanup.
+	I see you decided against chopping up the localalloc and went
+for reservations as needed.
 
-Acked-by: Mark Fasheh <mfasheh@suse.com>
+> +int ocfs2_resmap_init(struct ocfs2_super *osb,
+> +		      struct ocfs2_reservation_map *resmap)
+> +{
+> +	memset(resmap, 0, sizeof(*resmap));
+> +
+> +	resmap->m_osb = osb;
+> +	resmap->m_reservations = RB_ROOT;
+> +	/* m_bitmap_len is initialized to zero by the above memset. */
+> +	INIT_LIST_HEAD(&resmap->m_lru);
+> +
+> +	return 0;
+> +}
 
+	Why have m_osb and set it?  Can't you get the osb from
+container_of(resmap, struct ocfs2_super, osb_la_resmap)?
 
---
-Mark Fasheh
+> +int ocfs2_resmap_resv_bits(struct ocfs2_reservation_map *resmap,
+> +			   struct ocfs2_alloc_reservation *resv,
+> +			   int tmpwindow, int *cstart, int *clen)
+
+	The tmpwindow argument to resmap_resv_bits()...what you really
+want to say is "I'm not interested in hanging on to reserved space.
+Please behave like the original localalloc".  What it does is correct.
+I wish I had a better way to say it.
+
+> --- /dev/null
+> +++ b/fs/ocfs2/reservations.h
+> @@ -0,0 +1,154 @@
+> +/* -*- mode: c; c-basic-offset: 8; -*-
+> + * vim: noexpandtab sw=8 ts=8 sts=0:
+> + *
+> + * reservations.h
+> + *
+> + * Allocation reservations function prototypes and structures.
+> + *
+> + * Copyright (C) 2009 Novell.  All rights reserved.
+> + *
+> + * This program is free software; you can redistribute it and/or
+> + * modify it under the terms of the GNU General Public
+> + * License as published by the Free Software Foundation; either
+> + * version 2 of the License, or (at your option) any later version.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+> + * General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public
+> + * License along with this program; if not, write to the
+> + * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+> + * Boston, MA 021110-1307, USA.
+
+	Don't add the paragraph about Temple Place to new files ;-)
+
+Joel
+
+-- 
+
+"Always give your best, never get discouraged, never be petty; always
+ remember, others may hate you.  Those who hate you don't win unless
+ you hate them.  And then you destroy yourself."
+	- Richard M. Nixon
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
