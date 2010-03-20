@@ -1,68 +1,52 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 19 Mar 2010 16:59:11 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Handle deletion of reflinked
- oprhan inodes correctly.
-In-Reply-To: <20100319235047.GJ11402@wotan.suse.de>
-References: <1268961670-4712-1-git-send-email-tristan.ye@oracle.com>
-	<1268961670-4712-2-git-send-email-tristan.ye@oracle.com>
-	<20100319235047.GJ11402@wotan.suse.de>
-Message-ID: <20100319235911.GH15539@mail.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Fri, 19 Mar 2010 17:14:25 -0700
+Subject: [Ocfs2-devel] [PATCH 3/5] ocfs2: use allocation reservations
+	for directory data
+In-Reply-To: <20100319224310.GF15539@mail.oracle.com>
+References: <1268809154-1020-1-git-send-email-mfasheh@suse.com>
+	<1268809154-1020-4-git-send-email-mfasheh@suse.com>
+	<20100319224310.GF15539@mail.oracle.com>
+Message-ID: <20100320001425.GL11402@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Mar 19, 2010 at 04:50:47PM -0700, Mark Fasheh wrote:
-> On Fri, Mar 19, 2010 at 09:21:10AM +0800, Tristan Ye wrote:
-> > Current rule of orphan dir is that all inodes in the orphan dir
-> > have ORPHANED_FL, otherwise we treated it as an ERROR. this rule
-> > works well except for some rare cases of reflink operation:
+On Fri, Mar 19, 2010 at 03:43:10PM -0700, Joel Becker wrote:
+> On Tue, Mar 16, 2010 at 11:59:12PM -0700, Mark Fasheh wrote:
+> > Use the reservations system for unindexed dir tree allocations. We
+> > don't bother with the indexed tree as reads from it are mostly random
+> > anyway. By default this behavior is turned off and can be turned on
+> > via mount option 'dir_resv'. Workloads which create many large
+> > directories will want to turn it on.
 > > 
-> > http://oss.oracle.com/bugzilla/show_bug.cgi?id=1215
-> > 
-> > The problem is introduced by the essense of how reflink and our
-> > orphan_scan thread were working:
-> > 
-> >  * Orphan_scan scan the orphan dir into a queue first, and run
-> >    queue in a later time, we only hold the orphan_dir's lock
-> >    during scanning.
-> > 
-> >  * Reflink create a oprhaned target in orphan_dir at the first
-> >    step, and remove the targets and unset the flag at the third
-> >    step, these two steps respectively hold the orphan_dir's lock
-> >    themselves.
-> > 
-> > Based on above semantics, there is a possibility that a reflink
-> > inode can be moved out of the orphan dir and have its ORPHANED_FL
-> > cleared before the queue is run, which leads to a ERROR in
-> > ocfs2_query_wipde_inode().
-> > 
-> > This patch helps to judge if a orphan inode to be wiped off, which
-> > has NO ORPHANED_FL, is a legal alive reflinked target or not.
-> > 
-> > The patch also works for failed reflinked targets from a crash or
-> > other failures during the reflink operation, they can be wiped off
-> > as desired since these failed reflinked inodes always has ORPHANED_FL
-> > set ondisk.
+> > A future improvement will be to use a different window size for
+> > directory inodes. Once done, we should change the default for this
+> > feature to be enabled.
 > 
-> How is this? Wouldn't the failed reflink still have OCFS2_HAS_REFCOUNT_FL
-> set as well as OCFS2_ORPHANED_FL? In the code below, we (correctly) skip
-> those for delete.
+> 	Why can't we turn this on and avoid a mount option?  Sure, the
+> reservation holds out some space, but it will be cannibalized if
+> the directory doesn't grow, right?
 
-	A failed reflink indeed has ORPHANED_FL.  Thus the if block is
-skipped and we continue to the rest of the query_wipe checks.
+Yeah, it'll work. My concern was that we'd be cannibalizing those too much
+since the window sizes are optimized for file data. It's only a hunch though
+that directories might want smaller windows - I didn't get much data on
+directory growth since my focus was on file data.
 
-Joel
 
--- 
+Maybe I should just go ahead and hack it up to know if a reservation is for
+a directory and it could provide some fewer number of bits (maybe half the
+default)? Adjusting the window size values is something we can do very
+easily until we get it right.
 
-"Under capitalism, man exploits man.  Under Communism, it's just 
-   the opposite."
-				 - John Kenneth Galbraith
+Adding a flag field on the resv struct could accomplish this pretty easily,
+and I could re-use the flag for the 'temporary' reservations, thus losing a
+function call parameter in the process.
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+
+I agree though that losing the extra mount option would be good.
+	--Mark
+
+--
+Mark Fasheh
