@@ -1,69 +1,66 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 22 Mar 2010 13:41:59 -0700
-Subject: [Ocfs2-devel] [PATCH 3/5] ocfs2: use allocation reservations
- for directory data
-In-Reply-To: <20100321232623.GN11402@wotan.suse.de>
-References: <1268809154-1020-1-git-send-email-mfasheh@suse.com>
-	<1268809154-1020-4-git-send-email-mfasheh@suse.com>
-	<20100319224310.GF15539@mail.oracle.com>
-	<20100320001425.GL11402@wotan.suse.de>
-	<20100320012554.GI15539@mail.oracle.com>
-	<20100320034758.GM11402@wotan.suse.de>
-	<20100320061847.GA14324@mail.oracle.com>
-	<20100321232623.GN11402@wotan.suse.de>
-Message-ID: <20100322204158.GB14285@mail.oracle.com>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Mon, 22 Mar 2010 16:50:47 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] dlm: fix a race in lockres mastery
+Message-ID: <1269301847-32101-1-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sun, Mar 21, 2010 at 04:26:23PM -0700, Mark Fasheh wrote:
-> On Fri, Mar 19, 2010 at 11:18:48PM -0700, Joel Becker wrote:
+In dlm_assert_master_handler, spinlock is released little sooner which creates
+a window for two nodes to race during mastery.
 
-> Aside from cleaning up the license info, I remove the dir_resv/no_dir_resv
-> options. I also added a flags field to struct ocfs2_alloc_reservation which
-> saves us the 'tmpwindow' argument to ocfs2_resmap_resv_bits().
+In a scenario where node A had a head start during lock mastery and dlm
+spinlock is just released on node B in dlm_assert_master_handler. Right then
+a process on node B started to master the resource. It finds the mle but
+doesn't find lockres. Since mle *master* is not set it creates a lockres and
+waits for the mastery and doesn't send a master request.
 
-	I like the changes.
+dlm_assert_master_handler doesn't know about this and doesn't set
+have_lockres_ref(doesn't set DLM_ASSERT_RESPONSE_MASTERY_REF) which creates a
+hole that results in loss of refmap bit on the master node.
 
-> > 	I was thinking about a kernel tree untar where the directories
-> > are holding on to reservations as thousands of files are created under
-> > them.  Wouldn't that lead to cannibalization and show us that pattern?
-> > This is just a lay guess - you have a lot more familiarity with the
-> > code.
-> 
-> I don't know how much a kernel build is going to make a difference. I took a
-> couple images after kernel builds with various options but didn't see
-> anything obvious. To be fair though, I only checked one or two files. I'll
-> upload the images somewhere shortly.
-> 
-> As an interim compromise, I changed the code to get minimum (8 bits) sized
-> windows on directories. That way, they'll get some amount of
-> continguousness, but not as much as file data. We can easily adjust in any
-> direction we want.
+Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+---
+ fs/ocfs2/dlm/dlmmaster.c |    4 +---
+ 1 files changed, 1 insertions(+), 3 deletions(-)
 
-	I wonder how the varying reservation sizes will impact
-ulilization of the localalloc.  May not matter, but there's a part of me
-that wonders.  Does the new dir-resv code do as well on your tests as
-the no-dir-resv code?
-	Maybe something to see any help from dir reservations would be a
-many-parallel-untar sort of thing?  Unpack 20 kernel trees at the same
-time?  Some other package with a lot of files.  I have no idea if this
-will mean anything, and I actually rather trust your observations of
-previous untars.  I'm just casting about for something to show us how
-dir reservations are behaving.
-
-Joel
-
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 83bcaf2..6e694b6 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -1875,7 +1875,6 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
+ ok:
+ 		spin_unlock(&res->spinlock);
+ 	}
+-	spin_unlock(&dlm->spinlock);
+ 
+ 	// mlog(0, "woo!  got an assert_master from node %u!\n",
+ 	// 	     assert->node_idx);
+@@ -1926,7 +1925,6 @@ ok:
+ 		/* master is known, detach if not already detached.
+ 		 * ensures that only one assert_master call will happen
+ 		 * on this mle. */
+-		spin_lock(&dlm->spinlock);
+ 		spin_lock(&dlm->master_lock);
+ 
+ 		rr = atomic_read(&mle->mle_refs.refcount);
+@@ -1959,7 +1957,6 @@ ok:
+ 			__dlm_put_mle(mle);
+ 		}
+ 		spin_unlock(&dlm->master_lock);
+-		spin_unlock(&dlm->spinlock);
+ 	} else if (res) {
+ 		if (res->owner != assert->node_idx) {
+ 			mlog(0, "assert_master from %u, but current "
+@@ -1967,6 +1964,7 @@ ok:
+ 			     res->owner, namelen, name);
+ 		}
+ 	}
++	spin_unlock(&dlm->spinlock);
+ 
+ done:
+ 	ret = 0;
 -- 
-
-Life's Little Instruction Book #451
-
-	"Don't be afraid to say, 'I'm sorry.'"
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.6.5
