@@ -1,211 +1,91 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Tue, 23 Mar 2010 11:00:13 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Optimize punching-hole codes
- v2.
-In-Reply-To: <20100323023740.GE12279@mail.oracle.com>
-References: <1267091348-26923-1-git-send-email-tristan.ye@oracle.com>
-	<20100323023740.GE12279@mail.oracle.com>
-Message-ID: <4BA82EBD.40909@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Tue, 23 Mar 2010 14:31:29 +0800
+Subject: [Ocfs2-devel] [PATCH] Ocfs2: Teach truncating and punching-hole
+	codes to handle fastsymlink.
+Message-ID: <1269325889-24277-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
+Fast symlink can be treated the same way as inline file for truncating
+and hole punching, since the mechanism is quite simliar per se.
 
-Thanks for your comments.
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/alloc.c |   17 +++++++++++++----
+ fs/ocfs2/file.c  |    6 ++++--
+ 2 files changed, 17 insertions(+), 6 deletions(-)
 
-Joel Becker wrote:
-> On Thu, Feb 25, 2010 at 05:49:08PM +0800, Tristan Ye wrote:
->> ===========================================================================
->>  * Former punching-hole mechanism:
->> ===========================================================================
->>
->>    I waited 1 hour for its completion, unfortunately it's still ongoing.
->>
->> ===========================================================================
->>  * Patched punching-hode mechanism:
->> ===========================================================================
->>
->>    real	0m2.518s
->>    user	0m0.000s
->>    sys	0m2.445s
->>
->> That means we've gained up to 1000 times improvement on performance in this
->> case, whee! It's fairly cool. and it looks like that performance gain will
->> be raising when extent records grow.
->
-> 	Love the numbers, obviously.
-
-Maye such extent number didn't exist in a real world, it however was 
-doing something positive;)
-
->
->> The patch was based on my former 2 patches, which were about truncating
->> codes optimization and fixup to handle CoW on punching hole.
->
-> 	I've already reviewed these.  I'm waiting on Mark's ack for them
-> to go to ocfs2.git.
->
->> -	cpos = trunc_start;
->> -	while (trunc_len) {
->> -		ret = ocfs2_get_clusters(inode, cpos, &phys_cpos,
->> -					 &alloc_size, &flags);
->> -		if (ret) {
->> -			mlog_errno(ret);
->> -			goto out;
->> -		}
->> +	path = ocfs2_new_path_from_et(&et);
->> +	if (!path) {
->> +		ret = -ENOMEM;
->> +		mlog_errno(ret);
->> +		goto out;
->> +	}
->> +
->> +start:
->> +	if (trunc_end == 0) {
->> +		ret = 0;
->> +		goto out;
->> +	}
->
-> 	NO!  Don't do loops via goto.  Just Don't.  There are some
-> convoluted functions that end up being cleaner with gotos, but they are
-> *convoluted*.  This is a simple loop.  Keep it that way.
-> 	In fact, this all really wants to be a helper function:
->
-> 	while (trunc_end > 0) {
-> 		do_one_hunk();
-> 		ocfs2_reinit_path(path, 1);
-> 	}
->
-> 	Actually, looking at the rest of the code, I see a couple
-> helpers.  If you wrap trunc_start, trunc_len, etc in a structure, you
-> can pass it through.
->
->>  
->> -		if (alloc_size > trunc_len)
->> -			alloc_size = trunc_len;
->> +	/*
->> +	 * Unlike truncating codes, here we want to find a path which contains
->> +	 * (trunc_end - 1) cpos, and trunc_end will be decreased after each
->> +	 * removal of a record range.
->> +	 *
->> +	 * Why didn't use trunc_end to search the path?
->> +	 * The reason is simple, think about the situation when we cross the
->> +	 * extent block, we need to find the adjacent block by decreasing one
->> +	 * cluster, otherwise, it will run into loop.
->> +	 */
->> +	ret = ocfs2_find_path(INODE_CACHE(inode), path, cluster_within_list);
->> +	if (ret) {
->> +		mlog_errno(ret);
->> +		goto out;
->> +	}
->>  
->> -		/* Only do work for non-holes */
->> -		if (phys_cpos != 0) {
->> -			ret = ocfs2_remove_btree_range(inode, &et, cpos,
->> -						       phys_cpos, alloc_size,
->> -						       &dealloc, refcount_loc,
->> -						       flags);
->> -			if (ret) {
->> -				mlog_errno(ret);
->> -				goto out;
->> -			}
->> +	el = path_leaf_el(path);
->> +
->> +	for (i = le16_to_cpu(el->l_next_free_rec) - 1; i >= 0; i--) {
->> +		rec = &el->l_recs[i];
->> +		/*
->> +		 * Find the rightmost record which contains 'trunc_end' cpos,
->> +		 * and we just simply jump to previous record if the trunc_end
->> +		 * is the start of a record.
->> +		 */
->> +		if (le32_to_cpu(rec->e_cpos) < trunc_end) {
->> +			/*
->> +			 * Skip a hole.
->> +			 */
->> +			if ((le32_to_cpu(rec->e_cpos) +
->> +			     ocfs2_rec_clusters(el, rec)) < trunc_end)
->> +				trunc_end = le32_to_cpu(rec->e_cpos) +
->> +					ocfs2_rec_clusters(el, rec);
->> +			break;
->>  		}
->>  
->> -		cpos += alloc_size;
->> -		trunc_len -= alloc_size;
->> +		if (le32_to_cpu(rec->e_cpos) == trunc_end) {
->> +			i--;
->> +			break;
->> +		}
->> +	}
->> +
->> +	rec = &el->l_recs[i];
->
-> 	This is the first helper.  It finds the rec.
->
->> +	flags = rec->e_flags;
->> +	range = le32_to_cpu(rec->e_cpos) + ocfs2_rec_clusters(el, rec);
->> +
->> +	/*
->> +	 * Similar with the truncating codes, we also handle the
->> +	 * following three cases in order:
->> +	 *
->> +	 * - remove the entire record
->> +	 * - remove a partial record
->> +	 * - no record needs to be removed
->> +	 */
->> +	if (le32_to_cpu(rec->e_cpos) >= trunc_start) {
->> +		trunc_cpos = le32_to_cpu(rec->e_cpos);
->> +		trunc_len = trunc_end - le32_to_cpu(rec->e_cpos);
->> +		blkno = le64_to_cpu(rec->e_blkno);
->> +		trunc_end = le32_to_cpu(rec->e_cpos);
->> +	} else if (range > trunc_start) {
->> +		trunc_cpos = trunc_start;
->> +		trunc_len = range - trunc_start;
->> +		coff = trunc_start - le32_to_cpu(rec->e_cpos);
->> +		blkno = le64_to_cpu(rec->e_blkno) +
->> +				ocfs2_clusters_to_blocks(inode->i_sb, coff);
->> +		trunc_end = trunc_start;
->> +	} else {
->> +		/*
->> +		 * It may have two following possibilities:
->> +		 *
->> +		 * - last record has been removed
->> +		 * - trunc_start was within a hole
->> +		 *
->> +		 * both two cases mean the completion of hole punching.
->> +		 */
->> +		ret = 0;
->> +		goto out;
->>  	}
->>  
->> +	phys_cpos = ocfs2_blocks_to_clusters(inode->i_sb, blkno);
->
-> 	This is the second helper.  It computes the actual results from
-> the found record.
->
->> +	ret = ocfs2_remove_btree_range(inode, &et, trunc_cpos,
->> +				       phys_cpos, trunc_len, &dealloc,
->> +				       refcount_loc, flags);
->> +	if (ret < 0) {
->> +		mlog_errno(ret);
->> +		goto out;
->> +	}
->> +
->> +	if (trunc_end > 0)
->> +		cluster_within_list = trunc_end - 1;
->
-> 	This is the third helper.  It does the actual punch.
-
-Your words make sense:)
-
-
-I may wrap these loose codes up for better readability.
-
-
-Tristan.
-
->
-> Joel
->
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 9f8bd91..a4d43b8 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -7668,6 +7668,10 @@ bail:
+ 
+ /*
+  * 'start' is inclusive, 'end' is not.
++ *
++ * The name ocfs2_truncate_inline() may be misleading a little bit, since
++ * it handles truncating for fast symlink as well, cause they actually will
++ * be doing one thing per se.
+  */
+ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
+ 			  unsigned int start, unsigned int end, int trunc)
+@@ -7684,12 +7688,14 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
+ 
+ 	BUG_ON(start >= end);
+ 
+-	if (!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
++	if ((!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
+ 	    !(le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) ||
+-	    !ocfs2_supports_inline_data(osb)) {
++	    !ocfs2_supports_inline_data(osb)) &&
++	    (!ocfs2_inode_is_fast_symlink(inode))) {
+ 		ocfs2_error(inode->i_sb,
+ 			    "Inline data flags for inode %llu don't agree! "
+-			    "Disk: 0x%x, Memory: 0x%x, Superblock: 0x%x\n",
++			    "Disk: 0x%x, Memory: 0x%x, Superblock: 0x%x, "
++			    "and it's not a fast symlink as well.\n",
+ 			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 			    le16_to_cpu(di->i_dyn_features),
+ 			    OCFS2_I(inode)->ip_dyn_features,
+@@ -7713,7 +7719,10 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
+ 	}
+ 
+ 	numbytes = end - start;
+-	memset(idata->id_data + start, 0, numbytes);
++	if (ocfs2_inode_is_fast_symlink(inode))
++		memset(di->id2.i_symlink + start, 0, numbytes);
++	else
++		memset(idata->id_data + start, 0, numbytes);
+ 
+ 	/*
+ 	 * No need to worry about the data page here - it's been
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 17947dc..b377f84 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -498,7 +498,8 @@ static int ocfs2_truncate_file(struct inode *inode,
+ 	unmap_mapping_range(inode->i_mapping, new_i_size + PAGE_SIZE - 1, 0, 1);
+ 	truncate_inode_pages(inode->i_mapping, new_i_size);
+ 
+-	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
++	if ((OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
++	    (ocfs2_inode_is_fast_symlink(inode))) {
+ 		status = ocfs2_truncate_inline(inode, di_bh, new_i_size,
+ 					       i_size_read(inode), 1);
+ 		if (status)
+@@ -1450,7 +1451,8 @@ static int ocfs2_remove_inode_range(struct inode *inode,
+ 	if (byte_len == 0)
+ 		return 0;
+ 
+-	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
++	if ((OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
++	    (ocfs2_inode_is_fast_symlink(inode))) {
+ 		ret = ocfs2_truncate_inline(inode, di_bh, byte_start,
+ 					    byte_start + byte_len, 0);
+ 		if (ret) {
+-- 
+1.5.5
