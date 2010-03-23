@@ -1,8 +1,8 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 23 Mar 2010 14:31:29 +0800
-Subject: [Ocfs2-devel] [PATCH] Ocfs2: Teach truncating and punching-hole
+Date: Tue, 23 Mar 2010 16:04:44 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Teach truncating and punching-hole
 	codes to handle fastsymlink.
-Message-ID: <1269325889-24277-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1269331484-21262-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,15 +14,23 @@ and hole punching, since the mechanism is quite simliar per se.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/alloc.c |   17 +++++++++++++----
- fs/ocfs2/file.c  |    6 ++++--
- 2 files changed, 17 insertions(+), 6 deletions(-)
+ fs/ocfs2/alloc.c |   18 ++++++++++++++----
+ fs/ocfs2/file.c  |    7 +++++--
+ 2 files changed, 19 insertions(+), 6 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 9f8bd91..a4d43b8 100644
+index 9f8bd91..f13ce3e 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -7668,6 +7668,10 @@ bail:
+@@ -50,6 +50,7 @@
+ #include "uptodate.h"
+ #include "xattr.h"
+ #include "refcounttree.h"
++#include "symlink.h"
+ 
+ #include "buffer_head_io.h"
+ 
+@@ -7668,6 +7669,10 @@ bail:
  
  /*
   * 'start' is inclusive, 'end' is not.
@@ -33,7 +41,7 @@ index 9f8bd91..a4d43b8 100644
   */
  int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
  			  unsigned int start, unsigned int end, int trunc)
-@@ -7684,12 +7688,14 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
+@@ -7684,12 +7689,14 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
  
  	BUG_ON(start >= end);
  
@@ -51,7 +59,7 @@ index 9f8bd91..a4d43b8 100644
  			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
  			    le16_to_cpu(di->i_dyn_features),
  			    OCFS2_I(inode)->ip_dyn_features,
-@@ -7713,7 +7719,10 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
+@@ -7713,7 +7720,10 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
  	}
  
  	numbytes = end - start;
@@ -64,10 +72,18 @@ index 9f8bd91..a4d43b8 100644
  	/*
  	 * No need to worry about the data page here - it's been
 diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 17947dc..b377f84 100644
+index 17947dc..290a3b0 100644
 --- a/fs/ocfs2/file.c
 +++ b/fs/ocfs2/file.c
-@@ -498,7 +498,8 @@ static int ocfs2_truncate_file(struct inode *inode,
+@@ -60,6 +60,7 @@
+ #include "acl.h"
+ #include "quota.h"
+ #include "refcounttree.h"
++#include "symlink.h"
+ 
+ #include "buffer_head_io.h"
+ 
+@@ -498,7 +499,8 @@ static int ocfs2_truncate_file(struct inode *inode,
  	unmap_mapping_range(inode->i_mapping, new_i_size + PAGE_SIZE - 1, 0, 1);
  	truncate_inode_pages(inode->i_mapping, new_i_size);
  
@@ -77,7 +93,7 @@ index 17947dc..b377f84 100644
  		status = ocfs2_truncate_inline(inode, di_bh, new_i_size,
  					       i_size_read(inode), 1);
  		if (status)
-@@ -1450,7 +1451,8 @@ static int ocfs2_remove_inode_range(struct inode *inode,
+@@ -1450,7 +1452,8 @@ static int ocfs2_remove_inode_range(struct inode *inode,
  	if (byte_len == 0)
  		return 0;
  
