@@ -1,36 +1,52 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 24 Mar 2010 11:50:37 -0700
-Subject: [Ocfs2-devel] Question of rejecting a downconvert
-In-Reply-To: <201003241646.58845.dyli@novell.com>
-References: <201003241646.58845.dyli@novell.com>
-Message-ID: <4BAA5EFD.4040905@oracle.com>
+Date: Wed, 24 Mar 2010 14:41:51 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: be within spinlock when checking
+ the owner of a lockres
+In-Reply-To: <201003241442.o2NAdfs4028087@acsinet15.oracle.com>
+References: <201003241442.o2NAdfs4028087@acsinet15.oracle.com>
+Message-ID: <4BAA871F.7030200@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-While the fs can delay the downconvert of any resource, there are
-no means of explicitly rejecting it. And no rejection means the
-requesting node will keep waiting for the downconvert.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-Li Dongyang wrote:
-> Hi, list
-> I've read 
-> http://opendlm.sourceforge.net/cvsmirror/opendlm/docs/dlmbook_final.pdf but 
-> still confused, why a node can not reject a downconvert when it gets a bast in 
-> o2dlm?
-> and if we can, we could fix this bug: 
-> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1075
-> ocfs2: a busy mount point can be removed from another node
-> by adding a check in check_downconvert callback:
-> if the dentry->d_mounted is not zero, then just reject the downconvert.
+
+Wengang Wang wrote:
+> The checking of lockres owner in dlm_update_lvb() is not with spinlock
+> protection. I don't see problem in current call path of dlm_update_lvb().
+> But just for code robustness.
 >
-> Any hints? :-)
-> Thanks
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> ---
+>  fs/ocfs2/dlm/dlmast.c |    5 ++---
+>  1 files changed, 2 insertions(+), 3 deletions(-)
 >
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
+> index dccc439..b7a25ef 100644
+> --- a/fs/ocfs2/dlm/dlmast.c
+> +++ b/fs/ocfs2/dlm/dlmast.c
+> @@ -185,9 +185,8 @@ static void dlm_update_lvb(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+>  	BUG_ON(!lksb);
+>  
+>  	/* only updates if this node masters the lockres */
+> +	spin_lock(&res->spinlock);
+>  	if (res->owner == dlm->node_num) {
+> -
+> -		spin_lock(&res->spinlock);
+>  		/* check the lksb flags for the direction */
+>  		if (lksb->flags & DLM_LKSB_GET_LVB) {
+>  			mlog(0, "getting lvb from lockres for %s node\n",
+> @@ -202,8 +201,8 @@ static void dlm_update_lvb(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+>   		 * here. In the future we might want to clear it at the time
+>   		 * the put is actually done.
+>  		 */
+> -		spin_unlock(&res->spinlock);
+>  	}
+> +	spin_unlock(&res->spinlock);
+>  
+>  	/* reset any lvb flags on the lksb */
+>  	lksb->flags &= ~(DLM_LKSB_PUT_LVB|DLM_LKSB_GET_LVB);
 >   
