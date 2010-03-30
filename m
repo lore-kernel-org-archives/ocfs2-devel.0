@@ -1,405 +1,266 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 30 Mar 2010 14:58:51 -0700
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2:freeze-thaw: make it work -v4
-In-Reply-To: <201003300431.o2U1vol8024322@acsinet15.oracle.com>
-References: <201003300431.o2U1vol8024322@acsinet15.oracle.com>
-Message-ID: <4BB2741B.7040603@oracle.com>
+Date: Tue, 30 Mar 2010 15:05:55 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: print node # when tcp fails -v4
+In-Reply-To: <201003300411.o2U3l0gx029151@acsinet15.oracle.com>
+References: <201003300411.o2U3l0gx029151@acsinet15.oracle.com>
+Message-ID: <4BB275C3.5050707@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-http://lkml.org/lkml/2010/3/23/195
-http://git.kernel.org/?p=linux/kernel/git/viro/vfs-2.6.git;a=commitdiff;h=9cf4cacda31338a764e2cbe65cd51bb7f18f3a20
-
-The interface is changing... for the better. We should be able to get
-away without the cluster lock timeout business.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
 Wengang Wang wrote:
-> This patch adds freeze_fs()/unfreeze_fs() for ocfs2 so that it supports freeze/thaw.
+> #I resend the patch as V4 for a reminder. And I cleaned up some problems that
+> #checkpatch.pl points out.
+>
+> This patch adds prints of the number of peer node to which sending tcp message
+> failed. It helps debugging.
 >
 > Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 > ---
->  fs/ocfs2/dlmglue.c |  116 ++++++++++++++++++++++++++++++++++++++++++++++-
->  fs/ocfs2/dlmglue.h |    2 +
->  fs/ocfs2/journal.c |    1 +
->  fs/ocfs2/ocfs2.h   |   12 +++++
->  fs/ocfs2/super.c   |  130 +++++++++++++++++++++++++++++++++++++++++++++++++++-
->  5 files changed, 259 insertions(+), 2 deletions(-)
+>  fs/ocfs2/dlm/dlmast.c      |    4 +++-
+>  fs/ocfs2/dlm/dlmconvert.c  |    4 +++-
+>  fs/ocfs2/dlm/dlmdomain.c   |   19 +++++++++++++------
+>  fs/ocfs2/dlm/dlmlock.c     |    4 +++-
+>  fs/ocfs2/dlm/dlmmaster.c   |   12 +++++++++---
+>  fs/ocfs2/dlm/dlmrecovery.c |   27 ++++++++++++++++++---------
+>  fs/ocfs2/dlm/dlmunlock.c   |    3 ++-
+>  7 files changed, 51 insertions(+), 22 deletions(-)
 >
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index d7a9330..455b16f 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -3761,10 +3761,124 @@ static void ocfs2_dentry_post_unlock(struct ocfs2_super *osb,
->  	ocfs2_dentry_lock_put(osb, dl);
->  }
+> diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
+> index dccc439..390a887 100644
+> --- a/fs/ocfs2/dlm/dlmast.c
+> +++ b/fs/ocfs2/dlm/dlmast.c
+> @@ -453,7 +453,9 @@ int dlm_send_proxy_ast_msg(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+>  	ret = o2net_send_message_vec(DLM_PROXY_AST_MSG, dlm->key, vec, veclen,
+>  				     lock->ml.node, &status);
+>  	if (ret < 0)
+> -		mlog_errno(ret);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", ret, DLM_PROXY_AST_MSG, dlm->key,
+> +		     lock->ml.node);
+>  	else {
+>  		if (status == DLM_RECOVERING) {
+>  			mlog(ML_ERROR, "sent AST to node %u, it thinks this "
+> diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
+> index f283bce..3028d05 100644
+> --- a/fs/ocfs2/dlm/dlmconvert.c
+> +++ b/fs/ocfs2/dlm/dlmconvert.c
+> @@ -391,7 +391,9 @@ static enum dlm_status dlm_send_remote_convert_request(struct dlm_ctxt *dlm,
+>  		} else if (ret != DLM_NORMAL && ret != DLM_NOTQUEUED)
+>  			dlm_error(ret);
+>  	} else {
+> -		mlog_errno(tmpret);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", tmpret, DLM_CONVERT_LOCK_MSG, dlm->key,
+> +		     res->owner);
+>  		if (dlm_is_host_down(tmpret)) {
+>  			/* instead of logging the same network error over
+>  			 * and over, sleep here and wait for the heartbeat
+> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+> index 988c905..eb50be0 100644
+> --- a/fs/ocfs2/dlm/dlmdomain.c
+> +++ b/fs/ocfs2/dlm/dlmdomain.c
+> @@ -565,7 +565,9 @@ static int dlm_send_one_domain_exit(struct dlm_ctxt *dlm,
+>  	status = o2net_send_message(DLM_EXIT_DOMAIN_MSG, dlm->key,
+>  				    &leave_msg, sizeof(leave_msg), node,
+>  				    NULL);
+> -
+> +	if (status < 0)
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", status, DLM_EXIT_DOMAIN_MSG, dlm->key, node);
+>  	mlog(0, "status return %d from o2net_send_message\n", status);
 >  
-> +/*
-> + * This is only ever run on behalf of another node.
-> + */
-> +void ocfs2_freeze_worker(struct work_struct *work)
-> +{
-> +	struct super_block *sb;
-> +	int ret, do_unlock = 0;
-> +	struct ocfs2_super *osb = container_of(work, struct ocfs2_super,
-> +					       osb_freeze_work);
-> +
-> +	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-> +
-> +	/* If umount is in progress, wait it to complete. */
-> +	ret = ocfs2_test_osb_flag(osb, OCFS2_OSB_UMOUNT_INPROG);
-> +	if (ret) {
-> +		mlog(0, "Unmount in progress, make the freeze request pending"
-> +		     "\n");
-> +		/* Leave FREEZE_INPROG there so not queue the worker again */
-> +		return;
-> +	}
-> +
-> +	sb = freeze_bdev(osb->sb->s_bdev);
-> +	if (IS_ERR(sb)) {
-> +		/* ocfs2_freeze_fs() shouldn't return any error in the remote
-> +		 * box. If it does it's a bug. But we deal with it gracefully.
-> +		 */
-> +		ret = PTR_ERR(sb);
-> +		mlog_errno(ret);
-> +		ocfs2_clear_osb_flag(osb, OCFS2_OSB_FREEZE_INPROG);
-> +		return;
-> +	}
-> +
-> +	spin_lock(&osb->osb_lock);
-> +	osb->osb_flags &= ~OCFS2_OSB_FREEZE_INPROG;
-> +	osb->osb_flags |= OCFS2_OSB_FROZEN_BY_REMOTE;
-> +	spin_unlock(&osb->osb_lock);
-> +
-> +	ocfs2_wake_downconvert_thread(osb);
-> +
-> +	/* Waits for thaw */
-> +wait_thaw:
-> +	/* thaws the fs if unmount is in progress. */
-> +	ret = ocfs2_test_osb_flag(osb, OCFS2_OSB_UMOUNT_INPROG);
-> +	if (ret) {
-> +		/* Leave FREEZE_INPROG there so not queue the worker again */
-> +		goto thaw_dev;
-> +
-> +	}
-> +
-> +	ret = ocfs2_freeze_lock(osb, 0);
-> +	if (ret == -EBUSY) {
-> +		/* We suppose when it returns -EBUSY when timeout is hit.
-> +		 * Change me if it's not.
-> +		 */
-> +		goto wait_thaw;
-> +	} else if (ret) {
-> +		mlog(ML_ERROR, "Getting PR on freeze_lock failed,"
-> +		     "but going to thaw block device %s\n",  osb->dev_str);
-> +	} else {
-> +		do_unlock = 1;
-> +	}
-> +
-> +thaw_dev:
-> +	ret = thaw_bdev(osb->sb->s_bdev, osb->sb);
-> +	if (ret) {
-> +		/* this shouldn't happen */
-> +		mlog_errno(ret);
-> +		printk(KERN_WARNING "ocfs2: Thawing %s failed\n", osb->dev_str);
-> +	}
-> +
-> +	ocfs2_clear_osb_flag(osb, OCFS2_OSB_FROZEN_BY_REMOTE);
-> +
-> +	if (do_unlock)
-> +		ocfs2_freeze_unlock(osb, 0);
-> +}
-> +
-> +static void ocfs2_queue_freeze_worker(struct ocfs2_super *osb)
-> +{
-> +	int queue_it = 0;
-> +
-> +	spin_lock(&osb->osb_lock);
-> +	if (!(osb->osb_flags & OCFS2_OSB_FREEZE_INPROG)) {
-> +		osb->osb_flags |= OCFS2_OSB_FREEZE_INPROG;
-> +		queue_it = 1;
-> +	}
-> +	spin_unlock(&osb->osb_lock);
-> +
-> +	if (queue_it)
-> +		queue_work(ocfs2_wq, &osb->osb_freeze_work);
-> +}
-> +
->  static int ocfs2_check_freeze_downconvert(struct ocfs2_lock_res *lockres,
->  					  int new_level)
->  {
-> -	return 1; /* change me */
-> +	struct ocfs2_super *osb = ocfs2_get_lockres_osb(lockres);
-> +	struct super_block *sb = osb->sb;
-> +	int frozen_by_remote;
-> +
-> +	mlog(0, "flags=0x%lx, frozen=%d, level=%d, newlevel=%d\n",
-> +	     osb->osb_flags, sb->s_frozen, lockres->l_level, new_level);
-> +
-> +	if (new_level == LKM_PRMODE) {
-> +		/* other node is during mount or is waiting for thaw. */
-> +		if (sb->s_frozen)
-> +			return 0;
-> +		else
-> +			return 1;
-> +	}
-> +
-> +	/* now new_level is NL. other node wants to freeze cluster. */
-> +	frozen_by_remote = ocfs2_test_osb_flag(osb, OCFS2_OSB_FROZEN_BY_REMOTE);
-> +
-> +	/* ok, this node is frozen for the request. */
-> +	if (frozen_by_remote)
-> +		return 1;
-> +
-> +	ocfs2_queue_freeze_worker(osb);
-> +	return 0;
->  }
->  
->  /*
-> diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
-> index 297b3a9..c6da138 100644
-> --- a/fs/ocfs2/dlmglue.h
-> +++ b/fs/ocfs2/dlmglue.h
-> @@ -167,6 +167,8 @@ void ocfs2_wake_downconvert_thread(struct ocfs2_super *osb);
->  struct ocfs2_dlm_debug *ocfs2_new_dlm_debug(void);
->  void ocfs2_put_dlm_debug(struct ocfs2_dlm_debug *dlm_debug);
->  
-> +void ocfs2_freeze_worker(struct work_struct *work);
-> +
->  /* To set the locking protocol on module initialization */
->  void ocfs2_set_locking_protocol(void);
->  #endif	/* DLMGLUE_H */
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 9336c60..8f82525 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -355,6 +355,7 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
->  	if (ocfs2_is_hard_readonly(osb))
->  		return ERR_PTR(-EROFS);
->  
-> +	vfs_check_frozen(osb->sb, SB_FREEZE_TRANS);
->  	BUG_ON(osb->journal->j_state == OCFS2_JOURNAL_FREE);
->  	BUG_ON(max_buffs <= 0);
->  
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index 7892738..ec751b9 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -261,6 +261,9 @@ enum ocfs2_mount_options
->  #define OCFS2_OSB_HARD_RO			0x0002
->  #define OCFS2_OSB_ERROR_FS			0x0004
->  #define OCFS2_OSB_DROP_DENTRY_LOCK_IMMED	0x0008
-> +#define OCFS2_OSB_FREEZE_INPROG			0x0010
-> +#define OCFS2_OSB_UMOUNT_INPROG			0x0020
-> +#define OCFS2_OSB_FROZEN_BY_REMOTE		0x0040	/* frozen by remote */
->  
->  #define OCFS2_DEFAULT_ATIME_QUANTUM		60
->  
-> @@ -403,6 +406,8 @@ struct ocfs2_super
->  	unsigned int			*osb_orphan_wipes;
->  	wait_queue_head_t		osb_wipe_event;
->  
-> +	/* osb_freeze_work is protected by osb->s_bdev->bd_fsfreeze_mutex */
-> +	struct work_struct		osb_freeze_work;
->  	struct ocfs2_orphan_scan	osb_orphan_scan;
->  
->  	/* used to protect metaecc calculation check of xattr. */
-> @@ -540,6 +545,13 @@ static inline void ocfs2_set_osb_flag(struct ocfs2_super *osb,
->  	spin_unlock(&osb->osb_lock);
->  }
->  
-> +static inline void ocfs2_clear_osb_flag(struct ocfs2_super *osb,
-> +					unsigned long flag)
-> +{
-> +	spin_lock(&osb->osb_lock);
-> +	osb->osb_flags &= ~flag;
-> +	spin_unlock(&osb->osb_lock);
-> +}
->  
->  static inline unsigned long  ocfs2_test_osb_flag(struct ocfs2_super *osb,
->  						 unsigned long flag)
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 9464080..cc37127 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -138,6 +138,10 @@ static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend);
->  static int ocfs2_enable_quotas(struct ocfs2_super *osb);
->  static void ocfs2_disable_quotas(struct ocfs2_super *osb);
->  static int ocfs2_freeze_lock_supported(struct ocfs2_super *osb);
-> +static int is_kernel_thread(void);
-> +static int ocfs2_freeze_fs(struct super_block *sb);
-> +static int is_freeze_master(struct ocfs2_super *osb);
-> +static int ocfs2_unfreeze_fs(struct super_block *sb);
->  
->  static const struct super_operations ocfs2_sops = {
->  	.statfs		= ocfs2_statfs,
-> @@ -152,6 +156,8 @@ static const struct super_operations ocfs2_sops = {
->  	.show_options   = ocfs2_show_options,
->  	.quota_read	= ocfs2_quota_read,
->  	.quota_write	= ocfs2_quota_write,
-> +	.freeze_fs	= ocfs2_freeze_fs,
-> +	.unfreeze_fs	= ocfs2_unfreeze_fs,
->  };
->  
->  enum {
-> @@ -389,7 +395,7 @@ static const struct file_operations ocfs2_osb_debug_fops = {
->  
->  static int ocfs2_sync_fs(struct super_block *sb, int wait)
->  {
-> -	int status;
-> +	int status, flush_journal = 0;
->  	tid_t target;
->  	struct ocfs2_super *osb = OCFS2_SB(sb);
->  
-> @@ -410,6 +416,17 @@ static int ocfs2_sync_fs(struct super_block *sb, int wait)
->  			jbd2_log_wait_commit(OCFS2_SB(sb)->journal->j_journal,
->  					     target);
+>  	return status;
+> @@ -962,7 +964,9 @@ static int dlm_send_one_join_cancel(struct dlm_ctxt *dlm,
+>  				    &cancel_msg, sizeof(cancel_msg), node,
+>  				    NULL);
+>  	if (status < 0) {
+> -		mlog_errno(status);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", status, DLM_CANCEL_JOIN_MSG, DLM_MOD_KEY,
+> +		     node);
+>  		goto bail;
 >  	}
-> +
-> +	flush_journal = ocfs2_test_osb_flag(osb, OCFS2_OSB_FREEZE_INPROG);
-> +
-> +	/* flushes journal when it's during freeze_bdev(). so that we need not
-> +	 * replay journal if this node crashes before thawed.
-> +	 */
-> +	if (unlikely(flush_journal)) {
-> +		status = jbd2_journal_flush(OCFS2_SB(sb)->journal->j_journal);
-> +		if (status)
-> +			mlog(ML_ERROR, "flushing journal failed %d\n", status);
-> +	}
->  	return 0;
+>  
+> @@ -1029,10 +1033,11 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
+>  	byte_copymap(join_msg.node_map, dlm->live_nodes_map, O2NM_MAX_NODES);
+>  
+>  	status = o2net_send_message(DLM_QUERY_JOIN_MSG, DLM_MOD_KEY, &join_msg,
+> -				    sizeof(join_msg), node,
+> -				    &join_resp);
+> +				    sizeof(join_msg), node, &join_resp);
+>  	if (status < 0 && status != -ENOPROTOOPT) {
+> -		mlog_errno(status);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", status, DLM_QUERY_JOIN_MSG, DLM_MOD_KEY,
+> +		     node);
+>  		goto bail;
+>  	}
+>  	dlm_query_join_wire_to_packet(join_resp, &packet);
+> @@ -1103,7 +1108,9 @@ static int dlm_send_one_join_assert(struct dlm_ctxt *dlm,
+>  				    &assert_msg, sizeof(assert_msg), node,
+>  				    NULL);
+>  	if (status < 0)
+> -		mlog_errno(status);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", status, DLM_ASSERT_JOINED_MSG, DLM_MOD_KEY,
+> +		     node);
+>  
+>  	return status;
 >  }
+> diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+> index 7333377..f1fba2a 100644
+> --- a/fs/ocfs2/dlm/dlmlock.c
+> +++ b/fs/ocfs2/dlm/dlmlock.c
+> @@ -329,7 +329,9 @@ static enum dlm_status dlm_send_remote_lock_request(struct dlm_ctxt *dlm,
+>  			BUG();
+>  		}
+>  	} else {
+> -		mlog_errno(tmpret);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", tmpret, DLM_CREATE_LOCK_MSG, dlm->key,
+> +		     res->owner);
+>  		if (dlm_is_host_down(tmpret)) {
+>  			ret = DLM_RECOVERING;
+>  			mlog(0, "node %u died so returning DLM_RECOVERING "
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index a659606..3114de2 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -1666,7 +1666,9 @@ again:
+>  		tmpret = o2net_send_message(DLM_ASSERT_MASTER_MSG, dlm->key,
+>  					    &assert, sizeof(assert), to, &r);
+>  		if (tmpret < 0) {
+> -			mlog(0, "assert_master returned %d!\n", tmpret);
+> +			mlog(ML_ERROR, "Error %d when sending message %u (key "
+> +			     "0x%x) to node %u\n", tmpret,
+> +			     DLM_ASSERT_MASTER_MSG, dlm->key, to);
+>  			if (!dlm_is_host_down(tmpret)) {
+>  				mlog(ML_ERROR, "unhandled error=%d!\n", tmpret);
+>  				BUG();
+> @@ -2207,7 +2209,9 @@ int dlm_drop_lockres_ref(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
+>  	ret = o2net_send_message(DLM_DEREF_LOCKRES_MSG, dlm->key,
+>  				 &deref, sizeof(deref), res->owner, &r);
+>  	if (ret < 0)
+> -		mlog_errno(ret);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", ret, DLM_DEREF_LOCKRES_MSG, dlm->key,
+> +		     res->owner);
+>  	else if (r < 0) {
+>  		/* BAD.  other node says I did not have a ref. */
+>  		mlog(ML_ERROR,"while dropping ref on %s:%.*s "
+> @@ -2977,7 +2981,9 @@ static int dlm_do_migrate_request(struct dlm_ctxt *dlm,
+>  					 &migrate, sizeof(migrate), nodenum,
+>  					 &status);
+>  		if (ret < 0) {
+> -			mlog(0, "migrate_request returned %d!\n", ret);
+> +			mlog(ML_ERROR, "Error %d when sending message %u (key "
+> +			     "0x%x) to node %u\n", ret, DLM_MIGRATE_REQUEST_MSG,
+> +			     dlm->key, nodenum);
+>  			if (!dlm_is_host_down(ret)) {
+>  				mlog(ML_ERROR, "unhandled error=%d!\n", ret);
+>  				BUG();
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index b4f99de..f8b75ce 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -803,7 +803,9 @@ static int dlm_request_all_locks(struct dlm_ctxt *dlm, u8 request_from,
 >  
-> @@ -1219,6 +1236,9 @@ static void ocfs2_kill_sb(struct super_block *sb)
->  	if (!osb || atomic_read(&osb->vol_state) == VOLUME_DISABLED)
->  		goto out;
+>  	/* negative status is handled by caller */
+>  	if (ret < 0)
+> -		mlog_errno(ret);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key "
+> +		     "0x%x) to node %u\n", ret, DLM_LOCK_REQUEST_MSG,
+> +		     dlm->key, request_from);
 >  
-> +	up_write(&sb->s_umount);
-> +	ocfs2_set_osb_flag(osb, OCFS2_OSB_UMOUNT_INPROG);
-> +	down_write(&sb->s_umount);
->  	/* Prevent further queueing of inode drop events */
->  	spin_lock(&dentry_list_lock);
->  	ocfs2_set_osb_flag(osb, OCFS2_OSB_DROP_DENTRY_LOCK_IMMED);
-> @@ -2176,6 +2196,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  	INIT_WORK(&osb->dentry_lock_work, ocfs2_drop_dl_inodes);
->  	osb->dentry_lock_list = NULL;
->  
-> +	INIT_WORK(&osb->osb_freeze_work, ocfs2_freeze_worker);
+>  	// return from here, then
+>  	// sleep until all received or error
+> @@ -955,10 +957,10 @@ static int dlm_send_all_done_msg(struct dlm_ctxt *dlm, u8 dead_node, u8 send_to)
+>  	ret = o2net_send_message(DLM_RECO_DATA_DONE_MSG, dlm->key, &done_msg,
+>  				 sizeof(done_msg), send_to, &tmpret);
+>  	if (ret < 0) {
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key "
+> +		     "0x%x) to node %u\n", ret, DLM_RECO_DATA_DONE_MSG,
+> +		     dlm->key, send_to);
+>  		if (!dlm_is_host_down(ret)) {
+> -			mlog_errno(ret);
+> -			mlog(ML_ERROR, "%s: unknown error sending data-done "
+> -			     "to %u\n", dlm->name, send_to);
+>  			BUG();
+>  		}
+>  	} else
+> @@ -1126,7 +1128,9 @@ static int dlm_send_mig_lockres_msg(struct dlm_ctxt *dlm,
+>  	if (ret < 0) {
+>  		/* XXX: negative status is not handled.
+>  		 * this will end up killing this node. */
+> -		mlog_errno(ret);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key "
+> +		     "0x%x) to node %u\n", ret, DLM_MIG_LOCKRES_MSG,
+> +		     dlm->key, send_to);
+>  	} else {
+>  		/* might get an -ENOMEM back here */
+>  		ret = status;
+> @@ -1642,7 +1646,9 @@ int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+>  				 &req, sizeof(req), nodenum, &status);
+>  	/* XXX: negative status not handled properly here. */
+>  	if (ret < 0)
+> -		mlog_errno(ret);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key "
+> +		     "0x%x) to node %u\n", ret, DLM_MASTER_REQUERY_MSG,
+> +		     dlm->key, nodenum);
+>  	else {
+>  		BUG_ON(status < 0);
+>  		BUG_ON(status > DLM_LOCK_RES_OWNER_UNKNOWN);
+> @@ -2640,7 +2646,7 @@ retry:
+>  		if (dlm_is_host_down(ret)) {
+>  			/* node is down.  not involved in recovery
+>  			 * so just keep going */
+> -			mlog(0, "%s: node %u was down when sending "
+> +			mlog(ML_NOTICE, "%s: node %u was down when sending "
+>  			     "begin reco msg (%d)\n", dlm->name, nodenum, ret);
+>  			ret = 0;
+>  		}
+> @@ -2660,11 +2666,12 @@ retry:
+>  		}
+>  		if (ret < 0) {
+>  			struct dlm_lock_resource *res;
 > +
->  	/* get some pseudo constants for clustersize bits */
->  	osb->s_clustersize_bits =
->  		le32_to_cpu(di->id2.i_super.s_clustersize_bits);
-> @@ -2534,5 +2556,111 @@ void __ocfs2_abort(struct super_block* sb,
->  	ocfs2_handle_error(sb);
->  }
->  
-> +static inline int is_kernel_thread()
-> +{
-> +	return current->flags & PF_KTHREAD;
-> +}
-> +
-> +/* ocfs2_freeze_fs()/ocfs2_unfreeze_fs() are always called by freeze_bdev()/
-> + * thaw_bdev(). bdev->bd_fsfreeze_mutex is used for synchronization. an extra
-> + * ocfs2 mutex is not needed.
-> + */
-> +static int ocfs2_freeze_fs(struct super_block *sb)
-> +{
-> +	int ret = 0;
-> +	struct ocfs2_super *osb = OCFS2_SB(sb);
-> +
-> +	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-> +
-> +	/* cluster lock is issued only when this is the IOCTL process.(other
-> +	 * case ocfs2_freeze_fs() is called in ocfs2_wq thread)
-> +	 */
-> +
-> +	if (is_kernel_thread()) {
-> +		BUG_ON(!ocfs2_freeze_lock_supported(osb));
-> +
-> +		/* this is ocfs2_wq kernel thread. we do freeze on behalf of
-> +		 * the requesting node, don't issue cluster lock again.
-> +		 */
-> +		printk(KERN_INFO "ocfs2: Block device (%s) frozen by remote\n",
-> +		       osb->dev_str);
-> +		return 0;
-> +	}
-> +
-> +	/* this is ioctl thread, issues cluster lock */
-> +
-> +	if (!ocfs2_freeze_lock_supported(osb))
-> +		return -ENOTSUPP;
-> +
-> +	ret = ocfs2_freeze_lock(osb, 1);
-> +	if (ret) {
-> +		mlog_errno(ret);
-> +	} else {
-> +		printk(KERN_INFO "ocfs2: Block device (%s) frozen by local\n",
-> +		       osb->dev_str);
-> +	}
-> +
-> +	return ret;
-> +}
-> +
-> +static int is_freeze_master(struct ocfs2_super *osb)
-> +{
-> +	BUG_ON(osb->osb_freeze_lockres.l_ex_holders > 1);
-> +	return osb->osb_freeze_lockres.l_ex_holders;
-> +}
-> +
-> +static int ocfs2_unfreeze_fs(struct super_block *sb)
-> +{
-> +	struct ocfs2_super *osb = OCFS2_SB(sb);
-> +
-> +	mlog(0, "flags=0x%lx, frozen=%d\n", osb->osb_flags, osb->sb->s_frozen);
-> +
-> +	if (is_kernel_thread()) {
-> +		/* this is ocfs2_wq kernel thread. nothing to do. */
-> +		BUG_ON(!ocfs2_freeze_lock_supported(osb));
-> +		printk(KERN_INFO "ocfs2: Block device (%s) thawed by remote\n",
-> +		       osb->dev_str);
-> +		return 0;
-> +	}
-> +
-> +	/* this is the ioctl user thread. */
-> +
-> +	if (!ocfs2_freeze_lock_supported(osb))
-> +		return -ENOTSUPP;
-> +
-> +	if (!is_freeze_master(osb)) {
-> +		/* THAW ioctl on a node other than the one on with cluster is
-> +		 * frozen. don't thaw in the case. returns -EINVAL so that
-> +		 * osb->sb->s_bdev->bd_fsfreeze_count can be decreased.
-> +		 */
-> +
-> +		if (!ocfs2_test_osb_flag(osb, OCFS2_OSB_FROZEN_BY_REMOTE)) {
-> +			/* this is from a nested cross cluster thaw
-> +			 * case:
-> +			 * frozen from another node(node A)
-> +			 * frozen from this node(not suppored though)
-> +			 * thawed from node A
-> +			 * thawed from this node(coming here)
-> +			 *
-> +			 * thaw this node only.
-> +			 */
-> +			printk(KERN_INFO "ocfs2: Block device (%s) thawed by "
-> +			       "local\n", osb->dev_str);
-> +			return 0;
-> +		}
-> +
-> +		/* now the cluster still frozen by another node, fails this
-> +		 * request.
-> +		 */
-> +		return -EINVAL;
-> +	}
-> +
-> +	ocfs2_freeze_unlock(osb, 1);
-> +
-> +	printk(KERN_INFO "ocfs2: Block device (%s) thawed by local\n",
-> +	       osb->dev_str);
-> +	return 0;
-> +}
-> +
->  module_init(ocfs2_init);
->  module_exit(ocfs2_exit);
+>  			/* this is now a serious problem, possibly ENOMEM
+>  			 * in the network stack.  must retry */
+>  			mlog_errno(ret);
+>  			mlog(ML_ERROR, "begin reco of dlm %s to node %u "
+> -			    " returned %d\n", dlm->name, nodenum, ret);
+> +			     "returned %d\n", dlm->name, nodenum, ret);
+>  			res = dlm_lookup_lockres(dlm, DLM_RECOVERY_LOCK_NAME,
+>  						 DLM_RECOVERY_LOCK_NAME_LEN);
+>  			if (res) {
+> @@ -2789,7 +2796,9 @@ stage2:
+>  		if (ret >= 0)
+>  			ret = status;
+>  		if (ret < 0) {
+> -			mlog_errno(ret);
+> +			mlog(ML_ERROR, "Error %d when sending message %u (key "
+> +			     "0x%x) to node %u\n", ret, DLM_FINALIZE_RECO_MSG,
+> +			     dlm->key, nodenum);
+>  			if (dlm_is_host_down(ret)) {
+>  				/* this has no effect on this recovery
+>  				 * session, so set the status to zero to
+> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+> index 49e29ec..2c1f306 100644
+> --- a/fs/ocfs2/dlm/dlmunlock.c
+> +++ b/fs/ocfs2/dlm/dlmunlock.c
+> @@ -355,7 +355,8 @@ static enum dlm_status dlm_send_remote_unlock_request(struct dlm_ctxt *dlm,
+>  			mlog(0, "master was in-progress.  retry\n");
+>  		ret = status;
+>  	} else {
+> -		mlog_errno(tmpret);
+> +		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+> +		     "node %u\n", tmpret, DLM_UNLOCK_LOCK_MSG, dlm->key, owner);
+>  		if (dlm_is_host_down(tmpret)) {
+>  			/* NOTE: this seems strange, but it is what we want.
+>  			 * when the master goes down during a cancel or
 >   
