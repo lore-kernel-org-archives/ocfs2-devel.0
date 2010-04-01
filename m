@@ -1,68 +1,54 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 01 Apr 2010 15:46:43 +0800
-Subject: [Ocfs2-devel] [PATCH 13/15] ocfs2: ocfs2_group_bitmap_size has
- to handle old volume.
-In-Reply-To: <20100401073717.GA19666@mail.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 1 Apr 2010 10:44:49 -0700
+Subject: [Ocfs2-devel] [PATCH 12/15] ocfs2: Some tiny bug fixes for
+ discontiguous block allocation.
+In-Reply-To: <4BB421DD.9090708@oracle.com>
 References: <4BB40AB4.8040205@oracle.com>
-	<1270090752-18935-13-git-send-email-tao.ma@oracle.com>
-	<20100401033838.GJ28680@mail.oracle.com>
-	<4BB41FA0.8070804@oracle.com>
-	<20100401073717.GA19666@mail.oracle.com>
-Message-ID: <4BB44F63.4020804@oracle.com>
+	<1270090752-18935-12-git-send-email-tao.ma@oracle.com>
+	<20100401033406.GI28680@mail.oracle.com>
+	<4BB421DD.9090708@oracle.com>
+Message-ID: <20100401174448.GI19666@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
+On Thu, Apr 01, 2010 at 12:32:29PM +0800, Tao Ma wrote:
+> Joel Becker wrote:
+> >On Thu, Apr 01, 2010 at 10:59:09AM +0800, Tao Ma wrote:
+> >> 	le32_add_cpu(&fe->id1.bitmap1.i_total, le16_to_cpu(bg->bg_bits));
+> >>-	le32_add_cpu(&fe->i_clusters, le16_to_cpu(cl->cl_cpg));
+> >>+	le32_add_cpu(&fe->i_clusters,
+> >>+		     le16_to_cpu(bg->bg_bits) / le16_to_cpu(cl->cl_bpc));
+> >
+> >	You don't need to change this.  Either we've allocated cpg or
+> >we've failed out.
+> Current we don't fail out in ocfs2_block_group_grow_discontig when
+> we used up all the extent record in the list. So actually our bitmap
+> size can be less than cpg. So you think we need to bail out?
+> 
+> I removed your
+> if (needed > 0) {
+> }
 
-Joel Becker wrote:
-> On Thu, Apr 01, 2010 at 12:22:56PM +0800, Tao Ma wrote:
->> Joel Becker wrote:
->>> On Thu, Apr 01, 2010 at 10:59:10AM +0800, Tao Ma wrote:
->>>> ocfs2_group_bitmap_size has to handle the case when the
->>>> volume don't have discontiguous block group support.
->>> 	NAK.  We specify 256 in all cases.  This doesn't hurt old code
->>> because we've never used more bits.  Even though our old bg_size values
->>> were much larger, we never used that space because bg_bits was set to
->>> the smaller value.
->> No, it hurts.
->> So with an old ocfs2-tools and a new kernel, the new kernel will set
->> it to 256 while the old ocfs2-tools refused to work by checking
->> bg_size(see
->> chainalloc_process_group in libocfs2).
-> 
-> *facepalm*
-> 
-> 	Well, we shot ourselves in the foot.  The entire point of having
-> the size stored is so that we can vary it and the code still works.
-> Consider that "validation" of bg_size a bug.  The correct validation is
-> ((bg_bits + 7) / 8) <= bg_size.
-> 	So we do need the kernel to store the old-style bg_size in order
-> to keep compatibility.  But we can do better.  First, you don't need the
-> supports_discontig_bg argument.  You already have the superblock, just
-> check ocfs2_supports_discontig_bg(OCFS2_SB(sb)).
-I have thought of this before, but finally I gave up. The reason is that 
-OCFS2_SB(sb) use ocfs2_super which is declared in ocfs2.h. So you see, I 
-don't want to overlap these 2 head files.
-> 	Secondly, that function needs a big fat comment.
-> 
-> static inline int ocfs2_group_bitmap_size(struct super_block *sb,
-> 					  int suballocator)
-> {
-> 	int size = sb->s_blocksize -
-> 		offsetof(struct ocfs2_group_desc, bg_bitmap);
-> 
-> 	/*
-> 	 * The cluster allocator uses the entire block.  Suballocators have
-> 	 * never used more than OCFS2_MAX_BG_BITMAP_SIZE.  Unfortunately, older
-> 	 * code expects bg_size set to the maximum.  Thus we must keep
-> 	 * bg_size as-is unless discontig_bg is enabled.
-> 	 */
-> 	if (suballocator && ocfs2_supports_discontig_bg(OCFS2_SB(sb)))
-> 		size = OCFS2_MAX_BG_BITMAP_SIZE;
-yes, I can add the comments.
+	Um, there's supposed to be the -ENOSPC in there.  Looks like
+something I didn't complete.
+	We will NOT support block groups that are smaller than cpg.
 
-Regards,
-Tao
+Joel
+
+-- 
+
+"But then she looks me in the eye
+ And says, 'We're going to last forever,'
+ And man you know I can't begin to doubt it.
+ Cause it just feels so good and so free and so right,
+ I know we ain't never going to change our minds about it, Hey!
+ Here comes my girl."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
