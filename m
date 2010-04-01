@@ -1,172 +1,94 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Thu,  1 Apr 2010 10:59:07 +0800
-Subject: [Ocfs2-devel] [PATCH 10/15] ocfs2: Grow discontig block groups in
-	one transaction.
+Date: Thu,  1 Apr 2010 10:59:10 +0800
+Subject: [Ocfs2-devel] [PATCH 13/15] ocfs2: ocfs2_group_bitmap_size has to
+	handle old volume.
 In-Reply-To: <4BB40AB4.8040205@oracle.com>
 References: <4BB40AB4.8040205@oracle.com>
-Message-ID: <1270090752-18935-10-git-send-email-tao.ma@oracle.com>
+Message-ID: <1270090752-18935-13-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Joel Becker <joel.becker@oracle.com>
+ocfs2_group_bitmap_size has to handle the case when the
+volume don't have discontiguous block group support.
 
-Rather than extending the transaction every time we add an extent to a
-discontiguous block group, we grab enough credits to fill the extent
-list up front.  This means we can free the bits in the same transaction
-if we end up not getting enough space.
-
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/journal.h  |   12 ++++++++++++
- fs/ocfs2/suballoc.c |   48 ++++++++++++++++++++++--------------------------
- 2 files changed, 34 insertions(+), 26 deletions(-)
+ fs/ocfs2/ocfs2_fs.h |    5 +++--
+ fs/ocfs2/resize.c   |    4 ++--
+ fs/ocfs2/suballoc.c |    3 ++-
+ fs/ocfs2/super.c    |    2 +-
+ 4 files changed, 8 insertions(+), 6 deletions(-)
 
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 3f74e09..45035f5 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -562,6 +562,18 @@ static inline int ocfs2_calc_group_alloc_credits(struct super_block *sb,
- 	return blocks;
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 42641f8..29f32ad 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -1346,11 +1346,12 @@ static inline u16 ocfs2_local_alloc_size(struct super_block *sb)
  }
  
-+/*
-+ * Allocating a discontiguous block group requires the credits from
-+ * ocfs2_calc_group_alloc_credits() as well as enough credits to fill
-+ * the group descriptor's extent list.  The caller already has started
-+ * the transaction with ocfs2_calc_group_alloc_credits().  They extend
-+ * it with these credits.
-+ */
-+static inline int ocfs2_calc_bg_discontig_credits(struct super_block *sb)
-+{
-+	return ocfs2_extent_recs_per_gd(sb);
-+}
-+
- static inline int ocfs2_calc_tree_trunc_credits(struct super_block *sb,
- 						unsigned int clusters_to_del,
- 						struct ocfs2_dinode *fe,
+ static inline int ocfs2_group_bitmap_size(struct super_block *sb,
+-					  int suballocator)
++					  int suballocator,
++					  int support_discontig_bg)
+ {
+ 	int size;
+ 
+-	if (suballocator)
++	if (suballocator && support_discontig_bg)
+ 		size = OCFS2_MAX_BG_BITMAP_SIZE;
+ 	else
+ 		size = sb->s_blocksize -
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index 0ff4835..e6eca60 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -319,7 +319,7 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
+ 	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
+ 
+ 	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
+-				 ocfs2_group_bitmap_size(osb->sb, 0) * 8) {
++				 ocfs2_group_bitmap_size(osb->sb, 0, 0) * 8) {
+ 		mlog(ML_ERROR, "The disk is too old and small. "
+ 		     "Force to do offline resize.");
+ 		ret = -EINVAL;
+@@ -500,7 +500,7 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
+ 	fe = (struct ocfs2_dinode *)main_bm_bh->b_data;
+ 
+ 	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
+-				 ocfs2_group_bitmap_size(osb->sb, 0) * 8) {
++				 ocfs2_group_bitmap_size(osb->sb, 0, 0) * 8) {
+ 		mlog(ML_ERROR, "The disk is too old and small."
+ 		     " Force to do offline resize.");
+ 		ret = -EINVAL;
 diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 0ee6548..679ac4d 100644
+index 0878b5d..0bf6151 100644
 --- a/fs/ocfs2/suballoc.c
 +++ b/fs/ocfs2/suballoc.c
-@@ -528,12 +528,6 @@ static int ocfs2_block_group_grow_discontig(handle_t *handle,
+@@ -394,7 +394,8 @@ static int ocfs2_block_group_fill(handle_t *handle,
+ 	memset(bg, 0, sb->s_blocksize);
+ 	strcpy(bg->bg_signature, OCFS2_GROUP_DESC_SIGNATURE);
+ 	bg->bg_generation = cpu_to_le32(OCFS2_SB(sb)->fs_generation);
+-	bg->bg_size = cpu_to_le16(ocfs2_group_bitmap_size(sb, 1));
++	bg->bg_size = cpu_to_le16(ocfs2_group_bitmap_size(sb, 1,
++				  ocfs2_supports_discontig_bg(osb)));
+ 	bg->bg_chain = cpu_to_le16(my_chain);
+ 	bg->bg_next_group = cl->cl_recs[my_chain].c_blkno;
+ 	bg->bg_parent_dinode = cpu_to_le64(OCFS2_I(alloc_inode)->ip_blkno);
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index de8547f..b6171df 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2226,7 +2226,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	osb->bitmap_blkno = OCFS2_I(inode)->ip_blkno;
+ 	iput(inode);
  
- 	while ((needed > 0) && (le16_to_cpu(el->l_next_free_rec) <
- 				le16_to_cpu(el->l_count))) {
--		status = ocfs2_extend_trans(handle, OCFS2_SUBALLOC_ALLOC);
--		if (status) {
--			mlog_errno(status);
--			goto bail;
--		}
--
- 		if (min_bits > needed)
- 			min_bits = needed;
- 		status = ocfs2_block_group_claim_bits(osb, handle, ac,
-@@ -563,11 +557,12 @@ bail:
- 	return status;
- }
+-	osb->bitmap_cpg = ocfs2_group_bitmap_size(sb, 0) * 8;
++	osb->bitmap_cpg = ocfs2_group_bitmap_size(sb, 0, 0) * 8;
  
--static void ocfs2_bg_alloc_cleanup(struct inode *alloc_inode,
--				   struct buffer_head *bg_bh,
--				   struct ocfs2_cached_dealloc_ctxt *dealloc)
-+static void ocfs2_bg_alloc_cleanup(handle_t *handle,
-+				   struct ocfs2_alloc_context *cluster_ac,
-+				   struct inode *alloc_inode,
-+				   struct buffer_head *bg_bh)
- {
--	int i;
-+	int i, ret;
- 	struct ocfs2_group_desc *bg;
- 	struct ocfs2_extent_list *el;
- 	struct ocfs2_extent_rec *rec;
-@@ -579,9 +574,13 @@ static void ocfs2_bg_alloc_cleanup(struct inode *alloc_inode,
- 	el = &bg->bg_list;
- 	for (i = 0; i < le16_to_cpu(el->l_next_free_rec); i++) {
- 		rec = &el->l_recs[i];
--		ocfs2_cache_cluster_dealloc(dealloc,
--					    le64_to_cpu(rec->e_blkno),
--					    le32_to_cpu(rec->e_leaf_clusters));
-+		ret = ocfs2_free_clusters(handle, cluster_ac->ac_inode,
-+					  cluster_ac->ac_bh,
-+					  le64_to_cpu(rec->e_blkno),
-+					  le32_to_cpu(rec->e_leaf_clusters));
-+		if (ret)
-+			mlog_errno(ret);
-+		/* Try all the clusters to free */
- 	}
- 
- 	ocfs2_remove_from_cache(INODE_CACHE(alloc_inode), bg_bh);
-@@ -592,8 +591,7 @@ static struct buffer_head *
- ocfs2_block_group_alloc_discontig(handle_t *handle,
- 				  struct inode *alloc_inode,
- 				  struct ocfs2_alloc_context *ac,
--				  struct ocfs2_chain_list *cl,
--				  struct ocfs2_cached_dealloc_ctxt *dealloc)
-+				  struct ocfs2_chain_list *cl)
- {
- 	int status;
- 	u32 bit_off, num_bits;
-@@ -608,6 +606,13 @@ ocfs2_block_group_alloc_discontig(handle_t *handle,
- 		goto bail;
- 	}
- 
-+	status = ocfs2_extend_trans(handle,
-+				    ocfs2_calc_bg_discontig_credits(osb->sb));
-+	if (status) {
-+		mlog_errno(status);
-+		goto bail;
-+	}
-+
- 	/* Claim the first region */
- 	status = ocfs2_block_group_claim_bits(osb, handle, ac, min_bits,
- 					      &bit_off, &num_bits);
-@@ -645,7 +650,7 @@ ocfs2_block_group_alloc_discontig(handle_t *handle,
- 
- bail:
- 	if (status)
--		ocfs2_bg_alloc_cleanup(alloc_inode, bg_bh, dealloc);
-+		ocfs2_bg_alloc_cleanup(handle, ac, alloc_inode, bg_bh);
- 	return status ? ERR_PTR(status) : bg_bh;
- }
- 
-@@ -667,14 +672,11 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 	u64 bg_blkno;
- 	struct buffer_head *bg_bh = NULL;
- 	struct ocfs2_group_desc *bg;
--	struct ocfs2_cached_dealloc_ctxt dealloc;
- 
- 	BUG_ON(ocfs2_is_cluster_bitmap(alloc_inode));
- 
- 	mlog_entry_void();
- 
--	ocfs2_init_dealloc_ctxt(&dealloc);
--
- 	cl = &fe->id2.i_chain;
- 	status = ocfs2_reserve_clusters_with_limit(osb,
- 						   le16_to_cpu(cl->cl_cpg),
-@@ -706,8 +708,7 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
- 	if (IS_ERR(bg_bh) && (PTR_ERR(bg_bh) == -ENOSPC))
- 		bg_bh = ocfs2_block_group_alloc_discontig(handle,
- 							  alloc_inode,
--							  ac, cl,
--							  &dealloc);
-+							  ac, cl);
- 	if (IS_ERR(bg_bh)) {
- 		status = PTR_ERR(bg_bh);
- 		bg_bh = NULL;
-@@ -761,11 +762,6 @@ bail:
- 	if (handle)
- 		ocfs2_commit_trans(osb, handle);
- 
--	if (ocfs2_dealloc_has_cluster(&dealloc)) {
--		ocfs2_schedule_truncate_log_flush(osb, 1);
--		ocfs2_run_deallocs(osb, &dealloc);
--	}
--
- 	if (ac)
- 		ocfs2_free_alloc_context(ac);
- 
+ 	status = ocfs2_init_slot_info(osb);
+ 	if (status < 0) {
 -- 
 1.5.5
