@@ -1,53 +1,35 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 1 Apr 2010 16:43:21 -0700
-Subject: [Ocfs2-devel] [PATCH 13/15] ocfs2: ocfs2_group_bitmap_size has
- to handle old volume.
-In-Reply-To: <4BB52D24.1070204@oracle.com>
-References: <4BB40AB4.8040205@oracle.com>
-	<1270090752-18935-13-git-send-email-tao.ma@oracle.com>
-	<20100401033838.GJ28680@mail.oracle.com>
-	<4BB41FA0.8070804@oracle.com>
-	<20100401073717.GA19666@mail.oracle.com>
-	<4BB44F63.4020804@oracle.com>
-	<20100401175334.GJ19666@mail.oracle.com>
-	<4BB52D24.1070204@oracle.com>
-Message-ID: <20100401234321.GD27788@mail.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Mon,  5 Apr 2010 18:17:12 -0700
+Subject: [Ocfs2-devel] [PATCH 0/4] Ocfs2 allocation tuning
+Message-ID: <1270516636-12180-1-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Apr 02, 2010 at 07:32:52AM +0800, Tao Ma wrote:
-> I just went through all the callers of ocfs2_group_bitmap_size and
-> it seems that it is called in 2 scenarios:
-> 1. set bg_size.
-> 2. check some situation in resize.
-> 
-> So how about change it to
-> ocfs2_group_bitmap_size(struct super_block *sb, struct ocfs2_group_desc *gd)
-> so if gd is NULL, we returns the old value, if not, just return bg_size.
+The following patches apply some lessons I've learned during some testing of
+a couple non-trivial workloads on Ocfs2.  Roughly speaking, they tune "up"
+the default local alloc windowxs, and tune "down" the reservations code a
+bit.
 
-	That makes no sense, because we're asking for "what it should
-be", not "what it is".
+I primarily ran two tests - one simulating a large multi-node data-processing
+workload, and the multi-threaded writers test, mtwrite at:
 
-> As for place of setting bg_size, we can set bg_bits first and then
-> set bg_size to (bg_bits +7)/8.
+http://www.kernel.org/pub/linux/kernel/people/mfasheh/ocfs2/tests/mtwrite.c
 
-	But when we grow a group, we'll set bg_size to 256, which blows
-up tools.
+All patches were developed and tested on top of the current set of
+allocation changes in ocfs2.git (primarily reservations, and the local alloc
+fixes we have).  A git branch containing all the patches is available, based
+off 2.6.33:
 
-Joel
+git pull git://git.kernel.org/pub/scm/linux/kernel/git/ocfs2-mark.git disk-alloc
 
--- 
+Basically though, this all involved many many test runs (of which I have
+lots of data) and a thorough checking of fragmentation levels.  I changed
+only one value at a time. Details regarding some of the test runs are within
+the specific patch descriptions.
+	--Mark
 
-You can use a screwdriver to screw in screws or to clean your ears,
-however, the latter needs real skill, determination and a lack of fear
-of injuring yourself.  It is much the same with JavaScript.
-	- Chris Heilmann
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+--
+Mark Fasheh
