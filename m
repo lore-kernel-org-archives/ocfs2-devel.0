@@ -1,51 +1,91 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 5 Apr 2010 18:36:03 -0700
-Subject: [Ocfs2-devel] [PATCH 0/4] Ocfs2 allocation tuning
-In-Reply-To: <1270516636-12180-1-git-send-email-mfasheh@suse.com>
-References: <1270516636-12180-1-git-send-email-mfasheh@suse.com>
-Message-ID: <20100406013602.GA15139@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue,  6 Apr 2010 15:40:32 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: make ocfs2_adjust_resv_from_alloc
+	simple.
+Message-ID: <1270539632-4509-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Apr 05, 2010 at 06:17:12PM -0700, Mark Fasheh wrote:
-> The following patches apply some lessons I've learned during some testing of
-> a couple non-trivial workloads on Ocfs2.  Roughly speaking, they tune "up"
-> the default local alloc windowxs, and tune "down" the reservations code a
-> bit.
-> 
-> I primarily ran two tests - one simulating a large multi-node data-processing
-> workload, and the multi-threaded writers test, mtwrite at:
-> 
-> http://www.kernel.org/pub/linux/kernel/people/mfasheh/ocfs2/tests/mtwrite.c
-> 
-> All patches were developed and tested on top of the current set of
-> allocation changes in ocfs2.git (primarily reservations, and the local alloc
-> fixes we have).  A git branch containing all the patches is available, based
-> off 2.6.33:
-> 
-> git pull git://git.kernel.org/pub/scm/linux/kernel/git/ocfs2-mark.git disk-alloc
-> 
-> Basically though, this all involved many many test runs (of which I have
-> lots of data) and a thorough checking of fragmentation levels.  I changed
-> only one value at a time. Details regarding some of the test runs are within
-> the specific patch descriptions.
+When we allocate some bits from the reservation, we always
+allocate from the r_start(see ocfs2_resmap_resv_bits).
+So there should be no sense for checking between r_start
+and start. And I don't think we will change this behaviour
+somehow later by allocating from some bits after r_start.
+Why not make ocfs2_adjust_resv_from_alloc simple now?
 
-	These patches are now in the merge-window branch of ocfs2.git.
+So the only chance we have to adjust the reservation is that
+we haven't reached the end. With this patch, the function is
+more readable.
 
-Joel
+Cc: Mark Fasheh <mfasheh@suse.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/reservations.c |   33 ++++++++++-----------------------
+ 1 files changed, 10 insertions(+), 23 deletions(-)
 
+diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
+index 32bad4a..d841535 100644
+--- a/fs/ocfs2/reservations.c
++++ b/fs/ocfs2/reservations.c
+@@ -406,7 +406,7 @@ ocfs2_find_resv_lhs(struct ocfs2_reservation_map *resmap, unsigned int goal)
+  * The start value of *rstart is insignificant.
+  *
+  * This function searches the bitmap range starting at search_start
+- * with length csearch_len for a set of contiguous free bits. We try
++ * with length search_len for a set of contiguous free bits. We try
+  * to find up to 'wanted' bits, but can sometimes return less.
+  *
+  * Returns the length of allocation, 0 if no free bits are found.
+@@ -776,38 +776,25 @@ static void
+ 				     struct ocfs2_alloc_reservation *resv,
+ 				     unsigned int start, unsigned int end)
+ {
+-	unsigned int lhs = 0, rhs = 0;
++	unsigned int rhs = 0;
++	unsigned int old_end = ocfs2_resv_end(resv);
+ 
+-	BUG_ON(start < resv->r_start);
++	BUG_ON(start != resv->r_start || old_end < end);
+ 
+-	/*
+-	 * Completely used? We can remove it then.
+-	 */
+-	if (ocfs2_resv_end(resv) <= end && resv->r_start >= start) {
++	if (old_end == end) {
+ 		__ocfs2_resv_discard(resmap, resv);
+ 		return;
+ 	}
+ 
+-	if (end < ocfs2_resv_end(resv))
+-		rhs = end - ocfs2_resv_end(resv);
+-
+-	if (start > resv->r_start)
+-		lhs = start - resv->r_start;
++	rhs = end - ocfs2_resv_end(resv);
+ 
+ 	/*
+-	 * This should have been trapped above. At the very least, rhs
+-	 * should be non zero.
++	 * This should have been trapped above.
+ 	 */
+-	BUG_ON(rhs == 0 && lhs == 0);
++	BUG_ON(rhs == 0);
+ 
+-	if (rhs >= lhs) {
+-		unsigned int old_end = ocfs2_resv_end(resv);
+-
+-		resv->r_start = end + 1;
+-		resv->r_len = old_end - resv->r_start + 1;
+-	} else {
+-		resv->r_len = start - resv->r_start;
+-	}
++	resv->r_start = end + 1;
++	resv->r_len = old_end - resv->r_start + 1;
+ }
+ 
+ void ocfs2_resmap_claimed_bits(struct ocfs2_reservation_map *resmap,
 -- 
-
-"It is not the function of our government to keep the citizen from
- falling into error; it is the function of the citizen to keep the
- government from falling into error."
-	- Robert H. Jackson
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.5
