@@ -1,35 +1,26 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 6 Apr 2010 18:19:07 -0700
-Subject: [Ocfs2-devel] o2net: log socket state changes
-In-Reply-To: <1270071149-15240-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1270071149-15240-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20100407011906.GD19684@mail.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 8 Apr 2010 00:03:46 +0800
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2:freeze-thaw: make it work -v4
+In-Reply-To: <4BB2741B.7040603@oracle.com>
+References: <201003300431.o2U1vol8024322@acsinet15.oracle.com>
+	<4BB2741B.7040603@oracle.com>
+Message-ID: <20100407160346.GA4166@laptop.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Mar 31, 2010 at 02:32:29PM -0700, Srinivas Eeda wrote:
-> This patch logs socket state changes that lead to socket shutdown.
+On 10-03-30 14:58, Sunil Mushran wrote:
+> http://lkml.org/lkml/2010/3/23/195
+> http://git.kernel.org/?p=linux/kernel/git/viro/vfs-2.6.git;a=commitdiff;h=9cf4cacda31338a764e2cbe65cd51bb7f18f3a20
 > 
-> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> The interface is changing... for the better. We should be able to get
+> away without the cluster lock timeout business.
 
-	This patch is now in the 'merge-window' branch of ocfs2.git.  It
-had two lines with trailing whitespace, which I corrected this time.
-Please verify your patches with checkpatch.pl in the future.
+I don't see how the patch helps us not use timeoutible cluster lock.
+The patch doesn't touch unmount path. If it doesn't prevent an unmount, we
+have the outstanding lock problem.
 
-Joel
-
--- 
-
-"In the beginning, the universe was created. This has made a lot 
- of people very angry, and is generally considered to have been a 
- bad move."
-        - Douglas Adams
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+regards,
+wengang.
