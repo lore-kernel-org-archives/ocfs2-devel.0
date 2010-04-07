@@ -1,26 +1,26 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 8 Apr 2010 00:03:46 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2:freeze-thaw: make it work -v4
-In-Reply-To: <4BB2741B.7040603@oracle.com>
-References: <201003300431.o2U1vol8024322@acsinet15.oracle.com>
-	<4BB2741B.7040603@oracle.com>
-Message-ID: <20100407160346.GA4166@laptop.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 7 Apr 2010 14:06:41 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Code cleanup for
+	allocation reservation.
+In-Reply-To: <1270543606-5338-1-git-send-email-tao.ma@oracle.com>
+References: <1270543606-5338-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100407210641.GO11402@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10-03-30 14:58, Sunil Mushran wrote:
-> http://lkml.org/lkml/2010/3/23/195
-> http://git.kernel.org/?p=linux/kernel/git/viro/vfs-2.6.git;a=commitdiff;h=9cf4cacda31338a764e2cbe65cd51bb7f18f3a20
+On Tue, Apr 06, 2010 at 04:46:46PM +0800, Tao Ma wrote:
+> Two tiny cleanup for allocation reservation.
+> 1. Remove some extra codes in ocfs2_local_alloc_find_clear_bits.
+> 2. Remove an unuseful variables in ocfs2_find_resv_lhs.
 > 
-> The interface is changing... for the better. We should be able to get
-> away without the cluster lock timeout business.
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-I don't see how the patch helps us not use timeoutible cluster lock.
-The patch doesn't touch unmount path. If it doesn't prevent an unmount, we
-have the outstanding lock problem.
+Acked-by: Mark Fasheh <mfasheh@suse.com>
+	--Mark
 
-regards,
-wengang.
+--
+Mark Fasheh
