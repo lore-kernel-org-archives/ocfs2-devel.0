@@ -1,48 +1,39 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 08 Apr 2010 07:47:00 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: make ocfs2_adjust_resv_from_alloc
-	simple.
-In-Reply-To: <20100407212423.GP11402@wotan.suse.de>
-References: <1270539632-4509-1-git-send-email-tao.ma@oracle.com>
-	<20100407212423.GP11402@wotan.suse.de>
-Message-ID: <4BBD1974.9040203@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 7 Apr 2010 16:54:03 -0700
+Subject: [Ocfs2-devel] [RFC] ocfs2: Make ocfs2_extend_trans really
+ extending.
+In-Reply-To: <4BBD1898.1010308@oracle.com>
+References: <1269244904-5783-1-git-send-email-tao.ma@oracle.com>
+	<20100407215316.GQ11402@wotan.suse.de>
+	<4BBD1898.1010308@oracle.com>
+Message-ID: <20100407235403.GA4573@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> On Tue, Apr 06, 2010 at 03:40:32PM +0800, Tao Ma wrote:
->   
->> When we allocate some bits from the reservation, we always
->> allocate from the r_start(see ocfs2_resmap_resv_bits).
->> So there should be no sense for checking between r_start
->> and start. And I don't think we will change this behaviour
->> somehow later by allocating from some bits after r_start.
->> Why not make ocfs2_adjust_resv_from_alloc simple now?
->>     
->
-> I wanted ocfs2_resmap_claimed_bits() to be able to accept as many types of
-> input as possible. That way, it would stay ready to handle other types of
-> bitmaps. You're correct however that it's not really practical to allow for
-> allocation which would split our reservation.
->
-> Btw, if we took this to it's logical conclusion I think we'd be able to get
-> rid of the 'cstart' variable to ocfs2_resmap_claimed_bits(). It's good to at
-> least track what the caller *thought* the start of the allocation was so
-> IMHO we should leave that part of the api untouched.
->   
-yeah, I just want to change your codes as less as possible. ;)
->
-> Can you please add a comment in reservations.h that
-> ocfs2_resmap_claimed_bits() expects that 'start' is the same as we passed
-> back from ocfs2_resmap_resv_bits(). Also, there's a check at the top of
-> ocfs2_resmap_claimed_bits() which can become:
->
-> BUG_ON(cstart != resv->r_start);
->   
-OK, I will add them and resend the patch.
+On Thu, Apr 08, 2010 at 07:43:20AM +0800, Tao Ma wrote:
+> I only did tristan's reflink test cases. And since it is only a RFC,
+> I haven't put much time on it.
+> If you and Joel are both fine with it, I will give it more try,
+> especially the stress test case on xattr, since it depends on
+> it heavily. And also I will run some fill_verify_hole test which
+> will stress our b-tree codes.
+> I think these 2 places may be impacted most by this patch.
 
-Regards,
-Tao
+	Yes, please.  I agree it simplifies the call, and it may be a
+performance help (fewer unnecessary commits).
+
+Joel
+
+-- 
+
+"Senator let's be sincere,
+ As much as you can."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
