@@ -1,49 +1,106 @@
-From: Li Dongyang <lidongyang@novell.com>
-Date: Fri, 9 Apr 2010 10:37:46 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: alloc orphaned inode in
-	ocfs2_symlink
-In-Reply-To: <20100408231022.GS11402@wotan.suse.de>
-References: <201004080913.08494.lidongyang@novell.com>
-	<20100408231022.GS11402@wotan.suse.de>
-Message-ID: <201004091037.46679.lidongyang@novell.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Fri, 09 Apr 2010 10:38:33 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
+ to buffered
+In-Reply-To: <201004091027.07406.lidongyang@novell.com>
+References: <201004081547.24593.lidongyang@novell.com>	<4BBE2356.4010103@oracle.com>
+	<201004091027.07406.lidongyang@novell.com>
+Message-ID: <4BBE9329.7030305@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Friday 09 April 2010 07:10:22 Mark Fasheh wrote:
-> Hi Li,
+Hi Dongyang,
+
+Li Dongyang wrote:
+> This is because ocfs2_file_aio_write calls ocfs2_prepare_inode_for_write which 
+> sets direct_io to 0 if it finds out that direct IO would extend the file. But 
+> later we call __generic_file_aio_write which end's up calling 
+> generic_file_direct_write because the file has O_DIRECT flag.So every time we 
+> do a direct write extending the file, the inode->i_size gets inconsistent with 
+> the i_size on disk because we call generic_file_direct_write, and if we do a 
+> truncate after this, we will meet a bug in ocfs2_truncate_file.
+yes we have O_DIRECT flag set and in __generic_file_aio_write it will 
+call generic_file_direct_write first and then trigger to 
+ocfs2_direct_IO. In this function we will check again and return 0. And 
+_generic_file_aio_write will fall back to buffered write if the directIO 
+can't write. Am I wrong somehow?
+
+Regards,
+Tao
 > 
-> On Thu, Apr 08, 2010 at 09:13:08AM +0800, Li Dongyang wrote:
-> > alloc the inode orphaned in ocfs2_symlink so we can delete the inode
-> > in the iput if we meet errors with the inode, e.g. ocfs2_add_inode_data.
-> > or ocfs2_query_inode_wipe will complain the inode is not orphaned on
-> > disk.
+> On Friday 09 April 2010 02:41:26 Sunil Mushran wrote:
+>> I cannot read the bugzilla. Now it maybe that that bz
+>> cannot be made public. That's ok. But if that's the case,
+>> can you explain the problem encountered. I am not qs
+>> the fix... rather trying to understand why this has not
+>> been reported before.
+>>
+>> Li Dongyang wrote:
+>>> when we fall back to buffered write from direct write, we call
+>>> __generic_file_aio_write but that will end up doing direct write
+>>> even we are only prepared to do buffered write because the file
+>>> has O_DIRECT flag set. This is a fix for
+>>> https://bugzilla.novell.com/show_bug.cgi?id=591039
+>>>
+>>>
+>>> Signed-off-by: Li Dongyang <lidongyang@novell.com>
+>>> ---
+>>>  fs/ocfs2/file.c |   27 +++++++++++++++++----------
+>>>  1 files changed, 17 insertions(+), 10 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>>> index de059f4..707f2a2 100644
+>>> --- a/fs/ocfs2/file.c
+>>> +++ b/fs/ocfs2/file.c
+>>> @@ -1973,18 +1973,24 @@ relock:
+>>>  	/* communicate with ocfs2_dio_end_io */
+>>>  	ocfs2_iocb_set_rw_locked(iocb, rw_level);
+>>>
+>>> -	if (direct_io) {
+>>> -		ret = generic_segment_checks(iov, &nr_segs, &ocount,
+>>> -					     VERIFY_READ);
+>>> -		if (ret)
+>>> -			goto out_dio;
+>>> +	ret = generic_segment_checks(iov, &nr_segs, &ocount,
+>>> +				     VERIFY_READ);
+>>> +	if (ret)
+>>> +		goto out_dio;
+>>>
+>>> -		count = ocount;
+>>> -		ret = generic_write_checks(file, ppos, &count,
+>>> +	count = ocount;
+>>> +	ret = generic_write_checks(file, ppos, &count,
+>>>  					   S_ISBLK(inode->i_mode));
+>>> -		if (ret)
+>>> -			goto out_dio;
+>>> +	if (ret)
+>>> +		goto out_dio;
+>>> +
+>>> +	ret = file_remove_suid(file);
+>>> +	if (ret)
+>>> +		goto out_dio;
+>>>
+>>> +	file_update_time(file);
+>>> +
+>>> +	if (direct_io) {
+>>>  		written = generic_file_direct_write(iocb, iov, &nr_segs, *ppos,
+>>>  						    ppos, count, ocount);
+>>>  		if (written < 0) {
+>>> @@ -1999,7 +2005,8 @@ relock:
+>>>  			goto out_dio;
+>>>  		}
+>>>  	} else {
+>>> -		written = __generic_file_aio_write(iocb, iov, nr_segs, ppos);
+>>> +		written = generic_file_buffered_write(iocb, iov, nr_segs,
+>>> +				*ppos, ppos, count, 0);
+>>>  	}
+>>>
+>>>  out_dio:
 > 
-> Thanks for the patch. Your solution is too heavy for such a special case -
-> we can't lock the orphan dir and orphan / de-orphan an inode every time a
-> symlink is made.
-> 
-Hi, Mark,
-Thanks for reviewing, Jan Kara and I also think this is expensive.
-> The good news is that I believe there's an easier way to handle this. You
-> can add a flag to ocfs2_inode_info->ip_flags (see fs/ocfs2/inode.h). I
->  would call this flag something like OCFS2_INODE_SKIP_ORPHAN_DIR. If the
->  allocation fails, we could mark the inode with that flag. From a quick
->  look at the code, the only places that need additional checking for the
->  flag would be: ocfs2_query_inode_wipe() and ocfs2_wipe_inode().
-> 
-Looking into that.
-> 
-> Ultimately, I think the best solution is for us to delete the inode
-> "in-place". We actually already have all the locks and journal credits we
-> need at that point. It's a bit tricky though because we have to be careful
-> what state the inode gets set in, which is why for a short-term fix, the
-> above solution is ok.
-Glad to know this way, maybe I'll post an updated patch.
-> 	--Mark
-> 
-> --
-> Mark Fasheh
-> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
