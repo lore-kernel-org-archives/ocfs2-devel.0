@@ -1,85 +1,282 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 09 Apr 2010 15:56:16 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
- to buffered
-In-Reply-To: <4BBEDE38.3030207@suse.de>
-References: <201004081547.24593.lidongyang@novell.com>	<4BBE2356.4010103@oracle.com>
-	<4BBEDE38.3030207@suse.de>
-Message-ID: <4BBEDDA0.5020201@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Fri,  9 Apr 2010 16:44:07 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Optimize punching-hole codes v5.
+In-Reply-To: <1270802647-17191-1-git-send-email-tristan.ye@oracle.com>
+References: <1270802647-17191-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1270802647-17191-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi coly,
+V5 patch simplifies the logic of handling existing holes and procedures
+for skipping extent blocks, and removed most of confusing comments.
 
-Coly Li wrote:
-> 
-> On 04/09/2010 02:41 AM, Sunil Mushran Wrote:
->> I cannot read the bugzilla. Now it maybe that that bz
->> cannot be made public. That's ok. But if that's the case,
->> can you explain the problem encountered. I am not qs
->> the fix... rather trying to understand why this has not
->> been reported before.
->>
-> 
-> Hi Sunil,
-> 
-> This issue was reported by Jiaju Zhang, another Novell ocfs2/dlm developer. When he did I/O pressure test (fsstress from
-> ltp package), the following dmesg was observed,
-> 
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717421] (11411,2):ocfs2_truncate_file:465 ERROR: bug expression:
-> le64_to_cpu(fe->i_size) != i_size_read(inode)
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717437] (11411,2):ocfs2_truncate_file:465 ERROR: Inode 241893, inode i_size =
-> 1540096 != di i_size = 1535498, i_flags = 0x1
-Why do you guys think this is caused by the directIO fall back?
-IMHO, we should update inode->i_size and fe->i_size simultaneously. So 
-do you find a place where we don't sync them? I guess that should be the 
-root cause.
+V5 patch has survived with fill_verify_holes testcase in ocfs2-test,
+it also passed my manual sanity check and stress tests with enormous
+extent records.
 
-Regards,
-Tao
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717462] ------------[ cut here]------------
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717465] kernel BUG at /usr/src/packages/BUILD/ocfs2-1.4/xen/ocfs2/file.c:465!
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717468] invalid opcode: 0000 [#2] SMP
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717471] last sysfs file: /sys/kernel/uevent_seqnum
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717474] Modules linked in: ocfs2 jbd2 ocfs2_nodemanager quota_tree
-> ocfs2_stack_user ocfs2_stackglue dlm configfs sg sd_mod crc_t10dif crc32c ib_iser rdma_cm ib_cm iw_cm ib_sa ib_mad
-> ib_core ib_addr ipv6 iscsi_tcp libiscsi_tcp libiscsi scsi_transport_iscsi scsi_mod af_packet microcode softdog fuse loop
-> dm_mod rtc_core rtc_lib joydev xennet ext3 mbcache jbd processor thermal_sys hwmon xenblk cdrom
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717516] Supported: Yes
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717518]
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717521] Pid: 11411, comm: fsstress Tainted: G      D      (2.6.32.9-0.5-xen #1)
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717525] EIP: 0061:[<d24701ba>] EFLAGS: 00010296 CPU: 2
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717538] EIP is at ocfs2_setattr+0xc1a/0x1d10 [ocfs2]
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717542] EAX: 00000089 EBX: cd8e25f0 ECX: c056c0ec EDX: 00000000
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717545] ESI: cc4c2000 EDI: cae4e908 EBP: 00068f02 ESP: c0a43e54
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717548]  DS: 007b ES: 007b FS: 00d8 GS: 0033 SS: 0069
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717552] Process fsstress (pid: 11411, ti=c0a42000 task=cd8e25f0  task.ti=c0a42000)
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717555] Stack:
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717557]  d24cfc30 00002c93 00000002 d24c809c 000001d1 0003b0e5 00000000 00178000
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717564] <0> 00000000 00176e0a 00000000 00000001 00110f02 00000000 00000000 00000000
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717572] <0> 00000000 00000000 00000000 00110f02 d24628e9 00008282 c0a43f44 ca5c4000
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717582] Call Trace:
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717606]  [<c00d6191>] notify_change+0x141/0x320
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717614]  [<c00bf1a8>] do_truncate+0x68/0xa0
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717619]  [<c00bf547>] do_sys_truncate+0x177/0x220
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717624]  [<c000666d>] syscall_call+0x7/0xb
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717629]  [<f57fe424>] 0xf57fe424
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717631] Code: 69 e8 ed f6 05 82 9f d7
-> d1 80 75 09 f6 05 84 9f d7 d1 01 74 16 f6 05 8a 9f d7 d1 80 75 0d f6 05 8c 9f
-> d7 d1 01 0f 84 48 06 00 00 <0f> 0b eb fe 66 90 8b 44 24 68 31 c9 e8 b5 2f c9 ed
-> 31 c9 89 44
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717675] EIP: [<d24701ba>] ocfs2_setattr+0xc1a/0x1d10 [ocfs2] SS:ESP 0069:c0a43e54
-> Mar 24 15:59:07 xen-sp1-2 kernel: [ 2309.717688] ---[ end trace cce1004f6a64f124 ]---
-> 
-> 
-> The above error can be reproduced by Jiaju, Dongyang, and me. Dongyang also reproduced this issue on vanilla kernel. We
-> find these steps is easier to reproduce the error: 1) fill the ocfs2 volume to 97%-98% full (dd a big file on ocfs2
-> volume)  2) then ran fsstress
-> 
-> Jan Kara also helps to review Dongyang's patch, no objection from him.
-> 
-> Hope the explanation is informative.
-> 
+Currently punching hole on a file with 3+ extent tree depth was
+really a performance disaster, it even caused several hours to
+go, though we may not hit this in real life with such a huge extent
+number.
+
+One simple way to improve the performance is quite straightforward,
+by learning the logic of truncating codes, means we'd punch hole from
+hole_end to hole_start, which reduce the overhead of btree operation
+in a significant way, such as tree rotation and moving.
+
+Following is the testing result when punching hole from 0 to file end
+in bytes, on a 1G file, 1G file consists of 256k extent records, each record
+cover 4k data(just one cluster, clustersize is 4k):
+
+===========================================================================
+ * Former punching-hole mechanism:
+===========================================================================
+
+   I waited 1 hour for its completion, unfortunately it's still ongoing.
+
+===========================================================================
+ * Patched punching-hode mechanism:
+===========================================================================
+
+   real 0m2.518s
+   user 0m0.000s
+   sys  0m2.445s
+
+That means we've gained up to 1000 times improvement on performance in this
+case, whee! It's fairly cool. and it looks like that performance gain will
+be raising when extent records grow.
+
+The patch was based on my former 2 patches, which were about truncating
+codes optimization and fixup to handle CoW on punching hole.
+
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/file.c |  173 +++++++++++++++++++++++++++++++++++++++++++++++--------
+ 1 files changed, 148 insertions(+), 25 deletions(-)
+
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index db2e0c9..907653e 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1423,18 +1423,97 @@ out:
+ 	return ret;
+ }
+ 
++static int ocfs2_find_rec(struct ocfs2_extent_list *el,
++			  u32 pos,
++			  int include_pos)
++{
++	int i;
++	struct ocfs2_extent_rec *rec = NULL;
++
++	for (i = le16_to_cpu(el->l_next_free_rec) - 1; i >= 0; i--) {
++
++		rec = &el->l_recs[i];
++
++		if (include_pos) {
++			if (le32_to_cpu(rec->e_cpos) <= pos)
++				break;
++		} else {
++			if (le32_to_cpu(rec->e_cpos) < pos)
++				break;
++		}
++	}
++
++	return i;
++}
++
++/*
++ * Helper to calculate the punching pos and length in one run, we handle the
++ * following three cases in order:
++ *
++ * - remove the entire record
++ * - remove a partial record
++ * - no record needs to be removed (hole-punching completed)
++*/
++static void ocfs2_calc_trunc_pos(struct inode *inode,
++				 struct ocfs2_extent_list *el,
++				 struct ocfs2_extent_rec *rec,
++				 u32 trunc_start, u32 *trunc_cpos,
++				 u32 *trunc_len, u32 *trunc_end,
++				 u64 *blkno, int *done)
++{
++	int ret = 0;
++	u32 coff, range;
++
++	range = le32_to_cpu(rec->e_cpos) + ocfs2_rec_clusters(el, rec);
++
++	if (le32_to_cpu(rec->e_cpos) >= trunc_start) {
++		*trunc_cpos = le32_to_cpu(rec->e_cpos);
++		/*
++		 * Skip holes if any.
++		 */
++		if (range < *trunc_end)
++			*trunc_end = range;
++		*trunc_len = *trunc_end - le32_to_cpu(rec->e_cpos);
++		*blkno = le64_to_cpu(rec->e_blkno);
++		*trunc_end = le32_to_cpu(rec->e_cpos);
++	} else if (range > trunc_start) {
++		*trunc_cpos = trunc_start;
++		*trunc_len = range - trunc_start;
++		coff = trunc_start - le32_to_cpu(rec->e_cpos);
++		*blkno = le64_to_cpu(rec->e_blkno) +
++				ocfs2_clusters_to_blocks(inode->i_sb, coff);
++		*trunc_end = trunc_start;
++	} else {
++		/*
++		 * It may have two following possibilities:
++		 *
++		 * - last record has been removed
++		 * - trunc_start was within a hole
++		 *
++		 * both two cases mean the completion of hole punching.
++		 */
++		ret = 1;
++	}
++
++	*done = ret;
++}
++
+ static int ocfs2_remove_inode_range(struct inode *inode,
+ 				    struct buffer_head *di_bh, u64 byte_start,
+ 				    u64 byte_len)
+ {
+-	int ret = 0, flags = 0;
+-	u32 trunc_start, trunc_len, cpos, phys_cpos, alloc_size;
++	int ret = 0, flags = 0, done = 0, i;
++	u32 trunc_start, trunc_len, trunc_end, trunc_cpos, phys_cpos;
++	u32 cluster_in_el;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct ocfs2_cached_dealloc_ctxt dealloc;
+ 	struct address_space *mapping = inode->i_mapping;
+ 	struct ocfs2_extent_tree et;
++	struct ocfs2_path *path = NULL;
++	struct ocfs2_extent_list *el = NULL;
++	struct ocfs2_extent_rec *rec = NULL;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+-	u64 refcount_loc = le64_to_cpu(di->i_refcount_loc);
++	u64 blkno, refcount_loc = le64_to_cpu(di->i_refcount_loc);
+ 
+ 	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
+ 	ocfs2_init_dealloc_ctxt(&dealloc);
+@@ -1482,16 +1561,13 @@ static int ocfs2_remove_inode_range(struct inode *inode,
+ 	}
+ 
+ 	trunc_start = ocfs2_clusters_for_bytes(osb->sb, byte_start);
+-	trunc_len = (byte_start + byte_len) >> osb->s_clustersize_bits;
+-	if (trunc_len >= trunc_start)
+-		trunc_len -= trunc_start;
+-	else
+-		trunc_len = 0;
++	trunc_end = (byte_start + byte_len) >> osb->s_clustersize_bits;
++	cluster_in_el = trunc_end;
+ 
+-	mlog(0, "Inode: %llu, start: %llu, len: %llu, cstart: %u, clen: %u\n",
++	mlog(0, "Inode: %llu, start: %llu, len: %llu, cstart: %u, cend: %u\n",
+ 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 	     (unsigned long long)byte_start,
+-	     (unsigned long long)byte_len, trunc_start, trunc_len);
++	     (unsigned long long)byte_len, trunc_start, trunc_end);
+ 
+ 	ret = ocfs2_zero_partial_clusters(inode, byte_start, byte_len);
+ 	if (ret) {
+@@ -1499,32 +1575,79 @@ static int ocfs2_remove_inode_range(struct inode *inode,
+ 		goto out;
+ 	}
+ 
+-	cpos = trunc_start;
+-	while (trunc_len) {
+-		ret = ocfs2_get_clusters(inode, cpos, &phys_cpos,
+-					 &alloc_size, &flags);
++	path = ocfs2_new_path_from_et(&et);
++	if (!path) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
++		goto out;
++	}
++
++	while (trunc_end > trunc_start) {
++
++		ret = ocfs2_find_path(INODE_CACHE(inode), path,
++				      cluster_in_el);
+ 		if (ret) {
+ 			mlog_errno(ret);
+ 			goto out;
+ 		}
+ 
+-		if (alloc_size > trunc_len)
+-			alloc_size = trunc_len;
++		el = path_leaf_el(path);
+ 
+-		/* Only do work for non-holes */
+-		if (phys_cpos != 0) {
+-			ret = ocfs2_remove_btree_range(inode, &et, cpos,
+-						       phys_cpos, alloc_size,
+-						       &dealloc, refcount_loc,
+-						       flags);
+-			if (ret) {
++		i = ocfs2_find_rec(el, trunc_end, 0);
++		/*
++		 * Need to go to previous extent block.
++		 */
++		if (i < 0) {
++			if (path->p_tree_depth == 0)
++				break;
++
++			ret = ocfs2_find_cpos_for_left_leaf(inode->i_sb,
++							    path,
++							    &cluster_in_el);
++			if (ret) {                 
+ 				mlog_errno(ret);
+ 				goto out;
+ 			}
++
++			/*
++			 * We've reached the leftmost extent block,
++			 * it's safe to leave.
++			 */
++			if (cluster_in_el == 0)
++				break;
++
++			/*
++			 * The 'pos' searched for previous extent block is
++			 * always one cluster less than actual trunc_end.
++			 */
++			trunc_end = cluster_in_el + 1;
++
++			ocfs2_reinit_path(path, 1);
++
++			continue;
++		
++		} else
++			rec = &el->l_recs[i];
++
++		ocfs2_calc_trunc_pos(inode, el, rec, trunc_start, &trunc_cpos,
++				     &trunc_len, &trunc_end, &blkno, &done);
++		if (done)
++			break;
++
++		flags = rec->e_flags;
++		phys_cpos = ocfs2_blocks_to_clusters(inode->i_sb, blkno);
++
++		ret = ocfs2_remove_btree_range(inode, &et, trunc_cpos,
++					       phys_cpos, trunc_len, &dealloc,
++					       refcount_loc, flags);
++		if (ret < 0) {
++			mlog_errno(ret);
++			goto out;
+ 		}
+ 
+-		cpos += alloc_size;
+-		trunc_len -= alloc_size;
++		cluster_in_el = trunc_end;
++
++		ocfs2_reinit_path(path, 1);
+ 	}
+ 
+ 	ocfs2_truncate_cluster_pages(inode, byte_start, byte_len);
+-- 
+1.5.5
