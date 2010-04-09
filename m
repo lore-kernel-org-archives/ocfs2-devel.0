@@ -1,20 +1,16 @@
 From: tristan <tristan.ye@oracle.com>
-Date: Fri, 09 Apr 2010 09:56:08 +0800
+Date: Fri, 09 Apr 2010 10:08:53 +0800
 Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Optimize punching-hole codes
  v4.
 In-Reply-To: <4BBDEE98.8030005@oracle.com>
 References: <1270724553-2621-1-git-send-email-tristan.ye@oracle.com>
 	<4BBDEE98.8030005@oracle.com>
-Message-ID: <4BBE8938.5000305@oracle.com>
+Message-ID: <4BBE8C35.5060508@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-
-Tao,
-
-Thanks a lot for your quick review;)
 
 Tao Ma wrote:
 > Hi Tristan,
@@ -69,14 +65,8 @@ Tao Ma wrote:
 > another issue is that now it seems that you only want to returns a rec?
 > then why not change this function to
 > static int ocfs2_find_rec(struct ocfs2_extent_list *el, u32 pos)
-
-Yes, it's confusing to use *pos, thanks for pointing this out.
-
 > and after the loop, just return i. So if i>=0, you find it, if i < 0, 
 > no rec is found. Looks more natural?
-
-I think returning  a meaty record would be more straightforward.
-
 >> +
 >> +/*
 >> + * Hepler to find the rightmost record which contains 'pos' cpos,
@@ -132,6 +122,19 @@ I think returning  a meaty record would be more straightforward.
 > As I have said in the previous e-mail, no matter whether there is a 
 > hole or not, we should set *pos = range since
 > it will be the next 'end' we punch. And it looks more readable.
+
+Yes, we definitely set *pos = range for next punch, but it's not here, 
+we do this in ocfs2_calc_trunc_pos;)
+
+This func only find the desired record, and skip the hole if any, then 
+accordingly update the pos. therefore, I'm afraid that such judgement is 
+necessary, in the normal case range should be equal to pos,  while 
+'range < *pos' mean hole existed, we just need to skip, doing this 
+beforehand is beneficial for ocfs2_calc_trunc_pos().
+
+
+
+
 >> +
 >> +            found = 1;
 >> +            break;
@@ -146,10 +149,6 @@ I think returning  a meaty record would be more straightforward.
 > And the same for this function you can just return 'i' and I guess 
 > this function and the previous one can be integrated
 > into just one.
-
-I don't think so, second function handles the hole and adjust the pos 
-accordingly, while second one only simply search the rec.
-
 >> +}
 >> +
 >> +/*
@@ -265,10 +264,6 @@ accordingly, while second one only simply search the rec.
 >> +    while (trunc_end > 0) {
 >>   
 > I think we have a consensus to change this check somehow?
-
-Oh, that's correct, I hate to be a moron to forget updating this...
-
-
 >> +        /*
 >> +         * Unlike truncate codes, here we want to find a path which
 >> +         * contains (trunc_end - 1) cpos, and then trunc_end will be
@@ -324,15 +319,6 @@ Oh, that's correct, I hate to be a moron to forget updating this...
 > extent block? you can't find 'rec' and break.
 > Actually there is already a function. ;)  Check 
 > ocfs2_find_cpos_for_left_leaf for detail.
-
-Sorry, I can't get your idea clearly, what did you mean 'the branch
-extent block with 'tree_depth-1' is also recs[0] in the tree_depth 
-extent block?', how does that matter? why can't I find the 'rec' here?
-
-Per my understanding, when we found the hole before first rec in leaf 
-extent block, we need to go back to its father extent block through path 
-where no hole existed for sure. and we definitely find the rec there.
-
 >
 >> +
 >> +            ocfs2_reinit_path(path, 1);
