@@ -1,52 +1,153 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri,  9 Apr 2010 16:44:06 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Make
-	ocfs2_find_cpos_for_left_leaf() public.
-Message-ID: <1270802647-17191-1-git-send-email-tristan.ye@oracle.com>
+From: Li Dongyang <lidongyang@novell.com>
+Date: Fri, 9 Apr 2010 17:20:45 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
+	to buffered
+In-Reply-To: <4BBE9FBA.9070004@oracle.com>
+References: <201004081547.24593.lidongyang@novell.com>
+	<201004091100.28988.lidongyang@novell.com>
+	<4BBE9FBA.9070004@oracle.com>
+Message-ID: <201004091720.45689.lidongyang@novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The original idea to pull ocfs2_find_cpos_for_left_leaf() out of
-alloc.c is to benefit punching-holes optimization patch, it however,
-can also be referred by other funcs in the future who want to do the
-same job.
+On Friday 09 April 2010 11:32:10 Tao Ma wrote:
+> Hi Dongyang,
+> 
+> Li Dongyang wrote:
+> > Hi, Tao,
+> >
+> > On Friday 09 April 2010 10:38:33 Tao Ma wrote:
+> >> Hi Dongyang,
+> >>
+> >> Li Dongyang wrote:
+> >>> This is because ocfs2_file_aio_write calls
+> >>> ocfs2_prepare_inode_for_write which sets direct_io to 0 if it finds out
+> >>> that direct IO would extend the file. But later we call
+> >>> __generic_file_aio_write which end's up calling
+> >>> generic_file_direct_write because the file has O_DIRECT flag.So every
+> >>> time we do a direct write extending the file, the inode->i_size gets
+> >>> inconsistent with the i_size on disk because we call
+> >>> generic_file_direct_write, and if we do a truncate after this, we will
+> >>> meet a bug in ocfs2_truncate_file.
+> >>
+> >> yes we have O_DIRECT flag set and in __generic_file_aio_write it will
+> >> call generic_file_direct_write first and then trigger to
+> >> ocfs2_direct_IO. In this function we will check again and return 0. And
+> >> _generic_file_aio_write will fall back to buffered write if the directIO
+> >> can't write. Am I wrong somehow?
+> >
+> > yes ocfs2_direct_IO has some check, but it just check if we are
+> > appending(the i_size <= offset), if the offset < i_size and offset +
+> > count > i_size, it will do direct io anyway. seems we also can fix this
+> > by adding a check to ocfs2_direct_IO.
+> 
+> It is done by ocfs2_direct_IO_get_blocks. Just debug the kernel and you
+> will get what I mean. ;)
+> 
+Do you mean this section in ocfs2_direct_IO_get_blocks:?
+/*
+ * Any write past EOF is not allowed because we'd be extending.
+ */
+if (create && (iblock + max_blocks) > inode_blocks) {
+	ret = -EIO;
+	goto bail;
+}
 
-Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
----
- fs/ocfs2/alloc.c |    4 ++--
- fs/ocfs2/alloc.h |    2 ++
- 2 files changed, 4 insertions(+), 2 deletions(-)
+I was using the linus tree 
+git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
+and we don't have that check, but I can find this in the 
+git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git, introduced by 
+commit 564f8a3228879d6962edb3432d01bcd7499a67ec
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 6ea34f7..cbbcff5 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -2248,8 +2248,8 @@ out:
-  *
-  * Will return zero if the path passed in is already the leftmost path.
-  */
--static int ocfs2_find_cpos_for_left_leaf(struct super_block *sb,
--					 struct ocfs2_path *path, u32 *cpos)
-+int ocfs2_find_cpos_for_left_leaf(struct super_block *sb,
-+				  struct ocfs2_path *path, u32 *cpos)
- {
- 	int i, j, ret = 0;
- 	u64 blkno;
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 2963ed7..d03f765 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -319,6 +319,8 @@ int ocfs2_journal_access_path(struct ocfs2_caching_info *ci,
- 			      struct ocfs2_path *path);
- int ocfs2_find_cpos_for_right_leaf(struct super_block *sb,
- 				   struct ocfs2_path *path, u32 *cpos);
-+int ocfs2_find_cpos_for_left_leaf(struct super_block *sb,
-+				  struct ocfs2_path *path, u32 *cpos);
- int ocfs2_find_subtree_root(struct ocfs2_extent_tree *et,
- 			    struct ocfs2_path *left,
- 			    struct ocfs2_path *right);
--- 
-1.5.5
+and now with this check I got what you mean, you are right, but I wonder why 
+the linus tree doesn't have this check? and are we suppose to do with this?
+IMHO we can just push this commit to linus tree.
+
+Br,
+Li Dongyang
+> Regards,
+> Tao
+> 
+> > Br,
+> > Li Dongyang
+> >
+> >> Regards,
+> >> Tao
+> >>
+> >>> On Friday 09 April 2010 02:41:26 Sunil Mushran wrote:
+> >>>> I cannot read the bugzilla. Now it maybe that that bz
+> >>>> cannot be made public. That's ok. But if that's the case,
+> >>>> can you explain the problem encountered. I am not qs
+> >>>> the fix... rather trying to understand why this has not
+> >>>> been reported before.
+> >>>>
+> >>>> Li Dongyang wrote:
+> >>>>> when we fall back to buffered write from direct write, we call
+> >>>>> __generic_file_aio_write but that will end up doing direct write
+> >>>>> even we are only prepared to do buffered write because the file
+> >>>>> has O_DIRECT flag set. This is a fix for
+> >>>>> https://bugzilla.novell.com/show_bug.cgi?id=591039
+> >>>>>
+> >>>>>
+> >>>>> Signed-off-by: Li Dongyang <lidongyang@novell.com>
+> >>>>> ---
+> >>>>>  fs/ocfs2/file.c |   27 +++++++++++++++++----------
+> >>>>>  1 files changed, 17 insertions(+), 10 deletions(-)
+> >>>>>
+> >>>>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> >>>>> index de059f4..707f2a2 100644
+> >>>>> --- a/fs/ocfs2/file.c
+> >>>>> +++ b/fs/ocfs2/file.c
+> >>>>> @@ -1973,18 +1973,24 @@ relock:
+> >>>>>  	/* communicate with ocfs2_dio_end_io */
+> >>>>>  	ocfs2_iocb_set_rw_locked(iocb, rw_level);
+> >>>>>
+> >>>>> -	if (direct_io) {
+> >>>>> -		ret = generic_segment_checks(iov, &nr_segs, &ocount,
+> >>>>> -					     VERIFY_READ);
+> >>>>> -		if (ret)
+> >>>>> -			goto out_dio;
+> >>>>> +	ret = generic_segment_checks(iov, &nr_segs, &ocount,
+> >>>>> +				     VERIFY_READ);
+> >>>>> +	if (ret)
+> >>>>> +		goto out_dio;
+> >>>>>
+> >>>>> -		count = ocount;
+> >>>>> -		ret = generic_write_checks(file, ppos, &count,
+> >>>>> +	count = ocount;
+> >>>>> +	ret = generic_write_checks(file, ppos, &count,
+> >>>>>  					   S_ISBLK(inode->i_mode));
+> >>>>> -		if (ret)
+> >>>>> -			goto out_dio;
+> >>>>> +	if (ret)
+> >>>>> +		goto out_dio;
+> >>>>> +
+> >>>>> +	ret = file_remove_suid(file);
+> >>>>> +	if (ret)
+> >>>>> +		goto out_dio;
+> >>>>>
+> >>>>> +	file_update_time(file);
+> >>>>> +
+> >>>>> +	if (direct_io) {
+> >>>>>  		written = generic_file_direct_write(iocb, iov, &nr_segs, *ppos,
+> >>>>>  						    ppos, count, ocount);
+> >>>>>  		if (written < 0) {
+> >>>>> @@ -1999,7 +2005,8 @@ relock:
+> >>>>>  			goto out_dio;
+> >>>>>  		}
+> >>>>>  	} else {
+> >>>>> -		written = __generic_file_aio_write(iocb, iov, nr_segs, ppos);
+> >>>>> +		written = generic_file_buffered_write(iocb, iov, nr_segs,
+> >>>>> +				*ppos, ppos, count, 0);
+> >>>>>  	}
+> >>>>>
+> >>>>>  out_dio:
+> >>>
+> >>> _______________________________________________
+> >>> Ocfs2-devel mailing list
+> >>> Ocfs2-devel at oss.oracle.com
+> >>> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
