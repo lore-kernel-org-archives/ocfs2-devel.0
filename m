@@ -1,138 +1,73 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Fri, 09 Apr 2010 17:36:04 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Optimize punching-hole codes
- v5.
-In-Reply-To: <4BBEF1B9.6090105@oracle.com>
-References: <1270802647-17191-1-git-send-email-tristan.ye@oracle.com>
-	<1270802647-17191-2-git-send-email-tristan.ye@oracle.com>
-	<4BBEF1B9.6090105@oracle.com>
-Message-ID: <4BBEF504.5030005@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Fri, 09 Apr 2010 10:36:23 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
+ to buffered
+In-Reply-To: <201004091720.45689.lidongyang@novell.com>
+References: <201004081547.24593.lidongyang@novell.com>
+	<201004091100.28988.lidongyang@novell.com>
+	<4BBE9FBA.9070004@oracle.com>
+	<201004091720.45689.lidongyang@novell.com>
+Message-ID: <4BBF6597.6080709@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-That's really a quick review;)
-
-I appreciated it.
-
-Tao Ma wrote:
-> Hi Tristan,
+  Li Dongyang wrote:
+> On Friday 09 April 2010 11:32:10 Tao Ma wrote:
+>> Hi Dongyang,
+>>
+>> Li Dongyang wrote:
+>>> Hi, Tao,
+>>>
+>>> On Friday 09 April 2010 10:38:33 Tao Ma wrote:
+>>>> Hi Dongyang,
+>>>>
+>>>> Li Dongyang wrote:
+>>>>> This is because ocfs2_file_aio_write calls
+>>>>> ocfs2_prepare_inode_for_write which sets direct_io to 0 if it finds out
+>>>>> that direct IO would extend the file. But later we call
+>>>>> __generic_file_aio_write which end's up calling
+>>>>> generic_file_direct_write because the file has O_DIRECT flag.So every
+>>>>> time we do a direct write extending the file, the inode->i_size gets
+>>>>> inconsistent with the i_size on disk because we call
+>>>>> generic_file_direct_write, and if we do a truncate after this, we will
+>>>>> meet a bug in ocfs2_truncate_file.
+>>>> yes we have O_DIRECT flag set and in __generic_file_aio_write it will
+>>>> call generic_file_direct_write first and then trigger to
+>>>> ocfs2_direct_IO. In this function we will check again and return 0. And
+>>>> _generic_file_aio_write will fall back to buffered write if the directIO
+>>>> can't write. Am I wrong somehow?
+>>> yes ocfs2_direct_IO has some check, but it just check if we are
+>>> appending(the i_size <= offset), if the offset < i_size and offset +
+>>> count > i_size, it will do direct io anyway. seems we also can fix this
+>>> by adding a check to ocfs2_direct_IO.
+>> It is done by ocfs2_direct_IO_get_blocks. Just debug the kernel and you
+>> will get what I mean. ;)
+> Do you mean this section in ocfs2_direct_IO_get_blocks:?
+> /*
+>  * Any write past EOF is not allowed because we'd be extending.
+>  */
+> if (create && (iblock + max_blocks) > inode_blocks) {
+> 	ret = -EIO;
+> 	goto bail;
+> }
 >
-> Tristan Ye wrote:
->> V5 patch simplifies the logic of handling existing holes and procedures
->> for skipping extent blocks, and removed most of confusing comments.
->>
->> V5 patch has survived with fill_verify_holes testcase in ocfs2-test,
->> it also passed my manual sanity check and stress tests with enormous
->> extent records.
->> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
->> ---
->> fs/ocfs2/file.c | 173 
->> +++++++++++++++++++++++++++++++++++++++++++++++--------
->> 1 files changed, 148 insertions(+), 25 deletions(-)
->>
->> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->> index db2e0c9..907653e 100644
->> --- a/fs/ocfs2/file.c
->> +++ b/fs/ocfs2/file.c
->> @@ -1423,18 +1423,97 @@ out:
->> return ret;
->> }
->>
->> +static int ocfs2_find_rec(struct ocfs2_extent_list *el,
->> + u32 pos,
->> + int include_pos)
-> Why you need this 'include_pos'? btw, there is only one caller with 
-> include_pos = 0, so why not remove it? ;)
+> I was using the linus tree 
+> git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
+> and we don't have that check, but I can find this in the 
+> git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git, introduced by 
+> commit 564f8a3228879d6962edb3432d01bcd7499a67ec
+>
+> and now with this check I got what you mean, you are right, but I wonder why 
+> the linus tree doesn't have this check? and are we suppose to do with this?
+> IMHO we can just push this commit to linus tree.
 
-I originally used it in two places, anyway, it can be simplified as you 
-told;) that doesn't matter actually, keeing this can make the func looks 
-more common;)
+commit 5fe878ae7f82fbf0830dbfaee4c5ca18f3aee442
+Author: Christoph Hellwig <hch@lst.de>
+Date:   Tue Dec 15 16:47:50 2009 -0800
 
->> +{
->> + int i;
->> + struct ocfs2_extent_rec *rec = NULL;
->> +
->> + for (i = le16_to_cpu(el->l_next_free_rec) - 1; i >= 0; i--) {
->> +
->> + rec = &el->l_recs[i];
->> +
->> + if (include_pos) {
->> + if (le32_to_cpu(rec->e_cpos) <= pos)
->> + break;
->> + } else {
->> + if (le32_to_cpu(rec->e_cpos) < pos)
->> + break;
->> + }
->> + }
->> +
->> + return i;
->> +}
->> +
->> +/*
->> + * Helper to calculate the punching pos and length in one run, we 
->> handle the
->> + * following three cases in order:
->> + *
->> + * - remove the entire record
->> + * - remove a partial record
->> + * - no record needs to be removed (hole-punching completed)
->> +*/
->> +static void ocfs2_calc_trunc_pos(struct inode *inode,
->> + struct ocfs2_extent_list *el,
->> + struct ocfs2_extent_rec *rec,
->> + u32 trunc_start, u32 *trunc_cpos,
->> + u32 *trunc_len, u32 *trunc_end,
->> + u64 *blkno, int *done)
->> +{
->> + int ret = 0;
->> + u32 coff, range;
->> +
->> + range = le32_to_cpu(rec->e_cpos) + ocfs2_rec_clusters(el, rec);
->> +
->> + if (le32_to_cpu(rec->e_cpos) >= trunc_start) {
->> + *trunc_cpos = le32_to_cpu(rec->e_cpos);
->> + /*
->> + * Skip holes if any.
->> + */
->> + if (range < *trunc_end)
->> + *trunc_end = range;
->> + *trunc_len = *trunc_end - le32_to_cpu(rec->e_cpos);
->> + *blkno = le64_to_cpu(rec->e_blkno);
->> + *trunc_end = le32_to_cpu(rec->e_cpos);
->> + } else if (range > trunc_start) {
->> + *trunc_cpos = trunc_start;
->> + *trunc_len = range - trunc_start;
-> I guess there should be a bug? what if the old trunc_end < range?
-> then *trunc_len should be min(range, *trunc_end) - trunc_start?
+    direct-io: cleanup blockdev_direct_IO locking
 
-That's definitely a bug, good catch!!
-
-should be trunc_len = trunc_end - trunc_start;
-
-Unlike partial truncating(a partial truncate always from end of a 
-record), while punching could happen anywhere.
-
->> + coff = trunc_start - le32_to_cpu(rec->e_cpos);
->> + *blkno = le64_to_cpu(rec->e_blkno) +
->> + ocfs2_clusters_to_blocks(inode->i_sb, coff);
->> + *trunc_end = trunc_start;
->> + } else {
->> + /*
->> + * It may have two following possibilities:
->> + *
->> + * - last record has been removed
->> + * - trunc_start was within a hole
->> + *
->> + * both two cases mean the completion of hole punching.
->> + */
->> + ret = 1;
->> + }
->> +
->> + *done = ret;
->> +}
->> +
-> Regards,
-> Tao
+This check was removed recently by the above patch.
