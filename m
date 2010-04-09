@@ -1,282 +1,52 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri,  9 Apr 2010 16:44:07 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Optimize punching-hole codes v5.
-In-Reply-To: <1270802647-17191-1-git-send-email-tristan.ye@oracle.com>
-References: <1270802647-17191-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1270802647-17191-2-git-send-email-tristan.ye@oracle.com>
+Date: Fri,  9 Apr 2010 16:44:06 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Make
+	ocfs2_find_cpos_for_left_leaf() public.
+Message-ID: <1270802647-17191-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-V5 patch simplifies the logic of handling existing holes and procedures
-for skipping extent blocks, and removed most of confusing comments.
-
-V5 patch has survived with fill_verify_holes testcase in ocfs2-test,
-it also passed my manual sanity check and stress tests with enormous
-extent records.
-
-Currently punching hole on a file with 3+ extent tree depth was
-really a performance disaster, it even caused several hours to
-go, though we may not hit this in real life with such a huge extent
-number.
-
-One simple way to improve the performance is quite straightforward,
-by learning the logic of truncating codes, means we'd punch hole from
-hole_end to hole_start, which reduce the overhead of btree operation
-in a significant way, such as tree rotation and moving.
-
-Following is the testing result when punching hole from 0 to file end
-in bytes, on a 1G file, 1G file consists of 256k extent records, each record
-cover 4k data(just one cluster, clustersize is 4k):
-
-===========================================================================
- * Former punching-hole mechanism:
-===========================================================================
-
-   I waited 1 hour for its completion, unfortunately it's still ongoing.
-
-===========================================================================
- * Patched punching-hode mechanism:
-===========================================================================
-
-   real 0m2.518s
-   user 0m0.000s
-   sys  0m2.445s
-
-That means we've gained up to 1000 times improvement on performance in this
-case, whee! It's fairly cool. and it looks like that performance gain will
-be raising when extent records grow.
-
-The patch was based on my former 2 patches, which were about truncating
-codes optimization and fixup to handle CoW on punching hole.
+The original idea to pull ocfs2_find_cpos_for_left_leaf() out of
+alloc.c is to benefit punching-holes optimization patch, it however,
+can also be referred by other funcs in the future who want to do the
+same job.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/file.c |  173 +++++++++++++++++++++++++++++++++++++++++++++++--------
- 1 files changed, 148 insertions(+), 25 deletions(-)
+ fs/ocfs2/alloc.c |    4 ++--
+ fs/ocfs2/alloc.h |    2 ++
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index db2e0c9..907653e 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1423,18 +1423,97 @@ out:
- 	return ret;
- }
- 
-+static int ocfs2_find_rec(struct ocfs2_extent_list *el,
-+			  u32 pos,
-+			  int include_pos)
-+{
-+	int i;
-+	struct ocfs2_extent_rec *rec = NULL;
-+
-+	for (i = le16_to_cpu(el->l_next_free_rec) - 1; i >= 0; i--) {
-+
-+		rec = &el->l_recs[i];
-+
-+		if (include_pos) {
-+			if (le32_to_cpu(rec->e_cpos) <= pos)
-+				break;
-+		} else {
-+			if (le32_to_cpu(rec->e_cpos) < pos)
-+				break;
-+		}
-+	}
-+
-+	return i;
-+}
-+
-+/*
-+ * Helper to calculate the punching pos and length in one run, we handle the
-+ * following three cases in order:
-+ *
-+ * - remove the entire record
-+ * - remove a partial record
-+ * - no record needs to be removed (hole-punching completed)
-+*/
-+static void ocfs2_calc_trunc_pos(struct inode *inode,
-+				 struct ocfs2_extent_list *el,
-+				 struct ocfs2_extent_rec *rec,
-+				 u32 trunc_start, u32 *trunc_cpos,
-+				 u32 *trunc_len, u32 *trunc_end,
-+				 u64 *blkno, int *done)
-+{
-+	int ret = 0;
-+	u32 coff, range;
-+
-+	range = le32_to_cpu(rec->e_cpos) + ocfs2_rec_clusters(el, rec);
-+
-+	if (le32_to_cpu(rec->e_cpos) >= trunc_start) {
-+		*trunc_cpos = le32_to_cpu(rec->e_cpos);
-+		/*
-+		 * Skip holes if any.
-+		 */
-+		if (range < *trunc_end)
-+			*trunc_end = range;
-+		*trunc_len = *trunc_end - le32_to_cpu(rec->e_cpos);
-+		*blkno = le64_to_cpu(rec->e_blkno);
-+		*trunc_end = le32_to_cpu(rec->e_cpos);
-+	} else if (range > trunc_start) {
-+		*trunc_cpos = trunc_start;
-+		*trunc_len = range - trunc_start;
-+		coff = trunc_start - le32_to_cpu(rec->e_cpos);
-+		*blkno = le64_to_cpu(rec->e_blkno) +
-+				ocfs2_clusters_to_blocks(inode->i_sb, coff);
-+		*trunc_end = trunc_start;
-+	} else {
-+		/*
-+		 * It may have two following possibilities:
-+		 *
-+		 * - last record has been removed
-+		 * - trunc_start was within a hole
-+		 *
-+		 * both two cases mean the completion of hole punching.
-+		 */
-+		ret = 1;
-+	}
-+
-+	*done = ret;
-+}
-+
- static int ocfs2_remove_inode_range(struct inode *inode,
- 				    struct buffer_head *di_bh, u64 byte_start,
- 				    u64 byte_len)
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 6ea34f7..cbbcff5 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -2248,8 +2248,8 @@ out:
+  *
+  * Will return zero if the path passed in is already the leftmost path.
+  */
+-static int ocfs2_find_cpos_for_left_leaf(struct super_block *sb,
+-					 struct ocfs2_path *path, u32 *cpos)
++int ocfs2_find_cpos_for_left_leaf(struct super_block *sb,
++				  struct ocfs2_path *path, u32 *cpos)
  {
--	int ret = 0, flags = 0;
--	u32 trunc_start, trunc_len, cpos, phys_cpos, alloc_size;
-+	int ret = 0, flags = 0, done = 0, i;
-+	u32 trunc_start, trunc_len, trunc_end, trunc_cpos, phys_cpos;
-+	u32 cluster_in_el;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct ocfs2_cached_dealloc_ctxt dealloc;
- 	struct address_space *mapping = inode->i_mapping;
- 	struct ocfs2_extent_tree et;
-+	struct ocfs2_path *path = NULL;
-+	struct ocfs2_extent_list *el = NULL;
-+	struct ocfs2_extent_rec *rec = NULL;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
--	u64 refcount_loc = le64_to_cpu(di->i_refcount_loc);
-+	u64 blkno, refcount_loc = le64_to_cpu(di->i_refcount_loc);
- 
- 	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
- 	ocfs2_init_dealloc_ctxt(&dealloc);
-@@ -1482,16 +1561,13 @@ static int ocfs2_remove_inode_range(struct inode *inode,
- 	}
- 
- 	trunc_start = ocfs2_clusters_for_bytes(osb->sb, byte_start);
--	trunc_len = (byte_start + byte_len) >> osb->s_clustersize_bits;
--	if (trunc_len >= trunc_start)
--		trunc_len -= trunc_start;
--	else
--		trunc_len = 0;
-+	trunc_end = (byte_start + byte_len) >> osb->s_clustersize_bits;
-+	cluster_in_el = trunc_end;
- 
--	mlog(0, "Inode: %llu, start: %llu, len: %llu, cstart: %u, clen: %u\n",
-+	mlog(0, "Inode: %llu, start: %llu, len: %llu, cstart: %u, cend: %u\n",
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
- 	     (unsigned long long)byte_start,
--	     (unsigned long long)byte_len, trunc_start, trunc_len);
-+	     (unsigned long long)byte_len, trunc_start, trunc_end);
- 
- 	ret = ocfs2_zero_partial_clusters(inode, byte_start, byte_len);
- 	if (ret) {
-@@ -1499,32 +1575,79 @@ static int ocfs2_remove_inode_range(struct inode *inode,
- 		goto out;
- 	}
- 
--	cpos = trunc_start;
--	while (trunc_len) {
--		ret = ocfs2_get_clusters(inode, cpos, &phys_cpos,
--					 &alloc_size, &flags);
-+	path = ocfs2_new_path_from_et(&et);
-+	if (!path) {
-+		ret = -ENOMEM;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	while (trunc_end > trunc_start) {
-+
-+		ret = ocfs2_find_path(INODE_CACHE(inode), path,
-+				      cluster_in_el);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
- 		}
- 
--		if (alloc_size > trunc_len)
--			alloc_size = trunc_len;
-+		el = path_leaf_el(path);
- 
--		/* Only do work for non-holes */
--		if (phys_cpos != 0) {
--			ret = ocfs2_remove_btree_range(inode, &et, cpos,
--						       phys_cpos, alloc_size,
--						       &dealloc, refcount_loc,
--						       flags);
--			if (ret) {
-+		i = ocfs2_find_rec(el, trunc_end, 0);
-+		/*
-+		 * Need to go to previous extent block.
-+		 */
-+		if (i < 0) {
-+			if (path->p_tree_depth == 0)
-+				break;
-+
-+			ret = ocfs2_find_cpos_for_left_leaf(inode->i_sb,
-+							    path,
-+							    &cluster_in_el);
-+			if (ret) {                 
- 				mlog_errno(ret);
- 				goto out;
- 			}
-+
-+			/*
-+			 * We've reached the leftmost extent block,
-+			 * it's safe to leave.
-+			 */
-+			if (cluster_in_el == 0)
-+				break;
-+
-+			/*
-+			 * The 'pos' searched for previous extent block is
-+			 * always one cluster less than actual trunc_end.
-+			 */
-+			trunc_end = cluster_in_el + 1;
-+
-+			ocfs2_reinit_path(path, 1);
-+
-+			continue;
-+		
-+		} else
-+			rec = &el->l_recs[i];
-+
-+		ocfs2_calc_trunc_pos(inode, el, rec, trunc_start, &trunc_cpos,
-+				     &trunc_len, &trunc_end, &blkno, &done);
-+		if (done)
-+			break;
-+
-+		flags = rec->e_flags;
-+		phys_cpos = ocfs2_blocks_to_clusters(inode->i_sb, blkno);
-+
-+		ret = ocfs2_remove_btree_range(inode, &et, trunc_cpos,
-+					       phys_cpos, trunc_len, &dealloc,
-+					       refcount_loc, flags);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out;
- 		}
- 
--		cpos += alloc_size;
--		trunc_len -= alloc_size;
-+		cluster_in_el = trunc_end;
-+
-+		ocfs2_reinit_path(path, 1);
- 	}
- 
- 	ocfs2_truncate_cluster_pages(inode, byte_start, byte_len);
+ 	int i, j, ret = 0;
+ 	u64 blkno;
+diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
+index 2963ed7..d03f765 100644
+--- a/fs/ocfs2/alloc.h
++++ b/fs/ocfs2/alloc.h
+@@ -319,6 +319,8 @@ int ocfs2_journal_access_path(struct ocfs2_caching_info *ci,
+ 			      struct ocfs2_path *path);
+ int ocfs2_find_cpos_for_right_leaf(struct super_block *sb,
+ 				   struct ocfs2_path *path, u32 *cpos);
++int ocfs2_find_cpos_for_left_leaf(struct super_block *sb,
++				  struct ocfs2_path *path, u32 *cpos);
+ int ocfs2_find_subtree_root(struct ocfs2_extent_tree *et,
+ 			    struct ocfs2_path *left,
+ 			    struct ocfs2_path *right);
 -- 
 1.5.5
