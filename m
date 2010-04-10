@@ -1,19 +1,35 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 09 Apr 2010 10:36:23 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
- to buffered
-In-Reply-To: <201004091720.45689.lidongyang@novell.com>
-References: <201004081547.24593.lidongyang@novell.com>
-	<201004091100.28988.lidongyang@novell.com>
-	<4BBE9FBA.9070004@oracle.com>
-	<201004091720.45689.lidongyang@novell.com>
-Message-ID: <4BBF6597.6080709@oracle.com>
+From: Dong Yang Li <lidongyang@novell.com>
+Date: Sat, 10 Apr 2010 01:37:58 -0600
+Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall	
+	back to buffered
+Message-ID: <4BC0B776020000460001DCCA@novprvlin0050.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+I still get a bug with this check and without my patch:
+
+
+[16179.955148] (13400,1):ocfs2_truncate_file:465 ERROR: bug expression: le64_to_cpu(fe->i_size) != i_size_read(inode)
+[16179.955157] (13400,1):ocfs2_truncate_file:465 ERROR: Inode 254789, inode i_size = 811008 != di i_size = 809011, i_flags = 0x1
+the call trace is the same.
+
+
+the problem is this check in ocfs2_direct_IO_get_blocks just check if we are going beyond the blocks right now,
+so if a direct write won't play with new blocks but extending the i_size still get a pass, like the error above said, di->i_size is 809011, using 198 blocks and the direct write end up with i_size 811008, just same 198 blocks.
+
+
+IMHO, we can add this check back and fix this check, or we don't try to do direct write if we decided we can't in ocfs2_file_aio_write, after calling ocfs2_prepare_inode_for_write as my patch said.
+
+
+Comments? ;-)
+
+
+Br,
+Li Dongyang
+>>> Sunil Mushran  04/10/10 1:42 AM >>>
   Li Dongyang wrote:
 > On Friday 09 April 2010 11:32:10 Tao Ma wrote:
 >> Hi Dongyang,
@@ -50,8 +66,8 @@ To: ocfs2-devel@oss.oracle.com
 >  * Any write past EOF is not allowed because we'd be extending.
 >  */
 > if (create && (iblock + max_blocks) > inode_blocks) {
-> 	ret = -EIO;
-> 	goto bail;
+>     ret = -EIO;
+>     goto bail;
 > }
 >
 > I was using the linus tree 
@@ -65,7 +81,7 @@ To: ocfs2-devel@oss.oracle.com
 > IMHO we can just push this commit to linus tree.
 
 commit 5fe878ae7f82fbf0830dbfaee4c5ca18f3aee442
-Author: Christoph Hellwig <hch@lst.de>
+Author: Christoph Hellwig 
 Date:   Tue Dec 15 16:47:50 2009 -0800
 
     direct-io: cleanup blockdev_direct_IO locking
