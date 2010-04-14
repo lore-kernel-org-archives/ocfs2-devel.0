@@ -1,49 +1,91 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 13 Apr 2010 18:58:19 -0700
+From: Tao Ma <tao.ma@oracle.com>
+Date: Wed, 14 Apr 2010 10:44:24 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
  to buffered
-In-Reply-To: <201004081547.24593.lidongyang@novell.com>
-References: <201004081547.24593.lidongyang@novell.com>
-Message-ID: <20100414015819.GE5530@mail.oracle.com>
+In-Reply-To: <4BC2BC9B.30804@oracle.com>
+References: <4BC0B776020000460001DCCA@novprvlin0050.provo.novell.com>	<4BC2ACBB.80909@oracle.com>	<201004121331.56178.lidongyang@novell.com>
+	<4BC2BC9B.30804@oracle.com>
+Message-ID: <4BC52C08.4080001@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Apr 08, 2010 at 03:47:24PM +0800, Li Dongyang wrote:
-> when we fall back to buffered write from direct write, we call
-> __generic_file_aio_write but that will end up doing direct write
-> even we are only prepared to do buffered write because the file
-> has O_DIRECT flag set. This is a fix for
-> https://bugzilla.novell.com/show_bug.cgi?id=591039
+Hi Dongyang,
 
-	We need to evaluate what __g_f_a_w() is doing and make sure
-we're matching it appropriately for ocfs2.
+Tao Ma wrote:
+> 
+> Li Dongyang wrote:
+>> Hi, Tao
+>> On Monday 12 April 2010 13:16:43 Tao Ma wrote:
+>>> Hi dong yang,
+>>>
+>>> Dong Yang Li wrote:
+>>>> I still get a bug with this check and without my patch:
+>>> yes, the check doesn't work actually in this case.
+>>>
+>>>> [16179.955148] (13400,1):ocfs2_truncate_file:465 ERROR: bug expression:
+>>>> le64_to_cpu(fe->i_size) != i_size_read(inode) [16179.955157]
+>>>> (13400,1):ocfs2_truncate_file:465 ERROR: Inode 254789, inode i_size =
+>>>> 811008 != di i_size = 809011, i_flags = 0x1 the call trace is the same.
+>>>>
+>>>>
+>>>> the problem is this check in ocfs2_direct_IO_get_blocks just check if we
+>>>> are going beyond the blocks right now, so if a direct write won't play
+>>>> with new blocks but extending the i_size still get a pass, like the error
+>>>> above said, di->i_size is 809011, using 198 blocks and the direct write
+>>>> end up with i_size 811008, just same 198 blocks.
+>>> yeah, you are right.
+>>>
+>> Thanks for the script,
+>> and a stupid question: why we still try to call __generic_file_aio_write and 
+>> let it try direct write first in ocfs2_file_aio_write even we decided we could 
+>> not do the direct write?
+>>>> IMHO, we can add this check back and fix this check, or we don't try to
+>>>> do direct write if we decided we can't in ocfs2_file_aio_write, after
+>>>> calling ocfs2_prepare_inode_for_write as my patch said.
+>>> I think we only need to check this condition in get_blocks. So would you
+>>> mind providing a patch? You old method is too aggressive actually.
+>>>
+>> what about add this check in ocfs2_direct_IO? if we see we are extending just 
+>> return 0. right now we only check if we are appending.
+> As for the 2 questions, I just want to do buffered write as small as 
+> possible since it has to lock inode, create pages and then sync pages 
+> etc(you can check ocfs2_write_begin/end for details. ;) ). So say this 
+> question, actually only the last block needed to be buffered ioed and 
+> i_size get updated accordingly.
+> 
+> I just checked ext4_direct_IO and actually it updated the disk size at 
+> the end of direct_IO. So maybe we can work like that also.
+sorry, I mislead you.
+Joel pointed out that except the problem my little script exposed, there 
+is another problem about ip_alloc_sem locking. So we have to fall back 
+to buffer write from the very beginning. I just saw that Joel has 
+commented your original patch, so do please revise it.
 
-> +	ret = file_remove_suid(file);
-> +	if (ret)
-> +		goto out_dio;
-
-	NAK.  We do suid checks in ocfs2_prepare_inode_for_write().
-Calling file_remove_suid() is outside of ocfs2's locking.  It calls
-->setattr() which has its own rules in ocfs2.
-
-> +	file_update_time(file);
-
-	We have special behaviors regarding time updates for ocfs2
-direct I/O.  This might want to live right next to the call to
-generic_file_buffered_write().  But maybe not.  It needs to be checked.
-
-Joel
-
--- 
-
-To spot the expert, pick the one who predicts the job will take the
-longest and cost the most.
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Regards,
+Tao
+> 
+> Regards,
+> Tao
+>>> btw, I have created a small test script which will expose this bug
+>>> easily. So you don't need to use the time-consuming fsstress test now.
+>>> Just use it to test your fix.
+>>>
+>>> echo 'y'|mkfs.ocfs2 --fs-features=local,noinline-data -b 4K -C 4K
+>>> $DEVICE 1000000
+>>> mount -t ocfs2 $DEVICE $MNT_DIR
+>>> echo "foo" > $MNT_DIR/foo
+>>> dd if=/dev/zero of=$MNT_DIR/foo bs=4K count=1 conv=notrunc oflag=direct
+>>> echo "foo" > $MNT_DIR/foo
+>>> # The kernel should panic here.
+>>>
+>>> Regards,
+>>> Tao
+>>>
+>>>> Comments? ;-)
+>>>>
+>>>>
+>>>> Br,
+>>>> Li Dongyang
