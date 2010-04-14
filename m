@@ -1,49 +1,75 @@
-From: Li Dongyang <lidongyang@novell.com>
-Date: Wed, 14 Apr 2010 15:42:31 +0800
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 14 Apr 2010 12:20:11 -0700
 Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
-	to buffered
-In-Reply-To: <20100414015819.GE5530@mail.oracle.com>
-References: <201004081547.24593.lidongyang@novell.com>
-	<20100414015819.GE5530@mail.oracle.com>
-Message-ID: <201004141542.31733.lidongyang@novell.com>
+ to buffered
+In-Reply-To: <201004141358.20777.lidongyang@novell.com>
+References: <4BC0B776020000460001DCCA@novprvlin0050.provo.novell.com>
+	<4BC2ACBB.80909@oracle.com> <20100413235434.GA5530@mail.oracle.com>
+	<201004141358.20777.lidongyang@novell.com>
+Message-ID: <20100414192011.GA29831@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wednesday 14 April 2010 09:58:19 Joel Becker wrote:
-> On Thu, Apr 08, 2010 at 03:47:24PM +0800, Li Dongyang wrote:
-> > when we fall back to buffered write from direct write, we call
-> > __generic_file_aio_write but that will end up doing direct write
-> > even we are only prepared to do buffered write because the file
-> > has O_DIRECT flag set. This is a fix for
-> > https://bugzilla.novell.com/show_bug.cgi?id=591039
-> 
-> 	We need to evaluate what __g_f_a_w() is doing and make sure
-> we're matching it appropriately for ocfs2.
-> 
-Thanks for reviewing, that's just the two uncertain points to me with the patch.
-> > +	ret = file_remove_suid(file);
-> > +	if (ret)
-> > +		goto out_dio;
-> 
-> 	NAK.  We do suid checks in ocfs2_prepare_inode_for_write().
-> Calling file_remove_suid() is outside of ocfs2's locking.  It calls
-> ->setattr() which has its own rules in ocfs2.
-you are right, I did that because we are calling __g_f_a_w() in o_f_a_w()
-which will call file_remove_suid() before.
-> 
-> > +	file_update_time(file);
-> 
-> 	We have special behaviors regarding time updates for ocfs2
-> direct I/O.  This might want to live right next to the call to
-> generic_file_buffered_write().  But maybe not.  It needs to be checked.
-I don't think we need that, as we will update the time in ocfs2_write_end_nolock()
-called by ocfs2_write_end().
-and could I have more details on how we handle time updates for ocfs2 direct io?
-Br,
-Li Dongyang
-> 
-> Joel
-> 
+On Wed, Apr 14, 2010 at 01:58:20PM +0800, Li Dongyang wrote:
+> On Wednesday 14 April 2010 07:54:35 Joel Becker wrote:
+> > 	I think Sunil and I have found the real culprit.
+> > 	If a file is opened for O_DIRECT, and there are no holes,
+> > refcounts or anything, we are doing direct I/O.  ocfs2_file_aio_write()
+> > (o_f_a_w() from now on) locks things down like so:  lock(i_mutex),
+> > down_read(ip_alloc_sem), PR(rw_lock).  We have ip_alloc_sem preventing
+> > size changes on the local node and rw_lock preventing size changes on
+> > other nodes.  We call generic_file_direct_write() ourselves.
+> > 	If a file is not opened with O_DIRECT, we are doing regular
+> > buffered writes.  o_f_a_w() locks like so: lock(i_mutex),
+> > EX(rw_lock).  It is protecting against other nodes, but it does not
+> > touch ip_alloc_sem.  Why?  Because we call __generic_file_aio_write(),
+> > which will call ->write_begin().  ip_alloc_sem will be taken inside
+> > ->write_begin().  That's where we protect against other local processes.
+> > 	You may already see where I'm going with this.  If we are open
+> > with O_DIRECT, but we have to fall back to buffered, we will do this
+> > locking:  lock(i_mutex), down_read(ip_alloc_sem), PR(rw_lock),
+> > NL(rw_lock), up_read(ip_alloc_sem), EX(rw_lock).  That is, we start with
+> > the direct I/O locking, then back off and do the buffered locking.  But
+> > when we get into __g_f_a_w(), it will try the direct I/O again.  If the
+> > leading portion of the I/O is capable of direct I/O, it will go into
+> > direct mode *without ever taking ip_alloc_sem*.  Once it gets to the
+> > portion of the I/O that cannot be done direct, it will fall back to
+> > buffered for the rest of the I/O and will call ->write_begin() as
+> > expected.
+> > 	So this I/O that extends i_size to the end of the allocation
+> > will proceed as a direct I/O but will not have ip_alloc_sem.  Thus
+> > truncate (and any other allocation change) can race on the local
+> > machine.
+> > 	I think some form of Dong Yang's patch is going to be necessary.
+> > 
+> Thanks for the great explanation and analysis, but I only see we down write the
+> OCFS2_I(inode)->ip_alloc_sem in ->write_begin() and we are taking
+> inode->i_alloc_sem in o_f_a_w() when we try to do a direct write, not the ip_alloc_sem.
+> Am I missing something?
+
+	You're right, we use i_alloc_sem in the direct case and
+ip_alloc_sem in the buffered case.  It is, however, for the same reason.
+i_alloc_sem is about competing with the VFS (eg, vs vfs_truncate()).
+ip_alloc_sem is about competing with ourselves (ocfs2_truncate(),
+ocfs2_readpage(), etc).
+	While I should be saying i_alloc_sem above for the direct I/O
+case, the rest of the analysis is still correct.  We need to be holding
+i_alloc_sem if we're going to be issuing direct I/Os, and we are not
+holding it in the fallback to buffered case.
+
+Joel
+
+-- 
+
+"Depend on the rabbit's foot if you will, but remember, it didn't
+ help the rabbit."
+	- R. E. Shay
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
