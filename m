@@ -1,54 +1,70 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 16 Apr 2010 18:03:09 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2: Add new OCFS2_IOC_INFO ioctl
-	for ocfs2 v6.
-In-Reply-To: <20100417001138.GA16236@ca-server1.us.oracle.com>
-References: <1271213772-2457-1-git-send-email-tristan.ye@oracle.com>
-	<1271213772-2457-2-git-send-email-tristan.ye@oracle.com>
-	<4BC8DB8C.3020206@oracle.com> <4BC8E406.2000200@oracle.com>
-	<20100417001138.GA16236@ca-server1.us.oracle.com>
-Message-ID: <4D0D6C50-58E5-4F25-9948-CAEF36F23596@oracle.com>
+From: Li Dongyang <lidongyang@novell.com>
+Date: Sat, 17 Apr 2010 17:49:10 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back to
+	buffered v3
+Message-ID: <201004171749.10674.lidongyang@novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Agreed. o2info_from_user() would be one suggestion.
+when we fall back to buffered write from direct write, we call
+__generic_file_aio_write but that will end up doing direct write
+even we are only prepared to do buffered write because the file
+has O_DIRECT flag set. This is a fix for
+https://bugzilla.novell.com/show_bug.cgi?id=591039
+revised with Joel's comments.
 
-On Apr 16, 2010, at 5:11 PM, Joel Becker <Joel.Becker@oracle.com> wrote:
+Signed-off-by: Li Dongyang <lidongyang@novell.com>
+---
+ fs/ocfs2/file.c |   25 ++++++++++++++-----------
+ 1 files changed, 14 insertions(+), 11 deletions(-)
 
-> On Fri, Apr 16, 2010 at 03:26:14PM -0700, Sunil Mushran wrote:
->> Or, you could take it a step further and make some macros. Keep these
->> macros in close proximity to these functions.
->>
->> #define _ocfs2_from_user(a, b)  \
->>                copy_from_user(&(a), (a), typeof(a))
->>
->> #define _ocfs2_to_user(a, b)    \
->>                copy_to_user((typeof(a) __user *)b, &(a), sizeof(a))
->>
->>        if (_ocfs2_from_user(oic, req))
->>                goto bail;
->>
->>        if (_ocfs2_to_user(oic, req))
->>                goto bail;
->
->    Give them a more specific name; no one should thing they are
-> generic c-t-u functions.  ocfs2-info-to-user?  bonus if they handle  
-> the
-> info types automagically.
->
-> Joel
-> -- 
->
-> "Born under a bad sign.
-> I been down since I began to crawl.
-> If it wasn't for bad luck,
-> I wouldn't have no luck at all."
->
-> Joel Becker
-> Principal Software Developer
-> Oracle
-> E-mail: joel.becker at oracle.com
-> Phone: (650) 506-8127
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index de059f4..0c15be9 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1973,18 +1973,18 @@ relock:
+ 	/* communicate with ocfs2_dio_end_io */
+ 	ocfs2_iocb_set_rw_locked(iocb, rw_level);
+ 
+-	if (direct_io) {
+-		ret = generic_segment_checks(iov, &nr_segs, &ocount,
+-					     VERIFY_READ);
+-		if (ret)
+-			goto out_dio;
++	ret = generic_segment_checks(iov, &nr_segs, &ocount,
++				     VERIFY_READ);
++	if (ret)
++		goto out_dio;
+ 
+-		count = ocount;
+-		ret = generic_write_checks(file, ppos, &count,
+-					   S_ISBLK(inode->i_mode));
+-		if (ret)
+-			goto out_dio;
++	count = ocount;
++	ret = generic_write_checks(file, ppos, &count,
++				   S_ISBLK(inode->i_mode));
++	if (ret)
++		goto out_dio;
+ 
++	if (direct_io) {
+ 		written = generic_file_direct_write(iocb, iov, &nr_segs, *ppos,
+ 						    ppos, count, ocount);
+ 		if (written < 0) {
+@@ -1999,7 +1999,10 @@ relock:
+ 			goto out_dio;
+ 		}
+ 	} else {
+-		written = __generic_file_aio_write(iocb, iov, nr_segs, ppos);
++		current->backing_dev_info = file->f_mapping->backing_dev_info;
++		written = generic_file_buffered_write(iocb, iov, nr_segs, *ppos
++						      ppos, count, 0);
++		current->backing_dev_info = NULL;
+ 	}
+ 
+ out_dio:
+-- 
+1.6.4.2
