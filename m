@@ -1,34 +1,33 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 30 Apr 2010 13:52:43 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
- to buffered v3
-In-Reply-To: <20100430204705.GC1938@mail.oracle.com>
-References: <201004171749.10674.lidongyang@novell.com>
-	<20100430204705.GC1938@mail.oracle.com>
-Message-ID: <20100430205243.GD1938@mail.oracle.com>
+From: Dan Carpenter <error27@gmail.com>
+Date: Sun, 18 Apr 2010 19:32:13 -0000
+Subject: [Ocfs2-devel] ocfs2: question about dlmfs_file_read()
+Message-ID: <20100418193201.GD7920@bicker>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Apr 30, 2010 at 01:47:05PM -0700, Joel Becker wrote:
-> 	Have you tested this version?  I got a compile error:
+Hello list,
 
-	I want to be clear - has this patch (v3) been run against the
-fsstress that caused the bug report in the first place?  Does the
-fsstress now pass?  Let me know so I can send it upstream.
+I was looking through the code for something unrelated and I got
+confused by this.
 
-Joel
+fs/ocfs2/dlmfs/dlmfs.c dlmfs_file_read()
+   261          /* don't read past the lvb */
+   262          if ((count + *ppos) > i_size_read(inode))
+   263                  readlen = i_size_read(inode) - *ppos;
+   264          else
+   265                  readlen = count - *ppos;
 
--- 
+	Shouldn't "readlen" just be "count" here?  What prevents it from 
+	being a negative number?
 
-Life's Little Instruction Book #314
+   266
+   267          lvb_buf = kmalloc(readlen, GFP_NOFS);
 
-	"Never underestimate the power of forgiveness."
+Anyway, this code has been around for a long time so I'm probably
+missing something.  I was just curious.
 
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+regards,
+dan carpenter
