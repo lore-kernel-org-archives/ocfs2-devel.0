@@ -1,10 +1,10 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 20 Apr 2010 15:14:03 -0700
+Date: Tue, 20 Apr 2010 15:32:23 -0700
 Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Add macro
  OCFS2_VOL_UUIDSTR_LEN in ocfs2_fs.h
 In-Reply-To: <1271746743-17653-1-git-send-email-tristan.ye@oracle.com>
 References: <1271746743-17653-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <20100420221403.GA9423@mail.oracle.com>
+Message-ID: <20100420223223.GB9423@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -30,16 +30,16 @@ On Tue, Apr 20, 2010 at 02:59:02PM +0800, Tristan Ye wrote:
 >  #define OCFS2_MAX_VOL_LABEL_LEN		64
 > +#define OCFS2_VOL_UUIDSTR_LEN		(OCFS2_VOL_UUID_LEN * 2 + 1)
 
-	Do we want this _LEN macro to include the NUL?
+	Also, why is this in ocfs2_fs.h?  It's not a structural
+feature.
 
 Joel
 
 -- 
 
-"Sometimes I think the surest sign intelligent
- life exists elsewhere in the universe is that
- none of it has tried to contact us."
-                                -Calvin & Hobbes
+"If you are ever in doubt as to whether or not to kiss a pretty girl, 
+ give her the benefit of the doubt"
+                                        -Thomas Carlyle
 
 Joel Becker
 Principal Software Developer
