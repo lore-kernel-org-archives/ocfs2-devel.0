@@ -1,42 +1,47 @@
-From: Sunil Mushran <sunil.mushran@ORACLE.COM>
-Date: Wed, 21 Apr 2010 11:32:37 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Add macro
- OCFS2_VOL_UUIDSTR_LEN in ocfs2_fs.h
-In-Reply-To: <4BCE5792.8010104@oracle.com>
-References: <1271746743-17653-1-git-send-email-tristan.ye@oracle.com>	<20100420223223.GB9423@mail.oracle.com>
-	<4BCE2C03.5000506@oracle.com> <4BCE2F29.3060104@oracle.com>
-	<4BCE5792.8010104@oracle.com>
-Message-ID: <4BCF44C5.6050701@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 21 Apr 2010 15:36:52 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Update VFS inode's id info after
+	reflink.
+In-Reply-To: <1271829955-3994-1-git-send-email-tao.ma@oracle.com>
+References: <1271829955-3994-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100421223652.GI17187@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-tristan wrote:
-> Sunil Mushran wrote:
->> ok. So how about we remove this #define totally and have
->> the ioctl interface return the binary uuid. The o2info tool
->> can convert do the conversion.
->
-> But... returning binary uuid from o2info was not that easy, ocfs2 
-> in-memory super_block osb only successfully initialized the osb->uuid, 
-> while did nothing to uuid_str, I remembered we've been discussing on 
-> that issue:
->
-> http://oss.oracle.com/pipermail/ocfs2-devel/2009-November/005514.html
->
->
-> That patch was not adopted, and we're still using uuid_str in most 
-> places.
+On Wed, Apr 21, 2010 at 02:05:55PM +0800, Tao Ma wrote:
+> In reflink we update the id info in the disk but forget to update
+> the corresponding information in the VFS inode. So update them
+> accordingly in case we want to preserve the attributes.
+> 
+> Reported-by: Jeff Liu <jeff.liu@oracle.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> ---
+>  fs/ocfs2/refcounttree.c |    3 +++
+>  1 files changed, 3 insertions(+), 0 deletions(-)
+> 
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 8ae65c9..a8e8572 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -4083,6 +4083,9 @@ static int ocfs2_complete_reflink(struct inode *s_inode,
+>  	di->i_attr = s_di->i_attr;
+>  
+>  	if (preserve) {
+> +		t_inode->i_uid = s_inode->i_uid;
+> +		t_inode->i_gid = s_inode->i_gid;
+> +		t_inode->i_mode = s_inode->i_mode;
+>  		di->i_uid = s_di->i_uid;
+>  		di->i_gid = s_di->i_gid;
+>  		di->i_mode = s_di->i_mode;
 
-Ok. Thanks for reminding me.
 
-It appears we already have OCFS2_TEXT_UUID_LEN in stack_user.c. That's a
-clean name. In the patch below, I have moved it to ocfs2.h so that we can
-use it elsewhere.
+Looks reasonable to me.
 
-http://oss.oracle.com/~smushran/0001-ocfs2-Cleanup-uuid-strings.patch
+Acked-by: Mark Fasheh <mfasheh@suse.com>
+	--Mark
 
-I am waiting for Joel to comment. If he approves, then you can use the
-same #define in your ioctl.
+--
+Mark Fasheh
