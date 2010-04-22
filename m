@@ -1,336 +1,154 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 22 Apr 2010 14:40:23 +0800
-Subject: [Ocfs2-devel] [PATCH 09/17] ocfs2: Set suballoc_loc on allocated
-	metadata.
+Date: Thu, 22 Apr 2010 14:40:27 +0800
+Subject: [Ocfs2-devel] [PATCH 13/17] ocfs2: ocfs2_group_bitmap_size has to
+	handle old volume.
 In-Reply-To: <4BCFEF22.7080607@oracle.com>
 References: <4BCFEF22.7080607@oracle.com>
-Message-ID: <1271918431-8135-9-git-send-email-tao.ma@oracle.com>
+Message-ID: <1271918431-8135-13-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Joel Becker <joel.becker@oracle.com>
+ocfs2_group_bitmap_size has to handle the case when the
+volume don't have discontiguous block group support. So
+pass the feature_incompat in and check it.
 
-Get the suballoc_loc from ocfs2_claim_new_inode() or
-ocfs2_claim_metadata().  Store it on the appropriate field of the block
-we just allocated.
-
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/alloc.c        |    4 +++-
- fs/ocfs2/dir.c          |    7 ++++---
- fs/ocfs2/namei.c        |    6 ++++--
- fs/ocfs2/refcounttree.c |   15 +++++++++------
- fs/ocfs2/suballoc.c     |   16 +++++++++++++---
- fs/ocfs2/suballoc.h     |    2 ++
- fs/ocfs2/xattr.c        |    7 ++++---
- 7 files changed, 39 insertions(+), 18 deletions(-)
+ fs/ocfs2/localalloc.c |    2 +-
+ fs/ocfs2/ocfs2_fs.h   |   37 +++++++++++++++++++++++++------------
+ fs/ocfs2/resize.c     |    6 ++++--
+ fs/ocfs2/suballoc.c   |    3 ++-
+ fs/ocfs2/super.c      |    3 ++-
+ 5 files changed, 34 insertions(+), 17 deletions(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index e12c623..dc029e0 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -1006,7 +1006,7 @@ static int ocfs2_create_new_meta_bhs(handle_t *handle,
- 	int count, status, i;
- 	u16 suballoc_bit_start;
- 	u32 num_got;
--	u64 first_blkno;
-+	u64 suballoc_loc, first_blkno;
- 	struct ocfs2_super *osb =
- 		OCFS2_SB(ocfs2_metadata_cache_get_super(et->et_ci));
- 	struct ocfs2_extent_block *eb;
-@@ -1018,6 +1018,7 @@ static int ocfs2_create_new_meta_bhs(handle_t *handle,
- 		status = ocfs2_claim_metadata(handle,
- 					      meta_ac,
- 					      wanted - count,
-+					      &suballoc_loc,
- 					      &suballoc_bit_start,
- 					      &num_got,
- 					      &first_blkno);
-@@ -1051,6 +1052,7 @@ static int ocfs2_create_new_meta_bhs(handle_t *handle,
- 			eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
- 			eb->h_suballoc_slot =
- 				cpu_to_le16(meta_ac->ac_alloc_slot);
-+			eb->h_suballoc_loc = cpu_to_le64(suballoc_loc);
- 			eb->h_suballoc_bit = cpu_to_le16(suballoc_bit_start);
- 			eb->h_list.l_count =
- 				cpu_to_le16(ocfs2_extent_recs_per_eb(osb->sb));
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 02c3f22..341bb8f 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -2395,15 +2395,15 @@ static int ocfs2_dx_dir_attach_index(struct ocfs2_super *osb,
- 	int ret;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *) di_bh->b_data;
- 	u16 dr_suballoc_bit;
--	u64 dr_blkno;
-+	u64 suballoc_loc, dr_blkno;
- 	unsigned int num_bits;
- 	struct buffer_head *dx_root_bh = NULL;
- 	struct ocfs2_dx_root_block *dx_root;
- 	struct ocfs2_dir_block_trailer *trailer =
- 		ocfs2_trailer_from_bh(dirdata_bh, dir->i_sb);
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index 4aa83df..6b15b24 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -122,7 +122,7 @@ unsigned int ocfs2_la_default_mb(struct ocfs2_super *osb)
+ 	struct super_block *sb = osb->sb;
  
--	ret = ocfs2_claim_metadata(handle, meta_ac, 1, &dr_suballoc_bit,
--				   &num_bits, &dr_blkno);
-+	ret = ocfs2_claim_metadata(handle, meta_ac, 1, &suballoc_loc,
-+				   &dr_suballoc_bit, &num_bits, &dr_blkno);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -2431,6 +2431,7 @@ static int ocfs2_dx_dir_attach_index(struct ocfs2_super *osb,
- 	memset(dx_root, 0, osb->sb->s_blocksize);
- 	strcpy(dx_root->dr_signature, OCFS2_DX_ROOT_SIGNATURE);
- 	dx_root->dr_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
-+	dx_root->dr_suballoc_loc = cpu_to_le64(suballoc_loc);
- 	dx_root->dr_suballoc_bit = cpu_to_le16(dr_suballoc_bit);
- 	dx_root->dr_fs_generation = cpu_to_le32(osb->fs_generation);
- 	dx_root->dr_blkno = cpu_to_le64(dr_blkno);
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index e5434a0..bfe4571 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -472,14 +472,15 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 	int status = 0;
- 	struct ocfs2_dinode *fe = NULL;
- 	struct ocfs2_extent_list *fel;
--	u64 fe_blkno = 0;
-+	u64 suballoc_loc, fe_blkno = 0;
- 	u16 suballoc_bit;
- 	u16 feat;
+ 	gd_mb = ocfs2_clusters_to_megabytes(osb->sb,
+-					    8 * ocfs2_group_bitmap_size(sb, 0));
++		8 * ocfs2_group_bitmap_size(sb, 0, osb->s_feature_incompat));
  
- 	*new_fe_bh = NULL;
- 
- 	status = ocfs2_claim_new_inode(handle, dir, parent_fe_bh,
--				       inode_ac, &suballoc_bit, &fe_blkno);
-+				       inode_ac, &suballoc_loc,
-+				       &suballoc_bit, &fe_blkno);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
-@@ -516,6 +517,7 @@ static int ocfs2_mknod_locked(struct ocfs2_super *osb,
- 	fe->i_generation = cpu_to_le32(inode->i_generation);
- 	fe->i_fs_generation = cpu_to_le32(osb->fs_generation);
- 	fe->i_blkno = cpu_to_le64(fe_blkno);
-+	fe->i_suballoc_loc = cpu_to_le64(suballoc_loc);
- 	fe->i_suballoc_bit = cpu_to_le16(suballoc_bit);
- 	fe->i_suballoc_slot = cpu_to_le16(inode_ac->ac_alloc_slot);
- 	fe->i_uid = cpu_to_le32(inode->i_uid);
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 472db83..4825ce1 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -571,7 +571,7 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
- 	struct ocfs2_refcount_tree *new_tree = NULL, *tree = NULL;
- 	u16 suballoc_bit_start;
- 	u32 num_got;
--	u64 first_blkno;
-+	u64 suballoc_loc, first_blkno;
- 
- 	BUG_ON(oi->ip_dyn_features & OCFS2_HAS_REFCOUNT_FL);
- 
-@@ -597,7 +597,7 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
- 		goto out_commit;
- 	}
- 
--	ret = ocfs2_claim_metadata(handle, meta_ac, 1,
-+	ret = ocfs2_claim_metadata(handle, meta_ac, 1, &suballoc_loc,
- 				   &suballoc_bit_start, &num_got,
- 				   &first_blkno);
- 	if (ret) {
-@@ -627,6 +627,7 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
- 	memset(rb, 0, inode->i_sb->s_blocksize);
- 	strcpy((void *)rb, OCFS2_REFCOUNT_BLOCK_SIGNATURE);
- 	rb->rf_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
-+	rb->rf_suballoc_loc = cpu_to_le64(suballoc_loc);
- 	rb->rf_suballoc_bit = cpu_to_le16(suballoc_bit_start);
- 	rb->rf_fs_generation = cpu_to_le32(osb->fs_generation);
- 	rb->rf_blkno = cpu_to_le64(first_blkno);
-@@ -1283,7 +1284,7 @@ static int ocfs2_expand_inline_ref_root(handle_t *handle,
- 	int ret;
- 	u16 suballoc_bit_start;
- 	u32 num_got;
--	u64 blkno;
-+	u64 suballoc_loc, blkno;
- 	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
- 	struct buffer_head *new_bh = NULL;
- 	struct ocfs2_refcount_block *new_rb;
-@@ -1297,7 +1298,7 @@ static int ocfs2_expand_inline_ref_root(handle_t *handle,
- 		goto out;
- 	}
- 
--	ret = ocfs2_claim_metadata(handle, meta_ac, 1,
-+	ret = ocfs2_claim_metadata(handle, meta_ac, 1, &suballoc_loc,
- 				   &suballoc_bit_start, &num_got,
- 				   &blkno);
- 	if (ret) {
-@@ -1329,6 +1330,7 @@ static int ocfs2_expand_inline_ref_root(handle_t *handle,
- 
- 	new_rb = (struct ocfs2_refcount_block *)new_bh->b_data;
- 	new_rb->rf_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
-+	new_rb->rf_suballoc_loc = cpu_to_le64(suballoc_loc);
- 	new_rb->rf_suballoc_bit = cpu_to_le16(suballoc_bit_start);
- 	new_rb->rf_blkno = cpu_to_le64(blkno);
- 	new_rb->rf_cpos = cpu_to_le32(0);
-@@ -1523,7 +1525,7 @@ static int ocfs2_new_leaf_refcount_block(handle_t *handle,
- 	int ret;
- 	u16 suballoc_bit_start;
- 	u32 num_got, new_cpos;
--	u64 blkno;
-+	u64 suballoc_loc, blkno;
- 	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
- 	struct ocfs2_refcount_block *root_rb =
- 			(struct ocfs2_refcount_block *)ref_root_bh->b_data;
-@@ -1547,7 +1549,7 @@ static int ocfs2_new_leaf_refcount_block(handle_t *handle,
- 		goto out;
- 	}
- 
--	ret = ocfs2_claim_metadata(handle, meta_ac, 1,
-+	ret = ocfs2_claim_metadata(handle, meta_ac, 1, &suballoc_loc,
- 				   &suballoc_bit_start, &num_got,
- 				   &blkno);
- 	if (ret) {
-@@ -1575,6 +1577,7 @@ static int ocfs2_new_leaf_refcount_block(handle_t *handle,
- 	memset(new_rb, 0, sb->s_blocksize);
- 	strcpy((void *)new_rb, OCFS2_REFCOUNT_BLOCK_SIGNATURE);
- 	new_rb->rf_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
-+	new_rb->rf_suballoc_loc = cpu_to_le64(suballoc_loc);
- 	new_rb->rf_suballoc_bit = cpu_to_le16(suballoc_bit_start);
- 	new_rb->rf_fs_generation = cpu_to_le32(OCFS2_SB(sb)->fs_generation);
- 	new_rb->rf_blkno = cpu_to_le64(blkno);
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 424c62f..d939742 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -54,7 +54,9 @@
- #define OCFS2_MAX_TO_STEAL		1024
- 
- struct ocfs2_suballoc_result {
--	u64		sr_bg_blkno;	/* The bg we allocated from */
-+	u64		sr_bg_blkno;	/* The bg we allocated from.  Set
-+					   to 0 when a block group is
-+					   contiguous. */
- 	u64		sr_blkno;	/* The first allocated block */
- 	unsigned int	sr_bit_offset;	/* The bit in the bg */
- 	unsigned int	sr_bits;	/* How many bits we claimed */
-@@ -1608,6 +1610,7 @@ static void ocfs2_bg_discontig_fix_result(struct ocfs2_alloc_context *ac,
- 					  struct ocfs2_suballoc_result *res)
- {
- 	int i;
-+	u64 bg_blkno = res->sr_bg_blkno;  /* Save off */
- 	struct ocfs2_extent_rec *rec;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)ac->ac_bh->b_data;
- 	struct ocfs2_chain_list *cl = &di->id2.i_chain;
-@@ -1618,14 +1621,17 @@ static void ocfs2_bg_discontig_fix_result(struct ocfs2_alloc_context *ac,
- 	}
- 
- 	res->sr_blkno = res->sr_bg_blkno + res->sr_bit_offset;
-+	res->sr_bg_blkno = 0;  /* Clear it for contig block groups */
- 	if (!ocfs2_supports_discontig_bh(OCFS2_SB(ac->ac_inode->i_sb)) ||
- 	    !bg->bg_list.l_next_free_rec)
- 		return;
- 
- 	for (i = 0; i < le16_to_cpu(bg->bg_list.l_next_free_rec); i++) {
- 		rec = &bg->bg_list.l_recs[i];
--		if (ocfs2_bg_discontig_fix_by_rec(res, rec, cl))
-+		if (ocfs2_bg_discontig_fix_by_rec(res, rec, cl)) {
-+			res->sr_bg_blkno = bg_blkno;  /* Restore */
- 			break;
-+		}
- 	}
+ 	/*
+ 	 * This takes care of files systems with very small group
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index a17bce5..67bb8a7 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -1338,15 +1338,21 @@ static inline u16 ocfs2_local_alloc_size(struct super_block *sb)
  }
  
-@@ -1930,6 +1936,7 @@ bail:
- int ocfs2_claim_metadata(handle_t *handle,
- 			 struct ocfs2_alloc_context *ac,
- 			 u32 bits_wanted,
-+			 u64 *suballoc_loc,
- 			 u16 *suballoc_bit_start,
- 			 unsigned int *num_bits,
- 			 u64 *blkno_start)
-@@ -1952,6 +1959,7 @@ int ocfs2_claim_metadata(handle_t *handle,
- 	}
- 	atomic_inc(&OCFS2_SB(ac->ac_inode->i_sb)->alloc_stats.bg_allocs);
- 
-+	*suballoc_loc = res.sr_bg_blkno;
- 	*suballoc_bit_start = res.sr_bit_offset;
- 	*blkno_start = res.sr_blkno;
- 	ac->ac_bits_given += res.sr_bits;
-@@ -1997,11 +2005,12 @@ int ocfs2_claim_new_inode(handle_t *handle,
- 			  struct inode *dir,
- 			  struct buffer_head *parent_fe_bh,
- 			  struct ocfs2_alloc_context *ac,
-+			  u64 *suballoc_loc,
- 			  u16 *suballoc_bit,
- 			  u64 *fe_blkno)
+ static inline int ocfs2_group_bitmap_size(struct super_block *sb,
+-					  int suballocator)
++					  int suballocator,
++					  u32 feature_incompat)
  {
- 	int status;
--	struct ocfs2_suballoc_result res = { .sr_blkno = 0, };
-+	struct ocfs2_suballoc_result res;
+-	int size;
++	int size = sb->s_blocksize -
++		offsetof(struct ocfs2_group_desc, bg_bitmap);
  
- 	mlog_entry_void();
+-	if (suballocator)
++	/*
++	 * The cluster allocator uses the entire block.  Suballocators have
++	 * never used more than OCFS2_MAX_BG_BITMAP_SIZE.  Unfortunately, older
++	 * code expects bg_size set to the maximum.  Thus we must keep
++	 * bg_size as-is unless discontig_bg is enabled.
++	 */
++	if (suballocator &&
++	    (feature_incompat & OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG))
+ 		size = OCFS2_MAX_BG_BITMAP_SIZE;
+-	else
+-		size = sb->s_blocksize -
+-			offsetof(struct ocfs2_group_desc, bg_bitmap);
  
-@@ -2025,6 +2034,7 @@ int ocfs2_claim_new_inode(handle_t *handle,
+ 	return size;
+ }
+@@ -1479,15 +1485,22 @@ static inline int ocfs2_local_alloc_size(int blocksize)
+ 	return size;
+ }
  
- 	BUG_ON(res.sr_bits != 1);
+-static inline int ocfs2_group_bitmap_size(int blocksize, int suballocator)
++static inline int ocfs2_group_bitmap_size(int blocksize,
++					  int suballocator,
++					  uint32_t feature_incompat)
+ {
+-	int size;
++	int size = sb->s_blocksize -
++		offsetof(struct ocfs2_group_desc, bg_bitmap);
  
-+	*suballoc_loc = res.sr_bg_blkno;
- 	*suballoc_bit = res.sr_bit_offset;
- 	*fe_blkno = res.sr_blkno;
- 	ac->ac_bits_given++;
-diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-index 2bc505a..2c41a2c 100644
---- a/fs/ocfs2/suballoc.h
-+++ b/fs/ocfs2/suballoc.h
-@@ -86,6 +86,7 @@ int ocfs2_reserve_clusters(struct ocfs2_super *osb,
- int ocfs2_claim_metadata(handle_t *handle,
- 			 struct ocfs2_alloc_context *ac,
- 			 u32 bits_wanted,
-+			 u64 *suballoc_loc,
- 			 u16 *suballoc_bit_start,
- 			 u32 *num_bits,
- 			 u64 *blkno_start);
-@@ -93,6 +94,7 @@ int ocfs2_claim_new_inode(handle_t *handle,
- 			  struct inode *dir,
- 			  struct buffer_head *parent_fe_bh,
- 			  struct ocfs2_alloc_context *ac,
-+			  u64 *suballoc_loc,
- 			  u16 *suballoc_bit,
- 			  u64 *fe_blkno);
- int ocfs2_claim_clusters(handle_t *handle,
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 49a15c4..0ac2a8a 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -2829,7 +2829,7 @@ static int ocfs2_create_xattr_block(struct inode *inode,
- 	int ret;
- 	u16 suballoc_bit_start;
- 	u32 num_got;
--	u64 first_blkno;
-+	u64 suballoc_loc, first_blkno;
- 	struct ocfs2_dinode *di =  (struct ocfs2_dinode *)inode_bh->b_data;
- 	struct buffer_head *new_bh = NULL;
- 	struct ocfs2_xattr_block *xblk;
-@@ -2842,8 +2842,8 @@ static int ocfs2_create_xattr_block(struct inode *inode,
- 	}
+-	if (suballocator)
++	/*
++	 * The cluster allocator uses the entire block.  Suballocators have
++	 * never used more than OCFS2_MAX_BG_BITMAP_SIZE.  Unfortunately, older
++	 * code expects bg_size set to the maximum.  Thus we must keep
++	 * bg_size as-is unless discontig_bg is enabled.
++	 */
++	if (suballocator &&
++	    (feature_incompat & OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG))
+ 		size = OCFS2_MAX_BG_BITMAP_SIZE;
+-	else
+-		size = blocksize -
+-			offsetof(struct ocfs2_group_desc, bg_bitmap);
  
- 	ret = ocfs2_claim_metadata(ctxt->handle, ctxt->meta_ac, 1,
--				   &suballoc_bit_start, &num_got,
--				   &first_blkno);
-+				   &suballoc_loc, &suballoc_bit_start,
-+				   &num_got, &first_blkno);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto end;
-@@ -2865,6 +2865,7 @@ static int ocfs2_create_xattr_block(struct inode *inode,
- 	memset(xblk, 0, inode->i_sb->s_blocksize);
- 	strcpy((void *)xblk, OCFS2_XATTR_BLOCK_SIGNATURE);
- 	xblk->xb_suballoc_slot = cpu_to_le16(ctxt->meta_ac->ac_alloc_slot);
-+	xblk->xb_suballoc_loc = cpu_to_le64(suballoc_loc);
- 	xblk->xb_suballoc_bit = cpu_to_le16(suballoc_bit_start);
- 	xblk->xb_fs_generation =
- 		cpu_to_le32(OCFS2_SB(inode->i_sb)->fs_generation);
+ 	return size;
+ }
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index 5bbfc12..dacd553 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -315,7 +315,8 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
+ 	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
+ 
+ 	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
+-				 ocfs2_group_bitmap_size(osb->sb, 0) * 8) {
++		ocfs2_group_bitmap_size(osb->sb, 0,
++					osb->s_feature_incompat) * 8) {
+ 		mlog(ML_ERROR, "The disk is too old and small. "
+ 		     "Force to do offline resize.");
+ 		ret = -EINVAL;
+@@ -496,7 +497,8 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
+ 	fe = (struct ocfs2_dinode *)main_bm_bh->b_data;
+ 
+ 	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
+-				 ocfs2_group_bitmap_size(osb->sb, 0) * 8) {
++		ocfs2_group_bitmap_size(osb->sb, 0,
++					osb->s_feature_incompat) * 8) {
+ 		mlog(ML_ERROR, "The disk is too old and small."
+ 		     " Force to do offline resize.");
+ 		ret = -EINVAL;
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index ce92967..bfeb6ac 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -395,7 +395,8 @@ static int ocfs2_block_group_fill(handle_t *handle,
+ 	memset(bg, 0, sb->s_blocksize);
+ 	strcpy(bg->bg_signature, OCFS2_GROUP_DESC_SIGNATURE);
+ 	bg->bg_generation = cpu_to_le32(OCFS2_SB(sb)->fs_generation);
+-	bg->bg_size = cpu_to_le16(ocfs2_group_bitmap_size(sb, 1));
++	bg->bg_size = cpu_to_le16(ocfs2_group_bitmap_size(sb, 1,
++						osb->s_feature_incompat));
+ 	bg->bg_chain = cpu_to_le16(my_chain);
+ 	bg->bg_next_group = cl->cl_recs[my_chain].c_blkno;
+ 	bg->bg_parent_dinode = cpu_to_le64(OCFS2_I(alloc_inode)->ip_blkno);
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 9bbed28..fdea6ba 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2277,7 +2277,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	osb->osb_clusters_at_boot = OCFS2_I(inode)->ip_clusters;
+ 	iput(inode);
+ 
+-	osb->bitmap_cpg = ocfs2_group_bitmap_size(sb, 0) * 8;
++	osb->bitmap_cpg = ocfs2_group_bitmap_size(sb, 0,
++				 osb->s_feature_incompat) * 8;
+ 
+ 	status = ocfs2_init_slot_info(osb);
+ 	if (status < 0) {
 -- 
 1.5.5
