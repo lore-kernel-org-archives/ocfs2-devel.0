@@ -1,32 +1,33 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 23 Apr 2010 14:44:33 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Update VFS inode's id info after
-	reflink.
-In-Reply-To: <1271829955-3994-1-git-send-email-tao.ma@oracle.com>
-References: <1271829955-3994-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100423214433.GA8330@mail.oracle.com>
+Date: Fri, 23 Apr 2010 15:04:10 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2/dlm: Make o2dlm domain
+ join/leave messages KERN_NOTICE
+In-Reply-To: <1271206831-3203-1-git-send-email-sunil.mushran@oracle.com>
+References: <1271206831-3203-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20100423220410.GD8330@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Apr 21, 2010 at 02:05:55PM +0800, Tao Ma wrote:
-> In reflink we update the id info in the disk but forget to update
-> the corresponding information in the VFS inode. So update them
-> accordingly in case we want to preserve the attributes.
+On Tue, Apr 13, 2010 at 06:00:30PM -0700, Sunil Mushran wrote:
+> o2dlm join and leave messages are more than informational as they are required
+> is debugging locking issues. This patch changes them from KERN_INFO to KERN_NOTICE.
 > 
-> Reported-by: Jeff Liu <jeff.liu@oracle.com>
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-This patch is now in the 'fixes' branch of ocfs2.git.
+	This patch is now in the merge-window branch of ocfs2.git.
 
 Joel
 
 -- 
 
-"Here's a nickle -- get yourself a better X server."
-	- Keith Packard
+The Graham Corollary:
+
+	The longer a socially-moderated news website exists, the
+	probability of an old Paul Graham link appearing at the top
+	approaches certainty.
 
 Joel Becker
 Principal Software Developer
