@@ -1,38 +1,41 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 23 Apr 2010 15:04:35 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Make nointr a default mount
-	option
-In-Reply-To: <1271206831-3203-2-git-send-email-sunil.mushran@oracle.com>
-References: <1271206831-3203-1-git-send-email-sunil.mushran@oracle.com>
-	<1271206831-3203-2-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20100423220434.GE8330@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Fri, 23 Apr 2010 15:06:56 -0700
+Subject: [Ocfs2-devel] ocfs2: question about dlmfs_file_read()
+In-Reply-To: <20100423205037.GC10637@mail.oracle.com>
+References: <20100418193201.GD7920@bicker>
+	<20100423205037.GC10637@mail.oracle.com>
+Message-ID: <4BD21A00.3020205@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Apr 13, 2010 at 06:00:31PM -0700, Sunil Mushran wrote:
-> OCFS2 has never really supported intr. This patch acknowledges this reality
-> and makes nointr the default mount option. In a later patch, we intend to
-> support intr.
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Joel Becker wrote:
+> On Sun, Apr 18, 2010 at 10:32:01PM +0300, Dan Carpenter wrote:
+>   
+>> Hello list,
+>>
+>> I was looking through the code for something unrelated and I got
+>> confused by this.
+>>
+>> fs/ocfs2/dlmfs/dlmfs.c dlmfs_file_read()
+>>    261          /* don't read past the lvb */
+>>    262          if ((count + *ppos) > i_size_read(inode))
+>>    263                  readlen = i_size_read(inode) - *ppos;
+>>    264          else
+>>    265                  readlen = count - *ppos;
+>>
+>> 	Shouldn't "readlen" just be "count" here?  What prevents it from 
+>> 	being a negative number?
+>>
+>>    266
+>>    267          lvb_buf = kmalloc(readlen, GFP_NOFS);
+>>
+>> Anyway, this code has been around for a long time so I'm probably
+>> missing something.  I was just curious.
+>>     
+>
+> 	No, I think you're right.  Mark, Sunil, anyone?
 
-	A modified version of this patch is now in the 'merge-window'
-branch of ocfs2.git.
-
-Joel
- 
-
--- 
-
-"Any man who is under 30, and is not a liberal, has not heart;
- and any man who is over 30, and is not a conservative, has no brains."
-         - Sir Winston Churchill 
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Nod.
