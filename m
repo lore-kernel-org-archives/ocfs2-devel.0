@@ -1,35 +1,75 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sun, 25 Apr 2010 23:55:03 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/trivial: Code cleanup for
-	allocation reservation.
-In-Reply-To: <1270543606-5338-1-git-send-email-tao.ma@oracle.com>
-References: <1270543606-5338-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100426065503.GB17377@mail.oracle.com>
+From: Li Dongyang <lidongyang@novell.com>
+Date: Mon, 26 Apr 2010 17:56:38 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
+	to buffered v3
+In-Reply-To: <201004171749.10674.lidongyang@novell.com>
+References: <201004171749.10674.lidongyang@novell.com>
+Message-ID: <201004261756.38559.lidongyang@novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Apr 06, 2010 at 04:46:46PM +0800, Tao Ma wrote:
-> Two tiny cleanup for allocation reservation.
-> 1. Remove some extra codes in ocfs2_local_alloc_find_clear_bits.
-> 2. Remove an unuseful variables in ocfs2_find_resv_lhs.
+On Saturday 17 April 2010 17:49:10 Li Dongyang wrote:
+> when we fall back to buffered write from direct write, we call
+> __generic_file_aio_write but that will end up doing direct write
+> even we are only prepared to do buffered write because the file
+> has O_DIRECT flag set. This is a fix for
+> https://bugzilla.novell.com/show_bug.cgi?id=591039
+> revised with Joel's comments.
 > 
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
-
-	This is now in the 'merge-window' branch of ocfs2.git.
-
-Joel
-
--- 
-
-"Against stupidity the Gods themselves contend in vain."
-	- Friedrich von Schiller
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+> Signed-off-by: Li Dongyang <lidongyang@novell.com>
+> ---
+>  fs/ocfs2/file.c |   25 ++++++++++++++-----------
+>  1 files changed, 14 insertions(+), 11 deletions(-)
+> 
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index de059f4..0c15be9 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -1973,18 +1973,18 @@ relock:
+>  	/* communicate with ocfs2_dio_end_io */
+>  	ocfs2_iocb_set_rw_locked(iocb, rw_level);
+> 
+> -	if (direct_io) {
+> -		ret = generic_segment_checks(iov, &nr_segs, &ocount,
+> -					     VERIFY_READ);
+> -		if (ret)
+> -			goto out_dio;
+> +	ret = generic_segment_checks(iov, &nr_segs, &ocount,
+> +				     VERIFY_READ);
+> +	if (ret)
+> +		goto out_dio;
+> 
+> -		count = ocount;
+> -		ret = generic_write_checks(file, ppos, &count,
+> -					   S_ISBLK(inode->i_mode));
+> -		if (ret)
+> -			goto out_dio;
+> +	count = ocount;
+> +	ret = generic_write_checks(file, ppos, &count,
+> +				   S_ISBLK(inode->i_mode));
+> +	if (ret)
+> +		goto out_dio;
+> 
+> +	if (direct_io) {
+>  		written = generic_file_direct_write(iocb, iov, &nr_segs, *ppos,
+>  						    ppos, count, ocount);
+>  		if (written < 0) {
+> @@ -1999,7 +1999,10 @@ relock:
+>  			goto out_dio;
+>  		}
+>  	} else {
+> -		written = __generic_file_aio_write(iocb, iov, nr_segs, ppos);
+> +		current->backing_dev_info = file->f_mapping->backing_dev_info;
+> +		written = generic_file_buffered_write(iocb, iov, nr_segs, *ppos
+> +						      ppos, count, 0);
+> +		current->backing_dev_info = NULL;
+>  	}
+> 
+>  out_dio:
+> 
+Joel, any comments on this update?
+Br,
+Li Dongyang
