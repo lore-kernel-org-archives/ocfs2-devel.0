@@ -1,535 +1,194 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 27 Apr 2010 13:07:30 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
- for ocfs2 v7.
-In-Reply-To: <1272284243-22492-1-git-send-email-tristan.ye@oracle.com>
-References: <1272284243-22492-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <4BD74402.6090406@oracle.com>
+From: Li Dongyang <lidongyang@novell.com>
+Date: Wed, 28 Apr 2010 09:08:45 +0800
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: use
+	OCFS2_INODE_SKIP_ORPHAN_DIR in ocfs2_mknod error path
+In-Reply-To: <201004261759.05093.lidongyang@novell.com>
+References: <201004221611.30029.lidongyang@novell.com>
+	<20100423195900.GQ17187@wotan.suse.de>
+	<201004261759.05093.lidongyang@novell.com>
+Message-ID: <201004280908.45250.lidongyang@novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-sob... for this and the userspace series including --mkfs and
-ioctl for journal size.
+On Monday 26 April 2010 17:59:04 Li Dongyang wrote:
+> On Saturday 24 April 2010 03:59:00 Mark Fasheh wrote:
+> > On Thu, Apr 22, 2010 at 04:11:29PM +0800, Li Dongyang wrote:
+> > > mark the inode with flag OCFS2_INODE_SKIP_ORPHAN_DIR in ocfs2_mknod,
+> > > so we can kill the inode in case of error.
+> > >
+> > > Signed-off-by: Li Dongyang <lidongyang@novell.com>
+> > > ---
+> > >  fs/ocfs2/namei.c |   16 +++++++++++-----
+> > >  1 files changed, 11 insertions(+), 5 deletions(-)
+> > >
+> > > diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> > > index 4ce4416..f989823 100644
+> > > --- a/fs/ocfs2/namei.c
+> > > +++ b/fs/ocfs2/namei.c
+> > > @@ -447,11 +447,6 @@ leave:
+> > >
+> > >  	ocfs2_free_dir_lookup_result(&lookup);
+> > >
+> > > -	if ((status < 0) && inode) {
+> > > -		clear_nlink(inode);
+> > > -		iput(inode);
+> > > -	}
+> > > -
+> > >  	if (inode_ac)
+> > >  		ocfs2_free_alloc_context(inode_ac);
+> > >
+> > > @@ -461,6 +456,17 @@ leave:
+> > >  	if (meta_ac)
+> > >  		ocfs2_free_alloc_context(meta_ac);
+> > >
+> > > +	/*
+> > > +	We should call iput after the i_mutex of the bitmap
+> > > +	been unlocked in ocfs2_free_alloc_context, or the ocfs2_delete_inode
+> > > +	will mutex_lock again.
+> > > +	*/
+> >
+> > Comment style here is wrong. It should look like:
+> >
+> > 	/*
+> > 	 * We should call iput after the i_mutex of the bitmap been
+> > 	 * unlocked in ocfs2_free_alloc_context, or the
+> > 	 * ocfs2_delete_inode will mutex_lock again.
+> > 	 */
+> >
+> > > +	if ((status < 0) && inode) {
+> > > +		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SKIP_ORPHAN_DIR;
+> > > +		clear_nlink(inode);
+> > > +		iput(inode);
+> > > +	}
+> >
+> > So, I realized that this doesn't fix all the issues we have.
+> >
+> > If you look at symlink and mknod, you'll see that we can get here _after_
+> > the inode name has been added to the directory. Removing the inode then
+> > would leave a dangling directory reference. The following patch tries to
+> >  fix the issue. Can you please confirm that it works?
+> 
+> Thanks for pointing out this and fixing the comment style and the
+>  description, I've tested with your patch and it works for me.
+> Br,
+> Li Dongyang
+> 
+> > If you want to pull the whole set of patches (with some cleanups by me),
+> >  you can get it at:
+> >
+> > git pull
+> >  git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2-mark.git
+> >  skip_delete_inode ---Mark
+> >
+> > --
+> > Mark Fasheh
+> >
+> > From: Mark Fasheh <mfasheh@suse.com>
+> >
+> > ocfs2: Add directory entry later in ocfs2_symlink() and ocfs2_mknod()
+> >
+> > If we get a failure during creation of an inode we'll allow the orphan
+> > code to remove the inode, which is correct. However, we need to ensure
+> > that we don't get any errors after the call to ocfs2_add_entry(),
+> > otherwise we could leave a dangling directory reference. The solution is
+> > simple - in both cases, all I had to do was move
+> > ocfs2_dentry_attach_lock() above the ocfs2_add_entry() call.
+> >
+> > Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+> > ---
+> >  fs/ocfs2/namei.c |   40 +++++++++++++++++++++++++---------------
+> >  1 files changed, 25 insertions(+), 15 deletions(-)
+> >
+> > diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> > index 8ff035e..4cbb18f 100644
+> > --- a/fs/ocfs2/namei.c
+> > +++ b/fs/ocfs2/namei.c
+> > @@ -408,23 +408,28 @@ static int ocfs2_mknod(struct inode *dir,
+> >  		}
+> >  	}
+> >
+> > -	status = ocfs2_add_entry(handle, dentry, inode,
+> > -				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
+> > -				 &lookup);
+> > -	if (status < 0) {
+> > +	/*
+> > +	 * Do this before adding the entry to the directory. We add
+> > +	 * also set d_op after success so that ->d_iput() will cleanup
+> > +	 * the dentry lock even if ocfs2_add_entry() fails below.
+> > +	 */
+> > +	status = ocfs2_dentry_attach_lock(dentry, inode,
+> > +					  OCFS2_I(dir)->ip_blkno);
+> > +	if (status) {
+> >  		mlog_errno(status);
+> >  		goto leave;
+> >  	}
+> > +	dentry->d_op = &ocfs2_dentry_ops;
+> >
+> > -	status = ocfs2_dentry_attach_lock(dentry, inode,
+> > -					  OCFS2_I(dir)->ip_blkno);
+> > -	if (status) {
+> > +	status = ocfs2_add_entry(handle, dentry, inode,
+> > +				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
+> > +				 &lookup);
+> > +	if (status < 0) {
+> >  		mlog_errno(status);
+> >  		goto leave;
+> >  	}
+> >
+> >  	insert_inode_hash(inode);
+> > -	dentry->d_op = &ocfs2_dentry_ops;
+> >  	d_instantiate(dentry, inode);
+> >  	status = 0;
+> >  leave:
+> > @@ -1777,22 +1782,27 @@ static int ocfs2_symlink(struct inode *dir,
+> >  		}
+> >  	}
+> >
+> > -	status = ocfs2_add_entry(handle, dentry, inode,
+> > -				 le64_to_cpu(fe->i_blkno), parent_fe_bh,
+> > -				 &lookup);
+> > -	if (status < 0) {
+> > +	/*
+> > +	 * Do this before adding the entry to the directory. We add
+> > +	 * also set d_op after success so that ->d_iput() will cleanup
+> > +	 * the dentry lock even if ocfs2_add_entry() fails below.
+> > +	 */
+> > +	status = ocfs2_dentry_attach_lock(dentry, inode,
+> > OCFS2_I(dir)->ip_blkno); +	if (status) {
+> >  		mlog_errno(status);
+> >  		goto bail;
+> >  	}
+> > +	dentry->d_op = &ocfs2_dentry_ops;
+> >
+> > -	status = ocfs2_dentry_attach_lock(dentry, inode,
+> > OCFS2_I(dir)->ip_blkno); -	if (status) {
+> > +	status = ocfs2_add_entry(handle, dentry, inode,
+> > +				 le64_to_cpu(fe->i_blkno), parent_fe_bh,
+> > +				 &lookup);
+> > +	if (status < 0) {
+> >  		mlog_errno(status);
+> >  		goto bail;
+> >  	}
+> >
+> >  	insert_inode_hash(inode);
+> > -	dentry->d_op = &ocfs2_dentry_ops;
+> >  	d_instantiate(dentry, inode);
+> >  bail:
+> >  	if (status < 0 && did_quota)
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+forgot to add tested-by
+I've kept fsstress running on my box around 50hrs with these 4 
+OCFS2_SKIP_OPRHAN_DIR patches, 3 from me and 1 from Mark, no problems so far.
 
-Tristan Ye wrote:
-> The reason why we need this ioctl is to offer the none-privileged
-> end-user a possibility to get filesys info gathering.
->
-> We use OCFS2_IOC_INFO to manipulate the new ioctl, userspace passes a
-> structure to kernel containing an array of request pointers and request
-> count, such as,
->
-> * From userspace:
->
-> struct ocfs2_info_blocksize oib = {
->         .ib_req = {
->                 .ir_magic = OCFS2_INFO_MAGIC,
->                 .ir_code = OCFS2_INFO_BLOCKSIZE,
->                 ...
->         }
->         ...
-> }
->
-> struct ocfs2_info_clustersize oic = {
->         ...
-> }
->
-> uint64_t reqs[2] = {(unsigned long)&oib,
->                     (unsigned long)&oic};
->
-> struct ocfs2_info info = {
->         .oi_requests = reqs,
->         .oi_count = 2,
-> }
->
-> ret = ioctl(fd, OCFS2_IOC_INFO, &info);
->
-> * In kernel:
->
-> Get the request pointers from *info*, then handle each request one bye one.
->
-> Idea here is to make the spearated request small enough to guarantee
-> a better backward&forward compatibility since a small piece of request
-> would be less likely to be broken if filesys on raw disk get changed.
->
-> Currently, following 8 ioctls get implemented per the requirement from
-> userspace tool o2info, and I believe it will grow over time:-)
->
->         OCFS2_INFO_CLUSTERSIZE
->         OCFS2_INFO_BLOCKSIZE
->         OCFS2_INFO_MAXSLOTS
->         OCFS2_INFO_LABEL
->         OCFS2_INFO_UUID
->         OCFS2_INFO_FS_FEATURES
->
-> This ioctl is only specific to OCFS2.
->
-> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
-> ---
->  fs/ocfs2/ioctl.c       |  317 ++++++++++++++++++++++++++++++++++++++++++++++++
->  fs/ocfs2/ocfs2_ioctl.h |   85 +++++++++++++
->  2 files changed, 402 insertions(+), 0 deletions(-)
->
-> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-> index 7d9d9c1..e55e52d 100644
-> --- a/fs/ocfs2/ioctl.c
-> +++ b/fs/ocfs2/ioctl.c
-> @@ -23,8 +23,18 @@
->  #include "ioctl.h"
->  #include "resize.h"
->  #include "refcounttree.h"
-> +#include "sysfile.h"
-> +#include "buffer_head_io.h"
-> +#include "suballoc.h"
-> +
->  
->  #include <linux/ext2_fs.h>
-> +#include <linux/compat.h>
-> +
-> +#define o2info_from_user(a, b)	\
-> +		copy_from_user(&(a), (b), sizeof(a))
-> +#define o2info_to_user(a, b)	\
-> +		copy_to_user((typeof(a) __user *)b, &(a), sizeof(a))
->  
->  static int ocfs2_get_inode_attr(struct inode *inode, unsigned *flags)
->  {
-> @@ -109,6 +119,299 @@ bail:
->  	return status;
->  }
->  
-> +int ocfs2_info_handle_blocksize(struct inode *inode,
-> +				struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_blocksize oib;
-> +
-> +	if (o2info_from_user(oib, req))
-> +		goto bail;
-> +
-> +	oib.ib_blocksize = inode->i_sb->s_blocksize;
-> +	oib.ib_req.ir_flags |= OCFS2_INFO_FL_FILLED;
-> +
-> +	if (o2info_to_user(oib, req))
-> +		goto bail;
-> +
-> +	status = 0;
-> +bail:
-> +	if (status) {
-> +		oib.ib_req.ir_flags |= OCFS2_INFO_FL_ERROR;
-> +		oib.ib_req.ir_error = status;
-> +	}
-> +
-> +	return status;
-> +}
-> +
-> +int ocfs2_info_handle_clustersize(struct inode *inode,
-> +				  struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_clustersize oic;
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +
-> +	if (o2info_from_user(oic, req))
-> +		goto bail;
-> +
-> +	oic.ic_clustersize = osb->s_clustersize;
-> +	oic.ic_req.ir_flags |= OCFS2_INFO_FL_FILLED;
-> +
-> +	if (o2info_to_user(oic, req))
-> +		goto bail;
-> +
-> +	status = 0;
-> +bail:
-> +	if (status) {
-> +		oic.ic_req.ir_flags |= OCFS2_INFO_FL_ERROR;
-> +		oic.ic_req.ir_error = status;
-> +	}
-> +
-> +	return status;
-> +}
-> +
-> +int ocfs2_info_handle_maxslots(struct inode *inode,
-> +			       struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_maxslots oim;
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +
-> +	if (o2info_from_user(oim, req))
-> +		goto bail;
-> +
-> +	oim.im_max_slots = osb->max_slots;
-> +	oim.im_req.ir_flags |= OCFS2_INFO_FL_FILLED;
-> +
-> +	if (o2info_to_user(oim, req))
-> +		goto bail;
-> +
-> +	status = 0;
-> +bail:
-> +	if (status) {
-> +		oim.im_req.ir_flags |= OCFS2_INFO_FL_ERROR;
-> +		oim.im_req.ir_error = status;
-> +	}
-> +
-> +	return status;
-> +}
-> +
-> +int ocfs2_info_handle_label(struct inode *inode,
-> +			    struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_label oil;
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +
-> +	if (o2info_from_user(oil, req))
-> +		goto bail;
-> +
-> +	memcpy(oil.il_label, osb->vol_label, OCFS2_MAX_VOL_LABEL_LEN);
-> +	oil.il_req.ir_flags |= OCFS2_INFO_FL_FILLED;
-> +
-> +	if (o2info_to_user(oil, req))
-> +		goto bail;
-> +
-> +	status = 0;
-> +bail:
-> +	if (status) {
-> +		oil.il_req.ir_flags |= OCFS2_INFO_FL_ERROR;
-> +		oil.il_req.ir_error = status;
-> +	}
-> +
-> +	return status;
-> +}
-> +
-> +int ocfs2_info_handle_uuid(struct inode *inode,
-> +			   struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_uuid oiu;
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +
-> +	if (o2info_from_user(oiu, req))
-> +		goto bail;
-> +
-> +	memcpy(oiu.iu_uuid_str, osb->uuid_str, OCFS2_TEXT_UUID_LEN + 1);
-> +	oiu.iu_req.ir_flags |= OCFS2_INFO_FL_FILLED;
-> +
-> +	if (o2info_to_user(oiu, req))
-> +		goto bail;
-> +
-> +	status = 0;
-> +bail:
-> +	if (status) {
-> +		oiu.iu_req.ir_flags |= OCFS2_INFO_FL_ERROR;
-> +		oiu.iu_req.ir_error = status;
-> +	}
-> +
-> +	return status;
-> +}
-> +
-> +int ocfs2_info_handle_fs_features(struct inode *inode,
-> +				  struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_fs_features oif;
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +
-> +	if (o2info_from_user(oif, req))
-> +		goto bail;
-> +
-> +	oif.if_compat_features = osb->s_feature_compat;
-> +	oif.if_incompat_features = osb->s_feature_incompat;
-> +	oif.if_ro_compat_features = osb->s_feature_ro_compat;
-> +	oif.if_req.ir_flags |= OCFS2_INFO_FL_FILLED;
-> +
-> +	if (o2info_to_user(oif, req))
-> +		goto bail;
-> +
-> +	status = 0;
-> +bail:
-> +	if (status) {
-> +		oif.if_req.ir_flags |= OCFS2_INFO_FL_ERROR;
-> +		oif.if_req.ir_error = status;
-> +	}
-> +
-> +	return status;
-> +}
-> +
-> +int ocfs2_info_handle_unknown(struct inode *inode,
-> +			      struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_request oir;
-> +
-> +	if (o2info_from_user(oir, req))
-> +		goto bail;
-> +
-> +	oir.ir_flags &= ~OCFS2_INFO_FL_FILLED;
-> +
-> +	if (o2info_to_user(oir, req))
-> +		goto bail;
-> +
-> +	status = 0;
-> +bail:
-> +	if (status) {
-> +		oir.ir_flags |= OCFS2_INFO_FL_ERROR;
-> +		oir.ir_error = status;
-> +	}
-> +
-> +	return status;
-> +}
-> +
-> +/*
-> + * Validate and distinguish OCFS2_IOC_INFO requests.
-> + *
-> + * - validate the magic number.
-> + * - distinguish different requests.
-> + * - validate size of different requests.
-> + */
-> +int ocfs2_info_handle_request(struct inode *inode,
-> +			      struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_request oir;
-> +
-> +	if (o2info_from_user(oir, req))
-> +		goto bail;
-> +
-> +	status = -EINVAL;
-> +	if (oir.ir_magic != OCFS2_INFO_MAGIC)
-> +		goto bail;
-> +
-> +	switch (oir.ir_code) {
-> +	case OCFS2_INFO_BLOCKSIZE:
-> +		if (oir.ir_size == sizeof(struct ocfs2_info_blocksize))
-> +			status = ocfs2_info_handle_blocksize(inode, req);
-> +		break;
-> +	case OCFS2_INFO_CLUSTERSIZE:
-> +		if (oir.ir_size == sizeof(struct ocfs2_info_clustersize))
-> +			status = ocfs2_info_handle_clustersize(inode, req);
-> +		break;
-> +	case OCFS2_INFO_MAXSLOTS:
-> +		if (oir.ir_size == sizeof(struct ocfs2_info_maxslots))
-> +			status = ocfs2_info_handle_maxslots(inode, req);
-> +		break;
-> +	case OCFS2_INFO_LABEL:
-> +		if (oir.ir_size == sizeof(struct ocfs2_info_label))
-> +			status = ocfs2_info_handle_label(inode, req);
-> +		break;
-> +	case OCFS2_INFO_UUID:
-> +		if (oir.ir_size == sizeof(struct ocfs2_info_uuid))
-> +			status = ocfs2_info_handle_uuid(inode, req);
-> +		break;
-> +	case OCFS2_INFO_FS_FEATURES:
-> +		if (oir.ir_size == sizeof(struct ocfs2_info_fs_features))
-> +			status = ocfs2_info_handle_fs_features(inode, req);
-> +		break;
-> +	default:
-> +		status = ocfs2_info_handle_unknown(inode, req);
-> +		break;
-> +	}
-> +
-> +bail:
-> +	return status;
-> +}
-> +
-> +/*
-> + * OCFS2_IOC_INFO handles an array of requests passed from userspace.
-> + *
-> + * ocfs2_info_handle() recevies a large info aggregation, grab and
-> + * validate the request count from header, then break it into small
-> + * pieces, later specific handlers can handle them one by one.
-> + *
-> + * Idea here is to make each separate request small enough to ensure
-> + * a better backward&forward compatibility, since a small piece of
-> + * request will be less likely to be broken if disk layout get changed.
-> + */
-> +int ocfs2_info_handle(struct inode *inode, struct ocfs2_info *info,
-> +		      int compat_flag)
-> +{
-> +	int i, status = 0;
-> +	u64 req_addr;
-> +	struct ocfs2_info_request __user *reqp;
-> +
-> +	if ((info->oi_count > OCFS2_INFO_MAX_REQUEST) ||
-> +	    (!info->oi_requests)) {
-> +		status = -EINVAL;
-> +		goto bail;
-> +	}
-> +
-> +	for (i = 0; i < info->oi_count; i++) {
-> +		status = -EFAULT;
-> +		if (compat_flag) {
-> +			if (get_user(req_addr,
-> +			     (u64 __user *)compat_ptr(info->oi_requests) + i))
-> +				goto bail;
-> +		} else {
-> +			if (get_user(req_addr,
-> +				     (u64 __user *)(info->oi_requests) + i))
-> +				goto bail;
-> +		}
-> +
-> +		reqp = (struct ocfs2_info_request *)req_addr;
-> +		if (!reqp) {
-> +			status = -EINVAL;
-> +			goto bail;
-> +		}
-> +
-> +		status = ocfs2_info_handle_request(inode, reqp);
-> +	}
-> +
-> +	/*
-> +	 * Error of each request handling was kept separately inside
-> +	 * the request itself, ioctl(2) however will be responsible
-> +	 * for the error outside meaty request-filling operations.
-> +	 *
-> +	 * That way, all requests expect to be handled no matter error
-> +	 * occurs or not in request-handling body.
-> +	 */
-> +	status = 0;
-> +bail:
-> +	return status;
-> +}
-> +
->  long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
->  {
->  	struct inode *inode = filp->f_path.dentry->d_inode;
-> @@ -120,6 +423,7 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
->  	struct reflink_arguments args;
->  	const char *old_path, *new_path;
->  	bool preserve;
-> +	struct ocfs2_info info;
->  
->  	switch (cmd) {
->  	case OCFS2_IOC_GETFLAGS:
-> @@ -174,6 +478,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
->  		preserve = (args.preserve != 0);
->  
->  		return ocfs2_reflink_ioctl(inode, old_path, new_path, preserve);
-> +	case OCFS2_IOC_INFO:
-> +		if (copy_from_user(&info, (struct ocfs2_info __user *)arg,
-> +				   sizeof(struct ocfs2_info)))
-> +			return -EFAULT;
-> +
-> +		return ocfs2_info_handle(inode, &info, 0);
->  	default:
->  		return -ENOTTY;
->  	}
-> @@ -185,6 +495,7 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
->  	bool preserve;
->  	struct reflink_arguments args;
->  	struct inode *inode = file->f_path.dentry->d_inode;
-> +	struct ocfs2_info info;
->  
->  	switch (cmd) {
->  	case OCFS2_IOC32_GETFLAGS:
-> @@ -209,6 +520,12 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
->  
->  		return ocfs2_reflink_ioctl(inode, compat_ptr(args.old_path),
->  					   compat_ptr(args.new_path), preserve);
-> +	case OCFS2_IOC_INFO:
-> +		if (copy_from_user(&info, (struct ocfs2_info __user *)arg,
-> +				   sizeof(struct ocfs2_info)))
-> +			return -EFAULT;
-> +
-> +		return ocfs2_info_handle(inode, &info, 1);
->  	default:
->  		return -ENOIOCTLCMD;
->  	}
-> diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
-> index 2d3420a..4b922f3 100644
-> --- a/fs/ocfs2/ocfs2_ioctl.h
-> +++ b/fs/ocfs2/ocfs2_ioctl.h
-> @@ -76,4 +76,89 @@ struct reflink_arguments {
->  };
->  #define OCFS2_IOC_REFLINK	_IOW('o', 4, struct reflink_arguments)
->  
-> +/* Following definitions dedicated for ocfs2_info_request ioctls. */
-> +#define OCFS2_INFO_MAX_REQUEST		(50)
-> +#define OCFS2_TEXT_UUID_LEN		(OCFS2_VOL_UUID_LEN * 2)
-> +
-> +/* Magic number of all requests */
-> +#define OCFS2_INFO_MAGIC		(0x4F32494E)
-> +
-> +/*
-> + * Always try to separate info request into small pieces to
-> + * guarantee the backward&forward compatibility.
-> + */
-> +struct ocfs2_info {
-> +	__u64 oi_requests;	/* Array of __u64 pointers to requests */
-> +	__u32 oi_count;		/* Number of requests in info_requests */
-> +};
-> +
-> +struct ocfs2_info_request {
-> +/*00*/	__u32 ir_magic;	/* Magic number */
-> +	__u32 ir_code;	/* Info request code */
-> +	__u32 ir_size;	/* Size of request */
-> +	__u32 ir_flags;	/* Request flags */
-> +	__u32 ir_error; /* Error code */
-> +/*14*/			/* Request specific fields */
-> +};
-> +
-> +struct ocfs2_info_clustersize {
-> +	struct ocfs2_info_request ic_req;
-> +	__u32 ic_clustersize;
-> +};
-> +
-> +struct ocfs2_info_blocksize {
-> +	struct ocfs2_info_request ib_req;
-> +	__u32 ib_blocksize;
-> +};
-> +
-> +struct ocfs2_info_maxslots {
-> +	struct ocfs2_info_request im_req;
-> +	__u16 im_max_slots;
-> +};
-> +
-> +struct ocfs2_info_label {
-> +	struct ocfs2_info_request il_req;
-> +	__u8	il_label[OCFS2_MAX_VOL_LABEL_LEN];
-> +};
-> +
-> +struct ocfs2_info_uuid {
-> +	struct ocfs2_info_request iu_req;
-> +	__u8	iu_uuid_str[OCFS2_TEXT_UUID_LEN + 1];
-> +};
-> +
-> +struct ocfs2_info_fs_features {
-> +	struct ocfs2_info_request if_req;
-> +	__u32 if_compat_features;
-> +	__u32 if_incompat_features;
-> +	__u32 if_ro_compat_features;
-> +};
-> +
-> +/* Codes for ocfs2_info_request */
-> +enum ocfs2_info_type {
-> +	OCFS2_INFO_CLUSTERSIZE = 1,
-> +	OCFS2_INFO_BLOCKSIZE,
-> +	OCFS2_INFO_MAXSLOTS,
-> +	OCFS2_INFO_LABEL,
-> +	OCFS2_INFO_UUID,
-> +	OCFS2_INFO_FS_FEATURES,
-> +	OCFS2_INFO_NUM_TYPES
-> +};
-> +
-> +/* Flags for struct ocfs2_info_request */
-> +/* Filled by the caller */
-> +#define OCFS2_INFO_FL_NON_COHERENT	(0x00000001)	/* Cluster coherency not
-> +							   required. This is a hint.
-> +							   It is up to ocfs2 whether
-> +							   the request can be fulfilled
-> +							   without locking. */
-> +/* Filled by ocfs2 */
-> +#define OCFS2_INFO_FL_FILLED		(0x40000000)	/* Filesystem understood
-> +							   this request and
-> +							   filled in the answer */
-> +
-> +#define OCFS2_INFO_FL_ERROR		(0x80000000)	/* Error happened during
-> +							   request handling. */
-> +
-> +#define OCFS2_IOC_INFO		_IOR('o', 5, struct ocfs2_info)
-> +
->  #endif /* OCFS2_IOCTL_H */
->   
+Tested-by: Li Dongyang <lidongyang@novell.com>
+
+Br,
+Li Dongyang
