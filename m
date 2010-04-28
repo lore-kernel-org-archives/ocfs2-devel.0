@@ -1,194 +1,95 @@
-From: Li Dongyang <lidongyang@novell.com>
-Date: Wed, 28 Apr 2010 09:08:45 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: use
-	OCFS2_INODE_SKIP_ORPHAN_DIR in ocfs2_mknod error path
-In-Reply-To: <201004261759.05093.lidongyang@novell.com>
-References: <201004221611.30029.lidongyang@novell.com>
-	<20100423195900.GQ17187@wotan.suse.de>
-	<201004261759.05093.lidongyang@novell.com>
-Message-ID: <201004280908.45250.lidongyang@novell.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 29 Apr 2010 00:48:49 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: make lockres lookup faster
+Message-ID: <201004281649.o3S3tMKK007057@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Monday 26 April 2010 17:59:04 Li Dongyang wrote:
-> On Saturday 24 April 2010 03:59:00 Mark Fasheh wrote:
-> > On Thu, Apr 22, 2010 at 04:11:29PM +0800, Li Dongyang wrote:
-> > > mark the inode with flag OCFS2_INODE_SKIP_ORPHAN_DIR in ocfs2_mknod,
-> > > so we can kill the inode in case of error.
-> > >
-> > > Signed-off-by: Li Dongyang <lidongyang@novell.com>
-> > > ---
-> > >  fs/ocfs2/namei.c |   16 +++++++++++-----
-> > >  1 files changed, 11 insertions(+), 5 deletions(-)
-> > >
-> > > diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> > > index 4ce4416..f989823 100644
-> > > --- a/fs/ocfs2/namei.c
-> > > +++ b/fs/ocfs2/namei.c
-> > > @@ -447,11 +447,6 @@ leave:
-> > >
-> > >  	ocfs2_free_dir_lookup_result(&lookup);
-> > >
-> > > -	if ((status < 0) && inode) {
-> > > -		clear_nlink(inode);
-> > > -		iput(inode);
-> > > -	}
-> > > -
-> > >  	if (inode_ac)
-> > >  		ocfs2_free_alloc_context(inode_ac);
-> > >
-> > > @@ -461,6 +456,17 @@ leave:
-> > >  	if (meta_ac)
-> > >  		ocfs2_free_alloc_context(meta_ac);
-> > >
-> > > +	/*
-> > > +	We should call iput after the i_mutex of the bitmap
-> > > +	been unlocked in ocfs2_free_alloc_context, or the ocfs2_delete_inode
-> > > +	will mutex_lock again.
-> > > +	*/
-> >
-> > Comment style here is wrong. It should look like:
-> >
-> > 	/*
-> > 	 * We should call iput after the i_mutex of the bitmap been
-> > 	 * unlocked in ocfs2_free_alloc_context, or the
-> > 	 * ocfs2_delete_inode will mutex_lock again.
-> > 	 */
-> >
-> > > +	if ((status < 0) && inode) {
-> > > +		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SKIP_ORPHAN_DIR;
-> > > +		clear_nlink(inode);
-> > > +		iput(inode);
-> > > +	}
-> >
-> > So, I realized that this doesn't fix all the issues we have.
-> >
-> > If you look at symlink and mknod, you'll see that we can get here _after_
-> > the inode name has been added to the directory. Removing the inode then
-> > would leave a dangling directory reference. The following patch tries to
-> >  fix the issue. Can you please confirm that it works?
-> 
-> Thanks for pointing out this and fixing the comment style and the
->  description, I've tested with your patch and it works for me.
-> Br,
-> Li Dongyang
-> 
-> > If you want to pull the whole set of patches (with some cleanups by me),
-> >  you can get it at:
-> >
-> > git pull
-> >  git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2-mark.git
-> >  skip_delete_inode ---Mark
-> >
-> > --
-> > Mark Fasheh
-> >
-> > From: Mark Fasheh <mfasheh@suse.com>
-> >
-> > ocfs2: Add directory entry later in ocfs2_symlink() and ocfs2_mknod()
-> >
-> > If we get a failure during creation of an inode we'll allow the orphan
-> > code to remove the inode, which is correct. However, we need to ensure
-> > that we don't get any errors after the call to ocfs2_add_entry(),
-> > otherwise we could leave a dangling directory reference. The solution is
-> > simple - in both cases, all I had to do was move
-> > ocfs2_dentry_attach_lock() above the ocfs2_add_entry() call.
-> >
-> > Signed-off-by: Mark Fasheh <mfasheh@suse.com>
-> > ---
-> >  fs/ocfs2/namei.c |   40 +++++++++++++++++++++++++---------------
-> >  1 files changed, 25 insertions(+), 15 deletions(-)
-> >
-> > diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> > index 8ff035e..4cbb18f 100644
-> > --- a/fs/ocfs2/namei.c
-> > +++ b/fs/ocfs2/namei.c
-> > @@ -408,23 +408,28 @@ static int ocfs2_mknod(struct inode *dir,
-> >  		}
-> >  	}
-> >
-> > -	status = ocfs2_add_entry(handle, dentry, inode,
-> > -				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
-> > -				 &lookup);
-> > -	if (status < 0) {
-> > +	/*
-> > +	 * Do this before adding the entry to the directory. We add
-> > +	 * also set d_op after success so that ->d_iput() will cleanup
-> > +	 * the dentry lock even if ocfs2_add_entry() fails below.
-> > +	 */
-> > +	status = ocfs2_dentry_attach_lock(dentry, inode,
-> > +					  OCFS2_I(dir)->ip_blkno);
-> > +	if (status) {
-> >  		mlog_errno(status);
-> >  		goto leave;
-> >  	}
-> > +	dentry->d_op = &ocfs2_dentry_ops;
-> >
-> > -	status = ocfs2_dentry_attach_lock(dentry, inode,
-> > -					  OCFS2_I(dir)->ip_blkno);
-> > -	if (status) {
-> > +	status = ocfs2_add_entry(handle, dentry, inode,
-> > +				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
-> > +				 &lookup);
-> > +	if (status < 0) {
-> >  		mlog_errno(status);
-> >  		goto leave;
-> >  	}
-> >
-> >  	insert_inode_hash(inode);
-> > -	dentry->d_op = &ocfs2_dentry_ops;
-> >  	d_instantiate(dentry, inode);
-> >  	status = 0;
-> >  leave:
-> > @@ -1777,22 +1782,27 @@ static int ocfs2_symlink(struct inode *dir,
-> >  		}
-> >  	}
-> >
-> > -	status = ocfs2_add_entry(handle, dentry, inode,
-> > -				 le64_to_cpu(fe->i_blkno), parent_fe_bh,
-> > -				 &lookup);
-> > -	if (status < 0) {
-> > +	/*
-> > +	 * Do this before adding the entry to the directory. We add
-> > +	 * also set d_op after success so that ->d_iput() will cleanup
-> > +	 * the dentry lock even if ocfs2_add_entry() fails below.
-> > +	 */
-> > +	status = ocfs2_dentry_attach_lock(dentry, inode,
-> > OCFS2_I(dir)->ip_blkno); +	if (status) {
-> >  		mlog_errno(status);
-> >  		goto bail;
-> >  	}
-> > +	dentry->d_op = &ocfs2_dentry_ops;
-> >
-> > -	status = ocfs2_dentry_attach_lock(dentry, inode,
-> > OCFS2_I(dir)->ip_blkno); -	if (status) {
-> > +	status = ocfs2_add_entry(handle, dentry, inode,
-> > +				 le64_to_cpu(fe->i_blkno), parent_fe_bh,
-> > +				 &lookup);
-> > +	if (status < 0) {
-> >  		mlog_errno(status);
-> >  		goto bail;
-> >  	}
-> >
-> >  	insert_inode_hash(inode);
-> > -	dentry->d_op = &ocfs2_dentry_ops;
-> >  	d_instantiate(dentry, inode);
-> >  bail:
-> >  	if (status < 0 && did_quota)
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-forgot to add tested-by
-I've kept fsstress running on my box around 50hrs with these 4 
-OCFS2_SKIP_OPRHAN_DIR patches, 3 from me and 1 from Mark, no problems so far.
+Lockres lookup is within the dlm->spinlock. We'd better finish the lookup as
+fast as possible especially when the machine is with more cpus.
 
-Tested-by: Li Dongyang <lidongyang@novell.com>
+Existing lookup is comparing charactors starting on a non-aligned address which
+takes more time. This patch improves the performance mostly by changing comparing
+on non-aligned address to comparing on aligned address. Also it makes all lockres
+have same name length so that comparing length is not needed. And thus the extra
+comparing on the first charactor is not needed any longer.
 
-Br,
-Li Dongyang
+This patch changes recovery lockres name length from 9 to 31. This change doesn't
+have much badness.
+
+Per my test on the loop comparations in user space, This change at most can get
+15.7% faster.
+
+Questions:
+1. Is there other special lockres name with non-31 length?
+2. If all lockres name length is changed to 32(including the tailing '\n'), it
+gets at most 19% faster, but increase 1 byte network transfer for very request.
+I don't know whether this is worthy.
+
+Drawbacks:
+1. It changes locking version which makes rolling upgrade impossible.
+
+#I didn't test the patch yet.
+
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmcommon.h    |    5 +++--
+ fs/ocfs2/dlm/dlmdomain.c    |    6 +-----
+ fs/ocfs2/ocfs2_lockingver.h |    5 ++++-
+ 3 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index 0102be3..c41ebf5 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -91,8 +91,9 @@ enum dlm_ast_type {
+ 			 LKM_CANCEL | LKM_INVVALBLK | LKM_FORCE | \
+ 			 LKM_RECOVERY | LKM_LOCAL | LKM_NOQUEUE)
+ 
+-#define DLM_RECOVERY_LOCK_NAME       "$RECOVERY"
+-#define DLM_RECOVERY_LOCK_NAME_LEN   9
++#define DLM_RECOVERY_LOCK_NAME       "$RECOVERY0000000000000000000000"
++/* make the length of recovery lock name the same as normal ones */
++#define DLM_RECOVERY_LOCK_NAME_LEN   31
+ 
+ static inline int dlm_is_recovery_lock(const char *lock_name, int name_len)
+ {
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 988c905..7062d48 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -191,11 +191,7 @@ struct dlm_lock_resource * __dlm_lookup_lockres_full(struct dlm_ctxt *dlm,
+ 	hlist_for_each(list, bucket) {
+ 		struct dlm_lock_resource *res = hlist_entry(list,
+ 			struct dlm_lock_resource, hash_node);
+-		if (res->lockname.name[0] != name[0])
+-			continue;
+-		if (unlikely(res->lockname.len != len))
+-			continue;
+-		if (memcmp(res->lockname.name + 1, name + 1, len - 1))
++		if (memcmp(res->lockname.name, name, len))
+ 			continue;
+ 		dlm_lockres_get(res);
+ 		return res;
+diff --git a/fs/ocfs2/ocfs2_lockingver.h b/fs/ocfs2/ocfs2_lockingver.h
+index 2e45c8d..7fd9260 100644
+--- a/fs/ocfs2/ocfs2_lockingver.h
++++ b/fs/ocfs2/ocfs2_lockingver.h
+@@ -25,8 +25,11 @@
+  * more details.
+  *
+  * 1.0 - Initial locking version from ocfs2 1.4.
++ * 1.1 - Change recovery lock name from "$recovery" to
++ *       "$recovery00000000000000000000000". --make it 31 bytes long, same as
++ *       the length of normal lock name.
+  */
+ #define OCFS2_LOCKING_PROTOCOL_MAJOR 1
+-#define OCFS2_LOCKING_PROTOCOL_MINOR 0
++#define OCFS2_LOCKING_PROTOCOL_MINOR 1
+ 
+ #endif  /* OCFS2_LOCKINGVER_H */
+-- 
+1.6.6.1
