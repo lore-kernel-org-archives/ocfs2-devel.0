@@ -1,45 +1,71 @@
-From: Li Dongyang <lidongyang@novell.com>
-Date: Tue, 4 May 2010 10:10:26 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
-	to buffered v3
-In-Reply-To: <20100504014723.GB19213@mail.oracle.com>
-References: <201004171749.10674.lidongyang@novell.com>
-	<201005040937.49074.lidongyang@novell.com>
-	<20100504014723.GB19213@mail.oracle.com>
-Message-ID: <201005041010.26562.lidongyang@novell.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 4 May 2010 15:57:13 -0700
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 fixes for 2.6.34-rc
+Message-ID: <20100504225713.GA21486@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Tuesday 04 May 2010 09:47:23 Joel Becker wrote:
-> On Tue, May 04, 2010 at 09:37:48AM +0800, Li Dongyang wrote:
-> > On Saturday 01 May 2010 04:52:43 Joel Becker wrote:
-> > > On Fri, Apr 30, 2010 at 01:47:05PM -0700, Joel Becker wrote:
-> > > > 	Have you tested this version?  I got a compile error:
-> > >
-> > > 	I want to be clear - has this patch (v3) been run against the
-> > > fsstress that caused the bug report in the first place?  Does the
-> > > fsstress now pass?  Let me know so I can send it upstream.
-> > >
-> > > Joel
-> >
-> > it's a typo I made on my desktop, I first test it on my 2-node boxes, and
-> > it had already running fsstress for at least 70hrs(50 hrs with the
-> > OCFS2_INODE_SKIP_ORPHAN_DIR patches),
-> > then I checked out the ocfs2/master branch on my desktop in case of the
-> > differences between ocfs2/master and linus tree(like the block check in
-> > ocfs2_direct_IO_get_blocks). and made changes, then generated the patch,
-> > and a typo is made here, what a silly mistake!
-> 
-> 	And you are sure that the changes made by-hand on your desktop
-> are the same as made on your 2-node machines?
-> 
-> Joel
-> 
-I just got a diff on my 2-node boxes, and checked it char to char, the only 
-difference is the v3 patch lack the comma you pointed.
+Linus et al,
+	Here are all the fixes I currently have for 2.6.34-rc.  A couple
+very notable.  We could race truncate when O_DIRECT falls back to
+buffered I/O, and we could crash when creating a directory or symlink
+runs up against a user's quota.
+	Please pull.
 
-Br,
-Li Dongyang
+Joel
+
+
+The following changes since commit 623e5a23724d09283c238960946ec6f65733afe:
+  Linus Torvalds (1):
+        Merge branch 'upstream-linus' of git://git.kernel.org/.../jlbec/ocfs2
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git fixes
+
+Coly Li (1):
+      ocfs2: one more warning fix in ocfs2_file_aio_write(), v2
+
+Dan Carpenter (1):
+      ocfs2: potential ERR_PTR dereference on error paths
+
+Joel Becker (4):
+      ocfs2: Compute metaecc for superblocks during online resize.
+      ocfs2_dlmfs: Fix math error when reading LVB.
+      Merge branch 'skip_delete_inode' of git://git.kernel.org/.../mfasheh/ocfs2-mark into ocfs2-fixes
+      ocfs2: Avoid a gcc warning in ocfs2_wipe_inode().
+
+Li Dongyang (4):
+      ocfs2: add OCFS2_INODE_SKIP_ORPHAN_DIR flag and honor it in the inode wipe code
+      ocfs2: use OCFS2_INODE_SKIP_ORPHAN_DIR in ocfs2_symlink error path
+      ocfs2: use OCFS2_INODE_SKIP_ORPHAN_DIR in ocfs2_mknod error path
+      ocfs2: Avoid direct write if we fall back to buffered I/O
+
+Mark Fasheh (1):
+      ocfs2: Add directory entry later in ocfs2_symlink() and ocfs2_mknod()
+
+Tao Ma (3):
+      ocfs2_dlmfs: User DLM_* when decoding file open flags.
+      ocfs2: Reset status if we want to restart file extension.
+      ocfs2: Update VFS inode's id info after reflink.
+
+Wengang Wang (1):
+      ocfs2: Check the owner of a lockres inside the spinlock
+
+ fs/ocfs2/buffer_head_io.c |    2 +
+ fs/ocfs2/dlm/dlmast.c     |    5 +--
+ fs/ocfs2/dlmfs/dlmfs.c    |   14 ++++----
+ fs/ocfs2/file.c           |   32 ++++++++++++---------
+ fs/ocfs2/inode.c          |   68 +++++++++++++++++++++++++--------------------
+ fs/ocfs2/inode.h          |    2 +
+ fs/ocfs2/namei.c          |   58 +++++++++++++++++++++++++-------------
+ fs/ocfs2/refcounttree.c   |    3 ++
+ 8 files changed, 110 insertions(+), 74 deletions(-)
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com
+http://oss.oracle.com/mailman/listinfo/ocfs2-devel
