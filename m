@@ -1,56 +1,35 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 03 May 2010 17:14:49 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: make lockres lookup faster
-In-Reply-To: <20100430073018.GB2402@laptop.oracle.com>
-References: <201004281649.o3S3tMKK007057@acsinet15.oracle.com>
-	<4BD86CDB.8030702@oracle.com>
-	<20100429093149.GA3082@laptop.oracle.com>
-	<20100430023906.GA2402@laptop.oracle.com>
-	<20100430073018.GB2402@laptop.oracle.com>
-Message-ID: <4BDF66F9.2070504@oracle.com>
+From: Li Dongyang <lidongyang@novell.com>
+Date: Tue, 4 May 2010 09:37:48 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: avoid direct write if we fall back
+	to buffered v3
+In-Reply-To: <20100430205243.GD1938@mail.oracle.com>
+References: <201004171749.10674.lidongyang@novell.com>
+	<20100430204705.GC1938@mail.oracle.com>
+	<20100430205243.GD1938@mail.oracle.com>
+Message-ID: <201005040937.49074.lidongyang@novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 04/30/2010 12:30 AM, Wengang Wang wrote:
-> updates:
->
-> Checked the asm code, it's repeating calling cmpsb, which is a byte
-> operations, instead of cmpsw, which is an word opration. So a more cmpsb
-> means N more cpu clocks.
->
-> I replaced memcmp with strncmp, it gives us at most %50 improvement.
->
-> [wwg at cool src]$ ./a.out "1234567890123456789012345678901" "1234567890123456789012345678902" 10000 10000
-> 0x8049a40 1234567890123456789012345678901 31
-> 0x8049a60 1234567890123456789012345678902 31
-> loops 10000 x 10000
-> orig: 6s
-> fixed: 3s
-> [wwg at cool src]$ ./a.out "1234567890123456789012345678901" "1234567890123456789012345678902" 20000 10000
-> 0x8049a40 1234567890123456789012345678901 31
-> 0x8049a60 1234567890123456789012345678902 31
-> loops 20000 x 10000
-> orig: 12s
-> fixed: 6s
-> [wwg at cool src]$ ./a.out "1234567890123456789012345678901" "1234567890123456789012345678902" 40000 10000
-> 0x8049a40 1234567890123456789012345678901 31
-> 0x8049a60 1234567890123456789012345678902 31
-> loops 40000 x 10000
-> orig: 24s
-> fixed: 12s
->
-> So it saves at most 3s for 100,000,000 comparations, or 3ms for 100,000,
-> or 3us for 100, on my with Intel(R) Core(TM)2 Duo CPU E8400  @3.00GHz.
-> I have no idea whether this is much or little :P
->
->    
-
-We have 16K hash buckets. 100 each means there are 1.6 million lock 
-resources.
- From what I have seen, users have 0.5 to 1 million active lock 
-resources.  Now
-consider the fact that a message round trip on a gige takes something around
-100-150us. Saving 3us is not going to get us much.
+On Saturday 01 May 2010 04:52:43 Joel Becker wrote:
+> On Fri, Apr 30, 2010 at 01:47:05PM -0700, Joel Becker wrote:
+> > 	Have you tested this version?  I got a compile error:
+> 
+> 	I want to be clear - has this patch (v3) been run against the
+> fsstress that caused the bug report in the first place?  Does the
+> fsstress now pass?  Let me know so I can send it upstream.
+> 
+> Joel
+> 
+it's a typo I made on my desktop, I first test it on my 2-node boxes, and it 
+had already running fsstress for at least 70hrs(50 hrs with the 
+OCFS2_INODE_SKIP_ORPHAN_DIR patches),
+then I checked out the ocfs2/master branch on my desktop in case of the 
+differences between ocfs2/master and linus tree(like the block check in 
+ocfs2_direct_IO_get_blocks). and made changes, then generated the patch, and a 
+typo is made here, what a silly mistake!
+sorry for the inconvenience here.
+Br,
+Li Dongyang
