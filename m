@@ -1,47 +1,34 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Thu, 06 May 2010 10:09:14 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
- for ocfs2 v7.
-In-Reply-To: <20100506010503.GA9955@mail.oracle.com>
-References: <1272284243-22492-1-git-send-email-tristan.ye@oracle.com>
-	<20100506010503.GA9955@mail.oracle.com>
-Message-ID: <4BE224CA.8050304@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 06 May 2010 14:20:07 +0800
+Subject: [Ocfs2-devel] [PATCH 00/17 V2] ocfs2: Support for discontiguous
+	block group.
+In-Reply-To: <20100506013654.GC9955@mail.oracle.com>
+References: <4BCFEF22.7080607@oracle.com>
+	<20100506013654.GC9955@mail.oracle.com>
+Message-ID: <4BE25F97.4020100@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Joel,
+
 Joel Becker wrote:
-> On Mon, Apr 26, 2010 at 08:17:23PM +0800, Tristan Ye wrote:
->> The reason why we need this ioctl is to offer the none-privileged
->> end-user a possibility to get filesys info gathering.
->>
->> We use OCFS2_IOC_INFO to manipulate the new ioctl, userspace passes a
->> structure to kernel containing an array of request pointers and request
->> count, such as,
+> On Thu, Apr 22, 2010 at 02:39:30PM +0800, Tao Ma wrote:
+>   
+>> Hi all,
+>> 	This is the v2 of discontiguous block group support in ocfs2.
+>>     
 >
-> 	You're going to hate us, but Sunil and I decided that the
-> complex error reporting was just too much for what should be a simple
-> query interface.  We think we should go back to the original, where any
-> error is returned, and the caller cannot trust any of the results unless
-> the call returns 0.  This means you don't need the ir_error field.  I
-> suppose you can keep the ERROR flag, as this can tell the caller which
-> request caused the error.
+> Hey Tao,
+> 	 Your current discontig-bg branch at oss doesn't pull cleanly
+> against merge-window.  I was trying to pull it into ALL for visibility.
+> ;-)  I hope to have it in 2.6.35, so it will go atop the current
+> merge-window stuff anyway.  Can you rebase atop that?  I think the code
+> is in good shape aside from any bugs found in testing.
+>   
+done and please pull the same branch.
 
-Yes, returning the real err_code from ioctl(2) make the ir_error 
-meaningless.
-
-
-Common users always give up all requests when they get an error from 
-ioctl(2), while our existing scheme also guarantees advanced users' 
-attempt to pick up some sane requests if they wish.
-
-So we've reached a consensus here:-)
-
-
-Tristan.
-
->
-> Joel
->
+Regards,
+Tao
