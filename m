@@ -1,19 +1,24 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Thu, 06 May 2010 17:22:34 +0800
-Subject: [Ocfs2-devel] [PATCH 0/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl for
- ocfs2 v7
-Message-ID: <4BE28A5A.6050104@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Thu, 6 May 2010 08:24:02 -0700
+Subject: [Ocfs2-devel] [patch] ocfs2: potential ERR_PTR dereference on
+	error paths
+In-Reply-To: <20100422093929.GK29647@bicker>
+References: <20100422093929.GK29647@bicker>
+Message-ID: <20100506152402.GH24797@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
+On Thu, Apr 22, 2010 at 11:39:29AM +0200, Dan Carpenter wrote:
+> If "handle" is non null at the end of the function then we assume it's a
+> valid pointer and pass it to ocfs2_commit_trans();
+> 
+> Signed-off-by: Dan Carpenter <error27@gmail.com>
 
+Acked-by: Mark Fasheh <mfasheh@suse.com>
+	--Mark
 
-V7 patches series of both fs and tools for o2info will be posted as 
-following per your and sunil's request of simplifying the error-handling.
-
-
-Tristan.
+--
+Mark Fasheh
