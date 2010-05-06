@@ -1,35 +1,42 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed,  5 May 2010 16:25:08 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/dlm: Increase o2dlm lockres hash
-	size
-Message-ID: <1273101908-20804-1-git-send-email-sunil.mushran@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 5 May 2010 18:05:04 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
+ for ocfs2 v7.
+In-Reply-To: <1272284243-22492-1-git-send-email-tristan.ye@oracle.com>
+References: <1272284243-22492-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20100506010503.GA9955@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Lockres hash size of 16KB is far too small for large filesystems (where we
-have hundreds of thousands of lock resources stored in the table).
-This patch increases it to 128KB.
+On Mon, Apr 26, 2010 at 08:17:23PM +0800, Tristan Ye wrote:
+> The reason why we need this ioctl is to offer the none-privileged
+> end-user a possibility to get filesys info gathering.
+> 
+> We use OCFS2_IOC_INFO to manipulate the new ioctl, userspace passes a
+> structure to kernel containing an array of request pointers and request
+> count, such as,
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/dlm/dlmcommon.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+	You're going to hate us, but Sunil and I decided that the
+complex error reporting was just too much for what should be a simple
+query interface.  We think we should go back to the original, where any
+error is returned, and the caller cannot trust any of the results unless
+the call returns 0.  This means you don't need the ir_error field.  I
+suppose you can keep the ERROR flag, as this can tell the caller which
+request caused the error.
 
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 0102be3..4011568 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -37,7 +37,7 @@
- #define DLM_THREAD_SHUFFLE_INTERVAL    5     // flush everything every 5 passes
- #define DLM_THREAD_MS                  200   // flush at least every 200 ms
- 
--#define DLM_HASH_SIZE_DEFAULT	(1 << 14)
-+#define DLM_HASH_SIZE_DEFAULT	(1 << 17)
- #if DLM_HASH_SIZE_DEFAULT < PAGE_SIZE
- # define DLM_HASH_PAGES		1
- #else
+Joel
+
 -- 
-1.7.0.4
+
+Life's Little Instruction Book #237
+
+	"Seek out the good in people."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
