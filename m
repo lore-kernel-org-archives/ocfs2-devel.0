@@ -1,39 +1,37 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 5 May 2010 18:05:04 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
- for ocfs2 v7.
-In-Reply-To: <1272284243-22492-1-git-send-email-tristan.ye@oracle.com>
-References: <1272284243-22492-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <20100506010503.GA9955@mail.oracle.com>
+Date: Wed, 5 May 2010 18:11:35 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Make
+ ocfs2_find_cpos_for_left_leaf() public.
+In-Reply-To: <1271059887-12640-1-git-send-email-tristan.ye@oracle.com>
+References: <1271059887-12640-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20100506011135.GB9955@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Apr 26, 2010 at 08:17:23PM +0800, Tristan Ye wrote:
-> The reason why we need this ioctl is to offer the none-privileged
-> end-user a possibility to get filesys info gathering.
+On Mon, Apr 12, 2010 at 04:11:26PM +0800, Tristan Ye wrote:
+> The original idea to pull ocfs2_find_cpos_for_left_leaf() out of
+> alloc.c is to benefit punching-holes optimization patch, it however,
+> can also be referred by other funcs in the future who want to do the
+> same job.
 > 
-> We use OCFS2_IOC_INFO to manipulate the new ioctl, userspace passes a
-> structure to kernel containing an array of request pointers and request
-> count, such as,
+> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 
-	You're going to hate us, but Sunil and I decided that the
-complex error reporting was just too much for what should be a simple
-query interface.  We think we should go back to the original, where any
-error is returned, and the caller cannot trust any of the results unless
-the call returns 0.  This means you don't need the ir_error field.  I
-suppose you can keep the ERROR flag, as this can tell the caller which
-request caused the error.
+Tristan,
+	Don't these patches sit atop another truncate cleanup?  Can you
+send me an entire series with everything required for cleanup and
+optimization of truncate and hole clearing.
 
+Thanks,
 Joel
 
 -- 
 
-Life's Little Instruction Book #237
-
-	"Seek out the good in people."
+"The nearest approach to immortality on Earth is a government
+ bureau."
+	- James F. Byrnes
 
 Joel Becker
 Principal Software Developer
