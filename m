@@ -1,35 +1,52 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 7 May 2010 14:09:33 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/xattr: Reset xattr value size in
- cleanup_truncate.
-In-Reply-To: <1273213054-1672-1-git-send-email-tao.ma@oracle.com>
-References: <1273213054-1672-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100507210933.GA27987@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 10 May 2010 18:09:47 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Reset xattr value size after
+	xa_cleanup_value_truncate.
+Message-ID: <1273486187-1898-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, May 07, 2010 at 02:17:34PM +0800, Tao Ma wrote:
-> So this patch try to resolve it by adding the original_value_size to
-> ocfs2_xa_cleanup_value_truncate and let it handle it. So xe_value_size
-> will only be reset in case we want to reserve the xe entry. There is
-> also a side effect that we can remove the fat comment before we set
-> the xe_value_size in ocfs2_xa_prepare_entry.
+In ocfs2_prepare_xattr_entry, if we fail to xa_cleanup_value_truncate,
+we need to reset its value size in case we don't remove the xattr
+entry. This resolves oss bug 1247.
 
-	Still NAK.  There's no need for cleanup_value_truncate() to know
-about this.
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/xattr.c |   17 ++++++++++-------
+ 1 files changed, 10 insertions(+), 7 deletions(-)
 
-Joel
-
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index a1cf195..e87130f 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2135,15 +2135,18 @@ alloc_value:
+ 		orig_clusters = ocfs2_xa_value_clusters(loc);
+ 		rc = ocfs2_xa_value_truncate(loc, xi->xi_value_len, ctxt);
+ 		if (rc < 0) {
+-			/*
+-			 * If we tried to grow an existing external value,
+-			 * ocfs2_xa_cleanuP-value_truncate() is going to
+-			 * let it stand.  We have to restore its original
+-			 * value size.
+-			 */
+-			loc->xl_entry->xe_value_size = orig_value_size;
+ 			ocfs2_xa_cleanup_value_truncate(loc, "growing",
+ 							orig_clusters);
++			/*
++			 * If we were growing an existing value,
++			 * ocfs2_xa_cleanup_value_truncate() won't remove
++			 * the entry. We need to restore the original value
++			 * size.
++			 */
++			if (loc->xl_entry) {
++				BUG_ON(!orig_value_size);
++				loc->xl_entry->xe_value_size = orig_value_size;
++			}
+ 			mlog_errno(rc);
+ 		}
+ 	}
 -- 
-
-"When arrows don't penetrate, see...
- Cupid grabs the pistol."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.5.5
