@@ -1,200 +1,92 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 10 May 2010 12:00:03 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Wrap signal blocking in void
-	functions.
-In-Reply-To: <20100510185919.GC25670@mail.oracle.com>
-References: <20100510185919.GC25670@mail.oracle.com>
-Message-ID: <20100510190003.GD25670@mail.oracle.com>
+Date: Mon, 10 May 2010 12:40:06 -0700
+Subject: [Ocfs2-devel] [PATCH 1/4] Ocfs2: Optimize truncting codes for
+ ocfs2 to use ocfs2_remove_btree_range instead.
+In-Reply-To: <1273128618-4184-1-git-send-email-tristan.ye@oracle.com>
+References: <1273128618-4184-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20100510194006.GA2836@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2 sometimes needs to block signals around dlm operations, but it
-currently does it with sigprocmask().  Even worse, it's checking the
-error code of sigprocmask().  The in-kernel sigprocmask() can only error
-if you get the SIG_* argument wrong.  We don't.
+On Thu, May 06, 2010 at 02:50:15PM +0800, Tristan Ye wrote:
+> The patch has been tested normally for sanity check, stress tests with heavier workload
+> will be expected.
 
-Wrap the sigprocmask() calls with ocfs2_[un]block_signals().  These
-functions are void, but they will BUG() if somehow sigprocmask() returns
-an error.
+	The patch looks functionally good.  A couple housekeeping
+comments.
 
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- fs/ocfs2/inode.c |   14 +++-----------
- fs/ocfs2/mmap.c  |   48 +++++++++---------------------------------------
- fs/ocfs2/super.c |   20 ++++++++++++++++++++
- fs/ocfs2/super.h |    7 +++++++
- 4 files changed, 39 insertions(+), 50 deletions(-)
+> +static int ocfs2_reserve_blocks_for_rec_trunc(struct inode *inode,
+> +					      struct ocfs2_extent_tree *et,
+> +					      u32 extents_to_split,
+> +					      struct ocfs2_alloc_context **ac,
+> +					      int extra_blocks)
+> +{
+> +	int ret = 0, num_free_extents, blocks = extra_blocks;
+> +	unsigned int max_recs_needed = 2 * extents_to_split;
+> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> +
+> +	*ac = NULL;
+> +
+> +	num_free_extents = ocfs2_num_free_extents(osb, et);
+> +	if (num_free_extents < 0) {
+> +		ret = num_free_extents;
+> +		mlog_errno(ret);
+> +		goto out;
+> +	}
+> +
+> +	if (!num_free_extents ||
+> +	    (ocfs2_sparse_alloc(osb) && num_free_extents < max_recs_needed))
+> +		blocks += ocfs2_extend_meta_needed(et->et_root_el);
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 9ee13f7..b7650cc 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -957,7 +957,7 @@ static void ocfs2_cleanup_delete_inode(struct inode *inode,
- void ocfs2_delete_inode(struct inode *inode)
- {
- 	int wipe, status;
--	sigset_t blocked, oldset;
-+	sigset_t oldset;
- 	struct buffer_head *di_bh = NULL;
- 
- 	mlog_entry("(inode->i_ino = %lu)\n", inode->i_ino);
-@@ -984,13 +984,7 @@ void ocfs2_delete_inode(struct inode *inode)
- 	 * messaging paths may return us -ERESTARTSYS. Which would
- 	 * cause us to exit early, resulting in inodes being orphaned
- 	 * forever. */
--	sigfillset(&blocked);
--	status = sigprocmask(SIG_BLOCK, &blocked, &oldset);
--	if (status < 0) {
--		mlog_errno(status);
--		ocfs2_cleanup_delete_inode(inode, 1);
--		goto bail;
--	}
-+	ocfs2_block_signals(&oldset);
- 
- 	/*
- 	 * Synchronize us against ocfs2_get_dentry. We take this in
-@@ -1064,9 +1058,7 @@ bail_unlock_nfs_sync:
- 	ocfs2_nfs_sync_unlock(OCFS2_SB(inode->i_sb), 0);
- 
- bail_unblock:
--	status = sigprocmask(SIG_SETMASK, &oldset, NULL);
--	if (status < 0)
--		mlog_errno(status);
-+	ocfs2_unblock_signals(&oldset);
- bail:
- 	clear_inode(inode);
- 	mlog_exit_void();
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 3973761..a61809f 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -42,44 +42,20 @@
- #include "file.h"
- #include "inode.h"
- #include "mmap.h"
-+#include "super.h"
- 
--static inline int ocfs2_vm_op_block_sigs(sigset_t *blocked, sigset_t *oldset)
--{
--	/* The best way to deal with signals in the vm path is
--	 * to block them upfront, rather than allowing the
--	 * locking paths to return -ERESTARTSYS. */
--	sigfillset(blocked);
--
--	/* We should technically never get a bad return value
--	 * from sigprocmask */
--	return sigprocmask(SIG_BLOCK, blocked, oldset);
--}
--
--static inline int ocfs2_vm_op_unblock_sigs(sigset_t *oldset)
--{
--	return sigprocmask(SIG_SETMASK, oldset, NULL);
--}
- 
- static int ocfs2_fault(struct vm_area_struct *area, struct vm_fault *vmf)
- {
--	sigset_t blocked, oldset;
--	int error, ret;
-+	sigset_t oldset;
-+	int ret;
- 
- 	mlog_entry("(area=%p, page offset=%lu)\n", area, vmf->pgoff);
- 
--	error = ocfs2_vm_op_block_sigs(&blocked, &oldset);
--	if (error < 0) {
--		mlog_errno(error);
--		ret = VM_FAULT_SIGBUS;
--		goto out;
--	}
--
-+	ocfs2_block_signals(&oldset);
- 	ret = filemap_fault(area, vmf);
-+	ocfs2_unblock_signals(&oldset);
- 
--	error = ocfs2_vm_op_unblock_sigs(&oldset);
--	if (error < 0)
--		mlog_errno(error);
--out:
- 	mlog_exit_ptr(vmf->page);
- 	return ret;
- }
-@@ -159,14 +135,10 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
- 	struct page *page = vmf->page;
- 	struct inode *inode = vma->vm_file->f_path.dentry->d_inode;
- 	struct buffer_head *di_bh = NULL;
--	sigset_t blocked, oldset;
--	int ret, ret2;
-+	sigset_t oldset;
-+	int ret;
- 
--	ret = ocfs2_vm_op_block_sigs(&blocked, &oldset);
--	if (ret < 0) {
--		mlog_errno(ret);
--		return ret;
--	}
-+	ocfs2_block_signals(&oldset);
- 
- 	/*
- 	 * The cluster locks taken will block a truncate from another
-@@ -194,9 +166,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
- 	ocfs2_inode_unlock(inode, 1);
- 
- out:
--	ret2 = ocfs2_vm_op_unblock_sigs(&oldset);
--	if (ret2 < 0)
--		mlog_errno(ret2);
-+	ocfs2_unblock_signals(&oldset);
- 	if (ret)
- 		ret = VM_FAULT_SIGBUS;
- 	return ret;
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 12c2203..cf6d87b 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -2560,5 +2560,25 @@ void __ocfs2_abort(struct super_block* sb,
- 	ocfs2_handle_error(sb);
- }
- 
-+/*
-+ * Void signal blockers, because in-kernel sigprocmask() only fails
-+ * when SIG_* is wrong.
-+ */
-+void ocfs2_block_signals(sigset_t *oldset)
-+{
-+	int rc;
-+	sigset_t blocked;
-+
-+	sigfillset(&blocked);
-+	rc = sigprocmask(SIG_BLOCK, &blocked, oldset);
-+	BUG_ON(rc);
-+}
-+
-+void ocfs2_unblock_signals(sigset_t *oldset)
-+{
-+	int rc = sigprocmask(SIG_SETMASK, oldset, NULL);
-+	BUG_ON(rc);
-+}
-+
- module_init(ocfs2_init);
- module_exit(ocfs2_exit);
-diff --git a/fs/ocfs2/super.h b/fs/ocfs2/super.h
-index 783f527..40c7de0 100644
---- a/fs/ocfs2/super.h
-+++ b/fs/ocfs2/super.h
-@@ -45,4 +45,11 @@ void __ocfs2_abort(struct super_block *sb,
- 
- #define ocfs2_abort(sb, fmt, args...) __ocfs2_abort(sb, __PRETTY_FUNCTION__, fmt, ##args)
- 
-+/*
-+ * Void signal blockers, because in-kernel sigprocmask() only fails
-+ * when SIG_* is wrong.
-+ */
-+void ocfs2_block_signals(sigset_t *oldset);
-+void ocfs2_unblock_signals(sigset_t *oldset);
-+
- #endif /* OCFS2_SUPER_H */
+	You don't need the blocks variable.  Just use extra_blocks here.
+Save us a word on the stack.
+
+>  int ocfs2_remove_btree_range(struct inode *inode,
+>  			     struct ocfs2_extent_tree *et,
+>  			     u32 cpos, u32 phys_cpos, u32 len,
+
+	Move flags here:     u32 cpos, u32 phys_cpos, u32 len, int flags,
+
+> -			     struct ocfs2_cached_dealloc_ctxt *dealloc)
+> +			     struct ocfs2_cached_dealloc_ctxt *dealloc,
+> +			     u64 refcount_loc, int flags)
+
+It fits with the tuple representing the extent range.
+
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 33dd2a1..cabdcf8 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -2508,21 +2508,20 @@ out:
+>   * we gonna touch and whether we need to create new blocks.
+>   *
+>   * Normally the refcount blocks store these refcount should be
+> - * contiguous also, so that we can get the number easily.
+> - * As for meta_ac, we will at most add split 2 refcount record and
+> - * 2 more refcount block, so just check it in a rough way.
+> + * continguous also, so that we can get the number easily.
+
+	Whoops, you misspelled 'contiguous' here.
+
+Joel
+
 -- 
-1.7.0.4
+
+"You cannot bring about prosperity by discouraging thrift. You cannot
+ strengthen the weak by weakening the strong. You cannot help the wage
+ earner by pulling down the wage payer. You cannot further the
+ brotherhood of man by encouraging class hatred. You cannot help the
+ poor by destroying the rich. You cannot build character and courage by
+ taking away a man's initiative and independence. You cannot help men
+ permanently by doing for them what they could and should do for
+ themselves."
+	- Abraham Lincoln 
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
