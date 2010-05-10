@@ -1,115 +1,200 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 10 May 2010 12:00:31 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Block signals for
-	mkdir/link/symlink/O_CREAT.
+Date: Mon, 10 May 2010 12:00:03 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Wrap signal blocking in void
+	functions.
 In-Reply-To: <20100510185919.GC25670@mail.oracle.com>
 References: <20100510185919.GC25670@mail.oracle.com>
-Message-ID: <20100510190031.GE25670@mail.oracle.com>
+Message-ID: <20100510190003.GD25670@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Once file or link creation gets going, it can't be interrupted by a
-signal.  They're not idempotent.
+ocfs2 sometimes needs to block signals around dlm operations, but it
+currently does it with sigprocmask().  Even worse, it's checking the
+error code of sigprocmask().  The in-kernel sigprocmask() can only error
+if you get the SIG_* argument wrong.  We don't.
 
-This blocks signals in ocfs2_mknod(), ocfs2_link(), and ocfs2_symlink()
-once we start actually changing things.  ocfs2_mknod() covers mknod(),
-creat(), mkdir(), and open(O_CREAT).
+Wrap the sigprocmask() calls with ocfs2_[un]block_signals().  These
+functions are void, but they will BUG() if somehow sigprocmask() returns
+an error.
 
 Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
- fs/ocfs2/namei.c |   21 +++++++++++++++++++++
- 1 files changed, 21 insertions(+), 0 deletions(-)
+ fs/ocfs2/inode.c |   14 +++-----------
+ fs/ocfs2/mmap.c  |   48 +++++++++---------------------------------------
+ fs/ocfs2/super.c |   20 ++++++++++++++++++++
+ fs/ocfs2/super.h |    7 +++++++
+ 4 files changed, 39 insertions(+), 50 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 21d4a33..607084b 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -239,6 +239,8 @@ static int ocfs2_mknod(struct inode *dir,
- 	};
- 	int did_quota_inode = 0;
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 9ee13f7..b7650cc 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -957,7 +957,7 @@ static void ocfs2_cleanup_delete_inode(struct inode *inode,
+ void ocfs2_delete_inode(struct inode *inode)
+ {
+ 	int wipe, status;
+-	sigset_t blocked, oldset;
 +	sigset_t oldset;
-+	int did_block_signals = 0;
+ 	struct buffer_head *di_bh = NULL;
  
- 	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry, mode,
- 		   (unsigned long)dev, dentry->d_name.len,
-@@ -350,6 +352,10 @@ static int ocfs2_mknod(struct inode *dir,
- 		goto leave;
- 	}
- 
-+	/* Starting to change things, restart is no longer possible. */
+ 	mlog_entry("(inode->i_ino = %lu)\n", inode->i_ino);
+@@ -984,13 +984,7 @@ void ocfs2_delete_inode(struct inode *inode)
+ 	 * messaging paths may return us -ERESTARTSYS. Which would
+ 	 * cause us to exit early, resulting in inodes being orphaned
+ 	 * forever. */
+-	sigfillset(&blocked);
+-	status = sigprocmask(SIG_BLOCK, &blocked, &oldset);
+-	if (status < 0) {
+-		mlog_errno(status);
+-		ocfs2_cleanup_delete_inode(inode, 1);
+-		goto bail;
+-	}
 +	ocfs2_block_signals(&oldset);
-+	did_block_signals = 1;
-+
- 	status = dquot_alloc_inode(inode);
- 	if (status)
- 		goto leave;
-@@ -430,6 +436,8 @@ leave:
- 		ocfs2_commit_trans(osb, handle);
  
- 	ocfs2_inode_unlock(dir, 1);
-+	if (did_block_signals)
-+		ocfs2_unblock_signals(&oldset);
+ 	/*
+ 	 * Synchronize us against ocfs2_get_dentry. We take this in
+@@ -1064,9 +1058,7 @@ bail_unlock_nfs_sync:
+ 	ocfs2_nfs_sync_unlock(OCFS2_SB(inode->i_sb), 0);
  
- 	if (status == -ENOSPC)
- 		mlog(0, "Disk is full\n");
-@@ -618,6 +626,7 @@ static int ocfs2_link(struct dentry *old_dentry,
- 	struct ocfs2_dinode *fe = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
-+	sigset_t oldset;
- 
- 	mlog_entry("(inode=%lu, old='%.*s' new='%.*s')\n", inode->i_ino,
- 		   old_dentry->d_name.len, old_dentry->d_name.name,
-@@ -674,6 +683,9 @@ static int ocfs2_link(struct dentry *old_dentry,
- 		goto out_unlock_inode;
- 	}
- 
-+	/* Starting to change things, restart is no longer possible. */
-+	ocfs2_block_signals(&oldset);
-+
- 	err = ocfs2_journal_access_di(handle, INODE_CACHE(inode), fe_bh,
- 				      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (err < 0) {
-@@ -710,6 +722,7 @@ static int ocfs2_link(struct dentry *old_dentry,
- 
- out_commit:
- 	ocfs2_commit_trans(osb, handle);
+ bail_unblock:
+-	status = sigprocmask(SIG_SETMASK, &oldset, NULL);
+-	if (status < 0)
+-		mlog_errno(status);
 +	ocfs2_unblock_signals(&oldset);
- out_unlock_inode:
+ bail:
+ 	clear_inode(inode);
+ 	mlog_exit_void();
+diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+index 3973761..a61809f 100644
+--- a/fs/ocfs2/mmap.c
++++ b/fs/ocfs2/mmap.c
+@@ -42,44 +42,20 @@
+ #include "file.h"
+ #include "inode.h"
+ #include "mmap.h"
++#include "super.h"
+ 
+-static inline int ocfs2_vm_op_block_sigs(sigset_t *blocked, sigset_t *oldset)
+-{
+-	/* The best way to deal with signals in the vm path is
+-	 * to block them upfront, rather than allowing the
+-	 * locking paths to return -ERESTARTSYS. */
+-	sigfillset(blocked);
+-
+-	/* We should technically never get a bad return value
+-	 * from sigprocmask */
+-	return sigprocmask(SIG_BLOCK, blocked, oldset);
+-}
+-
+-static inline int ocfs2_vm_op_unblock_sigs(sigset_t *oldset)
+-{
+-	return sigprocmask(SIG_SETMASK, oldset, NULL);
+-}
+ 
+ static int ocfs2_fault(struct vm_area_struct *area, struct vm_fault *vmf)
+ {
+-	sigset_t blocked, oldset;
+-	int error, ret;
++	sigset_t oldset;
++	int ret;
+ 
+ 	mlog_entry("(area=%p, page offset=%lu)\n", area, vmf->pgoff);
+ 
+-	error = ocfs2_vm_op_block_sigs(&blocked, &oldset);
+-	if (error < 0) {
+-		mlog_errno(error);
+-		ret = VM_FAULT_SIGBUS;
+-		goto out;
+-	}
+-
++	ocfs2_block_signals(&oldset);
+ 	ret = filemap_fault(area, vmf);
++	ocfs2_unblock_signals(&oldset);
+ 
+-	error = ocfs2_vm_op_unblock_sigs(&oldset);
+-	if (error < 0)
+-		mlog_errno(error);
+-out:
+ 	mlog_exit_ptr(vmf->page);
+ 	return ret;
+ }
+@@ -159,14 +135,10 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
+ 	struct page *page = vmf->page;
+ 	struct inode *inode = vma->vm_file->f_path.dentry->d_inode;
+ 	struct buffer_head *di_bh = NULL;
+-	sigset_t blocked, oldset;
+-	int ret, ret2;
++	sigset_t oldset;
++	int ret;
+ 
+-	ret = ocfs2_vm_op_block_sigs(&blocked, &oldset);
+-	if (ret < 0) {
+-		mlog_errno(ret);
+-		return ret;
+-	}
++	ocfs2_block_signals(&oldset);
+ 
+ 	/*
+ 	 * The cluster locks taken will block a truncate from another
+@@ -194,9 +166,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
  	ocfs2_inode_unlock(inode, 1);
  
-@@ -1568,6 +1581,8 @@ static int ocfs2_symlink(struct inode *dir,
- 	};
- 	int did_quota = 0, did_quota_inode = 0;
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
-+	sigset_t oldset;
-+	int did_block_signals = 0;
+ out:
+-	ret2 = ocfs2_vm_op_unblock_sigs(&oldset);
+-	if (ret2 < 0)
+-		mlog_errno(ret2);
++	ocfs2_unblock_signals(&oldset);
+ 	if (ret)
+ 		ret = VM_FAULT_SIGBUS;
+ 	return ret;
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 12c2203..cf6d87b 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2560,5 +2560,25 @@ void __ocfs2_abort(struct super_block* sb,
+ 	ocfs2_handle_error(sb);
+ }
  
- 	mlog_entry("(0x%p, 0x%p, symname='%s' actual='%.*s')\n", dir,
- 		   dentry, symname, dentry->d_name.len, dentry->d_name.name);
-@@ -1663,6 +1678,10 @@ static int ocfs2_symlink(struct inode *dir,
- 		goto bail;
- 	}
- 
-+	/* Starting to change things, restart is no longer possible. */
-+	ocfs2_block_signals(&oldset);
-+	did_block_signals = 1;
++/*
++ * Void signal blockers, because in-kernel sigprocmask() only fails
++ * when SIG_* is wrong.
++ */
++void ocfs2_block_signals(sigset_t *oldset)
++{
++	int rc;
++	sigset_t blocked;
 +
- 	status = dquot_alloc_inode(inode);
- 	if (status)
- 		goto bail;
-@@ -1766,6 +1785,8 @@ bail:
- 		ocfs2_commit_trans(osb, handle);
++	sigfillset(&blocked);
++	rc = sigprocmask(SIG_BLOCK, &blocked, oldset);
++	BUG_ON(rc);
++}
++
++void ocfs2_unblock_signals(sigset_t *oldset)
++{
++	int rc = sigprocmask(SIG_SETMASK, oldset, NULL);
++	BUG_ON(rc);
++}
++
+ module_init(ocfs2_init);
+ module_exit(ocfs2_exit);
+diff --git a/fs/ocfs2/super.h b/fs/ocfs2/super.h
+index 783f527..40c7de0 100644
+--- a/fs/ocfs2/super.h
++++ b/fs/ocfs2/super.h
+@@ -45,4 +45,11 @@ void __ocfs2_abort(struct super_block *sb,
  
- 	ocfs2_inode_unlock(dir, 1);
-+	if (did_block_signals)
-+		ocfs2_unblock_signals(&oldset);
+ #define ocfs2_abort(sb, fmt, args...) __ocfs2_abort(sb, __PRETTY_FUNCTION__, fmt, ##args)
  
- 	brelse(new_fe_bh);
- 	brelse(parent_fe_bh);
++/*
++ * Void signal blockers, because in-kernel sigprocmask() only fails
++ * when SIG_* is wrong.
++ */
++void ocfs2_block_signals(sigset_t *oldset);
++void ocfs2_unblock_signals(sigset_t *oldset);
++
+ #endif /* OCFS2_SUPER_H */
 -- 
 1.7.0.4
