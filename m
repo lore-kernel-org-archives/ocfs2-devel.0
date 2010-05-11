@@ -1,10 +1,10 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 11 May 2010 17:53:44 +0800
+Date: Tue, 11 May 2010 16:10:48 +0800
 Subject: [Ocfs2-devel] [PATCH 3/4] Ocfs2: Make
 	ocfs2_find_cpos_for_left_leaf() public.
-In-Reply-To: <1273571625-24961-1-git-send-email-tristan.ye@oracle.com>
-References: <1273571625-24961-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1273571625-24961-4-git-send-email-tristan.ye@oracle.com>
+In-Reply-To: <1273565449-24747-1-git-send-email-tristan.ye@oracle.com>
+References: <1273565449-24747-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1273565449-24747-4-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
