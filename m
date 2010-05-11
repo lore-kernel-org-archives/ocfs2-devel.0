@@ -1,136 +1,41 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 10 May 2010 13:01:02 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
- for ocfs2 v7.
-In-Reply-To: <1273135408-18512-1-git-send-email-tristan.ye@oracle.com>
-References: <1273135408-18512-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <20100510200101.GC2836@mail.oracle.com>
+From: tristan <tristan.ye@oracle.com>
+Date: Tue, 11 May 2010 09:27:51 +0800
+Subject: [Ocfs2-devel] [PATCH 0/4] Patches series for optimization of
+ truncating and punching-hole.
+In-Reply-To: <20100510194744.GB2836@mail.oracle.com>
+References: <4BE26A10.3070606@oracle.com>
+	<20100510194744.GB2836@mail.oracle.com>
+Message-ID: <4BE8B297.30708@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, May 06, 2010 at 04:43:28PM +0800, Tristan Ye wrote:
-> Currently, following 8 ioctls get implemented per the requirement from
-> userspace tool o2info, and I believe it will grow over time:-)
+Joel Becker wrote:
+> On Thu, May 06, 2010 at 03:04:48PM +0800, tristan wrote:
+>> Following 4 patches are the entire patches series of truncating and 
+>> punching-holes atop your latest merge-window branch.
+>>
+>> And it survived all my testcases on hand.
+>
+> Tristan,
+> 	Thank you for sending the new series.  It looks good
+> functionally.  I replied to the first patch with a couple of cleanups.
 
-	"Currently, the following 8 requests are supported ..."
-> +int ocfs2_info_handle_blocksize(struct inode *inode,
-> +				struct ocfs2_info_request __user *req)
-> +{
-> +	int status = -EFAULT;
-> +	struct ocfs2_info_blocksize oib;
-> +
-> +	if (o2info_from_user(oib, req))
-> +		goto bail;
-> +
-> +	oib.ib_blocksize = inode->i_sb->s_blocksize;
-> +	oib.ib_req.ir_flags |= OCFS2_INFO_FL_FILLED;
-> +
-> +	if (o2info_to_user(oib, req))
-> +		goto bail;
-> +
-> +	status = 0;
-> +bail:
-> +	if (status)
-> +		oib.ib_req.ir_flags |= OCFS2_INFO_FL_ERROR;
-> +
-> +	return status;
-> +}
+All cleanups make sense!
 
-	You need to send that FL_ERROR to userspace.  Setting it on
-ir_flags doesn't show up in userspace unless you copy it over.  I
-realize that you've already failed the copy to user, but you need to
-retry it and ignore the error code.  Like so:
-
----------------------------------------------
-/*
- * This call is void because we are already reporting an error that may
- * be -EFAULT.  The error will be returned from the ioctl(2) call.  It's
- * just a best-effort to tell userspace that this request caused the error.
- */
-static inline void __o2info_error_to_user(struct ocfs2_info_request *kreq,
-					  struct ocfs2_info_request __user *req)
-{
-	kreq->ir_flags |= OCFS2_INFO_FL_ERROR;
-	(void)o2info_to_user(kreq, req);
-}
-
-#define o2info_error_to_user(a, b) \
-             __o2info_error_to_user((struct ocfs2_info_request *)&(a), &(b))
----------------------------------------------
-
-	Now all of the handling functions can say:
-
-bail:
-	if (status)
-		o2info_error_to_user(oib, req);
+> 	Please use the --compose option to git-send-email to create your
+> [PATCH 0/x] emails.  This makes them thread in our mailboxes better ;-)
+Joel,
 
 
-> +/*
-> + * OCFS2_IOC_INFO handles an array of requests passed from userspace.
-> + *
-> + * ocfs2_info_handle() recevies a large info aggregation, grab and
-> + * validate the request count from header, then break it into small
-> + * pieces, later specific handlers can handle them one by one.
-> + *
-> + * Idea here is to make each separate request small enough to ensure
-> + * a better backward&forward compatibility, since a small piece of
-> + * request will be less likely to be broken if disk layout get changed.
-> + */
-> +int ocfs2_info_handle(struct inode *inode, struct ocfs2_info *info,
-> +		      int compat_flag)
-> +{
-> +	int i, status = 0;
-> +	u64 req_addr;
-> +	struct ocfs2_info_request __user *reqp;
-> +
-> +	if ((info->oi_count > OCFS2_INFO_MAX_REQUEST) ||
-> +	    (!info->oi_requests)) {
-> +		status = -EINVAL;
-> +		goto bail;
-> +	}
-> +
-> +	for (i = 0; i < info->oi_count; i++) {
-> +		status = -EFAULT;
-> +		if (compat_flag) {
-> +			if (get_user(req_addr,
-> +			     (u64 __user *)compat_ptr(info->oi_requests) + i))
-> +				goto bail;
-> +		} else {
-> +			if (get_user(req_addr,
-> +				     (u64 __user *)(info->oi_requests) + i))
-> +				goto bail;
-> +		}
-> +
-> +		reqp = (struct ocfs2_info_request *)req_addr;
-> +		if (!reqp) {
-> +			status = -EINVAL;
-> +			goto bail;
-> +		}
-> +
-> +		status = ocfs2_info_handle_request(inode, reqp);
-> +		if (status)
-> +			goto bail;
-> +	}
+Thank you for teaching me this, it really helps, I usually hand-edit the 
+[patch 0/x] before;-(
 
-	There is no need to 'goto bail' in the for loop.  Just 'break'.
-> +
-> +bail:
-> +	return status;
-> +}
-> +
 
-Joel
-
--- 
-
-"Get right to the heart of matters.
- It's the heart that matters more."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+> 	Mark, can I get your evaluation of this patch series before I
+> push it to merge-window?
+>
+> Joel
+>
