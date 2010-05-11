@@ -1,11 +1,11 @@
 From: tristan <tristan.ye@oracle.com>
-Date: Tue, 11 May 2010 09:29:45 +0800
-Subject: [Ocfs2-devel] [PATCH 1/4] Ocfs2: Optimize truncting codes for
- ocfs2 to use ocfs2_remove_btree_range instead.
-In-Reply-To: <20100510194006.GA2836@mail.oracle.com>
-References: <1273128618-4184-1-git-send-email-tristan.ye@oracle.com>
-	<20100510194006.GA2836@mail.oracle.com>
-Message-ID: <4BE8B309.3080901@oracle.com>
+Date: Tue, 11 May 2010 10:12:00 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
+ for ocfs2 v7.
+In-Reply-To: <20100510200101.GC2836@mail.oracle.com>
+References: <1273135408-18512-1-git-send-email-tristan.ye@oracle.com>
+	<20100510200101.GC2836@mail.oracle.com>
+Message-ID: <4BE8BCF0.8040104@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,86 +13,146 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 Joel Becker wrote:
-> On Thu, May 06, 2010 at 02:50:15PM +0800, Tristan Ye wrote:
->   
->> The patch has been tested normally for sanity check, stress tests with heavier workload
->> will be expected.
->>     
+> On Thu, May 06, 2010 at 04:43:28PM +0800, Tristan Ye wrote:
+>> Currently, following 8 ioctls get implemented per the requirement from
+>> userspace tool o2info, and I believe it will grow over time:-)
 >
-> 	The patch looks functionally good.  A couple housekeeping
-> comments.
->
->   
->> +static int ocfs2_reserve_blocks_for_rec_trunc(struct inode *inode,
->> +					      struct ocfs2_extent_tree *et,
->> +					      u32 extents_to_split,
->> +					      struct ocfs2_alloc_context **ac,
->> +					      int extra_blocks)
+> 	"Currently, the following 8 requests are supported ..."
+>> +int ocfs2_info_handle_blocksize(struct inode *inode,
+>> +				struct ocfs2_info_request __user *req)
 >> +{
->> +	int ret = 0, num_free_extents, blocks = extra_blocks;
->> +	unsigned int max_recs_needed = 2 * extents_to_split;
->> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>> +	int status = -EFAULT;
+>> +	struct ocfs2_info_blocksize oib;
 >> +
->> +	*ac = NULL;
+>> +	if (o2info_from_user(oib, req))
+>> +		goto bail;
 >> +
->> +	num_free_extents = ocfs2_num_free_extents(osb, et);
->> +	if (num_free_extents < 0) {
->> +		ret = num_free_extents;
->> +		mlog_errno(ret);
->> +		goto out;
+>> +	oib.ib_blocksize = inode->i_sb->s_blocksize;
+>> +	oib.ib_req.ir_flags |= OCFS2_INFO_FL_FILLED;
+>> +
+>> +	if (o2info_to_user(oib, req))
+>> +		goto bail;
+>> +
+>> +	status = 0;
+>> +bail:
+>> +	if (status)
+>> +		oib.ib_req.ir_flags |= OCFS2_INFO_FL_ERROR;
+>> +
+>> +	return status;
+>> +}
+>
+> 	You need to send that FL_ERROR to userspace.  Setting it on
+> ir_flags doesn't show up in userspace unless you copy it over.  I
+> realize that you've already failed the copy to user, but you need to
+> retry it and ignore the error code.  Like so:
+>
+> ---------------------------------------------
+> /*
+>  * This call is void because we are already reporting an error that may
+>  * be -EFAULT.  The error will be returned from the ioctl(2) call.  It's
+>  * just a best-effort to tell userspace that this request caused the error.
+>  */
+> static inline void __o2info_error_to_user(struct ocfs2_info_request *kreq,
+> 					  struct ocfs2_info_request __user *req)
+> {
+> 	kreq->ir_flags |= OCFS2_INFO_FL_ERROR;
+> 	(void)o2info_to_user(kreq, req);
+
+Joel,
+
+
+I thought we'd better not pass the whole ocfs2_info_request body this 
+time, but passing only ir_flags instead.
+
+kreq->ir_flags |= OCFS2_INFO_FL_ERROR;
+
+put_user(kreq->ir_flags, (__u32 user *)&(req->ir_flags));
+
+There may be two reasons:
+
+1. copy_to_user(kreq, req) is an overkill when compared to 
+put_user(kflags, flags).
+
+
+2. we're more likely to hit -EFAULT again when passing the whole request 
+body, sending ir_flags ONLY to userpace reduce such risk.
+
+
+Another corner:
+
+How about if we hit -EFAULT again when sending the FL_ERROR to 
+userpsace? actually I guess it's quite likely to happen since we've had 
+already failed to pass the request body last time.
+
+
+Tristan.
+
+> }
+>
+> #define o2info_error_to_user(a, b) \
+>              __o2info_error_to_user((struct ocfs2_info_request *)&(a), &(b))
+> ---------------------------------------------
+>
+> 	Now all of the handling functions can say:
+>
+> bail:
+> 	if (status)
+> 		o2info_error_to_user(oib, req);
+>
+>
+>> +/*
+>> + * OCFS2_IOC_INFO handles an array of requests passed from userspace.
+>> + *
+>> + * ocfs2_info_handle() recevies a large info aggregation, grab and
+>> + * validate the request count from header, then break it into small
+>> + * pieces, later specific handlers can handle them one by one.
+>> + *
+>> + * Idea here is to make each separate request small enough to ensure
+>> + * a better backward&forward compatibility, since a small piece of
+>> + * request will be less likely to be broken if disk layout get changed.
+>> + */
+>> +int ocfs2_info_handle(struct inode *inode, struct ocfs2_info *info,
+>> +		      int compat_flag)
+>> +{
+>> +	int i, status = 0;
+>> +	u64 req_addr;
+>> +	struct ocfs2_info_request __user *reqp;
+>> +
+>> +	if ((info->oi_count > OCFS2_INFO_MAX_REQUEST) ||
+>> +	    (!info->oi_requests)) {
+>> +		status = -EINVAL;
+>> +		goto bail;
 >> +	}
 >> +
->> +	if (!num_free_extents ||
->> +	    (ocfs2_sparse_alloc(osb) && num_free_extents < max_recs_needed))
->> +		blocks += ocfs2_extend_meta_needed(et->et_root_el);
->>     
+>> +	for (i = 0; i < info->oi_count; i++) {
+>> +		status = -EFAULT;
+>> +		if (compat_flag) {
+>> +			if (get_user(req_addr,
+>> +			     (u64 __user *)compat_ptr(info->oi_requests) + i))
+>> +				goto bail;
+>> +		} else {
+>> +			if (get_user(req_addr,
+>> +				     (u64 __user *)(info->oi_requests) + i))
+>> +				goto bail;
+>> +		}
+>> +
+>> +		reqp = (struct ocfs2_info_request *)req_addr;
+>> +		if (!reqp) {
+>> +			status = -EINVAL;
+>> +			goto bail;
+>> +		}
+>> +
+>> +		status = ocfs2_info_handle_request(inode, reqp);
+>> +		if (status)
+>> +			goto bail;
+>> +	}
 >
-> 	You don't need the blocks variable.  Just use extra_blocks here.
-> Save us a word on the stack.
->   
-
-That's right.
-
->   
->>  int ocfs2_remove_btree_range(struct inode *inode,
->>  			     struct ocfs2_extent_tree *et,
->>  			     u32 cpos, u32 phys_cpos, u32 len,
->>     
+> 	There is no need to 'goto bail' in the for loop.  Just 'break'.
+>> +
+>> +bail:
+>> +	return status;
+>> +}
+>> +
 >
-> 	Move flags here:     u32 cpos, u32 phys_cpos, u32 len, int flags,
->
->   
->> -			     struct ocfs2_cached_dealloc_ctxt *dealloc)
->> +			     struct ocfs2_cached_dealloc_ctxt *dealloc,
->> +			     u64 refcount_loc, int flags)
->>     
->
-> It fits with the tuple representing the extent range.
->   
-
-Thank you for pointing this out, it leads to a better understanding and 
-readability.
-
->   
->> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
->> index 33dd2a1..cabdcf8 100644
->> --- a/fs/ocfs2/refcounttree.c
->> +++ b/fs/ocfs2/refcounttree.c
->> @@ -2508,21 +2508,20 @@ out:
->>   * we gonna touch and whether we need to create new blocks.
->>   *
->>   * Normally the refcount blocks store these refcount should be
->> - * contiguous also, so that we can get the number easily.
->> - * As for meta_ac, we will at most add split 2 refcount record and
->> - * 2 more refcount block, so just check it in a rough way.
->> + * continguous also, so that we can get the number easily.
->>     
->
-> 	Whoops, you misspelled 'contiguous' here.
->   
-
-Feel sorry;-(
-
 > Joel
 >
->   
