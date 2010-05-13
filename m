@@ -1,118 +1,77 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 12 May 2010 14:09:28 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Block signals for
-	mkdir/link/symlink/O_CREAT.
-In-Reply-To: <20100510190031.GE25670@mail.oracle.com>
-References: <20100510185919.GC25670@mail.oracle.com>
-	<20100510190031.GE25670@mail.oracle.com>
-Message-ID: <4BEB1908.1030806@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 13 May 2010 22:49:05 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Don't retry xattr set in case value
+	extension fails.
+Message-ID: <1273762145-1868-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Signed-off-by: Sunil Mushran<sunil.mushran@oracle.com>
+In normal xattr set, the set sequence is inode, xattr block
+and finally xattr bucket if we meet with a ENOSPC. But there
+is a corner case.
+So consider we will set a xattr whose value will be stored in
+a cluster, and there is no xattr block by now. So we will
+reserve 1 xattr block and 1 cluster for setting it. Now if we
+fail in value extension(in case the volume is almost full and
+we can't allocate the cluster because the check in
+ocfs2_test_bg_bit_allocatable), ENOSPC will be returned. So
+we will try to create a bucket(this time there is a chance that
+the reserved cluster will be used), and when we try value extension
+again, kernel bug happens. We did meet with it. Check the bug below.
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1251
 
-On 05/10/2010 12:00 PM, Joel Becker wrote:
-> Once file or link creation gets going, it can't be interrupted by a
-> signal.  They're not idempotent.
->
-> This blocks signals in ocfs2_mknod(), ocfs2_link(), and ocfs2_symlink()
-> once we start actually changing things.  ocfs2_mknod() covers mknod(),
-> creat(), mkdir(), and open(O_CREAT).
->
-> Signed-off-by: Joel Becker<joel.becker@oracle.com>
-> ---
->   fs/ocfs2/namei.c |   21 +++++++++++++++++++++
->   1 files changed, 21 insertions(+), 0 deletions(-)
->
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 21d4a33..607084b 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -239,6 +239,8 @@ static int ocfs2_mknod(struct inode *dir,
->   	};
->   	int did_quota_inode = 0;
->   	struct ocfs2_dir_lookup_result lookup = { NULL, };
-> +	sigset_t oldset;
-> +	int did_block_signals = 0;
->
->   	mlog_entry("(0x%p, 0x%p, %d, %lu, '%.*s')\n", dir, dentry, mode,
->   		   (unsigned long)dev, dentry->d_name.len,
-> @@ -350,6 +352,10 @@ static int ocfs2_mknod(struct inode *dir,
->   		goto leave;
->   	}
->
-> +	/* Starting to change things, restart is no longer possible. */
-> +	ocfs2_block_signals(&oldset);
-> +	did_block_signals = 1;
-> +
->   	status = dquot_alloc_inode(inode);
->   	if (status)
->   		goto leave;
-> @@ -430,6 +436,8 @@ leave:
->   		ocfs2_commit_trans(osb, handle);
->
->   	ocfs2_inode_unlock(dir, 1);
-> +	if (did_block_signals)
-> +		ocfs2_unblock_signals(&oldset);
->
->   	if (status == -ENOSPC)
->   		mlog(0, "Disk is full\n");
-> @@ -618,6 +626,7 @@ static int ocfs2_link(struct dentry *old_dentry,
->   	struct ocfs2_dinode *fe = NULL;
->   	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
->   	struct ocfs2_dir_lookup_result lookup = { NULL, };
-> +	sigset_t oldset;
->
->   	mlog_entry("(inode=%lu, old='%.*s' new='%.*s')\n", inode->i_ino,
->   		   old_dentry->d_name.len, old_dentry->d_name.name,
-> @@ -674,6 +683,9 @@ static int ocfs2_link(struct dentry *old_dentry,
->   		goto out_unlock_inode;
->   	}
->
-> +	/* Starting to change things, restart is no longer possible. */
-> +	ocfs2_block_signals(&oldset);
-> +
->   	err = ocfs2_journal_access_di(handle, INODE_CACHE(inode), fe_bh,
->   				      OCFS2_JOURNAL_ACCESS_WRITE);
->   	if (err<  0) {
-> @@ -710,6 +722,7 @@ static int ocfs2_link(struct dentry *old_dentry,
->
->   out_commit:
->   	ocfs2_commit_trans(osb, handle);
-> +	ocfs2_unblock_signals(&oldset);
->   out_unlock_inode:
->   	ocfs2_inode_unlock(inode, 1);
->
-> @@ -1568,6 +1581,8 @@ static int ocfs2_symlink(struct inode *dir,
->   	};
->   	int did_quota = 0, did_quota_inode = 0;
->   	struct ocfs2_dir_lookup_result lookup = { NULL, };
-> +	sigset_t oldset;
-> +	int did_block_signals = 0;
->
->   	mlog_entry("(0x%p, 0x%p, symname='%s' actual='%.*s')\n", dir,
->   		   dentry, symname, dentry->d_name.len, dentry->d_name.name);
-> @@ -1663,6 +1678,10 @@ static int ocfs2_symlink(struct inode *dir,
->   		goto bail;
->   	}
->
-> +	/* Starting to change things, restart is no longer possible. */
-> +	ocfs2_block_signals(&oldset);
-> +	did_block_signals = 1;
-> +
->   	status = dquot_alloc_inode(inode);
->   	if (status)
->   		goto bail;
-> @@ -1766,6 +1785,8 @@ bail:
->   		ocfs2_commit_trans(osb, handle);
->
->   	ocfs2_inode_unlock(dir, 1);
-> +	if (did_block_signals)
-> +		ocfs2_unblock_signals(&oldset);
->
->   	brelse(new_fe_bh);
->   	brelse(parent_fe_bh);
->    
+This patch just try to avoid this by adding a set_abort in
+ocfs2_xattr_set_ctxt, so in case ENOSPC happens in value extension,
+we will check whether it is caused by the real ENOSPC or just the
+full of inode or xattr block. If it is the first case, we set set_abort
+so that we don't try any further. we are safe to exit directly here
+ince it is really ENOSPC.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/xattr.c |    6 ++++--
+ 1 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 60e608e..741f850 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -79,6 +79,7 @@ struct ocfs2_xattr_set_ctxt {
+ 	struct ocfs2_alloc_context *meta_ac;
+ 	struct ocfs2_alloc_context *data_ac;
+ 	struct ocfs2_cached_dealloc_ctxt dealloc;
++	int set_abort;
+ };
+ 
+ #define OCFS2_XATTR_ROOT_SIZE	(sizeof(struct ocfs2_xattr_def_value_root))
+@@ -2135,6 +2136,7 @@ alloc_value:
+ 		orig_clusters = ocfs2_xa_value_clusters(loc);
+ 		rc = ocfs2_xa_value_truncate(loc, xi->xi_value_len, ctxt);
+ 		if (rc < 0) {
++			ctxt->set_abort = 1;
+ 			ocfs2_xa_cleanup_value_truncate(loc, "growing",
+ 							orig_clusters);
+ 			/*
+@@ -2945,7 +2947,7 @@ static int ocfs2_xattr_block_set(struct inode *inode,
+ 		ret = ocfs2_xa_set(&loc, xi, ctxt);
+ 		if (!ret)
+ 			xs->here = loc.xl_entry;
+-		else if (ret != -ENOSPC)
++		else if ((ret != -ENOSPC) || ctxt->set_abort)
+ 			goto end;
+ 		else {
+ 			ret = ocfs2_xattr_create_index_block(inode, xs, ctxt);
+@@ -3307,7 +3309,7 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
+ 				goto out;
+ 			}
+ 			ret = ocfs2_xattr_block_set(inode, xi, xbs, ctxt);
+-		} else if (ret == -ENOSPC) {
++		} else if ((ret == -ENOSPC) && !ctxt->set_abort) {
+ 			if (di->i_xattr_loc && !xbs->xattr_bh) {
+ 				ret = ocfs2_xattr_block_find(inode,
+ 							     xi->xi_name_index,
+-- 
+1.5.5
