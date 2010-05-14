@@ -1,44 +1,43 @@
-From: Dan Magenheimer <dan.magenheimer@oracle.com>
-Date: Fri, 28 May 2010 17:38:47 -0000
-Subject: [Ocfs2-devel] [PATCH V2 7/7] Cleancache (was Transcendent Memory):
-	ocfs2 hook
-Message-ID: <20100528173731.GA20227@ca-server1.us.oracle.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Date: Fri, 14 May 2010 23:18:29 -0000
+Subject: [Ocfs2-devel] Cleancache [PATCH 2/7] (was Transcendent Memory):
+	core files
+In-Reply-To: <20100422132809.GA27302@ca-server1.us.oracle.com>
+References: <20100422132809.GA27302@ca-server1.us.oracle.com>
+Message-ID: <20100514231815.GY30031@ZenIV.linux.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com, dan.magenheimer@oracle.com
+To: Dan Magenheimer <dan.magenheimer@oracle.com>
+Cc: chris.mason@oracle.com, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com
 
-[PATCH V2 7/7] Cleancache (was Transcendent Memory): ocfs2 hook
+On Thu, Apr 22, 2010 at 06:28:09AM -0700, Dan Magenheimer wrote:
+> +struct cleancache_ops {
+> +	int (*init_fs)(unsigned long);
 
-Filesystems must explicitly enable cleancache.  Ocfs2 is
-currently the only user of the clustered filesystem
-interface but nevertheless, the cleancache hooks in the
-VFS layer are sufficient for ocfs2.
+unsigned long?  Really?  Not even size_t?
 
-Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
-Acked-by: Joel Becker <joel.becker@oracle.com>
+> +	int (*init_shared_fs)(char *uuid, unsigned long);
 
-Diffstat:
- super.c                                  |    3 +++
- 1 file changed, 3 insertions(+)
+Ditto.
 
---- linux-2.6.34/fs/ocfs2/super.c	2010-05-16 15:17:36.000000000 -0600
-+++ linux-2.6.34-cleancache/fs/ocfs2/super.c	2010-05-24 12:14:44.000000000 -0600
-@@ -42,6 +42,7 @@
- #include <linux/seq_file.h>
- #include <linux/quotaops.h>
- #include <linux/smp_lock.h>
-+#include <linux/cleancache.h>
- 
- #define MLOG_MASK_PREFIX ML_SUPER
- #include <cluster/masklog.h>
-@@ -2233,6 +2234,8 @@ static int ocfs2_initialize_super(struct
- 		mlog_errno(status);
- 		goto bail;
- 	}
-+	sb->cleancache_poolid =
-+		cleancache_init_shared_fs((char *)&uuid_net_key, PAGE_SIZE);
- 
- bail:
- 	mlog_exit(status);
+> +	int (*get_page)(int, unsigned long, unsigned long, struct page *);
+
+Ugh.  First of all, presumably you have some structure behind that index,
+don't you?  Might be a better way to do it.
+
+What's more, use of ->i_ino is simply wrong.  How stable do you want that
+to be and how much do you want it to outlive struct address_space in question?
+From my reading of your code, it doesn't outlive that anyway, so...
+
+The third one is pgoff_t; again, use sane types, _if_ you actually want
+the argument #3 at all - it can be derived from struct page you are passing
+there as well.
+
+> +	int (*put_page)(int, unsigned long, unsigned long, struct page *);
+> +	int (*flush_page)(int, unsigned long, unsigned long);
+> +	int (*flush_inode)(int, unsigned long);
+> +	void (*flush_fs)(int);
+
+Same questions as above...
