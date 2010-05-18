@@ -1,54 +1,48 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 18 May 2010 16:53:05 -0700
-Subject: [Ocfs2-devel] [PATCH 00/17 V2] ocfs2: Support for discontiguous
- block group.
-In-Reply-To: <4BF31C10.5040206@oracle.com>
-References: <4BCFEF22.7080607@oracle.com>
-	<20100517192147.GB22775@mail.oracle.com>
-	<4BF1D73F.3030600@oracle.com>
-	<20100518224556.GM3239@mail.oracle.com>
-	<4BF31C10.5040206@oracle.com>
-Message-ID: <20100518235305.GO3239@mail.oracle.com>
+Date: Tue, 18 May 2010 16:55:05 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
+ for ocfs2 v7.
+In-Reply-To: <20100511204035.GB10423@mail.oracle.com>
+References: <1273562509-27167-1-git-send-email-tristan.ye@oracle.com>
+	<1273562509-27167-2-git-send-email-tristan.ye@oracle.com>
+	<20100511204035.GB10423@mail.oracle.com>
+Message-ID: <20100518235505.GP3239@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, May 19, 2010 at 07:00:32AM +0800, Tao Ma wrote:
-> Joel Becker wrote:
-> > On Tue, May 18, 2010 at 07:54:39AM +0800, Tao Ma wrote:
-> >   
-> >>> 	Let me know if/when your discontig-bg branch has the code you
-> >>> want to go upstream.  It may already; I'm just confirming before I pull.
-> >>>   
-> >>>       
-> >> It is ok there. please pull
-> >>
-> >> git://oss.oracle.com/git/tma/linux-2.6.git discontig-bg
-> >>     
-> >
-> > Tao,
-> > 	This branch has the bogus orig_value_size fix.  The good one is
-> > in the fixes branch, and they conflict.  Also, you have three patches in
-> > this branch without descriptions:
-> >
-> >       patch speedup.fix
-> >       patch unwritten.fix
-> >       patch DLM.fix
-> >
-> > Please fix this.
-> >   
-> done. Sorry for the inconvenience.
+On Tue, May 11, 2010 at 01:40:35PM -0700, Joel Becker wrote:
+> On Tue, May 11, 2010 at 03:21:49PM +0800, Tristan Ye wrote:
+> > +/*
+> > + * This call is void because we are already reporting an error that may
+> > + * be -EFAULT.  The error will be returned from the ioctl(2) call.  It's
+> > + * just a best-effort to tell userspace that this request caused the error.
+> > + */
+> > +static inline void __o2info_error_to_user(struct ocfs2_info_request *kreq,
+> > +					  struct ocfs2_info_request __user *req)
+> > +{
+> > +	kreq->ir_flags |= OCFS2_INFO_FL_ERROR;
+> > +	(void)put_user(kreq->ir_flags, (__u32 __user *)&(req->ir_flags));
+> > +}
+> > +
+> > +#define o2info_error_to_user(a, b) \
+> > +		__o2info_error_to_user((struct ocfs2_info_request *)&(a), b)
+> 
+> 	Hmm, since we're not actually passing the error up, perhaps it
+> should be called "[__]o2info_set_request_error(a, b)".
 
-	It's now in the merge-window branch of ocfs2.git.
+Can you make this change so I can push this to .35?
 
 Joel
 
 -- 
 
-"Egotist: a person more interested in himself than in me."
-         - Ambrose Bierce 
+"Conservative, n.  A statesman who is enamoured of existing evils,
+ as distinguished from the Liberal, who wishes to replace them
+ with others."
+	- Ambrose Bierce, The Devil's Dictionary
 
 Joel Becker
 Principal Software Developer
