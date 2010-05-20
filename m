@@ -1,114 +1,107 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Wed, 19 May 2010 12:15:00 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] Ocfs2: Optimize punching-hole codes
- v5.
-In-Reply-To: <20100518190348.GK20644@wotan.suse.de>
-References: <1273571685-28000-1-git-send-email-tristan.ye@oracle.com>
-	<1273571685-28000-5-git-send-email-tristan.ye@oracle.com>
-	<20100518190348.GK20644@wotan.suse.de>
-Message-ID: <4BF365C4.8080908@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 20 May 2010 16:26:43 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
+ for ocfs2 v7.
+In-Reply-To: <1274236135-5383-1-git-send-email-tristan.ye@oracle.com>
+References: <1274236135-5383-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20100520232643.GC8335@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> On Tue, May 11, 2010 at 05:54:45PM +0800, Tristan Ye wrote:
->> V5 patch simplifies the logic of handling existing holes and procedures
->> for skipping extent blocks, and removed most of confusing comments.
->>
->> V5 patch has survived with fill_verify_holes testcase in ocfs2-test,
->> it also passed my manual sanity check and stress tests with enormous
->> extent records.
->
-> Ok, this looks good too.
->
->
->> Currently punching hole on a file with 3+ extent tree depth was
->> really a performance disaster, it even caused several hours to
->> go, though we may not hit this in real life with such a huge extent
->> number.
->>
->> One simple way to improve the performance is quite straightforward,
->> by learning the logic of truncating codes, means we'd punch hole from
->> hole_end to hole_start, which reduce the overhead of btree operation
->> in a significant way, such as tree rotation and moving.
->
-> Right, so by punching from right to left, we're optimizing away rotations
-> for at least those calls which are asking for a hole at the tail of the
-> file. What is the performance change if we consider the other cases
-> (punching in the middle or beginning of a file) only?
+On Wed, May 19, 2010 at 10:28:55AM +0800, Tristan Ye wrote:
+> The reason why we need this ioctl is to offer the none-privileged
+> end-user a possibility to get filesys info gathering.
+> 
+> We use OCFS2_IOC_INFO to manipulate the new ioctl, userspace passes a
+> structure to kernel containing an array of request pointers and request
+> count, such as,
 
-Mark,
+	This patch fails to build in ia32.  Have you tested it there?
+Details below.
 
-Let me show you my latest benchmark statistics, say we're going to 
-operate on a 1G file, with 1G/4k extent recs(clustersize = 4k, each 
-cluster takes a ext record):
+> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> index 7d9d9c1..06b6f1c 100644
+> --- a/fs/ocfs2/ioctl.c
+> +++ b/fs/ocfs2/ioctl.c
+> @@ -23,8 +23,33 @@
+>  #include "ioctl.h"
+>  #include "resize.h"
+>  #include "refcounttree.h"
+> +#include "sysfile.h"
+> +#include "buffer_head_io.h"
+> +#include "suballoc.h"
+> +
+>  
+>  #include <linux/ext2_fs.h>
+> +#include <linux/compat.h>
 
-1. punching hole from begin to end:
-# time ./punch_hole -f /storage/testfile -s 0 -l 1073741824
+	First off, linux/compat.h is already included as the third
+include of ioctl.c.  Why are you including it again?
 
-================ statistics with v5 patch =================
-real 0m0.856s
-user 0m0.000s
-sys 0m0.855s
-=========================== end ===========================
+> +int ocfs2_info_handle(struct inode *inode, struct ocfs2_info *info,
+> +		      int compat_flag)
+> +{
+> +	int i, status = 0;
+> +	u64 req_addr;
+> +	struct ocfs2_info_request __user *reqp;
+> +
+> +	if ((info->oi_count > OCFS2_INFO_MAX_REQUEST) ||
+> +	    (!info->oi_requests)) {
+> +		status = -EINVAL;
+> +		goto bail;
+> +	}
+> +
+> +	for (i = 0; i < info->oi_count; i++) {
+> +		status = -EFAULT;
+> +		if (compat_flag) {
+> +			if (get_user(req_addr,
+> +			     (u64 __user *)compat_ptr(info->oi_requests) + i))
+> +				goto bail;
 
-=============== statistics without v5 patch ===============
-real 0m16.545s
-user 0m0.001s
-sys 0m15.704s
-=========================== end ===========================
+	The specific compile errors I am getting are:
 
-2. punching hole from begin to middle:
-# time ./punch_hole -f /storage/testfile -s 0 -l 536870912
+/build/jlbec/linux-2.6/working/fs/ocfs2/ioctl.c: In function ?ocfs2_info_handle?:
+/build/jlbec/linux-2.6/working/fs/ocfs2/ioctl.c:414: error: implicit declaration of function ?compat_ptr?
 
-================ statistics with v5 patch =================
-real 0m8.004s
-user 0m0.000s
-sys 0m7.960s
-=========================== end ===========================
+and:
 
-=============== statistics without v5 patch ===============
-real 0m11.808s
-user 0m0.000s
-sys 0m11.786s
-=========================== end ===========================
+> +		} else {
+> +			if (get_user(req_addr,
+> +				     (u64 __user *)(info->oi_requests) + i))
+> +				goto bail;
 
-3. punching hole from middle to end:
-./punch_hole -f /storage/testfile -s 536870912 -l 536870912
+/build/jlbec/linux-2.6/working/fs/ocfs2/ioctl.c:418: warning: cast to pointer from integer of different size
 
-================ statistics with v5 patch =================
-real 0m0.433s
-user 0m0.000s
-sys 0m0.433s
-=========================== end ===========================
+	The reason you are getting "implicit declaration of function
+'compat_ptr' is because it only exists when CONFIG_COMPAT is defined.
+CONFIG_COMPAT cannot exist on ia32 or any other 32-bit platform.
+	I say you should define a function "ocfs2_get_request_ptr()"
+that wraps both the comapt and non-compat get_user() calls.  Inside that
+function, you should have:
 
-=============== statistics without v5 patch ===============
-real 0m4.255s
-user 0m0.000s
-sys 0m4.249s
-=========================== end ===========================
+	if (compat_flag) {
+#ifdef CONFIG_COMPAT
+		if (get_user(...compat_ptr...))
+			goto bail;
+#else
+		BUG();
+#endif
+	} else {
 
+	That way the info_handle() function isn't polluted by the ifdef.
 
-Patches are going to pay off when number of extent records was large 
-enough, and its performance gain increases sharply as extent record grows.
+Joel
+-- 
 
->
->
-> Code-wise everything looks sane. I won't lie - it helps me to be comfortable
-> the changes knowing that you tested regularly with our tools  ;)
+Life's Little Instruction Book #109
 
-Definitely, regular testcases in ocfs2-test.git all have been tried out, 
-besides, with a combined test with reflink.
+	"Know how to drive a stick shift."
 
-What's more, many boundary and manual testcases also get passed on my 
-hand as I can imagine.
-
->
-> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
-> 	--Mark
->
-> --
-> Mark Fasheh
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
