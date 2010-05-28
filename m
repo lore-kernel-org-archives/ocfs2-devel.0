@@ -1,51 +1,36 @@
-From: Julia Lawall <julia@diku.dk>
-Date: Wed, 26 May 2010 15:59:02 -0000
-Subject: [Ocfs2-devel] [PATCH 15/17] fs/ocfs2/dlm: Add missing spin_unlock
-Message-ID: <Pine.LNX.4.64.1005261758290.23743@ask.diku.dk>
+From: Dan Magenheimer <dan.magenheimer@oracle.com>
+Date: Fri, 28 May 2010 17:36:18 -0000
+Subject: [Ocfs2-devel] [PATCH V2 1/7] Cleancache (was Transcendent
+	Memory):	cleancache_poolid in superblock
+Message-ID: <20100528173530.GA12186@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
+To: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com, dan.magenheimer@oracle.com
 
-From: Julia Lawall <julia@diku.dk>
+[PATCH V2 1/7] Cleancache (was Transcendent Memory): cleancache_poolid in superblock
 
-Add a spin_unlock missing on the error path.  Unlock as in the other code
-that leads to the leave label.
+Add cleancache_poolid to superblock structure... not tied
+to CONFIG_CLEANCACHE so as to avoid unnecessary clutter.
 
-The semantic match that finds this problem is as follows:
-(http://coccinelle.lip6.fr/)
+Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
 
-// <smpl>
-@@
-expression E1;
-@@
+Diffstat:
+ fs.h                                     |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-* spin_lock(E1,...);
-  <+... when != E1
-  if (...) {
-    ... when != E1
-*   return ...;
-  }
-  ...+>
-* spin_unlock(E1,...);
-// </smpl>
-
-Signed-off-by: Julia Lawall <julia@diku.dk>
-
----
- fs/ocfs2/dlm/dlmdomain.c |    1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 6b5a492..2ccad86 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1709,6 +1709,7 @@ retry:
- 		}
+--- linux-2.6.34/include/linux/fs.h	2010-05-16 15:17:36.000000000 -0600
++++ linux-2.6.34-cleancache/include/linux/fs.h	2010-05-24 12:14:44.000000000 -0600
+@@ -1383,6 +1383,11 @@ struct super_block {
+ 	 * generic_show_options()
+ 	 */
+ 	char *s_options;
++
++	/*
++	 * Saved pool identifier for cleancache (-1 means none)
++	 */
++	int cleancache_poolid;
+ };
  
- 		if (dlm_protocol_compare(&dlm->fs_locking_proto, fs_proto)) {
-+			spin_unlock(&dlm_domain_lock);
- 			mlog(ML_ERROR,
- 			     "Requested locking protocol version is not "
- 			     "compatible with already registered domain "
+ extern struct timespec current_fs_time(struct super_block *sb);
