@@ -1,39 +1,64 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 25 May 2010 19:27:03 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove unreasonable BUG_ON()
-In-Reply-To: <20100526015417.GA2537@laptop.us.oracle.com>
-References: <201005251058.o4PAhNOK013998@acsinet15.oracle.com>
-	<4BFC0744.6050804@oracle.com>
-	<20100526015417.GA2537@laptop.us.oracle.com>
-Message-ID: <4BFC86F7.6030406@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Fri, 28 May 2010 14:22:59 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Move orphan scan work to ocfs2_wq.
+Message-ID: <1275027779-10371-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/25/2010 06:54 PM, Wengang Wang wrote:
-> On 10-05-25 10:22, Sunil Mushran wrote:
->    
->> NAK
->>
->> How did this lockres get into the dirty list? The dlm only adds locks that
->> it owns to that list. And such locks, by definition, can never be in the
->> recovery list.
->>      
-> Yes that my description is not good.
->
-> Actually, I hit the BUG_ON(res->owner != dlm->node_num); during some tests.
->
-> When an recovery happened, the lockres' that is owned by the "dead" node is
-> marked as in recovery and the owner is set as unknown. But note that a lockres
-> owned by this node can also be marked as in recovery(and owner changed to
-> unknown). That can happen when a migration for the lockres is in progress with
-> the "dead" node. see dlm_clean_master_list().
->
-> So it's that the owner changed from dlm->node_num to unknown when the
-> lockres is already on the list.
->    
+We used to let orphan scan work in the default work queue,
+but there is a corner case which will make the system deadlock.
+The scenario is like this:
+1. set heartbeat threadshold to 200. this will allow us to have a
+   great chance to have a orphan scan work before our quorum decision.
+2. mount node 1.
+3. after 1~2 minutes, mount node 2(in order to make the bug easier
+   to reproduce, better add maxcpus=1 to kernel command line).
+4. node 1 do orphan scan work.
+5. node 2 do orphan scan work.
+6. node 1 do orphan scan work. After this, node 1 hold the orphan scan
+   lock while node 2 know node 1 is the master.
+7. ifdown eth2 in node 2(eth2 is what we do ocfs2 interconnection).
 
-Ok. That needs fixing. But it's a lot more involved than this. I had
-discussed this with Srini some time back.
+Now when node 2 begins orphan scan, the system queue is blocked.
+
+The root cause is that both orphan scan work and quorum decision work
+will use the system event work queue. orphan scan has a chance of
+blocking the event work queue(in dlm_wait_for_node_death) so that there
+is no chance for quorum decision work to proceed.
+
+This patch resolve it by moving orphan scan work to ocfs2_wq.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/journal.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 57e3fef..e02788f 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -1938,7 +1938,7 @@ void ocfs2_orphan_scan_work(struct work_struct *work)
+ 	mutex_lock(&os->os_lock);
+ 	ocfs2_queue_orphan_scan(osb);
+ 	if (atomic_read(&os->os_state) == ORPHAN_SCAN_ACTIVE)
+-		schedule_delayed_work(&os->os_orphan_scan_work,
++		queue_delayed_work(ocfs2_wq, &os->os_orphan_scan_work,
+ 				      ocfs2_orphan_scan_timeout());
+ 	mutex_unlock(&os->os_lock);
+ }
+@@ -1978,8 +1978,8 @@ void ocfs2_orphan_scan_start(struct ocfs2_super *osb)
+ 		atomic_set(&os->os_state, ORPHAN_SCAN_INACTIVE);
+ 	else {
+ 		atomic_set(&os->os_state, ORPHAN_SCAN_ACTIVE);
+-		schedule_delayed_work(&os->os_orphan_scan_work,
+-				      ocfs2_orphan_scan_timeout());
++		queue_delayed_work(ocfs2_wq, &os->os_orphan_scan_work,
++				   ocfs2_orphan_scan_timeout());
+ 	}
+ }
+ 
+-- 
+1.5.5
