@@ -1,43 +1,49 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Date: Fri, 14 May 2010 23:18:29 -0000
-Subject: [Ocfs2-devel] Cleancache [PATCH 2/7] (was Transcendent Memory):
-	core files
-In-Reply-To: <20100422132809.GA27302@ca-server1.us.oracle.com>
-References: <20100422132809.GA27302@ca-server1.us.oracle.com>
-Message-ID: <20100514231815.GY30031@ZenIV.linux.org.uk>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue, 01 Jun 2010 10:23:09 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Add some trace log for orphan scan.
+In-Reply-To: <1275371893-6452-1-git-send-email-tao.ma@oracle.com>
+References: <1275371893-6452-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <4C0541FD.9050406@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dan Magenheimer <dan.magenheimer@oracle.com>
-Cc: chris.mason@oracle.com, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com
+To: ocfs2-devel@oss.oracle.com
 
-On Thu, Apr 22, 2010 at 06:28:09AM -0700, Dan Magenheimer wrote:
-> +struct cleancache_ops {
-> +	int (*init_fs)(unsigned long);
+Signed-off-by: Sunil Mushran<sunil.mushran@oracle.com>
 
-unsigned long?  Really?  Not even size_t?
 
-> +	int (*init_shared_fs)(char *uuid, unsigned long);
-
-Ditto.
-
-> +	int (*get_page)(int, unsigned long, unsigned long, struct page *);
-
-Ugh.  First of all, presumably you have some structure behind that index,
-don't you?  Might be a better way to do it.
-
-What's more, use of ->i_ino is simply wrong.  How stable do you want that
-to be and how much do you want it to outlive struct address_space in question?
-From my reading of your code, it doesn't outlive that anyway, so...
-
-The third one is pgoff_t; again, use sane types, _if_ you actually want
-the argument #3 at all - it can be derived from struct page you are passing
-there as well.
-
-> +	int (*put_page)(int, unsigned long, unsigned long, struct page *);
-> +	int (*flush_page)(int, unsigned long, unsigned long);
-> +	int (*flush_inode)(int, unsigned long);
-> +	void (*flush_fs)(int);
-
-Same questions as above...
+On 05/31/2010 10:58 PM, Tao Ma wrote:
+> Now orphan scan worker has no trace log, so it is
+> very hard to tell whether it is finished or blocked.
+> So add 2 mlog trace log so that we can tell whether
+> the current orphan scan worker is blocked or not.
+> It does help when I analyzed a orphan scan bug.
+>
+> Signed-off-by: Tao Ma<tao.ma@oracle.com>
+> ---
+>   fs/ocfs2/journal.c |    3 +++
+>   1 files changed, 3 insertions(+), 0 deletions(-)
+>
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 47878cf..776ab2f 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -1888,6 +1888,8 @@ void ocfs2_queue_orphan_scan(struct ocfs2_super *osb)
+>
+>   	os =&osb->osb_orphan_scan;
+>
+> +	mlog(0, "Begin orphan scan\n");
+> +
+>   	if (atomic_read(&os->os_state) == ORPHAN_SCAN_INACTIVE)
+>   		goto out;
+>
+> @@ -1920,6 +1922,7 @@ void ocfs2_queue_orphan_scan(struct ocfs2_super *osb)
+>   unlock:
+>   	ocfs2_orphan_scan_unlock(osb, seqno);
+>   out:
+> +	mlog(0, "Orphan scan completed\n");
+>   	return;
+>   }
+>
+>    
