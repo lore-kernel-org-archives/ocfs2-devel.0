@@ -1,124 +1,198 @@
-From: Minchan Kim <minchan.kim@gmail.com>
-Date: Wed, 02 Jun 2010 16:39:05 -0000
-Subject: [Ocfs2-devel] [PATCH V2 0/7] Cleancache (was Transcendent
-	Memory): overview
-In-Reply-To: <1d88619a-bb1e-493f-ad96-bf204b60938d@default>
-References: <20100528173510.GA12166@ca-server1.us.oracle.comAANLkTilV-4_QaNq5O0WSplDx1Oq7JvkgVrEiR1rgf1up@mail.gmail.com>
-	<1d88619a-bb1e-493f-ad96-bf204b60938d@default>
-Message-ID: <20100602163827.GA5450@barrios-desktop>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Wed, 02 Jun 2010 19:29:14 -0000
+Subject: [Ocfs2-devel] [PATCH V2 2/7] Cleancache (was Transcendent
+	Memory): core files
+In-Reply-To: <20100528173550.GA12219@ca-server1.us.oracle.com>
+References: <20100528173550.GA12219@ca-server1.us.oracle.com>
+Message-ID: <20100602122900.6c893a6a.akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Dan Magenheimer <dan.magenheimer@oracle.com>
-Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com
+Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com
 
-Hi, Dan. 
+On Fri, 28 May 2010 10:35:50 -0700
+Dan Magenheimer <dan.magenheimer@oracle.com> wrote:
 
-On Wed, Jun 02, 2010 at 08:27:48AM -0700, Dan Magenheimer wrote:
-> Hi Minchan --
+> [PATCH V2 2/7] Cleancache (was Transcendent Memory): core files
 > 
-> > I think cleancache approach is cool. :)
-> > I have some suggestions and questions.
+> Cleancache core files.
 > 
-> Thanks for your interest!
+> Credits: Cleancache_ops design derived from Jeremy Fitzhardinge
+> design for tmem; sysfs code modelled after mm/ksm.c
 > 
-> > > If a get_page is successful on a non-shared pool, the page is flushed
-> > (thus
-> > > making cleancache an "exclusive" cache). ?On a shared pool, the page
-> > 
-> > Do you have any reason about force "exclusive" on a non-shared pool?
-> > To free memory on pesudo-RAM?
-> > I want to make it "inclusive" by some reason but unfortunately I can't
-> > say why I want it now.
+> Note that CONFIG_CLEANCACHE defaults to on; all hooks devolve
+> to a compare-pointer-to-NULL so performance impact should
+> be negligible, but can be reduced to zero impact if config'ed off.
 > 
-> The main reason is to free up memory in pseudo-RAM and to
-> avoid unnecessary cleancache_flush calls.  If you want
-> inclusive, the page can be put immediately following
-> the get.  If put-after-get for inclusive becomes common,
-> the interface could easily be extended to add a "get_no_flush"
-> call.
+> ...
+>
+> --- linux-2.6.34/include/linux/cleancache.h	1969-12-31 17:00:00.000000000 -0700
+> +++ linux-2.6.34-cleancache/include/linux/cleancache.h	2010-05-24 18:14:33.000000000 -0600
+> @@ -0,0 +1,90 @@
+> +#ifndef _LINUX_CLEANCACHE_H
+> +#define _LINUX_CLEANCACHE_H
+> +
+> +#include <linux/fs.h>
+> +#include <linux/mm.h>
+> +
+> +#define CLEANCACHE_GET_PAGE_SUCCESS 1
+> +
+> +struct cleancache_ops {
+> +	int (*init_fs)(size_t);
+> +	int (*init_shared_fs)(char *uuid, size_t);
+> +	int (*get_page)(int, ino_t, pgoff_t, struct page *);
+> +	int (*put_page)(int, ino_t, pgoff_t, struct page *);
+> +	int (*flush_page)(int, ino_t, pgoff_t);
+> +	int (*flush_inode)(int, ino_t);
+> +	void (*flush_fs)(int);
+> +};
+> +
+> +extern struct cleancache_ops *cleancache_ops;
 
-Sounds good to me. 
+Why does this exist?  If there's only ever one cleancache_ops
+system-wide then we'd be better off doing
 
+	(*cleancache_ops.init_fs)()
+
+and save a zillion pointer hops.
+
+If instead there are different flavours of cleancache_ops then making
+this pointer a system-wide singleton seems an odd decision.
+
+>
+> ...
+>
+> +int __cleancache_get_page(struct page *page)
+> +{
+> +	int ret = 0;
+> +	int pool_id = page->mapping->host->i_sb->cleancache_poolid;
+> +
+> +	if (pool_id >= 0) {
+> +		ret = (*cleancache_ops->get_page)(pool_id,
+> +						  page->mapping->host->i_ino,
+> +						  page->index,
+> +						  page);
+> +		if (ret == CLEANCACHE_GET_PAGE_SUCCESS)
+> +			succ_gets++;
+> +		else
+> +			failed_gets++;
+> +	}
+> +	return ret;
+> +}
+> +EXPORT_SYMBOL(__cleancache_get_page);
+
+All these undocumeted functions would appear to be racy and buggy if
+the passed-in page isn't locked.  But because they're undocumented, I
+don't know if "the page must be locked" was an API requirement and I
+ain't going to go and review all callers.
+
+> +#ifdef CONFIG_SYSFS
+> +
+> +#define CLEANCACHE_ATTR_RO(_name) \
+> +	static struct kobj_attribute _name##_attr = __ATTR_RO(_name)
+> +
+> +static ssize_t succ_gets_show(struct kobject *kobj,
+> +			       struct kobj_attribute *attr, char *buf)
+> +{
+> +	return sprintf(buf, "%lu\n", succ_gets);
+> +}
+> +CLEANCACHE_ATTR_RO(succ_gets);
+> +
+> +static ssize_t failed_gets_show(struct kobject *kobj,
+> +			       struct kobj_attribute *attr, char *buf)
+> +{
+> +	return sprintf(buf, "%lu\n", failed_gets);
+> +}
+> +CLEANCACHE_ATTR_RO(failed_gets);
+> +
+> +static ssize_t puts_show(struct kobject *kobj,
+> +			       struct kobj_attribute *attr, char *buf)
+> +{
+> +	return sprintf(buf, "%lu\n", puts);
+> +}
+> +CLEANCACHE_ATTR_RO(puts);
+> +
+> +static ssize_t flushes_show(struct kobject *kobj,
+> +			       struct kobj_attribute *attr, char *buf)
+> +{
+> +	return sprintf(buf, "%lu\n", flushes);
+> +}
+> +CLEANCACHE_ATTR_RO(flushes);
+> +
+> +static struct attribute *cleancache_attrs[] = {
+> +	&succ_gets_attr.attr,
+> +	&failed_gets_attr.attr,
+> +	&puts_attr.attr,
+> +	&flushes_attr.attr,
+> +	NULL,
+> +};
+> +
+> +static struct attribute_group cleancache_attr_group = {
+> +	.attrs = cleancache_attrs,
+> +	.name = "cleancache",
+> +};
+> +
+> +#endif /* CONFIG_SYSFS */
+
+Please completely document the sysfs API, preferably in the changelogs.
+It's the first thing reviewers should look at, because it's one thing
+we can never change.  And Documentation/ABI/ is a place for permanent
+documentation.
+
+
+> --- linux-2.6.34/mm/Kconfig	2010-05-16 15:17:36.000000000 -0600
+> +++ linux-2.6.34-cleancache/mm/Kconfig	2010-05-24 12:14:44.000000000 -0600
+> @@ -287,3 +287,25 @@ config NOMMU_INITIAL_TRIM_EXCESS
+>  	  of 1 says that all excess pages should be trimmed.
 >  
-> > While you mentioned it's "exclusive", cleancache_get_page doesn't
-> > flush the page at below code.
-> > Is it a role of user who implement cleancache_ops->get_page?
-> 
-> Yes, the flush is done by the cleancache implementation.
-> 
-> > If backed device is ram(ie), Could we _move_ the pages from page cache
-> > to cleancache?
-> > I mean I don't want to copy page when get/put operation. we can just
-> > move page in case of backed device "ram". Is it possible?
-> 
-> By "move", do you mean changing the virtual mappings?  Yes,
-> this could be done as long as the source and destination are
-> both directly addressable (that is, true physical RAM), but
-> requires TLB manipulation and has some complicated corner
-> cases.  The copy semantics simplifies the implementation on
-> both the "frontend" and the "backend" and also allows the
-> backend to do fancy things on-the-fly like page compression
-> and page deduplication.
+>  	  See Documentation/nommu-mmap.txt for more information.
+> +
+> +config CLEANCACHE
+> +	bool "Enable cleancache pseudo-RAM driver to cache clean pages"
+> +	default y
+> +	help
+> + 	  Cleancache can be thought of as a page-granularity victim cache
+> +	  for clean pages that the kernel's pageframe replacement algorithm
+> +	  (PFRA) would like to keep around, but can't since there isn't enough
+> +	  memory.  So when the PFRA "evicts" a page, it first attempts to put
+> +	  it into a synchronous concurrency-safe page-oriented pseudo-RAM
+> +	  device (such as Xen's Transcendent Memory, aka "tmem") which is not
+> +	  directly accessible or addressable by the kernel and is of unknown
+> +	  (and possibly time-varying) size.  And when a cleancache-enabled
+> +	  filesystem wishes to access a page in a file on disk, it first
+> +	  checks cleancache to see if it already contains it; if it does,
+> + 	  the page is copied into the kernel and a disk access is avoided.
+> +	  When a pseudo-RAM device is available, a significant I/O reduction
+> +	  may be achieved.  When none is available, all cleancache calls
+> +	  are reduced to a single pointer-compare-against-NULL resulting
+> +	  in a negligible performance hit.
+> +
+> +	  If unsure, say Y to enable cleancache
 
-Agree. But I don't mean it. 
-If I use brd as backend, i want to do it follwing as. 
 
-put_page :
+I'm a bit surprised that cleancache and frontswap have their sticky
+fingers so deep inside swap and filesystems and the VFS.
 
-remove_from_page_cache(page);
-brd_insert_page(page);
+I'd have thought that the places where pages are added to the caches
+would be highly concentrated in the page-reclaim page eviction code,
+and that for reads the place where pages are retrieved would be at the
+pagecache/swapcache <-> I/O boundary.  Those transition points are
+reasonably narrow and seem to be the obvious site at which to interpose
+a cache, but it wasn't done that way.
 
-get_page :
+In core MM there's been effort to treat swap-backed and file-backed pages
+in the same manner (indeed in a common manner) and that effort has been
+partially successful.  These changes are going in the other direction.
 
-brd_lookup_page(page);
-add_to_page_cache(page);
 
-Of course, I know it's impossible without new metadata and modification of 
-page cache handling and it makes front and backend's good layered design. 
+There have been any number of compressed-swap and compressed-file
+projects (if not compressed-pagecache).  Where do cleancache/frontswap
+overlap those and which is superior?
 
-What I want is to remove copy overhead when backend is ram and it's also
-part of main memory(ie, we have page descriptor). 
 
-Do you have an idea?
-
-> 
-> > You send the patches which is core of cleancache but I don't see any
-> > use case.
-> > Could you send use case patches with this series?
-> > It could help understand cleancache's benefit.
-> 
-> Do you mean the Xen Transcendent Memory ("tmem") implementation?
-> If so, this is four files in the Xen source tree (common/tmem.c,
-> common/tmem_xen.c, include/xen/tmem.h, include/xen/tmem_xen.h).
-> There is also an html document in the Xen source tree, which can
-> be viewed here:
-> http://oss.oracle.com/projects/tmem/dist/documentation/internals/xen4-internals-v01.html 
-> 
-> Or did you mean a cleancache_ops "backend"?  For tmem, there
-> is one file linux/drivers/xen/tmem.c and it interfaces between
-> the cleancache_ops calls and Xen hypercalls.  It should be in
-> a Xenlinux pv_ops tree soon, or I can email it sooner.
-
-I mean "backend". :) 
-
-> 
-> I am also eagerly awaiting Nitin Gupta's cleancache backend
-> and implementation to do in-kernel page cache compression.
-
-Do Nitin say he will make backend of cleancache for
-page cache compression? 
-
-It would be good feature. 
-I have a interest, too. :)
-
-Thanks, Dan. 
-
-> 
-> Thanks,
-> Dan
-
--- 
-Kind regards,
-Minchan Kim
+And the big vague general issue: where's the value?  What does all this
+code buy us?  Why would we want to include it in Linux?  When Aunt
+Tillie unwraps her shiny new kernel, what would she notice was
+different?
