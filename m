@@ -1,84 +1,157 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 28 Jun 2010 10:35:29 -0700
-Subject: [Ocfs2-devel] [PATCH] Revert "writeback: limit write_cache_pages
- integrity scanning to current EOF"
-Message-ID: <20100628173529.GA10573@mail.oracle.com>
+From: Minchan Kim <minchan.kim@gmail.com>
+Date: Wed, 02 Jun 2010 06:03:31 -0000
+Subject: [Ocfs2-devel] [PATCH V2 0/7] Cleancache (was Transcendent
+	Memory): overview
+In-Reply-To: <20100528173510.GA12166@ca-server1.us.oracle.com>
+References: <20100528173510.GA12166@ca-server1.us.oracle.com>
+Message-ID: <AANLkTilV-4_QaNq5O0WSplDx1Oq7JvkgVrEiR1rgf1up@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Tao Ma <tao.ma@oracle.com>, Dave Chinner <dchinner@redhat.com>, Christoph Hellwig <hch@lst.de>, Mark Fasheh <mfasheh@suse.com>
+To: Dan Magenheimer <dan.magenheimer@oracle.com>
+Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com
 
-This reverts commit d87815cb2090e07b0b0b2d73dc9740706e92c80c.
+Hello.
 
-This patch causes any filesystem with an allocation unit larger than the
-filesystem blocksize will leak unzeroed data.  During a file extend, the
-entire allocation unit is zeroed.  However, this patch prevents the tail
-blocks of the allocation unit from being written back to disk.  When the
-file is next extended, i_size will now cover these unzeroed blocks,
-leaking the old contents of the disk to userspace and creating a corrupt
-file.
+I think cleancache approach is cool. :)
+I have some suggestions and questions.
 
-This affects ocfs2 directly.  As Tao Ma mentioned in his reporting
-email:
+On Sat, May 29, 2010 at 2:35 AM, Dan Magenheimer
+<dan.magenheimer@oracle.com> wrote:
+> [PATCH V2 0/7] Cleancache (was Transcendent Memory): overview
+>
+> Changes since V1:
+> - Rebased to 2.6.34 (no functional changes)
+> - Convert to sane types (Al Viro)
+> - Define some raw constants (Konrad Wilk)
+> - Add ack from Andreas Dilger
+>
+> In previous patch postings, cleancache was part of the Transcendent
+> Memory ("tmem") patchset. ?This patchset refocuses not on the underlying
+> technology (tmem) but instead on the useful functionality provided for Linux,
+> and provides a clean API so that cleancache can provide this very useful
+> functionality either via a Xen tmem driver OR completely independent of tmem.
+> For example: Nitin Gupta (of compcache and ramzswap fame) is implementing
+> an in-kernel compression "backend" for cleancache; some believe
+> cleancache will be a very nice interface for building RAM-like functionality
+> for pseudo-RAM devices such as SSD or phase-change memory; and a Pune
+> University team is looking at a backend for virtio (see OLS'2010).
+>
+> A more complete description of cleancache can be found in the introductory
+> comment in mm/cleancache.c (in PATCH 2/7) which is included below
+> for convenience.
+>
+> Note that an earlier version of this patch is now shipping in OpenSuSE 11.2
+> and will soon ship in a release of Oracle Enterprise Linux. ?Underlying
+> tmem technology is now shipping in Oracle VM 2.2 and was just released
+> in Xen 4.0 on April 15, 2010. ?(Search news.google.com for Transcendent
+> Memory)
+>
+> Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
+> Reviewed-by: Jeremy Fitzhardinge <jeremy@goop.org>
+>
+> ?fs/btrfs/extent_io.c ? ? ? | ? ?9 +
+> ?fs/btrfs/super.c ? ? ? ? ? | ? ?2
+> ?fs/buffer.c ? ? ? ? ? ? ? ?| ? ?5 +
+> ?fs/ext3/super.c ? ? ? ? ? ?| ? ?2
+> ?fs/ext4/super.c ? ? ? ? ? ?| ? ?2
+> ?fs/mpage.c ? ? ? ? ? ? ? ? | ? ?7 +
+> ?fs/ocfs2/super.c ? ? ? ? ? | ? ?3
+> ?fs/super.c ? ? ? ? ? ? ? ? | ? ?8 +
+> ?include/linux/cleancache.h | ? 90 +++++++++++++++++++
+> ?include/linux/fs.h ? ? ? ? | ? ?5 +
+> ?mm/Kconfig ? ? ? ? ? ? ? ? | ? 22 ++++
+> ?mm/Makefile ? ? ? ? ? ? ? ?| ? ?1
+> ?mm/cleancache.c ? ? ? ? ? ?| ?203 +++++++++++++++++++++++++++++++++++++++++++++
+> ?mm/filemap.c ? ? ? ? ? ? ? | ? 11 ++
+> ?mm/truncate.c ? ? ? ? ? ? ?| ? 10 ++
+> ?15 files changed, 380 insertions(+)
+>
+> Cleancache can be thought of as a page-granularity victim cache for clean
+> pages that the kernel's pageframe replacement algorithm (PFRA) would like
+> to keep around, but can't since there isn't enough memory. ?So when the
+> PFRA "evicts" a page, it first attempts to put it into a synchronous
+> concurrency-safe page-oriented pseudo-RAM device (such as Xen's Transcendent
+> Memory, aka "tmem", or in-kernel compressed memory, aka "zmem", or other
+> RAM-like devices) which is not directly accessible or addressable by the
+> kernel and is of unknown and possibly time-varying size. ?And when a
+> cleancache-enabled filesystem wishes to access a page in a file on disk,
+> it first checks cleancache to see if it already contains it; if it does,
+> the page is copied into the kernel and a disk access is avoided.
+> This pseudo-RAM device links itself to cleancache by setting the
+> cleancache_ops pointer appropriately and the functions it provides must
+> conform to certain semantics as follows:
+>
+> Most important, cleancache is "ephemeral". ?Pages which are copied into
+> cleancache have an indefinite lifetime which is completely unknowable
+> by the kernel and so may or may not still be in cleancache at any later time.
+> Thus, as its name implies, cleancache is not suitable for dirty pages. ?The
+> pseudo-RAM has complete discretion over what pages to preserve and what
+> pages to discard and when.
+>
+> A filesystem calls "init_fs" to obtain a pool id which, if positive, must be
+> saved in the filesystem's superblock; a negative return value indicates
+> failure. ?A "put_page" will copy a (presumably about-to-be-evicted) page into
+> pseudo-RAM and associate it with the pool id, the file inode, and a page
+> index into the file. ?(The combination of a pool id, an inode, and an index
+> is called a "handle".) ?A "get_page" will copy the page, if found, from
+> pseudo-RAM into kernel memory. ?A "flush_page" will ensure the page no longer
+> is present in pseudo-RAM; a "flush_inode" will flush all pages associated
+> with the specified inode; and a "flush_fs" will flush all pages in all
+> inodes specified by the given pool id.
+>
+> A "init_shared_fs", like init, obtains a pool id but tells the pseudo-RAM
+> to treat the pool as shared using a 128-bit UUID as a key. ?On systems
+> that may run multiple kernels (such as hard partitioned or virtualized
+> systems) that may share a clustered filesystem, and where the pseudo-RAM
+> may be shared among those kernels, calls to init_shared_fs that specify the
+> same UUID will receive the same pool id, thus allowing the pages to
+> be shared. ?Note that any security requirements must be imposed outside
+> of the kernel (e.g. by "tools" that control the pseudo-RAM). ?Or a
+> pseudo-RAM implementation can simply disable shared_init by always
+> returning a negative value.
+>
+> If a get_page is successful on a non-shared pool, the page is flushed (thus
+> making cleancache an "exclusive" cache). ?On a shared pool, the page
 
-1. all the place we use filemap_fdatawrite in ocfs2 doesn't flush pages
-after i_size now.
-2. sync, fsync, fdatasync and umount don't flush pages after i_size(they
-are called from writeback_single_inode).
-3. reflink have a BUG_ON triggered because we have some dirty pages
-while during CoW. http://oss.oracle.com/bugzilla/show_bug.cgi?id=1265
+Do you have any reason about force "exclusive" on a non-shared pool?
+To free memory on pesudo-RAM?
+I want to make it "inclusive" by some reason but unfortunately I can't
+say why I want it now.
 
-Because this patch breaks ocfs2 file extends, we need to request its
-reversion.
+While you mentioned it's "exclusive", cleancache_get_page doesn't
+flush the page at below code.
+Is it a role of user who implement cleancache_ops->get_page?
 
-Reported-by: Tao Ma <tao.ma@oracle.com>
-Cc: Dave Chinner <dchinner@redhat.com>
-Cc: Christoph Hellwig <hch@lst.de>
-Signed-off-by: Joel Becker <joel.becker@oracle.com>
----
- mm/page-writeback.c |   15 ---------------
- 1 files changed, 0 insertions(+), 15 deletions(-)
++int __cleancache_get_page(struct page *page)
++{
++       int ret = 0;
++       int pool_id = page->mapping->host->i_sb->cleancache_poolid;
++
++       if (pool_id >= 0) {
++               ret = (*cleancache_ops->get_page)(pool_id,
++                                                 page->mapping->host->i_ino,
++                                                 page->index,
++                                                 page);
++               if (ret == CLEANCACHE_GET_PAGE_SUCCESS)
++                       succ_gets++;
++               else
++                       failed_gets++;
++       }
++       return ret;
++}
++EXPORT_SYMBOL(__cleancache_get_page);
 
-diff --git a/mm/page-writeback.c b/mm/page-writeback.c
-index bbd396a..b3dbb80 100644
---- a/mm/page-writeback.c
-+++ b/mm/page-writeback.c
-@@ -851,22 +851,7 @@ int write_cache_pages(struct address_space *mapping,
- 		if (wbc->range_start == 0 && wbc->range_end == LLONG_MAX)
- 			range_whole = 1;
- 		cycled = 1; /* ignore range_cyclic tests */
--
--		/*
--		 * If this is a data integrity sync, cap the writeback to the
--		 * current end of file. Any extension to the file that occurs
--		 * after this is a new write and we don't need to write those
--		 * pages out to fulfil our data integrity requirements. If we
--		 * try to write them out, we can get stuck in this scan until
--		 * the concurrent writer stops adding dirty pages and extending
--		 * EOF.
--		 */
--		if (wbc->sync_mode == WB_SYNC_ALL &&
--		    wbc->range_end == LLONG_MAX) {
--			end = i_size_read(mapping->host) >> PAGE_CACHE_SHIFT;
--		}
- 	}
--
- retry:
- 	done_index = index;
- 	while (!done && (index <= end)) {
+If backed device is ram(ie), Could we _move_ the pages from page cache
+to cleancache?
+I mean I don't want to copy page when get/put operation. we can just
+move page in case of backed device "ram". Is it possible?
+
+You send the patches which is core of cleancache but I don't see any use case.
+Could you send use case patches with this series?
+It could help understand cleancache's benefit.
+
 -- 
-1.7.1
-
-
--- 
-
-"Senator let's be sincere,
- As much as you can."
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+Kind regards,
+Minchan Kim
