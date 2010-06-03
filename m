@@ -1,76 +1,161 @@
 From: Dan Magenheimer <dan.magenheimer@oracle.com>
-Date: Wed, 02 Jun 2010 23:04:40 -0000
-Subject: [Ocfs2-devel] [PATCH V2 0/7] Cleancache (was Transcendent
-	Memory): overview
-In-Reply-To: <20100602163827.GA5450@barrios-desktop>
-References: <20100528173510.GA12166@ca-server1.us.oracle.comAANLkTilV-4_QaNq5O0WSplDx1Oq7JvkgVrEiR1rgf1up@mail.gmail.com>
-	<1d88619a-bb1e-493f-ad96-bf204b60938d@default
-	20100602163827.GA5450@barrios-desktop>
-Message-ID: <489aa002-6d42-4dd5-bb66-81c665f8cdd1@default>
+Date: Thu, 03 Jun 2010 00:08:15 -0000
+Subject: [Ocfs2-devel] [PATCH V2 2/7] Cleancache (was Transcendent
+	Memory): core files
+In-Reply-To: <20100602122900.6c893a6a.akpm@linux-foundation.org>
+References: <20100528173550.GA12219@ca-server1.us.oracle.com
+	20100602122900.6c893a6a.akpm@linux-foundation.org>
+Message-ID: <0be9e88e-7b0d-471d-8d49-6dc593dd43be@default>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Minchan Kim <minchan.kim@gmail.com>
-Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@Sun.COM, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, adilger@Sun.COM, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com
 
-> From: Minchan Kim [mailto:minchan.kim at gmail.com]
+> From: Andrew Morton [mailto:akpm at linux-foundation.org]
 
-> > I am also eagerly awaiting Nitin Gupta's cleancache backend
-> > and implementation to do in-kernel page cache compression.
+Thanks very much for taking the time for feedback!  I hope
+I can answer all of your questions... bear with me if some
+of the answers are a bit long.
+
+> > +extern struct cleancache_ops *cleancache_ops;
 > 
-> Do Nitin say he will make backend of cleancache for
-> page cache compression?
+> Why does this exist?  If there's only ever one cleancache_ops
+> system-wide then we'd be better off doing
 > 
-> It would be good feature.
-> I have a interest, too. :)
-
-That was Nitin's plan for his GSOC project when we last discussed
-this.  Nitin is on the cc list and can comment if this has
-changed.
-
-> > By "move", do you mean changing the virtual mappings?  Yes,
-> > this could be done as long as the source and destination are
-> > both directly addressable (that is, true physical RAM), but
-> > requires TLB manipulation and has some complicated corner
-> > cases.  The copy semantics simplifies the implementation on
-> > both the "frontend" and the "backend" and also allows the
-> > backend to do fancy things on-the-fly like page compression
-> > and page deduplication.
+> 	(*cleancache_ops.init_fs)()
 > 
-> Agree. But I don't mean it.
-> If I use brd as backend, i want to do it follwing as.
+> and save a zillion pointer hops.
 > 
-> <snip>
+> If instead there are different flavours of cleancache_ops then making
+> this pointer a system-wide singleton seems an odd decision.
+
+It is intended that there be different flavours but only
+one can be used in any running kernel.  A driver file/module
+claims the cleancache_ops pointer (and should check to ensure
+it is not already claimed).  And if nobody claims cleancache_ops,
+the hooks should be as non-intrusive as possible.
+
+Also note that the operations occur on the order of the number
+of I/O's, so definitely a lot, but "zillion" may be a bit high. :-)
+
+If you think this is a showstoppper, it could be changed
+to be bound only at compile-time, but then (I think) the claimer
+could never be a dynamically-loadable module.
+ 
+> All these undocumeted functions would appear to be racy and buggy if
+> the passed-in page isn't locked.  But because they're undocumented, I
+> don't know if "the page must be locked" was an API requirement and I
+> ain't going to go and review all callers.
+
+True.  The passed-in pages are assumed to be locked and,
+I believe, they are at all call sites.  I'm not sure if
+this is possible/easy, but maybe I can put a BUG_ON(if !locked)
+in the routines to enforce and document this (and document
+it also with prose elsewhere).
+
+> Please completely document the sysfs API, preferably in the changelogs.
+> It's the first thing reviewers should look at, because it's one thing
+> we can never change.  And Documentation/ABI/ is a place for permanent
+> documentation.
+
+OK, will do. 
+ 
+> I'm a bit surprised that cleancache and frontswap have their sticky
+> fingers so deep inside swap and filesystems and the VFS.
 > 
-> Of course, I know it's impossible without new metadata and
-> modification of page cache handling and it makes front and
-> backend's good layered design.
-> 
-> What I want is to remove copy overhead when backend is ram
-> and it's also part of main memory(ie, we have page descriptor).
-> 
-> Do you have an idea?
+> I'd have thought that the places where pages are added to the caches
+> would be highly concentrated in the page-reclaim page eviction code,
+> and that for reads the place where pages are retrieved would be at the
+> pagecache/swapcache <-> I/O boundary.  Those transition points are
+> reasonably narrow and seem to be the obvious site at which to interpose
+> a cache, but it wasn't done that way.
 
-Copy overhead on modern processors is very low now due to
-very wide memory buses.  The additional metadata and code
-to handle coherency and concurrency, plus existing overhead
-for batching and asynchronous access to brd is likely much
-higher than the cost to avoid copying.
+Hmmm...  I think those transition points are exactly where the
+get/put/flush hooks are placed and I don't see how they can
+be reduced.
 
-But if you did implement this without copying, I think
-you might need a different set of hooks in various places.
-I don't know.
+The filesystem init hooks are almost entirely to allow different fs's
+to "opt in" to cleancache, with one exception in btrfs since btrfs
+goes around VFS in one case.  And frontswap has one init call
+per swap type (all in one place).
 
-> > Or did you mean a cleancache_ops "backend"?  For tmem, there
-> > is one file linux/drivers/xen/tmem.c and it interfaces between
-> > the cleancache_ops calls and Xen hypercalls.  It should be in
-> > a Xenlinux pv_ops tree soon, or I can email it sooner.
-> 
-> I mean "backend". :)
+The core hooks for frontswap are also very few and brief.  The
+lengthy part of the patch is because the pages in frontswap are
+persistent and must be managed with a (one-bit-per-page) data
+structure.
 
-I dropped the code used for a RHEL6beta Xen tmem driver here:
-http://oss.oracle.com/projects/tmem/dist/files/RHEL6beta/tmem-backend.patch 
+Plus, there's a lot of patch-bulk due to the sysfs calls
+and a lot of comments.
 
-Thanks,
+> In core MM there's been effort to treat swap-backed and file-backed
+> pages
+> in the same manner (indeed in a common manner) and that effort has been
+> partially successful.  These changes are going in the other direction.
+
+But IMHO they are going the other direction for a very good
+reason.  Much of the value of cleancache comes from cleanly
+separating clean pagecache pages from dirty pages.  Frontswap
+is always dealing with dirty pages.
+
+But in any case, all the hooks are still very brief and if
+swap_writepage/swap_readpage ever got merged into file-backed
+MM code, there would need to be some test to differentiate
+swap-backed pages from file-backed pages and the slightly
+different frontswap-vs-cleancache calls would be in different
+parts of the if/else, but I don't think otherwise would
+interfere with attempts to "treat [them] in the same manner".
+
+> There have been any number of compressed-swap and compressed-file
+> projects (if not compressed-pagecache).  Where do cleancache/frontswap
+> overlap those and which is superior?
+
+The primary target of cleancache/frontswap isn't compression
+(see below), though that is a nice feature that is provided
+by the Xen Transcendent Memory implementation.
+
+For kernel-only use, Nitin Gupta's position is that the cleancache
+interface will work nicely for in-kernel compressed-pagecache.
+He feels differently for frontswap though.
+
+> And the big vague general issue: where's the value?  What does all this
+> code buy us?  Why would we want to include it in Linux?  When Aunt
+> Tillie unwraps her shiny new kernel, what would she notice was
+> different?
+
+A fair question so let me provide an honest answer.  Like many
+recent KVM changes, there is a very compelling reason to do this
+for virtualized Linux and a less-compelling-but-still-possibly-
+useful reason for non-virtualized Linux.
+
+First non-virtualized (since I know you are less interested in
+the virtualized case and I hope to keep your attention for a
+bit longer):  Cleancache/frontswap provide interfaces for
+a new pseudo-RAM memory type that conceptually lies between
+fast kernel-directly-addressable RAM and slower DMA/asynchronous
+devices.  Disallowing direct kernel or userland reads/writes
+to this pseudo-RAM is ideal when data is transformed to a different
+form and size (such as with compression) or secretly moved
+(as might be useful for write-balancing for some RAM-like devices).
+Evicted page-cache pages and swap pages are a great use for
+this kind of slower-than-RAM-but-much-faster-than-disk
+pseudo-RAM and the cleancache/frontswap "page-object-oriented"
+specification provides a nice way to read and write and
+indirectly identify the pages.  There may be other uses too.
+
+In the virtual case, the whole point of virtualization is to
+statistically multiplex physical resources across the varying
+demands of multiple virtual machines.  This is really hard to
+do with RAM and efforts to do it well with no kernel changes
+have essentially failed (except in some well-publicized 
+special-case workloads).  Cleancache and frontswap, with a
+fairly small impact on the kernel, provide a huge amount of
+flexibility for more dynamic, flexible RAM multiplexing.
+(Think IBM's Collaborative Memory Management but much simpler.)
+
+If you are interested in understanding this better, I can
+go on with a lot more information, but that's it in a nutshell.
+
+Thanks again!
 Dan
