@@ -1,68 +1,49 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Sat, 05 Jun 2010 18:48:55 -0700
+From: Wengang Wang <wen.gang.wang@ORACLE.COM>
+Date: Tue, 8 Jun 2010 20:49:21 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: cancel the migration or redo
  deref to recovery master
-In-Reply-To: <20100604053736.GC2415@laptop.us.oracle.com>
+In-Reply-To: <4C0851AF.1030803@oracle.com>
 References: <4C0851AF.1030803@oracle.com>
-	<20100604014340.GB2415@laptop.us.oracle.com>
-	<4C086255.4030300@oracle.com>
-	<20100604053736.GC2415@laptop.us.oracle.com>
-Message-ID: <4C0AFE87.6030900@oracle.com>
+Message-ID: <20100608124921.GA3964@laptop.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 6/3/2010 10:37 PM, Wengang Wang wrote:
-> Srini,
->
-> On 10-06-03 19:17, Srinivas Eeda wrote:
->   
->>>> Can you please explain the idea of the new flag
->>>> DLM_LOCK_RES_DE_DROP_REF :)
->>>>
->>>> If the idea of the fix is to address the race between purging and
->>>> recovery, I am wondering DLM_LOCK_RES_DROPPING_REF and
->>>> DLM_LOCK_RES_RECOVERING flags may be enough to fix this problem.
->>>> dlm_move_lockres_to_recovery_list moves lockres to resources list
->>>> (which tracks of resources that needs recovery) and sets the flag
->>>> DLM_LOCK_RES_RECOVERING. If we do not call
->>>> dlm_move_lockres_to_recovery_list for the resource which have
->>>> DLM_LOCK_RES_DROPPING_REF set they will not get migrated. In that
->>>> case DLM_LOCK_RES_RECOVERING will not get set and the recovery
->>>> master wouldn't know about this and the lockres that is in the
->>>> middle of purging will get purged.
->>>>
->>>> For the lockres that got moved to resource list they will get
->>>> migrated. In that case lockres has DLM_LOCK_RES_RECOVERING.flag set.
->>>> So dlm_purge_list should consider this as being used and should
->>>> defer purging. the lockres will get recovered and the new owner will
->>>> be set and the flag DLM_LOCK_RES_RECOVERING. will get removed.
->>>> dlm_purge_list can now go ahead and purge this lockres.
->>>>
->>>>         
->>> I am following your idea. Addtion to your idea is that we also notice
->>> that we shouldn't send the DEREF request to the recovery master if we
->>> don't migrate the lockres to the recovery master(otherwise, another
->>> BUG() is triggered). DLM_LOCK_RES_DE_DROP_REF is for that purpose.
->>> When
->>> we ignore migrating a lockres, we set this state.
->>>
->>>       
->> The case we don't migrate the lockres is only when it's dropping the
->> reference right(when DLM_LOCK_RES_DROPPING_REF is set). In that case we
->> just unhash and free the lockres.
->>     
->
-> How do you determine whether it's in "that case" in code? I determine that by
-> checking the DLM_LOCK_RES_DE_DROP_REF state.
->   
-If DLM_LOCK_RES_DROPPING_REF is not set for the lockres, then it can get 
-migrated(even if it's on the purge list).
-> regards,
-> wengang.
->   
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20100605/c543099c/attachment.html 
+On 10-06-03 18:06, Srinivas Eeda wrote:
+> Comments inline
+> 
+> On 6/3/2010 9:37 AM, Wengang Wang wrote:
+> >Changes to V1:
+> >1 move the msleep to the second runs when the lockres is in recovery so the
+> >  purging work on other lockres' can go.
+> >2 do not inform recovery master if DLM_LOCK_RES_DROPPING_REF is set and don't
+> >  resend deref in this case.
+> >
+> >Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> >---
+> > fs/ocfs2/dlm/dlmcommon.h   |    1 +
+> > fs/ocfs2/dlm/dlmrecovery.c |   25 +++++++++++++++
+> > fs/ocfs2/dlm/dlmthread.c   |   73 ++++++++++++++++++++++++++++++++++++++-----
+> > 3 files changed, 90 insertions(+), 9 deletions(-)
+> >
+> >diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+> >index 4b6ae2c..4194087 100644
+> >--- a/fs/ocfs2/dlm/dlmcommon.h
+> >+++ b/fs/ocfs2/dlm/dlmcommon.h
+> >@@ -280,6 +280,7 @@ static inline void __dlm_set_joining_node(struct dlm_ctxt *dlm,
+> > #define DLM_LOCK_RES_IN_PROGRESS          0x00000010
+> > #define DLM_LOCK_RES_MIGRATING            0x00000020
+> > #define DLM_LOCK_RES_DROPPING_REF         0x00000040
+> >+#define DLM_LOCK_RES_DE_DROP_REF          0x00000080
+> Can you please explain the idea of the new flag DLM_LOCK_RES_DE_DROP_REF :)
+> 
+
+Discussed with Srini privately, both agreed we don't purge a lockres
+when it's in recovery state avoiding adding the new flag.
+
+I will send the revised patch later.
+
+regards,
+wengang.
