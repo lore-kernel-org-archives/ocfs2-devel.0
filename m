@@ -1,145 +1,29 @@
-From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Wed, 9 Jun 2010 16:57:11 -0500
-Subject: [Ocfs2-devel] [PATCH] Reoganize data elements to reduce memory
-	footprint
-Message-ID: <AANLkTinTCrwXLiCjOm4l7uIzjRSz-17vJLLhNaCMDFJa@mail.gmail.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Wed, 9 Jun 2010 15:14:26 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Limit default local alloc size
+	within bitmap range.
+In-Reply-To: <1276072985-7251-1-git-send-email-tao.ma@oracle.com>
+References: <1276072985-7251-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100609221426.GC24316@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This is the re-arrangement of the data elements of ocfs2 data structures
-to reduce memory consumption as shown by pahole on an x86_64 box.
-I have tried to keep the context as close as possible, though I was
-pretty agressive to get the numbers down.
+On Wed, Jun 09, 2010 at 04:43:05PM +0800, Tao Ma wrote:
+> In commit 6b82021b9e91cd689fdffadbcdb9a42597bbe764, we increase
+> our local alloc size and calculate how much megabytes we can
+> get according to group size and volume size.
+> But we also need to check the maximum bits a local alloc block
+> bitmap can have. With a bs=512, cs=32K, local volume with 160G,
+> it calculate 96MB while the maximum local alloc size is only
+> 76M. So the bitmap will overflow and corrupt the system truncate
+> log file. See bug
+> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1262
+> 
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+	--Mark
 
-Statistics in bytes: (before - after = reduction)
-ocfs2_write_ctxt: 2144 - 2136 = 8
-ocfs2_inode_info: 1960 - 1896 = 64
-ocfs2_journal: 168 - 160 = 8
-ocfs2_lock_res: 336 - 320 = 16
-ocfs2_refcount_tree: 512 - 488 = 24
-
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
----
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 3623ca2..1b5e284 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -910,8 +910,8 @@ struct ocfs2_write_ctxt {
- 	 * out in so that future reads from that region will get
- 	 * zero's.
- 	 */
--	struct page			*w_pages[OCFS2_MAX_CTXT_PAGES];
- 	unsigned int			w_num_pages;
-+	struct page			*w_pages[OCFS2_MAX_CTXT_PAGES];
- 	struct page			*w_target_page;
-
- 	/*
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 9f5f5fc..e2b0053 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -46,26 +46,21 @@ struct ocfs2_inode_info
- 	/* These fields are protected by ip_lock */
- 	spinlock_t			ip_lock;
- 	u32				ip_open_count;
--	u32				ip_clusters;
- 	struct list_head		ip_io_markers;
-+	u32				ip_clusters;
-
-+	u16				ip_dyn_features;
- 	struct mutex			ip_io_mutex;
--
- 	u32				ip_flags; /* see below */
- 	u32				ip_attr; /* inode attributes */
--	u16				ip_dyn_features;
-
- 	/* protected by recovery_lock. */
- 	struct inode			*ip_next_orphan;
--
--	u32				ip_dir_start_lookup;
--
- 	struct ocfs2_caching_info	ip_metadata_cache;
--
- 	struct ocfs2_extent_map		ip_extent_map;
--
- 	struct inode			vfs_inode;
- 	struct jbd2_inode		ip_jinode;
-+	u32				ip_dir_start_lookup;
-
- 	/* Only valid if the inode is the dir. */
- 	u32				ip_last_used_slot;
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index b5baaa8..ed05ac3 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -67,11 +67,11 @@ struct ocfs2_journal {
- 	struct buffer_head        *j_bh;      /* Journal disk inode block */
- 	atomic_t                  j_num_trans; /* Number of transactions
- 					        * currently in the system. */
-+	spinlock_t                j_lock;
- 	unsigned long             j_trans_id;
- 	struct rw_semaphore       j_trans_barrier;
- 	wait_queue_head_t         j_checkpointed;
-
--	spinlock_t                j_lock;
- 	struct list_head          j_la_cleanups;
- 	struct work_struct        j_recovery_work;
- };
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index c67003b..34b9c79 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -151,17 +151,16 @@ struct ocfs2_lock_res {
- 	void                    *l_priv;
- 	struct ocfs2_lock_res_ops *l_ops;
- 	spinlock_t               l_lock;
-+	enum ocfs2_lock_type     l_type;
-
- 	struct list_head         l_blocked_list;
- 	struct list_head         l_mask_waiters;
-
--	enum ocfs2_lock_type     l_type;
- 	unsigned long		 l_flags;
- 	char                     l_name[OCFS2_LOCK_ID_MAX_LEN];
- 	int                      l_level;
- 	unsigned int             l_ro_holders;
- 	unsigned int             l_ex_holders;
--	struct ocfs2_dlm_lksb    l_lksb;
-
- 	/* used from AST/BAST funcs. */
- 	enum ocfs2_ast_action    l_action;
-@@ -170,6 +169,7 @@ struct ocfs2_lock_res {
- 	int                      l_blocking;
- 	unsigned int             l_pending_gen;
-
-+	struct ocfs2_dlm_lksb    l_lksb;
- 	wait_queue_head_t        l_event;
-
- 	struct list_head         l_debug_list;
-diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
-index 9983ba1..67a89e4 100644
---- a/fs/ocfs2/refcounttree.h
-+++ b/fs/ocfs2/refcounttree.h
-@@ -21,14 +21,14 @@ struct ocfs2_refcount_tree {
- 	struct rb_node rf_node;
- 	u64 rf_blkno;
- 	u32 rf_generation;
-+	struct kref rf_getcnt;
- 	struct rw_semaphore rf_sem;
- 	struct ocfs2_lock_res rf_lockres;
--	struct kref rf_getcnt;
- 	int rf_removed;
-+	spinlock_t rf_lock;
-
- 	/* the following 4 fields are used by caching_info. */
- 	struct ocfs2_caching_info rf_ci;
--	spinlock_t rf_lock;
- 	struct mutex rf_io_mutex;
- 	struct super_block *rf_sb;
- };
-
--- 
-Goldwyn
+--
+Mark Fasheh
