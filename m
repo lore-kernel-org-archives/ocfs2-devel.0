@@ -1,92 +1,95 @@
-From: Minchan Kim <minchan.kim@gmail.com>
-Date: Fri, 04 Jun 2010 16:06:17 -0000
-Subject: [Ocfs2-devel] [PATCH V2 3/7] Cleancache (was Transcendent
-	Memory): VFS hooks
-In-Reply-To: <16b4dcd5-95d8-4cb0-885d-0189ef90c02b@default>
-References: <20100528173610.GA12270@ca-server1.us.oracle.com20100604132948.GC1879@barrios-desktop>
-	<16b4dcd5-95d8-4cb0-885d-0189ef90c02b@default>
-Message-ID: <20100604160601.GE1879@barrios-desktop>
+From: Nick Piggin <npiggin@suse.de>
+Date: Wed, 09 Jun 2010 09:16:11 -0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Remove the deprecated
+	inode_setattr.
+In-Reply-To: <1276073300-7360-1-git-send-email-tao.ma@oracle.com>
+References: <1276073300-7360-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100609091604.GX26335@laptop>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dan Magenheimer <dan.magenheimer@oracle.com>
-Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@Sun.COM, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com
+To: Tao Ma <tao.ma@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, joel.becker@oracle.com, linux-fsdevel@vger.kernel.org, Christoph Hellwig <hch@lst.de>
 
-On Fri, Jun 04, 2010 at 08:13:14AM -0700, Dan Magenheimer wrote:
-> > 1)
-> > You mentiond PFRA in you description and I understood cleancache has
-> > a cold clean page which is evicted by reclaimer.
-> > But __remove_from_page_cache can be called by other call sites.
-> > 
-> > For example, shmem_write page calls it for moving the page from page
-> > cache
-> > to swap cache. Although there isn't the page in page cache, it is in
-> > swap cache.
-> > So next read/write of shmem until swapout happens can be read/write in
-> > swap cache.
-> > 
-> > I didn't looked into whole of callsites. But please review again them.
+On Wed, Jun 09, 2010 at 04:48:20PM +0800, Tao Ma wrote:
+> Nick has changed the turncate sequence and now inode_setattr
+> is deprecated. ocfs2 has done the most work of i_size change
+> before calling inode_setattr, so we are safe to just call
+> simple_setsize to update the i_size in vfs inode and then
+> generic_setattr.
 > 
-> I think the "if (PageUptodate(page))" eliminates all the cases
-> where bad things can happen.
-
-I missed it. my fisrt concern has gone. :)
-
+> As for dlmfs, we don't allow inode size change, so it is safe
+> for us to just call generic_setattr.
 > 
-> Note that there may be cases where some unnecessary puts/flushes
-> occur.  The focus of the patch is on correctness first; it may
-> be possible to increase performance (marginally) in the future by
-> reducing unnecessary cases.
-
-I think it wouldn't be marginally. It depends on implementation
-of backend. 
-I think frontend would be better to notify to backend in 
-only exact place. As your descrption, we can call it in shrink_page_list
-with some check or change __remove_mapping which adding a argument to tell
-"this is calling of reclaim path". 
-
+> Cc: Nick Piggin <npiggin@suse.de>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> ---
+>  fs/ocfs2/dlmfs/dlmfs.c |    2 +-
+>  fs/ocfs2/file.c        |   18 +++++++++---------
+>  2 files changed, 10 insertions(+), 10 deletions(-)
 > 
-> > 3) Please consider system memory pressure.
-> > And I hope Nitin consider this, too.
-> 
-> This is definitely very important but remember that cleancache
-> provides a great deal of flexibility:  Any page in cleancache
-> can be thrown away at any time as every page is clean!  It
-> can even accept a page and throw it away immediately.  Clearly
-> the backend needs to do this intelligently so this will
-> take some policy work.
+> diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+> index b83d610..e959b88 100644
+> --- a/fs/ocfs2/dlmfs/dlmfs.c
+> +++ b/fs/ocfs2/dlmfs/dlmfs.c
+> @@ -215,7 +215,7 @@ static int dlmfs_file_setattr(struct dentry *dentry, struct iattr *attr)
+>  	attr->ia_valid &= ~ATTR_SIZE;
+>  	error = inode_change_ok(inode, attr);
+>  	if (!error)
+> -		error = inode_setattr(inode, attr);
+> +		generic_setattr(inode, attr);
 
-I admit design goal of cleancache is to give a greate deal of flexibility. 
-But I think system memory pressure(ie, direct reclaim and even OOM) is 
-exceptional. Whenever we implement various backend, every backend(non-virtual
-environemnt)have to implement policy which deal with system memory 
-pressure emergency to prevent system hang, I think. 
+This brings up my question again about simply _ignoring_ ATTR_SIZE changes.
+One problem is that truncate calls which send down ATTR_SIZE might also
+be sending down ATTR_MODE or ATTR_?TIME which should not be applied if
+the ATTR_SIZE fails, one would think.
 
-And backend might need some hack to know the situation. It's horrible.
-So I hope frontend gives little information to backend, at least. 
+The other thing is that shouldn't we return -EINVAL or somesuch rather
+than silently ignoring?
 
-If some backend don't need it, it can just ignore. 
-But if some backend need it, it can be a big deal. :)
+Anyway, several other pseudo filesystems do other stuff like tihs so
+it's not something to bother with in this patch.
 
-> 
-> Since I saw you sent a separate response to Nitin, I'll
-> let him answer for his in-kernel page cache compression
-> work.  The solution to the similar problem for Xen is
-> described in the tmem internals document that I think
-> I pointed to earlier here:
-> http://oss.oracle.com/projects/tmem/documentation/internals/ 
 
-I will read it when I have a time. 
-Thanks for quick reply but I can't. 
-It's time to sleep and weekend. 
-See you soon and have a nice weekend. 
+>  
+>  	return error;
+>  }
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 6a13ea6..06fd85c 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -1052,17 +1052,17 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>  	}
+>  
+>  	/*
+> -	 * This will intentionally not wind up calling simple_setsize(),
+> -	 * since all the work for a size change has been done above.
+> -	 * Otherwise, we could get into problems with truncate as
+> -	 * ip_alloc_sem is used there to protect against i_size
+> -	 * changes.
+> +	 * Since all the work for a size change has been done above,
+> +	 * we only need to call simple_setsize to update i_size.
+>  	 */
+> -	status = inode_setattr(inode, attr);
+> -	if (status < 0) {
+> -		mlog_errno(status);
+> -		goto bail_commit;
+> +	if (attr->ia_valid & ATTR_SIZE) {
+> +		status = simple_setsize(inode, attr->ia_size);
+> +		if (status < 0) {
+> +			mlog_errno(status);
+> +			goto bail_commit;
+> +		}
+>  	}
+> +	generic_setattr(inode, attr);
+>  
+>  	status = ocfs2_mark_inode_dirty(handle, inode, bh);
+>  	if (status < 0)
 
-> 
-> Thanks,
-> Dan
-> 
+simple_setsize of course calls inode_newsize_ok, which may fail. If
+you're committing your on-disk truncates@this point, you will
+prefer to hoist that check as early as possible so you cannot fail
+here.
 
--- 
-Kind regards,
-Minchan Kim
+Just open code the truncate part of simple_setsize for now.
