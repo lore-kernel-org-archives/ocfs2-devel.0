@@ -1,72 +1,57 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed,  9 Jun 2010 16:48:20 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Remove the deprecated inode_setattr.
-Message-ID: <1276073300-7360-1-git-send-email-tao.ma@oracle.com>
+From: tristan <tristan.ye@oracle.com>
+Date: Wed, 09 Jun 2010 16:52:34 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Limit default local alloc size
+ within bitmap range.
+In-Reply-To: <1276072985-7251-1-git-send-email-tao.ma@oracle.com>
+References: <1276072985-7251-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <4C0F5652.1090007@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Nick has changed the turncate sequence and now inode_setattr
-is deprecated. ocfs2 has done the most work of i_size change
-before calling inode_setattr, so we are safe to just call
-simple_setsize to update the i_size in vfs inode and then
-generic_setattr.
+Tested-by: Tristan Ye <tristan.ye@oracle.com>
 
-As for dlmfs, we don't allow inode size change, so it is safe
-for us to just call generic_setattr.
-
-Cc: Nick Piggin <npiggin@suse.de>
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/dlmfs/dlmfs.c |    2 +-
- fs/ocfs2/file.c        |   18 +++++++++---------
- 2 files changed, 10 insertions(+), 10 deletions(-)
-
-diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
-index b83d610..e959b88 100644
---- a/fs/ocfs2/dlmfs/dlmfs.c
-+++ b/fs/ocfs2/dlmfs/dlmfs.c
-@@ -215,7 +215,7 @@ static int dlmfs_file_setattr(struct dentry *dentry, struct iattr *attr)
- 	attr->ia_valid &= ~ATTR_SIZE;
- 	error = inode_change_ok(inode, attr);
- 	if (!error)
--		error = inode_setattr(inode, attr);
-+		generic_setattr(inode, attr);
- 
- 	return error;
- }
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 6a13ea6..06fd85c 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1052,17 +1052,17 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 	}
- 
- 	/*
--	 * This will intentionally not wind up calling simple_setsize(),
--	 * since all the work for a size change has been done above.
--	 * Otherwise, we could get into problems with truncate as
--	 * ip_alloc_sem is used there to protect against i_size
--	 * changes.
-+	 * Since all the work for a size change has been done above,
-+	 * we only need to call simple_setsize to update i_size.
- 	 */
--	status = inode_setattr(inode, attr);
--	if (status < 0) {
--		mlog_errno(status);
--		goto bail_commit;
-+	if (attr->ia_valid & ATTR_SIZE) {
-+		status = simple_setsize(inode, attr->ia_size);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail_commit;
-+		}
- 	}
-+	generic_setattr(inode, attr);
- 
- 	status = ocfs2_mark_inode_dirty(handle, inode, bh);
- 	if (status < 0)
--- 
-1.5.5
+Tao Ma wrote:
+> In commit 6b82021b9e91cd689fdffadbcdb9a42597bbe764, we increase
+> our local alloc size and calculate how much megabytes we can
+> get according to group size and volume size.
+> But we also need to check the maximum bits a local alloc block
+> bitmap can have. With a bs=512, cs=32K, local volume with 160G,
+> it calculate 96MB while the maximum local alloc size is only
+> 76M. So the bitmap will overflow and corrupt the system truncate
+> log file. See bug
+> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1262
+>
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> ---
+>  fs/ocfs2/localalloc.c |    7 +++++++
+>  1 files changed, 7 insertions(+), 0 deletions(-)
+>
+> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+> index 3d74196..ec6adbf 100644
+> --- a/fs/ocfs2/localalloc.c
+> +++ b/fs/ocfs2/localalloc.c
+> @@ -118,6 +118,7 @@ unsigned int ocfs2_la_default_mb(struct ocfs2_super *osb)
+>  {
+>  	unsigned int la_mb;
+>  	unsigned int gd_mb;
+> +	unsigned int la_max_mb;
+>  	unsigned int megs_per_slot;
+>  	struct super_block *sb = osb->sb;
+>  
+> @@ -182,6 +183,12 @@ unsigned int ocfs2_la_default_mb(struct ocfs2_super *osb)
+>  	if (megs_per_slot < la_mb)
+>  		la_mb = megs_per_slot;
+>  
+> +	/* We can't store more bits than we can in a block. */
+> +	la_max_mb = ocfs2_clusters_to_megabytes(osb->sb,
+> +						ocfs2_local_alloc_size(sb) * 8);
+> +	if (la_mb > la_max_mb)
+> +		la_mb = la_max_mb;
+> +
+>  	return la_mb;
+>  }
+>  
