@@ -1,43 +1,74 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 11 Jun 2010 18:26:50 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove unreasonable BUG_ON()
-In-Reply-To: <4BFC86F7.6030406@oracle.com>
-References: <201005251058.o4PAhNOK013998@acsinet15.oracle.com>
-	<4BFC0744.6050804@oracle.com>
-	<20100526015417.GA2537@laptop.us.oracle.com>
-	<4BFC86F7.6030406@oracle.com>
-Message-ID: <20100611102650.GB3990@laptop.us.oracle.com>
+Date: Fri, 11 Jun 2010 18:27:34 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: the mig_request could be for
+ recovery
+In-Reply-To: <201005251302.o4P6ns6T017115@rcsinet13.oracle.com>
+References: <201005251302.o4P6ns6T017115@rcsinet13.oracle.com>
+Message-ID: <20100611102734.GC3990@laptop.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10-05-25 19:27, Sunil Mushran wrote:
-> On 05/25/2010 06:54 PM, Wengang Wang wrote:
-> >On 10-05-25 10:22, Sunil Mushran wrote:
-> >>NAK
-> >>
-> >>How did this lockres get into the dirty list? The dlm only adds locks that
-> >>it owns to that list. And such locks, by definition, can never be in the
-> >>recovery list.
-> >Yes that my description is not good.
-> >
-> >Actually, I hit the BUG_ON(res->owner != dlm->node_num); during some tests.
-> >
-> >When an recovery happened, the lockres' that is owned by the "dead" node is
-> >marked as in recovery and the owner is set as unknown. But note that a lockres
-> >owned by this node can also be marked as in recovery(and owner changed to
-> >unknown). That can happen when a migration for the lockres is in progress with
-> >the "dead" node. see dlm_clean_master_list().
-> >
-> >So it's that the owner changed from dlm->node_num to unknown when the
-> >lockres is already on the list.
-> 
-> Ok. That needs fixing. But it's a lot more involved than this. I had
-> discussed this with Srini some time back.
-
-Any detail will follow?
+Any comment?
 
 regards,
 wengang.
+On 10-05-25 21:01, Wengang Wang wrote:
+> I hit a bug, it's the BUG_ON() in
+> 
+> 1780                  * do not allocate a new lock structure. */
+> 1781                 if (ml->node == dlm->node_num) {
+> 1782                         /* MIGRATION ONLY! */
+> 1783                         BUG_ON(!(mres->flags & DLM_MRES_MIGRATION));
+> 1784    
+> 1785                         spin_lock(&res->spinlock);
+> 
+> in dlm_process_recovery_data().
+> 
+> I think it's possible it's a mig_request for recovery in the following case:
+> 
+> 1) Node A and node  B have ref on lockres A mastered by node C. So on node C
+> the is a lock on behalf of A, lock A, on lockres A.
+> 2) For umount, node C is migrating lockres A to node B. the migration mle,
+> master being node C, new master being node B, is created and added to mle
+> hashtable.
+> 3) Node B "down". Node A is the recovery master. On node C, lockres A also become
+> the object to recovery because it's during migration and the new master is the
+> "down" node B.
+> 4) Node C send mig_request request(for recovery) to node A for lockres A including
+> lock A.
+> 5) receiving the mig_request from node C(for recovery), node A BUG()ed because of
+> lock A.
+> 
+> fix:
+> removing the BUG_ON() is OK.
+> 
+> Well, I can't reproduce the bug. So didn't test the fix.
+> 
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> ---
+>  fs/ocfs2/dlm/dlmrecovery.c |    1 -
+>  1 files changed, 0 insertions(+), 1 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index b4f99de..03f17d5 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -1780,7 +1780,6 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+>  		 * do not allocate a new lock structure. */
+>  		if (ml->node == dlm->node_num) {
+>  			/* MIGRATION ONLY! */
+> -			BUG_ON(!(mres->flags & DLM_MRES_MIGRATION));
+>  
+>  			spin_lock(&res->spinlock);
+>  			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+> -- 
+> 1.6.6.1
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
