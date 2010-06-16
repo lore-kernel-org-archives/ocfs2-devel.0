@@ -1,67 +1,60 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 16 Jun 2010 14:52:55 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove potential deadlock
-Message-ID: <201006160654.o5G1s1E0006164@acsinet15.oracle.com>
+Date: Wed, 16 Jun 2010 15:39:30 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: delay the migration when the
+ lockres is in recovery
+In-Reply-To: <4C18746A.90908@oracle.com>
+References: <201005250801.o4P6iFtZ005833@acsinet15.oracle.com>
+	<20100611102551.GA3990@laptop.us.oracle.com>
+	<4C18746A.90908@oracle.com>
+Message-ID: <20100616073930.GA3298@laptop.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When we need to take both dlm_domain_lock and dlm->spinlock, we should take
-them in order of:
-dlm_domain_lock then dlm->spinlock.
+On 10-06-15 23:51, Srinivas Eeda wrote:
+>patch looks good, it fixes the umount code path which prevents a lockres
+>from migrating if it needs to be recovered. I have few comments on the
+>scenario you described.
+>
+> On 10-05-25 15:59, Wengang Wang wrote:
+>   
+>> We shouldn't migrate a lockres in recovery state.
+>> Otherwise, it has the following problem:
+>>
+>> 1) Recovery happened as recovery master on a node(node A) which is in
+>> umount
+>> migrating all lockres' it owned(master is node A) to other nodes, say
+>> a node B.
+>> 2) So node A wants to take over all the lockres' those are mastered
+>> by the
+>> crashed node C. 
+>> 3) Receiving request_locks request from node A, node B send
+>> mig_lockres
+>> requests(for recovery) to node A for all lockres' that was mastered
+>> by the
+>> crashed node C. It can also send the request for a lockres(lockres A)
+>> which is
+>> not in node A's hashtable.
+>>     
+>why wouldn't lockres A be in node A's hashtable? if it's not in hash
+>table, then it won't be migratable
 
-There is pathes disobey this order. That is calling dlm_lockres_put with dlm->
-spinlock held. dlm_lockres_put() finally calls dlm_put() which take
-dlm_domain_lock.
+In step 3), I am talking about the recovery process of node A(not the
+migration for umount).
+Before node C crashes, the master of lockres A is node B. Node C has a ref
+on lockres A, but node A doesn't know anything about lockres A.
+Now node C crashed, node A is requesting(from node B) all lockres' that's
+owned by the crashed node(node C) and those which is in progress of migrating
+with the crashed node. Here lockres A is such a lockres that is in progress of
+migration from node B to node C when node C crashed. So node B can send lockres
+A, which is not in node A's hashtable before, to node A.
 
-The fix is moving the locking on dlm_domain_lock to dlm_ctxt_release() from
-dlm_put(). dlm_ctxt_release() is only called on the release of the last
-reference. Any path should not be holding dlm->spinlock when dropping the "last"
-reference.
+see dlm_clean_master_list(). It's moving lockres A to recovery list.
+mle->new_master == dead_node
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
----
- fs/ocfs2/dlm/dlmdomain.c |   12 ++++--------
- 1 files changed, 4 insertions(+), 8 deletions(-)
+Hope my description is clear :)
 
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index ab82add..754baf2 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -321,28 +321,24 @@ static void dlm_ctxt_release(struct kref *kref)
- 
- 	dlm = container_of(kref, struct dlm_ctxt, dlm_refs);
- 
-+	if (spin_is_locked(&dlm->spinlock))
-+		BUG();
- 	BUG_ON(dlm->num_joins);
- 	BUG_ON(dlm->dlm_state == DLM_CTXT_JOINED);
- 
-+	spin_lock(&dlm_domain_lock);
- 	/* we may still be in the list if we hit an error during join. */
- 	list_del_init(&dlm->list);
--
- 	spin_unlock(&dlm_domain_lock);
- 
--	mlog(0, "freeing memory from domain %s\n", dlm->name);
--
- 	wake_up(&dlm_domain_events);
--
-+	mlog(0, "freeing memory from domain %s\n", dlm->name);
- 	dlm_free_ctxt_mem(dlm);
--
--	spin_lock(&dlm_domain_lock);
- }
- 
- void dlm_put(struct dlm_ctxt *dlm)
- {
--	spin_lock(&dlm_domain_lock);
- 	kref_put(&dlm->dlm_refs, dlm_ctxt_release);
--	spin_unlock(&dlm_domain_lock);
- }
- 
- static void __dlm_get(struct dlm_ctxt *dlm)
--- 
-1.6.6.1
+regards,
+wengang.
