@@ -1,54 +1,67 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 15 Jun 2010 16:47:11 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Move orphan scan work to ocfs2_wq.
-In-Reply-To: <1275027779-10371-1-git-send-email-tao.ma@oracle.com>
-References: <1275027779-10371-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100615234711.GF30497@mail.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Wed, 16 Jun 2010 12:08:42 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: check dlm_state under spinlock
+Message-ID: <201006160409.o5G1dABa012133@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, May 28, 2010 at 02:22:59PM +0800, Tao Ma wrote:
-> We used to let orphan scan work in the default work queue,
-> but there is a corner case which will make the system deadlock.
-> The scenario is like this:
-> 1. set heartbeat threadshold to 200. this will allow us to have a
->    great chance to have a orphan scan work before our quorum decision.
-> 2. mount node 1.
-> 3. after 1~2 minutes, mount node 2(in order to make the bug easier
->    to reproduce, better add maxcpus=1 to kernel command line).
-> 4. node 1 do orphan scan work.
-> 5. node 2 do orphan scan work.
-> 6. node 1 do orphan scan work. After this, node 1 hold the orphan scan
->    lock while node 2 know node 1 is the master.
-> 7. ifdown eth2 in node 2(eth2 is what we do ocfs2 interconnection).
-> 
-> Now when node 2 begins orphan scan, the system queue is blocked.
-> 
-> The root cause is that both orphan scan work and quorum decision work
-> will use the system event work queue. orphan scan has a chance of
-> blocking the event work queue(in dlm_wait_for_node_death) so that there
-> is no chance for quorum decision work to proceed.
-> 
-> This patch resolve it by moving orphan scan work to ocfs2_wq.
-> 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+We should check dlm->dlm_state under dlm->spinlock though maybe in this case it
+doesn't hurt.
 
-This patch is now in the 'fixes' branch of ocfs2.git
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmdomain.c |   13 ++++++-------
+ 1 files changed, 6 insertions(+), 7 deletions(-)
 
-Joel
-
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 6b5a492..ab82add 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -796,7 +796,7 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	spin_lock(&dlm_domain_lock);
+ 	dlm = __dlm_lookup_domain_full(query->domain, query->name_len);
+ 	if (!dlm)
+-		goto unlock_respond;
++		goto unlock_domain_respond;
+ 
+ 	/*
+ 	 * There is a small window where the joining node may not see the
+@@ -811,7 +811,7 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
+ 				     "have node %u in its nodemap\n",
+ 				     query->node_idx, nodenum);
+ 				packet.code = JOIN_DISALLOW;
+-				goto unlock_respond;
++				goto unlock_domain_respond;
+ 			}
+ 		}
+ 		nodenum++;
+@@ -821,9 +821,9 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	 * to be put in someone's domain map.
+ 	 * Also, explicitly disallow joining at certain troublesome
+ 	 * times (ie. during recovery). */
+-	if (dlm && dlm->dlm_state != DLM_CTXT_LEAVING) {
++	spin_lock(&dlm->spinlock);
++	if (dlm->dlm_state != DLM_CTXT_LEAVING) {
+ 		int bit = query->node_idx;
+-		spin_lock(&dlm->spinlock);
+ 
+ 		if (dlm->dlm_state == DLM_CTXT_NEW &&
+ 		    dlm->joining_node == DLM_LOCK_RES_OWNER_UNKNOWN) {
+@@ -869,10 +869,9 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
+ 				__dlm_set_joining_node(dlm, query->node_idx);
+ 			}
+ 		}
+-
+-		spin_unlock(&dlm->spinlock);
+ 	}
+-unlock_respond:
++	spin_unlock(&dlm->spinlock);
++unlock_domain_respond:
+ 	spin_unlock(&dlm_domain_lock);
+ 
+ respond:
 -- 
-
-"The one important thing i have learned over the years is the
- difference between taking one's work seriously and taking one's self
- seriously.  The first is imperative and the second is disastrous."
-	-Margot Fonteyn
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.6.6.1
