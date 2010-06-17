@@ -1,59 +1,60 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Thu, 17 Jun 2010 09:56:57 -0700
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 17 Jun 2010 12:28:06 -0700
 Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2 fix o2dlm dlm run purgelist
-In-Reply-To: <4C1A3A05.10704@oracle.com>
+In-Reply-To: <4C1A35C6.1060705@oracle.com>
 References: <1276663383-8238-1-git-send-email-srinivas.eeda@oracle.com>
-	<20100616060615.GB2895@laptop.us.oracle.com>
-	<4C1A3A05.10704@oracle.com>
-Message-ID: <4C1A53D9.6010200@oracle.com>
+	<4C197E0B.1060103@oracle.com>
+	<20100617083216.GA17748@mail.oracle.com>
+	<4C19DE3E.9080701@oracle.com> <4C1A35C6.1060705@oracle.com>
+Message-ID: <20100617192805.GA7981@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sunil,
+On Thu, Jun 17, 2010 at 07:48:38AM -0700, Sunil Mushran wrote:
+> On 06/17/2010 01:35 AM, Srinivas Eeda wrote:
+> >On 6/17/2010 1:32 AM, Joel Becker wrote:
+> >>	As far as I can tell from reading the code, the time_after()
+> >>check is because they are time ordered.  Wouldn't moving it to the end
+> >>violate that?
+> >right. that's why I didn't want to move used lockres to tail :)
+> 
+> 
+> No. There is no need for time ordering. Or, am I missing something?
+> 
+> We delay the purge incase the file system changes its mind and wants
+> to reuse it. By delaying, we hold onto the mastery information. That's it.
 
-as of now, there is still a window in dlm_get_lock_resource, where it 
-finds the lockres but it doesn't protect it from getting purged. Second 
-patch fixes this by marking it in_use, can you please review that one as 
-well.
+	The comment is right there:
 
-Thanks,
---Srini
+                    /* Since resources are added to the purge list
+                     * in tail order, we can stop at the first
+                     * unpurgable resource -- anyone added after
+                     * him will have a greater last_used value */
+                    break;
 
-On 6/17/2010 8:06 AM, Sunil Mushran wrote:
-> On 06/15/2010 11:06 PM, Wengang Wang wrote:
->> still the question.
->> If you have sent DEREF request to the master, and the lockres became 
->> in-use
->> again, then the lockres remains in the hash table and also in the 
->> purge list.
->> So
->> 1) If this node is the last ref, there is a possibility that the master
->> purged the lockres after receiving DEREF request from this node. In this
->> case, when this node does dlmlock_remote(), the lockres won't be 
->> found on the
->> master. How to deal with it?
->>
->> 2) The lockres on this node is going to be purged again, it means it 
->> will send
->> secondary DEREFs to the master. This is not good I think.
->>
->> A thought is setting lockres->owner to DLM_LOCK_RES_OWNER_UNKNOWN after
->> sending a DEREF request againt this lockres. Also redo master reqeust
->> before locking on it.
->>    
->
-> The fix we are working towards is to ensure that we set
-> DLM_LOCK_RES_DROPPING_REF once we are determined
-> to purge the lockres. As in, we should not let go of the spinlock
-> before we have either set the flag or decided against purging
-> that resource.
->
-> Once the flag is set, new users looking up the resource via
-> dlm_get_lock_resource() will notice the flag and will then wait
-> for that flag to be cleared before looking up the lockres hash
-> again. If all goes well, the lockres will not be found (because it
-> has since been unhashed) and it will be forced to go thru the
-> full mastery process.
+So we're going to break out of this loop as soon we see a later time.
+Anything you've moved to the back will be ignored until enough time
+passes that the things in front of it are candidates for purge.
+	You could, of course, just change the 'break' to a 'continue'
+and find those, but I kind of like the short-circuit behavior.  I don't
+know how long this list is, but walking a whole bunch of "not yet"
+lockreses just to hopefully find one at the end seems silly.
+	I think it is better to leave the busy ones at the front of the
+list and just walk past them if they can't be dealt with now.
+
+Joel
+
+-- 
+
+Life's Little Instruction Book #157 
+
+	"Take time to smell the roses."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
