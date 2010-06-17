@@ -1,273 +1,64 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Thu, 17 Jun 2010 01:53:35 -0700
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 17 Jun 2010 02:08:58 -0700
 Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2 fix o2dlm dlm run purgelist
-In-Reply-To: <20100616060615.GB2895@laptop.us.oracle.com>
+In-Reply-To: <4C19DDBB.7060704@oracle.com>
 References: <1276663383-8238-1-git-send-email-srinivas.eeda@oracle.com>
-	<20100616060615.GB2895@laptop.us.oracle.com>
-Message-ID: <4C19E28F.2030006@oracle.com>
+	<20100617013930.GA14014@mail.oracle.com>
+	<4C19DDBB.7060704@oracle.com>
+Message-ID: <20100617090858.GB17748@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 6/15/2010 11:06 PM, Wengang Wang wrote:
-> still the question.
-> If you have sent DEREF request to the master, and the lockres became in-use
-> again, then the lockres remains in the hash table and also in the purge list.
-> So
->   
-Yes, that's a possibility. But there is not much we could do to cover 
-that window other than making the non master nodes to avoid such races. 
-Patch 2/2 fixes one such race.
-> 1) If this node is the last ref, there is a possibility that the master
-> purged the lockres after receiving DEREF request from this node. In this
-> case, when this node does dlmlock_remote(), the lockres won't be found on the
-> master. How to deal with it?
->   
-patch 2/2 fixes this race. dlm_get_lock_resource will either wait for 
-the lockres to get purged and starts everything fresh or marks the 
-lockres in use so dlm_thread won't purge it.
-> 2) The lockres on this node is going to be purged again, it means it will send
-> secondary DEREFs to the master. This is not good I think.
->   
-right, not a good idea to send deref again. We have to fix those cases.
-> A thought is setting lockres->owner to DLM_LOCK_RES_OWNER_UNKNOWN after
-> sending a DEREF request againt this lockres. Also redo master reqeust
-> before locking on it.
->   
-if you are referring to the hole in dlmlock_remote, patch 2/2 fixes it. 
-Please review that patch and let me know :)
-> Regards,
-> wengang.
-> On 10-06-15 21:43, Srinivas Eeda wrote:
->   
->> There are two problems in dlm_run_purgelist
->>
->> 1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
->> the same lockres instead of trying the next lockres.
->>
->> 2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
->> before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
->> spinlock is reacquired but in this window lockres can get reused. This leads
->> to BUG.
->>
->> This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
->>  next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
->> lockres spinlock protecting it from getting reused.
->>
->> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
->> ---
->>  fs/ocfs2/dlm/dlmthread.c |  125 +++++++++++++++++++++++-----------------------
->>  1 files changed, 63 insertions(+), 62 deletions(-)
->>
->> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
->> index 11a6d1f..fb0be6c 100644
->> --- a/fs/ocfs2/dlm/dlmthread.c
->> +++ b/fs/ocfs2/dlm/dlmthread.c
->> @@ -158,39 +158,17 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
->>  	int master;
->>  	int ret = 0;
->>  
->> -	spin_lock(&res->spinlock);
->> -	if (!__dlm_lockres_unused(res)) {
->> -		mlog(0, "%s:%.*s: tried to purge but not unused\n",
->> -		     dlm->name, res->lockname.len, res->lockname.name);
->> -		__dlm_print_one_lock_resource(res);
->> -		spin_unlock(&res->spinlock);
->> -		BUG();
->> -	}
->> -
->> -	if (res->state & DLM_LOCK_RES_MIGRATING) {
->> -		mlog(0, "%s:%.*s: Delay dropref as this lockres is "
->> -		     "being remastered\n", dlm->name, res->lockname.len,
->> -		     res->lockname.name);
->> -		/* Re-add the lockres to the end of the purge list */
->> -		if (!list_empty(&res->purge)) {
->> -			list_del_init(&res->purge);
->> -			list_add_tail(&res->purge, &dlm->purge_list);
->> -		}
->> -		spin_unlock(&res->spinlock);
->> -		return 0;
->> -	}
->> -
->>  	master = (res->owner == dlm->node_num);
->>  
->>  	if (!master)
->>  		res->state |= DLM_LOCK_RES_DROPPING_REF;
->> -	spin_unlock(&res->spinlock);
->>  
->>  	mlog(0, "purging lockres %.*s, master = %d\n", res->lockname.len,
->>  	     res->lockname.name, master);
->>  
->>  	if (!master) {
->>  		/* drop spinlock...  retake below */
->> +		spin_unlock(&res->spinlock);
->>  		spin_unlock(&dlm->spinlock);
->>  
->>  		spin_lock(&res->spinlock);
->> @@ -208,48 +186,37 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
->>  		mlog(0, "%s:%.*s: dlm_deref_lockres returned %d\n",
->>  		     dlm->name, res->lockname.len, res->lockname.name, ret);
->>  		spin_lock(&dlm->spinlock);
->> +		spin_lock(&res->spinlock);
->>  	}
->>  
->> -	spin_lock(&res->spinlock);
->> -	if (!list_empty(&res->purge)) {
->> -		mlog(0, "removing lockres %.*s:%p from purgelist, "
->> -		     "master = %d\n", res->lockname.len, res->lockname.name,
->> -		     res, master);
->> -		list_del_init(&res->purge);
->> -		spin_unlock(&res->spinlock);
->> -		dlm_lockres_put(res);
->> -		dlm->purge_count--;
->> -	} else
->> -		spin_unlock(&res->spinlock);
->> -
->> -	__dlm_unhash_lockres(res);
->> -
->>  	/* lockres is not in the hash now.  drop the flag and wake up
->>  	 * any processes waiting in dlm_get_lock_resource. */
->> -	if (!master) {
->> -		spin_lock(&res->spinlock);
->> +	if (!master)
->>  		res->state &= ~DLM_LOCK_RES_DROPPING_REF;
->> -		spin_unlock(&res->spinlock);
->> -		wake_up(&res->wq);
->> -	}
->>  	return 0;
->>  }
->>  
->>  static void dlm_run_purge_list(struct dlm_ctxt *dlm,
->>  			       int purge_now)
->>  {
->> -	unsigned int run_max, unused;
->> +	unsigned int run_max;
->>  	unsigned long purge_jiffies;
->>  	struct dlm_lock_resource *lockres;
->> +	struct dlm_lock_resource *nextres;
->>  
->>  	spin_lock(&dlm->spinlock);
->>  	run_max = dlm->purge_count;
->>  
->> -	while(run_max && !list_empty(&dlm->purge_list)) {
->> -		run_max--;
->> +	if (list_empty(&dlm->purge_list)) {
->> +		spin_unlock(&dlm->spinlock);
->> +		return;
->> +	}
->> +
->> +	lockres = list_entry(dlm->purge_list.next,
->> +			     struct dlm_lock_resource, purge);
->>  
->> -		lockres = list_entry(dlm->purge_list.next,
->> -				     struct dlm_lock_resource, purge);
->> +	while(run_max && lockres && !list_empty(&dlm->purge_list)) {
->> +		run_max--;
->>  
->>  		/* Status of the lockres *might* change so double
->>  		 * check. If the lockres is unused, holding the dlm
->> @@ -257,15 +224,12 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
->>  		 * refs on it -- there's no need to keep the lockres
->>  		 * spinlock. */
->>  		spin_lock(&lockres->spinlock);
->> -		unused = __dlm_lockres_unused(lockres);
->> -		spin_unlock(&lockres->spinlock);
->> -
->> -		if (!unused)
->> -			continue;
->>  
->>  		purge_jiffies = lockres->last_used +
->>  			msecs_to_jiffies(DLM_PURGE_INTERVAL_MS);
->>  
->> +		mlog(0, "purging lockres %.*s\n", lockres->lockname.len,
->> +		     lockres->lockname.name);
->>  		/* Make sure that we want to be processing this guy at
->>  		 * this time. */
->>  		if (!purge_now && time_after(purge_jiffies, jiffies)) {
->> @@ -273,20 +237,57 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
->>  			 * in tail order, we can stop at the first
->>  			 * unpurgable resource -- anyone added after
->>  			 * him will have a greater last_used value */
->> +			spin_unlock(&lockres->spinlock);
->>  			break;
->>  		}
->>  
->> -		dlm_lockres_get(lockres);
->> -
->> +		/* If lockres is being used, or migrating purge next lockres */
->> +		if (!__dlm_lockres_unused(lockres) ||
->> +		    (lockres->state & DLM_LOCK_RES_MIGRATING)) {
->> +			if (!list_is_last(&lockres->purge, &dlm->purge_list))
->> +				nextres = list_entry(lockres->purge.next,
->> +					     struct dlm_lock_resource, purge);
->> +			else
->> +				nextres = NULL;
->> +			spin_unlock(&lockres->spinlock);
->> +			lockres = nextres;
->> +			continue;
->> +		}
->> +		
->>  		/* This may drop and reacquire the dlm spinlock if it
->>  		 * has to do migration. */
->> -		if (dlm_purge_lockres(dlm, lockres))
->> -			BUG();
->> -
->> -		dlm_lockres_put(lockres);
->> -
->> -		/* Avoid adding any scheduling latencies */
->> -		cond_resched_lock(&dlm->spinlock);
->> +		dlm_purge_lockres(dlm, lockres);
->> +		
->> +		/* before we free the lockres we get the next lockres */
->> +		if (list_empty(&lockres->purge))
->> +			/* Shouldn't be in this state. Start from beginning */
->> +			nextres = list_entry(dlm->purge_list.next,
->> +					     struct dlm_lock_resource, purge);
->> +		else if (!list_is_last(&lockres->purge, &dlm->purge_list))
->> +			nextres = list_entry(lockres->purge.next,
->> +					     struct dlm_lock_resource, purge);
->> +		else
->> +			nextres = NULL;
->> +
->> +		if (__dlm_lockres_unused(lockres)) {
->> +			if (!list_empty(&lockres->purge)) {
->> +				list_del_init(&lockres->purge);
->> +				dlm->purge_count--;
->> +			}
->> +			__dlm_unhash_lockres(lockres);
->> +			spin_unlock(&lockres->spinlock);
->> +			wake_up(&lockres->wq);
->> +			dlm_lockres_put(lockres);
->> +		} else
->> +			spin_unlock(&lockres->spinlock);
->> +		lockres = nextres;
->> +
->> +		/* Avoid adding any scheduling latencies. If dlm spinlock is
->> +		 * dropped, retry again from the beginning as purgelist could
->> +		 * have been modified */
->> +		if (cond_resched_lock(&dlm->spinlock))
->> +			lockres = list_entry(dlm->purge_list.next,
->> +					     struct dlm_lock_resource, purge);
->>  	}
->>  
->>  	spin_unlock(&dlm->spinlock);
->> @@ -733,7 +734,7 @@ in_progress:
->>  			/* unlikely, but we may need to give time to
->>  			 * other tasks */
->>  			if (!--n) {
->> -				mlog(0, "throttling dlm_thread\n");
->> +				mlog(0, "throttling dlm_thread n=%d\n", n);
->>  				break;
->>  			}
->>  		}
->> -- 
->> 1.5.6.5
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>     
+On Thu, Jun 17, 2010 at 01:32:59AM -0700, Srinivas Eeda wrote:
+> On 6/16/2010 6:39 PM, Joel Becker wrote:
+> As of today, we always get the lockres from the head of the
+> dlm->purge_list. If it is in use, we keep trying. If that gets
+> purged, we move to next res which again would be on the head of the
+> dlm->purge_list. But with my change that won't be the case. If first
+> (few) lockres are in use, we will try the one we could purge. So we
+> should get the next lockres before list_del_init(&res->purge)
+> happens and hence I moved the code. If you didn't like the delete
+> code in dlm_run_purge_list, then we have to make dlm_purge_lockres
+> to return the next lockres that should get purged.
+
+	Or it does everything but the delete, and then you have
+run_purge_list do the delete right after returning when the return code
+is zero.  My problem wasn't that you moved the delete, it was that you
+moved all the other checks and things.
+
+> If you are suggesting that we move the lockres to the tail if we
+> found it in use, then the code will be lot more readable. The
+> current code doesn't move the unused lockres to tail, so wanted to
+> preserve that logic as I am not sure what was the original intent.
+> If move used lockres to tail, would you suggest we also update
+> lockres->last_used?
+
+	Like I responded to Sunil, it sure looks like the code wants the
+same order.  If moving to the end is safe, that's obviously the best
+answer.
+
+> what would list_entry return, if the lockres was the last on the
+> list. I was thinking it would return something random ..
+
+	It returns the head of the list.  These are doubly-linked lists.
+list_empty() actually checks whether head->next == head.  You can just
+have the while loop say "while (lockres->list != head)" to exit at the last
+item.  Then when you say 'lockres = list_entry(lockres->next);
+continue;", the while loop exits properly at the end of the list.
+
+Joel
+
+-- 
+
+Life's Little Instruction Book #198
+
+	"Feed a stranger's expired parking meter."
+
+Joel Becker
+Principal Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
