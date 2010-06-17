@@ -1,64 +1,58 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 17 Jun 2010 02:08:58 -0700
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 17 Jun 2010 19:05:48 +0800
 Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2 fix o2dlm dlm run purgelist
-In-Reply-To: <4C19DDBB.7060704@oracle.com>
+In-Reply-To: <4C19E28F.2030006@oracle.com>
 References: <1276663383-8238-1-git-send-email-srinivas.eeda@oracle.com>
-	<20100617013930.GA14014@mail.oracle.com>
-	<4C19DDBB.7060704@oracle.com>
-Message-ID: <20100617090858.GB17748@mail.oracle.com>
+	<20100616060615.GB2895@laptop.us.oracle.com>
+	<4C19E28F.2030006@oracle.com>
+Message-ID: <20100617110548.GA3178@laptop.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jun 17, 2010 at 01:32:59AM -0700, Srinivas Eeda wrote:
-> On 6/16/2010 6:39 PM, Joel Becker wrote:
-> As of today, we always get the lockres from the head of the
-> dlm->purge_list. If it is in use, we keep trying. If that gets
-> purged, we move to next res which again would be on the head of the
-> dlm->purge_list. But with my change that won't be the case. If first
-> (few) lockres are in use, we will try the one we could purge. So we
-> should get the next lockres before list_del_init(&res->purge)
-> happens and hence I moved the code. If you didn't like the delete
-> code in dlm_run_purge_list, then we have to make dlm_purge_lockres
-> to return the next lockres that should get purged.
+On 10-06-17 01:53, Srinivas Eeda wrote:
+> On 6/15/2010 11:06 PM, Wengang Wang wrote:
+> >still the question.
+> >If you have sent DEREF request to the master, and the lockres became in-use
+> >again, then the lockres remains in the hash table and also in the purge list.
+> >So
+> Yes, that's a possibility. But there is not much we could do to
+> cover that window other than making the non master nodes to avoid
+> such races. Patch 2/2 fixes one such race.
 
-	Or it does everything but the delete, and then you have
-run_purge_list do the delete right after returning when the return code
-is zero.  My problem wasn't that you moved the delete, it was that you
-moved all the other checks and things.
+Yes, we should make non master nodes to avoid such races. But you only
+fixed one of such races by patch 2/2 :).
+And probably we can't make sure how many such races there. A know case is
+dlm_mig_lockres_handler(). We dropped dlm->spinlock and res->spinlock after
+dlm_lookup_lockres(). Here it can be set DROPPING_REF state in dlm_thread().
+dlm_thread() then drop the spinlocks and set deref msg. Before dlm_thread()
+take the spinlocks back, dlm_mig_lockres_handler() continues, A lock(s) is
+added to the lockres. The lockres became in use then. dlm_thread() take
+back the spinlocks, found the lockres is in use, keep it in hashtable and in
+purge list.
 
-> If you are suggesting that we move the lockres to the tail if we
-> found it in use, then the code will be lot more readable. The
-> current code doesn't move the unused lockres to tail, so wanted to
-> preserve that logic as I am not sure what was the original intent.
-> If move used lockres to tail, would you suggest we also update
-> lockres->last_used?
+Your patch 2/2 fixes that problem well.
+So far I have no good idea to fix all such potential races..
 
-	Like I responded to Sunil, it sure looks like the code wants the
-same order.  If moving to the end is safe, that's obviously the best
-answer.
+regards,
+wengang.
 
-> what would list_entry return, if the lockres was the last on the
-> list. I was thinking it would return something random ..
-
-	It returns the head of the list.  These are doubly-linked lists.
-list_empty() actually checks whether head->next == head.  You can just
-have the while loop say "while (lockres->list != head)" to exit at the last
-item.  Then when you say 'lockres = list_entry(lockres->next);
-continue;", the while loop exits properly at the end of the list.
-
-Joel
-
--- 
-
-Life's Little Instruction Book #198
-
-	"Feed a stranger's expired parking meter."
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+> >1) If this node is the last ref, there is a possibility that the master
+> >purged the lockres after receiving DEREF request from this node. In this
+> >case, when this node does dlmlock_remote(), the lockres won't be found on the
+> >master. How to deal with it?
+> patch 2/2 fixes this race. dlm_get_lock_resource will either wait
+> for the lockres to get purged and starts everything fresh or marks
+> the lockres in use so dlm_thread won't purge it.
+> >2) The lockres on this node is going to be purged again, it means it will send
+> >secondary DEREFs to the master. This is not good I think.
+> right, not a good idea to send deref again. We have to fix those cases.
+> >A thought is setting lockres->owner to DLM_LOCK_RES_OWNER_UNKNOWN after
+> >sending a DEREF request againt this lockres. Also redo master reqeust
+> >before locking on it.
+> if you are referring to the hole in dlmlock_remote, patch 2/2 fixes
+> it. Please review that patch and let me know :)
+> >Regards,
+> >wengang.
