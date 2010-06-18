@@ -1,62 +1,28 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 18 Jun 2010 10:37:38 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2 fix o2dlm dlm run purgelist
-In-Reply-To: <4C1A3A05.10704@oracle.com>
-References: <1276663383-8238-1-git-send-email-srinivas.eeda@oracle.com>
-	<20100616060615.GB2895@laptop.us.oracle.com>
-	<4C1A3A05.10704@oracle.com>
-Message-ID: <20100618023738.GA2483@laptop.us.oracle.com>
+Date: Fri, 18 Jun 2010 10:48:21 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: check dlm_state under spinlock
+In-Reply-To: <4C1ACD68.7070006@oracle.com>
+References: <201006160409.o5G1dABa012133@acsinet15.oracle.com>
+	<4C1ACD68.7070006@oracle.com>
+Message-ID: <20100618024821.GB2483@laptop.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10-06-17 08:06, Sunil Mushran wrote:
-> On 06/15/2010 11:06 PM, Wengang Wang wrote:
-> >still the question.
-> >If you have sent DEREF request to the master, and the lockres became in-use
-> >again, then the lockres remains in the hash table and also in the purge list.
-> >So
-> >1) If this node is the last ref, there is a possibility that the master
-> >purged the lockres after receiving DEREF request from this node. In this
-> >case, when this node does dlmlock_remote(), the lockres won't be found on the
-> >master. How to deal with it?
-> >
-> >2) The lockres on this node is going to be purged again, it means it will send
-> >secondary DEREFs to the master. This is not good I think.
-> >
-> >A thought is setting lockres->owner to DLM_LOCK_RES_OWNER_UNKNOWN after
-> >sending a DEREF request againt this lockres. Also redo master reqeust
-> >before locking on it.
+On 10-06-17 18:35, Sunil Mushran wrote:
+> On 06/15/2010 09:08 PM, Wengang Wang wrote:
+> >We should check dlm->dlm_state under dlm->spinlock though maybe in this case it
+> >doesn't hurt.
 > 
-> The fix we are working towards is to ensure that we set
-> DLM_LOCK_RES_DROPPING_REF once we are determined
-> to purge the lockres. As in, we should not let go of the spinlock
-> before we have either set the flag or decided against purging
-> that resource.
+> NAK.
 > 
-> Once the flag is set, new users looking up the resource via
-> dlm_get_lock_resource() will notice the flag and will then wait
-> for that flag to be cleared before looking up the lockres hash
-> again. If all goes well, the lockres will not be found (because it
-> has since been unhashed) and it will be forced to go thru the
-> full mastery process.
+> dlm->dlm_state is protected by dlm_domain_lock which is held at that time.
+> 
+>         /* NOTE: Next three are protected by dlm_domain_lock */
+>         struct kref dlm_refs;
+>         enum dlm_ctxt_state dlm_state;
+>         unsigned int num_joins;
 
-That is ideal.
-In many cases the lockres is not got via dlm_get_lock_resource(), but
-via dlm_lookup_lockres()/__dlm_lookup_lockres, which doesn't set the new
-IN-USE state, directly. dlm_lookup_lockres() takes and drops
-dlm->spinlock. And some of caller of __dlm_lookup_lockres() drops the
-spinlock as soon as it got the lockres. Such paths access the lockres
-later after dropping dlm->spinlock and res->spinlock.
-So there is a window that dlm_thread() get a chance to take the
-dlm->spinlock and res->spinlock and set the DROPPING_REF state.
-So whether new users can get the lockres depends on how "new" it is. If
-finds the lockres after DROPPING_REF state is set, sure it works well. But
-if it find it before DROPPING_REF is set, it won't protect the lockres
-from purging since even it "gets" the lockres, the lockres can still in
-unused state.
-
-regards,
-wengang.
+Yes, that's ture. thanks.
