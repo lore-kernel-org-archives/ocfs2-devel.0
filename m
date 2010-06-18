@@ -1,90 +1,183 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 18 Jun 2010 11:02:50 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: make xattr extension work with new
-	local alloc reservation.
-In-Reply-To: <4C1AE141.60707@oracle.com>
-References: <4C1AE141.60707@oracle.com>
-Message-ID: <1276830171-5908-1-git-send-email-tao.ma@oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Fri, 18 Jun 2010 10:02:00 -0500
+Subject: [Ocfs2-devel] [PATCH] Track negative dentries
+Message-ID: <AANLkTilwWhweSS4BxXZCQxCAicETuZ2rjFb_BHMM3YGZ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-New local alloc reservation can give us less clusters than
-what we want and ask us to restart the transaction, so let
-ocfs2_xattr_extend_allocation restart the transaction in
-this case.
+Track negative dentries by recording the generation number of the parent
+directory in d_fsdata. The generation number for the parent directory is
+recorded in the inode_info, which increments every time the lock on the
+directory is dropped.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+If the generation number of the parent directory and the negative dentry
+matches, there is no need to perform the revalidate, else a revalidate
+is forced. This improves performance in situations where nodes look for
+the same non-existent file multiple times.
+
+Thanks Mark for explaining the DLM sequence.
+
+Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
 ---
- fs/ocfs2/xattr.c |   33 +++++++++++++++++++++++++--------
- 1 files changed, 25 insertions(+), 8 deletions(-)
+diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
+index b4957c7..f29095b 100644
+--- a/fs/ocfs2/dcache.c
++++ b/fs/ocfs2/dcache.c
+@@ -40,6 +40,16 @@
+ #include "inode.h"
+ #include "super.h"
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index e97b348..894734b 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -709,7 +709,7 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
- 					 struct ocfs2_xattr_value_buf *vb,
- 					 struct ocfs2_xattr_set_ctxt *ctxt)
- {
--	int status = 0;
-+	int status = 0, credits;
- 	handle_t *handle = ctxt->handle;
- 	enum ocfs2_alloc_restarted why;
- 	u32 prev_clusters, logical_start = le32_to_cpu(vb->vb_xv->xr_clusters);
-@@ -719,6 +719,7 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
- 
- 	ocfs2_init_xattr_value_extent_tree(&et, INODE_CACHE(inode), vb);
- 
-+restarted_transaction:
- 	status = vb->vb_access(handle, INODE_CACHE(inode), vb->vb_bh,
- 			      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (status < 0) {
-@@ -735,8 +736,9 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
- 					     ctxt->data_ac,
- 					     ctxt->meta_ac,
- 					     &why);
--	if (status < 0) {
--		mlog_errno(status);
-+	if ((status < 0) && (status != -EAGAIN)) {
-+		if (status != -ENOSPC)
-+			mlog_errno(status);
- 		goto leave;
- 	}
- 
-@@ -744,11 +746,26 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
- 
- 	clusters_to_add -= le32_to_cpu(vb->vb_xv->xr_clusters) - prev_clusters;
- 
--	/*
--	 * We should have already allocated enough space before the transaction,
--	 * so no need to restart.
--	 */
--	BUG_ON(why != RESTART_NONE || clusters_to_add);
-+	if (why != RESTART_NONE && clusters_to_add) {
-+		/*
-+		 * We can only fail in case the alloc file doesn't give up
-+		 * enough clusters.
-+		 */
-+		BUG_ON(why == RESTART_META);
++void ocfs2_dentry_attach_gen(struct dentry *dentry)
++{
++	int *gen = (int *)kmalloc(sizeof(int), GFP_KERNEL);
++	*gen = OCFS2_I(dentry->d_parent->d_inode)->ip_generation;
++	/* Generation numbers are specifically for negative dentries */
++	if (dentry->d_inode)
++		BUG();
++	dentry->d_fsdata = (void *)gen;
++}
 +
-+		mlog(0, "restarting xattr value extension for %u clusters,.\n",
-+		     clusters_to_add);
-+		credits = ocfs2_calc_extend_credits(inode->i_sb,
-+						    &vb->vb_xv->xr_list,
-+						    clusters_to_add);
-+		status = ocfs2_extend_trans(handle, credits);
-+		if (status < 0) {
-+			status = -ENOMEM;
-+			mlog_errno(status);
-+			goto leave;
-+		}
-+		goto restarted_transaction;
+
+ static int ocfs2_dentry_revalidate(struct dentry *dentry,
+ 				   struct nameidata *nd)
+@@ -51,10 +61,21 @@ static int ocfs2_dentry_revalidate(struct dentry *dentry,
+ 	mlog_entry("(0x%p, '%.*s')\n", dentry,
+ 		   dentry->d_name.len, dentry->d_name.name);
+
+-	/* Never trust a negative dentry - force a new lookup. */
++	/* For a negative dentry -
++	   check the generation number of the parent and compare with the
++	   one stored in the inode.
++	   */
+ 	if (inode == NULL) {
+-		mlog(0, "negative dentry: %.*s\n", dentry->d_name.len,
+-		     dentry->d_name.name);
++		int *gen = (int *)dentry->d_fsdata;
++		int parent_gen =
++			OCFS2_I(dentry->d_parent->d_inode)->ip_generation;
++		mlog(0, "negative dentry: %.*s parent gen: %u dentry gen: %u\n",
++				dentry->d_name.len, dentry->d_name.name,
++				parent_gen, *gen);
++		if (*gen == parent_gen)
++			ret = 1;
++		else
++			*gen = parent_gen;
+ 		goto bail;
+ 	}
+
+@@ -227,6 +248,13 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
+ 	if (!inode)
+ 		return 0;
+
++	if (!dentry->d_inode && dentry->d_fsdata) {
++		/* Converting a negative dentry to positive
++		   Clear dentry->d_fsdata */
++		kfree(dentry->d_fsdata);
++		dentry->d_fsdata = dl = NULL;
 +	}
- 
- leave:
- 
++
+ 	if (dl) {
+ 		mlog_bug_on_msg(dl->dl_parent_blkno != parent_blkno,
+ 				" \"%.*s\": old parent: %llu, new: %llu\n",
+@@ -451,6 +479,8 @@ static void ocfs2_dentry_iput(struct dentry
+*dentry, struct inode *inode)
+ 	ocfs2_dentry_lock_put(OCFS2_SB(dentry->d_sb), dl);
+
+ out:
++	/* Attach generation number to dentry */
++	ocfs2_dentry_attach_gen(dentry);
+ 	iput(inode);
+ }
+
+@@ -500,7 +530,15 @@ out_move:
+ 	d_move(dentry, target);
+ }
+
++static void ocfs2_dentry_release(struct dentry *dentry)
++{
++	/* Free the generation number stored in negative dentry */
++	if (!dentry->d_inode && dentry->d_fsdata)
++		kfree(dentry->d_fsdata);
++}
++
+ const struct dentry_operations ocfs2_dentry_ops = {
+ 	.d_revalidate		= ocfs2_dentry_revalidate,
+ 	.d_iput			= ocfs2_dentry_iput,
++	.d_release		= ocfs2_dentry_release,
+ };
+diff --git a/fs/ocfs2/dcache.h b/fs/ocfs2/dcache.h
+index f5dd178..b79eff7 100644
+--- a/fs/ocfs2/dcache.h
++++ b/fs/ocfs2/dcache.h
+@@ -64,5 +64,6 @@ void ocfs2_dentry_move(struct dentry *dentry, struct
+dentry *target,
+ 		       struct inode *old_dir, struct inode *new_dir);
+
+ extern spinlock_t dentry_attach_lock;
++void ocfs2_dentry_attach_gen(struct dentry *dentry);
+
+ #endif /* OCFS2_DCACHE_H */
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 39eb16a..d5fb79b 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2565,7 +2565,6 @@ void ocfs2_inode_unlock(struct inode *inode,
+ 	if (!ocfs2_is_hard_readonly(OCFS2_SB(inode->i_sb)) &&
+ 	    !ocfs2_mount_local(osb))
+ 		ocfs2_cluster_unlock(OCFS2_SB(inode->i_sb), lockres, level);
+-
+ 	mlog_exit_void();
+ }
+
+@@ -3635,10 +3634,18 @@ static int ocfs2_data_convert_worker(struct
+ocfs2_lock_res *lockres,
+ {
+ 	struct inode *inode;
+ 	struct address_space *mapping;
++	struct ocfs2_inode_info *oi;
+
+        	inode = ocfs2_lock_res_inode(lockres);
+ 	mapping = inode->i_mapping;
+
++	if (S_ISDIR(inode->i_mode)) {
++		oi = OCFS2_I(inode);
++		oi->ip_generation++;
++		mlog(0, "generation: %u\n", oi->ip_generation);
++		goto out;
++	}
++
+ 	if (!S_ISREG(inode->i_mode))
+ 		goto out;
+
+diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+index 9f5f5fc..529729c 100644
+--- a/fs/ocfs2/inode.h
++++ b/fs/ocfs2/inode.h
+@@ -70,6 +70,8 @@ struct ocfs2_inode_info
+ 	/* Only valid if the inode is the dir. */
+ 	u32				ip_last_used_slot;
+ 	u64				ip_last_used_group;
++	/* Generation number for negative inodes */
++	u32				ip_generation;
+
+ 	struct ocfs2_alloc_reservation	ip_la_data_resv;
+ };
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index f171b51..c06753a 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -172,6 +172,8 @@ bail_add:
+ 			goto bail_unlock;
+ 		}
+ 	}
++	else /* Attach generation number for negative dentry */
++		ocfs2_dentry_attach_gen(dentry);
+
+ bail_unlock:
+ 	/* Don't drop the cluster lock until *after* the d_add --
+
 -- 
-1.5.5
+Goldwyn
