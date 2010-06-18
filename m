@@ -1,15 +1,35 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 18 Jun 2010 11:02:51 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Make xattr reflink work with new local
-	alloc reservation.
-In-Reply-To: <4C1AE141.60707@oracle.com>
-References: <4C1AE141.60707@oracle.com>
-Message-ID: <1276830171-5908-2-git-send-email-tao.ma@oracle.com>
+Date: Fri, 18 Jun 2010 11:29:44 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Make xattr reflink work with new
+	local alloc reservation.
+In-Reply-To: <1276830171-5908-2-git-send-email-tao.ma@oracle.com>
+References: <1276830171-5908-2-git-send-email-tao.ma@oracle.com>
+Message-ID: <1276831784-6159-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+On 06/18/2010 11:02 AM, Tao Ma wrote:
+> The new reservation code in local alloc has add the limitation
+> that the caller should handle the case that the local alloc
+> doesn't give use enough contiguous clusters. It make the old
+> xattr reflink code broken.
+> 
+> So this patch udpate the xattr reflink code so that it can
+> handle the case that local alloc give us one cluster at a time.
+> 
+> Signed-off-by: Tao Ma<tao.ma@oralce.com>
+oh, I used the wrong sob here. ;) Here is the updated one.
+
+Regards,
+Tao
+
+From 5b714e5a16c6ff912fcd720b916d4324f6151d16 Mon Sep 17 00:00:00 2001
+From: Tao Ma <tao.ma@oracle.com>
+Date: Fri, 18 Jun 2010 10:38:48 +0800
+Subject: [PATCH v2] ocfs2: Make xattr reflink work with new local alloc reservation.
 
 The new reservation code in local alloc has add the limitation
 that the caller should handle the case that the local alloc
@@ -19,7 +39,7 @@ xattr reflink code broken.
 So this patch udpate the xattr reflink code so that it can
 handle the case that local alloc give us one cluster at a time.
 
-Signed-off-by: Tao Ma <tao.ma@oralce.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
  fs/ocfs2/xattr.c |  125 ++++++++++++++++++++++++++++++++++++++---------------
  1 files changed, 89 insertions(+), 36 deletions(-)
