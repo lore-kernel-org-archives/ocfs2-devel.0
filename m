@@ -1,204 +1,100 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Mon, 21 Jun 2010 12:27:16 +0800
-Subject: [Ocfs2-devel] [PATCH] Track negative dentries
-In-Reply-To: <AANLkTilwWhweSS4BxXZCQxCAicETuZ2rjFb_BHMM3YGZ@mail.gmail.com>
-References: <AANLkTilwWhweSS4BxXZCQxCAicETuZ2rjFb_BHMM3YGZ@mail.gmail.com>
-Message-ID: <20100621042716.GA2735@laptop.us.oracle.com>
+Date: Mon, 21 Jun 2010 13:19:53 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist
+In-Reply-To: <1276977371-13911-1-git-send-email-srinivas.eeda@oracle.com>
+References: <1276977371-13911-1-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <20100621051953.GA2801@laptop.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Goldwyn,
+On 10-06-19 12:56, Srinivas Eeda wrote:
+> There are two problems in dlm_run_purgelist
+> 
+> 1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
+> the same lockres instead of trying the next lockres.
+> 
+> 2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
+> before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
+> spinlock is reacquired but in this window lockres can get reused. This leads
+> to BUG.
+> 
+> This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
+>  next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
+> lockres spinlock protecting it from getting reused.
+> 
+> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> ---
+>  fs/ocfs2/dlm/dlmthread.c |   55 +++++++++++++++++++++------------------------
+>  1 files changed, 26 insertions(+), 29 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+> index 11a6d1f..79d1ef6 100644
+> --- a/fs/ocfs2/dlm/dlmthread.c
+> +++ b/fs/ocfs2/dlm/dlmthread.c
+> @@ -158,15 +158,6 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+>  	int master;
+>  	int ret = 0;
+>  
+> -	spin_lock(&res->spinlock);
+> -	if (!__dlm_lockres_unused(res)) {
+> -		mlog(0, "%s:%.*s: tried to purge but not unused\n",
+> -		     dlm->name, res->lockname.len, res->lockname.name);
+> -		__dlm_print_one_lock_resource(res);
+> -		spin_unlock(&res->spinlock);
+> -		BUG();
+> -	}
+> -
+>  	if (res->state & DLM_LOCK_RES_MIGRATING) {
+>  		mlog(0, "%s:%.*s: Delay dropref as this lockres is "
+>  		     "being remastered\n", dlm->name, res->lockname.len,
+> @@ -184,13 +175,13 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+>  
+>  	if (!master)
+>  		res->state |= DLM_LOCK_RES_DROPPING_REF;
+> -	spin_unlock(&res->spinlock);
+>  
+>  	mlog(0, "purging lockres %.*s, master = %d\n", res->lockname.len,
+>  	     res->lockname.name, master);
+>  
+>  	if (!master) {
+>  		/* drop spinlock...  retake below */
+> +		spin_unlock(&res->spinlock);
+>  		spin_unlock(&dlm->spinlock);
+>  
+>  		spin_lock(&res->spinlock);
+> @@ -208,30 +199,34 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+>  		mlog(0, "%s:%.*s: dlm_deref_lockres returned %d\n",
+>  		     dlm->name, res->lockname.len, res->lockname.name, ret);
+>  		spin_lock(&dlm->spinlock);
+> +		spin_lock(&res->spinlock);
+>  	}
+>  
+> -	spin_lock(&res->spinlock);
+>  	if (!list_empty(&res->purge)) {
+>  		mlog(0, "removing lockres %.*s:%p from purgelist, "
+>  		     "master = %d\n", res->lockname.len, res->lockname.name,
+>  		     res, master);
+>  		list_del_init(&res->purge);
+> -		spin_unlock(&res->spinlock);
+>  		dlm_lockres_put(res);
+>  		dlm->purge_count--;
+> -	} else
+> -		spin_unlock(&res->spinlock);
+> +	}
+>  
+> -	__dlm_unhash_lockres(res);
+> +	if (__dlm_lockres_unused(res))
+> +		__dlm_unhash_lockres(res);
+> +	else {
+> +		mlog(ML_ERROR, "found lockres %s:%.*s: in use after deref\n",
+> +		     dlm->name, res->lockname.len, res->lockname.name);
+> +		__dlm_print_one_lock_resource(res);
+> +	}
 
-Has you ever test the hit race?
-Actually I also wrote the codes locally monthes ago. When I was testing it,
-I found the dentry are different memory objects. For example, fileA is not
-exist, we issue a command of 'ls -l /path/to/fileA', At the first run, set
-parent ino to dentry. At the second run, the parent ino is not there. By
-printing the address, I found the two dentries are different ones though
-they are both for "fileA".
-So I wonder if you tested it.
+This is not an error. ML_NOTICE instead?
 
 regards,
 wengang.
-On 10-06-18 10:02, Goldwyn Rodrigues wrote:
-> Track negative dentries by recording the generation number of the parent
-> directory in d_fsdata. The generation number for the parent directory is
-> recorded in the inode_info, which increments every time the lock on the
-> directory is dropped.
-> 
-> If the generation number of the parent directory and the negative dentry
-> matches, there is no need to perform the revalidate, else a revalidate
-> is forced. This improves performance in situations where nodes look for
-> the same non-existent file multiple times.
-> 
-> Thanks Mark for explaining the DLM sequence.
-> 
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
-> ---
-> diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
-> index b4957c7..f29095b 100644
-> --- a/fs/ocfs2/dcache.c
-> +++ b/fs/ocfs2/dcache.c
-> @@ -40,6 +40,16 @@
->  #include "inode.h"
->  #include "super.h"
-> 
-> +void ocfs2_dentry_attach_gen(struct dentry *dentry)
-> +{
-> +	int *gen = (int *)kmalloc(sizeof(int), GFP_KERNEL);
-> +	*gen = OCFS2_I(dentry->d_parent->d_inode)->ip_generation;
-> +	/* Generation numbers are specifically for negative dentries */
-> +	if (dentry->d_inode)
-> +		BUG();
-> +	dentry->d_fsdata = (void *)gen;
-> +}
-> +
-> 
->  static int ocfs2_dentry_revalidate(struct dentry *dentry,
->  				   struct nameidata *nd)
-> @@ -51,10 +61,21 @@ static int ocfs2_dentry_revalidate(struct dentry *dentry,
->  	mlog_entry("(0x%p, '%.*s')\n", dentry,
->  		   dentry->d_name.len, dentry->d_name.name);
-> 
-> -	/* Never trust a negative dentry - force a new lookup. */
-> +	/* For a negative dentry -
-> +	   check the generation number of the parent and compare with the
-> +	   one stored in the inode.
-> +	   */
->  	if (inode == NULL) {
-> -		mlog(0, "negative dentry: %.*s\n", dentry->d_name.len,
-> -		     dentry->d_name.name);
-> +		int *gen = (int *)dentry->d_fsdata;
-> +		int parent_gen =
-> +			OCFS2_I(dentry->d_parent->d_inode)->ip_generation;
-> +		mlog(0, "negative dentry: %.*s parent gen: %u dentry gen: %u\n",
-> +				dentry->d_name.len, dentry->d_name.name,
-> +				parent_gen, *gen);
-> +		if (*gen == parent_gen)
-> +			ret = 1;
-> +		else
-> +			*gen = parent_gen;
->  		goto bail;
->  	}
-> 
-> @@ -227,6 +248,13 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
->  	if (!inode)
->  		return 0;
-> 
-> +	if (!dentry->d_inode && dentry->d_fsdata) {
-> +		/* Converting a negative dentry to positive
-> +		   Clear dentry->d_fsdata */
-> +		kfree(dentry->d_fsdata);
-> +		dentry->d_fsdata = dl = NULL;
-> +	}
-> +
->  	if (dl) {
->  		mlog_bug_on_msg(dl->dl_parent_blkno != parent_blkno,
->  				" \"%.*s\": old parent: %llu, new: %llu\n",
-> @@ -451,6 +479,8 @@ static void ocfs2_dentry_iput(struct dentry
-> *dentry, struct inode *inode)
->  	ocfs2_dentry_lock_put(OCFS2_SB(dentry->d_sb), dl);
-> 
->  out:
-> +	/* Attach generation number to dentry */
-> +	ocfs2_dentry_attach_gen(dentry);
->  	iput(inode);
->  }
-> 
-> @@ -500,7 +530,15 @@ out_move:
->  	d_move(dentry, target);
->  }
-> 
-> +static void ocfs2_dentry_release(struct dentry *dentry)
-> +{
-> +	/* Free the generation number stored in negative dentry */
-> +	if (!dentry->d_inode && dentry->d_fsdata)
-> +		kfree(dentry->d_fsdata);
-> +}
-> +
->  const struct dentry_operations ocfs2_dentry_ops = {
->  	.d_revalidate		= ocfs2_dentry_revalidate,
->  	.d_iput			= ocfs2_dentry_iput,
-> +	.d_release		= ocfs2_dentry_release,
->  };
-> diff --git a/fs/ocfs2/dcache.h b/fs/ocfs2/dcache.h
-> index f5dd178..b79eff7 100644
-> --- a/fs/ocfs2/dcache.h
-> +++ b/fs/ocfs2/dcache.h
-> @@ -64,5 +64,6 @@ void ocfs2_dentry_move(struct dentry *dentry, struct
-> dentry *target,
->  		       struct inode *old_dir, struct inode *new_dir);
-> 
->  extern spinlock_t dentry_attach_lock;
-> +void ocfs2_dentry_attach_gen(struct dentry *dentry);
-> 
->  #endif /* OCFS2_DCACHE_H */
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 39eb16a..d5fb79b 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -2565,7 +2565,6 @@ void ocfs2_inode_unlock(struct inode *inode,
->  	if (!ocfs2_is_hard_readonly(OCFS2_SB(inode->i_sb)) &&
->  	    !ocfs2_mount_local(osb))
->  		ocfs2_cluster_unlock(OCFS2_SB(inode->i_sb), lockres, level);
-> -
->  	mlog_exit_void();
->  }
-> 
-> @@ -3635,10 +3634,18 @@ static int ocfs2_data_convert_worker(struct
-> ocfs2_lock_res *lockres,
->  {
->  	struct inode *inode;
->  	struct address_space *mapping;
-> +	struct ocfs2_inode_info *oi;
-> 
->         	inode = ocfs2_lock_res_inode(lockres);
->  	mapping = inode->i_mapping;
-> 
-> +	if (S_ISDIR(inode->i_mode)) {
-> +		oi = OCFS2_I(inode);
-> +		oi->ip_generation++;
-> +		mlog(0, "generation: %u\n", oi->ip_generation);
-> +		goto out;
-> +	}
-> +
->  	if (!S_ISREG(inode->i_mode))
->  		goto out;
-> 
-> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-> index 9f5f5fc..529729c 100644
-> --- a/fs/ocfs2/inode.h
-> +++ b/fs/ocfs2/inode.h
-> @@ -70,6 +70,8 @@ struct ocfs2_inode_info
->  	/* Only valid if the inode is the dir. */
->  	u32				ip_last_used_slot;
->  	u64				ip_last_used_group;
-> +	/* Generation number for negative inodes */
-> +	u32				ip_generation;
-> 
->  	struct ocfs2_alloc_reservation	ip_la_data_resv;
->  };
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index f171b51..c06753a 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -172,6 +172,8 @@ bail_add:
->  			goto bail_unlock;
->  		}
->  	}
-> +	else /* Attach generation number for negative dentry */
-> +		ocfs2_dentry_attach_gen(dentry);
-> 
->  bail_unlock:
->  	/* Don't drop the cluster lock until *after* the d_add --
-> 
-> -- 
-> Goldwyn
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
