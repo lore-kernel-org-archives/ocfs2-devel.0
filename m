@@ -1,180 +1,90 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Sun, 20 Jun 2010 12:34:31 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist
-In-Reply-To: <1276977371-13911-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1276977371-13911-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <4C1E6D47.2010503@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Mon, 21 Jun 2010 09:40:21 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2 fix o2dlm dlm run purgelist
+In-Reply-To: <4C1BA0DD.80007@oracle.com>
+References: <1276663383-8238-1-git-send-email-srinivas.eeda@oracle.com>
+	<20100616060615.GB2895@laptop.us.oracle.com>
+	<4C1A3A05.10704@oracle.com>
+	<20100618023738.GA2483@laptop.us.oracle.com>
+	<4C1BA0DD.80007@oracle.com>
+Message-ID: <20100621014021.GA2347@laptop.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 06/19/2010 12:56 PM, Srinivas Eeda wrote:
-> There are two problems in dlm_run_purgelist
->
-> 1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
-> the same lockres instead of trying the next lockres.
->
-> 2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
-> before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
-> spinlock is reacquired but in this window lockres can get reused. This leads
-> to BUG.
->
-> This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
->   next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
-> lockres spinlock protecting it from getting reused.
->
-> Signed-off-by: Srinivas Eeda<srinivas.eeda@oracle.com>
-> ---
->   fs/ocfs2/dlm/dlmthread.c |   55 +++++++++++++++++++++------------------------
->   1 files changed, 26 insertions(+), 29 deletions(-)
->
-> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-> index 11a6d1f..79d1ef6 100644
-> --- a/fs/ocfs2/dlm/dlmthread.c
-> +++ b/fs/ocfs2/dlm/dlmthread.c
-> @@ -158,15 +158,6 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
->   	int master;
->   	int ret = 0;
->
-> -	spin_lock(&res->spinlock);
-> -	if (!__dlm_lockres_unused(res)) {
-> -		mlog(0, "%s:%.*s: tried to purge but not unused\n",
-> -		     dlm->name, res->lockname.len, res->lockname.name);
-> -		__dlm_print_one_lock_resource(res);
-> -		spin_unlock(&res->spinlock);
-> -		BUG();
-> -	}
-> -
+On 10-06-18 09:37, Sunil Mushran wrote:
+> On 06/17/2010 07:37 PM, Wengang Wang wrote:
+> >On 10-06-17 08:06, Sunil Mushran wrote:
+> >>On 06/15/2010 11:06 PM, Wengang Wang wrote:
+> >>>still the question.
+> >>>If you have sent DEREF request to the master, and the lockres became in-use
+> >>>again, then the lockres remains in the hash table and also in the purge list.
+> >>>So
+> >>>1) If this node is the last ref, there is a possibility that the master
+> >>>purged the lockres after receiving DEREF request from this node. In this
+> >>>case, when this node does dlmlock_remote(), the lockres won't be found on the
+> >>>master. How to deal with it?
+> >>>
+> >>>2) The lockres on this node is going to be purged again, it means it will send
+> >>>secondary DEREFs to the master. This is not good I think.
+> >>>
+> >>>A thought is setting lockres->owner to DLM_LOCK_RES_OWNER_UNKNOWN after
+> >>>sending a DEREF request againt this lockres. Also redo master reqeust
+> >>>before locking on it.
+> >>The fix we are working towards is to ensure that we set
+> >>DLM_LOCK_RES_DROPPING_REF once we are determined
+> >>to purge the lockres. As in, we should not let go of the spinlock
+> >>before we have either set the flag or decided against purging
+> >>that resource.
+> >>
+> >>Once the flag is set, new users looking up the resource via
+> >>dlm_get_lock_resource() will notice the flag and will then wait
+> >>for that flag to be cleared before looking up the lockres hash
+> >>again. If all goes well, the lockres will not be found (because it
+> >>has since been unhashed) and it will be forced to go thru the
+> >>full mastery process.
+> >That is ideal.
+> >In many cases the lockres is not got via dlm_get_lock_resource(), but
+> >via dlm_lookup_lockres()/__dlm_lookup_lockres, which doesn't set the new
+> >IN-USE state, directly. dlm_lookup_lockres() takes and drops
+> >dlm->spinlock. And some of caller of __dlm_lookup_lockres() drops the
+> >spinlock as soon as it got the lockres. Such paths access the lockres
+> >later after dropping dlm->spinlock and res->spinlock.
+> >So there is a window that dlm_thread() get a chance to take the
+> >dlm->spinlock and res->spinlock and set the DROPPING_REF state.
+> >So whether new users can get the lockres depends on how "new" it is. If
+> >finds the lockres after DROPPING_REF state is set, sure it works well. But
+> >if it find it before DROPPING_REF is set, it won't protect the lockres
+> >from purging since even it "gets" the lockres, the lockres can still in
+> >unused state.
+> 
+> dlm_lookup_lockres() and friends just looks up the lockres hash.
+> dlm_get_lock_resource() also calls it. It inturn is called by dlmlock()
+> to find and/or create lockres and create a lock on that resource.
 
-Always have assert_spin_locked() if the function expects the
-spin locks to have been taken by the caller.
+Yes you are right.
+> The other calls to dlm_lookup_lockres() are from handlers and those
+> handlers can only be tickled if a lock already exists. And if a lock
+> exits, then we cannot be purging the lockres.
+> 
+> The one exception is the create_lock handler and that only comes
+> into play on the lockres master. The inflight ref blocks removal of
+> such lockres in the window before the lock is created.
 
->   	if (res->state&  DLM_LOCK_RES_MIGRATING) {
->   		mlog(0, "%s:%.*s: Delay dropref as this lockres is "
->   		     "being remastered\n", dlm->name, res->lockname.len,
-> @@ -184,13 +175,13 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
->
->   	if (!master)
->   		res->state |= DLM_LOCK_RES_DROPPING_REF;
-> -	spin_unlock(&res->spinlock);
->
->   	mlog(0, "purging lockres %.*s, master = %d\n", res->lockname.len,
->   	     res->lockname.name, master);
->
->   	if (!master) {
->   		/* drop spinlock...  retake below */
-> +		spin_unlock(&res->spinlock);
->   		spin_unlock(&dlm->spinlock);
->
->   		spin_lock(&res->spinlock);
-> @@ -208,30 +199,34 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
->   		mlog(0, "%s:%.*s: dlm_deref_lockres returned %d\n",
->   		     dlm->name, res->lockname.len, res->lockname.name, ret);
->   		spin_lock(&dlm->spinlock);
-> +		spin_lock(&res->spinlock);
->   	}
->
-> -	spin_lock(&res->spinlock);
->   	if (!list_empty(&res->purge)) {
->   		mlog(0, "removing lockres %.*s:%p from purgelist, "
->   		     "master = %d\n", res->lockname.len, res->lockname.name,
->   		     res, master);
->   		list_del_init(&res->purge);
-> -		spin_unlock(&res->spinlock);
->   		dlm_lockres_put(res);
->   		dlm->purge_count--;
-> -	} else
-> -		spin_unlock(&res->spinlock);
-> +	}
->
-> -	__dlm_unhash_lockres(res);
-> +	if (__dlm_lockres_unused(res))
-> +		__dlm_unhash_lockres(res);
-> +	else {
-> +		mlog(ML_ERROR, "found lockres %s:%.*s: in use after deref\n",
-> +		     dlm->name, res->lockname.len, res->lockname.name);
-> +		__dlm_print_one_lock_resource(res);
-> +	}
+I think there is another exception, dlm_mig_lockres_handler(). Could you check it
+in my email(in this thread, to Srini, Message-ID:
+<20100617110548.GA3178@laptop.us.oracle.com>).
 
-Why do we need this? If we run into this condition, the only
-safe response is a BUG_ON.
+> DROPPING_REF is only valid for non-master nodes. As in, only
+> a non-master node has to send a deref message to the master node.
 
->
->   	/* lockres is not in the hash now.  drop the flag and wake up
->   	 * any processes waiting in dlm_get_lock_resource. */
->   	if (!master) {
-> -		spin_lock(&res->spinlock);
->   		res->state&= ~DLM_LOCK_RES_DROPPING_REF;
->   		spin_unlock(&res->spinlock);
->   		wake_up(&res->wq);
-> -	}
-> +	} else
-> +		spin_unlock(&res->spinlock);
->   	return 0;
->   }
->
-> @@ -251,17 +246,7 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
->   		lockres = list_entry(dlm->purge_list.next,
->   				     struct dlm_lock_resource, purge);
->
-> -		/* Status of the lockres *might* change so double
-> -		 * check. If the lockres is unused, holding the dlm
-> -		 * spinlock will prevent people from getting and more
-> -		 * refs on it -- there's no need to keep the lockres
-> -		 * spinlock. */
->   		spin_lock(&lockres->spinlock);
-> -		unused = __dlm_lockres_unused(lockres);
-> -		spin_unlock(&lockres->spinlock);
-> -
-> -		if (!unused)
-> -			continue;
->
->   		purge_jiffies = lockres->last_used +
->   			msecs_to_jiffies(DLM_PURGE_INTERVAL_MS);
-> @@ -273,15 +258,27 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
->   			 * in tail order, we can stop at the first
->   			 * unpurgable resource -- anyone added after
->   			 * him will have a greater last_used value */
-> +			spin_unlock(&lockres->spinlock);
->   			break;
->   		}
->
-> +		/* Status of the lockres *might* change so double
-> +		 * check. If the lockres is unused, holding the dlm
-> +		 * spinlock will prevent people from getting and more
-> +		 * refs on it -- there's no need to keep the lockres
-> +		 * spinlock. */
-> +		unused = __dlm_lockres_unused(lockres);
-> +		if (!unused) {
-> +			list_move_tail(&dlm->purge_list,&lockres->purge);
-> +			spin_unlock(&lockres->spinlock);
-> +			continue;
-> +		}
-> +
+Yes I know.
+> Confused? Well, I think this needs to be documented. I guess I will
+> do that after I am done with the global heartbeat business.
 
-+		if (!unused ||
-+		    lockres->state&  DLM_LOCK_RES_MIGRATING) {
-+			list_move_tail(&dlm->purge_list,&lockres->purge);
-+			spin_unlock(&lockres->spinlock);
-+			continue;
-+		}
+No, I am clear. Well a document will greatly helpful!
 
-
-You can move the MIGRATING check from atop dlm_purge_lockres() to here.
-
-
->   		dlm_lockres_get(lockres);
->
->   		/* This may drop and reacquire the dlm spinlock if it
->   		 * has to do migration. */
-> -		if (dlm_purge_lockres(dlm, lockres))
-> -			BUG();
-> +		dlm_purge_lockres(dlm, lockres);
->
-
-Make the function a void.
-
->   		dlm_lockres_put(lockres);
->
+regards,
+wengang.
