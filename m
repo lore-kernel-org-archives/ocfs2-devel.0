@@ -1,51 +1,43 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 21 Jun 2010 20:34:31 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist
-In-Reply-To: <1276977371-13911-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1276977371-13911-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20100622033430.GA15659@mail.oracle.com>
+Date: Mon, 21 Jun 2010 20:36:24 -0700
+Subject: [Ocfs2-devel] [PATCH] Track negative dentries
+In-Reply-To: <20100622032333.GA2403@laptop.cn.oracle.com>
+References: <AANLkTilwWhweSS4BxXZCQxCAicETuZ2rjFb_BHMM3YGZ@mail.gmail.com>
+	<20100621042716.GA2735@laptop.us.oracle.com>
+	<4C1F9C74.1060403@oracle.com>
+	<20100622032333.GA2403@laptop.cn.oracle.com>
+Message-ID: <20100622033624.GB15659@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, Jun 19, 2010 at 12:56:11PM -0700, Srinivas Eeda wrote:
-> There are two problems in dlm_run_purgelist
+On Tue, Jun 22, 2010 at 11:23:33AM +0800, Wengang Wang wrote:
+> Actually I meant two dentries in the two run of 'ls -l'.
+> At the first run, a dentry, dentry A, is created. Because fileA doesn't exist,
+> dentry->d_inode is NULL. Then a do_revalidate() is run,
+> ocfs2_dentry_revalidate() returns "not valid" since d_inode is NULL.
+> Thus the dentry A is unhashed from cache by d_invalidate().
+> At the second run of 'ls -l', since dentry A is unhashed, there is no dentry for
+> fileA exist in dentry hash, a new dentry, dentry B, is created. The new dentry B
+> don't have any info about parent ino.
 > 
-> 1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
-> the same lockres instead of trying the next lockres.
-> 
-> 2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
-> before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
-> spinlock is reacquired but in this window lockres can get reused. This leads
-> to BUG.
-> 
-> This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
->  next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
-> lockres spinlock protecting it from getting reused.
-> 
-> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> I found that when testing my patch for the "track negative dentries".
+> Maybe I misunderstand something?
 
-	I agree with everything Sunil said.  More below.
-
-> +		/* Status of the lockres *might* change so double
-> +		 * check. If the lockres is unused, holding the dlm
-> +		 * spinlock will prevent people from getting and more
-> +		 * refs on it -- there's no need to keep the lockres
-> +		 * spinlock. */
-> +		unused = __dlm_lockres_unused(lockres);
-
-	There's no point in commenting about "no need to keep the
-lockres spinlock" when you are now holding it through the operation.
-You can drop everything after the '--'.
+	When that dentry gets linked into the tree, it will point to its
+d_parent.  So the parent inode is dentryB->d_parent->d_inode.
 
 Joel
 
 -- 
 
-"Here's a nickle -- get yourself a better X server."
-	- Keith Packard
+"Too much walking shoes worn thin.
+ Too much trippin' and my soul's worn thin.
+ Time to catch a ride it leaves today
+ Her name is what it means.
+ Too much walking shoes worn thin."
 
 Joel Becker
 Principal Software Developer
