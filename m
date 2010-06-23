@@ -1,234 +1,64 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 22 Jun 2010 16:22:00 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist(bug
- 9094491) - rev3
-In-Reply-To: <1277228012-13836-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1277228012-13836-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <4C214598.2060104@oracle.com>
+From: Patrick J. LoPresti <lopresti@gmail.com>
+Date: Tue, 22 Jun 2010 17:11:50 -0700
+Subject: [Ocfs2-devel] Large (> 16TiB) volumes revisited
+Message-ID: <AANLkTimtV44iqvA-UV5gRwWygJoh8oolTraSmcRO8ndz@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Comments inlined. Getting there. Some more cleanups.
+I have just submitted the following bug report:
 
-On 06/22/2010 10:33 AM, Srinivas Eeda wrote:
-> There are two problems in dlm_run_purgelist
->
-> 1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
-> the same lockres instead of trying the next lockres.
->
-> 2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
-> before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
-> spinlock is reacquired but in this window lockres can get reused. This leads
-> to BUG.
->
-> This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
->   next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
-> lockres spinlock protecting it from getting reused.
->
-> Signed-off-by: Srinivas Eeda<srinivas.eeda@oracle.com>
-> ---
->   fs/ocfs2/dlm/dlmthread.c |   76 ++++++++++++++++++++--------------------------
->   1 files changed, 33 insertions(+), 43 deletions(-)
->
-> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-> index 11a6d1f..cb74689 100644
-> --- a/fs/ocfs2/dlm/dlmthread.c
-> +++ b/fs/ocfs2/dlm/dlmthread.c
-> @@ -152,45 +152,26 @@ void dlm_lockres_calc_usage(struct dlm_ctxt *dlm,
->   	spin_unlock(&dlm->spinlock);
->   }
->
-> -static int dlm_purge_lockres(struct dlm_ctxt *dlm,
-> +static void dlm_purge_lockres(struct dlm_ctxt *dlm,
->   			     struct dlm_lock_resource *res)
->   {
->   	int master;
->   	int ret = 0;
->
-> -	spin_lock(&res->spinlock);
-> -	if (!__dlm_lockres_unused(res)) {
-> -		mlog(0, "%s:%.*s: tried to purge but not unused\n",
-> -		     dlm->name, res->lockname.len, res->lockname.name);
-> -		__dlm_print_one_lock_resource(res);
-> -		spin_unlock(&res->spinlock);
-> -		BUG();
-> -	}
-> -
-> -	if (res->state&  DLM_LOCK_RES_MIGRATING) {
-> -		mlog(0, "%s:%.*s: Delay dropref as this lockres is "
-> -		     "being remastered\n", dlm->name, res->lockname.len,
-> -		     res->lockname.name);
-> -		/* Re-add the lockres to the end of the purge list */
-> -		if (!list_empty(&res->purge)) {
-> -			list_del_init(&res->purge);
-> -			list_add_tail(&res->purge,&dlm->purge_list);
-> -		}
-> -		spin_unlock(&res->spinlock);
-> -		return 0;
-> -	}
-> +	assert_spin_locked(&dlm->spinlock);
-> +	assert_spin_locked(&res->spinlock);
->
->   	master = (res->owner == dlm->node_num);
->
->   	if (!master)
->   		res->state |= DLM_LOCK_RES_DROPPING_REF;
-> -	spin_unlock(&res->spinlock);
->
->   	mlog(0, "purging lockres %.*s, master = %d\n", res->lockname.len,
->   	     res->lockname.name, master);
->
->   	if (!master) {
->   		/* drop spinlock...  retake below */
-> +		spin_unlock(&res->spinlock);
->   		spin_unlock(&dlm->spinlock);
->
->   		spin_lock(&res->spinlock);
->    
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1266
 
-This can do with more cleanup.
+This is formally reporting the issue originally identified (and fixed)
+by Robert Smith back in December:
 
-+	assert_spin_locked(&dlm->spinlock);
-+	assert_spin_locked(&res->spinlock);
+http://www.mail-archive.com/ocfs2-devel at oss.oracle.com/msg04728.html
 
-  	master = (res->owner == dlm->node_num);
+Specifically, even the latest OCFS2 produces an error when you attempt
+to mount a volume larger than 16 TiB:
 
-- 	if (!master)
-- 		res->state |= DLM_LOCK_RES_DROPPING_REF;
--	spin_unlock(&res->spinlock);
+"ocfs2_initialize_super:2157 ERROR: Volume might try to write to
+blocks beyond what jbd can address in 32 bits."
 
-  	mlog(0, "purging lockres %.*s, master = %d\n", res->lockname.len,
-  	     res->lockname.name, master);
+I would like to use large volumes in production later this year or
+early next, so I am interested in seeing this issue resolved so I can
+begin testing.  I believe this check in fs/ocfs2/super.c is the only
+known issue standing in the way of large volume support for OCFS2.  I
+want to submit a patch to fix it.
 
-  	if (!master) {
-+ 		res->state |= DLM_LOCK_RES_DROPPING_REF;
-- 		/* drop spinlock...  retake below */
-+		spin_unlock(&res->spinlock);
-  		spin_unlock(&dlm->spinlock);
+The simplest approach is just to delete the check, like so:
 
-  		spin_lock(&res->spinlock);
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 0eaa929..0ba41f3 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2215,14 +2215,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
+                goto bail;
+        }
+
+-       if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
+-           > (u32)~0UL) {
+-               mlog(ML_ERROR, "Volume might try to write to blocks beyond "
+-                    "what jbd can address in 32 bits.\n");
+-               status = -EINVAL;
+-               goto bail;
+-       }
+-
+        if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
+                                 sizeof(di->id2.i_super.s_uuid))) {
+                mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
 
 
-> @@ -208,31 +189,35 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
->   		mlog(0, "%s:%.*s: dlm_deref_lockres returned %d\n",
->   		     dlm->name, res->lockname.len, res->lockname.name, ret);
->   		spin_lock(&dlm->spinlock);
-> +		spin_lock(&res->spinlock);
->   	}
->
-> -	spin_lock(&res->spinlock);
->   	if (!list_empty(&res->purge)) {
->   		mlog(0, "removing lockres %.*s:%p from purgelist, "
->   		     "master = %d\n", res->lockname.len, res->lockname.name,
->   		     res, master);
->   		list_del_init(&res->purge);
-> -		spin_unlock(&res->spinlock);
->   		dlm_lockres_put(res);
->   		dlm->purge_count--;
-> -	} else
-> -		spin_unlock(&res->spinlock);
-> +	}
->
-> -	__dlm_unhash_lockres(res);
-> +	if (__dlm_lockres_unused(res))
-> +		__dlm_unhash_lockres(res);
-> +	else {
-> +		mlog(ML_ERROR, "found lockres %s:%.*s: in use after deref\n",
-> +		     dlm->name, res->lockname.len, res->lockname.name);
-> +		__dlm_print_one_lock_resource(res);
-> +		BUG();
-> +	}
->    
+Questions for the list:
 
-Blocks that BUG should be separated if possible. Improves readability.
+1) Is this patch sufficient?  Or should I try to modify the check to
+take into account the cluster size?  Anything else I need to check
+here (e.g. inode64 mount option)?
 
-+	if (!__dlm_lockres_unused(res)) {
-+		mlog(ML_ERROR, "found lockres %s:%.*s: in use after deref\n",
-+		     dlm->name, res->lockname.len, res->lockname.name);
-+		__dlm_print_one_lock_resource(res);
-+		BUG();
-+	}
+2) Should mkfs.ocfs2 contain a similar check?  (It may already; I have
+not looked yet...)
 
-	__dlm_unhash_lockres(res);
-
-
->
->   	/* lockres is not in the hash now.  drop the flag and wake up
->   	 * any processes waiting in dlm_get_lock_resource. */
->   	if (!master) {
-> -		spin_lock(&res->spinlock);
->   		res->state&= ~DLM_LOCK_RES_DROPPING_REF;
->   		spin_unlock(&res->spinlock);
->   		wake_up(&res->wq);
-> -	}
-> -	return 0;
-> +	} else
-> +		spin_unlock(&res->spinlock);
->   }
->
->   static void dlm_run_purge_list(struct dlm_ctxt *dlm,
-> @@ -251,17 +236,7 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
->   		lockres = list_entry(dlm->purge_list.next,
->   				     struct dlm_lock_resource, purge);
->
-> -		/* Status of the lockres *might* change so double
-> -		 * check. If the lockres is unused, holding the dlm
-> -		 * spinlock will prevent people from getting and more
-> -		 * refs on it -- there's no need to keep the lockres
-> -		 * spinlock. */
->   		spin_lock(&lockres->spinlock);
-> -		unused = __dlm_lockres_unused(lockres);
-> -		spin_unlock(&lockres->spinlock);
-> -
-> -		if (!unused)
-> -			continue;
->
->   		purge_jiffies = lockres->last_used +
->   			msecs_to_jiffies(DLM_PURGE_INTERVAL_MS);
-> @@ -273,15 +248,30 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
->   			 * in tail order, we can stop at the first
->   			 * unpurgable resource -- anyone added after
->   			 * him will have a greater last_used value */
-> +			spin_unlock(&lockres->spinlock);
->   			break;
->   		}
->
-> +		/* Status of the lockres *might* change so double
-> +		 * check. If the lockres is unused, holding the dlm
-> +		 * spinlock will prevent people from getting and more
-> +		 * refs on it. */
-> +		unused = __dlm_lockres_unused(lockres);
-> +		if (!unused ||
-> +		    (lockres->state&  DLM_LOCK_RES_MIGRATING)) {
-> +			mlog(0, "lockres %s:%.*s: is in use or "
-> +			     "being remastered\n", dlm->name,
-> +			     lockres->lockname.len, lockres->lockname.name);
-> +			list_move_tail(&dlm->purge_list,&lockres->purge);
-> +			spin_unlock(&lockres->spinlock);
-> +			continue;
-> +		}
-> +
->   		dlm_lockres_get(lockres);
->
->   		/* This may drop and reacquire the dlm spinlock if it
->   		 * has to do migration. */
-> -		if (dlm_purge_lockres(dlm, lockres))
-> -			BUG();
-> +		dlm_purge_lockres(dlm, lockres);
->
->   		dlm_lockres_put(lockres);
->
->    
-
-This comment is dated. We don't migrate in purge_lockres.
-
-- 		/* This may drop and reacquire the dlm spinlock if it
-- 		 * has to do migration. */
--		if (dlm_purge_lockres(dlm, lockres))
--			BUG();
-+		dlm_purge_lockres(dlm, lockres);
-
-  		dlm_lockres_put(lockres);
+ - Pat
