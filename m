@@ -1,63 +1,181 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 22 Jun 2010 18:36:34 -0700
-Subject: [Ocfs2-devel] Large (> 16TiB) volumes revisited
-In-Reply-To: <AANLkTilj-EHDdqIN5SziVQXG3WGhvzWGxwKYXCwhTxnM@mail.gmail.com>
-References: <AANLkTimtV44iqvA-UV5gRwWygJoh8oolTraSmcRO8ndz@mail.gmail.com>
-	<20100623004937.GB20090@mail.oracle.com>
-	<AANLkTilj-EHDdqIN5SziVQXG3WGhvzWGxwKYXCwhTxnM@mail.gmail.com>
-Message-ID: <20100623013633.GC20090@mail.oracle.com>
+From: tristan <tristan.ye@oracle.com>
+Date: Wed, 23 Jun 2010 09:50:54 +0800
+Subject: [Ocfs2-devel] Fwd: [PATCH 0/2] Fix aio completion vs unwritten
+	extents
+In-Reply-To: <4C20F128.8020705@oracle.com>
+References: <4C20F128.8020705@oracle.com>
+Message-ID: <4C21687E.5090800@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jun 22, 2010 at 06:12:01PM -0700, Patrick J. LoPresti wrote:
-> On Tue, Jun 22, 2010 at 5:49 PM, Joel Becker <Joel.Becker@oracle.com> wrote:
-> > On Tue, Jun 22, 2010 at 05:11:50PM -0700, Patrick J. LoPresti wrote:
-> >
-> > ? ? ? ?This patch is not sufficient. ?The journal options need to be
-> > checked, as does the block addressing space of the kernel.
-> 
-> OK.  But I am new to this code base and would appreciate some pointers...
-> 
-> Specifically:
-> 
-> Which journal options?  Are they visible at this point in super.c?
+Sunil Mushran wrote:
+> Tristan,
+>
+> The reflink test is missing aio bits. Please could you add it.
+> In short, a pread issued after an aio write, must return that
+> data. This should be tested for both direct and buffered ios.
+>
+> Similarly, fill_holes also needs to be enhanced.
 
-	JBD2_FEATURE_INCOMPAT_64BIT.  You'll need to call
-jbd2_journal_check_used_features() to see if the journal has it enabled.
-Before you can do that, you have to ensure that the filesystem has the
-OCFS2_FEATURE_COMPAT_JBD2_SB feature enabled.
+Gotta, verifications for odirect and buffered ios have already been 
+included in current tests I guess.
 
-> By "block addressing space of the kernel", are we just talking
-> sizeof(some_kernel_type) or something more involved?
+What's more, maybe we can also verify the data from aio_read() after 
+pwrite() completed.
 
-	sector_t.  You can copy what ext4 did here.
+Tristan.
 
-2709         if ((ext4_blocks_count(es) >
-2710              (sector_t)(~0ULL) >> (sb->s_blocksize_bits - 9)) ||
-2711             (ext4_blocks_count(es) >
-2712              (pgoff_t)(~0ULL) >> (PAGE_CACHE_SHIFT - sb->s_blocksize_bits))     ) {
-2713                 ext4_msg(sb, KERN_ERR, "filesystem"
-2714                          " too large to mount safely on this system");
-
-	blocks_count is, of course, the calculation we already perform
-to turn di->i_clusters into how many blocks we have.
-	We must always fail if we can't address our disk in sector_t.
-Once we've gotten past that check, we then need to figure out if our
-journal can address our entire disk.  So if our current test for ">
-(u32)~0UL" returns true, one must then check for the 64BIT feature.
-
-Joel
-
--- 
-
-"You don't make the poor richer by making the rich poorer."
-	- Sir Winston Churchill
-
-Joel Becker
-Principal Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+>
+> Thanks
+> Sunil
+>
+> -------- Original Message --------
+> Subject: 	[PATCH 0/2] Fix aio completion vs unwritten extents
+> Date: 	Tue, 22 Jun 2010 08:21:44 -0400
+> From: 	Christoph Hellwig <hch@infradead.org>
+> To: 	linux-fsdevel at vger.kernel.org, xfs at oss.sgi.com, 
+> linux-ext4 at vger.kernel.org
+>
+>
+>
+> Some filesystems (XFS and ext4) have support for a concept called
+> unwritten extents, where we can write data into holes / preallocated
+> space and only mark them as allocated when the data I/O has finished.
+>
+> Because the transaction to convert the extent can't be submitted from
+> I/O completion, which normally happens from IRQ context it needs to
+> be defered to a workqueue.  This is not a problem for buffered I/O
+> where we keep the data in cache at least until the I/O operation has
+> finished, but it is an issue for direct I/O.  XFS avoids that problem
+> for synchronous direct I/O by waiting for all unwritten extent conversions
+> to finish if we did one during direct I/O, but so far has ignored the
+> problem for asynchronous I/O.  Unfortunately the race is very easy
+> to hit by using QEMU with native AIO support on a sparse image, and
+> the result is filesystem corruption in the guest.
+>
+> This contains core direct I/O changes to allow the filesystem to delay
+> AIO completion, as well as a patch to fix XFS.  ext4 also has the same
+> issue, and from a quick look also doesn't properly complete unwritten
+> extent conversions for synchronous direct I/O, but I'll leave that
+> for someone more familar to figure out.
+>
+> Below is a minimal reproducer for the issue.  Given that we're dealing
+> with a race condition it doesn't always fail, but in 2 core laptop
+> it triggers 100% reproducibly in 20 runs in a loop.
+>
+> ---
+>
+> #define _GNU_SOURCE
+>
+> #include <sys/stat.h>
+> #include <sys/types.h>
+> #include <errno.h>
+> #include <fcntl.h>
+> #include <stdio.h>
+> #include <stdlib.h>
+> #include <unistd.h>
+>
+> #include <libaio.h>
+>
+> #define BUF_SIZE	4096
+> #define IO_PATTERN	0xab
+>
+> int main(int argc, char *argv[])
+> {
+> 	struct io_context *ctx = NULL;
+> 	struct io_event ev;
+> 	struct iocb iocb, *iocbs[] = { &iocb };
+> 	void *buf;
+> 	char cmp_buf[BUF_SIZE];
+> 	int fd, err = 0;
+>
+> 	fd = open(argv[1], O_DIRECT | O_CREAT | O_TRUNC | O_RDWR, 0600);
+> 	if (fd == -1) {
+> 		perror("open");
+> 		return 1;
+> 	}
+>
+> 	err = posix_memalign(&buf, BUF_SIZE, BUF_SIZE);
+> 	if (err) {
+> 		fprintf(stderr, "error %s during %s\n",
+> 			strerror(-err),
+> 			"posix_memalign");
+> 		return 1;
+> 	}
+> 	memset(buf, IO_PATTERN, BUF_SIZE);
+> 	memset(cmp_buf, IO_PATTERN, BUF_SIZE);
+>
+> 	/*
+> 	 * Truncate to some random large file size.  Just make sure
+> 	 * it's not smaller than our I/O size.
+> 	 */
+> 	if (ftruncate(fd, 1024 * 1024 * 1024) < 0) {
+> 		perror("ftruncate");
+> 		return 1;
+> 	}
+>
+>
+> 	/*
+> 	 * Do a simple 4k write into a hole using aio.
+> 	 */
+> 	err = io_setup(1, &ctx);
+> 	if (err) {
+> 		fprintf(stderr, "error %s during %s\n",
+> 			strerror(-err),
+> 			"io_setup");
+> 		return 1;
+> 	}
+>
+> 	io_prep_pwrite(&iocb, fd, buf, BUF_SIZE, 0);
+>
+> 	err = io_submit(ctx, 1, iocbs);
+> 	if (err != 1) {
+> 		fprintf(stderr, "error %s during %s\n",
+> 			strerror(-err),
+> 			"io_submit");
+> 		return 1;
+> 	}
+>
+> 	err = io_getevents(ctx, 1, 1, &ev, NULL);
+> 	if (err != 1) {
+> 		fprintf(stderr, "error %s during %s\n",
+> 			strerror(-err),
+> 			"io_getevents");
+> 		return 1;
+> 	}
+>
+> 	/*
+> 	 * And then read it back.
+> 	 *
+> 	 * Using pread to keep it simple, but AIO has the same effect.
+> 	 */
+> 	if (pread(fd, buf, BUF_SIZE, 0) != BUF_SIZE) {
+> 		perror("pread");
+> 		return 1;
+> 	}
+>
+> 	/*
+> 	 * And depending on the machine we'll just get zeroes back quite
+> 	 * often here.  That's because the unwritten extent conversion
+> 	 * hasn't finished.
+> 	 */
+> 	if (memcmp(buf, cmp_buf, BUF_SIZE)) {
+> 		unsigned long long *ubuf = (unsigned long long *)buf;
+> 		int i;
+>
+> 		for (i = 0; i < BUF_SIZE / sizeof(unsigned long long); i++)
+> 			printf("%d: 0x%llx\n", i, ubuf[i]);
+> 			
+> 		return 1;
+> 	}
+>
+> 	return 0;
+> }
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>   
