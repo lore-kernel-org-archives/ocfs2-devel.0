@@ -1,167 +1,54 @@
-From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Wed, 23 Jun 2010 20:45:10 -0500
-Subject: [Ocfs2-devel] [PATCH] Track negative dentries v2
-Message-ID: <AANLkTiljvXu-QqcflpaSb-5EC-cLBZT8l6KBF2qoU4Ef@mail.gmail.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 24 Jun 2010 13:54:30 +0800
+Subject: [Ocfs2-devel] [PATCH 0/3 v5][RFC] ext3/4: enhance fsync
+ performance when using CFQ
+In-Reply-To: <4C21D442.8080703@oracle.com>
+References: <1277242502-9047-1-git-send-email-jmoyer@redhat.com>
+	<4C21D442.8080703@oracle.com>
+Message-ID: <4C22F316.3080009@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Tao Ma <tao.ma@oracle.com>
+Cc: axboe@kernel.dk, linux-kernel@vger.kernel.org, Jeff Moyer <jmoyer@redhat.com>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-ext4@vger.kernel.org, vgoyal@redhat.com
 
-Track negative dentries by recording the generation number of the parent
-directory in d_fsdata. The generation number for the parent directory is
-recorded in the inode_info, which increments every time the lock on the
-directory is dropped.
+Hi Jeff,
 
-If the generation number of the parent directory and the negative dentry
-matches, there is no need to perform the revalidate, else a revalidate
-is forced. This improves performance in situations where nodes look for
-the same non-existent file multiple times.
+On 06/23/2010 05:30 PM, Tao Ma wrote:
+> Hi Jeff,
+>
+> On 06/23/2010 05:34 AM, Jeff Moyer wrote:
+>> Hi,
+>>
+>> Running iozone with the fsync flag, or fs_mark, the performance of CFQ is
+>> far worse than that of deadline for enterprise class storage when dealing
+>> with file sizes of 8MB or less. I used the following command line as a
+>> representative test case:
+>>
+>> fs_mark -S 1 -D 10000 -N 100000 -d /mnt/test/fs_mark -s 65536 -t 1 -w
+>> 4096 -F
+>>
+>> When run using the deadline I/O scheduler, an average of the first 5
+>> numbers
+>> will give you 448.4 files / second. CFQ will yield only 106.7. With
+>> this patch series applied (and the two patches I sent yesterday), CFQ now
+>> achieves 462.5 files / second.
+> which 2 patches? Could you paste the link or the subject? Just want to
+> make my test env like yours. ;)
+> As Joel mentioned in another mail, ocfs2 also use jbd/jbd2, so I'd like
+> to give it a try and give you some feedback about the test.
+I am sorry to say that the patch make jbd2 locked up when I tested 
+fs_mark using ocfs2.
+I have attached the log from my netconsole server. After I reverted the 
+patch [3/3], the box works again.
 
-Thanks Mark for explaining the DLM sequence.
-
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
----
-diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
-index b4957c7..6db61a3 100644
---- a/fs/ocfs2/dcache.c
-+++ b/fs/ocfs2/dcache.c
-@@ -40,6 +40,16 @@
- #include "inode.h"
- #include "super.h"
-
-+/* Attach a generation number to a negative dentry */
-+void ocfs2_dentry_attach_gen(struct dentry *dentry)
-+{
-+	unsigned long gen = OCFS2_I(dentry->d_parent->d_inode)->ip_generation;
-+	/* Specifically for negative dentries */
-+	if (dentry->d_inode)
-+		BUG();
-+	dentry->d_fsdata = (void *)gen;
-+}
-+
-
- static int ocfs2_dentry_revalidate(struct dentry *dentry,
- 				   struct nameidata *nd)
-@@ -51,11 +61,22 @@ static int ocfs2_dentry_revalidate(struct dentry *dentry,
- 	mlog_entry("(0x%p, '%.*s')\n", dentry,
- 		   dentry->d_name.len, dentry->d_name.name);
-
--	/* Never trust a negative dentry - force a new lookup. */
-+	/* For a negative dentry -
-+	   check the generation number of the parent and compare with the
-+	   one stored in the inode.
-+	   */
- 	if (inode == NULL) {
--		mlog(0, "negative dentry: %.*s\n", dentry->d_name.len,
--		     dentry->d_name.name);
--		goto bail;
-+		unsigned long gen = (unsigned long) dentry->d_fsdata;
-+		unsigned long pgen =
-+			OCFS2_I(dentry->d_parent->d_inode)->ip_generation;
-+		mlog(0, "negative dentry: %.*s parent gen: %lu "
-+			"dentry gen: %lu\n",
-+			dentry->d_name.len, dentry->d_name.name, pgen, gen);
-+		if (gen != pgen) {
-+			dentry->d_fsdata = (void *) pgen;
-+			goto bail;
-+		}
-+		goto valid;
- 	}
-
- 	BUG_ON(!osb);
-@@ -96,6 +117,7 @@ static int ocfs2_dentry_revalidate(struct dentry *dentry,
- 		goto bail;
- 	}
-
-+valid:
- 	ret = 1;
-
- bail:
-@@ -227,6 +249,12 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
- 	if (!inode)
- 		return 0;
-
-+	if (!dentry->d_inode && dentry->d_fsdata) {
-+		/* Converting a negative dentry to positive
-+		   Clear dentry->d_fsdata */
-+		dentry->d_fsdata = dl = NULL;
-+	}
-+
- 	if (dl) {
- 		mlog_bug_on_msg(dl->dl_parent_blkno != parent_blkno,
- 				" \"%.*s\": old parent: %llu, new: %llu\n",
-@@ -451,6 +479,7 @@ static void ocfs2_dentry_iput(struct dentry
-*dentry, struct inode *inode)
- 	ocfs2_dentry_lock_put(OCFS2_SB(dentry->d_sb), dl);
-
- out:
-+	ocfs2_dentry_attach_gen(dentry);
- 	iput(inode);
- }
-
-diff --git a/fs/ocfs2/dcache.h b/fs/ocfs2/dcache.h
-index f5dd178..b79eff7 100644
---- a/fs/ocfs2/dcache.h
-+++ b/fs/ocfs2/dcache.h
-@@ -64,5 +64,6 @@ void ocfs2_dentry_move(struct dentry *dentry, struct
-dentry *target,
- 		       struct inode *old_dir, struct inode *new_dir);
-
- extern spinlock_t dentry_attach_lock;
-+void ocfs2_dentry_attach_gen(struct dentry *dentry);
-
- #endif /* OCFS2_DCACHE_H */
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 39eb16a..bf79dcf 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3635,10 +3635,18 @@ static int ocfs2_data_convert_worker(struct
-ocfs2_lock_res *lockres,
- {
- 	struct inode *inode;
- 	struct address_space *mapping;
-+	struct ocfs2_inode_info *oi;
-
-        	inode = ocfs2_lock_res_inode(lockres);
- 	mapping = inode->i_mapping;
-
-+	if (S_ISDIR(inode->i_mode)) {
-+		oi = OCFS2_I(inode);
-+		oi->ip_generation++;
-+		mlog(0, "generation: %u\n", oi->ip_generation);
-+		goto out;
-+	}
-+
- 	if (!S_ISREG(inode->i_mode))
- 		goto out;
-
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 9f5f5fc..34bad2c 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -70,6 +70,7 @@ struct ocfs2_inode_info
- 	/* Only valid if the inode is the dir. */
- 	u32				ip_last_used_slot;
- 	u64				ip_last_used_group;
-+	u32				ip_generation; /*for -ve dentry */
-
- 	struct ocfs2_alloc_reservation	ip_la_data_resv;
- };
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f171b51..e89bce7 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -171,7 +171,8 @@ bail_add:
- 			ret = ERR_PTR(status);
- 			goto bail_unlock;
- 		}
--	}
-+	} else
-+		ocfs2_dentry_attach_gen(dentry);
-
- bail_unlock:
- 	/* Don't drop the cluster lock until *after* the d_add --
-
--- 
-Goldwyn
+Regards,
+Tao
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: lockup.log
+Type: text/x-log
+Size: 4429 bytes
+Desc: not available
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20100624/a9724b6e/attachment.bin 
