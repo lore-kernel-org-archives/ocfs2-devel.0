@@ -1,126 +1,99 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Sat, 26 Jun 2010 18:42:14 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist(bug
- 9094491) - rev3
-In-Reply-To: <1277272108-3160-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1277272108-3160-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20100626104213.GA2696@laptop>
+Date: Sat, 26 Jun 2010 19:32:37 +0800
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: o2dlm fix race in purge lockres
+	and newlock (orabug 9094491) -backport to 1.2
+Message-ID: <201006261134.o5QBKSZP015884@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-A typo in your patch.
+This patch fixes the following hole.
+dlmlock tries to create a new lock on a lockres that is on purge list. It calls
+dlm_get_lockresource and later adds a lock to blocked list. But in this window,
+dlm_thread can purge the lockres and unhash it. This will cause a BUG, as when
+the AST comes back from the master lockres is not found
 
-On 10-06-22 22:48, Srinivas Eeda wrote:
-> There are two problems in dlm_run_purgelist
-> 
-> 1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
-> the same lockres instead of trying the next lockres.
-> 
-> 2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
-> before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
-> spinlock is reacquired but in this window lockres can get reused. This leads
-> to BUG.
-> 
-> This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
->  next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
-> lockres spinlock protecting it from getting reused.
-> 
-> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
-> ---
->  fs/ocfs2/dlm/dlmthread.c |   79 +++++++++++++++++++--------------------------
->  1 files changed, 33 insertions(+), 46 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-> index 11a6d1f..6822f9a 100644
-> --- a/fs/ocfs2/dlm/dlmthread.c
-> +++ b/fs/ocfs2/dlm/dlmthread.c
-> @@ -152,45 +152,25 @@ void dlm_lockres_calc_usage(struct dlm_ctxt *dlm,
->  	spin_unlock(&dlm->spinlock);
->  }
->  
-> -static int dlm_purge_lockres(struct dlm_ctxt *dlm,
-> +static void dlm_purge_lockres(struct dlm_ctxt *dlm,
->  			     struct dlm_lock_resource *res)
->  {
->  	int master;
->  	int ret = 0;
->  
-> -	spin_lock(&res->spinlock);
-> -	if (!__dlm_lockres_unused(res)) {
-> -		mlog(0, "%s:%.*s: tried to purge but not unused\n",
-> -		     dlm->name, res->lockname.len, res->lockname.name);
-> -		__dlm_print_one_lock_resource(res);
-> -		spin_unlock(&res->spinlock);
-> -		BUG();
-> -	}
-> -
-> -	if (res->state & DLM_LOCK_RES_MIGRATING) {
-> -		mlog(0, "%s:%.*s: Delay dropref as this lockres is "
-> -		     "being remastered\n", dlm->name, res->lockname.len,
-> -		     res->lockname.name);
-> -		/* Re-add the lockres to the end of the purge list */
-> -		if (!list_empty(&res->purge)) {
-> -			list_del_init(&res->purge);
-> -			list_add_tail(&res->purge, &dlm->purge_list);
-> -		}
-> -		spin_unlock(&res->spinlock);
-> -		return 0;
-> -	}
-> +	assert_spin_locked(&dlm->spinlock);
-> +	assert_spin_locked(&res->spinlock);
->  
->  	master = (res->owner == dlm->node_num);
->  
-> -	if (!master)
-> -		res->state |= DLM_LOCK_RES_DROPPING_REF;
-> -	spin_unlock(&res->spinlock);
->  
->  	mlog(0, "purging lockres %.*s, master = %d\n", res->lockname.len,
->  	     res->lockname.name, master);
->  
->  	if (!master) {
-> +		res->state |= DLM_LOCK_RES_DROPPING_REF;
->  		/* drop spinlock...  retake below */
-> +		spin_unlock(&res->spinlock);
->  		spin_unlock(&dlm->spinlock);
->  
->  		spin_lock(&res->spinlock);
-> @@ -208,31 +188,35 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
->  		mlog(0, "%s:%.*s: dlm_deref_lockres returned %d\n",
->  		     dlm->name, res->lockname.len, res->lockname.name, ret);
->  		spin_lock(&dlm->spinlock);
-> +		spin_lock(&res->spinlock);
->  	}
->  
-> -	spin_lock(&res->spinlock);
->  	if (!list_empty(&res->purge)) {
->  		mlog(0, "removing lockres %.*s:%p from purgelist, "
->  		     "master = %d\n", res->lockname.len, res->lockname.name,
->  		     res, master);
->  		list_del_init(&res->purge);
-> -		spin_unlock(&res->spinlock);
->  		dlm_lockres_put(res);
->  		dlm->purge_count--;
-> -	} else
-> -		spin_unlock(&res->spinlock);
-> +	}
-> +
-> +	if (!__dlm_lockres_unused) {
+This patch marks the lockres with a new state DLM_LOCK_RES_IN_USE which would
+protect lockres from dlm_thread purging it.
 
-should not be
-+       if (!__dlm_lockres_unused(res)) {
+Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ dlmcommon.h |    1 +
+ dlmlock.c   |    4 ++++
+ dlmmaster.c |    5 ++++-
+ dlmthread.c |    1 +
+ 4 files changed, 10 insertions(+), 1 deletion(-)
 
-regards,
-wengang.
-
-> +		mlog(ML_ERROR, "found lockres %s:%.*s: in use after deref\n",
-> +		     dlm->name, res->lockname.len, res->lockname.name);
-> +		__dlm_print_one_lock_resource(res);
-> +		BUG();
-> +	}
->  
->  	__dlm_unhash_lockres(res);
->  
+diff -upr ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmcommon.h ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmcommon.h
+--- ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmcommon.h	2010-06-26 19:04:32.000000000 +0800
++++ ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmcommon.h	2010-06-26 19:18:33.000000000 +0800
+@@ -218,6 +218,7 @@ static inline void __dlm_set_joining_nod
+ #define DLM_LOCK_RES_IN_PROGRESS          0x00000010
+ #define DLM_LOCK_RES_MIGRATING            0x00000020
+ #define DLM_LOCK_RES_DROPPING_REF         0x00000040
++#define DLM_LOCK_RES_IN_USE               0x00000100
+ #define DLM_LOCK_RES_BLOCK_DIRTY          0x00001000
+ #define DLM_LOCK_RES_SETREF_INPROG        0x00002000
+ 
+diff -upr ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmlock.c ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmlock.c
+--- ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmlock.c	2010-06-26 19:04:22.000000000 +0800
++++ ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmlock.c	2010-06-26 19:21:06.000000000 +0800
+@@ -116,6 +116,8 @@ static enum dlm_status dlmlock_master(st
+ 	if (status != DLM_NORMAL &&
+ 	    lock->ml.node != dlm->node_num) {
+ 		/* erf.  state changed after lock was dropped. */
++		/* DLM_LOCK_RES_IN_USE is set in dlm_get_lock_resource */
++		res->state &= ~DLM_LOCK_RES_IN_USE;
+ 		spin_unlock(&res->spinlock);
+ 		dlm_error(status);
+ 		return status;
+@@ -162,6 +164,7 @@ static enum dlm_status dlmlock_master(st
+ 			kick_thread = 1;
+ 		}
+ 	}
++	res->state &= ~DLM_LOCK_RES_IN_USE;
+ 	/* reduce the inflight count, this may result in the lockres
+ 	 * being purged below during calc_usage */
+ 	if (lock->ml.node == dlm->node_num)
+@@ -228,6 +231,7 @@ static enum dlm_status dlmlock_remote(st
+ 
+ 	spin_lock(&res->spinlock);
+ 	res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
++	res->state &= ~DLM_LOCK_RES_IN_USE;
+ 	lock->lock_pending = 0;
+ 	if (status != DLM_NORMAL) {
+ 		if (status == DLM_RECOVERING &&
+diff -upr ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmmaster.c ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmmaster.c
+--- ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmmaster.c	2010-06-26 19:04:22.000000000 +0800
++++ ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmmaster.c	2010-06-26 19:23:57.000000000 +0800
+@@ -804,12 +804,15 @@ lookup:
+ 	if (tmpres) {
+ 		int dropping_ref = 0;
+ 
++		tmpres->state |= DLM_LOCK_RES_IN_USE;
+ 		spin_lock(&tmpres->spinlock);
+ 		if (tmpres->owner == dlm->node_num) {
+ 			BUG_ON(tmpres->state & DLM_LOCK_RES_DROPPING_REF);
+ 			dlm_lockres_grab_inflight_ref(dlm, tmpres);
+-		} else if (tmpres->state & DLM_LOCK_RES_DROPPING_REF)
++		} else if (tmpres->state & DLM_LOCK_RES_DROPPING_REF) {
++			tmpres->state &= ~DLM_LOCK_RES_IN_USE;
+ 			dropping_ref = 1;
++		}
+ 		spin_unlock(&tmpres->spinlock);
+ 		spin_unlock(&dlm->spinlock);
+ 
+diff -upr ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmthread.c ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmthread.c
+--- ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmthread.c	2010-06-26 19:04:32.000000000 +0800
++++ ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmthread.c	2010-06-26 19:25:06.000000000 +0800
+@@ -97,6 +97,7 @@ int __dlm_lockres_has_locks(struct dlm_l
+ int __dlm_lockres_unused(struct dlm_lock_resource *res)
+ {
+ 	if (!__dlm_lockres_has_locks(res) &&
++	    !(res->state & DLM_LOCK_RES_IN_USE) &&
+ 	    (list_empty(&res->dirty) && !(res->state & DLM_LOCK_RES_DIRTY))) {
+ 		/* try not to scan the bitmap unless the first two
+ 		 * conditions are already true */
