@@ -1,180 +1,107 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Sat, 26 Jun 2010 19:32:11 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2 fix o2dlm dlm run purgelist(bug
-	9094491) -backport to 1.2
-Message-ID: <201006261134.o5QBKSM7015886@acsinet15.oracle.com>
+From: Patrick J. LoPresti <lopresti@gmail.com>
+Date: Sat, 26 Jun 2010 09:49:50 -0700
+Subject: [Ocfs2-devel] Large (> 16TiB) volumes revisited
+In-Reply-To: <AANLkTilw7xckG9rpMf9M5NVMNi-PXEw4AXqskPRAVYh0@mail.gmail.com>
+References: <AANLkTimtV44iqvA-UV5gRwWygJoh8oolTraSmcRO8ndz@mail.gmail.com>
+	<20100623004937.GB20090@mail.oracle.com>
+	<AANLkTilj-EHDdqIN5SziVQXG3WGhvzWGxwKYXCwhTxnM@mail.gmail.com>
+	<20100623013633.GC20090@mail.oracle.com>
+	<AANLkTinvOQGcTDZqtn36ef0lnyLXWy51-XLbM2RR5KJl@mail.gmail.com>
+	<20100624001437.GF20090@mail.oracle.com>
+	<AANLkTilj3GhmxKpZ9C5QSh6w7BRYjmU-KQ6hcnSsw6gX@mail.gmail.com>
+	<20100624005537.GG20090@mail.oracle.com>
+	<AANLkTinCGO1OrhOPaxbpqY9WtBGMKkf3wrU3uEtYf0JH@mail.gmail.com>
+	<AANLkTilw7xckG9rpMf9M5NVMNi-PXEw4AXqskPRAVYh0@mail.gmail.com>
+Message-ID: <AANLkTilg6R5U1nY7FrsK15bxqNeLTIveUrmhB2p5BKU3@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-There are two problems in dlm_run_purgelist
+Moving the addressability check to ocfs2_check_volume() -- after the
+journal structure has been initialized -- seems to be working.  I
+still have more testing to do, but at least it no longer crashes.
 
-1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
-the same lockres instead of trying the next lockres.
+Current draft of patch follows.
 
-2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
-before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
-spinlock is reacquired but in this window lockres can get reused. This leads
-to BUG.
+ - Pat
 
-This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
- next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
-lockres spinlock protecting it from getting reused.
 
-Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- dlmcommon.h |    2 -
- dlmthread.c |   72 +++++++++++++++++++++++++++++-------------------------------
- 2 files changed, 35 insertions(+), 39 deletions(-)
-
-diff -upr ocfs2-1.2.9-7/fs/ocfs2/dlm/dlmthread.c ocfs2-1.2.9-8/fs/ocfs2/dlm/dlmthread.c
---- ocfs2-1.2.9-7/fs/ocfs2/dlm/dlmthread.c	2010-06-26 14:40:32.000000000 +0800
-+++ ocfs2-1.2.9-8/fs/ocfs2/dlm/dlmthread.c	2010-06-26 18:44:14.000000000 +0800
-@@ -156,29 +156,23 @@ void dlm_lockres_calc_usage(struct dlm_c
- 	spin_unlock(&dlm->spinlock);
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 0eaa929..d92123b 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1991,6 +1991,43 @@ static int ocfs2_setup_osb_uuid(struct
+ocfs2_super *osb, const unsigned char *uu
+ 	return 0;
  }
- 
--int dlm_purge_lockres(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
-+static void dlm_purge_lockres(struct dlm_ctxt *dlm, struct dlm_lock_resource *res)
- {
- 	int master;
- 	int ret = 0;
- 
--	spin_lock(&res->spinlock);
--	if (!__dlm_lockres_unused(res)) {
--		__dlm_print_one_lock_resource(res);
--		spin_unlock(&res->spinlock);
--		mlog(0, "%s:%.*s: tried to purge but not unused\n",
--		     dlm->name, res->lockname.len, res->lockname.name);
--		return -ENOTEMPTY;
--	}
-+	assert_spin_locked(&dlm->spinlock);
-+	assert_spin_locked(&res->spinlock);
+
++/* Check to make sure entire volume is addressable on this system. */
++static int ocfs2_check_addressable(struct ocfs2_super *osb, u32 clusters)
++{
++	int status = 0;
++	u64 max_block = ocfs2_clusters_to_blocks(osb->sb, clusters) - 1;
 +
- 	master = (res->owner == dlm->node_num);
--	if (!master)
--		res->state |= DLM_LOCK_RES_DROPPING_REF;
--	spin_unlock(&res->spinlock);
- 
- 	mlog(0, "purging lockres %.*s, master = %d\n", res->lockname.len,
- 	     res->lockname.name, master);
- 
- 	if (!master) {
-+		res->state |= DLM_LOCK_RES_DROPPING_REF;
- 		/* drop spinlock...  retake below */
-+		spin_unlock(&res->spinlock);
- 		spin_unlock(&dlm->spinlock);
- 
- 		spin_lock(&res->spinlock);
-@@ -196,31 +190,35 @@ int dlm_purge_lockres(struct dlm_ctxt *d
- 		mlog(0, "%s:%.*s: dlm_deref_lockres returned %d\n",
- 		     dlm->name, res->lockname.len, res->lockname.name, ret);
- 		spin_lock(&dlm->spinlock);
-+		spin_lock(&res->spinlock);
++	/* Absolute addressability check (borrowed from ext4/super.c) */
++	if ((max_block >
++	     (sector_t)(~0LL) >> (osb->sb->s_blocksize_bits - 9)) ||
++	    (max_block > (pgoff_t)(~0LL) >> (PAGE_CACHE_SHIFT -
++					     osb->sb->s_blocksize_bits))) {
++		mlog(ML_ERROR, "Volume too large "
++		     "to mount safely on this system");
++		status = -EFBIG;
++		goto out;
++	}
++
++	/* 32-bit block number is always OK. */
++	if (max_block <= (u32)~0UL)
++		goto out;
++
++	/* Volume is "huge", so see if our journal is new enough to
++	   support it. */
++	if (!(OCFS2_HAS_COMPAT_FEATURE(osb->sb,
++				       OCFS2_FEATURE_COMPAT_JBD2_SB) &&
++	      jbd2_journal_check_used_features(osb->journal->j_journal, 0, 0,
++					       JBD2_FEATURE_INCOMPAT_64BIT))) {
++		mlog(ML_ERROR, "The journal cannot address the entire volume. "
++		     "Enable the 'block64' journal option with tunefs.ocfs2");
++		status = -EFBIG;
++		goto out;
++	}
++
++ out:
++	return status;
++}
++
+ static int ocfs2_initialize_super(struct super_block *sb,
+ 				  struct buffer_head *bh,
+ 				  int sector_size,
+@@ -2215,14 +2252,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		goto bail;
  	}
- 
--	spin_lock(&res->spinlock);
- 	if (!list_empty(&res->purge)) {
- 		mlog(0, "removing lockres %.*s:%p from purgelist, "
- 		     "master = %d\n", res->lockname.len, res->lockname.name,
- 		     res, master);
- 		list_del_init(&res->purge);
--		spin_unlock(&res->spinlock);
- 		dlm_lockres_put(res);
- 		dlm->purge_count--;
--	} else {
--		spin_unlock(&res->spinlock);
-+	} 
-+
-+	if (!__dlm_lockres_unused(res)) {
-+		mlog(ML_ERROR, "found lockres %s:%.*s: in use after deref\n",
-+		     dlm->name, res->lockname.len, res->lockname.name);
-+		__dlm_print_one_lock_resource(res);
-+		BUG();
- 	}
-+
- 	__dlm_unhash_lockres(res);
- 
- 	/* lockres is not in the hash now.  drop the flag and wake up
- 	 * any processes waiting in dlm_get_lock_resource. */
- 	if (!master) {
--		spin_lock(&res->spinlock);
- 		res->state &= ~DLM_LOCK_RES_DROPPING_REF;
- 		spin_unlock(&res->spinlock);
- 		wake_up(&res->wq);
+
+-	if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
+-	    > (u32)~0UL) {
+-		mlog(ML_ERROR, "Volume might try to write to blocks beyond "
+-		     "what jbd can address in 32 bits.\n");
+-		status = -EINVAL;
+-		goto bail;
 -	}
--	return 0;
-+	} else
-+		spin_unlock(&res->spinlock);
- }
- 
- static void dlm_run_purge_list(struct dlm_ctxt *dlm,
-@@ -239,18 +237,6 @@ static void dlm_run_purge_list(struct dl
- 		lockres = list_entry(dlm->purge_list.next,
- 				     struct dlm_lock_resource, purge);
- 
--		/* Status of the lockres *might* change so double
--		 * check. If the lockres is unused, holding the dlm
--		 * spinlock will prevent people from getting and more
--		 * refs on it -- there's no need to keep the lockres
--		 * spinlock. */
--		spin_lock(&lockres->spinlock);
--		unused = __dlm_lockres_unused(lockres);
--		spin_unlock(&lockres->spinlock);
 -
--		if (!unused)
--			continue;
--
- 		purge_jiffies = lockres->last_used +
- 			msecs_to_jiffies(DLM_PURGE_INTERVAL_MS);
- 
-@@ -261,16 +247,28 @@ static void dlm_run_purge_list(struct dl
- 			 * in tail order, we can stop at the first
- 			 * unpurgable resource -- anyone added after
- 			 * him will have a greater last_used value */
-+			spin_unlock(&lockres->spinlock);
- 			break;
- 		}
- 
--		dlm_lockres_get(lockres);
--
--		/* This may drop and reacquire the dlm spinlock if it
--		 * has to do migration. */
--		if (dlm_purge_lockres(dlm, lockres))
--			BUG();
-+		/* Status of the lockres *might* change so double
-+		 * check. If the lockres is unused, holding the dlm
-+		 * spinlock will prevent people from getting and more
-+		 * refs on it.
-+		 */
-+		unused = __dlm_lockres_unused(lockres);
-+		if (!unused ||
-+		    (lockres->state & DLM_LOCK_RES_MIGRATING)) {
-+			mlog(0, "lockres %s:%.*s: is in use or "
-+			     "being remastered\n", dlm->name,
-+			     lockres->lockname.len, lockres->lockname.name);
-+			list_move_tail(&dlm->purge_list, &lockres->purge);
-+			spin_unlock(&lockres->spinlock);
-+			continue;
-+		}
- 
-+		dlm_lockres_get(lockres);
-+		dlm_purge_lockres(dlm, lockres);
- 		dlm_lockres_put(lockres);
- 
- 		/* Avoid adding any scheduling latencies */
-diff -urp ocfs2-1.2.9-7/fs/ocfs2/dlm/dlmcommon.h ocfs2-1.2.9-8/fs/ocfs2/dlm/dlmcommon.h
---- ocfs2-1.2.9-7/fs/ocfs2/dlm/dlmcommon.h	2010-06-26 14:40:32.000000000 +0800
-+++ ocfs2-1.2.9-8/fs/ocfs2/dlm/dlmcommon.h	2010-06-26 18:57:19.000000000 +0800
-@@ -753,8 +753,6 @@ void __dlm_lockres_calc_usage(struct dlm
- 			      struct dlm_lock_resource *res);
- void dlm_lockres_calc_usage(struct dlm_ctxt *dlm,
- 			    struct dlm_lock_resource *res);
--int dlm_purge_lockres(struct dlm_ctxt *dlm,
--		      struct dlm_lock_resource *lockres);
- void dlm_lockres_get(struct dlm_lock_resource *res);
- void dlm_lockres_put(struct dlm_lock_resource *res);
- void __dlm_unhash_lockres(struct dlm_lock_resource *res);
+ 	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
+ 				 sizeof(di->id2.i_super.s_uuid))) {
+ 		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
+@@ -2381,6 +2410,12 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+ 		goto finally;
+ 	}
+
++	/* Now that journal has been initialized, check to make sure
++	   entire volume is addressable. */
++	status = ocfs2_check_addressable(osb, osb->osb_clusters_at_boot);
++	if (status)
++		goto finally;
++
+ 	/* If the journal was unmounted cleanly then we don't want to
+ 	 * recover anything. Otherwise, journal_load will do that
+ 	 * dirty work for us :) */
