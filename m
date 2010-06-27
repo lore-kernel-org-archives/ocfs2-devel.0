@@ -1,111 +1,43 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Sun, 27 Jun 2010 11:47:03 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: o2dlm fix race in purge
- lockres and newlock (orabug 9094491) -backport to 1.2
-In-Reply-To: <201006261134.o5QBKSZP015884@acsinet15.oracle.com>
-References: <201006261134.o5QBKSZP015884@acsinet15.oracle.com>
-Message-ID: <4C279CA7.9080100@oracle.com>
+From: Patrick J. LoPresti <lopresti@gmail.com>
+Date: Sun, 27 Jun 2010 12:02:21 -0700
+Subject: [Ocfs2-devel] Large (> 16TiB) volumes revisited
+In-Reply-To: <AANLkTilg6R5U1nY7FrsK15bxqNeLTIveUrmhB2p5BKU3@mail.gmail.com>
+References: <AANLkTimtV44iqvA-UV5gRwWygJoh8oolTraSmcRO8ndz@mail.gmail.com>
+	<20100623004937.GB20090@mail.oracle.com>
+	<AANLkTilj-EHDdqIN5SziVQXG3WGhvzWGxwKYXCwhTxnM@mail.gmail.com>
+	<20100623013633.GC20090@mail.oracle.com>
+	<AANLkTinvOQGcTDZqtn36ef0lnyLXWy51-XLbM2RR5KJl@mail.gmail.com>
+	<20100624001437.GF20090@mail.oracle.com>
+	<AANLkTilj3GhmxKpZ9C5QSh6w7BRYjmU-KQ6hcnSsw6gX@mail.gmail.com>
+	<20100624005537.GG20090@mail.oracle.com>
+	<AANLkTinCGO1OrhOPaxbpqY9WtBGMKkf3wrU3uEtYf0JH@mail.gmail.com>
+	<AANLkTilw7xckG9rpMf9M5NVMNi-PXEw4AXqskPRAVYh0@mail.gmail.com>
+	<AANLkTilg6R5U1nY7FrsK15bxqNeLTIveUrmhB2p5BKU3@mail.gmail.com>
+Message-ID: <AANLkTikqrSWpbqY8aaQhMACpgqN4FlatSzAhJdC3Zpr0@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Just to be clear. This is just an interim patch for 1.2. Not for
-inclusion in mainline.
+OK, this whole approach has a problem.
 
-On 06/26/2010 04:32 AM, Wengang Wang wrote:
-> This patch fixes the following hole.
-> dlmlock tries to create a new lock on a lockres that is on purge list. It calls
-> dlm_get_lockresource and later adds a lock to blocked list. But in this window,
-> dlm_thread can purge the lockres and unhash it. This will cause a BUG, as when
-> the AST comes back from the master lockres is not found
->
-> This patch marks the lockres with a new state DLM_LOCK_RES_IN_USE which would
-> protect lockres from dlm_thread purging it.
->
-> Signed-off-by: Srinivas Eeda<srinivas.eeda@oracle.com>
-> Signed-off-by: Sunil Mushran<sunil.mushran@oracle.com>
-> ---
->   dlmcommon.h |    1 +
->   dlmlock.c   |    4 ++++
->   dlmmaster.c |    5 ++++-
->   dlmthread.c |    1 +
->   4 files changed, 10 insertions(+), 1 deletion(-)
->
-> diff -upr ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmcommon.h ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmcommon.h
-> --- ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmcommon.h	2010-06-26 19:04:32.000000000 +0800
-> +++ ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmcommon.h	2010-06-26 19:18:33.000000000 +0800
-> @@ -218,6 +218,7 @@ static inline void __dlm_set_joining_nod
->   #define DLM_LOCK_RES_IN_PROGRESS          0x00000010
->   #define DLM_LOCK_RES_MIGRATING            0x00000020
->   #define DLM_LOCK_RES_DROPPING_REF         0x00000040
-> +#define DLM_LOCK_RES_IN_USE               0x00000100
->   #define DLM_LOCK_RES_BLOCK_DIRTY          0x00001000
->   #define DLM_LOCK_RES_SETREF_INPROG        0x00002000
->
-> diff -upr ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmlock.c ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmlock.c
-> --- ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmlock.c	2010-06-26 19:04:22.000000000 +0800
-> +++ ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmlock.c	2010-06-26 19:21:06.000000000 +0800
-> @@ -116,6 +116,8 @@ static enum dlm_status dlmlock_master(st
->   	if (status != DLM_NORMAL&&
->   	lock->ml.node != dlm->node_num) {
->   		/* erf.  state changed after lock was dropped. */
-> +		/* DLM_LOCK_RES_IN_USE is set in dlm_get_lock_resource */
-> +		res->state&= ~DLM_LOCK_RES_IN_USE;
->   		spin_unlock(&res->spinlock);
->   		dlm_error(status);
->   		return status;
-> @@ -162,6 +164,7 @@ static enum dlm_status dlmlock_master(st
->   			kick_thread = 1;
->   		}
->   	}
-> +	res->state&= ~DLM_LOCK_RES_IN_USE;
->   	/* reduce the inflight count, this may result in the lockres
->   	 * being purged below during calc_usage */
->   	if (lock->ml.node == dlm->node_num)
-> @@ -228,6 +231,7 @@ static enum dlm_status dlmlock_remote(st
->
->   	spin_lock(&res->spinlock);
->   	res->state&= ~DLM_LOCK_RES_IN_PROGRESS;
-> +	res->state&= ~DLM_LOCK_RES_IN_USE;
->   	lock->lock_pending = 0;
->   	if (status != DLM_NORMAL) {
->   		if (status == DLM_RECOVERING&&
-> diff -upr ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmmaster.c ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmmaster.c
-> --- ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmmaster.c	2010-06-26 19:04:22.000000000 +0800
-> +++ ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmmaster.c	2010-06-26 19:23:57.000000000 +0800
-> @@ -804,12 +804,15 @@ lookup:
->   	if (tmpres) {
->   		int dropping_ref = 0;
->
-> +		tmpres->state |= DLM_LOCK_RES_IN_USE;
->   		spin_lock(&tmpres->spinlock);
->   		if (tmpres->owner == dlm->node_num) {
->   			BUG_ON(tmpres->state&  DLM_LOCK_RES_DROPPING_REF);
->   			dlm_lockres_grab_inflight_ref(dlm, tmpres);
-> -		} else if (tmpres->state&  DLM_LOCK_RES_DROPPING_REF)
-> +		} else if (tmpres->state&  DLM_LOCK_RES_DROPPING_REF) {
-> +			tmpres->state&= ~DLM_LOCK_RES_IN_USE;
->   			dropping_ref = 1;
-> +		}
->   		spin_unlock(&tmpres->spinlock);
->   		spin_unlock(&dlm->spinlock);
->
-> diff -upr ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmthread.c ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmthread.c
-> --- ocfs2-1.2.9-8-test/fs/ocfs2/dlm/dlmthread.c	2010-06-26 19:04:32.000000000 +0800
-> +++ ocfs2-1.2.9-8.2/fs/ocfs2/dlm/dlmthread.c	2010-06-26 19:25:06.000000000 +0800
-> @@ -97,6 +97,7 @@ int __dlm_lockres_has_locks(struct dlm_l
->   int __dlm_lockres_unused(struct dlm_lock_resource *res)
->   {
->   	if (!__dlm_lockres_has_locks(res)&&
-> +	    !(res->state&  DLM_LOCK_RES_IN_USE)&&
->   	(list_empty(&res->dirty)&&  !(res->state&  DLM_LOCK_RES_DIRTY))) {
->   		/* try not to scan the bitmap unless the first two
->   		 * conditions are already true */
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->    
+I do not think the journal flag I need to check
+(JBD2_FEATURE_INCOMPAT_64BIT) is even read from disk until
+jbd2_journal_load() is called.
+
+Right now, jbd2_journal_load() is called by ocfs2_journal_load(),
+which not only loads the journal, but also replays it.
+
+I can move my check until after ocfs2_journal_load() is called, but
+that seems a little late...  What if the journal is dirty and the disk
+is mounted on a 32-bit system?
+
+I am inclined to move the call to jbd2_journal_load() earlier,
+specifically to ocfs2_journal_init().  Once the journal structure is
+initialized from the journal's inode on disk, I can check the flags to
+make sure the entire volume is addressable by the journal.
+
+Thoughts?
+
+ - Pat
