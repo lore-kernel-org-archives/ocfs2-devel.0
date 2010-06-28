@@ -1,70 +1,119 @@
-From: Coly Li <i@coly.li>
-Date: Mon, 28 Jun 2010 12:02:18 +0800
-Subject: [Ocfs2-devel] libdlm_lt.so vs. libdlm_lt.so.3
-In-Reply-To: <AANLkTilaQlW3H_24fwrKbMHrBhk-rWv7_4jWr12e4RzL@mail.gmail.com>
-References: <AANLkTilaQlW3H_24fwrKbMHrBhk-rWv7_4jWr12e4RzL@mail.gmail.com>
-Message-ID: <4C281ECA.1010207@coly.li>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 28 Jun 2010 13:44:21 +0800
+Subject: [Ocfs2-devel] [RFC] Add writepages in ocfs2_aops.
+Message-ID: <1277703861-3534-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 06/28/2010 04:33 AM, Patrick J. LoPresti Wrote:
-> I have spent the weekend assembling a small OCFS2 cluster, under the
-> Pacemaker cluster stack, using nothing but Debian experimental
-> packages.
-> 
-> I found a few problems along the way -- and I have reported them as
-> bugs to the Debian maintainers -- but I do have it all working now.
-> 
-> The final problem I encountered was this one:
-> 
-> http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=587287
-> 
-> Briefly, mkfs.ocfs2 was bombing out with "Unable to access cluster
-> service while initializing the dlm".  This ultimately comes from lines
-> 716-720 in ocfs2-tools-1.4.4/libo2dlm/o2dlm.c:
-> 
->         ctxt->ct_lib_handle = dlopen("libdlm_lt.so",
->                                      RTLD_NOW | RTLD_LOCAL);
->         if (!ctxt->ct_lib_handle)
->                 goto out;
-> 
-> On Debian, ".so" symlinks are included in development ("-dev")
-> packages, not in production packages.  This is because they are
-> normally only used at compile time, not at run time; the compiler
-> always includes the major number for the dependency in the executable.
->  (To see what I mean, run "ldd" on just about any executable; you will
-> find lots of dependencies on libfoo.so.N, but none on libfoo.so.)
-> 
-> I could submit this as a bug against the Debian redhat-cluster
-> package, asking them to move the libdlm_lt.so symlink from the
-> libdlm-dev package to the libdlm3 package.  But I do not actually
-> think that would be correct.  Just as "ldd /bin/cat" shows how cat
-> depends on libc.so.6 (not libc.so), in point of fact libo2dlm depends
-> on a particular major version of the libdlm_lt.so shared object (i.e.,
-> a particular major version of the binary API).
-> 
-> So, if I submit a patch changing the dlopen() in o2dlm.c to load
-> "libdlm_lt.so.3" instead of "libdlm_lt.so", will the OCFS2 maintainers
-> accept it?  If not, why not?
+Hi all,
+	This is a RFC for adding writepages in ocfs2_aops.
 
-A similar patch has been in SLES11 HAE SP1 for a while (novell bugzilla bnc#543119), which is not upstream yet. FYI.
+On Jun 9, Dave Chinner added d87815cb2090e07b0b0b2d73dc9740706e92c80c to 
+mainline kernel which limits writeback to write the pages until we reach 
+inode->i_size during sync. But for ocfs2, it cause several problems 
+because we have dirty pages after i_size within the same cluster. So 
+this commit at least has these effect on ocfs2:
+1. all the place we use filemap_fdatawrite in ocfs2 doesn't flush pages 
+after i_size now.
+2. sync, fsync, fdatasync and umount don't flush pages after i_size(they 
+are called from writeback_single_inode).
+3. reflink have a BUG_ON triggered because we have some dirty pages 
+while during CoW. http://oss.oracle.com/bugzilla/show_bug.cgi?id=1265
 
-diff -rup ocfs2-tools.orig//libo2dlm/o2dlm.c ocfs2-tools/libo2dlm/o2dlm.c
---- ocfs2-tools.orig//libo2dlm/o2dlm.c  2008-10-27 01:10:50.000000000 +0800
-+++ ocfs2-tools/libo2dlm/o2dlm.c        2009-11-03 16:49:38.000000000 +0800
-@@ -713,7 +713,7 @@ static errcode_t load_fsdlm(struct o2dlm
-                goto out;
-        }
+I think the possible solution includes:
+1) maybe add a new function in address_space_operations named 
+get_write_size to get it. I think it is needed for all file systems that 
+has "block size" > "page size".(But by now, it seems that only ocfs2 has 
+this? So it may not be persuasive enough?)
+2) revert the patch(I guess it is not easy since it fix some problem 
+that generic file system has).
+3) Use our own writepages and change wbc->range_end to the end of the 
+cluster if LLONG_MAX is used. It should be simple enough but a little 
+bit tricky.
+4) maybe we can clear the page after extend_file? That means we only 
+clear the pages containing i_size and delay the writeback of pages 
+within the same cluster to i_size increase. I haven't dived into it 
+since it needs more change than method 3.
 
--       ctxt->ct_lib_handle = dlopen("libdlm_lt.so",
-+       ctxt->ct_lib_handle = dlopen("libdlm_lt.so.3",
-                                     RTLD_NOW | RTLD_LOCAL);
-        if (!ctxt->ct_lib_handle)
-                goto out;
+The attached patch is my implementation of 3. Any comment is welcomed.
 
+Regards,
+Tao
 
+From b6d5267d682e933894aebe669c10e85405949e62 Mon Sep 17 00:00:00 2001
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 28 Jun 2010 11:38:30 +0800
+Subject: [PATCH] ocfs2: Add writepages to ocfs2_aops.
+
+In commit d87815cb2090e07b0b0b2d73dc9740706e92c80c, Dave
+limit writeback pages to within i_size when the writback
+is started. But ocfs2 always has some pages passed i_size
+within the same cluster. So it will break many ocfs2
+hypothesis that all the pages within the same cluster
+will be cleared.
+
+So this patch adds writepages to ocfs2_aops. It is a
+corresponding hack to that commit. In case we know that
+the following generic_writepages will limit write end to
+i_size, we limit it first to the end of the last cluster so
+that we can flush those pages as we want.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/aops.c |   27 +++++++++++++++++++++++++++
+ 1 files changed, 27 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 3623ca2..4dfaa6e 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -28,6 +28,7 @@
+ #include <linux/pipe_fs_i.h>
+ #include <linux/mpage.h>
+ #include <linux/quotaops.h>
++#include <linux/writeback.h>
+ 
+ #define MLOG_MASK_PREFIX ML_FILE_IO
+ #include <cluster/masklog.h>
+@@ -1988,10 +1989,36 @@ static int ocfs2_write_end(struct file *file, struct address_space *mapping,
+ 	return ret;
+ }
+ 
++static int ocfs2_writepages(struct address_space *mapping,
++			    struct writeback_control *wbc)
++{
++	int ret;
++	struct inode *inode = mapping->host;
++	loff_t sync_end = ocfs2_clusters_for_bytes(inode->i_sb,
++						i_size_read(inode)) <<
++			OCFS2_SB(inode->i_sb)->s_clustersize_bits;
++	loff_t range_end = wbc->range_end;
++
++	/*
++	 * In commit d87815cb2090e07b0b0b2d73dc9740706e92c80c, Dave
++	 * has changed write_cache_pages to only write pages within
++	 * i_size. While in ocfs2, we have to flush the pages that
++	 * within the last cluster. So change it accordingly.
++	 */
++	if (wbc->sync_mode == WB_SYNC_ALL &&
++	    wbc->range_end == LLONG_MAX)
++		wbc->range_end = sync_end;
++
++	ret = generic_writepages(mapping, wbc);
++	wbc->range_end = range_end;
++	return ret;
++}
++
+ const struct address_space_operations ocfs2_aops = {
+ 	.readpage		= ocfs2_readpage,
+ 	.readpages		= ocfs2_readpages,
+ 	.writepage		= ocfs2_writepage,
++	.writepages		= ocfs2_writepages,
+ 	.write_begin		= ocfs2_write_begin,
+ 	.write_end		= ocfs2_write_end,
+ 	.bmap			= ocfs2_bmap,
 -- 
-Coly Li
+1.5.5
