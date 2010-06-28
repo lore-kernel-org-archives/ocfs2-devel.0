@@ -1,125 +1,40 @@
-From: Patrick J. LoPresti <lopresti@gmail.com>
-Date: Mon, 28 Jun 2010 15:32:51 -0700
-Subject: [Ocfs2-devel] Large (> 16TiB) volumes revisited
-In-Reply-To: <AANLkTikqrSWpbqY8aaQhMACpgqN4FlatSzAhJdC3Zpr0@mail.gmail.com>
-References: <AANLkTimtV44iqvA-UV5gRwWygJoh8oolTraSmcRO8ndz@mail.gmail.com>
-	<20100623004937.GB20090@mail.oracle.com>
-	<AANLkTilj-EHDdqIN5SziVQXG3WGhvzWGxwKYXCwhTxnM@mail.gmail.com>
-	<20100623013633.GC20090@mail.oracle.com>
-	<AANLkTinvOQGcTDZqtn36ef0lnyLXWy51-XLbM2RR5KJl@mail.gmail.com>
-	<20100624001437.GF20090@mail.oracle.com>
-	<AANLkTilj3GhmxKpZ9C5QSh6w7BRYjmU-KQ6hcnSsw6gX@mail.gmail.com>
-	<20100624005537.GG20090@mail.oracle.com>
-	<AANLkTinCGO1OrhOPaxbpqY9WtBGMKkf3wrU3uEtYf0JH@mail.gmail.com>
-	<AANLkTilw7xckG9rpMf9M5NVMNi-PXEw4AXqskPRAVYh0@mail.gmail.com>
-	<AANLkTilg6R5U1nY7FrsK15bxqNeLTIveUrmhB2p5BKU3@mail.gmail.com>
-	<AANLkTikqrSWpbqY8aaQhMACpgqN4FlatSzAhJdC3Zpr0@mail.gmail.com>
-Message-ID: <AANLkTikJOtSn1ohvfPgCrKEfBOYsmmYDNe_aFUAsGgZb@mail.gmail.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 29 Jun 2010 07:16:10 +0800
+Subject: [Ocfs2-devel] [PATCH 0/3 v5][RFC] ext3/4: enhance fsync
+ performance when using CFQ
+In-Reply-To: <x49hbknfeck.fsf@segfault.boston.devel.redhat.com>
+References: <1277242502-9047-1-git-send-email-jmoyer@redhat.com>	<4C21D442.8080703@oracle.com>
+	<4C22F316.3080009@oracle.com>	<x49k4pk60ye.fsf@segfault.boston.devel.redhat.com>	<4C284419.3000905@oracle.com>
+	<x49hbknfeck.fsf@segfault.boston.devel.redhat.com>
+Message-ID: <4C292D3A.5000208@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jeff Moyer <jmoyer@redhat.com>
+Cc: axboe@kernel.dk, linux-ext4@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-kernel@vger.kernel.org, vgoyal@redhat.com
 
-Current version of my proposed patch is appended.
+Jeff Moyer wrote:
+> Tao Ma <tao.ma@oracle.com> writes:
+>
+>   
+>> btw, I also met with a NULL pointer deference in cfq_yield. I have
+>> attached the null.log also. This seems to be related to the previous
+>> deadlock and happens when I try to remount the same volume after
+>> reboot and ocfs2 try to do some recovery.
+>>     
+>
+> Since I can't reproduce your binary kernel even with your .config, could
+> you send me the disassembly of the cfq_yield function from your vmlinux
+> binary?
+>   
+no problem. I have attached it.
+btw, if you have any debug patch, I am happy to run it to make the 
+problem more clear to you.
 
-The good news is that I have tested it, and it "works for me".
-
-The bad news is that it performs the check fairly late (in
-ocfs2_check_volume(), just after the call to ocfs2_journal_load()),
-because this is the earliest I have the journal flags available to
-test.
-
-We can:
-
-(a) Run with this patch pretty much as-is; or
-(b) Move the jbd2_journal_load() call out of ocfs2_journal_load() so
-that the flags will be in memory sooner; or
-(c) Do something else (ideas welcome)
-
-Let me know what you think.  Thanks!
-
- - Pat
-
-
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 0eaa929..3db233d 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1991,6 +1991,47 @@ static int ocfs2_setup_osb_uuid(struct
-ocfs2_super *osb, const unsigned char *uu
- 	return 0;
- }
-
-+/* Check to make sure entire volume is addressable on this system.
-+   Requires osb_clusters_at_boot to be valid and for the journal to
-+   have been read by jbd2_journal_load(). */
-+static int ocfs2_check_addressable(struct ocfs2_super *osb)
-+{
-+	int status = 0;
-+	u64 max_block =
-+		ocfs2_clusters_to_blocks(osb->sb,
-+					 osb->osb_clusters_at_boot) - 1;
-+
-+	/* Absolute addressability check (borrowed from ext4/super.c) */
-+	if ((max_block >
-+	     (sector_t)(~0LL) >> (osb->sb->s_blocksize_bits - 9)) ||
-+	    (max_block > (pgoff_t)(~0LL) >> (PAGE_CACHE_SHIFT -
-+					     osb->sb->s_blocksize_bits))) {
-+		mlog(ML_ERROR, "Volume too large "
-+		     "to mount safely on this system");
-+		status = -EFBIG;
-+		goto out;
-+	}
-+
-+	/* 32-bit block number is always OK. */
-+	if (max_block <= (u32)~0UL)
-+		goto out;
-+
-+	/* Volume is "huge", so see if our journal is new enough to
-+	   support it. */
-+	if (!(OCFS2_HAS_COMPAT_FEATURE(osb->sb,
-+				       OCFS2_FEATURE_COMPAT_JBD2_SB) &&
-+	      jbd2_journal_check_used_features(osb->journal->j_journal, 0, 0,
-+					       JBD2_FEATURE_INCOMPAT_64BIT))) {
-+		mlog(ML_ERROR, "The journal cannot address the entire volume. "
-+		     "Enable the 'block64' journal option with tunefs.ocfs2");
-+		status = -EFBIG;
-+		goto out;
-+	}
-+
-+ out:
-+	return status;
-+}
-+
- static int ocfs2_initialize_super(struct super_block *sb,
- 				  struct buffer_head *bh,
- 				  int sector_size,
-@@ -2215,14 +2256,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 		goto bail;
- 	}
-
--	if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
--	    > (u32)~0UL) {
--		mlog(ML_ERROR, "Volume might try to write to blocks beyond "
--		     "what jbd can address in 32 bits.\n");
--		status = -EINVAL;
--		goto bail;
--	}
--
- 	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
- 				 sizeof(di->id2.i_super.s_uuid))) {
- 		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
-@@ -2404,6 +2437,12 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
- 		goto finally;
- 	}
-
-+	/* Now that journal has been loaded, check to make sure entire
-+	   volume is addressable. */
-+	status = ocfs2_check_addressable(osb);
-+	if (status)
-+		goto finally;
-+
- 	if (dirty) {
- 		/* recover my local alloc if we didn't unmount cleanly. */
- 		status = ocfs2_begin_local_alloc_recovery(osb,
+Regards,
+Tao
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: cfq_yield.txt
+Url: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20100629/d0590f1f/attachment.txt 
