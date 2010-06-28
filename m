@@ -1,176 +1,84 @@
-From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Mon, 28 Jun 2010 10:04:32 -0500
-Subject: [Ocfs2-devel] [PATCH] Track negative entries v3
-Message-ID: <AANLkTikSDWtoWOBEMf6gnhrjWo5eCBPHW9jqWKNF-6St@mail.gmail.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 28 Jun 2010 10:35:29 -0700
+Subject: [Ocfs2-devel] [PATCH] Revert "writeback: limit write_cache_pages
+ integrity scanning to current EOF"
+Message-ID: <20100628173529.GA10573@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Tao Ma <tao.ma@oracle.com>, Dave Chinner <dchinner@redhat.com>, Christoph Hellwig <hch@lst.de>, Mark Fasheh <mfasheh@suse.com>
 
-Track negative dentries by recording the generation number of the parent
-directory in d_fsdata. The generation number for the parent directory is
-recorded in the inode_info, which increments every time the lock on the
-directory is dropped.
+This reverts commit d87815cb2090e07b0b0b2d73dc9740706e92c80c.
 
-If the generation number of the parent directory and the negative dentry
-matches, there is no need to perform the revalidate, else a revalidate
-is forced. This improves performance in situations where nodes look for
-the same non-existent file multiple times.
+This patch causes any filesystem with an allocation unit larger than the
+filesystem blocksize will leak unzeroed data.  During a file extend, the
+entire allocation unit is zeroed.  However, this patch prevents the tail
+blocks of the allocation unit from being written back to disk.  When the
+file is next extended, i_size will now cover these unzeroed blocks,
+leaking the old contents of the disk to userspace and creating a corrupt
+file.
 
-Thanks Mark for explaining the DLM sequence.
+This affects ocfs2 directly.  As Tao Ma mentioned in his reporting
+email:
 
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+1. all the place we use filemap_fdatawrite in ocfs2 doesn't flush pages
+after i_size now.
+2. sync, fsync, fdatasync and umount don't flush pages after i_size(they
+are called from writeback_single_inode).
+3. reflink have a BUG_ON triggered because we have some dirty pages
+while during CoW. http://oss.oracle.com/bugzilla/show_bug.cgi?id=1265
+
+Because this patch breaks ocfs2 file extends, we need to request its
+reversion.
+
+Reported-by: Tao Ma <tao.ma@oracle.com>
+Cc: Dave Chinner <dchinner@redhat.com>
+Cc: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
 ---
-diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
-index b4957c7..edaded4 100644
---- a/fs/ocfs2/dcache.c
-+++ b/fs/ocfs2/dcache.c
-@@ -40,6 +40,14 @@
- #include "inode.h"
- #include "super.h"
+ mm/page-writeback.c |   15 ---------------
+ 1 files changed, 0 insertions(+), 15 deletions(-)
 
-+void ocfs2_dentry_attach_gen(struct dentry *dentry)
-+{
-+	unsigned long gen =
-+		OCFS2_I(dentry->d_parent->d_inode)->ip_dir_lock_gen;
-+	BUG_ON(dentry->d_inode);
-+	dentry->d_fsdata = (void *)gen;
-+}
-+
-
- static int ocfs2_dentry_revalidate(struct dentry *dentry,
- 				   struct nameidata *nd)
-@@ -51,11 +59,20 @@ static int ocfs2_dentry_revalidate(struct dentry *dentry,
- 	mlog_entry("(0x%p, '%.*s')\n", dentry,
- 		   dentry->d_name.len, dentry->d_name.name);
-
--	/* Never trust a negative dentry - force a new lookup. */
-+	/* For a negative dentry -
-+	 * check the generation number of the parent and compare with the
-+	 * one stored in the inode.
-+	 */
- 	if (inode == NULL) {
--		mlog(0, "negative dentry: %.*s\n", dentry->d_name.len,
--		     dentry->d_name.name);
--		goto bail;
-+		unsigned long gen = (unsigned long) dentry->d_fsdata;
-+		unsigned long pgen =
-+			OCFS2_I(dentry->d_parent->d_inode)->ip_dir_lock_gen;
-+		mlog(0, "negative dentry: %.*s parent gen: %lu "
-+			"dentry gen: %lu\n",
-+			dentry->d_name.len, dentry->d_name.name, pgen, gen);
-+		if (gen != pgen)
-+			goto bail;
-+		goto valid;
+diff --git a/mm/page-writeback.c b/mm/page-writeback.c
+index bbd396a..b3dbb80 100644
+--- a/mm/page-writeback.c
++++ b/mm/page-writeback.c
+@@ -851,22 +851,7 @@ int write_cache_pages(struct address_space *mapping,
+ 		if (wbc->range_start == 0 && wbc->range_end == LLONG_MAX)
+ 			range_whole = 1;
+ 		cycled = 1; /* ignore range_cyclic tests */
+-
+-		/*
+-		 * If this is a data integrity sync, cap the writeback to the
+-		 * current end of file. Any extension to the file that occurs
+-		 * after this is a new write and we don't need to write those
+-		 * pages out to fulfil our data integrity requirements. If we
+-		 * try to write them out, we can get stuck in this scan until
+-		 * the concurrent writer stops adding dirty pages and extending
+-		 * EOF.
+-		 */
+-		if (wbc->sync_mode == WB_SYNC_ALL &&
+-		    wbc->range_end == LLONG_MAX) {
+-			end = i_size_read(mapping->host) >> PAGE_CACHE_SHIFT;
+-		}
  	}
+-
+ retry:
+ 	done_index = index;
+ 	while (!done && (index <= end)) {
+-- 
+1.7.1
 
- 	BUG_ON(!osb);
-@@ -96,6 +113,7 @@ static int ocfs2_dentry_revalidate(struct dentry *dentry,
- 		goto bail;
- 	}
-
-+valid:
- 	ret = 1;
-
- bail:
-@@ -227,6 +245,12 @@ int ocfs2_dentry_attach_lock(struct dentry *dentry,
- 	if (!inode)
- 		return 0;
-
-+	if (!dentry->d_inode && dentry->d_fsdata) {
-+		/* Converting a negative dentry to positive
-+		   Clear dentry->d_fsdata */
-+		dentry->d_fsdata = dl = NULL;
-+	}
-+
- 	if (dl) {
- 		mlog_bug_on_msg(dl->dl_parent_blkno != parent_blkno,
- 				" \"%.*s\": old parent: %llu, new: %llu\n",
-@@ -452,6 +476,7 @@ static void ocfs2_dentry_iput(struct dentry
-*dentry, struct inode *inode)
-
- out:
- 	iput(inode);
-+	ocfs2_dentry_attach_gen(dentry);
- }
-
- /*
-diff --git a/fs/ocfs2/dcache.h b/fs/ocfs2/dcache.h
-index f5dd178..b79eff7 100644
---- a/fs/ocfs2/dcache.h
-+++ b/fs/ocfs2/dcache.h
-@@ -64,5 +64,6 @@ void ocfs2_dentry_move(struct dentry *dentry, struct
-dentry *target,
- 		       struct inode *old_dir, struct inode *new_dir);
-
- extern spinlock_t dentry_attach_lock;
-+void ocfs2_dentry_attach_gen(struct dentry *dentry);
-
- #endif /* OCFS2_DCACHE_H */
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 39eb16a..05177ec 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3635,10 +3635,18 @@ static int ocfs2_data_convert_worker(struct
-ocfs2_lock_res *lockres,
- {
- 	struct inode *inode;
- 	struct address_space *mapping;
-+	struct ocfs2_inode_info *oi;
-
-        	inode = ocfs2_lock_res_inode(lockres);
- 	mapping = inode->i_mapping;
-
-+	if (S_ISDIR(inode->i_mode)) {
-+		oi = OCFS2_I(inode);
-+		oi->ip_dir_lock_gen++;
-+		mlog(0, "generation: %u\n", oi->ip_dir_lock_gen);
-+		goto out;
-+	}
-+
- 	if (!S_ISREG(inode->i_mode))
- 		goto out;
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index abb0a95..fa0a750 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -335,6 +335,7 @@ void ocfs2_populate_inode(struct inode *inode,
-struct ocfs2_dinode *fe,
- 		    else
- 			    inode->i_fop = &ocfs2_dops_no_plocks;
- 		    i_size_write(inode, le64_to_cpu(fe->i_size));
-+		    OCFS2_I(inode)->ip_dir_lock_gen = 1;
- 		    break;
- 	    case S_IFLNK:
- 		    if (ocfs2_inode_is_fast_symlink(inode))
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 9f5f5fc..cdc9cee 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -70,6 +70,7 @@ struct ocfs2_inode_info
- 	/* Only valid if the inode is the dir. */
- 	u32				ip_last_used_slot;
- 	u64				ip_last_used_group;
-+	u32				ip_dir_lock_gen;
-
- 	struct ocfs2_alloc_reservation	ip_la_data_resv;
- };
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f171b51..e89bce7 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -171,7 +171,8 @@ bail_add:
- 			ret = ERR_PTR(status);
- 			goto bail_unlock;
- 		}
--	}
-+	} else
-+		ocfs2_dentry_attach_gen(dentry);
-
- bail_unlock:
- 	/* Don't drop the cluster lock until *after* the d_add --
 
 -- 
-Goldwyn
+
+"Senator let's be sincere,
+ As much as you can."
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
