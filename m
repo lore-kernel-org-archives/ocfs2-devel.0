@@ -1,56 +1,49 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 28 Jun 2010 18:12:35 -0700
-Subject: [Ocfs2-devel] [PATCH] Revert "writeback: limit
-	write_cache_pages integrity scanning to current EOF"
-In-Reply-To: <20100629005403.GC24343@mail.oracle.com>
-References: <20100628173529.GA10573@mail.oracle.com>
-	<20100629002421.GY6590@dastard>
-	<20100629005403.GC24343@mail.oracle.com>
-Message-ID: <AANLkTil1R9I94pVXLE50JAMPIwpiaZuroJAg4wcwyBUb@mail.gmail.com>
+From: Patrick J. LoPresti <lopresti@gmail.com>
+Date: Mon, 28 Jun 2010 18:15:37 -0700
+Subject: [Ocfs2-devel] Large (> 16TiB) volumes revisited
+In-Reply-To: <4C2942A4.1050901@oracle.com>
+References: <AANLkTimtV44iqvA-UV5gRwWygJoh8oolTraSmcRO8ndz@mail.gmail.com>
+	<20100623004937.GB20090@mail.oracle.com>
+	<AANLkTilj-EHDdqIN5SziVQXG3WGhvzWGxwKYXCwhTxnM@mail.gmail.com>
+	<20100623013633.GC20090@mail.oracle.com>
+	<AANLkTinvOQGcTDZqtn36ef0lnyLXWy51-XLbM2RR5KJl@mail.gmail.com>
+	<20100624001437.GF20090@mail.oracle.com>
+	<AANLkTilj3GhmxKpZ9C5QSh6w7BRYjmU-KQ6hcnSsw6gX@mail.gmail.com>
+	<20100624005537.GG20090@mail.oracle.com>
+	<AANLkTinCGO1OrhOPaxbpqY9WtBGMKkf3wrU3uEtYf0JH@mail.gmail.com>
+	<AANLkTilw7xckG9rpMf9M5NVMNi-PXEw4AXqskPRAVYh0@mail.gmail.com>
+	<AANLkTilg6R5U1nY7FrsK15bxqNeLTIveUrmhB2p5BKU3@mail.gmail.com>
+	<AANLkTikqrSWpbqY8aaQhMACpgqN4FlatSzAhJdC3Zpr0@mail.gmail.com>
+	<AANLkTikJOtSn1ohvfPgCrKEfBOYsmmYDNe_aFUAsGgZb@mail.gmail.com>
+	<4C2942A4.1050901@oracle.com>
+Message-ID: <AANLkTilDa51KeFzhtkT5hbS6z0VBcBkQ2Ni09IuyR19c@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dave Chinner <david@fromorbit.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Tao Ma <tao.ma@oracle.com>, Dave Chinner <dchinner@redhat.com>, Christoph Hellwig <hch@lst.de>, Mark Fasheh <mfasheh@suse.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jun 28, 2010 at 5:54 PM, Joel Becker <Joel.Becker@oracle.com> wrote:
-> On Tue, Jun 29, 2010 at 10:24:21AM +1000, Dave Chinner wrote:
->>
->> Looking at ocfs2_writepage(), it simply calls
->> block_write_full_page(), which does:
->>
->> ? ? ? /* Is the page fully outside i_size? (truncate in progress) */
->> ? ? ? offset = i_size & (PAGE_CACHE_SIZE-1);
->> ? ? ? if (page->index >= end_index+1 || !offset) {
->> ? ? ? ? ? ? ? /*
->> ? ? ? ? ? ? ? ?* The page may have dirty, unmapped buffers. ?For example,
->> ? ? ? ? ? ? ? ?* they may have been added in ext3_writepage(). ?Make them
->> ? ? ? ? ? ? ? ?* freeable here, so the page does not leak.
->> ? ? ? ? ? ? ? ?*/
->> ? ? ? ? ? ? ? do_invalidatepage(page, 0);
->> ? ? ? ? ? ? ? unlock_page(page);
->> ? ? ? ? ? ? ? return 0; /* don't care */
->> ? ? ? }
->>
->> i.e. pages beyond EOF get invalidated. ?If it somehow gets through
->> that check, __block_write_full_page() will avoid writing dirty
->> bufferheads beyond EOF because the write is "racing with truncate".
->
-> ? ? ? ?Your contention is that we've never gotten those tail blocks to
-> disk. ?Instead, our code either handles the future extensions of i_size
-> or we've just gotten lucky with our testing. ?Our current BUG trigger is
-> because we have a new check that catches this case. ?Does that summarize
-> your position correctly?
+On Mon, Jun 28, 2010 at 5:47 PM, Sunil Mushran <sunil.mushran@oracle.com> wrote:
+> BTW, have you tested with cleared INCOMPAT_64BIT journal flag?
 
-Maybe Dave has some more exhaustive answer, but his point that
-block_write_full_page() already just drops the page does seem to be
-very valid.  Which makes me suspect that it would be better to remove
-the ocfs2 BUG_ON() as a stop-gap measure, rather than reverting the
-commit. It seems to be true that the "don't bother flushing past EOF"
-commit really just uncovered an older bug.
+Hm, easier said than done. "tunefs.ocfs2 -J noblock64 ..." bombs out with:
 
-So maybe ocfs2 should just replace the bug-on with invalidating the
-page (perhaps with a WARN_ONCE() to make sure the problem doesn't get
-forgotten about?)
+tunefs.ocfs2: Unknown journal option: "block64"
+Valid journal options are:
+        size=<journal-size>
+Usage: tunefs.ocfs2 [options] <device> [new-size]
+[etc.]
 
-                 Linus
+By the way, it complains similarly about "tunefs.ocfs2 -J block64",
+which puts the lie to the failure message in my patch...
+
+When I try to re-format the partition without "-J block64", I get:
+
+ERROR: jbd can only store block numbers in 32 bits. /dev/md0 can hold
+5082795264 blocks which overflows this limit. If you have a new enough
+Ocfs2 with JBD2 support, you can try formatting with the "-Jblock64"
+option to turn on support for this size block device.
+Otherwise, consider increasing the block size or decreasing the device size.
+
+
+ - Pat
