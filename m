@@ -1,51 +1,37 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 29 Jun 2010 16:14:54 -0700
-Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: Add struct file to
-	ocfs2_refcount_cow.
-In-Reply-To: <1277800541-6844-1-git-send-email-tao.ma@oracle.com>
+Date: Tue, 29 Jun 2010 16:23:42 -0700
+Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2: Add readhead during CoW.
+In-Reply-To: <1277800541-6844-3-git-send-email-tao.ma@oracle.com>
 References: <4C29AE6C.1050205@oracle.com>
-	<1277800541-6844-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100629231453.GH4150@mail.oracle.com>
+	<1277800541-6844-3-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100629232342.GI4150@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jun 29, 2010 at 04:35:38PM +0800, Tao Ma wrote:
-> Add a new parameter 'struct file *' to ocfs2_refcount_cow
-> so that we can add readahead support later.
-> 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
-> ---
->  fs/ocfs2/aops.c         |    2 +-
->  fs/ocfs2/file.c         |   13 ++++++++-----
->  fs/ocfs2/refcounttree.c |    4 +++-
->  fs/ocfs2/refcounttree.h |    3 ++-
->  4 files changed, 14 insertions(+), 8 deletions(-)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 4dfaa6e..5f94923 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -1691,7 +1691,7 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
->  		mlog_errno(ret);
->  		goto out;
->  	} else if (ret == 1) {
-> -		ret = ocfs2_refcount_cow(inode, di_bh,
-> +		ret = ocfs2_refcount_cow(inode, NULL, di_bh,
->  					 wc->w_cpos, wc->w_clen, UINT_MAX);
+On Tue, Jun 29, 2010 at 04:35:40PM +0800, Tao Ma wrote:
+> @@ -2953,6 +2957,14 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+>  		if (PAGE_CACHE_SIZE <= OCFS2_SB(sb)->s_clustersize)
+>  			BUG_ON(PageDirty(page));
+>  
+> +		if (PageReadahead(page) && context->file) {
+> +			page_cache_async_readahead(mapping,
+> +						   &context->file->f_ra,
+> +						   context->file,
+> +						   page, page_index,
+> +						   readahead_pages);
+> +		}
 
-	You should be replacing the inode parameter with the file
-parameter.  You can always get back to the inode from the filp.  When I
-first saw this, I had to read through your entire series to figure out
-if a NULL filp was valid.  It's not.  In the end, you change
-write_begin_nolock() to take (inode, filp), which is pointless, because
-write_begin() always gets a valid filp.  So does page_mkwrite().
-	So in your first patch of the series, change
-ocfs2_write_begin_nolock() and __ocfs2_page_mkwrite() to take the filp
-instead of the inode.  Then in your later patches you can always expect
-the filp to be valid.
+	This is merely re-sending the same pages that were already sent,
+right?  In the previous patch, you asked the readahead code to try all
+pages in the hunk.  Now you've discovered a page that isn't yet up to
+date, and you send it (and the 1M next to it) back to readahead.
+	This is, I assume, because the readahead code doesn't actually
+read your entire request from page_cache_sync_readahead().  It just
+reads some, and this is you hinting that you need the next bit.  Am I
+right?
 
 Joel
 
