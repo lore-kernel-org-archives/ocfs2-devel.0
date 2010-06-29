@@ -1,105 +1,43 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 29 Jun 2010 16:35:41 +0800
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: make mmap CoW work with readahead.
-In-Reply-To: <4C29AE6C.1050205@oracle.com>
-References: <4C29AE6C.1050205@oracle.com>
-Message-ID: <1277800541-6844-4-git-send-email-tao.ma@oracle.com>
+From: Patrick J. LoPresti <lopresti@gmail.com>
+Date: Tue, 29 Jun 2010 12:43:35 -0700
+Subject: [Ocfs2-devel] Large (> 16TiB) volumes revisited
+In-Reply-To: <FD91FB0C-61FF-4E11-9B04-7409954FE188@oracle.com>
+References: <AANLkTimtV44iqvA-UV5gRwWygJoh8oolTraSmcRO8ndz@mail.gmail.com>
+	<20100623004937.GB20090@mail.oracle.com>
+	<AANLkTilj-EHDdqIN5SziVQXG3WGhvzWGxwKYXCwhTxnM@mail.gmail.com>
+	<20100623013633.GC20090@mail.oracle.com>
+	<AANLkTinvOQGcTDZqtn36ef0lnyLXWy51-XLbM2RR5KJl@mail.gmail.com>
+	<20100624001437.GF20090@mail.oracle.com>
+	<AANLkTilj3GhmxKpZ9C5QSh6w7BRYjmU-KQ6hcnSsw6gX@mail.gmail.com>
+	<20100624005537.GG20090@mail.oracle.com>
+	<AANLkTinCGO1OrhOPaxbpqY9WtBGMKkf3wrU3uEtYf0JH@mail.gmail.com>
+	<AANLkTilw7xckG9rpMf9M5NVMNi-PXEw4AXqskPRAVYh0@mail.gmail.com>
+	<AANLkTilg6R5U1nY7FrsK15bxqNeLTIveUrmhB2p5BKU3@mail.gmail.com>
+	<AANLkTikqrSWpbqY8aaQhMACpgqN4FlatSzAhJdC3Zpr0@mail.gmail.com>
+	<AANLkTikJOtSn1ohvfPgCrKEfBOYsmmYDNe_aFUAsGgZb@mail.gmail.com>
+	<4C2942A4.1050901@oracle.com>
+	<AANLkTilDa51KeFzhtkT5hbS6z0VBcBkQ2Ni09IuyR19c@mail.gmail.com>
+	<4C29526E.9090108@oracle.com>
+	<AANLkTikMbNDKanpd18eIkZlZ9x6WsuZVGSUhR41Y_kYx@mail.gmail.com>
+	<FD91FB0C-61FF-4E11-9B04-7409954FE188@oracle.com>
+Message-ID: <AANLkTinqYmN0X4sjaPWbcjhgTApMvdDouXsPAKlcz9PL@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-refcount_cow need file * to do the readahead.
-So we just add 'struct file *' to ocfs2_write_begin_nolock
-and __ocfs2_page_mkwrite and let them pass this parameter
-to ocfs2_refcount_cow.
+On Mon, Jun 28, 2010 at 9:21 PM, Sunil Mushran <sunil.mushran@oracle.com> wrote:
+> Yes, that needs to be fixed. Meanwhile you could hand edit the jsb to test
+> your patch.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/aops.c |    7 ++++---
- fs/ocfs2/aops.h |    3 ++-
- fs/ocfs2/mmap.c |    8 ++++----
- 3 files changed, 10 insertions(+), 8 deletions(-)
+Well, I do not understand the bits well enough to do that...  But I
+did download the source for mkfs.ocfs2 and eliminated its check.
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 5f94923..337e874 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1645,7 +1645,8 @@ static int ocfs2_expand_nonsparse_inode(struct inode *inode, loff_t pos,
- 	return ret;
- }
- 
--int ocfs2_write_begin_nolock(struct address_space *mapping,
-+int ocfs2_write_begin_nolock(struct file *file,
-+			     struct address_space *mapping,
- 			     loff_t pos, unsigned len, unsigned flags,
- 			     struct page **pagep, void **fsdata,
- 			     struct buffer_head *di_bh, struct page *mmap_page)
-@@ -1691,7 +1692,7 @@ int ocfs2_write_begin_nolock(struct address_space *mapping,
- 		mlog_errno(ret);
- 		goto out;
- 	} else if (ret == 1) {
--		ret = ocfs2_refcount_cow(inode, NULL, di_bh,
-+		ret = ocfs2_refcount_cow(inode, file, di_bh,
- 					 wc->w_cpos, wc->w_clen, UINT_MAX);
- 		if (ret) {
- 			mlog_errno(ret);
-@@ -1853,7 +1854,7 @@ static int ocfs2_write_begin(struct file *file, struct address_space *mapping,
- 	 */
- 	down_write(&OCFS2_I(inode)->ip_alloc_sem);
- 
--	ret = ocfs2_write_begin_nolock(mapping, pos, len, flags, pagep,
-+	ret = ocfs2_write_begin_nolock(file, mapping, pos, len, flags, pagep,
- 				       fsdata, di_bh, NULL);
- 	if (ret) {
- 		mlog_errno(ret);
-diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
-index c48e93f..e99ac0f 100644
---- a/fs/ocfs2/aops.h
-+++ b/fs/ocfs2/aops.h
-@@ -48,7 +48,8 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
- 			   loff_t pos, unsigned len, unsigned copied,
- 			   struct page *page, void *fsdata);
- 
--int ocfs2_write_begin_nolock(struct address_space *mapping,
-+int ocfs2_write_begin_nolock(struct file *file,
-+			     struct address_space *mapping,
- 			     loff_t pos, unsigned len, unsigned flags,
- 			     struct page **pagep, void **fsdata,
- 			     struct buffer_head *di_bh, struct page *mmap_page);
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index af2b8fe..7fcb107 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -59,8 +59,8 @@ static int ocfs2_fault(struct vm_area_struct *area, struct vm_fault *vmf)
- 	return ret;
- }
- 
--static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
--				struct page *page)
-+static int __ocfs2_page_mkwrite(struct file *file, struct inode *inode,
-+				struct buffer_head *di_bh, struct page *page)
- {
- 	int ret;
- 	struct address_space *mapping = inode->i_mapping;
-@@ -109,7 +109,7 @@ static int __ocfs2_page_mkwrite(struct inode *inode, struct buffer_head *di_bh,
- 	if (page->index == last_index)
- 		len = size & ~PAGE_CACHE_MASK;
- 
--	ret = ocfs2_write_begin_nolock(mapping, pos, len, 0, &locked_page,
-+	ret = ocfs2_write_begin_nolock(file, mapping, pos, len, 0, &locked_page,
- 				       &fsdata, di_bh, page);
- 	if (ret) {
- 		if (ret != -ENOSPC)
-@@ -157,7 +157,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
- 	 */
- 	down_write(&OCFS2_I(inode)->ip_alloc_sem);
- 
--	ret = __ocfs2_page_mkwrite(inode, di_bh, page);
-+	ret = __ocfs2_page_mkwrite(vma->vm_file, inode, di_bh, page);
- 
- 	up_write(&OCFS2_I(inode)->ip_alloc_sem);
- 
--- 
-1.7.1.GIT
+I created a large volume without "-J block64".  With my patch applies,
+the kernel refuses to mount it and generates the appropriate error
+message.
+
+OK to submit my patch to linux-kernel?
+
+ - Pat
