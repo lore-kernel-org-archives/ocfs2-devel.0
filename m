@@ -1,103 +1,131 @@
-From: Dave Chinner <david@fromorbit.com>
-Date: Tue, 29 Jun 2010 10:24:21 +1000
-Subject: [Ocfs2-devel] [PATCH] Revert "writeback: limit
- write_cache_pages integrity scanning to current EOF"
-In-Reply-To: <20100628173529.GA10573@mail.oracle.com>
-References: <20100628173529.GA10573@mail.oracle.com>
-Message-ID: <20100629002421.GY6590@dastard>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 28 Jun 2010 17:47:32 -0700
+Subject: [Ocfs2-devel] Large (> 16TiB) volumes revisited
+In-Reply-To: <AANLkTikJOtSn1ohvfPgCrKEfBOYsmmYDNe_aFUAsGgZb@mail.gmail.com>
+References: <AANLkTimtV44iqvA-UV5gRwWygJoh8oolTraSmcRO8ndz@mail.gmail.com>	<20100623004937.GB20090@mail.oracle.com>	<AANLkTilj-EHDdqIN5SziVQXG3WGhvzWGxwKYXCwhTxnM@mail.gmail.com>	<20100623013633.GC20090@mail.oracle.com>	<AANLkTinvOQGcTDZqtn36ef0lnyLXWy51-XLbM2RR5KJl@mail.gmail.com>	<20100624001437.GF20090@mail.oracle.com>	<AANLkTilj3GhmxKpZ9C5QSh6w7BRYjmU-KQ6hcnSsw6gX@mail.gmail.com>	<20100624005537.GG20090@mail.oracle.com>	<AANLkTinCGO1OrhOPaxbpqY9WtBGMKkf3wrU3uEtYf0JH@mail.gmail.com>	<AANLkTilw7xckG9rpMf9M5NVMNi-PXEw4AXqskPRAVYh0@mail.gmail.com>	<AANLkTilg6R5U1nY7FrsK15bxqNeLTIveUrmhB2p5BKU3@mail.gmail.com>	<AANLkTikqrSWpbqY8aaQhMACpgqN4FlatSzAhJdC3Zpr0@mail.gmail.com>
+	<AANLkTikJOtSn1ohvfPgCrKEfBOYsmmYDNe_aFUAsGgZb@mail.gmail.com>
+Message-ID: <4C2942A4.1050901@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Tao Ma <tao.ma@oracle.com>, Dave Chinner <dchinner@redhat.com>, Christoph Hellwig <hch@lst.de>, Mark Fasheh <mfasheh@suse.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jun 28, 2010 at 10:35:29AM -0700, Joel Becker wrote:
-> This reverts commit d87815cb2090e07b0b0b2d73dc9740706e92c80c.
+On 06/28/2010 03:32 PM, Patrick J. LoPresti wrote:
+> Current version of my proposed patch is appended.
+>
+> The good news is that I have tested it, and it "works for me".
+>
+> The bad news is that it performs the check fairly late (in
+> ocfs2_check_volume(), just after the call to ocfs2_journal_load()),
+> because this is the earliest I have the journal flags available to
+> test.
+>
+>    
 
-Hi Joel,
+That should be ok. Afterall we have to handle journal_load()
+failing for other reasons too. BTW, have you tested with cleared
+INCOMPAT_64BIT journal flag?
 
-I have no problems with it being reverted - it's a really just a
-WAR for the simplest case of the sync hold holdoff.
+Hopefully, we'll never trigger this condition... that is if we are
+careful when making the same change in mkfs/tunefs.
 
-However, I had no idea that any filesystem relied on being able to
-write pages beyond EOF, and I'd like to understand the implications
-of it on the higher level code and, more importantly, understand how
-the writes are getting to disk through multiple layers of
-page-beyond-i_size checks in the writeback code....
-
-> This patch causes any filesystem with an allocation unit larger than the
-> filesystem blocksize will leak unzeroed data. During a file extend, the
-> entire allocation unit is zeroed.
-
-XFS has this same underlying issue - it can have uninitialised,
-allocated blocks past EOF that have to be zeroed when extending the
-file.
-
-> However, this patch prevents the tail
-> blocks of the allocation unit from being written back to disk.  When the
-> file is next extended, i_size will now cover these unzeroed blocks,
-> leaking the old contents of the disk to userspace and creating a corrupt
-> file.
-
-XFS doesn't zero blocks at allocation. Instead, XFS zeros the range
-between the old EOF and the new EOF on each extending write. Hence
-these pages get written because they fall inside the new i_size that
-is set during the write.  The i_size on disk doesn't get changed
-until after the data writes have completed, so even on a crash we
-don't expose uninitialised blocks.
-
-> This affects ocfs2 directly.  As Tao Ma mentioned in his reporting
-> email:
-> 
-> 1. all the place we use filemap_fdatawrite in ocfs2 doesn't flush pages
-> after i_size now.
-> 2. sync, fsync, fdatasync and umount don't flush pages after i_size(they
-> are called from writeback_single_inode).
-
-I'm not sure this was ever supposed to work - my understanding is
-that we should never do anything with pages beyong i_size as pages
-beyond EOF as being beyond i_size implies we are racing with a
-truncate and the page is no longer valid. In that case, we should
-definitely not write it back to disk.
-
-Looking at ocfs2_writepage(), it simply calls
-block_write_full_page(), which does:
-
-	/* Is the page fully outside i_size? (truncate in progress) */
-	offset = i_size & (PAGE_CACHE_SIZE-1);
-	if (page->index >= end_index+1 || !offset) {
-		/*
-		 * The page may have dirty, unmapped buffers.  For example,
-		 * they may have been added in ext3_writepage().  Make them
-		 * freeable here, so the page does not leak.
-		 */
-		do_invalidatepage(page, 0);
-		unlock_page(page);
-		return 0; /* don't care */
-	}
-
-i.e. pages beyond EOF get invalidated.  If it somehow gets through
-that check, __block_write_full_page() will avoid writing dirty
-bufferheads beyond EOF because the write is "racing with truncate".
-
-Hence there are multiple layers of protection against writing past
-i_size, so I'm wondering how these pages are even getting to disk in
-the first place....
-
-> 3. reflink have a BUG_ON triggered because we have some dirty pages
-> while during CoW. http://oss.oracle.com/bugzilla/show_bug.cgi?id=1265
-
-I'd suggest that the reason you see the BUG_ON() with this patch is
-that the pages beyond EOF are not being invalidated because they are
-not being passed to ->writepage and hence are remaining dirty in the
-cache.  IOWs, I suspect that this commit has uncovered a bug in
-ocfs2, not that it has caused a regression.
-
-Your thoughts, Joel?
-
-Cheers,
-
-Dave.
--- 
-Dave Chinner
-david at fromorbit.com
+> We can:
+>
+> (a) Run with this patch pretty much as-is; or
+> (b) Move the jbd2_journal_load() call out of ocfs2_journal_load() so
+> that the flags will be in memory sooner; or
+> (c) Do something else (ideas welcome)
+>
+> Let me know what you think.  Thanks!
+>
+>   - Pat
+>
+>
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 0eaa929..3db233d 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1991,6 +1991,47 @@ static int ocfs2_setup_osb_uuid(struct
+> ocfs2_super *osb, const unsigned char *uu
+>   	return 0;
+>   }
+>
+> +/* Check to make sure entire volume is addressable on this system.
+> +   Requires osb_clusters_at_boot to be valid and for the journal to
+> +   have been read by jbd2_journal_load(). */
+> +static int ocfs2_check_addressable(struct ocfs2_super *osb)
+> +{
+> +	int status = 0;
+> +	u64 max_block =
+> +		ocfs2_clusters_to_blocks(osb->sb,
+> +					 osb->osb_clusters_at_boot) - 1;
+> +
+> +	/* Absolute addressability check (borrowed from ext4/super.c) */
+> +	if ((max_block>
+> +	     (sector_t)(~0LL)>>  (osb->sb->s_blocksize_bits - 9)) ||
+> +	    (max_block>  (pgoff_t)(~0LL)>>  (PAGE_CACHE_SHIFT -
+> +					     osb->sb->s_blocksize_bits))) {
+> +		mlog(ML_ERROR, "Volume too large "
+> +		     "to mount safely on this system");
+> +		status = -EFBIG;
+> +		goto out;
+> +	}
+> +
+> +	/* 32-bit block number is always OK. */
+> +	if (max_block<= (u32)~0UL)
+> +		goto out;
+> +
+> +	/* Volume is "huge", so see if our journal is new enough to
+> +	   support it. */
+> +	if (!(OCFS2_HAS_COMPAT_FEATURE(osb->sb,
+> +				       OCFS2_FEATURE_COMPAT_JBD2_SB)&&
+> +	      jbd2_journal_check_used_features(osb->journal->j_journal, 0, 0,
+> +					       JBD2_FEATURE_INCOMPAT_64BIT))) {
+> +		mlog(ML_ERROR, "The journal cannot address the entire volume. "
+> +		     "Enable the 'block64' journal option with tunefs.ocfs2");
+> +		status = -EFBIG;
+> +		goto out;
+> +	}
+> +
+> + out:
+> +	return status;
+> +}
+> +
+>   static int ocfs2_initialize_super(struct super_block *sb,
+>   				  struct buffer_head *bh,
+>   				  int sector_size,
+> @@ -2215,14 +2256,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
+>   		goto bail;
+>   	}
+>
+> -	if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
+> -	>  (u32)~0UL) {
+> -		mlog(ML_ERROR, "Volume might try to write to blocks beyond "
+> -		     "what jbd can address in 32 bits.\n");
+> -		status = -EINVAL;
+> -		goto bail;
+> -	}
+> -
+>   	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
+>   				 sizeof(di->id2.i_super.s_uuid))) {
+>   		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
+> @@ -2404,6 +2437,12 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+>   		goto finally;
+>   	}
+>
+> +	/* Now that journal has been loaded, check to make sure entire
+> +	   volume is addressable. */
+> +	status = ocfs2_check_addressable(osb);
+> +	if (status)
+> +		goto finally;
+> +
+>   	if (dirty) {
+>   		/* recover my local alloc if we didn't unmount cleanly. */
+>   		status = ocfs2_begin_local_alloc_recovery(osb,
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>    
