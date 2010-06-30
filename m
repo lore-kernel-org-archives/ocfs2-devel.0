@@ -1,71 +1,49 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 30 Jun 2010 08:31:16 +0800
-Subject: [Ocfs2-devel] [PATCH 0/3 v5][RFC] ext3/4: enhance fsync
- performance when using CFQ
-In-Reply-To: <x49wrthlwfk.fsf@segfault.boston.devel.redhat.com>
-References: <1277242502-9047-1-git-send-email-jmoyer@redhat.com>	<4C21D442.8080703@oracle.com>
-	<4C22F316.3080009@oracle.com>	<x49k4pk60ye.fsf@segfault.boston.devel.redhat.com>	<4C284419.3000905@oracle.com>
-	<x49wrthlwfk.fsf@segfault.boston.devel.redhat.com>
-Message-ID: <4C2A9054.20500@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 29 Jun 2010 18:30:53 -0700
+Subject: [Ocfs2-devel] [PATCH] Revert "writeback: limit
+ write_cache_pages integrity scanning to current EOF"
+In-Reply-To: <20100629081611.GB4150@mail.oracle.com>
+References: <20100628173529.GA10573@mail.oracle.com>
+	<20100629002421.GY6590@dastard>
+	<20100629005403.GC24343@mail.oracle.com>
+	<AANLkTil1R9I94pVXLE50JAMPIwpiaZuroJAg4wcwyBUb@mail.gmail.com>
+	<20100629015822.GD24343@mail.oracle.com>
+	<AANLkTil5y7F9w-18mVi0G1S5pSv9MiKq6XL5MWAMFBQM@mail.gmail.com>
+	<20100629081611.GB4150@mail.oracle.com>
+Message-ID: <20100630013053.GK4150@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jeff Moyer <jmoyer@redhat.com>
-Cc: axboe@kernel.dk, linux-kernel@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-ext4@vger.kernel.org, vgoyal@redhat.com
+To: Linus Torvalds <torvalds@linux-foundation.org>, Dave Chinner <david@fromorbit.com>, Linux Kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Tao Ma <tao.ma@oracle.com>, Dave Chinner <dchinner@redhat.com>, Christoph Hellwig <hch@lst.de>, Mark Fasheh <mfasheh@suse.com>
 
-Hi Jeff,
+On Tue, Jun 29, 2010 at 01:16:11AM -0700, Joel Becker wrote:
+> On Mon, Jun 28, 2010 at 07:20:33PM -0700, Linus Torvalds wrote:
+> > Your call, I guess.  If any ocfs2 fix looks scary, and you'd prefer to
+> > have an -rc4 (in a few days - not today) with just the revert, I'm ok
+> > with that. Even if it's only a "at least no worse than 2.6.34"
+> > situation rather than a real fix.
+> 
+> 	If -rc4 isn't coming for a couple of days, can we hold off on
+> the decision until we get a chance to think about a paper-over solution
+> for it?  Then we can avoid the revert.
 
-On 06/29/2010 10:56 PM, Jeff Moyer wrote:
-> Tao Ma<tao.ma@oracle.com>  writes:
->
->> Hi Jeff,
->>
->> On 06/27/2010 09:48 PM, Jeff Moyer wrote:
->>> Tao Ma<tao.ma@oracle.com>   writes:
->>>> I am sorry to say that the patch make jbd2 locked up when I tested
->>>> fs_mark using ocfs2.
->>>> I have attached the log from my netconsole server. After I reverted
->>>> the patch [3/3], the box works again.
->>>
->>> I can't reproduce this, unfortunately.  Also, when building with the
->>> .config you sent me, the disassembly doesn't line up with the stack
->>> trace you posted.
->>>
->>> I'm not sure why yielding the queue would cause a deadlock.  The only
->>> explanation I can come up with is that I/O is not being issued.  I'm
->>> assuming that no other I/O will be completed to the file system in
->>> question.  Is that right?  Could you send along the output from sysrq-t?
->> yes, I just mounted it and begin the test, so there should be no
->> outstanding I/O. So do you need me to setup another disk for test?
->> I have attached the sysrq output in sysrq.log. please check.
->
-> Well, if it doesn't take long to reproduce, then it might be helpful to
-> see a blktrace of the run.  However, it might also just be worth waiting
-> for the next version of the patch to see if that fixes your issue.
->
->> btw, I also met with a NULL pointer deference in cfq_yield. I have
->> attached the null.log also. This seems to be related to the previous
->> deadlock and happens when I try to remount the same volume after
->> reboot and ocfs2 try to do some recovery.
->
->   Pid: 4130, comm: ocfs2_wq Not tainted 2.6.35-rc3+ #5 0MM599/OptiPlex 745
->   RIP: 0010:[<ffffffff82161537>]
->    [<ffffffff82161537>] cfq_yield+0x5f/0x135
->   RSP: 0018:ffff880123061c60  EFLAGS: 00010246
->   RAX: 0000000000000000 RBX: ffff88012c2b5ea8 RCX: ffff88012c3a30d0
->
-> ffffffff82161528:	e8 69 eb ff ff       	callq  ffffffff82160096<cfq_cic_lookup>
-> ffffffff8216152d:	49 89 c6             	mov    %rax,%r14
-> ffffffff82161530:	48 8b 85 00 06 00 00 	mov    0x600(%rbp),%rax
-> ffffffff82161537:	f0 48 ff 00          	lock incq (%rax)
->
-> I'm pretty sure that's a NULL pointer deref of the tsk->iocontext that
-> was passed into the yield function.  I've since fixed that, so your
-> recovery code should be safe in the newest version (which I've not yet
-> posted).
-ok, so could you please cc me when the new patches are out? It would be 
-easier for me to track it. Thanks.
+Linus,
+	I'm going to withdraw the revert request for now.  Our proposed
+paper-over solution is too big, and we're just going to focus on the
+actual fix.  This will be for .35.  Yes, .35-rc will have a BUG_ON with
+refcount trees until we get the fix in, but I'd rather avoid the churn
+when the final .35 should have Dave's patch and our fix.
 
-Regards,
-Tao
+Joel
+
+-- 
+
+"The first thing we do, let's kill all the lawyers."
+                                        -Henry VI, IV:ii
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
