@@ -1,36 +1,36 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 30 Jun 2010 05:00:15 -0700
-Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: Add struct file to
-	ocfs2_refcount_cow.
-In-Reply-To: <4C2AB5F3.10000@oracle.com>
-References: <4C29AE6C.1050205@oracle.com>
-	<1277800541-6844-1-git-send-email-tao.ma@oracle.com>
-	<20100629231453.GH4150@mail.oracle.com> <4C2AB5F3.10000@oracle.com>
-Message-ID: <20100630120013.GA14686@mail.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Wed, 30 Jun 2010 20:23:30 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: don't access beyond bitmap size
+Message-ID: <201006301224.o5U1mkX5011318@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 30, 2010 at 11:11:47AM +0800, Tao Ma wrote:
-> oh, sorry joel. There does exist one place that we don't have filp.
-> It is in ocfs2_orphan_for_truncate, we have to CoW the cluster
-> containing i_size and pass NULL as filp.
+dlm->recovery_map is defined as
+	unsigned long recovery_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
 
-	Maybe ocfs2_cow_file_pos() needs both, but write_begin_nolock
-and page_mkwrite do not.
+We should treat O2NM_MAX_NODES as the bit map size in bits.
+This patches fixes a bit operation that takes O2NM_MAX_NODES + 1 as bitmap size.
 
-Joel
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index f8b75ce..9dfaac7 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -463,7 +463,7 @@ static int dlm_do_recovery(struct dlm_ctxt *dlm)
+ 	if (dlm->reco.dead_node == O2NM_INVALID_NODE_NUM) {
+ 		int bit;
+ 
+-		bit = find_next_bit (dlm->recovery_map, O2NM_MAX_NODES+1, 0);
++		bit = find_next_bit (dlm->recovery_map, O2NM_MAX_NODES, 0);
+ 		if (bit >= O2NM_MAX_NODES || bit < 0)
+ 			dlm_set_reco_dead_node(dlm, O2NM_INVALID_NODE_NUM);
+ 		else
 -- 
-
-"I don't want to achieve immortality through my work; I want to
- achieve immortality through not dying."
-        - Woody Allen
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.6.6.1
