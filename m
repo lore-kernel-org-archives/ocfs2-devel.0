@@ -1,113 +1,71 @@
-From: Patrick J. LoPresti <lopresti@gmail.com>
-Date: Tue, 29 Jun 2010 17:16:11 -0700
-Subject: [Ocfs2-devel] [PATCH] OCFS2: Allow huge (> 16 TiB) volumes to mount
-Message-ID: <87mxud74tw.fsf@gmail.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Wed, 30 Jun 2010 08:31:16 +0800
+Subject: [Ocfs2-devel] [PATCH 0/3 v5][RFC] ext3/4: enhance fsync
+ performance when using CFQ
+In-Reply-To: <x49wrthlwfk.fsf@segfault.boston.devel.redhat.com>
+References: <1277242502-9047-1-git-send-email-jmoyer@redhat.com>	<4C21D442.8080703@oracle.com>
+	<4C22F316.3080009@oracle.com>	<x49k4pk60ye.fsf@segfault.boston.devel.redhat.com>	<4C284419.3000905@oracle.com>
+	<x49wrthlwfk.fsf@segfault.boston.devel.redhat.com>
+Message-ID: <4C2A9054.20500@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
-Cc: linux-kernel@vger.kernel.org
+To: Jeff Moyer <jmoyer@redhat.com>
+Cc: axboe@kernel.dk, linux-kernel@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-ext4@vger.kernel.org, vgoyal@redhat.com
 
-The OCFS2 developers have already done all of the hard work to allow
-volumes larger than 16 TiB.  But there is still a "sanity check" in
-fs/ocfs2/super.c that prevents the mounting of such volumes, even when
-the cluster size and journal options would allow it.
+Hi Jeff,
 
-This patch replaces that sanity check with a more sophisticated one to
-mount a huge volume provided that (a) it is addressable by the raw
-word/address size of the system (borrowing a test from ext4); (b) the
-volume is using JBD2; and (c) the JBD2_FEATURE_INCOMPAT_64BIT flag is
-set on the journal.
+On 06/29/2010 10:56 PM, Jeff Moyer wrote:
+> Tao Ma<tao.ma@oracle.com>  writes:
+>
+>> Hi Jeff,
+>>
+>> On 06/27/2010 09:48 PM, Jeff Moyer wrote:
+>>> Tao Ma<tao.ma@oracle.com>   writes:
+>>>> I am sorry to say that the patch make jbd2 locked up when I tested
+>>>> fs_mark using ocfs2.
+>>>> I have attached the log from my netconsole server. After I reverted
+>>>> the patch [3/3], the box works again.
+>>>
+>>> I can't reproduce this, unfortunately.  Also, when building with the
+>>> .config you sent me, the disassembly doesn't line up with the stack
+>>> trace you posted.
+>>>
+>>> I'm not sure why yielding the queue would cause a deadlock.  The only
+>>> explanation I can come up with is that I/O is not being issued.  I'm
+>>> assuming that no other I/O will be completed to the file system in
+>>> question.  Is that right?  Could you send along the output from sysrq-t?
+>> yes, I just mounted it and begin the test, so there should be no
+>> outstanding I/O. So do you need me to setup another disk for test?
+>> I have attached the sysrq output in sysrq.log. please check.
+>
+> Well, if it doesn't take long to reproduce, then it might be helpful to
+> see a blktrace of the run.  However, it might also just be worth waiting
+> for the next version of the patch to see if that fixes your issue.
+>
+>> btw, I also met with a NULL pointer deference in cfq_yield. I have
+>> attached the null.log also. This seems to be related to the previous
+>> deadlock and happens when I try to remount the same volume after
+>> reboot and ocfs2 try to do some recovery.
+>
+>   Pid: 4130, comm: ocfs2_wq Not tainted 2.6.35-rc3+ #5 0MM599/OptiPlex 745
+>   RIP: 0010:[<ffffffff82161537>]
+>    [<ffffffff82161537>] cfq_yield+0x5f/0x135
+>   RSP: 0018:ffff880123061c60  EFLAGS: 00010246
+>   RAX: 0000000000000000 RBX: ffff88012c2b5ea8 RCX: ffff88012c3a30d0
+>
+> ffffffff82161528:	e8 69 eb ff ff       	callq  ffffffff82160096<cfq_cic_lookup>
+> ffffffff8216152d:	49 89 c6             	mov    %rax,%r14
+> ffffffff82161530:	48 8b 85 00 06 00 00 	mov    0x600(%rbp),%rax
+> ffffffff82161537:	f0 48 ff 00          	lock incq (%rax)
+>
+> I'm pretty sure that's a NULL pointer deref of the tsk->iocontext that
+> was passed into the yield function.  I've since fixed that, so your
+> recovery code should be safe in the newest version (which I've not yet
+> posted).
+ok, so could you please cc me when the new patches are out? It would be 
+easier for me to track it. Thanks.
 
-I factored out the sanity check into its own function.  I also moved it
-from ocfs2_initialize_super() down to ocfs2_check_volume(); any earlier,
-and the journal's flags have not been read from disk yet.
-
-I have tested this patch on small volumes, huge volumes, and huge
-volumes without 64-bit block support in the journal.  All of them appear
-to work or to fail gracefully, as appropriate.
-
-Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
-
-
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 0eaa929..3db233d 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1991,6 +1991,47 @@ static int ocfs2_setup_osb_uuid(struct ocfs2_super *osb, const unsigned char *uu
- 	return 0;
- }
- 
-+/* Check to make sure entire volume is addressable on this system.
-+   Requires osb_clusters_at_boot to be valid and for the journal to
-+   have been read by jbd2_journal_load(). */
-+static int ocfs2_check_addressable(struct ocfs2_super *osb)
-+{
-+	int status = 0;
-+	u64 max_block =
-+		ocfs2_clusters_to_blocks(osb->sb,
-+					 osb->osb_clusters_at_boot) - 1;
-+
-+	/* Absolute addressability check (borrowed from ext4/super.c) */
-+	if ((max_block >
-+	     (sector_t)(~0LL) >> (osb->sb->s_blocksize_bits - 9)) ||
-+	    (max_block > (pgoff_t)(~0LL) >> (PAGE_CACHE_SHIFT -
-+					     osb->sb->s_blocksize_bits))) {
-+		mlog(ML_ERROR, "Volume too large "
-+		     "to mount safely on this system");
-+		status = -EFBIG;
-+		goto out;
-+	}
-+
-+	/* 32-bit block number is always OK. */
-+	if (max_block <= (u32)~0UL)
-+		goto out;
-+
-+	/* Volume is "huge", so see if our journal is new enough to
-+	   support it. */
-+	if (!(OCFS2_HAS_COMPAT_FEATURE(osb->sb,
-+				       OCFS2_FEATURE_COMPAT_JBD2_SB) &&
-+	      jbd2_journal_check_used_features(osb->journal->j_journal, 0, 0,
-+					       JBD2_FEATURE_INCOMPAT_64BIT))) {
-+		mlog(ML_ERROR, "The journal cannot address the entire volume. "
-+		     "Enable the 'block64' journal option with tunefs.ocfs2");
-+		status = -EFBIG;
-+		goto out;
-+	}
-+
-+ out:
-+	return status;
-+}
-+
- static int ocfs2_initialize_super(struct super_block *sb,
- 				  struct buffer_head *bh,
- 				  int sector_size,
-@@ -2215,14 +2256,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 		goto bail;
- 	}
- 
--	if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
--	    > (u32)~0UL) {
--		mlog(ML_ERROR, "Volume might try to write to blocks beyond "
--		     "what jbd can address in 32 bits.\n");
--		status = -EINVAL;
--		goto bail;
--	}
--
- 	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
- 				 sizeof(di->id2.i_super.s_uuid))) {
- 		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
-@@ -2404,6 +2437,12 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
- 		goto finally;
- 	}
- 
-+	/* Now that journal has been loaded, check to make sure entire
-+	   volume is addressable. */
-+	status = ocfs2_check_addressable(osb);
-+	if (status)
-+		goto finally;
-+
- 	if (dirty) {
- 		/* recover my local alloc if we didn't unmount cleanly. */
- 		status = ocfs2_begin_local_alloc_recovery(osb,
+Regards,
+Tao
