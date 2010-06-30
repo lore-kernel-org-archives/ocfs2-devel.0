@@ -1,35 +1,113 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 29 Jun 2010 16:24:23 -0700
-Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: make mmap CoW work with
-	readahead.
-In-Reply-To: <1277800541-6844-4-git-send-email-tao.ma@oracle.com>
-References: <4C29AE6C.1050205@oracle.com>
-	<1277800541-6844-4-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100629232423.GJ4150@mail.oracle.com>
+From: Patrick J. LoPresti <lopresti@gmail.com>
+Date: Tue, 29 Jun 2010 17:16:11 -0700
+Subject: [Ocfs2-devel] [PATCH] OCFS2: Allow huge (> 16 TiB) volumes to mount
+Message-ID: <87mxud74tw.fsf@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+Cc: linux-kernel@vger.kernel.org
 
-On Tue, Jun 29, 2010 at 04:35:41PM +0800, Tao Ma wrote:
-> refcount_cow need file * to do the readahead.
-> So we just add 'struct file *' to ocfs2_write_begin_nolock
-> and __ocfs2_page_mkwrite and let them pass this parameter
-> to ocfs2_refcount_cow.
+The OCFS2 developers have already done all of the hard work to allow
+volumes larger than 16 TiB.  But there is still a "sanity check" in
+fs/ocfs2/super.c that prevents the mounting of such volumes, even when
+the cluster size and journal options would allow it.
 
-	As I stated in my comment on the first patch, these functions
-only need the file*.  The inode can be gotten off of that.
+This patch replaces that sanity check with a more sophisticated one to
+mount a huge volume provided that (a) it is addressable by the raw
+word/address size of the system (borrowing a test from ext4); (b) the
+volume is using JBD2; and (c) the JBD2_FEATURE_INCOMPAT_64BIT flag is
+set on the journal.
 
-Joel
+I factored out the sanity check into its own function.  I also moved it
+from ocfs2_initialize_super() down to ocfs2_check_volume(); any earlier,
+and the journal's flags have not been read from disk yet.
 
--- 
+I have tested this patch on small volumes, huge volumes, and huge
+volumes without 64-bit block support in the journal.  All of them appear
+to work or to fail gracefully, as appropriate.
 
-"I have never let my schooling interfere with my education."
-        - Mark Twain
+Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
 
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 0eaa929..3db233d 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1991,6 +1991,47 @@ static int ocfs2_setup_osb_uuid(struct ocfs2_super *osb, const unsigned char *uu
+ 	return 0;
+ }
+ 
++/* Check to make sure entire volume is addressable on this system.
++   Requires osb_clusters_at_boot to be valid and for the journal to
++   have been read by jbd2_journal_load(). */
++static int ocfs2_check_addressable(struct ocfs2_super *osb)
++{
++	int status = 0;
++	u64 max_block =
++		ocfs2_clusters_to_blocks(osb->sb,
++					 osb->osb_clusters_at_boot) - 1;
++
++	/* Absolute addressability check (borrowed from ext4/super.c) */
++	if ((max_block >
++	     (sector_t)(~0LL) >> (osb->sb->s_blocksize_bits - 9)) ||
++	    (max_block > (pgoff_t)(~0LL) >> (PAGE_CACHE_SHIFT -
++					     osb->sb->s_blocksize_bits))) {
++		mlog(ML_ERROR, "Volume too large "
++		     "to mount safely on this system");
++		status = -EFBIG;
++		goto out;
++	}
++
++	/* 32-bit block number is always OK. */
++	if (max_block <= (u32)~0UL)
++		goto out;
++
++	/* Volume is "huge", so see if our journal is new enough to
++	   support it. */
++	if (!(OCFS2_HAS_COMPAT_FEATURE(osb->sb,
++				       OCFS2_FEATURE_COMPAT_JBD2_SB) &&
++	      jbd2_journal_check_used_features(osb->journal->j_journal, 0, 0,
++					       JBD2_FEATURE_INCOMPAT_64BIT))) {
++		mlog(ML_ERROR, "The journal cannot address the entire volume. "
++		     "Enable the 'block64' journal option with tunefs.ocfs2");
++		status = -EFBIG;
++		goto out;
++	}
++
++ out:
++	return status;
++}
++
+ static int ocfs2_initialize_super(struct super_block *sb,
+ 				  struct buffer_head *bh,
+ 				  int sector_size,
+@@ -2215,14 +2256,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
+-	if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
+-	    > (u32)~0UL) {
+-		mlog(ML_ERROR, "Volume might try to write to blocks beyond "
+-		     "what jbd can address in 32 bits.\n");
+-		status = -EINVAL;
+-		goto bail;
+-	}
+-
+ 	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
+ 				 sizeof(di->id2.i_super.s_uuid))) {
+ 		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
+@@ -2404,6 +2437,12 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
+ 		goto finally;
+ 	}
+ 
++	/* Now that journal has been loaded, check to make sure entire
++	   volume is addressable. */
++	status = ocfs2_check_addressable(osb);
++	if (status)
++		goto finally;
++
+ 	if (dirty) {
+ 		/* recover my local alloc if we didn't unmount cleanly. */
+ 		status = ocfs2_begin_local_alloc_recovery(osb,
