@@ -1,152 +1,84 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Mon, 5 Jul 2010 18:00:31 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: correct the refmap on recovery
- master
-In-Reply-To: <20100625015511.GA3639@laptop.us.oracle.com>
-References: <201006101628.o5A0YmQN005612@rcsinet15.oracle.com>
-	<20100625015511.GA3639@laptop.us.oracle.com>
-Message-ID: <20100705100031.GA3072@laptop.us.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 06 Jul 2010 14:27:49 +0800
+Subject: [Ocfs2-devel] [PATCH 0/6 v6][RFC] jbd[2]: enhance fsync
+ performance when using CFQ
+In-Reply-To: <1278100699-24132-1-git-send-email-jmoyer@redhat.com>
+References: <1278100699-24132-1-git-send-email-jmoyer@redhat.com>
+Message-ID: <4C32CCE5.2090907@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jeff Moyer <jmoyer@redhat.com>
+Cc: linux-ext4@vger.kernel.org, axboe@kernel.dk, linux-kernel@vger.kernel.org, vgoyal@redhat.com, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-Any comment?
+Hi Jeff,
 
-On 10-06-25 09:55, Wengang Wang wrote:
+On 07/03/2010 03:58 AM, Jeff Moyer wrote:
 > Hi,
-> 
-> Any comment on this?
-> 
-> regards,
-> wengang.
-> On 10-06-11 00:25, Wengang Wang wrote:
-> > If the dlm recovery goes on the non-master node where purging work is going on, 
-> > There could be unexpected reference left on some lockres' on recovery master.
-> > That is because we migrated the lockres' to recovery master but didn't send
-> > deref requests to it accordingly(was sending to the dead original master or to
-> > the "UNKNOWN").
-> > 
-> > Fix:
-> > For the lockres which is in progress of dropping reference, we don't migrate it
-> > to recovery master and unhash the lockres in the purge work.
-> > For those not in progress of the dropping, delay the purge work until recovery
-> > finished so that it can send deref request to the correct master(recovery
-> > master) later.
-> > 
-> > Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> > ---
-> >  fs/ocfs2/dlm/dlmrecovery.c |   17 +++++++++++++++--
-> >  fs/ocfs2/dlm/dlmthread.c   |   36 ++++++++++++++++++++++--------------
-> >  2 files changed, 37 insertions(+), 16 deletions(-)
-> > 
-> > diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> > index f8b75ce..43530ce 100644
-> > --- a/fs/ocfs2/dlm/dlmrecovery.c
-> > +++ b/fs/ocfs2/dlm/dlmrecovery.c
-> > @@ -1997,6 +1997,8 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
-> >  	struct list_head *queue;
-> >  	struct dlm_lock *lock, *next;
-> >  
-> > +	assert_spin_locked(&dlm->spinlock);
-> > +	assert_spin_locked(&res->spinlock);
-> >  	res->state |= DLM_LOCK_RES_RECOVERING;
-> >  	if (!list_empty(&res->recovering)) {
-> >  		mlog(0,
-> > @@ -2336,9 +2338,20 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
-> >  
-> >  				/* the wake_up for this will happen when the
-> >  				 * RECOVERING flag is dropped later */
-> > -				res->state &= ~DLM_LOCK_RES_DROPPING_REF;
-> > +				if (res->state & DLM_LOCK_RES_DROPPING_REF) {
-> > +					/*
-> > +					 * don't migrate a lockres which is in
-> > +					 * progress of dropping ref
-> > +					 */
-> > +					mlog(ML_NOTICE, "%.*s ignored for "
-> > +					     "migration\n", res->lockname.len,
-> > +					     res->lockname.name);
-> > +					res->state &=
-> > +						~DLM_LOCK_RES_DROPPING_REF;
-> > +				} else
-> > +					dlm_move_lockres_to_recovery_list(dlm,
-> > +									  res);
-> >  
-> > -				dlm_move_lockres_to_recovery_list(dlm, res);
-> >  			} else if (res->owner == dlm->node_num) {
-> >  				dlm_free_dead_locks(dlm, res, dead_node);
-> >  				__dlm_lockres_calc_usage(dlm, res);
-> > diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-> > index d4f73ca..0771420 100644
-> > --- a/fs/ocfs2/dlm/dlmthread.c
-> > +++ b/fs/ocfs2/dlm/dlmthread.c
-> > @@ -92,17 +92,23 @@ int __dlm_lockres_has_locks(struct dlm_lock_resource *res)
-> >   * truly ready to be freed. */
-> >  int __dlm_lockres_unused(struct dlm_lock_resource *res)
-> >  {
-> > -	if (!__dlm_lockres_has_locks(res) &&
-> > -	    (list_empty(&res->dirty) && !(res->state & DLM_LOCK_RES_DIRTY))) {
-> > -		/* try not to scan the bitmap unless the first two
-> > -		 * conditions are already true */
-> > -		int bit = find_next_bit(res->refmap, O2NM_MAX_NODES, 0);
-> > -		if (bit >= O2NM_MAX_NODES) {
-> > -			/* since the bit for dlm->node_num is not
-> > -			 * set, inflight_locks better be zero */
-> > -			BUG_ON(res->inflight_locks != 0);
-> > -			return 1;
-> > -		}
-> > +	int bit;
-> > +
-> > +	if (__dlm_lockres_has_locks(res))
-> > +		return 0;
-> > +
-> > +	if (!list_empty(&res->dirty) || res->state & DLM_LOCK_RES_DIRTY)
-> > +		return 0;
-> > +
-> > +	if (res->state & DLM_LOCK_RES_RECOVERING)
-> > +		return 0;
-> > +
-> > +	bit = find_next_bit(res->refmap, O2NM_MAX_NODES, 0);
-> > +	if (bit >= O2NM_MAX_NODES) {
-> > +		/* since the bit for dlm->node_num is not
-> > +		 * set, inflight_locks better be zero */
-> > +		BUG_ON(res->inflight_locks != 0);
-> > +		return 1;
-> >  	}
-> >  	return 0;
-> >  }
-> > @@ -158,6 +164,8 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
-> >  	int master;
-> >  	int ret = 0;
-> >  
-> > +	assert_spin_locked(&dlm->spinlock);
-> > +
-> >  	spin_lock(&res->spinlock);
-> >  	if (!__dlm_lockres_unused(res)) {
-> >  		mlog(0, "%s:%.*s: tried to purge but not unused\n",
-> > @@ -216,13 +224,13 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
-> >  		     "master = %d\n", res->lockname.len, res->lockname.name,
-> >  		     res, master);
-> >  		list_del_init(&res->purge);
-> > -		spin_unlock(&res->spinlock);
-> > +		/* not the last ref */
-> >  		dlm_lockres_put(res);
-> >  		dlm->purge_count--;
-> > -	} else
-> > -		spin_unlock(&res->spinlock);
-> > +	}
-> >  
-> >  	__dlm_unhash_lockres(res);
-> > +	spin_unlock(&res->spinlock);
-> >  
-> >  	/* lockres is not in the hash now.  drop the flag and wake up
-> >  	 * any processes waiting in dlm_get_lock_resource. */
-> > -- 
-> > 1.6.6.1
-> > 
-> > 
-> > _______________________________________________
-> > Ocfs2-devel mailing list
-> > Ocfs2-devel at oss.oracle.com
-> > http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>
+> Running iozone or fs_mark with fsync enabled, the performance of CFQ is
+> far worse than that of deadline for enterprise class storage when dealing
+> with file sizes of 8MB or less.  I used the following command line as a
+> representative test case:
+>
+>    fs_mark -S 1 -D 10000 -N 100000 -d /mnt/test/fs_mark -s 65536 -t 1 -w 4096 -F
+>
+I ran the script with "35-rc4 + this patch version" for an ocfs2 volume, 
+and get no hang now. Thanks for the work. I also have some number for 
+you. See below.
+>
+> Because the iozone process is issuing synchronous writes, it is put
+> onto CFQ's SYNC service tree.  The significance of this is that CFQ
+> will idle for up to 8ms waiting for requests on such queues.  So,
+> what happens is that the iozone process will issue, say, 64KB worth
+> of write I/O.  That I/O will just land in the page cache.  Then, the
+> iozone process does an fsync which forces those I/Os to disk as
+> synchronous writes.  Then, the file system's fsync method is invoked,
+> and for ext3/4, it calls log_start_commit followed by log_wait_commit.
+> Because those synchronous writes were forced out in the context of the
+> iozone process, CFQ will now idle on iozone's cfqq waiting for more I/O.
+> However, iozone's progress is gated by the journal thread, now.
+>
+> With this patch series applied (in addition to the two other patches I
+> sent [1]), CFQ now achieves 530.82 files / second.
+>
+> I also wanted to improve the performance of the fsync-ing process in the
+> presence of a competing sequential reader.  The workload I used for that
+> was a fio job that did sequential buffered 4k reads while running the fs_mark
+> process.  The run-time was 30 seconds, except where otherwise noted.
+>
+> Deadline got 450 files/second while achieving a throughput of 78.2 MB/s for
+> the sequential reader.  CFQ, unpatched, did not finish an fs_mark run
+> in 30 seconds.  I had to bump the time of the test up to 5 minutes, and then
+> CFQ saw an fs_mark performance of 6.6 files/second and sequential reader
+> throughput of 137.2MB/s.
+>
+> The fs_mark process was being starved as the WRITE_SYNC I/O is marked
+> with RQ_NOIDLE, and regular WRITES are part of the async workload by
+> default.  So, a single request would be served from either the fs_mark
+> process or the journal thread, and then they would give up the I/O
+> scheduler.
+>
+> After applying this patch set, CFQ can now perform 113.2 files/second while
+> achieving a throughput of 78.6 MB/s for the sequential reader.  In table
+> form, the results (all averages of 5 runs) look like this:
+>
+>                   just    just
+>                  fs_mark  fio        mixed	
+> -------------------------------+--------------
+> deadline        529.44   151.4 | 450.0    78.2
+> vanilla cfq     107.88   164.4 |   6.6   137.2
+> patched cfq     530.82   158.7 | 113.2    78.6
+Just some updates from the test of ocfs2.
+                   fs_mark
+  ------------------------
+  deadline        386.3
+  vanilla cfq     59.7
+  patched cfq     366.2
+
+So there is really a fantastic improvement at least from what fs_mark 
+gives us. Great thanks.
+
+Regards,
+Tao
