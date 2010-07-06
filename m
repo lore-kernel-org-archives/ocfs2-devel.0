@@ -1,46 +1,47 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 12 Jul 2010 11:33:53 -0700
-Subject: [Ocfs2-devel] [patch] ocfs2: tighten up strlen() checking
-In-Reply-To: <20100710143336.GB19184@bicker>
-References: <20100710143336.GB19184@bicker>
-Message-ID: <20100712183353.GF12179@mail.oracle.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Date: Tue, 6 Jul 2010 16:51:21 -0400
+Subject: [Ocfs2-devel] [PATCH V3 3/8] Cleancache: core ops functions and
+	configuration
+In-Reply-To: <1277223988.9782.20.camel@nimitz>
+References: <20100621231939.GA19505@ca-server1.us.oracle.com>
+	<1277223988.9782.20.camel@nimitz>
+Message-ID: <20100706205121.GA32627@phenom.dumpdata.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Dave Hansen <dave@sr71.net>
+Cc: Dan Magenheimer <dan.magenheimer@oracle.com>, chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@Sun.COM, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com
 
-On Sat, Jul 10, 2010 at 04:33:36PM +0200, Dan Carpenter wrote:
-> This function is only called from one place and it's like this:
-> 	dlm_register_domain(conn->cc_name, dlm_key, &fs_version);
+On Tue, Jun 22, 2010 at 09:26:28AM -0700, Dave Hansen wrote:
+> On Mon, 2010-06-21 at 16:19 -0700, Dan Magenheimer wrote:
+> > --- linux-2.6.35-rc2/include/linux/cleancache.h 1969-12-31 17:00:00.000000000 -0700
+> > +++ linux-2.6.35-rc2-cleancache/include/linux/cleancache.h      2010-06-21 14:45:18.000000000 -0600
+> > @@ -0,0 +1,88 @@
+> > +#ifndef _LINUX_CLEANCACHE_H
+> > +#define _LINUX_CLEANCACHE_H
+> > +
+> > +#include <linux/fs.h>
+> > +#include <linux/mm.h>
+> > +
+> > +struct cleancache_ops {
+> > +       int (*init_fs)(size_t);
+> > +       int (*init_shared_fs)(char *uuid, size_t);
+> > +       int (*get_page)(int, ino_t, pgoff_t, struct page *);
+> > +       void (*put_page)(int, ino_t, pgoff_t, struct page *);
+> > +       void (*flush_page)(int, ino_t, pgoff_t);
+> > +       void (*flush_inode)(int, ino_t);
+> > +       void (*flush_fs)(int);
+> > +};
+> > + 
 > 
-> The "conn->cc_name" is 64 characters long.  If strlen(conn->cc_name)
-> were equal to O2NM_MAX_NAME_LEN (64) that would be a bug because
-> strlen() doesn't count the NULL character.
-> 
-> In fact, if you look how O2NM_MAX_NAME_LEN is used, it mostly describes
-> 64 character buffers.  The only exception is nd_name from struct
-> o2nm_node.
-> 
-> Anyway I looked into it and in this case the domain string comes from
-> osb->uuid_str in ocfs2_setup_osb_uuid().  That's 32 characters and NULL
-> which easily fits into O2NM_MAX_NAME_LEN.  This patch doesn't change how
-> the code works, but I think it makes the code a little cleaner.
-> 
-> Signed-off-by: Dan Carpenter <error27@gmail.com>
+> How would someone go about testing this code?  Is there an example
+> cleancache implementation?
 
-	This patch is now in the fixes branch of ocfs2.git.
+Dan,
 
-Joel
+Can you reference with a link or a git branch the patches that utilize
+this?
 
--- 
-
-Viro's Razor:
-	Any race condition, no matter how unlikely, will occur just
-	often enough to bite you.
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+And also mention that in the 0/X patch so that folks can reference your
+cleancache implementation?
