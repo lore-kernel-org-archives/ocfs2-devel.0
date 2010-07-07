@@ -1,32 +1,52 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 6 Jul 2010 18:59:51 -0700
-Subject: [Ocfs2-devel] [PATCH] tailtest: Add a test for the tail zeroing
- bug
-In-Reply-To: <4C33D57C.8060607@oracle.com>
-References: <20100702223924.GB5800@mail.oracle.com>
-	<4C32DF2E.3050803@oracle.com>
-	<20100706120254.GH13023@mail.oracle.com>
-	<4C33D57C.8060607@oracle.com>
-Message-ID: <20100707015951.GI17961@mail.oracle.com>
+Date: Tue, 6 Jul 2010 19:03:13 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Zero the tail cluster when
+ extending past i_size v2
+In-Reply-To: <4C33CD8D.4070205@oracle.com>
+References: <20100629020420.GE24343@mail.oracle.com>
+	<20100629022757.GA6590@dastard>
+	<20100629071817.GA4150@mail.oracle.com>
+	<20100702224912.GC5800@mail.oracle.com>
+	<20100703213219.GB21262@mail.oracle.com>
+	<4C3156D0.5090001@oracle.com>
+	<20100706071741.GF13023@mail.oracle.com>
+	<4C32E152.1090902@oracle.com>
+	<20100706115827.GG13023@mail.oracle.com>
+	<4C33CD8D.4070205@oracle.com>
+Message-ID: <20100707020313.GJ17961@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Tao Ma <tao.ma@oracle.com>
+Cc: Dave Chinner <david@fromorbit.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Dave Chinner <dchinner@redhat.com>, Christoph Hellwig <hch@lst.de>, Mark Fasheh <mfasheh@suse.com>
 
-On Wed, Jul 07, 2010 at 09:16:44AM +0800, tristan wrote:
-> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+On Wed, Jul 07, 2010 at 08:42:53AM +0800, Tao Ma wrote:
+> >	Oh, you're right.  We need to walk the entire extent range
+> >between i_size and pos and figure out what needs CoW.  This needs to
+> >happen no matter what.
+> Actually we can only have unwritten extents after i_size and it
+> shouldn't hurt you in this case.
+> So do we really need to CoW all the unwritten extents?
+> All I want to say is that since they are unwritten, they should also
+> mean 'zero' for the user space.
+> So can we just need to skip clearing pages if i_size is in an
+> unwritten extent?
 
-	Thanks.  Feel free to update it now that I've pushed it to the
-repository.
+	We can certainly have unwritten extents in the middle too ;-)
+	I've just reworked the entire ocfs2_zero_extend() logic to skip
+unwritten extents and CoW refcounted ones.  We have to CoW for nonsparse
+anyway, so we needed this logic.  We do need to walk the entire range,
+just in case there are extents anywhere between i_size and pos.
+	Patches coming as soon as it stops breaking.
 
 Joel
 
 -- 
 
-"The nearest approach to immortality on Earth is a government
- bureau."
-	- James F. Byrnes
+Life's Little Instruction Book #3
+
+	"Watch a sunrise at least once a year."
 
 Joel Becker
 Consulting Software Developer
