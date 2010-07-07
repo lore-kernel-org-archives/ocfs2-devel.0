@@ -1,59 +1,31 @@
-From: Nitin Gupta <ngupta@vflare.org>
-Date: Wed, 07 Jul 2010 06:32:56 +0530
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Date: Wed, 7 Jul 2010 09:27:44 -0400
 Subject: [Ocfs2-devel] [PATCH V3 3/8] Cleancache: core ops functions and
 	configuration
-In-Reply-To: <20100706205121.GA32627@phenom.dumpdata.com>
+In-Reply-To: <4C33D240.80102@vflare.org>
 References: <20100621231939.GA19505@ca-server1.us.oracle.com>
 	<1277223988.9782.20.camel@nimitz>
 	<20100706205121.GA32627@phenom.dumpdata.com>
-Message-ID: <4C33D240.80102@vflare.org>
+	<4C33D240.80102@vflare.org>
+Message-ID: <20100707132744.GB4823@phenom.dumpdata.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+To: Nitin Gupta <ngupta@vflare.org>
 Cc: Dave Hansen <dave@sr71.net>, Dan Magenheimer <dan.magenheimer@oracle.com>, chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@Sun.COM, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com
 
-On 07/07/2010 02:21 AM, Konrad Rzeszutek Wilk wrote:
-> On Tue, Jun 22, 2010 at 09:26:28AM -0700, Dave Hansen wrote:
->> On Mon, 2010-06-21 at 16:19 -0700, Dan Magenheimer wrote:
->>> --- linux-2.6.35-rc2/include/linux/cleancache.h 1969-12-31 17:00:00.000000000 -0700
->>> +++ linux-2.6.35-rc2-cleancache/include/linux/cleancache.h      2010-06-21 14:45:18.000000000 -0600
->>> @@ -0,0 +1,88 @@
->>> +#ifndef _LINUX_CLEANCACHE_H
->>> +#define _LINUX_CLEANCACHE_H
->>> +
->>> +#include <linux/fs.h>
->>> +#include <linux/mm.h>
->>> +
->>> +struct cleancache_ops {
->>> +       int (*init_fs)(size_t);
->>> +       int (*init_shared_fs)(char *uuid, size_t);
->>> +       int (*get_page)(int, ino_t, pgoff_t, struct page *);
->>> +       void (*put_page)(int, ino_t, pgoff_t, struct page *);
->>> +       void (*flush_page)(int, ino_t, pgoff_t);
->>> +       void (*flush_inode)(int, ino_t);
->>> +       void (*flush_fs)(int);
->>> +};
->>> + 
->>
->> How would someone go about testing this code?  Is there an example
->> cleancache implementation?
+> > Can you reference with a link or a git branch the patches that utilize
+> > this?
+> > 
+> > And also mention that in the 0/X patch so that folks can reference your
+> > cleancache implementation?
+> > 
+> >
 > 
-> Dan,
+> FYI.
 > 
-> Can you reference with a link or a git branch the patches that utilize
-> this?
-> 
-> And also mention that in the 0/X patch so that folks can reference your
-> cleancache implementation?
-> 
->
+> I am working on 'zcache' which uses cleancache_ops to provide page cache
+> compression support. I will be posting it to LKML before end of next week.
 
-FYI.
-
-I am working on 'zcache' which uses cleancache_ops to provide page cache
-compression support. I will be posting it to LKML before end of next week.
-
-Thanks,
-Nitin
+Yes! That too, please. Thanks for pointing this out.
