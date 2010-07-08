@@ -1,44 +1,35 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 7 Jul 2010 13:04:18 -0700
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: When zero extending,
-	do it by page.
-In-Reply-To: <4C349AFF.9040301@oracle.com>
-References: <20100703213219.GB21262@mail.oracle.com>
-	<1278501367-7710-2-git-send-email-joel.becker@oracle.com>
-	<4C349AFF.9040301@oracle.com>
-Message-ID: <20100707200418.GB22311@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu,  8 Jul 2010 11:11:11 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Remove the redundant cpu_to_le64.
+Message-ID: <1278558671-18125-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Tao Ma <tao.ma@oracle.com>
-Cc: Dave Chinner <david@fromorbit.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Dave Chinner <dchinner@redhat.com>, Christoph Hellwig <hch@lst.de>, Mark Fasheh <mfasheh@suse.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jul 07, 2010 at 11:19:27PM +0800, Tao Ma wrote:
-> >+static handle_t *ocfs2_zero_start_ordered_transaction(struct inode *inode)
-> >+{
-> >+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> >+	handle_t *handle = NULL;
-> >+	int ret = 0;
-> >+
-> >+	if (ocfs2_should_order_data(inode))
-> This should be if (!ocfs2_should_order_data(inode)) I guess? ;)
+In ocfs2_block_group_alloc, we set c_blkno by bg->bg_blkno.
+But actually bg->bg_blkno is already changed to little endian
+in ocfs2_block_group_fill. So remove the extra cpu_to_le64.
 
-	Of course it should.  Fixed ;-)
+Reported-by: Marcos Matsunaga <Marcos.Matsunaga@oracle.com>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/suballoc.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Joel
-
-
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 8e881b5..3b8f85b 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -618,7 +618,7 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
+ 		     le16_to_cpu(bg->bg_free_bits_count));
+ 	le32_add_cpu(&cl->cl_recs[alloc_rec].c_total,
+ 		     le16_to_cpu(bg->bg_bits));
+-	cl->cl_recs[alloc_rec].c_blkno  = cpu_to_le64(bg->bg_blkno);
++	cl->cl_recs[alloc_rec].c_blkno = bg->bg_blkno;
+ 	if (le16_to_cpu(cl->cl_next_free_rec) < le16_to_cpu(cl->cl_count))
+ 		le16_add_cpu(&cl->cl_next_free_rec, 1);
+ 
 -- 
-
-"Too much walking shoes worn thin.
- Too much trippin' and my soul's worn thin.
- Time to catch a ride it leaves today
- Her name is what it means.
- Too much walking shoes worn thin."
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.7.1.571.gba4d01
