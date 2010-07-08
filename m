@@ -1,45 +1,72 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 8 Jul 2010 11:51:34 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: make xattr extension work with new
+Date: Thu, 8 Jul 2010 12:42:24 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Make xattr reflink work with new
  local alloc reservation.
-In-Reply-To: <1276830171-5908-1-git-send-email-tao.ma@oracle.com>
+In-Reply-To: <1276830171-5908-2-git-send-email-tao.ma@oracle.com>
 References: <4C1AE141.60707@oracle.com>
-	<1276830171-5908-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100708185134.GD17445@mail.oracle.com>
+	<1276830171-5908-2-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100708194224.GE17445@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jun 18, 2010 at 11:02:50AM +0800, Tao Ma wrote:
-> @@ -735,8 +736,9 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
->  					     ctxt->data_ac,
->  					     ctxt->meta_ac,
->  					     &why);
+On Fri, Jun 18, 2010 at 11:02:51AM +0800, Tao Ma wrote:
+> +	num_buckets = le16_to_cpu(bucket_xh(args->old_bucket)->xh_num_buckets);
+> +	ocfs2_xattr_bucket_relse(args->old_bucket);
+> +
+> +	while (len && num_buckets) {
+> +		ret = ocfs2_claim_clusters(handle, data_ac,
+> +					   1, &p_cluster, &num_clusters);
+> +		if (ret) {
+> +			mlog_errno(ret);
+> +			goto out;
+> +		}
+> +
+> +		new_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cluster);
+> +		reflink_buckets = num_buckets < bpc * num_clusters ?
+> +				  num_buckets : bpc * num_clusters;
 
-	Btw, this code was already buggy.
-ocfs2_xattr_extend_allocation() calls ocfs2_add_clusters_in_btree(),
-which can return with RESTART_TRANS just because the filesystem is
-fragmented.  We would just fail with EAGAIN in that case, which makes no
-sense to a user.
-	So this fix actually matters to older kernels and non-reflink
-operations too.  Would you agree it should go to the stable tree?  If
-so, add the Cc: to your commit message.
+	I don't get this check.  In
+ocfs2_lock_reflink_xattr_rec_allocators(), we've reserved exactly enough
+clusters for the xattr rec.  ocfs2_claim_clusters() may return less than
+that, but in the optimal case it will return the entire len.  So...
+	Ok, I think I get it.  I was trying to figure out if you were
+leaking clusters.  This check reflects that a cluster may contain
+multiple buckets, but not all buckets may be used yet.  Correct me if
+I'm wrong about the following limits: 
+
+	BUG_ON(num_buckets < (bpc * (len - 1)));
+	BUG_ON(num_buckets > (bpc * len));
+
+You don't have to add those BUG_ON() calls to the code; I'm just
+confirming the range as I understand it.
+	With that knowledge, your code is saying: "I have num_buckets to
+reflink, did I get enough clusters to do them all, or do I just use the
+entire range I got?"
+	I think we should be more explicit.  Something like:
+
+		reflink_buckets = num_buckets;
+		if (reflink_buckets < (bpc * num_clusters))
+			reflink_buckets = bpc * num_clusters;
+
+This way speaks the intention.  I'd also be fine with:
+
+		reflink_buckets = min(num_buckets, bpc * num_clusters);
+
+Actually, I think that's the most readable.
 
 Joel
 
 -- 
 
-"There is shadow under this red rock.
- (Come in under the shadow of this red rock)
- And I will show you something different from either
- Your shadow at morning striding behind you
- Or your shadow at evening rising to meet you.
- I will show you fear in a handful of dust."
+Life's Little Instruction Book #337
+
+	"Reread your favorite book."
 
 Joel Becker
 Consulting Software Developer
 Oracle
-E-mail: joel.becker at oracle.com
+E-mail: joel.becker@oracle.com
 Phone: (650) 506-8127
