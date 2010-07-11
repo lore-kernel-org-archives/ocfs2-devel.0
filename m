@@ -1,40 +1,39 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 9 Jul 2010 14:56:33 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2 v2] ocfs2: make xattr extension work
- with new local alloc reservation.
-In-Reply-To: <1278658392-22009-1-git-send-email-tao.ma@oracle.com>
-References: <1278658392-22009-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100709215633.GB4520@mail.oracle.com>
+From: Patrick J. LoPresti <lopresti@gmail.com>
+Date: Sun, 11 Jul 2010 10:03:03 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] JBD2: Allow feature checks before journal
+	recovery
+Message-ID: <871vbax86w.fsf@patl.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org
 
-On Fri, Jul 09, 2010 at 02:53:11PM +0800, Tao Ma wrote:
-> The old ocfs2_xattr_extent_allocation is too optimistic about
-> the clusters we can get. So actually if the file system is
-> too fragmented, ocfs2_add_clusters_in_btree will return us
-> with EGAIN and we need to allocate clusters once again.
-> 
-> So this patch change it to a while loop so that we can allocate
-> clusters until we reach clusters_to_add.
-> 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Before we start accessing a huge (> 16 TiB) OCFS2 volume, we need to
+confirm that its journal supports 64-bit offsets.  So we need to check
+the journal's feature bits before recovering the journal.
 
-	Let me know if and when these patches pass the xattr test suite.
-IRC is fine.  They look good, so they're queued up.
+This is not possible with JBD2 at present, because the journal
+superblock (where the feature bits reside) is not loaded from disk until
+the journal is recovered.
 
-Joel
+This patch loads the journal superblock in
+jbd2_journal_check_used_features() if it has not already been loaded,
+allowing us to check the feature bits before journal recovery.
 
--- 
+Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
 
-Life's Little Instruction Book #356
-
-	"Be there when people need you."
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
+index bc2ff59..c5a864f 100644
+--- a/fs/jbd2/journal.c
++++ b/fs/jbd2/journal.c
+@@ -1365,6 +1365,8 @@ int jbd2_journal_check_used_features (journal_t *journal, unsigned long compat,
+ 
+ 	if (!compat && !ro && !incompat)
+ 		return 1;
++	if (journal_get_superblock(journal))
++		return 0;
+ 	if (journal->j_format_version == 1)
+ 		return 0;
+ 
