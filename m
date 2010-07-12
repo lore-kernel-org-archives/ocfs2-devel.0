@@ -1,118 +1,55 @@
-From: Patrick J. LoPresti <lopresti@gmail.com>
-Date: Sun, 11 Jul 2010 10:04:38 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] OCFS2: Allow huge (> 16 TiB) volumes to
-	mount
-References: <871vbax86w.fsf@patl.com>
-Message-ID: <87zkxyvtjt.fsf@patl.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 12 Jul 2010 15:19:48 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Don't duplicate page passes i_size
+	during CoW.
+Message-ID: <1278919188-4119-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org
 
-The OCFS2 developers have already done all of the hard work to allow
-volumes larger than 16 TiB.  But there is still a "sanity check" in
-fs/ocfs2/super.c that prevents the mounting of such volumes, even when
-the cluster size and journal options would allow it.
+During CoW, actually all the pages after i_size contains
+garbage data, so don't read and duplicate them.
 
-This patch replaces that sanity check with a more sophisticated one to
-mount a huge volume provided that (a) it is addressable by the raw
-word/address size of the system (borrowing a test from ext4); (b) the
-volume is using JBD2; and (c) the JBD2_FEATURE_INCOMPAT_64BIT flag is
-set on the journal.
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/refcounttree.c |   10 +++++++++-
+ 1 files changed, 9 insertions(+), 1 deletions(-)
 
-I factored out the sanity check into its own function.  I also moved it
-from ocfs2_initialize_super() down to ocfs2_check_volume(); any earlier,
-and the journal will not have been initialized yet.
-
-This patch is one of a pair, and it depends on the other ("JBD2: Allow
-feature checks before journal recovery").
-
-I have tested this patch on small volumes, huge volumes, and huge
-volumes without 64-bit block support in the journal.  All of them appear
-to work or to fail gracefully, as appropriate.
-
-Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
-
-
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 0eaa929..b809508 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1991,6 +1991,47 @@ static int ocfs2_setup_osb_uuid(struct ocfs2_super *osb, const unsigned char *uu
- 	return 0;
- }
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 1cf9cda..e082623 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2921,7 +2921,7 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
+ 	u64 new_block = ocfs2_clusters_to_blocks(sb, new_cluster);
+ 	struct page *page;
+-	pgoff_t page_index;
++	pgoff_t page_index, last_page;
+ 	unsigned int from, to;
+ 	loff_t offset, end, map_end;
+ 	struct address_space *mapping = context->inode->i_mapping;
+@@ -2932,12 +2932,20 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 	offset = ((loff_t)cpos) << OCFS2_SB(sb)->s_clustersize_bits;
+ 	end = offset + (new_len << OCFS2_SB(sb)->s_clustersize_bits);
  
-+/* Check to make sure entire volume is addressable on this system.
-+   Requires osb_clusters_at_boot to be valid and for the journal to
-+   have been initialized by ocfs2_journal_init(). */
-+static int ocfs2_check_addressable(struct ocfs2_super *osb)
-+{
-+	int status = 0;
-+	u64 max_block =
-+		ocfs2_clusters_to_blocks(osb->sb,
-+					 osb->osb_clusters_at_boot) - 1;
-+
-+	/* Absolute addressability check (borrowed from ext4/super.c) */
-+	if ((max_block >
-+	     (sector_t)(~0LL) >> (osb->sb->s_blocksize_bits - 9)) ||
-+	    (max_block > (pgoff_t)(~0LL) >> (PAGE_CACHE_SHIFT -
-+					     osb->sb->s_blocksize_bits))) {
-+		mlog(ML_ERROR, "Volume too large "
-+		     "to mount safely on this system");
-+		status = -EFBIG;
-+		goto out;
-+	}
-+
-+	/* 32-bit block number is always OK. */
-+	if (max_block <= (u32)~0UL)
-+		goto out;
-+
-+	/* Volume is "huge", so see if our journal is new enough to
-+	   support it. */
-+	if (!(OCFS2_HAS_COMPAT_FEATURE(osb->sb,
-+				       OCFS2_FEATURE_COMPAT_JBD2_SB) &&
-+	      jbd2_journal_check_used_features(osb->journal->j_journal, 0, 0,
-+					       JBD2_FEATURE_INCOMPAT_64BIT))) {
-+		mlog(ML_ERROR, "The journal cannot address the entire volume. "
-+		     "Enable the 'block64' journal option with tunefs.ocfs2");
-+		status = -EFBIG;
-+		goto out;
-+	}
-+
-+ out:
-+	return status;
-+}
-+
- static int ocfs2_initialize_super(struct super_block *sb,
- 				  struct buffer_head *bh,
- 				  int sector_size,
-@@ -2215,14 +2256,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 		goto bail;
- 	}
++	last_page = i_size_read(context->inode) >> PAGE_CACHE_SHIFT;
+ 	while (offset < end) {
+ 		page_index = offset >> PAGE_CACHE_SHIFT;
+ 		map_end = ((loff_t)page_index + 1) << PAGE_CACHE_SHIFT;
+ 		if (map_end > end)
+ 			map_end = end;
  
--	if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
--	    > (u32)~0UL) {
--		mlog(ML_ERROR, "Volume might try to write to blocks beyond "
--		     "what jbd can address in 32 bits.\n");
--		status = -EINVAL;
--		goto bail;
--	}
--
- 	if (ocfs2_setup_osb_uuid(osb, di->id2.i_super.s_uuid,
- 				 sizeof(di->id2.i_super.s_uuid))) {
- 		mlog(ML_ERROR, "Out of memory trying to setup our uuid.\n");
-@@ -2381,6 +2414,12 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
- 		goto finally;
- 	}
- 
-+	/* Now that journal has been initialized, check to make sure
-+	   entire volume is addressable. */
-+	status = ocfs2_check_addressable(osb);
-+	if (status)
-+		goto finally;
++		/*
++		 * If this page is beyond the page contains i_size,
++		 * stop duplicating it.
++		 */
++		if (page_index > last_page)
++			break;
 +
- 	/* If the journal was unmounted cleanly then we don't want to
- 	 * recover anything. Otherwise, journal_load will do that
- 	 * dirty work for us :) */
+ 		/* from, to is the offset within the page. */
+ 		from = offset & (PAGE_CACHE_SIZE - 1);
+ 		to = PAGE_CACHE_SIZE;
+-- 
+1.7.1.571.gba4d01
