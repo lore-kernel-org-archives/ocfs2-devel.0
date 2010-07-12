@@ -1,37 +1,30 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 12 Jul 2010 11:21:18 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist(bug
- 9094491) - rev3
-In-Reply-To: <1277272108-3160-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1277272108-3160-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20100712182117.GA12179@mail.oracle.com>
+Date: Mon, 12 Jul 2010 11:32:45 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Remove the redundant cpu_to_le64.
+In-Reply-To: <1278558671-18125-1-git-send-email-tao.ma@oracle.com>
+References: <1278558671-18125-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100712183245.GC12179@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jun 22, 2010 at 10:48:28PM -0700, Srinivas Eeda wrote:
-> +	if (!__dlm_lockres_unused) {
-> +		mlog(ML_ERROR, "found lockres %s:%.*s: in use after deref\n",
-> +		     dlm->name, res->lockname.len, res->lockname.name);
-> +		__dlm_print_one_lock_resource(res);
-> +		BUG();
-> +	}
+On Thu, Jul 08, 2010 at 11:11:11AM +0800, Tao Ma wrote:
+> In ocfs2_block_group_alloc, we set c_blkno by bg->bg_blkno.
+> But actually bg->bg_blkno is already changed to little endian
+> in ocfs2_block_group_fill. So remove the extra cpu_to_le64.
+> 
+> Reported-by: Marcos Matsunaga <Marcos.Matsunaga@oracle.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-/build/jlbec/linux-2.6/working/fs/ocfs2/dlm/dlmthread.c: In function ?dlm_purge_lockres?:
-/build/jlbec/linux-2.6/working/fs/ocfs2/dlm/dlmthread.c:203: warning: the address of ?__dlm_lockres_unused? will always evaluate as ?true?
-
-	Was this even tested?  I'm leaving this patch out of 'fixes'
-until corrected and tested.
+	This patch is now in the fixes branch of ocfs2.git.
 
 Joel
 
 -- 
 
-"Reader, suppose you were and idiot.  And suppose you were a member of
- Congress.  But I repeat myself."
-	- Mark Twain
+	f/8 and be there.
 
 Joel Becker
 Consulting Software Developer
