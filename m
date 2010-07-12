@@ -1,43 +1,31 @@
 From: Dan Carpenter <error27@gmail.com>
-Date: Sat, 10 Jul 2010 16:33:36 +0200
+Date: Mon, 12 Jul 2010 15:39:50 +0200
 Subject: [Ocfs2-devel] [patch] ocfs2: tighten up strlen() checking
-Message-ID: <20100710143336.GB19184@bicker>
+In-Reply-To: <20100712113006.GA2393@laptop.jp.oracle.com>
+References: <20100710143336.GB19184@bicker>
+	<20100712113006.GA2393@laptop.jp.oracle.com>
+Message-ID: <20100712132322.GA5658@bicker>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This function is only called from one place and it's like this:
-	dlm_register_domain(conn->cc_name, dlm_key, &fs_version);
+On Mon, Jul 12, 2010 at 07:30:06PM +0800, Wengang Wang wrote:
+> Also, the uuid shouldn't be treated as NULL tailed string.
+> 142 struct ocfs2_control_message_down {
+> 143         char    tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
+> 144         char    space1;
+> 145         char    uuid[OCFS2_TEXT_UUID_LEN];
+> 146         char    space2;
 
-The "conn->cc_name" is 64 characters long.  If strlen(conn->cc_name)
-were equal to O2NM_MAX_NAME_LEN (64) that would be a bug because
-strlen() doesn't count the NULL character.
+The space1 and space2 characters are NULL terminators:
 
-In fact, if you look how O2NM_MAX_NAME_LEN is used, it mostly describes
-64 character buffers.  The only exception is nd_name from struct
-o2nm_node.
+From ocfs2_control_do_down_msg():
+        msg->space1 = msg->space2 = msg->newline = '\0';
 
-Anyway I looked into it and in this case the domain string comes from
-osb->uuid_str in ocfs2_setup_osb_uuid().  That's 32 characters and NULL
-which easily fits into O2NM_MAX_NAME_LEN.  This patch doesn't change how
-the code works, but I think it makes the code a little cleaner.
+I would have thought it had to be a "packed" struct, but it works
+because there are only chars in that struct.  So that code is fine.
 
-Signed-off-by: Dan Carpenter <error27@gmail.com>
----
-Or we could get rid of check entirely.
-
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 6b5a492..084b051 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -1671,7 +1671,7 @@ struct dlm_ctxt * dlm_register_domain(const char *domain,
- 	struct dlm_ctxt *dlm = NULL;
- 	struct dlm_ctxt *new_ctxt = NULL;
- 
--	if (strlen(domain) > O2NM_MAX_NAME_LEN) {
-+	if (strlen(domain) >= O2NM_MAX_NAME_LEN) {
- 		ret = -ENAMETOOLONG;
- 		mlog(ML_ERROR, "domain name length too long\n");
- 		goto leave;
+regards,
+dan carpenter
