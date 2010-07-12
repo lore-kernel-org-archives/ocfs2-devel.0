@@ -1,64 +1,90 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 12 Jul 2010 02:14:13 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Don't duplicate page passes i_size
-	during CoW.
-In-Reply-To: <1278919188-4119-1-git-send-email-tao.ma@oracle.com>
-References: <1278919188-4119-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100712091412.GA19583@mail.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Mon, 12 Jul 2010 19:30:06 +0800
+Subject: [Ocfs2-devel] [patch] ocfs2: tighten up strlen() checking
+In-Reply-To: <20100710143336.GB19184@bicker>
+References: <20100710143336.GB19184@bicker>
+Message-ID: <20100712113006.GA2393@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jul 12, 2010 at 03:19:48PM +0800, Tao Ma wrote:
-> During CoW, actually all the pages after i_size contains
-> garbage data, so don't read and duplicate them.
+Hi Dan,
+
+I think O2NM_MAX_NAME_LEN is the max valid length of the domain name.
+Regarding your patch, it changed to be that a domain name with length
+O2NM_MAX_NAME_LEN (NULL character not included) is not permitted.
+
+Though that check seems useless for current calls, we'd better keep it.
+
+Checking the structure,
+
+ 99 struct ocfs2_cluster_connection {
+100         char cc_name[GROUP_NAME_MAX];
+101         int cc_namelen;
+
+cc_name is not a NULL tailed string. the cc_namelen specifies the length of it.
+There does is misuse of cc_name, such as
+
+
+   7    832  fs/ocfs2/stack_user.c <<user_cluster_connect>>
+             rc = dlm_new_lockspace(conn->cc_name, strlen(conn->cc_name),
+
+   5    308  fs/ocfs2/stack_o2cb.c <<o2cb_cluster_connect>>
+             dlm = dlm_register_domain(conn->cc_name, dlm_key, &fs_version);
+
+Also, the uuid shouldn't be treated as NULL tailed string.
+142 struct ocfs2_control_message_down {
+143         char    tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
+144         char    space1;
+145         char    uuid[OCFS2_TEXT_UUID_LEN];
+146         char    space2;
+
+thus,
+the calling of 
+fs/ocfs2/stack_user.c:474:      ocfs2_control_send_down(msg->uuid, nodenum);
+   ->ocfs2_connection_find(uuid)
+	->size_t len = strlen(name);
+
+is suspectable.
+
+Could you please make patch for that instead?
+
+regards,
+wengang.
+
+On 10-07-10 16:33, Dan Carpenter wrote:
+> This function is only called from one place and it's like this:
+> 	dlm_register_domain(conn->cc_name, dlm_key, &fs_version);
 > 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> The "conn->cc_name" is 64 characters long.  If strlen(conn->cc_name)
+> were equal to O2NM_MAX_NAME_LEN (64) that would be a bug because
+> strlen() doesn't count the NULL character.
+> 
+> In fact, if you look how O2NM_MAX_NAME_LEN is used, it mostly describes
+> 64 character buffers.  The only exception is nd_name from struct
+> o2nm_node.
+> 
+> Anyway I looked into it and in this case the domain string comes from
+> osb->uuid_str in ocfs2_setup_osb_uuid().  That's 32 characters and NULL
+> which easily fits into O2NM_MAX_NAME_LEN.  This patch doesn't change how
+> the code works, but I think it makes the code a little cleaner.
+> 
+> Signed-off-by: Dan Carpenter <error27@gmail.com>
 > ---
->  fs/ocfs2/refcounttree.c |   10 +++++++++-
->  1 files changed, 9 insertions(+), 1 deletions(-)
+> Or we could get rid of check entirely.
 > 
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index 1cf9cda..e082623 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -2921,7 +2921,7 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
->  	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
->  	u64 new_block = ocfs2_clusters_to_blocks(sb, new_cluster);
->  	struct page *page;
-> -	pgoff_t page_index;
-> +	pgoff_t page_index, last_page;
->  	unsigned int from, to;
->  	loff_t offset, end, map_end;
->  	struct address_space *mapping = context->inode->i_mapping;
-> @@ -2932,12 +2932,20 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
->  	offset = ((loff_t)cpos) << OCFS2_SB(sb)->s_clustersize_bits;
->  	end = offset + (new_len << OCFS2_SB(sb)->s_clustersize_bits);
+> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+> index 6b5a492..084b051 100644
+> --- a/fs/ocfs2/dlm/dlmdomain.c
+> +++ b/fs/ocfs2/dlm/dlmdomain.c
+> @@ -1671,7 +1671,7 @@ struct dlm_ctxt * dlm_register_domain(const char *domain,
+>  	struct dlm_ctxt *dlm = NULL;
+>  	struct dlm_ctxt *new_ctxt = NULL;
 >  
-> +	last_page = i_size_read(context->inode) >> PAGE_CACHE_SHIFT;
->  	while (offset < end) {
-
-	Why trigger on both index and byte offset?  Why not just adjust
-end?
-
-	if (end < i_size_read(context->inode))
-		end = i_size_read(inode);
-	
-	Then you don't need the last_page variable at all, because
-you're guaranteed never to go past i_size.
-
-Joel
-
--- 
-
-"Three o'clock is always too late or too early for anything you
- want to do."
-        - Jean-Paul Sartre
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+> -	if (strlen(domain) > O2NM_MAX_NAME_LEN) {
+> +	if (strlen(domain) >= O2NM_MAX_NAME_LEN) {
+>  		ret = -ENAMETOOLONG;
+>  		mlog(ML_ERROR, "domain name length too long\n");
+>  		goto leave;
