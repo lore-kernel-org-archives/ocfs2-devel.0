@@ -1,38 +1,44 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 12 Jul 2010 15:37:31 -0700
-Subject: [Ocfs2-devel] [PATCH 27/36] fs/ocfs2: Remove unnecessary casts
- of private_data
-In-Reply-To: <c75b92bbfb63964703ae99733f39696af4550f07.1278967121.git.joe@perches.com>
-References: <cover.1278967120.git.joe@perches.com>
-	<c75b92bbfb63964703ae99733f39696af4550f07.1278967121.git.joe@perches.com>
-Message-ID: <20100712223731.GH12179@mail.oracle.com>
+Date: Mon, 12 Jul 2010 15:39:03 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist(bug
+ 9094491) - rev3
+In-Reply-To: <1278972988-17992-1-git-send-email-srinivas.eeda@oracle.com>
+References: <1278972988-17992-1-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <20100712223903.GI12179@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joe Perches <joe@perches.com>
-Cc: Jiri Kosina <trivial@kernel.org>, linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jul 12, 2010 at 01:50:19PM -0700, Joe Perches wrote:
-> Signed-off-by: Joe Perches <joe@perches.com>
-> ---
->  fs/ocfs2/dlm/dlmdebug.c |    6 +++---
->  fs/ocfs2/dlmfs/dlmfs.c  |    3 +--
->  fs/ocfs2/dlmglue.c      |    4 ++--
->  3 files changed, 6 insertions(+), 7 deletions(-)
+On Mon, Jul 12, 2010 at 03:16:28PM -0700, Srinivas Eeda wrote:
+> There are two problems in dlm_run_purgelist
+> 
+> 1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
+> the same lockres instead of trying the next lockres.
+> 
+> 2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
+> before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
+> spinlock is reacquired but in this window lockres can get reused. This leads
+> to BUG.
+> 
+> This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
+>  next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
+> lockres spinlock protecting it from getting reused.
+> 
+> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> Signed-off-by: Sunil Mushran<sunil.mushran@oracle.com>
 
-Acked-by: Joel Becker <joel.becker@oracle.com>
-
-Btw, how hilarious is the comment for private_data?
+	Has this been tested with a testcase that would fail before the
+change?
+	Also, don't add SoB lines for kernel patches.  You can add
+Acked-by for Sunil, but SoB only works for the chain that goes upstream.
 
 Joel
 
 -- 
 
-A good programming language should have features that make the
-kind of people who use the phrase "software engineering" shake
-their heads disapprovingly.
-	- Paul Graham
+"War doesn't determine who's right; war determines who's left."
 
 Joel Becker
 Consulting Software Developer
