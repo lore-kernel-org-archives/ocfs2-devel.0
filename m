@@ -1,31 +1,35 @@
-From: Dan Carpenter <error27@gmail.com>
-Date: Mon, 12 Jul 2010 15:39:50 +0200
-Subject: [Ocfs2-devel] [patch] ocfs2: tighten up strlen() checking
-In-Reply-To: <20100712113006.GA2393@laptop.jp.oracle.com>
-References: <20100710143336.GB19184@bicker>
-	<20100712113006.GA2393@laptop.jp.oracle.com>
-Message-ID: <20100712132322.GA5658@bicker>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Date: Mon, 12 Jul 2010 11:05:22 -0400
+Subject: [Ocfs2-devel] [PATCH] Cleancache: shim to Xen Transcendent
+	Memory
+In-Reply-To: <20100708164208.GA11763@ca-server1.us.oracle.com>
+References: <20100708164208.GA11763@ca-server1.us.oracle.com>
+Message-ID: <20100712150522.GD5358@phenom.dumpdata.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Dan Magenheimer <dan.magenheimer@oracle.com>
+Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com
 
-On Mon, Jul 12, 2010 at 07:30:06PM +0800, Wengang Wang wrote:
-> Also, the uuid shouldn't be treated as NULL tailed string.
-> 142 struct ocfs2_control_message_down {
-> 143         char    tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
-> 144         char    space1;
-> 145         char    uuid[OCFS2_TEXT_UUID_LEN];
-> 146         char    space2;
+On Thu, Jul 08, 2010 at 09:42:08AM -0700, Dan Magenheimer wrote:
+> Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
 
-The space1 and space2 characters are NULL terminators:
+One nitpick:
+..
+> +
+> +int tmem_enabled;
+> +
+> +static int __init enable_tmem(char *s)
+> +{
+> +	tmem_enabled = 1;
+> +	return 1;
+> +}
+> +
+> +__setup("tmem", enable_tmem);
 
-From ocfs2_control_do_down_msg():
-        msg->space1 = msg->space2 = msg->newline = '\0';
+Perhaps 'tmem_setup' is more appropiate as it might be that this
+function in the future would be only used to disable tmem, not actually
+enable it?
 
-I would have thought it had to be a "packed" struct, but it works
-because there are only chars in that struct.  So that code is fine.
-
-regards,
-dan carpenter
+Otherwise, it has been reviewed by me.
