@@ -1,32 +1,37 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 12 Jul 2010 11:32:28 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: don't access beyond bitmap size
-In-Reply-To: <201006301224.o5U1mkX5011318@acsinet15.oracle.com>
-References: <201006301224.o5U1mkX5011318@acsinet15.oracle.com>
-Message-ID: <20100712183227.GB12179@mail.oracle.com>
+Date: Mon, 12 Jul 2010 11:33:05 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2 v2] ocfs2: make xattr extension work
+ with new local alloc reservation.
+In-Reply-To: <1278658392-22009-1-git-send-email-tao.ma@oracle.com>
+References: <1278658392-22009-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100712183305.GD12179@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 30, 2010 at 08:23:30PM +0800, Wengang Wang wrote:
-> dlm->recovery_map is defined as
-> 	unsigned long recovery_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+On Fri, Jul 09, 2010 at 02:53:11PM +0800, Tao Ma wrote:
+> The old ocfs2_xattr_extent_allocation is too optimistic about
+> the clusters we can get. So actually if the file system is
+> too fragmented, ocfs2_add_clusters_in_btree will return us
+> with EGAIN and we need to allocate clusters once again.
 > 
-> We should treat O2NM_MAX_NODES as the bit map size in bits.
-> This patches fixes a bit operation that takes O2NM_MAX_NODES + 1 as bitmap size.
+> So this patch change it to a while loop so that we can allocate
+> clusters until we reach clusters_to_add.
 > 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-This patch is now in the 'fixes' branch of ocfs2.git.
+	This patch is now in the fixes branch of ocfs2.git.
 
 Joel
 
 -- 
 
- The zen have a saying:
- "When you learn how to listen, ANYONE can be your teacher."
+"Born under a bad sign.
+ I been down since I began to crawl.
+ If it wasn't for bad luck,
+ I wouldn't have no luck at all."
 
 Joel Becker
 Consulting Software Developer
