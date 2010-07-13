@@ -1,35 +1,61 @@
-From: Patrick J. LoPresti <lopresti@gmail.com>
-Date: Mon, 12 Jul 2010 18:37:03 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] OCFS2: Allow huge (> 16 TiB) volumes
-	to mount
-In-Reply-To: <20100713012506.GA30737@dastard>
-References: <871vbax86w.fsf@patl.com> <87zkxyvtjt.fsf@patl.com>
-	<3BB069D5-B193-43A4-B678-B3CEA4873B58@dilger.ca>
-	<AANLkTikAEycm5PKTLPuRFcB0e4qNp5EuQbKUx5aruNrh@mail.gmail.com>
-	<20100713012506.GA30737@dastard>
-Message-ID: <AANLkTilbFzwOib6sF-uz8v2c_1LA2UgnnoPWZ4DtDUJK@mail.gmail.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 13 Jul 2010 11:22:32 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Don't duplicate page passes i_size
+	during CoW.
+In-Reply-To: <20100712091412.GA19583@mail.oracle.com>
+References: <20100712091412.GA19583@mail.oracle.com>
+Message-ID: <1278991352-5540-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dave Chinner <david@fromorbit.com>
-Cc: Andreas Dilger <adilger@dilger.ca>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jul 12, 2010 at 6:25 PM, Dave Chinner <david@fromorbit.com> wrote:
->
-> The XFS code is different to the above because there is still a 16TB
-> size limit on 32 bit systemsi (i.e. page cache address limits). IOWs,
-> you can't just remove the above 16TB check unless you (i.e. OCFS2)
-> handle >16TB block devices on 32 bit systems correctly...
+Hi Joel,
+>> @@ -2932,12 +2932,20 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+>>   	offset = ((loff_t)cpos)<<  OCFS2_SB(sb)->s_clustersize_bits;
+>>   	end = offset + (new_len<<  OCFS2_SB(sb)->s_clustersize_bits);
+>>
+>> +	last_page = i_size_read(context->inode)>>  PAGE_CACHE_SHIFT;
+>>   	while (offset<  end) {
+> 
+> 	Why trigger on both index and byte offset?  Why not just adjust
+> end?
+OK, here is the udpated one.
 
-If you look at my patch, you will see that is precisely what it does.
-As the comments indicate, it uses the exact same check as ext4, which
-will correctly refuse to mount huge volumes on 32-bit systems.
+Regards,
+Tao
 
-The XFS test appears to be the same thing written a little
-differently.  Andreas is suggesting that somebody should factor out
-this check into a common library routine.  That sounds like a fine
-idea, but it also sounds orthogonal to the (simple and useful) patch I
-am attempting to submit.
+From b30377da2dff2b5823c6a4a66153aa035334a632 Mon Sep 17 00:00:00 2001
+From: Tao Ma <tao.ma@oracle.com>
+Date: Tue, 13 Jul 2010 09:53:28 +0800
+Subject: [PATCH v2] ocfs2: Don't duplicate page passes i_size during CoW.
 
- - Pat
+During CoW, actually all the pages after i_size contains
+garbage data, so don't read and duplicate them.
+
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/refcounttree.c |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 1cf9cda..e4e85e6 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2931,6 +2931,13 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 
+ 	offset = ((loff_t)cpos) << OCFS2_SB(sb)->s_clustersize_bits;
+ 	end = offset + (new_len << OCFS2_SB(sb)->s_clustersize_bits);
++	/*
++	 * We only duplicate pages until we reach i_size.
++	 * So trim 'end' to the boundary of that page.
++	 */
++	if (end > i_size_read(context->inode))
++		end = ((i_size_read(context->inode) + PAGE_CACHE_SIZE - 1) >>
++			 PAGE_CACHE_SHIFT) << PAGE_CACHE_SHIFT;
+ 
+ 	while (offset < end) {
+ 		page_index = offset >> PAGE_CACHE_SHIFT;
+-- 
+1.7.1.571.gba4d01
