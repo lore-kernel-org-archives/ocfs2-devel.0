@@ -1,61 +1,43 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 13 Jul 2010 11:22:32 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Don't duplicate page passes i_size
-	during CoW.
-In-Reply-To: <20100712091412.GA19583@mail.oracle.com>
-References: <20100712091412.GA19583@mail.oracle.com>
-Message-ID: <1278991352-5540-1-git-send-email-tao.ma@oracle.com>
+From: Andreas Dilger <adilger@dilger.ca>
+Date: Mon, 12 Jul 2010 22:46:50 -0600
+Subject: [Ocfs2-devel] [PATCH 2/2] OCFS2: Allow huge (> 16 TiB) volumes
+	to mount
+In-Reply-To: <AANLkTikAEycm5PKTLPuRFcB0e4qNp5EuQbKUx5aruNrh@mail.gmail.com>
+References: <871vbax86w.fsf@patl.com> <87zkxyvtjt.fsf@patl.com>
+	<3BB069D5-B193-43A4-B678-B3CEA4873B58@dilger.ca>
+	<AANLkTikAEycm5PKTLPuRFcB0e4qNp5EuQbKUx5aruNrh@mail.gmail.com>
+Message-ID: <DA64905D-C83B-4CF5-9405-65F7F82F9563@dilger.ca>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: "Patrick J. LoPresti" <lopresti@gmail.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org
 
-Hi Joel,
->> @@ -2932,12 +2932,20 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
->>   	offset = ((loff_t)cpos)<<  OCFS2_SB(sb)->s_clustersize_bits;
->>   	end = offset + (new_len<<  OCFS2_SB(sb)->s_clustersize_bits);
->>
->> +	last_page = i_size_read(context->inode)>>  PAGE_CACHE_SHIFT;
->>   	while (offset<  end) {
+On 2010-07-12, at 19:08, Patrick J. LoPresti wrote:
+> On Mon, Jul 12, 2010 at 5:21 PM, Andreas Dilger <adilger@dilger.ca> wrote:
+>> On 2010-07-11, at 11:04, Patrick J. LoPresti wrote:
+>>> 
+>>> +     /* Absolute addressability check (borrowed from ext4/super.c) */
+>>> +     if ((max_block >
+>>> +          (sector_t)(~0LL) >> (osb->sb->s_blocksize_bits - 9)) ||
+>>> +         (max_block > (pgoff_t)(~0LL) >> (PAGE_CACHE_SHIFT -
+>>> +                                          osb->sb->s_blocksize_bits))) {
+>>> +             mlog(ML_ERROR, "Volume too large "
+>>> +                  "to mount safely on this system");
+>>> +             status = -EFBIG;
+>>> +             goto out;
+>>> +     }
+>> 
+>> This hunk of code is actually in several filesystems.  It wouldn't be a bad idea to make it a library function that can be called by the filesystem to check the kernel page cache and block layer can handle these large filesystems.
 > 
-> 	Why trigger on both index and byte offset?  Why not just adjust
-> end?
-OK, here is the udpated one.
+> True, but some of them do it differently (e.g. see the #if switch in
+> xfs_sb_validate_fsb_count).  Tracking down all variants and changing
+> them is a much larger task than my simple patch.
+> 
+> Are you suggesting I need to do this before my patch is accepted at
+> all?  Or is this a refactoring that can happen later?
 
-Regards,
-Tao
+I'm just suggesting it should be done at some point.  I thought it would be better to do it first, rather than add yet another copy of this code.  That said, I hate to block useful fixes because of cleanup (and I have no control over OCFS2 anyway :-).  However, I've found that once the fix is in people usually forget (or become too busy) to do the cleanup and it just lingers on unseen.
 
-From b30377da2dff2b5823c6a4a66153aa035334a632 Mon Sep 17 00:00:00 2001
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 13 Jul 2010 09:53:28 +0800
-Subject: [PATCH v2] ocfs2: Don't duplicate page passes i_size during CoW.
-
-During CoW, actually all the pages after i_size contains
-garbage data, so don't read and duplicate them.
-
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/refcounttree.c |    7 +++++++
- 1 files changed, 7 insertions(+), 0 deletions(-)
-
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 1cf9cda..e4e85e6 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2931,6 +2931,13 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 
- 	offset = ((loff_t)cpos) << OCFS2_SB(sb)->s_clustersize_bits;
- 	end = offset + (new_len << OCFS2_SB(sb)->s_clustersize_bits);
-+	/*
-+	 * We only duplicate pages until we reach i_size.
-+	 * So trim 'end' to the boundary of that page.
-+	 */
-+	if (end > i_size_read(context->inode))
-+		end = ((i_size_read(context->inode) + PAGE_CACHE_SIZE - 1) >>
-+			 PAGE_CACHE_SHIFT) << PAGE_CACHE_SHIFT;
- 
- 	while (offset < end) {
- 		page_index = offset >> PAGE_CACHE_SHIFT;
--- 
-1.7.1.571.gba4d01
+Cheers, Andreas
