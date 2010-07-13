@@ -1,56 +1,58 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 13 Jul 2010 23:30:04 +0800
-Subject: [Ocfs2-devel] [PATCH v4] ocfs2: Don't duplicate page passes i_size
-	during CoW.
-In-Reply-To: <1279032644-8050-1-git-send-email-tao.ma@oracle.com>
-References: <1279032644-8050-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <1279035004-8280-1-git-send-email-tao.ma@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 13 Jul 2010 11:38:29 -0700
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Don't duplicate page passes
+ i_size during CoW.
+In-Reply-To: <4C3C7771.5000103@oracle.com>
+References: <20100712091412.GA19583@mail.oracle.com>
+	<1278991352-5540-1-git-send-email-tao.ma@oracle.com>
+	<20100713081306.GB31479@mail.oracle.com>
+	<20100713081538.GC31479@mail.oracle.com>
+	<4C3C7771.5000103@oracle.com>
+Message-ID: <20100713183828.GA9468@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
-	I suddenly thought there is a bug in my previous patch.
+On Tue, Jul 13, 2010 at 10:25:53PM +0800, Tao Ma wrote:
+> Joel Becker wrote:
+> >	Why even worry about that?  We only need up to i_size.  If end
+> >is safe and not page aligned, so is i_size.
+> i_size isn't safe in ocfs2_duplicate_clusters_by_page. Check the
+> below function.
+> 
+>            if (page_has_buffers(page)) {
+>                        ret = walk_page_buffers(handle, page_buffers(page),
+>                                                from, to, &partial,
+>                                                ocfs2_clear_cow_buffer);
+>                        if (ret) {
+>                                mlog_errno(ret);
+>                                goto unlock;
+>                        }
+>                }
+> So 'to' is limited to 'map_end' and then 'end'. If we set 'end' to
+> i_size, we may not clear all the buffer heads
 
-In ppc where page size may be larger than cluster size, we may increase
-'end' to an invalid page end which our current cow can't handle. So here
-is the updated one.
+	We don't need to clear all the buffer heads.  This is the same
+as the logic in block_prepare_write().  We only need to clear the blocks
+that encompass i_size.  Unless we did something wrong, the buffers past
+i_size should not be mapped.
+	More importantly, your 'end' has the same layout.  If end is not
+page aligned, it will only clear some of the blocks in its page.  Which
+is fine.  There's no difference between end and i_size - they don't have
+to fall on page boundaries.
 
-Regards,
-Tao
+Joel
 
-From fd6d19b09efa9d7305375132e0cfb6a8eec9108a Mon Sep 17 00:00:00 2001
-From: Tao Ma <tao.ma@oracle.com>
-Date: Tue, 13 Jul 2010 22:51:01 +0800
-Subject: [PATCH v4] ocfs2: Don't duplicate page passes i_size during CoW.
-
-During CoW, actually all the pages after i_size contains
-garbage data, so don't read and duplicate them.
-
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/refcounttree.c |    7 +++++++
- 1 files changed, 7 insertions(+), 0 deletions(-)
-
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 1cf9cda..4f07bb1 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2931,6 +2931,13 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 
- 	offset = ((loff_t)cpos) << OCFS2_SB(sb)->s_clustersize_bits;
- 	end = offset + (new_len << OCFS2_SB(sb)->s_clustersize_bits);
-+	/*
-+	 * We only duplicate pages until we reach the page contains i_size - 1.
-+	 * So trim 'end' to the boundary of that page.
-+	 */
-+	if (end > i_size_read(context->inode))
-+		end = min(end,
-+			 (loff_t)PAGE_CACHE_ALIGN(i_size_read(context->inode)));
- 
- 	while (offset < end) {
- 		page_index = offset >> PAGE_CACHE_SHIFT;
 -- 
-1.7.1.571.gba4d01
+
+"Here's something to think about:  How come you never see a headline
+ like ``Psychic Wins Lottery''?"
+	- Jay Leno
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
