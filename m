@@ -1,64 +1,104 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 14 Jul 2010 15:53:22 +0800
-Subject: [Ocfs2-devel] [PATCH 4/5] ocfs2: Add readahead support for CoW.
+Date: Wed, 14 Jul 2010 15:53:21 +0800
+Subject: [Ocfs2-devel] [PATCH 3/5] ocfs2: Add struct file to
+	ocfs2_refcount_cow.
 In-Reply-To: <4C3D6CBA.10401@oracle.com>
 References: <4C3D6CBA.10401@oracle.com>
-Message-ID: <1279094003-10209-4-git-send-email-tao.ma@oracle.com>
+Message-ID: <1279094003-10209-3-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add a new function ocfs2_readahead_for_cow so that
-we start readahead before we start our CoW.
+Add a new parameter 'struct file *' to ocfs2_refcount_cow
+so that we can add readahead support later.
 
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/refcounttree.c |   24 ++++++++++++++++++++++++
- 1 files changed, 24 insertions(+), 0 deletions(-)
+ fs/ocfs2/aops.c         |    2 +-
+ fs/ocfs2/file.c         |    4 ++--
+ fs/ocfs2/refcounttree.c |    4 +++-
+ fs/ocfs2/refcounttree.h |    3 ++-
+ 4 files changed, 8 insertions(+), 5 deletions(-)
 
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 13a41ef..968ae3d 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1691,7 +1691,7 @@ int ocfs2_write_begin_nolock(struct file *filp,
+ 		mlog_errno(ret);
+ 		goto out;
+ 	} else if (ret == 1) {
+-		ret = ocfs2_refcount_cow(inode, di_bh,
++		ret = ocfs2_refcount_cow(inode, filp, di_bh,
+ 					 wc->w_cpos, wc->w_clen, UINT_MAX);
+ 		if (ret) {
+ 			mlog_errno(ret);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index d61137e..ab1d0ce 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -361,7 +361,7 @@ static int ocfs2_cow_file_pos(struct inode *inode,
+ 	if (!(ext_flags & OCFS2_EXT_REFCOUNTED))
+ 		goto out;
+ 
+-	return ocfs2_refcount_cow(inode, fe_bh, cpos, 1, cpos+1);
++	return ocfs2_refcount_cow(inode, NULL, fe_bh, cpos, 1, cpos+1);
+ 
+ out:
+ 	return status;
+@@ -1882,7 +1882,7 @@ static int ocfs2_prepare_inode_for_refcount(struct inode *inode,
+ 
+ 	*meta_level = 1;
+ 
+-	ret = ocfs2_refcount_cow(inode, di_bh, cpos, clusters, UINT_MAX);
++	ret = ocfs2_refcount_cow(inode, file, di_bh, cpos, clusters, UINT_MAX);
+ 	if (ret)
+ 		mlog_errno(ret);
+ out:
 diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 7636174..03ec6ac 100644
+index 4793f36..7636174 100644
 --- a/fs/ocfs2/refcounttree.c
 +++ b/fs/ocfs2/refcounttree.c
-@@ -3392,6 +3392,28 @@ static int ocfs2_replace_cow(struct ocfs2_cow_context *context)
- 	return ret;
- }
+@@ -3398,6 +3398,7 @@ static int ocfs2_replace_cow(struct ocfs2_cow_context *context)
+  * unrefcounted extent.
+  */
+ static int ocfs2_refcount_cow_hunk(struct inode *inode,
++				   struct file *file,
+ 				   struct buffer_head *di_bh,
+ 				   u32 cpos, u32 write_len, u32 max_cpos)
+ {
+@@ -3475,6 +3476,7 @@ out:
+  * clusters between cpos and cpos+write_len are safe to modify.
+  */
+ int ocfs2_refcount_cow(struct inode *inode,
++		       struct file *file,
+ 		       struct buffer_head *di_bh,
+ 		       u32 cpos, u32 write_len, u32 max_cpos)
+ {
+@@ -3494,7 +3496,7 @@ int ocfs2_refcount_cow(struct inode *inode,
+ 			num_clusters = write_len;
  
-+static void ocfs2_readahead_for_cow(struct inode *inode,
-+				    struct file *file,
-+				    u32 start, u32 len)
-+{
-+	struct address_space *mapping;
-+	pgoff_t index;
-+	unsigned long num_pages;
-+	int cs_bits = OCFS2_SB(inode->i_sb)->s_clustersize_bits;
-+
-+	if (!file)
-+		return;
-+
-+	mapping = file->f_mapping;
-+	num_pages = (len << cs_bits) >> PAGE_CACHE_SHIFT;
-+	if (!num_pages)
-+		num_pages = 1;
-+
-+	index = ((loff_t)start << cs_bits) >> PAGE_CACHE_SHIFT;
-+	page_cache_sync_readahead(mapping, &file->f_ra, file,
-+				  index, num_pages);
-+}
-+
- /*
-  * Starting at cpos, try to CoW write_len clusters.  Don't CoW
-  * past max_cpos.  This will stop when it runs into a hole or an
-@@ -3427,6 +3449,8 @@ static int ocfs2_refcount_cow_hunk(struct inode *inode,
+ 		if (ext_flags & OCFS2_EXT_REFCOUNTED) {
+-			ret = ocfs2_refcount_cow_hunk(inode, di_bh, cpos,
++			ret = ocfs2_refcount_cow_hunk(inode, file, di_bh, cpos,
+ 						      num_clusters, max_cpos);
+ 			if (ret) {
+ 				mlog_errno(ret);
+diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
+index 9983ba1..29cba0e 100644
+--- a/fs/ocfs2/refcounttree.h
++++ b/fs/ocfs2/refcounttree.h
+@@ -52,7 +52,8 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+ 					  u32 clusters,
+ 					  int *credits,
+ 					  int *ref_blocks);
+-int ocfs2_refcount_cow(struct inode *inode, struct buffer_head *di_bh,
++int ocfs2_refcount_cow(struct inode *inode,
++		       struct file *filep, struct buffer_head *di_bh,
+ 		       u32 cpos, u32 write_len, u32 max_cpos);
  
- 	BUG_ON(cow_len == 0);
- 
-+	ocfs2_readahead_for_cow(inode, file, cow_start, cow_len);
-+
- 	context = kzalloc(sizeof(struct ocfs2_cow_context), GFP_NOFS);
- 	if (!context) {
- 		ret = -ENOMEM;
+ typedef int (ocfs2_post_refcount_func)(struct inode *inode,
 -- 
 1.7.1.GIT
