@@ -1,40 +1,43 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 14 Jul 2010 11:19:32 +0800
-Subject: [Ocfs2-devel] [PATCH v5] ocfs2: Don't duplicate page passes i_size
-	during CoW.
-In-Reply-To: <20100713183828.GA9468@mail.oracle.com>
-References: <20100713183828.GA9468@mail.oracle.com>
-Message-ID: <1279077572-9017-1-git-send-email-tao.ma@oracle.com>
+Date: Wed, 14 Jul 2010 15:52:26 +0800
+Subject: [Ocfs2-devel] [PATCH 0/5 v2] Add readahead support in CoW for
+	reflinked files.
+Message-ID: <4C3D6CBA.10401@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-During CoW, actually all the pages after i_size contains
-garbage data, so don't read and duplicate them.
+Hi all,
+	When we try to CoW some clusters for a reflinked file, we have to read 
+the contents first, allocate some clusters and then map these pages to 
+the new clusters. Currently, we use block_read_full_page to read it, but 
+it is a little bit slower.
+	So this patch set try to add readahead support for CoW. Before we 
+start, we call readahead first so that the pages can be read at the very 
+first. And during CoW, when we find a readahead page, we know that we 
+need to move the readahead window, so a new asyncreadahead is called.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/refcounttree.c |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+I have a small test to show how readahead speed up CoW.
+readahead_test()
+{
+MNT_DIR=/mnt/ocfs2
+DEVICE=/dev/sda8
+echo 'y'|mkfs.ocfs2 --fs-features=local,refcount $DEVICE
+mount -t ocfs2 $DEVICE $MNT_DIR
+FILE=$MNT_DIR/$RANDOM
+REFLINK=$MNT_DIR/$RANDOM
+dd if=/dev/zero of=$FILE bs=1M count=1000
+reflink $FILE $REFLINK
+dd if=/dev/zero of=$REFLINK bs=1M count=1000 conv=notrunc
+umount $MNT_DIR
+}
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 1cf9cda..5e03db2 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2931,6 +2931,12 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
- 
- 	offset = ((loff_t)cpos) << OCFS2_SB(sb)->s_clustersize_bits;
- 	end = offset + (new_len << OCFS2_SB(sb)->s_clustersize_bits);
-+	/*
-+	 * We only duplicate pages until we reach the page contains i_size - 1.
-+	 * So trim 'end' to i_size.
-+	 */
-+	if (end > i_size_read(context->inode))
-+		end = i_size_read(context->inode);
- 
- 	while (offset < end) {
- 		page_index = offset >> PAGE_CACHE_SHIFT;
--- 
-1.7.1.571.gba4d01
+Without these patch set, the 2nd dd has a i/o speed of 22MB/s.
+with the patch set, the i/o speed is increased to about 40MB/s.
+
+Any comments are welcomed.
+
+Regards,
+Tao
