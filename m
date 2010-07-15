@@ -1,35 +1,35 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 15 Jul 2010 11:04:37 +0800
-Subject: [Ocfs2-devel] [PATCH 0/5 v2] Add readahead support in CoW for
-	reflinked files.
-In-Reply-To: <20100715023156.GB14909@mail.oracle.com>
-References: <4C3D6CBA.10401@oracle.com>
-	<20100715023156.GB14909@mail.oracle.com>
-Message-ID: <4C3E7AC5.3030905@oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 15 Jul 2010 14:02:51 -0700
+Subject: [Ocfs2-devel] [PATCH v5] ocfs2: Don't duplicate page passes
+ i_size during CoW.
+In-Reply-To: <1279077572-9017-1-git-send-email-tao.ma@oracle.com>
+References: <20100713183828.GA9468@mail.oracle.com>
+	<1279077572-9017-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100715210250.GA29283@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+On Wed, Jul 14, 2010 at 11:19:32AM +0800, Tao Ma wrote:
+> During CoW, actually all the pages after i_size contains
+> garbage data, so don't read and duplicate them.
+> 
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
+	This patch is now in the fixes branch of ocfs2.git.
 
-On 07/15/2010 10:31 AM, Joel Becker wrote:
-> On Wed, Jul 14, 2010 at 03:52:26PM +0800, Tao Ma wrote:
->> 	When we try to CoW some clusters for a reflinked file, we have to
->> read the contents first, allocate some clusters and then map these
->> pages to the new clusters. Currently, we use block_read_full_page to
->> read it, but it is a little bit slower.
->> 	So this patch set try to add readahead support for CoW. Before we
->> start, we call readahead first so that the pages can be read at the
->> very first. And during CoW, when we find a readahead page, we know
->> that we need to move the readahead window, so a new asyncreadahead
->> is called.
->
-> 	I think this looks good.  Can you create a branch in your git
-> tree for it?  I'll pull when I build merge-window.
-done. please pull from
-git://oss.oracle.com/git/tma/linux-2.6.git cow_readahead.
+Joel
 
-Regards,
-Tao
+-- 
+
+"I don't know anything about music. In my line you don't have
+ to."
+        - Elvis Presley
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
