@@ -1,36 +1,53 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 15 Jul 2010 14:03:11 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove BUG_ON in a rare case
-In-Reply-To: <201007141440.o6EEeWod016015@rcsinet13.oracle.com>
-References: <201007141440.o6EEeWod016015@rcsinet13.oracle.com>
-Message-ID: <20100715210311.GB29283@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 15 Jul 2010 14:24:29 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: don't overwrite error codes in
+ ocfs2_init_acl
+In-Reply-To: <4C3DD0A6.4050902@oracle.com>
+References: <4C3D8D53.7010400@oracle.com> <4C3DD0A6.4050902@oracle.com>
+Message-ID: <4C3F7C8D.1010604@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jul 14, 2010 at 10:38:21PM +0800, Wengang Wang wrote:
-> For migration, we are waiting for DLM_LOCK_RES_MIGRATING flag to be set
-> before sending DLM_MIG_LOCKRES_MSG message to the target. We are using
-> dlm_migration_can_proceed() for that purpose. while, dlm_migration_can_proceed()
-> also returns "go ahead" if target node is down. In this rare case, the
-> DLM_LOCK_RES_MIGRATING maybe is not set yet. Remove the BUG_ON() in this case.
-> 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+Good catch.
 
-	This patch is now in the 'fixes' branch of ocfs2.git.
-
-Joel
-
--- 
-
-"The whole problem with the world is that fools and fanatics are always
- so certain of themselves, and wiser people so full of doubts."
-	- Bertrand Russell
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+On 07/14/2010 07:58 AM, Tao Ma wrote:
+> Hi Tiger,
+> Tiger Yang wrote:
+>    
+>> Hi, all,
+>>
+>> Pawel(pzlist at mp.pl) reported a bug in ocfs2 acl. This patch fix this
+>> issue.
+>>
+>> Thanks,
+>> tiger
+>>      
+> @@ -381,7 +381,11 @@ int ocfs2_init_acl(handle_t *handle,
+>
+>   		mode = inode->i_mode;
+>   		ret = posix_acl_create_masq(clone,&mode);
+>   		if (ret>= 0) {
+> -			ret = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
+> +			ret2 = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
+> +			if (ret2) {
+> +				mlog_errno(ret2);
+> You need to set ret = ret2 here so that we can return the error value to the caller.
+> +				goto cleanup;
+> +			}
+>   			if (ret>  0) {
+>   				ret = ocfs2_set_acl(handle, inode,
+>   						    di_bh, ACL_TYPE_ACCESS,
+>
+> Regards,
+> Tao
+>
+>
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>    
