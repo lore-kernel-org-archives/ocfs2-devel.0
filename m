@@ -1,42 +1,71 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Thu, 15 Jul 2010 09:15:24 +0800
-Subject: [Ocfs2-devel] [PATCH v5] ocfs2: Don't duplicate page passes
- i_size during CoW.
-In-Reply-To: <1279077572-9017-1-git-send-email-tao.ma@oracle.com>
-References: <20100713183828.GA9468@mail.oracle.com>
-	<1279077572-9017-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <4C3E612C.30508@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed, 14 Jul 2010 18:37:57 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove BUG_ON in a rare case
+In-Reply-To: <201007141440.o6EEeWod016015@rcsinet13.oracle.com>
+References: <201007141440.o6EEeWod016015@rcsinet13.oracle.com>
+Message-ID: <4C3E6675.5070300@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Tested-by: Tristan Ye <tristan.ye@oracle.com>
+Signed-off-by: Sunil Mushran<sunil.mushran@oracle.com>
 
-Tao Ma wrote:
-> During CoW, actually all the pages after i_size contains
-> garbage data, so don't read and duplicate them.
+
+On 07/14/2010 07:38 AM, Wengang Wang wrote:
+> For migration, we are waiting for DLM_LOCK_RES_MIGRATING flag to be set
+> before sending DLM_MIG_LOCKRES_MSG message to the target. We are using
+> dlm_migration_can_proceed() for that purpose. while, dlm_migration_can_proceed()
+> also returns "go ahead" if target node is down. In this rare case, the
+> DLM_LOCK_RES_MIGRATING maybe is not set yet. Remove the BUG_ON() in this case.
 >
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
 > ---
->  fs/ocfs2/refcounttree.c |    6 ++++++
->  1 files changed, 6 insertions(+), 0 deletions(-)
+>   fs/ocfs2/dlm/dlmmaster.c |   22 ++++++++++++++--------
+>   1 files changed, 14 insertions(+), 8 deletions(-)
 >
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index 1cf9cda..5e03db2 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -2931,6 +2931,12 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
->  
->  	offset = ((loff_t)cpos) << OCFS2_SB(sb)->s_clustersize_bits;
->  	end = offset + (new_len << OCFS2_SB(sb)->s_clustersize_bits);
-> +	/*
-> +	 * We only duplicate pages until we reach the page contains i_size - 1.
-> +	 * So trim 'end' to i_size.
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index 4a7506a..94b97fc 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -2808,14 +2808,8 @@ again:
+>   		mlog(0, "trying again...\n");
+>   		goto again;
+>   	}
+> -	/* now that we are sure the MIGRATING state is there, drop
+> -	 * the unneded state which blocked threads trying to DIRTY */
+> -	spin_lock(&res->spinlock);
+> -	BUG_ON(!(res->state&  DLM_LOCK_RES_BLOCK_DIRTY));
+> -	BUG_ON(!(res->state&  DLM_LOCK_RES_MIGRATING));
+> -	res->state&= ~DLM_LOCK_RES_BLOCK_DIRTY;
+> -	spin_unlock(&res->spinlock);
+>
+> +	ret = 0;
+>   	/* did the target go down or die? */
+>   	spin_lock(&dlm->spinlock);
+>   	if (!test_bit(target, dlm->domain_map)) {
+> @@ -2826,9 +2820,21 @@ again:
+>   	spin_unlock(&dlm->spinlock);
+>
+>   	/*
+> +	 * if target is down, we need to clear DLM_LOCK_RES_BLOCK_DIRTY for
+> +	 * another try; otherwise, we are sure the MIGRATING state is there,
+> +	 * drop the unneded state which blocked threads trying to DIRTY
 > +	 */
-> +	if (end > i_size_read(context->inode))
-> +		end = i_size_read(context->inode);
->  
->  	while (offset < end) {
->  		page_index = offset >> PAGE_CACHE_SHIFT;
+> +	spin_lock(&res->spinlock);
+> +	BUG_ON(!(res->state&  DLM_LOCK_RES_BLOCK_DIRTY));
+> +	res->state&= ~DLM_LOCK_RES_BLOCK_DIRTY;
+> +	if (!ret)
+> +		BUG_ON(!(res->state&  DLM_LOCK_RES_MIGRATING));
+> +	spin_unlock(&res->spinlock);
+> +
+> +	/*
+>   	 * at this point:
+>   	 *
+> -	 *   o the DLM_LOCK_RES_MIGRATING flag is set
+> +	 *   o the DLM_LOCK_RES_MIGRATING flag is set if target not down
+>   	 *   o there are no pending asts on this lockres
+>   	 *   o all processes trying to reserve an ast on this
+>   	 *     lockres must wait for the MIGRATING flag to clear
+>    
