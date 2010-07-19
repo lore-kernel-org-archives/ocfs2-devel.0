@@ -1,183 +1,120 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Mon, 19 Jul 2010 16:04:12 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist (rev 3)
-Message-ID: <1279580652-29247-1-git-send-email-srinivas.eeda@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 19 Jul 2010 16:14:12 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove potential deadlock -V2
+In-Reply-To: <20100719101110.GC3623@laptop.jp.oracle.com>
+References: <201006211344.o5LDifHO031126@acsinet15.oracle.com>
+	<20100719101110.GC3623@laptop.jp.oracle.com>
+Message-ID: <4C44DC44.4010002@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch fixes two problems in dlm_run_purgelist
+A better (and simpler) fix would be to not dlm_grab() in dlm_init_lockres().
+Then we can remove the corresponding dlm_put() in dlm_lockres_release().
+That grab is not required because we don't call dlm_unregister_domain()
+based on refcount.
 
-1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
-the same lockres instead of trying the next lockres.
-
-2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
-before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
-spinlock is reacquired but in this window lockres can get reused. This leads
-to BUG.
-
-This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
- next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
-lockres spinlock protecting it from getting reused.
-
-Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
-Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
-
----
- fs/ocfs2/dlm/dlmthread.c |   80 +++++++++++++++++++--------------------------
- 1 files changed, 34 insertions(+), 46 deletions(-)
-
-diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index 11a6d1f..960dc8d 100644
---- a/fs/ocfs2/dlm/dlmthread.c
-+++ b/fs/ocfs2/dlm/dlmthread.c
-@@ -152,45 +152,25 @@ void dlm_lockres_calc_usage(struct dlm_ctxt *dlm,
- 	spin_unlock(&dlm->spinlock);
- }
- 
--static int dlm_purge_lockres(struct dlm_ctxt *dlm,
-+static void dlm_purge_lockres(struct dlm_ctxt *dlm,
- 			     struct dlm_lock_resource *res)
- {
- 	int master;
- 	int ret = 0;
- 
--	spin_lock(&res->spinlock);
--	if (!__dlm_lockres_unused(res)) {
--		mlog(0, "%s:%.*s: tried to purge but not unused\n",
--		     dlm->name, res->lockname.len, res->lockname.name);
--		__dlm_print_one_lock_resource(res);
--		spin_unlock(&res->spinlock);
--		BUG();
--	}
--
--	if (res->state & DLM_LOCK_RES_MIGRATING) {
--		mlog(0, "%s:%.*s: Delay dropref as this lockres is "
--		     "being remastered\n", dlm->name, res->lockname.len,
--		     res->lockname.name);
--		/* Re-add the lockres to the end of the purge list */
--		if (!list_empty(&res->purge)) {
--			list_del_init(&res->purge);
--			list_add_tail(&res->purge, &dlm->purge_list);
--		}
--		spin_unlock(&res->spinlock);
--		return 0;
--	}
-+	assert_spin_locked(&dlm->spinlock);
-+	assert_spin_locked(&res->spinlock);
- 
- 	master = (res->owner == dlm->node_num);
- 
--	if (!master)
--		res->state |= DLM_LOCK_RES_DROPPING_REF;
--	spin_unlock(&res->spinlock);
- 
- 	mlog(0, "purging lockres %.*s, master = %d\n", res->lockname.len,
- 	     res->lockname.name, master);
- 
- 	if (!master) {
-+		res->state |= DLM_LOCK_RES_DROPPING_REF;
- 		/* drop spinlock...  retake below */
-+		spin_unlock(&res->spinlock);
- 		spin_unlock(&dlm->spinlock);
- 
- 		spin_lock(&res->spinlock);
-@@ -208,31 +188,35 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
- 		mlog(0, "%s:%.*s: dlm_deref_lockres returned %d\n",
- 		     dlm->name, res->lockname.len, res->lockname.name, ret);
- 		spin_lock(&dlm->spinlock);
-+		spin_lock(&res->spinlock);
- 	}
- 
--	spin_lock(&res->spinlock);
- 	if (!list_empty(&res->purge)) {
- 		mlog(0, "removing lockres %.*s:%p from purgelist, "
- 		     "master = %d\n", res->lockname.len, res->lockname.name,
- 		     res, master);
- 		list_del_init(&res->purge);
--		spin_unlock(&res->spinlock);
- 		dlm_lockres_put(res);
- 		dlm->purge_count--;
--	} else
--		spin_unlock(&res->spinlock);
-+	}
-+
-+	if (!__dlm_lockres_unused(res)) {
-+		mlog(ML_ERROR, "found lockres %s:%.*s: in use after deref\n",
-+		     dlm->name, res->lockname.len, res->lockname.name);
-+		__dlm_print_one_lock_resource(res);
-+		BUG();
-+	}
- 
- 	__dlm_unhash_lockres(res);
- 
- 	/* lockres is not in the hash now.  drop the flag and wake up
- 	 * any processes waiting in dlm_get_lock_resource. */
- 	if (!master) {
--		spin_lock(&res->spinlock);
- 		res->state &= ~DLM_LOCK_RES_DROPPING_REF;
- 		spin_unlock(&res->spinlock);
- 		wake_up(&res->wq);
--	}
--	return 0;
-+	} else
-+		spin_unlock(&res->spinlock);
- }
- 
- static void dlm_run_purge_list(struct dlm_ctxt *dlm,
-@@ -251,17 +235,7 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
- 		lockres = list_entry(dlm->purge_list.next,
- 				     struct dlm_lock_resource, purge);
- 
--		/* Status of the lockres *might* change so double
--		 * check. If the lockres is unused, holding the dlm
--		 * spinlock will prevent people from getting and more
--		 * refs on it -- there's no need to keep the lockres
--		 * spinlock. */
- 		spin_lock(&lockres->spinlock);
--		unused = __dlm_lockres_unused(lockres);
--		spin_unlock(&lockres->spinlock);
--
--		if (!unused)
--			continue;
- 
- 		purge_jiffies = lockres->last_used +
- 			msecs_to_jiffies(DLM_PURGE_INTERVAL_MS);
-@@ -273,15 +247,29 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
- 			 * in tail order, we can stop at the first
- 			 * unpurgable resource -- anyone added after
- 			 * him will have a greater last_used value */
-+			spin_unlock(&lockres->spinlock);
- 			break;
- 		}
- 
-+		/* Status of the lockres *might* change so double
-+		 * check. If the lockres is unused, holding the dlm
-+		 * spinlock will prevent people from getting and more
-+		 * refs on it. */
-+		unused = __dlm_lockres_unused(lockres);
-+		if (!unused ||
-+		    (lockres->state & DLM_LOCK_RES_MIGRATING)) {
-+			mlog(0, "lockres %s:%.*s: is in use or "
-+			     "being remastered, used %d, state %d\n",
-+			     dlm->name, lockres->lockname.len,
-+			     lockres->lockname.name, !unused, lockres->state);
-+			list_move_tail(&dlm->purge_list, &lockres->purge);
-+			spin_unlock(&lockres->spinlock);
-+			continue;
-+		}
-+
- 		dlm_lockres_get(lockres);
- 
--		/* This may drop and reacquire the dlm spinlock if it
--		 * has to do migration. */
--		if (dlm_purge_lockres(dlm, lockres))
--			BUG();
-+		dlm_purge_lockres(dlm, lockres);
- 
- 		dlm_lockres_put(lockres);
- 
--- 
-1.5.6.5
+On 07/19/2010 03:11 AM, Wengang Wang wrote:
+> Any comment?
+>
+> On 10-06-21 21:43, Wengang Wang wrote:
+>    
+>> When we need to take both dlm_domain_lock and dlm->spinlock, we should take
+>> them in order of: dlm_domain_lock then dlm->spinlock.
+>>
+>> There is pathes disobey this order. That is calling dlm_lockres_put() with
+>> dlm->spinlock held in dlm_run_purge_list. dlm_lockres_put() calls dlm_put() at
+>> the ref and dlm_put() locks on dlm_domain_lock.
+>>
+>> Fix:
+>> In dlm_run_purge_list, if it could the last ref on the lockres, unlock
+>> dlm->spinlock before calling dlm_lockres_put() and lock it back after
+>> dlm_lockres_put().
+>>
+>> Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
+>> ---
+>>   fs/ocfs2/dlm/dlmthread.c |   27 +++++++++++++++++++--------
+>>   1 files changed, 19 insertions(+), 8 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+>> index d4f73ca..b1bd624 100644
+>> --- a/fs/ocfs2/dlm/dlmthread.c
+>> +++ b/fs/ocfs2/dlm/dlmthread.c
+>> @@ -152,6 +152,7 @@ void dlm_lockres_calc_usage(struct dlm_ctxt *dlm,
+>>   	spin_unlock(&dlm->spinlock);
+>>   }
+>>
+>> +/* returns 1 if the lockres is removed from purge list, 0 otherwise */
+>>   static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+>>   			     struct dlm_lock_resource *res)
+>>   {
+>> @@ -217,7 +218,9 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+>>   		     res, master);
+>>   		list_del_init(&res->purge);
+>>   		spin_unlock(&res->spinlock);
+>> +		/* not the last ref, dlm_run_purge_list() holds another */
+>>   		dlm_lockres_put(res);
+>> +		ret = 1;
+>>   		dlm->purge_count--;
+>>   	} else
+>>   		spin_unlock(&res->spinlock);
+>> @@ -232,13 +235,13 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
+>>   		spin_unlock(&res->spinlock);
+>>   		wake_up(&res->wq);
+>>   	}
+>> -	return 0;
+>> +	return ret;
+>>   }
+>>
+>>   static void dlm_run_purge_list(struct dlm_ctxt *dlm,
+>>   			       int purge_now)
+>>   {
+>> -	unsigned int run_max, unused;
+>> +	unsigned int run_max, unused, removed;
+>>   	unsigned long purge_jiffies;
+>>   	struct dlm_lock_resource *lockres;
+>>
+>> @@ -280,13 +283,21 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
+>>
+>>   		/* This may drop and reacquire the dlm spinlock if it
+>>   		 * has to do migration. */
+>> -		if (dlm_purge_lockres(dlm, lockres))
+>> -			BUG();
+>> -
+>> +		removed = dlm_purge_lockres(dlm, lockres);
+>> +		/* If the lockres is removed from purge list, this could be
+>> +		 * the last ref. Unlock dlm->spinlock to avoid deadlock
+>> +		 * --dlm_lockres_put() does spin_lock on dlm_domain_lock on the
+>> +		 * last ref while there, in other path, could be lock requests
+>> +		 * in normal order: dlm_domain_lock then dlm->spinlock.
+>> +		 */
+>> +		if (removed)
+>> +			spin_unlock(&dlm->spinlock);
+>>   		dlm_lockres_put(lockres);
+>> -
+>> -		/* Avoid adding any scheduling latencies */
+>> -		cond_resched_lock(&dlm->spinlock);
+>> +		if (removed)
+>> +			spin_lock(&dlm->spinlock);
+>> +		else
+>> +			/* Avoid adding any scheduling latencies */
+>> +			cond_resched_lock(&dlm->spinlock);
+>>   	}
+>>
+>>   	spin_unlock(&dlm->spinlock);
+>> -- 
+>> 1.6.6.1
+>>
+>>
+>> _______________________________________________
+>> Ocfs2-devel mailing list
+>> Ocfs2-devel at oss.oracle.com
+>> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>      
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>    
