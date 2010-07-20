@@ -1,126 +1,62 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Tue, 20 Jul 2010 11:28:52 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove potential deadlock -V2
-In-Reply-To: <4C44DC44.4010002@oracle.com>
-References: <201006211344.o5LDifHO031126@acsinet15.oracle.com>
-	<20100719101110.GC3623@laptop.jp.oracle.com>
-	<4C44DC44.4010002@oracle.com>
-Message-ID: <20100720032852.GB3052@laptop.cn.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue, 20 Jul 2010 15:33:17 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: correct the refmap on recovery
+ master
+In-Reply-To: <20100720025948.GB2936@laptop.cn.oracle.com>
+References: <201006101628.o5A0YmQN005612@rcsinet15.oracle.com>
+	<20100719100959.GB3623@laptop.jp.oracle.com>
+	<4C44E52B.6060704@oracle.com>
+	<20100720025948.GB2936@laptop.cn.oracle.com>
+Message-ID: <4C46242D.3060305@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Very cool fix!
+On 07/19/2010 07:59 PM, Wengang Wang wrote:
+>> Do you have the message sequencing that would lead to this situation?
+>> If we migrate the lockres to the reco master, the reco master will send
+>> an assert that will make us change the master.
+>>      
+> So first, the problem is not about the changing owner. It is that
+> the bit(in refmap) on behalf of the node in question is not cleared on the new
+> master(recovery master). So that the new master will fail at purging the lockres
+> due to the incorrect bit in refmap.
+>
+> Second, I have no messages at hand for the situation. But I think it is simple
+> enough.
+>
+> 1) node A has no interest on lockres A any longer, so it is purging it.
+> 2) the owner of lockres A is node B, so node A is sending de-ref message
+> to node B.
+> 3) at this time, node B crashed. node C becomes the recovery master. it recovers
+> lockres A(because the master is the dead node B).
+> 4) node A migrated lockres A to node C with a refbit there.
+> 5) node A failed to send de-ref message to node B because it crashed. The failure
+> is ignored. no other action is done for lockres A any more.
+>    
 
-I will post the patch after test.
+In dlm_do_local_recovery_cleanup(), we expicitly clear the flag...
+when the owner is the dead_node. So this should not happen.
 
-regards,
-wengang.
-On 10-07-19 16:14, Sunil Mushran wrote:
-> A better (and simpler) fix would be to not dlm_grab() in dlm_init_lockres().
-> Then we can remove the corresponding dlm_put() in dlm_lockres_release().
-> That grab is not required because we don't call dlm_unregister_domain()
-> based on refcount.
-> 
-> On 07/19/2010 03:11 AM, Wengang Wang wrote:
-> >Any comment?
-> >
-> >On 10-06-21 21:43, Wengang Wang wrote:
-> >>When we need to take both dlm_domain_lock and dlm->spinlock, we should take
-> >>them in order of: dlm_domain_lock then dlm->spinlock.
-> >>
-> >>There is pathes disobey this order. That is calling dlm_lockres_put() with
-> >>dlm->spinlock held in dlm_run_purge_list. dlm_lockres_put() calls dlm_put() at
-> >>the ref and dlm_put() locks on dlm_domain_lock.
-> >>
-> >>Fix:
-> >>In dlm_run_purge_list, if it could the last ref on the lockres, unlock
-> >>dlm->spinlock before calling dlm_lockres_put() and lock it back after
-> >>dlm_lockres_put().
-> >>
-> >>Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
-> >>---
-> >>  fs/ocfs2/dlm/dlmthread.c |   27 +++++++++++++++++++--------
-> >>  1 files changed, 19 insertions(+), 8 deletions(-)
-> >>
-> >>diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-> >>index d4f73ca..b1bd624 100644
-> >>--- a/fs/ocfs2/dlm/dlmthread.c
-> >>+++ b/fs/ocfs2/dlm/dlmthread.c
-> >>@@ -152,6 +152,7 @@ void dlm_lockres_calc_usage(struct dlm_ctxt *dlm,
-> >>  	spin_unlock(&dlm->spinlock);
-> >>  }
-> >>
-> >>+/* returns 1 if the lockres is removed from purge list, 0 otherwise */
-> >>  static int dlm_purge_lockres(struct dlm_ctxt *dlm,
-> >>  			     struct dlm_lock_resource *res)
-> >>  {
-> >>@@ -217,7 +218,9 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
-> >>  		     res, master);
-> >>  		list_del_init(&res->purge);
-> >>  		spin_unlock(&res->spinlock);
-> >>+		/* not the last ref, dlm_run_purge_list() holds another */
-> >>  		dlm_lockres_put(res);
-> >>+		ret = 1;
-> >>  		dlm->purge_count--;
-> >>  	} else
-> >>  		spin_unlock(&res->spinlock);
-> >>@@ -232,13 +235,13 @@ static int dlm_purge_lockres(struct dlm_ctxt *dlm,
-> >>  		spin_unlock(&res->spinlock);
-> >>  		wake_up(&res->wq);
-> >>  	}
-> >>-	return 0;
-> >>+	return ret;
-> >>  }
-> >>
-> >>  static void dlm_run_purge_list(struct dlm_ctxt *dlm,
-> >>  			       int purge_now)
-> >>  {
-> >>-	unsigned int run_max, unused;
-> >>+	unsigned int run_max, unused, removed;
-> >>  	unsigned long purge_jiffies;
-> >>  	struct dlm_lock_resource *lockres;
-> >>
-> >>@@ -280,13 +283,21 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
-> >>
-> >>  		/* This may drop and reacquire the dlm spinlock if it
-> >>  		 * has to do migration. */
-> >>-		if (dlm_purge_lockres(dlm, lockres))
-> >>-			BUG();
-> >>-
-> >>+		removed = dlm_purge_lockres(dlm, lockres);
-> >>+		/* If the lockres is removed from purge list, this could be
-> >>+		 * the last ref. Unlock dlm->spinlock to avoid deadlock
-> >>+		 * --dlm_lockres_put() does spin_lock on dlm_domain_lock on the
-> >>+		 * last ref while there, in other path, could be lock requests
-> >>+		 * in normal order: dlm_domain_lock then dlm->spinlock.
-> >>+		 */
-> >>+		if (removed)
-> >>+			spin_unlock(&dlm->spinlock);
-> >>  		dlm_lockres_put(lockres);
-> >>-
-> >>-		/* Avoid adding any scheduling latencies */
-> >>-		cond_resched_lock(&dlm->spinlock);
-> >>+		if (removed)
-> >>+			spin_lock(&dlm->spinlock);
-> >>+		else
-> >>+			/* Avoid adding any scheduling latencies */
-> >>+			cond_resched_lock(&dlm->spinlock);
-> >>  	}
-> >>
-> >>  	spin_unlock(&dlm->spinlock);
-> >>-- 
-> >>1.6.6.1
-> >>
-> >>
-> >>_______________________________________________
-> >>Ocfs2-devel mailing list
-> >>Ocfs2-devel at oss.oracle.com
-> >>http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> >_______________________________________________
-> >Ocfs2-devel mailing list
-> >Ocfs2-devel at oss.oracle.com
-> >http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+Your patch changes the logic to exclude such lockres' from the
+recovery list. And that's a change, while possibly workable, needs
+to be looked into more thoroughly.
+
+In short, there is a disconnect between your description and your patch.
+Or, my understanding.
+
+> So node A means to drop the ref on the master. But in such a situation, node C
+> keeps the ref on behalf of node A unexpectedly. Node C finally fails at purging
+> lockres A and hang on umount.
+>
+>    
+>> I think your problem is the one race we have concerning reco/migration.
+>> If so, this fix is not enough.
+>>      
+> It's a problem of purging + recovery. no pure migration for umount here.
+> So what's your concern?
+>    
+
+See above.
