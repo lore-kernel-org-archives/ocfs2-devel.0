@@ -1,39 +1,34 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 29 Jul 2010 10:28:09 -0700
-Subject: [Ocfs2-devel] Global heartbeat - drop#1
-In-Reply-To: <20100729030845.GA2591@laptop.jp.oracle.com>
-References: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
-	<20100728144533.GA3128@laptop.jp.oracle.com>
-	<4C505D7C.9020209@oracle.com>
-	<20100729030845.GA2591@laptop.jp.oracle.com>
-Message-ID: <4C51BA29.5080506@oracle.com>
+From: Jiri Kosina <jkosina@suse.cz>
+Date: Tue, 20 Jul 2010 17:20:26 +0200 (CEST)
+Subject: [Ocfs2-devel] [PATCH 27/36] fs/ocfs2: Remove unnecessary casts
+ of private_data
+In-Reply-To: <20100712223731.GH12179@mail.oracle.com>
+References: <cover.1278967120.git.joe@perches.com>
+	<c75b92bbfb63964703ae99733f39696af4550f07.1278967121.git.joe@perches.com>
+	<20100712223731.GH12179@mail.oracle.com>
+Message-ID: <alpine.LNX.2.00.1007201720100.4741@pobox.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Joe Perches <joe@perches.com>, linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-On 07/28/2010 08:08 PM, Wengang Wang wrote:
->
->> One case I can see happening is if the journal op fail (say commit
->> triggered by downconvert). In that case, the fs will fence the box.
->>
->> Do you have a specific example?
->>      
-> I have no good example, but just thinking about this case:
->
-> A two nodes HA cluster, node A is active and node B is backup.
-> If the non-hb device fails on node A, since no failover will happen in this
-> case, the app will keep getting the EIOs on the active node. User maybe
-> complain with that? With lhb, node A will be restarted and failover will happen
-> so that user app won't keep getting EIOs.
->
-> Or all nodes are active nodes, but they all get EIOs since no fence in this case.
->
-> It is just a question, not a big problem for the helpful ghb :)
->
->    
+On Mon, 12 Jul 2010, Joel Becker wrote:
 
-o2hb is meant only for ocfs2. If one wants app failover, then one
-can use clusterware or rgmanager or pacemaker. Or one can hand
-craft app failover on ocfs2 using dlmfs. I know users that are doing so.
+> On Mon, Jul 12, 2010 at 01:50:19PM -0700, Joe Perches wrote:
+> > Signed-off-by: Joe Perches <joe@perches.com>
+> > ---
+> >  fs/ocfs2/dlm/dlmdebug.c |    6 +++---
+> >  fs/ocfs2/dlmfs/dlmfs.c  |    3 +--
+> >  fs/ocfs2/dlmglue.c      |    4 ++--
+> >  3 files changed, 6 insertions(+), 7 deletions(-)
+> 
+> Acked-by: Joel Becker <joel.becker@oracle.com>
+
+As this change is not present in linux-next as of today, I have applied 
+it. Thanks,
+
+-- 
+Jiri Kosina
+SUSE Labs, Novell Inc.
