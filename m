@@ -1,112 +1,148 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 21 Jul 2010 11:19:54 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: correct the refmap on recovery
- master
-In-Reply-To: <20100721122202.GA3291@laptop.jp.oracle.com>
-References: <201006101628.o5A0YmQN005612@rcsinet15.oracle.com>
-	<20100719100959.GB3623@laptop.jp.oracle.com>
-	<4C44E52B.6060704@oracle.com>
-	<20100720025948.GB2936@laptop.cn.oracle.com>
-	<4C46242D.3060305@oracle.com>
-	<20100721122202.GA3291@laptop.jp.oracle.com>
-Message-ID: <4C473A4A.9050500@oracle.com>
+Date: Wed, 21 Jul 2010 11:26:42 -0700
+Subject: [Ocfs2-devel] [PATCH V2] Fix the nested PR lock calling issue
+In-Reply-To: <20100721160542.GA19036@linux-jjzhang>
+References: <20100721144805.GA12822@linux-jjzhang>	<20100721151701.GA3579@laptop.jp.oracle.com>
+	<20100721160542.GA19036@linux-jjzhang>
+Message-ID: <4C473BE2.8000608@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-So I discussed this problem with Srini. Yes, your patch is on the right
-track. Just that it needs to be rebased atop Srini's patch.
+Why not add _ocfs2_get_acl() that does the same without
+taking the cluster locks?
 
-On 07/21/2010 05:22 AM, Wengang Wang wrote:
-> On 10-07-20 15:33, Sunil Mushran wrote:
+On 07/21/2010 09:05 AM, Jiaju Zhang wrote:
+> On Wed, Jul 21, 2010 at 11:17:01PM +0800, Wengang Wang wrote:
 >    
->> On 07/19/2010 07:59 PM, Wengang Wang wrote:
+>> On 10-07-21 22:48, Jiaju Zhang wrote:
 >>      
->>>> Do you have the message sequencing that would lead to this situation?
->>>> If we migrate the lockres to the reco master, the reco master will send
->>>> an assert that will make us change the master.
->>>>          
->>> So first, the problem is not about the changing owner. It is that
->>> the bit(in refmap) on behalf of the node in question is not cleared on the new
->>> master(recovery master). So that the new master will fail at purging the lockres
->>> due to the incorrect bit in refmap.
+>>> Hi,
 >>>
->>> Second, I have no messages at hand for the situation. But I think it is simple
->>> enough.
+>>> This is an improved patch for the bug
+>>> https://bugzilla.novell.com/show_bug.cgi?id=614332
+>>> (also http://oss.oracle.com/bugzilla/show_bug.cgi?id=1278)
 >>>
->>> 1) node A has no interest on lockres A any longer, so it is purging it.
->>> 2) the owner of lockres A is node B, so node A is sending de-ref message
->>> to node B.
->>> 3) at this time, node B crashed. node C becomes the recovery master. it recovers
->>> lockres A(because the master is the dead node B).
->>> 4) node A migrated lockres A to node C with a refbit there.
->>> 5) node A failed to send de-ref message to node B because it crashed. The failure
->>> is ignored. no other action is done for lockres A any more.
+>>> It is a nested PR lock calling issue, the referenced stack trace is
+>>> as:
+>>> smbd          D ffff8800013d0600     0  9522   5608 0x00000000
+>>>   ffff88002ca7fb18 0000000000000282 ffff88002f964500 ffff88002ca7fa98
+>>>   ffff8800013d0600 ffff88002ca7fae0 ffff88002f964340 ffff88002f964340
+>>>   ffff88002ca7ffd8 ffff88002ca7ffd8 ffff88002f964340 ffff88002f964340
+>>> Call Trace:
+>>> [<ffffffff80350425>] schedule_timeout+0x175/0x210
+>>> [<ffffffff8034f580>] wait_for_common+0xf0/0x210
+>>> [<ffffffffa03e12b9>] __ocfs2_cluster_lock+0x3b9/0xa90 [ocfs2]
+>>> [<ffffffffa03e7665>] ocfs2_inode_lock_full_nested+0x255/0xdb0 [ocfs2]
+>>> [<ffffffffa0446019>] ocfs2_get_acl+0x69/0x120 [ocfs2]
+>>> [<ffffffffa0446368>] ocfs2_check_acl+0x28/0x80 [ocfs2]
+>>> [<ffffffff800e3507>] acl_permission_check+0x57/0xb0
+>>> [<ffffffff800e357d>] generic_permission+0x1d/0xc0
+>>> [<ffffffffa03eecea>] ocfs2_permission+0x10a/0x1d0 [ocfs2]
+>>> [<ffffffff800e3f65>] inode_permission+0x45/0x100
+>>> [<ffffffff800d86b3>] sys_chdir+0x53/0x90
+>>> [<ffffffff80007458>] system_call_fastpath+0x16/0x1b
+>>> [<00007f34a4ef6927>] 0x7f34a4ef6927
+>>>
+>>> Many thanks for your review and comments;)
+>>>
+>>> Thanks,
+>>> Jiaju
+>>>
+>>> Signed-off-by:<jjzhang@suse.de>
+>>> Cc: Joel Becker<Joel.Becker@oracle.com>
+>>> Cc: Mark Fasheh<mfasheh@suse.com>
+>>> Cc: Sunil Mushran<sunil.mushran@oracle.com>
+>>> Cc: Tao Ma<tao.ma@oracle.com>
+>>> Cc: Tiger Yang<tiger.yang@oracle.com>
+>>> Cc: Wengang Wang<wen.gang.wang@oracle.com>
+>>> ---
+>>>   fs/ocfs2/acl.c |   21 +++++++++++++++++----
+>>>   1 files changed, 17 insertions(+), 4 deletions(-)
+>>>
+>>> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+>>> index da70229..ecf73f4 100644
+>>> --- a/fs/ocfs2/acl.c
+>>> +++ b/fs/ocfs2/acl.c
+>>> @@ -290,17 +290,30 @@ static int ocfs2_set_acl(handle_t *handle,
+>>>
+>>>   int ocfs2_check_acl(struct inode *inode, int mask)
+>>>   {
+>>> -	struct posix_acl *acl = ocfs2_get_acl(inode, ACL_TYPE_ACCESS);
+>>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>>> +	struct posix_acl *acl;
+>>> +	struct buffer_head *di_bh = NULL;
+>>> +	int ret = -EAGAIN;
+>>> +
+>>> +	if (!(osb->s_mount_opt&  OCFS2_MOUNT_POSIX_ACL))
+>>> +		return ret;
+>>> +
+>>> +	ret = ocfs2_read_inode_block(inode,&di_bh);
+>>> +	if (ret<  0) {
+>>> +		mlog_errno(ret);
+>>> +		return ret;
+>>> +	}
+>>> +
+>>> +	acl = ocfs2_get_acl_nolock(inode, ACL_TYPE_ACCESS, di_bh);
 >>>        
->> In dlm_do_local_recovery_cleanup(), we expicitly clear the flag...
->> when the owner is the dead_node. So this should not happen.
+>> > From here on, you need to release di_bh.
 >>      
-> It reproduces in my test env.
+> Oh yes, sorry, I should check the code more closely before sending it
+> out;)
 >
-> Clearing the flag DLM_LOCK_RES_DROPPING_REF doesn't prevent anything.
+> Here is the new patch:
 >
-> dlm_do_local_recovery_cleanup() continue to move the lockres to recovery
-> list.
+> Signed-off-by: Jiaju Zhang<jjzhang@suse.de>
+> ---
+>   fs/ocfs2/acl.c |   23 +++++++++++++++++++----
+>   1 files changed, 19 insertions(+), 4 deletions(-)
 >
-> 2337                                 /* the wake_up for this will happen when the
-> 2338                                  * RECOVERING flag is dropped later */
-> 2339                                 res->state&= ~DLM_LOCK_RES_DROPPING_REF;
-> 2340
-> 2341				     dlm_move_lockres_to_recovery_list(dlm, res);
+> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+> index da70229..a1d25ca 100644
+> --- a/fs/ocfs2/acl.c
+> +++ b/fs/ocfs2/acl.c
+> @@ -290,17 +290,32 @@ static int ocfs2_set_acl(handle_t *handle,
 >
+>   int ocfs2_check_acl(struct inode *inode, int mask)
+>   {
+> -	struct posix_acl *acl = ocfs2_get_acl(inode, ACL_TYPE_ACCESS);
+> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> +	struct posix_acl *acl;
+> +	struct buffer_head *di_bh = NULL;
+> +	int ret = -EAGAIN;
+> +
+> +	if (!(osb->s_mount_opt&  OCFS2_MOUNT_POSIX_ACL))
+> +		return ret;
+> +
+> +	ret = ocfs2_read_inode_block(inode,&di_bh);
+> +	if (ret<  0) {
+> +		mlog_errno(ret);
+> +		return ret;
+> +	}
+> +
+> +	acl = ocfs2_get_acl_nolock(inode, ACL_TYPE_ACCESS, di_bh);
+> +
+> +	brelse(di_bh);
 >
-> and dlm_purge_lockres() continue to unhash the lockres.
+>   	if (IS_ERR(acl))
+>   		return PTR_ERR(acl);
+>   	if (acl) {
+> -		int ret = posix_acl_permission(inode, acl, mask);
+> +		ret = posix_acl_permission(inode, acl, mask);
+>   		posix_acl_release(acl);
+> -		return ret;
+>   	}
 >
-> 202                 ret = dlm_drop_lockres_ref(dlm, res);
-> 203                 if (ret<  0) {
-> 204                         mlog_errno(ret);
-> 205                         if (!dlm_is_host_down(ret))
-> 206                                 BUG();
-> 207                 }
-> 208                 mlog(0, "%s:%.*s: dlm_deref_lockres returned %d\n",
-> 209                      dlm->name, res->lockname.len, res->lockname.name, ret);
-> 210                 spin_lock(&dlm->spinlock);
-> 211         }
-> 212
-> 213         spin_lock(&res->spinlock);
-> 214         if (!list_empty(&res->purge)) {
-> 215                 mlog(0, "removing lockres %.*s:%p from purgelist, "
-> 216                      "master = %d\n", res->lockname.len, res->lockname.name,
-> 217                      res, master);
-> 218                 list_del_init(&res->purge);
-> 219                 spin_unlock(&res->spinlock);
-> 220                 dlm_lockres_put(res);
-> 221                 dlm->purge_count--;
-> 222         } else
-> 223                 spin_unlock(&res->spinlock);
-> 224
-> 225         __dlm_unhash_lockres(res);
+> -	return -EAGAIN;
+> +	return ret;
+>   }
 >
+>   int ocfs2_acl_chmod(struct inode *inode)
 >
->    
->> Your patch changes the logic to exclude such lockres' from the
->> recovery list. And that's a change, while possibly workable, needs
->> to be looked into more thoroughly.
->>
->> In short, there is a disconnect between your description and your patch.
->> Or, my understanding.
->>      
-> For mormal, we recover the lockres to recovery master, and then re-send the deref
-> message to it. That my privious patches do.
->
-> After discussing with Srini, we found ignoring the failure of deref to the original
-> master and not recovering the lockres to recovery master has the same effect. And
-> it's simpler.
->
-> The patch fixes the bug per my test result.
->
-> regards,
-> wengang.
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 >    
