@@ -1,32 +1,50 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 22 Jul 2010 09:58:17 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: correct the refmap on recovery
- master
-In-Reply-To: <20100722105131.GB3486@laptop.jp.oracle.com>
-References: <201006101628.o5A0YmQN005612@rcsinet15.oracle.com>
-	<20100719100959.GB3623@laptop.jp.oracle.com>
-	<4C44E52B.6060704@oracle.com>
-	<20100720025948.GB2936@laptop.cn.oracle.com>
-	<4C46242D.3060305@oracle.com>
-	<20100721122202.GA3291@laptop.jp.oracle.com>
-	<4C473A4A.9050500@oracle.com>
-	<20100722105131.GB3486@laptop.jp.oracle.com>
-Message-ID: <4C4878A9.5060909@oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Thu, 22 Jul 2010 14:34:53 -0500
+Subject: [Ocfs2-devel] [TRIVIAL] [PATCH] Remove unnecessary goto
+	statements
+In-Reply-To: <20100722152207.GB3973@laptop.jp.oracle.com>
+References: <AANLkTilVfUTA63SEMhnaagn-mmmEWwfKgogpYcJwdqxA@mail.gmail.com>
+	<20100722152207.GB3973@laptop.jp.oracle.com>
+Message-ID: <AANLkTim40MkUboQNTLkt1tju9u4dEzAifqBPB0_NIYh6@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 07/22/2010 03:51 AM, Wengang Wang wrote:
-> On 10-07-21 11:19, Sunil Mushran wrote:
->    
->> So I discussed this problem with Srini. Yes, your patch is on the right
->> track. Just that it needs to be rebased atop Srini's patch.
+On Thu, Jul 22, 2010 at 10:22 AM, Wengang Wang <wen.gang.wang@oracle.com> wrote:
+>> -bail:
+>> ? ? ? return status;
+>> ?}
 >>
->>      
-> It seems that Srini's patch is not committed to mainline yet.
->    
+>> @@ -1050,7 +1048,6 @@ static inline int
+>> ocfs2_block_group_set_bits(handle_t *handle,
+>> ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?group_bh);
+>> ? ? ? if (status < 0) {
+>> ? ? ? ? ? ? ? mlog_errno(status);
+>> - ? ? ? ? ? ? goto bail;
+>> ? ? ? }
+>
+> Why this?
+> the following lines are modifying the buffer head.
+>
+> 1361 ? ? ? ? le16_add_cpu(&bg->bg_free_bits_count, -num_bits);
+> 1362 ? ? ? ? while(num_bits--)
+> 1363 ? ? ? ? ? ? ? ? ocfs2_set_bit(bit_off++, bitmap);
+> 1364
+> 1365 ? ? ? ? ocfs2_journal_dirty(handle, group_bh);
+> 1366
+> 1367 bail:
+>
+> For the next read of this group descriptor, we can't be sure it will be dirty
+> read. So that it may get wrong contents and then the following write will write
+> the wrong contents to disk.
 
-No, it is not as yet. But should be in the queue. Just get the patch from
-Srini and rebase your patch atop it.
+
+Not sure which codebase you are referring to. According to the patch
+and the code in the Joel's git repo from kernel.org, the statement
+immediately following this was a bail tag.
+
+
+-- 
+Goldwyn
