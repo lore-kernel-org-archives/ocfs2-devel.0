@@ -1,50 +1,116 @@
-From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Thu, 22 Jul 2010 14:34:53 -0500
-Subject: [Ocfs2-devel] [TRIVIAL] [PATCH] Remove unnecessary goto
-	statements
-In-Reply-To: <20100722152207.GB3973@laptop.jp.oracle.com>
-References: <AANLkTilVfUTA63SEMhnaagn-mmmEWwfKgogpYcJwdqxA@mail.gmail.com>
-	<20100722152207.GB3973@laptop.jp.oracle.com>
-Message-ID: <AANLkTim40MkUboQNTLkt1tju9u4dEzAifqBPB0_NIYh6@mail.gmail.com>
+From: Patrick J. LoPresti <lopresti@gmail.com>
+Date: Thu, 22 Jul 2010 15:03:41 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3] ext3/ext4: Factor out disk addressability
+	check
+Message-ID: <874ofr2myq.fsf@patl.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, Jul 22, 2010 at 10:22 AM, Wengang Wang <wen.gang.wang@oracle.com> wrote:
->> -bail:
->> ? ? ? return status;
->> ?}
->>
->> @@ -1050,7 +1048,6 @@ static inline int
->> ocfs2_block_group_set_bits(handle_t *handle,
->> ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?group_bh);
->> ? ? ? if (status < 0) {
->> ? ? ? ? ? ? ? mlog_errno(status);
->> - ? ? ? ? ? ? goto bail;
->> ? ? ? }
->
-> Why this?
-> the following lines are modifying the buffer head.
->
-> 1361 ? ? ? ? le16_add_cpu(&bg->bg_free_bits_count, -num_bits);
-> 1362 ? ? ? ? while(num_bits--)
-> 1363 ? ? ? ? ? ? ? ? ocfs2_set_bit(bit_off++, bitmap);
-> 1364
-> 1365 ? ? ? ? ocfs2_journal_dirty(handle, group_bh);
-> 1366
-> 1367 bail:
->
-> For the next read of this group descriptor, we can't be sure it will be dirty
-> read. So that it may get wrong contents and then the following write will write
-> the wrong contents to disk.
+As part of adding support for OCFS2 to mount huge volumes, we need to
+check that the sector_t and page cache of the system are capable of
+addressing the entire volume.
 
+An identical check already appears in ext3 and ext4.  This patch moves
+the addressability check into its own function in fs/libfs.c and
+modifies ext3 and ext4 to invoke it.
 
-Not sure which codebase you are referring to. According to the patch
-and the code in the Joel's git repo from kernel.org, the statement
-immediately following this was a bail tag.
+Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
 
-
--- 
-Goldwyn
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 471e1ff..6aff3f5 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -2399,6 +2399,8 @@ extern ssize_t simple_write_to_buffer(void *to, size_t available, loff_t *ppos,
+ 
+ extern int generic_file_fsync(struct file *, int);
+ 
++extern int generic_check_addressable(unsigned, u64);
++
+ #ifdef CONFIG_MIGRATION
+ extern int buffer_migrate_page(struct address_space *,
+ 				struct page *, struct page *);
+diff --git a/fs/libfs.c b/fs/libfs.c
+index dcaf972..b969648 100644
+--- a/fs/libfs.c
++++ b/fs/libfs.c
+@@ -955,6 +955,38 @@ int generic_file_fsync(struct file *file, int datasync)
+ }
+ EXPORT_SYMBOL(generic_file_fsync);
+ 
++/**
++ * generic_check_addressable - Check addressability of file system
++ * @blocksize_bits:	log of file system block size
++ * @num_blocks:		number of blocks in file system
++ *
++ * Determine whether a file system with @num_blocks blocks (and a
++ * block size of 2**@blocksize_bits) is addressable by the sector_t
++ * and page cache of the system.  Return 0 if so and -EFBIG otherwise.
++ */
++int generic_check_addressable(unsigned blocksize_bits, u64 num_blocks)
++{
++	u64 last_fs_block = num_blocks - 1;
++
++	BUG_ON(blocksize_bits < 9);
++	BUG_ON(blocksize_bits > PAGE_CACHE_SHIFT);
++
++	if (unlikely(num_blocks == 0))
++		return 0;
++
++	printk(KERN_INFO "HERE %u %lu %u %u", blocksize_bits, last_fs_block,
++	       sizeof(sector_t), sizeof(pgoff_t));
++
++	if ((last_fs_block >
++	     (sector_t)(~0ULL) >> (blocksize_bits - 9)) ||
++	    (last_fs_block >
++	     (pgoff_t)(~0ULL) >> (PAGE_CACHE_SHIFT - blocksize_bits))) {
++		return -EFBIG;
++	}
++	return 0;
++}
++EXPORT_SYMBOL(generic_check_addressable);
++
+ /*
+  * No-op implementation of ->fsync for in-memory filesystems.
+  */
+diff --git a/fs/ext3/super.c b/fs/ext3/super.c
+index 6c953bb..d0643db 100644
+--- a/fs/ext3/super.c
++++ b/fs/ext3/super.c
+@@ -1862,8 +1862,8 @@ static int ext3_fill_super (struct super_block *sb, void *data, int silent)
+ 		goto failed_mount;
+ 	}
+ 
+-	if (le32_to_cpu(es->s_blocks_count) >
+-		    (sector_t)(~0ULL) >> (sb->s_blocksize_bits - 9)) {
++	if (generic_check_addressable(sb->s_blocksize_bits,
++				      le32_to_cpu(es->s_blocks_count))) {
+ 		ext3_msg(sb, KERN_ERR,
+ 			"error: filesystem is too large to mount safely");
+ 		if (sizeof(sector_t) < 8)
+diff --git a/fs/ext4/super.c b/fs/ext4/super.c
+index 4e8983a..979cc57 100644
+--- a/fs/ext4/super.c
++++ b/fs/ext4/super.c
+@@ -2706,15 +2706,13 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
+ 	 * Test whether we have more sectors than will fit in sector_t,
+ 	 * and whether the max offset is addressable by the page cache.
+ 	 */
+-	if ((ext4_blocks_count(es) >
+-	     (sector_t)(~0ULL) >> (sb->s_blocksize_bits - 9)) ||
+-	    (ext4_blocks_count(es) >
+-	     (pgoff_t)(~0ULL) >> (PAGE_CACHE_SHIFT - sb->s_blocksize_bits))) {
++	ret = generic_check_addressable(sb->s_blocksize_bits,
++					ext4_blocks_count(es));
++	if (ret) {
+ 		ext4_msg(sb, KERN_ERR, "filesystem"
+ 			 " too large to mount safely on this system");
+ 		if (sizeof(sector_t) < 8)
+ 			ext4_msg(sb, KERN_WARNING, "CONFIG_LBDAF not enabled");
+-		ret = -EFBIG;
+ 		goto failed_mount;
+ 	}
+ 
