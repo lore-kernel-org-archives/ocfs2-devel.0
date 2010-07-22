@@ -1,34 +1,50 @@
-From: Jiri Kosina <jkosina@suse.cz>
-Date: Tue, 20 Jul 2010 17:20:26 +0200 (CEST)
-Subject: [Ocfs2-devel] [PATCH 27/36] fs/ocfs2: Remove unnecessary casts
- of private_data
-In-Reply-To: <20100712223731.GH12179@mail.oracle.com>
-References: <cover.1278967120.git.joe@perches.com>
-	<c75b92bbfb63964703ae99733f39696af4550f07.1278967121.git.joe@perches.com>
-	<20100712223731.GH12179@mail.oracle.com>
-Message-ID: <alpine.LNX.2.00.1007201720100.4741@pobox.suse.cz>
+From: Patrick Pannuto <ppannuto@codeaurora.org>
+Date: Thu, 22 Jul 2010 15:09:05 -0700
+Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2: Fix memory leak on mlog_sys_init
+	error path
+In-Reply-To: <1279836546-26913-1-git-send-email-ppannuto@codeaurora.org>
+References: <1279836546-26913-1-git-send-email-ppannuto@codeaurora.org>
+Message-ID: <1279836546-26913-6-git-send-email-ppannuto@codeaurora.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <Joel.Becker@oracle.com>
-Cc: Joe Perches <joe@perches.com>, linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: ppannuto@codeaurora.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>, Stephen Hemminger <shemminger@vyatta.com>, Jens Axboe <jens.axboe@oracle.com>, David Teigland <teigland@redhat.com>, Pekka Enberg <penberg@cs.helsinki.fi>, ocfs2-devel@oss.oracle.com
 
-On Mon, 12 Jul 2010, Joel Becker wrote:
+This leak is the same as the bus path; mlog_kset.kobj.name is
+set, but kset_register fails, thus nothing will ever call
+kset_unregister and name will be leaked
 
-> On Mon, Jul 12, 2010 at 01:50:19PM -0700, Joe Perches wrote:
-> > Signed-off-by: Joe Perches <joe@perches.com>
-> > ---
-> >  fs/ocfs2/dlm/dlmdebug.c |    6 +++---
-> >  fs/ocfs2/dlmfs/dlmfs.c  |    3 +--
-> >  fs/ocfs2/dlmglue.c      |    4 ++--
-> >  3 files changed, 6 insertions(+), 7 deletions(-)
-> 
-> Acked-by: Joel Becker <joel.becker@oracle.com>
+Signed-off-by: Patrick Pannuto <ppannuto@codeaurora.org>
+---
+ fs/ocfs2/cluster/masklog.c |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
 
-As this change is not present in linux-next as of today, I have applied 
-it. Thanks,
-
+diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
+index c7fba39..de715d4 100644
+--- a/fs/ocfs2/cluster/masklog.c
++++ b/fs/ocfs2/cluster/masklog.c
+@@ -154,6 +154,7 @@ static struct kset mlog_kset = {
+ int mlog_sys_init(struct kset *o2cb_kset)
+ {
+ 	int i = 0;
++	int ret;
+ 
+ 	while (mlog_attrs[i].attr.mode) {
+ 		mlog_attr_ptrs[i] = &mlog_attrs[i].attr;
+@@ -163,7 +164,11 @@ int mlog_sys_init(struct kset *o2cb_kset)
+ 
+ 	kobject_set_name(&mlog_kset.kobj, "logmask");
+ 	mlog_kset.kobj.kset = o2cb_kset;
+-	return kset_register(&mlog_kset);
++
++	ret = kset_register(&mlog_kset);
++	if (ret)
++		kfree(mlog_kset.kobj.name);
++	return ret;
+ }
+ 
+ void mlog_sys_shutdown(void)
 -- 
-Jiri Kosina
-SUSE Labs, Novell Inc.
+1.7.2
