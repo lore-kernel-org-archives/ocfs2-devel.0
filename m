@@ -1,62 +1,92 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 22 Jul 2010 13:56:45 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Count more refcount records in file
-	system fragmentation.
-Message-ID: <1279778205-7428-1-git-send-email-tao.ma@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 22 Jul 2010 18:11:18 +0800
+Subject: [Ocfs2-devel] [PATCH V2] Fix the nested PR lock calling issue
+In-Reply-To: <20100722052611.GA13238@linux-jjzhang>
+References: <20100721144805.GA12822@linux-jjzhang>
+	<20100721151701.GA3579@laptop.jp.oracle.com>
+	<20100721160542.GA19036@linux-jjzhang>
+	<4C473BE2.8000608@oracle.com>
+	<20100722052611.GA13238@linux-jjzhang>
+Message-ID: <20100722101118.GA3486@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The refcount record calculation in ocfs2_calc_refcount_meta_credits
-is too optimistic that we can always allocate contiguous clusters
-and handle an already existed refcount rec as a whole. Actually
-because of file system fragmentation, we may have the chance to split
-a refcount record into 3 parts during the transaction. So consider
-the worst case in record calculation.
+ocfs2_get_acl_nolock() has the same functionality just with different
+arguments. And we can't replace it with the new _ocfs2_get_acl() for the
+call in ocfs2_init_acl().
+So I am wondering if we really need the new _ocfs2_get_acl().
 
-Cc: stable at kernel.org
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/refcounttree.c |   20 +++++++++++++++-----
- 1 files changed, 15 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 3ac5aa7..b75ecd8 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -2436,16 +2436,26 @@ static int ocfs2_calc_refcount_meta_credits(struct super_block *sb,
- 		len = min((u64)cpos + clusters, le64_to_cpu(rec.r_cpos) +
- 			  le32_to_cpu(rec.r_clusters)) - cpos;
- 		/*
--		 * If the refcount rec already exist, cool. We just need
--		 * to check whether there is a split. Otherwise we just need
--		 * to increase the refcount.
--		 * If we will insert one, increases recs_add.
--		 *
- 		 * We record all the records which will be inserted to the
- 		 * same refcount block, so that we can tell exactly whether
- 		 * we need a new refcount block or not.
-+		 *
-+		 * If we will insert a new one, this is easy and only happens
-+		 * during adding refcounted flag to the extent, so we don't
-+		 * have a chance of spliting. We just need one record.
-+		 *
-+		 * If the refcount rec already exists, that would be a little
-+		 * complicated. we may have to:
-+		 * 1) split at the beginning if the start pos isn't aligned.
-+		 *    we need 1 more record in this case.
-+		 * 2) split int the end if the end pos isn't aligned.
-+		 *    we need 1 more record in this case.
-+		 * 3) split in the middle because of file system fragmentation.
-+		 *    we need 2 more records in this case(we can't detect this
-+		 *    beforehand, so always think of the worst case).
- 		 */
- 		if (rec.r_refcount) {
-+			recs_add += 2;
- 			/* Check whether we need a split at the beginning. */
- 			if (cpos == start_cpos &&
- 			    cpos != le64_to_cpu(rec.r_cpos))
--- 
-1.7.1.GIT
+regards,
+wengang.
+On 10-07-22 13:26, Jiaju Zhang wrote:
+> On Wed, Jul 21, 2010 at 11:26:42AM -0700, Sunil Mushran wrote:
+> > Why not add _ocfs2_get_acl() that does the same without
+> > taking the cluster locks?
+> 
+> Good suggestion! It will make the code much clearer. I attached the
+> improved patch as below. One thing I'm not sure is do we need to
+> exchange the function name '_ocfs2_get_acl' and 'ocfs2_get_acl_nolock'
+> as well? I'm not sure which is better, so just add a function
+> _ocfs2_get_acl() in this patch now.
+> 
+> Many thanks for your review and comments;)
+> 
+> Thanks,
+> Jiaju
+> 
+> Signed-off-by: Jiaju Zhang <jjzhang@suse.de>
+> ---
+>  fs/ocfs2/acl.c |   25 ++++++++++++++++++++++++-
+>  1 files changed, 24 insertions(+), 1 deletions(-)
+> 
+> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+> index da70229..b85e092 100644
+> --- a/fs/ocfs2/acl.c
+> +++ b/fs/ocfs2/acl.c
+> @@ -138,6 +138,29 @@ static struct posix_acl *ocfs2_get_acl_nolock(struct inode *inode,
+>  	return acl;
+>  }
+>  
+> +static struct posix_acl *_ocfs2_get_acl(struct inode *inode, int type)
+> +{
+> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> +	struct buffer_head *di_bh = NULL;
+> +	struct posix_acl *acl;
+> +	int ret;
+> +
+> +	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
+> +		return NULL;
+> +
+> +	ret = ocfs2_read_inode_block(inode, &di_bh);
+> +	if (ret < 0) {
+> +		mlog_errno(ret);
+> +		acl = ERR_PTR(ret);
+> +		return acl;
+> +	}
+> +
+> +	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
+> +
+> +	brelse(di_bh);
+> +
+> +	return acl;
+> +}
+>  
+>  /*
+>   * Get posix acl.
+> @@ -290,7 +313,7 @@ static int ocfs2_set_acl(handle_t *handle,
+>  
+>  int ocfs2_check_acl(struct inode *inode, int mask)
+>  {
+> -	struct posix_acl *acl = ocfs2_get_acl(inode, ACL_TYPE_ACCESS);
+> +	struct posix_acl *acl = _ocfs2_get_acl(inode, ACL_TYPE_ACCESS);
+>  
+>  	if (IS_ERR(acl))
+>  		return PTR_ERR(acl);
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
