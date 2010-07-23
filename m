@@ -1,41 +1,37 @@
 From: Nitin Gupta <ngupta@vflare.org>
-Date: Fri, 23 Jul 2010 20:26:35 +0530
+Date: Fri, 23 Jul 2010 20:35:18 +0530
 Subject: [Ocfs2-devel] [PATCH V3 0/8] Cleancache: overview
-In-Reply-To: <AANLkTikV6nypnLHjaidOyJPsP9xDawQ9ABOoRWKB-2+B@mail.gmail.com>
-References: <20100621231809.GA11111@ca-server1.us.oracle.com>	<4C49468B.40307@vflare.org>
-	<AANLkTikV6nypnLHjaidOyJPsP9xDawQ9ABOoRWKB-2+B@mail.gmail.com>
-Message-ID: <4C49ADA3.9060501@vflare.org>
+In-Reply-To: <364c83bd-ccb2-48cc-920d-ffcf9ca7df19@default>
+References: <20100621231809.GA11111@ca-server1.us.oracle.com4C49468B.40307@vflare.org>
+	<840b32ff-a303-468e-9d4e-30fc92f629f8@default
+	20100723140440.GA12423@infradead.org>
+	<364c83bd-ccb2-48cc-920d-ffcf9ca7df19@default>
+Message-ID: <4C49AFAE.1070300@vflare.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Minchan Kim <minchan.kim@gmail.com>
-Cc: Dan Magenheimer <dan.magenheimer@oracle.com>, chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com
+To: Dan Magenheimer <dan.magenheimer@oracle.com>
+Cc: Christoph Hellwig <hch@infradead.org>, akpm@linux-foundation.org, Chris Mason <chris.mason@oracle.com>, viro@zeniv.linux.org.uk, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, Joel Becker <joel.becker@oracle.com>, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, jeremy@goop.org, JBeulich@novell.com, Kurt Hackel <kurt.hackel@oracle.com>, npiggin@suse.de, Dave Mccracken <dave.mccracken@oracle.com>, riel@redhat.com, avi@redhat.com, Konrad Wilk <konrad.wilk@oracle.com>
 
-On 07/23/2010 01:46 PM, Minchan Kim wrote:
-> On Fri, Jul 23, 2010 at 4:36 PM, Nitin Gupta <ngupta@vflare.org> wrote:
->>
->> 2. I think change in btrfs can be avoided by moving cleancache_get_page()
->> from do_mpage_reapage() to filemap_fault() and this should work for all
->> filesystems. See:
->>
->> handle_pte_fault() -> do_(non)linear_fault() -> __do_fault()
->>                                                -> vma->vm_ops->fault()
->>
->> which is defined as filemap_fault() for all filesystems. If some future
->> filesystem uses its own custom function (why?) then it will have to arrange for
->> call to cleancache_get_page(), if it wants this feature.
-> 
-> 
-> filemap fault works only in case of file-backed page which is mapped
-> but don't work not-mapped cache page.  So we could miss cache page by
-> read system call if we move it into filemap_fault.
-> 
-> 
+On 07/23/2010 08:14 PM, Dan Magenheimer wrote:
+>> From: Christoph Hellwig [mailto:hch at infradead.org]
 
-Oh, yes. Then we need cleancache_get_page() call in do_generic_file_read() too.
-So, if I am missing anything now, we should now be able to get rid of per-fs
-changes.
+
+>> Also making the ops vector global is just a bad idea.
+>> There is nothing making this sort of caching inherently global.
+> 
+> I'm not sure I understand your point, but two very different
+> users of cleancache have been provided, and more will be
+> discussed at the MM summit next month.
+> 
+> Do you have a suggestion on how to avoid a global ops
+> vector while still serving the needs of both existing
+> users?
+
+Maybe introduce cleancache_register(struct cleancache_ops *ops)?
+This will allow making cleancache_ops non-global. No value add
+but maybe that's cleaner?
 
 Thanks,
 Nitin
