@@ -1,53 +1,60 @@
-From: Pekka Enberg <penberg@cs.helsinki.fi>
-Date: Fri, 23 Jul 2010 20:01:33 +0300
-Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2: Fix memory leak on
-	mlog_sys_init error path
-In-Reply-To: <1279836546-26913-6-git-send-email-ppannuto@codeaurora.org>
-References: <1279836546-26913-1-git-send-email-ppannuto@codeaurora.org>
-	<1279836546-26913-6-git-send-email-ppannuto@codeaurora.org>
-Message-ID: <4C49CAED.6020304@cs.helsinki.fi>
+From: Dan Magenheimer <dan.magenheimer@oracle.com>
+Date: Fri, 23 Jul 2010 10:37:51 -0700 (PDT)
+Subject: [Ocfs2-devel] [PATCH V3 0/8] Cleancache: overview
+In-Reply-To: <364c83bd-ccb2-48cc-920d-ffcf9ca7df19@default>
+References: <20100621231809.GA11111@ca-server1.us.oracle.com4C49468B.40307@vflare.org>
+	<840b32ff-a303-468e-9d4e-30fc92f629f8@default
+	20100723140440.GA12423@infradead.org
+	364c83bd-ccb2-48cc-920d-ffcf9ca7df19@default>
+Message-ID: <c979fa45-8878-4e40-9060-c3e929eebbab@default>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Patrick Pannuto <ppannuto@codeaurora.org>
-Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>, Stephen Hemminger <shemminger@vyatta.com>, Jens Axboe <jens.axboe@oracle.com>, David Teigland <teigland@redhat.com>, ocfs2-devel@oss.oracle.com
+To: Christoph Hellwig <hch@infradead.org>, ngupta@vflare.org
+Cc: akpm@linux-foundation.org, Chris Mason <chris.mason@oracle.com>, viro@zeniv.linux.org.uk, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, Joel Becker <joel.becker@oracle.com>, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, jeremy@goop.org, JBeulich@novell.com, Kurt Hackel <kurt.hackel@oracle.com>, npiggin@suse.de, Dave Mccracken <dave.mccracken@oracle.com>, riel@redhat.com, avi@redhat.com, Konrad Wilk <konrad.wilk@oracle.com>
 
-Patrick Pannuto wrote:
-> This leak is the same as the bus path; mlog_kset.kobj.name is
-> set, but kset_register fails, thus nothing will ever call
-> kset_unregister and name will be leaked
+> From: Dan Magenheimer
+> Subject: RE: [PATCH V3 0/8] Cleancache: overview
 > 
-> Signed-off-by: Patrick Pannuto <ppannuto@codeaurora.org>
-> ---
->  fs/ocfs2/cluster/masklog.c |    7 ++++++-
->  1 files changed, 6 insertions(+), 1 deletions(-)
+> > From: Christoph Hellwig [mailto:hch at infradead.org]
+> > Subject: Re: [PATCH V3 0/8] Cleancache: overview
+> >
+> > On Fri, Jul 23, 2010 at 06:58:03AM -0700, Dan Magenheimer wrote:
+> > > CHRISTOPH AND ANDREW, if you disagree and your concerns have
+> > > not been resolved, please speak up.
 > 
-> diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-> index c7fba39..de715d4 100644
-> --- a/fs/ocfs2/cluster/masklog.c
-> +++ b/fs/ocfs2/cluster/masklog.c
-> @@ -154,6 +154,7 @@ static struct kset mlog_kset = {
->  int mlog_sys_init(struct kset *o2cb_kset)
->  {
->  	int i = 0;
-> +	int ret;
->  
->  	while (mlog_attrs[i].attr.mode) {
->  		mlog_attr_ptrs[i] = &mlog_attrs[i].attr;
-> @@ -163,7 +164,11 @@ int mlog_sys_init(struct kset *o2cb_kset)
->  
->  	kobject_set_name(&mlog_kset.kobj, "logmask");
->  	mlog_kset.kobj.kset = o2cb_kset;
-> -	return kset_register(&mlog_kset);
-> +
-> +	ret = kset_register(&mlog_kset);
-> +	if (ret)
-> +		kfree(mlog_kset.kobj.name);
+> Hi Christoph --
+> 
+> Thanks very much for the quick (instantaneous?) reply!
+> 
+> > Anything that need modification of a normal non-shared fs is utterly
+> > broken and you'll get a clear NAK, so the propsal before is a good
+> > one.
+> 
+> Unless/until all filesystems are 100% built on top of VFS,
+> I have to disagree.  Abstractions (e.g. VFS) are never perfect.
 
-Aren't we supposed to use kobject_cleanup() here?
+After thinking about this some more, I can see a way
+to enforce "opt-in" in the cleancache backend without
+any changes to non-generic fs code.   I think it's a horrible
+hack and we can try it, but I expect fs maintainers
+would prefer the explicit one-line-patch opt-in.
 
-> +	return ret;
->  }
->  
->  void mlog_sys_shutdown(void)
+1) Cleancache backend maintains a list of "known working"
+   filesystems (those that have been tested).
+
+2) Nitin's proposed changes pass the *sb as a parameter.
+  The string name of the filesystem type is available via
+  sb->s_type->name.  This can be compared against
+  the "known working" list.
+
+Using the sb pointer as a "handle" requires an extra
+table search on every cleancache get/put/flush,
+and fs/super.c changes are required for fs unmount
+notification anyway (e.g. to call cleancache_flush_fs)
+so I'd prefer to keep the cleancache_poolid addition
+to the sb.  I'll assume this is OK since this is in generic
+fs code.
+
+Dan
