@@ -1,125 +1,32 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Fri, 23 Jul 2010 15:27:36 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: avoid incorrect bit set in
- refmap on recovery master
-In-Reply-To: <201007231218.o6N8t0CD005308@acsinet15.oracle.com>
-References: <201007231218.o6N8t0CD005308@acsinet15.oracle.com>
-Message-ID: <4C4A1758.3000600@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Fri, 23 Jul 2010 16:08:45 -0700
+Subject: [Ocfs2-devel] [PATCH V2] Fix the nested PR lock calling issue
+In-Reply-To: <4C4A1AF2.7080700@oracle.com>
+References: <20100721144805.GA12822@linux-jjzhang>	<20100721151701.GA3579@laptop.jp.oracle.com>	<20100721160542.GA19036@linux-jjzhang>
+	<4C473BE2.8000608@oracle.com> <4C4A1AF2.7080700@oracle.com>
+Message-ID: <4C4A20FD.5080508@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-thanks for making this patch, it looks good just few minor changes about 
-comments
+ok. Then review Jiaju's earlier patch.
 
-On 7/23/2010 5:15 AM, Wengang Wang wrote:
-> In the following situation, there remains an incorrect bit in refmap on the
-> recovery master. Finally the recovery master will fail at purging the lockres
-> due to the incorrect bit in refmap.
+On 07/23/2010 03:42 PM, Tiger Yang wrote:
+> Hi, Sunil,
 >
-> 1) node A has no interest on lockres A any longer, so it is purging it.
-> 2) the owner of lockres A is node B, so node A is sending de-ref message
-> to node B.
-> 3) at this time, node B crashed. node C becomes the recovery master. it recovers
-> lockres A(because the master is the dead node B).
-> 4) node A migrated lockres A to node C with a refbit there.
-> 5) node A failed to send de-ref message to node B because it crashed. The failure
-> is ignored. no other action is done for lockres A any more.
+> I think put them in ocfs2_check_acl() is better.
+> First, check mount option in ocfs2_check_acl()  is more clear than in 
+> _ocfs2_get_acl().
+> Second, we already have ocfs2_get_acl and ocfs2_get_acl_nolock, so it 
+> seems _ocfs2_get_acl is redundant and could cause confusing for 
+> reading the code.
 >
-> For mormal, re-send the deref message to it to recovery master can fix it. Well,
-> ignoring the failure of deref to the original master and not recovering the lockres
-> to recovery master has the same effect. And the later is simpler.
+> Regards,
+> tiger
 >
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> ---
->  fs/ocfs2/dlm/dlmrecovery.c |   17 +++++++++++++++--
->  fs/ocfs2/dlm/dlmthread.c   |   28 +++++++++++++++++-----------
->  2 files changed, 32 insertions(+), 13 deletions(-)
+> On 07/21/2010 02:26 PM, Sunil Mushran wrote:
+>> Why not add _ocfs2_get_acl() that does the same without
+>> taking the cluster locks?
 >
-> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> index 9dfaac7..06640f6 100644
-> --- a/fs/ocfs2/dlm/dlmrecovery.c
-> +++ b/fs/ocfs2/dlm/dlmrecovery.c
-> @@ -1997,6 +1997,8 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
->  	struct list_head *queue;
->  	struct dlm_lock *lock, *next;
->  
-> +	assert_spin_locked(&dlm->spinlock);
-> +	assert_spin_locked(&res->spinlock);
->  	res->state |= DLM_LOCK_RES_RECOVERING;
->  	if (!list_empty(&res->recovering)) {
->  		mlog(0,
-> @@ -2336,9 +2338,20 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
->  
->  				/* the wake_up for this will happen when the
->  				 * RECOVERING flag is dropped later */
->   
-remove above comment as it doesn't seem to be relevant anymore.
-> -				res->state &= ~DLM_LOCK_RES_DROPPING_REF;
-> +				if (res->state & DLM_LOCK_RES_DROPPING_REF) {
-> +					/*
-> +					 * don't migrate a lockres which is in
-> +					 * progress of dropping ref
-> +					 */
->   
-move this comment to before the if condition
-> +					mlog(ML_NOTICE, "%.*s ignored for "
-> +					     "migration\n", res->lockname.len,
-> +					     res->lockname.name);
->   
-This information only helps us in diagnosing any related issue and is 
-not helpful in normal cases. So it should be 0 instead of ML_NOTICE.
-> +					res->state &=
-> +						~DLM_LOCK_RES_DROPPING_REF;
->   
-we don't need to clear this state as dlm_purge_lockres removes it.
-> +				} else
-> +					dlm_move_lockres_to_recovery_list(dlm,
-> +									  res);
->  
-> -				dlm_move_lockres_to_recovery_list(dlm, res);
->  			} else if (res->owner == dlm->node_num) {
->  				dlm_free_dead_locks(dlm, res, dead_node);
->  				__dlm_lockres_calc_usage(dlm, res);
-> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-> index dd78ca3..47420ce 100644
-> --- a/fs/ocfs2/dlm/dlmthread.c
-> +++ b/fs/ocfs2/dlm/dlmthread.c
-> @@ -92,17 +92,23 @@ int __dlm_lockres_has_locks(struct dlm_lock_resource *res)
->   * truly ready to be freed. */
->  int __dlm_lockres_unused(struct dlm_lock_resource *res)
->  {
-> -	if (!__dlm_lockres_has_locks(res) &&
-> -	    (list_empty(&res->dirty) && !(res->state & DLM_LOCK_RES_DIRTY))) {
-> -		/* try not to scan the bitmap unless the first two
-> -		 * conditions are already true */
-> -		int bit = find_next_bit(res->refmap, O2NM_MAX_NODES, 0);
-> -		if (bit >= O2NM_MAX_NODES) {
-> -			/* since the bit for dlm->node_num is not
-> -			 * set, inflight_locks better be zero */
-> -			BUG_ON(res->inflight_locks != 0);
-> -			return 1;
-> -		}
-> +	int bit;
-> +
-> +	if (__dlm_lockres_has_locks(res))
-> +		return 0;
-> +
-> +	if (!list_empty(&res->dirty) || res->state & DLM_LOCK_RES_DIRTY)
-> +		return 0;
-> +
-> +	if (res->state & DLM_LOCK_RES_RECOVERING)
-> +		return 0;
-> +
-> +	bit = find_next_bit(res->refmap, O2NM_MAX_NODES, 0);
-> +	if (bit >= O2NM_MAX_NODES) {
-> +		/* since the bit for dlm->node_num is not
-> +		 * set, inflight_locks better be zero */
-> +		BUG_ON(res->inflight_locks != 0);
-> +		return 1;
->  	}
->  	return 0;
->  }
->   
