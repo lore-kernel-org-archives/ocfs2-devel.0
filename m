@@ -1,50 +1,92 @@
-From: Patrick Pannuto <ppannuto@codeaurora.org>
-Date: Thu, 22 Jul 2010 15:09:05 -0700
-Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2: Fix memory leak on mlog_sys_init
-	error path
-In-Reply-To: <1279836546-26913-1-git-send-email-ppannuto@codeaurora.org>
-References: <1279836546-26913-1-git-send-email-ppannuto@codeaurora.org>
-Message-ID: <1279836546-26913-6-git-send-email-ppannuto@codeaurora.org>
+From: Nitin Gupta <ngupta@vflare.org>
+Date: Fri, 23 Jul 2010 13:06:43 +0530
+Subject: [Ocfs2-devel] [PATCH V3 0/8] Cleancache: overview
+In-Reply-To: <20100621231809.GA11111@ca-server1.us.oracle.com>
+References: <20100621231809.GA11111@ca-server1.us.oracle.com>
+Message-ID: <4C49468B.40307@vflare.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org
-Cc: ppannuto@codeaurora.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>, Stephen Hemminger <shemminger@vyatta.com>, Jens Axboe <jens.axboe@oracle.com>, David Teigland <teigland@redhat.com>, Pekka Enberg <penberg@cs.helsinki.fi>, ocfs2-devel@oss.oracle.com
+To: Dan Magenheimer <dan.magenheimer@oracle.com>
+Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@suse.de, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com
 
-This leak is the same as the bus path; mlog_kset.kobj.name is
-set, but kset_register fails, thus nothing will ever call
-kset_unregister and name will be leaked
+On 06/22/2010 04:48 AM, Dan Magenheimer wrote:
+> [PATCH V3 0/8] Cleancache: overview
+> 
+<snip>
+> 
+>  Documentation/ABI/testing/sysfs-kernel-mm-cleancache |   11 +
+>  Documentation/vm/cleancache.txt                      |  194 +++++++++++++++++++
+>  fs/btrfs/extent_io.c                                 |    9 
+>  fs/btrfs/super.c                                     |    2 
+>  fs/buffer.c                                          |    5 
+>  fs/ext3/super.c                                      |    2 
+>  fs/ext4/super.c                                      |    2 
+>  fs/mpage.c                                           |    7 
+>  fs/ocfs2/super.c                                     |    3 
+>  fs/super.c                                           |    7 
+>  include/linux/cleancache.h                           |   88 ++++++++
+>  include/linux/fs.h                                   |    5 
+>  mm/Kconfig                                           |   22 ++
+>  mm/Makefile                                          |    1 
+>  mm/cleancache.c                                      |  169 ++++++++++++++++
+>  mm/filemap.c                                         |   11 +
+>  mm/truncate.c                                        |   10 
+>  17 files changed, 548 insertions(+)
+> 
+> (following is a copy of Documentation/vm/cleancache.txt)
+> 
+> MOTIVATION
+> 
+> Cleancache can be thought of as a page-granularity victim cache for clean
+> pages that the kernel's pageframe replacement algorithm (PFRA) would like
+> to keep around, but can't since there isn't enough memory.  So when the
+> PFRA "evicts" a page, it first attempts to put it into a synchronous
+> concurrency-safe page-oriented "pseudo-RAM" device (such as Xen's Transcendent
+> Memory, aka "tmem", or in-kernel compressed memory, aka "zmem", or other
+> RAM-like devices) which is not directly accessible or addressable by the
+> kernel and is of unknown and possibly time-varying size.  And when a
+> cleancache-enabled filesystem wishes to access a page in a file on disk,
+> it first checks cleancache to see if it already contains it; if it does,
+> the page is copied into the kernel and a disk access is avoided.
+> 
 
-Signed-off-by: Patrick Pannuto <ppannuto@codeaurora.org>
----
- fs/ocfs2/cluster/masklog.c |    7 ++++++-
- 1 files changed, 6 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-index c7fba39..de715d4 100644
---- a/fs/ocfs2/cluster/masklog.c
-+++ b/fs/ocfs2/cluster/masklog.c
-@@ -154,6 +154,7 @@ static struct kset mlog_kset = {
- int mlog_sys_init(struct kset *o2cb_kset)
- {
- 	int i = 0;
-+	int ret;
- 
- 	while (mlog_attrs[i].attr.mode) {
- 		mlog_attr_ptrs[i] = &mlog_attrs[i].attr;
-@@ -163,7 +164,11 @@ int mlog_sys_init(struct kset *o2cb_kset)
- 
- 	kobject_set_name(&mlog_kset.kobj, "logmask");
- 	mlog_kset.kobj.kset = o2cb_kset;
--	return kset_register(&mlog_kset);
-+
-+	ret = kset_register(&mlog_kset);
-+	if (ret)
-+		kfree(mlog_kset.kobj.name);
-+	return ret;
- }
- 
- void mlog_sys_shutdown(void)
--- 
-1.7.2
+Since zcache is now one of its use cases, I think the major objection that
+remains against cleancache is its intrusiveness -- in particular, need to
+change individual filesystems (even though one liners). Changes below should
+help avoid these per-fs changes and make it more self contained. I haven't
+tested these changes myself, so there might be missed cases or other mysterious
+problems:
+
+1. Cleancache requires filesystem specific changes primarily to make a call to
+cleancache init and store (per-fs instance) pool_id. I think we can get rid of
+these by directly passing 'struct super_block' pointer which is also
+sufficient to identify FS instance a page belongs to. This should then be used
+as a 'handle' by cleancache_ops provider to find corresponding memory pool or
+create a new pool when a new handle is encountered.
+
+This leaves out case of ocfs2 for which cleancache needs 'uuid' to decide if a
+shared pool should be created. IMHO, this case (and cleancache.init_shared_fs)
+should be removed from cleancache_ops since it is applicable only for Xen's
+cleancache_ops provider.
+
+2. I think change in btrfs can be avoided by moving cleancache_get_page()
+from do_mpage_reapage() to filemap_fault() and this should work for all
+filesystems. See:
+
+handle_pte_fault() -> do_(non)linear_fault() -> __do_fault()
+						-> vma->vm_ops->fault()
+
+which is defined as filemap_fault() for all filesystems. If some future
+filesystem uses its own custom function (why?) then it will have to arrange for
+call to cleancache_get_page(), if it wants this feature.
+
+With above changes, cleancache will be fairly self-contained:
+ - cleancache_put_page() when page is removed from page-cache
+ - cleacacache_get_page() when PF occurs (and after page-cache is searched)
+ - cleancache_flush_*() on truncate_*()
+
+Thanks,
+Nitin
