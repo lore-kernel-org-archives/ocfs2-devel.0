@@ -1,37 +1,37 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 23 Jul 2010 16:55:21 -0700
-Subject: [Ocfs2-devel] [PATCH 7/8] ocfs2: Print message if user mounts
-	without starting global heartbeat
-In-Reply-To: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
-References: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1279929322-9276-8-git-send-email-sunil.mushran@oracle.com>
+Date: Fri, 23 Jul 2010 16:55:14 -0700
+Subject: [Ocfs2-devel] Global heartbeat - drop#1
+Message-ID: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In global heartbeat mode, the heartbeat is started by the user. This patch
-prints an error if the user attempts to mount a volume without starting the
-heartbeat.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/stack_o2cb.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+This is the first drop of the global heartbeat patches for ocfs2/kernel.
 
-diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-index 7020e12..4b14b5b 100644
---- a/fs/ocfs2/stack_o2cb.c
-+++ b/fs/ocfs2/stack_o2cb.c
-@@ -282,6 +282,8 @@ static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
- 	/* for now we only have one cluster/node, make sure we see it
- 	 * in the heartbeat universe */
- 	if (!o2hb_check_local_node_heartbeating()) {
-+		if (o2hb_global_heartbeat_active())
-+			mlog(ML_ERROR, "Global heartbeat not started\n");
- 		rc = -EINVAL;
- 		goto out;
- 	}
--- 
-1.7.0.4
+The first few patches add support for heartbeat mode in sysfs, the new
+incompat clusterinfo flag and the new mount option heartbeat=global.
+
+0001-ocfs2-cluster-Add-heartbeat-mode-configfs-parameter.patch
+0002-ocfs2-Add-an-incompat-feature-flag-OCFS2_FEATURE_INC.patch
+0003-ocfs2-Add-support-for-heartbeat-global-mount-option.patch
+0004-ocfs2-dlm-Expose-dlm_protocol-in-dlm_state.patch
+
+The next few patches enhance the join domain protocol to get the list
+of configured nodes and heartbeating regions to ensure that all nodes
+in the cluster have the same view of the cluster.
+
+0005-ocfs2-cluster-Get-all-heartbeat-regions.patch
+0006-ocfs2-dlm-Add-message-DLM_QUERY_HBREGION.patch
+0007-ocfs2-Print-message-if-user-mounts-without-starting-.patch
+0008-ocfs2-dlm-Add-message-DLM_QUERY_NODEINFO.patch
+
+The one known missing bit concerns quorum calculation. I am still
+working on it.
+
+http://oss.oracle.com/osswiki/OCFS2/DesignDocs/NewGlobalHeartbeat
+
+Thanks
+Sunil
