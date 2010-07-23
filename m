@@ -1,37 +1,37 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 23 Jul 2010 16:55:14 -0700
-Subject: [Ocfs2-devel] Global heartbeat - drop#1
-Message-ID: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
+Date: Fri, 23 Jul 2010 16:55:18 -0700
+Subject: [Ocfs2-devel] [PATCH 4/8] ocfs2/dlm: Expose dlm_protocol in
+	dlm_state
+In-Reply-To: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
+References: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1279929322-9276-5-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Add dlm_protocol to the list of info shown by the debugfs file, dlm_state.
 
-This is the first drop of the global heartbeat patches for ocfs2/kernel.
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/dlm/dlmdebug.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
-The first few patches add support for heartbeat mode in sysfs, the new
-incompat clusterinfo flag and the new mount option heartbeat=global.
-
-0001-ocfs2-cluster-Add-heartbeat-mode-configfs-parameter.patch
-0002-ocfs2-Add-an-incompat-feature-flag-OCFS2_FEATURE_INC.patch
-0003-ocfs2-Add-support-for-heartbeat-global-mount-option.patch
-0004-ocfs2-dlm-Expose-dlm_protocol-in-dlm_state.patch
-
-The next few patches enhance the join domain protocol to get the list
-of configured nodes and heartbeating regions to ensure that all nodes
-in the cluster have the same view of the cluster.
-
-0005-ocfs2-cluster-Get-all-heartbeat-regions.patch
-0006-ocfs2-dlm-Add-message-DLM_QUERY_HBREGION.patch
-0007-ocfs2-Print-message-if-user-mounts-without-starting-.patch
-0008-ocfs2-dlm-Add-message-DLM_QUERY_NODEINFO.patch
-
-The one known missing bit concerns quorum calculation. I am still
-working on it.
-
-http://oss.oracle.com/osswiki/OCFS2/DesignDocs/NewGlobalHeartbeat
-
-Thanks
-Sunil
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 75efd45..cf27d81 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -779,7 +779,9 @@ static int debug_state_print(struct dlm_ctxt *dlm, struct debug_buffer *db)
+ 
+ 	/* Domain: xxxxxxxxxx  Key: 0xdfbac769 */
+ 	out += snprintf(db->buf + out, db->len - out,
+-			"Domain: %s  Key: 0x%08x\n", dlm->name, dlm->key);
++			"Domain: %s  Key: 0x%08x  Protocol: %d.%d\n",
++			dlm->name, dlm->key, dlm->dlm_locking_proto.pv_major,
++			dlm->dlm_locking_proto.pv_minor);
+ 
+ 	/* Thread Pid: xxx  Node: xxx  State: xxxxx */
+ 	out += snprintf(db->buf + out, db->len - out,
+-- 
+1.7.0.4
