@@ -1,120 +1,53 @@
-From: Patrick J. LoPresti <lopresti@gmail.com>
-Date: Thu, 22 Jul 2010 15:05:57 -0700
-Subject: [Ocfs2-devel] [PATCH 3/3] OCFS2: Allow huge (> 16 TiB) volumes to
-	mount
-References: <874ofr2myq.fsf@patl.com> <8739vb2mxr.fsf@patl.com>
-Message-ID: <871vav2muy.fsf@patl.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Fri, 23 Jul 2010 09:41:14 +0800
+Subject: [Ocfs2-devel] [TRIVIAL] [PATCH] Remove unnecessary goto
+ statements
+In-Reply-To: <AANLkTim40MkUboQNTLkt1tju9u4dEzAifqBPB0_NIYh6@mail.gmail.com>
+References: <AANLkTilVfUTA63SEMhnaagn-mmmEWwfKgogpYcJwdqxA@mail.gmail.com>
+	<20100722152207.GB3973@laptop.jp.oracle.com>
+	<AANLkTim40MkUboQNTLkt1tju9u4dEzAifqBPB0_NIYh6@mail.gmail.com>
+Message-ID: <20100723014114.GA2390@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org
 
-The OCFS2 developers have already done all of the hard work to allow
-volumes larger than 16 TiB.  But there is still a "sanity check" in
-fs/ocfs2/super.c that prevents the mounting of such volumes, even when
-the cluster size and journal options would allow it.
+On 10-07-22 14:34, Goldwyn Rodrigues wrote:
+> On Thu, Jul 22, 2010 at 10:22 AM, Wengang Wang <wen.gang.wang@oracle.com> wrote:
+> >> -bail:
+> >> ? ? ? return status;
+> >> ?}
+> >>
+> >> @@ -1050,7 +1048,6 @@ static inline int
+> >> ocfs2_block_group_set_bits(handle_t *handle,
+> >> ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?group_bh);
+> >> ? ? ? if (status < 0) {
+> >> ? ? ? ? ? ? ? mlog_errno(status);
+> >> - ? ? ? ? ? ? goto bail;
+> >> ? ? ? }
+> >
+> > Why this?
+> > the following lines are modifying the buffer head.
+> >
+> > 1361 ? ? ? ? le16_add_cpu(&bg->bg_free_bits_count, -num_bits);
+> > 1362 ? ? ? ? while(num_bits--)
+> > 1363 ? ? ? ? ? ? ? ? ocfs2_set_bit(bit_off++, bitmap);
+> > 1364
+> > 1365 ? ? ? ? ocfs2_journal_dirty(handle, group_bh);
+> > 1366
+> > 1367 bail:
+> >
+> > For the next read of this group descriptor, we can't be sure it will be dirty
+> > read. So that it may get wrong contents and then the following write will write
+> > the wrong contents to disk.
+> 
+> 
+> Not sure which codebase you are referring to. According to the patch
+> and the code in the Joel's git repo from kernel.org, the statement
+> immediately following this was a bail tag.
 
-This patch replaces that sanity check with a more sophisticated one to
-mount a huge volume provided that (a) it is addressable by the raw
-word/address size of the system (borrowing a test from ext4); (b) the
-volume is using JBD2; and (c) the JBD2_FEATURE_INCOMPAT_64BIT flag is
-set on the journal.
+Oh, sorry. I made a mistake for this.
 
-I factored out the sanity check into its own function.  I also moved it
-from ocfs2_initialize_super() down to ocfs2_check_volume(); any earlier,
-and the journal will not have been initialized yet.
-
-This patch is one of a pair, and it depends on the other ("JBD2: Allow
-feature checks before journal recovery").
-
-I have tested this patch on small volumes, huge volumes, and huge
-volumes without 64-bit block support in the journal.  All of them appear
-to work or to fail gracefully, as appropriate.
-
-Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
-
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 0eaa929..76dac4c 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1991,6 +1991,36 @@ static int ocfs2_setup_osb_uuid(struct ocfs2_super *osb, const unsigned char *uu
- 	return 0;
- }
- 
-+/* Make sure entire volume is addressable by our journal.  Requires
-+   osb_clusters_at_boot to be valid and for the journal to have been
-+   initialized by ocfs2_journal_init(). */
-+static int ocfs2_journal_addressable(struct ocfs2_super *osb)
-+{
-+	int status = 0;
-+	u64 max_block =
-+		ocfs2_clusters_to_blocks(osb->sb,
-+					 osb->osb_clusters_at_boot) - 1;
-+
-+	/* 32-bit block number is always OK. */
-+	if (max_block <= (u32)~0ULL)
-+		goto out;
-+
-+	/* Volume is "huge", so see if our journal is new enough to
-+	   support it. */
-+	if (!(OCFS2_HAS_COMPAT_FEATURE(osb->sb,
-+				       OCFS2_FEATURE_COMPAT_JBD2_SB) &&
-+	      jbd2_journal_check_used_features(osb->journal->j_journal, 0, 0,
-+					       JBD2_FEATURE_INCOMPAT_64BIT))) {
-+		mlog(ML_ERROR, "The journal cannot address the entire volume. "
-+		     "Enable the 'block64' journal option with tunefs.ocfs2");
-+		status = -EFBIG;
-+		goto out;
-+	}
-+
-+ out:
-+	return status;
-+}
-+
- static int ocfs2_initialize_super(struct super_block *sb,
- 				  struct buffer_head *bh,
- 				  int sector_size,
-@@ -2003,6 +2033,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	struct ocfs2_journal *journal;
- 	__le32 uuid_net_key;
- 	struct ocfs2_super *osb;
-+	u64 total_blocks;
- 
- 	mlog_entry_void();
- 
-@@ -2215,11 +2246,15 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 		goto bail;
- 	}
- 
--	if (ocfs2_clusters_to_blocks(osb->sb, le32_to_cpu(di->i_clusters) - 1)
--	    > (u32)~0UL) {
--		mlog(ML_ERROR, "Volume might try to write to blocks beyond "
--		     "what jbd can address in 32 bits.\n");
--		status = -EINVAL;
-+	total_blocks = ocfs2_clusters_to_blocks(osb->sb,
-+						le32_to_cpu(di->i_clusters));
-+
-+	status = generic_check_addressable(osb->sb->s_blocksize_bits,
-+					   total_blocks);
-+	if (status) {
-+		mlog(ML_ERROR, "Volume too large "
-+		     "to mount safely on this system");
-+		status = -EFBIG;
- 		goto bail;
- 	}
- 
-@@ -2381,6 +2416,12 @@ static int ocfs2_check_volume(struct ocfs2_super *osb)
- 		goto finally;
- 	}
- 
-+	/* Now that journal has been initialized, check to make sure
-+	   entire volume is addressable. */
-+	status = ocfs2_journal_addressable(osb);
-+	if (status)
-+		goto finally;
-+
- 	/* If the journal was unmounted cleanly then we don't want to
- 	 * recover anything. Otherwise, journal_load will do that
- 	 * dirty work for us :) */
+regards,
+wengang.
