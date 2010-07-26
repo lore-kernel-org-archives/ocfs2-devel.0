@@ -1,99 +1,24 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Mon, 26 Jul 2010 09:42:26 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: avoid incorrect bit set in
- refmap on recovery master
-In-Reply-To: <4C4A1758.3000600@oracle.com>
-References: <201007231218.o6N8t0CD005308@acsinet15.oracle.com>
-	<4C4A1758.3000600@oracle.com>
-Message-ID: <20100726014225.GA2335@laptop.jp.oracle.com>
+From: Jiaju Zhang <jjzhang.linux@gmail.com>
+Date: Mon, 26 Jul 2010 11:26:35 +0800
+Subject: [Ocfs2-devel] [PATCH V2] Fix the nested PR lock calling issue
+In-Reply-To: <4C4A20FD.5080508@oracle.com>
+References: <20100721144805.GA12822@linux-jjzhang>
+	<20100721151701.GA3579@laptop.jp.oracle.com>
+	<20100721160542.GA19036@linux-jjzhang>
+	<4C473BE2.8000608@oracle.com> <4C4A1AF2.7080700@oracle.com>
+	<4C4A20FD.5080508@oracle.com>
+Message-ID: <AANLkTi=OQQySBNkhVHDpxmfWQ0jit=Vx2SrP5OTT0xUx@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Srini,
+On Sat, Jul 24, 2010 at 7:08 AM, Sunil Mushran <sunil.mushran@oracle.com> wrote:
+> ok. Then review Jiaju's earlier patch.
 
-Thanks for your review!
+Thanks a lot for all the review and comments. I'll start a new drop of
+that patch for easily reviewing:-)
 
-On 10-07-23 15:27, Srinivas Eeda wrote:
-> thanks for making this patch, it looks good just few minor changes
-> about comments
-> 
-> On 7/23/2010 5:15 AM, Wengang Wang wrote:
-> >In the following situation, there remains an incorrect bit in refmap on the
-> >recovery master. Finally the recovery master will fail at purging the lockres
-> >due to the incorrect bit in refmap.
-> >
-> >1) node A has no interest on lockres A any longer, so it is purging it.
-> >2) the owner of lockres A is node B, so node A is sending de-ref message
-> >to node B.
-> >3) at this time, node B crashed. node C becomes the recovery master. it recovers
-> >lockres A(because the master is the dead node B).
-> >4) node A migrated lockres A to node C with a refbit there.
-> >5) node A failed to send de-ref message to node B because it crashed. The failure
-> >is ignored. no other action is done for lockres A any more.
-> >
-> >For mormal, re-send the deref message to it to recovery master can fix it. Well,
-> >ignoring the failure of deref to the original master and not recovering the lockres
-> >to recovery master has the same effect. And the later is simpler.
-> >
-> >Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> >---
-> > fs/ocfs2/dlm/dlmrecovery.c |   17 +++++++++++++++--
-> > fs/ocfs2/dlm/dlmthread.c   |   28 +++++++++++++++++-----------
-> > 2 files changed, 32 insertions(+), 13 deletions(-)
-> >
-> >diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> >index 9dfaac7..06640f6 100644
-> >--- a/fs/ocfs2/dlm/dlmrecovery.c
-> >+++ b/fs/ocfs2/dlm/dlmrecovery.c
-> >@@ -1997,6 +1997,8 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
-> > 	struct list_head *queue;
-> > 	struct dlm_lock *lock, *next;
-> >+	assert_spin_locked(&dlm->spinlock);
-> >+	assert_spin_locked(&res->spinlock);
-> > 	res->state |= DLM_LOCK_RES_RECOVERING;
-> > 	if (!list_empty(&res->recovering)) {
-> > 		mlog(0,
-> >@@ -2336,9 +2338,20 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
-> > 				/* the wake_up for this will happen when the
-> > 				 * RECOVERING flag is dropped later */
-> remove above comment as it doesn't seem to be relevant anymore.
-
-OK.
-> >-				res->state &= ~DLM_LOCK_RES_DROPPING_REF;
-> >+				if (res->state & DLM_LOCK_RES_DROPPING_REF) {
-> >+					/*
-> >+					 * don't migrate a lockres which is in
-> >+					 * progress of dropping ref
-> >+					 */
-> move this comment to before the if condition
-
-OK.
-> >+					mlog(ML_NOTICE, "%.*s ignored for "
-> >+					     "migration\n", res->lockname.len,
-> >+					     res->lockname.name);
-> This information only helps us in diagnosing any related issue and
-> is not helpful in normal cases. So it should be 0 instead of
-> ML_NOTICE.
-
-I think this happens in a rare case. So it won't write many such logs but
-it could help in diagnosing in case something wroing take place.
-mlog(0, ..) almost help nothing.
-
-> >+					res->state &=
-> >+						~DLM_LOCK_RES_DROPPING_REF;
-> we don't need to clear this state as dlm_purge_lockres removes it.
-
-OK.
-
-regards,
-wengang.
-> >+				} else
-> >+					dlm_move_lockres_to_recovery_list(dlm,
-> >+									  res);
-> >-				dlm_move_lockres_to_recovery_list(dlm, res);
-> > 			} else if (res->owner == dlm->node_num) {
-> > 				dlm_free_dead_locks(dlm, res, dead_node);
-> > 				__dlm_lockres_calc_usage(dlm, res);
+Thanks,
+Jiaju
