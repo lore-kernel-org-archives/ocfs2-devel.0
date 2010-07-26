@@ -1,128 +1,99 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 23 Jul 2010 16:55:15 -0700
-Subject: [Ocfs2-devel] [PATCH 1/8] ocfs2/cluster: Add heartbeat mode
-	configfs parameter
-In-Reply-To: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
-References: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1279929322-9276-2-git-send-email-sunil.mushran@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Mon, 26 Jul 2010 09:42:26 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: avoid incorrect bit set in
+ refmap on recovery master
+In-Reply-To: <4C4A1758.3000600@oracle.com>
+References: <201007231218.o6N8t0CD005308@acsinet15.oracle.com>
+	<4C4A1758.3000600@oracle.com>
+Message-ID: <20100726014225.GA2335@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add heartbeat mode parameter to the configfs tree. This will be used
-to set/show the heartbeat mode.
+Hi Srini,
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/cluster/heartbeat.c |   70 ++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 70 insertions(+), 0 deletions(-)
+Thanks for your review!
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index d191f45..1107629 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -76,7 +76,19 @@ static struct o2hb_callback *hbcall_from_type(enum o2hb_callback_type type);
- 
- #define O2HB_DEFAULT_BLOCK_BITS       9
- 
-+enum o2hb_heartbeat_modes {
-+	O2HB_HEARTBEAT_LOCAL		= 0,
-+	O2HB_HEARTBEAT_GLOBAL,
-+	O2HB_HEARTBEAT_NUM_MODES,
-+};
-+
-+char *o2hb_heartbeat_mode_desc[O2HB_HEARTBEAT_NUM_MODES] = {
-+		"local",	/* O2HB_HEARTBEAT_LOCAL */
-+		"global",	/* O2HB_HEARTBEAT_GLOBAL */
-+};
-+
- unsigned int o2hb_dead_threshold = O2HB_DEFAULT_DEAD_THRESHOLD;
-+unsigned int o2hb_heartbeat_mode = O2HB_HEARTBEAT_LOCAL;
- 
- /* Only sets a new threshold if there are no active regions.
-  *
-@@ -93,6 +105,22 @@ static void o2hb_dead_threshold_set(unsigned int threshold)
- 	}
- }
- 
-+static int o2hb_global_hearbeat_mode_set(unsigned int hb_mode)
-+{
-+	int ret = -1;
-+
-+	if (hb_mode < O2HB_HEARTBEAT_NUM_MODES) {
-+		spin_lock(&o2hb_live_lock);
-+		if (list_empty(&o2hb_all_regions)) {
-+			o2hb_heartbeat_mode = hb_mode;
-+			ret = 0;
-+		}
-+		spin_unlock(&o2hb_live_lock);
-+	}
-+
-+	return ret;
-+}
-+
- struct o2hb_node_event {
- 	struct list_head        hn_item;
- 	enum o2hb_callback_type hn_event_type;
-@@ -1694,6 +1722,39 @@ static ssize_t o2hb_heartbeat_group_threshold_store(struct o2hb_heartbeat_group
- 	return count;
- }
- 
-+static
-+ssize_t o2hb_heartbeat_group_mode_show(struct o2hb_heartbeat_group *group,
-+				       char *page)
-+{
-+	return sprintf(page, "%s\n",
-+		       o2hb_heartbeat_mode_desc[o2hb_heartbeat_mode]);
-+}
-+
-+static
-+ssize_t o2hb_heartbeat_group_mode_store(struct o2hb_heartbeat_group *group,
-+					const char *page, size_t count)
-+{
-+	unsigned int i;
-+	int ret;
-+	size_t len;
-+
-+	len = (page[count - 1] == '\n') ? count - 1 : count;
-+
-+	for (i = 0; i < O2HB_HEARTBEAT_NUM_MODES; ++i) {
-+		if (strnicmp(page, o2hb_heartbeat_mode_desc[i], len))
-+			continue;
-+
-+		ret = o2hb_global_hearbeat_mode_set(i);
-+		if (!ret)
-+			printk(KERN_INFO "ocfs2: Heartbeat mode set to %s\n",
-+			       o2hb_heartbeat_mode_desc[i]);
-+		return count;
-+	}
-+
-+	return -EINVAL;
-+
-+}
-+
- static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_threshold = {
- 	.attr	= { .ca_owner = THIS_MODULE,
- 		    .ca_name = "dead_threshold",
-@@ -1702,8 +1763,17 @@ static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_threshold
- 	.store	= o2hb_heartbeat_group_threshold_store,
- };
- 
-+static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_mode = {
-+	.attr   = { .ca_owner = THIS_MODULE,
-+		.ca_name = "mode",
-+		.ca_mode = S_IRUGO | S_IWUSR },
-+	.show   = o2hb_heartbeat_group_mode_show,
-+	.store  = o2hb_heartbeat_group_mode_store,
-+};
-+
- static struct configfs_attribute *o2hb_heartbeat_group_attrs[] = {
- 	&o2hb_heartbeat_group_attr_threshold.attr,
-+	&o2hb_heartbeat_group_attr_mode.attr,
- 	NULL,
- };
- 
--- 
-1.7.0.4
+On 10-07-23 15:27, Srinivas Eeda wrote:
+> thanks for making this patch, it looks good just few minor changes
+> about comments
+> 
+> On 7/23/2010 5:15 AM, Wengang Wang wrote:
+> >In the following situation, there remains an incorrect bit in refmap on the
+> >recovery master. Finally the recovery master will fail at purging the lockres
+> >due to the incorrect bit in refmap.
+> >
+> >1) node A has no interest on lockres A any longer, so it is purging it.
+> >2) the owner of lockres A is node B, so node A is sending de-ref message
+> >to node B.
+> >3) at this time, node B crashed. node C becomes the recovery master. it recovers
+> >lockres A(because the master is the dead node B).
+> >4) node A migrated lockres A to node C with a refbit there.
+> >5) node A failed to send de-ref message to node B because it crashed. The failure
+> >is ignored. no other action is done for lockres A any more.
+> >
+> >For mormal, re-send the deref message to it to recovery master can fix it. Well,
+> >ignoring the failure of deref to the original master and not recovering the lockres
+> >to recovery master has the same effect. And the later is simpler.
+> >
+> >Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> >---
+> > fs/ocfs2/dlm/dlmrecovery.c |   17 +++++++++++++++--
+> > fs/ocfs2/dlm/dlmthread.c   |   28 +++++++++++++++++-----------
+> > 2 files changed, 32 insertions(+), 13 deletions(-)
+> >
+> >diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> >index 9dfaac7..06640f6 100644
+> >--- a/fs/ocfs2/dlm/dlmrecovery.c
+> >+++ b/fs/ocfs2/dlm/dlmrecovery.c
+> >@@ -1997,6 +1997,8 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
+> > 	struct list_head *queue;
+> > 	struct dlm_lock *lock, *next;
+> >+	assert_spin_locked(&dlm->spinlock);
+> >+	assert_spin_locked(&res->spinlock);
+> > 	res->state |= DLM_LOCK_RES_RECOVERING;
+> > 	if (!list_empty(&res->recovering)) {
+> > 		mlog(0,
+> >@@ -2336,9 +2338,20 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
+> > 				/* the wake_up for this will happen when the
+> > 				 * RECOVERING flag is dropped later */
+> remove above comment as it doesn't seem to be relevant anymore.
+
+OK.
+> >-				res->state &= ~DLM_LOCK_RES_DROPPING_REF;
+> >+				if (res->state & DLM_LOCK_RES_DROPPING_REF) {
+> >+					/*
+> >+					 * don't migrate a lockres which is in
+> >+					 * progress of dropping ref
+> >+					 */
+> move this comment to before the if condition
+
+OK.
+> >+					mlog(ML_NOTICE, "%.*s ignored for "
+> >+					     "migration\n", res->lockname.len,
+> >+					     res->lockname.name);
+> This information only helps us in diagnosing any related issue and
+> is not helpful in normal cases. So it should be 0 instead of
+> ML_NOTICE.
+
+I think this happens in a rare case. So it won't write many such logs but
+it could help in diagnosing in case something wroing take place.
+mlog(0, ..) almost help nothing.
+
+> >+					res->state &=
+> >+						~DLM_LOCK_RES_DROPPING_REF;
+> we don't need to clear this state as dlm_purge_lockres removes it.
+
+OK.
+
+regards,
+wengang.
+> >+				} else
+> >+					dlm_move_lockres_to_recovery_list(dlm,
+> >+									  res);
+> >-				dlm_move_lockres_to_recovery_list(dlm, res);
+> > 			} else if (res->owner == dlm->node_num) {
+> > 				dlm_free_dead_locks(dlm, res, dead_node);
+> > 				__dlm_lockres_calc_usage(dlm, res);
