@@ -1,33 +1,41 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 29 Jul 2010 10:22:40 -0700
+Date: Thu, 29 Jul 2010 10:24:49 -0700
 Subject: [Ocfs2-devel] [PATCH 6/8] ocfs2/dlm: Add message
 	DLM_QUERY_HBREGION
-In-Reply-To: <20100729050307.GB2591@laptop.jp.oracle.com>
+In-Reply-To: <20100729050837.GC2591@laptop.jp.oracle.com>
 References: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
 	<1279929322-9276-7-git-send-email-sunil.mushran@oracle.com>
-	<20100728162157.GA3411@laptop.jp.oracle.com>
-	<4C505F39.2090706@oracle.com>
-	<20100729050307.GB2591@laptop.jp.oracle.com>
-Message-ID: <4C51B8E0.1070308@oracle.com>
+	<20100729050837.GC2591@laptop.jp.oracle.com>
+Message-ID: <4C51B961.7080003@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 07/28/2010 10:03 PM, Wengang Wang wrote:
-> Yes, I can see what you are doing there.
-> But you are comparing twice. I was emphasising "again" :)
-> The bhregions is like a collection. we say collection A is equal to
-> collection B, it can mean the number is equal, and all elements in
-> collection A are all in collection B. So no need to compare each region
-> again.
+On 07/28/2010 10:08 PM, Wengang Wang wrote:
+>>   static int dlm_cancel_join_handler(struct o2net_msg *msg, u32 len, void *data,
+>>   				   void **ret_data)
+>>   {
+>> @@ -1233,6 +1437,15 @@ static int dlm_try_to_join_domain(struct dlm_ctxt *dlm)
+>>   	set_bit(dlm->node_num, dlm->domain_map);
+>>   	spin_unlock(&dlm->spinlock);
+>>
+>> +	/* Support for global heartbeat was added in 1.1 */
+>> +	if (dlm_protocol.pv_major>= 1&&  dlm_protocol.pv_minor>  0) {
+>> +		status = dlm_send_hbregions(dlm, ctxt->yes_resp_map);
+>> +		if (status) {
+>> +			mlog_errno(status);
+>> +			goto bail;
+>> +		}
+>> +	}
+>> +
+>>      
+> How does the version number grows? Is it possible from 1.1 to 2.0?
+> If that's possible, should it be
+>
+> +	if (dlm_protocol.pv_major>  1 || dlm_protocol.pv_minor>  0) {
+>
 >    
 
-Sorry, my example was not correct. What if node sends regions A, B, A
-while the receiving node expects A, B, C. It should not happen.
-But considering we rely on the hb regions being consistent, we can
-never be too careful.
-
-Agreed, I can come up with another scheme. But here the max
-is small. And in such cases, brute force typically works best.
+You are correct. Good catch.
