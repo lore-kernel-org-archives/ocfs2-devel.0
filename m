@@ -1,43 +1,116 @@
-From: Dan Magenheimer <dan.magenheimer@oracle.com>
-Date: Fri, 23 Jul 2010 14:17:31 -0700 (PDT)
-Subject: [Ocfs2-devel] [PATCH V3 0/8] Cleancache: overview
-In-Reply-To: <364c83bd-ccb2-48cc-920d-ffcf9ca7df19@default>
-References: <20100621231809.GA11111@ca-server1.us.oracle.com4C49468B.40307@vflare.org>
-	<840b32ff-a303-468e-9d4e-30fc92f629f8@default
-	20100723140440.GA12423@infradead.org
-	364c83bd-ccb2-48cc-920d-ffcf9ca7df19@default>
-Message-ID: <fc254547-5926-4cb9-98e1-7a79f7284e30@default>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Thu, 29 Jul 2010 10:51:05 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: avoid incorrect bit set in
+ refmap on recovery master
+In-Reply-To: <201007291239.o6TCd9Vd028074@rcsinet15.oracle.com>
+References: <201007291239.o6TCd9Vd028074@rcsinet15.oracle.com>
+Message-ID: <4C51BF89.707@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@infradead.org>
-Cc: ngupta@vflare.org, akpm@linux-foundation.org, Chris Mason <chris.mason@oracle.com>, viro@zeniv.linux.org.uk, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, Joel Becker <joel.becker@oracle.com>, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, jeremy@goop.org, JBeulich@novell.com, Kurt Hackel <kurt.hackel@oracle.com>, npiggin@suse.de, Dave Mccracken <dave.mccracken@oracle.com>, riel@redhat.com, avi@redhat.com, Konrad Wilk <konrad.wilk@oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-> > On Fri, Jul 23, 2010 at 06:58:03AM -0700, Dan Magenheimer wrote:
-> > > CHRISTOPH AND ANDREW, if you disagree and your concerns have
-> > > not been resolved, please speak up.
-> 
-> Hi Christoph --
-> 
-> Thanks very much for the quick (instantaneous?) reply!
-> 
-> > Anything that need modification of a normal non-shared fs is utterly
-> > broken and you'll get a clear NAK, so the propsal before is a good
-> > one.
-> 
-> No, the per-fs opt-in is very sensible; and its design is
-> very minimal.
+Acked-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 
-Not to belabor the point, but maybe the right way to think about
-this is:
+Wengang Wang wrote:
 
-Cleancache is a new optional feature provided by the VFS layer
-that potentially dramatically increases page cache effectiveness
-for many workloads in many environments at a negligible cost.
-
-Filesystems that are well-behaved and conform to certain restrictions
-can utilize cleancache simply by making a call to cleancache_init_fs
-at mount time.  Unusual, misbehaving, or poorly layered filesystems
-must either add additional hooks and/or undergo extensive additional
-testing... or should just not enable the optional cleancache.
+> In the following situation, there remains an incorrect bit in refmap on the
+> recovery master. Finally the recovery master will fail at purging the lockres
+> due to the incorrect bit in refmap.
+>
+> 1) node A has no interest on lockres A any longer, so it is purging it.
+> 2) the owner of lockres A is node B, so node A is sending de-ref message
+> to node B.
+> 3) at this time, node B crashed. node C becomes the recovery master. it recovers
+> lockres A(because the master is the dead node B).
+> 4) node A migrated lockres A to node C with a refbit there.
+> 5) node A failed to send de-ref message to node B because it crashed. The failure
+> is ignored. no other action is done for lockres A any more.
+>
+> For mormal, re-send the deref message to it to recovery master can fix it. Well,
+> ignoring the failure of deref to the original master and not recovering the lockres
+> to recovery master has the same effect. And the later is simpler.
+>
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> ---
+>  fs/ocfs2/dlm/dlmrecovery.c |   17 +++++++++++++----
+>  fs/ocfs2/dlm/dlmthread.c   |   28 +++++++++++++++++-----------
+>  2 files changed, 30 insertions(+), 15 deletions(-)
+>
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index 9dfaac7..2b57cc4 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -1997,6 +1997,8 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
+>  	struct list_head *queue;
+>  	struct dlm_lock *lock, *next;
+>  
+> +	assert_spin_locked(&dlm->spinlock);
+> +	assert_spin_locked(&res->spinlock);
+>  	res->state |= DLM_LOCK_RES_RECOVERING;
+>  	if (!list_empty(&res->recovering)) {
+>  		mlog(0,
+> @@ -2334,11 +2336,18 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
+>  					     dlm->name, res->lockname.len,
+>  					     res->lockname.name, dead_node);
+>  
+> -				/* the wake_up for this will happen when the
+> -				 * RECOVERING flag is dropped later */
+> -				res->state &= ~DLM_LOCK_RES_DROPPING_REF;
+> +				/*
+> +				 * don't migrate a lockres which is in progress
+> +				 * of dropping ref
+> +				 */
+> +				if (res->state & DLM_LOCK_RES_DROPPING_REF) {
+> +					mlog(ML_NOTICE, "%.*s ignored for "
+> +					     "migration\n", res->lockname.len,
+> +					     res->lockname.name);
+> +				} else
+> +					dlm_move_lockres_to_recovery_list(dlm,
+> +									  res);
+>  
+> -				dlm_move_lockres_to_recovery_list(dlm, res);
+>  			} else if (res->owner == dlm->node_num) {
+>  				dlm_free_dead_locks(dlm, res, dead_node);
+>  				__dlm_lockres_calc_usage(dlm, res);
+> diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+> index dd78ca3..47420ce 100644
+> --- a/fs/ocfs2/dlm/dlmthread.c
+> +++ b/fs/ocfs2/dlm/dlmthread.c
+> @@ -92,17 +92,23 @@ int __dlm_lockres_has_locks(struct dlm_lock_resource *res)
+>   * truly ready to be freed. */
+>  int __dlm_lockres_unused(struct dlm_lock_resource *res)
+>  {
+> -	if (!__dlm_lockres_has_locks(res) &&
+> -	    (list_empty(&res->dirty) && !(res->state & DLM_LOCK_RES_DIRTY))) {
+> -		/* try not to scan the bitmap unless the first two
+> -		 * conditions are already true */
+> -		int bit = find_next_bit(res->refmap, O2NM_MAX_NODES, 0);
+> -		if (bit >= O2NM_MAX_NODES) {
+> -			/* since the bit for dlm->node_num is not
+> -			 * set, inflight_locks better be zero */
+> -			BUG_ON(res->inflight_locks != 0);
+> -			return 1;
+> -		}
+> +	int bit;
+> +
+> +	if (__dlm_lockres_has_locks(res))
+> +		return 0;
+> +
+> +	if (!list_empty(&res->dirty) || res->state & DLM_LOCK_RES_DIRTY)
+> +		return 0;
+> +
+> +	if (res->state & DLM_LOCK_RES_RECOVERING)
+> +		return 0;
+> +
+> +	bit = find_next_bit(res->refmap, O2NM_MAX_NODES, 0);
+> +	if (bit >= O2NM_MAX_NODES) {
+> +		/* since the bit for dlm->node_num is not
+> +		 * set, inflight_locks better be zero */
+> +		BUG_ON(res->inflight_locks != 0);
+> +		return 1;
+>  	}
+>  	return 0;
+>  }
+>   
