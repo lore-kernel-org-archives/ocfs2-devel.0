@@ -1,103 +1,46 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 29 Jul 2010 14:49:36 +0800
-Subject: [Ocfs2-devel] [PATCH 8/8] ocfs2/dlm: Add message
- DLM_QUERY_NODEINFO
-In-Reply-To: <1279929322-9276-9-git-send-email-sunil.mushran@oracle.com>
-References: <1279929322-9276-1-git-send-email-sunil.mushran@oracle.com>
-	<1279929322-9276-9-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20100729064936.GD2591@laptop.jp.oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Thu, 29 Jul 2010 19:04:43 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] O2net: Disallow o2net accept connection
+	request from itself.
+Message-ID: <1280401483-4756-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10-07-23 16:55, Sunil Mushran wrote:
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-> ---
->  fs/ocfs2/dlm/dlmcommon.h |   17 ++++
->  fs/ocfs2/dlm/dlmdomain.c |  188 +++++++++++++++++++++++++++++++++++++++++++++-
->  2 files changed, 204 insertions(+), 1 deletions(-)
-> 
-> +	for (i = 0; i < O2NM_MAX_NODES && !status; ++i) {
-> +		local = o2nm_get_node_by_num(i);
-> +		remote = NULL;
-> +		for (j = 0; j < qn->qn_numnodes; ++j) {
-> +			if (qn->qn_nodes[j].ni_nodenum == i) {
-> +				remote = &(qn->qn_nodes[j]);
-> +				break;
-> +			}
-> +		}
-> +
-> +		if (!local && !remote)
-> +			continue;
-> +
-> +		if ((local && !remote) || (!local && remote))
-> +			status = -EINVAL;
-> +
-> +		if (!status &&
-> +		    ((remote->ni_nodenum != local->nd_num) ||
+Currently, o2net_accept_one() is allowed to accept a connection from
+listening node itself, such a fake connection will not be successfully
+established due to no handshake detected afterwards, and later end up
+with triggering connecting worker in a loop.
 
-ni_nodenum already checked in the for loop.
-> +		     (remote->ni_ipv4_port != local->nd_ipv4_port) ||
-> +		     (remote->ni_ipv4_address != local->nd_ipv4_address)))
-> +			status = -EINVAL;
-> +
+We're going to fix this by treating such connection request as 'invalid',
+since we've got no chance of requesting connection from a node to itself
+in a OCFS2 cluster.
 
-> +static int dlm_send_nodeinfo(struct dlm_ctxt *dlm, unsigned long *node_map)
-> +{
-> +	struct dlm_query_nodeinfo *qn = NULL;
-> +	struct o2nm_node *node;
-> +	int ret = 0, status, count, i;
-> +
-> +	if (find_next_bit(node_map, O2NM_MAX_NODES, 0) >= O2NM_MAX_NODES)
-> +		goto bail;
-> +
-> +	qn = kmalloc(sizeof(struct dlm_query_nodeinfo), GFP_KERNEL);
-> +	if (!qn) {
-> +		ret = -ENOMEM;
-> +		mlog_errno(ret);
-> +		goto bail;
-> +	}
-> +
-> +	memset(qn, 0, sizeof(struct dlm_query_nodeinfo));
+The fix doesn't hurt user's scan for o2net-listener, it always gets a
+successful connection from userpace.
 
-Any reason we are not using kzalloc() here and in dlm_send_hbregions()?
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/cluster/tcp.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-> +	for (i = 0, count = 0; i < O2NM_MAX_NODES; ++i) {
-> +		node = o2nm_get_node_by_num(i);
-> +		if (!node)
-> +			continue;
-> +		qn->qn_nodes[count].ni_nodenum = node->nd_num;
-> +		qn->qn_nodes[count].ni_ipv4_port = node->nd_ipv4_port;
-> +
-
-> +static int dlm_query_nodeinfo_handler(struct o2net_msg *msg, u32 len,
-> +				      void *data, void **ret_data)
-> +{
-> +	struct dlm_query_nodeinfo *qn;
-> +	struct dlm_ctxt *dlm = NULL;
-> +	int locked = 0, status = 0;
-> +
-> +	qn = (struct dlm_query_nodeinfo *) msg->buf;
-> +
-> +	mlog(ML_NOTICE, "Node %u queries nodes on domain %s\n",
-> +	     qn->qn_nodenum, qn->qn_domain);
-> +
-> +	status = -EINVAL;
-
-how about remove this line and
-
-+	int locked = 0, status = -EINVAL;
-
-regards,
-wengang.
-> +
-> +	spin_lock(&dlm_domain_lock);
-> +	dlm = __dlm_lookup_domain_full(qn->qn_domain, qn->qn_namelen);
-> +	if (!dlm) {
-> +		mlog(ML_ERROR, "Node %d queried nodes on domain %s before "
-> +		     "join domain\n", qn->qn_nodenum, qn->qn_domain);
-> +		goto bail;
-> +	}
-> +
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index aa75ca3..7e4e451 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -1796,9 +1796,9 @@ static int o2net_accept_one(struct socket *sock)
+ 		goto out;
+ 	}
+ 
+-	if (o2nm_this_node() > node->nd_num) {
++	if (o2nm_this_node() >= node->nd_num) {
+ 		mlog(ML_NOTICE, "unexpected connect attempted from a lower "
+-		     "numbered node '%s' at " "%pI4:%d with num %u\n",
++		     "or same numbered node '%s' at " "%pI4:%d with num %u\n",
+ 		     node->nd_name, &sin.sin_addr.s_addr,
+ 		     ntohs(sin.sin_port), node->nd_num);
+ 		ret = -EINVAL;
+-- 
+1.5.5
