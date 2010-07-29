@@ -1,62 +1,112 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 29 Jul 2010 05:07:35 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] O2net: Disallow o2net accept
-	connection request from itself.
-In-Reply-To: <1280401483-4756-1-git-send-email-tristan.ye@oracle.com>
-References: <1280401483-4756-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <008747B0-1A7A-45E1-A8E6-DF5C61B2DA7D@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 29 Jul 2010 20:37:53 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: avoid incorrect bit set in refmap
+	on recovery master
+In-Reply-To: <4C4A1758.3000600@oracle.com>
+Message-ID: <201007291239.o6TCd9Vd028074@rcsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-unexpected connect attempt seen at node x (num, ip:port) from node y (num, ip:port). 
+In the following situation, there remains an incorrect bit in refmap on the
+recovery master. Finally the recovery master will fail at purging the lockres
+due to the incorrect bit in refmap.
 
-The above reads better, don't you think. Lower or same are software bugs. Not a user error. 
+1) node A has no interest on lockres A any longer, so it is purging it.
+2) the owner of lockres A is node B, so node A is sending de-ref message
+to node B.
+3) at this time, node B crashed. node C becomes the recovery master. it recovers
+lockres A(because the master is the dead node B).
+4) node A migrated lockres A to node C with a refbit there.
+5) node A failed to send de-ref message to node B because it crashed. The failure
+is ignored. no other action is done for lockres A any more.
 
-Btw, one test you could do is race nc with mount. Run nc in a loop while mounting the first device. nc should ping a node that has it mounted. Test with higher to lower and reverse. 
+For mormal, re-send the deref message to it to recovery master can fix it. Well,
+ignoring the failure of deref to the original master and not recovering the lockres
+to recovery master has the same effect. And the later is simpler.
 
-On Jul 29, 2010, at 4:04 AM, Tristan Ye <tristan.ye@oracle.com> wrote:
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c |   17 +++++++++++++----
+ fs/ocfs2/dlm/dlmthread.c   |   28 +++++++++++++++++-----------
+ 2 files changed, 30 insertions(+), 15 deletions(-)
 
-> Currently, o2net_accept_one() is allowed to accept a connection from
-> listening node itself, such a fake connection will not be successfully
-> established due to no handshake detected afterwards, and later end up
-> with triggering connecting worker in a loop.
-> 
-> We're going to fix this by treating such connection request as 'invalid',
-> since we've got no chance of requesting connection from a node to itself
-> in a OCFS2 cluster.
-> 
-> The fix doesn't hurt user's scan for o2net-listener, it always gets a
-> successful connection from userpace.
-> 
-> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
-> ---
-> fs/ocfs2/cluster/tcp.c |    4 ++--
-> 1 files changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-> index aa75ca3..7e4e451 100644
-> --- a/fs/ocfs2/cluster/tcp.c
-> +++ b/fs/ocfs2/cluster/tcp.c
-> @@ -1796,9 +1796,9 @@ static int o2net_accept_one(struct socket *sock)
->        goto out;
->    }
-> 
-> -    if (o2nm_this_node() > node->nd_num) {
-> +    if (o2nm_this_node() >= node->nd_num) {
->        mlog(ML_NOTICE, "unexpected connect attempted from a lower "
-> -             "numbered node '%s' at " "%pI4:%d with num %u\n",
-> +             "or same numbered node '%s' at " "%pI4:%d with num %u\n",
->             node->nd_name, &sin.sin_addr.s_addr,
->             ntohs(sin.sin_port), node->nd_num);
->        ret = -EINVAL;
-> -- 
-> 1.5.5
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 9dfaac7..2b57cc4 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1997,6 +1997,8 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
+ 	struct list_head *queue;
+ 	struct dlm_lock *lock, *next;
+ 
++	assert_spin_locked(&dlm->spinlock);
++	assert_spin_locked(&res->spinlock);
+ 	res->state |= DLM_LOCK_RES_RECOVERING;
+ 	if (!list_empty(&res->recovering)) {
+ 		mlog(0,
+@@ -2334,11 +2336,18 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
+ 					     dlm->name, res->lockname.len,
+ 					     res->lockname.name, dead_node);
+ 
+-				/* the wake_up for this will happen when the
+-				 * RECOVERING flag is dropped later */
+-				res->state &= ~DLM_LOCK_RES_DROPPING_REF;
++				/*
++				 * don't migrate a lockres which is in progress
++				 * of dropping ref
++				 */
++				if (res->state & DLM_LOCK_RES_DROPPING_REF) {
++					mlog(ML_NOTICE, "%.*s ignored for "
++					     "migration\n", res->lockname.len,
++					     res->lockname.name);
++				} else
++					dlm_move_lockres_to_recovery_list(dlm,
++									  res);
+ 
+-				dlm_move_lockres_to_recovery_list(dlm, res);
+ 			} else if (res->owner == dlm->node_num) {
+ 				dlm_free_dead_locks(dlm, res, dead_node);
+ 				__dlm_lockres_calc_usage(dlm, res);
+diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+index dd78ca3..47420ce 100644
+--- a/fs/ocfs2/dlm/dlmthread.c
++++ b/fs/ocfs2/dlm/dlmthread.c
+@@ -92,17 +92,23 @@ int __dlm_lockres_has_locks(struct dlm_lock_resource *res)
+  * truly ready to be freed. */
+ int __dlm_lockres_unused(struct dlm_lock_resource *res)
+ {
+-	if (!__dlm_lockres_has_locks(res) &&
+-	    (list_empty(&res->dirty) && !(res->state & DLM_LOCK_RES_DIRTY))) {
+-		/* try not to scan the bitmap unless the first two
+-		 * conditions are already true */
+-		int bit = find_next_bit(res->refmap, O2NM_MAX_NODES, 0);
+-		if (bit >= O2NM_MAX_NODES) {
+-			/* since the bit for dlm->node_num is not
+-			 * set, inflight_locks better be zero */
+-			BUG_ON(res->inflight_locks != 0);
+-			return 1;
+-		}
++	int bit;
++
++	if (__dlm_lockres_has_locks(res))
++		return 0;
++
++	if (!list_empty(&res->dirty) || res->state & DLM_LOCK_RES_DIRTY)
++		return 0;
++
++	if (res->state & DLM_LOCK_RES_RECOVERING)
++		return 0;
++
++	bit = find_next_bit(res->refmap, O2NM_MAX_NODES, 0);
++	if (bit >= O2NM_MAX_NODES) {
++		/* since the bit for dlm->node_num is not
++		 * set, inflight_locks better be zero */
++		BUG_ON(res->inflight_locks != 0);
++		return 1;
+ 	}
+ 	return 0;
+ }
+-- 
+1.7.1.1
