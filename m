@@ -1,85 +1,47 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Sun, 1 Aug 2010 20:00:31 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] O2net: Disallow o2net accept
-	connection request from itself.
-In-Reply-To: <1280714426-13449-1-git-send-email-tristan.ye@oracle.com>
-References: <1280714426-13449-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <E605EFBA-4248-4226-98E6-431F76C4A32C@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon,  2 Aug 2010 11:02:15 +0800
+Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: Add some trace log for orphan scan.
+In-Reply-To: <4C56350A.7090309@oracle.com>
+References: <4C56350A.7090309@oracle.com>
+Message-ID: <1280718135-11036-4-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Acked
+Now orphan scan worker has no trace log, so it is
+very hard to tell whether it is finished or blocked.
+So add 2 mlog trace log so that we can tell whether
+the current orphan scan worker is blocked or not.
+It does help when I analyzed an orphan scan bug.
 
-On Aug 1, 2010, at 7:00 PM, Tristan Ye <tristan.ye@oracle.com> wrote:
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/journal.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-> Currently, o2net_accept_one() is allowed to accept a connection from
-> listening node itself, such a fake connection will not be successfully
-> established due to no handshake detected afterwards, and later end up
-> with triggering connecting worker in a loop.
-> 
-> We're going to fix this by treating such connection request as 'invalid',
-> since we've got no chance of requesting connection from a node to itself
-> in a OCFS2 cluster.
-> 
-> The fix doesn't hurt user's scan for o2net-listener, it always gets a
-> successful connection from userpace.
-> 
-> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
-> Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
-> ---
-> fs/ocfs2/cluster/tcp.c |   17 ++++++++++++-----
-> 1 files changed, 12 insertions(+), 5 deletions(-)
-> 
-> diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-> index aa75ca3..1361997 100644
-> --- a/fs/ocfs2/cluster/tcp.c
-> +++ b/fs/ocfs2/cluster/tcp.c
-> @@ -1759,6 +1759,7 @@ static int o2net_accept_one(struct socket *sock)
->    struct sockaddr_in sin;
->    struct socket *new_sock = NULL;
->    struct o2nm_node *node = NULL;
-> +    struct o2nm_node *local_node = NULL;
->    struct o2net_sock_container *sc = NULL;
->    struct o2net_node *nn;
-> 
-> @@ -1796,11 +1797,15 @@ static int o2net_accept_one(struct socket *sock)
->        goto out;
->    }
-> 
-> -    if (o2nm_this_node() > node->nd_num) {
-> -        mlog(ML_NOTICE, "unexpected connect attempted from a lower "
-> -             "numbered node '%s' at " "%pI4:%d with num %u\n",
-> -             node->nd_name, &sin.sin_addr.s_addr,
-> -             ntohs(sin.sin_port), node->nd_num);
-> +    if (o2nm_this_node() >= node->nd_num) {
-> +        local_node = o2nm_get_node_by_num(o2nm_this_node());
-> +        mlog(ML_NOTICE, "unexpected connect attempt seen at node '%s' ("
-> +             "%u, %pI4:%d) from node '%s' (%u, %pI4:%d)\n",
-> +             local_node->nd_name, local_node->nd_num,
-> +             &(local_node->nd_ipv4_address),
-> +             ntohs(local_node->nd_ipv4_port),
-> +             node->nd_name, node->nd_num, &sin.sin_addr.s_addr,
-> +             ntohs(sin.sin_port));
->        ret = -EINVAL;
->        goto out;
->    }
-> @@ -1857,6 +1862,8 @@ out:
->        sock_release(new_sock);
->    if (node)
->        o2nm_node_put(node);
-> +    if (local_node)
-> +        o2nm_node_put(local_node);
->    if (sc)
->        sc_put(sc);
->    return ret;
-> -- 
-> 1.5.5
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index ac2ea71..9209f19 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -1887,6 +1887,8 @@ void ocfs2_queue_orphan_scan(struct ocfs2_super *osb)
+ 	if (atomic_read(&os->os_state) == ORPHAN_SCAN_INACTIVE)
+ 		goto out;
+ 
++	mlog(0, "Begin orphan scan\n");
++
+ 	status = ocfs2_orphan_scan_lock(osb, &seqno);
+ 	if (status < 0) {
+ 		if (status != -EAGAIN)
+@@ -1915,6 +1917,7 @@ void ocfs2_queue_orphan_scan(struct ocfs2_super *osb)
+ 	os->os_scantime = CURRENT_TIME;
+ unlock:
+ 	ocfs2_orphan_scan_unlock(osb, seqno);
++	mlog(0, "Orphan scan completed\n");
+ out:
+ 	return;
+ }
+-- 
+1.7.1.571.gba4d01
