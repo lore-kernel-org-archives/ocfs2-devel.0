@@ -1,90 +1,134 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Tue, 3 Aug 2010 09:13:18 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2 v2] ocfs2: Flush drive's caches on
- fdatasync
-In-Reply-To: <20100802163842.GI3278@quack.suse.cz>
-References: <1280754276-6741-1-git-send-email-jack@suse.cz>
-	<20100802135539.GA2924@laptop.jp.oracle.com>
-	<20100802163842.GI3278@quack.suse.cz>
-Message-ID: <20100803011318.GA2370@laptop.cn.oracle.com>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Tue,  3 Aug 2010 12:01:55 -0400
+Subject: [Ocfs2-devel] [PATCH,
+	RFC 3/3] jbd2: Remove t_handle_lock from start_this_handle()
+In-Reply-To: <1280851315-9167-1-git-send-email-tytso@mit.edu>
+References: <1280851315-9167-1-git-send-email-tytso@mit.edu>
+Message-ID: <1280851315-9167-4-git-send-email-tytso@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+Cc: John Stultz <johnstul@us.ibm.com>, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>, Theodore Ts'o <tytso@mit.edu>
 
-Appreciated!
+This should remove the last exclusive lock from start_this_handle(),
+so that we should now be able to start multiple transactions at the
+same time on large SMP systems.
 
-thanks a lot.
-wengang.
-On 10-08-02 18:38, Jan Kara wrote:
->   Hi,
-> 
-> On Mon 02-08-10 21:55:39, Wengang Wang wrote:
-> > I think it will be better if you mention the BARRIER mount option in the patch
-> > description. That will accurately match your patch.
->   OK. So the description could be:
-> When 'barrier' mount option is specified, we have to issue a cache flush
-> during fdatasync. We have to do this even if inode doesn't have
-> I_DIRTY_DATASYNC set because we still have to get written *data* to disk so
-> that they are not lost in case of crash.
-> 
->   Better?
-> 
-> 								Honza
-> > On 10-08-02 15:04, Jan Kara wrote:
-> > > We have to issue a cache flush during fdatasync even if inode doesn't have
-> > > I_DIRTY_DATASYNC set because we still have to get written *data* to disk to
-> > > observe fdatasync() guarantees.
-> > > 
-> > > Acked-by: Tao Ma <tao.ma@oracle.com>
-> > > Signed-off-by: Jan Kara <jack@suse.cz>
-> > > ---
-> > >  fs/ocfs2/file.c |   11 ++++++++++-
-> > >  1 files changed, 10 insertions(+), 1 deletions(-)
-> > > 
-> > >   Joel, would you merge this and the following patch please? Thanks.
-> > > 
-> > > 								Honza
-> > > 
-> > > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> > > index 2b10b36..3ed8efd 100644
-> > > --- a/fs/ocfs2/file.c
-> > > +++ b/fs/ocfs2/file.c
-> > > @@ -36,6 +36,7 @@
-> > >  #include <linux/writeback.h>
-> > >  #include <linux/falloc.h>
-> > >  #include <linux/quotaops.h>
-> > > +#include <linux/blkdev.h>
-> > >  
-> > >  #define MLOG_MASK_PREFIX ML_INODE
-> > >  #include <cluster/masklog.h>
-> > > @@ -190,8 +191,16 @@ static int ocfs2_sync_file(struct file *file, int datasync)
-> > >  	if (err)
-> > >  		goto bail;
-> > >  
-> > > -	if (datasync && !(inode->i_state & I_DIRTY_DATASYNC))
-> > > +	if (datasync && !(inode->i_state & I_DIRTY_DATASYNC)) {
-> > > +		/*
-> > > +		 * We still have to flush drive's caches to get data to the
-> > > +		 * platter
-> > > +		 */
-> > > +		if (osb->s_mount_opt & OCFS2_MOUNT_BARRIER)
-> > > +			blkdev_issue_flush(inode->i_sb->s_bdev, GFP_KERNEL,
-> > > +					   NULL, BLKDEV_IFL_WAIT);
-> > >  		goto bail;
-> > > +	}
-> > >  
-> > >  	journal = osb->journal->j_journal;
-> > >  	err = jbd2_journal_force_commit(journal);
-> > > -- 
-> > > 1.6.4.2
-> > > 
-> > > 
-> > > _______________________________________________
-> > > Ocfs2-devel mailing list
-> > > Ocfs2-devel at oss.oracle.com
-> > > http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> -- 
-> Jan Kara <jack@suse.cz>
-> SUSE Labs, CR
+Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
+---
+ fs/jbd2/commit.c      |    3 ++-
+ fs/jbd2/transaction.c |   32 ++++++++++++++++++++++----------
+ include/linux/jbd2.h  |    2 +-
+ 3 files changed, 25 insertions(+), 12 deletions(-)
+
+diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
+index 67bb0a2..f52e5e8 100644
+--- a/fs/jbd2/commit.c
++++ b/fs/jbd2/commit.c
+@@ -1004,7 +1004,8 @@ restart_loop:
+ 	 * File the transaction statistics
+ 	 */
+ 	stats.ts_tid = commit_transaction->t_tid;
+-	stats.run.rs_handle_count = commit_transaction->t_handle_count;
++	stats.run.rs_handle_count =
++		atomic_read(&commit_transaction->t_handle_count);
+ 	trace_jbd2_run_stats(journal->j_fs_dev->bd_dev,
+ 			     commit_transaction->t_tid, &stats.run);
+ 
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index d66d00b..5c83a91 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -57,6 +57,7 @@ jbd2_get_transaction(journal_t *journal, transaction_t *transaction)
+ 	spin_lock_init(&transaction->t_handle_lock);
+ 	atomic_set(&transaction->t_updates, 0);
+ 	atomic_set(&transaction->t_outstanding_credits, 0);
++	atomic_set(&transaction->t_handle_count, 0);
+ 	INIT_LIST_HEAD(&transaction->t_inode_list);
+ 	INIT_LIST_HEAD(&transaction->t_private_list);
+ 
+@@ -178,8 +179,8 @@ repeat_locked:
+ 	 * buffers requested by this operation, we need to stall pending a log
+ 	 * checkpoint to free some more log space.
+ 	 */
+-	spin_lock(&transaction->t_handle_lock);
+-	needed = atomic_read(&transaction->t_outstanding_credits) + nblocks;
++	needed = atomic_add_return(nblocks,
++				   &transaction->t_outstanding_credits);
+ 
+ 	if (needed > journal->j_max_transaction_buffers) {
+ 		/*
+@@ -190,7 +191,7 @@ repeat_locked:
+ 		DEFINE_WAIT(wait);
+ 
+ 		jbd_debug(2, "Handle %p starting new commit...\n", handle);
+-		spin_unlock(&transaction->t_handle_lock);
++		atomic_sub(nblocks, &transaction->t_outstanding_credits);
+ 		prepare_to_wait(&journal->j_wait_transaction_locked, &wait,
+ 				TASK_UNINTERRUPTIBLE);
+ 		__jbd2_log_start_commit(journal, transaction->t_tid);
+@@ -227,29 +228,40 @@ repeat_locked:
+ 	 */
+ 	if (__jbd2_log_space_left(journal) < jbd_space_needed(journal)) {
+ 		jbd_debug(2, "Handle %p waiting for checkpoint...\n", handle);
+-		spin_unlock(&transaction->t_handle_lock);
++		atomic_sub(nblocks, &transaction->t_outstanding_credits);
+ 		__jbd2_log_wait_for_space(journal);
+ 		goto repeat_locked;
+ 	}
+ 
+ 	/* OK, account for the buffers that this operation expects to
+-	 * use and add the handle to the running transaction. */
+-
+-	if (time_after(transaction->t_start, ts)) {
++	 * use and add the handle to the running transaction. 
++	 *
++	 * In order for t_max_wait to be reliable, it must be
++	 * protected by a lock.  But doing so will mean that
++	 * start_this_handle() can not be run in parallel on SMP
++	 * systems, which limits our scalability.  So we only enable
++	 * it when debugging is enabled.  We may want to use a
++	 * separate flag, eventually, so we can enable this
++	 * independently of debugging.
++	 */
++#ifdef CONFIG_JBD2_DEBUG
++	if (jbd2_journal_enable_debug &&
++	    time_after(transaction->t_start, ts)) {
+ 		ts = jbd2_time_diff(ts, transaction->t_start);
++		spin_lock(&transaction->t_handle_lock);
+ 		if (ts > transaction->t_max_wait)
+ 			transaction->t_max_wait = ts;
++		spin_unlock(&transaction->t_handle_lock);
+ 	}
++#endif
+ 
+ 	handle->h_transaction = transaction;
+-	atomic_add(nblocks, &transaction->t_outstanding_credits);
+ 	atomic_inc(&transaction->t_updates);
+-	transaction->t_handle_count++;
++	atomic_inc(&transaction->t_handle_count);
+ 	jbd_debug(4, "Handle %p given %d credits (total %d, free %d)\n",
+ 		  handle, nblocks,
+ 		  atomic_read(&transaction->t_outstanding_credits),
+ 		  __jbd2_log_space_left(journal));
+-	spin_unlock(&transaction->t_handle_lock);
+ 	read_unlock(&journal->j_state_lock);
+ 
+ 	lock_map_acquire(&handle->h_lockdep_map);
+diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
+index 15d5743..01743b5 100644
+--- a/include/linux/jbd2.h
++++ b/include/linux/jbd2.h
+@@ -629,7 +629,7 @@ struct transaction_s
+ 	/*
+ 	 * How many handles used this transaction? [t_handle_lock]
+ 	 */
+-	int t_handle_count;
++	atomic_t		t_handle_count;
+ 
+ 	/*
+ 	 * This transaction is being forced and some process is
+-- 
+1.7.0.4
