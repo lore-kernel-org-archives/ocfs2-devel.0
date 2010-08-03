@@ -1,56 +1,62 @@
-From: Theodore Ts'o <tytso@mit.edu>
-Date: Tue,  3 Aug 2010 12:01:52 -0400
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 3 Aug 2010 12:07:03 -0700
 Subject: [Ocfs2-devel] [PATCH, RFC 0/3] *** SUBJECT HERE ***
-Message-ID: <1280851315-9167-1-git-send-email-tytso@mit.edu>
+In-Reply-To: <1280851315-9167-1-git-send-email-tytso@mit.edu>
+References: <1280851315-9167-1-git-send-email-tytso@mit.edu>
+Message-ID: <20100803190703.GA15416@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com
-Cc: John Stultz <johnstul@us.ibm.com>, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>, Theodore Ts'o <tytso@mit.edu>
+To: Theodore Ts'o <tytso@mit.edu>
+Cc: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Keith Maanthey <kmannth@us.ibm.com>, John Stultz <johnstul@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>
 
-The first patch in this patch series hasn't changed since when I had
-last posted it, but I'm including it again for the benefit of the folks
-on ocfs2-dev.
+On Tue, Aug 03, 2010 at 12:01:52PM -0400, Theodore Ts'o wrote:
+> The first patch in this patch series hasn't changed since when I had
+> last posted it, but I'm including it again for the benefit of the folks
+> on ocfs2-dev.
 
-Thanks to some work done by Eric Whitney, when he accidentally ran the
-command "mkfs.ext4 -t xfs", and created a ext4 file system without a
-journal, it appears that main scalability bottleneck for ext4 is in the
-jbd2 layer.  In fact, his testing on a 48-core system shows that on some
-workloads, ext4 is roughly comparable with XFS!
+	Thanks!
 
-The lockstat results indicate that the main bottlenecks are in the
-j_state_lock and t_handle_lock, especially in start_this_handle() in
-fs/jbd2/transaction.c.  A previous patch, which removed an unneeded
-grabbing of j_state_lock jbd2_journal_stop() relieved pressure on that
-lock and was noted to make a significant difference for dbench on a
-kernel with CONFIG_PREEMPT_RT enabled, as well as on a 48-core AMD
-system from HP.   This patch is already in 2.6.35, and the benchmark
-results can be found here: http://free.linux.hp.com/~enw/ext4/2.6.34/
+> Thanks to some work done by Eric Whitney, when he accidentally ran the
+> command "mkfs.ext4 -t xfs", and created a ext4 file system without a
+> journal, it appears that main scalability bottleneck for ext4 is in the
+> jbd2 layer.
 
-This patch series removes all exclusive spinlocks when starting and
-stopping jbd2 handles, which should improve things even more.  Since
-OCFS2 uses the jbd2 layer, and the second patch in this patch series
-touches ocfs2 a wee bit, I'd appreciate it if you could take a look and
-let me know what you think.  Hopefully, this should also improve OCFS2's
-scalability.
+	I'm certain, as you've surmised, that a lot of this affects
+ocfs2 as well.  jbd2 improvements make both filesystems better.
+	
+> This patch series removes all exclusive spinlocks when starting and
+> stopping jbd2 handles, which should improve things even more.  Since
+> OCFS2 uses the jbd2 layer, and the second patch in this patch series
+> touches ocfs2 a wee bit, I'd appreciate it if you could take a look and
+> let me know what you think.  Hopefully, this should also improve OCFS2's
+> scalability.
 
-Best regards,
+	The atomic changes make absolute sense.  Ack on them.  I had two
+reactions to the rwlock: first, a lot of your rwlock changes are on
+the write_lock() side.  You get journal start/stop parallelized, but
+what about all the underlying access/dirty/commit paths?  Second,
+rwlocks are known to behave worse than spinlocks when they ping the
+cache line across CPUs.
+	That said, I have a hunch that you've tested both of the above
+concerns.  You mention 48 core systems, and clearly if cachelines were
+going to be a problem, you would have noticed.  So if the rwlock changes
+are faster on 48 core than the spinlocks, I say ack ack ack.
+	From the ocfs2 perspective, the code is perfectly safe, and any
+speedup you see on ext4 ought to be mirrored on ocfs2.
 
-     					- Ted
+Joel
 
-Theodore Ts'o (3):
-  jbd2: Use atomic variables to avoid taking t_handle_lock in
-    jbd2_journal_stop
-  jbd2: Change j_state_lock to be a rwlock_t
-  jbd2: Remove t_handle_lock from start_this_handle()
+-- 
 
- fs/ext4/inode.c       |    4 +-
- fs/ext4/super.c       |    4 +-
- fs/jbd2/checkpoint.c  |   18 +++---
- fs/jbd2/commit.c      |   42 +++++++-------
- fs/jbd2/journal.c     |   94 +++++++++++++++----------------
- fs/jbd2/transaction.c |  149 ++++++++++++++++++++++++++++---------------------
- fs/ocfs2/journal.c    |    4 +-
- include/linux/jbd2.h  |   12 ++--
- 8 files changed, 174 insertions(+), 153 deletions(-)
+A good programming language should have features that make the
+kind of people who use the phrase "software engineering" shake
+their heads disapprovingly.
+	- Paul Graham
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
