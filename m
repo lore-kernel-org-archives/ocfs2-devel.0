@@ -1,70 +1,51 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 12 Aug 2010 10:43:19 -0700
-Subject: [Ocfs2-devel] [PATCH 2/3] JBD2: Allow feature checks before
- journal recovery
-In-Reply-To: <8739vb2mxr.fsf@patl.com>
-References: <874ofr2myq.fsf@patl.com>
- <8739vb2mxr.fsf@patl.com>
-Message-ID: <20100812174318.GD6561@mail.oracle.com>
+From: Boaz Harrosh <bharrosh@panasas.com>
+Date: Tue, 03 Aug 2010 19:22:36 +0300
+Subject: [Ocfs2-devel] [PATCH V3 0/8] Cleancache: overview
+In-Reply-To: <fc254547-5926-4cb9-98e1-7a79f7284e30@default>
+References: <20100621231809.GA11111@ca-server1.us.oracle.com4C49468B.40307@vflare.org>
+	<840b32ff-a303-468e-9d4e-30fc92f629f8@default
+	20100723140440.GA12423@infradead.org
+	364c83bd-ccb2-48cc-920d-ffcf9ca7df19@default>
+	<fc254547-5926-4cb9-98e1-7a79f7284e30@default>
+Message-ID: <4C58424C.1020208@panasas.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>, Ted Ts'o <tytso@mit.edu>, "Patrick J. LoPresti" <lopresti@gmail.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Dan Magenheimer <dan.magenheimer@oracle.com>
+Cc: Christoph Hellwig <hch@infradead.org>, ngupta@vflare.org, akpm@linux-foundation.org, Chris Mason <chris.mason@oracle.com>, viro@zeniv.linux.org.uk, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, Joel Becker <joel.becker@oracle.com>, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, jeremy@goop.org, JBeulich@novell.com, Kurt Hackel <kurt.hackel@oracle.com>, npiggin@suse.de, Dave Mccracken <dave.mccracken@oracle.com>, riel@redhat.com, avi@redhat.com, Konrad Wilk <konrad.wilk@oracle.com>
 
-On Thu, Jul 22, 2010 at 03:04:16PM -0700, Patrick J. LoPresti wrote:
-> Before we start accessing a huge (> 16 TiB) OCFS2 volume, we need to
-> confirm that its journal supports 64-bit offsets.  In particular, we
-> need to check the journal's feature bits before recovering the journal.
+On 07/24/2010 12:17 AM, Dan Magenheimer wrote:
+>>> On Fri, Jul 23, 2010 at 06:58:03AM -0700, Dan Magenheimer wrote:
+>>>> CHRISTOPH AND ANDREW, if you disagree and your concerns have
+>>>> not been resolved, please speak up.
+>>
+>> Hi Christoph --
+>>
+>> Thanks very much for the quick (instantaneous?) reply!
+>>
+>>> Anything that need modification of a normal non-shared fs is utterly
+>>> broken and you'll get a clear NAK, so the propsal before is a good
+>>> one.
+>>
+>> No, the per-fs opt-in is very sensible; and its design is
+>> very minimal.
 > 
-> This is not possible with JBD2 at present, because the journal
-> superblock (where the feature bits reside) is not loaded from disk until
-> the journal is recovered.
+> Not to belabor the point, but maybe the right way to think about
+> this is:
 > 
-> This patch loads the journal superblock in
-> jbd2_journal_check_used_features() if it has not already been loaded,
-> allowing us to check the feature bits before journal recovery.
+> Cleancache is a new optional feature provided by the VFS layer
+> that potentially dramatically increases page cache effectiveness
+> for many workloads in many environments at a negligible cost.
 > 
-> Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
+> Filesystems that are well-behaved and conform to certain restrictions
+> can utilize cleancache simply by making a call to cleancache_init_fs
+> at mount time.  Unusual, misbehaving, or poorly layered filesystems
+> must either add additional hooks and/or undergo extensive additional
+> testing... or should just not enable the optional cleancache.
 
-Dear jbd2 developers,
-	I've pushed this patch to the merge-window branch of ocfs2.git.
-I'm ready to send it to Linus, but I need your OK.
+OK, So I maintain a filesystem in Kernel. How do I know if my FS
+is not "Unusual, misbehaving, or poorly layered"
 
-Joel
-
-> diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
-> index bc2ff59..5cfd8d4 100644
-> --- a/fs/jbd2/journal.c
-> +++ b/fs/jbd2/journal.c
-> @@ -1365,6 +1365,10 @@ int jbd2_journal_check_used_features (journal_t *journal, unsigned long compat,
->  
->  	if (!compat && !ro && !incompat)
->  		return 1;
-> +	/* Load journal superblock if it is not loaded yet. */
-> +	if (journal->j_format_version == 0 &&
-> +	    journal_get_superblock(journal) != 0)
-> +		return 0;
->  	if (journal->j_format_version == 1)
->  		return 0;
->  
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
--- 
-
- Brain: I shall pollute the water supply with this DNAdefibuliser,
-        turning everyone into mindless slaves.
- Pinky: What about the people who drink bottled water?
- Brain: Pinky, people who pay 5 dollars for a bottle of water are
-        already mindless slaves.
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Thanks
+Boaz
