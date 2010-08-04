@@ -1,7 +1,10 @@
 From: Theodore Ts'o <tytso@mit.edu>
-Date: Wed,  4 Aug 2010 12:39:14 -0400
-Subject: [Ocfs2-devel] [PATCH -v2 0/3] jbd2 scalability patches
-Message-ID: <1280939957-3277-1-git-send-email-tytso@mit.edu>
+Date: Wed,  4 Aug 2010 12:39:17 -0400
+Subject: [Ocfs2-devel] [PATCH -v2 3/3] jbd2: Remove t_handle_lock from
+	start_this_handle()
+In-Reply-To: <1280939957-3277-1-git-send-email-tytso@mit.edu>
+References: <1280939957-3277-1-git-send-email-tytso@mit.edu>
+Message-ID: <1280939957-3277-4-git-send-email-tytso@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,25 +12,125 @@ Content-Transfer-Encoding: 7bit
 To: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 Cc: John Stultz <johnstul@us.ibm.com>, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>, Theodore Ts'o <tytso@mit.edu>
 
-This version fixes three bugs in the 2nd patch of this series that
-caused kernel BUG when the system was under race.  We weren't accounting
-with t_oustanding_credits correctly, and there were race conditions
-caused by the fact the I had overlooked the fact that
-__jbd2_log_wait_for_space() and jbd2_get_transaction() requires
-j_state_lock to be write locked.
+This should remove the last exclusive lock from start_this_handle(),
+so that we should now be able to start multiple transactions at the
+same time on large SMP systems.
 
-Theodore Ts'o (3):
-  jbd2: Use atomic variables to avoid taking t_handle_lock in
-    jbd2_journal_stop
-  jbd2: Change j_state_lock to be a rwlock_t
-  jbd2: Remove t_handle_lock from start_this_handle()
+Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
+---
+ fs/jbd2/commit.c      |    3 ++-
+ fs/jbd2/transaction.c |   33 ++++++++++++++++++++++-----------
+ include/linux/jbd2.h  |    2 +-
+ 3 files changed, 25 insertions(+), 13 deletions(-)
 
- fs/ext4/inode.c       |    4 +-
- fs/ext4/super.c       |    4 +-
- fs/jbd2/checkpoint.c  |   18 +++---
- fs/jbd2/commit.c      |   42 ++++++------
- fs/jbd2/journal.c     |   94 +++++++++++++--------------
- fs/jbd2/transaction.c |  172 ++++++++++++++++++++++++++++---------------------
- fs/ocfs2/journal.c    |    4 +-
- include/linux/jbd2.h  |   12 ++--
- 8 files changed, 188 insertions(+), 162 deletions(-)
+diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
+index 67bb0a2..f52e5e8 100644
+--- a/fs/jbd2/commit.c
++++ b/fs/jbd2/commit.c
+@@ -1004,7 +1004,8 @@ restart_loop:
+ 	 * File the transaction statistics
+ 	 */
+ 	stats.ts_tid = commit_transaction->t_tid;
+-	stats.run.rs_handle_count = commit_transaction->t_handle_count;
++	stats.run.rs_handle_count =
++		atomic_read(&commit_transaction->t_handle_count);
+ 	trace_jbd2_run_stats(journal->j_fs_dev->bd_dev,
+ 			     commit_transaction->t_tid, &stats.run);
+ 
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index 6630651..0752bcd 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -57,6 +57,7 @@ jbd2_get_transaction(journal_t *journal, transaction_t *transaction)
+ 	spin_lock_init(&transaction->t_handle_lock);
+ 	atomic_set(&transaction->t_updates, 0);
+ 	atomic_set(&transaction->t_outstanding_credits, 0);
++	atomic_set(&transaction->t_handle_count, 0);
+ 	INIT_LIST_HEAD(&transaction->t_inode_list);
+ 	INIT_LIST_HEAD(&transaction->t_private_list);
+ 
+@@ -180,8 +181,8 @@ repeat:
+ 	 * buffers requested by this operation, we need to stall pending a log
+ 	 * checkpoint to free some more log space.
+ 	 */
+-	spin_lock(&transaction->t_handle_lock);
+-	needed = atomic_read(&transaction->t_outstanding_credits) + nblocks;
++	needed = atomic_add_return(nblocks,
++				   &transaction->t_outstanding_credits);
+ 
+ 	if (needed > journal->j_max_transaction_buffers) {
+ 		/*
+@@ -192,7 +193,7 @@ repeat:
+ 		DEFINE_WAIT(wait);
+ 
+ 		jbd_debug(2, "Handle %p starting new commit...\n", handle);
+-		spin_unlock(&transaction->t_handle_lock);
++		atomic_sub(nblocks, &transaction->t_outstanding_credits);
+ 		prepare_to_wait(&journal->j_wait_transaction_locked, &wait,
+ 				TASK_UNINTERRUPTIBLE);
+ 		__jbd2_log_start_commit(journal, transaction->t_tid);
+@@ -229,7 +230,7 @@ repeat:
+ 	 */
+ 	if (__jbd2_log_space_left(journal) < jbd_space_needed(journal)) {
+ 		jbd_debug(2, "Handle %p waiting for checkpoint...\n", handle);
+-		spin_unlock(&transaction->t_handle_lock);
++		atomic_sub(nblocks, &transaction->t_outstanding_credits);
+ 		read_unlock(&journal->j_state_lock);
+ 		write_lock(&journal->j_state_lock);
+ 		if (__jbd2_log_space_left(journal) < jbd_space_needed(journal))
+@@ -239,23 +240,33 @@ repeat:
+ 	}
+ 
+ 	/* OK, account for the buffers that this operation expects to
+-	 * use and add the handle to the running transaction. */
+-
+-	if (time_after(transaction->t_start, ts)) {
++	 * use and add the handle to the running transaction. 
++	 *
++	 * In order for t_max_wait to be reliable, it must be
++	 * protected by a lock.  But doing so will mean that
++	 * start_this_handle() can not be run in parallel on SMP
++	 * systems, which limits our scalability.  So we only enable
++	 * it when debugging is enabled.  We may want to use a
++	 * separate flag, eventually, so we can enable this
++	 * independently of debugging.
++	 */
++#ifdef CONFIG_JBD2_DEBUG
++	if (jbd2_journal_enable_debug &&
++	    time_after(transaction->t_start, ts)) {
+ 		ts = jbd2_time_diff(ts, transaction->t_start);
++		spin_lock(&transaction->t_handle_lock);
+ 		if (ts > transaction->t_max_wait)
+ 			transaction->t_max_wait = ts;
++		spin_unlock(&transaction->t_handle_lock);
+ 	}
+-
++#endif
+ 	handle->h_transaction = transaction;
+-	atomic_add(nblocks, &transaction->t_outstanding_credits);
+ 	atomic_inc(&transaction->t_updates);
+-	transaction->t_handle_count++;
++	atomic_inc(&transaction->t_handle_count);
+ 	jbd_debug(4, "Handle %p given %d credits (total %d, free %d)\n",
+ 		  handle, nblocks,
+ 		  atomic_read(&transaction->t_outstanding_credits),
+ 		  __jbd2_log_space_left(journal));
+-	spin_unlock(&transaction->t_handle_lock);
+ 	read_unlock(&journal->j_state_lock);
+ 
+ 	lock_map_acquire(&handle->h_lockdep_map);
+diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
+index 15d5743..01743b5 100644
+--- a/include/linux/jbd2.h
++++ b/include/linux/jbd2.h
+@@ -629,7 +629,7 @@ struct transaction_s
+ 	/*
+ 	 * How many handles used this transaction? [t_handle_lock]
+ 	 */
+-	int t_handle_count;
++	atomic_t		t_handle_count;
+ 
+ 	/*
+ 	 * This transaction is being forced and some process is
+-- 
+1.7.0.4
