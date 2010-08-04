@@ -1,61 +1,49 @@
-From: Dan Magenheimer <dan.magenheimer@oracle.com>
-Date: Tue, 3 Aug 2010 12:09:54 -0700 (PDT)
-Subject: [Ocfs2-devel] [PATCH V3 0/8] Cleancache: overview
-In-Reply-To: <22A6238E-0BA4-4AB9-A4FA-28B206A47513@oracle.com>
-References: <20100621231809.GA11111%ca-server1.us.oracle.com4C49468B.40307@vflare.org>
-	<840b32ff-a303-468e-9d4e-30fc92f629f8@default>
-	<20100723140440.GA12423@infradead.org>
-	<364c83bd-ccb2-48cc-920d-ffcf9ca7df19@default>
-	<a7f4db53-c348-4cff-8762-7ea4031e4813@default
-	22A6238E-0BA4-4AB9-A4FA-28B206A47513@oracle.com>
-Message-ID: <af8b0006-0eb7-468a-bbf8-36ecec9bec35@default>
+From: Lars Marowsky-Bree <lmb@novell.com>
+Date: Wed, 4 Aug 2010 15:59:27 +0200
+Subject: [Ocfs2-devel] CFP: Linux Plumbers Mini-Conf on
+	High-Availability/Clustering
+Message-ID: <20100804135927.GF4989@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andreas Dilger <andreas.dilger@oracle.com>
-Cc: Boaz Harrosh <bharrosh@panasas.com>, Christoph Hellwig <hch@infradead.org>, ngupta@vflare.org, akpm@linux-foundation.org, Chris Mason <chris.mason@oracle.com>, viro@zeniv.linux.org.uk, adilger@Sun.COM, tytso@mit.edu, mfasheh@suse.com, Joel Becker <joel.becker@oracle.com>, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, jeremy@goop.org, JBeulich@novell.com, Kurt Hackel <kurt.hackel@oracle.com>, npiggin@suse.de, Dave Mccracken <dave.mccracken@oracle.com>, riel@redhat.com, avi@redhat.com, Konrad Wilk <konrad.wilk@oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-> From: Andreas Dilger
-> Sent: Tuesday, August 03, 2010 12:34 PM
-> To: Dan Magenheimer
-> Subject: Re: [PATCH V3 0/8] Cleancache: overview
-> 
-> On 2010-08-03, at 11:35, Dan Magenheimer wrote:
-> > - The FS should be block-device-based (e.g. a ram-based FS
-> >  such as tmpfs should not enable cleancache)
-> 
-> When you say "block device based", does this exclude network
-> filesystems?  It would seem cleancache, like fscache, is actually best
-> suited to high-latency network filesystems.
+Hi all,
 
-I don't think it should exclude network FSs and agree cleancache
-might be well-suited for them.  So if "block device based"
-leaves out the possibility of network FSs, I am just
-displaying my general ignorance of FSs and I/O, and
-welcome clarification from FS developers.  What I really
-meant is: Don't use cleancache for RAM-based filesystems.
- 
-> > - To ensure coherency/correctness, inode numbers must be unique
-> >  (e.g. no emulating 64-bit inode space on 32-bit inode numbers)
-> 
-> Does it need to be restricted to inode numbers at all (i.e. can it use
-> an opaque internal identifier like the NFS file handle)?  Disallowing
-> cleancache on a filesystem that uses 64-bit (or larger) inodes on a 32-
-> bit system reduces its usefulness.
+there will (hopefully!) be a mini-conference on HA/Clustering at this
+year's LPC in Cambridge, MA, Nov 3-5th.
 
-True... Earlier versions of the patch did not use ino_t but
-instead used an opaque always-64-bit-unsigned "object id".
-The patch changed to use ino_t in response to Al Viro's comment
-to "use sane types".
+This would be an informal summit for the HA folks to get together and
+discuss the various issues that would benefit from a face to face
+meeting; to facilitate progress faster than by exchanging countless
+e-mails.
 
-The <pool_id,object_id,pg_offset> triple must uniquely
-and permanently (unless explicitly flushed) describe
-exactly one page of FS data.  So if usefulness is increased
-by changing object_id back to an explicit 64-bit value,
-I'm happy to do that.  The only disadvantage I can
-see is that 32-bit systems pass an extra 32 bits on
-every call that may always be zero on most FSs.
+The goal would be a very technical discussion - the sessions would be
+focus points, but the chance to get the core folks from the community
+together is key.
 
-Thanks,
-Dan
+Topics that come to my mind and that would seek speakers/discussion
+leaders are fencing, resource agent evolution, synergies between
+init/upstart/lrm, or wildly reaching out to the stars - where's our
+place in the cloud? Can we build clustered appliances? Anything
+remaining in the file system spaces?
+
+I hope you have other ideas and want to attend the conference. You can
+submit them here:
+http://www.linuxplumbersconf.org/2010/ocw/events/LPC2010MC/proposals/new
+
+Miniconference proposal submissions are not necessarily time-limited,
+but I would appreciate a fast turn-around. ;-)
+
+I look forward to your submissions. Please let me know if you have any
+questions.
+
+
+Regards,
+    Lars
+
+-- 
+Architect Storage/HA, OPS Engineering, Novell, Inc.
+SUSE LINUX Products GmbH, GF: Markus Rex, HRB 16746 (AG N?rnberg)
+"Experience is the name everyone gives to their mistakes." -- Oscar Wilde
