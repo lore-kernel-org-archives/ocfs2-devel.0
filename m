@@ -1,80 +1,293 @@
-From: tristan <tristan.ye@oracle.com>
-Date: Wed, 04 Aug 2010 18:53:09 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2-1.4: Disallow o2net accept
-	connection.
-In-Reply-To: <1280918040-10569-1-git-send-email-tristan.ye@oracle.com>
-References: <1280918040-10569-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <4C594695.2030607@oracle.com>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Wed,  4 Aug 2010 12:39:15 -0400
+Subject: [Ocfs2-devel] [PATCH -v2 1/3] jbd2: Use atomic variables to avoid
+	taking t_handle_lock in jbd2_journal_stop
+In-Reply-To: <1280939957-3277-1-git-send-email-tytso@mit.edu>
+References: <1280939957-3277-1-git-send-email-tytso@mit.edu>
+Message-ID: <1280939957-3277-2-git-send-email-tytso@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+Cc: John Stultz <johnstul@us.ibm.com>, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>, Theodore Ts'o <tytso@mit.edu>
 
-Oops, the subject of patch was incomplete...
+By using an atomic_t for t_updates and t_outstanding credits, this
+should allow us to not need to take transaction t_handle_lock in
+jbd2_journal_stop().
 
-Re-send a complete one later.
+Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
+---
+ fs/jbd2/checkpoint.c  |    2 +-
+ fs/jbd2/commit.c      |   13 +++++----
+ fs/jbd2/transaction.c |   69 +++++++++++++++++++++++++++---------------------
+ include/linux/jbd2.h  |    8 +++---
+ 4 files changed, 51 insertions(+), 41 deletions(-)
 
-
-Tristan Ye wrote:
-> Currently, o2net_accept_one() is allowed to accept a connection from
-> listening node itself, such a fake connection will not be successfully
-> established due to no handshake detected afterwards, and later end up
-> with triggering connecting worker in a loop.
->
-> We're going to fix this by treating such connection request as 'invalid',
-> since we've got no chance of requesting connection from a node to itself
-> in a OCFS2 cluster.
->
-> The fix doesn't hurt user's scan for o2net-listener, it always gets a
-> successful connection from userpace.
->
-> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
-> Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
-> ---
->  fs/ocfs2/cluster/tcp.c |   17 ++++++++++++-----
->  1 files changed, 12 insertions(+), 5 deletions(-)
->
-> diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-> index 10a02a4..021e4db 100644
-> --- a/fs/ocfs2/cluster/tcp.c
-> +++ b/fs/ocfs2/cluster/tcp.c
-> @@ -1764,6 +1764,7 @@ static int o2net_accept_one(struct socket *sock)
->  	struct sockaddr_in sin;
->  	struct socket *new_sock = NULL;
->  	struct o2nm_node *node = NULL;
-> +	struct o2nm_node *local_node = NULL;
->  	struct o2net_sock_container *sc = NULL;
->  	struct o2net_node *nn;
->  
-> @@ -1802,11 +1803,15 @@ static int o2net_accept_one(struct socket *sock)
->  		goto out;
->  	}
->  
-> -	if (o2nm_this_node() > node->nd_num) {
-> -		mlog(ML_NOTICE, "unexpected connect attempted from a lower "
-> -		     "numbered node '%s' at " "%u.%u.%u.%u:%d with num %u\n",
-> -		     node->nd_name, NIPQUAD(sin.sin_addr.s_addr),
-> -		     ntohs((__force __be16)sin.sin_port), node->nd_num);
-> +	if (o2nm_this_node() >= node->nd_num) {
-> +		local_node = o2nm_get_node_by_num(o2nm_this_node());
-> +		mlog(ML_NOTICE, "unexpected connect attempt seen at node '%s' ("
-> +		     "%u,%u.%u.%u.%u:%d) from node '%s' (%u,%u.%u.%u.%u:%d)\n",
-> +		     local_node->nd_name, local_node->nd_num,
-> +		     NIPQUAD(local_node->nd_ipv4_address),
-> +		     ntohs((__force __be16)local_node->nd_ipv4_port),
-> +		     node->nd_name, node->nd_num, NIPQUAD(sin.sin_addr.s_addr),
-> +		     ntohs((__force __be16)sin.sin_port));
->  		ret = -EINVAL;
->  		goto out;
->  	}
-> @@ -1863,6 +1868,8 @@ out:
->  		sock_release(new_sock);
->  	if (node)
->  		o2nm_node_put(node);
-> +	if (local_node)
-> +		o2nm_node_put(local_node);
->  	if (sc)
->  		sc_put(sc);
->  	return ret;
->   
+diff --git a/fs/jbd2/checkpoint.c b/fs/jbd2/checkpoint.c
+index 076d1cc..f8cdc02 100644
+--- a/fs/jbd2/checkpoint.c
++++ b/fs/jbd2/checkpoint.c
+@@ -775,7 +775,7 @@ void __jbd2_journal_drop_transaction(journal_t *journal, transaction_t *transact
+ 	J_ASSERT(transaction->t_log_list == NULL);
+ 	J_ASSERT(transaction->t_checkpoint_list == NULL);
+ 	J_ASSERT(transaction->t_checkpoint_io_list == NULL);
+-	J_ASSERT(transaction->t_updates == 0);
++	J_ASSERT(atomic_read(&transaction->t_updates) == 0);
+ 	J_ASSERT(journal->j_committing_transaction != transaction);
+ 	J_ASSERT(journal->j_running_transaction != transaction);
+ 
+diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
+index af05681..fbd2c56 100644
+--- a/fs/jbd2/commit.c
++++ b/fs/jbd2/commit.c
+@@ -417,12 +417,12 @@ void jbd2_journal_commit_transaction(journal_t *journal)
+ 					      stats.run.rs_locked);
+ 
+ 	spin_lock(&commit_transaction->t_handle_lock);
+-	while (commit_transaction->t_updates) {
++	while (atomic_read(&commit_transaction->t_updates)) {
+ 		DEFINE_WAIT(wait);
+ 
+ 		prepare_to_wait(&journal->j_wait_updates, &wait,
+ 					TASK_UNINTERRUPTIBLE);
+-		if (commit_transaction->t_updates) {
++		if (atomic_read(&commit_transaction->t_updates)) {
+ 			spin_unlock(&commit_transaction->t_handle_lock);
+ 			spin_unlock(&journal->j_state_lock);
+ 			schedule();
+@@ -433,7 +433,7 @@ void jbd2_journal_commit_transaction(journal_t *journal)
+ 	}
+ 	spin_unlock(&commit_transaction->t_handle_lock);
+ 
+-	J_ASSERT (commit_transaction->t_outstanding_credits <=
++	J_ASSERT (atomic_read(&commit_transaction->t_outstanding_credits) <=
+ 			journal->j_max_transaction_buffers);
+ 
+ 	/*
+@@ -527,11 +527,12 @@ void jbd2_journal_commit_transaction(journal_t *journal)
+ 	stats.run.rs_logging = jiffies;
+ 	stats.run.rs_flushing = jbd2_time_diff(stats.run.rs_flushing,
+ 					       stats.run.rs_logging);
+-	stats.run.rs_blocks = commit_transaction->t_outstanding_credits;
++	stats.run.rs_blocks =
++		atomic_read(&commit_transaction->t_outstanding_credits);
+ 	stats.run.rs_blocks_logged = 0;
+ 
+ 	J_ASSERT(commit_transaction->t_nr_buffers <=
+-		 commit_transaction->t_outstanding_credits);
++		 atomic_read(&commit_transaction->t_outstanding_credits));
+ 
+ 	err = 0;
+ 	descriptor = NULL;
+@@ -616,7 +617,7 @@ void jbd2_journal_commit_transaction(journal_t *journal)
+ 		 * the free space in the log, but this counter is changed
+ 		 * by jbd2_journal_next_log_block() also.
+ 		 */
+-		commit_transaction->t_outstanding_credits--;
++		atomic_dec(&commit_transaction->t_outstanding_credits);
+ 
+ 		/* Bump b_count to prevent truncate from stumbling over
+                    the shadowed buffer!  @@@ This can go if we ever get
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index 001e95f..9c64c7e 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -55,6 +55,8 @@ jbd2_get_transaction(journal_t *journal, transaction_t *transaction)
+ 	transaction->t_tid = journal->j_transaction_sequence++;
+ 	transaction->t_expires = jiffies + journal->j_commit_interval;
+ 	spin_lock_init(&transaction->t_handle_lock);
++	atomic_set(&transaction->t_updates, 0);
++	atomic_set(&transaction->t_outstanding_credits, 0);
+ 	INIT_LIST_HEAD(&transaction->t_inode_list);
+ 	INIT_LIST_HEAD(&transaction->t_private_list);
+ 
+@@ -177,7 +179,7 @@ repeat_locked:
+ 	 * checkpoint to free some more log space.
+ 	 */
+ 	spin_lock(&transaction->t_handle_lock);
+-	needed = transaction->t_outstanding_credits + nblocks;
++	needed = atomic_read(&transaction->t_outstanding_credits) + nblocks;
+ 
+ 	if (needed > journal->j_max_transaction_buffers) {
+ 		/*
+@@ -240,11 +242,12 @@ repeat_locked:
+ 	}
+ 
+ 	handle->h_transaction = transaction;
+-	transaction->t_outstanding_credits += nblocks;
+-	transaction->t_updates++;
++	atomic_add(nblocks, &transaction->t_outstanding_credits);
++	atomic_inc(&transaction->t_updates);
+ 	transaction->t_handle_count++;
+ 	jbd_debug(4, "Handle %p given %d credits (total %d, free %d)\n",
+-		  handle, nblocks, transaction->t_outstanding_credits,
++		  handle, nblocks,
++		  atomic_read(&transaction->t_outstanding_credits),
+ 		  __jbd2_log_space_left(journal));
+ 	spin_unlock(&transaction->t_handle_lock);
+ 	spin_unlock(&journal->j_state_lock);
+@@ -369,7 +372,7 @@ int jbd2_journal_extend(handle_t *handle, int nblocks)
+ 	}
+ 
+ 	spin_lock(&transaction->t_handle_lock);
+-	wanted = transaction->t_outstanding_credits + nblocks;
++	wanted = atomic_read(&transaction->t_outstanding_credits) + nblocks;
+ 
+ 	if (wanted > journal->j_max_transaction_buffers) {
+ 		jbd_debug(3, "denied handle %p %d blocks: "
+@@ -384,7 +387,7 @@ int jbd2_journal_extend(handle_t *handle, int nblocks)
+ 	}
+ 
+ 	handle->h_buffer_credits += nblocks;
+-	transaction->t_outstanding_credits += nblocks;
++	atomic_add(nblocks, &transaction->t_outstanding_credits);
+ 	result = 0;
+ 
+ 	jbd_debug(3, "extended handle %p by %d\n", handle, nblocks);
+@@ -426,15 +429,14 @@ int jbd2__journal_restart(handle_t *handle, int nblocks, int gfp_mask)
+ 	 * First unlink the handle from its current transaction, and start the
+ 	 * commit on that.
+ 	 */
+-	J_ASSERT(transaction->t_updates > 0);
++	J_ASSERT(atomic_read(&transaction->t_updates) > 0);
+ 	J_ASSERT(journal_current_handle() == handle);
+ 
+ 	spin_lock(&journal->j_state_lock);
+ 	spin_lock(&transaction->t_handle_lock);
+-	transaction->t_outstanding_credits -= handle->h_buffer_credits;
+-	transaction->t_updates--;
+-
+-	if (!transaction->t_updates)
++	atomic_sub(handle->h_buffer_credits,
++		   &transaction->t_outstanding_credits);
++	if (atomic_dec_and_test(&transaction->t_updates))
+ 		wake_up(&journal->j_wait_updates);
+ 	spin_unlock(&transaction->t_handle_lock);
+ 
+@@ -481,7 +483,7 @@ void jbd2_journal_lock_updates(journal_t *journal)
+ 			break;
+ 
+ 		spin_lock(&transaction->t_handle_lock);
+-		if (!transaction->t_updates) {
++		if (!atomic_read(&transaction->t_updates)) {
+ 			spin_unlock(&transaction->t_handle_lock);
+ 			break;
+ 		}
+@@ -1258,7 +1260,8 @@ int jbd2_journal_stop(handle_t *handle)
+ {
+ 	transaction_t *transaction = handle->h_transaction;
+ 	journal_t *journal = transaction->t_journal;
+-	int err;
++	int err, wait_for_commit = 0;
++	tid_t tid;
+ 	pid_t pid;
+ 
+ 	J_ASSERT(journal_current_handle() == handle);
+@@ -1266,7 +1269,7 @@ int jbd2_journal_stop(handle_t *handle)
+ 	if (is_handle_aborted(handle))
+ 		err = -EIO;
+ 	else {
+-		J_ASSERT(transaction->t_updates > 0);
++		J_ASSERT(atomic_read(&transaction->t_updates) > 0);
+ 		err = 0;
+ 	}
+ 
+@@ -1334,14 +1337,8 @@ int jbd2_journal_stop(handle_t *handle)
+ 	if (handle->h_sync)
+ 		transaction->t_synchronous_commit = 1;
+ 	current->journal_info = NULL;
+-	spin_lock(&transaction->t_handle_lock);
+-	transaction->t_outstanding_credits -= handle->h_buffer_credits;
+-	transaction->t_updates--;
+-	if (!transaction->t_updates) {
+-		wake_up(&journal->j_wait_updates);
+-		if (journal->j_barrier_count)
+-			wake_up(&journal->j_wait_transaction_locked);
+-	}
++	atomic_sub(handle->h_buffer_credits,
++		   &transaction->t_outstanding_credits);
+ 
+ 	/*
+ 	 * If the handle is marked SYNC, we need to set another commit
+@@ -1350,15 +1347,13 @@ int jbd2_journal_stop(handle_t *handle)
+ 	 * transaction is too old now.
+ 	 */
+ 	if (handle->h_sync ||
+-			transaction->t_outstanding_credits >
+-				journal->j_max_transaction_buffers ||
+-			time_after_eq(jiffies, transaction->t_expires)) {
++	    (atomic_read(&transaction->t_outstanding_credits) >
++	     journal->j_max_transaction_buffers) ||
++	    time_after_eq(jiffies, transaction->t_expires)) {
+ 		/* Do this even for aborted journals: an abort still
+ 		 * completes the commit thread, it just doesn't write
+ 		 * anything to disk. */
+-		tid_t tid = transaction->t_tid;
+ 
+-		spin_unlock(&transaction->t_handle_lock);
+ 		jbd_debug(2, "transaction too old, requesting commit for "
+ 					"handle %p\n", handle);
+ 		/* This is non-blocking */
+@@ -1369,11 +1364,25 @@ int jbd2_journal_stop(handle_t *handle)
+ 		 * to wait for the commit to complete.
+ 		 */
+ 		if (handle->h_sync && !(current->flags & PF_MEMALLOC))
+-			err = jbd2_log_wait_commit(journal, tid);
+-	} else {
+-		spin_unlock(&transaction->t_handle_lock);
++			wait_for_commit = 1;
+ 	}
+ 
++	/*
++	 * Once we drop t_updates, if it goes to zero the transaction
++	 * could start commiting on us and eventually disappear.  So
++	 * once we do this, we must not dereference transaction
++	 * pointer again.
++	 */
++	tid = transaction->t_tid;
++	if (atomic_dec_and_test(&transaction->t_updates)) {
++		wake_up(&journal->j_wait_updates);
++		if (journal->j_barrier_count)
++			wake_up(&journal->j_wait_transaction_locked);
++	}
++
++	if (wait_for_commit)
++		err = jbd2_log_wait_commit(journal, tid);
++
+ 	lock_map_release(&handle->h_lockdep_map);
+ 
+ 	jbd2_free_handle(handle);
+diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
+index 5a72bc7..a72ce21 100644
+--- a/include/linux/jbd2.h
++++ b/include/linux/jbd2.h
+@@ -601,13 +601,13 @@ struct transaction_s
+ 	 * Number of outstanding updates running on this transaction
+ 	 * [t_handle_lock]
+ 	 */
+-	int			t_updates;
++	atomic_t		t_updates;
+ 
+ 	/*
+ 	 * Number of buffers reserved for use by all handles in this transaction
+ 	 * handle but not yet modified. [t_handle_lock]
+ 	 */
+-	int			t_outstanding_credits;
++	atomic_t		t_outstanding_credits;
+ 
+ 	/*
+ 	 * Forward and backward links for the circular list of all transactions
+@@ -1258,8 +1258,8 @@ static inline int jbd_space_needed(journal_t *journal)
+ {
+ 	int nblocks = journal->j_max_transaction_buffers;
+ 	if (journal->j_committing_transaction)
+-		nblocks += journal->j_committing_transaction->
+-					t_outstanding_credits;
++		nblocks += atomic_read(&journal->j_committing_transaction->
++				       t_outstanding_credits);
+ 	return nblocks;
+ }
+ 
+-- 
+1.7.0.4
