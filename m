@@ -1,29 +1,73 @@
-From: Ted Ts'o <tytso@mit.edu>
-Date: Tue, 3 Aug 2010 20:08:39 -0400
-Subject: [Ocfs2-devel] [PATCH,
-	RFC 2/3] jbd2: Change j_state_lock to be a rwlock_t
-In-Reply-To: <1280851315-9167-3-git-send-email-tytso@mit.edu>
-References: <1280851315-9167-1-git-send-email-tytso@mit.edu>
-	<1280851315-9167-3-git-send-email-tytso@mit.edu>
-Message-ID: <20100804000839.GI9453@thunk.org>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Wed,  4 Aug 2010 18:34:00 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2-1.4: Disallow o2net accept
+	connection.
+Message-ID: <1280918040-10569-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com
-Cc: John Stultz <johnstul@us.ibm.com>, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Aug 03, 2010 at 12:01:54PM -0400, Theodore Ts'o wrote:
-> Lockstat reports have shown that j_state_lock is a major source of
-> lock contention, especially on systems with more than 4 CPU cores.  So
-> change it to be a read/write spinlock.
-> 
-> Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
+Currently, o2net_accept_one() is allowed to accept a connection from
+listening node itself, such a fake connection will not be successfully
+established due to no handshake detected afterwards, and later end up
+with triggering connecting worker in a loop.
 
-Oops, this patch can result in a BUG_ON in fs/jbd2/transaction.c.  I'm
-currently testing a fix/replacement patch, but I figured I send a
-quick warning to folks not to waste time trying this out just yet.  I
-should hopefully have a new, better-tested patch in by tomorrow
-morning.
+We're going to fix this by treating such connection request as 'invalid',
+since we've got no chance of requesting connection from a node to itself
+in a OCFS2 cluster.
 
-						- Ted
+The fix doesn't hurt user's scan for o2net-listener, it always gets a
+successful connection from userpace.
+
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/cluster/tcp.c |   17 ++++++++++++-----
+ 1 files changed, 12 insertions(+), 5 deletions(-)
+
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 10a02a4..021e4db 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -1764,6 +1764,7 @@ static int o2net_accept_one(struct socket *sock)
+ 	struct sockaddr_in sin;
+ 	struct socket *new_sock = NULL;
+ 	struct o2nm_node *node = NULL;
++	struct o2nm_node *local_node = NULL;
+ 	struct o2net_sock_container *sc = NULL;
+ 	struct o2net_node *nn;
+ 
+@@ -1802,11 +1803,15 @@ static int o2net_accept_one(struct socket *sock)
+ 		goto out;
+ 	}
+ 
+-	if (o2nm_this_node() > node->nd_num) {
+-		mlog(ML_NOTICE, "unexpected connect attempted from a lower "
+-		     "numbered node '%s' at " "%u.%u.%u.%u:%d with num %u\n",
+-		     node->nd_name, NIPQUAD(sin.sin_addr.s_addr),
+-		     ntohs((__force __be16)sin.sin_port), node->nd_num);
++	if (o2nm_this_node() >= node->nd_num) {
++		local_node = o2nm_get_node_by_num(o2nm_this_node());
++		mlog(ML_NOTICE, "unexpected connect attempt seen at node '%s' ("
++		     "%u,%u.%u.%u.%u:%d) from node '%s' (%u,%u.%u.%u.%u:%d)\n",
++		     local_node->nd_name, local_node->nd_num,
++		     NIPQUAD(local_node->nd_ipv4_address),
++		     ntohs((__force __be16)local_node->nd_ipv4_port),
++		     node->nd_name, node->nd_num, NIPQUAD(sin.sin_addr.s_addr),
++		     ntohs((__force __be16)sin.sin_port));
+ 		ret = -EINVAL;
+ 		goto out;
+ 	}
+@@ -1863,6 +1868,8 @@ out:
+ 		sock_release(new_sock);
+ 	if (node)
+ 		o2nm_node_put(node);
++	if (local_node)
++		o2nm_node_put(local_node);
+ 	if (sc)
+ 		sc_put(sc);
+ 	return ret;
+-- 
+1.5.5
