@@ -1,8 +1,8 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Wed,  4 Aug 2010 18:34:00 +0800
+Date: Wed,  4 Aug 2010 18:36:21 +0800
 Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2-1.4: Disallow o2net accept
-	connection.
-Message-ID: <1280918040-10569-1-git-send-email-tristan.ye@oracle.com>
+	connection request from itself.
+Message-ID: <1280918181-10603-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
