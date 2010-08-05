@@ -1,32 +1,52 @@
-From: Ted Ts'o <tytso@mit.edu>
-Date: Thu, 5 Aug 2010 01:42:11 -0400
-Subject: [Ocfs2-devel] [PATCH -v2 0/3] jbd2 scalability patches
-In-Reply-To: <1280973537.2678.37.camel@localhost.localdomain>
-References: <1280939957-3277-1-git-send-email-tytso@mit.edu>
-	<1280973537.2678.37.camel@localhost.localdomain>
-Message-ID: <20100805054211.GF2901@thunk.org>
+From: Jan Kara <jack@suse.cz>
+Date: Thu,  5 Aug 2010 20:32:46 +0200
+Subject: [Ocfs2-devel] [PATCH 2/2 v3] ocfs2: Remove ocfs2_sync_inode()
+In-Reply-To: <1281033166-12485-1-git-send-email-jack@suse.cz>
+References: <1281033166-12485-1-git-send-email-jack@suse.cz>
+Message-ID: <1281033166-12485-3-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: john stultz <johnstul@us.ibm.com>
-Cc: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>
+To: ocfs2-devel@oss.oracle.com
 
-Thanks, John, for doing these numbers!!!
+ocfs2_sync_inode() is used only from ocfs2_sync_file(). But all data has
+already been written before calling ocfs2_sync_file() and ocfs2 doesn't use
+inode's private_list for tracking metadata buffers thus sync_mapping_buffers()
+is superfluous as well.
 
-> vfs + j_state lock + jdb2 scalability queue
-> Throughput 1214.21 MB/sec 8 procs
-> Throughput 1175.49 MB/sec 4 procs
-> Throughput 716.294 MB/sec 2 procs
-> Throughput 402.988 MB/sec 1 procs
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/file.c |   10 ----------
+ 1 files changed, 0 insertions(+), 10 deletions(-)
 
-2.6.35-rc6-vfs + atomic
-Throughput 2648.42 MB/sec 8 procs
-Throughput 1586.68 MB/sec 4 procs
-Throughput 851.545 MB/sec 2 procs
-Throughput 453.106 MB/sec 1 procs
-
-Your earlier numbers were quite a bit higher than this latest set.  I
-assume that's due to hardware differences?
-
-					- Ted
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 3ed8efd..b7cfa6b 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -64,12 +64,6 @@
+ 
+ #include "buffer_head_io.h"
+ 
+-static int ocfs2_sync_inode(struct inode *inode)
+-{
+-	filemap_fdatawrite(inode->i_mapping);
+-	return sync_mapping_buffers(inode->i_mapping);
+-}
+-
+ static int ocfs2_init_file_private(struct inode *inode, struct file *file)
+ {
+ 	struct ocfs2_file_private *fp;
+@@ -187,10 +181,6 @@ static int ocfs2_sync_file(struct file *file, int datasync)
+ 	mlog_entry("(0x%p, 0x%p, %d, '%.*s')\n", file, dentry, datasync,
+ 		   dentry->d_name.len, dentry->d_name.name);
+ 
+-	err = ocfs2_sync_inode(dentry->d_inode);
+-	if (err)
+-		goto bail;
+-
+ 	if (datasync && !(inode->i_state & I_DIRTY_DATASYNC)) {
+ 		/*
+ 		 * We still have to flush drive's caches to get data to the
+-- 
+1.6.4.2
