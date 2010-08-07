@@ -1,39 +1,42 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sat, 7 Aug 2010 11:40:28 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove potential deadlock -V3
-In-Reply-To: <201007301519.o6UFJ5ch018098@acsinet15.oracle.com>
-References: <04A823D0-EA74-4893-ABD0-816DA589CE16@oracle.com>
-	<201007301519.o6UFJ5ch018098@acsinet15.oracle.com>
-Message-ID: <20100807184028.GF3699@mail.oracle.com>
+Date: Sat, 7 Aug 2010 11:41:14 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2 fix o2dlm dlm run purgelist
+ (rev 3)
+In-Reply-To: <1279580652-29247-1-git-send-email-srinivas.eeda@oracle.com>
+References: <1279580652-29247-1-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <20100807184113.GH3699@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jul 30, 2010 at 11:18:00PM +0800, Wengang Wang wrote:
-> When we need to take both dlm_domain_lock and dlm->spinlock, we should take
-> them in order of: dlm_domain_lock then dlm->spinlock.
+On Mon, Jul 19, 2010 at 04:04:12PM -0700, Srinivas Eeda wrote:
+> This patch fixes two problems in dlm_run_purgelist
 > 
-> There is pathes disobey this order. That is calling dlm_lockres_put() with
-> dlm->spinlock held in dlm_run_purge_list. dlm_lockres_put() calls dlm_put() at
-> the ref and dlm_put() locks on dlm_domain_lock.
+> 1. If a lockres is found to be in use, dlm_run_purgelist keeps trying to purge
+> the same lockres instead of trying the next lockres.
 > 
-> Fix:
-> Don't grab/put the dlm when the initialising/releasing lockres.
-> That grab is not required because we don't call dlm_unregister_domain()
-> based on refcount.
+> 2. When a lockres is found unused, dlm_run_purgelist releases lockres spinlock
+> before setting DLM_LOCK_RES_DROPPING_REF and calls dlm_purge_lockres.
+> spinlock is reacquired but in this window lockres can get reused. This leads
+> to BUG.
 > 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> This patch modifies dlm_run_purgelist to skip lockres if it's in use and purge
+>  next lockres. It also sets DLM_LOCK_RES_DROPPING_REF before releasing the
+> lockres spinlock protecting it from getting reused.
+> 
+> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
 
 This patch is now in the fixes branch of ocfs2.git.
 
 Joel
+
 -- 
 
-"If the human brain were so simple we could understand it, we would
- be so simple that we could not."
-	- W. A. Clouston
+"To fall in love is to create a religion that has a fallible god."
+        -Jorge Luis Borges
 
 Joel Becker
 Consulting Software Developer
