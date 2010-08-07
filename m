@@ -1,56 +1,39 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu,  5 Aug 2010 20:32:45 +0200
-Subject: [Ocfs2-devel] [PATCH 1/2 v3] ocfs2: Flush drive's caches on
-	fdatasync
-In-Reply-To: <1281033166-12485-1-git-send-email-jack@suse.cz>
-References: <1281033166-12485-1-git-send-email-jack@suse.cz>
-Message-ID: <1281033166-12485-2-git-send-email-jack@suse.cz>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Sat, 7 Aug 2010 11:39:34 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Count more refcount records in
+ file system fragmentation.
+In-Reply-To: <1279778205-7428-1-git-send-email-tao.ma@oracle.com>
+References: <1279778205-7428-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100807183934.GC3699@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When 'barrier' mount option is specified, we have to issue a cache flush
-during fdatasync(2). We have to do this even if inode doesn't have
-I_DIRTY_DATASYNC set because we still have to get written *data* to disk so
-that they are not lost in case of crash.
+On Thu, Jul 22, 2010 at 01:56:45PM +0800, Tao Ma wrote:
+> The refcount record calculation in ocfs2_calc_refcount_meta_credits
+> is too optimistic that we can always allocate contiguous clusters
+> and handle an already existed refcount rec as a whole. Actually
+> because of file system fragmentation, we may have the chance to split
+> a refcount record into 3 parts during the transaction. So consider
+> the worst case in record calculation.
+> 
+> Cc: stable at kernel.org
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-Acked-by: Tao Ma <tao.ma@oracle.com>
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/ocfs2/file.c |   11 ++++++++++-
- 1 files changed, 10 insertions(+), 1 deletions(-)
+This patch is now in the fixes branch of ocfs2.git.
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 2b10b36..3ed8efd 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -36,6 +36,7 @@
- #include <linux/writeback.h>
- #include <linux/falloc.h>
- #include <linux/quotaops.h>
-+#include <linux/blkdev.h>
- 
- #define MLOG_MASK_PREFIX ML_INODE
- #include <cluster/masklog.h>
-@@ -190,8 +191,16 @@ static int ocfs2_sync_file(struct file *file, int datasync)
- 	if (err)
- 		goto bail;
- 
--	if (datasync && !(inode->i_state & I_DIRTY_DATASYNC))
-+	if (datasync && !(inode->i_state & I_DIRTY_DATASYNC)) {
-+		/*
-+		 * We still have to flush drive's caches to get data to the
-+		 * platter
-+		 */
-+		if (osb->s_mount_opt & OCFS2_MOUNT_BARRIER)
-+			blkdev_issue_flush(inode->i_sb->s_bdev, GFP_KERNEL,
-+					   NULL, BLKDEV_IFL_WAIT);
- 		goto bail;
-+	}
- 
- 	journal = osb->journal->j_journal;
- 	err = jbd2_journal_force_commit(journal);
+Joel
+
 -- 
-1.6.4.2
+
+Life's Little Instruction Book #347
+
+	"Never waste the oppourtunity to tell someone you love them."
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
