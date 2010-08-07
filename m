@@ -1,42 +1,66 @@
-From: john stultz <johnstul@us.ibm.com>
-Date: Thu, 05 Aug 2010 10:42:08 -0700
-Subject: [Ocfs2-devel] [PATCH -v2 0/3] jbd2 scalability patches
-In-Reply-To: <20100805054211.GF2901@thunk.org>
-References: <1280939957-3277-1-git-send-email-tytso@mit.edu>
-	<1280973537.2678.37.camel@localhost.localdomain>
-	<20100805054211.GF2901@thunk.org>
-Message-ID: <1281030128.3405.2.camel@localhost.localdomain>
+From: Julia Lawall <julia@diku.dk>
+Date: Sat, 7 Aug 2010 11:09:13 +0200 (CEST)
+Subject: [Ocfs2-devel] [PATCH 1/2] fs/ocfs2/dlm: Eliminate update of
+ list_for_each_entry loop cursor
+Message-ID: <Pine.LNX.4.64.1008071108540.5821@ask.diku.dk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ted Ts'o <tytso@mit.edu>
-Cc: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>
+To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org
 
-On Thu, 2010-08-05 at 01:42 -0400, Ted Ts'o wrote:
-> Thanks, John, for doing these numbers!!!
-> 
-> > vfs + j_state lock + jdb2 scalability queue
-> > Throughput 1214.21 MB/sec 8 procs
-> > Throughput 1175.49 MB/sec 4 procs
-> > Throughput 716.294 MB/sec 2 procs
-> > Throughput 402.988 MB/sec 1 procs
-> 
-> 2.6.35-rc6-vfs + atomic
-> Throughput 2648.42 MB/sec 8 procs
-> Throughput 1586.68 MB/sec 4 procs
-> Throughput 851.545 MB/sec 2 procs
-> Throughput 453.106 MB/sec 1 procs
-> 
-> Your earlier numbers were quite a bit higher than this latest set.  I
-> assume that's due to hardware differences?
+From: Julia Lawall <julia@diku.dk>
 
-So yes, it was run on a different but similar system.
+list_for_each_entry uses its first argument to move from one element to the
+next, so modifying it can break the iteration.
 
-But the numbers I just provided here were with CONFIG_PREEMPT_RT (vfs:
-2.6.33-rt23 or novfs: 2.6.33-rt29). Sorry for not making that explicit.
+The semantic match that finds this problem is as follows:
+(http://coccinelle.lip6.fr/)
 
-Do you want me to generate non-rt 2.6.35 numbers as well?
+// <smpl>
+@r@
+iterator name list_for_each_entry;
+expression x,E;
+position p1,p2;
+@@
 
-thanks
--john
+list_for_each_entry at p1(x,...) { <... x =@p2 E ...> }
+
+@@
+expression x,E;
+position r.p1,r.p2;
+statement S;
+@@
+
+*x =@p2 E
+...
+list_for_each_entry at p1(x,...) S
+// </smpl>
+
+Signed-off-by: Julia Lawall <julia@diku.dk>
+
+---
+I don't know whether this is the right solution, but it seems plausible
+considering the subsequent test on lock.  In any case, setting lock to NULL
+and then going back to the top of the loop does not work.
+
+ fs/ocfs2/dlm/dlmrecovery.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 9dfaac7..7084a11 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1792,10 +1792,10 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+ 				tmpq = dlm_list_idx_to_ptr(res, j);
+ 				list_for_each_entry(lock, tmpq, list) {
+-					if (lock->ml.cookie != ml->cookie)
++					if (lock->ml.cookie != ml->cookie) {
+ 						lock = NULL;
+-					else
+ 						break;
++					}
+ 				}
+ 				if (lock)
+ 					break;
