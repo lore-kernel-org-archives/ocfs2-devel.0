@@ -1,39 +1,39 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Sat, 7 Aug 2010 11:38:47 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1 v2] ocfs2: do not overwrite error
- codes in ocfs2_init_acl
-In-Reply-To: <4C3FE99E.9040504@oracle.com>
-References: <4C3FE99E.9040504@oracle.com>
-Message-ID: <20100807183846.GA3699@mail.oracle.com>
+Date: Sat, 7 Aug 2010 11:40:28 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove potential deadlock -V3
+In-Reply-To: <201007301519.o6UFJ5ch018098@acsinet15.oracle.com>
+References: <04A823D0-EA74-4893-ABD0-816DA589CE16@oracle.com>
+	<201007301519.o6UFJ5ch018098@acsinet15.oracle.com>
+Message-ID: <20100807184028.GF3699@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jul 16, 2010 at 01:09:50PM +0800, Tiger Yang wrote:
-
-> >From d70af04aae44afc7bd2ea40a12da03a08fd3e5c1 Mon Sep 17 00:00:00 2001
-> From: Tiger Yang <tiger.yang@oracle.com>
-> Date: Fri, 16 Jul 2010 11:21:23 +0800
-> Subject: [PATCH 1/1 v2] ocfs2: do not overwrite error codes in ocfs2_init_acl
+On Fri, Jul 30, 2010 at 11:18:00PM +0800, Wengang Wang wrote:
+> When we need to take both dlm_domain_lock and dlm->spinlock, we should take
+> them in order of: dlm_domain_lock then dlm->spinlock.
 > 
-> Setting the acl while creating a new inode depends on
-> the error codes of posix_acl_create_masq. This patch fix
-> a issue of overwriting the error codes of it.
+> There is pathes disobey this order. That is calling dlm_lockres_put() with
+> dlm->spinlock held in dlm_run_purge_list. dlm_lockres_put() calls dlm_put() at
+> the ref and dlm_put() locks on dlm_domain_lock.
 > 
-> Reported-by: Pawel Zawora <pzawora@gmail.com>
-> Cc: <stable@kernel.org> [ .33, .34 ]
-> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+> Fix:
+> Don't grab/put the dlm when the initialising/releasing lockres.
+> That grab is not required because we don't call dlm_unregister_domain()
+> based on refcount.
+> 
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 
 This patch is now in the fixes branch of ocfs2.git.
 
 Joel
-
 -- 
 
-"Up and down that road in our worn out shoes,
- Talking bout good things and singing the blues."
+"If the human brain were so simple we could understand it, we would
+ be so simple that we could not."
+	- W. A. Clouston
 
 Joel Becker
 Consulting Software Developer
