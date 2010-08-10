@@ -1,80 +1,63 @@
-From: Eric Whitney <eric.whitney@hp.com>
-Date: Mon, 09 Aug 2010 23:40:42 -0400
-Subject: [Ocfs2-devel] [PATCH,
-	RFC 0/3] *** SUBJECT HERE ***  (ext4 scalability patches)
-In-Reply-To: <1280851315-9167-1-git-send-email-tytso@mit.edu>
-References: <1280851315-9167-1-git-send-email-tytso@mit.edu>
-Message-ID: <4C60CA3A.5070807@hp.com>
+From: Lars Marowsky-Bree <lmb@novell.com>
+Date: Tue, 10 Aug 2010 19:48:12 +0200
+Subject: [Ocfs2-devel] [Linux-ha-dev] CFP: Linux Plumbers Mini-Conf on
+ High-Availability/Clustering
+In-Reply-To: <20100804135927.GF4989@suse.de>
+References: <20100804135927.GF4989@suse.de>
+Message-ID: <20100810174812.GG8524@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Ts'o <tytso@mit.edu>
-Cc: Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com, John Stultz <johnstul@us.ibm.com>, Keith Maanthey <kmannth@us.ibm.com>
+To: ocfs2-devel@oss.oracle.com
 
-On 08/03/2010 12:01 PM, Theodore Ts'o wrote:
-> The first patch in this patch series hasn't changed since when I had
-> last posted it, but I'm including it again for the benefit of the folks
-> on ocfs2-dev.
->
-> Thanks to some work done by Eric Whitney, when he accidentally ran the
-> command "mkfs.ext4 -t xfs", and created a ext4 file system without a
-> journal, it appears that main scalability bottleneck for ext4 is in the
-> jbd2 layer.  In fact, his testing on a 48-core system shows that on some
-> workloads, ext4 is roughly comparable with XFS!
->
-> The lockstat results indicate that the main bottlenecks are in the
-> j_state_lock and t_handle_lock, especially in start_this_handle() in
-> fs/jbd2/transaction.c.  A previous patch, which removed an unneeded
-> grabbing of j_state_lock jbd2_journal_stop() relieved pressure on that
-> lock and was noted to make a significant difference for dbench on a
-> kernel with CONFIG_PREEMPT_RT enabled, as well as on a 48-core AMD
-> system from HP.   This patch is already in 2.6.35, and the benchmark
-> results can be found here: http://free.linux.hp.com/~enw/ext4/2.6.34/
->
-> This patch series removes all exclusive spinlocks when starting and
-> stopping jbd2 handles, which should improve things even more.  Since
-> OCFS2 uses the jbd2 layer, and the second patch in this patch series
-> touches ocfs2 a wee bit, I'd appreciate it if you could take a look and
-> let me know what you think.  Hopefully, this should also improve OCFS2's
-> scalability.
->
-> Best regards,
->
->       					- Ted
->
-> Theodore Ts'o (3):
->    jbd2: Use atomic variables to avoid taking t_handle_lock in
->      jbd2_journal_stop
->    jbd2: Change j_state_lock to be a rwlock_t
->    jbd2: Remove t_handle_lock from start_this_handle()
->
->   fs/ext4/inode.c       |    4 +-
->   fs/ext4/super.c       |    4 +-
->   fs/jbd2/checkpoint.c  |   18 +++---
->   fs/jbd2/commit.c      |   42 +++++++-------
->   fs/jbd2/journal.c     |   94 +++++++++++++++----------------
->   fs/jbd2/transaction.c |  149 ++++++++++++++++++++++++++++---------------------
->   fs/ocfs2/journal.c    |    4 +-
->   include/linux/jbd2.h  |   12 ++--
->   8 files changed, 174 insertions(+), 153 deletions(-)
->
+On 2010-08-04T15:59:27, Lars Marowsky-Bree <lmb@novell.com> wrote:
 
+> Hi all,
+> 
+> there will (hopefully!) be a mini-conference on HA/Clustering at this
+> year's LPC in Cambridge, MA, Nov 3-5th.
 
-My 48 core test results for these patches as applied to 2.6.35 can be 
-found at:
+Just a quick reminder, there've not been many proposals submitted yet.
+If the trend continues, the mini-conf slot might instead be allocated to
+another topic ...
 
-http://free.linux.hp.com/~enw/ext4/2.6.35
+Please, do consider to submit a talk to this soon - I know it's to a
+large degree my fault for sending out the request so late.
 
-Both the Boxacle large_file_creates and random_writes workloads improved 
-significantly and consistently with these patches, and apparently in the 
-single threaded case as well as at increased scale.
-The graphs at the URL show one instance of several runs I made to 
-establish repeatability.
+I'm also planning to arrive a day early so we can have some conference
+free time to talk as well.
 
-I've also taken unmodified 2.6.35 ext4, ext4 without a journal, and xfs 
-data for comparison.  In addition, I've collected lock stats and more 
-detailed performance data for reference.
+> This would be an informal summit for the HA folks to get together and
+> discuss the various issues that would benefit from a face to face
+> meeting; to facilitate progress faster than by exchanging countless
+> e-mails.
+> 
+> The goal would be a very technical discussion - the sessions would be
+> focus points, but the chance to get the core folks from the community
+> together is key.
+> 
+> Topics that come to my mind and that would seek speakers/discussion
+> leaders are fencing, resource agent evolution, synergies between
+> init/upstart/lrm, or wildly reaching out to the stars - where's our
+> place in the cloud? Can we build clustered appliances? Anything
+> remaining in the file system spaces?
+> 
+> I hope you have other ideas and want to attend the conference. You can
+> submit them here:
+> http://www.linuxplumbersconf.org/2010/ocw/events/LPC2010MC/proposals/new
+> 
+> Miniconference proposal submissions are not necessarily time-limited,
+> but I would appreciate a fast turn-around. ;-)
+> 
+> I look forward to your submissions. Please let me know if you have any
+> questions.
+> 
+> 
+Regards,
+    Lars
 
-Thanks, Ted!
-Eric
+-- 
+Architect Storage/HA, OPS Engineering, Novell, Inc.
+SUSE LINUX Products GmbH, GF: Markus Rex, HRB 16746 (AG N?rnberg)
+"Experience is the name everyone gives to their mistakes." -- Oscar Wilde
