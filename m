@@ -1,43 +1,43 @@
-From: Jan Kara <jack@suse.cz>
-Date: Mon, 9 Aug 2010 21:45:55 +0200
-Subject: [Ocfs2-devel] [PATCH -v2 1/3] jbd2: Use atomic variables to
- avoid taking t_handle_lock in jbd2_journal_stop
-In-Reply-To: <20100809190513.GF3635@thunk.org>
-References: <1280939957-3277-1-git-send-email-tytso@mit.edu>
-	<1280939957-3277-2-git-send-email-tytso@mit.edu>
-	<20100809170216.GB31969@atrey.karlin.mff.cuni.cz>
-	<20100809190513.GF3635@thunk.org>
-Message-ID: <20100809194554.GB5356@quack.suse.cz>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Tue, 10 Aug 2010 08:15:19 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3] ext3/ext4: Factor out disk
+ addressability check
+In-Reply-To: <874ofr2myq.fsf@patl.com>
+References: <874ofr2myq.fsf@patl.com>
+Message-ID: <20100810151518.GC3025@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ted Ts'o <tytso@mit.edu>
-Cc: Jan Kara <jack@suse.cz>, Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com, John Stultz <johnstul@us.ibm.com>, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>
+To: "Patrick J. LoPresti" <lopresti@gmail.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon 09-08-10 15:05:13, Ted Ts'o wrote:
-> On Mon, Aug 09, 2010 at 07:02:16PM +0200, Jan Kara wrote:
-> >         spin_lock(&journal->j_state_lock);
-> >         spin_lock(&transaction->t_handle_lock);
-> > -       transaction->t_outstanding_credits -= handle->h_buffer_credits;
-> > -       transaction->t_updates--;
-> > -
-> > -       if (!transaction->t_updates)
-> > +       atomic_sub(handle->h_buffer_credits,
-> > +                  &transaction->t_outstanding_credits);
-> > +       if (atomic_dec_and_test(&transaction->t_updates))
-> >
-> > After this a transaction can disappear so subsequent
-> > __jbd2_log_start_commit shouldn't dereference transaction->t_tid,
-> > right?
+On Thu, Jul 22, 2010 at 03:03:41PM -0700, Patrick J. LoPresti wrote:
+> As part of adding support for OCFS2 to mount huge volumes, we need to
+> check that the sector_t and page cache of the system are capable of
+> addressing the entire volume.
 > 
-> I think it should be ok because we're holding j_state_lock(), so the
-> transaction can't disappear until we release the j_state_lock.
-  Ah, OK. You're right. I just thought we eventually want to remove the
-lock but you're right that currently the code is fine. Sorry for the noise.
+> An identical check already appears in ext3 and ext4.  This patch moves
+> the addressability check into its own function in fs/libfs.c and
+> modifies ext3 and ext4 to invoke it.
+> 
+> Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
 
-								Honza
+ext4/jbd2 folks,
+	I would like to push these upstream.  Should they go through
+ocfs2.git or would you rather take them via your trees?
+
+Joel
 
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+
+"In the arms of the angel, fly away from here,
+ From this dark, cold hotel room and the endlessness that you fear.
+ You are pulled from the wreckage of your silent reverie.
+ In the arms of the angel, may you find some comfort here."
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
