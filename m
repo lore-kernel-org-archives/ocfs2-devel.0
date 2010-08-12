@@ -1,35 +1,34 @@
-From: Dan Carpenter <error27@gmail.com>
-Date: Thu, 12 Aug 2010 09:14:31 +0200
-Subject: [Ocfs2-devel] [PATCH 1/2] fs/ocfs2/dlm: Eliminate update
-	of	list_for_each_entry loop cursor
-In-Reply-To: <Pine.LNX.4.64.1008120735200.16027@ask.diku.dk>
-References: <Pine.LNX.4.64.1008071108540.5821@ask.diku.dk>
-	<20100812000355.GA7195@mail.oracle.com>
-	<Pine.LNX.4.64.1008120735200.16027@ask.diku.dk>
-Message-ID: <20100812071431.GF645@bicker>
+From: Andreas Dilger <adilger@dilger.ca>
+Date: Thu, 12 Aug 2010 12:45:41 -0600
+Subject: [Ocfs2-devel] [PATCH 1/3] ext3/ext4: Factor out disk
+	addressability check
+In-Reply-To: <20100812174215.GC6561@mail.oracle.com>
+References: <874ofr2myq.fsf@patl.com> <20100812174215.GC6561@mail.oracle.com>
+Message-ID: <1F3EDC08-AC93-4D4D-8F83-A13C418DFC88@dilger.ca>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Julia Lawall <julia@diku.dk>
-Cc: Joel Becker <Joel.Becker@oracle.com>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org, Sunil Mushran <sunil.mushran@oracle.com>
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Ted Ts'o <tytso@mit.edu>, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, "linux-kernel@vger.kernel.org Patrick J. LoPresti" <lopresti@gmail.com>
 
-On Thu, Aug 12, 2010 at 07:46:13AM +0200, Julia Lawall wrote:
-> 
-> This seems a bit ugly to me, since it exposes the implementation of the 
-> list abstraction.  What about the following:
-> 
-> lock = NULL;
-> list_for_each_entry(x, tmpq, list) {
-> 	if (x->ml.cookie == ml->cookie) {
-> 	   	lock = x;
-> 		break;
-> 	}
-> }
-> 
+On 2010-08-12, at 11:42, Joel Becker wrote:
+>> +/**
+>> + * generic_check_addressable - Check addressability of file system
+>> + * @blocksize_bits:	log of file system block size
+>> + * @num_blocks:		number of blocks in file system
+>> + *
+>> + * Determine whether a file system with @num_blocks blocks (and a
+>> + * block size of 2**@blocksize_bits) is addressable by the sector_t
+>> + * and page cache of the system.  Return 0 if so and -EFBIG otherwise.
+>> + */
+>> +int generic_check_addressable(unsigned blocksize_bits, u64 num_blocks)
+>> +{
+>> +	u64 last_fs_block = num_blocks - 1;
+>> +
+>> +	BUG_ON(blocksize_bits < 9);
+>> +	BUG_ON(blocksize_bits > PAGE_CACHE_SHIFT);
 
-I agree with you that it's ugly as pants.  Maybe someone could write an
-at_list_start() macro?
+I'd rather not have a BUG_ON() for a "check" function that may be called with on-disk values by some filesystem.  Some filesystems (AFAIR) also handle blocksize > PAGE_SIZE internally, so this helper would not be useful for them.
 
-regards,
-dan carpenter
+Cheers, Andreas
