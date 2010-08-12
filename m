@@ -1,41 +1,48 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 12 Aug 2010 16:24:25 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Fix metaecc error messages
-Message-ID: <1281655466-26341-1-git-send-email-sunil.mushran@oracle.com>
+Date: Thu, 12 Aug 2010 16:24:26 -0700
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Fix incorrect checksum validation
+	error
+In-Reply-To: <1281655466-26341-1-git-send-email-sunil.mushran@oracle.com>
+References: <1281655466-26341-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1281655466-26341-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Like tools, the checksum validate function now prints the values in hex.
+For local mounts, ocfs2_read_locked_inode() calls ocfs2_read_blocks_sync() to
+read the inode off the disk. The latter first checks to see if that block is
+cached in the journal, and, if so, returns that block. That is ok.
+
+But ocfs2_read_locked_inode() goes wrong when it tries to validate the checksum
+of such blocks. Blocks that are cached in the journal may not have had their
+checksum computed as yet. We should not validate the checksums of such blocks.
+
+Fixes ossbz#1282
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1282
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/blockcheck.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ fs/ocfs2/inode.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
-index ec6d123..c7ee03c 100644
---- a/fs/ocfs2/blockcheck.c
-+++ b/fs/ocfs2/blockcheck.c
-@@ -439,7 +439,7 @@ int ocfs2_block_check_validate(void *data, size_t blocksize,
- 
- 	ocfs2_blockcheck_inc_failure(stats);
- 	mlog(ML_ERROR,
--	     "CRC32 failed: stored: %u, computed %u.  Applying ECC.\n",
-+	     "CRC32 failed: stored: 0x%x, computed 0x%x. Applying ECC.\n",
- 	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
- 
- 	/* Ok, try ECC fixups */
-@@ -453,7 +453,7 @@ int ocfs2_block_check_validate(void *data, size_t blocksize,
- 		goto out;
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index abb0a95..c9fcce3 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -488,7 +488,11 @@ static int ocfs2_read_locked_inode(struct inode *inode,
+ 						     OCFS2_BH_IGNORE_CACHE);
+ 	} else {
+ 		status = ocfs2_read_blocks_sync(osb, args->fi_blkno, 1, &bh);
+-		if (!status)
++		/*
++		 * If buffer is in jbd, then its checksum may not have been
++		 * computed as yet.
++		 */
++		if (!status && (!buffer_jbd(bh)))
+ 			status = ocfs2_validate_inode_block(osb->sb, bh);
  	}
- 
--	mlog(ML_ERROR, "Fixed CRC32 failed: stored: %u, computed %u\n",
-+	mlog(ML_ERROR, "Fixed CRC32 failed: stored: 0x%x, computed 0x%x\n",
- 	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
- 
- 	rc = -EIO;
+ 	if (status < 0) {
 -- 
 1.7.0.4
