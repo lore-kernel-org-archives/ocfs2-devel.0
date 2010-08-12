@@ -1,35 +1,47 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 11 Aug 2010 17:32:55 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2 v3] ocfs2: Remove ocfs2_sync_inode()
-In-Reply-To: <1281033166-12485-3-git-send-email-jack@suse.cz>
-References: <1281033166-12485-1-git-send-email-jack@suse.cz>
-	<1281033166-12485-3-git-send-email-jack@suse.cz>
-Message-ID: <20100812003255.GF8985@mail.oracle.com>
+Date: Wed, 11 Aug 2010 19:25:31 -0700
+Subject: [Ocfs2-devel] [PATCH 0/5 v2] Add readahead support in CoW for
+ reflinked files.
+In-Reply-To: <4C3E7AC5.3030905@oracle.com>
+References: <4C3D6CBA.10401@oracle.com>
+	<20100715023156.GB14909@mail.oracle.com>
+	<4C3E7AC5.3030905@oracle.com>
+Message-ID: <20100812022531.GB7195@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Aug 05, 2010 at 08:32:46PM +0200, Jan Kara wrote:
-> ocfs2_sync_inode() is used only from ocfs2_sync_file(). But all data has
-> already been written before calling ocfs2_sync_file() and ocfs2 doesn't use
-> inode's private_list for tracking metadata buffers thus sync_mapping_buffers()
-> is superfluous as well.
-> 
-> Signed-off-by: Jan Kara <jack@suse.cz>
+On Thu, Jul 15, 2010 at 11:04:37AM +0800, Tao Ma wrote:
+> On 07/15/2010 10:31 AM, Joel Becker wrote:
+> >On Wed, Jul 14, 2010 at 03:52:26PM +0800, Tao Ma wrote:
+> >>	When we try to CoW some clusters for a reflinked file, we have to
+> >>read the contents first, allocate some clusters and then map these
+> >>pages to the new clusters. Currently, we use block_read_full_page to
+> >>read it, but it is a little bit slower.
+> >>	So this patch set try to add readahead support for CoW. Before we
+> >>start, we call readahead first so that the pages can be read at the
+> >>very first. And during CoW, when we find a readahead page, we know
+> >>that we need to move the readahead window, so a new asyncreadahead
+> >>is called.
+> >
+> >	I think this looks good.  Can you create a branch in your git
+> >tree for it?  I'll pull when I build merge-window.
+> done. please pull from
+> git://oss.oracle.com/git/tma/linux-2.6.git cow_readahead.
 
-
-        This patch is now in the merge-window branch of ocfs2.git
+	I tried pulling this, and it conflicts with the zero-tail fix.
+Can you rebase it for me?  I want to make sure we get the readahead
+right.
 
 Joel
- 
 
 -- 
 
-"What no boss of a programmer can ever understand is that a programmer
- is working when he's staring out of the window"
-	- With apologies to Burton Rascoe
+Life's Little Instruction Book #337
+
+	"Reread your favorite book."
 
 Joel Becker
 Consulting Software Developer
