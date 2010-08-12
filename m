@@ -1,38 +1,41 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 12 Aug 2010 16:13:44 -0700
-Subject: [Ocfs2-devel] [PATCH 1/3] ext3/ext4: Factor out disk
- addressability check
-In-Reply-To: <0C1C222E-9299-4C92-9F16-3D0912E3B50A@dilger.ca>
-References: <874ofr2myq.fsf@patl.com> <20100812174215.GC6561@mail.oracle.com>
-	<1F3EDC08-AC93-4D4D-8F83-A13C418DFC88@dilger.ca>
-	<20100812201534.GA22777@mail.oracle.com>
-	<209AEA97-E284-4ADB-8774-50C2630606B9@dilger.ca>
-	<20100812222949.GC22777@mail.oracle.com>
-	<0C1C222E-9299-4C92-9F16-3D0912E3B50A@dilger.ca>
-Message-ID: <20100812231344.GF22777@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 12 Aug 2010 16:24:25 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Fix metaecc error messages
+Message-ID: <1281655466-26341-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andreas Dilger <adilger@dilger.ca>
-Cc: Ted Ts'o <tytso@mit.edu>, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, "linux-kernel@vger.kernel.org Patrick J. LoPresti" <lopresti@gmail.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Thu, Aug 12, 2010 at 05:07:36PM -0600, Andreas Dilger wrote:
-> You can add my:
-> 
-> Acked-by: Andreas Dilger <adilger@dilger.ca>
+Like tools, the checksum validate function now prints the values in hex.
 
-	Thanks!
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/blockcheck.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-Joel
-
+diff --git a/fs/ocfs2/blockcheck.c b/fs/ocfs2/blockcheck.c
+index ec6d123..c7ee03c 100644
+--- a/fs/ocfs2/blockcheck.c
++++ b/fs/ocfs2/blockcheck.c
+@@ -439,7 +439,7 @@ int ocfs2_block_check_validate(void *data, size_t blocksize,
+ 
+ 	ocfs2_blockcheck_inc_failure(stats);
+ 	mlog(ML_ERROR,
+-	     "CRC32 failed: stored: %u, computed %u.  Applying ECC.\n",
++	     "CRC32 failed: stored: 0x%x, computed 0x%x. Applying ECC.\n",
+ 	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
+ 
+ 	/* Ok, try ECC fixups */
+@@ -453,7 +453,7 @@ int ocfs2_block_check_validate(void *data, size_t blocksize,
+ 		goto out;
+ 	}
+ 
+-	mlog(ML_ERROR, "Fixed CRC32 failed: stored: %u, computed %u\n",
++	mlog(ML_ERROR, "Fixed CRC32 failed: stored: 0x%x, computed 0x%x\n",
+ 	     (unsigned int)check.bc_crc32e, (unsigned int)crc);
+ 
+ 	rc = -EIO;
 -- 
-
- There are morethings in heaven and earth, Horatio,
- Than are dreamt of in your philosophy.
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.7.0.4
