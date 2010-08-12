@@ -1,63 +1,112 @@
-From: Lars Marowsky-Bree <lmb@novell.com>
-Date: Tue, 10 Aug 2010 19:48:12 +0200
-Subject: [Ocfs2-devel] [Linux-ha-dev] CFP: Linux Plumbers Mini-Conf on
- High-Availability/Clustering
-In-Reply-To: <20100804135927.GF4989@suse.de>
-References: <20100804135927.GF4989@suse.de>
-Message-ID: <20100810174812.GG8524@suse.de>
+From: Julia Lawall <julia@diku.dk>
+Date: Thu, 12 Aug 2010 07:46:13 +0200 (CEST)
+Subject: [Ocfs2-devel] [PATCH 1/2] fs/ocfs2/dlm: Eliminate update of
+ list_for_each_entry loop cursor
+In-Reply-To: <20100812000355.GA7195@mail.oracle.com>
+References: <Pine.LNX.4.64.1008071108540.5821@ask.diku.dk>
+	<20100812000355.GA7195@mail.oracle.com>
+Message-ID: <Pine.LNX.4.64.1008120735200.16027@ask.diku.dk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org, Sunil Mushran <sunil.mushran@oracle.com>
 
-On 2010-08-04T15:59:27, Lars Marowsky-Bree <lmb@novell.com> wrote:
+On Wed, 11 Aug 2010, Joel Becker wrote:
 
-> Hi all,
+> On Sat, Aug 07, 2010 at 11:09:13AM +0200, Julia Lawall wrote:
+> > From: Julia Lawall <julia@diku.dk>
+> > 
+> > list_for_each_entry uses its first argument to move from one element to the
+> > next, so modifying it can break the iteration.
 > 
-> there will (hopefully!) be a mini-conference on HA/Clustering at this
-> year's LPC in Cambridge, MA, Nov 3-5th.
+> 	Thanks for catching the bug.  It was introduced by 800deef3
+> [ocfs2: use list_for_each_entry where benefical].  I blame Christoph.
+> 
+> > diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> > index 9dfaac7..7084a11 100644
+> > --- a/fs/ocfs2/dlm/dlmrecovery.c
+> > +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> > @@ -1792,10 +1792,10 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+> >  			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+> >  				tmpq = dlm_list_idx_to_ptr(res, j);
+> >  				list_for_each_entry(lock, tmpq, list) {
+> > -					if (lock->ml.cookie != ml->cookie)
+> > +					if (lock->ml.cookie != ml->cookie) {
+> >  						lock = NULL;
+> > -					else
+> >  						break;
+> > +					}
+> >  				}
+> >  				if (lock)
+> >  					break;
+> 
+> 	However, this is not the correct solution.  The goal of the
+> original code, which used to use list_for_each(), was to leave lock
+> non-NULL if the cookie was found.  Your version merely exits the loop on
+> the first non-matching entry, always leaving lock==NULL if there is a
+> non-matching entry.
+> 	One possible solution is to return the original code:
+> 
+> --8<-----------------------------------------------------------------
+> @@ -1747,7 +1747,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+>  				     struct dlm_migratable_lockres *mres)
+>  {
+>  	struct dlm_migratable_lock *ml;
+> -	struct list_head *queue;
+> +	struct list_head *queue, *iter;
+>  	struct list_head *tmpq = NULL;
+>  	struct dlm_lock *newlock = NULL;
+>  	struct dlm_lockstatus *lksb = NULL;
+> @@ -1791,11 +1791,12 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+>  			spin_lock(&res->spinlock);
+>  			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+>  				tmpq = dlm_list_idx_to_ptr(res, j);
+> -				list_for_each_entry(lock, tmpq, list) {
+> -					if (lock->ml.cookie != ml->cookie)
+> -						lock = NULL;
+> -					else
+> +				list_for_each(iter, tmpq) {
+> +					lock = list_entry(iter, struct dlm_lock, list);
+> +
+> +					if (lock->ml.cookie == ml->cookie)
+>  						break;
+> +					lock = NULL;
+>  				}
+>  				if (lock)
+>  					break;
+> -->8-----------------------------------------------------------------
+> 
+> 	Another approach would be to keep list_for_each_entry() around,
+> but use a better check for entry existence:
+> 
+> --8<-----------------------------------------------------------------
+> @@ -1792,13 +1792,12 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+>  			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+>  				tmpq = dlm_list_idx_to_ptr(res, j);
+>  				list_for_each_entry(lock, tmpq, list) {
+> -					if (lock->ml.cookie != ml->cookie)
+> -						lock = NULL;
+> -					else
+> +					if (lock->ml.cookie == ml->cookie)
+>  						break;
+>  				}
+> -				if (lock)
+> +				if (&lock->list != tmpq)
+>  					break;
+> +				lock = NULL;
+>  			}
 
-Just a quick reminder, there've not been many proposals submitted yet.
-If the trend continues, the mini-conf slot might instead be allocated to
-another topic ...
+This seems a bit ugly to me, since it exposes the implementation of the 
+list abstraction.  What about the following:
 
-Please, do consider to submit a talk to this soon - I know it's to a
-large degree my fault for sending out the request so late.
+lock = NULL;
+list_for_each_entry(x, tmpq, list) {
+	if (x->ml.cookie == ml->cookie) {
+	   	lock = x;
+		break;
+	}
+}
 
-I'm also planning to arrive a day early so we can have some conference
-free time to talk as well.
-
-> This would be an informal summit for the HA folks to get together and
-> discuss the various issues that would benefit from a face to face
-> meeting; to facilitate progress faster than by exchanging countless
-> e-mails.
-> 
-> The goal would be a very technical discussion - the sessions would be
-> focus points, but the chance to get the core folks from the community
-> together is key.
-> 
-> Topics that come to my mind and that would seek speakers/discussion
-> leaders are fencing, resource agent evolution, synergies between
-> init/upstart/lrm, or wildly reaching out to the stars - where's our
-> place in the cloud? Can we build clustered appliances? Anything
-> remaining in the file system spaces?
-> 
-> I hope you have other ideas and want to attend the conference. You can
-> submit them here:
-> http://www.linuxplumbersconf.org/2010/ocw/events/LPC2010MC/proposals/new
-> 
-> Miniconference proposal submissions are not necessarily time-limited,
-> but I would appreciate a fast turn-around. ;-)
-> 
-> I look forward to your submissions. Please let me know if you have any
-> questions.
-> 
-> 
-Regards,
-    Lars
-
--- 
-Architect Storage/HA, OPS Engineering, Novell, Inc.
-SUSE LINUX Products GmbH, GF: Markus Rex, HRB 16746 (AG N?rnberg)
-"Experience is the name everyone gives to their mistakes." -- Oscar Wilde
+julia
