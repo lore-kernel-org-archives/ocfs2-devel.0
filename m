@@ -1,61 +1,115 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 12 Aug 2010 00:16:24 +0200
-Subject: [Ocfs2-devel] [PATCH -v2 1/3] jbd2: Use atomic variables to
- avoid taking t_handle_lock in jbd2_journal_stop
-In-Reply-To: <20100810163046.GM3635@thunk.org>
-References: <1280939957-3277-1-git-send-email-tytso@mit.edu>
-	<1280939957-3277-2-git-send-email-tytso@mit.edu>
-	<20100809170216.GB31969@atrey.karlin.mff.cuni.cz>
-	<20100809190513.GF3635@thunk.org>
-	<20100809194554.GB5356@quack.suse.cz>
-	<20100810163046.GM3635@thunk.org>
-Message-ID: <20100811221624.GC14762@quack.suse.cz>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 11 Aug 2010 17:03:56 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] fs/ocfs2/dlm: Eliminate update of
+ list_for_each_entry loop cursor
+In-Reply-To: <Pine.LNX.4.64.1008071108540.5821@ask.diku.dk>
+References: <Pine.LNX.4.64.1008071108540.5821@ask.diku.dk>
+Message-ID: <20100812000355.GA7195@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ted Ts'o <tytso@mit.edu>
-Cc: Jan Kara <jack@suse.cz>, Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com, John Stultz <johnstul@us.ibm.com>, Keith Maanthey <kmannth@us.ibm.com>, Eric Whitney <eric.whitney@hp.com>
+To: Julia Lawall <julia@diku.dk>
+Cc: Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org, Sunil Mushran <sunil.mushran@oracle.com>
 
-On Tue 10-08-10 12:30:46, Ted Ts'o wrote:
-> On Mon, Aug 09, 2010 at 09:45:55PM +0200, Jan Kara wrote:
-> >   Ah, OK. You're right. I just thought we eventually want to remove the
-> > lock but you're right that currently the code is fine. Sorry for the noise.
+On Sat, Aug 07, 2010 at 11:09:13AM +0200, Julia Lawall wrote:
+> From: Julia Lawall <julia@diku.dk>
 > 
-> I would love to get rid of the j_state_lock, but looking through the
-> code, I couldn't figure out how to do this safely.  Hence my
-> conversion of the j_state_lock to a rwlock_t, with the downside of
-> this causing more cache line bounces.  If someone can suggest a way to
-> drop needing a global spinlock (whether it is an exclusive or rwlock)
-> in start_this_handle(), I'd love to hear them.
-  Thinking about this, I think there's a way:
-1) Make transaction structures freed by RCU so when we get transaction
-pointer from a journal we can operate on it without being afraid of
-touching freed structure.
-2) Increment t_updates count before doing anything else - with this, we are
-sure that if a transaction is in LOCKED state or in some earlier state, it
-won't proceed further before we drop our reference.
-3) smp_mb() to get values from transaction structure after the ref count
-increase.
-4) Check that the transaction is actually running and  has enough credits.
-5) The check
-        if (__jbd2_log_space_left(journal) < jbd_space_needed(journal)) {
-   seems just useless if you look@it more in detail. It just transforms
-   to
-     7/8*(journal->j_free-32) < journal->j_max_transaction_buffers +
-                 journal->j_committing_transaction->t_outstanding_credits
-   So it just doesn't seem to make sense to call it whenever we get a
-handle. It should be enough to do the check only when we really start a
-new transaction. If it is satisfied at that moment, it should be satisfied
-during the whole lifetime of a transaction.
+> list_for_each_entry uses its first argument to move from one element to the
+> next, so modifying it can break the iteration.
 
-  This should make the fast path (when a transaction does not need to be
-started) of start_this_handle() lockless. Of course when any of the checks
-fails, we have to bite the bullet and take the lock.
-  I can have a look into transforming this ideas into a patch but I'm not
-sure when I get to it...
+	Thanks for catching the bug.  It was introduced by 800deef3
+[ocfs2: use list_for_each_entry where benefical].  I blame Christoph.
 
-								Honza
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index 9dfaac7..7084a11 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -1792,10 +1792,10 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+>  			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+>  				tmpq = dlm_list_idx_to_ptr(res, j);
+>  				list_for_each_entry(lock, tmpq, list) {
+> -					if (lock->ml.cookie != ml->cookie)
+> +					if (lock->ml.cookie != ml->cookie) {
+>  						lock = NULL;
+> -					else
+>  						break;
+> +					}
+>  				}
+>  				if (lock)
+>  					break;
+
+	However, this is not the correct solution.  The goal of the
+original code, which used to use list_for_each(), was to leave lock
+non-NULL if the cookie was found.  Your version merely exits the loop on
+the first non-matching entry, always leaving lock==NULL if there is a
+non-matching entry.
+	One possible solution is to return the original code:
+
+--8<-----------------------------------------------------------------
+@@ -1747,7 +1747,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 				     struct dlm_migratable_lockres *mres)
+ {
+ 	struct dlm_migratable_lock *ml;
+-	struct list_head *queue;
++	struct list_head *queue, *iter;
+ 	struct list_head *tmpq = NULL;
+ 	struct dlm_lock *newlock = NULL;
+ 	struct dlm_lockstatus *lksb = NULL;
+@@ -1791,11 +1791,12 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 			spin_lock(&res->spinlock);
+ 			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+ 				tmpq = dlm_list_idx_to_ptr(res, j);
+-				list_for_each_entry(lock, tmpq, list) {
+-					if (lock->ml.cookie != ml->cookie)
+-						lock = NULL;
+-					else
++				list_for_each(iter, tmpq) {
++					lock = list_entry(iter, struct dlm_lock, list);
++
++					if (lock->ml.cookie == ml->cookie)
+ 						break;
++					lock = NULL;
+ 				}
+ 				if (lock)
+ 					break;
+-->8-----------------------------------------------------------------
+
+	Another approach would be to keep list_for_each_entry() around,
+but use a better check for entry existence:
+
+--8<-----------------------------------------------------------------
+@@ -1792,13 +1792,12 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+ 				tmpq = dlm_list_idx_to_ptr(res, j);
+ 				list_for_each_entry(lock, tmpq, list) {
+-					if (lock->ml.cookie != ml->cookie)
+-						lock = NULL;
+-					else
++					if (lock->ml.cookie == ml->cookie)
+ 						break;
+ 				}
+-				if (lock)
++				if (&lock->list != tmpq)
+ 					break;
++				lock = NULL;
+ 			}
+ 
+ 			/* lock is always created locally first, and
+-->8-----------------------------------------------------------------
+
+	I think I like the second one better.  Sunil, what do you think?
+
+Joel
+
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+
+Life's Little Instruction Book #335
+
+	"Every so often, push your luck."
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
