@@ -1,32 +1,83 @@
-From: Joel Becker <Joel.Becker@Oracle.COM>
-Date: Wed, 11 Aug 2010 17:31:28 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Remove obscure error handling in
-	direct_write.
-In-Reply-To: <1276073339-7427-1-git-send-email-tao.ma@oracle.com>
-References: <1276073339-7427-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20100812003127.GC8985@mail.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 11 Aug 2010 17:30:52 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add new OCFS2_IOC_INFO ioctl
+ for ocfs2 v8.
+In-Reply-To: <1274516793-29129-2-git-send-email-tristan.ye@oracle.com>
+References: <1274516793-29129-1-git-send-email-tristan.ye@oracle.com>
+	<1274516793-29129-2-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20100812003052.GA8985@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 09, 2010 at 04:48:59PM +0800, Tao Ma wrote:
-> In ocfs2, actually we don't allow any direct write pass i_size,
-> see the function ocfs2_prepare_inode_for_write. So we don't
-> need the bogus simple_setsize.
+On Sat, May 22, 2010 at 04:26:33PM +0800, Tristan Ye wrote:
+> The reason why we need this ioctl is to offer the none-privileged
+> end-user a possibility to get filesys info gathering.
 > 
-> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+> We use OCFS2_IOC_INFO to manipulate the new ioctl, userspace passes a
+> structure to kernel containing an array of request pointers and request
+> count, such as,
+> 
+> * From userspace:
+> 
+> struct ocfs2_info_blocksize oib = {
+>         .ib_req = {
+>                 .ir_magic = OCFS2_INFO_MAGIC,
+>                 .ir_code = OCFS2_INFO_BLOCKSIZE,
+>                 ...
+>         }
+>         ...
+> }
+> 
+> struct ocfs2_info_clustersize oic = {
+>         ...
+> }
+> 
+> uint64_t reqs[2] = {(unsigned long)&oib,
+>                     (unsigned long)&oic};
+> 
+> struct ocfs2_info info = {
+>         .oi_requests = reqs,
+>         .oi_count = 2,
+> }
+> 
+> ret = ioctl(fd, OCFS2_IOC_INFO, &info);
+> 
+> * In kernel:
+> 
+> Get the request pointers from *info*, then handle each request one bye one.
+> 
+> Idea here is to make the spearated request small enough to guarantee
+> a better backward&forward compatibility since a small piece of request
+> would be less likely to be broken if filesys on raw disk get changed.
+> 
+> Currently, the following 7 requests are supported per the requirement from
+> userspace tool o2info, and I believe it will grow over time:-)
+> 
+>         OCFS2_INFO_CLUSTERSIZE
+>         OCFS2_INFO_BLOCKSIZE
+>         OCFS2_INFO_MAXSLOTS
+>         OCFS2_INFO_LABEL
+>         OCFS2_INFO_UUID
+>         OCFS2_INFO_FS_FEATURES
+>         OCFS2_INFO_JOURNAL_SIZE
+> 
+> This ioctl is only specific to OCFS2.
+> 
+> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 
-        This patch is now in the merge-window branch of ocfs2.git.
+	This patch is now in the merge-window branch of ocfs2.git.
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #444
-
-	"Never underestimate the power of a kind word or deed."
+"Gone to plant a weeping willow
+ On the bank's green edge it will roll, roll, roll.
+ Sing a lulaby beside the waters.
+ Lovers come and go, the river roll, roll, rolls."
 
 Joel Becker
 Consulting Software Developer
