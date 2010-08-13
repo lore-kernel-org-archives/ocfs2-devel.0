@@ -1,10 +1,11 @@
 From: mfasheh at suse.com <mfasheh@suse.com>
-Date: Fri, 13 Aug 2010 15:15:15 -0700
-Subject: [Ocfs2-devel] [PATCH 1/5] ocfs2: split out inode alloc code from
-	ocfs2_mknod_locked
-In-Reply-To: <1281737719-27008-1-git-send-email-mfasheh@suse.com>
+Date: Fri, 13 Aug 2010 15:15:16 -0700
+Subject: [Ocfs2-devel] [PATCH 2/5] ocfs2: use
+	ocfs2_alloc_dinode_update_counts() instead of open coding
+In-Reply-To: <1281737719-27008-2-git-send-email-mfasheh@suse.com>
 References: <1281737719-27008-1-git-send-email-mfasheh@suse.com>
-Message-ID: <1281737719-27008-2-git-send-email-mfasheh@suse.com>
+	<1281737719-27008-2-git-send-email-mfasheh@suse.com>
+Message-ID: <1281737719-27008-3-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,96 +14,53 @@ To: ocfs2-devel@oss.oracle.com
 
 From: Mark Fasheh <mfasheh@suse.com>
 
-Do this by splitting the bulk of the function away from the inode allocation
-code at the very tom of ocfs2_mknod_locked(). Existing callers don't need to
-change and won't see any difference. The new function created,
-__ocfs2_mknod_locked() will be used shortly.
+ocfs2_search_chain() makes the same updates as
+ocfs2_alloc_dinode_update_counts to the alloc inode. Instead of open coding
+the bitmap update, use our helper function.
 
 Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 ---
- fs/ocfs2/namei.c |   55 ++++++++++++++++++++++++++++++++++++-----------------
- 1 files changed, 37 insertions(+), 18 deletions(-)
+ fs/ocfs2/suballoc.c |   17 ++++-------------
+ 1 files changed, 4 insertions(+), 13 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f171b51..2aa66b6 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -472,32 +472,23 @@ leave:
- 	return status;
- }
- 
--static int ocfs2_mknod_locked(struct ocfs2_super *osb,
--			      struct inode *dir,
--			      struct inode *inode,
--			      dev_t dev,
--			      struct buffer_head **new_fe_bh,
--			      struct buffer_head *parent_fe_bh,
--			      handle_t *handle,
--			      struct ocfs2_alloc_context *inode_ac)
-+static int __ocfs2_mknod_locked(struct inode *dir,
-+				struct inode *inode,
-+				dev_t dev,
-+				struct buffer_head **new_fe_bh,
-+				struct buffer_head *parent_fe_bh,
-+				handle_t *handle,
-+				struct ocfs2_alloc_context *inode_ac,
-+				u64 fe_blkno, u64 suballoc_loc, u16 suballoc_bit)
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index a8e6a95..75f43ed 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1708,7 +1708,6 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
  {
- 	int status = 0;
-+	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
- 	struct ocfs2_dinode *fe = NULL;
- 	struct ocfs2_extent_list *fel;
--	u64 suballoc_loc, fe_blkno = 0;
--	u16 suballoc_bit;
- 	u16 feat;
+ 	int status;
+ 	u16 chain;
+-	u32 tmp_used;
+ 	u64 next_group;
+ 	struct inode *alloc_inode = ac->ac_inode;
+ 	struct buffer_head *group_bh = NULL;
+@@ -1796,22 +1795,14 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
+ 		}
+ 	}
  
- 	*new_fe_bh = NULL;
- 
--	status = ocfs2_claim_new_inode(handle, dir, parent_fe_bh,
--				       inode_ac, &suballoc_loc,
--				       &suballoc_bit, &fe_blkno);
+-	/* Ok, claim our bits now: set the info on dinode, chainlist
+-	 * and then the group */
+-	status = ocfs2_journal_access_di(handle,
+-					 INODE_CACHE(alloc_inode),
+-					 ac->ac_bh,
+-					 OCFS2_JOURNAL_ACCESS_WRITE);
 -	if (status < 0) {
--		mlog_errno(status);
--		goto leave;
--	}
--
- 	/* populate as many fields early on as possible - many of
- 	 * these are used by the support functions here and in
- 	 * callers. */
-@@ -591,6 +582,34 @@ leave:
- 	return status;
- }
++	status = ocfs2_alloc_dinode_update_counts(alloc_inode, handle,
++						  ac->ac_bh, res->sr_bits,
++						  chain);
++	if (status) {
+ 		mlog_errno(status);
+ 		goto bail;
+ 	}
  
-+static int ocfs2_mknod_locked(struct ocfs2_super *osb,
-+			      struct inode *dir,
-+			      struct inode *inode,
-+			      dev_t dev,
-+			      struct buffer_head **new_fe_bh,
-+			      struct buffer_head *parent_fe_bh,
-+			      handle_t *handle,
-+			      struct ocfs2_alloc_context *inode_ac)
-+{
-+	int status = 0;
-+	u64 suballoc_loc, fe_blkno = 0;
-+	u16 suballoc_bit;
-+
-+	*new_fe_bh = NULL;
-+
-+	status = ocfs2_claim_new_inode(handle, dir, parent_fe_bh,
-+				       inode_ac, &suballoc_loc,
-+				       &suballoc_bit, &fe_blkno);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		return status;
-+	}
-+
-+	return __ocfs2_mknod_locked(dir, inode, dev, new_fe_bh,
-+				    parent_fe_bh, handle, inode_ac,
-+				    fe_blkno, suballoc_loc, suballoc_bit);
-+}
-+
- static int ocfs2_mkdir(struct inode *dir,
- 		       struct dentry *dentry,
- 		       int mode)
+-	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_used);
+-	fe->id1.bitmap1.i_used = cpu_to_le32(res->sr_bits + tmp_used);
+-	le32_add_cpu(&cl->cl_recs[chain].c_free, -res->sr_bits);
+-	ocfs2_journal_dirty(handle, ac->ac_bh);
+-
+ 	status = ocfs2_block_group_set_bits(handle,
+ 					    alloc_inode,
+ 					    bg,
 -- 
 1.6.4.2
