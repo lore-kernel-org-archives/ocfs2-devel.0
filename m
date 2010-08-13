@@ -1,52 +1,60 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 13 Aug 2010 00:17:25 -0700
-Subject: [Ocfs2-devel] [PATCH 2/3] JBD2: Allow feature checks before
- journal recovery
-In-Reply-To: <20100813033930.GG2763@thunk.org>
-References: <874ofr2myq.fsf@patl.com> <8739vb2mxr.fsf@patl.com>
-	<20100812174318.GD6561@mail.oracle.com>
-	<20100813033930.GG2763@thunk.org>
-Message-ID: <20100813071720.GA21279@mail.oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Fri, 13 Aug 2010 18:30:07 +0200
+Subject: [Ocfs2-devel] [PATCH 1/3] ext3/ext4: Factor out disk
+ addressability check
+In-Reply-To: <20100812222949.GC22777@mail.oracle.com>
+References: <874ofr2myq.fsf@patl.com> <20100812174215.GC6561@mail.oracle.com>
+	<1F3EDC08-AC93-4D4D-8F83-A13C418DFC88@dilger.ca>
+	<20100812201534.GA22777@mail.oracle.com>
+	<209AEA97-E284-4ADB-8774-50C2630606B9@dilger.ca>
+	<20100812222949.GC22777@mail.oracle.com>
+Message-ID: <20100813163006.GB4329@quack.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ted Ts'o <tytso@mit.edu>, Jan Kara <jack@suse.cz>, "Patrick J. LoPresti" <lopresti@gmail.com>, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org
+To: Joel Becker <Joel.Becker@oracle.com>
+Cc: Andreas Dilger <adilger@dilger.ca>, Ted Ts'o <tytso@mit.edu>, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, "linux-kernel@vger.kernel.org Patrick J. LoPresti" <lopresti@gmail.com>
 
-On Thu, Aug 12, 2010 at 11:39:30PM -0400, Ted Ts'o wrote:
-> On Thu, Aug 12, 2010 at 10:43:19AM -0700, Joel Becker wrote:
-> > On Thu, Jul 22, 2010 at 03:04:16PM -0700, Patrick J. LoPresti wrote:
-> > > Before we start accessing a huge (> 16 TiB) OCFS2 volume, we need to
-> > > confirm that its journal supports 64-bit offsets.  In particular, we
-> > > need to check the journal's feature bits before recovering the journal.
-> > > 
-> > > This is not possible with JBD2 at present, because the journal
-> > > superblock (where the feature bits reside) is not loaded from disk until
-> > > the journal is recovered.
-> > > 
-> > > This patch loads the journal superblock in
-> > > jbd2_journal_check_used_features() if it has not already been loaded,
-> > > allowing us to check the feature bits before journal recovery.
-> > > 
-> > > Signed-off-by: Patrick LoPresti <lopresti@gmail.com>
-> > 
-> > Dear jbd2 developers,
-> > 	I've pushed this patch to the merge-window branch of ocfs2.git.
-> > I'm ready to send it to Linus, but I need your OK.
-> 
-> Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
+On Thu 12-08-10 15:29:49, Joel Becker wrote:
+> diff --git a/fs/libfs.c b/fs/libfs.c
+> index dcaf972..f099566 100644
+> --- a/fs/libfs.c
+> +++ b/fs/libfs.c
+> @@ -955,6 +955,35 @@ int generic_file_fsync(struct file *file, int datasync)
+>  }
+>  EXPORT_SYMBOL(generic_file_fsync);
+>  
+> +/**
+> + * generic_check_addressable - Check addressability of file system
+> + * @blocksize_bits:	log of file system block size
+> + * @num_blocks:		number of blocks in file system
+> + *
+> + * Determine whether a file system with @num_blocks blocks (and a
+> + * block size of 2**@blocksize_bits) is addressable by the sector_t
+> + * and page cache of the system.  Return 0 if so and -EFBIG otherwise.
+> + */
+> +int generic_check_addressable(unsigned blocksize_bits, u64 num_blocks)
+> +{
+> +	u64 last_fs_block = num_blocks - 1;
+> +
+> +	if (unlikely(num_blocks == 0))
+> +		return 0;
+> +
+> +	if ((blocksize_bits < 9) || (blocksize_bits > PAGE_CACHE_SHIFT))
+> +		return -EINVAL;
+> +
+> +	if ((last_fs_block >
+> +	     (sector_t)(~0ULL) >> (blocksize_bits - 9)) ||
+> +	    (last_fs_block >
+> +	     (pgoff_t)(~0ULL) >> (PAGE_CACHE_SHIFT - blocksize_bits))) {
+            ^^^ I don't get the pgoff_t check. Shouldn't it rather be
+(u64)(pgoff_t)(~0ULL) << (PAGE_CACHE_SHIFT - blocksize_bits)?
+Because on 32-bit arch we are able to address 16TB device, which is for 1KB
+blocksize 1<<34 blocks. But your math gives 1<<30 blocks...
 
-	Thanks Ted!
-
-Joel
+									Honza
 
 -- 
-
-"I don't even butter my bread; I consider that cooking."
-         - Katherine Cebrian
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
