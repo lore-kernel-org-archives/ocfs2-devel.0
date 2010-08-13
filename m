@@ -1,88 +1,63 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Fri, 13 Aug 2010 09:21:26 +0800
+Date: Fri, 13 Aug 2010 09:20:22 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: Cache some system inodes of other
 	nodes.
-In-Reply-To: <4C6499F7.8080509@oracle.com>
+In-Reply-To: <20100813010459.GH22777@mail.oracle.com>
 References: <1281603796-3867-1-git-send-email-tao.ma@oracle.com>
 	<20100812094350.GB6561@mail.oracle.com>
-	<4C6499F7.8080509@oracle.com>
-Message-ID: <4C649E16.7040704@oracle.com>
+	<4C64968C.6030403@oracle.com>
+	<20100813010459.GH22777@mail.oracle.com>
+Message-ID: <4C649DD6.20104@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Sunil Mushran wrote:
-> On 08/12/2010 02:43 AM, Joel Becker wrote:
->> On Thu, Aug 12, 2010 at 05:03:16PM +0800, Tao Ma wrote:
->>> In ocfs2, we now only cache the inodes for global system file
->>> and the system inodes for our own slot. But we have some cases
->>> that we may need to access system inodes of other nodes, such
->>> as orphan scan, inode steal etc.
+Joel Becker wrote:
+> On Fri, Aug 13, 2010 at 08:49:16AM +0800, Tao Ma wrote:
+>   
+>>> 	I don't see why you don't extend the existing cache and make one
+>>> cache.  Make it live the lifetime of the filesystem.  No real reason to
+>>> a) have to caches or b) limit the system inodes we might cache.  If we
+>>> don't have the lock we're going to re-read them anyway.
+>>>       
+>> You want me to do:
+>> -        struct inode *system_inodes[NUM_SYSTEM_INODES];
+>> +        struct inode **system_inodes
 >>
->>     I don't see why you don't extend the existing cache and make one
->> cache.  Make it live the lifetime of the filesystem.  No real reason to
->> a) have to caches or b) limit the system inodes we might cache.  If we
->> don't have the lock we're going to re-read them anyway.
+>> and do
+>> +    system_inodes = kzalloc((NUM_SYSTEM_INODES -
+>> GROUP_QUOTA_SYSTEM_INODE) *
+>> +                                            sizeof(struct inode *)
+>> * osb->max_slots);
+>>     
 >
-> Yeah... I have to agree. Will make it more readable.
+> 	Something like that.  I'd be more inclined to have a global
+> inode cache, and a per-slot cache.  No need to have max_slots spaces for
+> the global inodes.
+> 	Actually, why not an rb-tree?  We just want to be able to avoid
+> the dir lookup, really, right?  Why pre-alloc anything?  Just have a
+> node:
+>   
+no, this patch doesn't want to reduce dir lookup, although it resolve 
+dir lookup somehow. ;) This patch just want to resolve
+the problem of (read_disk + journal_checkpoint when we orphan scan 
+another slot). It seems that I have put the most
+important part of this patch in the head of  the commit log. :)
+> 	struct ocfs2_system_inode_cache_node {
+> 		struct rb_node sic_node;
+> 		int sic_type;
+> 		int sic_slot;
+> 		u64 sic_blkno;
+> 		struct inode *sic_inode;
+> 	};
 >
-> enum {
->         BAD_BLOCK_SYSTEM_INODE = 0,
->         GLOBAL_INODE_ALLOC_SYSTEM_INODE,
->         SLOT_MAP_SYSTEM_INODE,
-> #define OCFS2_FIRST_ONLINE_SYSTEM_INODE SLOT_MAP_SYSTEM_INODE
->         HEARTBEAT_SYSTEM_INODE,
->         GLOBAL_BITMAP_SYSTEM_INODE,
->         USER_QUOTA_SYSTEM_INODE,
->         GROUP_QUOTA_SYSTEM_INODE,
-> #define OCFS2_LAST_GLOBAL_SYSTEM_INODE GROUP_QUOTA_SYSTEM_INODE
-> #define OCFS2_FIRST_LOCAL_SYSTEM_INODE ORPHAN_DIR_SYSTEM_INODE
->         ORPHAN_DIR_SYSTEM_INODE,
->         EXTENT_ALLOC_SYSTEM_INODE,
->         INODE_ALLOC_SYSTEM_INODE,
->         JOURNAL_SYSTEM_INODE,
->         LOCAL_ALLOC_SYSTEM_INODE,
->         TRUNCATE_LOG_SYSTEM_INODE,
->         LOCAL_USER_QUOTA_SYSTEM_INODE,
->         LOCAL_GROUP_QUOTA_SYSTEM_INODE,
->         NUM_SYSTEM_INODES
-> };
-> #define NUM_LOCAL_SYSTEM_INODES (NUM_SYSTEM_INODES - 
-> OCFS2_FIRST_LOCAL_SYSTEM_INODE)
->
-> struct ocfs2_super {
-> ...
->         struct inode 
-> *global_system_inodes[OCFS2_LAST_GLOBAL_SYSTEM_INODE];
->         struct inode **local_system_inodes;
-> ...
-> };
->
-> local_system_inodes = kzalloc(sizeof(struct inode *) * osb->num_slots *
->                             NUM_LOCAL_SYSTEM_INODES;
->
->         /* avoid the lookup if cached in local system file array */
->         if (is_in_system_inode_array(osb, type, slot))
->                 arr = &(osb->system_inodes[type]);
->
-> change to:
->
->         if (is_global_system_inode(type)
->                 arr = &(osb->global_system_inodes[type]);
->         else {
->                 BUG_ON(slot == OCFS2_INVALID_SLOT);
->                 BUG_ON(type < OCFS2_FIRST_LOCAL_SYSTEM_INODE ||
->                         type > LOCAL_GROUP_QUOTA_SYSTEM_INODE);
->                 tmp = (slot * NUM_LOCAL_SYSTEM_INODES) +
->                       (type - OCFS2_FIRST_LOCAL_SYSTEM_INODE);
->                 arr = &(osb->local_system_inodes[tmp];
->         }
->
-> How does this look?
-oh, since both of you prefer a simple system_inode array, I will rework 
-it. Thanks.
+> Although frankly a linked-list might work just as well.
+>   
+rb-tree may be too much for us. I would prefer what Sunil describe in 
+another mail. Just use a pointer array should be fine for us.
+what we lose is just some pointers that will never be initialized.
 
 Regards,
 Tao
