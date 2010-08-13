@@ -1,66 +1,46 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 13 Aug 2010 13:47:01 -0700
-Subject: [Ocfs2-devel] [PATCH 1/3] ext3/ext4: Factor out disk
- addressability check
-In-Reply-To: <20100813163006.GB4329@quack.suse.cz>
-References: <874ofr2myq.fsf@patl.com> <20100812174215.GC6561@mail.oracle.com>
-	<1F3EDC08-AC93-4D4D-8F83-A13C418DFC88@dilger.ca>
-	<20100812201534.GA22777@mail.oracle.com>
-	<209AEA97-E284-4ADB-8774-50C2630606B9@dilger.ca>
-	<20100812222949.GC22777@mail.oracle.com>
-	<20100813163006.GB4329@quack.suse.cz>
-Message-ID: <20100813204701.GB19568@mail.oracle.com>
+From: mfasheh at suse.com <mfasheh@suse.com>
+Date: Fri, 13 Aug 2010 15:15:14 -0700
+Subject: [Ocfs2-devel] [PATCH 0/5] ocfs2: Fix orphan dir handling in
+	ocfs2_create_inode_in_orphan
+Message-ID: <1281737719-27008-1-git-send-email-mfasheh@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: Andreas Dilger <adilger@dilger.ca>, Ted Ts'o <tytso@mit.edu>, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, "linux-kernel@vger.kernel.org Patrick J. LoPresti" <lopresti@gmail.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Aug 13, 2010 at 06:30:07PM +0200, Jan Kara wrote:
-> On Thu 12-08-10 15:29:49, Joel Becker wrote:
-> > +/**
-> > + * generic_check_addressable - Check addressability of file system
-> > + * @blocksize_bits:	log of file system block size
-> > + * @num_blocks:		number of blocks in file system
-> > + *
-> > + * Determine whether a file system with @num_blocks blocks (and a
-> > + * block size of 2**@blocksize_bits) is addressable by the sector_t
-> > + * and page cache of the system.  Return 0 if so and -EFBIG otherwise.
-> > + */
-> > +int generic_check_addressable(unsigned blocksize_bits, u64 num_blocks)
-> > +{
-> > +	u64 last_fs_block = num_blocks - 1;
-> > +
-> > +	if (unlikely(num_blocks == 0))
-> > +		return 0;
-> > +
-> > +	if ((blocksize_bits < 9) || (blocksize_bits > PAGE_CACHE_SHIFT))
-> > +		return -EINVAL;
-> > +
-> > +	if ((last_fs_block >
-> > +	     (sector_t)(~0ULL) >> (blocksize_bits - 9)) ||
-> > +	    (last_fs_block >
-> > +	     (pgoff_t)(~0ULL) >> (PAGE_CACHE_SHIFT - blocksize_bits))) {
->             ^^^ I don't get the pgoff_t check. Shouldn't it rather be
-> (u64)(pgoff_t)(~0ULL) << (PAGE_CACHE_SHIFT - blocksize_bits)?
-> Because on 32-bit arch we are able to address 16TB device, which is for 1KB
-> blocksize 1<<34 blocks. But your math gives 1<<30 blocks...
+ocfs2_create_inode_in_orphan() is used by reflink to create the newly
+reflinked inode simultaneously in the orphan dir. This allows us to easily
+handle partially-reflinked files during recovery cleanup.
 
-	This code is directly lifted from ext4.  But that said, I am
-starting to think you're right.  1 page == 4 x 1K blocks, rather than 4
-pages == 1 1K block.
+We have a problem though - the orphan dir stringifies inode # to determine
+a unique name under which the orphan entry dirent can be created. Since
+ocfs2_create_inode_in_orphan() needs the space allocated in the orphan dir
+before it can allocate the inode, we currently call into the orphan code:
 
-Joel
+       /*
+        * We give the orphan dir the root blkno to fake an orphan name,
+        * and allocate enough space for our insertion.
+        */
+       status = ocfs2_prepare_orphan_dir(osb, &orphan_dir,
+                                         osb->root_blkno,
+                                         orphan_name, &orphan_insert);
 
--- 
+Using osb->root_blkno might work fine on unindexed directories, but the
+orphan dir can have an index.  When it has that index, the above code fails
+to allocate the proper index entry.  Later, when we try to remove the file
+from the orphan dir (using the actual inode #), the reflink operation will
+fail.
 
-"I always thought the hardest questions were those I could not answer.
- Now I know they are the ones I can never ask."
-			- Charlie Watkins
+The following patch series fixes the problem in several stages. The first 4
+patches refactor what parts of the code needed to be seperated out to allow
+proper ordering of the cluster locks and allocator actions. The last patch
+puts it all together in a new helper function which takes care to order
+every part of the operation carefully.
 
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker@oracle.com
-Phone: (650) 506-8127
+View:
+http://git.kernel.org/?p=linux/kernel/git/mfasheh/ocfs2-mark.git;a=shortlog;h=refs/heads/reflink_fixes
+
+Pull:
+git pull git://git.kernel.org/pub/scm/linux/kernel/git/mfasheh/ocfs2-mark.git reflink_fixes
+	--Mark
