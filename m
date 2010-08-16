@@ -1,105 +1,196 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Sat, 14 Aug 2010 16:19:25 +0800
-Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2/trivial: Move 'wanted' into
-	parens of ocfs2_resmap_resv_bits.
-In-Reply-To: <20100813231623.GK17779@wotan.suse.de>
-References: <4C56350A.7090309@oracle.com>
-	<1280718135-11036-1-git-send-email-tao.ma@oracle.com>
-	<20100813231623.GK17779@wotan.suse.de>
-Message-ID: <4C66518D.6040507@oracle.com>
+Date: Mon, 16 Aug 2010 10:31:14 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Cache system inodes of other slots.
+Message-ID: <1281925874-2112-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
+Durring orphan scan, if we are slot 0, and we are replaying
+orphan_dir:0001, the general process is that for every file
+in this dir:
+1. we will iget orphan_dir:0001, since there is no inode for it.
+   we will have to create an inode and read it from the disk.
+2. do the normal work, such as delete_inode and remove it from
+   the dir if it is allowed.
+3. call iput orphan_dir:0001 when we are done. In this case,
+   since we have no dcache for this inode, i_count will
+   reach 0, and VFS will have to call clear_inode and in
+   ocfs2_clear_inode we will checkpoint the inode which will let
+   ocfs2_cmt and journald begin to work.
+4. We loop back to 1 for the next file.
 
-On 08/14/2010 07:16 AM, Mark Fasheh wrote:
-> Hi Tao,
->
-> On Mon, Aug 02, 2010 at 11:02:12AM +0800, Tao Ma wrote:
->> The first time I read the function ocfs2_resmap_resv_bits, I consider
->> about what 'wanted' will be used and consider about the comments.
->> Then I find it is only used if the reservation is empty. ;)
->>
->> So we'd better move it to the parens so that it make the code more
->> readable, what's more, ocfs2_resmap_resv_bits is used so frequently
->> and we should save some cpus. The corresponding BUG_ON is also moved
->> into parens since it is only meaningful after we reinit the resv.
->>
->> Cc: Mark Fasheh<mfasheh@suse.com>
->> Signed-off-by: Tao Ma<tao.ma@oracle.com>
->> ---
->>   fs/ocfs2/reservations.c |   26 ++++++++++++--------------
->>   1 files changed, 12 insertions(+), 14 deletions(-)
->>
->> diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
->> index d8b6e42..567c1a0 100644
->> --- a/fs/ocfs2/reservations.c
->> +++ b/fs/ocfs2/reservations.c
->> @@ -732,25 +732,23 @@ int ocfs2_resmap_resv_bits(struct ocfs2_reservation_map *resmap,
->>   			   struct ocfs2_alloc_reservation *resv,
->>   			   int *cstart, int *clen)
->>   {
->> -	unsigned int wanted = *clen;
->> -
->>   	if (resv == NULL || ocfs2_resmap_disabled(resmap))
->>   		return -ENOSPC;
->>
->>   	spin_lock(&resv_lock);
->>
->> -	/*
->> -	 * We don't want to over-allocate for temporary
->> -	 * windows. Otherwise, we run the risk of fragmenting the
->> -	 * allocation space.
->> -	 */
->> -	wanted = ocfs2_resv_window_bits(resmap, resv);
->> -	if ((resv->r_flags&  OCFS2_RESV_FLAG_TMP) || wanted<  *clen)
->> -		wanted = *clen;
->> -
->>   	if (ocfs2_resv_empty(resv)) {
->> -		mlog(0, "empty reservation, find new window\n");
->> +		/*
->> +		 * We don't want to over-allocate for temporary
->> +		 * windows. Otherwise, we run the risk of fragmenting the
->> +		 * allocation space.
->> +		 */
->> +		unsigned int wanted = ocfs2_resv_window_bits(resmap, resv);
->> +
->> +		if ((resv->r_flags&  OCFS2_RESV_FLAG_TMP) || wanted<  *clen)
->> +			wanted = *clen;
->>
->> +		mlog(0, "empty reservation, find new window\n");
->>   		/*
->>   		 * Try to get a window here. If it works, we must fall
->>   		 * through and test the bitmap . This avoids some
->> @@ -759,9 +757,9 @@ int ocfs2_resmap_resv_bits(struct ocfs2_reservation_map *resmap,
->>   		 * that inode.
->>   		 */
->>   		ocfs2_resv_find_window(resmap, resv, wanted);
->> -	}
->>
->> -	BUG_ON(ocfs2_resv_empty(resv));
->> +		BUG_ON(ocfs2_resv_empty(resv));
->> +	}
->
-> Can we leave the BUG_ON() outside the if (ocfs2_resv_empty(...)) { } block?
-> You're technically correct in that the only possibility right now is if
-> there's a bug in ocfs2_resv_find_window(). However, I think it still belongs
-> outside the block because we're returning an allocation at that point. The
-> code is self documenting then - "don't let it get here unless resv->r_start
-> and resv->r_len mean something". That way any future changes to the function
-> will be forced to take this BUG_ON() into consideration, and we are then
-> less likely to accidentally corrupt data.
-Actually I have thought of it. But please note that the if check is 
-ocfs2_resv_empty. So does it look a little bit strange that:
-if (ocfs2_resv_empty()) {
-}
+So you see, actually for every deleted file, we have to read the
+orphan dir from the disk and checkpoint the journal. It is very
+time consuming and cause a lot of journal checkpoint I/O.
+A better solution is that we can have another reference for these
+inodes in ocfs2_super. So if there is no other race among
+nodes(which will let dlmglue to checkpoint the inode), for step 3,
+clear_inode won't be called and for step 1, we may only need to
+read the inode for the 1st time. This is a big win for us.
 
-BUG_ON(ocfs2_resv_empty());
+So this patch will try to cache system inodes of other slots so
+that we will have one more reference for these inodes and avoid
+the extra inode read and journal checkpoint.
 
-We have just checked ocfs2_resv_empty and now we BUG_ON it again?
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/ocfs2.h    |    3 ++-
+ fs/ocfs2/ocfs2_fs.h |    5 +++++
+ fs/ocfs2/super.c    |   20 +++++++++++++++++---
+ fs/ocfs2/sysfile.c  |   44 +++++++++++++++++++++++++++++++++-----------
+ 4 files changed, 57 insertions(+), 15 deletions(-)
 
-Regards,
-Tao
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index c67003b..70354a5 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -277,7 +277,8 @@ struct ocfs2_super
+ 	struct super_block *sb;
+ 	struct inode *root_inode;
+ 	struct inode *sys_root_inode;
+-	struct inode *system_inodes[NUM_SYSTEM_INODES];
++	struct inode *global_system_inodes[NUM_GLOBAL_SYSTEM_INODES];
++	struct inode **local_system_inodes;
+ 
+ 	struct ocfs2_slot_info *slot_info;
+ 
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 33f1c9a..723b20d 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -309,6 +309,7 @@ enum {
+ 	USER_QUOTA_SYSTEM_INODE,
+ 	GROUP_QUOTA_SYSTEM_INODE,
+ #define OCFS2_LAST_GLOBAL_SYSTEM_INODE GROUP_QUOTA_SYSTEM_INODE
++#define OCFS2_FIRST_LOCAL_SYSTEM_INODE ORPHAN_DIR_SYSTEM_INODE
+ 	ORPHAN_DIR_SYSTEM_INODE,
+ 	EXTENT_ALLOC_SYSTEM_INODE,
+ 	INODE_ALLOC_SYSTEM_INODE,
+@@ -317,8 +318,12 @@ enum {
+ 	TRUNCATE_LOG_SYSTEM_INODE,
+ 	LOCAL_USER_QUOTA_SYSTEM_INODE,
+ 	LOCAL_GROUP_QUOTA_SYSTEM_INODE,
++#define OCFS2_LAST_LOCAL_SYSTEM_INODE LOCAL_GROUP_QUOTA_SYSTEM_INODE
+ 	NUM_SYSTEM_INODES
+ };
++#define NUM_GLOBAL_SYSTEM_INODES OCFS2_LAST_GLOBAL_SYSTEM_INODE
++#define NUM_LOCAL_SYSTEM_INODES	\
++		(NUM_SYSTEM_INODES - OCFS2_FIRST_LOCAL_SYSTEM_INODE)
+ 
+ static struct ocfs2_system_inode_info ocfs2_system_inodes[NUM_SYSTEM_INODES] = {
+ 	/* Global system inodes (single copy) */
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index fa1be1b..caa7bef 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -514,11 +514,11 @@ static void ocfs2_release_system_inodes(struct ocfs2_super *osb)
+ 
+ 	mlog_entry_void();
+ 
+-	for (i = 0; i < NUM_SYSTEM_INODES; i++) {
+-		inode = osb->system_inodes[i];
++	for (i = 0; i < NUM_GLOBAL_SYSTEM_INODES; i++) {
++		inode = osb->global_system_inodes[i];
+ 		if (inode) {
+ 			iput(inode);
+-			osb->system_inodes[i] = NULL;
++			osb->global_system_inodes[i] = NULL;
+ 		}
+ 	}
+ 
+@@ -534,6 +534,20 @@ static void ocfs2_release_system_inodes(struct ocfs2_super *osb)
+ 		osb->root_inode = NULL;
+ 	}
+ 
++	if (!osb->local_system_inodes)
++		goto out;
++
++	for (i = 0; i < NUM_LOCAL_SYSTEM_INODES * osb->max_slots; i++) {
++		if (osb->local_system_inodes[i]) {
++			iput(osb->local_system_inodes[i]);
++			osb->local_system_inodes[i] = NULL;
++		}
++	}
++
++	kfree(osb->local_system_inodes);
++	osb->local_system_inodes = NULL;
++
++out:
+ 	mlog_exit(0);
+ }
+ 
+diff --git a/fs/ocfs2/sysfile.c b/fs/ocfs2/sysfile.c
+index bfe7190..14f881d 100644
+--- a/fs/ocfs2/sysfile.c
++++ b/fs/ocfs2/sysfile.c
+@@ -44,11 +44,6 @@ static struct inode * _ocfs2_get_system_file_inode(struct ocfs2_super *osb,
+ 						   int type,
+ 						   u32 slot);
+ 
+-static inline int is_global_system_inode(int type);
+-static inline int is_in_system_inode_array(struct ocfs2_super *osb,
+-					   int type,
+-					   u32 slot);
+-
+ #ifdef CONFIG_DEBUG_LOCK_ALLOC
+ static struct lock_class_key ocfs2_sysfile_cluster_lock_key[NUM_SYSTEM_INODES];
+ #endif
+@@ -59,11 +54,36 @@ static inline int is_global_system_inode(int type)
+ 		type <= OCFS2_LAST_GLOBAL_SYSTEM_INODE;
+ }
+ 
+-static inline int is_in_system_inode_array(struct ocfs2_super *osb,
+-					   int type,
+-					   u32 slot)
++static struct inode **get_local_system_inode(struct ocfs2_super *osb,
++					     int type,
++					     u32 slot)
+ {
+-	return slot == osb->slot_num || is_global_system_inode(type);
++	int index;
++
++	BUG_ON(slot == OCFS2_INVALID_SLOT);
++	BUG_ON(type < OCFS2_FIRST_LOCAL_SYSTEM_INODE ||
++	       type > OCFS2_LAST_LOCAL_SYSTEM_INODE);
++
++	if (unlikely(!osb->local_system_inodes)) {
++		osb->local_system_inodes = kzalloc(sizeof(struct inode *) *
++						   NUM_LOCAL_SYSTEM_INODES *
++						   osb->max_slots,
++						   GFP_NOFS);
++		if (!osb->local_system_inodes) {
++			mlog_errno(-ENOMEM);
++			/*
++			 * return NULL here so that ocfs2_get_sytem_file_inodes
++			 * will try to create an inode and use it. We will try
++			 * to initialize local_system_inodes next time.
++			 */
++			return NULL;
++		}
++	}
++
++	index = (slot * NUM_LOCAL_SYSTEM_INODES) +
++		(type - OCFS2_FIRST_LOCAL_SYSTEM_INODE);
++
++	return &osb->local_system_inodes[index];
+ }
+ 
+ struct inode *ocfs2_get_system_file_inode(struct ocfs2_super *osb,
+@@ -74,8 +94,10 @@ struct inode *ocfs2_get_system_file_inode(struct ocfs2_super *osb,
+ 	struct inode **arr = NULL;
+ 
+ 	/* avoid the lookup if cached in local system file array */
+-	if (is_in_system_inode_array(osb, type, slot))
+-		arr = &(osb->system_inodes[type]);
++	if (is_global_system_inode(type)) {
++		arr = &(osb->global_system_inodes[type]);
++	} else
++		arr = get_local_system_inode(osb, type, slot);
+ 
+ 	if (arr && ((inode = *arr) != NULL)) {
+ 		/* get a ref in addition to the array ref */
+-- 
+1.7.1.GIT
