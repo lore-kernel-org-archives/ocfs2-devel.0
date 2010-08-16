@@ -1,83 +1,70 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Mon, 16 Aug 2010 13:14:48 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Cache system inodes of other
- slots.
-In-Reply-To: <20100816045546.GA2490@laptop.jp.oracle.com>
-References: <1281925874-2112-1-git-send-email-tao.ma@oracle.com>
-	<20100816045546.GA2490@laptop.jp.oracle.com>
-Message-ID: <4C68C948.8010204@oracle.com>
+Date: Mon, 16 Aug 2010 15:39:15 +0800
+Subject: [Ocfs2-devel] [PATCH] CMWQ: Set workqueue name before we process
+	one work.
+Message-ID: <1281944355-4379-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: ocfs2-devel@oss.oracle.com, Tao Ma <tao.ma@oracle.com>, Tejun Heo <tj@kernel.org>
 
-Hi wengang,
+Now in CMWQ, workqueue threads are named as 'kworker/*'. So it is
+a little boring to see in the 'top'(below) and actually it isn't
+meaningful for the users.
+12606 root      20   0     0    0    0 S    2  0.0   0:03.22 kworker/u:0
+12607 root      20   0     0    0    0 S    1  0.0   0:03.69 kworker/u:4
 
-On 08/16/2010 12:55 PM, Wengang Wang wrote:
-> Hi tao,
->
-> On 10-08-16 10:31, Tao Ma wrote:
->> Durring orphan scan, if we are slot 0, and we are replaying
->> orphan_dir:0001, the general process is that for every file
->> in this dir:
->> 1. we will iget orphan_dir:0001, since there is no inode for it.
->>     we will have to create an inode and read it from the disk.
->> 2. do the normal work, such as delete_inode and remove it from
->>     the dir if it is allowed.
->> 3. call iput orphan_dir:0001 when we are done. In this case,
->>     since we have no dcache for this inode, i_count will
->>     reach 0, and VFS will have to call clear_inode and in
->>     ocfs2_clear_inode we will checkpoint the inode which will let
->>     ocfs2_cmt and journald begin to work.
->> 4. We loop back to 1 for the next file.
->>
->> So you see, actually for every deleted file, we have to read the
->> orphan dir from the disk and checkpoint the journal. It is very
->> time consuming and cause a lot of journal checkpoint I/O.
->> A better solution is that we can have another reference for these
->> inodes in ocfs2_super. So if there is no other race among
->> nodes(which will let dlmglue to checkpoint the inode), for step 3,
->> clear_inode won't be called and for step 1, we may only need to
->> read the inode for the 1st time. This is a big win for us.
->>
->> So this patch will try to cache system inodes of other slots so
->> that we will have one more reference for these inodes and avoid
->> the extra inode read and journal checkpoint.
->>
->> Signed-off-by: Tao Ma<tao.ma@oracle.com>
->> -					   u32 slot)
->> +static struct inode **get_local_system_inode(struct ocfs2_super *osb,
->> +					     int type,
->> +					     u32 slot)
->>   {
->> -	return slot == osb->slot_num || is_global_system_inode(type);
->> +	int index;
->> +
->> +	BUG_ON(slot == OCFS2_INVALID_SLOT);
->> +	BUG_ON(type<  OCFS2_FIRST_LOCAL_SYSTEM_INODE ||
->> +	       type>  OCFS2_LAST_LOCAL_SYSTEM_INODE);
->> +
->> +	if (unlikely(!osb->local_system_inodes)) {
->> +		osb->local_system_inodes = kzalloc(sizeof(struct inode *) *
->> +						   NUM_LOCAL_SYSTEM_INODES *
->> +						   osb->max_slots,
->> +						   GFP_NOFS);
->> +		if (!osb->local_system_inodes) {
->> +			mlog_errno(-ENOMEM);
->> +			/*
->> +			 * return NULL here so that ocfs2_get_sytem_file_inodes
->> +			 * will try to create an inode and use it. We will try
->> +			 * to initialize local_system_inodes next time.
->> +			 */
->> +			return NULL;
->> +		}
->> +	}
->> +
->
-> Here, it's possible that get_local_system_inode() runs in parallel.
-> Since setting local_system_inodes is not protected, there be a memory leak.
-You are right. I will update it. Thanks.
+So this patch just try to set the proper workqueue name if it does
+exist. Yes, workqueue now is a thread pool and the data may be not
+accurate but I think it is better(below) than the 'kworker*' stuff.
+And if there is something block the workqueue, we can find the caller
+easily.
+12606 root      20   0     0    0    0 D    2  0.0   0:02.90 dlm_wq
+12607 root      20   0     0    0    0 D    0  0.0   0:03.21 ocfs2_wq
 
-Regards,
-Tao
+What's more, in ocfs2, we sometimes want to print some debug info in
+the system log and we use 'current->comm' to print the thread and this
+change also does help.
+
+The only thing I am not clear is that do we need [gs]et_task_comm?
+I guess not and this patch just try to use strlcpy without task_lock.
+
+Cc: Tejun Heo <tj@kernel.org>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ kernel/workqueue.c |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
+
+diff --git a/kernel/workqueue.c b/kernel/workqueue.c
+index 2994a0e..69402f8 100644
+--- a/kernel/workqueue.c
++++ b/kernel/workqueue.c
+@@ -1730,6 +1730,7 @@ static void process_one_work(struct worker *worker, struct work_struct *work)
+ 	work_func_t f = work->func;
+ 	int work_color;
+ 	struct worker *collision;
++	char comm_saved[TASK_COMM_LEN];
+ #ifdef CONFIG_LOCKDEP
+ 	/*
+ 	 * It is permissible to free the struct work_struct from
+@@ -1790,7 +1791,16 @@ static void process_one_work(struct worker *worker, struct work_struct *work)
+ 	work_clear_pending(work);
+ 	lock_map_acquire(&cwq->wq->lockdep_map);
+ 	lock_map_acquire(&lockdep_map);
++	if (cwq->wq->name) {
++		strlcpy(comm_saved, worker->task->comm,
++			sizeof(comm_saved));
++		strlcpy(worker->task->comm, cwq->wq->name,
++			sizeof(worker->task->comm));
++	}
+ 	f(work);
++	if (cwq->wq->name)
++		strlcpy(worker->task->comm, comm_saved,
++			sizeof(worker->task->comm));
+ 	lock_map_release(&lockdep_map);
+ 	lock_map_release(&cwq->wq->lockdep_map);
+ 
+-- 
+1.7.1.GIT
