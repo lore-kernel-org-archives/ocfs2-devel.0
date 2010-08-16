@@ -1,66 +1,51 @@
-From: Eric Sandeen <sandeen@redhat.com>
-Date: Sun, 15 Aug 2010 22:36:36 -0500
-Subject: [Ocfs2-devel] [PATCH 1/3] ext3/ext4: Factor out disk
- addressability check
-In-Reply-To: <20100816025436.GA9061@mail.oracle.com>
-References: <874ofr2myq.fsf@patl.com> <20100812174215.GC6561@mail.oracle.com>
-	<1F3EDC08-AC93-4D4D-8F83-A13C418DFC88@dilger.ca>
-	<20100812201534.GA22777@mail.oracle.com>
-	<209AEA97-E284-4ADB-8774-50C2630606B9@dilger.ca>
-	<20100812222949.GC22777@mail.oracle.com>
-	<20100813163006.GB4329@quack.suse.cz> <4C6821A8.5080805@redhat.com>
-	<20100816025436.GA9061@mail.oracle.com>
-Message-ID: <4C68B244.6080406@redhat.com>
+From: Tejun Heo <tj@kernel.org>
+Date: Mon, 16 Aug 2010 09:44:54 +0200
+Subject: [Ocfs2-devel] [PATCH] CMWQ: Set workqueue name before we
+	process one work.
+In-Reply-To: <1281944355-4379-1-git-send-email-tao.ma@oracle.com>
+References: <1281944355-4379-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <4C68EC76.70903@kernel.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Eric Sandeen <sandeen@redhat.com>, Jan Kara <jack@suse.cz>, Andreas Dilger <adilger@dilger.ca>, Ted Ts'o <tytso@mit.edu>, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org
+To: Tao Ma <tao.ma@oracle.com>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Joel Becker wrote:
-> On Sun, Aug 15, 2010 at 12:19:36PM -0500, Eric Sandeen wrote:
->>>> +	    (last_fs_block >
->>>> +	     (pgoff_t)(~0ULL) >> (PAGE_CACHE_SHIFT - blocksize_bits))) {
->>>             ^^^ I don't get the pgoff_t check. Shouldn't it rather be
->>> (u64)(pgoff_t)(~0ULL) << (PAGE_CACHE_SHIFT - blocksize_bits)?
->> Argh that was my fault...  Thankfully not too many 1k-blocksize-formatted
->> 16T devices out there, I guess.
->>
->> I went through the math again and also came up with:
->>
->> total fs pages is blocks / (blocks per page)
->> total pages is blocks / (1 << PAGE_CACHE_SHIFT / 1 << blocksize_bits)
->> total pages is blocks / (1 << (PAGE_CACHE_SHIFT - blocksize_bits))
->> total pages is blocks * (1 >> (PAGE_CACHE_SHIFT - blocksize_bits))
->> total pages is blocks >> (PAGE_CACHE_SHIFT - blocksize_bits)
->>
->> too big if total pages is > (pgoff_t)(~0ULL)
->> too big if blocks >> (PAGE_CACHE_SHIFT - blocksize_bits) > (pgoff_t)(~0ULL)
+On 08/16/2010 09:39 AM, Tao Ma wrote:
+> Now in CMWQ, workqueue threads are named as 'kworker/*'. So it is
+> a little boring to see in the 'top'(below) and actually it isn't
+> meaningful for the users.
+> 12606 root      20   0     0    0    0 S    2  0.0   0:03.22 kworker/u:0
+> 12607 root      20   0     0    0    0 S    1  0.0   0:03.69 kworker/u:4
 > 
-> 	Why not stop here, which is what I put in my other email?
-> "blocks >> SHIFT-bits" is "how many pages do I need?".
-
-yeah, ok.  Was going for pointless symmetry w/ the other test...
-
->> too big if blocks > (pgoff_t)(~0ULL) << (PAGE_CACHE_SHIFT - blocksize_bits)
->> and to not overflow:
->> too big if blocks > (u64)(pgoff_t)(~0ULL) << (PAGE_CACHE_SHIFT - blocksize_bits)
+> So this patch just try to set the proper workqueue name if it does
+> exist. Yes, workqueue now is a thread pool and the data may be not
+> accurate but I think it is better(below) than the 'kworker*' stuff.
+> And if there is something block the workqueue, we can find the caller
+> easily.
+> 12606 root      20   0     0    0    0 D    2  0.0   0:02.90 dlm_wq
+> 12607 root      20   0     0    0    0 D    0  0.0   0:03.21 ocfs2_wq
 > 
-> 	This still overflows.  pgoff_t is a u64 on 64bit machines,
-> right?  So shift that left by anything and you wrap.
-
-Er, yeah.  I had 32 bits in my head since that's the case we're
-checking for... whoops.
-
-So I guess your
-
- 	    ... ||
-	    ((last_fs_block >> (PAGE_CACHE_SHIFT - blocksize_bits)) >
-	     (pgoff_t)(!0ULL))) {
-
-is right :)  (my feeble brain has a hard time reading that, though, TBH)
-
--Eric
-
-> Joel
+> What's more, in ocfs2, we sometimes want to print some debug info in
+> the system log and we use 'current->comm' to print the thread and this
+> change also does help.
 > 
+> The only thing I am not clear is that do we need [gs]et_task_comm?
+> I guess not and this patch just try to use strlcpy without task_lock.
+> 
+> Cc: Tejun Heo <tj@kernel.org>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+
+I thought about the same thing but this doesn't provide any more
+information than stack traces for debugging and for run time tracking
+implementing tracing API (scheduled to be added in this devel cycle)
+is the right approach.  Also, I don't think it's wise to constantly
+change program name.  It will confuse more than help.  So, unless
+there are other reasons for doing this, I don't think I'm gonna take
+this one.
+
+Thanks.
+
+-- 
+tejun
