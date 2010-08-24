@@ -1,158 +1,75 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Sat, 21 Aug 2010 19:13:50 -0400
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: dynamically allocate lvb for
-	dlm_lock_resource
-Message-ID: <201008231056.o7N8ClUi002147@rcsinet13.oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Tue, 24 Aug 2010 14:28:03 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix deadlock when allocating page
+Message-ID: <1282652883-21019-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Not all dlm_lock_resource use lvb. It's a waste of memory for those
-dlm_lock_resources since lvb is a "char lvb[64];".
+We cannot call grab_cache_page() when holding filesystem locks or with
+a transaction started as grab_cache_page() calls page allocation with
+GFP_KERNEL flag and thus page reclaim can recurse back into the filesystem
+causing deadlocks or various assertion failures. We have to use
+find_or_create_page() instead and pass it GFP_NOFS as we do with other
+allocations.
 
-This patch allocates lvb for dlm_lock_resources who use lvb.
-
-Without the patch applied,
-[wwg at cool linux-2.6]$ egrep "o2dlm_lockres" /proc/slabinfo
-o2dlm_lockres         42     42    256   32    2 : tunables    0    0    0 : slabdata      2      2      0
-
-After patch applied,
-[wwg at cool linux-2.6]$ egrep "o2dlm_lockres" /proc/slabinfo
-o2dlm_lockres         42     42    192   21    1 : tunables    0    0    0 : slabdata      2      2      0
-
-#that's on i686.
-
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/dlm/dlmast.c    |    2 ++
- fs/ocfs2/dlm/dlmcommon.h |    3 ++-
- fs/ocfs2/dlm/dlmlock.c   |    6 ++++++
- fs/ocfs2/dlm/dlmmaster.c |   31 ++++++++++++++++++++++++++++---
- 4 files changed, 38 insertions(+), 4 deletions(-)
+ fs/ocfs2/alloc.c        |    2 +-
+ fs/ocfs2/file.c         |    2 +-
+ fs/ocfs2/refcounttree.c |    5 +++--
+ 3 files changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
-index f449991..fe272b1 100644
---- a/fs/ocfs2/dlm/dlmast.c
-+++ b/fs/ocfs2/dlm/dlmast.c
-@@ -191,6 +191,8 @@ static void dlm_update_lvb(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
- 			mlog(0, "getting lvb from lockres for %s node\n",
- 				  lock->ml.node == dlm->node_num ? "master" :
- 				  "remote");
-+			mlog_bug_on_msg(!res->lvb, "lockname : %.*s\n",
-+					res->lockname.len, res->lockname.name);
- 			memcpy(lksb->lvb, res->lvb, DLM_LVB_LEN);
- 		}
- 		/* Do nothing for lvb put requests - they should be done in
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 4b6ae2c..49e6492 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -329,7 +329,7 @@ struct dlm_lock_resource
- 	wait_queue_head_t wq;
- 	u8  owner;              //node which owns the lock resource, or unknown
- 	u16 state;
--	char lvb[DLM_LVB_LEN];
-+	char *lvb;
- 	unsigned int inflight_locks;
- 	unsigned long refmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
- };
-@@ -1033,6 +1033,7 @@ void dlm_clean_master_list(struct dlm_ctxt *dlm,
- int dlm_lock_basts_flushed(struct dlm_ctxt *dlm, struct dlm_lock *lock);
- int __dlm_lockres_has_locks(struct dlm_lock_resource *res);
- int __dlm_lockres_unused(struct dlm_lock_resource *res);
-+char *dlm_alloc_lvb(char **lvb);
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 215e12c..592fae5 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -6672,7 +6672,7 @@ int ocfs2_grab_pages(struct inode *inode, loff_t start, loff_t end,
+ 	last_page_bytes = PAGE_ALIGN(end);
+ 	index = start >> PAGE_CACHE_SHIFT;
+ 	do {
+-		pages[numpages] = grab_cache_page(mapping, index);
++		pages[numpages] = find_or_create_page(mapping, index, GFP_NOFS);
+ 		if (!pages[numpages]) {
+ 			ret = -ENOMEM;
+ 			mlog_errno(ret);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 81296b4..b28cce8 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -774,7 +774,7 @@ static int ocfs2_write_zero_page(struct inode *inode, u64 abs_from,
+ 	BUG_ON(abs_to > (((u64)index + 1) << PAGE_CACHE_SHIFT));
+ 	BUG_ON(abs_from & (inode->i_blkbits - 1));
  
- static inline const char * dlm_lock_mode_name(int mode)
- {
-diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-index 69cf369..5c7ece7 100644
---- a/fs/ocfs2/dlm/dlmlock.c
-+++ b/fs/ocfs2/dlm/dlmlock.c
-@@ -425,6 +425,12 @@ static void dlm_init_lock(struct dlm_lock *newlock, int type,
- 	kref_init(&newlock->lock_refs);
- }
+-	page = grab_cache_page(mapping, index);
++	page = find_or_create_page(mapping, index, GFP_NOFS);
+ 	if (!page) {
+ 		ret = -ENOMEM;
+ 		mlog_errno(ret);
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 73a11cc..0afeda8 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2960,7 +2960,7 @@ static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 		if (map_end & (PAGE_CACHE_SIZE - 1))
+ 			to = map_end & (PAGE_CACHE_SIZE - 1);
  
-+char *dlm_alloc_lvb(char **lvb)
-+{
-+	*lvb = kzalloc(DLM_LVB_LEN, GFP_NOFS);
-+	return *lvb;
-+}
-+
- struct dlm_lock * dlm_new_lock(int type, u8 node, u64 cookie,
- 			       struct dlm_lockstatus *lksb)
- {
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index ffb4c68..77315a4 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -545,6 +545,7 @@ static void dlm_lockres_release(struct kref *kref)
+-		page = grab_cache_page(mapping, page_index);
++		page = find_or_create_page(mapping, page_index, GFP_NOFS);
  
- 	kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
+ 		/*
+ 		 * In case PAGE_CACHE_SIZE <= CLUSTER_SIZE, This page
+@@ -3179,7 +3179,8 @@ static int ocfs2_cow_sync_writeback(struct super_block *sb,
+ 		if (map_end > end)
+ 			map_end = end;
  
-+	kfree(res->lvb);
- 	kmem_cache_free(dlm_lockres_cache, res);
- }
+-		page = grab_cache_page(context->inode->i_mapping, page_index);
++		page = find_or_create_page(context->inode->i_mapping,
++					   page_index, GFP_NOFS);
+ 		BUG_ON(!page);
  
-@@ -553,7 +554,20 @@ void dlm_lockres_put(struct dlm_lock_resource *res)
- 	kref_put(&res->refs, dlm_lockres_release);
- }
- 
--static void dlm_init_lockres(struct dlm_ctxt *dlm,
-+static int dlm_lockres_uses_lvb(struct dlm_lock_resource *res)
-+{
-+	switch (res->lockname.name[0]) {
-+	case 'M':
-+	case 'Q':
-+	case 'R':
-+	case 'P':
-+		return 1;
-+	default:
-+		return 0;
-+	}
-+}
-+
-+static int dlm_init_lockres(struct dlm_ctxt *dlm,
- 			     struct dlm_lock_resource *res,
- 			     const char *name, unsigned int namelen)
- {
-@@ -603,8 +617,16 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
- 	list_add_tail(&res->tracking, &dlm->tracking_list);
- 	spin_unlock(&dlm->spinlock);
- 
--	memset(res->lvb, 0, DLM_LVB_LEN);
-+	if (dlm_lockres_uses_lvb(res)) {
-+		if (!dlm_alloc_lvb(&res->lvb)) {
-+			mlog(ML_ERROR, "no memory for lvb\n");
-+			return -ENOMEM;
-+		}
-+	} else {
-+		res->lvb = NULL;
-+	}
- 	memset(res->refmap, 0, sizeof(res->refmap));
-+	return 0;
- }
- 
- struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
-@@ -612,6 +634,7 @@ struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
- 				   unsigned int namelen)
- {
- 	struct dlm_lock_resource *res = NULL;
-+	int ret;
- 
- 	res = kmem_cache_zalloc(dlm_lockres_cache, GFP_NOFS);
- 	if (!res)
-@@ -621,7 +644,9 @@ struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
- 	if (!res->lockname.name)
- 		goto error;
- 
--	dlm_init_lockres(dlm, res, name, namelen);
-+	ret = dlm_init_lockres(dlm, res, name, namelen);
-+	if (ret) 
-+		goto error;
- 	return res;
- 
- error:
+ 		wait_on_page_writeback(page);
 -- 
-1.7.2.1
+1.6.4.2
