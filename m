@@ -1,53 +1,44 @@
-From: Jeremy Fitzhardinge <jeremy@goop.org>
-Date: Mon, 30 Aug 2010 15:53:26 -0700
-Subject: [Ocfs2-devel] [PATCH V4 5/8] Cleancache: ext3 hook for
-	cleancache
-In-Reply-To: <20100830223233.GA1317@ca-server1.us.oracle.com>
-References: <20100830223233.GA1317@ca-server1.us.oracle.com>
-Message-ID: <4C7C3666.2080601@goop.org>
+From: Dan Magenheimer <dan.magenheimer@oracle.com>
+Date: Mon, 30 Aug 2010 17:40:42 -0700 (PDT)
+Subject: [Ocfs2-devel] [PATCH V4 3/8] Cleancache: core ops functions and
+	configuration
+In-Reply-To: <4C7C3521.7090403@goop.org>
+References: <20100830223133.GA1272@ca-server1.us.oracle.com
+	4C7C3521.7090403@goop.org>
+Message-ID: <dbb9f012-c09a-438f-99d0-4fbc40428f58@default>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dan Magenheimer <dan.magenheimer@oracle.com>
-Cc: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@kernel.dk, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com, mel@csn.ul.ie, yinghan@google.com, gthelen@google.com
+To: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: Chris Mason <chris.mason@oracle.com>, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, Joel Becker <joel.becker@oracle.com>, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, JBeulich@novell.com, Kurt Hackel <kurt.hackel@oracle.com>, npiggin@kernel.dk, Dave Mccracken <dave.mccracken@oracle.com>, riel@redhat.com, avi@redhat.com, Konrad Wilk <konrad.wilk@oracle.com>, mel@csn.ul.ie, yinghan@google.com, gthelen@google.com
 
- On 08/30/2010 03:32 PM, Dan Magenheimer wrote:
-> [PATCH V4 5/8] Cleancache: ext3 hook for cleancache
->
-> Filesystems must explicitly enable cleancache by calling
-> cleancache_init_fs anytime a instance of the filesystem
-> is mounted and must save the returned poolid.  For ext3,
-> all other cleancache hooks are in the VFS layer including
-> the matching cleancache_flush_fs hook which must be
-> called on unmount.
->
-> Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
-> Acked-by: Andreas Dilger <adilger@sun.com>
->
-> Diffstat:
->  super.c                                  |    2 ++
->  1 file changed, 2 insertions(+)
->
-> --- linux-2.6.36-rc3/fs/ext3/super.c	2010-08-29 09:36:04.000000000 -0600
-> +++ linux-2.6.36-rc3-cleancache/fs/ext3/super.c	2010-08-30 09:20:42.000000000 -0600
-> @@ -37,6 +37,7 @@
->  #include <linux/quotaops.h>
->  #include <linux/seq_file.h>
->  #include <linux/log2.h>
-> +#include <linux/cleancache.h>
->  
->  #include <asm/uaccess.h>
->  
-> @@ -1349,6 +1350,7 @@ static int ext3_setup_super(struct super
->  	} else {
->  		ext3_msg(sb, KERN_INFO, "using internal journal");
->  	}
-> +	sb->cleancache_poolid = cleancache_init_fs(PAGE_SIZE);
+> > +#ifdef CONFIG_CLEANCACHE
+> > +#define cleancache_enabled (cleancache_ops.init_fs)
+> 
+> Pointers can be used in a boolean context, but it would probably be
+> cleaner to have this evaluate to a proper boolean type.  Also I'd
+> probably go with an all-caps macro name rather than making it look like
+> a variable.
 
-Do you really need to pass in the page size?  What about just
-"cleancache_init_fs(sb)" rather than exposing the
-"sb->cleancache_poolid"?  In other words, what if you want to do
-more/other per-filesystem init at some point?
+OK, thanks, will fix.
+ 
+> > +/* useful stats available in /sys/kernel/mm/cleancache */
+> > +static unsigned long succ_gets;
+> > +static unsigned long failed_gets;
+> > +static unsigned long puts;
+> > +static unsigned long flushes;
+> 
+> I'd probably give these very generic-sounding names some slightly
+> unique
+> prefix just to help out people looking at "nm" output or using ctags.
+> 
+> > +static int get_key(struct inode *inode, struct cleancache_filekey
+> *key)
+> 
+> Ditto.
 
-    J
+OK, will do.
+
+Thanks for the feedback!
+Dan
