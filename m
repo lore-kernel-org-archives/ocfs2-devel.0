@@ -1,97 +1,36 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 2 Sep 2010 22:53:26 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove a potential deadlock
-In-Reply-To: <20100902144348.GA5015@laptop.jp.oracle.com>
-References: <201009021320.o82CV6Z1009328@rcsinet15.oracle.com>
-	<20100902144348.GA5015@laptop.jp.oracle.com>
-Message-ID: <20100902145326.GB5015@laptop.jp.oracle.com>
+From: Dan Magenheimer <dan.magenheimer@oracle.com>
+Date: Fri, 3 Sep 2010 13:02:13 -0700
+Subject: [Ocfs2-devel] [PATCH V5 2/8] Cleancache: cleancache_poolid in
+	superblock
+Message-ID: <20100903200212.GA4581@ca-server1.us.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: chris.mason@oracle.com, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger@sun.com, tytso@mit.edu, mfasheh@suse.com, joel.becker@oracle.com, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, kurt.hackel@oracle.com, npiggin@kernel.dk, dave.mccracken@oracle.com, riel@redhat.com, avi@redhat.com, konrad.wilk@oracle.com, dan.magenheimer@oracle.com, mel@csn.ul.ie, yinghan@google.com, gthelen@google.com
 
-On 10-09-02 22:43, Wengang Wang wrote:
-> I am taking back this patch since where is another such violation in
+[PATCH V5 2/8] Cleancache: cleancache_poolid in superblock
 
-Sorry for the typo.
-s/where/there
+Add cleancache_poolid to superblock structure... not tied
+to CONFIG_CLEANCACHE so as to avoid unnecessary clutter.
 
-regards,
-wengang.
-> dlm_flush_asts().
-> 
-> I will try to fix the both in one combination.
-> 
-> regards,
-> wengang.
-> 
-> On 10-09-02 21:17, Wengang Wang wrote:
-> > /*
-> >  *
-> >  * spinlock lock ordering: if multiple locks are needed, obey this ordering:
-> >  *    dlm_domain_lock
-> >  *    struct dlm_ctxt->spinlock
-> >  *    struct dlm_lock_resource->spinlock
-> >  *    struct dlm_ctxt->master_lock
-> >  *    struct dlm_ctxt->ast_lock
-> >  *    dlm_master_list_entry->spinlock
-> >  *    dlm_lock->spinlock
-> >  *
-> >  */
-> > 
-> > There is a violation that locks on dlm_lock_resource->spinlock after locking
-> > on dlm_ctxt->ast_lock. The violation is not detected because so far there is
-> > only one place where both the two spinlock are taken at the same time. But it
-> > is a potential deadlock in future(when the two lock are taken all together in
-> > correct order).
-> > 
-> > This patch fixes the problem by changing the calling order.
-> > 
-> > Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> > ---
-> >  fs/ocfs2/dlm/dlmthread.c |    6 +++---
-> >  1 files changed, 3 insertions(+), 3 deletions(-)
-> > 
-> > diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-> > index 2211acf..676ff3e 100644
-> > --- a/fs/ocfs2/dlm/dlmthread.c
-> > +++ b/fs/ocfs2/dlm/dlmthread.c
-> > @@ -671,8 +671,8 @@ static int dlm_thread(void *data)
-> >  		 	/* lockres can be re-dirtied/re-added to the
-> >  			 * dirty_list in this gap, but that is ok */
-> >  
-> > -			spin_lock(&dlm->ast_lock);
-> >  			spin_lock(&res->spinlock);
-> > +			spin_lock(&dlm->ast_lock);
-> >  			if (res->owner != dlm->node_num) {
-> >  				__dlm_print_one_lock_resource(res);
-> >  				mlog(ML_ERROR, "inprog:%s, mig:%s, reco:%s, dirty:%s\n",
-> > @@ -691,8 +691,8 @@ static int dlm_thread(void *data)
-> >  					  DLM_LOCK_RES_RECOVERING)) {
-> >  				/* move it to the tail and keep going */
-> >  				res->state &= ~DLM_LOCK_RES_DIRTY;
-> > -				spin_unlock(&res->spinlock);
-> >  				spin_unlock(&dlm->ast_lock);
-> > +				spin_unlock(&res->spinlock);
-> >  				mlog(0, "delaying list shuffling for in-"
-> >  				     "progress lockres %.*s, state=%d\n",
-> >  				     res->lockname.len, res->lockname.name,
-> > @@ -713,8 +713,8 @@ static int dlm_thread(void *data)
-> >  			/* called while holding lockres lock */
-> >  			dlm_shuffle_lists(dlm, res);
-> >  			res->state &= ~DLM_LOCK_RES_DIRTY;
-> > -			spin_unlock(&res->spinlock);
-> >  			spin_unlock(&dlm->ast_lock);
-> > +			spin_unlock(&res->spinlock);
-> >  
-> >  			dlm_lockres_calc_usage(dlm, res);
-> >  
-> > -- 
-> > 1.7.2.2
-> > 
-> > 
-> > _______________________________________________
-> > Ocfs2-devel mailing list
-> > Ocfs2-devel at oss.oracle.com
-> > http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
+
+Diffstat:
+ fs.h                                     |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+--- linux-2.6.36-rc3/include/linux/fs.h	2010-08-29 09:36:04.000000000 -0600
++++ linux-2.6.36-rc3-cleancache/include/linux/fs.h	2010-08-30 09:20:43.000000000 -0600
+@@ -1381,6 +1381,11 @@ struct super_block {
+ 	 * generic_show_options()
+ 	 */
+ 	char *s_options;
++
++	/*
++	 * Saved pool identifier for cleancache (-1 means none)
++	 */
++	int cleancache_poolid;
+ };
+ 
+ extern struct timespec current_fs_time(struct super_block *sb);
