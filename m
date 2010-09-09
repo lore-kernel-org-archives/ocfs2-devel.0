@@ -1,69 +1,71 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Wed, 8 Sep 2010 19:39:16 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Re-access the journal after
-	ocfs2_insert_extent() in dxdir codes.
-In-Reply-To: <4C8839D8.9010500@oracle.com>
-References: <1283937158-4763-1-git-send-email-tristan.ye@oracle.com>
-	<20100909004959.GF4364@wotan.suse.de> <4C8839D8.9010500@oracle.com>
-Message-ID: <20100909023915.GG4364@wotan.suse.de>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Thu,  9 Sep 2010 17:16:59 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Handle invalid lock_res in
+	lockres_seq_start() for dlmdebug.c
+Message-ID: <1284023819-3883-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Sep 09, 2010 at 09:35:20AM +0800, tristan wrote:
-> Mark Fasheh wrote:
-> > On Wed, Sep 08, 2010 at 05:12:38PM +0800, Tristan Ye wrote:
-> >> In ocfs2_dx_dir_rebalance(), we need to rejournal_acess the blocks after
-> >> calling ocfs2_insert_extent() since growing an extent tree may trigger
-> >> ocfs2_extend_trans(), which makes previous journal_access meaningless.
-> >>
-> >> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
-> >> ---
-> >>  fs/ocfs2/dir.c |   24 ++++++++++++++++--------
-> >>  1 files changed, 16 insertions(+), 8 deletions(-)
-> >>
-> >> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> >> index f04ebcf..c49f6de 100644
-> >> --- a/fs/ocfs2/dir.c
-> >> +++ b/fs/ocfs2/dir.c
-> >> @@ -3931,6 +3931,15 @@ static int ocfs2_dx_dir_rebalance(struct ocfs2_super *osb, struct inode *dir,
-> >>  		goto out_commit;
-> >>  	}
-> >>  
-> >> +	cpos = split_hash;
-> >> +	ret = ocfs2_dx_dir_new_cluster(dir, &et, cpos, handle,
-> >> +				       data_ac, meta_ac, new_dx_leaves,
-> >> +				       num_dx_leaves);
-> >> +	if (ret) {
-> >> +		mlog_errno(ret);
-> >> +		goto out_commit;
-> >> +	}
-> >> +
-> >>  	for (i = 0; i < num_dx_leaves; i++) {
-> >>  		ret = ocfs2_journal_access_dl(handle, INODE_CACHE(dir),
-> >>  					      orig_dx_leaves[i],
-> >
-> > Ok, I see what you're going for here. Don't we still need to add a
-> > journal_access_dl call against new_dx_leaves[i] in the for loop though? They
-> > will be dirtied again in ocfs2_dx_dir_transfer_leaf.
-> 
-> Didn't I?
-> 
-> This patch already had the codes calling the journal_access_dl against 
-> new_dx_leaves.
-> 
-> Look at the second portion of this patch, that is it.
+In lockres_seq_start() of dlmdebug.c, when you looking at following
+piece of codes:
 
-Ahh yes, you are correct. Sorry about that, not sure how I missed it.
-Anyway, you can add my ack:
+list_for_each_entry(res, track_list, tracking) {
+	if (&res->tracking == &dlm->tracking_list)
+		res = NULL;
+	else
+		dlm_lockres_get(res);
+	break;
+}
 
-Acked-by: Mark Fasheh <mfasheh@suse.com>
+...
 
-The patch looks good to me.
-	--Mark 
+if (res) {
+	spin_lock(&res->spinlock);
+	dump_lockres(res, dl->dl_buf, dl->dl_len - 1);
+	spin_unlock(&res->spinlock);
+} else
+	dl = NULL;
 
+One thought can come to you that, in the case of 'an-empty-list', cursor 'res'
+here is not an INVALID pointer for real dlm_lock_resource object, it is nothing
+than a fake address figured out by arbitary 'container_of()' way, the patch tries
+to check track_list, and avoid accessing an invalid pointer if the list is empty,
+it fixes following oops:
 
---
-Mark Fasheh
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1287
+
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/dlm/dlmdebug.c |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+index 5efdd37..06d668a 100644
+--- a/fs/ocfs2/dlm/dlmdebug.c
++++ b/fs/ocfs2/dlm/dlmdebug.c
+@@ -639,6 +639,12 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
+ 	else
+ 		track_list = &dlm->tracking_list;
+ 
++	if (list_empty(track_list)) {
++		dl = NULL;
++		spin_unlock(&dlm->track_lock);
++		goto bail;
++	}
++
+ 	list_for_each_entry(res, track_list, tracking) {
+ 		if (&res->tracking == &dlm->tracking_list)
+ 			res = NULL;
+@@ -660,6 +666,7 @@ static void *lockres_seq_start(struct seq_file *m, loff_t *pos)
+ 	} else
+ 		dl = NULL;
+ 
++bail:
+ 	/* passed to seq_show */
+ 	return dl;
+ }
+-- 
+1.5.5
