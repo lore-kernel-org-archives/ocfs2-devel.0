@@ -1,47 +1,101 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 09 Sep 2010 18:26:42 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Handle invalid lock_res in
- lockres_seq_start() for dlmdebug.c
-In-Reply-To: <4C8987F2.8070001@oracle.com>
-References: <1284023819-3883-1-git-send-email-tristan.ye@oracle.com>
-	<4C891255.8060307@oracle.com> <4C8987F2.8070001@oracle.com>
-Message-ID: <4C898952.20705@oracle.com>
+Date: Thu, 09 Sep 2010 18:41:46 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: retry migrating if nomem or
+ lockres is in recovery on target
+In-Reply-To: <201008311544.o7VESwg1014110@acsinet15.oracle.com>
+References: <201008311544.o7VESwg1014110@acsinet15.oracle.com>
+Message-ID: <4C898CDA.10708@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 09/09/2010 06:20 PM, tristan wrote:
->>>   1 files changed, 7 insertions(+), 0 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
->>> index 5efdd37..06d668a 100644
->>> --- a/fs/ocfs2/dlm/dlmdebug.c
->>> +++ b/fs/ocfs2/dlm/dlmdebug.c
->>> @@ -639,6 +639,12 @@ static void *lockres_seq_start(struct seq_file 
->>> *m, loff_t *pos)
->>>       else
->>>           track_list =&dlm->tracking_list;
->>>
->>> +    if (list_empty(track_list)) {
->>> +        dl = NULL;
->>> +        spin_unlock(&dlm->track_lock);
->>> +        goto bail;
->>> +    }
->>> +
->>
->> You should add this check as part of the else block above so
->> that we check for empty list only at the start.
->   fs/ocfs2/dlm/dlmdebug.c |    7 +++++++
+I don't think this fixes the issue. As in, the fix for reco+mig race is a
+lot more involved. Is someone hitting this freq? As in, this should be
+a hard race to reproduce.
+
+On 08/31/2010 08:41 AM, Wengang Wang wrote:
+> This patch tries to fix two problems:
 >
-> So we just don't need to check list 'oldres->tracking'?
-
-If you see how it works, it prints one lock resource at a time. As in,
-each time _start is called, it fetches the next lock resource in the 
-tracking
-list. So the empty list should be checked only at the very beginning.
-
-To be fair, your code should also work. If the list has even one lockres,
-it cannot, by definition, be empty. But adding it in the if block makes the
-check explicit and clean. IMHO.
+> problem 1):
+> It's a case of recovery + migration. That is a recovery is happening when node I
+> is in progress of umount. Node I is the recovery master.
+> Say lockres A was mastered by the dead node and need to be recovered. Node I(the
+> reco master) and node II both have reference on lockres A.
+> So lockres A is being recovered from node II to node I, with RECOVERING flag set.
+> The umounting process is going on, it happened to be migrating lockres A to node
+> II. Since recovery not finished yet(RECOVERING still set), node II reponds with
+> -EFAULT to kill node I. Then node I killed its self(BUGON).
+>
+> There is a checking for recovery(on RECOVERING), but it droped res->spinlock and
+> dlm->spinlock. So the checking does not help much enough.
+>
+> Since we have to drop any spinlock when we are sending migrate lockres(
+> DLM_MIG_LOCKRES_MSG) message, we have to deal with above case.
+>
+> problem 2):
+> In the same context of problem 1), -ENOMEM from target node can trigger an
+> incorrect BUG() on the requester of "migrate lockres".
+>
+> The fix is when target node returns -EFAULT or -ENOMEM, we retry the migration(
+> for umount).
+> Though they are two separated problems, the fixes are in the same way. So I
+> combined them together.
+>
+> Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
+> ---
+>   fs/ocfs2/dlm/dlmrecovery.c |   28 ++++++++++++++++++++++------
+>   1 files changed, 22 insertions(+), 6 deletions(-)
+>
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index aaaffbc..b7dd03f 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -1122,6 +1122,8 @@ static int dlm_send_mig_lockres_msg(struct dlm_ctxt *dlm,
+>   	     orig_flags&  DLM_MRES_MIGRATION ? "migration" : "recovery",
+>   	     send_to);
+>
+> +#define WAIT_FOR_NOMEM_MS 30
+> +resend:
+>   	/* send it */
+>   	ret = o2net_send_message(DLM_MIG_LOCKRES_MSG, dlm->key, mres,
+>   				 sz, send_to,&status);
+> @@ -1132,16 +1134,30 @@ static int dlm_send_mig_lockres_msg(struct dlm_ctxt *dlm,
+>   		     "0x%x) to node %u\n", ret, DLM_MIG_LOCKRES_MSG,
+>   		     dlm->key, send_to);
+>   	} else {
+> -		/* might get an -ENOMEM back here */
+> -		ret = status;
+>   		if (ret<  0) {
+>   			mlog_errno(ret);
+>
+> -			if (ret == -EFAULT) {
+> -				mlog(ML_ERROR, "node %u told me to kill "
+> -				     "myself!\n", send_to);
+> -				BUG();
+> +			/*
+> +			 * -ENOMEM or -EFAULT here.
+> +			 * -EFAULT means lockres is in recovery.
+> +			 * we should retry in both the two cases.
+> +			 */
+> +			ret = status;
+> +			if (ret == -ENOMEM) {
+> +				mlog(ML_NOTICE, "node %u no memory\n",
+> +				     send_to);
+> +				if (dlm_in_recovery(dlm)) {
+> +					dlm_wait_for_recovery(dlm);
+> +				} else {
+> +					msleep(WAIT_FOR_NOMEM_MS);
+> +				}
+> +			} else {
+> +				BUG_ON(ret != -EFAULT);
+> +				mlog(ML_NOTICE, "node %u in recovery\n",
+> +				     send_to);
+> +				dlm_wait_for_recovery(dlm);
+>   			}
+> +			goto resend;
+>   		}
+>   	}
+>
+>    
