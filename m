@@ -1,38 +1,43 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 10 Sep 2010 20:52:10 -0700
-Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2/dlm: make dynamic lvb alloc work
-In-Reply-To: <4C8ACBD3.4090706@oracle.com>
-References: <201008261310.o7Q90KvJ016660@acsinet15.oracle.com>
-	<4C8ACBD3.4090706@oracle.com>
-Message-ID: <20100911035210.GL885@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Mon, 13 Sep 2010 14:00:23 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: update ctime when changing the file's
+	permission by setfacl
+Message-ID: <1284357623-3113-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Sep 10, 2010 at 05:22:43PM -0700, Sunil Mushran wrote:
-> BTW, you are forgetting user_dlm. Not userspace dlm, but user dlm.
-> So the premise here is that we can skip allocating space for the lvb
-> based on the lockname. That will work for fs locks. But not for dlmfs/
-> userdlm because we allow users to create any lockname.
-> 
-> Now granted we can then say that lvb is not available for userdlm.
-> But we do provide that facility right now.
+In commit 30e2bab, ext3 fixed it. So change it accordingly in ocfs2.
 
-	We are not taking away the lvb for userdlm.  So userdlm would
-have to always allocate, I guess.
+Steps to reproduce:
+# touch aaa
+# stat -c %Z aaa
+1283760364
+# setfacl -m  'u::x,g::x,o::x' aaa
+# stat -c %Z aaa
+1283760364
 
-Joel
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/acl.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
+diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+index a76e0aa..3919150 100644
+--- a/fs/ocfs2/acl.c
++++ b/fs/ocfs2/acl.c
+@@ -209,7 +209,10 @@ static int ocfs2_acl_set_mode(struct inode *inode, struct buffer_head *di_bh,
+ 	}
+ 
+ 	inode->i_mode = new_mode;
++	inode->i_ctime = CURRENT_TIME;
+ 	di->i_mode = cpu_to_le16(inode->i_mode);
++	di->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
++	di->i_ctime_nsec = cpu_to_le32(inode->i_ctime.tv_nsec);
+ 
+ 	ocfs2_journal_dirty(handle, di_bh);
+ 
 -- 
-
-"Heav'n hath no rage like love to hatred turn'd, nor Hell a fury,
- like a woman scorn'd."
-        - William Congreve
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.7.1.GIT
