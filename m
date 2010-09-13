@@ -1,48 +1,49 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Mon, 13 Sep 2010 15:13:50 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Use cpu_to_le16 for e_leaf_clusters
-	in ocfs2_bg_discontig_add_extent.
-In-Reply-To: <20100913062907.GA16449@mail.oracle.com>
-References: <20100913062907.GA16449@mail.oracle.com>
-Message-ID: <1284362030-3398-1-git-send-email-tao.ma@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 13 Sep 2010 10:54:23 -0700
+Subject: [Ocfs2-devel] [PATCH 1/5] ocfs2/dlm: dynamically allocate lvb
+ for dlm_lock_resource
+In-Reply-To: <201008261310.o7PGMqsi009165@acsinet15.oracle.com>
+References: <201008261310.o7PGMqsi009165@acsinet15.oracle.com>
+Message-ID: <4C8E654F.4050503@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-e_leaf_clusters is a le16, so use cpu_to_le16 instead
-of cpu_to_le32.
+On 08/26/2010 06:06 AM, Wengang Wang wrote:
+> This patch tries to dynamically allocate lvb for dlm_lock_resource which needs to access lvb.
+>
+> Without the patch applied,
+> [wwg at cool linux-2.6]$ egrep "o2dlm_lockres" /proc/slabinfo
+> o2dlm_lockres         42     42    256   32    2 : tunables    0    0    0 : slabdata      2      2      0
+>
+> After patch applied,
+> [wwg at cool linux-2.6]$ egrep "o2dlm_lockres" /proc/slabinfo
+> o2dlm_lockres         42     42    192   21    1 : tunables    0    0    0 : slabdata      2      2      0
+>
+> #the result is taken on i686
+>    
 
-What's more, we change 'clusters' to unsigned int to
-signify that the size of 'clusters' isn't important here.
+So the core logic allocates a lvb or not based on the lock name. That
+will not work because we support userdlm (not to be confused with
+userspace stack that uses fsdlm) that allows the user to specify the name.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/suballoc.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+A better solution is to make the user pass in a flag to create the lvb.
+That's one issue.
 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index a8e6a95..6bad4d0 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -336,7 +336,7 @@ out:
- static void ocfs2_bg_discontig_add_extent(struct ocfs2_super *osb,
- 					  struct ocfs2_group_desc *bg,
- 					  struct ocfs2_chain_list *cl,
--					  u64 p_blkno, u32 clusters)
-+					  u64 p_blkno, unsigned int clusters)
- {
- 	struct ocfs2_extent_list *el = &bg->bg_list;
- 	struct ocfs2_extent_rec *rec;
-@@ -348,7 +348,7 @@ static void ocfs2_bg_discontig_add_extent(struct ocfs2_super *osb,
- 	rec->e_blkno = cpu_to_le64(p_blkno);
- 	rec->e_cpos = cpu_to_le32(le16_to_cpu(bg->bg_bits) /
- 				  le16_to_cpu(cl->cl_bpc));
--	rec->e_leaf_clusters = cpu_to_le32(clusters);
-+	rec->e_leaf_clusters = cpu_to_le16(clusters);
- 	le16_add_cpu(&bg->bg_bits, clusters * le16_to_cpu(cl->cl_bpc));
- 	le16_add_cpu(&bg->bg_free_bits_count,
- 		     clusters * le16_to_cpu(cl->cl_bpc));
--- 
-1.7.1.GIT
+The other issue concerns the real savings. While the savings on a per
+lockres basis are impressive (will be even more on a 64-bit system), I
+am unsure on the overall savings.
+
+To check that, run some workload... like a kernel build (one node should
+be sufficient) and gather some numbers below.
+
+# cd /sys/kernel/debug/o2dlm/<domain>
+# grep -h "^NAME:" locking_state | sort | cut -c6 | uniq -c
+
+Marcos, Can you also gather this stat when you run metadata heavy
+tests.
+
+Thanks
+Sunil
