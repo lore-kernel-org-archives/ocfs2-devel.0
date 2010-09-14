@@ -1,335 +1,170 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 14 Sep 2010 15:50:42 -0700
-Subject: [Ocfs2-devel] [PATCH 06/20] ocfs2/dlm: Add message DLM_QUERY_REGION
+Date: Tue, 14 Sep 2010 15:50:47 -0700
+Subject: [Ocfs2-devel] [PATCH 11/20] ocfs2/cluster: Reorganize o2hb debugfs
+	init
 In-Reply-To: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
 References: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1284504656-2434-7-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1284504656-2434-12-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Adds new dlm message DLM_QUERY_REGION that sends the names of all active
-heartbeat regions. This message is only sent in the global heartbeat
-mode. If the regions in the joining node do not fully match the ones in
-the active nodes, the join domain request is rejected.
-
-The dlm_protocol is bumped upto 1.1.
+o2hb debugfs handling is reorganized to allow for easy expansion.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/ocfs2_nodemanager.h |    6 +
- fs/ocfs2/dlm/dlmcommon.h             |   12 ++-
- fs/ocfs2/dlm/dlmdomain.c             |  220 +++++++++++++++++++++++++++++++++-
- 3 files changed, 236 insertions(+), 2 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |  101 ++++++++++++++++++++++++++++++++----------
+ 1 files changed, 78 insertions(+), 23 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/ocfs2_nodemanager.h b/fs/ocfs2/cluster/ocfs2_nodemanager.h
-index 5b9854b..49b5943 100644
---- a/fs/ocfs2/cluster/ocfs2_nodemanager.h
-+++ b/fs/ocfs2/cluster/ocfs2_nodemanager.h
-@@ -36,4 +36,10 @@
- /* host name, group name, cluster name all 64 bytes */
- #define O2NM_MAX_NAME_LEN        64    // __NEW_UTS_LEN
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index de798c7..683478d 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -62,8 +62,19 @@ static unsigned long o2hb_live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ static LIST_HEAD(o2hb_node_events);
+ static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
  
-+/*
-+ * Maximum number of global heartbeat regions allowed.
-+ * **CAUTION**  Changing this number will break dlm compatibility.
-+ */
-+#define O2NM_MAX_REGIONS	32
-+
- #endif /* _OCFS2_NODEMANAGER_H */
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 4b6ae2c..808591a 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -445,7 +445,8 @@ enum {
- 	DLM_LOCK_REQUEST_MSG,	 /* 515 */
- 	DLM_RECO_DATA_DONE_MSG,	 /* 516 */
- 	DLM_BEGIN_RECO_MSG,	 /* 517 */
--	DLM_FINALIZE_RECO_MSG	 /* 518 */
-+	DLM_FINALIZE_RECO_MSG,	 /* 518 */
-+	DLM_QUERY_REGION,	 /* 519 */
- };
- 
- struct dlm_reco_node_data
-@@ -727,6 +728,15 @@ struct dlm_cancel_join
- 	u8 domain[O2NM_MAX_NAME_LEN];
- };
- 
-+struct dlm_query_region {
-+	u8 qr_node;
-+	u8 qr_numregions;
-+	u8 qr_namelen;
-+	u8 pad1;
-+	u8 qr_domain[O2NM_MAX_NAME_LEN];
-+	u8 qr_regions[O2HB_MAX_REGION_NAME_LEN * O2NM_MAX_REGIONS];
++#define O2HB_DB_TYPE_LIVENODES		0
++struct o2hb_debug_buf {
++	int db_type;
++	int db_size;
++	int db_len;
++	void *db_data;
 +};
 +
- struct dlm_exit_domain
++static struct o2hb_debug_buf *o2hb_db_livenodes;
++
+ #define O2HB_DEBUG_DIR			"o2hb"
+ #define O2HB_DEBUG_LIVENODES		"livenodes"
++
+ static struct dentry *o2hb_debug_dir;
+ static struct dentry *o2hb_debug_livenodes;
+ 
+@@ -969,21 +980,35 @@ static int o2hb_thread(void *data)
+ #ifdef CONFIG_DEBUG_FS
+ static int o2hb_debug_open(struct inode *inode, struct file *file)
  {
- 	u8 node_idx;
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 153abb5..221941f 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -128,10 +128,13 @@ static DECLARE_WAIT_QUEUE_HEAD(dlm_domain_events);
-  * will have a negotiated version with the same major number and a minor
-  * number equal or smaller.  The dlm_ctxt->dlm_locking_proto field should
-  * be used to determine what a running domain is actually using.
-+ *
-+ * New in version 1.1:
-+ *	- Message DLM_QUERY_REGION added to support global heartbeat
-  */
- static const struct dlm_protocol_version dlm_protocol = {
- 	.pv_major = 1,
--	.pv_minor = 0,
-+	.pv_minor = 1,
- };
++	struct o2hb_debug_buf *db = inode->i_private;
+ 	unsigned long map[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ 	char *buf = NULL;
+ 	int i = -1;
+ 	int out = 0;
  
- #define DLM_DOMAIN_BACKOFF_MS 200
-@@ -142,6 +145,8 @@ static int dlm_assert_joined_handler(struct o2net_msg *msg, u32 len, void *data,
- 				     void **ret_data);
- static int dlm_cancel_join_handler(struct o2net_msg *msg, u32 len, void *data,
- 				   void **ret_data);
-+static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
-+				    void *data, void **ret_data);
- static int dlm_exit_domain_handler(struct o2net_msg *msg, u32 len, void *data,
- 				   void **ret_data);
- static int dlm_protocol_compare(struct dlm_protocol_version *existing,
-@@ -920,6 +925,203 @@ static int dlm_assert_joined_handler(struct o2net_msg *msg, u32 len, void *data,
- 	return 0;
- }
++	/* max_nodes should be the largest bitmap we pass here */
++	BUG_ON(sizeof(map) < db->db_size);
++
+ 	buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
+ 	if (!buf)
+ 		goto bail;
  
-+static int dlm_match_regions(struct dlm_ctxt *dlm,
-+			     struct dlm_query_region *qr)
-+{
-+	char *local = NULL, *remote = qr->qr_regions;
-+	char *l, *r;
-+	int localnr, i, j, foundit;
-+	int status = 0;
+-	o2hb_fill_node_map(map, sizeof(map));
++	switch(db->db_type) {
++	case O2HB_DB_TYPE_LIVENODES:
++		spin_lock(&o2hb_live_lock);
++		memcpy(map, db->db_data, db->db_size);
++		spin_unlock(&o2hb_live_lock);
++		break;
 +
-+	if (!o2hb_global_heartbeat_active()) {
-+		if (qr->qr_numregions) {
-+			mlog(ML_ERROR, "Domain %s: Joining node %d has global "
-+			     "heartbeat enabled but local node %d does not\n",
-+			     qr->qr_domain, qr->qr_node, dlm->node_num);
-+			status = -EINVAL;
-+		}
-+		goto bail;
++	default:
++		goto done;
 +	}
-+
-+	if (o2hb_global_heartbeat_active() && !qr->qr_numregions) {
-+		mlog(ML_ERROR, "Domain %s: Local node %d has global "
-+		     "heartbeat enabled but joining node %d does not\n",
-+		     qr->qr_domain, dlm->node_num, qr->qr_node);
-+		status = -EINVAL;
-+		goto bail;
-+	}
-+
-+	r = remote;
-+	for (i = 0; i < qr->qr_numregions; ++i) {
-+		mlog(0, "Region %.*s\n", O2HB_MAX_REGION_NAME_LEN, r);
-+		r += O2HB_MAX_REGION_NAME_LEN;
-+	}
-+
-+	local = kmalloc(sizeof(qr->qr_regions), GFP_KERNEL);
-+	if (!local) {
-+		status = -ENOMEM;
-+		goto bail;
-+	}
-+
-+	localnr = o2hb_get_all_regions(local, O2NM_MAX_REGIONS);
-+
-+	/* compare local regions with remote */
-+	l = local;
-+	for (i = 0; i < localnr; ++i) {
-+		foundit = 0;
-+		r = remote;
-+		for (j = 0; j <= qr->qr_numregions; ++j) {
-+			if (!memcmp(l, r, O2HB_MAX_REGION_NAME_LEN)) {
-+				foundit = 1;
-+				break;
-+			}
-+			r += O2HB_MAX_REGION_NAME_LEN;
-+		}
-+		if (!foundit) {
-+			status = -EINVAL;
-+			mlog(ML_ERROR, "Domain %s: Region '%.*s' registered "
-+			     "in local node %d but not in joining node %d\n",
-+			     qr->qr_domain, O2HB_MAX_REGION_NAME_LEN, l,
-+			     dlm->node_num, qr->qr_node);
-+			goto bail;
-+		}
-+		l += O2HB_MAX_REGION_NAME_LEN;
-+	}
-+
-+	/* compare remote with local regions */
-+	r = remote;
-+	for (i = 0; i < qr->qr_numregions; ++i) {
-+		foundit = 0;
-+		l = local;
-+		for (j = 0; j < localnr; ++j) {
-+			if (!memcmp(r, l, O2HB_MAX_REGION_NAME_LEN)) {
-+				foundit = 1;
-+				break;
-+			}
-+			l += O2HB_MAX_REGION_NAME_LEN;
-+		}
-+		if (!foundit) {
-+			status = -EINVAL;
-+			mlog(ML_ERROR, "Domain %s: Region '%.*s' registered "
-+			     "in joining node %d but not in local node %d\n",
-+			     qr->qr_domain, O2HB_MAX_REGION_NAME_LEN, r,
-+			     qr->qr_node, dlm->node_num);
-+			goto bail;
-+		}
-+		r += O2HB_MAX_REGION_NAME_LEN;
-+	}
-+
-+bail:
-+	kfree(local);
-+
-+	return status;
+ 
+-	while ((i = find_next_bit(map, O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES)
++	while ((i = find_next_bit(map, db->db_len, i + 1)) < db->db_len)
+ 		out += snprintf(buf + out, PAGE_SIZE - out, "%d ", i);
+ 	out += snprintf(buf + out, PAGE_SIZE - out, "\n");
+ 
++done:
+ 	i_size_write(inode, out);
+ 
+ 	file->private_data = buf;
+@@ -1030,10 +1055,56 @@ static const struct file_operations o2hb_debug_fops = {
+ 
+ void o2hb_exit(void)
+ {
+-	if (o2hb_debug_livenodes)
+-		debugfs_remove(o2hb_debug_livenodes);
+-	if (o2hb_debug_dir)
+-		debugfs_remove(o2hb_debug_dir);
++	kfree(o2hb_db_livenodes);
++	debugfs_remove(o2hb_debug_livenodes);
++	debugfs_remove(o2hb_debug_dir);
 +}
 +
-+static int dlm_send_regions(struct dlm_ctxt *dlm, unsigned long *node_map)
++static struct dentry *o2hb_debug_create(const char *name, struct dentry *dir,
++					struct o2hb_debug_buf **db, int db_len,
++					int type, int size, int len, void *data)
 +{
-+	struct dlm_query_region *qr = NULL;
-+	int status, ret = 0, i;
-+	char *p;
++	*db = kmalloc(db_len, GFP_KERNEL);
++	if (!*db)
++		return NULL;
 +
-+	if (find_next_bit(node_map, O2NM_MAX_NODES, 0) >= O2NM_MAX_NODES)
-+		goto bail;
++	(*db)->db_type = type;
++	(*db)->db_size = size;
++	(*db)->db_len = len;
++	(*db)->db_data = data;
 +
-+	qr = kzalloc(sizeof(struct dlm_query_region), GFP_KERNEL);
-+	if (!qr) {
-+		ret = -ENOMEM;
++	return debugfs_create_file(name, S_IFREG|S_IRUSR, dir, *db,
++				   &o2hb_debug_fops);
++}
++
++static int o2hb_debug_init(void)
++{
++	int ret = -ENOMEM;
++
++	o2hb_debug_dir = debugfs_create_dir(O2HB_DEBUG_DIR, NULL);
++	if (!o2hb_debug_dir) {
 +		mlog_errno(ret);
 +		goto bail;
 +	}
 +
-+	qr->qr_node = dlm->node_num;
-+	qr->qr_namelen = strlen(dlm->name);
-+	memcpy(qr->qr_domain, dlm->name, qr->qr_namelen);
-+	/* if local hb, the numregions will be zero */
-+	if (o2hb_global_heartbeat_active())
-+		qr->qr_numregions = o2hb_get_all_regions(qr->qr_regions,
-+							 O2NM_MAX_REGIONS);
-+
-+	p = qr->qr_regions;
-+	for (i = 0; i < qr->qr_numregions; ++i, p += O2HB_MAX_REGION_NAME_LEN)
-+		mlog(0, "Region %.*s\n", O2HB_MAX_REGION_NAME_LEN, p);
-+
-+	i = -1;
-+	while ((i = find_next_bit(node_map, O2NM_MAX_NODES,
-+				  i + 1)) < O2NM_MAX_NODES) {
-+		if (i == dlm->node_num)
-+			continue;
-+
-+		mlog(ML_NOTICE, "Sending regions to node %d\n", i);
-+
-+		ret = o2net_send_message(DLM_QUERY_REGION, DLM_MOD_KEY, qr,
-+					 sizeof(struct dlm_query_region),
-+					 i, &status);
-+		if (ret >= 0)
-+			ret = status;
-+		if (ret) {
-+			mlog(ML_ERROR, "Region mismatch %d, node %d\n",
-+			     ret, i);
-+			break;
-+		}
++	o2hb_debug_livenodes = o2hb_debug_create(O2HB_DEBUG_LIVENODES,
++						 o2hb_debug_dir,
++						 &o2hb_db_livenodes,
++						 sizeof(*o2hb_db_livenodes),
++						 O2HB_DB_TYPE_LIVENODES,
++						 sizeof(o2hb_live_node_bitmap),
++						 O2NM_MAX_NODES,
++						 o2hb_live_node_bitmap);
++	if (!o2hb_debug_livenodes) {
++		mlog_errno(ret);
++		goto bail;
 +	}
-+
++	ret = 0;
 +bail:
-+	kfree(qr);
++	if (ret)
++		o2hb_exit();
++
 +	return ret;
-+}
-+
-+static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
-+				    void *data, void **ret_data)
-+{
-+	struct dlm_query_region *qr;
-+	struct dlm_ctxt *dlm = NULL;
-+	int status = 0;
-+	int locked = 0;
-+
-+	qr = (struct dlm_query_region *) msg->buf;
-+
-+	mlog(ML_NOTICE, "Node %u queries hb regions on domain %s\n",
-+	     qr->qr_node, qr->qr_domain);
-+
-+	status = -EINVAL;
-+
-+	spin_lock(&dlm_domain_lock);
-+	dlm = __dlm_lookup_domain_full(qr->qr_domain, qr->qr_namelen);
-+	if (!dlm) {
-+		mlog(ML_ERROR, "Node %d queried hb regions on domain %s "
-+		     "before join domain\n", qr->qr_node, qr->qr_domain);
-+		goto bail;
-+	}
-+
-+	spin_lock(&dlm->spinlock);
-+	locked = 1;
-+	if (dlm->joining_node != qr->qr_node) {
-+		mlog(ML_ERROR, "Node %d queried hb regions on domain %s "
-+		     "but joining node is %d\n", qr->qr_node, qr->qr_domain,
-+		     dlm->joining_node);
-+		goto bail;
-+	}
-+
-+	/* Support for global heartbeat was added in 1.1 */
-+	if (dlm->dlm_locking_proto.pv_major == 1 &&
-+	    dlm->dlm_locking_proto.pv_minor == 0) {
-+		mlog(ML_ERROR, "Node %d queried hb regions on domain %s "
-+		     "but active dlm protocol is %d.%d\n", qr->qr_node,
-+		     qr->qr_domain, dlm->dlm_locking_proto.pv_major,
-+		     dlm->dlm_locking_proto.pv_minor);
-+		goto bail;
-+	}
-+
-+	status = dlm_match_regions(dlm, qr);
-+
-+bail:
-+	if (locked)
-+		spin_unlock(&dlm->spinlock);
-+	spin_unlock(&dlm_domain_lock);
-+
-+	return status;
-+}
-+
- static int dlm_cancel_join_handler(struct o2net_msg *msg, u32 len, void *data,
- 				   void **ret_data)
- {
-@@ -1240,6 +1442,15 @@ static int dlm_try_to_join_domain(struct dlm_ctxt *dlm)
- 	set_bit(dlm->node_num, dlm->domain_map);
- 	spin_unlock(&dlm->spinlock);
+ }
  
-+	/* Support for global heartbeat was added in 1.1 */
-+	if (dlm_protocol.pv_major > 1 || dlm_protocol.pv_minor > 0) {
-+		status = dlm_send_regions(dlm, ctxt->yes_resp_map);
-+		if (status) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
-+
- 	dlm_send_join_asserts(dlm, ctxt->yes_resp_map);
+ int o2hb_init(void)
+@@ -1050,23 +1121,7 @@ int o2hb_init(void)
  
- 	/* Joined state *must* be set before the joining node
-@@ -1806,6 +2017,13 @@ static int dlm_register_net_handlers(void)
- 					sizeof(struct dlm_cancel_join),
- 					dlm_cancel_join_handler,
- 					NULL, NULL, &dlm_join_handlers);
-+	if (status)
-+		goto bail;
-+
-+	status = o2net_register_handler(DLM_QUERY_REGION, DLM_MOD_KEY,
-+					sizeof(struct dlm_query_region),
-+					dlm_query_region_handler,
-+					NULL, NULL, &dlm_join_handlers);
+ 	memset(o2hb_live_node_bitmap, 0, sizeof(o2hb_live_node_bitmap));
  
- bail:
- 	if (status < 0)
+-	o2hb_debug_dir = debugfs_create_dir(O2HB_DEBUG_DIR, NULL);
+-	if (!o2hb_debug_dir) {
+-		mlog_errno(-ENOMEM);
+-		return -ENOMEM;
+-	}
+-
+-	o2hb_debug_livenodes = debugfs_create_file(O2HB_DEBUG_LIVENODES,
+-						   S_IFREG|S_IRUSR,
+-						   o2hb_debug_dir, NULL,
+-						   &o2hb_debug_fops);
+-	if (!o2hb_debug_livenodes) {
+-		mlog_errno(-ENOMEM);
+-		debugfs_remove(o2hb_debug_dir);
+-		return -ENOMEM;
+-	}
+-
+-	return 0;
++	return o2hb_debug_init();
+ }
+ 
+ /* if we're already in a callback then we're already serialized by the sem */
 -- 
 1.7.0.4
