@@ -1,37 +1,105 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 14 Sep 2010 15:50:43 -0700
-Subject: [Ocfs2-devel] [PATCH 07/20] ocfs2: Print message if user mounts
-	without starting global heartbeat
+Date: Tue, 14 Sep 2010 15:50:46 -0700
+Subject: [Ocfs2-devel] [PATCH 10/20] ocfs2/cluster: Check slots for
+	unconfigured live nodes
 In-Reply-To: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
 References: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1284504656-2434-8-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1284504656-2434-11-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In global heartbeat mode, the heartbeat is started by the user. This patch
-prints an error if the user attempts to mount a volume without starting the
-heartbeat.
+o2hb currently checks slots for configured nodes only. This patch makes
+it check the slots for the live nodes too to take care of a race in which
+a node is removed from the configuration but not from the live map.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/stack_o2cb.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |   38 +++++++++++++++++++++++++++++++-------
+ 1 files changed, 31 insertions(+), 7 deletions(-)
 
-diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-index 0d3049f..19965b0 100644
---- a/fs/ocfs2/stack_o2cb.c
-+++ b/fs/ocfs2/stack_o2cb.c
-@@ -283,6 +283,8 @@ static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
- 	/* for now we only have one cluster/node, make sure we see it
- 	 * in the heartbeat universe */
- 	if (!o2hb_check_local_node_heartbeating()) {
-+		if (o2hb_global_heartbeat_active())
-+			mlog(ML_ERROR, "Global heartbeat not started\n");
- 		rc = -EINVAL;
- 		goto out;
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 1d71856..de798c7 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -593,14 +593,24 @@ static int o2hb_check_slot(struct o2hb_region *reg,
+ 	u64 cputime;
+ 	unsigned int dead_ms = o2hb_dead_threshold * O2HB_REGION_TIMEOUT_MS;
+ 	unsigned int slot_dead_ms;
++	int tmp;
+ 
+ 	memcpy(hb_block, slot->ds_raw_block, reg->hr_block_bytes);
+ 
+-	/* Is this correct? Do we assume that the node doesn't exist
+-	 * if we're not configured for him? */
++	/*
++	 * If a node is no longer configured but is still in the livemap, we
++	 * may need to clear that bit from the livemap.
++	 */
+ 	node = o2nm_get_node_by_num(slot->ds_node_num);
+-	if (!node)
+-		return 0;
++	if (!node) {
++		spin_lock(&o2hb_live_lock);
++		tmp = test_bit(slot->ds_node_num, o2hb_live_node_bitmap);
++		spin_unlock(&o2hb_live_lock);
++		if (!tmp)
++			return 0;
++		printk(KERN_NOTICE "o2hb: Live node %d is not registered\n",
++		       slot->ds_node_num);
++	}
+ 
+ 	if (!o2hb_verify_crc(reg, hb_block)) {
+ 		/* all paths from here will drop o2hb_live_lock for
+@@ -717,8 +727,9 @@ fire_callbacks:
+ 		if (list_empty(&o2hb_live_slots[slot->ds_node_num])) {
+ 			clear_bit(slot->ds_node_num, o2hb_live_node_bitmap);
+ 
+-			o2hb_queue_node_event(&event, O2HB_NODE_DOWN_CB, node,
+-					      slot->ds_node_num);
++			if (node)
++				o2hb_queue_node_event(&event, O2HB_NODE_DOWN_CB,
++						      node, slot->ds_node_num);
+ 
+ 			changed = 1;
+ 		}
+@@ -738,7 +749,8 @@ out:
+ 
+ 	o2hb_run_event_list(&event);
+ 
+-	o2nm_node_put(node);
++	if (node)
++		o2nm_node_put(node);
+ 	return changed;
+ }
+ 
+@@ -765,6 +777,7 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+ {
+ 	int i, ret, highest_node, change = 0;
+ 	unsigned long configured_nodes[BITS_TO_LONGS(O2NM_MAX_NODES)];
++	unsigned long live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ 	struct o2hb_bio_wait_ctxt write_wc;
+ 
+ 	ret = o2nm_configured_node_map(configured_nodes,
+@@ -774,6 +787,17 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+ 		return ret;
  	}
+ 
++	/*
++	 * If a node is not configured but is in the livemap, we still need
++	 * to read the slot so as to be able to remove it from the livemap.
++	 */
++	o2hb_fill_node_map(live_node_bitmap, sizeof(live_node_bitmap));
++	i = -1;
++	while((i = find_next_bit(live_node_bitmap,
++				 O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES) {
++		set_bit(i, configured_nodes);
++	}
++
+ 	highest_node = o2hb_highest_node(configured_nodes, O2NM_MAX_NODES);
+ 	if (highest_node >= O2NM_MAX_NODES) {
+ 		mlog(ML_NOTICE, "ocfs2_heartbeat: no configured nodes found!\n");
 -- 
 1.7.0.4
