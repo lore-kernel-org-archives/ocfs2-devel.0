@@ -1,105 +1,131 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 14 Sep 2010 10:02:34 -0700
-Subject: [Ocfs2-devel] [PATCH 1/5] ocfs2/dlm: dynamically allocate lvb
- for dlm_lock_resource
-In-Reply-To: <4C8EF09B.2000100@oracle.com>
-References: <201008261310.o7PGMqsi009165@acsinet15.oracle.com>
-	<4C8E654F.4050503@oracle.com> <4C8EF09B.2000100@oracle.com>
-Message-ID: <4C8FAAAA.8000701@oracle.com>
+Date: Tue, 14 Sep 2010 15:50:53 -0700
+Subject: [Ocfs2-devel] [PATCH 17/20] ocfs2/cluster: Create debugfs files for
+	live, quorum and failed region bitmaps
+In-Reply-To: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
+References: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1284504656-2434-18-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-===== 2010-09-13 : 20:25 UUID:4D5296E659E349F0997FA8997E007D8E =====
-   85733 M
-   45077 N
-   85714 O
-       1 P
-       2 Q
-       1 S
-    2249 W
-       1 Y
+This patch prints the bitmaps of live, quorum and failed regions. This
+information will be useful in debugging cluster issues.
 
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/cluster/heartbeat.c |   63 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 63 insertions(+), 0 deletions(-)
 
-I guess the feature will be useful considering the number of lockres'
-with lvb is less than half. Sometimes a third. So significant savings.
-
-Having said that, it should be noted that the test itself is a bit biased
-as a kernel build will have more than normal number of open/dentry
-locks.
-
-Still, I would vote for the savings.
-
-Wengang,
-BTW, we are already passing the lvb flag. Grep on DLM_LKF_VALBLK
-and LKM_VALBLK. Much better if we key on that rather than the lock
-name.
-
-Sunil
-
-On 09/13/2010 08:48 PM, MARCOS MATSUNAGA wrote:
-> Sunil,
->
-> I ran buildkernel and collect some of the stats that you requested.
->
-> You can find them at http://oss.oracle.com/~mmatsuna/ocfs2-stats/ and 
-> the files are:
-> ocfs2-stat-6850.log 
-> <http://oss.oracle.com/%7Emmatsuna/ocfs2-stats/ocfs2-stat-6850.log>
-> ocfs2-stat-6942.log  <http://oss.oracle.com/%7Emmatsuna/ocfs2-stats/ocfs2-stat-6942.log>
-> ocfs2-stat-10059.log  <http://oss.oracle.com/%7Emmatsuna/ocfs2-stats/ocfs2-stat-10059.log>
-> ocfs2-stat-32460.log  <http://oss.oracle.com/%7Emmatsuna/ocfs2-stats/ocfs2-stat-32460.log>
->
-> I collected samples every 30 seconds on all nodes. Each node starts 
-> two builds in parallel and the make command is "make -j2 V=1".
->
-> On 9/13/2010 1:54 PM, Sunil Mushran wrote:
->> On 08/26/2010 06:06 AM, Wengang Wang wrote:
->>      
->>> This patch tries to dynamically allocate lvb for dlm_lock_resource which needs to access lvb.
->>>
->>> Without the patch applied,
->>> [wwg at cool linux-2.6]$ egrep "o2dlm_lockres" /proc/slabinfo
->>> o2dlm_lockres         42     42    256   32    2 : tunables    0    0    0 : slabdata      2      2      0
->>>
->>> After patch applied,
->>> [wwg at cool linux-2.6]$ egrep "o2dlm_lockres" /proc/slabinfo
->>> o2dlm_lockres         42     42    192   21    1 : tunables    0    0    0 : slabdata      2      2      0
->>>
->>> #the result is taken on i686
->>>
->>>        
->> So the core logic allocates a lvb or not based on the lock name. That
->> will not work because we support userdlm (not to be confused with
->> userspace stack that uses fsdlm) that allows the user to specify the name.
->>
->> A better solution is to make the user pass in a flag to create the lvb.
->> That's one issue.
->>
->> The other issue concerns the real savings. While the savings on a per
->> lockres basis are impressive (will be even more on a 64-bit system), I
->> am unsure on the overall savings.
->>
->> To check that, run some workload... like a kernel build (one node should
->> be sufficient) and gather some numbers below.
->>
->> # cd /sys/kernel/debug/o2dlm/<domain>
->> # grep -h "^NAME:" locking_state | sort | cut -c6 | uniq -c
->>
->> Marcos, Can you also gather this stat when you run metadata heavy
->> tests.
->>
->> Thanks
->> Sunil
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>      
-
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20100914/1763125a/attachment.html 
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 6be817b..6885a22 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -76,6 +76,9 @@ static unsigned long o2hb_quorum_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+ static unsigned long o2hb_failed_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+ 
+ #define O2HB_DB_TYPE_LIVENODES		0
++#define O2HB_DB_TYPE_LIVEREGIONS	1
++#define O2HB_DB_TYPE_QUORUMREGIONS	2
++#define O2HB_DB_TYPE_FAILEDREGIONS	3
+ struct o2hb_debug_buf {
+ 	int db_type;
+ 	int db_size;
+@@ -84,12 +87,21 @@ struct o2hb_debug_buf {
+ };
+ 
+ static struct o2hb_debug_buf *o2hb_db_livenodes;
++static struct o2hb_debug_buf *o2hb_db_liveregions;
++static struct o2hb_debug_buf *o2hb_db_quorumregions;
++static struct o2hb_debug_buf *o2hb_db_failedregions;
+ 
+ #define O2HB_DEBUG_DIR			"o2hb"
+ #define O2HB_DEBUG_LIVENODES		"livenodes"
++#define O2HB_DEBUG_LIVEREGIONS		"live_regions"
++#define O2HB_DEBUG_QUORUMREGIONS	"quorum_regions"
++#define O2HB_DEBUG_FAILEDREGIONS	"failed_regions"
+ 
+ static struct dentry *o2hb_debug_dir;
+ static struct dentry *o2hb_debug_livenodes;
++static struct dentry *o2hb_debug_liveregions;
++static struct dentry *o2hb_debug_quorumregions;
++static struct dentry *o2hb_debug_failedregions;
+ 
+ static LIST_HEAD(o2hb_all_regions);
+ 
+@@ -1085,6 +1097,9 @@ static int o2hb_debug_open(struct inode *inode, struct file *file)
+ 
+ 	switch(db->db_type) {
+ 	case O2HB_DB_TYPE_LIVENODES:
++	case O2HB_DB_TYPE_LIVEREGIONS:
++	case O2HB_DB_TYPE_QUORUMREGIONS:
++	case O2HB_DB_TYPE_FAILEDREGIONS:
+ 		spin_lock(&o2hb_live_lock);
+ 		memcpy(map, db->db_data, db->db_size);
+ 		spin_unlock(&o2hb_live_lock);
+@@ -1146,6 +1161,12 @@ static const struct file_operations o2hb_debug_fops = {
+ void o2hb_exit(void)
+ {
+ 	kfree(o2hb_db_livenodes);
++	kfree(o2hb_db_liveregions);
++	kfree(o2hb_db_quorumregions);
++	kfree(o2hb_db_failedregions);
++	debugfs_remove(o2hb_debug_failedregions);
++	debugfs_remove(o2hb_debug_quorumregions);
++	debugfs_remove(o2hb_debug_liveregions);
+ 	debugfs_remove(o2hb_debug_livenodes);
+ 	debugfs_remove(o2hb_debug_dir);
+ }
+@@ -1189,6 +1210,48 @@ static int o2hb_debug_init(void)
+ 		mlog_errno(ret);
+ 		goto bail;
+ 	}
++
++	o2hb_debug_liveregions = o2hb_debug_create(O2HB_DEBUG_LIVEREGIONS,
++						   o2hb_debug_dir,
++						   &o2hb_db_liveregions,
++						   sizeof(*o2hb_db_liveregions),
++						   O2HB_DB_TYPE_LIVEREGIONS,
++						   sizeof(o2hb_live_region_bitmap),
++						   O2NM_MAX_REGIONS,
++						   o2hb_live_region_bitmap);
++	if (!o2hb_debug_liveregions) {
++		mlog_errno(ret);
++		goto bail;
++	}
++
++	o2hb_debug_quorumregions =
++			o2hb_debug_create(O2HB_DEBUG_QUORUMREGIONS,
++					  o2hb_debug_dir,
++					  &o2hb_db_quorumregions,
++					  sizeof(*o2hb_db_quorumregions),
++					  O2HB_DB_TYPE_QUORUMREGIONS,
++					  sizeof(o2hb_quorum_region_bitmap),
++					  O2NM_MAX_REGIONS,
++					  o2hb_quorum_region_bitmap);
++	if (!o2hb_debug_quorumregions) {
++		mlog_errno(ret);
++		goto bail;
++	}
++
++	o2hb_debug_failedregions =
++			o2hb_debug_create(O2HB_DEBUG_FAILEDREGIONS,
++					  o2hb_debug_dir,
++					  &o2hb_db_failedregions,
++					  sizeof(*o2hb_db_failedregions),
++					  O2HB_DB_TYPE_FAILEDREGIONS,
++					  sizeof(o2hb_failed_region_bitmap),
++					  O2NM_MAX_REGIONS,
++					  o2hb_failed_region_bitmap);
++	if (!o2hb_debug_failedregions) {
++		mlog_errno(ret);
++		goto bail;
++	}
++
+ 	ret = 0;
+ bail:
+ 	if (ret)
+-- 
+1.7.0.4
