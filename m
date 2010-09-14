@@ -1,93 +1,94 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 14 Sep 2010 15:50:41 -0700
-Subject: [Ocfs2-devel] [PATCH 05/20] ocfs2/cluster: Get all heartbeat regions
+Date: Tue, 14 Sep 2010 15:50:51 -0700
+Subject: [Ocfs2-devel] [PATCH 15/20] ocfs2/cluster: Maintain bitmap of
+	quorum regions
 In-Reply-To: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
 References: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1284504656-2434-6-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1284504656-2434-16-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Export function in o2hb to get a list of heartbeat regions. It also adds an
-upper limit to the length of the heartbeat region name.
+o2hb allows online adding of regions. However, a newly added region is not
+used in quorum calculations unless it has been added on all nodes. This patch
+tracks a bitmap of such quorum regions.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c |   34 ++++++++++++++++++++++++++++++++++
- fs/ocfs2/cluster/heartbeat.h |    4 ++++
- 2 files changed, 38 insertions(+), 0 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |   35 +++++++++++++++++++++++++++++++++++
+ 1 files changed, 35 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 57cc715..cec9d4c 100644
+index 9339c82..5e8e1ae 100644
 --- a/fs/ocfs2/cluster/heartbeat.c
 +++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1623,6 +1623,9 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
- 	if (reg == NULL)
- 		return ERR_PTR(-ENOMEM);
+@@ -66,9 +66,12 @@ static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
+  * In global heartbeat, we maintain a series of region bitmaps.
+  * 	- o2hb_region_bitmap allows us to limit the region number to max region.
+  * 	- o2hb_live_region_bitmap tracks live regions (seen steady iterations).
++ * 	- o2hb_quorum_region_bitmap tracks live regions that have seen all nodes
++ * 		heartbeat on it.
+  */
+ static unsigned long o2hb_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+ static unsigned long o2hb_live_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
++static unsigned long o2hb_quorum_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
  
-+	if (strlen(name) > O2HB_MAX_REGION_NAME_LEN)
-+		return ERR_PTR(-ENAMETOOLONG);
-+
- 	config_item_init_type_name(&reg->hr_item, name, &o2hb_region_type);
- 
- 	spin_lock(&o2hb_live_lock);
-@@ -2033,3 +2036,34 @@ void o2hb_stop_all_regions(void)
- 	spin_unlock(&o2hb_live_lock);
+ #define O2HB_DB_TYPE_LIVENODES		0
+ struct o2hb_debug_buf {
+@@ -605,6 +608,35 @@ static void o2hb_shutdown_slot(struct o2hb_disk_slot *slot)
+ 	o2nm_node_put(node);
  }
- EXPORT_SYMBOL_GPL(o2hb_stop_all_regions);
-+
-+int o2hb_get_all_regions(char *region_uuids, u8 max_regions)
+ 
++static void o2hb_set_quorum_device(struct o2hb_region *reg,
++				   struct o2hb_disk_slot *slot)
 +{
-+	struct o2hb_region *reg;
-+	int numregs = 0;
-+	char *p;
++	assert_spin_locked(&o2hb_live_lock);
 +
-+	spin_lock(&o2hb_live_lock);
++	if (!o2hb_global_heartbeat_active())
++		return;
 +
-+	p = region_uuids;
-+	list_for_each_entry(reg, &o2hb_all_regions, hr_all_item) {
-+		mlog(0, "Region: %s\n", config_item_name(&reg->hr_item));
-+		if (numregs < max_regions) {
-+			memcpy(p, config_item_name(&reg->hr_item),
-+			       O2HB_MAX_REGION_NAME_LEN);
-+			p += O2HB_MAX_REGION_NAME_LEN;
-+		}
-+		numregs++;
-+	}
++	if (test_bit(reg->hr_region_num, o2hb_quorum_region_bitmap))
++		return;
 +
-+	spin_unlock(&o2hb_live_lock);
++	/*
++	 * A region can be added to the quorum only when it sees all
++	 * live nodes heartbeat on it. In other words, the region has been
++	 * added to all nodes.
++	 */
++	if (memcmp(reg->hr_live_node_bitmap, o2hb_live_node_bitmap,
++		   sizeof(o2hb_live_node_bitmap)))
++		return;
 +
-+	return numregs;
++	if (slot->ds_changed_samples < O2HB_LIVE_THRESHOLD)
++		return;
++
++	printk(KERN_NOTICE "o2hb: Region %s is now a quorum device\n",
++	       config_item_name(&reg->hr_item));
++
++	set_bit(reg->hr_region_num, o2hb_quorum_region_bitmap);
 +}
-+EXPORT_SYMBOL_GPL(o2hb_get_all_regions);
 +
-+int o2hb_global_heartbeat_active(void)
-+{
-+	return (o2hb_heartbeat_mode == O2HB_HEARTBEAT_GLOBAL);
-+}
-+EXPORT_SYMBOL(o2hb_global_heartbeat_active);
-diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
-index 2f16492..00ad8e8 100644
---- a/fs/ocfs2/cluster/heartbeat.h
-+++ b/fs/ocfs2/cluster/heartbeat.h
-@@ -31,6 +31,8 @@
- 
- #define O2HB_REGION_TIMEOUT_MS		2000
- 
-+#define O2HB_MAX_REGION_NAME_LEN	32
+ static int o2hb_check_slot(struct o2hb_region *reg,
+ 			   struct o2hb_disk_slot *slot)
+ {
+@@ -772,6 +804,8 @@ fire_callbacks:
+ 		slot->ds_equal_samples = 0;
+ 	}
+ out:
++	o2hb_set_quorum_device(reg, slot);
 +
- /* number of changes to be seen as live */
- #define O2HB_LIVE_THRESHOLD	   2
- /* number of equal samples to be seen as dead */
-@@ -81,5 +83,7 @@ int o2hb_check_node_heartbeating(u8 node_num);
- int o2hb_check_node_heartbeating_from_callback(u8 node_num);
- int o2hb_check_local_node_heartbeating(void);
- void o2hb_stop_all_regions(void);
-+int o2hb_get_all_regions(char *region_uuids, u8 numregions);
-+int o2hb_global_heartbeat_active(void);
+ 	spin_unlock(&o2hb_live_lock);
  
- #endif /* O2CLUSTER_HEARTBEAT_H */
+ 	o2hb_run_event_list(&event);
+@@ -1138,6 +1172,7 @@ int o2hb_init(void)
+ 	memset(o2hb_live_node_bitmap, 0, sizeof(o2hb_live_node_bitmap));
+ 	memset(o2hb_region_bitmap, 0, sizeof(o2hb_region_bitmap));
+ 	memset(o2hb_live_region_bitmap, 0, sizeof(o2hb_live_region_bitmap));
++	memset(o2hb_quorum_region_bitmap, 0, sizeof(o2hb_quorum_region_bitmap));
+ 
+ 	return o2hb_debug_init();
+ }
 -- 
 1.7.0.4
