@@ -1,105 +1,190 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 14 Sep 2010 15:50:46 -0700
-Subject: [Ocfs2-devel] [PATCH 10/20] ocfs2/cluster: Check slots for
-	unconfigured live nodes
+Date: Tue, 14 Sep 2010 15:50:38 -0700
+Subject: [Ocfs2-devel] [PATCH 02/20] ocfs2: Add an incompat feature flag
+	OCFS2_FEATURE_INCOMPAT_CLUSTERINFO
 In-Reply-To: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
 References: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1284504656-2434-11-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1284504656-2434-3-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-o2hb currently checks slots for configured nodes only. This patch makes
-it check the slots for the live nodes too to take care of a race in which
-a node is removed from the configuration but not from the live map.
+OCFS2_FEATURE_INCOMPAT_CLUSTERINFO allows us to use sb->s_cluster_info for
+both userspace and o2cb cluster stacks. It also allows us to extend cluster
+info to include stack flags.
+
+This patch also adds stackflags to sb->s_clusterinfo. It also introduces a
+clusterinfo flag OCFS2_CLUSTER_O2CB_GLOBAL_HEARTBEAT to denote the enabled
+global heartbeat mode.
+
+This incompat flag can be set/cleared using tunefs.ocfs2 --fs-features. The
+clusterinfo flag is set/cleared using tunefs.ocfs2 --update-cluster-stack.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c |   38 +++++++++++++++++++++++++++++++-------
- 1 files changed, 31 insertions(+), 7 deletions(-)
+ fs/ocfs2/ocfs2.h    |   31 +++++++++++++++++++++++++++++--
+ fs/ocfs2/ocfs2_fs.h |   40 ++++++++++++++++++++++++++++++++++------
+ fs/ocfs2/super.c    |    4 +++-
+ 3 files changed, 66 insertions(+), 9 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 1d71856..de798c7 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -593,14 +593,24 @@ static int o2hb_check_slot(struct o2hb_region *reg,
- 	u64 cputime;
- 	unsigned int dead_ms = o2hb_dead_threshold * O2HB_REGION_TIMEOUT_MS;
- 	unsigned int slot_dead_ms;
-+	int tmp;
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index c67003b..d5496a7 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -368,6 +368,8 @@ struct ocfs2_super
+ 	struct ocfs2_alloc_stats alloc_stats;
+ 	char dev_str[20];		/* "major,minor" of the device */
  
- 	memcpy(hb_block, slot->ds_raw_block, reg->hr_block_bytes);
- 
--	/* Is this correct? Do we assume that the node doesn't exist
--	 * if we're not configured for him? */
-+	/*
-+	 * If a node is no longer configured but is still in the livemap, we
-+	 * may need to clear that bit from the livemap.
-+	 */
- 	node = o2nm_get_node_by_num(slot->ds_node_num);
--	if (!node)
--		return 0;
-+	if (!node) {
-+		spin_lock(&o2hb_live_lock);
-+		tmp = test_bit(slot->ds_node_num, o2hb_live_node_bitmap);
-+		spin_unlock(&o2hb_live_lock);
-+		if (!tmp)
-+			return 0;
-+		printk(KERN_NOTICE "o2hb: Live node %d is not registered\n",
-+		       slot->ds_node_num);
-+	}
- 
- 	if (!o2hb_verify_crc(reg, hb_block)) {
- 		/* all paths from here will drop o2hb_live_lock for
-@@ -717,8 +727,9 @@ fire_callbacks:
- 		if (list_empty(&o2hb_live_slots[slot->ds_node_num])) {
- 			clear_bit(slot->ds_node_num, o2hb_live_node_bitmap);
- 
--			o2hb_queue_node_event(&event, O2HB_NODE_DOWN_CB, node,
--					      slot->ds_node_num);
-+			if (node)
-+				o2hb_queue_node_event(&event, O2HB_NODE_DOWN_CB,
-+						      node, slot->ds_node_num);
- 
- 			changed = 1;
- 		}
-@@ -738,7 +749,8 @@ out:
- 
- 	o2hb_run_event_list(&event);
- 
--	o2nm_node_put(node);
-+	if (node)
-+		o2nm_node_put(node);
- 	return changed;
++	u8 osb_stackflags;
++
+ 	char osb_cluster_stack[OCFS2_STACK_LABEL_LEN + 1];
+ 	struct ocfs2_cluster_connection *cconn;
+ 	struct ocfs2_lock_res osb_super_lockres;
+@@ -601,10 +603,35 @@ static inline int ocfs2_is_soft_readonly(struct ocfs2_super *osb)
+ 	return ret;
  }
  
-@@ -765,6 +777,7 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+-static inline int ocfs2_userspace_stack(struct ocfs2_super *osb)
++static inline int ocfs2_clusterinfo_valid(struct ocfs2_super *osb)
  {
- 	int i, ret, highest_node, change = 0;
- 	unsigned long configured_nodes[BITS_TO_LONGS(O2NM_MAX_NODES)];
-+	unsigned long live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
- 	struct o2hb_bio_wait_ctxt write_wc;
+ 	return (osb->s_feature_incompat &
+-		OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK);
++		(OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK |
++		 OCFS2_FEATURE_INCOMPAT_CLUSTERINFO));
++}
++
++static inline int ocfs2_userspace_stack(struct ocfs2_super *osb)
++{
++	if (ocfs2_clusterinfo_valid(osb) &&
++	    memcmp(osb->osb_cluster_stack, OCFS2_CLASSIC_CLUSTER_STACK,
++		   OCFS2_STACK_LABEL_LEN))
++		return 1;
++	return 0;
++}
++
++static inline int ocfs2_o2cb_stack(struct ocfs2_super *osb)
++{
++	if (ocfs2_clusterinfo_valid(osb) &&
++	    !memcmp(osb->osb_cluster_stack, OCFS2_CLASSIC_CLUSTER_STACK,
++		   OCFS2_STACK_LABEL_LEN))
++		return 1;
++	return 0;
++}
++
++static inline int ocfs2_cluster_o2cb_global_heartbeat(struct ocfs2_super *osb)
++{
++	return ocfs2_o2cb_stack(osb) &&
++		(osb->osb_stackflags & OCFS2_CLUSTER_O2CB_GLOBAL_HEARTBEAT);
+ }
  
- 	ret = o2nm_configured_node_map(configured_nodes,
-@@ -774,6 +787,17 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
- 		return ret;
+ static inline int ocfs2_mount_local(struct ocfs2_super *osb)
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index 33f1c9a..abe048e 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -101,7 +101,8 @@
+ 					 | OCFS2_FEATURE_INCOMPAT_META_ECC \
+ 					 | OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS \
+ 					 | OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE \
+-					 | OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG)
++					 | OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG	\
++					 | OCFS2_FEATURE_INCOMPAT_CLUSTERINFO)
+ #define OCFS2_FEATURE_RO_COMPAT_SUPP	(OCFS2_FEATURE_RO_COMPAT_UNWRITTEN \
+ 					 | OCFS2_FEATURE_RO_COMPAT_USRQUOTA \
+ 					 | OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)
+@@ -170,6 +171,13 @@
+ #define OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG	0x2000
+ 
+ /*
++ * Incompat bit to indicate useable clusterinfo with stackflags for all
++ * cluster stacks (userspace adnd o2cb). If this bit is set,
++ * INCOMPAT_USERSPACE_STACK becomes superfluous and thus should not be set.
++ */
++#define OCFS2_FEATURE_INCOMPAT_CLUSTERINFO	0x4000
++
++/*
+  * backup superblock flag is used to indicate that this volume
+  * has backup superblocks.
+  */
+@@ -279,10 +287,13 @@
+ #define OCFS2_VOL_UUID_LEN		16
+ #define OCFS2_MAX_VOL_LABEL_LEN		64
+ 
+-/* The alternate, userspace stack fields */
++/* The cluster stack fields */
+ #define OCFS2_STACK_LABEL_LEN		4
+ #define OCFS2_CLUSTER_NAME_LEN		16
+ 
++/* Classic (historically speaking) cluster stack */
++#define OCFS2_CLASSIC_CLUSTER_STACK	"o2cb"
++
+ /* Journal limits (in bytes) */
+ #define OCFS2_MIN_JOURNAL_SIZE		(4 * 1024 * 1024)
+ 
+@@ -292,6 +303,11 @@
+  */
+ #define OCFS2_MIN_XATTR_INLINE_SIZE     256
+ 
++/*
++ * Cluster info flags (ocfs2_cluster_info.ci_stackflags)
++ */
++#define OCFS2_CLUSTER_O2CB_GLOBAL_HEARTBEAT	(0x01)
++
+ struct ocfs2_system_inode_info {
+ 	char	*si_name;
+ 	int	si_iflags;
+@@ -553,9 +569,21 @@ struct ocfs2_slot_map_extended {
+  */
+ };
+ 
++/*
++ * ci_stackflags is only valid if the incompat bit
++ * OCFS2_FEATURE_INCOMPAT_CLUSTERINFO is set.
++ */
+ struct ocfs2_cluster_info {
+ /*00*/	__u8   ci_stack[OCFS2_STACK_LABEL_LEN];
+-	__le32 ci_reserved;
++	union {
++		__le32 ci_reserved;
++		struct {
++			__u8 ci_reserved1;
++			__u8 ci_reserved2;
++			__u8 ci_reserved3;
++			__u8 ci_stackflags;
++		};
++	};
+ /*08*/	__u8   ci_cluster[OCFS2_CLUSTER_NAME_LEN];
+ /*18*/
+ };
+@@ -592,9 +620,9 @@ struct ocfs2_super_block {
+ 					 * group header */
+ /*50*/	__u8  s_label[OCFS2_MAX_VOL_LABEL_LEN];	/* Label for mounting, etc. */
+ /*90*/	__u8  s_uuid[OCFS2_VOL_UUID_LEN];	/* 128-bit uuid */
+-/*A0*/  struct ocfs2_cluster_info s_cluster_info; /* Selected userspace
+-						     stack.  Only valid
+-						     with INCOMPAT flag. */
++/*A0*/  struct ocfs2_cluster_info s_cluster_info; /* Only valid if either
++						     userspace or clusterinfo
++						     INCOMPAT flag set. */
+ /*B8*/	__le16 s_xattr_inline_size;	/* extended attribute inline size
+ 					   for this fs*/
+ 	__le16 s_reserved0;
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index fa1be1b..7554317 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2149,7 +2149,9 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		goto bail;
  	}
  
-+	/*
-+	 * If a node is not configured but is in the livemap, we still need
-+	 * to read the slot so as to be able to remove it from the livemap.
-+	 */
-+	o2hb_fill_node_map(live_node_bitmap, sizeof(live_node_bitmap));
-+	i = -1;
-+	while((i = find_next_bit(live_node_bitmap,
-+				 O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES) {
-+		set_bit(i, configured_nodes);
-+	}
-+
- 	highest_node = o2hb_highest_node(configured_nodes, O2NM_MAX_NODES);
- 	if (highest_node >= O2NM_MAX_NODES) {
- 		mlog(ML_NOTICE, "ocfs2_heartbeat: no configured nodes found!\n");
+-	if (ocfs2_userspace_stack(osb)) {
++	if (ocfs2_clusterinfo_valid(osb)) {
++		osb->osb_stackflags =
++			OCFS2_RAW_SB(di)->s_cluster_info.ci_stackflags;
+ 		memcpy(osb->osb_cluster_stack,
+ 		       OCFS2_RAW_SB(di)->s_cluster_info.ci_stack,
+ 		       OCFS2_STACK_LABEL_LEN);
 -- 
 1.7.0.4
