@@ -1,94 +1,87 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 14 Sep 2010 15:50:51 -0700
-Subject: [Ocfs2-devel] [PATCH 15/20] ocfs2/cluster: Maintain bitmap of
-	quorum regions
+Date: Tue, 14 Sep 2010 15:50:56 -0700
+Subject: [Ocfs2-devel] [PATCH 20/20] ocfs2/cluster: Show per region
+	heartbeat elapsed time
 In-Reply-To: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
 References: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1284504656-2434-16-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1284504656-2434-21-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-o2hb allows online adding of regions. However, a newly added region is not
-used in quorum calculations unless it has been added on all nodes. This patch
-tracks a bitmap of such quorum regions.
+This patch adds a per region debugfs file that shows the elapsed time
+since the time the o2hb timer was last armed.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c |   35 +++++++++++++++++++++++++++++++++++
- 1 files changed, 35 insertions(+), 0 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |   23 +++++++++++++++++++++++
+ 1 files changed, 23 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 9339c82..5e8e1ae 100644
+index ce6b166..37043e8 100644
 --- a/fs/ocfs2/cluster/heartbeat.c
 +++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -66,9 +66,12 @@ static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
-  * In global heartbeat, we maintain a series of region bitmaps.
-  * 	- o2hb_region_bitmap allows us to limit the region number to max region.
-  * 	- o2hb_live_region_bitmap tracks live regions (seen steady iterations).
-+ * 	- o2hb_quorum_region_bitmap tracks live regions that have seen all nodes
-+ * 		heartbeat on it.
-  */
- static unsigned long o2hb_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
- static unsigned long o2hb_live_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
-+static unsigned long o2hb_quorum_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
- 
- #define O2HB_DB_TYPE_LIVENODES		0
+@@ -81,6 +81,7 @@ static unsigned long o2hb_failed_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+ #define O2HB_DB_TYPE_FAILEDREGIONS	3
+ #define O2HB_DB_TYPE_REGION_LIVENODES	4
+ #define O2HB_DB_TYPE_REGION_NUMBER	5
++#define O2HB_DB_TYPE_REGION_ELAPSED_TIME	6
  struct o2hb_debug_buf {
-@@ -605,6 +608,35 @@ static void o2hb_shutdown_slot(struct o2hb_disk_slot *slot)
- 	o2nm_node_put(node);
- }
+ 	int db_type;
+ 	int db_size;
+@@ -99,6 +100,7 @@ static struct o2hb_debug_buf *o2hb_db_failedregions;
+ #define O2HB_DEBUG_QUORUMREGIONS	"quorum_regions"
+ #define O2HB_DEBUG_FAILEDREGIONS	"failed_regions"
+ #define O2HB_DEBUG_REGION_NUMBER	"num"
++#define O2HB_DEBUG_REGION_ELAPSED_TIME	"elapsed_time_in_ms"
  
-+static void o2hb_set_quorum_device(struct o2hb_region *reg,
-+				   struct o2hb_disk_slot *slot)
-+{
-+	assert_spin_locked(&o2hb_live_lock);
+ static struct dentry *o2hb_debug_dir;
+ static struct dentry *o2hb_debug_livenodes;
+@@ -209,8 +211,10 @@ struct o2hb_region {
+ 	struct dentry		*hr_debug_dir;
+ 	struct dentry		*hr_debug_livenodes;
+ 	struct dentry		*hr_debug_regnum;
++	struct dentry		*hr_debug_elapsed_time;
+ 	struct o2hb_debug_buf	*hr_db_livenodes;
+ 	struct o2hb_debug_buf	*hr_db_regnum;
++	struct o2hb_debug_buf	*hr_db_elapsed_time;
+ 
+ 	/* let the person setting up hb wait for it to return until it
+ 	 * has reached a 'steady' state.  This will be fixed when we have
+@@ -1132,6 +1136,13 @@ static int o2hb_debug_open(struct inode *inode, struct file *file)
+ 				reg->hr_region_num);
+ 		goto done;
+ 
++	case O2HB_DB_TYPE_REGION_ELAPSED_TIME:
++		reg = (struct o2hb_region *)db->db_data;
++		out += snprintf(buf + out, PAGE_SIZE - out, "%u\n",
++				jiffies_to_msecs(jiffies -
++						 reg->hr_last_timeout_start));
++		goto done;
 +
-+	if (!o2hb_global_heartbeat_active())
-+		return;
-+
-+	if (test_bit(reg->hr_region_num, o2hb_quorum_region_bitmap))
-+		return;
-+
-+	/*
-+	 * A region can be added to the quorum only when it sees all
-+	 * live nodes heartbeat on it. In other words, the region has been
-+	 * added to all nodes.
-+	 */
-+	if (memcmp(reg->hr_live_node_bitmap, o2hb_live_node_bitmap,
-+		   sizeof(o2hb_live_node_bitmap)))
-+		return;
-+
-+	if (slot->ds_changed_samples < O2HB_LIVE_THRESHOLD)
-+		return;
-+
-+	printk(KERN_NOTICE "o2hb: Region %s is now a quorum device\n",
-+	       config_item_name(&reg->hr_item));
-+
-+	set_bit(reg->hr_region_num, o2hb_quorum_region_bitmap);
-+}
-+
- static int o2hb_check_slot(struct o2hb_region *reg,
- 			   struct o2hb_disk_slot *slot)
- {
-@@ -772,6 +804,8 @@ fire_callbacks:
- 		slot->ds_equal_samples = 0;
+ 	default:
+ 		goto done;
  	}
- out:
-+	o2hb_set_quorum_device(reg, slot);
+@@ -1925,6 +1936,18 @@ static int o2hb_debug_region_init(struct o2hb_region *reg, struct dentry *dir)
+ 		goto bail;
+ 	}
+ 
++	reg->hr_debug_elapsed_time =
++			o2hb_debug_create(O2HB_DEBUG_REGION_ELAPSED_TIME,
++					  reg->hr_debug_dir,
++					  &(reg->hr_db_elapsed_time),
++					  sizeof(*(reg->hr_db_elapsed_time)),
++					  O2HB_DB_TYPE_REGION_ELAPSED_TIME,
++					  0, 0, reg);
++	if (!reg->hr_debug_elapsed_time) {
++		mlog_errno(ret);
++		goto bail;
++	}
 +
- 	spin_unlock(&o2hb_live_lock);
- 
- 	o2hb_run_event_list(&event);
-@@ -1138,6 +1172,7 @@ int o2hb_init(void)
- 	memset(o2hb_live_node_bitmap, 0, sizeof(o2hb_live_node_bitmap));
- 	memset(o2hb_region_bitmap, 0, sizeof(o2hb_region_bitmap));
- 	memset(o2hb_live_region_bitmap, 0, sizeof(o2hb_live_region_bitmap));
-+	memset(o2hb_quorum_region_bitmap, 0, sizeof(o2hb_quorum_region_bitmap));
- 
- 	return o2hb_debug_init();
- }
+ 	ret = 0;
+ bail:
+ 	return ret;
 -- 
 1.7.0.4
