@@ -1,163 +1,53 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Thu, 16 Sep 2010 14:22:00 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Start journal checkpoint if we
-	have too many truncated clusters.
+From: Joel Becker <Joel.Becker@ORACLE.COM>
+Date: Wed, 15 Sep 2010 23:41:34 -0700
+Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: Resolve the problem of
+	truncate log flush.
 In-Reply-To: <4C91B707.8030502@oracle.com>
 References: <4C91B707.8030502@oracle.com>
-Message-ID: <1284618120-7989-3-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100916064134.GC12578@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add a new para 'checkpoint' in ocfs2_truncate_log_needs_flush,
-if it finds we need to checkpoint the journal, start it.
+On Thu, Sep 16, 2010 at 02:19:51PM +0800, Tao Ma wrote:
+> 0002-0003 are a little complicate here.
+> So in general, even we have freed the clusters to the global
+> bitmap(by the above flush), we can't use them because they haven't
+> been committed to the disk(check the comments above
+> ocfs2_test_bg_bit_allocatable for details). So we have to tell jbd2
+> to flush immediately.
 
-For xattr truncate, I don't pass the parameter now since the value
-now has a limit of 64K, so I don't think we need a checkpoint there.
+Mark,
+	Didn't we do something to allow our allocation to re-use these
+clusters?  Or was that for "thought to be allocated but never actually
+used" clusters?
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/alloc.c |   25 ++++++++++++++++++-------
- fs/ocfs2/alloc.h |    2 +-
- fs/ocfs2/xattr.c |    4 ++--
- 3 files changed, 21 insertions(+), 10 deletions(-)
+> 0002 reverts some change in commit c271c5c so that now even in local
+> mode we can force jbd2 to flush immediately.
+> 0003 add the 'checkpoint' to ocfs2_truncate_log_needs_flush, so that
+> the callers know that we need to checkpoint after the flush.
+> 
+> Actually 0003 can work without 0002 since in cluster env,
+> ocfs2_start_checkpoint will work and 0002 is just used for a local
+> mode. So feel free to drop 0002 if we decide to still keep ocfs2cmt
+> out of local mode.
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index c765447..218bc2b 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -5646,7 +5646,7 @@ int ocfs2_remove_btree_range(struct inode *inode,
- 			     struct ocfs2_cached_dealloc_ctxt *dealloc,
- 			     u64 refcount_loc)
- {
--	int ret, credits = 0, extra_blocks = 0;
-+	int ret, credits = 0, extra_blocks = 0, checkpoint = 0;
- 	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct inode *tl_inode = osb->osb_tl_inode;
-@@ -5686,7 +5686,7 @@ int ocfs2_remove_btree_range(struct inode *inode,
- 
- 	mutex_lock(&tl_inode->i_mutex);
- 
--	if (ocfs2_truncate_log_needs_flush(osb)) {
-+	if (ocfs2_truncate_log_needs_flush(osb, &checkpoint)) {
- 		ret = __ocfs2_flush_truncate_log(osb);
- 		if (ret < 0) {
- 			mlog_errno(ret);
-@@ -5748,11 +5748,14 @@ out:
- 	if (ref_tree)
- 		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
- 
-+	if (!ret && checkpoint)
-+		ocfs2_start_checkpoint(osb);
-+
- 	return ret;
- }
- 
- #define FLUSH_TRUNCATE_LOG_RATIO	10
--int ocfs2_truncate_log_needs_flush(struct ocfs2_super *osb)
-+int ocfs2_truncate_log_needs_flush(struct ocfs2_super *osb, int *checkpoint)
- {
- 	struct buffer_head *tl_bh = osb->osb_tl_bh;
- 	struct ocfs2_dinode *di;
-@@ -5781,6 +5784,9 @@ int ocfs2_truncate_log_needs_flush(struct ocfs2_super *osb)
- 			     " we have %u clusters truncated\n",
- 			     watermark, osb->truncated_clusters);
- 			flush = 1;
-+
-+			if (checkpoint)
-+				*checkpoint = 1;
- 		}
- 	}
- 
-@@ -6187,7 +6193,7 @@ bail:
- int ocfs2_complete_truncate_log_recovery(struct ocfs2_super *osb,
- 					 struct ocfs2_dinode *tl_copy)
- {
--	int status = 0;
-+	int status = 0, checkpoint = 0;
- 	int i;
- 	unsigned int clusters, num_recs, start_cluster;
- 	u64 start_blk;
-@@ -6209,7 +6215,7 @@ int ocfs2_complete_truncate_log_recovery(struct ocfs2_super *osb,
- 
- 	mutex_lock(&tl_inode->i_mutex);
- 	for(i = 0; i < num_recs; i++) {
--		if (ocfs2_truncate_log_needs_flush(osb)) {
-+		if (ocfs2_truncate_log_needs_flush(osb, &checkpoint)) {
- 			status = __ocfs2_flush_truncate_log(osb);
- 			if (status < 0) {
- 				mlog_errno(status);
-@@ -6240,6 +6246,9 @@ int ocfs2_complete_truncate_log_recovery(struct ocfs2_super *osb,
- bail_up:
- 	mutex_unlock(&tl_inode->i_mutex);
- 
-+	if (!status && checkpoint)
-+		ocfs2_start_checkpoint(osb);
-+
- 	mlog_exit(status);
- 	return status;
- }
-@@ -6442,12 +6451,12 @@ static int ocfs2_free_cached_clusters(struct ocfs2_super *osb,
- 	struct ocfs2_cached_block_free *tmp;
- 	struct inode *tl_inode = osb->osb_tl_inode;
- 	handle_t *handle;
--	int ret = 0;
-+	int ret = 0, checkpoint = 0;
- 
- 	mutex_lock(&tl_inode->i_mutex);
- 
- 	while (head) {
--		if (ocfs2_truncate_log_needs_flush(osb)) {
-+		if (ocfs2_truncate_log_needs_flush(osb, &checkpoint)) {
- 			ret = __ocfs2_flush_truncate_log(osb);
- 			if (ret < 0) {
- 				mlog_errno(ret);
-@@ -6485,6 +6494,8 @@ static int ocfs2_free_cached_clusters(struct ocfs2_super *osb,
- 		kfree(tmp);
- 	}
- 
-+	if (!ret && checkpoint)
-+		ocfs2_start_checkpoint(osb);
- 	return ret;
- }
- 
-diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-index 55762b5..967ee21 100644
---- a/fs/ocfs2/alloc.h
-+++ b/fs/ocfs2/alloc.h
-@@ -182,7 +182,7 @@ int ocfs2_begin_truncate_log_recovery(struct ocfs2_super *osb,
- 				      struct ocfs2_dinode **tl_copy);
- int ocfs2_complete_truncate_log_recovery(struct ocfs2_super *osb,
- 					 struct ocfs2_dinode *tl_copy);
--int ocfs2_truncate_log_needs_flush(struct ocfs2_super *osb);
-+int ocfs2_truncate_log_needs_flush(struct ocfs2_super *osb, int *checkpoint);
- int ocfs2_truncate_log_append(struct ocfs2_super *osb,
- 			      handle_t *handle,
- 			      u64 start_blk,
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index d03469f..82f1fa2 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -3595,7 +3595,7 @@ int ocfs2_xattr_set(struct inode *inode,
- 
- 	mutex_lock(&tl_inode->i_mutex);
- 
--	if (ocfs2_truncate_log_needs_flush(osb)) {
-+	if (ocfs2_truncate_log_needs_flush(osb, NULL)) {
- 		ret = __ocfs2_flush_truncate_log(osb);
- 		if (ret < 0) {
- 			mutex_unlock(&tl_inode->i_mutex);
-@@ -5447,7 +5447,7 @@ static int ocfs2_rm_xattr_cluster(struct inode *inode,
- 
- 	mutex_lock(&tl_inode->i_mutex);
- 
--	if (ocfs2_truncate_log_needs_flush(osb)) {
-+	if (ocfs2_truncate_log_needs_flush(osb, NULL)) {
- 		ret = __ocfs2_flush_truncate_log(osb);
- 		if (ret < 0) {
- 			mlog_errno(ret);
+	Assuming we want to force jbd2 out, which is heavy as you point
+out, can't we just sync the filesystem?  Wouldn't that work without
+adding ocfs2cmt?
+
+Joel
+
 -- 
-1.7.1.571.gba4d01
+
+"I am working for the time when unqualified blacks, browns, and
+ women join the unqualified men in running our government."
+	- Sissy Farenthold
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
