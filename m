@@ -1,93 +1,68 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Sun, 19 Sep 2010 13:42:29 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Sync inode flags with ext2.
-In-Reply-To: <1284874949-3352-1-git-send-email-tao.ma@oracle.com>
-References: <1284874949-3352-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <1284874949-3352-2-git-send-email-tao.ma@oracle.com>
+Date: Sun, 19 Sep 2010 13:42:28 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Move 'wanted' into parens of
+	ocfs2_resmap_resv_bits.
+Message-ID: <1284874949-3352-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We sync our inode flags with ext2 and define them by hex
-values. But actually in commit 3669567(4 years ago), all
-these values are moved to include/linux/fs.h. So we'd
-better also use them as what ext2 did. So sync our inode
-flags with ext2 by using FS_*.
+The first time I read the function ocfs2_resmap_resv_bits, I consider
+about what 'wanted' will be used and consider about the comments.
+Then I find it is only used if the reservation is empty. ;)
 
+So we'd better move it to the parens so that it make the code more
+readable, what's more, ocfs2_resmap_resv_bits is used so frequently
+and we should save some cpus. The corresponding BUG_ON is also moved
+into parens since it is only meaningful after we reinit the resv.
+
+Acked-by: Mark Fasheh <mfasheh@suse.com>
 Signed-off-by: Tao Ma <tao.ma@oracle.com>
 ---
- fs/ocfs2/ocfs2_fs.h    |   37 +++++++++++++++++++++++++------------
- fs/ocfs2/ocfs2_ioctl.h |    8 ++++----
- 2 files changed, 29 insertions(+), 16 deletions(-)
+ fs/ocfs2/reservations.c |   22 ++++++++++------------
+ 1 files changed, 10 insertions(+), 12 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 33f1c9a..fa31d05 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -235,18 +235,31 @@
- #define OCFS2_HAS_REFCOUNT_FL   (0x0010)
- 
- /* Inode attributes, keep in sync with EXT2 */
--#define OCFS2_SECRM_FL		(0x00000001)	/* Secure deletion */
--#define OCFS2_UNRM_FL		(0x00000002)	/* Undelete */
--#define OCFS2_COMPR_FL		(0x00000004)	/* Compress file */
--#define OCFS2_SYNC_FL		(0x00000008)	/* Synchronous updates */
--#define OCFS2_IMMUTABLE_FL	(0x00000010)	/* Immutable file */
--#define OCFS2_APPEND_FL		(0x00000020)	/* writes to file may only append */
--#define OCFS2_NODUMP_FL		(0x00000040)	/* do not dump file */
--#define OCFS2_NOATIME_FL	(0x00000080)	/* do not update atime */
--#define OCFS2_DIRSYNC_FL	(0x00010000)	/* dirsync behaviour (directories only) */
+diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
+index d8b6e42..3e78db3 100644
+--- a/fs/ocfs2/reservations.c
++++ b/fs/ocfs2/reservations.c
+@@ -732,25 +732,23 @@ int ocfs2_resmap_resv_bits(struct ocfs2_reservation_map *resmap,
+ 			   struct ocfs2_alloc_reservation *resv,
+ 			   int *cstart, int *clen)
+ {
+-	unsigned int wanted = *clen;
 -
--#define OCFS2_FL_VISIBLE	(0x000100FF)	/* User visible flags */
--#define OCFS2_FL_MODIFIABLE	(0x000100FF)	/* User modifiable flags */
-+#define OCFS2_SECRM_FL			FS_SECRM_FL	/* Secure deletion */
-+#define OCFS2_UNRM_FL			FS_UNRM_FL	/* Undelete */
-+#define OCFS2_COMPR_FL			FS_COMPR_FL	/* Compress file */
-+#define OCFS2_SYNC_FL			FS_SYNC_FL	/* Synchronous updates */
-+#define OCFS2_IMMUTABLE_FL		FS_IMMUTABLE_FL	/* Immutable file */
-+#define OCFS2_APPEND_FL			FS_APPEND_FL	/* writes to file may only append */
-+#define OCFS2_NODUMP_FL			FS_NODUMP_FL	/* do not dump file */
-+#define OCFS2_NOATIME_FL		FS_NOATIME_FL	/* do not update atime */
-+/* Reserved for compression usage... */
-+#define OCFS2_DIRTY_FL			FS_DIRTY_FL
-+#define OCFS2_COMPRBLK_FL		FS_COMPRBLK_FL	/* One or more compressed clusters */
-+#define OCFS2_NOCOMP_FL			FS_NOCOMP_FL	/* Don't compress */
-+#define OCFS2_ECOMPR_FL			FS_ECOMPR_FL	/* Compression error */
-+/* End compression flags --- maybe not all used */
-+#define OCFS2_BTREE_FL			FS_BTREE_FL	/* btree format dir */
-+#define OCFS2_INDEX_FL			FS_INDEX_FL	/* hash-indexed directory */
-+#define OCFS2_IMAGIC_FL			FS_IMAGIC_FL	/* AFS directory */
-+#define OCFS2_JOURNAL_DATA_FL		FS_JOURNAL_DATA_FL /* Reserved for ext3 */
-+#define OCFS2_NOTAIL_FL			FS_NOTAIL_FL	/* file tail should not be merged */
-+#define OCFS2_DIRSYNC_FL		FS_DIRSYNC_FL	/* dirsync behaviour (directories only) */
-+#define OCFS2_TOPDIR_FL			FS_TOPDIR_FL	/* Top of directory hierarchies*/
-+#define OCFS2_RESERVED_FL		FS_RESERVED_FL	/* reserved for ext2 lib */
+ 	if (resv == NULL || ocfs2_resmap_disabled(resmap))
+ 		return -ENOSPC;
+ 
+ 	spin_lock(&resv_lock);
+ 
+-	/*
+-	 * We don't want to over-allocate for temporary
+-	 * windows. Otherwise, we run the risk of fragmenting the
+-	 * allocation space.
+-	 */
+-	wanted = ocfs2_resv_window_bits(resmap, resv);
+-	if ((resv->r_flags & OCFS2_RESV_FLAG_TMP) || wanted < *clen)
+-		wanted = *clen;
+-
+ 	if (ocfs2_resv_empty(resv)) {
+-		mlog(0, "empty reservation, find new window\n");
++		/*
++		 * We don't want to over-allocate for temporary
++		 * windows. Otherwise, we run the risk of fragmenting the
++		 * allocation space.
++		 */
++		unsigned int wanted = ocfs2_resv_window_bits(resmap, resv);
+ 
++		if ((resv->r_flags & OCFS2_RESV_FLAG_TMP) || wanted < *clen)
++			wanted = *clen;
 +
-+#define OCFS2_FL_VISIBLE		FS_FL_USER_VISIBLE	/* User visible flags */
-+#define OCFS2_FL_MODIFIABLE		FS_FL_USER_MODIFIABLE	/* User modifiable flags */
- 
- /*
-  * Extent record flags (e_node.leaf.flags)
-diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
-index 2d3420a..5d24150 100644
---- a/fs/ocfs2/ocfs2_ioctl.h
-+++ b/fs/ocfs2/ocfs2_ioctl.h
-@@ -23,10 +23,10 @@
- /*
-  * ioctl commands
-  */
--#define OCFS2_IOC_GETFLAGS	_IOR('f', 1, long)
--#define OCFS2_IOC_SETFLAGS	_IOW('f', 2, long)
--#define OCFS2_IOC32_GETFLAGS	_IOR('f', 1, int)
--#define OCFS2_IOC32_SETFLAGS	_IOW('f', 2, int)
-+#define OCFS2_IOC_GETFLAGS	FS_IOC_GETFLAGS
-+#define OCFS2_IOC_SETFLAGS	FS_IOC_SETFLAGS
-+#define OCFS2_IOC32_GETFLAGS	FS_IOC32_GETFLAGS
-+#define OCFS2_IOC32_SETFLAGS	FS_IOC32_SETFLAGS
- 
- /*
-  * Space reservation / allocation / free ioctls and argument structure
++		mlog(0, "empty reservation, find new window\n");
+ 		/*
+ 		 * Try to get a window here. If it works, we must fall
+ 		 * through and test the bitmap . This avoids some
 -- 
 1.7.1.GIT
