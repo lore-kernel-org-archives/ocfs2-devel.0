@@ -1,68 +1,36 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Sun, 19 Sep 2010 13:42:28 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Move 'wanted' into parens of
-	ocfs2_resmap_resv_bits.
-Message-ID: <1284874949-3352-1-git-send-email-tao.ma@oracle.com>
+Date: Sun, 19 Sep 2010 15:19:53 +0800
+Subject: [Ocfs2-devel] [PATCH 0/2 V2] ocfs2: Resolve the problem of truncate
+	log flush.
+Message-ID: <4C95B999.1080307@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The first time I read the function ocfs2_resmap_resv_bits, I consider
-about what 'wanted' will be used and consider about the comments.
-Then I find it is only used if the reservation is empty. ;)
+Hi all,
 
-So we'd better move it to the parens so that it make the code more
-readable, what's more, ocfs2_resmap_resv_bits is used so frequently
-and we should save some cpus. The corresponding BUG_ON is also moved
-into parens since it is only meaningful after we reinit the resv.
+change log form v1 to v2:
+0001: no change.
+0002 is removed and now we use jbd2_journal_start_commit in local mode 
+as suggested by Joel.
 
-Acked-by: Mark Fasheh <mfasheh@suse.com>
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
- fs/ocfs2/reservations.c |   22 ++++++++++------------
- 1 files changed, 10 insertions(+), 12 deletions(-)
+     Recently, one of our colleagues meet with a problem that if we 
+write/delete a 32mb files repeatly, we will get a ENOSPC in the end. And 
+the corresponding bug is 1288.
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1288
 
-diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
-index d8b6e42..3e78db3 100644
---- a/fs/ocfs2/reservations.c
-+++ b/fs/ocfs2/reservations.c
-@@ -732,25 +732,23 @@ int ocfs2_resmap_resv_bits(struct ocfs2_reservation_map *resmap,
- 			   struct ocfs2_alloc_reservation *resv,
- 			   int *cstart, int *clen)
- {
--	unsigned int wanted = *clen;
--
- 	if (resv == NULL || ocfs2_resmap_disabled(resmap))
- 		return -ENOSPC;
- 
- 	spin_lock(&resv_lock);
- 
--	/*
--	 * We don't want to over-allocate for temporary
--	 * windows. Otherwise, we run the risk of fragmenting the
--	 * allocation space.
--	 */
--	wanted = ocfs2_resv_window_bits(resmap, resv);
--	if ((resv->r_flags & OCFS2_RESV_FLAG_TMP) || wanted < *clen)
--		wanted = *clen;
--
- 	if (ocfs2_resv_empty(resv)) {
--		mlog(0, "empty reservation, find new window\n");
-+		/*
-+		 * We don't want to over-allocate for temporary
-+		 * windows. Otherwise, we run the risk of fragmenting the
-+		 * allocation space.
-+		 */
-+		unsigned int wanted = ocfs2_resv_window_bits(resmap, resv);
- 
-+		if ((resv->r_flags & OCFS2_RESV_FLAG_TMP) || wanted < *clen)
-+			wanted = *clen;
-+
-+		mlog(0, "empty reservation, find new window\n");
- 		/*
- 		 * Try to get a window here. If it works, we must fall
- 		 * through and test the bitmap . This avoids some
--- 
-1.7.1.GIT
+So this patch set just tries to resolve it. It includes 2 patches:
+0001 adds a new watermark for truncate log, FLUSH_TRUNCATE_LOG_RATIO. So 
+if the truncate log has collected too much clusters, 
+ocfs2_truncate_log_needs_flush will tell the caller to flush immediately.
+
+0002 try to add journal checkpoint support if we finds the need for 
+checkpointing what truncate log has freed. for cluster mount, it is 
+simple and we just need to wake up the ocfs2cmt and let it work for us.
+For local mode, we will call jbd2_journal_start_commit directly which 
+will start the checkpoint.
+
+Regards,
+Tao
