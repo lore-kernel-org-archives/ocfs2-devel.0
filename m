@@ -1,327 +1,132 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Mon, 20 Sep 2010 13:48:31 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: allocate lvb for dlm_lock_resource
-	which needs it -drop2
-Message-ID: <201009200551.o8K5p2oB017578@acsinet15.oracle.com>
+From: jeff.liu <jeff.liu@oracle.com>
+Date: Mon, 20 Sep 2010 14:53:58 +0800
+Subject: [Ocfs2-devel] Shared-du: show the shared extents per file and the
+	footprint v4
+In-Reply-To: <4BB44D82.7000403@oracle.com>
+References: <> <1267198108-7459-1-git-send-email-jeff.liu@oracle.com>
+	<1267198108-7459-2-git-send-email-jeff.liu@oracle.com>
+	<1267198108-7459-3-git-send-email-jeff.liu@oracle.com>
+	<4BB44D82.7000403@oracle.com>
+Message-ID: <4C970506.9030503@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Changes to drop1:
-1) adds unsigned reserve_lvb:1 to dlm_lock_resource indicating lvb should be
-reserved or not. This flag doesn't make sense to this patch its self, but it
-helps the coming patch that allocates lvb for dlm_lock which needs it. The 1
-bit flag doesn't take extra memory space, so putting it here is fine.
+Hello,
 
-2) adds a new parameter to dlm_new_lockres() indicating if lvb memory should be
-reserved. Determining method by checking name in v1 is discarded.
+The coming patches introduce fiemap support to du(1), the goal is to teach du(1) to figure up the
+shared extents per file it goes through, as well as the footprint of the storage in the end.
 
-3) adds u8 reserve_lvb:1 to dlm_migratable_lockres indicating if the migration
-target should reserve lvb for the dlm_lock_resouce in case of needing to create
-a new dlm_lock_resouce.
+Changes to v3:
+. fix the issues according to Tao's comments.
+. Try to merge to the left or right node if possible when inserting a new extent_info to rbtree.
 
-4) increment dlm_protocol major version because of 3).
+I have done some tests in the past few days, it works fine, thanks Tao for help creating the test
+envionment!
 
-trivial changes:
-1) moves the real allocation from dlm_init_lockres() to dlm_new_lockres().
-since we have the new-added parameter, we know if we should do the allocation
-in dlm_new_lockres(). And it's better we do allocations at the same space.
 
-2) adds DLM_LKF_VALBLK to dlm_flags in ocfs2_lock_create.
-We are missing the flag. But since it's adding a new lockres(no race), so no
-problem running current codes.
+Also, I write a tiny script to verify the result with shared-du as below, it show the total shared
+extents against the target storage in bytes.
 
-3) adds some asserts on res->lvb.
+usage:
+./show_shared_extents.sh [storage_mount_path] [storage_device]
+like: ./show_shared_extents.sh /storage /dev/sda8
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
----
- fs/ocfs2/dlm/dlmast.c      |    2 ++
- fs/ocfs2/dlm/dlmcommon.h   |   16 +++++++++++-----
- fs/ocfs2/dlm/dlmconvert.c  |    5 ++++-
- fs/ocfs2/dlm/dlmdebug.c    |    6 ++++--
- fs/ocfs2/dlm/dlmdomain.c   |    6 +++++-
- fs/ocfs2/dlm/dlmmaster.c   |   16 +++++++++++++---
- fs/ocfs2/dlm/dlmrecovery.c |   25 ++++++++++++++++++-------
- fs/ocfs2/dlm/dlmunlock.c   |    2 ++
- fs/ocfs2/dlmglue.c         |    3 +++
- 9 files changed, 62 insertions(+), 19 deletions(-)
+#!/bin/bash
 
-diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
-index f449991..cbe56c5 100644
---- a/fs/ocfs2/dlm/dlmast.c
-+++ b/fs/ocfs2/dlm/dlmast.c
-@@ -191,6 +191,8 @@ static void dlm_update_lvb(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
- 			mlog(0, "getting lvb from lockres for %s node\n",
- 				  lock->ml.node == dlm->node_num ? "master" :
- 				  "remote");
-+			mlog_bug_on_msg(!res->lvb, "lockname: %.*s\n",
-+					res->lockname.len, res->lockname.name);
- 			memcpy(lksb->lvb, res->lvb, DLM_LVB_LEN);
- 		}
- 		/* Do nothing for lvb put requests - they should be done in
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index 4b6ae2c..278db21 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -324,12 +324,13 @@ struct dlm_lock_resource
- 	struct dlm_ctxt *dlm;
- 
- 	unsigned migration_pending:1;
-+	unsigned reserve_lvb:1;
- 	atomic_t asts_reserved;
- 	spinlock_t spinlock;
- 	wait_queue_head_t wq;
- 	u8  owner;              //node which owns the lock resource, or unknown
- 	u16 state;
--	char lvb[DLM_LVB_LEN];
-+	char *lvb;
- 	unsigned int inflight_locks;
- 	unsigned long refmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
- };
-@@ -395,9 +396,12 @@ enum dlm_lockres_list {
- static inline int dlm_lvb_is_empty(char *lvb)
- {
- 	int i;
--	for (i=0; i<DLM_LVB_LEN; i++)
--		if (lvb[i])
--			return 0;
-+
-+	if (lvb) {
-+		for (i=0; i<DLM_LVB_LEN; i++)
-+			if (lvb[i])
-+				return 0;
-+	}
- 	return 1;
- }
- 
-@@ -564,6 +568,7 @@ struct dlm_migratable_lockres
- 	u8 lockname_len;
- 	u8 num_locks;    // locks sent in this structure
- 	u8 flags;
-+	u8 reserve_lvb:1;
- 	__be32 total_locks; // locks to be sent for this migration cookie
- 	__be64 mig_cookie;  // cookie for this lockres migration
- 			 // or zero if not needed
-@@ -859,7 +864,8 @@ struct dlm_lock_resource * dlm_get_lock_resource(struct dlm_ctxt *dlm,
- 						 int flags);
- struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
- 					  const char *name,
--					  unsigned int namelen);
-+					  unsigned int namelen,
-+					  unsigned int reserve_lvb);
- 
- #define dlm_lockres_set_refmap_bit(bit,res)  \
- 	__dlm_lockres_set_refmap_bit(bit,res,__FILE__,__LINE__)
-diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
-index 9f30491..93bb76b 100644
---- a/fs/ocfs2/dlm/dlmconvert.c
-+++ b/fs/ocfs2/dlm/dlmconvert.c
-@@ -212,8 +212,11 @@ grant:
- 	if (lock->ml.node == dlm->node_num)
- 		mlog(0, "doing in-place convert for nonlocal lock\n");
- 	lock->ml.type = type;
--	if (lock->lksb->flags & DLM_LKSB_PUT_LVB)
-+	if (lock->lksb->flags & DLM_LKSB_PUT_LVB) {
-+		mlog_bug_on_msg(!res->lvb, "lockname: %*s\n", res->lockname.len,
-+				res->lockname.name);
- 		memcpy(res->lvb, lock->lksb->lvb, DLM_LVB_LEN);
-+	}
- 
- 	status = DLM_NORMAL;
- 	*call_ast = 1;
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index 5efdd37..15a4ca2 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -603,9 +603,11 @@ static int dump_lockres(struct dlm_lock_resource *res, char *buf, int len)
- 
- 	/* lvb */
- 	out += snprintf(buf + out, len - out, "LVBX:");
--	for (i = 0; i < DLM_LVB_LEN; i++)
--		out += snprintf(buf + out, len - out,
-+	if (res->lvb) {
-+		for (i = 0; i < DLM_LVB_LEN; i++)
-+			out += snprintf(buf + out, len - out,
- 					"%02x", (unsigned char)res->lvb[i]);
-+	}
- 	out += snprintf(buf + out, len - out, "\n");
- 
- 	/* granted */
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 153abb5..ecadf78 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -128,9 +128,13 @@ static DECLARE_WAIT_QUEUE_HEAD(dlm_domain_events);
-  * will have a negotiated version with the same major number and a minor
-  * number equal or smaller.  The dlm_ctxt->dlm_locking_proto field should
-  * be used to determine what a running domain is actually using.
-+ *
-+ * history:
-+ * 1.0	base
-+ * 2.0	changes dlm_migratable_lockres struct for DLM_MIG_LOCKRES_MSG
-  */
- static const struct dlm_protocol_version dlm_protocol = {
--	.pv_major = 1,
-+	.pv_major = 2,
- 	.pv_minor = 0,
- };
- 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index ffb4c68..090f896 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -545,6 +545,7 @@ static void dlm_lockres_release(struct kref *kref)
- 
- 	kmem_cache_free(dlm_lockname_cache, (void *)res->lockname.name);
- 
-+	kfree(res->lvb);
- 	kmem_cache_free(dlm_lockres_cache, res);
- }
- 
-@@ -603,13 +604,13 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
- 	list_add_tail(&res->tracking, &dlm->tracking_list);
- 	spin_unlock(&dlm->spinlock);
- 
--	memset(res->lvb, 0, DLM_LVB_LEN);
- 	memset(res->refmap, 0, sizeof(res->refmap));
- }
- 
- struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
- 				   const char *name,
--				   unsigned int namelen)
-+				   unsigned int namelen,
-+				   unsigned int reserve_lvb)
- {
- 	struct dlm_lock_resource *res = NULL;
- 
-@@ -621,6 +622,15 @@ struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
- 	if (!res->lockname.name)
- 		goto error;
- 
-+	res->reserve_lvb = !!reserve_lvb;
-+	if (res->reserve_lvb) {
-+		res->lvb = kzalloc(DLM_LVB_LEN, GFP_NOFS);
-+		if (!res->lvb)
-+			goto error;
-+	} else {
-+		res->lvb = NULL;
-+	}
-+
- 	dlm_init_lockres(dlm, res, name, namelen);
- 	return res;
- 
-@@ -754,7 +764,7 @@ lookup:
- 		alloc_mle = kmem_cache_alloc(dlm_mle_cache, GFP_NOFS);
- 		if (!alloc_mle)
- 			goto leave;
--		res = dlm_new_lockres(dlm, lockid, namelen);
-+		res = dlm_new_lockres(dlm, lockid, namelen, flags & LKM_VALBLK);
- 		if (!res)
- 			goto leave;
- 		goto lookup;
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index aaaffbc..db7c935 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -71,7 +71,7 @@ static inline int dlm_num_locks_in_lockres(struct dlm_lock_resource *res);
- static void dlm_init_migratable_lockres(struct dlm_migratable_lockres *mres,
- 					const char *lockname, int namelen,
- 					int total_locks, u64 cookie,
--					u8 flags, u8 master);
-+					u8 flags, u8 master, u8 reserve_lvb);
- static int dlm_send_mig_lockres_msg(struct dlm_ctxt *dlm,
- 				    struct dlm_migratable_lockres *mres,
- 				    u8 send_to,
-@@ -1148,14 +1148,20 @@ static int dlm_send_mig_lockres_msg(struct dlm_ctxt *dlm,
- 	/* zero and reinit the message buffer */
- 	dlm_init_migratable_lockres(mres, res->lockname.name,
- 				    res->lockname.len, mres_total_locks,
--				    mig_cookie, orig_flags, orig_master);
-+				    mig_cookie, orig_flags, orig_master,
-+				    res->reserve_lvb);
- 	return ret;
- }
- 
- static void dlm_init_migratable_lockres(struct dlm_migratable_lockres *mres,
--					const char *lockname, int namelen,
--					int total_locks, u64 cookie,
--					u8 flags, u8 master)
-+					const char *lockname,
-+					int namelen,
-+					int total_locks,
-+					u64 cookie,
-+					u8 flags,
-+					u8 master,
-+					u8 reserve_lvb
-+					)
- {
- 	/* mres here is one full page */
- 	clear_page(mres);
-@@ -1166,6 +1172,7 @@ static void dlm_init_migratable_lockres(struct dlm_migratable_lockres *mres,
- 	mres->mig_cookie = cpu_to_be64(cookie);
- 	mres->flags = flags;
- 	mres->master = master;
-+	mres->reserve_lvb = !!reserve_lvb;
- }
- 
- static void dlm_prepare_lvb_for_migration(struct dlm_lock *lock,
-@@ -1282,7 +1289,8 @@ int dlm_send_one_lockres(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
- 
- 	dlm_init_migratable_lockres(mres, res->lockname.name,
- 				    res->lockname.len, total_locks,
--				    mig_cookie, flags, res->owner);
-+				    mig_cookie, flags, res->owner,
-+				    res->reserve_lvb);
- 
- 	total_locks = 0;
- 	for (i=DLM_GRANTED_LIST; i<=DLM_BLOCKED_LIST; i++) {
-@@ -1410,7 +1418,8 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
- 	} else {
- 		/* need to allocate, just like if it was
- 		 * mastered here normally  */
--		res = dlm_new_lockres(dlm, mres->lockname, mres->lockname_len);
-+		res = dlm_new_lockres(dlm, mres->lockname, mres->lockname_len,
-+				      mres->reserve_lvb);
- 		if (!res)
- 			goto leave;
- 
-@@ -1884,6 +1893,8 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
- 			goto skip_lvb;
- 
- 		if (!dlm_lvb_is_empty(mres->lvb)) {
-+			mlog_bug_on_msg(!res->lvb, "lockname: %.*s\n",
-+					res->lockname.len, res->lockname.name);
- 			if (lksb->flags & DLM_LKSB_PUT_LVB) {
- 				/* other node was trying to update
- 				 * lvb when node died.  recreate the
-diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-index 817287c..9de2e4e 100644
---- a/fs/ocfs2/dlm/dlmunlock.c
-+++ b/fs/ocfs2/dlm/dlmunlock.c
-@@ -163,6 +163,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
- 	/* By now this has been masked out of cancel requests. */
- 	if (flags & LKM_VALBLK) {
- 		/* make the final update to the lvb */
-+		mlog_bug_on_msg(!res->lvb, "lockname: %.*s\n",
-+				res->lockname.len, res->lockname.name);
- 		if (master_node)
- 			memcpy(res->lvb, lksb->lvb, DLM_LVB_LEN);
- 		else
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 5e02a89..089cb9b 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -1265,6 +1265,9 @@ static int ocfs2_lock_create(struct ocfs2_super *osb,
- 	mlog(0, "lock %s, level = %d, flags = %u\n", lockres->l_name, level,
- 	     dlm_flags);
- 
-+	if (lockres->l_ops->flags & LOCK_TYPE_USES_LVB)
-+		dlm_flags |= DLM_LKF_VALBLK;
-+
- 	spin_lock_irqsave(&lockres->l_lock, flags);
- 	if ((lockres->l_flags & OCFS2_LOCK_ATTACHED) ||
- 	    (lockres->l_flags & OCFS2_LOCK_BUSY)) {
--- 
-1.7.2.2
+DEBUGGER="/sbin/debugfs.ocfs2 -n"
+
+#
+# Get the block size and cluster size, we make use of cluster size to calculate the
+# shared extent physical offset and length in bytes.
+#
+ocfs2_block_cluster_size=($(echo "stats" | $DEBUGGER -n /dev/sda8 | grep "Block Size Bits" | awk '{
+print $4" "$8 }'))
+block_size=$[ 2 ** ${ocfs2_block_cluster_size[0]} ]
+cluster_size=$[ 2 ** ${ocfs2_block_cluster_size[1]} ]
+
+function process_file() {
+	local __f=$1
+        local device=$2
+	local __start=0
+	local __lines=0
+	local start_line=0
+	local end_line=0
+
+	inode=$(stat --format="%i" ${__f})
+
+        #
+        # Check if we meet a refcount file
+        #
+	refcount_file=$(echo "stat <$inode>" | $DEBUGGER $device | sed '5!d' | grep "Refcounted")
+
+	if (test -n "$refcount_file") then
+                refcount_records=($(echo "refcount <$inode>"	|
+				    $DEBUGGER $device		|
+			    	    grep -n "Refcount records"	|
+				    awk -F':' '{print $1 $4}'))
+
+		refcount_records_num=${#refcount_records[@]}
+
+		i=0
+		while [[ $i -lt $refcount_records_num ]]
+		do
+			__start=${refcount_records[$i]}
+			(( i++ ))
+			__lines=$[ ${refcount_records[$i]} + 1 ]
+			(( i++ ))
+			let "start_line = __start + 1"
+			let "end_line = start_line + __lines"
+
+			extents=($(echo "refcount <$inode>" | $DEBUGGER $device |
+				   awk "FNR > $start_line && FNR < $end_line"	|
+				   awk '{ print $2" "$3" "$4 }' ))
+
+			extents_num=${#extents[@]}
+
+			for (( j = 0; j < $extents_num; ))
+			do
+				physical_offset=$[ ${extents[$j]} * $cluster_size ]
+
+				(( j++ ))
+				length=$[ ${extents[$j]} * $cluster_size ]
+				(( j++ ))
+
+                        	#
+				# Decrease the reference count to meet the du semantics
+				#
+				count=$[${extents[$j]} - 1]
+				(( j++ ))
+
+				extent_array[$physical_offset]="$physical_offset:$length:$count"
+			done
+		done
+	fi
+}
+
+
+STORAGE_MOUNT_PATH=$1
+STORAGE_DEVICE=$2
+
+for f in $(find $STORAGE_MOUNT_PATH -type f)
+do
+	process_file ${f} $STORAGE_DEVICE
+done
+
+items=${#extent_array[*]}
+
+total_shared_length=0
+for item in ${extent_array[@]}
+do
+	shared_length=$(echo "${item}" | awk -F: '{ print $2 * $3}')
+	let "total_shared_length += shared_length"
+done
+
+echo "TOTAL_SHARED_LENGTH: $total_shared_length"
+
+
+
+Regards,
+-Jeff
