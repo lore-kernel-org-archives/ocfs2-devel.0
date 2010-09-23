@@ -1,25 +1,41 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 22 Sep 2010 16:42:20 -0700
-Subject: [Ocfs2-devel] [PATCH 1/3] shared-du: add the rbtree source and
- header file to lib v4
-In-Reply-To: <1284966691-24902-1-git-send-email-jeff.liu@oracle.com>
-References: <> <1284966691-24902-1-git-send-email-jeff.liu@oracle.com>
-Message-ID: <4C9A945C.2070209@oracle.com>
+From: Joel Becker <Joel.Becker@ORACLE.COM>
+Date: Thu, 23 Sep 2010 14:23:24 -0700
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Move 'wanted' into parens of
+ ocfs2_resmap_resv_bits.
+In-Reply-To: <1284874949-3352-1-git-send-email-tao.ma@oracle.com>
+References: <1284874949-3352-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20100923212324.GC6609@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 09/20/2010 12:11 AM, Jie Liu wrote:
-> Add the rbtree stuff to lib.
->
-> * lib/rbtree.c: Source file of rbtree.
-> * lib/rbtree.h: Header file of rbtree.
-> * lib/Makefile.am (libcoreutils_a_SOURCES): Add both of them.
-> * lib/Makefile.in (libcoreutils_a_SOURCES): Add both of them for workaround.
->
-> Signed-off-by: Jie Liu<jeff.liu@oracle.com>
->    
+On Sun, Sep 19, 2010 at 01:42:28PM +0800, Tao Ma wrote:
+> The first time I read the function ocfs2_resmap_resv_bits, I consider
+> about what 'wanted' will be used and consider about the comments.
+> Then I find it is only used if the reservation is empty. ;)
+> 
+> So we'd better move it to the parens so that it make the code more
+> readable, what's more, ocfs2_resmap_resv_bits is used so frequently
+> and we should save some cpus. The corresponding BUG_ON is also moved
+> into parens since it is only meaningful after we reinit the resv.
+> 
+> Acked-by: Mark Fasheh <mfasheh@suse.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-Thanks Jeff. I have pushed the patches into the git repo.
+        This patch is now in the 'fixes' branch of ocfs2.git.
+
+Joel
+
+-- 
+
+"Also, all of life's big problems include the words 'indictment' or
+	'inoperable.' Everything else is small stuff."
+	- Alton Brown
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
