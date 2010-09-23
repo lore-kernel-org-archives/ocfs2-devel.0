@@ -1,36 +1,38 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 23 Sep 2010 15:18:54 -0700
-Subject: [Ocfs2-devel] [PATCH 08/20] ocfs2/dlm: Add message
- DLM_QUERY_NODEINFO
-In-Reply-To: <1284504656-2434-9-git-send-email-sunil.mushran@oracle.com>
+Date: Thu, 23 Sep 2010 15:25:24 -0700
+Subject: [Ocfs2-devel] [PATCH 09/20] ocfs2/cluster: Print messages when
+ adding/removing nodes and heartbeat regions
+In-Reply-To: <1284504656-2434-10-git-send-email-sunil.mushran@oracle.com>
 References: <1284504656-2434-1-git-send-email-sunil.mushran@oracle.com>
-	<1284504656-2434-9-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20100923221854.GB803@mail.oracle.com>
+	<1284504656-2434-10-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20100923222524.GC803@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Sep 14, 2010 at 03:50:44PM -0700, Sunil Mushran wrote:
-> Adds new dlm message DLM_QUERY_NODEINFO that sends the attributes of all
-> registered nodes. This message is sent if the negotiated dlm protocol is
-> 1.1 or higher. If the information of the joining node does not match
-> that of any existing nodes, the join domain request is rejected.
+On Tue, Sep 14, 2010 at 03:50:45PM -0700, Sunil Mushran wrote:
+> Prints messages when the user adds or removes nodes and heartbeat regions.
+> The heartbeat region logging is only enabled in the global heartbeat mode. These
+> messages are useful when debugging cluster related issues.
 > 
 > Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-	I don't think you should be bumping the actual protocol before
-all 1.1 messages are in the code.  Otherwise, someone bisecting between
-the QUERY_REGION and QUEYR_NODEINFO patches might have real problems.
+	I gotta say NAK.  Maybe Mark disagrees, but it certainly sounds
+like we're spamming the log for things that are normally not terribly
+interesting.
+	If you're worried about tracking registration of nodes, have
+the o2cb tool syslog it.  That will get logged, but won't pollute dmesg.
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #198
-
-	"Feed a stranger's expired parking meter."
+"Baby, even the losers
+ Get luck sometimes.
+ Even the losers
+ Keep a little bit of pride."
 
 Joel Becker
 Consulting Software Developer
