@@ -1,36 +1,33 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 28 Sep 2010 14:10:44 -0700
-Subject: [Ocfs2-devel] [PATCH] /fs/ocfs2/slot_map.c (2.6.35.6):
-	Uninitialized variable
-In-Reply-To: <28389.94142.qm@web45810.mail.sp1.yahoo.com>
-References: <28389.94142.qm@web45810.mail.sp1.yahoo.com>
-Message-ID: <20100928211044.GA8031@wotan.suse.de>
+From: Joel Becker <boel.becker@oracle.com>
+Date: Wed, 29 Sep 2010 19:07:51 -0700
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 symlink walk fix
+Message-ID: <20100930020749.GD23107@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, tao.ma@oracle.com, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Mon, Sep 27, 2010 at 01:28:37PM -0700, Poyo VL wrote:
-> When I tried to compile I got the following warning:
-> fs/ocfs2/slot_map.c: In function ?ocfs2_init_slot_info?:
-> fs/ocfs2/slot_map.c:360: warning: ?bytes? may be used uninitialized in this 
-> function
-> fs/ocfs2/slot_map.c:360: note: ?bytes? was declared here 
-> Compiler: gcc version 4.4.3 (GCC) on Mandriva
-> I'm not sure why this warning occurs, I think compiler don't know that variable 
-> "bytes" is initialized when it is sent by reference to 
-> ocfs2_slot_map_physical_size and it throws that ugly warning.
-> However, a simple initialization of "bytes" variable with 0 will fix it.
-> Patch is downer, I also attached it because there are problems with Yahoo! Mail.
-> 
-> Signed-off-by: Ionut Gabriel Popescu <poyo_vl@yahoo.com>
+Linus, et al,
+	We've discovered that ocfs2 can walk off the end reading a fast
+symlink if the NUL got corrupted on disk.  It's a simple
+strlen()->strnlen() fix, but I think it should go sooner rather than
+later.
+	Please pull.
 
-This looks reasonable, though using uninitialized_var() might be the
-preferred method.
+Joel
 
-Acked-by: Mark Fasheh <mfasheh@suse.com>
+The following changes since commit 4193d9163582b05e33aca3392e46649e5c3da8d1:
 
+  Merge branch 'for-linus' of git://oss.sgi.com/xfs/xfs (2010-09-29 14:58:11 -0700)
 
---
-Mark Fasheh
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git fixes
+
+Joel Becker (1):
+      ocfs2: Don't walk off the end of fast symlinks.
+
+ fs/ocfs2/symlink.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
