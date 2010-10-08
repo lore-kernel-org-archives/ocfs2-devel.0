@@ -1,67 +1,63 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  7 Oct 2010 17:15:29 -0700
-Subject: [Ocfs2-devel] [PATCH 15/22] ocfs2/cluster: Track bitmap of live
-	heartbeat regions
-In-Reply-To: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
+Date: Thu, 07 Oct 2010 17:33:40 -0700
+Subject: [Ocfs2-devel] [PATCH 10/22] ocfs2/cluster: Print messages when
+ adding/removing nodes
+In-Reply-To: <1286496936-17072-11-git-send-email-sunil.mushran@oracle.com>
 References: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1286496936-17072-16-git-send-email-sunil.mushran@oracle.com>
+	<1286496936-17072-11-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <4CAE66E4.8020807@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-A heartbeat region becomes live (or active) after a fixed number of (steady)
-iterations.
+So I am going to change ML_O2CB to ML_CLUSTER.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/cluster/heartbeat.c |    9 ++++++++-
- 1 files changed, 8 insertions(+), 1 deletions(-)
-
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index d66b17c..2a7cd17 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -65,8 +65,10 @@ static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
- /*
-  * In global heartbeat, we maintain a series of region bitmaps.
-  * 	- o2hb_region_bitmap allows us to limit the region number to max region.
-+ * 	- o2hb_live_region_bitmap tracks live regions (seen steady iterations).
-  */
- static unsigned long o2hb_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
-+static unsigned long o2hb_live_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
- 
- #define O2HB_DB_TYPE_LIVENODES		0
- struct o2hb_debug_buf {
-@@ -1135,6 +1137,7 @@ int o2hb_init(void)
- 
- 	memset(o2hb_live_node_bitmap, 0, sizeof(o2hb_live_node_bitmap));
- 	memset(o2hb_region_bitmap, 0, sizeof(o2hb_region_bitmap));
-+	memset(o2hb_live_region_bitmap, 0, sizeof(o2hb_live_region_bitmap));
- 
- 	return o2hb_debug_init();
- }
-@@ -1563,6 +1566,8 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
- 	/* Ok, we were woken.  Make sure it wasn't by drop_item() */
- 	spin_lock(&o2hb_live_lock);
- 	hb_task = reg->hr_task;
-+	if (o2hb_global_heartbeat_active())
-+		set_bit(reg->hr_region_num, o2hb_live_region_bitmap);
- 	spin_unlock(&o2hb_live_lock);
- 
- 	if (hb_task)
-@@ -1751,8 +1756,10 @@ static void o2hb_heartbeat_group_drop_item(struct config_group *group,
- 
- 	/* stop the thread when the user removes the region dir */
- 	spin_lock(&o2hb_live_lock);
--	if (o2hb_global_heartbeat_active())
-+	if (o2hb_global_heartbeat_active()) {
- 		clear_bit(reg->hr_region_num, o2hb_region_bitmap);
-+		clear_bit(reg->hr_region_num, o2hb_live_region_bitmap);
-+	}
- 	hb_task = reg->hr_task;
- 	reg->hr_task = NULL;
- 	spin_unlock(&o2hb_live_lock);
--- 
-1.7.0.4
+On 10/07/2010 05:15 PM, Sunil Mushran wrote:
+> Prints messages when the user adds or removes nodes.
+>
+> Signed-off-by: Sunil Mushran<sunil.mushran@oracle.com>
+> ---
+>   fs/ocfs2/cluster/masklog.h     |    3 ++-
+>   fs/ocfs2/cluster/nodemanager.c |    5 +++++
+>   2 files changed, 7 insertions(+), 1 deletions(-)
+>
+> diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
+> index fd96e2a..29e7cb6 100644
+> --- a/fs/ocfs2/cluster/masklog.h
+> +++ b/fs/ocfs2/cluster/masklog.h
+> @@ -119,7 +119,8 @@
+>   #define ML_ERROR	0x0000000100000000ULL /* sent to KERN_ERR */
+>   #define ML_NOTICE	0x0000000200000000ULL /* setn to KERN_NOTICE */
+>   #define ML_KTHREAD	0x0000000400000000ULL /* kernel thread activity */
+> -#define	ML_RESERVATIONS	0x0000000800000000ULL /* ocfs2 alloc reservations */
+> +#define ML_RESERVATIONS	0x0000000800000000ULL /* ocfs2 alloc reservations */
+> +#define ML_O2CB		0x0000001000000000ULL /* o2cb cluster */
+>
+>   #define MLOG_INITIAL_AND_MASK (ML_ERROR|ML_NOTICE)
+>   #define MLOG_INITIAL_NOT_MASK (ML_ENTRY|ML_EXIT)
+> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+> index ed0c9f3..e9f1135 100644
+> --- a/fs/ocfs2/cluster/nodemanager.c
+> +++ b/fs/ocfs2/cluster/nodemanager.c
+> @@ -711,6 +711,8 @@ static struct config_item *o2nm_node_group_make_item(struct config_group *group,
+>   	config_item_init_type_name(&node->nd_item, name,&o2nm_node_type);
+>   	spin_lock_init(&node->nd_lock);
+>
+> +	mlog(ML_O2CB, "o2nm: Registering node %s\n", name);
+> +
+>   	return&node->nd_item;
+>   }
+>
+> @@ -744,6 +746,9 @@ static void o2nm_node_group_drop_item(struct config_group *group,
+>   	}
+>   	write_unlock(&cluster->cl_nodes_lock);
+>
+> +	mlog(ML_O2CB, "o2nm: Unregistered node %s\n",
+> +	     config_item_name(&node->nd_item));
+> +
+>   	config_item_put(item);
+>   }
+>
+>    
