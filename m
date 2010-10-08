@@ -1,60 +1,47 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 8 Oct 2010 14:09:03 -0700
-Subject: [Ocfs2-devel] Question: recovery map vs replay map
-In-Reply-To: <4CAF75EB.9050209@oracle.com>
-References: <AANLkTik2S+-guvnhvUGXOBOD74Ph0gf68NgN9uMG5LyD@mail.gmail.com>
-	<4CAF75EB.9050209@oracle.com>
-Message-ID: <20101008210902.GJ13876@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Fri, 08 Oct 2010 15:40:59 -0700
+Subject: [Ocfs2-devel] Fwd:  O2CB global heartbeat - hopefully final drop!
+Message-ID: <4CAF9DFB.2040905@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Oct 08, 2010 at 12:50:03PM -0700, Sunil Mushran wrote:
-> On 10/08/2010 12:03 PM, Goldwyn Rodrigues wrote:
-> > I was reading through the recovery code and got confused with recovery
-> > and replay maps.
-> >
-> > What is the function of recovery maps and replay maps? Is a replay map
-> > generated for each entry in the recovery map? Is there a situation
-> > where a replay map is created without a recovery map entry?
->
-> 
-> During recovery, we need to recover the slot used by the dead node
-> (including journal replay) and clean up the unused orphaned inodes.
-> 
-> The recovery map refers to the nodes whose slot needs recovery.
-> 
-> The replay map (confusing name, in hindsight) refers to unused slots
-> whose orphaned inodes need to be cleaned up.
+git://oss.oracle.com/git/smushran/linux-2.6.git  globalheartbeat
 
-	The names do make sense, though.  The recovery map is a map of
-nodes that have died and need recovery.  The replay map is a map of
-slots that need replay at mount time.
+All the patches are available in the above git repo.
 
-> But what about the orphan directory that node 0 used that has that
-> inode that was in use on node 1. That needs to be cleaned up too.
-> 
-> The replay map, populated with unused slots, will contain the slot
-> used by node 0.
-> 
-> Yes, this code is now superfluous since we now have a orphan
-> scan timer that fires periodically to clean up the inodes for all slots.
+Sunil
 
-	However, we eventually want to remove the orphan scan, at which
-point the mount-time replay is still the correct solution.
+-------- Original Message --------
+Subject: 	[Ocfs2-devel] O2CB global heartbeat - hopefully final drop!
+Date: 	Thu, 7 Oct 2010 17:15:14 -0700
+From: 	Sunil Mushran <sunil.mushran@oracle.com>
+To: 	ocfs2-devel at oss.oracle.com
 
-Joel
 
--- 
 
-Life's Little Instruction Book #99
+All,
 
-	"Think big thoughts, but relish small pleasures."
+This is hopefully the final drop of the patches for adding global heartbeat
+to the o2cb stack.
 
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+The diff from the previous set is here:
+http://oss.oracle.com/~smushran/global-hb-diff-2010-10-07
+
+Implemented most of the suggestions provided by Joel and Wengang.
+The most important one was to activate the feature only at the end,
+
+Also, got mostly a clean run with checkpatch.pl.
+
+Sunil
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com
+http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20101008/03bfd928/attachment.html 
