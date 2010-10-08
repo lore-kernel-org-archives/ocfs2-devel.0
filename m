@@ -1,60 +1,59 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  7 Oct 2010 17:15:24 -0700
-Subject: [Ocfs2-devel] [PATCH 10/22] ocfs2/cluster: Print messages when
-	adding/removing nodes
+Date: Thu,  7 Oct 2010 17:15:27 -0700
+Subject: [Ocfs2-devel] [PATCH 13/22] ocfs2/cluster: Maintain live node
+	bitmap per heartbeat region
 In-Reply-To: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
 References: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1286496936-17072-11-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1286496936-17072-14-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Prints messages when the user adds or removes nodes.
+Currently we track a global livenode bitmap that keeps track of all nodes
+that are heartbeating in all regions.
+
+This patch adds the ability to track the livenode bitmap on a per region basis.
+We will use this facility in a later patch to allow us to withstand the loss of
+a minority number of regions.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/masklog.h     |    3 ++-
- fs/ocfs2/cluster/nodemanager.c |    5 +++++
- 2 files changed, 7 insertions(+), 1 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
-index fd96e2a..29e7cb6 100644
---- a/fs/ocfs2/cluster/masklog.h
-+++ b/fs/ocfs2/cluster/masklog.h
-@@ -119,7 +119,8 @@
- #define ML_ERROR	0x0000000100000000ULL /* sent to KERN_ERR */
- #define ML_NOTICE	0x0000000200000000ULL /* setn to KERN_NOTICE */
- #define ML_KTHREAD	0x0000000400000000ULL /* kernel thread activity */
--#define	ML_RESERVATIONS	0x0000000800000000ULL /* ocfs2 alloc reservations */
-+#define ML_RESERVATIONS	0x0000000800000000ULL /* ocfs2 alloc reservations */
-+#define ML_O2CB		0x0000001000000000ULL /* o2cb cluster */
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 16e4976..188f502 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -174,6 +174,9 @@ struct o2hb_region {
+ 	struct block_device	*hr_bdev;
+ 	struct o2hb_disk_slot	*hr_slots;
  
- #define MLOG_INITIAL_AND_MASK (ML_ERROR|ML_NOTICE)
- #define MLOG_INITIAL_NOT_MASK (ML_ENTRY|ML_EXIT)
-diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
-index ed0c9f3..e9f1135 100644
---- a/fs/ocfs2/cluster/nodemanager.c
-+++ b/fs/ocfs2/cluster/nodemanager.c
-@@ -711,6 +711,8 @@ static struct config_item *o2nm_node_group_make_item(struct config_group *group,
- 	config_item_init_type_name(&node->nd_item, name, &o2nm_node_type);
- 	spin_lock_init(&node->nd_lock);
- 
-+	mlog(ML_O2CB, "o2nm: Registering node %s\n", name);
++	/* live node map of this region */
++	unsigned long		hr_live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
 +
- 	return &node->nd_item;
- }
+ 	/* let the person setting up hb wait for it to return until it
+ 	 * has reached a 'steady' state.  This will be fixed when we have
+ 	 * a more complete api that doesn't lead to this sort of fragility. */
+@@ -688,6 +691,8 @@ fire_callbacks:
+ 		mlog(ML_HEARTBEAT, "Node %d (id 0x%llx) joined my region\n",
+ 		     slot->ds_node_num, (long long)slot->ds_last_generation);
  
-@@ -744,6 +746,9 @@ static void o2nm_node_group_drop_item(struct config_group *group,
- 	}
- 	write_unlock(&cluster->cl_nodes_lock);
- 
-+	mlog(ML_O2CB, "o2nm: Unregistered node %s\n",
-+	     config_item_name(&node->nd_item));
++		set_bit(slot->ds_node_num, reg->hr_live_node_bitmap);
 +
- 	config_item_put(item);
- }
+ 		/* first on the list generates a callback */
+ 		if (list_empty(&o2hb_live_slots[slot->ds_node_num])) {
+ 			set_bit(slot->ds_node_num, o2hb_live_node_bitmap);
+@@ -733,6 +738,8 @@ fire_callbacks:
+ 		mlog(ML_HEARTBEAT, "Node %d left my region\n",
+ 		     slot->ds_node_num);
  
++		clear_bit(slot->ds_node_num, reg->hr_live_node_bitmap);
++
+ 		/* last off the live_slot generates a callback */
+ 		list_del_init(&slot->ds_live_item);
+ 		if (list_empty(&o2hb_live_slots[slot->ds_node_num])) {
 -- 
 1.7.0.4
