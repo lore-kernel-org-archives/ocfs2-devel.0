@@ -1,94 +1,131 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  7 Oct 2010 17:15:30 -0700
-Subject: [Ocfs2-devel] [PATCH 16/22] ocfs2/cluster: Maintain bitmap of
-	quorum regions
+Date: Thu,  7 Oct 2010 17:15:15 -0700
+Subject: [Ocfs2-devel] [PATCH 01/22] ocfs2/cluster: Add heartbeat mode
+	configfs parameter
 In-Reply-To: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
 References: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1286496936-17072-17-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1286496936-17072-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-o2hb allows online adding of regions. However, a newly added region is not
-used in quorum calculations unless it has been added on all nodes. This patch
-tracks a bitmap of such quorum regions.
+Add heartbeat mode parameter to the configfs tree. This will be used
+to set/show the heartbeat mode. The user is free to toggle the mode
+between local and global as long as there is no active heartbeat region.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c |   35 +++++++++++++++++++++++++++++++++++
- 1 files changed, 35 insertions(+), 0 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |   72 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 72 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 2a7cd17..62a8af2 100644
+index 41d5f1f..4d36459 100644
 --- a/fs/ocfs2/cluster/heartbeat.c
 +++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -66,9 +66,12 @@ static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
-  * In global heartbeat, we maintain a series of region bitmaps.
-  * 	- o2hb_region_bitmap allows us to limit the region number to max region.
-  * 	- o2hb_live_region_bitmap tracks live regions (seen steady iterations).
-+ * 	- o2hb_quorum_region_bitmap tracks live regions that have seen all nodes
-+ * 		heartbeat on it.
-  */
- static unsigned long o2hb_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
- static unsigned long o2hb_live_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
-+static unsigned long o2hb_quorum_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+@@ -77,7 +77,19 @@ static struct o2hb_callback *hbcall_from_type(enum o2hb_callback_type type);
  
- #define O2HB_DB_TYPE_LIVENODES		0
- struct o2hb_debug_buf {
-@@ -607,6 +610,35 @@ static void o2hb_shutdown_slot(struct o2hb_disk_slot *slot)
- 	o2nm_node_put(node);
+ #define O2HB_DEFAULT_BLOCK_BITS       9
+ 
++enum o2hb_heartbeat_modes {
++	O2HB_HEARTBEAT_LOCAL		= 0,
++	O2HB_HEARTBEAT_GLOBAL,
++	O2HB_HEARTBEAT_NUM_MODES,
++};
++
++char *o2hb_heartbeat_mode_desc[O2HB_HEARTBEAT_NUM_MODES] = {
++		"local",	/* O2HB_HEARTBEAT_LOCAL */
++		"global",	/* O2HB_HEARTBEAT_GLOBAL */
++};
++
+ unsigned int o2hb_dead_threshold = O2HB_DEFAULT_DEAD_THRESHOLD;
++unsigned int o2hb_heartbeat_mode = O2HB_HEARTBEAT_LOCAL;
+ 
+ /* Only sets a new threshold if there are no active regions.
+  *
+@@ -94,6 +106,22 @@ static void o2hb_dead_threshold_set(unsigned int threshold)
+ 	}
  }
  
-+static void o2hb_set_quorum_device(struct o2hb_region *reg,
-+				   struct o2hb_disk_slot *slot)
++static int o2hb_global_hearbeat_mode_set(unsigned int hb_mode)
 +{
-+	assert_spin_locked(&o2hb_live_lock);
++	int ret = -1;
 +
-+	if (!o2hb_global_heartbeat_active())
-+		return;
++	if (hb_mode < O2HB_HEARTBEAT_NUM_MODES) {
++		spin_lock(&o2hb_live_lock);
++		if (list_empty(&o2hb_all_regions)) {
++			o2hb_heartbeat_mode = hb_mode;
++			ret = 0;
++		}
++		spin_unlock(&o2hb_live_lock);
++	}
 +
-+	if (test_bit(reg->hr_region_num, o2hb_quorum_region_bitmap))
-+		return;
-+
-+	/*
-+	 * A region can be added to the quorum only when it sees all
-+	 * live nodes heartbeat on it. In other words, the region has been
-+	 * added to all nodes.
-+	 */
-+	if (memcmp(reg->hr_live_node_bitmap, o2hb_live_node_bitmap,
-+		   sizeof(o2hb_live_node_bitmap)))
-+		return;
-+
-+	if (slot->ds_changed_samples < O2HB_LIVE_THRESHOLD)
-+		return;
-+
-+	printk(KERN_NOTICE "o2hb: Region %s is now a quorum device\n",
-+	       config_item_name(&reg->hr_item));
-+
-+	set_bit(reg->hr_region_num, o2hb_quorum_region_bitmap);
++	return ret;
 +}
 +
- static int o2hb_check_slot(struct o2hb_region *reg,
- 			   struct o2hb_disk_slot *slot)
- {
-@@ -772,6 +804,8 @@ fire_callbacks:
- 		slot->ds_equal_samples = 0;
- 	}
- out:
-+	o2hb_set_quorum_device(reg, slot);
-+
- 	spin_unlock(&o2hb_live_lock);
- 
- 	o2hb_run_event_list(&event);
-@@ -1138,6 +1172,7 @@ int o2hb_init(void)
- 	memset(o2hb_live_node_bitmap, 0, sizeof(o2hb_live_node_bitmap));
- 	memset(o2hb_region_bitmap, 0, sizeof(o2hb_region_bitmap));
- 	memset(o2hb_live_region_bitmap, 0, sizeof(o2hb_live_region_bitmap));
-+	memset(o2hb_quorum_region_bitmap, 0, sizeof(o2hb_quorum_region_bitmap));
- 
- 	return o2hb_debug_init();
+ struct o2hb_node_event {
+ 	struct list_head        hn_item;
+ 	enum o2hb_callback_type hn_event_type;
+@@ -1688,6 +1716,41 @@ static ssize_t o2hb_heartbeat_group_threshold_store(struct o2hb_heartbeat_group
+ 	return count;
  }
+ 
++static
++ssize_t o2hb_heartbeat_group_mode_show(struct o2hb_heartbeat_group *group,
++				       char *page)
++{
++	return sprintf(page, "%s\n",
++		       o2hb_heartbeat_mode_desc[o2hb_heartbeat_mode]);
++}
++
++static
++ssize_t o2hb_heartbeat_group_mode_store(struct o2hb_heartbeat_group *group,
++					const char *page, size_t count)
++{
++	unsigned int i;
++	int ret;
++	size_t len;
++
++	len = (page[count - 1] == '\n') ? count - 1 : count;
++	if (!len)
++		return -EINVAL;
++
++	for (i = 0; i < O2HB_HEARTBEAT_NUM_MODES; ++i) {
++		if (strnicmp(page, o2hb_heartbeat_mode_desc[i], len))
++			continue;
++
++		ret = o2hb_global_hearbeat_mode_set(i);
++		if (!ret)
++			printk(KERN_NOTICE "ocfs2: Heartbeat mode set to %s\n",
++			       o2hb_heartbeat_mode_desc[i]);
++		return count;
++	}
++
++	return -EINVAL;
++
++}
++
+ static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_threshold = {
+ 	.attr	= { .ca_owner = THIS_MODULE,
+ 		    .ca_name = "dead_threshold",
+@@ -1696,8 +1759,17 @@ static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_threshold
+ 	.store	= o2hb_heartbeat_group_threshold_store,
+ };
+ 
++static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_mode = {
++	.attr   = { .ca_owner = THIS_MODULE,
++		.ca_name = "mode",
++		.ca_mode = S_IRUGO | S_IWUSR },
++	.show   = o2hb_heartbeat_group_mode_show,
++	.store  = o2hb_heartbeat_group_mode_store,
++};
++
+ static struct configfs_attribute *o2hb_heartbeat_group_attrs[] = {
+ 	&o2hb_heartbeat_group_attr_threshold.attr,
++	&o2hb_heartbeat_group_attr_mode.attr,
+ 	NULL,
+ };
+ 
 -- 
 1.7.0.4
