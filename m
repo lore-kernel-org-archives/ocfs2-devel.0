@@ -1,87 +1,110 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  7 Oct 2010 17:15:35 -0700
-Subject: [Ocfs2-devel] [PATCH 21/22] ocfs2/cluster: Show per region
-	heartbeat elapsed time
+Date: Thu,  7 Oct 2010 17:15:31 -0700
+Subject: [Ocfs2-devel] [PATCH 17/22] ocfs2/cluster: Maintain bitmap of
+	failed regions
 In-Reply-To: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
 References: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1286496936-17072-22-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1286496936-17072-18-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This patch adds a per region debugfs file that shows the elapsed time
-since the time the o2hb timer was last armed.
+In global heartbeat mode, we track the bitmap of regions that have seen
+heartbeat timeouts. We fence if the number of such regions is greater than
+or equal to half the number of quorum regions.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c |   23 +++++++++++++++++++++++
- 1 files changed, 23 insertions(+), 0 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |   41 +++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 41 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index e8676ac..29aee21 100644
+index 62a8af2..f890656 100644
 --- a/fs/ocfs2/cluster/heartbeat.c
 +++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -81,6 +81,7 @@ static unsigned long o2hb_failed_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
- #define O2HB_DB_TYPE_FAILEDREGIONS	3
- #define O2HB_DB_TYPE_REGION_LIVENODES	4
- #define O2HB_DB_TYPE_REGION_NUMBER	5
-+#define O2HB_DB_TYPE_REGION_ELAPSED_TIME	6
+@@ -68,10 +68,12 @@ static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
+  * 	- o2hb_live_region_bitmap tracks live regions (seen steady iterations).
+  * 	- o2hb_quorum_region_bitmap tracks live regions that have seen all nodes
+  * 		heartbeat on it.
++ * 	- o2hb_failed_region_bitmap tracks the regions that have seen io timeouts.
+  */
+ static unsigned long o2hb_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+ static unsigned long o2hb_live_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+ static unsigned long o2hb_quorum_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
++static unsigned long o2hb_failed_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+ 
+ #define O2HB_DB_TYPE_LIVENODES		0
  struct o2hb_debug_buf {
- 	int db_type;
- 	int db_size;
-@@ -99,6 +100,7 @@ static struct o2hb_debug_buf *o2hb_db_failedregions;
- #define O2HB_DEBUG_QUORUMREGIONS	"quorum_regions"
- #define O2HB_DEBUG_FAILEDREGIONS	"failed_regions"
- #define O2HB_DEBUG_REGION_NUMBER	"num"
-+#define O2HB_DEBUG_REGION_ELAPSED_TIME	"elapsed_time_in_ms"
+@@ -217,8 +219,19 @@ struct o2hb_bio_wait_ctxt {
+ 	int               wc_error;
+ };
  
- static struct dentry *o2hb_debug_dir;
- static struct dentry *o2hb_debug_livenodes;
-@@ -209,8 +211,10 @@ struct o2hb_region {
- 	struct dentry		*hr_debug_dir;
- 	struct dentry		*hr_debug_livenodes;
- 	struct dentry		*hr_debug_regnum;
-+	struct dentry		*hr_debug_elapsed_time;
- 	struct o2hb_debug_buf	*hr_db_livenodes;
- 	struct o2hb_debug_buf	*hr_db_regnum;
-+	struct o2hb_debug_buf	*hr_db_elapsed_time;
- 
- 	/* let the person setting up hb wait for it to return until it
- 	 * has reached a 'steady' state.  This will be fixed when we have
-@@ -1132,6 +1136,13 @@ static int o2hb_debug_open(struct inode *inode, struct file *file)
- 				reg->hr_region_num);
- 		goto done;
- 
-+	case O2HB_DB_TYPE_REGION_ELAPSED_TIME:
-+		reg = (struct o2hb_region *)db->db_data;
-+		out += snprintf(buf + out, PAGE_SIZE - out, "%u\n",
-+				jiffies_to_msecs(jiffies -
-+						 reg->hr_last_timeout_start));
-+		goto done;
++static int o2hb_pop_count(void *map, int count)
++{
++	int i = -1, pop = 0;
 +
- 	default:
- 		goto done;
- 	}
-@@ -1925,6 +1936,18 @@ static int o2hb_debug_region_init(struct o2hb_region *reg, struct dentry *dir)
- 		goto bail;
- 	}
- 
-+	reg->hr_debug_elapsed_time =
-+			o2hb_debug_create(O2HB_DEBUG_REGION_ELAPSED_TIME,
-+					  reg->hr_debug_dir,
-+					  &(reg->hr_db_elapsed_time),
-+					  sizeof(*(reg->hr_db_elapsed_time)),
-+					  O2HB_DB_TYPE_REGION_ELAPSED_TIME,
-+					  0, 0, reg);
-+	if (!reg->hr_debug_elapsed_time) {
-+		mlog_errno(ret);
-+		goto bail;
++	while ((i = find_next_bit(map, count, i + 1)) < count)
++		pop++;
++	return pop;
++}
++
+ static void o2hb_write_timeout(struct work_struct *work)
+ {
++	int failed, quorum;
++	unsigned long flags;
+ 	struct o2hb_region *reg =
+ 		container_of(work, struct o2hb_region,
+ 			     hr_write_timeout_work.work);
+@@ -226,6 +239,28 @@ static void o2hb_write_timeout(struct work_struct *work)
+ 	mlog(ML_ERROR, "Heartbeat write timeout to device %s after %u "
+ 	     "milliseconds\n", reg->hr_dev_name,
+ 	     jiffies_to_msecs(jiffies - reg->hr_last_timeout_start));
++
++	if (o2hb_global_heartbeat_active()) {
++		spin_lock_irqsave(&o2hb_live_lock, flags);
++		if (test_bit(reg->hr_region_num, o2hb_quorum_region_bitmap))
++			set_bit(reg->hr_region_num, o2hb_failed_region_bitmap);
++		failed = o2hb_pop_count(&o2hb_failed_region_bitmap,
++					O2NM_MAX_REGIONS);
++		quorum = o2hb_pop_count(&o2hb_quorum_region_bitmap,
++					O2NM_MAX_REGIONS);
++		spin_unlock_irqrestore(&o2hb_live_lock, flags);
++
++		mlog(ML_HEARTBEAT, "Number of regions %d, failed regions %d\n",
++		     quorum, failed);
++
++		/*
++		 * Fence if the number of failed regions >= half the number
++		 * of  quorum regions
++		 */
++		if ((failed << 1) < quorum)
++			return;
 +	}
 +
- 	ret = 0;
- bail:
- 	return ret;
+ 	o2quo_disk_timeout();
+ }
+ 
+@@ -234,6 +269,11 @@ static void o2hb_arm_write_timeout(struct o2hb_region *reg)
+ 	mlog(ML_HEARTBEAT, "Queue write timeout for %u ms\n",
+ 	     O2HB_MAX_WRITE_TIMEOUT_MS);
+ 
++	if (o2hb_global_heartbeat_active()) {
++		spin_lock(&o2hb_live_lock);
++		clear_bit(reg->hr_region_num, o2hb_failed_region_bitmap);
++		spin_unlock(&o2hb_live_lock);
++	}
+ 	cancel_delayed_work(&reg->hr_write_timeout_work);
+ 	reg->hr_last_timeout_start = jiffies;
+ 	schedule_delayed_work(&reg->hr_write_timeout_work,
+@@ -1173,6 +1213,7 @@ int o2hb_init(void)
+ 	memset(o2hb_region_bitmap, 0, sizeof(o2hb_region_bitmap));
+ 	memset(o2hb_live_region_bitmap, 0, sizeof(o2hb_live_region_bitmap));
+ 	memset(o2hb_quorum_region_bitmap, 0, sizeof(o2hb_quorum_region_bitmap));
++	memset(o2hb_failed_region_bitmap, 0, sizeof(o2hb_failed_region_bitmap));
+ 
+ 	return o2hb_debug_init();
+ }
 -- 
 1.7.0.4
