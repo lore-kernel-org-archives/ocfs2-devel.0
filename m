@@ -1,131 +1,131 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  7 Oct 2010 17:15:15 -0700
-Subject: [Ocfs2-devel] [PATCH 01/22] ocfs2/cluster: Add heartbeat mode
-	configfs parameter
+Date: Thu,  7 Oct 2010 17:15:32 -0700
+Subject: [Ocfs2-devel] [PATCH 18/22] ocfs2/cluster: Create debugfs files for
+	live, quorum and failed region bitmaps
 In-Reply-To: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
 References: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1286496936-17072-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1286496936-17072-19-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Add heartbeat mode parameter to the configfs tree. This will be used
-to set/show the heartbeat mode. The user is free to toggle the mode
-between local and global as long as there is no active heartbeat region.
+This patch prints the bitmaps of live, quorum and failed regions. This
+information will be useful in debugging cluster issues.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c |   72 ++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 72 insertions(+), 0 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |   63 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 63 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 41d5f1f..4d36459 100644
+index f890656..b06b9e5 100644
 --- a/fs/ocfs2/cluster/heartbeat.c
 +++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -77,7 +77,19 @@ static struct o2hb_callback *hbcall_from_type(enum o2hb_callback_type type);
+@@ -76,6 +76,9 @@ static unsigned long o2hb_quorum_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
+ static unsigned long o2hb_failed_region_bitmap[BITS_TO_LONGS(O2NM_MAX_REGIONS)];
  
- #define O2HB_DEFAULT_BLOCK_BITS       9
+ #define O2HB_DB_TYPE_LIVENODES		0
++#define O2HB_DB_TYPE_LIVEREGIONS	1
++#define O2HB_DB_TYPE_QUORUMREGIONS	2
++#define O2HB_DB_TYPE_FAILEDREGIONS	3
+ struct o2hb_debug_buf {
+ 	int db_type;
+ 	int db_size;
+@@ -84,12 +87,21 @@ struct o2hb_debug_buf {
+ };
  
-+enum o2hb_heartbeat_modes {
-+	O2HB_HEARTBEAT_LOCAL		= 0,
-+	O2HB_HEARTBEAT_GLOBAL,
-+	O2HB_HEARTBEAT_NUM_MODES,
-+};
-+
-+char *o2hb_heartbeat_mode_desc[O2HB_HEARTBEAT_NUM_MODES] = {
-+		"local",	/* O2HB_HEARTBEAT_LOCAL */
-+		"global",	/* O2HB_HEARTBEAT_GLOBAL */
-+};
-+
- unsigned int o2hb_dead_threshold = O2HB_DEFAULT_DEAD_THRESHOLD;
-+unsigned int o2hb_heartbeat_mode = O2HB_HEARTBEAT_LOCAL;
+ static struct o2hb_debug_buf *o2hb_db_livenodes;
++static struct o2hb_debug_buf *o2hb_db_liveregions;
++static struct o2hb_debug_buf *o2hb_db_quorumregions;
++static struct o2hb_debug_buf *o2hb_db_failedregions;
  
- /* Only sets a new threshold if there are no active regions.
-  *
-@@ -94,6 +106,22 @@ static void o2hb_dead_threshold_set(unsigned int threshold)
+ #define O2HB_DEBUG_DIR			"o2hb"
+ #define O2HB_DEBUG_LIVENODES		"livenodes"
++#define O2HB_DEBUG_LIVEREGIONS		"live_regions"
++#define O2HB_DEBUG_QUORUMREGIONS	"quorum_regions"
++#define O2HB_DEBUG_FAILEDREGIONS	"failed_regions"
+ 
+ static struct dentry *o2hb_debug_dir;
+ static struct dentry *o2hb_debug_livenodes;
++static struct dentry *o2hb_debug_liveregions;
++static struct dentry *o2hb_debug_quorumregions;
++static struct dentry *o2hb_debug_failedregions;
+ 
+ static LIST_HEAD(o2hb_all_regions);
+ 
+@@ -1085,6 +1097,9 @@ static int o2hb_debug_open(struct inode *inode, struct file *file)
+ 
+ 	switch (db->db_type) {
+ 	case O2HB_DB_TYPE_LIVENODES:
++	case O2HB_DB_TYPE_LIVEREGIONS:
++	case O2HB_DB_TYPE_QUORUMREGIONS:
++	case O2HB_DB_TYPE_FAILEDREGIONS:
+ 		spin_lock(&o2hb_live_lock);
+ 		memcpy(map, db->db_data, db->db_size);
+ 		spin_unlock(&o2hb_live_lock);
+@@ -1146,6 +1161,12 @@ static const struct file_operations o2hb_debug_fops = {
+ void o2hb_exit(void)
+ {
+ 	kfree(o2hb_db_livenodes);
++	kfree(o2hb_db_liveregions);
++	kfree(o2hb_db_quorumregions);
++	kfree(o2hb_db_failedregions);
++	debugfs_remove(o2hb_debug_failedregions);
++	debugfs_remove(o2hb_debug_quorumregions);
++	debugfs_remove(o2hb_debug_liveregions);
+ 	debugfs_remove(o2hb_debug_livenodes);
+ 	debugfs_remove(o2hb_debug_dir);
+ }
+@@ -1189,6 +1210,48 @@ static int o2hb_debug_init(void)
+ 		mlog_errno(ret);
+ 		goto bail;
  	}
- }
- 
-+static int o2hb_global_hearbeat_mode_set(unsigned int hb_mode)
-+{
-+	int ret = -1;
 +
-+	if (hb_mode < O2HB_HEARTBEAT_NUM_MODES) {
-+		spin_lock(&o2hb_live_lock);
-+		if (list_empty(&o2hb_all_regions)) {
-+			o2hb_heartbeat_mode = hb_mode;
-+			ret = 0;
-+		}
-+		spin_unlock(&o2hb_live_lock);
++	o2hb_debug_liveregions = o2hb_debug_create(O2HB_DEBUG_LIVEREGIONS,
++						   o2hb_debug_dir,
++						   &o2hb_db_liveregions,
++						   sizeof(*o2hb_db_liveregions),
++						   O2HB_DB_TYPE_LIVEREGIONS,
++						   sizeof(o2hb_live_region_bitmap),
++						   O2NM_MAX_REGIONS,
++						   o2hb_live_region_bitmap);
++	if (!o2hb_debug_liveregions) {
++		mlog_errno(ret);
++		goto bail;
 +	}
 +
-+	return ret;
-+}
-+
- struct o2hb_node_event {
- 	struct list_head        hn_item;
- 	enum o2hb_callback_type hn_event_type;
-@@ -1688,6 +1716,41 @@ static ssize_t o2hb_heartbeat_group_threshold_store(struct o2hb_heartbeat_group
- 	return count;
- }
- 
-+static
-+ssize_t o2hb_heartbeat_group_mode_show(struct o2hb_heartbeat_group *group,
-+				       char *page)
-+{
-+	return sprintf(page, "%s\n",
-+		       o2hb_heartbeat_mode_desc[o2hb_heartbeat_mode]);
-+}
-+
-+static
-+ssize_t o2hb_heartbeat_group_mode_store(struct o2hb_heartbeat_group *group,
-+					const char *page, size_t count)
-+{
-+	unsigned int i;
-+	int ret;
-+	size_t len;
-+
-+	len = (page[count - 1] == '\n') ? count - 1 : count;
-+	if (!len)
-+		return -EINVAL;
-+
-+	for (i = 0; i < O2HB_HEARTBEAT_NUM_MODES; ++i) {
-+		if (strnicmp(page, o2hb_heartbeat_mode_desc[i], len))
-+			continue;
-+
-+		ret = o2hb_global_hearbeat_mode_set(i);
-+		if (!ret)
-+			printk(KERN_NOTICE "ocfs2: Heartbeat mode set to %s\n",
-+			       o2hb_heartbeat_mode_desc[i]);
-+		return count;
++	o2hb_debug_quorumregions =
++			o2hb_debug_create(O2HB_DEBUG_QUORUMREGIONS,
++					  o2hb_debug_dir,
++					  &o2hb_db_quorumregions,
++					  sizeof(*o2hb_db_quorumregions),
++					  O2HB_DB_TYPE_QUORUMREGIONS,
++					  sizeof(o2hb_quorum_region_bitmap),
++					  O2NM_MAX_REGIONS,
++					  o2hb_quorum_region_bitmap);
++	if (!o2hb_debug_quorumregions) {
++		mlog_errno(ret);
++		goto bail;
 +	}
 +
-+	return -EINVAL;
++	o2hb_debug_failedregions =
++			o2hb_debug_create(O2HB_DEBUG_FAILEDREGIONS,
++					  o2hb_debug_dir,
++					  &o2hb_db_failedregions,
++					  sizeof(*o2hb_db_failedregions),
++					  O2HB_DB_TYPE_FAILEDREGIONS,
++					  sizeof(o2hb_failed_region_bitmap),
++					  O2NM_MAX_REGIONS,
++					  o2hb_failed_region_bitmap);
++	if (!o2hb_debug_failedregions) {
++		mlog_errno(ret);
++		goto bail;
++	}
 +
-+}
-+
- static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_threshold = {
- 	.attr	= { .ca_owner = THIS_MODULE,
- 		    .ca_name = "dead_threshold",
-@@ -1696,8 +1759,17 @@ static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_threshold
- 	.store	= o2hb_heartbeat_group_threshold_store,
- };
- 
-+static struct o2hb_heartbeat_group_attribute o2hb_heartbeat_group_attr_mode = {
-+	.attr   = { .ca_owner = THIS_MODULE,
-+		.ca_name = "mode",
-+		.ca_mode = S_IRUGO | S_IWUSR },
-+	.show   = o2hb_heartbeat_group_mode_show,
-+	.store  = o2hb_heartbeat_group_mode_store,
-+};
-+
- static struct configfs_attribute *o2hb_heartbeat_group_attrs[] = {
- 	&o2hb_heartbeat_group_attr_threshold.attr,
-+	&o2hb_heartbeat_group_attr_mode.attr,
- 	NULL,
- };
- 
+ 	ret = 0;
+ bail:
+ 	if (ret)
 -- 
 1.7.0.4
