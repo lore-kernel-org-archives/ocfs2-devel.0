@@ -1,190 +1,276 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  7 Oct 2010 17:15:16 -0700
-Subject: [Ocfs2-devel] [PATCH 02/22] ocfs2: Add an incompat feature flag
-	OCFS2_FEATURE_INCOMPAT_CLUSTERINFO
+Date: Thu,  7 Oct 2010 17:15:22 -0700
+Subject: [Ocfs2-devel] [PATCH 08/22] ocfs2/dlm: Add message
+	DLM_QUERY_NODEINFO
 In-Reply-To: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
 References: <1286496936-17072-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1286496936-17072-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1286496936-17072-9-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-OCFS2_FEATURE_INCOMPAT_CLUSTERINFO allows us to use sb->s_cluster_info for
-both userspace and o2cb cluster stacks. It also allows us to extend cluster
-info to include stack flags.
-
-This patch also adds stackflags to sb->s_clusterinfo. It also introduces a
-clusterinfo flag OCFS2_CLUSTER_O2CB_GLOBAL_HEARTBEAT to denote the enabled
-global heartbeat mode.
-
-This incompat flag can be set/cleared using tunefs.ocfs2 --fs-features. The
-clusterinfo flag is set/cleared using tunefs.ocfs2 --update-cluster-stack.
+Adds new dlm message DLM_QUERY_NODEINFO that sends the attributes of all
+registered nodes. This message is sent if the negotiated dlm protocol is
+1.1 or higher. If the information of the joining node does not match
+that of any existing nodes, the join domain request is rejected.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/ocfs2.h    |   31 +++++++++++++++++++++++++++++--
- fs/ocfs2/ocfs2_fs.h |   40 ++++++++++++++++++++++++++++++++++------
- fs/ocfs2/super.c    |    4 +++-
- 3 files changed, 66 insertions(+), 9 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |   17 ++++
+ fs/ocfs2/dlm/dlmdomain.c |  182 +++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 198 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index c67003b..d5496a7 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -368,6 +368,8 @@ struct ocfs2_super
- 	struct ocfs2_alloc_stats alloc_stats;
- 	char dev_str[20];		/* "major,minor" of the device */
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index aa506d3..b36d0bf 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -447,6 +447,7 @@ enum {
+ 	DLM_BEGIN_RECO_MSG,	 /* 517 */
+ 	DLM_FINALIZE_RECO_MSG,	 /* 518 */
+ 	DLM_QUERY_REGION,	 /* 519 */
++	DLM_QUERY_NODEINFO,	 /* 520 */
+ };
  
-+	u8 osb_stackflags;
+ struct dlm_reco_node_data
+@@ -737,6 +738,22 @@ struct dlm_query_region {
+ 	u8 qr_regions[O2HB_MAX_REGION_NAME_LEN * O2NM_MAX_REGIONS];
+ };
+ 
++struct dlm_node_info {
++	u8 ni_nodenum;
++	u8 pad1;
++	u16 ni_ipv4_port;
++	u32 ni_ipv4_address;
++};
 +
- 	char osb_cluster_stack[OCFS2_STACK_LABEL_LEN + 1];
- 	struct ocfs2_cluster_connection *cconn;
- 	struct ocfs2_lock_res osb_super_lockres;
-@@ -601,10 +603,35 @@ static inline int ocfs2_is_soft_readonly(struct ocfs2_super *osb)
- 	return ret;
- }
- 
--static inline int ocfs2_userspace_stack(struct ocfs2_super *osb)
-+static inline int ocfs2_clusterinfo_valid(struct ocfs2_super *osb)
++struct dlm_query_nodeinfo {
++	u8 qn_nodenum;
++	u8 qn_numnodes;
++	u8 qn_namelen;
++	u8 pad1;
++	u8 qn_domain[O2NM_MAX_NAME_LEN];
++	struct dlm_node_info qn_nodes[O2NM_MAX_NODES];
++};
++
+ struct dlm_exit_domain
  {
- 	return (osb->s_feature_incompat &
--		OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK);
-+		(OCFS2_FEATURE_INCOMPAT_USERSPACE_STACK |
-+		 OCFS2_FEATURE_INCOMPAT_CLUSTERINFO));
-+}
-+
-+static inline int ocfs2_userspace_stack(struct ocfs2_super *osb)
-+{
-+	if (ocfs2_clusterinfo_valid(osb) &&
-+	    memcmp(osb->osb_cluster_stack, OCFS2_CLASSIC_CLUSTER_STACK,
-+		   OCFS2_STACK_LABEL_LEN))
-+		return 1;
-+	return 0;
-+}
-+
-+static inline int ocfs2_o2cb_stack(struct ocfs2_super *osb)
-+{
-+	if (ocfs2_clusterinfo_valid(osb) &&
-+	    !memcmp(osb->osb_cluster_stack, OCFS2_CLASSIC_CLUSTER_STACK,
-+		   OCFS2_STACK_LABEL_LEN))
-+		return 1;
-+	return 0;
-+}
-+
-+static inline int ocfs2_cluster_o2cb_global_heartbeat(struct ocfs2_super *osb)
-+{
-+	return ocfs2_o2cb_stack(osb) &&
-+		(osb->osb_stackflags & OCFS2_CLUSTER_O2CB_GLOBAL_HEARTBEAT);
+ 	u8 node_idx;
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 4965075..78d428f 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -131,6 +131,7 @@ static DECLARE_WAIT_QUEUE_HEAD(dlm_domain_events);
+  *
+  * New in version 1.1:
+  *	- Message DLM_QUERY_REGION added to support global heartbeat
++ *	- Message DLM_QUERY_NODEINFO added to allow online node removes
+  */
+ static const struct dlm_protocol_version dlm_protocol = {
+ 	.pv_major = 1,
+@@ -1123,6 +1124,173 @@ bail:
+ 	return status;
  }
  
- static inline int ocfs2_mount_local(struct ocfs2_super *osb)
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index fa31d05..b4ca517 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -101,7 +101,8 @@
- 					 | OCFS2_FEATURE_INCOMPAT_META_ECC \
- 					 | OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS \
- 					 | OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE \
--					 | OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG)
-+					 | OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG	\
-+					 | OCFS2_FEATURE_INCOMPAT_CLUSTERINFO)
- #define OCFS2_FEATURE_RO_COMPAT_SUPP	(OCFS2_FEATURE_RO_COMPAT_UNWRITTEN \
- 					 | OCFS2_FEATURE_RO_COMPAT_USRQUOTA \
- 					 | OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)
-@@ -170,6 +171,13 @@
- #define OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG	0x2000
- 
- /*
-+ * Incompat bit to indicate useable clusterinfo with stackflags for all
-+ * cluster stacks (userspace adnd o2cb). If this bit is set,
-+ * INCOMPAT_USERSPACE_STACK becomes superfluous and thus should not be set.
-+ */
-+#define OCFS2_FEATURE_INCOMPAT_CLUSTERINFO	0x4000
++static int dlm_match_nodes(struct dlm_ctxt *dlm, struct dlm_query_nodeinfo *qn)
++{
++	struct o2nm_node *local;
++	struct dlm_node_info *remote;
++	int i, j;
++	int status = 0;
 +
-+/*
-  * backup superblock flag is used to indicate that this volume
-  * has backup superblocks.
-  */
-@@ -292,10 +300,13 @@
- #define OCFS2_VOL_UUID_LEN		16
- #define OCFS2_MAX_VOL_LABEL_LEN		64
- 
--/* The alternate, userspace stack fields */
-+/* The cluster stack fields */
- #define OCFS2_STACK_LABEL_LEN		4
- #define OCFS2_CLUSTER_NAME_LEN		16
- 
-+/* Classic (historically speaking) cluster stack */
-+#define OCFS2_CLASSIC_CLUSTER_STACK	"o2cb"
++	for (j = 0; j < qn->qn_numnodes; ++j)
++		mlog(0, "Node %3d, %pI4:%u\n", qn->qn_nodes[j].ni_nodenum,
++		     &(qn->qn_nodes[j].ni_ipv4_address),
++		     ntohs(qn->qn_nodes[j].ni_ipv4_port));
 +
- /* Journal limits (in bytes) */
- #define OCFS2_MIN_JOURNAL_SIZE		(4 * 1024 * 1024)
- 
-@@ -305,6 +316,11 @@
-  */
- #define OCFS2_MIN_XATTR_INLINE_SIZE     256
- 
-+/*
-+ * Cluster info flags (ocfs2_cluster_info.ci_stackflags)
-+ */
-+#define OCFS2_CLUSTER_O2CB_GLOBAL_HEARTBEAT	(0x01)
++	for (i = 0; i < O2NM_MAX_NODES && !status; ++i) {
++		local = o2nm_get_node_by_num(i);
++		remote = NULL;
++		for (j = 0; j < qn->qn_numnodes; ++j) {
++			if (qn->qn_nodes[j].ni_nodenum == i) {
++				remote = &(qn->qn_nodes[j]);
++				break;
++			}
++		}
 +
- struct ocfs2_system_inode_info {
- 	char	*si_name;
- 	int	si_iflags;
-@@ -566,9 +582,21 @@ struct ocfs2_slot_map_extended {
-  */
- };
++		if (!local && !remote)
++			continue;
++
++		if ((local && !remote) || (!local && remote))
++			status = -EINVAL;
++
++		if (!status &&
++		    ((remote->ni_nodenum != local->nd_num) ||
++		     (remote->ni_ipv4_port != local->nd_ipv4_port) ||
++		     (remote->ni_ipv4_address != local->nd_ipv4_address)))
++			status = -EINVAL;
++
++		if (status) {
++			if (remote && !local)
++				mlog(ML_ERROR, "Domain %s: Node %d (%pI4:%u) "
++				     "registered in joining node %d but not in "
++				     "local node %d\n", qn->qn_domain,
++				     remote->ni_nodenum,
++				     &(remote->ni_ipv4_address),
++				     ntohs(remote->ni_ipv4_port),
++				     qn->qn_nodenum, dlm->node_num);
++			if (local && !remote)
++				mlog(ML_ERROR, "Domain %s: Node %d (%pI4:%u) "
++				     "registered in local node %d but not in "
++				     "joining node %d\n", qn->qn_domain,
++				     local->nd_num, &(local->nd_ipv4_address),
++				     ntohs(local->nd_ipv4_port),
++				     dlm->node_num, qn->qn_nodenum);
++			BUG_ON((!local && !remote));
++		}
++
++		if (local)
++			o2nm_node_put(local);
++	}
++
++	return status;
++}
++
++static int dlm_send_nodeinfo(struct dlm_ctxt *dlm, unsigned long *node_map)
++{
++	struct dlm_query_nodeinfo *qn = NULL;
++	struct o2nm_node *node;
++	int ret = 0, status, count, i;
++
++	if (find_next_bit(node_map, O2NM_MAX_NODES, 0) >= O2NM_MAX_NODES)
++		goto bail;
++
++	qn = kzalloc(sizeof(struct dlm_query_nodeinfo), GFP_KERNEL);
++	if (!qn) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
++		goto bail;
++	}
++
++	for (i = 0, count = 0; i < O2NM_MAX_NODES; ++i) {
++		node = o2nm_get_node_by_num(i);
++		if (!node)
++			continue;
++		qn->qn_nodes[count].ni_nodenum = node->nd_num;
++		qn->qn_nodes[count].ni_ipv4_port = node->nd_ipv4_port;
++		qn->qn_nodes[count].ni_ipv4_address = node->nd_ipv4_address;
++		mlog(0, "Node %3d, %pI4:%u\n", node->nd_num,
++		     &(node->nd_ipv4_address), ntohs(node->nd_ipv4_port));
++		++count;
++		o2nm_node_put(node);
++	}
++
++	qn->qn_nodenum = dlm->node_num;
++	qn->qn_numnodes = count;
++	qn->qn_namelen = strlen(dlm->name);
++	memcpy(qn->qn_domain, dlm->name, qn->qn_namelen);
++
++	i = -1;
++	while ((i = find_next_bit(node_map, O2NM_MAX_NODES,
++				  i + 1)) < O2NM_MAX_NODES) {
++		if (i == dlm->node_num)
++			continue;
++
++		mlog(0, "Sending nodeinfo to node %d\n", i);
++
++		ret = o2net_send_message(DLM_QUERY_NODEINFO, DLM_MOD_KEY,
++					 qn, sizeof(struct dlm_query_nodeinfo),
++					 i, &status);
++		if (ret >= 0)
++			ret = status;
++		if (ret) {
++			mlog(ML_ERROR, "node mismatch %d, node %d\n", ret, i);
++			break;
++		}
++	}
++
++bail:
++	kfree(qn);
++	return ret;
++}
++
++static int dlm_query_nodeinfo_handler(struct o2net_msg *msg, u32 len,
++				      void *data, void **ret_data)
++{
++	struct dlm_query_nodeinfo *qn;
++	struct dlm_ctxt *dlm = NULL;
++	int locked = 0, status = -EINVAL;
++
++	qn = (struct dlm_query_nodeinfo *) msg->buf;
++
++	mlog(0, "Node %u queries nodes on domain %s\n", qn->qn_nodenum,
++	     qn->qn_domain);
++
++	spin_lock(&dlm_domain_lock);
++	dlm = __dlm_lookup_domain_full(qn->qn_domain, qn->qn_namelen);
++	if (!dlm) {
++		mlog(ML_ERROR, "Node %d queried nodes on domain %s before "
++		     "join domain\n", qn->qn_nodenum, qn->qn_domain);
++		goto bail;
++	}
++
++	spin_lock(&dlm->spinlock);
++	locked = 1;
++	if (dlm->joining_node != qn->qn_nodenum) {
++		mlog(ML_ERROR, "Node %d queried nodes on domain %s but "
++		     "joining node is %d\n", qn->qn_nodenum, qn->qn_domain,
++		     dlm->joining_node);
++		goto bail;
++	}
++
++	/* Support for node query was added in 1.1 */
++	if (dlm->dlm_locking_proto.pv_major == 1 &&
++	    dlm->dlm_locking_proto.pv_minor == 0) {
++		mlog(ML_ERROR, "Node %d queried nodes on domain %s "
++		     "but active dlm protocol is %d.%d\n", qn->qn_nodenum,
++		     qn->qn_domain, dlm->dlm_locking_proto.pv_major,
++		     dlm->dlm_locking_proto.pv_minor);
++		goto bail;
++	}
++
++	status = dlm_match_nodes(dlm, qn);
++
++bail:
++	if (locked)
++		spin_unlock(&dlm->spinlock);
++	spin_unlock(&dlm_domain_lock);
++
++	return status;
++}
++
+ static int dlm_cancel_join_handler(struct o2net_msg *msg, u32 len, void *data,
+ 				   void **ret_data)
+ {
+@@ -1443,8 +1611,13 @@ static int dlm_try_to_join_domain(struct dlm_ctxt *dlm)
+ 	set_bit(dlm->node_num, dlm->domain_map);
+ 	spin_unlock(&dlm->spinlock);
  
-+/*
-+ * ci_stackflags is only valid if the incompat bit
-+ * OCFS2_FEATURE_INCOMPAT_CLUSTERINFO is set.
-+ */
- struct ocfs2_cluster_info {
- /*00*/	__u8   ci_stack[OCFS2_STACK_LABEL_LEN];
--	__le32 ci_reserved;
-+	union {
-+		__le32 ci_reserved;
-+		struct {
-+			__u8 ci_reserved1;
-+			__u8 ci_reserved2;
-+			__u8 ci_reserved3;
-+			__u8 ci_stackflags;
-+		};
-+	};
- /*08*/	__u8   ci_cluster[OCFS2_CLUSTER_NAME_LEN];
- /*18*/
- };
-@@ -605,9 +633,9 @@ struct ocfs2_super_block {
- 					 * group header */
- /*50*/	__u8  s_label[OCFS2_MAX_VOL_LABEL_LEN];	/* Label for mounting, etc. */
- /*90*/	__u8  s_uuid[OCFS2_VOL_UUID_LEN];	/* 128-bit uuid */
--/*A0*/  struct ocfs2_cluster_info s_cluster_info; /* Selected userspace
--						     stack.  Only valid
--						     with INCOMPAT flag. */
-+/*A0*/  struct ocfs2_cluster_info s_cluster_info; /* Only valid if either
-+						     userspace or clusterinfo
-+						     INCOMPAT flag set. */
- /*B8*/	__le16 s_xattr_inline_size;	/* extended attribute inline size
- 					   for this fs*/
- 	__le16 s_reserved0;
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index fa1be1b..7554317 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -2149,7 +2149,9 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 		goto bail;
- 	}
+-	/* Support for global heartbeat was added in 1.1 */
++	/* Support for global heartbeat and node info was added in 1.1 */
+ 	if (dlm_protocol.pv_major > 1 || dlm_protocol.pv_minor > 0) {
++		status = dlm_send_nodeinfo(dlm, ctxt->yes_resp_map);
++		if (status) {
++			mlog_errno(status);
++			goto bail;
++		}
+ 		status = dlm_send_regions(dlm, ctxt->yes_resp_map);
+ 		if (status) {
+ 			mlog_errno(status);
+@@ -2026,6 +2199,13 @@ static int dlm_register_net_handlers(void)
+ 					dlm_query_region_handler,
+ 					NULL, NULL, &dlm_join_handlers);
  
--	if (ocfs2_userspace_stack(osb)) {
-+	if (ocfs2_clusterinfo_valid(osb)) {
-+		osb->osb_stackflags =
-+			OCFS2_RAW_SB(di)->s_cluster_info.ci_stackflags;
- 		memcpy(osb->osb_cluster_stack,
- 		       OCFS2_RAW_SB(di)->s_cluster_info.ci_stack,
- 		       OCFS2_STACK_LABEL_LEN);
++	if (status)
++		goto bail;
++
++	status = o2net_register_handler(DLM_QUERY_NODEINFO, DLM_MOD_KEY,
++					sizeof(struct dlm_query_nodeinfo),
++					dlm_query_nodeinfo_handler,
++					NULL, NULL, &dlm_join_handlers);
+ bail:
+ 	if (status < 0)
+ 		dlm_unregister_net_handlers();
 -- 
 1.7.0.4
