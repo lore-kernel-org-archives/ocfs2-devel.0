@@ -1,52 +1,55 @@
 From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Mon, 11 Oct 2010 10:32:31 -0500
-Subject: [Ocfs2-devel] Question: recovery map vs replay map
-In-Reply-To: <4CAF75EB.9050209@oracle.com>
-References: <AANLkTik2S+-guvnhvUGXOBOD74Ph0gf68NgN9uMG5LyD@mail.gmail.com>
-	<4CAF75EB.9050209@oracle.com>
-Message-ID: <AANLkTimT3XGD+DZQk-7WrVEcZxfjTB2CrtnqoEWwT39v@mail.gmail.com>
+Date: Mon, 11 Oct 2010 12:57:09 -0500
+Subject: [Ocfs2-devel] [PATCH] Initialize max_slots early
+Message-ID: <AANLkTinGe9j+NnKh9ftHH1po1ZSoaE_AiZ47q2v-+9cT@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Oct 8, 2010 at 2:50 PM, Sunil Mushran <sunil.mushran@oracle.com> wrote:
-> On 10/08/2010 12:03 PM, Goldwyn Rodrigues wrote:
->>
->> I was reading through the recovery code and got confused with recovery
->> and replay maps.
->>
->> What is the function of recovery maps and replay maps? Is a replay map
->> generated for each entry in the recovery map? Is there a situation
->> where a replay map is created without a recovery map entry?
->>
->
-> During recovery, we need to recover the slot used by the dead node
-> (including journal replay) and clean up the unused orphaned inodes.
->
-> The recovery map refers to the nodes whose slot needs recovery.
->
-> The replay map (confusing name, in hindsight) refers to unused slots
-> whose orphaned inodes need to be cleaned up.
->
-> Consider the case of a 4 node cluster having nodes 0, 1, 2, 3.
-> Say node 0 removes a file that is in-use on node 1. Node 0 will
-> move the inode to its orphan directory. Then say it umounts.
-> At this stage, say node 1 dies.
->
-> One of the surviving nodes will recover the node 1's slot. That
-> includes replaying its journal and cleaning up its orphan directory.
->
-> But what about the orphan directory that node 0 used that has that
-> inode that was in use on node 1. That needs to be cleaned up too.
->
-> The replay map, populated with unused slots, will contain the slot
-> used by node 0.
+Functions such as ocfs2_recovery_init() make use of osb->max_slots.
+Initialize osb->max_slots early so the functions may use the correct
+value.
 
+Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+---
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index fa1be1b..3894c7e 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2060,6 +2060,15 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 	snprintf(osb->dev_str, sizeof(osb->dev_str), "%u,%u",
+ 		 MAJOR(osb->sb->s_dev), MINOR(osb->sb->s_dev));
 
-Thanks Sunil. This example clears a lot of doubts.
++	osb->max_slots = le16_to_cpu(di->id2.i_super.s_max_slots);
++	if (osb->max_slots > OCFS2_MAX_SLOTS || osb->max_slots == 0) {
++		mlog(ML_ERROR, "Invalid number of node slots (%u)\n",
++		     osb->max_slots);
++		status = -EINVAL;
++		goto bail;
++	}
++	mlog(0, "max_slots for this device: %u\n", osb->max_slots);
++
+ 	ocfs2_orphan_scan_init(osb);
 
+ 	status = ocfs2_recovery_init(osb);
+@@ -2098,15 +2107,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		goto bail;
+ 	}
+
+-	osb->max_slots = le16_to_cpu(di->id2.i_super.s_max_slots);
+-	if (osb->max_slots > OCFS2_MAX_SLOTS || osb->max_slots == 0) {
+-		mlog(ML_ERROR, "Invalid number of node slots (%u)\n",
+-		     osb->max_slots);
+-		status = -EINVAL;
+-		goto bail;
+-	}
+-	mlog(0, "max_slots for this device: %u\n", osb->max_slots);
+-
+ 	osb->slot_recovery_generations =
+ 		kcalloc(osb->max_slots, sizeof(*osb->slot_recovery_generations),
+ 			GFP_KERNEL);
 
 -- 
 Goldwyn
