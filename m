@@ -1,61 +1,44 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 11 Oct 2010 15:11:17 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Add a mount option
- "coherency=*" to handle cluster coherency for O_DIRECT writes.
-In-Reply-To: <4CB38927.2070403@oracle.com>
-References: <1286786799-10230-1-git-send-email-tristan.ye@oracle.com>
-	<20101011211643.GH4255@mail.oracle.com>
-	<4CB38927.2070403@oracle.com>
-Message-ID: <20101011221117.GJ4255@mail.oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Mon, 11 Oct 2010 17:23:45 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: flush truncate log in case it
+	contains too many clusters.
+In-Reply-To: <1284880829-3795-1-git-send-email-tao.ma@oracle.com>
+References: <4C95B999.1080307@oracle.com>
+	<1284880829-3795-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20101012002345.GL8031@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Oct 12, 2010 at 06:01:11AM +0800, Tao Ma wrote:
-> Joel Becker wrote:
-> >On Mon, Oct 11, 2010 at 04:46:39PM +0800, Tristan Ye wrote:
-> >>Currently, default behavior of O_DIRECT writes was allowing
-> >>concurrent writing among nodes, no cluster coherency guaranteed
-> >>(no EX locks was taken), it hurts buffered reads on other nodes
-> >>by reading stale data from cache.
-> >>
-> >>The new mount option introduce a chance to choose two different
-> >>behaviors for O_DIRECT writes:
-> >>
-> >>    * coherency=full, as the default value, will disallow
-> >>                      concurrent O_DIRECT writes by taking
-> >>                      EX locks.
-> >>
-> >>    * coherency=buffered, allow concurrent O_DIRECT writes
-> >>                          without EX lock among nodes, which
-> >>                          gains high performance at risk of
-> >>                          getting stale data on other nodes.
-> >>
-> >>Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
-> >
-> >	This patch is now in the merge-window branch of ocfs2.git.
-> I think that you agree with me that we only need to take PR lock in
-> full_coherency, but this patch
-> still try the exclusive one. So do I miss something?
+Hi Tao,
 
-	I don't agree with you.  The PR does not force other nodes who
-have a PR to drop their caches.  It does force them to write out, but
-that isn't the whole problem.  We came to this because other nodes are
-holding stale data from their reads, and we need them to drop that stale
-data when we O_DIRECT write.
+On Sun, Sep 19, 2010 at 03:20:28PM +0800, Tao Ma wrote:
+> When we test whether we need to flush truncate log in
+> ocfs2_truncate_log_needs_flush, we only take care of
+> whether the truncate log is full. But if the volume is
+> small and  we have large block size(in this case truncate
+> log can store too many records), we may be too late
+> for flushing if the user create/write/delete files quickly.
+> 
+> So I add a new FLUSH_TRUNCATE_LOG_RATIO so that we will also
+> check whether the number of truncated clusters has reached
+> a watermark, if yes, flush the truncate log.
+> It resolves the ossbug #1288 somehow.
 
-Joel
+The problem with the ratio of course is that it doesn't necessarily
+correlate to when we actually run out of space. Also, I am concerned that a
+10% disk-size limit on truncate log could hurt us in some cases (maybe
+truncate of a huge file in the middle of some other rms?)
 
--- 
 
-Life's Little Instruction Book #24
+How about an alternate solution - at the time we see -ENOSPC (during write
+for example), why not drop all the allocator locks (global bitmap, local
+alloc) and then look at the truncate log for a sufficiently sized extent?
+Removing it from the truncate log at that point shouldn't be too hard and
+we'd always be able to fill it up completely.
+	--Mark
 
-	"Drink champagne for no reason at all."
-
-Joel Becker
-Consulting Software Developer
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+--
+Mark Fasheh
