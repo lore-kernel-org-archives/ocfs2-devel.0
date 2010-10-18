@@ -1,33 +1,34 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Mon, 18 Oct 2010 13:11:42 -0700
-Subject: [Ocfs2-devel] [PATCH 02/16] ocfs2: fixed typo
-In-Reply-To: <1287235165-27841-2-git-send-email-andrea.gelmini@gelma.net>
-References: <1287235165-27841-1-git-send-email-andrea.gelmini@gelma.net>
-	<1287235165-27841-2-git-send-email-andrea.gelmini@gelma.net>
-Message-ID: <20101018201142.GA31479@mail.oracle.com>
+Date: Mon, 18 Oct 2010 13:19:31 -0700
+Subject: [Ocfs2-devel] [PATCH 13/22] ocfs2: use little endian bitops
+In-Reply-To: <1287135981-17604-14-git-send-email-akinobu.mita@gmail.com>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
+	<1287135981-17604-14-git-send-email-akinobu.mita@gmail.com>
+Message-ID: <20101018201931.GB31479@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com
 
-On Sat, Oct 16, 2010 at 03:19:12PM +0200, Andrea Gelmini wrote:
-> "vaild"
+On Fri, Oct 15, 2010 at 06:46:12PM +0900, Akinobu Mita wrote:
+> As a preparation for removing ext2 non-atomic bit operations from
+> asm/bitops.h. This converts ext2 non-atomic bit operations to
+> little endian bit operations.
 > 
-> Signed-off-by: Andrea Gelmini <andrea.gelmini@gelma.net>
+> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Cc: Joel Becker <joel.becker@oracle.com>
+> Cc: ocfs2-devel at oss.oracle.com
 
 Acked-by: Joel Becker <joel.becker@oracle.com>
 
-Did you want to push this yourself, or do you want me to take it via the
-ocfs2.git tree?
-
-Joel
 
 -- 
 
-"Ninety feet between bases is perhaps as close as man has ever come
- to perfection."
-	- Red Smith
+ There are morethings in heaven and earth, Horatio,
+ Than are dreamt of in your philosophy.
 
 Joel Becker
 Consulting Software Developer
