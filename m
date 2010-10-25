@@ -1,141 +1,436 @@
-From: Joel Becker <boel.becker@oracle.com>
-Date: Thu, 21 Oct 2010 18:43:25 -0700
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 changes for 2.6.37
-Message-ID: <20101022014325.GE366@mail.oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Mon, 25 Oct 2010 19:09:48 +0800
+Subject: [Ocfs2-devel] [PATCH 4/6] O2info: Add running codes for
+	'--fs-features'.
+In-Reply-To: <1288004990-20076-1-git-send-email-tristan.ye@oracle.com>
+References: <1288004990-20076-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1288004990-20076-5-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, tao.ma@oracle.com, "Patrick J. LoPresti" <lopresti@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Linus, et al,
-	Here are the ocfs2 changes for 2.6.37.  There are three major
-additions.  Tao Ma has added readahead to our CoW operations.  Sunil
-Mushran has added a global heartbeat mode, allowing one device
-heartbeat to support multiple ocfs2 mounts.  Finally, Patrick J.
-LoPresti has done the final work to enable ocfs2 mounts on devices larger
-than 16TB.  The ocfs2 disk format has always supported it, but Patrick
-finished the last mile of code.
-	Please pull.
+This patch teaches o2info to dump fs's features on volume.
 
-Joel
+Task of dumping 'fs-features' will be capable of two approaches,
+including libocfs2 and ioctl methods.
 
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ o2info/o2info.1.in  |    6 +-
+ o2info/o2info.c     |   16 ++++
+ o2info/operations.c |  227 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+ o2info/utils.c      |   75 +++++++++++++++++
+ o2info/utils.h      |    4 +
+ 5 files changed, 326 insertions(+), 2 deletions(-)
 
-The following changes since commit f6f94e2ab1b33f0082ac22d71f66385a60d8157f:
-
-  Linux 2.6.36 (2010-10-20 13:30:22 -0700)
-
-are available in the git repository at:
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
-
-Goldwyn Rodrigues (3):
-      Reorganize data elements to reduce struct sizes
-      Track negative entries v3
-      Initialize max_slots early
-
-Jan Kara (1):
-      ocfs2: Remove ocfs2_sync_inode()
-
-Jeff Liu (1):
-      ocfs2: Avoid to evaluate xattr block flags again.
-
-Joel Becker (5):
-      Merge branch 'cow_readahead' of git://oss.oracle.com/git/tma/linux-2.6 into merge-2
-      libfs: Fix shift bug in generic_check_addressable()
-      ocfs2: Silence unused warning.
-      ocfs2: Initialize the bktcnt variable properly, and call it bucket_count
-      Merge branch 'globalheartbeat-2' of git://oss.oracle.com/git/smushran/linux-2.6 into ocfs2-merge-window
-
-Patrick J. LoPresti (3):
-      ext3/ext4: Factor out disk addressability check
-      JBD2: Allow feature checks before journal recovery
-      OCFS2: Allow huge (> 16 TiB) volumes to mount
-
-Poyo VL (1):
-      When I tried to compile I got the following warning:
-
-Srinivas Eeda (1):
-      ocfs2: validate bg_free_bits_count after update
-
-Sunil Mushran (23):
-      ocfs2/cluster: Add heartbeat mode configfs parameter
-      ocfs2: Add an incompat feature flag OCFS2_FEATURE_INCOMPAT_CLUSTERINFO
-      ocfs2: Add support for heartbeat=global mount option
-      ocfs2/dlm: Expose dlm_protocol in dlm_state
-      ocfs2/cluster: Get all heartbeat regions
-      ocfs2/dlm: Add message DLM_QUERY_REGION
-      ocfs2: Print message if user mounts without starting global heartbeat
-      ocfs2/dlm: Add message DLM_QUERY_NODEINFO
-      ocfs2/cluster: Print messages when adding/removing heartbeat regions
-      ocfs2/cluster: Print messages when adding/removing nodes
-      ocfs2/cluster: Check slots for unconfigured live nodes
-      ocfs2/cluster: Reorganize o2hb debugfs init
-      ocfs2/cluster: Maintain live node bitmap per heartbeat region
-      ocfs2/cluster: Track number of global heartbeat regions
-      ocfs2/cluster: Track bitmap of live heartbeat regions
-      ocfs2/cluster: Maintain bitmap of quorum regions
-      ocfs2/cluster: Maintain bitmap of failed regions
-      ocfs2/cluster: Create debugfs files for live, quorum and failed region bitmaps
-      ocfs2/cluster: Create debugfs dir/files for each region
-      ocfs2/cluster: Add mlogs for heartbeat up/down events
-      ocfs2/cluster: Show per region heartbeat elapsed time
-      ocfs2/cluster: Bump up dlm protocol to version 1.1
-      ocfs2/cluster: Release debugfs file elapsed_time_in_ms
-
-Tao Ma (10):
-      ocfs2: pass struct file* to ocfs2_write_begin_nolock.
-      ocfs2: pass struct file* to ocfs2_prepare_inode_for_write.
-      ocfs2: Add struct file to ocfs2_refcount_cow.
-      ocfs2: Add readahead support for CoW.
-      ocfs2: Add readhead during CoW.
-      ocfs2: Add some trace log for orphan scan.
-      ocfs2: Remove obscure error handling in direct_write.
-      ocfs2: Remove unused old_id in ocfs2_commit_cache.
-      ocfs2: Remove obsolete comments before ocfs2_start_trans.
-      ocfs2: Cache system inodes of other slots.
-
-Tristan Ye (2):
-      Ocfs2: Add new OCFS2_IOC_INFO ioctl for ocfs2 v8.
-      ocfs2: Add a mount option "coherency=*" to handle cluster coherency for O_DIRECT writes.
-
- Documentation/filesystems/ocfs2.txt  |    7 +
- fs/ext3/super.c                      |    4 +-
- fs/ext4/super.c                      |    8 +-
- fs/jbd2/journal.c                    |    4 +
- fs/libfs.c                           |   29 ++
- fs/ocfs2/aops.c                      |    9 +-
- fs/ocfs2/aops.h                      |    3 +-
- fs/ocfs2/cluster/heartbeat.c         |  532 ++++++++++++++++++++++++++++++++--
- fs/ocfs2/cluster/heartbeat.h         |    4 +
- fs/ocfs2/cluster/masklog.h           |    3 +-
- fs/ocfs2/cluster/nodemanager.c       |    5 +
- fs/ocfs2/cluster/ocfs2_nodemanager.h |    6 +
- fs/ocfs2/cluster/tcp.c               |    5 +
- fs/ocfs2/dcache.c                    |   33 ++-
- fs/ocfs2/dcache.h                    |    1 +
- fs/ocfs2/dlm/dlmcommon.h             |   29 ++-
- fs/ocfs2/dlm/dlmdebug.c              |   12 +-
- fs/ocfs2/dlm/dlmdomain.c             |  400 +++++++++++++++++++++++++-
- fs/ocfs2/dlmglue.c                   |    8 +
- fs/ocfs2/file.c                      |   73 +++--
- fs/ocfs2/inode.c                     |    1 +
- fs/ocfs2/inode.h                     |   12 +-
- fs/ocfs2/ioctl.c                     |  356 +++++++++++++++++++++++
- fs/ocfs2/journal.c                   |    9 +-
- fs/ocfs2/journal.h                   |    3 +-
- fs/ocfs2/mmap.c                      |    7 +-
- fs/ocfs2/namei.c                     |    3 +-
- fs/ocfs2/ocfs2.h                     |   63 ++++-
- fs/ocfs2/ocfs2_fs.h                  |   46 +++-
- fs/ocfs2/ocfs2_ioctl.h               |   95 ++++++
- fs/ocfs2/refcounttree.c              |   43 +++-
- fs/ocfs2/refcounttree.h              |    7 +-
- fs/ocfs2/slot_map.c                  |    2 +-
- fs/ocfs2/stack_o2cb.c                |    2 +
- fs/ocfs2/suballoc.c                  |   16 +
- fs/ocfs2/super.c                     |  163 +++++++++--
- fs/ocfs2/sysfile.c                   |   60 +++-
- fs/ocfs2/xattr.c                     |    2 +-
- include/linux/fs.h                   |    2 +
- 39 files changed, 1894 insertions(+), 173 deletions(-)
+diff --git a/o2info/o2info.1.in b/o2info/o2info.1.in
+index d748df8..2622a8e 100644
+--- a/o2info/o2info.1.in
++++ b/o2info/o2info.1.in
+@@ -2,7 +2,7 @@
+ .SH "NAME"
+ o2info \- Dump \fIOCFS2\fR file system information on disk.
+ .SH "SYNOPSIS"
+-\fBo2info\fR [\fB\-C|\-\-cluster\-coherent\fR] <\fBdevice or file\fR>
++\fBo2info\fR [\fB\-C|\-\-cluster\-coherent\fR] [\fB\-\-fs\-features\fR] <\fBdevice or file\fR>
+ 
+ .SH "DESCRIPTION"
+ .PP
+@@ -14,6 +14,10 @@ o2info \- Dump \fIOCFS2\fR file system information on disk.
+ Enable cluster (in)coherency for mounted case, means it will attempt to acquire a global PR lock when querying info from a cluster filesystem, which may degrade the performance, default is none cluster-coherency.
+ 
+ .TP
++\fB\-\-fs\-features\fR
++List all compat, incompat and ro-compat fs features on \fIOCFS2\fR filesystem.
++
++.TP
+ \fB\-V, \-\-version\fR
+ Show version and exit.
+ 
+diff --git a/o2info/o2info.c b/o2info/o2info.c
+index 3fa4627..c91317a 100644
+--- a/o2info/o2info.c
++++ b/o2info/o2info.c
+@@ -34,6 +34,8 @@
+ 
+ #include "utils.h"
+ 
++extern struct o2info_operation fs_features_op;
++
+ static LIST_HEAD(o2info_op_task_list);
+ static int o2info_op_task_count;
+ int cluster_coherent;
+@@ -98,10 +100,24 @@ static struct o2info_option coherency_option = {
+ 	.opt_private = NULL,
+ };
+ 
++static struct o2info_option fs_features_option = {
++	.opt_option	= {
++		.name		= "fs-features",
++		.val		= CHAR_MAX,
++		.has_arg	= 0,
++		.flag		= NULL,
++	},
++	.opt_help	= "   --fs-features",
++	.opt_handler	= NULL,
++	.opt_op		= &fs_features_op,
++	.opt_private	= NULL,
++};
++
+ static struct o2info_option *options[] = {
+ 	&help_option,
+ 	&version_option,
+ 	&coherency_option,
++	&fs_features_option,
+ 	NULL,
+ };
+ 
+diff --git a/o2info/operations.c b/o2info/operations.c
+index 14214fe..3aaf7b5 100644
+--- a/o2info/operations.c
++++ b/o2info/operations.c
+@@ -49,13 +49,238 @@ static inline void o2info_fill_request(struct ocfs2_info_request *req,
+ 	req->ir_flags = flags;
+ }
+ 
++static void o2i_info(struct o2info_operation *op, const char *fmt, ...)
++{
++	va_list ap;
++
++	fprintf(stdout, "%s Info: ", op->to_name);
++	va_start(ap, fmt);
++	vfprintf(stdout, fmt, ap);
++
++	return;
++}
++
+ static void o2i_error(struct o2info_operation *op, const char *fmt, ...)
+ {
+ 	va_list ap;
+ 
+-	fprintf(stderr, "%s: ", op->to_name);
++	fprintf(stderr, "%s Error: ", op->to_name);
+ 	va_start(ap, fmt);
+ 	vfprintf(stderr, fmt, ap);
+ 
+ 	return;
+ }
++
++/*
++ * Helper to scan all requests:
++ *
++ * - Print all errors and unknown requests.
++ * - Return number of unknown requests.
++ * - Return number of errors.
++ * - Return number of handled requesets.
++ * - Return first and last error code.
++ */
++static void o2i_scan_requests(struct o2info_operation *op,
++			      struct ocfs2_info info, uint32_t *unknowns,
++			      uint32_t *errors, uint32_t *fills)
++{
++	uint32_t i, num_unknown = 0, num_error = 0, num_filled = 0;
++	uint64_t *reqs;
++	struct ocfs2_info_request *req;
++
++	for (i = 0; i < info.oi_count; i++) {
++
++		reqs = (uint64_t *)info.oi_requests;
++		req = (struct ocfs2_info_request *)reqs[i];
++		if (req->ir_flags & OCFS2_INFO_FL_ERROR) {
++			o2i_error(op, "o2info request(%d) failed.\n",
++				  req->ir_code);
++			num_error++;
++			continue;
++		}
++
++		if (!(req->ir_flags & OCFS2_INFO_FL_FILLED)) {
++			o2i_info(op, "o2info request(%d) is unsupported.\n",
++				 req->ir_code);
++			num_unknown++;
++			continue;
++		}
++
++		num_filled++;
++	}
++
++	*unknowns = num_unknown;
++	*errors = num_error;
++	*fills = num_filled;
++}
++
++struct o2info_fs_features {
++	uint32_t compat;
++	uint32_t incompat;
++	uint32_t rocompat;
++};
++
++static int get_fs_features_ioctl(struct o2info_operation *op,
++				 int fd,
++				 struct o2info_fs_features *ofs)
++{
++	int rc = 0, flags = 0;
++	uint32_t unknowns = 0, errors = 0, fills = 0;
++	uint64_t reqs[1];
++	struct ocfs2_info_fs_features oif;
++	struct ocfs2_info info;
++
++	memset(ofs, 0, sizeof(*ofs));
++
++	if (!cluster_coherent)
++		flags |= OCFS2_INFO_FL_NON_COHERENT;
++
++	o2info_fill_request((struct ocfs2_info_request *)&oif, sizeof(oif),
++			    OCFS2_INFO_FS_FEATURES, flags);
++
++	reqs[0] = (unsigned long)&oif;
++
++	info.oi_requests = (uint64_t)reqs;
++	info.oi_count = 1;
++
++	rc = ioctl(fd, OCFS2_IOC_INFO, &info);
++	if (rc) {
++		rc = errno;
++		o2i_error(op, "ioctl failed: %s\n", strerror(rc));
++		o2i_scan_requests(op, info, &unknowns, &errors, &fills);
++		goto out;
++	}
++
++	if (oif.if_req.ir_flags & OCFS2_INFO_FL_FILLED) {
++		ofs->compat = oif.if_compat_features;
++		ofs->incompat = oif.if_incompat_features;
++		ofs->rocompat = oif.if_ro_compat_features;
++	}
++
++out:
++	return rc;
++}
++
++static int get_fs_features_libocfs2(struct o2info_operation *op,
++				    ocfs2_filesys *fs,
++				    struct o2info_fs_features *ofs)
++{
++	int rc = 0;
++	struct ocfs2_super_block *sb = NULL;
++
++	memset(ofs, 0, sizeof(*ofs));
++
++	sb = OCFS2_RAW_SB(fs->fs_super);
++	ofs->compat = sb->s_feature_compat;
++	ofs->incompat = sb->s_feature_incompat;
++	ofs->rocompat = sb->s_feature_ro_compat;
++
++	return rc;
++}
++
++static void o2info_print_line(char const *qualifier, char *content,
++			      char splitter)
++{
++	char *ptr = NULL, *token = NULL, *tmp = NULL;
++	uint32_t max_len = 80, len = 0;
++
++	tmp = malloc(max_len);
++	ptr = content;
++
++	snprintf(tmp, max_len, "%s", qualifier);
++	fprintf(stdout, "%s", tmp);
++	len += strlen(tmp);
++
++	while (ptr) {
++
++		token = ptr;
++		ptr = strchr(ptr, splitter);
++
++		if (ptr)
++			*ptr = 0;
++
++		if (strcmp(token, "") != 0) {
++			snprintf(tmp, max_len, "%s ", token);
++			len += strlen(tmp);
++			if (len > max_len) {
++				fprintf(stdout, "\n");
++				len = 0;
++				snprintf(tmp, max_len, "%s", qualifier);
++				fprintf(stdout, "%s", tmp);
++				len += strlen(tmp);
++				snprintf(tmp, max_len, "%s ", token);
++				fprintf(stdout, "%s", tmp);
++				len += strlen(tmp);
++			} else
++				fprintf(stdout, "%s", tmp);
++		}
++
++		if (!ptr)
++			break;
++
++		ptr++;
++	}
++
++	fprintf(stdout, "\n");
++
++	if (tmp)
++		ocfs2_free(&tmp);
++}
++
++static int fs_features_run(struct o2info_operation *op,
++			   struct o2info_method *om,
++			   void *arg)
++{
++	int rc = 0;
++	static struct o2info_fs_features ofs;
++
++	char *compat = NULL;
++	char *incompat = NULL;
++	char *rocompat = NULL;
++	char *features = NULL;
++
++	if (om->om_method == O2INFO_USE_IOCTL)
++		rc = get_fs_features_ioctl(op, om->om_fd, &ofs);
++	else
++		rc = get_fs_features_libocfs2(op, om->om_fs, &ofs);
++	if (rc)
++		goto out;
++
++	rc = o2info_get_compat_flag(ofs.compat, &compat);
++	if (rc)
++		goto out;
++
++	rc = o2info_get_incompat_flag(ofs.incompat, &incompat);
++	if (rc)
++		goto out;
++
++	rc = o2info_get_rocompat_flag(ofs.rocompat, &rocompat);
++	if (rc)
++		goto out;
++
++	features = malloc(strlen(compat) + strlen(incompat) +
++			  strlen(rocompat) + 3);
++
++	sprintf(features, "%s %s %s", compat, incompat, rocompat);
++
++	o2info_print_line("", features, ' ');
++
++out:
++	if (compat)
++		ocfs2_free(&compat);
++
++	if (incompat)
++		ocfs2_free(&incompat);
++
++	if (rocompat)
++		ocfs2_free(&rocompat);
++
++	if (features)
++		ocfs2_free(&features);
++
++	return rc;
++}
++
++DEFINE_O2INFO_OP(fs_features,
++		 fs_features_run,
++		 NULL);
+diff --git a/o2info/utils.c b/o2info/utils.c
+index 0911c50..ed980ed 100644
+--- a/o2info/utils.c
++++ b/o2info/utils.c
+@@ -31,6 +31,81 @@
+ 
+ #include "utils.h"
+ 
++int o2info_get_compat_flag(uint32_t flag, char **compat)
++{
++	errcode_t err;
++	char buf[PATH_MAX];
++	ocfs2_fs_options flags = {
++		.opt_compat = flag,
++	};
++
++	*buf = '\0';
++	err = ocfs2_snprint_feature_flags(buf, PATH_MAX, &flags);
++	if (err) {
++		tcom_err(err, "while processing feature flags");
++		goto bail;
++	}
++
++	*compat = strdup(buf);
++	if (!*compat) {
++		errorf("No memory for allocation\n");
++		err = -1;
++	}
++
++bail:
++	return err;
++}
++
++int o2info_get_incompat_flag(uint32_t flag, char **incompat)
++{
++	errcode_t err;
++	char buf[PATH_MAX];
++	ocfs2_fs_options flags = {
++		.opt_incompat = flag,
++	};
++
++	*buf = '\0';
++	err = ocfs2_snprint_feature_flags(buf, PATH_MAX, &flags);
++	if (err) {
++		tcom_err(err, "while processing feature flags");
++		goto bail;
++	}
++
++	*incompat = strdup(buf);
++	if (!*incompat) {
++		errorf("No memory for allocation\n");
++		err = -1;
++	}
++
++bail:
++	return err;
++}
++
++int o2info_get_rocompat_flag(uint32_t flag, char **rocompat)
++{
++	errcode_t err;
++	char buf[PATH_MAX];
++	ocfs2_fs_options flags = {
++		.opt_ro_compat = flag,
++	};
++
++	*buf = '\0';
++	err = ocfs2_snprint_feature_flags(buf, PATH_MAX, &flags);
++	if (err) {
++		tcom_err(err, "while processing feature flags");
++		goto bail;
++	}
++
++	*rocompat = strdup(buf);
++	if (!*rocompat) {
++		errorf("No memory for allocation\n");
++		err = -1;
++	}
++
++bail:
++	return err;
++}
++
+ errcode_t o2info_open(struct o2info_method *om, int flags)
+ {
+ 	errcode_t err = 0;
+diff --git a/o2info/utils.h b/o2info/utils.h
+index 6d55d39..69446c2 100644
+--- a/o2info/utils.h
++++ b/o2info/utils.h
+@@ -22,6 +22,10 @@
+ 
+ #include "o2info.h"
+ 
++int o2info_get_compat_flag(uint32_t flag, char **compat);
++int o2info_get_incompat_flag(uint32_t flag, char **incompat);
++int o2info_get_rocompat_flag(uint32_t flag, char **rocompat);
++
+ int o2info_method(const char *path);
+ 
+ errcode_t o2info_open(struct o2info_method *om, int flags);
+-- 
+1.5.5
