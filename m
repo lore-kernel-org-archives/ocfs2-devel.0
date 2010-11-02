@@ -1,60 +1,125 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Date: Thu, 21 Oct 2010 23:41:08 +0900
-Subject: [Ocfs2-devel] [PATCH v2 13/22] ocfs2: use little-endian bitops
-In-Reply-To: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com>
-References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com>
-Message-ID: <1287672077-5797-14-git-send-email-akinobu.mita@gmail.com>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Tue,  2 Nov 2010 13:18:00 -0700
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2/cluster: Add per-region debugfs
+	file to show the elapsed time
+In-Reply-To: <1288729080-1962-1-git-send-email-srinivas.eeda@oracle.com>
+References: <1288729080-1962-1-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <1288729080-1962-3-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-As a preparation for removing ext2 non-atomic bit operations from
-asm/bitops.h. This converts ext2 non-atomic bit operations to
-little-endian bit operations.
+From: Sunil Mushran <sunil.mushran@oracle.com>
 
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: Joel Becker <joel.becker@oracle.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: ocfs2-devel at oss.oracle.com
+Mainline fa16655a622e7c0fda76ca5155db6efc86968c65
+A per-region debugfs file, elapsed_time_in_ms, shows the time since the
+heartbeat timer was last armed.
+
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
-No change from previous submission
+ fs/ocfs2/cluster/heartbeat.c |   46 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 46 insertions(+), 0 deletions(-)
 
- fs/ocfs2/ocfs2.h |   13 ++++++++-----
- 1 files changed, 8 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index c67003b..24b0cb0 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -787,18 +787,21 @@ static inline unsigned int ocfs2_clusters_to_megabytes(struct super_block *sb,
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 8580e66..0ae0dea 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -63,6 +63,7 @@ static DECLARE_WAIT_QUEUE_HEAD(o2hb_steady_queue);
  
- static inline void _ocfs2_set_bit(unsigned int bit, unsigned long *bitmap)
- {
--	ext2_set_bit(bit, bitmap);
-+	__test_and_set_le_bit(bit, bitmap);
+ #define O2HB_DEBUG_DIR			"o2hb"
+ #define O2HB_DEBUG_LIVENODES		"livenodes"
++#define O2HB_DEBUG_REGION_ELAPSED_TIME	"elapsed_time_in_ms"
+ static struct dentry *o2hb_debug_dir;
+ static struct dentry *o2hb_debug_livenodes;
+ 
+@@ -135,6 +136,7 @@ struct o2hb_region {
+ 	struct o2hb_disk_slot	*hr_slots;
+ 
+ 	struct dentry		*hr_debug_dir;
++	struct dentry		*hr_debug_elapsed_time;
+ 
+ 	/* let the person setting up hb wait for it to return until it
+ 	 * has reached a 'steady' state.  This will be fixed when we have
+@@ -950,6 +952,29 @@ bail:
+ 	return -ENOMEM;
  }
- #define ocfs2_set_bit(bit, addr) _ocfs2_set_bit((bit), (unsigned long *)(addr))
  
- static inline void _ocfs2_clear_bit(unsigned int bit, unsigned long *bitmap)
++static int o2hb_region_debug_open(struct inode *inode, struct file *file)
++{
++	struct o2hb_region *reg = inode->i_private;
++	char *buf = NULL;
++	int out = 0;
++
++	buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
++	if (!buf)
++		goto bail;
++
++	out += snprintf(buf + out, PAGE_SIZE - out, "%u\n",
++			jiffies_to_msecs(jiffies -
++					 reg->hr_last_timeout_start));
++
++	i_size_write(inode, out);
++
++	file->private_data = buf;
++
++	return 0;
++bail:
++	return -ENOMEM;
++}
++
+ static int o2hb_debug_release(struct inode *inode, struct file *file)
  {
--	ext2_clear_bit(bit, bitmap);
-+	__test_and_clear_le_bit(bit, bitmap);
+ 	kfree(file->private_data);
+@@ -985,6 +1010,13 @@ static struct file_operations o2hb_debug_fops = {
+ 	.llseek =	generic_file_llseek,
+ };
+ 
++static struct file_operations o2hb_region_debug_fops = {
++	.open =		o2hb_region_debug_open,
++	.release =	o2hb_debug_release,
++	.read =		o2hb_debug_read,
++	.llseek =	generic_file_llseek,
++};
++
+ void o2hb_exit(void)
+ {
+ 	if (o2hb_debug_livenodes)
+@@ -1087,6 +1119,7 @@ static void o2hb_region_release(struct config_item *item)
+ 	if (reg->hr_slots)
+ 		kfree(reg->hr_slots);
+ 
++	debugfs_remove(reg->hr_debug_elapsed_time);
+ 	debugfs_remove(reg->hr_debug_dir);
+ 
+ 	spin_lock(&o2hb_live_lock);
+@@ -1617,6 +1650,17 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
+ 		goto out;
+ 	}
+ 
++	reg->hr_debug_elapsed_time =
++		debugfs_create_file(O2HB_DEBUG_REGION_ELAPSED_TIME,
++				    S_IFREG|S_IRUSR,
++				    reg->hr_debug_dir,
++				    reg,
++				    &o2hb_region_debug_fops);
++	if (!reg->hr_debug_elapsed_time) {
++		mlog_errno(-ENOMEM);
++		goto out;
++	}
++
+ 	spin_lock(&o2hb_live_lock);
+ 	list_add_tail(&reg->hr_all_item, &o2hb_all_regions);
+ 	spin_unlock(&o2hb_live_lock);
+@@ -1624,6 +1668,8 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
+ 	return &reg->hr_item;
+ 
+ out:
++	if (reg && reg->hr_debug_dir)
++		debugfs_remove(reg->hr_debug_dir);
+ 	kfree(reg);
+ 	return NULL;
  }
- #define ocfs2_clear_bit(bit, addr) _ocfs2_clear_bit((bit), (unsigned long *)(addr))
- 
--#define ocfs2_test_bit ext2_test_bit
--#define ocfs2_find_next_zero_bit ext2_find_next_zero_bit
--#define ocfs2_find_next_bit ext2_find_next_bit
-+#define ocfs2_test_bit(nr, addr)	\
-+	test_le_bit(nr, (unsigned long *)(addr))
-+#define ocfs2_find_next_zero_bit(addr, size, off)	\
-+	find_next_zero_le_bit((unsigned long *)(addr), size, off)
-+#define ocfs2_find_next_bit(addr, size, off)	\
-+	find_next_le_bit((unsigned long *)(addr), size, off)
- #endif  /* OCFS2_H */
- 
 -- 
-1.7.1.231.gd0b16
+1.5.6.5
