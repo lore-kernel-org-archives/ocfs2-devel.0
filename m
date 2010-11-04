@@ -1,176 +1,60 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Wed,  3 Nov 2010 19:02:05 +0800
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 3 Nov 2010 18:18:41 -0700
 Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Add a new code
-	'OCFS2_INFO_FREEINODE' for o2info ioctl.
-Message-ID: <1288782126-13007-1-git-send-email-tristan.ye@oracle.com>
+ 'OCFS2_INFO_FREEINODE' for o2info ioctl.
+In-Reply-To: <1288782126-13007-1-git-send-email-tristan.ye@oracle.com>
+References: <1288782126-13007-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20101104011839.GA14640@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The new code is dedicated to calculate free inodes number of all inode_allocs,
-then return the info to userpace in terms of an array.
+On Wed, Nov 03, 2010 at 07:02:05PM +0800, Tristan Ye wrote:
+> The new code is dedicated to calculate free inodes number of all inode_allocs,
+> then return the info to userpace in terms of an array.
+> 
+> Specially, flag 'OCFS2_INFO_FL_NON_COHERENT', manipulated by '--cluster-coherent'
+> from userspace, is now going to be involved. setting the flag on means no cluster
+> coherency considered, usually, userspace tools choose none-coherency strategy by
+> default for the sake of performace.
 
-Specially, flag 'OCFS2_INFO_FL_NON_COHERENT', manipulated by '--cluster-coherent'
-from userspace, is now going to be involved. setting the flag on means no cluster
-coherency considered, usually, userspace tools choose none-coherency strategy by
-default for the sake of performace.
+	This looks pretty straightforward.  Note that any non-cached
+allocator is going to lock, regardless of the coherency flag.  Do we
+want to use ocfs2_ilookup() instead?
 
-Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
----
- fs/ocfs2/ioctl.c       |   95 ++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/ocfs2_ioctl.h |   11 ++++++
- 2 files changed, 106 insertions(+), 0 deletions(-)
+> +int ocfs2_info_scan_inode_alloc(struct inode *inode_alloc,
+> +				struct ocfs2_info_freeinode *fi, __u32 slot)
+> +{
+> +	int status = 0, unlock = 0;
+> +
+> +	struct buffer_head *bh = NULL;
+> +	struct ocfs2_dinode *dinode_alloc = NULL;
+> +
+> +	mutex_lock(&inode_alloc->i_mutex);
+> +
+> +	if (!(fi->ifi_req.ir_flags & OCFS2_INFO_FL_NON_COHERENT)) {
 
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 7a48681..a60eaec 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -23,6 +23,7 @@
- #include "ioctl.h"
- #include "resize.h"
- #include "refcounttree.h"
-+#include "sysfile.h"
- 
- #include <linux/ext2_fs.h>
- 
-@@ -299,6 +300,96 @@ bail:
- 	return status;
- }
- 
-+int ocfs2_info_scan_inode_alloc(struct inode *inode_alloc,
-+				struct ocfs2_info_freeinode *fi, __u32 slot)
-+{
-+	int status = 0, unlock = 0;
-+
-+	struct buffer_head *bh = NULL;
-+	struct ocfs2_dinode *dinode_alloc = NULL;
-+
-+	mutex_lock(&inode_alloc->i_mutex);
-+
-+	if (!(fi->ifi_req.ir_flags & OCFS2_INFO_FL_NON_COHERENT)) {
-+		status = ocfs2_inode_lock(inode_alloc, &bh, 0);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+		unlock = 1;
-+
-+	} else {
-+		status = ocfs2_read_inode_block(inode_alloc, &bh);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
-+
-+	dinode_alloc = (struct ocfs2_dinode *)bh->b_data;
-+
-+	fi->ifi_stat[slot].lfi_total =
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_total);
-+	fi->ifi_stat[slot].lfi_free =
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_total) -
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_used);
-+bail:
-+	if (unlock)
-+		ocfs2_inode_unlock(inode_alloc, 0);
-+
-+	mutex_unlock(&inode_alloc->i_mutex);
-+
-+	iput(inode_alloc);
-+	brelse(bh);
-+
-+	mlog_exit(status);
-+	return status;
-+}
-+
-+int ocfs2_info_handle_freeinode(struct inode *inode,
-+				struct ocfs2_info_request __user *req)
-+{
-+	u32 i;
-+	int status = -EFAULT;
-+	struct ocfs2_info_freeinode oifi;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct inode *inode_alloc = NULL;
-+
-+	if (o2info_from_user(oifi, req))
-+		goto bail;
-+
-+	oifi.ifi_slotnum = osb->max_slots;
-+
-+	for (i = 0; i < oifi.ifi_slotnum; i++) {
-+		inode_alloc =
-+			ocfs2_get_system_file_inode(osb,
-+						    INODE_ALLOC_SYSTEM_INODE,
-+						    i);
-+		if (!inode_alloc) {
-+			mlog(ML_ERROR, "unable to get alloc inode in "
-+			     "slot %u\n", i);
-+			status = -EIO;
-+			goto bail;
-+		}
-+
-+		status = ocfs2_info_scan_inode_alloc(inode_alloc, &oifi, i);
-+		if (status < 0)
-+			goto bail;
-+	}
-+
-+	oifi.ifi_req.ir_flags |= OCFS2_INFO_FL_FILLED;
-+
-+	if (o2info_to_user(oifi, req))
-+		goto bail;
-+
-+	status = 0;
-+bail:
-+	if (status)
-+		o2info_set_request_error(oifi, req);
-+
-+	return status;
-+}
-+
- int ocfs2_info_handle_unknown(struct inode *inode,
- 			      struct ocfs2_info_request __user *req)
- {
-@@ -370,6 +461,10 @@ int ocfs2_info_handle_request(struct inode *inode,
- 		if (oir.ir_size == sizeof(struct ocfs2_info_journal_size))
- 			status = ocfs2_info_handle_journal_size(inode, req);
- 		break;
-+	case OCFS2_INFO_FREEINODE:
-+		if (oir.ir_size == sizeof(struct ocfs2_info_freeinode))
-+			status = ocfs2_info_handle_freeinode(inode, req);
-+		break;
- 	default:
- 		status = ocfs2_info_handle_unknown(inode, req);
- 		break;
-diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
-index b46f39b..6b4b39a 100644
---- a/fs/ocfs2/ocfs2_ioctl.h
-+++ b/fs/ocfs2/ocfs2_ioctl.h
-@@ -142,6 +142,16 @@ struct ocfs2_info_journal_size {
- 	__u64 ij_journal_size;
- };
- 
-+struct ocfs2_info_freeinode {
-+	struct ocfs2_info_request ifi_req;
-+	struct ocfs2_info_local_freeinode {
-+		__u64 lfi_total;
-+		__u64 lfi_free;
-+	} ifi_stat[OCFS2_MAX_SLOTS];
-+	__u32 ifi_slotnum; /* out */
-+	__u32 ifi_pad;
-+};
-+
- /* Codes for ocfs2_info_request */
- enum ocfs2_info_type {
- 	OCFS2_INFO_CLUSTERSIZE = 1,
-@@ -151,6 +161,7 @@ enum ocfs2_info_type {
- 	OCFS2_INFO_UUID,
- 	OCFS2_INFO_FS_FEATURES,
- 	OCFS2_INFO_JOURNAL_SIZE,
-+	OCFS2_INFO_FREEINODE,
- 	OCFS2_INFO_NUM_TYPES
- };
- 
+	Also, I'm thinking that this would look much better as:
+
+	if (!ocfs2_info_coherent(&fi->ifi_req)) {
+
+That implies we probably also want ocfs2_info_set_filled(request), etc.
+Good, bad?
+
+Joel
+
 -- 
-1.5.5
+
+The Graham Corollary:
+
+	The longer a socially-moderated news website exists, the
+	probability of an old Paul Graham link appearing at the top
+	approaches certainty.
+
+Joel Becker
+Senior Development Manager
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
