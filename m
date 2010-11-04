@@ -1,68 +1,70 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 3 Nov 2010 18:46:23 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Try to free truncate log when
- meeting ENOSPC in write.
-In-Reply-To: <1288078148-6343-1-git-send-email-tao.ma@oracle.com>
-References: <1288078148-6343-1-git-send-email-tao.ma@oracle.com>
-Message-ID: <20101104014623.GC14640@mail.oracle.com>
+From: tristan <tristan.ye@oracle.com>
+Date: Thu, 04 Nov 2010 10:27:01 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Ocfs2: Add a new code
+ 'OCFS2_INFO_FREEINODE' for o2info ioctl.
+In-Reply-To: <20101104011839.GA14640@mail.oracle.com>
+References: <1288782126-13007-1-git-send-email-tristan.ye@oracle.com>
+	<20101104011839.GA14640@mail.oracle.com>
+Message-ID: <4CD219F5.8020006@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Oct 26, 2010 at 03:29:08PM +0800, Tao Ma wrote:
-> Recently, one of our colleagues meet with a problem that if we
-> write/delete a 32mb files repeatly, we will get an ENOSPC in
-> the end. And the corresponding bug is 1288.
-> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1288
-> 
-> The real problem is that although we have freed the clusters,
-> they are in truncate log and they will be summed up so that
-> we can free them once in a whole.
-> 
-> So this patch just try to resolve it. In case we see -ENOSPC
-> in ocfs2_write_begin_no_lock, we will check whether the truncate
-> log has enough clusters for our need, if yes, we will try to
-> flush the truncate log at that point and try again. This method
-> is inspired by Mark Fasheh <mfasheh@suse.com>. Thanks.
+Joel Becker wrote:
+> On Wed, Nov 03, 2010 at 07:02:05PM +0800, Tristan Ye wrote:
+>> The new code is dedicated to calculate free inodes number of all inode_allocs,
+>> then return the info to userpace in terms of an array.
+>>
+>> Specially, flag 'OCFS2_INFO_FL_NON_COHERENT', manipulated by '--cluster-coherent'
+>> from userspace, is now going to be involved. setting the flag on means no cluster
+>> coherency considered, usually, userspace tools choose none-coherency strategy by
+>> default for the sake of performace.
+>
+> 	This looks pretty straightforward.  Note that any non-cached
+> allocator is going to lock, regardless of the coherency flag.  Do we
+> want to use ocfs2_ilookup() instead?
 
-	Ok, this is more like what I was thinking about.  I guess I wish
-we could do it inside the allocation routines, but I think we have too
-many locks at that point.  This patch doesn't help any place that
-allocates other than write() and mmap().  Is this something that could
-be added to extending truncate and unwritten allocation?
-	I agree that we only care to have one pass.  Have you run it
-against the test case from
-http://oss.oracle.com/bugzilla/show_bug.cgi?id=1288?  If so, modulo
-any cleanups you did after others commented, I'm happy ;-)
+A bit confused here, did you mean we use 'ocfs2_ilookup' instead of 
+'ocfs2_get_system_file_inode' here?
 
-Joel
-  
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index d840821..de06558 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -439,6 +439,8 @@ struct ocfs2_super
->  	/* rb tree root for refcount lock. */
->  	struct rb_root	osb_rf_lock_tree;
->  	struct ocfs2_refcount_tree *osb_ref_tree_lru;
-> +
-> +	unsigned int truncated_clusters;
-
-	Make sure you comment what lock is needed to access
-truncated_clusters.
+coherency flag refers to a cluster-aware lock, while 
+ocfs2_get_system_file_inode will use iget_locked() to get
+the inode if it didn't exist in cache, does iget_locked() also refer to 
+a cluster-aware lock somehow?
 
 
+Or you mean using following logic is not fine?
 
--- 
+if (!coherency)
+ocfs2_inode_lock();
+else
+ocfs2_read_inode_block();
 
-Life's Little Instruction Book #232
 
-	"Keep your promises."
+>
+>> +int ocfs2_info_scan_inode_alloc(struct inode *inode_alloc,
+>> +				struct ocfs2_info_freeinode *fi, __u32 slot)
+>> +{
+>> +	int status = 0, unlock = 0;
+>> +
+>> +	struct buffer_head *bh = NULL;
+>> +	struct ocfs2_dinode *dinode_alloc = NULL;
+>> +
+>> +	mutex_lock(&inode_alloc->i_mutex);
+>> +
+>> +	if (!(fi->ifi_req.ir_flags & OCFS2_INFO_FL_NON_COHERENT)) {
+>
+> 	Also, I'm thinking that this would look much better as:
+>
+> 	if (!ocfs2_info_coherent(&fi->ifi_req)) {
+>
+> That implies we probably also want ocfs2_info_set_filled(request), etc.
+> Good, bad?
 
-Joel Becker
-Senior Development Manager
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Good idea, it does simplify the codes.
+
+>
+> Joel
+>
