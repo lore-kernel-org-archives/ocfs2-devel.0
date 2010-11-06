@@ -1,47 +1,70 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 30 Nov 2010 22:24:15 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: queue ast in lockres->spinlock
-In-Reply-To: <20101201061614.GA5352@laptop.jp.oracle.com>
-References: <201011301551.oAUD3n5c002863@rcsinet13.oracle.com>
-	<4CF54F55.8080007@oracle.com>
-	<20101201025218.GA3709@laptop.jp.oracle.com>
-	<4CF5DE2C.2090807@oracle.com>
-	<20101201061614.GA5352@laptop.jp.oracle.com>
-Message-ID: <FA41024B-80D6-4CDC-8DBB-B58772C26182@oracle.com>
+From: Jiri Slaby <jslaby@suse.cz>
+Date: Sat, 06 Nov 2010 11:32:03 -0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix memory leak
+In-Reply-To: <1289034412-24278-1-git-send-email-jslaby@suse.cz>
+References: <1289034412-24278-1-git-send-email-jslaby@suse.cz>
+Message-ID: <1289034412-24278-4-git-send-email-jslaby@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: jirislaby@gmail.com
+Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>, ocfs2-devel@oss.oracle.com, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org
 
+Stanse found that o2hb_heartbeat_group_make_item leaks some memory on
+fail paths. Fix the paths by adding a new label and jump there.
 
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <joel.becker@oracle.com>
+Cc: ocfs2-devel at oss.oracle.com
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel at vger.kernel.org
+---
+ fs/ocfs2/cluster/heartbeat.c |   14 ++++++++++----
+ 1 files changed, 10 insertions(+), 4 deletions(-)
 
-On Nov 30, 2010, at 10:16 PM, Wengang Wang <wen.gang.wang@oracle.com> wrote:
-
-> On 10-11-30 21:33, Sunil Mushran wrote:
->> On 11/30/2010 06:52 PM, Wengang Wang wrote:
->>> First I have to say that the scenario is in my thought only, no tcpdump
->>> shows that. Only the node C wanting a PR is the truth from the vmcore.
->>> 
->>> Let's consider this situation:
->>> 
->>> The create lock(CL) is for a PR;
->>> the up convert(UC) is PR->EX;
->>> there is an existing PR granted for another node(say node D) before the UC comes
->>> 
->>> The UC comes. Because of the existing PR, the UC lock is moved to converting list.
->>> dlm_thread takes care it later.
->>> The CL comes. no conflict found(see dlm_can_grant_new_lock, convert_type not
->>> checked there). so it's not added to blocked list.
->>> 
->>> Seems the above scenario can trigger a BAST before AST.
->> 
->> dlm_can_grant_new_lock() should be looking at convert_type also and
->> add the lock to the blocked list in this case.
->> 
->> This is not just to plug this hole but is as per the spec.
-> So you meant o2dlm is (should be) implementing fair locking? Anywhere I
-> can take a look at the spec?
-> 
-
-Google for Programming Locking Applications by Kristin Thomas. Or, grep the same in the source. The link is there. 
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 52c7557..9f26ac9 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1964,8 +1964,10 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
+ 	if (reg == NULL)
+ 		return ERR_PTR(-ENOMEM);
+ 
+-	if (strlen(name) > O2HB_MAX_REGION_NAME_LEN)
+-		return ERR_PTR(-ENAMETOOLONG);
++	if (strlen(name) > O2HB_MAX_REGION_NAME_LEN) {
++		ret = -ENAMETOOLONG;
++		goto free;
++	}
+ 
+ 	spin_lock(&o2hb_live_lock);
+ 	reg->hr_region_num = 0;
+@@ -1974,7 +1976,8 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
+ 							 O2NM_MAX_REGIONS);
+ 		if (reg->hr_region_num >= O2NM_MAX_REGIONS) {
+ 			spin_unlock(&o2hb_live_lock);
+-			return ERR_PTR(-EFBIG);
++			ret = -EFBIG;
++			goto free;
+ 		}
+ 		set_bit(reg->hr_region_num, o2hb_region_bitmap);
+ 	}
+@@ -1986,10 +1989,13 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
+ 	ret = o2hb_debug_region_init(reg, o2hb_debug_dir);
+ 	if (ret) {
+ 		config_item_put(&reg->hr_item);
+-		return ERR_PTR(ret);
++		goto free;
+ 	}
+ 
+ 	return &reg->hr_item;
++free:
++	kfree(reg);
++	return ERR_PTR(ret);
+ }
+ 
+ static void o2hb_heartbeat_group_drop_item(struct config_group *group,
+-- 
+1.7.3.1
