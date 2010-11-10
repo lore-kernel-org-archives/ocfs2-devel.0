@@ -1,11 +1,12 @@
 From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 10 Nov 2010 22:33:37 +0800
-Subject: [Ocfs2-devel] [PATCH 4/5] ocfs2: Add ocfs2_trace.h.
-In-Reply-To: <20101110094803.GE31158@mail.oracle.com>
+Date: Wed, 10 Nov 2010 22:39:25 +0800
+Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2: Remove mlog(0) from
+	fs/ocfs2/alloc.c
+In-Reply-To: <20101110095058.GF31158@mail.oracle.com>
 References: <4CDA08B6.2070002@oracle.com>
-	<1289357543-2538-4-git-send-email-tao.ma@oracle.com>
-	<20101110094803.GE31158@mail.oracle.com>
-Message-ID: <4CDAAD41.8080900@oracle.com>
+	<1289357543-2538-5-git-send-email-tao.ma@oracle.com>
+	<20101110095058.GF31158@mail.oracle.com>
+Message-ID: <4CDAAE9D.8020102@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,56 +14,41 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 Joel Becker wrote:
-> On Wed, Nov 10, 2010 at 10:52:22AM +0800, Tao Ma wrote:
+> On Wed, Nov 10, 2010 at 10:52:23AM +0800, Tao Ma wrote:
 >   
->> About one year ago, Wengang Wang tried some first steps
->> to add tracepoints to ocfs2. But at that time we don't
->> have ocfs2 1.6 introduced, so we delay this work until now
->> after ocfs2 1.6 and UEK(Unbreakable Enterprise Kernel) are
->> released.
->>
->> Wengang's original patch is here:
->> http://oss.oracle.com/pipermail/ocfs2-devel/2009-November/005512.html
->>
->> But as Steven Rostedt indicated in his article
->> http://lwn.net/Articles/383362/, we'd better have our trace
->> files resides in fs/ocfs2, so I rewrited the patch using the
->> method Steven mentioned in that article.
->>
->> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
->> Signed-off-by: Tao Ma <tao.ma@oracle.com>
+>> So this patch removes all mlog(0,...) from alloc.c and adds
+>> the corresponding tracepoints. Different mlogs have different
+>> solutions.
+>> 1. Some are replaced with trace event directly.
+>> 2. Some are replaced and some new parameters are added since
+>>    I think we need to know the btree owner in that case.
+>> 3. Some are combined into one trace events.
+>> 4. Some redundant mlogs are removed.
 >>     
 >
-> 	Did you author this or did Wengang?  If you are the author, only
-> your signoff is necessary.  You should, of course, credit him in the
-> description, and you can get his Acked-by: if you feel it necessary.
+> 	These decisions are what I stressed to Wengang when he did his
+> first pass.  I don't want to log data just because it used to have an
+> mlog().  We should only be logging things that are interesting.
 >   
-Yeah, sorry, I forgot to add a "From:Wengang Wang 
-<wen.gang.wang@oracle.com>" in my guilt.
-That way, it will generate the commit with Author of wengang wang 
-automatically. Since this patch only
-includes about 19 lines of change, and I changed about 5-6 lines, the 
-author should be him.
-> 	I realize this patch is only a slight difference from his
-> original, so he could perhaps still be considered the author.  I'm
-> unsure how much rewriting you did in the second patch, though.
+yeah, that is also my thought. So I will only change those mlog(0,...) 
+that I think I am familar with and
+leave others there(I guess I won't touch dlm, cluster and dlmglue).
+> 	In this patch, I see a lot of things that make sense.  "Hey,
+> we're growing the tree" is a good thing to log.  So I'm not saying that
+> you did anything wrong.  I'm just mentioning my goals up front to be
+> clear.
+> 	Overall, the patch looks good.
 >   
-As for the 2nd one, his original patch has this diffstat:
-fs/ocfs2/alloc.c | 47 +++++-----
-include/trace/events/ocfs2.h | 202 
-++++++++++++++++++++++++++++++++++++++++++
-2 files changed, 224 insertions(+), 25 deletions(-)
-
-My patch has
-
-fs/ocfs2/alloc.c       |  165 +++++++++--------
-fs/ocfs2/ocfs2_trace.h |  485 ++++++++++++++++++++++++++++++++++++++++++++++++
-2 files changed, 573 insertions(+), 77 deletions(-)
-
-So I guess the author should be me(What's more, I have changed some of 
-his modifications also.)?
-Or I should leave his patch there with his sob, while adding a new patch 
-of mine?
+Glad to hear that. So I will continue. I guess I can work on most files 
+under fs/ocfs2/ except dlmglue.c. ;)
+>   
+>> What's more, it defines some event classes so that we can use
+>> them later.
+>>     
+>
+> 	This is cool.
+>   
+yeah, they are really cool.
 
 Regards,
 Tao
