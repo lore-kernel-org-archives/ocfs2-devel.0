@@ -1,54 +1,58 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Wed, 10 Nov 2010 22:39:25 +0800
-Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2: Remove mlog(0) from
-	fs/ocfs2/alloc.c
-In-Reply-To: <20101110095058.GF31158@mail.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 10 Nov 2010 14:19:37 -0800
+Subject: [Ocfs2-devel] [PATCH 4/5] ocfs2: Add ocfs2_trace.h.
+In-Reply-To: <4CDAAD41.8080900@oracle.com>
 References: <4CDA08B6.2070002@oracle.com>
-	<1289357543-2538-5-git-send-email-tao.ma@oracle.com>
-	<20101110095058.GF31158@mail.oracle.com>
-Message-ID: <4CDAAE9D.8020102@oracle.com>
+	<1289357543-2538-4-git-send-email-tao.ma@oracle.com>
+	<20101110094803.GE31158@mail.oracle.com>
+	<4CDAAD41.8080900@oracle.com>
+Message-ID: <20101110221937.GP31158@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Joel Becker wrote:
-> On Wed, Nov 10, 2010 at 10:52:23AM +0800, Tao Ma wrote:
->   
->> So this patch removes all mlog(0,...) from alloc.c and adds
->> the corresponding tracepoints. Different mlogs have different
->> solutions.
->> 1. Some are replaced with trace event directly.
->> 2. Some are replaced and some new parameters are added since
->>    I think we need to know the btree owner in that case.
->> 3. Some are combined into one trace events.
->> 4. Some redundant mlogs are removed.
->>     
->
-> 	These decisions are what I stressed to Wengang when he did his
-> first pass.  I don't want to log data just because it used to have an
-> mlog().  We should only be logging things that are interesting.
->   
-yeah, that is also my thought. So I will only change those mlog(0,...) 
-that I think I am familar with and
-leave others there(I guess I won't touch dlm, cluster and dlmglue).
-> 	In this patch, I see a lot of things that make sense.  "Hey,
-> we're growing the tree" is a good thing to log.  So I'm not saying that
-> you did anything wrong.  I'm just mentioning my goals up front to be
-> clear.
-> 	Overall, the patch looks good.
->   
-Glad to hear that. So I will continue. I guess I can work on most files 
-under fs/ocfs2/ except dlmglue.c. ;)
->   
->> What's more, it defines some event classes so that we can use
->> them later.
->>     
->
-> 	This is cool.
->   
-yeah, they are really cool.
+On Wed, Nov 10, 2010 at 10:33:37PM +0800, Tao Ma wrote:
+> Joel Becker wrote:
+> Yeah, sorry, I forgot to add a "From:Wengang Wang
+> <wen.gang.wang@oracle.com>" in my guilt.
+> That way, it will generate the commit with Author of wengang wang
+> automatically. Since this patch only
+> includes about 19 lines of change, and I changed about 5-6 lines,
+> the author should be him.
 
-Regards,
-Tao
+	No worries.  Sounds correct.
+
+> As for the 2nd one, his original patch has this diffstat:
+> fs/ocfs2/alloc.c | 47 +++++-----
+> include/trace/events/ocfs2.h | 202
+> ++++++++++++++++++++++++++++++++++++++++++
+> 2 files changed, 224 insertions(+), 25 deletions(-)
+> 
+> My patch has
+> 
+> fs/ocfs2/alloc.c       |  165 +++++++++--------
+> fs/ocfs2/ocfs2_trace.h |  485 ++++++++++++++++++++++++++++++++++++++++++++++++
+> 2 files changed, 573 insertions(+), 77 deletions(-)
+> 
+> So I guess the author should be me(What's more, I have changed some
+> of his modifications also.)?
+> Or I should leave his patch there with his sob, while adding a new
+> patch of mine?
+
+	You are clearly the author.  You should credit him in the commit
+text, and add him as a Cc: line at the bottom, but it is now your work.
+
+Joel
+
+-- 
+
+"A narcissist is someone better looking than you are."  
+         - Gore Vidal
+
+Joel Becker
+Senior Development Manager
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
