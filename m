@@ -1,49 +1,49 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Sat, 13 Nov 2010 13:03:21 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Introduce ocfs2_recover_node
-In-Reply-To: <AANLkTikzZnCA4aK_tXMLacoFjwQ9aCiuSiZs3nPvJ08G@mail.gmail.com>
-References: <AANLkTikLJODb51xYJdcs3JmoYvJLETDMpUutxXh8ZpF1@mail.gmail.com>
-	<20101112021614.GA2316@laptop.jp.oracle.com>
-	<AANLkTikzZnCA4aK_tXMLacoFjwQ9aCiuSiZs3nPvJ08G@mail.gmail.com>
-Message-ID: <20101113050321.GA2252@laptop>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Sat, 13 Nov 2010 16:22:02 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Change some lock status member in
+	ocfs2_lock_res to char.
+Message-ID: <1289636522-3081-1-git-send-email-tao.ma@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+Commit 83fd9c7 changes l_level, l_requested and l_blocking of
+ocfs2_lock_res from int to unsigned char. But actually it is
+initially as -1(ocfs2_lock_res_init_common) which
+correspoding to 255 for unsigned char. So the whole dlm lock
+mechanism doesn't work now which means a disaster to ocfs2.
 
-On 10-11-12 13:22, Goldwyn Rodrigues wrote:
-> Hi Wengang,
-> 
-> Thanks for the review.
-> 
-> On Thu, Nov 11, 2010 at 8:16 PM, Wengang Wang <wen.gang.wang@oracle.com> wrote:
-> > On 10-11-11 19:01, Goldwyn Rodrigues wrote:
-> >> ocfs2_recover_node is a new data structure to include all information required
-> >> to recover one node. The structure is maintained as a list in the super block.
-> >>
-> >> ocfs2_recover_node replaces the recovery_map
-> >>
-> >> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
-> >> - ? ? ? ? ? ? ? ? ? ? rm_quota[rm_quota_used++] = slot_num;
-> >> + ? ? ? ? ? ? ? ? ? ? rm_quota[rm_quota_used++] = rn->rn_slot_num;
-> >>
-> >> - ? ? ? ? ? ? status = ocfs2_recover_node(osb, node_num, slot_num);
-> >> + ? ? ? ? ? ? status = ocfs2_recover_one_node(rn);
-> >> ?skip_recovery:
-> >> ? ? ? ? ? ? ? if (!status) {
-> >> - ? ? ? ? ? ? ? ? ? ? ocfs2_recovery_map_clear(osb, node_num);
-> >> + ? ? ? ? ? ? ? ? ? ? ocfs2_recovery_map_clear(osb, rn);
-> >
-> > kfree with spinlocked here.
-> >
-> 
-> What is the problem with that?
+Cc: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Signed-off-by: Tao Ma <tao.ma@oracle.com>
+---
+ fs/ocfs2/ocfs2.h |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-hm... seems no block in kfree() in current code.
-please ignore that comment!
-
-regards,
-wengang.
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index d840821..1efea36 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -159,7 +159,9 @@ struct ocfs2_lock_res {
+ 	char                     l_name[OCFS2_LOCK_ID_MAX_LEN];
+ 	unsigned int             l_ro_holders;
+ 	unsigned int             l_ex_holders;
+-	unsigned char            l_level;
++	char			 l_level;
++	char			 l_requested;
++	char			 l_blocking;
+ 
+ 	/* Data packed - type enum ocfs2_lock_type */
+ 	unsigned char            l_type;
+@@ -169,8 +171,6 @@ struct ocfs2_lock_res {
+ 	unsigned char            l_action;
+ 	/* Data packed - enum type ocfs2_unlock_action */
+ 	unsigned char            l_unlock_action;
+-	unsigned char            l_requested;
+-	unsigned char            l_blocking;
+ 	unsigned int             l_pending_gen;
+ 
+ 	spinlock_t               l_lock;
+-- 
+1.7.2.1
