@@ -1,49 +1,32 @@
-From: Tao Ma <tao.ma@oracle.com>
-Date: Sat, 13 Nov 2010 16:22:02 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Change some lock status member in
-	ocfs2_lock_res to char.
-Message-ID: <1289636522-3081-1-git-send-email-tao.ma@oracle.com>
+From: Joel Becker <boel.becker@oracle.com>
+Date: Sun, 14 Nov 2010 01:31:37 -0800
+Subject: [Ocfs2-devel] [GIT PULL] Important ocfs2 fix for 2.6.37-rc1
+Message-ID: <20101114093136.GA27747@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Commit 83fd9c7 changes l_level, l_requested and l_blocking of
-ocfs2_lock_res from int to unsigned char. But actually it is
-initially as -1(ocfs2_lock_res_init_common) which
-correspoding to 255 for unsigned char. So the whole dlm lock
-mechanism doesn't work now which means a disaster to ocfs2.
+Linus, et al,
+	We've got a rather large problem in our cluster locking in the
+2.6.37-rc1 changes.  Tao has found the problem (a signed-vs-unsigned
+error that I should have caught).  Here's the fix.
+	Please pull.
 
-Cc: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
----
+Joel
+
+The following changes since commit 2d3b07c07b39c4b7d9b6641052a02d996cd5d87c:
+
+  Merge branch 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/linux-2.6-tip (2010-10-28 12:25:42 -0700)
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
+
+Tao Ma (1):
+      ocfs2: Change some lock status member in ocfs2_lock_res to char.
+
  fs/ocfs2/ocfs2.h |    6 +++---
  1 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index d840821..1efea36 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -159,7 +159,9 @@ struct ocfs2_lock_res {
- 	char                     l_name[OCFS2_LOCK_ID_MAX_LEN];
- 	unsigned int             l_ro_holders;
- 	unsigned int             l_ex_holders;
--	unsigned char            l_level;
-+	char			 l_level;
-+	char			 l_requested;
-+	char			 l_blocking;
- 
- 	/* Data packed - type enum ocfs2_lock_type */
- 	unsigned char            l_type;
-@@ -169,8 +171,6 @@ struct ocfs2_lock_res {
- 	unsigned char            l_action;
- 	/* Data packed - enum type ocfs2_unlock_action */
- 	unsigned char            l_unlock_action;
--	unsigned char            l_requested;
--	unsigned char            l_blocking;
- 	unsigned int             l_pending_gen;
- 
- 	spinlock_t               l_lock;
--- 
-1.7.2.1
