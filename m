@@ -1,89 +1,163 @@
-From: Nikola Ciprich <extmaillist@linuxbox.cz>
-Date: Fri, 12 Nov 2010 19:04:38 -0000
-Subject: [Ocfs2-devel] 2.6.36 OCFS unstable
-Message-ID: <20101112190432.GB2364@nik-comp.lan>
+From: Joe Perches <joe@perches.com>
+Date: Mon, 15 Nov 2010 03:05:33 -0000
+Subject: [Ocfs2-devel] [PATCH 00/44] remove unnecessary semicolons
+Message-ID: <cover.1289789604.git.joe@perches.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jiri Kosina <trivial@kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-tegra@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, cpufreq@vger.kernel.org, linux-i2c@vger.kernel.org, netdev@vger.kernel.org, linux-media@vger.kernel.org, linux-mmc@vger.kernel.org, e1000-devel@lists.sourceforge.net, linux-wireless@vger.kernel.org, ath9k-devel@lists.ath9k.org, platform-driver-x86@vger.kernel.org, ibm-acpi-devel@lists.sourceforge.net, linux-s390@vger.kernel.org, linux-scsi@vger.kernel.org, spi-devel-general@lists.sourceforge.net, devel@driverdev.osuosl.org, linux-usb@vger.kernel.org, xen-devel@lists.xensource.com, virtualization@lists.osdl.org, v9fs-developer@lists.sourceforge.net, ceph-devel@vger.kernel.org, logfs@logfs.org, linux-nfs@vger.kernel.org, ocfs2-devel@oss.oracle.comlinu
 
-Hello,
-I've done some testing with OCFS2 in 2.6.36 and found few problems:
-my first problem is general protection fault at configfs lockspace removal..
-it's maybe not OCFS related, but I'm getting those crashes only with OCFS, 
-not with other configfs using stuff (like CLVMD)
-bugzilla:
-https://bugzilla.kernel.org/show_bug.cgi?id=22782
+ya trivial series...
 
-second problem seems clearly OCFS related, I just got GPF while trying
-to mount OCFS volume:
+Joe Perches (44):
+  arch/arm: Remove unnecessary semicolons
+  arch/microblaze: Remove unnecessary semicolons
+  arch/um: Remove unnecessary semicolons
+  drivers/cpufreq: Remove unnecessary semicolons
+  drivers/gpio: Remove unnecessary semicolons
+  drivers/i2c: Remove unnecessary semicolons
+  drivers/isdn: Remove unnecessary semicolons
+  drivers/leds: Remove unnecessary semicolons
+  drivers/media/video: Remove unnecessary semicolons
+  drivers/misc: Remove unnecessary semicolons
+  drivers/mmc: Remove unnecessary semicolons
+  drivers/net/bnx2x: Remove unnecessary semicolons
+  drivers/net/e1000e: Remove unnecessary semicolons
+  drivers/net/ixgbe: Remove unnecessary semicolons
+  drivers/net/vxge: Remove unnecessary semicolons
+  drivers/net/wireless/ath: Remove unnecessary semicolons
+  drivers/net/wireless/iwlwifi: Remove unnecessary semicolons
+  drivers/net/cnic.c: Remove unnecessary semicolons
+  drivers/platform/x86: Remove unnecessary semicolons
+  drivers/power: Remove unnecessary semicolons
+  drivers/s390/net: Remove unnecessary semicolons
+  drivers/scsi/be2iscsi: Remove unnecessary semicolons
+  drivers/scsi/bfa: Remove unnecessary semicolons
+  drivers/scsi/lpfc: Remove unnecessary semicolons
+  drivers/scsi/pm8001: Remove unnecessary semicolons
+  drivers/scsi/qla2xxx: Remove unnecessary semicolons
+  drivers/serial: Remove unnecessary semicolons
+  drivers/spi: Remove unnecessary semicolons
+  drivers/staging: Remove unnecessary semicolons
+  drivers/usb/gadget: Remove unnecessary semicolons
+  drivers/xen: Remove unnecessary semicolons
+  fs/9p: Remove unnecessary semicolons
+  fs/ceph: Remove unnecessary semicolons
+  fs/logfs: Remove unnecessary semicolons
+  fs/nfs: Remove unnecessary semicolons
+  fs/ocfs2: Remove unnecessary semicolons
+  fs/ubifs: Remove unnecessary semicolons
+  include/linux/if_macvlan.h: Remove unnecessary semicolons
+  include/net/caif/cfctrl.h: Remove unnecessary semicolons
+  mm/hugetlb.c: Remove unnecessary semicolons
+  net/ipv6/mcast.c: Remove unnecessary semicolons
+  net/sunrpc/addr.c: Remove unnecessary semicolons
+  sound/core/pcm_lib.c: Remove unnecessary semicolons
+  sound/soc/codecs: Remove unnecessary semicolons
 
-[ 1347.188412] general protection fault: 0000 [#1] PREEMPT SMP 
-[ 1347.188594] last sysfs file: /sys/kernel/dlm/30D118C784964730BDAF2115299250CD/event_done
-[ 1347.188733] CPU 0 
-[ 1347.188767] Modules linked in: ocfs2 ocfs2_nodemanager ocfs2_stack_user ocfs2_stackglue dlm configfs drbd lru_cache cn nfs nfs_acl auth_rpcgss ipt_MASQUERADE iptable_nat nf_nat nf_conntrack_ipv4 nf_defrag_ipv4 xt_state nf_conntrack ipt_REJECT xt_tcpudp iptable_filter ip_tables x_tables ipv6 autofs4 lockd sunrpc bridge stp llc ext3 jbd sbs sbshc fan battery ac kvm_intel kvm ppdev i3200_edac e1000e sg edac_core shpchp video parport_pc parport backlight processor pci_hotplug pcspkr cdc_acm i2c_i801 i2c_core iTCO_wdt thermal button container output thermal_sys sd_mod crc_t10dif raid1 dm_snapshot dm_zero dm_mirror dm_region_hash dm_log dm_mod ext4 jbd2 crc32 crc16 uhci_hcd ohci_hcd ehci_hcd ahci libahci libata scsi_mod [last unloaded: ocfs2_nodemanager]
-[ 1347.191957] 
-[ 1347.192037] Pid: 11015, comm: mount.ocfs2 Not tainted 2.6.36lb.00_01_PRE12.debug #1 X7SBA/X7SBA
-[ 1347.192179] RIP: 0010:[<ffffffff81110e35>]  [<ffffffff81110e35>] __kmalloc+0x95/0x250
-[ 1347.192351] RSP: 0018:ffff8800cf867ad8  EFLAGS: 00010086
-[ 1347.192384] RAX: 0000000000000000 RBX: ffffffff816666a0 RCX: 0000000000000001
-[ 1347.192384] RDX: ffff88000220fd60 RSI: 00000000000006a5 RDI: ffffffff81110e16
-[ 1347.192384] RBP: ffff8800cf867b18 R08: ffff8800cf867b3c R09: 0000000000000000
-[ 1347.192384] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000202
-[ 1347.192384] R13: fe16f3f89bcfe06f R14: 00000000000080d0 R15: 00000000000080d0
-[ 1347.192384] FS:  00007f6d723dd700(0000) GS:ffff880002200000(0000) knlGS:0000000000000000
-[ 1347.192384] CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
-[ 1347.192384] CR2: 0000000002444770 CR3: 00000000cf845000 CR4: 00000000000406f0
-[ 1347.192384] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-[ 1347.192384] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
-[ 1347.192384] Process mount.ocfs2 (pid: 11015, threadinfo ffff8800cf866000, task ffff8800cfb0a760)
-[ 1347.192384] Stack:
-[ 1347.192384]  ffff8800cf867af8 0000000000000010 ffffffffa0745455 0000000000000000
-[ 1347.192384] <0> ffff8800be08f000 ffff8800be08f000 0000000000000000 0000000000000000
-[ 1347.192384] <0> ffff8800cf867b68 ffffffffa0745455 0000000000000020 0000000000000000
-[ 1347.192384] Call Trace:
-[ 1347.192384]  [<ffffffffa0745455>] ? ocfs2_compute_replay_slots+0x55/0x180 [ocfs2]
-[ 1347.192384]  [<ffffffffa0745455>] ocfs2_compute_replay_slots+0x55/0x180 [ocfs2]
-[ 1347.192384]  [<ffffffffa077c2d5>] ocfs2_check_volume+0x105/0x8c0 [ocfs2]
-[ 1347.192384]  [<ffffffffa077cdfd>] ocfs2_mount_volume+0x36d/0x910 [ocfs2]
-[ 1347.192384]  [<ffffffff81199928>] ? debugfs_create_file+0x138/0x260
-[ 1347.192384]  [<ffffffffa0780cfb>] ocfs2_fill_super+0x119b/0x30d0 [ocfs2]
-[ 1347.192384]  [<ffffffff8107bcdd>] ? trace_hardirqs_on+0xd/0x10
-[ 1347.192384]  [<ffffffff8107bcdd>] ? trace_hardirqs_on+0xd/0x10
-[ 1347.192384]  [<ffffffff811219d6>] get_sb_bdev+0x186/0x1b0
-[ 1347.192384]  [<ffffffffa077fb60>] ? ocfs2_fill_super+0x0/0x30d0 [ocfs2]
-[ 1347.192384]  [<ffffffffa077a683>] ocfs2_get_sb+0x13/0x20 [ocfs2]
-[ 1347.192384]  [<ffffffff81120da9>] vfs_kern_mount+0x89/0x1e0
-[ 1347.192384]  [<ffffffff81120f6e>] do_kern_mount+0x4e/0x110
-[ 1347.192384]  [<ffffffff8113a8d5>] do_mount+0x505/0x7b0
-[ 1347.192384]  [<ffffffff810dab22>] ? __get_free_pages+0x12/0x50
-[ 1347.192384]  [<ffffffff8113ac0a>] sys_mount+0x8a/0xd0
-[ 1347.192384]  [<ffffffff813790e9>] ? trace_hardirqs_on_thunk+0x3a/0x3f
-[ 1347.192384]  [<ffffffff810023eb>] system_call_fastpath+0x16/0x1b
-[ 1347.192384] Code: 00 00 00 9c 41 5c fa e8 2a 8e f6 ff 65 48 8b 14 25 58 d4 00 00 48 8b 03 48 01 c2 4c 8b 2a 4d 85 ed 0f 84 81 01 00 00 48 63 43 18 <4a> 8b 04 28 48 89 02 41 f7 c4 00 02 00 00 75 40 41 54 9d e8 f3 
-[ 1347.192384] RIP  [<ffffffff81110e35>] __kmalloc+0x95/0x250
-[ 1347.192384]  RSP <ffff8800cf867ad8>
-[ 1347.192384] ---[ end trace 33209c73f85ddf7f ]---
-
-If I can help to debug those problems, I'll gladly do it, but I'll certainly need somebody
-to advise me a bit...
-with best regards
-nik
-
+ arch/arm/mach-at91/at91cap9_devices.c              |    2 +-
+ arch/arm/mach-at91/at91sam9g45_devices.c           |    2 +-
+ arch/arm/mach-at91/at91sam9rl_devices.c            |    2 +-
+ arch/arm/mach-nuc93x/time.c                        |    2 +-
+ arch/arm/mach-tegra/tegra2_clocks.c                |    2 +-
+ arch/arm/mach-w90x900/cpu.c                        |    2 +-
+ arch/arm/plat-mxc/irq.c                            |    2 +-
+ arch/microblaze/lib/memmove.c                      |    2 +-
+ arch/um/drivers/mmapper_kern.c                     |    2 +-
+ drivers/cpufreq/cpufreq_conservative.c             |    2 +-
+ drivers/gpio/langwell_gpio.c                       |    2 +-
+ drivers/i2c/busses/i2c-designware.c                |    2 +-
+ drivers/isdn/hardware/mISDN/mISDNinfineon.c        |    4 ++--
+ drivers/isdn/hardware/mISDN/mISDNisar.c            |    2 +-
+ drivers/leds/leds-mc13783.c                        |    2 +-
+ drivers/media/video/cx88/cx88-blackbird.c          |    2 +-
+ drivers/media/video/davinci/vpfe_capture.c         |    2 +-
+ drivers/media/video/em28xx/em28xx-cards.c          |    2 +-
+ drivers/misc/bmp085.c                              |    2 +-
+ drivers/misc/isl29020.c                            |    2 +-
+ drivers/mmc/host/davinci_mmc.c                     |    2 +-
+ drivers/net/bnx2x/bnx2x_link.c                     |    4 ++--
+ drivers/net/bnx2x/bnx2x_main.c                     |    2 +-
+ drivers/net/cnic.c                                 |    2 +-
+ drivers/net/e1000e/netdev.c                        |    2 +-
+ drivers/net/ixgbe/ixgbe_sriov.c                    |    2 +-
+ drivers/net/vxge/vxge-main.c                       |    2 +-
+ drivers/net/wireless/ath/ath9k/htc.h               |    2 +-
+ drivers/net/wireless/iwlwifi/iwl-agn.c             |    2 +-
+ drivers/platform/x86/classmate-laptop.c            |    2 +-
+ drivers/platform/x86/thinkpad_acpi.c               |    2 +-
+ drivers/power/intel_mid_battery.c                  |    2 +-
+ drivers/s390/net/qeth_core_sys.c                   |    2 +-
+ drivers/scsi/be2iscsi/be_main.c                    |    4 ++--
+ drivers/scsi/bfa/bfa_fcs_lport.c                   |    2 +-
+ drivers/scsi/lpfc/lpfc_bsg.c                       |    2 +-
+ drivers/scsi/pm8001/pm8001_init.c                  |    2 +-
+ drivers/scsi/qla2xxx/qla_isr.c                     |    4 ++--
+ drivers/scsi/qla2xxx/qla_nx.c                      |    2 +-
+ drivers/serial/mrst_max3110.c                      |    2 +-
+ drivers/spi/amba-pl022.c                           |    2 +-
+ drivers/spi/spi_nuc900.c                           |    2 +-
+ .../staging/ath6kl/hif/sdio/linux_sdio/src/hif.c   |    2 +-
+ drivers/staging/ath6kl/os/linux/ar6000_drv.c       |    2 +-
+ drivers/staging/bcm/InterfaceInit.c                |    2 +-
+ drivers/staging/bcm/InterfaceIsr.c                 |    2 +-
+ drivers/staging/bcm/Misc.c                         |    4 ++--
+ .../comedi/drivers/addi-data/APCI1710_Tor.c        |    2 +-
+ .../comedi/drivers/addi-data/hwdrv_apci1500.c      |    2 +-
+ .../comedi/drivers/addi-data/hwdrv_apci1516.c      |    2 +-
+ .../comedi/drivers/addi-data/hwdrv_apci3501.c      |    2 +-
+ drivers/staging/comedi/drivers/amplc_pci230.c      |    2 +-
+ drivers/staging/comedi/drivers/cb_das16_cs.c       |    2 +-
+ drivers/staging/comedi/drivers/comedi_bond.c       |    2 +-
+ drivers/staging/crystalhd/crystalhd_hw.c           |    2 +-
+ drivers/staging/go7007/go7007-driver.c             |    2 +-
+ drivers/staging/iio/accel/lis3l02dq_ring.c         |    2 +-
+ .../staging/intel_sst/intel_sst_drv_interface.c    |    4 ++--
+ drivers/staging/keucr/smilmain.c                   |    4 ++--
+ drivers/staging/keucr/smilsub.c                    |    4 ++--
+ drivers/staging/msm/lcdc_toshiba_wvga_pt.c         |    2 +-
+ drivers/staging/rt2860/common/cmm_data_pci.c       |    4 ++--
+ drivers/staging/rt2860/rt_linux.c                  |    2 +-
+ drivers/staging/rt2860/rtmp.h                      |    2 +-
+ drivers/staging/rtl8192e/ieee80211/ieee80211_tx.c  |    2 +-
+ drivers/staging/rtl8192e/r819xE_phy.c              |    2 +-
+ drivers/staging/rtl8192u/ieee80211/ieee80211_tx.c  |    2 +-
+ drivers/staging/rtl8192u/r8192U_core.c             |    2 +-
+ drivers/staging/rtl8192u/r819xU_phy.c              |    2 +-
+ drivers/staging/rtl8712/rtl8712_efuse.c            |    2 +-
+ drivers/staging/rtl8712/rtl8712_xmit.c             |    2 +-
+ drivers/staging/rtl8712/rtl871x_xmit.c             |    2 +-
+ drivers/staging/tidspbridge/core/tiomap3430.c      |    4 ++--
+ drivers/staging/tidspbridge/rmgr/nldr.c            |    2 +-
+ drivers/staging/vt6655/card.c                      |    2 +-
+ drivers/staging/vt6655/iwctl.c                     |    2 +-
+ drivers/staging/vt6655/wpa2.c                      |    4 ++--
+ drivers/staging/vt6656/baseband.c                  |    2 +-
+ drivers/staging/vt6656/iwctl.c                     |    2 +-
+ drivers/staging/vt6656/power.c                     |    2 +-
+ drivers/staging/vt6656/wpa2.c                      |    4 ++--
+ drivers/usb/gadget/f_fs.c                          |    2 +-
+ drivers/xen/swiotlb-xen.c                          |    2 +-
+ fs/9p/acl.c                                        |    2 +-
+ fs/9p/xattr.c                                      |    2 +-
+ fs/ceph/mds_client.c                               |    2 +-
+ fs/logfs/readwrite.c                               |    2 +-
+ fs/nfs/getroot.c                                   |    2 +-
+ fs/ocfs2/refcounttree.c                            |    2 +-
+ fs/ubifs/scan.c                                    |    2 +-
+ include/linux/if_macvlan.h                         |    2 +-
+ include/net/caif/cfctrl.h                          |    2 +-
+ mm/hugetlb.c                                       |    2 +-
+ net/ipv6/mcast.c                                   |    2 +-
+ net/sunrpc/addr.c                                  |    2 +-
+ sound/core/pcm_lib.c                               |    2 +-
+ sound/soc/codecs/wm8904.c                          |    2 +-
+ sound/soc/codecs/wm8940.c                          |    1 -
+ sound/soc/codecs/wm8993.c                          |    2 +-
+ sound/soc/codecs/wm_hubs.c                         |    2 +-
+ 100 files changed, 111 insertions(+), 112 deletions(-)
 
 -- 
--------------------------------------
-Ing. Nikola CIPRICH
-LinuxBox.cz, s.r.o.
-28. rijna 168, 709 01 Ostrava
-
-tel.:   +420 596 603 142
-fax:    +420 596 621 273
-mobil:  +420 777 093 799
-
-www.linuxbox.cz
-
-mobil servis: +420 737 238 656
-email servis: servis at linuxbox.cz
--------------------------------------
+1.7.3.1.g432b3.dirty
