@@ -1,48 +1,39 @@
-From: Josef Bacik <josef@redhat.com>
-Date: Tue, 16 Nov 2010 12:54:28 -0000
-Subject: [Ocfs2-devel] [PATCH 1/6] fs: add hole punching to fallocate
-In-Reply-To: <20101116111611.GA4757@quack.suse.cz>
+From: Avi Kivity <avi@redhat.com>
+Date: Tue, 16 Nov 2010 13:07:44 -0000
+Subject: [Ocfs2-devel] [PATCH 4/6] Ext4: fail if we try to use hole punch
+In-Reply-To: <20101116125016.GA31957@dhcp231-156.rdu.redhat.com>
 References: <1289840723-3056-1-git-send-email-josef@redhat.com>
-	<1289840723-3056-2-git-send-email-josef@redhat.com>
-	<20101116111611.GA4757@quack.suse.cz>
-Message-ID: <20101116125345.GC31957@dhcp231-156.rdu.redhat.com>
+	<1289840723-3056-5-git-send-email-josef@redhat.com>
+	<4CE2783F.1020004@redhat.com>
+	<20101116125016.GA31957@dhcp231-156.rdu.redhat.com>
+Message-ID: <4CE28211.6060204@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: Josef Bacik <josef@redhat.com>, david@fromorbit.com, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, cmm@us.ibm.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
+To: Josef Bacik <josef@redhat.com>
+Cc: david@fromorbit.com, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, cmm@us.ibm.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
 
-On Tue, Nov 16, 2010 at 12:16:11PM +0100, Jan Kara wrote:
-> On Mon 15-11-10 12:05:18, Josef Bacik wrote:
-> > diff --git a/fs/open.c b/fs/open.c
-> > index 4197b9e..ab8dedf 100644
-> > --- a/fs/open.c
-> > +++ b/fs/open.c
-> > @@ -223,7 +223,7 @@ int do_fallocate(struct file *file, int mode, loff_t offset, loff_t len)
-> >  		return -EINVAL;
-> >  
-> >  	/* Return error if mode is not supported */
-> > -	if (mode && !(mode & FALLOC_FL_KEEP_SIZE))
-> > +	if (mode && (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE)))
->   Why not just:
-> if (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE)) ?
+On 11/16/2010 02:50 PM, Josef Bacik wrote:
+> On Tue, Nov 16, 2010 at 02:25:35PM +0200, Avi Kivity wrote:
+> >  On 11/15/2010 07:05 PM, Josef Bacik wrote:
+> >>  Ext4 doesn't have the ability to punch holes yet, so make sure we return
+> >>  EOPNOTSUPP if we try to use hole punching through fallocate.  This support can
+> >>  be added later.  Thanks,
+> >>
+> >
+> >  Instead of teaching filesystems to fail if they don't support the
+> >  capability, why don't supporting filesystems say so, allowing the fail
+> >  code to be in common code?
+> >
 >
+> There is no simple way to test if a filesystem supports hole punching or not so
+> the check has to be done per fs.  Thanks,
 
-Good point, thank you.
- 
-> > diff --git a/include/linux/falloc.h b/include/linux/falloc.h
-> > index 3c15510..851cba2 100644
-> > --- a/include/linux/falloc.h
-> > +++ b/include/linux/falloc.h
-> > @@ -2,6 +2,7 @@
-> >  #define _FALLOC_H_
-> >  
-> >  #define FALLOC_FL_KEEP_SIZE	0x01 /* default is extend size */
-> > +#define FALLOC_FL_PUNCH_HOLE	0X02 /* de-allocates range */
->                                  ^ use lowercase 'x' please...
->
+Could put a flag word in superblock_operations.  Filesystems which 
+support punching (or other features) can enable it there.
 
-Argh bitten by caps-lock again.  Thanks I'll fix this up,
+Or even have its own callback.
 
-Josef 
+-- 
+error compiling committee.c: too many arguments to function
