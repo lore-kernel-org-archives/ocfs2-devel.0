@@ -1,64 +1,108 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 17 Nov 2010 10:04:37 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Introduce ocfs2_recover_node
-In-Reply-To: <20101117020036.GA2489@laptop.jp.oracle.com>
-References: <AANLkTinAb5TvZNiYPwP8+L5_m-j-zDs6+zbdCTLW45Jg@mail.gmail.com>
-	<20101117014934.GC2289@laptop.jp.oracle.com>
-	<20101117020036.GA2489@laptop.jp.oracle.com>
-Message-ID: <20101117020437.GB2489@laptop.jp.oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Wed, 17 Nov 2010 12:46:29 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2-1.4: Backport mainline commit
+	'Journaling i_flags and i_orphaned_slot when adding inode to
+	orphan dir' to ocfs2-1.4
+Message-ID: <1289969189-4322-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10-11-17 10:00, Wengang Wang wrote:
-> On 10-11-17 09:49, Wengang Wang wrote:
-> > On 10-11-16 16:59, Goldwyn Rodrigues wrote:
-> > 
-> > <snip>
-> > > @@ -212,8 +198,8 @@ static int ocfs2_recovery_thread_running(struct
-> > > ocfs2_super *osb)
-> > > 
-> > >  void ocfs2_recovery_exit(struct ocfs2_super *osb)
-> > >  {
-> > > -	struct ocfs2_recovery_map *rm;
-> > > -
-> > > +	struct list_head *iter;
-> > > +	struct ocfs2_recover_node *rn;
-> > >  	/* disable any new recovery threads and wait for any currently
-> > >  	 * running ones to exit. Do this before setting the vol_state. */
-> > >  	mutex_lock(&osb->recovery_lock);
-> > > @@ -226,75 +212,66 @@ void ocfs2_recovery_exit(struct ocfs2_super *osb)
-> > >  	 * complete. */
-> > >  	flush_workqueue(ocfs2_wq);
-> > > 
-> > > -	/*
-> > > -	 * Now that recovery is shut down, and the osb is about to be
-> > > -	 * freed,  the osb_lock is not taken here.
-> > > -	 */
-> > > -	rm = osb->recovery_map;
-> > > -	/* XXX: Should we bug if there are dirty entries? */
-> > > -
-> > > -	kfree(rm);
-> > > +	spin_lock(&osb->osb_lock);
-> > > +	list_for_each(iter, &osb->s_recovery_nodes) {
-> > 
-> > list_for_each_safe()?
-> > 
-> > regards,
-> > wengang.
-> > > +			rn = list_entry(iter, struct ocfs2_recover_node,
-> > > +					rn_list);
-> > > +			list_del(&rn->rn_list);
-> 
-> If you need to do this here, I guess you may also want to free rm.
+Mainline commit 3939fda4b389993caf8741df5739b3e49f33a263
 
-Sorry, typo. s/rm/rn
-> 
-> regards,
-> wengang.
-> > > +	}
-> > > +	spin_unlock(&osb->osb_lock);
-> > >  }
-> > > 
+Currently, some callers were missing to journal the dirty inode after
+adding it to orphan dir.
+
+Now we're going to journal such modifications within the ocfs2_orphan_add()
+itself, It's safe to do so, though some existing caller may duplicate this,
+and it makes the logic look more straightforward anyway.
+
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+Signed-off-by: Joel Becker <joel.becker@oracle.com>
+---
+ fs/ocfs2/namei.c |   26 ++++++++++++++++++++++----
+ 1 files changed, 22 insertions(+), 4 deletions(-)
+
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index eba1148..d6fd4df 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -82,7 +82,7 @@ static int ocfs2_prepare_orphan_dir(struct ocfs2_super *osb,
+ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 			    handle_t *handle,
+ 			    struct inode *inode,
+-			    struct ocfs2_dinode *fe,
++			    struct buffer_head *fe_bh,
+ 			    char *name,
+ 			    struct buffer_head *de_bh,
+ 			    struct inode *orphan_dir_inode);
+@@ -792,7 +792,7 @@ static int ocfs2_unlink(struct inode *dir,
+ 	fe = (struct ocfs2_dinode *) fe_bh->b_data;
+ 
+ 	if (inode_is_unlinkable(inode)) {
+-		status = ocfs2_orphan_add(osb, handle, inode, fe, orphan_name,
++		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
+ 					  orphan_entry_bh, orphan_dir);
+ 		if (status < 0) {
+ 			mlog_errno(status);
+@@ -1206,7 +1206,7 @@ static int ocfs2_rename(struct inode *old_dir,
+ 		if (S_ISDIR(new_inode->i_mode) ||
+ 		    (newfe->i_links_count == cpu_to_le16(1))){
+ 			status = ocfs2_orphan_add(osb, handle, new_inode,
+-						  newfe, orphan_name,
++						  newfe_bh, orphan_name,
+ 						  orphan_entry_bh, orphan_dir);
+ 			if (status < 0) {
+ 				mlog_errno(status);
+@@ -1742,7 +1742,7 @@ leave:
+ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 			    handle_t *handle,
+ 			    struct inode *inode,
+-			    struct ocfs2_dinode *fe,
++			    struct buffer_head *fe_bh,
+ 			    char *name,
+ 			    struct buffer_head *de_bh,
+ 			    struct inode *orphan_dir_inode)
+@@ -1750,6 +1750,7 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 	struct buffer_head *orphan_dir_bh = NULL;
+ 	int status = 0;
+ 	struct ocfs2_dinode *orphan_fe;
++	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) fe_bh->b_data;
+ 
+ 	mlog_entry("(inode->i_ino = %lu)\n", inode->i_ino);
+ 
+@@ -1791,6 +1792,21 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 		goto leave;
+ 	}
+ 
++	/*
++	 * We're going to journal the change of i_flags and i_orphaned_slot.
++	 * It's safe anyway, though some callers may duplicate the journaling.
++	 * Journaling within the func just make the logic look more
++	 * straightforward.
++	 */
++	status = ocfs2_journal_access_di(handle,
++					 INODE_CACHE(inode),
++					 fe_bh,
++					 OCFS2_JOURNAL_ACCESS_WRITE);
++	if (status < 0) {
++		mlog_errno(status);
++		goto leave;
++	}
++
+ 	le32_add_cpu(&fe->i_flags, OCFS2_ORPHANED_FL);
+ 
+ 	/* Record which orphan dir our inode now resides
+@@ -1798,6 +1814,8 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 	 * dir to lock. */
+ 	fe->i_orphaned_slot = cpu_to_le16(osb->slot_num);
+ 
++	ocfs2_journal_dirty(handle, fe_bh);
++
+ 	mlog(0, "Inode %llu orphaned in slot %d\n",
+ 	     (unsigned long long)OCFS2_I(inode)->ip_blkno, osb->slot_num);
+ 
+-- 
+1.5.5
