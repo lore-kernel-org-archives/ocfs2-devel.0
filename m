@@ -1,54 +1,28 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 17 Nov 2010 15:23:44 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Stop tracking a negative
- dentry after dentry_iput().
-In-Reply-To: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
-References: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <20101117232344.GF25677@mail.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed, 17 Nov 2010 15:24:18 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: lock the page in
+	__ocfs2_page_mkwrite()
+In-Reply-To: <20101117231732.GD25677@mail.oracle.com>
+References: <201011050455.oA52fktp020706@rcsinet15.oracle.com>
+	<20101117231732.GD25677@mail.oracle.com>
+Message-ID: <4CE46422.8030706@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Nov 15, 2010 at 09:39:09PM +0800, Tristan Ye wrote:
-> I suddenly hit the problem during 2.6.37-rc1 regression test, which was
-> introduced by commit '5e98d492406818e6a94c0ba54c61f59d40cefa4a'(Track
-> negative entries v3), following scenario reproduces the issue easily:
-> 
-> Node A			Node B
-> ================	============
-> $touch 	testfile	
-> 			$ls testfile
-> $rm -rf testfile
-> $touch 	testfile	
-> 			$ls testfile
-> 			ls: cannot access testfile: No such file or directory
-> 
-> This patch stops tracking the dentry which was negativated by a inode deletion,
-> so as to force the revaliation in next lookup, in case we'll touch the inode
-> again in the same node.
-> 
-> It didn't hurt the performance of multiple lookup for none-existed files anyway,
-> while regresses a bit in the first try after a file deletion.
+On 11/17/2010 03:17 PM, Joel Becker wrote:
+> On Fri, Nov 05, 2010 at 12:53:16PM +0800, Wengang Wang wrote:
+>> Lock the page in __ocfs2_page_mkwrite(). Or we may get -EINVAL error
+>> from ocfs2_grab_pages_for_write() if the page(page cache) gets truncated.
+> 	Hmm.  Have you seen this happen?  Do you have a reproducible
+> test case?  The inode lock and alloc sem are taken in
+> ocfs2_page_mkwrite(), which should prevent real truncation of the file
+> and truncation of the page due to downconvert.  I think you're saying
+> that someone could flush the pagecache and cause a problem here, but I'd
+> like to have a testcase.
+> 	Also, earlier in __ocfs2_page_mkwrite() we return 0 when the
+> mapping is wrong.  Can we do that again?
 
-	I'm going to take this fix for now, because it is clearing the
-problem.  However, it looks like the original code _should_ work.  If we
-have created a file, the directory's generation should have been
-updated.  Thus, the pgen shouldn't match the generation set when the old
-inode was deleted.  Right?
-
-Joel
-
-
--- 
-
-Life's Little Instruction Book #237
-
-	"Seek out the good in people."
-
-Joel Becker
-Senior Development Manager
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+orabug#10127979
