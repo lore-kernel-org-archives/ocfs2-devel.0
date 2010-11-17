@@ -1,32 +1,84 @@
-From: Andreas Dilger <adilger@dilger.ca>
-Date: Wed, 17 Nov 2010 09:30:45 -0000
-Subject: [Ocfs2-devel] [PATCH 1/6] fs: add hole punching to fallocate
-In-Reply-To: <20101117023456.GD5618@dhcp231-156.rdu.redhat.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Wed, 17 Nov 2010 23:28:26 -0000
+Subject: [Ocfs2-devel] [PATCH 3/6] Ocfs2: handle hole punching via
+	fallocate properly
+In-Reply-To: <1289840723-3056-4-git-send-email-josef@redhat.com>
 References: <1289840723-3056-1-git-send-email-josef@redhat.com>
-	<1289840723-3056-2-git-send-email-josef@redhat.com>
-	<20101116111611.GA4757@quack.suse.cz>
-	<20101116114346.GB4757@quack.suse.cz>
-	<20101116125249.GB31957@dhcp231-156.rdu.redhat.com>
-	<20101116131451.GH4757@quack.suse.cz>
-	<18ACAA85-8847-4B12-9839-F99FB6C7B3E4@dilger.ca>
-	<20101117021150.GL22876@dastard>
-	<20101117022814.GB5618@dhcp231-156.rdu.redhat.com>
-	<20101117023456.GD5618@dhcp231-156.rdu.redhat.com>
-Message-ID: <23A45B17-C23C-45DA-8C51-1CF315C851E2@dilger.ca>
+	<1289840723-3056-4-git-send-email-josef@redhat.com>
+Message-ID: <20101117232745.GG25677@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Josef Bacik <josef@redhat.com>
-Cc: Dave Chinner <david@fromorbit.com>, Jan Kara <jack@suse.cz>, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, cmm@us.ibm.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
+Cc: david@fromorbit.com, linux-kernel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, cmm@us.ibm.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
 
-On 2010-11-16, at 20:34, Josef Bacik wrote:
-> FWIW I agree with Dave, the only question at this point is do we force users to specify KEEP_SIZE with PUNCH_HOLE?  On one hand it makes the interface a bit more consistent, on the other hand it makes the documentation a little weird
+On Mon, Nov 15, 2010 at 12:05:20PM -0500, Josef Bacik wrote:
+> This patch just makes ocfs2 use its UNRESERVP ioctl when we get the hole punch
+> flag in fallocate.  I didn't test it, but it seems simple enough.  Thanks,
 > 
-> "We have mode here, but if you want to use PUNCH_HOLE you also have to specify KEEP_SIZE, so really it's like a flags field it's just named poorly"
+> Signed-off-by: Josef Bacik <josef@redhat.com>
 
-Even if this is the case, and we decide today that PUNCH_HOLE without KEEP_SIZE is not desirable to implement, it would be better to just return -EOPNOTSUPP if both flags are not set than assume one or the other is what the user wanted.  That allows the ability to implement this in the future without breaking every application, while if it is assumed that KEEP_SIZE is always implicit there will never be a way to add that functionality without something awful like a separate CHANGE_SIZE flag for PUNCH_HOLE.
+Seems reasonable to me.
+Acked-by: Joel Becker <joel.becker@oracle.com>
 
-One option is to define FALLOC_FL_PUNCH_HOLE as 0x3 (so that KEEP_SIZE is always passed) and in the future we can define some new flag name like TRUNCATE_HOLE (or whatever) that is 0x2 only.
+Joel
 
-Cheers, Andreas
+> ---
+>  fs/ocfs2/file.c |   10 ++++++++--
+>  1 files changed, 8 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 77b4c04..181ae52 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -1992,6 +1992,7 @@ static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>  	struct ocfs2_space_resv sr;
+>  	int change_size = 1;
+> +	int cmd = OCFS2_IOC_RESVSP64;
+>  
+>  	if (!ocfs2_writes_unwritten_extents(osb))
+>  		return -EOPNOTSUPP;
+> @@ -2002,12 +2003,17 @@ static long ocfs2_fallocate(struct inode *inode, int mode, loff_t offset,
+>  	if (mode & FALLOC_FL_KEEP_SIZE)
+>  		change_size = 0;
+>  
+> +	if (mode & FALLOC_FL_PUNCH_HOLE) {
+> +		cmd = OCFS2_IOC_UNRESVSP64;
+> +		change_size = 0;
+> +	}
+> +
+>  	sr.l_whence = 0;
+>  	sr.l_start = (s64)offset;
+>  	sr.l_len = (s64)len;
+>  
+> -	return __ocfs2_change_file_space(NULL, inode, offset,
+> -					 OCFS2_IOC_RESVSP64, &sr, change_size);
+> +	return __ocfs2_change_file_space(NULL, inode, offset, cmd, &sr,
+> +					 change_size);
+>  }
+>  
+>  int ocfs2_check_range_for_refcount(struct inode *inode, loff_t pos,
+> -- 
+> 1.6.6.1
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+> 
+
+-- 
+
+"Born under a bad sign.
+ I been down since I began to crawl.
+ If it wasn't for bad luck,
+ I wouldn't have no luck at all."
+
+Joel Becker
+Senior Development Manager
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
