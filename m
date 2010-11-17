@@ -1,55 +1,51 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 17 Nov 2010 15:21:49 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: lock the page in
- __ocfs2_page_mkwrite()
-In-Reply-To: <201011050455.oA52fktp020706@rcsinet15.oracle.com>
-References: <201011050455.oA52fktp020706@rcsinet15.oracle.com>
-Message-ID: <20101117232149.GE25677@mail.oracle.com>
+Date: Wed, 17 Nov 2010 15:23:44 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Stop tracking a negative
+ dentry after dentry_iput().
+In-Reply-To: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
+References: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20101117232344.GF25677@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Nov 05, 2010 at 12:53:16PM +0800, Wengang Wang wrote:
+On Mon, Nov 15, 2010 at 09:39:09PM +0800, Tristan Ye wrote:
+> I suddenly hit the problem during 2.6.37-rc1 regression test, which was
+> introduced by commit '5e98d492406818e6a94c0ba54c61f59d40cefa4a'(Track
+> negative entries v3), following scenario reproduces the issue easily:
+> 
+> Node A			Node B
+> ================	============
+> $touch 	testfile	
+> 			$ls testfile
+> $rm -rf testfile
+> $touch 	testfile	
+> 			$ls testfile
+> 			ls: cannot access testfile: No such file or directory
+> 
+> This patch stops tracking the dentry which was negativated by a inode deletion,
+> so as to force the revaliation in next lookup, in case we'll touch the inode
+> again in the same node.
+> 
+> It didn't hurt the performance of multiple lookup for none-existed files anyway,
+> while regresses a bit in the first try after a file deletion.
 
-	Here's review based on the assumption we need this change.
-
-> @@ -1097,6 +1097,7 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
->  	unsigned long start, target_index, end_index, index;
->  	struct inode *inode = mapping->host;
->  	loff_t last_byte;
-> +	int lockpg= !PageLocked(mmap_page);
-
-	This change is not necessary.  If mmap_page exists, it came from
-__ocfs2_page_mkwrite(), where you've locked it, so you know it is
-locked.
-
->  
->  	target_index = user_pos >> PAGE_CACHE_SHIFT;
->  
-> @@ -1133,11 +1134,15 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
->  			 * ocfs2_pagemkwrite() is a little different
->  			 * and wants us to directly use the page
->  			 * passed in.
-> +			 * in ocfs2_page_mkwirte() path, the page is already
-> +			 * locked, don't lock it again.
->  			 */
-> -			lock_page(mmap_page);
-> +			if (lockpg)
-> +				lock_page(mmap_page);
-
-	This block is only accessed when mmap_page is not NULL.  Thus
-the page must exist and must be locked (as stated above).  You should
-just BUG_ON(!PageLocked(mmap_page)) here.
+	I'm going to take this fix for now, because it is clearing the
+problem.  However, it looks like the original code _should_ work.  If we
+have created a file, the directory's generation should have been
+updated.  Thus, the pgen shouldn't match the generation set when the old
+inode was deleted.  Right?
 
 Joel
 
+
 -- 
 
-"I think it would be a good idea."  
-        - Mahatma Ghandi, when asked what he thought of Western
-          civilization
+Life's Little Instruction Book #237
+
+	"Seek out the good in people."
 
 Joel Becker
 Senior Development Manager
