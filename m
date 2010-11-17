@@ -1,53 +1,37 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Tue, 16 Nov 2010 16:10:47 -0800
-Subject: [Ocfs2-devel] [PATCH 36/44] fs/ocfs2: Remove unnecessary
-	semicolons
-In-Reply-To: <e32409b17aaa1a54fec85f3654583ef08fcf851c.1289789605.git.joe@perches.com>
-References: <cover.1289789604.git.joe@perches.com>
-	<e32409b17aaa1a54fec85f3654583ef08fcf851c.1289789605.git.joe@perches.com>
-Message-ID: <20101117001046.GE10237@mail.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Wed, 17 Nov 2010 09:12:35 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlmfs: use GFP_KERNEL instead of
+ GFP_NOFS
+In-Reply-To: <4CE2BD0C.3020501@oracle.com>
+References: <201011161537.oAG4gEQI002875@acsinet15.oracle.com>
+	<4CE2BD0C.3020501@oracle.com>
+Message-ID: <20101117011235.GA2289@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joe Perches <joe@perches.com>
-Cc: Jiri Kosina <trivial@kernel.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Sun, Nov 14, 2010 at 07:04:55PM -0800, Joe Perches wrote:
-> Signed-off-by: Joe Perches <joe@perches.com>
+On 10-11-16 09:19, Sunil Mushran wrote:
+> We do NOFS allocs in the dlm to prevent deadlocks (not live locks).
+> And you are right we don't have to do NOFS allocs here. But the sizes
+> we are talking about are really small. Do we really care?
 
-Acked-by: Joel Becker <joel.becker@oracle.com>
+I didn't hit problem at the allocation with NOFS.
+I just noticed it when looking at the codes.
+Since the sizes are small, it shouldn't effects much.
 
+The locks I meant is not dlm related. It's when system feel memory
+pressure and causes filesystems sync data to disk to free memory. During that
+time I think it's live lock if we allocate memory(GFP_KERNEL) when syncing data
+to disk. no?
 
-> ---
->  fs/ocfs2/refcounttree.c |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
+regards,
+wengang.
 > 
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index b5f9160..da14a42 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -3704,7 +3704,7 @@ int ocfs2_refcount_cow_xattr(struct inode *inode,
->  	context->cow_start = cow_start;
->  	context->cow_len = cow_len;
->  	context->ref_tree = ref_tree;
-> -	context->ref_root_bh = ref_root_bh;;
-> +	context->ref_root_bh = ref_root_bh;
->  	context->cow_object = xv;
->  
->  	context->cow_duplicate_clusters = ocfs2_duplicate_clusters_by_jbd;
-> -- 
-> 1.7.3.1.g432b3.dirty
-> 
-
--- 
-
-Life's Little Instruction Book #237
-
-	"Seek out the good in people."
-
-Joel Becker
-Senior Development Manager
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+> On 11/16/2010 07:33 AM, Wengang Wang wrote:
+> >There is no need for dlmfs to sync data to disk so that no memory is needed
+> >for that purpose. So no worry about the live lock: sync data ->  alloc mem ->
+> >sync data ->.... We'd better use GFP_KERNEL instead of GFP_NOFS to allow FS sync
+> >during the memory allocation.
+> >
