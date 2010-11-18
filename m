@@ -1,35 +1,46 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 18 Nov 2010 14:05:52 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: lock the page in
- __ocfs2_page_mkwrite() -v2
-In-Reply-To: <201011181554.oAIFs5a5031128@rcsinet15.oracle.com>
-References: <201011181554.oAIFs5a5031128@rcsinet15.oracle.com>
-Message-ID: <20101118220552.GC19821@mail.oracle.com>
+Date: Thu, 18 Nov 2010 15:38:33 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Stop tracking a negative
+ dentry after dentry_iput().
+In-Reply-To: <4CE48A84.3090405@oracle.com>
+References: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
+	<20101117232344.GF25677@mail.oracle.com>
+	<4CE48469.2090102@oracle.com> <4CE48A84.3090405@oracle.com>
+Message-ID: <20101118233833.GG19821@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Nov 18, 2010 at 11:52:14PM +0800, Wengang Wang wrote:
-> Lock the page in __ocfs2_page_mkwrite(). Or we may get -EINVAL error
-> from ocfs2_grab_pages_for_write() if the page(page cache) gets truncated
-> while someone is flushing the pagecache. In the original code, we are
-> checking mapping earlier in __ocfs2_page_mkwrite() but we don't lock it.
-> so the mapping can change during flushing pagecache.
+On Thu, Nov 18, 2010 at 10:08:04AM +0800, Tristan Ye wrote:
+> Tristan Ye wrote:
+> >>     I'm going to take this fix for now, because it is clearing the
+> >> problem.  However, it looks like the original code _should_ work.  If we
+> >> have created a file, the directory's generation should have been
+> >> updated.  Thus, the pgen shouldn't match the generation set when the old
+> >> inode was deleted.  Right?
+> I'm afraid it was not the case,
+> 
+> Say nodeA deleted the file(after Node B 'ls' it), Yes, now the 
+> generation number of
+> parent directory gets updated, and the newly-generated negative dentry 
+> inherits the
+> pgen, then we continue to do the creation(touch file) on nodeA without 
+> nodeB interleaves
+> the operation at all. in this case, pgen will not change since no 
+> dlmlock gets converted here,
+> reasonable?
 
-	This looks like a good implementation of the concept.  I'm still
-wary of holding the page lock that long, though I *think* it's the right
-thing.
-	Mark, do you have any thoughts on this?  I believe this is
-originally your code.
+	Makes sense.  And since we're trying to avoid the cluster lock
+with our validation, we can't take it to check.  Thanks.
 
 Joel
 
 -- 
 
-"Not being known doesn't stop the truth from being true."
-        - Richard Bach
+"Anything that is too stupid to be spoken is sung."  
+        - Voltaire
 
 Joel Becker
 Senior Development Manager
