@@ -1,24 +1,33 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 18 Nov 2010 15:43:43 -0800
-Subject: [Ocfs2-devel] ocfs2: char is not always signed
-In-Reply-To: <1290054011_17741@mail4.comsite.net>
-References: <1290054011_17741@mail4.comsite.net>
-Message-ID: <20101118234343.GK19821@mail.oracle.com>
+Date: Thu, 18 Nov 2010 15:45:27 -0800
+Subject: [Ocfs2-devel] [PATCH] [OCFS2] ocfs2_connection_find() returns
+ pointer to bad structure
+In-Reply-To: <1290117789-3915-1-git-send-email-dann.frazier@canonical.com>
+References: <1290117789-3915-1-git-send-email-dann.frazier@canonical.com>
+Message-ID: <20101118234527.GL19821@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Milton Miller <miltonm@bga.com>
-Cc: Tao Ma <tao.ma@oracle.com>, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, Goldwyn Rodrigues <rgoldwyn@suse.de>
+To: dann frazier <dann.frazier@canonical.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Wed, Nov 17, 2010 at 10:20:11PM -0600, Milton Miller wrote:
-> Commit 1c66b360fe262 (Change some lock status member in ocfs2_lock_res
-> to char.)  states that these fields need to be signed due to comparision
-> to -1, but only changed the type from unsigned char to char.   However, it
-> is a compiler option if char is a signed or unsigned type.  Change these
-> fields to signed char so the code will work with all compilers.
+On Thu, Nov 18, 2010 at 03:03:09PM -0700, dann frazier wrote:
+> If ocfs2_live_connection_list is empty, ocfs2_connection_find() will return
+> a pointer to the LIST_HEAD, cast as a ocfs2_live_connection. This can cause
+> an oops when ocfs2_control_send_down() dereferences c->oc_conn:
 > 
-> Signed-off-by: Milton Miller <miltonm@bga.com>
+> Call Trace:
+>   [<ffffffffa00c2a3c>] ocfs2_control_message+0x28c/0x2b0 [ocfs2_stack_user]
+>   [<ffffffffa00c2a95>] ocfs2_control_write+0x35/0xb0 [ocfs2_stack_user]
+>   [<ffffffff81143a88>] vfs_write+0xb8/0x1a0
+>   [<ffffffff8155cc13>] ? do_page_fault+0x153/0x3b0
+>   [<ffffffff811442f1>] sys_write+0x51/0x80
+>   [<ffffffff810121b2>] system_call_fastpath+0x16/0x1b
+> 
+> Fix by explicitly returning NULL if no match is found.
+> 
+> Signed-off-by: dann frazier <dann.frazier@canonical.com>
 
 	This patch is now in the fixes branch of ocfs2.git.
 
@@ -26,12 +35,8 @@ Joel
 
 -- 
 
-"This is the end, beautiful friend.
- This is the end, my only friend the end
- Of our elaborate plans, the end
- Of everything that stands, the end
- No safety or surprise, the end
- I'll never look into your eyes again."
+"I don't even butter my bread; I consider that cooking."
+         - Katherine Cebrian
 
 Joel Becker
 Senior Development Manager
