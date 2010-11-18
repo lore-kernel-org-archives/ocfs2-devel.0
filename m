@@ -1,96 +1,46 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 18 Nov 2010 23:52:14 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: lock the page in
-	__ocfs2_page_mkwrite() -v2
-Message-ID: <201011181554.oAIFs5a5031128@rcsinet15.oracle.com>
+From: dann frazier <dann.frazier@canonical.com>
+Date: Thu, 18 Nov 2010 15:03:09 -0700
+Subject: [Ocfs2-devel] [PATCH] [OCFS2] ocfs2_connection_find() returns
+	pointer to bad structure
+Message-ID: <1290117789-3915-1-git-send-email-dann.frazier@canonical.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+Cc: linux-kernel@vger.kernel.org
 
-Lock the page in __ocfs2_page_mkwrite(). Or we may get -EINVAL error
-from ocfs2_grab_pages_for_write() if the page(page cache) gets truncated
-while someone is flushing the pagecache. In the original code, we are
-checking mapping earlier in __ocfs2_page_mkwrite() but we don't lock it.
-so the mapping can change during flushing pagecache.
+If ocfs2_live_connection_list is empty, ocfs2_connection_find() will return
+a pointer to the LIST_HEAD, cast as a ocfs2_live_connection. This can cause
+an oops when ocfs2_control_send_down() dereferences c->oc_conn:
 
+Call Trace:
+  [<ffffffffa00c2a3c>] ocfs2_control_message+0x28c/0x2b0 [ocfs2_stack_user]
+  [<ffffffffa00c2a95>] ocfs2_control_write+0x35/0xb0 [ocfs2_stack_user]
+  [<ffffffff81143a88>] vfs_write+0xb8/0x1a0
+  [<ffffffff8155cc13>] ? do_page_fault+0x153/0x3b0
+  [<ffffffff811442f1>] sys_write+0x51/0x80
+  [<ffffffff810121b2>] system_call_fastpath+0x16/0x1b
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+Fix by explicitly returning NULL if no match is found.
+
+Signed-off-by: dann frazier <dann.frazier@canonical.com>
 ---
- fs/ocfs2/aops.c |   10 +++++++---
- fs/ocfs2/mmap.c |   10 +++++++---
- 2 files changed, 14 insertions(+), 6 deletions(-)
+ fs/ocfs2/stack_user.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index f1e962c..6b7e1f2 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1130,14 +1130,18 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
- 
- 		if (index == target_index && mmap_page) {
- 			/*
--			 * ocfs2_pagemkwrite() is a little different
-+			 * ocfs2_page_mkwrite() is a little different
- 			 * and wants us to directly use the page
- 			 * passed in.
-+			 * So far, only __ocfs2_page_mkwrite() passes in a
-+			 * non-NULL page. And we locked the page there, so we
-+			 * just assert the page is locked. If another path will
-+			 * be passing in a non-NULL page in future, the locking
-+			 * should be well considered.
- 			 */
--			lock_page(mmap_page);
-+			BUG_ON(!PageLocked(mmap_page));
- 
- 			if (mmap_page->mapping != mapping) {
--				unlock_page(mmap_page);
- 				/*
- 				 * Sanity check - the locking in
- 				 * ocfs2_pagemkwrite() should ensure
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 7e32db9..bb29335 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -79,9 +79,10 @@ static int __ocfs2_page_mkwrite(struct file *file, struct buffer_head *di_bh,
- 	 * from do_generic_file_read.
- 	 */
- 	last_index = (size - 1) >> PAGE_CACHE_SHIFT;
-+	lock_page(page);
- 	if (unlikely(!size || page->index > last_index)) {
- 		ret = -EINVAL;
--		goto out;
-+		goto out_unlock;
+diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+index 252e7c8..a5ebe42 100644
+--- a/fs/ocfs2/stack_user.c
++++ b/fs/ocfs2/stack_user.c
+@@ -190,7 +190,7 @@ static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
+ 			return c;
  	}
  
- 	/*
-@@ -96,7 +97,7 @@ static int __ocfs2_page_mkwrite(struct file *file, struct buffer_head *di_bh,
- 		 * So return 0 here and let VFS retry.
- 		 */
- 		ret = 0;
--		goto out;
-+		goto out_unlock;
- 	}
- 
- 	/*
-@@ -117,7 +118,7 @@ static int __ocfs2_page_mkwrite(struct file *file, struct buffer_head *di_bh,
- 	if (ret) {
- 		if (ret != -ENOSPC)
- 			mlog_errno(ret);
--		goto out;
-+		goto out_unlock;
- 	}
- 
- 	ret = ocfs2_write_end_nolock(mapping, pos, len, len, locked_page,
-@@ -128,6 +129,9 @@ static int __ocfs2_page_mkwrite(struct file *file, struct buffer_head *di_bh,
- 	}
- 	BUG_ON(ret != len);
- 	ret = 0;
-+	goto out;
-+out_unlock:
-+	unlock_page(page);
- out:
- 	return ret;
+-	return c;
++	return NULL;
  }
+ 
+ /*
 -- 
 1.7.2.3
