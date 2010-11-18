@@ -1,38 +1,37 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 18 Nov 2010 15:42:41 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix memory leak
-In-Reply-To: <1289034412-24278-4-git-send-email-jslaby@suse.cz>
-References: <1289034412-24278-1-git-send-email-jslaby@suse.cz>
-	<1289034412-24278-4-git-send-email-jslaby@suse.cz>
-Message-ID: <20101118234241.GI19821@mail.oracle.com>
+Date: Thu, 18 Nov 2010 15:43:43 -0800
+Subject: [Ocfs2-devel] ocfs2: char is not always signed
+In-Reply-To: <1290054011_17741@mail4.comsite.net>
+References: <1290054011_17741@mail4.comsite.net>
+Message-ID: <20101118234343.GK19821@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: jirislaby@gmail.com, Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Milton Miller <miltonm@bga.com>
+Cc: Tao Ma <tao.ma@oracle.com>, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, Goldwyn Rodrigues <rgoldwyn@suse.de>
 
-On Sat, Nov 06, 2010 at 10:06:52AM +0100, Jiri Slaby wrote:
-> Stanse found that o2hb_heartbeat_group_make_item leaks some memory on
-> fail paths. Fix the paths by adding a new label and jump there.
+On Wed, Nov 17, 2010 at 10:20:11PM -0600, Milton Miller wrote:
+> Commit 1c66b360fe262 (Change some lock status member in ocfs2_lock_res
+> to char.)  states that these fields need to be signed due to comparision
+> to -1, but only changed the type from unsigned char to char.   However, it
+> is a compiler option if char is a signed or unsigned type.  Change these
+> fields to signed char so the code will work with all compilers.
 > 
-> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <joel.becker@oracle.com>
-> Cc: ocfs2-devel at oss.oracle.com
-> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-> Cc: linux-fsdevel at vger.kernel.org
+> Signed-off-by: Milton Miller <miltonm@bga.com>
 
 	This patch is now in the fixes branch of ocfs2.git.
 
 Joel
 
-
 -- 
 
-"In a crisis, don't hide behind anything or anybody. They're going
- to find you anyway."
-	- Paul "Bear" Bryant
+"This is the end, beautiful friend.
+ This is the end, my only friend the end
+ Of our elaborate plans, the end
+ Of everything that stands, the end
+ No safety or surprise, the end
+ I'll never look into your eyes again."
 
 Joel Becker
 Senior Development Manager
