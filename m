@@ -1,46 +1,41 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 18 Nov 2010 15:38:33 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Stop tracking a negative
- dentry after dentry_iput().
-In-Reply-To: <4CE48A84.3090405@oracle.com>
-References: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
-	<20101117232344.GF25677@mail.oracle.com>
-	<4CE48469.2090102@oracle.com> <4CE48A84.3090405@oracle.com>
-Message-ID: <20101118233833.GG19821@mail.oracle.com>
+Date: Thu, 18 Nov 2010 15:42:16 -0800
+Subject: [Ocfs2-devel] fs/ocfs2/dlm: Use GFP_ATOMIC under spin_lock
+In-Reply-To: <20101102223601.GA27513@ds.suse.cz>
+References: <20101102223601.GA27513@ds.suse.cz>
+Message-ID: <20101118234216.GH19821@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: David Sterba <dsterba@suse.cz>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, mfasheh@suse.com
 
-On Thu, Nov 18, 2010 at 10:08:04AM +0800, Tristan Ye wrote:
-> Tristan Ye wrote:
-> >>     I'm going to take this fix for now, because it is clearing the
-> >> problem.  However, it looks like the original code _should_ work.  If we
-> >> have created a file, the directory's generation should have been
-> >> updated.  Thus, the pgen shouldn't match the generation set when the old
-> >> inode was deleted.  Right?
-> I'm afraid it was not the case,
+On Tue, Nov 02, 2010 at 11:36:02PM +0100, David Sterba wrote:
+> coccinelle check scripts/coccinelle/locks/call_kern.cocci found that
+> in fs/ocfs2/dlm/dlmdomain.c an allocation with GFP_KERNEL is done
+> with locks held:
 > 
-> Say nodeA deleted the file(after Node B 'ls' it), Yes, now the 
-> generation number of
-> parent directory gets updated, and the newly-generated negative dentry 
-> inherits the
-> pgen, then we continue to do the creation(touch file) on nodeA without 
-> nodeB interleaves
-> the operation at all. in this case, pgen will not change since no 
-> dlmlock gets converted here,
-> reasonable?
+> dlm_query_region_handler
+>   spin_lock(dlm_domain_lock)
+>     dlm_match_regions
+>       kmalloc(GFP_KERNEL)
+> 
+> Change it to GFP_ATOMIC.
+> 
+> Signed-off-by: David Sterba <dsterba@suse.cz>
+> CC: Joel Becker <joel.becker@oracle.com>
+> CC: Mark Fasheh <mfasheh@suse.com>
+> CC: ocfs2-devel at oss.oracle.com
 
-	Makes sense.  And since we're trying to avoid the cluster lock
-with our validation, we can't take it to check.  Thanks.
+	This patch is now in the fixes branch of ocfs2.git.
 
 Joel
 
 -- 
 
-"Anything that is too stupid to be spoken is sung."  
-        - Voltaire
+"Behind every successful man there's a lot of unsuccessful years."
+        - Bob Brown
 
 Joel Becker
 Senior Development Manager
