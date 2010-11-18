@@ -1,46 +1,38 @@
-From: dann frazier <dann.frazier@canonical.com>
-Date: Thu, 18 Nov 2010 15:03:09 -0700
-Subject: [Ocfs2-devel] [PATCH] [OCFS2] ocfs2_connection_find() returns
-	pointer to bad structure
-Message-ID: <1290117789-3915-1-git-send-email-dann.frazier@canonical.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 18 Nov 2010 14:05:52 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: lock the page in
+ __ocfs2_page_mkwrite() -v2
+In-Reply-To: <201011181554.oAIFs5a5031128@rcsinet15.oracle.com>
+References: <201011181554.oAIFs5a5031128@rcsinet15.oracle.com>
+Message-ID: <20101118220552.GC19821@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-Cc: linux-kernel@vger.kernel.org
 
-If ocfs2_live_connection_list is empty, ocfs2_connection_find() will return
-a pointer to the LIST_HEAD, cast as a ocfs2_live_connection. This can cause
-an oops when ocfs2_control_send_down() dereferences c->oc_conn:
+On Thu, Nov 18, 2010 at 11:52:14PM +0800, Wengang Wang wrote:
+> Lock the page in __ocfs2_page_mkwrite(). Or we may get -EINVAL error
+> from ocfs2_grab_pages_for_write() if the page(page cache) gets truncated
+> while someone is flushing the pagecache. In the original code, we are
+> checking mapping earlier in __ocfs2_page_mkwrite() but we don't lock it.
+> so the mapping can change during flushing pagecache.
 
-Call Trace:
-  [<ffffffffa00c2a3c>] ocfs2_control_message+0x28c/0x2b0 [ocfs2_stack_user]
-  [<ffffffffa00c2a95>] ocfs2_control_write+0x35/0xb0 [ocfs2_stack_user]
-  [<ffffffff81143a88>] vfs_write+0xb8/0x1a0
-  [<ffffffff8155cc13>] ? do_page_fault+0x153/0x3b0
-  [<ffffffff811442f1>] sys_write+0x51/0x80
-  [<ffffffff810121b2>] system_call_fastpath+0x16/0x1b
+	This looks like a good implementation of the concept.  I'm still
+wary of holding the page lock that long, though I *think* it's the right
+thing.
+	Mark, do you have any thoughts on this?  I believe this is
+originally your code.
 
-Fix by explicitly returning NULL if no match is found.
+Joel
 
-Signed-off-by: dann frazier <dann.frazier@canonical.com>
----
- fs/ocfs2/stack_user.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index 252e7c8..a5ebe42 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -190,7 +190,7 @@ static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
- 			return c;
- 	}
- 
--	return c;
-+	return NULL;
- }
- 
- /*
 -- 
-1.7.2.3
+
+"Not being known doesn't stop the truth from being true."
+        - Richard Bach
+
+Joel Becker
+Senior Development Manager
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
