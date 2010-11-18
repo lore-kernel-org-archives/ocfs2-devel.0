@@ -1,88 +1,52 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Thu, 18 Nov 2010 10:08:04 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Stop tracking a negative
- dentry after dentry_iput().
-In-Reply-To: <4CE48469.2090102@oracle.com>
-References: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
-	<20101117232344.GF25677@mail.oracle.com>
-	<4CE48469.2090102@oracle.com>
-Message-ID: <4CE48A84.3090405@oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Thu, 18 Nov 2010 13:40:25 +0800
+Subject: [Ocfs2-devel] ocfs2: char is not always signed
+In-Reply-To: <1290054011_17741@mail4.comsite.net>
+References: <1290054011_17741@mail4.comsite.net>
+Message-ID: <4CE4BC49.10105@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
-
-Tristan Ye wrote:
-> Joel Becker wrote:
->> On Mon, Nov 15, 2010 at 09:39:09PM +0800, Tristan Ye wrote:
->>> I suddenly hit the problem during 2.6.37-rc1 regression test, which was
->>> introduced by commit '5e98d492406818e6a94c0ba54c61f59d40cefa4a'(Track
->>> negative entries v3), following scenario reproduces the issue easily:
->>>
->>> Node A            Node B
->>> ================    ============
->>> $touch     testfile   
->>>             $ls testfile
->>> $rm -rf testfile
->>> $touch     testfile   
->>>             $ls testfile
->>>             ls: cannot access testfile: No such file or directory
->>>
->>> This patch stops tracking the dentry which was negativated by a 
->>> inode deletion,
->>> so as to force the revaliation in next lookup, in case we'll touch 
->>> the inode
->>> again in the same node.
->>>
->>> It didn't hurt the performance of multiple lookup for none-existed 
->>> files anyway,
->>> while regresses a bit in the first try after a file deletion.
->>
->>     I'm going to take this fix for now, because it is clearing the
->> problem.  However, it looks like the original code _should_ work.  If we
->> have created a file, the directory's generation should have been
->> updated.  Thus, the pgen shouldn't match the generation set when the old
->> inode was deleted.  Right?
-I'm afraid it was not the case,
-
-Say nodeA deleted the file(after Node B 'ls' it), Yes, now the 
-generation number of
-parent directory gets updated, and the newly-generated negative dentry 
-inherits the
-pgen, then we continue to do the creation(touch file) on nodeA without 
-nodeB interleaves
-the operation at all. in this case, pgen will not change since no 
-dlmlock gets converted here,
-reasonable?
+To: Milton Miller <miltonm@bga.com>
+Cc: Joel Becker <joel.becker@oracle.com>, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, Goldwyn Rodrigues <rgoldwyn@suse.de>
 
 
-Tristan.
 
+2010-11-18 12:20, Milton Miller wrote:
+> Commit 1c66b360fe262 (Change some lock status member in ocfs2_lock_res
+> to char.)  states that these fields need to be signed due to comparision
+> to -1, but only changed the type from unsigned char to char.   However, it
+> is a compiler option if char is a signed or unsigned type.  Change these
+> fields to signed char so the code will work with all compilers.
 >
-> Yep,
+> Signed-off-by: Milton Miller<miltonm@bga.com>
+oh, sorry I don't know this. Thanks.
+Acked-by: Tao Ma <tao.ma@oracle.com>
+> ---
+> I did not look for other fields that might be char.  PowerPC compilers
+> default to unsigned char, and aparently arm does as well from a quick
+> google search, to name two examples.
 >
-> Original code did work of course, 
-
-I may misunderstand you words a little bit here, I meant 'original code' 
-is the codes before goldwyn's patch
-being applied.
-
-> goldwyn's patch just tries to improve the performance by
-> reducing the possibility of calling revalidation for negative dentries 
-> on multiple lookups
-> on none-existed files.
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index 1efea36..70dd3b1 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -159,9 +159,9 @@ struct ocfs2_lock_res {
+>   	char                     l_name[OCFS2_LOCK_ID_MAX_LEN];
+>   	unsigned int             l_ro_holders;
+>   	unsigned int             l_ex_holders;
+> -	char			 l_level;
+> -	char			 l_requested;
+> -	char			 l_blocking;
+> +	signed char		 l_level;
+> +	signed char		 l_requested;
+> +	signed char		 l_blocking;
 >
-> If we created a file, the directory's generation only changes in the 
-> ocfs2_data_convert_worker,
-> which only happens when a node doing lock conversion, it means the 
-> pgen will not change if a node
-> creates the node without a dlmlock being converted.
->
->
-> Tristan.
->>
->> Joel
->>
->>
->
+>   	/* Data packed - type enum ocfs2_lock_type */
+>   	unsigned char            l_type;
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
