@@ -1,32 +1,38 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 18 Nov 2010 15:42:16 -0800
-Subject: [Ocfs2-devel] fs/ocfs2/dlm: Use GFP_ATOMIC under spin_lock
-In-Reply-To: <20101102223601.GA27513@ds.suse.cz>
-References: <20101102223601.GA27513@ds.suse.cz>
-Message-ID: <20101118234216.GH19821@mail.oracle.com>
+Date: Thu, 18 Nov 2010 15:43:08 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Stop tracking a negative
+ dentry after dentry_iput().
+In-Reply-To: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
+References: <1289828349-24098-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20101118234308.GJ19821@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: David Sterba <dsterba@suse.cz>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, mfasheh@suse.com
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Nov 02, 2010 at 11:36:02PM +0100, David Sterba wrote:
-> coccinelle check scripts/coccinelle/locks/call_kern.cocci found that
-> in fs/ocfs2/dlm/dlmdomain.c an allocation with GFP_KERNEL is done
-> with locks held:
+On Mon, Nov 15, 2010 at 09:39:09PM +0800, Tristan Ye wrote:
+> I suddenly hit the problem during 2.6.37-rc1 regression test, which was
+> introduced by commit '5e98d492406818e6a94c0ba54c61f59d40cefa4a'(Track
+> negative entries v3), following scenario reproduces the issue easily:
 > 
-> dlm_query_region_handler
->   spin_lock(dlm_domain_lock)
->     dlm_match_regions
->       kmalloc(GFP_KERNEL)
+> Node A			Node B
+> ================	============
+> $touch 	testfile	
+> 			$ls testfile
+> $rm -rf testfile
+> $touch 	testfile	
+> 			$ls testfile
+> 			ls: cannot access testfile: No such file or directory
 > 
-> Change it to GFP_ATOMIC.
+> This patch stops tracking the dentry which was negativated by a inode deletion,
+> so as to force the revaliation in next lookup, in case we'll touch the inode
+> again in the same node.
 > 
-> Signed-off-by: David Sterba <dsterba@suse.cz>
-> CC: Joel Becker <joel.becker@oracle.com>
-> CC: Mark Fasheh <mfasheh@suse.com>
-> CC: ocfs2-devel at oss.oracle.com
+> It didn't hurt the performance of multiple lookup for none-existed files anyway,
+> while regresses a bit in the first try after a file deletion.
+> 
+> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 
 	This patch is now in the fixes branch of ocfs2.git.
 
@@ -34,8 +40,8 @@ Joel
 
 -- 
 
-"Behind every successful man there's a lot of unsuccessful years."
-        - Bob Brown
+"Only a life lived for others is a life worth while."
+							-Albert Einstein  
 
 Joel Becker
 Senior Development Manager
