@@ -1,130 +1,101 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 19 Nov 2010 14:56:43 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: check lockres owner in handler path
-Message-ID: <201011190658.oAILihmm013474@acsinet15.oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Fri, 19 Nov 2010 16:38:39 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Teach 'coherency=full' O_DIRECT
+	writes to correctly up_read i_alloc_sem.
+Message-ID: <1290155919-4280-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We have check lockres owner in handler path because the owner can change
-during that time.
+Former logic of ocfs2_file_aio_write() was a bit stricky to unlock the rw_lock
+and i_alloc_sem, by using some private bits in struct 'iocb' to communite with
+ocfs2_dio_end_io(), it did work before we introduce the patch of supporting
+'coherency=full,buffered' option, since rw_lock and i_alloc_sem were never
+acquired both at the same time, no mattar we doing buffered or direct IO or not.
 
-In case this node is in progress of unmount, it does migrations with
-other node. If one of the migration target get crashed before the
-migration finishes, recovery happens on this lockres. If this node is
-not the (dlm) recovery master, it can lost the ownership.
-On the other hand, in case another node is in progress of migration, and
-this node is not the target. if the node doing unmount crashed,  This
-node can gain the ownership if it becomes the recovery master.
-So we should take care the above cases.
-Also the ownership can move between two other different nodes. We
-don't care that.
+This patch tries to teach ocfs2_dio_end_io fully understand the bahavior of
+all writes, including buffered/concurrency-allowed-odirect/none-concurrency-odirect
+writes, to have all lock/sem primitives getting correctly released.
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/dlm/dlmconvert.c |    9 +++++++++
- fs/ocfs2/dlm/dlmlock.c    |   10 ++++++++++
- fs/ocfs2/dlm/dlmunlock.c  |   33 +++++++++++++++++++++++++++------
- 3 files changed, 46 insertions(+), 6 deletions(-)
+ fs/ocfs2/aops.c |    9 +++++++--
+ fs/ocfs2/aops.h |    6 ++++++
+ fs/ocfs2/file.c |   16 ++++++++++++++++
+ 3 files changed, 29 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
-index 9f30491..6d04a0e 100644
---- a/fs/ocfs2/dlm/dlmconvert.c
-+++ b/fs/ocfs2/dlm/dlmconvert.c
-@@ -279,6 +279,15 @@ enum dlm_status dlmconvert_remote(struct dlm_ctxt *dlm,
- 	}
- 	/* will exit this call with spinlock held */
- 	__dlm_wait_on_lockres(res);
-+	/*
-+	 * see comments in dlmunlock_common() for why this node can take
-+	 * ownership
-+	 */
-+	if (unlikely(res->owner == dlm->node_num)) {
-+		mlog(ML_NOTICE, "owner changed\n");
-+		status = DLM_FORWARD;
-+		goto bail;
-+	}
- 
- 	if (lock->ml.convert_type != LKM_IVMODE) {
- 		__dlm_print_one_lock_resource(res);
-diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-index 69cf369..4068e9e 100644
---- a/fs/ocfs2/dlm/dlmlock.c
-+++ b/fs/ocfs2/dlm/dlmlock.c
-@@ -232,6 +232,16 @@ static enum dlm_status dlmlock_remote(struct dlm_ctxt *dlm,
- 
- 	/* will exit this call with spinlock held */
- 	__dlm_wait_on_lockres(res);
-+	/*
-+	 * see comments in dlmunlock_common() for why this node can take
-+	 * ownership
-+	 */
-+	if (unlikely(res->owner == dlm->node_num)) {
-+		spin_unlock(&res->spinlock);
-+		mlog(ML_NOTICE, "onwer changed\n");
-+		return DLM_FORWARD;
-+	}
-+
- 	res->state |= DLM_LOCK_RES_IN_PROGRESS;
- 
- 	/* add lock to local (secondary) queue */
-diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-index a45be2f..7439582 100644
---- a/fs/ocfs2/dlm/dlmunlock.c
-+++ b/fs/ocfs2/dlm/dlmunlock.c
-@@ -104,17 +104,12 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index f1e962c..fd0713c 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -568,7 +568,7 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
+ 			     bool is_async)
  {
- 	enum dlm_status status;
- 	int actions = 0;
--	int in_use, can_block;
-+	int in_use, can_block, owner_changed = 0;
-         u8 owner;
+ 	struct inode *inode = iocb->ki_filp->f_path.dentry->d_inode;
+-	int level;
++	int level, coherency;
  
- 	mlog(0, "master_node = %d, valblk = %d\n", master_node,
- 	     flags & LKM_VALBLK);
+ 	/* this io's submitter should not have unlocked this before we could */
+ 	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
+@@ -576,7 +576,12 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
+ 	ocfs2_iocb_clear_rw_locked(iocb);
  
--	if (master_node)
--		BUG_ON(res->owner != dlm->node_num);
--	else
--		BUG_ON(res->owner == dlm->node_num);
--
- 	spin_lock(&dlm->ast_lock);
- 	/* We want to be sure that we're not freeing a lock
- 	 * that still has AST's pending... */
-@@ -154,6 +149,32 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
- 		goto leave;
+ 	level = ocfs2_iocb_rw_locked_level(iocb);
+-	if (!level)
++	/*
++	 * 'coherency=full' O_DIRECT writes needs this extra bit
++	 * to correctly up_read the i_alloc_sem.
++	 */
++	coherency = ocfs2_iocb_coherency(iocb);
++	if ((!level) || coherency)
+ 		up_read(&inode->i_alloc_sem);
+ 	ocfs2_rw_unlock(inode, level);
+ 
+diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
+index 76bfdfd..213cec6 100644
+--- a/fs/ocfs2/aops.h
++++ b/fs/ocfs2/aops.h
+@@ -72,4 +72,10 @@ static inline void ocfs2_iocb_set_rw_locked(struct kiocb *iocb, int level)
+ 	clear_bit(0, (unsigned long *)&iocb->private)
+ #define ocfs2_iocb_rw_locked_level(iocb) \
+ 	test_bit(1, (unsigned long *)&iocb->private)
++#define ocfs2_iocb_set_coherency(iocb) \
++	set_bit(2, (unsigned long *)&iocb->private)
++#define ocfs2_iocb_clear_coherency(iocb) \
++	clear_bit(2, (unsigned long *)&iocb->private)
++#define ocfs2_iocb_coherency(iocb) \
++	test_bit(2, (unsigned long *)&iocb->private)
+ #endif /* OCFS2_FILE_H */
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 77b4c04..df070a3 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2277,8 +2277,24 @@ relock:
+ 		}
+ 
+ 		ocfs2_inode_unlock(inode, 1);
++
++		/*
++		 * Due to the fault of 'full_coherency' O_DIRECT
++		 * write needs to acqure both i_alloc_sem and rw_lock.
++		 * We do another trick here to have coherency bit
++		 * stored in iocb to communicate with ocfs2_dio_end_io
++		 * for properly unlocking i_alloc_sem.
++		 */
++		ocfs2_iocb_set_coherency(iocb);
  	}
  
 +	/*
-+	 * In case this node is in progress of unmount, it does migrations with
-+	 * other node. If one of the migration target get crashed before the
-+	 * migration finishes, recovery happens on this lockres. If this node is
-+	 * not the (dlm) recovery master, it can lost the ownership.
-+	 * On the other hand, in case another node is in progress of migration, and
-+	 * this node is not the target. if the node doing unmount crashed,  This
-+	 * node can gain the ownership if it becomes the recovery master.
-+	 * So we should take care the above cases.
-+	 * Also the ownership can move between two other different nodes. We
-+	 * don't care that.
-+	 */ 
-+	if (master_node) {
-+		if (unlikely(res->owner != dlm->node_num))
-+			owner_changed = 1;
-+	} else {
-+		if (unlikely(res->owner == dlm->node_num)) 
-+			owner_changed = 1;
-+	}
++	 * Concurrent-allowed odirect writes was able to up_read i_alloc_sem
++	 * correctly, we therefore don't need this extra and tricky bit.
++	 */
++	if (direct_io && !full_coherency)
++		ocfs2_iocb_clear_coherency(iocb);
 +
-+	if (owner_changed) {
-+		mlog(ML_NOTICE, "onwer changed\n");
-+		status = DLM_FORWARD;
-+		goto leave;
-+	}
-+
- 	/* see above for what the spec says about
- 	 * LKM_CANCEL and the lock queue state */
- 	if (flags & LKM_CANCEL)
+ 	can_do_direct = direct_io;
+ 	ret = ocfs2_prepare_inode_for_write(file, ppos,
+ 					    iocb->ki_left, appending,
 -- 
-1.7.2.3
+1.5.5
