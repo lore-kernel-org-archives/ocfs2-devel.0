@@ -1,45 +1,68 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 18 Nov 2010 15:45:27 -0800
-Subject: [Ocfs2-devel] [PATCH] [OCFS2] ocfs2_connection_find() returns
- pointer to bad structure
-In-Reply-To: <1290117789-3915-1-git-send-email-dann.frazier@canonical.com>
-References: <1290117789-3915-1-git-send-email-dann.frazier@canonical.com>
-Message-ID: <20101118234527.GL19821@mail.oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Fri, 19 Nov 2010 12:23:11 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: a missing DLM_LOCK_RES_IN_PROGRESS
+	set
+Message-ID: <201011190425.oAJ4P6WC020935@rcsinet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: dann frazier <dann.frazier@canonical.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Thu, Nov 18, 2010 at 03:03:09PM -0700, dann frazier wrote:
-> If ocfs2_live_connection_list is empty, ocfs2_connection_find() will return
-> a pointer to the LIST_HEAD, cast as a ocfs2_live_connection. This can cause
-> an oops when ocfs2_control_send_down() dereferences c->oc_conn:
-> 
-> Call Trace:
->   [<ffffffffa00c2a3c>] ocfs2_control_message+0x28c/0x2b0 [ocfs2_stack_user]
->   [<ffffffffa00c2a95>] ocfs2_control_write+0x35/0xb0 [ocfs2_stack_user]
->   [<ffffffff81143a88>] vfs_write+0xb8/0x1a0
->   [<ffffffff8155cc13>] ? do_page_fault+0x153/0x3b0
->   [<ffffffff811442f1>] sys_write+0x51/0x80
->   [<ffffffff810121b2>] system_call_fastpath+0x16/0x1b
-> 
-> Fix by explicitly returning NULL if no match is found.
-> 
-> Signed-off-by: dann frazier <dann.frazier@canonical.com>
+For remote dlm operations, local node sets DLM_LOCK_RES_IN_PROGRESS flag on
+the lockres to prevent parallel remote dlm requests.
+There is a miss of setting that flag in dlmunlock_common() for the remote
+case which leads to a later remote dlm request goes on.
 
-	This patch is now in the fixes branch of ocfs2.git.
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmunlock.c |   11 ++++++++---
+ 1 files changed, 8 insertions(+), 3 deletions(-)
 
-Joel
-
+diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+index 817287c..a45be2f 100644
+--- a/fs/ocfs2/dlm/dlmunlock.c
++++ b/fs/ocfs2/dlm/dlmunlock.c
+@@ -104,7 +104,7 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+ {
+ 	enum dlm_status status;
+ 	int actions = 0;
+-	int in_use;
++	int in_use, can_block;
+         u8 owner;
+ 
+ 	mlog(0, "master_node = %d, valblk = %d\n", master_node,
+@@ -127,9 +127,10 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+ 		return DLM_BADPARAM;
+ 	}
+ 
++	can_block = master_node? (flags & LKM_CANCEL) : 1;
+ 	spin_lock(&res->spinlock);
+ 	if (res->state & DLM_LOCK_RES_IN_PROGRESS) {
+-		if (master_node && !(flags & LKM_CANCEL)) {
++		if (!can_block) {
+ 			mlog(ML_ERROR, "lockres in progress!\n");
+ 			spin_unlock(&res->spinlock);
+ 			return DLM_FORWARD;
+@@ -137,6 +138,9 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+ 		/* ok for this to sleep if not in a network handler */
+ 		__dlm_wait_on_lockres(res);
+ 		res->state |= DLM_LOCK_RES_IN_PROGRESS;
++	} else {
++		if (can_block)
++			res->state |= DLM_LOCK_RES_IN_PROGRESS;
+ 	}
+ 	spin_lock(&lock->spinlock);
+ 
+@@ -232,7 +236,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+ 	dlm_lock_put(lock);
+ 
+ leave:
+-	res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
++	if (can_block)
++		res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
+ 	if (!dlm_lock_on_list(&res->converting, lock))
+ 		BUG_ON(lock->ml.convert_type != LKM_IVMODE);
+ 	else
 -- 
-
-"I don't even butter my bread; I consider that cooking."
-         - Katherine Cebrian
-
-Joel Becker
-Senior Development Manager
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+1.7.2.3
