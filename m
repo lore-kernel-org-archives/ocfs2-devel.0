@@ -1,56 +1,33 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Mon, 22 Nov 2010 16:17:37 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2/dlm: Migrate lockres with no
- locks if it has a reference
-In-Reply-To: <1290208010-2603-2-git-send-email-sunil.mushran@oracle.com>
-References: <1290208010-2603-1-git-send-email-sunil.mushran@oracle.com>
-	<1290208010-2603-2-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20101122081737.GC3326@laptop.jp.oracle.com>
+Date: Mon, 22 Nov 2010 16:21:54 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: check lockres owner in handler
+ path
+In-Reply-To: <201011190658.oAILihmm013474@acsinet15.oracle.com>
+References: <201011190658.oAILihmm013474@acsinet15.oracle.com>
+Message-ID: <20101122082154.GD3326@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10-11-19 15:06, Sunil Mushran wrote:
-> o2dlm was not migrating resources with zero locks because it assumed that that
-> resource would get purged by dlm_thread. However, some usage patterns involve
-> creating and dropping locks at a high rate leading to the migrate thread seeing
-> zero locks but the purge thread seeing an active reference. When this happens,
-> the dlm_thread cannot purge the resource and the migrate thread sees no reason
-> to migrate that resource. The spell is broken when the migrate thread catches
-> the resource with a lock.
+On 10-11-19 14:56, Wengang Wang wrote:
+> We have check lockres owner in handler path because the owner can change
+> during that time.
+> 
+> In case this node is in progress of unmount, it does migrations with
+> other node. If one of the migration target get crashed before the
+> migration finishes, recovery happens on this lockres. If this node is
+> not the (dlm) recovery master, it can lost the ownership.
+> On the other hand, in case another node is in progress of migration, and
+> this node is not the target. if the node doing unmount crashed,  This
+> node can gain the ownership if it becomes the recovery master.
+> So we should take care the above cases.
+> Also the ownership can move between two other different nodes. We
+> don't care that.
 
-I think we can consider MIGRATING as BUSY(DLM_FORWARD) and the creating thread
-should retry in case the owner has changed after the migration.
-
-code it as something like this:
-
-static enum dlm_status dlmlock_master(struct dlm_ctxt *dlm, ...
-{
-	...
-	spin_lock(&res->spinlock);
-	__dlm_wait_on_lockres(res);
-	if (unlikely(res->owner != dlm->node_num)) {
-		spin_unlock(&res->spinlock);
-		return DLM_FORWARD;
-	}
-	...
-}
-
-And if it's from a handler path, just return the DLM_FORWARD; Otherwise
-retry in dlmlock(), (goto retry_lock).
-
-The above should be taken care in my patch "check lockres owner in handler path",
-not for only handler path but also the "local create" path. But seems I
-missed it.
+With this patch, by not sending request to wrong master node, maybe we can avoid
+some "invalid lockres id" problem if not all.
 
 regards,
 wengang.
-> 
-> The fix is to make the migrate thread also consider the reference map.
-> 
-> This usage pattern can be triggered by userspace on userdlm locks and flocks.
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-> ---
