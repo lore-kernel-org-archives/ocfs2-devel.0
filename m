@@ -1,81 +1,70 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 24 Nov 2010 18:50:22 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: a missing
- DLM_LOCK_RES_IN_PROGRESS set
-In-Reply-To: <201011190425.oAJ4P6WC020935@rcsinet13.oracle.com>
-References: <201011190425.oAJ4P6WC020935@rcsinet13.oracle.com>
-Message-ID: <20101124105022.GA10050@laptop.jp.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Thu, 25 Nov 2010 02:08:23 -0800
+Subject: [Ocfs2-devel] [RFC] ocfs2: Remove j_trans_barrier
+In-Reply-To: <4CBE8751.1060606@oracle.com>
+References: <4CBE8751.1060606@oracle.com>
+Message-ID: <20101125100822.GA28616@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-A reminder.
+On Wed, Oct 20, 2010 at 02:08:17PM +0800, Tao Ma wrote:
+> 	j_trans_barrier in ocfs2 is used to protect some journal operations
+> in ocfs2. So normally, it is used as belows:
+> 1. In journal transaction. When we start a transaction, We will
+> down_read it and j_num_trans will be increased accordingly(in case
+> of a cluster environment). It will be up_read when we do
+> ocfs2_commit_trans.
+> 2. In ocfs2_commit_cache, we will down_write it and then call
+> jbd2_journal_flush, increase j_trans_id, reset j_num_trans and
+> finally call up_write. This function is used by thread ocfs2cmt.
 
-thanks,
-wengang.
-On 10-11-19 12:23, Wengang Wang wrote:
-> For remote dlm operations, local node sets DLM_LOCK_RES_IN_PROGRESS flag on
-> the lockres to prevent parallel remote dlm requests.
-> There is a miss of setting that flag in dlmunlock_common() for the remote
-> case which leads to a later remote dlm request goes on.
-> 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> ---
->  fs/ocfs2/dlm/dlmunlock.c |   11 ++++++++---
->  1 files changed, 8 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-> index 817287c..a45be2f 100644
-> --- a/fs/ocfs2/dlm/dlmunlock.c
-> +++ b/fs/ocfs2/dlm/dlmunlock.c
-> @@ -104,7 +104,7 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  {
->  	enum dlm_status status;
->  	int actions = 0;
-> -	int in_use;
-> +	int in_use, can_block;
->          u8 owner;
->  
->  	mlog(0, "master_node = %d, valblk = %d\n", master_node,
-> @@ -127,9 +127,10 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  		return DLM_BADPARAM;
->  	}
->  
-> +	can_block = master_node? (flags & LKM_CANCEL) : 1;
->  	spin_lock(&res->spinlock);
->  	if (res->state & DLM_LOCK_RES_IN_PROGRESS) {
-> -		if (master_node && !(flags & LKM_CANCEL)) {
-> +		if (!can_block) {
->  			mlog(ML_ERROR, "lockres in progress!\n");
->  			spin_unlock(&res->spinlock);
->  			return DLM_FORWARD;
-> @@ -137,6 +138,9 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  		/* ok for this to sleep if not in a network handler */
->  		__dlm_wait_on_lockres(res);
->  		res->state |= DLM_LOCK_RES_IN_PROGRESS;
-> +	} else {
-> +		if (can_block)
-> +			res->state |= DLM_LOCK_RES_IN_PROGRESS;
->  	}
->  	spin_lock(&lock->spinlock);
->  
-> @@ -232,7 +236,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
->  	dlm_lock_put(lock);
->  
->  leave:
-> -	res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
-> +	if (can_block)
-> +		res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
->  	if (!dlm_lock_on_list(&res->converting, lock))
->  		BUG_ON(lock->ml.convert_type != LKM_IVMODE);
->  	else
-> -- 
-> 1.7.2.3
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+<snip> slow filesystem... </snip>
+
+> My solution is that:
+> 1. remove j_trans_barrier
+> 2. Add a flag ci_checkpointing in ocfs2_caching_info:
+>    1) When we find this caching_info needs checkpoint, set this flag
+> and start the checkpointing(in ocfs2_ci_checkpointed). And the
+> downconvert request will be requeued so that we can check and clear
+> this flag next time it is handled.
+>    2) Clear the flag when there is no need for checkpointing this
+> ci(also in ocfs2_ci_checkpointed) during check_downconvert.
+> 3. make sure when we journal_access some blocks, the caching_info
+> can't be in the state of checkpointing. I think if we are
+> checkpointing an caching_info, we shouldn't be able to
+> journal_access it since it is just required to downconvert and we
+> shouldn't have the lock now? So perhaps a BUG_ON should work?
+
+Tao,
+	I'm sorry I haven't responded sooner.  This proposal didn't
+strike me as quite right, and I didn't have time to think about it.
+I have a couple of concerns.
+	First, we don't always checkpoint from a downconvert.  We do it
+in clear_inode() as well, when we are flushing an inode from cache.
+This may not have anything to do with the lock we're caring about, eg on
+other inodes.  What I mean is, the caching info for the inode we care
+about may not be checkpointing, but the journal as a whole is.  We need
+to stop all action while that is happening.
+	Second, there is the flip side.  How do we wait until all open
+transactions are complete before checkpointing?  The down_write() in
+ocfs2_commit_cache() blocks until all open transactions up_read().  In
+your scheme, there is no care taken for open transactions against the
+journal.  Remember, the journal is global to the node.
+
+Joel
+
+-- 
+
+Life's Little Instruction Book #464
+
+	"Don't miss the magic of the moment by focusing on what's
+	 to come."
+
+Joel Becker
+Senior Development Manager
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
