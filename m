@@ -1,75 +1,146 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Tue, 30 Nov 2010 22:37:44 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove a potential deadlock
-Message-ID: <201011301441.oAUBN1Tv032519@rcsinet13.oracle.com>
+Date: Tue, 30 Nov 2010 23:48:48 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: queue ast in lockres->spinlock
+Message-ID: <201011301551.oAUD3n5c002863@rcsinet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I am resending this patch. seems the violation in dlm_flush_asts() won't be
-triggered since the lockres looks shouldn't have the last ref.
+There is bug hitting the BUG() in ocfs2_prepare_downconvert(), in 1.4 code
+though.
 
-/*
- *
- * spinlock lock ordering: if multiple locks are needed, obey this ordering:
- *    dlm_domain_lock
- *    struct dlm_ctxt->spinlock
- *    struct dlm_lock_resource->spinlock
- *    struct dlm_ctxt->master_lock
- *    struct dlm_ctxt->ast_lock
- *    dlm_master_list_entry->spinlock
- *    dlm_lock->spinlock
- *
- */
+static unsigned int ocfs2_prepare_downconvert(struct ocfs2_lock_res *lockres,
+                                              int new_level)
+{               
+        assert_spin_locked(&lockres->l_lock);
+                
+        BUG_ON(lockres->l_blocking <= DLM_LOCK_NL);
+                
+        if (lockres->l_level <= new_level) {
+                mlog(ML_ERROR, "lockres %s, lvl %d <= %d, blcklst %d, mask %d, "
+                     "type %d, flags 0x%lx, hold %d %d, act %d %d, req %d, "
+                     "block %d, pgen %d\n", lockres->l_name, lockres->l_level,
+                     new_level, list_empty(&lockres->l_blocked_list),
+                     list_empty(&lockres->l_mask_waiters), lockres->l_type,
+                     lockres->l_flags, lockres->l_ro_holders,
+                     lockres->l_ex_holders, lockres->l_action,
+                     lockres->l_unlock_action, lockres->l_requested,
+                     lockres->l_blocking, lockres->l_pending_gen);
+                BUG();  
+        } 
+....
 
-There is a violation that locks on dlm_lock_resource->spinlock after locking
-on dlm_ctxt->ast_lock. The violation is not detected because so far there is
-only one place where both the two spinlock are taken at the same time. But it
-is a potential deadlock in future(when the two lock are taken all together in
-correct order).
+By checking vmcore, lockres->l_level == new_level == 0.
 
-This patch fixes the problem by changing the calling order.
+Though no tcpdump shows that, I think it's caused by a BAST before AST.
+It can happen in the following case(steps in time order):
+
+1) Node A send a "up convert" request(for a EX) to the master node, node B.
+
+2) Node C send a "create lock" request(for a PR) to the master node, node B
+against the same lockres.
+
+3) The "convert request" was added to dlm_thread because the lock can't be
+granted immediately. So that the "create lock" thread and the "up convert"
+thread can run in parallel.
+
+4) the "create lock" thread get the lockres->spinlock and found no conflict for
+the lock request, so it put the lock to granted list. then lockres->spinlock is
+released. (see dlmlock_master()).
+
+5) the dlm_thread get the spinlcok and found the conflict lock, which was
+granted in 4), and queue a BAST that will send to node C.
+(see dlm_shuffle_lists()).
+
+6) the "create lock" thread then continue to queue the AST for the granted lock
+to node C. So the BAST and AST come to Node C in order.
+
+7) node C crashes when responding the BAST.
+
+
+This patch tries to fix it by moving the queue_ast into protection of
+lockres->spinlock.
+
+This patch is based on
+http://oss.oracle.com/pipermail/ocfs2-devel/2010-November/007523.html
+Otherwise, it could cause deadlock.(by different order of lockres->spinlock and
+dlm->ast_lock)
 
 Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 ---
- fs/ocfs2/dlm/dlmthread.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ fs/ocfs2/dlm/dlmconvert.c |   14 ++++++--------
+ fs/ocfs2/dlm/dlmlock.c    |    6 ++----
+ 2 files changed, 8 insertions(+), 12 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index 2211acf..676ff3e 100644
---- a/fs/ocfs2/dlm/dlmthread.c
-+++ b/fs/ocfs2/dlm/dlmthread.c
-@@ -671,8 +671,8 @@ static int dlm_thread(void *data)
- 		 	/* lockres can be re-dirtied/re-added to the
- 			 * dirty_list in this gap, but that is ok */
+diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
+index 9f30491..ff0b84f 100644
+--- a/fs/ocfs2/dlm/dlmconvert.c
++++ b/fs/ocfs2/dlm/dlmconvert.c
+@@ -90,15 +90,14 @@ enum dlm_status dlmconvert_master(struct dlm_ctxt *dlm,
+ 				     &call_ast, &kick_thread);
  
--			spin_lock(&dlm->ast_lock);
- 			spin_lock(&res->spinlock);
-+			spin_lock(&dlm->ast_lock);
- 			if (res->owner != dlm->node_num) {
- 				__dlm_print_one_lock_resource(res);
- 				mlog(ML_ERROR, "inprog:%s, mig:%s, reco:%s, dirty:%s\n",
-@@ -691,8 +691,8 @@ static int dlm_thread(void *data)
- 					  DLM_LOCK_RES_RECOVERING)) {
- 				/* move it to the tail and keep going */
- 				res->state &= ~DLM_LOCK_RES_DIRTY;
--				spin_unlock(&res->spinlock);
- 				spin_unlock(&dlm->ast_lock);
-+				spin_unlock(&res->spinlock);
- 				mlog(0, "delaying list shuffling for in-"
- 				     "progress lockres %.*s, state=%d\n",
- 				     res->lockname.len, res->lockname.name,
-@@ -713,8 +713,8 @@ static int dlm_thread(void *data)
- 			/* called while holding lockres lock */
- 			dlm_shuffle_lists(dlm, res);
- 			res->state &= ~DLM_LOCK_RES_DIRTY;
--			spin_unlock(&res->spinlock);
- 			spin_unlock(&dlm->ast_lock);
-+			spin_unlock(&res->spinlock);
+ 	res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
++	if (call_ast)
++		dlm_queue_ast(dlm, lock);
+ 	spin_unlock(&res->spinlock);
+ 	wake_up(&res->wq);
+ 	if (status != DLM_NORMAL && status != DLM_NOTQUEUED)
+ 		dlm_error(status);
  
- 			dlm_lockres_calc_usage(dlm, res);
+-	/* either queue the ast or release it */
+-	if (call_ast)
+-		dlm_queue_ast(dlm, lock);
+-	else
++	if (!call_ast)
+ 		dlm_lockres_release_ast(dlm, res);
  
+ 	if (kick_thread)
+@@ -514,6 +513,8 @@ int dlm_convert_lock_handler(struct o2net_msg *msg, u32 len, void *data,
+ 					     cnv->requested_type,
+ 					     &call_ast, &kick_thread);
+ 		res->state &= ~DLM_LOCK_RES_IN_PROGRESS;
++		if (call_ast)
++			dlm_queue_ast(dlm, lock);
+ 		wake = 1;
+ 	}
+ 	spin_unlock(&res->spinlock);
+@@ -530,10 +531,7 @@ leave:
+ 	if (lock)
+ 		dlm_lock_put(lock);
+ 
+-	/* either queue the ast or release it, if reserved */
+-	if (call_ast)
+-		dlm_queue_ast(dlm, lock);
+-	else if (ast_reserved)
++	if ((!call_ast) && ast_reserved)
+ 		dlm_lockres_release_ast(dlm, res);
+ 
+ 	if (kick_thread)
+diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+index 69cf369..f84d1fb 100644
+--- a/fs/ocfs2/dlm/dlmlock.c
++++ b/fs/ocfs2/dlm/dlmlock.c
+@@ -157,6 +157,7 @@ static enum dlm_status dlmlock_master(struct dlm_ctxt *dlm,
+ 		if (!dlm_is_recovery_lock(res->lockname.name,
+ 					  res->lockname.len)) {
+ 			kick_thread = 1;
++			dlm_queue_ast(dlm, lock);
+ 			call_ast = 1;
+ 		} else {
+ 			mlog(0, "%s: returning DLM_NORMAL to "
+@@ -188,10 +189,7 @@ static enum dlm_status dlmlock_master(struct dlm_ctxt *dlm,
+ 	spin_unlock(&res->spinlock);
+ 	wake_up(&res->wq);
+ 
+-	/* either queue the ast or release it */
+-	if (call_ast)
+-		dlm_queue_ast(dlm, lock);
+-	else
++	if (!call_ast)
+ 		dlm_lockres_release_ast(dlm, res);
+ 
+ 	dlm_lockres_calc_usage(dlm, res);
 -- 
-1.7.2.2
+1.7.2.3
