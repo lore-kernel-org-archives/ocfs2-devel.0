@@ -1,11 +1,11 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 30 Nov 2010 15:03:55 +0800
+Date: Tue, 30 Nov 2010 15:06:18 +0800
 Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Teach 'coherency=full'
  O_DIRECT writes to correctly up_read i_alloc_sem.
 In-Reply-To: <4CF49D83.3070700@oracle.com>
 References: <1291022506-14981-1-git-send-email-tristan.ye@oracle.com>
 	<4CF49D83.3070700@oracle.com>
-Message-ID: <4CF4A1DB.4070307@oracle.com>
+Message-ID: <4CF4A26A.5060307@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -100,7 +100,8 @@ Tao Ma wrote:
 > you read the code for the first time since we have't set it before. So 
 > it looks a little bit strange.
 
-Yep, an explicit clear may not needed, just for a guarantee .
+As what I said, just for a guarantee, in case of the iocb's private data 
+gets corrupted somehow, and the corresponding bit was incorrectly set.
 
 >
 > I guess maybe we can clear it when we do up_read(&inode->i_alloc_sem)?
@@ -109,15 +110,6 @@ Yep, an explicit clear may not needed, just for a guarantee .
 >     /* communicate with ocfs2_dio_end_io */
 >         ocfs2_iocb_set_rw_locked(iocb, rw_level);
 > +    ocfs2_iocb_set_sem_locked(iocb, have_alloc_sem);
-
-rw_lock differs from sem a little bit, we'll be facing have rw_lock or 
-not, besides, EX or PR locks should be identified when we do have a rw_lock.
-
-For sem, all we need to concern is, having it or not.
-
-
-Tristan.
-
 >
 > Regards,
 > Tao
