@@ -1,115 +1,75 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 30 Nov 2010 15:06:18 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Teach 'coherency=full'
- O_DIRECT writes to correctly up_read i_alloc_sem.
-In-Reply-To: <4CF49D83.3070700@oracle.com>
-References: <1291022506-14981-1-git-send-email-tristan.ye@oracle.com>
-	<4CF49D83.3070700@oracle.com>
-Message-ID: <4CF4A26A.5060307@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Tue, 30 Nov 2010 22:37:44 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: remove a potential deadlock
+Message-ID: <201011301441.oAUBN1Tv032519@rcsinet13.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Tao Ma wrote:
-> Hi Tristan,
->
-> On 11/29/2010 05:21 PM, Tristan Ye wrote:
->> Due to newly-introduced 'coherency=full' O_DIRECT writes also takes 
->> the EX
->> rw_lock like buffered writes did(rw_level == 1), it turns out messing 
->> the
->> usage of 'level' in ocfs2_dio_end_io() up, which caused i_alloc_sem 
->> being
->> failed to get up_read'd correctly.
->>
->> This patch tries to teach ocfs2_dio_end_io to understand well on all 
->> locking
->> stuffs by explicitly introducing a new bit for i_alloc_sem in iocb's 
->> private
->> data, just like what we did for rw_lock.
->>
->> Signed-off-by: Tristan Ye<tristan.ye@oracle.com>
->> ---
->>   fs/ocfs2/aops.c |    6 ++++--
->>   fs/ocfs2/aops.h |    6 ++++++
->>   fs/ocfs2/file.c |    9 +++++++--
->>   3 files changed, 17 insertions(+), 4 deletions(-)
->>
->> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
->> index f1e962c..857e013 100644
->> --- a/fs/ocfs2/aops.c
->> +++ b/fs/ocfs2/aops.c
->> @@ -568,7 +568,7 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
->>                    bool is_async)
->>   {
->>       struct inode *inode = iocb->ki_filp->f_path.dentry->d_inode;
->> -    int level;
->> +    int level, sem_locked;
-> Is sem_locked really needed here? At least from your code below, we 
-> don't need it if we can change the sequence somehow.
->>
->>       /* this io's submitter should not have unlocked this before we 
->> could */
->>       BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
->> @@ -576,7 +576,9 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
->>       ocfs2_iocb_clear_rw_locked(iocb);
->>
->>       level = ocfs2_iocb_rw_locked_level(iocb);
->> -    if (!level)
->> +    sem_locked = ocfs2_iocb_is_sem_locked(iocb);
->> +    ocfs2_iocb_clear_sem_locked(iocb);
->> +    if (sem_locked)
->>           up_read(&inode->i_alloc_sem);
->>       ocfs2_rw_unlock(inode, level);
->>
->> diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
->> index 76bfdfd..c7a3e5f 100644
->> --- a/fs/ocfs2/aops.h
->> +++ b/fs/ocfs2/aops.h
->> @@ -72,4 +72,10 @@ static inline void ocfs2_iocb_set_rw_locked(struct 
->> kiocb *iocb, int level)
->>       clear_bit(0, (unsigned long *)&iocb->private)
->>   #define ocfs2_iocb_rw_locked_level(iocb) \
->>       test_bit(1, (unsigned long *)&iocb->private)
->> +#define ocfs2_iocb_set_sem_locked(iocb) \
->> +    set_bit(2, (unsigned long *)&iocb->private)
->> +#define ocfs2_iocb_clear_sem_locked(iocb) \
->> +    clear_bit(2, (unsigned long *)&iocb->private)
->> +#define ocfs2_iocb_is_sem_locked(iocb) \
->> +    test_bit(2, (unsigned long *)&iocb->private)
->>   #endif /* OCFS2_FILE_H */
->> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->> index 77b4c04..0e9d729 100644
->> --- a/fs/ocfs2/file.c
->> +++ b/fs/ocfs2/file.c
->> @@ -2246,7 +2246,10 @@ relock:
->>       if (direct_io) {
->>           down_read(&inode->i_alloc_sem);
->>           have_alloc_sem = 1;
->> -    }
->> +        /* communicate with ocfs2_dio_end_io */
->> +        ocfs2_iocb_set_sem_locked(iocb);
->> +    } else
->> +        ocfs2_iocb_clear_sem_locked(iocb);
->>
->>       /*
->>        * Concurrent O_DIRECT writes are allowed with
-> Sorry, but why you clear the sem lock here? It doesn't make sense if 
-> you read the code for the first time since we have't set it before. So 
-> it looks a little bit strange.
+I am resending this patch. seems the violation in dlm_flush_asts() won't be
+triggered since the lockres looks shouldn't have the last ref.
 
-As what I said, just for a guarantee, in case of the iocb's private data 
-gets corrupted somehow, and the corresponding bit was incorrectly set.
+/*
+ *
+ * spinlock lock ordering: if multiple locks are needed, obey this ordering:
+ *    dlm_domain_lock
+ *    struct dlm_ctxt->spinlock
+ *    struct dlm_lock_resource->spinlock
+ *    struct dlm_ctxt->master_lock
+ *    struct dlm_ctxt->ast_lock
+ *    dlm_master_list_entry->spinlock
+ *    dlm_lock->spinlock
+ *
+ */
 
->
-> I guess maybe we can clear it when we do up_read(&inode->i_alloc_sem)?
->
-> Or another way, why not put it with the set of rw_level.
->     /* communicate with ocfs2_dio_end_io */
->         ocfs2_iocb_set_rw_locked(iocb, rw_level);
-> +    ocfs2_iocb_set_sem_locked(iocb, have_alloc_sem);
->
-> Regards,
-> Tao
+There is a violation that locks on dlm_lock_resource->spinlock after locking
+on dlm_ctxt->ast_lock. The violation is not detected because so far there is
+only one place where both the two spinlock are taken at the same time. But it
+is a potential deadlock in future(when the two lock are taken all together in
+correct order).
+
+This patch fixes the problem by changing the calling order.
+
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmthread.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+index 2211acf..676ff3e 100644
+--- a/fs/ocfs2/dlm/dlmthread.c
++++ b/fs/ocfs2/dlm/dlmthread.c
+@@ -671,8 +671,8 @@ static int dlm_thread(void *data)
+ 		 	/* lockres can be re-dirtied/re-added to the
+ 			 * dirty_list in this gap, but that is ok */
+ 
+-			spin_lock(&dlm->ast_lock);
+ 			spin_lock(&res->spinlock);
++			spin_lock(&dlm->ast_lock);
+ 			if (res->owner != dlm->node_num) {
+ 				__dlm_print_one_lock_resource(res);
+ 				mlog(ML_ERROR, "inprog:%s, mig:%s, reco:%s, dirty:%s\n",
+@@ -691,8 +691,8 @@ static int dlm_thread(void *data)
+ 					  DLM_LOCK_RES_RECOVERING)) {
+ 				/* move it to the tail and keep going */
+ 				res->state &= ~DLM_LOCK_RES_DIRTY;
+-				spin_unlock(&res->spinlock);
+ 				spin_unlock(&dlm->ast_lock);
++				spin_unlock(&res->spinlock);
+ 				mlog(0, "delaying list shuffling for in-"
+ 				     "progress lockres %.*s, state=%d\n",
+ 				     res->lockname.len, res->lockname.name,
+@@ -713,8 +713,8 @@ static int dlm_thread(void *data)
+ 			/* called while holding lockres lock */
+ 			dlm_shuffle_lists(dlm, res);
+ 			res->state &= ~DLM_LOCK_RES_DIRTY;
+-			spin_unlock(&res->spinlock);
+ 			spin_unlock(&dlm->ast_lock);
++			spin_unlock(&res->spinlock);
+ 
+ 			dlm_lockres_calc_usage(dlm, res);
+ 
+-- 
+1.7.2.2
