@@ -1,104 +1,104 @@
-From: Nick Piggin <npiggin@gmail.com>
-Date: Fri, 31 Dec 2010 11:51:30 -0000
-Subject: [Ocfs2-devel] Confused by commit 56a76f [fs: fix page_mkwrite
- error cases in core code and btrfs]
-In-Reply-To: <20101231113949.GA21179@mail.oracle.com>
-References: <20101230232936.GA931@mail.oracle.com>
-	<AANLkTi=afH_Qqb0wfn4UjXju__QjKKa+cBTS4tO5o2NJ@mail.gmail.com>
-	<20101231110054.GA20521@mail.oracle.com>
-	<AANLkTik3_=Jo2ubML1hhanFFKC3MkEibrCPruto2oY_v@mail.gmail.com>
-	<20101231113949.GA21179@mail.oracle.com>
-Message-ID: <AANLkTinpXuLQSm_W2xOrTXvn3TGGMuzvkMR1GMSwdxsM@mail.gmail.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Wed, 1 Dec 2010 10:52:18 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: queue ast in lockres->spinlock
+In-Reply-To: <4CF54F55.8080007@oracle.com>
+References: <201011301551.oAUD3n5c002863@rcsinet13.oracle.com>
+	<4CF54F55.8080007@oracle.com>
+Message-ID: <20101201025218.GA3709@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Nick Piggin <npiggin@gmail.com>, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 31, 2010 at 10:39 PM, Joel Becker <Joel.Becker@oracle.com> wrote:
-> On Fri, Dec 31, 2010 at 10:16:35PM +1100, Nick Piggin wrote:
->> On Fri, Dec 31, 2010 at 10:00 PM, Joel Becker <jlbec@evilplan.org> wrote:
->> > On Fri, Dec 31, 2010 at 08:31:41PM +1100, Nick Piggin wrote:
->> >> On Fri, Dec 31, 2010 at 10:29 AM, Joel Becker <Joel.Becker@oracle.com> wrote:
->>
->> >> The better way to do this would be to just return VM_FAULT_NOPAGE
->> >> in any case you need the VM to retry the fault. When you reach the
->> >> business end of your handler, you want to hold the page locked, after
->> >> you verify it is correct, and return that to the fault handler.
->> >
->> > ? ? ? ?This is going to be hard. ?Our write_end() assumes it must
->> > unlock the pages (which is normal behavior for write(2)), but in the
->> > page_mkwrite() case we need to avoid the unlock to follow your
->> > recommendation (we use our write_begin/write_end pair to trigger any
->> > allocation or zeroing needed before the page is writable).
->>
->> Yes that would be the best option. It is possible to use the unlocked
->> return, but that still gives possibility of races in some cases. Consider
->
-> ? ? ? ?Yes, I am aware of that.
->
->> Basically it would be nice for all filesystems to move to this convention
->> so we can remove the old cruft.
->
-> ? ? ? ?I can appreciate that. ?And you've just answered the "Do you
-> want us to get there, or are minor faults in the old-0-style OK?"
-> question.
+On 10-11-30 11:24, Sunil Mushran wrote:
+> http://oss.oracle.com/pipermail/ocfs2-devel/2010-January/005801.html
+> 
+> The above bug/fix fits better.
+> 
+> Having said that, I am not discounting your point. But I will need more
+> to analyse it. Questions inlined.
+> 
+> On 11/30/2010 07:48 AM, Wengang Wang wrote:
+> >There is bug hitting the BUG() in ocfs2_prepare_downconvert(), in 1.4 code
+> >though.
+> >
+> >static unsigned int ocfs2_prepare_downconvert(struct ocfs2_lock_res *lockres,
+> >                                               int new_level)
+> >{
+> >         assert_spin_locked(&lockres->l_lock);
+> >
+> >         BUG_ON(lockres->l_blocking<= DLM_LOCK_NL);
+> >
+> >         if (lockres->l_level<= new_level) {
+> >                 mlog(ML_ERROR, "lockres %s, lvl %d<= %d, blcklst %d, mask %d, "
+> >                      "type %d, flags 0x%lx, hold %d %d, act %d %d, req %d, "
+> >                      "block %d, pgen %d\n", lockres->l_name, lockres->l_level,
+> >                      new_level, list_empty(&lockres->l_blocked_list),
+> >                      list_empty(&lockres->l_mask_waiters), lockres->l_type,
+> >                      lockres->l_flags, lockres->l_ro_holders,
+> >                      lockres->l_ex_holders, lockres->l_action,
+> >                      lockres->l_unlock_action, lockres->l_requested,
+> >                      lockres->l_blocking, lockres->l_pending_gen);
+> >                 BUG();
+> >         }
+> >....
+> >
+> >By checking vmcore, lockres->l_level == new_level == 0.
+> >
+> >Though no tcpdump shows that, I think it's caused by a BAST before AST.
+> >It can happen in the following case(steps in time order):
+> >
+> >1) Node A send a "up convert" request(for a EX) to the master node, node B.
+> >
+> >2) Node C send a "create lock" request(for a PR) to the master node, node B
+> >against the same lockres.
+> >
+> >3) The "convert request" was added to dlm_thread because the lock can't be
+> >granted immediately. So that the "create lock" thread and the "up convert"
+> >thread can run in parallel.
+> >
+> >4) the "create lock" thread get the lockres->spinlock and found no conflict for
+> >the lock request, so it put the lock to granted list. then lockres->spinlock is
+> >released. (see dlmlock_master()).
+> >
+> >5) the dlm_thread get the spinlcok and found the conflict lock, which was
+> >granted in 4), and queue a BAST that will send to node C.
+> >(see dlm_shuffle_lists()).
+> >
+> >6) the "create lock" thread then continue to queue the AST for the granted lock
+> >to node C. So the BAST and AST come to Node C in order.
+> >
+> >7) node C crashes when responding the BAST.
+> 
+> So in your scenario, the upconvert request is before create lock. If that is
+> so, then even if the new level cannot be granted, the lock will be moved
+> to the convert queue. The create lock request is always added to the
+> blocked queue which always has the lowest priority.
+> 
+> Note that the dlm always processes convert queues before blocked queues.
+> Also, o2dlm, always processes all ASTs before BASTs.
+> 
+> That is not to say what you have said cannot happen. But I will need more
+> information. Like, Node A was up converting to EX from what level? Were
+> there any other locks on the resource?
+> 
 
-It is OK in that it will work. It is not preferred, if you are reworking pleaase
-use the new style.
+First I have to say that the scenario is in my thought only, no tcpdump
+shows that. Only the node C wanting a PR is the truth from the vmcore.
 
+Let's consider this situation:
 
->> > ? ? ? ?The find_or_create_page() is deep at the meat of the function,
->> > not the cursory check at the top. ?The idea is that at this point,
->> > find_or_create_page() will return a locked page that must, by
->> > definition, be part of the correct mapping.
->>
->> But you must still handle failures there, because find_or_create_page
->> may return -ENOMEM. So just lock the page, recheck the mapping
->> there, and then do exactly the same error handling.
->
-> ? ? ? ?Of course it can error, but error is different than clean
-> restart. ?Though cleanup should be the same; I'm looking at our code
-> trying to convince myself that this is so ;-)
+The create lock(CL) is for a PR;
+the up convert(UC) is PR->EX;
+there is an existing PR granted for another node(say node D) before the UC comes
 
-Cleanup is exactly the same, yes, because the only difference in
-different error codes is what the VM does with them.
+The UC comes. Because of the existing PR, the UC lock is moved to converting list.
+dlm_thread takes care it later.
+The CL comes. no conflict found(see dlm_can_grant_new_lock, convert_type not
+checked there). so it's not added to blocked list.
 
+Seems the above scenario can trigger a BAST before AST.
 
-> ?Btw, -ENOMEM is that OOM
-> fault error, right? ;-)
-
-Right.
-
-
->> > ? ? ? ?If the VM is rechecking the pte after we return from
->> > page_mkwrite(), won't it see any new page created?
->>
->> But the point of page_mkwrite is a dirty notifier for the fs. If this new
->> different page was installed due to say truncate then a read-only
->> fault, the filesystem would miss the notification. So it just does the
->> simple thing and retries the whole sequence (if needed).
->
-> ? ? ? ?Fair enough, even if we caused the new page and thus are already
-> notified ;-)
-
-Well, you would be notified via ->fault, but not not writable fault and no
-page_mkwrite.
-
-
-> ? ? ? ?Essentially, you would really like us (and ext4, and gfs2, etc)
-> to start returning VM_FAULT_NOPAGE for any place we aren't sure what
-> happened to our page, VM_FAULT_OOM when we get an -ENOMEM, and
-> VM_FAULT_LOCKED for all successful operations. ?That the long and short
-> of it? ?Thank you for helping me understand your plan for this code.
-
-Exactly.
-
-
-> ? ? ? ?Btw, what not use VM_FAULT_RETRY for "I'd like you to retry"?
-> Especially since the comment for NOPAGE doesn't read anything like its
-> actual behavior.
-
-It was designed first to replace that old ->nopfn handler, so it does need
-comments updating. RETRY doesn't cover the ->nopfn usage, but NOPAGE
-does cover the retry usage, I think, so names are OK.
+regards,
+wengang.
