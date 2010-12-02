@@ -1,44 +1,37 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Wed, 1 Dec 2010 21:29:45 -0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Introduce ocfs2_recover_node
-In-Reply-To: <AANLkTikcDcWTXPqPMKxySo9CDOKBfgqHxHcoXj0UO66B@mail.gmail.com>
-References: <AANLkTikcDcWTXPqPMKxySo9CDOKBfgqHxHcoXj0UO66B@mail.gmail.com>
-Message-ID: <20101202052945.GG16604@mail.oracle.com>
+Date: Wed, 1 Dec 2010 21:30:55 -0800
+Subject: [Ocfs2-devel] [PATCH 2/2] Thread recovery
+In-Reply-To: <4CF72B01.4000500@oracle.com>
+References: <AANLkTimnChrkhnX0prKXE93sGDtJ+q+rvULaWqQnq8e8@mail.gmail.com>
+	<4CF72B01.4000500@oracle.com>
+Message-ID: <20101202053055.GH16604@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Nov 17, 2010 at 09:50:04AM -0600, Goldwyn Rodrigues wrote:
-> @@ -1470,7 +1451,11 @@ void ocfs2_recovery_thread(struct ocfs2_super
-> *osb, int node_num)
+On Wed, Dec 01, 2010 at 09:13:37PM -0800, Sunil Mushran wrote:
+> One problem I see is that we may spawn too many threads. Imagine
+> a setup with 50 mounts and 16 nodes. Not uncommon at all. If 5 nodes
+> die, that's 300 threads, 50 of which will be coordinating threads.
 > 
->  	/* People waiting on recovery will wait on
->  	 * the recovery map to empty. */
-> -	if (ocfs2_recovery_map_set(osb, node_num))
-> +	ret = ocfs2_recovery_node_set(osb, node_num);
-> +	if (ret == -ENOMEM) {
-> +		mlog_errno(ret);
-> +		goto out;
-> +	} else if (ret)
->  		mlog(0, "node %d already in recovery map.\n", node_num);
+> One solution is to have a universal mount count and use that and the
+> number of cpus to come up with a per-mount parallel reco count.
+> 
+> Thoughts, anyone?
 
-	This is a broken change.  If we get -ENOMEM, we won't block
-other processes.  We can't have that happen.  There are two possible
-solutions.  First, like Sunil said, we can preallocate max_slots recovery
-entries.  Seems pretty sane.  The other solution would be to set an
-in-recovery flag that others can check, so even when the recovery list
-is empty because of a failed allocation, other processes still block.  I
-prefer the preallocation because it doesn't fail recovery.
+	The new concurrency workqueues should allow us a
+limited-threadcount pool of threads to do this.  We should be using them
+rather than implementing thread management ourselves.
 
 Joel
 
 -- 
 
-"In a crisis, don't hide behind anything or anybody. They're going
- to find you anyway."
-	- Paul "Bear" Bryant
+"Three o'clock is always too late or too early for anything you
+ want to do."
+        - Jean-Paul Sartre
 
 Joel Becker
 Senior Development Manager
