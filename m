@@ -1,80 +1,38 @@
-From: Massimo Cetra <ctrixk@navynet.it>
-Date: Thu, 02 Dec 2010 18:20:56 +0100
-Subject: [Ocfs2-devel] disk full when it shouldn't
-In-Reply-To: <4CD89E86.5010404@oracle.com>
-References: <4CD813D3.4080106@navynet.it> <4CD89E86.5010404@oracle.com>
-Message-ID: <4CF7D578.1060201@navynet.it>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 02 Dec 2010 11:05:01 -0800
+Subject: [Ocfs2-devel] [PATCH 1/2] Introduce ocfs2_recover_node
+In-Reply-To: <20101202052945.GG16604@mail.oracle.com>
+References: <AANLkTikcDcWTXPqPMKxySo9CDOKBfgqHxHcoXj0UO66B@mail.gmail.com>
+	<20101202052945.GG16604@mail.oracle.com>
+Message-ID: <4CF7EDDD.9020202@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Il 09/11/2010 02:06, Tao Ma ha scritto:
-> Hi Massimo,
->
-> From the output, it seems that you shouldn't meet with ENOSPC problem
-> at that time. So when you meet with ENOSPC, could you please do 'sync'
-> first(that will sync the metadata to the disk so that stat_sysdir can
-> output the real metadata info) and then do stat_sysdir?
->
-> btw, you can also try to 'touch' one new file in your ocfs2 volume. So
-> if it succeeds, it means that the inode_alloc is ok. Otherwise, your
-> inode_alloc has no space. Please also try this test when you meet with
-> ENOSPC.
+On 12/01/2010 09:29 PM, Joel Becker wrote:
+> On Wed, Nov 17, 2010 at 09:50:04AM -0600, Goldwyn Rodrigues wrote:
+>> @@ -1470,7 +1451,11 @@ void ocfs2_recovery_thread(struct ocfs2_super
+>> *osb, int node_num)
+>>
+>>   	/* People waiting on recovery will wait on
+>>   	 * the recovery map to empty. */
+>> -	if (ocfs2_recovery_map_set(osb, node_num))
+>> +	ret = ocfs2_recovery_node_set(osb, node_num);
+>> +	if (ret == -ENOMEM) {
+>> +		mlog_errno(ret);
+>> +		goto out;
+>> +	} else if (ret)
+>>   		mlog(0, "node %d already in recovery map.\n", node_num);
+> 	This is a broken change.  If we get -ENOMEM, we won't block
+> other processes.  We can't have that happen.  There are two possible
+> solutions.  First, like Sunil said, we can preallocate max_slots recovery
+> entries.  Seems pretty sane.  The other solution would be to set an
+> in-recovery flag that others can check, so even when the recovery list
+> is empty because of a failed allocation, other processes still block.  I
+> prefer the preallocation because it doesn't fail recovery.
 
-Hi Tao,
-
-As i supposed, the problem arose another time.
-
-Attached you may find the stat_sysdir output.
-
-For the sake of completeness, have to say that:
-
-- The output of df was the following:
-
-# df -i
-Filesystem             Inode   IUsati  ILib. IUso% Montato su
-[CUT]
-/dev/drbd2           9174751 4695156 4479595   52% /var/mail
-
-# df
-Filesystem        blocchi di   1K   Usati Disponib. Uso% Montato su
-[CUT]
-/dev/drbd2            36699004  18780656  17918348  52% /var/mail
-
-The filesystem was not full:
-
-sheet3-1:/var/mail/virtual# dd if=/dev/zero of=TEST bs=1024 count=1024
-dd: scrittura di `TEST': No space left on device
-1009+0 records in
-1008+0 records out
-1032192 bytes (1,0 MB) copied, 0,454305 s, 2,3 MB/s
-sheet3-1:/var/mail/virtual#
-
-
-mailq from postfix had the following errors:
-
-       (maildir delivery failed: error writing message: No space left on 
-device)
-       (maildir delivery failed: error writing message: No space left on 
-device)
-       (maildir delivery failed: error writing message: No space left on 
-device)
-
-A bunch of emails coundn't be delivered.
-
-I temporarily fixed it by removing old emails and the system recovered.
-
-I had another problem on a couple of different servers today and i'm 
-investigating to send more informations.
-
-Max
-
-
-
-
--------------- next part --------------
-An embedded and charset-unspecified text was scrubbed...
-Name: stat_sysdir.txt
-Url: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20101202/6e3f39b6/attachment-0001.txt 
+You could stick with the list but preallocate max_slots items during init.
+Attach all those to the s_init_reco_list. During set, move a item to
+s_active_reco_list. Clear moves it back.
