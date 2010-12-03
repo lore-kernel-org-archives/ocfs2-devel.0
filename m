@@ -1,58 +1,74 @@
-From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 2 Dec 2010 15:49:07 -0800
-Subject: [Ocfs2-devel] [PATCH 1/2] Introduce ocfs2_recover_node
-In-Reply-To: <4CF7EDDD.9020202@oracle.com>
-References: <AANLkTikcDcWTXPqPMKxySo9CDOKBfgqHxHcoXj0UO66B@mail.gmail.com>
-	<20101202052945.GG16604@mail.oracle.com>
-	<4CF7EDDD.9020202@oracle.com>
-Message-ID: <20101202234906.GC9864@mail.oracle.com>
+From: Tao Ma <tao.ma@oracle.com>
+Date: Fri, 03 Dec 2010 09:22:32 +0800
+Subject: [Ocfs2-devel] disk full when it shouldn't
+In-Reply-To: <4CF7D578.1060201@navynet.it>
+References: <4CD813D3.4080106@navynet.it> <4CD89E86.5010404@oracle.com>
+	<4CF7D578.1060201@navynet.it>
+Message-ID: <4CF84658.8040002@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Dec 02, 2010 at 11:05:01AM -0800, Sunil Mushran wrote:
-> On 12/01/2010 09:29 PM, Joel Becker wrote:
-> > On Wed, Nov 17, 2010 at 09:50:04AM -0600, Goldwyn Rodrigues wrote:
-> >> @@ -1470,7 +1451,11 @@ void ocfs2_recovery_thread(struct ocfs2_super
-> >> *osb, int node_num)
-> >>
-> >>   	/* People waiting on recovery will wait on
-> >>   	 * the recovery map to empty. */
-> >> -	if (ocfs2_recovery_map_set(osb, node_num))
-> >> +	ret = ocfs2_recovery_node_set(osb, node_num);
-> >> +	if (ret == -ENOMEM) {
-> >> +		mlog_errno(ret);
-> >> +		goto out;
-> >> +	} else if (ret)
-> >>   		mlog(0, "node %d already in recovery map.\n", node_num);
-> > 	This is a broken change.  If we get -ENOMEM, we won't block
-> > other processes.  We can't have that happen.  There are two possible
-> > solutions.  First, like Sunil said, we can preallocate max_slots recovery
-> > entries.  Seems pretty sane.  The other solution would be to set an
-> > in-recovery flag that others can check, so even when the recovery list
-> > is empty because of a failed allocation, other processes still block.  I
-> > prefer the preallocation because it doesn't fail recovery.
-> 
-> You could stick with the list but preallocate max_slots items during init.
-> Attach all those to the s_init_reco_list. During set, move a item to
-> s_active_reco_list. Clear moves it back.
+Hi Massimo,
+Massimo Cetra wrote:
+> Il 09/11/2010 02:06, Tao Ma ha scritto:
+>> Hi Massimo,
+>>
+>> From the output, it seems that you shouldn't meet with ENOSPC problem
+>> at that time. So when you meet with ENOSPC, could you please do 'sync'
+>> first(that will sync the metadata to the disk so that stat_sysdir can
+>> output the real metadata info) and then do stat_sysdir?
+>>
+>> btw, you can also try to 'touch' one new file in your ocfs2 volume. So
+>> if it succeeds, it means that the inode_alloc is ok. Otherwise, your
+>> inode_alloc has no space. Please also try this test when you meet with
+>> ENOSPC.
+>
+> Hi Tao,
+>
+> As i supposed, the problem arose another time.
+>
+> Attached you may find the stat_sysdir output.
+Got it.
+>
+>
+> For the sake of completeness, have to say that:
+>
+> - The output of df was the following:
+>
+> # df -i
+> Filesystem             Inode   IUsati  ILib. IUso% Montato su
+> [CUT]
+> /dev/drbd2           9174751 4695156 4479595   52% /var/mail
+>
+> # df
+> Filesystem        blocchi di   1K   Usati Disponib. Uso% Montato su
+> [CUT]
+> /dev/drbd2            36699004  18780656  17918348  52% /var/mail
+I have to say that df is only an approximate way to get the real info of 
+an ocfs2 volume.
+df -i use statfs(2). And since there is no easy way to calculate all the 
+inodes without
+locking every node's inode allocator, it just searchs the global_bitmap 
+and gives a rough number.
 
-	Exactly.
+>
+> The filesystem was not full:
+>
+> sheet3-1:/var/mail/virtual# dd if=/dev/zero of=TEST bs=1024 count=1024
+> dd: scrittura di `TEST': No space left on device
+> 1009+0 records in
+> 1008+0 records out
+> 1032192 bytes (1,0 MB) copied, 0,454305 s, 2,3 MB/s
+> sheet3-1:/var/mail/virtual#
+So this is node2? From the stat_sysdir output you attached, 
+inode_alloc:0001 is full.
+It has no free inodes and the creation will fail.
 
-Joel
+So you are meeting with the problem of fragmentation. Discontig block 
+group should fix it.
 
--- 
-
-"You must remember this:
- A kiss is just a kiss,
- A sigh is just a sigh.
- The fundamental rules apply
- As time goes by."
-
-Joel Becker
-Senior Development Manager
-Oracle
-E-mail: joel.becker at oracle.com
-Phone: (650) 506-8127
+Regards,
+Tao
