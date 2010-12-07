@@ -1,48 +1,54 @@
-From: Joel Becker <joel.becker@oracle.com>
-Date: Mon, 6 Dec 2010 19:34:59 -0800
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 fixes for 2.6.37-rc4
-Message-ID: <20101207033459.GB2233@mail.oracle.com>
+From: Joel Becker <Joel.Becker@oracle.com>
+Date: Mon, 6 Dec 2010 19:36:37 -0800
+Subject: [Ocfs2-devel] [PATCH 3/3] Ocfs2: Add a new code
+ 'OCFS2_INFO_FREEFRAG' for o2info ioctl.
+In-Reply-To: <4CFD91C2.1070605@oracle.com>
+References: <1289902422-3315-1-git-send-email-tristan.ye@oracle.com>
+	<1289902422-3315-4-git-send-email-tristan.ye@oracle.com>
+	<20101207011159.GN16687@mail.oracle.com>
+	<4CFD91C2.1070605@oracle.com>
+Message-ID: <20101207033637.GC2233@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
+On Tue, Dec 07, 2010 at 09:45:38AM +0800, Tristan Ye wrote:
+> >>+	gb_dinode = (struct ocfs2_dinode *)bh->b_data;
+> >>+	cl = &(gb_dinode->id2.i_chain);
+> >
+> >	This is safe because we never remove a chain entry from an
+> >inode.  However, if we ever shrink disks, we'll need to coordinate with
+> >this code.  Perhaps we should comment that.
+> 
+>    Alright, and the recoordination only would be needed for
+> none-coherency case, right?
+> 
+> Fully-coherent case will be holding the inode lock, and never allow
+> disk to be shrinked during the inquiry.
 
-Linus et al,
-	Here are the currently queued ocfs2 fixes for 2.6.37-rc.  A
-couple close some issues with merged changes.  Please pull.
+	You are correct.
+
+>    Oh, Wait, an arbitrary 'fdisk' can shrink the disk regardless of
+> cluster-coherency.
+
+	We're not worried about that.  That's a mistake made by the
+sysadmin, and there is no way to prevent it.  I'm only talking about a
+tunefs operation that validly shrinks the ocfs2 filesystem.  We don't do
+it today, but if we ever do this dirty read has to know about it.  Not
+for accuracy, just not to crash.
 
 Joel
 
+-- 
 
-The following changes since commit 771f8bc71c31c6bd103cdec283012253f352ab1c:
+"What no boss of a programmer can ever understand is that a programmer
+ is working when he's staring out of the window"
+	- With apologies to Burton Rascoe
 
-  Merge branch 'slab/urgent' of git://git.kernel.org/pub/scm/linux/kernel/git/penberg/slab-2.6 (2010-12-05 16:45:02 -0800)
-
-are available in the git repository at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
-
-David Sterba (1):
-      fs/ocfs2/dlm: Use GFP_ATOMIC under spin_lock
-
-Jiri Slaby (1):
-      ocfs2: fix memory leak
-
-Milton Miller (1):
-      ocfs2: char is not always signed
-
-Tristan Ye (1):
-      Ocfs2: Stop tracking a negative dentry after dentry_iput().
-
-dann frazier (1):
-      ocfs2_connection_find() returns pointer to bad structure
-
- fs/ocfs2/cluster/heartbeat.c |   14 ++++++++++----
- fs/ocfs2/dcache.c            |    1 -
- fs/ocfs2/dlm/dlmdomain.c     |    2 +-
- fs/ocfs2/ocfs2.h             |    6 +++---
- fs/ocfs2/stack_user.c        |    2 +-
- 5 files changed, 15 insertions(+), 10 deletions(-)
+Joel Becker
+Senior Development Manager
+Oracle
+E-mail: joel.becker at oracle.com
+Phone: (650) 506-8127
