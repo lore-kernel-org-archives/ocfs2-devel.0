@@ -1,33 +1,35 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 07 Dec 2010 18:15:16 -0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Try to free truncate log when
- meeting ENOSPC in write.
-In-Reply-To: <20101208015818.GB22293@mail.oracle.com>
-References: <1288078148-6343-1-git-send-email-tao.ma@oracle.com>	<1288854851-25989-1-git-send-email-tao.ma@oracle.com>
-	<20101208015818.GB22293@mail.oracle.com>
-Message-ID: <4CFEEA34.5020109@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Wed,  8 Dec 2010 20:34:39 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: make existing convertion precedent
+	over new lock
+Message-ID: <201012081237.oB7Ibeoo012391@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 12/07/2010 05:58 PM, Joel Becker wrote:
-> On Thu, Nov 04, 2010 at 03:14:11PM +0800, Tao Ma wrote:
->> Recently, one of our colleagues meet with a problem that if we
->> write/delete a 32mb files repeatly, we will get an ENOSPC in
->> the end. And the corresponding bug is 1288.
->> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1288
->>
->> The real problem is that although we have freed the clusters,
->> they are in truncate log and they will be summed up so that
->> we can free them once in a whole.
->>
->> So this patch just try to resolve it. In case we see -ENOSPC
->> in ocfs2_write_begin_no_lock, we will check whether the truncate
->> log has enough clusters for our need, if yes, we will try to
->> flush the truncate log at that point and try again. This method
->> is inspired by Mark Fasheh<mfasheh@suse.com>. Thanks.
-> 	I think I like this.  Anyone have any objections?
+Make existing convertion precedent over new lock. It makes o2dlm locking more
+like fair locking.
 
-Looks good.
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmlock.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+index 69cf369..7009292 100644
+--- a/fs/ocfs2/dlm/dlmlock.c
++++ b/fs/ocfs2/dlm/dlmlock.c
+@@ -106,6 +106,9 @@ static int dlm_can_grant_new_lock(struct dlm_lock_resource *res,
+ 
+ 		if (!dlm_lock_compatible(tmplock->ml.type, lock->ml.type))
+ 			return 0;
++		if (!dlm_lock_compatible(tmplock->ml.convert_type,
++					 lock->ml.type))
++			return 0;
+ 	}
+ 
+ 	return 1;
+-- 
+1.7.2.3
