@@ -1,110 +1,49 @@
-From: Tao Ma <tm@tao.ma>
-Date: Fri, 10 Dec 2010 23:55:21 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Adjust masklog flag values
-In-Reply-To: <4D01BBB5.50001@oracle.com>
-References: <1291947638-12365-1-git-send-email-sunil.mushran@oracle.com>
-	<c3451d2836eb588144df06e0a5d6a956.squirrel@mail.tao.ma>
-	<4D01BBB5.50001@oracle.com>
-Message-ID: <4D024D69.8030301@tao.ma>
+From: John Stoffel <john@stoffel.org>
+Date: Thu, 9 Dec 2010 10:05:47 -0500
+Subject: [Ocfs2-devel] [PATCH] fs/vfs/security: pass last path component
+ to LSM on inode creation
+In-Reply-To: <20101208194527.13537.77202.stgit@paris.rdu.redhat.com>
+References: <20101208194527.13537.77202.stgit@paris.rdu.redhat.com>
+Message-ID: <19712.61515.201226.938553@quad.stoffel.home>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Eric Paris <eparis@redhat.com>
+Cc: xfs-masters@oss.sgi.com, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-ext4@vger.kernel.org, cluster-devel@redhat.com, linux-mtd@lists.infradead.org, jfs-discussion@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, linux-mm@kvack.org, linux-security-module@vger.kernel.org, chris.mason@oracle.com, jack@suse.cz, akpm@linux-foundation.org, adilger.kernel@dilger.ca, tytso@mit.edu, swhiteho@redhat.com, dwmw2@infradead.org, shaggy@linux.vnet.ibm.com, mfasheh@suse.com, joel.becker@oracle.com, aelder@sgi.com, hughd@google.com, jmorris@namei.org, sds@tycho.nsa.gov, eparis@parisplace.org, hch@lst.de, dchinner@redhat.com, viro@zeniv.linux.org.uk, tao.ma@oracle.com, shemminger@vyatta.com, jeffm@suse.com, serue@us.ibm.com, paul.moore@hp.com, penguin-kernel@I-love.SAKURA.ne.jp, casey@schaufler-ca.com, kees.cook@can
 
-On 12/10/2010 01:33 PM, Sunil Mushran wrote:
-> ok. But this patch is a bug fix for 2.6.37. So is still needed.
-I don't mean this bug fix isn't needed. Sorry if I described it wrongly.
+>>>>> "Eric" == Eric Paris <eparis@redhat.com> writes:
 
-What I want to say is that with my new patch set, these type of things 
-would happen again. ;)
+Eric> SELinux would like to implement a new labeling behavior of newly
+Eric> created inodes.  We currently label new inodes based on the
+Eric> parent and the creating process.  This new behavior would also
+Eric> take into account the name of the new object when deciding the
+Eric> new label.  This is not the (supposed) full path, just the last
+Eric> component of the path.
 
-Regards,
-Tao
->
-> On 12/09/2010 07:53 PM, tm at tao.ma wrote:
->> Hi Sunil,
->> Just FYI. I am working on replace mlog with trace events(yes, I am
->> still working on this after my leave from Oracle) and will send out the
->> patches soon, maybe next week(I hope so), so most of the flags I used
->> frequently will be removed so that this won't be a problem any more.
->>
->> Regards,
->> Tao
->>> Two masklogs had the same flag value.
->>>
->>> Signed-off-by: Sunil Mushran<sunil.mushran@oracle.com>
->>> ---
->>> fs/ocfs2/cluster/masklog.c | 3 ++-
->>> fs/ocfs2/cluster/masklog.h | 15 ++++++++-------
->>> 2 files changed, 10 insertions(+), 8 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
->>> index c7fba39..6c61771 100644
->>> --- a/fs/ocfs2/cluster/masklog.c
->>> +++ b/fs/ocfs2/cluster/masklog.c
->>> @@ -113,10 +113,11 @@ static struct mlog_attribute
->>> mlog_attrs[MLOG_MAX_BITS] = {
->>> define_mask(QUOTA),
->>> define_mask(REFCOUNT),
->>> define_mask(BASTS),
->>> + define_mask(RESERVATIONS),
->>> + define_mask(CLUSTER),
->>> define_mask(ERROR),
->>> define_mask(NOTICE),
->>> define_mask(KTHREAD),
->>> - define_mask(RESERVATIONS),
->>> };
->>>
->>> static struct attribute *mlog_attr_ptrs[MLOG_MAX_BITS] = {NULL, };
->>> diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
->>> index ea2ed9f..34d6544 100644
->>> --- a/fs/ocfs2/cluster/masklog.h
->>> +++ b/fs/ocfs2/cluster/masklog.h
->>> @@ -81,7 +81,7 @@
->>> #include<linux/sched.h>
->>>
->>> /* bits that are frequently given and infrequently matched in the low
->>> word */
->>> -/* NOTE: If you add a flag, you need to also update mlog.c! */
->>> +/* NOTE: If you add a flag, you need to also update masklog.c! */
->>> #define ML_ENTRY 0x0000000000000001ULL /* func call entry */
->>> #define ML_EXIT 0x0000000000000002ULL /* func call exit */
->>> #define ML_TCP 0x0000000000000004ULL /* net cluster/tcp.c */
->>> @@ -114,13 +114,14 @@
->>> #define ML_XATTR 0x0000000020000000ULL /* ocfs2 extended attributes */
->>> #define ML_QUOTA 0x0000000040000000ULL /* ocfs2 quota operations */
->>> #define ML_REFCOUNT 0x0000000080000000ULL /* refcount tree operations */
->>> -#define ML_BASTS 0x0000001000000000ULL /* dlmglue asts and basts */
->>> +#define ML_BASTS 0x0000000100000000ULL /* dlmglue asts and basts */
->>> +#define ML_RESERVATIONS 0x0000000200000000ULL /* ocfs2 alloc
->>> reservations
->>> */
->>> +#define ML_CLUSTER 0x0000000400000000ULL /* cluster stack */
->>> +
->>> /* bits that are infrequently given and frequently matched in the high
->>> word */
->>> -#define ML_ERROR 0x0000000100000000ULL /* sent to KERN_ERR */
->>> -#define ML_NOTICE 0x0000000200000000ULL /* setn to KERN_NOTICE */
->>> -#define ML_KTHREAD 0x0000000400000000ULL /* kernel thread activity */
->>> -#define ML_RESERVATIONS 0x0000000800000000ULL /* ocfs2 alloc
->>> reservations
->>> */
->>> -#define ML_CLUSTER 0x0000001000000000ULL /* cluster stack */
->>> +#define ML_ERROR 0x1000000000000000ULL /* sent to KERN_ERR */
->>> +#define ML_NOTICE 0x2000000000000000ULL /* setn to KERN_NOTICE */
->>> +#define ML_KTHREAD 0x4000000000000000ULL /* kernel thread activity */
->>>
->>> #define MLOG_INITIAL_AND_MASK (ML_ERROR|ML_NOTICE)
->>> #define MLOG_INITIAL_NOT_MASK (ML_ENTRY|ML_EXIT)
->>> --
->>> 1.7.1
->>>
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com
->>> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>
->>
->
+Eric> This is very useful because creating /etc/shadow is different
+Eric> than creating /etc/passwd but the kernel hooks are unable to
+Eric> differentiate these operations.  We currently require that
+Eric> userspace realize it is doing some difficult operation like that
+Eric> and than userspace jumps through SELinux hoops to get things set
+Eric> up correctly.  This patch does not implement new behavior, that
+Eric> is obviously contained in a seperate SELinux patch, but it does
+Eric> pass the needed name down to the correct LSM hook.  If no such
+Eric> name exists it is fine to pass NULL.
+
+I've looked this patch over, and maybe I'm missing something, but how
+does knowing the name of the file really tell you anything, esp when
+you only get the filename, not the path?  What threat are you
+addressing with this change?  
+
+So what happens when I create a file /home/john/shadow, does selinux
+(or LSM in general) then run extra checks because the filename is
+'shadow' in your model?  
+
+I *think* the overhead shouldn't be there if SELINUX is disabled, but
+have you confirmed this?  How you run performance tests before/after
+this change when doing lots of creations of inodes to see what sort of
+performance changes might be there?
+
+Thanks,
+John
