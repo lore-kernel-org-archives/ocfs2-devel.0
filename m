@@ -1,67 +1,88 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 16 Dec 2010 00:41:38 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Hold ip_lock when set/clear flags
- for indexed dir.
-In-Reply-To: <1292401800-14014-1-git-send-email-tm@tao.ma>
-References: <1292401800-14014-1-git-send-email-tm@tao.ma>
-Message-ID: <20101216084137.GK15545@mail.oracle.com>
+Date: Thu, 16 Dec 2010 00:41:23 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Adjust masklog flag values
+In-Reply-To: <1291947638-12365-1-git-send-email-sunil.mushran@oracle.com>
+References: <1291947638-12365-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20101216084123.GJ15545@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Dec 15, 2010 at 04:30:00PM +0800, Tao Ma wrote:
-> From: Tao Ma <boyu.mt@taobao.com>
+On Thu, Dec 09, 2010 at 06:20:38PM -0800, Sunil Mushran wrote:
+> Two masklogs had the same flag value.
 > 
-> When we set/clear the dyn_features for an inode we hold the ip_lock.
-> So do it when we set/clear OCFS2_INDEXED_DIR_FL also.
-> 
-> Signed-off-by: Tao Ma <boyu.mt@taobao.com>
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-This is now in the fixes branch of ocfs2.git.
+This patch is now in the fixes branch of ocfs2.git.
 
 Joel
 
 > ---
->  fs/ocfs2/dir.c |    4 ++++
->  1 files changed, 4 insertions(+), 0 deletions(-)
+>  fs/ocfs2/cluster/masklog.c |    3 ++-
+>  fs/ocfs2/cluster/masklog.h |   15 ++++++++-------
+>  2 files changed, 10 insertions(+), 8 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index c49f6de..d417b3f 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -2461,8 +2461,10 @@ static int ocfs2_dx_dir_attach_index(struct ocfs2_super *osb,
+> diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
+> index c7fba39..6c61771 100644
+> --- a/fs/ocfs2/cluster/masklog.c
+> +++ b/fs/ocfs2/cluster/masklog.c
+> @@ -113,10 +113,11 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
+>  	define_mask(QUOTA),
+>  	define_mask(REFCOUNT),
+>  	define_mask(BASTS),
+> +	define_mask(RESERVATIONS),
+> +	define_mask(CLUSTER),
+>  	define_mask(ERROR),
+>  	define_mask(NOTICE),
+>  	define_mask(KTHREAD),
+> -	define_mask(RESERVATIONS),
+>  };
 >  
->  	di->i_dx_root = cpu_to_le64(dr_blkno);
+>  static struct attribute *mlog_attr_ptrs[MLOG_MAX_BITS] = {NULL, };
+> diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
+> index ea2ed9f..34d6544 100644
+> --- a/fs/ocfs2/cluster/masklog.h
+> +++ b/fs/ocfs2/cluster/masklog.h
+> @@ -81,7 +81,7 @@
+>  #include <linux/sched.h>
 >  
-> +	spin_lock(&OCFS2_I(dir)->ip_lock);
->  	OCFS2_I(dir)->ip_dyn_features |= OCFS2_INDEXED_DIR_FL;
->  	di->i_dyn_features = cpu_to_le16(OCFS2_I(dir)->ip_dyn_features);
-> +	spin_unlock(&OCFS2_I(dir)->ip_lock);
+>  /* bits that are frequently given and infrequently matched in the low word */
+> -/* NOTE: If you add a flag, you need to also update mlog.c! */
+> +/* NOTE: If you add a flag, you need to also update masklog.c! */
+>  #define ML_ENTRY	0x0000000000000001ULL /* func call entry */
+>  #define ML_EXIT		0x0000000000000002ULL /* func call exit */
+>  #define ML_TCP		0x0000000000000004ULL /* net cluster/tcp.c */
+> @@ -114,13 +114,14 @@
+>  #define ML_XATTR	0x0000000020000000ULL /* ocfs2 extended attributes */
+>  #define ML_QUOTA	0x0000000040000000ULL /* ocfs2 quota operations */
+>  #define ML_REFCOUNT	0x0000000080000000ULL /* refcount tree operations */
+> -#define ML_BASTS	0x0000001000000000ULL /* dlmglue asts and basts */
+> +#define ML_BASTS	0x0000000100000000ULL /* dlmglue asts and basts */
+> +#define ML_RESERVATIONS	0x0000000200000000ULL /* ocfs2 alloc reservations */
+> +#define ML_CLUSTER	0x0000000400000000ULL /* cluster stack */
+> +
+>  /* bits that are infrequently given and frequently matched in the high word */
+> -#define ML_ERROR	0x0000000100000000ULL /* sent to KERN_ERR */
+> -#define ML_NOTICE	0x0000000200000000ULL /* setn to KERN_NOTICE */
+> -#define ML_KTHREAD	0x0000000400000000ULL /* kernel thread activity */
+> -#define ML_RESERVATIONS	0x0000000800000000ULL /* ocfs2 alloc reservations */
+> -#define ML_CLUSTER	0x0000001000000000ULL /* cluster stack */
+> +#define ML_ERROR	0x1000000000000000ULL /* sent to KERN_ERR */
+> +#define ML_NOTICE	0x2000000000000000ULL /* setn to KERN_NOTICE */
+> +#define ML_KTHREAD	0x4000000000000000ULL /* kernel thread activity */
 >  
->  	ocfs2_journal_dirty(handle, di_bh);
->  
-> @@ -4466,8 +4468,10 @@ static int ocfs2_dx_dir_remove_index(struct inode *dir,
->  		goto out_commit;
->  	}
->  
-> +	spin_lock(&OCFS2_I(dir)->ip_lock);
->  	OCFS2_I(dir)->ip_dyn_features &= ~OCFS2_INDEXED_DIR_FL;
->  	di->i_dyn_features = cpu_to_le16(OCFS2_I(dir)->ip_dyn_features);
-> +	spin_unlock(&OCFS2_I(dir)->ip_lock);
->  	di->i_dx_root = cpu_to_le64(0ULL);
->  
->  	ocfs2_journal_dirty(handle, di_bh);
+>  #define MLOG_INITIAL_AND_MASK (ML_ERROR|ML_NOTICE)
+>  #define MLOG_INITIAL_NOT_MASK (ML_ENTRY|ML_EXIT)
 > -- 
-> 1.7.0.4
+> 1.7.1
 > 
 
 -- 
 
-"Here's something to think about:  How come you never see a headline
- like ``Psychic Wins Lottery''?"
-	- Jay Leno
+"The only way to get rid of a temptation is to yield to it."
+         - Oscar Wilde 
 
 Joel Becker
 Senior Development Manager
