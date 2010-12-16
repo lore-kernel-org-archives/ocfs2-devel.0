@@ -1,88 +1,197 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 16 Dec 2010 00:41:23 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Adjust masklog flag values
-In-Reply-To: <1291947638-12365-1-git-send-email-sunil.mushran@oracle.com>
-References: <1291947638-12365-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20101216084123.GJ15545@mail.oracle.com>
+Date: Thu, 16 Dec 2010 00:51:04 -0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Try to free truncate log when
+ meeting ENOSPC in write.
+In-Reply-To: <1288854851-25989-1-git-send-email-tao.ma@oracle.com>
+References: <1288078148-6343-1-git-send-email-tao.ma@oracle.com>
+	<1288854851-25989-1-git-send-email-tao.ma@oracle.com>
+Message-ID: <20101216085104.GL15545@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Dec 09, 2010 at 06:20:38PM -0800, Sunil Mushran wrote:
-> Two masklogs had the same flag value.
+On Thu, Nov 04, 2010 at 03:14:11PM +0800, Tao Ma wrote:
+> Recently, one of our colleagues meet with a problem that if we
+> write/delete a 32mb files repeatly, we will get an ENOSPC in
+> the end. And the corresponding bug is 1288.
+> http://oss.oracle.com/bugzilla/show_bug.cgi?id=1288
 > 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+> The real problem is that although we have freed the clusters,
+> they are in truncate log and they will be summed up so that
+> we can free them once in a whole.
+> 
+> So this patch just try to resolve it. In case we see -ENOSPC
+> in ocfs2_write_begin_no_lock, we will check whether the truncate
+> log has enough clusters for our need, if yes, we will try to
+> flush the truncate log at that point and try again. This method
+> is inspired by Mark Fasheh <mfasheh@suse.com>. Thanks.
+> 
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Signed-off-by: Tao Ma <tao.ma@oracle.com>
 
-This patch is now in the fixes branch of ocfs2.git.
+This is now in the merge-window branch of ocfs2.git.
 
 Joel
 
 > ---
->  fs/ocfs2/cluster/masklog.c |    3 ++-
->  fs/ocfs2/cluster/masklog.h |   15 ++++++++-------
->  2 files changed, 10 insertions(+), 8 deletions(-)
+>  fs/ocfs2/alloc.c |    3 ++
+>  fs/ocfs2/aops.c  |   59 +++++++++++++++++++++++++++++++++++++++++++++++++++++-
+>  fs/ocfs2/ocfs2.h |    5 ++++
+>  3 files changed, 66 insertions(+), 1 deletions(-)
 > 
-> diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-> index c7fba39..6c61771 100644
-> --- a/fs/ocfs2/cluster/masklog.c
-> +++ b/fs/ocfs2/cluster/masklog.c
-> @@ -113,10 +113,11 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
->  	define_mask(QUOTA),
->  	define_mask(REFCOUNT),
->  	define_mask(BASTS),
-> +	define_mask(RESERVATIONS),
-> +	define_mask(CLUSTER),
->  	define_mask(ERROR),
->  	define_mask(NOTICE),
->  	define_mask(KTHREAD),
-> -	define_mask(RESERVATIONS),
->  };
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 592fae5..8ec418d 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -5858,6 +5858,7 @@ int ocfs2_truncate_log_append(struct ocfs2_super *osb,
 >  
->  static struct attribute *mlog_attr_ptrs[MLOG_MAX_BITS] = {NULL, };
-> diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
-> index ea2ed9f..34d6544 100644
-> --- a/fs/ocfs2/cluster/masklog.h
-> +++ b/fs/ocfs2/cluster/masklog.h
-> @@ -81,7 +81,7 @@
->  #include <linux/sched.h>
+>  	ocfs2_journal_dirty(handle, tl_bh);
 >  
->  /* bits that are frequently given and infrequently matched in the low word */
-> -/* NOTE: If you add a flag, you need to also update mlog.c! */
-> +/* NOTE: If you add a flag, you need to also update masklog.c! */
->  #define ML_ENTRY	0x0000000000000001ULL /* func call entry */
->  #define ML_EXIT		0x0000000000000002ULL /* func call exit */
->  #define ML_TCP		0x0000000000000004ULL /* net cluster/tcp.c */
-> @@ -114,13 +114,14 @@
->  #define ML_XATTR	0x0000000020000000ULL /* ocfs2 extended attributes */
->  #define ML_QUOTA	0x0000000040000000ULL /* ocfs2 quota operations */
->  #define ML_REFCOUNT	0x0000000080000000ULL /* refcount tree operations */
-> -#define ML_BASTS	0x0000001000000000ULL /* dlmglue asts and basts */
-> +#define ML_BASTS	0x0000000100000000ULL /* dlmglue asts and basts */
-> +#define ML_RESERVATIONS	0x0000000200000000ULL /* ocfs2 alloc reservations */
-> +#define ML_CLUSTER	0x0000000400000000ULL /* cluster stack */
+> +	osb->truncated_clusters += num_clusters;
+>  bail:
+>  	mlog_exit(status);
+>  	return status;
+> @@ -5929,6 +5930,8 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
+>  		i--;
+>  	}
+>  
+> +	osb->truncated_clusters = 0;
 > +
->  /* bits that are infrequently given and frequently matched in the high word */
-> -#define ML_ERROR	0x0000000100000000ULL /* sent to KERN_ERR */
-> -#define ML_NOTICE	0x0000000200000000ULL /* setn to KERN_NOTICE */
-> -#define ML_KTHREAD	0x0000000400000000ULL /* kernel thread activity */
-> -#define ML_RESERVATIONS	0x0000000800000000ULL /* ocfs2 alloc reservations */
-> -#define ML_CLUSTER	0x0000001000000000ULL /* cluster stack */
-> +#define ML_ERROR	0x1000000000000000ULL /* sent to KERN_ERR */
-> +#define ML_NOTICE	0x2000000000000000ULL /* setn to KERN_NOTICE */
-> +#define ML_KTHREAD	0x4000000000000000ULL /* kernel thread activity */
+>  bail:
+>  	mlog_exit(status);
+>  	return status;
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 5cfeee1..108743f 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1642,6 +1642,43 @@ static int ocfs2_zero_tail(struct inode *inode, struct buffer_head *di_bh,
+>  	return ret;
+>  }
 >  
->  #define MLOG_INITIAL_AND_MASK (ML_ERROR|ML_NOTICE)
->  #define MLOG_INITIAL_NOT_MASK (ML_ENTRY|ML_EXIT)
+> +/*
+> + * Try to flush truncate logs if we can free enough clusters from it.
+> + * As for return value, "< 0" means error, "0" no space and "1" means
+> + * we have freed enough spaces and let the caller try to allocate again.
+> + */
+> +static int ocfs2_try_to_free_truncate_log(struct ocfs2_super *osb,
+> +					  unsigned int needed)
+> +{
+> +	tid_t target;
+> +	int ret = 0;
+> +	unsigned int truncated_clusters;
+> +
+> +	mutex_lock(&osb->osb_tl_inode->i_mutex);
+> +	truncated_clusters = osb->truncated_clusters;
+> +	mutex_unlock(&osb->osb_tl_inode->i_mutex);
+> +
+> +	/*
+> +	 * Check whether we can succeed in allocating if we free
+> +	 * the truncate log.
+> +	 */
+> +	if (truncated_clusters < needed)
+> +		goto out;
+> +
+> +	ret = ocfs2_flush_truncate_log(osb);
+> +	if (ret) {
+> +		mlog_errno(ret);
+> +		goto out;
+> +	}
+> +
+> +	if (jbd2_journal_start_commit(osb->journal->j_journal, &target)) {
+> +		jbd2_log_wait_commit(osb->journal->j_journal, target);
+> +		ret = 1;
+> +	}
+> +out:
+> +	return ret;
+> +}
+> +
+>  int ocfs2_write_begin_nolock(struct file *filp,
+>  			     struct address_space *mapping,
+>  			     loff_t pos, unsigned len, unsigned flags,
+> @@ -1649,7 +1686,7 @@ int ocfs2_write_begin_nolock(struct file *filp,
+>  			     struct buffer_head *di_bh, struct page *mmap_page)
+>  {
+>  	int ret, cluster_of_pages, credits = OCFS2_INODE_UPDATE_CREDITS;
+> -	unsigned int clusters_to_alloc, extents_to_split;
+> +	unsigned int clusters_to_alloc, extents_to_split, clusters_need = 0;
+>  	struct ocfs2_write_ctxt *wc;
+>  	struct inode *inode = mapping->host;
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> @@ -1658,7 +1695,9 @@ int ocfs2_write_begin_nolock(struct file *filp,
+>  	struct ocfs2_alloc_context *meta_ac = NULL;
+>  	handle_t *handle;
+>  	struct ocfs2_extent_tree et;
+> +	int try_free = 1, ret1;
+>  
+> +try_again:
+>  	ret = ocfs2_alloc_write_ctxt(&wc, osb, pos, len, di_bh);
+>  	if (ret) {
+>  		mlog_errno(ret);
+> @@ -1693,6 +1732,7 @@ int ocfs2_write_begin_nolock(struct file *filp,
+>  		mlog_errno(ret);
+>  		goto out;
+>  	} else if (ret == 1) {
+> +		clusters_need = wc->w_clen;
+>  		ret = ocfs2_refcount_cow(inode, filp, di_bh,
+>  					 wc->w_cpos, wc->w_clen, UINT_MAX);
+>  		if (ret) {
+> @@ -1707,6 +1747,7 @@ int ocfs2_write_begin_nolock(struct file *filp,
+>  		mlog_errno(ret);
+>  		goto out;
+>  	}
+> +	clusters_need += clusters_to_alloc;
+>  
+>  	di = (struct ocfs2_dinode *)wc->w_di_bh->b_data;
+>  
+> @@ -1829,6 +1870,22 @@ out:
+>  		ocfs2_free_alloc_context(data_ac);
+>  	if (meta_ac)
+>  		ocfs2_free_alloc_context(meta_ac);
+> +
+> +	if (ret == -ENOSPC && try_free) {
+> +		/*
+> +		 * Try to free some truncate log so that we can have enough
+> +		 * clusters to allocate.
+> +		 */
+> +		try_free = 0;
+> +
+> +		ret1 = ocfs2_try_to_free_truncate_log(osb, clusters_need);
+> +		if (ret1 == 1)
+> +			goto try_again;
+> +
+> +		if (ret1 < 0)
+> +			mlog_errno(ret1);
+> +	}
+> +
+>  	return ret;
+>  }
+>  
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index d840821..f641b27 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -420,6 +420,11 @@ struct ocfs2_super
+>  	struct inode			*osb_tl_inode;
+>  	struct buffer_head		*osb_tl_bh;
+>  	struct delayed_work		osb_truncate_log_wq;
+> +	/*
+> +	 * How many clusters in our truncate log.
+> +	 * It must be protected by osb_tl_inode->i_mutex.
+> +	 */
+> +	unsigned int truncated_clusters;
+>  
+>  	struct ocfs2_node_map		osb_recovering_orphan_dirs;
+>  	unsigned int			*osb_orphan_wipes;
 > -- 
-> 1.7.1
+> 1.7.1.571.gba4d01
 > 
 
 -- 
 
-"The only way to get rid of a temptation is to yield to it."
-         - Oscar Wilde 
+"Egotist: a person more interested in himself than in me."
+         - Ambrose Bierce 
 
 Joel Becker
 Senior Development Manager
