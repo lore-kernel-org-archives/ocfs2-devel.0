@@ -1,59 +1,35 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Thu, 16 Dec 2010 00:52:03 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: make existing convertion
- precedent over new lock
-In-Reply-To: <201012081237.oB7Ibeoo012391@acsinet15.oracle.com>
-References: <201012081237.oB7Ibeoo012391@acsinet15.oracle.com>
-Message-ID: <20101216085202.GN15545@mail.oracle.com>
+Date: Thu, 16 Dec 2010 00:52:49 -0800
+Subject: [Ocfs2-devel] Pin the configfs items while cluster is active
+In-Reply-To: <1292364871-18461-1-git-send-email-sunil.mushran@oracle.com>
+References: <1292364871-18461-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20101216085249.GO15545@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Dec 08, 2010 at 08:34:39PM +0800, Wengang Wang wrote:
-> Make existing convertion precedent over new lock. It makes o2dlm locking more
-> like fair locking.
+On Tue, Dec 14, 2010 at 02:14:26PM -0800, Sunil Mushran wrote:
 > 
-> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> All,
+> 
+> This patch series is long over-due. configfs added the ability to pin items
+> in commit 631d1febab8e546e3bb800bdfe2c212b8adf87de (Jun 2007). The following
+> patches make use of it in the O2CB cluster stack to pin both the node and
+> heartbeat items.
+> 
+> This has been tested for both local and global heartbeat modes.
 
-This is now in the merge-window branch of ocfs2.git.
+This series is now in the merge-window branch of ocfs2.git.
 
-Joel
-
-> ---
->  fs/ocfs2/dlm/dlmlock.c |    3 +++
->  1 files changed, 3 insertions(+), 0 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-> index 69cf369..7009292 100644
-> --- a/fs/ocfs2/dlm/dlmlock.c
-> +++ b/fs/ocfs2/dlm/dlmlock.c
-> @@ -106,6 +106,9 @@ static int dlm_can_grant_new_lock(struct dlm_lock_resource *res,
->  
->  		if (!dlm_lock_compatible(tmplock->ml.type, lock->ml.type))
->  			return 0;
-> +		if (!dlm_lock_compatible(tmplock->ml.convert_type,
-> +					 lock->ml.type))
-> +			return 0;
->  	}
->  
->  	return 1;
-> -- 
-> 1.7.2.3
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> Sunil
 
 -- 
 
-You can use a screwdriver to screw in screws or to clean your ears,
-however, the latter needs real skill, determination and a lack of fear
-of injuring yourself.  It is much the same with JavaScript.
-	- Chris Heilmann
+"Only a life lived for others is a life worth while."
+							-Albert Einstein  
 
 Joel Becker
 Senior Development Manager
