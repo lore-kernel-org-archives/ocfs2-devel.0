@@ -1,126 +1,167 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 20 Dec 2010 16:35:00 -0800
-Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2/dlm: Minor cleanup
+Date: Mon, 20 Dec 2010 16:35:01 -0800
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2/dlm: Hard code the values for enums
 In-Reply-To: <1292891701-5111-1-git-send-email-sunil.mushran@oracle.com>
 References: <1292891701-5111-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1292891701-5111-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1292891701-5111-4-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Patch makes use of task_pid_nr(). Also removes the null check before calling
-debugfs_remove().
+In o2dlm, the enumerated message values are part of the protocol.
+The patch hard codes each value so as to reduce the chance of an editing
+error causing a protocol mismatch.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/cluster/netdebug.c |   20 +++++++-------------
- fs/ocfs2/dlm/dlmdebug.c     |   22 ++++++++--------------
- 2 files changed, 15 insertions(+), 27 deletions(-)
+ fs/ocfs2/dlm/dlmcommon.h |   86 +++++++++++++++++++++++-----------------------
+ 1 files changed, 43 insertions(+), 43 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index a3f150e..0edf836 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -141,7 +141,7 @@ static int nst_seq_show(struct seq_file *seq, void *v)
- 			   "  sock acquiry: %lu.%ld\n"
- 			   "  send start:   %lu.%ld\n"
- 			   "  wait start:   %lu.%ld\n",
--			   nst, (unsigned long)nst->st_task->pid,
-+			   nst, (unsigned long)task_pid_nr(nst->st_task),
- 			   (unsigned long)nst->st_task->tgid,
- 			   nst->st_task->comm, nst->st_node,
- 			   nst->st_sc, nst->st_id, nst->st_msg_type,
-@@ -421,23 +421,17 @@ int o2net_debugfs_init(void)
+diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+index b36d0bf..4bdf7ba 100644
+--- a/fs/ocfs2/dlm/dlmcommon.h
++++ b/fs/ocfs2/dlm/dlmcommon.h
+@@ -50,10 +50,10 @@
+ #define dlm_lockid_hash(_n, _l) full_name_hash(_n, _l)
  
- 	return 0;
- bail:
--	if (sc_dentry)
--		debugfs_remove(sc_dentry);
--	if (nst_dentry)
--		debugfs_remove(nst_dentry);
--	if (o2net_dentry)
--		debugfs_remove(o2net_dentry);
-+	debugfs_remove(sc_dentry);
-+	debugfs_remove(nst_dentry);
-+	debugfs_remove(o2net_dentry);
- 	return -ENOMEM;
- }
+ enum dlm_mle_type {
+-	DLM_MLE_BLOCK,
+-	DLM_MLE_MASTER,
+-	DLM_MLE_MIGRATION,
+-	DLM_MLE_NUM_TYPES
++	DLM_MLE_BLOCK = 0,
++	DLM_MLE_MASTER = 1,
++	DLM_MLE_MIGRATION = 2,
++	DLM_MLE_NUM_TYPES = 3,
+ };
  
- void o2net_debugfs_exit(void)
- {
--	if (sc_dentry)
--		debugfs_remove(sc_dentry);
--	if (nst_dentry)
--		debugfs_remove(nst_dentry);
--	if (o2net_dentry)
--		debugfs_remove(o2net_dentry);
-+	debugfs_remove(sc_dentry);
-+	debugfs_remove(nst_dentry);
-+	debugfs_remove(o2net_dentry);
- }
+ struct dlm_master_list_entry {
+@@ -82,8 +82,8 @@ struct dlm_master_list_entry {
  
- #endif	/* CONFIG_DEBUG_FS */
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index 77199ca..04a32be 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -743,7 +743,7 @@ static int debug_state_print(struct dlm_ctxt *dlm, char *buf, int len)
- 	/* Thread Pid: xxx  Node: xxx  State: xxxxx */
- 	out += snprintf(buf + out, len - out,
- 			"Thread Pid: %d  Node: %d  State: %s\n",
--			dlm->dlm_thread_task->pid, dlm->node_num, state);
-+			task_pid_nr(dlm->dlm_thread_task), dlm->node_num, state);
+ enum dlm_ast_type {
+ 	DLM_AST = 0,
+-	DLM_BAST,
+-	DLM_ASTUNLOCK
++	DLM_BAST = 1,
++	DLM_ASTUNLOCK = 2,
+ };
  
- 	/* Number of Joins: xxx  Joining Node: xxx */
- 	out += snprintf(buf + out, len - out,
-@@ -823,7 +823,7 @@ static int debug_state_print(struct dlm_ctxt *dlm, char *buf, int len)
- 	/* Recovery Pid: xxxx  Master: xxx  State: xxxx */
- 	out += snprintf(buf + out, len - out,
- 			"Recovery Pid: %d  Master: %d  State: %s\n",
--			dlm->dlm_reco_thread_task->pid,
-+			task_pid_nr(dlm->dlm_reco_thread_task),
- 			dlm->reco.new_master, state);
  
- 	/* Recovery Map: xx xx */
-@@ -956,14 +956,10 @@ void dlm_debug_shutdown(struct dlm_ctxt *dlm)
- 	struct dlm_debug_ctxt *dc = dlm->dlm_debug_ctxt;
+@@ -119,9 +119,9 @@ struct dlm_recovery_ctxt
  
- 	if (dc) {
--		if (dc->debug_purgelist_dentry)
--			debugfs_remove(dc->debug_purgelist_dentry);
--		if (dc->debug_mle_dentry)
--			debugfs_remove(dc->debug_mle_dentry);
--		if (dc->debug_lockres_dentry)
--			debugfs_remove(dc->debug_lockres_dentry);
--		if (dc->debug_state_dentry)
--			debugfs_remove(dc->debug_state_dentry);
-+		debugfs_remove(dc->debug_purgelist_dentry);
-+		debugfs_remove(dc->debug_mle_dentry);
-+		debugfs_remove(dc->debug_lockres_dentry);
-+		debugfs_remove(dc->debug_state_dentry);
- 		dlm_debug_put(dc);
- 	}
- }
-@@ -994,8 +990,7 @@ bail:
+ enum dlm_ctxt_state {
+ 	DLM_CTXT_NEW = 0,
+-	DLM_CTXT_JOINED,
+-	DLM_CTXT_IN_SHUTDOWN,
+-	DLM_CTXT_LEAVING,
++	DLM_CTXT_JOINED = 1,
++	DLM_CTXT_IN_SHUTDOWN = 2,
++	DLM_CTXT_LEAVING = 3,
+ };
  
- void dlm_destroy_debugfs_subroot(struct dlm_ctxt *dlm)
- {
--	if (dlm->dlm_debugfs_subroot)
--		debugfs_remove(dlm->dlm_debugfs_subroot);
-+	debugfs_remove(dlm->dlm_debugfs_subroot);
- }
+ struct dlm_ctxt
+@@ -388,8 +388,8 @@ struct dlm_lock
  
- /* debugfs root */
-@@ -1011,7 +1006,6 @@ int dlm_create_debugfs_root(void)
+ enum dlm_lockres_list {
+ 	DLM_GRANTED_LIST = 0,
+-	DLM_CONVERTING_LIST,
+-	DLM_BLOCKED_LIST
++	DLM_CONVERTING_LIST = 1,
++	DLM_BLOCKED_LIST = 2,
+ };
  
- void dlm_destroy_debugfs_root(void)
- {
--	if (dlm_debugfs_root)
--		debugfs_remove(dlm_debugfs_root);
-+	debugfs_remove(dlm_debugfs_root);
- }
- #endif	/* CONFIG_DEBUG_FS */
+ static inline int dlm_lvb_is_empty(char *lvb)
+@@ -427,27 +427,27 @@ struct dlm_node_iter
+ 
+ 
+ enum {
+-	DLM_MASTER_REQUEST_MSG    = 500,
+-	DLM_UNUSED_MSG1,         /* 501 */
+-	DLM_ASSERT_MASTER_MSG,	 /* 502 */
+-	DLM_CREATE_LOCK_MSG,	 /* 503 */
+-	DLM_CONVERT_LOCK_MSG,	 /* 504 */
+-	DLM_PROXY_AST_MSG,	 /* 505 */
+-	DLM_UNLOCK_LOCK_MSG,	 /* 506 */
+-	DLM_DEREF_LOCKRES_MSG,	 /* 507 */
+-	DLM_MIGRATE_REQUEST_MSG, /* 508 */
+-	DLM_MIG_LOCKRES_MSG, 	 /* 509 */
+-	DLM_QUERY_JOIN_MSG,	 /* 510 */
+-	DLM_ASSERT_JOINED_MSG,	 /* 511 */
+-	DLM_CANCEL_JOIN_MSG,	 /* 512 */
+-	DLM_EXIT_DOMAIN_MSG,	 /* 513 */
+-	DLM_MASTER_REQUERY_MSG,	 /* 514 */
+-	DLM_LOCK_REQUEST_MSG,	 /* 515 */
+-	DLM_RECO_DATA_DONE_MSG,	 /* 516 */
+-	DLM_BEGIN_RECO_MSG,	 /* 517 */
+-	DLM_FINALIZE_RECO_MSG,	 /* 518 */
+-	DLM_QUERY_REGION,	 /* 519 */
+-	DLM_QUERY_NODEINFO,	 /* 520 */
++	DLM_MASTER_REQUEST_MSG		= 500,
++	DLM_UNUSED_MSG1			= 501,
++	DLM_ASSERT_MASTER_MSG		= 502,
++	DLM_CREATE_LOCK_MSG		= 503,
++	DLM_CONVERT_LOCK_MSG		= 504,
++	DLM_PROXY_AST_MSG		= 505,
++	DLM_UNLOCK_LOCK_MSG		= 506,
++	DLM_DEREF_LOCKRES_MSG		= 507,
++	DLM_MIGRATE_REQUEST_MSG		= 508,
++	DLM_MIG_LOCKRES_MSG		= 509,
++	DLM_QUERY_JOIN_MSG		= 510,
++	DLM_ASSERT_JOINED_MSG		= 511,
++	DLM_CANCEL_JOIN_MSG		= 512,
++	DLM_EXIT_DOMAIN_MSG		= 513,
++	DLM_MASTER_REQUERY_MSG		= 514,
++	DLM_LOCK_REQUEST_MSG		= 515,
++	DLM_RECO_DATA_DONE_MSG		= 516,
++	DLM_BEGIN_RECO_MSG		= 517,
++	DLM_FINALIZE_RECO_MSG		= 518,
++	DLM_QUERY_REGION		= 519,
++	DLM_QUERY_NODEINFO		= 520,
+ };
+ 
+ struct dlm_reco_node_data
+@@ -460,19 +460,19 @@ struct dlm_reco_node_data
+ enum {
+ 	DLM_RECO_NODE_DATA_DEAD = -1,
+ 	DLM_RECO_NODE_DATA_INIT = 0,
+-	DLM_RECO_NODE_DATA_REQUESTING,
+-	DLM_RECO_NODE_DATA_REQUESTED,
+-	DLM_RECO_NODE_DATA_RECEIVING,
+-	DLM_RECO_NODE_DATA_DONE,
+-	DLM_RECO_NODE_DATA_FINALIZE_SENT,
++	DLM_RECO_NODE_DATA_REQUESTING = 1,
++	DLM_RECO_NODE_DATA_REQUESTED = 2,
++	DLM_RECO_NODE_DATA_RECEIVING = 3,
++	DLM_RECO_NODE_DATA_DONE = 4,
++	DLM_RECO_NODE_DATA_FINALIZE_SENT = 5,
+ };
+ 
+ 
+ enum {
+ 	DLM_MASTER_RESP_NO = 0,
+-	DLM_MASTER_RESP_YES,
+-	DLM_MASTER_RESP_MAYBE,
+-	DLM_MASTER_RESP_ERROR
++	DLM_MASTER_RESP_YES = 1,
++	DLM_MASTER_RESP_MAYBE = 2,
++	DLM_MASTER_RESP_ERROR = 3,
+ };
+ 
+ 
+@@ -649,9 +649,9 @@ struct dlm_proxy_ast
+ #define DLM_MOD_KEY (0x666c6172)
+ enum dlm_query_join_response_code {
+ 	JOIN_DISALLOW = 0,
+-	JOIN_OK,
+-	JOIN_OK_NO_MAP,
+-	JOIN_PROTOCOL_MISMATCH,
++	JOIN_OK = 1,
++	JOIN_OK_NO_MAP = 2,
++	JOIN_PROTOCOL_MISMATCH = 3,
+ };
+ 
+ struct dlm_query_join_packet {
 -- 
 1.7.1
