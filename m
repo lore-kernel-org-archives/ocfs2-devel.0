@@ -1,9 +1,9 @@
 From: Tao Ma <tm@tao.ma>
-Date: Thu, 23 Dec 2010 15:31:14 +0800
-Subject: [Ocfs2-devel] [PATCH 31/34] ocfs2: Remove masklog ML_BH_IO.
+Date: Thu, 23 Dec 2010 15:31:07 +0800
+Subject: [Ocfs2-devel] [PATCH 24/34] ocfs2: Remove masklog ML_QUOTA.
 In-Reply-To: <4D12F7E7.1090204@tao.ma>
 References: <4D12F7E7.1090204@tao.ma>
-Message-ID: <1293089477-5019-31-git-send-email-tm@tao.ma>
+Message-ID: <1293089477-5019-24-git-send-email-tm@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,235 +12,259 @@ To: ocfs2-devel@oss.oracle.com
 
 From: Tao Ma <boyu.mt@taobao.com>
 
-Remove mlog(0,...) and mlog(ML_BH_IO,...) from
-fs/ocfs2/buffer_head_io.c.
-The masklog BH_IO is removed finally.
+Remove mlog(0) from fs/ocfs2/quota_global.c and
+the masklog QUOTA.
 
 Signed-off-by: Tao Ma <boyu.mt@taobao.com>
 ---
- fs/ocfs2/buffer_head_io.c  |   37 +++++++--------------
  fs/ocfs2/cluster/masklog.c |    1 -
  fs/ocfs2/cluster/masklog.h |    1 -
- fs/ocfs2/ocfs2_trace.h     |   76 ++++++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 89 insertions(+), 26 deletions(-)
+ fs/ocfs2/ocfs2_trace.h     |  110 ++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/quota_global.c    |   24 +++++-----
+ 4 files changed, 122 insertions(+), 14 deletions(-)
 
-diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-index c23846d..d1cf9ab 100644
---- a/fs/ocfs2/buffer_head_io.c
-+++ b/fs/ocfs2/buffer_head_io.c
-@@ -35,8 +35,8 @@
- #include "inode.h"
- #include "journal.h"
- #include "uptodate.h"
--
- #include "buffer_head_io.h"
-+#include "ocfs2_trace.h"
- 
- /*
-  * Bits on bh->b_state used by ocfs2.
-@@ -55,8 +55,7 @@ int ocfs2_write_block(struct ocfs2_super *osb, struct buffer_head *bh,
- {
- 	int ret = 0;
- 
--	mlog(0, "(bh->b_blocknr = %llu, ci=%p)\n",
--	     (unsigned long long)bh->b_blocknr, ci);
-+	trace_ocfs2_write_block((unsigned long long)bh->b_blocknr, ci);
- 
- 	BUG_ON(bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO);
- 	BUG_ON(buffer_jbd(bh));
-@@ -107,10 +106,10 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
- 	unsigned int i;
- 	struct buffer_head *bh;
- 
--	if (!nr) {
--		mlog(ML_BH_IO, "No buffers will be read!\n");
-+	trace_ocfs2_read_blocks_sync((unsigned long long)block, nr);
-+
-+	if (!nr)
- 		goto bail;
--	}
- 
- 	for (i = 0 ; i < nr ; i++) {
- 		if (bhs[i] == NULL) {
-@@ -124,10 +123,8 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
- 		bh = bhs[i];
- 
- 		if (buffer_jbd(bh)) {
--			mlog(ML_BH_IO,
--			     "trying to sync read a jbd "
--			     "managed bh (blocknr = %llu), skipping\n",
--			     (unsigned long long)bh->b_blocknr);
-+			trace_ocfs2_read_blocks_sync_jbd(
-+					(unsigned long long)bh->b_blocknr);
- 			continue;
- 		}
- 
-@@ -187,8 +184,7 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 	struct buffer_head *bh;
- 	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
- 
--	mlog(0, "(ci=%p, block=(%llu), nr=(%d), flags=%d)\n",
--	     ci, (unsigned long long)block, nr, flags);
-+	trace_ocfs2_read_blocks_begin(ci, (unsigned long long)block, nr, flags);
- 
- 	BUG_ON(!ci);
- 	BUG_ON((flags & OCFS2_BH_READAHEAD) &&
-@@ -208,7 +204,6 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 	}
- 
- 	if (nr == 0) {
--		mlog(ML_BH_IO, "No buffers will be read!\n");
- 		status = 0;
- 		goto bail;
- 	}
-@@ -261,11 +256,10 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 			ignore_cache = 1;
- 		}
- 
-+		trace_ocfs2_read_blocks_bh((unsigned long long)bh->b_blocknr,
-+			ignore_cache, buffer_jbd(bh), buffer_dirty(bh));
-+
- 		if (buffer_jbd(bh)) {
--			if (ignore_cache)
--				mlog(ML_BH_IO, "trying to sync read a jbd "
--					       "managed bh (blocknr = %llu)\n",
--				     (unsigned long long)bh->b_blocknr);
- 			continue;
- 		}
- 
-@@ -273,9 +267,6 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 			if (buffer_dirty(bh)) {
- 				/* This should probably be a BUG, or
- 				 * at least return an error. */
--				mlog(ML_BH_IO, "asking me to sync read a dirty "
--					       "buffer! (blocknr = %llu)\n",
--				     (unsigned long long)bh->b_blocknr);
- 				continue;
- 			}
- 
-@@ -368,10 +359,8 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 	}
- 	ocfs2_metadata_cache_io_unlock(ci);
- 
--	mlog(ML_BH_IO, "block=(%llu), nr=(%d), cached=%s, flags=0x%x\n",
--	     (unsigned long long)block, nr,
--	     ((flags & OCFS2_BH_IGNORE_CACHE) || ignore_cache) ? "no" : "yes",
--	     flags);
-+	trace_ocfs2_read_blocks_end((unsigned long long)block, nr,
-+				    flags, ignore_cache);
- 
- bail:
- 
 diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-index 3f1e995..137e7e8 100644
+index 64bf0b2..44d22cd 100644
 --- a/fs/ocfs2/cluster/masklog.c
 +++ b/fs/ocfs2/cluster/masklog.c
-@@ -93,7 +93,6 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
- 	define_mask(DLM_RECOVERY),
- 	define_mask(AIO),
- 	define_mask(DLM_GLUE),
--	define_mask(BH_IO),
- 	define_mask(UPTODATE),
- 	define_mask(VOTE),
+@@ -102,7 +102,6 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
  	define_mask(CONN),
+ 	define_mask(QUORUM),
+ 	define_mask(EXPORT),
+-	define_mask(QUOTA),
+ 	define_mask(BASTS),
+ 	define_mask(ERROR),
+ 	define_mask(NOTICE),
 diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
-index 61e8f6c..5c7e38a 100644
+index 57e12a8..789e735 100644
 --- a/fs/ocfs2/cluster/masklog.h
 +++ b/fs/ocfs2/cluster/masklog.h
-@@ -95,7 +95,6 @@
- #define ML_DLM_RECOVERY	0x0000000000001000ULL /* dlm master functions */
- #define ML_AIO		0x0000000000002000ULL /* ocfs2 aio read and write */
- #define ML_DLM_GLUE	0x0000000000080000ULL /* ocfs2 dlm glue layer */
--#define ML_BH_IO	0x0000000000100000ULL /* ocfs2 buffer I/O */
- #define ML_UPTODATE	0x0000000000200000ULL /* ocfs2 caching sequence #'s */
- #define ML_VOTE		0x0000000001000000ULL /* ocfs2 node messaging  */
+@@ -104,7 +104,6 @@
  #define ML_CONN		0x0000000004000000ULL /* net connection management */
+ #define ML_QUORUM	0x0000000008000000ULL /* net connection quorum */
+ #define ML_EXPORT	0x0000000010000000ULL /* ocfs2 export operations */
+-#define ML_QUOTA	0x0000000040000000ULL /* ocfs2 quota operations */
+ #define ML_BASTS	0x0000001000000000ULL /* dlmglue asts and basts */
+ /* bits that are infrequently given and frequently matched in the high word */
+ #define ML_ERROR	0x0000000100000000ULL /* sent to KERN_ERR */
 diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index 736cb40..9cd8670 100644
+index fef6478..f87a203 100644
 --- a/fs/ocfs2/ocfs2_trace.h
 +++ b/fs/ocfs2/ocfs2_trace.h
-@@ -4177,6 +4177,82 @@ DEFINE_EVENT(ocfs2__int, ocfs2_wait_on_mount,
- 	TP_ARGS(state)
+@@ -110,6 +110,25 @@ DECLARE_EVENT_CLASS(ocfs2__int_int,
+ 	TP_printk("%d %d", __entry->value1, __entry->value2)
  );
- /* End of trace events for fs/ocfs2/journal.c. */
+ 
++DECLARE_EVENT_CLASS(ocfs2__uint_int,
 +
-+/* Trace events for fs/ocfs2/buffer_head_io.c. */
-+DEFINE_EVENT(ocfs2__ull_uint, ocfs2_read_blocks_sync,
++	TP_PROTO(unsigned int value1, int value2),
 +
-+	TP_PROTO(unsigned long long block, unsigned int nr),
-+
-+	TP_ARGS(block, nr)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull, ocfs2_read_blocks_sync_jbd,
-+
-+	TP_PROTO(unsigned long long block),
-+
-+	TP_ARGS(block)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_int_int_int, ocfs2_read_blocks_bh,
-+
-+	TP_PROTO(unsigned long long block, int ignore_cache,
-+		 int buffer_jbd, int buffer_dirty),
-+
-+	TP_ARGS(block, ignore_cache, buffer_jbd, buffer_dirty)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_int_int_int, ocfs2_read_blocks_end,
-+
-+	TP_PROTO(unsigned long long block, int nr, int flags, int ignore_cache),
-+
-+	TP_ARGS(block, nr, flags, ignore_cache)
-+);
-+
-+TRACE_EVENT(ocfs2_write_block,
-+
-+	TP_PROTO(unsigned long long block, void *ci),
-+
-+	TP_ARGS(block, ci),
++	TP_ARGS(value1, value2),
 +
 +	TP_STRUCT__entry(
-+		__field(	unsigned long long,	block	)
-+		__field(	void *,			ci	)
++		__field(	unsigned int,	value1			)
++		__field(	int,		value2			)
 +	),
 +
 +	TP_fast_assign(
-+		__entry->block		= 	block;
-+		__entry->ci		= 	ci;
++		__entry->value1	= 	value1;
++		__entry->value2	= 	value2;
 +	),
 +
-+	TP_printk("%llu %p", __entry->block, __entry->ci)
++	TP_printk("%u %d", __entry->value1, __entry->value2)
 +);
 +
-+TRACE_EVENT(ocfs2_read_blocks_begin,
+ DECLARE_EVENT_CLASS(ocfs2__uint_uint,
+ 
+ 	TP_PROTO(unsigned int value1, unsigned int value2),
+@@ -3000,6 +3019,97 @@ DEFINE_EVENT(ocfs2__ull_ull_uint, olq_set_dquot,
+ 	TP_ARGS(space, inode, id)
+ );
+ /* End of trace events for fs/ocfs2/quota_local.c. */
 +
-+	TP_PROTO(void *ci, unsigned long long block,
-+		 unsigned int nr, int flags),
++/* Trace events for fs/ocfs2/quota_global.c. */
++DEFINE_EVENT(ocfs2__ull, ocfs2_validate_quota_block,
 +
-+	TP_ARGS(ci, block, nr, flags),
++	TP_PROTO(unsigned long long blkno),
++
++	TP_ARGS(blkno)
++);
++
++TRACE_EVENT(ocfs2_sync_dquot,
++
++	TP_PROTO(unsigned int dq_id, long long dqb_curspace,
++		 long long spacechange, long long curinodes,
++		 long long inodechange),
++
++	TP_ARGS(dq_id, dqb_curspace, spacechange, curinodes, inodechange),
 +
 +	TP_STRUCT__entry(
-+		__field(	void *,			ci	)
-+		__field(	unsigned long long,	block	)
-+		__field(	unsigned int,		nr	)
-+		__field(	int,			flags	)
++		__field(	unsigned int,	dq_id		)
++		__field(	long long,	dqb_curspace	)
++		__field(	long long,	spacechange	)
++		__field(	long long,	curinodes	)
++		__field(	long long,	inodechange	)
 +	),
 +
 +	TP_fast_assign(
-+		__entry->ci		= 	ci;
-+		__entry->block		= 	block;
-+		__entry->nr		= 	nr;
-+		__entry->flags		= 	flags;
++		__entry->dq_id		= 	dq_id;
++		__entry->dqb_curspace	= 	dqb_curspace;
++		__entry->spacechange	= 	spacechange;
++		__entry->curinodes	= 	curinodes;
++		__entry->inodechange	= 	inodechange;
 +	),
 +
-+	TP_printk("%p %llu %u %d", __entry->ci, __entry->block,
-+		  __entry->nr, __entry->flags)
++	TP_printk("%u %lld %lld %lld %lld", __entry->dq_id,
++		  __entry->dqb_curspace, __entry->spacechange,
++		  __entry->curinodes, __entry->inodechange)
 +);
 +
-+/* End of trace events for fs/ocfs2/buffer_head_io.c. */
++TRACE_EVENT(ocfs2_sync_dquot_helper,
++
++	TP_PROTO(unsigned int dq_id, unsigned int dq_type, unsigned long type,
++		 const char *s_id),
++
++	TP_ARGS(dq_id, dq_type, type, s_id),
++
++	TP_STRUCT__entry(
++		__field(	unsigned int,	dq_id		)
++		__field(	unsigned int,	dq_type		)
++		__field(	unsigned long,	type		)
++		__field(	const char *,	s_id		)
++	),
++
++	TP_fast_assign(
++		__entry->dq_id		= 	dq_id;
++		__entry->dq_type	= 	dq_type;
++		__entry->type		= 	type;
++		__entry->s_id		= 	s_id;
++	),
++
++	TP_printk("%u %u %lu %s", __entry->dq_id, __entry->dq_type,
++		  __entry->type, __entry->s_id)
++);
++
++DEFINE_EVENT(ocfs2__uint_int, ocfs2_write_dquot,
++
++	TP_PROTO(unsigned int id, int type),
++
++	TP_ARGS(id, type)
++);
++
++DEFINE_EVENT(ocfs2__uint_int, ocfs2_release_dquot,
++
++	TP_PROTO(unsigned int id, int type),
++
++	TP_ARGS(id, type)
++);
++
++DEFINE_EVENT(ocfs2__uint_int, ocfs2_acquire_dquot,
++
++	TP_PROTO(unsigned int id, int type),
++
++	TP_ARGS(id, type)
++);
++
++DEFINE_EVENT(ocfs2__uint_int, ocfs2_mark_dquot_dirty,
++
++	TP_PROTO(unsigned int id, int type),
++
++	TP_ARGS(id, type)
++);
++/* End of trace events for fs/ocfs2/quota_global.c. */
  #endif /* _TRACE_OCFS2_H */
  
  /* This part must be outside protection */
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index 10a49e8..64346f8 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -11,7 +11,6 @@
+ #include <linux/writeback.h>
+ #include <linux/workqueue.h>
+ 
+-#define MLOG_MASK_PREFIX ML_QUOTA
+ #include <cluster/masklog.h>
+ 
+ #include "ocfs2_fs.h"
+@@ -27,6 +26,7 @@
+ #include "super.h"
+ #include "buffer_head_io.h"
+ #include "quota.h"
++#include "ocfs2_trace.h"
+ 
+ /*
+  * Locking of quotas with OCFS2 is rather complex. Here are rules that
+@@ -132,8 +132,7 @@ int ocfs2_validate_quota_block(struct super_block *sb, struct buffer_head *bh)
+ 	struct ocfs2_disk_dqtrailer *dqt =
+ 		ocfs2_block_dqtrailer(sb->s_blocksize, bh->b_data);
+ 
+-	mlog(0, "Validating quota block %llu\n",
+-	     (unsigned long long)bh->b_blocknr);
++	trace_ocfs2_validate_quota_block((unsigned long long)bh->b_blocknr);
+ 
+ 	BUG_ON(!buffer_uptodate(bh));
+ 
+@@ -509,9 +508,10 @@ int __ocfs2_sync_dquot(struct dquot *dquot, int freeing)
+ 	olditime = dquot->dq_dqb.dqb_itime;
+ 	oldbtime = dquot->dq_dqb.dqb_btime;
+ 	ocfs2_global_disk2memdqb(dquot, &dqblk);
+-	mlog(0, "Syncing global dquot %u space %lld+%lld, inodes %lld+%lld\n",
+-	     dquot->dq_id, dquot->dq_dqb.dqb_curspace, (long long)spacechange,
+-	     dquot->dq_dqb.dqb_curinodes, (long long)inodechange);
++	trace_ocfs2_sync_dquot(dquot->dq_id, dquot->dq_dqb.dqb_curspace,
++			       (long long)spacechange,
++			       dquot->dq_dqb.dqb_curinodes,
++			       (long long)inodechange);
+ 	if (!test_bit(DQ_LASTSET_B + QIF_SPACE_B, &dquot->dq_flags))
+ 		dquot->dq_dqb.dqb_curspace += spacechange;
+ 	if (!test_bit(DQ_LASTSET_B + QIF_INODES_B, &dquot->dq_flags))
+@@ -595,8 +595,8 @@ static int ocfs2_sync_dquot_helper(struct dquot *dquot, unsigned long type)
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 	int status = 0;
+ 
+-	mlog(0, "id=%u qtype=%u type=%lu device=%s\n", dquot->dq_id,
+-		   dquot->dq_type, type, sb->s_id);
++	trace_ocfs2_sync_dquot_helper(dquot->dq_id, dquot->dq_type,
++				      type, sb->s_id);
+ 	if (type != dquot->dq_type)
+ 		goto out;
+ 	status = ocfs2_lock_global_qf(oinfo, 1);
+@@ -647,7 +647,7 @@ static int ocfs2_write_dquot(struct dquot *dquot)
+ 	struct ocfs2_super *osb = OCFS2_SB(dquot->dq_sb);
+ 	int status = 0;
+ 
+-	mlog(0, "id=%u, type=%d", dquot->dq_id, dquot->dq_type);
++	trace_ocfs2_write_dquot(dquot->dq_id, dquot->dq_type);
+ 
+ 	handle = ocfs2_start_trans(osb, OCFS2_QWRITE_CREDITS);
+ 	if (IS_ERR(handle)) {
+@@ -685,7 +685,7 @@ static int ocfs2_release_dquot(struct dquot *dquot)
+ 	struct ocfs2_super *osb = OCFS2_SB(dquot->dq_sb);
+ 	int status = 0;
+ 
+-	mlog(0, "id=%u, type=%d", dquot->dq_id, dquot->dq_type);
++	trace_ocfs2_release_dquot(dquot->dq_id, dquot->dq_type);
+ 
+ 	mutex_lock(&dquot->dq_lock);
+ 	/* Check whether we are not racing with some other dqget() */
+@@ -743,7 +743,7 @@ static int ocfs2_acquire_dquot(struct dquot *dquot)
+ 	int need_alloc = ocfs2_global_qinit_alloc(sb, type);
+ 	handle_t *handle;
+ 
+-	mlog(0, "id=%u, type=%d", dquot->dq_id, type);
++	trace_ocfs2_acquire_dquot(dquot->dq_id, type);
+ 	mutex_lock(&dquot->dq_lock);
+ 	/*
+ 	 * We need an exclusive lock, because we're going to update use count
+@@ -830,7 +830,7 @@ static int ocfs2_mark_dquot_dirty(struct dquot *dquot)
+ 	handle_t *handle;
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 
+-	mlog(0, "id=%u, type=%d", dquot->dq_id, type);
++	trace_ocfs2_mark_dquot_dirty(dquot->dq_id, type);
+ 
+ 	/* In case user set some limits, sync dquot immediately to global
+ 	 * quota file so that information propagates quicker */
 -- 
 1.7.0.4
