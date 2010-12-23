@@ -1,9 +1,9 @@
 From: Tao Ma <tm@tao.ma>
-Date: Thu, 23 Dec 2010 15:31:12 +0800
-Subject: [Ocfs2-devel] [PATCH 29/34] ocfs2: Remove masklog ML_EXPORT.
+Date: Thu, 23 Dec 2010 15:31:14 +0800
+Subject: [Ocfs2-devel] [PATCH 31/34] ocfs2: Remove masklog ML_BH_IO.
 In-Reply-To: <4D12F7E7.1090204@tao.ma>
 References: <4D12F7E7.1090204@tao.ma>
-Message-ID: <1293089477-5019-29-git-send-email-tm@tao.ma>
+Message-ID: <1293089477-5019-31-git-send-email-tm@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,341 +12,235 @@ To: ocfs2-devel@oss.oracle.com
 
 From: Tao Ma <boyu.mt@taobao.com>
 
-Remove mlog(0) from fs/ocfs2/export.c and the masklog EXPORT.
+Remove mlog(0,...) and mlog(ML_BH_IO,...) from
+fs/ocfs2/buffer_head_io.c.
+The masklog BH_IO is removed finally.
 
 Signed-off-by: Tao Ma <boyu.mt@taobao.com>
 ---
+ fs/ocfs2/buffer_head_io.c  |   37 +++++++--------------
  fs/ocfs2/cluster/masklog.c |    1 -
  fs/ocfs2/cluster/masklog.h |    1 -
- fs/ocfs2/export.c          |   47 +++++++---------
- fs/ocfs2/ocfs2_trace.h     |  135 ++++++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 155 insertions(+), 29 deletions(-)
+ fs/ocfs2/ocfs2_trace.h     |   76 ++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 89 insertions(+), 26 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-index 15f6f03..a229ede 100644
---- a/fs/ocfs2/cluster/masklog.c
-+++ b/fs/ocfs2/cluster/masklog.c
-@@ -99,7 +99,6 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
- 	define_mask(VOTE),
- 	define_mask(CONN),
- 	define_mask(QUORUM),
--	define_mask(EXPORT),
- 	define_mask(BASTS),
- 	define_mask(ERROR),
- 	define_mask(NOTICE),
-diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
-index 7e76559..5d358c1 100644
---- a/fs/ocfs2/cluster/masklog.h
-+++ b/fs/ocfs2/cluster/masklog.h
-@@ -101,7 +101,6 @@
- #define ML_VOTE		0x0000000001000000ULL /* ocfs2 node messaging  */
- #define ML_CONN		0x0000000004000000ULL /* net connection management */
- #define ML_QUORUM	0x0000000008000000ULL /* net connection quorum */
--#define ML_EXPORT	0x0000000010000000ULL /* ocfs2 export operations */
- #define ML_BASTS	0x0000001000000000ULL /* dlmglue asts and basts */
- /* bits that are infrequently given and frequently matched in the high word */
- #define ML_ERROR	0x0000000100000000ULL /* sent to KERN_ERR */
-diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
-index 190158b..c01aee5 100644
---- a/fs/ocfs2/export.c
-+++ b/fs/ocfs2/export.c
-@@ -26,7 +26,6 @@
- #include <linux/fs.h>
- #include <linux/types.h>
- 
--#define MLOG_MASK_PREFIX ML_EXPORT
- #include <cluster/masklog.h>
- 
- #include "ocfs2.h"
-@@ -40,6 +39,7 @@
- 
+diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
+index c23846d..d1cf9ab 100644
+--- a/fs/ocfs2/buffer_head_io.c
++++ b/fs/ocfs2/buffer_head_io.c
+@@ -35,8 +35,8 @@
+ #include "inode.h"
+ #include "journal.h"
+ #include "uptodate.h"
+-
  #include "buffer_head_io.h"
- #include "suballoc.h"
 +#include "ocfs2_trace.h"
  
- struct ocfs2_inode_handle
+ /*
+  * Bits on bh->b_state used by ocfs2.
+@@ -55,8 +55,7 @@ int ocfs2_write_block(struct ocfs2_super *osb, struct buffer_head *bh,
  {
-@@ -56,10 +56,9 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb,
- 	int status, set;
- 	struct dentry *result;
+ 	int ret = 0;
  
--	mlog(0, "(0x%p, 0x%p)\n", sb, handle);
-+	trace_ocfs2_get_dentry_begin(sb, handle, (unsigned long long)blkno);
+-	mlog(0, "(bh->b_blocknr = %llu, ci=%p)\n",
+-	     (unsigned long long)bh->b_blocknr, ci);
++	trace_ocfs2_write_block((unsigned long long)bh->b_blocknr, ci);
  
- 	if (blkno == 0) {
--		mlog(0, "nfs wants inode with blkno: 0\n");
- 		result = ERR_PTR(-ESTALE);
+ 	BUG_ON(bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO);
+ 	BUG_ON(buffer_jbd(bh));
+@@ -107,10 +106,10 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
+ 	unsigned int i;
+ 	struct buffer_head *bh;
+ 
+-	if (!nr) {
+-		mlog(ML_BH_IO, "No buffers will be read!\n");
++	trace_ocfs2_read_blocks_sync((unsigned long long)block, nr);
++
++	if (!nr)
  		goto bail;
- 	}
-@@ -83,6 +82,7 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb,
- 	}
+-	}
  
- 	status = ocfs2_test_inode_bit(osb, blkno, &set);
-+	trace_ocfs2_get_dentry_test_bit(status, set);
- 	if (status < 0) {
- 		if (status == -EINVAL) {
- 			/*
-@@ -90,18 +90,14 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb,
- 			 * as an inode, we return -ESTALE to be
- 			 * nice
- 			 */
--			mlog(0, "test inode bit failed %d\n", status);
- 			status = -ESTALE;
--		} else {
-+		} else
- 			mlog(ML_ERROR, "test inode bit failed %d\n", status);
--		}
- 		goto unlock_nfs_sync;
- 	}
+ 	for (i = 0 ; i < nr ; i++) {
+ 		if (bhs[i] == NULL) {
+@@ -124,10 +123,8 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
+ 		bh = bhs[i];
  
- 	/* If the inode allocator bit is clear, this inode must be stale */
- 	if (!set) {
--		mlog(0, "inode %llu suballoc bit is clear\n",
--		     (unsigned long long)blkno);
- 		status = -ESTALE;
- 		goto unlock_nfs_sync;
- 	}
-@@ -114,8 +110,8 @@ unlock_nfs_sync:
- check_err:
- 	if (status < 0) {
- 		if (status == -ESTALE) {
--			mlog(0, "stale inode ino: %llu generation: %u\n",
--			     (unsigned long long)blkno, handle->ih_generation);
-+			trace_ocfs2_get_dentry_stale((unsigned long long)blkno,
-+						     handle->ih_generation);
+ 		if (buffer_jbd(bh)) {
+-			mlog(ML_BH_IO,
+-			     "trying to sync read a jbd "
+-			     "managed bh (blocknr = %llu), skipping\n",
+-			     (unsigned long long)bh->b_blocknr);
++			trace_ocfs2_read_blocks_sync_jbd(
++					(unsigned long long)bh->b_blocknr);
+ 			continue;
  		}
- 		result = ERR_PTR(status);
- 		goto bail;
-@@ -130,8 +126,9 @@ check_err:
- check_gen:
- 	if (handle->ih_generation != inode->i_generation) {
- 		iput(inode);
--		mlog(0, "stale inode ino: %llu generation: %u\n",
--		     (unsigned long long)blkno, handle->ih_generation);
-+		trace_ocfs2_get_dentry_generation((unsigned long long)blkno,
-+						  handle->ih_generation,
-+						  inode->i_generation);
- 		result = ERR_PTR(-ESTALE);
- 		goto bail;
- 	}
-@@ -143,7 +140,7 @@ check_gen:
- 		mlog_errno(PTR_ERR(result));
  
- bail:
--	mlog(0, "result = %p\n", result);
-+	trace_ocfs2_get_dentry_end(result);
- 	return result;
- }
+@@ -187,8 +184,7 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 	struct buffer_head *bh;
+ 	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
  
-@@ -154,11 +151,8 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
- 	struct dentry *parent;
- 	struct inode *dir = child->d_inode;
+-	mlog(0, "(ci=%p, block=(%llu), nr=(%d), flags=%d)\n",
+-	     ci, (unsigned long long)block, nr, flags);
++	trace_ocfs2_read_blocks_begin(ci, (unsigned long long)block, nr, flags);
  
--	mlog(0, "(0x%p, '%.*s')\n", child,
--	     child->d_name.len, child->d_name.name);
--
--	mlog(0, "find parent of directory %llu\n",
--	     (unsigned long long)OCFS2_I(dir)->ip_blkno);
-+	trace_ocfs2_get_parent(child, child->d_name.len, child->d_name.name,
-+			       (unsigned long long)OCFS2_I(dir)->ip_blkno);
- 
- 	status = ocfs2_inode_lock(dir, NULL, 0);
- 	if (status < 0) {
-@@ -182,7 +176,7 @@ bail_unlock:
- 	ocfs2_inode_unlock(dir, 0);
- 
- bail:
--	mlog(0, "parent %p\n", parent);
-+	trace_ocfs2_get_parent_end(parent);
- 
- 	return parent;
- }
-@@ -197,9 +191,9 @@ static int ocfs2_encode_fh(struct dentry *dentry, u32 *fh_in, int *max_len,
- 	u32 generation;
- 	__le32 *fh = (__force __le32 *) fh_in;
- 
--	mlog(0, "(0x%p, '%.*s', 0x%p, %d, %d)\n", dentry,
--	     dentry->d_name.len, dentry->d_name.name,
--	     fh, len, connectable);
-+	trace_ocfs2_encode_fh_begin(dentry, dentry->d_name.len,
-+				    dentry->d_name.name,
-+				    fh, len, connectable);
- 
- 	if (len < 3 || (connectable && len < 6)) {
- 		mlog(ML_ERROR, "fh buffer is too small for encoding\n");
-@@ -210,8 +204,7 @@ static int ocfs2_encode_fh(struct dentry *dentry, u32 *fh_in, int *max_len,
- 	blkno = OCFS2_I(inode)->ip_blkno;
- 	generation = inode->i_generation;
- 
--	mlog(0, "Encoding fh: blkno: %llu, generation: %u\n",
--	     (unsigned long long)blkno, generation);
-+	trace_ocfs2_encode_fh_self((unsigned long long)blkno, generation);
- 
- 	len = 3;
- 	fh[0] = cpu_to_le32((u32)(blkno >> 32));
-@@ -236,14 +229,14 @@ static int ocfs2_encode_fh(struct dentry *dentry, u32 *fh_in, int *max_len,
- 		len = 6;
- 		type = 2;
- 
--		mlog(0, "Encoding parent: blkno: %llu, generation: %u\n",
--		     (unsigned long long)blkno, generation);
-+		trace_ocfs2_encode_fh_parent((unsigned long long)blkno,
-+					     generation);
+ 	BUG_ON(!ci);
+ 	BUG_ON((flags & OCFS2_BH_READAHEAD) &&
+@@ -208,7 +204,6 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
  	}
  
- 	*max_len = len;
+ 	if (nr == 0) {
+-		mlog(ML_BH_IO, "No buffers will be read!\n");
+ 		status = 0;
+ 		goto bail;
+ 	}
+@@ -261,11 +256,10 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 			ignore_cache = 1;
+ 		}
+ 
++		trace_ocfs2_read_blocks_bh((unsigned long long)bh->b_blocknr,
++			ignore_cache, buffer_jbd(bh), buffer_dirty(bh));
++
+ 		if (buffer_jbd(bh)) {
+-			if (ignore_cache)
+-				mlog(ML_BH_IO, "trying to sync read a jbd "
+-					       "managed bh (blocknr = %llu)\n",
+-				     (unsigned long long)bh->b_blocknr);
+ 			continue;
+ 		}
+ 
+@@ -273,9 +267,6 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 			if (buffer_dirty(bh)) {
+ 				/* This should probably be a BUG, or
+ 				 * at least return an error. */
+-				mlog(ML_BH_IO, "asking me to sync read a dirty "
+-					       "buffer! (blocknr = %llu)\n",
+-				     (unsigned long long)bh->b_blocknr);
+ 				continue;
+ 			}
+ 
+@@ -368,10 +359,8 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 	}
+ 	ocfs2_metadata_cache_io_unlock(ci);
+ 
+-	mlog(ML_BH_IO, "block=(%llu), nr=(%d), cached=%s, flags=0x%x\n",
+-	     (unsigned long long)block, nr,
+-	     ((flags & OCFS2_BH_IGNORE_CACHE) || ignore_cache) ? "no" : "yes",
+-	     flags);
++	trace_ocfs2_read_blocks_end((unsigned long long)block, nr,
++				    flags, ignore_cache);
  
  bail:
--	mlog(0, "type = %d\n", type);
-+	trace_ocfs2_encode_fh_type(type);
- 	return type;
- }
  
+diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
+index 3f1e995..137e7e8 100644
+--- a/fs/ocfs2/cluster/masklog.c
++++ b/fs/ocfs2/cluster/masklog.c
+@@ -93,7 +93,6 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
+ 	define_mask(DLM_RECOVERY),
+ 	define_mask(AIO),
+ 	define_mask(DLM_GLUE),
+-	define_mask(BH_IO),
+ 	define_mask(UPTODATE),
+ 	define_mask(VOTE),
+ 	define_mask(CONN),
+diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
+index 61e8f6c..5c7e38a 100644
+--- a/fs/ocfs2/cluster/masklog.h
++++ b/fs/ocfs2/cluster/masklog.h
+@@ -95,7 +95,6 @@
+ #define ML_DLM_RECOVERY	0x0000000000001000ULL /* dlm master functions */
+ #define ML_AIO		0x0000000000002000ULL /* ocfs2 aio read and write */
+ #define ML_DLM_GLUE	0x0000000000080000ULL /* ocfs2 dlm glue layer */
+-#define ML_BH_IO	0x0000000000100000ULL /* ocfs2 buffer I/O */
+ #define ML_UPTODATE	0x0000000000200000ULL /* ocfs2 caching sequence #'s */
+ #define ML_VOTE		0x0000000001000000ULL /* ocfs2 node messaging  */
+ #define ML_CONN		0x0000000004000000ULL /* net connection management */
 diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index 61197a4..a58008f 100644
+index 736cb40..9cd8670 100644
 --- a/fs/ocfs2/ocfs2_trace.h
 +++ b/fs/ocfs2/ocfs2_trace.h
-@@ -3800,6 +3800,141 @@ TRACE_EVENT(ocfs2_dentry_attach_lock_found,
- 	TP_printk("%s %llu %llu", __entry->name, __entry->parent, __entry->ino)
+@@ -4177,6 +4177,82 @@ DEFINE_EVENT(ocfs2__int, ocfs2_wait_on_mount,
+ 	TP_ARGS(state)
  );
- 
-+TRACE_EVENT(ocfs2_get_dentry_begin,
+ /* End of trace events for fs/ocfs2/journal.c. */
 +
-+	TP_PROTO(void *sb, void *handle, unsigned long long blkno),
++/* Trace events for fs/ocfs2/buffer_head_io.c. */
++DEFINE_EVENT(ocfs2__ull_uint, ocfs2_read_blocks_sync,
 +
-+	TP_ARGS(sb, handle, blkno),
++	TP_PROTO(unsigned long long block, unsigned int nr),
++
++	TP_ARGS(block, nr)
++);
++
++DEFINE_EVENT(ocfs2__ull, ocfs2_read_blocks_sync_jbd,
++
++	TP_PROTO(unsigned long long block),
++
++	TP_ARGS(block)
++);
++
++DEFINE_EVENT(ocfs2__ull_int_int_int, ocfs2_read_blocks_bh,
++
++	TP_PROTO(unsigned long long block, int ignore_cache,
++		 int buffer_jbd, int buffer_dirty),
++
++	TP_ARGS(block, ignore_cache, buffer_jbd, buffer_dirty)
++);
++
++DEFINE_EVENT(ocfs2__ull_int_int_int, ocfs2_read_blocks_end,
++
++	TP_PROTO(unsigned long long block, int nr, int flags, int ignore_cache),
++
++	TP_ARGS(block, nr, flags, ignore_cache)
++);
++
++TRACE_EVENT(ocfs2_write_block,
++
++	TP_PROTO(unsigned long long block, void *ci),
++
++	TP_ARGS(block, ci),
 +
 +	TP_STRUCT__entry(
-+		__field(	void *,			sb		)
-+		__field(	void *,			handle		)
-+		__field(	unsigned long long,	blkno		)
++		__field(	unsigned long long,	block	)
++		__field(	void *,			ci	)
 +	),
 +
 +	TP_fast_assign(
-+		__entry->sb		= 	sb;
-+		__entry->handle		= 	handle;
-+		__entry->blkno		= 	blkno;
++		__entry->block		= 	block;
++		__entry->ci		= 	ci;
 +	),
 +
-+	TP_printk("%p %p %llu", __entry->sb, __entry->handle, __entry->blkno)
++	TP_printk("%llu %p", __entry->block, __entry->ci)
 +);
 +
-+DEFINE_EVENT(ocfs2__int_int, ocfs2_get_dentry_test_bit,
++TRACE_EVENT(ocfs2_read_blocks_begin,
 +
-+	TP_PROTO(int status, int set),
++	TP_PROTO(void *ci, unsigned long long block,
++		 unsigned int nr, int flags),
 +
-+	TP_ARGS(status, set)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_uint, ocfs2_get_dentry_stale,
-+
-+	TP_PROTO(unsigned long long blkno, unsigned int generation),
-+
-+	TP_ARGS(blkno, generation)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_uint_uint, ocfs2_get_dentry_generation,
-+
-+	TP_PROTO(unsigned long long blkno, unsigned int h_generation,
-+		 unsigned int i_generation),
-+
-+	TP_ARGS(blkno, h_generation, i_generation)
-+);
-+
-+DEFINE_EVENT(ocfs2__pointer, ocfs2_get_dentry_end,
-+
-+
-+	TP_PROTO(void *result),
-+
-+	TP_ARGS(result)
-+);
-+
-+TRACE_EVENT(ocfs2_get_parent,
-+
-+	TP_PROTO(void *child, int len, const char *name,
-+		 unsigned long long ino),
-+
-+	TP_ARGS(child, len, name, ino),
++	TP_ARGS(ci, block, nr, flags),
 +
 +	TP_STRUCT__entry(
-+		__field(	void *,			child		)
-+		__field(	int,			len		)
-+		__field(	const char *,		name		)
-+		__field(	unsigned long long,	ino		)
++		__field(	void *,			ci	)
++		__field(	unsigned long long,	block	)
++		__field(	unsigned int,		nr	)
++		__field(	int,			flags	)
 +	),
 +
 +	TP_fast_assign(
-+		__entry->child		= 	child;
-+		__entry->len		= 	len;
-+		__entry->name		= 	name;
-+		__entry->ino		= 	ino;
++		__entry->ci		= 	ci;
++		__entry->block		= 	block;
++		__entry->nr		= 	nr;
++		__entry->flags		= 	flags;
 +	),
 +
-+	TP_printk("%p %.*s %llu", __entry->child, __entry->len,
-+		  __entry->name, __entry->ino)
++	TP_printk("%p %llu %u %d", __entry->ci, __entry->block,
++		  __entry->nr, __entry->flags)
 +);
 +
-+DEFINE_EVENT(ocfs2__pointer, ocfs2_get_parent_end,
-+
-+
-+	TP_PROTO(void *parent),
-+
-+	TP_ARGS(parent)
-+);
-+
-+TRACE_EVENT(ocfs2_encode_fh_begin,
-+
-+	TP_PROTO(void *dentry, int name_len, const char *name,
-+		 void *fh, int len, int connectable),
-+
-+	TP_ARGS(dentry, name_len, name, fh, len, connectable),
-+
-+	TP_STRUCT__entry(
-+		__field(	void *,			dentry		)
-+		__field(	int,			name_len	)
-+		__field(	const char *,		name		)
-+		__field(	void *,			fh		)
-+		__field(	int,			len		)
-+		__field(	int,			connectable	)
-+	),
-+
-+	TP_fast_assign(
-+		__entry->dentry		= 	dentry;
-+		__entry->name_len	= 	name_len;
-+		__entry->name		= 	name;
-+		__entry->fh		= 	fh;
-+		__entry->len		= 	len;
-+		__entry->connectable	= 	connectable;
-+	),
-+
-+	TP_printk("%p %.*s %p %d %d", __entry->dentry, __entry->name_len,
-+		  __entry->name, __entry->fh, __entry->len,
-+		  __entry->connectable)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_uint, ocfs2_encode_fh_self,
-+
-+	TP_PROTO(unsigned long long blkno, unsigned int generation),
-+
-+	TP_ARGS(blkno, generation)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_uint, ocfs2_encode_fh_parent,
-+
-+	TP_PROTO(unsigned long long blkno, unsigned int generation),
-+
-+	TP_ARGS(blkno, generation)
-+);
-+
-+DEFINE_EVENT(ocfs2__int, ocfs2_encode_fh_type,
-+
-+	TP_PROTO(int type),
-+
-+	TP_ARGS(type)
-+);
-+
- /* End of trace events for fs/ocfs2/dcache.c. */
++/* End of trace events for fs/ocfs2/buffer_head_io.c. */
  #endif /* _TRACE_OCFS2_H */
  
+ /* This part must be outside protection */
 -- 
 1.7.0.4
