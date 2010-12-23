@@ -1,346 +1,642 @@
 From: Tao Ma <tm@tao.ma>
-Date: Thu, 23 Dec 2010 15:30:54 +0800
-Subject: [Ocfs2-devel] [PATCH 11/34] ocfs2: Remove mlog(0) from
-	fs/ocfs2/aops.c
+Date: Thu, 23 Dec 2010 15:30:59 +0800
+Subject: [Ocfs2-devel] [PATCH 16/34] ocfs2: Remove masklog ML_INODE.
 In-Reply-To: <4D12F7E7.1090204@tao.ma>
 References: <4D12F7E7.1090204@tao.ma>
-Message-ID: <1293089477-5019-11-git-send-email-tm@tao.ma>
+Message-ID: <1293089477-5019-16-git-send-email-tm@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Tao Ma <tao.ma@oracle.com>
+From: Tao Ma <boyu.mt@taobao.com>
 
-Remove all the "mlog(0," in fs/ocfs2/aops.c.
+Remove mlog(0) from fs/ocfs2/inode.c and the masklog INODE.
 
-Signed-off-by: Tao Ma <tao.ma@oracle.com>
+Signed-off-by: Tao Ma <boyu.mt@taobao.com>
 ---
- fs/ocfs2/aops.c        |   55 ++++++++--------
- fs/ocfs2/ocfs2_trace.h |  168 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 197 insertions(+), 26 deletions(-)
+ fs/ocfs2/cluster/masklog.c |    1 -
+ fs/ocfs2/cluster/masklog.h |    1 -
+ fs/ocfs2/inode.c           |  107 +++++++++------------
+ fs/ocfs2/ocfs2_trace.h     |  227 ++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 273 insertions(+), 63 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 177b8b4..e6153cb 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -29,7 +29,6 @@
- #include <linux/mpage.h>
- #include <linux/quotaops.h>
+diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
+index c654038..1c1fa9d 100644
+--- a/fs/ocfs2/cluster/masklog.c
++++ b/fs/ocfs2/cluster/masklog.c
+@@ -99,7 +99,6 @@ static struct mlog_attribute mlog_attrs[MLOG_MAX_BITS] = {
+ 	define_mask(BH_IO),
+ 	define_mask(UPTODATE),
+ 	define_mask(NAMEI),
+-	define_mask(INODE),
+ 	define_mask(VOTE),
+ 	define_mask(DCACHE),
+ 	define_mask(CONN),
+diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
+index de412aa..d6dab10 100644
+--- a/fs/ocfs2/cluster/masklog.h
++++ b/fs/ocfs2/cluster/masklog.h
+@@ -101,7 +101,6 @@
+ #define ML_BH_IO	0x0000000000100000ULL /* ocfs2 buffer I/O */
+ #define ML_UPTODATE	0x0000000000200000ULL /* ocfs2 caching sequence #'s */
+ #define ML_NAMEI	0x0000000000400000ULL /* ocfs2 directory / namespace */
+-#define ML_INODE	0x0000000000800000ULL /* ocfs2 inode manipulation */
+ #define ML_VOTE		0x0000000001000000ULL /* ocfs2 node messaging  */
+ #define ML_DCACHE	0x0000000002000000ULL /* ocfs2 dcache operations */
+ #define ML_CONN		0x0000000004000000ULL /* net connection management */
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 361efd3..c3b9301 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -31,7 +31,6 @@
  
--#define MLOG_MASK_PREFIX ML_FILE_IO
+ #include <asm/byteorder.h>
+ 
+-#define MLOG_MASK_PREFIX ML_INODE
  #include <cluster/masklog.h>
  
  #include "ocfs2.h"
-@@ -45,6 +44,7 @@
- #include "super.h"
- #include "symlink.h"
+@@ -53,6 +52,7 @@
+ #include "uptodate.h"
+ #include "xattr.h"
  #include "refcounttree.h"
 +#include "ocfs2_trace.h"
  
  #include "buffer_head_io.h"
  
-@@ -59,8 +59,9 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	void *kaddr;
+@@ -131,7 +131,8 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
+ 	struct super_block *sb = osb->sb;
+ 	struct ocfs2_find_inode_args args;
  
--	mlog(0, "(0x%p, %llu, 0x%p, %d)\n", inode,
--	     (unsigned long long)iblock, bh_result, create);
-+	trace_ocfs2_symlink_get_block(
-+			(unsigned long long)OCFS2_I(inode)->ip_blkno,
-+			(unsigned long long)iblock, bh_result, create);
+-	mlog(0, "(blkno = %llu)\n", (unsigned long long)blkno);
++	trace_ocfs2_iget_begin((unsigned long long)blkno, flags,
++			       sysfile_type);
  
- 	BUG_ON(ocfs2_inode_is_fast_symlink(inode));
+ 	/* Ok. By now we've either got the offsets passed to us by the
+ 	 * caller, or we just pulled them off the bh. Lets do some
+@@ -157,8 +158,8 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
+ 		mlog_errno(PTR_ERR(inode));
+ 		goto bail;
+ 	}
++	trace_ocfs2_iget5_locked(inode->i_state);
+ 	if (inode->i_state & I_NEW) {
+-		mlog(0, "Inode was not in inode cache, reading it.\n");
+ 		ocfs2_read_locked_inode(inode, &args);
+ 		unlock_new_inode(inode);
+ 	}
+@@ -170,9 +171,8 @@ struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
  
-@@ -135,8 +136,8 @@ int ocfs2_get_block(struct inode *inode, sector_t iblock,
- 	u64 p_blkno, count, past_eof;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
--	mlog(0, "(0x%p, %llu, 0x%p, %d)\n", inode,
--	     (unsigned long long)iblock, bh_result, create);
-+	trace_ocfs2_get_block((unsigned long long)OCFS2_I(inode)->ip_blkno,
-+			      (unsigned long long)iblock, bh_result, create);
- 
- 	if (OCFS2_I(inode)->ip_flags & OCFS2_INODE_SYSTEM_FILE)
- 		mlog(ML_NOTICE, "get_block on system inode 0x%p (%lu)\n",
-@@ -198,8 +199,9 @@ int ocfs2_get_block(struct inode *inode, sector_t iblock,
+ bail:
+ 	if (!IS_ERR(inode)) {
+-		mlog(0, "returning inode with number %llu\n",
+-		     (unsigned long long)OCFS2_I(inode)->ip_blkno);
+-		mlog(0, "inode %p\n", inode);
++		trace_ocfs2_iget_end(inode, 
++			(unsigned long long)OCFS2_I(inode)->ip_blkno);
  	}
  
- 	past_eof = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
--	mlog(0, "Inode %lu, past_eof = %llu\n", inode->i_ino,
--	     (unsigned long long)past_eof);
+ 	return inode;
+@@ -192,12 +192,12 @@ static int ocfs2_find_actor(struct inode *inode, void *opaque)
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	int ret = 0;
+ 
+-	mlog(0, "(0x%p, %lu, 0x%p)\n", inode, inode->i_ino, opaque);
+-
+ 	args = opaque;
+ 
+ 	mlog_bug_on_msg(!inode, "No inode in find actor!\n");
+ 
++	trace_ocfs2_find_actor(inode, inode->i_ino, opaque, args->fi_blkno);
 +
-+	trace_ocfs2_get_block_end((unsigned long long)OCFS2_I(inode)->ip_blkno,
-+				  (unsigned long long)past_eof);
- 	if (create && (iblock >= past_eof))
- 		set_buffer_new(bh_result);
+ 	if (oi->ip_blkno != args->fi_blkno)
+ 		goto bail;
  
-@@ -276,7 +278,8 @@ static int ocfs2_readpage(struct file *file, struct page *page)
- 	loff_t start = (loff_t)page->index << PAGE_CACHE_SHIFT;
- 	int ret, unlock = 1;
+@@ -217,8 +217,6 @@ static int ocfs2_init_locked_inode(struct inode *inode, void *opaque)
+ 	static struct lock_class_key ocfs2_quota_ip_alloc_sem_key,
+ 				     ocfs2_file_ip_alloc_sem_key;
  
--	mlog(0, "(0x%p, %lu)\n", file, (page ? page->index : 0));
-+	trace_ocfs2_readpage((unsigned long long)oi->ip_blkno,
-+			     (page ? page->index : 0));
- 
- 	ret = ocfs2_inode_lock_with_page(inode, NULL, 0, page);
- 	if (ret != 0) {
-@@ -393,13 +396,11 @@ out_unlock:
-  */
- static int ocfs2_writepage(struct page *page, struct writeback_control *wbc)
- {
--	int ret;
+-	mlog(0, "inode = %p, opaque = %p\n", inode, opaque);
 -
--	mlog(0, "(0x%p)\n", page);
--
--	ret = block_write_full_page(page, ocfs2_get_block, wbc);
-+	trace_ocfs2_writepage(
-+		(unsigned long long)OCFS2_I(page->mapping->host)->ip_blkno,
-+		page->index);
+ 	inode->i_ino = args->fi_ino;
+ 	OCFS2_I(inode)->ip_blkno = args->fi_blkno;
+ 	if (args->fi_sysfile_type != 0)
+@@ -244,9 +242,6 @@ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 	struct ocfs2_super *osb;
+ 	int use_plocks = 1;
  
--	return ret;
-+	return block_write_full_page(page, ocfs2_get_block, wbc);
+-	mlog(0, "(0x%p, size:%llu)\n", inode,
+-	     (unsigned long long)le64_to_cpu(fe->i_size));
+-
+ 	sb = inode->i_sb;
+ 	osb = OCFS2_SB(sb);
+ 
+@@ -298,20 +293,20 @@ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+ 
+ 	inode->i_nlink = ocfs2_read_links_count(fe);
+ 
++	trace_ocfs2_populate_inode(OCFS2_I(inode)->ip_blkno,
++				   le32_to_cpu(fe->i_flags));
+ 	if (fe->i_flags & cpu_to_le32(OCFS2_SYSTEM_FL)) {
+ 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SYSTEM_FILE;
+ 		inode->i_flags |= S_NOQUOTA;
+ 	}
+-
++  
+ 	if (fe->i_flags & cpu_to_le32(OCFS2_LOCAL_ALLOC_FL)) {
+ 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_BITMAP;
+-		mlog(0, "local alloc inode: i_ino=%lu\n", inode->i_ino);
+ 	} else if (fe->i_flags & cpu_to_le32(OCFS2_BITMAP_FL)) {
+ 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_BITMAP;
+ 	} else if (fe->i_flags & cpu_to_le32(OCFS2_QUOTA_FL)) {
+ 		inode->i_flags |= S_NOQUOTA;
+ 	} else if (fe->i_flags & cpu_to_le32(OCFS2_SUPER_BLOCK_FL)) {
+-		mlog(0, "superblock inode: i_ino=%lu\n", inode->i_ino);
+ 		/* we can't actually hit this as read_inode can't
+ 		 * handle superblocks today ;-) */
+ 		BUG();
+@@ -391,8 +386,6 @@ static int ocfs2_read_locked_inode(struct inode *inode,
+ 	int status, can_lock;
+ 	u32 generation = 0;
+ 
+-	mlog(0, "(0x%p, 0x%p)\n", inode, args);
+-
+ 	status = -EINVAL;
+ 	if (inode == NULL || inode->i_sb == NULL) {
+ 		mlog(ML_ERROR, "bad inode\n");
+@@ -440,6 +433,9 @@ static int ocfs2_read_locked_inode(struct inode *inode,
+ 		&& !(args->fi_flags & OCFS2_FI_FLAG_ORPHAN_RECOVERY)
+ 		&& !ocfs2_mount_local(osb);
+ 
++	trace_ocfs2_read_locked_inode(
++		(unsigned long long)OCFS2_I(inode)->ip_blkno, can_lock);
++
+ 	/*
+ 	 * To maintain backwards compatibility with older versions of
+ 	 * ocfs2-tools, we still store the generation value for system
+@@ -689,8 +685,6 @@ static int ocfs2_check_orphan_recovery_state(struct ocfs2_super *osb,
+ 
+ 	spin_lock(&osb->osb_lock);
+ 	if (ocfs2_node_map_test_bit(osb, &osb->osb_recovering_orphan_dirs, slot)) {
+-		mlog(0, "Recovery is happening on orphan dir %d, will skip "
+-		     "this inode\n", slot);
+ 		ret = -EDEADLK;
+ 		goto out;
+ 	}
+@@ -699,6 +693,7 @@ static int ocfs2_check_orphan_recovery_state(struct ocfs2_super *osb,
+ 	osb->osb_orphan_wipes[slot]++;
+ out:
+ 	spin_unlock(&osb->osb_lock);
++	trace_ocfs2_check_orphan_recovery_state(slot, ret);
+ 	return ret;
  }
  
- /* Taken from ext3. We don't necessarily need the full blown
-@@ -445,7 +446,8 @@ static sector_t ocfs2_bmap(struct address_space *mapping, sector_t block)
- 	int err = 0;
- 	struct inode *inode = mapping->host;
- 
--	mlog(0, "(block = %llu)\n", (unsigned long long)block);
-+	trace_ocfs2_bmap((unsigned long long)OCFS2_I(inode)->ip_blkno,
-+			 (unsigned long long)block);
- 
- 	/* We don't need to lock journal system files, since they aren't
- 	 * accessed concurrently from multiple nodes.
-@@ -1518,9 +1520,9 @@ static int ocfs2_try_to_write_inline_data(struct address_space *mapping,
+@@ -809,6 +804,10 @@ static int ocfs2_inode_is_valid_to_delete(struct inode *inode)
  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	struct ocfs2_dinode *di = NULL;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
  
--	mlog(0, "Inode %llu, write of %u bytes at off %llu. features: 0x%x\n",
--	     (unsigned long long)oi->ip_blkno, len, (unsigned long long)pos,
--	     oi->ip_dyn_features);
-+	trace_ocfs2_try_to_write_inline_data((unsigned long long)oi->ip_blkno,
-+					     len, (unsigned long long)pos,
-+					     oi->ip_dyn_features);
- 
- 	/*
- 	 * Handle inodes which already have inline data 1st.
-@@ -1682,6 +1684,13 @@ int ocfs2_write_begin_nolock(struct file *filp,
- 
- 	di = (struct ocfs2_dinode *)wc->w_di_bh->b_data;
- 
-+	trace_ocfs2_write_begin_nolock(
-+			(unsigned long long)OCFS2_I(inode)->ip_blkno,
-+			(long long)i_size_read(inode),
-+			le32_to_cpu(di->i_clusters),
-+			pos, len, flags, mmap_page,
-+			clusters_to_alloc, extents_to_split);
++	trace_ocfs2_inode_is_valid_to_delete(current, osb->dc_task,
++					     (unsigned long long)oi->ip_blkno,
++					     oi->ip_flags);
 +
- 	/*
- 	 * We set w_target_from, w_target_to here so that
- 	 * ocfs2_write_end() knows which range in the target page to
-@@ -1694,12 +1703,6 @@ int ocfs2_write_begin_nolock(struct file *filp,
- 		 * ocfs2_lock_allocators(). It greatly over-estimates
- 		 * the work to be done.
- 		 */
--		mlog(0, "extend inode %llu, i_size = %lld, di->i_clusters = %u,"
--		     " clusters_to_add = %u, extents_to_split = %u\n",
--		     (unsigned long long)OCFS2_I(inode)->ip_blkno,
--		     (long long)i_size_read(inode), le32_to_cpu(di->i_clusters),
--		     clusters_to_alloc, extents_to_split);
--
- 		ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode),
- 					      wc->w_di_bh);
- 		ret = ocfs2_lock_allocators(inode, &et,
-@@ -1865,8 +1868,8 @@ static void ocfs2_write_end_inline(struct inode *inode, loff_t pos,
- 	memcpy(di->id2.i_data.id_data + pos, kaddr + pos, *copied);
- 	kunmap_atomic(kaddr, KM_USER0);
+ 	/* We shouldn't be getting here for the root directory
+ 	 * inode.. */
+ 	if (inode == osb->root_inode) {
+@@ -821,11 +820,8 @@ static int ocfs2_inode_is_valid_to_delete(struct inode *inode)
+ 	 * have to skip deleting this guy. That's OK though because
+ 	 * the node who's doing the actual deleting should handle it
+ 	 * anyway. */
+-	if (current == osb->dc_task) {
+-		mlog(0, "Skipping delete of %lu because we're currently "
+-		     "in downconvert\n", inode->i_ino);
++	if (current == osb->dc_task)
+ 		goto bail;
+-	}
  
--	mlog(0, "Data written to inode at offset %llu. "
--	     "id_count = %u, copied = %u, i_dyn_features = 0x%x\n",
-+	trace_ocfs2_write_end_inline(
-+	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
- 	     (unsigned long long)pos, *copied,
- 	     le16_to_cpu(di->id2.i_data.id_count),
- 	     le16_to_cpu(di->i_dyn_features));
+ 	spin_lock(&oi->ip_lock);
+ 	/* OCFS2 *never* deletes system files. This should technically
+@@ -840,11 +836,8 @@ static int ocfs2_inode_is_valid_to_delete(struct inode *inode)
+ 	/* If we have allowd wipe of this inode for another node, it
+ 	 * will be marked here so we can safely skip it. Recovery will
+ 	 * cleanup any inodes we might inadvertantly skip here. */
+-	if (oi->ip_flags & OCFS2_INODE_SKIP_DELETE) {
+-		mlog(0, "Skipping delete of %lu because another node "
+-		     "has done this for us.\n", inode->i_ino);
++	if (oi->ip_flags & OCFS2_INODE_SKIP_DELETE)
+ 		goto bail_unlock;
+-	}
+ 
+ 	ret = 1;
+ bail_unlock:
+@@ -861,28 +854,27 @@ static int ocfs2_query_inode_wipe(struct inode *inode,
+ 				  struct buffer_head *di_bh,
+ 				  int *wipe)
+ {
+-	int status = 0;
++	int status = 0, reason = 0;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_dinode *di;
+ 
+ 	*wipe = 0;
+ 
++	trace_ocfs2_query_inode_wipe_begin((unsigned long long)oi->ip_blkno,
++					   inode->i_nlink);
++
+ 	/* While we were waiting for the cluster lock in
+ 	 * ocfs2_delete_inode, another node might have asked to delete
+ 	 * the inode. Recheck our flags to catch this. */
+ 	if (!ocfs2_inode_is_valid_to_delete(inode)) {
+-		mlog(0, "Skipping delete of %llu because flags changed\n",
+-		     (unsigned long long)oi->ip_blkno);
++		reason = 1;
+ 		goto bail;
+ 	}
+ 
+ 	/* Now that we have an up to date inode, we can double check
+ 	 * the link count. */
+-	if (inode->i_nlink) {
+-		mlog(0, "Skipping delete of %llu because nlink = %u\n",
+-		     (unsigned long long)oi->ip_blkno, inode->i_nlink);
++	if (inode->i_nlink)
+ 		goto bail;
+-	}
+ 
+ 	/* Do some basic inode verification... */
+ 	di = (struct ocfs2_dinode *) di_bh->b_data;
+@@ -897,9 +889,7 @@ static int ocfs2_query_inode_wipe(struct inode *inode,
+ 		 * ORPHANED_FL not.
+ 		 */
+ 		if (di->i_dyn_features & cpu_to_le16(OCFS2_HAS_REFCOUNT_FL)) {
+-			mlog(0, "Reflinked inode %llu is no longer orphaned.  "
+-			     "it shouldn't be deleted\n",
+-			     (unsigned long long)oi->ip_blkno);
++			reason = 2;
+ 			goto bail;
+ 		}
+ 
+@@ -936,8 +926,7 @@ static int ocfs2_query_inode_wipe(struct inode *inode,
+ 	status = ocfs2_try_open_lock(inode, 1);
+ 	if (status == -EAGAIN) {
+ 		status = 0;
+-		mlog(0, "Skipping delete of %llu because it is in use on "
+-		     "other nodes\n", (unsigned long long)oi->ip_blkno);
++		reason = 3;
+ 		goto bail;
+ 	}
+ 	if (status < 0) {
+@@ -946,11 +935,10 @@ static int ocfs2_query_inode_wipe(struct inode *inode,
+ 	}
+ 
+ 	*wipe = 1;
+-	mlog(0, "Inode %llu is ok to wipe from orphan dir %u\n",
+-	     (unsigned long long)oi->ip_blkno,
+-	     le16_to_cpu(di->i_orphaned_slot));
++	trace_ocfs2_query_inode_wipe_succ(le16_to_cpu(di->i_orphaned_slot));
+ 
+ bail:
++	trace_ocfs2_query_inode_wipe_end(status, reason);
+ 	return status;
+ }
+ 
+@@ -960,8 +948,8 @@ bail:
+ static void ocfs2_cleanup_delete_inode(struct inode *inode,
+ 				       int sync_data)
+ {
+-	mlog(0, "Cleanup inode %llu, sync = %d\n",
+-	     (unsigned long long)OCFS2_I(inode)->ip_blkno, sync_data);
++	trace_ocfs2_cleanup_delete_inode(
++		(unsigned long long)OCFS2_I(inode)->ip_blkno, sync_data);
+ 	if (sync_data)
+ 		write_inode_now(inode, 1);
+ 	truncate_inode_pages(&inode->i_data, 0);
+@@ -973,15 +961,15 @@ static void ocfs2_delete_inode(struct inode *inode)
+ 	sigset_t oldset;
+ 	struct buffer_head *di_bh = NULL;
+ 
+-	mlog(0, "(inode->i_ino = %lu)\n", inode->i_ino);
++	trace_ocfs2_delete_inode(inode->i_ino,
++				 (unsigned long long)OCFS2_I(inode)->ip_blkno,
++				 is_bad_inode(inode));
+ 
+ 	/* When we fail in read_inode() we mark inode as bad. The second test
+ 	 * catches the case when inode allocation fails before allocating
+ 	 * a block for inode. */
+-	if (is_bad_inode(inode) || !OCFS2_I(inode)->ip_blkno) {
+-		mlog(0, "Skipping delete of bad inode\n");
++	if (is_bad_inode(inode) || !OCFS2_I(inode)->ip_blkno)
+ 		goto bail;
+-	}
+ 
+ 	dquot_initialize(inode);
+ 
+@@ -1082,8 +1070,8 @@ static void ocfs2_clear_inode(struct inode *inode)
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 
+ 	end_writeback(inode);
+-	mlog(0, "Clearing inode: %llu, nlink = %u\n",
+-	     (unsigned long long)OCFS2_I(inode)->ip_blkno, inode->i_nlink);
++	trace_ocfs2_clear_inode((unsigned long long)oi->ip_blkno,
++				inode->i_nlink);
+ 
+ 	mlog_bug_on_msg(OCFS2_SB(inode->i_sb) == NULL,
+ 			"Inode=%lu\n", inode->i_ino);
+@@ -1193,8 +1181,8 @@ int ocfs2_drop_inode(struct inode *inode)
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	int res;
+ 
+-	mlog(0, "Drop inode %llu, nlink = %u, ip_flags = 0x%x\n",
+-	     (unsigned long long)oi->ip_blkno, inode->i_nlink, oi->ip_flags);
++	trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
++				inode->i_nlink, oi->ip_flags);
+ 
+ 	if (oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)
+ 		res = 1;
+@@ -1212,11 +1200,11 @@ int ocfs2_inode_revalidate(struct dentry *dentry)
+ 	struct inode *inode = dentry->d_inode;
+ 	int status = 0;
+ 
+-	mlog(0, "(inode = 0x%p, ino = %llu)\n", inode,
+-	     inode ? (unsigned long long)OCFS2_I(inode)->ip_blkno : 0ULL);
++	trace_ocfs2_inode_revalidate(inode,
++		inode ? (unsigned long long)OCFS2_I(inode)->ip_blkno : 0ULL,
++		inode ? (unsigned long long)OCFS2_I(inode)->ip_flags : 0);
+ 
+ 	if (!inode) {
+-		mlog(0, "eep, no inode!\n");
+ 		status = -ENOENT;
+ 		goto bail;
+ 	}
+@@ -1224,7 +1212,6 @@ int ocfs2_inode_revalidate(struct dentry *dentry)
+ 	spin_lock(&OCFS2_I(inode)->ip_lock);
+ 	if (OCFS2_I(inode)->ip_flags & OCFS2_INODE_DELETED) {
+ 		spin_unlock(&OCFS2_I(inode)->ip_lock);
+-		mlog(0, "inode deleted!\n");
+ 		status = -ENOENT;
+ 		goto bail;
+ 	}
+@@ -1255,8 +1242,7 @@ int ocfs2_mark_inode_dirty(handle_t *handle,
+ 	int status;
+ 	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) bh->b_data;
+ 
+-	mlog(0, "(inode %llu)\n",
+-	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
++	trace_ocfs2_mark_inode_dirty((unsigned long long)OCFS2_I(inode)->ip_blkno);
+ 
+ 	status = ocfs2_journal_access_di(handle, INODE_CACHE(inode), bh,
+ 					 OCFS2_JOURNAL_ACCESS_WRITE);
+@@ -1328,8 +1314,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 	int rc;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
+ 
+-	mlog(0, "Validating dinode %llu\n",
+-	     (unsigned long long)bh->b_blocknr);
++	trace_ocfs2_validate_inode_block((unsigned long long)bh->b_blocknr);
+ 
+ 	BUG_ON(!buffer_uptodate(bh));
+ 
 diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index 3671151..26d9a05 100644
+index 79df9e0..d9b13c1 100644
 --- a/fs/ocfs2/ocfs2_trace.h
 +++ b/fs/ocfs2/ocfs2_trace.h
-@@ -1462,6 +1462,174 @@ TRACE_EVENT(ocfs2_refcount_cow_hunk,
+@@ -114,6 +114,25 @@ DECLARE_EVENT_CLASS(ocfs2__ull_uint,
+ 	TP_printk("%llu %u", __entry->value1, __entry->value2)
  );
  
- /* End of trace events for fs/ocfs2/refcounttree.c. */
++DECLARE_EVENT_CLASS(ocfs2__ull_int,
 +
-+/* Trace events for fs/ocfs2/aops.c. */
-+DECLARE_EVENT_CLASS(ocfs2__get_block,
++	TP_PROTO(unsigned long long value1, int value2),
 +
-+	TP_PROTO(unsigned long long ino, unsigned long long iblock,
-+		 void *bh_result, int create),
++	TP_ARGS(value1, value2),
 +
-+	TP_ARGS(ino, iblock, bh_result, create),
++	TP_STRUCT__entry(
++		__field(	unsigned long long,	value1	)
++		__field(	int,			value2	)
++	),
++
++	TP_fast_assign(
++		__entry->value1	= 	value1;
++		__entry->value2	= 	value2;
++	),
++
++	TP_printk("%llu %d", __entry->value1, __entry->value2)
++);
++
+ DECLARE_EVENT_CLASS(ocfs2__ull_ull,
+ 
+ 	TP_PROTO(unsigned long long value1, unsigned long long value2),
+@@ -2025,6 +2044,214 @@ DEFINE_EVENT(ocfs2__int, generic_file_aio_read_ret,
+ );
+ /* End of trace events for fs/ocfs2/file.c. */
+ 
++/* Trace events for fs/ocfs2/inode.c. */
++TRACE_EVENT(ocfs2_iget_begin,
++
++	TP_PROTO(unsigned long long ino, unsigned int flags, int sysfile_type),
++
++	TP_ARGS(ino, flags, sysfile_type),
 +
 +	TP_STRUCT__entry(
 +		__field(	unsigned long long,	ino		)
-+		__field(	unsigned long long,	iblock		)
-+		__field(	void *,			bh_result	)
-+		__field(	int,			create		)
++		__field(	unsigned int,		flags		)
++		__field(	int,			sysfile_type	)
 +	),
 +
 +	TP_fast_assign(
 +		__entry->ino		= ino;
-+		__entry->iblock		= iblock;
-+		__entry->bh_result	= bh_result;
-+		__entry->create		= create;
++		__entry->flags		= flags;
++		__entry->sysfile_type	= sysfile_type;
 +	),
 +
-+	TP_printk("%llu %llu %p %d",
-+		  __entry->ino, __entry->iblock,
-+		  __entry->bh_result, __entry->create)
++	TP_printk("%llu %u %d", __entry->ino,
++		  __entry->flags, __entry->sysfile_type)
 +);
 +
-+DEFINE_EVENT(ocfs2__get_block, ocfs2_symlink_get_block,
++DEFINE_EVENT(ocfs2__ull, ocfs2_iget5_locked,
 +
-+	TP_PROTO(unsigned long long ino, unsigned long long iblock,
-+		 void *bh_result, int create),
++	TP_PROTO(unsigned long long state),
 +
-+	TP_ARGS(ino, iblock, bh_result, create)
++	TP_ARGS(state)
 +);
 +
-+DEFINE_EVENT(ocfs2__get_block, ocfs2_get_block,
++TRACE_EVENT(ocfs2_iget_end,
 +
-+	TP_PROTO(unsigned long long ino, unsigned long long iblock,
-+		 void *bh_result, int create),
++	TP_PROTO(void *inode, unsigned long long ino),
 +
-+	TP_ARGS(ino, iblock, bh_result, create)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_ull, ocfs2_get_block_end,
-+
-+	TP_PROTO(unsigned long long ino, unsigned long long pass_eof),
-+
-+	TP_ARGS(ino, pass_eof)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_ull, ocfs2_readpage,
-+
-+	TP_PROTO(unsigned long long ino, unsigned long long page_index),
-+
-+	TP_ARGS(ino, page_index)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_ull, ocfs2_writepage,
-+
-+	TP_PROTO(unsigned long long ino, unsigned long long page_index),
-+
-+	TP_ARGS(ino, page_index)
-+);
-+
-+DEFINE_EVENT(ocfs2__ull_ull, ocfs2_bmap,
-+
-+	TP_PROTO(unsigned long long ino, unsigned long long block),
-+
-+	TP_ARGS(ino, block)
-+);
-+
-+TRACE_EVENT(ocfs2_try_to_write_inline_data,
-+
-+	TP_PROTO(unsigned long long ino, unsigned int len,
-+		 unsigned long long pos, unsigned int flags),
-+
-+	TP_ARGS(ino, len, pos, flags),
++	TP_ARGS(inode, ino),
 +
 +	TP_STRUCT__entry(
++		__field(	void *,			inode		)
 +		__field(	unsigned long long,	ino		)
-+		__field(	unsigned int,		len		)
-+		__field(	unsigned long long,	pos		)
-+		__field(	unsigned int,		flags		)
 +	),
 +
 +	TP_fast_assign(
-+		__entry->ino	= ino;
-+		__entry->len	= len;
-+		__entry->pos	= pos;
-+		__entry->flags	= flags;
-+	),
-+
-+	TP_printk("%llu %u %llu 0x%x",
-+		  __entry->ino, __entry->len, __entry->pos, __entry->flags)
-+);
-+
-+TRACE_EVENT(ocfs2_write_begin_nolock,
-+
-+	TP_PROTO(unsigned long long ino,
-+		 long long i_size, unsigned int i_clusters,
-+		 unsigned long long pos, unsigned int len,
-+		 unsigned int flags, void *page,
-+		 unsigned int clusters, unsigned int extents_to_split),
-+
-+	TP_ARGS(ino, i_size, i_clusters, pos, len, flags,
-+		page, clusters, extents_to_split),
-+
-+	TP_STRUCT__entry(
-+		__field(	unsigned long long,	ino		)
-+		__field(	long long,		i_size		)
-+		__field(	unsigned int,		i_clusters	)
-+		__field(	unsigned long long,	pos		)
-+		__field(	unsigned int,		len		)
-+		__field(	unsigned int,		flags		)
-+		__field(	void *,			page		)
-+		__field(	unsigned int,		clusters	)
-+		__field(	unsigned int,		extents_to_split)
-+	),
-+
-+	TP_fast_assign(
-+		__entry->ino			= ino;
-+		__entry->i_size			= i_size;
-+		__entry->i_clusters		= i_clusters;
-+		__entry->pos			= pos;
-+		__entry->len			= len;
-+		__entry->flags			= flags;
-+		__entry->page			= page;
-+		__entry->clusters		= clusters;
-+		__entry->extents_to_split	= extents_to_split;
-+	),
-+
-+	TP_printk("%llu %lld %u %llu %u %u %p %u %u",
-+		  __entry->ino, __entry->i_size, __entry->i_clusters,
-+		  __entry->pos, __entry->len,
-+		  __entry->flags, __entry->page, __entry->clusters,
-+		  __entry->extents_to_split)
-+);
-+
-+TRACE_EVENT(ocfs2_write_end_inline,
-+
-+	TP_PROTO(unsigned long long ino,
-+		 unsigned long long pos, unsigned int copied,
-+		 unsigned int id_count, unsigned int features),
-+
-+	TP_ARGS(ino, pos, copied, id_count, features),
-+
-+	TP_STRUCT__entry(
-+		__field(	unsigned long long,	ino		)
-+		__field(	unsigned long long,	pos		)
-+		__field(	unsigned int,		copied		)
-+		__field(	unsigned int,		id_count	)
-+		__field(	unsigned int,		features	)
-+	),
-+
-+	TP_fast_assign(
++		__entry->inode		= inode;
 +		__entry->ino		= ino;
-+		__entry->pos		= pos;
-+		__entry->copied		= copied;
-+		__entry->id_count	= id_count;
-+		__entry->features	= features;
 +	),
 +
-+	TP_printk("%llu %llu %u %u %u",
-+		  __entry->ino, __entry->pos, __entry->copied,
-+		  __entry->id_count, __entry->features)
++	TP_printk("%p %llu", __entry->inode, __entry->ino)
 +);
-+/* End of trace events for fs/ocfs2/aops.c. */
++
++TRACE_EVENT(ocfs2_find_actor,
++
++	TP_PROTO(void *inode, unsigned long long ino,
++		 void *args,  unsigned long long fi_blkno),
++
++	TP_ARGS(inode, ino, args, fi_blkno),
++
++	TP_STRUCT__entry(
++		__field(	void *,			inode		)
++		__field(	unsigned long long,	ino		)
++		__field(	void *,			args		)
++		__field(	unsigned long long,	fi_blkno	)
++	),
++
++	TP_fast_assign(
++		__entry->inode		= inode;
++		__entry->ino		= ino;
++		__entry->args		= args;
++		__entry->fi_blkno	= fi_blkno;
++	),
++
++	TP_printk("%p %llu %p %llu", __entry->inode, __entry->ino,
++		  __entry->args, __entry->fi_blkno)
++);
++
++DEFINE_EVENT(ocfs2__ull_uint, ocfs2_populate_inode,
++
++	TP_PROTO(unsigned long long ino, unsigned int flags),
++
++	TP_ARGS(ino, flags)
++);
++
++DEFINE_EVENT(ocfs2__ull_int, ocfs2_read_locked_inode,
++
++	TP_PROTO(unsigned long long ino, int can_lock),
++
++	TP_ARGS(ino, can_lock)
++);
++
++DEFINE_EVENT(ocfs2__int_int, ocfs2_check_orphan_recovery_state,
++
++	TP_PROTO(int slot, int ret),
++
++	TP_ARGS(slot, ret)
++);
++
++DEFINE_EVENT(ocfs2__ull, ocfs2_validate_inode_block,
++
++	TP_PROTO(unsigned long long ino),
++
++	TP_ARGS(ino)
++);
++
++TRACE_EVENT(ocfs2_inode_is_valid_to_delete,
++
++	TP_PROTO(void *task, void *dc_task, unsigned long long ino,
++		 unsigned int flags),
++
++	TP_ARGS(task, dc_task, ino, flags),
++
++	TP_STRUCT__entry(
++		__field(	void *,			task		)
++		__field(	void *,			dc_task		)
++		__field(	unsigned long long,	ino		)
++		__field(	unsigned int,		flags		)
++	),
++
++	TP_fast_assign(
++		__entry->task		= task;
++		__entry->dc_task	= dc_task;
++		__entry->ino		= ino;
++		__entry->flags		= flags;
++	),
++
++	TP_printk("%p %p %llu %u", __entry->task, __entry->dc_task,
++		  __entry->ino, __entry->flags)
++);
++
++DEFINE_EVENT(ocfs2__ull_uint, ocfs2_query_inode_wipe_begin,
++
++	TP_PROTO(unsigned long long ino, unsigned int nlink),
++
++	TP_ARGS(ino, nlink)
++);
++
++DEFINE_EVENT(ocfs2__uint, ocfs2_query_inode_wipe_succ,
++
++	TP_PROTO(unsigned int slot),
++
++	TP_ARGS(slot)
++);
++
++DEFINE_EVENT(ocfs2__int_int, ocfs2_query_inode_wipe_end,
++
++	TP_PROTO(int status, int reason),
++
++	TP_ARGS(status, reason)
++);
++
++DEFINE_EVENT(ocfs2__ull_int, ocfs2_cleanup_delete_inode,
++
++	TP_PROTO(unsigned long long ino, int sync_data),
++
++	TP_ARGS(ino, sync_data)
++);
++
++DEFINE_EVENT(ocfs2__ull_ull_uint, ocfs2_delete_inode,
++
++	TP_PROTO(unsigned long long ino,
++		 unsigned long long ip_blkno, unsigned int is_bad_inode),
++
++	TP_ARGS(ino, ip_blkno, is_bad_inode)
++);
++
++DEFINE_EVENT(ocfs2__ull_uint, ocfs2_clear_inode,
++
++	TP_PROTO(unsigned long long ino, unsigned int nlink),
++
++	TP_ARGS(ino, nlink)
++);
++
++DEFINE_EVENT(ocfs2__ull_uint_uint, ocfs2_drop_inode,
++
++	TP_PROTO(unsigned long long ino,
++		 unsigned int n_link, unsigned int ip_flags),
++
++	TP_ARGS(ino, n_link, ip_flags)
++);
++
++TRACE_EVENT(ocfs2_inode_revalidate,
++
++	TP_PROTO(void *inode, unsigned long long ino,
++		 unsigned int flags),
++
++	TP_ARGS(inode, ino, flags),
++
++	TP_STRUCT__entry(
++		__field(	void *,			inode		)
++		__field(	unsigned long long,	ino		)
++		__field(	unsigned int,		flags		)
++	),
++
++	TP_fast_assign(
++		__entry->inode		= inode;
++		__entry->ino		= ino;
++		__entry->flags		= flags;
++	),
++
++	TP_printk("%p %llu %u", __entry->inode, __entry->ino, __entry->flags)
++);
++
++DEFINE_EVENT(ocfs2__ull, ocfs2_mark_inode_dirty,
++
++	TP_PROTO(unsigned long long ino),
++
++	TP_ARGS(ino)
++);
++
++/* End of trace events for fs/ocfs2/inode.c. */
  #endif /* _TRACE_OCFS2_H */
  
  /* This part must be outside protection */
