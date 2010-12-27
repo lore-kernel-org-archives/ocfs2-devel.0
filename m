@@ -1,47 +1,79 @@
-From: Joel Becker <joel.becker@Oracle.COM>
-Date: Thu, 23 Dec 2010 16:16:37 -0800
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 fixes for 2.6.37-rc7
-Message-ID: <20101224001637.GA25361@mail.oracle.com>
+From: Massimo Cetra <ctrixk@navynet.it>
+Date: Mon, 27 Dec 2010 15:31:03 +0100
+Subject: [Ocfs2-devel] disk full when it shouldn't
+In-Reply-To: <4CF84658.8040002@oracle.com>
+References: <4CD813D3.4080106@navynet.it> <4CD89E86.5010404@oracle.com>
+	<4CF7D578.1060201@navynet.it> <4CF84658.8040002@oracle.com>
+Message-ID: <4D18A327.7030709@navynet.it>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
 
-Dear Linus et al,
-	Here are hopefully the last remaining ocfs2 fixes for 2.6.37-rc.
-The most important are a fix for the new coherency mode added in the
-merge window and a regression fix for users with quota enabled.
-	Please pull.
+Il 03/12/2010 02:22, Tao Ma ha scritto:
+> I have to say that df is only an approximate way to get the real info
+> of an ocfs2 volume.
+> df -i use statfs(2). And since there is no easy way to calculate all
+> the inodes without
+> locking every node's inode allocator, it just searchs the
+> global_bitmap and gives a rough number.
+>
+>>
+>> The filesystem was not full:
+>>
+>> sheet3-1:/var/mail/virtual# dd if=/dev/zero of=TEST bs=1024 count=1024
+>> dd: scrittura di `TEST': No space left on device
+>> 1009+0 records in
+>> 1008+0 records out
+>> 1032192 bytes (1,0 MB) copied, 0,454305 s, 2,3 MB/s
+>> sheet3-1:/var/mail/virtual#
+> So this is node2? From the stat_sysdir output you attached,
+> inode_alloc:0001 is full.
+> It has no free inodes and the creation will fail.
+>
+> So you are meeting with the problem of fragmentation. Discontig block
+> group should fix it.
+>
 
-Joel
+Hi Tao,
 
-The following changes since commit b0c3844d8af6b9f3f18f31e1b0502fbefa2166be:
+back again.
 
-  Linux 2.6.37-rc6 (2010-12-15 17:24:48 -0800)
+I have decided to install 2.6.36.1 on all clusters to see if the 
+fragmentation problem has gone.
 
-are available in the git repository at:
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
+Unfortunately the problem persists, even if with different sympthoms.
 
-Sunil Mushran (2):
-      ocfs2/dlm: Migrate lockres with no locks if it has a reference
-      ocfs2: Adjust masklog flag values
+Last week i had the same enospace problem but this time it was 
+consistent on both nodes (on both of them i couldn't even "touch" a 
+single file".
+Previously i was able to touch it and sometimes to write several Mb to a 
+single file.
 
-Tao Ma (2):
-      ocfs2: Hold ip_lock when set/clear flags for indexed dir.
-      ocfs2: Fix system inodes cache overflow.
+This time df was reporting about 49% of disk usage.
 
-Tristan Ye (1):
-      Ocfs2: Teach 'coherency=full' O_DIRECT writes to correctly up_read i_alloc_sem.
+I'm attaching the stat_sysdir output for both nodes. Kernel is a vanilla 
+2.6.36.1.
 
- fs/ocfs2/aops.c            |    7 +++++--
- fs/ocfs2/aops.h            |   23 +++++++++++++++++++++--
- fs/ocfs2/cluster/masklog.c |    3 ++-
- fs/ocfs2/cluster/masklog.h |   15 ++++++++-------
- fs/ocfs2/dir.c             |    4 ++++
- fs/ocfs2/dlm/dlmmaster.c   |   40 +++++++++++++++++++++++++++-------------
- fs/ocfs2/file.c            |   15 +++++++++++++--
- fs/ocfs2/ocfs2_fs.h        |    2 +-
- 8 files changed, 81 insertions(+), 28 deletions(-)
+Am i missing something ?
+Is this fragmentation ?
+Did i hit a bug or rhe problem is between the keyboard and the chair ?
+
+Thanks for your help.
+
+Massimo
+
+P.S.: if you could explain how to interpret the stat_sysdir output i 
+could be less tedius and write less mails!
+
+
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: 23dic-OCFS-DRBD2-s2.txt
+Url: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20101227/fc6941e2/attachment-0002.txt 
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: 23dic-OCFS-DRBD2-s1.txt
+Url: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20101227/fc6941e2/attachment-0003.txt 
