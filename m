@@ -1,38 +1,58 @@
-From: Randy Dunlap <randy.dunlap@oracle.com>
-Date: Mon, 27 Dec 2010 13:41:46 -0800
-Subject: [Ocfs2-devel] [PATCH -next] ocfs2: fix build for OCFS2_FS_STATS
-	not enabled
-In-Reply-To: <20101227205242.GA30474@mail.oracle.com>
-References: <20101227170451.a9a9f873.sfr@canb.auug.org.au>
-	<20101227115508.8136331b.randy.dunlap@oracle.com>
-	<20101227205242.GA30474@mail.oracle.com>
-Message-ID: <4D19081A.3050801@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Tue, 28 Dec 2010 19:40:41 +0800
+Subject: [Ocfs2-devel] [PATCH 1/8] Ocfs2: Adding new ioctl code
+	'OCFS2_IOC_MOVE_EXT' to ocfs2.
+In-Reply-To: <1293536448-20516-1-git-send-email-tristan.ye@oracle.com>
+References: <1293536448-20516-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1293536448-20516-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Stephen Rothwell <sfr@canb.auug.org.au>, Mark Fasheh <mfasheh@suse.com>, linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On 12/27/10 12:52, Joel Becker wrote:
-> On Mon, Dec 27, 2010 at 11:55:08AM -0800, Randy Dunlap wrote:
->> From: Randy Dunlap <randy.dunlap@oracle.com>
->>
->> When CONFIG_OCFS2_FS_STATS is not enabled:
->>
->> fs/ocfs2/cluster/tcp.c:1254: error: implicit declaration of function 'o2net_update_recv_stats'
->>
->> Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
->> Cc:	Mark Fasheh <mfasheh@suse.com>
->> Cc:	Joel Becker <joel.becker@oracle.com>
->> Cc:	ocfs2-devel at oss.oracle.com
-> 
-> Acked-by: Joel Becker <joel.becker@oracle.com>
-> 
-> Do you want to push it or would you like me to?
+Patch also manages to add an manipulative struture for this ioctl.
 
-You, please.
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/ocfs2_ioctl.h |   27 +++++++++++++++++++++++++++
+ 1 files changed, 27 insertions(+), 0 deletions(-)
 
+diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
+index b46f39b..9340ad3 100644
+--- a/fs/ocfs2/ocfs2_ioctl.h
++++ b/fs/ocfs2/ocfs2_ioctl.h
+@@ -171,4 +171,31 @@ enum ocfs2_info_type {
+ 
+ #define OCFS2_IOC_INFO		_IOR('o', 5, struct ocfs2_info)
+ 
++#define OCFS2_MOVE_EXT_FL_AUTO_DEFRAG	(0x00000001)	/* Kernel manages to
++							   claim new clusters
++							   as the goal place
++							   for extents moving */
++#define OCFS2_MOVE_EXT_FL_COMPLETE	(0x00000002)	/* Move or defragmenation
++							   completely gets done.
++							 */
++struct ocfs2_move_extents {
++/* All values are in bytes */
++	/* in */
++	__u64 me_start;		/* Virtual start in the file to move */
++	__u64 me_len;		/* Length of the extents to be moved */
++	__u64 me_goal;		/* Physical offset of the goal */
++	__u64 me_thresh;	/* Maximum distance from goal or threshold
++				   for auto defragmentation */
++	__u64 me_flags;		/* flags for the operation:
++				 * - auto defragmentation.
++				 * - refcount,xattr cases.
++				 */
++	/* out */
++	__u64 me_moved_len;	/* moved length */
++	__u64 me_new_offset;	/* Resulting physical location */
++	__u32 me_reserved[2];	/* reserved for futhure */
++};
++
++#define OCFS2_IOC_MOVE_EXT	_IOW('o', 6, struct ocfs2_move_extents)
++
+ #endif /* OCFS2_IOCTL_H */
 -- 
-~Randy
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
-desserts:  http://www.xenotime.net/linux/recipes/
+1.5.5
