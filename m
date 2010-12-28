@@ -1,121 +1,63 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 28 Dec 2010 19:40:44 +0800
-Subject: [Ocfs2-devel] [PATCH 4/8] Ocfs2: move a range of extent.
-In-Reply-To: <1293536448-20516-1-git-send-email-tristan.ye@oracle.com>
-References: <1293536448-20516-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1293536448-20516-5-git-send-email-tristan.ye@oracle.com>
+From: Massimo Cetra <ctrixk@navynet.it>
+Date: Tue, 28 Dec 2010 12:38:32 +0100
+Subject: [Ocfs2-devel] disk full when it shouldn't
+In-Reply-To: <4D18B54E.1030203@tao.ma>
+References: <4CD813D3.4080106@navynet.it>
+	<4CD89E86.5010404@oracle.com>	<4CF7D578.1060201@navynet.it>
+	<4CF84658.8040002@oracle.com> <4D18A327.7030709@navynet.it>
+	<4D18B54E.1030203@tao.ma>
+Message-ID: <4D19CC38.9030703@navynet.it>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The range of __ocfs2_move_extent() was within one extent always, it consists
-following parts:
+Il 27/12/2010 16:48, Tao Ma ha scritto:
+> oh, it isn't that easy by just upgrading the kernel. ;)
+> So you have to enable that feature by tunefs.ocfs2. I am afraid Oracle 
+> didn't release a new ocfs2-tools now(I had left Oracle and I don't 
+> know the release detail now), so you need to download the latest 
+> source and compile the ocfs2-tools by yourself.
+> git clone git://oss.oracle.com/git/ocfs2-tools.git
+> and after you compile it, just do
+> tunefs.ocfs2 --fs-features=discontig-bg /dev/sdx.
+> And you will enable this feature(it will require you to umount the 
+> volume among all the nodes) and enjoy it.:)
 
-1. Duplicates the clusters in pages to new_blkoffset, where extent to be moved.
+Oh perfect.
+Thanks, i really didn't realize that fs_discontig was a flag.
+The old tools didn't report it in the docs so i didn't find it anywhere.
 
-2. Split the original extent with new extent, coalecse the nearby extents if possible
+Now: sorry to be so annoying but i have googled without success ( i only 
+found the patch that adds the following error).
 
-3. Append old clusters to truncate log.
+I cannot find nor the reason for this error:
 
-Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
----
- fs/ocfs2/move_extents.c |   82 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 82 insertions(+), 0 deletions(-)
+tunefs.ocfs2: Chain allocator is corrupt while opening device "/dev/drbd2"
 
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 3601545..7e9daab 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -156,6 +156,88 @@ unlock:
- 	return ret;
- }
- 
-+static int __ocfs2_move_extent(handle_t *handle,
-+			       struct ocfs2_move_extents_context *context,
-+			       u32 cpos, u32 len, u32 p_cpos, u32 new_p_cpos)
-+{
-+	int ret = 0, index;
-+	struct inode *inode = context->inode;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct ocfs2_extent_rec *rec, replace_rec;
-+	struct ocfs2_path *path = NULL;
-+	struct ocfs2_extent_list *el;
-+	u64 ino = ocfs2_metadata_cache_owner(context->et.et_ci);
-+	u64 old_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cpos);
-+
-+	ret = ocfs2_duplicate_clusters_by_page(handle, context, cpos, p_cpos,
-+					       new_p_cpos, len);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	memset(&replace_rec, 0, sizeof(replace_rec));
-+	replace_rec.e_cpos = cpu_to_le32(cpos);
-+	replace_rec.e_leaf_clusters = cpu_to_le16(len);
-+	replace_rec.e_blkno = cpu_to_le64(ocfs2_clusters_to_blocks(inode->i_sb,
-+								   new_p_cpos));
-+
-+	path = ocfs2_new_path_from_et(&context->et);
-+	if (!path) {
-+		ret = -ENOMEM;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_find_path(INODE_CACHE(inode), path, cpos);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	el = path_leaf_el(path);
-+
-+	index = ocfs2_search_extent_list(el, cpos);
-+	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
-+		ocfs2_error(inode->i_sb,
-+			    "Inode %llu has an extent at cpos %u which can no "
-+			    "longer be found.\n",
-+			    (unsigned long long)ino, cpos);
-+		ret = -EROFS;
-+		goto out;
-+	}
-+
-+	rec = &el->l_recs[index];
-+	replace_rec.e_flags = rec->e_flags;
-+
-+	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode),
-+				      context->et.et_root_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_split_extent(handle, &context->et, path, index,
-+				 &replace_rec, context->meta_ac,
-+				 &context->dealloc);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ocfs2_journal_dirty(handle, context->et.et_root_bh);
-+
-+	/*
-+	 * need I to append truncate log for old clusters?
-+	 */
-+	if (old_blkno)
-+		ret = ocfs2_truncate_log_append(osb, handle, old_blkno, len);
-+
-+out:
-+	return ret;
-+}
-+
- static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
- {
- 	int status;
--- 
-1.5.5
+Nor the cause, anywhere.
+fsck doesn't seems to find the problem.
+
+Thanks again. I hope thise questions will help other people as well.
+
+Massimo
+
+
+----------------------------------------------
+
+sheet3-1:~# tunefs.ocfs2 --fs-features=discontig-bg /dev/drbd2
+tunefs.ocfs2: Chain allocator is corrupt while opening device "/dev/drbd2"
+
+sheet3-1:~# fsck.ocfs2 /dev/drbd2
+fsck.ocfs2 1.6.3
+Checking OCFS2 filesystem in /dev/drbd2:
+   Label:              mail-storage
+   UUID:               7BB7636E26A7457192657E6521A5AFDC
+   Number of blocks:   9174751
+   Block size:         4096
+   Number of clusters: 9174751
+   Cluster size:       4096
+   Number of slots:    4
+
+/dev/drbd2 is clean.  It will be checked after 20 additional mounts.
