@@ -1,215 +1,121 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 28 Dec 2010 19:40:48 +0800
-Subject: [Ocfs2-devel] [PATCH 8/8] Ocfs2: move extents within a certain
-	range.
+Date: Tue, 28 Dec 2010 19:40:44 +0800
+Subject: [Ocfs2-devel] [PATCH 4/8] Ocfs2: move a range of extent.
 In-Reply-To: <1293536448-20516-1-git-send-email-tristan.ye@oracle.com>
 References: <1293536448-20516-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1293536448-20516-9-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1293536448-20516-5-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The basic logic of moving extents for a file is pretty like punching-hole
-sequence, walk the extents within the range as user specified, calculating
-an appropriate len to defrag/move, then let ocfs2_defrag/move_extent() to
-do the actual moving.
+The range of __ocfs2_move_extent() was within one extent always, it consists
+following parts:
 
-This func ends up setting 'OCFS2_MOVE_EXT_FL_COMPLETE' to userpace if operation
-gets done successfully.
+1. Duplicates the clusters in pages to new_blkoffset, where extent to be moved.
+
+2. Split the original extent with new extent, coalecse the nearby extents if possible
+
+3. Append old clusters to truncate log.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/move_extents.c |  169 +++++++++++++++++++++++++++++++++++++++++++++--
- 1 files changed, 164 insertions(+), 5 deletions(-)
+ fs/ocfs2/move_extents.c |   82 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 82 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 02d4d01..b9bc1cf 100644
+index 3601545..7e9daab 100644
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -446,6 +446,169 @@ out:
+@@ -156,6 +156,88 @@ unlock:
  	return ret;
  }
  
-+/*
-+ * Helper to calculate the defraging length in one run according to threshold.
-+ */
-+static void ocfs2_calc_extent_defrag_len(u32 *alloc_size, u32 *len_defraged,
-+					 u32 threshold, int *skip)
++static int __ocfs2_move_extent(handle_t *handle,
++			       struct ocfs2_move_extents_context *context,
++			       u32 cpos, u32 len, u32 p_cpos, u32 new_p_cpos)
 +{
-+	if ((*alloc_size + *len_defraged) < threshold) {
-+		/*
-+		 * proceed defragmentation until we meet the thresh
-+		 */
-+		*len_defraged += *alloc_size;
-+	} else if (*len_defraged == 0) {
-+		/*
-+		 * XXX: skip a large extent.
-+		 */
-+		*skip = 1;
-+	} else {
-+		/*
-+		 * split this extent to coalesce with former pieces as
-+		 * to reach the threshold.
-+		 *
-+		 * we're done here with one cycle of defragmentation
-+		 * in a size of 'thresh', resetting 'len_defraged'
-+		 * forces a new defragmentation.
-+		 */
-+		*alloc_size = threshold - *len_defraged;
-+		*len_defraged = 0;
-+	}
-+}
-+
-+static int __ocfs2_move_extents_range(struct buffer_head *di_bh,
-+				struct ocfs2_move_extents_context *context)
-+{
-+	int ret, flags, do_defrag, skip = 0;
-+	u32 cpos, phys_cpos, move_start, len_to_move, alloc_size;
-+	u32 len_defraged = 0, defrag_thresh, new_phys_cpos = 0;
-+
++	int ret = 0, index;
 +	struct inode *inode = context->inode;
-+	struct ocfs2_move_extents *range = context->range;
 +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	struct ocfs2_extent_rec *rec, replace_rec;
++	struct ocfs2_path *path = NULL;
++	struct ocfs2_extent_list *el;
++	u64 ino = ocfs2_metadata_cache_owner(context->et.et_ci);
++	u64 old_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cpos);
 +
-+	if ((inode->i_size == 0) || (range->me_len == 0))
-+		return 0;
-+
-+	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
-+		return 0;
-+
-+	ocfs2_init_dinode_extent_tree(&context->et, INODE_CACHE(inode), di_bh);
-+	ocfs2_init_dealloc_ctxt(&context->dealloc);
-+
-+	/*
-+	 * TO-DO XXX:
-+	 *
-+	 * - refcount tree.
-+	 * - xattr extents.
-+	 * - unwritten extents.
-+	 */
-+
-+	do_defrag = context->auto_defrag;
-+
-+	/*
-+	 * extents moving happens in unit of clusters, for the sake
-+	 * of simplicity, we may ignore two clusters where 'byte_start'
-+	 * and 'byte_start + len' were within.
-+	 */
-+	move_start = ocfs2_clusters_for_bytes(osb->sb, range->me_start);
-+	len_to_move = (range->me_start + range->me_len) >>
-+						osb->s_clustersize_bits;
-+	if (len_to_move >= move_start)
-+		len_to_move -= move_start;
-+	else
-+		len_to_move = 0;
-+
-+	if (do_defrag)
-+		defrag_thresh = range->me_thresh >> osb->s_clustersize_bits;
-+	else
-+		new_phys_cpos = ocfs2_clusters_for_bytes(osb->sb,
-+							 range->me_goal);
-+
-+	mlog(0, "Inode: %llu, start: %llu, len: %llu, cstart: %u, clen: %u, "
-+	     "thresh: %u\n",
-+	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
-+	     (unsigned long long)range->me_start,
-+	     (unsigned long long)range->me_len,
-+	     move_start, len_to_move, defrag_thresh);
-+
-+	cpos = move_start;
-+	while (len_to_move) {
-+		ret = ocfs2_get_clusters(inode, cpos, &phys_cpos, &alloc_size,
-+					 &flags);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		if (alloc_size > len_to_move)
-+			alloc_size = len_to_move;
-+
-+		/*
-+		 * XXX: how to deal with a hole:
-+		 *
-+		 * - skip the hole of course
-+		 * - force a new defragmentation
-+		 */
-+		if (!phys_cpos) {
-+			if (do_defrag)
-+				len_defraged = 0;
-+
-+			goto next;
-+		}
-+
-+		if (do_defrag) {
-+			ocfs2_calc_extent_defrag_len(&alloc_size, &len_defraged,
-+						     defrag_thresh, &skip);
-+			/*
-+			 * skip large extents
-+			 */
-+			if (skip) {
-+				skip = 0;
-+				goto next;
-+			}
-+
-+			mlog(0, "#Defrag: cpos: %u, phys_cpos: %u, "
-+			     "alloc_size: %u, len_defraged: %u\n",
-+			     cpos, phys_cpos, alloc_size, len_defraged);
-+
-+			ret = ocfs2_defrag_extent(context, cpos, phys_cpos,
-+						  alloc_size, flags);
-+		} else {
-+			ret = ocfs2_move_extent(context, cpos, phys_cpos,
-+						new_phys_cpos, alloc_size,
-+						flags);
-+
-+			new_phys_cpos += alloc_size;
-+		}
-+
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
-+		context->clusters_moved += alloc_size;
-+next:
-+		cpos += alloc_size;
-+		len_to_move -= alloc_size;
++	ret = ocfs2_duplicate_clusters_by_page(handle, context, cpos, p_cpos,
++					       new_p_cpos, len);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
 +	}
 +
-+	range->me_flags |= OCFS2_MOVE_EXT_FL_COMPLETE;
++	memset(&replace_rec, 0, sizeof(replace_rec));
++	replace_rec.e_cpos = cpu_to_le32(cpos);
++	replace_rec.e_leaf_clusters = cpu_to_le16(len);
++	replace_rec.e_blkno = cpu_to_le64(ocfs2_clusters_to_blocks(inode->i_sb,
++								   new_p_cpos));
++
++	path = ocfs2_new_path_from_et(&context->et);
++	if (!path) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
++		goto out;
++	}
++
++	ret = ocfs2_find_path(INODE_CACHE(inode), path, cpos);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	el = path_leaf_el(path);
++
++	index = ocfs2_search_extent_list(el, cpos);
++	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
++		ocfs2_error(inode->i_sb,
++			    "Inode %llu has an extent at cpos %u which can no "
++			    "longer be found.\n",
++			    (unsigned long long)ino, cpos);
++		ret = -EROFS;
++		goto out;
++	}
++
++	rec = &el->l_recs[index];
++	replace_rec.e_flags = rec->e_flags;
++
++	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode),
++				      context->et.et_root_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	ret = ocfs2_split_extent(handle, &context->et, path, index,
++				 &replace_rec, context->meta_ac,
++				 &context->dealloc);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	ocfs2_journal_dirty(handle, context->et.et_root_bh);
++
++	/*
++	 * need I to append truncate log for old clusters?
++	 */
++	if (old_blkno)
++		ret = ocfs2_truncate_log_append(osb, handle, old_blkno, len);
 +
 +out:
-+	range->me_moved_len = ocfs2_clusters_to_bytes(osb->sb,
-+						      context->clusters_moved);
-+	/*
-+	 * also need to return 'me_new_offset' for none-defragmentation case
-+	 */
-+
-+	ocfs2_schedule_truncate_log_flush(osb, 1);
-+	ocfs2_run_deallocs(osb, &context->dealloc);
-+
 +	return ret;
 +}
-+
 +
  static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
  {
  	int status;
-@@ -482,11 +645,7 @@ static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
- 	 */
- 	down_write(&OCFS2_I(inode)->ip_alloc_sem);
- 
--	/*
--	 * real extents moving codes will be fulfilled later.
--	 *
--	 * status = __ocfs2_move_extents_range(di_bh, context);
--	 */
-+	status = __ocfs2_move_extents_range(di_bh, context);
- 
- 	up_write(&OCFS2_I(inode)->ip_alloc_sem);
- 	if (status) {
 -- 
 1.5.5
