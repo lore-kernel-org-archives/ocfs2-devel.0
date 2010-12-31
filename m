@@ -1,87 +1,34 @@
 From: Joel Becker <Joel.Becker@oracle.com>
-Date: Fri, 31 Dec 2010 03:39:50 -0800
-Subject: [Ocfs2-devel] Confused by commit 56a76f [fs: fix page_mkwrite
- error cases in core code and btrfs]
-In-Reply-To: <AANLkTik3_=Jo2ubML1hhanFFKC3MkEibrCPruto2oY_v@mail.gmail.com>
-References: <20101230232936.GA931@mail.oracle.com>
-	<AANLkTi=afH_Qqb0wfn4UjXju__QjKKa+cBTS4tO5o2NJ@mail.gmail.com>
-	<20101231110054.GA20521@mail.oracle.com>
-	<AANLkTik3_=Jo2ubML1hhanFFKC3MkEibrCPruto2oY_v@mail.gmail.com>
-Message-ID: <20101231113949.GA21179@mail.oracle.com>
+Date: Fri, 31 Dec 2010 04:40:24 -0800
+Subject: [Ocfs2-devel] [PATCH 04/34] ocfs2: Add ocfs2_trace.h.
+In-Reply-To: <1293089477-5019-4-git-send-email-tm@tao.ma>
+References: <4D12F7E7.1090204@tao.ma>
+	<1293089477-5019-4-git-send-email-tm@tao.ma>
+Message-ID: <20101231124023.GB21179@mail.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Nick Piggin <npiggin@gmail.com>
-Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 31, 2010 at 10:16:35PM +1100, Nick Piggin wrote:
-> On Fri, Dec 31, 2010 at 10:00 PM, Joel Becker <jlbec@evilplan.org> wrote:
-> > On Fri, Dec 31, 2010 at 08:31:41PM +1100, Nick Piggin wrote:
-> >> On Fri, Dec 31, 2010 at 10:29 AM, Joel Becker <Joel.Becker@oracle.com> wrote:
+On Thu, Dec 23, 2010 at 03:30:47PM +0800, Tao Ma wrote:
+> From: Wengang Wang <wen.gang.wang@oracle.com>
 > 
-> >> The better way to do this would be to just return VM_FAULT_NOPAGE
-> >> in any case you need the VM to retry the fault. When you reach the
-> >> business end of your handler, you want to hold the page locked, after
-> >> you verify it is correct, and return that to the fault handler.
-> >
-> > ? ? ? ?This is going to be hard. ?Our write_end() assumes it must
-> > unlock the pages (which is normal behavior for write(2)), but in the
-> > page_mkwrite() case we need to avoid the unlock to follow your
-> > recommendation (we use our write_begin/write_end pair to trigger any
-> > allocation or zeroing needed before the page is writable).
-> 
-> Yes that would be the best option. It is possible to use the unlocked
-> return, but that still gives possibility of races in some cases. Consider
+> About one year ago, Wengang Wang tried some first steps
+> to add tracepoints to ocfs2. But at that time we don't
+> have ocfs2 1.6 introduced, so we delay this work until now
+> after ocfs2 1.6 and UEK(Unbreakable Enterprise Kernel) are
+> released.
 
-	Yes, I am aware of that.
- 
-> Basically it would be nice for all filesystems to move to this convention
-> so we can remove the old cruft.
-
-	I can appreciate that.  And you've just answered the "Do you
-want us to get there, or are minor faults in the old-0-style OK?"
-question.
- 
-> > ? ? ? ?The find_or_create_page() is deep at the meat of the function,
-> > not the cursory check at the top. ?The idea is that at this point,
-> > find_or_create_page() will return a locked page that must, by
-> > definition, be part of the correct mapping.
-> 
-> But you must still handle failures there, because find_or_create_page
-> may return -ENOMEM. So just lock the page, recheck the mapping
-> there, and then do exactly the same error handling.
-
-	Of course it can error, but error is different than clean
-restart.  Though cleanup should be the same; I'm looking at our code
-trying to convince myself that this is so ;-)  Btw, -ENOMEM is that OOM
-fault error, right? ;-)
-
-> > ? ? ? ?If the VM is rechecking the pte after we return from
-> > page_mkwrite(), won't it see any new page created?
-> 
-> But the point of page_mkwrite is a dirty notifier for the fs. If this new
-> different page was installed due to say truncate then a read-only
-> fault, the filesystem would miss the notification. So it just does the
-> simple thing and retries the whole sequence (if needed).
-
-	Fair enough, even if we caused the new page and thus are already
-notified ;-)
-	Essentially, you would really like us (and ext4, and gfs2, etc)
-to start returning VM_FAULT_NOPAGE for any place we aren't sure what
-happened to our page, VM_FAULT_OOM when we get an -ENOMEM, and
-VM_FAULT_LOCKED for all successful operations.  That the long and short
-of it?  Thank you for helping me understand your plan for this code.
-	Btw, what not use VM_FAULT_RETRY for "I'd like you to retry"?
-Especially since the comment for NOPAGE doesn't read anything like its
-actual behavior.
+	Let's not mention marketing terms.  Just say that we had
+to delay the work.
 
 Joel
 
 -- 
 
-"Friends may come and go, but enemies accumulate." 
-        - Thomas Jones
+"When ideas fail, words come in very handy." 
+         - Goethe
 
 Joel Becker
 Senior Development Manager
