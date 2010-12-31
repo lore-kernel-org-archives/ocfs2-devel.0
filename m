@@ -1,29 +1,77 @@
-From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 31 Dec 2010 14:18:59 +0100
-Subject: [Ocfs2-devel] [PATCH 00/34] OCFS2: Add trace event and replace
-	mlog(0).
-In-Reply-To: <20101231131446.GD21179@mail.oracle.com>
-References: <4D12F7E7.1090204@tao.ma> <20101231131020.GA27129@lst.de>
-	<20101231131446.GD21179@mail.oracle.com>
-Message-ID: <20101231131859.GA27365@lst.de>
+From: Tao Ma <tm@tao.ma>
+Date: Fri, 31 Dec 2010 22:27:35 +0800
+Subject: [Ocfs2-devel] [PATCH 05/34] ocfs2: Remove mlog(0) from
+	fs/ocfs2/alloc.c
+In-Reply-To: <20101231131524.GB27129@lst.de>
+References: <4D12F7E7.1090204@tao.ma>
+	<1293089477-5019-5-git-send-email-tm@tao.ma>
+	<20101231131524.GB27129@lst.de>
+Message-ID: <4D1DE857.6070504@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 31, 2010 at 05:14:46AM -0800, Joel Becker wrote:
-> On Fri, Dec 31, 2010 at 02:10:20PM +0100, Christoph Hellwig wrote:
-> > I really don't like the way this is split into tons of patches, which
-> > makes reviewing what's going on pretty hard.  In addition to the
-> > preparatiory patch just one patch is more than enough, or if you really
-> > want two: one to remove the old mlog code and one to add the trace
-> > events.
-> 
-> 	I have to say, I would have found a single massive patch really
-> painful to read.  The eye glazes over so many repetitive changes.  But
-> I've now read it, and we can certainly push it upstream as one commit if
-> you like.
+Hi Christoph,
+	Thanks for the review.
+On 12/31/2010 09:15 PM, Christoph Hellwig wrote:
+>> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+>> index 8d4e49a..2dfc3b0 100644
+>> --- a/fs/ocfs2/ocfs2_trace.h
+>> +++ b/fs/ocfs2/ocfs2_trace.h
+>> @@ -6,6 +6,507 @@
+>>
+>>   #include<linux/tracepoint.h>
+>>
+>> +DECLARE_EVENT_CLASS(ocfs2__int,
+>> +
+>> +	TP_PROTO(int num),
+>> +
+>> +	TP_ARGS(num),
+>> +
+>> +	TP_STRUCT__entry(
+>> +		__field(	int,	num			)
+>> +	),
+>> +
+>> +	TP_fast_assign(
+>> +		__entry->num	= 	num;
+>> +	),
+>> +
+>> +	TP_printk("%d", __entry->num)
+>> +);
+>
+> If you'd split the even up into classes depending on the actual meaning
+> of num the trace could contain a descriptive name that makes it a lot
+> more readable.  And btw, the above would be a lot more readable if
+> formatted like normal kernel code:
+>
+> DECLARE_EVENT_CLASS(ocfs2__int,
+> 	TP_PROTO(int num),
+> 	TP_ARGS(num),
+> 	TP_STRUCT__entry(
+> 		__field(int, num)
+> 	),
+> 	TP_fast_assign(
+> 		__entry->num = num;
+> 	),
+>
+> 	TP_printk("%d", __entry->num)
+> );
+ok, I will change it in the next round.
+>
+>> +DEFINE_EVENT(ocfs2__truncate_log_ops, ocfs2_truncate_log_append,
+>> +
+>> +	TP_PROTO(unsigned long long blkno, int index,
+>> +		 unsigned int start, unsigned int num),
+>> +
+>> +	TP_ARGS(blkno, index, start, num)
+>> +);
+>
+> FYI, if you have a lot of instances ofa given even class using a little
+> macro makes declaring them a lot simpler, take a look at
+> fs/xfs/linux-2.6/xfs_trace.h for examples.
+OK, I will look at it and use a macro. thanks.
 
-It doesn't matter too much - in the end it's mostly you guys who have to
-deal with it.
+Regards,
+Tao
