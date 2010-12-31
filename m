@@ -1,77 +1,53 @@
 From: Tao Ma <tm@tao.ma>
-Date: Fri, 31 Dec 2010 22:27:35 +0800
-Subject: [Ocfs2-devel] [PATCH 05/34] ocfs2: Remove mlog(0) from
-	fs/ocfs2/alloc.c
-In-Reply-To: <20101231131524.GB27129@lst.de>
-References: <4D12F7E7.1090204@tao.ma>
-	<1293089477-5019-5-git-send-email-tm@tao.ma>
-	<20101231131524.GB27129@lst.de>
-Message-ID: <4D1DE857.6070504@tao.ma>
+Date: Fri, 31 Dec 2010 23:11:31 +0800
+Subject: [Ocfs2-devel] [PATCH 00/34] OCFS2: Add trace event and replace
+	mlog(0).
+In-Reply-To: <20101231125217.GC21179@mail.oracle.com>
+References: <4D12F7E7.1090204@tao.ma> <20101231125217.GC21179@mail.oracle.com>
+Message-ID: <4D1DF2A3.9090106@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Christoph,
-	Thanks for the review.
-On 12/31/2010 09:15 PM, Christoph Hellwig wrote:
->> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
->> index 8d4e49a..2dfc3b0 100644
->> --- a/fs/ocfs2/ocfs2_trace.h
->> +++ b/fs/ocfs2/ocfs2_trace.h
->> @@ -6,6 +6,507 @@
+On 12/31/2010 08:52 PM, Joel Becker wrote:
+> On Thu, Dec 23, 2010 at 03:19:03PM +0800, Tao Ma wrote:
+>> This patch set is my attempt to replace our old debug(mlog) with new
+>> trace events.
 >>
->>   #include<linux/tracepoint.h>
+>> Wengang Wang has did some work in this field about one year ago.
+>> http://oss.oracle.com/pipermail/ocfs2-devel/2009-September/005230.html
+>> But at that time we don't have ocfs2 1.6 introduced, so we delay
+>> this work until now after ocfs2 1.6 and UEK(Unbreakable Enterprise
+>> Kernel) are released.
 >>
->> +DECLARE_EVENT_CLASS(ocfs2__int,
->> +
->> +	TP_PROTO(int num),
->> +
->> +	TP_ARGS(num),
->> +
->> +	TP_STRUCT__entry(
->> +		__field(	int,	num			)
->> +	),
->> +
->> +	TP_fast_assign(
->> +		__entry->num	= 	num;
->> +	),
->> +
->> +	TP_printk("%d", __entry->num)
->> +);
+>> All patches except one(see below) are only mlog related, so they
+>> shouldn't affect the normal operations in ocfs2 and they should be
+>> easy for review(patch 1-5 were already sent to the mail list around
+>> one month ago).
+>>
+>> The only one that changes the codes somehow are patch 15, "ocfs2:
+>> Little refactoring against ocfs2_iget", but it looks
+>> straightforward.
 >
-> If you'd split the even up into classes depending on the actual meaning
-> of num the trace could contain a descriptive name that makes it a lot
-> more readable.  And btw, the above would be a lot more readable if
-> formatted like normal kernel code:
->
-> DECLARE_EVENT_CLASS(ocfs2__int,
-> 	TP_PROTO(int num),
-> 	TP_ARGS(num),
-> 	TP_STRUCT__entry(
-> 		__field(int, num)
-> 	),
-> 	TP_fast_assign(
-> 		__entry->num = num;
-> 	),
->
-> 	TP_printk("%d", __entry->num)
-> );
-ok, I will change it in the next round.
->
->> +DEFINE_EVENT(ocfs2__truncate_log_ops, ocfs2_truncate_log_append,
->> +
->> +	TP_PROTO(unsigned long long blkno, int index,
->> +		 unsigned int start, unsigned int num),
->> +
->> +	TP_ARGS(blkno, index, start, num)
->> +);
->
-> FYI, if you have a lot of instances ofa given even class using a little
-> macro makes declaring them a lot simpler, take a look at
-> fs/xfs/linux-2.6/xfs_trace.h for examples.
-OK, I will look at it and use a macro. thanks.
+> Tao,
+> 	Overall this seems pretty straightforward.  There wasn't a lot
+> of editing of masklog entries; we still have a million tracepoints.  I
+> wonder how much memory that will use.  Have you checked the space usage
+> of all the sysfs files for all of our tracepoints?
+Sorry, I don't know how to check the space usage of these files. any tips?
+> 	Aside from my comment about marketing terms in patch comments
+> (hehe), I'm OK with going forward with these patches.  I would love the
+> ability to turn specific traces on and off.
+OK, I will regenerate the patches with advices from Christoph and your.
+> 	Well, one generic comment.  It seems a lot of our log messages
+> have gone from "ocfs2_foo(): Change blah 0x%p to new_blah 0x%p" to
+> "ocfs2_foo(): %p %p".  I wonder if that is going to be hard to read.
+Yeah, I used to think of adding all these descriptive strings to trace 
+buffers, but finally I gave up. The reason is that no matter how we 
+print the message in the trace buffer, we have to go to read the codes 
+and with the codes, everything should be clear enough. ;)
 
 Regards,
 Tao
