@@ -1,42 +1,21 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 1 Dec 2010 14:16:14 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: queue ast in lockres->spinlock
-In-Reply-To: <4CF5DE2C.2090807@oracle.com>
-References: <201011301551.oAUD3n5c002863@rcsinet13.oracle.com>
-	<4CF54F55.8080007@oracle.com>
-	<20101201025218.GA3709@laptop.jp.oracle.com>
-	<4CF5DE2C.2090807@oracle.com>
-Message-ID: <20101201061614.GA5352@laptop.jp.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Mon, 03 Jan 2011 09:54:40 -0800
+Subject: [Ocfs2-devel] [patch -next] ocfs2/cluster: dereferencing before
+ checking in nst_seq_show()
+In-Reply-To: <20110103060020.GW1886@bicker>
+References: <20110103060020.GW1886@bicker>
+Message-ID: <4D220D60.1040703@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10-11-30 21:33, Sunil Mushran wrote:
-> On 11/30/2010 06:52 PM, Wengang Wang wrote:
-> >First I have to say that the scenario is in my thought only, no tcpdump
-> >shows that. Only the node C wanting a PR is the truth from the vmcore.
-> >
-> >Let's consider this situation:
-> >
-> >The create lock(CL) is for a PR;
-> >the up convert(UC) is PR->EX;
-> >there is an existing PR granted for another node(say node D) before the UC comes
-> >
-> >The UC comes. Because of the existing PR, the UC lock is moved to converting list.
-> >dlm_thread takes care it later.
-> >The CL comes. no conflict found(see dlm_can_grant_new_lock, convert_type not
-> >checked there). so it's not added to blocked list.
-> >
-> >Seems the above scenario can trigger a BAST before AST.
-> 
-> dlm_can_grant_new_lock() should be looking at convert_type also and
-> add the lock to the blocked list in this case.
-> 
-> This is not just to plug this hole but is as per the spec.
-So you meant o2dlm is (should be) implementing fair locking? Anywhere I
-can take a look at the spec?
+On 01/02/2011 10:00 PM, Dan Carpenter wrote:
+> In the original code, we dereferenced "nst" before checking that it was
+> non-NULL.  I moved the check forward and pulled the code in an indent
+> level.
+>
+> Signed-off-by: Dan Carpenter<error27@gmail.com>
 
-regards,
-wengang.
+Acked-by: Sunil Mushran<sunil.mushran@oracle.com>
