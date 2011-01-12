@@ -1,143 +1,55 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 12 Jan 2011 08:16:32 -0800
-Subject: [Ocfs2-devel] Problems with fsck
-In-Reply-To: <4D2DCCF1.4080303@navynet.it>
-References: <4D2DCCF1.4080303@navynet.it>
-Message-ID: <4D2DD3E0.7080509@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 12 Jan 2011 19:06:11 +0100
+Subject: [Ocfs2-devel] [PATCH] quota: Fix deadlock during path resolution
+In-Reply-To: <20110107215904.GQ21922@thunk.org>
+References: <1284586791-8245-1-git-send-email-jack@suse.cz>
+	<20100915225208.GA1490@lst.de>
+	<20100916095553.GA3359@quack.suse.cz>
+	<20110107215904.GQ21922@thunk.org>
+Message-ID: <20110112180611.GA14260@quack.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Ted Ts'o <tytso@mit.edu>
+Cc: Jan Kara <jack@suse.cz>, Christoph Hellwig <hch@lst.de>, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, reiserfs-devel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Al Viro <viro@ZenIV.linux.org.uk>, Joel Becker <joel.becker@oracle.com>
 
-fsck is failing because it is encountering block(s) with incorrect
-checksums. An easy solution is to disable checksums and rerun
-fsck. Checksums can be renabled later.
+On Fri 07-01-11 16:59:04, Ted Ts'o wrote:
+> On Thu, Sep 16, 2010 at 11:55:53AM +0200, Jan Kara wrote:
+> > On Thu 16-09-10 00:52:08, Christoph Hellwig wrote:
+> > > On Wed, Sep 15, 2010 at 11:39:51PM +0200, Jan Kara wrote:
+> > > > As Al Viro pointed out path resolution during Q_QUOTAON calls to quotactl
+> > > > is prone to deadlocks. We hold s_umount semaphore for reading during the
+> > > > path resolution and resolution itself may need to acquire the semaphore
+> > > > for writing when e. g. autofs mountpoint is passed.
+> > > > 
+> > > > Solve the problem by performing the resolution before we get hold of the
+> > > > superblock (and thus s_umount semaphore). The whole thing is complicated
+> > > > by the fact that some filesystems (OCFS2) ignore the path argument. So to
+> > > > distinguish between filesystem which want the path and which do not we
+> > > > introduce new .quota_on_meta callback which does not get the path. OCFS2
+> > > > then uses this callback instead of old .quota_on.
+> > > 
+> > > FYI I have a patch that switches ocfs to share the quota_on method with
+> > > XFS which behaves the same, and consolidate the quota_off method for all
+> > > filesystems.  I think that's better than adding yet another method.
+> > > 
+> > > I'll rebase it and send it out soon.
+> >   Ok, that would be nice. I'll wait with my fix then.
+> 
+> I was going through my ext4 patch backlog, and came across this patch
+> 
+> 	http://patchwork.ozlabs.org/patch/64910/
+> 
+> Did anything ever happen with Christoph's ocfs2 quota patch, which he
+> was going to rebase?  I took a quick gander in git and I didn't see
+> anything, but maybe I was looking in the wrong place.
+  As Christoph wrote, we agreed to push my fix in the end. I've sent it
+to Al twice but sifting through his tree now, he doesn't seem to have it
+in. So I'll push the change via my tree for rc1 (if I still manage to get
+it in) or rc2. Thanks for reminder.
 
-The problem started with the segfault when activating indexed-dirs.
-Do you have the coredump?
-
-On 01/12/2011 07:46 AM, Massimo Cetra wrote:
-> Hi List,
->
-> i'd like to share with you what happened yesterday.
->
-> Kernel 2.6.36.1
-> ocfs2-tools 1.6.3 (latest).
->
-> I had an old OCFS2 partition created with a 2.6.32 kernel and ocfs2
-> tools 1.4.5.
->
-> I unmounted all partitions on all nodes in order to enable discontig-bg.
->
-> I then used tunefs to add discontig-bg, inline-data and indexed-dirs.
->
-> During indexed-dirs tunefs segfaulted and since then, fsck didn't work
-> anymore.
->
-> I managed to mount the partition again but after some errors like the
-> following
->
-> Jan 11 23:11:56 www1 kernel: [ 2339.642683]
-> (mc,3305,0):ocfs2_block_check_validate:443 ERROR: CRC32 failed: stored:
-> 0x76176db1, computed 0x9e4c2434. Applying ECC.
-> Jan 11 23:11:56 www1 kernel: [ 2339.645074]
-> (mc,3305,0):ocfs2_block_check_validate:457 ERROR: Fixed CRC32 failed:
-> stored: 0x76176db1, computed 0x91119fb2
-> Jan 11 23:11:56 www1 kernel: [ 2339.647196]
-> (mc,3305,0):ocfs2_validate_extent_block:903 ERROR: Checksum failed for
-> extent block 6924877
-> Jan 11 23:11:56 www1 kernel: [ 2339.649212]
-> (mc,3305,0):__ocfs2_find_path:1837 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.650409]
-> (mc,3305,0):ocfs2_remove_rightmost_path:3090 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.651719]
-> (mc,3305,0):ocfs2_rotate_tree_left:3225 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.653076]
-> (mc,3305,0):ocfs2_truncate_rec:5442 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.654272]
-> (mc,3305,0):ocfs2_remove_extent:5526 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.655531]
-> (mc,3305,0):ocfs2_remove_btree_range:5717 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.656908]
-> (mc,3305,0):ocfs2_commit_truncate:7117 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.658152]
-> (mc,3305,0):ocfs2_truncate_for_delete:622 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.659423]
-> (mc,3305,0):ocfs2_wipe_inode:793 ERROR: status = -5
-> Jan 11 23:11:56 www1 kernel: [ 2339.660700]
-> (mc,3305,0):ocfs2_delete_inode:1085 ERROR: status = -5
->
->
-> Jan 11 23:15:41 www1 kernel: [ 2565.101905] OCFS2: ERROR (device drbd1):
-> ocfs2_commit_truncate: Inode 7418891 has an empty extent record, depth 2
-> Jan 11 23:15:41 www1 kernel: [ 2565.101908].
-> Jan 11 23:15:41 www1 kernel: [ 2565.105104] File system is now read-only
-> due to the potential of on-disk corruption. Please run fsck.ocfs2 once
-> the file system is unmounted.
-> Jan 11 23:15:41 www1 kernel: [ 2565.108155]
-> (kworker/u:3,3361,0):ocfs2_truncate_for_delete:622 ERROR: status = -30
-> Jan 11 23:15:41 www1 kernel: [ 2565.110190]
-> (kworker/u:3,3361,0):ocfs2_wipe_inode:793 ERROR: status = -30
-> Jan 11 23:15:41 www1 kernel: [ 2565.111772]
-> (kworker/u:3,3361,0):ocfs2_delete_inode:1085 ERROR: status = -30
-> Jan 11 23:15:41 www1 kernel: [ 2565.134131] OCFS2: ERROR (device drbd1):
-> ocfs2_commit_truncate: Inode 7418889 has an empty extent record, depth 2
-> Jan 11 23:15:41 www1 kernel: [ 2565.134133].
->
-> i wasn't able to mount the filesystem anymore in RW.
-> I could mount only in RO.
->
-> fsck was failing like this:
->
-> www1:~# fsck.ocfs2 -f /dev/drbd1
-> fsck.ocfs2 1.6.3
-> Checking OCFS2 filesystem in /dev/drbd1:
->     Label:              www-code
->     UUID:               03F008AFA8BA458E9C8614A9B4A3E6E8
->     Number of blocks:   26213582
->     Block size:         2048
->     Number of clusters: 13106791
->     Cluster size:       4096
->     Number of slots:    8
->
-> /dev/drbd1 was run with -f, check forced.
-> Pass 0a: Checking cluster allocation chains
-> Pass 0b: Checking inode allocation chains
-> Pass 0c: Checking extent block allocation chains
-> Pass 1: Checking inodes and blocks.
-> extent.c: I/O error on channel reading extent block at 9590812 in owner
-> 3231503 for verification
-> extent.c: I/O error on channel reading extent block at 6924320 in owner
-> 3231503 for verification
-> pass1: I/O error on channel while iterating over the blocks for inode
-> 3231503
-> fsck.ocfs2: I/O error on channel while performing pass 1
-> www1:~#
->
-> -----------------------------------------------
->
-> It was late and i didn't have time to investigate more on a production
-> server so i did a complete backup, used mkfs to wipe everything and
-> restore the backup.
->
-> I'm sorry i can't provide more data on the problem. I tried to google
-> and search the mailing list archives but i didn't find anything interesting.
->
-> Obviously i was quite disappointed by this problem and i hope those
-> informations may, in some way, help identifying and fix the problem.
->
-> Thanks for your work,
->
-> Massimo
->
->
->
->
->
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+								Honza
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
