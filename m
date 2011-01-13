@@ -1,55 +1,59 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 12 Jan 2011 19:06:11 +0100
-Subject: [Ocfs2-devel] [PATCH] quota: Fix deadlock during path resolution
-In-Reply-To: <20110107215904.GQ21922@thunk.org>
-References: <1284586791-8245-1-git-send-email-jack@suse.cz>
-	<20100915225208.GA1490@lst.de>
-	<20100916095553.GA3359@quack.suse.cz>
-	<20110107215904.GQ21922@thunk.org>
-Message-ID: <20110112180611.GA14260@quack.suse.cz>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Thu, 13 Jan 2011 18:20:13 +0800
+Subject: [Ocfs2-devel] [PATCH 1/8] Ocfs2: Adding new ioctl code
+	'OCFS2_IOC_MOVE_EXT' to ocfs2.
+In-Reply-To: <1294914020-21628-1-git-send-email-tristan.ye@oracle.com>
+References: <1294914020-21628-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1294914020-21628-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ted Ts'o <tytso@mit.edu>
-Cc: Jan Kara <jack@suse.cz>, Christoph Hellwig <hch@lst.de>, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, reiserfs-devel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Al Viro <viro@ZenIV.linux.org.uk>, Joel Becker <joel.becker@oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Fri 07-01-11 16:59:04, Ted Ts'o wrote:
-> On Thu, Sep 16, 2010 at 11:55:53AM +0200, Jan Kara wrote:
-> > On Thu 16-09-10 00:52:08, Christoph Hellwig wrote:
-> > > On Wed, Sep 15, 2010 at 11:39:51PM +0200, Jan Kara wrote:
-> > > > As Al Viro pointed out path resolution during Q_QUOTAON calls to quotactl
-> > > > is prone to deadlocks. We hold s_umount semaphore for reading during the
-> > > > path resolution and resolution itself may need to acquire the semaphore
-> > > > for writing when e. g. autofs mountpoint is passed.
-> > > > 
-> > > > Solve the problem by performing the resolution before we get hold of the
-> > > > superblock (and thus s_umount semaphore). The whole thing is complicated
-> > > > by the fact that some filesystems (OCFS2) ignore the path argument. So to
-> > > > distinguish between filesystem which want the path and which do not we
-> > > > introduce new .quota_on_meta callback which does not get the path. OCFS2
-> > > > then uses this callback instead of old .quota_on.
-> > > 
-> > > FYI I have a patch that switches ocfs to share the quota_on method with
-> > > XFS which behaves the same, and consolidate the quota_off method for all
-> > > filesystems.  I think that's better than adding yet another method.
-> > > 
-> > > I'll rebase it and send it out soon.
-> >   Ok, that would be nice. I'll wait with my fix then.
-> 
-> I was going through my ext4 patch backlog, and came across this patch
-> 
-> 	http://patchwork.ozlabs.org/patch/64910/
-> 
-> Did anything ever happen with Christoph's ocfs2 quota patch, which he
-> was going to rebase?  I took a quick gander in git and I didn't see
-> anything, but maybe I was looking in the wrong place.
-  As Christoph wrote, we agreed to push my fix in the end. I've sent it
-to Al twice but sifting through his tree now, he doesn't seem to have it
-in. So I'll push the change via my tree for rc1 (if I still manage to get
-it in) or rc2. Thanks for reminder.
+Patch also manages to add a manipulative struture for this ioctl.
 
-								Honza
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/ocfs2_ioctl.h |   28 ++++++++++++++++++++++++++++
+ 1 files changed, 28 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
+index b46f39b..25c28ec 100644
+--- a/fs/ocfs2/ocfs2_ioctl.h
++++ b/fs/ocfs2/ocfs2_ioctl.h
+@@ -171,4 +171,32 @@ enum ocfs2_info_type {
+ 
+ #define OCFS2_IOC_INFO		_IOR('o', 5, struct ocfs2_info)
+ 
++#define OCFS2_MOVE_EXT_FL_AUTO_DEFRAG	(0x00000001)	/* Kernel manages to
++							   claim new clusters
++							   as the goal place
++							   for extents moving */
++#define OCFS2_MOVE_EXT_FL_COMPLETE	(0x00000002)	/* Move or defragmenation
++							   completely gets done.
++							 */
++struct ocfs2_move_extents {
++/* All values are in bytes */
++	/* in */
++	__u64 me_start;		/* Virtual start in the file to move */
++	__u64 me_len;		/* Length of the extents to be moved */
++	__u64 me_goal;		/* Physical offset of the goal,
++				   it's in block unit */
++	__u64 me_thresh;	/* Maximum distance from goal or threshold
++				   for auto defragmentation */
++	__u64 me_flags;		/* flags for the operation:
++				 * - auto defragmentation.
++				 * - refcount,xattr cases.
++				 */
++	/* out */
++	__u64 me_moved_len;	/* moved/defraged length */
++	__u64 me_new_offset;	/* Resulting physical location */
++	__u32 me_reserved[2];	/* reserved for futhure */
++};
++
++#define OCFS2_IOC_MOVE_EXT	_IOW('o', 6, struct ocfs2_move_extents)
++
+ #endif /* OCFS2_IOCTL_H */
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+1.5.5
