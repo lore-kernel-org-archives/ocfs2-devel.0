@@ -1,142 +1,129 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Thu, 13 Jan 2011 18:20:15 +0800
-Subject: [Ocfs2-devel] [PATCH 3/8] Ocfs2: Duplicate old clusters into new
-	blk_offset by dirty and remap pages.
+Date: Thu, 13 Jan 2011 18:20:18 +0800
+Subject: [Ocfs2-devel] [PATCH 6/8] Ocfs2: defrag a range of extent.
 In-Reply-To: <1294914020-21628-1-git-send-email-tristan.ye@oracle.com>
 References: <1294914020-21628-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1294914020-21628-4-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1294914020-21628-7-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Most of codes for duplicating clusters into new_blkoffset where extent will
-be moved, were copid from refcounttree's CoW logics, the intention of making
-an exact copy here is to make extents moving codes work at the very beginning
-,and also avoid interfering refcounttree's codes at most.
-
-Final version will be using some common funcs with refcounttree part.
+It's a relatively complete function to accomplish defragmentation for entire
+or partial extent, one journal handle was kept during the operation, it was
+logically doing one more thing than ocfs2_move_extent() acutally, yes, it's
+claiming the new clusters itself;-)
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/move_extents.c |  107 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 107 insertions(+), 0 deletions(-)
+ fs/ocfs2/move_extents.c |   97 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 97 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 9e9b9fd..dfb3a59 100644
+index 42cc971..d1b6f07 100644
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -54,6 +54,113 @@ struct ocfs2_move_extents_context {
- 	struct ocfs2_cached_dealloc_ctxt dealloc;
- };
+@@ -312,6 +312,103 @@ out:
+ 	return ret;
+ }
  
-+static int ocfs2_clear_cow_buffer(handle_t *handle, struct buffer_head *bh)
-+{
-+	BUG_ON(buffer_dirty(bh));
-+
-+	clear_buffer_mapped(bh);
-+
-+	return 0;
-+}
-+
-+#define MAX_CONTIG_BYTES        1048576
-+
-+static inline unsigned int ocfs2_cow_contig_clusters(struct super_block *sb)
-+{
-+	return ocfs2_clusters_for_bytes(sb, MAX_CONTIG_BYTES);
-+}
-+
 +/*
-+ * Duplicate clusters into new blk_offset, following codes were almost taken
-+ * from refcounttree.c on CoW.
++ * Using one journal handle to guarantee the data consistency in case
++ * crash happens anywhere.
 + */
-+static int ocfs2_duplicate_clusters_by_page(handle_t *handle,
-+				struct ocfs2_move_extents_context *context,
-+				u32 cpos, u32 old_cluster,
-+				u32 new_cluster, u32 len)
++static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
++			       u32 cpos, u32 phys_cpos, u32 len, int ext_flags)
 +{
-+	int ret = 0, partial;
++	int ret, credits = 0;
++	handle_t *handle;
 +	struct inode *inode = context->inode;
-+	struct ocfs2_caching_info *ci = INODE_CACHE(inode);
-+	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
-+	u64 new_block = ocfs2_clusters_to_blocks(sb, new_cluster);
-+	struct page *page;
-+	pgoff_t page_index;
-+	unsigned int from, to, readahead_pages;
-+	loff_t offset, end, map_end;
-+	struct address_space *mapping = inode->i_mapping;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	struct inode *tl_inode = osb->osb_tl_inode;
++	u32 new_phys_cpos, new_len;
 +
-+	mlog(0, "old_cluster %u, new %u, len %u at offset %u\n", old_cluster,
-+	     new_cluster, len, cpos);
++	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
++						 &context->meta_ac,
++						 &context->data_ac,
++						 0, &credits);
++	if (ret) {
++		mlog_errno(ret);
++		return ret;
++	}
 +
-+	readahead_pages =
-+		(ocfs2_cow_contig_clusters(sb) <<
-+		 OCFS2_SB(sb)->s_clustersize_bits) >> PAGE_CACHE_SHIFT;
-+	offset = ((loff_t)cpos) << OCFS2_SB(sb)->s_clustersize_bits;
-+	end = offset + (len << OCFS2_SB(sb)->s_clustersize_bits);
++	/*
++	 * should be using allocation reservation strategy there?
++	 *
++	 * if (context->data_ac)
++	 *	context->data_ac->ac_resv = &OCFS2_I(inode)->ip_la_data_resv;
++	 */
 +
-+	if (end > i_size_read(inode))
-+		end = i_size_read(inode);
++	mutex_lock(&tl_inode->i_mutex);
 +
-+	while (offset < end) {
-+		page_index = offset >> PAGE_CACHE_SHIFT;
-+		map_end = ((loff_t)page_index + 1) << PAGE_CACHE_SHIFT;
-+		if (map_end > end)
-+			map_end = end;
-+
-+		from = offset & (PAGE_CACHE_SIZE - 1);
-+		to = PAGE_CACHE_SIZE;
-+		if (map_end & (PAGE_CACHE_SIZE - 1))
-+			to = map_end & (PAGE_CACHE_SIZE - 1);
-+
-+		page = find_or_create_page(mapping, page_index, GFP_NOFS);
-+
-+		if (PAGE_CACHE_SIZE <= OCFS2_SB(sb)->s_clustersize)
-+			BUG_ON(PageDirty(page));
-+
-+		if (PageReadahead(page) && context->file) {
-+			page_cache_async_readahead(mapping,
-+						   &context->file->f_ra,
-+						   context->file,
-+						   page, page_index,
-+						   readahead_pages);
++	if (ocfs2_truncate_log_needs_flush(osb)) {
++		ret = __ocfs2_flush_truncate_log(osb);
++		if (ret < 0) {
++			mlog_errno(ret);
++			goto out;
 +		}
++	}
 +
-+		if (!PageUptodate(page)) {
-+			ret = block_read_full_page(page, ocfs2_get_block);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto unlock;
-+			}
-+			lock_page(page);
-+		}
++	handle = ocfs2_start_trans(osb, credits);
++	if (IS_ERR(handle)) {
++		ret = PTR_ERR(handle);
++		mlog_errno(ret);
++		goto out;
++	}
 +
-+		if (page_has_buffers(page)) {
-+			ret = walk_page_buffers(handle, page_buffers(page),
-+						from, to, &partial,
-+						ocfs2_clear_cow_buffer);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto unlock;
-+			}
-+		}
++	ret = __ocfs2_claim_clusters(handle, context->data_ac, 1, len,
++				     &new_phys_cpos, &new_len);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
 +
-+		ocfs2_map_and_dirty_page(inode,
-+					 handle, from, to,
-+					 page, 0, &new_block);
-+		mark_page_accessed(page);
-+unlock:
-+		unlock_page(page);
-+		page_cache_release(page);
-+		page = NULL;
-+		offset = map_end;
-+		if (ret)
-+			break;
++	/*
++	 * we're not quite patient here to make multiple attempts for claiming
++	 * enough clusters, failure to claim clusters per-requested is not a
++	 * disaster though, it can only mean partial range of defragmentation
++	 * or extent movements gets gone, users anyway is able to have another
++	 * try as they wish anytime, since they're going to be returned a
++	 * '-ENOSPC' and completed length of this movement.
++	 */
++	if (new_len != len) {
++		mlog(0, "len_claimed: %u, len: %u\n", new_len, len);
++		context->range->me_flags &= ~OCFS2_MOVE_EXT_FL_COMPLETE;
++		ret = -ENOSPC;
++		goto out_commit;
++	}
++
++	mlog(0, "cpos: %u, phys_cpos: %u, new_phys_cpos: %u\n", cpos,
++	     phys_cpos, new_phys_cpos);
++
++	ret = __ocfs2_move_extent(handle, context, cpos, len, phys_cpos,
++				  new_phys_cpos, ext_flags);
++	if (ret)
++		mlog_errno(ret);
++
++out_commit:
++	ocfs2_commit_trans(osb, handle);
++
++out:
++	mutex_unlock(&tl_inode->i_mutex);
++
++	if (context->data_ac) {
++		ocfs2_free_alloc_context(context->data_ac);
++		context->data_ac = NULL;
++	}
++
++	if (context->meta_ac) {
++		ocfs2_free_alloc_context(context->meta_ac);
++		context->meta_ac = NULL;
 +	}
 +
 +	return ret;
 +}
++
 +
  static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
  {
