@@ -1,9 +1,9 @@
 From: Massimo Cetra <ctrixk@navynet.it>
-Date: Thu, 13 Jan 2011 20:19:39 +0100
+Date: Thu, 13 Jan 2011 21:25:59 +0100
 Subject: [Ocfs2-devel] Problems with fsck
 In-Reply-To: <4D2DD3E0.7080509@oracle.com>
 References: <4D2DCCF1.4080303@navynet.it> <4D2DD3E0.7080509@oracle.com>
-Message-ID: <4D2F504B.7010404@navynet.it>
+Message-ID: <4D2F5FD7.8030100@navynet.it>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,8 +15,8 @@ On 12/01/2011 17:16, Sunil Mushran wrote:
 > checksums. An easy solution is to disable checksums and rerun
 > fsck. Checksums can be renabled later.
 >
-Uh. I noticed that CRC32 errors from the kernel but i didn't 
-rearealizedlly  that it was related to the problem.
+Uh. I noticed that CRC32 errors from the kernel but i didn't really 
+think that it was related to the problem.
 fsck reporting I/O errors was driving me to something more serious 
 (broken disks) but obviously i didn't find anything about it on the 
 controller.
