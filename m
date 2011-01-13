@@ -1,461 +1,214 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Thu, 13 Jan 2011 18:20:19 +0800
-Subject: [Ocfs2-devel] [PATCH 7/8] Ocfs2: move entire/partial extent.
-In-Reply-To: <1294914020-21628-1-git-send-email-tristan.ye@oracle.com>
-References: <1294914020-21628-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1294914020-21628-8-git-send-email-tristan.ye@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 13 Jan 2011 19:01:36 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix ocfs2_page_mkwrite path
+Message-ID: <201101131103.p0D7C5Cx002897@acsinet15.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_move_extent() logic will validate the goal_offset_in_block,
-where extents to be moved, what's more, it also compromises a bit
-to probe the appropriate region around given goal_offset when the
-original goal is not able to fit the movement.
+This patch fixes two problems in ocfs2_page_mkwrite path:
+1) it makes ocfs2_page_mkwrite returns VM_FAULT_*
+2) it fixes a bug of returning -EINVAL.
+The -EINVAL is returned when the page is no longger belong to the inode mapping
+(pagecache gets truncated).  Make it return VM_FAULT_NOPAGE in that case.
 
-Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 ---
- fs/ocfs2/move_extents.c |  419 ++++++++++++++++++++++++++++++++++++++++++++++-
- 1 files changed, 412 insertions(+), 7 deletions(-)
+ fs/ocfs2/aops.c |   47 +++++++++++++++++++++++++++++++++++++++--------
+ fs/ocfs2/mmap.c |   53 ++++++++++++++++++++++++-----------------------------
+ 2 files changed, 63 insertions(+), 37 deletions(-)
 
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index d1b6f07..ce97c76 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -408,6 +408,414 @@ out:
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 0d7c554..619a38f 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -876,6 +876,12 @@ struct ocfs2_write_ctxt {
+ 	struct page			*w_target_page;
+ 
+ 	/*
++	 * w_target_locked is used for page_mkwrite path indicating no unlocking
++	 * against w_target_page in ocfs2_write_end_nolock.
++	 */
++	unsigned int			w_target_locked:1;
++
++	/*
+ 	 * ocfs2_write_end() uses this to know what the real range to
+ 	 * write in the target should be.
+ 	 */
+@@ -908,8 +914,29 @@ void ocfs2_unlock_and_free_pages(struct page **pages, int num_pages)
+ 
+ static void ocfs2_free_write_ctxt(struct ocfs2_write_ctxt *wc)
+ {
++	/*
++	 * don't unlock on the target_page for page_mkwrite pach.
++	 * page_mkwrite() wants a return with the page locked.
++	 * re-acquiring after ocfs2_unlock_and_free_pages is not acceptable.
++	 * During the time when it unlocked, the page can changed to
++	 * not belong to the inode mapping any longer.
++	 *
++	 * caller must hold a ref on w_target_page.
++	 */
++	if (wc->w_target_locked) {
++		int i;
++
++		BUG_ON(!wc->w_target_page);
++		for (i = 0; i < wc->w_num_pages; i++) {
++			if (wc->w_target_page == wc->w_pages[i]) {
++				wc->w_pages[i] = NULL;
++				break;
++			}
++		}
++		mark_page_accessed(wc->w_target_page);
++		page_cache_release(wc->w_target_page);
++	}
+ 	ocfs2_unlock_and_free_pages(wc->w_pages, wc->w_num_pages);
+-
+ 	brelse(wc->w_di_bh);
+ 	kfree(wc);
+ }
+@@ -1139,20 +1166,19 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
+ 			 */
+ 			lock_page(mmap_page);
+ 
++			/*
++			 * pagecache gets truncated. Let VM retry it.
++			 */
+ 			if (mmap_page->mapping != mapping) {
++				WARN_ON(mmap_page->mapping);
+ 				unlock_page(mmap_page);
+-				/*
+-				 * Sanity check - the locking in
+-				 * ocfs2_pagemkwrite() should ensure
+-				 * that this code doesn't trigger.
+-				 */
+-				ret = -EINVAL;
+-				mlog_errno(ret);
++				ret = 0;
+ 				goto out;
+ 			}
+ 
+ 			page_cache_get(mmap_page);
+ 			wc->w_pages[i] = mmap_page;
++			wc->w_target_locked = true;
+ 		} else {
+ 			wc->w_pages[i] = find_or_create_page(mapping, index,
+ 							     GFP_NOFS);
+@@ -1167,6 +1193,8 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
+ 			wc->w_target_page = wc->w_pages[i];
+ 	}
+ out:
++	if (ret)
++		wc->w_target_locked = false;
  	return ret;
  }
  
-+/*
-+ * find the victim alloc group, where #blkno fits.
-+ */
-+static int ocfs2_find_victim_alloc_group(struct inode *inode,
-+					 u64 vict_blkno,
-+					 int type, int slot,
-+					 int *vict_bit,
-+					 struct buffer_head **ret_bh)
-+{
-+	int ret, i, blocks_per_unit = 1;
-+	u64 blkno;
-+	char namebuf[40];
-+
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct buffer_head *ac_bh = NULL, *gd_bh = NULL;
-+	struct ocfs2_chain_list *cl;
-+	struct ocfs2_chain_rec *rec;
-+	struct ocfs2_dinode *ac_dinode;
-+	struct ocfs2_group_desc *bg;
-+
-+	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
-+	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
-+					 strlen(namebuf), &blkno);
-+	if (ret) {
-+		ret = -ENOENT;
-+		goto out;
-+	}
-+
-+	ret = ocfs2_read_blocks_sync(osb, blkno, 1, &ac_bh);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ac_dinode = (struct ocfs2_dinode *)ac_bh->b_data;
-+	cl = &(ac_dinode->id2.i_chain);
-+	rec = &(cl->cl_recs[0]);
-+
-+	if (type == GLOBAL_BITMAP_SYSTEM_INODE)
-+		blocks_per_unit <<= (osb->s_clustersize_bits -
-+						inode->i_sb->s_blocksize_bits);
-+	/*
-+	 * 'vict_blkno' was out of the valid range.
-+	 */
-+	if ((vict_blkno < le64_to_cpu(rec->c_blkno)) ||
-+	    (vict_blkno >= (le32_to_cpu(ac_dinode->id1.bitmap1.i_total) *
-+				blocks_per_unit))) {
-+		ret = -EINVAL;
-+		goto out;
-+	}
-+
-+	for (i = 0; i < le16_to_cpu(cl->cl_next_free_rec); i++) {
-+
-+		rec = &(cl->cl_recs[i]);
-+		if (!rec)
-+			continue;
-+
-+		bg = NULL;
-+
-+		do {
-+			if (!bg)
-+				blkno = le64_to_cpu(rec->c_blkno);
-+			else
-+				blkno = le64_to_cpu(bg->bg_next_group);
-+
-+			if (gd_bh) {
-+				brelse(gd_bh);
-+				gd_bh = NULL;
-+			}
-+
-+			ret = ocfs2_read_blocks_sync(osb, blkno, 1, &gd_bh);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+
-+			bg = (struct ocfs2_group_desc *)gd_bh->b_data;
-+
-+			if (vict_blkno < (le64_to_cpu(bg->bg_blkno) +
-+						le16_to_cpu(bg->bg_bits))) {
-+
-+				*ret_bh = gd_bh;
-+				*vict_bit = (vict_blkno - blkno) /
-+							blocks_per_unit;
-+				mlog(0, "find the victim group: #%llu, "
-+				     "total_bits: %u, vict_bit: %u\n",
-+				     blkno, le16_to_cpu(bg->bg_bits),
-+				     *vict_bit);
-+				goto out;
-+			}
-+
-+		} while (le64_to_cpu(bg->bg_next_group));
-+	}
-+
-+	ret = -EINVAL;
-+out:
-+	brelse(ac_bh);
-+
-+	/*
-+	 * caller has to release the gd_bh properly.
-+	 */
-+	return ret;
-+}
-+
-+/*
-+ * XXX: helper to validate and adjust moving goal.
-+ */
-+static int ocfs2_validate_and_adjust_move_goal(struct inode *inode,
-+					       struct ocfs2_move_extents *range)
-+{
-+	int ret, goal_bit = 0;
-+
-+	struct buffer_head *gd_bh = NULL;
-+	struct ocfs2_group_desc *bg;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	int c_to_b = 1 << (osb->s_clustersize_bits -
-+					inode->i_sb->s_blocksize_bits);
-+
-+	/*
-+	 * validate goal sits within global_bitmap, and return the victim
-+	 * group desc
-+	 */
-+	ret = ocfs2_find_victim_alloc_group(inode, range->me_goal,
-+					    GLOBAL_BITMAP_SYSTEM_INODE,
-+					    OCFS2_INVALID_SLOT,
-+					    &goal_bit, &gd_bh);
-+	if (ret)
-+		goto out;
-+
-+	bg = (struct ocfs2_group_desc *)gd_bh->b_data;
-+
-+	/*
-+	 * make goal become cluster aligned.
-+	 */
-+	if (range->me_goal % c_to_b)
-+		range->me_goal = range->me_goal / c_to_b * c_to_b;
-+
-+	/*
-+	 * moving goal is not allowd to start with a group desc blok(#0 blk)
-+	 * let's compromise to the latter cluster.
-+	 */
-+	if (range->me_goal == le64_to_cpu(bg->bg_blkno))
-+		range->me_goal += c_to_b;
-+
-+	/*
-+	 * movement is not gonna cross two groups.
-+	 */
-+	if ((le16_to_cpu(bg->bg_bits) - goal_bit) * osb->s_clustersize <
-+								range->me_len) {
-+		ret = -EINVAL;
-+		goto out;
-+	}
-+	/*
-+	 * more exact validations/adjustments will be performed later during
-+	 * moving operation for each extent range.
-+	 */
-+	mlog(0, "extents get ready to be moved to #%llu block\n",
-+	     range->me_goal);
-+
-+out:
-+	brelse(gd_bh);
-+
-+	return ret;
-+}
-+
-+static void ocfs2_probe_alloc_group(struct inode *inode, struct buffer_head *bh,
-+				    int *goal_bit, u32 move_len, u32 max_hop,
-+				    u32 *phys_cpos)
-+{
-+	int i, used, last_free_bits = 0, base_bit = *goal_bit;
-+	struct ocfs2_group_desc *gd = (struct ocfs2_group_desc *)bh->b_data;
-+	u32 base_cpos = ocfs2_blocks_to_clusters(inode->i_sb,
-+						 le64_to_cpu(gd->bg_blkno));
-+
-+	for (i = base_bit; i < le16_to_cpu(gd->bg_bits); i++) {
-+
-+		used = ocfs2_test_bit(i, (unsigned long *)gd->bg_bitmap);
-+		if (used) {
-+			/*
-+			 * we even tried searching the free chunk by jumping
-+			 * a 'max_hop' distance, but still failed.
-+			 */
-+			if ((i - base_bit) > max_hop) {
-+				*phys_cpos = 0;
-+				break;
-+			}
-+
-+			if (last_free_bits)
-+				last_free_bits = 0;
-+
-+			continue;
-+		} else
-+			last_free_bits++;
-+
-+		if (last_free_bits == move_len) {
-+			*goal_bit = i;
-+			*phys_cpos = base_cpos + i;
-+			break;
-+		}
-+	}
-+
-+	mlog(0, "found phys_cpos: %u to fit the wanted moving.\n", *phys_cpos);
-+}
-+
-+static int ocfs2_alloc_dinode_update_counts(struct inode *inode,
-+				       handle_t *handle,
-+				       struct buffer_head *di_bh,
-+				       u32 num_bits,
-+				       u16 chain)
-+{
-+	int ret;
-+	u32 tmp_used;
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *) di_bh->b_data;
-+	struct ocfs2_chain_list *cl =
-+				(struct ocfs2_chain_list *) &di->id2.i_chain;
-+
-+	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	tmp_used = le32_to_cpu(di->id1.bitmap1.i_used);
-+	di->id1.bitmap1.i_used = cpu_to_le32(num_bits + tmp_used);
-+	le32_add_cpu(&cl->cl_recs[chain].c_free, -num_bits);
-+	ocfs2_journal_dirty(handle, di_bh);
-+
-+out:
-+	return ret;
-+}
-+
-+static inline int ocfs2_block_group_set_bits(handle_t *handle,
-+					     struct inode *alloc_inode,
-+					     struct ocfs2_group_desc *bg,
-+					     struct buffer_head *group_bh,
-+					     unsigned int bit_off,
-+					     unsigned int num_bits)
-+{
-+	int status;
-+	void *bitmap = bg->bg_bitmap;
-+	int journal_type = OCFS2_JOURNAL_ACCESS_WRITE;
-+
-+	mlog_entry_void();
-+
-+	/* All callers get the descriptor via
-+	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
-+	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
-+	BUG_ON(le16_to_cpu(bg->bg_free_bits_count) < num_bits);
-+
-+	mlog(0, "block_group_set_bits: off = %u, num = %u\n", bit_off,
-+	     num_bits);
-+
-+	if (ocfs2_is_cluster_bitmap(alloc_inode))
-+		journal_type = OCFS2_JOURNAL_ACCESS_UNDO;
-+
-+	status = ocfs2_journal_access_gd(handle,
-+					 INODE_CACHE(alloc_inode),
-+					 group_bh,
-+					 journal_type);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto bail;
-+	}
-+
-+	le16_add_cpu(&bg->bg_free_bits_count, -num_bits);
-+	if (le16_to_cpu(bg->bg_free_bits_count) > le16_to_cpu(bg->bg_bits)) {
-+		ocfs2_error(alloc_inode->i_sb, "Group descriptor # %llu has bit"
-+			    " count %u but claims %u are freed. num_bits %d",
-+			    (unsigned long long)le64_to_cpu(bg->bg_blkno),
-+			    le16_to_cpu(bg->bg_bits),
-+			    le16_to_cpu(bg->bg_free_bits_count), num_bits);
-+		return -EROFS;
-+	}
-+	while (num_bits--)
-+		ocfs2_set_bit(bit_off++, bitmap);
-+
-+	ocfs2_journal_dirty(handle, group_bh);
-+
-+bail:
-+	mlog_exit(status);
-+	return status;
-+}
-+
-+static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
-+			     u32 cpos, u32 phys_cpos, u32 *new_phys_cpos,
-+			     u32 len, int ext_flags)
-+{
-+	int ret, credits = 0, goal_bit = 0;
-+	handle_t *handle;
-+	struct inode *inode = context->inode;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct inode *tl_inode = osb->osb_tl_inode;
-+	struct inode *gb_inode = NULL;
-+	struct buffer_head *gb_bh = NULL;
-+	struct buffer_head *gd_bh = NULL;
-+	struct ocfs2_group_desc *gd;
-+	u32 move_max_hop = ocfs2_blocks_to_clusters(inode->i_sb,
-+						    context->range->me_thresh);
-+	u64 new_phys_blkno;
-+
-+	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
-+						 &context->meta_ac,
-+						 NULL, 0, &credits);
-+	if (ret) {
-+		mlog_errno(ret);
-+		return ret;
-+	}
-+
-+	/*
-+	 * need to count 2 extra credits for global_bitmap inode and
-+	 * group descriptor.
-+	 */
-+	credits += OCFS2_INODE_UPDATE_CREDITS + 1;
-+
-+	/*
-+	 * ocfs2_move_extent() didn't reserve any clusters in lock_allocators()
-+	 * logic, while we still need to lock the global_bitmap.
-+	 */
-+	gb_inode = ocfs2_get_system_file_inode(osb, GLOBAL_BITMAP_SYSTEM_INODE,
-+					       OCFS2_INVALID_SLOT);
-+	if (!gb_inode) {
-+		mlog(ML_ERROR, "unable to get global_bitmap inode\n");
-+		ret = -EIO;
-+		goto out;
-+	}
-+
-+	mutex_lock(&gb_inode->i_mutex);
-+
-+	ret = ocfs2_inode_lock(gb_inode, &gb_bh, 1);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_unlock_gb_mutex;
-+	}
-+
-+	mutex_lock(&tl_inode->i_mutex);
-+
-+	handle = ocfs2_start_trans(osb, credits);
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
-+		mlog_errno(ret);
-+		goto out_unlock_tl_inode;
-+	}
-+
-+	new_phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, *new_phys_cpos);
-+	ret = ocfs2_find_victim_alloc_group(inode, new_phys_blkno,
-+					    GLOBAL_BITMAP_SYSTEM_INODE,
-+					    OCFS2_INVALID_SLOT,
-+					    &goal_bit, &gd_bh);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	/*
-+	 * probe the victim cluster group to find a proper
-+	 * region to fit wanted movement, it even will perfrom
-+	 * a best-effort attempt by compromising to a threshold
-+	 * around the goal.
-+	 */
-+	ocfs2_probe_alloc_group(inode, gd_bh, &goal_bit, len, move_max_hop,
-+				new_phys_cpos);
-+	if (!new_phys_cpos) {
-+		ret = -ENOSPC;
-+		goto out_commit;
-+	}
-+
-+	ret = __ocfs2_move_extent(handle, context, cpos, len, phys_cpos,
-+				  *new_phys_cpos, ext_flags);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
-+	ret = ocfs2_alloc_dinode_update_counts(gb_inode, handle, gb_bh, len,
-+					       le16_to_cpu(gd->bg_chain));
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	ret = ocfs2_block_group_set_bits(handle, gb_inode, gd, gd_bh,
-+					 goal_bit, len);
-+	if (ret)
-+		mlog_errno(ret);
-+
-+out_commit:
-+	ocfs2_commit_trans(osb, handle);
-+	brelse(gd_bh);
-+
-+out_unlock_tl_inode:
-+	mutex_unlock(&tl_inode->i_mutex);
-+
-+	ocfs2_inode_unlock(gb_inode, 1);
-+out_unlock_gb_mutex:
-+	mutex_unlock(&gb_inode->i_mutex);
-+	brelse(gb_bh);
-+	iput(gb_inode);
-+
-+out:
-+	if (context->meta_ac) {
-+		ocfs2_free_alloc_context(context->meta_ac);
-+		context->meta_ac = NULL;
-+	}
-+
-+	return ret;
-+}
+@@ -1786,6 +1814,9 @@ int ocfs2_write_begin_nolock(struct file *filp,
+ 		mlog_errno(ret);
+ 		goto out_quota;
+ 	}
++	/* Did the pagecache lose the page?  Retry. */
++	if (!wc->w_target_page)
++		goto out_quota;
  
- static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
+ 	ret = ocfs2_write_cluster_by_desc(mapping, data_ac, meta_ac, wc, pos,
+ 					  len);
+diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+index 7e32db9..9f88443 100644
+--- a/fs/ocfs2/mmap.c
++++ b/fs/ocfs2/mmap.c
+@@ -62,7 +62,7 @@ static int ocfs2_fault(struct vm_area_struct *area, struct vm_fault *vmf)
+ static int __ocfs2_page_mkwrite(struct file *file, struct buffer_head *di_bh,
+ 				struct page *page)
  {
-@@ -563,13 +971,10 @@ int ocfs2_ioctl_move_extents(struct file *filp, void __user *argp)
- 		 * operation can succeed all the time since global_bitmap may
- 		 * change a bit over time.
- 		 */
+-	int ret;
++	int ret = VM_FAULT_NOPAGE;
+ 	struct inode *inode = file->f_path.dentry->d_inode;
+ 	struct address_space *mapping = inode->i_mapping;
+ 	loff_t pos = page_offset(page);
+@@ -72,32 +72,25 @@ static int __ocfs2_page_mkwrite(struct file *file, struct buffer_head *di_bh,
+ 	void *fsdata;
+ 	loff_t size = i_size_read(inode);
+ 
+-	/*
+-	 * Another node might have truncated while we were waiting on
+-	 * cluster locks.
+-	 * We don't check size == 0 before the shift. This is borrowed
+-	 * from do_generic_file_read.
+-	 */
+ 	last_index = (size - 1) >> PAGE_CACHE_SHIFT;
+-	if (unlikely(!size || page->index > last_index)) {
+-		ret = -EINVAL;
+-		goto out;
+-	}
+ 
+ 	/*
+-	 * The i_size check above doesn't catch the case where nodes
+-	 * truncated and then re-extended the file. We'll re-check the
+-	 * page mapping after taking the page lock inside of
+-	 * ocfs2_write_begin_nolock().
++	 * There are cases that lead to the page no longer bebongs to the
++	 * mapping.
++	 * 1) pagecache truncates locally due to memory pressure.
++	 * 2) pagecache truncates when another is taking EX lock against 
++	 * inode lock. see ocfs2_data_convert_worker.
++	 * 
++	 * The i_size check doesn't catch the case where nodes truncated and
++	 * then re-extended the file. We'll re-check the page mapping after
++	 * taking the page lock inside of ocfs2_write_begin_nolock().
++	 *
++	 * Let VM retry with these cases.
+ 	 */
+-	if (!PageUptodate(page) || page->mapping != inode->i_mapping) {
 -		/*
--		 * real validation codes will be fulfilled later.
--		 *
--		 * status = ocfs2_validate_and_adjust_move_goal(inode, &range);
--		 * if (status)
--		 * 	goto out;
--		*/
-+
-+		status = ocfs2_validate_and_adjust_move_goal(inode, &range);
-+		if (status)
-+			goto out;
+-		 * the page has been umapped in ocfs2_data_downconvert_worker.
+-		 * So return 0 here and let VFS retry.
+-		 */
+-		ret = 0;
++	if ((page->mapping != inode->i_mapping) ||
++	    (!PageUptodate(page)) ||
++	    (page_offset(page) >= size))
+ 		goto out;
+-	}
+ 
+ 	/*
+ 	 * Call ocfs2_write_begin() and ocfs2_write_end() to take
+@@ -117,17 +110,21 @@ static int __ocfs2_page_mkwrite(struct file *file, struct buffer_head *di_bh,
+ 	if (ret) {
+ 		if (ret != -ENOSPC)
+ 			mlog_errno(ret);
++		if (ret == -ENOMEM)
++			ret = VM_FAULT_OOM;
++		else
++			ret = VM_FAULT_SIGBUS;
+ 		goto out;
  	}
  
- 	status = ocfs2_move_extents(context);
+-	ret = ocfs2_write_end_nolock(mapping, pos, len, len, locked_page,
+-				     fsdata);
+-	if (ret < 0) {
+-		mlog_errno(ret);
++	if (!locked_page) {
++		ret = VM_FAULT_NOPAGE;
+ 		goto out;
+ 	}
++	ret = ocfs2_write_end_nolock(mapping, pos, len, len, locked_page,
++				     fsdata);
+ 	BUG_ON(ret != len);
+-	ret = 0;
++	ret = VM_FAULT_LOCKED;
+ out:
+ 	return ret;
+ }
+@@ -169,8 +166,6 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
+ 
+ out:
+ 	ocfs2_unblock_signals(&oldset);
+-	if (ret)
+-		ret = VM_FAULT_SIGBUS;
+ 	return ret;
+ }
+ 
 -- 
-1.5.5
+1.7.2.3
