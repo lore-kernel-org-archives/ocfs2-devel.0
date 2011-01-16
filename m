@@ -1,105 +1,201 @@
-From: Nick Piggin <npiggin@gmail.com>
-Date: Sun, 16 Jan 2011 05:16:40 +1100
-Subject: [Ocfs2-devel] vfs-scale, nd->inode after __do_follow_link()
-In-Reply-To: <4D30F66A.7060007@kernel.org>
-References: <7352.1294971049@jrobl>
-	<AANLkTinXPOSxHPtffqe3m5MWppDfr6kFVMsd6k7-dkic@mail.gmail.com>
-	<20110114052813.GZ19804@ZenIV.linux.org.uk>
-	<AANLkTi=pzFGHyFDYM_qvabODdKn8gDvRjjo_nbPfcT=q@mail.gmail.com>
-	<AANLkTik=7x9o3s_TeVAACjNachLE7zyrbqyOeBBiE-v5@mail.gmail.com>
-	<4D30DD6C.4010507@kernel.org> <4D30F66A.7060007@kernel.org>
-Message-ID: <AANLkTin+FM6BHPkjneno59PzWdOg6jcSeD4TWYP+F=6v@mail.gmail.com>
+From: Jesper Juhl <jj@chaosbits.net>
+Date: Mon, 17 Jan 2011 00:09:38 +0100 (CET)
+Subject: [Ocfs2-devel] =?iso-8859-7?q?=5BPatch=5D_Kill_off_warning=3A_=A1i?=
+	=?iso-8859-7?q?nline=A2_is_not_at_beginning_of_declaration?=
+Message-ID: <alpine.LNX.2.00.1101170000270.13377@swampdragon.chaosbits.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: alsa-devel@alsa-project.org, Mauro Carvalho Chehab <mchehab@redhat.com>, Takashi Iwai <tiwai@suse.de>, Frederic Weisbecker <fweisbec@gmail.com>, "Gustavo F. Padovan" <padovan@profusion.mobi>, Jaroslav Kysela <perex@perex.cz>, Jens Axboe <jens.axboe@oracle.com>, Stephen Hemminger <shemminger@vyatta.com>, Andi Kleen <ak@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, "Pekka Savola (ipv6)" <pekkas@netcore.fi>, x86@kernel.org, James Morris <jmorris@namei.org>, Ingo Molnar <mingo@redhat.com>, oprofile-list@lists.sf.net, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Mark Fasheh <mfasheh@suse.com>, Marcel Holtmann <marcel@holtmann.org>, "John W. Linville" <linville@tuxdriver.com>, David Teigland <teigland@redhat.com>, Joel Becker <jlbec@evilplan.org>, Thomas Gleixner <tglx@linutronix.de>, linux-edac@vger.kernel.org, trivial@kernel.org, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.or>
 
-On Sat, Jan 15, 2011 at 12:20 PM, J.H. <warthog9@kernel.org> wrote:
-> Nick,
->
-> Just thought I'd let you know - with, or without, the vfs-scale code
-> that you've got I'm getting this:
->
-> [ ?472.666054] ------------[ cut here ]------------
-> [ ?472.670724] kernel BUG at fs/dcache.c:1358!
-> [ ?472.674944] invalid opcode: 0000 [#1] SMP
-> [ ?472.679112] last sysfs file:
-> /sys/devices/system/cpu/cpu15/cache/index2/shared_cpu_map
-> [ ?472.687105] last /proc..net open: ?/proc/7687/net/route
-> [ ?472.695829] last /proc..net close: /proc/7687/net/route
-> [ ?472.704490] CPU 0
-> [ ?472.706361] Modules linked in: ocfs2 mptctl mptbase ipmi_devintf drbd
-> lru_cache nfsd lockd nfs_acl auth_rpcgss sunrpc ocfs2_dlmfs
-> ocfs2_stack_o2cb ocfs2_dlm ocfs2_nodemanager ocfs2_stackglue configfs
-> 8021q garp stp llc ip6t_REJECT nf_conntrack_ipv6 nf_defrag_ipv6
-> ip6table_filter ip6_tables ipv6 xfs exportfs serio_raw iTCO_wdt bnx2
-> microcode hpwdt iTCO_vendor_support ipmi_si power_meter ipmi_msghandler
-> pcspkr hpilo i7core_edac edac_core shpchp hpsa radeon ttm drm_kms_helper
-> drm i2c_algo_bit i2c_core [last unloaded: speedstep_lib]
-> [ ?472.776643]
-> [ ?472.782039] Pid: 2716, comm: httpd Tainted: G ? ? ? ?W ? 2.6.37+ #4
-> /ProLiant DL380 G6
-> [ ?472.793922] RIP: 0010:[<ffffffff8113ed85>] ?[<ffffffff8113ed85>]
-> d_set_d_op+0x13/0x5e
-> [ ?472.793931] RSP: 0018:ffff8807d4f87c08 ?EFLAGS: 00010282
-> [ ?472.793933] RAX: 0000000000000000 RBX: 0000000000000000 RCX:
-> 0000000000000000
-> [ ?472.793936] RDX: 0000000000000246 RSI: ffffffffa04dc880 RDI:
-> ffff8803cf7bcbd0
-> [ ?472.793939] RBP: ffff8807d4f87c08 R08: ffffffffa0491049 R09:
-> 0000000000000001
-> [ ?472.793942] R10: ffff8803fc70c778 R11: ffff880700000000 R12:
-> ffff8803cf737000
-> [ ?472.793945] R13: ffff8803cb822120 R14: ffff8803cb821460 R15:
-> ffff8803cf7bcbd0
-> [ ?472.793949] FS: ?00002b86adeee660(0000) GS:ffff8800dd400000(0000)
-> knlGS:0000000000000000
-> [ ?472.793952] CS: ?0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-> [ ?472.793955] CR2: 00002b86ad2c4888 CR3: 00000007d4f75000 CR4:
-> 00000000000006f0
-> [ ?472.793958] DR0: 0000000000000000 DR1: 0000000000000000 DR2:
-> 0000000000000000
-> [ ?472.793961] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7:
-> 0000000000000400
-> [ ?472.793964] Process httpd (pid: 2716, threadinfo ffff8807d4f86000,
-> task ffff8807d4e723b0)
-> [ ?472.793967] Stack:
-> [ ?472.793968] ?ffff8807d4f87d28 ffffffffa04aac62 ffff8803ddabfe30
-> ffff8803cb820e78
-> [ ?472.793973] ?ffff8803fbc38000 ffff8803cb820ee8 00000000a0491177
-> ffff8803f36cd000
-> [ ?472.793978] ?00008000d4f87c98 ffff8803fbc38000 ffff8803cf727d90
-> 0000000000000000
-> [ ?472.793983] Call Trace:
-> [ ?472.794010] ?[<ffffffffa04aac62>] ocfs2_mknod+0xb0f/0xd3e [ocfs2]
-> [ ?472.794032] ?[<ffffffffa04aaeb9>] ocfs2_create+0x13/0x15 [ocfs2]
-> [ ?472.794036] ?[<ffffffff811392b7>] vfs_create+0x70/0x92
-> [ ?472.794041] ?[<ffffffff81139fdc>] do_last+0x163/0x2e0
-> [ ?472.794045] ?[<ffffffff8113a460>] do_filp_open+0x307/0x6f1
-> [ ?472.794050] ?[<ffffffff81145394>] ? alloc_fd+0x3b/0x193
-> [ ?472.794055] ?[<ffffffff81082e33>] ? lock_release+0x19a/0x1a6
-> [ ?472.794059] ?[<ffffffff811454da>] ? alloc_fd+0x181/0x193
-> [ ?472.794063] ?[<ffffffff8112d1f6>] do_sys_open+0x60/0xf2
-> [ ?472.794068] ?[<ffffffff814a7aef>] ? trace_hardirqs_on_thunk+0x3a/0x3f
-> [ ?472.794072] ?[<ffffffff8112d2a8>] sys_open+0x20/0x22
-> [ ?472.794077] ?[<ffffffff8100ac42>] system_call_fastpath+0x16/0x1b
-> [ ?472.794079] Code: a9 ff 03 00 00 74 08 81 0b 80 00 00 00 eb 06 81 23
-> 7f ff ff ff 5b c9 c3 55 48 89 e5 0f 1f 44 00 00 48 83 bf a8 00 00 00 00
-> 74 02 <0f> 0b 8b 07 f6 c4 f0 74 02 0f 0b 48 85 f6 48 89 b7 a8 00 00 00
-> [ ?472.794112] RIP ?[<ffffffff8113ed85>] d_set_d_op+0x13/0x5e
-> [ ?472.794116] ?RSP <ffff8807d4f87c08>
-> [ ?472.794387] ---[ end trace 04b2ab2cb7dc3150 ]---
->
-> I only mention this as the ocfs2 folks suggested running your code might
-> solve that problem. ?That said I'm going to punt this back over to the
-> ocfs2 folks for further review, as the bug makes ocfs2 completely
-> unusable on 2.6.37+
+Fix a bunch of 
+	warning: ?inline? is not at beginning of declaration
+messages when building a 'make allyesconfig' kernel with -Wextra.
 
-Oh this is the d_set_d_op thing again. Linus has changed that to a
-WARN_ON_ONCE upstream now rather than BUG_ON now (which
-in hindsight is how it should have first looked). So that will get you
-going again. Thanks for testing and reporting it.
+These warnings are trivial to kill, yet rather annoying when building with 
+-Wextra.
+The more we can cut down on pointless crap like this the better (IMHO).
 
-The underlying problem is not a new one, but race is very slim, so
-a warning rather than BUG is appropriate.
+A previous patch to do this for a 'allnoconfig' build has already been 
+merged. This just takes the cleanup a little further.
+
+Signed-off-by: Jesper Juhl <jj@chaosbits.net>
+---
+ arch/x86/oprofile/op_model_p4.c |    2 +-
+ drivers/bluetooth/btusb.c       |    4 ++--
+ drivers/cpuidle/sysfs.c         |    2 +-
+ drivers/edac/i7300_edac.c       |    2 +-
+ fs/ocfs2/dir.c                  |    2 +-
+ kernel/trace/ring_buffer.c      |    2 +-
+ net/ipv6/inet6_hashtables.c     |    2 +-
+ net/mac80211/tx.c               |    2 +-
+ sound/pci/au88x0/au88x0.h       |    4 ++--
+ sound/pci/au88x0/au88x0_core.c  |    4 ++--
+ 10 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/arch/x86/oprofile/op_model_p4.c b/arch/x86/oprofile/op_model_p4.c
+index 9fadec0..98ab130 100644
+--- a/arch/x86/oprofile/op_model_p4.c
++++ b/arch/x86/oprofile/op_model_p4.c
+@@ -50,7 +50,7 @@ static inline void setup_num_counters(void)
+ #endif
+ }
+ 
+-static int inline addr_increment(void)
++static inline int addr_increment(void)
+ {
+ #ifdef CONFIG_SMP
+ 	return smp_num_siblings == 2 ? 2 : 1;
+diff --git a/drivers/bluetooth/btusb.c b/drivers/bluetooth/btusb.c
+index 1da773f..92d29bf 100644
+--- a/drivers/bluetooth/btusb.c
++++ b/drivers/bluetooth/btusb.c
+@@ -424,7 +424,7 @@ static void btusb_isoc_complete(struct urb *urb)
+ 	}
+ }
+ 
+-static void inline __fill_isoc_descriptor(struct urb *urb, int len, int mtu)
++static inline void __fill_isoc_descriptor(struct urb *urb, int len, int mtu)
+ {
+ 	int i, offset = 0;
+ 
+@@ -775,7 +775,7 @@ static void btusb_notify(struct hci_dev *hdev, unsigned int evt)
+ 	}
+ }
+ 
+-static int inline __set_isoc_interface(struct hci_dev *hdev, int altsetting)
++static inline int __set_isoc_interface(struct hci_dev *hdev, int altsetting)
+ {
+ 	struct btusb_data *data = hdev->driver_data;
+ 	struct usb_interface *intf = data->isoc;
+diff --git a/drivers/cpuidle/sysfs.c b/drivers/cpuidle/sysfs.c
+index 0310ffa..be7917ec 100644
+--- a/drivers/cpuidle/sysfs.c
++++ b/drivers/cpuidle/sysfs.c
+@@ -300,7 +300,7 @@ static struct kobj_type ktype_state_cpuidle = {
+ 	.release = cpuidle_state_sysfs_release,
+ };
+ 
+-static void inline cpuidle_free_state_kobj(struct cpuidle_device *device, int i)
++static inline void cpuidle_free_state_kobj(struct cpuidle_device *device, int i)
+ {
+ 	kobject_put(&device->kobjs[i]->kobj);
+ 	wait_for_completion(&device->kobjs[i]->kobj_unregister);
+diff --git a/drivers/edac/i7300_edac.c b/drivers/edac/i7300_edac.c
+index 05523b5..76d1f57 100644
+--- a/drivers/edac/i7300_edac.c
++++ b/drivers/edac/i7300_edac.c
+@@ -162,7 +162,7 @@ static struct edac_pci_ctl_info *i7300_pci;
+ #define AMBPRESENT_0	0x64
+ #define AMBPRESENT_1	0x66
+ 
+-const static u16 mtr_regs[MAX_SLOTS] = {
++static const u16 mtr_regs[MAX_SLOTS] = {
+ 	0x80, 0x84, 0x88, 0x8c,
+ 	0x82, 0x86, 0x8a, 0x8e
+ };
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index d417b3f..f97b6f1 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -354,7 +354,7 @@ static inline int ocfs2_match(int len,
+ /*
+  * Returns 0 if not found, -1 on failure, and 1 on success
+  */
+-static int inline ocfs2_search_dirblock(struct buffer_head *bh,
++static inline int ocfs2_search_dirblock(struct buffer_head *bh,
+ 					struct inode *dir,
+ 					const char *name, int namelen,
+ 					unsigned long offset,
+diff --git a/kernel/trace/ring_buffer.c b/kernel/trace/ring_buffer.c
+index bd1c35a..6ee56b4 100644
+--- a/kernel/trace/ring_buffer.c
++++ b/kernel/trace/ring_buffer.c
+@@ -669,7 +669,7 @@ static struct list_head *rb_list_head(struct list_head *list)
+  * the reader page). But if the next page is a header page,
+  * its flags will be non zero.
+  */
+-static int inline
++static inline int
+ rb_is_head_page(struct ring_buffer_per_cpu *cpu_buffer,
+ 		struct buffer_page *page, struct list_head *list)
+ {
+diff --git a/net/ipv6/inet6_hashtables.c b/net/ipv6/inet6_hashtables.c
+index 633a6c2..b531972 100644
+--- a/net/ipv6/inet6_hashtables.c
++++ b/net/ipv6/inet6_hashtables.c
+@@ -124,7 +124,7 @@ out:
+ }
+ EXPORT_SYMBOL(__inet6_lookup_established);
+ 
+-static int inline compute_score(struct sock *sk, struct net *net,
++static inline int compute_score(struct sock *sk, struct net *net,
+ 				const unsigned short hnum,
+ 				const struct in6_addr *daddr,
+ 				const int dif)
+diff --git a/net/mac80211/tx.c b/net/mac80211/tx.c
+index 5950e3a..a449dd5 100644
+--- a/net/mac80211/tx.c
++++ b/net/mac80211/tx.c
+@@ -173,7 +173,7 @@ static __le16 ieee80211_duration(struct ieee80211_tx_data *tx, int group_addr,
+ 	return cpu_to_le16(dur);
+ }
+ 
+-static int inline is_ieee80211_device(struct ieee80211_local *local,
++static inline int is_ieee80211_device(struct ieee80211_local *local,
+ 				      struct net_device *dev)
+ {
+ 	return local == wdev_priv(dev->ieee80211_ptr);
+diff --git a/sound/pci/au88x0/au88x0.h b/sound/pci/au88x0/au88x0.h
+index cf46bba..ecb8f4d 100644
+--- a/sound/pci/au88x0/au88x0.h
++++ b/sound/pci/au88x0/au88x0.h
+@@ -211,7 +211,7 @@ static void vortex_adbdma_startfifo(vortex_t * vortex, int adbdma);
+ //static void vortex_adbdma_stopfifo(vortex_t *vortex, int adbdma);
+ static void vortex_adbdma_pausefifo(vortex_t * vortex, int adbdma);
+ static void vortex_adbdma_resumefifo(vortex_t * vortex, int adbdma);
+-static int inline vortex_adbdma_getlinearpos(vortex_t * vortex, int adbdma);
++static inline int vortex_adbdma_getlinearpos(vortex_t * vortex, int adbdma);
+ static void vortex_adbdma_resetup(vortex_t *vortex, int adbdma);
+ 
+ #ifndef CHIP_AU8810
+@@ -219,7 +219,7 @@ static void vortex_wtdma_startfifo(vortex_t * vortex, int wtdma);
+ static void vortex_wtdma_stopfifo(vortex_t * vortex, int wtdma);
+ static void vortex_wtdma_pausefifo(vortex_t * vortex, int wtdma);
+ static void vortex_wtdma_resumefifo(vortex_t * vortex, int wtdma);
+-static int inline vortex_wtdma_getlinearpos(vortex_t * vortex, int wtdma);
++static inline int vortex_wtdma_getlinearpos(vortex_t * vortex, int wtdma);
+ #endif
+ 
+ /* global stuff. */
+diff --git a/sound/pci/au88x0/au88x0_core.c b/sound/pci/au88x0/au88x0_core.c
+index 23f49f3..d43252a 100644
+--- a/sound/pci/au88x0/au88x0_core.c
++++ b/sound/pci/au88x0/au88x0_core.c
+@@ -1249,7 +1249,7 @@ static void vortex_adbdma_resetup(vortex_t *vortex, int adbdma) {
+ 	}
+ }
+ 
+-static int inline vortex_adbdma_getlinearpos(vortex_t * vortex, int adbdma)
++static inline int vortex_adbdma_getlinearpos(vortex_t * vortex, int adbdma)
+ {
+ 	stream_t *dma = &vortex->dma_adb[adbdma];
+ 	int temp;
+@@ -1498,7 +1498,7 @@ static int vortex_wtdma_getcursubuffer(vortex_t * vortex, int wtdma)
+ 		 POS_SHIFT) & POS_MASK);
+ }
+ #endif
+-static int inline vortex_wtdma_getlinearpos(vortex_t * vortex, int wtdma)
++static inline int vortex_wtdma_getlinearpos(vortex_t * vortex, int wtdma)
+ {
+ 	stream_t *dma = &vortex->dma_wt[wtdma];
+ 	int temp;
+
+
+
+-- 
+Jesper Juhl <jj@chaosbits.net>            http://www.chaosbits.net/
+Don't top-post http://www.catb.org/~esr/jargon/html/T/top-post.html
+Plain text mails only, please.
