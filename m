@@ -1,169 +1,266 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 14 Jan 2011 14:38:12 -0800
-Subject: [Ocfs2-devel] Problems with fsck
-In-Reply-To: <4D300363.6080004@tao.ma>
-References: <4D2DCCF1.4080303@navynet.it> <4D2DD3E0.7080509@oracle.com>
-	<4D300363.6080004@tao.ma>
-Message-ID: <4D30D054.9050804@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Mon, 17 Jan 2011 15:08:57 +0800
+Subject: [Ocfs2-devel] [PATCH 9/9] Ocfs2: Handle refcounted extents when
+	doing moving/defraging.
+Message-ID: <1295248137-24363-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Tao,
-Thanks. Mark signed off the first two. I can sign off the other two.
+semantically we may don't wanna drop/decrease any refcounts when moving/defraging
+the refcounted extents upon one victim inode, and moving extents for all inodes
+which shared the extent to be moved, since data blocks never be gonna change there.
 
-Tiger,
-Please can you take these four patches and test enabling indexdirs
-on a volume. Please do this ASAP. I want this in the git tree by early
-next week.
+while in reality, we probably not are not able to do this, due to lack of way
+traversing the inodes which shared the same refcount tree. instead, we CoW and moving
+extents for affected inode only, and leave other inodes as-is, just like we writting
+those refcounted extents.
 
-Thanks
-Sunil
+The bad thing is, other inodes sharing the refcounted extents can not benefit from
+defraging/extents_moving not at all;-)
 
-On 01/14/2011 12:03 AM, Tao Ma wrote:
-> On 01/13/2011 12:16 AM, Sunil Mushran wrote:
->> fsck is failing because it is encountering block(s) with incorrect
->> checksums. An easy solution is to disable checksums and rerun
->> fsck. Checksums can be renabled later.
->>
->> The problem started with the segfault when activating indexed-dirs.
->> Do you have the coredump?
-> I met with segfault when enabling indexed-dirs severl months ago. They are still pending for review and integration.
-> http://oss.oracle.com/pipermail/ocfs2-tools-devel/2010-September/003574.html
->
-> Regards,
-> Tao
->>
->> On 01/12/2011 07:46 AM, Massimo Cetra wrote:
->>> Hi List,
->>>
->>> i'd like to share with you what happened yesterday.
->>>
->>> Kernel 2.6.36.1
->>> ocfs2-tools 1.6.3 (latest).
->>>
->>> I had an old OCFS2 partition created with a 2.6.32 kernel and ocfs2
->>> tools 1.4.5.
->>>
->>> I unmounted all partitions on all nodes in order to enable discontig-bg.
->>>
->>> I then used tunefs to add discontig-bg, inline-data and indexed-dirs.
->>>
->>> During indexed-dirs tunefs segfaulted and since then, fsck didn't work
->>> anymore.
->>>
->>> I managed to mount the partition again but after some errors like the
->>> following
->>>
->>> Jan 11 23:11:56 www1 kernel: [ 2339.642683]
->>> (mc,3305,0):ocfs2_block_check_validate:443 ERROR: CRC32 failed: stored:
->>> 0x76176db1, computed 0x9e4c2434. Applying ECC.
->>> Jan 11 23:11:56 www1 kernel: [ 2339.645074]
->>> (mc,3305,0):ocfs2_block_check_validate:457 ERROR: Fixed CRC32 failed:
->>> stored: 0x76176db1, computed 0x91119fb2
->>> Jan 11 23:11:56 www1 kernel: [ 2339.647196]
->>> (mc,3305,0):ocfs2_validate_extent_block:903 ERROR: Checksum failed for
->>> extent block 6924877
->>> Jan 11 23:11:56 www1 kernel: [ 2339.649212]
->>> (mc,3305,0):__ocfs2_find_path:1837 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.650409]
->>> (mc,3305,0):ocfs2_remove_rightmost_path:3090 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.651719]
->>> (mc,3305,0):ocfs2_rotate_tree_left:3225 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.653076]
->>> (mc,3305,0):ocfs2_truncate_rec:5442 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.654272]
->>> (mc,3305,0):ocfs2_remove_extent:5526 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.655531]
->>> (mc,3305,0):ocfs2_remove_btree_range:5717 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.656908]
->>> (mc,3305,0):ocfs2_commit_truncate:7117 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.658152]
->>> (mc,3305,0):ocfs2_truncate_for_delete:622 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.659423]
->>> (mc,3305,0):ocfs2_wipe_inode:793 ERROR: status = -5
->>> Jan 11 23:11:56 www1 kernel: [ 2339.660700]
->>> (mc,3305,0):ocfs2_delete_inode:1085 ERROR: status = -5
->>>
->>>
->>> Jan 11 23:15:41 www1 kernel: [ 2565.101905] OCFS2: ERROR (device drbd1):
->>> ocfs2_commit_truncate: Inode 7418891 has an empty extent record, depth 2
->>> Jan 11 23:15:41 www1 kernel: [ 2565.101908].
->>> Jan 11 23:15:41 www1 kernel: [ 2565.105104] File system is now read-only
->>> due to the potential of on-disk corruption. Please run fsck.ocfs2 once
->>> the file system is unmounted.
->>> Jan 11 23:15:41 www1 kernel: [ 2565.108155]
->>> (kworker/u:3,3361,0):ocfs2_truncate_for_delete:622 ERROR: status = -30
->>> Jan 11 23:15:41 www1 kernel: [ 2565.110190]
->>> (kworker/u:3,3361,0):ocfs2_wipe_inode:793 ERROR: status = -30
->>> Jan 11 23:15:41 www1 kernel: [ 2565.111772]
->>> (kworker/u:3,3361,0):ocfs2_delete_inode:1085 ERROR: status = -30
->>> Jan 11 23:15:41 www1 kernel: [ 2565.134131] OCFS2: ERROR (device drbd1):
->>> ocfs2_commit_truncate: Inode 7418889 has an empty extent record, depth 2
->>> Jan 11 23:15:41 www1 kernel: [ 2565.134133].
->>>
->>> i wasn't able to mount the filesystem anymore in RW.
->>> I could mount only in RO.
->>>
->>> fsck was failing like this:
->>>
->>> www1:~# fsck.ocfs2 -f /dev/drbd1
->>> fsck.ocfs2 1.6.3
->>> Checking OCFS2 filesystem in /dev/drbd1:
->>>      Label:              www-code
->>>      UUID:               03F008AFA8BA458E9C8614A9B4A3E6E8
->>>      Number of blocks:   26213582
->>>      Block size:         2048
->>>      Number of clusters: 13106791
->>>      Cluster size:       4096
->>>      Number of slots:    8
->>>
->>> /dev/drbd1 was run with -f, check forced.
->>> Pass 0a: Checking cluster allocation chains
->>> Pass 0b: Checking inode allocation chains
->>> Pass 0c: Checking extent block allocation chains
->>> Pass 1: Checking inodes and blocks.
->>> extent.c: I/O error on channel reading extent block at 9590812 in owner
->>> 3231503 for verification
->>> extent.c: I/O error on channel reading extent block at 6924320 in owner
->>> 3231503 for verification
->>> pass1: I/O error on channel while iterating over the blocks for inode
->>> 3231503
->>> fsck.ocfs2: I/O error on channel while performing pass 1
->>> www1:~#
->>>
->>> -----------------------------------------------
->>>
->>> It was late and i didn't have time to investigate more on a production
->>> server so i did a complete backup, used mkfs to wipe everything and
->>> restore the backup.
->>>
->>> I'm sorry i can't provide more data on the problem. I tried to google
->>> and search the mailing list archives but i didn't find anything interesting.
->>>
->>> Obviously i was quite disappointed by this problem and i hope those
->>> informations may, in some way, help identifying and fix the problem.
->>>
->>> Thanks for your work,
->>>
->>> Massimo
->>>
->>>
->>>
->>>
->>>
->>>
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com
->>> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+Simple sanity check and data integrity test has passed against this patch.
+
+Tao, any thoughts?
+
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/move_extents.c |  112 +++++++++++++++++++++++++++++++++++++++++-----
+ 1 files changed, 99 insertions(+), 13 deletions(-)
+
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index dd5b995..c0f0ae8 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -38,6 +38,7 @@
+ #include "buffer_head_io.h"
+ #include "sysfile.h"
+ #include "suballoc.h"
++#include "refcounttree.h"
+ #include "move_extents.h"
+ 
+ struct ocfs2_move_extents_context {
+@@ -47,6 +48,7 @@ struct ocfs2_move_extents_context {
+ 	int credits;
+ 	u32 new_phys_cpos;
+ 	u32 clusters_moved;
++	u64 refcount_loc;
+ 	struct ocfs2_move_extents *range;
+ 	struct ocfs2_extent_tree et;
+ 	struct ocfs2_alloc_context *meta_ac;
+@@ -216,7 +218,14 @@ static int __ocfs2_move_extent(handle_t *handle,
+ 	rec = &el->l_recs[index];
+ 
+ 	BUG_ON(ext_flags != rec->e_flags);
+-	replace_rec.e_flags = rec->e_flags;
++	/*
++	 * after moving/defraging to new location, the extent is not going
++	 * to be refcounted anymore.
++	 */
++	if (ext_flags & OCFS2_EXT_REFCOUNTED)
++		replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
++	else
++		replace_rec.e_flags = ext_flags;
+ 
+ 	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode),
+ 				      context->et.et_root_bh,
+@@ -241,8 +250,18 @@ static int __ocfs2_move_extent(handle_t *handle,
+ 	/*
+ 	 * need I to append truncate log for old clusters?
+ 	 */
+-	if (old_blkno)
+-		ret = ocfs2_truncate_log_append(osb, handle, old_blkno, len);
++	if (old_blkno) {
++		if (ext_flags & OCFS2_EXT_REFCOUNTED)
++			ret = ocfs2_decrease_refcount(inode, handle,
++					ocfs2_blocks_to_clusters(osb->sb,
++								 old_blkno),
++					len, context->meta_ac,
++					&context->dealloc, 1);
++			
++		else
++			ret = ocfs2_truncate_log_append(osb, handle,
++							old_blkno, len);
++	}
+ 
+ out:
+ 	return ret;
+@@ -319,20 +338,48 @@ out:
+ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+ 			       u32 cpos, u32 phys_cpos, u32 len, int ext_flags)
+ {
+-	int ret, credits = 0;
++	int ret, credits = 0, extra_blocks = 0;
+ 	handle_t *handle;
+ 	struct inode *inode = context->inode;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct inode *tl_inode = osb->osb_tl_inode;
++	struct ocfs2_refcount_tree *ref_tree = NULL;
+ 	u32 new_phys_cpos, new_len;
++	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
++
++	if ((ext_flags & OCFS2_EXT_REFCOUNTED) && len) {
++
++		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
++			 OCFS2_HAS_REFCOUNT_FL));
++
++		BUG_ON(!context->refcount_loc);
++
++		ret = ocfs2_lock_refcount_tree(osb, context->refcount_loc, 1,
++					       &ref_tree, NULL);
++		if (ret) {
++			mlog_errno(ret);
++			return ret;
++		}
++		
++		ret = ocfs2_prepare_refcount_change_for_del(inode,
++							context->refcount_loc,
++							phys_blkno,
++							len,
++							&credits,
++							&extra_blocks);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++	}
+ 
+ 	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
+ 						 &context->meta_ac,
+ 						 &context->data_ac,
+-						 0, &credits);
++						 extra_blocks, &credits);
+ 	if (ret) {
+ 		mlog_errno(ret);
+-		return ret;
++		goto out;
+ 	}
+ 
+ 	/*
+@@ -348,7 +395,7 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+ 		ret = __ocfs2_flush_truncate_log(osb);
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+-			goto out;
++			goto out_unlock_mutex;
+ 		}
+ 	}
+ 
+@@ -356,7 +403,7 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+ 	if (IS_ERR(handle)) {
+ 		ret = PTR_ERR(handle);
+ 		mlog_errno(ret);
+-		goto out;
++		goto out_unlock_mutex;
+ 	}
+ 
+ 	ret = __ocfs2_claim_clusters(handle, context->data_ac, 1, len,
+@@ -392,7 +439,7 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+ out_commit:
+ 	ocfs2_commit_trans(osb, handle);
+ 
+-out:
++out_unlock_mutex:
+ 	mutex_unlock(&tl_inode->i_mutex);
+ 
+ 	if (context->data_ac) {
+@@ -405,6 +452,10 @@ out:
+ 		context->meta_ac = NULL;
+ 	}
+ 
++out:
++	if (ref_tree)
++		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
++
+ 	return ret;
+ }
+ 
+@@ -696,7 +747,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+ 			     u32 cpos, u32 phys_cpos, u32 *new_phys_cpos,
+ 			     u32 len, int ext_flags)
+ {
+-	int ret, credits = 0, goal_bit = 0;
++	int ret, credits = 0, extra_blocks = 0, goal_bit = 0;
+ 	handle_t *handle;
+ 	struct inode *inode = context->inode;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+@@ -705,16 +756,45 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+ 	struct buffer_head *gb_bh = NULL;
+ 	struct buffer_head *gd_bh = NULL;
+ 	struct ocfs2_group_desc *gd;
++	struct ocfs2_refcount_tree *ref_tree = NULL;
+ 	u32 move_max_hop = ocfs2_blocks_to_clusters(inode->i_sb,
+ 						    context->range->me_thresh);
+-	u64 new_phys_blkno;
++	u64 phys_blkno, new_phys_blkno;
++
++	phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
++
++	if ((ext_flags & OCFS2_EXT_REFCOUNTED) && len) {
++
++		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
++			 OCFS2_HAS_REFCOUNT_FL));
++
++		BUG_ON(!context->refcount_loc);
++
++		ret = ocfs2_lock_refcount_tree(osb, context->refcount_loc, 1,
++					       &ref_tree, NULL);
++		if (ret) {
++			mlog_errno(ret);
++			return ret;
++		}
++		
++		ret = ocfs2_prepare_refcount_change_for_del(inode,
++							context->refcount_loc,
++							phys_blkno,
++							len,
++							&credits,
++							&extra_blocks);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++	}
+ 
+ 	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
+ 						 &context->meta_ac,
+-						 NULL, 0, &credits);
++						 NULL, extra_blocks, &credits);
+ 	if (ret) {
+ 		mlog_errno(ret);
+-		return ret;
++		goto out;
+ 	}
+ 
+ 	/*
+@@ -814,6 +894,9 @@ out:
+ 		context->meta_ac = NULL;
+ 	}
+ 
++	if (ref_tree)
++		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
++
+ 	return ret;
+ }
+ 
+@@ -855,6 +938,7 @@ static int __ocfs2_move_extents_range(struct buffer_head *di_bh,
+ 	u32 len_defraged = 0, defrag_thresh, new_phys_cpos = 0;
+ 
+ 	struct inode *inode = context->inode;
++	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+ 	struct ocfs2_move_extents *range = context->range;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 
+@@ -864,6 +948,8 @@ static int __ocfs2_move_extents_range(struct buffer_head *di_bh,
+ 	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
+ 		return 0;
+ 
++	context->refcount_loc = le64_to_cpu(di->i_refcount_loc);
++
+ 	ocfs2_init_dinode_extent_tree(&context->et, INODE_CACHE(inode), di_bh);
+ 	ocfs2_init_dealloc_ctxt(&context->dealloc);
+ 
+-- 
+1.5.5
