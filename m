@@ -1,41 +1,56 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 20 Jan 2011 11:30:55 -0800
-Subject: [Ocfs2-devel] useless tools - tunefs.ocfs2,fsck.ocfs2
-In-Reply-To: <4D383BDC.4050400@mp.pl>
-References: <4D383BDC.4050400@mp.pl>
-Message-ID: <4D388D6F.8070609@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Fri, 21 Jan 2011 18:20:18 +0800
+Subject: [Ocfs2-devel] [PATCH 01/14] Ocfs2/refcounttree: Fix a bug for
+	refcounttree to writeback clusters in a right number.
+In-Reply-To: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
+References: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1295605231-15991-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Please file a bugzilla on the nometaecc issue.
+Current refcounttree codes actually didn't writeback the new pages out in
+write-back mode, due to a bug of always passing a ZERO number of clusters
+to 'ocfs2_cow_sync_writeback', the patch tries to pass a proper one in.
 
-On 01/20/2011 05:42 AM, Pawel wrote:
->    One of ocfs2 filesystem has some errors.
-> 1. fsck.ocfs2  informs me that :    "I/O error on channel while reading
-> .. " It was NOT TRUE - I was able to read and write  entire storage over
-> the network multiple times.
-> 2. becouse of CRC  errors and suggestion to disable metaecc I run
-> tunefs.ocfs2 --fs-features=nometaecc /dev/xxx
-> funefs allocate 9,89 GB of virtual memory and 95% of phisical memory
-> (4GB). After 4 hours process has been killed - because of out of memory.
->
-> I have to recreate new filesystem and restore data from backup.
->
-> I try to use tools in version 1.4  and 1.6 (newest)
-> Filesystem is quite small 250GB and less than 10 000 files, exported by aoe.
-> Additionally  on the new clean FS -  running tunefs.ocfs2
-> --fs-features=nosparse behave in the same way
->
-> It seems that the tools are not "perfect"
-> Could   anyone confirm?
->
-> Pawel
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/refcounttree.c |    7 +++++--
+ 1 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index b5f9160..19ebc5a 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -3228,7 +3228,7 @@ static int ocfs2_make_clusters_writable(struct super_block *sb,
+ 					u32 num_clusters, unsigned int e_flags)
+ {
+ 	int ret, delete, index, credits =  0;
+-	u32 new_bit, new_len;
++	u32 new_bit, new_len, orig_num_clusters;
+ 	unsigned int set_len;
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 	handle_t *handle;
+@@ -3261,6 +3261,8 @@ static int ocfs2_make_clusters_writable(struct super_block *sb,
+ 		goto out;
+ 	}
+ 
++	orig_num_clusters = num_clusters;
++
+ 	while (num_clusters) {
+ 		ret = ocfs2_get_refcount_rec(ref_ci, context->ref_root_bh,
+ 					     p_cluster, num_clusters,
+@@ -3348,7 +3350,8 @@ static int ocfs2_make_clusters_writable(struct super_block *sb,
+ 	 * in write-back mode.
+ 	 */
+ 	if (context->get_clusters == ocfs2_di_get_clusters) {
+-		ret = ocfs2_cow_sync_writeback(sb, context, cpos, num_clusters);
++		ret = ocfs2_cow_sync_writeback(sb, context, cpos,
++					       orig_num_clusters);
+ 		if (ret)
+ 			mlog_errno(ret);
+ 	}
+-- 
+1.5.5
