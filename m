@@ -1,19 +1,24 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 21 Jan 2011 18:20:25 +0800
-Subject: [Ocfs2-devel] [PATCH 08/14] Ocfs2/move_extents: find the victim
-	alloc group, where the given #blk fits.
+Date: Fri, 21 Jan 2011 18:20:23 +0800
+Subject: [Ocfs2-devel] [PATCH 06/14] Ocfs2/move_extents: move a range of
+	extent.
 In-Reply-To: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
 References: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1295605231-15991-9-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1295605231-15991-7-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This function tries locate the right alloc group, where a given physical block
-resides, it returns the caller a buffer_head of victim group descriptor, and also
-the offset of block in this group, by passing the block number.
+The moving range of __ocfs2_move_extent() was within one extent always, it
+consists following parts:
+
+1. Duplicates the clusters in pages to new_blkoffset, where extent to be moved.
+
+2. Split the original extent with new extent, coalecse the nearby extents if possible.
+
+3. Append old clusters to truncate log, or decrease_refcount if the extent was refcounted.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
@@ -21,116 +26,119 @@ Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
  1 files changed, 104 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 071bb12..2678605 100644
+index 9b30636..e28bd7d 100644
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -356,3 +356,107 @@ out:
+@@ -56,6 +56,110 @@ struct ocfs2_move_extents_context {
+ 	struct ocfs2_cached_dealloc_ctxt dealloc;
+ };
  
- 	return ret;
- }
-+
-+/*
-+ * find the victim alloc group, where #blkno fits.
-+ */
-+static int ocfs2_find_victim_alloc_group(struct inode *inode,
-+					 u64 vict_blkno,
-+					 int type, int slot,
-+					 int *vict_bit,
-+					 struct buffer_head **ret_bh)
++static int __ocfs2_move_extent(handle_t *handle,
++			       struct ocfs2_move_extents_context *context,
++			       u32 cpos, u32 len, u32 p_cpos, u32 new_p_cpos,
++			       int ext_flags)
 +{
-+	int ret, i, blocks_per_unit = 1;
-+	u64 blkno;
-+	char namebuf[40];
-+
++	int ret = 0, index;
++	struct inode *inode = context->inode;
 +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct buffer_head *ac_bh = NULL, *gd_bh = NULL;
-+	struct ocfs2_chain_list *cl;
-+	struct ocfs2_chain_rec *rec;
-+	struct ocfs2_dinode *ac_dinode;
-+	struct ocfs2_group_desc *bg;
++	struct ocfs2_extent_rec *rec, replace_rec;
++	struct ocfs2_path *path = NULL;
++	struct ocfs2_extent_list *el;
++	u64 ino = ocfs2_metadata_cache_owner(context->et.et_ci);
++	u64 old_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cpos);
 +
-+	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
-+	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
-+					 strlen(namebuf), &blkno);
-+	if (ret) {
-+		ret = -ENOENT;
-+		goto out;
-+	}
-+
-+	ret = ocfs2_read_blocks_sync(osb, blkno, 1, &ac_bh);
++	ret = ocfs2_duplicate_clusters_by_page(handle, context->file, cpos,
++					       p_cpos, new_p_cpos, len);
 +	if (ret) {
 +		mlog_errno(ret);
 +		goto out;
 +	}
 +
-+	ac_dinode = (struct ocfs2_dinode *)ac_bh->b_data;
-+	cl = &(ac_dinode->id2.i_chain);
-+	rec = &(cl->cl_recs[0]);
++	memset(&replace_rec, 0, sizeof(replace_rec));
++	replace_rec.e_cpos = cpu_to_le32(cpos);
++	replace_rec.e_leaf_clusters = cpu_to_le16(len);
++	replace_rec.e_blkno = cpu_to_le64(ocfs2_clusters_to_blocks(inode->i_sb,
++								   new_p_cpos));
 +
-+	if (type == GLOBAL_BITMAP_SYSTEM_INODE)
-+		blocks_per_unit <<= (osb->s_clustersize_bits -
-+						inode->i_sb->s_blocksize_bits);
-+	/*
-+	 * 'vict_blkno' was out of the valid range.
-+	 */
-+	if ((vict_blkno < le64_to_cpu(rec->c_blkno)) ||
-+	    (vict_blkno >= (le32_to_cpu(ac_dinode->id1.bitmap1.i_total) *
-+				blocks_per_unit))) {
-+		ret = -EINVAL;
++	path = ocfs2_new_path_from_et(&context->et);
++	if (!path) {
++		ret = -ENOMEM;
++		mlog_errno(ret);
 +		goto out;
 +	}
 +
-+	for (i = 0; i < le16_to_cpu(cl->cl_next_free_rec); i++) {
-+
-+		rec = &(cl->cl_recs[i]);
-+		if (!rec)
-+			continue;
-+
-+		bg = NULL;
-+
-+		do {
-+			if (!bg)
-+				blkno = le64_to_cpu(rec->c_blkno);
-+			else
-+				blkno = le64_to_cpu(bg->bg_next_group);
-+
-+			if (gd_bh) {
-+				brelse(gd_bh);
-+				gd_bh = NULL;
-+			}
-+
-+			ret = ocfs2_read_blocks_sync(osb, blkno, 1, &gd_bh);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+
-+			bg = (struct ocfs2_group_desc *)gd_bh->b_data;
-+
-+			if (vict_blkno < (le64_to_cpu(bg->bg_blkno) +
-+						le16_to_cpu(bg->bg_bits))) {
-+
-+				*ret_bh = gd_bh;
-+				*vict_bit = (vict_blkno - blkno) /
-+							blocks_per_unit;
-+				mlog(0, "find the victim group: #%llu, "
-+				     "total_bits: %u, vict_bit: %u\n",
-+				     blkno, le16_to_cpu(bg->bg_bits),
-+				     *vict_bit);
-+				goto out;
-+			}
-+
-+		} while (le64_to_cpu(bg->bg_next_group));
++	ret = ocfs2_find_path(INODE_CACHE(inode), path, cpos);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
 +	}
 +
-+	ret = -EINVAL;
-+out:
-+	brelse(ac_bh);
++	el = path_leaf_el(path);
++
++	index = ocfs2_search_extent_list(el, cpos);
++	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
++		ocfs2_error(inode->i_sb,
++			    "Inode %llu has an extent at cpos %u which can no "
++			    "longer be found.\n",
++			    (unsigned long long)ino, cpos);
++		ret = -EROFS;
++		goto out;
++	}
++
++	rec = &el->l_recs[index];
++
++	BUG_ON(ext_flags != rec->e_flags);
++	/*
++	 * after moving/defraging to new location, the extent is not going
++	 * to be refcounted anymore.
++	 */
++	if (ext_flags & OCFS2_EXT_REFCOUNTED)
++		replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
++	else
++		replace_rec.e_flags = ext_flags;
++
++	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode),
++				      context->et.et_root_bh,
++				      OCFS2_JOURNAL_ACCESS_WRITE);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	ret = ocfs2_split_extent(handle, &context->et, path, index,
++				 &replace_rec, context->meta_ac,
++				 &context->dealloc);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	ocfs2_journal_dirty(handle, context->et.et_root_bh);
++
++	context->new_phys_cpos = new_p_cpos;
 +
 +	/*
-+	 * caller has to release the gd_bh properly.
++	 * need I to append truncate log for old clusters?
 +	 */
++	if (old_blkno) {
++		if (ext_flags & OCFS2_EXT_REFCOUNTED)
++			ret = ocfs2_decrease_refcount(inode, handle,
++					ocfs2_blocks_to_clusters(osb->sb,
++								 old_blkno),
++					len, context->meta_ac,
++					&context->dealloc, 1);
++			
++		else
++			ret = ocfs2_truncate_log_append(osb, handle,
++							old_blkno, len);
++	}
++
++out:
 +	return ret;
 +}
++
+ /*
+  * lock allocators, and reserving appropriate number of bits for
+  * meta blocks and data clusters.
 -- 
 1.5.5
