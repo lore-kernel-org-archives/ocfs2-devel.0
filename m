@@ -1,93 +1,62 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 21 Jan 2011 18:20:26 +0800
-Subject: [Ocfs2-devel] [PATCH 09/14] Ocfs2/move_extents: helper to validate
-	and adjust moving goal.
+Date: Fri, 21 Jan 2011 18:20:30 +0800
+Subject: [Ocfs2-devel] [PATCH 13/14] Ocfs2/move_extents: helper to calculate
+	the defraging length in one run.
 In-Reply-To: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
 References: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1295605231-15991-10-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1295605231-15991-14-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-First best-effort attempt to validate and adjust the goal (physical address in
-block), while it can't guarantee later operation can succeed all the time since
-global_bitmap may change a bit over time.
+The helper is to calculate the defrag length in one run according to a threshold,
+it will proceed doing defragmentation until the threshold was meet, and skip a
+LARGE extent if any.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/move_extents.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 61 insertions(+), 0 deletions(-)
+ fs/ocfs2/move_extents.c |   30 ++++++++++++++++++++++++++++++
+ 1 files changed, 30 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 2678605..f4410e3 100644
+index c2b7638..bad4f15 100644
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -460,3 +460,64 @@ out:
- 	 */
+@@ -805,3 +805,33 @@ out:
+ 
  	return ret;
  }
 +
 +/*
-+ * XXX: helper to validate and adjust moving goal.
++ * Helper to calculate the defraging length in one run according to threshold.
 + */
-+static int ocfs2_validate_and_adjust_move_goal(struct inode *inode,
-+					       struct ocfs2_move_extents *range)
++static void ocfs2_calc_extent_defrag_len(u32 *alloc_size, u32 *len_defraged,
++					 u32 threshold, int *skip)
 +{
-+	int ret, goal_bit = 0;
-+
-+	struct buffer_head *gd_bh = NULL;
-+	struct ocfs2_group_desc *bg;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	int c_to_b = 1 << (osb->s_clustersize_bits -
-+					inode->i_sb->s_blocksize_bits);
-+
-+	/*
-+	 * validate goal sits within global_bitmap, and return the victim
-+	 * group desc
-+	 */
-+	ret = ocfs2_find_victim_alloc_group(inode, range->me_goal,
-+					    GLOBAL_BITMAP_SYSTEM_INODE,
-+					    OCFS2_INVALID_SLOT,
-+					    &goal_bit, &gd_bh);
-+	if (ret)
-+		goto out;
-+
-+	bg = (struct ocfs2_group_desc *)gd_bh->b_data;
-+
-+	/*
-+	 * make goal become cluster aligned.
-+	 */
-+	if (range->me_goal % c_to_b)
-+		range->me_goal = range->me_goal / c_to_b * c_to_b;
-+
-+	/*
-+	 * moving goal is not allowd to start with a group desc blok(#0 blk)
-+	 * let's compromise to the latter cluster.
-+	 */
-+	if (range->me_goal == le64_to_cpu(bg->bg_blkno))
-+		range->me_goal += c_to_b;
-+
-+	/*
-+	 * movement is not gonna cross two groups.
-+	 */
-+	if ((le16_to_cpu(bg->bg_bits) - goal_bit) * osb->s_clustersize <
-+								range->me_len) {
-+		ret = -EINVAL;
-+		goto out;
++	if ((*alloc_size + *len_defraged) < threshold) {
++		/*
++		 * proceed defragmentation until we meet the thresh
++		 */
++		*len_defraged += *alloc_size;
++	} else if (*len_defraged == 0) {
++		/*
++		 * XXX: skip a large extent.
++		 */
++		*skip = 1;
++	} else {
++		/*
++		 * split this extent to coalesce with former pieces as
++		 * to reach the threshold.
++		 *
++		 * we're done here with one cycle of defragmentation
++		 * in a size of 'thresh', resetting 'len_defraged'
++		 * forces a new defragmentation.
++		 */
++		*alloc_size = threshold - *len_defraged;
++		*len_defraged = 0;
 +	}
-+	/*
-+	 * more exact validations/adjustments will be performed later during
-+	 * moving operation for each extent range.
-+	 */
-+	mlog(0, "extents get ready to be moved to #%llu block\n",
-+	     range->me_goal);
-+
-+out:
-+	brelse(gd_bh);
-+
-+	return ret;
 +}
 -- 
 1.5.5
