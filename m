@@ -1,34 +1,62 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Fri, 21 Jan 2011 17:31:30 +0000
-Subject: [Ocfs2-devel]
- =?utf-8?b?W1BhdGNoXSBLaWxsIG9mZiB3YXJuaW5nOiDigJhp?=
- =?utf-8?q?nline=E2=80=99_is_not_at_beginning_of_declaration?=
-In-Reply-To: <alpine.LNX.2.00.1101170000270.13377@swampdragon.chaosbits.net>
-References: <alpine.LNX.2.00.1101170000270.13377@swampdragon.chaosbits.net>
-Message-ID: <20110121173130.GD8323@ZenIV.linux.org.uk>
+From: Tao Ma <tm@tao.ma>
+Date: Mon, 24 Jan 2011 23:23:30 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: optimize ocfs2_check_dir_entry() with
+	unlikely() annotations
+Message-ID: <1295882610-12542-1-git-send-email-tm@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jesper Juhl <jj@chaosbits.net>
-Cc: alsa-devel@alsa-project.org, Mauro Carvalho Chehab <mchehab@redhat.com>, Takashi Iwai <tiwai@suse.de>, Frederic Weisbecker <fweisbec@gmail.com>, "Gustavo F. Padovan" <padovan@profusion.mobi>, Jaroslav Kysela <perex@perex.cz>, Jens Axboe <jens.axboe@oracle.com>, Stephen Hemminger <shemminger@vyatta.com>, Andi Kleen <ak@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, "Pekka Savola (ipv6)" <pekkas@netcore.fi>, Robert Richter <robert.richter@amd.com>, x86@kernel.org, James Morris <jmorris@namei.org>, Ingo Molnar <mingo@redhat.com>, oprofile-list@lists.sf.net, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, Mark Fasheh <mfasheh@suse.com>, Marcel Holtmann <marcel@holtmann.org>, "John W. Linville" <linville@tuxdriver.com>, Thomas Gleixner <tglx@linutronix.de>, linux-edac@vger.kernel.orgt
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jan 17, 2011 at 12:09:38AM +0100, Jesper Juhl wrote:
-> Fix a bunch of 
-> 	warning: ?inline? is not at beginning of declaration
-> messages when building a 'make allyesconfig' kernel with -Wextra.
-> 
-> These warnings are trivial to kill, yet rather annoying when building with 
-> -Wextra.
-> The more we can cut down on pointless crap like this the better (IMHO).
-> 
-> A previous patch to do this for a 'allnoconfig' build has already been 
-> merged. This just takes the cleanup a little further.
-> 
-> Signed-off-by: Jesper Juhl <jj@chaosbits.net>
+From: Tao Ma <boyu.mt@taobao.com>
 
-Acked for fs/ocfs2
+In cad3f00, ext4_check_dir_entry was modified by adding some unlikely.
+Ted described it as "This function gets called a lot for large
+directories, and the answer is almost always 'no, no, there's no problem'.
+This means using unlikely() is a good thing."
+ext3 added the similar change in commit a4ae309.
 
-Joel
+So change it accordingly in ocfs2.
 
+Cc: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Tao Ma <boyu.mt@taobao.com>
+---
+ fs/ocfs2/dir.c |   12 +++++++-----
+ 1 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index d417b3f..41b356f 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -322,21 +322,23 @@ static int ocfs2_check_dir_entry(struct inode * dir,
+ 	const char *error_msg = NULL;
+ 	const int rlen = le16_to_cpu(de->rec_len);
+ 
+-	if (rlen < OCFS2_DIR_REC_LEN(1))
++	if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
+ 		error_msg = "rec_len is smaller than minimal";
+-	else if (rlen % 4 != 0)
++	else if (unlikely(rlen % 4 != 0))
+ 		error_msg = "rec_len % 4 != 0";
+-	else if (rlen < OCFS2_DIR_REC_LEN(de->name_len))
++	else if (unlikely(rlen < OCFS2_DIR_REC_LEN(de->name_len)))
+ 		error_msg = "rec_len is too small for name_len";
+-	else if (((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksize)
++	else if (unlikely(
++		 ((char *) de - bh->b_data) + rlen > dir->i_sb->s_blocksize))
+ 		error_msg = "directory entry across blocks";
+ 
+-	if (error_msg != NULL)
++	if (unlikely(error_msg != NULL))
+ 		mlog(ML_ERROR, "bad entry in directory #%llu: %s - "
+ 		     "offset=%lu, inode=%llu, rec_len=%d, name_len=%d\n",
+ 		     (unsigned long long)OCFS2_I(dir)->ip_blkno, error_msg,
+ 		     offset, (unsigned long long)le64_to_cpu(de->inode), rlen,
+ 		     de->name_len);
++
+ 	return error_msg == NULL ? 1 : 0;
+ }
+ 
 -- 
+1.7.1
