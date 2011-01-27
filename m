@@ -1,47 +1,31 @@
 From: Mark Fasheh <mfasheh@suse.com>
-Date: Mon, 24 Jan 2011 16:36:41 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix ocfs2_page_mkwrite path
-In-Reply-To: <20110124235923.GC24732@noexit>
-References: <201101131103.p0D7C5Cx002897@acsinet15.oracle.com>
-	<20110124231835.GJ9240@wotan.suse.de>
-	<20110124232830.GB24732@noexit>
-	<20110124235425.GK9240@wotan.suse.de>
-	<20110124235923.GC24732@noexit>
-Message-ID: <20110125003641.GL9240@wotan.suse.de>
+Date: Thu, 27 Jan 2011 15:29:23 -0800
+Subject: [Ocfs2-devel] [PATCH 01/14] Ocfs2/refcounttree: Fix a bug for
+	refcounttree to writeback clusters in a right number.
+In-Reply-To: <1295605231-15991-2-git-send-email-tristan.ye@oracle.com>
+References: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
+	<1295605231-15991-2-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20110127232923.GB23899@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jan 24, 2011 at 03:59:24PM -0800, Joel Becker wrote:
-> On Mon, Jan 24, 2011 at 03:54:25PM -0800, Mark Fasheh wrote:
-> > And instead I'd rather see:
-> > 
-> >         ret = ocfs2_grab_pages_for_write(mapping, wc, wc->w_cpos, pos, len,
-> >                                          cluster_of_pages, mmap_page);
-> >         if (ret) {
-> > 		if (ret == -EWHATEVER) {
+On Fri, Jan 21, 2011 at 06:20:18PM +0800, Tristan Ye wrote:
+> Current refcounttree codes actually didn't writeback the new pages out in
+> write-back mode, due to a bug of always passing a ZERO number of clusters
+> to 'ocfs2_cow_sync_writeback', the patch tries to pass a proper one in.
 > 
-> 	Ok, so what is EWHATEVER?
+> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 
--EINVAL? That's what we used to return from ocfs2_grab_pages_for_write().
-The only other possible return value right now is ENOMEM so we could pick
-anything really.
+Seems to look reasonable to me, though Joel or Tao might want to give their
+own quick SOB too.
 
-errno values aren't very descriptive, which sucks (but that's what we have
-to deal with).
+Joel: I think we want this particular patch to go upstream sooner than
+later, yes?
 
-
-Then again, if we want to be super explicit we could also just do:
-
-#define	EMAPPINGCHANGED	1
-int ocfs2_grab_pages_for_write( ... )
-{
-
-}
-
-and return our own nonzero value.
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 	--Mark
 
 --
