@@ -1,115 +1,110 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 27 Jan 2011 17:09:48 -0800
-Subject: [Ocfs2-devel] fs/ocfs2/dlm: Use GFP_ATOMIC under spin_lock
-In-Reply-To: <20101102223601.GA27513@ds.suse.cz>
-References: <20101102223601.GA27513@ds.suse.cz>
-Message-ID: <20110127170948.9a0d8b60.akpm@linux-foundation.org>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Thu, 27 Jan 2011 17:10:02 -0800
+Subject: [Ocfs2-devel] [PATCH 06/14] Ocfs2/move_extents: move a range of
+	extent.
+In-Reply-To: <1295605231-15991-7-git-send-email-tristan.ye@oracle.com>
+References: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
+	<1295605231-15991-7-git-send-email-tristan.ye@oracle.com>
+Message-ID: <20110128011002.GE23899@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: dsterba@suse.cz
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, mfasheh@suse.com, joel.becker@oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Blast from the past...
+On Fri, Jan 21, 2011 at 06:20:23PM +0800, Tristan Ye wrote:
+> The moving range of __ocfs2_move_extent() was within one extent always, it
+> consists following parts:
+> 
+> 1. Duplicates the clusters in pages to new_blkoffset, where extent to be moved.
+> 
+> 2. Split the original extent with new extent, coalecse the nearby extents if possible.
+> 
+> 3. Append old clusters to truncate log, or decrease_refcount if the extent was refcounted.
+> 
+> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+> ---
+>  fs/ocfs2/move_extents.c |  104 +++++++++++++++++++++++++++++++++++++++++++++++
+>  1 files changed, 104 insertions(+), 0 deletions(-)
+> 
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index 9b30636..e28bd7d 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -56,6 +56,110 @@ struct ocfs2_move_extents_context {
+>  	struct ocfs2_cached_dealloc_ctxt dealloc;
+>  };
+>  
+> +static int __ocfs2_move_extent(handle_t *handle,
+> +			       struct ocfs2_move_extents_context *context,
+> +			       u32 cpos, u32 len, u32 p_cpos, u32 new_p_cpos,
+> +			       int ext_flags)
+> +{
+> +	int ret = 0, index;
+> +	struct inode *inode = context->inode;
+> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> +	struct ocfs2_extent_rec *rec, replace_rec;
+> +	struct ocfs2_path *path = NULL;
+> +	struct ocfs2_extent_list *el;
+> +	u64 ino = ocfs2_metadata_cache_owner(context->et.et_ci);
+> +	u64 old_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cpos);
+> +
+> +	ret = ocfs2_duplicate_clusters_by_page(handle, context->file, cpos,
+> +					       p_cpos, new_p_cpos, len);
+> +	if (ret) {
+> +		mlog_errno(ret);
+> +		goto out;
+> +	}
+> +
+> +	memset(&replace_rec, 0, sizeof(replace_rec));
+> +	replace_rec.e_cpos = cpu_to_le32(cpos);
+> +	replace_rec.e_leaf_clusters = cpu_to_le16(len);
+> +	replace_rec.e_blkno = cpu_to_le64(ocfs2_clusters_to_blocks(inode->i_sb,
+> +								   new_p_cpos));
+> +
+> +	path = ocfs2_new_path_from_et(&context->et);
+> +	if (!path) {
+> +		ret = -ENOMEM;
+> +		mlog_errno(ret);
+> +		goto out;
+> +	}
+> +
+> +	ret = ocfs2_find_path(INODE_CACHE(inode), path, cpos);
+> +	if (ret) {
+> +		mlog_errno(ret);
+> +		goto out;
+> +	}
+> +
+> +	el = path_leaf_el(path);
+> +
+> +	index = ocfs2_search_extent_list(el, cpos);
+> +	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
+> +		ocfs2_error(inode->i_sb,
+> +			    "Inode %llu has an extent at cpos %u which can no "
+> +			    "longer be found.\n",
+> +			    (unsigned long long)ino, cpos);
+> +		ret = -EROFS;
+> +		goto out;
+> +	}
+> +
+> +	rec = &el->l_recs[index];
+> +
+> +	BUG_ON(ext_flags != rec->e_flags);
+> +	/*
+> +	 * after moving/defraging to new location, the extent is not going
+> +	 * to be refcounted anymore.
+> +	 */
+> +	if (ext_flags & OCFS2_EXT_REFCOUNTED)
+> +		replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
+> +	else
+> +		replace_rec.e_flags = ext_flags;
 
-On Tue, 2 Nov 2010 23:36:02 +0100
-David Sterba <dsterba@suse.cz> wrote:
+You can remove the if statement here and just leave it as:
 
-> coccinelle check scripts/coccinelle/locks/call_kern.cocci found that
-> in fs/ocfs2/dlm/dlmdomain.c an allocation with GFP_KERNEL is done
-> with locks held:
-> 
-> dlm_query_region_handler
->   spin_lock(dlm_domain_lock)
->     dlm_match_regions
->       kmalloc(GFP_KERNEL)
-> 
-> Change it to GFP_ATOMIC.
-> 
-> Signed-off-by: David Sterba <dsterba@suse.cz>
-> CC: Joel Becker <joel.becker@oracle.com>
-> CC: Mark Fasheh <mfasheh@suse.com>
-> CC: ocfs2-devel at oss.oracle.com
-> 
-> --
-> Exists in v2.6.37-rc1 and current linux-next.
-> 
-> diff -u -p a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-> --- a/fs/ocfs2/dlm/dlmdomain.c 2010-10-22 10:23:23.502434402 +0200
-> +++ b/fs/ocfs2/dlm/dlmdomain.c 2010-11-02 17:11:06.000000000 +0100
-> @@ -959,7 +959,7 @@ static int dlm_match_regions(struct dlm_
->                 r += O2HB_MAX_REGION_NAME_LEN;
->         }
-> 
-> -       local = kmalloc(sizeof(qr->qr_regions), GFP_KERNEL);
-> +       local = kmalloc(sizeof(qr->qr_regions), GFP_ATOMIC);
->         if (!local) {
->                 status = -ENOMEM;
->                 goto bail;
-> 
+	replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
 
-Switching to GFP_ATOMIC is the worst of all possible ways of "fixing"
-this bug.  GFP_ATOMIC is *unreliable*.  We don't want to introduce
-unreliability deep down inside our filesytems.  And fs maintainers who
-don't want to make their filesystems less reliable shouldn't blindly
-apply patches that do so :(
+which will do the same thing.
+	--Mark
 
-
-A reliable way of fixing this bug is below.  As an added bonus, it
-makes the fs faster.
-
---- a/fs/ocfs2/dlm/dlmdomain.c~a
-+++ a/fs/ocfs2/dlm/dlmdomain.c
-@@ -926,9 +926,9 @@ static int dlm_assert_joined_handler(str
- }
- 
- static int dlm_match_regions(struct dlm_ctxt *dlm,
--			     struct dlm_query_region *qr)
-+			     struct dlm_query_region *qr, u8 *local)
- {
--	char *local = NULL, *remote = qr->qr_regions;
-+	char *remote = qr->qr_regions;
- 	char *l, *r;
- 	int localnr, i, j, foundit;
- 	int status = 0;
-@@ -957,12 +957,6 @@ static int dlm_match_regions(struct dlm_
- 		r += O2HB_MAX_REGION_NAME_LEN;
- 	}
- 
--	local = kmalloc(sizeof(qr->qr_regions), GFP_ATOMIC);
--	if (!local) {
--		status = -ENOMEM;
--		goto bail;
--	}
--
- 	localnr = o2hb_get_all_regions(local, O2NM_MAX_REGIONS);
- 
- 	/* compare local regions with remote */
-@@ -1012,8 +1006,6 @@ static int dlm_match_regions(struct dlm_
- 	}
- 
- bail:
--	kfree(local);
--
- 	return status;
- }
- 
-@@ -1077,6 +1069,7 @@ static int dlm_query_region_handler(stru
- 	struct dlm_ctxt *dlm = NULL;
- 	int status = 0;
- 	int locked = 0;
-+	static u8 local[sizeof(qr->qr_regions)]; /* locked by dlm_domain_lock */
- 
- 	qr = (struct dlm_query_region *) msg->buf;
- 
-@@ -1112,7 +1105,7 @@ static int dlm_query_region_handler(stru
- 		goto bail;
- 	}
- 
--	status = dlm_match_regions(dlm, qr);
-+	status = dlm_match_regions(dlm, qr, local);
- 
- bail:
- 	if (locked)
-_
+--
+Mark Fasheh
