@@ -1,33 +1,34 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 28 Jan 2011 09:46:52 +0800
-Subject: [Ocfs2-devel] [PATCH 02/14] Ocfs2/refcounttree: Publicate
- couple of funcs from refcounttree.c
-In-Reply-To: <20110128000554.GD23899@wotan.suse.de>
-References: <1295605231-15991-1-git-send-email-tristan.ye@oracle.com>
-	<1295605231-15991-3-git-send-email-tristan.ye@oracle.com>
-	<20110128000554.GD23899@wotan.suse.de>
-Message-ID: <4D42200C.3070305@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Thu, 27 Jan 2011 17:48:57 -0800
+Subject: [Ocfs2-devel] fs/ocfs2/dlm: Use GFP_ATOMIC under spin_lock
+In-Reply-To: <20110128013552.GB8019@noexit>
+References: <20101102223601.GA27513@ds.suse.cz>
+	<20110127170948.9a0d8b60.akpm@linux-foundation.org>
+	<20110128013552.GB8019@noexit>
+Message-ID: <20110127174857.1f49cefc.akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joel Becker <jlbec@evilplan.org>
+Cc: dsterba@suse.cz, mfasheh@suse.com, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Mark Fasheh wrote:
-> On Fri, Jan 21, 2011 at 06:20:19PM +0800, Tristan Ye wrote:
->   
->> The original goal of commonizing these funcs is to benefit defraging/extent_moving
->> codes in the future,  based on the fact that reflink and defragmentation having
->> the same Copy-On-Wrtie mechanism.
->>
->>     
->
-> This looks reasonable. You might want to note the change from struct
-> "ocfs2_cow_context *" in some parameters to struct "file *" though.
-> 	--Mark
->
-> --
-> Mark Fasheh
->   
+On Thu, 27 Jan 2011 17:35:53 -0800 Joel Becker <jlbec@evilplan.org> wrote:
 
-Yea, it will be better to become that descriptive.
+> > --- a/fs/ocfs2/dlm/dlmdomain.c~a
+> > +++ a/fs/ocfs2/dlm/dlmdomain.c
+> > @@ -926,9 +926,9 @@ static int dlm_assert_joined_handler(str
+> >  }
+> >  
+> >  static int dlm_match_regions(struct dlm_ctxt *dlm,
+> > -			     struct dlm_query_region *qr)
+> > +			     struct dlm_query_region *qr, u8 *local)
+> >  {
+> > -	char *local = NULL, *remote = qr->qr_regions;
+> > +	char *remote = qr->qr_regions;
+> 
+> 	Won't the stack-depth busybodies hate us for this?  I realize we
+> don't go much deeper from here, but it still is 1K of stack.
+
++	static u8 local[sizeof(qr->qr_regions)]; /* locked by dlm_domain_lock */
+        ^^^^^^
