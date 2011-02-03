@@ -1,64 +1,45 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Tue, 1 Feb 2011 09:37:42 -0800
-Subject: [Ocfs2-devel] [PATCH 1/3] Ocfs2: Using macro to set/clear
-	*FILLED* flags in info handler.
-In-Reply-To: <20110201060124.GB2751@noexit>
-References: <1296368761-23043-1-git-send-email-tristan.ye@oracle.com>
-	<1296368761-23043-2-git-send-email-tristan.ye@oracle.com>
-	<20110131221547.GH23899@wotan.suse.de>
-	<20110201011011.GB22580@noexit>
-	<20110201030617.GJ23899@wotan.suse.de>
-	<20110201060124.GB2751@noexit>
-Message-ID: <20110201173742.GK23899@wotan.suse.de>
+From: Jan Kara <jack@suse.cz>
+Date: Thu,  3 Feb 2011 14:16:19 +0100
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix estimate of necessary credits for
+	mkdir
+Message-ID: <1296738979-27791-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jan 31, 2011 at 10:01:27PM -0800, Joel Becker wrote:
-> On Mon, Jan 31, 2011 at 07:06:18PM -0800, Mark Fasheh wrote:
-> > On Mon, Jan 31, 2011 at 05:10:12PM -0800, Joel Becker wrote:
-> > > On Mon, Jan 31, 2011 at 02:15:47PM -0800, Mark Fasheh wrote:
-> > > > > +static inline void __o2info_set_request_filled(struct ocfs2_info_request *req)
-> > > > > +{
-> > > > > +	req->ir_flags |= OCFS2_INFO_FL_FILLED;
-> > > > > +}
-> > > > > +
-> > > > > +#define o2info_set_request_filled(a) \
-> > > > > +		__o2info_set_request_filled((struct ocfs2_info_request *)&(a))
-> > > > 
-> > > > The macro here (and below) casts it's argument, thus defeating any
-> > > > typechecking we would have gotten from the function call. Can you
-> > > > pleaseremove the macro, rename the functions (take out the __) and use them
-> > > > directly? I know we might then want to deref the i*_req field in the
-> > > > handlers below but I don't think that's a big deal for what we gain.
-> > > 
-> > > 	I'm not sure what you mean here.  Are you asking for one
-> > > set_request_filled() call per info type?
-> > 
-> > Oh, no!
-> > 
-> > I was asking for this:
-> > 
-> > static inline void o2info_set_request_filled(struct ocfs2_info_request *req)
-> > {
-> > 	req->ir_flags |= OCFS2_INFO_FL_FILLED;
-> > }
-> > 
-> > instead of the macro which is defeating type checking.
-> 
-> 	You want the casts or derefs forced in the caller, then?
-> 
-> 	o2info_set_request_filled((struct ocfs2_info_request *)ic);
-> 
-> or:
-> 
-> 	o2info_set_request_filled(&ic->ic_req);
+In the rare case that INLINE_DATA, INDEX_DIR, QUOTA, XATTR features are
+disabled and both the allocation of the directory inode and the allocation
+of the first directory block need to relink allocation group, there need
+not be enough credits reserved in a transaction. Fix the estimate.
 
-Derefs in the callers would make most sense if we want to keep the type
-checking in tact.
-	--Mark
+CC: Mark Fasheh <mfasheh@suse.de>
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/journal.h |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
---
-Mark Fasheh
+ We've actually seen the assertion failing on an old kernel (and thus
+the filesystem had all those features disabled) but it seems to be
+theoretically possible with new kernels as well.
+
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 43e56b9..6180da1 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -405,9 +405,9 @@ static inline int ocfs2_remove_extent_credits(struct super_block *sb)
+ 	       ocfs2_quota_trans_credits(sb);
+ }
+ 
+-/* data block for new dir/symlink, 2 for bitmap updates (bitmap fe +
+- * bitmap block for the new bit) dx_root update for free list */
+-#define OCFS2_DIR_LINK_ADDITIONAL_CREDITS (1 + 2 + 1)
++/* data block for new dir/symlink, allocation of directory block, dx_root
++ * update for free list */
++#define OCFS2_DIR_LINK_ADDITIONAL_CREDITS (1 + OCFS2_SUBALLOC_ALLOC + 1)
+ 
+ static inline int ocfs2_add_dir_index_credits(struct super_block *sb)
+ {
+-- 
+1.7.1
