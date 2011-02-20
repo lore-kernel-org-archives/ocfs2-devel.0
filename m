@@ -1,139 +1,38 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Sun, 20 Feb 2011 04:07:08 -0800
-Subject: [Ocfs2-devel] [PATCH 2/3] Ocfs2: Add a new code
- 'OCFS2_INFO_FREEINODE' for o2info ioctl.
-In-Reply-To: <1296368761-23043-3-git-send-email-tristan.ye@oracle.com>
-References: <1296368761-23043-1-git-send-email-tristan.ye@oracle.com>
-	<1296368761-23043-3-git-send-email-tristan.ye@oracle.com>
-Message-ID: <20110220120707.GG17784@noexit>
+Date: Sun, 20 Feb 2011 04:07:58 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Use hrtimer to track ocfs2 fs lock
+ stats
+In-Reply-To: <1293607563-29283-1-git-send-email-sunil.mushran@oracle.com>
+References: <1293607563-29283-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <20110220120758.GH17784@noexit>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sun, Jan 30, 2011 at 02:26:00PM +0800, Tristan Ye wrote:
-> The new code is dedicated to calculate free inodes number of all inode_allocs,
-> then return the info to userpace in terms of an array.
+On Tue, Dec 28, 2010 at 11:26:03PM -0800, Sunil Mushran wrote:
+> Patch makes use of the hrtimer to track times in ocfs2 lock stats.
 > 
-> Specially, flag 'OCFS2_INFO_FL_NON_COHERENT', manipulated by '--cluster-coherent'
-> from userspace, is now going to be involved. setting the flag on means no cluster
-> coherency considered, usually, userspace tools choose none-coherency strategy by
-> default for the sake of performace.
+> The patch is a bit involved to ensure no additional impact on the memory
+> footprint. The size of ocfs2_inode_cache remains 1280 bytes on 32-bit systems.
 > 
-> Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
-> ---
->  fs/ocfs2/ioctl.c       |  122 ++++++++++++++++++++++++++++++++++++++++++++++++
->  fs/ocfs2/ocfs2_ioctl.h |   11 ++++
->  2 files changed, 133 insertions(+), 0 deletions(-)
+> A related change was to modify the unit of the max wait time from nanosec to
+> microsec allowing us to track max time larger than 4 secs. This change
+> necessitated the bumping of the output version in the debugfs file,
+> locking_state, from 2 to 3.
 > 
-> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-> index 731cf46..18812be 100644
-> --- a/fs/ocfs2/ioctl.c
-> +++ b/fs/ocfs2/ioctl.c
-> @@ -23,6 +23,9 @@
->  #include "ioctl.h"
->  #include "resize.h"
->  #include "refcounttree.h"
-> +#include "sysfile.h"
-> +#include "dir.h"
-> +#include "buffer_head_io.h"
->  
->  #include <linux/ext2_fs.h>
->  
-> @@ -62,6 +65,13 @@ static inline void __o2info_clear_request_filled(struct ocfs2_info_request *req)
->  #define o2info_clear_request_filled(a) \
->  		__o2info_clear_request_filled((struct ocfs2_info_request *)&(a))
->  
-> +static inline int __o2info_coherent(struct ocfs2_info_request *req)
-> +{
-> +	return (!(req->ir_flags & OCFS2_INFO_FL_NON_COHERENT));
-> +}
-> +
-> +#define o2info_coherent(a) __o2info_coherent((struct ocfs2_info_request *)&(a))
-> +
->  static int ocfs2_get_inode_attr(struct inode *inode, unsigned *flags)
->  {
->  	int status;
-> @@ -321,6 +331,114 @@ bail:
->  	return status;
->  }
->  
-> +int ocfs2_info_scan_inode_alloc(struct ocfs2_super *osb,
-> +				struct inode *inode_alloc, u64 blkno,
-> +				struct ocfs2_info_freeinode *fi, u32 slot)
-> +{
-> +	int status = 0, unlock = 0;
-> +
-> +	struct buffer_head *bh = NULL;
-> +	struct ocfs2_dinode *dinode_alloc = NULL;
-> +
-> +	if (inode_alloc)
-> +		mutex_lock(&inode_alloc->i_mutex);
-> +
-> +	if (o2info_coherent(*fi)) {
-> +		status = ocfs2_inode_lock(inode_alloc, &bh, 0);
-> +		if (status < 0) {
-> +			mlog_errno(status);
-> +			goto bail;
-> +		}
-> +		unlock = 1;
-> +	} else {
-> +		status = ocfs2_read_blocks_sync(osb, blkno, 1, &bh);
-> +		if (status < 0) {
-> +			mlog_errno(status);
-> +			goto bail;
-> +		}
-> +	}
-> +
-> +	dinode_alloc = (struct ocfs2_dinode *)bh->b_data;
-> +
-> +	fi->ifi_stat[slot].lfi_total =
-> +		le32_to_cpu(dinode_alloc->id1.bitmap1.i_total);
-> +	fi->ifi_stat[slot].lfi_free =
-> +		le32_to_cpu(dinode_alloc->id1.bitmap1.i_total) -
-> +		le32_to_cpu(dinode_alloc->id1.bitmap1.i_used);
-> +
-> +bail:
-> +	if (unlock)
-> +		ocfs2_inode_unlock(inode_alloc, 0);
-> +
-> +	if (inode_alloc)
-> +		mutex_unlock(&inode_alloc->i_mutex);
-> +
-> +	if (inode_alloc)
-> +		iput(inode_alloc);
-> +
-> +	brelse(bh);
-> +
-> +	mlog_exit(status);
-> +	return status;
-> +}
-> +
-> +int ocfs2_info_handle_freeinode(struct inode *inode,
-> +				struct ocfs2_info_request __user *req)
-> +{
-> +	u32 i;
-> +	u64 blkno = -1;
-> +	char namebuf[40];
-> +	int status = -EFAULT, type = INODE_ALLOC_SYSTEM_INODE;
-> +	struct ocfs2_info_freeinode oifi;
+> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 
-/build/jlbec/linux-2.6/working/fs/ocfs2/ioctl.c: In function ?ocfs2_info_handle_freeinode?:
-/build/jlbec/linux-2.6/working/fs/ocfs2/ioctl.c:441: warning: the frame size of 4192 bytes is larger than 2048 bytes
-
-	This is speaking to the fact that you've put struct
-ocfs2_info_freeinode oifi on the stack.  It's over 4K in size.  It needs
-to be allocated.
-	Please respin this and the FREEFRAG patch based on it.
+	This patch is now in the merge-window branch of ocfs2.git.
 
 Joel
 
 -- 
 
-Life's Little Instruction Book #43
+Life's Little Instruction Book #198
 
-	"Never give up on somebody.  Miracles happen every day."
+	"Feed a stranger's expired parking meter."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
