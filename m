@@ -1,38 +1,28 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 22 Feb 2011 01:37:41 -0800
-Subject: [Ocfs2-devel] [PATCH] Treat writes as new when holes span
- across page boundaries
-In-Reply-To: <20110222083648.GC30966@noexit>
-References: <AANLkTi=pEu5y4=kjG1YoLR+YCd7Ak21QaFQz=AR3dffX@mail.gmail.com>
-	<20110220070953.GC17784@noexit>
-	<AANLkTinuhh9nF=6NQbe81NbE0K95huVtdDdC9Gb2pU=5@mail.gmail.com>
-	<20110221020856.GL17784@noexit>
-	<AANLkTimXr0rA5FV_ep-y9uetUVcD3w+9MuTZeBnLXDvG@mail.gmail.com>
-	<20110222083648.GC30966@noexit>
-Message-ID: <20110222093740.GI30966@noexit>
+From: Tao Ma <tm@tao.ma>
+Date: Tue, 22 Feb 2011 21:21:19 +0800
+Subject: [Ocfs2-devel] forget_all_cached_acls()
+In-Reply-To: <20110222093212.GF30966@noexit>
+References: <20110222093212.GF30966@noexit>
+Message-ID: <4D63B84F.60707@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Feb 22, 2011 at 12:36:49AM -0800, Joel Becker wrote:
-> 	Please try the attached patch and see if it fixes the problem.
-> It should work on its own, without your changes.  If I have it wrong,
-> we'll continue to evaluate the problem.  I'd test it myself, but my VM
-> setup is currently broken.
+Hi Joel,
+On 02/22/2011 05:32 PM, Joel Becker wrote:
+> Hey everyone,
+> 	I just found out from Steven over in GFS2 that there is a kernel
+> call forget_all_cached_acls().  If a cluster filesystem is using ACL
+> caching (added by Viro a little while back), they use
+> forget_all_cached_acls() at lock drop time to make sure they don't have
+> stale ACL info.
+> 	We're not using cached_acls yet, but if someone adds it, please
+> remember this call ;-)
+>    
+I remembered that Jeff did some work on it when I was at Oracle.
+So Jeff, did you still work on it now?
 
-	Also, can someone run tailtest out of ocfs2-test against it.  I
-want to make sure I didn't break anything else.  Grr on broken test
-setup.  I'm also sad that tailtest didn't catch Goldwyn's case.  I
-wonder if we can make it.
-
-Joel
-
--- 
-
-"Get right to the heart of matters.
- It's the heart that matters more."
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+Regards,
+Tao
