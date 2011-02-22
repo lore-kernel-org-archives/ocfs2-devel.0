@@ -1,33 +1,38 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 22 Feb 2011 01:36:30 -0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2/dlm: Move kmalloc() outside the
- spinlock
-In-Reply-To: <1298327125-4045-2-git-send-email-sunil.mushran@oracle.com>
-References: <1298327125-4045-1-git-send-email-sunil.mushran@oracle.com>
-	<1298327125-4045-2-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <20110222093629.GH30966@noexit>
+Date: Tue, 22 Feb 2011 01:37:41 -0800
+Subject: [Ocfs2-devel] [PATCH] Treat writes as new when holes span
+ across page boundaries
+In-Reply-To: <20110222083648.GC30966@noexit>
+References: <AANLkTi=pEu5y4=kjG1YoLR+YCd7Ak21QaFQz=AR3dffX@mail.gmail.com>
+	<20110220070953.GC17784@noexit>
+	<AANLkTinuhh9nF=6NQbe81NbE0K95huVtdDdC9Gb2pU=5@mail.gmail.com>
+	<20110221020856.GL17784@noexit>
+	<AANLkTimXr0rA5FV_ep-y9uetUVcD3w+9MuTZeBnLXDvG@mail.gmail.com>
+	<20110222083648.GC30966@noexit>
+Message-ID: <20110222093740.GI30966@noexit>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Feb 21, 2011 at 02:25:25PM -0800, Sunil Mushran wrote:
-> In dlm_query_region_handler(), move the kmalloc outside the spinlock.
-> This allows us to use GFP_KERNEL instead of GFP_ATOMIC.
-> 
-> Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+On Tue, Feb 22, 2011 at 12:36:49AM -0800, Joel Becker wrote:
+> 	Please try the attached patch and see if it fixes the problem.
+> It should work on its own, without your changes.  If I have it wrong,
+> we'll continue to evaluate the problem.  I'd test it myself, but my VM
+> setup is currently broken.
 
-	This patch is now in the merge-window branch of ocfs2.git.
+	Also, can someone run tailtest out of ocfs2-test against it.  I
+want to make sure I didn't break anything else.  Grr on broken test
+setup.  I'm also sad that tailtest didn't catch Goldwyn's case.  I
+wonder if we can make it.
 
 Joel
 
 -- 
 
-"Conservative, n.  A statesman who is enamoured of existing evils,
- as distinguished from the Liberal, who wishes to replace them
- with others."
-	- Ambrose Bierce, The Devil's Dictionary
+"Get right to the heart of matters.
+ It's the heart that matters more."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
