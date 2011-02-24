@@ -1,5 +1,5 @@
 From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Wed, 23 Feb 2011 16:31:25 -0600
+Date: Thu, 24 Feb 2011 10:32:44 -0600
 Subject: [Ocfs2-devel] [PATCH] Treat writes as new when holes span
  across page boundaries
 In-Reply-To: <20110223214444.GM4020@noexit>
@@ -13,7 +13,7 @@ References: <AANLkTikByGbpDyDmbM7kNV-ZAt1Ts5BzbM0Ospi=o8Ki@mail.gmail.com>
 	<20110223211704.GH4020@noexit>
 	<AANLkTinmrT4JA4T+0uGHqPgFuyOXbhU0uv9pV=a9wC4y@mail.gmail.com>
 	<20110223213730.GK4020@noexit> <20110223214444.GM4020@noexit>
-Message-ID: <AANLkTi=3YbbK1ugAP_87HL8FJdOZVKpbJnGM5Y5MdK01@mail.gmail.com>
+Message-ID: <AANLkTi=AeHH665ijW86isXnda78ma_=JOQBMsTZGJ_y_@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -23,23 +23,6 @@ To: ocfs2-devel@oss.oracle.com
 Hi Joel,
 
 On Wed, Feb 23, 2011 at 3:44 PM, Joel Becker <jlbec@evilplan.org> wrote:
-> On Wed, Feb 23, 2011 at 01:37:31PM -0800, Joel Becker wrote:
->> On Wed, Feb 23, 2011 at 03:35:36PM -0600, Goldwyn Rodrigues wrote:
->> > On Wed, Feb 23, 2011 at 3:17 PM, Joel Becker <jlbec@evilplan.org> wrote:
->> > >> 2. ?the previous write ended in a page boundary, but not a cluster
->> > >> boundary. eg, clustersize=16K but pos is at the page boundary = 4k
->> > >
->> > > ? ? ? ?Must it be a page boundary? ?What about a block boundary? ;-)
->> >
->> > I am not sure of this, but I would like to stick with page boundary. I
->> > am too poor to afford a machine with a page size bigger than 4k to
->> > test this ;)
->>
->> ? ? ? Create a filesystem with 1K blocks and 16K clusters. ?Now you
->> have four blocks per page, and you can test block vs page boundaries.
-
-Proved, it is page boundary.
-
 >
 > ? ? ? ?I would love to see you modify tailtest to expose this bug. ?You
 > should be able to do it with one set of writes (your write(4k),
@@ -48,17 +31,12 @@ Proved, it is page boundary.
 > writes.
 >
 
-Here is a simple script. I will incorporate later into tailtest later.
+I have posted the patch for ocfs2-test on the test mailing list.
 
-FILENAME=/mnt/f2
-
-for i in `seq 0 256`; do
-	let s=$i*4096
-	echo "a" | dd of=$FILENAME count=1 bs=1 seek=$s conv=notrunc 2>/dev/null
-	let t=$s+4095
-	echo "b" | dd of=$FILENAME count=1 bs=1 seek=$t conv=notrunc 2>/dev/null
-done
-
+While coding the test, I discovered that the problem does not occur
+for sparse,inline-data. I thought it might be because it is the first
+test in the series so I changed the order and confirmed that the test
+does not fail for sparse,inline-data. Any ideas?
 
 -- 
 Goldwyn
