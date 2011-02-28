@@ -1,53 +1,57 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Mon, 28 Feb 2011 03:15:39 -0800
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 fixes for 2.6.38-rc
-Message-ID: <20110228111536.GA32135@noexit>
+Date: Mon, 28 Feb 2011 10:03:02 -0800
+Subject: [Ocfs2-devel] [PATCH] Treat writes as new when holes span
+ across page boundaries
+In-Reply-To: <AANLkTi=3YbbK1ugAP_87HL8FJdOZVKpbJnGM5Y5MdK01@mail.gmail.com>
+References: <AANLkTik3387QOadM+-7FaXLT90ednn6+=oDfiyzjt=Tv@mail.gmail.com>
+	<20110223093932.GA30720@noexit>
+	<AANLkTikZHYK3_BTuS_eOApJnT866t4-HPbRc96jpiWYX@mail.gmail.com>
+	<20110223191338.GA4020@noexit>
+	<AANLkTimrFoVm11T=Hyq+Uf7wfX8n7zSZStNnAs4sPmvK@mail.gmail.com>
+	<20110223211704.GH4020@noexit>
+	<AANLkTinmrT4JA4T+0uGHqPgFuyOXbhU0uv9pV=a9wC4y@mail.gmail.com>
+	<20110223213730.GK4020@noexit> <20110223214444.GM4020@noexit>
+	<AANLkTi=3YbbK1ugAP_87HL8FJdOZVKpbJnGM5Y5MdK01@mail.gmail.com>
+Message-ID: <20110228180301.GA13071@noexit>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-Linus et al,
-	Here are the latest ocfs2 fixes for 2.6.38-rc.  I've got a
-couple more pending, but since my test environment is in pieces, I'm
-sending you what's already been queued.  I'll send another request when
-I have the next batch tested.
-	Please pull.
+On Wed, Feb 23, 2011 at 04:31:25PM -0600, Goldwyn Rodrigues wrote:
+> Here is a simple script. I will incorporate later into tailtest later.
+> 
+> FILENAME=/mnt/f2
+> 
+> for i in `seq 0 256`; do
+> 	let s=$i*4096
+> 	echo "a" | dd of=$FILENAME count=1 bs=1 seek=$s conv=notrunc 2>/dev/null
+> 	let t=$s+4095
+> 	echo "b" | dd of=$FILENAME count=1 bs=1 seek=$t conv=notrunc 2>/dev/null
+> done
 
-The following changes since commit 0cc9d5257857608ba85885b75fcada13d359b5d1:
+	You shouldn't need to do 256 runs.  I would like to see directed
+tests that just hit one spot in a file and expose the corruption.  For
+example, your described problem case should work like so:
 
-  Merge branch 'rtc-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/linux-2.6-tip (2011-02-18 14:20:46 -0800)
+  # Write the first three blocks of the file, getting us past inline_data
+  dd if=/dev/urandom of=$FILENAME count=3 bs=4096
+  # Write a byte in the next page
+  dd if=/dev/urandom of=$FILENAME count=1 bs=1 seek=12228 conv=notrunc
+  # Write after some partial-block portion, trying to expose failed zeroing
+  dd if=/dev/urandom of=$FILENAME count=4084 bs=1 seek=12300 conv=notrunc
 
-are available in the git repository at:
+I would expect this to expose the problem as you've described for
+clustersize >= 8K.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
-
-Jan Kara (1):
-      ocfs2: Fix estimate of necessary credits for mkdir
-
-Mark Fasheh (1):
-      ocfs2: Check heartbeat mode for kernel stacks only
-
-Tristan Ye (1):
-      Ocfs2/refcounttree: Fix a bug for refcounttree to writeback clusters in a right number.
-
- fs/ocfs2/journal.h      |    6 +++---
- fs/ocfs2/refcounttree.c |    7 +++++--
- fs/ocfs2/super.c        |   28 ++++++++++++++++++++--------
- 3 files changed, 28 insertions(+), 13 deletions(-)
+Joel
 
 -- 
 
-"I don't want to achieve immortality through my work; I want to
- achieve immortality through not dying."
-        - Woody Allen
+ Joel's First Law:
+
+	Nature abhors a GUI.
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
---
-To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-the body of a message to majordomo at vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
-Please read the FAQ at  http://www.tux.org/lkml/
