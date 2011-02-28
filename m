@@ -1,47 +1,53 @@
-From: Mark Fasheh <mfasheh@suse.com>
-Date: Thu, 24 Feb 2011 10:16:20 -0800
-Subject: [Ocfs2-devel] [PATCH] Treat writes as new when holes span
-	across page boundaries
-In-Reply-To: <AANLkTi=AeHH665ijW86isXnda78ma_=JOQBMsTZGJ_y_@mail.gmail.com>
-References: <AANLkTik3387QOadM+-7FaXLT90ednn6+=oDfiyzjt=Tv@mail.gmail.com>
-	<20110223093932.GA30720@noexit>
-	<AANLkTikZHYK3_BTuS_eOApJnT866t4-HPbRc96jpiWYX@mail.gmail.com>
-	<20110223191338.GA4020@noexit>
-	<AANLkTimrFoVm11T=Hyq+Uf7wfX8n7zSZStNnAs4sPmvK@mail.gmail.com>
-	<20110223211704.GH4020@noexit>
-	<AANLkTinmrT4JA4T+0uGHqPgFuyOXbhU0uv9pV=a9wC4y@mail.gmail.com>
-	<20110223213730.GK4020@noexit> <20110223214444.GM4020@noexit>
-	<AANLkTi=AeHH665ijW86isXnda78ma_=JOQBMsTZGJ_y_@mail.gmail.com>
-Message-ID: <20110224181620.GW1703@wotan.suse.de>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Mon, 28 Feb 2011 03:15:39 -0800
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 fixes for 2.6.38-rc
+Message-ID: <20110228111536.GA32135@noexit>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Thu, Feb 24, 2011 at 10:32:44AM -0600, Goldwyn Rodrigues wrote:
-> Hi Joel,
-> 
-> On Wed, Feb 23, 2011 at 3:44 PM, Joel Becker <jlbec@evilplan.org> wrote:
-> >
-> > ? ? ? ?I would love to see you modify tailtest to expose this bug. ?You
-> > should be able to do it with one set of writes (your write(4k),
-> > write(32b), write(4K at someplace past 4K+32b)) test). ?It will be a lot
-> > easier to debug if it is a simple script rather than a bunch of C
-> > writes.
-> >
-> 
-> I have posted the patch for ocfs2-test on the test mailing list.
-> 
-> While coding the test, I discovered that the problem does not occur
-> for sparse,inline-data. I thought it might be because it is the first
-> test in the series so I changed the order and confirmed that the test
-> does not fail for sparse,inline-data. Any ideas?
+Linus et al,
+	Here are the latest ocfs2 fixes for 2.6.38-rc.  I've got a
+couple more pending, but since my test environment is in pieces, I'm
+sending you what's already been queued.  I'll send another request when
+I have the next batch tested.
+	Please pull.
 
-Inline gets a bit of special handling in the write cases, especially when
-you cross the boundary into extents. My guess is that the zeroing in that
-case is somehow already correct? Possibly that's just by dumb luck.
-	--Mark
+The following changes since commit 0cc9d5257857608ba85885b75fcada13d359b5d1:
 
+  Merge branch 'rtc-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/linux-2.6-tip (2011-02-18 14:20:46 -0800)
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
+
+Jan Kara (1):
+      ocfs2: Fix estimate of necessary credits for mkdir
+
+Mark Fasheh (1):
+      ocfs2: Check heartbeat mode for kernel stacks only
+
+Tristan Ye (1):
+      Ocfs2/refcounttree: Fix a bug for refcounttree to writeback clusters in a right number.
+
+ fs/ocfs2/journal.h      |    6 +++---
+ fs/ocfs2/refcounttree.c |    7 +++++--
+ fs/ocfs2/super.c        |   28 ++++++++++++++++++++--------
+ 3 files changed, 28 insertions(+), 13 deletions(-)
+
+-- 
+
+"I don't want to achieve immortality through my work; I want to
+ achieve immortality through not dying."
+        - Woody Allen
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
 --
-Mark Fasheh
+To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+the body of a message to majordomo at vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Please read the FAQ at  http://www.tux.org/lkml/
