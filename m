@@ -1,86 +1,59 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Wed,  2 Mar 2011 19:30:37 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2-tools: support strictatime in ocfs2
+Date: Wed,  2 Mar 2011 19:32:09 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: clean up mount option about atime
+	in ocfs2.txt
 In-Reply-To: <4D6E2994.1050302@oracle.com>
 References: <4D6E2994.1050302@oracle.com>
-Message-ID: <1299065437-6594-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <1299065529-6626-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Strictatime was introduced into vfs, so this patch adding support
-to it in ocfs2. Now we have three types behavior about update atime,
-noatime, relatime and strictatime. With strictatime, the minimum
-update interval is specified by atime_quantum, which defaults to 60 secs.
+As ocfs2 supports relatime and strictatime, we need update the
+relative document. Atime_quantum need work with strictatime, so only
+show it in procfs when mount with strictatime.
 
 Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- mount.ocfs2/mount.ocfs2.8.in  |   11 ++++++-----
- mount.ocfs2/mount_constants.h |    3 +++
- mount.ocfs2/opts.c            |    2 +-
- 3 files changed, 10 insertions(+), 6 deletions(-)
+ Documentation/filesystems/ocfs2.txt |    8 +++++++-
+ fs/ocfs2/super.c                    |    2 +-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/mount.ocfs2/mount.ocfs2.8.in b/mount.ocfs2/mount.ocfs2.8.in
-index b367bf1..3bd1d09 100644
---- a/mount.ocfs2/mount.ocfs2.8.in
-+++ b/mount.ocfs2/mount.ocfs2.8.in
-@@ -20,17 +20,18 @@ specify this mount option to delay the system from mounting the volume until
- after the network has been enabled.
+diff --git a/Documentation/filesystems/ocfs2.txt b/Documentation/filesystems/ocfs2.txt
+index 5393e66..a149606 100644
+--- a/Documentation/filesystems/ocfs2.txt
++++ b/Documentation/filesystems/ocfs2.txt
+@@ -46,9 +46,15 @@ errors=panic		Panic and halt the machine if an error occurs.
+ intr		(*)	Allow signals to interrupt cluster operations.
+ nointr			Do not allow signals to interrupt cluster
+ 			operations.
++noatime			Do not update access time.
++relatime(*)		Update atime if the previous atime is older than
++			mtime or ctime
++strictatime		Always update atime, but the minimum update interval
++			is specified by atime_quantum.
+ atime_quantum=60(*)	OCFS2 will not update atime unless this number
+ 			of seconds has passed since the last update.
+-			Set to zero to always update atime.
++			Set to zero to always update atime. This option need
++			work with strictatime.
+ data=ordered	(*)	All data are forced directly out to the main file
+ 			system prior to its metadata being committed to the
+ 			journal.
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 38f986d..f5463a6 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1564,7 +1564,7 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
+ 	if (osb->preferred_slot != OCFS2_INVALID_SLOT)
+ 		seq_printf(s, ",preferred_slot=%d", osb->preferred_slot);
  
- .TP
--\fBatime\_quantum=nrsec\fR
--The file system will not update atime unless this number of seconds has passed
--since the last update. Set to zero to always update atime. It defaults to 60 secs.
-+\fBnoatime\fR
-+The file system will not update access time.
+-	if (osb->s_atime_quantum != OCFS2_DEFAULT_ATIME_QUANTUM)
++	if (!(mnt->mnt_flags & MNT_NOATIME) && !(mnt->mnt_flags & MNT_RELATIME))
+ 		seq_printf(s, ",atime_quantum=%u", osb->s_atime_quantum);
  
- .TP
- \fBrelatime\fR
- The file system only update atime if the previous atime is older than mtime or ctime.
- 
- .TP
--\fBnoatime\fR
--The file system will not update access time.
-+\fBstrictatime,atime\_quantum=nrsec\fR
-+The file system will always perform atime updates, but the minimum update
-+interval is specified by atime_quantum. Atime_quantum defaults to 60 secs,
-+set it to zero to always update atime. These two options need work together.
- 
- .TP
- \fBacl / noacl\fR
-diff --git a/mount.ocfs2/mount_constants.h b/mount.ocfs2/mount_constants.h
-index ed475db..feffe8f 100644
---- a/mount.ocfs2/mount_constants.h
-+++ b/mount.ocfs2/mount_constants.h
-@@ -60,6 +60,9 @@ if we have a stack or plain mount - mount atop of it, forming a stack. */
- #ifndef MS_RELATIME
- #define MS_RELATIME	(1<<21)	/* Update atime relative to mtime/ctime. */
- #endif
-+#ifndef MS_STRICTATIME
-+#define MS_STRICTATIME	(1<<24)	/* Strict atime semantics */
-+#endif
- /*
-  * Magic mount flag number. Had to be or-ed to the flag values.
-  */
-diff --git a/mount.ocfs2/opts.c b/mount.ocfs2/opts.c
-index 5ecd36b..96037da 100644
---- a/mount.ocfs2/opts.c
-+++ b/mount.ocfs2/opts.c
-@@ -78,12 +78,12 @@ static const struct opt_map opt_map[] = {
-   { "mand",	0, 0, MS_MANDLOCK },	/* Allow mandatory locks on this FS */
-   { "nomand",	0, 1, MS_MANDLOCK },	/* Forbid mandatory locks on this FS */
-   { "loop",	1, 0, MS_LOOP	},	/* use a loop device */
--  { "atime",	0, 1, MS_NOATIME },	/* Update access time */
-   { "noatime",	0, 0, MS_NOATIME },	/* Do not update access time */
-   { "relatime",	0, 0, MS_RELATIME },	/* only update atime if previous */
- 					/* atime is older than mtime/ctime */
-   { "diratime",	0, 1, MS_NODIRATIME },	/* Update dir access times */
-   { "nodiratime", 0, 0, MS_NODIRATIME },/* Do not update dir access times */
-+  { "strictatime", 0, 0, MS_STRICTATIME },/* Strict atime semantics */
-   { "kudzu",	0, 0, MS_COMMENT },	/* Silently remove this option (backwards compat use only) */
-   { "managed",	0, 0, MS_COMMENT },	/* Silently remove this option */
-   { NULL,	0, 0, 0	}
+ 	if (osb->osb_commit_interval)
 -- 
 1.7.2.1
