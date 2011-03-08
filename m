@@ -1,256 +1,140 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 08 Mar 2011 12:55:59 +0800
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: Add ocfs2_trim_fs for SSD trim
- support.
-In-Reply-To: <1299492356-7329-1-git-send-email-tm@tao.ma>
-References: <4D74AD52.4030502@tao.ma>
-	<1299492356-7329-1-git-send-email-tm@tao.ma>
-Message-ID: <4D75B6DF.3030508@oracle.com>
+From: xiaowei.hu at oracle.com <xiaowei.hu@oracle.com>
+Date: Tue,  8 Mar 2011 13:32:07 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] Fix a potential piece of code that may
+	induce kernel bug.
+Message-ID: <1299562327-21019-1-git-send-email-xiaowei.hu@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Tao,
+From: XiaoweiHu <xiaowei.hu@oracle.com>
 
-    Most of codes looks pretty neat to me, few comments inlined below:
+In function dlm_migrate_lockres, it calls dlm_add_migration_mle() before 
+the dlm_add_migration_mle() ,this dlm_add_migration_mle() should make sure 
+the lockres is not dirty ,if it is dirty wait until it becomes undirty, 
+and then mark this lockres as migrating. but the dlm_add_migration_mle() 
+doesn't check this dirty flag , it just adds the mle with migrate type, 
+this could have problem, if the migrate target dean at this point then 
+another node becames the recovery master, current node will migrate this 
+lockres to the recovery master ,no matter if it is in the dirty list.
+So this makes the lockres in the dirty lists but this owner becomes the 
+recovery master, then panic.
 
-Tao Ma wrote:
-> From: Tao Ma <boyu.mt@taobao.com>
->
-> Add ocfs2_trim_fs to support trimming freed clusters in the
-> volume. A range will be given and all the freed clusters greater
-> than minlen will be discarded to the block layer.
->
-> Signed-off-by: Tao Ma <boyu.mt@taobao.com>
-> ---
->  fs/ocfs2/alloc.c |  154 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
->  fs/ocfs2/alloc.h |    1 +
->  2 files changed, 155 insertions(+), 0 deletions(-)
->
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index b27a0d8..6e1b3b5 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -29,6 +29,7 @@
->  #include <linux/highmem.h>
->  #include <linux/swap.h>
->  #include <linux/quotaops.h>
-> +#include <linux/blkdev.h>
->  
->  #include <cluster/masklog.h>
->  
-> @@ -7184,3 +7185,156 @@ out_commit:
->  out:
->  	return ret;
->  }
-> +
-> +static int ocfs2_trim_extent(struct super_block *sb,
-> +			     struct ocfs2_group_desc *gd,
-> +			     int start, int count)
-> +{
-> +	u64 discard;
-> +
-> +	count = ocfs2_clusters_to_blocks(sb, count);
-> +	discard = le64_to_cpu(gd->bg_blkno) +
-> +			ocfs2_clusters_to_blocks(sb, start);
-> +
-> +	return sb_issue_discard(sb, discard, count, GFP_NOFS, 0);
-> +}
-> +
-> +static int ocfs2_trim_group(struct super_block *sb,
-> +			    struct ocfs2_group_desc *gd,
-> +			    int start, int max, int minbits)
-> +{
-> +	int ret = 0, count = 0, next;
-> +	void *bitmap = gd->bg_bitmap;
-> +
-> +	while (start < max) {
-> +		start = ocfs2_find_next_zero_bit(bitmap, max, start);
-> +		if (start >= max)
-> +			break;
+Signed-off-by: XiaoweiHu <xiaowei.hu@oracle.com>
+Reviewed-by: WengangWang <wen.gang.wang@oracle.com>
+---
+ fs/ocfs2/dlm/dlmmaster.c |   62 +++++++++++++++++++++++-----------------------
+ 1 files changed, 31 insertions(+), 31 deletions(-)
 
-    /* What if the 'start' stands within a hole */
-
-    if (ocfs2_test_bit(...)) {
-       start = ocfs2_find_next_zero_bit(...);
-       if ((start == -1) || (start >= max))
-          break;
-    }
-
-> +		next = ocfs2_find_next_bit(bitmap, max, start);
-   
-    next = ocfs2_find_next_bit(...);
-    if (next == -1)
-       break;
-
-    if (next > max)
-       next = max;
-   
-> +
-> +		if ((next - start) >= minbits) {
-> +			ret = ocfs2_trim_extent(sb, gd,
-> +						start, next - start);
-> +			if (ret < 0) {
-> +				mlog_errno(ret);
-> +				break;
-> +			}
-> +			count += next - start;
-> +		}
-> +		start = next + 1;
-> +
-> +		if (fatal_signal_pending(current)) {
-> +			count = -ERESTARTSYS;
-> +			break;
-> +		}
-> +
-> +		if ((le16_to_cpu(gd->bg_free_bits_count) - count) < minbits)
-> +			break;
-> +	}
-> +
-> +	if (ret < 0)
-> +		count = ret;
-> +
-> +	return count;
-> +}
-> +
-> +int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
-> +{
-> +	struct ocfs2_super *osb = OCFS2_SB(sb);
-> +	u64 start, len, minlen, trimmed, first_group, last_group, group;
-    why not using u32 start, len, minlen, trimmed;
-> +	int ret, cnt, first_bit, last_bit;
-> +	struct buffer_head *main_bm_bh = NULL;
-> +	struct inode *main_bm_inode = NULL;
-> +	struct buffer_head *gd_bh = NULL;
-> +	struct ocfs2_dinode *main_bm;
-> +	struct ocfs2_group_desc *gd = NULL;
-> +
-> +	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-> +		return -EROFS;
-> +
-> +	start = range->start >> osb->s_clustersize_bits;
-> +	len = range->len >> osb->s_clustersize_bits;
-> +	minlen = range->minlen >> osb->s_clustersize_bits;
-
-    I guess you may want to count two corner clusters which cover the 
-'start' and 'end' bytes,
-so the appropriate way might be:
-
-    start = range->start >> osb->s_clustersize_bits;
-    len = ocfs2_clusters_for_bytes(osb->sb, range->start  + range->len);
-    len -= start;
-   
-> +	trimmed = 0;
-> +
-> +	if (!len || !minlen || minlen >= osb->bitmap_cpg)
-    'minlen == 0' looks acceptable, which means we allowing discarding 
-for all size of extents.
-and what's more, 'len == 0' may not be harmful enough to issue a 
-'EINVAL', returning a legal '0'
-to userspace immediately is fine.
-
-
-> +		return -EINVAL;
-> +
-> +	main_bm_inode = ocfs2_get_system_file_inode(osb,
-> +						    GLOBAL_BITMAP_SYSTEM_INODE,
-> +						    OCFS2_INVALID_SLOT);
-> +	if (!main_bm_inode) {
-> +		ret = -EIO;
-> +		mlog_errno(ret);
-> +		goto out;
-> +	}
-> +
-> +	mutex_lock(&main_bm_inode->i_mutex);
-> +
-> +	ret = ocfs2_inode_lock(main_bm_inode, &main_bm_bh, 0);
-> +	if (ret < 0) {
-> +		mlog_errno(ret);
-> +		goto out_mutex;
-> +	}
-> +	main_bm = (struct ocfs2_dinode *)main_bm_bh->b_data;
-> +
-> +	if (start >= le32_to_cpu(main_bm->i_clusters)) {
-> +		ret = -EINVAL;
-> +		mlog_errno(ret);
-> +		goto out_unlock;
-> +	}
-> +
-> +	if (start + len > le32_to_cpu(main_bm->i_clusters))
-> +		len = le32_to_cpu(main_bm->i_clusters) - start;
-> +
-> +	/* Determine first and last group to examine based on start and len */
-> +	first_group = ocfs2_which_cluster_group(main_bm_inode, start);
-> +	if (first_group == osb->first_cluster_group_blkno)
-> +		first_bit = start;
-> +	else
-> +		first_bit = start - ocfs2_blocks_to_clusters(sb, first_group);
-> +	last_group = ocfs2_which_cluster_group(main_bm_inode, start + len - 1);
-> +	last_bit = osb->bitmap_cpg;
-> +
-> +	for (group = first_group; group <= last_group;) {
-> +		if (first_bit + len >= osb->bitmap_cpg)
-> +			last_bit = osb->bitmap_cpg - first_bit;
-
-    is 'first_bit' and 'last_bit' both represent a local offset within a 
-cluster group?
-just wondering why last_bit wasn't equal to 'osb->bitmap_cpg' in above 
-case(I meant the case
-of 'first_bit + len >= osb->bitmap_cpg'
-
-> +		else
-> +			last_bit = start + len;
-
-    why above case is not 'last_bit = first_bit + len';
-
-> +
-> +		ret = ocfs2_read_group_descriptor(main_bm_inode,
-> +						  main_bm, group,
-> +						  &gd_bh);
-> +		if (ret < 0) {
-> +			mlog_errno(ret);
-> +			break;
-> +		}
-> +
-> +		gd = (struct ocfs2_group_desc *)gd_bh->b_data;
-> +		cnt = ocfs2_trim_group(sb, gd, first_bit, last_bit, minlen);
-> +		brelse(gd_bh);
-> +		gd_bh = NULL;
-> +		if (cnt < 0) {
-> +			ret = cnt;
-> +			mlog_errno(ret);
-> +			break;
-> +		}
-> +
-> +		trimmed += cnt;
-> +		len -= osb->bitmap_cpg - first_bit;
-> +		first_bit = 0;
-> +		if (group == osb->first_cluster_group_blkno)
-> +			group = ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
-> +		else
-> +			group += ocfs2_clusters_to_blocks(sb, osb->bitmap_cpg);
-> +	}
-> +	range->len = trimmed * sb->s_blocksize;
-> +out_unlock:
-> +	ocfs2_inode_unlock(main_bm_inode, 0);
-> +	brelse(main_bm_bh);
-> +out_mutex:
-> +	mutex_unlock(&main_bm_inode->i_mutex);
-> +	iput(main_bm_inode);
-> +out:
-> +	return ret;
-> +}
-> diff --git a/fs/ocfs2/alloc.h b/fs/ocfs2/alloc.h
-> index 3bd08a0..ca381c5 100644
-> --- a/fs/ocfs2/alloc.h
-> +++ b/fs/ocfs2/alloc.h
-> @@ -239,6 +239,7 @@ int ocfs2_find_leaf(struct ocfs2_caching_info *ci,
->  		    struct buffer_head **leaf_bh);
->  int ocfs2_search_extent_list(struct ocfs2_extent_list *el, u32 v_cluster);
->  
-> +int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range);
->  /*
->   * Helper function to look at the # of clusters in an extent record.
->   */
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 59f0f6b..bdb2323 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -2402,6 +2402,16 @@ leave:
+ 	return ret;
+ }
+ 
++static int dlm_lockres_is_dirty(struct dlm_ctxt *dlm,
++				struct dlm_lock_resource *res)
++{
++	int ret;
++	spin_lock(&res->spinlock);
++	ret = !!(res->state & DLM_LOCK_RES_DIRTY);
++	spin_unlock(&res->spinlock);
++	return ret;
++}
++
+ /*
+  * DLM_MIGRATE_LOCKRES
+  */
+@@ -2463,6 +2473,20 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
+ 	}
+ 	ret = 0;
+ 
++	/* moved this out from dlm_mark_lockres_migrating,
++	 * to pervent the local recovery handler, migrate a dirty lockres.*/
++
++	/* now flush all the pending asts */
++	dlm_kick_thread(dlm, res);
++	/* before waiting on DIRTY, block processes which may
++	 * try to dirty the lockres before MIGRATING is set */
++	spin_lock(&res->spinlock);
++	BUG_ON(res->state & DLM_LOCK_RES_BLOCK_DIRTY);
++	res->state |= DLM_LOCK_RES_BLOCK_DIRTY;
++	spin_unlock(&res->spinlock);
++	/* now wait on any pending asts and the DIRTY state */
++	wait_event(dlm->ast_wq, !dlm_lockres_is_dirty(dlm, res));
++
+ 	/*
+ 	 * find a node to migrate the lockres to
+ 	 */
+@@ -2521,6 +2545,13 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
+ 	}
+ 
+ fail:
++	/* now no matter if it fails or not the block dirty state needs to
++	 * be cleared.*/
++	spin_lock(&res->spinlock);
++	BUG_ON(!(res->state & DLM_LOCK_RES_BLOCK_DIRTY));
++	res->state &= ~DLM_LOCK_RES_BLOCK_DIRTY;
++	spin_unlock(&res->spinlock);
++
+ 	if (oldmle) {
+ 		/* master is known, detach if not already detached */
+ 		dlm_mle_detach_hb_events(dlm, oldmle);
+@@ -2748,16 +2779,6 @@ static int dlm_migration_can_proceed(struct dlm_ctxt *dlm,
+ 	return can_proceed;
+ }
+ 
+-static int dlm_lockres_is_dirty(struct dlm_ctxt *dlm,
+-				struct dlm_lock_resource *res)
+-{
+-	int ret;
+-	spin_lock(&res->spinlock);
+-	ret = !!(res->state & DLM_LOCK_RES_DIRTY);
+-	spin_unlock(&res->spinlock);
+-	return ret;
+-}
+-
+ 
+ static int dlm_mark_lockres_migrating(struct dlm_ctxt *dlm,
+ 				       struct dlm_lock_resource *res,
+@@ -2778,16 +2799,6 @@ static int dlm_mark_lockres_migrating(struct dlm_ctxt *dlm,
+ 	__dlm_lockres_reserve_ast(res);
+ 	spin_unlock(&res->spinlock);
+ 
+-	/* now flush all the pending asts */
+-	dlm_kick_thread(dlm, res);
+-	/* before waiting on DIRTY, block processes which may
+-	 * try to dirty the lockres before MIGRATING is set */
+-	spin_lock(&res->spinlock);
+-	BUG_ON(res->state & DLM_LOCK_RES_BLOCK_DIRTY);
+-	res->state |= DLM_LOCK_RES_BLOCK_DIRTY;
+-	spin_unlock(&res->spinlock);
+-	/* now wait on any pending asts and the DIRTY state */
+-	wait_event(dlm->ast_wq, !dlm_lockres_is_dirty(dlm, res));
+ 	dlm_lockres_release_ast(dlm, res);
+ 
+ 	mlog(0, "about to wait on migration_wq, dirty=%s\n",
+@@ -2823,17 +2834,6 @@ again:
+ 	}
+ 	spin_unlock(&dlm->spinlock);
+ 
+-	/*
+-	 * if target is down, we need to clear DLM_LOCK_RES_BLOCK_DIRTY for
+-	 * another try; otherwise, we are sure the MIGRATING state is there,
+-	 * drop the unneded state which blocked threads trying to DIRTY
+-	 */
+-	spin_lock(&res->spinlock);
+-	BUG_ON(!(res->state & DLM_LOCK_RES_BLOCK_DIRTY));
+-	res->state &= ~DLM_LOCK_RES_BLOCK_DIRTY;
+-	if (!ret)
+-		BUG_ON(!(res->state & DLM_LOCK_RES_MIGRATING));
+-	spin_unlock(&res->spinlock);
+ 
+ 	/*
+ 	 * at this point:
+-- 
+1.7.0.4
