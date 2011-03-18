@@ -1,93 +1,135 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 18 Mar 2011 14:35:32 +0800
-Subject: [Ocfs2-devel] [PATCH 05/16] Ocfs2/move_extents: lock allocators and
-	reserve metadata blocks and data clusters for extents moving.
+Date: Fri, 18 Mar 2011 14:35:35 +0800
+Subject: [Ocfs2-devel] [PATCH 08/16] Ocfs2/move_extents: find the victim
+	alloc group, where the given #blk fits.
 In-Reply-To: <1300430143-23909-1-git-send-email-tristan.ye@oracle.com>
 References: <1300430143-23909-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1300430143-23909-6-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1300430143-23909-9-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_lock_allocators_move_extents() was like the common ocfs2_lock_allocators(),
-to lock metadata and data alloctors during extents moving, reserve appropriate
-metadata blocks and data clusters, also performa a best- effort to calculate the
-credits for journal transaction in one run of movement.
+This function tries locate the right alloc group, where a given physical block
+resides, it returns the caller a buffer_head of victim group descriptor, and also
+the offset of block in this group, by passing the block number.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/move_extents.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 61 insertions(+), 0 deletions(-)
+ fs/ocfs2/move_extents.c |  104 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 104 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index b79c2d3..9b30636 100644
+index 30ed5cb..f40eb9f 100644
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -55,3 +55,64 @@ struct ocfs2_move_extents_context {
- 	struct ocfs2_alloc_context *data_ac;
- 	struct ocfs2_cached_dealloc_ctxt dealloc;
- };
+@@ -352,3 +352,107 @@ out:
+ 
+ 	return ret;
+ }
 +
 +/*
-+ * lock allocators, and reserving appropriate number of bits for
-+ * meta blocks and data clusters.
-+ *
-+ * in some cases, we don't need to reserve clusters, just let data_ac
-+ * be NULL.
++ * find the victim alloc group, where #blkno fits.
 + */
-+static int ocfs2_lock_allocators_move_extents(struct inode *inode,
-+					struct ocfs2_extent_tree *et,
-+					u32 clusters_to_move,
-+					u32 extents_to_split,
-+					struct ocfs2_alloc_context **meta_ac,
-+					struct ocfs2_alloc_context **data_ac,
-+					int extra_blocks,
-+					int *credits)
++static int ocfs2_find_victim_alloc_group(struct inode *inode,
++					 u64 vict_blkno,
++					 int type, int slot,
++					 int *vict_bit,
++					 struct buffer_head **ret_bh)
 +{
-+	int ret, num_free_extents;
-+	unsigned int max_recs_needed = 2 * extents_to_split + clusters_to_move;
++	int ret, i, blocks_per_unit = 1;
++	u64 blkno;
++	char namebuf[40];
++
 +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	struct buffer_head *ac_bh = NULL, *gd_bh = NULL;
++	struct ocfs2_chain_list *cl;
++	struct ocfs2_chain_rec *rec;
++	struct ocfs2_dinode *ac_dinode;
++	struct ocfs2_group_desc *bg;
 +
-+	num_free_extents = ocfs2_num_free_extents(osb, et);
-+	if (num_free_extents < 0) {
-+		ret = num_free_extents;
-+		mlog_errno(ret);
++	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
++	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
++					 strlen(namebuf), &blkno);
++	if (ret) {
++		ret = -ENOENT;
 +		goto out;
 +	}
 +
-+	if (!num_free_extents ||
-+	    (ocfs2_sparse_alloc(osb) && num_free_extents < max_recs_needed))
-+		extra_blocks += ocfs2_extend_meta_needed(et->et_root_el);
-+
-+	ret = ocfs2_reserve_new_metadata_blocks(osb, extra_blocks, meta_ac);
++	ret = ocfs2_read_blocks_sync(osb, blkno, 1, &ac_bh);
 +	if (ret) {
 +		mlog_errno(ret);
 +		goto out;
 +	}
 +
-+	if (data_ac) {
-+		ret = ocfs2_reserve_clusters(osb, clusters_to_move, data_ac);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
++	ac_dinode = (struct ocfs2_dinode *)ac_bh->b_data;
++	cl = &(ac_dinode->id2.i_chain);
++	rec = &(cl->cl_recs[0]);
++
++	if (type == GLOBAL_BITMAP_SYSTEM_INODE)
++		blocks_per_unit <<= (osb->s_clustersize_bits -
++						inode->i_sb->s_blocksize_bits);
++	/*
++	 * 'vict_blkno' was out of the valid range.
++	 */
++	if ((vict_blkno < le64_to_cpu(rec->c_blkno)) ||
++	    (vict_blkno >= (le32_to_cpu(ac_dinode->id1.bitmap1.i_total) *
++				blocks_per_unit))) {
++		ret = -EINVAL;
++		goto out;
 +	}
 +
-+	*credits += ocfs2_calc_extend_credits(osb->sb, et->et_root_el,
-+					      clusters_to_move + 2);
++	for (i = 0; i < le16_to_cpu(cl->cl_next_free_rec); i++) {
 +
-+	mlog(0, "reserve metadata_blocks: %d, data_clusters: %u, credits: %d\n",
-+	     extra_blocks, clusters_to_move, *credits);
++		rec = &(cl->cl_recs[i]);
++		if (!rec)
++			continue;
++
++		bg = NULL;
++
++		do {
++			if (!bg)
++				blkno = le64_to_cpu(rec->c_blkno);
++			else
++				blkno = le64_to_cpu(bg->bg_next_group);
++
++			if (gd_bh) {
++				brelse(gd_bh);
++				gd_bh = NULL;
++			}
++
++			ret = ocfs2_read_blocks_sync(osb, blkno, 1, &gd_bh);
++			if (ret) {
++				mlog_errno(ret);
++				goto out;
++			}
++
++			bg = (struct ocfs2_group_desc *)gd_bh->b_data;
++
++			if (vict_blkno < (le64_to_cpu(bg->bg_blkno) +
++						le16_to_cpu(bg->bg_bits))) {
++
++				*ret_bh = gd_bh;
++				*vict_bit = (vict_blkno - blkno) /
++							blocks_per_unit;
++				mlog(0, "find the victim group: #%llu, "
++				     "total_bits: %u, vict_bit: %u\n",
++				     blkno, le16_to_cpu(bg->bg_bits),
++				     *vict_bit);
++				goto out;
++			}
++
++		} while (le64_to_cpu(bg->bg_next_group));
++	}
++
++	ret = -EINVAL;
 +out:
-+	if (ret) {
-+		if (*meta_ac) {
-+			ocfs2_free_alloc_context(*meta_ac);
-+			*meta_ac = NULL;
-+		}
-+	}
++	brelse(ac_bh);
 +
++	/*
++	 * caller has to release the gd_bh properly.
++	 */
 +	return ret;
 +}
 -- 
