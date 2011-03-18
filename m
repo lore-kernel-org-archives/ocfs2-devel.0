@@ -1,60 +1,56 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 18 Mar 2011 14:35:30 +0800
-Subject: [Ocfs2-devel] [PATCH 03/16] Ocfs2/move_extents: Adding new ioctl
-	code 'OCFS2_IOC_MOVE_EXT' to ocfs2.
+Date: Fri, 18 Mar 2011 14:35:28 +0800
+Subject: [Ocfs2-devel] [PATCH 01/16] Ocfs2/refcounttree: Fix a bug for
+	refcounttree to writeback clusters in a right number.
 In-Reply-To: <1300430143-23909-1-git-send-email-tristan.ye@oracle.com>
 References: <1300430143-23909-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1300430143-23909-4-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1300430143-23909-2-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Patch also manages to add a manipulative struture for this ioctl.
+Current refcounttree codes actually didn't writeback the new pages out in
+write-back mode, due to a bug of always passing a ZERO number of clusters
+to 'ocfs2_cow_sync_writeback', the patch tries to pass a proper one in.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/ocfs2_ioctl.h |   29 +++++++++++++++++++++++++++++
- 1 files changed, 29 insertions(+), 0 deletions(-)
+ fs/ocfs2/refcounttree.c |    7 +++++--
+ 1 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
-index b46f39b..f2be820 100644
---- a/fs/ocfs2/ocfs2_ioctl.h
-+++ b/fs/ocfs2/ocfs2_ioctl.h
-@@ -171,4 +171,33 @@ enum ocfs2_info_type {
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index b5f9160..19ebc5a 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -3228,7 +3228,7 @@ static int ocfs2_make_clusters_writable(struct super_block *sb,
+ 					u32 num_clusters, unsigned int e_flags)
+ {
+ 	int ret, delete, index, credits =  0;
+-	u32 new_bit, new_len;
++	u32 new_bit, new_len, orig_num_clusters;
+ 	unsigned int set_len;
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 	handle_t *handle;
+@@ -3261,6 +3261,8 @@ static int ocfs2_make_clusters_writable(struct super_block *sb,
+ 		goto out;
+ 	}
  
- #define OCFS2_IOC_INFO		_IOR('o', 5, struct ocfs2_info)
- 
-+struct ocfs2_move_extents {
-+/* All values are in bytes */
-+	/* in */
-+	__u64 me_start;		/* Virtual start in the file to move */
-+	__u64 me_len;		/* Length of the extents to be moved */
-+	__u64 me_goal;		/* Physical offset of the goal,
-+				   it's in block unit */
-+	__u64 me_thresh;	/* Maximum distance from goal or threshold
-+				   for auto defragmentation */
-+	__u64 me_flags;		/* Flags for the operation:
-+				 * - auto defragmentation.
-+				 * - refcount,xattr cases.
-+				 */
-+	/* out */
-+	__u64 me_moved_len;	/* Moved/defraged length */
-+	__u64 me_new_offset;	/* Resulting physical location */
-+	__u32 me_reserved[2];	/* Reserved for futhure */
-+};
++	orig_num_clusters = num_clusters;
 +
-+#define OCFS2_MOVE_EXT_FL_AUTO_DEFRAG	(0x00000001)	/* Kernel manages to
-+							   claim new clusters
-+							   as the goal place
-+							   for extents moving */
-+#define OCFS2_MOVE_EXT_FL_COMPLETE	(0x00000002)	/* Move or defragmenation
-+							   completely gets done.
-+							 */
-+
-+#define OCFS2_IOC_MOVE_EXT	_IOW('o', 6, struct ocfs2_move_extents)
-+
- #endif /* OCFS2_IOCTL_H */
+ 	while (num_clusters) {
+ 		ret = ocfs2_get_refcount_rec(ref_ci, context->ref_root_bh,
+ 					     p_cluster, num_clusters,
+@@ -3348,7 +3350,8 @@ static int ocfs2_make_clusters_writable(struct super_block *sb,
+ 	 * in write-back mode.
+ 	 */
+ 	if (context->get_clusters == ocfs2_di_get_clusters) {
+-		ret = ocfs2_cow_sync_writeback(sb, context, cpos, num_clusters);
++		ret = ocfs2_cow_sync_writeback(sb, context, cpos,
++					       orig_num_clusters);
+ 		if (ret)
+ 			mlog_errno(ret);
+ 	}
 -- 
 1.5.5
