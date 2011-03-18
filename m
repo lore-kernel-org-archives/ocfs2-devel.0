@@ -1,135 +1,92 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 18 Mar 2011 14:35:35 +0800
-Subject: [Ocfs2-devel] [PATCH 08/16] Ocfs2/move_extents: find the victim
-	alloc group, where the given #blk fits.
+Date: Fri, 18 Mar 2011 14:35:36 +0800
+Subject: [Ocfs2-devel] [PATCH 09/16] Ocfs2/move_extents: helper to validate
+	and adjust moving goal.
 In-Reply-To: <1300430143-23909-1-git-send-email-tristan.ye@oracle.com>
 References: <1300430143-23909-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1300430143-23909-9-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1300430143-23909-10-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This function tries locate the right alloc group, where a given physical block
-resides, it returns the caller a buffer_head of victim group descriptor, and also
-the offset of block in this group, by passing the block number.
+First best-effort attempt to validate and adjust the goal (physical address in
+block), while it can't guarantee later operation can succeed all the time since
+global_bitmap may change a bit over time.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/move_extents.c |  104 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 104 insertions(+), 0 deletions(-)
+ fs/ocfs2/move_extents.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 61 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 30ed5cb..f40eb9f 100644
+index f40eb9f..06f587b 100644
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -352,3 +352,107 @@ out:
- 
+@@ -456,3 +456,64 @@ out:
+ 	 */
  	return ret;
  }
 +
 +/*
-+ * find the victim alloc group, where #blkno fits.
++ * XXX: helper to validate and adjust moving goal.
 + */
-+static int ocfs2_find_victim_alloc_group(struct inode *inode,
-+					 u64 vict_blkno,
-+					 int type, int slot,
-+					 int *vict_bit,
-+					 struct buffer_head **ret_bh)
++static int ocfs2_validate_and_adjust_move_goal(struct inode *inode,
++					       struct ocfs2_move_extents *range)
 +{
-+	int ret, i, blocks_per_unit = 1;
-+	u64 blkno;
-+	char namebuf[40];
++	int ret, goal_bit = 0;
 +
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct buffer_head *ac_bh = NULL, *gd_bh = NULL;
-+	struct ocfs2_chain_list *cl;
-+	struct ocfs2_chain_rec *rec;
-+	struct ocfs2_dinode *ac_dinode;
++	struct buffer_head *gd_bh = NULL;
 +	struct ocfs2_group_desc *bg;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	int c_to_b = 1 << (osb->s_clustersize_bits -
++					inode->i_sb->s_blocksize_bits);
 +
-+	ocfs2_sprintf_system_inode_name(namebuf, sizeof(namebuf), type, slot);
-+	ret = ocfs2_lookup_ino_from_name(osb->sys_root_inode, namebuf,
-+					 strlen(namebuf), &blkno);
-+	if (ret) {
-+		ret = -ENOENT;
-+		goto out;
-+	}
-+
-+	ret = ocfs2_read_blocks_sync(osb, blkno, 1, &ac_bh);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ac_dinode = (struct ocfs2_dinode *)ac_bh->b_data;
-+	cl = &(ac_dinode->id2.i_chain);
-+	rec = &(cl->cl_recs[0]);
-+
-+	if (type == GLOBAL_BITMAP_SYSTEM_INODE)
-+		blocks_per_unit <<= (osb->s_clustersize_bits -
-+						inode->i_sb->s_blocksize_bits);
 +	/*
-+	 * 'vict_blkno' was out of the valid range.
++	 * validate goal sits within global_bitmap, and return the victim
++	 * group desc
 +	 */
-+	if ((vict_blkno < le64_to_cpu(rec->c_blkno)) ||
-+	    (vict_blkno >= (le32_to_cpu(ac_dinode->id1.bitmap1.i_total) *
-+				blocks_per_unit))) {
++	ret = ocfs2_find_victim_alloc_group(inode, range->me_goal,
++					    GLOBAL_BITMAP_SYSTEM_INODE,
++					    OCFS2_INVALID_SLOT,
++					    &goal_bit, &gd_bh);
++	if (ret)
++		goto out;
++
++	bg = (struct ocfs2_group_desc *)gd_bh->b_data;
++
++	/*
++	 * make goal become cluster aligned.
++	 */
++	if (range->me_goal % c_to_b)
++		range->me_goal = range->me_goal / c_to_b * c_to_b;
++
++	/*
++	 * moving goal is not allowd to start with a group desc blok(#0 blk)
++	 * let's compromise to the latter cluster.
++	 */
++	if (range->me_goal == le64_to_cpu(bg->bg_blkno))
++		range->me_goal += c_to_b;
++
++	/*
++	 * movement is not gonna cross two groups.
++	 */
++	if ((le16_to_cpu(bg->bg_bits) - goal_bit) * osb->s_clustersize <
++								range->me_len) {
 +		ret = -EINVAL;
 +		goto out;
 +	}
-+
-+	for (i = 0; i < le16_to_cpu(cl->cl_next_free_rec); i++) {
-+
-+		rec = &(cl->cl_recs[i]);
-+		if (!rec)
-+			continue;
-+
-+		bg = NULL;
-+
-+		do {
-+			if (!bg)
-+				blkno = le64_to_cpu(rec->c_blkno);
-+			else
-+				blkno = le64_to_cpu(bg->bg_next_group);
-+
-+			if (gd_bh) {
-+				brelse(gd_bh);
-+				gd_bh = NULL;
-+			}
-+
-+			ret = ocfs2_read_blocks_sync(osb, blkno, 1, &gd_bh);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+
-+			bg = (struct ocfs2_group_desc *)gd_bh->b_data;
-+
-+			if (vict_blkno < (le64_to_cpu(bg->bg_blkno) +
-+						le16_to_cpu(bg->bg_bits))) {
-+
-+				*ret_bh = gd_bh;
-+				*vict_bit = (vict_blkno - blkno) /
-+							blocks_per_unit;
-+				mlog(0, "find the victim group: #%llu, "
-+				     "total_bits: %u, vict_bit: %u\n",
-+				     blkno, le16_to_cpu(bg->bg_bits),
-+				     *vict_bit);
-+				goto out;
-+			}
-+
-+		} while (le64_to_cpu(bg->bg_next_group));
-+	}
-+
-+	ret = -EINVAL;
-+out:
-+	brelse(ac_bh);
-+
 +	/*
-+	 * caller has to release the gd_bh properly.
++	 * more exact validations/adjustments will be performed later during
++	 * moving operation for each extent range.
 +	 */
++	mlog(0, "extents get ready to be moved to #%llu block\n",
++	     range->me_goal);
++
++out:
++	brelse(gd_bh);
++
 +	return ret;
 +}
 -- 
