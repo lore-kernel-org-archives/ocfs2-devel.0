@@ -1,57 +1,60 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 14 Mar 2011 10:59:12 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/cluster: Increase the live threshold
-Message-ID: <1300125552-4302-1-git-send-email-sunil.mushran@oracle.com>
+From: Tristan Ye <tristan.ye@oracle.com>
+Date: Fri, 18 Mar 2011 14:35:30 +0800
+Subject: [Ocfs2-devel] [PATCH 03/16] Ocfs2/move_extents: Adding new ioctl
+	code 'OCFS2_IOC_MOVE_EXT' to ocfs2.
+In-Reply-To: <1300430143-23909-1-git-send-email-tristan.ye@oracle.com>
+References: <1300430143-23909-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1300430143-23909-4-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Double the live threshold for the first region in the global heartbeat
-mode. The default, 2, is bare minimum. Increasing it will affect all
-mounts in the local heartbeat mode. Instead we increase it only for
-the global heartbeat mode and that too only the first region. This is
-only to increase the margin of safety.
+Patch also manages to add a manipulative struture for this ioctl.
 
-Addresses internal Oracle bug#10635585.
-
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c |   13 ++++++++++++-
- 1 files changed, 12 insertions(+), 1 deletions(-)
+ fs/ocfs2/ocfs2_ioctl.h |   29 +++++++++++++++++++++++++++++
+ 1 files changed, 29 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index d633df0..f31baa7 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1697,6 +1697,7 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
- 	struct file *filp = NULL;
- 	struct inode *inode = NULL;
- 	ssize_t ret = -EINVAL;
-+	int live_threshold;
+diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
+index b46f39b..f2be820 100644
+--- a/fs/ocfs2/ocfs2_ioctl.h
++++ b/fs/ocfs2/ocfs2_ioctl.h
+@@ -171,4 +171,33 @@ enum ocfs2_info_type {
  
- 	if (reg->hr_bdev)
- 		goto out;
-@@ -1773,8 +1774,18 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
- 	 * A node is considered live after it has beat LIVE_THRESHOLD
- 	 * times.  We're not steady until we've given them a chance
- 	 * _after_ our first read.
-+	 * The default threshold is bare minimum so as to limit the delay
-+	 * during mounts. For global heartbeat, the threshold doubled for the
-+	 * first region.
- 	 */
--	atomic_set(&reg->hr_steady_iterations, O2HB_LIVE_THRESHOLD + 1);
-+	live_threshold = O2HB_LIVE_THRESHOLD;
-+	if (o2hb_global_heartbeat_active()) {
-+		spin_lock(&o2hb_live_lock);
-+		if (o2hb_pop_count(&o2hb_region_bitmap, O2NM_MAX_REGIONS) == 1)
-+			live_threshold <<= 1;
-+		spin_unlock(&o2hb_live_lock);
-+	}
-+	atomic_set(&reg->hr_steady_iterations, live_threshold + 1);
+ #define OCFS2_IOC_INFO		_IOR('o', 5, struct ocfs2_info)
  
- 	hb_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
- 			      reg->hr_item.ci_name);
++struct ocfs2_move_extents {
++/* All values are in bytes */
++	/* in */
++	__u64 me_start;		/* Virtual start in the file to move */
++	__u64 me_len;		/* Length of the extents to be moved */
++	__u64 me_goal;		/* Physical offset of the goal,
++				   it's in block unit */
++	__u64 me_thresh;	/* Maximum distance from goal or threshold
++				   for auto defragmentation */
++	__u64 me_flags;		/* Flags for the operation:
++				 * - auto defragmentation.
++				 * - refcount,xattr cases.
++				 */
++	/* out */
++	__u64 me_moved_len;	/* Moved/defraged length */
++	__u64 me_new_offset;	/* Resulting physical location */
++	__u32 me_reserved[2];	/* Reserved for futhure */
++};
++
++#define OCFS2_MOVE_EXT_FL_AUTO_DEFRAG	(0x00000001)	/* Kernel manages to
++							   claim new clusters
++							   as the goal place
++							   for extents moving */
++#define OCFS2_MOVE_EXT_FL_COMPLETE	(0x00000002)	/* Move or defragmenation
++							   completely gets done.
++							 */
++
++#define OCFS2_IOC_MOVE_EXT	_IOW('o', 6, struct ocfs2_move_extents)
++
+ #endif /* OCFS2_IOCTL_H */
 -- 
-1.7.1
+1.5.5
