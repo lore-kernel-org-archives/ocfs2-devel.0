@@ -1,39 +1,37 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Sat, 26 Mar 2011 15:48:10 -0700
-Subject: [Ocfs2-devel] [PATCH] Treat writes as new when holes span
- across page boundaries
-In-Reply-To: <AANLkTi=pEu5y4=kjG1YoLR+YCd7Ak21QaFQz=AR3dffX@mail.gmail.com>
-References: <AANLkTi=pEu5y4=kjG1YoLR+YCd7Ak21QaFQz=AR3dffX@mail.gmail.com>
-Message-ID: <20110326224810.GC8837@noexit>
+Date: Sat, 26 Mar 2011 15:48:36 -0700
+Subject: [Ocfs2-devel] [PATCH] fs,
+ ocfs2: Move o2net_get_func_run_time under CONFIG_OCFS2_FS_STATS.
+In-Reply-To: <AANLkTi=uysftkFdzEE2Xshg3br_tFB=hhZ4BwX-TzLm0@mail.gmail.com>
+References: <AANLkTi=uysftkFdzEE2Xshg3br_tFB=hhZ4BwX-TzLm0@mail.gmail.com>
+Message-ID: <20110326224836.GD8837@noexit>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Rakib Mullick <rakib.mullick@gmail.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com, Andrew Morton <akpm@linux-foundation.org>, Mark Fasheh <mfasheh@suse.com>, Sunil Mushran <sunil.mushran@oracle.com>
 
-On Thu, Feb 17, 2011 at 09:44:40AM -0600, Goldwyn Rodrigues wrote:
-> When a hole spans across page boundaries, the next write forces
-> a read of the block. This could end up reading existing garbage
-> data from the disk in ocfs2_map_page_blocks. This leads to
-> non-zero holes. In order to avoid this, mark the writes as new
-> when the holes span across page boundaries.
+On Fri, Mar 18, 2011 at 05:01:08PM +0600, Rakib Mullick wrote:
+> When CONFIG_DEBUG_FS=y and CONFIG_OCFS2_FS_STATS=n, we get the
+> following warning:
 > 
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+> fs/ocfs2/cluster/tcp.c:213:16: warning: ?o2net_get_func_run_time?
+> defined but not used
+> 
+> Since o2net_get_func_run_time is only called from
+> o2net_update_recv_stats, so move it under CONFIG_OCFS2_FS_STATS.
+> 
+> Signed-off-by: Rakib Mullick <rakib.mullick@gmail.com>
 
-This patch is now part of the merge-window branch of ocfs2.git.
-
-I'm still not sure this is the final fix.  I worry that it papers over
-our expectations of our new block/page/cluster code.  But we have more
-than report of the problem, and this seems to alleviate those reports.
-I can't see any way it breaks existing operation.  So I think it should
-go in while we later revisit whether it is the end of the discussion.
+This patch is now in the merge-window branch of ocfs2.git.
 
 Joel
 
 -- 
 
-"Behind every successful man there's a lot of unsuccessful years."
-        - Bob Brown
+"Here's a nickle -- get yourself a better X server."
+	- Keith Packard
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
