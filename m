@@ -1,219 +1,75 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 29 Mar 2011 10:11:25 +0800
-Subject: [Ocfs2-devel] [PATCH 2/3] Ocfs2: Add a new code
-	'OCFS2_INFO_FREEINODE' for o2info ioctl.
-In-Reply-To: <1301364686-4846-1-git-send-email-tristan.ye@oracle.com>
-References: <1301364686-4846-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1301364686-4846-2-git-send-email-tristan.ye@oracle.com>
+Date: Thu, 31 Mar 2011 15:33:30 +0800
+Subject: [Ocfs2-devel] [PATCH 1/3] VFS/ioctl: Add punching-hole support to
+	ioctl().
+Message-ID: <1301556810-8438-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com, josef@redhat.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org
+Cc: chris.mason@oracle.com
 
-The new code is dedicated to calculate free inodes number of all inode_allocs,
-then return the info to userpace in terms of an array.
-
-Specially, flag 'OCFS2_INFO_FL_NON_COHERENT', manipulated by '--cluster-coherent'
-from userspace, is now going to be involved. setting the flag on means no cluster
-coherency considered, usually, userspace tools choose none-coherency strategy by
-default for the sake of performace.
+We're currently support two paths from VFS to preallocate unwritten
+extents(from FS_IOC_RESVSP, or fallocate()), likewise, behavior of
+punching-hole should be treated as the same, this patch tries to teach
+file_ioctl() to handle FS_IOC_UNRESVSP, underlying filesystem like ocfs2
+is wise enough to do the rest of work;-)
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/ioctl.c       |  129 ++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/ocfs2_ioctl.h |   11 ++++
- 2 files changed, 140 insertions(+), 0 deletions(-)
+ fs/ioctl.c             |   10 +++++++---
+ include/linux/falloc.h |    2 ++
+ 2 files changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index fa09ded..ae7f89d 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -23,6 +23,9 @@
- #include "ioctl.h"
- #include "resize.h"
- #include "refcounttree.h"
-+#include "sysfile.h"
-+#include "dir.h"
-+#include "buffer_head_io.h"
+diff --git a/fs/ioctl.c b/fs/ioctl.c
+index 1d9b9fc..234e26f 100644
+--- a/fs/ioctl.c
++++ b/fs/ioctl.c
+@@ -422,7 +422,7 @@ EXPORT_SYMBOL(generic_block_fiemap);
+  * Only the l_start, l_len and l_whence fields of the 'struct space_resv'
+  * are used here, rest are ignored.
+  */
+-int ioctl_preallocate(struct file *filp, void __user *argp)
++int ioctl_preallocate(struct file *filp, void __user *argp, int mode)
+ {
+ 	struct inode *inode = filp->f_path.dentry->d_inode;
+ 	struct space_resv sr;
+@@ -443,7 +443,7 @@ int ioctl_preallocate(struct file *filp, void __user *argp)
+ 		return -EINVAL;
+ 	}
  
- #include <linux/ext2_fs.h>
- 
-@@ -53,6 +56,11 @@ static inline void o2info_clear_request_filled(struct ocfs2_info_request *req)
- 	req->ir_flags &= ~OCFS2_INFO_FL_FILLED;
+-	return do_fallocate(filp, FALLOC_FL_KEEP_SIZE, sr.l_start, sr.l_len);
++	return do_fallocate(filp, mode, sr.l_start, sr.l_len);
  }
  
-+static inline int o2info_coherent(struct ocfs2_info_request *req)
-+{
-+	return (!(req->ir_flags & OCFS2_INFO_FL_NON_COHERENT));
-+}
-+
- static int ocfs2_get_inode_attr(struct inode *inode, unsigned *flags)
- {
- 	int status;
-@@ -312,6 +320,123 @@ bail:
- 	return status;
- }
+ static int file_ioctl(struct file *filp, unsigned int cmd,
+@@ -459,7 +459,11 @@ static int file_ioctl(struct file *filp, unsigned int cmd,
+ 		return put_user(i_size_read(inode) - filp->f_pos, p);
+ 	case FS_IOC_RESVSP:
+ 	case FS_IOC_RESVSP64:
+-		return ioctl_preallocate(filp, p);
++		return ioctl_preallocate(filp, p, FALLOC_FL_KEEP_SIZE);
++	case FS_IOC_UNRESVSP:
++	case FS_IOC_UNRESVSP64:
++		return ioctl_preallocate(filp, p, FALLOC_FL_KEEP_SIZE |
++						  FALLOC_FL_PUNCH_HOLE);
+ 	}
  
-+int ocfs2_info_scan_inode_alloc(struct ocfs2_super *osb,
-+				struct inode *inode_alloc, u64 blkno,
-+				struct ocfs2_info_freeinode *fi, u32 slot)
-+{
-+	int status = 0, unlock = 0;
-+
-+	struct buffer_head *bh = NULL;
-+	struct ocfs2_dinode *dinode_alloc = NULL;
-+
-+	if (inode_alloc)
-+		mutex_lock(&inode_alloc->i_mutex);
-+
-+	if (o2info_coherent(&fi->ifi_req)) {
-+		status = ocfs2_inode_lock(inode_alloc, &bh, 0);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+		unlock = 1;
-+	} else {
-+		status = ocfs2_read_blocks_sync(osb, blkno, 1, &bh);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
-+
-+	dinode_alloc = (struct ocfs2_dinode *)bh->b_data;
-+
-+	fi->ifi_stat[slot].lfi_total =
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_total);
-+	fi->ifi_stat[slot].lfi_free =
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_total) -
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_used);
-+
-+bail:
-+	if (unlock)
-+		ocfs2_inode_unlock(inode_alloc, 0);
-+
-+	if (inode_alloc)
-+		mutex_unlock(&inode_alloc->i_mutex);
-+
-+	brelse(bh);
-+
-+	mlog_exit(status);
-+	return status;
-+}
-+
-+int ocfs2_info_handle_freeinode(struct inode *inode,
-+				struct ocfs2_info_request __user *req)
-+{
-+	u32 i;
-+	u64 blkno = -1;
-+	char namebuf[40];
-+	int status = -EFAULT, type = INODE_ALLOC_SYSTEM_INODE;
-+	struct ocfs2_info_freeinode *oifi = NULL;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct inode *inode_alloc = NULL;
-+
-+	oifi = kzalloc(sizeof(struct ocfs2_info_freeinode), GFP_KERNEL);
-+	if (!oifi) {
-+		status = -ENOMEM;
-+		mlog_errno(status);
-+		goto bail;
-+	}
-+
-+	if (o2info_from_user(*oifi, req))
-+		goto bail;
-+
-+	oifi->ifi_slotnum = osb->max_slots;
-+
-+	for (i = 0; i < oifi->ifi_slotnum; i++) {
-+		if (o2info_coherent(&oifi->ifi_req)) {
-+			inode_alloc = ocfs2_get_system_file_inode(osb, type, i);
-+			if (!inode_alloc) {
-+				mlog(ML_ERROR, "unable to get alloc inode in "
-+				    "slot %u\n", i);
-+				status = -EIO;
-+				goto bail;
-+			}
-+		} else {
-+			ocfs2_sprintf_system_inode_name(namebuf,
-+							sizeof(namebuf),
-+							type, i);
-+			status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-+							    namebuf,
-+							    strlen(namebuf),
-+							    &blkno);
-+			if (status < 0) {
-+				status = -ENOENT;
-+				goto bail;
-+			}
-+		}
-+
-+		status = ocfs2_info_scan_inode_alloc(osb, inode_alloc, blkno, oifi, i);
-+		if (status < 0)
-+			goto bail;
-+
-+		iput(inode_alloc);
-+		inode_alloc = NULL;
-+	}
-+
-+	o2info_set_request_filled(&oifi->ifi_req);
-+
-+	if (o2info_to_user(*oifi, req))
-+		goto bail;
-+
-+	status = 0;
-+bail:
-+	if (status)
-+		o2info_set_request_error(&oifi->ifi_req, req);
-+
-+	kfree(oifi);
-+
-+	return status;
-+}
-+
- int ocfs2_info_handle_unknown(struct inode *inode,
- 			      struct ocfs2_info_request __user *req)
- {
-@@ -383,6 +508,10 @@ int ocfs2_info_handle_request(struct inode *inode,
- 		if (oir.ir_size == sizeof(struct ocfs2_info_journal_size))
- 			status = ocfs2_info_handle_journal_size(inode, req);
- 		break;
-+	case OCFS2_INFO_FREEINODE:
-+		if (oir.ir_size == sizeof(struct ocfs2_info_freeinode))
-+			status = ocfs2_info_handle_freeinode(inode, req);
-+		break;
- 	default:
- 		status = ocfs2_info_handle_unknown(inode, req);
- 		break;
-diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
-index b46f39b..6b4b39a 100644
---- a/fs/ocfs2/ocfs2_ioctl.h
-+++ b/fs/ocfs2/ocfs2_ioctl.h
-@@ -142,6 +142,16 @@ struct ocfs2_info_journal_size {
- 	__u64 ij_journal_size;
+ 	return vfs_ioctl(filp, cmd, arg);
+diff --git a/include/linux/falloc.h b/include/linux/falloc.h
+index 73e0b62..fd1e871 100644
+--- a/include/linux/falloc.h
++++ b/include/linux/falloc.h
+@@ -21,7 +21,9 @@ struct space_resv {
  };
  
-+struct ocfs2_info_freeinode {
-+	struct ocfs2_info_request ifi_req;
-+	struct ocfs2_info_local_freeinode {
-+		__u64 lfi_total;
-+		__u64 lfi_free;
-+	} ifi_stat[OCFS2_MAX_SLOTS];
-+	__u32 ifi_slotnum; /* out */
-+	__u32 ifi_pad;
-+};
-+
- /* Codes for ocfs2_info_request */
- enum ocfs2_info_type {
- 	OCFS2_INFO_CLUSTERSIZE = 1,
-@@ -151,6 +161,7 @@ enum ocfs2_info_type {
- 	OCFS2_INFO_UUID,
- 	OCFS2_INFO_FS_FEATURES,
- 	OCFS2_INFO_JOURNAL_SIZE,
-+	OCFS2_INFO_FREEINODE,
- 	OCFS2_INFO_NUM_TYPES
- };
+ #define FS_IOC_RESVSP		_IOW('X', 40, struct space_resv)
++#define FS_IOC_UNRESVSP		_IOW('X', 41, struct space_resv)
+ #define FS_IOC_RESVSP64		_IOW('X', 42, struct space_resv)
++#define FS_IOC_UNRESVSP64	_IOW('X', 43, struct space_resv)
+ 
+ #endif /* __KERNEL__ */
  
 -- 
 1.5.5
