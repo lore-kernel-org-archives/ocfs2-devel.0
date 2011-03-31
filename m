@@ -1,34 +1,37 @@
 From: jeff.liu <jeff.liu@oracle.com>
-Date: Thu, 31 Mar 2011 16:51:35 +0800
+Date: Thu, 31 Mar 2011 16:54:43 +0800
 Subject: [Ocfs2-devel] Tiny patch for cached ACLs support
-In-Reply-To: <4D943CF1.6040207@tao.ma>
-References: <4D943B4B.8010206@oracle.com> <4D943CF1.6040207@tao.ma>
-Message-ID: <4D944097.1050903@oracle.com>
+In-Reply-To: <4D943E08.4020405@oracle.com>
+References: <4D943B4B.8010206@oracle.com> <4D943E08.4020405@oracle.com>
+Message-ID: <4D944153.3000904@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Tao,
+Hi Tristan,
 
-Tao Ma wrote:
-> Hi Jeff,
-> On 03/31/2011 04:28 PM, jeff.liu wrote:
+Thanks for you info, I'll definitely try it tonight.
+
+Regards,
+-Jeff
+
+Tristan Ye wrote:
+> jeff.liu wrote:
 >> Hello,
 >>
 >> Below is a tiny patch for adding cached ACLs support to OCFS2, I have run a few simple tests like
 >> getacl/setacl/chacl on my single node OCFS2, it works for me.
-> Your codes seem to not handle the case of cross node update? See node A
-> updates ACL, node B should abandon the old one.
-IMHO, cached ACLs are stored at VFS for each node instead of being synchronized among multiple
-nodes, hence it doesn't need to take care of that.
-
-Thanks,
--Jeff
 > 
-> Regards,
-> Tao
+> Hi Jeff,
+> 	Take a look at http://oss.oracle.com/git/ocfs2-test.git/programs/acl_tests,
+> there is a somewhat comprehensive testing script in existence for posix_acl,
+> maybe it can be a bit overkilling for your patch, but please just take it as a
+> double-checker if you wish;-)
+> 
+> 
+> 
 >> Any comments and testing are appreciated.
 >>
 >> Thanks,
