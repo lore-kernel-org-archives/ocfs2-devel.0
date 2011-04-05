@@ -1,38 +1,59 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Mon, 4 Apr 2011 10:51:50 -0700
-Subject: [Ocfs2-devel] [PATCH 3/3] Ocfs2: Cleanup for OCFS2_IOC_RESVSP &
- OCFS2_IOC_UNRESVSP.
-In-Reply-To: <4D94EE85.1010808@oracle.com>
-References: <1301556866-8460-1-git-send-email-tristan.ye@oracle.com>
-	<1301556866-8460-3-git-send-email-tristan.ye@oracle.com>
-	<4D94EE85.1010808@oracle.com>
-Message-ID: <20110404175150.GB17656@noexit>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue,  5 Apr 2011 15:21:08 -0700
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2/cluster: Increase the live threshold
+In-Reply-To: <1302042069-25565-1-git-send-email-sunil.mushran@oracle.com>
+References: <1302042069-25565-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1302042069-25565-3-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 31, 2011 at 02:13:41PM -0700, Sunil Mushran wrote:
-> On 03/31/2011 12:34 AM, Tristan Ye wrote:
-> >Given that VFS has alreay supported an entry to handle the unwritten_extents
-> >and punching-hole(is to be supported) by filp->f_op->fallocate(), our path of
-> >OCFS2_IOC_RESVSP becomes a bit redundant somehow, especially given the fact
-> >that ocfs2_fallocate() is working well.
+Double the live threshold for the first region in the global heartbeat
+mode. The default, 2, is bare minimum. Increasing it will affect all
+mounts in the local heartbeat mode. Instead we increase it only for
+the global heartbeat mode and that too only the first region. This is
+only to increase the margin of safety.
 
-Josef is planning to genericize the RESVP code via fallocate().  Let's
-wait until he is done to clean up our side.
+Addresses internal Oracle bug#10635585.
 
-Joel
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/cluster/heartbeat.c |   13 ++++++++++++-
+ 1 files changed, 12 insertions(+), 1 deletions(-)
 
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 2461eb3..ec50121 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1690,6 +1690,7 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
+ 	struct file *filp = NULL;
+ 	struct inode *inode = NULL;
+ 	ssize_t ret = -EINVAL;
++	int live_threshold;
+ 
+ 	if (reg->hr_bdev)
+ 		goto out;
+@@ -1766,8 +1767,18 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
+ 	 * A node is considered live after it has beat LIVE_THRESHOLD
+ 	 * times.  We're not steady until we've given them a chance
+ 	 * _after_ our first read.
++	 * The default threshold is bare minimum so as to limit the delay
++	 * during mounts. For global heartbeat, the threshold doubled for the
++	 * first region.
+ 	 */
+-	atomic_set(&reg->hr_steady_iterations, O2HB_LIVE_THRESHOLD + 1);
++	live_threshold = O2HB_LIVE_THRESHOLD;
++	if (o2hb_global_heartbeat_active()) {
++		spin_lock(&o2hb_live_lock);
++		if (o2hb_pop_count(&o2hb_region_bitmap, O2NM_MAX_REGIONS) == 1)
++			live_threshold <<= 1;
++		spin_unlock(&o2hb_live_lock);
++	}
++	atomic_set(&reg->hr_steady_iterations, live_threshold + 1);
+ 
+ 	hb_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
+ 			      reg->hr_item.ci_name);
 -- 
-
-"But then she looks me in the eye
- And says, 'We're going to last forever,'
- And man you know I can't begin to doubt it.
- Cause it just feels so good and so free and so right,
- I know we ain't never going to change our minds about it, Hey!
- Here comes my girl."
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+1.7.1
