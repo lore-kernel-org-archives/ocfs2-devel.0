@@ -1,69 +1,46 @@
-From: Kui Zhang <kuizhang@gmail.com>
-Date: Thu, 14 Apr 2011 23:07:31 -0700
-Subject: [Ocfs2-devel] ocfs2 1.6 2.6.38-2-amd64 kernel panic when unmount
-Message-ID: <BANLkTikp9qdgYwhtqrNMArqO9P4mAGSHXw@mail.gmail.com>
+From: Dan Magenheimer <dan.magenheimer@oracle.com>
+Date: Fri, 15 Apr 2011 07:47:57 -0700 (PDT)
+Subject: [Ocfs2-devel] [PATCH V8 4/8] mm/fs: add hooks to support
+	cleancache
+In-Reply-To: <BANLkTimEbtY8F6bpsfhfQ770ao9Hn7Spww@mail.gmail.com>
+References: <20110414211732.GA27761@ca-server1.us.oracle.com
+	BANLkTimEbtY8F6bpsfhfQ770ao9Hn7Spww@mail.gmail.com>
+Message-ID: <83ef8b69-f041-43e6-a5a9-880ff3da26f2@default>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Minchan Kim <minchan.kim@gmail.com>
+Cc: Chris Mason <chris.mason@oracle.com>, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger.kernel@dilger.ca, tytso@mit.edu, mfasheh@suse.com, jlbec@evilplan.org, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, hch@infradead.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, Kurt Hackel <kurt.hackel@oracle.com>, npiggin@kernel.dk, Dave Mccracken <dave.mccracken@oracle.com>, riel@redhat.com, avi@redhat.com, Konrad Wilk <konrad.wilk@oracle.com>, mel@csn.ul.ie, yinghan@google.com, gthelen@google.com, torvalds@linux-foundation.org
 
-Hello
+Hi Minchan --
 
-We have an ocfs2 1.6 via drbd dual master.
+> First of all, thanks for resolving conflict with my patch.
 
-drbd0 -> sda7 (node1)
-drbd0 -> sda7 (node2)
+You're welcome!  As I pointed out offlist, yours was the first
+change in MM that caused any semantic changes to the cleancache
+core hooks patch since before 2.6.18.
+ 
+> Before I suggested a thing about cleancache_flush_page,
+> cleancache_flush_inode.
+> 
+> what's the meaning of flush's semantic?
+> I thought it means invalidation.
+> AFAIC, how about change flush with invalidate?
 
-ocfs2 1.6 2.6.38-2-amd64 kernel panic when unmount.
+I'm not sure the words "flush" and "invalidate" are defined
+precisely or used consistently everywhere in computer
+science, but I think that "invalidate" is to destroy
+a "pointer" to some data, but not necessarily destroy the
+data itself.   And "flush" means to actually remove
+the data.  So one would "invalidate a mapping" but one
+would "flush a cache".
 
+Since cleancache_flush_page and cleancache_flush_inode
+semantically remove data from cleancache, I think flush
+is a better name than invalidate.
 
-when unmount drbd0 on both node around the same time using dsh.
+Does that make sense?
 
-umount -v /dev/drbd0
-
-the umount process hangs for a while, 30mins or so
-
-pts/0    D+   20:50   0:00 umount /dev/drbd0 -vvvvv
-
-Then, one of the node kernel panics
-
-Message from syslogd at node? at Apr 14 21:14:07 ...
- kernel:[ 3987.895005] ------------[ cut here ]------------
-
-Message from syslogd at node? at Apr 14 21:14:07 ...
- kernel:[ 3987.908454] invalid opcode: 0000 [#1] SMP
-
-Message from syslogd at node? at Apr 14 21:14:07 ...
- kernel:[ 3987.915264] last sysfs file: /sys/fs/ocfs2/loaded_cluster_plugins
-
-Message from syslogd at node? at Apr 14 21:14:07 ...
- kernel:[ 3988.101686] Stack:
-
-Message from syslogd at node? at Apr 14 21:14:07 ...
- kernel:[ 3988.135840] Call Trace:
-
-Message from syslogd at node? at Apr 14 21:14:07 ...
- kernel:[ 3988.328876] Code: 00 00 53 48 89 fb 89 c2 c1 fa 10 66 39 c2
-75 04 0f 0b eb fe f6 87 d2 00 00 00 20 74 05 e8 b5 47 ff ff f6 83 d2
-00 00 00 20 74 04 <0f> 0b eb fe f0 ff 83 ac 00 00 00 5b c3 55 48 89 fd
-53 48 89 f3
-
-Message from syslogd at node? at Apr 14 21:14:07 ...
- kernel:[ 3988.397108] Kernel panic - not syncing: Fatal exception
-
-Unmount on the other node finishes.
-
-[18066.352020] o2net: no longer connected to node node1 (num 1) at
-192.168.0.5:7777
-[18066.367353] ocfs2: Unmounting device (147,0) on (node 0)
-[18142.527745] o2net: accepted connection from node node1 (num 1) at
-192.168.0.5:7777
-[18146.144648] o2dlm: Nodes in domain 8FE8B448109C4DBEA78241004023AB1E: 0 1
-[18146.158441] ocfs2: Mounting device (147,0) on (node 0, slot 0) with
-ordered data mode.
-
-
-
-Thanks
-KuiZ
+Thanks,
+Dan
