@@ -1,66 +1,55 @@
-From: Ian Campbell <Ian.Campbell@eu.citrix.com>
-Date: Mon, 18 Apr 2011 17:03:47 +0100
-Subject: [Ocfs2-devel] [PATCH] xen: cleancache shim to Xen Transcendent
-	Memory
-In-Reply-To: <276f7410-ff4d-4a3b-ab9c-fd1b5fe8c952@default>
-References: <20110414212002.GA27846@ca-server1.us.oracle.com>
-	<1302904935.22658.9.camel@localhost.localdomain>
-	<5d23c6c4-5d68-4c2e-af24-2a08f592cb8e@default
-	1303116441.5997.107.camel@zakaz.uk.xensource.com>
-	<276f7410-ff4d-4a3b-ab9c-fd1b5fe8c952@default>
-Message-ID: <1303142627.5997.125.camel@zakaz.uk.xensource.com>
+From: Tao Ma <tm@tao.ma>
+Date: Sat, 23 Apr 2011 22:56:06 +0800
+Subject: [Ocfs2-devel] [Ocfs2-users] How long for an fsck?
+In-Reply-To: <4DB21BC1.8080704@oracle.com>
+References: <201104211543.29963.guerrero@ice.cat>	<201104211946.32493.guerrero@ice.cat>
+	<4DB1F431.5070003@oracle.com>	<201104230024.35576.guerrero@ice.cat>
+	<4DB21BC1.8080704@oracle.com>
+Message-ID: <4DB2E886.5090202@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dan Magenheimer <dan.magenheimer@oracle.com>
-Cc: Chris Mason <chris.mason@oracle.com>, viro@zeniv.linux.org.uk, akpm@linux-foundation.org, adilger.kernel@dilger.ca, tytso@mit.edu, mfasheh@suse.com, jlbec@evilplan.org, matthew@wil.cx, linux-btrfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org, hch@infradead.org, ngupta@vflare.org, jeremy@goop.org, JBeulich@novell.com, Kurt Hackel <kurt.hackel@oracle.com>, npiggin@kernel.dk, Dave Mccracken <dave.mccracken@oracle.com>, riel@redhat.com, avi@redhat.com, Konrad Wilk <konrad.wilk@oracle.com>, mel@csn.ul.ie, yinghan@google.com, gthelen@google.com, torvalds@linux-foundation.org
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, 2011-04-18 at 07:12 -0700, Dan Magenheimer wrote:
-> > From: Ian Campbell [mailto:Ian.Campbell at eu.citrix.com]
-> > > >
-> > > > On Thu, 2011-04-14 at 14:20 -0700, Dan Magenheimer wrote:
-> > > >
-> > > > There's no need to build this into a kernel which doesn't have
-> > > > cleancache (or one of the other frontends), is there? I think there
-> > > > should be a Kconfig option (even if its not a user visible one)
-> > with
-> > > > the appropriate depends/selects.
-> > >
-> > > Yes, you're right.  It should eventually depend on
-> > >
-> > > CONFIG_CLEANCACHE || CONFIG_FRONTSWAP
-> > >
-> > > though there's no sense merging this xen cleancache
-> > > shim at all unless/until Linus merges cleancache
-> > > (and hopefully later some evolution of frontswap).
-> > 
-> > Cleancache isn't in already? I thought I saw references to it in
-> > drivers/staging?
+Hi Josep,
+	sorry, I don't subscribed to ocfs2-users after I left Oracle.
+On 04/23/2011 08:22 AM, Sunil Mushran wrote:
+> On 04/22/2011 03:24 PM, Josep Guerrero wrote:
+>>> How long did the debugfs output take?
+>> I think about 30 minutes. No more than 50 for sure (just by looking at the
+>> times of the mails).
+>>
+>>> Did fsck eventually finish?
+>> No. I had to cancel it after it stayed 24 hours in the same state, showing the
+>> same message. It never moved beyond "Pass 0a", and always was using 100% CPU
+>> in one core. I don't know if it would have finished on its own.
+>>
+>>> BTW, you said one of the cores was at 100%. What does top show?
+>>> Is fsck the main contributor or is some other process spinning?
+>> It was fsck (I kept a top opened the whole time, and fsck always was around
+>> 99% CPU usage).
+>>
+>>> I have a theory as to why it is slow. But I would like some confirmation.
+>>> My theory had fsck have high wait%. I seem to be missing something.
+>> I didn't look at the wait%, but I checked the physical disk load with iotop
+>> and it was very low, so it didn't look like fsck was being slow because of the
+>> disk. In the filesystem I successfully "fscked" before (the 3 TB one that took
+>> less than 60 minutes), it started doing something similar (very high CPU
+>> usage, low disk load) but after several minutes (when the rest of the messages
+>> after "Pass 0a" appeared), it did just the opposite: low CPU use, high disk
+>> load. Both filesystems are physically on the same set of disks (the 16TB
+>> logical volume is an striped LVM volume that fills about 75% of the 21 physical
+>> disks and the 3TB is another striped LVM volume filling the remaining space of
+>> the same disks) so I don't think it's a problem with the physical devices (of
+>> course, I could be wrong).
 > 
-> Linus said he would review it after 2.6.39-rc1 was released,
-> but has neither given thumbs up nor thumbs down so I'm
-> assuming he didn't have time and it will be reconsidered
-> for 2.6.40.  This latest patchset (V8) is updated in linux-next.
+> File a bz. This will need some investigation.
 > 
-> Yes, zcache is in driver/staging and has references to it.
-> I guess that proves the chicken comes before the egg...
-> or was it vice versa? :-)
+> BTW, how much memory does your box have?
+So what is your version of fsck? I have met with some issue like that
+when fsck is allocating a large number of memories and it stucks for
+quite a long time of because of the swapping.
 
-Ah, I didn't realise that the relaxations associated with staging
-allowed for unsatisfiable (due to the other half being out of tree)
-Kconfig items as well.
- 
-> > > And once cleancache (and/or frontswap) is merged,
-> > > there's very little reason NOT to enable one or
-> > > both on a Xen guest kernel.
-> > 
-> > There are software knobs to allow the host- and guest-admin to opt in
-> > or out as they desire though, right?
-> 
-> Definitely.  Both Xen and a Linux guest have runtime
-> options, which currently default to off.
-
-Good to know, thanks!
-
-Ian.
+Regards,
+Tao
