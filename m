@@ -1,68 +1,46 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 22 Apr 2011 10:57:48 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2/cluster: Increase the live
-	threshold for global heartbeat
-Message-ID: <1303495068-30234-1-git-send-email-sunil.mushran@oracle.com>
+Date: Fri, 22 Apr 2011 17:22:25 -0700
+Subject: [Ocfs2-devel] [Ocfs2-users] How long for an fsck?
+In-Reply-To: <201104230024.35576.guerrero@ice.cat>
+References: <201104211543.29963.guerrero@ice.cat>
+	<201104211946.32493.guerrero@ice.cat> <4DB1F431.5070003@oracle.com>
+	<201104230024.35576.guerrero@ice.cat>
+Message-ID: <4DB21BC1.8080704@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We have seen isolated cases (very few, I might add) of o2hb not detecting all
-live nodes on startup. One plausible reasoning for it is that other node had
-a hb io delay at the same time. The live threshold set at 2 (as low as it can
-be) could be increased to ameliorate the situation.
+On 04/22/2011 03:24 PM, Josep Guerrero wrote:
+>> How long did the debugfs output take?
+> I think about 30 minutes. No more than 50 for sure (just by looking at the
+> times of the mails).
+>
+>> Did fsck eventually finish?
+> No. I had to cancel it after it stayed 24 hours in the same state, showing the
+> same message. It never moved beyond "Pass 0a", and always was using 100% CPU
+> in one core. I don't know if it would have finished on its own.
+>
+>> BTW, you said one of the cores was at 100%. What does top show?
+>> Is fsck the main contributor or is some other process spinning?
+> It was fsck (I kept a top opened the whole time, and fsck always was around
+> 99% CPU usage).
+>
+>> I have a theory as to why it is slow. But I would like some confirmation.
+>> My theory had fsck have high wait%. I seem to be missing something.
+> I didn't look at the wait%, but I checked the physical disk load with iotop
+> and it was very low, so it didn't look like fsck was being slow because of the
+> disk. In the filesystem I successfully "fscked" before (the 3 TB one that took
+> less than 60 minutes), it started doing something similar (very high CPU
+> usage, low disk load) but after several minutes (when the rest of the messages
+> after "Pass 0a" appeared), it did just the opposite: low CPU use, high disk
+> load. Both filesystems are physically on the same set of disks (the 16TB
+> logical volume is an striped LVM volume that fills about 75% of the 21 physical
+> disks and the 3TB is another striped LVM volume filling the remaining space of
+> the same disks) so I don't think it's a problem with the physical devices (of
+> course, I could be wrong).
 
-But increasing the threshold directly affects mount time. Currently it takes
-around 5 secs to mount a volume in o2cb cluster with local heartbeat. Increasing
-the threshold will make mounts even slower. As the issue itself is rare, we have
-left things as they are for the local heartbeat mode.
+File a bz. This will need some investigation.
 
-However we can improve the situation for global heartbeat mode as in that mode,
-we start the heartbeat much before the mount.
-
-This patch doubles the live threshold for the start of the first region in
-global heartbeat mode.
-
-Addresses internal Oracle bug#10635585.
-
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
----
- fs/ocfs2/cluster/heartbeat.c |   13 ++++++++++++-
- 1 files changed, 12 insertions(+), 1 deletions(-)
-
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 2461eb3..ec50121 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1690,6 +1690,7 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
- 	struct file *filp = NULL;
- 	struct inode *inode = NULL;
- 	ssize_t ret = -EINVAL;
-+	int live_threshold;
- 
- 	if (reg->hr_bdev)
- 		goto out;
-@@ -1766,8 +1767,18 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
- 	 * A node is considered live after it has beat LIVE_THRESHOLD
- 	 * times.  We're not steady until we've given them a chance
- 	 * _after_ our first read.
-+	 * The default threshold is bare minimum so as to limit the delay
-+	 * during mounts. For global heartbeat, the threshold doubled for the
-+	 * first region.
- 	 */
--	atomic_set(&reg->hr_steady_iterations, O2HB_LIVE_THRESHOLD + 1);
-+	live_threshold = O2HB_LIVE_THRESHOLD;
-+	if (o2hb_global_heartbeat_active()) {
-+		spin_lock(&o2hb_live_lock);
-+		if (o2hb_pop_count(&o2hb_region_bitmap, O2NM_MAX_REGIONS) == 1)
-+			live_threshold <<= 1;
-+		spin_unlock(&o2hb_live_lock);
-+	}
-+	atomic_set(&reg->hr_steady_iterations, live_threshold + 1);
- 
- 	hb_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
- 			      reg->hr_item.ci_name);
--- 
-1.7.1
+BTW, how much memory does your box have?
