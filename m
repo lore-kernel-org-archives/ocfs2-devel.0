@@ -1,34 +1,51 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Wed, 27 Apr 2011 22:06:02 -0000
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2/move_extents: Validate moving
- goal after the adjustment.
-In-Reply-To: <20110611195742.GA2141@mako-laptop>
-References: <20110611195742.GA2141@mako-laptop>
-Message-ID: <4DF42CEF.6020704@oracle.com>
+Date: Fri, 29 Apr 2011 01:51:06 -0000
+Subject: [Ocfs2-devel] [PATCH 1/1] Ocfs2: Fix a NULL pointer reference
+	somewhere in move_extents.c
+Message-ID: <1307947558-23552-1-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 06/12/2011 03:57 AM, Mariusz Kozlowski wrote:
-> Hi,
-> 
->   I think this one (ea5e1675 upstream) is wrong. Validation was moved
-> before 'bg' was assinged any sane value. Also 'bg' is defined with NULL
-> now so it hides real problem that 'bg' is used uninitialized. So currently
-> as 'bg' is NULL from the begining it will blow up with null pointer
-> dereference somewhere around test in line 489:
+That's really bad to deference the pointer 'bg' before it gets initialized.
 
+Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
+---
+ fs/ocfs2/move_extents.c |   13 +++++++------
+ 1 files changed, 7 insertions(+), 6 deletions(-)
 
-You're definitely correct, I'm blaming myself for not making things in
-order after moving the validation logic backwards a bit, thanks so much
-for pointing this out.
-
-Tristan.
-
-> 
-> 489:        if (range->me_goal == le64_to_cpu(bg->bg_blkno))
-> 490:	                range->me_goal += c_to_b;
-> 
-> Sorry for reply with no context but I'm not subscribed to ocfs2-devel.
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index cd94270..3f9797f 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -482,12 +482,6 @@ static int ocfs2_validate_and_adjust_move_goal(struct inode *inode,
+ 	 */
+ 	range->me_goal = ocfs2_block_to_cluster_start(inode->i_sb,
+ 						      range->me_goal);
+-	/*
+-	 * moving goal is not allowd to start with a group desc blok(#0 blk)
+-	 * let's compromise to the latter cluster.
+-	 */
+-	if (range->me_goal == le64_to_cpu(bg->bg_blkno))
+-		range->me_goal += c_to_b;
+ 
+ 	/*
+ 	 * validate goal sits within global_bitmap, and return the victim
+@@ -503,6 +497,13 @@ static int ocfs2_validate_and_adjust_move_goal(struct inode *inode,
+ 	bg = (struct ocfs2_group_desc *)gd_bh->b_data;
+ 
+ 	/*
++	 * moving goal is not allowd to start with a group desc blok(#0 blk)
++	 * let's compromise to the latter cluster.
++	 */
++	if (range->me_goal == le64_to_cpu(bg->bg_blkno))
++		range->me_goal += c_to_b;
++
++	/*
+ 	 * movement is not gonna cross two groups.
+ 	 */
+ 	if ((le16_to_cpu(bg->bg_bits) - goal_bit) * osb->s_clustersize <
+-- 
+1.5.5
