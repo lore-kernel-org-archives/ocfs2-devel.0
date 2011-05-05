@@ -1,29 +1,54 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 04 May 2011 13:09:39 -0700
-Subject: [Ocfs2-devel] freeing memory allocated in
-	security_inode_init_security()
-In-Reply-To: <1304536698.3227.36.camel@localhost.localdomain>
-References: <1304536698.3227.36.camel@localhost.localdomain>
-Message-ID: <4DC1B283.8080105@oracle.com>
+From: Mark Fasheh <mfasheh@suse.com>
+Date: Thu, 5 May 2011 10:44:11 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Initialize data_ac (might be used
+	uninitialized)
+Message-ID: <20110505174411.GB17822@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/04/2011 12:18 PM, Mimi Zohar wrote:
-> Although it isn't documented in security.c, the LSM
-> security_inode_init_security() hook allocates memory for xattr name and
-> value, expecting the caller to release the memory afterwards.
->
-> I'm making my way through the different filesystems adding a subsequent
-> call to evm_inode_post_init_security().  I see the call to
-> ocfs2_init_security_and_acl() calls ocfs2_init_security_get(), which in
-> turn calls security_inode_init_security(), but am having a hard time
-> finding where the name and value are subsequently freed.  Would
-> appreciate if someone could point it out.
+From: Marcus Meissner <meissner@suse.de>
 
-I think we have a leak in the reflink code path. mknod and symlink
-code paths free the name/value pair.
+CLANG found that there is a path that has data_ac uninitialized,
+this place
+	2917	/* This gets us the dx_root */
+	2918	ret = ocfs2_reserve_new_metadata_blocks(osb, 1, &meta_ac);
+	2919	if (ret) {
 
-Tiger, Please could you post a fix.
+	3
+		Taking true branch
+	2920	mlog_errno(ret);
+	2921	goto out;
+
+	4
+		Control jumps to line 3168
+	2922	}
+
+Goes to the out: label without data_ac being initialized.
+
+Ciao, Marcus
+
+Signed-Off-By: Marcus Meissner <meissner@suse.de>
+Signed-off-by: Mark Fasheh <mfasheh@suse.com>
+
+---
+ fs/ocfs2/dir.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 9fe5b8f..8582e3f 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -2868,7 +2868,7 @@ static int ocfs2_expand_inline_dir(struct inode *dir, struct buffer_head *di_bh,
+ 		bytes = blocks_wanted << sb->s_blocksize_bits;
+ 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+ 	struct ocfs2_inode_info *oi = OCFS2_I(dir);
+-	struct ocfs2_alloc_context *data_ac;
++	struct ocfs2_alloc_context *data_ac = NULL;
+ 	struct ocfs2_alloc_context *meta_ac = NULL;
+ 	struct buffer_head *dirdata_bh = NULL;
+ 	struct buffer_head *dx_root_bh = NULL;
+-- 
+1.7.4.1
