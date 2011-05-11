@@ -1,57 +1,71 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 10 May 2011 13:24:21 -0700
-Subject: [Ocfs2-devel] [PATCH 16/18] ocfs2: remove unnecessary
- dentry_unhash on rmdir/rename_dir
-In-Reply-To: <1305002616-16782-17-git-send-email-sage@newdream.net>
-References: <1305002616-16782-1-git-send-email-sage@newdream.net>
-	<1305002616-16782-17-git-send-email-sage@newdream.net>
-Message-ID: <20110510202420.GA29657@noexit.corp.google.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Tue, 10 May 2011 18:38:17 -0700
+Subject: [Ocfs2-devel] [Ocfs2-users] ocfs or configfs bug ?
+In-Reply-To: <4DAE26BA.3010203@oracle.com>
+References: <4DADA228.5050209@bull.net> <20110419194840.GA27826@noexit>
+	<4DAE26BA.3010203@oracle.com>
+Message-ID: <4DC9E889.3080008@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Sage Weil <sage@newdream.net>
-Cc: viro@ZenIV.linux.org.uk, hch@lst.de, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, May 09, 2011 at 09:43:34PM -0700, Sage Weil wrote:
-> Ocfs2 has no issues with lingering references to unlinked directory inodes.
-> 
-> CC: Mark Fasheh <mfasheh@suse.com>
-> CC: Joel Becker <jlbec@evilplan.org>
-> CC: ocfs2-devel at oss.oracle.com
-> Signed-off-by: Sage Weil <sage@newdream.net>
-> ---
->  fs/ocfs2/namei.c |    6 ------
->  1 files changed, 0 insertions(+), 6 deletions(-)
-> 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index f3582a6..e5d738c 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -810,9 +810,6 @@ static int ocfs2_unlink(struct inode *dir,
->  			   (unsigned long long)OCFS2_I(dir)->ip_blkno,
->  			   (unsigned long long)OCFS2_I(inode)->ip_blkno);
->  
-> -	if (S_ISDIR(inode->i_mode))
-> -		dentry_unhash(dentry);
-> -
+On 04/19/2011 05:20 PM, Sunil Mushran wrote:
+> On 04/19/2011 12:48 PM, Joel Becker wrote:
+>> 	You're too late here.  This is in the echo process (bash,
+>> really).  getdents() isn't happening.
+>> 	The problem is almost certainly in configfs.  It's a race
+>> between setup and teardown of the virtual attribute files.  If anyone
+>> else has a cycle to look at it, great, otherwise I'll try to get to it
+>> later this week.
+>
+> So we ran into it internally. This is what I wrote in the bug.
+>
+> /@ The matching code in configfs_readir() is:/
+> /@     name = configfs_get_name(next);/
+> /@     len = strlen(name);/
+> /@     if (next->s_dentry)/
+> /@            ino = next->s_dentry->d_inode->i_ino; <===/
+> /@     else/
+> /@            ino = iunique(configfs_sb, 2);/
+> /@ ./
+> /@     if (filldir(dirent, name, len, filp->f_pos, ino,/
+> /@                 dt_type(next)) < 0)/
+> /@            return 0;/
+> /@ ./
+> /@ The oops indicates that next->s_dentry->d_inode is NULL./
+>
+> Joel, does this give you any clues?
+>
+> BTW, thanks for the testcase. And yes, I can reproduce it easily.
 
-	I'm wary about this.  If ocfs2_unlink/ocfs2_rename fail,
-d_delete is not called.  Also, d_delete doesn't always clear it.  I
-worry that we'll have a dentry that can be traversed even though its
-state in the cluster is bad or unknown.
-	However, I think our d_revalidate checks should correctly catch
-these cases.  If we get to the point of doing actual work, we've
-assuredly told other nodes to forget about this directory.  So I'll
-tentatively Ack this, and hope it doesn't explode ;-)
+configfs_readdir() is racing configfs_d_delete(). And I cannot
+see how we can use the existing spinlock to prevent the race.
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
+sysfs uses a coarse lock sysfs_mutex to prevent against this.
+I think we should do the same in configfs.
 
+Comments?
 
--- 
+=============================================
+commit 3007e997de91ec59af39a3f9c91595b31ae6e08b
+Author: Tejun Heo <htejun@gmail.com>
+Date:   Thu Jun 14 04:27:23 2007 +0900
 
-"I inject pure kryptonite into my brain.
- It improves my kung fu, and it eases the pain."
+     sysfs: use sysfs_mutex to protect the sysfs_dirent tree
 
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+     As kobj sysfs dentries and inodes are gonna be made reclaimable,
+     i_mutex can't be used to protect sysfs_dirent tree.  Use sysfs_mutex
+     globally instead.  As the whole tree is protected with sysfs_mutex,
+     there is no reason to keep sysfs_rename_sem.  Drop it.
+
+     While at it, add docbook comments to functions which require
+     sysfs_mutex locking.
+
+     Signed-off-by: Tejun Heo <htejun@gmail.com>
+     Signed-off-by: Greg Kroah-Hartman <gregkh@suse.de>
+=============================================
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20110510/4219fe9b/attachment.html 
