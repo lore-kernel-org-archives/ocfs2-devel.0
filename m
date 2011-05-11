@@ -1,115 +1,42 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 11 May 2011 08:38:36 -0700
-Subject: [Ocfs2-devel] [PATCH] o2dlm: check lockres validity in
-	createlock
-In-Reply-To: <201105110448.p4B4mErr019249@acsmt357.oracle.com>
-References: <201105110448.p4B4mErr019249@acsmt357.oracle.com>
-Message-ID: <4DCAAD7C.6090007@oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Wed, 11 May 2011 13:14:31 -0500
+Subject: [Ocfs2-devel] [Ocfs2-users] How long for an fsck?
+In-Reply-To: <4DB2F701.2010103@oracle.com>
+References: <201104211543.29963.guerrero@ice.cat>
+	<201104211946.32493.guerrero@ice.cat> <4DB1F431.5070003@oracle.com>
+	<201104230024.35576.guerrero@ice.cat> <4DB21BC1.8080704@oracle.com>
+	<4DB2E886.5090202@tao.ma> <4DB2F701.2010103@oracle.com>
+Message-ID: <BANLkTiknwjh3YE8iX1Y8vebuxtToJKbyzA@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/11/2011 04:47 AM, Wengang Wang wrote:
-> When we are to purge a lockres, we check if it's unused.
-> the check includes
-> 1. no locks attached to the lockres.
-> 2. not dirty.
-> 3. not in recovery.
-> 4. no interested nodes in refmap.
-> If the the above four are satisfied, we are going to purge it(remove it
-> from hash table).
->
-> While, when a "create lock" is in progress especially when lockres is owned
-> remotely(spinlocks are dropped when networking), the lockres can satisfy above
-> four condition. If it's put to purge list, it can be purged out from hash table
-> when we are still accessing on it(sending request to owner for example). That's
-> not what we want.
+Hi,
 
-Create lock follows master query. And in master query handler we add
-the node to the refmap. That's the race refmap was created to close.
-Meaning we should not run into this condition.
+On Sat, Apr 23, 2011 at 10:57 AM, Sunil Mushran
+<sunil.mushran@oracle.com> wrote:
+> On 04/23/2011 07:56 AM, Tao Ma wrote:
+>>
+>> So what is your version of fsck? I have met with some issue like that
+>> when fsck is allocating a large number of memories and it stucks for
+>> quite a long time of because of the swapping.
+>
+> It is not that issue. It is in pass0. I assumed there was a problem
+> is in cluster allocation chains. But debugfs managed to scan the
+> chain. No loops. Looks ok. So unsure where it could be spinning.
+>
+> Note it is a 16T, ?4k/4k fs.
 
-Which version did this problem reproduce in?
 
-> I have met such a problem (orabug 12405575).
-> The lockres is in the purge list already(there is a delay for real purge work)
-> and the create lock request comes. When we are sending network message to the
-> owner in dlmlock_remote(), the owner crashed. So we get DLM_RECOVERING as return
-> value and retries dlmlock_remote(). And before the owner crash, we have purged
-> the lockres. So the lockres become stale(on lockres->onwer). Thus the code calls
-> dlmlock_remote() infinitely.
->
-> fix 1
-> This patch tries to fix it by checking if the lockres is still valid(in hash table)
-> before make request on it for each retry. It passed regression test.
->
-> fix 2
-> Another approch(not in this patch) is that we remove the lockres from purge list if
-> it's there in dlm_get_lock_resource() which is called for only createlock case. So
-> that the lockres can't be purged when we are in progress of createlock.
-> I didn't test it.
->
-> I think fix 1 is the safer and fix 2 is the better. I choosed fix 1.
->
-> Sunil, what's your comment?
->
-> Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
-> ---
->   fs/ocfs2/dlm/dlmlock.c |   28 ++++++++++++++++++++++++++++
->   1 files changed, 28 insertions(+), 0 deletions(-)
->
-> diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-> index 8d39e0f..02abaa1 100644
-> --- a/fs/ocfs2/dlm/dlmlock.c
-> +++ b/fs/ocfs2/dlm/dlmlock.c
-> @@ -570,6 +570,7 @@ enum dlm_status dlmlock(struct dlm_ctxt *dlm, int mode,
->   	struct dlm_lock_resource *res = NULL;
->   	struct dlm_lock *lock = NULL;
->   	int convert = 0, recovery = 0;
-> +	bool lockres_purged = false;
->
->   	/* yes this function is a mess.
->   	 * TODO: clean this up.  lots of common code in the
-> @@ -681,6 +682,7 @@ retry_convert:
->   		if (!recovery)
->   			dlm_wait_for_recovery(dlm);
->
-> +lookup_res:
->   		/* find or create the lock resource */
->   		res = dlm_get_lock_resource(dlm, name, namelen, flags);
->   		if (!res) {
-> @@ -698,6 +700,32 @@ retry_convert:
->   		lock->astdata = data;
->
->   retry_lock:
-> +		/* there is a chance that the lockres is already be purged out
-> +		 * from the hash table and it can become a stale one. obviously
-> +		 * accessing on a stale lockres is not what we want. the case
-> +		 * we ever see is the owner dead(recovery didn't take care of
-> +		 * this lockres since it's not in hashtable), and the code keep
-> +		 * sending request to the dead node and getting DLM_RECOVERING
-> +		 * and then retrying infinitely.
-> +		 * we check if the lockres has been purged here and redo the
-> +		 * lookup if it has been to avoid infinite loop.
-> +		 */
-> +		lockres_purged = false;
-> +		spin_lock(&dlm->spinlock);
-> +		spin_lock(&res->spinlock);
-> +		if (unlikely(hlist_unhashed(&res->hash_node))) {
-> +			lockres_purged = true;
-> +		}
-> +		spin_unlock(&res->spinlock);
-> +		spin_unlock(&dlm->spinlock);
-> +		if (lockres_purged) {
-> +			dlm_lock_detach_lockres(lock);
-> +			mlog(ML_NOTICE, "going to relookup lockres %.*s\n", res->lockname.len, res->lockname.name);
-> +			dlm_lockres_put(res);
-> +			res = NULL;
-> +			goto lookup_res;
-> +		}
-> +
->   		if (flags&  LKM_VALBLK) {
->   			mlog(0, "LKM_VALBLK passed by caller\n");
->
+
+We had a similar problem which was fixed by
+commit 2d741da9367b33f559802dfabe62d96f6adc7777
+
+Version number would be helpful.
+
+Regards,
+
+-- 
+Goldwyn
