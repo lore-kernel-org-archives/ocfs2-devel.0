@@ -1,41 +1,34 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 12 May 2011 19:35:38 -0700
-Subject: [Ocfs2-devel] [PATCH] o2dlm: check lockres validity in
-	createlock
-In-Reply-To: <20110512085705.GA19435@laptop.jp.oracle.com>
-References: <201105110448.p4B4mErr019249@acsmt357.oracle.com>
-	<4DCAAD7C.6090007@oracle.com> <4DCADE48.6020101@oracle.com>
-	<20110512085705.GA19435@laptop.jp.oracle.com>
-Message-ID: <4DCC98FA.2060000@oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Fri, 13 May 2011 08:28:04 -0500
+Subject: [Ocfs2-devel] ocfs2 crashes on xfstest 013
+In-Reply-To: <4DCBD469.3090201@oracle.com>
+References: <BANLkTi=VjeRc_6t-4vmCxpvwRAxCYjB_KA@mail.gmail.com>
+	<4DCBD469.3090201@oracle.com>
+Message-ID: <BANLkTimwERrLio8N6d-JrR9KJgQgv3NQCw@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/12/2011 01:57 AM, Wengang Wang wrote:
-> On 11-05-11 12:06, Sunil Mushran wrote:
->> Oh a remote master. So ignore my previous reply.
->>
->> Yes, I can see the race. But the fix below lets the purge to continue
->> and handles it afterwards. A better approach (and more efficient)
->> would be to remove the lockres from the purge list itself.
->>
->> So the race window is between the first block in dlm_get_lock_resource()
->> and dlm_lock_remote().
->>
->> See dlm->inflight_locks. Currently we use this when lockres is locally
->> mastered. Maybe we could use the same for locally mastered too.
-> Sunil,
->
-> So the only purpose of inflight_locks is to prevent the lockres from
-> being purged, right?
->
-> I think only removing the lockres from the purge list is enough.
->
-> If we hack on inflight_locks, we don't need to remove the lockres from purge list,
-> right?
+Hi Tristan,
 
-Yes. But you have to be careful. inflight_locks currently is used
-to prevent a race in locally mastered resources. I think we can
-use it for remotely mastered too.
+On Thu, May 12, 2011 at 7:36 AM, Tristan Ye <tristan.ye@oracle.com> wrote:
+> Hi Goldwyn,
+> ? ? ? ?The root cause was due to we didn't skip an existing hole somewhere when
+> punching a hole, to speak more accurately, the bug occurs at the time when we
+> removing a partial extent record(which also means the last extent record to
+> remove), as a result, the hole-punching code attempts to remove more than the
+> length of whole extent record, which leads to the failure of following
+> assert(fs/ocfs2/alloc.c):
+>
+> 5507 ? ? ? ? BUG_ON(cpos < le32_to_cpu(rec->e_cpos) || trunc_range > rec_range);
+>
+> ? ? ? ?Could you please make a verification against my coming patch, I passed xfs's
+> 013 testcase with the patch;-)
+>
+
+Did you post this patch? ... or am I being impatient?
+
+-- 
+Goldwyn
