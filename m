@@ -1,53 +1,35 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Sat, 14 May 2011 21:35:26 +0800
-Subject: [Ocfs2-devel] ocfs2 crashes on xfstest 013
-In-Reply-To: <BANLkTikRdsPs00jKP4uFEOmArzcyqn8PKQ@mail.gmail.com>
-References: <BANLkTi=VjeRc_6t-4vmCxpvwRAxCYjB_KA@mail.gmail.com>	<4DCBD469.3090201@oracle.com>	<BANLkTimwERrLio8N6d-JrR9KJgQgv3NQCw@mail.gmail.com>	<4DCD640D.4060408@oracle.com>
-	<BANLkTikRdsPs00jKP4uFEOmArzcyqn8PKQ@mail.gmail.com>
-Message-ID: <4DCE851E.8090703@oracle.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Wed, 18 May 2011 03:49:56 -0700
+Subject: [Ocfs2-devel] [Ocfs2-users] ocfs or configfs bug ?
+In-Reply-To: <4DC9E889.3080008@oracle.com>
+References: <4DADA228.5050209@bull.net> <20110419194840.GA27826@noexit>
+	<4DAE26BA.3010203@oracle.com> <4DC9E889.3080008@oracle.com>
+Message-ID: <20110518104955.GA7330@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/14/2011 04:11 AM, Goldwyn Rodrigues wrote:
-> Hi,
+On Tue, May 10, 2011 at 06:38:17PM -0700, Sunil Mushran wrote:
+> configfs_readdir() is racing configfs_d_delete(). And I cannot
+> see how we can use the existing spinlock to prevent the race.
 > 
-> On Fri, May 13, 2011 at 12:02 PM, Sunil Mushran
-> <sunil.mushran@oracle.com> wrote:
->>> On Thu, May 12, 2011 at 7:36 AM, Tristan Ye<tristan.ye@oracle.com>  wrote:
->>>>
->>>> Hi Goldwyn,
->>>>        The root cause was due to we didn't skip an existing hole
->>>> somewhere when
->>>> punching a hole, to speak more accurately, the bug occurs at the time
->>>> when we
->>>> removing a partial extent record(which also means the last extent record
->>>> to
->>>> remove), as a result, the hole-punching code attempts to remove more than
->>>> the
->>>> length of whole extent record, which leads to the failure of following
->>>> assert(fs/ocfs2/alloc.c):
->>>>
->>>> 5507         BUG_ON(cpos<  le32_to_cpu(rec->e_cpos) || trunc_range>
->>>>  rec_range);
->>>>
->>>>        Could you please make a verification against my coming patch, I
->>>> passed xfs's
->>>> 013 testcase with the patch;-)
->>>>
->>> Did you post this patch? ... or am I being impatient?
->>>
->> Yes, he posted it.
->>
->> http://oss.oracle.com/pipermail/ocfs2-devel/2011-May/008077.html
->>
-> 
-> Somehow, it did not reach my mailbox.
-> The patch works for me. Thanks for patching up.
+> sysfs uses a coarse lock sysfs_mutex to prevent against this.
+> I think we should do the same in configfs.
 
-Glad that you finally got it and it successfully fix your issue up;)
+	sysfs_mutex is peppered everywhere.  It's rather ugly, I think.
+I am thinking about how the code reads.  I admit I also don't like that
+sysfs_mutex serializes all accesses to the sysfs directory tree, but I'd
+be OK with that as a stopgap solution if the code only read better.
 
-> 
-> Regards,
+Joel
+
+-- 
+
+"The nice thing about egotists is that they don't talk about other
+ people."
+         - Lucille S. Harper
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
