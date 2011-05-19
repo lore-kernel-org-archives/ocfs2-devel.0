@@ -1,51 +1,27 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Wed, 18 May 2011 14:07:19 -0700
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 and configfs fixes for 2.6.39-rc
-Message-ID: <20110518210719.GE5898@noexit.corp.google.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed, 18 May 2011 19:44:42 -0700
+Subject: [Ocfs2-devel] SEEK_DATA/HOLE on ocfs2 - v2
+Message-ID: <1305773084-19296-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
-
-Linus et al,
-	Here are the last ocfs2 and configfs fixes for 2.6.39-rc.
-These include a configfs crash and a compatibility regression in the
-ocfs2 internal DLM.
-	Please pull.
+To: josef@redhat.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, viro@ZenIV.linux.org.uko
 
 
-The following changes since commit 446cc6345d3de6571bdd0840f48aca441488a28d:
+Two patches follow this message. One fixes the default implementation
+of SEEK_HOLE/DATA. This patch applies atop Josef's last posted patch.
+The second patch implements the same on ocfs2.
 
-  Merge branch 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/ericvh/v9fs (2011-05-12 18:00:09 -0700)
+The test tool for the same is available here.
+http://oss.oracle.com/~smushran/seek_data/seek_test.c
 
-are available in the git repository at:
+It is improved since the last post. It runs cleanly on zfs, ocfs2 and ext3
+(default behavior). Users testing on zfs will need to flip the values of
+SEEK_HOLE/DATA.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git fixes
+The results on ext4 and btrfs are also available here.
+http://oss.oracle.com/~smushran/seek_data/
 
-Joel Becker (2):
-      configfs: Don't try to d_delete() negative dentries.
-      configfs: Fix race between configfs_readdir() and configfs_d_iput()
-
-Marcus Meissner (1):
-      ocfs2: Initialize data_ac (might be used uninitialized)
-
-Sunil Mushran (5):
-      ocfs2/dlm: Use negotiated o2dlm protocol version
-      ocfs2/cluster: Increase the live threshold for global heartbeat
-      ocfs2/cluster: Heartbeat mismatch message improved
-      ocfs2: Skip mount recovery for hard-ro mounts
-      ocfs2/dlm: Target node death during resource migration leads to thread spin
-
-Tristan Ye (1):
-      ocfs2: skip existing hole when removing the last extent_rec in punching-hole codes.
-
- fs/configfs/dir.c            |   39 ++++++++++++++++++++++-----
- fs/ocfs2/cluster/heartbeat.c |   61 +++++++++++++++++++++++++++++------------
- fs/ocfs2/dir.c               |    2 +-
- fs/ocfs2/dlm/dlmdomain.c     |    3 +-
- fs/ocfs2/dlm/dlmmaster.c     |    3 ++
- fs/ocfs2/file.c              |   12 ++++++++
- fs/ocfs2/journal.c           |    3 ++
- 7 files changed, 96 insertions(+), 27 deletions(-)
+Thanks
+Sunil
