@@ -1,96 +1,234 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 23 May 2011 12:39:02 -0700
-Subject: [Ocfs2-devel] [PATCH 3/3 V3] ocfs2: Add trace event for trim.
-In-Reply-To: <1306118205-3148-3-git-send-email-tm@tao.ma>
-References: <4DD9C1A3.5020005@tao.ma>	<1306118205-3148-1-git-send-email-tm@tao.ma>
-	<1306118205-3148-3-git-send-email-tm@tao.ma>
-Message-ID: <4DDAB7D6.5050106@oracle.com>
+Date: Mon, 23 May 2011 16:55:12 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Implement llseek()
+In-Reply-To: <1306194912-29893-1-git-send-email-sunil.mushran@oracle.com>
+References: <1306194912-29893-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1306194912-29893-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: josef@redhat.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, viro@ZenIV.linux.org.uko
 
-Reviewed-by: Sunil Mushran<sunil.mushran@oracle.com>
+ocfs2 implements its own llseek() to provide the SEEK_HOLE/SEEK_DATA
+functionality.
 
+SEEK_HOLE sets the file pointer to the start of either a hole or an unwritten
+(preallocated) extent, that is greater than or equal to the supplied offset.
 
+SEEK_DATA sets the file pointer to the start of an allocated extent (not
+unwritten) that is greater than or equal to the supplied offset.
 
-On 05/22/2011 07:36 PM, Tao Ma wrote:
-> From: Tao Ma<boyu.mt@taobao.com>
->
-> Add the corresponding trace event for trim.
->
-> Signed-off-by: Tao Ma<boyu.mt@taobao.com>
-> ---
->   fs/ocfs2/alloc.c       |    7 +++++++
->   fs/ocfs2/ocfs2_trace.h |   25 +++++++++++++++++++++++++
->   2 files changed, 32 insertions(+), 0 deletions(-)
->
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index ae3ea78..ed553c6 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -7196,6 +7196,8 @@ static int ocfs2_trim_extent(struct super_block *sb,
->   	discard = le64_to_cpu(gd->bg_blkno) +
->   			ocfs2_clusters_to_blocks(sb, start);
->
-> +	trace_ocfs2_trim_extent(sb, (unsigned long long)discard, bcount);
-> +
->   	return sb_issue_discard(sb, discard, bcount, GFP_NOFS, 0);
->   }
->
-> @@ -7209,6 +7211,9 @@ static int ocfs2_trim_group(struct super_block *sb,
->   	if (le16_to_cpu(gd->bg_free_bits_count)<  minbits)
->   		return 0;
->
-> +	trace_ocfs2_trim_group((unsigned long long)le64_to_cpu(gd->bg_blkno),
-> +			       start, max, minbits);
-> +
->   	while (start<  max) {
->   		start = ocfs2_find_next_zero_bit(bitmap, max, start);
->   		if (start>= max)
-> @@ -7292,6 +7297,8 @@ int ocfs2_trim_fs(struct super_block *sb, struct fstrim_range *range)
->   	if (start + len>  le32_to_cpu(main_bm->i_clusters))
->   		len = le32_to_cpu(main_bm->i_clusters) - start;
->
-> +	trace_ocfs2_trim_fs(start, len, minlen);
-> +
->   	/* Determine first and last group to examine based on start and len */
->   	first_group = ocfs2_which_cluster_group(main_bm_inode, start);
->   	if (first_group == osb->first_cluster_group_blkno)
-> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-> index a1dae5b..3b481f4 100644
-> --- a/fs/ocfs2/ocfs2_trace.h
-> +++ b/fs/ocfs2/ocfs2_trace.h
-> @@ -688,6 +688,31 @@ TRACE_EVENT(ocfs2_cache_block_dealloc,
->   		  __entry->blkno, __entry->bit)
->   );
->
-> +TRACE_EVENT(ocfs2_trim_extent,
-> +	TP_PROTO(struct super_block *sb, unsigned long long blk,
-> +		 unsigned long long count),
-> +	TP_ARGS(sb, blk, count),
-> +	TP_STRUCT__entry(
-> +		__field(int, dev_major)
-> +		__field(int, dev_minor)
-> +		__field(unsigned long long, blk)
-> +		__field(__u64,	count)
-> +	),
-> +	TP_fast_assign(
-> +		__entry->dev_major = MAJOR(sb->s_dev);
-> +		__entry->dev_minor = MINOR(sb->s_dev);
-> +		__entry->blk = blk;
-> +		__entry->count = count;
-> +	),
-> +	TP_printk("%d %d %llu %llu",
-> +		  __entry->dev_major, __entry->dev_minor,
-> +		  __entry->blk, __entry->count)
-> +);
-> +
-> +DEFINE_OCFS2_ULL_UINT_UINT_UINT_EVENT(ocfs2_trim_group);
-> +
-> +DEFINE_OCFS2_ULL_ULL_ULL_EVENT(ocfs2_trim_fs);
-> +
->   /* End of trace events for fs/ocfs2/alloc.c. */
->
->   /* Trace events for fs/ocfs2/localalloc.c. */
+If the supplied offset is on a desired region, then the file pointer is set
+to it. Offsets greater than or equal to the file size return -ENXIO.
+
+Unwritten (preallocated) extents are considered holes because the file system
+treats reads to such regions in the same way as it does to holes.
+
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/extent_map.c |   96 +++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/extent_map.h |    2 +
+ fs/ocfs2/file.c       |   53 ++++++++++++++++++++++++++-
+ 3 files changed, 149 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+index 23457b4..2f5b92e 100644
+--- a/fs/ocfs2/extent_map.c
++++ b/fs/ocfs2/extent_map.c
+@@ -832,6 +832,102 @@ out:
+ 	return ret;
+ }
+ 
++int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int origin)
++{
++	struct inode *inode = file->f_mapping->host;
++	int ret;
++	unsigned int is_last = 0, is_data = 0;
++	u16 cs_bits = OCFS2_SB(inode->i_sb)->s_clustersize_bits;
++	u32 cpos, cend, clen, hole_size;
++	u64 extoff, extlen;
++	struct buffer_head *di_bh = NULL;
++	struct ocfs2_extent_rec rec;
++
++	BUG_ON(origin != SEEK_DATA && origin != SEEK_HOLE);
++
++	ret = ocfs2_inode_lock(inode, &di_bh, 0);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
++
++	down_read(&OCFS2_I(inode)->ip_alloc_sem);
++
++	if (*offset >= inode->i_size) {
++		ret = -ENXIO;
++		goto out_unlock;
++	}
++
++	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
++		if (origin == SEEK_HOLE)
++			*offset = inode->i_size;
++		goto out_unlock;
++	}
++
++	clen = 0;
++	cpos = *offset >> cs_bits;
++	cend = ocfs2_clusters_for_bytes(inode->i_sb, inode->i_size);
++
++	while (cpos < cend && !is_last) {
++		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos, &hole_size,
++						 &rec, &is_last);
++		if (ret) {
++			mlog_errno(ret);
++			goto out_unlock;
++		}
++
++		extoff = cpos;
++		extoff <<= cs_bits;
++
++		if (rec.e_blkno == 0ULL) {
++			clen = hole_size;
++			is_data = 0;
++		} else {
++			clen = le16_to_cpu(rec.e_leaf_clusters) -
++				(cpos - le32_to_cpu(rec.e_cpos));
++			is_data = (rec.e_flags & OCFS2_EXT_UNWRITTEN) ?  0 : 1;
++		}
++
++		if ((!is_data && origin == SEEK_HOLE) ||
++		    (is_data && origin == SEEK_DATA)) {
++			if (extoff > *offset)
++				*offset = extoff;
++			goto out_unlock;
++		}
++
++		if (!is_last)
++			cpos += clen;
++	}
++
++	if (origin == SEEK_HOLE) {
++		extoff = cpos;
++		extoff <<= cs_bits;
++		extlen = clen;
++		extlen <<=  cs_bits;
++
++		if ((extoff + extlen) > inode->i_size)
++			extlen = inode->i_size - extoff;
++		extoff += extlen;
++		if (extoff > *offset)
++			*offset = extoff;
++		goto out_unlock;
++	}
++
++	ret = -ENXIO;
++
++out_unlock:
++
++	brelse(di_bh);
++
++	up_read(&OCFS2_I(inode)->ip_alloc_sem);
++
++	ocfs2_inode_unlock(inode, 0);
++out:
++	if (ret && ret != -ENXIO)
++		ret = -ENXIO;
++	return ret;
++}
++
+ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
+ 			   struct buffer_head *bhs[], int flags,
+ 			   int (*validate)(struct super_block *sb,
+diff --git a/fs/ocfs2/extent_map.h b/fs/ocfs2/extent_map.h
+index e79d41c..67ea57d 100644
+--- a/fs/ocfs2/extent_map.h
++++ b/fs/ocfs2/extent_map.h
+@@ -53,6 +53,8 @@ int ocfs2_extent_map_get_blocks(struct inode *inode, u64 v_blkno, u64 *p_blkno,
+ int ocfs2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+ 		 u64 map_start, u64 map_len);
+ 
++int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int origin);
++
+ int ocfs2_xattr_get_clusters(struct inode *inode, u32 v_cluster,
+ 			     u32 *p_cluster, u32 *num_clusters,
+ 			     struct ocfs2_extent_list *el,
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index b1e35a3..13f7d03 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2584,6 +2584,55 @@ bail:
+ 	return ret;
+ }
+ 
++/* Refer generic_file_llseek_unlocked() */
++static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int origin)
++{
++	struct inode *inode = file->f_mapping->host;
++	int ret = 0;
++
++	mutex_lock(&inode->i_mutex);
++
++	switch (origin) {
++	case SEEK_END:
++		offset += inode->i_size;
++		break;
++	case SEEK_CUR:
++		if (offset == 0) {
++			offset = file->f_pos;
++			goto out;
++		}
++		offset += file->f_pos;
++		break;
++	case SEEK_DATA:
++	case SEEK_HOLE:
++		ret = ocfs2_seek_data_hole_offset(file, &offset, origin);
++		if (ret)
++			goto out;
++		break;
++	default:
++		ret = -EINVAL;
++		goto out;
++	}
++
++	if (offset < 0 && !(file->f_mode & FMODE_UNSIGNED_OFFSET))
++		ret = -EINVAL;
++	if (!ret && offset > inode->i_sb->s_maxbytes)
++		ret = -EINVAL;
++	if (ret)
++		goto out;
++
++	if (offset != file->f_pos) {
++		file->f_pos = offset;
++		file->f_version = 0;
++	}
++
++out:
++	mutex_unlock(&inode->i_mutex);
++	if (ret)
++		return ret;
++	return offset;
++}
++
+ const struct inode_operations ocfs2_file_iops = {
+ 	.setattr	= ocfs2_setattr,
+ 	.getattr	= ocfs2_getattr,
+@@ -2606,7 +2655,7 @@ const struct inode_operations ocfs2_special_file_iops = {
+  * ocfs2_fops_no_plocks and ocfs2_dops_no_plocks!
+  */
+ const struct file_operations ocfs2_fops = {
+-	.llseek		= generic_file_llseek,
++	.llseek		= ocfs2_file_llseek,
+ 	.read		= do_sync_read,
+ 	.write		= do_sync_write,
+ 	.mmap		= ocfs2_mmap,
+@@ -2654,7 +2703,7 @@ const struct file_operations ocfs2_dops = {
+  * the cluster.
+  */
+ const struct file_operations ocfs2_fops_no_plocks = {
+-	.llseek		= generic_file_llseek,
++	.llseek		= ocfs2_file_llseek,
+ 	.read		= do_sync_read,
+ 	.write		= do_sync_write,
+ 	.mmap		= ocfs2_mmap,
+-- 
+1.7.4.1
