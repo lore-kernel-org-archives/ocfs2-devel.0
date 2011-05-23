@@ -1,63 +1,23 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 19 May 2011 10:45:28 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Implement llseek()
-In-Reply-To: <4DD4DF4C.501@oracle.com>
-References: <1305773084-19296-1-git-send-email-sunil.mushran@oracle.com>
-	<1305773084-19296-3-git-send-email-sunil.mushran@oracle.com>
-	<4DD4DF4C.501@oracle.com>
-Message-ID: <4DD55738.3080405@oracle.com>
+From: Tao Ma <tm@tao.ma>
+Date: Mon, 23 May 2011 10:08:35 +0800
+Subject: [Ocfs2-devel] [PATCH 0/3 V2] ocfs2: Add batched discard support.
+Message-ID: <4DD9C1A3.5020005@tao.ma>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Tristan Ye <tristan.ye@oracle.com>
-Cc: josef@redhat.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, viro@ZenIV.linux.org.uk, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On 05/19/2011 02:13 AM, Tristan Ye wrote:
->> +	if (inode->i_size == 0 || *offset>= inode->i_size) {
->> +		ret = -ENXIO;
->> +		goto out_unlock;
->> +	}
-> Why not using if (*offset>= inode->i_size) directly?
+Hi all,
 
-duh!
+changelog from v1 to v2:
+integrated review advices from Sunil.
 
-> +			BUG_ON(cpos<  le32_to_cpu(rec.e_cpos));
-> A same assert has already been performed inside ocfs2_get_clusters_nocache(),
-> does it make sense to do it again here?
+	These are the patches for adding batched discard support in ocfs2. I
+have tested it with xfstests 251 and it passed.
 
-good catch
+btw, I have also run some tests against it(bonnie++, postmark, ffsb and
+fs_mark) and there are no big difference before and after the discard.
 
->> +
->> +		if ((!is_data&&  origin == SEEK_HOLE) ||
->> +		    (is_data&&  origin == SEEK_DATA)) {
->> +			if (extoff>  *offset)
->> +				*offset = extoff;
->> +			goto out_unlock;
-> Seems above logic is going to stop at the first time we find a hole.
->
-> How about the offset was within the range of a hole already when we doing
-> SEEK_HOLE, shouldn't we proceed detecting until the next hole gets found, whose
-> start_offset was greater than supplied offset, according to semantics described
-> by the the header of this patch, should it be like following?
->
-> 			if (extoff>  *offset) {
-> 				*offset = extoff;
-> 				goto out_unlock;
-> 			}
-
-So if the offset is in a hole, then we set the file pointer to it. Same for
-data. The file pointer is set to the region asked at an offset that is equal
-to or greater than the supplied offset.
-
->> +	if (origin == SEEK_HOLE) {
->> +		extoff = cpos;
->> +		extoff<<= cs_bits;
-> extoff already has been assigned properly above in while loop?
-
-To handle the case when supplied cpos == cend.
-
-As always, excellent review.
-
-Thanks
-Sunil
+Regards,
+Tao
