@@ -1,169 +1,127 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 24 May 2011 18:53:40 +0800
-Subject: [Ocfs2-devel] [PATCH 06/15] Ocfs2/move_extents: defrag a range of
-	extent.
+Date: Tue, 24 May 2011 18:53:37 +0800
+Subject: [Ocfs2-devel] [PATCH 03/15] Ocfs2/move_extents: Add basic framework
+	and source files for extent moving.
 In-Reply-To: <1306234429-28078-1-git-send-email-tristan.ye@oracle.com>
 References: <1306234429-28078-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1306234429-28078-7-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1306234429-28078-4-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-It's a relatively complete function to accomplish defragmentation for entire
-or partial extent, one journal handle was kept during the operation, it was
-logically doing one more thing than ocfs2_move_extent() acutally, yes, it's
-claiming the new clusters itself;-)
+Adding new files move_extents.[c|h] and fill it with nothing but
+only a context structure.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/move_extents.c |  136 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 136 insertions(+), 0 deletions(-)
+ fs/ocfs2/Makefile       |    1 +
+ fs/ocfs2/move_extents.c |   56 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/move_extents.h |   20 ++++++++++++++++
+ 3 files changed, 77 insertions(+), 0 deletions(-)
+ create mode 100644 fs/ocfs2/move_extents.c
+ create mode 100644 fs/ocfs2/move_extents.h
 
+diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+index d8a0313..f17e58b 100644
+--- a/fs/ocfs2/Makefile
++++ b/fs/ocfs2/Makefile
+@@ -30,6 +30,7 @@ ocfs2-objs := \
+ 	namei.o 		\
+ 	refcounttree.o		\
+ 	reservations.o		\
++	move_extents.o		\
+ 	resize.o		\
+ 	slot_map.o 		\
+ 	suballoc.o 		\
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 434fc6b..200151f 100644
---- a/fs/ocfs2/move_extents.c
+new file mode 100644
+index 0000000..bd08b43
+--- /dev/null
 +++ b/fs/ocfs2/move_extents.c
-@@ -215,3 +215,139 @@ out:
- 
- 	return ret;
- }
-+
-+/*
-+ * Using one journal handle to guarantee the data consistency in case
-+ * crash happens anywhere.
+@@ -0,0 +1,56 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * move_extents.c
++ *
++ * Copyright (C) 2010 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
 + */
-+static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
-+			       u32 cpos, u32 phys_cpos, u32 len, int ext_flags)
-+{
-+	int ret, credits = 0, extra_blocks = 0;
-+	handle_t *handle;
-+	struct inode *inode = context->inode;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct inode *tl_inode = osb->osb_tl_inode;
-+	struct ocfs2_refcount_tree *ref_tree = NULL;
-+	u32 new_phys_cpos, new_len;
-+	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
++#include <linux/fs.h>
++#include <linux/types.h>
++#include <linux/mount.h>
++#include <linux/swap.h>
 +
-+	if ((ext_flags & OCFS2_EXT_REFCOUNTED) && len) {
++#include <cluster/masklog.h>
 +
-+		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
-+			 OCFS2_HAS_REFCOUNT_FL));
++#include "ocfs2.h"
++#include "ocfs2_ioctl.h"
 +
-+		BUG_ON(!context->refcount_loc);
++#include "alloc.h"
++#include "aops.h"
++#include "dlmglue.h"
++#include "extent_map.h"
++#include "inode.h"
++#include "journal.h"
++#include "suballoc.h"
++#include "uptodate.h"
++#include "super.h"
++#include "dir.h"
++#include "buffer_head_io.h"
++#include "sysfile.h"
++#include "suballoc.h"
++#include "refcounttree.h"
++#include "move_extents.h"
 +
-+		ret = ocfs2_lock_refcount_tree(osb, context->refcount_loc, 1,
-+					       &ref_tree, NULL);
-+		if (ret) {
-+			mlog_errno(ret);
-+			return ret;
-+		}
++struct ocfs2_move_extents_context {
++	struct inode *inode;
++	struct file *file;
++	int auto_defrag;
++	int credits;
++	u32 new_phys_cpos;
++	u32 clusters_moved;
++	u64 refcount_loc;
++	struct ocfs2_move_extents *range;
++	struct ocfs2_extent_tree et;
++	struct ocfs2_alloc_context *meta_ac;
++	struct ocfs2_alloc_context *data_ac;
++	struct ocfs2_cached_dealloc_ctxt dealloc;
++};
+diff --git a/fs/ocfs2/move_extents.h b/fs/ocfs2/move_extents.h
+new file mode 100644
+index 0000000..eba4044
+--- /dev/null
++++ b/fs/ocfs2/move_extents.h
+@@ -0,0 +1,20 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * move_extents.h
++ *
++ * Copyright (C) 2010 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ */
++#ifndef OCFS2_MOVE_EXTENTS_H
++#define OCFS2_MOVE_EXTENTS_H
 +
-+		ret = ocfs2_prepare_refcount_change_for_del(inode,
-+							context->refcount_loc,
-+							phys_blkno,
-+							len,
-+							&credits,
-+							&extra_blocks);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+	}
-+
-+	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
-+						 &context->meta_ac,
-+						 &context->data_ac,
-+						 extra_blocks, &credits);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	/*
-+	 * should be using allocation reservation strategy there?
-+	 *
-+	 * if (context->data_ac)
-+	 *	context->data_ac->ac_resv = &OCFS2_I(inode)->ip_la_data_resv;
-+	 */
-+
-+	mutex_lock(&tl_inode->i_mutex);
-+
-+	if (ocfs2_truncate_log_needs_flush(osb)) {
-+		ret = __ocfs2_flush_truncate_log(osb);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out_unlock_mutex;
-+		}
-+	}
-+
-+	handle = ocfs2_start_trans(osb, credits);
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
-+		mlog_errno(ret);
-+		goto out_unlock_mutex;
-+	}
-+
-+	ret = __ocfs2_claim_clusters(handle, context->data_ac, 1, len,
-+				     &new_phys_cpos, &new_len);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	/*
-+	 * we're not quite patient here to make multiple attempts for claiming
-+	 * enough clusters, failure to claim clusters per-requested is not a
-+	 * disaster though, it can only mean partial range of defragmentation
-+	 * or extent movements gets gone, users anyway is able to have another
-+	 * try as they wish anytime, since they're going to be returned a
-+	 * '-ENOSPC' and completed length of this movement.
-+	 */
-+	if (new_len != len) {
-+		mlog(0, "len_claimed: %u, len: %u\n", new_len, len);
-+		context->range->me_flags &= ~OCFS2_MOVE_EXT_FL_COMPLETE;
-+		ret = -ENOSPC;
-+		goto out_commit;
-+	}
-+
-+	mlog(0, "cpos: %u, phys_cpos: %u, new_phys_cpos: %u\n", cpos,
-+	     phys_cpos, new_phys_cpos);
-+
-+	ret = __ocfs2_move_extent(handle, context, cpos, len, phys_cpos,
-+				  new_phys_cpos, ext_flags);
-+	if (ret)
-+		mlog_errno(ret);
-+
-+	/*
-+	 * Here we should write the new page out first if we are
-+	 * in write-back mode.
-+	 */
-+	ret = ocfs2_cow_sync_writeback(inode->i_sb, context->inode, cpos, len);
-+	if (ret)
-+		mlog_errno(ret);
-+
-+out_commit:
-+	ocfs2_commit_trans(osb, handle);
-+
-+out_unlock_mutex:
-+	mutex_unlock(&tl_inode->i_mutex);
-+
-+	if (context->data_ac) {
-+		ocfs2_free_alloc_context(context->data_ac);
-+		context->data_ac = NULL;
-+	}
-+
-+	if (context->meta_ac) {
-+		ocfs2_free_alloc_context(context->meta_ac);
-+		context->meta_ac = NULL;
-+	}
-+
-+out:
-+	if (ref_tree)
-+		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
-+
-+	return ret;
-+}
++#endif /* OCFS2_MOVE_EXTENTS_H */
 -- 
 1.5.5
