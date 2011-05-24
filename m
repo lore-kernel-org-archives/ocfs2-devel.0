@@ -1,94 +1,72 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 24 May 2011 18:53:38 +0800
-Subject: [Ocfs2-devel] [PATCH 04/15] Ocfs2/move_extents: lock allocators and
-	reserve metadata blocks and data clusters for extents moving.
+Date: Tue, 24 May 2011 18:53:43 +0800
+Subject: [Ocfs2-devel] [PATCH 09/15] Ocfs2/move_extents: helper to probe a
+	proper region to move in an alloc group.
 In-Reply-To: <1306234429-28078-1-git-send-email-tristan.ye@oracle.com>
 References: <1306234429-28078-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1306234429-28078-5-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1306234429-28078-10-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_lock_allocators_move_extents() was like the common ocfs2_lock_allocators(),
-to lock metadata and data alloctors during extents moving, reserve appropriate
-metadata blocks and data clusters, also performa a best- effort to calculate the
-credits for journal transaction in one run of movement.
+Before doing the movement of extents, we'd better probe the alloc group from
+'goal_blk' for searching a contiguous region to fit the wanted movement, we
+even will have a best-effort try by compromising to a threshold around the
+given goal.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/move_extents.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 61 insertions(+), 0 deletions(-)
+ fs/ocfs2/move_extents.c |   39 +++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 39 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index bd08b43..5849f74 100644
+index b6b82a4..6895318 100644
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -54,3 +54,64 @@ struct ocfs2_move_extents_context {
- 	struct ocfs2_alloc_context *data_ac;
- 	struct ocfs2_cached_dealloc_ctxt dealloc;
- };
+@@ -516,3 +516,42 @@ out:
+ 
+ 	return ret;
+ }
 +
-+/*
-+ * lock allocators, and reserving appropriate number of bits for
-+ * meta blocks and data clusters.
-+ *
-+ * in some cases, we don't need to reserve clusters, just let data_ac
-+ * be NULL.
-+ */
-+static int ocfs2_lock_allocators_move_extents(struct inode *inode,
-+					struct ocfs2_extent_tree *et,
-+					u32 clusters_to_move,
-+					u32 extents_to_split,
-+					struct ocfs2_alloc_context **meta_ac,
-+					struct ocfs2_alloc_context **data_ac,
-+					int extra_blocks,
-+					int *credits)
++static void ocfs2_probe_alloc_group(struct inode *inode, struct buffer_head *bh,
++				    int *goal_bit, u32 move_len, u32 max_hop,
++				    u32 *phys_cpos)
 +{
-+	int ret, num_free_extents;
-+	unsigned int max_recs_needed = 2 * extents_to_split + clusters_to_move;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	int i, used, last_free_bits = 0, base_bit = *goal_bit;
++	struct ocfs2_group_desc *gd = (struct ocfs2_group_desc *)bh->b_data;
++	u32 base_cpos = ocfs2_blocks_to_clusters(inode->i_sb,
++						 le64_to_cpu(gd->bg_blkno));
 +
-+	num_free_extents = ocfs2_num_free_extents(osb, et);
-+	if (num_free_extents < 0) {
-+		ret = num_free_extents;
-+		mlog_errno(ret);
-+		goto out;
-+	}
++	for (i = base_bit; i < le16_to_cpu(gd->bg_bits); i++) {
 +
-+	if (!num_free_extents ||
-+	    (ocfs2_sparse_alloc(osb) && num_free_extents < max_recs_needed))
-+		extra_blocks += ocfs2_extend_meta_needed(et->et_root_el);
++		used = ocfs2_test_bit(i, (unsigned long *)gd->bg_bitmap);
++		if (used) {
++			/*
++			 * we even tried searching the free chunk by jumping
++			 * a 'max_hop' distance, but still failed.
++			 */
++			if ((i - base_bit) > max_hop) {
++				*phys_cpos = 0;
++				break;
++			}
 +
-+	ret = ocfs2_reserve_new_metadata_blocks(osb, extra_blocks, meta_ac);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
++			if (last_free_bits)
++				last_free_bits = 0;
 +
-+	if (data_ac) {
-+		ret = ocfs2_reserve_clusters(osb, clusters_to_move, data_ac);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
++			continue;
++		} else
++			last_free_bits++;
++
++		if (last_free_bits == move_len) {
++			*goal_bit = i;
++			*phys_cpos = base_cpos + i;
++			break;
 +		}
 +	}
 +
-+	*credits += ocfs2_calc_extend_credits(osb->sb, et->et_root_el,
-+					      clusters_to_move + 2);
-+
-+	mlog(0, "reserve metadata_blocks: %d, data_clusters: %u, credits: %d\n",
-+	     extra_blocks, clusters_to_move, *credits);
-+out:
-+	if (ret) {
-+		if (*meta_ac) {
-+			ocfs2_free_alloc_context(*meta_ac);
-+			*meta_ac = NULL;
-+		}
-+	}
-+
-+	return ret;
++	mlog(0, "found phys_cpos: %u to fit the wanted moving.\n", *phys_cpos);
 +}
 -- 
 1.5.5
