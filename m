@@ -1,196 +1,92 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 24 May 2011 18:53:45 +0800
-Subject: [Ocfs2-devel] [PATCH 11/15] Ocfs2/move_extents: move entire/partial
-	extent.
+Date: Tue, 24 May 2011 18:53:38 +0800
+Subject: [Ocfs2-devel] [PATCH 04/15] Ocfs2/move_extents: lock allocators and
+	reserve metadata blocks and data clusters for extents moving.
 In-Reply-To: <1306234429-28078-1-git-send-email-tristan.ye@oracle.com>
 References: <1306234429-28078-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1306234429-28078-12-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1306234429-28078-5-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_move_extent() logic will validate the goal_offset_in_block,
-where extents to be moved, what's more, it also compromises a bit
-to probe the appropriate region around given goal_offset when the
-original goal is not able to fit the movement.
+ocfs2_lock_allocators_move_extents() was like the common ocfs2_lock_allocators(),
+to lock metadata and data alloctors during extents moving, reserve appropriate
+metadata blocks and data clusters, also performa a best- effort to calculate the
+credits for journal transaction in one run of movement.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/move_extents.c |  165 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 165 insertions(+), 0 deletions(-)
+ fs/ocfs2/move_extents.c |   61 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 61 insertions(+), 0 deletions(-)
 
 diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 20822ef..6d3e8f6 100644
+index bd08b43..5849f74 100644
 --- a/fs/ocfs2/move_extents.c
 +++ b/fs/ocfs2/move_extents.c
-@@ -632,3 +632,168 @@ static inline int ocfs2_block_group_set_bits(handle_t *handle,
- bail:
- 	return status;
- }
+@@ -54,3 +54,64 @@ struct ocfs2_move_extents_context {
+ 	struct ocfs2_alloc_context *data_ac;
+ 	struct ocfs2_cached_dealloc_ctxt dealloc;
+ };
 +
-+static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
-+			     u32 cpos, u32 phys_cpos, u32 *new_phys_cpos,
-+			     u32 len, int ext_flags)
++/*
++ * lock allocators, and reserving appropriate number of bits for
++ * meta blocks and data clusters.
++ *
++ * in some cases, we don't need to reserve clusters, just let data_ac
++ * be NULL.
++ */
++static int ocfs2_lock_allocators_move_extents(struct inode *inode,
++					struct ocfs2_extent_tree *et,
++					u32 clusters_to_move,
++					u32 extents_to_split,
++					struct ocfs2_alloc_context **meta_ac,
++					struct ocfs2_alloc_context **data_ac,
++					int extra_blocks,
++					int *credits)
 +{
-+	int ret, credits = 0, extra_blocks = 0, goal_bit = 0;
-+	handle_t *handle;
-+	struct inode *inode = context->inode;
++	int ret, num_free_extents;
++	unsigned int max_recs_needed = 2 * extents_to_split + clusters_to_move;
 +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct inode *tl_inode = osb->osb_tl_inode;
-+	struct inode *gb_inode = NULL;
-+	struct buffer_head *gb_bh = NULL;
-+	struct buffer_head *gd_bh = NULL;
-+	struct ocfs2_group_desc *gd;
-+	struct ocfs2_refcount_tree *ref_tree = NULL;
-+	u32 move_max_hop = ocfs2_blocks_to_clusters(inode->i_sb,
-+						    context->range->me_thresh);
-+	u64 phys_blkno, new_phys_blkno;
 +
-+	phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
++	num_free_extents = ocfs2_num_free_extents(osb, et);
++	if (num_free_extents < 0) {
++		ret = num_free_extents;
++		mlog_errno(ret);
++		goto out;
++	}
 +
-+	if ((ext_flags & OCFS2_EXT_REFCOUNTED) && len) {
++	if (!num_free_extents ||
++	    (ocfs2_sparse_alloc(osb) && num_free_extents < max_recs_needed))
++		extra_blocks += ocfs2_extend_meta_needed(et->et_root_el);
 +
-+		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
-+			 OCFS2_HAS_REFCOUNT_FL));
++	ret = ocfs2_reserve_new_metadata_blocks(osb, extra_blocks, meta_ac);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
 +
-+		BUG_ON(!context->refcount_loc);
-+
-+		ret = ocfs2_lock_refcount_tree(osb, context->refcount_loc, 1,
-+					       &ref_tree, NULL);
-+		if (ret) {
-+			mlog_errno(ret);
-+			return ret;
-+		}
-+
-+		ret = ocfs2_prepare_refcount_change_for_del(inode,
-+							context->refcount_loc,
-+							phys_blkno,
-+							len,
-+							&credits,
-+							&extra_blocks);
++	if (data_ac) {
++		ret = ocfs2_reserve_clusters(osb, clusters_to_move, data_ac);
 +		if (ret) {
 +			mlog_errno(ret);
 +			goto out;
 +		}
 +	}
 +
-+	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
-+						 &context->meta_ac,
-+						 NULL, extra_blocks, &credits);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
++	*credits += ocfs2_calc_extend_credits(osb->sb, et->et_root_el,
++					      clusters_to_move + 2);
 +
-+	/*
-+	 * need to count 2 extra credits for global_bitmap inode and
-+	 * group descriptor.
-+	 */
-+	credits += OCFS2_INODE_UPDATE_CREDITS + 1;
-+
-+	/*
-+	 * ocfs2_move_extent() didn't reserve any clusters in lock_allocators()
-+	 * logic, while we still need to lock the global_bitmap.
-+	 */
-+	gb_inode = ocfs2_get_system_file_inode(osb, GLOBAL_BITMAP_SYSTEM_INODE,
-+					       OCFS2_INVALID_SLOT);
-+	if (!gb_inode) {
-+		mlog(ML_ERROR, "unable to get global_bitmap inode\n");
-+		ret = -EIO;
-+		goto out;
-+	}
-+
-+	mutex_lock(&gb_inode->i_mutex);
-+
-+	ret = ocfs2_inode_lock(gb_inode, &gb_bh, 1);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_unlock_gb_mutex;
-+	}
-+
-+	mutex_lock(&tl_inode->i_mutex);
-+
-+	handle = ocfs2_start_trans(osb, credits);
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
-+		mlog_errno(ret);
-+		goto out_unlock_tl_inode;
-+	}
-+
-+	new_phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, *new_phys_cpos);
-+	ret = ocfs2_find_victim_alloc_group(inode, new_phys_blkno,
-+					    GLOBAL_BITMAP_SYSTEM_INODE,
-+					    OCFS2_INVALID_SLOT,
-+					    &goal_bit, &gd_bh);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	/*
-+	 * probe the victim cluster group to find a proper
-+	 * region to fit wanted movement, it even will perfrom
-+	 * a best-effort attempt by compromising to a threshold
-+	 * around the goal.
-+	 */
-+	ocfs2_probe_alloc_group(inode, gd_bh, &goal_bit, len, move_max_hop,
-+				new_phys_cpos);
-+	if (!new_phys_cpos) {
-+		ret = -ENOSPC;
-+		goto out_commit;
-+	}
-+
-+	ret = __ocfs2_move_extent(handle, context, cpos, len, phys_cpos,
-+				  *new_phys_cpos, ext_flags);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
-+	ret = ocfs2_alloc_dinode_update_counts(gb_inode, handle, gb_bh, len,
-+					       le16_to_cpu(gd->bg_chain));
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out_commit;
-+	}
-+
-+	ret = ocfs2_block_group_set_bits(handle, gb_inode, gd, gd_bh,
-+					 goal_bit, len);
-+	if (ret)
-+		mlog_errno(ret);
-+
-+	/*
-+	 * Here we should write the new page out first if we are
-+	 * in write-back mode.
-+	 */
-+	ret = ocfs2_cow_sync_writeback(inode->i_sb, context->inode, cpos, len);
-+	if (ret)
-+		mlog_errno(ret);
-+
-+out_commit:
-+	ocfs2_commit_trans(osb, handle);
-+	brelse(gd_bh);
-+
-+out_unlock_tl_inode:
-+	mutex_unlock(&tl_inode->i_mutex);
-+
-+	ocfs2_inode_unlock(gb_inode, 1);
-+out_unlock_gb_mutex:
-+	mutex_unlock(&gb_inode->i_mutex);
-+	brelse(gb_bh);
-+	iput(gb_inode);
-+
++	mlog(0, "reserve metadata_blocks: %d, data_clusters: %u, credits: %d\n",
++	     extra_blocks, clusters_to_move, *credits);
 +out:
-+	if (context->meta_ac) {
-+		ocfs2_free_alloc_context(context->meta_ac);
-+		context->meta_ac = NULL;
++	if (ret) {
++		if (*meta_ac) {
++			ocfs2_free_alloc_context(*meta_ac);
++			*meta_ac = NULL;
++		}
 +	}
-+
-+	if (ref_tree)
-+		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
 +
 +	return ret;
 +}
