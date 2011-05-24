@@ -1,32 +1,35 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Mon, 23 May 2011 23:53:40 -0700
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2/dlm:
- dlm_is_lockres_migrateable() returns boolean
-In-Reply-To: <4DC32186.7000200@oracle.com>
-References: <1303859005-29529-1-git-send-email-sunil.mushran@oracle.com>
-	<20110505220930.GD17822@wotan.suse.de>
-	<4DC32186.7000200@oracle.com>
-Message-ID: <20110524065340.GA24290@noexit.corp.google.com>
+Date: Mon, 23 May 2011 23:56:32 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: clean up mount option about
+ atime in ocfs2.txt
+In-Reply-To: <1299065529-6626-1-git-send-email-tiger.yang@oracle.com>
+References: <4D6E2994.1050302@oracle.com>
+	<1299065529-6626-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <20110524065632.GB24290@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, May 05, 2011 at 03:15:34PM -0700, Sunil Mushran wrote:
-> ok.
+On Wed, Mar 02, 2011 at 07:32:09PM +0800, Tiger Yang wrote:
+> As ocfs2 supports relatime and strictatime, we need update the
+> relative document. Atime_quantum need work with strictatime, so only
+> show it in procfs when mount with strictatime.
+> 
+> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 
-I don't have your original email to reply to, but I got it off of your
-patch directory.  It's now in the merge-window branch of ocfs2.git.
+	This patch is now in the merge-window branch of ocfs2.git.
 
 Joel
 
 -- 
 
-"When I am working on a problem I never think about beauty. I
- only think about how to solve the problem. But when I have finished, if
- the solution is not beautiful, I know it is wrong."
-         - Buckminster Fuller
+"Too much walking shoes worn thin.
+ Too much trippin' and my soul's worn thin.
+ Time to catch a ride it leaves today
+ Her name is what it means.
+ Too much walking shoes worn thin."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
