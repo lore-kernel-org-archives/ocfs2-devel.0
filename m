@@ -1,50 +1,32 @@
-From: Sage Weil <sage@newdream.net>
-Date: Mon,  9 May 2011 21:43:34 -0700
-Subject: [Ocfs2-devel] [PATCH 16/18] ocfs2: remove unnecessary dentry_unhash
-	on rmdir/rename_dir
-In-Reply-To: <1305002616-16782-1-git-send-email-sage@newdream.net>
-References: <1305002616-16782-1-git-send-email-sage@newdream.net>
-Message-ID: <1305002616-16782-17-git-send-email-sage@newdream.net>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Mon, 23 May 2011 23:53:40 -0700
+Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2/dlm:
+ dlm_is_lockres_migrateable() returns boolean
+In-Reply-To: <4DC32186.7000200@oracle.com>
+References: <1303859005-29529-1-git-send-email-sunil.mushran@oracle.com>
+	<20110505220930.GD17822@wotan.suse.de>
+	<4DC32186.7000200@oracle.com>
+Message-ID: <20110524065340.GA24290@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: viro@ZenIV.linux.org.uk, hch@lst.de, linux-fsdevel@vger.kernel.org
-Cc: Sage Weil <sage@newdream.net>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Ocfs2 has no issues with lingering references to unlinked directory inodes.
+On Thu, May 05, 2011 at 03:15:34PM -0700, Sunil Mushran wrote:
+> ok.
 
-CC: Mark Fasheh <mfasheh@suse.com>
-CC: Joel Becker <jlbec@evilplan.org>
-CC: ocfs2-devel at oss.oracle.com
-Signed-off-by: Sage Weil <sage@newdream.net>
----
- fs/ocfs2/namei.c |    6 ------
- 1 files changed, 0 insertions(+), 6 deletions(-)
+I don't have your original email to reply to, but I got it off of your
+patch directory.  It's now in the merge-window branch of ocfs2.git.
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f3582a6..e5d738c 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -810,9 +810,6 @@ static int ocfs2_unlink(struct inode *dir,
- 			   (unsigned long long)OCFS2_I(dir)->ip_blkno,
- 			   (unsigned long long)OCFS2_I(inode)->ip_blkno);
- 
--	if (S_ISDIR(inode->i_mode))
--		dentry_unhash(dentry);
--
- 	dquot_initialize(dir);
- 
- 	BUG_ON(dentry->d_parent->d_inode != dir);
-@@ -1066,9 +1063,6 @@ static int ocfs2_rename(struct inode *old_dir,
- 	struct ocfs2_dir_lookup_result orphan_insert = { NULL, };
- 	struct ocfs2_dir_lookup_result target_insert = { NULL, };
- 
--	if (new_inode && S_ISDIR(new_inode->i_mode))
--		dentry_unhash(new_dentry);
--
- 	/* At some point it might be nice to break this function up a
- 	 * bit. */
- 
+Joel
+
 -- 
-1.7.1
+
+"When I am working on a problem I never think about beauty. I
+ only think about how to solve the problem. But when I have finished, if
+ the solution is not beautiful, I know it is wrong."
+         - Buckminster Fuller
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
