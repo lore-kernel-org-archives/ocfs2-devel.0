@@ -1,218 +1,198 @@
 From: Tristan Ye <tristan.ye@oracle.com>
-Date: Tue, 24 May 2011 18:07:03 +0800
-Subject: [Ocfs2-devel] [PATCH 2/3] Ocfs2: Add a new code
-	'OCFS2_INFO_FREEINODE' for o2info ioctl.
-In-Reply-To: <1306231624-26967-1-git-send-email-tristan.ye@oracle.com>
-References: <1306231624-26967-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1306231624-26967-3-git-send-email-tristan.ye@oracle.com>
+Date: Tue, 24 May 2011 18:53:45 +0800
+Subject: [Ocfs2-devel] [PATCH 11/15] Ocfs2/move_extents: move entire/partial
+	extent.
+In-Reply-To: <1306234429-28078-1-git-send-email-tristan.ye@oracle.com>
+References: <1306234429-28078-1-git-send-email-tristan.ye@oracle.com>
+Message-ID: <1306234429-28078-12-git-send-email-tristan.ye@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The new code is dedicated to calculate free inodes number of all inode_allocs,
-then return the info to userpace in terms of an array.
-
-Specially, flag 'OCFS2_INFO_FL_NON_COHERENT', manipulated by '--cluster-coherent'
-from userspace, is now going to be involved. setting the flag on means no cluster
-coherency considered, usually, userspace tools choose none-coherency strategy by
-default for the sake of performace.
+ocfs2_move_extent() logic will validate the goal_offset_in_block,
+where extents to be moved, what's more, it also compromises a bit
+to probe the appropriate region around given goal_offset when the
+original goal is not able to fit the movement.
 
 Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
 ---
- fs/ocfs2/ioctl.c       |  128 ++++++++++++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/ocfs2_ioctl.h |   11 ++++
- 2 files changed, 139 insertions(+), 0 deletions(-)
+ fs/ocfs2/move_extents.c |  165 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 165 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 373c1d1..4216739 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -22,6 +22,9 @@
- #include "ioctl.h"
- #include "resize.h"
- #include "refcounttree.h"
-+#include "sysfile.h"
-+#include "dir.h"
-+#include "buffer_head_io.h"
- 
- #include <linux/ext2_fs.h>
- 
-@@ -52,6 +55,11 @@ static inline void o2info_clear_request_filled(struct ocfs2_info_request *req)
- 	req->ir_flags &= ~OCFS2_INFO_FL_FILLED;
- }
- 
-+static inline int o2info_coherent(struct ocfs2_info_request *req)
-+{
-+	return (!(req->ir_flags & OCFS2_INFO_FL_NON_COHERENT));
-+}
-+
- static int ocfs2_get_inode_attr(struct inode *inode, unsigned *flags)
- {
- 	int status;
-@@ -309,6 +317,122 @@ bail:
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index 20822ef..6d3e8f6 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -632,3 +632,168 @@ static inline int ocfs2_block_group_set_bits(handle_t *handle,
+ bail:
  	return status;
  }
- 
-+int ocfs2_info_scan_inode_alloc(struct ocfs2_super *osb,
-+				struct inode *inode_alloc, u64 blkno,
-+				struct ocfs2_info_freeinode *fi, u32 slot)
++
++static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
++			     u32 cpos, u32 phys_cpos, u32 *new_phys_cpos,
++			     u32 len, int ext_flags)
 +{
-+	int status = 0, unlock = 0;
-+
-+	struct buffer_head *bh = NULL;
-+	struct ocfs2_dinode *dinode_alloc = NULL;
-+
-+	if (inode_alloc)
-+		mutex_lock(&inode_alloc->i_mutex);
-+
-+	if (o2info_coherent(&fi->ifi_req)) {
-+		status = ocfs2_inode_lock(inode_alloc, &bh, 0);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+		unlock = 1;
-+	} else {
-+		status = ocfs2_read_blocks_sync(osb, blkno, 1, &bh);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
-+
-+	dinode_alloc = (struct ocfs2_dinode *)bh->b_data;
-+
-+	fi->ifi_stat[slot].lfi_total =
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_total);
-+	fi->ifi_stat[slot].lfi_free =
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_total) -
-+		le32_to_cpu(dinode_alloc->id1.bitmap1.i_used);
-+
-+bail:
-+	if (unlock)
-+		ocfs2_inode_unlock(inode_alloc, 0);
-+
-+	if (inode_alloc)
-+		mutex_unlock(&inode_alloc->i_mutex);
-+
-+	brelse(bh);
-+
-+	return status;
-+}
-+
-+int ocfs2_info_handle_freeinode(struct inode *inode,
-+				struct ocfs2_info_request __user *req)
-+{
-+	u32 i;
-+	u64 blkno = -1;
-+	char namebuf[40];
-+	int status = -EFAULT, type = INODE_ALLOC_SYSTEM_INODE;
-+	struct ocfs2_info_freeinode *oifi = NULL;
++	int ret, credits = 0, extra_blocks = 0, goal_bit = 0;
++	handle_t *handle;
++	struct inode *inode = context->inode;
 +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct inode *inode_alloc = NULL;
++	struct inode *tl_inode = osb->osb_tl_inode;
++	struct inode *gb_inode = NULL;
++	struct buffer_head *gb_bh = NULL;
++	struct buffer_head *gd_bh = NULL;
++	struct ocfs2_group_desc *gd;
++	struct ocfs2_refcount_tree *ref_tree = NULL;
++	u32 move_max_hop = ocfs2_blocks_to_clusters(inode->i_sb,
++						    context->range->me_thresh);
++	u64 phys_blkno, new_phys_blkno;
 +
-+	oifi = kzalloc(sizeof(struct ocfs2_info_freeinode), GFP_KERNEL);
-+	if (!oifi) {
-+		status = -ENOMEM;
-+		mlog_errno(status);
-+		goto bail;
-+	}
++	phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
 +
-+	if (o2info_from_user(*oifi, req))
-+		goto bail;
++	if ((ext_flags & OCFS2_EXT_REFCOUNTED) && len) {
 +
-+	oifi->ifi_slotnum = osb->max_slots;
++		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
++			 OCFS2_HAS_REFCOUNT_FL));
 +
-+	for (i = 0; i < oifi->ifi_slotnum; i++) {
-+		if (o2info_coherent(&oifi->ifi_req)) {
-+			inode_alloc = ocfs2_get_system_file_inode(osb, type, i);
-+			if (!inode_alloc) {
-+				mlog(ML_ERROR, "unable to get alloc inode in "
-+				    "slot %u\n", i);
-+				status = -EIO;
-+				goto bail;
-+			}
-+		} else {
-+			ocfs2_sprintf_system_inode_name(namebuf,
-+							sizeof(namebuf),
-+							type, i);
-+			status = ocfs2_lookup_ino_from_name(osb->sys_root_inode,
-+							    namebuf,
-+							    strlen(namebuf),
-+							    &blkno);
-+			if (status < 0) {
-+				status = -ENOENT;
-+				goto bail;
-+			}
++		BUG_ON(!context->refcount_loc);
++
++		ret = ocfs2_lock_refcount_tree(osb, context->refcount_loc, 1,
++					       &ref_tree, NULL);
++		if (ret) {
++			mlog_errno(ret);
++			return ret;
 +		}
 +
-+		status = ocfs2_info_scan_inode_alloc(osb, inode_alloc, blkno, oifi, i);
-+		if (status < 0)
-+			goto bail;
-+
-+		iput(inode_alloc);
-+		inode_alloc = NULL;
++		ret = ocfs2_prepare_refcount_change_for_del(inode,
++							context->refcount_loc,
++							phys_blkno,
++							len,
++							&credits,
++							&extra_blocks);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
 +	}
 +
-+	o2info_set_request_filled(&oifi->ifi_req);
++	ret = ocfs2_lock_allocators_move_extents(inode, &context->et, len, 1,
++						 &context->meta_ac,
++						 NULL, extra_blocks, &credits);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
 +
-+	if (o2info_to_user(*oifi, req))
-+		goto bail;
++	/*
++	 * need to count 2 extra credits for global_bitmap inode and
++	 * group descriptor.
++	 */
++	credits += OCFS2_INODE_UPDATE_CREDITS + 1;
 +
-+	status = 0;
-+bail:
-+	if (status)
-+		o2info_set_request_error(&oifi->ifi_req, req);
++	/*
++	 * ocfs2_move_extent() didn't reserve any clusters in lock_allocators()
++	 * logic, while we still need to lock the global_bitmap.
++	 */
++	gb_inode = ocfs2_get_system_file_inode(osb, GLOBAL_BITMAP_SYSTEM_INODE,
++					       OCFS2_INVALID_SLOT);
++	if (!gb_inode) {
++		mlog(ML_ERROR, "unable to get global_bitmap inode\n");
++		ret = -EIO;
++		goto out;
++	}
 +
-+	kfree(oifi);
++	mutex_lock(&gb_inode->i_mutex);
 +
-+	return status;
++	ret = ocfs2_inode_lock(gb_inode, &gb_bh, 1);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_unlock_gb_mutex;
++	}
++
++	mutex_lock(&tl_inode->i_mutex);
++
++	handle = ocfs2_start_trans(osb, credits);
++	if (IS_ERR(handle)) {
++		ret = PTR_ERR(handle);
++		mlog_errno(ret);
++		goto out_unlock_tl_inode;
++	}
++
++	new_phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, *new_phys_cpos);
++	ret = ocfs2_find_victim_alloc_group(inode, new_phys_blkno,
++					    GLOBAL_BITMAP_SYSTEM_INODE,
++					    OCFS2_INVALID_SLOT,
++					    &goal_bit, &gd_bh);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	/*
++	 * probe the victim cluster group to find a proper
++	 * region to fit wanted movement, it even will perfrom
++	 * a best-effort attempt by compromising to a threshold
++	 * around the goal.
++	 */
++	ocfs2_probe_alloc_group(inode, gd_bh, &goal_bit, len, move_max_hop,
++				new_phys_cpos);
++	if (!new_phys_cpos) {
++		ret = -ENOSPC;
++		goto out_commit;
++	}
++
++	ret = __ocfs2_move_extent(handle, context, cpos, len, phys_cpos,
++				  *new_phys_cpos, ext_flags);
++	if (ret) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
++	ret = ocfs2_alloc_dinode_update_counts(gb_inode, handle, gb_bh, len,
++					       le16_to_cpu(gd->bg_chain));
++	if (ret) {
++		mlog_errno(ret);
++		goto out_commit;
++	}
++
++	ret = ocfs2_block_group_set_bits(handle, gb_inode, gd, gd_bh,
++					 goal_bit, len);
++	if (ret)
++		mlog_errno(ret);
++
++	/*
++	 * Here we should write the new page out first if we are
++	 * in write-back mode.
++	 */
++	ret = ocfs2_cow_sync_writeback(inode->i_sb, context->inode, cpos, len);
++	if (ret)
++		mlog_errno(ret);
++
++out_commit:
++	ocfs2_commit_trans(osb, handle);
++	brelse(gd_bh);
++
++out_unlock_tl_inode:
++	mutex_unlock(&tl_inode->i_mutex);
++
++	ocfs2_inode_unlock(gb_inode, 1);
++out_unlock_gb_mutex:
++	mutex_unlock(&gb_inode->i_mutex);
++	brelse(gb_bh);
++	iput(gb_inode);
++
++out:
++	if (context->meta_ac) {
++		ocfs2_free_alloc_context(context->meta_ac);
++		context->meta_ac = NULL;
++	}
++
++	if (ref_tree)
++		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
++
++	return ret;
 +}
-+
- int ocfs2_info_handle_unknown(struct inode *inode,
- 			      struct ocfs2_info_request __user *req)
- {
-@@ -380,6 +504,10 @@ int ocfs2_info_handle_request(struct inode *inode,
- 		if (oir.ir_size == sizeof(struct ocfs2_info_journal_size))
- 			status = ocfs2_info_handle_journal_size(inode, req);
- 		break;
-+	case OCFS2_INFO_FREEINODE:
-+		if (oir.ir_size == sizeof(struct ocfs2_info_freeinode))
-+			status = ocfs2_info_handle_freeinode(inode, req);
-+		break;
- 	default:
- 		status = ocfs2_info_handle_unknown(inode, req);
- 		break;
-diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
-index b46f39b..6b4b39a 100644
---- a/fs/ocfs2/ocfs2_ioctl.h
-+++ b/fs/ocfs2/ocfs2_ioctl.h
-@@ -142,6 +142,16 @@ struct ocfs2_info_journal_size {
- 	__u64 ij_journal_size;
- };
- 
-+struct ocfs2_info_freeinode {
-+	struct ocfs2_info_request ifi_req;
-+	struct ocfs2_info_local_freeinode {
-+		__u64 lfi_total;
-+		__u64 lfi_free;
-+	} ifi_stat[OCFS2_MAX_SLOTS];
-+	__u32 ifi_slotnum; /* out */
-+	__u32 ifi_pad;
-+};
-+
- /* Codes for ocfs2_info_request */
- enum ocfs2_info_type {
- 	OCFS2_INFO_CLUSTERSIZE = 1,
-@@ -151,6 +161,7 @@ enum ocfs2_info_type {
- 	OCFS2_INFO_UUID,
- 	OCFS2_INFO_FS_FEATURES,
- 	OCFS2_INFO_JOURNAL_SIZE,
-+	OCFS2_INFO_FREEINODE,
- 	OCFS2_INFO_NUM_TYPES
- };
- 
 -- 
 1.5.5
