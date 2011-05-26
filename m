@@ -1,49 +1,46 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Thu, 26 May 2011 17:57:10 +0800
-Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: Add hard readonly check in open
-	lock
+Date: Thu, 26 May 2011 17:57:42 +0800
+Subject: [Ocfs2-devel] [PATCH 3/4] ocfs2: Get dinode buffer head on hard
+	readonly mount
 In-Reply-To: <4DDE2000.3000301@oracle.com>
 References: <4DDE2000.3000301@oracle.com>
-Message-ID: <1306403830-15266-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <1306403862-15299-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-As no dlm lock in hard readonly mount, so add hard readonly check
-in open lock, otherwise ocfs2_cluster_lock leads to oops.
+ocfs2_statfs, ocfs2_fiemap, ocfs2_get_acl, ocfs2_listxattr and
+ocfs2_xattr_get need ocfs2_inode_lock to get dinode buffer head
+even on hard readonly mount.
 
 Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/dlmglue.c |    8 +++++++-
- 1 files changed, 7 insertions(+), 1 deletions(-)
+ fs/ocfs2/dlmglue.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 7642d7c..09e8b30 100644
+index 09e8b30..717f8d3 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
-@@ -1692,7 +1692,7 @@ int ocfs2_open_lock(struct inode *inode)
- 	mlog(0, "inode %llu take PRMODE open lock\n",
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
+@@ -2304,7 +2304,7 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
+ 	if (ocfs2_is_hard_readonly(osb)) {
+ 		if (ex)
+ 			status = -EROFS;
+-		goto bail;
++		goto getbh;
+ 	}
  
--	if (ocfs2_mount_local(osb))
-+	if (ocfs2_is_hard_readonly(osb) || ocfs2_mount_local(osb))
- 		goto out;
- 
- 	lockres = &OCFS2_I(inode)->ip_open_lockres;
-@@ -1718,6 +1718,12 @@ int ocfs2_try_open_lock(struct inode *inode, int write)
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
- 	     write ? "EXMODE" : "PRMODE");
- 
-+	if (ocfs2_is_hard_readonly(osb)) {
-+		if (write)
-+			status = -EROFS;
-+		goto out;
-+	}
-+
  	if (ocfs2_mount_local(osb))
- 		goto out;
- 
+@@ -2362,7 +2362,7 @@ local:
+ 			mlog_errno(status);
+ 		goto bail;
+ 	}
+-
++getbh:
+ 	if (ret_bh) {
+ 		status = ocfs2_assign_bh(inode, ret_bh, local_bh);
+ 		if (status < 0) {
 -- 
 1.7.4.4
