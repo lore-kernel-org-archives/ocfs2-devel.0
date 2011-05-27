@@ -1,49 +1,102 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Fri, 27 May 2011 02:52:48 -0700
-Subject: [Ocfs2-devel] [GIT PULL] ocfs2 important fix for $next_version-rc1
-In-Reply-To: <20110526094632.GB8252@noexit.corp.google.com>
-References: <20110526094632.GB8252@noexit.corp.google.com>
-Message-ID: <20110527095248.GD4966@noexit.corp.google.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Sat, 28 May 2011 00:34:19 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Bugfix for hard readonly mount
+Message-ID: <1306514059-22927-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-Linus et al,
-	Mea culpa.  The online defrag code in the ocfs2 feature pull had
-a naked 64-bit divide that I missed in eyeballing and we all missed in
-testing.  None of us managed to build the sucker on 32bit in the past
-two months.  That's on me.  Thank you to akpm for noticing.  Also
-included is a bugfix in the defrag location guessing.
-	I'd really like to get this in before -rc1 so that ocfs2 builds
-aren't broken there.  Please pull.
+This patch fixes few bugs when do hard readonly mount.
+see detail: http://oss.oracle.com/bugzilla/show_bug.cgi?id=1322
 
-Mr Egg-on-his-face (Joel)
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+---
+ fs/ocfs2/dlmglue.c |   21 +++++++++++++++------
+ fs/ocfs2/super.c   |    3 ++-
+ 2 files changed, 17 insertions(+), 7 deletions(-)
 
-The following changes since commit a74b81b0aff4a01e0816df5915c854fb52c5e87f:
-
-  Merge branch 'linux-next' of git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2 (2011-05-26 10:55:15 -0700)
-
-are available in the git repository at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git linux-next
-
-Joel Becker (1):
-      Merge branch 'move_extents' of git://oss.oracle.com/git/tye/linux-2.6 into ocfs2-merge-window
-
-Tristan Ye (2):
-      Ocfs2/move_extents: Avoid doing division in extent moving.
-      Ocfs2/move_extents: Validate moving goal after the adjustment.
-
- fs/ocfs2/move_extents.c |   41 ++++++++++++++++++++---------------------
- 1 files changed, 20 insertions(+), 21 deletions(-)
-
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 7642d7c..da103f5 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -1692,7 +1692,7 @@ int ocfs2_open_lock(struct inode *inode)
+ 	mlog(0, "inode %llu take PRMODE open lock\n",
+ 	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
+ 
+-	if (ocfs2_mount_local(osb))
++	if (ocfs2_is_hard_readonly(osb) || ocfs2_mount_local(osb))
+ 		goto out;
+ 
+ 	lockres = &OCFS2_I(inode)->ip_open_lockres;
+@@ -1718,6 +1718,12 @@ int ocfs2_try_open_lock(struct inode *inode, int write)
+ 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 	     write ? "EXMODE" : "PRMODE");
+ 
++	if (ocfs2_is_hard_readonly(osb)) {
++		if (write)
++			status = -EROFS;
++		goto out;
++	}
++
+ 	if (ocfs2_mount_local(osb))
+ 		goto out;
+ 
+@@ -2298,7 +2304,7 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
+ 	if (ocfs2_is_hard_readonly(osb)) {
+ 		if (ex)
+ 			status = -EROFS;
+-		goto bail;
++		goto getbh;
+ 	}
+ 
+ 	if (ocfs2_mount_local(osb))
+@@ -2356,7 +2362,7 @@ local:
+ 			mlog_errno(status);
+ 		goto bail;
+ 	}
+-
++getbh:
+ 	if (ret_bh) {
+ 		status = ocfs2_assign_bh(inode, ret_bh, local_bh);
+ 		if (status < 0) {
+@@ -2628,8 +2634,11 @@ int ocfs2_dentry_lock(struct dentry *dentry, int ex)
+ 
+ 	BUG_ON(!dl);
+ 
+-	if (ocfs2_is_hard_readonly(osb))
+-		return -EROFS;
++	if (ocfs2_is_hard_readonly(osb)) {
++		if (ex)
++			return -EROFS;
++		return 0;
++	}
+ 
+ 	if (ocfs2_mount_local(osb))
+ 		return 0;
+@@ -2647,7 +2656,7 @@ void ocfs2_dentry_unlock(struct dentry *dentry, int ex)
+ 	struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
+ 	struct ocfs2_super *osb = OCFS2_SB(dentry->d_sb);
+ 
+-	if (!ocfs2_mount_local(osb))
++	if (!ocfs2_is_hard_readonly(osb) && !ocfs2_mount_local(osb))
+ 		ocfs2_cluster_unlock(osb, &dl->dl_lockres, level);
+ }
+ 
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 5a521c7..395b26f 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1973,7 +1973,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+ 	 * If we failed before we got a uuid_str yet, we can't stop
+ 	 * heartbeat.  Otherwise, do it.
+ 	 */
+-	if (!mnt_err && !ocfs2_mount_local(osb) && osb->uuid_str)
++	if (!mnt_err && !ocfs2_mount_local(osb) && osb->uuid_str &&
++	    !ocfs2_is_hard_readonly(osb))
+ 		hangup_needed = 1;
+ 
+ 	if (osb->cconn)
 -- 
-
-"Sometimes one pays most for the things one gets for nothing."
-        - Albert Einstein
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+1.7.4.4
