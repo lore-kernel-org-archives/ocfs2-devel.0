@@ -1,73 +1,49 @@
-From: Tristan Ye <tristan.ye@oracle.com>
-Date: Fri, 27 May 2011 14:32:27 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] Ocfs2/move_extents: Validate moving goal
-	after the adjustment.
-In-Reply-To: <1306477947-21609-1-git-send-email-tristan.ye@oracle.com>
-References: <1306477947-21609-1-git-send-email-tristan.ye@oracle.com>
-Message-ID: <1306477947-21609-2-git-send-email-tristan.ye@oracle.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Fri, 27 May 2011 02:52:48 -0700
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 important fix for $next_version-rc1
+In-Reply-To: <20110526094632.GB8252@noexit.corp.google.com>
+References: <20110526094632.GB8252@noexit.corp.google.com>
+Message-ID: <20110527095248.GD4966@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-though the goal_to_be_moved will be validated again in following moving, it's
-still a good idea to validate it after adjustment at the very beginning, instead
-of validating it before adjustment.
+Linus et al,
+	Mea culpa.  The online defrag code in the ocfs2 feature pull had
+a naked 64-bit divide that I missed in eyeballing and we all missed in
+testing.  None of us managed to build the sucker on 32bit in the past
+two months.  That's on me.  Thank you to akpm for noticing.  Also
+included is a bugfix in the defrag location guessing.
+	I'd really like to get this in before -rc1 so that ocfs2 builds
+aren't broken there.  Please pull.
 
-Signed-off-by: Tristan Ye <tristan.ye@oracle.com>
----
- fs/ocfs2/move_extents.c |   26 +++++++++++++-------------
- 1 files changed, 13 insertions(+), 13 deletions(-)
+Mr Egg-on-his-face (Joel)
 
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index d184e0b..cd94270 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -472,12 +472,24 @@ static int ocfs2_validate_and_adjust_move_goal(struct inode *inode,
- 	int ret, goal_bit = 0;
- 
- 	struct buffer_head *gd_bh = NULL;
--	struct ocfs2_group_desc *bg;
-+	struct ocfs2_group_desc *bg = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	int c_to_b = 1 << (osb->s_clustersize_bits -
- 					inode->i_sb->s_blocksize_bits);
- 
- 	/*
-+	 * make goal become cluster aligned.
-+	 */
-+	range->me_goal = ocfs2_block_to_cluster_start(inode->i_sb,
-+						      range->me_goal);
-+	/*
-+	 * moving goal is not allowd to start with a group desc blok(#0 blk)
-+	 * let's compromise to the latter cluster.
-+	 */
-+	if (range->me_goal == le64_to_cpu(bg->bg_blkno))
-+		range->me_goal += c_to_b;
-+
-+	/*
- 	 * validate goal sits within global_bitmap, and return the victim
- 	 * group desc
- 	 */
-@@ -491,18 +503,6 @@ static int ocfs2_validate_and_adjust_move_goal(struct inode *inode,
- 	bg = (struct ocfs2_group_desc *)gd_bh->b_data;
- 
- 	/*
--	 * make goal become cluster aligned.
--	 */
--	range->me_goal = ocfs2_block_to_cluster_start(inode->i_sb,
--						      range->me_goal);
--	/*
--	 * moving goal is not allowd to start with a group desc blok(#0 blk)
--	 * let's compromise to the latter cluster.
--	 */
--	if (range->me_goal == le64_to_cpu(bg->bg_blkno))
--		range->me_goal += c_to_b;
--
--	/*
- 	 * movement is not gonna cross two groups.
- 	 */
- 	if ((le16_to_cpu(bg->bg_bits) - goal_bit) * osb->s_clustersize <
+The following changes since commit a74b81b0aff4a01e0816df5915c854fb52c5e87f:
+
+  Merge branch 'linux-next' of git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2 (2011-05-26 10:55:15 -0700)
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git linux-next
+
+Joel Becker (1):
+      Merge branch 'move_extents' of git://oss.oracle.com/git/tye/linux-2.6 into ocfs2-merge-window
+
+Tristan Ye (2):
+      Ocfs2/move_extents: Avoid doing division in extent moving.
+      Ocfs2/move_extents: Validate moving goal after the adjustment.
+
+ fs/ocfs2/move_extents.c |   41 ++++++++++++++++++++---------------------
+ 1 files changed, 20 insertions(+), 21 deletions(-)
+
 -- 
-1.5.5
+
+"Sometimes one pays most for the things one gets for nothing."
+        - Albert Einstein
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
