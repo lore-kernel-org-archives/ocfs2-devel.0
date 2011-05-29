@@ -1,29 +1,54 @@
 From: Dan Carpenter <error27@gmail.com>
-Date: Sun, 29 May 2011 22:56:31 +0300
-Subject: [Ocfs2-devel] [patch] ocfs2: checking the wrong variable in
-	ocfs2_move_extent()
-Message-ID: <20110529195631.GC3099@shale.localdomain>
+Date: Sun, 29 May 2011 22:57:16 +0300
+Subject: [Ocfs2-devel] [patch] ocfs2: null deref on allocation error
+Message-ID: <20110529195716.GD3099@shale.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-"new_phys_cpos" is always a valid pointer here.
-ocfs2_probe_alloc_group() allocates "*new_phys_cpos".
+The original code had a null derefence in the error handling.
 
 Signed-off-by: Dan Carpenter <error27@gmail.com>
 
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 4c54884..f3eb060 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -747,7 +747,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
- 	 */
- 	ocfs2_probe_alloc_group(inode, gd_bh, &goal_bit, len, move_max_hop,
- 				new_phys_cpos);
--	if (!new_phys_cpos) {
-+	if (!*new_phys_cpos) {
- 		ret = -ENOSPC;
- 		goto out_commit;
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index bc91072..d9a6ce7 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -381,7 +381,7 @@ int ocfs2_info_handle_freeinode(struct inode *inode,
+ 	if (!oifi) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_err;
  	}
+ 
+ 	if (o2info_from_user(*oifi, req))
+@@ -431,7 +431,7 @@ bail:
+ 		o2info_set_request_error(&oifi->ifi_req, req);
+ 
+ 	kfree(oifi);
+-
++out_err:
+ 	return status;
+ }
+ 
+@@ -666,7 +666,7 @@ int ocfs2_info_handle_freefrag(struct inode *inode,
+ 	if (!oiff) {
+ 		status = -ENOMEM;
+ 		mlog_errno(status);
+-		goto bail;
++		goto out_err;
+ 	}
+ 
+ 	if (o2info_from_user(*oiff, req))
+@@ -716,7 +716,7 @@ bail:
+ 		o2info_set_request_error(&oiff->iff_req, req);
+ 
+ 	kfree(oiff);
+-
++out_err:
+ 	return status;
+ }
+ 
