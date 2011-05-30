@@ -1,54 +1,44 @@
-From: Dan Carpenter <error27@gmail.com>
-Date: Sun, 29 May 2011 22:57:16 +0300
-Subject: [Ocfs2-devel] [patch] ocfs2: null deref on allocation error
-Message-ID: <20110529195716.GD3099@shale.localdomain>
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Date: Mon, 30 May 2011 21:58:05 +0900
+Subject: [Ocfs2-devel] [PATCH] ocfs2: use proper little-endian bitops
+Message-ID: <1306760285-4364-1-git-send-email-akinobu.mita@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Joel Becker <jlbec@evilplan.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-The original code had a null derefence in the error handling.
+Using __test_and_{set,clear}_bit_le() with ignoring its return value
+can be replaced with __{set,clear}_bit_le().
 
-Signed-off-by: Dan Carpenter <error27@gmail.com>
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel at oss.oracle.com
+---
+ fs/ocfs2/ocfs2.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index bc91072..d9a6ce7 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -381,7 +381,7 @@ int ocfs2_info_handle_freeinode(struct inode *inode,
- 	if (!oifi) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
--		goto bail;
-+		goto out_err;
- 	}
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 4092858..bcde467 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -836,13 +836,13 @@ static inline unsigned int ocfs2_clusters_to_megabytes(struct super_block *sb,
  
- 	if (o2info_from_user(*oifi, req))
-@@ -431,7 +431,7 @@ bail:
- 		o2info_set_request_error(&oifi->ifi_req, req);
- 
- 	kfree(oifi);
--
-+out_err:
- 	return status;
+ static inline void _ocfs2_set_bit(unsigned int bit, unsigned long *bitmap)
+ {
+-	__test_and_set_bit_le(bit, bitmap);
++	__set_bit_le(bit, bitmap);
  }
+ #define ocfs2_set_bit(bit, addr) _ocfs2_set_bit((bit), (unsigned long *)(addr))
  
-@@ -666,7 +666,7 @@ int ocfs2_info_handle_freefrag(struct inode *inode,
- 	if (!oiff) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
--		goto bail;
-+		goto out_err;
- 	}
- 
- 	if (o2info_from_user(*oiff, req))
-@@ -716,7 +716,7 @@ bail:
- 		o2info_set_request_error(&oiff->iff_req, req);
- 
- 	kfree(oiff);
--
-+out_err:
- 	return status;
+ static inline void _ocfs2_clear_bit(unsigned int bit, unsigned long *bitmap)
+ {
+-	__test_and_clear_bit_le(bit, bitmap);
++	__clear_bit_le(bit, bitmap);
  }
+ #define ocfs2_clear_bit(bit, addr) _ocfs2_clear_bit((bit), (unsigned long *)(addr))
  
+-- 
+1.7.4.4
