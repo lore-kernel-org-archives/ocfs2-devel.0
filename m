@@ -1,33 +1,36 @@
 From: Tiger Yang <tiger.yang@oracle.com>
-Date: Sat, 28 May 2011 00:34:52 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: remove redundant and incorrect
-	mlog_error
-Message-ID: <1306514092-22962-1-git-send-email-tiger.yang@oracle.com>
+Date: Mon, 30 May 2011 14:39:29 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: free memory allocated by
+	security_inode_init_security
+Message-ID: <1306737569-3919-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We have already mlog all error and positive status is not error.
+The LSM security_inode_init_security() hook allocates memory
+for xattr name and value, expecting the caller to release
+the memory afterwards.
 
+reported-by: Mimi Zohar <zohar@linux.vnet.ibm.com>
 Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/quota_global.c |    2 --
- 1 files changed, 0 insertions(+), 2 deletions(-)
+ fs/ocfs2/xattr.c |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index 92fcd57..0a86e30 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -399,8 +399,6 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
- 			      msecs_to_jiffies(oinfo->dqi_syncms));
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 81ecf9c..e9b031e 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -7215,6 +7215,8 @@ int ocfs2_init_security_and_acl(struct inode *dir,
  
- out_err:
--	if (status)
--		mlog_errno(status);
- 	return status;
- out_unlock:
- 	ocfs2_unlock_global_qf(oinfo, 0);
+ 	ocfs2_inode_unlock(dir, 0);
+ 	brelse(dir_bh);
++	kfree(si.name);
++	kfree(si.value);
+ leave:
+ 	return ret;
+ }
 -- 
 1.7.4.4
