@@ -1,57 +1,122 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 31 May 2011 10:13:34 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: free memory allocated by
-	security_inode_init_security
-In-Reply-To: <1306749283.3128.6.camel@localhost.localdomain>
-References: <1306737569-3919-1-git-send-email-tiger.yang@oracle.com>
-	<1306749283.3128.6.camel@localhost.localdomain>
-Message-ID: <4DE521BE.4080905@oracle.com>
+Date: Tue, 31 May 2011 12:47:10 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Bugfix for hard readonly mount
+In-Reply-To: <1306514059-22927-1-git-send-email-tiger.yang@oracle.com>
+References: <1306514059-22927-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <4DE545BE.2010905@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/30/2011 02:54 AM, Mimi Zohar wrote:
-> On Mon, 2011-05-30 at 14:39 +0800, Tiger Yang wrote:
->> The LSM security_inode_init_security() hook allocates memory
->> for xattr name and value, expecting the caller to release
->> the memory afterwards.
->>
->> reported-by: Mimi Zohar<zohar@linux.vnet.ibm.com>
->> Signed-off-by: Tiger Yang<tiger.yang@oracle.com>
-> Hi Tiger,
->
-> Thanks for taking a look.  For the normal case, the memory is now freed,
-> but not on failure.
->
-> thanks,
->
-> Mimi
+Patch looks good. The description can be improved a little bit.
 
-Move the frees below leave. And just to be safe, specifically
-init .name and .value to null while declaring.
+=======================================
+ocfs2: Allow mounting a hard-ro device
 
->> ---
->>   fs/ocfs2/xattr.c |    2 ++
->>   1 files changed, 2 insertions(+), 0 deletions(-)
->>
->> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
->> index 81ecf9c..e9b031e 100644
->> --- a/fs/ocfs2/xattr.c
->> +++ b/fs/ocfs2/xattr.c
->> @@ -7215,6 +7215,8 @@ int ocfs2_init_security_and_acl(struct inode *dir,
->>
->>   	ocfs2_inode_unlock(dir, 0);
->>   	brelse(dir_bh);
->> +	kfree(si.name);
->> +	kfree(si.value);
->>   leave:
->>   	return ret;
->>   }
+Patch fixes bugs to allow mounting the ocfs2 fs existing on a hard-ro device.
+
+Fixes ossbz#1322
+http://oss.oracle.com/bugzilla/show_bug.cgi?id=1322
+
+Signed-off-by: Tiger Yang<tiger.yang@oracle.com>
+
+========================================
+
+You can add:
+Reviewed-by: Sunil Mushran <sunil.mushran@oracle.com>
+
+Sunil
+
+On 05/27/2011 09:34 AM, Tiger Yang wrote:
+> This patch fixes few bugs when do hard readonly mount.
+> see detail: http://oss.oracle.com/bugzilla/show_bug.cgi?id=1322
 >
+> Signed-off-by: Tiger Yang<tiger.yang@oracle.com>
+> ---
+>   fs/ocfs2/dlmglue.c |   21 +++++++++++++++------
+>   fs/ocfs2/super.c   |    3 ++-
+>   2 files changed, 17 insertions(+), 7 deletions(-)
 >
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index 7642d7c..da103f5 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -1692,7 +1692,7 @@ int ocfs2_open_lock(struct inode *inode)
+>   	mlog(0, "inode %llu take PRMODE open lock\n",
+>   	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
+>
+> -	if (ocfs2_mount_local(osb))
+> +	if (ocfs2_is_hard_readonly(osb) || ocfs2_mount_local(osb))
+>   		goto out;
+>
+>   	lockres =&OCFS2_I(inode)->ip_open_lockres;
+> @@ -1718,6 +1718,12 @@ int ocfs2_try_open_lock(struct inode *inode, int write)
+>   	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+>   	     write ? "EXMODE" : "PRMODE");
+>
+> +	if (ocfs2_is_hard_readonly(osb)) {
+> +		if (write)
+> +			status = -EROFS;
+> +		goto out;
+> +	}
+> +
+>   	if (ocfs2_mount_local(osb))
+>   		goto out;
+>
+> @@ -2298,7 +2304,7 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
+>   	if (ocfs2_is_hard_readonly(osb)) {
+>   		if (ex)
+>   			status = -EROFS;
+> -		goto bail;
+> +		goto getbh;
+>   	}
+>
+>   	if (ocfs2_mount_local(osb))
+> @@ -2356,7 +2362,7 @@ local:
+>   			mlog_errno(status);
+>   		goto bail;
+>   	}
+> -
+> +getbh:
+>   	if (ret_bh) {
+>   		status = ocfs2_assign_bh(inode, ret_bh, local_bh);
+>   		if (status<  0) {
+> @@ -2628,8 +2634,11 @@ int ocfs2_dentry_lock(struct dentry *dentry, int ex)
+>
+>   	BUG_ON(!dl);
+>
+> -	if (ocfs2_is_hard_readonly(osb))
+> -		return -EROFS;
+> +	if (ocfs2_is_hard_readonly(osb)) {
+> +		if (ex)
+> +			return -EROFS;
+> +		return 0;
+> +	}
+>
+>   	if (ocfs2_mount_local(osb))
+>   		return 0;
+> @@ -2647,7 +2656,7 @@ void ocfs2_dentry_unlock(struct dentry *dentry, int ex)
+>   	struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
+>   	struct ocfs2_super *osb = OCFS2_SB(dentry->d_sb);
+>
+> -	if (!ocfs2_mount_local(osb))
+> +	if (!ocfs2_is_hard_readonly(osb)&&  !ocfs2_mount_local(osb))
+>   		ocfs2_cluster_unlock(osb,&dl->dl_lockres, level);
+>   }
+>
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 5a521c7..395b26f 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1973,7 +1973,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
+>   	 * If we failed before we got a uuid_str yet, we can't stop
+>   	 * heartbeat.  Otherwise, do it.
+>   	 */
+> -	if (!mnt_err&&  !ocfs2_mount_local(osb)&&  osb->uuid_str)
+> +	if (!mnt_err&&  !ocfs2_mount_local(osb)&&  osb->uuid_str&&
+> +	    !ocfs2_is_hard_readonly(osb))
+>   		hangup_needed = 1;
+>
+>   	if (osb->cconn)
