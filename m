@@ -1,120 +1,46 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 31 May 2011 19:23:22 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: Bugfix for hard readonly mount
-In-Reply-To: <1306514059-22927-1-git-send-email-tiger.yang@oracle.com>
-References: <1306514059-22927-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <20110601022321.GA29741@noexit.corp.google.com>
+Date: Tue, 31 May 2011 19:23:41 -0700
+Subject: [Ocfs2-devel] [patch] ocfs2: checking the wrong variable in
+ ocfs2_move_extent()
+In-Reply-To: <20110529195631.GC3099@shale.localdomain>
+References: <20110529195631.GC3099@shale.localdomain>
+Message-ID: <20110601022341.GB29741@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, May 28, 2011 at 12:34:19AM +0800, Tiger Yang wrote:
-> This patch fixes few bugs when do hard readonly mount.
-> see detail: http://oss.oracle.com/bugzilla/show_bug.cgi?id=1322
+On Sun, May 29, 2011 at 10:56:31PM +0300, Dan Carpenter wrote:
+> "new_phys_cpos" is always a valid pointer here.
+> ocfs2_probe_alloc_group() allocates "*new_phys_cpos".
 > 
-> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+> Signed-off-by: Dan Carpenter <error27@gmail.com>
 
 This patch is now in the 'fixes' branch of ocfs2.git.
 
 Joel
 
-> ---
->  fs/ocfs2/dlmglue.c |   21 +++++++++++++++------
->  fs/ocfs2/super.c   |    3 ++-
->  2 files changed, 17 insertions(+), 7 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 7642d7c..da103f5 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -1692,7 +1692,7 @@ int ocfs2_open_lock(struct inode *inode)
->  	mlog(0, "inode %llu take PRMODE open lock\n",
->  	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
->  
-> -	if (ocfs2_mount_local(osb))
-> +	if (ocfs2_is_hard_readonly(osb) || ocfs2_mount_local(osb))
->  		goto out;
->  
->  	lockres = &OCFS2_I(inode)->ip_open_lockres;
-> @@ -1718,6 +1718,12 @@ int ocfs2_try_open_lock(struct inode *inode, int write)
->  	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
->  	     write ? "EXMODE" : "PRMODE");
->  
-> +	if (ocfs2_is_hard_readonly(osb)) {
-> +		if (write)
-> +			status = -EROFS;
-> +		goto out;
-> +	}
-> +
->  	if (ocfs2_mount_local(osb))
->  		goto out;
->  
-> @@ -2298,7 +2304,7 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
->  	if (ocfs2_is_hard_readonly(osb)) {
->  		if (ex)
->  			status = -EROFS;
-> -		goto bail;
-> +		goto getbh;
->  	}
->  
->  	if (ocfs2_mount_local(osb))
-> @@ -2356,7 +2362,7 @@ local:
->  			mlog_errno(status);
->  		goto bail;
->  	}
-> -
-> +getbh:
->  	if (ret_bh) {
->  		status = ocfs2_assign_bh(inode, ret_bh, local_bh);
->  		if (status < 0) {
-> @@ -2628,8 +2634,11 @@ int ocfs2_dentry_lock(struct dentry *dentry, int ex)
->  
->  	BUG_ON(!dl);
->  
-> -	if (ocfs2_is_hard_readonly(osb))
-> -		return -EROFS;
-> +	if (ocfs2_is_hard_readonly(osb)) {
-> +		if (ex)
-> +			return -EROFS;
-> +		return 0;
-> +	}
->  
->  	if (ocfs2_mount_local(osb))
->  		return 0;
-> @@ -2647,7 +2656,7 @@ void ocfs2_dentry_unlock(struct dentry *dentry, int ex)
->  	struct ocfs2_dentry_lock *dl = dentry->d_fsdata;
->  	struct ocfs2_super *osb = OCFS2_SB(dentry->d_sb);
->  
-> -	if (!ocfs2_mount_local(osb))
-> +	if (!ocfs2_is_hard_readonly(osb) && !ocfs2_mount_local(osb))
->  		ocfs2_cluster_unlock(osb, &dl->dl_lockres, level);
->  }
->  
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 5a521c7..395b26f 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -1973,7 +1973,8 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
->  	 * If we failed before we got a uuid_str yet, we can't stop
->  	 * heartbeat.  Otherwise, do it.
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index 4c54884..f3eb060 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -747,7 +747,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
 >  	 */
-> -	if (!mnt_err && !ocfs2_mount_local(osb) && osb->uuid_str)
-> +	if (!mnt_err && !ocfs2_mount_local(osb) && osb->uuid_str &&
-> +	    !ocfs2_is_hard_readonly(osb))
->  		hangup_needed = 1;
->  
->  	if (osb->cconn)
-> -- 
-> 1.7.4.4
-> 
+>  	ocfs2_probe_alloc_group(inode, gd_bh, &goal_bit, len, move_max_hop,
+>  				new_phys_cpos);
+> -	if (!new_phys_cpos) {
+> +	if (!*new_phys_cpos) {
+>  		ret = -ENOSPC;
+>  		goto out_commit;
+>  	}
 
 -- 
 
-Life's Little Instruction Book #451
-
-	"Don't be afraid to say, 'I'm sorry.'"
+"If the human brain were so simple we could understand it, we would
+ be so simple that we could not."
+	- W. A. Clouston
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
