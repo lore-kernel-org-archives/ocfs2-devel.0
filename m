@@ -1,46 +1,56 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 31 May 2011 16:07:02 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: use proper little-endian bitops
-In-Reply-To: <20110531225713.GA10985@wotan.suse.de>
-References: <1306760285-4364-1-git-send-email-akinobu.mita@gmail.com>
-	<20110531225713.GA10985@wotan.suse.de>
-Message-ID: <20110531230702.GE31742@noexit.corp.google.com>
+Date: Tue, 31 May 2011 18:43:04 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: remove redundant and incorrect
+	mlog_error
+In-Reply-To: <1306514092-22962-1-git-send-email-tiger.yang@oracle.com>
+References: <1306514092-22962-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <20110601014303.GA5468@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, May 31, 2011 at 03:57:13PM -0700, Mark Fasheh wrote:
-> On Mon, May 30, 2011 at 09:58:05PM +0900, Akinobu Mita wrote:
-> > Using __test_and_{set,clear}_bit_le() with ignoring its return value
-> > can be replaced with __{set,clear}_bit_le().
-> > 
-> > Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> > Cc: Joel Becker <jlbec@evilplan.org>
-> > Cc: Mark Fasheh <mfasheh@suse.com>
-> > Cc: ocfs2-devel at oss.oracle.com
-> 
-> Looks reasonable to me...
-> 
-> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
-> 
-> Joel?
+On Sat, May 28, 2011 at 12:34:52AM +0800, Tiger Yang wrote:
+> We have already mlog all error and positive status is not error.
 
-	No argument here.  Akinobu, do you want me to send it with ocfs2
-fixes, or are you going to push it along?
+	Positive status is turned into -EIO.  There are actually a
+couple of places in this function that do not mlog_errno(status) and
+rely on this print.  I think you should add them to your patch.
+	For example:
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
+371         status = ocfs2_qinfo_lock(oinfo, 0);
+372         if (status < 0)
+373                 goto out_unlock;
 
 Joel
+ 
+> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+> ---
+>  fs/ocfs2/quota_global.c |    2 --
+>  1 files changed, 0 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+> index 92fcd57..0a86e30 100644
+> --- a/fs/ocfs2/quota_global.c
+> +++ b/fs/ocfs2/quota_global.c
+> @@ -399,8 +399,6 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+>  			      msecs_to_jiffies(oinfo->dqi_syncms));
+>  
+>  out_err:
+> -	if (status)
+> -		mlog_errno(status);
+>  	return status;
+>  out_unlock:
+>  	ocfs2_unlock_global_qf(oinfo, 0);
+> -- 
+> 1.7.4.4
+> 
 
 -- 
 
-"Lately I've been talking in my sleep.
- Can't imagine what I'd have to say.
- Except my world will be right
- When love comes back my way."
+"Copy from one, it's plagiarism; copy from two, it's research."
+        - Wilson Mizner
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
