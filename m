@@ -1,249 +1,46 @@
-From: Tao Ma <tm@tao.ma>
-Date: Thu, 23 Jun 2011 11:44:42 +0800
-Subject: [Ocfs2-devel] ocfs2: serialize unaligned aio
-In-Reply-To: <20110622212338.GA20816@wotan.suse.de>
-References: <20110622212338.GA20816@wotan.suse.de>
-Message-ID: <4E02B6AA.3000000@tao.ma>
+From: Jan Kara <jack@suse.cz>
+Date: Thu, 23 Jun 2011 22:51:47 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Avoid livelock in ocfs2_readpage()
+Message-ID: <1308862307-15626-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-On 06/23/2011 05:23 AM, Mark Fasheh wrote:
-> Fix a corruption that can happen when we have (two or more) outstanding
-> aio's to an overlapping unaligned region.  Ext4
-> (e9e3bcecf44c04b9e6b505fd8e2eb9cea58fb94d) and xfs recently had to fix
-> similar issues.
-> 
-> In our case what happens is that we can have an outstanding aio on a region
-> and if a write comes in with some bytes overlapping the original aio we may
-> decide to read that region into a page before continuing (typically because
-> of buffered-io fallback).  Since we have no ordering guarantees with the
-> aio, we can read stale or bad data into the page and then write it back out.
-> 
-> If the i/o is page and block aligned, then we avoid this issue as there
-> won't be any need to read data from disk.
-> 
-> I took the same approach as Eric in the ext4 patch and introduced some
-> serialization of unaligned async direct i/o.  I don't expect this to have an
-> effect on the most common cases of AIO.  Unaligned aio will be slower
-> though, but that's far more acceptable than data corruption.
-> 
-> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
-> 
-> ---
->  fs/ocfs2/aops.c  |   10 ++++++++++
->  fs/ocfs2/aops.h  |   14 ++++++++++++++
->  fs/ocfs2/file.c  |   38 ++++++++++++++++++++++++++++++++++++++
->  fs/ocfs2/inode.h |    3 +++
->  fs/ocfs2/super.c |   10 ++++++++--
->  5 files changed, 73 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index ac97bca..4c1ec8f 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -564,6 +564,7 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
->  {
->  	struct inode *inode = iocb->ki_filp->f_path.dentry->d_inode;
->  	int level;
-> +	wait_queue_head_t *wq = ocfs2_ioend_wq(inode);
->  
->  	/* this io's submitter should not have unlocked this before we could */
->  	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
-> @@ -573,6 +574,15 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
->  		ocfs2_iocb_clear_sem_locked(iocb);
->  	}
->  
-> +	if (ocfs2_iocb_is_unaligned_aio(iocb)) {
-> +		ocfs2_iocb_clear_unaligned_aio(iocb);
-> +
-> +		if (atomic_dec_and_test(&OCFS2_I(inode)->ip_unaligned_aio) &&
-> +		    waitqueue_active(wq)) {
-> +			wake_up_all(wq);
-> +		}
-> +	}
-> +
->  	ocfs2_iocb_clear_rw_locked(iocb);
->  
->  	level = ocfs2_iocb_rw_locked_level(iocb);
-> diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
-> index 75cf3ad..ffb2da3 100644
-> --- a/fs/ocfs2/aops.h
-> +++ b/fs/ocfs2/aops.h
-> @@ -78,6 +78,7 @@ enum ocfs2_iocb_lock_bits {
->  	OCFS2_IOCB_RW_LOCK = 0,
->  	OCFS2_IOCB_RW_LOCK_LEVEL,
->  	OCFS2_IOCB_SEM,
-> +	OCFS2_IOCB_UNALIGNED_IO,
->  	OCFS2_IOCB_NUM_LOCKS
->  };
->  
-> @@ -91,4 +92,17 @@ enum ocfs2_iocb_lock_bits {
->  	clear_bit(OCFS2_IOCB_SEM, (unsigned long *)&iocb->private)
->  #define ocfs2_iocb_is_sem_locked(iocb) \
->  	test_bit(OCFS2_IOCB_SEM, (unsigned long *)&iocb->private)
-> +
-> +#define ocfs2_iocb_set_unaligned_aio(iocb) \
-> +	set_bit(OCFS2_IOCB_UNALIGNED_IO, (unsigned long *)&iocb->private)
-> +#define ocfs2_iocb_clear_unaligned_aio(iocb) \
-> +	clear_bit(OCFS2_IOCB_UNALIGNED_IO, (unsigned long *)&iocb->private)
-> +#define ocfs2_iocb_is_unaligned_aio(iocb) \
-> +	test_bit(OCFS2_IOCB_UNALIGNED_IO, (unsigned long *)&iocb->private)
-> +
-> +#define OCFS2_IOEND_WQ_HASH_SZ	37
-> +#define ocfs2_ioend_wq(v)   (&ocfs2__ioend_wq[((unsigned long)(v)) %\
-> +					    OCFS2_IOEND_WQ_HASH_SZ])
-> +extern wait_queue_head_t ocfs2__ioend_wq[OCFS2_IOEND_WQ_HASH_SZ];
-> +
->  #endif /* OCFS2_FILE_H */
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 89659d6..4c909c9 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -2038,6 +2038,23 @@ out:
->  	return ret;
->  }
->  
-> +static void ocfs2_aiodio_wait(struct inode *inode)
-> +{
-> +	wait_queue_head_t *wq = ocfs2_ioend_wq(inode);
-> +
-> +	wait_event(*wq, (atomic_read(&OCFS2_I(inode)->ip_unaligned_aio) == 0));
-> +}
-> +
-> +static int ocfs2_is_io_unaligned(struct inode *inode, size_t count, loff_t pos)
-> +{
-> +	int blockmask = inode->i_sb->s_blocksize - 1;
-> +	loff_t final_size = pos + count;
-> +
-> +	if ((pos & blockmask) || (final_size & blockmask))
-> +		return 1;
-> +	return 0;
-> +}
-> +
->  static int ocfs2_prepare_inode_for_refcount(struct inode *inode,
->  					    struct file *file,
->  					    loff_t pos, size_t count,
-> @@ -2216,6 +2233,7 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->  	int full_coherency = !(osb->s_mount_opt &
->  			       OCFS2_MOUNT_COHERENCY_BUFFERED);
-> +	int unaligned_dio = 0;
->  
->  	trace_ocfs2_file_aio_write(inode, file, file->f_path.dentry,
->  		(unsigned long long)OCFS2_I(inode)->ip_blkno,
-> @@ -2284,6 +2302,10 @@ relock:
->  		goto out;
->  	}
->  
-> +	if (direct_io && !is_sync_kiocb(iocb))
-> +		unaligned_dio = ocfs2_is_io_unaligned(inode, iocb->ki_left,
-> +						      *ppos);
-> +
->  	/*
->  	 * We can't complete the direct I/O as requested, fall back to
->  	 * buffered I/O.
-> @@ -2299,6 +2321,18 @@ relock:
->  		goto relock;
->  	}
->  
-> +	if (unaligned_dio) {
-> +		/*
-> +		 * Wait on previous unaligned aio to complete before
-> +		 * proceeding.
-> +		 */
-> +		ocfs2_aiodio_wait(inode);
-> +
-> +		/* Mark the iocb as needing a decrement in ocfs2_dio_end_io */
-> +		atomic_inc(&OCFS2_I(inode)->ip_unaligned_aio);
-> +		ocfs2_iocb_set_unaligned_aio(iocb);
-> +	}
-> +
-I just have one qs here. In ocfs2_aiodio_wait, we just wait for the
-event and in ocfs2_dio_end_io, we will wake up all the waiters.
+When someone writes to an inode, readers accessing the same inode via
+ocfs2_readpage() just busyloop trying to get ip_alloc_sem because
+do_generic_file_read() looks up the page again and retries ->readpage()
+when previous attempt failed with AOP_TRUNCATED_PAGE. When there are enough
+readers, they can occupy all CPUs and in non-preempt kernel the system is
+deadlocked because writer holding ip_alloc_sem is never run to release the
+semaphore. Fix the problem by making reader block on ip_alloc_sem to break
+the busy loop.
 
-So if there are 2 aios comes when 1 aio is proceeding, these 2 will wait
-here and after the first 1 aio is completed, both of these 2 will be
-waken up and they will be running at the same time actually. Maybe we
-have to used exclusive wait here and use wake_up so that only 1 of these
-2 will be waken up to proceed? Or is it designed like this intentionally?
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/aops.c |    8 ++++++++
+ 1 files changed, 8 insertions(+), 0 deletions(-)
 
-I have gone through the patches of ext4 and yes, it does the similar
-thing, but I am not sure whether the case is the same or not since I am
-not quite familiar with ext4 by now.
-
-Regards,
-Tao
->  	/*
->  	 * To later detect whether a journal commit for sync writes is
->  	 * necessary, we sample i_size, and cluster count here.
-> @@ -2371,8 +2405,12 @@ out_dio:
->  	if ((ret == -EIOCBQUEUED) || (!ocfs2_iocb_is_rw_locked(iocb))) {
->  		rw_level = -1;
->  		have_alloc_sem = 0;
-> +		unaligned_dio = 0;
->  	}
->  
-> +	if (unaligned_dio)
-> +		atomic_dec(&OCFS2_I(inode)->ip_unaligned_aio);
-> +
->  out:
->  	if (rw_level != -1)
->  		ocfs2_rw_unlock(inode, rw_level);
-> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-> index 1c508b1..88924a3 100644
-> --- a/fs/ocfs2/inode.h
-> +++ b/fs/ocfs2/inode.h
-> @@ -43,6 +43,9 @@ struct ocfs2_inode_info
->  	/* protects extended attribute changes on this inode */
->  	struct rw_semaphore		ip_xattr_sem;
->  
-> +	/* Number of outstanding AIO's which are not page aligned */
-> +	atomic_t			ip_unaligned_aio;
-> +
->  	/* These fields are protected by ip_lock */
->  	spinlock_t			ip_lock;
->  	u32				ip_open_count;
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 5a521c7..6b7b415 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -53,6 +53,7 @@
->  #include "ocfs1_fs_compat.h"
->  
->  #include "alloc.h"
-> +#include "aops.h"
->  #include "blockcheck.h"
->  #include "dlmglue.h"
->  #include "export.h"
-> @@ -1615,12 +1616,17 @@ static int ocfs2_show_options(struct seq_file *s, struct vfsmount *mnt)
->  	return 0;
->  }
->  
-> +wait_queue_head_t ocfs2__ioend_wq[OCFS2_IOEND_WQ_HASH_SZ];
-> +
->  static int __init ocfs2_init(void)
->  {
-> -	int status;
-> +	int status, i;
->  
->  	ocfs2_print_version();
->  
-> +	for (i = 0; i < OCFS2_IOEND_WQ_HASH_SZ; i++)
-> +		init_waitqueue_head(&ocfs2__ioend_wq[i]);
-> +
->  	status = init_ocfs2_uptodate_cache();
->  	if (status < 0) {
->  		mlog_errno(status);
-> @@ -1759,7 +1765,7 @@ static void ocfs2_inode_init_once(void *data)
->  	ocfs2_extent_map_init(&oi->vfs_inode);
->  	INIT_LIST_HEAD(&oi->ip_io_markers);
->  	oi->ip_dir_start_lookup = 0;
-> -
-> +	atomic_set(&oi->ip_unaligned_aio, 0);
->  	init_rwsem(&oi->ip_alloc_sem);
->  	init_rwsem(&oi->ip_xattr_sem);
->  	mutex_init(&oi->ip_io_mutex);
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index ac97bca..0919e8f 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -290,7 +290,15 @@ static int ocfs2_readpage(struct file *file, struct page *page)
+ 	}
+ 
+ 	if (down_read_trylock(&oi->ip_alloc_sem) == 0) {
++		/*
++		 * Unlock the page and cycle ip_alloc_sem so that we don't
++		 * busyloop waiting for ip_alloc_sem to unlock
++		 */
+ 		ret = AOP_TRUNCATED_PAGE;
++		unlock_page(page);
++		unlock = 0;
++		down_read(&oi->ip_alloc_sem);
++		up_read(&oi->ip_alloc_sem);
+ 		goto out_inode_unlock;
+ 	}
+ 
+-- 
+1.7.1
