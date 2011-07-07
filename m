@@ -1,29 +1,39 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 07 Jul 2011 13:02:10 -0700
-Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: fix slow deleting
-In-Reply-To: <4E154FEA.5030406@oracle.com>
-References: <201107060529.p665TY59014082@acsmt356.oracle.com>	<4E13FE03.5060005@oracle.com>
-	<4E154FEA.5030406@oracle.com>
-Message-ID: <4E1610C2.7060509@oracle.com>
+Date: Thu, 07 Jul 2011 13:09:11 -0700
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: let ocfs2_dir_foreach return
+ the error turned by filldir
+In-Reply-To: <201107060539.p665dfRB020547@acsmt356.oracle.com>
+References: <201107060539.p665dfRB020547@acsmt356.oracle.com>
+Message-ID: <4E161267.8050000@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 07/06/2011 11:19 PM, Srinivas Eeda wrote:
-> On 7/5/2011 11:17 PM, Sunil Mushran wrote:
->> 2. All nodes have to scan all slots. Even live slots. I remember we
->> did for
->> a reason. And that reason should be in the comment in the patch written
->> by Srini.
-> When a node unlinks a file it inserts an entry into it's own orphan
-> slot. If another node is the last one to close the file and dentry got
-> flushed then it will not do the cleanup as it doesn't know the file was
-> orphaned. The file will remain in the orphan slot  till the node umounts
-> and the same slot is reused again. To overcome this problem a node has
-> to rescan all slots(including live slots) and try to do the cleanup.
+On 07/05/2011 09:40 PM, Wengang Wang wrote:
+> Let ocfs2_dir_foreach return the error turned by filldir.
+>
+> Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
+> ---
+>   fs/ocfs2/dir.c |    2 ++
+>   1 files changed, 2 insertions(+), 0 deletions(-)
+>
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index 8582e3f..6d7560a 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -2005,6 +2005,8 @@ int ocfs2_dir_foreach(struct inode *inode, loff_t *f_pos, void *priv,
+>
+>   	if (ret>  0)
+>   		ret = -EIO;
+> +	if (!ret)
+> +		ret = filldir_err;
+>
+>   	return 0;
+>   }
 
-The qs is not why are we scanning all live slots on all nodes. As in,
-why not just recover the local slot. There was a reason for that.
-Yes, we have to recover unused slots for the reason listed previously.
+That's not enough. Shouldn't it be "return ret" too.
+
+Have you triggered this error manually? I have never seen reports of it
+before.
