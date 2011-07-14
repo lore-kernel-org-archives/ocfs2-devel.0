@@ -1,74 +1,50 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 14 Jul 2011 15:50:21 -0700
-Subject: [Ocfs2-devel] [PATCH 10/16] ocfs2/dlm: dlmlock_remote() needs to
-	account for remastery
+Date: Thu, 14 Jul 2011 15:50:22 -0700
+Subject: [Ocfs2-devel] [PATCH 11/16] ocfs2/cluster: Fix output in file
+	elapsed_time_in_ms
 In-Reply-To: <1310683827-19157-1-git-send-email-sunil.mushran@oracle.com>
 References: <1310683827-19157-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1310683827-19157-11-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1310683827-19157-12-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In dlmlock_remote(), we wait for the resource to stop being active before
-setting the inprogress flag. Active includes recovery, migration, etc.
-
-The problem here is that if the resource was being recovered or migrated, the
-new owner could very well be that node itself (and thus not a remote node).
-This problem was observed in Oracle bug#12583620. The error messages observed
-were as follows:
-
-dlm_send_remote_lock_request:337 ERROR: Error -40 (ELOOP) when sending message 503 (key 0xd6d8c7) to node 2
-dlmlock_remote:271 ERROR: dlm status = DLM_BADARGS
-dlmlock:751 ERROR: dlm status = DLM_BADARGS
+The o2hb debugfs file, elapsed_time_in_ms, should return values only after the
+timer is armed atleast once.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmlock.c |   18 ++++++++----------
- 1 files changed, 8 insertions(+), 10 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |    9 ++++++---
+ 1 files changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-index 3ef2c1a..f32fcba 100644
---- a/fs/ocfs2/dlm/dlmlock.c
-+++ b/fs/ocfs2/dlm/dlmlock.c
-@@ -227,10 +227,16 @@ static enum dlm_status dlmlock_remote(struct dlm_ctxt *dlm,
- 	     lock->ml.type, res->lockname.len,
- 	     res->lockname.name, flags);
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 4728a74..a4e855e 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1198,6 +1198,7 @@ static int o2hb_debug_open(struct inode *inode, struct file *file)
+ 	struct o2hb_debug_buf *db = inode->i_private;
+ 	struct o2hb_region *reg;
+ 	unsigned long map[BITS_TO_LONGS(O2NM_MAX_NODES)];
++	unsigned long lts;
+ 	char *buf = NULL;
+ 	int i = -1;
+ 	int out = 0;
+@@ -1234,9 +1235,11 @@ static int o2hb_debug_open(struct inode *inode, struct file *file)
  
-+	/*
-+	 * Wait if resource is getting recovered, remastered, etc.
-+	 * If the resource was remastered and new owner is self, then exit.
-+	 */
- 	spin_lock(&res->spinlock);
--
--	/* will exit this call with spinlock held */
- 	__dlm_wait_on_lockres(res);
-+	if (res->owner == dlm->node_num) {
-+		spin_unlock(&res->spinlock);
-+		return DLM_RECOVERING;
-+	}
- 	res->state |= DLM_LOCK_RES_IN_PROGRESS;
+ 	case O2HB_DB_TYPE_REGION_ELAPSED_TIME:
+ 		reg = (struct o2hb_region *)db->db_data;
+-		out += snprintf(buf + out, PAGE_SIZE - out, "%u\n",
+-				jiffies_to_msecs(jiffies -
+-						 reg->hr_last_timeout_start));
++		lts = reg->hr_last_timeout_start;
++		/* If 0, it has never been set before */
++		if (lts)
++			lts = jiffies_to_msecs(jiffies - lts);
++		out += snprintf(buf + out, PAGE_SIZE - out, "%lu\n", lts);
+ 		goto done;
  
- 	/* add lock to local (secondary) queue */
-@@ -710,18 +716,10 @@ retry_lock:
- 
- 		if (status == DLM_RECOVERING || status == DLM_MIGRATING ||
- 		    status == DLM_FORWARD) {
--			mlog(0, "retrying lock with migration/"
--			     "recovery/in progress\n");
- 			msleep(100);
--			/* no waiting for dlm_reco_thread */
- 			if (recovery) {
- 				if (status != DLM_RECOVERING)
- 					goto retry_lock;
--
--				mlog(0, "%s: got RECOVERING "
--				     "for $RECOVERY lock, master "
--				     "was %u\n", dlm->name,
--				     res->owner);
- 				/* wait to see the node go down, then
- 				 * drop down and allow the lockres to
- 				 * get cleaned up.  need to remaster. */
+ 	case O2HB_DB_TYPE_REGION_PINNED:
 -- 
 1.7.4.1
