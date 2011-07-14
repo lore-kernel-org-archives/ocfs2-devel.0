@@ -1,304 +1,443 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 14 Jul 2011 15:50:17 -0700
-Subject: [Ocfs2-devel] [PATCH 06/16] ocfs2/dlm: Clean up refmap helpers
+Date: Thu, 14 Jul 2011 15:50:12 -0700
+Subject: [Ocfs2-devel] [PATCH 01/16] ocfs2/cluster: Abort heartbeat start on
+	hard-ro devices
 In-Reply-To: <1310683827-19157-1-git-send-email-sunil.mushran@oracle.com>
 References: <1310683827-19157-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1310683827-19157-7-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1310683827-19157-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Patch cleans up helpers that set/clear refmap bits and grab/drop inflight lock
-ref counts.
+Currently if the heartbeat device is hard-ro, the o2hb thread keeps chugging
+along and dumping errors along the way. The user needs to manually stop the
+heartbeat.
+
+The patch addresses this shortcoming by adding a limit to the number of times
+the hb thread will iterate in an unsteady state. If the hb thread does not
+ready steady state in that many interation, the start is aborted.
 
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmcommon.h   |   49 ++++--------------------
- fs/ocfs2/dlm/dlmmaster.c   |   88 ++++++++++++++++++++++++++-----------------
- fs/ocfs2/dlm/dlmrecovery.c |    8 ++--
- 3 files changed, 66 insertions(+), 79 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |  185 ++++++++++++++++++++++++++----------------
+ 1 files changed, 116 insertions(+), 69 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index d602abb..4a5d580 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -902,46 +902,15 @@ struct dlm_lock_resource *dlm_new_lockres(struct dlm_ctxt *dlm,
- 					  const char *name,
- 					  unsigned int namelen);
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 9a3e6bb..4728a74 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -216,6 +216,7 @@ struct o2hb_region {
  
--#define dlm_lockres_set_refmap_bit(bit,res)  \
--	__dlm_lockres_set_refmap_bit(bit,res,__FILE__,__LINE__)
--#define dlm_lockres_clear_refmap_bit(bit,res)  \
--	__dlm_lockres_clear_refmap_bit(bit,res,__FILE__,__LINE__)
--
--static inline void __dlm_lockres_set_refmap_bit(int bit,
--						struct dlm_lock_resource *res,
--						const char *file,
--						int line)
--{
--	//printk("%s:%d:%.*s: setting bit %d\n", file, line,
--	//     res->lockname.len, res->lockname.name, bit);
--	set_bit(bit, res->refmap);
--}
--
--static inline void __dlm_lockres_clear_refmap_bit(int bit,
--						  struct dlm_lock_resource *res,
--						  const char *file,
--						  int line)
--{
--	//printk("%s:%d:%.*s: clearing bit %d\n", file, line,
--	//     res->lockname.len, res->lockname.name, bit);
--	clear_bit(bit, res->refmap);
--}
--
--void __dlm_lockres_drop_inflight_ref(struct dlm_ctxt *dlm,
--				   struct dlm_lock_resource *res,
--				   const char *file,
--				   int line);
--void __dlm_lockres_grab_inflight_ref(struct dlm_ctxt *dlm,
--				   struct dlm_lock_resource *res,
--				   int new_lockres,
--				   const char *file,
--				   int line);
--#define dlm_lockres_drop_inflight_ref(d,r)  \
--	__dlm_lockres_drop_inflight_ref(d,r,__FILE__,__LINE__)
--#define dlm_lockres_grab_inflight_ref(d,r)  \
--	__dlm_lockres_grab_inflight_ref(d,r,0,__FILE__,__LINE__)
--#define dlm_lockres_grab_inflight_ref_new(d,r)  \
--	__dlm_lockres_grab_inflight_ref(d,r,1,__FILE__,__LINE__)
-+void dlm_lockres_set_refmap_bit(struct dlm_ctxt *dlm,
-+				struct dlm_lock_resource *res, int bit);
-+void dlm_lockres_clear_refmap_bit(struct dlm_ctxt *dlm,
-+				  struct dlm_lock_resource *res, int bit);
+ 	struct list_head	hr_all_item;
+ 	unsigned		hr_unclean_stop:1,
++				hr_aborted_start:1,
+ 				hr_item_pinned:1,
+ 				hr_item_dropped:1;
+ 
+@@ -254,6 +255,10 @@ struct o2hb_region {
+ 	 * a more complete api that doesn't lead to this sort of fragility. */
+ 	atomic_t		hr_steady_iterations;
+ 
++	/* terminate o2hb thread if it does not reach steady state
++	 * (hr_steady_iterations == 0) within hr_unsteady_iterations */
++	atomic_t		hr_unsteady_iterations;
 +
-+void dlm_lockres_drop_inflight_ref(struct dlm_ctxt *dlm,
-+				   struct dlm_lock_resource *res);
-+void dlm_lockres_grab_inflight_ref(struct dlm_ctxt *dlm,
-+				   struct dlm_lock_resource *res);
+ 	char			hr_dev_name[BDEVNAME_SIZE];
  
- void dlm_queue_ast(struct dlm_ctxt *dlm, struct dlm_lock *lock);
- void dlm_queue_bast(struct dlm_ctxt *dlm, struct dlm_lock *lock);
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 9f3b093..11e446f 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -631,39 +631,58 @@ error:
- 	return NULL;
- }
+ 	unsigned int		hr_timeout_ms;
+@@ -324,6 +329,10 @@ static void o2hb_write_timeout(struct work_struct *work)
  
--void __dlm_lockres_grab_inflight_ref(struct dlm_ctxt *dlm,
--				   struct dlm_lock_resource *res,
--				   int new_lockres,
--				   const char *file,
--				   int line)
-+void dlm_lockres_set_refmap_bit(struct dlm_ctxt *dlm,
-+				struct dlm_lock_resource *res, int bit)
+ static void o2hb_arm_write_timeout(struct o2hb_region *reg)
  {
--	if (!new_lockres)
--		assert_spin_locked(&res->spinlock);
-+	assert_spin_locked(&res->spinlock);
++	/* Arm writeout only after thread reaches steady state */
++	if (atomic_read(&reg->hr_steady_iterations) != 0)
++		return;
 +
-+	mlog(0, "res %.*s, set node %u, %ps()\n", res->lockname.len,
-+	     res->lockname.name, bit, __builtin_return_address(0));
-+
-+	set_bit(bit, res->refmap);
-+}
-+
-+void dlm_lockres_clear_refmap_bit(struct dlm_ctxt *dlm,
-+				  struct dlm_lock_resource *res, int bit)
-+{
-+	assert_spin_locked(&res->spinlock);
-+
-+	mlog(0, "res %.*s, clr node %u, %ps()\n", res->lockname.len,
-+	     res->lockname.name, bit, __builtin_return_address(0));
-+
-+	clear_bit(bit, res->refmap);
-+}
-+
-+
-+void dlm_lockres_grab_inflight_ref(struct dlm_ctxt *dlm,
-+				   struct dlm_lock_resource *res)
-+{
-+	assert_spin_locked(&res->spinlock);
+ 	mlog(ML_HEARTBEAT, "Queue write timeout for %u ms\n",
+ 	     O2HB_MAX_WRITE_TIMEOUT_MS);
  
- 	if (!test_bit(dlm->node_num, res->refmap)) {
- 		BUG_ON(res->inflight_locks != 0);
--		dlm_lockres_set_refmap_bit(dlm->node_num, res);
-+		dlm_lockres_set_refmap_bit(dlm, res, dlm->node_num);
- 	}
- 	res->inflight_locks++;
--	mlog(0, "%s:%.*s: inflight++: now %u\n",
--	     dlm->name, res->lockname.len, res->lockname.name,
--	     res->inflight_locks);
-+	mlog(0, "%s: res %.*s, inflight++: now %u, %ps()\n", dlm->name,
-+	     res->lockname.len, res->lockname.name, res->inflight_locks,
-+	     __builtin_return_address(0));
+@@ -537,9 +546,14 @@ static int o2hb_verify_crc(struct o2hb_region *reg,
+ 	return read == computed;
  }
  
--void __dlm_lockres_drop_inflight_ref(struct dlm_ctxt *dlm,
--				   struct dlm_lock_resource *res,
--				   const char *file,
--				   int line)
-+void dlm_lockres_drop_inflight_ref(struct dlm_ctxt *dlm,
-+				   struct dlm_lock_resource *res)
+-/* We want to make sure that nobody is heartbeating on top of us --
+- * this will help detect an invalid configuration. */
+-static void o2hb_check_last_timestamp(struct o2hb_region *reg)
++/*
++ * Compare the slot data with what we wrote in the last iteration.
++ * If the match fails, print an appropriate error message. This is to
++ * detect errors like... another node hearting on the same slot,
++ * flaky device that is losing writes, etc.
++ * Returns 1 if check succeeds, 0 otherwise.
++ */
++static int o2hb_check_own_slot(struct o2hb_region *reg)
  {
- 	assert_spin_locked(&res->spinlock);
+ 	struct o2hb_disk_slot *slot;
+ 	struct o2hb_disk_heartbeat_block *hb_block;
+@@ -548,13 +562,13 @@ static void o2hb_check_last_timestamp(struct o2hb_region *reg)
+ 	slot = &reg->hr_slots[o2nm_this_node()];
+ 	/* Don't check on our 1st timestamp */
+ 	if (!slot->ds_last_time)
+-		return;
++		return 0;
  
- 	BUG_ON(res->inflight_locks == 0);
+ 	hb_block = slot->ds_raw_block;
+ 	if (le64_to_cpu(hb_block->hb_seq) == slot->ds_last_time &&
+ 	    le64_to_cpu(hb_block->hb_generation) == slot->ds_last_generation &&
+ 	    hb_block->hb_node == slot->ds_node_num)
+-		return;
++		return 1;
+ 
+ #define ERRSTR1		"Another node is heartbeating on device"
+ #define ERRSTR2		"Heartbeat generation mismatch on device"
+@@ -574,6 +588,8 @@ static void o2hb_check_last_timestamp(struct o2hb_region *reg)
+ 	     (unsigned long long)slot->ds_last_time, hb_block->hb_node,
+ 	     (unsigned long long)le64_to_cpu(hb_block->hb_generation),
+ 	     (unsigned long long)le64_to_cpu(hb_block->hb_seq));
 +
- 	res->inflight_locks--;
--	mlog(0, "%s:%.*s: inflight--: now %u\n",
--	     dlm->name, res->lockname.len, res->lockname.name,
--	     res->inflight_locks);
-+	mlog(0, "%s: res %.*s, inflight--: now %u, %ps()\n", dlm->name,
-+	     res->lockname.len, res->lockname.name, res->inflight_locks,
-+	     __builtin_return_address(0));
-+
- 	if (res->inflight_locks == 0)
--		dlm_lockres_clear_refmap_bit(dlm->node_num, res);
-+		dlm_lockres_clear_refmap_bit(dlm, res, dlm->node_num);
- 	wake_up(&res->wq);
++	return 0;
  }
  
-@@ -843,8 +862,10 @@ lookup:
+ static inline void o2hb_prepare_block(struct o2hb_region *reg,
+@@ -719,17 +735,24 @@ static void o2hb_shutdown_slot(struct o2hb_disk_slot *slot)
+ 	o2nm_node_put(node);
+ }
  
- 	/* finally add the lockres to its hash bucket */
- 	__dlm_insert_lockres(dlm, res);
--	/* since this lockres is new it doesn't not require the spinlock */
--	dlm_lockres_grab_inflight_ref_new(dlm, res);
+-static void o2hb_set_quorum_device(struct o2hb_region *reg,
+-				   struct o2hb_disk_slot *slot)
++static void o2hb_set_quorum_device(struct o2hb_region *reg)
+ {
+-	assert_spin_locked(&o2hb_live_lock);
+-
+ 	if (!o2hb_global_heartbeat_active())
+ 		return;
+ 
+-	if (test_bit(reg->hr_region_num, o2hb_quorum_region_bitmap))
++	/* Prevent race with o2hb_heartbeat_group_drop_item() */
++	if (kthread_should_stop())
++		return;
 +
-+	spin_lock(&res->spinlock);
-+	dlm_lockres_grab_inflight_ref(dlm, res);
-+	spin_unlock(&res->spinlock);
++	/* Tag region as quorum only after thread reaches steady state */
++	if (atomic_read(&reg->hr_steady_iterations) != 0)
+ 		return;
  
- 	/* if this node does not become the master make sure to drop
- 	 * this inflight reference below */
-@@ -1426,9 +1447,7 @@ way_up_top:
- 		}
++	spin_lock(&o2hb_live_lock);
++
++	if (test_bit(reg->hr_region_num, o2hb_quorum_region_bitmap))
++		goto unlock;
++
+ 	/*
+ 	 * A region can be added to the quorum only when it sees all
+ 	 * live nodes heartbeat on it. In other words, the region has been
+@@ -737,13 +760,10 @@ static void o2hb_set_quorum_device(struct o2hb_region *reg,
+ 	 */
+ 	if (memcmp(reg->hr_live_node_bitmap, o2hb_live_node_bitmap,
+ 		   sizeof(o2hb_live_node_bitmap)))
+-		return;
+-
+-	if (slot->ds_changed_samples < O2HB_LIVE_THRESHOLD)
+-		return;
++		goto unlock;
  
- 		if (res->owner == dlm->node_num) {
--			mlog(0, "%s:%.*s: setting bit %u in refmap\n",
--			     dlm->name, namelen, name, request->node_idx);
--			dlm_lockres_set_refmap_bit(request->node_idx, res);
-+			dlm_lockres_set_refmap_bit(dlm, res, request->node_idx);
- 			spin_unlock(&res->spinlock);
- 			response = DLM_MASTER_RESP_YES;
- 			if (mle)
-@@ -1493,10 +1512,8 @@ way_up_top:
- 				 * go back and clean the mles on any
- 				 * other nodes */
- 				dispatch_assert = 1;
--				dlm_lockres_set_refmap_bit(request->node_idx, res);
--				mlog(0, "%s:%.*s: setting bit %u in refmap\n",
--				     dlm->name, namelen, name,
--				     request->node_idx);
-+				dlm_lockres_set_refmap_bit(dlm, res,
-+							   request->node_idx);
- 			} else
- 				response = DLM_MASTER_RESP_NO;
- 		} else {
-@@ -1702,7 +1719,7 @@ again:
- 			     "lockres, set the bit in the refmap\n",
- 			     namelen, lockname, to);
- 			spin_lock(&res->spinlock);
--			dlm_lockres_set_refmap_bit(to, res);
-+			dlm_lockres_set_refmap_bit(dlm, res, to);
- 			spin_unlock(&res->spinlock);
- 		}
- 	}
-@@ -2256,7 +2273,7 @@ int dlm_deref_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
- 	else {
- 		BUG_ON(res->state & DLM_LOCK_RES_DROPPING_REF);
- 		if (test_bit(node, res->refmap)) {
--			dlm_lockres_clear_refmap_bit(node, res);
-+			dlm_lockres_clear_refmap_bit(dlm, res, node);
- 			cleared = 1;
- 		}
- 	}
-@@ -2316,7 +2333,7 @@ static void dlm_deref_lockres_worker(struct dlm_work_item *item, void *data)
- 	BUG_ON(res->state & DLM_LOCK_RES_DROPPING_REF);
- 	if (test_bit(node, res->refmap)) {
- 		__dlm_wait_on_lockres_flags(res, DLM_LOCK_RES_SETREF_INPROG);
--		dlm_lockres_clear_refmap_bit(node, res);
-+		dlm_lockres_clear_refmap_bit(dlm, res, node);
- 		cleared = 1;
- 	}
- 	spin_unlock(&res->spinlock);
-@@ -2798,7 +2815,8 @@ static void dlm_remove_nonlocal_locks(struct dlm_ctxt *dlm,
- 				BUG_ON(!list_empty(&lock->bast_list));
- 				BUG_ON(lock->ast_pending);
- 				BUG_ON(lock->bast_pending);
--				dlm_lockres_clear_refmap_bit(lock->ml.node, res);
-+				dlm_lockres_clear_refmap_bit(dlm, res,
-+							     lock->ml.node);
- 				list_del_init(&lock->list);
- 				dlm_lock_put(lock);
- 				/* In a normal unlock, we would have added a
-@@ -2819,7 +2837,7 @@ static void dlm_remove_nonlocal_locks(struct dlm_ctxt *dlm,
- 			mlog(0, "%s:%.*s: node %u had a ref to this "
- 			     "migrating lockres, clearing\n", dlm->name,
- 			     res->lockname.len, res->lockname.name, bit);
--			dlm_lockres_clear_refmap_bit(bit, res);
-+			dlm_lockres_clear_refmap_bit(dlm, res, bit);
- 		}
- 		bit++;
- 	}
-@@ -2933,7 +2951,7 @@ static int dlm_do_migrate_request(struct dlm_ctxt *dlm,
- 			     dlm->name, res->lockname.len, res->lockname.name,
- 			     nodenum);
- 			spin_lock(&res->spinlock);
--			dlm_lockres_set_refmap_bit(nodenum, res);
-+			dlm_lockres_set_refmap_bit(dlm, res, nodenum);
- 			spin_unlock(&res->spinlock);
- 		}
- 	}
-@@ -3267,7 +3285,7 @@ int dlm_finish_migration(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
- 	 * mastery reference here since old_master will briefly have
- 	 * a reference after the migration completes */
- 	spin_lock(&res->spinlock);
--	dlm_lockres_set_refmap_bit(old_master, res);
-+	dlm_lockres_set_refmap_bit(dlm, res, old_master);
- 	spin_unlock(&res->spinlock);
+-	printk(KERN_NOTICE "o2hb: Region %s is now a quorum device\n",
+-	       config_item_name(&reg->hr_item));
++	printk(KERN_NOTICE "o2hb: Region %s (%s) is now a quorum device\n",
++	       config_item_name(&reg->hr_item), reg->hr_dev_name);
  
- 	mlog(0, "now time to do a migrate request to other nodes\n");
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 41e74f0..f1a3aa8 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1776,7 +1776,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
- 			     dlm->name, mres->lockname_len, mres->lockname,
- 			     from);
- 			spin_lock(&res->spinlock);
--			dlm_lockres_set_refmap_bit(from, res);
-+			dlm_lockres_set_refmap_bit(dlm, res, from);
- 			spin_unlock(&res->spinlock);
- 			added++;
- 			break;
-@@ -1974,7 +1974,7 @@ skip_lvb:
- 			mlog(0, "%s:%.*s: added lock for node %u, "
- 			     "setting refmap bit\n", dlm->name,
- 			     res->lockname.len, res->lockname.name, ml->node);
--			dlm_lockres_set_refmap_bit(ml->node, res);
-+			dlm_lockres_set_refmap_bit(dlm, res, ml->node);
- 			added++;
- 		}
- 		spin_unlock(&res->spinlock);
-@@ -2254,12 +2254,12 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
- 			     res->lockname.len, res->lockname.name, freed, dead_node);
- 			__dlm_print_one_lock_resource(res);
- 		}
--		dlm_lockres_clear_refmap_bit(dead_node, res);
-+		dlm_lockres_clear_refmap_bit(dlm, res, dead_node);
- 	} else if (test_bit(dead_node, res->refmap)) {
- 		mlog(0, "%s:%.*s: dead node %u had a ref, but had "
- 		     "no locks and had not purged before dying\n", dlm->name,
- 		     res->lockname.len, res->lockname.name, dead_node);
--		dlm_lockres_clear_refmap_bit(dead_node, res);
-+		dlm_lockres_clear_refmap_bit(dlm, res, dead_node);
+ 	set_bit(reg->hr_region_num, o2hb_quorum_region_bitmap);
+ 
+@@ -754,6 +774,8 @@ static void o2hb_set_quorum_device(struct o2hb_region *reg,
+ 	if (o2hb_pop_count(&o2hb_quorum_region_bitmap,
+ 			   O2NM_MAX_REGIONS) > O2HB_PIN_CUT_OFF)
+ 		o2hb_region_unpin(NULL);
++unlock:
++	spin_unlock(&o2hb_live_lock);
+ }
+ 
+ static int o2hb_check_slot(struct o2hb_region *reg,
+@@ -925,8 +947,6 @@ fire_callbacks:
+ 		slot->ds_equal_samples = 0;
+ 	}
+ out:
+-	o2hb_set_quorum_device(reg, slot);
+-
+ 	spin_unlock(&o2hb_live_lock);
+ 
+ 	o2hb_run_event_list(&event);
+@@ -957,7 +977,8 @@ static int o2hb_highest_node(unsigned long *nodes,
+ 
+ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+ {
+-	int i, ret, highest_node, change = 0;
++	int i, ret, highest_node;
++	int membership_change = 0, own_slot_ok = 0;
+ 	unsigned long configured_nodes[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ 	unsigned long live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ 	struct o2hb_bio_wait_ctxt write_wc;
+@@ -966,7 +987,7 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+ 				       sizeof(configured_nodes));
+ 	if (ret) {
+ 		mlog_errno(ret);
+-		return ret;
++		goto bail;
  	}
  
- 	/* do not kick thread yet */
+ 	/*
+@@ -982,8 +1003,9 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+ 
+ 	highest_node = o2hb_highest_node(configured_nodes, O2NM_MAX_NODES);
+ 	if (highest_node >= O2NM_MAX_NODES) {
+-		mlog(ML_NOTICE, "ocfs2_heartbeat: no configured nodes found!\n");
+-		return -EINVAL;
++		mlog(ML_NOTICE, "o2hb: No configured nodes found!\n");
++		ret = -EINVAL;
++		goto bail;
+ 	}
+ 
+ 	/* No sense in reading the slots of nodes that don't exist
+@@ -993,29 +1015,27 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+ 	ret = o2hb_read_slots(reg, highest_node + 1);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+-		return ret;
++		goto bail;
+ 	}
+ 
+ 	/* With an up to date view of the slots, we can check that no
+ 	 * other node has been improperly configured to heartbeat in
+ 	 * our slot. */
+-	o2hb_check_last_timestamp(reg);
++	own_slot_ok = o2hb_check_own_slot(reg);
+ 
+ 	/* fill in the proper info for our next heartbeat */
+ 	o2hb_prepare_block(reg, reg->hr_generation);
+ 
+-	/* And fire off the write. Note that we don't wait on this I/O
+-	 * until later. */
+ 	ret = o2hb_issue_node_write(reg, &write_wc);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+-		return ret;
++		goto bail;
+ 	}
+ 
+ 	i = -1;
+ 	while((i = find_next_bit(configured_nodes,
+ 				 O2NM_MAX_NODES, i + 1)) < O2NM_MAX_NODES) {
+-		change |= o2hb_check_slot(reg, &reg->hr_slots[i]);
++		membership_change |= o2hb_check_slot(reg, &reg->hr_slots[i]);
+ 	}
+ 
+ 	/*
+@@ -1030,18 +1050,39 @@ static int o2hb_do_disk_heartbeat(struct o2hb_region *reg)
+ 		 * disk */
+ 		mlog(ML_ERROR, "Write error %d on device \"%s\"\n",
+ 		     write_wc.wc_error, reg->hr_dev_name);
+-		return write_wc.wc_error;
++		ret = write_wc.wc_error;
++		goto bail;
+ 	}
+ 
+-	o2hb_arm_write_timeout(reg);
++	/* Skip disarming the timeout if own slot has stale/bad data */
++	if (own_slot_ok) {
++		o2hb_set_quorum_device(reg);
++		o2hb_arm_write_timeout(reg);
++	}
+ 
++bail:
+ 	/* let the person who launched us know when things are steady */
+-	if (!change && (atomic_read(&reg->hr_steady_iterations) != 0)) {
+-		if (atomic_dec_and_test(&reg->hr_steady_iterations))
++	if (atomic_read(&reg->hr_steady_iterations) != 0) {
++		if (!ret && own_slot_ok && !membership_change) {
++			if (atomic_dec_and_test(&reg->hr_steady_iterations))
++				wake_up(&o2hb_steady_queue);
++		}
++	}
++
++	if (atomic_read(&reg->hr_steady_iterations) != 0) {
++		if (atomic_dec_and_test(&reg->hr_unsteady_iterations)) {
++			printk(KERN_NOTICE "o2hb: Unable to stabilize "
++			       "heartbeart on region %s (%s)\n",
++			       config_item_name(&reg->hr_item),
++			       reg->hr_dev_name);
++			atomic_set(&reg->hr_steady_iterations, 0);
++			reg->hr_aborted_start = 1;
+ 			wake_up(&o2hb_steady_queue);
++			ret = -EIO;
++		}
+ 	}
+ 
+-	return 0;
++	return ret;
+ }
+ 
+ /* Subtract b from a, storing the result in a. a *must* have a larger
+@@ -1095,7 +1136,8 @@ static int o2hb_thread(void *data)
+ 	/* Pin node */
+ 	o2nm_depend_this_node();
+ 
+-	while (!kthread_should_stop() && !reg->hr_unclean_stop) {
++	while (!kthread_should_stop() &&
++	       !reg->hr_unclean_stop && !reg->hr_aborted_start) {
+ 		/* We track the time spent inside
+ 		 * o2hb_do_disk_heartbeat so that we avoid more than
+ 		 * hr_timeout_ms between disk writes. On busy systems
+@@ -1103,10 +1145,7 @@ static int o2hb_thread(void *data)
+ 		 * likely to time itself out. */
+ 		do_gettimeofday(&before_hb);
+ 
+-		i = 0;
+-		do {
+-			ret = o2hb_do_disk_heartbeat(reg);
+-		} while (ret && ++i < 2);
++		ret = o2hb_do_disk_heartbeat(reg);
+ 
+ 		do_gettimeofday(&after_hb);
+ 		elapsed_msec = o2hb_elapsed_msecs(&before_hb, &after_hb);
+@@ -1117,7 +1156,8 @@ static int o2hb_thread(void *data)
+ 		     after_hb.tv_sec, (unsigned long) after_hb.tv_usec,
+ 		     elapsed_msec);
+ 
+-		if (elapsed_msec < reg->hr_timeout_ms) {
++		if (!kthread_should_stop() &&
++		    elapsed_msec < reg->hr_timeout_ms) {
+ 			/* the kthread api has blocked signals for us so no
+ 			 * need to record the return value. */
+ 			msleep_interruptible(reg->hr_timeout_ms - elapsed_msec);
+@@ -1134,20 +1174,20 @@ static int o2hb_thread(void *data)
+ 	 * to timeout on this region when we could just as easily
+ 	 * write a clear generation - thus indicating to them that
+ 	 * this node has left this region.
+-	 *
+-	 * XXX: Should we skip this on unclean_stop? */
+-	o2hb_prepare_block(reg, 0);
+-	ret = o2hb_issue_node_write(reg, &write_wc);
+-	if (ret == 0) {
+-		o2hb_wait_on_io(reg, &write_wc);
+-	} else {
+-		mlog_errno(ret);
++	 */
++	if (!reg->hr_unclean_stop && !reg->hr_aborted_start) {
++		o2hb_prepare_block(reg, 0);
++		ret = o2hb_issue_node_write(reg, &write_wc);
++		if (ret == 0)
++			o2hb_wait_on_io(reg, &write_wc);
++		else
++			mlog_errno(ret);
+ 	}
+ 
+ 	/* Unpin node */
+ 	o2nm_undepend_this_node();
+ 
+-	mlog(ML_HEARTBEAT|ML_KTHREAD, "hb thread exiting\n");
++	mlog(ML_HEARTBEAT|ML_KTHREAD, "o2hb thread exiting\n");
+ 
+ 	return 0;
+ }
+@@ -1426,6 +1466,8 @@ static void o2hb_region_release(struct config_item *item)
+ 	struct page *page;
+ 	struct o2hb_region *reg = to_o2hb_region(item);
+ 
++	mlog(ML_HEARTBEAT, "hb region release (%s)\n", reg->hr_dev_name);
++
+ 	if (reg->hr_tmp_block)
+ 		kfree(reg->hr_tmp_block);
+ 
+@@ -1792,7 +1834,10 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
+ 			live_threshold <<= 1;
+ 		spin_unlock(&o2hb_live_lock);
+ 	}
+-	atomic_set(&reg->hr_steady_iterations, live_threshold + 1);
++	++live_threshold;
++	atomic_set(&reg->hr_steady_iterations, live_threshold);
++	/* unsteady_iterations is double the steady_iterations */
++	atomic_set(&reg->hr_unsteady_iterations, (live_threshold << 1));
+ 
+ 	hb_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
+ 			      reg->hr_item.ci_name);
+@@ -1809,14 +1854,12 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
+ 	ret = wait_event_interruptible(o2hb_steady_queue,
+ 				atomic_read(&reg->hr_steady_iterations) == 0);
+ 	if (ret) {
+-		/* We got interrupted (hello ptrace!).  Clean up */
+-		spin_lock(&o2hb_live_lock);
+-		hb_task = reg->hr_task;
+-		reg->hr_task = NULL;
+-		spin_unlock(&o2hb_live_lock);
++		atomic_set(&reg->hr_steady_iterations, 0);
++		reg->hr_aborted_start = 1;
++	}
+ 
+-		if (hb_task)
+-			kthread_stop(hb_task);
++	if (reg->hr_aborted_start) {
++		ret = -EIO;
+ 		goto out;
+ 	}
+ 
+@@ -1833,8 +1876,8 @@ static ssize_t o2hb_region_dev_write(struct o2hb_region *reg,
+ 		ret = -EIO;
+ 
+ 	if (hb_task && o2hb_global_heartbeat_active())
+-		printk(KERN_NOTICE "o2hb: Heartbeat started on region %s\n",
+-		       config_item_name(&reg->hr_item));
++		printk(KERN_NOTICE "o2hb: Heartbeat started on region %s (%s)\n",
++		       config_item_name(&reg->hr_item), reg->hr_dev_name);
+ 
+ out:
+ 	if (filp)
+@@ -2092,13 +2135,6 @@ static void o2hb_heartbeat_group_drop_item(struct config_group *group,
+ 
+ 	/* stop the thread when the user removes the region dir */
+ 	spin_lock(&o2hb_live_lock);
+-	if (o2hb_global_heartbeat_active()) {
+-		clear_bit(reg->hr_region_num, o2hb_region_bitmap);
+-		clear_bit(reg->hr_region_num, o2hb_live_region_bitmap);
+-		if (test_bit(reg->hr_region_num, o2hb_quorum_region_bitmap))
+-			quorum_region = 1;
+-		clear_bit(reg->hr_region_num, o2hb_quorum_region_bitmap);
+-	}
+ 	hb_task = reg->hr_task;
+ 	reg->hr_task = NULL;
+ 	reg->hr_item_dropped = 1;
+@@ -2107,19 +2143,30 @@ static void o2hb_heartbeat_group_drop_item(struct config_group *group,
+ 	if (hb_task)
+ 		kthread_stop(hb_task);
+ 
++	if (o2hb_global_heartbeat_active()) {
++		spin_lock(&o2hb_live_lock);
++		clear_bit(reg->hr_region_num, o2hb_region_bitmap);
++		clear_bit(reg->hr_region_num, o2hb_live_region_bitmap);
++		if (test_bit(reg->hr_region_num, o2hb_quorum_region_bitmap))
++			quorum_region = 1;
++		clear_bit(reg->hr_region_num, o2hb_quorum_region_bitmap);
++		spin_unlock(&o2hb_live_lock);
++		printk(KERN_NOTICE "o2hb: Heartbeat %s on region %s (%s)\n",
++		       ((atomic_read(&reg->hr_steady_iterations) == 0) ?
++			"stopped" : "start aborted"), config_item_name(item),
++		       reg->hr_dev_name);
++	}
++
+ 	/*
+ 	 * If we're racing a dev_write(), we need to wake them.  They will
+ 	 * check reg->hr_task
+ 	 */
+ 	if (atomic_read(&reg->hr_steady_iterations) != 0) {
++		reg->hr_aborted_start = 1;
+ 		atomic_set(&reg->hr_steady_iterations, 0);
+ 		wake_up(&o2hb_steady_queue);
+ 	}
+ 
+-	if (o2hb_global_heartbeat_active())
+-		printk(KERN_NOTICE "o2hb: Heartbeat stopped on region %s\n",
+-		       config_item_name(&reg->hr_item));
+-
+ 	config_item_put(item);
+ 
+ 	if (!o2hb_global_heartbeat_active() || !quorum_region)
 -- 
 1.7.4.1
