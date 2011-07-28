@@ -1,44 +1,48 @@
-From: Steven Whitehouse <swhiteho@redhat.com>
-Date: Wed, 27 Jul 2011 09:13:38 +0100
-Subject: [Ocfs2-devel] bug in cleancache ocfs2 hook,
-	anybody want to try cleancache?
-In-Reply-To: <3904dcad-951e-43ca-bd2d-1c906d0b0a9e@default>
-References: <da833bdb-7f77-4ebb-ad9b-9fae656b75a1@default>
-	<1307004343.2823.17.camel@menhir>
-	<75f89186-d730-4b89-b88c-899cd5674cf0@default
-	1307090628.2881.15.camel@menhir>
-	<3904dcad-951e-43ca-bd2d-1c906d0b0a9e@default>
-Message-ID: <1311754418.2801.0.camel@menhir>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Thu, 28 Jul 2011 02:08:02 -0700
+Subject: [Ocfs2-devel] ocfs2: serialize unaligned aio
+In-Reply-To: <20110622212338.GA20816@wotan.suse.de>
+References: <20110622212338.GA20816@wotan.suse.de>
+Message-ID: <20110728090801.GB9495@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dan Magenheimer <dan.magenheimer@oracle.com>
-Cc: ocfs2-devel@oss.oracle.com, Joel Becker <jlbec@evilplan.org>, Sunil Mushran <sunil.mushran@oracle.com>, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-Hi,
-
-On Tue, 2011-07-26 at 07:54 -0700, Dan Magenheimer wrote:
-> > > > Also, as regards your earlier question wrt a kvm backend, I may be
-> > > > tempted to have a go at writing one, but I'd like to figure out what
-> > > > I'm letting myself in for before making any commitment to that,
-> > 
-> > > I think the hardest part is updating the tmem.c module in zcache
-> > > to support multiple "clients".  When I ported it from Xen, I tore
-> > > all that out.  Fortunately, I've put it back in during RAMster
-> > > development but those changes haven't yet seen the light of day
-> > > (though I can share them offlist).
-> > 
-> > I'd like to try and understand the design of the existing code before I
-> > consider anything more advanced such as writing a kvm backend,
+On Wed, Jun 22, 2011 at 02:23:38PM -0700, Mark Fasheh wrote:
+> Fix a corruption that can happen when we have (two or more) outstanding
+> aio's to an overlapping unaligned region.  Ext4
+> (e9e3bcecf44c04b9e6b505fd8e2eb9cea58fb94d) and xfs recently had to fix
+> similar issues.
 > 
-> FYI, the "hardest part" (support for multiple clients) is now in
-> Linus's tree as of today.  With a little hypercall and glue code,
-> KVM might just work now with tmem/cleancache/frontswap.
+> In our case what happens is that we can have an outstanding aio on a region
+> and if a write comes in with some bytes overlapping the original aio we may
+> decide to read that region into a page before continuing (typically because
+> of buffered-io fallback).  Since we have no ordering guarantees with the
+> aio, we can read stale or bad data into the page and then write it back out.
 > 
-> Dan
+> If the i/o is page and block aligned, then we avoid this issue as there
+> won't be any need to read data from disk.
 > 
+> I took the same approach as Eric in the ext4 patch and introduced some
+> serialization of unaligned async direct i/o.  I don't expect this to have an
+> effect on the most common cases of AIO.  Unaligned aio will be slower
+> though, but that's far more acceptable than data corruption.
+> 
+> Signed-off-by: Mark Fasheh <mfasheh@suse.com>
 
-Thanks for the heads up,
+This patch is now in the fixes branch of ocfs2.git.
 
-Steve.
+Joel
+
+
+-- 
+
+"The one important thing i have learned over the years is the
+ difference between taking one's work seriously and taking one's self
+ seriously.  The first is imperative and the second is disastrous."
+	-Margot Fonteyn
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
