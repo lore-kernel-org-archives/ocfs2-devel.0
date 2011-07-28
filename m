@@ -1,67 +1,49 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 28 Jul 2011 03:10:43 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] Disable index if indexed directory
-	find fails
-In-Reply-To: <BANLkTikTBRxEhUb8OkwegPp1nSecxRixhA@mail.gmail.com>
-References: <BANLkTikTBRxEhUb8OkwegPp1nSecxRixhA@mail.gmail.com>
-Message-ID: <20110728101043.GE9495@noexit.corp.google.com>
+Date: Thu, 28 Jul 2011 03:14:48 -0700
+Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: fix slow deleting
+In-Reply-To: <4E16ABA1.6050702@oracle.com>
+References: <201107060529.p665TY59014082@acsmt356.oracle.com>
+	<4E13FE03.5060005@oracle.com> <4E154FEA.5030406@oracle.com>
+	<4E1610C2.7060509@oracle.com> <4E16166B.3080808@oracle.com>
+	<4E16ABA1.6050702@oracle.com>
+Message-ID: <20110728101448.GF9495@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jun 15, 2011 at 10:58:25AM -0500, Goldwyn Rodrigues wrote:
-> Disable directory indexing during a dirent search operation. In order to
-> disable, the inode's buffer_head has to be passed through.
+On Fri, Jul 08, 2011 at 12:02:57AM -0700, Srinivas Eeda wrote:
+> Below is excerpts from Joel's email for the same question :)
 > 
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
-> ---
->  fs/ocfs2/dir.c          |   30 ++++++++++++++++++++----------
->  fs/ocfs2/dir.h          |   10 +++++-----
->  fs/ocfs2/export.c       |    2 +-
->  fs/ocfs2/ioctl.c        |    3 ++-
->  fs/ocfs2/move_extents.c |    2 +-
->  fs/ocfs2/namei.c        |   33 +++++++++++++++++----------------
->  fs/ocfs2/sysfile.c      |    2 +-
->  7 files changed, 47 insertions(+), 35 deletions(-)
+> >	Currently, orphan scan just iterate all the slots and call
+> >  ocfs2_queue_recovery_completion, but I don't think it is proper for a node
+> >  to query another mounted one since that node will query it by
+> >  itself.
 > 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index 3a6f6e4..b6cf5d2 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -1113,13 +1113,22 @@ static void ocfs2_dx_disable(struct inode
-> *dir, struct buffer_head *di_bh)
->   * in the indexed directory case, multiple buffers are involved.
->   */
->  int ocfs2_find_entry(const char *name, int namelen,
-> -		     struct inode *dir, struct ocfs2_dir_lookup_result *lookup)
-> +		     struct inode *dir, struct buffer_head *di_bh,
-> +		     struct ocfs2_dir_lookup_result *lookup)
+> 	Node 1 has an inode it was using.  The dentry went away due to
+> memory pressure.  Node 1 closes the inode, but it's on the free list.
+> The node has the open lock.
+> 	Node 2 unlinks the inode.  It grabs the dentry lock to notify
+> others, but node 1 has no dentry and doesn't get the message.  It
+> trylocks the open lock, sees that another node has a PR, and does
+> nothing.
+> 	Later node 2 runs its orphan dir.  It igets the inode, trylocks
+> the open lock, sees the PR still, and does nothing.
+> 	Basically, we have to trigger an orphan iput on node 1.  The
+> only way for this to happen is if node 1 runs node 2's orphan dir.  This
+> patch exists because that wasn't happening.
 
-	I really don't like the churn in all these prototypes.  I
-understand that the bh is necessary for your ocfs2_dx_disable()
-function, but the fact that you have so many calls of the lookup code
-with NULL bh says that this can't really be the right approach.
-	In fact, how do you even know that journal_access was called on
-the inodes you are updating.  I wish I hadn't missed that in the first
-patch.
-	What if, instead of clearing the inode right then, you just
-disabled the feature on the oi->ip_dyn_features.  All the lookup code
-will ignore it from then on.
-	When it comes to updating the dinode, the important thing is
-that the bit is cleared before the directory is modified.  You can only
-do that when you have a write lock, and you only need to do it during
-insert, rename, or unlink.  So in ocfs2_prepare_dir_for_insert() and
-ocfs2_delete_entry(), when ocfs2_indexed_dir(dir) == 0 but
-ocfs2_supports_indexed_dirs(osb) == 1, make sure to wipe the index off
-of the dinode.  This should, I think, cover insert, unlink, and rename.
+	What he said.  And yes, I know I'm late to the party.
 
 Joel
 
 -- 
 
-"People with narrow minds usually have broad tongues."
+"Lately I've been talking in my sleep.
+ Can't imagine what I'd have to say.
+ Except my world will be right
+ When love comes back my way."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
