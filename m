@@ -1,49 +1,106 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 28 Jul 2011 03:14:48 -0700
-Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: fix slow deleting
-In-Reply-To: <4E16ABA1.6050702@oracle.com>
-References: <201107060529.p665TY59014082@acsmt356.oracle.com>
-	<4E13FE03.5060005@oracle.com> <4E154FEA.5030406@oracle.com>
-	<4E1610C2.7060509@oracle.com> <4E16166B.3080808@oracle.com>
-	<4E16ABA1.6050702@oracle.com>
-Message-ID: <20110728101448.GF9495@noexit.corp.google.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Thu, 28 Jul 2011 18:43:42 -0500
+Subject: [Ocfs2-devel] [PATCH 1/2] Disable indexing for directory with
+	corrupt index
+In-Reply-To: <20110728092210.GD9495@noexit.corp.google.com>
+References: <BANLkTimpmS9GKwCvzBdswkzcaAY5YiugSw@mail.gmail.com>
+	<20110728092210.GD9495@noexit.corp.google.com>
+Message-ID: <CAJtY7HUwW2JtS3XK=k69nLcH42Q-p8MnZ1dSEm4mw49Xau_4ZA@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jul 08, 2011 at 12:02:57AM -0700, Srinivas Eeda wrote:
-> Below is excerpts from Joel's email for the same question :)
-> 
-> >	Currently, orphan scan just iterate all the slots and call
-> >  ocfs2_queue_recovery_completion, but I don't think it is proper for a node
-> >  to query another mounted one since that node will query it by
-> >  itself.
-> 
-> 	Node 1 has an inode it was using.  The dentry went away due to
-> memory pressure.  Node 1 closes the inode, but it's on the free list.
-> The node has the open lock.
-> 	Node 2 unlinks the inode.  It grabs the dentry lock to notify
-> others, but node 1 has no dentry and doesn't get the message.  It
-> trylocks the open lock, sees that another node has a PR, and does
-> nothing.
-> 	Later node 2 runs its orphan dir.  It igets the inode, trylocks
-> the open lock, sees the PR still, and does nothing.
-> 	Basically, we have to trigger an orphan iput on node 1.  The
-> only way for this to happen is if node 1 runs node 2's orphan dir.  This
-> patch exists because that wasn't happening.
+Hi Joel,
 
-	What he said.  And yes, I know I'm late to the party.
+Thanks for the review.
 
-Joel
+On Thu, Jul 28, 2011 at 4:22 AM, Joel Becker <jlbec@evilplan.org> wrote:
+> On Wed, Jun 15, 2011 at 10:57:54AM -0500, Goldwyn Rodrigues wrote:
+>> Introduces ocfs2_dx_disable() to disable the index of a directory.
+>> This function is called when a index directory is encountered.
+>> Calling function must try and revert to regular directory handling,
+>> instead of using indexes, in order to complete the operation.
+>>
+>>
+>> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+>
+> Hey Goldwyn,
+> ? ? ? ?I like the idea of this. ?I have a few comments.
+>
+>> @@ -649,9 +649,9 @@ static int ocfs2_validate_dx_leaf(struct super_block *sb,
+>> ? ? ? }
+>>
+>> ? ? ? if (!OCFS2_IS_VALID_DX_LEAF(dx_leaf)) {
+>> - ? ? ? ? ? ? ocfs2_error(sb, "Dir Index Leaf has bad signature %.*s",
+>> - ? ? ? ? ? ? ? ? ? ? ? ? 7, dx_leaf->dl_signature);
+>> - ? ? ? ? ? ? return -EROFS;
+>> + ? ? ? ? ? ? mlog(ML_ERROR, "Dir Index Leaf has bad signature %.*s",
+>> + ? ? ? ? ? ? ? ? ? ? ? ? ? ? 7, dx_leaf->dl_signature);
+>> + ? ? ? ? ? ? return -EINVAL;
+>
+> ? ? ? ?The meta_ecc validation functions return -EIO. ?Perhaps we
+> should do the same? ?-EIO signifies an attempt to continue.
+>
+
+ok
+
+>> +static void ocfs2_dx_disable(struct inode *dir, struct buffer_head *di_bh)
+>> +{
+>> + ? ? struct ocfs2_inode_info *oi = OCFS2_I(dir);
+>> + ? ? struct ocfs2_dinode *di;
+>> + ? ? if (!di_bh) {
+>> + ? ? ? ? ? ? mlog(ML_ERROR, "Index directory corruption but unable "
+>> + ? ? ? ? ? ? ? ? ? ? "to disable dx_dir for <%llu>. Please execute "
+>> + ? ? ? ? ? ? ? ? ? ? "fsck.ocfs2\n", OCFS2_I(dir)->ip_blkno);
+>> + ? ? ? ? ? ? return;
+>> + ? ? }
+>> + ? ? di = (struct ocfs2_dinode *)di_bh->b_data;
+>> + ? ? BUG_ON(di->i_blkno != oi->ip_blkno);
+>> + ? ? mlog(ML_ERROR, "Disabling index for directory <%llu> due to"
+>> + ? ? ? ? ? ? " corruption. Please execute fsck.ocfs2\n", oi->ip_blkno);
+>
+> ? ? ? ?Please match the indentation to the open parenthesis.
+
+You mean quotes, right?
+
+>
+>> + ? ? oi->ip_dyn_features &= ~OCFS2_INDEXED_DIR_FL;
+>> + ? ? di->i_dyn_features = cpu_to_le16(OCFS2_I(dir)->ip_dyn_features);
+>> + ? ? di->i_dx_root = cpu_to_le64(0ULL);
+>> +}
+>> +
+>> +
+>> ?/*
+>> ? * Try to find an entry of the provided name within 'dir'.
+>> ? *
+>> @@ -4364,11 +4392,17 @@ int ocfs2_prepare_dir_for_insert(struct
+>> ocfs2_super *osb,
+>> ? ? ? if (ocfs2_dir_indexed(dir)) {
+>> ? ? ? ? ? ? ? ret = ocfs2_prepare_dx_dir_for_insert(dir, parent_fe_bh,
+>> ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? name, namelen, lookup);
+>> - ? ? ? ? ? ? if (ret)
+>> + ? ? ? ? ? ? if (ret == -EINVAL) {
+>> + ? ? ? ? ? ? ? ? ? ? ocfs2_dx_disable(dir, parent_fe_bh);
+>> + ? ? ? ? ? ? ? ? ? ? /* Reset ret */
+>> + ? ? ? ? ? ? ? ? ? ? ret = 0;
+>> + ? ? ? ? ? ? ? ? ? ? goto no_index;
+>> + ? ? ? ? ? ? } else if (ret)
+>> ? ? ? ? ? ? ? ? ? ? ? mlog_errno(ret);
+>
+> ? ? ? ?See here, you'll disable the index on a bad signature, but you
+> error when ECC fails. ?You should disable the index on both cases. ?I
+> say you return -EIO as I described above, and then disable when ret ==
+> -EIO. ?Yes, we might disable the index upon an actual read error, but
+> that's OK. ?We can rebuild it later.
+>
+
+I understand why I disable index of a bad signature, but I fail to
+understand why I will err of ECC errors. In any case, I will change
+this to EIO. I chose EINVAL just to make it different from read
+errors. It does make sense to encompass read errors as well.
+
 
 -- 
-
-"Lately I've been talking in my sleep.
- Can't imagine what I'd have to say.
- Except my world will be right
- When love comes back my way."
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+Goldwyn
