@@ -1,49 +1,36 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 29 Jul 2011 18:05:56 +0800
-Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: make direntry invalid when
-	deleting it
-Message-ID: <201107291006.p6TA6Aha000452@acsmt357.oracle.com>
+Date: Fri, 29 Jul 2011 18:06:06 +0800
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2: ocfs2_dir_foreach returns the
+ error turned by filldir
+Message-ID: <201107291006.p6TA6J1Z010639@acsmt358.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This already ACKed by Sunil. But since it's not commited to repos yet and the
-flollowing patchs depend on this, I post it here again.
-
-When we deleting a direntry from a directory, if it's the first in a block we
-invalid it by setting inode to 0; otherwise, we merge the deleted one to the
-prior and contiguous direntry. And we don't truncate directories.
-
-There is a problem for the later case since inode is not set to 0.
-This problem happens when the caller passes a file position as parameter to
-ocfs2_dir_foreach_blk(). If the position happens to point to a stale(not
-the first, deleted in betweens of ocfs2_dir_foreach_blk()s) direntry, we are
-not able to recognize its staleness. So that we treat it as a live one wrongly.
-
-The fix is to set inode to 0 in both cases indicating the direntry is stale.
-This won't introduce additional IOs.
+try to return the error turned by filldir in ocfs2_dir_foreach.
 
 Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-Acked-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dir.c |    3 +--
- 1 files changed, 1 insertions(+), 2 deletions(-)
+ fs/ocfs2/dir.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
 diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 8582e3f..3302088 100644
+index 3302088..4b365a1 100644
 --- a/fs/ocfs2/dir.c
 +++ b/fs/ocfs2/dir.c
-@@ -1184,8 +1184,7 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
- 			if (pde)
- 				le16_add_cpu(&pde->rec_len,
- 						le16_to_cpu(de->rec_len));
--			else
--				de->inode = 0;
-+			de->inode = 0;
- 			dir->i_version++;
- 			ocfs2_journal_dirty(handle, bh);
- 			goto bail;
+@@ -2004,8 +2004,10 @@ int ocfs2_dir_foreach(struct inode *inode, loff_t *f_pos, void *priv,
+ 
+ 	if (ret > 0)
+ 		ret = -EIO;
++	if (!ret)
++		ret = filldir_err;
+ 
+-	return 0;
++	return ret;
+ }
+ 
+ /*
 -- 
 1.7.5.2
