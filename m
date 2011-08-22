@@ -1,69 +1,68 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Sun, 21 Aug 2011 21:28:39 -0700
-Subject: [Ocfs2-devel] [PATCH] fs/ocfs2/dlm/dlmlock.c: free
- kmem_cache_zalloc'd data using kmem_cache_free
-In-Reply-To: <1310227479-14472-1-git-send-email-julia@diku.dk>
-References: <1310227479-14472-1-git-send-email-julia@diku.dk>
-Message-ID: <20110822042838.GE31134@noexit.corp.google.com>
+Date: Sun, 21 Aug 2011 21:29:11 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: make direntry invalid when
+ deleting it
+In-Reply-To: <201107120843.p6C8hYl5007623@acsmt357.oracle.com>
+References: <201107120843.p6C8hYl5007623@acsmt357.oracle.com>
+Message-ID: <20110822042911.GF31134@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Julia Lawall <julia@diku.dk>
-Cc: Mark Fasheh <mfasheh@suse.com>, kernel-janitors@vger.kernel.org, Wengang Wang <wen.gang.wang@oracle.com>, Tao Ma <boyu.mt@taobao.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-this patch is now in the fixes branch of ocfs2.git.
 
-On Sat, Jul 09, 2011 at 06:04:39PM +0200, Julia Lawall wrote:
-> From: Julia Lawall <julia@diku.dk>
+This patch is now in the fixes branch of ocfs2.git.
+
+Joel
+
+On Tue, Jul 12, 2011 at 04:43:14PM +0800, Wengang Wang wrote:
+> When we deleting a direntry from a directory, if it's the first in a block we
+> invalid it by setting inode to 0; otherwise, we merge the deleted one to the
+> prior and contiguous direntry. And we don't truncate directories.
 > 
-> Memory allocated using kmem_cache_zalloc should be freed using
-> kmem_cache_free, not kfree.
+> There is a problem for the later case since inode is not set to 0.
+> This problem happens when the caller passes a file position as parameter to
+> ocfs2_dir_foreach_blk(). If the position happens to point to a stale(not
+> the first, deleted in betweens of ocfs2_dir_foreach_blk()s) direntry, we are
+> not able to recognize its staleness. So that we treat it as a live one wrongly.
 > 
-> The semantic patch that fixes this problem is as follows:
-> (http://coccinelle.lip6.fr/)
+> The fix is to set inode to 0 in both cases indicating the direntry is stale.
+> This won't introduce additional IOs.
 > 
-> // <smpl>
-> @@
-> expression x,e,e1,e2;
-> @@
-> 
-> x = kmem_cache_zalloc(e1,e2)
-> ... when != x = e
-> ?-kfree(x)
-> +kmem_cache_free(e1,x)
-> // </smpl>
-> 
-> Signed-off-by: Julia Lawall <julia@diku.dk>
-> 
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 > ---
->  fs/ocfs2/dlm/dlmlock.c |    2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  fs/ocfs2/dir.c |    3 +--
+>  1 files changed, 1 insertions(+), 2 deletions(-)
 > 
-> diff -u -p a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-> --- a/fs/ocfs2/dlm/dlmlock.c
-> +++ b/fs/ocfs2/dlm/dlmlock.c
-> @@ -440,7 +440,7 @@ struct dlm_lock * dlm_new_lock(int type,
->  		/* zero memory only if kernel-allocated */
->  		lksb = kzalloc(sizeof(*lksb), GFP_NOFS);
->  		if (!lksb) {
-> -			kfree(lock);
-> +			kmem_cache_free(dlm_lock_cache, lock);
->  			return NULL;
->  		}
->  		kernel_allocated = 1;
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index 8582e3f..3302088 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -1184,8 +1184,7 @@ static int __ocfs2_delete_entry(handle_t *handle, struct inode *dir,
+>  			if (pde)
+>  				le16_add_cpu(&pde->rec_len,
+>  						le16_to_cpu(de->rec_len));
+> -			else
+> -				de->inode = 0;
+> +			de->inode = 0;
+>  			dir->i_version++;
+>  			ocfs2_journal_dirty(handle, bh);
+>  			goto bail;
+> -- 
+> 1.7.5.2
 > 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
 -- 
 
-Life's Little Instruction Book #43
-
-	"Never give up on somebody.  Miracles happen every day."
+"What no boss of a programmer can ever understand is that a programmer
+ is working when he's staring out of the window"
+	- With apologies to Burton Rascoe
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
