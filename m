@@ -1,32 +1,49 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Sun, 21 Aug 2011 22:45:46 -0700
-Subject: [Ocfs2-devel] ocfs2 cleanups,
- bug fixes for Linux kernel 3.1 - final drop
-In-Reply-To: <20110822042330.GC31134@noexit.corp.google.com>
-References: <1310683827-19157-1-git-send-email-sunil.mushran@oracle.com>
-	<20110822042330.GC31134@noexit.corp.google.com>
-Message-ID: <4E51ED0A.1080907@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Mon, 22 Aug 2011 13:51:01 +0800
+Subject: [Ocfs2-devel] [PATCH 4/4] ocfs2: limit the number of inodes in
+ orphanscan
+In-Reply-To: <20110822044722.GJ31134@noexit.corp.google.com>
+References: <201107291006.p6TA6aSZ010899@acsmt358.oracle.com>
+	<20110822044722.GJ31134@noexit.corp.google.com>
+Message-ID: <20110822055100.GA13398@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 08/21/2011 09:23 PM, Joel Becker wrote:
-> On Thu, Jul 14, 2011 at 03:50:11PM -0700, Sunil Mushran wrote:
->> Joel,
->>
->> Hopefully this is the final drop before the 3.1 merge window. I had posted most
->> of the patches before. In fact the first 12 are exactly the same. The 13th one
->> is modified and 14,15,16 are new.
-> Hey Sunil,
-> 	These changes are now in the 'fixes' branch of ocfs2.git.  Sorry
-> this took so long.  I plan to send the SEEK_HOLE patch along, and if
-> Linus wants it out I will take it out.
-> 	My only comment on the series, which is otherwise quite nicely
-> put together, is that new mlog()s should be replaced by trace events.
-> I'm going to let them in for this time, but please consider updating
-> them in another patch.
+Hi Joel,
 
-I don't think I added new mlogs. I removed some and replaced
-some with printks. The goal is to replace all with trace events.
+On 11-08-21 21:47, Joel Becker wrote:
+> On Fri, Jul 29, 2011 at 06:06:23PM +0800, Wengang Wang wrote:
+> > During orphanscan, limit the scan number in a single loop to avoid OOM.
+> 
+> How does this OOM?  Please explain this in the patch and in the patch
+> description.  Or, conversely, free the resources the orphan scan is done
+> using.
+
+Explaination why it OOM:
+In current code, when recoverying orphan dirs, we are doing it like this:
+
+lock orphandir
+read out all the inodes under the orphandir to a list
+unlock the orphandir
+#above see ocfs2_queue_orphans()
+and the iput all the inodes in the list to delete the on disk inode
+#above see ocfs2_recover_orphans()
+
+For normal case, there are no many files under orphandir, there is no problem.
+But for an extreme case, there are a huge number of files under orphandir,
+huge size of memory is needed to hold the inodes. It is possible to exhaust
+memory, then OOM occurs.
+
+The fix in this patch depends on patch
+  "ocfs2: ocfs2_dir_foreach returns the error turned by filldir"
+Since NAK for that patch, please ignore this too.
+
+thanks,
+wengang.
+ 
+> Joel
+> 
+> > 
