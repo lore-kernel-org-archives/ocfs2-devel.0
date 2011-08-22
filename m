@@ -1,70 +1,69 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Sun, 21 Aug 2011 21:26:37 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: free memory allocated by
-	inode_init_security
-In-Reply-To: <1306994676-14402-1-git-send-email-tiger.yang@oracle.com>
-References: <1306994676-14402-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <20110822042637.GD31134@noexit.corp.google.com>
+Date: Sun, 21 Aug 2011 21:28:39 -0700
+Subject: [Ocfs2-devel] [PATCH] fs/ocfs2/dlm/dlmlock.c: free
+ kmem_cache_zalloc'd data using kmem_cache_free
+In-Reply-To: <1310227479-14472-1-git-send-email-julia@diku.dk>
+References: <1310227479-14472-1-git-send-email-julia@diku.dk>
+Message-ID: <20110822042838.GE31134@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Julia Lawall <julia@diku.dk>
+Cc: Mark Fasheh <mfasheh@suse.com>, kernel-janitors@vger.kernel.org, Wengang Wang <wen.gang.wang@oracle.com>, Tao Ma <boyu.mt@taobao.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-This patch is now in the fixes branch of ocfs2.git.
+this patch is now in the fixes branch of ocfs2.git.
 
-Joel
-
-On Thu, Jun 02, 2011 at 02:04:36PM +0800, Tiger Yang wrote:
-> The LSM security_inode_init_security() hook allocates memory
-> for xattr name and value, expecting the caller to release
-> the memory afterwards.
+On Sat, Jul 09, 2011 at 06:04:39PM +0200, Julia Lawall wrote:
+> From: Julia Lawall <julia@diku.dk>
 > 
-> reported-by: Mimi Zohar <zohar@linux.vnet.ibm.com>
-> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+> Memory allocated using kmem_cache_zalloc should be freed using
+> kmem_cache_free, not kfree.
+> 
+> The semantic patch that fixes this problem is as follows:
+> (http://coccinelle.lip6.fr/)
+> 
+> // <smpl>
+> @@
+> expression x,e,e1,e2;
+> @@
+> 
+> x = kmem_cache_zalloc(e1,e2)
+> ... when != x = e
+> ?-kfree(x)
+> +kmem_cache_free(e1,x)
+> // </smpl>
+> 
+> Signed-off-by: Julia Lawall <julia@diku.dk>
+> 
 > ---
->  fs/ocfs2/xattr.c |    9 ++++++---
->  1 files changed, 6 insertions(+), 3 deletions(-)
+>  fs/ocfs2/dlm/dlmlock.c |    2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 81ecf9c..fcd77a0 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -7185,12 +7185,11 @@ int ocfs2_init_security_and_acl(struct inode *dir,
->  {
->  	int ret = 0;
->  	struct buffer_head *dir_bh = NULL;
-> -	struct ocfs2_security_xattr_info si = {
-> -		.enable = 1,
-> -	};
-> +	struct ocfs2_security_xattr_info si = {0, };
->  
->  	ret = ocfs2_init_security_get(inode, dir, qstr, &si);
->  	if (!ret) {
-> +		si.enable = 1;
->  		ret = ocfs2_xattr_set(inode, OCFS2_XATTR_INDEX_SECURITY,
->  				      si.name, si.value, si.value_len,
->  				      XATTR_CREATE);
-> @@ -7216,6 +7215,10 @@ int ocfs2_init_security_and_acl(struct inode *dir,
->  	ocfs2_inode_unlock(dir, 0);
->  	brelse(dir_bh);
->  leave:
-> +	if (si.enable) {
-> +		kfree(si.name);
-> +		kfree(si.value);
-> +	}
->  	return ret;
->  }
->  /*
-> -- 
-> 1.7.4.4
+> diff -u -p a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+> --- a/fs/ocfs2/dlm/dlmlock.c
+> +++ b/fs/ocfs2/dlm/dlmlock.c
+> @@ -440,7 +440,7 @@ struct dlm_lock * dlm_new_lock(int type,
+>  		/* zero memory only if kernel-allocated */
+>  		lksb = kzalloc(sizeof(*lksb), GFP_NOFS);
+>  		if (!lksb) {
+> -			kfree(lock);
+> +			kmem_cache_free(dlm_lock_cache, lock);
+>  			return NULL;
+>  		}
+>  		kernel_allocated = 1;
 > 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
 -- 
 
-"Practice random acts of kindness and senseless acts of beauty."
+Life's Little Instruction Book #43
 
- Oh, and don't forget where your towel is.
+	"Never give up on somebody.  Miracles happen every day."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
