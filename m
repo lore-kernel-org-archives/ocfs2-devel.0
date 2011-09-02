@@ -1,46 +1,100 @@
-From: Jiaju Zhang <jjzhang.linux@gmail.com>
-Date: Thu, 1 Sep 2011 23:28:18 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: handle ocfs2 node down event more
-	correctly
-Message-ID: <20110901152818.GA29472@linux-jjzhang.prod.bej.apac.novell.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Fri,  2 Sep 2011 10:50:24 +0800
+Subject: [Ocfs2-devel] [PATCH] unlock open_lock within inode_lock -V2
+Message-ID: <201109020250.p822oMSb001368@acsmt358.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In the scenario that ocfs2 is used with in-kernel fs/dlm and user-space
-cluster stack, osb->node_num == node_num in ocfs2_do_node_down doesn't
-mean it is a bug any more. This is because ocfs2_controld might receive
-the node down information first, in the normal case, dlm_controld should
-receive that node down information soon then osb->node_num != node_num.
-But a rare case is before dlm_controld receive the node down information,
-that node is up again and dlm_controld won't receive node down any more,
-which results in osb->node_num == node_num here, this case can happen and
-it should not be a bug. Just return here and won't trigger the recovery
-thread should be the right way to go. Also, it won't introduce other side
-effect when using o2cb stack.
+There is a race between 2(+) nodes that calls iput_final() on same inode.
+time sequence is like the following. The result is neither of the 2(+) node
+does real inode deletion work and the unlinked inode is left in orphandir.
 
-Signed-off-by: Jiaju Zhang <jjzhang@suse.de>
+Problem is triggered when it is running as this in time order:
+-------------------------------------------------------------------
+node A                                  node B
+
+open_lock PR
+
+                                        open_LOCK PR
+
+.......
+
+                                         .......
+
+inode_lock EX
+try open_lock EX -->cant grant(B has PR)
+ignore the deletion
+inode_unlock EX
+
+                                        #in ocfs2_delete_inode()
+                                        inode_lock EX
+                                        #in ocfs2_query_inode_wipe
+                                        try open_lock EX -->can't grant(A has PR)
+                                        ignore the deletion
+                                        inode_unlock EX
+
+open_unlock EX
+drop open_lock
+
+                                         #in ocfs2_clear_inode()
+                                         open_unlock EX
+-------------------------------------------------------------------
+
+The test case to reproduce the problem:
+
+in a three-node cluster,
+1) node A copies kernel tree to ocfs2 volume
+2) node B and C keeps "ls -R" the tree which is under copying
+3) after the copy finished, remove the whole tree by "rm -rf xxx" on node A while
+   Node B and C are still "ls -R"ing.
+4) stop the "ls -R" on node B/C when "rm" on node A is finished.
+5) umount all three nodes.
+There are entries left in orphandirs(could for all slots).
+Actually copying whole is time consuming, I can hit the problem when copied part
+of the kernel tree.
+
+I confirmed that the cause is "remotely opened" by printing logs.
+log showed that all the three nodes think "there is other node(s) still opening
+the inode", so they don't do dinode deletion.
+
+Fix:
+The fix is to force dlm_unlock earlier on open_lock within inode_lock. see
+comment embedded in patch.
+
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 ---
- fs/ocfs2/heartbeat.c |    5 +++--
- 1 files changed, 3 insertions(+), 2 deletions(-)
+ fs/ocfs2/inode.c |   16 ++++++++++++++++
+ 1 files changed, 16 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
-index d8208b2..632e855 100644
---- a/fs/ocfs2/heartbeat.c
-+++ b/fs/ocfs2/heartbeat.c
-@@ -64,10 +64,11 @@ void ocfs2_do_node_down(int node_num, void *data)
- {
- 	struct ocfs2_super *osb = data;
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index b4c8bb6..961b0f5 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1052,6 +1052,22 @@ static void ocfs2_delete_inode(struct inode *inode)
+ 	OCFS2_I(inode)->ip_flags |= OCFS2_INODE_DELETED;
  
--	BUG_ON(osb->node_num == node_num);
--
- 	trace_ocfs2_do_node_down(node_num);
+ bail_unlock_inode:
++	/*
++	 * since we don't take care of deleting the on disk inode any longer
++	 * from now on, we must release the open_lock(dlm unlock) immediately
++	 * within inode_lock. Otherwise, trying open_lock for EX from other node
++	 * can fail if it comes before we released PR on open_lock later,
++	 * so that both/all nodes think other node(s) is/are opening the inode
++	 * thus neither/none of them do real dinode deletion.
++	 *
++	 * ocfs2_open_unlock/ocfs2_simple_drop_lockres against open_lock will be
++	 * called again soon from in ocfs2_clear_inode/ocfs2_drop_inode_locks
++	 * repectively. no problem found to call those two functions against
++	 * open_lock twice.
++	 */
++	ocfs2_open_unlock(inode);
++	ocfs2_simple_drop_lockres(OCFS2_SB(inode->i_sb),
++				  &OCFS2_I(inode)->ip_open_lockres);
+ 	ocfs2_inode_unlock(inode, 1);
+ 	brelse(di_bh);
  
-+	if (osb->node_num == node_num)
-+		return;
-+
- 	if (!osb->cconn) {
- 		/*
- 		 * No cluster connection means we're not even ready to
+-- 
+1.7.5.2
