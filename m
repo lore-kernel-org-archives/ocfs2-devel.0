@@ -1,60 +1,38 @@
-From: Jiaju Zhang <jjzhang.linux@gmail.com>
-Date: Fri, 2 Sep 2011 16:57:34 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: handle ocfs2 node down event more
-	correctly
-In-Reply-To: <20110901152818.GA29472@linux-jjzhang.prod.bej.apac.novell.com>
-References: <20110901152818.GA29472@linux-jjzhang.prod.bej.apac.novell.com>
-Message-ID: <CADnnipcdnUNKm0q77P_L69itg_K+E1Ndo69RF8dPx8n6S9KK2w@mail.gmail.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed, 07 Sep 2011 10:10:43 -0700
+Subject: [Ocfs2-devel] block64 failure
+Message-ID: <4E67A593.70302@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Just found out this patch may not be correct since it also need some change
-in user-space, I'll look into the issue more closely to see if it can
-be resolved
-in user-space totally.
+All,
 
-So please ignore this patch, sorry for the noise;)
+So the patches added to allow mounting volumes > 16TB has a problem.
+The feature check of the jbd2 superblock is being done before the
+jbd2 superblock is actually read.
 
-Thanks,
-Jiaju
+It is being done after the journal_init_inode() which is incorrect.
 
-On Thu, Sep 1, 2011 at 11:28 PM, Jiaju Zhang <jjzhang.linux@gmail.com> wrote:
-> In the scenario that ocfs2 is used with in-kernel fs/dlm and user-space
-> cluster stack, osb->node_num == node_num in ocfs2_do_node_down doesn't
-> mean it is a bug any more. This is because ocfs2_controld might receive
-> the node down information first, in the normal case, dlm_controld should
-> receive that node down information soon then osb->node_num != node_num.
-> But a rare case is before dlm_controld receive the node down information,
-> that node is up again and dlm_controld won't receive node down any more,
-> which results in osb->node_num == node_num here, this case can happen and
-> it should not be a bug. Just return here and won't trigger the recovery
-> thread should be the right way to go. Also, it won't introduce other side
-> effect when using o2cb stack.
->
-> Signed-off-by: Jiaju Zhang <jjzhang@suse.de>
-> ---
-> ?fs/ocfs2/heartbeat.c | ? ?5 +++--
-> ?1 files changed, 3 insertions(+), 2 deletions(-)
->
-> diff --git a/fs/ocfs2/heartbeat.c b/fs/ocfs2/heartbeat.c
-> index d8208b2..632e855 100644
-> --- a/fs/ocfs2/heartbeat.c
-> +++ b/fs/ocfs2/heartbeat.c
-> @@ -64,10 +64,11 @@ void ocfs2_do_node_down(int node_num, void *data)
-> ?{
-> ? ? ? ?struct ocfs2_super *osb = data;
->
-> - ? ? ? BUG_ON(osb->node_num == node_num);
-> -
-> ? ? ? ?trace_ocfs2_do_node_down(node_num);
->
-> + ? ? ? if (osb->node_num == node_num)
-> + ? ? ? ? ? ? ? return;
-> +
-> ? ? ? ?if (!osb->cconn) {
-> ? ? ? ? ? ? ? ?/*
-> ? ? ? ? ? ? ? ? * No cluster connection means we're not even ready to
->
+ocfs2_check_volume()
+   ocfs2_journal_init()
+        jbd2_journal_init_inode()
+   ocfs2_journal_addressable() <=== check
+...
+
+Currently the journal sb is first read during load_journal. Too late for us.
+And journal_get_superblock() is not exported.
+
+One solution is to call jbd2_journal_update_format() after jbd2_journal_init_inode().
+This function is used by extX to update the journal format from V1 to V2. In our
+case, we are always V2 so will be a null op. But will force read the journal sb.
+
+Icky... hence my post.
+
+The other option is exporting journal_get_superblock() to load the journal sb.
+
+Suggestions?
+
+Sunil
