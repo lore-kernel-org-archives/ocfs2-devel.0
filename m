@@ -1,68 +1,77 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 14 Sep 2011 19:46:46 -0700
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Thu, 15 Sep 2011 11:10:18 +0800
 Subject: [Ocfs2-devel] [PATCH] Wakeup down-convert thread just after
  clearing OCFS2_LOCK_UPCONVERT_FINISHING -v2
-In-Reply-To: <201109150206.p8F26atI019193@acsmt358.oracle.com>
+In-Reply-To: <4E716716.4020308@oracle.com>
 References: <201109150206.p8F26atI019193@acsmt358.oracle.com>
-Message-ID: <4E716716.4020308@oracle.com>
+	<4E716716.4020308@oracle.com>
+Message-ID: <20110915031017.GB9488@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-A better description would be:
-=====================================
-When the lockres state UPCONVERT_FINISHING is cleared,
-we should wake up the downconvert thread incase that lockres
-is in the blocked queue. Currently we are not doing so and thus
-are at the mercy of another event waking up the dc thread.
-======================================
+On 11-09-14 19:46, Sunil Mushran wrote:
+> A better description would be:
+> =====================================
+> When the lockres state UPCONVERT_FINISHING is cleared,
+> we should wake up the downconvert thread incase that lockres
+> is in the blocked queue. Currently we are not doing so and thus
+> are at the mercy of another event waking up the dc thread.
+> ======================================
+> 
+> With that in mind, can you do the following with the lock...
+> 
+> kick = (lockres->l_flags & OCFS2_LOCK_BLOCKED);
 
-With that in mind, can you do the following with the lock...
+If we have to check this, is checking on OCFS2_LOCK_QUEUED better than on OCFS2_LOCK_BLOCKED?
+next drop will come with checking on OCFS2_LOCK_QUEUED.
 
-kick = (lockres->l_flags & OCFS2_LOCK_BLOCKED);
-
-...
-
-and this at the end of both functions.
-
-if (kick)
-      ocfs2_wake_downconvert_thread(ocfs2_get_lockres_osb(lockres));
-
-Be careful in cluster_lock.
-
-On 09/14/2011 07:06 PM, Wengang Wang wrote:
-> In down convert thread, when the ocfs2_lock_res is in OCFS2_LOCK_UPCONVERT_FINISHING
-> state, it is requeued for next run of ocfs2_downconvert_thread_do_work(). If not
-> waked up, the DC thread just sleep there without even there are ocfs2_lock_res' left
-> in the list.
->
-> So when clearing the OCFS2_LOCK_UPCONVERT_FINISHING flag, we need also to wake up dc
-> thread accordingly.
->
-> Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
-> ---
->   fs/ocfs2/dlmglue.c |    2 ++
->   1 files changed, 2 insertions(+), 0 deletions(-)
->
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 7642d7c..a2e8278 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -1206,6 +1206,7 @@ static inline void ocfs2_recover_from_dlm_error(struct ocfs2_lock_res *lockres,
->   	spin_unlock_irqrestore(&lockres->l_lock, flags);
->
->   	wake_up(&lockres->l_event);
-> +	ocfs2_wake_downconvert_thread(ocfs2_get_lockres_osb(lockres));
->   }
->
->   /* Note: If we detect another process working on the lock (i.e.,
-> @@ -1502,6 +1503,7 @@ unlock:
->   	lockres_clear_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
->
->   	spin_unlock_irqrestore(&lockres->l_lock, flags);
-> +	ocfs2_wake_downconvert_thread(osb);
->   out:
->   	/*
->   	 * This is helping work around a lock inversion between the page lock
+thanks,
+wengang.
+> 
+> ...
+> 
+> and this at the end of both functions.
+> 
+> if (kick)
+>      ocfs2_wake_downconvert_thread(ocfs2_get_lockres_osb(lockres));
+> 
+> Be careful in cluster_lock.
+> 
+> On 09/14/2011 07:06 PM, Wengang Wang wrote:
+> >In down convert thread, when the ocfs2_lock_res is in OCFS2_LOCK_UPCONVERT_FINISHING
+> >state, it is requeued for next run of ocfs2_downconvert_thread_do_work(). If not
+> >waked up, the DC thread just sleep there without even there are ocfs2_lock_res' left
+> >in the list.
+> >
+> >So when clearing the OCFS2_LOCK_UPCONVERT_FINISHING flag, we need also to wake up dc
+> >thread accordingly.
+> >
+> >Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
+> >---
+> >  fs/ocfs2/dlmglue.c |    2 ++
+> >  1 files changed, 2 insertions(+), 0 deletions(-)
+> >
+> >diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> >index 7642d7c..a2e8278 100644
+> >--- a/fs/ocfs2/dlmglue.c
+> >+++ b/fs/ocfs2/dlmglue.c
+> >@@ -1206,6 +1206,7 @@ static inline void ocfs2_recover_from_dlm_error(struct ocfs2_lock_res *lockres,
+> >  	spin_unlock_irqrestore(&lockres->l_lock, flags);
+> >
+> >  	wake_up(&lockres->l_event);
+> >+	ocfs2_wake_downconvert_thread(ocfs2_get_lockres_osb(lockres));
+> >  }
+> >
+> >  /* Note: If we detect another process working on the lock (i.e.,
+> >@@ -1502,6 +1503,7 @@ unlock:
+> >  	lockres_clear_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
+> >
+> >  	spin_unlock_irqrestore(&lockres->l_lock, flags);
+> >+	ocfs2_wake_downconvert_thread(osb);
+> >  out:
+> >  	/*
+> >  	 * This is helping work around a lock inversion between the page lock
+> 
