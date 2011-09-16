@@ -1,47 +1,143 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri, 16 Sep 2011 08:57:57 +0800
-Subject: [Ocfs2-devel] [PATCH] Wakeup down-convert thread just after
- clearing OCFS2_LOCK_UPCONVERT_FINISHING -v3
-In-Reply-To: <4E729E13.5070800@oracle.com>
-References: <201109150327.p8F3REQA017979@acsmt356.oracle.com>
-	<4E7232B0.9080004@oracle.com> <4E723412.9060001@oracle.com>
-	<20110916004200.GA3433@laptop.jp.oracle.com>
-	<4E729E13.5070800@oracle.com>
-Message-ID: <20110916005757.GB3581@laptop.jp.oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Fri, 16 Sep 2011 14:25:39 -0700
+Subject: [Ocfs2-devel] Some fsck perf numbers
+Message-ID: <4E73BED3.2090106@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 11-09-15 17:53, Sunil Mushran wrote:
-> On 09/15/2011 05:42 PM, Wengang Wang wrote:
-> >Hi Sunil,
-> >
-> >On 11-09-15 10:21, Sunil Mushran wrote:
-> >>http://people.redhat.com/~teigland/make_panic
-> >>
-> >>This test has been useful in exposing dlmglue issues.
-> >>
-> >>On 09/15/2011 10:15 AM, Sunil Mushran wrote:
-> >>>I am fine with the kick in recover from dlm error. Not so in cluster lock.
-> >>>We have to be very very sure before meddling with that function. It is
-> >>>a state machine with many hidden gotchas.
-> >>>
-> >>>So is this patch for a bug encountered or just code audit. Also, what kind
-> >>>testing has been done.
-> >Yes, a bug(hang) encountered. After testing and analysis, I found the root cause.
-> >And it's NOT the dlm error case. The hang was fixed by the original patch.
-> >I will email you about the orabug and testcase(pretty easy to reproduce).
-> 
-> 
-> Which original patch?
+I have been playing with fsck.ocfs2. Performance-wise. Have some
+interesting numbers to share.
 
-The first drop of this patch.
+This volume is 2T in size with 1.5 million files. Many exploded
+kernels trees + some large files. The particulars are listed below.
 
-thanks,
-wengang.
-> 
-> 
-> >I will try http://people.redhat.com/~teigland/make_panic to see if it
-> >can find something.
+I did 3 runs.
+
+The first set of numbers are vanilla fsck.
+
+In the second one, I added prefill before each of the allocator
+chain scan. It fills up the cache before calling verify_chain().
+The logic is simple. After the bitmap inode is read, it issues aios
+for all first level groups. 243 of them. Then it reads the next_group
+of all and again issues aios. And so on.
+
+There is another piece of code in vanilla fsck. It is called precache.
+The idea there is similar. During the suballocator scans, it force reads
+the entire block group. The idea is to warm the cache for Pass 1. The
+problem, as we know, is that precache only works when the cache is large
+enough. In this run, it is not. The second set disables precache.
+
+So set 2 enables prefill and disables precache.
+
+In the third set, I also increased the size of the buffer in
+open_inode_scan(). It was reading 32K to 1M. I upped it to one suballoc
+block group. So 4MB max.
+
+================================================================
+   Number of blocks:   536870202
+   Block size:         4096
+   Number of clusters: 536870202
+   Cluster size:       4096
+   Number of slots:    1
+
+   # of inodes with depth 0/1/2/3/4/5: 844325/16/0/0/0/0
+   # of orphaned inodes found/deleted: 0/0
+
+      1556247 regular files (712550 inlines, 0 reflinks)
+        96706 directories (96056 inlines)
+            0 character device files
+            0 block device files
+            0 fifos
+            0 links
+           50 symbolic links (50 fast symbolic links)
+            0 sockets
+
+Inline rule!
+================================================================
+
+   Cache size: 1017MB
+   I/O read disk/cache: 15519MB / 511MB, write: 0MB, rate: 17.48MB/s
+   Times real: 917.039s, user: 59.392s, sys: 10.997s
+
+   Cache size: 1016MB
+   I/O read disk/cache: 6956MB / 582MB, write: 0MB, rate: 11.93MB/s
+   Times real: 631.968s, user: 48.739s, sys: 7.591s
+
+   Cache size: 1019MB
+   I/O read disk/cache: 6956MB / 582MB, write: 0MB, rate: 17.79MB/s
+   Times real: 423.701s, user: 47.015s, sys: 4.621s
+
+These are global numbers. I calculate numbers per pass and keep adding
+them. Notice how the first set reads almost double the amount from disk.
+It is because the inode allocator had 6G and the box had 1G of cache.
+Pre reading the inodes hurts us. The third set reads the same amount as
+second but has a better thruput. That's because open_inode_scan is reading
+the entire block group.
+
+Meaning we don't need precache. Instead we could increase the buffer size
+in open_scan().
+
+Now numbers per pass.
+
+================================================================
+Pass 0a: Checking cluster allocation chains
+   I/O read disk/cache: 66MB / 1MB, write: 0MB, rate: 0.68MB/s
+   Times real: 97.072s, user: 0.423s, sys: 0.280s
+
+   I/O read disk/cache: 66MB / 66MB, write: 0MB, rate: 10.27MB/s
+   Times real: 12.756s, user: 0.343s, sys: 0.156s
+
+   I/O read disk/cache: 66MB / 66MB, write: 0MB, rate: 10.53MB/s
+   Times real: 12.443s, user: 0.398s, sys: 0.178s
+
+In 2 and 3, the cluster groups are read using aio. And it helps!
+================================================================
+
+Pass 0b: Checking inode allocation chains
+   I/O read disk/cache: 6471MB / 14MB, write: 0MB, rate: 42.93MB/s
+   Times real: 151.066s, user: 8.222s, sys: 2.512s
+
+   I/O read disk/cache: 7MB / 20MB, write: 0MB, rate: 26.85MB/s
+   Times real: 0.968s, user: 0.186s, sys: 0.025s
+
+   I/O read disk/cache: 7MB / 20MB, write: 0MB, rate: 14.93MB/s
+   Times real: 1.741s, user: 0.234s, sys: 0.034s
+
+Disabling precache in 2 and 3 helps tremendously.
+================================================================
+
+Pass 0c: Checking extent block allocation chains
+   I/O read disk/cache: 2101MB / 3MB, write: 0MB, rate: 42.70MB/s
+   Times real: 49.249s, user: 2.628s, sys: 0.804s
+
+   I/O read disk/cache: 3MB / 3MB, write: 0MB, rate: 19.68MB/s
+   Times real: 0.254s, user: 0.053s, sys: 0.007s
+
+   I/O read disk/cache: 3MB / 3MB, write: 0MB, rate: 19.97MB/s
+   Times real: 0.250s, user: 0.056s, sys: 0.006s
+
+Disabling precache in 2 and 3 helps. The caveat here is that this
+volume has mainly files with depth 0.
+================================================================
+
+Pass 1: Checking inodes and blocks
+   I/O read disk/cache: 6532MB / 67MB, write: 0MB, rate: 13.64MB/s
+   Times real: 483.811s, user: 31.493s, sys: 5.995s
+
+   I/O read disk/cache: 6531MB / 68MB, write: 0MB, rate: 13.70MB/s
+   Times real: 481.581s, user: 31.039s, sys: 5.958s
+
+   I/O read disk/cache: 6531MB / 68MB, write: 0MB, rate: 24.34MB/s
+   Times real: 271.107s, user: 29.263s, sys: 2.982s
+
+Set 3 is best because of the large buffer size in open_scan.
+================================================================
+
+The rest of the passes are unchanged. It will look at that next.
+
+Comments welcome.
+
+Sunil
