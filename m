@@ -1,53 +1,64 @@
 From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 12 Oct 2011 15:04:33 +0800
-Subject: [Ocfs2-devel] avoid being purged when queued for assert_master
-Message-ID: <20111012070433.GA11852@laptop.jp.oracle.com>
+Date: Wed, 12 Oct 2011 15:10:44 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Commit transactions in error cases.
+In-Reply-To: <4E947E51.2040401@oracle.com>
+References: <201109250913.p8P9DPGZ032059@acsmt356.oracle.com>
+	<4E947E51.2040401@oracle.com>
+Message-ID: <20111012071044.GB11852@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Sunil/Joel/Mark and anyone who has interest,
+On 11-10-11 10:35, Sunil Mushran wrote:
+> The first two are ok. Have a comment for the last one.
+> 
+> On 09/25/2011 02:13 AM, Wengang Wang wrote:
+> >Commit transactions in error cases.
+> >
+> >There are three cases found that in error cases, journal transactions are not
+> >committed nor aborted. We should take care of these case by committing the
+> >transactions. Otherwise, there would left a journal handle which will lead to
+> >, in same process context, the comming ocfs2_start_trans() gets wrong credits.
+> >
+> >Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
+<snip>
+> >@@ -2376,12 +2376,12 @@ static int ocfs2_remove_value_outside(struct inode*inode,
+> >  		}
+> >
+> >  		ret = ocfs2_xattr_value_truncate(inode, vb, 0,&ctxt);
+> >+		ocfs2_commit_trans(osb, ctxt.handle);
+> >  		if (ret<  0) {
+> >  			mlog_errno(ret);
+> >  			break;
+> >  		}
+> >
+> >-		ocfs2_commit_trans(osb, ctxt.handle);
+> >  		if (ctxt.meta_ac) {
+> >  			ocfs2_free_alloc_context(ctxt.meta_ac);
+> >  			ctxt.meta_ac = NULL;
+> 
+>  		ret = ocfs2_xattr_value_truncate(inode, vb, 0,&ctxt);
+> - 		if (ret<  0) {
+> - 			mlog_errno(ret);
+> - 			break;
+> - 		}
+> 
+> 		ocfs2_commit_trans(osb, ctxt.handle);
+>  		if (ctxt.meta_ac) {
+>  			ocfs2_free_alloc_context(ctxt.meta_ac);
+>  			ctxt.meta_ac = NULL;
+> 
+> + 		if (ret<  0) {
+> + 			mlog_errno(ret);
+> + 			break;
+> + 		}
+> 
+> 
+> I don't like the commit_trans() shoe horned. The above reads cleaner imo.
 
-This is not a patch but a discuss.
-
-Currently we have a problem:
-When a lockres is still queued(in dlm->work_list) for sending an
-assert_master(or in processing of sending), the lockres can't be
-purged(removed from hash). there is no flag/state,on lockres its self,dinotes
-this situation.
-
-The badness is that if the lockres is purged(surely not the owner at the
-moment), and the assert_master is after the purge. it can confuse other
-nodes. On another node, the owner now can be any other nodes, thus on
-receiving the assert_master, it can trigger a BUG() because 'owner'
-doesn't match.
-
-So we'd better to prevent the lockres from be purged when it's queued
-for something(assert_master).
-
-Srini and I discussed some possible fixes:
-1) adding a flag to lockres->state.
-   this does not work. A lockres can have multiple instances in the queue list.
-   A simple flag is not safe. And the instances are not nested, so even
-   saving a previous flags doesn't work. Neither can we merge the instances
-   because they can be for different purposes.
-
-2) checking if the lockres if queued before purging it.
-  this works, but doesn't sounds good. it needs changes of current behaviour
-  on the queue list.   Also, we have no idea on the performance of the checking
-  (searching list).
-
-3) making use of lockres->inflight_locks.
-  this works, but seems to be a mis-use of inflight_locks.
-
-4) adding a new member to lockres counting the queued time.
-   this works and simple. but needs extra memory.
-
-I prefer to the 4).
-
-What's your idea?
+Agree.
 
 thanks,
 wengang.
