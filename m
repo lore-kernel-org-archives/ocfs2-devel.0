@@ -1,100 +1,53 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 11 Oct 2011 10:35:13 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Commit transactions in error cases.
-In-Reply-To: <201109250913.p8P9DPGZ032059@acsmt356.oracle.com>
-References: <201109250913.p8P9DPGZ032059@acsmt356.oracle.com>
-Message-ID: <4E947E51.2040401@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Wed, 12 Oct 2011 15:04:33 +0800
+Subject: [Ocfs2-devel] avoid being purged when queued for assert_master
+Message-ID: <20111012070433.GA11852@laptop.jp.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The first two are ok. Have a comment for the last one.
+Hi Sunil/Joel/Mark and anyone who has interest,
 
-On 09/25/2011 02:13 AM, Wengang Wang wrote:
-> Commit transactions in error cases.
->
-> There are three cases found that in error cases, journal transactions are not
-> committed nor aborted. We should take care of these case by committing the
-> transactions. Otherwise, there would left a journal handle which will lead to
-> , in same process context, the comming ocfs2_start_trans() gets wrong credits.
->
-> Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
-> ---
->   fs/ocfs2/alloc.c |    2 +-
->   fs/ocfs2/ioctl.c |    3 ++-
->   fs/ocfs2/xattr.c |    2 +-
->   3 files changed, 4 insertions(+), 3 deletions(-)
->
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index ed553c6..3165aeb 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -5699,7 +5699,7 @@ int ocfs2_remove_btree_range(struct inode *inode,
->   					   OCFS2_JOURNAL_ACCESS_WRITE);
->   	if (ret) {
->   		mlog_errno(ret);
-> -		goto out;
-> +		goto out_commit;
->   	}
->
->   	dquot_free_space_nodirty(inode,
-> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-> index bc91072..5612c3d 100644
-> --- a/fs/ocfs2/ioctl.c
-> +++ b/fs/ocfs2/ioctl.c
-> @@ -122,7 +122,7 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
->   	if ((oldflags&  OCFS2_IMMUTABLE_FL) || ((flags ^ oldflags)&
->   		(OCFS2_APPEND_FL | OCFS2_IMMUTABLE_FL))) {
->   		if (!capable(CAP_LINUX_IMMUTABLE))
-> -			goto bail_unlock;
-> +			goto bail_commit;
->   	}
->
->   	ocfs2_inode->ip_attr = flags;
-> @@ -132,6 +132,7 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
->   	if (status<  0)
->   		mlog_errno(status);
->
-> +bail_commit:
->   	ocfs2_commit_trans(osb, handle);
->   bail_unlock:
->   	ocfs2_inode_unlock(inode, 1);
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 81ecf9c..6eb01c5 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -2376,12 +2376,12 @@ static int ocfs2_remove_value_outside(struct inode*inode,
->   		}
->
->   		ret = ocfs2_xattr_value_truncate(inode, vb, 0,&ctxt);
-> +		ocfs2_commit_trans(osb, ctxt.handle);
->   		if (ret<  0) {
->   			mlog_errno(ret);
->   			break;
->   		}
->
-> -		ocfs2_commit_trans(osb, ctxt.handle);
->   		if (ctxt.meta_ac) {
->   			ocfs2_free_alloc_context(ctxt.meta_ac);
->   			ctxt.meta_ac = NULL;
+This is not a patch but a discuss.
 
-  		ret = ocfs2_xattr_value_truncate(inode, vb, 0,&ctxt);
-- 		if (ret<  0) {
-- 			mlog_errno(ret);
-- 			break;
-- 		}
+Currently we have a problem:
+When a lockres is still queued(in dlm->work_list) for sending an
+assert_master(or in processing of sending), the lockres can't be
+purged(removed from hash). there is no flag/state,on lockres its self,dinotes
+this situation.
 
-		ocfs2_commit_trans(osb, ctxt.handle);
-  		if (ctxt.meta_ac) {
-  			ocfs2_free_alloc_context(ctxt.meta_ac);
-  			ctxt.meta_ac = NULL;
+The badness is that if the lockres is purged(surely not the owner at the
+moment), and the assert_master is after the purge. it can confuse other
+nodes. On another node, the owner now can be any other nodes, thus on
+receiving the assert_master, it can trigger a BUG() because 'owner'
+doesn't match.
 
-+ 		if (ret<  0) {
-+ 			mlog_errno(ret);
-+ 			break;
-+ 		}
+So we'd better to prevent the lockres from be purged when it's queued
+for something(assert_master).
 
+Srini and I discussed some possible fixes:
+1) adding a flag to lockres->state.
+   this does not work. A lockres can have multiple instances in the queue list.
+   A simple flag is not safe. And the instances are not nested, so even
+   saving a previous flags doesn't work. Neither can we merge the instances
+   because they can be for different purposes.
 
-I don't like the commit_trans() shoe horned. The above reads cleaner imo.
+2) checking if the lockres if queued before purging it.
+  this works, but doesn't sounds good. it needs changes of current behaviour
+  on the queue list.   Also, we have no idea on the performance of the checking
+  (searching list).
+
+3) making use of lockres->inflight_locks.
+  this works, but seems to be a mis-use of inflight_locks.
+
+4) adding a new member to lockres counting the queued time.
+   this works and simple. but needs extra memory.
+
+I prefer to the 4).
+
+What's your idea?
+
+thanks,
+wengang.
