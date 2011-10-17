@@ -1,58 +1,35 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Sat, 15 Oct 2011 18:58:02 +0800
-Subject: [Ocfs2-devel] avoid being purged when queued for assert_master
-In-Reply-To: <4E9877E6.8080307@oracle.com>
-References: <20111013020712.GB5565@laptop.jp.oracle.com>
-	<4E9648E1.3070508@oracle.com>
-	<20111013021356.GD5565@laptop.jp.oracle.com>
-	<4E970D2E.2080206@oracle.com>
-	<20111013233549.GA2982@laptop.jp.oracle.com>
-	<4E977644.2020902@oracle.com>
-	<20111014001913.GA5162@laptop.jp.oracle.com>
-	<4E97818A.5070902@oracle.com>
-	<20111014085713.GB13004@laptop.jp.oracle.com>
-	<4E9877E6.8080307@oracle.com>
-Message-ID: <20111015105802.GA2881@laptop>
+From: Dan Magenheimer <dan.magenheimer@oracle.com>
+Date: Mon, 17 Oct 2011 16:47:17 -0700 (PDT)
+Subject: [Ocfs2-devel] [PATCH] ocfs2: send correct UUID to cleancache
+	initialization
+Message-ID: <dd238ce4-fe92-4dc0-a4b6-7f273c386366@default>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+Cc: linux-kernel@vger.kernel.org, Joel Becker <jlbec@evilplan.org>, Steven Whitehouse <swhiteho@redhat.com>, Sunil Mushran <sunil.mushran@oracle.com>
 
-On 11-10-14 10:56, Sunil Mushran wrote:
-> On 10/14/2011 01:57 AM, Wengang Wang wrote:
-> >Problem reproduced(against mainline) with the above patch applied. Also with the hacking
-> >patch(attached).
-> >
-> >testcase is attached.
-> >
-> >(kworker/u:2,14465,1):dlm_assert_master_handler:1828 ERROR: DIE! Mastery
-> >assert from 0, but current owner is 1! (master)
-> >lockres: master, owner=1, state=0
-> >   last used: 0, refcnt: 3, on purge list: no
-> >   on dirty list: no, on reco list: no, migrating pending: no
-> >   inflight locks: 0, asts reserved: 0
-> >   refmap nodes: [ ], inflight=0
-> >   granted queue:
-> >     type=5, conv=-1, node=1, cookie=1:28, ref=2, ast=(empty=y,pend=n),
-> >bast=(empty=y,pend=n), pending=(conv=n,lock=n,cancel=n,unlock=n)
-> >   converting queue:
-> >   blocked queue:
-> 
-> Name the nodes such that the node numbers are obvious. Easier
-> to debug that way.
-> 
+ocfs2: Fix cleancache initialization call to correctly pass uuid
 
-Yea, sorry. Node 0 is "cool", node 1 is "desk".
+As reported by Steven Whitehouse in https://lkml.org/lkml/2011/5/27/221 
+the ocfs2 volume UUID is incorrectly passed to cleancache.
+As a result, shared-ephemeral tmem pools will not actually
+be created; instead they will be private (unshared) which
+misses out on a major benefit of tmem.
 
-> This won't reproduce if you move the sleep 30000 in dlm_do_assert_master()
-> after we set DLM_LOCK_RES_SETREF_INPROG. Is that correct?
-You are correct, if sleep 30s after setting SETREF_INPROG, it's hard to
-reproduce(no hit per my test). When SETREF_INPROG flag is set, it
-prevents the refmap bit from being cleared.
+Reported-by: Steven Whitehouse <swhiteho@redhat.com>
+Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
 
-While, for fixing, I don't think SETREF_INPROG can help us.
-
-thanks,
-wengang. 
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2374,7 +2374,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		mlog_errno(status);
+ 		goto bail;
+ 	}
+-	cleancache_init_shared_fs((char *)&uuid_net_key, sb);
++	cleancache_init_shared_fs((char *)&di->id2.i_super.s_uuid, sb);
  
+ bail:
+ 	return status;
