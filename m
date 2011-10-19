@@ -1,15 +1,26 @@
-From: xiaowei.hu at oracle.com <xiaowei.hu@oracle.com>
-Date: Wed, 19 Oct 2011 09:34:19 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Add a missing journal credit in
-	ocfs2_link_credits() -v2
-Message-ID: <1318988059-18289-1-git-send-email-xiaowei.hu@oracle.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Wed, 19 Oct 2011 10:01:37 -0700
+Subject: [Ocfs2-devel] Fwd: [PATCH] ocfs2: Add a missing journal credit in
+ ocfs2_link_credits() -v2
+Message-ID: <4E9F0271.2080408@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Xiaowei.Hu <xiaowei.hu@oracle.com>
+Joel, Please add this to the linux-next branch.
+
+-------- Original Message --------
+Subject: 	[Ocfs2-devel] [PATCH] ocfs2: Add a missing journal credit in ocfs2_link_credits() -v2
+Date: 	Wed, 19 Oct 2011 09:34:19 +0800
+From: 	xiaowei.hu at oracle.com
+To: 	ocfs2-devel at oss.oracle.com
+CC: 	greg.marsden at oracle.com, joe.jin at oracle.com
+
+
+
+From: Xiaowei.Hu<xiaowei.hu@oracle.com>
 
 With indexed_dir enabled, ocfs2 maintains a list of dirblocks having
 space.
@@ -38,30 +49,40 @@ with a larger blocksize will require longer (or more) links. The sleep
 is important. We want jbd2 to commit the transaction so that the missing
 block does not piggy back on account of the previous transaction.
 
-Signed-off-by: XiaoweiHu <xiaowei.hu@oracle.com>
-Reviewed-by: WengangWang <wen.gang.wang@oracle.com>
-Reviewed-by: Sunil.Mushran <sunil.mushran@oracle.com>
+Signed-off-by: XiaoweiHu<xiaowei.hu@oracle.com>
+Reviewed-by: WengangWang<wen.gang.wang@oracle.com>
+Reviewed-by: Sunil.Mushran<sunil.mushran@oracle.com>
 ---
- fs/ocfs2/journal.h |    5 +++--
- 1 files changed, 3 insertions(+), 2 deletions(-)
+  fs/ocfs2/journal.h |    5 +++--
+  1 files changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
 index 68cf2f6..a3385b6 100644
 --- a/fs/ocfs2/journal.h
 +++ b/fs/ocfs2/journal.h
 @@ -441,10 +441,11 @@ static inline int ocfs2_mknod_credits(struct super_block *sb, int is_dir,
- #define OCFS2_SIMPLE_DIR_EXTEND_CREDITS (2)
- 
- /* file update (nlink, etc) + directory mtime/ctime + dir entry block + quota
+  #define OCFS2_SIMPLE_DIR_EXTEND_CREDITS (2)
+
+  /* file update (nlink, etc) + directory mtime/ctime + dir entry block + quota
 - * update on dir + index leaf + dx root update for free list */
 + * update on dir + index leaf + dx root update for free list +
 + * previous dirblock update in the free list */
- static inline int ocfs2_link_credits(struct super_block *sb)
- {
+  static inline int ocfs2_link_credits(struct super_block *sb)
+  {
 -	return 2*OCFS2_INODE_UPDATE_CREDITS + 3 +
 +	return 2*OCFS2_INODE_UPDATE_CREDITS + 4 +
- 	       ocfs2_quota_trans_credits(sb);
- }
- 
+  	       ocfs2_quota_trans_credits(sb);
+  }
+
 -- 
 1.7.4.4
+
+
+_______________________________________________
+Ocfs2-devel mailing list
+Ocfs2-devel at oss.oracle.com
+http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20111019/5856dd2c/attachment.html 
