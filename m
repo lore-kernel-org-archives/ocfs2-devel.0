@@ -1,8 +1,8 @@
 From: xiaowei.hu at oracle.com <xiaowei.hu@oracle.com>
-Date: Wed, 19 Oct 2011 09:21:18 +0800
+Date: Wed, 19 Oct 2011 09:34:19 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: Add a missing journal credit in
-	ocfs2_link_credits()
-Message-ID: <1318987278-16496-1-git-send-email-xiaowei.hu@oracle.com>
+	ocfs2_link_credits() -v2
+Message-ID: <1318988059-18289-1-git-send-email-xiaowei.hu@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -37,6 +37,10 @@ The link names have been crafted for a 512 byte blocksize. Reproducing
 with a larger blocksize will require longer (or more) links. The sleep
 is important. We want jbd2 to commit the transaction so that the missing
 block does not piggy back on account of the previous transaction.
+
+Signed-off-by: XiaoweiHu <xiaowei.hu@oracle.com>
+Reviewed-by: WengangWang <wen.gang.wang@oracle.com>
+Reviewed-by: Sunil.Mushran <sunil.mushran@oracle.com>
 ---
  fs/ocfs2/journal.h |    5 +++--
  1 files changed, 3 insertions(+), 2 deletions(-)
