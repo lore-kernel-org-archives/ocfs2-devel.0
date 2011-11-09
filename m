@@ -1,96 +1,69 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Fri,  4 Nov 2011 11:59:26 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: ensure journalaccess/journaldirty
- pairs don't cross journal restarting --ocfs2_rotate_subtree_left
-Message-ID: <201111040359.pA43x9wm007354@acsmt357.oracle.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Tue, 8 Nov 2011 23:55:10 -0800
+Subject: [Ocfs2-devel] OCFS2 1.6.0 for mainline?
+In-Reply-To: <4E99C7B7.5060405@nod.at>
+References: <4E99A8F3.50206@nod.at> <30236.1318700758@turing-police.cc.vt.edu>
+	<4E99C7B7.5060405@nod.at>
+Message-ID: <20111109075508.GA331@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Richard Weinberger <richard@nod.at>
+Cc: Valdis.Kletnieks@vt.edu, mfasheh@suse.com, ocfs2-devel@oss.oracle.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-journalaccess/journaldirty pairs shouldn't cross journal restarting.
-Function ocfs2_rotate_subtree_left() violates this rule. This patch tries
-to fix it.
+On Sat, Oct 15, 2011 at 07:49:43PM +0200, Richard Weinberger wrote:
+> Am 15.10.2011 19:45, schrieb Valdis.Kletnieks at vt.edu:
+> > On Sat, 15 Oct 2011 17:38:27 +0200, Richard Weinberger said:
+> > 
+> >> http://oss.oracle.com/projects/ocfs2/source.html states:
+> >> "Active development on OCFS2 happens in the mainline kernel."
+> >>
+> >> But the mainline kernel seems to contain only version 1.5.0.
+> >>
+> >> Also the linux-next ocfs2 branch has only 1.5.0.
+> >> git://oss.oracle.com/git/jlbec/linux-2.6.git linux-next
+> >>
+> >> Where can I get 1.6.0?
+> > 
+> > Presumably, it's GPL, so you should be able to get a copy from the
+> > person that told you that 1.6.0 exists. ;)
+> > 
+> > Put differently, why do you think 1.6.0 is available?
+> 
+> http://oss.oracle.com/projects/ocfs2/
+> 
+> "OCFS2 1.6 RELEASE
+> 
+> OCFS2 1.6.3-1 and OCFS2 Tools 1.6.3-1 are the latest versions. The new
+> features available in this release include Extended Attributes, POSIX
+> ACLs, REFLINKs, Indexed Directories, Allocation Reservation, Metadata
+> Checksums and User/Group Quotas."
+> 
+> Looks like it's only available for "Unbreakable Linux" subscribers.
+> The development seems to be detached from mainline. :-(
 
-1) adding a extra journal access before modifying the tree root. (see
-comment in patch it's self)
+Hello Folks,
+	Sorry I'm late to this game, but it's worth repeating.
+	Thankfully, you're just confused by shoddy version numbers.  ALL
+ocfs2 development happens in mainline.  Any code that is in the 1.6.0
+release, or any RPM release, started in mainline.
+	We don't really pay any attention to the version number reported
+in the mainline code.  It's said 1.5.0 for years now.  Mainline is
+versioned by the kernel release.
+	To repeat, ALL of the code in the 1.6.x RPM (or any RPM put out
+by Oracle or SuSE) started in mainline, with the possible exception of
+any trivial compatability fixes.  If you have the latest Linus code, you
+have the latest ocfs2 code.
 
-2) moving ocfs2_remove_empty_extent(left_leaf_el) priror, so that
-ocfs2_journal_dirty(handle, path_leaf_bh(left_path)) can take care of it.
-(before the change, seems there is a miss of not putting left_leaf_el to
-journal in del_right_subtree case.
+Joel
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
----
- fs/ocfs2/alloc.c |   36 +++++++++++++++---------------------
- 1 files changed, 15 insertions(+), 21 deletions(-)
-
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index ed553c6..ace7aa2 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -2708,20 +2708,8 @@ static int ocfs2_rotate_subtree_left(handle_t *handle,
- 	}
- 
- 	if (eb->h_next_leaf_blk == 0ULL &&
--	    le16_to_cpu(right_leaf_el->l_next_free_rec) == 1) {
--		/*
--		 * We have to update i_last_eb_blk during the meta
--		 * data delete.
--		 */
--		ret = ocfs2_et_root_journal_access(handle, et,
--						   OCFS2_JOURNAL_ACCESS_WRITE);
--		if (ret) {
--			mlog_errno(ret);
--			goto out;
--		}
--
-+	    le16_to_cpu(right_leaf_el->l_next_free_rec) == 1)
- 		del_right_subtree = 1;
--	}
- 
- 	/*
- 	 * Getting here with an empty extent in the right path implies
-@@ -2762,7 +2750,10 @@ static int ocfs2_rotate_subtree_left(handle_t *handle,
- 		ocfs2_rotate_leaf(left_leaf_el, &right_leaf_el->l_recs[0]);
- 		memset(&right_leaf_el->l_recs[0], 0,
- 		       sizeof(struct ocfs2_extent_rec));
-+	} else {
-+		ocfs2_remove_empty_extent(left_leaf_el);
- 	}
-+		
- 	if (eb->h_next_leaf_blk == 0ULL) {
- 		/*
- 		 * Move recs over to get rid of empty extent, decrease
-@@ -2786,17 +2777,20 @@ static int ocfs2_rotate_subtree_left(handle_t *handle,
- 			goto out;
- 		}
- 
--		eb = (struct ocfs2_extent_block *)path_leaf_bh(left_path)->b_data;
--		ocfs2_et_set_last_eb_blk(et, le64_to_cpu(eb->h_blkno));
--
- 		/*
--		 * Removal of the extent in the left leaf was skipped
--		 * above so we could delete the right path
--		 * 1st.
-+		 * journal can just restarted in ocfs2_update_edge_lengths.
-+		 * we have to re-access the tree root. We still has an credit
-+		 * reserved for the tree root. 
- 		 */
--		if (right_has_empty)
--			ocfs2_remove_empty_extent(left_leaf_el);
-+		ret = ocfs2_et_root_journal_access(handle, et,
-+						   OCFS2_JOURNAL_ACCESS_WRITE);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
- 
-+		eb = (struct ocfs2_extent_block *)path_leaf_bh(left_path)->b_data;
-+		ocfs2_et_set_last_eb_blk(et, le64_to_cpu(eb->h_blkno));
- 		ocfs2_journal_dirty(handle, et_root_bh);
- 
- 		*deleted = 1;
 -- 
-1.7.5.2
+
+"Same dancers in the same old shoes.
+ You get too careful with the steps you choose.
+ You don't care about winning but you don't want to lose
+ After the thrill is gone."
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
