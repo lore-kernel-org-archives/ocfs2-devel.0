@@ -1,156 +1,34 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 17 Nov 2011 00:43:38 -0800
-Subject: [Ocfs2-devel] [PATCH 1/2] fs/ocfs2/dlm: Eliminate update of
- list_for_each_entry loop cursor
-In-Reply-To: <4EB1784C.4090903@oracle.com>
-References: <Pine.LNX.4.64.1008071108540.5821@ask.diku.dk>
-	<20100812000355.GA7195@mail.oracle.com>
-	<20111102073928.GA23750@mwanda> <4EB1784C.4090903@oracle.com>
-Message-ID: <20111117084338.GB7319@noexit.corp.google.com>
+From: =?ISO-8859-2?Q?Micha=B3_Miros=B3aw?= <mirqus@gmail.com>
+Date: Wed, 9 Nov 2011 19:02:44 +0100
+Subject: [Ocfs2-devel] [PATCH 3/4] net: add paged frag destructor
+	support to kernel_sendpage.
+In-Reply-To: <1320850927-30240-3-git-send-email-ian.campbell@citrix.com>
+References: <1320850895.955.172.camel@zakaz.uk.xensource.com>
+	<1320850927-30240-3-git-send-email-ian.campbell@citrix.com>
+Message-ID: <CAHXqBFKXV14WrKRipaeMJ9_fpWDH_ud_2UjpKYKHKN08t3m-yw@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Sunil Mushran <sunil.mushran@oracle.com>
-Cc: Dan Carpenter <dan.carpenter@oracle.com>, Mark Fasheh <mfasheh@suse.com>, kernel-janitors@vger.kernel.org, Julia Lawall <julia@diku.dk>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Ian Campbell <ian.campbell@citrix.com>
+Cc: netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, "Pekka Savola (ipv6)" <pekkas@netcore.fi>, James Morris <jmorris@namei.org>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Patrick McHardy <kaber@trash.net>, Trond Myklebust <Trond.Myklebust@netapp.com>, Greg Kroah-Hartman <gregkh@suse.de>, drbd-user@lists.linbit.com, devel@driverdev.osuosl.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
 
-On Wed, Nov 02, 2011 at 10:05:16AM -0700, Sunil Mushran wrote:
-> I think it got lost in the shuffle. We had decided to use the list_for_each().
-> The code is simpler to understand than the other proposed fix.
-> 
-> Joel, do you want me to send a patch?
+2011/11/9 Ian Campbell <ian.campbell@citrix.com>:
+> This requires adding a new argument to various sendpage hooks up and down the
+> stack. At the moment this parameter is always NULL.
+[...]
+> --- a/include/linux/net.h
+> +++ b/include/linux/net.h
+> @@ -203,6 +204,7 @@ struct proto_ops {
+> ? ? ? ?ssize_t ? ? ? ? (*sendpage) ?(struct socket *sock, struct page *page,
+> + ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? struct skb_frag_destructor *destroy,
+> ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?int offset, size_t size, int flags);
 
-Please do.
+Maybe you could instead add new op like sendfrag() that would get
+already prepared skb_frag_struct? In the end all page data ends up
+described in skb_frag_struct, so this would reduce copying this
+information all over network stack. This might be a bigger change,
+though.
 
-> 
-> On 11/02/2011 12:39 AM, Dan Carpenter wrote:
-> > What ever happened with this?  The bug is still there in the latest
-> > kernel.
-> >
-> > I think from previous discussion about this that we only ever have
-> > one lock so lock->ml.cookie is always equal to ml->cookie and we
-> > never set lock to NULL.  So we never actually hit the NULL deref.
-> > But it should probably still be cleaned up.
-> >
-> > regards,
-> > dan carpenter
-> >
-> > On Wed, Aug 11, 2010 at 05:03:56PM -0700, Joel Becker wrote:
-> >> On Sat, Aug 07, 2010 at 11:09:13AM +0200, Julia Lawall wrote:
-> >>> From: Julia Lawall<julia@diku.dk>
-> >>>
-> >>> list_for_each_entry uses its first argument to move from one element to the
-> >>> next, so modifying it can break the iteration.
-> >> 	Thanks for catching the bug.  It was introduced by 800deef3
-> >> [ocfs2: use list_for_each_entry where benefical].  I blame Christoph.
-> >>
-> >>> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> >>> index 9dfaac7..7084a11 100644
-> >>> --- a/fs/ocfs2/dlm/dlmrecovery.c
-> >>> +++ b/fs/ocfs2/dlm/dlmrecovery.c
-> >>> @@ -1792,10 +1792,10 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
-> >>>   			for (j = DLM_GRANTED_LIST; j<= DLM_BLOCKED_LIST; j++) {
-> >>>   				tmpq = dlm_list_idx_to_ptr(res, j);
-> >>>   				list_for_each_entry(lock, tmpq, list) {
-> >>> -					if (lock->ml.cookie != ml->cookie)
-> >>> +					if (lock->ml.cookie != ml->cookie) {
-> >>>   						lock = NULL;
-> >>> -					else
-> >>>   						break;
-> >>> +					}
-> >>>   				}
-> >>>   				if (lock)
-> >>>   					break;
-> >> 	However, this is not the correct solution.  The goal of the
-> >> original code, which used to use list_for_each(), was to leave lock
-> >> non-NULL if the cookie was found.  Your version merely exits the loop on
-> >> the first non-matching entry, always leaving lock==NULL if there is a
-> >> non-matching entry.
-> >> 	One possible solution is to return the original code:
-> >>
-> >> --8<-----------------------------------------------------------------
-> >> @@ -1747,7 +1747,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
-> >>   				     struct dlm_migratable_lockres *mres)
-> >>   {
-> >>   	struct dlm_migratable_lock *ml;
-> >> -	struct list_head *queue;
-> >> +	struct list_head *queue, *iter;
-> >>   	struct list_head *tmpq = NULL;
-> >>   	struct dlm_lock *newlock = NULL;
-> >>   	struct dlm_lockstatus *lksb = NULL;
-> >> @@ -1791,11 +1791,12 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
-> >>   			spin_lock(&res->spinlock);
-> >>   			for (j = DLM_GRANTED_LIST; j<= DLM_BLOCKED_LIST; j++) {
-> >>   				tmpq = dlm_list_idx_to_ptr(res, j);
-> >> -				list_for_each_entry(lock, tmpq, list) {
-> >> -					if (lock->ml.cookie != ml->cookie)
-> >> -						lock = NULL;
-> >> -					else
-> >> +				list_for_each(iter, tmpq) {
-> >> +					lock = list_entry(iter, struct dlm_lock, list);
-> >> +
-> >> +					if (lock->ml.cookie == ml->cookie)
-> >>   						break;
-> >> +					lock = NULL;
-> >>   				}
-> >>   				if (lock)
-> >>   					break;
-> >> -->8-----------------------------------------------------------------
-> >>
-> >> 	Another approach would be to keep list_for_each_entry() around,
-> >> but use a better check for entry existence:
-> >>
-> >> --8<-----------------------------------------------------------------
-> >> @@ -1792,13 +1792,12 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
-> >>   			for (j = DLM_GRANTED_LIST; j<= DLM_BLOCKED_LIST; j++) {
-> >>   				tmpq = dlm_list_idx_to_ptr(res, j);
-> >>   				list_for_each_entry(lock, tmpq, list) {
-> >> -					if (lock->ml.cookie != ml->cookie)
-> >> -						lock = NULL;
-> >> -					else
-> >> +					if (lock->ml.cookie == ml->cookie)
-> >>   						break;
-> >>   				}
-> >> -				if (lock)
-> >> +				if (&lock->list != tmpq)
-> >>   					break;
-> >> +				lock = NULL;
-> >>   			}
-> >>
-> >>   			/* lock is always created locally first, and
-> >> -->8-----------------------------------------------------------------
-> >>
-> >> 	I think I like the second one better.  Sunil, what do you think?
-> >>
-> >> Joel
-> >>
-> >> -- 
-> >>
-> >> Life's Little Instruction Book #335
-> >>
-> >> 	"Every so often, push your luck."
-> >>
-> >> Joel Becker
-> >> Consulting Software Developer
-> >> Oracle
-> >> E-mail: joel.becker at oracle.com
-> >> Phone: (650) 506-8127
-> >> --
-> >> To unsubscribe from this list: send the line "unsubscribe kernel-janitors" in
-> >> the body of a message to majordomo at vger.kernel.org
-> >> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
--- 
-
-Life's Little Instruction Book #43
-
-	"Never give up on somebody.  Miracles happen every day."
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+Best Regards,
+Micha? Miros?aw
