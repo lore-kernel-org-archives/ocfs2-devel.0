@@ -1,125 +1,108 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 17 Nov 2011 01:33:04 -0800
-Subject: [Ocfs2-devel] [PATCH] Wakeup down-convert thread just after
- clearing OCFS2_LOCK_UPCONVERT_FINISHING -v3
-In-Reply-To: <201109150327.p8F3REQA017979@acsmt356.oracle.com>
-References: <201109150327.p8F3REQA017979@acsmt356.oracle.com>
-Message-ID: <20111117093303.GC7319@noexit.corp.google.com>
+Date: Thu, 17 Nov 2011 01:49:59 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Commit transactions in error cases
+ -v2
+In-Reply-To: <201110120722.p9C7M39N013394@acsmt358.oracle.com>
+References: <201110120722.p9C7M39N013394@acsmt358.oracle.com>
+Message-ID: <20111117094958.GD7319@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Sep 15, 2011 at 11:27:21AM +0800, Wengang Wang wrote:
-> When the lockres state UPCONVERT_FINISHING is cleared,
-> we should wake up the downconvert thread incase that lockres
-> is in the blocked queue. Currently we are not doing so and thus
-> are at the mercy of another event waking up the dc thread.
+On Wed, Oct 12, 2011 at 03:22:15PM +0800, Wengang Wang wrote:
+> There are three cases found that in error cases, journal transactions are not
+> committed nor aborted. We should take care of these case by committing the
+> transactions. Otherwise, there would left a journal handle which will lead to
+> , in same process context, the comming ocfs2_start_trans() gets wrong credits.
 > 
 > Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
-> ---
->  fs/ocfs2/dlmglue.c |    9 ++++++++-
->  1 files changed, 8 insertions(+), 1 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 7642d7c..524bd88 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -1195,6 +1195,7 @@ static inline void ocfs2_recover_from_dlm_error(struct ocfs2_lock_res *lockres,
->  						int convert)
->  {
->  	unsigned long flags;
-> +	int kick_dc;
->  
->  	spin_lock_irqsave(&lockres->l_lock, flags);
->  	lockres_clear_flags(lockres, OCFS2_LOCK_BUSY);
-> @@ -1203,9 +1204,12 @@ static inline void ocfs2_recover_from_dlm_error(struct ocfs2_lock_res *lockres,
->  		lockres->l_action = OCFS2_AST_INVALID;
->  	else
->  		lockres->l_unlock_action = OCFS2_UNLOCK_INVALID;
-> +	kick_dc = (lockres->l_flags & OCFS2_LOCK_QUEUED);
 
-	Point 1, you should be checking BLOCKED, which is how we
-determine a lock that wants to downconvert.
-
->  	spin_unlock_irqrestore(&lockres->l_lock, flags);
->  
->  	wake_up(&lockres->l_event);
-> +	if (kick_dc)
-> +		ocfs2_wake_downconvert_thread(ocfs2_get_lockres_osb(lockres));
-
-	You're waking up the downconvert thread, but you don't know if
-it needs it.  You think it *might* need it.  That's not OK in this code.
-
->  }
->  
->  /* Note: If we detect another process working on the lock (i.e.,
-> @@ -1373,6 +1377,7 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
->  	unsigned long flags;
->  	unsigned int gen;
->  	int noqueue_attempted = 0;
-> +	int kick_dc;
->  
->  	ocfs2_init_mask_waiter(&mw);
->  
-> @@ -1500,8 +1505,10 @@ update_holders:
->  	ret = 0;
->  unlock:
->  	lockres_clear_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
-> -
-> +	kick_dc = (lockres->l_flags & OCFS2_LOCK_QUEUED);
->  	spin_unlock_irqrestore(&lockres->l_lock, flags);
-> +	if (kick_dc)
-> +		ocfs2_wake_downconvert_thread(osb);
-
-	Same here.  Frankly, if we were upconverting, the holder is
-going to eventually unlock, which will wake the downconvert thread.
-That's how the machine works.  See the comment where we set
-UPCONVERT_FINISHING.  We want the upconverter to have enough quantum to
-get work done.
-	You're going to break that, because this thread might want to
-get to EX, and it runs before the older thread updates its hold on the
-PR.
-
-	Thread 1		Thread 2		Remote
-        Asks for PR
-	Master grants PR
-							Asks for EX,
-							setting BLOCKING
-							on our node.
-	AST sets UPCONVERT
-				Asks for EX, sees
-				blocking on Remote
-				[kicks dc thread]
-				clears UPCONVERT
--->
-        _cluster_lock wakes,
-        clears UPCONVERT,
-        increments holders.
-
-The part in [] is what you are changing.  The --> is where the dc thread
-can steal the lock before Thread 1 increments the holder count.  We're
-right back at the livelock that UPCONVERT_FINISHING was supposed to
-prevent.
-	I note that Thread 2 can still clear UPCONVERT and be caught by
-the dc thread.  But because we're not waking the dc thread, it's a very
-unlikely race.  If you wake the dc thread, it's a guaranteed race.
-Also, in the current code, while it might race this time around, it
-doesn't the next time.  No livelock.
-	This is why Sunil said this is a very sensitive state machine.
-	Can I get the info on the problem you actually encountered?  I
-find it hard to believe the upconverter didn't eventually release his
-hold.  That should wake the dc thread.
+	This patch is now in the 'fixes' branch of ocfs2.git.
 
 Joel
 
+> ---
+>  fs/ocfs2/alloc.c |    2 +-
+>  fs/ocfs2/ioctl.c |    3 ++-
+>  fs/ocfs2/xattr.c |   10 ++++++----
+>  3 files changed, 9 insertions(+), 6 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index ed553c6..3165aeb 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -5699,7 +5699,7 @@ int ocfs2_remove_btree_range(struct inode *inode,
+>  					   OCFS2_JOURNAL_ACCESS_WRITE);
+>  	if (ret) {
+>  		mlog_errno(ret);
+> -		goto out;
+> +		goto out_commit;
+>  	}
+>  
+>  	dquot_free_space_nodirty(inode,
+> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> index bc91072..5612c3d 100644
+> --- a/fs/ocfs2/ioctl.c
+> +++ b/fs/ocfs2/ioctl.c
+> @@ -122,7 +122,7 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
+>  	if ((oldflags & OCFS2_IMMUTABLE_FL) || ((flags ^ oldflags) &
+>  		(OCFS2_APPEND_FL | OCFS2_IMMUTABLE_FL))) {
+>  		if (!capable(CAP_LINUX_IMMUTABLE))
+> -			goto bail_unlock;
+> +			goto bail_commit;
+>  	}
+>  
+>  	ocfs2_inode->ip_attr = flags;
+> @@ -132,6 +132,7 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
+>  	if (status < 0)
+>  		mlog_errno(status);
+>  
+> +bail_commit:
+>  	ocfs2_commit_trans(osb, handle);
+>  bail_unlock:
+>  	ocfs2_inode_unlock(inode, 1);
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 81ecf9c..93d6c80 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -2376,16 +2376,18 @@ static int ocfs2_remove_value_outside(struct inode*inode,
+>  		}
+>  
+>  		ret = ocfs2_xattr_value_truncate(inode, vb, 0, &ctxt);
+> -		if (ret < 0) {
+> -			mlog_errno(ret);
+> -			break;
+> -		}
+>  
+>  		ocfs2_commit_trans(osb, ctxt.handle);
+>  		if (ctxt.meta_ac) {
+>  			ocfs2_free_alloc_context(ctxt.meta_ac);
+>  			ctxt.meta_ac = NULL;
+>  		}
+> +
+> +		if (ret < 0) {
+> +			mlog_errno(ret);
+> +			break;
+> +		}
+> +
+>  	}
+>  
+>  	if (ctxt.meta_ac)
+> -- 
+> 1.7.5.2
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
 -- 
 
-"But all my words come back to me
- In shades of mediocrity.
- Like emptiness in harmony
- I need someone to comfort me."
+"There is no sincerer love than the love of food."  
+         - George Bernard Shaw 
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
