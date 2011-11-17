@@ -1,34 +1,43 @@
-From: =?ISO-8859-2?Q?Micha=B3_Miros=B3aw?= <mirqus@gmail.com>
-Date: Wed, 9 Nov 2011 19:02:44 +0100
-Subject: [Ocfs2-devel] [PATCH 3/4] net: add paged frag destructor
-	support to kernel_sendpage.
-In-Reply-To: <1320850927-30240-3-git-send-email-ian.campbell@citrix.com>
-References: <1320850895.955.172.camel@zakaz.uk.xensource.com>
-	<1320850927-30240-3-git-send-email-ian.campbell@citrix.com>
-Message-ID: <CAHXqBFKXV14WrKRipaeMJ9_fpWDH_ud_2UjpKYKHKN08t3m-yw@mail.gmail.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Thu, 17 Nov 2011 00:35:11 -0800
+Subject: [Ocfs2-devel] [PATCH] vfs: Correctly set the dir i_mutex
+	lockdep class
+In-Reply-To: <20111110152848.GA5421@boyd>
+References: <1320907500-3767-1-git-send-email-tyhicks@canonical.com>
+	<20111110143319.GB26644@quack.suse.cz> <20111110152848.GA5421@boyd>
+Message-ID: <20111117083510.GA7319@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Ian Campbell <ian.campbell@citrix.com>
-Cc: netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>, "Pekka Savola (ipv6)" <pekkas@netcore.fi>, James Morris <jmorris@namei.org>, Hideaki YOSHIFUJI <yoshfuji@linux-ipv6.org>, Patrick McHardy <kaber@trash.net>, Trond Myklebust <Trond.Myklebust@netapp.com>, Greg Kroah-Hartman <gregkh@suse.de>, drbd-user@lists.linbit.com, devel@driverdev.osuosl.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, ceph-devel@vger.kernel.org, rds-devel@oss.oracle.com, linux-nfs@vger.kernel.org
+To: Tyler Hicks <tyhicks@canonical.com>
+Cc: John Johansen <john.johansen@canonical.com>, Jan Kara <jack@suse.cz>, Josh Boyer <jwboyer@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Mark Fasheh <mfasheh@suse.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-2011/11/9 Ian Campbell <ian.campbell@citrix.com>:
-> This requires adding a new argument to various sendpage hooks up and down the
-> stack. At the moment this parameter is always NULL.
-[...]
-> --- a/include/linux/net.h
-> +++ b/include/linux/net.h
-> @@ -203,6 +204,7 @@ struct proto_ops {
-> ? ? ? ?ssize_t ? ? ? ? (*sendpage) ?(struct socket *sock, struct page *page,
-> + ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? struct skb_frag_destructor *destroy,
-> ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?int offset, size_t size, int flags);
+On Thu, Nov 10, 2011 at 09:28:49AM -0600, Tyler Hicks wrote:
+> On 2011-11-10 15:33:19, Jan Kara wrote:
+> > On Thu 10-11-11 00:45:00, Tyler Hicks wrote:
+> > > This patch removes the negation from the conditional so that the i_mutex
+> > > lockdep class is properly set for directory inodes. Special classes are
+> > > preserved and directory inodes with unmodified classes are set with
+> > > i_mutex_dir_key.
+> >   Duh, you are right. I wonder how come this did not trigger any lockdep
+> > messages during my testing with ocfs2 for which I wrote the patch...
+> 
+> Good question. Adding the ocfs2 maintainers and devel list to cc, as
+> this patch is likely to change up their lockdep warnings.
 
-Maybe you could instead add new op like sendfrag() that would get
-already prepared skb_frag_struct? In the end all page data ends up
-described in skb_frag_struct, so this would reduce copying this
-information all over network stack. This might be a bigger change,
-though.
+	We don't set special classes for dir->i_mutex.  We set special
+classes on our DLM stuff, and we do it for our system files, but not for
+regular directories.
 
-Best Regards,
-Micha? Miros?aw
+Joel
+
+
+-- 
+
+Life's Little Instruction Book #356
+
+	"Be there when people need you."
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
