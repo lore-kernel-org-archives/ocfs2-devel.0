@@ -1,51 +1,89 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 17 Nov 2011 01:50:21 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: send correct UUID to cleancache
-	initialization
-In-Reply-To: <dd238ce4-fe92-4dc0-a4b6-7f273c386366@default>
-References: <dd238ce4-fe92-4dc0-a4b6-7f273c386366@default>
-Message-ID: <20111117095019.GE7319@noexit.corp.google.com>
+Date: Thu, 17 Nov 2011 01:52:04 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Add a missing journal credit in
+ ocfs2_link_credits() -v2
+In-Reply-To: <1318988059-18289-1-git-send-email-xiaowei.hu@oracle.com>
+References: <1318988059-18289-1-git-send-email-xiaowei.hu@oracle.com>
+Message-ID: <20111117095203.GF7319@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dan Magenheimer <dan.magenheimer@oracle.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, Sunil Mushran <sunil.mushran@oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, Oct 17, 2011 at 04:47:17PM -0700, Dan Magenheimer wrote:
-> ocfs2: Fix cleancache initialization call to correctly pass uuid
+On Wed, Oct 19, 2011 at 09:34:19AM +0800, xiaowei.hu at oracle.com wrote:
+> From: Xiaowei.Hu <xiaowei.hu@oracle.com>
 > 
-> As reported by Steven Whitehouse in https://lkml.org/lkml/2011/5/27/221 
-> the ocfs2 volume UUID is incorrectly passed to cleancache.
-> As a result, shared-ephemeral tmem pools will not actually
-> be created; instead they will be private (unshared) which
-> misses out on a major benefit of tmem.
+> With indexed_dir enabled, ocfs2 maintains a list of dirblocks having
+> space.
 > 
-> Reported-by: Steven Whitehouse <swhiteho@redhat.com>
-> Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
+> The credit calculation in ocfs2_link_credits() did not correctly account
+> for adding an entry that exactly fills a dirblock that triggers removing
+> that dirblock by changing the pointer in the previous block in the list.
+> The credit calculation did not account for that previous block.
+> 
+> To expose, do:
+> 
+> mkfs.ocfs2 -b 512 -M local /dev/sdX
+> mount /dev/sdX /ocfs2
+> mkdir /ocfs2/linkdir
+> touch /ocfs2/linkdir/file1
+> for i in `seq 1 29` ; do link /ocfs2/linkdir/file1
+> /ocfs2/linkdir/linklinklinklinklinklink$i; done
+> rm -f /ocfs2/linkdir/linklinklinklinklinklink10
+> sleep 8
+> link /ocfs2/linkdir/file1
+> /ocfs2/linkdir/linklinklinklinklinklinkaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+> 
+> Note:
+> The link names have been crafted for a 512 byte blocksize. Reproducing
+> with a larger blocksize will require longer (or more) links. The sleep
+> is important. We want jbd2 to commit the transaction so that the missing
+> block does not piggy back on account of the previous transaction.
+> 
+> Signed-off-by: XiaoweiHu <xiaowei.hu@oracle.com>
+> Reviewed-by: WengangWang <wen.gang.wang@oracle.com>
+> Reviewed-by: Sunil.Mushran <sunil.mushran@oracle.com>
 
 	This patch is now in the 'fixes' branch of ocfs2.git.
 
 Joel
 
+> ---
+>  fs/ocfs2/journal.h |    5 +++--
+>  1 files changed, 3 insertions(+), 2 deletions(-)
 > 
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -2374,7 +2374,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
->  		mlog_errno(status);
->  		goto bail;
->  	}
-> -	cleancache_init_shared_fs((char *)&uuid_net_key, sb);
-> +	cleancache_init_shared_fs((char *)&di->id2.i_super.s_uuid, sb);
+> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+> index 68cf2f6..a3385b6 100644
+> --- a/fs/ocfs2/journal.h
+> +++ b/fs/ocfs2/journal.h
+> @@ -441,10 +441,11 @@ static inline int ocfs2_mknod_credits(struct super_block *sb, int is_dir,
+>  #define OCFS2_SIMPLE_DIR_EXTEND_CREDITS (2)
 >  
->  bail:
->  	return status;
+>  /* file update (nlink, etc) + directory mtime/ctime + dir entry block + quota
+> - * update on dir + index leaf + dx root update for free list */
+> + * update on dir + index leaf + dx root update for free list +
+> + * previous dirblock update in the free list */
+>  static inline int ocfs2_link_credits(struct super_block *sb)
+>  {
+> -	return 2*OCFS2_INODE_UPDATE_CREDITS + 3 +
+> +	return 2*OCFS2_INODE_UPDATE_CREDITS + 4 +
+>  	       ocfs2_quota_trans_credits(sb);
+>  }
+>  
+> -- 
+> 1.7.4.4
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
 -- 
 
-"Well-timed silence hath more eloquence than speech."  
-         - Martin Fraquhar Tupper
+"I inject pure kryptonite into my brain.
+ It improves my kung fu, and it eases the pain."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
