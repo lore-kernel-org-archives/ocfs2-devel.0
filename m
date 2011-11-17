@@ -1,118 +1,156 @@
-From: Artur Baruchi <mail.baruchi@gmail.com>
-Date: Wed, 16 Nov 2011 16:00:38 -0200
-Subject: [Ocfs2-devel] vmstore option - mkfs
-In-Reply-To: <4EC3F6B1.5030909@oracle.com>
-References: <CAAiDW_RtwX9puJ7HRD=U6+Cn_Ket2EBeYM5+rohH6Ze1GF6oWQ@mail.gmail.com>
-	<4EC3F237.8000707@oracle.com>
-	<CAAiDW_TVHH7aZJ7Wtpg_LQhD7M1+Gn47sQW2XxqnEH4DUMVM5w@mail.gmail.com>
-	<4EC3F6B1.5030909@oracle.com>
-Message-ID: <CAAiDW_TyiVy7Ht+-qHD44HX9gS09r8jJR2QQhvpS7S+voPKeNw@mail.gmail.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Thu, 17 Nov 2011 00:43:38 -0800
+Subject: [Ocfs2-devel] [PATCH 1/2] fs/ocfs2/dlm: Eliminate update of
+ list_for_each_entry loop cursor
+In-Reply-To: <4EB1784C.4090903@oracle.com>
+References: <Pine.LNX.4.64.1008071108540.5821@ask.diku.dk>
+	<20100812000355.GA7195@mail.oracle.com>
+	<20111102073928.GA23750@mwanda> <4EB1784C.4090903@oracle.com>
+Message-ID: <20111117084338.GB7319@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Sunil Mushran <sunil.mushran@oracle.com>
+Cc: Dan Carpenter <dan.carpenter@oracle.com>, Mark Fasheh <mfasheh@suse.com>, kernel-janitors@vger.kernel.org, Julia Lawall <julia@diku.dk>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-That's fine...
+On Wed, Nov 02, 2011 at 10:05:16AM -0700, Sunil Mushran wrote:
+> I think it got lost in the shuffle. We had decided to use the list_for_each().
+> The code is simpler to understand than the other proposed fix.
+> 
+> Joel, do you want me to send a patch?
 
-Using vmstore:
-vegeta:~ # mkfs.ocfs2 -T vmstore -n /dev/drbd1
-mkfs.ocfs2 1.4.3
-Dry run
-Filesystem Type of vmstore
-Label:
-Features: sparse backup-super unwritten inline-data
-strict-journal-super metaecc xattr indexed-dirs refcount
-Block size: 4096 (12 bits)
-Cluster size: 131072 (17 bits)
-Volume size: 16105472000 (122875 clusters) (3932000 blocks)
-Cluster groups: 4 (tail covers 26107 clusters, rest cover 32256 clusters)
-Extent allocator size: 8388608 (2 groups)
-Journal size: 134217728
-Node slots: 8
+Please do.
 
-Default mkfs:
-vegeta:~ # mkfs.ocfs2 -n /dev/drbd1
-mkfs.ocfs2 1.4.3
-Dry run
-Label:
-Features: sparse backup-super unwritten inline-data
-strict-journal-super metaecc xattr indexed-dirs
-Block size: 4096 (12 bits)
-Cluster size: 4096 (12 bits)
-Volume size: 16105598976 (3932031 clusters) (3932031 blocks)
-Cluster groups: 122 (tail covers 29055 clusters, rest cover 32256 clusters)
-Extent allocator size: 4194304 (1 groups)
-Journal size: 100659200
-Node slots: 8
+> 
+> On 11/02/2011 12:39 AM, Dan Carpenter wrote:
+> > What ever happened with this?  The bug is still there in the latest
+> > kernel.
+> >
+> > I think from previous discussion about this that we only ever have
+> > one lock so lock->ml.cookie is always equal to ml->cookie and we
+> > never set lock to NULL.  So we never actually hit the NULL deref.
+> > But it should probably still be cleaned up.
+> >
+> > regards,
+> > dan carpenter
+> >
+> > On Wed, Aug 11, 2010 at 05:03:56PM -0700, Joel Becker wrote:
+> >> On Sat, Aug 07, 2010 at 11:09:13AM +0200, Julia Lawall wrote:
+> >>> From: Julia Lawall<julia@diku.dk>
+> >>>
+> >>> list_for_each_entry uses its first argument to move from one element to the
+> >>> next, so modifying it can break the iteration.
+> >> 	Thanks for catching the bug.  It was introduced by 800deef3
+> >> [ocfs2: use list_for_each_entry where benefical].  I blame Christoph.
+> >>
+> >>> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> >>> index 9dfaac7..7084a11 100644
+> >>> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> >>> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> >>> @@ -1792,10 +1792,10 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+> >>>   			for (j = DLM_GRANTED_LIST; j<= DLM_BLOCKED_LIST; j++) {
+> >>>   				tmpq = dlm_list_idx_to_ptr(res, j);
+> >>>   				list_for_each_entry(lock, tmpq, list) {
+> >>> -					if (lock->ml.cookie != ml->cookie)
+> >>> +					if (lock->ml.cookie != ml->cookie) {
+> >>>   						lock = NULL;
+> >>> -					else
+> >>>   						break;
+> >>> +					}
+> >>>   				}
+> >>>   				if (lock)
+> >>>   					break;
+> >> 	However, this is not the correct solution.  The goal of the
+> >> original code, which used to use list_for_each(), was to leave lock
+> >> non-NULL if the cookie was found.  Your version merely exits the loop on
+> >> the first non-matching entry, always leaving lock==NULL if there is a
+> >> non-matching entry.
+> >> 	One possible solution is to return the original code:
+> >>
+> >> --8<-----------------------------------------------------------------
+> >> @@ -1747,7 +1747,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+> >>   				     struct dlm_migratable_lockres *mres)
+> >>   {
+> >>   	struct dlm_migratable_lock *ml;
+> >> -	struct list_head *queue;
+> >> +	struct list_head *queue, *iter;
+> >>   	struct list_head *tmpq = NULL;
+> >>   	struct dlm_lock *newlock = NULL;
+> >>   	struct dlm_lockstatus *lksb = NULL;
+> >> @@ -1791,11 +1791,12 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+> >>   			spin_lock(&res->spinlock);
+> >>   			for (j = DLM_GRANTED_LIST; j<= DLM_BLOCKED_LIST; j++) {
+> >>   				tmpq = dlm_list_idx_to_ptr(res, j);
+> >> -				list_for_each_entry(lock, tmpq, list) {
+> >> -					if (lock->ml.cookie != ml->cookie)
+> >> -						lock = NULL;
+> >> -					else
+> >> +				list_for_each(iter, tmpq) {
+> >> +					lock = list_entry(iter, struct dlm_lock, list);
+> >> +
+> >> +					if (lock->ml.cookie == ml->cookie)
+> >>   						break;
+> >> +					lock = NULL;
+> >>   				}
+> >>   				if (lock)
+> >>   					break;
+> >> -->8-----------------------------------------------------------------
+> >>
+> >> 	Another approach would be to keep list_for_each_entry() around,
+> >> but use a better check for entry existence:
+> >>
+> >> --8<-----------------------------------------------------------------
+> >> @@ -1792,13 +1792,12 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+> >>   			for (j = DLM_GRANTED_LIST; j<= DLM_BLOCKED_LIST; j++) {
+> >>   				tmpq = dlm_list_idx_to_ptr(res, j);
+> >>   				list_for_each_entry(lock, tmpq, list) {
+> >> -					if (lock->ml.cookie != ml->cookie)
+> >> -						lock = NULL;
+> >> -					else
+> >> +					if (lock->ml.cookie == ml->cookie)
+> >>   						break;
+> >>   				}
+> >> -				if (lock)
+> >> +				if (&lock->list != tmpq)
+> >>   					break;
+> >> +				lock = NULL;
+> >>   			}
+> >>
+> >>   			/* lock is always created locally first, and
+> >> -->8-----------------------------------------------------------------
+> >>
+> >> 	I think I like the second one better.  Sunil, what do you think?
+> >>
+> >> Joel
+> >>
+> >> -- 
+> >>
+> >> Life's Little Instruction Book #335
+> >>
+> >> 	"Every so often, push your luck."
+> >>
+> >> Joel Becker
+> >> Consulting Software Developer
+> >> Oracle
+> >> E-mail: joel.becker at oracle.com
+> >> Phone: (650) 506-8127
+> >> --
+> >> To unsubscribe from this list: send the line "unsubscribe kernel-janitors" in
+> >> the body of a message to majordomo at vger.kernel.org
+> >> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
+-- 
 
-Thanks for your help.
+Life's Little Instruction Book #43
 
-Att.
-Artur Baruchi
+	"Never give up on somebody.  Miracles happen every day."
 
-
-
-On Wed, Nov 16, 2011 at 3:45 PM, Sunil Mushran <sunil.mushran@oracle.com> wrote:
-> Yes. But this is just the features. It also selects the appropriate cluster
-> size, block size,
-> journal size, etc. All the params selected are printed by mkfs. You also
-> have the option of
-> running with the --dry-option to see the params.
->
-> On 11/16/2011 09:41 AM, Artur Baruchi wrote:
->>
->> I just found this:
->>
->> + ? ? ? {OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
->> + ? ? ? ?OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC |
->> + ? ? ? ?OCFS2_FEATURE_INCOMPAT_INLINE_DATA |
->> + ? ? ? ?OCFS2_FEATURE_INCOMPAT_XATTR |
->> + ? ? ? ?OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE,
->> + ? ? ? ?OCFS2_FEATURE_RO_COMPAT_UNWRITTEN}, ?/* FS_VMSTORE */
->>
->> These options are the ones that, when choosing for vmstore, are
->> enabled by default. Is this correct?
->>
->> Thanks.
->>
->> Att.
->> Artur Baruchi
->>
->>
->>
->> On Wed, Nov 16, 2011 at 3:26 PM, Sunil Mushran<sunil.mushran@oracle.com>
->> ?wrote:
->>>
->>> fstype is a handy way to format the volume with parameters that are
->>> thought
->>> to be useful for that use-case. The result of this is printed during
->>> format
->>> by
->>> way of the parameters selected. man mkfs.ocfs2 has a blurb about the
->>> features
->>> it enabled by default.
->>>
->>> On 11/16/2011 08:45 AM, Artur Baruchi wrote:
->>>>
->>>> Hi.
->>>>
->>>> I tried to find some information about the option vmstore when
->>>> formating a device, but didnt found anything about it (no
->>>> documentation, I did some greps inside the source code, but nothing
->>>> returned). My doubts about this:
->>>>
->>>> - What kind of optimization this option creates in my file system to
->>>> store vm images? I mean.. what does exactly this option do?
->>>> - Where, in source code, I can find the part that makes this
->>>> optimization?
->>>>
->>>> Thanks in advance.
->>>>
->>>> Att.
->>>> Artur Baruchi
->>>>
->>>
->
->
+			http://www.jlbec.org/
+			jlbec at evilplan.org
