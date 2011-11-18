@@ -1,40 +1,54 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 17 Nov 2011 16:33:00 -0800
-Subject: [Ocfs2-devel] [PATCH 4/6] ocfs2/dlm: Use track_lock when
-	manipulating tracking_list
-In-Reply-To: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
-References: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1321576382-18521-4-git-send-email-sunil.mushran@oracle.com>
+Date: Thu, 17 Nov 2011 16:32:57 -0800
+Subject: [Ocfs2-devel] [PATCH 1/6] ocfs2/cluster: Fix possible null pointer
+	dereference
+Message-ID: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Commit b0d4f817ba5de8adb875ace594554a96d7737710 introduced dlm->track_lock
-to protect operations on dlm->tracking_list. But it was still using the
-older lock (dlm->spin_lock) to add new resources to the list.
+Patch fixes some possible null pointer dereferences that were detected by the
+static code analyser, smatch.
 
+Reported-by: Dan Carpenter <error27@gmail.com>
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/dlm/dlmmaster.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ fs/ocfs2/cluster/tcp.c |   10 +++++-----
+ 1 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 005261c..347d588 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -597,9 +597,9 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 044e7b5..bf9494d 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -546,8 +546,9 @@ static void o2net_set_nn_state(struct o2net_node *nn,
+ 	}
  
- 	res->last_used = 0;
+ 	if (was_valid && !valid) {
+-		printk(KERN_NOTICE "o2net: No longer connected to "
+-		       SC_NODEF_FMT "\n", SC_NODEF_ARGS(old_sc));
++		if (old_sc)
++			printk(KERN_NOTICE "o2net: No longer connected to "
++			       SC_NODEF_FMT "\n", SC_NODEF_ARGS(old_sc));
+ 		o2net_complete_nodes_nsw(nn);
+ 	}
  
--	spin_lock(&dlm->spinlock);
-+	spin_lock(&dlm->track_lock);
- 	list_add_tail(&res->tracking, &dlm->tracking_list);
--	spin_unlock(&dlm->spinlock);
-+	spin_unlock(&dlm->track_lock);
+@@ -1700,13 +1701,12 @@ static void o2net_start_connect(struct work_struct *work)
+ 		ret = 0;
  
- 	memset(res->lvb, 0, DLM_LVB_LEN);
- 	memset(res->refmap, 0, sizeof(res->refmap));
+ out:
+-	if (ret) {
++	if (ret && sc) {
+ 		printk(KERN_NOTICE "o2net: Connect attempt to " SC_NODEF_FMT
+ 		       " failed with errno %d\n", SC_NODEF_ARGS(sc), ret);
+ 		/* 0 err so that another will be queued and attempted
+ 		 * from set_nn_state */
+-		if (sc)
+-			o2net_ensure_shutdown(nn, sc, 0);
++		o2net_ensure_shutdown(nn, sc, 0);
+ 	}
+ 	if (sc)
+ 		sc_put(sc);
 -- 
 1.7.5.4
