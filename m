@@ -1,80 +1,78 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 17 Nov 2011 16:33:02 -0800
-Subject: [Ocfs2-devel] [PATCH 6/6] ocfs2: Tighten free bit calculation in
-	the global bitmap
-In-Reply-To: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
-References: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1321576382-18521-6-git-send-email-sunil.mushran@oracle.com>
+From: Wengang Wang <wen.gang.wang@oracle.com>
+Date: Fri, 18 Nov 2011 15:10:39 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Adding d_delete callback function
+	ocfs2_dentry_delete
+Message-ID: <201111180710.pAI7AZAA009992@acsmt357.oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When clearing bits in the global bitmap, we do not test the current bit value.
-This patch tightens the code by considering the possiblity that the bit being
-cleared was already cleared.
+If d_count will become zero, dput() calls the .d_delete callback function,
+if it exist, to know if the corresponding file is deleted or to say if we
+should remove the in memory dentry. If we should remove the dentry, dput()
+calls dentry_kill to free the dentry(and the parents on last ref). Otherwise,
+it move the dentry to lrc list to the super block(still holds a ref to
+it's parent).
 
-Now this should not happen. But we are seeing stray instances in which free
-bit count in the global bitmap exceeds the total bit count. In each instance
-the bitmap is correct. Only the free bit count is incorrect.
+The new added ocfs2_dentry_delete() returns true(Yes, remove the dentry) when
+dentry->inode is NULL or the ocfs2_inode_info is with MAYBE_ORPHANED flag.
 
-This patch checks the current bit value and increments the free bit count
-only if the bit was previously set. It also prints information to allow
-us to debug further.
+The problem if we don't have ocfs2_dentry_delete:
+Consider the case that we rm a tree from a remote node and the tree(indoes/dentries)
+is cached on this node.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+dir1
+  |--file1
+
+Dentry for file1 is 0 ref(d_count is 0) and dentry for dir1 has 1 ref.
+When file1 is remotely removed, dget_dlock/dput are done against the dentry for
+file1. And the dput decrement the last ref on the dentry. inode for file1 got
+deleted in d_delete(). dentry for file1 is moved to d_sb->s_dentry_lru.
+When dir1 is remotely removed, dget_dlock/dput are done against the dentry for
+dir1. Before calling d_delete, the d_count is 2, so the inode is not iputed.
+Thus untill the inode is removed from memory(by umount or caused by memory
+presure), the on disk inode won't get removed.
+Though orphan scan job running on this node can remove the disk inode, we should
+not depend on it(orphan scan is a bad solution and should be eventually removed).
+
+After adding ocfs2_dentry_delete, dentry for file1 is killed which causes a
+decrement on dir1->d_count. So inode for dir1 can then be iputed thus removed
+from disk.
+
+Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 ---
- fs/ocfs2/suballoc.c |   26 +++++++++++++++++++++++---
- 1 files changed, 23 insertions(+), 3 deletions(-)
+ fs/ocfs2/dcache.c |   16 ++++++++++++++++
+ 1 files changed, 16 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index ba5d97e..972f0b1 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -2386,6 +2386,7 @@ static int ocfs2_block_group_clear_bits(handle_t *handle,
- 	int status;
- 	unsigned int tmp;
- 	struct ocfs2_group_desc *undo_bg = NULL;
-+	unsigned int bits_cleared = 0;
+diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
+index e5ba348..283d749 100644
+--- a/fs/ocfs2/dcache.c
++++ b/fs/ocfs2/dcache.c
+@@ -531,7 +531,23 @@ out_move:
+ 	d_move(dentry, target);
+ }
  
- 	/* The caller got this descriptor from
- 	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
-@@ -2413,13 +2414,32 @@ static int ocfs2_block_group_clear_bits(handle_t *handle,
- 
- 	tmp = num_bits;
- 	while(tmp--) {
--		ocfs2_clear_bit((bit_off + tmp),
--				(unsigned long *) bg->bg_bitmap);
-+		if (ocfs2_test_bit((bit_off + tmp),
-+				   (unsigned long *) bg->bg_bitmap)) {
-+			ocfs2_clear_bit((bit_off + tmp),
-+					(unsigned long *) bg->bg_bitmap);
-+			bits_cleared++;
-+		}
- 		if (undo_fn)
- 			undo_fn(bit_off + tmp,
- 				(unsigned long *) undo_bg->bg_bitmap);
- 	}
--	le16_add_cpu(&bg->bg_free_bits_count, num_bits);
++static int ocfs2_dentry_delete(const struct dentry *dentry)
++{
++	struct inode *inode = dentry->d_inode;
++	struct ocfs2_inode_info *oi;
 +
-+	le16_add_cpu(&bg->bg_free_bits_count, bits_cleared);
++	if (!inode)
++		return 1;
 +
-+	/*
-+	 * If encountered, it means we are clearing bits multiple times. While
-+	 * we are handling the case, we still need to be alerted to its
-+	 * occurrence. Hence, marking it as an ERROR and not NOTICE.
-+	 */
-+	if (num_bits != bits_cleared) {
-+		mlog(ML_ERROR, "Trying to clear %u bits at offset %u in group "
-+		     "descriptor # %llu (device %s), needed to clear %u bits\n",
-+		     num_bits, bit_off,
-+		     (unsigned long long)le64_to_cpu(bg->bg_blkno),
-+		     alloc_inode->i_sb->s_id, bits_cleared);
-+	}
++	oi = OCFS2_I(inode);
++	if (oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)
++		return 1;
 +
- 	if (le16_to_cpu(bg->bg_free_bits_count) > le16_to_cpu(bg->bg_bits)) {
- 		ocfs2_error(alloc_inode->i_sb, "Group descriptor # %llu has bit"
- 			    " count %u but claims %u are freed. num_bits %d",
++	return 0;
++}
++
+ const struct dentry_operations ocfs2_dentry_ops = {
+ 	.d_revalidate		= ocfs2_dentry_revalidate,
+ 	.d_iput			= ocfs2_dentry_iput,
++	.d_delete		= ocfs2_dentry_delete,
+ };
 -- 
-1.7.5.4
+1.7.6.4
