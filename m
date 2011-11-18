@@ -1,41 +1,160 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 17 Nov 2011 16:32:59 -0800
-Subject: [Ocfs2-devel] [PATCH 3/6] ocfs2: Silence message in
-	ocfs2_global_read_info()
+Date: Thu, 17 Nov 2011 16:32:58 -0800
+Subject: [Ocfs2-devel] [PATCH 2/6] ocfs2: Add missing copyright in few files
 In-Reply-To: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
 References: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1321576382-18521-3-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1321576382-18521-2-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mainline commit c1e8d35ef5ffb393b94a192034b5e3541e005d75 removed mlog_exit()
-and replaced it with mlog_errno() in some cases.
-
-This change in ocfs2_global_read_info() caused it to spew the following during mount.
-[   38.745584] (mount.ocfs2,3315,4):ocfs2_global_read_info:403 ERROR: status = 24
-
-This patch silences this message.
-
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/quota_global.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ fs/ocfs2/mmap.h         |   18 ++++++++++++++++++
+ fs/ocfs2/ocfs2_trace.h  |   19 +++++++++++++++++++
+ fs/ocfs2/quota.h        |   16 ++++++++++++++--
+ fs/ocfs2/quota_global.c |   20 ++++++++++++++++++--
+ fs/ocfs2/quota_local.c  |   19 +++++++++++++++++--
+ 5 files changed, 86 insertions(+), 6 deletions(-)
 
+diff --git a/fs/ocfs2/mmap.h b/fs/ocfs2/mmap.h
+index 1274ee0..63ca43e 100644
+--- a/fs/ocfs2/mmap.h
++++ b/fs/ocfs2/mmap.h
+@@ -1,3 +1,21 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * mmap.h
++ *
++ * Copyright (C) 2004, 2011 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ * Copyright (C) 2004, 2011 Oracle.  All rights reserved.
++ */
++
+ #ifndef OCFS2_MMAP_H
+ #define OCFS2_MMAP_H
+ 
+diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+index 3b481f4..6f3f5b4 100644
+--- a/fs/ocfs2/ocfs2_trace.h
++++ b/fs/ocfs2/ocfs2_trace.h
+@@ -1,3 +1,22 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * ocfs2_trace.h
++ *
++ * Trace event macros
++ *
++ * Copyright (C) 2010, 2011 Oracle.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ */
++
+ #undef TRACE_SYSTEM
+ #define TRACE_SYSTEM ocfs2
+ 
+diff --git a/fs/ocfs2/quota.h b/fs/ocfs2/quota.h
+index d5ab56c..36ef1e2 100644
+--- a/fs/ocfs2/quota.h
++++ b/fs/ocfs2/quota.h
+@@ -1,9 +1,21 @@
+-/*
+- * quota.h for OCFS2
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * quota.h
+  *
+  * On disk quota structures for local and global quota file, in-memory
+  * structures.
+  *
++ * Copyright (C) 2008, 2011 Novell.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
+  */
+ 
+ #ifndef _OCFS2_QUOTA_H
 diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index b24eab3..2a3f12c 100644
+index 92fcd57..b24eab3 100644
 --- a/fs/ocfs2/quota_global.c
 +++ b/fs/ocfs2/quota_global.c
-@@ -413,7 +413,7 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
- 	INIT_DELAYED_WORK(&oinfo->dqi_sync_work, qsync_work_fn);
- 	schedule_delayed_work(&oinfo->dqi_sync_work,
- 			      msecs_to_jiffies(oinfo->dqi_syncms));
--
-+	status = 0;
- out_err:
- 	if (status)
- 		mlog_errno(status);
+@@ -1,6 +1,22 @@
+-/*
+- *  Implementation of operations over global quota file
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * quota_global.c
++ *
++ * Implementation of operations over global quota file
++ *
++ * Copyright (C) 2008, 2011 Novell.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
+  */
++
+ #include <linux/spinlock.h>
+ #include <linux/fs.h>
+ #include <linux/slab.h>
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index 942fd65..62da63a 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -1,5 +1,20 @@
+-/*
+- *  Implementation of operations over local quota file
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * quota_local.c
++ *
++ * Implementation of operations over local quota file
++ *
++ * Copyright (C) 2008, 2011 Novell.  All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
+  */
+ 
+ #include <linux/fs.h>
 -- 
 1.7.5.4
