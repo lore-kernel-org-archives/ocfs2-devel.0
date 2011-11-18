@@ -1,89 +1,56 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 17 Nov 2011 01:52:04 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Add a missing journal credit in
- ocfs2_link_credits() -v2
-In-Reply-To: <1318988059-18289-1-git-send-email-xiaowei.hu@oracle.com>
-References: <1318988059-18289-1-git-send-email-xiaowei.hu@oracle.com>
-Message-ID: <20111117095203.GF7319@noexit.corp.google.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 17 Nov 2011 16:33:01 -0800
+Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2/dlm: Fix list traversal in
+	dlm_process_recovery_data
+In-Reply-To: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
+References: <1321576382-18521-1-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1321576382-18521-5-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Oct 19, 2011 at 09:34:19AM +0800, xiaowei.hu at oracle.com wrote:
-> From: Xiaowei.Hu <xiaowei.hu@oracle.com>
-> 
-> With indexed_dir enabled, ocfs2 maintains a list of dirblocks having
-> space.
-> 
-> The credit calculation in ocfs2_link_credits() did not correctly account
-> for adding an entry that exactly fills a dirblock that triggers removing
-> that dirblock by changing the pointer in the previous block in the list.
-> The credit calculation did not account for that previous block.
-> 
-> To expose, do:
-> 
-> mkfs.ocfs2 -b 512 -M local /dev/sdX
-> mount /dev/sdX /ocfs2
-> mkdir /ocfs2/linkdir
-> touch /ocfs2/linkdir/file1
-> for i in `seq 1 29` ; do link /ocfs2/linkdir/file1
-> /ocfs2/linkdir/linklinklinklinklinklink$i; done
-> rm -f /ocfs2/linkdir/linklinklinklinklinklink10
-> sleep 8
-> link /ocfs2/linkdir/file1
-> /ocfs2/linkdir/linklinklinklinklinklinkaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-> 
-> Note:
-> The link names have been crafted for a 512 byte blocksize. Reproducing
-> with a larger blocksize will require longer (or more) links. The sleep
-> is important. We want jbd2 to commit the transaction so that the missing
-> block does not piggy back on account of the previous transaction.
-> 
-> Signed-off-by: XiaoweiHu <xiaowei.hu@oracle.com>
-> Reviewed-by: WengangWang <wen.gang.wang@oracle.com>
-> Reviewed-by: Sunil.Mushran <sunil.mushran@oracle.com>
+This issue, detected via static analysis, was introduced by commit 800deef3
+that replaced the existing list_for_each() with list_for_each_entry(). We
+have no record of it hitting users during runtime. This could be because
+this lock list is supposed to have only one lock that is owned by that node
+averting the case in which lock is set to NULL.
 
-	This patch is now in the 'fixes' branch of ocfs2.git.
+Reported-by: Julia Lawall <julia@diku.dk>
+Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c |   10 +++++-----
+ 1 files changed, 5 insertions(+), 5 deletions(-)
 
-Joel
-
-> ---
->  fs/ocfs2/journal.h |    5 +++--
->  1 files changed, 3 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-> index 68cf2f6..a3385b6 100644
-> --- a/fs/ocfs2/journal.h
-> +++ b/fs/ocfs2/journal.h
-> @@ -441,10 +441,11 @@ static inline int ocfs2_mknod_credits(struct super_block *sb, int is_dir,
->  #define OCFS2_SIMPLE_DIR_EXTEND_CREDITS (2)
->  
->  /* file update (nlink, etc) + directory mtime/ctime + dir entry block + quota
-> - * update on dir + index leaf + dx root update for free list */
-> + * update on dir + index leaf + dx root update for free list +
-> + * previous dirblock update in the free list */
->  static inline int ocfs2_link_credits(struct super_block *sb)
->  {
-> -	return 2*OCFS2_INODE_UPDATE_CREDITS + 3 +
-> +	return 2*OCFS2_INODE_UPDATE_CREDITS + 4 +
->  	       ocfs2_quota_trans_credits(sb);
->  }
->  
-> -- 
-> 1.7.4.4
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
-
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 01ebfd0..c881be6 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1752,7 +1752,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 				     struct dlm_migratable_lockres *mres)
+ {
+ 	struct dlm_migratable_lock *ml;
+-	struct list_head *queue;
++	struct list_head *queue, *iter;
+ 	struct list_head *tmpq = NULL;
+ 	struct dlm_lock *newlock = NULL;
+ 	struct dlm_lockstatus *lksb = NULL;
+@@ -1796,11 +1796,11 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 			spin_lock(&res->spinlock);
+ 			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+ 				tmpq = dlm_list_idx_to_ptr(res, j);
+-				list_for_each_entry(lock, tmpq, list) {
+-					if (lock->ml.cookie != ml->cookie)
+-						lock = NULL;
+-					else
++				list_for_each(iter, tmpq) {
++					lock = list_entry(iter, struct dlm_lock, list);
++					if (lock->ml.cookie == ml->cookie)
+ 						break;
++					lock = NULL;
+ 				}
+ 				if (lock)
+ 					break;
 -- 
-
-"I inject pure kryptonite into my brain.
- It improves my kung fu, and it eases the pain."
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+1.7.5.4
