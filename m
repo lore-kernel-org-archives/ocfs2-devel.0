@@ -1,110 +1,113 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 1 Dec 2011 12:18:46 -0800
-Subject: [Ocfs2-devel] [PATCH 44/62] ocfs2: remove the second argument
- of k[un]map_atomic()
-In-Reply-To: <1322371662-26166-45-git-send-email-amwang@redhat.com>
-References: <1322371662-26166-1-git-send-email-amwang@redhat.com>
-	<1322371662-26166-45-git-send-email-amwang@redhat.com>
-Message-ID: <20111201201846.GF1495@noexit.corp.google.com>
+Date: Thu, 1 Dec 2011 14:53:07 -0800
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 fixes for 3.2-rc3
+Message-ID: <20111201225306.GP1495@noexit.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Cong Wang <amwang@redhat.com>
-Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-On Sun, Nov 27, 2011 at 01:27:24PM +0800, Cong Wang wrote:
-> 
-> Signed-off-by: Cong Wang <amwang@redhat.com>
-
-Acked-by: Joel Becker <jlbec@evilplan.org>
-
-I'm presuming you'll handle pushing this with the entire series.
+Linus et al,
+	Here are the all of the ocfs2 fixes that have been stewing in my
+tree.  Almost all of them have been in linux-next since before 3.1; I've
+just been behind.
+	Please pull.
 
 Joel
 
-> ---
->  fs/ocfs2/aops.c |   16 ++++++++--------
->  1 files changed, 8 insertions(+), 8 deletions(-)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index c1efe93..61f93a5 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -102,7 +102,7 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
->  		 * copy, the data is still good. */
->  		if (buffer_jbd(buffer_cache_bh)
->  		    && ocfs2_inode_is_new(inode)) {
-> -			kaddr = kmap_atomic(bh_result->b_page, KM_USER0);
-> +			kaddr = kmap_atomic(bh_result->b_page);
->  			if (!kaddr) {
->  				mlog(ML_ERROR, "couldn't kmap!\n");
->  				goto bail;
-> @@ -110,7 +110,7 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
->  			memcpy(kaddr + (bh_result->b_size * iblock),
->  			       buffer_cache_bh->b_data,
->  			       bh_result->b_size);
-> -			kunmap_atomic(kaddr, KM_USER0);
-> +			kunmap_atomic(kaddr);
->  			set_buffer_uptodate(bh_result);
->  		}
->  		brelse(buffer_cache_bh);
-> @@ -236,13 +236,13 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
->  		return -EROFS;
->  	}
->  
-> -	kaddr = kmap_atomic(page, KM_USER0);
-> +	kaddr = kmap_atomic(page);
->  	if (size)
->  		memcpy(kaddr, di->id2.i_data.id_data, size);
->  	/* Clear the remaining part of the page */
->  	memset(kaddr + size, 0, PAGE_CACHE_SIZE - size);
->  	flush_dcache_page(page);
-> -	kunmap_atomic(kaddr, KM_USER0);
-> +	kunmap_atomic(kaddr);
->  
->  	SetPageUptodate(page);
->  
-> @@ -671,7 +671,7 @@ static void ocfs2_clear_page_regions(struct page *page,
->  
->  	ocfs2_figure_cluster_boundaries(osb, cpos, &cluster_start, &cluster_end);
->  
-> -	kaddr = kmap_atomic(page, KM_USER0);
-> +	kaddr = kmap_atomic(page);
->  
->  	if (from || to) {
->  		if (from > cluster_start)
-> @@ -682,7 +682,7 @@ static void ocfs2_clear_page_regions(struct page *page,
->  		memset(kaddr + cluster_start, 0, cluster_end - cluster_start);
->  	}
->  
-> -	kunmap_atomic(kaddr, KM_USER0);
-> +	kunmap_atomic(kaddr);
->  }
->  
->  /*
-> @@ -1928,9 +1928,9 @@ static void ocfs2_write_end_inline(struct inode *inode, loff_t pos,
->  		}
->  	}
->  
-> -	kaddr = kmap_atomic(wc->w_target_page, KM_USER0);
-> +	kaddr = kmap_atomic(wc->w_target_page);
->  	memcpy(di->id2.i_data.id_data + pos, kaddr + pos, *copied);
-> -	kunmap_atomic(kaddr, KM_USER0);
-> +	kunmap_atomic(kaddr);
->  
->  	trace_ocfs2_write_end_inline(
->  	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
-> -- 
-> 1.7.4.4
-> 
+The following changes since commit b6844e8f64920cdee620157252169ba63afb0c89:
 
--- 
+  Merge branch 'for-linus' of master.kernel.org:/home/rmk/linux-2.6-arm (2011-07-24 10:20:54 -0700)
 
-Life's Little Instruction Book #94
+are available in the git repository at:
 
-	"Make it a habit to do nice things for people who 
-	 will never find out."
+  git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git upstream-linus
 
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+Akinobu Mita (2):
+      ocfs2: use proper little-endian bitops
+      ocfs2: avoid unaligned access to dqc_bitmap
+
+Dan Carpenter (2):
+      ocfs2: checking the wrong variable in ocfs2_move_extent()
+      ocfs2: null deref on allocation error
+
+Dan Magenheimer (1):
+      ocfs2: send correct UUID to cleancache initialization
+
+Jan Kara (2):
+      ocfs2: Avoid livelock in ocfs2_readpage()
+      ocfs2: Use filemap_write_and_wait() instead of write_inode_now()
+
+Joel Becker (1):
+      Merge branch 'mw-3.1-jul25' of git://oss.oracle.com/git/smushran/linux-2.6 into ocfs2-fixes
+
+Julia Lawall (1):
+      fs/ocfs2/dlm/dlmlock.c: free kmem_cache_zalloc'd data using kmem_cache_free
+
+Mark Fasheh (2):
+      ocfs2: serialize unaligned aio
+      ocfs2: honor O_(D)SYNC flag in fallocate
+
+Sunil Mushran (16):
+      ocfs2/cluster: Abort heartbeat start on hard-ro devices
+      ocfs2/cluster: Clean up messages in o2net
+      ocfs2/dlm: Clean up messages in o2dlm
+      ocfs2: Clean up messages in stack_o2cb.c
+      ocfs2/dlm: Cleanup up dlm_finish_local_lockres_recovery()
+      ocfs2/dlm: Clean up refmap helpers
+      ocfs2/dlm: Trace insert/remove of resource to/from hash
+      ocfs2/dlm: Cleanup dlm_wait_for_node_death() and dlm_wait_for_node_recovery()
+      ocfs2/dlm: Take inflight reference count for remotely mastered resources too
+      ocfs2/dlm: dlmlock_remote() needs to account for remastery
+      ocfs2/cluster: Fix output in file elapsed_time_in_ms
+      ocfs2/cluster: Add new function o2net_fill_node_map()
+      ocfs2/cluster: Cluster up now includes network connections too
+      ocfs2: Clean up messages in the fs
+      ocfs2: Add comment about orphan scanning
+      ocfs2: Implement llseek()
+
+Tiger Yang (1):
+      ocfs2: Bugfix for hard readonly mount
+
+Wengang Wang (3):
+      ocfs2: Fix ocfs2_page_mkwrite()
+      ocfs2: make direntry invalid when deleting it
+      ocfs2: Commit transactions in error cases -v2
+
+Xiaowei.Hu (1):
+      ocfs2: Add a missing journal credit in ocfs2_link_credits() -v2
+
+ fs/ocfs2/alloc.c             |    2 +-
+ fs/ocfs2/aops.c              |   69 +++++++++++++--
+ fs/ocfs2/aops.h              |   14 +++
+ fs/ocfs2/cluster/heartbeat.c |  194 ++++++++++++++++++++++++++----------------
+ fs/ocfs2/cluster/netdebug.c  |  102 +++++++++++++++-------
+ fs/ocfs2/cluster/tcp.c       |  138 ++++++++++++++++--------------
+ fs/ocfs2/cluster/tcp.h       |    2 +
+ fs/ocfs2/dir.c               |    3 +-
+ fs/ocfs2/dlm/dlmcommon.h     |   56 +++----------
+ fs/ocfs2/dlm/dlmdomain.c     |   44 +++++-----
+ fs/ocfs2/dlm/dlmlock.c       |   54 ++++++------
+ fs/ocfs2/dlm/dlmmaster.c     |  175 +++++++++++++++++++-------------------
+ fs/ocfs2/dlm/dlmrecovery.c   |  164 ++++++++++++++++++------------------
+ fs/ocfs2/dlm/dlmthread.c     |   16 ++--
+ fs/ocfs2/dlmglue.c           |   21 +++--
+ fs/ocfs2/extent_map.c        |   96 +++++++++++++++++++++
+ fs/ocfs2/extent_map.h        |    2 +
+ fs/ocfs2/file.c              |   96 ++++++++++++++++++++-
+ fs/ocfs2/inode.c             |    2 +-
+ fs/ocfs2/inode.h             |    3 +
+ fs/ocfs2/ioctl.c             |   11 ++-
+ fs/ocfs2/journal.c           |   23 +++++-
+ fs/ocfs2/journal.h           |    5 +-
+ fs/ocfs2/mmap.c              |   53 +++++------
+ fs/ocfs2/move_extents.c      |    2 +-
+ fs/ocfs2/ocfs2.h             |   51 +++++++++++-
+ fs/ocfs2/quota_local.c       |   23 +++--
+ fs/ocfs2/slot_map.c          |    4 +-
+ fs/ocfs2/stack_o2cb.c        |   71 ++++++++++++++--
+ fs/ocfs2/super.c             |   25 ++++--
+ fs/ocfs2/xattr.c             |   10 ++-
+ 31 files changed, 995 insertions(+), 536 deletions(-)
