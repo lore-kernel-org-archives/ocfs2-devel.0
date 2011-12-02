@@ -1,50 +1,38 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 1 Dec 2011 17:48:22 -0800
-Subject: [Ocfs2-devel] The ocfs2 and configfs trees are back at
-	git.kernel.org
-In-Reply-To: <20111202103903.942cec07bf492f181cd3c71c@canb.auug.org.au>
-References: <20111201201554.GE1495@noexit.corp.google.com>
-	<20111202103903.942cec07bf492f181cd3c71c@canb.auug.org.au>
-Message-ID: <20111202014821.GU1495@noexit.corp.google.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Thu, 1 Dec 2011 18:29:34 -0800
+Subject: [Ocfs2-devel] [PATCH 44/62] ocfs2: remove the second argument
+ of k[un]map_atomic()
+In-Reply-To: <4ED8322B.8010500@redhat.com>
+References: <1322371662-26166-1-git-send-email-amwang@redhat.com>
+	<1322371662-26166-45-git-send-email-amwang@redhat.com>
+	<20111201201846.GF1495@noexit.corp.google.com>
+	<4ED8322B.8010500@redhat.com>
+Message-ID: <20111201182934.b8dd4c27.akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Cong Wang <amwang@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 02, 2011 at 10:39:03AM +1100, Stephen Rothwell wrote:
-> Hi Joel,
-> 
-> On Thu, 1 Dec 2011 12:15:54 -0800 Joel Becker <jlbec@evilplan.org> wrote:
+On Fri, 02 Dec 2011 10:04:27 +0800 Cong Wang <amwang@redhat.com> wrote:
+
+> ___ 2011___12___02___ 04:18, Joel Becker ______:
+> > On Sun, Nov 27, 2011 at 01:27:24PM +0800, Cong Wang wrote:
+> >>
+> >> Signed-off-by: Cong Wang<amwang@redhat.com>
 > >
-> > 	Can you please point linux-next back at:
-> > 
-> > git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/configfs.git linux-next
+> > Acked-by: Joel Becker<jlbec@evilplan.org>
+> >
+> > I'm presuming you'll handle pushing this with the entire series.
+> >
 > 
-> That one never moved.
-> 
-> > git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git linux-next
-> 
-> I have switched to that now.
+> Yeah, I hope either Andrew can take all of them
 
-	Thanks Stephen!
+waaay too many patches ;)
 
-Joel
+> or this can be merged into trivial tree.
 
-> 
-> -- 
-> Cheers,
-> Stephen Rothwell                    sfr at canb.auug.org.au
-> http://www.canb.auug.org.au/~sfr/
-
-
-
--- 
-
-"I always thought the hardest questions were those I could not answer.
- Now I know they are the ones I can never ask."
-			- Charlie Watkins
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+I'd suggest you ask Stephen to add the git tree to -next.  Once it's
+all suitably reviewed/acked/etc, and we're in the merge window, ask
+Linus to pull it.
