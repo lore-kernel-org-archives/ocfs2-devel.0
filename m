@@ -1,38 +1,38 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 1 Dec 2011 18:29:34 -0800
-Subject: [Ocfs2-devel] [PATCH 44/62] ocfs2: remove the second argument
- of k[un]map_atomic()
-In-Reply-To: <4ED8322B.8010500@redhat.com>
-References: <1322371662-26166-1-git-send-email-amwang@redhat.com>
-	<1322371662-26166-45-git-send-email-amwang@redhat.com>
-	<20111201201846.GF1495@noexit.corp.google.com>
-	<4ED8322B.8010500@redhat.com>
-Message-ID: <20111201182934.b8dd4c27.akpm@linux-foundation.org>
+From: Noboru Iwamatsu <n_iwamatsu@jp.fujitsu.com>
+Date: Tue,  6 Dec 2011 13:57:10 +0900
+Subject: [Ocfs2-devel] [PATCH] ocfs2: submit disk heartbeat bio using
+	WRITE_SYNC
+Message-ID: <1323147430-16691-1-git-send-email-n_iwamatsu@jp.fujitsu.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Cong Wang <amwang@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, 02 Dec 2011 10:04:27 +0800 Cong Wang <amwang@redhat.com> wrote:
+Under heavy I/O load, writing the disk heartbeat can be forced
+to wait for minutes, and this causes the node to be fenced.
 
-> ___ 2011___12___02___ 04:18, Joel Becker ______:
-> > On Sun, Nov 27, 2011 at 01:27:24PM +0800, Cong Wang wrote:
-> >>
-> >> Signed-off-by: Cong Wang<amwang@redhat.com>
-> >
-> > Acked-by: Joel Becker<jlbec@evilplan.org>
-> >
-> > I'm presuming you'll handle pushing this with the entire series.
-> >
-> 
-> Yeah, I hope either Andrew can take all of them
+This patch tries to use WRITE_SYNC in submitting the heartbeat
+bio, so that writing the heartbeat will have a priority over
+other requests.
 
-waaay too many patches ;)
+Signed-off-by: Noboru Iwamatsu <n_iwamatsu@jp.fujitsu.com>
+---
+ fs/ocfs2/cluster/heartbeat.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-> or this can be merged into trivial tree.
-
-I'd suggest you ask Stephen to add the git tree to -next.  Once it's
-all suitably reviewed/acked/etc, and we're in the merge window, ask
-Linus to pull it.
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 9a3e6bb..6b0c1e4 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -491,7 +491,7 @@ static int o2hb_issue_node_write(struct o2hb_region *reg,
+ 	}
+ 
+ 	atomic_inc(&write_wc->wc_num_reqs);
+-	submit_bio(WRITE, bio);
++	submit_bio(WRITE_SYNC, bio);
+ 
+ 	status = 0;
+ bail:
+-- 
+1.7.6.4
