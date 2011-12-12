@@ -1,39 +1,30 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Date: Thu, 01 Dec 2011 23:39:14 -0000
-Subject: [Ocfs2-devel] The ocfs2 and configfs trees are back at
-	git.kernel.org
-In-Reply-To: <20111201201554.GE1495@noexit.corp.google.com>
-References: <20111201201554.GE1495@noexit.corp.google.com>
-Message-ID: <20111202103903.942cec07bf492f181cd3c71c@canb.auug.org.au>
+From: roel <roel.kluin@gmail.com>
+Date: Mon, 12 Dec 2011 23:40:51 +0100
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Misplaced parens in unlikley
+Message-ID: <4EE682F3.9070905@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <jlbec@evilplan.org>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, moderated for non-subscribers <ocfs2-devel@oss.oracle.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>
 
-Hi Joel,
+Fix misplaced parentheses
 
-On Thu, 1 Dec 2011 12:15:54 -0800 Joel Becker <jlbec@evilplan.org> wrote:
->
-> 	Can you please point linux-next back at:
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/configfs.git linux-next
+Signed-off-by: Roel Kluin <roel.kluin@gmail.com>
+---
+ fs/ocfs2/dlmglue.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-That one never moved.
-
-> git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git linux-next
-
-I have switched to that now.
-
--- 
-Cheers,
-Stephen Rothwell                    sfr at canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: not available
-Type: application/pgp-signature
-Size: 836 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20111201/fb4d1139/attachment.bin 
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 81a4cd2..274529c 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -456,7 +456,7 @@ static void ocfs2_update_lock_stats(struct ocfs2_lock_res *res, int level,
+ 	stats->ls_gets++;
+ 	stats->ls_total += ktime_to_ns(kt);
+ 	/* overflow */
+-	if (unlikely(stats->ls_gets) == 0) {
++	if (unlikely(stats->ls_gets == 0)) {
+ 		stats->ls_gets++;
+ 		stats->ls_total = ktime_to_ns(kt);
+ 	}
