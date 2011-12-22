@@ -1,102 +1,52 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 22 Dec 2011 05:53:49 -0800
-Subject: [Ocfs2-devel] [CFP] Linux Storage,
- Filesystem & Memory Management Summit 2012 (April 1-2)
-Message-ID: <20111222135348.GC24053@dhcp-172-17-9-228.mtv.corp.google.com>
+From: Sunil Mushran <sunil.mushran@oracle.com>
+Date: Thu, 22 Dec 2011 15:08:14 -0800
+Subject: [Ocfs2-devel] [PATCH][ocfs2/dlm] fix dlm_clean_master_list
+In-Reply-To: <201112210248.pBL2mvw1032148@acsmt357.oracle.com>
+References: <201112210248.pBL2mvw1032148@acsmt357.oracle.com>
+Message-ID: <4EF3B85E.3050305@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The annual Linux Storage, Filesystem and Memory Management Summit for
-2012 will be held on the 2 days preceding the Linux Foundation
-Collaboration Summit at Hotel Nikko in San Francisco, CA:
+On 12/20/2011 06:49 PM, Wengang Wang wrote:
+> This is a fix on dlm_clean_master_list()
+>
+> During the hash table browsing, we remove mle from hash table then free
+> the memory on the last reference. So we have to use a _safe() version
+> of the browsing function when doing that.
+>
+> This fixes Orabug #12798517
+>
+> Signed-off-by: Wengang Wang<wen.gang.wang@oracle.com>
+> ---
+>   fs/ocfs2/dlm/dlmmaster.c |    4 ++--
+>   1 files changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index 11eefb8..86ec9d2 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -3182,7 +3182,7 @@ void dlm_clean_master_list(struct dlm_ctxt *dlm, u8 dead_node)
+>   	struct dlm_master_list_entry *mle;
+>   	struct dlm_lock_resource *res;
+>   	struct hlist_head *bucket;
+> -	struct hlist_node *list;
+> +	struct hlist_node *list, *n;
 
-	https://events.linuxfoundation.org/events/lsfmm-summit
-	https://events.linuxfoundation.org/events/collaboration-summit/
+Single char names are typically used for counters, etc. Call it tmp.
+Else it looks good.
 
-We'd therefore like to issue a call for agenda proposals that are
-suitable for cross-track discussion as well as more technical subjects
-for discussion in the breakout sessions.
-
-1) Suggestions for agenda topics should be sent before February 5th
-2012 to:
-
-lsf-pc at lists.linux-foundation.org
-
-and optionally cc the Linux list which would be most interested in it:
-
-SCSI: linux-scsi at vger.kernel.org
-FS: linux-fsdevel at vger.kernel.org
-MM: linux-mm at kvack.org
-
-Please remember to tag your subject with [LSF/MM TOPIC] to make it
-easier to track. Agenda topics and attendees will be selected by the
-programme committee, but the final agenda will be formed by consensus
-of the attendees on the day.
-
-We'll try to cap attendance at around 25-30 per track to facilitate
-discussions although the final numbers will depend on the room sizes at
-the venue.
-
-2) Requests to attend should be sent to:
-
-lsf-pc at lists.linux-foundation.org
-
-please summarize what expertise you will bring to the meeting, and what
-you'd like to discuss.  please also tag your email with [ATTEND] so
-there's less chance of it getting lost in the large mail pile.
-
-Presentations are allowed to guide discussion, but are strongly
-discouraged.  There will be no recording or audio bridge, however
-written minutes will be published as in previous years:
-
-2011:
-
-http://lwn.net/Articles/436871/
-http://lwn.net/Articles/437066/
-
-2010:
-http://lwn.net/Articles/399148/
-http://lwn.net/Articles/399313/
-http://lwn.net/Articles/400589/
-
-2009:
-http://lwn.net/Articles/327601/
-http://lwn.net/Articles/327740/
-http://lwn.net/Articles/328347/
-
-Prior years:
-http://www.usenix.org/events/lsf08/tech/lsf08sums.pdf
-http://www.usenix.org/publications/login/2007-06/openpdfs/lsf07sums.pdf
-
-3) If you have feedback on last year's meeting that we can use to
-improve this year's, please also send that to:
-
-lsf-pc at lists.linux-foundation.org
-
-Thank you on behalf of the Program Committee:
-
-Storage
-
-Jens Axboe
-James Bottomley
-Vivek Goyal
-Dan Williams
-
-Filesystems
-
-Trond Myklebust
-Chris Mason
-Christoph Hellwig
-Theodore Ts'o
-Mingming Cao
-Jan Kara
-Joel Becker
-
-MM
-
-Andrea Arcangeli
-Hugh Dickins
-Mel Gorman
+>   	unsigned int i;
+>
+>   	mlog(0, "dlm=%s, dead node=%u\n", dlm->name, dead_node);
+> @@ -3193,7 +3193,7 @@ top:
+>   	spin_lock(&dlm->master_lock);
+>   	for (i = 0; i<  DLM_HASH_BUCKETS; i++) {
+>   		bucket = dlm_master_hash(dlm, i);
+> -		hlist_for_each(list, bucket) {
+> +		hlist_for_each_safe(list, n, bucket) {
+>   			mle = hlist_entry(list, struct dlm_master_list_entry,
+>   					  master_hash_node);
+>
