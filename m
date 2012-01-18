@@ -1,26 +1,32 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Fri, 13 Jan 2012 14:08:17 -0800
-Subject: [Ocfs2-devel] pull request
-Message-ID: <4F10AB51.5080402@oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Wed, 18 Jan 2012 12:00:15 -0600
+Subject: [Ocfs2-devel] Question about incorrect free bits setting
+Message-ID: <CAJtY7HWnYqX=CeU+G7YRGRwrANaZ5itRiu13J+HkLA+zQ6FmCQ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Joel,
+We have a customer who was running into read-only filesystem because
+of incorrect free bits set/calculation. We have provided the fix from
+here, which avoids the read-only problem
+http://oss.oracle.com/pipermail/ocfs2-devel/2011-November/008431.html
 
-Please pull 6 patches (bug fixes) from the following repo.
+Though the filesystem is does not turn read-only, we still get messages like -
 
-git://oss.oracle.com/git/smushran/linux-2.6.git  mw-3.3-jan13
+[ 5017.452846] (ocfs2_wq,8480,0):ocfs2_block_group_clear_bits:2113
+ERROR: Trying to clear 1 bits at offset 7658 in group descriptor #
+7644672 (device cciss/c0d0p3), needed to clear 0 bits
 
-BTW, not sure if I emailed before but we have to rollback 3 patches
-related to deletes. These patches were added to fix deadlocks with
-quotas. Well, it has just broken deletes. Srini has the list. We'll
-have to find another way to fix the quotas deadlock.
+We are investigating how the bits get free in the first place because
+another allocation could claim the bits marked as free.
 
-Sunil
+The question is:
 
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120113/d06b51bc/attachment.html 
+Why does ocfs2_release_clusters has ocfs2_clear_bit as the undo
+function wheras ocfs2_free_clusters has ocfs2_set_bit as the undo
+function? Should it be NULL for ocfs2_release_clusters?
+
+-- 
+Goldwyn
