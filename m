@@ -1,91 +1,125 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Wed, 18 Jan 2012 10:21:59 -0800
-Subject: [Ocfs2-devel] Question about incorrect free bits setting
-In-Reply-To: <CAJtY7HWnYqX=CeU+G7YRGRwrANaZ5itRiu13J+HkLA+zQ6FmCQ@mail.gmail.com>
-References: <CAJtY7HWnYqX=CeU+G7YRGRwrANaZ5itRiu13J+HkLA+zQ6FmCQ@mail.gmail.com>
-Message-ID: <4F170DC7.3060608@oracle.com>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Sat, 28 Jan 2012 18:13:57 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: use spinlock irqsave for
+	downconvert lock.patch
+Message-ID: <1327803237-21777-1-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We've seen this too. The problem happens because of the patch added to delay
-dropping of the dentry locks (first patch below). The other two are related.
-It was added to avoid a deadlock in quotas but adds problems of its own.
-Srini has studied this issue and may be able to expand on this. The quick
-and dirty solution is to back out these patches and ask users to disable
-quotas for now. The longer term solution is to fix the quotas issue in a different
-way... or redo deletes completely.
+When ocfs2dc thread holds dc_task_lock spinlock and receives soft IRQ for
+I/O completion it deadlock itself trying to get same spinlock in
+ocfs2_wake_downconvert_thread
 
-commit ea455f8ab68338ba69f5d3362b342c115bea8e13
-Author: Jan Kara <jack@suse.cz>
-Date:   Mon Jan 12 23:20:31 2009 +0100
+The patch disables interrupts when acquiring dc_task_lock spinlock
 
-     ocfs2: Push out dropping of dentry lock to ocfs2_wq
+Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+---
+ fs/ocfs2/dlmglue.c |   30 ++++++++++++++++++------------
+ 1 files changed, 18 insertions(+), 12 deletions(-)
 
-     Dropping of last reference to dentry lock is a complicated operation involving
-     dropping of reference to inode. This can get complicated and quota code in
-     particular needs to obtain some quota locks which leads to potential deadlock.
-     Thus we defer dropping of inode reference to ocfs2_wq.
-
-     Signed-off-by: Jan Kara <jack@suse.cz>
-     Signed-off-by: Mark Fasheh <mfasheh@suse.com>
-
-commit 5fd131893793567c361ae64cbeb28a2a753bbe35
-Author: Jan Kara <jack@suse.cz>
-Date:   Thu Jul 30 17:01:53 2009 +0200
-
-     ocfs2: Don't oops in ocfs2_kill_sb on a failed mount
-
-     If we fail to mount the filesystem, we have to be careful not to dereference
-     uninitialized structures in ocfs2_kill_sb.
-
-     Signed-off-by: Jan Kara <jack@suse.cz>
-     Signed-off-by: Joel Becker <joel.becker@oracle.com>
-
-commit f7b1aa69be138ad9d7d3f31fa56f4c9407f56b6a
-Author: Jan Kara <jack@suse.cz>
-Date:   Mon Jul 20 12:12:36 2009 +0200
-
-     ocfs2: Fix deadlock on umount
-
-     In commit ea455f8ab68338ba69f5d3362b342c115bea8e13, we moved the dentry lock
-     put process into ocfs2_wq. This causes problems during umount because ocfs2_wq
-     can drop references to inodes while they are being invalidated by
-     invalidate_inodes() causing all sorts of nasty things (invalidate_inodes()
-     ending in an infinite loop, "Busy inodes after umount" messages etc.).
-
-     We fix the problem by stopping ocfs2_wq from doing any further releasing of
-     inode references on the superblock being unmounted, wait until it finishes
-     the current round of releasing and finally cleaning up all the references in
-     dentry_lock_list from ocfs2_put_super().
-
-     The issue was tracked down by Tao Ma <tao.ma@oracle.com>.
-
-     Signed-off-by: Jan Kara <jack@suse.cz>
-     Signed-off-by: Joel Becker <joel.becker@oracle.com>
-
-
-
-On 01/18/2012 10:00 AM, Goldwyn Rodrigues wrote:
-> We have a customer who was running into read-only filesystem because
-> of incorrect free bits set/calculation. We have provided the fix from
-> here, which avoids the read-only problem
-> http://oss.oracle.com/pipermail/ocfs2-devel/2011-November/008431.html
->
-> Though the filesystem is does not turn read-only, we still get messages like -
->
-> [ 5017.452846] (ocfs2_wq,8480,0):ocfs2_block_group_clear_bits:2113
-> ERROR: Trying to clear 1 bits at offset 7658 in group descriptor #
-> 7644672 (device cciss/c0d0p3), needed to clear 0 bits
->
-> We are investigating how the bits get free in the first place because
-> another allocation could claim the bits marked as free.
->
-> The question is:
->
-> Why does ocfs2_release_clusters has ocfs2_clear_bit as the undo
-> function wheras ocfs2_free_clusters has ocfs2_set_bit as the undo
-> function? Should it be NULL for ocfs2_release_clusters?
->
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 81a4cd2..d8552a5 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -3932,6 +3932,8 @@ unqueue:
+ static void ocfs2_schedule_blocked_lock(struct ocfs2_super *osb,
+ 					struct ocfs2_lock_res *lockres)
+ {
++	unsigned long flags;
++
+ 	assert_spin_locked(&lockres->l_lock);
+ 
+ 	if (lockres->l_flags & OCFS2_LOCK_FREEING) {
+@@ -3945,21 +3947,22 @@ static void ocfs2_schedule_blocked_lock(struct ocfs2_super *osb,
+ 
+ 	lockres_or_flags(lockres, OCFS2_LOCK_QUEUED);
+ 
+-	spin_lock(&osb->dc_task_lock);
++	spin_lock_irqsave(&osb->dc_task_lock, flags);
+ 	if (list_empty(&lockres->l_blocked_list)) {
+ 		list_add_tail(&lockres->l_blocked_list,
+ 			      &osb->blocked_lock_list);
+ 		osb->blocked_lock_count++;
+ 	}
+-	spin_unlock(&osb->dc_task_lock);
++	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
+ }
+ 
+ static void ocfs2_downconvert_thread_do_work(struct ocfs2_super *osb)
+ {
+ 	unsigned long processed;
++	unsigned long flags;
+ 	struct ocfs2_lock_res *lockres;
+ 
+-	spin_lock(&osb->dc_task_lock);
++	spin_lock_irqsave(&osb->dc_task_lock, flags);
+ 	/* grab this early so we know to try again if a state change and
+ 	 * wake happens part-way through our work  */
+ 	osb->dc_work_sequence = osb->dc_wake_sequence;
+@@ -3972,38 +3975,40 @@ static void ocfs2_downconvert_thread_do_work(struct ocfs2_super *osb)
+ 				     struct ocfs2_lock_res, l_blocked_list);
+ 		list_del_init(&lockres->l_blocked_list);
+ 		osb->blocked_lock_count--;
+-		spin_unlock(&osb->dc_task_lock);
++		spin_unlock_irqrestore(&osb->dc_task_lock, flags);
+ 
+ 		BUG_ON(!processed);
+ 		processed--;
+ 
+ 		ocfs2_process_blocked_lock(osb, lockres);
+ 
+-		spin_lock(&osb->dc_task_lock);
++		spin_lock_irqsave(&osb->dc_task_lock, flags);
+ 	}
+-	spin_unlock(&osb->dc_task_lock);
++	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
+ }
+ 
+ static int ocfs2_downconvert_thread_lists_empty(struct ocfs2_super *osb)
+ {
+ 	int empty = 0;
++	unsigned long flags;
+ 
+-	spin_lock(&osb->dc_task_lock);
++	spin_lock_irqsave(&osb->dc_task_lock, flags);
+ 	if (list_empty(&osb->blocked_lock_list))
+ 		empty = 1;
+ 
+-	spin_unlock(&osb->dc_task_lock);
++	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
+ 	return empty;
+ }
+ 
+ static int ocfs2_downconvert_thread_should_wake(struct ocfs2_super *osb)
+ {
+ 	int should_wake = 0;
++	unsigned long flags;
+ 
+-	spin_lock(&osb->dc_task_lock);
++	spin_lock_irqsave(&osb->dc_task_lock, flags);
+ 	if (osb->dc_work_sequence != osb->dc_wake_sequence)
+ 		should_wake = 1;
+-	spin_unlock(&osb->dc_task_lock);
++	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
+ 
+ 	return should_wake;
+ }
+@@ -4033,10 +4038,11 @@ static int ocfs2_downconvert_thread(void *arg)
+ 
+ void ocfs2_wake_downconvert_thread(struct ocfs2_super *osb)
+ {
+-	spin_lock(&osb->dc_task_lock);
++	unsigned long flags;
++	spin_lock_irqsave(&osb->dc_task_lock, flags);
+ 	/* make sure the voting thread gets a swipe at whatever changes
+ 	 * the caller may have made to the voting state */
+ 	osb->dc_wake_sequence++;
+-	spin_unlock(&osb->dc_task_lock);
++	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
+ 	wake_up(&osb->dc_event);
+ }
+-- 
+1.5.4.3
