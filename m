@@ -1,145 +1,54 @@
-From: srinivas eeda <srinivas.eeda@oracle.com>
-Date: Mon, 30 Jan 2012 21:52:13 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: use spinlock irqsave for
- downconvert lock.patch
-In-Reply-To: <1327988845-31676-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1327988845-31676-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <4F27818D.2000309@oracle.com>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Mon, 30 Jan 2012 23:16:28 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] o2dlm: fix NULL pointer dereference in
+	o2dlm_blocking_ast_wrapper
+Message-ID: <1327994188-3373-1-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-sorry ignore this patch, resent another one after adding the new line.
+A tiny race between BAST and unlock message causes the NULL dereference.
 
-On 1/30/2012 9:47 PM, Srinivas Eeda wrote:
-> When ocfs2dc thread holds dc_task_lock spinlock and receives soft IRQ it
-> deadlock itself trying to get same spinlock in ocfs2_wake_downconvert_thread.
-> Below is the stack snippet.
->
-> The patch disables interrupts when acquiring dc_task_lock spinlock.
->
-> 	ocfs2_wake_downconvert_thread
-> 	ocfs2_rw_unlock
-> 	ocfs2_dio_end_io
-> 	dio_complete
-> 	.....
-> 	bio_endio
-> 	req_bio_endio
-> 	....
-> 	scsi_io_completion
-> 	blk_done_softirq
-> 	__do_softirq
-> 	do_softirq
-> 	irq_exit
-> 	do_IRQ
-> 	ocfs2_downconvert_thread
-> 	[kthread]
->
-> Signed-off-by: Srinivas Eeda<srinivas.eeda@oracle.com>
-> ---
->   fs/ocfs2/dlmglue.c |   30 ++++++++++++++++++------------
->   1 files changed, 18 insertions(+), 12 deletions(-)
->
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 81a4cd2..d8552a5 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -3932,6 +3932,8 @@ unqueue:
->   static void ocfs2_schedule_blocked_lock(struct ocfs2_super *osb,
->   					struct ocfs2_lock_res *lockres)
->   {
-> +	unsigned long flags;
-> +
->   	assert_spin_locked(&lockres->l_lock);
->
->   	if (lockres->l_flags&  OCFS2_LOCK_FREEING) {
-> @@ -3945,21 +3947,22 @@ static void ocfs2_schedule_blocked_lock(struct ocfs2_super *osb,
->
->   	lockres_or_flags(lockres, OCFS2_LOCK_QUEUED);
->
-> -	spin_lock(&osb->dc_task_lock);
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->   	if (list_empty(&lockres->l_blocked_list)) {
->   		list_add_tail(&lockres->l_blocked_list,
->   			&osb->blocked_lock_list);
->   		osb->blocked_lock_count++;
->   	}
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->   }
->
->   static void ocfs2_downconvert_thread_do_work(struct ocfs2_super *osb)
->   {
->   	unsigned long processed;
-> +	unsigned long flags;
->   	struct ocfs2_lock_res *lockres;
->
-> -	spin_lock(&osb->dc_task_lock);
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->   	/* grab this early so we know to try again if a state change and
->   	 * wake happens part-way through our work  */
->   	osb->dc_work_sequence = osb->dc_wake_sequence;
-> @@ -3972,38 +3975,40 @@ static void ocfs2_downconvert_thread_do_work(struct ocfs2_super *osb)
->   				     struct ocfs2_lock_res, l_blocked_list);
->   		list_del_init(&lockres->l_blocked_list);
->   		osb->blocked_lock_count--;
-> -		spin_unlock(&osb->dc_task_lock);
-> +		spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->
->   		BUG_ON(!processed);
->   		processed--;
->
->   		ocfs2_process_blocked_lock(osb, lockres);
->
-> -		spin_lock(&osb->dc_task_lock);
-> +		spin_lock_irqsave(&osb->dc_task_lock, flags);
->   	}
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->   }
->
->   static int ocfs2_downconvert_thread_lists_empty(struct ocfs2_super *osb)
->   {
->   	int empty = 0;
-> +	unsigned long flags;
->
-> -	spin_lock(&osb->dc_task_lock);
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->   	if (list_empty(&osb->blocked_lock_list))
->   		empty = 1;
->
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->   	return empty;
->   }
->
->   static int ocfs2_downconvert_thread_should_wake(struct ocfs2_super *osb)
->   {
->   	int should_wake = 0;
-> +	unsigned long flags;
->
-> -	spin_lock(&osb->dc_task_lock);
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->   	if (osb->dc_work_sequence != osb->dc_wake_sequence)
->   		should_wake = 1;
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->
->   	return should_wake;
->   }
-> @@ -4033,10 +4038,11 @@ static int ocfs2_downconvert_thread(void *arg)
->
->   void ocfs2_wake_downconvert_thread(struct ocfs2_super *osb)
->   {
-> -	spin_lock(&osb->dc_task_lock);
-> +	unsigned long flags;
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->   	/* make sure the voting thread gets a swipe at whatever changes
->   	 * the caller may have made to the voting state */
->   	osb->dc_wake_sequence++;
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->   	wake_up(&osb->dc_event);
->   }
+A node sends an unlock request to master and receives a response. Before
+processing the response it receives a BAST from the master. Since both requests
+are processed by different threads it creates a race. While the BAST is being
+processed, lock can get freed by unlock code.
+
+This patch makes bast to return immediately if lock is found but unlock is
+pending. The code should handle this race. We also have to fix master node to
+skip sending BAST after receiving unlock message.
+
+Below is the crash stack
+
+BUG: unable to handle kernel NULL pointer dereference at 0000000000000048
+IP: [<ffffffffa015e023>] o2dlm_blocking_ast_wrapper+0xd/0x16
+[<ffffffffa034e3db>] dlm_do_local_bast+0x8e/0x97 [ocfs2_dlm]
+[<ffffffffa034f366>] dlm_proxy_ast_handler+0x838/0x87e [ocfs2_dlm]
+[<ffffffffa0308abe>] o2net_process_message+0x395/0x5b8 [ocfs2_nodemanager]
+[<ffffffffa030aac8>] o2net_rx_until_empty+0x762/0x90d [ocfs2_nodemanager]
+[<ffffffff81071802>] worker_thread+0x14d/0x1ed
+
+Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+---
+ fs/ocfs2/dlm/dlmast.c |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmast.c b/fs/ocfs2/dlm/dlmast.c
+index 3a3ed4b..1281e8a 100644
+--- a/fs/ocfs2/dlm/dlmast.c
++++ b/fs/ocfs2/dlm/dlmast.c
+@@ -386,8 +386,9 @@ int dlm_proxy_ast_handler(struct o2net_msg *msg, u32 len, void *data,
+ 		head = &res->granted;
+ 
+ 	list_for_each(iter, head) {
++		/* if lock is found but unlock is pending ignore the bast */
+ 		lock = list_entry (iter, struct dlm_lock, list);
+-		if (lock->ml.cookie == cookie)
++		if ((lock->ml.cookie == cookie) && (!lock->unlock_pending))
+ 			goto do_ast;
+ 	}
+ 
+-- 
+1.5.4.3
