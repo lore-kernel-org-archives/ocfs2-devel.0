@@ -1,8 +1,8 @@
 From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Mon, 30 Jan 2012 21:47:25 -0800
+Date: Mon, 30 Jan 2012 21:51:22 -0800
 Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: use spinlock irqsave for
 	downconvert lock.patch
-Message-ID: <1327988845-31676-1-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <1327989082-31827-1-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -34,11 +34,11 @@ The patch disables interrupts when acquiring dc_task_lock spinlock.
 
 Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 ---
- fs/ocfs2/dlmglue.c |   30 ++++++++++++++++++------------
- 1 files changed, 18 insertions(+), 12 deletions(-)
+ fs/ocfs2/dlmglue.c |   31 +++++++++++++++++++------------
+ 1 files changed, 19 insertions(+), 12 deletions(-)
 
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 81a4cd2..d8552a5 100644
+index 81a4cd2..67af5db 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
 @@ -3932,6 +3932,8 @@ unqueue:
@@ -124,12 +124,13 @@ index 81a4cd2..d8552a5 100644
  
  	return should_wake;
  }
-@@ -4033,10 +4038,11 @@ static int ocfs2_downconvert_thread(void *arg)
+@@ -4033,10 +4038,12 @@ static int ocfs2_downconvert_thread(void *arg)
  
  void ocfs2_wake_downconvert_thread(struct ocfs2_super *osb)
  {
 -	spin_lock(&osb->dc_task_lock);
 +	unsigned long flags;
++
 +	spin_lock_irqsave(&osb->dc_task_lock, flags);
  	/* make sure the voting thread gets a swipe at whatever changes
  	 * the caller may have made to the voting state */
