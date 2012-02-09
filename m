@@ -1,50 +1,47 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Mon, 06 Feb 2012 10:40:11 -0800
-Subject: [Ocfs2-devel] sparsify - utility to punch out blocks of 0s in a
-	file
-In-Reply-To: <4F2D8F30.3090802@redhat.com>
-References: <4F2D8F30.3090802@redhat.com>
-Message-ID: <4F301E8B.7050909@oracle.com>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Thu, 09 Feb 2012 14:42:22 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: for SEEK_DATA/SEEK_HOLE,
+ return internal error unchanged if ocfs2_get_clusters_nocache() or
+ ocfs2_inode_lock() call failed.
+Message-ID: <4F336ACE.3010803@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Eric Sandeen <sandeen@redhat.com>
-Cc: ext4 development <linux-ext4@vger.kernel.org>, xfs-oss <xfs@oss.sgi.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On 02/04/2012 12:04 PM, Eric Sandeen wrote:
-> Now that ext4, xfs,&  ocfs2 can support punch hole, a tool to
-> "re-sparsify" a file by punching out ranges of 0s might be in order.
->
-> I whipped this up fast, it probably has bugs&  off-by-ones but thought
-> I'd send it out.  It's not terribly efficient doing 4k reads by default
-> I suppose.
->
-> I'll see if util-linux wants it after it gets beat into shape.
-> (or did a tool like this already exist and I missed it?)
->
-> (Another mode which does a file copy, possibly from stdin
-> might be good, like e2fsprogs/contrib/make-sparse.c ?  Although
-> that can be hacked up with cp already).
->
-> It works like this:
->
-> [root at inode sparsify]# ./sparsify  -h
-> Usage: sparsify [-m min hole size] [-o offset] [-l length] filename
+Hello,
+
+Since ENXIO only means "offset beyond EOF" for SEEK_DATA/SEEK_HOLE,
+Hence we should return the internal error unchanged if ocfs2_inode_lock() or
+ocfs2_get_clusters_nocache() call failed rather than ENXIO.
+Otherwise, it will confuse the user applications when they trying to understand the root cause.
+
+Thanks Dave for pointing this out.
+
+Thanks,
+-Jeff
 
 
-So I have a similar tool queued up in ocfs2-tools. Named puncher.
-http://oss.oracle.com/git/?p=ocfs2-tools.git;a=shortlog;h=puncher
+Cc: Dave Chinner <david@fromorbit.com>
+Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 
-I'll pull it out if we get something in util-linux. But maybe you can 
-extract something useful from it.
+---
+ fs/ocfs2/extent_map.c |    2 --
+ 1 files changed, 0 insertions(+), 2 deletions(-)
 
-Like.... maybe doing dry-run as default. It is an inplace modification
-after all. Also using a large hole size as default (1MB). Over using 
-hole punching will negatively affect read performance. We should make 
-the sane choice for the user.
-
-On a related note, it may make sense for ext4 to populate the cluster 
-size (bigalloc) in stat.st_blksize.
-
-2 cents...
+diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+index 2f5b92e..70b5863 100644
+--- a/fs/ocfs2/extent_map.c
++++ b/fs/ocfs2/extent_map.c
+@@ -923,8 +923,6 @@ out_unlock:
+ 
+ 	ocfs2_inode_unlock(inode, 0);
+ out:
+-	if (ret && ret != -ENXIO)
+-		ret = -ENXIO;
+ 	return ret;
+ }
+ 
+-- 
+1.7.9
