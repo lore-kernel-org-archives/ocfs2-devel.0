@@ -1,90 +1,40 @@
-From: Cong Wang <amwang@redhat.com>
-Date: Fri, 10 Feb 2012 05:46:13 -0000
-Subject: [Ocfs2-devel] [PATCH 42/60] ocfs2: remove the second argument of
-	k[un]map_atomic()
-In-Reply-To: <1328852421-19678-1-git-send-email-amwang@redhat.com>
-References: <1328852421-19678-1-git-send-email-amwang@redhat.com>
-Message-ID: <1328852421-19678-43-git-send-email-amwang@redhat.com>
+From: Jan Kara <jack@suse.cz>
+Date: Fri, 10 Feb 2012 16:04:20 -0000
+Subject: [Ocfs2-devel] [PATCH 4/4] btrfs: Use generic handlers of O_SYNC AIO
+	DIO
+In-Reply-To: <1328889842-23231-1-git-send-email-jack@suse.cz>
+References: <1328889842-23231-1-git-send-email-jack@suse.cz>
+Message-ID: <1328889842-23231-5-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Cong Wang <amwang@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: Jeff Moyer <jmoyer@redhat.com>
+Cc: linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, xfs@oss.sgi.com, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, cluster-devel@redhat.com, LKML <linux-kernel@vger.kernel.org>, Jan Kara <jack@suse.cz>
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
-Signed-off-by: Cong Wang <amwang@redhat.com>
+Use generic handlers to queue fsync() when AIO DIO is completed for O_SYNC
+file. Although we use our own bio->end_io function, we call dio_end_io()
+from it and thus, because we don't set any specific dio->end_io function,
+generic code ends up calling generic_dio_end_io() which is all what we need
+for proper O_SYNC AIO DIO handling.
+
+Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/aops.c |   16 ++++++++--------
- 1 files changed, 8 insertions(+), 8 deletions(-)
+ fs/btrfs/inode.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 78b68af..6577432 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -102,7 +102,7 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
- 		 * copy, the data is still good. */
- 		if (buffer_jbd(buffer_cache_bh)
- 		    && ocfs2_inode_is_new(inode)) {
--			kaddr = kmap_atomic(bh_result->b_page, KM_USER0);
-+			kaddr = kmap_atomic(bh_result->b_page);
- 			if (!kaddr) {
- 				mlog(ML_ERROR, "couldn't kmap!\n");
- 				goto bail;
-@@ -110,7 +110,7 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
- 			memcpy(kaddr + (bh_result->b_size * iblock),
- 			       buffer_cache_bh->b_data,
- 			       bh_result->b_size);
--			kunmap_atomic(kaddr, KM_USER0);
-+			kunmap_atomic(kaddr);
- 			set_buffer_uptodate(bh_result);
- 		}
- 		brelse(buffer_cache_bh);
-@@ -236,13 +236,13 @@ int ocfs2_read_inline_data(struct inode *inode, struct page *page,
- 		return -EROFS;
- 	}
+diff --git a/fs/btrfs/inode.c b/fs/btrfs/inode.c
+index 32214fe..68add6e 100644
+--- a/fs/btrfs/inode.c
++++ b/fs/btrfs/inode.c
+@@ -6221,7 +6221,7 @@ static ssize_t btrfs_direct_IO(int rw, struct kiocb *iocb,
+ 	ret = __blockdev_direct_IO(rw, iocb, inode,
+ 		   BTRFS_I(inode)->root->fs_info->fs_devices->latest_bdev,
+ 		   iov, offset, nr_segs, btrfs_get_blocks_direct, NULL,
+-		   btrfs_submit_direct, 0);
++		   btrfs_submit_direct, DIO_SYNC_WRITES);
  
--	kaddr = kmap_atomic(page, KM_USER0);
-+	kaddr = kmap_atomic(page);
- 	if (size)
- 		memcpy(kaddr, di->id2.i_data.id_data, size);
- 	/* Clear the remaining part of the page */
- 	memset(kaddr + size, 0, PAGE_CACHE_SIZE - size);
- 	flush_dcache_page(page);
--	kunmap_atomic(kaddr, KM_USER0);
-+	kunmap_atomic(kaddr);
- 
- 	SetPageUptodate(page);
- 
-@@ -689,7 +689,7 @@ static void ocfs2_clear_page_regions(struct page *page,
- 
- 	ocfs2_figure_cluster_boundaries(osb, cpos, &cluster_start, &cluster_end);
- 
--	kaddr = kmap_atomic(page, KM_USER0);
-+	kaddr = kmap_atomic(page);
- 
- 	if (from || to) {
- 		if (from > cluster_start)
-@@ -700,7 +700,7 @@ static void ocfs2_clear_page_regions(struct page *page,
- 		memset(kaddr + cluster_start, 0, cluster_end - cluster_start);
- 	}
- 
--	kunmap_atomic(kaddr, KM_USER0);
-+	kunmap_atomic(kaddr);
- }
- 
- /*
-@@ -1981,9 +1981,9 @@ static void ocfs2_write_end_inline(struct inode *inode, loff_t pos,
- 		}
- 	}
- 
--	kaddr = kmap_atomic(wc->w_target_page, KM_USER0);
-+	kaddr = kmap_atomic(wc->w_target_page);
- 	memcpy(di->id2.i_data.id_data + pos, kaddr + pos, *copied);
--	kunmap_atomic(kaddr, KM_USER0);
-+	kunmap_atomic(kaddr);
- 
- 	trace_ocfs2_write_end_inline(
- 	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 	if (ret < 0 && ret != -EIOCBQUEUED) {
+ 		clear_extent_bit(&BTRFS_I(inode)->io_tree, offset,
 -- 
-1.7.7.6
+1.7.1
