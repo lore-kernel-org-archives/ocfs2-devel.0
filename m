@@ -1,37 +1,30 @@
-From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Feb 2012 16:04:21 -0000
-Subject: [Ocfs2-devel] [PATCH 3/4] gfs2: Use generic handlers of O_SYNC AIO
-	DIO
-In-Reply-To: <1328889842-23231-1-git-send-email-jack@suse.cz>
+From: Jeff Moyer <jmoyer@redhat.com>
+Date: Fri, 10 Feb 2012 16:09:26 -0000
+Subject: [Ocfs2-devel] [PATCH 0/4] Generic O_SYNC AIO DIO handling
+In-Reply-To: <1328889842-23231-1-git-send-email-jack@suse.cz> (Jan Kara's
+	message of "Fri, 10 Feb 2012 17:03:58 +0100")
 References: <1328889842-23231-1-git-send-email-jack@suse.cz>
-Message-ID: <1328889842-23231-4-git-send-email-jack@suse.cz>
+Message-ID: <x49aa4qpt5m.fsf@segfault.boston.devel.redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jeff Moyer <jmoyer@redhat.com>
-Cc: linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, xfs@oss.sgi.com, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, cluster-devel@redhat.com, LKML <linux-kernel@vger.kernel.org>, Jan Kara <jack@suse.cz>
+To: Jan Kara <jack@suse.cz>
+Cc: linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, xfs@oss.sgi.com, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, cluster-devel@redhat.com, LKML <linux-kernel@vger.kernel.org>
 
-Use generic handlers to queue fsync() when AIO DIO is completed for O_SYNC
-file.
+Jan Kara <jack@suse.cz> writes:
 
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/gfs2/aops.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+>   Hi Jeff,
+>
+>   these patches implement generic way of handling O_SYNC AIO DIO. They work
+> for all filesystems except for ext4 and xfs. Thus together with your patches,
+> all filesystems should handle O_SYNC AIO DIO correctly. I've tested ext3,
+> btrfs, and xfs (to check that I didn't break anything when the generic code
+> is unused) and things seem to work fine. Will you add these patches to your
+> series please? Thanks.
 
-diff --git a/fs/gfs2/aops.c b/fs/gfs2/aops.c
-index 501e5cb..9c381ff 100644
---- a/fs/gfs2/aops.c
-+++ b/fs/gfs2/aops.c
-@@ -1034,7 +1034,7 @@ static ssize_t gfs2_direct_IO(int rw, struct kiocb *iocb,
- 
- 	rv = __blockdev_direct_IO(rw, iocb, inode, inode->i_sb->s_bdev, iov,
- 				  offset, nr_segs, gfs2_get_block_direct,
--				  NULL, NULL, 0);
-+				  NULL, NULL, DIO_SYNC_WRITES);
- out:
- 	gfs2_glock_dq_m(1, &gh);
- 	gfs2_holder_uninit(&gh);
--- 
-1.7.1
+Thanks, Jan!  I'll add them in and give them some testing.  I should be
+ready to repost the series early next week.
+
+Cheers,
+Jeff
