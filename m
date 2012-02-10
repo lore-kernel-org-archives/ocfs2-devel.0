@@ -1,50 +1,38 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu, 09 Feb 2012 09:43:24 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: for SEEK_DATA/SEEK_HOLE,
- return internal error unchanged if ocfs2_get_clusters_nocache() or
- ocfs2_inode_lock() call failed.
-In-Reply-To: <4F336ACE.3010803@oracle.com>
-References: <4F336ACE.3010803@oracle.com>
-Message-ID: <4F3405BC.50502@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Fri, 10 Feb 2012 10:50:07 +0100
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix bogus error message from
+	ocfs2_global_read_info
+Message-ID: <1328867407-11557-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+'status' variable in ocfs2_global_read_info() is always != 0 when leaving the
+function because it happens to contain number of read bytes. Thus we always log
+error message although everything is OK. Since all error cases properly call
+mlog_errno() before jumping to out_err, there's no reason to call mlog_errno()
+on exit at all. This is a fallout of c1e8d35e (conversion of mlog_exit()
+calls).
 
-On 02/08/2012 10:42 PM, Jeff Liu wrote:
-> Hello,
->
-> Since ENXIO only means "offset beyond EOF" for SEEK_DATA/SEEK_HOLE,
-> Hence we should return the internal error unchanged if ocfs2_inode_lock() or
-> ocfs2_get_clusters_nocache() call failed rather than ENXIO.
-> Otherwise, it will confuse the user applications when they trying to understand the root cause.
->
-> Thanks Dave for pointing this out.
->
-> Thanks,
-> -Jeff
->
->
-> Cc: Dave Chinner<david@fromorbit.com>
-> Signed-off-by: Jie Liu<jeff.liu@oracle.com>
->
-> ---
->   fs/ocfs2/extent_map.c |    2 --
->   1 files changed, 0 insertions(+), 2 deletions(-)
->
-> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-> index 2f5b92e..70b5863 100644
-> --- a/fs/ocfs2/extent_map.c
-> +++ b/fs/ocfs2/extent_map.c
-> @@ -923,8 +923,6 @@ out_unlock:
->
->   	ocfs2_inode_unlock(inode, 0);
->   out:
-> -	if (ret&&  ret != -ENXIO)
-> -		ret = -ENXIO;
->   	return ret;
->   }
->
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/quota_global.c |    2 --
+ 1 files changed, 0 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+index 92fcd57..0a86e30 100644
+--- a/fs/ocfs2/quota_global.c
++++ b/fs/ocfs2/quota_global.c
+@@ -399,8 +399,6 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+ 			      msecs_to_jiffies(oinfo->dqi_syncms));
+ 
+ out_err:
+-	if (status)
+-		mlog_errno(status);
+ 	return status;
+ out_unlock:
+ 	ocfs2_unlock_global_qf(oinfo, 0);
+-- 
+1.7.1
