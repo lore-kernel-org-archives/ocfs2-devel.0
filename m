@@ -1,25 +1,23 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Tue, 21 Feb 2012 09:48:59 -0800
+Date: Tue, 21 Feb 2012 10:04:53 -0800
 Subject: [Ocfs2-devel] Race condition between OCFS2 downconvert thread
  and ocfs2 cluster lock.
 In-Reply-To: <1329804728-6146-1-git-send-email-xiaowei.hu@oracle.com>
 References: <xiaowei.hu@oracle.com>
 	<1329804728-6146-1-git-send-email-xiaowei.hu@oracle.com>
-Message-ID: <4F43D90B.8040802@oracle.com>
+Message-ID: <4F43DCC5.9000400@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
- > bast queued and flushed,before the ast was queued
+Moreover what is lockres_clear_pending doing in 1.4. That code
+is not meant for 1.4. It fixes a problem associated with fsdlm.
+It was left out of 1.4 for a reason.
 
-Unlikely with o2dlm. dlmthread always sends ASTs before BASTs.
-
-Can you recreate the entire lockres? A full dump may yield more
-information.
-
-Sunil
+Meaning this bug was introduced by the patch that introduced this
+one in 1.4.
 
 On 02/20/2012 10:12 PM, xiaowei.hu at oracle.com wrote:
 > I am trying to fix bug13611997,CT's machine run into BUG in ocfs2dc thread, BUG_ON(lockres->l_action != OCFS2_AST_CONVERT&&  lockres->l_action != OCFS2_AST_DOWNCONVERT); I analysized the vmcore , the lockres->l_action = OCFS2_AST_ATTACH and l_flags=326(which means OCFS2_LOCK_BUSY|OCFS2_LOCK_BLOCKED|OCFS2_LOCK_INITIALIZED|OCFS2_LOCK_QUEUED), after compared with the code , this status could be only possible during ocfs2_cluster_lock,here is the race situation:
