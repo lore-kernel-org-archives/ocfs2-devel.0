@@ -1,40 +1,34 @@
 From: Xiaowei.hu <xiaowei.hu@oracle.com>
-Date: Wed, 22 Feb 2012 08:36:14 +0800
+Date: Wed, 22 Feb 2012 08:42:21 +0800
 Subject: [Ocfs2-devel] Race condition between OCFS2 downconvert thread
  and ocfs2 cluster lock.
-In-Reply-To: <4F43D90B.8040802@oracle.com>
+In-Reply-To: <4F43DCC5.9000400@oracle.com>
 References: <xiaowei.hu@oracle.com>
 	<1329804728-6146-1-git-send-email-xiaowei.hu@oracle.com>
-	<4F43D90B.8040802@oracle.com>
-Message-ID: <4F44387E.7040502@oracle.com>
+	<4F43DCC5.9000400@oracle.com>
+Message-ID: <4F4439ED.4050200@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Sunil,
+Yes, I noticed the lockres_set_pending and lockres_clear_pending doesn't 
+exist in 1.4 code.
+But 1.4 code did have the problem, that when lock a new lockres, 
+lockres->l_action = OCFS2_AST_ATTACH,
+and l_flags |= OCFS2_LOCK_BUSY ,and release the spin lock before ast was 
+queued. Also there is no pending status for
+downconvert thread to check and quit before the BUG().
 
-I mean it execute in this way:
 
-nodeA ocfs2_dlm_lock() and released the res spin lock,here A doesn't 
-hold spin locks,
-then it start to execute the proxy ast handler , process bast request 
-from nodeB,
-then dlmthread flushed the bast, after this node A start to queue its 
-ast in ocfs2_dlm_lock() function.
-
-Thanks,
-Xiaowei
-On 02/22/2012 01:48 AM, Sunil Mushran wrote:
-> > bast queued and flushed,before the ast was queued
+On 02/22/2012 02:04 AM, Sunil Mushran wrote:
+> Moreover what is lockres_clear_pending doing in 1.4. That code
+> is not meant for 1.4. It fixes a problem associated with fsdlm.
+> It was left out of 1.4 for a reason.
 >
-> Unlikely with o2dlm. dlmthread always sends ASTs before BASTs.
->
-> Can you recreate the entire lockres? A full dump may yield more
-> information.
->
-> Sunil
+> Meaning this bug was introduced by the patch that introduced this
+> one in 1.4.
 >
 > On 02/20/2012 10:12 PM, xiaowei.hu at oracle.com wrote:
 >> I am trying to fix bug13611997,CT's machine run into BUG in ocfs2dc 
