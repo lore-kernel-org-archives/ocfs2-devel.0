@@ -1,160 +1,40 @@
 From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  1 Mar 2012 11:34:16 -0800
-Subject: [Ocfs2-devel] [PATCH 2/9] ocfs2: Add missing copyright in few files
+Date: Thu,  1 Mar 2012 11:34:18 -0800
+Subject: [Ocfs2-devel] [PATCH 4/9] ocfs2/dlm: Use dlm->track_lock when
+	adding resource to the tracking list
 In-Reply-To: <1330630463-30305-1-git-send-email-sunil.mushran@oracle.com>
 References: <1330630463-30305-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1330630463-30305-2-git-send-email-sunil.mushran@oracle.com>
+Message-ID: <1330630463-30305-4-git-send-email-sunil.mushran@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Commit b0d4f817ba5de8adb875ace594554a96d7737710 introduced dlm->track_lock
+to protect operations on dlm->tracking_list. But it was still using the
+older lock (dlm->spin_lock) to add new resources to the list.
+
 Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
 ---
- fs/ocfs2/mmap.h         |   18 ++++++++++++++++++
- fs/ocfs2/ocfs2_trace.h  |   19 +++++++++++++++++++
- fs/ocfs2/quota.h        |   16 ++++++++++++++--
- fs/ocfs2/quota_global.c |   20 ++++++++++++++++++--
- fs/ocfs2/quota_local.c  |   19 +++++++++++++++++--
- 5 files changed, 86 insertions(+), 6 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/mmap.h b/fs/ocfs2/mmap.h
-index 1274ee0..63ca43e 100644
---- a/fs/ocfs2/mmap.h
-+++ b/fs/ocfs2/mmap.h
-@@ -1,3 +1,21 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * mmap.h
-+ *
-+ * Copyright (C) 2004, 2011 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ * Copyright (C) 2004, 2011 Oracle.  All rights reserved.
-+ */
-+
- #ifndef OCFS2_MMAP_H
- #define OCFS2_MMAP_H
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 005261c..347d588 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -597,9 +597,9 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
  
-diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-index 3b481f4..6f3f5b4 100644
---- a/fs/ocfs2/ocfs2_trace.h
-+++ b/fs/ocfs2/ocfs2_trace.h
-@@ -1,3 +1,22 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * ocfs2_trace.h
-+ *
-+ * Trace event macros
-+ *
-+ * Copyright (C) 2010, 2011 Oracle.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ */
-+
- #undef TRACE_SYSTEM
- #define TRACE_SYSTEM ocfs2
+ 	res->last_used = 0;
  
-diff --git a/fs/ocfs2/quota.h b/fs/ocfs2/quota.h
-index d5ab56c..36ef1e2 100644
---- a/fs/ocfs2/quota.h
-+++ b/fs/ocfs2/quota.h
-@@ -1,9 +1,21 @@
--/*
-- * quota.h for OCFS2
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * quota.h
-  *
-  * On disk quota structures for local and global quota file, in-memory
-  * structures.
-  *
-+ * Copyright (C) 2008, 2011 Novell.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-  */
+-	spin_lock(&dlm->spinlock);
++	spin_lock(&dlm->track_lock);
+ 	list_add_tail(&res->tracking, &dlm->tracking_list);
+-	spin_unlock(&dlm->spinlock);
++	spin_unlock(&dlm->track_lock);
  
- #ifndef _OCFS2_QUOTA_H
-diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-index 92fcd57..b24eab3 100644
---- a/fs/ocfs2/quota_global.c
-+++ b/fs/ocfs2/quota_global.c
-@@ -1,6 +1,22 @@
--/*
-- *  Implementation of operations over global quota file
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * quota_global.c
-+ *
-+ * Implementation of operations over global quota file
-+ *
-+ * Copyright (C) 2008, 2011 Novell.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-  */
-+
- #include <linux/spinlock.h>
- #include <linux/fs.h>
- #include <linux/slab.h>
-diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-index f100bf7..eeb9c0c 100644
---- a/fs/ocfs2/quota_local.c
-+++ b/fs/ocfs2/quota_local.c
-@@ -1,5 +1,20 @@
--/*
-- *  Implementation of operations over local quota file
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * quota_local.c
-+ *
-+ * Implementation of operations over local quota file
-+ *
-+ * Copyright (C) 2008, 2011 Novell.  All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-  */
- 
- #include <linux/fs.h>
+ 	memset(res->lvb, 0, DLM_LVB_LEN);
+ 	memset(res->refmap, 0, sizeof(res->refmap));
 -- 
 1.7.7.6
