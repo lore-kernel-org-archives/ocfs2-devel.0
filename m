@@ -1,124 +1,80 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 05 Mar 2012 16:01:42 -0000
-Subject: [Ocfs2-devel] [PATCH 12/19] ocfs2: Convert to new freezing mechanism
-In-Reply-To: <1330963277-26336-1-git-send-email-jack@suse.cz>
-References: <1330963277-26336-1-git-send-email-jack@suse.cz>
-Message-ID: <1330963277-26336-13-git-send-email-jack@suse.cz>
+Date: Mon, 05 Mar 2012 16:01:46 -0000
+Subject: [Ocfs2-devel] [PATCH 00/19] Fix filesystem freezing deadlocks
+Message-ID: <1330963277-26336-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-fsdevel@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, dchinner@redhat.com, sandeen@redhat.com, Kamal Mostafa <kamal@canonical.com>, Jan Kara <jack@suse.cz>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+Cc: linux-fsdevel@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, dchinner@redhat.com, sandeen@redhat.com, Kamal Mostafa <kamal@canonical.com>, Jan Kara <jack@suse.cz>, Alex Elder <elder@kernel.org>, Anton Altaparmakov <anton@tuxera.com>, Ben Myers <bpm@sgi.com>, Chris Mason <chris.mason@oracle.com>, cluster-devel@redhat.com, "David S. Miller" <davem@davemloft.net>, fuse-devel@lists.sourceforge.net, "J. Bruce Fields" <bfields@fieldses.org>, Joel Becker <jlbec@evilplan.org>, KONISHI Ryusuke <konishi.ryusuke@lab.ntt.co.jp>, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, Mark Fasheh <mfasheh@suse.com>, Miklos Szeredi <miklos@szeredi.hu>, ocfs2-devel@oss.oracle.com, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Steven Whitehouse <swhiteho@redhat.com>, Theodore Ts'o <tytso@mit.edu>, xfs@oss.sgi.com
 
-Protect ocfs2_page_mkwrite() and ocfs2_file_aio_write() using the new
-freeze protection. We also protect several ioctl entry points which
-were missing the protection.
+  Hallelujah,
 
-CC: Mark Fasheh <mfasheh@suse.com>
+  after a couple of weeks and several rewrites, here comes the third iteration
+of my patches to improve filesystem freezing.  Filesystem freezing is currently
+racy and thus we can end up with dirty data on frozen filesystem (see changelog
+patch 06 for detailed race description). This patch series aims at fixing this.
+
+To be able to block all places where inodes get dirtied, I've moved filesystem
+freeze handling in mnt_want_write() / mnt_drop_write(). This however required
+some code shuffling and changes to kern_path_create() (see patches 02-05). I
+think the result is OK but opinions may differ ;). The advantage of this change
+also is that all filesystems get freeze protection almost for free - even ext2
+can handle freezing well now.
+
+Another potential contention point might be patch 19. In that patch we make
+freeze_super() refuse to freeze the filesystem when there are open but unlinked
+files which may be impractical in some cases. The main reason for this is the
+problem with handling of file deletion from fput() called with mmap_sem held
+(e.g. from munmap(2)), and then there's the fact that we cannot really force
+such filesystem into a consistent state... But if people think that freezing
+with open but unlinked files should happen, then I have some possible
+solutions in mind (maybe as a separate patchset since this is large enough).
+
+I'm not able to hit any deadlocks, lockdep warnings, or dirty data on frozen
+filesystem despite beating it with fsstress and bash-shared-mapping while
+freezing and unfreezing for several hours (using ext4 and xfs) so I'm
+reasonably confident this could finally be the right solution.
+
+And for people wanting to test - this patchset is based on patch series
+"Push file_update_time() into .page_mkwrite" so you'll need to pull that one
+in as well.
+
+Changes since v2:
+  * completely rewritten
+  * freezing is now blocked at VFS entry points
+  * two stage freezing to handle both mmapped writes and other IO
+
+The biggest changes since v1:
+  * have two counters to provide safe state transitions for SB_FREEZE_WRITE
+    and SB_FREEZE_TRANS states
+  * use percpu counters instead of own percpu structure
+  * added documentation fixes from the old fs freezing series
+  * converted XFS to use SB_FREEZE_TRANS counter instead of its private
+    m_active_trans counter
+
+								Honza
+
+CC: Alex Elder <elder@kernel.org>
+CC: Anton Altaparmakov <anton@tuxera.com>
+CC: Ben Myers <bpm@sgi.com>
+CC: Chris Mason <chris.mason@oracle.com>
+CC: cluster-devel at redhat.com
+CC: "David S. Miller" <davem@davemloft.net>
+CC: fuse-devel at lists.sourceforge.net
+CC: "J. Bruce Fields" <bfields@fieldses.org>
 CC: Joel Becker <jlbec@evilplan.org>
+CC: KONISHI Ryusuke <konishi.ryusuke@lab.ntt.co.jp>
+CC: linux-btrfs at vger.kernel.org
+CC: linux-ext4 at vger.kernel.org
+CC: linux-nfs at vger.kernel.org
+CC: linux-nilfs at vger.kernel.org
+CC: linux-ntfs-dev at lists.sourceforge.net
+CC: Mark Fasheh <mfasheh@suse.com>
+CC: Miklos Szeredi <miklos@szeredi.hu>
 CC: ocfs2-devel at oss.oracle.com
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/ocfs2/file.c  |   11 +++++++++--
- fs/ocfs2/ioctl.c |   14 ++++++++++++--
- fs/ocfs2/mmap.c  |    2 ++
- 3 files changed, 23 insertions(+), 4 deletions(-)
-
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 061591a..9b1e3d4 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1971,6 +1971,7 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
- {
- 	struct inode *inode = file->f_path.dentry->d_inode;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	int ret;
- 
- 	if ((cmd == OCFS2_IOC_RESVSP || cmd == OCFS2_IOC_RESVSP64) &&
- 	    !ocfs2_writes_unwritten_extents(osb))
-@@ -1985,7 +1986,12 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
- 	if (!(file->f_mode & FMODE_WRITE))
- 		return -EBADF;
- 
--	return __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
-+	ret = mnt_want_write_file(file);
-+	if (ret)
-+		return ret;
-+	ret = __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
-+	mnt_drop_write_file(file);
-+	return ret;
- }
- 
- static long ocfs2_fallocate(struct file *file, int mode, loff_t offset,
-@@ -2261,7 +2267,7 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
- 	if (iocb->ki_left == 0)
- 		return 0;
- 
--	vfs_check_frozen(inode->i_sb, SB_FREEZE_WRITE);
-+	sb_start_write(inode->i_sb);
- 
- 	appending = file->f_flags & O_APPEND ? 1 : 0;
- 	direct_io = file->f_flags & O_DIRECT ? 1 : 0;
-@@ -2434,6 +2440,7 @@ out_sems:
- 		ocfs2_iocb_clear_sem_locked(iocb);
- 
- 	mutex_unlock(&inode->i_mutex);
-+	sb_end_write(inode->i_sb);
- 
- 	if (written)
- 		ret = written;
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index a6fda3c..59de312 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -928,7 +928,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
- 		if (get_user(new_clusters, (int __user *)arg))
- 			return -EFAULT;
- 
--		return ocfs2_group_extend(inode, new_clusters);
-+		status = mnt_want_write_file(filp);
-+		if (status)
-+			return status;
-+		status = ocfs2_group_extend(inode, new_clusters);
-+		mnt_drop_write_file(filp);
-+		return status;
- 	case OCFS2_IOC_GROUP_ADD:
- 	case OCFS2_IOC_GROUP_ADD64:
- 		if (!capable(CAP_SYS_RESOURCE))
-@@ -937,7 +942,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
- 		if (copy_from_user(&input, (int __user *) arg, sizeof(input)))
- 			return -EFAULT;
- 
--		return ocfs2_group_add(inode, &input);
-+		status = mnt_want_write_file(filp);
-+		if (status)
-+			return status;
-+		status = ocfs2_group_add(inode, &input);
-+		mnt_drop_write_file(filp);
-+		return status;
- 	case OCFS2_IOC_REFLINK:
- 		if (copy_from_user(&args, (struct reflink_arguments *)arg,
- 				   sizeof(args)))
-diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-index 9cd4108..d150372 100644
---- a/fs/ocfs2/mmap.c
-+++ b/fs/ocfs2/mmap.c
-@@ -136,6 +136,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
- 	sigset_t oldset;
- 	int ret;
- 
-+	sb_start_pagefault(inode->i_sb);
- 	ocfs2_block_signals(&oldset);
- 
- 	/*
-@@ -165,6 +166,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
- 
- out:
- 	ocfs2_unblock_signals(&oldset);
-+	sb_end_pagefault(inode->i_sb);
- 	return ret;
- }
- 
--- 
-1.7.1
+CC: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
+CC: Steven Whitehouse <swhiteho@redhat.com>
+CC: "Theodore Ts'o" <tytso@mit.edu>
+CC: xfs at oss.sgi.com
