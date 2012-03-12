@@ -1,42 +1,41 @@
-From: Kamal Mostafa <kamal@canonical.com>
-Date: Sun, 11 Mar 2012 20:23:58 -0000
-Subject: [Ocfs2-devel] [PATCH 00/19] Fix filesystem freezing deadlocks
-In-Reply-To: <1330963277-26336-1-git-send-email-jack@suse.cz>
-References: <1330963277-26336-1-git-send-email-jack@suse.cz>
-Message-ID: <1331497364.4641.86.camel@fourier>
+From: Jan Kara <jack@suse.cz>
+Date: Mon, 12 Mar 2012 13:38:32 -0000
+Subject: [Ocfs2-devel] ext3/4, btrfs,
+ ocfs2: How to assure that cleancache_invalidate_fs is called on
+ every superblock free
+In-Reply-To: <CACQs63L2wfXKaD5sH6OOV+Bm_+37F3QOdt1QMFbWnB9AE4iCpA@mail.gmail.com>
+References: <CACQs63L2wfXKaD5sH6OOV+Bm_+37F3QOdt1QMFbWnB9AE4iCpA@mail.gmail.com>
+Message-ID: <20120312133825.GF5998@quack.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, dchinner@redhat.com, sandeen@redhat.com, Alex Elder <elder@kernel.org>, Anton Altaparmakov <anton@tuxera.com>, Ben Myers <bpm@sgi.com>, Chris Mason <chris.mason@oracle.com>, cluster-devel@redhat.com, "David S. Miller" <davem@davemloft.net>, fuse-devel@lists.sourceforge.net, "J. Bruce Fields" <bfields@fieldses.org>, Joel Becker <jlbec@evilplan.org>, KONISHI Ryusuke <konishi.ryusuke@lab.ntt.co.jp>, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, Mark Fasheh <mfasheh@suse.com>, Miklos Szeredi <miklos@szeredi.hu>, ocfs2-devel@oss.oracle.com, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Steven Whitehouse <swhiteho@redhat.com>, Th
+To: Andor Daam <andor.daam@googlemail.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, dan.magenheimer@oracle.com, fschmaus@gmail.com, linux-mm@kvack.org, ilendir@googlemail.com, sjenning@linux.vnet.ibm.com, konrad.wilk@oracle.com, i4passt@lists.informatik.uni-erlangen.de, ngupta@vflare.org
 
-On Mon, 2012-03-05 at 17:00 +0100, Jan Kara wrote:
-> Hallelujah,
+  Hello,
+
+On Fri 09-03-12 14:40:22, Andor Daam wrote:
+> Is it ever possible for a superblock for a mounted filesystem to be
+> free'd without a previous call to unmount the filesystem?
+  No, I don't think so (well, except for cases where we do not manage to
+fully setup the superblock). But be aware that mount/umount need not be
+really the entry points you are looking for since filesystem can be mounted
+several times. Rather deactivate_locked_supers() is the place you are
+looking for...
+
+> I need to be certain that the function cleancache_invalidate_fs, which is
+> at the moment called by deactivate_locked_super (fs/super.c) [1], is
+> called before every free on a superblock of cleancache-enabled
+> filesystems.  Is this already the case or are there situations in which
+> this does not happen?
 > 
->   after a couple of weeks and several rewrites, here comes the third iteration
-> of my patches to improve filesystem freezing.  [...]
+> It would be interesting to know this, as we are planning to have
+> cleancache save pointers to superblocks of every mounted
+> cleancache-enabled filesystem [2] and it would be fatal if a
+> superblock is free'd without cleancache being notified.
 
-We've been testing this patch set at Canonical on the multipath failover
-SAN configuration where we originally encountered the freeze deadlock.
-We are happy to report that it does appear to fix the problem.  Thanks
-Jan!
-
-Please add the following endorsements for these patches (those actually
-exercised by our test case):  01, 02, 03, 06, 07, 08, 09, 10, 14, 18, 19
-
-BugLink: https://bugs.launchpad.net/bugs/897421
-Tested-by: Kamal Mostafa <kamal@canonical.com>
-Tested-by: Peter M. Petrakis <peter.petrakis@canonical.com>
-Tested-by: Dann Frazier <dann.frazier@canonical.com>
-Tested-by: Massimo Morana <massimo.morana@canonical.com>
-
- -Kamal
-
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: not available
-Type: application/pgp-signature
-Size: 836 bytes
-Desc: This is a digitally signed message part
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120311/9f92c086/attachment-0001.bin 
+								Honza
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
