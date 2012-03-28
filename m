@@ -1,444 +1,85 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed, 28 Mar 2012 23:44:05 -0000
-Subject: [Ocfs2-devel] [PATCH 02/19] fs: Push mnt_want_write() outside of
-	i_mutex
-In-Reply-To: <1332978214-15535-1-git-send-email-jack@suse.cz>
-References: <1332978214-15535-1-git-send-email-jack@suse.cz>
-Message-ID: <1332978214-15535-3-git-send-email-jack@suse.cz>
+Date: Wed, 28 Mar 2012 23:44:08 -0000
+Subject: [Ocfs2-devel] [PATCH 00/19 v4] Fix filesystem freezing deadlocks
+Message-ID: <1332978214-15535-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, dchinner@redhat.com, sandeen@redhat.com, Kamal Mostafa <kamal@canonical.com>, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, "David S. Miller" <davem@davemloft.net>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, dchinner@redhat.com, sandeen@redhat.com, Kamal Mostafa <kamal@canonical.com>, Jan Kara <jack@suse.cz>, Alex Elder <elder@kernel.org>, Anton Altaparmakov <anton@tuxera.com>, Ben Myers <bpm@sgi.com>, Chris Mason <chris.mason@oracle.com>, cluster-devel@redhat.com, "David S. Miller" <davem@davemloft.net>, fuse-devel@lists.sourceforge.net, "J. Bruce Fields" <bfields@fieldses.org>, Joel Becker <jlbec@evilplan.org>, KONISHI Ryusuke <konishi.ryusuke@lab.ntt.co.jp>, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, Mark Fasheh <mfasheh@suse.com>, Miklos Szeredi <miklos@szeredi.hu>, ocfs2-devel@oss.oracle.com, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Steven Whitehouse <swhiteho@redhat.com>, Theodore Ts'o <tytso@mit.edu>, xfs@oss.sgi.com
 
-Currently, mnt_want_write() is sometimes called with i_mutex held and sometimes
-without it. This isn't really a problem because mnt_want_write() is a
-non-blocking operation (essentially has a trylock semantics) but when the
-function starts to handle also frozen filesystems, it will get a full lock
-semantics and thus proper lock ordering has to be established. So move
-all mnt_want_write() calls outside of i_mutex.
+  Hello,
 
-One non-trivial case needing conversion is kern_path_create() /
-user_path_create() which didn't include mnt_want_write() but now needs to
-because it acquires i_mutex.  Because there are virtual file systems which
-don't bother with freeze / remount-ro protection we actually provide both
-versions of the function - one which calls mnt_want_write() and one which does
-not.
+  here is the fourth iteration of my patches to improve filesystem freezing.
+Filesystem freezing is currently racy and thus we can end up with dirty data on
+frozen filesystem (see changelog patch 06 for detailed race description). This
+patch series aims at fixing this.
 
-CC: ocfs2-devel at oss.oracle.com
-CC: Mark Fasheh <mfasheh@suse.com>
-CC: Joel Becker <jlbec@evilplan.org>
+To be able to block all places where inodes get dirtied, I've moved filesystem
+freeze handling in mnt_want_write() / mnt_drop_write(). This however required
+some code shuffling and changes to kern_path_create() (see patches 02-05). I
+think the result is OK but opinions may differ ;). The advantage of this change
+also is that all filesystems get freeze protection almost for free - even ext2
+can handle freezing well now.
+
+Another potential contention point might be patch 19. In that patch we make
+freeze_super() refuse to freeze the filesystem when there are open but unlinked
+files which may be impractical in some cases. The main reason for this is the
+problem with handling of file deletion from fput() called with mmap_sem held
+(e.g. from munmap(2)), and then there's the fact that we cannot really force
+such filesystem into a consistent state... But if people think that freezing
+with open but unlinked files should happen, then I have some possible
+solutions in mind (maybe as a separate patchset since this is large enough).
+
+I'm not able to hit any deadlocks, lockdep warnings, or dirty data on frozen
+filesystem despite beating it with fsstress and bash-shared-mapping while
+freezing and unfreezing for several hours (using ext4 and xfs) so I'm
+reasonably confident this could finally be the right solution.
+
+And for people wanting to test - this patchset is based on patch series
+"Push file_update_time() into .page_mkwrite" so you'll need to pull that one
+in as well.
+
+Changes since v3:
+  * added third level of freezing for fs internal purposes - hooked some
+    filesystems to use it (XFS, nilfs2)
+  * removed racy i_size check from filemap_mkwrite()
+
+Changes since v2:
+  * completely rewritten
+  * freezing is now blocked at VFS entry points
+  * two stage freezing to handle both mmapped writes and other IO
+
+The biggest changes since v1:
+  * have two counters to provide safe state transitions for SB_FREEZE_WRITE
+    and SB_FREEZE_TRANS states
+  * use percpu counters instead of own percpu structure
+  * added documentation fixes from the old fs freezing series
+  * converted XFS to use SB_FREEZE_TRANS counter instead of its private
+    m_active_trans counter
+
+								Honza
+
+CC: Alex Elder <elder@kernel.org>
+CC: Anton Altaparmakov <anton@tuxera.com>
+CC: Ben Myers <bpm@sgi.com>
+CC: Chris Mason <chris.mason@oracle.com>
+CC: cluster-devel at redhat.com
 CC: "David S. Miller" <davem@davemloft.net>
-BugLink: https://bugs.launchpad.net/bugs/897421
-Tested-by: Kamal Mostafa <kamal@canonical.com>
-Tested-by: Peter M. Petrakis <peter.petrakis@canonical.com>
-Tested-by: Dann Frazier <dann.frazier@canonical.com>
-Tested-by: Massimo Morana <massimo.morana@canonical.com>
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/namei.c              |  115 +++++++++++++++++++++++++++--------------------
- fs/ocfs2/refcounttree.c |   10 +---
- include/linux/namei.h   |    2 +
- net/unix/af_unix.c      |   13 ++----
- 4 files changed, 74 insertions(+), 66 deletions(-)
-
-diff --git a/fs/namei.c b/fs/namei.c
-index a780ea5..575d3a4 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -2383,7 +2383,9 @@ struct file *do_file_open_root(struct dentry *dentry, struct vfsmount *mnt,
- 	return file;
- }
- 
--struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path, int is_dir)
-+static struct dentry *do_kern_path_create(int dfd, const char *pathname,
-+					  struct path *path, int is_dir,
-+					  int freeze_protect)
- {
- 	struct dentry *dentry = ERR_PTR(-EEXIST);
- 	struct nameidata nd;
-@@ -2401,6 +2403,14 @@ struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path
- 	nd.flags |= LOOKUP_CREATE | LOOKUP_EXCL;
- 	nd.intent.open.flags = O_EXCL;
- 
-+	if (freeze_protect) {
-+		error = mnt_want_write(nd.path.mnt);
-+		if (error) {
-+			dentry = ERR_PTR(error);
-+			goto out;
-+		}
-+	}
-+
- 	/*
- 	 * Do the final lookup.
- 	 */
-@@ -2429,24 +2439,49 @@ eexist:
- 	dentry = ERR_PTR(-EEXIST);
- fail:
- 	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
-+	if (freeze_protect)
-+		mnt_drop_write(nd.path.mnt);
- out:
- 	path_put(&nd.path);
- 	return dentry;
- }
-+
-+struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path, int is_dir)
-+{
-+	return do_kern_path_create(dfd, pathname, path, is_dir, 0);
-+}
- EXPORT_SYMBOL(kern_path_create);
- 
-+struct dentry *kern_path_create_thawed(int dfd, const char *pathname, struct path *path, int is_dir)
-+{
-+	return do_kern_path_create(dfd, pathname, path, is_dir, 1);
-+}
-+EXPORT_SYMBOL(kern_path_create_thawed);
-+
- struct dentry *user_path_create(int dfd, const char __user *pathname, struct path *path, int is_dir)
- {
- 	char *tmp = getname(pathname);
- 	struct dentry *res;
- 	if (IS_ERR(tmp))
- 		return ERR_CAST(tmp);
--	res = kern_path_create(dfd, tmp, path, is_dir);
-+	res = do_kern_path_create(dfd, tmp, path, is_dir, 0);
- 	putname(tmp);
- 	return res;
- }
- EXPORT_SYMBOL(user_path_create);
- 
-+struct dentry *user_path_create_thawed(int dfd, const char __user *pathname, struct path *path, int is_dir)
-+{
-+	char *tmp = getname(pathname);
-+	struct dentry *res;
-+	if (IS_ERR(tmp))
-+		return ERR_CAST(tmp);
-+	res = do_kern_path_create(dfd, tmp, path, is_dir, 1);
-+	putname(tmp);
-+	return res;
-+}
-+EXPORT_SYMBOL(user_path_create_thawed);
-+
- int vfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, dev_t dev)
- {
- 	int error = may_create(dir, dentry);
-@@ -2502,7 +2537,7 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
- 	if (S_ISDIR(mode))
- 		return -EPERM;
- 
--	dentry = user_path_create(dfd, filename, &path, 0);
-+	dentry = user_path_create_thawed(dfd, filename, &path, 0);
- 	if (IS_ERR(dentry))
- 		return PTR_ERR(dentry);
- 
-@@ -2511,12 +2546,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
- 	error = may_mknod(mode);
- 	if (error)
- 		goto out_dput;
--	error = mnt_want_write(path.mnt);
--	if (error)
--		goto out_dput;
- 	error = security_path_mknod(&path, dentry, mode, dev);
- 	if (error)
--		goto out_drop_write;
-+		goto out_dput;
- 	switch (mode & S_IFMT) {
- 		case 0: case S_IFREG:
- 			error = vfs_create(path.dentry->d_inode,dentry,mode,NULL);
-@@ -2529,11 +2561,10 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
- 			error = vfs_mknod(path.dentry->d_inode,dentry,mode,0);
- 			break;
- 	}
--out_drop_write:
--	mnt_drop_write(path.mnt);
- out_dput:
- 	dput(dentry);
- 	mutex_unlock(&path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(path.mnt);
- 	path_put(&path);
- 
- 	return error;
-@@ -2571,24 +2602,20 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode)
- 	struct path path;
- 	int error;
- 
--	dentry = user_path_create(dfd, pathname, &path, 1);
-+	dentry = user_path_create_thawed(dfd, pathname, &path, 1);
- 	if (IS_ERR(dentry))
- 		return PTR_ERR(dentry);
- 
- 	if (!IS_POSIXACL(path.dentry->d_inode))
- 		mode &= ~current_umask();
--	error = mnt_want_write(path.mnt);
--	if (error)
--		goto out_dput;
- 	error = security_path_mkdir(&path, dentry, mode);
- 	if (error)
--		goto out_drop_write;
-+		goto out_dput;
- 	error = vfs_mkdir(path.dentry->d_inode, dentry, mode);
--out_drop_write:
--	mnt_drop_write(path.mnt);
- out_dput:
- 	dput(dentry);
- 	mutex_unlock(&path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(path.mnt);
- 	path_put(&path);
- 	return error;
- }
-@@ -2683,6 +2710,9 @@ static long do_rmdir(int dfd, const char __user *pathname)
- 	}
- 
- 	nd.flags &= ~LOOKUP_PARENT;
-+	error = mnt_want_write(nd.path.mnt);
-+	if (error)
-+		goto exit1;
- 
- 	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
- 	dentry = lookup_hash(&nd);
-@@ -2693,19 +2723,15 @@ static long do_rmdir(int dfd, const char __user *pathname)
- 		error = -ENOENT;
- 		goto exit3;
- 	}
--	error = mnt_want_write(nd.path.mnt);
--	if (error)
--		goto exit3;
- 	error = security_path_rmdir(&nd.path, dentry);
- 	if (error)
--		goto exit4;
-+		goto exit3;
- 	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
--exit4:
--	mnt_drop_write(nd.path.mnt);
- exit3:
- 	dput(dentry);
- exit2:
- 	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(nd.path.mnt);
- exit1:
- 	path_put(&nd.path);
- 	putname(name);
-@@ -2772,6 +2798,9 @@ static long do_unlinkat(int dfd, const char __user *pathname)
- 		goto exit1;
- 
- 	nd.flags &= ~LOOKUP_PARENT;
-+	error = mnt_want_write(nd.path.mnt);
-+	if (error)
-+		goto exit1;
- 
- 	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
- 	dentry = lookup_hash(&nd);
-@@ -2784,21 +2813,17 @@ static long do_unlinkat(int dfd, const char __user *pathname)
- 		if (!inode)
- 			goto slashes;
- 		ihold(inode);
--		error = mnt_want_write(nd.path.mnt);
--		if (error)
--			goto exit2;
- 		error = security_path_unlink(&nd.path, dentry);
- 		if (error)
--			goto exit3;
-+			goto exit2;
- 		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
--exit3:
--		mnt_drop_write(nd.path.mnt);
--	exit2:
-+exit2:
- 		dput(dentry);
- 	}
- 	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
- 	if (inode)
- 		iput(inode);	/* truncate the inode here */
-+	mnt_drop_write(nd.path.mnt);
- exit1:
- 	path_put(&nd.path);
- 	putname(name);
-@@ -2858,23 +2883,19 @@ SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
- 	if (IS_ERR(from))
- 		return PTR_ERR(from);
- 
--	dentry = user_path_create(newdfd, newname, &path, 0);
-+	dentry = user_path_create_thawed(newdfd, newname, &path, 0);
- 	error = PTR_ERR(dentry);
- 	if (IS_ERR(dentry))
- 		goto out_putname;
- 
--	error = mnt_want_write(path.mnt);
--	if (error)
--		goto out_dput;
- 	error = security_path_symlink(&path, dentry, from);
- 	if (error)
--		goto out_drop_write;
-+		goto out_dput;
- 	error = vfs_symlink(path.dentry->d_inode, dentry, from);
--out_drop_write:
--	mnt_drop_write(path.mnt);
- out_dput:
- 	dput(dentry);
- 	mutex_unlock(&path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(path.mnt);
- 	path_put(&path);
- out_putname:
- 	putname(from);
-@@ -2964,7 +2985,7 @@ SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
- 	if (error)
- 		return error;
- 
--	new_dentry = user_path_create(newdfd, newname, &new_path, 0);
-+	new_dentry = user_path_create_thawed(newdfd, newname, &new_path, 0);
- 	error = PTR_ERR(new_dentry);
- 	if (IS_ERR(new_dentry))
- 		goto out;
-@@ -2972,18 +2993,14 @@ SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
- 	error = -EXDEV;
- 	if (old_path.mnt != new_path.mnt)
- 		goto out_dput;
--	error = mnt_want_write(new_path.mnt);
--	if (error)
--		goto out_dput;
- 	error = security_path_link(old_path.dentry, &new_path, new_dentry);
- 	if (error)
--		goto out_drop_write;
-+		goto out_dput;
- 	error = vfs_link(old_path.dentry, new_path.dentry->d_inode, new_dentry);
--out_drop_write:
--	mnt_drop_write(new_path.mnt);
- out_dput:
- 	dput(new_dentry);
- 	mutex_unlock(&new_path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(new_path.mnt);
- 	path_put(&new_path);
- out:
- 	path_put(&old_path);
-@@ -3174,6 +3191,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
- 	if (newnd.last_type != LAST_NORM)
- 		goto exit2;
- 
-+	error = mnt_want_write(oldnd.path.mnt);
-+	if (error)
-+		goto exit2;
-+
- 	oldnd.flags &= ~LOOKUP_PARENT;
- 	newnd.flags &= ~LOOKUP_PARENT;
- 	newnd.flags |= LOOKUP_RENAME_TARGET;
-@@ -3209,23 +3230,19 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
- 	if (new_dentry == trap)
- 		goto exit5;
- 
--	error = mnt_want_write(oldnd.path.mnt);
--	if (error)
--		goto exit5;
- 	error = security_path_rename(&oldnd.path, old_dentry,
- 				     &newnd.path, new_dentry);
- 	if (error)
--		goto exit6;
-+		goto exit5;
- 	error = vfs_rename(old_dir->d_inode, old_dentry,
- 				   new_dir->d_inode, new_dentry);
--exit6:
--	mnt_drop_write(oldnd.path.mnt);
- exit5:
- 	dput(new_dentry);
- exit4:
- 	dput(old_dentry);
- exit3:
- 	unlock_rename(new_dir, old_dir);
-+	mnt_drop_write(oldnd.path.mnt);
- exit2:
- 	path_put(&newnd.path);
- 	putname(to);
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index cf78233..a99b8e2 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -4453,7 +4453,7 @@ int ocfs2_reflink_ioctl(struct inode *inode,
- 		return error;
- 	}
- 
--	new_dentry = user_path_create(AT_FDCWD, newname, &new_path, 0);
-+	new_dentry = user_path_create_thawed(AT_FDCWD, newname, &new_path, 0);
- 	error = PTR_ERR(new_dentry);
- 	if (IS_ERR(new_dentry)) {
- 		mlog_errno(error);
-@@ -4466,19 +4466,13 @@ int ocfs2_reflink_ioctl(struct inode *inode,
- 		goto out_dput;
- 	}
- 
--	error = mnt_want_write(new_path.mnt);
--	if (error) {
--		mlog_errno(error);
--		goto out_dput;
--	}
--
- 	error = ocfs2_vfs_reflink(old_path.dentry,
- 				  new_path.dentry->d_inode,
- 				  new_dentry, preserve);
--	mnt_drop_write(new_path.mnt);
- out_dput:
- 	dput(new_dentry);
- 	mutex_unlock(&new_path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(new_path.mnt);
- 	path_put(&new_path);
- out:
- 	path_put(&old_path);
-diff --git a/include/linux/namei.h b/include/linux/namei.h
-index ffc0213..432f6bb 100644
---- a/include/linux/namei.h
-+++ b/include/linux/namei.h
-@@ -77,7 +77,9 @@ extern int user_path_at_empty(int, const char __user *, unsigned, struct path *,
- extern int kern_path(const char *, unsigned, struct path *);
- 
- extern struct dentry *kern_path_create(int, const char *, struct path *, int);
-+extern struct dentry *kern_path_create_thawed(int, const char *, struct path *, int);
- extern struct dentry *user_path_create(int, const char __user *, struct path *, int);
-+extern struct dentry *user_path_create_thawed(int, const char __user *, struct path *, int);
- extern int kern_path_parent(const char *, struct nameidata *);
- extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
- 			   const char *, unsigned int, struct path *);
-diff --git a/net/unix/af_unix.c b/net/unix/af_unix.c
-index 85d3bb7..7888b09 100644
---- a/net/unix/af_unix.c
-+++ b/net/unix/af_unix.c
-@@ -856,7 +856,7 @@ static int unix_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
- 		 * Get the parent directory, calculate the hash for last
- 		 * component.
- 		 */
--		dentry = kern_path_create(AT_FDCWD, sun_path, &path, 0);
-+		dentry = kern_path_create_thawed(AT_FDCWD, sun_path, &path, 0);
- 		err = PTR_ERR(dentry);
- 		if (IS_ERR(dentry))
- 			goto out_mknod_parent;
-@@ -866,19 +866,13 @@ static int unix_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
- 		 */
- 		mode = S_IFSOCK |
- 		       (SOCK_INODE(sock)->i_mode & ~current_umask());
--		err = mnt_want_write(path.mnt);
--		if (err)
--			goto out_mknod_dput;
- 		err = security_path_mknod(&path, dentry, mode, 0);
- 		if (err)
--			goto out_mknod_drop_write;
--		err = vfs_mknod(path.dentry->d_inode, dentry, mode, 0);
--out_mknod_drop_write:
--		mnt_drop_write(path.mnt);
--		if (err)
- 			goto out_mknod_dput;
-+		err = vfs_mknod(path.dentry->d_inode, dentry, mode, 0);
- 		mutex_unlock(&path.dentry->d_inode->i_mutex);
- 		dput(path.dentry);
-+		mnt_drop_write(path.mnt);
- 		path.dentry = dentry;
- 
- 		addr->hash = UNIX_HASH_SIZE;
-@@ -916,6 +910,7 @@ out:
- out_mknod_dput:
- 	dput(dentry);
- 	mutex_unlock(&path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(path.mnt);
- 	path_put(&path);
- out_mknod_parent:
- 	if (err == -EEXIST)
--- 
-1.7.1
+CC: fuse-devel at lists.sourceforge.net
+CC: "J. Bruce Fields" <bfields@fieldses.org>
+CC: Joel Becker <jlbec@evilplan.org>
+CC: KONISHI Ryusuke <konishi.ryusuke@lab.ntt.co.jp>
+CC: linux-btrfs at vger.kernel.org
+CC: linux-ext4 at vger.kernel.org
+CC: linux-nfs at vger.kernel.org
+CC: linux-nilfs at vger.kernel.org
+CC: linux-ntfs-dev at lists.sourceforge.net
+CC: Mark Fasheh <mfasheh@suse.com>
+CC: Miklos Szeredi <miklos@szeredi.hu>
+CC: ocfs2-devel at oss.oracle.com
+CC: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
+CC: Steven Whitehouse <swhiteho@redhat.com>
+CC: "Theodore Ts'o" <tytso@mit.edu>
+CC: xfs at oss.sgi.com
