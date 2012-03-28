@@ -1,56 +1,124 @@
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Date: Thu,  1 Mar 2012 11:34:19 -0800
-Subject: [Ocfs2-devel] [PATCH 5/9] ocfs2/dlm: Fix list traversal in
-	dlm_process_recovery_data()
-In-Reply-To: <1330630463-30305-1-git-send-email-sunil.mushran@oracle.com>
-References: <1330630463-30305-1-git-send-email-sunil.mushran@oracle.com>
-Message-ID: <1330630463-30305-5-git-send-email-sunil.mushran@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Thu, 29 Mar 2012 01:43:27 +0200
+Subject: [Ocfs2-devel] [PATCH 12/19] ocfs2: Convert to new freezing mechanism
+In-Reply-To: <1332978214-15535-1-git-send-email-jack@suse.cz>
+References: <1332978214-15535-1-git-send-email-jack@suse.cz>
+Message-ID: <1332978214-15535-13-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: sandeen@redhat.com, Jan Kara <jack@suse.cz>, Mark Fasheh <mfasheh@suse.com>, Kamal Mostafa <kamal@canonical.com>, Al Viro <viro@ZenIV.linux.org.uk>, dchinner@redhat.com, ocfs2-devel@oss.oracle.com
 
-This bug, detected via static analysis, was introduced by commit 800deef3
-that replaced the existing list_for_each() with list_for_each_entry(). We
-have no record of it hitting users during runtime. This could be because
-this lock list is supposed to have only one lock that is owned by that node
-averting the case in which lock is set to NULL.
+Protect ocfs2_page_mkwrite() and ocfs2_file_aio_write() using the new
+freeze protection. We also protect several ioctl entry points which
+were missing the protection.
 
-Reported-by: Julia Lawall <julia@diku.dk>
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
+CC: Mark Fasheh <mfasheh@suse.com>
+CC: Joel Becker <jlbec@evilplan.org>
+CC: ocfs2-devel at oss.oracle.com
+Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/dlm/dlmrecovery.c |   10 +++++-----
- 1 files changed, 5 insertions(+), 5 deletions(-)
+ fs/ocfs2/file.c  |   11 +++++++++--
+ fs/ocfs2/ioctl.c |   14 ++++++++++++--
+ fs/ocfs2/mmap.c  |    2 ++
+ 3 files changed, 23 insertions(+), 4 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 01ebfd0..c881be6 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1752,7 +1752,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
- 				     struct dlm_migratable_lockres *mres)
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 061591a..9b1e3d4 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1971,6 +1971,7 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
  {
- 	struct dlm_migratable_lock *ml;
--	struct list_head *queue;
-+	struct list_head *queue, *iter;
- 	struct list_head *tmpq = NULL;
- 	struct dlm_lock *newlock = NULL;
- 	struct dlm_lockstatus *lksb = NULL;
-@@ -1796,11 +1796,11 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
- 			spin_lock(&res->spinlock);
- 			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
- 				tmpq = dlm_list_idx_to_ptr(res, j);
--				list_for_each_entry(lock, tmpq, list) {
--					if (lock->ml.cookie != ml->cookie)
--						lock = NULL;
--					else
-+				list_for_each(iter, tmpq) {
-+					lock = list_entry(iter, struct dlm_lock, list);
-+					if (lock->ml.cookie == ml->cookie)
- 						break;
-+					lock = NULL;
- 				}
- 				if (lock)
- 					break;
+ 	struct inode *inode = file->f_path.dentry->d_inode;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	int ret;
+ 
+ 	if ((cmd == OCFS2_IOC_RESVSP || cmd == OCFS2_IOC_RESVSP64) &&
+ 	    !ocfs2_writes_unwritten_extents(osb))
+@@ -1985,7 +1986,12 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
+ 	if (!(file->f_mode & FMODE_WRITE))
+ 		return -EBADF;
+ 
+-	return __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
++	ret = mnt_want_write_file(file);
++	if (ret)
++		return ret;
++	ret = __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
++	mnt_drop_write_file(file);
++	return ret;
+ }
+ 
+ static long ocfs2_fallocate(struct file *file, int mode, loff_t offset,
+@@ -2261,7 +2267,7 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
+ 	if (iocb->ki_left == 0)
+ 		return 0;
+ 
+-	vfs_check_frozen(inode->i_sb, SB_FREEZE_WRITE);
++	sb_start_write(inode->i_sb);
+ 
+ 	appending = file->f_flags & O_APPEND ? 1 : 0;
+ 	direct_io = file->f_flags & O_DIRECT ? 1 : 0;
+@@ -2434,6 +2440,7 @@ out_sems:
+ 		ocfs2_iocb_clear_sem_locked(iocb);
+ 
+ 	mutex_unlock(&inode->i_mutex);
++	sb_end_write(inode->i_sb);
+ 
+ 	if (written)
+ 		ret = written;
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index a6fda3c..59de312 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -928,7 +928,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 		if (get_user(new_clusters, (int __user *)arg))
+ 			return -EFAULT;
+ 
+-		return ocfs2_group_extend(inode, new_clusters);
++		status = mnt_want_write_file(filp);
++		if (status)
++			return status;
++		status = ocfs2_group_extend(inode, new_clusters);
++		mnt_drop_write_file(filp);
++		return status;
+ 	case OCFS2_IOC_GROUP_ADD:
+ 	case OCFS2_IOC_GROUP_ADD64:
+ 		if (!capable(CAP_SYS_RESOURCE))
+@@ -937,7 +942,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 		if (copy_from_user(&input, (int __user *) arg, sizeof(input)))
+ 			return -EFAULT;
+ 
+-		return ocfs2_group_add(inode, &input);
++		status = mnt_want_write_file(filp);
++		if (status)
++			return status;
++		status = ocfs2_group_add(inode, &input);
++		mnt_drop_write_file(filp);
++		return status;
+ 	case OCFS2_IOC_REFLINK:
+ 		if (copy_from_user(&args, (struct reflink_arguments *)arg,
+ 				   sizeof(args)))
+diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+index 9cd4108..d150372 100644
+--- a/fs/ocfs2/mmap.c
++++ b/fs/ocfs2/mmap.c
+@@ -136,6 +136,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
+ 	sigset_t oldset;
+ 	int ret;
+ 
++	sb_start_pagefault(inode->i_sb);
+ 	ocfs2_block_signals(&oldset);
+ 
+ 	/*
+@@ -165,6 +166,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
+ 
+ out:
+ 	ocfs2_unblock_signals(&oldset);
++	sb_end_pagefault(inode->i_sb);
+ 	return ret;
+ }
+ 
 -- 
-1.7.7.6
+1.7.1
