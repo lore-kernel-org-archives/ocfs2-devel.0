@@ -1,7 +1,7 @@
 From: Chang Limin <changlimin@h3c.com>
-Date: Fri, 13 Apr 2012 15:58:28 +0800
+Date: Fri, 13 Apr 2012 11:32:57 +0800
 Subject: [Ocfs2-devel] Maybe a null point bug in __ocfs2_change_file_space.
-Message-ID: <6A84A23BB58148AEAFD0504349CC2A0D@c00148h>
+Message-ID: <DF1B6911863647188EE6651D8404CC94@c00148h>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -30,6 +30,7 @@ if (file->f_flags & O_SYNC)                                                     
 }
 
 Changlimin
+
 -------------------------------------------------------------------------------------------------------------------------------------
 ????????????????????????????????????????
 ????????????????????????????????????????
@@ -43,4 +44,4 @@ recipient(s) is prohibited. If you receive this e-mail in error, please notify t
 by phone or email immediately and delete it!
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120413/bda432dc/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120413/8172e23a/attachment-0001.html 
