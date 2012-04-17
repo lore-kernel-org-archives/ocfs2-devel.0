@@ -1,463 +1,146 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue, 17 Apr 2012 09:43:55 +0200
-Subject: [Ocfs2-devel] [PATCH 09/27] fs: Push mnt_want_write() outside
-	of i_mutex
-In-Reply-To: <20120417021850.GB31464@dhcp-172-17-9-228.mtv.corp.google.com>
+Date: Tue, 17 Apr 2012 09:44:08 +0200
+Subject: [Ocfs2-devel] [PATCH 19/27] ocfs2: Convert to new freezing
+	mechanism
+In-Reply-To: <20120417021921.GC31464@dhcp-172-17-9-228.mtv.corp.google.com>
 References: <1334592845-22862-1-git-send-email-jack@suse.cz>
-	<1334592845-22862-10-git-send-email-jack@suse.cz>
-	<20120417021850.GB31464@dhcp-172-17-9-228.mtv.corp.google.com>
-Message-ID: <20120417074355.GA7198@quack.suse.cz>
+	<1334592845-22862-20-git-send-email-jack@suse.cz>
+	<20120417021921.GC31464@dhcp-172-17-9-228.mtv.corp.google.com>
+Message-ID: <20120417074408.GB7198@quack.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Joel Becker <jlbec@evilplan.org>
-Cc: Jan Kara <jack@suse.cz>, Al Viro <viro@ZenIV.linux.org.uk>, dchinner@redhat.com, LKML <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, "David S. Miller" <davem@davemloft.net>
+Cc: Jan Kara <jack@suse.cz>, Al Viro <viro@ZenIV.linux.org.uk>, dchinner@redhat.com, LKML <linux-kernel@vger.kernel.org>, linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-On Mon 16-04-12 19:18:53, Joel Becker wrote:
-> On Mon, Apr 16, 2012 at 06:13:47PM +0200, Jan Kara wrote:
-> > Currently, mnt_want_write() is sometimes called with i_mutex held and sometimes
-> > without it. This isn't really a problem because mnt_want_write() is a
-> > non-blocking operation (essentially has a trylock semantics) but when the
-> > function starts to handle also frozen filesystems, it will get a full lock
-> > semantics and thus proper lock ordering has to be established. So move
-> > all mnt_want_write() calls outside of i_mutex.
+On Mon 16-04-12 19:19:21, Joel Becker wrote:
+> On Mon, Apr 16, 2012 at 06:13:57PM +0200, Jan Kara wrote:
+> > Protect ocfs2_page_mkwrite() and ocfs2_file_aio_write() using the new
+> > freeze protection. We also protect several ioctl entry points which
+> > were missing the protection.
 > > 
-> > One non-trivial case needing conversion is kern_path_create() /
-> > user_path_create() which didn't include mnt_want_write() but now needs to
-> > because it acquires i_mutex.  Because there are virtual file systems which
-> > don't bother with freeze / remount-ro protection we actually provide both
-> > versions of the function - one which calls mnt_want_write() and one which does
-> > not.
-> > 
-> > CC: ocfs2-devel at oss.oracle.com
 > > CC: Mark Fasheh <mfasheh@suse.com>
 > > CC: Joel Becker <jlbec@evilplan.org>
-> > CC: "David S. Miller" <davem@davemloft.net>
-> > BugLink: https://bugs.launchpad.net/bugs/897421
-> > Tested-by: Kamal Mostafa <kamal@canonical.com>
-> > Tested-by: Peter M. Petrakis <peter.petrakis@canonical.com>
-> > Tested-by: Dann Frazier <dann.frazier@canonical.com>
-> > Tested-by: Massimo Morana <massimo.morana@canonical.com>
+> > CC: ocfs2-devel at oss.oracle.com
 > > Signed-off-by: Jan Kara <jack@suse.cz>
 > 
 > Acked-by: Joel Becker <jlbec@evilplan.org>
   Thanks. Added.
 
 								Honza
-> 
+
 > > ---
-> >  fs/namei.c              |  115 +++++++++++++++++++++++++++--------------------
-> >  fs/ocfs2/refcounttree.c |   10 +---
-> >  include/linux/namei.h   |    2 +
-> >  net/unix/af_unix.c      |   13 ++----
-> >  4 files changed, 74 insertions(+), 66 deletions(-)
+> >  fs/ocfs2/file.c  |   11 +++++++++--
+> >  fs/ocfs2/ioctl.c |   14 ++++++++++++--
+> >  fs/ocfs2/mmap.c  |    2 ++
+> >  3 files changed, 23 insertions(+), 4 deletions(-)
 > > 
-> > diff --git a/fs/namei.c b/fs/namei.c
-> > index 0062dd1..5417fa1 100644
-> > --- a/fs/namei.c
-> > +++ b/fs/namei.c
-> > @@ -2460,7 +2460,9 @@ struct file *do_file_open_root(struct dentry *dentry, struct vfsmount *mnt,
-> >  	return file;
+> > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> > index 061591a..9b1e3d4 100644
+> > --- a/fs/ocfs2/file.c
+> > +++ b/fs/ocfs2/file.c
+> > @@ -1971,6 +1971,7 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
+> >  {
+> >  	struct inode *inode = file->f_path.dentry->d_inode;
+> >  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> > +	int ret;
+> >  
+> >  	if ((cmd == OCFS2_IOC_RESVSP || cmd == OCFS2_IOC_RESVSP64) &&
+> >  	    !ocfs2_writes_unwritten_extents(osb))
+> > @@ -1985,7 +1986,12 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
+> >  	if (!(file->f_mode & FMODE_WRITE))
+> >  		return -EBADF;
+> >  
+> > -	return __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
+> > +	ret = mnt_want_write_file(file);
+> > +	if (ret)
+> > +		return ret;
+> > +	ret = __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
+> > +	mnt_drop_write_file(file);
+> > +	return ret;
 > >  }
 > >  
-> > -struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path, int is_dir)
-> > +static struct dentry *do_kern_path_create(int dfd, const char *pathname,
-> > +					  struct path *path, int is_dir,
-> > +					  int freeze_protect)
-> >  {
-> >  	struct dentry *dentry = ERR_PTR(-EEXIST);
-> >  	struct nameidata nd;
-> > @@ -2478,6 +2480,14 @@ struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path
-> >  	nd.flags |= LOOKUP_CREATE | LOOKUP_EXCL;
-> >  	nd.intent.open.flags = O_EXCL;
+> >  static long ocfs2_fallocate(struct file *file, int mode, loff_t offset,
+> > @@ -2261,7 +2267,7 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
+> >  	if (iocb->ki_left == 0)
+> >  		return 0;
 > >  
-> > +	if (freeze_protect) {
-> > +		error = mnt_want_write(nd.path.mnt);
-> > +		if (error) {
-> > +			dentry = ERR_PTR(error);
-> > +			goto out;
-> > +		}
-> > +	}
-> > +
+> > -	vfs_check_frozen(inode->i_sb, SB_FREEZE_WRITE);
+> > +	sb_start_write(inode->i_sb);
+> >  
+> >  	appending = file->f_flags & O_APPEND ? 1 : 0;
+> >  	direct_io = file->f_flags & O_DIRECT ? 1 : 0;
+> > @@ -2434,6 +2440,7 @@ out_sems:
+> >  		ocfs2_iocb_clear_sem_locked(iocb);
+> >  
+> >  	mutex_unlock(&inode->i_mutex);
+> > +	sb_end_write(inode->i_sb);
+> >  
+> >  	if (written)
+> >  		ret = written;
+> > diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> > index a1a1bfd..d9c352b 100644
+> > --- a/fs/ocfs2/ioctl.c
+> > +++ b/fs/ocfs2/ioctl.c
+> > @@ -926,7 +926,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+> >  		if (get_user(new_clusters, (int __user *)arg))
+> >  			return -EFAULT;
+> >  
+> > -		return ocfs2_group_extend(inode, new_clusters);
+> > +		status = mnt_want_write_file(filp);
+> > +		if (status)
+> > +			return status;
+> > +		status = ocfs2_group_extend(inode, new_clusters);
+> > +		mnt_drop_write_file(filp);
+> > +		return status;
+> >  	case OCFS2_IOC_GROUP_ADD:
+> >  	case OCFS2_IOC_GROUP_ADD64:
+> >  		if (!capable(CAP_SYS_RESOURCE))
+> > @@ -935,7 +940,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+> >  		if (copy_from_user(&input, (int __user *) arg, sizeof(input)))
+> >  			return -EFAULT;
+> >  
+> > -		return ocfs2_group_add(inode, &input);
+> > +		status = mnt_want_write_file(filp);
+> > +		if (status)
+> > +			return status;
+> > +		status = ocfs2_group_add(inode, &input);
+> > +		mnt_drop_write_file(filp);
+> > +		return status;
+> >  	case OCFS2_IOC_REFLINK:
+> >  		if (copy_from_user(&args, (struct reflink_arguments *)arg,
+> >  				   sizeof(args)))
+> > diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+> > index 9cd4108..d150372 100644
+> > --- a/fs/ocfs2/mmap.c
+> > +++ b/fs/ocfs2/mmap.c
+> > @@ -136,6 +136,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
+> >  	sigset_t oldset;
+> >  	int ret;
+> >  
+> > +	sb_start_pagefault(inode->i_sb);
+> >  	ocfs2_block_signals(&oldset);
+> >  
 > >  	/*
-> >  	 * Do the final lookup.
-> >  	 */
-> > @@ -2506,24 +2516,49 @@ eexist:
-> >  	dentry = ERR_PTR(-EEXIST);
-> >  fail:
-> >  	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
-> > +	if (freeze_protect)
-> > +		mnt_drop_write(nd.path.mnt);
+> > @@ -165,6 +166,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
+> >  
 > >  out:
-> >  	path_put(&nd.path);
-> >  	return dentry;
+> >  	ocfs2_unblock_signals(&oldset);
+> > +	sb_end_pagefault(inode->i_sb);
+> >  	return ret;
 > >  }
-> > +
-> > +struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path, int is_dir)
-> > +{
-> > +	return do_kern_path_create(dfd, pathname, path, is_dir, 0);
-> > +}
-> >  EXPORT_SYMBOL(kern_path_create);
 > >  
-> > +struct dentry *kern_path_create_thawed(int dfd, const char *pathname, struct path *path, int is_dir)
-> > +{
-> > +	return do_kern_path_create(dfd, pathname, path, is_dir, 1);
-> > +}
-> > +EXPORT_SYMBOL(kern_path_create_thawed);
-> > +
-> >  struct dentry *user_path_create(int dfd, const char __user *pathname, struct path *path, int is_dir)
-> >  {
-> >  	char *tmp = getname(pathname);
-> >  	struct dentry *res;
-> >  	if (IS_ERR(tmp))
-> >  		return ERR_CAST(tmp);
-> > -	res = kern_path_create(dfd, tmp, path, is_dir);
-> > +	res = do_kern_path_create(dfd, tmp, path, is_dir, 0);
-> >  	putname(tmp);
-> >  	return res;
-> >  }
-> >  EXPORT_SYMBOL(user_path_create);
-> >  
-> > +struct dentry *user_path_create_thawed(int dfd, const char __user *pathname, struct path *path, int is_dir)
-> > +{
-> > +	char *tmp = getname(pathname);
-> > +	struct dentry *res;
-> > +	if (IS_ERR(tmp))
-> > +		return ERR_CAST(tmp);
-> > +	res = do_kern_path_create(dfd, tmp, path, is_dir, 1);
-> > +	putname(tmp);
-> > +	return res;
-> > +}
-> > +EXPORT_SYMBOL(user_path_create_thawed);
-> > +
-> >  int vfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, dev_t dev)
-> >  {
-> >  	int error = may_create(dir, dentry);
-> > @@ -2579,7 +2614,7 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
-> >  	if (S_ISDIR(mode))
-> >  		return -EPERM;
-> >  
-> > -	dentry = user_path_create(dfd, filename, &path, 0);
-> > +	dentry = user_path_create_thawed(dfd, filename, &path, 0);
-> >  	if (IS_ERR(dentry))
-> >  		return PTR_ERR(dentry);
-> >  
-> > @@ -2588,12 +2623,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
-> >  	error = may_mknod(mode);
-> >  	if (error)
-> >  		goto out_dput;
-> > -	error = mnt_want_write(path.mnt);
-> > -	if (error)
-> > -		goto out_dput;
-> >  	error = security_path_mknod(&path, dentry, mode, dev);
-> >  	if (error)
-> > -		goto out_drop_write;
-> > +		goto out_dput;
-> >  	switch (mode & S_IFMT) {
-> >  		case 0: case S_IFREG:
-> >  			error = vfs_create(path.dentry->d_inode,dentry,mode,NULL);
-> > @@ -2606,11 +2638,10 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
-> >  			error = vfs_mknod(path.dentry->d_inode,dentry,mode,0);
-> >  			break;
-> >  	}
-> > -out_drop_write:
-> > -	mnt_drop_write(path.mnt);
-> >  out_dput:
-> >  	dput(dentry);
-> >  	mutex_unlock(&path.dentry->d_inode->i_mutex);
-> > +	mnt_drop_write(path.mnt);
-> >  	path_put(&path);
-> >  
-> >  	return error;
-> > @@ -2652,24 +2683,20 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode)
-> >  	struct path path;
-> >  	int error;
-> >  
-> > -	dentry = user_path_create(dfd, pathname, &path, 1);
-> > +	dentry = user_path_create_thawed(dfd, pathname, &path, 1);
-> >  	if (IS_ERR(dentry))
-> >  		return PTR_ERR(dentry);
-> >  
-> >  	if (!IS_POSIXACL(path.dentry->d_inode))
-> >  		mode &= ~current_umask();
-> > -	error = mnt_want_write(path.mnt);
-> > -	if (error)
-> > -		goto out_dput;
-> >  	error = security_path_mkdir(&path, dentry, mode);
-> >  	if (error)
-> > -		goto out_drop_write;
-> > +		goto out_dput;
-> >  	error = vfs_mkdir(path.dentry->d_inode, dentry, mode);
-> > -out_drop_write:
-> > -	mnt_drop_write(path.mnt);
-> >  out_dput:
-> >  	dput(dentry);
-> >  	mutex_unlock(&path.dentry->d_inode->i_mutex);
-> > +	mnt_drop_write(path.mnt);
-> >  	path_put(&path);
-> >  	return error;
-> >  }
-> > @@ -2764,6 +2791,9 @@ static long do_rmdir(int dfd, const char __user *pathname)
-> >  	}
-> >  
-> >  	nd.flags &= ~LOOKUP_PARENT;
-> > +	error = mnt_want_write(nd.path.mnt);
-> > +	if (error)
-> > +		goto exit1;
-> >  
-> >  	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
-> >  	dentry = lookup_hash(&nd);
-> > @@ -2774,19 +2804,15 @@ static long do_rmdir(int dfd, const char __user *pathname)
-> >  		error = -ENOENT;
-> >  		goto exit3;
-> >  	}
-> > -	error = mnt_want_write(nd.path.mnt);
-> > -	if (error)
-> > -		goto exit3;
-> >  	error = security_path_rmdir(&nd.path, dentry);
-> >  	if (error)
-> > -		goto exit4;
-> > +		goto exit3;
-> >  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-> > -exit4:
-> > -	mnt_drop_write(nd.path.mnt);
-> >  exit3:
-> >  	dput(dentry);
-> >  exit2:
-> >  	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
-> > +	mnt_drop_write(nd.path.mnt);
-> >  exit1:
-> >  	path_put(&nd.path);
-> >  	putname(name);
-> > @@ -2853,6 +2879,9 @@ static long do_unlinkat(int dfd, const char __user *pathname)
-> >  		goto exit1;
-> >  
-> >  	nd.flags &= ~LOOKUP_PARENT;
-> > +	error = mnt_want_write(nd.path.mnt);
-> > +	if (error)
-> > +		goto exit1;
-> >  
-> >  	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
-> >  	dentry = lookup_hash(&nd);
-> > @@ -2865,21 +2894,17 @@ static long do_unlinkat(int dfd, const char __user *pathname)
-> >  		if (!inode)
-> >  			goto slashes;
-> >  		ihold(inode);
-> > -		error = mnt_want_write(nd.path.mnt);
-> > -		if (error)
-> > -			goto exit2;
-> >  		error = security_path_unlink(&nd.path, dentry);
-> >  		if (error)
-> > -			goto exit3;
-> > +			goto exit2;
-> >  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-> > -exit3:
-> > -		mnt_drop_write(nd.path.mnt);
-> > -	exit2:
-> > +exit2:
-> >  		dput(dentry);
-> >  	}
-> >  	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
-> >  	if (inode)
-> >  		iput(inode);	/* truncate the inode here */
-> > +	mnt_drop_write(nd.path.mnt);
-> >  exit1:
-> >  	path_put(&nd.path);
-> >  	putname(name);
-> > @@ -2939,23 +2964,19 @@ SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
-> >  	if (IS_ERR(from))
-> >  		return PTR_ERR(from);
-> >  
-> > -	dentry = user_path_create(newdfd, newname, &path, 0);
-> > +	dentry = user_path_create_thawed(newdfd, newname, &path, 0);
-> >  	error = PTR_ERR(dentry);
-> >  	if (IS_ERR(dentry))
-> >  		goto out_putname;
-> >  
-> > -	error = mnt_want_write(path.mnt);
-> > -	if (error)
-> > -		goto out_dput;
-> >  	error = security_path_symlink(&path, dentry, from);
-> >  	if (error)
-> > -		goto out_drop_write;
-> > +		goto out_dput;
-> >  	error = vfs_symlink(path.dentry->d_inode, dentry, from);
-> > -out_drop_write:
-> > -	mnt_drop_write(path.mnt);
-> >  out_dput:
-> >  	dput(dentry);
-> >  	mutex_unlock(&path.dentry->d_inode->i_mutex);
-> > +	mnt_drop_write(path.mnt);
-> >  	path_put(&path);
-> >  out_putname:
-> >  	putname(from);
-> > @@ -3048,7 +3069,7 @@ SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
-> >  	if (error)
-> >  		return error;
-> >  
-> > -	new_dentry = user_path_create(newdfd, newname, &new_path, 0);
-> > +	new_dentry = user_path_create_thawed(newdfd, newname, &new_path, 0);
-> >  	error = PTR_ERR(new_dentry);
-> >  	if (IS_ERR(new_dentry))
-> >  		goto out;
-> > @@ -3056,18 +3077,14 @@ SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
-> >  	error = -EXDEV;
-> >  	if (old_path.mnt != new_path.mnt)
-> >  		goto out_dput;
-> > -	error = mnt_want_write(new_path.mnt);
-> > -	if (error)
-> > -		goto out_dput;
-> >  	error = security_path_link(old_path.dentry, &new_path, new_dentry);
-> >  	if (error)
-> > -		goto out_drop_write;
-> > +		goto out_dput;
-> >  	error = vfs_link(old_path.dentry, new_path.dentry->d_inode, new_dentry);
-> > -out_drop_write:
-> > -	mnt_drop_write(new_path.mnt);
-> >  out_dput:
-> >  	dput(new_dentry);
-> >  	mutex_unlock(&new_path.dentry->d_inode->i_mutex);
-> > +	mnt_drop_write(new_path.mnt);
-> >  	path_put(&new_path);
-> >  out:
-> >  	path_put(&old_path);
-> > @@ -3264,6 +3281,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
-> >  	if (newnd.last_type != LAST_NORM)
-> >  		goto exit2;
-> >  
-> > +	error = mnt_want_write(oldnd.path.mnt);
-> > +	if (error)
-> > +		goto exit2;
-> > +
-> >  	oldnd.flags &= ~LOOKUP_PARENT;
-> >  	newnd.flags &= ~LOOKUP_PARENT;
-> >  	newnd.flags |= LOOKUP_RENAME_TARGET;
-> > @@ -3299,23 +3320,19 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
-> >  	if (new_dentry == trap)
-> >  		goto exit5;
-> >  
-> > -	error = mnt_want_write(oldnd.path.mnt);
-> > -	if (error)
-> > -		goto exit5;
-> >  	error = security_path_rename(&oldnd.path, old_dentry,
-> >  				     &newnd.path, new_dentry);
-> >  	if (error)
-> > -		goto exit6;
-> > +		goto exit5;
-> >  	error = vfs_rename(old_dir->d_inode, old_dentry,
-> >  				   new_dir->d_inode, new_dentry);
-> > -exit6:
-> > -	mnt_drop_write(oldnd.path.mnt);
-> >  exit5:
-> >  	dput(new_dentry);
-> >  exit4:
-> >  	dput(old_dentry);
-> >  exit3:
-> >  	unlock_rename(new_dir, old_dir);
-> > +	mnt_drop_write(oldnd.path.mnt);
-> >  exit2:
-> >  	path_put(&newnd.path);
-> >  	putname(to);
-> > diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> > index cf78233..a99b8e2 100644
-> > --- a/fs/ocfs2/refcounttree.c
-> > +++ b/fs/ocfs2/refcounttree.c
-> > @@ -4453,7 +4453,7 @@ int ocfs2_reflink_ioctl(struct inode *inode,
-> >  		return error;
-> >  	}
-> >  
-> > -	new_dentry = user_path_create(AT_FDCWD, newname, &new_path, 0);
-> > +	new_dentry = user_path_create_thawed(AT_FDCWD, newname, &new_path, 0);
-> >  	error = PTR_ERR(new_dentry);
-> >  	if (IS_ERR(new_dentry)) {
-> >  		mlog_errno(error);
-> > @@ -4466,19 +4466,13 @@ int ocfs2_reflink_ioctl(struct inode *inode,
-> >  		goto out_dput;
-> >  	}
-> >  
-> > -	error = mnt_want_write(new_path.mnt);
-> > -	if (error) {
-> > -		mlog_errno(error);
-> > -		goto out_dput;
-> > -	}
-> > -
-> >  	error = ocfs2_vfs_reflink(old_path.dentry,
-> >  				  new_path.dentry->d_inode,
-> >  				  new_dentry, preserve);
-> > -	mnt_drop_write(new_path.mnt);
-> >  out_dput:
-> >  	dput(new_dentry);
-> >  	mutex_unlock(&new_path.dentry->d_inode->i_mutex);
-> > +	mnt_drop_write(new_path.mnt);
-> >  	path_put(&new_path);
-> >  out:
-> >  	path_put(&old_path);
-> > diff --git a/include/linux/namei.h b/include/linux/namei.h
-> > index ffc0213..432f6bb 100644
-> > --- a/include/linux/namei.h
-> > +++ b/include/linux/namei.h
-> > @@ -77,7 +77,9 @@ extern int user_path_at_empty(int, const char __user *, unsigned, struct path *,
-> >  extern int kern_path(const char *, unsigned, struct path *);
-> >  
-> >  extern struct dentry *kern_path_create(int, const char *, struct path *, int);
-> > +extern struct dentry *kern_path_create_thawed(int, const char *, struct path *, int);
-> >  extern struct dentry *user_path_create(int, const char __user *, struct path *, int);
-> > +extern struct dentry *user_path_create_thawed(int, const char __user *, struct path *, int);
-> >  extern int kern_path_parent(const char *, struct nameidata *);
-> >  extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
-> >  			   const char *, unsigned int, struct path *);
-> > diff --git a/net/unix/af_unix.c b/net/unix/af_unix.c
-> > index d510353..c532632 100644
-> > --- a/net/unix/af_unix.c
-> > +++ b/net/unix/af_unix.c
-> > @@ -865,7 +865,7 @@ static int unix_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
-> >  		 * Get the parent directory, calculate the hash for last
-> >  		 * component.
-> >  		 */
-> > -		dentry = kern_path_create(AT_FDCWD, sun_path, &path, 0);
-> > +		dentry = kern_path_create_thawed(AT_FDCWD, sun_path, &path, 0);
-> >  		err = PTR_ERR(dentry);
-> >  		if (IS_ERR(dentry))
-> >  			goto out_mknod_parent;
-> > @@ -875,19 +875,13 @@ static int unix_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
-> >  		 */
-> >  		mode = S_IFSOCK |
-> >  		       (SOCK_INODE(sock)->i_mode & ~current_umask());
-> > -		err = mnt_want_write(path.mnt);
-> > -		if (err)
-> > -			goto out_mknod_dput;
-> >  		err = security_path_mknod(&path, dentry, mode, 0);
-> >  		if (err)
-> > -			goto out_mknod_drop_write;
-> > -		err = vfs_mknod(path.dentry->d_inode, dentry, mode, 0);
-> > -out_mknod_drop_write:
-> > -		mnt_drop_write(path.mnt);
-> > -		if (err)
-> >  			goto out_mknod_dput;
-> > +		err = vfs_mknod(path.dentry->d_inode, dentry, mode, 0);
-> >  		mutex_unlock(&path.dentry->d_inode->i_mutex);
-> >  		dput(path.dentry);
-> > +		mnt_drop_write(path.mnt);
-> >  		path.dentry = dentry;
-> >  
-> >  		addr->hash = UNIX_HASH_SIZE;
-> > @@ -924,6 +918,7 @@ out:
-> >  out_mknod_dput:
-> >  	dput(dentry);
-> >  	mutex_unlock(&path.dentry->d_inode->i_mutex);
-> > +	mnt_drop_write(path.mnt);
-> >  	path_put(&path);
-> >  out_mknod_parent:
-> >  	if (err == -EEXIST)
 > > -- 
 > > 1.7.1
 > > 
 > 
 > -- 
 > 
-> "Hell is oneself, hell is alone, the other figures in it, merely projections."
->         - T. S. Eliot
+> Life's Little Instruction Book #197
+> 
+> 	"Don't forget, a person's greatest emotional need is to 
+> 	 feel appreciated."
 > 
 > 			http://www.jlbec.org/
 > 			jlbec at evilplan.org
