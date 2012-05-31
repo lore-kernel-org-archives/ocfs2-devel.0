@@ -1,35 +1,45 @@
-From: Sunil Mushran <sunil.mushran@gmail.com>
-Date: Wed, 30 May 2012 18:18:12 -0700
-Subject: [Ocfs2-devel] [PATCH] Fix waiting status race condition in dlm
-	recovery
-In-Reply-To: <4FC56CA5.8040902@oracle.com>
-References: <1337925202-13086-1-git-send-email-xiaowei.hu@oracle.com>
-	<CAEeiSHXcaKXi7Qm5vLBmTp2CjiB7DCrUee5qmr03YpuJbzP5yg@mail.gmail.com>
-	<4FC56CA5.8040902@oracle.com>
-Message-ID: <CAEeiSHWkhD8x8nrix2+Wc1nesH8CExU6kA10nCH0J1nCwUaDtg@mail.gmail.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 31 May 2012 12:12:29 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] aio: make kiocb->private NUll in
+	init_sync_kiocb()
+Message-ID: <1338437550-24499-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com, linux-aio@kvack.org
+Cc: mfasheh@suse.com, jlbec@evilplan.org, bcrl@kvack.org, linux-kernel@vger.kernel.org, stable@vger.kernel.org, joe.jin@oracle.com, Junxiao Bi <junxiao.bi@oracle.com>
 
-On Tue, May 29, 2012 at 5:41 PM, Xiaowei <xiaowei.hu@oracle.com> wrote:
-> On 05/30/2012 06:09 AM, Sunil Mushran wrote:
-> I would suggest exploring adding this in dlm hb down event. Checking live
-> map all
-> over the place is hacky. We do it more than we should right now. Let's not
-> add to the
-> mess.
->
-> HI Sunil,
->
-> Do you mean we should clear the bit in domain map in dlm hb down event
-> directly when the node down
-> and check with dlm_is_node_dead at here?
-> Or how could we explore and ensure the node is alive during the whole
-> migrate process?One node could die even after it sends out one locks package
-> and before the next if there were too many locks on that lockres.
+Ocfs2 uses kiocb.*private as a flag of unsigned long size. In
+commit a11f7e6 ocfs2: serialize unaligned aio, the unaligned
+io flag is involved in it to serialize the unaligned aio. As
+*private is not initialized in init_sync_kiocb() of do_sync_write(),
+this unaligned io flag may be unexpectly set in an aligned dio.
+And this will cause OCFS2_I(inode)->ip_unaligned_aio decreased
+to -1 in ocfs2_dio_end_io(), thus the following unaligned dio
+will hang forever at ocfs2_aiodio_wait() in ocfs2_file_write_iter().
 
-dlm hb down event is triggered when a node is declared dead. That's where we
-clean up pending mles, etc. You can add a check for recovery and add logic to
-change the reco state for that node there.
+We can't initialized this flag in ocfs2_file_write_iter() since
+it may be invoked several times by do_sync_write(). So we initialize
+it in init_sync_kiocb(), it's also useful for other similiar use of
+it in the future.
+
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ include/linux/aio.h |    1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/linux/aio.h b/include/linux/aio.h
+index 2314ad8..b1a520e 100644
+--- a/include/linux/aio.h
++++ b/include/linux/aio.h
+@@ -140,6 +140,7 @@ struct kiocb {
+ 		(x)->ki_dtor = NULL;			\
+ 		(x)->ki_obj.tsk = tsk;			\
+ 		(x)->ki_user_data = 0;                  \
++		(x)->private = NULL;			\
+ 	} while (0)
+ 
+ #define AIO_RING_MAGIC			0xa10a10a1
+-- 
+1.7.9.5
