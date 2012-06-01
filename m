@@ -1,65 +1,158 @@
-From: Jeff Moyer <jmoyer@redhat.com>
-Date: Fri, 01 Jun 2012 16:55:31 -0400
-Subject: [Ocfs2-devel] [PATCH 1/2] aio: make kiocb->private NUll in
-	init_sync_kiocb()
-In-Reply-To: <4FC81DE0.5080403@oracle.com> (Junxiao Bi's message of "Fri, 01
-	Jun 2012 09:41:52 +0800")
-References: <1338437550-24499-1-git-send-email-junxiao.bi@oracle.com>
-	<x49k3zscuk2.fsf@segfault.boston.devel.redhat.com>
-	<4FC81DE0.5080403@oracle.com>
-Message-ID: <x49r4ty69bw.fsf@segfault.boston.devel.redhat.com>
+From: Jan Kara <jack@suse.cz>
+Date: Sat,  2 Jun 2012 00:30:33 +0200
+Subject: [Ocfs2-devel] [PATCH 19/27] ocfs2: Convert to new freezing mechanism
+In-Reply-To: <1338589841-9568-1-git-send-email-jack@suse.cz>
+References: <1338589841-9568-1-git-send-email-jack@suse.cz>
+Message-ID: <1338589841-9568-20-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-aio@kvack.org, mfasheh@suse.com, jlbec@evilplan.org, bcrl@kvack.org, linux-kernel@vger.kernel.org, stable@vger.kernel.org, joe.jin@oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, dchinner@redhat.com, Jan Kara <jack@suse.cz>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
 
-Junxiao Bi <junxiao.bi@oracle.com> writes:
+Protect ocfs2_page_mkwrite() and ocfs2_file_aio_write() using the new freeze
+protection. We also protect several ioctl entry points which were missing the
+protection. Finally, we add freeze protection to the journaling mechanism so
+that iput() of unlinked inode cannot modify a frozen filesystem.
 
-> On 05/31/2012 10:08 PM, Jeff Moyer wrote:
->> Junxiao Bi <junxiao.bi@oracle.com> writes:
->>
->>> Ocfs2 uses kiocb.*private as a flag of unsigned long size. In
->>> commit a11f7e6 ocfs2: serialize unaligned aio, the unaligned
->>> io flag is involved in it to serialize the unaligned aio. As
->>> *private is not initialized in init_sync_kiocb() of do_sync_write(),
->>> this unaligned io flag may be unexpectly set in an aligned dio.
->>> And this will cause OCFS2_I(inode)->ip_unaligned_aio decreased
->>> to -1 in ocfs2_dio_end_io(), thus the following unaligned dio
->>> will hang forever at ocfs2_aiodio_wait() in ocfs2_file_write_iter().
->>> We can't initialized this flag in ocfs2_file_write_iter() since
->>> it may be invoked several times by do_sync_write(). So we initialize
->>> it in init_sync_kiocb(), it's also useful for other similiar use of
->>> it in the future.
->> I don't see any ocfs2_file_write_iter in the upstream kernel.
->> ocfs2_file_aio_write most certainly could set ->private to 0, it
->> will only be called once for a given kiocb.
-> From sys_io_submit->..->io_submit_one->aio_run_iocb->aio_rw_vect_retry, 
-> it seems that aio_write could be called two times. See the following
-> scenario.
-> 1. There is a file opened with direct io flag, in aio_rw_vect_retry,
-> aio_write is called first time. If the direct io can
-> not be completed, it will fall back into buffer io, see line 2329 in
-> aio_write.
+CC: Mark Fasheh <mfasheh@suse.com>
+CC: Joel Becker <jlbec@evilplan.org>
+CC: ocfs2-devel at oss.oracle.com
+Acked-by: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/file.c    |   11 +++++++++--
+ fs/ocfs2/ioctl.c   |   14 ++++++++++++--
+ fs/ocfs2/journal.c |    7 ++++++-
+ fs/ocfs2/mmap.c    |    2 ++
+ 4 files changed, 29 insertions(+), 5 deletions(-)
 
-Huh?  What's line 2329 in aio_write?
-
-> 2. If the very buffer io is a partial write, then it will return back
-> to  aio_rw_vect_retry and issue the second aio_write.
-
-For the generic case, the fallback to buffered I/O happens in
-__generic_file_aio_write, without bouncing all the way back up the call
-stack to aio_rw_vect_retry.  I see in ocfs2, things are a bit different:
-
-retry->aio_rw_vect_retry->ocfs2_file_aio_write->generic_file_direct_write
-  ->ocfs2_direct_IO->__blockdev_direct_IO
-
-That last function can return 0 if not all of the data was written via
-direct I/O.  At that point, you return all of the way up the chain to
-aio_rw_vect_retry, which checks the return value (ret).  If it was 0,
-then it goes ahead and retries the complete I/O.  How does that make any
-progress?!
-
-Cheers,
-Jeff
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 061591a..9b1e3d4 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1971,6 +1971,7 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
+ {
+ 	struct inode *inode = file->f_path.dentry->d_inode;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	int ret;
+ 
+ 	if ((cmd == OCFS2_IOC_RESVSP || cmd == OCFS2_IOC_RESVSP64) &&
+ 	    !ocfs2_writes_unwritten_extents(osb))
+@@ -1985,7 +1986,12 @@ int ocfs2_change_file_space(struct file *file, unsigned int cmd,
+ 	if (!(file->f_mode & FMODE_WRITE))
+ 		return -EBADF;
+ 
+-	return __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
++	ret = mnt_want_write_file(file);
++	if (ret)
++		return ret;
++	ret = __ocfs2_change_file_space(file, inode, file->f_pos, cmd, sr, 0);
++	mnt_drop_write_file(file);
++	return ret;
+ }
+ 
+ static long ocfs2_fallocate(struct file *file, int mode, loff_t offset,
+@@ -2261,7 +2267,7 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
+ 	if (iocb->ki_left == 0)
+ 		return 0;
+ 
+-	vfs_check_frozen(inode->i_sb, SB_FREEZE_WRITE);
++	sb_start_write(inode->i_sb);
+ 
+ 	appending = file->f_flags & O_APPEND ? 1 : 0;
+ 	direct_io = file->f_flags & O_DIRECT ? 1 : 0;
+@@ -2434,6 +2440,7 @@ out_sems:
+ 		ocfs2_iocb_clear_sem_locked(iocb);
+ 
+ 	mutex_unlock(&inode->i_mutex);
++	sb_end_write(inode->i_sb);
+ 
+ 	if (written)
+ 		ret = written;
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index a1a1bfd..d9c352b 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -926,7 +926,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 		if (get_user(new_clusters, (int __user *)arg))
+ 			return -EFAULT;
+ 
+-		return ocfs2_group_extend(inode, new_clusters);
++		status = mnt_want_write_file(filp);
++		if (status)
++			return status;
++		status = ocfs2_group_extend(inode, new_clusters);
++		mnt_drop_write_file(filp);
++		return status;
+ 	case OCFS2_IOC_GROUP_ADD:
+ 	case OCFS2_IOC_GROUP_ADD64:
+ 		if (!capable(CAP_SYS_RESOURCE))
+@@ -935,7 +940,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ 		if (copy_from_user(&input, (int __user *) arg, sizeof(input)))
+ 			return -EFAULT;
+ 
+-		return ocfs2_group_add(inode, &input);
++		status = mnt_want_write_file(filp);
++		if (status)
++			return status;
++		status = ocfs2_group_add(inode, &input);
++		mnt_drop_write_file(filp);
++		return status;
+ 	case OCFS2_IOC_REFLINK:
+ 		if (copy_from_user(&args, (struct reflink_arguments *)arg,
+ 				   sizeof(args)))
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 0a42ae9..2dd36af 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -355,11 +355,14 @@ handle_t *ocfs2_start_trans(struct ocfs2_super *osb, int max_buffs)
+ 	if (journal_current_handle())
+ 		return jbd2_journal_start(journal, max_buffs);
+ 
++	sb_start_intwrite(osb->sb);
++
+ 	down_read(&osb->journal->j_trans_barrier);
+ 
+ 	handle = jbd2_journal_start(journal, max_buffs);
+ 	if (IS_ERR(handle)) {
+ 		up_read(&osb->journal->j_trans_barrier);
++		sb_end_intwrite(osb->sb);
+ 
+ 		mlog_errno(PTR_ERR(handle));
+ 
+@@ -388,8 +391,10 @@ int ocfs2_commit_trans(struct ocfs2_super *osb,
+ 	if (ret < 0)
+ 		mlog_errno(ret);
+ 
+-	if (!nested)
++	if (!nested) {
+ 		up_read(&journal->j_trans_barrier);
++		sb_end_intwrite(osb->sb);
++	}
+ 
+ 	return ret;
+ }
+diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+index 9cd4108..d150372 100644
+--- a/fs/ocfs2/mmap.c
++++ b/fs/ocfs2/mmap.c
+@@ -136,6 +136,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
+ 	sigset_t oldset;
+ 	int ret;
+ 
++	sb_start_pagefault(inode->i_sb);
+ 	ocfs2_block_signals(&oldset);
+ 
+ 	/*
+@@ -165,6 +166,7 @@ static int ocfs2_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
+ 
+ out:
+ 	ocfs2_unblock_signals(&oldset);
++	sb_end_pagefault(inode->i_sb);
+ 	return ret;
+ }
+ 
+-- 
+1.7.1
