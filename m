@@ -1,36 +1,50 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Date: Thu, 21 Jun 2012 09:07:16 -0000
-Subject: [Ocfs2-devel] [PATCH v3 1/9] string: introduce memweight
-In-Reply-To: <CA+8MBb+Kk=G5GQbSdbjXqFmw+GCON6jLZABCAGuL+bNDC+dLgA@mail.gmail.com>
-References: <1339203038-13069-1-git-send-email-akinobu.mita@gmail.com>
-	<CA+8MBb+Kk=G5GQbSdbjXqFmw+GCON6jLZABCAGuL+bNDC+dLgA@mail.gmail.com>
-Message-ID: <CAC5umyj1RGHh_0miku_R+ZCtfTOBK6XeY62Aun2MifgFTn_MKg@mail.gmail.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 01 Jun 2012 09:41:52 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] aio: make kiocb->private NUll in
+	init_sync_kiocb()
+In-Reply-To: <x49k3zscuk2.fsf@segfault.boston.devel.redhat.com>
+References: <1338437550-24499-1-git-send-email-junxiao.bi@oracle.com>
+	<x49k3zscuk2.fsf@segfault.boston.devel.redhat.com>
+Message-ID: <4FC81DE0.5080403@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Tony Luck <tony.luck@gmail.com>
-Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, Anders Larsen <al@alarsen.net>, Alasdair Kergon <agk@redhat.com>, dm-devel@redhat.com, linux-fsdevel@vger.kernel.org, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, linux-media@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Andreas Dilger <adilger.kernel@dilger.ca>, Theodore Ts'o <tytso@mit.edu>, Matthew Wilcox <matthew@wil.cx>
+To: Jeff Moyer <jmoyer@redhat.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-aio@kvack.org, mfasheh@suse.com, jlbec@evilplan.org, bcrl@kvack.org, linux-kernel@vger.kernel.org, stable@vger.kernel.org, joe.jin@oracle.com
 
-2012/6/21 Tony Luck <tony.luck@gmail.com>:
-> On Fri, Jun 8, 2012 at 5:50 PM, Akinobu Mita <akinobu.mita@gmail.com> wrote:
->> ?lib/string.c ? ? ? ? ? | ? 36 ++++++++++++++++++++++++++++++++++++
+On 05/31/2012 10:08 PM, Jeff Moyer wrote:
+> Junxiao Bi <junxiao.bi@oracle.com> writes:
 >
-> Is lib/string.c the right place for this? ?I get a build error on the
-> ia64 sim_defconfig:
+>> Ocfs2 uses kiocb.*private as a flag of unsigned long size. In
+>> commit a11f7e6 ocfs2: serialize unaligned aio, the unaligned
+>> io flag is involved in it to serialize the unaligned aio. As
+>> *private is not initialized in init_sync_kiocb() of do_sync_write(),
+>> this unaligned io flag may be unexpectly set in an aligned dio.
+>> And this will cause OCFS2_I(inode)->ip_unaligned_aio decreased
+>> to -1 in ocfs2_dio_end_io(), thus the following unaligned dio
+>> will hang forever at ocfs2_aiodio_wait() in ocfs2_file_write_iter().
+>> We can't initialized this flag in ocfs2_file_write_iter() since
+>> it may be invoked several times by do_sync_write(). So we initialize
+>> it in init_sync_kiocb(), it's also useful for other similiar use of
+>> it in the future.
+> I don't see any ocfs2_file_write_iter in the upstream kernel.
+> ocfs2_file_aio_write most certainly could set ->private to 0, it
+> will only be called once for a given kiocb.
+From sys_io_submit->..->io_submit_one->aio_run_iocb->aio_rw_vect_retry, 
+it seems that aio_write could be called two times. See the following
+scenario.
+1. There is a file opened with direct io flag, in aio_rw_vect_retry,
+aio_write is called first time. If the direct io can
+not be completed, it will fall back into buffer io, see line 2329 in
+aio_write.
+2. If the very buffer io is a partial write, then it will return back
+to  aio_rw_vect_retry and issue the second aio_write.
 >
-> ?LD ? ? ?arch/ia64/hp/sim/boot/bootloader
+> That point aside, I have no issues with setting private to NULL in
+> init_sync_kiocb.  If you fix up the comment to reflect reality
+> w.r.t. the upstream kernel source, I'll ack the patch.
+OK, I will fix the comment.
 >
-> It fails because it pulls in lib/lib.a(string.o) to get some
-> innocuous function like strcpy() ... but it also gets
-> given memweight() which relies on __bitmap_weight()
-> which it doesn't have, because it doesn't include lib/built-in.o
-> (which is where bitmap.o, the definer of __bitmap_weight(), has
-> been linked).
->
-> Moving memweight() to lib/bitmap.c fixes the problem. But it
-> isn't really clear that it belongs there either. ?Perhaps it should
-> be its own file lib/memweight.c that gets included in lib/lib.a?
-
-I'll fix it by making lib/memweight.c as you suggested.
-Thanks for your report and suggestion.
+> Cheers,
+> Jeff
