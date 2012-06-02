@@ -1,445 +1,130 @@
-From: Jan Kara <jack@suse.cz>
-Date: Sat,  2 Jun 2012 00:30:23 +0200
-Subject: [Ocfs2-devel] [PATCH 09/27] fs: Push mnt_want_write() outside of
-	i_mutex
-In-Reply-To: <1338589841-9568-1-git-send-email-jack@suse.cz>
-References: <1338589841-9568-1-git-send-email-jack@suse.cz>
-Message-ID: <1338589841-9568-10-git-send-email-jack@suse.cz>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Sat, 02 Jun 2012 10:59:05 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] aio: make kiocb->private NUll in
+	init_sync_kiocb()
+In-Reply-To: <x49r4ty69bw.fsf@segfault.boston.devel.redhat.com>
+References: <1338437550-24499-1-git-send-email-junxiao.bi@oracle.com>
+	<x49k3zscuk2.fsf@segfault.boston.devel.redhat.com>
+	<4FC81DE0.5080403@oracle.com>
+	<x49r4ty69bw.fsf@segfault.boston.devel.redhat.com>
+Message-ID: <4FC98179.4000400@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, dchinner@redhat.com, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, "David S. Miller" <davem@davemloft.net>
+To: Jeff Moyer <jmoyer@redhat.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-aio@kvack.org, mfasheh@suse.com, jlbec@evilplan.org, bcrl@kvack.org, linux-kernel@vger.kernel.org, stable@vger.kernel.org, joe.jin@oracle.com
 
-Currently, mnt_want_write() is sometimes called with i_mutex held and sometimes
-without it. This isn't really a problem because mnt_want_write() is a
-non-blocking operation (essentially has a trylock semantics) but when the
-function starts to handle also frozen filesystems, it will get a full lock
-semantics and thus proper lock ordering has to be established. So move
-all mnt_want_write() calls outside of i_mutex.
+On 06/02/2012 04:55 AM, Jeff Moyer wrote:
+> Junxiao Bi<junxiao.bi@oracle.com>  writes:
+>
+>> On 05/31/2012 10:08 PM, Jeff Moyer wrote:
+>>> Junxiao Bi<junxiao.bi@oracle.com>  writes:
+>>>
+>>>> Ocfs2 uses kiocb.*private as a flag of unsigned long size. In
+>>>> commit a11f7e6 ocfs2: serialize unaligned aio, the unaligned
+>>>> io flag is involved in it to serialize the unaligned aio. As
+>>>> *private is not initialized in init_sync_kiocb() of do_sync_write(),
+>>>> this unaligned io flag may be unexpectly set in an aligned dio.
+>>>> And this will cause OCFS2_I(inode)->ip_unaligned_aio decreased
+>>>> to -1 in ocfs2_dio_end_io(), thus the following unaligned dio
+>>>> will hang forever at ocfs2_aiodio_wait() in ocfs2_file_write_iter().
+>>>> We can't initialized this flag in ocfs2_file_write_iter() since
+>>>> it may be invoked several times by do_sync_write(). So we initialize
+>>>> it in init_sync_kiocb(), it's also useful for other similiar use of
+>>>> it in the future.
+>>> I don't see any ocfs2_file_write_iter in the upstream kernel.
+>>> ocfs2_file_aio_write most certainly could set ->private to 0, it
+>>> will only be called once for a given kiocb.
+>>  From sys_io_submit->..->io_submit_one->aio_run_iocb->aio_rw_vect_retry,
+>> it seems that aio_write could be called two times. See the following
+>> scenario.
+>> 1. There is a file opened with direct io flag, in aio_rw_vect_retry,
+>> aio_write is called first time. If the direct io can
+>> not be completed, it will fall back into buffer io, see line 2329 in
+>> aio_write.
+> Huh?  What's line 2329 in aio_write?
+See the following code.
 
-One non-trivial case needing conversion is kern_path_create() /
-user_path_create() which didn't include mnt_want_write() but now needs to
-because it acquires i_mutex.  Because there are virtual file systems which
-don't bother with freeze / remount-ro protection we actually provide both
-versions of the function - one which calls mnt_want_write() and one which does
-not.
+2312         can_do_direct = direct_io;
+2313         ret = ocfs2_prepare_inode_for_write(file, ppos,
+2314                                             iocb->ki_left, appending,
+2315 &can_do_direct, &has_refcount);
+2316         if (ret < 0) {
+2317                 mlog_errno(ret);
+2318                 goto out;
+2319         }
+2320
+2321         if (direct_io && !is_sync_kiocb(iocb))
+2322                 unaligned_dio = ocfs2_is_io_unaligned(inode, 
+iocb->ki_left,
+2323                                                       *ppos);
+2324
+2325         /*
+2326          * We can't complete the direct I/O as requested, fall back to
+2327          * buffered I/O.
+2328          */
+2329         if (direct_io && !can_do_direct) {
+2330                 ocfs2_rw_unlock(inode, rw_level);
+2331
+2332                 have_alloc_sem = 0;
+2333                 rw_level = -1;
+2334
+2335                 direct_io = 0;
+2336                 goto relock;
+2337         }
 
-CC: ocfs2-devel at oss.oracle.com
-CC: Mark Fasheh <mfasheh@suse.com>
-CC: Joel Becker <jlbec@evilplan.org>
-CC: "David S. Miller" <davem@davemloft.net>
-BugLink: https://bugs.launchpad.net/bugs/897421
-Tested-by: Kamal Mostafa <kamal@canonical.com>
-Tested-by: Peter M. Petrakis <peter.petrakis@canonical.com>
-Tested-by: Dann Frazier <dann.frazier@canonical.com>
-Tested-by: Massimo Morana <massimo.morana@canonical.com>
-Acked-by: Joel Becker <jlbec@evilplan.org>
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/namei.c              |  115 +++++++++++++++++++++++++++--------------------
- fs/ocfs2/refcounttree.c |   10 +---
- include/linux/namei.h   |    2 +
- net/unix/af_unix.c      |   13 ++----
- 4 files changed, 74 insertions(+), 66 deletions(-)
+The above is the source code how direct io falled back to buffer io. In 
+line 2313, in function ocfs2_prepare_inode_for_write(), it will judge 
+whether the direct io can be executed. If not, the variable 
+"can_do_direct" will be set to false, then the variable "direct_io" will 
+be set to 0 in line 2335. This means that generic_file_buffered_write() 
+will be called in the following code, not generic_file_direct_write(), 
+see the following code. So if the generic_file_buffered_write() is a 
+partial write, then its return value "written" will be made as the 
+return value of the aio_write, see line 2439. Then it return back to 
+aio_rw_vect_retry(), the condition (ret > 0 && iocb->ki_left > 0 && 
+opcode == IOCB_CMD_PWRITEV) is true. Then aio_write will be called 
+second time. As the unaligned I/O flag may be set in the kiocb at the 
+first time call of aio_write, it may affect the second call of aio_write 
+if its direct IO is aligned.
 
-diff --git a/fs/namei.c b/fs/namei.c
-index c651f02..626e620 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -2458,7 +2458,9 @@ struct file *do_file_open_root(struct dentry *dentry, struct vfsmount *mnt,
- 	return file;
- }
- 
--struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path, int is_dir)
-+static struct dentry *do_kern_path_create(int dfd, const char *pathname,
-+					  struct path *path, int is_dir,
-+					  int freeze_protect)
- {
- 	struct dentry *dentry = ERR_PTR(-EEXIST);
- 	struct nameidata nd;
-@@ -2476,6 +2478,14 @@ struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path
- 	nd.flags |= LOOKUP_CREATE | LOOKUP_EXCL;
- 	nd.intent.open.flags = O_EXCL;
- 
-+	if (freeze_protect) {
-+		error = mnt_want_write(nd.path.mnt);
-+		if (error) {
-+			dentry = ERR_PTR(error);
-+			goto out;
-+		}
-+	}
-+
- 	/*
- 	 * Do the final lookup.
- 	 */
-@@ -2504,24 +2514,49 @@ eexist:
- 	dentry = ERR_PTR(-EEXIST);
- fail:
- 	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
-+	if (freeze_protect)
-+		mnt_drop_write(nd.path.mnt);
- out:
- 	path_put(&nd.path);
- 	return dentry;
- }
-+
-+struct dentry *kern_path_create(int dfd, const char *pathname, struct path *path, int is_dir)
-+{
-+	return do_kern_path_create(dfd, pathname, path, is_dir, 0);
-+}
- EXPORT_SYMBOL(kern_path_create);
- 
-+struct dentry *kern_path_create_thawed(int dfd, const char *pathname, struct path *path, int is_dir)
-+{
-+	return do_kern_path_create(dfd, pathname, path, is_dir, 1);
-+}
-+EXPORT_SYMBOL(kern_path_create_thawed);
-+
- struct dentry *user_path_create(int dfd, const char __user *pathname, struct path *path, int is_dir)
- {
- 	char *tmp = getname(pathname);
- 	struct dentry *res;
- 	if (IS_ERR(tmp))
- 		return ERR_CAST(tmp);
--	res = kern_path_create(dfd, tmp, path, is_dir);
-+	res = do_kern_path_create(dfd, tmp, path, is_dir, 0);
- 	putname(tmp);
- 	return res;
- }
- EXPORT_SYMBOL(user_path_create);
- 
-+struct dentry *user_path_create_thawed(int dfd, const char __user *pathname, struct path *path, int is_dir)
-+{
-+	char *tmp = getname(pathname);
-+	struct dentry *res;
-+	if (IS_ERR(tmp))
-+		return ERR_CAST(tmp);
-+	res = do_kern_path_create(dfd, tmp, path, is_dir, 1);
-+	putname(tmp);
-+	return res;
-+}
-+EXPORT_SYMBOL(user_path_create_thawed);
-+
- int vfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, dev_t dev)
- {
- 	int error = may_create(dir, dentry);
-@@ -2576,7 +2611,7 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
- 	if (S_ISDIR(mode))
- 		return -EPERM;
- 
--	dentry = user_path_create(dfd, filename, &path, 0);
-+	dentry = user_path_create_thawed(dfd, filename, &path, 0);
- 	if (IS_ERR(dentry))
- 		return PTR_ERR(dentry);
- 
-@@ -2585,12 +2620,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
- 	error = may_mknod(mode);
- 	if (error)
- 		goto out_dput;
--	error = mnt_want_write(path.mnt);
--	if (error)
--		goto out_dput;
- 	error = security_path_mknod(&path, dentry, mode, dev);
- 	if (error)
--		goto out_drop_write;
-+		goto out_dput;
- 	switch (mode & S_IFMT) {
- 		case 0: case S_IFREG:
- 			error = vfs_create(path.dentry->d_inode,dentry,mode,NULL);
-@@ -2603,11 +2635,10 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
- 			error = vfs_mknod(path.dentry->d_inode,dentry,mode,0);
- 			break;
- 	}
--out_drop_write:
--	mnt_drop_write(path.mnt);
- out_dput:
- 	dput(dentry);
- 	mutex_unlock(&path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(path.mnt);
- 	path_put(&path);
- 
- 	return error;
-@@ -2649,24 +2680,20 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode)
- 	struct path path;
- 	int error;
- 
--	dentry = user_path_create(dfd, pathname, &path, 1);
-+	dentry = user_path_create_thawed(dfd, pathname, &path, 1);
- 	if (IS_ERR(dentry))
- 		return PTR_ERR(dentry);
- 
- 	if (!IS_POSIXACL(path.dentry->d_inode))
- 		mode &= ~current_umask();
--	error = mnt_want_write(path.mnt);
--	if (error)
--		goto out_dput;
- 	error = security_path_mkdir(&path, dentry, mode);
- 	if (error)
--		goto out_drop_write;
-+		goto out_dput;
- 	error = vfs_mkdir(path.dentry->d_inode, dentry, mode);
--out_drop_write:
--	mnt_drop_write(path.mnt);
- out_dput:
- 	dput(dentry);
- 	mutex_unlock(&path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(path.mnt);
- 	path_put(&path);
- 	return error;
- }
-@@ -2761,6 +2788,9 @@ static long do_rmdir(int dfd, const char __user *pathname)
- 	}
- 
- 	nd.flags &= ~LOOKUP_PARENT;
-+	error = mnt_want_write(nd.path.mnt);
-+	if (error)
-+		goto exit1;
- 
- 	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
- 	dentry = lookup_hash(&nd);
-@@ -2771,19 +2801,15 @@ static long do_rmdir(int dfd, const char __user *pathname)
- 		error = -ENOENT;
- 		goto exit3;
- 	}
--	error = mnt_want_write(nd.path.mnt);
--	if (error)
--		goto exit3;
- 	error = security_path_rmdir(&nd.path, dentry);
- 	if (error)
--		goto exit4;
-+		goto exit3;
- 	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
--exit4:
--	mnt_drop_write(nd.path.mnt);
- exit3:
- 	dput(dentry);
- exit2:
- 	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(nd.path.mnt);
- exit1:
- 	path_put(&nd.path);
- 	putname(name);
-@@ -2850,6 +2876,9 @@ static long do_unlinkat(int dfd, const char __user *pathname)
- 		goto exit1;
- 
- 	nd.flags &= ~LOOKUP_PARENT;
-+	error = mnt_want_write(nd.path.mnt);
-+	if (error)
-+		goto exit1;
- 
- 	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
- 	dentry = lookup_hash(&nd);
-@@ -2862,21 +2891,17 @@ static long do_unlinkat(int dfd, const char __user *pathname)
- 		if (!inode)
- 			goto slashes;
- 		ihold(inode);
--		error = mnt_want_write(nd.path.mnt);
--		if (error)
--			goto exit2;
- 		error = security_path_unlink(&nd.path, dentry);
- 		if (error)
--			goto exit3;
-+			goto exit2;
- 		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
--exit3:
--		mnt_drop_write(nd.path.mnt);
--	exit2:
-+exit2:
- 		dput(dentry);
- 	}
- 	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
- 	if (inode)
- 		iput(inode);	/* truncate the inode here */
-+	mnt_drop_write(nd.path.mnt);
- exit1:
- 	path_put(&nd.path);
- 	putname(name);
-@@ -2936,23 +2961,19 @@ SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
- 	if (IS_ERR(from))
- 		return PTR_ERR(from);
- 
--	dentry = user_path_create(newdfd, newname, &path, 0);
-+	dentry = user_path_create_thawed(newdfd, newname, &path, 0);
- 	error = PTR_ERR(dentry);
- 	if (IS_ERR(dentry))
- 		goto out_putname;
- 
--	error = mnt_want_write(path.mnt);
--	if (error)
--		goto out_dput;
- 	error = security_path_symlink(&path, dentry, from);
- 	if (error)
--		goto out_drop_write;
-+		goto out_dput;
- 	error = vfs_symlink(path.dentry->d_inode, dentry, from);
--out_drop_write:
--	mnt_drop_write(path.mnt);
- out_dput:
- 	dput(dentry);
- 	mutex_unlock(&path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(path.mnt);
- 	path_put(&path);
- out_putname:
- 	putname(from);
-@@ -3045,7 +3066,7 @@ SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
- 	if (error)
- 		return error;
- 
--	new_dentry = user_path_create(newdfd, newname, &new_path, 0);
-+	new_dentry = user_path_create_thawed(newdfd, newname, &new_path, 0);
- 	error = PTR_ERR(new_dentry);
- 	if (IS_ERR(new_dentry))
- 		goto out;
-@@ -3053,18 +3074,14 @@ SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
- 	error = -EXDEV;
- 	if (old_path.mnt != new_path.mnt)
- 		goto out_dput;
--	error = mnt_want_write(new_path.mnt);
--	if (error)
--		goto out_dput;
- 	error = security_path_link(old_path.dentry, &new_path, new_dentry);
- 	if (error)
--		goto out_drop_write;
-+		goto out_dput;
- 	error = vfs_link(old_path.dentry, new_path.dentry->d_inode, new_dentry);
--out_drop_write:
--	mnt_drop_write(new_path.mnt);
- out_dput:
- 	dput(new_dentry);
- 	mutex_unlock(&new_path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(new_path.mnt);
- 	path_put(&new_path);
- out:
- 	path_put(&old_path);
-@@ -3261,6 +3278,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
- 	if (newnd.last_type != LAST_NORM)
- 		goto exit2;
- 
-+	error = mnt_want_write(oldnd.path.mnt);
-+	if (error)
-+		goto exit2;
-+
- 	oldnd.flags &= ~LOOKUP_PARENT;
- 	newnd.flags &= ~LOOKUP_PARENT;
- 	newnd.flags |= LOOKUP_RENAME_TARGET;
-@@ -3296,23 +3317,19 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
- 	if (new_dentry == trap)
- 		goto exit5;
- 
--	error = mnt_want_write(oldnd.path.mnt);
--	if (error)
--		goto exit5;
- 	error = security_path_rename(&oldnd.path, old_dentry,
- 				     &newnd.path, new_dentry);
- 	if (error)
--		goto exit6;
-+		goto exit5;
- 	error = vfs_rename(old_dir->d_inode, old_dentry,
- 				   new_dir->d_inode, new_dentry);
--exit6:
--	mnt_drop_write(oldnd.path.mnt);
- exit5:
- 	dput(new_dentry);
- exit4:
- 	dput(old_dentry);
- exit3:
- 	unlock_rename(new_dir, old_dir);
-+	mnt_drop_write(oldnd.path.mnt);
- exit2:
- 	path_put(&newnd.path);
- 	putname(to);
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 9f32d7c..dd0c588 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -4453,7 +4453,7 @@ int ocfs2_reflink_ioctl(struct inode *inode,
- 		return error;
- 	}
- 
--	new_dentry = user_path_create(AT_FDCWD, newname, &new_path, 0);
-+	new_dentry = user_path_create_thawed(AT_FDCWD, newname, &new_path, 0);
- 	error = PTR_ERR(new_dentry);
- 	if (IS_ERR(new_dentry)) {
- 		mlog_errno(error);
-@@ -4466,19 +4466,13 @@ int ocfs2_reflink_ioctl(struct inode *inode,
- 		goto out_dput;
- 	}
- 
--	error = mnt_want_write(new_path.mnt);
--	if (error) {
--		mlog_errno(error);
--		goto out_dput;
--	}
--
- 	error = ocfs2_vfs_reflink(old_path.dentry,
- 				  new_path.dentry->d_inode,
- 				  new_dentry, preserve);
--	mnt_drop_write(new_path.mnt);
- out_dput:
- 	dput(new_dentry);
- 	mutex_unlock(&new_path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(new_path.mnt);
- 	path_put(&new_path);
- out:
- 	path_put(&old_path);
-diff --git a/include/linux/namei.h b/include/linux/namei.h
-index ffc0213..432f6bb 100644
---- a/include/linux/namei.h
-+++ b/include/linux/namei.h
-@@ -77,7 +77,9 @@ extern int user_path_at_empty(int, const char __user *, unsigned, struct path *,
- extern int kern_path(const char *, unsigned, struct path *);
- 
- extern struct dentry *kern_path_create(int, const char *, struct path *, int);
-+extern struct dentry *kern_path_create_thawed(int, const char *, struct path *, int);
- extern struct dentry *user_path_create(int, const char __user *, struct path *, int);
-+extern struct dentry *user_path_create_thawed(int, const char __user *, struct path *, int);
- extern int kern_path_parent(const char *, struct nameidata *);
- extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
- 			   const char *, unsigned int, struct path *);
-diff --git a/net/unix/af_unix.c b/net/unix/af_unix.c
-index 641f2e4..37e65a2 100644
---- a/net/unix/af_unix.c
-+++ b/net/unix/af_unix.c
-@@ -866,7 +866,7 @@ static int unix_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
- 		 * Get the parent directory, calculate the hash for last
- 		 * component.
- 		 */
--		dentry = kern_path_create(AT_FDCWD, sun_path, &path, 0);
-+		dentry = kern_path_create_thawed(AT_FDCWD, sun_path, &path, 0);
- 		err = PTR_ERR(dentry);
- 		if (IS_ERR(dentry))
- 			goto out_mknod_parent;
-@@ -876,19 +876,13 @@ static int unix_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
- 		 */
- 		mode = S_IFSOCK |
- 		       (SOCK_INODE(sock)->i_mode & ~current_umask());
--		err = mnt_want_write(path.mnt);
--		if (err)
--			goto out_mknod_dput;
- 		err = security_path_mknod(&path, dentry, mode, 0);
- 		if (err)
--			goto out_mknod_drop_write;
--		err = vfs_mknod(path.dentry->d_inode, dentry, mode, 0);
--out_mknod_drop_write:
--		mnt_drop_write(path.mnt);
--		if (err)
- 			goto out_mknod_dput;
-+		err = vfs_mknod(path.dentry->d_inode, dentry, mode, 0);
- 		mutex_unlock(&path.dentry->d_inode->i_mutex);
- 		dput(path.dentry);
-+		mnt_drop_write(path.mnt);
- 		path.dentry = dentry;
- 
- 		addr->hash = UNIX_HASH_SIZE;
-@@ -925,6 +919,7 @@ out:
- out_mknod_dput:
- 	dput(dentry);
- 	mutex_unlock(&path.dentry->d_inode->i_mutex);
-+	mnt_drop_write(path.mnt);
- 	path_put(&path);
- out_mknod_parent:
- 	if (err == -EEXIST)
--- 
-1.7.1
+2372         if (direct_io) {
+2373                 written = generic_file_direct_write(iocb, iov, 
+&nr_segs, *ppos,
+2374                                                     ppos, count, 
+ocount);
+2375                 if (written < 0) {
+2376                         ret = written;
+2377                         goto out_dio;
+2378                 }
+2379         } else {
+2380                 current->backing_dev_info = 
+file->f_mapping->backing_dev_info;
+2381                 written = generic_file_buffered_write(iocb, iov, 
+nr_segs, *ppos,
+2382                                                       ppos, count, 0);
+2383                 current->backing_dev_info = NULL;
+2384         }
+
+2438         if (written)
+2439                 ret = written;
+2440         return ret;
+>
+>> 2. If the very buffer io is a partial write, then it will return back
+>> to  aio_rw_vect_retry and issue the second aio_write.
+> For the generic case, the fallback to buffered I/O happens in
+> __generic_file_aio_write, without bouncing all the way back up the call
+> stack to aio_rw_vect_retry.  I see in ocfs2, things are a bit different:
+>
+> retry->aio_rw_vect_retry->ocfs2_file_aio_write->generic_file_direct_write
+>    ->ocfs2_direct_IO->__blockdev_direct_IO
+>
+> That last function can return 0 if not all of the data was written via
+> direct I/O.  At that point, you return all of the way up the chain to
+> aio_rw_vect_retry, which checks the return value (ret).  If it was 0,
+> then it goes ahead and retries the complete I/O.  How does that make any
+> progress?!
+>
+> Cheers,
+> Jeff
