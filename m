@@ -1,43 +1,44 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 8 Jun 2012 14:43:58 -0700
-Subject: [Ocfs2-devel] [RFC,
- PATCH] fs: push rcu_barrier() from deactivate_locked_super() to
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 8 Jun 2012 15:02:53 -0700
+Subject: [Ocfs2-devel] [RFC, PATCH,
+ RESEND] fs: push rcu_barrier() from deactivate_locked_super() to
  filesystems
-In-Reply-To: <1339190930-17233-1-git-send-email-kirill.shutemov@linux.intel.com>
-References: <1339190930-17233-1-git-send-email-kirill.shutemov@linux.intel.com>
-Message-ID: <CA+55aFz_RpR+T3Yx-hMf3veW55xAu3GgtmefKs1ZUydp4hRu8w@mail.gmail.com>
+In-Reply-To: <1339191663-17693-1-git-send-email-kirill.shutemov@linux.intel.com>
+References: <1339191663-17693-1-git-send-email-kirill.shutemov@linux.intel.com>
+Message-ID: <20120608150253.e42464a6.akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Pekka Enberg <penberg@kernel.org>
-Cc: Latchesar Ionkov <lucho@ionkov.net>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, Phillip Lougher <phillip@squashfs.org.uk>, Jan Kara <jack@suse.cz>, Kai Bankett <chaosman@ontika.net>, logfs@logfs.org, Frederic Weisbecker <fweisbec@gmail.com>, Anders Larsen <al@alarsen.net>, Trond Myklebust <Trond.Myklebust@netapp.com>, William Irwin <wli@holomorphy.com>, "Dmitry V. Levin" <ldv@altlinux.org>, David Howells <dhowells@redhat.com>, Dustin Kirkland <dustin.kirkland@gazzang.com>, Andreas Dilger <adilger.kernel@dilger.ca>, Mikulas Patocka <mikulas@artax.karlin.mff.cuni.cz>, KONISHI Ryusuke <konishi.ryusuke@lab.ntt.co.jp>, Petr Vandrovec <petr@vandrovec.name>, linux-afs@lists.infradead.org, Alexey Khoroshilov <khoroshilov@ispras.ru>, linux-cifs@vger.kernel.org, Namjae Jeon <linkinjeon@gmail.com>, linux-nilfs@vger.kernel.org, fuse-devel@lists.source
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Boaz Harrosh <bharrosh@panasas.com>, Tao Ma <boyu.mt@taobao.com>, Nick Piggin <npiggin@kernel.dk>, "Dmitry V. Levin" <ldv@altlinux.org>, v9fs-developer@lists.sourceforge.net, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org, linux-cifs@vger.kernel.org, samba-technical@lists.samba.org, codalist@TELEMANN.coda.cs.cmu.edu, ecryptfs@vger.kernel.org, osd-dev@open-osd.org, linux-ext4@vger.kernel.org, fuse-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, jfs-discussion@lists.sourceforge.net, logfs@logfs.org, linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org
 
-On Fri, Jun 8, 2012 at 2:28 PM, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
-> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
->
+On Sat,  9 Jun 2012 00:41:03 +0300
+"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
+
 > There's no reason to call rcu_barrier() on every deactivate_locked_super().
 > We only need to make sure that all delayed rcu free inodes are flushed
 > before we destroy related cache.
->
+> 
 > Removing rcu_barrier() from deactivate_locked_super() affects some
 > fas paths. E.g. on my machine exit_group() of a last process in IPC
 > namespace takes 0.07538s. rcu_barrier() takes 0.05188s of that time.
 
-I think we should just delete it.
+What an unpleasant patch.  Is final-process-exiting-ipc-namespace a
+sufficiently high-frequency operation to justify the change?
 
-kmem_cache_destroy() (at least for SLUB) already has:
+I don't really understand what's going on here.  Are you saying that
+there is some filesystem against which we run deactivate_locked_super()
+during exit_group(), and that this filesystem doesn't use rcu-freeing
+of inodes?  The description needs this level of detail, please.
 
-                if (s->flags & SLAB_DESTROY_BY_RCU)
-                        rcu_barrier();
 
-in it. But I think it's too late - it gets called *after* we do
-kmem_cache_close(), and I get the feeling that we should do it before.
+The implementation would be less unpleasant if we could do the
+rcu_barrier() in kmem_cache_destroy().  I can't see a way of doing that
+without adding a dedicated slab flag, which would require editing all
+the filesystems anyway.
 
-Shouldn't that be sufficient? And if other slab allocators don't have
-this, we should add it to them too.
 
-Hmm?
-
-              Linus
+(kmem_cache_destroy() already has an rcu_barrier().  Can we do away
+with the private rcu games in the vfs and switch to
+SLAB_DESTROY_BY_RCU?)
