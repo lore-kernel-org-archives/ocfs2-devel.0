@@ -1,33 +1,52 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Date: Sat, 9 Jun 2012 07:29:52 +0100
-Subject: [Ocfs2-devel] [PATCH 00/27 v6] Fix filesystem freezing deadlocks
-In-Reply-To: <1338589841-9568-1-git-send-email-jack@suse.cz>
-References: <1338589841-9568-1-git-send-email-jack@suse.cz>
-Message-ID: <20120609062952.GY30000@ZenIV.linux.org.uk>
+From: Marco Stornelli <marco.stornelli@gmail.com>
+Date: Sat, 09 Jun 2012 09:06:28 +0200
+Subject: [Ocfs2-devel] [RFC, PATCH,
+ RESEND] fs: push rcu_barrier() from deactivate_locked_super() to
+ filesystems
+In-Reply-To: <20120608172842.9826b5cd.akpm@linux-foundation.org>
+References: <1339191663-17693-1-git-send-email-kirill.shutemov@linux.intel.com>
+	<20120608150253.e42464a6.akpm@linux-foundation.org>
+	<20120608221446.GA18250@otc-wbsnb-06>
+	<20120608152550.258d6a30.akpm@linux-foundation.org>
+	<20120608222734.GT30000@ZenIV.linux.org.uk>
+	<20120608153120.b722d7c3.akpm@linux-foundation.org>
+	<20120608233127.GB18981@otc-wbsnb-06>
+	<20120608163751.7a8ec2bc.akpm@linux-foundation.org>
+	<CA+55aFw5k3daxeoZb9H1HGcOCWjPF+d7inSbf0QHmG-atp4reQ@mail.gmail.com>
+	<20120608172842.9826b5cd.akpm@linux-foundation.org>
+Message-ID: <4FD2F5F4.1000106@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: linux-fsdevel@vger.kernel.org, dchinner@redhat.com, Alex Elder <elder@kernel.org>, Anton Altaparmakov <anton@tuxera.com>, Ben Myers <bpm@sgi.com>, Chris Mason <chris.mason@oracle.com>, cluster-devel@redhat.com, "David S. Miller" <davem@davemloft.net>, fuse-devel@lists.sourceforge.net, "J. Bruce Fields" <bfields@fieldses.org>, Joel Becker <jlbec@evilplan.org>, KONISHI Ryusuke <konishi.ryusuke@lab.ntt.co.jp>, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, Mark Fasheh <mfasheh@suse.com>, Miklos Szeredi <miklos@szeredi.hu>, ocfs2-devel@oss.oracle.com, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Steven Whitehouse <swhiteho@redhat.com>, Theodore Ts'o <tytso@mit.edu>, xfs@oss.sgi.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, Boaz Harrosh <bharrosh@panasas.com>, Tao Ma <boyu.mt@taobao.com>, Nick Piggin <npiggin@kernel.dk>, "Dmitry V. Levin" <ldv@altlinux.org>, v9fs-developer@lists.sourceforge.net, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org, linux-cifs@vger.kernel.org, samba-technical@lists.samba.org, codalist@telemann.coda.cs.cmu.edu, ecryptfs@vger.kernel.org, osd-dev@open-osd.org, linux-ext4@vger.kernel.org, fuse-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, jfs-discussion@lists.sourceforge.net, logfs@logfs.org, linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, rei
 
-On Sat, Jun 02, 2012 at 12:30:14AM +0200, Jan Kara wrote:
->   Hello,
-> 
->   here is the sixth iteration of my patches to improve filesystem freezing.
-> The change since last iteration is that filesystem can be frozen with open but
-> unlinked files. After some thinking, I've decided that the best way to handle
-> this is to block removal inside ->evict_inode() of each filesystem and use
-> fs-internal level of freeze protection for that (usually I've instrumented
-> filesystem's transaction system to use freeze protection). Handling
-> inside VFS would be less work but the only level of freeze protection that
-> has a chance of not causing deadlocks is the one used for page faults and even
-> there it's not clear lock ordering would be correct wrt some fs-specific locks.
-> I've converted ext2, ext4, btrfs, xfs, nilfs2, ocfs2, gfs2 and also checked
-> that ext3, reiserfs, jfs should work as well (they have their internal freeze
-> protection mechanisms, possibly they could be replaced by a generic one but
-> given these are mostly aging filesystems, it's not a real priority IHMO).
-> So finally I'm not aware of any pending issue with this patch set so if you
-> have some concern, please speak up!
+Il 09/06/2012 02:28, Andrew Morton ha scritto:
+> On Fri, 8 Jun 2012 16:46:47 -0700 Linus Torvalds<torvalds@linux-foundation.org>  wrote:
+>
+>> Of course, if you just mean having a VFS wrapper that does
+>>
+>>      static void vfs_inode_kmem_cache_destroy(struct kmem_cache *cachep)
+>>      {
+>>          rcu_barrier();
+>>          kmem_cache_destroy(cachep);
+>>      }
+>>
+>> then we could do that. Not much better than what Kirill's patch did,
+>> but at least we could have that comment in just one single place.
+>
+> That's conceptually what I meant.  But it has the problem that new and
+> out-of-tree filesystems might forget to do it.  Which is why I suggest
+> adding a kmem_cache* argument to unregister_filesystem() for this.
+>
+> It's a bit awkward, and the fs can pass in NULL if it knows what it's
+> doing.  But it's reliable.
+> --
 
-Could you rebase on top of e.g. -rc2 and repost?
+The call of rcu_barrier should be mandatory for the "unload fs module" 
+problem, right? If the fs is compiled statically maybe we could avoid 
+it, but (eventually) this kind of decision is per-fs, so this could be a 
+clue that the call of rcu_barrier maybe is inside each fs not in VFS.
+
+Marco
