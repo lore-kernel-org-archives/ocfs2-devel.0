@@ -1,48 +1,33 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Date: Sat,  9 Jun 2012 09:50:35 +0900
-Subject: [Ocfs2-devel] [PATCH v3 6/9] ocfs2: use memweight()
-In-Reply-To: <1339203038-13069-1-git-send-email-akinobu.mita@gmail.com>
-References: <1339203038-13069-1-git-send-email-akinobu.mita@gmail.com>
-Message-ID: <1339203038-13069-6-git-send-email-akinobu.mita@gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Date: Sat, 9 Jun 2012 07:29:52 +0100
+Subject: [Ocfs2-devel] [PATCH 00/27 v6] Fix filesystem freezing deadlocks
+In-Reply-To: <1338589841-9568-1-git-send-email-jack@suse.cz>
+References: <1338589841-9568-1-git-send-email-jack@suse.cz>
+Message-ID: <20120609062952.GY30000@ZenIV.linux.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.cz>
+Cc: linux-fsdevel@vger.kernel.org, dchinner@redhat.com, Alex Elder <elder@kernel.org>, Anton Altaparmakov <anton@tuxera.com>, Ben Myers <bpm@sgi.com>, Chris Mason <chris.mason@oracle.com>, cluster-devel@redhat.com, "David S. Miller" <davem@davemloft.net>, fuse-devel@lists.sourceforge.net, "J. Bruce Fields" <bfields@fieldses.org>, Joel Becker <jlbec@evilplan.org>, KONISHI Ryusuke <konishi.ryusuke@lab.ntt.co.jp>, linux-btrfs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, Mark Fasheh <mfasheh@suse.com>, Miklos Szeredi <miklos@szeredi.hu>, ocfs2-devel@oss.oracle.com, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Steven Whitehouse <swhiteho@redhat.com>, Theodore Ts'o <tytso@mit.edu>, xfs@oss.sgi.com
 
-Use memweight to count the total number of bits set in memory area.
+On Sat, Jun 02, 2012 at 12:30:14AM +0200, Jan Kara wrote:
+>   Hello,
+> 
+>   here is the sixth iteration of my patches to improve filesystem freezing.
+> The change since last iteration is that filesystem can be frozen with open but
+> unlinked files. After some thinking, I've decided that the best way to handle
+> this is to block removal inside ->evict_inode() of each filesystem and use
+> fs-internal level of freeze protection for that (usually I've instrumented
+> filesystem's transaction system to use freeze protection). Handling
+> inside VFS would be less work but the only level of freeze protection that
+> has a chance of not causing deadlocks is the one used for page faults and even
+> there it's not clear lock ordering would be correct wrt some fs-specific locks.
+> I've converted ext2, ext4, btrfs, xfs, nilfs2, ocfs2, gfs2 and also checked
+> that ext3, reiserfs, jfs should work as well (they have their internal freeze
+> protection mechanisms, possibly they could be replaced by a generic one but
+> given these are mostly aging filesystems, it's not a real priority IHMO).
+> So finally I'm not aware of any pending issue with this patch set so if you
+> have some concern, please speak up!
 
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel at oss.oracle.com
----
-No changes from v1
-
- fs/ocfs2/localalloc.c |    8 ++------
- 1 files changed, 2 insertions(+), 6 deletions(-)
-
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index 210c352..a9f78c7 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -784,14 +784,10 @@ bail:
- 
- static u32 ocfs2_local_alloc_count_bits(struct ocfs2_dinode *alloc)
- {
--	int i;
--	u8 *buffer;
--	u32 count = 0;
-+	u32 count;
- 	struct ocfs2_local_alloc *la = OCFS2_LOCAL_ALLOC(alloc);
- 
--	buffer = la->la_bitmap;
--	for (i = 0; i < le16_to_cpu(la->la_size); i++)
--		count += hweight8(buffer[i]);
-+	count = memweight(la->la_bitmap, le16_to_cpu(la->la_size));
- 
- 	trace_ocfs2_local_alloc_count_bits(count);
- 	return count;
--- 
-1.7.7.6
+Could you rebase on top of e.g. -rc2 and repost?
