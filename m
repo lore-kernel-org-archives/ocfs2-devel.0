@@ -1,19 +1,34 @@
-From: Tiger Yang <tiger.yang@oracle.com>
-Date: Mon, 25 Jun 2012 16:16:17 +0800
+From: =?UTF-8?Q?Marek_Kr=C3=B3likowski?= <admin@wset.edu.pl>
+Date: Mon, 25 Jun 2012 10:19:46 +0200
 Subject: [Ocfs2-devel] fix mlog_errno in ocfs2_global_read_info
-In-Reply-To: <C593DD0C25314743922515FB5DD8A801@tktelekom.net>
+In-Reply-To: <4FE81E51.3070109@oracle.com>
 References: <4FE81A93.6010200@oracle.com>
 	<C593DD0C25314743922515FB5DD8A801@tktelekom.net>
-Message-ID: <4FE81E51.3070109@oracle.com>
+	<4FE81E51.3070109@oracle.com>
+Message-ID: <C77B6858E36A4D188D89BD536B011DED@tktelekom.net>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hello Tiger
+Thank You for taking the topic - good to hear someone want repair this.
+If You got any question or need any help please send email to me.
+
+Thanks,
+Marek
+
+-----Oryginalna wiadomo??----- 
+From: Tiger Yang
+Sent: Monday, June 25, 2012 10:16 AM
+To: Marek Kr?likowski
+Cc: ocfs2-devel at oss.oracle.com ; Mark Fasheh
+Subject: Re: [Ocfs2-devel] fix mlog_errno in ocfs2_global_read_info
+
 Hi, Marek,
 
-I know you are suffered with quota bug, but I am trying to fix this 
+I know you are suffered with quota bug, but I am trying to fix this
 issue soon.
 
 Thanks,
@@ -28,9 +43,9 @@ On 06/25/2012 04:04 PM, Marek Kr?likowski wrote:
 > (local,29785,2):ocfs2_write_begin:1953 ERROR: status = -122
 > (courier-imapd,26241,1):ocfs2_write_begin:1953 ERROR: status = -122
 >
-> And many many other errors with status -122... if possible disable 
-> quota or You get kernel panic when u write/read/move file with FS 
-> quota support on ocfs2 cluster.
+> And many many other errors with status -122... if possible disable quota 
+> or You get kernel panic when u write/read/move file with FS quota support 
+> on ocfs2 cluster.
 > Thanks
 >
 >
@@ -65,4 +80,4 @@ On 06/25/2012 04:04 PM, Marek Kr?likowski wrote:
 > _______________________________________________
 > Ocfs2-devel mailing list
 > Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> http://oss.oracle.com/mailman/listinfo/ocfs2-devel 
