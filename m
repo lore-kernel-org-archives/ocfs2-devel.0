@@ -1,83 +1,35 @@
-From: =?UTF-8?Q?Marek_Kr=C3=B3likowski?= <admin@wset.edu.pl>
-Date: Mon, 25 Jun 2012 10:19:46 +0200
-Subject: [Ocfs2-devel] fix mlog_errno in ocfs2_global_read_info
-In-Reply-To: <4FE81E51.3070109@oracle.com>
-References: <4FE81A93.6010200@oracle.com>
-	<C593DD0C25314743922515FB5DD8A801@tktelekom.net>
-	<4FE81E51.3070109@oracle.com>
-Message-ID: <C77B6858E36A4D188D89BD536B011DED@tktelekom.net>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 27 Jun 2012 17:09:53 +0800
+Subject: [Ocfs2-devel] [V4]fix ocfs2 aio/dio writing process hang
+Message-ID: <1340788195-20623-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com, linux-aio@kvack.org
+Cc: mfasheh@suse.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, joe.jin@oracle.com
 
-Hello Tiger
-Thank You for taking the topic - good to hear someone want repair this.
-If You got any question or need any help please send email to me.
 
-Thanks,
-Marek
+V4 changes:
+add Acked-by: Joel Becker <jlbec@evilplan.org>
 
------Oryginalna wiadomo??----- 
-From: Tiger Yang
-Sent: Monday, June 25, 2012 10:16 AM
-To: Marek Kr?likowski
-Cc: ocfs2-devel at oss.oracle.com ; Mark Fasheh
-Subject: Re: [Ocfs2-devel] fix mlog_errno in ocfs2_global_read_info
+V3 changes:
+- add Cc: stable at vger.kernel.org in the patch header to align with stable rules
+- add Acked-by: Jeff Moyer <jmoyer@redhat.com>
 
-Hi, Marek,
+V2 changes:
+- update the patch header of the first patch to make it more clear.
 
-I know you are suffered with quota bug, but I am trying to fix this
-issue soon.
 
-Thanks,
-
-Tiger
-
-On 06/25/2012 04:04 PM, Marek Kr?likowski wrote:
-> Don`t use usrquota and grpquota - this is amazing unstable i wait for 
-> patch 7 month and still in progress....
-> And FYI this is not only this error look i got many many in dmesg when 
-> someone get email and he is over quota there is error in dmesg like this:
-> (local,29785,2):ocfs2_write_begin:1953 ERROR: status = -122
-> (courier-imapd,26241,1):ocfs2_write_begin:1953 ERROR: status = -122
->
-> And many many other errors with status -122... if possible disable quota 
-> or You get kernel panic when u write/read/move file with FS quota support 
-> on ocfs2 cluster.
-> Thanks
->
->
-> -----Oryginalna wiadomo??----- From: Tiger Yang
-> Sent: Monday, June 25, 2012 10:00 AM
-> To: ocfs2-devel at oss.oracle.com
-> Cc: Mark Fasheh
-> Subject: [Ocfs2-devel] fix mlog_errno in ocfs2_global_read_info
->
-> Hi, All,
->
-> When mount ocfs2 with option usrquota and grpquota, we will see below
-> message:
->
-> (mount.ocfs2,9434,1):ocfs2_global_read_info:403 ERROR: status = 24
-> (mount.ocfs2,9434,3):ocfs2_global_read_info:403 ERROR: status = 24
->
-> But actually this should not be a error.
->
-> In ocfs2_global_read_info, if  read_quota() succeed, status is the size
-> of the struct ocfs2_global_disk_dqinfo, only when it is not equal to the
-> correct size, it will be a error. So this positive value should be
-> return and should not log it as a error.
->
-> I made a patch to fix this, and in the patch I removed the redundant
-> mlog_errno also.
->
-> Thanks for review
->
-> Tiger
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> http://oss.oracle.com/mailman/listinfo/ocfs2-devel 
+This patch list fixes an issue about ocfs2 aio/dio write process hang.
+The call trace is like this:
+@  cat /proc/15913/stack
+@ [<ffffffffa06e1085>] ocfs2_aiodio_wait+0x85/0xc0 [ocfs2]
+@ [<ffffffffa06e3e39>] ocfs2_file_aio_write+0x99/0xa0 [ocfs2]
+@ [<ffffffff811ace97>] aio_rw_vect_retry+0x87/0x150
+@ [<ffffffff811aebd1>] aio_run_iocb+0x71/0x170
+@ [<ffffffff811af59b>] io_submit_one+0x1ab/0x280
+@ [<ffffffff811af77c>] do_io_submit+0x10c/0x1c0
+@ [<ffffffff811af840>] sys_io_submit+0x10/0x20
+@ [<ffffffff81509b42>] system_call_fastpath+0x16/0x1b
+@ [<ffffffffffffffff>] 0xffffffffffffffff
