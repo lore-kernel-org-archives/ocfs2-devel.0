@@ -1,49 +1,88 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu, 28 Jun 2012 16:48:03 +0800
-Subject: [Ocfs2-devel] [V4]fix ocfs2 aio/dio writing process hang
-In-Reply-To: <20120628083454.GF18502@dhcp-172-17-9-228.mtv.corp.google.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Thu, 28 Jun 2012 15:39:56 -0700
+Subject: [Ocfs2-devel] [PATCH v4 1/2] aio: make kiocb->private NUll in
+ init_sync_kiocb()
+In-Reply-To: <1340788195-20623-2-git-send-email-junxiao.bi@oracle.com>
 References: <1340788195-20623-1-git-send-email-junxiao.bi@oracle.com>
-	<20120628083454.GF18502@dhcp-172-17-9-228.mtv.corp.google.com>
-Message-ID: <4FEC1A43.7060309@oracle.com>
+	<1340788195-20623-2-git-send-email-junxiao.bi@oracle.com>
+Message-ID: <20120628153956.9b7405d9.akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com, linux-aio@kvack.org, mfasheh@suse.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, joe.jin@oracle.com
+To: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-aio@kvack.org, mfasheh@suse.com, linux-kernel@vger.kernel.org, joe.jin@oracle.com, stable@vger.kernel.org
 
-On 06/28/2012 04:34 PM, Joel Becker wrote:
-> Btw, do you want me to pull these through the ocfs2 tree, or are you
-> sending them along yourself?
-Please help pull these, great thanks.
->
-> Joel
->
-> On Wed, Jun 27, 2012 at 05:09:53PM +0800, Junxiao Bi wrote:
->> V4 changes:
->> add Acked-by: Joel Becker <jlbec@evilplan.org>
->>
->> V3 changes:
->> - add Cc: stable at vger.kernel.org in the patch header to align with stable rules
->> - add Acked-by: Jeff Moyer <jmoyer@redhat.com>
->>
->> V2 changes:
->> - update the patch header of the first patch to make it more clear.
->>
->>
->> This patch list fixes an issue about ocfs2 aio/dio write process hang.
->> The call trace is like this:
->> @  cat /proc/15913/stack
->> @ [<ffffffffa06e1085>] ocfs2_aiodio_wait+0x85/0xc0 [ocfs2]
->> @ [<ffffffffa06e3e39>] ocfs2_file_aio_write+0x99/0xa0 [ocfs2]
->> @ [<ffffffff811ace97>] aio_rw_vect_retry+0x87/0x150
->> @ [<ffffffff811aebd1>] aio_run_iocb+0x71/0x170
->> @ [<ffffffff811af59b>] io_submit_one+0x1ab/0x280
->> @ [<ffffffff811af77c>] do_io_submit+0x10c/0x1c0
->> @ [<ffffffff811af840>] sys_io_submit+0x10/0x20
->> @ [<ffffffff81509b42>] system_call_fastpath+0x16/0x1b
->> @ [<ffffffffffffffff>] 0xffffffffffffffff
->> --
->> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
->> the body of a message to majordomo at vger.kernel.org
->> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->> Please read the FAQ at  http://www.tux.org/lkml/
+On Wed, 27 Jun 2012 17:09:54 +0800
+Junxiao Bi <junxiao.bi@oracle.com> wrote:
+
+> Ocfs2 uses kiocb.*private as a flag of unsigned long size. In
+> commit a11f7e6 ocfs2: serialize unaligned aio, the unaligned
+> io flag is involved in it to serialize the unaligned aio. As
+> *private is not initialized in init_sync_kiocb() of do_sync_write(),
+> this unaligned io flag may be unexpectly set in an aligned dio.
+> And this will cause OCFS2_I(inode)->ip_unaligned_aio decreased
+> to -1 in ocfs2_dio_end_io(), thus the following unaligned dio
+> will hang forever at ocfs2_aiodio_wait() in ocfs2_file_aio_write().
+> 
+> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+> Cc: stable at vger.kernel.org
+> Acked-by: Jeff Moyer <jmoyer@redhat.com>
+> Acked-by: Joel Becker <jlbec@evilplan.org>
+> ---
+>  include/linux/aio.h |    1 +
+>  1 file changed, 1 insertion(+)
+> 
+> diff --git a/include/linux/aio.h b/include/linux/aio.h
+> index 2314ad8..b1a520e 100644
+> --- a/include/linux/aio.h
+> +++ b/include/linux/aio.h
+> @@ -140,6 +140,7 @@ struct kiocb {
+>  		(x)->ki_dtor = NULL;			\
+>  		(x)->ki_obj.tsk = tsk;			\
+>  		(x)->ki_user_data = 0;                  \
+> +		(x)->private = NULL;			\
+>  	} while (0)
+>  
+>  #define AIO_RING_MAGIC			0xa10a10a1
+
+hm, that code is rather cruddy.  Pointless macromania.
+
+
+If we do this:
+
+static inline void init_sync_kiocb(struct kiocb *kiocb, struct file *filp)
+{
+	struct task_struct *tsk = current;
+
+	kiocb->ki_flags = 0;
+	kiocb->ki_users = 1;
+	kiocb->ki_key = KIOCB_SYNC_KEY;
+	kiocb->ki_filp = filp;
+	kiocb->ki_ctx = NULL;
+	kiocb->ki_cancel = NULL;
+	kiocb->ki_retry = NULL;
+	kiocb->ki_dtor = NULL;
+	kiocb->ki_obj.tsk = tsk;
+	kiocb->ki_user_data = 0;
+}
+
+it is nicer and there is no impact on code size.
+
+
+If we do this:
+
+static inline void init_sync_kiocb(struct kiocb *kiocb, struct file *filp)
+{
+	*kiocb = (struct kiocb) {
+			.ki_users = 1,
+			.ki_key = KIOCB_SYNC_KEY,
+			.ki_filp = filp,
+			.ki_obj.tsk = current,
+		};
+}
+
+then fs/read_write.o's .text is shrunk from 9857 bytes to 9714, which
+is rather a lot.
+
+But that's all rather irrelevant to your bugfix.
