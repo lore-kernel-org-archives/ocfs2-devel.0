@@ -1,95 +1,82 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 3 Jul 2012 23:13:55 -0700
-Subject: [Ocfs2-devel] [PATCH v4 1/2] aio: make kiocb->private NUll in
- init_sync_kiocb()
-In-Reply-To: <4FED8847.9000204@oracle.com>
-References: <1340788195-20623-1-git-send-email-junxiao.bi@oracle.com>
-	<1340788195-20623-2-git-send-email-junxiao.bi@oracle.com>
-	<20120628153956.9b7405d9.akpm@linux-foundation.org>
-	<20120629092255.GB12521@dhcp-172-17-9-228.mtv.corp.google.com>
-	<4FED8847.9000204@oracle.com>
-Message-ID: <20120704061355.GD14743@dhcp-172-17-9-228.mtv.corp.google.com>
+Date: Tue, 3 Jul 2012 23:26:23 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: remove redundant and incorrect
+	mlog_error
+In-Reply-To: <1340611404-17808-1-git-send-email-tiger.yang@oracle.com>
+References: <4FE81A93.6010200@oracle.com>
+	<1340611404-17808-1-git-send-email-tiger.yang@oracle.com>
+Message-ID: <20120704062623.GA9863@dhcp-172-17-9-228.mtv.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com, linux-aio@kvack.org, mfasheh@suse.com, linux-kernel@vger.kernel.org, joe.jin@oracle.com, stable@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jun 29, 2012 at 06:49:43PM +0800, Junxiao Bi wrote:
-> On 06/29/2012 05:22 PM, Joel Becker wrote:
-> > On Thu, Jun 28, 2012 at 03:39:56PM -0700, Andrew Morton wrote:
-> >> On Wed, 27 Jun 2012 17:09:54 +0800
-> >> Junxiao Bi <junxiao.bi@oracle.com> wrote:
-> >>
-> >>> Ocfs2 uses kiocb.*private as a flag of unsigned long size. In
-> >>> commit a11f7e6 ocfs2: serialize unaligned aio, the unaligned
-> >>> io flag is involved in it to serialize the unaligned aio. As
-> >>> *private is not initialized in init_sync_kiocb() of do_sync_write(),
-> >>> this unaligned io flag may be unexpectly set in an aligned dio.
-> >>> And this will cause OCFS2_I(inode)->ip_unaligned_aio decreased
-> >>> to -1 in ocfs2_dio_end_io(), thus the following unaligned dio
-> >>> will hang forever at ocfs2_aiodio_wait() in ocfs2_file_aio_write().
-> >>>
-> >>> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-> >>> Cc: stable at vger.kernel.org
-> >>> Acked-by: Jeff Moyer <jmoyer@redhat.com>
-> >>> Acked-by: Joel Becker <jlbec@evilplan.org>
-> >>> ---
-> >>>  include/linux/aio.h |    1 +
-> >>>  1 file changed, 1 insertion(+)
-> >>>
-> >>> diff --git a/include/linux/aio.h b/include/linux/aio.h
-> >>> index 2314ad8..b1a520e 100644
-> >>> --- a/include/linux/aio.h
-> >>> +++ b/include/linux/aio.h
-> >>> @@ -140,6 +140,7 @@ struct kiocb {
-> >>>  		(x)->ki_dtor = NULL;			\
-> >>>  		(x)->ki_obj.tsk = tsk;			\
-> >>>  		(x)->ki_user_data = 0;                  \
-> >>> +		(x)->private = NULL;			\
-> >>>  	} while (0)
-> >>>  
-> >>>  #define AIO_RING_MAGIC			0xa10a10a1
-> >> hm, that code is rather cruddy.  Pointless macromania.
-> > Agreed.
-> >
-> >> If we do this:
-> >>
-> >> static inline void init_sync_kiocb(struct kiocb *kiocb, struct file *filp)
-> >> {
-> >> 	*kiocb = (struct kiocb) {
-> >> 			.ki_users = 1,
-> >> 			.ki_key = KIOCB_SYNC_KEY,
-> >> 			.ki_filp = filp,
-> >> 			.ki_obj.tsk = current,
-> >> 		};
-> >> }
-> >>
-> >> then fs/read_write.o's .text is shrunk from 9857 bytes to 9714, which
-> >> is rather a lot.
-> >>
-> >> But that's all rather irrelevant to your bugfix.
-> > 	I like your solution.  Junxiao, if you send me that version, I'd
-> > be happy to take it.
-> Joel, since Andrew will feed his cleanup patch later on. Please help
-> merge my patches. Though it is covered by the cleanup patch, but I think
-> it's useful to merge it, at least we can see from the git log this is
-> for an ocfs2 hang bug.
-
-Yes, I'll be pulling it.
+I have Jan's patch, which keeps mlog_errno near the errors.  this is
+good for locating the problem.
 
 Joel
 
-> >
-> > Joel
-> >
+On Mon, Jun 25, 2012 at 04:03:24PM +0800, Tiger Yang wrote:
+> out_err already logged all the negative status, so remove mlog_errno
+> before goto there. If quota_read succeed, positive (non zero)
+> status should be return and it's not a error.
+> 
+> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
+> ---
+>  fs/ocfs2/quota_global.c |   11 +++--------
+>  1 files changed, 3 insertions(+), 8 deletions(-)
+> 
+> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+> index 92fcd57..cb0f017 100644
+> --- a/fs/ocfs2/quota_global.c
+> +++ b/fs/ocfs2/quota_global.c
+> @@ -358,10 +358,8 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+>  	oinfo->dqi_gqi_count = 0;
+>  	oinfo->dqi_gqinode = gqinode;
+>  	status = ocfs2_lock_global_qf(oinfo, 0);
+> -	if (status < 0) {
+> -		mlog_errno(status);
+> +	if (status < 0)
+>  		goto out_err;
+> -	}
+>  
+>  	status = ocfs2_extent_map_get_blocks(gqinode, 0, &oinfo->dqi_giblk,
+>  					     &pcount, NULL);
+> @@ -381,7 +379,6 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+>  		     status);
+>  		if (status >= 0)
+>  			status = -EIO;
+> -		mlog_errno(status);
+>  		goto out_err;
+>  	}
+>  	info->dqi_bgrace = le32_to_cpu(dinfo.dqi_bgrace);
+> @@ -398,14 +395,12 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
+>  	schedule_delayed_work(&oinfo->dqi_sync_work,
+>  			      msecs_to_jiffies(oinfo->dqi_syncms));
+>  
+> -out_err:
+> -	if (status)
+> -		mlog_errno(status);
+>  	return status;
+>  out_unlock:
+>  	ocfs2_unlock_global_qf(oinfo, 0);
+> +out_err:
+>  	mlog_errno(status);
+> -	goto out_err;
+> +	return status;
+>  }
+>  
+>  /* Write information to global quota file. Expects exlusive lock on quota
+> -- 
+> 1.7.4.4
 > 
 
 -- 
 
-"In the room the women come and go
- Talking of Michaelangelo."
+Life's Little Instruction Book #451
+
+	"Don't be afraid to say, 'I'm sorry.'"
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
