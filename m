@@ -1,155 +1,58 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Wed, 4 Jul 2012 00:32:01 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2: use spinlock irqsave for
- downconvert lock.patch
-In-Reply-To: <1327989082-31827-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1327989082-31827-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20120704073156.GC9863@dhcp-172-17-9-228.mtv.corp.google.com>
+Date: Wed, 4 Jul 2012 00:32:23 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: for SEEK_DATA/SEEK_HOLE,
+ return internal error unchanged if ocfs2_get_clusters_nocache() or
+ ocfs2_inode_lock() call failed.
+In-Reply-To: <4F336ACE.3010803@oracle.com>
+References: <4F336ACE.3010803@oracle.com>
+Message-ID: <20120704073223.GD9863@dhcp-172-17-9-228.mtv.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jan 30, 2012 at 09:51:22PM -0800, Srinivas Eeda wrote:
-> When ocfs2dc thread holds dc_task_lock spinlock and receives soft IRQ it
-> deadlock itself trying to get same spinlock in ocfs2_wake_downconvert_thread.
-> Below is the stack snippet.
+On Thu, Feb 09, 2012 at 02:42:22PM +0800, Jeff Liu wrote:
+> Hello,
 > 
-> The patch disables interrupts when acquiring dc_task_lock spinlock.
+> Since ENXIO only means "offset beyond EOF" for SEEK_DATA/SEEK_HOLE,
+> Hence we should return the internal error unchanged if ocfs2_inode_lock() or
+> ocfs2_get_clusters_nocache() call failed rather than ENXIO.
+> Otherwise, it will confuse the user applications when they trying to understand the root cause.
 > 
-> 	ocfs2_wake_downconvert_thread
-> 	ocfs2_rw_unlock
-> 	ocfs2_dio_end_io
-> 	dio_complete
-> 	.....
-> 	bio_endio
-> 	req_bio_endio
-> 	....
-> 	scsi_io_completion
-> 	blk_done_softirq
-> 	__do_softirq
-> 	do_softirq
-> 	irq_exit
-> 	do_IRQ
-> 	ocfs2_downconvert_thread
-> 	[kthread]
+> Thanks Dave for pointing this out.
 > 
-> Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> Thanks,
+> -Jeff
+> 
+> 
+> Cc: Dave Chinner <david@fromorbit.com>
+> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 
 This patch is now (finally) part of the 'fixes' branch of ocfs2.git.
 
 Joel
 
+> 
 > ---
->  fs/ocfs2/dlmglue.c |   31 +++++++++++++++++++------------
->  1 files changed, 19 insertions(+), 12 deletions(-)
+>  fs/ocfs2/extent_map.c |    2 --
+>  1 files changed, 0 insertions(+), 2 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 81a4cd2..67af5db 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -3932,6 +3932,8 @@ unqueue:
->  static void ocfs2_schedule_blocked_lock(struct ocfs2_super *osb,
->  					struct ocfs2_lock_res *lockres)
->  {
-> +	unsigned long flags;
-> +
->  	assert_spin_locked(&lockres->l_lock);
+> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+> index 2f5b92e..70b5863 100644
+> --- a/fs/ocfs2/extent_map.c
+> +++ b/fs/ocfs2/extent_map.c
+> @@ -923,8 +923,6 @@ out_unlock:
 >  
->  	if (lockres->l_flags & OCFS2_LOCK_FREEING) {
-> @@ -3945,21 +3947,22 @@ static void ocfs2_schedule_blocked_lock(struct ocfs2_super *osb,
->  
->  	lockres_or_flags(lockres, OCFS2_LOCK_QUEUED);
->  
-> -	spin_lock(&osb->dc_task_lock);
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->  	if (list_empty(&lockres->l_blocked_list)) {
->  		list_add_tail(&lockres->l_blocked_list,
->  			      &osb->blocked_lock_list);
->  		osb->blocked_lock_count++;
->  	}
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
+>  	ocfs2_inode_unlock(inode, 0);
+>  out:
+> -	if (ret && ret != -ENXIO)
+> -		ret = -ENXIO;
+>  	return ret;
 >  }
 >  
->  static void ocfs2_downconvert_thread_do_work(struct ocfs2_super *osb)
->  {
->  	unsigned long processed;
-> +	unsigned long flags;
->  	struct ocfs2_lock_res *lockres;
->  
-> -	spin_lock(&osb->dc_task_lock);
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->  	/* grab this early so we know to try again if a state change and
->  	 * wake happens part-way through our work  */
->  	osb->dc_work_sequence = osb->dc_wake_sequence;
-> @@ -3972,38 +3975,40 @@ static void ocfs2_downconvert_thread_do_work(struct ocfs2_super *osb)
->  				     struct ocfs2_lock_res, l_blocked_list);
->  		list_del_init(&lockres->l_blocked_list);
->  		osb->blocked_lock_count--;
-> -		spin_unlock(&osb->dc_task_lock);
-> +		spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->  
->  		BUG_ON(!processed);
->  		processed--;
->  
->  		ocfs2_process_blocked_lock(osb, lockres);
->  
-> -		spin_lock(&osb->dc_task_lock);
-> +		spin_lock_irqsave(&osb->dc_task_lock, flags);
->  	}
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->  }
->  
->  static int ocfs2_downconvert_thread_lists_empty(struct ocfs2_super *osb)
->  {
->  	int empty = 0;
-> +	unsigned long flags;
->  
-> -	spin_lock(&osb->dc_task_lock);
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->  	if (list_empty(&osb->blocked_lock_list))
->  		empty = 1;
->  
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->  	return empty;
->  }
->  
->  static int ocfs2_downconvert_thread_should_wake(struct ocfs2_super *osb)
->  {
->  	int should_wake = 0;
-> +	unsigned long flags;
->  
-> -	spin_lock(&osb->dc_task_lock);
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->  	if (osb->dc_work_sequence != osb->dc_wake_sequence)
->  		should_wake = 1;
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->  
->  	return should_wake;
->  }
-> @@ -4033,10 +4038,12 @@ static int ocfs2_downconvert_thread(void *arg)
->  
->  void ocfs2_wake_downconvert_thread(struct ocfs2_super *osb)
->  {
-> -	spin_lock(&osb->dc_task_lock);
-> +	unsigned long flags;
-> +
-> +	spin_lock_irqsave(&osb->dc_task_lock, flags);
->  	/* make sure the voting thread gets a swipe at whatever changes
->  	 * the caller may have made to the voting state */
->  	osb->dc_wake_sequence++;
-> -	spin_unlock(&osb->dc_task_lock);
-> +	spin_unlock_irqrestore(&osb->dc_task_lock, flags);
->  	wake_up(&osb->dc_event);
->  }
 > -- 
-> 1.5.4.3
-> 
+> 1.7.9
 > 
 > _______________________________________________
 > Ocfs2-devel mailing list
@@ -158,9 +61,9 @@ Joel
 
 -- 
 
-Life's Little Instruction Book #222
-
-	"Think twice before burdening a friend with a secret."
+"Nearly all men can stand adversity, but if you really want to
+ test a man's character, give him power."
+	- Abraham Lincoln
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
