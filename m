@@ -1,56 +1,64 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Wed, 4 Jul 2012 00:33:52 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix bogus error message from
- ocfs2_global_read_info
-In-Reply-To: <1328867407-11557-1-git-send-email-jack@suse.cz>
-References: <1328867407-11557-1-git-send-email-jack@suse.cz>
-Message-ID: <20120704073352.GE9863@dhcp-172-17-9-228.mtv.corp.google.com>
+Date: Wed, 4 Jul 2012 00:34:15 -0700
+Subject: [Ocfs2-devel] [PATCH v4 2/2] ocfs2: clear unaligned io flag
+ when dio fails
+In-Reply-To: <1340788195-20623-3-git-send-email-junxiao.bi@oracle.com>
+References: <1340788195-20623-1-git-send-email-junxiao.bi@oracle.com>
+	<1340788195-20623-3-git-send-email-junxiao.bi@oracle.com>
+Message-ID: <20120704073415.GF9863@dhcp-172-17-9-228.mtv.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-aio@kvack.org, mfasheh@suse.com, joe.jin@oracle.com, linux-kernel@vger.kernel.org, stable@vger.kernel.org, akpm@linux-foundation.org
 
-On Fri, Feb 10, 2012 at 10:50:07AM +0100, Jan Kara wrote:
-> 'status' variable in ocfs2_global_read_info() is always != 0 when leaving the
-> function because it happens to contain number of read bytes. Thus we always log
-> error message although everything is OK. Since all error cases properly call
-> mlog_errno() before jumping to out_err, there's no reason to call mlog_errno()
-> on exit at all. This is a fallout of c1e8d35e (conversion of mlog_exit()
-> calls).
+On Wed, Jun 27, 2012 at 05:09:55PM +0800, Junxiao Bi wrote:
+> The unaligned io flag is set in the kiocb when an unaligned
+> dio is issued, it should be cleared even when the dio fails,
+> or it may affect the following io which are using the same
+> kiocb.
 > 
-> Signed-off-by: Jan Kara <jack@suse.cz>
+> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+> Cc: stable at vger.kernel.org
 
-This patch is (finally) now part of the 'fixes' branch of ocfs2.git.
+This patch is now part of the 'fixes' branch of ocfs2.git.
 
 Joel
 
 > ---
->  fs/ocfs2/quota_global.c |    2 --
->  1 files changed, 0 insertions(+), 2 deletions(-)
+>  fs/ocfs2/file.c |    4 +++-
+>  1 file changed, 3 insertions(+), 1 deletion(-)
 > 
-> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-> index 92fcd57..0a86e30 100644
-> --- a/fs/ocfs2/quota_global.c
-> +++ b/fs/ocfs2/quota_global.c
-> @@ -399,8 +399,6 @@ int ocfs2_global_read_info(struct super_block *sb, int type)
->  			      msecs_to_jiffies(oinfo->dqi_syncms));
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 061591a..98513c8 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -2422,8 +2422,10 @@ out_dio:
+>  		unaligned_dio = 0;
+>  	}
 >  
->  out_err:
-> -	if (status)
-> -		mlog_errno(status);
->  	return status;
->  out_unlock:
->  	ocfs2_unlock_global_qf(oinfo, 0);
+> -	if (unaligned_dio)
+> +	if (unaligned_dio) {
+> +		ocfs2_iocb_clear_unaligned_aio(iocb);
+>  		atomic_dec(&OCFS2_I(inode)->ip_unaligned_aio);
+> +	}
+>  
+>  out:
+>  	if (rw_level != -1)
 > -- 
-> 1.7.1
+> 1.7.9.5
 > 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
 -- 
 
-"Here's something to think about:  How come you never see a headline
- like ``Psychic Wins Lottery''?"
-	- Jay Leno
+"Up and down that road in our worn out shoes,
+ Talking bout good things and singing the blues."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
