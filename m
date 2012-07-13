@@ -1,54 +1,67 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Wed, 11 Jul 2012 01:51:21 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: break useless while loop
-In-Reply-To: <1341989396-19598-1-git-send-email-junxiao.bi@oracle.com>
-References: <1341989396-19598-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <20120711085120.GE30630@dhcp-172-17-9-228.mtv.corp.google.com>
+From: Jan Kara <jack@suse.cz>
+Date: Sat, 14 Jul 2012 00:09:07 +0200
+Subject: [Ocfs2-devel] a bug about deadlock when enable quota on ocfs2
+In-Reply-To: <4FFCF397.20108@oracle.com>
+References: <4FFCF397.20108@oracle.com>
+Message-ID: <20120713220907.GB12532@quack.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Jul 11, 2012 at 02:49:56PM +0800, Junxiao Bi wrote:
-> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-> ---
->  fs/ocfs2/dlm/dlmmaster.c |    4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 005261c..1fadc39 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -1888,8 +1888,10 @@ ok:
->  			 * up nodes that this node contacted */
->  			while ((nn = find_next_bit (mle->response_map, O2NM_MAX_NODES,
->  						    nn+1)) < O2NM_MAX_NODES) {
-> -				if (nn != dlm->node_num && nn != assert->node_idx)
-> +				if (nn != dlm->node_num && nn != assert->node_idx) {
->  					master_request = 1;
-> +					break;
-> +				}
+  Hello,
 
-	Seems like this will save a tiny bit of CPU in the assert master
-handler.  Sunil, can you see any problem?
+On Wed 11-07-12 11:31:35, Tiger Yang wrote:
+> As a ocfs2 user reported he met deadlock when enable quota on ocfs2,
+> I done the same test and could easily reproduced the bug(the steps
+> are at the bottom).
+> Srinivas analysed the bug and addressed it the root cause is the
+> commit ea455f8ab68338ba69f5d3362b342c115bea8e13,
+  Yes, Wengang Wang already talked to me about problems with this commit
+about an year ago. We worked on a fix but didn't end up anywhere and I
+forgot about it.
 
-Joel
+> his comments:
+> @ With those patches in, all other nodes will now queue downgrade of dentry
+> @ locks to ocfs2_wq thread. Then Node 1 gets a lock is in use when it calls
+> @ ocfs2_try_open_lock and so does other nodes and hence orphans lie
+> around. Now
+> @ orphans will keep growing and only gets cleared when all nodes umount the
+> @ volume. This causes a different problems 1)space is not cleared 2)
+> as orphans
+> @ keep growing, orphan thread takes long time to scan all orphans(but still
+> @ fails to clear oprhans because of open lock still around) and hence will
+> @ block new unlinks for that duration because it gets a EX on orphan
+> scan lock.
+  I think the analysis is not completely correct (or I misunderstood it).
+We defer only putting of inode reference to workqueue (lockres is freed
+already in ocfs2_drop_dentry_lock()). However it is correct that the queue
+of inodes to put can get long and the system gets into trouble.
 
->  			}
->  		}
->  		mle->master = assert->node_idx;
-> -- 
-> 1.7.9.5
-> 
+> My questions are
+> 1.) what kind of "potential deadlock" in your comment?
+  Dropping inode reference can result in deletion of inode when this was
+the last reference to an unlinked file. However ocfs2_delete_inode() needs
+to take locks which rank above locks held when ocfs2_drop_dentry_lock() is
+called. You can check this by removing my patches, enabling
+CONFIG_PROVE_LOCKING and see the warning lockdep spits.
 
+> 2.) I have tried removing this patch, ocfs2 became more durable,
+> although it caused another panic but not get deadlock again, could
+> we remove this patch and just to fix the new problem? may the new
+> problem is the "potential deadlock" you mentioned.
+  I talked about possible solutions to Wengang already. Basically before we
+start unlinking we could check whether there aren't too many queued puts of
+inode references and if yes, drop some of them directly from unlink process
+before we acquire any cluster locks or so.
+
+								Honza
+
+PS: I CC'ed ocfs2-devel so that this discussion gets archived and other
+developers can help as well.
+PS2: I'm going for a longer vacation now so I won't be responding to email
+for some time.
 -- 
-
-"To announce that there must be no criticism of them president, or
- that we are to stand by the president, right or wrong, is not only
- unpatriotic and servile, but is morally treasonable to the American
- public."
-	- Theodore Roosevelt
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
