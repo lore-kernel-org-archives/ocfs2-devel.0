@@ -1,74 +1,64 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Mon, 16 Jul 2012 16:39:15 -0700
-Subject: [Ocfs2-devel] a bug about deadlock when enable quota on ocfs2
-In-Reply-To: <20120713220907.GB12532@quack.suse.cz>
-References: <4FFCF397.20108@oracle.com> <20120713220907.GB12532@quack.suse.cz>
-Message-ID: <5004A623.5000909@oracle.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Tue, 17 Jul 2012 15:10:26 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix dlm lock migration crash
+Message-ID: <1342509026-6170-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jan,
+In the target node of the dlm lock migration, the logic to find
+the local dlm lock is wrong, it shouldn't change the loop variable
+"lock" in the list_for_each_entry loop. This will cause a NULL-pointer
+accessing crash.
 
-thanks for helping.
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: stable at vger.kernel.org
+---
+ fs/ocfs2/dlm/dlmrecovery.c |   12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-Jan Kara wrote:
->   Hello,
->> his comments:
->> @ With those patches in, all other nodes will now queue downgrade of dentry
->> @ locks to ocfs2_wq thread. Then Node 1 gets a lock is in use when it calls
->> @ ocfs2_try_open_lock and so does other nodes and hence orphans lie
->> around. Now
->> @ orphans will keep growing and only gets cleared when all nodes umount the
->> @ volume. This causes a different problems 1)space is not cleared 2)
->> as orphans
->> @ keep growing, orphan thread takes long time to scan all orphans(but still
->> @ fails to clear oprhans because of open lock still around) and hence will
->> @ block new unlinks for that duration because it gets a EX on orphan
->> scan lock.
->>     
->   I think the analysis is not completely correct (or I misunderstood it).
-> We defer only putting of inode reference to workqueue (lockres is freed
-> already in ocfs2_drop_dentry_lock()). However it is correct that the queue
-> of inodes to put can get long and the system gets into trouble.
->   
-Sorry for not being clear. This is an issue when thread running unlink 
-and ocfs2_wq on other node end up running ocfs2_delete_inode at the same 
-time. They both call ocfs2_try_open_lock during query wipe inode and get 
-EAGAIN. So they both defer the actual clean up.
-
-This will become a problem if a user deletes tons of files at the same 
-time. Lot of  orphans gets queued and it becomes a problem when user 
-continues to delete.
->> My questions are
->> 1.) what kind of "potential deadlock" in your comment?
->>     
->   Dropping inode reference can result in deletion of inode when this was
-> the last reference to an unlinked file. However ocfs2_delete_inode() needs
-> to take locks which rank above locks held when ocfs2_drop_dentry_lock() is
-> called. You can check this by removing my patches, enabling
-> CONFIG_PROVE_LOCKING and see the warning lockdep spits.
-I am not familiar with which locks get out of order. Tiger can you 
-please check this.
->> .) I have tried removing this patch, ocfs2 became more durable,
->> although it caused another panic but not get deadlock again, could
->> we remove this patch and just to fix the new problem? may the new
->> problem is the "potential deadlock" you mentioned.
->>     
->   I talked about possible solutions to Wengang already. Basically before we
-> start unlinking we could check whether there aren't too many queued puts of
-> inode references and if yes, drop some of them directly from unlink process
-> before we acquire any cluster locks or so.
->   
-We could do this but if there is a deadlock bug we could still run into 
-it when we try deleting directly right?
-> 								Honza
->
-> PS: I CC'ed ocfs2-devel so that this discussion gets archived and other
-> developers can help as well.
-> PS2: I'm going for a longer vacation now so I won't be responding to email
-> for some time.
->   
-Have a good vacation :)
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 01ebfd0..0b9cc88 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1762,6 +1762,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 	u8 from = O2NM_MAX_NODES;
+ 	unsigned int added = 0;
+ 	__be64 c;
++	int found;
+ 
+ 	mlog(0, "running %d locks for this lockres\n", mres->num_locks);
+ 	for (i=0; i<mres->num_locks; i++) {
+@@ -1793,22 +1794,23 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 			/* MIGRATION ONLY! */
+ 			BUG_ON(!(mres->flags & DLM_MRES_MIGRATION));
+ 
++			found = 0;
+ 			spin_lock(&res->spinlock);
+ 			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+ 				tmpq = dlm_list_idx_to_ptr(res, j);
+ 				list_for_each_entry(lock, tmpq, list) {
+-					if (lock->ml.cookie != ml->cookie)
+-						lock = NULL;
+-					else
++					if (lock->ml.cookie == ml->cookie) {
++						found = 1;
+ 						break;
++					}
+ 				}
+-				if (lock)
++				if (found)
+ 					break;
+ 			}
+ 
+ 			/* lock is always created locally first, and
+ 			 * destroyed locally last.  it must be on the list */
+-			if (!lock) {
++			if (!found) {
+ 				c = ml->cookie;
+ 				mlog(ML_ERROR, "Could not find local lock "
+ 					       "with cookie %u:%llu, node %u, "
+-- 
+1.7.9.5
