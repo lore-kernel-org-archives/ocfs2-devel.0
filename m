@@ -1,64 +1,67 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 17 Jul 2012 15:10:26 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix dlm lock migration crash
-Message-ID: <1342509026-6170-1-git-send-email-junxiao.bi@oracle.com>
+From: Sunil Mushran <sunil.mushran@gmail.com>
+Date: Tue, 17 Jul 2012 09:16:51 -0700
+Subject: [Ocfs2-devel] [GIT PULL] ocfs2 fixes for 3.5-rc5
+In-Reply-To: <20120706074428.GA27550@dhcp-172-17-9-228.mtv.corp.google.com>
+References: <20120706074428.GA27550@dhcp-172-17-9-228.mtv.corp.google.com>
+Message-ID: <CAEeiSHVgzbDat4v8Zf8hKHGJtt5-QE-bq-fiDz9_NxYLHx5JvA@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In the target node of the dlm lock migration, the logic to find
-the local dlm lock is wrong, it shouldn't change the loop variable
-"lock" in the list_for_each_entry loop. This will cause a NULL-pointer
-accessing crash.
+https://oss.oracle.com/git/?p=smushran/linux-2.6.git;a=shortlog;h=mw-3.4-mar15
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: stable at vger.kernel.org
----
- fs/ocfs2/dlm/dlmrecovery.c |   12 +++++++-----
- 1 file changed, 7 insertions(+), 5 deletions(-)
+I had prepared some patches sometime ago that could be pushed to mainline.
+Though some patches may need to be removed as they look to be in this list.
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 01ebfd0..0b9cc88 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1762,6 +1762,7 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
- 	u8 from = O2NM_MAX_NODES;
- 	unsigned int added = 0;
- 	__be64 c;
-+	int found;
- 
- 	mlog(0, "running %d locks for this lockres\n", mres->num_locks);
- 	for (i=0; i<mres->num_locks; i++) {
-@@ -1793,22 +1794,23 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
- 			/* MIGRATION ONLY! */
- 			BUG_ON(!(mres->flags & DLM_MRES_MIGRATION));
- 
-+			found = 0;
- 			spin_lock(&res->spinlock);
- 			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
- 				tmpq = dlm_list_idx_to_ptr(res, j);
- 				list_for_each_entry(lock, tmpq, list) {
--					if (lock->ml.cookie != ml->cookie)
--						lock = NULL;
--					else
-+					if (lock->ml.cookie == ml->cookie) {
-+						found = 1;
- 						break;
-+					}
- 				}
--				if (lock)
-+				if (found)
- 					break;
- 			}
- 
- 			/* lock is always created locally first, and
- 			 * destroyed locally last.  it must be on the list */
--			if (!lock) {
-+			if (!found) {
- 				c = ml->cookie;
- 				mlog(ML_ERROR, "Could not find local lock "
- 					       "with cookie %u:%llu, node %u, "
--- 
-1.7.9.5
+On Fri, Jul 6, 2012 at 12:44 AM, Joel Becker <jlbec@evilplan.org> wrote:
+
+> Linus et al,
+>         Here are the all of the ocfs2 fixes that have been stewing in my
+> tree.  Please pull.
+>
+> Joel
+>
+> The following changes since commit
+> 9e85a6f9dc231f3ed3c1dc1b12217505d970142a:
+>
+>   Merge tag 'clk-fixes-for-linus' of git://
+> git.linaro.org/people/mturquette/linux (2012-07-03 18:06:49 -0700)
+>
+> are available in the git repository at:
+>
+>   git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git fixes
+>
+> Jan Kara (1):
+>       ocfs2: Fix bogus error message from ocfs2_global_read_info
+>
+> Jeff Liu (1):
+>       ocfs2: for SEEK_DATA/SEEK_HOLE, return internal error unchanged if
+> ocfs2_get_clusters_nocache() or ocfs2_inode_lock() call failed.
+>
+> Junxiao Bi (2):
+>       ocfs2: clear unaligned io flag when dio fails
+>       aio: make kiocb->private NUll in init_sync_kiocb()
+>
+> Srinivas Eeda (1):
+>       ocfs2: use spinlock irqsave for downconvert lock.patch
+>
+> roel (1):
+>       ocfs2: Misplaced parens in unlikley
+>
+>  fs/ocfs2/dlmglue.c      |   33 ++++++++++++++++++++-------------
+>  fs/ocfs2/extent_map.c   |    2 --
+>  fs/ocfs2/file.c         |    4 +++-
+>  fs/ocfs2/quota_global.c |    2 --
+>  include/linux/aio.h     |    1 +
+>  5 files changed, 24 insertions(+), 18 deletions(-)
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120717/637ed3df/attachment.html 
