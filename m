@@ -1,30 +1,57 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Thu, 26 Jul 2012 13:05:10 -0000
-Subject: [Ocfs2-devel] [patch] ocfs2/dlm: use GFP_ATOMIC inside a spin_lock
-Message-ID: <20120726130505.GA30865@elgon.mountain>
+From: Lukas Czerner <lczerner@redhat.com>
+Date: Fri, 27 Jul 2012 08:01:56 -0000
+Subject: [Ocfs2-devel] [PATCH 05/15] ocfs2: implement invalidatepage_range
+	aop
+In-Reply-To: <1343376074-28034-1-git-send-email-lczerner@redhat.com>
+References: <1343376074-28034-1-git-send-email-lczerner@redhat.com>
+Message-ID: <1343376074-28034-6-git-send-email-lczerner@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: linux-ext4@vger.kernel.org, tytso@mit.edu, hughd@google.com, linux-mmc@vger.kernel.org, Lukas Czerner <lczerner@redhat.com>, ocfs2-devel@oss.oracle.com
 
-My static checker complains that this is called with a spin_lock held
-in dlm_master_requery_handler() from dlmrecovery.c.  Probably the reason
-we have not received any bug reports about this is that recovery is not
-a common operation.
+mm now supports invalidatepage_range address space operation which is
+useful to allow truncating page range which is not aligned to the end of
+the page. This will help in punch hole implementation once
+truncate_inode_pages_range() is modify to allow this as well.
 
-Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+With this commit ocfs2 now register only invalidatepage_range.
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 005261c..33ecbe0 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -2020,7 +2020,7 @@ int dlm_dispatch_assert_master(struct dlm_ctxt *dlm,
- 			       int ignore_higher, u8 request_from, u32 flags)
+Signed-off-by: Lukas Czerner <lczerner@redhat.com>
+Cc: ocfs2-devel at oss.oracle.com
+---
+ fs/ocfs2/aops.c |    7 ++++---
+ 1 files changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 6577432..46c1757 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -603,11 +603,12 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
+  * from ext3.  PageChecked() bits have been removed as OCFS2 does not
+  * do journalled data.
+  */
+-static void ocfs2_invalidatepage(struct page *page, unsigned long offset)
++static void ocfs2_invalidatepage_range(struct page *page, unsigned long offset,
++				       unsigned long length)
  {
- 	struct dlm_work_item *item;
--	item = kzalloc(sizeof(*item), GFP_NOFS);
-+	item = kzalloc(sizeof(*item), GFP_ATOMIC);
- 	if (!item)
- 		return -ENOMEM;
+ 	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
  
+-	jbd2_journal_invalidatepage(journal, page, offset);
++	jbd2_journal_invalidatepage_range(journal, page, offset, length);
+ }
+ 
+ static int ocfs2_releasepage(struct page *page, gfp_t wait)
+@@ -2091,7 +2092,7 @@ const struct address_space_operations ocfs2_aops = {
+ 	.write_end		= ocfs2_write_end,
+ 	.bmap			= ocfs2_bmap,
+ 	.direct_IO		= ocfs2_direct_IO,
+-	.invalidatepage		= ocfs2_invalidatepage,
++	.invalidatepage_range	= ocfs2_invalidatepage_range,
+ 	.releasepage		= ocfs2_releasepage,
+ 	.migratepage		= buffer_migrate_page,
+ 	.is_partially_uptodate	= block_is_partially_uptodate,
+-- 
+1.7.7.6
