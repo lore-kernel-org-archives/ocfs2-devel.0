@@ -1,76 +1,45 @@
-From: majianpeng <majianpeng@gmail.com>
-Date: Tue, 31 Jul 2012 00:41:54 -0000
-Subject: [Ocfs2-devel] [PATCH 0/8] Set bi_rw when alloc bio before call
-	bio_add_page.
-References: <201207301514247032532@gmail.com>, 
-	<20120730153935.GE4547@phenom.dumpdata.com>
-Message-ID: <201207310842549068542@gmail.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Thu, 2 Aug 2012 00:57:44 -0700
+Subject: [Ocfs2-devel] [RFC PATCH] ocfs2: don't depend on
+	DCACHE_DISCONNECTED
+In-Reply-To: <20120731223323.GA32253@fieldses.org>
+References: <20120731223323.GA32253@fieldses.org>
+Message-ID: <20120802075743.GA3368@dhcp-172-17-9-228.mtv.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: "konrad.wilk" <konrad.wilk@oracle.com>
-Cc: axboe <axboe@kernel.dk>, shaggy <shaggy@kernel.org>, "chris.mason" <chris.mason@fusionio.com>, elder <elder@kernel.org>, tytso <tytso@mit.edu>, ocfs2-devel <ocfs2-devel@oss.oracle.com>, mfasheh <mfasheh@suse.com>, linux-kernel <linux-kernel@vger.kernel.org>, xfs <xfs@oss.sgi.com>, bpm <bpm@sgi.com>, "adilger.kernel" <adilger.kernel@dilger.ca>, viro <viro@ZenIV.linux.org.uk>, jfs-discussion <jfs-discussion@lists.sourceforge.net>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-ext4 <linux-ext4@vger.kernel.org>, linux-btrfs <linux-btrfs@vger.kernel.org>, jlbec <jlbec@evilplan.org>
+To: "J. Bruce Fields" <bfields@fieldses.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org
 
-On 2012-07-30 23:39 Konrad Rzeszutek Wilk <konrad.wilk@oracle.com> Wrote:
->On Mon, Jul 30, 2012 at 03:14:28PM +0800, majianpeng wrote:
->> When exec bio_alloc, the bi_rw is zero.But after calling bio_add_page,
->
->What about submit_bio? That sets the bi_rw as well?
->> it will use bi_rw.
->> Fox example, in functiion __bio_add_page,it will call merge_bvec_fn().
->
->function.
->> The merge_bvec_fn of raid456 will use the bi_rw to judge the merge.
->> >> if ((bvm->bi_rw & 1) == WRITE)
->> >> return biovec->bv_len; /* always allow writes to be mergeable */
->
->So what does that mean? Without this patch what happens?
->
-Because bio_alloc, the bi_rw is zero default.But in __bio_add_page, it used bi_rw.
-For example: if merge_bvce_fn used bi_rw, but the bi_rw is wrong(if bi_rw is not zero).
-So the result may be error.
->> 
->> 
->> Jianpeng Ma (8):
->
->Can you collapse all of this in just one patch?
-Sorry, I think those files are not a subsystem.So i should send separately.
->
->>   Evalue bio->bi_rw after calling bio_alloc() and before calling
->
->It is 'evaluate'
->>     bio_add_page().
->>   Evalue bio->bi_rw after calling bio_alloc() and before calling    
->>     bio_add_page().
->>   Evalue bio->bi_rw after calling bio_alloc() and before calling    
->>     bio_add_page().
->>   Evalue bio->bi_rw after calling bio_alloc() and before calling    
->>     bio_add_page().
->>   Evalue bio->bi_rw after calling bio_alloc() and before calling    
->>     bio_add_page().
->>   Evalue bio->bi_rw after calling bio_alloc() and before calling    
->>     bio_add_page().
->>   Evalue bio->bi_rw after calling bio_alloc() and before calling    
->>     bio_add_page().
->>   Evalue bio->bi_rw after calling bio_alloc() and before calling    
->>     bio_add_page().
->> 
->>  block/blk-lib.c                     |    1 +
->>  drivers/block/xen-blkback/blkback.c |    1 +
->
->I am not really sure if that is correct. Does 'submit_bio' not do the
->job properly?
-Before call submit_bio, it call bio_add_page.
->
->>  fs/btrfs/check-integrity.c          |    1 +
->>  fs/direct-io.c                      |    1 +
->>  fs/ext4/page-io.c                   |    1 +
->>  fs/jfs/jfs_metapage.c               |    1 +
->>  fs/ocfs2/cluster/heartbeat.c        |    8 +++++---
->>  fs/xfs/xfs_aops.c                   |    2 ++
->>  fs/xfs/xfs_buf.c                    |    1 +
->>  9 files changed, 14 insertions(+), 3 deletions(-)
->> 
->> -- 
->> 1.7.9.5
+On Tue, Jul 31, 2012 at 06:33:23PM -0400, J. Bruce Fields wrote:
+> From: "J. Bruce Fields" <bfields@redhat.com>
+> 
+> XXX: I don't understand this code, but I also can't see how it can be
+> right as is: a dentry marked DCACHE_DISCONNECTED can in fact be a
+> fully-connected member of the dcache.  Is IS_ROOT() the right check
+> instead?
+> 
+> Signed-off-by: J. Bruce Fields <bfields@redhat.com>
+
+NAK.  DISCONNECTED is cleared when the dentry is materialized.
+
+Here's the context.  When an ocfs2 dentry is discoverable via the tree
+(lookup or splicing an alias), we hold a cluster lock (the "dentry
+lock").  This is why we override d_move(), to make sure that state is
+kept sane.  That way, other nodes can communicate unlink to this node.
+They notify our node via the locking system, which does a
+d_delete()+dput(), which sets DISCONNECTED.  When the dentry gets its
+final put, we can properly accept an empty lock.
+
+Joel
+
+-- 
+
+"The one important thing i have learned over the years is the
+ difference between taking one's work seriously and taking one's self
+ seriously.  The first is imperative and the second is disastrous."
+	-Margot Fonteyn
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
