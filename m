@@ -1,70 +1,229 @@
-From: Vincent ETIENNE <ve@vetienne.net>
-Date: Wed, 01 Aug 2012 22:46:47 +0200
+From: Vincent ETIENNE <vetienne@aprogsys.com>
+Date: Thu, 02 Aug 2012 09:21:34 +0200
 Subject: [Ocfs2-devel] kernel BUG at fs/buffer.c:2886! Linux 3.5.0
-In-Reply-To: <501994E8.9070100@aprogsys.com>
+In-Reply-To: <501995B7.2030405@vetienne.net>
 References: <501313B6.70801@aprogsys.com>
 	<20120730063000.GA4025@dhcp-172-17-9-228.mtv.corp.google.com>
 	<50163B8A.7060509@aprogsys.com>
 	<20120730075333.GC4025@dhcp-172-17-9-228.mtv.corp.google.com>
 	<5016D2C0.6090708@vetienne.net> <501994E8.9070100@aprogsys.com>
-Message-ID: <501995B7.2030405@vetienne.net>
+	<501995B7.2030405@vetienne.net>
+Message-ID: <501A2A7E.10702@aprogsys.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Vincent ETIENNE <vetienne@aprogsys.com>
+To: Vincent ETIENNE <ve@vetienne.net>
 Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, ocfs2-devel@oss.oracle.com
 
-On 01/08/2012 22:43, Vincent ETIENNE wrote:
-> Hi
-> Some further progress on bisection
->
-> I'm now here
->
-> git bisect start
-> # bad: [2d534926205db9ffce4bbbde67cb9b2cee4b835c] Merge tag
-> 'irqdomain-for-linus' of git://git.secretlab.ca/git/linux-2.6
-> git bisect bad 2d534926205db9ffce4bbbde67cb9b2cee4b835c
-> # good: [c3b92c8787367a8bb53d57d9789b558f1295cc96] Linux 3.1
-> git bisect good c3b92c8787367a8bb53d57d9789b558f1295cc96
-> # good: [95211279c5ad00a317c98221d7e4365e02f20836] Merge branch 'akpm'
-> (Andrew's patch-bomb)
-> git bisect good 95211279c5ad00a317c98221d7e4365e02f20836
-> # good: [654443e20dfc0617231f28a07c96a979ee1a0239] Merge branch
-> 'perf-uprobes-for-linus' of
-> git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
-> git bisect good 654443e20dfc0617231f28a07c96a979ee1a0239
-> # bad: [f0a08fcb5972167e55faa330c4a24fbaa3328b1f] Merge
-> git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile
-> git bisect bad f0a08fcb5972167e55faa330c4a24fbaa3328b1f
-> # bad: [f5e7e844a571124ffc117d4696787d6afc4fc5ae] Merge tag
-> 'for-linus-3.5-20120601' of git://git.infradead.org/linux-mtd
-> git bisect bad f5e7e844a571124ffc117d4696787d6afc4fc5ae
-> # good: [f465d145d76803fe6332092775d891c8c509aa44] Merge tag
-> 'cleanup-initcall' of
-> git://git.kernel.org/pub/scm/linux/kernel/git/arm/arm-soc
-> git bisect good f465d145d76803fe6332092775d891c8c509aa44
-> # good: [a70f35af4e49f87ba4b6c4b30220fbb66cd74af6] Merge branch
-> 'for-3.5/drivers' of git://git.kernel.dk/linux-block
-> git bisect good a70f35af4e49f87ba4b6c4b30220fbb66cd74af6
-> # good: [a00b6151a2ae4c52576c35d3998e144a993d50b8] Merge branch
-> 'for-3.5-take-2' of git://linux-nfs.org/~bfields/linux
-> git bisect good a00b6151a2ae4c52576c35d3998e144a993d50b8
-> # bad: [1193755ac6328ad240ba987e6ec41d5e8baf0680] Merge branch
-> 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs
-> git bisect bad 1193755ac6328ad240ba987e6ec41d5e8baf0680
-> # good: [51eab603f5c86dd1eae4c525df3e7f7eeab401d6] Merge branch
-> 'for-linus' of
-> git://git.kernel.org/pub/scm/linux/kernel/git/mason/linux-btrfs
-> git bisect good 51eab603f5c86dd1eae4c525df3e7f7eeab401d6
-> # bad: [eb36c5873b96e8c7376768d3906da74aae6e3839] new helper:
-> vm_mmap_pgoff()
-> git bisect bad eb36c5873b96e8c7376768d3906da74aae6e3839
->
-> but got a problem ( kernel does not compile ) at next iteration
-> need to dig into git bisect for how to select another entry
->
-> Vincent
->
->
-git bisect skip looks like the way to do it ?
+
+Hi,
+
+So 12 commits left, corresponding to this bisection log
+
+git bisect start
+# bad: [2d534926205db9ffce4bbbde67cb9b2cee4b835c] Merge tag
+'irqdomain-for-linus' of git://git.secretlab.ca/git/linux-2.6
+git bisect bad 2d534926205db9ffce4bbbde67cb9b2cee4b835c
+# good: [c3b92c8787367a8bb53d57d9789b558f1295cc96] Linux 3.1
+git bisect good c3b92c8787367a8bb53d57d9789b558f1295cc96
+# good: [95211279c5ad00a317c98221d7e4365e02f20836] Merge branch 'akpm'
+(Andrew's patch-bomb)
+git bisect good 95211279c5ad00a317c98221d7e4365e02f20836
+# good: [654443e20dfc0617231f28a07c96a979ee1a0239] Merge branch
+'perf-uprobes-for-linus' of
+git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+git bisect good 654443e20dfc0617231f28a07c96a979ee1a0239
+# bad: [f0a08fcb5972167e55faa330c4a24fbaa3328b1f] Merge
+git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile
+git bisect bad f0a08fcb5972167e55faa330c4a24fbaa3328b1f
+# bad: [f5e7e844a571124ffc117d4696787d6afc4fc5ae] Merge tag
+'for-linus-3.5-20120601' of git://git.infradead.org/linux-mtd
+git bisect bad f5e7e844a571124ffc117d4696787d6afc4fc5ae
+# good: [f465d145d76803fe6332092775d891c8c509aa44] Merge tag
+'cleanup-initcall' of
+git://git.kernel.org/pub/scm/linux/kernel/git/arm/arm-soc
+git bisect good f465d145d76803fe6332092775d891c8c509aa44
+# good: [a70f35af4e49f87ba4b6c4b30220fbb66cd74af6] Merge branch
+'for-3.5/drivers' of git://git.kernel.dk/linux-block
+git bisect good a70f35af4e49f87ba4b6c4b30220fbb66cd74af6
+# good: [a00b6151a2ae4c52576c35d3998e144a993d50b8] Merge branch
+'for-3.5-take-2' of git://linux-nfs.org/~bfields/linux
+git bisect good a00b6151a2ae4c52576c35d3998e144a993d50b8
+# bad: [1193755ac6328ad240ba987e6ec41d5e8baf0680] Merge branch
+'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs
+git bisect bad 1193755ac6328ad240ba987e6ec41d5e8baf0680
+# good: [51eab603f5c86dd1eae4c525df3e7f7eeab401d6] Merge branch
+'for-linus' of
+git://git.kernel.org/pub/scm/linux/kernel/git/mason/linux-btrfs
+git bisect good 51eab603f5c86dd1eae4c525df3e7f7eeab401d6
+# bad: [eb36c5873b96e8c7376768d3906da74aae6e3839] new helper:
+vm_mmap_pgoff()
+git bisect bad eb36c5873b96e8c7376768d3906da74aae6e3839
+# skip: [eea62f831b8030b0eeea8314eed73b6132d1de26] brlocks/lglocks: turn
+into functions
+git bisect skip eea62f831b8030b0eeea8314eed73b6132d1de26
+# good: [52576da3545e78c534d901a39f6f2391665c641b] hpfs: bitmaps are
+little-endian
+git bisect good 52576da3545e78c534d901a39f6f2391665c641b
+# bad: [3ed37648e1cbf1bbebc200c6ea8fd8daf8325843] fs: move
+file_remove_suid() to fs/inode.c
+git bisect bad 3ed37648e1cbf1bbebc200c6ea8fd8daf8325843
+# bad: [962830df366b66e71849040770ae6ba55a8b4aec] brlocks/lglocks: API
+cleanups
+git bisect bad 962830df366b66e71849040770ae6ba55a8b4aec
+
+the commit left are
+
+commit 962830df366b66e71849040770ae6ba55a8b4aec
+Author: Andi Kleen <ak@linux.intel.com>
+Date:   Tue May 8 13:32:02 2012 +0930
+
+    brlocks/lglocks: API cleanups
+
+
+commit eea62f831b8030b0eeea8314eed73b6132d1de26
+Author: Andi Kleen <ak@linux.intel.com>
+Date:   Tue May 8 13:32:24 2012 +0930
+
+    brlocks/lglocks: turn into functions
+
+commit 9dd6fa03ab31bb57cee4623a689d058d222fbe68
+Author: Rusty Russell <rusty@rustcorp.com.au>
+Date:   Tue May 8 13:29:45 2012 +0930
+
+    lglock: remove online variants of lock
+
+commit ea022dfb3c2a4680483b00eb2fecc9fc4f6091d1
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Thu May 3 10:14:29 2012 -0400
+
+    ocfs: simplify symlink handling
+   
+
+commit 408bd629badbd4353b238ab6f58001529b274d73
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Thu May 3 09:34:20 2012 -0400
+
+    get rid of pointless allocations and copying in ecryptfs_follow_link()
+   
+    switch to generic_readlink(), while we are at it
+
+
+commit 28fe3c1963b0bafa56ec92df1987828090151d87
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Tue Apr 17 16:41:13 2012 -0400
+
+    hpfs: assorted endianness annotations
+
+commit 77ee26e44c28823a29bc09091950544566ae7cea
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Tue Apr 17 16:26:46 2012 -0400
+
+    hpfs: annotate ea
+
+commit 46287aa652fa8ea1edac41817ddc63332495ffc3
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Tue Apr 17 16:20:49 2012 -0400
+
+    hpfs: annotate struct hpfs_dirent
+
+commit 6ce2bbba5266c1dd5c27dd8af1887ed8ca564919
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Tue Apr 17 16:11:25 2012 -0400
+
+    hpfs: annotate struct anode
+
+commit 2b9f1cc29ba0e56089fe04501ec6d3b49eee3c3e
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Tue Apr 17 16:09:25 2012 -0400
+
+    hpfs: annotate struct fnode
+
+commit ddc19e6e04c1131a48f5b9a25aa433bbd8430cdd
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Tue Apr 17 15:59:35 2012 -0400
+
+    hpfs: annotate btree nodes, get rid of bitfields mess
+   
+commit 39413c6046de282a92739110cfafb8f1e862680d
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Tue Apr 17 15:32:22 2012 -0400
+
+    hpfs: annotate struct dnode
+
+
+After that bisection start to be quite hard : i have compile error or
+unbootable kernel or unrelated OOPS
+
+
+For the record the BUG that i'm chasing is this one :
+
+
+
+[  934.933390] kernel BUG at fs/buffer.c:2882!
+[  934.933401] invalid opcode: 0000 [#1] SMP
+[  934.933412] CPU 0
+[  934.933419] Modules linked in: drbd lru_cache
+[  934.933429]
+[  934.933437] Pid: 4301, comm: deliver Not tainted 3.4.0+ #16 HP
+ProLiant ML150 G3/ML150 G3
+[  934.933461] RIP: 0010:[<ffffffff8117a252>]  [<ffffffff8117a252>]
+submit_bh+0x112/0x120
+[  934.933477] RSP: 0018:ffff880076c07b38  EFLAGS: 00010246
+[  934.933489] RAX: 4000000000800004 RBX: ffffea0001d82dc0 RCX:
+00000003ffffffff
+[  934.933504] RDX: 0000000000000001 RSI: ffffea0001d82dc0 RDI:
+0000000000000000
+[  934.933519] RBP: 0000000000000000 R08: 0000000000000000 R09:
+ffffffff8133b0a0
+[  934.933534] R10: dead000000200200 R11: dead000000100100 R12:
+0000000004cc4789
+[  934.933549] R13: 00000003ffffffff R14: 0000000000000000 R15:
+0000000000000000
+[  934.933564] FS:  00007fdb397ff700(0000) GS:ffff88007fc00000(0000)
+knlGS:0000000000000000
+[  934.933581] CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
+[  934.933593] CR2: 00007fe29e575024 CR3: 00000000766b3000 CR4:
+00000000000007f0
+[  934.933608] DR0: 0000000000000000 DR1: 0000000000000000 DR2:
+0000000000000000
+[  934.933677] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7:
+0000000000000400
+[  934.933750] Process deliver (pid: 4301, threadinfo ffff880076c06000,
+task ffff88007d10a4e0)
+[  934.935047] Stack:
+[  934.935113]  ffffea0001d82dc0 0000000000000001 0000000004cc4789
+ffffffff8131bad6
+[  934.935236]  000000001725db78 ffffffff81ca03c8 ffff88007d10ab48
+ffff880076c07c10
+[  934.935355]  0000000076c06010 0000000100000000 ffff8800172269b0
+ffff88000d2a4000
+[  934.935471] Call Trace:
+[  934.935534]  [<ffffffff8131bad6>] ? ocfs2_read_blocks+0x176/0x6c0
+[  934.935600]  [<ffffffff8133b0a0>] ? ocfs2_find_actor+0x120/0x120
+[  934.935665]  [<ffffffff8133aac7>] ? ocfs2_read_inode_block_full+0x37/0x60
+[  934.935734]  [<ffffffff8138ab1f>] ?
+ocfs2_fast_symlink_readpage+0x2f/0x160
+[  934.935803]  [<ffffffff8110fff5>] ? do_read_cache_page+0x85/0x180
+[  934.935868]  [<ffffffff8138aaf0>] ? ocfs2_fill_super+0x2500/0x2500
+[  934.935934]  [<ffffffff81110149>] ? read_cache_page+0x9/0x20
+[  934.935999]  [<ffffffff811565e5>] ? page_getlink+0x25/0x80
+[  934.936062]  [<ffffffff8115665b>] ? page_follow_link_light+0x1b/0x30
+[  934.936128]  [<ffffffff8115ab27>] ? path_lookupat+0x327/0x6c0
+[  934.936193]  [<ffffffff8115aeec>] ? do_path_lookup+0x2c/0xc0
+[  934.936258]  [<ffffffff8133b501>] ? ocfs2_inode_revalidate+0x71/0x160
+[  934.936325]  [<ffffffff8113210a>] ? handle_pte_fault+0x8a/0x920
+[  934.936390]  [<ffffffff8115bd8c>] ? user_path_at_empty+0x5c/0xb0
+[  934.936457]  [<ffffffff81066fca>] ? do_page_fault+0x1aa/0x3c0
+[  934.936523]  [<ffffffff81150ded>] ? cp_new_stat+0x10d/0x120
+[  934.936588]  [<ffffffff81150ee1>] ? vfs_fstatat+0x41/0x80
+[  934.936653]  [<ffffffff8115101f>] ? sys_newstat+0x1f/0x50
+[  934.936720]  [<ffffffff817cb8a2>] ? system_call_fastpath+0x16/0x1b
+
+
+Does it gives some better information ? Do you haev some ideas of thinks
+that could be tested ?
+
+
+Vincent
