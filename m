@@ -1,76 +1,62 @@
-From: Vincent ETIENEN <ve@vetienne.net>
-Date: Fri, 03 Aug 2012 09:22:29 +0200
-Subject: [Ocfs2-devel] kernel BUG at fs/buffer.c:2886! Linux 3.5.0
-In-Reply-To: <CAEeiSHWM2j3rFSGHtd06QRxT2NaL1gF8k5zPYKn6AYp=06dy1g@mail.gmail.com>
-References: <501313B6.70801@aprogsys.com>
-	<20120730063000.GA4025@dhcp-172-17-9-228.mtv.corp.google.com>
-	<50163B8A.7060509@aprogsys.com>
-	<20120730075333.GC4025@dhcp-172-17-9-228.mtv.corp.google.com>
-	<5016D2C0.6090708@vetienne.net> <501994E8.9070100@aprogsys.com>
-	<501995B7.2030405@vetienne.net> <501A2A7E.10702@aprogsys.com>
-	<501AD4D2.80007@vetienne.net>
-	<CAEeiSHWM2j3rFSGHtd06QRxT2NaL1gF8k5zPYKn6AYp=06dy1g@mail.gmail.com>
-Message-ID: <501B7C35.1050602@vetienne.net>
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Thu, 9 Aug 2012 15:22:05 +0300
+Subject: [Ocfs2-devel] ocfs2/cluster: Clean up messages in o2net
+In-Reply-To: <4E5D529C.5020706@oracle.com>
+References: <20110826010109.GA27582@shale.localdomain>
+	<4E5D529C.5020706@oracle.com>
+Message-ID: <20120809122205.GD3683@mwanda>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Sunil Mushran <sunil.mushran@gmail.com>
-Cc: linux-fsdevel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, Alexander Viro <viro@zeniv.linux.org.uk>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
+This is still here.  I'm not sure why this error message just showed
+up in linux-next again.  Odd.
 
+regards,
+dan carpenter
 
-Le 02/08/2012 23:08, Sunil Mushran a ?crit :
-> On Thu, Aug 2, 2012 at 12:28 PM, Vincent ETIENNE <ve@vetienne.net
-> <mailto:ve@vetienne.net>> wrote:
->
->     Hi
->
->     based on current git ( commit
->     1a9b4993b70fb1884716902774dc9025b457760d )
->     and  reverting commit  ea022dfb3c2a4680483b00eb2fecc9fc4f6091d1
->
->     commit ea022dfb3c2a4680483b00eb2fecc9fc4f6091d1
->     Author: Al Viro <viro@zeniv.linux.org.uk
->     <mailto:viro@zeniv.linux.org.uk>>
->     Date:   Thu May 3 10:14:29 2012 -0400
->
->         ocfs: simplify symlink handling
->
->      and  adding the correction from
->
->     https://oss.oracle.com/git/?p=smushran/linux-2.6.git;a=commit;h=a2118b301104a24381b414bc93371d666fe8d43a
->
->     suppres the fallocate bug
->
->     and lead to no oops. At least immediatly. Will let it run some times
->
->
->
-> Apply this change and re-run:
->
-> diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
-> index f1fbb4b..66edce7 100644
-> --- a/fs/ocfs2/symlink.c
-> +++ b/fs/ocfs2/symlink.c
-> @@ -57,7 +57,7 @@
->  static int ocfs2_fast_symlink_readpage(struct file *unused, struct
-> page *page)
->  {
->         struct inode *inode = page->mapping->host;
-> -       struct buffer_head *bh;
-> +       struct buffer_head *bh = NULL;
->         int status = ocfs2_read_inode_block(inode, &bh);
->         struct ocfs2_dinode *fe;
->         const char *link;
->
-latest head with only your two changes is working here, thanks a lot.
-Running now flowlessly since a few hours.
-
-Vincent
-
-
-
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120803/61814922/attachment.html 
+On Tue, Aug 30, 2011 at 02:14:04PM -0700, Sunil Mushran wrote:
+> Thanks. I'll fix the two.
+> 
+> On 08/25/2011 06:01 PM, Dan Carpenter wrote:
+> >Hello Sunil Mushran,
+> >
+> >1dfecf810e0e: "ocfs2/cluster: Clean up messages in o2net"
+> >Leads to the following Smatch complaint:
+> >fs/ocfs2/cluster/tcp.c +1704 o2net_start_connect(101)
+> >	 error: we previously assumed 'sc' could be null (see line 1650)
+> >
+> >fs/ocfs2/cluster/tcp.c
+> >   1649		sc = sc_alloc(node);
+> >   1650		if (sc == NULL) {
+> >   1651			mlog(0, "couldn't allocate sc\n");
+> >   1652			ret = -ENOMEM;
+> >   1653			goto out;
+> >   1654		}
+> >   1655	
+> >
+> >--- [snip] ---
+> >
+> >   1701	out:
+> >   1702		if (ret) {
+> >   1703			printk(KERN_NOTICE "o2net: Connect attempt to " SC_NODEF_FMT
+> >   1704			       " failed with errno %d\n", SC_NODEF_ARGS(sc), ret);
+> >                                                                         ^^
+> >Null dereference here.
+> >
+> >   1705			/* 0 err so that another will be queued and attempted
+> >   1706			 * from set_nn_state */
+> >
+> >This email is from my new semi-automatic bug reporting tool script.
+> >Btw, Smatch complains about this as well:
+> >
+> >fs/ocfs2/cluster/tcp.c +549 o2net_set_nn_state(44)
+> >	error: we previously assumed 'old_sc' could be null (see line 517)
+> >
+> >These dereferences were disabled in my old config, but Smatch detects
+> >them now that we're using normal printk()
+> >
+> >regards,
+> >dan carpenter
