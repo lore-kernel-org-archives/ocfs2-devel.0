@@ -1,36 +1,34 @@
-From: sunil.mushran at gmail.com <sunil.mushran@gmail.com>
-Date: Fri,  3 Aug 2012 17:36:17 +0100
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix oops in
-	ocfs2_fast_symlink_readpage() code path
-Message-ID: <1344011777-26527-1-git-send-email-sunil.mushran@gmail.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 10 Aug 2012 13:52:40 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: break useless while loop
+Message-ID: <1344577960-9596-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Sunil Mushran <smushran@yahoo.com>
-
-Commit ea022dfb3c2a4680483b00eb2fecc9fc4f6091d1 was missing a var init.
-
-Reported-and-Tested-by: Vincent Etienne <vetienne@aprogsys.com>
-Signed-off-by: Sunil Mushran <sunil.mushran@gmail.com>
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
 ---
- fs/ocfs2/symlink.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
-index f1fbb4b..66edce7 100644
---- a/fs/ocfs2/symlink.c
-+++ b/fs/ocfs2/symlink.c
-@@ -57,7 +57,7 @@
- static int ocfs2_fast_symlink_readpage(struct file *unused, struct page *page)
- {
- 	struct inode *inode = page->mapping->host;
--	struct buffer_head *bh;
-+	struct buffer_head *bh = NULL;
- 	int status = ocfs2_read_inode_block(inode, &bh);
- 	struct ocfs2_dinode *fe;
- 	const char *link;
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 005261c..1fadc39 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -1888,8 +1888,10 @@ ok:
+ 			 * up nodes that this node contacted */
+ 			while ((nn = find_next_bit (mle->response_map, O2NM_MAX_NODES,
+ 						    nn+1)) < O2NM_MAX_NODES) {
+-				if (nn != dlm->node_num && nn != assert->node_idx)
++				if (nn != dlm->node_num && nn != assert->node_idx) {
+ 					master_request = 1;
++					break;
++				}
+ 			}
+ 		}
+ 		mle->master = assert->node_idx;
 -- 
-1.7.4.4
+1.7.9.5
