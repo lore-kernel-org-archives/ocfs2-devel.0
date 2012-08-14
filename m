@@ -1,39 +1,40 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Fri, 10 Aug 2012 13:54:30 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: break useless while loop
-In-Reply-To: <1344577960-9596-1-git-send-email-junxiao.bi@oracle.com>
-References: <1344577960-9596-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <5024A216.4070903@oracle.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Tue, 14 Aug 2012 10:03:17 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: skip locks in the blocked list
+Message-ID: <5029B1E5.4030509@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
+  A parallel umount on 4 nodes triggered a bug in dlm_process_recovery_date(). Here?s the situation:
+  Receiving MIG_LOCKRES message, A node processes the locks in migratable lockres. It copys lvb from migratable lockres when processing the first valid lock. 
+If there is a lock in the blocked list with the EX level, it triggers the BUG. Since valid lvbs are set when locks are granted with EX or PR levels, locks in 
+the blocked list cannot have valid lvbs. Therefore I think we should skip the locks in the blocked list.
 
-Could you merge this patch?
+Signed-off-by: Xuejiufei <xuejiufei@huawei.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c |    7 +++++++
+ 1 file changed, 7 insertions(+)
 
-On 08/10/2012 01:52 PM, Junxiao Bi wrote:
-> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-> Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
-> ---
->  fs/ocfs2/dlm/dlmmaster.c |    4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
->
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 005261c..1fadc39 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -1888,8 +1888,10 @@ ok:
->  			 * up nodes that this node contacted */
->  			while ((nn = find_next_bit (mle->response_map, O2NM_MAX_NODES,
->  						    nn+1)) < O2NM_MAX_NODES) {
-> -				if (nn != dlm->node_num && nn != assert->node_idx)
-> +				if (nn != dlm->node_num && nn != assert->node_idx) {
->  					master_request = 1;
-> +					break;
-> +				}
->  			}
->  		}
->  		mle->master = assert->node_idx;
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 01ebfd0..15d81ad 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1887,6 +1887,13 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 
+ 		if (ml->type == LKM_NLMODE)
+ 			goto skip_lvb;
++		
++		/*
++		 * If the lock is in the blocked list it can't have a valid lvb,
++		 * so skip it
++		 */
++		if (ml->list == DLM_BLOCKED_LIST)
++			goto skip_lvb;
+ 
+ 		if (!dlm_lvb_is_empty(mres->lvb)) {
+ 			if (lksb->flags & DLM_LKSB_PUT_LVB) {
+-- 
+1.7.9.7
