@@ -1,34 +1,40 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Wed, 15 Aug 2012 02:04:57 -0700
-Subject: [Ocfs2-devel] OCFS + QUOTA - Many errors in dmesg - Mayby fix
- that?
-In-Reply-To: <AF11BCE64D6647C0B14576AA905DF52A@SERWER>
+Date: Wed, 15 Aug 2012 02:11:30 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Don't spam on -EDQUOT.
+In-Reply-To: <20120815090456.GN31083@dhcp-172-17-9-228.mtv.corp.google.com>
 References: <AF11BCE64D6647C0B14576AA905DF52A@SERWER>
-Message-ID: <20120815090456.GN31083@dhcp-172-17-9-228.mtv.corp.google.com>
+	<20120815090456.GN31083@dhcp-172-17-9-228.mtv.corp.google.com>
+Message-ID: <20120815091130.GO31083@dhcp-172-17-9-228.mtv.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Marek =?iso-8859-1?Q?Kr=F3likowski?= <admin@wset.edu.pl>, ocfs2-devel@oss.oracle.com
+Cc: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org
 
-On Wed, Aug 15, 2012 at 10:29:18AM +0200, Marek Kr?likowski wrote:
-> Hey
-> I see You remove ocfs2_global_read_info errors from dmesg can You remove other stupid errors too?
-> I got kernel 3.2.27 with enable quota on OCFS2 and i got many many errors likes:
-> 
-> (local,19395,1):ocfs2_write_begin:1953 ERROR: status = ?122
+EDQUOT is a user-visible error, not a logic problem.  Teach mlog_errno()
+to ignore it like it ignores -ENOSPC, etc.
 
-<snip>
+Signed-off-by: Joel Becker <jlbec@evilplan.org>
+Cc: Jan Kara <jack@suse.cz>
+Reported-by: Marek Kr?likowski <admin@wset.edu.pl>
+---
+ fs/ocfs2/cluster/masklog.h |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-You shouldn't see any of these.  Patch coming.
-
-Joel
-
+diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
+index baa2b9e..2260fb9 100644
+--- a/fs/ocfs2/cluster/masklog.h
++++ b/fs/ocfs2/cluster/masklog.h
+@@ -199,7 +199,8 @@ extern struct mlog_bits mlog_and_bits, mlog_not_bits;
+ #define mlog_errno(st) do {						\
+ 	int _st = (st);							\
+ 	if (_st != -ERESTARTSYS && _st != -EINTR &&			\
+-	    _st != AOP_TRUNCATED_PAGE && _st != -ENOSPC)		\
++	    _st != AOP_TRUNCATED_PAGE && _st != -ENOSPC &&		\
++	    _st != -EDQUOT)						\
+ 		mlog(ML_ERROR, "status = %lld\n", (long long)_st);	\
+ } while (0)
+ 
 -- 
-
-Life's Little Instruction Book #444
-
-	"Never underestimate the power of a kind word or deed."
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+1.7.7.3
