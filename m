@@ -1,49 +1,55 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 14 Aug 2012 23:40:23 -0700
-Subject: [Ocfs2-devel] [patch] ocfs2/dlm: use GFP_ATOMIC inside a
-	spin_lock
-In-Reply-To: <20120726130505.GA30865@elgon.mountain>
-References: <20120726130505.GA30865@elgon.mountain>
-Message-ID: <20120815064023.GE31083@dhcp-172-17-9-228.mtv.corp.google.com>
+Date: Tue, 14 Aug 2012 23:40:45 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix oops in
+ ocfs2_fast_symlink_readpage() code path
+In-Reply-To: <1344011777-26527-1-git-send-email-sunil.mushran@gmail.com>
+References: <1344011777-26527-1-git-send-email-sunil.mushran@gmail.com>
+Message-ID: <20120815064044.GF31083@dhcp-172-17-9-228.mtv.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jul 26, 2012 at 04:05:05PM +0300, Dan Carpenter wrote:
-> My static checker complains that this is called with a spin_lock held
-> in dlm_master_requery_handler() from dlmrecovery.c.  Probably the reason
-> we have not received any bug reports about this is that recovery is not
-> a common operation.
+On Fri, Aug 03, 2012 at 05:36:17PM +0100, sunil.mushran at gmail.com wrote:
+> From: Sunil Mushran <smushran@yahoo.com>
 > 
-> Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+> Commit ea022dfb3c2a4680483b00eb2fecc9fc4f6091d1 was missing a var init.
+> 
+> Reported-and-Tested-by: Vincent Etienne <vetienne@aprogsys.com>
+> Signed-off-by: Sunil Mushran <sunil.mushran@gmail.com>
 
 This patch is now part of the fixes branch of ocfs2.git.
 
 Joel
 
+> ---
+>  fs/ocfs2/symlink.c |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 005261c..33ecbe0 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -2020,7 +2020,7 @@ int dlm_dispatch_assert_master(struct dlm_ctxt *dlm,
->  			       int ignore_higher, u8 request_from, u32 flags)
+> diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
+> index f1fbb4b..66edce7 100644
+> --- a/fs/ocfs2/symlink.c
+> +++ b/fs/ocfs2/symlink.c
+> @@ -57,7 +57,7 @@
+>  static int ocfs2_fast_symlink_readpage(struct file *unused, struct page *page)
 >  {
->  	struct dlm_work_item *item;
-> -	item = kzalloc(sizeof(*item), GFP_NOFS);
-> +	item = kzalloc(sizeof(*item), GFP_ATOMIC);
->  	if (!item)
->  		return -ENOMEM;
->  
+>  	struct inode *inode = page->mapping->host;
+> -	struct buffer_head *bh;
+> +	struct buffer_head *bh = NULL;
+>  	int status = ocfs2_read_inode_block(inode, &bh);
+>  	struct ocfs2_dinode *fe;
+>  	const char *link;
+> -- 
+> 1.7.4.4
+> 
 
 -- 
 
-"We will have to repent in this generation not merely for the
- vitriolic words and actions of the bad people, but for the 
- appalling silence of the good people."
-	- Rev. Dr. Martin Luther King, Jr.
+"Born under a bad sign.
+ I been down since I began to crawl.
+ If it wasn't for bad luck,
+ I wouldn't have no luck at all."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
