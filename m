@@ -1,49 +1,63 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 16 Aug 2012 23:57:54 +0200
-Subject: [Ocfs2-devel] a bug about deadlock when enable quota on ocfs2
-In-Reply-To: <502D2E7C.6090508@oracle.com>
-References: <4FFCF397.20108@oracle.com> <20120713220907.GB12532@quack.suse.cz>
-	<5004A623.5000909@oracle.com>
-	<20120815221226.GF29223@quack.suse.cz>
-	<502D2E7C.6090508@oracle.com>
-Message-ID: <20120816215754.GB22160@quack.suse.cz>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Wed, 22 Aug 2012 17:38:22 +0800
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2:
+	s/o2hb_hearbeat_xxx/o2hb_heartbeat_xxx/g at heartbeat.c
+Message-ID: <5034A88E.9060008@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  Hello Srini,
+Not sure if this patch does make sense or not, but it could make the signature of those routines
+in a consistent manner with others for heartbeating.
 
-On Thu 16-08-12 10:31:40, srinivas eeda wrote:
-> If we do not offload work to ocfs2_wq then the unlink steps on other
-> nodes are synchronous because ocfs2_delete_inode on other nodes will
-> be called by the down covert thread. This will/should clear the
-> inodes from other nodes if not in use. By the time the node that
-> issued unlink calls ocfs2_delete_inode the inodes on other nodes
-> should already be cleared and hence they gets cleared from orphan
-> directory.
-  I see but it's really rather fragile for inode deletion to depend on
-the way how downconvert threads are called, isn't it? The fact that you
-need to call d_drop() from ocfs2_dentry_convert_worker() to invalidate the
-dentry and force inode reference to be dropped only proves my point. And I
-see no reason why even d_drop() is enough because someone else could be
-holding a reference to the dentry which further delays destruction of it
-to the time that reference is dropped (which need not be from a downconvert
-thread).
+CC: Sunil Mushran <sunil.mushran@gmail.com>
+Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 
-So although I believe you your patch makes customer workload work, I don't
-think it's the right way of fixing the problem. Rather we should make it
-safe for ocfs2_evict_inode() to be run in parallel on two nodes. And as I
-wrote in my previous email it doesn't seem to require much - just dropping
-of exclusive inode lock has to happen *after* we drop open lock. Not
-before.
+---
+ fs/ocfs2/cluster/heartbeat.c |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
 
-								Honza
-
-PS: I've added ocfs2-devel list back to CC since I think it's good to have
-this discussion archived for future reference and also so that other
-ocfs2 developers can read it and offer their ideas.
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 1b6ce53..d193679 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -176,7 +176,7 @@ static void o2hb_dead_threshold_set(unsigned int threshold)
+ 	}
+ }
+ 
+-static int o2hb_global_hearbeat_mode_set(unsigned int hb_mode)
++static int o2hb_global_heartbeat_mode_set(unsigned int hb_mode)
+ {
+ 	int ret = -1;
+ 
+@@ -2290,7 +2290,7 @@ ssize_t o2hb_heartbeat_group_mode_store(struct o2hb_heartbeat_group *group,
+ 		if (strnicmp(page, o2hb_heartbeat_mode_desc[i], len))
+ 			continue;
+ 
+-		ret = o2hb_global_hearbeat_mode_set(i);
++		ret = o2hb_global_heartbeat_mode_set(i);
+ 		if (!ret)
+ 			printk(KERN_NOTICE "o2hb: Heartbeat mode set to %s\n",
+ 			       o2hb_heartbeat_mode_desc[i]);
+@@ -2323,7 +2323,7 @@ static struct configfs_attribute *o2hb_heartbeat_group_attrs[] = {
+ 	NULL,
+ };
+ 
+-static struct configfs_item_operations o2hb_hearbeat_group_item_ops = {
++static struct configfs_item_operations o2hb_heartbeat_group_item_ops = {
+ 	.show_attribute		= o2hb_heartbeat_group_show,
+ 	.store_attribute	= o2hb_heartbeat_group_store,
+ };
+@@ -2335,7 +2335,7 @@ static struct configfs_group_operations o2hb_heartbeat_group_group_ops = {
+ 
+ static struct config_item_type o2hb_heartbeat_group_type = {
+ 	.ct_group_ops	= &o2hb_heartbeat_group_group_ops,
+-	.ct_item_ops	= &o2hb_hearbeat_group_item_ops,
++	.ct_item_ops	= &o2hb_heartbeat_group_item_ops,
+ 	.ct_attrs	= o2hb_heartbeat_group_attrs,
+ 	.ct_owner	= THIS_MODULE,
+ };
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+1.7.4.1
