@@ -1,58 +1,79 @@
-From: Jie Liu <jeff.liu@oracle.com>
-Date: Wed, 22 Aug 2012 22:17:59 +0800
-Subject: [Ocfs2-devel] RFC: OCFS2 heartbeat improvements
-Message-ID: <5034EA17.107@oracle.com>
+From: Sunil Mushran <sunil.mushran@gmail.com>
+Date: Wed, 22 Aug 2012 10:10:14 -0700
+Subject: [Ocfs2-devel] [PATCH 2/4] ocfs2:
+	s/o2hb_hearbeat_xxx/o2hb_heartbeat_xxx/g at heartbeat.c
+In-Reply-To: <5034A88E.9060008@oracle.com>
+References: <5034A88E.9060008@oracle.com>
+Message-ID: <CAEeiSHWteZop__HrSxbg9wsBVfSha+kk6QO44ZXAYE43Ljda1Q@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi All,
+Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
 
-These days, I am investigating an issue regarding OCFS2 unexpected
-reboot in some real world use cases.
-This problem occurred when the network status goes south, when the disk
-IO load is too high, etc...
-I suspect it might caused by ocfs2 fencing if it's BIO reading/writing
-can not be scheduled and processed quickly, or
-something like this happened in the network IO heartbeat thread.
+On Wed, Aug 22, 2012 at 2:38 AM, Jeff Liu <jeff.liu@oracle.com> wrote:
 
-Now am trying to reproduce this problem locally.  In the meantime, I'd
-like to ping you guys with some rough ideas
-to improve the disk IO heartbeat to see if they are sounds reasonable or
-not.
-
-Firstly, if an OCFS2 node is suffer from heavy disk IO, how about to fix
-the bio read/write to make this IO request can not
-be preempted by other requests? e.g,  for o2hb_issue_node_write(),
-currently, it do bio submission with WRITE only,
-'submit_bio(WRITE, bio)'.   If we change the flag to WRITE_SYNC, or even
-submit the request combine with REQ_FUA,
-maybe could get highest priority for disk IO request.
-
-Secondly, the comments for bio allocation at o2hb_setup_one_bio()
-indicates that we can pre-allocate bio instead of
-acquire for each time.  But I have not saw any code snippet doing such
-things in kernel. :(
-how about creating a private bio set for each o2hb_region, so that we
-can do allocation out of it?
-maybe it's faster than do allocation from global bio sets.  Also, does
-it make sense if creating a memory pool
-on each o2hb_region, so that we can have continuous pages bind to those
-bios?
-
-
-Any comments are appreciated!
-
-Thanks,
--Jeff
-
-
-
-
-
-
+> Not sure if this patch does make sense or not, but it could make the
+> signature of those routines
+> in a consistent manner with others for heartbeating.
+>
+> CC: Sunil Mushran <sunil.mushran@gmail.com>
+> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+>
+> ---
+>  fs/ocfs2/cluster/heartbeat.c |    8 ++++----
+>  1 files changed, 4 insertions(+), 4 deletions(-)
+>
+> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+> index 1b6ce53..d193679 100644
+> --- a/fs/ocfs2/cluster/heartbeat.c
+> +++ b/fs/ocfs2/cluster/heartbeat.c
+> @@ -176,7 +176,7 @@ static void o2hb_dead_threshold_set(unsigned int
+> threshold)
+>         }
+>  }
+>
+> -static int o2hb_global_hearbeat_mode_set(unsigned int hb_mode)
+> +static int o2hb_global_heartbeat_mode_set(unsigned int hb_mode)
+>  {
+>         int ret = -1;
+>
+> @@ -2290,7 +2290,7 @@ ssize_t o2hb_heartbeat_group_mode_store(struct
+> o2hb_heartbeat_group *group,
+>                 if (strnicmp(page, o2hb_heartbeat_mode_desc[i], len))
+>                         continue;
+>
+> -               ret = o2hb_global_hearbeat_mode_set(i);
+> +               ret = o2hb_global_heartbeat_mode_set(i);
+>                 if (!ret)
+>                         printk(KERN_NOTICE "o2hb: Heartbeat mode set to
+> %s\n",
+>                                o2hb_heartbeat_mode_desc[i]);
+> @@ -2323,7 +2323,7 @@ static struct configfs_attribute
+> *o2hb_heartbeat_group_attrs[] = {
+>         NULL,
+>  };
+>
+> -static struct configfs_item_operations o2hb_hearbeat_group_item_ops = {
+> +static struct configfs_item_operations o2hb_heartbeat_group_item_ops = {
+>         .show_attribute         = o2hb_heartbeat_group_show,
+>         .store_attribute        = o2hb_heartbeat_group_store,
+>  };
+> @@ -2335,7 +2335,7 @@ static struct configfs_group_operations
+> o2hb_heartbeat_group_group_ops = {
+>
+>  static struct config_item_type o2hb_heartbeat_group_type = {
+>         .ct_group_ops   = &o2hb_heartbeat_group_group_ops,
+> -       .ct_item_ops    = &o2hb_hearbeat_group_item_ops,
+> +       .ct_item_ops    = &o2hb_heartbeat_group_item_ops,
+>         .ct_attrs       = o2hb_heartbeat_group_attrs,
+>         .ct_owner       = THIS_MODULE,
+>  };
+> --
+> 1.7.4.1
+>
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120822/c454d0b4/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120822/919b72f1/attachment.html 
