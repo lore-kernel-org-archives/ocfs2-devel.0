@@ -1,36 +1,37 @@
-From: Jie Liu <jeff.liu@oracle.com>
-Date: Fri, 24 Aug 2012 12:33:16 +0800
-Subject: [Ocfs2-devel] RFC: OCFS2 heartbeat improvements
-In-Reply-To: <CAEeiSHXTghMQG24xYEJgGb84yP73Uk5rObCYAGP4EnZfo6shmw@mail.gmail.com>
-References: <5034EA17.107@oracle.com> <5035A719.1000707@tao.ma>
-	<5035AB22.5090707@oracle.com>
-	<CAEeiSHXTghMQG24xYEJgGb84yP73Uk5rObCYAGP4EnZfo6shmw@mail.gmail.com>
-Message-ID: <5037040C.7070706@oracle.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Tue, 04 Sep 2012 10:31:15 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: cancel nn_still_up work when
+	connection came up
+Message-ID: <504567F3.4080406@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 08/24/12 01:25, Sunil Mushran wrote:
-> On Wed, Aug 22, 2012 at 9:01 PM, Jie Liu <jeff.liu@oracle.com
-> <mailto:jeff.liu@oracle.com>> wrote:
->
->     BTW, Sunil mentioned there already has an IO priority patch set
->     but not
->     yet merged.  However, I only searched
->     an old posts back to 2006 at:
->     http://www.digipedia.pl/usenet/thread/11947/7120/
->
->     Am I missing something?
->
->
-> No, I said the code is all in there. You just need to use it.
-Ah, I know what I need to do.
+We found that ocfs2 doesn't cancel the nn_still_up delayed work when
+connection comes up. So if a node lost its connectivity and after a
+while (more than idle time) the connection came up, it would still
+make the quorum decision which we don't expect. And worse still, it
+may result in an error of judgment if node detected another
+connectivity lost just before the decision.
 
-Thanks,
--Jeff
+Signed-off-by: Xuejiufei <xuejiufei@huawei.com>
+---
+ fs/ocfs2/cluster/tcp.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20120824/e2c2f110/attachment.html 
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 1bfe880..8689f36 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -553,6 +553,7 @@ static void o2net_set_nn_state(struct o2net_node *nn,
+ 
+ 	if (!was_valid && valid) {
+ 		o2quo_conn_up(o2net_num_from_nn(nn));
++		cancel_deleyed_work(&nn->nn_still_up);
+ 		cancel_delayed_work(&nn->nn_connect_expired);
+ 		printk(KERN_NOTICE "o2net: %s " SC_NODEF_FMT "\n",
+ 		       o2nm_this_node() > sc->sc_node->nd_num ?
+-- 
+1.7.8.6
