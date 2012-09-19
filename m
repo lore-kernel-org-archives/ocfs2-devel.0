@@ -1,160 +1,91 @@
 From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Tue, 18 Sep 2012 17:10:59 -0700
-Subject: [Ocfs2-devel] [PATCH 1/5] ocfs2: modifiy reservation code to
-	support discontiguous allocations
+Date: Tue, 18 Sep 2012 17:11:03 -0700
+Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2 set min default contig localalloc
+	size
 In-Reply-To: <1348013463-23980-1-git-send-email-srinivas.eeda@oracle.com>
 References: <1348013463-23980-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <1348013463-23980-2-git-send-email-srinivas.eeda@oracle.com>
+Message-ID: <1348013463-23980-6-git-send-email-srinivas.eeda@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Currently reservation code assumes that bitmap given to it is one contigous
-chunk. This patch enhances it to handle a discontigous chunks. It adds new
-fields m_bitmap_ext_cnt and m_bitmap_ext_arr. m_bitmap_ext_arr tracks the sizes
-of each contigous chunk and m_bitmap_ext_cnt trackes size of m_bitmap_ext_arr
+When discontiguous localalloc is enabled, localalloc should just try for a
+minimum smaller contiguous chunk. This will improve performance when the
+file system is fragmented. This setting doesn't stop localalloc from getting
+bigger chunk.
 
-Callers should pass number of discontiguous chunks during ocfs2_resmap_restart
-and later call ocfs2_resmap_set_extent_size for every chunk.
+The default chunk size is set to fill 128Kb. localalloc will try to look for
+atleast that big of chunk. If it's not available then it reduces the size by
+half and retries.
+
+#define OCFS2_DEFAULT_LOCALALLOC_CHUNK_SIZE (128*1024) /* 128kb */
 
 Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 ---
- fs/ocfs2/localalloc.c   |    4 +++-
- fs/ocfs2/reservations.c |   39 ++++++++++++++++++++++++++++++++++-----
- fs/ocfs2/reservations.h |    7 ++++++-
- 3 files changed, 43 insertions(+), 7 deletions(-)
+ fs/ocfs2/localalloc.c |   28 +++++++++++++++++++++-------
+ 1 files changed, 21 insertions(+), 7 deletions(-)
 
 diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index a9f78c7..53a162f 100644
+index 82653f2..569e131 100644
 --- a/fs/ocfs2/localalloc.c
 +++ b/fs/ocfs2/localalloc.c
-@@ -1191,9 +1191,11 @@ retry_enospc:
- 	memset(OCFS2_LOCAL_ALLOC(alloc)->la_bitmap, 0,
- 	       le16_to_cpu(la->la_size));
- 
--	ocfs2_resmap_restart(&osb->osb_la_resmap, cluster_count,
-+	ocfs2_resmap_restart(&osb->osb_la_resmap, 1, cluster_count,
- 			     OCFS2_LOCAL_ALLOC(alloc)->la_bitmap);
- 
-+	ocfs2_resmap_set_extent_size(&osb->osb_la_resmap, 0, cluster_count);
-+
- 	trace_ocfs2_local_alloc_new_window_result(
- 		OCFS2_LOCAL_ALLOC(alloc)->la_bm_off,
- 		le32_to_cpu(alloc->id1.bitmap1.i_total));
-diff --git a/fs/ocfs2/reservations.c b/fs/ocfs2/reservations.c
-index 41ffd36..e1034ed 100644
---- a/fs/ocfs2/reservations.c
-+++ b/fs/ocfs2/reservations.c
-@@ -291,7 +291,7 @@ static void ocfs2_resmap_clear_all_resv(struct ocfs2_reservation_map *resmap)
- 	}
+@@ -271,6 +271,19 @@ ocfs2_local_alloc_adjust_bits_wanted(struct ocfs2_dinode *alloc,
+ 	return wanted;
  }
  
--void ocfs2_resmap_restart(struct ocfs2_reservation_map *resmap,
-+void ocfs2_resmap_restart(struct ocfs2_reservation_map *resmap, u32 ext_cnt,
- 			  unsigned int clen, char *disk_bitmap)
- {
- 	if (ocfs2_resmap_disabled(resmap))
-@@ -300,12 +300,32 @@ void ocfs2_resmap_restart(struct ocfs2_reservation_map *resmap,
- 	spin_lock(&resv_lock);
- 
- 	ocfs2_resmap_clear_all_resv(resmap);
++#define OCFS2_DEFAULT_LOCALALLOC_CHUNK_SIZE (128*1024) /* 128kb */
 +
-+	/* free existing extent array */
-+	kfree(resmap->m_bitmap_ext_arr);
-+
- 	resmap->m_bitmap_len = clen;
- 	resmap->m_disk_bitmap = disk_bitmap;
- 
-+	resmap->m_bitmap_ext_cnt = ext_cnt;
-+	resmap->m_bitmap_ext_arr = kmalloc((sizeof(u32) * ext_cnt), GFP_NOFS);
-+	if (!resmap->m_bitmap_ext_arr) {
-+		mlog_errno(-ENOMEM);
-+		resmap->m_osb->osb_resv_level = 0; /* disable reservations */
-+	}
-+
- 	spin_unlock(&resv_lock);
- }
- 
-+void ocfs2_resmap_set_extent_size(struct ocfs2_reservation_map *resmap,
-+				  int indx, u32 sz)
++void ocfs2_set_default_min_alloc_size(struct ocfs2_super *osb)
 +{
-+	if (ocfs2_resmap_disabled(resmap))
-+		return;
-+
-+	resmap->m_bitmap_ext_arr[indx] = sz;
++	if (ocfs2_supports_discontig_la(osb)) {
++		osb->local_alloc_bits = OCFS2_DEFAULT_LOCALALLOC_CHUNK_SIZE /
++			osb->s_clustersize;
++		if (!osb->local_alloc_bits)
++			osb->local_alloc_bits = 1;
++	} else
++		osb->local_alloc_bits = osb->local_alloc_default_bits;
 +}
 +
- void ocfs2_resmap_uninit(struct ocfs2_reservation_map *resmap)
+ void ocfs2_la_set_sizes(struct ocfs2_super *osb, int requested_mb)
  {
- 	/* Does nothing for now. Keep this around for API symmetry */
-@@ -419,21 +439,30 @@ static int ocfs2_resmap_find_free_bits(struct ocfs2_reservation_map *resmap,
- 				       unsigned int *rlen)
- {
- 	void *bitmap = resmap->m_disk_bitmap;
--	unsigned int best_start, best_len = 0;
-+	unsigned int best_start, len, ext, best_len = 0;
- 	int offset, start, found;
- 
- 	trace_ocfs2_resmap_find_free_bits_begin(search_start, search_len,
- 						wanted, resmap->m_bitmap_len);
- 
--	found = best_start = best_len = 0;
+ 	struct super_block *sb = osb->sb;
+@@ -294,8 +307,7 @@ void ocfs2_la_set_sizes(struct ocfs2_super *osb, int requested_mb)
+ 		osb->local_alloc_default_bits =
+ 			ocfs2_megabytes_to_clusters(sb, requested_mb);
+ 	}
 -
-+	found = best_start = best_len = ext = 0;
- 	start = search_start;
-+	len = resmap->m_bitmap_ext_arr[ext++];
-+
- 	while ((offset = ocfs2_find_next_zero_bit(bitmap, resmap->m_bitmap_len,
--						 start)) != -1) {
-+						  start)) != -1) {
- 		/* Search reached end of the region */
- 		if (offset >= (search_start + search_len))
- 			break;
+-	osb->local_alloc_bits = osb->local_alloc_default_bits;
++	ocfs2_set_default_min_alloc_size(osb);
+ }
  
-+		if (offset >= len) {
-+			if (ext >= resmap->m_bitmap_ext_cnt)
-+				break;
-+			len += resmap->m_bitmap_ext_arr[ext++];
-+			found = 1;
-+			start = offset + 1;
-+		}
-+
- 		if (offset == start) {
- 			/* we found a zero */
- 			found++;
-diff --git a/fs/ocfs2/reservations.h b/fs/ocfs2/reservations.h
-index 42c2b80..fed3aae 100644
---- a/fs/ocfs2/reservations.h
-+++ b/fs/ocfs2/reservations.h
-@@ -56,6 +56,8 @@ struct ocfs2_reservation_map {
- 	u32			m_bitmap_len;	/* Number of valid
- 						 * bits available */
+ static inline int ocfs2_la_state_enabled(struct ocfs2_super *osb)
+@@ -1219,7 +1231,7 @@ static int ocfs2_recalc_la_window(struct ocfs2_super *osb,
+ 	 * low space.
+ 	 */
+ 	if (osb->local_alloc_state != OCFS2_LA_THROTTLED)
+-		osb->local_alloc_bits = osb->local_alloc_default_bits;
++		ocfs2_set_default_min_alloc_size(osb);
  
-+	u32			m_bitmap_ext_cnt;
-+	u32			*m_bitmap_ext_arr;
- 	struct list_head	m_lru;		/* LRU of reservations
- 						 * structures. */
+ out_unlock:
+ 	state = osb->local_alloc_state;
+@@ -1369,10 +1381,12 @@ static int ocfs2_local_alloc_new_window(struct ocfs2_super *osb,
+ 	if (!alloc->id1.bitmap1.i_total)
+ 		goto bail;
  
-@@ -94,6 +96,9 @@ void ocfs2_resv_discard(struct ocfs2_reservation_map *resmap,
- int ocfs2_resmap_init(struct ocfs2_super *osb,
- 		      struct ocfs2_reservation_map *resmap);
+-	spin_lock(&osb->osb_lock);
+-	if (cluster_count > osb->local_alloc_bits)
+-		osb->local_alloc_bits = cluster_count;
+-	spin_unlock(&osb->osb_lock);
++	if (!ocfs2_supports_discontig_la(osb)) {
++		spin_lock(&osb->osb_lock);
++		if (cluster_count > osb->local_alloc_bits)
++			osb->local_alloc_bits = cluster_count;
++		spin_unlock(&osb->osb_lock);
++	}
+ 	osb->la_last_gd = ac->ac_last_group;
  
-+void ocfs2_resmap_set_extent_size(struct ocfs2_reservation_map *resmap,
-+				  int indx, u32 sz);
-+
- /**
-  * ocfs2_resmap_restart() - "restart" a reservation bitmap
-  * @resmap: reservations bitmap
-@@ -107,7 +112,7 @@ int ocfs2_resmap_init(struct ocfs2_super *osb,
-  * reservations. A future version will recalculate existing
-  * reservations based on the new bitmap.
-  */
--void ocfs2_resmap_restart(struct ocfs2_reservation_map *resmap,
-+void ocfs2_resmap_restart(struct ocfs2_reservation_map *resmap, u32 ext_cnt,
- 			  unsigned int clen, char *disk_bitmap);
- 
- /**
+ 	bitmap = ocfs2_local_alloc_bitmap(osb, la);
 -- 
 1.5.4.3
