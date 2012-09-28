@@ -1,232 +1,267 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Tue, 18 Sep 2012 17:11:01 -0700
-Subject: [Ocfs2-devel] [PATCH 3/5] ocfs2: new structure to implement
-	discontiguous localalloc bitmap
-In-Reply-To: <1348013463-23980-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1348013463-23980-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <1348013463-23980-4-git-send-email-srinivas.eeda@oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
+Date: Fri, 28 Sep 2012 14:57:02 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix NULL pointer dereference in
+	ocfs2_duplicate_clusters_by_page
+Message-ID: <1348815422-1868-1-git-send-email-tiger.yang@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Currently localalloc bitmap uses single contiguous free chunk of clusters. It's
-size gets reduced as the contiguous free chunks gets smaller. This ultimately
-gets disabled if the largest contiguous free chunk is smaller than 1Mb.
+Since ocfs2_cow_file_pos will invoke ocfs2_refcount_cow with a NULL
+as the struct file pointer, it finally result in a null pointer
+dereference in ocfs2_duplicate_clusters_by_page.
+This patch replace file pointer with inode pointer in
+cow_duplicate_clusters to fix this issue.
 
-This patch localalloc bitmap to use space from multiple contiguous free chunk
-clusters.
-
-This patch introduces new ocfs2_local_alloc_rec structure which tracks a
-single contiguous free chunk. When discontigous localalloc is enabled,
-ocfs2_local_alloc now holds an array of these records each pointing to a free
-chunk on the disk. In best case there is one record and as the filesystem gets
-fragmented you may see multipe records.
-
-This feature can be enabled/disabled when the file system is offline.
-
-Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 ---
- fs/ocfs2/localalloc.c |   22 ++++++++++++++--
- fs/ocfs2/ocfs2.h      |    7 +++++
- fs/ocfs2/ocfs2_fs.h   |   65 ++++++++++++++++++++++++++++++++++++++++---------
- 3 files changed, 79 insertions(+), 15 deletions(-)
+ fs/ocfs2/aops.c         |    2 +-
+ fs/ocfs2/file.c         |    6 ++--
+ fs/ocfs2/move_extents.c |    2 +-
+ fs/ocfs2/refcounttree.c |   53 +++++++---------------------------------------
+ fs/ocfs2/refcounttree.h |    6 ++--
+ 5 files changed, 16 insertions(+), 53 deletions(-)
 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index 45818df..98961f4 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -48,6 +48,13 @@
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 6577432..8cc8cad 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1755,7 +1755,7 @@ try_again:
+ 		goto out;
+ 	} else if (ret == 1) {
+ 		clusters_need = wc->w_clen;
+-		ret = ocfs2_refcount_cow(inode, filp, di_bh,
++		ret = ocfs2_refcount_cow(inode, di_bh,
+ 					 wc->w_cpos, wc->w_clen, UINT_MAX);
+ 		if (ret) {
+ 			mlog_errno(ret);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 46a1f6d..e26cd20 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -370,7 +370,7 @@ static int ocfs2_cow_file_pos(struct inode *inode,
+ 	if (!(ext_flags & OCFS2_EXT_REFCOUNTED))
+ 		goto out;
  
- #define OCFS2_LOCAL_ALLOC(dinode)	(&((dinode)->id2.i_lab))
+-	return ocfs2_refcount_cow(inode, NULL, fe_bh, cpos, 1, cpos+1);
++	return ocfs2_refcount_cow(inode, fe_bh, cpos, 1, cpos+1);
  
-+#define OCFS2_LOCAL_ALLOC_REC_SZ(la)	(le16_to_cpu(la->la_rec_count) *\
-+					 sizeof(struct ocfs2_local_alloc_rec))
-+#define OCFS2_LOCAL_ALLOC_BITS_PER_REC (sizeof(struct ocfs2_local_alloc_rec)*8)
-+
-+#define OCFS2_LOCAL_ALLOC_SIZE(osb)	ocfs2_local_alloc_size(osb->sb,\
-+						       osb->s_feature_incompat)
-+
- static u32 ocfs2_local_alloc_count_bits(struct ocfs2_dinode *alloc);
+ out:
+ 	return status;
+@@ -899,7 +899,7 @@ static int ocfs2_zero_extend_get_range(struct inode *inode,
+ 		zero_clusters = last_cpos - zero_cpos;
  
- static int ocfs2_local_alloc_find_clear_bits(struct ocfs2_super *osb,
-@@ -74,6 +81,15 @@ static int ocfs2_local_alloc_new_window(struct ocfs2_super *osb,
+ 	if (needs_cow) {
+-		rc = ocfs2_refcount_cow(inode, NULL, di_bh, zero_cpos,
++		rc = ocfs2_refcount_cow(inode, di_bh, zero_cpos,
+ 					zero_clusters, UINT_MAX);
+ 		if (rc) {
+ 			mlog_errno(rc);
+@@ -2097,7 +2097,7 @@ static int ocfs2_prepare_inode_for_refcount(struct inode *inode,
  
- static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb);
+ 	*meta_level = 1;
  
-+static inline u8 *ocfs2_local_alloc_bitmap(struct ocfs2_super *osb,
-+					   struct ocfs2_local_alloc *la)
-+{
-+	if (ocfs2_supports_discontig_la(osb))
-+		return (u8 *)la->la_recs + le16_to_cpu(la->la_bm_start);
-+	else
-+		return la->la_bitmap;
-+}
-+
- /*
-  * ocfs2_la_default_mb() - determine a default size, in megabytes of
-  * the local alloc.
-@@ -184,7 +200,7 @@ unsigned int ocfs2_la_default_mb(struct ocfs2_super *osb)
+-	ret = ocfs2_refcount_cow(inode, file, di_bh, cpos, clusters, UINT_MAX);
++	ret = ocfs2_refcount_cow(inode, di_bh, cpos, clusters, UINT_MAX);
+ 	if (ret)
+ 		mlog_errno(ret);
+ out:
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index 6083432..8519926 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -69,7 +69,7 @@ static int __ocfs2_move_extent(handle_t *handle,
+ 	u64 ino = ocfs2_metadata_cache_owner(context->et.et_ci);
+ 	u64 old_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cpos);
  
- 	/* We can't store more bits than we can in a block. */
- 	la_max_mb = ocfs2_clusters_to_megabytes(osb->sb,
--						ocfs2_local_alloc_size(sb) * 8);
-+					OCFS2_LOCAL_ALLOC_SIZE(osb) * 8);
- 	if (la_mb > la_max_mb)
- 		la_mb = la_max_mb;
+-	ret = ocfs2_duplicate_clusters_by_page(handle, context->file, cpos,
++	ret = ocfs2_duplicate_clusters_by_page(handle, inode, cpos,
+ 					       p_cpos, new_p_cpos, len);
+ 	if (ret) {
+ 		mlog_errno(ret);
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 30a0550..2d1bb91 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -49,7 +49,6 @@
  
-@@ -198,7 +214,7 @@ void ocfs2_la_set_sizes(struct ocfs2_super *osb, int requested_mb)
- 	unsigned int la_max_mb;
- 
- 	la_max_mb = ocfs2_clusters_to_megabytes(sb,
--						ocfs2_local_alloc_size(sb) * 8);
-+					OCFS2_LOCAL_ALLOC_SIZE(osb) * 8);
- 
- 	trace_ocfs2_la_set_sizes(requested_mb, la_max_mb, la_default_mb);
- 
-@@ -329,7 +345,7 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
- 	}
- 
- 	if ((la->la_size == 0) ||
--	    (le16_to_cpu(la->la_size) > ocfs2_local_alloc_size(inode->i_sb))) {
-+	    (le16_to_cpu(la->la_size) > OCFS2_LOCAL_ALLOC_SIZE(osb))) {
- 		mlog(ML_ERROR, "Local alloc size is invalid (la_size = %u)\n",
- 		     le16_to_cpu(la->la_size));
- 		status = -EINVAL;
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 836a647..7ab1afe 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -523,6 +523,13 @@ static inline int ocfs2_supports_discontig_bg(struct ocfs2_super *osb)
- 	return 0;
- }
- 
-+static inline int ocfs2_supports_discontig_la(struct ocfs2_super *osb)
-+{
-+	if (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_DISCONTIG_LA)
-+		return 1;
-+	return 0;
-+}
-+
- static inline unsigned int ocfs2_link_max(struct ocfs2_super *osb)
- {
- 	if (ocfs2_supports_indexed_dirs(osb))
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index 938387a..409b2b0 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -102,7 +102,8 @@
- 					 | OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS \
- 					 | OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE \
- 					 | OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG	\
--					 | OCFS2_FEATURE_INCOMPAT_CLUSTERINFO)
-+					 | OCFS2_FEATURE_INCOMPAT_CLUSTERINFO \
-+					 | OCFS2_FEATURE_INCOMPAT_DISCONTIG_LA)
- #define OCFS2_FEATURE_RO_COMPAT_SUPP	(OCFS2_FEATURE_RO_COMPAT_UNWRITTEN \
- 					 | OCFS2_FEATURE_RO_COMPAT_USRQUOTA \
- 					 | OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)
-@@ -177,6 +178,9 @@
-  */
- #define OCFS2_FEATURE_INCOMPAT_CLUSTERINFO	0x4000
- 
-+/* Discontiguous local alloc */
-+#define OCFS2_FEATURE_INCOMPAT_DISCONTIG_LA	0x8000
-+
- /*
-  * backup superblock flag is used to indicate that this volume
-  * has backup superblocks.
-@@ -661,17 +665,44 @@ struct ocfs2_super_block {
+ struct ocfs2_cow_context {
+ 	struct inode *inode;
+-	struct file *file;
+ 	u32 cow_start;
+ 	u32 cow_len;
+ 	struct ocfs2_extent_tree data_et;
+@@ -66,7 +65,7 @@ struct ocfs2_cow_context {
+ 			    u32 *num_clusters,
+ 			    unsigned int *extent_flags);
+ 	int (*cow_duplicate_clusters)(handle_t *handle,
+-				      struct file *file,
++				      struct inode *inode,
+ 				      u32 cpos, u32 old_cluster,
+ 				      u32 new_cluster, u32 new_len);
  };
+@@ -2922,14 +2921,12 @@ static int ocfs2_clear_cow_buffer(handle_t *handle, struct buffer_head *bh)
+ }
  
+ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+-				     struct file *file,
++				     struct inode *inode,
+ 				     u32 cpos, u32 old_cluster,
+ 				     u32 new_cluster, u32 new_len)
+ {
+ 	int ret = 0, partial;
+-	struct inode *inode = file->f_path.dentry->d_inode;
+-	struct ocfs2_caching_info *ci = INODE_CACHE(inode);
+-	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
++	struct super_block *sb = inode->i_sb;
+ 	u64 new_block = ocfs2_clusters_to_blocks(sb, new_cluster);
+ 	struct page *page;
+ 	pgoff_t page_index;
+@@ -2973,13 +2970,6 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 		if (PAGE_CACHE_SIZE <= OCFS2_SB(sb)->s_clustersize)
+ 			BUG_ON(PageDirty(page));
+ 
+-		if (PageReadahead(page)) {
+-			page_cache_async_readahead(mapping,
+-						   &file->f_ra, file,
+-						   page, page_index,
+-						   readahead_pages);
+-		}
+-
+ 		if (!PageUptodate(page)) {
+ 			ret = block_read_full_page(page, ocfs2_get_block);
+ 			if (ret) {
+@@ -2999,7 +2989,8 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 			}
+ 		}
+ 
+-		ocfs2_map_and_dirty_page(inode, handle, from, to,
++		ocfs2_map_and_dirty_page(inode,
++					 handle, from, to,
+ 					 page, 0, &new_block);
+ 		mark_page_accessed(page);
+ unlock:
+@@ -3015,12 +3006,11 @@ unlock:
+ }
+ 
+ int ocfs2_duplicate_clusters_by_jbd(handle_t *handle,
+-				    struct file *file,
++				    struct inode *inode,
+ 				    u32 cpos, u32 old_cluster,
+ 				    u32 new_cluster, u32 new_len)
+ {
+ 	int ret = 0;
+-	struct inode *inode = file->f_path.dentry->d_inode;
+ 	struct super_block *sb = inode->i_sb;
+ 	struct ocfs2_caching_info *ci = INODE_CACHE(inode);
+ 	int i, blocks = ocfs2_clusters_to_blocks(sb, new_len);
+@@ -3145,7 +3135,7 @@ static int ocfs2_replace_clusters(handle_t *handle,
+ 
+ 	/*If the old clusters is unwritten, no need to duplicate. */
+ 	if (!(ext_flags & OCFS2_EXT_UNWRITTEN)) {
+-		ret = context->cow_duplicate_clusters(handle, context->file,
++		ret = context->cow_duplicate_clusters(handle, context->inode,
+ 						      cpos, old, new, len);
+ 		if (ret) {
+ 			mlog_errno(ret);
+@@ -3423,35 +3413,12 @@ static int ocfs2_replace_cow(struct ocfs2_cow_context *context)
+ 	return ret;
+ }
+ 
+-static void ocfs2_readahead_for_cow(struct inode *inode,
+-				    struct file *file,
+-				    u32 start, u32 len)
+-{
+-	struct address_space *mapping;
+-	pgoff_t index;
+-	unsigned long num_pages;
+-	int cs_bits = OCFS2_SB(inode->i_sb)->s_clustersize_bits;
+-
+-	if (!file)
+-		return;
+-
+-	mapping = file->f_mapping;
+-	num_pages = (len << cs_bits) >> PAGE_CACHE_SHIFT;
+-	if (!num_pages)
+-		num_pages = 1;
+-
+-	index = ((loff_t)start << cs_bits) >> PAGE_CACHE_SHIFT;
+-	page_cache_sync_readahead(mapping, &file->f_ra, file,
+-				  index, num_pages);
+-}
+-
  /*
-+ * LocalAlloc record used when discontig-la is enabled. Each record points
-+ * to one contiguous chunk
-+ */
-+#define OCFS2_MAX_LOCAL_ALLOC_REC_LIMIT	128 	/* Max localalloc records */
-+
-+struct ocfs2_local_alloc_rec {
-+	__le32 la_start;	/* 1st cluster in this extent */
-+	__le32 la_clusters;	/* Number of contiguous clusters */
-+};
-+
-+/*
-  * Local allocation bitmap for OCFS2 slots
-  * Note that it exists inside an ocfs2_dinode, so all offsets are
-  * relative to the start of ocfs2_dinode.id2.
-+ * Each ocfs2_local_alloc_rec tracks one contigous chunk of clusters.
+  * Starting at cpos, try to CoW write_len clusters.  Don't CoW
+  * past max_cpos.  This will stop when it runs into a hole or an
+  * unrefcounted extent.
   */
- struct ocfs2_local_alloc
+ static int ocfs2_refcount_cow_hunk(struct inode *inode,
+-				   struct file *file,
+ 				   struct buffer_head *di_bh,
+ 				   u32 cpos, u32 write_len, u32 max_cpos)
  {
--/*00*/	__le32 la_bm_off;	/* Starting bit offset in main bitmap */
--	__le16 la_size;		/* Size of included bitmap, in bytes */
--	__le16 la_reserved1;
--	__le64 la_reserved2;
--/*10*/	__u8   la_bitmap[0];
-+	union {
-+		/* struct used when localalloc is contiguous */
-+		struct {
-+		/*00*/	__le32 la_bm_off;	/* offset in main bitmap */
-+			__le16 la_size;		/* Size of bitmap, in bytes */
-+			__le16 la_reserved1;
-+			__le64 la_reserved2;
-+		/*10*/ 	__u8   la_bitmap[0];
-+		};
-+
-+		/* struct used when localalloc can be discontigous */
-+		struct {
-+		/*00*/	__le16 la_bm_start;  /* start offset to the bitmap */
-+			__le16 la_rec_count; /* number of localalloc recs */
-+			__le16 la_dc_size;   /* space for records & bitmap */
-+			__le16 la_reserved3;
-+			__le64 la_reserved4;
-+		/*10*/	struct ocfs2_local_alloc_rec la_recs[0];
-+		};
-+	};
- };
+@@ -3480,8 +3447,6 @@ static int ocfs2_refcount_cow_hunk(struct inode *inode,
  
- /*
-@@ -1375,12 +1406,17 @@ static inline int ocfs2_dx_entries_per_root(struct super_block *sb)
- 	return size / sizeof(struct ocfs2_dx_entry);
- }
+ 	BUG_ON(cow_len == 0);
  
--static inline u16 ocfs2_local_alloc_size(struct super_block *sb)
-+static inline u16 ocfs2_local_alloc_size(struct super_block *sb,
-+					 u32 feature_incompat)
+-	ocfs2_readahead_for_cow(inode, file, cow_start, cow_len);
+-
+ 	context = kzalloc(sizeof(struct ocfs2_cow_context), GFP_NOFS);
+ 	if (!context) {
+ 		ret = -ENOMEM;
+@@ -3503,7 +3468,6 @@ static int ocfs2_refcount_cow_hunk(struct inode *inode,
+ 	context->ref_root_bh = ref_root_bh;
+ 	context->cow_duplicate_clusters = ocfs2_duplicate_clusters_by_page;
+ 	context->get_clusters = ocfs2_di_get_clusters;
+-	context->file = file;
+ 
+ 	ocfs2_init_dinode_extent_tree(&context->data_et,
+ 				      INODE_CACHE(inode), di_bh);
+@@ -3532,7 +3496,6 @@ out:
+  * clusters between cpos and cpos+write_len are safe to modify.
+  */
+ int ocfs2_refcount_cow(struct inode *inode,
+-		       struct file *file,
+ 		       struct buffer_head *di_bh,
+ 		       u32 cpos, u32 write_len, u32 max_cpos)
  {
- 	u16 size;
+@@ -3552,7 +3515,7 @@ int ocfs2_refcount_cow(struct inode *inode,
+ 			num_clusters = write_len;
  
--	size = sb->s_blocksize -
--		offsetof(struct ocfs2_dinode, id2.i_lab.la_bitmap);
-+	if (feature_incompat & OCFS2_FEATURE_INCOMPAT_DISCONTIG_LA)
-+		size = sb->s_blocksize -
-+			offsetof(struct ocfs2_dinode, id2.i_lab.la_bitmap);
-+	else
-+		size = sb->s_blocksize -
-+			offsetof(struct ocfs2_dinode, id2.i_lab.la_bitmap);
+ 		if (ext_flags & OCFS2_EXT_REFCOUNTED) {
+-			ret = ocfs2_refcount_cow_hunk(inode, file, di_bh, cpos,
++			ret = ocfs2_refcount_cow_hunk(inode, di_bh, cpos,
+ 						      num_clusters, max_cpos);
+ 			if (ret) {
+ 				mlog_errno(ret);
+diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
+index 7754608..6422bbc 100644
+--- a/fs/ocfs2/refcounttree.h
++++ b/fs/ocfs2/refcounttree.h
+@@ -53,7 +53,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+ 					  int *credits,
+ 					  int *ref_blocks);
+ int ocfs2_refcount_cow(struct inode *inode,
+-		       struct file *filep, struct buffer_head *di_bh,
++		       struct buffer_head *di_bh,
+ 		       u32 cpos, u32 write_len, u32 max_cpos);
  
- 	return size;
- }
-@@ -1523,12 +1559,17 @@ static inline int ocfs2_extent_recs_per_gd(int blocksize)
- 	return size / sizeof(struct ocfs2_extent_rec);
- }
- 
--static inline int ocfs2_local_alloc_size(int blocksize)
-+static inline int ocfs2_local_alloc_size(int blocksize,
-+					 u32 feature_incompat)
- {
- 	int size;
- 
--	size = blocksize -
--		offsetof(struct ocfs2_dinode, id2.i_lab.la_bitmap);
-+	if (feature_incompat & OCFS2_FEATURE_INCOMPAT_DISCONTIG_LA)
-+		size = blocksize -
-+			offsetof(struct ocfs2_dinode, id2.i_lab.la_recs);
-+	else
-+		size = blocksize -
-+			offsetof(struct ocfs2_dinode, id2.i_lab.la_bitmap);
- 
- 	return size;
- }
+ typedef int (ocfs2_post_refcount_func)(struct inode *inode,
+@@ -85,11 +85,11 @@ int ocfs2_refcount_cow_xattr(struct inode *inode,
+ 			     u32 cpos, u32 write_len,
+ 			     struct ocfs2_post_refcount *post);
+ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+-				     struct file *file,
++				     struct inode *inode,
+ 				     u32 cpos, u32 old_cluster,
+ 				     u32 new_cluster, u32 new_len);
+ int ocfs2_duplicate_clusters_by_jbd(handle_t *handle,
+-				    struct file *file,
++				    struct inode *inode,
+ 				    u32 cpos, u32 old_cluster,
+ 				    u32 new_cluster, u32 new_len);
+ int ocfs2_cow_sync_writeback(struct super_block *sb,
 -- 
-1.5.4.3
+1.7.4.4
