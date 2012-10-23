@@ -1,82 +1,76 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 23 Oct 2012 01:50:53 -0700
-Subject: [Ocfs2-devel] FW: [PATCH] workqueue: cancel_delayed_work()
- should return %NULL if work item is idle
-In-Reply-To: <cc10b67d-3afe-4539-8df2-171effbf5b36@default>
-References: <cc10b67d-3afe-4539-8df2-171effbf5b36@default>
-Message-ID: <20121023085052.GL5635@localhost>
+Date: Tue, 23 Oct 2012 01:54:48 -0700
+Subject: [Ocfs2-devel] [PATCH 06/21] ocfs2: drop vmtruncate
+In-Reply-To: <508296B4.60508@gmail.com>
+References: <508296B4.60508@gmail.com>
+Message-ID: <20121023085448.GM5635@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Marco Stornelli <marco.stornelli@gmail.com>
+Cc: Linux FS Devel <linux-fsdevel@vger.kernel.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Help me understand the issue.  Who broke this?  Do I need to push this
-patch, or is someone else?
+On Sat, Oct 20, 2012 at 02:19:00PM +0200, Marco Stornelli wrote:
+> Removed vmtruncate
+> 
+> Signed-off-by: Marco Stornelli <marco.stornelli@gmail.com>
 
-Thanks,
+Acked-by: Joel Becker <jlbec@evilplan.org>
+
+Do you want me to pull this, or are you going to send it with your set?
+
 Joel
 
-On Fri, Oct 19, 2012 at 10:56:42AM -0700, Dan Magenheimer wrote:
-> FYI, it is likely that ocfs2 will not work on 3.7-rcN until
-> the following one-line patch is merged, as the code in ramster
-> that provoked it is directly leveraged from ocfs2 o2net.
+> ---
+>  fs/ocfs2/file.c |   19 +------------------
+>  1 files changed, 1 insertions(+), 18 deletions(-)
 > 
-> > From: Tejun Heo [mailto:tj at kernel.org]
-> > Sent: Thursday, October 18, 2012 5:39 PM
-> > To: Dan Magenheimer
-> > Cc: linux-kernel at vger.kernel.org; Konrad Wilk
-> > Subject: [PATCH] workqueue: cancel_delayed_work() should return %NULL if work item is idle
-> > 
-> > From e65120fcfc1cb9697655d29ecd7982451c05d3c2 Mon Sep 17 00:00:00 2001
-> > From: Dan Magenheimer <dan.magenheimer@oracle.com>
-> > Date: Thu, 18 Oct 2012 16:31:37 -0700
-> > 
-> > 57b30ae77b ("workqueue: reimplement cancel_delayed_work() using
-> > try_to_grab_pending()") made cancel_delayed_work() always return %true
-> > unless someone else is also trying to cancel the work item, which is
-> > broken - if the target work item is idle, the return value should be
-> > %false.
-> > 
-> > try_to_grab_pending() indicates that the target work item was idle by
-> > zero return value.  Use it for return.  Note that this brings
-> > cancel_delayed_work() in line with __cancel_work_timer() in return
-> > value handling.
-> > 
-> > Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
-> > Signed-off-by: Tejun Heo <tj@kernel.org>
-> > LKML-Reference: <444a6439-b1a4-4740-9e7e-bc37267cfe73@default>
-> > ---
-> >  kernel/workqueue.c |    2 +-
-> >  1 files changed, 1 insertions(+), 1 deletions(-)
-> > 
-> > diff --git a/kernel/workqueue.c b/kernel/workqueue.c
-> > index d951daa..042d221 100644
-> > --- a/kernel/workqueue.c
-> > +++ b/kernel/workqueue.c
-> > @@ -2982,7 +2982,7 @@ bool cancel_delayed_work(struct delayed_work *dwork)
-> > 
-> >  	set_work_cpu_and_clear_pending(&dwork->work, work_cpu(&dwork->work));
-> >  	local_irq_restore(flags);
-> > -	return true;
-> > +	return ret;
-> >  }
-> >  EXPORT_SYMBOL(cancel_delayed_work);
-> > 
-> > --
-> > 1.7.7.3
-> > 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 5a4ee77..eb16e44 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -1172,6 +1172,7 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>  			status = -ENOSPC;
+>  			goto bail_unlock;
+>  		}
+> +		truncate_setsize(inode, attr->ia_size);
+>  	}
+>  
+>  	if ((attr->ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
+> @@ -1218,24 +1219,6 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>  		}
+>  	}
+>  
+> -	/*
+> -	 * This will intentionally not wind up calling truncate_setsize(),
+> -	 * since all the work for a size change has been done above.
+> -	 * Otherwise, we could get into problems with truncate as
+> -	 * ip_alloc_sem is used there to protect against i_size
+> -	 * changes.
+> -	 *
+> -	 * XXX: this means the conditional below can probably be removed.
+> -	 */
+> -	if ((attr->ia_valid & ATTR_SIZE) &&
+> -	    attr->ia_size != i_size_read(inode)) {
+> -		status = vmtruncate(inode, attr->ia_size);
+> -		if (status) {
+> -			mlog_errno(status);
+> -			goto bail_commit;
+> -		}
+> -	}
+> -
+>  	setattr_copy(inode, attr);
+>  	mark_inode_dirty(inode);
+>  
+> -- 
+> 1.7.3.4
 
 -- 
 
-Life's Little Instruction Book #139
-
-	"Never deprive someone of hope; it might be all they have."
+"Can any of you seriously say the Bill of Rights could get through
+ Congress today?  It wouldn't even get out of committee."
+	- F. Lee Bailey
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
