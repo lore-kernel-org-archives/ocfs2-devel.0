@@ -1,25 +1,100 @@
-From: Christoph Hellwig <hch@infradead.org>
-Date: Tue, 23 Oct 2012 09:02:38 -0400
-Subject: [Ocfs2-devel] [PATCH 06/21] ocfs2: drop vmtruncate
-In-Reply-To: <20121023085448.GM5635@localhost>
-References: <508296B4.60508@gmail.com>
- <20121023085448.GM5635@localhost>
-Message-ID: <20121023130237.GA21594@infradead.org>
+From: Dan Magenheimer <dan.magenheimer@oracle.com>
+Date: Tue, 23 Oct 2012 08:46:16 -0700 (PDT)
+Subject: [Ocfs2-devel] FW: [PATCH] workqueue: cancel_delayed_work()
+ should return %NULL if work item is idle
+In-Reply-To: <20121023085052.GL5635@localhost>
+References: <cc10b67d-3afe-4539-8df2-171effbf5b36@default>
+	<20121023085052.GL5635@localhost>
+Message-ID: <aafb25d5-bcd4-4956-8547-ce385c79de1f@default>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Marco Stornelli <marco.stornelli@gmail.com>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Oct 23, 2012 at 01:54:48AM -0700, Joel Becker wrote:
-> On Sat, Oct 20, 2012 at 02:19:00PM +0200, Marco Stornelli wrote:
-> > Removed vmtruncate
-> > 
-> > Signed-off-by: Marco Stornelli <marco.stornelli@gmail.com>
+> From: Joel Becker [mailto:jlbec at evilplan.org]
+> Sent: Tuesday, October 23, 2012 2:51 AM
+> To: Dan Magenheimer
+> Cc: ocfs2-devel at oss.oracle.com
+> Subject: Re: [Ocfs2-devel] FW: [PATCH] workqueue: cancel_delayed_work() should return %NULL if work
+> item is idle
 > 
-> Acked-by: Joel Becker <jlbec@evilplan.org>
-> 
-> Do you want me to pull this, or are you going to send it with your set?
+> Help me understand the issue.  Who broke this?  Do I need to push this
+> patch, or is someone else?
 
-Is this really correct?  It now updates i_size before starting a
-transaction.
+Tejun's new workqueue implementation which was just merged in 3.7
+had a bug in it.  See this thread:
+
+https://lkml.org/lkml/2012/10/18/592 
+
+It appears the patch didn't get into 3.7-rc2.  Cc'ing Tejun.
+Hopefully it will be merged for -rc3 since
+ramster is completely broken without the patch because a reference
+counter on a socket gets miscounted.  I expect the same to be
+true of ocfs2... Srini was going to check.
+
+Dan
+
+> On Fri, Oct 19, 2012 at 10:56:42AM -0700, Dan Magenheimer wrote:
+> > FYI, it is likely that ocfs2 will not work on 3.7-rcN until
+> > the following one-line patch is merged, as the code in ramster
+> > that provoked it is directly leveraged from ocfs2 o2net.
+> >
+> > > From: Tejun Heo [mailto:tj at kernel.org]
+> > > Sent: Thursday, October 18, 2012 5:39 PM
+> > > To: Dan Magenheimer
+> > > Cc: linux-kernel at vger.kernel.org; Konrad Wilk
+> > > Subject: [PATCH] workqueue: cancel_delayed_work() should return %NULL if work item is idle
+> > >
+> > > From e65120fcfc1cb9697655d29ecd7982451c05d3c2 Mon Sep 17 00:00:00 2001
+> > > From: Dan Magenheimer <dan.magenheimer@oracle.com>
+> > > Date: Thu, 18 Oct 2012 16:31:37 -0700
+> > >
+> > > 57b30ae77b ("workqueue: reimplement cancel_delayed_work() using
+> > > try_to_grab_pending()") made cancel_delayed_work() always return %true
+> > > unless someone else is also trying to cancel the work item, which is
+> > > broken - if the target work item is idle, the return value should be
+> > > %false.
+> > >
+> > > try_to_grab_pending() indicates that the target work item was idle by
+> > > zero return value.  Use it for return.  Note that this brings
+> > > cancel_delayed_work() in line with __cancel_work_timer() in return
+> > > value handling.
+> > >
+> > > Signed-off-by: Dan Magenheimer <dan.magenheimer@oracle.com>
+> > > Signed-off-by: Tejun Heo <tj@kernel.org>
+> > > LKML-Reference: <444a6439-b1a4-4740-9e7e-bc37267cfe73@default>
+> > > ---
+> > >  kernel/workqueue.c |    2 +-
+> > >  1 files changed, 1 insertions(+), 1 deletions(-)
+> > >
+> > > diff --git a/kernel/workqueue.c b/kernel/workqueue.c
+> > > index d951daa..042d221 100644
+> > > --- a/kernel/workqueue.c
+> > > +++ b/kernel/workqueue.c
+> > > @@ -2982,7 +2982,7 @@ bool cancel_delayed_work(struct delayed_work *dwork)
+> > >
+> > >  	set_work_cpu_and_clear_pending(&dwork->work, work_cpu(&dwork->work));
+> > >  	local_irq_restore(flags);
+> > > -	return true;
+> > > +	return ret;
+> > >  }
+> > >  EXPORT_SYMBOL(cancel_delayed_work);
+> > >
+> > > --
+> > > 1.7.7.3
+> > >
+> >
+> > _______________________________________________
+> > Ocfs2-devel mailing list
+> > Ocfs2-devel at oss.oracle.com
+> > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+> --
+> 
+> Life's Little Instruction Book #139
+> 
+> 	"Never deprive someone of hope; it might be all they have."
+> 
+> 			http://www.jlbec.org/
+> 			jlbec at evilplan.org
