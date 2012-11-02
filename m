@@ -1,67 +1,75 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Wed, 24 Oct 2012 17:18:23 -0700
-Subject: [Ocfs2-devel] [PATCH 06/21] ocfs2: drop vmtruncate
-In-Reply-To: <CANGUGtAiktPm5J+yViNhEN+udU60Z+JH+4bEozwHxeXe2Oec6w@mail.gmail.com>
-References: <508296B4.60508@gmail.com> <20121023085448.GM5635@localhost>
-	<CANGUGtB0VR4hnRf5hk3_7Rc23fo5ejtj3J2yZZ50tD_Tk+sigw@mail.gmail.com>
-	<20121023090232.GA13027@localhost>
-	<CANGUGtAiktPm5J+yViNhEN+udU60Z+JH+4bEozwHxeXe2Oec6w@mail.gmail.com>
-Message-ID: <20121025001822.GC3140@localhost>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 02 Nov 2012 16:50:57 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2:fix memory leak in dlm_add_migration_mle
+Message-ID: <50938971.9010805@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Marco Stornelli <marco.stornelli@gmail.com>
-Cc: Linux FS Devel <linux-fsdevel@vger.kernel.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Oct 23, 2012 at 02:48:38PM +0200, Marco Stornelli wrote:
-> 2012/10/23 Joel Becker <jlbec@evilplan.org>:
-> > On Tue, Oct 23, 2012 at 10:58:42AM +0200, Marco Stornelli wrote:
-> >> 2012/10/23 Joel Becker <jlbec@evilplan.org>:
-> >> > On Sat, Oct 20, 2012 at 02:19:00PM +0200, Marco Stornelli wrote:
-> >> >> Removed vmtruncate
-> >> >>
-> >> >> Signed-off-by: Marco Stornelli <marco.stornelli@gmail.com>
-> >> >
-> >> > Acked-by: Joel Becker <jlbec@evilplan.org>
-> >> >
-> >> > Do you want me to pull this, or are you going to send it with your set?
-> >> >
-> >> > Joel
-> >> >
-> >>
-> >> I'd prefer to push all via Al's tree since there is a VFS change.
-> >
-> > SGTM.  Thanks!
-> >
-> > Joel
-> >
-> 
-> I've got a doubt and I ask to ocfs2 expert :) It seems i_size_write()
-> and truncate_inode_pages() and so on, they are already called in each
-> path of setattr for a size change, so maybe we can remove
-> truncate_setsize() and simply to remove the vmtuncate code, can you
-> give me your opinion?
+After some parallel mount/umount test on ocfs2, we got this: slab error
+in kmem_cache_destroy(): cache `o2dlm_mle': Can't free all objects.
 
-	Actually, I have to revisit this, because Chrisoph points out
-your adjusting i_size outside of a transaction.
+Then we found a memleak situation in dlm_add_migration_mle().
+When a mle found, it will be removed from dlm->hlist. If there is no
+pointer to it at that moment, the mle will become an ?orphan mle?
+that no process can find and release.
 
-Joel
+Signed-off-by: Xuejiufei <xuejiufei@huawei.com>
+---
+ fs/ocfs2/dlm/dlmmaster.c |   11 ++++++++++-
+ 1 files changed, 10 insertions(+), 1 deletions(-)
 
-> Thanks.
-> 
-> Marco
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 005261c..20d2307 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -284,6 +284,7 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
+ 	mle->master = O2NM_MAX_NODES;
+ 	mle->new_master = O2NM_MAX_NODES;
+ 	mle->inuse = 0;
++	mle->assert_master = 0;
+ 
+ 	BUG_ON(mle->type != DLM_MLE_BLOCK &&
+ 	       mle->type != DLM_MLE_MASTER &&
+@@ -1743,6 +1744,7 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
+ 	u32 flags;
+ 	int master_request = 0, have_lockres_ref = 0;
+ 	int ret = 0;
++	int bit;
+ 
+ 	if (!dlm_grab(dlm))
+ 		return 0;
+@@ -1770,7 +1772,11 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
+ 		     "MLE for it! (%.*s)\n", assert->node_idx,
+ 		     namelen, name);
+ 	} else {
+-		int bit = find_next_bit (mle->maybe_map, O2NM_MAX_NODES, 0);
++		spin_lock(&mle->spinlock);
++		mle->assert_master = 1;
++		spin_unlock(&mle->spinlock);
++
++		bit = find_next_bit (mle->maybe_map, O2NM_MAX_NODES, 0);
+ 		if (bit >= O2NM_MAX_NODES) {
+ 			/* not necessarily an error, though less likely.
+ 			 * could be master just re-asserting. */
+@@ -3081,6 +3087,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
+ 			/* remove it so that only one mle will be found */
+ 			__dlm_unlink_mle(dlm, tmp);
+ 			__dlm_mle_detach_hb_events(dlm, tmp);
++			if (tmp->type == DLM_MLE_BLOCK && tmp->assert_master == 0)
++				__dlm_put_mle(tmp);
+ 			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
+ 			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
+ 			    "telling master to get ref for cleared out mle "
+@@ -3173,6 +3181,7 @@ static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
+ 		wake_up(&mle->wq);
+ 
+ 		/* Do not need events any longer, so detach from heartbeat */
++		__dlm_unlink_mle(dlm, mle);
+ 		__dlm_mle_detach_hb_events(dlm, mle);
+ 		__dlm_put_mle(mle);
+ 	}
 -- 
-
-"Practice random acts of kindness and senseless acts of beauty."
-
- Oh, and don't forget where your towel is.
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+1.7.8.6
