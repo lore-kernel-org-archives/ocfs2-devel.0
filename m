@@ -1,153 +1,43 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Mon, 05 Nov 2012 17:03:02 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2:fix memory leak in
-	dlm_add_migration_mle
-In-Reply-To: <50977CA4.1080603@huawei.com>
-References: <50938971.9010805@huawei.com> <5093DE48.9090805@oracle.com>
-	<50977CA4.1080603@huawei.com>
-Message-ID: <509780C6.1060606@oracle.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Wed, 7 Nov 2012 15:52:07 -0800
+Subject: [Ocfs2-devel] [PATCH] fs/ocfs2: change %8s to %s for mlog of
+	ocfs2_sb_probe
+In-Reply-To: <5099FE6C.3040406@asianux.com>
+References: <5099FE6C.3040406@asianux.com>
+Message-ID: <20121107235207.GG21780@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 11/05/2012 04:45 PM, Xue jiufei wrote:
-> Hi Jeff
-> ? 2012/11/2 22:52, Jeff Liu ??:
->> Hi Jiefei,
->>
->> On 11/02/2012 04:50 PM, Xue jiufei wrote:
->>> After some parallel mount/umount test on ocfs2, we got this: slab error
->>> in kmem_cache_destroy(): cache `o2dlm_mle': Can't free all objects.
->>>
->>> Then we found a memleak situation in dlm_add_migration_mle().
->>> When a mle found, it will be removed from dlm->hlist. If there is no
->>> pointer to it at that moment, the mle will become an ?orphan mle?
->>> that no process can find and release.
->>>
->>> Signed-off-by: Xuejiufei <xuejiufei@huawei.com>
->>> ---
->>>  fs/ocfs2/dlm/dlmmaster.c |   11 ++++++++++-
->>>  1 files changed, 10 insertions(+), 1 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
->>> index 005261c..20d2307 100644
->>> --- a/fs/ocfs2/dlm/dlmmaster.c
->>> +++ b/fs/ocfs2/dlm/dlmmaster.c
->>> @@ -284,6 +284,7 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
->>>  	mle->master = O2NM_MAX_NODES;
->>>  	mle->new_master = O2NM_MAX_NODES;
->>>  	mle->inuse = 0;
->>> +	mle->assert_master = 0;
->>>  
->>>  	BUG_ON(mle->type != DLM_MLE_BLOCK &&
->>>  	       mle->type != DLM_MLE_MASTER &&
->>> @@ -1743,6 +1744,7 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
->>>  	u32 flags;
->>>  	int master_request = 0, have_lockres_ref = 0;
->>>  	int ret = 0;
->>> +	int bit;
->>>  
->>>  	if (!dlm_grab(dlm))
->>>  		return 0;
->>> @@ -1770,7 +1772,11 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
->>>  		     "MLE for it! (%.*s)\n", assert->node_idx,
->>>  		     namelen, name);
->>>  	} else {
->> Looks good.
->> I  am being really picky, looks there is no need to move bit variable to
->> be function level, i.e.
->>
->> 		int bit;
->>
->> 		spin_lock(&mle->spinlock);
->> 		mle->assert_master = 1;
->> 		spin_unlock(&mle->spinlock);
->> 		bit = find_next_bit(mle->maybe_map, O2NM_MAX_NODES, 0);
->>
->> Thanks,
->> -Jeff
->>> -		int bit = find_next_bit (mle->maybe_map, O2NM_MAX_NODES, 0);
->>> +		spin_lock(&mle->spinlock);
->>> +		mle->assert_master = 1;
->>> +		spin_unlock(&mle->spinlock);
->>> +
->>> +		bit = find_next_bit (mle->maybe_map, O2NM_MAX_NODES, 0);
->>>  		if (bit >= O2NM_MAX_NODES) {
->>>  			/* not necessarily an error, though less likely.
->>>  			 * could be master just re-asserting. */
->>> @@ -3081,6 +3087,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
->>>  			/* remove it so that only one mle will be found */
->>>  			__dlm_unlink_mle(dlm, tmp);
->>>  			__dlm_mle_detach_hb_events(dlm, tmp);
->>> +			if (tmp->type == DLM_MLE_BLOCK && tmp->assert_master == 0)
->>> +				__dlm_put_mle(tmp);
->>>  			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
->>>  			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
->>>  			    "telling master to get ref for cleared out mle "
->>> @@ -3173,6 +3181,7 @@ static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
->>>  		wake_up(&mle->wq);
->>>  
->>>  		/* Do not need events any longer, so detach from heartbeat */
->>> +		__dlm_unlink_mle(dlm, mle);
->>>  		__dlm_mle_detach_hb_events(dlm, mle);
->>>  		__dlm_put_mle(mle);
->>>  	}
->>>
+On Wed, Nov 07, 2012 at 02:23:40PM +0800, Chen Gang wrote:
 > 
-> Thank you for the suggestion and I really agree with you. 
-> Here is the patch after modification:
-> 
-> Signed-off-by: Xuejiufei <xuejiufei@huawei.com 
-> ---
->  fs/ocfs2/dlm/dlmmaster.c |   11 ++++++++++-
->  1 files changed, 10 insertions(+), 1 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index 005261c..2458b29 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -284,6 +284,7 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
->  	mle->master = O2NM_MAX_NODES;
->  	mle->new_master = O2NM_MAX_NODES;
->  	mle->inuse = 0;
-> +	mle->assert_master = 0;
->  
->  	BUG_ON(mle->type != DLM_MLE_BLOCK &&
->  	       mle->type != DLM_MLE_MASTER &&
-> @@ -1770,7 +1771,12 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
->  		     "MLE for it! (%.*s)\n", assert->node_idx,
->  		     namelen, name);
->  	} else {
-> -		int bit = find_next_bit (mle->maybe_map, O2NM_MAX_NODES, 0);
-> +		int bit;
-> +		spin_lock(&mle->spinlock);
-> +		mle->assert_master = 1;
-> +		spin_unlock(&mle->spinlock);
-> +
-> +		bit = find_next_bit (mle->maybe_map, O2NM_MAX_NODES, 0);
->  		if (bit >= O2NM_MAX_NODES) {
->  			/* not necessarily an error, though less likely.
->  			 * could be master just re-asserting. */
-> @@ -3081,6 +3087,8 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
->  			/* remove it so that only one mle will be found */
->  			__dlm_unlink_mle(dlm, tmp);
->  			__dlm_mle_detach_hb_events(dlm, tmp);
-> +			if (tmp->type == DLM_MLE_BLOCK && tmp->assert_master == 0)
-> +				__dlm_put_mle(tmp);
->  			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
->  			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
->  			    "telling master to get ref for cleared out mle "
-> @@ -3173,6 +3181,7 @@ static void dlm_clean_block_mle(struct dlm_ctxt *dlm,
->  		wake_up(&mle->wq);
->  
->  		/* Do not need events any longer, so detach from heartbeat */
-> +		__dlm_unlink_mle(dlm, mle);
->  		__dlm_mle_detach_hb_events(dlm, mle);
->  		__dlm_put_mle(mle);
->  	}
-Looks good to me, thank you!
-Reviewed-by: Jie Liu <jeff.liu@oracle.com>
+>    at least, the hdr->signature len is 9 (OCFS1_VOLUME_SIGNATURE)
+> 	at ocfs1_fs_compat.h:39:
+> 	#define OCFS1_VOLUME_SIGNATURE		 "OracleCFS"
+>    so change %8s to %s
 
--Jeff
+Ok, good catch - OCFS1_VOLUME_SIGNATURE is 9 bytes wide. And yes, the
+->signature field in ocfs1_vol_disk_hdr is 64 bytes wide so we would always
+hit a NULL byte in a valid ocfs1 disk header.
+
+
+>   additional information:
+> 
+>     %8s  limit the width, not for the original string output length
+>          if name length is more than 8, it still can be fully displayed.
+>          if name length is less than 8, the ' ' will be filled before name.
+> 
+>     %.8s truly limit the original string output length (precision)
+
+However, we can't guarantee that the block will always contain a valid
+ocfs1 disk header, with a valid signature field. So we have to still limit
+the print, otherwise we could go off the end of our struct if the data read
+is garbage (which is exacly what this check is supposed to catch).
+
+I think that instead we should simply change the %8s to %9s.
+	--Mark
+
+--
+Mark Fasheh
