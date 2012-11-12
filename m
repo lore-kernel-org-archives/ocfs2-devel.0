@@ -1,59 +1,48 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Fri, 09 Nov 2012 13:22:00 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix BUG_ON issue in
-	ocfs2_set_new_buffer_uptodate
-In-Reply-To: <1352436228-18544-1-git-send-email-tiger.yang@oracle.com>
-References: <1352436228-18544-1-git-send-email-tiger.yang@oracle.com>
-Message-ID: <509C92F8.5020703@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Mon, 12 Nov 2012 12:17:52 +0100
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Add freeze protection to
+	ocfs2_file_splice_write()
+In-Reply-To: <1352719072-32274-1-git-send-email-jack@suse.cz>
+References: <1352719072-32274-1-git-send-email-jack@suse.cz>
+Message-ID: <1352719072-32274-3-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org, dchinner@redhat.com, Jan Kara <jack@suse.cz>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
 
-On 11/09/2012 12:43 PM, Tiger Yang wrote:
-> If buffer already in cache, call ocfs2_init_xattr_bucket will cause BUG_ON
-> in ocfs2_set_new_buffer_uptodate. The check of ocfs2_buffer_uptodate
-> in ocfs2_init_xattr_bucket wouldn't help this. So replace it with
-> ocfs2_read_xattr_bucket to initialize the bucket to avoid this issue.
-> 
-> Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
-> ---
->  fs/ocfs2/xattr.c |   12 ++----------
->  1 files changed, 2 insertions(+), 10 deletions(-)
-> 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index dce35dd..0085261 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -4640,11 +4640,7 @@ static int ocfs2_divide_xattr_bucket(struct inode *inode,
->  		goto out;
->  	}
->  
-> -	/*
-> -	 * Even if !new_bucket_head, we're overwriting t_bucket.  Thus,
-> -	 * there's no need to read it.
-> -	 */
-> -	ret = ocfs2_init_xattr_bucket(t_bucket, new_blk);
-> +	ret = ocfs2_read_xattr_bucket(t_bucket, new_blk);
->  	if (ret) {
->  		mlog_errno(ret);
->  		goto out;
-> @@ -4806,11 +4802,7 @@ static int ocfs2_cp_xattr_bucket(struct inode *inode,
->  	if (ret)
->  		goto out;
->  
-> -	/*
-> -	 * Even if !t_is_new, we're overwriting t_bucket.  Thus,
-> -	 * there's no need to read it.
-> -	 */
-> -	ret = ocfs2_init_xattr_bucket(t_bucket, t_blkno);
-> +	ret = ocfs2_read_xattr_bucket(t_bucket, t_blkno);
->  	if (ret)
->  		goto out;
->  
-Looks good to me.
-You can add a Reviewed-by: Jie Liu <jeff.liu@oracle.com>
+ocfs2_file_splice_write() was missed when adding freeze protection to all
+write paths. Fix that.
 
-Thanks,
--Jeff
+CC: Joel Becker <jlbec@evilplan.org>
+CC: ocfs2-devel at oss.oracle.com
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/file.c |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 93ef34d..9907243 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2486,6 +2486,9 @@ static ssize_t ocfs2_file_splice_write(struct pipe_inode_info *pipe,
+ 			out->f_path.dentry->d_name.len,
+ 			out->f_path.dentry->d_name.name, len);
+ 
++	if (!sb_start_file_write(out))
++		return -EAGAIN;
++
+ 	if (pipe->inode)
+ 		mutex_lock_nested(&pipe->inode->i_mutex, I_MUTEX_PARENT);
+ 
+@@ -2527,6 +2530,7 @@ static ssize_t ocfs2_file_splice_write(struct pipe_inode_info *pipe,
+ 
+ 		balance_dirty_pages_ratelimited_nr(mapping, nr_pages);
+ 	}
++	sb_end_write(inode->i_sb);
+ 
+ 	return ret;
+ }
+-- 
+1.7.1
