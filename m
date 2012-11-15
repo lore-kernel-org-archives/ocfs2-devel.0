@@ -1,34 +1,79 @@
-From: Lars Marowsky-Bree <lmb@suse.de>
-Date: Wed, 14 Nov 2012 11:01:30 +0100
-Subject: [Ocfs2-devel] fcntl(F_SETLK) returning ENOSYS
-Message-ID: <20121114100130.GF9295@suse.de>
+From: xiaowei.hu at oracle.com <xiaowei.hu@oracle.com>
+Date: Thu, 15 Nov 2012 09:20:23 +0800
+Subject: [Ocfs2-devel] [PATCH] run out of jbd2 credits during discontig
+	group alloc.
+Message-ID: <1352942423-26944-1-git-send-email-xiaowei.hu@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
+From: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
 
-tracing a couple of reports here (on a somewhat older version of OCFS2,
-with a user-space/pacemaker/dlm_controld.pcmk stack) where we see
-fnctl(F_SETLK) return ENOSYS. This happens after a node has failed/been
-fenced and recovered. It affects only individual mounts, not the whole
-system.
+ocfs2_block_group_alloc_discontig doesn't keep credits for chain relink,
+and mean to disable chain relink setting ac->ac_allow_chain_relink = 0,
+but this value will be set to 1 in function ocfs2_claim_suballoc_bits, 
+so need to make it's default allow relink, and disable it with one 
+switch could be passed in.
 
-The only code path that I can see so far that could lead to ENOSYS being
-returned here is from within dlm_controld:process_plocks() if
-disable_plocks == 1. But I can't find the tell tale log message that I
-think we should see (from store_plocks) if this value was set.
+Signed-off-by: Xiaowei.Hu <xiaowei.hu@oracle.com>
+---
+ fs/ocfs2/suballoc.c |    7 +++----
+ fs/ocfs2/suballoc.h |    2 +-
+ 2 files changed, 4 insertions(+), 5 deletions(-)
 
-We'll continue investigating, but perhaps this rings a bell for someone
-and we can shorten the latency ;-) Thanks for any insights.
-
-
-Regards,
-    Lars
-
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 4b5e568..033bfc6 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -642,7 +642,7 @@ ocfs2_block_group_alloc_discontig(handle_t *handle,
+ 	 * cluster groups will be staying in cache for the duration of
+ 	 * this operation.
+ 	 */
+-	ac->ac_allow_chain_relink = 0;
++	ac->ac_disable_chain_relink = 1;
+ 
+ 	/* Claim the first region */
+ 	status = ocfs2_block_group_claim_bits(osb, handle, ac, min_bits,
+@@ -1823,7 +1823,7 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
+ 	 * Do this *after* figuring out how many bits we're taking out
+ 	 * of our target group.
+ 	 */
+-	if (ac->ac_allow_chain_relink &&
++	if (!ac->ac_disable_chain_relink &&
+ 	    (prev_group_bh) &&
+ 	    (ocfs2_block_group_reasonably_empty(bg, res->sr_bits))) {
+ 		status = ocfs2_relink_block_group(handle, alloc_inode,
+@@ -1928,7 +1928,6 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
+ 
+ 	victim = ocfs2_find_victim_chain(cl);
+ 	ac->ac_chain = victim;
+-	ac->ac_allow_chain_relink = 1;
+ 
+ 	status = ocfs2_search_chain(ac, handle, bits_wanted, min_bits,
+ 				    res, &bits_left);
+@@ -1947,7 +1946,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
+ 	 * searching each chain in order. Don't allow chain relinking
+ 	 * because we only calculate enough journal credits for one
+ 	 * relink per alloc. */
+-	ac->ac_allow_chain_relink = 0;
++	ac->ac_disable_chain_relink = 1;
+ 	for (i = 0; i < le16_to_cpu(cl->cl_next_free_rec); i ++) {
+ 		if (i == victim)
+ 			continue;
+diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+index b8afabf..a36d0aa 100644
+--- a/fs/ocfs2/suballoc.h
++++ b/fs/ocfs2/suballoc.h
+@@ -49,7 +49,7 @@ struct ocfs2_alloc_context {
+ 
+ 	/* these are used by the chain search */
+ 	u16    ac_chain;
+-	int    ac_allow_chain_relink;
++	int    ac_disable_chain_relink;
+ 	group_search_t *ac_group_search;
+ 
+ 	u64    ac_last_group;
 -- 
-Architect Storage/HA
-SUSE LINUX Products GmbH, GF: Jeff Hawn, Jennifer Guild, Felix Imend?rffer, HRB 21284 (AG N?rnberg)
-"Experience is the name everyone gives to their mistakes." -- Oscar Wilde
+1.7.7.6
