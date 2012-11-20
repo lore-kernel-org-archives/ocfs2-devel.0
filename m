@@ -1,79 +1,26 @@
-From: xiaowei.hu at oracle.com <xiaowei.hu@oracle.com>
-Date: Thu, 15 Nov 2012 09:20:23 +0800
-Subject: [Ocfs2-devel] [PATCH] run out of jbd2 credits during discontig
-	group alloc.
-Message-ID: <1352942423-26944-1-git-send-email-xiaowei.hu@oracle.com>
+From: Christoph Hellwig <hch@infradead.org>
+Date: Tue, 20 Nov 2012 05:14:53 -0500
+Subject: [Ocfs2-devel] [PATCH 0/4][RFC] remove duplicated check from
+ ext4, xfs, btrfs, and ocfs2
+In-Reply-To: <1353403785-3489-1-git-send-email-wenqing.lz@taobao.com>
+References: <1353403785-3489-1-git-send-email-wenqing.lz@taobao.com>
+Message-ID: <20121120101452.GA692@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Zheng Liu <gnehzuil.liu@gmail.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, xfs@oss.sgi.com, linux-btrfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, yan@linux.vnet.ibm.com, Zheng Liu <wenqing.lz@taobao.com>
 
-From: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
+On Tue, Nov 20, 2012 at 05:29:41PM +0800, Zheng Liu wrote:
+> Hi all,
+> 
+> This patch series tries to remove a sanity check in fallocate from specific
+> filesystems because vfs has already checked it.
+> 
+> I am not very familiar with why we need to do this duplicated check.  Please let
+> me know if I miss something.
 
-ocfs2_block_group_alloc_discontig doesn't keep credits for chain relink,
-and mean to disable chain relink setting ac->ac_allow_chain_relink = 0,
-but this value will be set to 1 in function ocfs2_claim_suballoc_bits, 
-so need to make it's default allow relink, and disable it with one 
-switch could be passed in.
-
-Signed-off-by: Xiaowei.Hu <xiaowei.hu@oracle.com>
----
- fs/ocfs2/suballoc.c |    7 +++----
- fs/ocfs2/suballoc.h |    2 +-
- 2 files changed, 4 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 4b5e568..033bfc6 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -642,7 +642,7 @@ ocfs2_block_group_alloc_discontig(handle_t *handle,
- 	 * cluster groups will be staying in cache for the duration of
- 	 * this operation.
- 	 */
--	ac->ac_allow_chain_relink = 0;
-+	ac->ac_disable_chain_relink = 1;
- 
- 	/* Claim the first region */
- 	status = ocfs2_block_group_claim_bits(osb, handle, ac, min_bits,
-@@ -1823,7 +1823,7 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
- 	 * Do this *after* figuring out how many bits we're taking out
- 	 * of our target group.
- 	 */
--	if (ac->ac_allow_chain_relink &&
-+	if (!ac->ac_disable_chain_relink &&
- 	    (prev_group_bh) &&
- 	    (ocfs2_block_group_reasonably_empty(bg, res->sr_bits))) {
- 		status = ocfs2_relink_block_group(handle, alloc_inode,
-@@ -1928,7 +1928,6 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
- 
- 	victim = ocfs2_find_victim_chain(cl);
- 	ac->ac_chain = victim;
--	ac->ac_allow_chain_relink = 1;
- 
- 	status = ocfs2_search_chain(ac, handle, bits_wanted, min_bits,
- 				    res, &bits_left);
-@@ -1947,7 +1946,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
- 	 * searching each chain in order. Don't allow chain relinking
- 	 * because we only calculate enough journal credits for one
- 	 * relink per alloc. */
--	ac->ac_allow_chain_relink = 0;
-+	ac->ac_disable_chain_relink = 1;
- 	for (i = 0; i < le16_to_cpu(cl->cl_next_free_rec); i ++) {
- 		if (i == victim)
- 			continue;
-diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-index b8afabf..a36d0aa 100644
---- a/fs/ocfs2/suballoc.h
-+++ b/fs/ocfs2/suballoc.h
-@@ -49,7 +49,7 @@ struct ocfs2_alloc_context {
- 
- 	/* these are used by the chain search */
- 	u16    ac_chain;
--	int    ac_allow_chain_relink;
-+	int    ac_disable_chain_relink;
- 	group_search_t *ac_group_search;
- 
- 	u64    ac_last_group;
--- 
-1.7.7.6
+Each filesystem driver checks to see if a flag that it doesn't support
+gets passed down.  This was done with the intention that we can add new
+flags to the VFS without having to update every filesystem.
