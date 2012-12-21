@@ -1,31 +1,39 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Tue, 18 Dec 2012 15:26:50 -0800
-Subject: [Ocfs2-devel] [RFC PATCH] ext3, ext4,
-	ocfs2: remove unused	macro NAMEI_RA_INDEX
-In-Reply-To: <20121218174811.GC5987@quack.suse.cz>
-References: <1355820999-27972-1-git-send-email-yan@linux.vnet.ibm.com>
-	<20121218174811.GC5987@quack.suse.cz>
-Message-ID: <20121218232650.GA13017@wotan.suse.de>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 21 Dec 2012 18:29:45 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix BUG_ON(res->migration_pending) in
+ dlm_mark_lockres_migrating
+Message-ID: <50D43A19.3070703@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: Guo Chao <yan@linux.vnet.ibm.com>, Theodore Ts'o <tytso@mit.edu>, akpm@linux-foundation.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Dec 18, 2012 at 06:48:11PM +0100, Jan Kara wrote:
-> On Tue 18-12-12 16:56:39, Guo Chao wrote:
-> > This macro, initially introduced by ext2 in v0.99.15, does not
-> > have any users from the beginning. It has been removed in later
-> > ext2 version but still remains in the code of ext3, ext4, ocfs2.
-> > Remove this macro there.
->   Thanks. I've merged the patch into my tree. Since it's trivial, I guess
-> other fs maintainers won't mind.
+  When dlm_lockres_release_ast() returns without clearing
+res->migration_pending, dlm_mark_lockres_migrating() exits abnormally
+with res->migration_pending setting to 1. When reentering
+dlm_mark_lockres_migrating(), it will trigger the BUG_ON with
+res->migration_pending. Clearing migration_pending when target is
+down can resolve this issue.
 
-Looks good, thanks!
+Signed-off-by: xuejiufei <xuejiufei@huawei.com>
+---
+ fs/ocfs2/dlm/dlmmaster.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-Acked-by: Mark Fasheh <mfasheh@suse.de>
-	--Mark
-
---
-Mark Fasheh
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 005261c..c491f97 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -2751,6 +2751,9 @@ again:
+ 	if (!test_bit(target, dlm->domain_map)) {
+ 		mlog(ML_ERROR, "aha. migration target %u just went down\n",
+ 		     target);
++		spin_lock(&res->spinlock);
++		res->migration_pending = 0;
++		spin_unlock(&res->spinlock);
+ 		ret = -EHOSTDOWN;
+ 	}
+ 	spin_unlock(&dlm->spinlock);
+-- 
+1.7.8.6
