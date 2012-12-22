@@ -1,34 +1,50 @@
-From: Theodore Ts'o <tytso@mit.edu>
-Date: Fri, 21 Dec 2012 22:52:51 -0500
-Subject: [Ocfs2-devel] [PATCH 2/2] ext4: Fix deadlock in
-	journal_unmap_buffer()
-In-Reply-To: <20121221230347.GB23652@quack.suse.cz>
-References: <1355345416-13565-1-git-send-email-jack@suse.cz>
-	<1355345416-13565-2-git-send-email-jack@suse.cz>
-	<20121221195220.GF31731@thunk.org>
-	<20121221230347.GB23652@quack.suse.cz>
-Message-ID: <20121222035251.GA5778@thunk.org>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Sat, 22 Dec 2012 14:52:25 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: unlock osb_super_lockres when refresh
+	slot info failed
+Message-ID: <50D558A9.6080701@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: linux-ext4@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Sat, Dec 22, 2012 at 12:03:47AM +0100, Jan Kara wrote:
->   I should have commented on this in the changelog :).
-> jbd2_journal_invalidatepage() gets called only for file pagecache pages.
-> Because ocfs2 doesn't do data journalling it never sees buffers that are
-> part of a transaction in jbd2_journal_invalidatepage() (similarly to ext4
-> except for data=journal case). I'll send a patch to just stop calling
-> jbd2_journal_invalidatepage() for ocfs2... But you are safe to merge this
-> patch in the mean time.
+  Function ocfs2_super_lock() actually do two jobs: applying for EX
+lock of osb_super_lockres and refreshing slot info. If it happened
+that a node cannot refresh slot info after acquired the lock, it will
+never drop it. And other nodes who applying for osb_super_lockres will
+wait for it for ever. 
+  This patch drop super lock when ocfs2_refresh_slot_info() return
+error.
 
-Ok, so if ocfs2 never tries journalling data blocks, then buffer_jbd()
-will always be NULL, which reduces jbd2_journal_invalidate() to be
-equivalent in functionality to block_invalidatepage(), and so it will
-never abort and return EBUSY.
-  
-Thanks for the explanation, I'll apply the patch.
+Signed-off-by: xuejiufei <xuejiufei@huawei.com>
+---
+ fs/ocfs2/dlmglue.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
 
-						- Ted
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 4f7795f..205f9eb 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2546,7 +2546,7 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
+ 	status = ocfs2_should_refresh_lock_res(lockres);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto bail;
++		goto unlock;
+ 	}
+ 	if (status) {
+ 		status = ocfs2_refresh_slot_info(osb);
+@@ -2557,6 +2557,10 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
+ 			mlog_errno(status);
+ 		ocfs2_track_lock_refresh(lockres);
+ 	}
++unlock:
++	if (status < 0)
++		ocfs2_super_unlock(osb, ex);
++
+ bail:
+ 	return status;
+ }
+-- 
+1.7.8.6
