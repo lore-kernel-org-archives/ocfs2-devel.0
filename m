@@ -1,62 +1,48 @@
 From: Jan Kara <jack@suse.cz>
-Date: Sat, 22 Dec 2012 00:26:35 +0100
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Simplify ocfs2_invalidatepage() and
-	ocfs2_releasepage()
-Message-ID: <1356132395-7081-1-git-send-email-jack@suse.cz>
+Date: Sat, 22 Dec 2012 02:07:17 +0100
+Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: Add freeze protection to
+	ocfs2_file_splice_write()
+In-Reply-To: <1356138437-8874-1-git-send-email-jack@suse.cz>
+References: <1356138437-8874-1-git-send-email-jack@suse.cz>
+Message-ID: <1356138437-8874-4-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.cz>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
 
-Ocfs2 doesn't do data journalling. Thus its ->invalidatepage and ->releasepage
-functions never get called on buffers that have journal heads attached. So
-just use standard variants of functions from buffer.c.
+ocfs2_file_splice_write() was missed when adding freeze protection to all
+write paths. Fix that.
 
+CC: Joel Becker <jlbec@evilplan.org>
+CC: ocfs2-devel at oss.oracle.com
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/aops.c |   18 ++----------------
- 1 files changed, 2 insertions(+), 16 deletions(-)
+ fs/ocfs2/file.c |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 6577432..6166cdd 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -598,25 +598,11 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
- 	inode_dio_done(inode);
- }
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 3898499..1f6916c 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2468,6 +2468,9 @@ static ssize_t ocfs2_file_splice_write(struct pipe_inode_info *pipe,
+ 			out->f_path.dentry->d_name.len,
+ 			out->f_path.dentry->d_name.name, len);
  
--/*
-- * ocfs2_invalidatepage() and ocfs2_releasepage() are shamelessly stolen
-- * from ext3.  PageChecked() bits have been removed as OCFS2 does not
-- * do journalled data.
-- */
--static void ocfs2_invalidatepage(struct page *page, unsigned long offset)
--{
--	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
--
--	jbd2_journal_invalidatepage(journal, page, offset);
--}
--
- static int ocfs2_releasepage(struct page *page, gfp_t wait)
- {
--	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
--
- 	if (!page_has_buffers(page))
- 		return 0;
--	return jbd2_journal_try_to_free_buffers(journal, page, wait);
-+	return try_to_free_buffers(page);
- }
++	if (!sb_start_file_write(out))
++		return -EAGAIN;
++
+ 	if (pipe->inode)
+ 		mutex_lock_nested(&pipe->inode->i_mutex, I_MUTEX_PARENT);
  
- static ssize_t ocfs2_direct_IO(int rw,
-@@ -2091,7 +2077,7 @@ const struct address_space_operations ocfs2_aops = {
- 	.write_end		= ocfs2_write_end,
- 	.bmap			= ocfs2_bmap,
- 	.direct_IO		= ocfs2_direct_IO,
--	.invalidatepage		= ocfs2_invalidatepage,
-+	.invalidatepage		= block_invalidatepage,
- 	.releasepage		= ocfs2_releasepage,
- 	.migratepage		= buffer_migrate_page,
- 	.is_partially_uptodate	= block_is_partially_uptodate,
+@@ -2506,6 +2509,7 @@ static ssize_t ocfs2_file_splice_write(struct pipe_inode_info *pipe,
+ 
+ 		balance_dirty_pages_ratelimited(mapping);
+ 	}
++	sb_end_write(inode->i_sb);
+ 
+ 	return ret;
+ }
 -- 
 1.7.1
