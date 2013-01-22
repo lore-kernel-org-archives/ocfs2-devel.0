@@ -1,41 +1,44 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Fri, 18 Jan 2013 17:13:08 -0800
-Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2: Wait for page writeback to provide
-	stable pages
-In-Reply-To: <20130119011231.20902.55954.stgit@blackbox.djwong.org>
-References: <20130119011231.20902.55954.stgit@blackbox.djwong.org>
-Message-ID: <20130119011308.20902.44871.stgit@blackbox.djwong.org>
+From: Tristan Ye <tye.kernel@gmail.com>
+Date: Tue, 22 Jan 2013 20:03:09 +0800
+Subject: [Ocfs2-devel] NULL pointer deref in OCFS2_IOC_MOVE_EXT
+In-Reply-To: <CADGQE7HNSWGThWEudE6Hmu2ws6yFPmSxZRrwbXs7vrkFXD4Qwg@mail.gmail.com>
+References: <CADGQE7HNSWGThWEudE6Hmu2ws6yFPmSxZRrwbXs7vrkFXD4Qwg@mail.gmail.com>
+Message-ID: <CAPEeBxr55+LBgX4Dw7NT1R=JuUb4s9iM=4nj5-7vCD_iSsmELg@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: axboe@kernel.dk, lucho@ionkov.net, jack@suse.cz, darrick.wong@oracle.com, ericvh@gmail.com, viro@zeniv.linux.org.uk, rminnich@sandia.gov, tytso@mit.edu
-Cc: martin.petersen@oracle.com, neilb@suse.de, Mark Fasheh <mfasheh@suse.com>, david@fromorbit.com, gnehzuil.liu@gmail.com, linux-kernel@vger.kernel.org, hch@infradead.org, linux-fsdevel@vger.kernel.org, adilger.kernel@dilger.ca, ocfs2-devel@oss.oracle.com, bharrosh@panasas.com, jlayton@samba.org, akpm@linux-foundation.org, linux-ext4@vger.kernel.org, hirofumi@mail.parknet.co.jp, Joel Becker <jlbec@evilplan.org>
+To: ocfs2-devel@oss.oracle.com
 
-When stable pages are required, we have to wait if the page is just
-going to disk and we want to modify it. Add proper callback to
-ocfs2_grab_pages_for_write().
+Hi Nickolai,,
 
-CC: ocfs2-devel at oss.oracle.com
-CC: Joel Becker <jlbec@evilplan.org>
-CC: Mark Fasheh <mfasheh@suse.com>
-From: Jan Kara <jack@suse.cz>
-Signed-off-by: Jan Kara <jack@suse.cz>
-Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
----
- fs/ocfs2/aops.c |    1 +
- 1 file changed, 1 insertion(+)
+Thanks for reporting this issue, which seems to be a code bug here, the
+proper fix proabably might be referencing 'dg' after it has been assigined.
 
+Regards,
+Tristan
+On Wed, Jan 9, 2013 at 12:11 AM, Nickolai Zeldovich
+<nickolai@csail.mit.edu>wrote:
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 6577432..9796330 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -1194,6 +1194,7 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
- 				goto out;
- 			}
- 		}
-+		wait_for_stable_page(wc->w_pages[i]);
- 
- 		if (index == target_index)
- 			wc->w_target_page = wc->w_pages[i];
+> It appears that if a user calls ioctl(OCFS2_IOC_MOVE_EXT) and does not
+> set OCFS2_MOVE_EXT_FL_AUTO_DEFRAG in range.me_flags, the kernel will
+> invoke ocfs2_validate_and_adjust_move_goal.  That function
+> dereferences the 'bg' pointer (initialized to NULL) before it assigns
+> anything else to 'bg'.
+>
+> One possible fix is to revert
+> ea5e1675ac832b42889ac8d254ea8fbfbdfaa8b2, which is when the code in
+> ocfs2_validate_and_adjust_move_goal was moved in a way that guaranteed
+> a NULL pointer dereference.  But I don't fully understand what that
+> change was trying to achieve.
+>
+> Nickolai.
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130122/f30ba8e4/attachment.html 
