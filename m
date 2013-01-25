@@ -1,46 +1,52 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 31 Jan 2013 11:31:57 -0800
-Subject: [Ocfs2-devel] [PATCH 0/4 v2] Fix possible use after free with
-	AIO
-In-Reply-To: <20130130144535.GK4503@ZenIV.linux.org.uk>
-References: <1359502081-20240-1-git-send-email-jack@suse.cz>
-	<20130130144535.GK4503@ZenIV.linux.org.uk>
-Message-ID: <20130131193156.GA20817@localhost>
+From: Bret Towe <magnade@gmail.com>
+Date: Fri, 25 Jan 2013 03:40:36 -0000
+Subject: [Ocfs2-devel] crash in ocfs2_fast_symlink_readpage in kernel
+	3.5.0
+In-Reply-To: <20130124143007.39c8545f.akpm@linux-foundation.org>
+References: <CALjC5hYxtPymauFddf4Qci3S-KsZHHck0LKQPZY5ocHcLw-XrQ@mail.gmail.com>
+	<CALjC5hZwVwRdY6muizzK-+jrq0RH43H6f2kgXstZuco7oM7FyQ@mail.gmail.com>
+	<CALjC5hbMq+bc-X8Ad+=gEZLuWy3ZXm4Z0Y2w44k5UZjL4g7vqg@mail.gmail.com>
+	<20130124143007.39c8545f.akpm@linux-foundation.org>
+Message-ID: <CALjC5hZaVwJBuR17dcM7hG1EMEoAYoUt0S-x6avCxRBuF54RGg@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, Joel Becker <jlbec@evilplan.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-On Wed, Jan 30, 2013 at 02:45:35PM +0000, Al Viro wrote:
-> On Wed, Jan 30, 2013 at 12:27:57AM +0100, Jan Kara wrote:
-> > 
-> >   Hi,
-> > 
-> >   since nobody seem to have picked up any of the patches (at least
-> > nobody told me so), I've added acks I received to the patches and I'm
-> > sending them to Al for merging. Al, can you please merge these? Thanks.
-> 
-> VFS part (4/4) picked; IMO at least ext* and xfs should go through the
-> filesystem trees.  If ocfs2 folks don't pick fs/ocfs2 part, I'll grab
-> it as well - not sure how active their tree is these days...
+On Thu, Jan 24, 2013 at 2:30 PM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Sat, 19 Jan 2013 20:15:33 -0800
+> Bret Towe <magnade@gmail.com> wrote:
+>
+>> >
+>> > it looks like you have a patch for this problem in a queue somewhere
+>> > (email found on ocfs2-dev:
+>> > https://oss.oracle.com/pipermail/ocfs2-devel/2012-August/008677.html )
+>> > but its not in 3.6, any reason for the delay?
+>> > I've been running that patch on 3.5 for a while now likely since
+>> > around the time i found that email
+>> > and its been working well
+>>
+>> doesn't look to be in 3.7 or 3.8-git
+>> and from what i see on ocfs2-dev there are at least 16 other patches
+>> that are also being ignored?
+>> I'm sure if I'm bothering at this point to maintain my own patchset to
+>> keep ocfs2 from crashing
+>> that there is other folks doing the same
+>
+> Please resend all OCFS2 patches, cc'ing myself, Mark, Joel and
+> ocfs2-devel at oss.oracle.com.
+>
+> I shall then review them, merge them into -mm (and hence linux-next) so
+> they can get a bit of visibility and testing while the maintainers are
+> checking them over.
+>
+> Thanks.
 
-	I thought akpm had this through -mm.  I acked it there.
-
-Joel
-
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-ext4" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-
--- 
-
-"Same dancers in the same old shoes.
- You get too careful with the steps you choose.
- You don't care about winning but you don't want to lose
- After the thrill is gone."
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+I've just been browsing the ocfs2-dev archives do you want me to pull them
+and resend or should i just link to the archive?
+keep in mind I'm just a end user not really a dev persay
+if you do want me to send the patches however I assume there is a document
+i should read first?
