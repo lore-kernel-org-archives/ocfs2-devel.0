@@ -1,34 +1,58 @@
-From: Ben Myers <bpm@sgi.com>
-Date: Wed, 30 Jan 2013 00:57:03 -0000
-Subject: [Ocfs2-devel] [PATCH 2/4] xfs: Fix possible use-after-free with
-	AIO
-In-Reply-To: <1359502081-20240-3-git-send-email-jack@suse.cz>
-References: <1359502081-20240-1-git-send-email-jack@suse.cz>
-	<1359502081-20240-3-git-send-email-jack@suse.cz>
-Message-ID: <20130130005656.GM27055@sgi.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Wed, 30 Jan 2013 01:05:12 -0000
+Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2: Wait for page writeback to
+ provide stable pages
+In-Reply-To: <20130119011308.20902.44871.stgit@blackbox.djwong.org>
+References: <20130119011231.20902.55954.stgit@blackbox.djwong.org>
+	<20130119011308.20902.44871.stgit@blackbox.djwong.org>
+Message-ID: <20130130010356.GL26439@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, stable@vger.kernel.org, xfs@oss.sgi.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: "Darrick J. Wong" <darrick.wong@oracle.com>
+Cc: axboe@kernel.dk, lucho@ionkov.net, jack@suse.cz, ericvh@gmail.com, viro@zeniv.linux.org.uk, rminnich@sandia.gov, tytso@mit.edu, martin.petersen@oracle.com, neilb@suse.de, Mark Fasheh <mfasheh@suse.com>, david@fromorbit.com, gnehzuil.liu@gmail.com, linux-kernel@vger.kernel.org, hch@infradead.org, linux-fsdevel@vger.kernel.org, adilger.kernel@dilger.ca, ocfs2-devel@oss.oracle.com, bharrosh@panasas.com, jlayton@samba.org, akpm@linux-foundation.org, linux-ext4@vger.kernel.org, hirofumi@mail.parknet.co.jp
 
-Hi Jan,
+Acked-by: Joel Becker <jlbec@evilplan.org>
 
-On Wed, Jan 30, 2013 at 12:27:59AM +0100, Jan Kara wrote:
-> Running AIO is pinning inode in memory using file reference. Once AIO
-> is completed using aio_complete(), file reference is put and inode can
-> be freed from memory. So we have to be sure that calling aio_complete()
-> is the last thing we do with the inode.
+On Fri, Jan 18, 2013 at 05:13:08PM -0800, Darrick J. Wong wrote:
+> When stable pages are required, we have to wait if the page is just
+> going to disk and we want to modify it. Add proper callback to
+> ocfs2_grab_pages_for_write().
 > 
-> CC: xfs at oss.sgi.com
-> CC: Ben Myers <bpm@sgi.com>
-> CC: stable at vger.kernel.org
-> Reviewed-by: Ben Myers <bpm@sgi.com>
-> Acked-by: Jeff Moyer <jmoyer@redhat.com>
+> CC: ocfs2-devel at oss.oracle.com
+> CC: Joel Becker <jlbec@evilplan.org>
+> CC: Mark Fasheh <mfasheh@suse.com>
+> From: Jan Kara <jack@suse.cz>
 > Signed-off-by: Jan Kara <jack@suse.cz>
+> Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+> ---
+>  fs/ocfs2/aops.c |    1 +
+>  1 file changed, 1 insertion(+)
+> 
+> 
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 6577432..9796330 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1194,6 +1194,7 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
+>  				goto out;
+>  			}
+>  		}
+> +		wait_for_stable_page(wc->w_pages[i]);
+>  
+>  		if (index == target_index)
+>  			wc->w_target_page = wc->w_pages[i];
+> 
 
-We picked this up in the xfs tree.  Sorry to keep you hanging.
+-- 
 
-Regards,
-	Ben
+"This is the end, beautiful friend.
+ This is the end, my only friend the end
+ Of our elaborate plans, the end
+ Of everything that stands, the end
+ No safety or surprise, the end
+ I'll never look into your eyes again."
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
