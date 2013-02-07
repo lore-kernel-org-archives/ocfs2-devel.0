@@ -1,382 +1,183 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Tue, 26 Feb 2013 20:07:20 -0800
-Subject: [Ocfs2-devel] ocfs2 bug reports, any advices? thanks
-In-Reply-To: <71604351584F6A4EBAE558C676F37CA417BC85F5@H3CMLB02-EX.srv.huawei-3com.com>
-References: <71604351584F6A4EBAE558C676F37CA417BC85F5@H3CMLB02-EX.srv.huawei-3com.com>
-Message-ID: <512D8678.8060205@oracle.com>
+From: Smart Weblications GmbH - Florian Wiessner <f.wiessner@smart-weblications.de>
+Date: Thu, 07 Feb 2013 02:05:10 -0000
+Subject: [Ocfs2-devel] problem with ocfs2 in 3.7.6 and 3.6.11
+Message-ID: <51130BAB.9080305@smart-weblications.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
+Cc: mfasheh@suse.com, joel.becker@oracle.com
 
-This looks similar to what the following patch is trying to address.
+Hi All,
 
-http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=commitdiff;h=3278bb748d2437eb1464765f36429e5d6aa91c38
 
-On 02/26/2013 07:43 PM, Guozhonghua wrote:
->
-> Hi,
->
-> I setup two nodes, 192.168.20.20, and 192.168.20.21,
->
-> The os is Ubuntu1204 with Kernel version 3.0:
->
-> root at Server21:~# uname -a
->
-> Linux Server21 3.2.0-23-generic #36-Ubuntu SMP Tue Apr 10 20:39:51 UTC 
-> 2012 x86_64 x86_64 x86_64 GNU/Linux
->
-> Server20 reboot for the disconnection with iSCSI SAN, so Server20 
-> recovery resource locks for Server21.
->
-> Server20:
->
-> Feb 27 09:29:31 Server20 kernel: [424826.197532] o2net: No longer 
-> connected to node Server21 (num 2) at 192.168.20.21:7100
->
-> Feb 27 09:29:31 Server20 kernel: [424826.197633] o2cb: o2dlm has 
-> evicted node 2 from domain C5FDF4DB054B49B587DF8D4848443259
->
-> Feb 27 09:29:35 Server20 kernel: [424830.079130] o2dlm: Begin recovery 
-> on domain C5FDF4DB054B49B587DF8D4848443259 for node 2
->
-> Feb 27 09:29:35 Server20 kernel: [424830.079156] o2dlm: Node 1 (me) is 
-> the Recovery Master for the dead node 2 in domain 
-> C5FDF4DB054B49B587DF8D4848443259
->
-> Feb 27 09:29:35 Server20 kernel: [424830.079262] o2dlm: End recovery 
-> on domain C5FDF4DB054B49B587DF8D4848443259
->
-> But the Server21 can't remount the same domain disk on the storage 
-> again, as syslog below:
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751256] "echo 0 > 
-> /proc/sys/kernel/hung_task_timeout_secs" disables this message.
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751262] mount.ocfs2     D 
-> ffffffff81806240     0 12194  12193 0x00000000
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751268]  ffff8807e581b908 
-> 0000000000000086 ffff8807e581b8c8 ffffffffa04c056b
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751276]  ffff8807e581bfd8 
-> ffff8807e581bfd8 ffff8807e581bfd8 0000000000013780
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751281]  ffff880405cbc4d0 
-> ffff8807e50996f0 ffff8807e581b908 7fffffffffffffff
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751288] Call Trace:
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751303]  [<ffffffffa04c056b>] 
-> ? dlm_kick_thread+0x7b/0x90 [ocfs2_dlm]
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751311]  [<ffffffff8165a55f>] 
-> schedule+0x3f/0x60
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751315]  [<ffffffff8165aba5>] 
-> schedule_timeout+0x2a5/0x320
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751319]  [<ffffffff8165a39f>] 
-> wait_for_common+0xdf/0x180
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751327]  [<ffffffff8105f990>] 
-> ? try_to_wake_up+0x200/0x200
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751331]  [<ffffffff8165a51d>] 
-> wait_for_completion+0x1d/0x20
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751357]  [<ffffffffa05d7eb3>] 
-> __ocfs2_cluster_lock.isra.34+0x1f3/0x810 [ocfs2]
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751364]  [<ffffffff813162a1>] 
-> ? vsnprintf+0x461/0x600
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751369]  [<ffffffffa017c3bf>] 
-> ? o2cb_cluster_connect+0x1af/0x2e0 [ocfs2_stack_o2cb]
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751374]  [<ffffffff813164e4>] 
-> ? snprintf+0x34/0x40
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751395]  [<ffffffffa05d8d7b>] 
-> ocfs2_super_lock+0xab/0x320 [ocfs2]
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751422]  [<ffffffffa0635a5b>] 
-> ocfs2_fill_super+0x154b/0x2540 [ocfs2]
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751426]  [<ffffffff81316059>] 
-> ? vsnprintf+0x219/0x600
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751433]  [<ffffffff8117aa46>] 
-> mount_bdev+0x1c6/0x210
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751460]  [<ffffffffa0634510>] 
-> ? ocfs2_initialize_super.isra.208+0x1440/0x1440 [ocfs2]
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751487]  [<ffffffffa0624615>] 
-> ocfs2_mount+0x15/0x20 [ocfs2]
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751491]  [<ffffffff8117b5d3>] 
-> mount_fs+0x43/0x1b0
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751497]  [<ffffffff81195e1a>] 
-> vfs_kern_mount+0x6a/0xc0
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751502]  [<ffffffff81197324>] 
-> do_kern_mount+0x54/0x110
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751506]  [<ffffffff81198e74>] 
-> do_mount+0x1a4/0x260
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751511]  [<ffffffff81199350>] 
-> sys_mount+0x90/0xe0
->
-> Feb 27 09:50:59 Server21 kernel: [ 1199.751516]  [<ffffffff81664a82>] 
-> system_call_fastpath+0x16/0x1b
->
-> Feb 27 09:51:01 Server21 CRON[14164]: (root) CMD (   
-> /opt/bin/tomcat_check.sh)
->
-> Feb 27 09:51:01 Server21 CRON[14165]: (root) CMD (   
-> /opt/bin/libvirtd_check.sh)
->
-> Feb 27 09:51:01 Server21 CRON[14166]: (root) CMD ( 
-> /opt/bin/ocfs2_iscsi_conf_chg_timer.sh)
->
-> Feb 27 09:52:01 Server21 CRON[14788]: (root) CMD (   
-> /opt/bin/tomcat_check.sh)
->
-> Feb 27 09:52:01 Server21 CRON[14789]: (root) CMD (   
-> /opt/bin/libvirtd_check.sh)
->
-> Feb 27 09:52:01 Server21 CRON[14790]: (root) CMD ( 
-> /opt/bin/ocfs2_iscsi_conf_chg_timer.sh)
->
-> Feb 27 09:52:01 Server21 CRON[14791]: (root) CMD (   
-> /opt/bin/ha_check_resource.sh)
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442926] INFO: task 
-> mount.ocfs2:12194 blocked for more than 120 seconds.
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442933] "echo 0 > 
-> /proc/sys/kernel/hung_task_timeout_secs" disables this message.
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442939] mount.ocfs2     D 
-> ffffffff81806240     0 12194  12193 0x00000000
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442945]  ffff8807e581b908 
-> 0000000000000086 ffff8807e581b8c8 ffffffffa04c056b
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442952]  ffff8807e581bfd8 
-> ffff8807e581bfd8 ffff8807e581bfd8 0000000000013780
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442958]  ffff880405cbc4d0 
-> ffff8807e50996f0 ffff8807e581b908 7fffffffffffffff
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442964] Call Trace:
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442980]  [<ffffffffa04c056b>] 
-> ? dlm_kick_thread+0x7b/0x90 [ocfs2_dlm]
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442988]  [<ffffffff8165a55f>] 
-> schedule+0x3f/0x60
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442992]  [<ffffffff8165aba5>] 
-> schedule_timeout+0x2a5/0x320
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.442996]  [<ffffffff8165a39f>] 
-> wait_for_common+0xdf/0x180
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443004]  [<ffffffff8105f990>] 
-> ? try_to_wake_up+0x200/0x200
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443007]  [<ffffffff8165a51d>] 
-> wait_for_completion+0x1d/0x20
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443034]  [<ffffffffa05d7eb3>] 
-> __ocfs2_cluster_lock.isra.34+0x1f3/0x810 [ocfs2]
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443041]  [<ffffffff813162a1>] 
-> ? vsnprintf+0x461/0x600
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443046]  [<ffffffffa017c3bf>] 
-> ? o2cb_cluster_connect+0x1af/0x2e0 [ocfs2_stack_o2cb]
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443051]  [<ffffffff813164e4>] 
-> ? snprintf+0x34/0x40
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443072]  [<ffffffffa05d8d7b>] 
-> ocfs2_super_lock+0xab/0x320 [ocfs2]
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443099]  [<ffffffffa0635a5b>] 
-> ocfs2_fill_super+0x154b/0x2540 [ocfs2]
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443103]  [<ffffffff81316059>] 
-> ? vsnprintf+0x219/0x600
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443110]  [<ffffffff8117aa46>] 
-> mount_bdev+0x1c6/0x210
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443137]  [<ffffffffa0634510>] 
-> ? ocfs2_initialize_super.isra.208+0x1440/0x1440 [ocfs2]
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443163]  [<ffffffffa0624615>] 
-> ocfs2_mount+0x15/0x20 [ocfs2]
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443168]  [<ffffffff8117b5d3>] 
-> mount_fs+0x43/0x1b0
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443174]  [<ffffffff81195e1a>] 
-> vfs_kern_mount+0x6a/0xc0
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443179]  [<ffffffff81197324>] 
-> do_kern_mount+0x54/0x110
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443183]  [<ffffffff81198e74>] 
-> do_mount+0x1a4/0x260
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443187]  [<ffffffff81199350>] 
-> sys_mount+0x90/0xe0
->
-> Feb 27 09:52:59 Server21 kernel: [ 1319.443193]  [<ffffffff81664a82>] 
-> system_call_fastpath+0x16/0x1b
->
-> Feb 27 09:53:01 Server21 CRON[15276]: (root) CMD (   
-> /opt/bin/tomcat_check.sh)
->
-> Feb 27 09:53:01 Server21 CRON[15277]: (root) CMD (   
-> /opt/bin/libvirtd_check.sh)
->
-> Feb 27 09:53:01 Server21 CRON[15278]: (root) CMD ( 
-> /opt/bin/ocfs2_iscsi_conf_chg_timer.sh)
->
-> Feb 27 09:53:16 Server21 kernel: [ 1335.561166] qla2xxx 
-> [0000:06:00.1]-5009:2: LIP occurred (f7f7).
->
-> Feb 27 09:53:21 Server21 kernel: [ 1340.535613] qla2xxx 
-> [0000:06:00.1]-500c:2: LIP reset occurred (f7ef).
->
-> Feb 27 09:54:01 Server21 CRON[15723]: (root) CMD (   
-> /opt/bin/tomcat_check.sh)
->
-> Feb 27 09:54:01 Server21 CRON[15725]: (root) CMD (   
-> /opt/bin/ha_check_resource.sh)
->
-> Feb 27 09:54:01 Server21 CRON[15724]: (root) CMD ( 
-> /opt/bin/ocfs2_iscsi_conf_chg_timer.sh)
->
-> Feb 27 09:54:01 Server21 CRON[15726]: (root) CMD (   
-> /opt/bin/libvirtd_check.sh)
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134659] INFO: task 
-> mount.ocfs2:12194 blocked for more than 120 seconds.
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134665] "echo 0 > 
-> /proc/sys/kernel/hung_task_timeout_secs" disables this message.
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134673] mount.ocfs2     D 
-> ffffffff81806240     0 12194  12193 0x00000000
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134679]  ffff8807e581b908 
-> 0000000000000086 ffff8807e581b8c8 ffffffffa04c056b
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134686]  ffff8807e581bfd8 
-> ffff8807e581bfd8 ffff8807e581bfd8 0000000000013780
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134692]  ffff880405cbc4d0 
-> ffff8807e50996f0 ffff8807e581b908 7fffffffffffffff
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134698] Call Trace:
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134714]  [<ffffffffa04c056b>] 
-> ? dlm_kick_thread+0x7b/0x90 [ocfs2_dlm]
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134722]  [<ffffffff8165a55f>] 
-> schedule+0x3f/0x60
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134726]  [<ffffffff8165aba5>] 
-> schedule_timeout+0x2a5/0x320
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134730]  [<ffffffff8165a39f>] 
-> wait_for_common+0xdf/0x180
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134737]  [<ffffffff8105f990>] 
-> ? try_to_wake_up+0x200/0x200
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134741]  [<ffffffff8165a51d>] 
-> wait_for_completion+0x1d/0x20
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134768]  [<ffffffffa05d7eb3>] 
-> __ocfs2_cluster_lock.isra.34+0x1f3/0x810 [ocfs2]
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134775]  [<ffffffff813162a1>] 
-> ? vsnprintf+0x461/0x600
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134781]  [<ffffffffa017c3bf>] 
-> ? o2cb_cluster_connect+0x1af/0x2e0 [ocfs2_stack_o2cb]
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134785]  [<ffffffff813164e4>] 
-> ? snprintf+0x34/0x40
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134806]  [<ffffffffa05d8d7b>] 
-> ocfs2_super_lock+0xab/0x320 [ocfs2]
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134833]  [<ffffffffa0635a5b>] 
-> ocfs2_fill_super+0x154b/0x2540 [ocfs2]
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134837]  [<ffffffff81316059>] 
-> ? vsnprintf+0x219/0x600
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134844]  [<ffffffff8117aa46>] 
-> mount_bdev+0x1c6/0x210
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134871]  [<ffffffffa0634510>] 
-> ? ocfs2_initialize_super.isra.208+0x1440/0x1440 [ocfs2]
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134898]  [<ffffffffa0624615>] 
-> ocfs2_mount+0x15/0x20 [ocfs2]
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134902]  [<ffffffff8117b5d3>] 
-> mount_fs+0x43/0x1b0
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134909]  [<ffffffff81195e1a>] 
-> vfs_kern_mount+0x6a/0xc0
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134913]  [<ffffffff81197324>] 
-> do_kern_mount+0x54/0x110
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134918]  [<ffffffff81198e74>] 
-> do_mount+0x1a4/0x260
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134922]  [<ffffffff81199350>] 
-> sys_mount+0x90/0xe0
->
-> Feb 27 09:54:59 Server21 kernel: [ 1439.134927]  [<ffffffff81664a82>] 
-> system_call_fastpath+0x16/0x1b
->
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ??????????????????????????,?????????????
-> ?????????????????????(??????????????????
-> ???)?????????????????,??????????????????
-> ??!
-> This e-mail and its attachments contain confidential information from 
-> H3C, which is
-> intended only for the person or entity whose address is listed above. 
-> Any use of the
-> information contained herein in any way (including, but not limited 
-> to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the 
-> intended
-> recipient(s) is prohibited. If you receive this e-mail in error, 
-> please notify the sender
-> by phone or email immediately and delete it!
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Today i found a problem in linux 3.7.6 with ocfs2 when using ocfs2 from inside a
+chroot or linux-vserver guest. This problem also exists at least in 3.6.11.
 
+how to reproduce:
+
+node:~# cat /etc/debian_version
+6.0.6
+
+node:~# rbd showmapped
+id pool image snap device
+1  rbd  ocfs2 -    /dev/rbd1
+
+mounted ocfs2 fs on rdb device on /ocfs2:
+/dev/rbd1 on /ocfs2 type ocfs2 (rw,_netdev,noatime,data=writeback,heartbeat=local)
+
+
+mount --bind /ocfs2 /var/lib/vservers/www/ocfs2
+chroot /var/lib/vservers/www
+
+
+www:/# cat /etc/debian_version
+5.0.10
+
+DocumentRoots for apache are on ocfs2
+
+/etc/init.d/apache2 start
+
+
+Then apache hangs and i have to reboot, see trace (annotated with addr2line
+where available):
+
+[  225.548824] general protection fault: 0000[#1] PREEMPT SMP
+[  225.549067] Modules linked in: ipt_REJECT xt_multiport arpt_mangle
+arptable_filter arp_tables ip6table_filter ip6_tables iptable_filter ip_tables
+ebtable_nat ebtables x_tables cpufreq_userspace cpufreq_powersave
+cpufreq_ondemand cpufreq_conservative ocfs2_stack_o2cb bridge stp llc bonding
+fuse ocfs2_dlm ocfs2_dlmfs dlm sctp ocfs2 ocfs2_nodemanager ocfs2_stackglue
+configfs rbd acpi_cpufreq mperf coretemp kvm_intel kvm psmouse serio_raw lpc_ich
+mfd_core i2c_i801 evdev i2c_core btrfs lzo_compress
+[  225.551698] CPU 1
+[  225.551755] Pid: 5888, comm: apache2 Not tainted 3.7.6 #1 Supermicro
+X9SCI/X9SCA/X9SCI/X9SCA
+[  225.551913] RIP: 0010:[<ffffffff81299f30>] [<ffffffff81299f30>]
+strnlen+0x10/0x19    /lib/string.c:405
+[  225.552059] RSP: 0018:ffff8808160a3b80  EFLAGS: 00010216
+[  225.552135] RAX: e8894402000000a5 RBX: e8894402000000a5 RCX: 000000000063ea4c
+[  225.552215] RDX: 000000000063ea4c RSI: 0000000000000f3f RDI: e8894402000000a5
+[  225.552294] RBP: ffffea00170650b8 R08: ffffffff810b8c7e R09: 0000000000000000
+[  225.552374] R10: ffff880816b50100 R11: ffff880816b50100 R12: ffff8806974afbf8
+[  225.552450] R13: 00000000000200da R14: 00000000000201da R15: 0000000000000000
+[  225.552530] FS:  00007eff6d9e2750(0000) GS:ffff88083fc40000(0000)
+knlGS:0000000000000000
+[  225.552625] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  225.552701] CR2: 00007fa71e7fbd40 CR3: 00000007f7849000 CR4: 00000000000407e0
+[  225.552778] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  225.552858] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
+[  225.552938] Process apache2 (pid: 5888, threadinfo ffff8808160a2000, task
+ffff880816b50100)
+[  225.553032] Stack:
+[  225.553103]  ffffffffa06d7d27 ffffea00170650b8 ffff8806974afd38 ffffea00170650b8
+[  225.553408]  ffffffff810b8c7e 0000000000000000 ffff8806974afd38 ffffea00170650b8
+[  225.553711]  ffffffff810b8ddd ffff8808160a3ca8 ffffffffa06d7c20 ffff8806974d2440
+[  225.554016] Call Trace:
+[  225.554098] [<ffffffffa06d7d27>] ?
+ocfs2_fast_symlink_readpage+0x107/0x1a0[ocfs2]   ??:0
+[  225.554194] [<ffffffff810b8c7e>] ? add_to_page_cache_lru+0x2c/0x36
+        /include/linux/swap.h:253
+[  225.554272] [<ffffffff810b8ddd>] ? do_read_cache_page+0x8f/0x132
+        /mm/filemap.c:1802
+[  225.554359] [<ffffffffa06d7c20>] ? ocfs2_osb_debug_open+0x670/0x670[ocfs2]
+       ??:0
+[  225.554442] [<ffffffff810b8ebf>] ? read_cache_page+0x9/0x12
+        /mm/filemap.c:1921
+[  225.554521] [<ffffffff8110d1e1>] ? page_getlink+0x25/0x86
+        /fs/namei.c:3956
+[  225.554598] [<ffffffff8110d25d>] ? page_follow_link_light+0x1b/0x2c
+        /include/linux/namei.h:88
+[  225.554675] [<ffffffff8110e90c>] ? link_path_walk+0x400/0x7c5
+        /fs/namei.c:851
+[  225.554751] [<ffffffff8110f133>] ? path_lookupat+0x52/0x6cf
+        /fs/namei.c:1983
+[  225.554835] [<ffffffff8110f7d0>] ? filename_lookup+0x20/0x92
+        /fs/namei.c:2024
+[  225.554922] [<ffffffff81111a78>] ? getname_flags+0x70/0x146
+        /fs/namei.c:159
+[  225.554997] [<ffffffff81112376>] ? user_path_at_empty+0x49/0x7d
+        /fs/namei.c:2172
+[  225.555077] [<ffffffff8104dbee>] ? autoremove_wake_function+0x2a/0x2a
+        /kernel/wait.c:174
+[  225.555155] [<ffffffff811093d4>] ? cp_new_stat+0x10d/0x11f
+        /fs/stat.c:241
+[  225.555231] [<ffffffff811095d1>] ? vfs_fstatat+0x39/0x66
+        /fs/stat.c:89
+[  225.555314] [<ffffffff811096c8>] ? sys_newstat+0x11/0x2d
+        /fs/stat.c:248
+[  225.555402] [<ffffffff81542dd2>] ? system_call_fastpath+0x16/0x1b
+        /arch/x86/kernel/entry_64.S:645
+[  225.555480] Code: f6 82 30 a9 58 81 20 75 f1 c3 48 89 f8 eb 03 48 ff c0 80 38
+00 75 f8 48 29 f8 c3 48 89 f8 eb 03 48 ff c0 48 85 f6 74 08 48 ff ce <80> 38 00
+75 f0 48 29 f8 c3 31 c0 eb 14 44 38 c1 74 0c 48 ff c2
+[  225.559020] RIP [<ffffffff81299f30>] strnlen+0x10/0x19
+        /lib/string.c:405
+[  225.559143]  RSP <ffff8808160a3b80>
+[  225.559254] ---[ end trace 10bd8a6b280d52b1 ]---
+
+-- 
+
+Mit freundlichen Gr??en,
+
+Florian Wiessner
+
+Smart Weblications GmbH
+Martinsberger Str. 1
+D-95119 Naila
+
+fon.: +49 9282 9638 200
+fax.: +49 9282 9638 205
+24/7: +49 900 144 000 00 - 0,99 EUR/Min*
+http://www.smart-weblications.de
+
+--
+Sitz der Gesellschaft: Naila
+Gesch?ftsf?hrer: Florian Wiessner
+HRB-Nr.: HRB 3840 Amtsgericht Hof
+*aus dem dt. Festnetz, ggf. abweichende Preise aus dem Mobilfunknetz
 -------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130226/be7e9ee4/attachment-0001.html 
+[  225.548824] general protection fault: 0000[#1] PREEMPT SMP
+[  225.549067] Modules linked in: ipt_REJECT xt_multiport arpt_mangle arptable_filter arp_tables ip6table_filter ip6_tables iptable_filter ip_tables ebtable_nat ebtables x_tables cpufreq_userspace cpufreq_powersave cpufreq_ondemand cpufreq_conservative ocfs2_stack_o2cb bridge stp llc bonding fuse ocfs2_dlm ocfs2_dlmfs dlm sctp ocfs2 ocfs2_nodemanager ocfs2_stackglue configfs rbd acpi_cpufreq mperf coretemp kvm_intel kvm psmouse serio_raw lpc_ich mfd_core i2c_i801 evdev i2c_core btrfs lzo_compress
+[  225.551698] CPU 1
+[  225.551755] Pid: 5888, comm: apache2 Not tainted 3.7.6 #1 Supermicro X9SCI/X9SCA/X9SCI/X9SCA
+[  225.551913] RIP: 0010:[<ffffffff81299f30>] [<ffffffff81299f30>] strnlen+0x10/0x19    /lib/string.c:405
+[  225.552059] RSP: 0018:ffff8808160a3b80  EFLAGS: 00010216
+[  225.552135] RAX: e8894402000000a5 RBX: e8894402000000a5 RCX: 000000000063ea4c
+[  225.552215] RDX: 000000000063ea4c RSI: 0000000000000f3f RDI: e8894402000000a5
+[  225.552294] RBP: ffffea00170650b8 R08: ffffffff810b8c7e R09: 0000000000000000
+[  225.552374] R10: ffff880816b50100 R11: ffff880816b50100 R12: ffff8806974afbf8
+[  225.552450] R13: 00000000000200da R14: 00000000000201da R15: 0000000000000000
+[  225.552530] FS:  00007eff6d9e2750(0000) GS:ffff88083fc40000(0000) knlGS:0000000000000000
+[  225.552625] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  225.552701] CR2: 00007fa71e7fbd40 CR3: 00000007f7849000 CR4: 00000000000407e0
+[  225.552778] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  225.552858] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
+[  225.552938] Process apache2 (pid: 5888, threadinfo ffff8808160a2000, task ffff880816b50100)
+[  225.553032] Stack:
+[  225.553103]  ffffffffa06d7d27 ffffea00170650b8 ffff8806974afd38 ffffea00170650b8
+[  225.553408]  ffffffff810b8c7e 0000000000000000 ffff8806974afd38 ffffea00170650b8
+[  225.553711]  ffffffff810b8ddd ffff8808160a3ca8 ffffffffa06d7c20 ffff8806974d2440
+[  225.554016] Call Trace:
+[  225.554098] [<ffffffffa06d7d27>] ? ocfs2_fast_symlink_readpage+0x107/0x1a0[ocfs2]   ??:0         
+[  225.554194] [<ffffffff810b8c7e>] ? add_to_page_cache_lru+0x2c/0x36                   /include/linux/swap.h:253
+[  225.554272] [<ffffffff810b8ddd>] ? do_read_cache_page+0x8f/0x132                     /mm/filemap.c:1802
+[  225.554359] [<ffffffffa06d7c20>] ? ocfs2_osb_debug_open+0x670/0x670[ocfs2]          ??:0
+[  225.554442] [<ffffffff810b8ebf>] ? read_cache_page+0x9/0x12                          /mm/filemap.c:1921
+[  225.554521] [<ffffffff8110d1e1>] ? page_getlink+0x25/0x86                            /fs/namei.c:3956
+[  225.554598] [<ffffffff8110d25d>] ? page_follow_link_light+0x1b/0x2c                  /include/linux/namei.h:88
+[  225.554675] [<ffffffff8110e90c>] ? link_path_walk+0x400/0x7c5                        /fs/namei.c:851
+[  225.554751] [<ffffffff8110f133>] ? path_lookupat+0x52/0x6cf                          /fs/namei.c:1983
+[  225.554835] [<ffffffff8110f7d0>] ? filename_lookup+0x20/0x92                         /fs/namei.c:2024
+[  225.554922] [<ffffffff81111a78>] ? getname_flags+0x70/0x146                          /fs/namei.c:159
+[  225.554997] [<ffffffff81112376>] ? user_path_at_empty+0x49/0x7d                      /fs/namei.c:2172
+[  225.555077] [<ffffffff8104dbee>] ? autoremove_wake_function+0x2a/0x2a                /kernel/wait.c:174
+[  225.555155] [<ffffffff811093d4>] ? cp_new_stat+0x10d/0x11f                           /fs/stat.c:241
+[  225.555231] [<ffffffff811095d1>] ? vfs_fstatat+0x39/0x66                             /fs/stat.c:89
+[  225.555314] [<ffffffff811096c8>] ? sys_newstat+0x11/0x2d                             /fs/stat.c:248
+[  225.555402] [<ffffffff81542dd2>] ? system_call_fastpath+0x16/0x1b                    /arch/x86/kernel/entry_64.S:645
+[  225.555480] Code: f6 82 30 a9 58 81 20 75 f1 c3 48 89 f8 eb 03 48 ff c0 80 38 00 75 f8 48 29 f8 c3 48 89 f8 eb 03 48 ff c0 48 85 f6 74 08 48 ff ce <80> 38 00 75 f0 48 29 f8 c3 31 c0 eb 14 44 38 c1 74 0c 48 ff c2
+[  225.559020] RIP [<ffffffff81299f30>] strnlen+0x10/0x19                               /lib/string.c:405
+[  225.559143]  RSP <ffff8808160a3b80>
+[  225.559254] ---[ end trace 10bd8a6b280d52b1 ]---
