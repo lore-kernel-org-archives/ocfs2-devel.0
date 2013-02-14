@@ -1,22 +1,22 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Wed, 13 Feb 2013 18:09:57 -0800
-Subject: [Ocfs2-devel] + ocfs2-remove-kfree-redundant-null-checks.patch
- added to -mm tree
-In-Reply-To: <20130213235506.60CB45A41B5@corp2gmr1-2.hot.corp.google.com>
-References: <20130213235506.60CB45A41B5@corp2gmr1-2.hot.corp.google.com>
-Message-ID: <20130214020954.GA18408@localhost>
+Date: Wed, 13 Feb 2013 18:11:25 -0800
+Subject: [Ocfs2-devel] +
+ ocfs2-remove-kfree-redundant-null-checks-fix.patch added to -mm tree
+In-Reply-To: <20130213235509.1BEF331C1DB@corp2gmr1-1.hot.corp.google.com>
+References: <20130213235509.1BEF331C1DB@corp2gmr1-1.hot.corp.google.com>
+Message-ID: <20130214021123.GB18408@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Feb 13, 2013 at 03:55:05PM -0800, akpm at linux-foundation.org wrote:
+On Wed, Feb 13, 2013 at 03:55:08PM -0800, akpm at linux-foundation.org wrote:
 > 
 > The patch titled
->      Subject: ocfs2: remove kfree() redundant null checks
+>      Subject: ocfs2-remove-kfree-redundant-null-checks-fix
 > has been added to the -mm tree.  Its filename is
->      ocfs2-remove-kfree-redundant-null-checks.patch
+>      ocfs2-remove-kfree-redundant-null-checks-fix.patch
 > 
 > Before you just go and hit "reply", please:
 >    a) Consider who else should be cc'ed
@@ -30,250 +30,176 @@ On Wed, Feb 13, 2013 at 03:55:05PM -0800, akpm at linux-foundation.org wrote:
 > there every 3-4 working days
 > 
 > ------------------------------------------------------
-> From: Tim Gardner <tim.gardner@canonical.com>
-> Subject: ocfs2: remove kfree() redundant null checks
+> From: Andrew Morton <akpm@linux-foundation.org>
+> Subject: ocfs2-remove-kfree-redundant-null-checks-fix
 > 
-> smatch analysis indicates a number of redundant NULL checks before
-> calling kfree(), e.g.,
+> revert dubious change in ocfs2_begin_truncate_log_recovery()
 > 
-> fs/ocfs2/alloc.c:6138 ocfs2_begin_truncate_log_recovery() info:
->  redundant null check on *tl_copy calling kfree()
-> 
-> fs/ocfs2/alloc.c:6755 ocfs2_zero_range_for_truncate() info:
->  redundant null check on pages calling kfree()
-> 
-> etc....
-> 
-> Signed-off-by: Tim Gardner <tim.gardner@canonical.com>
-> Cc: Mark Fasheh <mfasheh@suse.com>
 > Cc: Joel Becker <jlbec@evilplan.org>
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Cc: Tim Gardner <tim.gardner@canonical.com>
 > Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+
+I think this is actually OK without the change.  The caller uses
+*tl_copy, but it is always clear when returning -ative.  But if you want
+to leave this patch in:
 
 Acked-by: Joel Becker <jlbec@evilplan.org>
 
 > ---
 > 
->  fs/ocfs2/alloc.c             |    5 ++---
->  fs/ocfs2/cluster/heartbeat.c |    6 ++----
->  fs/ocfs2/cluster/tcp.c       |    6 ++----
->  fs/ocfs2/dlm/dlmdomain.c     |    4 +---
->  fs/ocfs2/extent_map.c        |    3 +--
->  fs/ocfs2/journal.c           |   10 +++-------
->  fs/ocfs2/localalloc.c        |    8 +++-----
->  fs/ocfs2/stack_o2cb.c        |    2 +-
->  fs/ocfs2/super.c             |    6 ++----
->  fs/ocfs2/sysfile.c           |    3 +--
->  10 files changed, 18 insertions(+), 35 deletions(-)
+>  fs/ocfs2/alloc.c |    2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff -puN fs/ocfs2/alloc.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/alloc.c
-> --- a/fs/ocfs2/alloc.c~ocfs2-remove-kfree-redundant-null-checks
+> diff -puN fs/ocfs2/alloc.c~ocfs2-remove-kfree-redundant-null-checks-fix fs/ocfs2/alloc.c
+> --- a/fs/ocfs2/alloc.c~ocfs2-remove-kfree-redundant-null-checks-fix
 > +++ a/fs/ocfs2/alloc.c
 > @@ -6134,7 +6134,7 @@ bail:
 >  		iput(tl_inode);
 >  	brelse(tl_bh);
 >  
-> -	if (status < 0 && (*tl_copy)) {
-> +	if (status < 0) {
+> -	if (status < 0) {
+> +	if (status < 0 && (*tl_copy)) {
 >  		kfree(*tl_copy);
 >  		*tl_copy = NULL;
 >  		mlog_errno(status);
-> @@ -6751,8 +6751,7 @@ int ocfs2_zero_range_for_truncate(struct
->  		mlog_errno(ret);
->  
->  out:
-> -	if (pages)
-> -		kfree(pages);
-> +	kfree(pages);
->  
->  	return ret;
->  }
-> diff -puN fs/ocfs2/cluster/heartbeat.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/cluster/heartbeat.c
-> --- a/fs/ocfs2/cluster/heartbeat.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/cluster/heartbeat.c
-> @@ -1449,8 +1449,7 @@ static void o2hb_region_release(struct c
->  
->  	mlog(ML_HEARTBEAT, "hb region release (%s)\n", reg->hr_dev_name);
->  
-> -	if (reg->hr_tmp_block)
-> -		kfree(reg->hr_tmp_block);
-> +	kfree(reg->hr_tmp_block);
->  
->  	if (reg->hr_slot_data) {
->  		for (i = 0; i < reg->hr_num_pages; i++) {
-> @@ -1464,8 +1463,7 @@ static void o2hb_region_release(struct c
->  	if (reg->hr_bdev)
->  		blkdev_put(reg->hr_bdev, FMODE_READ|FMODE_WRITE);
->  
-> -	if (reg->hr_slots)
-> -		kfree(reg->hr_slots);
-> +	kfree(reg->hr_slots);
->  
->  	kfree(reg->hr_db_regnum);
->  	kfree(reg->hr_db_livenodes);
-> diff -puN fs/ocfs2/cluster/tcp.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/cluster/tcp.c
-> --- a/fs/ocfs2/cluster/tcp.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/cluster/tcp.c
-> @@ -1165,10 +1165,8 @@ out:
->  	o2net_debug_del_nst(&nst); /* must be before dropping sc and node */
->  	if (sc)
->  		sc_put(sc);
-> -	if (vec)
-> -		kfree(vec);
-> -	if (msg)
-> -		kfree(msg);
-> +	kfree(vec);
-> +	kfree(msg);
->  	o2net_complete_nsw(nn, &nsw, 0, 0, 0);
->  	return ret;
->  }
-> diff -puN fs/ocfs2/dlm/dlmdomain.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/dlm/dlmdomain.c
-> --- a/fs/ocfs2/dlm/dlmdomain.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/dlm/dlmdomain.c
-> @@ -319,9 +319,7 @@ static void dlm_free_ctxt_mem(struct dlm
->  	if (dlm->master_hash)
->  		dlm_free_pagevec((void **)dlm->master_hash, DLM_HASH_PAGES);
->  
-> -	if (dlm->name)
-> -		kfree(dlm->name);
-> -
-> +	kfree(dlm->name);
->  	kfree(dlm);
->  }
->  
-> diff -puN fs/ocfs2/extent_map.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/extent_map.c
-> --- a/fs/ocfs2/extent_map.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/extent_map.c
-> @@ -282,8 +282,7 @@ search:
->  	spin_unlock(&oi->ip_lock);
->  
->  out:
-> -	if (new_emi)
-> -		kfree(new_emi);
-> +	kfree(new_emi);
->  }
->  
->  static int ocfs2_last_eb_is_empty(struct inode *inode,
-> diff -puN fs/ocfs2/journal.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/journal.c
-> --- a/fs/ocfs2/journal.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/journal.c
-> @@ -1234,11 +1234,8 @@ static void ocfs2_queue_recovery_complet
->  		/* Though we wish to avoid it, we are in fact safe in
->  		 * skipping local alloc cleanup as fsck.ocfs2 is more
->  		 * than capable of reclaiming unused space. */
-> -		if (la_dinode)
-> -			kfree(la_dinode);
-> -
-> -		if (tl_dinode)
-> -			kfree(tl_dinode);
-> +		kfree(la_dinode);
-> +		kfree(tl_dinode);
->  
->  		if (qrec)
->  			ocfs2_free_quota_recovery(qrec);
-> @@ -1408,8 +1405,7 @@ bail:
->  
->  	mutex_unlock(&osb->recovery_lock);
->  
-> -	if (rm_quota)
-> -		kfree(rm_quota);
-> +	kfree(rm_quota);
->  
->  	/* no one is callint kthread_stop() for us so the kthread() api
->  	 * requires that we call do_exit().  And it isn't exported, but
-> diff -puN fs/ocfs2/localalloc.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/localalloc.c
-> --- a/fs/ocfs2/localalloc.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/localalloc.c
-> @@ -476,8 +476,7 @@ out:
->  	if (local_alloc_inode)
->  		iput(local_alloc_inode);
->  
-> -	if (alloc_copy)
-> -		kfree(alloc_copy);
-> +	kfree(alloc_copy);
->  }
->  
->  /*
-> @@ -534,7 +533,7 @@ int ocfs2_begin_local_alloc_recovery(str
->  		mlog_errno(status);
->  
->  bail:
-> -	if ((status < 0) && (*alloc_copy)) {
-> +	if (status < 0) {
->  		kfree(*alloc_copy);
->  		*alloc_copy = NULL;
->  	}
-> @@ -1290,8 +1289,7 @@ bail:
->  	if (main_bm_inode)
->  		iput(main_bm_inode);
->  
-> -	if (alloc_copy)
-> -		kfree(alloc_copy);
-> +	kfree(alloc_copy);
->  
->  	if (ac)
->  		ocfs2_free_alloc_context(ac);
-> diff -puN fs/ocfs2/stack_o2cb.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/stack_o2cb.c
-> --- a/fs/ocfs2/stack_o2cb.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/stack_o2cb.c
-> @@ -376,7 +376,7 @@ static int o2cb_cluster_connect(struct o
->  	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
->  
->  out_free:
-> -	if (rc && conn->cc_private)
-> +	if (rc)
->  		kfree(conn->cc_private);
->  
->  out:
-> diff -puN fs/ocfs2/super.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/super.c
-> --- a/fs/ocfs2/super.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/super.c
-> @@ -2525,8 +2525,7 @@ static int ocfs2_check_volume(struct ocf
->  		mlog_errno(status);
->  
->  finally:
-> -	if (local_alloc)
-> -		kfree(local_alloc);
-> +	kfree(local_alloc);
->  
->  	if (status)
->  		mlog_errno(status);
-> @@ -2553,8 +2552,7 @@ static void ocfs2_delete_osb(struct ocfs
->  	 * we free it here.
->  	 */
->  	kfree(osb->journal);
-> -	if (osb->local_alloc_copy)
-> -		kfree(osb->local_alloc_copy);
-> +	kfree(osb->local_alloc_copy);
->  	kfree(osb->uuid_str);
->  	ocfs2_put_dlm_debug(osb->osb_dlm_debug);
->  	memset(osb, 0, sizeof(struct ocfs2_super));
-> diff -puN fs/ocfs2/sysfile.c~ocfs2-remove-kfree-redundant-null-checks fs/ocfs2/sysfile.c
-> --- a/fs/ocfs2/sysfile.c~ocfs2-remove-kfree-redundant-null-checks
-> +++ a/fs/ocfs2/sysfile.c
-> @@ -91,8 +91,7 @@ static struct inode **get_local_system_i
->  		} else
->  			osb->local_system_inodes = local_system_inodes;
->  		spin_unlock(&osb->osb_lock);
-> -		if (unlikely(free))
-> -			kfree(free);
-> +		kfree(free);
->  	}
->  
->  	index = (slot * NUM_LOCAL_SYSTEM_INODES) +
 > _
 > 
-> Patches currently in -mm which might be from tim.gardner at canonical.com are
+> Patches currently in -mm which might be from akpm at linux-foundation.org are
 > 
+> origin.patch
 > linux-next.patch
-> ocfs2-remove-kfree-redundant-null-checks.patch
+> arch-alpha-kernel-systblss-remove-debug-check.patch
+> bugh-prevent-double-evaulation-of-in-build_bug_on-fix.patch
+> bugh-compilerh-introduce-compiletime_assert-build_bug_on_msg-checkpatch-fixes.patch
+> i-need-old-gcc.patch
+> drivers-md-persistent-data-dm-transaction-managerc-rename-hash_size.patch
+> goldfish-framebuffer-driver-fix.patch
+> timer_list-convert-timer-list-to-be-a-proper-seq_file-fix.patch
+> timer_list-convert-timer-list-to-be-a-proper-seq_file-v2-fix.patch
+> timer_list-convert-timer-list-to-be-a-proper-seq_file-fix-fix.patch
 > ocfs2-remove-kfree-redundant-null-checks-fix.patch
+> sched-proc-sched_stat-fails-on-very-very-large-machines-fix.patch
+> sched-proc-sched_stat-fails-on-very-very-large-machines-v2-fix.patch
+> sched-proc-sched_stat-fails-on-very-very-large-machines-v2-fix-fix.patch
+> sched-proc-sched_debug-fails-on-very-very-large-machines-fix.patch
+> sched-proc-sched_debug-fails-on-very-very-large-machines-v2-fix.patch
+> mm.patch
+> mm-memcontrolc-convert-printkkern_foo-to-pr_foo.patch
+> mm-hugetlbc-convert-to-pr_foo.patch
+> cma-make-putback_lru_pages-call-conditional-fix.patch
+> mm-vmscan-clean-up-get_scan_count-fix.patch
+> mm-vmscan-compaction-works-against-zones-not-lruvecs-fix.patch
+> mm-page_allocc-__setup_per_zone_wmarks-make-min_pages-unsigned-long.patch
+> mm-vmscanc-__zone_reclaim-replace-max_t-with-max.patch
+> mmotm-memcgvmscan-do-not-break-out-targeted-reclaim-without-reclaimed-pagespatch-fix-fix.patch
+> mm-make-madvisemadv_willneed-support-swap-file-prefetch-fix.patch
+> mm-compaction-make-__compact_pgdat-and-compact_pgdat-return-void.patch
+> mm-remove-flags-argument-to-mmap_region-fix.patch
+> memory-hotplug-remove-sys-firmware-memmap-x-sysfs-fix.patch
+> memory-hotplug-remove-sys-firmware-memmap-x-sysfs-fix-fix-fix.patch
+> memory-hotplug-common-apis-to-support-page-tables-hot-remove-fix.patch
+> memory-hotplug-common-apis-to-support-page-tables-hot-remove-fix-fix-fix-fix-fix-fix.patch
+> memory-hotplug-common-apis-to-support-page-tables-hot-remove-fix-fix-fix-fix-fix-fix-fix.patch
+> memory-hotplug-remove-page-table-of-x86_64-architecture-fix.patch
+> memory-hotplug-do-not-allocate-pdgat-if-it-was-not-freed-when-offline-fix.patch
+> memory-hotplug-do-not-allocate-pdgat-if-it-was-not-freed-when-offline-fix-fix.patch
+> cpu_hotplug-clear-apicid-to-node-when-the-cpu-is-hotremoved-fix.patch
+> cpu-hotplugmemory-hotplug-clear-cpu_to_node-when-offlining-the-node-fix.patch
+> page_alloc-add-movable_memmap-kernel-parameter-fix.patch
+> page_alloc-add-movable_memmap-kernel-parameter-fix-fix-checkpatch-fixes.patch
+> page_alloc-add-movable_memmap-kernel-parameter-fix-fix-fix.patch
+> acpi-memory-hotplug-extend-movablemem_map-ranges-to-the-end-of-node-fix.patch
+> acpi-memory-hotplug-support-getting-hotplug-info-from-srat-fix.patch
+> acpi-memory-hotplug-support-getting-hotplug-info-from-srat-fix-fix.patch
+> memory-failure-do-code-refactor-of-soft_offline_page.patch
+> memory-failure-use-num_poisoned_pages-instead-of-mce_bad_pages-fix.patch
+> mm-memory-failurec-fix-wrong-num_poisoned_pages-in-handling-memory-error-on-thp-fix.patch
+> mm-dont-inline-page_mapping.patch
+> swap-make-each-swap-partition-have-one-address_space-fix.patch
+> page-writebackc-subtract-min_free_kbytes-from-dirtyable-memory-fix.patch
+> page-writebackc-subtract-min_free_kbytes-from-dirtyable-memory-fix-fix.patch
+> memcg-reduce-the-size-of-struct-memcg-244-fold-fix.patch
+> memcg-reduce-the-size-of-struct-memcg-244-fold-fix-fix.patch
+> memcg-fast-hierarchy-aware-child-test-fix.patch
+> mm-rename-page-struct-field-helpers.patch
+> mm-rename-page-struct-field-helpers-fix.patch
+> mm-page_alloc-add-informative-debugging-message-in-page_outside_zone_boundaries-fix.patch
+> include-linux-mmzoneh-cleanups.patch
+> include-linux-mmzoneh-cleanups-fix.patch
+> hwpoison-fix-misjudgement-of-page_action-for-errors-on-mlocked-pages-fix.patch
+> mm-accurately-document-nr_free__pages-functions-with-code-comments-fix.patch
+> drop_caches-add-some-documentation-and-info-messsge.patch
+> memcg-debugging-facility-to-access-dangling-memcgs-fix.patch
+> scripts-pnmtologo-fix-for-plain-pbm-checkpatch-fixes.patch
+> kernel-smpc-cleanups.patch
+> maintainers-remove-mark-m-hoffman-fix.patch
+> backlight-add-lms501kf03-lcd-driver-fix.patch
+> backlight-add-lms501kf03-lcd-driver-fix-fix.patch
+> backlight-add-new-lp8788-backlight-driver-checkpatch-fixes.patch
+> drivers-video-backlight-makefile-cleanup.patch
+> checkpatch-dont-emit-the-camelcase-warning-for-pagefoo.patch
+> binfmt_elfc-use-get_random_int-to-fix-entropy-depleting.patch
+> rtc-ds1307-long-block-operations-bugfix-fix.patch
+> rtc-max77686-add-maxim-77686-driver-fix.patch
+> rtc-pcf8523-add-low-battery-voltage-support-fix.patch
+> rtc-add-rtc-driver-for-tps80031-tps80032-v2-fix.patch
+> rtc-add-support-for-spi-rtc-rx4581-checkpatch-fixes.patch
+> hfsplus-add-osx-prefix-for-handling-namespace-of-mac-os-x-extended-attributes.patch
+> signal-allow-to-send-any-siginfo-to-itself-fix.patch
+> fs-proc-clean-up-printks.patch
+> fs-proc-clean-up-printks-fix.patch
+> fs-proc-clean-up-printks-fix-fix.patch
+> fs-proc-vmcorec-put-if-tests-in-the-top-of-the-while-loop-to-reduce-duplication-fix.patch
+> fs-proc-vmcorec-put-if-tests-in-the-top-of-the-while-loop-to-reduce-duplication-fix-fix.patch
+> fs-seq_filec-seq_lseek-fix-switch-statement-indenting.patch
+> fs-seq_filec-seq_lseek-fix-switch-statement-indenting-checkpatch-fixes.patch
+> nfsd-idr_destroy-no-longer-needs-idr_remove_all.patch
+> idr-remove-length-restriction-from-idr_layer-bitmap-checkpatch-fixes.patch
+> drivers-char-miscc-misc_register-do-not-loop-on-misc_list-unconditionally-fix.patch
+> dma-debug-new-interfaces-to-debug-dma-mapping-errors-fix-fix.patch
+> aio-kiocb_cancel-fix.patch
+> wait-add-wait_event_hrtimeout-fix.patch
+> aio-use-cancellation-list-lazily-fix-fix.patch
+> aio-give-shared-kioctx-fields-their-own-cachelines-fix.patch
+> generic-dynamic-per-cpu-refcounting-fix.patch
+> generic-dynamic-per-cpu-refcounting-sparse-fixes-fix.patch
+> generic-dynamic-per-cpu-refcounting-doc-fix.patch
+> aio-dont-include-aioh-in-schedh-fix.patch
+> aio-dont-include-aioh-in-schedh-fix-fix.patch
+> aio-dont-include-aioh-in-schedh-fix-3.patch
+> aio-dont-include-aioh-in-schedh-fix-3-fix.patch
+> aio-dont-include-aioh-in-schedh-fix-3-fix-fix.patch
+> aio-kill-ki_retry-fix.patch
+> block-aio-batch-completion-for-bios-kiocbs-fix.patch
+> block-aio-batch-completion-for-bios-kiocbs-fix-fix.patch
+> block-aio-batch-completion-for-bios-kiocbs-fix-fix-fix.patch
+> block-aio-batch-completion-for-bios-kiocbs-fix-fix-fix-fix-fix-fix.patch
+> selftests-add-tests-for-efivarfs-fix.patch
+> selftests-add-tests-for-efivarfs-fix-fix.patch
+> tools-testing-selftests-makefile-rearrange-targets.patch
+> selftests-add-a-simple-doc-fix.patch
+> hlist-drop-the-node-parameter-from-iterators-fix-fix-fix-fix.patch
+> hlist-drop-the-node-parameter-from-iterators-fix-fix-fix-fix-fix.patch
+> hlist-drop-the-node-parameter-from-iterators-checkpatch-fixes.patch
+> hlist-drop-the-node-parameter-from-iterators-fix.patch
+> hlist-drop-the-node-parameter-from-iterators-fix-fix.patch
+> hlist-drop-the-node-parameter-from-iterators-fix-fix-fix.patch
+> hlist-drop-the-node-parameter-from-iterators-fix-fix-fix-fix-fix-fix.patch
+> debugging-keep-track-of-page-owners-fix-2-fix.patch
+> journal_add_journal_head-debug.patch
+> kernel-forkc-export-kernel_thread-to-modules.patch
+> mutex-subsystem-synchro-test-module.patch
+> slab-leaks3-default-y.patch
+> put_bh-debug.patch
 > 
 
 -- 
 
-"I am working for the time when unqualified blacks, browns, and
- women join the unqualified men in running our overnment."
-	- Sissy Farenthold
+"But all my words come back to me
+ In shades of mediocrity.
+ Like emptiness in harmony
+ I need someone to comfort me."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
