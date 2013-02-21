@@ -1,45 +1,33 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu, 21 Feb 2013 16:31:12 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: unlock super lock if lockres refresh
-	failed
-Message-ID: <1361435472-23224-1-git-send-email-junxiao.bi@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Thu, 21 Feb 2013 14:15:07 -0800
+Subject: [Ocfs2-devel] [PATCH] the ac->ac_allow_chain_relink=0 won't
+ disable group relink
+In-Reply-To: <1361433259-15336-1-git-send-email-xiaowei.hu@oracle.com>
+References: <1361433259-15336-1-git-send-email-xiaowei.hu@oracle.com>
+Message-ID: <20130221141507.c91be59d.akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-If lockres refresh failed, the super lock will never be released which
-will cause some processes on other cluster nodes hung forever.
+On Thu, 21 Feb 2013 15:54:19 +0800
+xiaowei.hu at oracle.com wrote:
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
----
- fs/ocfs2/dlmglue.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+> ocfs2_block_group_alloc_discontig() disables chain relink by setting
+> ac->ac_allow_chain_relink = 0 because it grabs clusters from multiple
+> cluster groups. It doesn't keep the credits for all chain relink,but
+> ocfs2_claim_suballoc_bits overrides this in this call trace:
+> ocfs2_block_group_claim_bits()->ocfs2_claim_clusters()->
+> __ocfs2_claim_clusters()->ocfs2_claim_suballoc_bits()
+> ocfs2_claim_suballoc_bits set ac->ac_allow_chain_relink = 1; then call
+> ocfs2_search_chain() one time and disable it again, and then we run
+> out of credits.
+> 
+> Fix is to allow relink by default and disable it in
+> ocfs2_block_group_alloc_discontig.
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 4f7795f..88577eb 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -2545,6 +2545,7 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
- 	 * everything is up to the caller :) */
- 	status = ocfs2_should_refresh_lock_res(lockres);
- 	if (status < 0) {
-+		ocfs2_cluster_unlock(osb, lockres, level);
- 		mlog_errno(status);
- 		goto bail;
- 	}
-@@ -2553,8 +2554,10 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
- 
- 		ocfs2_complete_lock_res_refresh(lockres, status);
- 
--		if (status < 0)
-+		if (status < 0) {
-+			ocfs2_cluster_unlock(osb, lockres, level);
- 			mlog_errno(status);
-+		}
- 		ocfs2_track_lock_refresh(lockres);
- 	}
- bail:
--- 
-1.7.9.5
+What is the end-user impact of this bug?
+
+Please always include this info in changelogs to help other to decide
+which kernel version(s) need the patch, thanks.
