@@ -1,32 +1,43 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Mon, 25 Feb 2013 13:28:27 -0800
+Date: Mon, 25 Feb 2013 13:30:58 -0800
 Subject: [Ocfs2-devel] OCFS2 mainline state?
-In-Reply-To: <20130225211617.GF4503@ZenIV.linux.org.uk>
+In-Reply-To: <20130225211103.GA13510@wotan.suse.de>
 References: <512BCA9E.4090702@nod.at> <20130225211103.GA13510@wotan.suse.de>
-	<20130225211617.GF4503@ZenIV.linux.org.uk>
-Message-ID: <20130225212827.GC13510@wotan.suse.de>
+Message-ID: <20130225213058.GD13510@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Richard Weinberger <richard@nod.at>, ocfs2-devel@oss.oracle.com, ocfs2-user@oss.oracle.com, linux-kernel@vger.kernel.org, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, david@sigma-star.at
+To: Richard Weinberger <richard@nod.at>
+Cc: david@sigma-star.at, ocfs2-user@oss.oracle.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On Mon, Feb 25, 2013 at 09:16:18PM +0000, Al Viro wrote:
-> On Mon, Feb 25, 2013 at 01:11:03PM -0800, Mark Fasheh wrote:
+On Mon, Feb 25, 2013 at 01:11:03PM -0800, Mark Fasheh wrote:
+> On Mon, Feb 25, 2013 at 09:33:34PM +0100, Richard Weinberger wrote:
+> > Today I encountered the following problem on v3.8:
+> > [   28.940032] general protection fault: 0000 [#1] PREEMPT SMP
+> > ...
+> > [   28.984953] Call Trace:
+> > [   28.986628   [<ffffffffa04cb200>] ocfs2_fast_symlink_readpage+0x70/0x1b0 [ocfs2]
+> > [   28.988302]  [<ffffffff8110dc49>] ? add_to_page_cache_lru+0x29/0x40
+> > [   28.989942]  [<ffffffff8110ddca>] do_read_cache_page+0x7a/0x170
+> > [   28.991573]  [<ffffffff8110def4>] read_cache_page_async+0x14/0x20
+> > [   28.993212]  [<ffffffff8110df09>] read_cache_page+0x9/0x20
+> > [   28.994827]  [<ffffffff81170ae5>] page_getlink.isra.9+0x25/0x80
+> > [   28.996442]  [<ffffffff81170b61>] page_follow_link_light+0x21/0x40
+> > [   28.998049]  [<ffffffff8117090d>] generic_readlink+0x3d/0xa0
+> > [   28.999653]  [<ffffffff8116c0db>] sys_readlinkat+0xfb/0x130
+> > [   29.001246]  [<ffffffff8116c126>] sys_readlink+0x16/0x20
+> > [   29.002839]  [<ffffffff815d8dad>] system_call_fastpath+0x1a/0x1f
 > 
-> > I've seen that patch actually and yes it should have been in mainline
-> > already. I didn't see whether it's in -mm (Andrew is pickup up some of the
-> > patches for us right now).
-> > 
-> > I'll check and if it's not I'll try to send him a version of it today.
+> I've seen that patch actually and yes it should have been in mainline
+> already. I didn't see whether it's in -mm (Andrew is pickup up some of the
+> patches for us right now).
 > 
-> Normally filesystem trees are fed to Linus...  Or I can pick that patch via
-> VFS tree (and send it to Linus tomorrow).  There also had been Jan's ocfs2
-> patch a while ago; I picked only the VFS part of that series, ext* and
-> IIRC xfs ones went to corresponding filesystem trees.  Should I just pick
-> the ocfs2 stuff from now on?
+> I'll check and if it's not I'll try to send him a version of it today.
 
-I personally would absolutely be fine (and grateful) with you picking up the
-Ocfs2 stuff.
+Checked - this is in linux-next so I would expect to see it upstream
+eventually.
 	--Mark
+
+--
+Mark Fasheh
