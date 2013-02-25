@@ -1,173 +1,39 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Sat, 23 Feb 2013 12:22:40 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix ocfs2_init_security_and_acl()
- to initialize acl correctly
-In-Reply-To: <20130222183103.1342e7a3.akpm@linux-foundation.org>
-References: <51275362.8020104@oracle.com>
-	<20130222132140.0e093dfd.akpm@linux-foundation.org>
-	<5128257A.8010103@oracle.com>
-	<20130222183103.1342e7a3.akpm@linux-foundation.org>
-Message-ID: <51284410.2020105@oracle.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Mon, 25 Feb 2013 13:11:03 -0800
+Subject: [Ocfs2-devel] OCFS2 mainline state?
+In-Reply-To: <512BCA9E.4090702@nod.at>
+References: <512BCA9E.4090702@nod.at>
+Message-ID: <20130225211103.GA13510@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Richard Weinberger <richard@nod.at>
+Cc: ocfs2-devel@oss.oracle.com, ocfs2-user@oss.oracle.com, linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, david@sigma-star.at
 
-On 02/23/2013 10:31 AM, Andrew Morton wrote:
-> On Sat, 23 Feb 2013 10:12:10 +0800 Jeff Liu <jeff.liu@oracle.com> wrote:
-> 
->> Hi Andrew,
->>
->> On 02/23/2013 05:21 AM, Andrew Morton wrote:
->>> On Fri, 22 Feb 2013 19:15:46 +0800
->>> Jeff Liu <jeff.liu@oracle.com> wrote:
->>>
->>>> We need to re-initialize the security if it isn't preserved for ocfs2_reflink().
->>>> however, the code logic is broken at ocfs2_init_security_and_acl() although
->>>> ocfs2_init_security_get() succeed, as a result, ocfs2_acl_init() does not involked.
->>>
->>> When writing a changelog, please describe the end-user-visible effects
->>> of the bug, so that others can more easily decide which kernel
->>> version(s) should be fixed, and so that downstream kernel maintainers
->>> can more easily work out whether this patch will fix a problem which
->>> they or their customers are observing.
->> Thanks for your teaching, I'll take care of it next time.
->>
-> 
-> Well OK, but please provide this info for this particular patch!  I
-> still don't know if we should backport it into -stable kernels.
+On Mon, Feb 25, 2013 at 09:33:34PM +0100, Richard Weinberger wrote:
+> Today I encountered the following problem on v3.8:
+> [   28.940032] general protection fault: 0000 [#1] PREEMPT SMP
+> ...
+> [   28.984953] Call Trace:
+> [   28.986628   [<ffffffffa04cb200>] ocfs2_fast_symlink_readpage+0x70/0x1b0 [ocfs2]
+> [   28.988302]  [<ffffffff8110dc49>] ? add_to_page_cache_lru+0x29/0x40
+> [   28.989942]  [<ffffffff8110ddca>] do_read_cache_page+0x7a/0x170
+> [   28.991573]  [<ffffffff8110def4>] read_cache_page_async+0x14/0x20
+> [   28.993212]  [<ffffffff8110df09>] read_cache_page+0x9/0x20
+> [   28.994827]  [<ffffffff81170ae5>] page_getlink.isra.9+0x25/0x80
+> [   28.996442]  [<ffffffff81170b61>] page_follow_link_light+0x21/0x40
+> [   28.998049]  [<ffffffff8117090d>] generic_readlink+0x3d/0xa0
+> [   28.999653]  [<ffffffff8116c0db>] sys_readlinkat+0xfb/0x130
+> [   29.001246]  [<ffffffff8116c126>] sys_readlink+0x16/0x20
+> [   29.002839]  [<ffffffff815d8dad>] system_call_fastpath+0x1a/0x1f
 
-Could you please check the following revised changelog?
+I've seen that patch actually and yes it should have been in mainline
+already. I didn't see whether it's in -mm (Andrew is pickup up some of the
+patches for us right now).
 
-We need to re-initialize the security for a new reflinked inode with it's parent
-dirs if it isn't specified to be preserved for ocfs2_reflink().  However, the code
-logic is broken at ocfs2_init_security_and_acl() although ocfs2_init_security_get()
-succeed.  As a result, ocfs2_acl_init() does not involked and therefore the default
-ACL of parent dir was missing on the new inode.
+I'll check and if it's not I'll try to send him a version of it today.
+	--Mark
 
-Note this was introduced by 9d8f13ba3 ("security: new security_inode_init_security API adds function callback")
-
-To reproduce:
-
-set default ACL for the parent dir(ocfs2 in this case):
-$ setfacl -m default:user:jeff:rwx ../ocfs2/
-$ getfacl ../ocfs2/
-# file: ../ocfs2/
-# owner: jeff
-# group: jeff
-user::rwx
-group::r-x
-other::r-x
-default:user::rwx
-default:user:jeff:rwx
-default:group::r-x
-default:mask::rwx
-default:other::r-x
-
-$ touch a
-$ getfacl a
-# file: a
-# owner: jeff
-# group: jeff
-user::rw-
-group::rw-
-other::r--
-
-Before patching, create reflink file b from a, the user
-default ACL entry(user:jeff:rwx)was missing:
-$ ./ocfs2_reflink a b
-$ getfacl b
-# file: b
-# owner: jeff
-# group: jeff
-user::rw-
-group::rw-
-other::r--
-
-In this case, the end user can also observed an error message at syslog:
-(ocfs2_reflink,3229,2):ocfs2_init_security_and_acl:7193 ERROR: status = 0
-
-After applying this patch, create reflink file c from a:
-$ ./ocfs2_reflink a c
-$ getfacl c
-# file: c
-# owner: jeff
-# group: jeff
-user::rw-
-user:jeff:rwx			#effective:rw-
-group::r-x			#effective:r--
-mask::rw-
-other::r--
-
-Test program:
-/* Usage: reflink <source> <dest> */
-#include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-
-static int
-reflink_file(char const *src_name, char const *dst_name,
-	     bool preserve_attrs)
-{
-	int fd;
-
-#ifndef REFLINK_ATTR_NONE
-#  define REFLINK_ATTR_NONE 0
-#endif
-#ifndef REFLINK_ATTR_PRESERVE
-#  define REFLINK_ATTR_PRESERVE 1
-#endif
-#ifndef OCFS2_IOC_REFLINK
-	struct reflink_arguments {
-		uint64_t old_path;
-		uint64_t new_path;
-		uint64_t preserve;
-	};
-
-#  define OCFS2_IOC_REFLINK _IOW ('o', 4, struct reflink_arguments)
-#endif
-	struct reflink_arguments args = {
-		.old_path = (unsigned long) src_name,
-		.new_path = (unsigned long) dst_name,
-		.preserve = preserve_attrs ? REFLINK_ATTR_PRESERVE :
-					     REFLINK_ATTR_NONE,
-	};
-
-	fd = open(src_name, O_RDONLY);
-	if (fd < 0) {
-		fprintf(stderr, "Failed to open %s: %s\n",
-			src_name, strerror(errno));
-		return -1;
-	}
-
-	if (ioctl(fd, OCFS2_IOC_REFLINK, &args) < 0) {
-		fprintf(stderr, "Failed to reflink %s to %s: %s\n",
-			src_name, dst_name, strerror(errno));
-		return -1;
-	}
-}
-
-int
-main(int argc, char *argv[])
-{
-	if (argc != 3) {
-		fprintf(stdout, "Usage: %s source dest\n", argv[0]);
-		return 1;
-	}
-
-	return reflink_file(argv[1], argv[2], 0);
-}
-
-
- 
-
-Thanks for your time!
-
--Jeff
+--
+Mark Fasheh
