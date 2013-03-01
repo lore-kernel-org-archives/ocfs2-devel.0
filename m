@@ -1,30 +1,38 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Fri, 01 Mar 2013 13:42:07 -0800
-Subject: [Ocfs2-devel] [Ocfs2-users] [OCFS2] Crash at o2net_shutdown_sc()
+From: Sunil Mushran <sunil.mushran@gmail.com>
+Date: Fri, 1 Mar 2013 13:46:52 -0800
+Subject: [Ocfs2-devel] [OCFS2] Crash at o2net_shutdown_sc()
 In-Reply-To: <CAFLxGvzUqQhbxpp4jAGW68-7GCc6jw8b4BFU7p_5H1utFxdkQQ@mail.gmail.com>
 References: <CAFLxGvzUqQhbxpp4jAGW68-7GCc6jw8b4BFU7p_5H1utFxdkQQ@mail.gmail.com>
-Message-ID: <513120AF.5030501@oracle.com>
+Message-ID: <CAEeiSHVQGkZAgsXwuOY1WeEpd-BSEv2f9bqH6gvrDOt4nnxwHw@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: richard -rw- weinberger <richard.weinberger@gmail.com>
-Cc: ocfs2-devel@oss.oracle.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, ocfs2-users@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, "ocfs2-users@oss.oracle.com" <ocfs2-users@oss.oracle.com>, LKML <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-Yes that was the crash I was referring to which stopped me from testing 
-my other patch on mainline. I think the crashes started since some 
-workqueue patches introduced by commit  
-57b30ae77bf00d2318df711ef9a4d2a9be0a3a2a Earlier kernels should be fine.
+ [ 1481.620253] o2hb: Unable to stabilize heartbeart on region
+1352E2692E704EEB8040E5B8FF560997 (vdb)
 
-Patch https://lkml.org/lkml/2012/10/18/592 tried to address one fix 
-which helped ramster that uses same ocfs2/o2net code. There still seems 
-to be another problem that crashes ocfs2.
+What this means is that the device is suspect. o2hb writes are not hitting
+the disk. vdb is accepting and
+acknowledging the write but spitting out something else during the next
+read. Heartbeat detects this and
+aborts, as it should.
 
-On 03/01/2013 01:25 PM, richard -rw- weinberger wrote:
+Then we hit a race during socket close that triggers the oops. Yes, that
+needs to be fixed. But you also
+need to "fix" vdb... what appears to be a virtual device.
+
+
+On Fri, Mar 1, 2013 at 1:25 PM, richard -rw- weinberger <
+richard.weinberger@gmail.com> wrote:
+
 > Hi!
 >
 > Using 3.8.1 OCFS2 crashes while joining nodes to the cluster.
-> The cluster consists of 10 nodes, while node3 joins the kernel on node3 crashes.
+> The cluster consists of 10 nodes, while node3 joins the kernel on node3
+> crashes.
 > (Somtimes later...)
 > See dmesg below.
 > Is this a known issue? I didn't test older kernels so far.
@@ -70,7 +78,8 @@ On 03/01/2013 01:25 PM, richard -rw- weinberger wrote:
 > [ 1520.017054] JBD2: Ignoring recovery information on journal
 > [ 1520.078888] ocfs2: Mounting device (253,16) on (node 1, slot 1)
 > with ordered data mode.
-> [ 1520.159590] mount.ocfs2 (2186) used greatest stack depth: 2568 bytes left
+> [ 1520.159590] mount.ocfs2 (2186) used greatest stack depth: 2568 bytes
+> left
 >
 > node3:
 > [ 1482.836865] o2net: Connected to node node1 (num 0) at 192.168.66.1:7777
@@ -108,15 +117,19 @@ On 03/01/2013 01:25 PM, richard -rw- weinberger wrote:
 > -107 when sending message 510 (key 0x666c6172) to node 1
 > [ 1512.845580] (mount.ocfs2,2179,0):dlm_try_to_join_domain:1653 ERROR:
 > status = -107
-> [ 1512.847778] (mount.ocfs2,2179,0):dlm_join_domain:1955 ERROR: status = -107
+> [ 1512.847778] (mount.ocfs2,2179,0):dlm_join_domain:1955 ERROR: status =
+> -107
 > [ 1512.849334] (mount.ocfs2,2179,0):dlm_register_domain:2214 ERROR:
 > status = -107
 > [ 1512.850921] (mount.ocfs2,2179,0):o2cb_cluster_connect:368 ERROR:
 > status = -107
-> [ 1512.852511] (mount.ocfs2,2179,0):ocfs2_dlm_init:3004 ERROR: status = -107
-> [ 1512.854090] (mount.ocfs2,2179,0):ocfs2_mount_volume:1881 ERROR: status = -107
+> [ 1512.852511] (mount.ocfs2,2179,0):ocfs2_dlm_init:3004 ERROR: status =
+> -107
+> [ 1512.854090] (mount.ocfs2,2179,0):ocfs2_mount_volume:1881 ERROR: status
+> = -107
 > [ 1512.855476] ocfs2: Unmounting device (253,16) on (node 0)
-> [ 1512.855915] (mount.ocfs2,2179,0):ocfs2_fill_super:1230 ERROR: status = -107
+> [ 1512.855915] (mount.ocfs2,2179,0):ocfs2_fill_super:1230 ERROR: status =
+> -107
 > [ 1514.839138] o2net: No longer connected to node node1 (num 0) at
 > 192.168.66.1:7777
 > [ 1514.840690] BUG: unable to handle kernel NULL pointer dereference
@@ -130,17 +143,25 @@ On 03/01/2013 01:25 PM, richard -rw- weinberger wrote:
 > [ 1514.841627] RIP: 0010:[<ffffffff816ce840>]  [<ffffffff816ce840>]
 > kernel_sock_ioctl+0x50/0x50
 > [ 1514.841627] RSP: 0018:ffff88001f949d40  EFLAGS: 00010292
-> [ 1514.841627] RAX: ffff88001e6e9c01 RBX: ffff88001e6e9000 RCX: 0000000180080006
-> [ 1514.841627] RDX: 0000000180080007 RSI: 0000000000000002 RDI: 0000000000000000
-> [ 1514.841627] RBP: ffff88001f949dc8 R08: 0000000000016090 R09: 0000000000000001
-> [ 1514.841627] R10: ffffea000079ba40 R11: ffffffff81321207 R12: ffff88001db69440
-> [ 1514.841627] R13: ffffffff8204c760 R14: ffff88001db695a8 R15: ffff88001e6e9058
+> [ 1514.841627] RAX: ffff88001e6e9c01 RBX: ffff88001e6e9000 RCX:
+> 0000000180080006
+> [ 1514.841627] RDX: 0000000180080007 RSI: 0000000000000002 RDI:
+> 0000000000000000
+> [ 1514.841627] RBP: ffff88001f949dc8 R08: 0000000000016090 R09:
+> 0000000000000001
+> [ 1514.841627] R10: ffffea000079ba40 R11: ffffffff81321207 R12:
+> ffff88001db69440
+> [ 1514.841627] R13: ffffffff8204c760 R14: ffff88001db695a8 R15:
+> ffff88001e6e9058
 > [ 1514.841627] FS:  0000000000000000(0000) GS:ffff88001fc00000(0000)
 > knlGS:0000000000000000
 > [ 1514.841627] CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
-> [ 1514.841627] CR2: 0000000000000028 CR3: 000000001c009000 CR4: 00000000000006f0
-> [ 1514.841627] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-> [ 1514.841627] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
+> [ 1514.841627] CR2: 0000000000000028 CR3: 000000001c009000 CR4:
+> 00000000000006f0
+> [ 1514.841627] DR0: 0000000000000000 DR1: 0000000000000000 DR2:
+> 0000000000000000
+> [ 1514.841627] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7:
+> 0000000000000400
 > [ 1514.841627] Process kworker/u:0 (pid: 6, threadinfo
 > ffff88001f948000, task ffff88001f90a670)
 > [ 1514.841627] Stack:
@@ -172,7 +193,8 @@ On 03/01/2013 01:25 PM, richard -rw- weinberger wrote:
 > [ 1514.841627]  RSP <ffff88001f949d40>
 > [ 1514.841627] CR2: 0000000000000028
 > [ 1514.867242] ---[ end trace 36ffe9378168cdc2 ]---
-> [ 1514.867619] BUG: unable to handle kernel paging request at ffffffffffffffd8
+> [ 1514.867619] BUG: unable to handle kernel paging request at
+> ffffffffffffffd8
 > [ 1514.868007] IP: [<ffffffff8105e3cb>] kthread_data+0xb/0x20
 > [ 1514.868007] PGD 1e0d067 PUD 1e0e067 PMD 0
 > [ 1514.868007] Oops: 0000 [#2] PREEMPT SMP
@@ -183,17 +205,25 @@ On 03/01/2013 01:25 PM, richard -rw- weinberger wrote:
 > [ 1514.868007] RIP: 0010:[<ffffffff8105e3cb>]  [<ffffffff8105e3cb>]
 > kthread_data+0xb/0x20
 > [ 1514.868007] RSP: 0018:ffff88001f949928  EFLAGS: 00010092
-> [ 1514.868007] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000006
-> [ 1514.868007] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffff88001f90a670
-> [ 1514.868007] RBP: ffff88001f949928 R08: 0000000000000001 R09: 0000000000000196
-> [ 1514.868007] R10: ffff88001f9116a0 R11: 0000000000000004 R12: ffff88001f90aa40
-> [ 1514.868007] R13: 0000000000000000 R14: ffff88001f90a660 R15: ffff88001f90a670
+> [ 1514.868007] RAX: 0000000000000000 RBX: 0000000000000000 RCX:
+> 0000000000000006
+> [ 1514.868007] RDX: 0000000000000000 RSI: 0000000000000000 RDI:
+> ffff88001f90a670
+> [ 1514.868007] RBP: ffff88001f949928 R08: 0000000000000001 R09:
+> 0000000000000196
+> [ 1514.868007] R10: ffff88001f9116a0 R11: 0000000000000004 R12:
+> ffff88001f90aa40
+> [ 1514.868007] R13: 0000000000000000 R14: ffff88001f90a660 R15:
+> ffff88001f90a670
 > [ 1514.868007] FS:  0000000000000000(0000) GS:ffff88001fc00000(0000)
 > knlGS:0000000000000000
 > [ 1514.868007] CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
-> [ 1514.868007] CR2: ffffffffffffffd8 CR3: 000000001d83d000 CR4: 00000000000006f0
-> [ 1514.868007] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-> [ 1514.868007] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
+> [ 1514.868007] CR2: ffffffffffffffd8 CR3: 000000001d83d000 CR4:
+> 00000000000006f0
+> [ 1514.868007] DR0: 0000000000000000 DR1: 0000000000000000 DR2:
+> 0000000000000000
+> [ 1514.868007] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7:
+> 0000000000000400
 > [ 1514.868007] Process kworker/u:0 (pid: 6, threadinfo
 > ffff88001f948000, task ffff88001f90a670)
 > [ 1514.868007] Stack:
@@ -247,3 +277,14 @@ On 03/01/2013 01:25 PM, richard -rw- weinberger wrote:
 > [ 1514.868007] ---[ end trace 36ffe9378168cdc3 ]---
 > [ 1514.868007] Fixing recursive fault but reboot is needed!
 >
+> --
+> Thanks,
+> //richard
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130301/7ba7b156/attachment-0001.html 
