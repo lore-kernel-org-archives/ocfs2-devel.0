@@ -1,101 +1,136 @@
-From: Vincent ETIENNE <ve@vetienne.net>
-Date: Sat, 02 Mar 2013 11:15:42 +0100
-Subject: [Ocfs2-devel] OCFS2 mainline state?
-In-Reply-To: <512BCA9E.4090702@nod.at>
-References: <512BCA9E.4090702@nod.at>
-Message-ID: <5131D14E.8020802@vetienne.net>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Sat, 2 Mar 2013 02:46:31 -0800
+Subject: [Ocfs2-devel] [RFC PATCH 0/3] copy-on-write extents mapping
+In-Reply-To: <20130225132844.GB8232@quack.suse.cz>
+References: <51244A15.2060508@oracle.com>
+	<20130221152520.GA17067@quack.suse.cz>
+	<20130221180039.GX22221@lenny.home.zabbo.net>
+	<512A18C6.6090601@oracle.com> <20130225132844.GB8232@quack.suse.cz>
+Message-ID: <20130302104630.GC22177@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Richard Weinberger <richard@nod.at>
-Cc: ocfs2-devel@oss.oracle.com, ocfs2-user@oss.oracle.com, linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk, mfasheh@suse.com, jlbec@evilplan.org, linux-fsdevel@vger.kernel.org, david@sigma-star.at
+To: Jan Kara <jack@suse.cz>
+Cc: Jeff Liu <jeff.liu@oracle.com>, zab@zabbo.net, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Andreas Dilger <adilger@dilger.ca>, Dave Chinner <david@fromorbit.com>, Mark Fasheh <mfasheh@suse.com>, Chris Mason <chris.mason@fusionio.com>, Christoph Hellwig <hch@infradead.org>, ocfs2-devel@oss.oracle.com
 
-Hi
+On Mon, Feb 25, 2013 at 02:28:44PM +0100, Jan Kara wrote:
+>   Hi Jeff,
+> 
+> On Sun 24-02-13 21:42:30, Jeff Liu wrote:
+> > Thanks for both of your comments and sorry for my too late response since
+> > I have to think it over and run tests to gather the performance
+> > statistics.
+>   Sure, no problem.
+> 
+> > On 02/22/2013 02:00 AM, Zach Brown wrote:
+> > >>   Can you gather some performance numbers please - i.e. how long does it take
+> > >> to map such file without FIEMAP_FLAG_COW and how long with it? I'm not
+> > >> completely convinced it will make such a huge difference in practice (given
+> > >> du(1) isn't very performance critical application).
+> > > 
+> > > Seconded.
+> > > 
+> > > I'd like to see measurements (wall time, cpu, ios) of the time it takes
+> > > to find shared extents on a giant file *on a fresh uncached mount*.
+> > > 
+> > > Because this interface doesn't help the file system do the work more
+> > > efficiently, the kernel still has to walk everything to see if its
+> > > shared.  It just saves some syscalls and copying.
+> > > 
+> > > That's noise compared to the io/cache footprint of the operation.
+> > Firstly, the results is really frustrating to me as there basically has no performance
+> > improved against a 50GB file on OCFS2.
+> > 
+> > The result collected on a single node OCFS2:
+> > /dev/sda5 on /ocfs2 type ocfs2 (rw,sync,_netdev,heartbeat=local)
+> > 
+> > Create a 50GB file, and create a reflinked file from it:
+> > $ dd if=/dev/zero of=testfile bs=1M count=50000
+> > $ ./ocfs2_reflink testfile testfile_reflinked
+> > 
+> > Make the first 48GB COWed:
+> > $ dd if=/dev/zero of=testfile_reflinked bs=1M count=46000 seek=0 conv=notrunc
+> > 46000+0 records in
+> > 46000+0 records out
+> > 48234496000 bytes (48 GB) copied, 1593.44 s, 30.3 MB/s
+> > 
+> > The original file has 968 shared extents:
+> > $ ./cow_test testfile
+> > Find 968 COW extents
+> > 
+> > After COWed, the target reflinked file has 101 extents in shared state:
+> > The latest 101 extents are in shared state:
+> > $ ./cow_test testfile_reflinked
+> > Find 101 COW extents
+> > 
+> > No matter kernel is patched or not, there basically no performance
+> > improvements although 12 times fiemap ioctl(2) are reduced
+> <snip>
+>   Yeah, I suspected that. As Zach said, kernel has to do all the work
+> anyway so you just save some small overhead of additional syscalls. But
+> those are rather cheap compared to other stuff you need to do.
+> 
+> > But I have another idea regarding the performance if considering the
+> > practical situations.  Generally, the end user would run du(1) against a
+> > partition with not only the reflinked files but also includes normal
+> > files which are not contains any shared extents, or if the user check up
+> > the shared extents for a previous reflinked file, but maybe this file has
+> > already totally COWed, that is, now it does not contains any shared
+> > extent at all.
+> > 
+> > In either case, du(1) has to call fiemap to look through the extents
+> > against this kind of files no matter it contains shared extents or not,
+> > that's would be an overhead(Yes, du(1) is not a very performance critical
+> > application).
+> > 
+> > But with a prejudegement approach, we can bypass the normal files and
+> > lookup shared extents against the COW file only.
+>   Yes, that would be useful and as you showed it can bring noticeable
+> speedup.
+> 
+> > Does the results above looks make sense?  If yes, I still felt that it's
+> > not a formal approach to detect reflinked files.  IMHO, if we can improve
+> > the stat(2)->getattr() to fill the mode member with a flag to indicate
+> > that a file is reflinked/cow or not, it would be more convenient to check
+> > as like S_ISREFLINK(stat.st_mode) from the user space since du(1) always
+> > fetching the statistics per file disk space accounting.
+>   I agree that adding filtering to FIEMAP just to accomodate the only
+> practical use case of checking whether a file has any shared extent is
+> really an overkill. But changing stat(2) the way you describe is ugly hack.
+> st_mode has logically nothing to do with whether file has shared extents or
+> not. If anything you could use ioctl IOC_GETFLAGS for that. I'm not 100%
+> sure that's the right interface but at least it isn't that ugly.
 
-I was testing this path in august and  i have two patch applied for ocfs2
-The one your referring and also  a changed in file.c
+Jumping in, because I'm now back in town and paying attention.  I'm
+going to respond to a bunch of points in the thread.
 
-At the time of the test, the two patch were necessary ( and both
-suppress a BUG although
-not the same one)
+ - If we were going to filter, I'd like to see something more generic.
+   There can be shared extents that are not COW.  FIEMAP_FLAG_COW
+   doesn't fit this.  FIEMAP_FLAG_SHARED is more aligned with how we
+   describe the results in the response structure.
+ - Specific filter flags in FIEMAP strike me as a bad idea.  We all seem
+   to agree on that.
+ - The right thing is for du(1) and similar programs to just ignore
+   files that have no shared extents.  The kernel shouldn't be trying to
+   be smart about this.
+ - Whatever way we present userspace with "this file has shared extents"
+   should be generic so that all filesystems supporting shared extents
+   report the same thing.  btrfs' handling of FS_IOC_GETFLAGS kind of
+   works like this.
+ - The more I think about it, though, I'm liking zab's synthetic xattr.
+   Why not feature flags ala processors?  Imagine the xattr
+   "fs:file-features" reporting "shared-extents,immutable" or somesuch.
+   Free-form strings allow us to add things without the header hoops.
 
-Sorry i have no idea if it's still necessary or not, but i prefer to
-send you a notice
+Joel
 
+-- 
 
-Vincent ETIENNE
+Life's Little Instruction Book #197
 
+	"Don't forget, a person's greatest emotional need is to 
+	 feel appreciated."
 
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1998,7 +1998,7 @@ static long ocfs2_fallocate(struct file *file, int
-mode, loff_t offset,
-        sr.l_start = (s64)offset;
-        sr.l_len = (s64)len;
- 
--       return __ocfs2_change_file_space(NULL, inode, offset, cmd, &sr,
-+       return __ocfs2_change_file_space(file, inode, offset, cmd, &sr,
-                                         change_size);
- }
- 
-diff --git a/fs/ocfs2/symlink.c b/fs/ocfs2/symlink.c
-index f1fbb4b..66edce7 100644
---- a/fs/ocfs2/symlink.c
-+++ b/fs/ocfs2/symlink.c
-@@ -57,7 +57,7 @@
- static int ocfs2_fast_symlink_readpage(struct file *unused, struct page
-*page)
- {
-        struct inode *inode = page->mapping->host;
--       struct buffer_head *bh;
-+       struct buffer_head *bh = NULL;
-        int status = ocfs2_read_inode_block(inode, &bh);
-        struct ocfs2_dinode *fe;
-        const char *link;
-
-
-
-
-
-Le 25/02/2013 21:33, Richard Weinberger a ?crit :
-> Hi!
->
-> Today I encountered the following problem on v3.8:
-> [   28.940032] general protection fault: 0000 [#1] PREEMPT SMP
-> ...
-> [   28.984953] Call Trace:
-> [   28.986628   [<ffffffffa04cb200>]
-> ocfs2_fast_symlink_readpage+0x70/0x1b0 [ocfs2]
-> [   28.988302]  [<ffffffff8110dc49>] ? add_to_page_cache_lru+0x29/0x40
-> [   28.989942]  [<ffffffff8110ddca>] do_read_cache_page+0x7a/0x170
-> [   28.991573]  [<ffffffff8110def4>] read_cache_page_async+0x14/0x20
-> [   28.993212]  [<ffffffff8110df09>] read_cache_page+0x9/0x20
-> [   28.994827]  [<ffffffff81170ae5>] page_getlink.isra.9+0x25/0x80
-> [   28.996442]  [<ffffffff81170b61>] page_follow_link_light+0x21/0x40
-> [   28.998049]  [<ffffffff8117090d>] generic_readlink+0x3d/0xa0
-> [   28.999653]  [<ffffffff8116c0db>] sys_readlinkat+0xfb/0x130
-> [   29.001246]  [<ffffffff8116c126>] sys_readlink+0x16/0x20
-> [   29.002839]  [<ffffffff815d8dad>] system_call_fastpath+0x1a/0x1f
->
-> To my utter astonishment I found out that the issue is known since
-> August 2012.
-> And there is also a trivial fix for it.[0]
-> The said fix found it's way into Oracle Unbreakable Linux very quickly,
-> but not into mainline.[1]
->
-> Now I'm wondering how much Oracle really cares about OCFS2 in mainline?
-> Maybe there are some more unfixed vulnerabilities?
->
-> Not amused,
-> //richard
->
-> [0] http://www.mail-archive.com/ocfs2-devel at oss.oracle.com/msg07774.html
-> [1] https://oss.oracle.com/pipermail/el-errata/2012-October/003103.html
-> -- 
-> To unsubscribe from this list: send the line "unsubscribe
-> linux-kernel" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
->
+			http://www.jlbec.org/
+			jlbec at evilplan.org
