@@ -1,38 +1,34 @@
-From: Wei Yongjun <weiyj.lk@gmail.com>
-Date: Wed, 27 Mar 2013 14:01:11 -0000
-Subject: [Ocfs2-devel] [PATCH -next] ocfs2: fix error return code in
-	ocfs2_info_handle_freefrag()
-Message-ID: <CAPgLHd_JduxWJtpcvFsYJD+39neJf5xQOZfNO0qS+zAX4GTzug@mail.gmail.com>
+From: Richard Weinberger <richard@nod.at>
+Date: Sat, 02 Mar 2013 15:33:13 -0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Update version string
+Message-ID: <1362238380-11303-1-git-send-email-richard@nod.at>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, jlbec@evilplan.org
-Cc: yongjun_wei@trendmicro.com.cn, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
+Cc: mfasheh@suse.com, jlbec@evilplan.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, Richard Weinberger <richard@nod.at>
 
-From: Wei Yongjun <yongjun_wei@trendmicro.com.cn>
+The current version string is outdated.
+Update it to 1.8.0 to reflect the real OCFS2 feature set.
 
-Fix to return a negative error code from the error handling
-case instead of 0, as returned elsewhere in this function.
-
-Signed-off-by: Wei Yongjun <yongjun_wei@trendmicro.com.cn>
+Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- fs/ocfs2/ioctl.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ fs/ocfs2/ver.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 6cab301..0c60ef2 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -706,8 +706,10 @@ int ocfs2_info_handle_freefrag(struct inode *inode,
+diff --git a/fs/ocfs2/ver.c b/fs/ocfs2/ver.c
+index e2488f4..cae2a2c 100644
+--- a/fs/ocfs2/ver.c
++++ b/fs/ocfs2/ver.c
+@@ -29,7 +29,7 @@
  
- 	o2info_set_request_filled(&oiff->iff_req);
+ #include "ver.h"
  
--	if (o2info_to_user(*oiff, req))
-+	if (o2info_to_user(*oiff, req)) {
-+		status = -EFAULT;
- 		goto bail;
-+	}
+-#define OCFS2_BUILD_VERSION "1.5.0"
++#define OCFS2_BUILD_VERSION "1.8.0"
  
- 	status = 0;
- bail:
+ #define VERSION_STR "OCFS2 " OCFS2_BUILD_VERSION
+ 
+-- 
+1.8.1.2
