@@ -1,83 +1,83 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Mon, 11 Mar 2013 02:09:15 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Delay inode update
- transactions after verifying the input flags
-In-Reply-To: <513D6BAF.90707@oracle.com>
-References: <513D6BAF.90707@oracle.com>
-Message-ID: <20130311090914.GG7783@localhost>
+Date: Mon, 11 Mar 2013 02:10:28 -0700
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Add trace point for
+	ocfs2_set_inode_attr()
+In-Reply-To: <513D6BB2.60601@oracle.com>
+References: <513D6BB2.60601@oracle.com>
+Message-ID: <20130311091028.GH7783@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Mar 11, 2013 at 01:29:19PM +0800, Jeff Liu wrote:
-> There is no need to start the inode update transactions before/while verifying
-> the input flags.  As a refinement, this patch delay the transactions utill the
-> pre-check up is ok.
+Hey Jeff,
+	What made you want this trace point?  Did you have a particular
+scenario that required it?  Or were you just thinking "it would be nice
+to have"?
+
+Joel
+
+On Mon, Mar 11, 2013 at 01:29:22PM +0800, Jeff Liu wrote:
+> Add trace point for ocfs2_set_inode_attr().
+> 
+> # cat /debug/tracing/available_events |grep ocfs2_set_inode_attr
+> ocfs2:ocfs2_set_inode_attr
 > 
 > Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 > Cc: Joel Becker <jlbec@evilplan.org>
 > Cc: Mark Fasheh <mfasheh@suse.com>
-
-Acked-by: Joel Becker <jlbec@evilplan.org>
-
 > ---
->  fs/ocfs2/ioctl.c |   18 +++++++++---------
->  1 file changed, 9 insertions(+), 9 deletions(-)
+>  fs/ocfs2/ioctl.c       |    3 +++
+>  fs/ocfs2/ocfs2_trace.h |    6 ++++++
+>  2 files changed, 9 insertions(+)
 > 
 > diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-> index f20edcb..c739c24 100644
+> index c739c24..764bf5c 100644
 > --- a/fs/ocfs2/ioctl.c
 > +++ b/fs/ocfs2/ioctl.c
-> @@ -101,13 +101,6 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
->  	if (!S_ISDIR(inode->i_mode))
->  		flags &= ~OCFS2_DIRSYNC_FL;
+> @@ -27,6 +27,7 @@
+>  #include "buffer_head_io.h"
+>  #include "suballoc.h"
+>  #include "move_extents.h"
+> +#include "ocfs2_trace.h"
 >  
-> -	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
-> -	if (IS_ERR(handle)) {
-> -		status = PTR_ERR(handle);
-> -		mlog_errno(status);
-> -		goto bail_unlock;
-> -	}
-> -
->  	oldflags = ocfs2_inode->ip_attr;
->  	flags = flags & mask;
->  	flags |= oldflags & ~mask;
-> @@ -120,7 +113,14 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
->  	if ((oldflags & OCFS2_IMMUTABLE_FL) || ((flags ^ oldflags) &
->  		(OCFS2_APPEND_FL | OCFS2_IMMUTABLE_FL))) {
->  		if (!capable(CAP_LINUX_IMMUTABLE))
-> -			goto bail_commit;
-> +			goto bail_unlock;
-> +	}
+>  #define o2info_from_user(a, b)	\
+>  		copy_from_user(&(a), (b), sizeof(a))
+> @@ -86,6 +87,8 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
+>  	unsigned oldflags;
+>  	int status;
+>  
+> +	trace_ocfs2_set_inode_attr(OCFS2_I(inode)->ip_blkno, flags);
 > +
-> +	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
-> +	if (IS_ERR(handle)) {
-> +		status = PTR_ERR(handle);
-> +		mlog_errno(status);
-> +		goto bail_unlock;
->  	}
+>  	mutex_lock(&inode->i_mutex);
 >  
->  	ocfs2_inode->ip_attr = flags;
-> @@ -130,8 +130,8 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
->  	if (status < 0)
->  		mlog_errno(status);
+>  	status = ocfs2_inode_lock(inode, &bh, 1);
+> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+> index 3b481f4..bcaca11 100644
+> --- a/fs/ocfs2/ocfs2_trace.h
+> +++ b/fs/ocfs2/ocfs2_trace.h
+> @@ -2755,6 +2755,12 @@ DEFINE_OCFS2_ULL_ULL_EVENT(ocfs2_remove_metadata_tree);
+>  DEFINE_OCFS2_ULL_ULL_UINT_UINT_EVENT(ocfs2_remove_block_from_cache);
 >  
-> -bail_commit:
->  	ocfs2_commit_trans(osb, handle);
+>  /* End of trace events for fs/ocfs2/uptodate.c. */
 > +
->  bail_unlock:
->  	ocfs2_inode_unlock(inode, 1);
->  bail:
+> +/* Trace events for fs/ocfs2/ioctl.c. */
+> +
+> +DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_set_inode_attr);
+> +
+> +/* End of trace events for fs/ocfs2/ioctl.c. */
+>  #endif /* _TRACE_OCFS2_H */
+>  
+>  /* This part must be outside protection */
 > -- 
 > 1.7.9.5
 
 -- 
 
-"Reader, suppose you were and idiot.  And suppose you were a member of
- Congress.  But I repeat myself."
-	- Mark Twain
+Life's Little Instruction Book #207
+
+	"Swing for the fence."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
