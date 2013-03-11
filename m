@@ -1,70 +1,68 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Sun, 10 Mar 2013 15:55:13 -0700
-Subject: [Ocfs2-devel] [PATCH] fs: fs2fs: Replaced calls to kmalloc and
- memcpy with kmemdup
-In-Reply-To: <1362829777-6924-1-git-send-email-gheorghiuandru@gmail.com>
-References: <1362829777-6924-1-git-send-email-gheorghiuandru@gmail.com>
-Message-ID: <20130310225513.GF7783@localhost>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Mon, 11 Mar 2013 13:29:19 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Delay inode update transactions
+ after verifying the input flags
+Message-ID: <513D6BAF.90707@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Alexandru Gheorghiu <gheorghiuandru@gmail.com>
-Cc: Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Sat, Mar 09, 2013 at 01:49:37PM +0200, Alexandru Gheorghiu wrote:
-> Replaced calls to kmalloc followd by memcpy with a single call to kmemdup.
-> This patch was found using coccicheck.
-> 
-> Signed-off-by: Alexandru Gheorghiu <gheorghiuandru@gmail.com>
+There is no need to start the inode update transactions before/while verifying
+the input flags.  As a refinement, this patch delay the transactions utill the
+pre-check up is ok.
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Mark Fasheh <mfasheh@suse.com>
+---
+ fs/ocfs2/ioctl.c |   18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
 
-> ---
->  fs/ocfs2/localalloc.c |    6 ++----
->  1 file changed, 2 insertions(+), 4 deletions(-)
-> 
-> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-> index aebeacd..839183f 100644
-> --- a/fs/ocfs2/localalloc.c
-> +++ b/fs/ocfs2/localalloc.c
-> @@ -434,12 +434,11 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
->  	bh = osb->local_alloc_bh;
->  	alloc = (struct ocfs2_dinode *) bh->b_data;
->  
-> -	alloc_copy = kmalloc(bh->b_size, GFP_NOFS);
-> +	alloc_copy = kmemdup(alloc, bh->b_size, GFP_NOFS);
->  	if (!alloc_copy) {
->  		status = -ENOMEM;
->  		goto out_commit;
->  	}
-> -	memcpy(alloc_copy, alloc, bh->b_size);
->  
->  	status = ocfs2_journal_access_di(handle, INODE_CACHE(local_alloc_inode),
->  					 bh, OCFS2_JOURNAL_ACCESS_WRITE);
-> @@ -1244,13 +1243,12 @@ static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
->  	 * local alloc shutdown won't try to double free main bitmap
->  	 * bits. Make a copy so the sync function knows which bits to
->  	 * free. */
-> -	alloc_copy = kmalloc(osb->local_alloc_bh->b_size, GFP_NOFS);
-> +	alloc_copy = kmemdup(alloc, osb->local_alloc_bh->b_size, GFP_NOFS);
->  	if (!alloc_copy) {
->  		status = -ENOMEM;
->  		mlog_errno(status);
->  		goto bail;
->  	}
-> -	memcpy(alloc_copy, alloc, osb->local_alloc_bh->b_size);
->  
->  	status = ocfs2_journal_access_di(handle,
->  					 INODE_CACHE(local_alloc_inode),
-> -- 
-> 1.7.9.5
-> 
-
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index f20edcb..c739c24 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -101,13 +101,6 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
+ 	if (!S_ISDIR(inode->i_mode))
+ 		flags &= ~OCFS2_DIRSYNC_FL;
+ 
+-	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
+-	if (IS_ERR(handle)) {
+-		status = PTR_ERR(handle);
+-		mlog_errno(status);
+-		goto bail_unlock;
+-	}
+-
+ 	oldflags = ocfs2_inode->ip_attr;
+ 	flags = flags & mask;
+ 	flags |= oldflags & ~mask;
+@@ -120,7 +113,14 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
+ 	if ((oldflags & OCFS2_IMMUTABLE_FL) || ((flags ^ oldflags) &
+ 		(OCFS2_APPEND_FL | OCFS2_IMMUTABLE_FL))) {
+ 		if (!capable(CAP_LINUX_IMMUTABLE))
+-			goto bail_commit;
++			goto bail_unlock;
++	}
++
++	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
++	if (IS_ERR(handle)) {
++		status = PTR_ERR(handle);
++		mlog_errno(status);
++		goto bail_unlock;
+ 	}
+ 
+ 	ocfs2_inode->ip_attr = flags;
+@@ -130,8 +130,8 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
+ 	if (status < 0)
+ 		mlog_errno(status);
+ 
+-bail_commit:
+ 	ocfs2_commit_trans(osb, handle);
++
+ bail_unlock:
+ 	ocfs2_inode_unlock(inode, 1);
+ bail:
 -- 
-
-"Egotist: a person more interested in himself than in me."
-         - Ambrose Bierce 
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+1.7.9.5
