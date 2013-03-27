@@ -1,55 +1,38 @@
-From: Alexandru Gheorghiu <gheorghiuandru@gmail.com>
-Date: Sun, 10 Mar 2013 22:50:29 -0000
-Subject: [Ocfs2-devel] [PATCH] fs: fs2fs: Replaced calls to kmalloc and
-	memcpy with kmemdup
-Message-ID: <1362829777-6924-1-git-send-email-gheorghiuandru@gmail.com>
+From: Wei Yongjun <weiyj.lk@gmail.com>
+Date: Wed, 27 Mar 2013 14:01:11 -0000
+Subject: [Ocfs2-devel] [PATCH -next] ocfs2: fix error return code in
+	ocfs2_info_handle_freefrag()
+Message-ID: <CAPgLHd_JduxWJtpcvFsYJD+39neJf5xQOZfNO0qS+zAX4GTzug@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Alexandru Gheorghiu <gheorghiuandru@gmail.com>
+To: mfasheh@suse.com, jlbec@evilplan.org
+Cc: yongjun_wei@trendmicro.com.cn, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Replaced calls to kmalloc followd by memcpy with a single call to kmemdup.
-This patch was found using coccicheck.
+From: Wei Yongjun <yongjun_wei@trendmicro.com.cn>
 
-Signed-off-by: Alexandru Gheorghiu <gheorghiuandru@gmail.com>
+Fix to return a negative error code from the error handling
+case instead of 0, as returned elsewhere in this function.
+
+Signed-off-by: Wei Yongjun <yongjun_wei@trendmicro.com.cn>
 ---
- fs/ocfs2/localalloc.c |    6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+ fs/ocfs2/ioctl.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index aebeacd..839183f 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -434,12 +434,11 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
- 	bh = osb->local_alloc_bh;
- 	alloc = (struct ocfs2_dinode *) bh->b_data;
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index 6cab301..0c60ef2 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -706,8 +706,10 @@ int ocfs2_info_handle_freefrag(struct inode *inode,
  
--	alloc_copy = kmalloc(bh->b_size, GFP_NOFS);
-+	alloc_copy = kmemdup(alloc, bh->b_size, GFP_NOFS);
- 	if (!alloc_copy) {
- 		status = -ENOMEM;
- 		goto out_commit;
- 	}
--	memcpy(alloc_copy, alloc, bh->b_size);
+ 	o2info_set_request_filled(&oiff->iff_req);
  
- 	status = ocfs2_journal_access_di(handle, INODE_CACHE(local_alloc_inode),
- 					 bh, OCFS2_JOURNAL_ACCESS_WRITE);
-@@ -1244,13 +1243,12 @@ static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
- 	 * local alloc shutdown won't try to double free main bitmap
- 	 * bits. Make a copy so the sync function knows which bits to
- 	 * free. */
--	alloc_copy = kmalloc(osb->local_alloc_bh->b_size, GFP_NOFS);
-+	alloc_copy = kmemdup(alloc, osb->local_alloc_bh->b_size, GFP_NOFS);
- 	if (!alloc_copy) {
- 		status = -ENOMEM;
- 		mlog_errno(status);
+-	if (o2info_to_user(*oiff, req))
++	if (o2info_to_user(*oiff, req)) {
++		status = -EFAULT;
  		goto bail;
- 	}
--	memcpy(alloc_copy, alloc, osb->local_alloc_bh->b_size);
++	}
  
- 	status = ocfs2_journal_access_di(handle,
- 					 INODE_CACHE(local_alloc_inode),
--- 
-1.7.9.5
+ 	status = 0;
+ bail:
