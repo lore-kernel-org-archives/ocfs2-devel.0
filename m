@@ -1,29 +1,36 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 9 Apr 2013 13:09:48 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: fix error handling in
- ocfs2_ioctl_move_extents()
-In-Reply-To: <51638854.8020405@oracle.com>
-References: <51638854.8020405@oracle.com>
-Message-ID: <20130409130948.a6ea97e8fd48c69a0389390c@linux-foundation.org>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Tue, 23 Apr 2013 10:16:04 -0400
+Subject: [Ocfs2-devel] [PATCH v3 06/18] ocfs2: use ->invalidatepage()
+	length argument
+In-Reply-To: <1365498867-27782-7-git-send-email-lczerner@redhat.com>
+References: <1365498867-27782-1-git-send-email-lczerner@redhat.com>
+	<1365498867-27782-7-git-send-email-lczerner@redhat.com>
+Message-ID: <20130423141604.GE31170@thunk.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Lukas Czerner <lczerner@redhat.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, Joel Becker <jlbec@evilplan.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-On Tue, 09 Apr 2013 11:17:40 +0800 Jeff Liu <jeff.liu@oracle.com> wrote:
+On Tue, Apr 09, 2013 at 11:14:15AM +0200, Lukas Czerner wrote:
+> ->invalidatepage() aop now accepts range to invalidate so we can make
+> use of it in ocfs2_invalidatepage().
+> 
+> Signed-off-by: Lukas Czerner <lczerner@redhat.com>
+> Cc: Joel Becker <jlbec@evilplan.org>
 
-> From: Dan Carpenter <dan.carpenter@oracle.com>
-> 
-> Smatch complains that if we hit an error (for example if the file is
-> immutable) then "range" has uninitialized stack data and we copy it to
-> the user.
-> 
-> I've re-written the error handling to avoid this problem and make it a
-> little cleaner as well.
-> 
-> Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
-> Reviewed-by: Jie Liu <jeff.liu@oracle.com>
++Mark Fasheh, ocfs2-devel
 
-I've added your signed-off-by to these patches - it should have been
-included because you were on the patch delivery path.
+To the ocfs2 development team,
+
+Since half of this patch series modifies ext4 extensively, and changes
+to the other file systems are relatively small, I plan to carry the
+invalidatepage patch set in the ext4 tree for the next development
+cycle (i.e., not the upcoming merge window, but the next one).  To
+that end, it would be great if you take a look at this patch set and
+send us an Acked-by signoff.
+
+Thanks!!
+
+						- Ted
