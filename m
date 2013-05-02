@@ -1,74 +1,48 @@
-From: Sunil Mushran <sunil.mushran@gmail.com>
-Date: Thu, 2 May 2013 10:19:42 -0700
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix possible memory leak in
-	dlm_process_recovery_data
-In-Reply-To: <51826292.2000001@huawei.com>
-References: <51826292.2000001@huawei.com>
-Message-ID: <CAEeiSHXWZgBNaX_zqdFT94eRLfaWFPxgWtF3bM_=QEk9wKsWHA@mail.gmail.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Thu, 2 May 2013 15:00:31 -0700
+Subject: [Ocfs2-devel] [PATCH v3 06/18] ocfs2: use ->invalidatepage()
+	length argument
+In-Reply-To: <20130423141604.GE31170@thunk.org>
+References: <1365498867-27782-1-git-send-email-lczerner@redhat.com>
+	<1365498867-27782-7-git-send-email-lczerner@redhat.com>
+	<20130423141604.GE31170@thunk.org>
+Message-ID: <20130502220030.GC26770@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Theodore Ts'o <tytso@mit.edu>, Lukas Czerner <lczerner@redhat.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-Do you know under what conditions does it create a new lock when it should
-not?
+Acked-by: Joel Becker <jlbec@evilplan.org>
 
-This code should only trigger if the lockres is/was mastered on another
-node.
-Meaning this node will not know about the newlock. Meaning that code should
-never trigger.
+On Tue, Apr 23, 2013 at 10:16:04AM -0400, Theodore Ts'o wrote:
+> On Tue, Apr 09, 2013 at 11:14:15AM +0200, Lukas Czerner wrote:
+> > ->invalidatepage() aop now accepts range to invalidate so we can make
+> > use of it in ocfs2_invalidatepage().
+> > 
+> > Signed-off-by: Lukas Czerner <lczerner@redhat.com>
+> > Cc: Joel Becker <jlbec@evilplan.org>
+> 
+> +Mark Fasheh, ocfs2-devel
+> 
+> To the ocfs2 development team,
+> 
+> Since half of this patch series modifies ext4 extensively, and changes
+> to the other file systems are relatively small, I plan to carry the
+> invalidatepage patch set in the ext4 tree for the next development
+> cycle (i.e., not the upcoming merge window, but the next one).  To
+> that end, it would be great if you take a look at this patch set and
+> send us an Acked-by signoff.
+> 
+> Thanks!!
+> 
+> 						- Ted
 
-1949                         if (lock->ml.cookie == ml->cookie) {
-This if looks hacky.
+-- 
 
-If you have a reproducible case, it may be worthwhile to get some traces to
-see
-under what conditions this happens. Should be straight forward after that.
+"Ninety feet between bases is perhaps as close as man has ever come
+ to perfection."
+	- Red Smith
 
-Thanks
-Sunil
-
-
-
-On Thu, May 2, 2013 at 5:56 AM, Joseph Qi <joseph.qi@huawei.com> wrote:
-
->   We found a possible memory leak in dlm_process_recovery_data when doing
-> code review. In dlm_process_recovery_data, it creates newlock each time,
-> but don't free when it is bad, and then it will lead to memory leak.
->
-> Cc: stable at vger.kernel.org
-> Signed-off-by: Joseph Qi <joseph.qi@huawei.com> <joseph.qi@huawei.com>
-> Reviewed-by: Jie Liu <jeff.liu@oracle.com> <jeff.liu@oracle.com>
->
-> ---
->  fs/ocfs2/dlm/dlmrecovery.c |    4 ++++
->  1 file changed, 4 insertions(+)
->
-> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> index eeac97b..9f08523 100644
-> --- a/fs/ocfs2/dlm/dlmrecovery.c
-> +++ b/fs/ocfs2/dlm/dlmrecovery.c
-> @@ -1974,6 +1974,10 @@ skip_lvb:
->  			     res->lockname.len, res->lockname.name, ml->node);
->  			dlm_lockres_set_refmap_bit(dlm, res, ml->node);
->  			added++;
-> +		} else {
-> +			/* Free the new lock if it is bad */
-> +			dlm_lock_put(newlock);
-> +			newlock = NULL;
->  		}
->  		spin_unlock(&res->spinlock);
->  	}
-> --
-> 1.7.9.7
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130502/ba665054/attachment.html 
+			http://www.jlbec.org/
+			jlbec at evilplan.org
