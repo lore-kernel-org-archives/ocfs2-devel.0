@@ -1,48 +1,83 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 2 May 2013 15:00:31 -0700
-Subject: [Ocfs2-devel] [PATCH v3 06/18] ocfs2: use ->invalidatepage()
-	length argument
-In-Reply-To: <20130423141604.GE31170@thunk.org>
-References: <1365498867-27782-1-git-send-email-lczerner@redhat.com>
-	<1365498867-27782-7-git-send-email-lczerner@redhat.com>
-	<20130423141604.GE31170@thunk.org>
-Message-ID: <20130502220030.GC26770@localhost>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Sat, 4 May 2013 09:02:53 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix possible memory leak in
+	dlm_process_recovery_data
+In-Reply-To: <CAEeiSHXWZgBNaX_zqdFT94eRLfaWFPxgWtF3bM_=QEk9wKsWHA@mail.gmail.com>
+References: <51826292.2000001@huawei.com>
+	<CAEeiSHXWZgBNaX_zqdFT94eRLfaWFPxgWtF3bM_=QEk9wKsWHA@mail.gmail.com>
+Message-ID: <51845E3D.7070701@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Ts'o <tytso@mit.edu>, Lukas Czerner <lczerner@redhat.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
+Please consider the belowing case:
+dlm_migrate_all_locks -> dlm_empty_lockres -> dlm_migrate_lockres ->
+dlm_send_one_lockres, if we have already sent some locks, say
+DLM_MAX_MIGRATABLE_LOCKS for the first time, and then
+dlm_send_mig_lockres_msg failed because of network down, it will redo
+it. During the redo_bucket, the lockres can be hashed and migrated
+again.
 
-On Tue, Apr 23, 2013 at 10:16:04AM -0400, Theodore Ts'o wrote:
-> On Tue, Apr 09, 2013 at 11:14:15AM +0200, Lukas Czerner wrote:
-> > ->invalidatepage() aop now accepts range to invalidate so we can make
-> > use of it in ocfs2_invalidatepage().
-> > 
-> > Signed-off-by: Lukas Czerner <lczerner@redhat.com>
-> > Cc: Joel Becker <jlbec@evilplan.org>
+On 2013/5/3 1:19, Sunil Mushran wrote:
+> Do you know under what conditions does it create a new lock when it
+> should not?
 > 
-> +Mark Fasheh, ocfs2-devel
+> This code should only trigger if the lockres is/was mastered on another
+> node.
+> Meaning this node will not know about the newlock. Meaning that code should
+> never trigger.
 > 
-> To the ocfs2 development team,
+> 1949                         if (lock->ml.cookie == ml->cookie) {
+> This if looks hacky.
 > 
-> Since half of this patch series modifies ext4 extensively, and changes
-> to the other file systems are relatively small, I plan to carry the
-> invalidatepage patch set in the ext4 tree for the next development
-> cycle (i.e., not the upcoming merge window, but the next one).  To
-> that end, it would be great if you take a look at this patch set and
-> send us an Acked-by signoff.
+> If you have a reproducible case, it may be worthwhile to get some traces
+> to see
+> under what conditions this happens. Should be straight forward after that.
 > 
-> Thanks!!
+> Thanks
+> Sunil
 > 
-> 						- Ted
-
--- 
-
-"Ninety feet between bases is perhaps as close as man has ever come
- to perfection."
-	- Red Smith
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+> 
+> 
+> On Thu, May 2, 2013 at 5:56 AM, Joseph Qi <joseph.qi@huawei.com
+> <mailto:joseph.qi@huawei.com>> wrote:
+> 
+>     We found a possible memory leak in dlm_process_recovery_data when doing
+>     code review. In dlm_process_recovery_data, it creates newlock each time,
+>     but don't free when it is bad, and then it will lead to memory leak.
+> 
+>     Cc: stable at vger.kernel.org <mailto:stable@vger.kernel.org>
+>     Signed-off-by: Joseph Qi <joseph.qi@huawei.com> <mailto:joseph.qi@huawei.com>
+>     Reviewed-by: Jie Liu <jeff.liu@oracle.com> <mailto:jeff.liu@oracle.com>
+> 
+>     ---
+>      fs/ocfs2/dlm/dlmrecovery.c |    4 ++++
+>      1 file changed, 4 insertions(+)
+> 
+>     diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+>     index eeac97b..9f08523 100644
+>     --- a/fs/ocfs2/dlm/dlmrecovery.c
+>     +++ b/fs/ocfs2/dlm/dlmrecovery.c
+>     @@ -1974,6 +1974,10 @@ skip_lvb:
+>      			     res->lockname.len, res->lockname.name <http://lockname.name>, ml->node);
+>      			dlm_lockres_set_refmap_bit(dlm, res, ml->node);
+>      			added++;
+>     +		} else {
+>     +			/* Free the new lock if it is bad */
+>     +			dlm_lock_put(newlock);
+>     +			newlock = NULL;
+>      		}
+>      		spin_unlock(&res->spinlock);
+>      	}
+>     -- 
+>     1.7.9.7
+> 
+> 
+>     _______________________________________________
+>     Ocfs2-devel mailing list
+>     Ocfs2-devel at oss.oracle.com <mailto:Ocfs2-devel@oss.oracle.com>
+>     https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+> 
