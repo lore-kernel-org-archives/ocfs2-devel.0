@@ -1,40 +1,33 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 20 May 2013 17:36:12 +0800
-Subject: [Ocfs2-devel] [PATCH] clean up duplicate declaration in
-	dlmrecovery.c
-Message-ID: <5199EE8C.5050808@huawei.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Mon, 20 May 2013 10:06:31 -0500
+Subject: [Ocfs2-devel] [PATCH] Remove unecessary ERROR when removing
+	non-empty directory
+Message-ID: <CAJtY7HXOYRsRVKckzAg9V2nBivWwSspk7SJaonqMxWcgqE-m9g@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Below 3 functions have already been declared in dlmcommon.h, so we have
-no need to declare them again in dlmrecovery.c.
-dlm_complete_recovery_thread
-dlm_launch_recovery_thread
-dlm_kick_recovery_thread
+While removing a non-empty directory, the kernel dumps a message:
+(rmdir,21743,1):ocfs2_unlink:953 ERROR: status = -39
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Suppress the error message from being printed in the dmesg so users
+don't panic.
+
+Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 
 ---
- fs/ocfs2/dlm/dlmrecovery.c |    3 ---
- 1 file changed, 3 deletions(-)
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 04ee1b5..33c7b91 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -947,7 +947,7 @@ leave:
+  ocfs2_free_dir_lookup_result(&orphan_insert);
+  ocfs2_free_dir_lookup_result(&lookup);
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 93de2e0..1741c33 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -55,9 +55,6 @@
- static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8
-dead_node);
+- if (status)
++ if (status && (status != -ENOTEMPTY))
+  mlog_errno(status);
 
- static int dlm_recovery_thread(void *data);
--void dlm_complete_recovery_thread(struct dlm_ctxt *dlm);
--int dlm_launch_recovery_thread(struct dlm_ctxt *dlm);
--void dlm_kick_recovery_thread(struct dlm_ctxt *dlm);
- static int dlm_do_recovery(struct dlm_ctxt *dlm);
-
- static int dlm_pick_recovery_master(struct dlm_ctxt *dlm);
---
-1.7.9.7
+  return status;
