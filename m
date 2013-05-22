@@ -1,33 +1,31 @@
-From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Mon, 20 May 2013 10:06:31 -0500
-Subject: [Ocfs2-devel] [PATCH] Remove unecessary ERROR when removing
-	non-empty directory
-Message-ID: <CAJtY7HXOYRsRVKckzAg9V2nBivWwSspk7SJaonqMxWcgqE-m9g@mail.gmail.com>
+From: xiaowei.hu at oracle.com <xiaowei.hu@oracle.com>
+Date: Wed, 22 May 2013 09:43:16 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2_prep_new_orphaned_file should return ret
+Message-ID: <1369186996-7127-1-git-send-email-xiaowei.hu@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-While removing a non-empty directory, the kernel dumps a message:
-(rmdir,21743,1):ocfs2_unlink:953 ERROR: status = -39
-
-Suppress the error message from being printed in the dmesg so users
-don't panic.
-
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+From: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
 
 ---
+ fs/ocfs2/namei.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
 diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 04ee1b5..33c7b91 100644
+index 50c93a8..422cbe0 100644
 --- a/fs/ocfs2/namei.c
 +++ b/fs/ocfs2/namei.c
-@@ -947,7 +947,7 @@ leave:
-  ocfs2_free_dir_lookup_result(&orphan_insert);
-  ocfs2_free_dir_lookup_result(&lookup);
-
-- if (status)
-+ if (status && (status != -ENOTEMPTY))
-  mlog_errno(status);
-
-  return status;
+@@ -2216,7 +2216,7 @@ out:
+ 
+ 	brelse(orphan_dir_bh);
+ 
+-	return 0;
++	return ret;
+ }
+ 
+ int ocfs2_create_inode_in_orphan(struct inode *dir,
+-- 
+1.7.11.7
