@@ -1,12 +1,10 @@
 From: Sunil Mushran <sunil.mushran@gmail.com>
-Date: Wed, 22 May 2013 15:50:52 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2_prep_new_orphaned_file should
-	return ret
-In-Reply-To: <519C3123.6070908@huawei.com>
-References: <1369186996-7127-1-git-send-email-xiaowei.hu@oracle.com>
-	<519C2E1F.40507@huawei.com> <519C2F93.3070408@oracle.com>
-	<519C3123.6070908@huawei.com>
-Message-ID: <CAEeiSHXkSTH31ATFxPXjxRAkP-RxXaNBq0wTycsj7YiGONnawQ@mail.gmail.com>
+Date: Wed, 22 May 2013 15:53:36 -0700
+Subject: [Ocfs2-devel] [PATCH] Remove unecessary ERROR when removing
+ non-empty directory
+In-Reply-To: <CAJtY7HXOYRsRVKckzAg9V2nBivWwSspk7SJaonqMxWcgqE-m9g@mail.gmail.com>
+References: <CAJtY7HXOYRsRVKckzAg9V2nBivWwSspk7SJaonqMxWcgqE-m9g@mail.gmail.com>
+Message-ID: <CAEeiSHXU-iXgLBmGwOi3+WCA0VcArVf-RjLAogVOns-creaB7w@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -16,46 +14,30 @@ To: ocfs2-devel@oss.oracle.com
 Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
 
 
-On Tue, May 21, 2013 at 7:44 PM, shencanquan <shencanquan@huawei.com> wrote:
+On Mon, May 20, 2013 at 8:06 AM, Goldwyn Rodrigues <rgoldwyn@gmail.com>wrote:
 
-> On 2013/5/22 10:38, xiaowei.hu wrote:
-> > if there is error happen in , for example EIO in
-> > __ocfs2_prepare_orphan_dir, ocfs2_prep_new_orphaned_file will release
-> > the inode_ac, the the caller of ocfs2_prep_new_orphaned_file get a 0
-> > return, it will refer to a NULL ocfs2_alloc_context struct in the
-> > following functions.Kernel panic happens.
-> Hmm, I see, this patch looks good .
-> Reviewed-by: shencanquan <shencanquan@huawei.com>
-> >
-> > On 05/22/2013 10:31 AM, shencanquan wrote:
-> >> if return 0,  what's wrong with this?
-> >> On 2013/5/22 9:43, xiaowei.hu at oracle.com wrote:
-> >>> From: "Xiaowei.Hu"<xiaowei.hu@oracle.com>
-> >>>
-> >>> ---
-> >>>   fs/ocfs2/namei.c | 2 +-
-> >>>   1 file changed, 1 insertion(+), 1 deletion(-)
-> >>>
-> >>> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> >>> index 50c93a8..422cbe0 100644
-> >>> --- a/fs/ocfs2/namei.c
-> >>> +++ b/fs/ocfs2/namei.c
-> >>> @@ -2216,7 +2216,7 @@ out:
-> >>>
-> >>>       brelse(orphan_dir_bh);
-> >>>
-> >>> -    return 0;
-> >>> +    return ret;
-> >>>   }
-> >>>
-> >>>   int ocfs2_create_inode_in_orphan(struct inode *dir,
-> >>
-> >>
-> >
-> >
-> >
+> While removing a non-empty directory, the kernel dumps a message:
+> (rmdir,21743,1):ocfs2_unlink:953 ERROR: status = -39
 >
+> Suppress the error message from being printed in the dmesg so users
+> don't panic.
 >
+> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+>
+> ---
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index 04ee1b5..33c7b91 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -947,7 +947,7 @@ leave:
+>   ocfs2_free_dir_lookup_result(&orphan_insert);
+>   ocfs2_free_dir_lookup_result(&lookup);
+>
+> - if (status)
+> + if (status && (status != -ENOTEMPTY))
+>   mlog_errno(status);
+>
+>   return status;
 >
 > _______________________________________________
 > Ocfs2-devel mailing list
@@ -64,4 +46,4 @@ On Tue, May 21, 2013 at 7:44 PM, shencanquan <shencanquan@huawei.com> wrote:
 >
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130522/be709a6f/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130522/23383a46/attachment.html 
