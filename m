@@ -1,49 +1,82 @@
 From: Sunil Mushran <sunil.mushran@gmail.com>
-Date: Wed, 22 May 2013 15:53:36 -0700
-Subject: [Ocfs2-devel] [PATCH] Remove unecessary ERROR when removing
- non-empty directory
-In-Reply-To: <CAJtY7HXOYRsRVKckzAg9V2nBivWwSspk7SJaonqMxWcgqE-m9g@mail.gmail.com>
-References: <CAJtY7HXOYRsRVKckzAg9V2nBivWwSspk7SJaonqMxWcgqE-m9g@mail.gmail.com>
-Message-ID: <CAEeiSHXU-iXgLBmGwOi3+WCA0VcArVf-RjLAogVOns-creaB7w@mail.gmail.com>
+Date: Wed, 22 May 2013 16:00:12 -0700
+Subject: [Ocfs2-devel] ocfs2: Question for ocfs2_recovery_thread
+In-Reply-To: <51998F27.7070601@huawei.com>
+References: <51971F6C.1000002@huawei.com>
+	<CD83871B-2C0E-48ED-B037-1B49AF0B98C9@gmail.com>
+	<51983831.3050802@huawei.com> <51998F27.7070601@huawei.com>
+Message-ID: <CAEeiSHVmHJ55yWt26BgLL3aV7Mg+vnmKSqf2=HTErNR7YqziXw@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
+True. The function could do with a little bit of cleanup. Feel free to send
+a patch.
 
 
-On Mon, May 20, 2013 at 8:06 AM, Goldwyn Rodrigues <rgoldwyn@gmail.com>wrote:
+On Sun, May 19, 2013 at 7:49 PM, Joseph Qi <joseph.qi@huawei.com> wrote:
 
-> While removing a non-empty directory, the kernel dumps a message:
-> (rmdir,21743,1):ocfs2_unlink:953 ERROR: status = -39
+> On 2013/5/19 10:25, Joseph Qi wrote:
+> > On 2013/5/18 21:26, Sunil Mushran wrote:
+> >> The first node that gets the lock will do the actual recovery. The
+> others will get the lock and see a clean journal and skip the recovery. A
+> thread should never error out if it fails to get the lock. It should try
+> and try again.
+> >>
+> >> On May 17, 2013, at 11:27 PM, Joseph Qi <joseph.qi@huawei.com> wrote:
+> >>
+> >>> Hi,
+> >>> Once there is node down in the cluster, ocfs2_recovery_thread will be
+> >>> triggered on each node. These threads then do the down node recovery by
+> >>> get super lock.
+> >>> I have several questions on this:
+> >>> 1) Why each node has to run such a thread? We know at last one node can
+> >>> get the super lock and do the actual recovery.
+> >>> 2) If this thread is running but something error occurred, take
+> >>> ocfs2_super_lock failed for example, the thread will exit without
+> >>> clearing recovery map, will it cause other threads still waiting for
+> >>> recovery in ocfs2_wait_for_recovery?
+> >>>
+> >>
+> >>
+> > But when error occurs and goes to bail, and the restart logic will not
+> > run. Codes like below:
+> > ...
+> >       status = ocfs2_wait_on_mount(osb);
+> >       if (status < 0) {
+> >               goto bail;
+> >       }
+> >
+> >       rm_quota = kzalloc(osb->max_slots * sizeof(int), GFP_NOFS);
+> >       if (!rm_quota) {
+> >               status = -ENOMEM;
+> >               goto bail;
+> >       }
+> > restart:
+> >       status = ocfs2_super_lock(osb, 1);
+> >       if (status < 0) {
+> >               mlog_errno(status);
+> >               goto bail;
+> >       }
+> > ...
+> >       if (!status && !ocfs2_recovery_completed(osb)) {
+> >               mutex_unlock(&osb->recovery_lock);
+> >               goto restart;
+> >       }
+> >
+> >
+> > _______________________________________________
+> > Ocfs2-devel mailing list
+> > Ocfs2-devel at oss.oracle.com
+> > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> >
+> >
+> One more question, do we make sure dlm_recovery_thread always prior to
+> ocfs2_recovery_thread?
 >
-> Suppress the error message from being printed in the dmesg so users
-> don't panic.
->
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
->
-> ---
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 04ee1b5..33c7b91 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -947,7 +947,7 @@ leave:
->   ocfs2_free_dir_lookup_result(&orphan_insert);
->   ocfs2_free_dir_lookup_result(&lookup);
->
-> - if (status)
-> + if (status && (status != -ENOTEMPTY))
->   mlog_errno(status);
->
->   return status;
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 >
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130522/23383a46/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130522/f0a5a382/attachment-0001.html 
