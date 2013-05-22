@@ -1,10 +1,12 @@
 From: Sunil Mushran <sunil.mushran@gmail.com>
-Date: Wed, 22 May 2013 15:46:21 -0700
-Subject: [Ocfs2-devel] [PATCH] clean up duplicate declaration in
-	dlmrecovery.c
-In-Reply-To: <5199EE8C.5050808@huawei.com>
-References: <5199EE8C.5050808@huawei.com>
-Message-ID: <CAEeiSHVgh+vA+6XjQ4NmgjXfm3YC021qRjqfbHezV9Y3oud7Hg@mail.gmail.com>
+Date: Wed, 22 May 2013 15:50:52 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2_prep_new_orphaned_file should
+	return ret
+In-Reply-To: <519C3123.6070908@huawei.com>
+References: <1369186996-7127-1-git-send-email-xiaowei.hu@oracle.com>
+	<519C2E1F.40507@huawei.com> <519C2F93.3070408@oracle.com>
+	<519C3123.6070908@huawei.com>
+Message-ID: <CAEeiSHXkSTH31ATFxPXjxRAkP-RxXaNBq0wTycsj7YiGONnawQ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,37 +16,45 @@ To: ocfs2-devel@oss.oracle.com
 Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
 
 
-On Mon, May 20, 2013 at 2:36 AM, Joseph Qi <joseph.qi@huawei.com> wrote:
+On Tue, May 21, 2013 at 7:44 PM, shencanquan <shencanquan@huawei.com> wrote:
 
-> Below 3 functions have already been declared in dlmcommon.h, so we have
-> no need to declare them again in dlmrecovery.c.
-> dlm_complete_recovery_thread
-> dlm_launch_recovery_thread
-> dlm_kick_recovery_thread
+> On 2013/5/22 10:38, xiaowei.hu wrote:
+> > if there is error happen in , for example EIO in
+> > __ocfs2_prepare_orphan_dir, ocfs2_prep_new_orphaned_file will release
+> > the inode_ac, the the caller of ocfs2_prep_new_orphaned_file get a 0
+> > return, it will refer to a NULL ocfs2_alloc_context struct in the
+> > following functions.Kernel panic happens.
+> Hmm, I see, this patch looks good .
+> Reviewed-by: shencanquan <shencanquan@huawei.com>
+> >
+> > On 05/22/2013 10:31 AM, shencanquan wrote:
+> >> if return 0,  what's wrong with this?
+> >> On 2013/5/22 9:43, xiaowei.hu at oracle.com wrote:
+> >>> From: "Xiaowei.Hu"<xiaowei.hu@oracle.com>
+> >>>
+> >>> ---
+> >>>   fs/ocfs2/namei.c | 2 +-
+> >>>   1 file changed, 1 insertion(+), 1 deletion(-)
+> >>>
+> >>> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> >>> index 50c93a8..422cbe0 100644
+> >>> --- a/fs/ocfs2/namei.c
+> >>> +++ b/fs/ocfs2/namei.c
+> >>> @@ -2216,7 +2216,7 @@ out:
+> >>>
+> >>>       brelse(orphan_dir_bh);
+> >>>
+> >>> -    return 0;
+> >>> +    return ret;
+> >>>   }
+> >>>
+> >>>   int ocfs2_create_inode_in_orphan(struct inode *dir,
+> >>
+> >>
+> >
+> >
+> >
 >
-> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
->
-> ---
->  fs/ocfs2/dlm/dlmrecovery.c |    3 ---
->  1 file changed, 3 deletions(-)
->
-> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> index 93de2e0..1741c33 100644
-> --- a/fs/ocfs2/dlm/dlmrecovery.c
-> +++ b/fs/ocfs2/dlm/dlmrecovery.c
-> @@ -55,9 +55,6 @@
->  static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8
-> dead_node);
->
->  static int dlm_recovery_thread(void *data);
-> -void dlm_complete_recovery_thread(struct dlm_ctxt *dlm);
-> -int dlm_launch_recovery_thread(struct dlm_ctxt *dlm);
-> -void dlm_kick_recovery_thread(struct dlm_ctxt *dlm);
->  static int dlm_do_recovery(struct dlm_ctxt *dlm);
->
->  static int dlm_pick_recovery_master(struct dlm_ctxt *dlm);
-> --
-> 1.7.9.7
 >
 >
 > _______________________________________________
@@ -54,4 +64,4 @@ On Mon, May 20, 2013 at 2:36 AM, Joseph Qi <joseph.qi@huawei.com> wrote:
 >
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130522/c6a2a36b/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130522/be709a6f/attachment.html 
