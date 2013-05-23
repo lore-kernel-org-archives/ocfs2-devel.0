@@ -1,62 +1,101 @@
-From: Sunil Mushran <sunil.mushran@gmail.com>
-Date: Wed, 22 May 2013 16:05:46 -0700
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: goto out_unlock if
- ocfs2_get_clusters_nocache failed in ocfs2_fiemap
-In-Reply-To: <5191E2DC.6070200@huawei.com>
-References: <5191E2DC.6070200@huawei.com>
-Message-ID: <CAEeiSHXNDmK9oxuFzZwW20uq8XKPUyu+Ed_W4cEra1BiA-0cbw@mail.gmail.com>
+From: shencanquan <shencanquan@huawei.com>
+Date: Thu, 23 May 2013 17:37:14 +0800
+Subject: [Ocfs2-devel] ocfs2: Question for ocfs2_recovery_thread
+In-Reply-To: <CAEeiSHVmHJ55yWt26BgLL3aV7Mg+vnmKSqf2=HTErNR7YqziXw@mail.gmail.com>
+References: <51971F6C.1000002@huawei.com>
+	<CD83871B-2C0E-48ED-B037-1B49AF0B98C9@gmail.com>
+	<51983831.3050802@huawei.com> <51998F27.7070601@huawei.com>
+	<CAEeiSHVmHJ55yWt26BgLL3aV7Mg+vnmKSqf2=HTErNR7YqziXw@mail.gmail.com>
+Message-ID: <519DE34A.6060305@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
+On 2013/5/23 7:00, Sunil Mushran wrote:
+> True. The function could do with a little bit of cleanup. Feel free to 
+> send a patch.
 
-
-On Tue, May 14, 2013 at 12:08 AM, Joseph Qi <joseph.qi@huawei.com> wrote:
-
-> Last time we found there is a lock/unlock bug in ocfs2_file_aio_write,
-> and then we did a thoroughly search for all lock resources in
-> ocfs2_inode_info, including rw, inode and open lockres and found this
-> bug.
-> My kernel version is 3.0.13, and it is also in the lastest version 3.9.
-> In ocfs2_fiemap, once ocfs2_get_clusters_nocache failed, it should goto
-> out_unlock instead of out, because we need release buffer head, up read
-> alloc sem and unlock inode.
+  from ocfs2 code , I don't found that dlm_recovery_thread always prior to
+ocfs2_recovery_thread? please tell me,thanks.
 >
-> Cc: stable at vger.kernel.org
-> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-> Reviewed-by: Jie Liu <jeff.liu@oracle.com>
 >
-> ---
->  fs/ocfs2/extent_map.c |    2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+> On Sun, May 19, 2013 at 7:49 PM, Joseph Qi <joseph.qi@huawei.com 
+> <mailto:joseph.qi@huawei.com>> wrote:
 >
-> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
-> index 1c39efb..2487116 100644
-> --- a/fs/ocfs2/extent_map.c
-> +++ b/fs/ocfs2/extent_map.c
-> @@ -790,7 +790,7 @@ int ocfs2_fiemap(struct inode *inode, struct
-> fiemap_extent_info *fieinfo,
->                                                  &hole_size, &rec,
-> &is_last);
->                 if (ret) {
->                         mlog_errno(ret);
-> -                       goto out;
-> +                       goto out_unlock;
->                 }
+>     On 2013/5/19 10:25, Joseph Qi wrote:
+>     > On 2013/5/18 21:26, Sunil Mushran wrote:
+>     >> The first node that gets the lock will do the actual recovery.
+>     The others will get the lock and see a clean journal and skip the
+>     recovery. A thread should never error out if it fails to get the
+>     lock. It should try and try again.
+>     >>
+>     >> On May 17, 2013, at 11:27 PM, Joseph Qi <joseph.qi@huawei.com
+>     <mailto:joseph.qi@huawei.com>> wrote:
+>     >>
+>     >>> Hi,
+>     >>> Once there is node down in the cluster, ocfs2_recovery_thread
+>     will be
+>     >>> triggered on each node. These threads then do the down node
+>     recovery by
+>     >>> get super lock.
+>     >>> I have several questions on this:
+>     >>> 1) Why each node has to run such a thread? We know at last one
+>     node can
+>     >>> get the super lock and do the actual recovery.
+>     >>> 2) If this thread is running but something error occurred, take
+>     >>> ocfs2_super_lock failed for example, the thread will exit without
+>     >>> clearing recovery map, will it cause other threads still
+>     waiting for
+>     >>> recovery in ocfs2_wait_for_recovery?
+>     >>>
+>     >>
+>     >>
+>     > But when error occurs and goes to bail, and the restart logic
+>     will not
+>     > run. Codes like below:
+>     > ...
+>     >       status = ocfs2_wait_on_mount(osb);
+>     >       if (status < 0) {
+>     >               goto bail;
+>     >       }
+>     >
+>     >       rm_quota = kzalloc(osb->max_slots * sizeof(int), GFP_NOFS);
+>     >       if (!rm_quota) {
+>     >               status = -ENOMEM;
+>     >               goto bail;
+>     >       }
+>     > restart:
+>     >       status = ocfs2_super_lock(osb, 1);
+>     >       if (status < 0) {
+>     >               mlog_errno(status);
+>     >               goto bail;
+>     >       }
+>     > ...
+>     >       if (!status && !ocfs2_recovery_completed(osb)) {
+>     >               mutex_unlock(&osb->recovery_lock);
+>     >               goto restart;
+>     >       }
+>     >
+>     >
+>     > _______________________________________________
+>     > Ocfs2-devel mailing list
+>     > Ocfs2-devel at oss.oracle.com <mailto:Ocfs2-devel@oss.oracle.com>
+>     > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>     >
+>     >
+>     One more question, do we make sure dlm_recovery_thread always prior to
+>     ocfs2_recovery_thread?
 >
->                 if (rec.e_blkno == 0ULL) {
-> --
-> 1.7.9.7
+>
 >
 >
 > _______________________________________________
 > Ocfs2-devel mailing list
 > Ocfs2-devel at oss.oracle.com
 > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130522/775d6888/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130523/42aef9be/attachment.html 
