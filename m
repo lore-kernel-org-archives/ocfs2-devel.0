@@ -1,64 +1,97 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Mon, 27 May 2013 14:53:49 +0800
-Subject: [Ocfs2-devel] [PATCH] Remove unecessary ERROR when removing
- non-empty directory
-In-Reply-To: <519F06A0.8020404@oracle.com>
-References: <CAJtY7HXOYRsRVKckzAg9V2nBivWwSspk7SJaonqMxWcgqE-m9g@mail.gmail.com>
-	<519F06A0.8020404@oracle.com>
-Message-ID: <51A302FD.1080801@oracle.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Mon, 27 May 2013 19:32:35 +0800
+Subject: [Ocfs2-devel] [patch 1/4] ocfs2: fix a couple of memory leaks
+ at o2hb_map_slot_data()
+Message-ID: <51A34453.3080102@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/24/2013 02:20 PM, xiaowei.hu wrote:
+These memory will be freed in o2hb_region_release. If we free them here,
+then it will lead to double freed issue.
 
-> Should we also add this (status != -ENOTEMPTY) in end of ocfs2_rename?
-> It also may hit this unecessary error.
-
-This definitely is the same thing like ocfs2_unlink() that need to be fixed.
-
-Thanks,
--Jeff
-
+> This patch can fix a couple of potential memory leaks at
+> o2hb_map_slot_data().
 > 
-> Thanks,
-> xiaowei
+> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 > 
-> On 05/20/2013 11:06 PM, Goldwyn Rodrigues wrote:
->> While removing a non-empty directory, the kernel dumps a message:
->> (rmdir,21743,1):ocfs2_unlink:953 ERROR: status = -39
->>
->> Suppress the error message from being printed in the dmesg so users
->> don't panic.
->>
->> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
->>
->> ---
->> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
->> index 04ee1b5..33c7b91 100644
->> --- a/fs/ocfs2/namei.c
->> +++ b/fs/ocfs2/namei.c
->> @@ -947,7 +947,7 @@ leave:
->>    ocfs2_free_dir_lookup_result(&orphan_insert);
->>    ocfs2_free_dir_lookup_result(&lookup);
->>
->> - if (status)
->> + if (status && (status != -ENOTEMPTY))
->>    mlog_errno(status);
->>
->>    return status;
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
->>
+> ---
+>  fs/ocfs2/cluster/heartbeat.c |   33 +++++++++++++++++++++++++--------
+>  1 files changed, 25 insertions(+), 8 deletions(-)
 > 
+> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+> index a4e855e..1b6ce53 100644
+> --- a/fs/ocfs2/cluster/heartbeat.c
+> +++ b/fs/ocfs2/cluster/heartbeat.c
+> @@ -1638,7 +1638,7 @@ static void o2hb_init_region_params(struct
+> o2hb_region *reg)
 > 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>  static int o2hb_map_slot_data(struct o2hb_region *reg)
+>  {
+> -	int i, j;
+> +	int ret = 0, i, j;
+>  	unsigned int last_slot;
+>  	unsigned int spp = reg->hr_slots_per_page;
+>  	struct page *page;
+> @@ -1654,8 +1654,8 @@ static int o2hb_map_slot_data(struct o2hb_region *reg)
+>  	reg->hr_slots = kcalloc(reg->hr_blocks,
+>  				sizeof(struct o2hb_disk_slot), GFP_KERNEL);
+>  	if (reg->hr_slots == NULL) {
+> -		mlog_errno(-ENOMEM);
+> -		return -ENOMEM;
+> +		ret = -ENOMEM;
+> +		goto free;
+>  	}
+> 
+>  	for(i = 0; i < reg->hr_blocks; i++) {
+> @@ -1673,15 +1673,15 @@ static int o2hb_map_slot_data(struct o2hb_region
+> *reg)
+>  	reg->hr_slot_data = kcalloc(reg->hr_num_pages, sizeof(struct page *),
+>  				    GFP_KERNEL);
+>  	if (!reg->hr_slot_data) {
+> -		mlog_errno(-ENOMEM);
+> -		return -ENOMEM;
+> +		ret = -ENOMEM;
+> +		goto free;
+>  	}
+> 
+>  	for(i = 0; i < reg->hr_num_pages; i++) {
+>  		page = alloc_page(GFP_KERNEL);
+>  		if (!page) {
+> -			mlog_errno(-ENOMEM);
+> -			return -ENOMEM;
+> +			ret = -ENOMEM;
+> +			goto free;
+>  		}
+> 
+>  		reg->hr_slot_data[i] = page;
+> @@ -1701,7 +1701,24 @@ static int o2hb_map_slot_data(struct o2hb_region
+> *reg)
+>  		}
+>  	}
+> 
+> -	return 0;
+> +	return ret;
+> +
+> +free:
+> +	mlog_errno(ret);
+> +
+> +	kfree(reg->hr_tmp_block);
+> +	kfree(reg->hr_slots);
+> +
+> +	if (reg->hr_slot_data) {
+> +		for (i = 0; i < reg->hr_num_pages; i++) {
+> +			page = reg->hr_slot_data[i];
+> +			if (page)
+> +				__free_page(reg->hr_slot_data[i]);
+> +		}
+> +		kfree(reg->hr_slot_data);
+> +	}
+> +
+> +	return ret;
+>  }
+> 
+>  /* Read in all the slots available and populate the tracking
+> 
