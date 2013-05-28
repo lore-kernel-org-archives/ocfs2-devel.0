@@ -1,45 +1,76 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Tue, 28 May 2013 19:08:50 +0800
-Subject: [Ocfs2-devel] [PATCH]Remove unecessary ERROR when removing
- non-empty directory
-In-Reply-To: <1369703559-25053-1-git-send-email-xiaowei.hu@oracle.com>
-References: <1369703559-25053-1-git-send-email-xiaowei.hu@oracle.com>
-Message-ID: <51A49042.1080402@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 28 May 2013 15:35:23 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2_prep_new_orphaned_file should
+ return ret
+In-Reply-To: <1369186996-7127-1-git-send-email-xiaowei.hu@oracle.com>
+References: <1369186996-7127-1-git-send-email-xiaowei.hu@oracle.com>
+Message-ID: <20130528153523.f8d9d1a3aca72f857d72e185@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/28/2013 09:12 AM, xiaowei.hu at oracle.com wrote:
+On Wed, 22 May 2013 09:43:16 +0800 xiaowei.hu at oracle.com wrote:
 
 > From: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
-> 
-> Suppress the error message from being printed in ocfs2_rename
-> Did same thing with Goldwyn Rodrigues last patch.
-> 
-> While removing a non-empty directory, the kernel dumps a message:
-> (mv,29521,1):ocfs2_rename:1474 ERROR: status = -39 
-> 
-> Signed-off-by: Xiaowei Hu <xiaowei.hu@oracle.com>
-
-Reviewed-by: Jie Liu <jeff.liu@oracle.com>
-
 > 
 > ---
 >  fs/ocfs2/namei.c | 2 +-
 >  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
 > diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 50c93a8..8ef1776 100644
+> index 50c93a8..422cbe0 100644
 > --- a/fs/ocfs2/namei.c
 > +++ b/fs/ocfs2/namei.c
-> @@ -1470,7 +1470,7 @@ bail:
->  	brelse(old_dir_bh);
->  	brelse(new_dir_bh);
+> @@ -2216,7 +2216,7 @@ out:
 >  
-> -	if (status)
-> +	if (status && (status != -ENOTEMPTY))
->  		mlog_errno(status);
+>  	brelse(orphan_dir_bh);
 >  
->  	return status;
+> -	return 0;
+> +	return ret;
+>  }
+>  
+>  int ocfs2_create_inode_in_orphan(struct inode *dir,
+
+The patch is missing your signed-off-by.  I added it - please confirm
+this is OK.
+
+I also pulled together a changelog based on the discussion.  Please do
+provide good changelogs.
+
+
+From: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
+Subject: ocfs2: ocfs2_prep_new_orphaned_file() should return ret
+
+If an error occurs, for example an EIO in __ocfs2_prepare_orphan_dir,
+ocfs2_prep_new_orphaned_file will release the inode_ac, then when the
+caller of ocfs2_prep_new_orphaned_file gets a 0 return, it will refer to a
+NULL ocfs2_alloc_context struct in the following functions.  A kernel
+panic happens.
+
+Signed-off-by: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
+Reviewed-by: shencanquan <shencanquan@huawei.com>
+Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
+Cc: Joe Jin <joe.jin@oracle.com>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ocfs2/namei.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff -puN fs/ocfs2/namei.c~ocfs2-ocfs2_prep_new_orphaned_file-should-return-ret fs/ocfs2/namei.c
+--- a/fs/ocfs2/namei.c~ocfs2-ocfs2_prep_new_orphaned_file-should-return-ret
++++ a/fs/ocfs2/namei.c
+@@ -2216,7 +2216,7 @@ out:
+ 
+ 	brelse(orphan_dir_bh);
+ 
+-	return 0;
++	return ret;
+ }
+ 
+ int ocfs2_create_inode_in_orphan(struct inode *dir,
+_
