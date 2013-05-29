@@ -1,81 +1,53 @@
-From: xiaowei.hu <xiaowei.hu@oracle.com>
-Date: Wed, 29 May 2013 09:06:50 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2_prep_new_orphaned_file should
- return ret
-In-Reply-To: <20130528153523.f8d9d1a3aca72f857d72e185@linux-foundation.org>
-References: <1369186996-7127-1-git-send-email-xiaowei.hu@oracle.com>
-	<20130528153523.f8d9d1a3aca72f857d72e185@linux-foundation.org>
-Message-ID: <51A554AA.7030405@oracle.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 29 May 2013 10:42:36 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: should not use le32_add_cpu to set
+	ocfs2_dinode i_flags
+Message-ID: <51A56B1C.30606@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+If we use le32_add_cpu to set ocfs2_dinode i_flags, it may lead to the
+corresponding flag corrupted. So we should change it to bitwise and/or
+operation.
 
-On 05/29/2013 06:35 AM, Andrew Morton wrote:
-> On Wed, 22 May 2013 09:43:16 +0800 xiaowei.hu at oracle.com wrote:
->
->> From: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
->>
->> ---
->>   fs/ocfs2/namei.c | 2 +-
->>   1 file changed, 1 insertion(+), 1 deletion(-)
->>
->> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
->> index 50c93a8..422cbe0 100644
->> --- a/fs/ocfs2/namei.c
->> +++ b/fs/ocfs2/namei.c
->> @@ -2216,7 +2216,7 @@ out:
->>   
->>   	brelse(orphan_dir_bh);
->>   
->> -	return 0;
->> +	return ret;
->>   }
->>   
->>   int ocfs2_create_inode_in_orphan(struct inode *dir,
-> The patch is missing your signed-off-by.  I added it - please confirm
-> this is OK.
-It is ok, sorry for missing that, thanks for adding it.
->
-> I also pulled together a changelog based on the discussion.  Please do
-> provide good changelogs.
-The change log looks great!
->
->
-> From: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
-> Subject: ocfs2: ocfs2_prep_new_orphaned_file() should return ret
->
-> If an error occurs, for example an EIO in __ocfs2_prepare_orphan_dir,
-> ocfs2_prep_new_orphaned_file will release the inode_ac, then when the
-> caller of ocfs2_prep_new_orphaned_file gets a 0 return, it will refer to a
-> NULL ocfs2_alloc_context struct in the following functions.  A kernel
-> panic happens.
->
-> Signed-off-by: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
-> Reviewed-by: shencanquan <shencanquan@huawei.com>
-> Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
-> Cc: Joe Jin <joe.jin@oracle.com>
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
->
->   fs/ocfs2/namei.c |    2 +-
->   1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff -puN fs/ocfs2/namei.c~ocfs2-ocfs2_prep_new_orphaned_file-should-return-ret fs/ocfs2/namei.c
-> --- a/fs/ocfs2/namei.c~ocfs2-ocfs2_prep_new_orphaned_file-should-return-ret
-> +++ a/fs/ocfs2/namei.c
-> @@ -2216,7 +2216,7 @@ out:
->   
->   	brelse(orphan_dir_bh);
->   
-> -	return 0;
-> +	return ret;
->   }
->   
->   int ocfs2_create_inode_in_orphan(struct inode *dir,
-> _
->
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/namei.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 04ee1b5..3a5269a 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -522,7 +522,7 @@ static int __ocfs2_mknod_locked(struct inode *dir,
+
+ 	fe->i_last_eb_blk = 0;
+ 	strcpy(fe->i_signature, OCFS2_INODE_SIGNATURE);
+-	le32_add_cpu(&fe->i_flags, OCFS2_VALID_FL);
++	fe->i_flags |= cpu_to_le32(OCFS2_VALID_FL);
+ 	fe->i_atime = fe->i_ctime = fe->i_mtime =
+ 		cpu_to_le64(CURRENT_TIME.tv_sec);
+ 	fe->i_mtime_nsec = fe->i_ctime_nsec = fe->i_atime_nsec =
+@@ -2044,7 +2044,7 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 		goto leave;
+ 	}
+
+-	le32_add_cpu(&fe->i_flags, OCFS2_ORPHANED_FL);
++	fe->i_flags |= cpu_to_le32(OCFS2_ORPHANED_FL);
+ 	OCFS2_I(inode)->ip_flags &= ~OCFS2_INODE_SKIP_ORPHAN_DIR;
+
+ 	/* Record which orphan dir our inode now resides
+@@ -2434,7 +2434,7 @@ int ocfs2_mv_orphaned_inode_to_new(struct inode *dir,
+ 	}
+
+ 	di = (struct ocfs2_dinode *)di_bh->b_data;
+-	le32_add_cpu(&di->i_flags, -OCFS2_ORPHANED_FL);
++	di->i_flags &= cpu_to_le32(~OCFS2_ORPHANED_FL);
+ 	di->i_orphaned_slot = 0;
+ 	set_nlink(inode, 1);
+ 	ocfs2_set_links_count(di, inode->i_nlink);
+-- 
+1.7.9.7
