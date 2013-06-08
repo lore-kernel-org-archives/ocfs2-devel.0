@@ -1,177 +1,244 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Sun, 30 Jun 2013 14:44:12 +0800
-Subject: [Ocfs2-devel] [PATCH] unlink performance: wait for open lock in
- case of dirs
-In-Reply-To: <20130628161209.95b024c90df90188a8367c8f@linux-foundation.org>
-References: <20130615020510.GA4487@shrek.cartoons>
-	<20130628161209.95b024c90df90188a8367c8f@linux-foundation.org>
-Message-ID: <51CFD3BC.70108@oracle.com>
+From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Date: Sat, 08 Jun 2013 12:55:07 -0000
+Subject: [Ocfs2-devel] [PATCH] xattr: Constify ->name member of "struct
+	xattr".
+In-Reply-To: <201305292152.CCF10933.FQJHFLOtOFVMSO@I-love.SAKURA.ne.jp>
+References: <201305292152.CCF10933.FQJHFLOtOFVMSO@I-love.SAKURA.ne.jp>
+Message-ID: <201306082154.BDJ95357.MFQFVOJLSOtHFO@I-love.SAKURA.ne.jp>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, eparis@parisplace.org, casey@schaufler-ca.com, zohar@us.ibm.com, serge.hallyn@canonical.com
+Cc: linux-fsdevel@vger.kernel.org, linux-security-module@vger.kernel.org
 
-On 06/29/2013 07:12 AM, Andrew Morton wrote:
+From 96df8b4be7f8702913a0245b2312958e2eea6caf Mon Sep 17 00:00:00 2001
+From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Date: Sat, 8 Jun 2013 21:46:58 +0900
+Subject: [PATCH] xattr: Constify ->name member of "struct xattr".
 
-> On Fri, 14 Jun 2013 21:05:10 -0500 Goldwyn Rodrigues <rgoldwyn@gmail.com> wrote:
-> 
->> This patch is to improve the unlink performance. Here is the scenario:
->>
->> On node A, create multiple directories say d1-d8, and each have 3
->> files under it f1, f2 and f3.
->> On node B, delete all directories using rm -Rf d*
->>
->> The FS first unlinks f1, f2 and f3. However, when it performs
->> ocfs2_evict_inode() -> ocfs2_delete_inode() ->
->> ocfs2_query_inode_wipe() -> ocfs2_try_open_lock() on d1, it fails
->> with -EAGAIN. The open lock fails because on the remote node
->> a PR->EX convert takes longer than a simple EX grant.
->>
->> This starts a checkpoint because OCFS2_INODE_DELETED flag is not set
->> on the directory inode. Now, a checkpoint interferes with the journaling
->> of the inodes deleted in the following unlinks, in our case,
->> directories d2-d8 and the files contained in it.
->>
->> With this patch, We wait on a directory EX lock only if we already
->> have an open_lock in PR mode. This way we will avoid the ABBA locking.
->>
->> By waiting for the open_lock on the directory, I am getting a unlink
->> performance improvement of a rm -Rf of 50-60% in the usual case.
->>
->> Also, folded ocfs2_open_lock and ocfs2_try_open_lock into one.
->>
->> Let me know if you would like to see the test case.
-> 
-> We need some more review and test of this patch, please.
-> 
-> The patch doesn't apply to current kernels - please redo, retest and
-> resend it.
-> 
-> In particular, the kernel you're patching doesn't have the
-> ocfs2_is_hard_readonly() tests in ocfs2_open_lock() and
-> ocfs2_try_open_lock().
-> 
-> And looking at those tests, I wonder about ocfs2_open_lock().
-> 
-> : int ocfs2_open_lock(struct inode *inode)
-> : {
-> : 	int status = 0;
-> : 	struct ocfs2_lock_res *lockres;
-> : 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> : 
-> : 	BUG_ON(!inode);
-> : 
-> : 	mlog(0, "inode %llu take PRMODE open lock\n",
-> : 	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
-> : 
-> : 	if (ocfs2_is_hard_readonly(osb) || ocfs2_mount_local(osb))
-> : 		goto out;
-> : 
-> : 	lockres = &OCFS2_I(inode)->ip_open_lockres;
-> : 
-> : 	status = ocfs2_cluster_lock(OCFS2_SB(inode->i_sb), lockres,
-> : 				    DLM_LOCK_PR, 0, 0);
-> : 	if (status < 0)
-> : 		mlog_errno(status);
-> : 
-> : out:
-> : 	return status;
-> : }
-> 
-> It will return zero if ocfs2_is_hard_readonly().  Is that correct? 
+Since everybody sets kstrdup()ed constant string to "struct xattr"->name but
+nobody modifies "struct xattr"->name , we can omit kstrdup() and its failure
+checking by constifying ->name member of "struct xattr".
 
-> Should it return -EROFS for writes? 
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ fs/ocfs2/xattr.h                    |    2 +-
+ include/linux/security.h            |    8 ++++----
+ include/linux/xattr.h               |    2 +-
+ include/uapi/linux/reiserfs_xattr.h |    2 +-
+ security/capability.c               |    2 +-
+ security/integrity/evm/evm_main.c   |    2 +-
+ security/security.c                 |    8 +++-----
+ security/selinux/hooks.c            |   17 ++++++-----------
+ security/smack/smack_lsm.c          |    9 +++------
+ 9 files changed, 21 insertions(+), 31 deletions(-)
 
-Hi Andrew,
-
-That is correct for the current design, because ocfs2_open_lock() is
-implemented to grant a lock in protect read mode.
-
-The ocfs2_is_hard_readonly() has been introduced to ocfs2_open_lock()
-by commit: 03efed8a2a1b8e00164eb4720a82a7dd5e368a8e
-
-    ocfs2: Bugfix for hard readonly mount
-        ocfs2 cannot currently mount a device that is readonly at the media
-    ("hard readonly").  Fix the broken places.
-    see detail: http://oss.oracle.com/bugzilla/show_bug.cgi?id=1322
-
-> After your patch, this code does
-> know whether the attempt was for a write.
-
-
-
-Yes, with this change, it need a fix indeed.
-
-> 
-> Please check all that.
-
-
-
-
-Hi Goldwyn,
-
-Sorry for the too late response as I have mentioned that I'll take a look at it,
-but some internal tasks really racked my brains in the past couple of weeks.
-
-Just as Andrew's comments, this patch can not be applied properly against the
-upstream development tree, could you please re-base it.
-
-If we merge ocfs2_open_lock()/ocfs2_open_try_lock() into one, looks the semantics of
-ocfs2_open_lock() is broke with the 'write' option is introduced, but this is not a
-big issue as we can tweak up the comments as well as those functions which would be
-affected, but we need to run ocfs2-test(at least cover all the code path which are
-involved in this change) to avoid any regression, it can be download from:
-https://oss.oracle.com/projects/ocfs2-test/source.html
-https://oss.oracle.com/osswiki/OCFS2/Ocfs2TestList.html
-
-Another thing come to mind since this patch would affect ocfs2_evict_inode() with
-ocfs2_try_open_lock(), i.e, the following call chains:
-
-ocfs2_evict_inode()
-|
-|-------ocfs2_delete_inode()
-	|
-	|-------ocfs2_query_inode_wipe()
-	|	|
-	|	|-------ocfs2_try_open_lock()
-	|	|
-	|-------ocfs2_clear_inode()
-		|
-		|---------ocfs2_open_unlock()
-
-OCFS2 has a DEAD LOCK issue when creating/removing tons of files in parallel if the
-disk quota is enabled, please refer to:
-https://oss.oracle.com/bugzilla/show_bug.cgi?id=1339
-
-As per the old discussions, Jan Kara pointed out that there is a race in
-ocfs2_evict_inode() if consider the following lock sequences:
-
-ocfs2_evict_inode()
-|
-|-------ocfs2_inode_lock()
-	|
-	|-------ocfs2_try_open_lock() [ try to get open lock in EX mode ]
-		|
-		|-------ocfs2_inode_unlock()
-			|
-			|-------ocfs2_open_unlock() [ drops shared open lock that is hold ]
-
-Quotas from Jan:
-"""
-Now if two nodes happen to execute ocfs2_evict_inode() in parallel and
-ocfs2_try_open_lock() happens on both nodes before ocfs2_open_unlock() is
-called on any of them, ocfs2_try_open_lock() fails for both nodes...
-
-I would think that the code should be reorganized so that shared open
-lock is dropped before we drop inode lock. Then the race could not happen.
-But I'm not sure if something else would not break.
-"""
-
-This is deserve to give a try IMHO, especially there would be kind of dependencies
-with your fix, and that would be wonderful if we can have your improvement as well
-as lock sequences adjustments that might fix the quota problems.
-
-
-Thanks,
--Jeff
+diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
+index e5c7f15..19f134e 100644
+--- a/fs/ocfs2/xattr.h
++++ b/fs/ocfs2/xattr.h
+@@ -32,7 +32,7 @@ enum ocfs2_xattr_type {
+ 
+ struct ocfs2_security_xattr_info {
+ 	int enable;
+-	char *name;
++	const char *name;
+ 	void *value;
+ 	size_t value_len;
+ };
+diff --git a/include/linux/security.h b/include/linux/security.h
+index 40560f4..2e64d73 100644
+--- a/include/linux/security.h
++++ b/include/linux/security.h
+@@ -1466,7 +1466,7 @@ struct security_operations {
+ 	int (*inode_alloc_security) (struct inode *inode);
+ 	void (*inode_free_security) (struct inode *inode);
+ 	int (*inode_init_security) (struct inode *inode, struct inode *dir,
+-				    const struct qstr *qstr, char **name,
++				    const struct qstr *qstr, const char **name,
+ 				    void **value, size_t *len);
+ 	int (*inode_create) (struct inode *dir,
+ 			     struct dentry *dentry, umode_t mode);
+@@ -1737,7 +1737,7 @@ int security_inode_init_security(struct inode *inode, struct inode *dir,
+ 				 const struct qstr *qstr,
+ 				 initxattrs initxattrs, void *fs_data);
+ int security_old_inode_init_security(struct inode *inode, struct inode *dir,
+-				     const struct qstr *qstr, char **name,
++				     const struct qstr *qstr, const char **name,
+ 				     void **value, size_t *len);
+ int security_inode_create(struct inode *dir, struct dentry *dentry, umode_t mode);
+ int security_inode_link(struct dentry *old_dentry, struct inode *dir,
+@@ -2048,8 +2048,8 @@ static inline int security_inode_init_security(struct inode *inode,
+ static inline int security_old_inode_init_security(struct inode *inode,
+ 						   struct inode *dir,
+ 						   const struct qstr *qstr,
+-						   char **name, void **value,
+-						   size_t *len)
++						   const char **name,
++						   void **value, size_t *len)
+ {
+ 	return -EOPNOTSUPP;
+ }
+diff --git a/include/linux/xattr.h b/include/linux/xattr.h
+index fdbafc6..91b0a68 100644
+--- a/include/linux/xattr.h
++++ b/include/linux/xattr.h
+@@ -31,7 +31,7 @@ struct xattr_handler {
+ };
+ 
+ struct xattr {
+-	char *name;
++	const char *name;
+ 	void *value;
+ 	size_t value_len;
+ };
+diff --git a/include/uapi/linux/reiserfs_xattr.h b/include/uapi/linux/reiserfs_xattr.h
+index d8ce17c..38fdd64 100644
+--- a/include/uapi/linux/reiserfs_xattr.h
++++ b/include/uapi/linux/reiserfs_xattr.h
+@@ -16,7 +16,7 @@ struct reiserfs_xattr_header {
+ };
+ 
+ struct reiserfs_security_handle {
+-	char *name;
++	const char *name;
+ 	void *value;
+ 	size_t length;
+ };
+diff --git a/security/capability.c b/security/capability.c
+index 1728d4e..b311ff0 100644
+--- a/security/capability.c
++++ b/security/capability.c
+@@ -119,7 +119,7 @@ static void cap_inode_free_security(struct inode *inode)
+ }
+ 
+ static int cap_inode_init_security(struct inode *inode, struct inode *dir,
+-				   const struct qstr *qstr, char **name,
++				   const struct qstr *qstr, const char **name,
+ 				   void **value, size_t *len)
+ {
+ 	return -EOPNOTSUPP;
+diff --git a/security/integrity/evm/evm_main.c b/security/integrity/evm/evm_main.c
+index cdbde17..2787080 100644
+--- a/security/integrity/evm/evm_main.c
++++ b/security/integrity/evm/evm_main.c
+@@ -405,7 +405,7 @@ int evm_inode_init_security(struct inode *inode,
+ 
+ 	evm_xattr->value = xattr_data;
+ 	evm_xattr->value_len = sizeof(*xattr_data);
+-	evm_xattr->name = kstrdup(XATTR_EVM_SUFFIX, GFP_NOFS);
++	evm_xattr->name = XATTR_EVM_SUFFIX;
+ 	return 0;
+ out:
+ 	kfree(xattr_data);
+diff --git a/security/security.c b/security/security.c
+index a3dce87..8849691 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -335,10 +335,10 @@ int security_inode_init_security(struct inode *inode, struct inode *dir,
+ 	if (unlikely(IS_PRIVATE(inode)))
+ 		return 0;
+ 
+-	memset(new_xattrs, 0, sizeof new_xattrs);
+ 	if (!initxattrs)
+ 		return security_ops->inode_init_security(inode, dir, qstr,
+ 							 NULL, NULL, NULL);
++	memset(new_xattrs, 0, sizeof(new_xattrs));
+ 	lsm_xattr = new_xattrs;
+ 	ret = security_ops->inode_init_security(inode, dir, qstr,
+ 						&lsm_xattr->name,
+@@ -353,16 +353,14 @@ int security_inode_init_security(struct inode *inode, struct inode *dir,
+ 		goto out;
+ 	ret = initxattrs(inode, new_xattrs, fs_data);
+ out:
+-	for (xattr = new_xattrs; xattr->name != NULL; xattr++) {
+-		kfree(xattr->name);
++	for (xattr = new_xattrs; xattr->value != NULL; xattr++)
+ 		kfree(xattr->value);
+-	}
+ 	return (ret == -EOPNOTSUPP) ? 0 : ret;
+ }
+ EXPORT_SYMBOL(security_inode_init_security);
+ 
+ int security_old_inode_init_security(struct inode *inode, struct inode *dir,
+-				     const struct qstr *qstr, char **name,
++				     const struct qstr *qstr, const char **name,
+ 				     void **value, size_t *len)
+ {
+ 	if (unlikely(IS_PRIVATE(inode)))
+diff --git a/security/selinux/hooks.c b/security/selinux/hooks.c
+index 5c6f2cd..16b8e51 100644
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -2516,7 +2516,8 @@ static void selinux_inode_free_security(struct inode *inode)
+ }
+ 
+ static int selinux_inode_init_security(struct inode *inode, struct inode *dir,
+-				       const struct qstr *qstr, char **name,
++				       const struct qstr *qstr,
++				       const char **name,
+ 				       void **value, size_t *len)
+ {
+ 	const struct task_security_struct *tsec = current_security();
+@@ -2524,7 +2525,7 @@ static int selinux_inode_init_security(struct inode *inode, struct inode *dir,
+ 	struct superblock_security_struct *sbsec;
+ 	u32 sid, newsid, clen;
+ 	int rc;
+-	char *namep = NULL, *context;
++	char *context;
+ 
+ 	dsec = dir->i_security;
+ 	sbsec = dir->i_sb->s_security;
+@@ -2560,19 +2561,13 @@ static int selinux_inode_init_security(struct inode *inode, struct inode *dir,
+ 	if (!ss_initialized || !(sbsec->flags & SE_SBLABELSUPP))
+ 		return -EOPNOTSUPP;
+ 
+-	if (name) {
+-		namep = kstrdup(XATTR_SELINUX_SUFFIX, GFP_NOFS);
+-		if (!namep)
+-			return -ENOMEM;
+-		*name = namep;
+-	}
++	if (name)
++		*name = XATTR_SELINUX_SUFFIX;
+ 
+ 	if (value && len) {
+ 		rc = security_sid_to_context_force(newsid, &context, &clen);
+-		if (rc) {
+-			kfree(namep);
++		if (rc)
+ 			return rc;
+-		}
+ 		*value = context;
+ 		*len = clen;
+ 	}
+diff --git a/security/smack/smack_lsm.c b/security/smack/smack_lsm.c
+index d52c780..46e5b47 100644
+--- a/security/smack/smack_lsm.c
++++ b/security/smack/smack_lsm.c
+@@ -554,7 +554,7 @@ static void smack_inode_free_security(struct inode *inode)
+  * Returns 0 if it all works out, -ENOMEM if there's no memory
+  */
+ static int smack_inode_init_security(struct inode *inode, struct inode *dir,
+-				     const struct qstr *qstr, char **name,
++				     const struct qstr *qstr, const char **name,
+ 				     void **value, size_t *len)
+ {
+ 	struct smack_known *skp;
+@@ -564,11 +564,8 @@ static int smack_inode_init_security(struct inode *inode, struct inode *dir,
+ 	char *dsp = smk_of_inode(dir);
+ 	int may;
+ 
+-	if (name) {
+-		*name = kstrdup(XATTR_SMACK_SUFFIX, GFP_NOFS);
+-		if (*name == NULL)
+-			return -ENOMEM;
+-	}
++	if (name)
++		*name = XATTR_SMACK_SUFFIX;
+ 
+ 	if (value) {
+ 		skp = smk_find_entry(csp);
+-- 
+1.7.1
