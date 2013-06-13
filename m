@@ -1,113 +1,157 @@
-From: Josef Bacik <jbacik@fusionio.com>
-Date: Thu, 20 Jun 2013 17:26:14 -0000
-Subject: [Ocfs2-devel] [PATCH] fs/jbd2: t_updates should increase when
- start_this_handle() failed in jbd2__journal_restart()
-In-Reply-To: <20130620155555.GE28309@thunk.org>
-References: <51C1381A.2@huawei.com>
- <20130620155555.GE28309@thunk.org>
-Message-ID: <20130620172609.GC4288@localhost.localdomain>
+From: Harsha A Patankar <harsha.patankar@gmail.com>
+Date: Thu, 13 Jun 2013 14:02:35 -0000
+Subject: [Ocfs2-devel] Error: ocfs2_controld: Unable to open checkpoint
+ "ocfs2:controld": Object does not exist
+Message-ID: <CAPvr0qY2j7tr9wmBiSvHjPq90jyHC45gnLdv1xECCZf19iq3qg@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Ts'o <tytso@mit.edu>
-Cc: Younger Liu <younger.liu@huawei.com>, Andrew Morton <akpm@linux-foundation.org>, linux-ext4@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>, Li Zefan <lizefan@huawei.com>, jack@suse.cz
+To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jun 20, 2013 at 11:55:55AM -0400, Theodore Ts'o wrote:
-> [ LKML and linux-fsdevel BCC'ed ]
-> 
-> On Wed, Jun 19, 2013 at 12:48:26PM +0800, Younger Liu wrote:
-> > jbd2_journal_restart() would restart a handle. In this function, it
-> > calls start_this_handle(). Before calling start_this_handle()?subtract
-> > 1 from transaction->t_updates.
-> > If start_this_handle() succeeds, transaction->t_updates increases by 1
-> > in it. But if start_this_handle() fails, transaction->t_updates does
-> > not increase.
-> > So, when commit the handle's transaction in jbd2_journal_stop(), the
-> > assertion is false, and then trigger a bug.
-> > The assertion is as follows:
-> > J_ASSERT(atomic_read(&transaction->t_updates) > 0) 
-> > 
-> > Signed-off-by: Younger Liu <younger.liu@huawei.com>
-> 
-> Thanks for pointing out this potential problem.  Your fix isn't quite
-> the right one, however.
-> 
-> The problem is once we get to this point, the transaction pointer may
-> no longer be valid, since once we decrement t_updates, the transaction
-> could start commiting, and so we should not actually dereference the
-> transaction pointer after we unlock transaction->t_handle_lock.  (We
-> are referencing t_tid two lines later, and technically that's a bug.
-> We've just been getting lucky.)
-> 
-> The real issue is that by the time we call start_this_handle() in
-> jbd2__journal_restart, the handle is not attached to any transaction.
-> So if jbd2_journal_restart() fails, the handle has to be considered
-> invalid, and the calling code should not try to use the handle at all,
-> including calling jbd2_journal_stop().
-> 
-> Jan Kara is I believe currently on vacation but I'd really like him to
-> chime in with his opinion about the best way to fix this, since he's
-> also quite familiar with the jbd2 code.
-> 
-> Also, Jan has recently submitted changes to implement reserved handles
-> (to be submitted in the next merge window), and in these new
-> functions, if start_this_handle() fails when called from
-> jbd2_journal_start_reserved(), the handle is left invalidated, and the
-> caller of jbd2_journal_start_reserved() must not touch the handle
-> again, including calling jbd2_journal_stop() --- in fact, because
-> jbd2_journal_start_reserved() clears current->journal_info on failure,
-> an attempt to call jbd2_journal_stop() will result in the kernel oops
-> due to an assertion failure.
-> 
-> My inclination is to fix this in the same way, but it will require
-> changing the current code paths that use jbd2_journal_restart(), and
-> in some cases passing back the state that the handle is now invalid
-> and should not be released via jbd2_journal_stop() is going to be
-> tricky indeed.
-> 
-> 
-> Another possible fix is to set the handle to be aborted, via
-> jbd2_journal_abort_handle().  This function isn't used at all at the
-> moment, but from what I can tell this should do the right thing.  The
-> one unfortunate thing about this is that when jbd2_journal_stop() gets
-> called, it will return EROFS, which is a misleading error code.  I'm
-> guessing you're seeing this because start_this_handle() returned
-> ENOMEM, correct?  We could hack around this by stashing the real error
-> in the handle, and then change jbd2_journal_stop() to return that
-> error instead of EROFS if it is set.
-> 
-> This second solution is hacky all-around, and it's also inconsistent
-> with how we are doing things with jbd2_journal_start_reserved().  So
-> I'm not so happy with this solution.  But it would require a lot less
-> work because the fix would be isolated in the jbd2 layer.  OTOH, right
-> now if the code calls jbd2_journal_stop() on the handle after a
-> failure in jbd2_journal_start_reserved(), they are crashing anyway, so
-> changing the code so it changes with an assertion failure doesn't make
-> things any worse, and then we fix things in ext4 and ocfs2 without any
-> patch interdependencies --- and this is a problem which appears to
-> happen very rarely in practice.
-> 
+Hi,
 
-I realize it's been a little bit since I've looked at jbd but I'll offer my
-opinion.  Callers of jbd2_journal_restart() may not be the ones who originated
-the handle, so doing what Jan has done with jbd2_journal_start_reserved() isn't
-going to work because all the guy at the top is going to see is an error and
-have no way to tell if his handle is invalid or not.
+      We are facing error " ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist"
 
-What I would suggest is getting a unified way to mark that the handle has
-already been cleaned up and can just be free'd.  Then fix
-jbd2_journal_start_reserved() and jbd2_journal_restart() to set that in the
-handle and make jbd2_journal_stop() just free up the handle and reset
-current->journal_info but not return an error.  It's important to not return an
-error from jbd2_journal_stop() so that it doesn't invoke the ext4 error handling
-stuff and you get a read only file system when the error may not be read only
-file system worthy.
+Please let me know, if I'm missing anything to configure or is there
+something that need to be set.
 
-This way you have a nice clean way of dealing with handle errors that allow you
-to pass back a real error to the caller and the caller can just do its normal
-jbd2_journal_stop() and cleanup and do its own error handling the way it feels.
-This keeps the yucky details of no longer valid handles all internal to jbd2 and
-ext4/ocfs2 don't have to worry about it.  Thanks,
+cat /etc/ocfs2/cluster.conf
+node:
+        ip_port = 7700
+        ip_address = 192.168.16.1
+        number = 0
+        name = MC0
+        cluster = pacemaker
 
-Josef
+node:
+        ip_port = 7700
+        ip_address = 192.168.16.2
+        number = 1
+        name = MC1
+        cluster = pacemaker
+
+cluster:
+        node_count = 2
+        name = pacemaker
+
+
+Snapshot of logs:
+
+-----------------
+
+Jun  7 12:18:08 MC1 lrmd: [1756]: info: RA output: (p_o2cb:1:start:stderr)
+2013/06/07_12:18:08 INFO: Starting p_o2cb:1
+
+Jun  7 12:18:08 MC1 kernel: : [   44.941275] ocfs2: Registered cluster
+interface user
+
+Jun  7 12:18:08 MC1 kernel: : [   44.951775] OCFS2 Node Manager 1.5.0
+
+Jun  7 12:18:08 MC1 kernel: : [   44.962922] OCFS2 1.5.0
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: get_cluster_type: Cluster
+type is: 'openais'
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info:
+init_ais_connection_classic: Creating connection to our Corosync plugin
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info:
+init_ais_connection_classic: AIS connection established
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: get_ais_nodeid: Server
+details: id=420002 uname=MC1 cname=pcmk
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: init_ais_connection_once:
+Connection to 'classic openais (with plugin)': established
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: crm_new_peer: Node MC1
+now has id: 420002
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: crm_new_peer: Node 420002
+is now known as MC1
+
+Jun  7 12:18:08 MC1 corosync[1719]:   [pcmk  ] info: pcmk_notify: Enabling
+node notifications for child 2871 (0x8c05e0)
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: notice: ais_dispatch_message:
+Membership 16: quorum acquired
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: crm_new_peer: Node MC0
+now has id: 420001
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: crm_new_peer: Node 420001
+is now known as MC0
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: crm_update_peer: Node
+MC0: id=420001 state=member (new) addr=r(0) ip(192.168.16.1)  votes=1
+born=4 seen=16 proc=00000000000000000000000000000000
+
+Jun  7 12:18:08 MC1 ocfs2_controld: [2871]: info: crm_update_peer: Node
+MC1: id=420002 state=member (new) addr=r(0) ip(192.168.16.2)  (new) votes=1
+(new) born=16 seen=16 proc=0000000000000000000
+
+0000000000000
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Attempted to read the cluster's
+protocol versions 1 times, still trying
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Attempted to read the cluster's
+protocol versions 2 times, still trying
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Attempted to read the cluster's
+protocol versions 4 times, still trying
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Attempted to read the cluster's
+protocol versions 8 times, still trying
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+Jun  7 12:18:08 MC1 ocfs2_controld: Unable to open checkpoint
+"ocfs2:controld": Object does not exist
+
+
+
+
+
+regards,
+
+Harsha
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130613/86c2231c/attachment-0001.html 
