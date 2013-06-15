@@ -1,175 +1,179 @@
-From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Fri, 14 Jun 2013 21:05:10 -0500
-Subject: [Ocfs2-devel] [PATCH] unlink performance: wait for open lock in
-	case of dirs
-Message-ID: <20130615020510.GA4487@shrek.cartoons>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Sat, 15 Jun 2013 13:09:18 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Fix llseek() semantics and do
+	some cleanup
+In-Reply-To: <1371237814-59365-2-git-send-email-ryao@gentoo.org>
+References: <1371237814-59365-1-git-send-email-ryao@gentoo.org>
+	<1371237814-59365-2-git-send-email-ryao@gentoo.org>
+Message-ID: <51BBF6FE.6080502@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Richard Yao <ryao@gentoo.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, linux-kernel@vger.kernel.org, kernel@gentoo.org, linux-fsdevel@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>
 
-This patch is to improve the unlink performance. Here is the scenario:
+[Add ocfs2-devel to CC-list]
 
-On node A, create multiple directories say d1-d8, and each have 3
-files under it f1, f2 and f3.
-On node B, delete all directories using rm -Rf d*
+Hello Richard,
 
-The FS first unlinks f1, f2 and f3. However, when it performs
-ocfs2_evict_inode() -> ocfs2_delete_inode() ->
-ocfs2_query_inode_wipe() -> ocfs2_try_open_lock() on d1, it fails
-with -EAGAIN. The open lock fails because on the remote node
-a PR->EX convert takes longer than a simple EX grant.
+Thanks for your patch.
 
-This starts a checkpoint because OCFS2_INODE_DELETED flag is not set
-on the directory inode. Now, a checkpoint interferes with the journaling
-of the inodes deleted in the following unlinks, in our case,
-directories d2-d8 and the files contained in it.
+On 06/15/2013 03:23 AM, Richard Yao wrote:
 
-With this patch, We wait on a directory EX lock only if we already
-have an open_lock in PR mode. This way we will avoid the ABBA locking.
+> There are multiple issues with the custom llseek implemented in ocfs2 for
+> implementing SEEK_HOLE/SEEK_DATA.
+> 
+> 1. It takes the inode->i_mutex lock before calling generic_file_llseek(), which
+> is unnecessary.
 
-By waiting for the open_lock on the directory, I am getting a unlink
-performance improvement of a rm -Rf of 50-60% in the usual case.
+Agree, but please see my comments below.
 
-Also, folded ocfs2_open_lock and ocfs2_try_open_lock into one.
+> 
+> 2. It fails to take the filp->f_lock spinlock before modifying filp->f_pos and
+> filp->f_version, which differs from generic_file_llseek().
+> 
+> 3. It does a offset > inode->i_sb->s_maxbytes check that permits seeking up to
+> the maximum file size possible on the ocfs2 filesystem, even when it is past
+> the end of the file. Seeking beyond that (if possible), would return EINVAL
+> instead of ENXIO.
+> 
+> 4. The switch statement tries to cover all whence values when in reality it
+> should only care about SEEK_HOLE/SEEK_DATA. Any other cases should be passsed
+> to generic_file_llseek().
 
-Let me know if you would like to see the test case.
+I have another patch set for refactoring ocfs2_file_llseek() but not yet found time
+to run a comprehensive tests.  It can solve the existing issues but also improved the
+SEEK_DATA/SEEK_HOLE for unwritten extents, i.e. OCFS2_EXT_UNWRITTEN.
 
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+With this change, SEEK_DATA/SEEK_HOLE will go into separate function with a little code
+duplication instead of the current mix-ups in ocfs2_seek_data_hole_offset(), i.e, 
 
-Index: linux-3.0-SLE11-SP3/fs/ocfs2/dlmglue.c
-===================================================================
---- linux-3.0-SLE11-SP3.orig/fs/ocfs2/dlmglue.c	2013-06-14 06:47:29.322506695 -0500
-+++ linux-3.0-SLE11-SP3/fs/ocfs2/dlmglue.c	2013-06-14 09:19:48.651924037 -0500
-@@ -1681,9 +1681,9 @@ void ocfs2_rw_unlock(struct inode *inode
- /*
-  * ocfs2_open_lock always get PR mode lock.
-  */
--int ocfs2_open_lock(struct inode *inode)
-+int ocfs2_open_lock(struct inode *inode, int write, int wait)
- {
--	int status = 0;
-+	int status = 0, level, flags;
- 	struct ocfs2_lock_res *lockres;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
-@@ -1696,43 +1696,25 @@ int ocfs2_open_lock(struct inode *inode)
- 		goto out;
- 
- 	lockres = &OCFS2_I(inode)->ip_open_lockres;
--
--	status = ocfs2_cluster_lock(OCFS2_SB(inode->i_sb), lockres,
--				    DLM_LOCK_PR, 0, 0);
--	if (status < 0)
--		mlog_errno(status);
--
--out:
--	return status;
--}
--
--int ocfs2_try_open_lock(struct inode *inode, int write)
--{
--	int status = 0, level;
--	struct ocfs2_lock_res *lockres;
--	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
--
--	BUG_ON(!inode);
--
--	mlog(0, "inode %llu try to take %s open lock\n",
--	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
--	     write ? "EXMODE" : "PRMODE");
--
--	if (ocfs2_mount_local(osb))
--		goto out;
--
--	lockres = &OCFS2_I(inode)->ip_open_lockres;
--
- 	level = write ? DLM_LOCK_EX : DLM_LOCK_PR;
-+	if (wait) {
-+		flags = 0;
-+		/* If we don't already have the lock in PR mode,
-+		 * don't wait.
-+		 *
-+		 * This should avoid ABBA locking.
-+		 */
-+		if ((lockres->l_level != DLM_LOCK_PR) && write)
-+			flags = DLM_LKF_NOQUEUE;
-+
-+	} else
-+		flags = DLM_LKF_NOQUEUE;
- 
--	/*
--	 * The file system may already holding a PRMODE/EXMODE open lock.
--	 * Since we pass DLM_LKF_NOQUEUE, the request won't block waiting on
--	 * other nodes and the -EAGAIN will indicate to the caller that
--	 * this inode is still in use.
--	 */
- 	status = ocfs2_cluster_lock(OCFS2_SB(inode->i_sb), lockres,
--				    level, DLM_LKF_NOQUEUE, 0);
-+				    level, flags, 0);
-+
-+	if ((status < 0) && (flags && (status != -EAGAIN)))
-+		mlog_errno(status);
- 
- out:
- 	return status;
-Index: linux-3.0-SLE11-SP3/fs/ocfs2/inode.c
-===================================================================
---- linux-3.0-SLE11-SP3.orig/fs/ocfs2/inode.c	2013-06-13 22:54:32.527606012 -0500
-+++ linux-3.0-SLE11-SP3/fs/ocfs2/inode.c	2013-06-14 07:33:53.960196648 -0500
-@@ -455,7 +455,7 @@ static int ocfs2_read_locked_inode(struc
- 				  0, inode);
- 
- 	if (can_lock) {
--		status = ocfs2_open_lock(inode);
-+		status = ocfs2_open_lock(inode, 0, 1);
- 		if (status) {
- 			make_bad_inode(inode);
- 			mlog_errno(status);
-@@ -470,7 +470,7 @@ static int ocfs2_read_locked_inode(struc
- 	}
- 
- 	if (args->fi_flags & OCFS2_FI_FLAG_ORPHAN_RECOVERY) {
--		status = ocfs2_try_open_lock(inode, 0);
-+		status = ocfs2_open_lock(inode, 0, 0);
- 		if (status) {
- 			make_bad_inode(inode);
- 			return status;
-@@ -923,7 +923,8 @@ static int ocfs2_query_inode_wipe(struct
- 	 * Though we call this with the meta data lock held, the
- 	 * trylock keeps us from ABBA deadlock.
- 	 */
--	status = ocfs2_try_open_lock(inode, 1);
-+	status = ocfs2_open_lock(inode, 1, S_ISDIR(inode->i_mode));
-+
- 	if (status == -EAGAIN) {
- 		status = 0;
- 		reason = 3;
-Index: linux-3.0-SLE11-SP3/fs/ocfs2/dlmglue.h
-===================================================================
---- linux-3.0-SLE11-SP3.orig/fs/ocfs2/dlmglue.h	2013-06-10 09:45:20.787386504 -0500
-+++ linux-3.0-SLE11-SP3/fs/ocfs2/dlmglue.h	2013-06-14 07:38:49.861576515 -0500
-@@ -110,8 +110,7 @@ int ocfs2_create_new_inode_locks(struct
- int ocfs2_drop_inode_locks(struct inode *inode);
- int ocfs2_rw_lock(struct inode *inode, int write);
- void ocfs2_rw_unlock(struct inode *inode, int write);
--int ocfs2_open_lock(struct inode *inode);
--int ocfs2_try_open_lock(struct inode *inode, int write);
-+int ocfs2_open_lock(struct inode *inode, int write, int wait);
- void ocfs2_open_unlock(struct inode *inode);
- int ocfs2_inode_lock_atime(struct inode *inode,
- 			  struct vfsmount *vfsmnt,
-Index: linux-3.0-SLE11-SP3/fs/ocfs2/namei.c
-===================================================================
---- linux-3.0-SLE11-SP3.orig/fs/ocfs2/namei.c	2013-06-13 22:54:32.527606012 -0500
-+++ linux-3.0-SLE11-SP3/fs/ocfs2/namei.c	2013-06-14 07:40:06.623785914 -0500
-@@ -2302,7 +2302,7 @@ int ocfs2_create_inode_in_orphan(struct
- 	}
- 
- 	/* get open lock so that only nodes can't remove it from orphan dir. */
--	status = ocfs2_open_lock(inode);
-+	status = ocfs2_open_lock(inode, 0, 1);
- 	if (status < 0)
- 		mlog_errno(status);
- 
+loff_t ocfs2_file_llseek()
+{
+	switch (origin) {
+        case SEEK_END:
+        case SEEK_CUR:
+        case SEEK_SET:
+                return generic_file_llseek(file, offset, origin);
+        case SEEK_DATA:
+                return ocfs2_seek_data(file, offset);
+        case SEEK_HOLE:
+                return ocfs2_seek_hole(file, offset);
+        default:
+                return -EINVAL;
+        }
+}
+
+I personally like keeping SEEK_DATA/SEEK_HOLE in switch...case style rather
+than dealing with them in a condition check block.
+
+Thanks,
+-Jeff
+
+> 
+> btrfs_file_llseek() and ocfs2_file_llseek() are extremely similar and
+> consequently, contain many of the same flaws. Li Dongyang filed a pull
+> request with ZFSOnLinux for SEEK_HOLE/SEEK_DATA support that included a
+> custom llseek function that appears to have been modelled after the one
+> in ocfs2. The similarity was strong enough that it suffered from many of
+> the same flaws, which I caught during review. I addressed the issues
+> with his patch with one that I wrote. Since a small percentage of Gentoo
+> Linux users are affected by these flaws, I decided to adapt that code
+> that to btrfs (separate patch) and ocfs2.
+> 
+> Note that commit 48802c8ae2a9d618ec734a61283d645ad527e06c by Jeff Liu at
+> Oracle mostly addressed #3 in btrfs. The only lingering issue was that
+> the offset > inode->i_sb->s_maxbytes check became dead code. The ocfs2
+> code was not fortunate enough to have had a similar correction until
+> now.
+> 
+> Signed-off-by: Richard Yao <ryao@gentoo.org>
+> ---
+>  fs/ocfs2/file.c | 65 ++++++++++++++++++++++-----------------------------------
+>  1 file changed, 25 insertions(+), 40 deletions(-)
+> 
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index ff54014..84f8c9c 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -2615,54 +2615,39 @@ bail:
+>  }
+>  
+>  /* Refer generic_file_llseek_unlocked() */
+> -static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
+> +static loff_t ocfs2_file_llseek(struct file *filp, loff_t offset, int whence)
+>  {
+> -	struct inode *inode = file->f_mapping->host;
+> -	int ret = 0;
+> +	if (whence == SEEK_DATA || whence == SEEK_HOLE) {
+> +		struct inode *inode = filp->f_mapping->host;
+> +		int ret;
+>  
+> -	mutex_lock(&inode->i_mutex);
+> +		if (offset < 0 && !(filp->f_mode & FMODE_UNSIGNED_OFFSET))
+> +			return -EINVAL;
+>  
+> -	switch (whence) {
+> -	case SEEK_SET:
+> -		break;
+> -	case SEEK_END:
+> -		offset += inode->i_size;
+> -		break;
+> -	case SEEK_CUR:
+> -		if (offset == 0) {
+> -			offset = file->f_pos;
+> -			goto out;
+> +		if (offset >= i_size_read(inode)) {
+> +			return -ENXIO;
+>  		}
+> -		offset += file->f_pos;
+> -		break;
+> -	case SEEK_DATA:
+> -	case SEEK_HOLE:
+> -		ret = ocfs2_seek_data_hole_offset(file, &offset, whence);
+> -		if (ret)
+> -			goto out;
+> -		break;
+> -	default:
+> -		ret = -EINVAL;
+> -		goto out;
+> -	}
+>  
+> -	if (offset < 0 && !(file->f_mode & FMODE_UNSIGNED_OFFSET))
+> -		ret = -EINVAL;
+> -	if (!ret && offset > inode->i_sb->s_maxbytes)
+> -		ret = -EINVAL;
+> -	if (ret)
+> -		goto out;
+> +		mutex_lock(&inode->i_mutex);
+> +		ret = ocfs2_seek_data_hole_offset(filp, &offset, whence);
+> +		mutex_unlock(&inode->i_mutex);
+> +
+> +		if (ret) {
+> +			return ret;
+> +		}
+>  
+> -	if (offset != file->f_pos) {
+> -		file->f_pos = offset;
+> -		file->f_version = 0;
+> +		if (offset != filp->f_pos) {
+> +			spin_lock(&filp->f_lock);
+> +			filp->f_pos = offset;
+> +			filp->f_version = 0;
+> +			spin_unlock(&filp->f_lock);
+> +		}
+> +
+> +		return offset;
+>  	}
+>  
+> -out:
+> -	mutex_unlock(&inode->i_mutex);
+> -	if (ret)
+> -		return ret;
+> -	return offset;
+> +	return generic_file_llseek(filp, offset, whence);
+> +
+>  }
+>  
+>  const struct inode_operations ocfs2_file_iops = {
