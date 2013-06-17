@@ -1,60 +1,34 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Sun, 16 Jun 2013 15:16:26 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Fix llseek() semantics and do
- some cleanup
-In-Reply-To: <51BD1B84.9080402@huawei.com>
-References: <1371237814-59365-1-git-send-email-ryao@gentoo.org>
-	<1371237814-59365-2-git-send-email-ryao@gentoo.org>
-	<51BBF6FE.6080502@oracle.com> <51BC080D.1090405@huawei.com>
-	<51BD0A66.4070003@gentoo.org> <51BD1B84.9080402@huawei.com>
-Message-ID: <51BD664A.6000405@oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Mon, 17 Jun 2013 09:08:24 -0500
+Subject: [Ocfs2-devel] [PATCH] Add bits_wanted while calculating credits in
+ ocfs2_calc_extend_credits
+Message-ID: <20130617140824.GA8554@shrek.cartoons>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: shencanquan <shencanquan@huawei.com>
-Cc: Richard Yao <ryao@gentoo.org>, Mark Fasheh <mfasheh@suse.com>, kernel@gentoo.org, linux-fsdevel@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-Remove kernel-dev from the CC-list as this is particular to OCFS2.
+While adding extends to a file, the credits are calculated incorrectly
+and if the requested clusters is more than one (or more because we used 
+a conservative limit) then we run out of journal credits and we hit
+an assert in journalling code.
 
-On 06/16/2013 09:57 AM, shencanquan wrote:
+The function parameter bits_wanted variable was not used at all.
 
-> On 2013/6/16 8:44, Richard Yao wrote:
->> On 06/15/2013 02:22 AM, shencanquan wrote:
->>> Hello, Richard and Jeff,
->>>     we found that llseek has another bug when in SEEK_END.  it should be
->>> add the inode lock and unlock.
->>>     this bug can be reproduce the following scenario:
->>>     on one nodeA, open the file and then write some data to file and
->>> close the file .
->>>     on  another nodeB , open the file and llseek the end of file . the
->>> position of file is old.
+Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 
-This sounds like a bug because SEEK_END references the file size, hence it
-requires the OCFS2 specified inode lock protection.
-
-So patch is always welcome.
-
-Thanks,
--Jeff
-
->> Did these operations occur sequentially or did they occur concurrently?
->>
->> If you meant the former, the inode cache is not being invalidated. That
->> should be a bug because Oracle claims OCFS2 is cache-coherent. However,
->> it is possible that this case was left out of the cache-coherence
->> protocol for performance purposes. If that is the case, then this would
->> be by design. someone who works for Oracle would need to comment on that
->> though.
-> 
->    it is a occur sequentially.  after close the file on NodeA , on nodeB
-> and then open the file and llseek the end of file.
-> 
->>
->> If you meant the latter, you should ask yourself what would happen when
->> you run two separate programs on the same file in a local filesystem.
->> There should be no way to avoid a race without some kind of a locking
->> mechanism.
->>
-> 
-> 
+--- 
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index a3385b6..7d927cd 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -538,7 +538,7 @@ static inline int ocfs2_calc_extend_credits(struct super_block *sb,
+ 	extent_blocks = 1 + 1 + le16_to_cpu(root_el->l_tree_depth);
+ 
+ 	return bitmap_blocks + sysfile_bitmap_blocks + extent_blocks +
+-	       ocfs2_quota_trans_credits(sb);
++	       ocfs2_quota_trans_credits(sb) + bits_wanted;
+ }
+ 
+ static inline int ocfs2_calc_symlink_credits(struct super_block *sb)
