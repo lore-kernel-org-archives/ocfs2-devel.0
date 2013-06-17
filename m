@@ -1,47 +1,46 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Mon, 17 Jun 2013 22:40:32 +0800
-Subject: [Ocfs2-devel] [PATCH] Add bits_wanted while calculating credits
- in ocfs2_calc_extend_credits
-In-Reply-To: <20130617140824.GA8554@shrek.cartoons>
-References: <20130617140824.GA8554@shrek.cartoons>
-Message-ID: <51BF1FE0.9040500@oracle.com>
+From: shencanquan <shencanquan@huawei.com>
+Date: Mon, 17 Jun 2013 22:48:54 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek need to inode cluster lock and
+ unlock for update the inode size in SEEK_END.
+Message-ID: <51BF21D6.9080008@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>, Mark Fasheh <mfasheh@suse.com>
+Cc: linux-fsdevel@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-On 06/17/2013 10:08 PM, Goldwyn Rodrigues wrote:
+We found that llseek has a bug when in SEEK_END.  it need to add the 
+inode lock and unlock.
+This bug can be reproduce the following scenario:
+On one nodeA, open the file and then write some data to file and close 
+the file .
+On another nodeB , open the file and llseek the end of file . the 
+position of file is old.
 
-> While adding extends to a file, the credits are calculated incorrectly
-> and if the requested clusters is more than one (or more because we used 
-> a conservative limit) then we run out of journal credits and we hit
-> an assert in journalling code.
-> 
-> The function parameter bits_wanted variable was not used at all.
-> 
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+Signed-off-by: jensen <shencanquan@huawei.com>
+---
+  file.c |    7 +++++++
+  1 file changed, 7 insertions(+)
 
-Looks good to me, thank you!
-Reviewed-by: Jie Liu <jeff.liu@oracle.com>
-
-> 
-> --- 
-> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-> index a3385b6..7d927cd 100644
-> --- a/fs/ocfs2/journal.h
-> +++ b/fs/ocfs2/journal.h
-> @@ -538,7 +538,7 @@ static inline int ocfs2_calc_extend_credits(struct super_block *sb,
->  	extent_blocks = 1 + 1 + le16_to_cpu(root_el->l_tree_depth);
->  
->  	return bitmap_blocks + sysfile_bitmap_blocks + extent_blocks +
-> -	       ocfs2_quota_trans_credits(sb);
-> +	       ocfs2_quota_trans_credits(sb) + bits_wanted;
->  }
->  
->  static inline int ocfs2_calc_symlink_credits(struct super_block *sb)
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+diff --git a/file.c b/file.c
+index ff54014..4ee7c80 100644
+--- a/file.c
++++ b/file.c
+@@ -2626,6 +2626,13 @@ static loff_t ocfs2_file_llseek(struct file 
+*file, loff_t offset, int whence)
+      case SEEK_SET:
+          break;
+      case SEEK_END:
++        /*need to inode lock and unlock for update the inode size.*/
++        ret = ocfs2_inode_lock(inode, NULL, 0);
++        if (ret < 0) {
++            mlog_errno(ret);
++            goto out;
++        }
++        ocfs2_inode_unlock(inode, 0);
+          offset += inode->i_size;
+          break;
+      case SEEK_CUR:
+-- 
+1.7.9.7
