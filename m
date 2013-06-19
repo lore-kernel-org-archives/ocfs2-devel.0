@@ -1,31 +1,92 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 19 Jun 2013 16:17:35 +0800
-Subject: [Ocfs2-devel] ocfs2: Should move ocfs2_start_trans out of lock_page
-Message-ID: <51C1691F.8060504@huawei.com>
+From: Younger Liu <younger.liu@huawei.com>
+Date: Wed, 19 Jun 2013 16:57:07 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: need rollback when journal_access
+	failed in ocfs2_orphan_add()
+Message-ID: <51C17263.5020601@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Currently ocfs2_start_trans/ocfs2_commit_trans are in
-lock_page/unlock_page. This may cause dead lock.
+While adding a file into orphan dir in ocfs2_orphan_add(),
+it calls __ocfs2_add_entry() before ocfs2_journal_access_di(). 
+If ocfs2_journal_access_di() failed, the file is added into 
+orphan dir, and orphan dir dinode updated, but file dinode 
+has not been updated.
+Accordingly, the data is not consistent between file dinode 
+and orphan dir.
 
-Here is the situation:
-write -> lock_page -> ocfs2_start_trans -> ocfs2_commit_trans -> unlock_page
-ocfs2_start_trans/ocfs2_commit_trans calls
-jbd2_journal_start/jbd2_journal_stop which may also call lock_page. So
-if the page operated is unfortunately the same with the page to be
-committed, dead lock happens.
+So, need to call ocfs2_journal_access_di() before __ocfs2_add_entry(),
+and if ocfs2_journal_access_di() failed, orphan_fe and 
+orphan_dir_inode->i_nlink need rollback. 
 
-In ext4, lock_page/unlock_page are in
-ext4_journal_start/ext4_journal_stop, this can avoid such kind of dead
-lock. So I think we should move ocfs2_start_trans/ocfs2_commit_trans out
-of lock_page/unlock_page.
+Signed-off-by: Younger Liu <younger.liu@huawei.com>
+---
+ fs/ocfs2/namei.c |   38 ++++++++++++++++++++++----------------
+ 1 file changed, 22 insertions(+), 16 deletions(-)
 
-Totally there are 5 related functions:
-ocfs2_write_begin_nolock
-ocfs2_write_begin_inline
-ocfs2_write_end_nolock
-ocfs2_write_zero_page
-ocfs2_convert_inline_data_to_extents
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index f53471d..f2da854 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -2012,6 +2012,21 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 		goto leave;
+ 	}
+ 
++	/*
++	 * We're going to journal the change of i_flags and i_orphaned_slot.
++	 * It's safe anyway, though some callers may duplicate the journaling.
++	 * Journaling within the func just make the logic look more
++	 * straightforward.
++	 */
++	status = ocfs2_journal_access_di(handle,
++					 INODE_CACHE(inode),
++					 fe_bh,
++					 OCFS2_JOURNAL_ACCESS_WRITE);
++	if (status < 0) {
++		mlog_errno(status);
++		goto leave;
++	}
++
+ 	/* we're a cluster, and nlink can change on disk from
+ 	 * underneath us... */
+ 	orphan_fe = (struct ocfs2_dinode *) orphan_dir_bh->b_data;
+@@ -2026,22 +2041,7 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 				   orphan_dir_bh, lookup);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto leave;
+-	}
+-
+-	/*
+-	 * We're going to journal the change of i_flags and i_orphaned_slot.
+-	 * It's safe anyway, though some callers may duplicate the journaling.
+-	 * Journaling within the func just make the logic look more
+-	 * straightforward.
+-	 */
+-	status = ocfs2_journal_access_di(handle,
+-					 INODE_CACHE(inode),
+-					 fe_bh,
+-					 OCFS2_JOURNAL_ACCESS_WRITE);
+-	if (status < 0) {
+-		mlog_errno(status);
+-		goto leave;
++		goto rollback;
+ 	}
+ 
+ 	fe->i_flags |= cpu_to_le32(OCFS2_ORPHANED_FL);
+@@ -2057,6 +2057,12 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
+ 	trace_ocfs2_orphan_add_end((unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 				   osb->slot_num);
+ 
++rollback:
++	if (status < 0 && S_ISDIR(inode->i_mode)) {
++		ocfs2_add_links_count(orphan_fe, -1);
++		set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe));
++	}
++
+ leave:
+ 	brelse(orphan_dir_bh);
+ 
+-- 1.7.9.7 
