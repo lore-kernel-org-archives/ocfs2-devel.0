@@ -1,37 +1,43 @@
 From: Younger Liu <younger.liu@huawei.com>
-Date: Tue, 18 Jun 2013 14:02:59 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Free sc->sc_page in sc_kref_release()
-	v2
-Message-ID: <51BFF813.80608@huawei.com>
+Date: Wed, 19 Jun 2013 12:48:26 +0800
+Subject: [Ocfs2-devel] [PATCH] fs/jbd2: t_updates should increase when
+ start_this_handle() failed in jbd2__journal_restart()
+Message-ID: <51C1381A.2@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>, Theodore Ts'o <tytso@mit.edu>
+Cc: linux-ext4@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, Li Zefan <lizefan@huawei.com>
 
-There is a memory leak in sc_kref_release().
-When free struct o2net_sock_container (sc), 
-we should release sc->sc_page.
+jbd2_journal_restart() would restart a handle. In this function, it
+calls start_this_handle(). Before calling start_this_handle()?subtract
+1 from transaction->t_updates.
+If start_this_handle() succeeds, transaction->t_updates increases by 1
+in it. But if start_this_handle() fails, transaction->t_updates does
+not increase.
+So, when commit the handle's transaction in jbd2_journal_stop(), the
+assertion is false, and then trigger a bug.
+The assertion is as follows:
+J_ASSERT(atomic_read(&transaction->t_updates) > 0) 
 
 Signed-off-by: Younger Liu <younger.liu@huawei.com>
-Reviewed-by: Jie Liu <jeff.liu@oracle.com>
 ---
- fs/ocfs2/cluster/tcp.c |    3 +++
- 1 file changed, 3 insertions(+)
+ fs/jbd2/transaction.c |    2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index aa88bd8..bb9a48b 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -406,6 +406,9 @@ static void sc_kref_release(struct kref *kref)
- 	sc->sc_node = NULL;
- 
- 	o2net_debug_del_sc(sc);
-+
-+	if (sc->sc_page)
-+		__free_page(sc->sc_page);
- 	kfree(sc);
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index 325bc01..9ddb444 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -530,6 +530,8 @@ int jbd2__journal_restart(handle_t *handle, int nblocks, gfp_t gfp_mask)
+ 	lock_map_release(&handle->h_lockdep_map);
+ 	handle->h_buffer_credits = nblocks;
+ 	ret = start_this_handle(journal, handle, gfp_mask);
++	if (ret < 0)
++		atomic_inc(&transaction->t_updates);
+ 	return ret;
  }
- 
+ EXPORT_SYMBOL(jbd2__journal_restart);
 -- 
 1.7.9.7
