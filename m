@@ -1,96 +1,101 @@
 From: Jeff Liu <jeff.liu@oracle.com>
-Date: Wed, 19 Jun 2013 21:12:59 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: llseek need to require ocfs2
- inode lock for updating the size in SEEK_END
-In-Reply-To: <51C18A31.40008@huawei.com>
-References: <51C18A31.40008@huawei.com>
-Message-ID: <51C1AE5B.9090402@oracle.com>
+Date: Wed, 19 Jun 2013 23:02:19 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Rework transaction rollback in
+	ocfs2_relink_block_group()
+Message-ID: <51C1C7FB.6080805@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Canquan,
+From: Jie Liu <jeff.liu@oracle.com>
 
-On 06/19/2013 06:38 PM, shencanquan wrote:
+In ocfs2_relink_block_group(), we roll back all those changes if
+notify intent to modify buffers for metadata update failed even
+if the relevant buffer has not yet been modified/got dirty at that
+point, that are not quite right because of:
 
-> The test scenario is following:
-> 
-> There are two node, one is nodeA, another is nodeB
-> On nodeA, the test program open the file and write some data to the
-> file and then close the file.
-> On nodeB, the another test program open the file and llseek the end of
-> file. we found that the position of file is old.
-> 
-> After apply this patch. it is ok on nodeB. the position of file is
-> update to date.
+- None buffer has been modified/dirty if failed to call
+  ocfs2_journal_access_gd() against the previous block group buffer
+- Only the previous block group buffer has got dirty if failed to
+  call ocfs2_journal_access_gd() against the block group buffer
+- There is no need to roll back the change for file entry buffer at all
 
-But I still not get a direct viewing.  That is to say the currently
-incorrect behavior as well as the correct result with this fix up.
-This would be useful not only for the patch reviewer but also can be
-proved that your fix is really works as expected.
+Those problems will not cause anything wrong but unnecessary.
+This patch fix them and kill the useless bg_ptr variable as well.
 
-That is not hard to wrap up the test code and results into the patch
-commit log, e.g,
+Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+---
+ fs/ocfs2/suballoc.c |   25 ++++++++++++-------------
+ 1 file changed, 12 insertions(+), 13 deletions(-)
 
-On nodeA:
----------
-1) Record the test file size
-2) Append the test file && close it
-
-On nodeB:
----------
-1) Open/seek to the end of the test file and record/verify the result.
-
-You can write the test code in any language that you preferred. e.g, use
-python to verify the SEEK_END result with this patch:
-
-$ python -c "import os;f=open('test_file_path_name', 'r');f.seek(0, 2); \
-             fsize=f.tell();print fsize"
-
-> 
-> Signed-off-by: jensen <shencanquan@huawei.com>
-> ---
->  fs/ocfs2/file.c |    9 +++++++++
->  1 file changed, 9 insertions(+)
-> 
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index ff54014..f2570ba 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
->  	case SEEK_SET:
->  		break;
->  	case SEEK_END:
-> +		/* SEEK_END requires the OCFS2 inode lock because
-> +		 * it uses the inode size.
-
-The comments is wrong.  In general, the inode size means that how
-many bytes is used to store an inode in file system blocks.
-
-I'd like to suggest the comments below:
-		/* SEEK_END requires the OCFS2 inode lock for the
-		 * file because it references the file's size.
-		 */
-
-Hi Mark, what's your opinion?
-
-> +		*/
-
-		^^ <-- No alignment to above lines.
-
-> +		ret = ocfs2_inode_lock(inode, NULL, 0);
-> +		if (ret < 0) {
-> +			mlog_errno(ret);
-> +			goto out;
-> +		}
->  		offset += inode->i_size;
-> +		ocfs2_inode_unlock(inode, 0);
->  		break;
->  	case SEEK_CUR:
->  		if (offset == 0) {
-
-
-Thanks,
--Jeff
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index b7e74b5..101d16d 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1422,7 +1422,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+ 	int status;
+ 	/* there is a really tiny chance the journal calls could fail,
+ 	 * but we wouldn't want inconsistent blocks in *any* case. */
+-	u64 fe_ptr, bg_ptr, prev_bg_ptr;
+ 	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
+@@ -1437,7 +1437,6 @@ static int ocfs2_relink_block_group(handle_t *handle,
+ 		(unsigned long long)le64_to_cpu(bg->bg_blkno),
+ 		(unsigned long long)le64_to_cpu(prev_bg->bg_blkno));
+ 
+-	fe_ptr = le64_to_cpu(fe->id2.i_chain.cl_recs[chain].c_blkno);
+ 	bg_ptr = le64_to_cpu(bg->bg_next_group);
+ 	prev_bg_ptr = le64_to_cpu(prev_bg->bg_next_group);
+ 
+@@ -1446,7 +1445,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+ 					 OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto out_rollback;
++		goto out;
+ 	}
+ 
+ 	prev_bg->bg_next_group = bg->bg_next_group;
+@@ -1456,7 +1455,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+ 					 bg_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto out_rollback;
++		goto out_rollback_prev_bg;
+ 	}
+ 
+ 	bg->bg_next_group = fe->id2.i_chain.cl_recs[chain].c_blkno;
+@@ -1466,21 +1465,21 @@ static int ocfs2_relink_block_group(handle_t *handle,
+ 					 fe_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto out_rollback;
++		goto out_rollback_bg;
+ 	}
+ 
+ 	fe->id2.i_chain.cl_recs[chain].c_blkno = bg->bg_blkno;
+ 	ocfs2_journal_dirty(handle, fe_bh);
+ 
+-out_rollback:
+-	if (status < 0) {
+-		fe->id2.i_chain.cl_recs[chain].c_blkno = cpu_to_le64(fe_ptr);
+-		bg->bg_next_group = cpu_to_le64(bg_ptr);
+-		prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+-	}
++out:
++	return status;
+ 
+-	if (status)
+-		mlog_errno(status);
++out_rollback_bg:
++	bg->bg_next_group = cpu_to_le64(bg_ptr);
++out_rollback_prev_bg:
++	prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
++
++	mlog_errno(status);
+ 	return status;
+ }
+ 
+-- 
+1.7.9.5
