@@ -1,67 +1,65 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu, 20 Jun 2013 17:15:15 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: xattr: fix inlined xattr
-	reflink
-In-Reply-To: <51C2C4D2.101@oracle.com>
-References: <1371709057-11469-1-git-send-email-junxiao.bi@oracle.com>
-	<51C2C4D2.101@oracle.com>
-Message-ID: <51C2C823.3010805@oracle.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Thu, 20 Jun 2013 19:13:53 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlmlock_master should return
+ DLM_NORMAL after adding lock to blocked list
+Message-ID: <51C2E3F1.5020605@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jeff,
+Function dlmlock_master() returns DLM_RECOVERING/DLM_MIGRATING/
+DLM_FORWAR after adding lock to blocked list if lockres has the state
+DLM_LOCK_RES_RECOVERING/DLM_LOCK_RES_MIGRATING/
+DLM_LOCK_RES_IN_PROGRESS. so it will retry in dlmlock(). And this may
+cause dlm_thread fall into an infinite loop
 
-On 06/20/2013 05:01 PM, Jeff Liu wrote:
-> Hi Junxiao,
->
-> On 06/20/2013 02:17 PM, Junxiao Bi wrote:
->
->> Inlined xattr shared free space of inode block with inlined data
->> or data extent record, so the size of the later two should be
->> adjusted when inlined xattr is enabled. See ocfs2_xattr_ibody_init().
->> But this isn't done well when reflink. For inode with inlined data,
->> its max inlined data size is adjusted in ocfs2_duplicate_inline_data(),
->> no problem. But for inode with data extent record, its record count isn't
->> adjusted. Fix it, or data extent record and inlined xattr may overwrite
->> each other, then cause data corruption or xattr failure.
->>
->> Cc: <stable@kernel.org>
->> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
->> ---
->>  fs/ocfs2/xattr.c |   10 ++++++++++
->>  1 file changed, 10 insertions(+)
->>
->> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
->> index 2e3ea30..3bb0708 100644
->> --- a/fs/ocfs2/xattr.c
->> +++ b/fs/ocfs2/xattr.c
->> @@ -6499,6 +6499,16 @@ static int ocfs2_reflink_xattr_inline(struct ocfs2_xattr_reflink *args)
->>  	}
->>  
->>  	new_oi = OCFS2_I(args->new_inode);
->> +	/*
->> +	 * Adjust extent record count to reserve space for extended attribute.
->> +	 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
->> +	 */
->> +	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL)
->> +		&& !(ocfs2_inode_is_fast_symlink(new_inode))) {
-> A minor code style adjustment would be better as:
-> 	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
-> 	    !(ocfs2_inode_.....)) {
-Thanks for review it, will make the change in V2.
->
-> Otherwise this fix looks fine.
->
->> +		struct ocfs2_extent_list *el = &new_di->id2.i_list;
->> +		le16_add_cpu(&el->l_count, -(inline_size /
->> +					sizeof(struct ocfs2_extent_rec)));
->> +	}
->>  	spin_lock(&new_oi->ip_lock);
->>  	new_oi->ip_dyn_features |= OCFS2_HAS_XATTR_FL | OCFS2_INLINE_XATTR_FL;
->>  	new_di->i_dyn_features = cpu_to_le16(new_oi->ip_dyn_features);
->
-> Thanks,
-> -Jeff
+	Thread1                                  dlm_thread
+calls dlm_lock->dlmlock_master,				     
+if lockresA is in state
+DLM_LOCK_RES_RECOVERING, calls
+__dlm_wait_on_lockres() and waits
+until others threads clear this
+state; 
+
+If cannot grant this lock,
+adding lock to blocked list,
+and return DLM_RECOVERING;	
+
+                                        Grant this lock and move it to
+                                        grant list;
+
+After a while, retry and 
+calls list_add_tail(), adding lock
+to blocked list again. 
+
+Granted and blocked list of this lockres will become the following
+conditions:
+    lock_res->granted.next = dlm_lock->list_head;
+    lock_res->blocked.next = dlm_lock->list_head;
+    dlm_lock->list_head.next = dlm_lock_resource->blocked;
+When dlm_thread traverses the granted list, it will fall into an
+endless loop, checking dlm_lock.list_head, dlm_lock->list_head.next
+(i.e.lock_res->blocked), lock_res->blocked.next(i.e.dlm_lock.list_head
+again) .....					
+
+Signed-off-by: joyce <xuejiufei@huawei.com>
+---
+ fs/ocfs2/dlm/dlmlock.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
+index 975810b..47e67c2 100644
+--- a/fs/ocfs2/dlm/dlmlock.c
++++ b/fs/ocfs2/dlm/dlmlock.c
+@@ -178,6 +178,7 @@ static enum dlm_status dlmlock_master(struct dlm_ctxt *dlm,
+ 				     lock->ml.node);
+ 			}
+ 		} else {
++			status = DLM_NORMAL;
+ 			dlm_lock_get(lock);
+ 			list_add_tail(&lock->list, &res->blocked);
+ 			kick_thread = 1;
+-- 
+1.7.9.7
