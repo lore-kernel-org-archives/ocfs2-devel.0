@@ -1,117 +1,113 @@
-From: Richard Yao <ryao@gentoo.org>
-Date: Sun, 16 Jun 2013 07:17:56 -0000
-Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: Fix llseek() semantics and do
-	some cleanup
-In-Reply-To: <51BD6288.5030901@oracle.com>
-References: <1371237814-59365-1-git-send-email-ryao@gentoo.org>
-	<1371237814-59365-2-git-send-email-ryao@gentoo.org>
-	<51BBF6FE.6080502@oracle.com> <51BD0AFF.8010504@gentoo.org>
-	<51BD6288.5030901@oracle.com>
-Message-ID: <51BD6679.2090406@gentoo.org>
+From: Josef Bacik <jbacik@fusionio.com>
+Date: Thu, 20 Jun 2013 17:26:14 -0000
+Subject: [Ocfs2-devel] [PATCH] fs/jbd2: t_updates should increase when
+ start_this_handle() failed in jbd2__journal_restart()
+In-Reply-To: <20130620155555.GE28309@thunk.org>
+References: <51C1381A.2@huawei.com>
+ <20130620155555.GE28309@thunk.org>
+Message-ID: <20130620172609.GC4288@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jeff Liu <jeff.liu@oracle.com>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@gentoo.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>, Joel Becker <jlbec@evilplan.org>, Mark Fasheh <mfasheh@suse.com>
+To: Theodore Ts'o <tytso@mit.edu>
+Cc: Younger Liu <younger.liu@huawei.com>, Andrew Morton <akpm@linux-foundation.org>, linux-ext4@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>, Li Zefan <lizefan@huawei.com>, jack@suse.cz
 
-On 06/16/2013 03:00 AM, Jeff Liu wrote:
-> On 06/16/2013 08:46 AM, Richard Yao wrote:
+On Thu, Jun 20, 2013 at 11:55:55AM -0400, Theodore Ts'o wrote:
+> [ LKML and linux-fsdevel BCC'ed ]
 > 
->> On 06/15/2013 01:09 AM, Jeff Liu wrote:
->>> [Add ocfs2-devel to CC-list]
->>>
->>> Hello Richard,
->>>
->>> Thanks for your patch.
->>>
->>> On 06/15/2013 03:23 AM, Richard Yao wrote:
->>>
->>>> There are multiple issues with the custom llseek implemented in ocfs2 for
->>>> implementing SEEK_HOLE/SEEK_DATA.
->>>>
->>>> 1. It takes the inode->i_mutex lock before calling generic_file_llseek(), which
->>>> is unnecessary.
->>>
->>> Agree, but please see my comments below.
->>>
->>>>
->>>> 2. It fails to take the filp->f_lock spinlock before modifying filp->f_pos and
->>>> filp->f_version, which differs from generic_file_llseek().
->>>>
->>>> 3. It does a offset > inode->i_sb->s_maxbytes check that permits seeking up to
->>>> the maximum file size possible on the ocfs2 filesystem, even when it is past
->>>> the end of the file. Seeking beyond that (if possible), would return EINVAL
->>>> instead of ENXIO.
->>>>
->>>> 4. The switch statement tries to cover all whence values when in reality it
->>>> should only care about SEEK_HOLE/SEEK_DATA. Any other cases should be passsed
->>>> to generic_file_llseek().
->>>
->>> I have another patch set for refactoring ocfs2_file_llseek() but not yet found time
->>> to run a comprehensive tests.  It can solve the existing issues but also improved the
->>> SEEK_DATA/SEEK_HOLE for unwritten extents, i.e. OCFS2_EXT_UNWRITTEN.
->>>
->>> With this change, SEEK_DATA/SEEK_HOLE will go into separate function with a little code
->>> duplication instead of the current mix-ups in ocfs2_seek_data_hole_offset(), i.e, 
->>>
->>> loff_t ocfs2_file_llseek()
->>> {
->>> 	switch (origin) {
->>>         case SEEK_END:
->>>         case SEEK_CUR:
->>>         case SEEK_SET:
->>>                 return generic_file_llseek(file, offset, origin);
->>>         case SEEK_DATA:
->>>                 return ocfs2_seek_data(file, offset);
->>>         case SEEK_HOLE:
->>>                 return ocfs2_seek_hole(file, offset);
->>>         default:
->>>                 return -EINVAL;
->>>         }
->>> }
->>>
->>> I personally like keeping SEEK_DATA/SEEK_HOLE in switch...case style rather
->>> than dealing with them in a condition check block.
->>
->> I would prefer to see the code structured like this:
->>
->> loff_t ocfs2_file_llseek()
->> {
->> 	switch (origin) {
->>         case SEEK_DATA:
->>                 return ocfs2_seek_data(file, offset);
->>         case SEEK_HOLE:
->>                 return ocfs2_seek_hole(file, offset);
->>         default:
->>                 return generic_file_llseek(file, offset, origin);
->>         }
->> }
->>
->> Unfortunately, I just noticed that this code has a problem. In specific,
->> generic_file_llseek() calls generic_file_llseek_size(), which has a
->> switch statement for whence that fails to distinguish between SEEK_SET
->> and invalid whence values. Invalid whence values are mapped to SEEK_SET
->> instead of returning EINVAL, which is wrong. That issue affects all
->> filesystems that do not specify a custom llseek() function and it would
->> affect ocfs2 if my version of the function is used.
+> On Wed, Jun 19, 2013 at 12:48:26PM +0800, Younger Liu wrote:
+> > jbd2_journal_restart() would restart a handle. In this function, it
+> > calls start_this_handle(). Before calling start_this_handle()?subtract
+> > 1 from transaction->t_updates.
+> > If start_this_handle() succeeds, transaction->t_updates increases by 1
+> > in it. But if start_this_handle() fails, transaction->t_updates does
+> > not increase.
+> > So, when commit the handle's transaction in jbd2_journal_stop(), the
+> > assertion is false, and then trigger a bug.
+> > The assertion is as follows:
+> > J_ASSERT(atomic_read(&transaction->t_updates) > 0) 
+> > 
+> > Signed-off-by: Younger Liu <younger.liu@huawei.com>
 > 
-> Hmm??  Did you mean to say that an invalid whence(i.e, whence > SEEK_MAX)
-> can be passed into generic_file_llseek()?
-> If so, I don't think that is a problem because any invalid whence should
-> be rejected at the entrance of VFS lseek(2) with EINVAL.
+> Thanks for pointing out this potential problem.  Your fix isn't quite
+> the right one, however.
 > 
-> Thanks,
-> -Jeff
+> The problem is once we get to this point, the transaction pointer may
+> no longer be valid, since once we decrement t_updates, the transaction
+> could start commiting, and so we should not actually dereference the
+> transaction pointer after we unlock transaction->t_handle_lock.  (We
+> are referencing t_tid two lines later, and technically that's a bug.
+> We've just been getting lucky.)
+> 
+> The real issue is that by the time we call start_this_handle() in
+> jbd2__journal_restart, the handle is not attached to any transaction.
+> So if jbd2_journal_restart() fails, the handle has to be considered
+> invalid, and the calling code should not try to use the handle at all,
+> including calling jbd2_journal_stop().
+> 
+> Jan Kara is I believe currently on vacation but I'd really like him to
+> chime in with his opinion about the best way to fix this, since he's
+> also quite familiar with the jbd2 code.
+> 
+> Also, Jan has recently submitted changes to implement reserved handles
+> (to be submitted in the next merge window), and in these new
+> functions, if start_this_handle() fails when called from
+> jbd2_journal_start_reserved(), the handle is left invalidated, and the
+> caller of jbd2_journal_start_reserved() must not touch the handle
+> again, including calling jbd2_journal_stop() --- in fact, because
+> jbd2_journal_start_reserved() clears current->journal_info on failure,
+> an attempt to call jbd2_journal_stop() will result in the kernel oops
+> due to an assertion failure.
+> 
+> My inclination is to fix this in the same way, but it will require
+> changing the current code paths that use jbd2_journal_restart(), and
+> in some cases passing back the state that the handle is now invalid
+> and should not be released via jbd2_journal_stop() is going to be
+> tricky indeed.
+> 
+> 
+> Another possible fix is to set the handle to be aborted, via
+> jbd2_journal_abort_handle().  This function isn't used at all at the
+> moment, but from what I can tell this should do the right thing.  The
+> one unfortunate thing about this is that when jbd2_journal_stop() gets
+> called, it will return EROFS, which is a misleading error code.  I'm
+> guessing you're seeing this because start_this_handle() returned
+> ENOMEM, correct?  We could hack around this by stashing the real error
+> in the handle, and then change jbd2_journal_stop() to return that
+> error instead of EROFS if it is set.
+> 
+> This second solution is hacky all-around, and it's also inconsistent
+> with how we are doing things with jbd2_journal_start_reserved().  So
+> I'm not so happy with this solution.  But it would require a lot less
+> work because the fix would be isolated in the jbd2 layer.  OTOH, right
+> now if the code calls jbd2_journal_stop() on the handle after a
+> failure in jbd2_journal_start_reserved(), they are crashing anyway, so
+> changing the code so it changes with an assertion failure doesn't make
+> things any worse, and then we fix things in ext4 and ocfs2 without any
+> patch interdependencies --- and this is a problem which appears to
+> happen very rarely in practice.
 > 
 
-You are correct. I had not looked there.
+I realize it's been a little bit since I've looked at jbd but I'll offer my
+opinion.  Callers of jbd2_journal_restart() may not be the ones who originated
+the handle, so doing what Jan has done with jbd2_journal_start_reserved() isn't
+going to work because all the guy at the top is going to see is an error and
+have no way to tell if his handle is invalid or not.
 
+What I would suggest is getting a unified way to mark that the handle has
+already been cleaned up and can just be free'd.  Then fix
+jbd2_journal_start_reserved() and jbd2_journal_restart() to set that in the
+handle and make jbd2_journal_stop() just free up the handle and reset
+current->journal_info but not return an error.  It's important to not return an
+error from jbd2_journal_stop() so that it doesn't invoke the ext4 error handling
+stuff and you get a read only file system when the error may not be read only
+file system worthy.
 
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: signature.asc
-Type: application/pgp-signature
-Size: 901 bytes
-Desc: OpenPGP digital signature
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130616/8e3d7b2a/attachment-0001.bin 
+This way you have a nice clean way of dealing with handle errors that allow you
+to pass back a real error to the caller and the caller can just do its normal
+jbd2_journal_stop() and cleanup and do its own error handling the way it feels.
+This keeps the yucky details of no longer valid handles all internal to jbd2 and
+ext4/ocfs2 don't have to worry about it.  Thanks,
+
+Josef
