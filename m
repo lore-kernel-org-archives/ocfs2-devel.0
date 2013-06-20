@@ -1,157 +1,48 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Thu, 20 Jun 2013 13:52:31 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: need rollback when journal_access
- failed in ocfs2_orphan_add()
-In-Reply-To: <51C25A0E.8070702@huawei.com>
-References: <51C17263.5020601@huawei.com> <51C18DB7.4090003@oracle.com>
-	<51C25A0E.8070702@huawei.com>
-Message-ID: <51C2989F.4090108@oracle.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 20 Jun 2013 14:17:36 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: xattr: fix inlined xattr reflink
+Message-ID: <1371709057-11469-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 06/20/2013 09:25 AM, Younger Liu wrote:
+Inlined xattr shared free space of inode block with inlined data
+or data extent record, so the size of the later two should be
+adjusted when inlined xattr is enabled. See ocfs2_xattr_ibody_init().
+But this isn't done well when reflink. For inode with inlined data,
+its max inlined data size is adjusted in ocfs2_duplicate_inline_data(),
+no problem. But for inode with data extent record, its record count isn't
+adjusted. Fix it, or data extent record and inlined xattr may overwrite
+each other, then cause data corruption or xattr failure.
 
-> Hi Jeff
-> 
-> On 2013/6/19 18:53, Jeff Liu wrote:
->> Hey Younger,
->>
->> On 06/19/2013 04:57 PM, Younger Liu wrote:
->>
->>> While adding a file into orphan dir in ocfs2_orphan_add(),
->>> it calls __ocfs2_add_entry() before ocfs2_journal_access_di(). 
->>> If ocfs2_journal_access_di() failed, the file is added into 
->>> orphan dir, and orphan dir dinode updated, but file dinode 
->>> has not been updated.
->>> Accordingly, the data is not consistent between file dinode 
->>> and orphan dir.
->>>
->>> So, need to call ocfs2_journal_access_di() before __ocfs2_add_entry(),
->>> and if ocfs2_journal_access_di() failed, orphan_fe and 
->>> orphan_dir_inode->i_nlink need rollback.
->>
->> Yes, and this has been introduced by commits 3939fda4.
-> 
-> I do not find the patch with 3939fda4. Can you tell me the link?
-> Thanks.
-> 
->> Please see my comments below.
->>
->>>
->>> Signed-off-by: Younger Liu <younger.liu@huawei.com>
->>> ---
->>>  fs/ocfs2/namei.c |   38 ++++++++++++++++++++++----------------
->>>  1 file changed, 22 insertions(+), 16 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
->>> index f53471d..f2da854 100644
->>> --- a/fs/ocfs2/namei.c
->>> +++ b/fs/ocfs2/namei.c
->>> @@ -2012,6 +2012,21 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
->>>  		goto leave;
->>>  	}
->>>  
->>> +	/*
->>> +	 * We're going to journal the change of i_flags and i_orphaned_slot.
->>> +	 * It's safe anyway, though some callers may duplicate the journaling.
->>> +	 * Journaling within the func just make the logic look more
->>> +	 * straightforward.
->>> +	 */
->>> +	status = ocfs2_journal_access_di(handle,
->>> +					 INODE_CACHE(inode),
->>> +					 fe_bh,
->>> +					 OCFS2_JOURNAL_ACCESS_WRITE);
->>> +	if (status < 0) {
->>> +		mlog_errno(status);
->>> +		goto leave;
->>> +	}
->>> +
->>>  	/* we're a cluster, and nlink can change on disk from
->>>  	 * underneath us... */
->>>  	orphan_fe = (struct ocfs2_dinode *) orphan_dir_bh->b_data;
->>> @@ -2026,22 +2041,7 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
->>>  				   orphan_dir_bh, lookup);
->>>  	if (status < 0) {
->>>  		mlog_errno(status);
->>> -		goto leave;
->>> -	}
->>> -
->>> -	/*
->>> -	 * We're going to journal the change of i_flags and i_orphaned_slot.
->>> -	 * It's safe anyway, though some callers may duplicate the journaling.
->>> -	 * Journaling within the func just make the logic look more
->>> -	 * straightforward.
->>> -	 */
->>> -	status = ocfs2_journal_access_di(handle,
->>> -					 INODE_CACHE(inode),
->>> -					 fe_bh,
->>> -					 OCFS2_JOURNAL_ACCESS_WRITE);
->>> -	if (status < 0) {
->>> -		mlog_errno(status);
->>> -		goto leave;
->>> +		goto rollback;
->>>  	}
->>>  
->>>  	fe->i_flags |= cpu_to_le32(OCFS2_ORPHANED_FL);
->>> @@ -2057,6 +2057,12 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
->>>  	trace_ocfs2_orphan_add_end((unsigned long long)OCFS2_I(inode)->ip_blkno,
->>>  				   osb->slot_num);
->>>  
->>> +rollback:
->>> +	if (status < 0 && S_ISDIR(inode->i_mode)) {
->>
->> 	              ^^^^ <-- But that might not be a directory, right? :-P
->> How about the following?
->>
->> 	if (status < 0) {
->> 		if (S_ISDIR(inode->i_mode))
->> 			ocfs2_add_links_count(orphan_fe, -1);
->> 		set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe));
->> 	}
->>
-> 
-> Of course, that may be not a directory. 
-> But if it is not a directory, there is no change for orphan_dir_inode->i_nlink.
-> So, in my opinion, it is not necessary to change orphan_dir_inode->i_nlink.
+Cc: <stable@kernel.org>
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/ocfs2/xattr.c |   10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-	
-	if (S_ISDIR(inode->i_mode))
-                ocfs2_add_links_count(orphan_fe, 1);
-        set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe)); 
-	^^^^^^^^^
-		So we set nlink against orphan_dir_inode no matter IS_DIR(inode->i_mode) or not.
-        ocfs2_journal_dirty(handle, orphan_dir_bh);
-		Any then orphan_dir buffer got dirty.
-	
-	if (status < 0 && S_ISDIR(inode->i_mode)) {
-		In this way, AFAICS the trans rollback can be triggered only if
-		the target inode is a dir.
-	}
-
-	As a result, should we rollback in case of:
-	if (status < 0)
-		set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe));
-
-Thanks,
--Jeff
-
-> 
->>> +			ocfs2_add_links_count(orphan_fe, -1);
->>> +		set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe));
->>> +	}
->>> +
->>>  leave:
->>>  	brelse(orphan_dir_bh);
->>>  
->>> -- 1.7.9.7 
->>
->>
->> Thanks,
->> -Jeff
->>
->> .
->>
-> 
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 2e3ea30..3bb0708 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -6499,6 +6499,16 @@ static int ocfs2_reflink_xattr_inline(struct ocfs2_xattr_reflink *args)
+ 	}
+ 
+ 	new_oi = OCFS2_I(args->new_inode);
++	/*
++	 * Adjust extent record count to reserve space for extended attribute.
++	 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
++	 */
++	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL)
++		&& !(ocfs2_inode_is_fast_symlink(new_inode))) {
++		struct ocfs2_extent_list *el = &new_di->id2.i_list;
++		le16_add_cpu(&el->l_count, -(inline_size /
++					sizeof(struct ocfs2_extent_rec)));
++	}
+ 	spin_lock(&new_oi->ip_lock);
+ 	new_oi->ip_dyn_features |= OCFS2_HAS_XATTR_FL | OCFS2_INLINE_XATTR_FL;
+ 	new_di->i_dyn_features = cpu_to_le16(new_oi->ip_dyn_features);
+-- 
+1.7.9.5
