@@ -1,67 +1,108 @@
-From: Theodore Ts'o <tytso@mit.edu>
-Date: Thu, 20 Jun 2013 14:12:15 -0400
-Subject: [Ocfs2-devel] [PATCH] fs/jbd2: t_updates should increase when
- start_this_handle() failed in jbd2__journal_restart()
-In-Reply-To: <20130620172609.GC4288@localhost.localdomain>
-References: <51C1381A.2@huawei.com> <20130620155555.GE28309@thunk.org>
-	<20130620172609.GC4288@localhost.localdomain>
-Message-ID: <20130620181215.GD4982@thunk.org>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 21 Jun 2013 09:27:24 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: xattr: fix inlined xattr reflink
+Message-ID: <1371778044-14415-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Josef Bacik <jbacik@fusionio.com>
-Cc: Younger Liu <younger.liu@huawei.com>, Andrew Morton <akpm@linux-foundation.org>, linux-ext4@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>, Li Zefan <lizefan@huawei.com>, jack@suse.cz
+To: ocfs2-devel@oss.oracle.com
 
-On Thu, Jun 20, 2013 at 01:26:09PM -0400, Josef Bacik wrote:
-> I realize it's been a little bit since I've looked at jbd but I'll offer my
-> opinion.  Callers of jbd2_journal_restart() may not be the ones who originated
-> the handle, so doing what Jan has done with jbd2_journal_start_reserved() isn't
-> going to work because all the guy at the top is going to see is an error and
-> have no way to tell if his handle is invalid or not.
+Inlined xattr shared free space of inode block with inlined data
+or data extent record, so the size of the later two should be
+adjusted when inlined xattr is enabled. See ocfs2_xattr_ibody_init().
+But this isn't done well when reflink. For inode with inlined data,
+its max inlined data size is adjusted in ocfs2_duplicate_inline_data(),
+no problem. But for inode with data extent record, its record count isn't
+adjusted. Fix it, or data extent record and inlined xattr may overwrite
+each other, then cause data corruption or xattr failure.
 
-Yeah, that's what I meant by "it would require changing all of the
-callers".
+One panic caused by this bug in our test environment is the following:
 
-> What I would suggest is getting a unified way to mark that the handle has
-> already been cleaned up and can just be free'd.
+kernel BUG at fs/ocfs2/xattr.c:1435!
+invalid opcode: 0000 [#1] SMP
+CPU 0
+Modules linked in: ocfs2 jbd2 ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm
+ocfs2_nodemanager ocfs2_stackglue configfs sunrpc parport_pc lp parport
+snd_seq_dummy snd_seq_oss snd_seq_midi_event snd_seq snd_seq_device
+snd_pcm_oss snd_mixer_oss snd_pcm snd_timer snd soundcore snd_page_alloc
+pcspkr xen_netfront dm_snapshot dm_zero dm_mirror dm_region_hash dm_log
+dm_mod xen_blkfront ext3 jbd mbcache [last unloaded: configfs]
 
-The problem though is we need to make sure none of the callers don't
-try to do anything else with handle besides calling
-jbd2_journal_stop().  In particular, we can't allow a call to
-jbd2_journal_get_write_access(), jbd2_journal_revoke() to operate on
-the handle, because its transaction pointer is (potentially) invalid.
+Pid: 10871, comm: multi_reflink_t Not tainted 2.6.39-300.17.1.el5uek #1
+RIP: e030:[<ffffffffa04cd197>]  [<ffffffffa04cd197>]
+ocfs2_xa_offset_pointer+0x17/0x20 [ocfs2]
+RSP: e02b:ffff88007a587948  EFLAGS: 00010283
+RAX: 0000000000000000 RBX: 0000000000000010 RCX: 00000000000051e4
+RDX: ffff880057092060 RSI: 0000000000000f80 RDI: ffff88007a587a68
+RBP: ffff88007a587948 R08: 00000000000062f4 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000010
+R13: ffff88007a587a68 R14: 0000000000000001 R15: ffff88007a587c68
+FS:  00007fccff7f06e0(0000) GS:ffff88007fc00000(0000) knlGS:0000000000000000
+CS:  e033 DS: 0000 ES: 0000 CR0: 000000008005003b
+CR2: 00000000015cf000 CR3: 000000007aa76000 CR4: 0000000000000660
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
+Process multi_reflink_t (pid: 10871, threadinfo ffff88007a586000, task
+ffff88007911c380)
+Stack:
+ffff88007a5879a8 ffffffffa04d0a60 ffff88007a587998 ffffffffa04cd514
+ffff88007a587c38 ffffffffa04cc125 000000007a587998 ffff88007a587a68
+ffff88007a587c68 0000000000000000 00000000000003c2 ffff88007a587c38
+Call Trace:
+[<ffffffffa04d0a60>] ocfs2_xa_reuse_entry+0x60/0x280 [ocfs2]
+[<ffffffffa04cd514>] ? ocfs2_xa_block_check_space+0x84/0xa0 [ocfs2]
+[<ffffffffa04cc125>] ? namevalue_size_xi+0x15/0x20 [ocfs2]
+[<ffffffffa04d0dfe>] ocfs2_xa_prepare_entry+0x17e/0x2a0 [ocfs2]
+[<ffffffffa04da55c>] ocfs2_xa_set+0xcc/0x250 [ocfs2]
+[<ffffffffa04daf58>] ocfs2_xattr_ibody_set+0x98/0x230 [ocfs2]
+[<ffffffff8115ac4b>] ? kmem_cache_alloc+0xab/0x190
+[<ffffffffa04db13f>] __ocfs2_xattr_set_handle+0x4f/0x700 [ocfs2]
+[<ffffffffa014ad03>] ? jbd2_journal_start+0x13/0x20 [jbd2]
+[<ffffffffa04dbeb6>] ocfs2_xattr_set+0x6c6/0x890 [ocfs2]
+[<ffffffffa04dc0c6>] ocfs2_xattr_user_set+0x46/0x50 [ocfs2]
+[<ffffffff81190960>] generic_setxattr+0x70/0x90
+[<ffffffff81191670>] __vfs_setxattr_noperm+0x80/0x1a0
+[<ffffffff81191839>] vfs_setxattr+0xa9/0xb0
+[<ffffffff81191903>] setxattr+0xc3/0x120
+[<ffffffff81061c40>] ? finish_task_switch+0x70/0xe0
+[<ffffffff81505a54>] ? __schedule+0x364/0x6d0
+[<ffffffff81191a08>] sys_fsetxattr+0xa8/0xd0
+[<ffffffff81510642>] system_call_fastpath+0x16/0x1b
+Code: 0f 1f 40 00 eb ae 0f 0b eb fe 66 2e 0f 1f 84 00 00 00 00 00 55 48 89 e5
+66 66 66 66 90 39 77 10 7e 09 48 8b 47 28 ff 50 10 c9 c3 <0f> 0b eb fe 0f 1f
+44 00 00 55 48 89 e5 53 48 83 ec 08 66 66 66
+RIP  [<ffffffffa04cd197>] ocfs2_xa_offset_pointer+0x17/0x20 [ocfs2]
+RSP <ffff88007a587948>
+---[ end trace 33461d2444bd1e5e ]---
 
-> Then fix jbd2_journal_start_reserved() and jbd2_journal_restart() to
-> set that in the handle and make jbd2_journal_stop() just free up the
-> handle and reset current->journal_info but not return an error.
-> It's important to not return an error from jbd2_journal_stop() so
-> that it doesn't invoke the ext4 error handling stuff and you get a
-> read only file system when the error may not be read only file
-> system worthy.
+Cc: <stable@kernel.org>
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+Reviewed-by: Jie Liu <jeff.liu@oracle.com>
+---
+ fs/ocfs2/xattr.c |   10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-The handle->h_aborted bit, which is currently not used, does most of
-the right thing, modulo the question of the fact that
-jbd2_journal_stop() will return an error.  What's important from my
-perspective is that the various callers that operate on a handle check
-is_handle_aborted() before trying to use the it.  We'll still need to
-audit the callers to make sure there isn't some uncommon-taken code
-path where ext4_handle_dirty_metadata() gets called after
-ext4_journal_restart() has returned an error.
-
-As a FAST paper once opined, "EIO: Error Handling Is Occasionally correct".  :-)
-
-> This way you have a nice clean way of dealing with handle errors that allow you
-> to pass back a real error to the caller and the caller can just do its normal
-> jbd2_journal_stop() and cleanup and do its own error handling the way it feels.
-> This keeps the yucky details of no longer valid handles all internal to jbd2 and
-> ext4/ocfs2 don't have to worry about it.  Thanks,
-
-Yes, that could work, although we'll need to check to make sure all of
-the code paths that invoke jbd2_journal_restart() handle errors
-appropriately, and don't rely on jbd2_journal_stop() returning an
-error.  Thanks for your thoughts!
-
-Regards,
-
-	       	   	      	 		     - Ted
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 2e3ea30..e58a5b2 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -6499,6 +6499,16 @@ static int ocfs2_reflink_xattr_inline(struct ocfs2_xattr_reflink *args)
+ 	}
+ 
+ 	new_oi = OCFS2_I(args->new_inode);
++	/*
++	 * Adjust extent record count to reserve space for extended attribute.
++	 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
++	 */
++	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
++	    !(ocfs2_inode_is_fast_symlink(new_inode))) {
++		struct ocfs2_extent_list *el = &new_di->id2.i_list;
++		le16_add_cpu(&el->l_count, -(inline_size /
++					sizeof(struct ocfs2_extent_rec)));
++	}
+ 	spin_lock(&new_oi->ip_lock);
+ 	new_oi->ip_dyn_features |= OCFS2_HAS_XATTR_FL | OCFS2_INLINE_XATTR_FL;
+ 	new_di->i_dyn_features = cpu_to_le16(new_oi->ip_dyn_features);
+-- 
+1.7.9.5
