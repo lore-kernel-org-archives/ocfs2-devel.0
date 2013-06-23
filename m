@@ -1,119 +1,49 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Sun, 23 Jun 2013 19:12:22 +0800
-Subject: [Ocfs2-devel] [PATCH] Fix waiting status race condition in dlm
- recovery V2
-In-Reply-To: <51BFD04A.1030404@huawei.com>
-References: <51BFC7E1.10908@huawei.com> <51BFD04A.1030404@huawei.com>
-Message-ID: <51C6D816.7000401@oracle.com>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Sun, 23 Jun 2013 13:36:28 -0400
+Subject: [Ocfs2-devel] [PATCH] fs/jbd2: t_updates should increase when
+ start_this_handle() failed in jbd2__journal_restart()
+In-Reply-To: <51C4553B.7010809@huawei.com>
+References: <51C1381A.2@huawei.com> <20130620155555.GE28309@thunk.org>
+	<51C4553B.7010809@huawei.com>
+Message-ID: <20130623173628.GC16620@thunk.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Younger Liu <younger.liu@huawei.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-ext4@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>, Li Zefan <lizefan@huawei.com>, jack@suse.cz
 
-On 06/18/2013 11:13 AM, Xue jiufei wrote:
-
->> From: "Xiaowei.Hu" <xiaowei.hu@oracle.com>
->>
->> when the master requested locks ,but one/some of the live nodes died,
->> after it received the request msg and before send out the locks packages,
->> the recovery will fall into endless loop,waiting for the status changed to finalize
->>
->> NodeA                                     NodeB
->> selected as recovery master
->> dlm_remaster_locks
->>   -> dlm_requeset_all_locks
->>   this send request locks msg to B
->>                                           received the msg from A,
->>                                           queue worker dlm_request_all_locks_worker
->>                                           return 0
->> go on set state to requested
->> wait for the state become done
->>                                           NodeB lost connection due to network
->>                                           before the worker begin, or it die.
->>
->> NodeA still waiting for the change of reco state.
->> It won't end if it not get data done msg.
->> And at this time nodeB do not realize this (or it just died),
->> it won't send the msg for ever, nodeA left in the recovery process forever.
->>
->> This patch let the recovery master check if the node still in live node
->> map when it stay in REQUESTED status.
->>
+On Fri, Jun 21, 2013 at 09:29:31PM +0800, Younger Liu wrote:
 > 
-> Hi, xiaowei,
-> We have reviewed this patch and have some questions:
-> 1) in dlm_is_node_in_livemap(), I think it should use 
-> !!(test_bit(node, dlm->live_nodes_map)) to determine whether a node is
-> live;
+> This bug was triggered by the following scenario:
+> In ocfs2 file system, allocate a very large disk space for a small file
+> with ocfs2_fallocate(), while the journal file size is 32M. 
+> 
+> Because there are much many journal blocks needed by jbd2_journal_restart(), 
+> so that nblocks is greater than journal->j_max_transaction_buffers 
+> in start_this_handle(), and then return -ENOSPC.
 
-Hmm? test_bit(node,...) is ok.
+Ah, I see.  I have a patch that should prevent the kernel from
+crashing in this situation, and which adds some additional checks to
+make sure no one tries to use the handle after jbd2_journal_restart()
+fails in this circumstance.
 
-> 2) why not use dlm_is_node_dead() instead of dlm_is_node_in_livemap()
-> in dlm_remaster_locks?
-> I think dlm_is_node_dead() is better because dlm->live_nodes_map
-> may be remain when another node umount.
+However, you may want to further pursue a fix in ocfs2 so you don't
+actually return ENOSPC to userspace, since it is a very misleading
+error message --- it's not that the file system is out of space, but
+that the journal is too small for the amount of space that you are
+trying to allocate using fallocate().
 
-Please refer to:
-http://marc.info/?l=ocfs2-devel&m=133799814717270&w=2
+I would think a better way of handling this situation would be to log
+a warning message that the journal is probably too small, and then to
+break up the fallocate into smaller chunks, so that it can
+successfully complete despite the fact that the journal was
+unfortunately missized.
+
+I'll be sending the proposed fix in a moment; could you check and see
+if the patch prevents ocfs2/jbd2 from tripping over the assertion
+given your test case?
 
 Thanks,
--Jeff
 
-> 
-> Thanks.
-> 
->> Signed-off-by: Xiaowei.Hu <xiaowei.hu@oracle.com>
->> ---
->>  fs/ocfs2/dlm/dlmrecovery.c |   16 +++++++++++++++-
->>  1 files changed, 15 insertions(+), 1 deletions(-)
->>
->> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
->> index 01ebfd0..546c5b5 100644
->> --- a/fs/ocfs2/dlm/dlmrecovery.c
->> +++ b/fs/ocfs2/dlm/dlmrecovery.c
->> @@ -339,6 +339,17 @@ static int dlm_reco_master_ready(struct dlm_ctxt *dlm)
->>  	return ready;
->>  }
->>  
->> +/* returns true if node is still in the live node map
->> + * this map is cleared before domain map,could be checked in recovery*/
->> +int dlm_is_node_in_livemap(struct dlm_ctxt *dlm, u8 node)
->> +{
->> +	int live;
->> +	spin_lock(&dlm->spinlock);
->> +	live = !test_bit(node, dlm->live_nodes_map);
->> +	spin_unlock(&dlm->spinlock);
->> +	return live;
->> +}
->> +
->>  /* returns true if node is no longer in the domain
->>   * could be dead or just not joined */
->>  int dlm_is_node_dead(struct dlm_ctxt *dlm, u8 node)
->> @@ -679,7 +690,10 @@ static int dlm_remaster_locks(struct dlm_ctxt *dlm, u8 dead_node)
->>  					     dlm->name, ndata->node_num,
->>  					     ndata->state==DLM_RECO_NODE_DATA_RECEIVING ?
->>  					     "receiving" : "requested");
->> -					all_nodes_done = 0;
->> +					if (!dlm_is_node_in_livemap(dlm, ndata->node_num))
->> +						ndata->state = DLM_RECO_NODE_DATA_DEAD;
->> +					else
->> +						all_nodes_done = 0;
->>  					break;
->>  				case DLM_RECO_NODE_DATA_DONE:
->>  					mlog(0, "%s: node %u state is done\n",
->>
-> 
-> 
-> 
-> 
-> .
-> 
-> 
-> 
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+					- Ted
