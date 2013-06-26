@@ -1,73 +1,34 @@
 From: Andrew Morton <akpm@linux-foundation.org>
-Date: Wed, 26 Jun 2013 14:18:03 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
- lock for the file in SEEK_END
-In-Reply-To: <51C2BC1F.2010106@huawei.com>
-References: <51C2BC1F.2010106@huawei.com>
-Message-ID: <20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
+Date: Wed, 26 Jun 2013 14:49:39 -0700
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: need rollback when
+ journal_access failed in ocfs2_orphan_add()
+In-Reply-To: <51C2B662.2000206@huawei.com>
+References: <51C2B662.2000206@huawei.com>
+Message-ID: <20130626144939.7c0a916c3bd507b3c6926e6a@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, 20 Jun 2013 16:23:59 +0800 shencanquan <shencanquan@huawei.com> wrote:
+On Thu, 20 Jun 2013 15:59:30 +0800 Younger Liu <younger.liu@huawei.com> wrote:
 
-> llseek requires ocfs2 inode lock for updating the file size in SEEK_END.
-> because the file size maybe update on another node.
-> if it not . after call llseek in SEEK_END. the position is old.
+> While adding a file into orphan dir in ocfs2_orphan_add(),
+> it calls __ocfs2_add_entry() before ocfs2_journal_access_di(). 
+> If ocfs2_journal_access_di() failed, the file is added into 
+> orphan dir, and orphan dir dinode updated, but file dinode 
+> has not been updated.
+> Accordingly, the data is not consistent between file dinode 
+> and orphan dir.
 > 
-> this bug can be reproduce the following scenario:
-> at first ,we dd a test fileA,the file size is 10k.
-> on NodeA:
-> ---------
-> 1) open the test fileA, lseek the end of file. and print the position.
-> 2) close the test fileA
+> So, need to call ocfs2_journal_access_di() before __ocfs2_add_entry(),
+> and if ocfs2_journal_access_di() failed, orphan_fe and 
+> orphan_dir_inode->i_nlink need rollback. 
 > 
-> on NodeB:
-> 1) open the test fileA, append the 5k data to test FileA.
-> 2) lseek the end of file. and print the position.
-> 3) close file.
-> 
-> at first we run the test program1 on NodeA , the result is 10k.
-> and then run the test program2 on NodeB,  the result is 15k.
-> at last, we run the test program1 on NodeA again, the result is 10k.
-> 
-> after apply this patch.  the three step result is 15k.
-> 
-> ...
->
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
->  	case SEEK_SET:
->  		break;
->  	case SEEK_END:
-> +		/* SEEK_END requires the OCFS2 inode lock for the file
-> +		 * because it references the file's size.
-> +		 */
-> +		ret = ocfs2_inode_lock(inode, NULL, 0);
-> +		if (ret < 0) {
-> +			mlog_errno(ret);
-> +			goto out;
-> +		}
->  		offset += inode->i_size;
-> +		ocfs2_inode_unlock(inode, 0);
->  		break;
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -2012,6 +2012,21 @@ static int ocfs2_orphan_add(struct ocfs2_super *osb,
 
-I don't understand this.  The lock for inode->i_size is inode->i_mutex,
-and we're already holding i_mutex here.  The current mainline code
-looks correct.
-
-My guess is that there is some other code path which is modifying
-inode->i_size without holding inode->i_mutex, and while holding
-ocfs2_inode_lock().  If so, that code is surely wrong - it should hold
-i_mutex while modifying i_size.
-
-Also, safely reading i_size should be performed via i_size_read(), and
-modifications to i_size should use i_size_write().
-
-And all this is only really applicable to 32-bit CPUs, which you
-probably aren't using.
-
-So.... please let's take a second look at this.
+ocfs2_orphan_add() will call mlog_errno(status) two times for the same
+error in many cases.  That's not a big problem, but is sloppy and asks
+for a cleanup.
