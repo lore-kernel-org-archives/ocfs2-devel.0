@@ -1,61 +1,73 @@
-From: Younger Liu <younger.liu@huawei.com>
-Date: Tue, 25 Jun 2013 16:30:18 +0800
-Subject: [Ocfs2-devel] [PATCH] fs/jbd2: t_updates should increase when
- start_this_handle() failed in jbd2__journal_restart()
-In-Reply-To: <20130623173628.GC16620@thunk.org>
-References: <51C1381A.2@huawei.com> <20130620155555.GE28309@thunk.org>
-	<51C4553B.7010809@huawei.com> <20130623173628.GC16620@thunk.org>
-Message-ID: <51C9551A.7000900@huawei.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Wed, 26 Jun 2013 14:18:03 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
+ lock for the file in SEEK_END
+In-Reply-To: <51C2BC1F.2010106@huawei.com>
+References: <51C2BC1F.2010106@huawei.com>
+Message-ID: <20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Ts'o <tytso@mit.edu>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-ext4@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>, Li Zefan <lizefan@huawei.com>, jack@suse.cz
+To: ocfs2-devel@oss.oracle.com
 
-I will check and test the pacth.
+On Thu, 20 Jun 2013 16:23:59 +0800 shencanquan <shencanquan@huawei.com> wrote:
 
-I only merge the patch about " jbd2: invalidate handle if 
-jbd2_journal_restart() fails" int my source. But I do not 
-merge the patch about "jbd2: Transaction reservation support...".
+> llseek requires ocfs2 inode lock for updating the file size in SEEK_END.
+> because the file size maybe update on another node.
+> if it not . after call llseek in SEEK_END. the position is old.
+> 
+> this bug can be reproduce the following scenario:
+> at first ,we dd a test fileA,the file size is 10k.
+> on NodeA:
+> ---------
+> 1) open the test fileA, lseek the end of file. and print the position.
+> 2) close the test fileA
+> 
+> on NodeB:
+> 1) open the test fileA, append the 5k data to test FileA.
+> 2) lseek the end of file. and print the position.
+> 3) close file.
+> 
+> at first we run the test program1 on NodeA , the result is 10k.
+> and then run the test program2 on NodeB,  the result is 15k.
+> at last, we run the test program1 on NodeA again, the result is 10k.
+> 
+> after apply this patch.  the three step result is 15k.
+> 
+> ...
+>
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
+>  	case SEEK_SET:
+>  		break;
+>  	case SEEK_END:
+> +		/* SEEK_END requires the OCFS2 inode lock for the file
+> +		 * because it references the file's size.
+> +		 */
+> +		ret = ocfs2_inode_lock(inode, NULL, 0);
+> +		if (ret < 0) {
+> +			mlog_errno(ret);
+> +			goto out;
+> +		}
+>  		offset += inode->i_size;
+> +		ocfs2_inode_unlock(inode, 0);
+>  		break;
 
-Does it affect the test?
+I don't understand this.  The lock for inode->i_size is inode->i_mutex,
+and we're already holding i_mutex here.  The current mainline code
+looks correct.
 
-On 2013/6/24 1:36, Theodore Ts'o wrote:
-> On Fri, Jun 21, 2013 at 09:29:31PM +0800, Younger Liu wrote:
->>
->> This bug was triggered by the following scenario:
->> In ocfs2 file system, allocate a very large disk space for a small file
->> with ocfs2_fallocate(), while the journal file size is 32M. 
->>
->> Because there are much many journal blocks needed by jbd2_journal_restart(), 
->> so that nblocks is greater than journal->j_max_transaction_buffers 
->> in start_this_handle(), and then return -ENOSPC.
-> 
-> Ah, I see.  I have a patch that should prevent the kernel from
-> crashing in this situation, and which adds some additional checks to
-> make sure no one tries to use the handle after jbd2_journal_restart()
-> fails in this circumstance.
-> 
-> However, you may want to further pursue a fix in ocfs2 so you don't
-> actually return ENOSPC to userspace, since it is a very misleading
-> error message --- it's not that the file system is out of space, but
-> that the journal is too small for the amount of space that you are
-> trying to allocate using fallocate().
-> 
-> I would think a better way of handling this situation would be to log
-> a warning message that the journal is probably too small, and then to
-> break up the fallocate into smaller chunks, so that it can
-> successfully complete despite the fact that the journal was
-> unfortunately missized.
-> 
-> I'll be sending the proposed fix in a moment; could you check and see
-> if the patch prevents ocfs2/jbd2 from tripping over the assertion
-> given your test case?
-> 
-> Thanks,
-> 
-> 					- Ted
-> 
-> .
-> 
+My guess is that there is some other code path which is modifying
+inode->i_size without holding inode->i_mutex, and while holding
+ocfs2_inode_lock().  If so, that code is surely wrong - it should hold
+i_mutex while modifying i_size.
+
+Also, safely reading i_size should be performed via i_size_read(), and
+modifications to i_size should use i_size_write().
+
+And all this is only really applicable to 32-bit CPUs, which you
+probably aren't using.
+
+So.... please let's take a second look at this.
