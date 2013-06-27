@@ -1,62 +1,67 @@
-From: Jensen <shencanquan@huawei.com>
-Date: Thu, 27 Jun 2013 11:28:47 +0800
-Subject: [Ocfs2-devel] [PATCH V3] ocfs2: llseek requires to ocfs2 inode lock
- for the file in SEEK_END
-Message-ID: <51CBB16F.6080906@huawei.com>
+From: Sunil Mushran <sunil.mushran@gmail.com>
+Date: Wed, 26 Jun 2013 20:34:19 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
+ lock for the file in SEEK_END
+In-Reply-To: <51CB9A81.2000007@huawei.com>
+References: <51C2BC1F.2010106@huawei.com>
+	<20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
+	<51CB9338.3050408@huawei.com>
+	<20130626182536.c319334d.akpm@linux-foundation.org>
+	<51CB9A81.2000007@huawei.com>
+Message-ID: <CAEeiSHV=3DBBJ1mweEgyxWRgsA9O8C-25_FTPMxyDbatoX0Fkw@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-llseek requires ocfs2 inode lock for updating the file size in SEEK_END.
-because the file size maybe update on another node.
-if it not . after call llseek in SEEK_END. the position is old.
+AFAIR, this behavior has been there since day 1 and changing it will impact
+performance negatively. I would recommend against making this change for
+one app.
 
-this bug can be reproduce the following scenario:
-at first ,we dd a test fileA,the file size is 10k.
-on NodeA:
----------
-1) open the test fileA, lseek the end of file. and print the position.
-2) close the test fileA
 
-on NodeB:
-1) open the test fileA, append the 5k data to test FileA.
-2) lseek the end of file. and print the position.
-3) close file.
+On Wed, Jun 26, 2013 at 6:50 PM, shencanquan <shencanquan@huawei.com> wrote:
 
-at first we run the test program1 on NodeA , the result is 10k.
-and then run the test program2 on NodeB,  the result is 15k.
-at last, we run the test program1 on NodeA again, the result is 10k.
-
-after apply this patch.  the three step result is 15k.
-
-Signed-off-by: Jensen <shencanquan@huawei.com>
----
- fs/ocfs2/file.c |   11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
-
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index ff54014..6ef4f2e 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
- 	case SEEK_SET:
- 		break;
- 	case SEEK_END:
--		offset += inode->i_size;
-+		/* SEEK_END requires the OCFS2 inode lock for the file
-+		 * because it references the file's size.
-+		 */
-+		ret = ocfs2_inode_lock(inode, NULL, 0);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+		offset += i_size_read(inode);
-+		ocfs2_inode_unlock(inode, 0);
- 		break;
- 	case SEEK_CUR:
- 		if (offset == 0) {
--- 
-1.7.9.7
+> On 2013/6/27 9:25, Andrew Morton wrote:
+>
+> > On Thu, 27 Jun 2013 09:19:52 +0800 shencanquan <shencanquan@huawei.com>
+> wrote:
+> >
+> >> On 2013/6/27 5:18, Andrew Morton wrote:
+> >>
+> >>>
+> >>> My guess is that there is some other code path which is modifying
+> >>> inode->i_size without holding inode->i_mutex, and while holding
+> >>> ocfs2_inode_lock().  If so, that code is surely wrong - it should hold
+> >>> i_mutex while modifying i_size.
+> >>
+> >>
+> >> inode->i_mutex lock only protect the inode size on the same machine.
+> >
+> > ah ;)
+> >
+> >>> And all this is only really applicable to 32-bit CPUs, which you
+> >>> probably aren't using.
+> >>
+> >> I don't understand this.
+> >
+> > The i_size_read/i_size_write infrastructure is designed to efficiently
+> > handle the situation where a 32-bit machine reads a 64-bit number which
+> > might be undergoing modification on another CPU.  We don't want the
+> > reading CPU to see an invalid number when the writing CPU is in the
+> > middle of modifying the two 32-bit words.
+> >
+> >
+> >
+>
+> ok. thanks.
+>
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130626/3f723c36/attachment.html 
