@@ -1,67 +1,171 @@
-From: Sunil Mushran <sunil.mushran@gmail.com>
-Date: Wed, 26 Jun 2013 20:34:19 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
- lock for the file in SEEK_END
-In-Reply-To: <51CB9A81.2000007@huawei.com>
-References: <51C2BC1F.2010106@huawei.com>
-	<20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
-	<51CB9338.3050408@huawei.com>
-	<20130626182536.c319334d.akpm@linux-foundation.org>
-	<51CB9A81.2000007@huawei.com>
-Message-ID: <CAEeiSHV=3DBBJ1mweEgyxWRgsA9O8C-25_FTPMxyDbatoX0Fkw@mail.gmail.com>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Thu, 27 Jun 2013 11:42:36 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Rework transaction rollback in
+ ocfs2_relink_block_group()
+In-Reply-To: <20130626151344.dce1dd08ef614437d510c707@linux-foundation.org>
+References: <51C2933D.9030300@oracle.com>
+	<20130626151344.dce1dd08ef614437d510c707@linux-foundation.org>
+Message-ID: <51CBB4AC.20108@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-AFAIR, this behavior has been there since day 1 and changing it will impact
-performance negatively. I would recommend against making this change for
-one app.
+On 06/27/2013 06:13 AM, Andrew Morton wrote:
 
+> On Thu, 20 Jun 2013 13:29:33 +0800 Jeff Liu <jeff.liu@oracle.com> wrote:
+> 
+>> From: Jie Liu <jeff.liu@oracle.com>
+>>
+>> In ocfs2_relink_block_group(), we roll back all those changes if
+>> notify intent to modify buffers for metadata update failed even
+>> if the relevant buffer has not yet been modified/got dirty at that
+>> point, that are not quite right because of:
+>>
+>> - None buffer has been modified/dirty if failed to call
+>>   ocfs2_journal_access_gd() against the previous block group buffer
+>> - Only the previous block group buffer has got dirty if failed to
+>>   call ocfs2_journal_access_gd() against the block group buffer
+>> - There is no need to roll back the change for file entry buffer at all
+>>
+>> Those problems will not cause anything wrong but unnecessary.
+>> This patch fix them and kill the useless bg_ptr variable as well.
+>>
+>> ...
+>>
+>> --- a/fs/ocfs2/suballoc.c
+>> +++ b/fs/ocfs2/suballoc.c
+>> @@ -1422,7 +1422,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  	int status;
+>>  	/* there is a really tiny chance the journal calls could fail,
+>>  	 * but we wouldn't want inconsistent blocks in *any* case. */
+>> -	u64 fe_ptr, bg_ptr, prev_bg_ptr;
+>> +	u64 bg_ptr, prev_bg_ptr;
+>>  	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) fe_bh->b_data;
+>>  	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
+>>  	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
+>> @@ -1437,7 +1437,6 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  		(unsigned long long)le64_to_cpu(bg->bg_blkno),
+>>  		(unsigned long long)le64_to_cpu(prev_bg->bg_blkno));
+>>  
+>> -	fe_ptr = le64_to_cpu(fe->id2.i_chain.cl_recs[chain].c_blkno);
+>>  	bg_ptr = le64_to_cpu(bg->bg_next_group);
+>>  	prev_bg_ptr = le64_to_cpu(prev_bg->bg_next_group);
+>>  
+>> @@ -1446,7 +1445,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  					 OCFS2_JOURNAL_ACCESS_WRITE);
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>> -		goto out_rollback;
+>> +		goto out;
+>>  	}
+>>  
+>>  	prev_bg->bg_next_group = bg->bg_next_group;
+>> @@ -1456,7 +1455,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  					 bg_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>> -		goto out_rollback;
+>> +		goto out_rollback_prev_bg;
+>>  	}
+>>  
+>>  	bg->bg_next_group = fe->id2.i_chain.cl_recs[chain].c_blkno;
+>> @@ -1466,21 +1465,21 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  					 fe_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>> -		goto out_rollback;
+>> +		goto out_rollback_bg;
+>>  	}
+>>  
+>>  	fe->id2.i_chain.cl_recs[chain].c_blkno = bg->bg_blkno;
+>>  	ocfs2_journal_dirty(handle, fe_bh);
+>>  
+>> -out_rollback:
+>> -	if (status < 0) {
+>> -		fe->id2.i_chain.cl_recs[chain].c_blkno = cpu_to_le64(fe_ptr);
+>> -		bg->bg_next_group = cpu_to_le64(bg_ptr);
+>> -		prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+>> -	}
+>> +out:
+>> +	return status;
+>>  
+>> -	if (status)
+>> -		mlog_errno(status);
+>> +out_rollback_bg:
+>> +	bg->bg_next_group = cpu_to_le64(bg_ptr);
+>> +out_rollback_prev_bg:
+>> +	prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+>> +
+>> +	mlog_errno(status);
+> 
+> We already called mlog_errno() for this status in all cases.
 
-On Wed, Jun 26, 2013 at 6:50 PM, shencanquan <shencanquan@huawei.com> wrote:
+Yep.
 
-> On 2013/6/27 9:25, Andrew Morton wrote:
->
-> > On Thu, 27 Jun 2013 09:19:52 +0800 shencanquan <shencanquan@huawei.com>
-> wrote:
-> >
-> >> On 2013/6/27 5:18, Andrew Morton wrote:
-> >>
-> >>>
-> >>> My guess is that there is some other code path which is modifying
-> >>> inode->i_size without holding inode->i_mutex, and while holding
-> >>> ocfs2_inode_lock().  If so, that code is surely wrong - it should hold
-> >>> i_mutex while modifying i_size.
-> >>
-> >>
-> >> inode->i_mutex lock only protect the inode size on the same machine.
-> >
-> > ah ;)
-> >
-> >>> And all this is only really applicable to 32-bit CPUs, which you
-> >>> probably aren't using.
-> >>
-> >> I don't understand this.
-> >
-> > The i_size_read/i_size_write infrastructure is designed to efficiently
-> > handle the situation where a 32-bit machine reads a 64-bit number which
-> > might be undergoing modification on another CPU.  We don't want the
-> > reading CPU to see an invalid number when the writing CPU is in the
-> > middle of modifying the two 32-bit words.
-> >
-> >
-> >
->
-> ok. thanks.
->
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130626/3f723c36/attachment.html 
+> 
+> How does this look?
+
+Looks fine :-P
+
+> 
+> --- a/fs/ocfs2/suballoc.c~ocfs2-rework-transaction-rollback-in-ocfs2_relink_block_group-fix
+> +++ a/fs/ocfs2/suballoc.c
+> @@ -1443,44 +1443,38 @@ static int ocfs2_relink_block_group(hand
+>  	status = ocfs2_journal_access_gd(handle, INODE_CACHE(alloc_inode),
+>  					 prev_bg_bh,
+>  					 OCFS2_JOURNAL_ACCESS_WRITE);
+> -	if (status < 0) {
+> -		mlog_errno(status);
+> +	if (status < 0)
+>  		goto out;
+> -	}
+>  
+>  	prev_bg->bg_next_group = bg->bg_next_group;
+>  	ocfs2_journal_dirty(handle, prev_bg_bh);
+>  
+>  	status = ocfs2_journal_access_gd(handle, INODE_CACHE(alloc_inode),
+>  					 bg_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+> -	if (status < 0) {
+> -		mlog_errno(status);
+> +	if (status < 0)
+>  		goto out_rollback_prev_bg;
+> -	}
+>  
+>  	bg->bg_next_group = fe->id2.i_chain.cl_recs[chain].c_blkno;
+>  	ocfs2_journal_dirty(handle, bg_bh);
+>  
+>  	status = ocfs2_journal_access_di(handle, INODE_CACHE(alloc_inode),
+>  					 fe_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+> -	if (status < 0) {
+> -		mlog_errno(status);
+> +	if (status < 0)
+>  		goto out_rollback_bg;
+> -	}
+>  
+>  	fe->id2.i_chain.cl_recs[chain].c_blkno = bg->bg_blkno;
+>  	ocfs2_journal_dirty(handle, fe_bh);
+>  
+>  out:
+> +	if (status < 0)
+> +		mlog_errno(status);
+>  	return status;
+>  
+>  out_rollback_bg:
+>  	bg->bg_next_group = cpu_to_le64(bg_ptr);
+>  out_rollback_prev_bg:
+>  	prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+> -
+> -	mlog_errno(status);
+> -	return status;
+> +	goto out;
+>  }
+> 
+> 
+> btw, the ocfs2 source and executable cold be made about half the size if
+> mlog_errno() were to immediately return if status>=0.
+
+I'm going to deal with it, thanks for pointing this out!
+
+-Jeff
