@@ -1,48 +1,90 @@
-From: shencanquan <shencanquan@huawei.com>
-Date: Thu, 27 Jun 2013 09:50:57 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
- lock for the file in SEEK_END
-In-Reply-To: <20130626182536.c319334d.akpm@linux-foundation.org>
-References: <51C2BC1F.2010106@huawei.com>
-	<20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
-	<51CB9338.3050408@huawei.com>
-	<20130626182536.c319334d.akpm@linux-foundation.org>
-Message-ID: <51CB9A81.2000007@huawei.com>
+From: Younger Liu <younger.liu@huawei.com>
+Date: Thu, 27 Jun 2013 11:05:40 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix readonly issue in ocfs2_unlink()
+Message-ID: <51CBAC04.6010805@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/6/27 9:25, Andrew Morton wrote:
+While deleting a file with ocfs2_unlink(), there is a bug in this 
+function. This bug will result in filesystem read-only.
 
-> On Thu, 27 Jun 2013 09:19:52 +0800 shencanquan <shencanquan@huawei.com> wrote:
-> 
->> On 2013/6/27 5:18, Andrew Morton wrote:
->>
->>>
->>> My guess is that there is some other code path which is modifying
->>> inode->i_size without holding inode->i_mutex, and while holding
->>> ocfs2_inode_lock().  If so, that code is surely wrong - it should hold
->>> i_mutex while modifying i_size.
->>
->>
->> inode->i_mutex lock only protect the inode size on the same machine.
-> 
-> ah ;)
-> 
->>> And all this is only really applicable to 32-bit CPUs, which you
->>> probably aren't using.
->>
->> I don't understand this.
-> 
-> The i_size_read/i_size_write infrastructure is designed to efficiently
-> handle the situation where a 32-bit machine reads a 64-bit number which
-> might be undergoing modification on another CPU.  We don't want the
-> reading CPU to see an invalid number when the writing CPU is in the
-> middle of modifying the two 32-bit words.
-> 
-> 
-> 
+After calling ocfs2_orphan_add(), the file which will be deleted 
+is added into orphan dir. If ocfs2_delete_entry() fails, 
+the file still exists in the parent dir. 
+And this scenario introduces a conflict of metadata.
 
-ok. thanks.
+If a file is added into orphan dir, when we put inode of the file 
+with iput(), the inode i_flags is setted (~OCFS2_VALID_FL) in 
+ocfs2_remove_inode(), and then write back to disk. 
+
+But as previously mentioned, the file still exists in the parent dir.
+On other nodes, the file can be still accessed. When first read the file 
+with ocfs2_read_blocks() from disk, It will check and avalidate inode 
+using ocfs2_validate_inode_block(). 
+So File system will be readonly because the inode is invalid.
+In other words, the inode i_flags has been setted (~OCFS2_VALID_FL).
+
+
+Signed-off-by: Younger Liu <younger.liu@huawei.com>
+Signed-off-by: Jensen <shencanquan@huawei.com> 
+---
+ fs/ocfs2/namei.c |   20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index e3fce49..ddb4915 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -790,7 +790,7 @@ static int ocfs2_unlink(struct inode *dir,
+ 			struct dentry *dentry)
+ {
+ 	int status;
+-	int child_locked = 0;
++	int child_locked = 0, is_unlinkable = 0;
+ 	struct inode *inode = dentry->d_inode;
+ 	struct inode *orphan_dir = NULL;
+ 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+@@ -873,6 +873,7 @@ static int ocfs2_unlink(struct inode *dir,
+ 			mlog_errno(status);
+ 			goto leave;
+ 		}
++		is_unlinkable = 1;
+ 	}
+ 
+ 	handle = ocfs2_start_trans(osb, ocfs2_unlink_credits(osb->sb));
+@@ -892,15 +893,6 @@ static int ocfs2_unlink(struct inode *dir,
+ 
+ 	fe = (struct ocfs2_dinode *) fe_bh->b_data;
+ 
+-	if (inode_is_unlinkable(inode)) {
+-		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
+-					  &orphan_insert, orphan_dir);
+-		if (status < 0) {
+-			mlog_errno(status);
+-			goto leave;
+-		}
+-	}
+-
+ 	/* delete the name from the parent dir */
+ 	status = ocfs2_delete_entry(handle, dir, &lookup);
+ 	if (status < 0) {
+@@ -923,6 +915,14 @@ static int ocfs2_unlink(struct inode *dir,
+ 		mlog_errno(status);
+ 		if (S_ISDIR(inode->i_mode))
+ 			inc_nlink(dir);
++		goto leave;
++	}
++
++	if (is_unlinkable) {
++		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
++					  &orphan_insert, orphan_dir);
++		if (status < 0)
++			mlog_errno(status);
+ 	}
+ 
+ leave:
+-- 
+1.7.9.7
