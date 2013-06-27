@@ -1,158 +1,94 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Wed, 26 Jun 2013 15:13:44 -0700
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Rework transaction rollback in
- ocfs2_relink_block_group()
-In-Reply-To: <51C2933D.9030300@oracle.com>
-References: <51C2933D.9030300@oracle.com>
-Message-ID: <20130626151344.dce1dd08ef614437d510c707@linux-foundation.org>
+From: shencanquan <shencanquan@huawei.com>
+Date: Thu, 27 Jun 2013 09:19:52 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
+ lock for the file in SEEK_END
+In-Reply-To: <20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
+References: <51C2BC1F.2010106@huawei.com>
+	<20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
+Message-ID: <51CB9338.3050408@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, 20 Jun 2013 13:29:33 +0800 Jeff Liu <jeff.liu@oracle.com> wrote:
+On 2013/6/27 5:18, Andrew Morton wrote:
 
-> From: Jie Liu <jeff.liu@oracle.com>
+> On Thu, 20 Jun 2013 16:23:59 +0800 shencanquan <shencanquan@huawei.com> wrote:
 > 
-> In ocfs2_relink_block_group(), we roll back all those changes if
-> notify intent to modify buffers for metadata update failed even
-> if the relevant buffer has not yet been modified/got dirty at that
-> point, that are not quite right because of:
+>> llseek requires ocfs2 inode lock for updating the file size in SEEK_END.
+>> because the file size maybe update on another node.
+>> if it not . after call llseek in SEEK_END. the position is old.
+>>
+>> this bug can be reproduce the following scenario:
+>> at first ,we dd a test fileA,the file size is 10k.
+>> on NodeA:
+>> ---------
+>> 1) open the test fileA, lseek the end of file. and print the position.
+>> 2) close the test fileA
+>>
+>> on NodeB:
+>> 1) open the test fileA, append the 5k data to test FileA.
+>> 2) lseek the end of file. and print the position.
+>> 3) close file.
+>>
+>> at first we run the test program1 on NodeA , the result is 10k.
+>> and then run the test program2 on NodeB,  the result is 15k.
+>> at last, we run the test program1 on NodeA again, the result is 10k.
+>>
+>> after apply this patch.  the three step result is 15k.
+>>
+>> ...
+>>
+>> --- a/fs/ocfs2/file.c
+>> +++ b/fs/ocfs2/file.c
+>> @@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
+>>  	case SEEK_SET:
+>>  		break;
+>>  	case SEEK_END:
+>> +		/* SEEK_END requires the OCFS2 inode lock for the file
+>> +		 * because it references the file's size.
+>> +		 */
+>> +		ret = ocfs2_inode_lock(inode, NULL, 0);
+>> +		if (ret < 0) {
+>> +			mlog_errno(ret);
+>> +			goto out;
+>> +		}
+>>  		offset += inode->i_size;
+>> +		ocfs2_inode_unlock(inode, 0);
+>>  		break;
 > 
-> - None buffer has been modified/dirty if failed to call
->   ocfs2_journal_access_gd() against the previous block group buffer
-> - Only the previous block group buffer has got dirty if failed to
->   call ocfs2_journal_access_gd() against the block group buffer
-> - There is no need to roll back the change for file entry buffer at all
+> I don't understand this.  The lock for inode->i_size is inode->i_mutex,
+> and we're already holding i_mutex here.  The current mainline code
+> looks correct.
 > 
-> Those problems will not cause anything wrong but unnecessary.
-> This patch fix them and kill the useless bg_ptr variable as well.
+> My guess is that there is some other code path which is modifying
+> inode->i_size without holding inode->i_mutex, and while holding
+> ocfs2_inode_lock().  If so, that code is surely wrong - it should hold
+> i_mutex while modifying i_size.
+
+
+inode->i_mutex lock only protect the inode size on the same machine.
+because ocfs2 is cluster file system. so other machine maybe append the file.
+and modify the file size.
+and so before get the inode size, it need cluster lock, when other node unlock
+cluster lock it will write the inode size to disk. and this machine acquire the lock
+it will read the inode size from disk.
+
 > 
-> ...
->
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -1422,7 +1422,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
->  	int status;
->  	/* there is a really tiny chance the journal calls could fail,
->  	 * but we wouldn't want inconsistent blocks in *any* case. */
-> -	u64 fe_ptr, bg_ptr, prev_bg_ptr;
-> +	u64 bg_ptr, prev_bg_ptr;
->  	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) fe_bh->b_data;
->  	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
->  	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
-> @@ -1437,7 +1437,6 @@ static int ocfs2_relink_block_group(handle_t *handle,
->  		(unsigned long long)le64_to_cpu(bg->bg_blkno),
->  		(unsigned long long)le64_to_cpu(prev_bg->bg_blkno));
->  
-> -	fe_ptr = le64_to_cpu(fe->id2.i_chain.cl_recs[chain].c_blkno);
->  	bg_ptr = le64_to_cpu(bg->bg_next_group);
->  	prev_bg_ptr = le64_to_cpu(prev_bg->bg_next_group);
->  
-> @@ -1446,7 +1445,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
->  					 OCFS2_JOURNAL_ACCESS_WRITE);
->  	if (status < 0) {
->  		mlog_errno(status);
-> -		goto out_rollback;
-> +		goto out;
->  	}
->  
->  	prev_bg->bg_next_group = bg->bg_next_group;
-> @@ -1456,7 +1455,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
->  					 bg_bh, OCFS2_JOURNAL_ACCESS_WRITE);
->  	if (status < 0) {
->  		mlog_errno(status);
-> -		goto out_rollback;
-> +		goto out_rollback_prev_bg;
->  	}
->  
->  	bg->bg_next_group = fe->id2.i_chain.cl_recs[chain].c_blkno;
-> @@ -1466,21 +1465,21 @@ static int ocfs2_relink_block_group(handle_t *handle,
->  					 fe_bh, OCFS2_JOURNAL_ACCESS_WRITE);
->  	if (status < 0) {
->  		mlog_errno(status);
-> -		goto out_rollback;
-> +		goto out_rollback_bg;
->  	}
->  
->  	fe->id2.i_chain.cl_recs[chain].c_blkno = bg->bg_blkno;
->  	ocfs2_journal_dirty(handle, fe_bh);
->  
-> -out_rollback:
-> -	if (status < 0) {
-> -		fe->id2.i_chain.cl_recs[chain].c_blkno = cpu_to_le64(fe_ptr);
-> -		bg->bg_next_group = cpu_to_le64(bg_ptr);
-> -		prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
-> -	}
-> +out:
-> +	return status;
->  
-> -	if (status)
-> -		mlog_errno(status);
-> +out_rollback_bg:
-> +	bg->bg_next_group = cpu_to_le64(bg_ptr);
-> +out_rollback_prev_bg:
-> +	prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
-> +
-> +	mlog_errno(status);
+> Also, safely reading i_size should be performed via i_size_read(), and
+> modifications to i_size should use i_size_write().
+> 
 
-We already called mlog_errno() for this status in all cases.
+ok, thanks for your comments, I will modify this and resent the patch.
 
-How does this look?
+> And all this is only really applicable to 32-bit CPUs, which you
+> probably aren't using.
 
---- a/fs/ocfs2/suballoc.c~ocfs2-rework-transaction-rollback-in-ocfs2_relink_block_group-fix
-+++ a/fs/ocfs2/suballoc.c
-@@ -1443,44 +1443,38 @@ static int ocfs2_relink_block_group(hand
- 	status = ocfs2_journal_access_gd(handle, INODE_CACHE(alloc_inode),
- 					 prev_bg_bh,
- 					 OCFS2_JOURNAL_ACCESS_WRITE);
--	if (status < 0) {
--		mlog_errno(status);
-+	if (status < 0)
- 		goto out;
--	}
- 
- 	prev_bg->bg_next_group = bg->bg_next_group;
- 	ocfs2_journal_dirty(handle, prev_bg_bh);
- 
- 	status = ocfs2_journal_access_gd(handle, INODE_CACHE(alloc_inode),
- 					 bg_bh, OCFS2_JOURNAL_ACCESS_WRITE);
--	if (status < 0) {
--		mlog_errno(status);
-+	if (status < 0)
- 		goto out_rollback_prev_bg;
--	}
- 
- 	bg->bg_next_group = fe->id2.i_chain.cl_recs[chain].c_blkno;
- 	ocfs2_journal_dirty(handle, bg_bh);
- 
- 	status = ocfs2_journal_access_di(handle, INODE_CACHE(alloc_inode),
- 					 fe_bh, OCFS2_JOURNAL_ACCESS_WRITE);
--	if (status < 0) {
--		mlog_errno(status);
-+	if (status < 0)
- 		goto out_rollback_bg;
--	}
- 
- 	fe->id2.i_chain.cl_recs[chain].c_blkno = bg->bg_blkno;
- 	ocfs2_journal_dirty(handle, fe_bh);
- 
- out:
-+	if (status < 0)
-+		mlog_errno(status);
- 	return status;
- 
- out_rollback_bg:
- 	bg->bg_next_group = cpu_to_le64(bg_ptr);
- out_rollback_prev_bg:
- 	prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
--
--	mlog_errno(status);
--	return status;
-+	goto out;
- }
+I don't understand this.
 
-
-btw, the ocfs2 source and executable cold be made about half the size if
-mlog_errno() were to immediately return if status>=0.
+> 
+> So.... please let's take a second look at this.
+> 
+> .
+> 
