@@ -1,78 +1,74 @@
-From: Younger Liu <younger.liu@huawei.com>
-Date: Thu, 27 Jun 2013 15:55:22 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix issue that ocfs2_setattr() does
- not deal with new_i_size==i_size
-Message-ID: <51CBEFEA.3010308@huawei.com>
+From: Jensen <shencanquan@huawei.com>
+Date: Thu, 27 Jun 2013 16:56:56 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
+ lock for the file in SEEK_END
+In-Reply-To: <CAEeiSHV=3DBBJ1mweEgyxWRgsA9O8C-25_FTPMxyDbatoX0Fkw@mail.gmail.com>
+References: <51C2BC1F.2010106@huawei.com>
+	<20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
+	<51CB9338.3050408@huawei.com>
+	<20130626182536.c319334d.akpm@linux-foundation.org>
+	<51CB9A81.2000007@huawei.com>
+	<CAEeiSHV=3DBBJ1mweEgyxWRgsA9O8C-25_FTPMxyDbatoX0Fkw@mail.gmail.com>
+Message-ID: <51CBFE58.1060104@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The issue scenario is as following:
-1. fallocate a large disk space(eg. 30G) with FALLOC_FL_KEEP_SIZE
-for a file whose i_size and disk size are 512(or other size). 
-After executing fallocate, i_size file is still 512, and the disk 
-size became to 30G+512?
-2. ftruncate the file to new_i_size which equal to inode->i_size.
-After executing ftruncate, disk space does not changes. 
-In other words, i_size file is still 512, and disk size is
-30G+512. But we want disk size to be 512.
-This does not meet our expectations.
+On 2013/6/27 11:34, Sunil Mushran wrote:
 
-In order to Solving the issue above, we modified ocfs2_setattr(), 
-if attr->ia_size != i_size_read(inode), It calls 
-ocfs2_truncate_file(), and truncate disk space to attr->ia_size.
+> AFAIR, this behavior has been there since day 1 and changing it will impact performance negatively. I would recommend against making this
+> change for one app.
+> 
 
-Signed-off-by: Younger Liu <younger.liu@huawei.com>
----
- fs/ocfs2/alloc.c |    2 +-
- fs/ocfs2/file.c  |    7 ++-----
- 2 files changed, 3 insertions(+), 6 deletions(-)
+I think it will impact the performance negatively. but I think it is very
+very little, because in cluster lock function, the inode size will update
+from dlm in lvb. and it don't update by disk (another machine write file
+size to disk and this machine read file size from disk to update the inode size)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index b8a9d87..19837d4 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -7126,7 +7126,7 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
- 	if (end > i_size_read(inode))
- 		end = i_size_read(inode);
- 
--	BUG_ON(start >= end);
-+	BUG_ON(start > end);
- 
- 	if (!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
- 	    !(le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) ||
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 793c010..2e405e8 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -476,9 +476,6 @@ static int ocfs2_truncate_file(struct inode *inode,
- 
- 	/* lets handle the simple truncate cases before doing any more
- 	 * cluster locking. */
--	if (new_i_size == le64_to_cpu(fe->i_size))
--		goto bail;
--
- 	down_write(&OCFS2_I(inode)->ip_alloc_sem);
- 
- 	ocfs2_resv_discard(&osb->osb_la_resmap,
-@@ -1150,14 +1147,14 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 		goto bail_unlock_rw;
- 	}
- 
--	if (size_change && attr->ia_size != i_size_read(inode)) {
-+	if (size_change) {
- 		status = inode_newsize_ok(inode, attr->ia_size);
- 		if (status)
- 			goto bail_unlock;
- 
- 		inode_dio_wait(inode);
- 
--		if (i_size_read(inode) > attr->ia_size) {
-+		if (i_size_read(inode) >= attr->ia_size) {
- 			if (ocfs2_should_order_data(inode)) {
- 				status = ocfs2_begin_ordered_truncate(inode,
- 								      attr->ia_size);
--- 
-1.7.9.7
+if the file size update by disk. I think it will impact the performance very much.
+
+> 
+> On Wed, Jun 26, 2013 at 6:50 PM, shencanquan <shencanquan at huawei.com <mailto:shencanquan@huawei.com>> wrote:
+> 
+>     On 2013/6/27 9:25, Andrew Morton wrote:
+> 
+>     > On Thu, 27 Jun 2013 09:19:52 +0800 shencanquan <shencanquan at huawei.com <mailto:shencanquan@huawei.com>> wrote:
+>     >
+>     >> On 2013/6/27 5:18, Andrew Morton wrote:
+>     >>
+>     >>>
+>     >>> My guess is that there is some other code path which is modifying
+>     >>> inode->i_size without holding inode->i_mutex, and while holding
+>     >>> ocfs2_inode_lock().  If so, that code is surely wrong - it should hold
+>     >>> i_mutex while modifying i_size.
+>     >>
+>     >>
+>     >> inode->i_mutex lock only protect the inode size on the same machine.
+>     >
+>     > ah ;)
+>     >
+>     >>> And all this is only really applicable to 32-bit CPUs, which you
+>     >>> probably aren't using.
+>     >>
+>     >> I don't understand this.
+>     >
+>     > The i_size_read/i_size_write infrastructure is designed to efficiently
+>     > handle the situation where a 32-bit machine reads a 64-bit number which
+>     > might be undergoing modification on another CPU.  We don't want the
+>     > reading CPU to see an invalid number when the writing CPU is in the
+>     > middle of modifying the two 32-bit words.
+>     >
+>     >
+>     >
+> 
+>     ok. thanks.
+> 
+> 
+>     _______________________________________________
+>     Ocfs2-devel mailing list
+>     Ocfs2-devel at oss.oracle.com <mailto:Ocfs2-devel@oss.oracle.com>
+>     https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+> 
