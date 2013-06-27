@@ -1,90 +1,62 @@
-From: Younger Liu <younger.liu@huawei.com>
-Date: Thu, 27 Jun 2013 11:05:40 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix readonly issue in ocfs2_unlink()
-Message-ID: <51CBAC04.6010805@huawei.com>
+From: Jensen <shencanquan@huawei.com>
+Date: Thu, 27 Jun 2013 11:28:47 +0800
+Subject: [Ocfs2-devel] [PATCH V3] ocfs2: llseek requires to ocfs2 inode lock
+ for the file in SEEK_END
+Message-ID: <51CBB16F.6080906@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-While deleting a file with ocfs2_unlink(), there is a bug in this 
-function. This bug will result in filesystem read-only.
+llseek requires ocfs2 inode lock for updating the file size in SEEK_END.
+because the file size maybe update on another node.
+if it not . after call llseek in SEEK_END. the position is old.
 
-After calling ocfs2_orphan_add(), the file which will be deleted 
-is added into orphan dir. If ocfs2_delete_entry() fails, 
-the file still exists in the parent dir. 
-And this scenario introduces a conflict of metadata.
+this bug can be reproduce the following scenario:
+at first ,we dd a test fileA,the file size is 10k.
+on NodeA:
+---------
+1) open the test fileA, lseek the end of file. and print the position.
+2) close the test fileA
 
-If a file is added into orphan dir, when we put inode of the file 
-with iput(), the inode i_flags is setted (~OCFS2_VALID_FL) in 
-ocfs2_remove_inode(), and then write back to disk. 
+on NodeB:
+1) open the test fileA, append the 5k data to test FileA.
+2) lseek the end of file. and print the position.
+3) close file.
 
-But as previously mentioned, the file still exists in the parent dir.
-On other nodes, the file can be still accessed. When first read the file 
-with ocfs2_read_blocks() from disk, It will check and avalidate inode 
-using ocfs2_validate_inode_block(). 
-So File system will be readonly because the inode is invalid.
-In other words, the inode i_flags has been setted (~OCFS2_VALID_FL).
+at first we run the test program1 on NodeA , the result is 10k.
+and then run the test program2 on NodeB,  the result is 15k.
+at last, we run the test program1 on NodeA again, the result is 10k.
 
+after apply this patch.  the three step result is 15k.
 
-Signed-off-by: Younger Liu <younger.liu@huawei.com>
-Signed-off-by: Jensen <shencanquan@huawei.com> 
+Signed-off-by: Jensen <shencanquan@huawei.com>
 ---
- fs/ocfs2/namei.c |   20 ++++++++++----------
- 1 file changed, 10 insertions(+), 10 deletions(-)
+ fs/ocfs2/file.c |   11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index e3fce49..ddb4915 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -790,7 +790,7 @@ static int ocfs2_unlink(struct inode *dir,
- 			struct dentry *dentry)
- {
- 	int status;
--	int child_locked = 0;
-+	int child_locked = 0, is_unlinkable = 0;
- 	struct inode *inode = dentry->d_inode;
- 	struct inode *orphan_dir = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
-@@ -873,6 +873,7 @@ static int ocfs2_unlink(struct inode *dir,
- 			mlog_errno(status);
- 			goto leave;
- 		}
-+		is_unlinkable = 1;
- 	}
- 
- 	handle = ocfs2_start_trans(osb, ocfs2_unlink_credits(osb->sb));
-@@ -892,15 +893,6 @@ static int ocfs2_unlink(struct inode *dir,
- 
- 	fe = (struct ocfs2_dinode *) fe_bh->b_data;
- 
--	if (inode_is_unlinkable(inode)) {
--		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
--					  &orphan_insert, orphan_dir);
--		if (status < 0) {
--			mlog_errno(status);
--			goto leave;
--		}
--	}
--
- 	/* delete the name from the parent dir */
- 	status = ocfs2_delete_entry(handle, dir, &lookup);
- 	if (status < 0) {
-@@ -923,6 +915,14 @@ static int ocfs2_unlink(struct inode *dir,
- 		mlog_errno(status);
- 		if (S_ISDIR(inode->i_mode))
- 			inc_nlink(dir);
-+		goto leave;
-+	}
-+
-+	if (is_unlinkable) {
-+		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
-+					  &orphan_insert, orphan_dir);
-+		if (status < 0)
-+			mlog_errno(status);
- 	}
- 
- leave:
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index ff54014..6ef4f2e 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
+ 	case SEEK_SET:
+ 		break;
+ 	case SEEK_END:
+-		offset += inode->i_size;
++		/* SEEK_END requires the OCFS2 inode lock for the file
++		 * because it references the file's size.
++		 */
++		ret = ocfs2_inode_lock(inode, NULL, 0);
++		if (ret < 0) {
++			mlog_errno(ret);
++			goto out;
++		}
++		offset += i_size_read(inode);
++		ocfs2_inode_unlock(inode, 0);
+ 		break;
+ 	case SEEK_CUR:
+ 		if (offset == 0) {
 -- 
 1.7.9.7
