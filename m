@@ -1,85 +1,125 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Fri, 28 Jun 2013 17:11:25 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
- lock for the file in SEEK_END
-In-Reply-To: <CAEeiSHVeTCsQizasNNxAeYwfJt9EyWb_CgjNwyGFwTWGm5NuxQ@mail.gmail.com>
-References: <51C2BC1F.2010106@huawei.com>
-	<20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
-	<51CB9338.3050408@huawei.com>
-	<20130626182536.c319334d.akpm@linux-foundation.org>
-	<51CB9A81.2000007@huawei.com>
-	<CAEeiSHV=3DBBJ1mweEgyxWRgsA9O8C-25_FTPMxyDbatoX0Fkw@mail.gmail.com>
-	<20130627150810.2d22d158a1f0bed8482a27d8@linux-foundation.org>
-	<CAEeiSHVeTCsQizasNNxAeYwfJt9EyWb_CgjNwyGFwTWGm5NuxQ@mail.gmail.com>
-Message-ID: <51CD533D.9030503@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 28 Jun 2013 13:47:49 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlmlock_master should return
+ DLM_NORMAL after adding lock to blocked list
+In-Reply-To: <51C6D054.40100@oracle.com>
+References: <51C2E3F1.5020605@huawei.com>
+	<51C6D054.40100@oracle.com>
+Message-ID: <20130628134749.2058ab52184a7259c2d9379e@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 06/28/2013 06:59 AM, Sunil Mushran wrote:
+On Sun, 23 Jun 2013 18:39:16 +0800 Jeff Liu <jeff.liu@oracle.com> wrote:
 
-> The qs is whether this change is required for a real problem or not. If
-> so, what is that logic
-> that gets tripped up by this behaviour.
+> Hi Jiufei,
+> 
+> On 06/20/2013 07:13 PM, Xue jiufei wrote:
+> 
+> > Function dlmlock_master() returns DLM_RECOVERING/DLM_MIGRATING/
+> > DLM_FORWAR after adding lock to blocked list if lockres has the state
+> > DLM_LOCK_RES_RECOVERING/DLM_LOCK_RES_MIGRATING/
+> > DLM_LOCK_RES_IN_PROGRESS. so it will retry in dlmlock(). And this may
+> > cause dlm_thread fall into an infinite loop
+> > 
+> > 	Thread1                                  dlm_thread
+> > calls dlm_lock->dlmlock_master,				     
+> > if lockresA is in state
+> > DLM_LOCK_RES_RECOVERING, calls
+> > __dlm_wait_on_lockres() and waits
+> > until others threads clear this
+> > state; 
+> > 
+> > If cannot grant this lock,
+> > adding lock to blocked list,
+> > and return DLM_RECOVERING;	
+> > 
+> >                                         Grant this lock and move it to
+> >                                         grant list;
+> > 
+> > After a while, retry and 
+> > calls list_add_tail(), adding lock
+> > to blocked list again. 
+> > 
+> > Granted and blocked list of this lockres will become the following
+> > conditions:
+> >     lock_res->granted.next = dlm_lock->list_head;
+> >     lock_res->blocked.next = dlm_lock->list_head;
+> >     dlm_lock->list_head.next = dlm_lock_resource->blocked;
+> > When dlm_thread traverses the granted list, it will fall into an
+> > endless loop, checking dlm_lock.list_head, dlm_lock->list_head.next
+> > (i.e.lock_res->blocked), lock_res->blocked.next(i.e.dlm_lock.list_head
+> > again) .....
+> 
+> Thanks for your nice description of this problem and this fix looks good.
+> Let's waiting for an ACK from either Sunil, Mark or Joel.
+
+Still waiting ;)
 
 
-IMHO, there have a couple of commands in Coreutils would be affected by this
-behavior:
-- tail(1) with "-c bytes" option.
-- wc(1): when counting only bytes, it will try to figure out the file size
-	 through lseek (SEEK_END - SEEK_CUR) when counting only bytes.
+From: Xue jiufei <xuejiufei@huawei.com>
+Subject: ocfs2: dlmlock_master() should return DLM_NORMAL after adding lock to blocked list
 
-Other popular programs need get the file size via SEEK_END only in some corner
-cases.  e.g, if the input file is not a regular file or the utility failed to
-fetch the file size via fstat(2), they will call lseek as an alternative approach,
-like split(1), truncate(1), head(1) with '-c bytes' option.
+dlmlock_master() returns DLM_RECOVERING/DLM_MIGRATING/ DLM_FORWAR after
+adding lock to blocked list if lockres has the state
+DLM_LOCK_RES_RECOVERING/DLM_LOCK_RES_MIGRATING/ DLM_LOCK_RES_IN_PROGRESS. 
+so it will retry in dlmlock().  And this may cause dlm_thread fall into an
+infinite loop
 
-Generally, the user applications might fetch the file size through fstat(2) which
-will go through ocfs2_getattr() so that it's safe to us because we perform inode
-re-validation before filling up the generic attributes.
+	Thread1                                  dlm_thread
+calls dlm_lock->dlmlock_master,
+if lockresA is in state
+DLM_LOCK_RES_RECOVERING, calls
+__dlm_wait_on_lockres() and waits
+until others threads clear this
+state;
 
-IOWs, the user application could be changed accordingly to avoid this issue.
-However, this most likely a workaround to some extent, and we have a bug for
-the SEEK_END business.
+If cannot grant this lock,
+adding lock to blocked list,
+and return DLM_RECOVERING;
 
-As per our current discussion, one big concern of us is regarding the performance
-with this fix, I'd like to consider it from another point of view, that is the user
-should take all the blame to themselves if they would like to run SEEK_END bounds
-operation on OCFS2, does it sounds make sense? :-P.
-If yes, it would be better to consolidate the code comments to indicate the
-performance negatively and it is not advisable to fetch file size via SEEK_END
-on OCFS2.
+                                        Grant this lock and move it to
+                                        grant list;
 
-Thanks,
--Jeff
+After a while, retry and
+calls list_add_tail(), adding lock
+to blocked list again.
 
-> 
-> 
-> On Thu, Jun 27, 2013 at 3:08 PM, Andrew Morton
-> <akpm at linux-foundation.org <mailto:akpm@linux-foundation.org>> wrote:
-> 
->     On Wed, 26 Jun 2013 20:34:19 -0700 Sunil Mushran
->     <sunil.mushran at gmail.com <mailto:sunil.mushran@gmail.com>> wrote:
-> 
->     > AFAIR, this behavior has been there since day 1 and changing it
->     will impact
->     > performance negatively. I would recommend against making this
->     change for
->     > one app.
-> 
->     Well, it's a bug fix isn't it?  SEEK_END on a 15k file is presently
->     returning
->     10k.
-> 
->     Obviously tradeoffs are involved - is there any way in which this
->     behaviour can be fixed without serious performance damage?
-> 
-> 
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+Granted and blocked list of this lockres will become the following
+conditions:
+
+    lock_res->granted.next = dlm_lock->list_head;
+    lock_res->blocked.next = dlm_lock->list_head;
+    dlm_lock->list_head.next = dlm_lock_resource->blocked;
+
+When dlm_thread traverses the granted list, it will fall into an endless
+loop, checking dlm_lock.list_head, dlm_lock->list_head.next
+(i.e.lock_res->blocked), lock_res->blocked.next(i.e.dlm_lock.list_head
+again) .....
+
+Signed-off-by: joyce <xuejiufei@huawei.com>
+Reviewed-by: jensen <shencanquan@huawei.com>
+Cc: Jeff Liu <jeff.liu@oracle.com>
+Cc: Sunil Mushran <sunil.mushran@gmail.com>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ocfs2/dlm/dlmlock.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+diff -puN fs/ocfs2/dlm/dlmlock.c~ocfs2-dlmlock_master-should-return-dlm_normal-after-adding-lock-to-blocked-list fs/ocfs2/dlm/dlmlock.c
+--- a/fs/ocfs2/dlm/dlmlock.c~ocfs2-dlmlock_master-should-return-dlm_normal-after-adding-lock-to-blocked-list
++++ a/fs/ocfs2/dlm/dlmlock.c
+@@ -178,6 +178,7 @@ static enum dlm_status dlmlock_master(st
+ 				     lock->ml.node);
+ 			}
+ 		} else {
++			status = DLM_NORMAL;
+ 			dlm_lock_get(lock);
+ 			list_add_tail(&lock->list, &res->blocked);
+ 			kick_thread = 1;
+_
