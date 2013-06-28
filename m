@@ -1,138 +1,126 @@
 From: Jeff Liu <jeff.liu@oracle.com>
-Date: Fri, 28 Jun 2013 12:06:43 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix issue that ocfs2_setattr()
- does not deal with new_i_size==i_size
-In-Reply-To: <51CBEFEA.3010308@huawei.com>
-References: <51CBEFEA.3010308@huawei.com>
-Message-ID: <51CD0BD3.2000306@oracle.com>
+Date: Fri, 28 Jun 2013 12:11:05 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Rework transaction rollback in
+ ocfs2_relink_block_group()
+In-Reply-To: <51CCF0CB.7050802@huawei.com>
+References: <51C2933D.9030300@oracle.com> <51CCF0CB.7050802@huawei.com>
+Message-ID: <51CD0CD9.2010204@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Thanks for your patch, it indeed fixed a bug.  However, your description
-is not correct, please see my inline comments.
+On 06/28/2013 10:11 AM, Jensen wrote:
 
-On 06/27/2013 03:55 PM, Younger Liu wrote:
+> it looks good , but it is better that if moving the following two sentence to before 'ocfs2_journal_dirty(handle, fe_bh);' sentence.
+> 1.ocfs2_journal_dirty(handle, prev_bg_bh);
+> 2.ocfs2_journal_dirty(handle, bg_bh);
 
-> The issue scenario is as following:
-> 1. fallocate a large disk space(eg. 30G) with FALLOC_FL_KEEP_SIZE
-> for a file whose i_size and disk size are 512(or other size). 
-> After executing fallocate, i_size file is still 512, and the disk 
-> size became to 30G+512?
-
-The file size won't be changed if FALLOC_FL_KEEP_SIZE is specified,
-Pls refer to the man page of fallocate(2) for detail.
-
-Disk size should be changed to reflect this operation, why not?
-
-> 2. ftruncate the file to new_i_size which equal to inode->i_size.
-> After executing ftruncate, disk space does not changes. 
-
-This is a real bug that be fixed in this patch.
-
-> In other words, i_size file is still 512, and disk size is
-> 30G+512. But we want disk size to be 512.
-
-Ditto.
-
-> This does not meet our expectations.
-
-...
-
-> 
-> In order to Solving the issue above, we modified ocfs2_setattr(), 
-> if attr->ia_size != i_size_read(inode), It calls 
-> ocfs2_truncate_file(), and truncate disk space to attr->ia_size.
-
-Right.
-
-> 
-> Signed-off-by: Younger Liu <younger.liu@huawei.com>
-> ---
->  fs/ocfs2/alloc.c |    2 +-
->  fs/ocfs2/file.c  |    7 ++-----
->  2 files changed, 3 insertions(+), 6 deletions(-)
-> 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index b8a9d87..19837d4 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -7126,7 +7126,7 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
->  	if (end > i_size_read(inode))
->  		end = i_size_read(inode);
->  
-> -	BUG_ON(start >= end);
-> +	BUG_ON(start > end);
->  
->  	if (!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
->  	    !(le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) ||
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 793c010..2e405e8 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -476,9 +476,6 @@ static int ocfs2_truncate_file(struct inode *inode,
->  
->  	/* lets handle the simple truncate cases before doing any more
->  	 * cluster locking. */
-
-Above pointless comments should be removed with this change as well.
-
-> -	if (new_i_size == le64_to_cpu(fe->i_size))
-> -		goto bail;
-> -
->  	down_write(&OCFS2_I(inode)->ip_alloc_sem);
->  
->  	ocfs2_resv_discard(&osb->osb_la_resmap,
-> @@ -1150,14 +1147,14 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
->  		goto bail_unlock_rw;
->  	}
->  
-> -	if (size_change && attr->ia_size != i_size_read(inode)) {
-> +	if (size_change) {
->  		status = inode_newsize_ok(inode, attr->ia_size);
->  		if (status)
->  			goto bail_unlock;
->  
->  		inode_dio_wait(inode);
->  
-> -		if (i_size_read(inode) > attr->ia_size) {
-> +		if (i_size_read(inode) >= attr->ia_size) {
->  			if (ocfs2_should_order_data(inode)) {
->  				status = ocfs2_begin_ordered_truncate(inode,
->  								      attr->ia_size);
-
-
-So I also run a quick test to verify this patch, it looks fine.
-
-# dd if=/dev/zero of=/ocfs2/test bs=512 count=1
-1+0 records in
-1+0 records out
-512 bytes (512 B) copied, 0.000150857 s, 3.4 MB/s
-
-# xfs_io -c 'falloc -k 512 3G' /ocfs2/test
-# ls -l /ocfs2/test
--rw-r--r-- 1 root root 512 Jun 28 11:47 /ocfs2/test
-# df -h
-Filesystem      Size  Used Avail Use% Mounted on
-....
-/dev/sdb1       8.0G  3.4G  4.7G  42% /ocfs2
-
-# xfs_io -c 'truncate 512' /ocfs2/test
-
-# df -h
-Filesystem      Size  Used Avail Use% Mounted on
-.....
-/dev/sdb1       8.0G  363M  7.7G   5% /ocfs2
-
-# ls -l /ocfs2/test
--rw-r--r-- 1 root root 512 Jun 28 11:47 /ocfs2/test
-
-
-With above bug description problems were fixed, you can
-consider to add:
-Reviewed-by: Jie Liu <jeff.liu@oracle.com>
-Tested-by: Jie Liu <jeff.liu@oracle.com>
+Thanks for your review, but are you sure you gone over the code?
 
 -Jeff
+
+> 
+> because if it fail, it maybe commit by jbd2 journal.
+> 
+> Thanks,
+> Jensen
+> 
+> On 2013/6/20 13:29, Jeff Liu wrote:
+> 
+>> From: Jie Liu <jeff.liu@oracle.com>
+>>
+>> In ocfs2_relink_block_group(), we roll back all those changes if
+>> notify intent to modify buffers for metadata update failed even
+>> if the relevant buffer has not yet been modified/got dirty at that
+>> point, that are not quite right because of:
+>>
+>> - None buffer has been modified/dirty if failed to call
+>>   ocfs2_journal_access_gd() against the previous block group buffer
+>> - Only the previous block group buffer has got dirty if failed to
+>>   call ocfs2_journal_access_gd() against the block group buffer
+>> - There is no need to roll back the change for file entry buffer at all
+>>
+>> Those problems will not cause anything wrong but unnecessary.
+>> This patch fix them and kill the useless bg_ptr variable as well.
+>>
+>> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+>> Cc: Younger Liu <younger.liu@huawei.com>
+>> ---
+>>  fs/ocfs2/suballoc.c |   25 ++++++++++++-------------
+>>  1 file changed, 12 insertions(+), 13 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+>> index b7e74b5..101d16d 100644
+>> --- a/fs/ocfs2/suballoc.c
+>> +++ b/fs/ocfs2/suballoc.c
+>> @@ -1422,7 +1422,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  	int status;
+>>  	/* there is a really tiny chance the journal calls could fail,
+>>  	 * but we wouldn't want inconsistent blocks in *any* case. */
+>> -	u64 fe_ptr, bg_ptr, prev_bg_ptr;
+>> +	u64 bg_ptr, prev_bg_ptr;
+>>  	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) fe_bh->b_data;
+>>  	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
+>>  	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
+>> @@ -1437,7 +1437,6 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  		(unsigned long long)le64_to_cpu(bg->bg_blkno),
+>>  		(unsigned long long)le64_to_cpu(prev_bg->bg_blkno));
+>>  
+>> -	fe_ptr = le64_to_cpu(fe->id2.i_chain.cl_recs[chain].c_blkno);
+>>  	bg_ptr = le64_to_cpu(bg->bg_next_group);
+>>  	prev_bg_ptr = le64_to_cpu(prev_bg->bg_next_group);
+>>  
+>> @@ -1446,7 +1445,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  					 OCFS2_JOURNAL_ACCESS_WRITE);
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>> -		goto out_rollback;
+>> +		goto out;
+>>  	}
+>>  
+>>  	prev_bg->bg_next_group = bg->bg_next_group;
+>> @@ -1456,7 +1455,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  					 bg_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>> -		goto out_rollback;
+>> +		goto out_rollback_prev_bg;
+>>  	}
+>>  
+>>  	bg->bg_next_group = fe->id2.i_chain.cl_recs[chain].c_blkno;
+>> @@ -1466,21 +1465,21 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>>  					 fe_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>> -		goto out_rollback;
+>> +		goto out_rollback_bg;
+>>  	}
+>>  
+>>  	fe->id2.i_chain.cl_recs[chain].c_blkno = bg->bg_blkno;
+>>  	ocfs2_journal_dirty(handle, fe_bh);
+>>  
+>> -out_rollback:
+>> -	if (status < 0) {
+>> -		fe->id2.i_chain.cl_recs[chain].c_blkno = cpu_to_le64(fe_ptr);
+>> -		bg->bg_next_group = cpu_to_le64(bg_ptr);
+>> -		prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+>> -	}
+>> +out:
+>> +	return status;
+>>  
+>> -	if (status)
+>> -		mlog_errno(status);
+>> +out_rollback_bg:
+>> +	bg->bg_next_group = cpu_to_le64(bg_ptr);
+>> +out_rollback_prev_bg:
+>> +	prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+>> +
+>> +	mlog_errno(status);
+>>  	return status;
+>>  }
+>>  
+> 
+> 
+> 
