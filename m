@@ -1,61 +1,84 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Fri, 28 Jun 2013 09:20:34 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: xattr: fix inlined xattr reflink
-In-Reply-To: <20130627160828.598b9281d81b854a4fae4c20@linux-foundation.org>
-References: <1371778044-14415-1-git-send-email-junxiao.bi@oracle.com>
-	<20130627160828.598b9281d81b854a4fae4c20@linux-foundation.org>
-Message-ID: <51CCE4E2.4000601@oracle.com>
+From: Jensen <shencanquan@huawei.com>
+Date: Fri, 28 Jun 2013 09:42:04 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix issue that ocfs2_setattr()
+ does not deal with new_i_size==i_size
+In-Reply-To: <51CBEFEA.3010308@huawei.com>
+References: <51CBEFEA.3010308@huawei.com>
+Message-ID: <51CCE9EC.5090503@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Andrew,
+It looks good to me.
 
-On 06/28/2013 07:08 AM, Andrew Morton wrote:
-> On Fri, 21 Jun 2013 09:27:24 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
->
->> Inlined xattr shared free space of inode block with inlined data
->> or data extent record, so the size of the later two should be
->> adjusted when inlined xattr is enabled. See ocfs2_xattr_ibody_init().
->> But this isn't done well when reflink. For inode with inlined data,
->> its max inlined data size is adjusted in ocfs2_duplicate_inline_data(),
->> no problem. But for inode with data extent record, its record count isn't
->> adjusted. Fix it, or data extent record and inlined xattr may overwrite
->> each other, then cause data corruption or xattr failure.
->>
->> One panic caused by this bug in our test environment is the following:
->>
->> kernel BUG at fs/ocfs2/xattr.c:1435!
->>
->> ...
->>
->> @@ -6499,6 +6499,16 @@ static int ocfs2_reflink_xattr_inline(struct ocfs2_xattr_reflink *args)
->>  	}
->>  
->>  	new_oi = OCFS2_I(args->new_inode);
->> +	/*
->> +	 * Adjust extent record count to reserve space for extended attribute.
->> +	 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
->> +	 */
->> +	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
->> +	    !(ocfs2_inode_is_fast_symlink(new_inode))) {
->> +		struct ocfs2_extent_list *el = &new_di->id2.i_list;
->> +		le16_add_cpu(&el->l_count, -(inline_size /
->> +					sizeof(struct ocfs2_extent_rec)));
->> +	}
-> This is badly screwed up.  There is no local variable `new_inode' -
-> new_inode() is a global function!
->
-> I assume you meant args->new_inode, but this patch clearly wasn't
-> tested (or wasn't what you _did_ test).
-Sorry, I made a bad mistake, it should be args->new_inode,
-I just test the case where the inode is not fast symlink.
-I will fix this and test all the case and send again.
+reviewed-by: Jensen <shencanquan@huawei.com>
 
-Thanks,
-Junxiao.
+On 2013/6/27 15:55, Younger Liu wrote:
 
->
-> I'll drop it.  Please fix, retest, resend.
+> The issue scenario is as following:
+> 1. fallocate a large disk space(eg. 30G) with FALLOC_FL_KEEP_SIZE
+> for a file whose i_size and disk size are 512(or other size). 
+> After executing fallocate, i_size file is still 512, and the disk 
+> size became to 30G+512?
+> 2. ftruncate the file to new_i_size which equal to inode->i_size.
+> After executing ftruncate, disk space does not changes. 
+> In other words, i_size file is still 512, and disk size is
+> 30G+512. But we want disk size to be 512.
+> This does not meet our expectations.
+> 
+> In order to Solving the issue above, we modified ocfs2_setattr(), 
+> if attr->ia_size != i_size_read(inode), It calls 
+> ocfs2_truncate_file(), and truncate disk space to attr->ia_size.
+> 
+> Signed-off-by: Younger Liu <younger.liu@huawei.com>
+> ---
+>  fs/ocfs2/alloc.c |    2 +-
+>  fs/ocfs2/file.c  |    7 ++-----
+>  2 files changed, 3 insertions(+), 6 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index b8a9d87..19837d4 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -7126,7 +7126,7 @@ int ocfs2_truncate_inline(struct inode *inode, struct buffer_head *di_bh,
+>  	if (end > i_size_read(inode))
+>  		end = i_size_read(inode);
+>  
+> -	BUG_ON(start >= end);
+> +	BUG_ON(start > end);
+>  
+>  	if (!(OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) ||
+>  	    !(le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) ||
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 793c010..2e405e8 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -476,9 +476,6 @@ static int ocfs2_truncate_file(struct inode *inode,
+>  
+>  	/* lets handle the simple truncate cases before doing any more
+>  	 * cluster locking. */
+> -	if (new_i_size == le64_to_cpu(fe->i_size))
+> -		goto bail;
+> -
+>  	down_write(&OCFS2_I(inode)->ip_alloc_sem);
+>  
+>  	ocfs2_resv_discard(&osb->osb_la_resmap,
+> @@ -1150,14 +1147,14 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>  		goto bail_unlock_rw;
+>  	}
+>  
+> -	if (size_change && attr->ia_size != i_size_read(inode)) {
+> +	if (size_change) {
+>  		status = inode_newsize_ok(inode, attr->ia_size);
+>  		if (status)
+>  			goto bail_unlock;
+>  
+>  		inode_dio_wait(inode);
+>  
+> -		if (i_size_read(inode) > attr->ia_size) {
+> +		if (i_size_read(inode) >= attr->ia_size) {
+>  			if (ocfs2_should_order_data(inode)) {
+>  				status = ocfs2_begin_ordered_truncate(inode,
+>  								      attr->ia_size);
