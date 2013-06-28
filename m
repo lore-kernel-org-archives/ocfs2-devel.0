@@ -1,126 +1,141 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Fri, 28 Jun 2013 12:11:05 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: Rework transaction rollback in
- ocfs2_relink_block_group()
-In-Reply-To: <51CCF0CB.7050802@huawei.com>
-References: <51C2933D.9030300@oracle.com> <51CCF0CB.7050802@huawei.com>
-Message-ID: <51CD0CD9.2010204@oracle.com>
+From: Younger Liu <younger.liu@huawei.com>
+Date: Fri, 28 Jun 2013 13:52:20 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix readonly issue in
+	ocfs2_unlink()
+In-Reply-To: <20130627145855.6ed028022d3a63fa97dcee13@linux-foundation.org>
+References: <51CBAC04.6010805@huawei.com>
+	<20130627145855.6ed028022d3a63fa97dcee13@linux-foundation.org>
+Message-ID: <51CD2494.8070300@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 06/28/2013 10:11 AM, Jensen wrote:
-
-> it looks good , but it is better that if moving the following two sentence to before 'ocfs2_journal_dirty(handle, fe_bh);' sentence.
-> 1.ocfs2_journal_dirty(handle, prev_bg_bh);
-> 2.ocfs2_journal_dirty(handle, bg_bh);
-
-Thanks for your review, but are you sure you gone over the code?
-
--Jeff
-
+On 2013/6/28 5:58, Andrew Morton wrote:
+> On Thu, 27 Jun 2013 11:05:40 +0800 Younger Liu <younger.liu@huawei.com> wrote:
 > 
-> because if it fail, it maybe commit by jbd2 journal.
-> 
-> Thanks,
-> Jensen
-> 
-> On 2013/6/20 13:29, Jeff Liu wrote:
-> 
->> From: Jie Liu <jeff.liu@oracle.com>
+>> While deleting a file with ocfs2_unlink(), there is a bug in this 
+>> function. This bug will result in filesystem read-only.
 >>
->> In ocfs2_relink_block_group(), we roll back all those changes if
->> notify intent to modify buffers for metadata update failed even
->> if the relevant buffer has not yet been modified/got dirty at that
->> point, that are not quite right because of:
+>> After calling ocfs2_orphan_add(), the file which will be deleted 
+>> is added into orphan dir. If ocfs2_delete_entry() fails, 
+>> the file still exists in the parent dir. 
+>> And this scenario introduces a conflict of metadata.
 >>
->> - None buffer has been modified/dirty if failed to call
->>   ocfs2_journal_access_gd() against the previous block group buffer
->> - Only the previous block group buffer has got dirty if failed to
->>   call ocfs2_journal_access_gd() against the block group buffer
->> - There is no need to roll back the change for file entry buffer at all
+>> If a file is added into orphan dir, when we put inode of the file 
+>> with iput(), the inode i_flags is setted (~OCFS2_VALID_FL) in 
+>> ocfs2_remove_inode(), and then write back to disk. 
 >>
->> Those problems will not cause anything wrong but unnecessary.
->> This patch fix them and kill the useless bg_ptr variable as well.
+>> But as previously mentioned, the file still exists in the parent dir.
+>> On other nodes, the file can be still accessed. When first read the file 
+>> with ocfs2_read_blocks() from disk, It will check and avalidate inode 
+>> using ocfs2_validate_inode_block(). 
+>> So File system will be readonly because the inode is invalid.
+>> In other words, the inode i_flags has been setted (~OCFS2_VALID_FL).
 >>
->> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
->> Cc: Younger Liu <younger.liu@huawei.com>
->> ---
->>  fs/ocfs2/suballoc.c |   25 ++++++++++++-------------
->>  1 file changed, 12 insertions(+), 13 deletions(-)
+>> ...
 >>
->> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
->> index b7e74b5..101d16d 100644
->> --- a/fs/ocfs2/suballoc.c
->> +++ b/fs/ocfs2/suballoc.c
->> @@ -1422,7 +1422,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
+>> --- a/fs/ocfs2/namei.c
+>> +++ b/fs/ocfs2/namei.c
+>> @@ -790,7 +790,7 @@ static int ocfs2_unlink(struct inode *dir,
+>>  			struct dentry *dentry)
+>>  {
 >>  	int status;
->>  	/* there is a really tiny chance the journal calls could fail,
->>  	 * but we wouldn't want inconsistent blocks in *any* case. */
->> -	u64 fe_ptr, bg_ptr, prev_bg_ptr;
->> +	u64 bg_ptr, prev_bg_ptr;
->>  	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) fe_bh->b_data;
->>  	struct ocfs2_group_desc *bg = (struct ocfs2_group_desc *) bg_bh->b_data;
->>  	struct ocfs2_group_desc *prev_bg = (struct ocfs2_group_desc *) prev_bg_bh->b_data;
->> @@ -1437,7 +1437,6 @@ static int ocfs2_relink_block_group(handle_t *handle,
->>  		(unsigned long long)le64_to_cpu(bg->bg_blkno),
->>  		(unsigned long long)le64_to_cpu(prev_bg->bg_blkno));
->>  
->> -	fe_ptr = le64_to_cpu(fe->id2.i_chain.cl_recs[chain].c_blkno);
->>  	bg_ptr = le64_to_cpu(bg->bg_next_group);
->>  	prev_bg_ptr = le64_to_cpu(prev_bg->bg_next_group);
->>  
->> @@ -1446,7 +1445,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
->>  					 OCFS2_JOURNAL_ACCESS_WRITE);
->>  	if (status < 0) {
->>  		mlog_errno(status);
->> -		goto out_rollback;
->> +		goto out;
+>> -	int child_locked = 0;
+>> +	int child_locked = 0, is_unlinkable = 0;
+> 
+> Please note that the surrounding code was carful to use the
+> one-definition-per-line convention.  That's a good convention - more
+> readable, less patch rejects during code evolution, leaves room for a
+> nice little comment.
+> 
+> Also, type `bool' would have been appropraite here.
+> 
+>>  	struct inode *inode = dentry->d_inode;
+>>  	struct inode *orphan_dir = NULL;
+>>  	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+>> @@ -873,6 +873,7 @@ static int ocfs2_unlink(struct inode *dir,
+>>  			mlog_errno(status);
+>>  			goto leave;
+>>  		}
+>> +		is_unlinkable = 1;
 >>  	}
 >>  
->>  	prev_bg->bg_next_group = bg->bg_next_group;
->> @@ -1456,7 +1455,7 @@ static int ocfs2_relink_block_group(handle_t *handle,
->>  					 bg_bh, OCFS2_JOURNAL_ACCESS_WRITE);
->>  	if (status < 0) {
->>  		mlog_errno(status);
->> -		goto out_rollback;
->> +		goto out_rollback_prev_bg;
->>  	}
+>>  	handle = ocfs2_start_trans(osb, ocfs2_unlink_credits(osb->sb));
+>> @@ -892,15 +893,6 @@ static int ocfs2_unlink(struct inode *dir,
 >>  
->>  	bg->bg_next_group = fe->id2.i_chain.cl_recs[chain].c_blkno;
->> @@ -1466,21 +1465,21 @@ static int ocfs2_relink_block_group(handle_t *handle,
->>  					 fe_bh, OCFS2_JOURNAL_ACCESS_WRITE);
->>  	if (status < 0) {
->>  		mlog_errno(status);
->> -		goto out_rollback;
->> +		goto out_rollback_bg;
->>  	}
+>>  	fe = (struct ocfs2_dinode *) fe_bh->b_data;
 >>  
->>  	fe->id2.i_chain.cl_recs[chain].c_blkno = bg->bg_blkno;
->>  	ocfs2_journal_dirty(handle, fe_bh);
->>  
->> -out_rollback:
->> -	if (status < 0) {
->> -		fe->id2.i_chain.cl_recs[chain].c_blkno = cpu_to_le64(fe_ptr);
->> -		bg->bg_next_group = cpu_to_le64(bg_ptr);
->> -		prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+>> -	if (inode_is_unlinkable(inode)) {
+>> -		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
+>> -					  &orphan_insert, orphan_dir);
+>> -		if (status < 0) {
+>> -			mlog_errno(status);
+>> -			goto leave;
+>> -		}
 >> -	}
->> +out:
->> +	return status;
->>  
->> -	if (status)
->> -		mlog_errno(status);
->> +out_rollback_bg:
->> +	bg->bg_next_group = cpu_to_le64(bg_ptr);
->> +out_rollback_prev_bg:
->> +	prev_bg->bg_next_group = cpu_to_le64(prev_bg_ptr);
+>> -
+>>  	/* delete the name from the parent dir */
+>>  	status = ocfs2_delete_entry(handle, dir, &lookup);
+>>  	if (status < 0) {
+>> @@ -923,6 +915,14 @@ static int ocfs2_unlink(struct inode *dir,
+>>  		mlog_errno(status);
+>>  		if (S_ISDIR(inode->i_mode))
+>>  			inc_nlink(dir);
+>> +		goto leave;
+>> +	}
 >> +
->> +	mlog_errno(status);
->>  	return status;
->>  }
->>  
+>> +	if (is_unlinkable) {
+>> +		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
+>> +					  &orphan_insert, orphan_dir);
+>> +		if (status < 0)
+>> +			mlog_errno(status);
+>>  	}
 > 
+> This is yet another ocfs2 function which reports the same error two
+> times.  ho hum.
 > 
+Thanks for your review.
+
+> Please review:
 > 
+> --- a/fs/ocfs2/namei.c~ocfs2-fix-readonly-issue-in-ocfs2_unlink-fix
+> +++ a/fs/ocfs2/namei.c
+> @@ -790,7 +790,8 @@ static int ocfs2_unlink(struct inode *di
+>  			struct dentry *dentry)
+>  {
+>  	int status;
+> -	int child_locked = 0, is_unlinkable = 0;
+> +	int child_locked = 0;
+> +	bool is_unlinkable = false;
+>  	struct inode *inode = dentry->d_inode;
+>  	struct inode *orphan_dir = NULL;
+>  	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+> @@ -873,7 +874,7 @@ static int ocfs2_unlink(struct inode *di
+>  			mlog_errno(status);
+>  			goto leave;
+>  		}
+> -		is_unlinkable = 1;
+> +		is_unlinkable = true;
+>  	}
+>  
+>  	handle = ocfs2_start_trans(osb, ocfs2_unlink_credits(osb->sb));
+> @@ -919,8 +920,8 @@ static int ocfs2_unlink(struct inode *di
+>  	}
+>  
+>  	if (is_unlinkable) {
+> -		status = ocfs2_orphan_add(osb, handle, inode, fe_bh, orphan_name,
+> -					  &orphan_insert, orphan_dir);
+> +		status = ocfs2_orphan_add(osb, handle, inode, fe_bh,
+> +				orphan_name, &orphan_insert, orphan_dir);
+>  		if (status < 0)
+>  			mlog_errno(status);
+>  	}
+> _
+> 
+...
+
+This patch looks fine to me. I also test it, and the result is fine. 
+You can consider to add:
+Reviewed-by: Younger Liu <younger.liu@huawei.com>
