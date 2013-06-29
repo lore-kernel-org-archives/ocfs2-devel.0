@@ -1,46 +1,65 @@
 From: Jeff Liu <jeff.liu@oracle.com>
-Date: Sat, 29 Jun 2013 12:00:53 +0800
-Subject: [Ocfs2-devel] [RESNET PATCH 1/4] ocfs2: submit disk heartbeat bio
-	using WRITE_SYNC
-Message-ID: <51CE5BF5.10307@oracle.com>
+Date: Sat, 29 Jun 2013 12:01:03 +0800
+Subject: [Ocfs2-devel] [RESENT PATCH 2/4] ocfs2: consolidate
+ o2hb_global_hearbeat_mode_set() naming convention
+Message-ID: <51CE5BFF.7050503@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Noboru Iwamatsu <n_iwamatsu@jp.fujitsu.com>
+From: Jie Liu <jeff.liu@oracle.com>
 
-Under heavy I/O load, writing the disk heartbeat can be
-forced to wait for minutes, and this causes the node to
-be fenced.
+s/o2hb_global_hearbeat_mode_set/o2hb_global_heartbeat_mode_set/
+to make the signature of those routines in a consistent manner
+with others for heartbeating.
 
-This patch tries to use WRITE_SYNC in submitting the heartbeat
-bio, so that writing the heartbeat will have a priority over
-other requests.
-
-Signed-off-by: Noboru Iwamatsu <n_iwamatsu@jp.fujitsu.com>
-Acked-by: Tao Ma <tm@tao.ma>
+Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
-CC: Srinivas Eeeda <srinivas.eeda@oracle.com>
-Reviewed-by: Jie Liu <jeff.liu@oracle.com>
-Tested-by: Gurudas Pai <gurudas.pai@oracle.com>
 ---
- fs/ocfs2/cluster/heartbeat.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/ocfs2/cluster/heartbeat.c |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 42252bf..f89b46b 100644
+index f89b46b..956d79d 100644
 --- a/fs/ocfs2/cluster/heartbeat.c
 +++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -500,7 +500,7 @@ static int o2hb_issue_node_write(struct o2hb_region *reg,
+@@ -176,7 +176,7 @@ static void o2hb_dead_threshold_set(unsigned int threshold)
  	}
+ }
  
- 	atomic_inc(&write_wc->wc_num_reqs);
--	submit_bio(WRITE, bio);
-+	submit_bio(WRITE_SYNC, bio);
+-static int o2hb_global_hearbeat_mode_set(unsigned int hb_mode)
++static int o2hb_global_heartbeat_mode_set(unsigned int hb_mode)
+ {
+ 	int ret = -1;
  
- 	status = 0;
- bail:
+@@ -2271,7 +2271,7 @@ ssize_t o2hb_heartbeat_group_mode_store(struct o2hb_heartbeat_group *group,
+ 		if (strnicmp(page, o2hb_heartbeat_mode_desc[i], len))
+ 			continue;
+ 
+-		ret = o2hb_global_hearbeat_mode_set(i);
++		ret = o2hb_global_heartbeat_mode_set(i);
+ 		if (!ret)
+ 			printk(KERN_NOTICE "o2hb: Heartbeat mode set to %s\n",
+ 			       o2hb_heartbeat_mode_desc[i]);
+@@ -2304,7 +2304,7 @@ static struct configfs_attribute *o2hb_heartbeat_group_attrs[] = {
+ 	NULL,
+ };
+ 
+-static struct configfs_item_operations o2hb_hearbeat_group_item_ops = {
++static struct configfs_item_operations o2hb_heartbeat_group_item_ops = {
+ 	.show_attribute		= o2hb_heartbeat_group_show,
+ 	.store_attribute	= o2hb_heartbeat_group_store,
+ };
+@@ -2316,7 +2316,7 @@ static struct configfs_group_operations o2hb_heartbeat_group_group_ops = {
+ 
+ static struct config_item_type o2hb_heartbeat_group_type = {
+ 	.ct_group_ops	= &o2hb_heartbeat_group_group_ops,
+-	.ct_item_ops	= &o2hb_hearbeat_group_item_ops,
++	.ct_item_ops	= &o2hb_heartbeat_group_item_ops,
+ 	.ct_attrs	= o2hb_heartbeat_group_attrs,
+ 	.ct_owner	= THIS_MODULE,
+ };
 -- 
 1.7.9.5
