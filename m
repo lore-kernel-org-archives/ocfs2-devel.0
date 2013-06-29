@@ -1,61 +1,102 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Sat, 29 Jun 2013 14:22:29 +0100
-Subject: [Ocfs2-devel] [PATCH] fs/jbd2: t_updates should increase when
- start_this_handle() failed in jbd2__journal_restart()
-In-Reply-To: <20130623173628.GC16620@thunk.org>
-References: <51C1381A.2@huawei.com> <20130620155555.GE28309@thunk.org>
-	<51C4553B.7010809@huawei.com> <20130623173628.GC16620@thunk.org>
-Message-ID: <20130629132229.GJ13405@ZenIV.linux.org.uk>
+Date: Sat, 29 Jun 2013 14:28:36 +0100
+Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
+ lock for the file in SEEK_END
+In-Reply-To: <51CD533D.9030503@oracle.com>
+References: <51C2BC1F.2010106@huawei.com>
+	<20130626141803.a67cb8e4ca38a9ef2967a448@linux-foundation.org>
+	<51CB9338.3050408@huawei.com>
+	<20130626182536.c319334d.akpm@linux-foundation.org>
+	<51CB9A81.2000007@huawei.com>
+	<CAEeiSHV=3DBBJ1mweEgyxWRgsA9O8C-25_FTPMxyDbatoX0Fkw@mail.gmail.com>
+	<20130627150810.2d22d158a1f0bed8482a27d8@linux-foundation.org>
+	<CAEeiSHVeTCsQizasNNxAeYwfJt9EyWb_CgjNwyGFwTWGm5NuxQ@mail.gmail.com>
+	<51CD533D.9030503@oracle.com>
+Message-ID: <20130629132836.GK13405@ZenIV.linux.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Theodore Ts'o <tytso@mit.edu>
-Cc: Younger Liu <younger.liu@huawei.com>, Andrew Morton <akpm@linux-foundation.org>, linux-ext4@vger.kernel.org, Ocfs2-Devel <ocfs2-devel@oss.oracle.com>, Li Zefan <lizefan@huawei.com>, jack@suse.cz
+To: ocfs2-devel@oss.oracle.com
 
-On Sun, Jun 23, 2013 at 01:36:28PM -0400, Theodore Ts'o wrote:
-> On Fri, Jun 21, 2013 at 09:29:31PM +0800, Younger Liu wrote:
-> > 
-> > This bug was triggered by the following scenario:
-> > In ocfs2 file system, allocate a very large disk space for a small file
-> > with ocfs2_fallocate(), while the journal file size is 32M. 
-> > 
-> > Because there are much many journal blocks needed by jbd2_journal_restart(), 
-> > so that nblocks is greater than journal->j_max_transaction_buffers 
-> > in start_this_handle(), and then return -ENOSPC.
+On Fri, Jun 28, 2013 at 05:11:25PM +0800, Jeff Liu wrote:
+> On 06/28/2013 06:59 AM, Sunil Mushran wrote:
 > 
-> Ah, I see.  I have a patch that should prevent the kernel from
-> crashing in this situation, and which adds some additional checks to
-> make sure no one tries to use the handle after jbd2_journal_restart()
-> fails in this circumstance.
-> 
-> However, you may want to further pursue a fix in ocfs2 so you don't
-> actually return ENOSPC to userspace, since it is a very misleading
-> error message --- it's not that the file system is out of space, but
-> that the journal is too small for the amount of space that you are
-> trying to allocate using fallocate().
-> 
-> I would think a better way of handling this situation would be to log
-> a warning message that the journal is probably too small, and then to
-> break up the fallocate into smaller chunks, so that it can
-> successfully complete despite the fact that the journal was
-> unfortunately missized.
+> > The qs is whether this change is required for a real problem or not. If
+> > so, what is that logic
+> > that gets tripped up by this behaviour.
 
-	Yes, this solution is a good one.
+This is a straight correctness fix.  We take the hit and apply it.  I'll
+check the actual patch on that email.
 
 Joel
 
 > 
-> I'll be sending the proposed fix in a moment; could you check and see
-> if the patch prevents ocfs2/jbd2 from tripping over the assertion
-> given your test case?
+> 
+> IMHO, there have a couple of commands in Coreutils would be affected by this
+> behavior:
+> - tail(1) with "-c bytes" option.
+> - wc(1): when counting only bytes, it will try to figure out the file size
+> 	 through lseek (SEEK_END - SEEK_CUR) when counting only bytes.
+> 
+> Other popular programs need get the file size via SEEK_END only in some corner
+> cases.  e.g, if the input file is not a regular file or the utility failed to
+> fetch the file size via fstat(2), they will call lseek as an alternative approach,
+> like split(1), truncate(1), head(1) with '-c bytes' option.
+> 
+> Generally, the user applications might fetch the file size through fstat(2) which
+> will go through ocfs2_getattr() so that it's safe to us because we perform inode
+> re-validation before filling up the generic attributes.
+> 
+> IOWs, the user application could be changed accordingly to avoid this issue.
+> However, this most likely a workaround to some extent, and we have a bug for
+> the SEEK_END business.
+> 
+> As per our current discussion, one big concern of us is regarding the performance
+> with this fix, I'd like to consider it from another point of view, that is the user
+> should take all the blame to themselves if they would like to run SEEK_END bounds
+> operation on OCFS2, does it sounds make sense? :-P.
+> If yes, it would be better to consolidate the code comments to indicate the
+> performance negatively and it is not advisable to fetch file size via SEEK_END
+> on OCFS2.
 > 
 > Thanks,
+> -Jeff
 > 
-> 					- Ted
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-ext4" in
-> the body of a message to majordomo at vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> > 
+> > 
+> > On Thu, Jun 27, 2013 at 3:08 PM, Andrew Morton
+> > <akpm at linux-foundation.org <mailto:akpm@linux-foundation.org>> wrote:
+> > 
+> >     On Wed, 26 Jun 2013 20:34:19 -0700 Sunil Mushran
+> >     <sunil.mushran at gmail.com <mailto:sunil.mushran@gmail.com>> wrote:
+> > 
+> >     > AFAIR, this behavior has been there since day 1 and changing it
+> >     will impact
+> >     > performance negatively. I would recommend against making this
+> >     change for
+> >     > one app.
+> > 
+> >     Well, it's a bug fix isn't it?  SEEK_END on a 15k file is presently
+> >     returning
+> >     10k.
+> > 
+> >     Obviously tradeoffs are involved - is there any way in which this
+> >     behaviour can be fixed without serious performance damage?
+> > 
+> > 
+> > 
+> > 
+> > _______________________________________________
+> > Ocfs2-devel mailing list
+> > Ocfs2-devel at oss.oracle.com
+> > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
 -- 
