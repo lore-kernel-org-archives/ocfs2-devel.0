@@ -1,34 +1,46 @@
 From: Jeff Liu <jeff.liu@oracle.com>
-Date: Sat, 29 Jun 2013 11:56:55 +0800
-Subject: [Ocfs2-devel] A serious of OCFS2 resend-patches for Linux 3.10
-Message-ID: <51CE5B07.5090705@oracle.com>
+Date: Sat, 29 Jun 2013 12:00:53 +0800
+Subject: [Ocfs2-devel] [RESNET PATCH 1/4] ocfs2: submit disk heartbeat bio
+	using WRITE_SYNC
+Message-ID: <51CE5BF5.10307@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Andrew and All,
+From: Noboru Iwamatsu <n_iwamatsu@jp.fujitsu.com>
 
-Here are a number of old OCFS2 patches I'd like to check if they can be
-merged into Linux 3.10.
+Under heavy I/O load, writing the disk heartbeat can be
+forced to wait for minutes, and this causes the node to
+be fenced.
 
-The first patch from Niwamatsu could fix a critical issue for OCFS2 fencing,
-this patch has been merged back to Oracle Linux kernel for a long time and
-it works very well.
+This patch tries to use WRITE_SYNC in submitting the heartbeat
+bio, so that writing the heartbeat will have a priority over
+other requests.
 
-The left three patches are trivial patches for fixing naming conventions,
-typo as well as syntax adjustment.
+Signed-off-by: Noboru Iwamatsu <n_iwamatsu@jp.fujitsu.com>
+Acked-by: Tao Ma <tm@tao.ma>
+Acked-by: Sunil Mushran <sunil.mushran@gmail.com>
+CC: Srinivas Eeeda <srinivas.eeda@oracle.com>
+Reviewed-by: Jie Liu <jeff.liu@oracle.com>
+Tested-by: Gurudas Pai <gurudas.pai@oracle.com>
+---
+ fs/ocfs2/cluster/heartbeat.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-
-Niwamatsu, Noboru (1)
-- ocfs2: submit disk heartbeat bio using WRITE_SYNC
-
-Jeff Liu (3)
-- ocfs2: consolidate o2hb_global_hearbeat_mode_set() naming convention
-- ocfs2: fix a comments typo at o2quo_hb_still_up()
-- ocfs2: adjust switch_case syntax at o2net_state_change()
-
-
-Thanks,
--Jeff
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 42252bf..f89b46b 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -500,7 +500,7 @@ static int o2hb_issue_node_write(struct o2hb_region *reg,
+ 	}
+ 
+ 	atomic_inc(&write_wc->wc_num_reqs);
+-	submit_bio(WRITE, bio);
++	submit_bio(WRITE_SYNC, bio);
+ 
+ 	status = 0;
+ bail:
+-- 
+1.7.9.5
