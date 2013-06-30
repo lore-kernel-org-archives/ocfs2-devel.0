@@ -1,73 +1,177 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Sun, 30 Jun 2013 11:10:13 +0800
-Subject: [Ocfs2-devel] ocfs2: Should move ocfs2_start_trans out of
-	lock_page
-In-Reply-To: <20130629131732.GI13405@ZenIV.linux.org.uk>
-References: <51C1691F.8060504@huawei.com> <51C80978.2030705@huawei.com>
-	<20130629131732.GI13405@ZenIV.linux.org.uk>
-Message-ID: <51CFA195.1070403@huawei.com>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Sun, 30 Jun 2013 14:44:12 +0800
+Subject: [Ocfs2-devel] [PATCH] unlink performance: wait for open lock in
+ case of dirs
+In-Reply-To: <20130628161209.95b024c90df90188a8367c8f@linux-foundation.org>
+References: <20130615020510.GA4487@shrek.cartoons>
+	<20130628161209.95b024c90df90188a8367c8f@linux-foundation.org>
+Message-ID: <51CFD3BC.70108@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel,
-Thanks very much for replying this message.
-Actually we just met this issue in a case which did a mess of read/write
-IOs.
-And after analyzing, we found it is just the lock_page that caused this
-issue.
+On 06/29/2013 07:12 AM, Andrew Morton wrote:
 
-We have tried to solve this issue by looking up ext4. Since there are 5
-functions related, it requires a lot code changes. So firstly I'd like
-to get a second opinion from you.
+> On Fri, 14 Jun 2013 21:05:10 -0500 Goldwyn Rodrigues <rgoldwyn@gmail.com> wrote:
+> 
+>> This patch is to improve the unlink performance. Here is the scenario:
+>>
+>> On node A, create multiple directories say d1-d8, and each have 3
+>> files under it f1, f2 and f3.
+>> On node B, delete all directories using rm -Rf d*
+>>
+>> The FS first unlinks f1, f2 and f3. However, when it performs
+>> ocfs2_evict_inode() -> ocfs2_delete_inode() ->
+>> ocfs2_query_inode_wipe() -> ocfs2_try_open_lock() on d1, it fails
+>> with -EAGAIN. The open lock fails because on the remote node
+>> a PR->EX convert takes longer than a simple EX grant.
+>>
+>> This starts a checkpoint because OCFS2_INODE_DELETED flag is not set
+>> on the directory inode. Now, a checkpoint interferes with the journaling
+>> of the inodes deleted in the following unlinks, in our case,
+>> directories d2-d8 and the files contained in it.
+>>
+>> With this patch, We wait on a directory EX lock only if we already
+>> have an open_lock in PR mode. This way we will avoid the ABBA locking.
+>>
+>> By waiting for the open_lock on the directory, I am getting a unlink
+>> performance improvement of a rm -Rf of 50-60% in the usual case.
+>>
+>> Also, folded ocfs2_open_lock and ocfs2_try_open_lock into one.
+>>
+>> Let me know if you would like to see the test case.
+> 
+> We need some more review and test of this patch, please.
+> 
+> The patch doesn't apply to current kernels - please redo, retest and
+> resend it.
+> 
+> In particular, the kernel you're patching doesn't have the
+> ocfs2_is_hard_readonly() tests in ocfs2_open_lock() and
+> ocfs2_try_open_lock().
+> 
+> And looking at those tests, I wonder about ocfs2_open_lock().
+> 
+> : int ocfs2_open_lock(struct inode *inode)
+> : {
+> : 	int status = 0;
+> : 	struct ocfs2_lock_res *lockres;
+> : 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> : 
+> : 	BUG_ON(!inode);
+> : 
+> : 	mlog(0, "inode %llu take PRMODE open lock\n",
+> : 	     (unsigned long long)OCFS2_I(inode)->ip_blkno);
+> : 
+> : 	if (ocfs2_is_hard_readonly(osb) || ocfs2_mount_local(osb))
+> : 		goto out;
+> : 
+> : 	lockres = &OCFS2_I(inode)->ip_open_lockres;
+> : 
+> : 	status = ocfs2_cluster_lock(OCFS2_SB(inode->i_sb), lockres,
+> : 				    DLM_LOCK_PR, 0, 0);
+> : 	if (status < 0)
+> : 		mlog_errno(status);
+> : 
+> : out:
+> : 	return status;
+> : }
+> 
+> It will return zero if ocfs2_is_hard_readonly().  Is that correct? 
 
-On 2013/6/29 21:17, Joel Becker wrote:
-> I'm pretty sure we did it for a reason, which means we need to think
-> about it more than just looking at ext4.  Remember that we get access
-> coming from other node actions.
+> Should it return -EROFS for writes? 
+
+Hi Andrew,
+
+That is correct for the current design, because ocfs2_open_lock() is
+implemented to grant a lock in protect read mode.
+
+The ocfs2_is_hard_readonly() has been introduced to ocfs2_open_lock()
+by commit: 03efed8a2a1b8e00164eb4720a82a7dd5e368a8e
+
+    ocfs2: Bugfix for hard readonly mount
+        ocfs2 cannot currently mount a device that is readonly at the media
+    ("hard readonly").  Fix the broken places.
+    see detail: http://oss.oracle.com/bugzilla/show_bug.cgi?id=1322
+
+> After your patch, this code does
+> know whether the attempt was for a write.
+
+
+
+Yes, with this change, it need a fix indeed.
+
 > 
-> Joel
-> 
-> On Mon, Jun 24, 2013 at 04:55:20PM +0800, Joseph Qi wrote:
->> Any different opinion?
->>
->> On 2013/6/19 16:17, Joseph Qi wrote:
->>> Currently ocfs2_start_trans/ocfs2_commit_trans are in
->>> lock_page/unlock_page. This may cause dead lock.
->>>
->>> Here is the situation:
->>> write -> lock_page -> ocfs2_start_trans -> ocfs2_commit_trans -> unlock_page
->>> ocfs2_start_trans/ocfs2_commit_trans calls
->>> jbd2_journal_start/jbd2_journal_stop which may also call lock_page. So
->>> if the page operated is unfortunately the same with the page to be
->>> committed, dead lock happens.
->>>
->>> In ext4, lock_page/unlock_page are in
->>> ext4_journal_start/ext4_journal_stop, this can avoid such kind of dead
->>> lock. So I think we should move ocfs2_start_trans/ocfs2_commit_trans out
->>> of lock_page/unlock_page.
->>>
->>> Totally there are 5 related functions:
->>> ocfs2_write_begin_nolock
->>> ocfs2_write_begin_inline
->>> ocfs2_write_end_nolock
->>> ocfs2_write_zero_page
->>> ocfs2_convert_inline_data_to_extents
->>>
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com
->>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>
->>>
->>
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+> Please check all that.
+
+
+
+
+Hi Goldwyn,
+
+Sorry for the too late response as I have mentioned that I'll take a look at it,
+but some internal tasks really racked my brains in the past couple of weeks.
+
+Just as Andrew's comments, this patch can not be applied properly against the
+upstream development tree, could you please re-base it.
+
+If we merge ocfs2_open_lock()/ocfs2_open_try_lock() into one, looks the semantics of
+ocfs2_open_lock() is broke with the 'write' option is introduced, but this is not a
+big issue as we can tweak up the comments as well as those functions which would be
+affected, but we need to run ocfs2-test(at least cover all the code path which are
+involved in this change) to avoid any regression, it can be download from:
+https://oss.oracle.com/projects/ocfs2-test/source.html
+https://oss.oracle.com/osswiki/OCFS2/Ocfs2TestList.html
+
+Another thing come to mind since this patch would affect ocfs2_evict_inode() with
+ocfs2_try_open_lock(), i.e, the following call chains:
+
+ocfs2_evict_inode()
+|
+|-------ocfs2_delete_inode()
+	|
+	|-------ocfs2_query_inode_wipe()
+	|	|
+	|	|-------ocfs2_try_open_lock()
+	|	|
+	|-------ocfs2_clear_inode()
+		|
+		|---------ocfs2_open_unlock()
+
+OCFS2 has a DEAD LOCK issue when creating/removing tons of files in parallel if the
+disk quota is enabled, please refer to:
+https://oss.oracle.com/bugzilla/show_bug.cgi?id=1339
+
+As per the old discussions, Jan Kara pointed out that there is a race in
+ocfs2_evict_inode() if consider the following lock sequences:
+
+ocfs2_evict_inode()
+|
+|-------ocfs2_inode_lock()
+	|
+	|-------ocfs2_try_open_lock() [ try to get open lock in EX mode ]
+		|
+		|-------ocfs2_inode_unlock()
+			|
+			|-------ocfs2_open_unlock() [ drops shared open lock that is hold ]
+
+Quotas from Jan:
+"""
+Now if two nodes happen to execute ocfs2_evict_inode() in parallel and
+ocfs2_try_open_lock() happens on both nodes before ocfs2_open_unlock() is
+called on any of them, ocfs2_try_open_lock() fails for both nodes...
+
+I would think that the code should be reorganized so that shared open
+lock is dropped before we drop inode lock. Then the race could not happen.
+But I'm not sure if something else would not break.
+"""
+
+This is deserve to give a try IMHO, especially there would be kind of dependencies
+with your fix, and that would be wonderful if we can have your improvement as well
+as lock sequences adjustments that might fix the quota problems.
+
+
+Thanks,
+-Jeff
