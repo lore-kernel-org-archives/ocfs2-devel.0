@@ -1,42 +1,72 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Mon, 1 Jul 2013 15:59:46 -0700
-Subject: [Ocfs2-devel] [RESENT PATCH 3/4] ocfs2: fix a comments typo at
- o2quo_hb_still_up()
-In-Reply-To: <51CE5C0A.7030105@oracle.com>
-References: <51CE5C0A.7030105@oracle.com>
-Message-ID: <20130701225946.GD965@localhost>
+Date: Mon, 1 Jul 2013 16:04:21 -0700
+Subject: [Ocfs2-devel] [RESENT PATCH 4/4] ocfs2: adjust switch_case
+ syntax at o2net_state_change()
+In-Reply-To: <51CE5C0F.8030701@oracle.com>
+References: <51CE5C0F.8030701@oracle.com>
+Message-ID: <20130701230421.GE965@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, Jun 29, 2013 at 12:01:14PM +0800, Jeff Liu wrote:
+On Sat, Jun 29, 2013 at 12:01:19PM +0800, Jeff Liu wrote:
 > From: Jie Liu <jeff.liu@oracle.com>
 > 
-> Fix a comments typo at o2quo_hb_still_up()
+> Adjust switch..case syntax at o2net_state_change to meet
+> the kernel coding standard.
+> 
+> s/printk/pr_info/.
 > 
 > Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
+	Switching to pr_info() hasn't been discussed as part of the
+project.  Let's have that conversation elsewhere.
+
+Joel
 
 > ---
->  fs/ocfs2/cluster/quorum.c |    2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  fs/ocfs2/cluster/tcp.c |   26 +++++++++++++-------------
+>  1 file changed, 13 insertions(+), 13 deletions(-)
 > 
-> diff --git a/fs/ocfs2/cluster/quorum.c b/fs/ocfs2/cluster/quorum.c
-> index c19897d..1ec141e 100644
-> --- a/fs/ocfs2/cluster/quorum.c
-> +++ b/fs/ocfs2/cluster/quorum.c
-> @@ -264,7 +264,7 @@ void o2quo_hb_still_up(u8 node)
->  /* This is analogous to hb_up.  as a node's connection comes up we delay the
->   * quorum decision until we see it heartbeating.  the hold will be droped in
->   * hb_up or hb_down.  it might be perpetuated by con_err until hb_down.  if
-> - * it's already heartbeating we we might be dropping a hold that conn_up got.
-> + * it's already heartbeating we might be dropping a hold that conn_up got.
->   * */
->  void o2quo_conn_up(u8 node)
->  {
+> diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+> index aa88bd8..db4c465 100644
+> --- a/fs/ocfs2/cluster/tcp.c
+> +++ b/fs/ocfs2/cluster/tcp.c
+> @@ -630,19 +630,19 @@ static void o2net_state_change(struct sock *sk)
+>  	state_change = sc->sc_state_change;
+>  
+>  	switch(sk->sk_state) {
+> -		/* ignore connecting sockets as they make progress */
+> -		case TCP_SYN_SENT:
+> -		case TCP_SYN_RECV:
+> -			break;
+> -		case TCP_ESTABLISHED:
+> -			o2net_sc_queue_work(sc, &sc->sc_connect_work);
+> -			break;
+> -		default:
+> -			printk(KERN_INFO "o2net: Connection to " SC_NODEF_FMT
+> -			      " shutdown, state %d\n",
+> -			      SC_NODEF_ARGS(sc), sk->sk_state);
+> -			o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
+> -			break;
+> +	/* ignore connecting sockets as they make progress */
+> +	case TCP_SYN_SENT:
+> +	case TCP_SYN_RECV:
+> +		break;
+> +	case TCP_ESTABLISHED:
+> +		o2net_sc_queue_work(sc, &sc->sc_connect_work);
+> +		break;
+> +	default:
+> +		pr_info(KERN_INFO "o2net: Connection to " SC_NODEF_FMT
+> +			" shutdown, state %d\n",
+> +			SC_NODEF_ARGS(sc), sk->sk_state);
+> +		o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
+> +		break;
+>  	}
+>  out:
+>  	read_unlock(&sk->sk_callback_lock);
 > -- 
 > 1.7.9.5
 > 
@@ -47,9 +77,9 @@ Acked-by: Joel Becker <jlbec@evilplan.org>
 
 -- 
 
-"If you took all of the grains of sand in the world, and lined
- them up end to end in a row, you'd be working for the government!"
-	- Mr. Interesting
+Life's Little Instruction Book #3
+
+	"Watch a sunrise at least once a year."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
