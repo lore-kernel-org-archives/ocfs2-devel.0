@@ -1,77 +1,201 @@
-From: Eugene Istomin <e.istomin@edss.ee>
-Date: Mon, 01 Jul 2013 11:03:17 +0300
-Subject: [Ocfs2-devel] BUG: soft lockup - CPU#0 stuck for 22s!
-	[kworker/u:2:28128]
-Message-ID: <5971516.iLF9thbIGR@eistomin.edss.local>
+From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
+Date: Mon, 1 Jul 2013 11:44:26 -0500
+Subject: [Ocfs2-devel] [PATCH] unlink performance: wait for open lock in
+ case of dirs
+In-Reply-To: <51CFD3BC.70108@oracle.com>
+References: <20130615020510.GA4487@shrek.cartoons>
+	<20130628161209.95b024c90df90188a8367c8f@linux-foundation.org>
+	<51CFD3BC.70108@oracle.com>
+Message-ID: <CAJtY7HXQHsKJT1JvTdx5__3XMuWPvSuwAWYg44PquHrkg03DNA@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hello,
+On Sun, Jun 30, 2013 at 1:44 AM, Jeff Liu <jeff.liu@oracle.com> wrote:
+> On 06/29/2013 07:12 AM, Andrew Morton wrote:
+>
+>> On Fri, 14 Jun 2013 21:05:10 -0500 Goldwyn Rodrigues <rgoldwyn@gmail.com> wrote:
+>>
+>>> This patch is to improve the unlink performance. Here is the scenario:
+>>>
+>>> On node A, create multiple directories say d1-d8, and each have 3
+>>> files under it f1, f2 and f3.
+>>> On node B, delete all directories using rm -Rf d*
+>>>
+>>> The FS first unlinks f1, f2 and f3. However, when it performs
+>>> ocfs2_evict_inode() -> ocfs2_delete_inode() ->
+>>> ocfs2_query_inode_wipe() -> ocfs2_try_open_lock() on d1, it fails
+>>> with -EAGAIN. The open lock fails because on the remote node
+>>> a PR->EX convert takes longer than a simple EX grant.
+>>>
+>>> This starts a checkpoint because OCFS2_INODE_DELETED flag is not set
+>>> on the directory inode. Now, a checkpoint interferes with the journaling
+>>> of the inodes deleted in the following unlinks, in our case,
+>>> directories d2-d8 and the files contained in it.
+>>>
+>>> With this patch, We wait on a directory EX lock only if we already
+>>> have an open_lock in PR mode. This way we will avoid the ABBA locking.
+>>>
+>>> By waiting for the open_lock on the directory, I am getting a unlink
+>>> performance improvement of a rm -Rf of 50-60% in the usual case.
+>>>
+>>> Also, folded ocfs2_open_lock and ocfs2_try_open_lock into one.
+>>>
+>>> Let me know if you would like to see the test case.
+>>
+>> We need some more review and test of this patch, please.
+>>
+>> The patch doesn't apply to current kernels - please redo, retest and
+>> resend it.
 
-i have CPU lockup after scheduling a reflink script:
+Yes, I sent it against an older kernel. I will update it once I
+incorporate the other review comments. Thanks for this comment.
 
-[452296.152056] BUG: soft lockup - CPU#2 stuck for 22s! [kworker/u:2:28128]
-[452296.155270] Modules linked in: dm_mod xt_tcpudp xt_pkttype xt_LOG xt_limit ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm af_packet nbd blktap blktap2 pciback usbbk xen_scsibk blkbk blkback_pagemap netbk xenbus_be gntdev evtchn ipt_REJECT xt_conntrack iptable_raw xt_CT iptable_filter nf_conntrack_netbios_ns nf_conntrack_broadcast nf_conntrack_ipv4 nf_conntrack nf_defrag_ipv4 ip_tables ip6_tables x_tables openvswitch ocfs2 ocfs2_nodemanager configfs ocfs2_stackglue quota_tree joydev coretemp domctl crc32c_intel ghash_clmulni_intel aesni_intel cryptd aes_x86_64 pcspkr serio_raw usbhid hid i2c_i801 ses enclosure sg iTCO_wdt i2c_core iTCO_vendor_support mlx4_core 8250_pnp i7core_edac ixgbe edac_core ioatdma igb mdio 8250 serial_core button edd autofs4 uhci_hcd ehci_hcd usbcore usb_common processor thermal_sys hwmon scsi_dh_emc scsi_dh_rdac scsi_dh_hp_sw scsi_dh_alua scsi_dh xenblk cdrom xennet ata_generic ata_piix megaraid_sas
-[452296.155321] CPU 2 
-[452296.155321] Modules linked in: dm_mod xt_tcpudp xt_pkttype xt_LOG xt_limit ocfs2_dlmfs ocfs2_stack_o2cb ocfs2_dlm af_packet nbd blktap blktap2 pciback usbbk xen_scsibk blkbk blkback_pagemap netbk xenbus_be gntdev evtchn ipt_REJECT xt_conntrack iptable_raw xt_CT iptable_filter nf_conntrack_netbios_ns nf_conntrack_broadcast nf_conntrack_ipv4 nf_conntrack nf_defrag_ipv4 ip_tables ip6_tables x_tables openvswitch ocfs2 ocfs2_nodemanager configfs ocfs2_stackglue quota_tree joydev coretemp domctl crc32c_intel ghash_clmulni_intel aesni_intel cryptd aes_x86_64 pcspkr serio_raw usbhid hid i2c_i801 ses enclosure sg iTCO_wdt i2c_core iTCO_vendor_support mlx4_core 8250_pnp i7core_edac ixgbe edac_core ioatdma igb mdio 8250 serial_core button edd autofs4 uhci_hcd ehci_hcd usbcore usb_common processor thermal_sys hwmon scsi_dh_emc scsi_dh_rdac scsi_dh_hp_sw scsi_dh_alua scsi_dh xenblk cdrom xennet ata_generic ata_piix megaraid_sas
-[452296.155355] 
-[452296.155357] Pid: 28128, comm: kworker/u:2 Not tainted 3.4.50-1.g59c41dc-xen #1 Supermicro X8DTN+-F/X8DTN+-F
-[452296.155360] RIP: e030:[<ffffffff8020acdd>]  [<ffffffff8020acdd>] do_get_write_access+0x7d/0x470
-[452296.155370] RSP: e02b:ffff88004b989a20  EFLAGS: 00000246
-[452296.155372] RAX: 0000000000000000 RBX: ffff88004d1446d8 RCX: ffff88004ba161c0
-[452296.155373] RDX: ffff88004b989a58 RSI: ffff88004d1446d8 RDI: ffff88000ab5f420
-[452296.155375] RBP: ffff88003371e7c0 R08: 0000000000000001 R09: 0000000000000000
-[452296.155376] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
-[452296.155377] R13: ffff88000ab5f420 R14: 0000000000b6bd6c R15: ffff88004ef460c8
-[452296.155383] FS:  00007f5c22aff700(0000) GS:ffff8800fbd00000(0000) knlGS:0000000000000000
-[452296.155385] CS:  e033 DS: 0000 ES: 0000 CR0: 000000008005003b
-[452296.155386] CR2: 00007fa4e3dc6000 CR3: 00000000e8780000 CR4: 0000000000002660
-[452296.155388] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
-[452296.155389] DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
-[452296.155391] Process kworker/u:2 (pid: 28128, threadinfo ffff88004b988000, task ffff88004ba161c0)
-[452296.155393] Stack:
-[452296.155394]  ffff8800639420d0 ffff88004b989a58 ffff88004b989a68 ffff8800f45f9800
-[452296.155396]  00000000b653e640 ffff88004ba161c0 0000000000000000 ffff88004ba161c0
-[452296.155398]  0000000000000000 ffff88004ba161c0 000000504b989c68 ffff88000ab5f420
-[452296.155401] Call Trace:
-[452296.155410]  [<ffffffff8020b219>] jbd2_journal_get_write_access+0x29/0x50
-[452296.155439]  [<ffffffffa03529ed>] __ocfs2_journal_access+0x1ad/0x360 [ocfs2]
-[452296.155480]  [<ffffffffa0324ca0>] ocfs2_remove_btree_range+0x220/0x9b0 [ocfs2]
-[452296.155495]  [<ffffffffa0328452>] ocfs2_commit_truncate+0x142/0x520 [ocfs2]
-[452296.155513]  [<ffffffffa034e298>] ocfs2_wipe_inode+0x1b8/0xf10 [ocfs2]
-[452296.155543]  [<ffffffffa034f1f6>] ocfs2_evict_inode+0x206/0x750 [ocfs2]
-[452296.155564]  [<ffffffff8013f87d>] evict+0xbd/0x1d0
-[452296.155576]  [<ffffffffa032f594>] __ocfs2_drop_dl_inodes.isra.1+0x54/0xa0 [ocfs2]
-[452296.155593]  [<ffffffffa0330063>] ocfs2_drop_dl_inodes+0x23/0xd0 [ocfs2]
-[452296.155605]  [<ffffffff800497bc>] process_one_work+0x14c/0x410
-[452296.155608]  [<ffffffff80049e3d>] worker_thread+0x12d/0x360
-[452296.155613]  [<ffffffff8004e545>] kthread+0x85/0x90
-[452296.155619]  [<ffffffff8050ce84>] kernel_thread_helper+0x4/0x10
-[452296.155621] Code: 4c 24 28 48 83 c0 10 48 89 44 24 10 66 90 4c 8b 3b f0 41 0f ba 2f 02 19 c0 85 c0 74 08 4c 89 ff e8 b9 a8 f4 ff f0 41 0f ba 2f 14 <19> c0 85 c0 0f 85 60 03 00 00 49 8b 07 a8 02 74 55 48 8b 43 28 
-[452296.155641] Call Trace:
-[452296.155644]  [<ffffffff8020b219>] jbd2_journal_get_write_access+0x29/0x50
-[452296.155657]  [<ffffffffa03529ed>] __ocfs2_journal_access+0x1ad/0x360 [ocfs2]
-[452296.155686]  [<ffffffffa0324ca0>] ocfs2_remove_btree_range+0x220/0x9b0 [ocfs2]
-[452296.155701]  [<ffffffffa0328452>] ocfs2_commit_truncate+0x142/0x520 [ocfs2]
-[452296.155718]  [<ffffffffa034e298>] ocfs2_wipe_inode+0x1b8/0xf10 [ocfs2]
-[452296.155748]  [<ffffffffa034f1f6>] ocfs2_evict_inode+0x206/0x750 [ocfs2]
-[452296.155768]  [<ffffffff8013f87d>] evict+0xbd/0x1d0
-[452296.155779]  [<ffffffffa032f594>] __ocfs2_drop_dl_inodes.isra.1+0x54/0xa0 [ocfs2]
-[452296.155796]  [<ffffffffa0330063>] ocfs2_drop_dl_inodes+0x23/0xd0 [ocfs2]
-[452296.155806]  [<ffffffff800497bc>] process_one_work+0x14c/0x410
-[452296.155809]  [<ffffffff80049e3d>] worker_thread+0x12d/0x360
-[452296.155811]  [<ffffffff8004e545>] kthread+0x85/0x90
-[452296.155815]  [<ffffffff8050ce84>] kernel_thread_helper+0x4/0x10
+>>
+>> In particular, the kernel you're patching doesn't have the
+>> ocfs2_is_hard_readonly() tests in ocfs2_open_lock() and
+>> ocfs2_try_open_lock().
+>>
+>> And looking at those tests, I wonder about ocfs2_open_lock().
+>>
+>> : int ocfs2_open_lock(struct inode *inode)
+>> : {
+>> :     int status = 0;
+>> :     struct ocfs2_lock_res *lockres;
+>> :     struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>> :
+>> :     BUG_ON(!inode);
+>> :
+>> :     mlog(0, "inode %llu take PRMODE open lock\n",
+>> :          (unsigned long long)OCFS2_I(inode)->ip_blkno);
+>> :
+>> :     if (ocfs2_is_hard_readonly(osb) || ocfs2_mount_local(osb))
+>> :             goto out;
+>> :
+>> :     lockres = &OCFS2_I(inode)->ip_open_lockres;
+>> :
+>> :     status = ocfs2_cluster_lock(OCFS2_SB(inode->i_sb), lockres,
+>> :                                 DLM_LOCK_PR, 0, 0);
+>> :     if (status < 0)
+>> :             mlog_errno(status);
+>> :
+>> : out:
+>> :     return status;
+>> : }
+>>
+>> It will return zero if ocfs2_is_hard_readonly().  Is that correct?
+>
+>> Should it return -EROFS for writes?
 
-Can you help me to resolve this problem?
+Yes, it should.
 
--- 
-*/Best regards,/*
-/Eugene Istomin/
 
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130701/d0820ac9/attachment-0001.html 
+>
+> Hi Andrew,
+>
+> That is correct for the current design, because ocfs2_open_lock() is
+> implemented to grant a lock in protect read mode.
+>
+> The ocfs2_is_hard_readonly() has been introduced to ocfs2_open_lock()
+> by commit: 03efed8a2a1b8e00164eb4720a82a7dd5e368a8e
+>
+>     ocfs2: Bugfix for hard readonly mount
+>         ocfs2 cannot currently mount a device that is readonly at the media
+>     ("hard readonly").  Fix the broken places.
+>     see detail: http://oss.oracle.com/bugzilla/show_bug.cgi?id=1322
+>
+>> After your patch, this code does
+>> know whether the attempt was for a write.
+>
+>
+>
+> Yes, with this change, it need a fix indeed.
+>
+>>
+>> Please check all that.
+>
+>
+>
+>
+> Hi Goldwyn,
+>
+> Sorry for the too late response as I have mentioned that I'll take a look at it,
+> but some internal tasks really racked my brains in the past couple of weeks.
+
+No problem.
+
+>
+> Just as Andrew's comments, this patch can not be applied properly against the
+> upstream development tree, could you please re-base it.
+
+Yes, will do. I have other comments from Mark as well.
+
+>
+> If we merge ocfs2_open_lock()/ocfs2_open_try_lock() into one, looks the semantics of
+> ocfs2_open_lock() is broke with the 'write' option is introduced, but this is not a
+> big issue as we can tweak up the comments as well as those functions which would be
+> affected, but we need to run ocfs2-test(at least cover all the code path which are
+> involved in this change) to avoid any regression, it can be download from:
+> https://oss.oracle.com/projects/ocfs2-test/source.html
+> https://oss.oracle.com/osswiki/OCFS2/Ocfs2TestList.html
+>
+> Another thing come to mind since this patch would affect ocfs2_evict_inode() with
+> ocfs2_try_open_lock(), i.e, the following call chains:
+>
+> ocfs2_evict_inode()
+> |
+> |-------ocfs2_delete_inode()
+>         |
+>         |-------ocfs2_query_inode_wipe()
+>         |       |
+>         |       |-------ocfs2_try_open_lock()
+>         |       |
+>         |-------ocfs2_clear_inode()
+>                 |
+>                 |---------ocfs2_open_unlock()
+>
+> OCFS2 has a DEAD LOCK issue when creating/removing tons of files in parallel if the
+> disk quota is enabled, please refer to:
+> https://oss.oracle.com/bugzilla/show_bug.cgi?id=1339
+>
+> As per the old discussions, Jan Kara pointed out that there is a race in
+> ocfs2_evict_inode() if consider the following lock sequences:
+>
+> ocfs2_evict_inode()
+> |
+> |-------ocfs2_inode_lock()
+>         |
+>         |-------ocfs2_try_open_lock() [ try to get open lock in EX mode ]
+>                 |
+>                 |-------ocfs2_inode_unlock()
+>                         |
+>                         |-------ocfs2_open_unlock() [ drops shared open lock that is hold ]
+>
+> Quotas from Jan:
+> """
+> Now if two nodes happen to execute ocfs2_evict_inode() in parallel and
+> ocfs2_try_open_lock() happens on both nodes before ocfs2_open_unlock() is
+> called on any of them, ocfs2_try_open_lock() fails for both nodes...
+>
+> I would think that the code should be reorganized so that shared open
+> lock is dropped before we drop inode lock. Then the race could not happen.
+> But I'm not sure if something else would not break.
+> """
+
+I could not find the reference of this in the bug. Is it discussed on
+the ML. Do you have a link so I can look at the history?
+
+>
+> This is deserve to give a try IMHO, especially there would be kind of dependencies
+> with your fix, and that would be wonderful if we can have your improvement as well
+> as lock sequences adjustments that might fix the quota problems.
+>
+
+Yes, I understand. Please provide the references if possible so I get
+the bigger picture.
+
+
+--
+Goldwyn
