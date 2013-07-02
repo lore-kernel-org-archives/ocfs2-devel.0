@@ -1,31 +1,80 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 2 Jul 2013 12:17:53 -0700
-Subject: [Ocfs2-devel] [PATCH V3] ocfs2: xattr: fix inlined xattr reflink
-In-Reply-To: <20130702154040.GD26307@localhost>
-References: <1372388183-6378-1-git-send-email-junxiao.bi@oracle.com>
-	<20130701225746.GC965@localhost> <51D22814.7050500@oracle.com>
-	<20130702015040.GJ965@localhost> <51D24521.4080202@oracle.com>
-	<20130702154040.GD26307@localhost>
-Message-ID: <20130702121753.3fac0cc4fb35893aec154178@linux-foundation.org>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Tue, 2 Jul 2013 12:58:26 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2
+	inode	lock for the file in SEEK_END
+In-Reply-To: <51D0DD97.5060004@huawei.com>
+References: <51C2BC1F.2010106@huawei.com>
+	<20130629133745.GL13405@ZenIV.linux.org.uk>
+	<51D0DD97.5060004@huawei.com>
+Message-ID: <20130702195826.GH32502@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, 2 Jul 2013 08:40:42 -0700 Joel Becker <jlbec@evilplan.org> wrote:
-
-> On Tue, Jul 02, 2013 at 11:12:33AM +0800, Junxiao Bi wrote:
-> > 
-> > 4244         mutex_lock_nested(&new_inode->i_mutex, I_MUTEX_CHILD);
-> > 4245         ret = ocfs2_inode_lock_nested(new_inode, &new_bh, 1,
-> > 4246                                       OI_LS_REFLINK_TARGET);
+On Mon, Jul 01, 2013 at 09:38:31AM +0800, Jensen wrote:
+> On 2013/6/29 21:37, Joel Becker wrote:
 > 
-> 	The i_mutex protects the VFS inode.  The ocfs2_inode_lock
-> protects against other nodes in the cluster.  new_oi->ip_lock protects
-> the ocfs2_inode_info specific stuff.
-> 	Reading a bit out of new_oi->ip_dyn_features is probably safe;
-> we are protected from inline data being converted to extents.  So I
-> suppose this isn't terribly different than xattr_ibody_init().
+> > On Thu, Jun 20, 2013 at 04:23:59PM +0800, shencanquan wrote:
+> >> llseek requires ocfs2 inode lock for updating the file size in SEEK_END.
+> >> because the file size maybe update on another node.
+> >> if it not . after call llseek in SEEK_END. the position is old.
+> >>
+> >> this bug can be reproduce the following scenario:
+> >> at first ,we dd a test fileA,the file size is 10k.
+> >> on NodeA:
+> >> ---------
+> >> 1) open the test fileA, lseek the end of file. and print the position.
+> >> 2) close the test fileA
+> >>
+> >> on NodeB:
+> >> 1) open the test fileA, append the 5k data to test FileA.
+> >> 2) lseek the end of file. and print the position.
+> >> 3) close file.
+> >>
+> >> at first we run the test program1 on NodeA , the result is 10k.
+> >> and then run the test program2 on NodeB,  the result is 15k.
+> >> at last, we run the test program1 on NodeA again, the result is 10k.
+> >>
+> >> after apply this patch.  the three step result is 15k.
+> >>
+> >> Signed-off-by: jensen <shencanquan@huawei.com>
+> >> ---
+> >>  fs/ocfs2/file.c |    9 +++++++++
+> >>  1 file changed, 9 insertions(+)
+> >>
+> >> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> >> index ff54014..3afd24c 100644
+> >> --- a/fs/ocfs2/file.c
+> >> +++ b/fs/ocfs2/file.c
+> >> @@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
+> >>  	case SEEK_SET:
+> >>  		break;
+> >>  	case SEEK_END:
+> >> +		/* SEEK_END requires the OCFS2 inode lock for the file
+> >> +		 * because it references the file's size.
+> >> +		 */
+> >> +		ret = ocfs2_inode_lock(inode, NULL, 0);
+> >> +		if (ret < 0) {
+> >> +			mlog_errno(ret);
+> >> +			goto out;
+> >> +		}
+> >>  		offset += inode->i_size;
+> >> +		ocfs2_inode_unlock(inode, 0);
+> > 
+> > Why wouldn't ocfs2_rw_lock() work?  Just because we dont get the LVB
+> > from it?
+> > 
+> 
+> 
+> Yes. we want to update the inode size from lvb.
+> 
+> I also think the file size maybe protected by inode lock. not rw lock.
 
-Was that a soggy ack?  :)
+Correct, if you want to get the most up to date i_size you'll have to be
+holding the meta (inode) lock.
+	--Mark
+
+--
+Mark Fasheh
