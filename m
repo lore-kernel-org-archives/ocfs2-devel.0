@@ -1,55 +1,132 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 2 Jul 2013 14:21:03 -0700
-Subject: [Ocfs2-devel] [PATCH V3] ocfs2: xattr: fix inlined xattr reflink
-In-Reply-To: <20130702121753.3fac0cc4fb35893aec154178@linux-foundation.org>
-References: <1372388183-6378-1-git-send-email-junxiao.bi@oracle.com>
-	<20130701225746.GC965@localhost> <51D22814.7050500@oracle.com>
-	<20130702015040.GJ965@localhost> <51D24521.4080202@oracle.com>
-	<20130702154040.GD26307@localhost>
-	<20130702121753.3fac0cc4fb35893aec154178@linux-foundation.org>
-Message-ID: <20130702212102.GI26307@localhost>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 2 Jul 2013 14:26:07 -0700
+Subject: [Ocfs2-devel] [PATCH V3] ocfs2: need rollback when
+ journal_access failed in ocfs2_orphan_add()
+In-Reply-To: <51CD3253.3020200@huawei.com>
+References: <51CD3253.3020200@huawei.com>
+Message-ID: <20130702142607.5ef730318a395483520f438b@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jul 02, 2013 at 12:17:53PM -0700, Andrew Morton wrote:
-> On Tue, 2 Jul 2013 08:40:42 -0700 Joel Becker <jlbec@evilplan.org> wrote:
+On Fri, 28 Jun 2013 14:50:59 +0800 Younger Liu <younger.liu@huawei.com> wrote:
+
+> While adding a file into orphan dir in ocfs2_orphan_add(),
+> it calls __ocfs2_add_entry() before ocfs2_journal_access_di(). 
+> If ocfs2_journal_access_di() failed, the file is added into 
+> orphan dir, and orphan dir dinode updated, but file dinode 
+> has not been updated.
+> Accordingly, the data is not consistent between file dinode 
+> and orphan dir.
 > 
-> > On Tue, Jul 02, 2013 at 11:12:33AM +0800, Junxiao Bi wrote:
-> > > 
-> > > 4244         mutex_lock_nested(&new_inode->i_mutex, I_MUTEX_CHILD);
-> > > 4245         ret = ocfs2_inode_lock_nested(new_inode, &new_bh, 1,
-> > > 4246                                       OI_LS_REFLINK_TARGET);
-> > 
-> > 	The i_mutex protects the VFS inode.  The ocfs2_inode_lock
-> > protects against other nodes in the cluster.  new_oi->ip_lock protects
-> > the ocfs2_inode_info specific stuff.
-> > 	Reading a bit out of new_oi->ip_dyn_features is probably safe;
-> > we are protected from inline data being converted to extents.  So I
-> > suppose this isn't terribly different than xattr_ibody_init().
+> So, need to call ocfs2_journal_access_di() before __ocfs2_add_entry(),
+> and if ocfs2_journal_access_di() failed, orphan_fe and 
+> orphan_dir_inode->i_nlink need rollback. 
 > 
-> Was that a soggy ack?  :)
-
-It was :-)  I've been trying to silence the niggles in the back of my
-head.  But I think I comfortable.
-
-Acked-by: Joel Becker <jlbec@evilplan.org>
-
+> This bug is introduced by commits 3939fda4.
+> 
+> Compared with the PATCH V2, this patch cleans up mlog_errno(status) 
+> which was called two times for the same error.
 > 
 
--- 
+Folks, could we please get this one reviewed?
 
-"You cannot bring about prosperity by discouraging thrift. You cannot
- strengthen the weak by weakening the strong. You cannot help the wage
- earner by pulling down the wage payer. You cannot further the
- brotherhood of man by encouraging class hatred. You cannot help the
- poor by destroying the rich. You cannot build character and courage by
- taking away a man's initiative and independence. You cannot help men
- permanently by doing for them what they could and should do for
- themselves."
-	- Abraham Lincoln 
+From: Younger Liu <younger.liu@huawei.com>
+Subject: ocfs2: need rollback when journal_access failed in ocfs2_orphan_add()
 
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+While adding a file into orphan dir in ocfs2_orphan_add(), it calls
+__ocfs2_add_entry() before ocfs2_journal_access_di().  If
+ocfs2_journal_access_di() failed, the file is added into orphan dir, and
+orphan dir dinode updated, but file dinode has not been updated. 
+Accordingly, the data is not consistent between file dinode and orphan
+dir.
+
+So, need to call ocfs2_journal_access_di() before __ocfs2_add_entry(), and
+if ocfs2_journal_access_di() failed, orphan_fe and
+orphan_dir_inode->i_nlink need rollback.
+
+This bug was added by 3939fda4 ("Ocfs2: Journaling i_flags and
+i_orphaned_slot when adding inode to orphan dir.").
+
+Signed-off-by: Younger Liu <younger.liu@huawei.com>
+Cc: Jie Liu <jeff.liu@oracle.com>
+Cc: Sunil Mushran <sunil.mushran@gmail.com>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ocfs2/namei.c |   41 +++++++++++++++++++++++------------------
+ 1 file changed, 23 insertions(+), 18 deletions(-)
+
+diff -puN fs/ocfs2/namei.c~ocfs2-need-rollback-when-journal_access-failed-in-ocfs2_orphan_add fs/ocfs2/namei.c
+--- a/fs/ocfs2/namei.c~ocfs2-need-rollback-when-journal_access-failed-in-ocfs2_orphan_add
++++ a/fs/ocfs2/namei.c
+@@ -2012,6 +2012,21 @@ static int ocfs2_orphan_add(struct ocfs2
+ 		goto leave;
+ 	}
+ 
++	/*
++	 * We're going to journal the change of i_flags and i_orphaned_slot.
++	 * It's safe anyway, though some callers may duplicate the journaling.
++	 * Journaling within the func just make the logic look more
++	 * straightforward.
++	 */
++	status = ocfs2_journal_access_di(handle,
++					 INODE_CACHE(inode),
++					 fe_bh,
++					 OCFS2_JOURNAL_ACCESS_WRITE);
++	if (status < 0) {
++		mlog_errno(status);
++		goto leave;
++	}
++
+ 	/* we're a cluster, and nlink can change on disk from
+ 	 * underneath us... */
+ 	orphan_fe = (struct ocfs2_dinode *) orphan_dir_bh->b_data;
+@@ -2026,22 +2041,7 @@ static int ocfs2_orphan_add(struct ocfs2
+ 				   orphan_dir_bh, lookup);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto leave;
+-	}
+-
+-	/*
+-	 * We're going to journal the change of i_flags and i_orphaned_slot.
+-	 * It's safe anyway, though some callers may duplicate the journaling.
+-	 * Journaling within the func just make the logic look more
+-	 * straightforward.
+-	 */
+-	status = ocfs2_journal_access_di(handle,
+-					 INODE_CACHE(inode),
+-					 fe_bh,
+-					 OCFS2_JOURNAL_ACCESS_WRITE);
+-	if (status < 0) {
+-		mlog_errno(status);
+-		goto leave;
++		goto rollback;
+ 	}
+ 
+ 	fe->i_flags |= cpu_to_le32(OCFS2_ORPHANED_FL);
+@@ -2057,11 +2057,16 @@ static int ocfs2_orphan_add(struct ocfs2
+ 	trace_ocfs2_orphan_add_end((unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 				   osb->slot_num);
+ 
++rollback:
++	if (status < 0) {
++		if (S_ISDIR(inode->i_mode))
++			ocfs2_add_links_count(orphan_fe, -1);
++		set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe));
++	}
++
+ leave:
+ 	brelse(orphan_dir_bh);
+ 
+-	if (status)
+-		mlog_errno(status);
+ 	return status;
+ }
+ 
+_
