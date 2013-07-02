@@ -1,88 +1,36 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 2 Jul 2013 08:40:42 -0700
-Subject: [Ocfs2-devel] [PATCH V3] ocfs2: xattr: fix inlined xattr reflink
-In-Reply-To: <51D24521.4080202@oracle.com>
-References: <1372388183-6378-1-git-send-email-junxiao.bi@oracle.com>
-	<20130701225746.GC965@localhost> <51D22814.7050500@oracle.com>
-	<20130702015040.GJ965@localhost> <51D24521.4080202@oracle.com>
-Message-ID: <20130702154040.GD26307@localhost>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Tue, 2 Jul 2013 10:20:30 -0700
+Subject: [Ocfs2-devel] why oracle give up dlm by disk on ocfs2?
+	because	performance?
+In-Reply-To: <51D235F8.1040503@huawei.com>
+References: <51CE541B.4070807@huawei.com> <51D22B4E.6020406@huawei.com>
+	<CAEeiSHWkiEiJCMjvVkAB+AGM9LUVLqw3de-tdU3K+z5=mfSF5w@mail.gmail.com>
+	<51D235F8.1040503@huawei.com>
+Message-ID: <20130702172030.GF32502@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jul 02, 2013 at 11:12:33AM +0800, Junxiao Bi wrote:
-> Hi Joel,
+On Tue, Jul 02, 2013 at 10:07:52AM +0800, Jensen wrote:
+> On 2013/7/2 9:35, Sunil Mushran wrote:
 > 
-> On 07/02/2013 09:50 AM, Joel Becker wrote:
-> > On Tue, Jul 02, 2013 at 09:08:36AM +0800, Junxiao Bi wrote:
-> >> Hi Joel,
-> >>
-> >> On 07/02/2013 06:57 AM, Joel Becker wrote:
-> >>> On Fri, Jun 28, 2013 at 10:56:23AM +0800, Junxiao Bi wrote:
-> >>>> Inlined xattr shared free space of inode block with inlined data
-> >>>> or data extent record, so the size of the later two should be
-> >>>> adjusted when inlined xattr is enabled. See ocfs2_xattr_ibody_init().
-> >>>> But this isn't done well when reflink. For inode with inlined data,
-> >>>> its max inlined data size is adjusted in ocfs2_duplicate_inline_data(),
-> >>>> no problem. But for inode with data extent record, its record count isn't
-> >>>> adjusted. Fix it, or data extent record and inlined xattr may overwrite
-> >>>> each other, then cause data corruption or xattr failure.
-> > <snip>
-> >>>>  	new_oi = OCFS2_I(args->new_inode);
-> >>>> +	/*
-> >>>> +	 * Adjust extent record count to reserve space for extended attribute.
-> >>>> +	 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
-> >>>> +	 */
-> >>>> +	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
-> >>>> +	    !(ocfs2_inode_is_fast_symlink(args->new_inode))) {
-> >>>> +		struct ocfs2_extent_list *el = &new_di->id2.i_list;
-> >>>> +		le16_add_cpu(&el->l_count, -(inline_size /
-> >>>> +					sizeof(struct ocfs2_extent_rec)));
-> >>>> +	}
-> >>> Why are you referencing the inode before taking the lock?
-> >> I think we didn't need take the lock here because this is in reflink,
-> >> it's a new inode. It can not be access from other process or node at
-> >> that time.
-> > 	You're sure about that?  The orphan_dir scan cannot find it?  
-> Thanks for pointing this out, I just realized that the new_inode is
-> added into orphan_dir first.
-> > If
-> > you are correct, why are we looking it just another line below?
-> > Shouldn't you remove those locks?  The inconsistency is glaring.
-> Indeed this code snippet is referenced from the code in
-> ocfs2_xattr_ibody_init(), at there, it didn't use the oi->ip_lock to
-> protect. In  __ocfs2_reflink(), there are following code snippet,
+> > A general purpose file system requires one to manage over a million locks concurrently. So performance is the main reason.
+> > 
 > 
-> 4244         mutex_lock_nested(&new_inode->i_mutex, I_MUTEX_CHILD);
-> 4245         ret = ocfs2_inode_lock_nested(new_inode, &new_bh, 1,
-> 4246                                       OI_LS_REFLINK_TARGET);
-
-	The i_mutex protects the VFS inode.  The ocfs2_inode_lock
-protects against other nodes in the cluster.  new_oi->ip_lock protects
-the ocfs2_inode_info specific stuff.
-	Reading a bit out of new_oi->ip_dyn_features is probably safe;
-we are protected from inline data being converted to extents.  So I
-suppose this isn't terribly different than xattr_ibody_init().
-
-Joel
-
-> I am not sure about the orphan dir scan, can this two locks protect the
-> inode?
+> Thanks for your comments.
 > 
-> Thanks,
-> Junxiao.
-> >
-> > Joel
-> >
-> >
-> 
+> Has Oracle compared the performance between ocfs2 and ocfs1?
 
--- 
+Firstly, that's implied in the answer you just got. Also, who wouldn't
+compare performance from one version of a file system to the next?
 
-"Get right to the heart of matters.
- It's the heart that matters more."
+Can you please cut to the chase and either ask what you really want to know
+or make the statement you're trying to make so we can move on?
 
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+Thanks,
+	--Mark
+
+--
+Mark Fasheh
