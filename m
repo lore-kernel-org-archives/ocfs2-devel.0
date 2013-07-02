@@ -1,96 +1,88 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Tue, 2 Jul 2013 02:53:24 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix NULL pointer dereference when
- tranverse o2hb_all_regions
-In-Reply-To: <51D29637.9050403@huawei.com>
-References: <51D29637.9050403@huawei.com>
-Message-ID: <20130702095323.GC26307@localhost>
+Date: Tue, 2 Jul 2013 08:40:42 -0700
+Subject: [Ocfs2-devel] [PATCH V3] ocfs2: xattr: fix inlined xattr reflink
+In-Reply-To: <51D24521.4080202@oracle.com>
+References: <1372388183-6378-1-git-send-email-junxiao.bi@oracle.com>
+	<20130701225746.GC965@localhost> <51D22814.7050500@oracle.com>
+	<20130702015040.GJ965@localhost> <51D24521.4080202@oracle.com>
+Message-ID: <20130702154040.GD26307@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jul 02, 2013 at 04:58:31PM +0800, Xue jiufei wrote:
-> There may exist NULL pointer dereference in config_item_name() when
-> one volume(say Volume A) unmounts while another(say Volume B) mounting.
+On Tue, Jul 02, 2013 at 11:12:33AM +0800, Junxiao Bi wrote:
+> Hi Joel,
 > 
->      Volume A                          Volume B
-> already Mounted.
-> Unmounting, call
-> o2hb_heartbeat_group_drop_item()
->   -> config_item_put(item)
->   set reg(A)->item.ci_name to NULL
->   in function config_item_cleanup().
->                                     begin mounting, call
->                                     o2hb_region_pin() and tranverse all
->                                     regions. When reading 
->                                     reg(A)->item.ci_name, it causes
->                                     NULL pointer dereference.
-> call o2hb_region_release() and
-> del reg(A) from list.
+> On 07/02/2013 09:50 AM, Joel Becker wrote:
+> > On Tue, Jul 02, 2013 at 09:08:36AM +0800, Junxiao Bi wrote:
+> >> Hi Joel,
+> >>
+> >> On 07/02/2013 06:57 AM, Joel Becker wrote:
+> >>> On Fri, Jun 28, 2013 at 10:56:23AM +0800, Junxiao Bi wrote:
+> >>>> Inlined xattr shared free space of inode block with inlined data
+> >>>> or data extent record, so the size of the later two should be
+> >>>> adjusted when inlined xattr is enabled. See ocfs2_xattr_ibody_init().
+> >>>> But this isn't done well when reflink. For inode with inlined data,
+> >>>> its max inlined data size is adjusted in ocfs2_duplicate_inline_data(),
+> >>>> no problem. But for inode with data extent record, its record count isn't
+> >>>> adjusted. Fix it, or data extent record and inlined xattr may overwrite
+> >>>> each other, then cause data corruption or xattr failure.
+> > <snip>
+> >>>>  	new_oi = OCFS2_I(args->new_inode);
+> >>>> +	/*
+> >>>> +	 * Adjust extent record count to reserve space for extended attribute.
+> >>>> +	 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
+> >>>> +	 */
+> >>>> +	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
+> >>>> +	    !(ocfs2_inode_is_fast_symlink(args->new_inode))) {
+> >>>> +		struct ocfs2_extent_list *el = &new_di->id2.i_list;
+> >>>> +		le16_add_cpu(&el->l_count, -(inline_size /
+> >>>> +					sizeof(struct ocfs2_extent_rec)));
+> >>>> +	}
+> >>> Why are you referencing the inode before taking the lock?
+> >> I think we didn't need take the lock here because this is in reflink,
+> >> it's a new inode. It can not be access from other process or node at
+> >> that time.
+> > 	You're sure about that?  The orphan_dir scan cannot find it?  
+> Thanks for pointing this out, I just realized that the new_inode is
+> added into orphan_dir first.
+> > If
+> > you are correct, why are we looking it just another line below?
+> > Shouldn't you remove those locks?  The inconsistency is glaring.
+> Indeed this code snippet is referenced from the code in
+> ocfs2_xattr_ibody_init(), at there, it didn't use the oi->ip_lock to
+> protect. In  __ocfs2_reflink(), there are following code snippet,
 > 
-> So we should skip accessing regions that is going to release when
-> tranverse o2hb_all_regions.
-> 
-> Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
-> Signed-off-by: joyce <xuejiufei@huawei.com>
+> 4244         mutex_lock_nested(&new_inode->i_mutex, I_MUTEX_CHILD);
+> 4245         ret = ocfs2_inode_lock_nested(new_inode, &new_bh, 1,
+> 4246                                       OI_LS_REFLINK_TARGET);
 
-Good catch.
+	The i_mutex protects the VFS inode.  The ocfs2_inode_lock
+protects against other nodes in the cluster.  new_oi->ip_lock protects
+the ocfs2_inode_info specific stuff.
+	Reading a bit out of new_oi->ip_dyn_features is probably safe;
+we are protected from inline data being converted to extents.  So I
+suppose this isn't terribly different than xattr_ibody_init().
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
+Joel
 
-> ---
->  fs/ocfs2/cluster/heartbeat.c |    9 +++++++++
->  1 file changed, 9 insertions(+)
+> I am not sure about the orphan dir scan, can this two locks protect the
+> inode?
 > 
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-> index 42252bf..aeafe10 100644
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> @@ -2389,6 +2389,9 @@ static int o2hb_region_pin(const char *region_uuid)
->  	assert_spin_locked(&o2hb_live_lock);
->  
->  	list_for_each_entry(reg, &o2hb_all_regions, hr_all_item) {
-> +		if (reg->hr_item_dropped)
-> +			continue;
-> +
->  		uuid = config_item_name(&reg->hr_item);
->  
->  		/* local heartbeat */
-> @@ -2439,6 +2442,9 @@ static void o2hb_region_unpin(const char *region_uuid)
->  	assert_spin_locked(&o2hb_live_lock);
->  
->  	list_for_each_entry(reg, &o2hb_all_regions, hr_all_item) {
-> +		if (reg->hr_item_dropped)
-> +			continue;
-> +
->  		uuid = config_item_name(&reg->hr_item);
->  		if (region_uuid) {
->  			if (strcmp(region_uuid, uuid))
-> @@ -2654,6 +2660,9 @@ int o2hb_get_all_regions(char *region_uuids, u8 max_regions)
->  
->  	p = region_uuids;
->  	list_for_each_entry(reg, &o2hb_all_regions, hr_all_item) {
-> +		if (reg->hr_item_dropped)
-> +			continue;
-> +
->  		mlog(0, "Region: %s\n", config_item_name(&reg->hr_item));
->  		if (numregs < max_regions) {
->  			memcpy(p, config_item_name(&reg->hr_item),
-> -- 
-> 1.7.9.7
+> Thanks,
+> Junxiao.
+> >
+> > Joel
+> >
+> >
 > 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 
 -- 
 
-"In the long run...we'll all be dead."
-                                        -Unknown
+"Get right to the heart of matters.
+ It's the heart that matters more."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
