@@ -1,18 +1,50 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Mon, 29 Jul 2013 10:50:30 +0300
-Subject: [Ocfs2-devel] [PATCH] fs/ocfs2: use list_for_each_entry()
- instead of list_for_each()
-In-Reply-To: <1374902815-13349-1-git-send-email-yp.fangdong@gmail.com>
-References: <1374902815-13349-1-git-send-email-yp.fangdong@gmail.com>
-Message-ID: <20130729075029.GC5053@mwanda>
+From: Waiman Long <Waiman.Long@hp.com>
+Date: Wed, 03 Jul 2013 20:22:18 -0000
+Subject: [Ocfs2-devel] [PATCH v3 22/25] ocfs2: Change how dentry's d_lock
+	field is accessed
+Message-ID: <1372882922-23205-1-git-send-email-Waiman.Long@hp.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Dong Fang <yp.fangdong@gmail.com>
-Cc: mfasheh@suse.com, jlbec@evilplan.org, akpm@linux-foundation.org, jeff.liu@oracle.com, viro@zeniv.linux.org.uk, sunil.mushran@gmail.com, tim.gardner@canonical.com, xuejiufei@huawei.com, shencanquan@huawei.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@redhat.com>, Miklos Szeredi <mszeredi@suse.cz>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, Waiman Long <Waiman.Long@hp.com>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andi Kleen <andi@firstfloor.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
 
-Don't apply this patch.  Dong Fang sent a v2 later for some reason.
+Because of the changes made in dcache.h header file, files that
+use the d_lock field of the dentry structure need to be changed
+accordingly. All the d_lock's spin_lock() and spin_unlock() calls
+are replaced by the corresponding d_lock() and d_unlock() calls.
+There is no change in logic and everything should just work.
 
-regards,
-dan carpenter
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ fs/ocfs2/dcache.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
+index ef99972..4f72906 100644
+--- a/fs/ocfs2/dcache.c
++++ b/fs/ocfs2/dcache.c
+@@ -173,17 +173,17 @@ struct dentry *ocfs2_find_local_alias(struct inode *inode,
+ 
+ 	spin_lock(&inode->i_lock);
+ 	hlist_for_each_entry(dentry, &inode->i_dentry, d_alias) {
+-		spin_lock(&dentry->d_lock);
++		d_lock(dentry);
+ 		if (ocfs2_match_dentry(dentry, parent_blkno, skip_unhashed)) {
+ 			trace_ocfs2_find_local_alias(dentry->d_name.len,
+ 						     dentry->d_name.name);
+ 
+ 			dget_dlock(dentry);
+-			spin_unlock(&dentry->d_lock);
++			d_unlock(dentry);
+ 			spin_unlock(&inode->i_lock);
+ 			return dentry;
+ 		}
+-		spin_unlock(&dentry->d_lock);
++		d_unlock(dentry);
+ 	}
+ 	spin_unlock(&inode->i_lock);
+ 	return NULL;
+-- 
+1.7.1
