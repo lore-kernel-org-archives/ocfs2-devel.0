@@ -1,132 +1,59 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 2 Jul 2013 14:26:07 -0700
-Subject: [Ocfs2-devel] [PATCH V3] ocfs2: need rollback when
- journal_access failed in ocfs2_orphan_add()
-In-Reply-To: <51CD3253.3020200@huawei.com>
-References: <51CD3253.3020200@huawei.com>
-Message-ID: <20130702142607.5ef730318a395483520f438b@linux-foundation.org>
+From: Jensen <shencanquan@huawei.com>
+Date: Wed, 3 Jul 2013 09:27:12 +0800
+Subject: [Ocfs2-devel] why oracle give up dlm by disk on ocfs2? because
+ performance?
+In-Reply-To: <20130702172030.GF32502@wotan.suse.de>
+References: <51CE541B.4070807@huawei.com> <51D22B4E.6020406@huawei.com>
+	<CAEeiSHWkiEiJCMjvVkAB+AGM9LUVLqw3de-tdU3K+z5=mfSF5w@mail.gmail.com>
+	<51D235F8.1040503@huawei.com>
+	<20130702172030.GF32502@wotan.suse.de>
+Message-ID: <51D37DF0.1010704@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, 28 Jun 2013 14:50:59 +0800 Younger Liu <younger.liu@huawei.com> wrote:
+On 2013/7/3 1:20, Mark Fasheh wrote:
 
-> While adding a file into orphan dir in ocfs2_orphan_add(),
-> it calls __ocfs2_add_entry() before ocfs2_journal_access_di(). 
-> If ocfs2_journal_access_di() failed, the file is added into 
-> orphan dir, and orphan dir dinode updated, but file dinode 
-> has not been updated.
-> Accordingly, the data is not consistent between file dinode 
-> and orphan dir.
+> On Tue, Jul 02, 2013 at 10:07:52AM +0800, Jensen wrote:
+>> On 2013/7/2 9:35, Sunil Mushran wrote:
+>>
+>>> A general purpose file system requires one to manage over a million locks concurrently. So performance is the main reason.
+>>>
+>>
+>> Thanks for your comments.
+>>
+>> Has Oracle compared the performance between ocfs2 and ocfs1?
 > 
-> So, need to call ocfs2_journal_access_di() before __ocfs2_add_entry(),
-> and if ocfs2_journal_access_di() failed, orphan_fe and 
-> orphan_dir_inode->i_nlink need rollback. 
+> Firstly, that's implied in the answer you just got. Also, who wouldn't
+> compare performance from one version of a file system to the next?
 > 
-> This bug is introduced by commits 3939fda4.
-> 
-> Compared with the PATCH V2, this patch cleans up mlog_errno(status) 
-> which was called two times for the same error.
+> Can you please cut to the chase and either ask what you really want to know
+> or make the statement you're trying to make so we can move on?
 > 
 
-Folks, could we please get this one reviewed?
 
-From: Younger Liu <younger.liu@huawei.com>
-Subject: ocfs2: need rollback when journal_access failed in ocfs2_orphan_add()
+Thanks for your answer.
+we want to use compare and write scsi command to replace DLM module. it is similar
+with vmware vmfs.
 
-While adding a file into orphan dir in ocfs2_orphan_add(), it calls
-__ocfs2_add_entry() before ocfs2_journal_access_di().  If
-ocfs2_journal_access_di() failed, the file is added into orphan dir, and
-orphan dir dinode updated, but file dinode has not been updated. 
-Accordingly, the data is not consistent between file dinode and orphan
-dir.
+why we want to replace dlm in ocfs2? because:
+1. The stability of ocfs2 dlm is very poor, we found 100+ bug.
+2. The Reliability of ocfs2 dlm is very poor, especially in network split, the
+   worse case split two domain, the half of node must be reboot.
+3. the maximum number of mounted machine is 32, we want to support more.
 
-So, need to call ocfs2_journal_access_di() before __ocfs2_add_entry(), and
-if ocfs2_journal_access_di() failed, orphan_fe and
-orphan_dir_inode->i_nlink need rollback.
+currently we worry about two thing:
+1. The performance lock and unlock. because it use the scsi command and it is similar with IO read and write.
+2. The change is very very large. because it maybe modify the disk layout of ocfs2.
 
-This bug was added by 3939fda4 ("Ocfs2: Journaling i_flags and
-i_orphaned_slot when adding inode to orphan dir.").
+so anyone interested with this?
 
-Signed-off-by: Younger Liu <younger.liu@huawei.com>
-Cc: Jie Liu <jeff.liu@oracle.com>
-Cc: Sunil Mushran <sunil.mushran@gmail.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/namei.c |   41 +++++++++++++++++++++++------------------
- 1 file changed, 23 insertions(+), 18 deletions(-)
-
-diff -puN fs/ocfs2/namei.c~ocfs2-need-rollback-when-journal_access-failed-in-ocfs2_orphan_add fs/ocfs2/namei.c
---- a/fs/ocfs2/namei.c~ocfs2-need-rollback-when-journal_access-failed-in-ocfs2_orphan_add
-+++ a/fs/ocfs2/namei.c
-@@ -2012,6 +2012,21 @@ static int ocfs2_orphan_add(struct ocfs2
- 		goto leave;
- 	}
- 
-+	/*
-+	 * We're going to journal the change of i_flags and i_orphaned_slot.
-+	 * It's safe anyway, though some callers may duplicate the journaling.
-+	 * Journaling within the func just make the logic look more
-+	 * straightforward.
-+	 */
-+	status = ocfs2_journal_access_di(handle,
-+					 INODE_CACHE(inode),
-+					 fe_bh,
-+					 OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto leave;
-+	}
-+
- 	/* we're a cluster, and nlink can change on disk from
- 	 * underneath us... */
- 	orphan_fe = (struct ocfs2_dinode *) orphan_dir_bh->b_data;
-@@ -2026,22 +2041,7 @@ static int ocfs2_orphan_add(struct ocfs2
- 				   orphan_dir_bh, lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto leave;
--	}
--
--	/*
--	 * We're going to journal the change of i_flags and i_orphaned_slot.
--	 * It's safe anyway, though some callers may duplicate the journaling.
--	 * Journaling within the func just make the logic look more
--	 * straightforward.
--	 */
--	status = ocfs2_journal_access_di(handle,
--					 INODE_CACHE(inode),
--					 fe_bh,
--					 OCFS2_JOURNAL_ACCESS_WRITE);
--	if (status < 0) {
--		mlog_errno(status);
--		goto leave;
-+		goto rollback;
- 	}
- 
- 	fe->i_flags |= cpu_to_le32(OCFS2_ORPHANED_FL);
-@@ -2057,11 +2057,16 @@ static int ocfs2_orphan_add(struct ocfs2
- 	trace_ocfs2_orphan_add_end((unsigned long long)OCFS2_I(inode)->ip_blkno,
- 				   osb->slot_num);
- 
-+rollback:
-+	if (status < 0) {
-+		if (S_ISDIR(inode->i_mode))
-+			ocfs2_add_links_count(orphan_fe, -1);
-+		set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe));
-+	}
-+
- leave:
- 	brelse(orphan_dir_bh);
- 
--	if (status)
--		mlog_errno(status);
- 	return status;
- }
- 
-_
+> Thanks,
+> 	--Mark
+> 
+> --
+> Mark Fasheh
+> 
+> 
