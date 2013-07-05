@@ -1,17 +1,16 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Fri, 05 Jul 2013 15:41:24 +0800
+From: Younger Liu <younger.liu@huawei.com>
+Date: Fri, 5 Jul 2013 18:06:54 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: lighten up allocate transaction
 In-Reply-To: <51D58F3D.309@oracle.com>
 References: <51D575FC.8080903@huawei.com> <51D58F3D.309@oracle.com>
-Message-ID: <51D678A4.804@oracle.com>
+Message-ID: <51D69ABE.5090602@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 07/04/2013 11:05 PM, Jeff Liu wrote:
-
+On 2013/7/4 23:05, Jeff Liu wrote:
 > Hi Yonger,
 > 
 > On 07/04/2013 09:17 PM, Younger Liu wrote:
@@ -34,14 +33,16 @@ On 07/04/2013 11:05 PM, Jeff Liu wrote:
 >> # fallocate -o 0 -l 400G /mnt/ocfs2/1.log
 >> fallocate: /mnt/ocfs2/1.log: fallocate failed: Cannot allocate memory
 >> # tail -f /var/log/messages
->> Jul  3 19:42:08 linux-KooNDD kernel: [ 7372.278591] JBD: fallocate wants too many credits (2051 > 2048)
->> Jul  3 19:42:08 linux-KooNDD kernel: [ 7372.278597] (fallocate,6438,0):__ocfs2_extend_allocation:709 ERROR: status = -12
->> Jul  3 19:42:08 linux-KooNDD kernel: [ 7372.278603] (fallocate,6438,0):ocfs2_allocate_unwritten_extents:1504 ERROR: status = -12
->> Jul  3 19:42:08 linux-KooNDD kernel: [ 7372.278607] (fallocate,6438,0):__ocfs2_change_file_space:1955 ERROR: status = -12
+>> [ 7372.278591] JBD: fallocate wants too many credits (2051 > 2048)
+>> [ 7372.278597] (fallocate,6438,0):__ocfs2_extend_allocation:709 ERROR: status = -12
+>> [ 7372.278603] (fallocate,6438,0):ocfs2_allocate_unwritten_extents:1504 ERROR: status = -12
+>> [ 7372.278607] (fallocate,6438,0):__ocfs2_change_file_space:1955 ERROR: status = -12
 > 
 > Could you please cut down the log length by removing the beginning
 > timestamps up to "kernel:"? i.e, only show "[ 7372.....] xxxx" is fine. :)
 > 
+Thanks for your suggestion.
+
 >> ^C
 >>
 >> With this patch, the test works well.
@@ -101,6 +102,12 @@ On 07/04/2013 11:05 PM, Jeff Liu wrote:
 > 	old_nblks = handle->h_buffer_credits;
 > 	trace_ocfs2_allocate_extend_trans(old_nblks, thresh);
 > 
+Good point for tracer.
+It is conveniently for debugging or analyzing some issues too.
+I will resent the patch in a moment. Please help to review it again.
+thanks.
+					--Younger
+
 >> +	status = jbd2_journal_extend(handle, OCFS2_MAX_TRANS_DATA);
 >> +	if (status < 0) {
 >> +		mlog_errno(status);
@@ -118,13 +125,6 @@ On 07/04/2013 11:05 PM, Jeff Liu wrote:
 > 			mlog_errno(status);
 > 
 > I'll run some further tests tomorrow, thanks for your patch!
-
-Ok, so some extra tests against combinations with different
-block/cluster sizes looks good.
-
-Thanks,
--Jeff
-
 > 
 > -Jeff
 > 
@@ -162,7 +162,5 @@ Thanks,
 >>   * Create access is for when we get a newly created buffer and we're
 > 
 > 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> .
+> 
