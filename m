@@ -1,50 +1,39 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Date: Wed, 03 Jul 2013 20:22:18 -0000
-Subject: [Ocfs2-devel] [PATCH v3 22/25] ocfs2: Change how dentry's d_lock
-	field is accessed
-Message-ID: <1372882922-23205-1-git-send-email-Waiman.Long@hp.com>
+From: Gu Zheng <guz.fnst@cn.fujitsu.com>
+Date: Mon, 08 Jul 2013 07:56:25 -0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2/refcounttree: add the missing NULL
+ check of the return value of find_or_create_page()
+Message-ID: <51DA6FD5.8050300@cn.fujitsu.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Alexander Viro <viro@zeniv.linux.org.uk>, Jeff Layton <jlayton@redhat.com>, Miklos Szeredi <mszeredi@suse.cz>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, Waiman Long <Waiman.Long@hp.com>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andi Kleen <andi@firstfloor.org>, "Chandramouleeswaran, Aswin" <aswin@hp.com>, "Norton, Scott J" <scott.norton@hp.com>
+To: mfasheh@suse.com, jlbec@evilplan.org
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel <linux-kernel@vger.kernel.org>
 
-Because of the changes made in dcache.h header file, files that
-use the d_lock field of the dentry structure need to be changed
-accordingly. All the d_lock's spin_lock() and spin_unlock() calls
-are replaced by the corresponding d_lock() and d_unlock() calls.
-There is no change in logic and everything should just work.
+Add the missing NULL check of the return value of find_or_create_page() in
+function ocfs2_duplicate_clusters_by_page().
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Signed-off-by: Gu Zheng <guz.fnst@cn.fujitsu.com>
 ---
- fs/ocfs2/dcache.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ fs/ocfs2/refcounttree.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
-index ef99972..4f72906 100644
---- a/fs/ocfs2/dcache.c
-+++ b/fs/ocfs2/dcache.c
-@@ -173,17 +173,17 @@ struct dentry *ocfs2_find_local_alias(struct inode *inode,
- 
- 	spin_lock(&inode->i_lock);
- 	hlist_for_each_entry(dentry, &inode->i_dentry, d_alias) {
--		spin_lock(&dentry->d_lock);
-+		d_lock(dentry);
- 		if (ocfs2_match_dentry(dentry, parent_blkno, skip_unhashed)) {
- 			trace_ocfs2_find_local_alias(dentry->d_name.len,
- 						     dentry->d_name.name);
- 
- 			dget_dlock(dentry);
--			spin_unlock(&dentry->d_lock);
-+			d_unlock(dentry);
- 			spin_unlock(&inode->i_lock);
- 			return dentry;
- 		}
--		spin_unlock(&dentry->d_lock);
-+		d_unlock(dentry);
- 	}
- 	spin_unlock(&inode->i_lock);
- 	return NULL;
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 998b17e..456d0e4 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2965,7 +2965,11 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 			to = map_end & (PAGE_CACHE_SIZE - 1);
+
+ 		page = find_or_create_page(mapping, page_index, GFP_NOFS);
+-
++		if (!page) {
++			ret = -ENOMEM;
++			mlog_errno(ret);
++			break;
++		}
+ 		/*
+ 		 * In case PAGE_CACHE_SIZE <= CLUSTER_SIZE, This page
+ 		 * can't be dirtied before we CoW it out.
 -- 
-1.7.1
+1.7.7
