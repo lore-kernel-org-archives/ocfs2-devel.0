@@ -1,129 +1,62 @@
-From: Jensen <shencanquan@huawei.com>
-Date: Mon, 8 Jul 2013 18:37:55 +0800
-Subject: [Ocfs2-devel] why oracle give up dlm by disk on ocfs2? because
- performance?
-In-Reply-To: <51D45462.5030509@oracle.com>
-References: <51CE541B.4070807@huawei.com> <51D22B4E.6020406@huawei.com>
-	<CAEeiSHWkiEiJCMjvVkAB+AGM9LUVLqw3de-tdU3K+z5=mfSF5w@mail.gmail.com>
-	<51D235F8.1040503@huawei.com>
-	<20130702172030.GF32502@wotan.suse.de>
-	<51D37DF0.1010704@huawei.com> <51D3B163.4000308@oracle.com>
-	<51D3E099.10908@huawei.com> <51D45462.5030509@oracle.com>
-Message-ID: <51DA9683.8070509@huawei.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Tue, 9 Jul 2013 15:11:18 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2/refcounttree: add the missing NULL
+ check of the return value of find_or_create_page()
+In-Reply-To: <51DA6FD5.8050300@cn.fujitsu.com>
+References: <51DA6FD5.8050300@cn.fujitsu.com>
+Message-ID: <20130709221117.GB25976@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Gu Zheng <guz.fnst@cn.fujitsu.com>
+Cc: mfasheh@suse.com, ocfs2-devel@oss.oracle.com, linux-kernel <linux-kernel@vger.kernel.org>
 
-On 2013/7/4 0:42, Srinivas Eeda wrote:
+On Mon, Jul 08, 2013 at 03:52:53PM +0800, Gu Zheng wrote:
+> Add the missing NULL check of the return value of find_or_create_page() in
+> function ocfs2_duplicate_clusters_by_page().
+> 
+> Signed-off-by: Gu Zheng <guz.fnst@cn.fujitsu.com>
+> ---
+>  fs/ocfs2/refcounttree.c |    6 +++++-
+>  1 files changed, 5 insertions(+), 1 deletions(-)
+> 
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 998b17e..456d0e4 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -2965,7 +2965,11 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+>  			to = map_end & (PAGE_CACHE_SIZE - 1);
+> 
+>  		page = find_or_create_page(mapping, page_index, GFP_NOFS);
+> -
+> +		if (!page) {
+> +			ret = -ENOMEM;
+> +			mlog_errno(ret);
+> +			break;
+> +		}
+>  		/*
+>  		 * In case PAGE_CACHE_SIZE <= CLUSTER_SIZE, This page
+>  		 * can't be dirtied before we CoW it out.
 
-> On 07/03/2013 01:28 AM, Jensen wrote:
->> On 2013/7/3 13:06, Jeff Liu wrote:
->>
->>> On 07/03/2013 09:27 AM, Jensen wrote:
->>>
->>>> On 2013/7/3 1:20, Mark Fasheh wrote:
->>>>
->>>>> On Tue, Jul 02, 2013 at 10:07:52AM +0800, Jensen wrote:
->>>>>> On 2013/7/2 9:35, Sunil Mushran wrote:
->>>>>>
->>>>>>> A general purpose file system requires one to manage over a million locks concurrently. So performance is the main reason.
->>>>>>>
->>>>>> Thanks for your comments.
->>>>>>
->>>>>> Has Oracle compared the performance between ocfs2 and ocfs1?
->>>>> Firstly, that's implied in the answer you just got. Also, who wouldn't
->>>>> compare performance from one version of a file system to the next?
->>>>>
->>>>> Can you please cut to the chase and either ask what you really want to know
->>>>> or make the statement you're trying to make so we can move on?
->>>>>
->>>>
->>>> Thanks for your answer.
->>>> we want to use compare and write scsi command to replace DLM module. it is similar
->>>> with vmware vmfs.
->>>>
->>> I'm not trying to answer this question.
->>>
->>> I knew that OCFS2 is deployed in HuaWei.com in a large-scale cluster up
->>> to 128 nodes, so I'm not very much surprised at something you mentioned
->>> below, but...
->>>
->>>> why we want to replace dlm in ocfs2? because:
->>>> 1. The stability of ocfs2 dlm is very poor, we found 100+ bug.
->>> That sounds interesting, how to classify those problems?
->>> - Fatal error, panic
->>> - Result in an interruption in service
->>> - Wrong results, but can work around?
->>> - Trivial
->>>
->>> Reporting bugs to bugzilla/OCFS2 would be useful to keep track of them:
->>> https://oss.oracle.com/bugzilla/
->>>
->>
->> Recently, Huawei has send many bug to open source community.
-> Yes and we appreciate your contributions :)
->>   which bug exist in
->> open source. other change or bug belong to enforce ocfs2 function ,for example, when disk
->> timeout, open source code will reboot the machine, we modify it, we set the ocfs2
->> invalid(can't read and write), open source may not interesting with those modify.
-> Can you please point me to these patches, I would be very interested to 
-> look at. If the patches are safe for all kind of workloads and guarantee 
-> to stop in-flight i/o's then it makes sense to add them to mainline ocfs2.
->>
->>> Thanks,
->>> -Jeff
->>>
->>>> 2. The Reliability of ocfs2 dlm is very poor, especially in network split, the
->>>>     worse case split two domain, the half of node must be reboot.
-> Currently we are looking into this. It appears that most of the network 
-> issues we are seeing may not really caused by network layer. They are 
-> mostly false errors because o2net thread got busy. Once this happens, in 
-> some scenarios reconnect always fails which is a bug. If you are 
-> currently running into these problems please share so we can analyse them.
->>>> 3. the maximum number of mounted machine is 32, we want to support more.
->>>>
->>>> currently we worry about two thing:
->>>> 1. The performance lock and unlock. because it use the scsi command and it is similar with IO read and write.
->>>> 2. The change is very very large. because it maybe modify the disk layout of ocfs2.
-> I am just curious, have you already made these changes? Are the changes 
-> scalable?
+Put a blank line between the closing brace and the comment.  Otherwise,
+Acked-by: Joel Becker <jlbec@evilplan.org>
 
-we had not made these changes. we plan to change this.
+Joel
+> -- 
+> 1.7.7
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
->>>>
->>>> so anyone interested with this?
->>>>
->>>>> Thanks,
->>>>> 	--Mark
->>>>>
->>>>> --
->>>>> Mark Fasheh
->>>>>
->>>>>
->>>>
->>>>
->>>>
->>>> _______________________________________________
->>>> Ocfs2-devel mailing list
->>>> Ocfs2-devel at oss.oracle.com
->>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>
->>>
->>>
->>
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
+-- 
+
+Life's Little Instruction Book #99
+
+	"Think big thoughts, but relish small pleasures."
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
