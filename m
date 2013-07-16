@@ -1,158 +1,255 @@
-From: Guozhonghua <guozhonghua@h3c.com>
-Date: Tue, 16 Jul 2013 09:06:10 +0000
-Subject: [Ocfs2-devel] Is it an issue and whether the code changed correct?
-	Thanks a lot
-Message-ID: <71604351584F6A4EBAE558C676F37CA417BD8D31@H3CMLB02-EX.srv.huawei-3com.com>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Wed, 17 Jul 2013 07:13:20 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: using i_size_read() to access
+	i_size
+In-Reply-To: <51E4B86F.2040703@tao.ma>
+References: <1373876172-6467-1-git-send-email-junxiao.bi@oracle.com>
+	<51E4B86F.2040703@tao.ma>
+Message-ID: <51E5D390.6040604@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi, everyone, is that an issue?
+On 07/16/2013 11:05 AM, Tao Ma wrote:
 
-The Server version is Linux 3.2.0-23, Ubuntu 1204.
+> Hi Junxiao,
+> 	IIRC, in the case we use inode->i_size directly in ocfs2,
+> inode->i_mutex is already locked, so no one can change i_size and it is
+> safe.
 
-There are 4 nodes in the OCFS2 Cluster, using three iSCSI LUNS, and every LUN is one OCFS2 domain mounted by thread node.
+Yes, Just as Tao's comments, we're safe to fetch the i_size in current approach.
+But...Please see my comments inline.
 
-As the network used buy node has one down/up, the tcp connection between node shutdown and reconnected with each other.
-But there is one scenario that the node whose node number is little, shut down the tcp with node whose number is large, the node with large node number will not reconnect the node with little node number.
-The otherwise is that if the node with large node number shut down the tcp with node with little number, the node with large node number will reconnect the node with little node number OK.
+> 
+> Thanks,
+> Tao
+> On 07/15/2013 04:16 PM, Junxiao Bi wrote:
+>> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+>> ---
+>>  fs/ocfs2/aops.c         |    2 +-
+>>  fs/ocfs2/extent_map.c   |   10 +++++-----
+>>  fs/ocfs2/file.c         |    2 +-
+>>  fs/ocfs2/ioctl.c        |    2 +-
+>>  fs/ocfs2/journal.c      |    8 ++++----
+>>  fs/ocfs2/move_extents.c |    2 +-
+>>  fs/ocfs2/quota_global.c |    6 +++---
+>>  fs/ocfs2/quota_local.c  |   12 ++++++------
+>>  8 files changed, 22 insertions(+), 22 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+>> index 20dfec7..ab3ebf3 100644
+>> --- a/fs/ocfs2/aops.c
+>> +++ b/fs/ocfs2/aops.c
+>> @@ -2049,7 +2049,7 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+>>  
+>>  out_write_size:
+>>  	pos += copied;
+>> -	if (pos > inode->i_size) {
+>> +	if (pos > i_size_read(inode)) {
+>>  		i_size_write(inode, pos);
+>>  		mark_inode_dirty(inode);
+>>  	}
+>> diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+>> index 2487116..4bf2b76 100644
+>> --- a/fs/ocfs2/extent_map.c
+>> +++ b/fs/ocfs2/extent_map.c
+>> @@ -852,20 +852,20 @@ int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int whence)
+>>  
+>>  	down_read(&OCFS2_I(inode)->ip_alloc_sem);
+>>  
+>> -	if (*offset >= inode->i_size) {
+>> +	if (*offset >= i_size_read(inode)) {
+>>  		ret = -ENXIO;
+>>  		goto out_unlock;
+>>  	}
+>>  
+>>  	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
+>>  		if (whence == SEEK_HOLE)
+>> -			*offset = inode->i_size;
+>> +			*offset = i_size_read(inode);
+>>  		goto out_unlock;
+>>  	}
+>>  
+>>  	clen = 0;
+>>  	cpos = *offset >> cs_bits;
+>> -	cend = ocfs2_clusters_for_bytes(inode->i_sb, inode->i_size);
+>> +	cend = ocfs2_clusters_for_bytes(inode->i_sb, i_size_read(inode));
+>>  
+>>  	while (cpos < cend && !is_last) {
+>>  		ret = ocfs2_get_clusters_nocache(inode, di_bh, cpos, &hole_size,
+>> @@ -904,8 +904,8 @@ int ocfs2_seek_data_hole_offset(struct file *file, loff_t *offset, int whence)
+>>  		extlen = clen;
+>>  		extlen <<=  cs_bits;
+>>  
+>> -		if ((extoff + extlen) > inode->i_size)
+>> -			extlen = inode->i_size - extoff;
+>> +		if ((extoff + extlen) > i_size_read(inode))
+>> +			extlen = i_size_read(inode) - extoff;
+>>  		extoff += extlen;
+>>  		if (extoff > *offset)
+>>  			*offset = extoff;
+>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>> index 3ce6a8b..7158710 100644
+>> --- a/fs/ocfs2/file.c
+>> +++ b/fs/ocfs2/file.c
+>> @@ -2650,7 +2650,7 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
 
-Such as below:
-The server1 syslog is as below:
-Jul  9 17:46:10 server1 kernel: [5199872.576027] o2net: Connection to node server2 (num 2) at 192.168.70.20:7100 shutdown, state 8
-Jul  9 17:46:10 server1 kernel: [5199872.576111] o2net: No longer connected to node server2 (num 2) at 192.168.70.20:7100
-Jul  9 17:46:10 server1 kernel: [5199872.576149] (ocfs2dc,14358,1):dlm_send_remote_convert_request:395 ERROR: Error -107 when sending message 504 (key 0x3671059b) to node 2
-Jul  9 17:46:10 server1 kernel: [5199872.576162] o2dlm: Waiting on the death of node 2 in domain 3656D53908DC4149983BDB1DBBDF1291
-Jul  9 17:46:10 server1 kernel: [5199872.576428] o2net: Accepted connection from node server2 (num 2) at 192.168.70.20:7100
-Jul  9 17:46:11 server1 kernel: [5199872.995898] o2net: Connection to node server3 (num 3) at 192.168.70.30:7100 has been idle for 30.100 secs, shutting it down.
-Jul  9 17:46:11 server1 kernel: [5199872.995987] o2net: No longer connected to node server3 (num 3) at 192.168.70.30:7100
-Jul  9 17:46:11 server1 kernel: [5199873.069666] o2net: Connection to node server4 (num 4) at 192.168.70.40:7100 shutdown, state 8
-Jul  9 17:46:11 server1 kernel: [5199873.069700] o2net: No longer connected to node server4 (num 4) at 192.168.70.40:7100
-Jul  9 17:46:11 server1 kernel: [5199873.070385] o2net: Accepted connection from node server4 (num 4) at 192.168.70.40:7100
+We have the inode mutex around ocfs2_file_llseek(), and that is too extensive
+to block the concurrent access for particular seek operations.  At least,
+we can get rid of this lock for SEEK_SET/SEEK_CUR. i.e,  In either case,
+we can fall through generic_file_llseek() directly without the mutex lock.
 
-The server1 shutdown the tcp connection with server3, but server3 never reconnect with server1.
+>>  	case SEEK_SET:
+>>  		break;
+>>  	case SEEK_END:
+>> -		offset += inode->i_size;
+>> +		offset += i_size_read(inode);
 
-The server3 syslog is as below:
-Jul  9 17:44:12 server3 kernel: [3971907.332698] o2net: Connection to node server1 (num 1) at 192.168.70.10:7100 shutdown, state 8
-Jul  9 17:44:12 server3 kernel: [3971907.332748] o2net: No longer connected to node server1 (num 1) at 192.168.70.10:7100
-Jul  9 17:44:42 server3 kernel: [3971937.355419] o2net: No connection established with node 1 after 30.0 seconds, giving up.
-Jul  9 17:45:01 server3 CRON[52349]: (root) CMD (command -v debian-sa1 > /dev/null && debian-sa1 1 1)
-Jul  9 17:45:12 server3 kernel: [3971967.421656] o2net: No connection established with node 1 after 30.0 seconds, giving up.
-Jul  9 17:45:42 server3 kernel: [3971997.487949] o2net: No connection established with node 1 after 30.0 seconds, giving up.
-Jul  9 17:46:12 server3 kernel: [3972027.554258] o2net: No connection established with node 1 after 30.0 seconds, giving up.
-Jul  9 17:46:42 server3 kernel: [3972057.620496] o2net: No connection established with node 1 after 30.0 seconds, giving up.
+Hmmm, so you made this patch against an old kernel source tree...
+We'd better to write OCFS2 upstream patch based on linux-next or -mm tree. :)
 
-The node of server2 and server4 shut down the connection with server1, and reconnect them ok.
+Canquan already fixed this in anther patch:
+From: Jensen <shencanquan@huawei.com>
+Subject: ocfs2: llseek requires ocfs2 inode lock for the file in SEEK_END
 
-I review the code of the ocfs2 kernel and found this may be an issue or bug.
+Would you like to take care of this?
 
-As node of server1 did not receive msg from server3, he shut the connection with server3 and set the timeout with 1.
-The server1's node number is little than server3, so he wait the connect request from server3.
-static void o2net_idle_timer(unsigned long data)
-{
-    ... ...
-        printk(KERN_NOTICE "o2net: Connection to " SC_NODEF_FMT " has been "
-               "idle for %lu.%lu secs, shutting it down.\n", SC_NODEF_ARGS(sc),
-               msecs / 1000, msecs % 1000);
-    ..... ...
-        atomic_set(&nn->nn_timeout, 1);
-        o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
-}
+Thanks,
+-Jeff
 
-But the server3 monitoring the TCP connection state changed and shutdown connect again and it will never reconnect with server1 because the nn->nn_timeout is 0.
-
-static void o2net_state_change(struct sock *sk)
-{
-......
-        switch(sk->sk_state) {
-        ......
-                default:
-                        printk(KERN_INFO "AAAAA o2net: Connection to " SC_NODEF_FMT
-                              " shutdown, state %d\n",
-                              SC_NODEF_ARGS(sc), sk->sk_state);
-                        o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
-                        break;
-        }
-... ...
-}
-
-I had test the TCP connect without any shutdown between nodes, but send message will failed because the connection state is error.
+>>  		break;
+>>  	case SEEK_CUR:
+>>  		if (offset == 0) {
 
 
-I change the code for the connect triggers in function o2net_set_nn_state and o2net_start_connect, and the reconnect rebuild up OK.
-Is anyone review the code correct? Thanks a lots.
 
-root at gzh-dev:~/ocfs2# diff -p -C 10 ./ocfs2_org/cluster/tcp.c ocfs2_rep/cluster/tcp.c
-*** ./ocfs2_org/cluster/tcp.c 2012-10-29 19:33:19.534200000 +0800
---- ocfs2_rep/cluster/tcp.c      2013-07-16 16:58:31.380452531 +0800
-*************** static void o2net_set_nn_state(struct o2
-*** 567,586 ****
---- 567,590 ----
-      if (!valid && o2net_wq) {
-              unsigned long delay;
-              /* delay if we're within a RECONNECT_DELAY of the
-               * last attempt */
-              delay = (nn->nn_last_connect_attempt +
-                       msecs_to_jiffies(o2net_reconnect_delay()))
-                      - jiffies;
-              if (delay > msecs_to_jiffies(o2net_reconnect_delay()))
-                      delay = 0;
-              mlog(ML_CONN, "queueing conn attempt in %lu jiffies\n", delay);
-+
-+             /** Trigger the reconnection */
-+             atomic_set(&nn->nn_timeout, 1);
-+
-              queue_delayed_work(o2net_wq, &nn->nn_connect_work, delay);
-
-              /*
-               * Delay the expired work after idle timeout.
-               *
-               * We might have lots of failed connection attempts that run
-               * through here but we only cancel the connect_expired work when
-               * a connection attempt succeeds.  So only the first enqueue of
-               * the connect_expired work will do anything.  The rest will see
-               * that it's already queued and do nothing.
-*************** static void o2net_start_connect(struct w
-*** 1691,1710 ****
---- 1695,1719 ----
-      remoteaddr.sin_family = AF_INET;
-      remoteaddr.sin_addr.s_addr = node->nd_ipv4_address;
-      remoteaddr.sin_port = node->nd_ipv4_port;
-
-      ret = sc->sc_sock->ops->connect(sc->sc_sock,
-                                      (struct sockaddr *)&remoteaddr,
-                                      sizeof(remoteaddr),
-                                      O_NONBLOCK);
-      if (ret == -EINPROGRESS)
-              ret = 0;
-+
-+     /** Reset the timeout with 0 to avoid connection again, Just for test the tcp connection */
-+         if (ret == 0) {
-+                 atomic_set(&nn->nn_timeout, 0);
-+         }
-
-  out:
-      if (ret) {
-              printk(KERN_NOTICE "o2net: Connect attempt to " SC_NODEF_FMT
-                     " failed with errno %d\n", SC_NODEF_ARGS(sc), ret);
-              /* 0 err so that another will be queued and attempted
-               * from set_nn_state */
-              if (sc)
-                      o2net_ensure_shutdown(nn, sc, 0);
-      }
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20130716/cae7604c/attachment-0001.html 
+>> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+>> index 0c60ef2..fa32ce9 100644
+>> --- a/fs/ocfs2/ioctl.c
+>> +++ b/fs/ocfs2/ioctl.c
+>> @@ -303,7 +303,7 @@ int ocfs2_info_handle_journal_size(struct inode *inode,
+>>  	if (o2info_from_user(oij, req))
+>>  		goto bail;
+>>  
+>> -	oij.ij_journal_size = osb->journal->j_inode->i_size;
+>> +	oij.ij_journal_size = i_size_read(osb->journal->j_inode);
+>>  
+>>  	o2info_set_request_filled(&oij.ij_req);
+>>  
+>> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+>> index 8eccfab..b5c8c53 100644
+>> --- a/fs/ocfs2/journal.c
+>> +++ b/fs/ocfs2/journal.c
+>> @@ -801,14 +801,14 @@ int ocfs2_journal_init(struct ocfs2_journal *journal, int *dirty)
+>>  	inode_lock = 1;
+>>  	di = (struct ocfs2_dinode *)bh->b_data;
+>>  
+>> -	if (inode->i_size <  OCFS2_MIN_JOURNAL_SIZE) {
+>> +	if (i_size_read(inode) <  OCFS2_MIN_JOURNAL_SIZE) {
+>>  		mlog(ML_ERROR, "Journal file size (%lld) is too small!\n",
+>> -		     inode->i_size);
+>> +		     i_size_read(inode));
+>>  		status = -EINVAL;
+>>  		goto done;
+>>  	}
+>>  
+>> -	trace_ocfs2_journal_init(inode->i_size,
+>> +	trace_ocfs2_journal_init(i_size_read(inode),
+>>  				 (unsigned long long)inode->i_blocks,
+>>  				 OCFS2_I(inode)->ip_clusters);
+>>  
+>> @@ -1096,7 +1096,7 @@ static int ocfs2_force_read_journal(struct inode *inode)
+>>  
+>>  	memset(bhs, 0, sizeof(struct buffer_head *) * CONCURRENT_JOURNAL_FILL);
+>>  
+>> -	num_blocks = ocfs2_blocks_for_bytes(inode->i_sb, inode->i_size);
+>> +	num_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
+>>  	v_blkno = 0;
+>>  	while (v_blkno < num_blocks) {
+>>  		status = ocfs2_extent_map_get_blocks(inode, v_blkno,
+>> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+>> index f1fc172..33472e4 100644
+>> --- a/fs/ocfs2/move_extents.c
+>> +++ b/fs/ocfs2/move_extents.c
+>> @@ -845,7 +845,7 @@ static int __ocfs2_move_extents_range(struct buffer_head *di_bh,
+>>  	struct ocfs2_move_extents *range = context->range;
+>>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>>  
+>> -	if ((inode->i_size == 0) || (range->me_len == 0))
+>> +	if ((i_size_read(inode) == 0) || (range->me_len == 0))
+>>  		return 0;
+>>  
+>>  	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
+>> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
+>> index 332a281..aaa5061 100644
+>> --- a/fs/ocfs2/quota_global.c
+>> +++ b/fs/ocfs2/quota_global.c
+>> @@ -234,7 +234,7 @@ ssize_t ocfs2_quota_write(struct super_block *sb, int type,
+>>  		len = sb->s_blocksize - OCFS2_QBLK_RESERVED_SPACE - offset;
+>>  	}
+>>  
+>> -	if (gqinode->i_size < off + len) {
+>> +	if (i_size_read(gqinode) < off + len) {
+>>  		loff_t rounded_end =
+>>  				ocfs2_align_bytes_to_blocks(sb, off + len);
+>>  
+>> @@ -778,8 +778,8 @@ static int ocfs2_acquire_dquot(struct dquot *dquot)
+>>  		 */
+>>  		WARN_ON(journal_current_handle());
+>>  		status = ocfs2_extend_no_holes(gqinode, NULL,
+>> -			gqinode->i_size + (need_alloc << sb->s_blocksize_bits),
+>> -			gqinode->i_size);
+>> +			i_size_read(gqinode) + (need_alloc << sb->s_blocksize_bits),
+>> +			i_size_read(gqinode));
+>>  		if (status < 0)
+>>  			goto out_dq;
+>>  	}
+>> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+>> index 27fe7ee..2e4344b 100644
+>> --- a/fs/ocfs2/quota_local.c
+>> +++ b/fs/ocfs2/quota_local.c
+>> @@ -982,14 +982,14 @@ static struct ocfs2_quota_chunk *ocfs2_local_quota_add_chunk(
+>>  
+>>  	/* We are protected by dqio_sem so no locking needed */
+>>  	status = ocfs2_extend_no_holes(lqinode, NULL,
+>> -				       lqinode->i_size + 2 * sb->s_blocksize,
+>> -				       lqinode->i_size);
+>> +				       i_size_read(lqinode) + 2 * sb->s_blocksize,
+>> +				       i_size_read(lqinode));
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>>  		goto out;
+>>  	}
+>>  	status = ocfs2_simple_size_update(lqinode, oinfo->dqi_lqi_bh,
+>> -					  lqinode->i_size + 2 * sb->s_blocksize);
+>> +					  i_size_read(lqinode) + 2 * sb->s_blocksize);
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>>  		goto out;
+>> @@ -1125,14 +1125,14 @@ static struct ocfs2_quota_chunk *ocfs2_extend_local_quota_file(
+>>  
+>>  	/* We are protected by dqio_sem so no locking needed */
+>>  	status = ocfs2_extend_no_holes(lqinode, NULL,
+>> -				       lqinode->i_size + sb->s_blocksize,
+>> -				       lqinode->i_size);
+>> +				       i_size_read(lqinode) + sb->s_blocksize,
+>> +				       i_size_read(lqinode));
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>>  		goto out;
+>>  	}
+>>  	status = ocfs2_simple_size_update(lqinode, oinfo->dqi_lqi_bh,
+>> -					  lqinode->i_size + sb->s_blocksize);
+>> +					  i_size_read(lqinode) + sb->s_blocksize);
+>>  	if (status < 0) {
+>>  		mlog_errno(status);
+>>  		goto out;
+>>
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
