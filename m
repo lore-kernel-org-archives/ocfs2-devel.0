@@ -1,28 +1,30 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Wed, 17 Jul 2013 07:13:20 +0800
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 17 Jul 2013 08:48:46 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: using i_size_read() to access
 	i_size
 In-Reply-To: <51E4B86F.2040703@tao.ma>
 References: <1373876172-6467-1-git-send-email-junxiao.bi@oracle.com>
 	<51E4B86F.2040703@tao.ma>
-Message-ID: <51E5D390.6040604@oracle.com>
+Message-ID: <51E5E9EE.8040006@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 07/16/2013 11:05 AM, Tao Ma wrote:
+Hi Tao,
 
+On 07/16/2013 11:05 AM, Tao Ma wrote:
 > Hi Junxiao,
 > 	IIRC, in the case we use inode->i_size directly in ocfs2,
 > inode->i_mutex is already locked, so no one can change i_size and it is
 > safe.
+Yes, but there are both inode->i_size and i_size_read/write() in the
+code, I think we'd better change it to ease confuse.
 
-Yes, Just as Tao's comments, we're safe to fetch the i_size in current approach.
-But...Please see my comments inline.
-
-> 
+Thanks,
+Junxiao.
+>
 > Thanks,
 > Tao
 > On 07/15/2013 04:16 PM, Junxiao Bi wrote:
@@ -95,36 +97,14 @@ But...Please see my comments inline.
 >> --- a/fs/ocfs2/file.c
 >> +++ b/fs/ocfs2/file.c
 >> @@ -2650,7 +2650,7 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
-
-We have the inode mutex around ocfs2_file_llseek(), and that is too extensive
-to block the concurrent access for particular seek operations.  At least,
-we can get rid of this lock for SEEK_SET/SEEK_CUR. i.e,  In either case,
-we can fall through generic_file_llseek() directly without the mutex lock.
-
 >>  	case SEEK_SET:
 >>  		break;
 >>  	case SEEK_END:
 >> -		offset += inode->i_size;
 >> +		offset += i_size_read(inode);
-
-Hmmm, so you made this patch against an old kernel source tree...
-We'd better to write OCFS2 upstream patch based on linux-next or -mm tree. :)
-
-Canquan already fixed this in anther patch:
-From: Jensen <shencanquan@huawei.com>
-Subject: ocfs2: llseek requires ocfs2 inode lock for the file in SEEK_END
-
-Would you like to take care of this?
-
-Thanks,
--Jeff
-
 >>  		break;
 >>  	case SEEK_CUR:
 >>  		if (offset == 0) {
-
-
-
 >> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
 >> index 0c60ef2..fa32ce9 100644
 >> --- a/fs/ocfs2/ioctl.c
@@ -247,9 +227,3 @@ Thanks,
 >>  		mlog_errno(status);
 >>  		goto out;
 >>
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
