@@ -1,92 +1,163 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Mon, 22 Jul 2013 16:57:32 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: using i_size_read() to access
-	i_size
-In-Reply-To: <51E90BE9.1030707@oracle.com>
-References: <1373876172-6467-1-git-send-email-junxiao.bi@oracle.com>
-	<51E4B86F.2040703@tao.ma> <51E5D390.6040604@oracle.com>
-	<51E8ECF3.7010905@oracle.com> <51E8F2E0.6000207@oracle.com>
-	<51E8F4F2.7010205@oracle.com> <51E8F93B.6050406@oracle.com>
-	<51E90402.8080409@oracle.com> <51E90BE9.1030707@oracle.com>
-Message-ID: <51ECF3FC.5040103@oracle.com>
+From: Younger Liu <younger.liu@huawei.com>
+Date: Tue, 23 Jul 2013 12:59:41 +0800
+Subject: [Ocfs2-devel] [PATCH V2 RESENT] ocfs2: lighten up allocate
+	transaction
+In-Reply-To: <51E7F084.4000307@oracle.com>
+References: <51E7D2C0.50602@huawei.com> <51E7F084.4000307@oracle.com>
+Message-ID: <51EE0DBD.10905@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Jeff,
-
-On 07/19/2013 05:50 PM, Jeff Liu wrote:
-> On 07/19/2013 05:16 PM, Junxiao Bi wrote:
->
->> Hi Jeff,
->>
->> On 07/19/2013 04:30 PM, Jeff Liu wrote:
->>> On 07/19/2013 04:12 PM, Junxiao Bi wrote:
->>>
->>>> Hi Jeff,
->>>>
->>>> On 07/19/2013 04:03 PM, Jeff Liu wrote:
->>>>> Hi Junxiao,
->>>>>
->>>>> On 07/19/2013 03:38 PM, Junxiao Bi wrote:
->>>>>
->>>>>> Hi Jeff,
->>>>>>
->>>>>> On 07/17/2013 07:13 AM, Jeff Liu wrote:
->>>>>>>>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->>>>>>>>>>> index 3ce6a8b..7158710 100644
->>>>>>>>>>> --- a/fs/ocfs2/file.c
->>>>>>>>>>> +++ b/fs/ocfs2/file.c
->>>>>>>>>>> @@ -2650,7 +2650,7 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
->>>>>>> We have the inode mutex around ocfs2_file_llseek(), and that is too extensive
->>>>>>> to block the concurrent access for particular seek operations.  At least,
->>>>>>> we can get rid of this lock for SEEK_SET/SEEK_CUR. i.e,  In either case,
->>>>>>> we can fall through generic_file_llseek() directly without the mutex lock.
->>>>>> Think about this again, I think we can't remove the mutex, as it is used
->>>>>> to protect other inode member beside i_size, like
->>>>>> inode->i_sb->s_maxbytes which is accessed in all SEEK request and also
->>>>>> more in ocfs2_inode_lock().
->>>>> Thanks for digging into this.  s_maxbytes is a numeric constant which is
->>>>> calculated out at OCFS2 mount with filling up the super blocks, IOWs, it
->>>>> does not need any lock protection IMO.
->>>>>
->>>>> Besides that, could you please pointed me out anything am missed?
->>>> Can inode->i_sb be set to NULL during this?
->>> No, actually when we get into ocfs2_file_llseek(), the corresponding
->>> inode should be in VFS inode cache and it should not be a bad inode
->>> as well, otherwise, it can not go through vfs_llseek(). :)
->> Thank you for explaining this.
->> So for SEEK_SET and SEEK_CUR, we may make some improvement, indeed in
->> gereric_file_llseek(), it also use a spin lock to protect concurrent
->> SEEK_CUR access.
->> is there really a perf issue that deserve us to make a hack to hurt code
->> readability?
-> Sure, and also, I don't think this is *hack*.  Instead, it's an old significant
-> improvements in VFS generic_file_lseek() from Andi Kleen back to 2011.  Maybe OCFS2
-> is the only file system without this turn-up as we lack of upstream activity for a
-> long time.  For detail, please refer to:
->
-> commit ef3d0fd27e90f67e35da516dafc1482c82939a60
-> Author: Andi Kleen <ak@linux.intel.com>
-> Date:   Thu Sep 15 16:06:48 2011 -0700
->
->     vfs: do (nearly) lockless generic_file_llseek
->     
->     The i_mutex lock use of generic _file_llseek hurts.  Independent processes
->     accessing the same file synchronize over a single lock, even though
->     they have no need for synchronization at all.
->     
->     Under high utilization this can cause llseek to scale very poorly on larger
->     systems.
->     
->     This patch does some rethinking of the llseek locking model:
-Thanks for point this out for me, I will make a patch for this.
-
-Thanks,
-Junxiao.
->
->
+On 2013/7/18 21:41, Jeff Liu wrote:
+> I failed in applying this patch as: fatal: corrupt patch at line 41
+> 
 > Thanks,
 > -Jeff
+Hi Jeff
+I will resent the patch, thanks.
+
+> On 07/18/2013 07:34 PM, Younger Liu wrote:
+> 
+>> The issue scenario is as following:
+>> When fallocating a very large disk space for a small file,
+>> __ocfs2_extend_allocation attempts to get a very large transaction. 
+>> For some journal sizes, there may be not enough room for this 
+>> transaction, and the fallocate will fail.
+>>
+>> The patch below extents & restarts the transaction as necessary while
+>> allocating space, and should work with even the smallest journal.
+>> This patch refers ext4 resize.
+>>
+>> Test:
+>> # mkfs.ocfs2 -b 4K -C 32K -T datafiles /dev/sdc
+>> ...(jounral size is 32M)
+>> # mount.ocfs2 /dev/sdc /mnt/ocfs2/
+>> # touch /mnt/ocfs2/1.log
+>> # fallocate -o 0 -l 400G /mnt/ocfs2/1.log
+>> fallocate: /mnt/ocfs2/1.log: fallocate failed: Cannot allocate memory
+>> # tail -f /var/log/messages
+>> [ 7372.278591] JBD: fallocate wants too many credits (2051 > 2048)
+>> [ 7372.278597] (fallocate,6438,0):__ocfs2_extend_allocation:709 ERROR: status = -12
+>> [ 7372.278603] (fallocate,6438,0):ocfs2_allocate_unwritten_extents:1504 ERROR: status = -12
+>> [ 7372.278607] (fallocate,6438,0):__ocfs2_change_file_space:1955 ERROR: status = -12
+>> ^C
+>>
+>> With this patch, the test works well.
+>>
+>> Signed-off-by: Younger Liu <younger.liu@huawei.com>
+>> Tested-by: Jie Liu <jeff.liu@oracle.com>
+>> ---
+>>  fs/ocfs2/file.c        |    6 +-----
+>>  fs/ocfs2/journal.c     |   34 ++++++++++++++++++++++++++++++++++
+>>  fs/ocfs2/journal.h     |   11 +++++++++++
+>>  fs/ocfs2/ocfs2_trace.h |    2 ++
+>>  4 files changed, 48 insertions(+), 5 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>> index 05c0bb1..4943918 100644
+>> --- a/fs/ocfs2/file.c
+>> +++ b/fs/ocfs2/file.c
+>> @@ -666,11 +666,7 @@ restarted_transaction:
+>> 		} else {
+>> 			BUG_ON(why != RESTART_TRANS);
+>>
+>> -			/* TODO: This can be more intelligent. */
+>> -			credits = ocfs2_calc_extend_credits(osb->sb,
+>> -							    &fe->id2.i_list,
+>> -							    clusters_to_add);
+>> -			status = ocfs2_extend_trans(handle, credits);
+>> +			status = ocfs2_allocate_extend_trans(handle, 1);
+>> 			if (status < 0) {
+>> 				/* handle still has to be committed at
+>> 				 * this point. */
+>> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+>> index 8eccfab..46bce79 100644
+>> --- a/fs/ocfs2/journal.c
+>> +++ b/fs/ocfs2/journal.c
+>> @@ -455,6 +455,40 @@ bail:
+>> 	return status;
+>>  }
+>>
+>> +/*
+>> + * If we have fewer than thresh credits, extend by OCFS2_MAX_TRANS_DATA.
+>> + * If that fails, restart the transaction & regain write access for the
+>> + * buffer head which is used for metadata modifications.
+>> + * Taken from Ext4: extend_or_restart_transaction()
+>> + */
+>> +int ocfs2_allocate_extend_trans(handle_t *handle, int thresh)
+>> +{
+>> +	int status, old_nblks;
+>> +
+>> +	BUG_ON(!handle);
+>> +
+>> +	old_nblks = handle->h_buffer_credits;
+>> +	trace_ocfs2_allocate_extend_trans(old_nblks, thresh);
+>> +
+>> +	if (old_nblks < thresh)
+>> +		return 0;
+>> +
+>> +	status = jbd2_journal_extend(handle, OCFS2_MAX_TRANS_DATA);
+>> +	if (status < 0) {
+>> +		mlog_errno(status);
+>> +		goto bail;
+>> +	}
+>> +
+>> +	if (status > 0) {
+>> +		status = jbd2_journal_restart(handle, OCFS2_MAX_TRANS_DATA);
+>> +		if (status < 0)
+>> +			mlog_errno(status);
+>> +	}
+>> +
+>> +bail:
+>> +	return status;
+>> +}
+>> +
+>>  struct ocfs2_triggers {
+>> 	struct jbd2_buffer_trigger_type	ot_triggers;
+>> 	int				ot_offset;
+>> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+>> index a3385b6..62a26bd 100644
+>> --- a/fs/ocfs2/journal.h
+>> +++ b/fs/ocfs2/journal.h
+>> @@ -259,6 +259,17 @@ handle_t		    *ocfs2_start_trans(struct ocfs2_super *osb,
+>>  int			     ocfs2_commit_trans(struct ocfs2_super *osb,
+>> 						handle_t *handle);
+>>  int			     ocfs2_extend_trans(handle_t *handle, int nblocks);
+>> +int			     ocfs2_allocate_extend_trans(handle_t *handle,
+>> +						int thresh);
+>> +
+>> +/*
+>> + * Define an arbitrary limit for the amount of data we will anticipate
+>> + * writing to any given transaction.  For unbounded transactions such as
+>> + * fallocate(2) we can write more than this, but we always
+>> + * start off at the maximum transaction size and grow the transaction
+>> + * optimistically as we go.
+>> + */
+>> +#define OCFS2_MAX_TRANS_DATA	64U
+>>
+>>  /*
+>>   * Create access is for when we get a newly created buffer and we're
+>> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+>> index 3b481f4..1b60c62 100644
+>> --- a/fs/ocfs2/ocfs2_trace.h
+>> +++ b/fs/ocfs2/ocfs2_trace.h
+>> @@ -2579,6 +2579,8 @@ DEFINE_OCFS2_INT_INT_EVENT(ocfs2_extend_trans);
+>>
+>>  DEFINE_OCFS2_INT_EVENT(ocfs2_extend_trans_restart);
+>>
+>> +DEFINE_OCFS2_INT_INT_EVENT(ocfs2_allocate_extend_trans);
+>> +
+>>  DEFINE_OCFS2_ULL_ULL_UINT_UINT_EVENT(ocfs2_journal_access);
+>>
+>>  DEFINE_OCFS2_ULL_EVENT(ocfs2_journal_dirty);
+>> --
+>> 1.7.9.7
+>>
+> 
+> 
+> 
+> .
+> 
