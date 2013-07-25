@@ -1,370 +1,103 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Tue, 23 Jul 2013 17:59:31 -0700
-Subject: [Ocfs2-devel] Is it an issue and whether the code changed
- correct? Thanks a lot
-In-Reply-To: <51E64E08.3090003@oracle.com>
-References: <71604351584F6A4EBAE558C676F37CA417BD8D31@H3CMLB02-EX.srv.huawei-3com.com>
-	<51E64E08.3090003@oracle.com>
-Message-ID: <51EF26F3.6080408@oracle.com>
+From: David Weber <wb@munzinger.de>
+Date: Thu, 25 Jul 2013 12:13:31 +0200
+Subject: [Ocfs2-devel] NULL pointer dereference at ocfs2_dir_foreach_blk_id
+Message-ID: <1394429.Cu7O6gPXEE@o3-3>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When network timeout happens one node could timeout before the other. 
-The node that runs into it first will run o2net_idle_timer which 
-initiates a socket shutdown. socket shutdown leads to sending TCP_CLOSE 
-to the other end.
+Hi,
 
-If o2net_idle_timer happened on the lower node then nn->nn_timeout won't 
-get set on higher node number because it ran into TCP_CLOSE prior to the 
-timeout itself. Since nn->nn_timeout is not set to 1 it doesn't initiate 
-a reconnect.
+we reproducibly run into a NULL pointer dereference in OCFS2 on Linux 3.11.0-
+rc2
+It always happens if we try to copy or delete directories.
 
-So the fix is to set nn->timeout to 1. Now either we should move 
-"atomic_set(&nn->nn_timeout, 1)" from o2net_idle_timer to 
-o2net_set_nn_state or set this in o2net_state_change as well.
+The Filesystem was created with:
+mkfs.ocfs2 -b 4K -C 1M -J block64 -L kvm-images -T vmstore /dev/drbd0
 
-We made this patch along with few other changes and will send it shortly 
-or you could send a proper patch based on Jeff's comments
+cat /etc/ocfs2/cluster.conf :
+cluster:
+heartbeat_mode = global
+node_count = 2
+name = kvm
+
+node:
+number = 0
+cluster = kvm
+ip_port = 7777
+ip_address = 192.168.100.229
+name = dinah
+
+node:
+number = 1
+cluster = kvm
+ip_port = 7777
+ip_address = 192.168.100.228
+name = alice
 
 
-On 07/17/2013 12:55 AM, Jeff Liu wrote:
-> [Add Srinivas/Xiaofei to CC list as they are investigating OCFS2 net related issues]
->
-> Hi Guo,
->
-> Thanks for your reports and analysis!
->
-> On 07/16/2013 05:06 PM, Guozhonghua wrote:
->
->> Hi, everyone, is that an issue?
->>
-> That is an issue because we should keep attempting to reconnect
-> back until the connection is established or captured a disk
-> heartbeat down event.
->
-> This strategy has been described at upstream commit:
-> 	5cc3bf2786f63cceb191c3c02ddd83c6f38a7d64
->      		ocfs2:  Reconnect after idle time out.
->
->
->> The Server version is Linux 3.2.0-23, Ubuntu 1204.
-> Generally speaking, we dig into potential problems against the
-> mainline updated source tree, linux-next is fine for OCFS2.
-> One important reason is that the facing issue on an old release
-> might be fixed recently.
->
->> There are 4 nodes in the OCFS2 Cluster, using three iSCSI LUNS, and
->> every LUN is one OCFS2 domain mounted by thread node.
->>
->>   
->>
->> As the network used buy node has one down/up, the tcp connection between
->> node shutdown and reconnected with each other.
->
->> But there is one scenario that the node whose node number is little,
->> shut down the tcp with node whose number is large, the node with large
->> node number will not reconnect the node with little node number.
->>
->> The otherwise is that if the node with large node number shut down the
->> tcp with node with little number, the node with large node number will
->> reconnect the node with little node number OK.
-> Could you please clarify your test scenario in a bit more detail?
->
-> Anyway, re-initialize the timeout to trigger reconnection looks fair to me,
-> but I'd like to see some comments from Srinivas and Xiaofei.
->
-> Btw, that's better if you would make patch via git and setup your email box by
-> following up the instructions at Documentation/email-clients.txt, please feel free
-> to drop me an offline email if you have any question regarding this.
->
->
-> Thanks,
-> -Jeff
->
->>   
->>
->> Such as below:
->>
->> The server1 syslog is as below:
->>
->> Jul  9 17:46:10 server1 kernel: [5199872.576027] o2net: Connection to
->> node server2 (num 2) at 192.168.70.20:7100 shutdown, state 8
->>
->> Jul  9 17:46:10 server1 kernel: [5199872.576111] o2net: No longer
->> connected to node server2 (num 2) at 192.168.70.20:7100
->>
->> Jul  9 17:46:10 server1 kernel: [5199872.576149]
->> (ocfs2dc,14358,1):dlm_send_remote_convert_request:395 ERROR: Error -107
->> when sending message 504 (key 0x3671059b) to node 2
->>
->> Jul  9 17:46:10 server1 kernel: [5199872.576162] o2dlm: Waiting on the
->> death of node 2 in domain 3656D53908DC4149983BDB1DBBDF1291
->>
->> Jul  9 17:46:10 server1 kernel: [5199872.576428] o2net: Accepted
->> connection from node server2 (num 2) at 192.168.70.20:7100
->>
->> Jul  9 17:46:11 server1 kernel: [5199872.995898] o2net: Connection to
->> node server3 (num 3) at 192.168.70.30:7100 has been idle for 30.100
->> secs, shutting it down.
->>
->> Jul  9 17:46:11 server1 kernel: [5199872.995987] o2net: No longer
->> connected to node server3 (num 3) at 192.168.70.30:7100
->>
->> Jul  9 17:46:11 server1 kernel: [5199873.069666] o2net: Connection to
->> node server4 (num 4) at 192.168.70.40:7100 shutdown, state 8
->>
->> Jul  9 17:46:11 server1 kernel: [5199873.069700] o2net: No longer
->> connected to node server4 (num 4) at 192.168.70.40:7100
->>
->> Jul  9 17:46:11 server1 kernel: [5199873.070385] o2net: Accepted
->> connection from node server4 (num 4) at 192.168.70.40:7100
->>
->>   
->>
->> The server1 shutdown the tcp connection with server3, but server3 never
->> reconnect with server1.
->>
->>   
->>
->> The server3 syslog is as below:
->>
->> Jul  9 17:44:12 server3 kernel: [3971907.332698] o2net: Connection to
->> node server1 (num 1) at 192.168.70.10:7100 shutdown, state 8
->>
->> Jul  9 17:44:12 server3 kernel: [3971907.332748] o2net: No longer
->> connected to node server1 (num 1) at 192.168.70.10:7100
->>
->> Jul  9 17:44:42 server3 kernel: [3971937.355419] o2net: No connection
->> established with node 1 after 30.0 seconds, giving up.
->>
->> Jul  9 17:45:01 server3 CRON[52349]: (root) CMD (command -v debian-sa1 >
->> /dev/null && debian-sa1 1 1)
->>
->> Jul  9 17:45:12 server3 kernel: [3971967.421656] o2net: No connection
->> established with node 1 after 30.0 seconds, giving up.
->>
->> Jul  9 17:45:42 server3 kernel: [3971997.487949] o2net: No connection
->> established with node 1 after 30.0 seconds, giving up.
->>
->> Jul  9 17:46:12 server3 kernel: [3972027.554258] o2net: No connection
->> established with node 1 after 30.0 seconds, giving up.
->>
->> Jul  9 17:46:42 server3 kernel: [3972057.620496] o2net: No connection
->> established with node 1 after 30.0 seconds, giving up.
->>
->>   
->>
->> The node of server2 and server4 shut down the connection with server1,
->> and reconnect them ok.
->>
->>   
->>
->> I review the code of the ocfs2 kernel and found this may be an issue or bug.
->>
->>   
->>
->> As node of server1 did not receive msg from server3, he shut the
->> connection with server3 and set the timeout with 1.
->>
->> The server1?s node number is little than server3, so he wait the connect
->> request from server3.
->>
->> static void o2net_idle_timer(unsigned long data)
->>
->> {
->>
->>      ? ?
->>
->>          printk(KERN_NOTICE "o2net: Connection to " SC_NODEF_FMT " has been "
->>
->>                 "idle for %lu.%lu secs, shutting it down.\n",
->> SC_NODEF_ARGS(sc),
->>
->>                 msecs / 1000, msecs % 1000);
->>
->>      ?.. ?
->>
->>          atomic_set(&nn->nn_timeout, 1);
->>
->>          o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
->>
->> }
->>
->>   
->>
->> But the server3 monitoring the TCP connection state changed and shutdown
->> connect again and it will never reconnect with server1 because the
->> nn->nn_timeout is 0.
->>
->>   
->>
->> static void o2net_state_change(struct sock *sk)
->>
->> {
->>
->> ??
->>
->>          switch(sk->sk_state) {
->>
->>          ??
->>
->>                  default:
->>
->>                          printk(KERN_INFO "AAAAA o2net: Connection to "
->> SC_NODEF_FMT
->>
->>                                " shutdown, state %d\n",
->>
->>                                SC_NODEF_ARGS(sc), sk->sk_state);
->>
->>                          o2net_sc_queue_work(sc, &sc->sc_shutdown_work);
->>
->>                          break;
->>
->>          }
->>
->> ? ?
->>
->> }
->>
->>   
->>
->> I had test the TCP connect without any shutdown between nodes, but send
->> message will failed because the connection state is error.
->>
->>   
->>
->>   
->>
->> I change the code for the connect triggers in function
->> o2net_set_nn_state and o2net_start_connect, and the reconnect rebuild up OK.
->>
->> Is anyone review the code correct? Thanks a lots.
->>
->>   
->>
->> root at gzh-dev:~/ocfs2# diff -p -C 10 ./ocfs2_org/cluster/tcp.c
->> ocfs2_rep/cluster/tcp.c
->>
->> *** ./ocfs2_org/cluster/tcp.c 2012-10-29 19:33:19.534200000 +0800
->>
->> --- ocfs2_rep/cluster/tcp.c      2013-07-16 16:58:31.380452531 +0800
->>
->> *************** static void o2net_set_nn_state(struct o2
->>
->> *** 567,586 ****
->>
->> --- 567,590 ----
->>
->>        if (!valid && o2net_wq) {
->>
->>                unsigned long delay;
->>
->>                /* delay if we're within a RECONNECT_DELAY of the
->>
->>                 * last attempt */
->>
->>                delay = (nn->nn_last_connect_attempt +
->>
->>                         msecs_to_jiffies(o2net_reconnect_delay()))
->>
->>                        - jiffies;
->>
->>                if (delay > msecs_to_jiffies(o2net_reconnect_delay()))
->>
->>                        delay = 0;
->>
->>                mlog(ML_CONN, "queueing conn attempt in %lu jiffies\n",
->> delay);
->>
->> +
->>
->> +             /** Trigger the reconnection */
->>
->> +             atomic_set(&nn->nn_timeout, 1);
->>
->> +
->>
->>                queue_delayed_work(o2net_wq, &nn->nn_connect_work, delay);
->>
->>   
->>
->>                /*
->>
->>                 * Delay the expired work after idle timeout.
->>
->>                 *
->>
->>                 * We might have lots of failed connection attempts that run
->>
->>                 * through here but we only cancel the connect_expired
->> work when
->>
->>                 * a connection attempt succeeds.  So only the first
->> enqueue of
->>
->>                 * the connect_expired work will do anything.  The rest
->> will see
->>
->>                 * that it's already queued and do nothing.
->>
->> *************** static void o2net_start_connect(struct w
->>
->> *** 1691,1710 ****
->>
->> --- 1695,1719 ----
->>
->>        remoteaddr.sin_family = AF_INET;
->>
->>        remoteaddr.sin_addr.s_addr = node->nd_ipv4_address;
->>
->>        remoteaddr.sin_port = node->nd_ipv4_port;
->>
->>   
->>
->>        ret = sc->sc_sock->ops->connect(sc->sc_sock,
->>
->>                                        (struct sockaddr *)&remoteaddr,
->>
->>                                        sizeof(remoteaddr),
->>
->>                                        O_NONBLOCK);
->>
->>        if (ret == -EINPROGRESS)
->>
->>                ret = 0;
->>
->> +
->>
->> +     /** Reset the timeout with 0 to avoid connection again, Just for
->> test the tcp connection */
->>
->> +         if (ret == 0) {
->>
->> +                 atomic_set(&nn->nn_timeout, 0);
->>
->> +         }
->>
->>   
->>
->>    out:
->>
->>        if (ret) {
->>
->>                printk(KERN_NOTICE "o2net: Connect attempt to " SC_NODEF_FMT
->>
->>                       " failed with errno %d\n", SC_NODEF_ARGS(sc), ret);
->>
->>                /* 0 err so that another will be queued and attempted
->>
->>                 * from set_nn_state */
->>
->>                if (sc)
->>
->>                        o2net_ensure_shutdown(nn, sc, 0);
->>
->>        }
->>
+dmesg:
+[ 42.191816] BUG: unable to handle kernel NULL pointer dereference at (null)
+[ 42.192753] IP: [< (null)>] (null)
+[ 42.193348] PGD 79c1f9067 PUD 79c38a067 PMD 0 
+[ 42.193913] Oops: 0010 [#1] SMP 
+[ 42.194338] Modules linked in: ebtable_nat ebtables ocfs2_stack_o2cb bridge 
+stp llc kvm_intel kvm drbd lru_cache dlm sctp libcrc32c ocfs2_dlm ocfs2_dlmfs 
+ocfs2 ocfs2_stackglue ocfs2_nodemanager configfs e1000e
+[ 42.196944] CPU: 1 PID: 2392 Comm: rm Not tainted 3.11.0-rc2 #19
+[ 42.197617] Hardware name: Supermicro X8DT6/X8DT6, BIOS 2.0a 09/14/2010
+[ 42.198389] task: ffff880799d06320 ti: ffff88079c664000 task.ti: ffff88079c664000
+[ 42.199251] RIP: 0010:[<0000000000000000>] [< (null)>] (null)
+[ 42.200545] RSP: 0018:ffff88079c665c30 EFLAGS: 00010293
+[ 42.201394] RAX: 0000000000000002 RBX: 0000000000000010 RCX: 0000000000000000
+[ 42.202190] RDX: 0000000000000001 RSI: ffff88079290c0d4 RDI: ffff88079c665ce8
+[ 42.202995] RBP: ffff88079c665ca8 R08: 00000000000ea90e R09: 0000000000000004
+[ 42.203794] R10: 0000000000000000 R11: 0000000000000000 R12: ffff88079290c0c0
+[ 42.204600] R13: ffff88079c665ce8 R14: ffff88079290c0c8 R15: ffff8807960ba598
+[ 42.205406] FS: 00007f4b6d259700(0000) GS:ffff8807a1220000(0000) 
+knlGS:0000000000000000
+[ 42.206115] CS: 0010 DS: 0000 ES: 0000 CR0: 000000008005003b
+[ 42.206453] CR2: 0000000000000000 CR3: 000000079b02a000 CR4: 00000000000007e0
+[ 42.207045] Stack:
+[ 42.207266] ffffffffa00d8947 ffff88079c665e18 ffff8807960ba2c0 ffff88079c665c78
+[ 42.208184] ffff88079290c0c0 ffff88079290c000 ffff88079c665cc0 ffff8807960ba598
+[ 42.209089] ffff8807961269c0 ffff88079c665c88 ffff8807960ba598 00000000ffffffd9
+[ 42.210298] Call Trace:
+[ 42.210579] [] ? ocfs2_dir_foreach_blk_id+0x169/0x212 [ocfs2]
+[ 42.211419] [] ocfs2_dir_foreach+0x3a/0x3e [ocfs2]
+[ 42.212145] [] ocfs2_empty_dir+0x148/0x391 [ocfs2]
+[ 42.212880] [] ocfs2_unlink+0x567/0xbc3 [ocfs2]
+[ 42.213573] [] ? __ocfs2_cluster_unlock.isra.41+0x89/0xbb [ocfs2]
+[ 42.214463] [] vfs_rmdir+0xb0/0xfe
+[ 42.215039] [] do_rmdir+0x143/0x19b
+[ 42.215611] [] ? task_work_run+0x86/0xac
+[ 42.216232] [] SyS_unlinkat+0x25/0x27
+[ 42.216818] [] system_call_fastpath+0x16/0x1b
+[ 42.217487] Code: Bad RIP value.
+[ 42.217901] RIP [< (null)>] (null)
+[ 42.218509] RSP 
+[ 42.218896] CR2: 0000000000000000
+[ 42.219352] ---[ end trace 1c32c45da41ce169 ]---
+
+
+The dereference happens here:
+Reading symbols from /usr/src/linux-3.11-rc2/fs/ocfs2/dir.o...done.
+(gdb) list *(ocfs2_dir_foreach_blk_id+0x169)
+0x4497 is in ocfs2_dir_foreach_blk_id (fs/ocfs2/dir.c:1820).
+1815 unsigned char d_type = DT_UNKNOWN;
+1816
+1817 if (de->file_type < OCFS2_FT_MAX)
+1818 d_type = ocfs2_filetype_table[de->file_type];
+1819
+1820 if (!dir_emit(ctx, de->name, de->name_len,
+1821 le64_to_cpu(de->inode), d_type))
+1822 goto out;
+1823 }
+1824 ctx->pos += le16_to_cpu(de->rec_len);
+
+Thanks in advance!
+
+Cheers,
+David
