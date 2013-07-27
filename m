@@ -1,72 +1,48 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Fri, 26 Jul 2013 12:09:38 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm_request_all_locks() should deal
- with the status sent from target node
-Message-ID: <51F1F682.4000009@huawei.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Sat, 27 Jul 2013 09:27:07 +0000
+Subject: [Ocfs2-devel] =?gb2312?b?tPC4tDogIElzIGl0IGFuIGlzc3VlIGFuZCB3aGV0?=
+ =?gb2312?b?aGVyIHRoZSBjb2RlIGNoYW5nZWQgY29ycmVjdD8gVGhhbmtzIGEgbG90?=
+In-Reply-To: <51E64E08.3090003@oracle.com>
+References: <71604351584F6A4EBAE558C676F37CA417BD8D31@H3CMLB02-EX.srv.huawei-3com.com>
+	<51E64E08.3090003@oracle.com>
+Message-ID: <71604351584F6A4EBAE558C676F37CA417BDD08C@H3CMLB02-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-dlm_request_all_locks() should deal with the status sent from target
-node if DLM_LOCK_REQUEST_MSG is sent successfully, or recovery master
-will fall into endless loop, waiting for other nodes to send locks and
-DLM_RECO_DATA_DONE_MSG to me.
+Hi Liu,
+Sorry for delay response, and I am very glad to receive your email.
 
-        NodeA                                  NodeB
-                                     selected as recovery master
-                                     dlm_remaster_locks()
-                                     ->dlm_request_all_locks()
-                                     send DLM_LOCK_REQUEST_MSG to nodeA
+We are using OCFS2 as to full use IP-SAN or FC-SAN storage and provide conveniences of the iSCSI/FC storage management.
 
-It happened that NodeA cannot alloc
-memory when it processes this message.
-dlm_request_all_locks_handler() do
-not queue dlm_request_all_locks_worker
-and returns -ENOMEM. It will never
-send locks andDLM_RECO_DATA_DONE_MSG
-to NodeB.
+The test scenario is that there are several nodes in the ocfs2 cluster.
+All the nodes have two network interface, one is used to be management network, such as 192.168.0.12, the other is network connected with iSCSI storage, such as 192.168.10.12.
+And the management IP 192.168.0.12 is used as by OCFS2 to setup tcp connection, configured in the /etc/ocfs2/cluster.conf file.
+This scenario may be same as that used as FC SAN, management network is used by OCFS2 to setup TCP connections to communicates information.
+As we setup bond of the management network of the host node on the switch directly connected with node, the node's network interface will down and up, so OCFS2 kernel detect it, the TCP may be disconnected without reconnection. But the storage network is still OK, connected with iSCSI or FC SAN, the heart beat of OCFS2 writing disk on the iSCSI/FC SAN is OK still.
+There are messages cannot be communicated between nodes, such as dlm messages, so the OCFS2 cluster may be blocked sometime.
 
-                                    NodeB do not deal with the status
-                                    sent from nodeA, and will fall in
-                                    endless loop waiting for the
-                                    recovery state of NodeA to be
-                                    changed.
+I review the code and have setup one cluster to test, trying to find out the reason why all the cluster or several node of the cluster blocked on the storage disk.
 
-Signed-off-by: joyce <xuejiufei@huawei.com>
----
- fs/ocfs2/dlm/dlmrecovery.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+There are code to process reconnect between node. The connection shutdown node whose cluster number is little, should be reconnected from the node whose cluster node number is larger does not triggered as my email described before.
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 773bd32..f945502 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -787,6 +787,7 @@ static int dlm_request_all_locks(struct dlm_ctxt *dlm, u8 request_from,
- {
- 	struct dlm_lock_request lr;
- 	int ret;
-+	int status;
- 
- 	mlog(0, "\n");
- 
-@@ -800,13 +801,15 @@ static int dlm_request_all_locks(struct dlm_ctxt *dlm, u8 request_from,
- 
- 	// send message
- 	ret = o2net_send_message(DLM_LOCK_REQUEST_MSG, dlm->key,
--				 &lr, sizeof(lr), request_from, NULL);
-+				 &lr, sizeof(lr), request_from, &status);
- 
- 	/* negative status is handled by caller */
- 	if (ret < 0)
- 		mlog(ML_ERROR, "%s: Error %d send LOCK_REQUEST to node %u "
- 		     "to recover dead node %u\n", dlm->name, ret,
- 		     request_from, dead_node);
-+	else
-+		ret = status;
- 	// return from here, then
- 	// sleep until all received or error
- 	return ret;
--- 
-1.7.9.7
+And there is another issues, which blocks the use of the cluster, the cluster is blocked and several nodes could not access the OCFS storage.
+The node host does not have response with packets, such as ping, this issue may be DLM.
+
+Thanks a lot
+
+Guozhonghua
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
