@@ -1,14 +1,14 @@
 From: Dong Fang <yp.fangdong@gmail.com>
-Date: Sat, 27 Jul 2013 01:26:55 -0400
-Subject: [Ocfs2-devel] [PATCH] fs/ocfs2: use list_for_each_entry() instead
-	of list_for_each()
-Message-ID: <1374902815-13349-1-git-send-email-yp.fangdong@gmail.com>
+Date: Sat, 27 Jul 2013 09:23:49 -0400
+Subject: [Ocfs2-devel] [PATCH v2] fs/ocfs2: use list_for_each_entry()
+	instead of list_for_each()
+Message-ID: <1374931429-14062-1-git-send-email-yp.fangdong@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: mfasheh@suse.com, jlbec@evilplan.org, akpm@linux-foundation.org, jeff.liu@oracle.com, viro@zeniv.linux.org.uk, sunil.mushran@gmail.com, tim.gardner@canonical.com, xuejiufei@huawei.com, shencanquan@huawei.com, dan.carpenter@oracle.com
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Dong Fang <yp.fangdong@gmail.com>
+Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, Dong Fang <yp.fangdong@gmail.com>
 
 
 Signed-off-by: Dong Fang <yp.fangdong@gmail.com>
