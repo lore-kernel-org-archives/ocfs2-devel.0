@@ -1,86 +1,60 @@
-From: Jensen <shencanquan@huawei.com>
-Date: Mon, 1 Jul 2013 09:38:31 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: llseek requires to ocfs2 inode
- lock for the file in SEEK_END
-In-Reply-To: <20130629133745.GL13405@ZenIV.linux.org.uk>
-References: <51C2BC1F.2010106@huawei.com>
-	<20130629133745.GL13405@ZenIV.linux.org.uk>
-Message-ID: <51D0DD97.5060004@huawei.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Thu, 1 Aug 2013 00:20:09 -0700
+Subject: [Ocfs2-devel] Why ocfs2 haven't implemented "steal" for
+ local_alloc system files?
+In-Reply-To: <CAEeiSHVsUGvBRR3iN4TpQqHVN4+KD6aV+e2nEGZ7ouYOWJEhpw@mail.gmail.com>
+References: <51F3A091.4090605@huawei.com>
+	<CAEeiSHVsUGvBRR3iN4TpQqHVN4+KD6aV+e2nEGZ7ouYOWJEhpw@mail.gmail.com>
+Message-ID: <20130801072008.GA15266@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/6/29 21:37, Joel Becker wrote:
+Basically, there's so little in the cache that stealing would be too
+complex.  Really we just want to fall back to the global, and if that is
+empty, you're near enough ENOSPC that it doesn't much matter.
 
-> On Thu, Jun 20, 2013 at 04:23:59PM +0800, shencanquan wrote:
->> llseek requires ocfs2 inode lock for updating the file size in SEEK_END.
->> because the file size maybe update on another node.
->> if it not . after call llseek in SEEK_END. the position is old.
->>
->> this bug can be reproduce the following scenario:
->> at first ,we dd a test fileA,the file size is 10k.
->> on NodeA:
->> ---------
->> 1) open the test fileA, lseek the end of file. and print the position.
->> 2) close the test fileA
->>
->> on NodeB:
->> 1) open the test fileA, append the 5k data to test FileA.
->> 2) lseek the end of file. and print the position.
->> 3) close file.
->>
->> at first we run the test program1 on NodeA , the result is 10k.
->> and then run the test program2 on NodeB,  the result is 15k.
->> at last, we run the test program1 on NodeA again, the result is 10k.
->>
->> after apply this patch.  the three step result is 15k.
->>
->> Signed-off-by: jensen <shencanquan@huawei.com>
->> ---
->>  fs/ocfs2/file.c |    9 +++++++++
->>  1 file changed, 9 insertions(+)
->>
->> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
->> index ff54014..3afd24c 100644
->> --- a/fs/ocfs2/file.c
->> +++ b/fs/ocfs2/file.c
->> @@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct file *file, loff_t offset, int whence)
->>  	case SEEK_SET:
->>  		break;
->>  	case SEEK_END:
->> +		/* SEEK_END requires the OCFS2 inode lock for the file
->> +		 * because it references the file's size.
->> +		 */
->> +		ret = ocfs2_inode_lock(inode, NULL, 0);
->> +		if (ret < 0) {
->> +			mlog_errno(ret);
->> +			goto out;
->> +		}
->>  		offset += inode->i_size;
->> +		ocfs2_inode_unlock(inode, 0);
+Joel
+
+On Wed, Jul 31, 2013 at 08:33:48PM -0700, Sunil Mushran wrote:
+> Because it makes no sense. Unlike inode/extent allocs, local_alloc is a
+> temporary cache. If you fail to allocate, you fallback to the global bitmap.
 > 
-> Why wouldn't ocfs2_rw_lock() work?  Just because we dont get the LVB
-> from it?
 > 
-
-
-Yes. we want to update the inode size from lvb.
-
-I also think the file size maybe protected by inode lock. not rw lock.
-
-> Joel
+> On Sat, Jul 27, 2013 at 3:27 AM, Younger Liu <younger.liu@huawei.com> wrote:
 > 
->>  		break;
->>  	case SEEK_CUR:
->>  		if (offset == 0) {
->> -- 
->> 1.7.9.7
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+> > Hi,
+> >   While analyzing ocfs2 block allocation, I found:
+> >   When claiming space from inode_alloc (or extent_alloc) system files,
+> > if there is no enough space in inode_alloc (or extent_alloc) and
+> > global_bitmap, it could steal space from other slots.
+> >   But when claiming space from local_alloc system files, and no
+> > enough space in local_alloc and global_bitmap, it returns -ENOSPC.
+> >
+> >   Why ocfs2 haven't implemented "steal" for local_alloc system files?
+> >   Is there any some reasons?
+> >
+> >
+> > _______________________________________________
+> > Ocfs2-devel mailing list
+> > Ocfs2-devel at oss.oracle.com
+> > https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> >
+
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
+
+-- 
+
+"Born under a bad sign.
+ I been down since I began to crawl.
+ If it wasn't for bad luck,
+ I wouldn't have no luck at all."
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
