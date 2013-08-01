@@ -1,68 +1,52 @@
 From: Younger Liu <younger.liu@huawei.com>
-Date: Thu, 1 Aug 2013 16:38:15 +0800
-Subject: [Ocfs2-devel] Why ocfs2 haven't implemented "steal" for
- local_alloc system files?
-In-Reply-To: <20130801072008.GA15266@localhost>
-References: <51F3A091.4090605@huawei.com>
-	<CAEeiSHVsUGvBRR3iN4TpQqHVN4+KD6aV+e2nEGZ7ouYOWJEhpw@mail.gmail.com>
-	<20130801072008.GA15266@localhost>
-Message-ID: <51FA1E77.8060207@huawei.com>
+Date: Thu, 1 Aug 2013 17:02:46 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: free meta_ac and data_ac when
+ ocfs2_start_trans fails in ocfs2_xattr_set()
+Message-ID: <51FA2436.2050604@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/8/1 15:20, Joel Becker wrote:
-> Basically, there's so little in the cache that stealing would be too
-> complex.  Really we just want to fall back to the global, and if that is
-> empty, you're near enough ENOSPC that it doesn't much matter.
-> 
-> Joel
-> 
-Localalloc is a mount option. When mounting an ocfs2 volume, localalloc can
-be set a larger size. For example, 2G or a larger number.
+In ocfs2_xattr_set(), if ocfs2_start_trans failed, 
+meta_ac and data_ac should be free. 
+Otherwise, It would lead to  memory leak.
 
-In a multi-nodes cluster, all nodes mount ocfs2 volume with localalloc=2048
-for performance consideration, if a node claims space for a file, but there 
-is no space in the local_alloc and global_bitmap. It would return ENOSPC.
-However, other nodes may have lots of space which have been claimed 
-in local_alloc, so ENOSPC cannot reflect the actual situation.
+Signed-off-by: Younger Liu <younger.liu@huawei.com>
+Cc: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/xattr.c |    5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-IMO, if there is no space both in the local_alloc and global_bitmap,
-it should steal space from other nodes local_alloc.
-
-Thx, 
-Younger.
-
-> On Wed, Jul 31, 2013 at 08:33:48PM -0700, Sunil Mushran wrote:
->> Because it makes no sense. Unlike inode/extent allocs, local_alloc is a
->> temporary cache. If you fail to allocate, you fallback to the global bitmap.
->>
->>
->> On Sat, Jul 27, 2013 at 3:27 AM, Younger Liu <younger.liu@huawei.com> wrote:
->>
->>> Hi,
->>>   While analyzing ocfs2 block allocation, I found:
->>>   When claiming space from inode_alloc (or extent_alloc) system files,
->>> if there is no enough space in inode_alloc (or extent_alloc) and
->>> global_bitmap, it could steal space from other slots.
->>>   But when claiming space from local_alloc system files, and no
->>> enough space in local_alloc and global_bitmap, it returns -ENOSPC.
->>>
->>>   Why ocfs2 haven't implemented "steal" for local_alloc system files?
->>>   Is there any some reasons?
->>>
->>>
->>> _______________________________________________
->>> Ocfs2-devel mailing list
->>> Ocfs2-devel at oss.oracle.com
->>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>
-> 
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 317ef0a..1c2a892 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -3505,7 +3505,7 @@ int ocfs2_xattr_set(struct inode *inode,
+ 	int ret, credits, ref_meta = 0, ref_credits = 0;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	struct inode *tl_inode = osb->osb_tl_inode;
+-	struct ocfs2_xattr_set_ctxt ctxt = { NULL, NULL, };
++	struct ocfs2_xattr_set_ctxt ctxt = { NULL, NULL, NULL, };
+ 	struct ocfs2_refcount_tree *ref_tree = NULL;
+ 
+ 	struct ocfs2_xattr_info xi = {
+@@ -3609,13 +3609,14 @@ int ocfs2_xattr_set(struct inode *inode,
+ 	if (IS_ERR(ctxt.handle)) {
+ 		ret = PTR_ERR(ctxt.handle);
+ 		mlog_errno(ret);
+-		goto cleanup;
++		goto out_free_ac;
+ 	}
+ 
+ 	ret = __ocfs2_xattr_set_handle(inode, di, &xi, &xis, &xbs, &ctxt);
+ 
+ 	ocfs2_commit_trans(osb, ctxt.handle);
+ 
++out_free_ac:
+ 	if (ctxt.data_ac)
+ 		ocfs2_free_alloc_context(ctxt.data_ac);
+ 	if (ctxt.meta_ac)
+-- 
+1.7.9.7
