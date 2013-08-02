@@ -1,95 +1,78 @@
-From: Younger Liu <younger.liu@huawei.com>
-Date: Fri, 2 Aug 2013 17:47:17 +0800
-Subject: [Ocfs2-devel] Why ocfs2 haven't implemented "steal" for
- local_alloc system files?
-In-Reply-To: <51FAAF8C.9090006@oracle.com>
-References: <51F3A091.4090605@huawei.com>
-	<CAEeiSHVsUGvBRR3iN4TpQqHVN4+KD6aV+e2nEGZ7ouYOWJEhpw@mail.gmail.com>
-	<20130801072008.GA15266@localhost>
-	<51FA1E77.8060207@huawei.com> <51FAAF8C.9090006@oracle.com>
-Message-ID: <51FB8025.3030901@huawei.com>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Fri, 02 Aug 2013 18:17:07 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Revert commit 40bd62e to avoid
+ regression in extended allocation
+Message-ID: <51FB8723.4030907@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/8/2 2:57, Srinivas Eeda wrote:
-> On 08/01/2013 01:38 AM, Younger Liu wrote:
->> On 2013/8/1 15:20, Joel Becker wrote:
->>> Basically, there's so little in the cache that stealing would be too
->>> complex.  Really we just want to fall back to the global, and if that is
->>> empty, you're near enough ENOSPC that it doesn't much matter.
->>>
->>> Joel
->>>
->> Localalloc is a mount option. When mounting an ocfs2 volume, localalloc can
->> be set a larger size. For example, 2G or a larger number.
->>
->> In a multi-nodes cluster, all nodes mount ocfs2 volume with localalloc=2048
-> Is there a proof that localalloc=2048 performs better than default 256Mb 
-> ? local alloc currently looks for contiguous chunks. setting it to 2gb 
-> means it has to scan the whole bitmap to find that big of a chunk which 
-> in itself defeats the purpose of setting it to 2gb. I mean it might work 
-> well for a filesystem that just got formatted but as it gets used 
-> finding 2gb chunks is hard.
+From: Jie Liu <jeff.liu@oracle.com>
 
-yes, I have proved that localalloc=2048 performs better, it improves about 5%.
-In the scenario, ocfs2 volume stores virtual images which are very large, 
-for example, 20G or 50G.
+Revert "fs/ocfs2/journal.h: add bits_wanted while calculating credits in ocfs2_calc_extend_credits"
 
-> 
->> for performance consideration, if a node claims space for a file, but there
->> is no space in the local_alloc and global_bitmap. It would return ENOSPC.
->> However, other nodes may have lots of space which have been claimed
->> in local_alloc, so ENOSPC cannot reflect the actual situation.
->>
->> IMO, if there is no space both in the local_alloc and global_bitmap,
->> it should steal space from other nodes local_alloc.
->>
->> Thx,
->> Younger.
->>
->>> On Wed, Jul 31, 2013 at 08:33:48PM -0700, Sunil Mushran wrote:
->>>> Because it makes no sense. Unlike inode/extent allocs, local_alloc is a
->>>> temporary cache. If you fail to allocate, you fallback to the global bitmap.
->>>>
->>>>
->>>> On Sat, Jul 27, 2013 at 3:27 AM, Younger Liu <younger.liu@huawei.com> wrote:
->>>>
->>>>> Hi,
->>>>>    While analyzing ocfs2 block allocation, I found:
->>>>>    When claiming space from inode_alloc (or extent_alloc) system files,
->>>>> if there is no enough space in inode_alloc (or extent_alloc) and
->>>>> global_bitmap, it could steal space from other slots.
->>>>>    But when claiming space from local_alloc system files, and no
->>>>> enough space in local_alloc and global_bitmap, it returns -ENOSPC.
->>>>>
->>>>>    Why ocfs2 haven't implemented "steal" for local_alloc system files?
->>>>>    Is there any some reasons?
->>>>>
->>>>>
->>>>> _______________________________________________
->>>>> Ocfs2-devel mailing list
->>>>> Ocfs2-devel at oss.oracle.com
->>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>>>
->>>> _______________________________________________
->>>> Ocfs2-devel mailing list
->>>> Ocfs2-devel at oss.oracle.com
->>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
+This reverts commit 40bd62eb7fb8447798732e809a676ebaf2a7f910.
+
+Unfortunately this change broken fallocate even if there has sufficient
+disk space can be preallocated, which is a serious problem.
+
+# df -h
+/dev/sda8        22G  1.2G   21G   6% /ocfs2
+# fallocate -o 0 -l 200M /ocfs2/testfile
+fallocate: /ocfs2/test: fallocate failed: No space left on device
+
+CPU: 3 PID: 3656 Comm: fallocate Tainted: G        W  O 3.11.0-rc3 #2
+Call Trace:
+[<ffffffff81a5fea7>] dump_stack+0x77/0x9e
+[<ffffffff81093504>] warn_slowpath_common+0xc4/0x110
+[<ffffffff8109357a>] warn_slowpath_null+0x2a/0x40
+[<ffffffffa00ad9dc>] start_this_handle+0x6c/0x640 [jbd2]
+[<ffffffff81150f9d>] ? __module_address+0x1ad/0x270
+[<ffffffff81155cee>] ? is_module_address+0x1e/0x40
+[<ffffffff81135875>] ? static_obj+0x65/0xb0
+[<ffffffff8113f6f7>] ? lockdep_init_map+0x147/0x280
+[<ffffffffa00ae398>] jbd2__journal_start+0x138/0x300 [jbd2]
+[<ffffffffa00ae583>] jbd2_journal_start+0x23/0x30 [jbd2]
+[<ffffffffa0997726>] ocfs2_start_trans+0x166/0x300 [ocfs2]
+[<ffffffff81022426>] ? show_stack+0x66/0x70
+[<ffffffffa0985c4f>] __ocfs2_extend_allocation+0x38f/0xdb0 [ocfs2]
+[<ffffffffa097e414>] ? ocfs2_get_clusters_nocache.isra.11+0x234/0x5b0
+[<ffffffffa098fb53>] ? ocfs2_read_inode_block_full+0x43/0x80 [ocfs2]
+[<ffffffffa0997d00>] ? ocfs2_extend_trans+0x2c0/0x2c0 [ocfs2]
+[<ffffffffa098710e>] ? __ocfs2_change_file_space+0x57e/0xa60 [ocfs2]
+[<ffffffffa0986a39>] ocfs2_allocate_unwritten_extents+0x3c9/0x520
+[<ffffffff81a6e828>] ? down_write+0x108/0x120
+[<ffffffffa0987170>] __ocfs2_change_file_space+0x5e0/0xa60 [ocfs2]
+[<ffffffff812bd1ad>] ? do_fallocate+0x1ad/0x220
+[<ffffffffa09876a1>] ocfs2_fallocate+0xb1/0xe0 [ocfs2]
+[<ffffffff812bd1cb>] do_fallocate+0x1cb/0x220
+[<ffffffff812bd28f>] SyS_fallocate+0x6f/0xb0
+[<ffffffff81a83419>] system_call_fastpath+0x16/0x1b
+---[ end trace 474a79e9fc2db862 ]---
+[ 1683.855972] JBD2: fallocate wants too many credits (51216 > 4381)
+
+Cc: Goldwyn Rodrigues <rgoldwyn@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+---
+ fs/ocfs2/journal.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 96f9ac2..0a99273 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -537,7 +537,7 @@ static inline int ocfs2_calc_extend_credits(struct super_block *sb,
+ 	extent_blocks = 1 + 1 + le16_to_cpu(root_el->l_tree_depth);
+ 
+ 	return bitmap_blocks + sysfile_bitmap_blocks + extent_blocks +
+-	       ocfs2_quota_trans_credits(sb) + bits_wanted;
++	       ocfs2_quota_trans_credits(sb);
+ }
+ 
+ static inline int ocfs2_calc_symlink_credits(struct super_block *sb)
+-- 
+1.7.9.5
