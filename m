@@ -1,78 +1,277 @@
 From: Jeff Liu <jeff.liu@oracle.com>
-Date: Fri, 02 Aug 2013 18:17:07 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Revert commit 40bd62e to avoid
- regression in extended allocation
-Message-ID: <51FB8723.4030907@oracle.com>
+Date: Fri, 02 Aug 2013 18:52:14 +0800
+Subject: [Ocfs2-devel] [PATCH RESEND] ocfs2: fix NULL pointer dereference in
+	ocfs2_duplicate_clusters_by_page
+Message-ID: <51FB8F5E.8070908@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Jie Liu <jeff.liu@oracle.com>
+From: Tiger Yang <tiger.yang@oracle.com>
 
-Revert "fs/ocfs2/journal.h: add bits_wanted while calculating credits in ocfs2_calc_extend_credits"
+Since ocfs2_cow_file_pos will invoke ocfs2_refcount_icow with
+a NULL as the struct file pointer, it finally result in a null
+pointer dereference in ocfs2_duplicate_clusters_by_page.
 
-This reverts commit 40bd62eb7fb8447798732e809a676ebaf2a7f910.
+This patch replace file pointer with inode pointer in
+cow_duplicate_clusters to fix this issue.
 
-Unfortunately this change broken fallocate even if there has sufficient
-disk space can be preallocated, which is a serious problem.
+[Jeff: rebased patch against linux-next tree]
 
-# df -h
-/dev/sda8        22G  1.2G   21G   6% /ocfs2
-# fallocate -o 0 -l 200M /ocfs2/testfile
-fallocate: /ocfs2/test: fallocate failed: No space left on device
-
-CPU: 3 PID: 3656 Comm: fallocate Tainted: G        W  O 3.11.0-rc3 #2
-Call Trace:
-[<ffffffff81a5fea7>] dump_stack+0x77/0x9e
-[<ffffffff81093504>] warn_slowpath_common+0xc4/0x110
-[<ffffffff8109357a>] warn_slowpath_null+0x2a/0x40
-[<ffffffffa00ad9dc>] start_this_handle+0x6c/0x640 [jbd2]
-[<ffffffff81150f9d>] ? __module_address+0x1ad/0x270
-[<ffffffff81155cee>] ? is_module_address+0x1e/0x40
-[<ffffffff81135875>] ? static_obj+0x65/0xb0
-[<ffffffff8113f6f7>] ? lockdep_init_map+0x147/0x280
-[<ffffffffa00ae398>] jbd2__journal_start+0x138/0x300 [jbd2]
-[<ffffffffa00ae583>] jbd2_journal_start+0x23/0x30 [jbd2]
-[<ffffffffa0997726>] ocfs2_start_trans+0x166/0x300 [ocfs2]
-[<ffffffff81022426>] ? show_stack+0x66/0x70
-[<ffffffffa0985c4f>] __ocfs2_extend_allocation+0x38f/0xdb0 [ocfs2]
-[<ffffffffa097e414>] ? ocfs2_get_clusters_nocache.isra.11+0x234/0x5b0
-[<ffffffffa098fb53>] ? ocfs2_read_inode_block_full+0x43/0x80 [ocfs2]
-[<ffffffffa0997d00>] ? ocfs2_extend_trans+0x2c0/0x2c0 [ocfs2]
-[<ffffffffa098710e>] ? __ocfs2_change_file_space+0x57e/0xa60 [ocfs2]
-[<ffffffffa0986a39>] ocfs2_allocate_unwritten_extents+0x3c9/0x520
-[<ffffffff81a6e828>] ? down_write+0x108/0x120
-[<ffffffffa0987170>] __ocfs2_change_file_space+0x5e0/0xa60 [ocfs2]
-[<ffffffff812bd1ad>] ? do_fallocate+0x1ad/0x220
-[<ffffffffa09876a1>] ocfs2_fallocate+0xb1/0xe0 [ocfs2]
-[<ffffffff812bd1cb>] do_fallocate+0x1cb/0x220
-[<ffffffff812bd28f>] SyS_fallocate+0x6f/0xb0
-[<ffffffff81a83419>] system_call_fastpath+0x16/0x1b
----[ end trace 474a79e9fc2db862 ]---
-[ 1683.855972] JBD2: fallocate wants too many credits (51216 > 4381)
-
-Cc: Goldwyn Rodrigues <rgoldwyn@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Mark Fasheh <mfasheh@suse.com>
+Acked-by: Tao Ma <tm@tao.ma>
+Tested-by: David Weber <wb@munzinger.de>
+Signed-off-by: Tiger Yang <tiger.yang@oracle.com>
 Signed-off-by: Jie Liu <jeff.liu@oracle.com>
 ---
- fs/ocfs2/journal.h |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/ocfs2/aops.c         |    2 +-
+ fs/ocfs2/file.c         |    6 +++---
+ fs/ocfs2/move_extents.c |    2 +-
+ fs/ocfs2/refcounttree.c |   53 +++++++----------------------------------------
+ fs/ocfs2/refcounttree.h |    6 +++---
+ 5 files changed, 16 insertions(+), 53 deletions(-)
 
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 96f9ac2..0a99273 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -537,7 +537,7 @@ static inline int ocfs2_calc_extend_credits(struct super_block *sb,
- 	extent_blocks = 1 + 1 + le16_to_cpu(root_el->l_tree_depth);
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 79736a2..2abf97b 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -1757,7 +1757,7 @@ try_again:
+ 		goto out;
+ 	} else if (ret == 1) {
+ 		clusters_need = wc->w_clen;
+-		ret = ocfs2_refcount_cow(inode, filp, di_bh,
++		ret = ocfs2_refcount_cow(inode, di_bh,
+ 					 wc->w_cpos, wc->w_clen, UINT_MAX);
+ 		if (ret) {
+ 			mlog_errno(ret);
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 41000f2..3261d71 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -370,7 +370,7 @@ static int ocfs2_cow_file_pos(struct inode *inode,
+ 	if (!(ext_flags & OCFS2_EXT_REFCOUNTED))
+ 		goto out;
  
- 	return bitmap_blocks + sysfile_bitmap_blocks + extent_blocks +
--	       ocfs2_quota_trans_credits(sb) + bits_wanted;
-+	       ocfs2_quota_trans_credits(sb);
+-	return ocfs2_refcount_cow(inode, NULL, fe_bh, cpos, 1, cpos+1);
++	return ocfs2_refcount_cow(inode, fe_bh, cpos, 1, cpos+1);
+ 
+ out:
+ 	return status;
+@@ -899,7 +899,7 @@ static int ocfs2_zero_extend_get_range(struct inode *inode,
+ 		zero_clusters = last_cpos - zero_cpos;
+ 
+ 	if (needs_cow) {
+-		rc = ocfs2_refcount_cow(inode, NULL, di_bh, zero_cpos,
++		rc = ocfs2_refcount_cow(inode, di_bh, zero_cpos,
+ 					zero_clusters, UINT_MAX);
+ 		if (rc) {
+ 			mlog_errno(rc);
+@@ -2078,7 +2078,7 @@ static int ocfs2_prepare_inode_for_refcount(struct inode *inode,
+ 
+ 	*meta_level = 1;
+ 
+-	ret = ocfs2_refcount_cow(inode, file, di_bh, cpos, clusters, UINT_MAX);
++	ret = ocfs2_refcount_cow(inode, di_bh, cpos, clusters, UINT_MAX);
+ 	if (ret)
+ 		mlog_errno(ret);
+ out:
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index f1fc172..452068b 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -69,7 +69,7 @@ static int __ocfs2_move_extent(handle_t *handle,
+ 	u64 ino = ocfs2_metadata_cache_owner(context->et.et_ci);
+ 	u64 old_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cpos);
+ 
+-	ret = ocfs2_duplicate_clusters_by_page(handle, context->file, cpos,
++	ret = ocfs2_duplicate_clusters_by_page(handle, inode, cpos,
+ 					       p_cpos, new_p_cpos, len);
+ 	if (ret) {
+ 		mlog_errno(ret);
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 998b17e..aefe414 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -49,7 +49,6 @@
+ 
+ struct ocfs2_cow_context {
+ 	struct inode *inode;
+-	struct file *file;
+ 	u32 cow_start;
+ 	u32 cow_len;
+ 	struct ocfs2_extent_tree data_et;
+@@ -66,7 +65,7 @@ struct ocfs2_cow_context {
+ 			    u32 *num_clusters,
+ 			    unsigned int *extent_flags);
+ 	int (*cow_duplicate_clusters)(handle_t *handle,
+-				      struct file *file,
++				      struct inode *inode,
+ 				      u32 cpos, u32 old_cluster,
+ 				      u32 new_cluster, u32 new_len);
+ };
+@@ -2922,14 +2921,12 @@ static int ocfs2_clear_cow_buffer(handle_t *handle, struct buffer_head *bh)
  }
  
- static inline int ocfs2_calc_symlink_credits(struct super_block *sb)
+ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+-				     struct file *file,
++				     struct inode *inode,
+ 				     u32 cpos, u32 old_cluster,
+ 				     u32 new_cluster, u32 new_len)
+ {
+ 	int ret = 0, partial;
+-	struct inode *inode = file_inode(file);
+-	struct ocfs2_caching_info *ci = INODE_CACHE(inode);
+-	struct super_block *sb = ocfs2_metadata_cache_get_super(ci);
++	struct super_block *sb = inode->i_sb;
+ 	u64 new_block = ocfs2_clusters_to_blocks(sb, new_cluster);
+ 	struct page *page;
+ 	pgoff_t page_index;
+@@ -2973,13 +2970,6 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 		if (PAGE_CACHE_SIZE <= OCFS2_SB(sb)->s_clustersize)
+ 			BUG_ON(PageDirty(page));
+ 
+-		if (PageReadahead(page)) {
+-			page_cache_async_readahead(mapping,
+-						   &file->f_ra, file,
+-						   page, page_index,
+-						   readahead_pages);
+-		}
+-
+ 		if (!PageUptodate(page)) {
+ 			ret = block_read_full_page(page, ocfs2_get_block);
+ 			if (ret) {
+@@ -2999,7 +2989,8 @@ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+ 			}
+ 		}
+ 
+-		ocfs2_map_and_dirty_page(inode, handle, from, to,
++		ocfs2_map_and_dirty_page(inode,
++					 handle, from, to,
+ 					 page, 0, &new_block);
+ 		mark_page_accessed(page);
+ unlock:
+@@ -3015,12 +3006,11 @@ unlock:
+ }
+ 
+ int ocfs2_duplicate_clusters_by_jbd(handle_t *handle,
+-				    struct file *file,
++				    struct inode *inode,
+ 				    u32 cpos, u32 old_cluster,
+ 				    u32 new_cluster, u32 new_len)
+ {
+ 	int ret = 0;
+-	struct inode *inode = file_inode(file);
+ 	struct super_block *sb = inode->i_sb;
+ 	struct ocfs2_caching_info *ci = INODE_CACHE(inode);
+ 	int i, blocks = ocfs2_clusters_to_blocks(sb, new_len);
+@@ -3145,7 +3135,7 @@ static int ocfs2_replace_clusters(handle_t *handle,
+ 
+ 	/*If the old clusters is unwritten, no need to duplicate. */
+ 	if (!(ext_flags & OCFS2_EXT_UNWRITTEN)) {
+-		ret = context->cow_duplicate_clusters(handle, context->file,
++		ret = context->cow_duplicate_clusters(handle, context->inode,
+ 						      cpos, old, new, len);
+ 		if (ret) {
+ 			mlog_errno(ret);
+@@ -3423,35 +3413,12 @@ static int ocfs2_replace_cow(struct ocfs2_cow_context *context)
+ 	return ret;
+ }
+ 
+-static void ocfs2_readahead_for_cow(struct inode *inode,
+-				    struct file *file,
+-				    u32 start, u32 len)
+-{
+-	struct address_space *mapping;
+-	pgoff_t index;
+-	unsigned long num_pages;
+-	int cs_bits = OCFS2_SB(inode->i_sb)->s_clustersize_bits;
+-
+-	if (!file)
+-		return;
+-
+-	mapping = file->f_mapping;
+-	num_pages = (len << cs_bits) >> PAGE_CACHE_SHIFT;
+-	if (!num_pages)
+-		num_pages = 1;
+-
+-	index = ((loff_t)start << cs_bits) >> PAGE_CACHE_SHIFT;
+-	page_cache_sync_readahead(mapping, &file->f_ra, file,
+-				  index, num_pages);
+-}
+-
+ /*
+  * Starting at cpos, try to CoW write_len clusters.  Don't CoW
+  * past max_cpos.  This will stop when it runs into a hole or an
+  * unrefcounted extent.
+  */
+ static int ocfs2_refcount_cow_hunk(struct inode *inode,
+-				   struct file *file,
+ 				   struct buffer_head *di_bh,
+ 				   u32 cpos, u32 write_len, u32 max_cpos)
+ {
+@@ -3480,8 +3447,6 @@ static int ocfs2_refcount_cow_hunk(struct inode *inode,
+ 
+ 	BUG_ON(cow_len == 0);
+ 
+-	ocfs2_readahead_for_cow(inode, file, cow_start, cow_len);
+-
+ 	context = kzalloc(sizeof(struct ocfs2_cow_context), GFP_NOFS);
+ 	if (!context) {
+ 		ret = -ENOMEM;
+@@ -3503,7 +3468,6 @@ static int ocfs2_refcount_cow_hunk(struct inode *inode,
+ 	context->ref_root_bh = ref_root_bh;
+ 	context->cow_duplicate_clusters = ocfs2_duplicate_clusters_by_page;
+ 	context->get_clusters = ocfs2_di_get_clusters;
+-	context->file = file;
+ 
+ 	ocfs2_init_dinode_extent_tree(&context->data_et,
+ 				      INODE_CACHE(inode), di_bh);
+@@ -3532,7 +3496,6 @@ out:
+  * clusters between cpos and cpos+write_len are safe to modify.
+  */
+ int ocfs2_refcount_cow(struct inode *inode,
+-		       struct file *file,
+ 		       struct buffer_head *di_bh,
+ 		       u32 cpos, u32 write_len, u32 max_cpos)
+ {
+@@ -3552,7 +3515,7 @@ int ocfs2_refcount_cow(struct inode *inode,
+ 			num_clusters = write_len;
+ 
+ 		if (ext_flags & OCFS2_EXT_REFCOUNTED) {
+-			ret = ocfs2_refcount_cow_hunk(inode, file, di_bh, cpos,
++			ret = ocfs2_refcount_cow_hunk(inode, di_bh, cpos,
+ 						      num_clusters, max_cpos);
+ 			if (ret) {
+ 				mlog_errno(ret);
+diff --git a/fs/ocfs2/refcounttree.h b/fs/ocfs2/refcounttree.h
+index 7754608..6422bbc 100644
+--- a/fs/ocfs2/refcounttree.h
++++ b/fs/ocfs2/refcounttree.h
+@@ -53,7 +53,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+ 					  int *credits,
+ 					  int *ref_blocks);
+ int ocfs2_refcount_cow(struct inode *inode,
+-		       struct file *filep, struct buffer_head *di_bh,
++		       struct buffer_head *di_bh,
+ 		       u32 cpos, u32 write_len, u32 max_cpos);
+ 
+ typedef int (ocfs2_post_refcount_func)(struct inode *inode,
+@@ -85,11 +85,11 @@ int ocfs2_refcount_cow_xattr(struct inode *inode,
+ 			     u32 cpos, u32 write_len,
+ 			     struct ocfs2_post_refcount *post);
+ int ocfs2_duplicate_clusters_by_page(handle_t *handle,
+-				     struct file *file,
++				     struct inode *inode,
+ 				     u32 cpos, u32 old_cluster,
+ 				     u32 new_cluster, u32 new_len);
+ int ocfs2_duplicate_clusters_by_jbd(handle_t *handle,
+-				    struct file *file,
++				    struct inode *inode,
+ 				    u32 cpos, u32 old_cluster,
+ 				    u32 new_cluster, u32 new_len);
+ int ocfs2_cow_sync_writeback(struct super_block *sb,
 -- 
 1.7.9.5
