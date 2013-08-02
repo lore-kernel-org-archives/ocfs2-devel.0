@@ -1,38 +1,33 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 2 Aug 2013 15:30:54 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix possible double free in
-	ocfs2_reflink_xattr_rec
-Message-ID: <51FB602E.7000600@huawei.com>
+From: Younger Liu <younger.liu@huawei.com>
+Date: Fri, 2 Aug 2013 17:14:30 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: free path in ocfs2_remove_inode_range()
+Message-ID: <51FB7876.1010506@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_reflink_xattr_rec(), meta_ac and data_ac are allocated by
-calling ocfs2_lock_reflink_xattr_rec_allocators().
-Once an error occurs when allocating *data_ac, it frees *meta_ac which
-is allocated before. Here it mistakenly sets meta_ac to NULL but
-*meta_ac. Then ocfs2_reflink_xattr_rec() will try to free meta_ac again
-which is already invalid.
+In ocfs2_remove_inode_range(), there is a memory leak.
+The variable path has allocated memory with ocfs2_new_path_from_et(), 
+but it is not free.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Signed-off-by: Younger Liu <younger.liu@huawei.com>
 ---
- fs/ocfs2/xattr.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/ocfs2/file.c |    1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 87daa44..bd2a1f0 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -6799,7 +6799,7 @@ out:
- 	if (ret) {
- 		if (*meta_ac) {
- 			ocfs2_free_alloc_context(*meta_ac);
--			meta_ac = NULL;
-+			*meta_ac = NULL;
- 		}
- 	}
-
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 833a09b..2d1a227 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -1796,6 +1796,7 @@ static int ocfs2_remove_inode_range(struct inode *inode,
+ 	ocfs2_truncate_cluster_pages(inode, byte_start, byte_len);
+ 
+ out:
++	ocfs2_free_path(path);
+ 	ocfs2_schedule_truncate_log_flush(osb, 1);
+ 	ocfs2_run_deallocs(osb, &dealloc);
+ 
 -- 
 1.7.9.7
