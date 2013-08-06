@@ -1,150 +1,56 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 06 Aug 2013 10:56:58 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: update inode size after zeroed
- the hole
-In-Reply-To: <1373597724-28242-1-git-send-email-junxiao.bi@oracle.com>
-References: <1373597724-28242-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <520065FA.3000805@oracle.com>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Tue, 06 Aug 2013 13:44:55 +0800
+Subject: [Ocfs2-devel] [PATCH Resend] ocfs2: add the missing return
+	value check of ocfs2_get_clusters
+In-Reply-To: <51FA2BA3.2090009@huawei.com>
+References: <51FA2BA3.2090009@huawei.com>
+Message-ID: <52008D57.7050100@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joel, Mark, Sunil,
+On 08/01/2013 05:34 PM, Joseph Qi wrote:
 
-Could you help review this patch? Now it's in mmotm tree and need your
-ack to go in mainline. This bug can cause sparse file hole with non-zero
-data, and cause a big confuse to customer who think they have a corrupt
-file.
+> In ocfs2_attach_refcount_tree() and ocfs2_duplicate_extent_list(), if
+> error occurs when calling ocfs2_get_clusters(), it will go with
+> unexpected behavior as local variables p_cluster, num_clusters and
+> ext_flags are declared without initialization.
+> 
+> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 
-Thanks,
-Junxiao.
+Looks good, thanks.
 
-On 07/12/2013 10:55 AM, Junxiao Bi wrote:
-> fs-writeback will release the dirty pages without page lock
-> whose offset are over inode size, the release happens at
-> block_write_full_page_endio(). If not update, dirty pages
-> in file holes may be released before flushed to the disk,
-> then file holes will contain some non-zero data, this will
-> cause sparse file md5sum error.
->
-> To reproduce the bug, find a big sparse file with many holes,
-> like vm image file, its actual size should be bigger than
-> available mem size to make writeback work more frequently,
-> tar it with -S option, then keep untar it and check its md5sum
-> again and again until you get a wrong md5sum.
->
-> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+Reviewed-by: Jie Liu <jeff.liu@oracle.com>
+
 > ---
->  fs/ocfs2/file.c |   40 ++++++++++++++++++++++++++++++++--------
->  1 file changed, 32 insertions(+), 8 deletions(-)
->
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index ff54014..3ce6a8b 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -723,7 +723,8 @@ leave:
->   * While a write will already be ordering the data, a truncate will not.
->   * Thus, we need to explicitly order the zeroed pages.
->   */
-> -static handle_t *ocfs2_zero_start_ordered_transaction(struct inode *inode)
-> +static handle_t *ocfs2_zero_start_ordered_transaction(struct inode *inode,
-> +						struct buffer_head *di_bh)
->  {
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->  	handle_t *handle = NULL;
-> @@ -740,7 +741,14 @@ static handle_t *ocfs2_zero_start_ordered_transaction(struct inode *inode)
->  	}
+>  fs/ocfs2/refcounttree.c |    8 ++++++++
+>  1 file changed, 8 insertions(+)
+> 
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 998b17e..3589ec1 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -3886,6 +3886,10 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
+>  	while (cpos < clusters) {
+>  		ret = ocfs2_get_clusters(inode, cpos, &p_cluster,
+>  					 &num_clusters, &ext_flags);
+> +		if (ret) {
+> +			mlog_errno(ret);
+> +			goto unlock;
+> +		}
 >  
->  	ret = ocfs2_jbd2_file_inode(handle, inode);
-> -	if (ret < 0)
-> +	if (ret < 0) {
-> +		mlog_errno(ret);
-> +		goto out;
-> +	}
-> +
-> +	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-> +				      OCFS2_JOURNAL_ACCESS_WRITE);
-> +	if (ret)
->  		mlog_errno(ret);
+>  		if (p_cluster && !(ext_flags & OCFS2_EXT_REFCOUNTED)) {
+>  			ret = ocfs2_add_refcount_flag(inode, &di_et,
+> @@ -4057,6 +4061,10 @@ static int ocfs2_duplicate_extent_list(struct inode *s_inode,
+>  	while (cpos < clusters) {
+>  		ret = ocfs2_get_clusters(s_inode, cpos, &p_cluster,
+>  					 &num_clusters, &ext_flags);
+> +		if (ret) {
+> +			mlog_errno(ret);
+> +			goto out;
+> +		}
 >  
->  out:
-> @@ -756,7 +764,7 @@ out:
->   * to be too fragile to do exactly what we need without us having to
->   * worry about recursive locking in ->write_begin() and ->write_end(). */
->  static int ocfs2_write_zero_page(struct inode *inode, u64 abs_from,
-> -				 u64 abs_to)
-> +				 u64 abs_to, struct buffer_head *di_bh)
->  {
->  	struct address_space *mapping = inode->i_mapping;
->  	struct page *page;
-> @@ -764,6 +772,7 @@ static int ocfs2_write_zero_page(struct inode *inode, u64 abs_from,
->  	handle_t *handle = NULL;
->  	int ret = 0;
->  	unsigned zero_from, zero_to, block_start, block_end;
-> +	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
->  
->  	BUG_ON(abs_from >= abs_to);
->  	BUG_ON(abs_to > (((u64)index + 1) << PAGE_CACHE_SHIFT));
-> @@ -806,7 +815,8 @@ static int ocfs2_write_zero_page(struct inode *inode, u64 abs_from,
->  		}
->  
->  		if (!handle) {
-> -			handle = ocfs2_zero_start_ordered_transaction(inode);
-> +			handle = ocfs2_zero_start_ordered_transaction(inode,
-> +								      di_bh);
->  			if (IS_ERR(handle)) {
->  				ret = PTR_ERR(handle);
->  				handle = NULL;
-> @@ -823,8 +833,22 @@ static int ocfs2_write_zero_page(struct inode *inode, u64 abs_from,
->  			ret = 0;
->  	}
->  
-> -	if (handle)
-> +	if (handle) {
-> +		/*
-> +		 * fs-writeback will release the dirty pages without page lock
-> +		 * whose offset are over inode size, the release happens at
-> +		 * block_write_full_page_endio().
-> +		 */
-> +		i_size_write(inode, abs_to);
-> +		inode->i_blocks = ocfs2_inode_sector_count(inode);
-> +		di->i_size = cpu_to_le64((u64)i_size_read(inode));
-> +		inode->i_mtime = inode->i_ctime = CURRENT_TIME;
-> +		di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
-> +		di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
-> +		di->i_mtime_nsec = di->i_ctime_nsec;
-> +		ocfs2_journal_dirty(handle, di_bh);
->  		ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
-> +	}
->  
->  out_unlock:
->  	unlock_page(page);
-> @@ -920,7 +944,7 @@ out:
->   * has made sure that the entire range needs zeroing.
->   */
->  static int ocfs2_zero_extend_range(struct inode *inode, u64 range_start,
-> -				   u64 range_end)
-> +				   u64 range_end, struct buffer_head *di_bh)
->  {
->  	int rc = 0;
->  	u64 next_pos;
-> @@ -936,7 +960,7 @@ static int ocfs2_zero_extend_range(struct inode *inode, u64 range_start,
->  		next_pos = (zero_pos & PAGE_CACHE_MASK) + PAGE_CACHE_SIZE;
->  		if (next_pos > range_end)
->  			next_pos = range_end;
-> -		rc = ocfs2_write_zero_page(inode, zero_pos, next_pos);
-> +		rc = ocfs2_write_zero_page(inode, zero_pos, next_pos, di_bh);
->  		if (rc < 0) {
->  			mlog_errno(rc);
->  			break;
-> @@ -982,7 +1006,7 @@ int ocfs2_zero_extend(struct inode *inode, struct buffer_head *di_bh,
->  			range_end = zero_to_size;
->  
->  		ret = ocfs2_zero_extend_range(inode, range_start,
-> -					      range_end);
-> +					      range_end, di_bh);
->  		if (ret) {
->  			mlog_errno(ret);
->  			break;
+>  		if (p_cluster) {
+>  			ret = ocfs2_add_refcounted_extent(t_inode, &et,
