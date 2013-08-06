@@ -1,44 +1,45 @@
-From: Younger Liu <younger.liu@huawei.com>
-Date: Tue, 6 Aug 2013 16:39:21 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a memory leak at
-	__ocfs2_move_extents()
-In-Reply-To: <5200968A.1050403@oracle.com>
-References: <5200968A.1050403@oracle.com>
-Message-ID: <5200B639.7000303@huawei.com>
+From: Jeff Liu <jeff.liu@oracle.com>
+Date: Tue, 06 Aug 2013 22:43:49 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix possible double free in
+	ocfs2_reflink_xattr_rec
+In-Reply-To: <51FB602E.7000600@huawei.com>
+References: <51FB602E.7000600@huawei.com>
+Message-ID: <52010BA5.8090806@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/8/6 14:24, Jeff Liu wrote:
-> From: Jie Liu <jeff.liu@oracle.com>
-> 
-> The ocfs2 path is not properly freed which leads to a
-> memory leak at __ocfs2_move_extents().
-> 
-> This patch stops the leaks of the ocfs2_path structure.
-> 
-> Cc: Younger Liu <younger.liu@huawei.com>
-> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+On 08/02/2013 03:30 PM, Joseph Qi wrote:
 
-This patch looks fine to me.
-Reviewed-by: Younger Liu <younger.liu@huawei.com>
+> In ocfs2_reflink_xattr_rec(), meta_ac and data_ac are allocated by
+> calling ocfs2_lock_reflink_xattr_rec_allocators().
+> Once an error occurs when allocating *data_ac, it frees *meta_ac which
+> is allocated before. Here it mistakenly sets meta_ac to NULL but
+> *meta_ac. Then ocfs2_reflink_xattr_rec() will try to free meta_ac again
+> which is already invalid.
+> 
+> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+
+Looks good to me, thanks.
+
+Reviewed-by: Jie Liu <jeff.liu@oracle.com>
 
 > ---
->  fs/ocfs2/move_extents.c |    1 +
->  1 file changed, 1 insertion(+)
+>  fs/ocfs2/xattr.c |    2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index f1fc172..37231d1 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -152,6 +152,7 @@ static int __ocfs2_move_extent(handle_t *handle,
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 87daa44..bd2a1f0 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -6799,7 +6799,7 @@ out:
+>  	if (ret) {
+>  		if (*meta_ac) {
+>  			ocfs2_free_alloc_context(*meta_ac);
+> -			meta_ac = NULL;
+> +			*meta_ac = NULL;
+>  		}
 >  	}
->  
->  out:
-> +	ocfs2_free_path(path);
->  	return ret;
->  }
->  
 > 
