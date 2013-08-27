@@ -1,62 +1,57 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Tue, 27 Aug 2013 14:05:01 -0700
-Subject: [Ocfs2-devel] [patch 09/22] fs/ocfs2/cluster/tcp.c: fix possible
-	null pointer dereferences
-Message-ID: <20130827210502.1C1955A42C7@corp2gmr1-2.hot.corp.google.com>
+Date: Tue, 27 Aug 2013 14:05:05 -0700
+Subject: [Ocfs2-devel] [patch 12/22] ocfs2: add missing return value check
+	of ocfs2_get_clusters()
+Message-ID: <20130827210505.A504B31C129@corp2gmr1-1.hot.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Sunil Mushran <sunil.mushran@oracle.com>
-Subject: fs/ocfs2/cluster/tcp.c: fix possible null pointer dereferences
+From: Joseph Qi <joseph.qi@huawei.com>
+Subject: ocfs2: add missing return value check of ocfs2_get_clusters()
 
-Fix some possible null pointer dereferences that were detected by the
-static code analyser, smatch.
+In ocfs2_attach_refcount_tree() and ocfs2_duplicate_extent_list(), if
+error occurs when calling ocfs2_get_clusters(), it will go with
+unexpected behavior as local variables p_cluster, num_clusters and
+ext_flags are declared without initialization.
 
-Signed-off-by: Sunil Mushran <sunil.mushran@oracle.com>
-Reported-by: Dan Carpenter <error27@gmail.com>
-Reported-by: Guozhonghua <guozhonghua@h3c.com>
-Cc: Sunil Mushran <sunil.mushran@gmail.com>
-Cc: Joseph Qi <joseph.qi@huawei.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Jie Liu <jeff.liu@oracle.com>
 Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Mark Fasheh <mfasheh@suse.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/cluster/tcp.c |   10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ fs/ocfs2/refcounttree.c |   10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-diff -puN fs/ocfs2/cluster/tcp.c~fs-ocfs2-cluster-tcpc-fix-possible-null-pointer-dereferences fs/ocfs2/cluster/tcp.c
---- a/fs/ocfs2/cluster/tcp.c~fs-ocfs2-cluster-tcpc-fix-possible-null-pointer-dereferences
-+++ a/fs/ocfs2/cluster/tcp.c
-@@ -543,8 +543,9 @@ static void o2net_set_nn_state(struct o2
- 	}
- 
- 	if (was_valid && !valid) {
--		printk(KERN_NOTICE "o2net: No longer connected to "
--		       SC_NODEF_FMT "\n", SC_NODEF_ARGS(old_sc));
-+		if (old_sc)
-+			printk(KERN_NOTICE "o2net: No longer connected to "
-+				SC_NODEF_FMT "\n", SC_NODEF_ARGS(old_sc));
- 		o2net_complete_nodes_nsw(nn);
- 	}
- 
-@@ -1695,13 +1696,12 @@ static void o2net_start_connect(struct w
- 		ret = 0;
- 
- out:
--	if (ret) {
-+	if (ret && sc) {
- 		printk(KERN_NOTICE "o2net: Connect attempt to " SC_NODEF_FMT
- 		       " failed with errno %d\n", SC_NODEF_ARGS(sc), ret);
- 		/* 0 err so that another will be queued and attempted
- 		 * from set_nn_state */
--		if (sc)
--			o2net_ensure_shutdown(nn, sc, 0);
-+		o2net_ensure_shutdown(nn, sc, 0);
- 	}
- 	if (sc)
- 		sc_put(sc);
+diff -puN fs/ocfs2/refcounttree.c~ocfs2-add-missing-return-value-check-of-ocfs2_get_clusters fs/ocfs2/refcounttree.c
+--- a/fs/ocfs2/refcounttree.c~ocfs2-add-missing-return-value-check-of-ocfs2_get_clusters
++++ a/fs/ocfs2/refcounttree.c
+@@ -3854,7 +3854,10 @@ static int ocfs2_attach_refcount_tree(st
+ 	while (cpos < clusters) {
+ 		ret = ocfs2_get_clusters(inode, cpos, &p_cluster,
+ 					 &num_clusters, &ext_flags);
+-
++		if (ret) {
++			mlog_errno(ret);
++			goto unlock;
++		}
+ 		if (p_cluster && !(ext_flags & OCFS2_EXT_REFCOUNTED)) {
+ 			ret = ocfs2_add_refcount_flag(inode, &di_et,
+ 						      &ref_tree->rf_ci,
+@@ -4025,7 +4028,10 @@ static int ocfs2_duplicate_extent_list(s
+ 	while (cpos < clusters) {
+ 		ret = ocfs2_get_clusters(s_inode, cpos, &p_cluster,
+ 					 &num_clusters, &ext_flags);
+-
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
+ 		if (p_cluster) {
+ 			ret = ocfs2_add_refcounted_extent(t_inode, &et,
+ 							  ref_ci, ref_root_bh,
 _
