@@ -1,62 +1,69 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Tue, 27 Aug 2013 14:04:52 -0700
-Subject: [Ocfs2-devel] [patch 01/22] ocfs2: should call
-	ocfs2_journal_access_di() before ocfs2_delete_entry() in
-	ocfs2_orphan_del()
-Message-ID: <20130827210452.B209C5A4276@corp2gmr1-2.hot.corp.google.com>
+Date: Tue, 27 Aug 2013 14:04:53 -0700
+Subject: [Ocfs2-devel] [patch 02/22] ocfs2: llseek requires ocfs2 inode lock
+	for the file in SEEK_END
+Message-ID: <20130827210453.E96D431C129@corp2gmr1-1.hot.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Younger Liu <younger.liu@huawei.com>
-Subject: ocfs2: should call ocfs2_journal_access_di() before ocfs2_delete_entry() in ocfs2_orphan_del()
+From: Jensen <shencanquan@huawei.com>
+Subject: ocfs2: llseek requires ocfs2 inode lock for the file in SEEK_END
 
-While deleting a file into orphan dir in ocfs2_orphan_del(), it calls
-ocfs2_delete_entry() before ocfs2_journal_access_di().  If
-ocfs2_delete_entry() succeeded and ocfs2_journal_access_di() failed, there
-would be a inconsistency: the file is deleted from orphan dir, but orphan
-dir dinode is not updated.
+llseek requires ocfs2 inode lock for updating the file size in SEEK_END. 
+because the file size maybe update on another node.
 
-So we need to call ocfs2_journal_access_di() before ocfs2_orphan_del().
+This bug can be reproduce the following scenario: at first, we dd a test
+fileA, the file size is 10k.
 
-Signed-off-by: Younger Liu <younger.liu@huawei.com>
-Reviewed-by: Jensen <shencanquan@huawei.com>
+on NodeA:
+---------
+1) open the test fileA, lseek the end of file. and print the position.
+2) close the test fileA
+
+on NodeB:
+1) open the test fileA, append the 5k data to test FileA.
+2) lseek the end of file. and print the position.
+3) close file.
+
+At first we run the test program1 on NodeA , the result is 10k.  And then
+run the test program2 on NodeB, the result is 15k.  At last, we run the
+test program1 on NodeA again, the result is 10k.
+
+After applying this patch the three step result is 15k.
+
+Signed-off-by: Jensen <shencanquan@huawei.com>
 Cc: Jie Liu <jeff.liu@oracle.com>
-Cc: Joel Becker <jlbec@evilplan.org>
+Acked-by: Joel Becker <jlbec@evilplan.org>
 Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Sunil Mushran <sunil.mushran@gmail.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/namei.c |   12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ fs/ocfs2/file.c |   11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
 
-diff -puN fs/ocfs2/namei.c~ocfs2-should-call-ocfs2_journal_access_di-before-ocfs2_delete_entry-in-ocfs2_orphan_del fs/ocfs2/namei.c
---- a/fs/ocfs2/namei.c~ocfs2-should-call-ocfs2_journal_access_di-before-ocfs2_delete_entry-in-ocfs2_orphan_del
-+++ a/fs/ocfs2/namei.c
-@@ -2101,17 +2101,17 @@ int ocfs2_orphan_del(struct ocfs2_super
- 		goto leave;
- 	}
- 
--	/* remove it from the orphan directory */
--	status = ocfs2_delete_entry(handle, orphan_dir_inode, &lookup);
-+	status = ocfs2_journal_access_di(handle,
-+					 INODE_CACHE(orphan_dir_inode),
-+					 orphan_dir_bh,
-+					 OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
- 	}
- 
--	status = ocfs2_journal_access_di(handle,
--					 INODE_CACHE(orphan_dir_inode),
--					 orphan_dir_bh,
--					 OCFS2_JOURNAL_ACCESS_WRITE);
-+	/* remove it from the orphan directory */
-+	status = ocfs2_delete_entry(handle, orphan_dir_inode, &lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto leave;
+diff -puN fs/ocfs2/file.c~ocfs2-llseek-requires-ocfs2-inode-lock-for-the-file-in-seek_end fs/ocfs2/file.c
+--- a/fs/ocfs2/file.c~ocfs2-llseek-requires-ocfs2-inode-lock-for-the-file-in-seek_end
++++ a/fs/ocfs2/file.c
+@@ -2626,7 +2626,16 @@ static loff_t ocfs2_file_llseek(struct f
+ 	case SEEK_SET:
+ 		break;
+ 	case SEEK_END:
+-		offset += inode->i_size;
++		/* SEEK_END requires the OCFS2 inode lock for the file
++		 * because it references the file's size.
++		 */
++		ret = ocfs2_inode_lock(inode, NULL, 0);
++		if (ret < 0) {
++			mlog_errno(ret);
++			goto out;
++		}
++		offset += i_size_read(inode);
++		ocfs2_inode_unlock(inode, 0);
+ 		break;
+ 	case SEEK_CUR:
+ 		if (offset == 0) {
 _
