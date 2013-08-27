@@ -1,30 +1,20 @@
-From: David Weber <wb@munzinger.de>
-Date: Tue, 27 Aug 2013 10:48:54 +0200
-Subject: [Ocfs2-devel] fcntl(2) support with o2cb
-Message-ID: <5221255.1zJqs1Yu26@o3-3>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 27 Aug 2013 13:54:24 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a tiny race case when fire
+	callbacks
+In-Reply-To: <521C446D.8000500@huawei.com>
+References: <521C446D.8000500@huawei.com>
+Message-ID: <20130827135424.fbd9390e516fb7ca63d57b57@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+On Tue, 27 Aug 2013 14:17:17 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
 
-as far as I understand the current situation with locking looks like this:
+> Signed-off-by: Joyce <xuejiufei@huawei.com>
+> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 
-- o2cb supports cluster-aware flock(2). fcntl(2) locks are only local.
-- Pacemaker and cman also support cluster-aware fcntl(2)
-- There is no way for a userspace program to check if fcntl(2) is cluster-
-aware or not
-
-Is this correct?
-
-We would like to stick with the o2cb cluster stack but there are applications 
-like virtlockd out of the libvirt project which (at least at the moment) 
-require fcntl(2) support. How much work would it be to implement cluster-aware 
-fcntl(2) support for o2cb?
-
-Thanks in advance!
-
-Cheers,
-David
+This signoff trail makes me wonder: which of you was the primary
+author of this patch?
