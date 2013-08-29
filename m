@@ -1,51 +1,52 @@
 From: Jeff Liu <jeff.liu@oracle.com>
-Date: Thu, 29 Aug 2013 17:52:33 +0800
-Subject: [Ocfs2-devel] [PATCH] Use bigger nodestr to accomodate 32-bit
- node numbers
-In-Reply-To: <20130828041547.GA4404@shrek.cartoons>
-References: <20130828041547.GA4404@shrek.cartoons>
-Message-ID: <521F19E1.8010600@oracle.com>
+Date: Thu, 29 Aug 2013 17:54:37 +0800
+Subject: [Ocfs2-devel] [patch 22/22] ocfs2: remove unused variable ip in
+ dlmfs_get_root_inode()
+In-Reply-To: <20130827210516.E4DC95A4276@corp2gmr1-2.hot.corp.google.com>
+References: <20130827210516.E4DC95A4276@corp2gmr1-2.hot.corp.google.com>
+Message-ID: <521F1A5D.7020003@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Goldwyn,
+On 08/28/2013 05:05 AM, akpm at linux-foundation.org wrote:
 
-On 08/28/2013 12:15 PM, Goldwyn Rodrigues wrote:
-
-> While using pacemaker/corosync, the node numbers are generated using
-> IP address as opposed to serial node number generation. This may
-> not fit in a 8-byte string. Use a bigger string to print the 
-> complete node number.
-
-I have no experience of pacemaker/corosync, so here is my comments
-pointing against this change only if we would expand the nodestr. :)
-
+> From: Joseph Qi <joseph.qi@huawei.com>
+> Subject: ocfs2: remove unused variable ip in dlmfs_get_root_inode()
 > 
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
-> --- 
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 854d809..bc947e0 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -1022,7 +1022,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
->  	struct inode *inode = NULL;
->  	struct ocfs2_super *osb = NULL;
->  	struct buffer_head *bh = NULL;
-> -	char nodestr[8];
-> +	char nodestr[12];
+> Variable ip in dlmfs_get_root_inode() is defined but not used.  So clean
+> it up.
+> 
+> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
-We have the corresponding debugging logic at ocfs2_dismount_volume(), which
-defines the nodestr with the old size, it seems that this change would cause
-potential buffer overflow while restore a bigger nodestr at it.
+Looks good.  Reviewed-by: Jie Liu <jeff.liu@oracle.com>
 
-Also, there might has another relationship to ocfs2_control_message_setn/down
-at stack_user.c because we limit the length of nodenum with a marco:
-#define OCFS2_CONTROL_MESSAGE_NODENUM_LEN       8
-
-Maybe we should unify them?
-
-Thanks,
--Jeff
+> ---
+> 
+>  fs/ocfs2/dlmfs/dlmfs.c |    3 ---
+>  1 file changed, 3 deletions(-)
+> 
+> diff -puN fs/ocfs2/dlmfs/dlmfs.c~ocfs2-cleanup-unused-variable-ip-in-dlmfs_get_root_inode fs/ocfs2/dlmfs/dlmfs.c
+> --- a/fs/ocfs2/dlmfs/dlmfs.c~ocfs2-cleanup-unused-variable-ip-in-dlmfs_get_root_inode
+> +++ a/fs/ocfs2/dlmfs/dlmfs.c
+> @@ -401,11 +401,8 @@ static struct inode *dlmfs_get_root_inod
+>  {
+>  	struct inode *inode = new_inode(sb);
+>  	umode_t mode = S_IFDIR | 0755;
+> -	struct dlmfs_inode_private *ip;
+>  
+>  	if (inode) {
+> -		ip = DLMFS_I(inode);
+> -
+>  		inode->i_ino = get_next_ino();
+>  		inode_init_owner(inode, NULL, mode);
+>  		inode->i_mapping->backing_dev_info = &dlmfs_backing_dev_info;
+> _
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
