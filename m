@@ -1,32 +1,162 @@
 From: Younger Liu <younger.liu@huawei.com>
-Date: Tue, 3 Sep 2013 10:51:53 +0800
-Subject: [Ocfs2-devel] [V2,
-	RESENT] ocfs2: lighten up allocate transaction
-In-Reply-To: <5222d9d9.9mQfRonnYwCLHx6n%wangshilong1991@gmail.com>
-References: <5222d9d9.9mQfRonnYwCLHx6n%wangshilong1991@gmail.com>
-Message-ID: <52254EC9.7020106@huawei.com>
+Date: Tue, 3 Sep 2013 10:58:25 +0800
+Subject: [Ocfs2-devel] [patch 05/22] ocfs2: lighten up allocate
+	transaction
+In-Reply-To: <20130827210457.83C2E31C129@corp2gmr1-1.hot.corp.google.com>
+References: <20130827210457.83C2E31C129@corp2gmr1-1.hot.corp.google.com>
+Message-ID: <52255051.9070806@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/9/1 14:08, Wang Shilong wrote:
-> Hello, Using checkpatch.pl, i get the following warnings(errors):
-> ERROR: patch seems to be corrupt (line wrapped?)
-> #57: FILE: fs/ocfs2/file.c:665:
-> 		} else {
+On 2013/8/28 5:04, akpm at linux-foundation.org wrote:
+> From: Younger Liu <younger.liu@huawei.com>
+> Subject: ocfs2: lighten up allocate transaction
 > 
-> total: 1 errors, 0 warnings, 87 lines checked
+> The issue scenario is as following:
 > 
-> patch has style problems, please review.  If any of these errors
-> are false positives report them to the maintainer, see
-> CHECKPATCH in MAINTAINERS.
+> When fallocating a very large disk space for a small file,
+> __ocfs2_extend_allocation attempts to get a very large transaction.  For
+> some journal sizes, there may be not enough room for this transaction, and
+> the fallocate will fail.
 > 
-> Thanks, Wang
+> The patch below extends & restarts the transaction as necessary while
+> allocating space, and should work with even the smallest journal.  This
+> patch refers ext4 resize.
 > 
+> Test:
+> # mkfs.ocfs2 -b 4K -C 32K -T datafiles /dev/sdc
+> ...(jounral size is 32M)
+> # mount.ocfs2 /dev/sdc /mnt/ocfs2/
+> # touch /mnt/ocfs2/1.log
+> # fallocate -o 0 -l 400G /mnt/ocfs2/1.log
+> fallocate: /mnt/ocfs2/1.log: fallocate failed: Cannot allocate memory
+> # tail -f /var/log/messages
+> [ 7372.278591] JBD: fallocate wants too many credits (2051 > 2048)
+> [ 7372.278597] (fallocate,6438,0):__ocfs2_extend_allocation:709 ERROR: status = -12
+> [ 7372.278603] (fallocate,6438,0):ocfs2_allocate_unwritten_extents:1504 ERROR: status = -12
+> [ 7372.278607] (fallocate,6438,0):__ocfs2_change_file_space:1955 ERROR: status = -12
+> ^C
+> With this patch, the test works well.
 > 
-Thanks for your review.
-  I reviewed the patch again. The patch is not the newest one. 
-I have sent patch V3. So I will sent patch V3 again.
-	--Younger
+
+Hi Andrew Morton,
+   This patch is not the newest one, I have sent patch V3. 
+In patch V3, some coding style errors are modified. I will 
+resent the patch V3 in a moment, and please drop this patch.
+  Thanks.
+	--Younger 
+
+> Signed-off-by: Younger Liu <younger.liu@huawei.com>
+> Cc: Jie Liu <jeff.liu@oracle.com>
+> Cc: Joel Becker <jlbec@evilplan.org>
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+> ---
+> 
+>  fs/ocfs2/file.c        |    6 +-----
+>  fs/ocfs2/journal.c     |   35 +++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/journal.h     |   11 +++++++++++
+>  fs/ocfs2/ocfs2_trace.h |    2 ++
+>  4 files changed, 49 insertions(+), 5 deletions(-)
+> 
+> diff -puN fs/ocfs2/file.c~ocfs2-lighten-up-allocate-transaction fs/ocfs2/file.c
+> --- a/fs/ocfs2/file.c~ocfs2-lighten-up-allocate-transaction
+> +++ a/fs/ocfs2/file.c
+> @@ -666,11 +666,7 @@ restarted_transaction:
+>  		} else {
+>  			BUG_ON(why != RESTART_TRANS);
+>  
+> -			/* TODO: This can be more intelligent. */
+> -			credits = ocfs2_calc_extend_credits(osb->sb,
+> -							    &fe->id2.i_list,
+> -							    clusters_to_add);
+> -			status = ocfs2_extend_trans(handle, credits);
+> +			status = ocfs2_allocate_extend_trans(handle, 1);
+>  			if (status < 0) {
+>  				/* handle still has to be committed at
+>  				 * this point. */
+> diff -puN fs/ocfs2/journal.c~ocfs2-lighten-up-allocate-transaction fs/ocfs2/journal.c
+> --- a/fs/ocfs2/journal.c~ocfs2-lighten-up-allocate-transaction
+> +++ a/fs/ocfs2/journal.c
+> @@ -455,6 +455,41 @@ bail:
+>  	return status;
+>  }
+>  
+> +/*
+> + * If we have fewer than thresh credits, extend by OCFS2_MAX_TRANS_DATA.
+> + * If that fails, restart the transaction & regain write access for the
+> + * buffer head which is used for metadata modifications.
+> + * Taken from Ext4: extend_or_restart_transaction()
+> + */
+> +int ocfs2_allocate_extend_trans(handle_t *handle, int thresh)
+> +{
+> +	int status, old_nblks;
+> +
+> +	BUG_ON(!handle);
+> +
+> +	old_nblks = handle->h_buffer_credits;
+> +	trace_ocfs2_allocate_extend_trans(old_nblks, thresh);
+> +
+> +	if (old_nblks < thresh)
+> +		return 0;
+> +
+> +	status = jbd2_journal_extend(handle, OCFS2_MAX_TRANS_DATA);
+> +	if (status < 0) {
+> +		mlog_errno(status);
+> +		goto bail;
+> +	}
+> +
+> +	if (status > 0) {
+> +		status = jbd2_journal_restart(handle, OCFS2_MAX_TRANS_DATA);
+> +		if (status < 0)
+> +			mlog_errno(status);
+> +	}
+> +
+> +bail:
+> +	return status;
+> +}
+> +
+> +
+>  struct ocfs2_triggers {
+>  	struct jbd2_buffer_trigger_type	ot_triggers;
+>  	int				ot_offset;
+> diff -puN fs/ocfs2/journal.h~ocfs2-lighten-up-allocate-transaction fs/ocfs2/journal.h
+> --- a/fs/ocfs2/journal.h~ocfs2-lighten-up-allocate-transaction
+> +++ a/fs/ocfs2/journal.h
+> @@ -258,6 +258,17 @@ handle_t		    *ocfs2_start_trans(struct
+>  int			     ocfs2_commit_trans(struct ocfs2_super *osb,
+>  						handle_t *handle);
+>  int			     ocfs2_extend_trans(handle_t *handle, int nblocks);
+> +int			     ocfs2_allocate_extend_trans(handle_t *handle,
+> +						int thresh);
+> +
+> +/*
+> + * Define an arbitrary limit for the amount of data we will anticipate
+> + * writing to any given transaction.  For unbounded transactions such as
+> + * fallocate(2) we can write more than this, but we always
+> + * start off at the maximum transaction size and grow the transaction
+> + * optimistically as we go.
+> + */
+> +#define OCFS2_MAX_TRANS_DATA	64U
+>  
+>  /*
+>   * Create access is for when we get a newly created buffer and we're
+> diff -puN fs/ocfs2/ocfs2_trace.h~ocfs2-lighten-up-allocate-transaction fs/ocfs2/ocfs2_trace.h
+> --- a/fs/ocfs2/ocfs2_trace.h~ocfs2-lighten-up-allocate-transaction
+> +++ a/fs/ocfs2/ocfs2_trace.h
+> @@ -2579,6 +2579,8 @@ DEFINE_OCFS2_INT_INT_EVENT(ocfs2_extend_
+>  
+>  DEFINE_OCFS2_INT_EVENT(ocfs2_extend_trans_restart);
+>  
+> +DEFINE_OCFS2_INT_INT_EVENT(ocfs2_allocate_extend_trans);
+> +
+>  DEFINE_OCFS2_ULL_ULL_UINT_UINT_EVENT(ocfs2_journal_access);
+>  
+>  DEFINE_OCFS2_ULL_EVENT(ocfs2_journal_dirty);
+> _
+> 
+> .
+> 
