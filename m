@@ -1,10 +1,10 @@
 From: Rui Xiang <rui.xiang@huawei.com>
-Date: Mon, 02 Sep 2013 11:17:15 -0000
+Date: Tue, 03 Sep 2013 06:53:28 -0000
 Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: add necessary check in case
 	sb_getblk fails
-In-Reply-To: <1378120550-7216-1-git-send-email-rui.xiang@huawei.com>
-References: <1378120550-7216-1-git-send-email-rui.xiang@huawei.com>
-Message-ID: <1378120550-7216-2-git-send-email-rui.xiang@huawei.com>
+In-Reply-To: <1378191128-11996-1-git-send-email-rui.xiang@huawei.com>
+References: <1378191128-11996-1-git-send-email-rui.xiang@huawei.com>
+Message-ID: <1378191128-11996-2-git-send-email-rui.xiang@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
