@@ -1,46 +1,79 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Thu, 5 Sep 2013 22:26:56 -0500
-Subject: [Ocfs2-devel] [PATCH 0/6] nocontrold: Eliminating ocfs2_controld
-Message-ID: <20130906032651.GA4148@shrek.lan>
+Date: Thu, 5 Sep 2013 22:27:21 -0500
+Subject: [Ocfs2-devel] [PATCH 1/6] Add dlm operations placeholders
+Message-ID: <20130906032717.GA4153@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
 
-I am re-sending this patch series because I did not get a response
-for the previous set.
+Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+---
+ fs/ocfs2/stack_user.c | 30 ++++++++++++++++++++++++++++--
+ 1 file changed, 28 insertions(+), 2 deletions(-)
 
-This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
-handling up to the times with respect to DLM (>=4.0.1) and corosync
-(2.3.x). AFAIK, cman also is being phased out for a unified corosync
-cluster stack.
+diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+index 286edf1..1b18193 100644
+--- a/fs/ocfs2/stack_user.c
++++ b/fs/ocfs2/stack_user.c
+@@ -799,11 +799,31 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
+ 	return 0;
+ }
+ 
++static void user_recover_prep(void *arg)
++{
++}
++
++static void user_recover_slot(void *arg, struct dlm_slot *slot)
++{
++}
++
++static void user_recover_done(void *arg, struct dlm_slot *slots,
++			      int num_slots, int our_slot,
++			      uint32_t generation)
++{
++}
++
++const struct dlm_lockspace_ops ocfs2_ls_ops = {
++	.recover_prep = user_recover_prep,
++	.recover_slot = user_recover_slot,
++	.recover_done = user_recover_done,
++};
++
+ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+ {
+ 	dlm_lockspace_t *fsdlm;
+ 	struct ocfs2_live_connection *uninitialized_var(control);
+-	int rc = 0;
++	int rc = 0, ops_rv;
+ 
+ 	BUG_ON(conn == NULL);
+ 
+@@ -828,12 +848,18 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+ 	}
+ 
+ 	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
+-			       NULL, NULL, NULL, &fsdlm);
++			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
+ 	if (rc) {
+ 		ocfs2_live_connection_drop(control);
+ 		goto out;
+ 	}
+ 
++	if (ops_rv < 0) {
++		printk(KERN_ERR "ocfs2: dlm lockspace ops could not be used. You may be using an older dlm_controld\n");
++		rc = -EINVAL;
++		goto out;
++	}
++
+ 	conn->cc_private = control;
+ 	conn->cc_lockspace = fsdlm;
+ out:
+-- 
+1.8.1.4
 
-fs/dlm performs all the functions with respect to fencing and node
-management and provides the API's to do so for ocfs2. For all future
-references, DLM stands for fs/dlm code.
-
-The advantages are:
- + No need to run an additional userspace daemon (ocfs2_controld)
- + No contrrold devince handling and controld protocol
- + Shifting responsibilities of node management to DLM layer
- + Huge reduction in source code, both in kernel and userspace
-
-This feature requires modification in the userspace ocfs2-tools.
-The changes can be found at:
-https://github.com/goldwynr/ocfs2-tools branch: nocontrold
-Currently, not many checks are present in the userspace code,
-but that would change soon.
-
-These changes were developed on linux-stable 3.10.y, though they 
-are applicable at the current upstream as well. If you want to give
-the entire kernel a spin, the link is:
-
-https://github.com/goldwynr/linux-stable branch: nocontrold
-
-Review comments/suggestions/criticism welcome.
 
 -- 
 Goldwyn
