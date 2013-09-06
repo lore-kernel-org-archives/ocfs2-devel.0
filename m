@@ -1,8 +1,8 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Thu, 5 Sep 2013 22:28:47 -0500
-Subject: [Ocfs2-devel] [PATCH 5/6] Remove control data structures and
-	functions
-Message-ID: <20130906032842.GA4187@shrek.lan>
+Date: Thu, 5 Sep 2013 22:29:37 -0500
+Subject: [Ocfs2-devel] [PATCH 6/6] Disallow cluster_stack changes if fs are
+	mounted
+Message-ID: <20130906032932.GA4192@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,712 +12,88 @@ To: ocfs2-devel@oss.oracle.com
 
 Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 ---
- fs/ocfs2/stack_user.c | 664 +-------------------------------------------------
- 1 file changed, 1 insertion(+), 663 deletions(-)
+ fs/ocfs2/stackglue.c | 18 ++++++++++++++++++
+ fs/ocfs2/stackglue.h |  3 +++
+ fs/ocfs2/super.c     |  2 ++
+ 3 files changed, 23 insertions(+)
 
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index b869d4d6..e15aa98 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -30,645 +30,14 @@
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 4dd732b..e352a2e 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -41,6 +41,7 @@ static DEFINE_SPINLOCK(ocfs2_stack_lock);
+ static LIST_HEAD(ocfs2_stack_list);
+ static char cluster_stack_name[OCFS2_STACK_LABEL_LEN + 1];
+ static char ocfs2_hb_ctl_path[OCFS2_MAX_HB_CTL_PATH] = "/sbin/ocfs2_hb_ctl";
++static atomic_t mount_count = ATOMIC_INIT(0);
  
- #include <linux/dlm_plock.h>
- 
--/*
-- * The control protocol starts with a handshake.  Until the handshake
-- * is complete, the control device will fail all write(2)s.
-- *
-- * The handshake is simple.  First, the client reads until EOF.  Each line
-- * of output is a supported protocol tag.  All protocol tags are a single
-- * character followed by a two hex digit version number.  Currently the
-- * only things supported is T01, for "Text-base version 0x01".  Next, the
-- * client writes the version they would like to use, including the newline.
-- * Thus, the protocol tag is 'T01\n'.  If the version tag written is
-- * unknown, -EINVAL is returned.  Once the negotiation is complete, the
-- * client can start sending messages.
-- *
-- * The T01 protocol has three messages.  First is the "SETN" message.
-- * It has the following syntax:
-- *
-- *  SETN<space><8-char-hex-nodenum><newline>
-- *
-- * This is 14 characters.
-- *
-- * The "SETN" message must be the first message following the protocol.
-- * It tells ocfs2_control the local node number.
-- *
-- * Next comes the "SETV" message.  It has the following syntax:
-- *
-- *  SETV<space><2-char-hex-major><space><2-char-hex-minor><newline>
-- *
-- * This is 11 characters.
-- *
-- * The "SETV" message sets the filesystem locking protocol version as
-- * negotiated by the client.  The client negotiates based on the maximum
-- * version advertised in /sys/fs/ocfs2/max_locking_protocol.  The major
-- * number from the "SETV" message must match
-- * ocfs2_user_plugin.sp_max_proto.pv_major, and the minor number
-- * must be less than or equal to ...sp_max_version.pv_minor.
-- *
-- * Once this information has been set, mounts will be allowed.  From this
-- * point on, the "DOWN" message can be sent for node down notification.
-- * It has the following syntax:
-- *
-- *  DOWN<space><32-char-cap-hex-uuid><space><8-char-hex-nodenum><newline>
-- *
-- * eg:
-- *
-- *  DOWN 632A924FDD844190BDA93C0DF6B94899 00000001\n
-- *
-- * This is 47 characters.
-- */
--
--/*
-- * Whether or not the client has done the handshake.
-- * For now, we have just one protocol version.
-- */
--#define OCFS2_CONTROL_PROTO			"T01\n"
--#define OCFS2_CONTROL_PROTO_LEN			4
--
--/* Handshake states */
--#define OCFS2_CONTROL_HANDSHAKE_INVALID		(0)
--#define OCFS2_CONTROL_HANDSHAKE_READ		(1)
--#define OCFS2_CONTROL_HANDSHAKE_PROTOCOL	(2)
--#define OCFS2_CONTROL_HANDSHAKE_VALID		(3)
--
--/* Messages */
--#define OCFS2_CONTROL_MESSAGE_OP_LEN		4
--#define OCFS2_CONTROL_MESSAGE_SETNODE_OP	"SETN"
--#define OCFS2_CONTROL_MESSAGE_SETNODE_TOTAL_LEN	14
--#define OCFS2_CONTROL_MESSAGE_SETVERSION_OP	"SETV"
--#define OCFS2_CONTROL_MESSAGE_SETVERSION_TOTAL_LEN	11
--#define OCFS2_CONTROL_MESSAGE_DOWN_OP		"DOWN"
--#define OCFS2_CONTROL_MESSAGE_DOWN_TOTAL_LEN	47
--#define OCFS2_TEXT_UUID_LEN			32
--#define OCFS2_CONTROL_MESSAGE_VERNUM_LEN	2
--#define OCFS2_CONTROL_MESSAGE_NODENUM_LEN	8
--
--/*
-- * ocfs2_live_connection is refcounted because the filesystem and
-- * miscdevice sides can detach in different order.  Let's just be safe.
-- */
--struct ocfs2_live_connection {
--	struct list_head		oc_list;
--	struct ocfs2_cluster_connection	*oc_conn;
--};
--
- struct ocfs2_connection_private {
- 	atomic_t cp_this_node;
- 	int cp_our_slot;
- 	wait_queue_head_t cp_wait;
- };
- 
--struct ocfs2_control_private {
--	struct list_head op_list;
--	int op_state;
--	int op_this_node;
--	struct ocfs2_protocol_version op_proto;
--};
--
--/* SETN<space><8-char-hex-nodenum><newline> */
--struct ocfs2_control_message_setn {
--	char	tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
--	char	space;
--	char	nodestr[OCFS2_CONTROL_MESSAGE_NODENUM_LEN];
--	char	newline;
--};
--
--/* SETV<space><2-char-hex-major><space><2-char-hex-minor><newline> */
--struct ocfs2_control_message_setv {
--	char	tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
--	char	space1;
--	char	major[OCFS2_CONTROL_MESSAGE_VERNUM_LEN];
--	char	space2;
--	char	minor[OCFS2_CONTROL_MESSAGE_VERNUM_LEN];
--	char	newline;
--};
--
--/* DOWN<space><32-char-cap-hex-uuid><space><8-char-hex-nodenum><newline> */
--struct ocfs2_control_message_down {
--	char	tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
--	char	space1;
--	char	uuid[OCFS2_TEXT_UUID_LEN];
--	char	space2;
--	char	nodestr[OCFS2_CONTROL_MESSAGE_NODENUM_LEN];
--	char	newline;
--};
--
--union ocfs2_control_message {
--	char					tag[OCFS2_CONTROL_MESSAGE_OP_LEN];
--	struct ocfs2_control_message_setn	u_setn;
--	struct ocfs2_control_message_setv	u_setv;
--	struct ocfs2_control_message_down	u_down;
--};
--
- static struct ocfs2_stack_plugin ocfs2_user_plugin;
- 
--static atomic_t ocfs2_control_opened;
--static int ocfs2_control_this_node = -1;
--static struct ocfs2_protocol_version running_proto;
--
--static LIST_HEAD(ocfs2_live_connection_list);
--static LIST_HEAD(ocfs2_control_private_list);
--static DEFINE_MUTEX(ocfs2_control_lock);
--
--static inline void ocfs2_control_set_handshake_state(struct file *file,
--						     int state)
--{
--	struct ocfs2_control_private *p = file->private_data;
--	p->op_state = state;
--}
--
--static inline int ocfs2_control_get_handshake_state(struct file *file)
--{
--	struct ocfs2_control_private *p = file->private_data;
--	return p->op_state;
--}
--
--static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
--{
--	size_t len = strlen(name);
--	struct ocfs2_live_connection *c;
--
--	BUG_ON(!mutex_is_locked(&ocfs2_control_lock));
--
--	list_for_each_entry(c, &ocfs2_live_connection_list, oc_list) {
--		if ((c->oc_conn->cc_namelen == len) &&
--		    !strncmp(c->oc_conn->cc_name, name, len))
--			return c;
--	}
--
--	return NULL;
--}
--
--/*
-- * ocfs2_live_connection structures are created underneath the ocfs2
-- * mount path.  Since the VFS prevents multiple calls to
-- * fill_super(), we can't get dupes here.
-- */
--static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
--				     struct ocfs2_live_connection **c_ret)
--{
--	int rc = 0;
--	struct ocfs2_live_connection *c;
--
--	c = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
--	if (!c)
--		return -ENOMEM;
--
--	mutex_lock(&ocfs2_control_lock);
--	c->oc_conn = conn;
--
--	if (atomic_read(&ocfs2_control_opened))
--		list_add(&c->oc_list, &ocfs2_live_connection_list);
--	else {
--		printk(KERN_ERR
--		       "ocfs2: Userspace control daemon is not present\n");
--		rc = -ESRCH;
--	}
--
--	mutex_unlock(&ocfs2_control_lock);
--
--	if (!rc)
--		*c_ret = c;
--	else
--		kfree(c);
--
--	return rc;
--}
--
--/*
-- * This function disconnects the cluster connection from ocfs2_control.
-- * Afterwards, userspace can't affect the cluster connection.
-- */
--static void ocfs2_live_connection_drop(struct ocfs2_live_connection *c)
--{
--	mutex_lock(&ocfs2_control_lock);
--	list_del_init(&c->oc_list);
--	c->oc_conn = NULL;
--	mutex_unlock(&ocfs2_control_lock);
--
--	kfree(c);
--}
--
--static int ocfs2_control_cfu(void *target, size_t target_len,
--			     const char __user *buf, size_t count)
--{
--	/* The T01 expects write(2) calls to have exactly one command */
--	if ((count != target_len) ||
--	    (count > sizeof(union ocfs2_control_message)))
--		return -EINVAL;
--
--	if (copy_from_user(target, buf, target_len))
--		return -EFAULT;
--
--	return 0;
--}
--
--static ssize_t ocfs2_control_validate_protocol(struct file *file,
--					       const char __user *buf,
--					       size_t count)
--{
--	ssize_t ret;
--	char kbuf[OCFS2_CONTROL_PROTO_LEN];
--
--	ret = ocfs2_control_cfu(kbuf, OCFS2_CONTROL_PROTO_LEN,
--				buf, count);
--	if (ret)
--		return ret;
--
--	if (strncmp(kbuf, OCFS2_CONTROL_PROTO, OCFS2_CONTROL_PROTO_LEN))
--		return -EINVAL;
--
--	ocfs2_control_set_handshake_state(file,
--					  OCFS2_CONTROL_HANDSHAKE_PROTOCOL);
--
--	return count;
--}
--
--static void ocfs2_control_send_down(const char *uuid,
--				    int nodenum)
--{
--	struct ocfs2_live_connection *c;
--
--	mutex_lock(&ocfs2_control_lock);
--
--	c = ocfs2_connection_find(uuid);
--	if (c) {
--		BUG_ON(c->oc_conn == NULL);
--		c->oc_conn->cc_recovery_handler(nodenum,
--						c->oc_conn->cc_recovery_data);
--	}
--
--	mutex_unlock(&ocfs2_control_lock);
--}
--
--/*
-- * Called whenever configuration elements are sent to /dev/ocfs2_control.
-- * If all configuration elements are present, try to set the global
-- * values.  If there is a problem, return an error.  Skip any missing
-- * elements, and only bump ocfs2_control_opened when we have all elements
-- * and are successful.
-- */
--static int ocfs2_control_install_private(struct file *file)
--{
--	int rc = 0;
--	int set_p = 1;
--	struct ocfs2_control_private *p = file->private_data;
--
--	BUG_ON(p->op_state != OCFS2_CONTROL_HANDSHAKE_PROTOCOL);
--
--	mutex_lock(&ocfs2_control_lock);
--
--	if (p->op_this_node < 0) {
--		set_p = 0;
--	} else if ((ocfs2_control_this_node >= 0) &&
--		   (ocfs2_control_this_node != p->op_this_node)) {
--		rc = -EINVAL;
--		goto out_unlock;
--	}
--
--	if (!p->op_proto.pv_major) {
--		set_p = 0;
--	} else if (!list_empty(&ocfs2_live_connection_list) &&
--		   ((running_proto.pv_major != p->op_proto.pv_major) ||
--		    (running_proto.pv_minor != p->op_proto.pv_minor))) {
--		rc = -EINVAL;
--		goto out_unlock;
--	}
--
--	if (set_p) {
--		ocfs2_control_this_node = p->op_this_node;
--		running_proto.pv_major = p->op_proto.pv_major;
--		running_proto.pv_minor = p->op_proto.pv_minor;
--	}
--
--out_unlock:
--	mutex_unlock(&ocfs2_control_lock);
--
--	if (!rc && set_p) {
--		/* We set the global values successfully */
--		atomic_inc(&ocfs2_control_opened);
--		ocfs2_control_set_handshake_state(file,
--					OCFS2_CONTROL_HANDSHAKE_VALID);
--	}
--
--	return rc;
--}
--
--static int ocfs2_control_get_this_node(void)
--{
--	int rc;
--
--	mutex_lock(&ocfs2_control_lock);
--	if (ocfs2_control_this_node < 0)
--		rc = -EINVAL;
--	else
--		rc = ocfs2_control_this_node;
--	mutex_unlock(&ocfs2_control_lock);
--
--	return rc;
--}
--
--static int ocfs2_control_do_setnode_msg(struct file *file,
--					struct ocfs2_control_message_setn *msg)
--{
--	long nodenum;
--	char *ptr = NULL;
--	struct ocfs2_control_private *p = file->private_data;
--
--	if (ocfs2_control_get_handshake_state(file) !=
--	    OCFS2_CONTROL_HANDSHAKE_PROTOCOL)
--		return -EINVAL;
--
--	if (strncmp(msg->tag, OCFS2_CONTROL_MESSAGE_SETNODE_OP,
--		    OCFS2_CONTROL_MESSAGE_OP_LEN))
--		return -EINVAL;
--
--	if ((msg->space != ' ') || (msg->newline != '\n'))
--		return -EINVAL;
--	msg->space = msg->newline = '\0';
--
--	nodenum = simple_strtol(msg->nodestr, &ptr, 16);
--	if (!ptr || *ptr)
--		return -EINVAL;
--
--	if ((nodenum == LONG_MIN) || (nodenum == LONG_MAX) ||
--	    (nodenum > INT_MAX) || (nodenum < 0))
--		return -ERANGE;
--	p->op_this_node = nodenum;
--
--	return ocfs2_control_install_private(file);
--}
--
--static int ocfs2_control_do_setversion_msg(struct file *file,
--					   struct ocfs2_control_message_setv *msg)
-- {
--	long major, minor;
--	char *ptr = NULL;
--	struct ocfs2_control_private *p = file->private_data;
--	struct ocfs2_protocol_version *max =
--		&ocfs2_user_plugin.sp_max_proto;
--
--	if (ocfs2_control_get_handshake_state(file) !=
--	    OCFS2_CONTROL_HANDSHAKE_PROTOCOL)
--		return -EINVAL;
--
--	if (strncmp(msg->tag, OCFS2_CONTROL_MESSAGE_SETVERSION_OP,
--		    OCFS2_CONTROL_MESSAGE_OP_LEN))
--		return -EINVAL;
--
--	if ((msg->space1 != ' ') || (msg->space2 != ' ') ||
--	    (msg->newline != '\n'))
--		return -EINVAL;
--	msg->space1 = msg->space2 = msg->newline = '\0';
--
--	major = simple_strtol(msg->major, &ptr, 16);
--	if (!ptr || *ptr)
--		return -EINVAL;
--	minor = simple_strtol(msg->minor, &ptr, 16);
--	if (!ptr || *ptr)
--		return -EINVAL;
--
--	/*
--	 * The major must be between 1 and 255, inclusive.  The minor
--	 * must be between 0 and 255, inclusive.  The version passed in
--	 * must be within the maximum version supported by the filesystem.
--	 */
--	if ((major == LONG_MIN) || (major == LONG_MAX) ||
--	    (major > (u8)-1) || (major < 1))
--		return -ERANGE;
--	if ((minor == LONG_MIN) || (minor == LONG_MAX) ||
--	    (minor > (u8)-1) || (minor < 0))
--		return -ERANGE;
--	if ((major != max->pv_major) ||
--	    (minor > max->pv_minor))
--		return -EINVAL;
--
--	p->op_proto.pv_major = major;
--	p->op_proto.pv_minor = minor;
--
--	return ocfs2_control_install_private(file);
--}
--
--static int ocfs2_control_do_down_msg(struct file *file,
--				     struct ocfs2_control_message_down *msg)
--{
--	long nodenum;
--	char *p = NULL;
--
--	if (ocfs2_control_get_handshake_state(file) !=
--	    OCFS2_CONTROL_HANDSHAKE_VALID)
--		return -EINVAL;
--
--	if (strncmp(msg->tag, OCFS2_CONTROL_MESSAGE_DOWN_OP,
--		    OCFS2_CONTROL_MESSAGE_OP_LEN))
--		return -EINVAL;
--
--	if ((msg->space1 != ' ') || (msg->space2 != ' ') ||
--	    (msg->newline != '\n'))
--		return -EINVAL;
--	msg->space1 = msg->space2 = msg->newline = '\0';
--
--	nodenum = simple_strtol(msg->nodestr, &p, 16);
--	if (!p || *p)
--		return -EINVAL;
--
--	if ((nodenum == LONG_MIN) || (nodenum == LONG_MAX) ||
--	    (nodenum > INT_MAX) || (nodenum < 0))
--		return -ERANGE;
--
--	ocfs2_control_send_down(msg->uuid, nodenum);
--
--	return 0;
--}
--
--static ssize_t ocfs2_control_message(struct file *file,
--				     const char __user *buf,
--				     size_t count)
--{
--	ssize_t ret;
--	union ocfs2_control_message msg;
--
--	/* Try to catch padding issues */
--	WARN_ON(offsetof(struct ocfs2_control_message_down, uuid) !=
--		(sizeof(msg.u_down.tag) + sizeof(msg.u_down.space1)));
--
--	memset(&msg, 0, sizeof(union ocfs2_control_message));
--	ret = ocfs2_control_cfu(&msg, count, buf, count);
--	if (ret)
--		goto out;
--
--	if ((count == OCFS2_CONTROL_MESSAGE_SETNODE_TOTAL_LEN) &&
--	    !strncmp(msg.tag, OCFS2_CONTROL_MESSAGE_SETNODE_OP,
--		     OCFS2_CONTROL_MESSAGE_OP_LEN))
--		ret = ocfs2_control_do_setnode_msg(file, &msg.u_setn);
--	else if ((count == OCFS2_CONTROL_MESSAGE_SETVERSION_TOTAL_LEN) &&
--		 !strncmp(msg.tag, OCFS2_CONTROL_MESSAGE_SETVERSION_OP,
--			  OCFS2_CONTROL_MESSAGE_OP_LEN))
--		ret = ocfs2_control_do_setversion_msg(file, &msg.u_setv);
--	else if ((count == OCFS2_CONTROL_MESSAGE_DOWN_TOTAL_LEN) &&
--		 !strncmp(msg.tag, OCFS2_CONTROL_MESSAGE_DOWN_OP,
--			  OCFS2_CONTROL_MESSAGE_OP_LEN))
--		ret = ocfs2_control_do_down_msg(file, &msg.u_down);
--	else
--		ret = -EINVAL;
--
--out:
--	return ret ? ret : count;
--}
--
--static ssize_t ocfs2_control_write(struct file *file,
--				   const char __user *buf,
--				   size_t count,
--				   loff_t *ppos)
--{
--	ssize_t ret;
--
--	switch (ocfs2_control_get_handshake_state(file)) {
--		case OCFS2_CONTROL_HANDSHAKE_INVALID:
--			ret = -EINVAL;
--			break;
--
--		case OCFS2_CONTROL_HANDSHAKE_READ:
--			ret = ocfs2_control_validate_protocol(file, buf,
--							      count);
--			break;
--
--		case OCFS2_CONTROL_HANDSHAKE_PROTOCOL:
--		case OCFS2_CONTROL_HANDSHAKE_VALID:
--			ret = ocfs2_control_message(file, buf, count);
--			break;
--
--		default:
--			BUG();
--			ret = -EIO;
--			break;
--	}
--
--	return ret;
--}
--
--/*
-- * This is a naive version.  If we ever have a new protocol, we'll expand
-- * it.  Probably using seq_file.
-- */
--static ssize_t ocfs2_control_read(struct file *file,
--				  char __user *buf,
--				  size_t count,
--				  loff_t *ppos)
--{
--	ssize_t ret;
--
--	ret = simple_read_from_buffer(buf, count, ppos,
--			OCFS2_CONTROL_PROTO, OCFS2_CONTROL_PROTO_LEN);
--
--	/* Have we read the whole protocol list? */
--	if (ret > 0 && *ppos >= OCFS2_CONTROL_PROTO_LEN)
--		ocfs2_control_set_handshake_state(file,
--						  OCFS2_CONTROL_HANDSHAKE_READ);
--
--	return ret;
--}
--
--static int ocfs2_control_release(struct inode *inode, struct file *file)
--{
--	struct ocfs2_control_private *p = file->private_data;
--
--	mutex_lock(&ocfs2_control_lock);
--
--	if (ocfs2_control_get_handshake_state(file) !=
--	    OCFS2_CONTROL_HANDSHAKE_VALID)
--		goto out;
--
--	if (atomic_dec_and_test(&ocfs2_control_opened)) {
--		if (!list_empty(&ocfs2_live_connection_list)) {
--			/* XXX: Do bad things! */
--			printk(KERN_ERR
--			       "ocfs2: Unexpected release of ocfs2_control!\n"
--			       "       Loss of cluster connection requires "
--			       "an emergency restart!\n");
--			emergency_restart();
--		}
--		/*
--		 * Last valid close clears the node number and resets
--		 * the locking protocol version
--		 */
--		ocfs2_control_this_node = -1;
--		running_proto.pv_major = 0;
--		running_proto.pv_major = 0;
--	}
--
--out:
--	list_del_init(&p->op_list);
--	file->private_data = NULL;
--
--	mutex_unlock(&ocfs2_control_lock);
--
--	kfree(p);
--
--	return 0;
--}
--
--static int ocfs2_control_open(struct inode *inode, struct file *file)
--{
--	struct ocfs2_control_private *p;
--
--	p = kzalloc(sizeof(struct ocfs2_control_private), GFP_KERNEL);
--	if (!p)
--		return -ENOMEM;
--	p->op_this_node = -1;
--
--	mutex_lock(&ocfs2_control_lock);
--	file->private_data = p;
--	list_add(&p->op_list, &ocfs2_control_private_list);
--	mutex_unlock(&ocfs2_control_lock);
--
--	return 0;
--}
--
--static const struct file_operations ocfs2_control_fops = {
--	.open    = ocfs2_control_open,
--	.release = ocfs2_control_release,
--	.read    = ocfs2_control_read,
--	.write   = ocfs2_control_write,
--	.owner   = THIS_MODULE,
--	.llseek  = default_llseek,
--};
--
--static struct miscdevice ocfs2_control_device = {
--	.minor		= MISC_DYNAMIC_MINOR,
--	.name		= "ocfs2_control",
--	.fops		= &ocfs2_control_fops,
--};
--
--static int ocfs2_control_init(void)
--{
--	int rc;
--
--	atomic_set(&ocfs2_control_opened, 0);
--
--	rc = misc_register(&ocfs2_control_device);
--	if (rc)
--		printk(KERN_ERR
--		       "ocfs2: Unable to register ocfs2_control device "
--		       "(errno %d)\n",
--		       -rc);
--
--	return rc;
--}
--
--static void ocfs2_control_exit(void)
--{
--	int rc;
--
--	rc = misc_deregister(&ocfs2_control_device);
--	if (rc)
--		printk(KERN_ERR
--		       "ocfs2: Unable to deregister ocfs2_control device "
--		       "(errno %d)\n",
--		       -rc);
--}
--
- static void fsdlm_lock_ast_wrapper(void *astarg)
- {
- 	struct ocfs2_dlm_lksb *lksb = astarg;
-@@ -783,29 +152,6 @@ static int user_plock(struct ocfs2_cluster_connection *conn,
- 		return dlm_posix_lock(conn->cc_lockspace, ino, file, cmd, fl);
+ /*
+  * The stack currently in use.  If not null, active_stack->sp_count > 0,
+@@ -417,6 +418,18 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
  }
+ EXPORT_SYMBOL_GPL(ocfs2_cluster_disconnect);
  
--/*
-- * Compare a requested locking protocol version against the current one.
-- *
-- * If the major numbers are different, they are incompatible.
-- * If the current minor is greater than the request, they are incompatible.
-- * If the current minor is less than or equal to the request, they are
-- * compatible, and the requester should run at the current minor version.
-- */
--static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
--			       struct ocfs2_protocol_version *request)
--{
--	if (existing->pv_major != request->pv_major)
--		return 1;
--
--	if (existing->pv_minor > request->pv_minor)
--		return 1;
--
--	if (existing->pv_minor < request->pv_minor)
--		request->pv_minor = existing->pv_minor;
--
--	return 0;
--}
--
- static void user_recover_prep(void *arg)
- {
- }
-@@ -926,21 +272,13 @@ static struct ocfs2_stack_plugin ocfs2_user_plugin = {
- static int __init ocfs2_user_plugin_init(void)
- {
- 	int rc;
--
--	rc = ocfs2_control_init();
--	if (!rc) {
--		rc = ocfs2_stack_glue_register(&ocfs2_user_plugin);
--		if (rc)
--			ocfs2_control_exit();
--	}
--
-+	rc = ocfs2_stack_glue_register(&ocfs2_user_plugin);
- 	return rc;
- }
++void ocfs2_inc_mount_count()
++{
++	atomic_inc(&mount_count);
++}
++EXPORT_SYMBOL_GPL(ocfs2_inc_mount_count);
++
++void ocfs2_dec_mount_count()
++{
++	atomic_dec(&mount_count);
++}
++EXPORT_SYMBOL_GPL(ocfs2_dec_mount_count);
++
+ /*
+  * Leave the group for this filesystem.  This is executed by a userspace
+  * program (stored in ocfs2_hb_ctl_path).
+@@ -569,6 +582,11 @@ static ssize_t ocfs2_cluster_stack_store(struct kobject *kobj,
+ 	size_t len = count;
+ 	ssize_t ret;
  
- static void __exit ocfs2_user_plugin_exit(void)
- {
- 	ocfs2_stack_glue_unregister(&ocfs2_user_plugin);
--	ocfs2_control_exit();
- }
++	if (atomic_read(&mount_count) > 0) {
++		printk(KERN_NOTICE "ocfs2_stackglue: Cannot set cluster_stack when filesystems are mounted.\n");
++		return -EINVAL;
++	}
++
+ 	if (len == 0)
+ 		return len;
  
- MODULE_AUTHOR("Oracle");
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index c953290..9eeeff03 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -291,6 +291,9 @@ int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
+ 
+ void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_proto);
+ 
++void ocfs2_inc_mount_count(void);
++void ocfs2_dec_mount_count(void);
++
+ 
+ /* Used by stack plugins */
+ int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index 60f3d8e..c91087c 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1214,6 +1214,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+ 
+ 	/* Start this when the mount is almost sure of being successful */
+ 	ocfs2_orphan_scan_start(osb);
++	ocfs2_inc_mount_count();
+ 
+ 	return status;
+ 
+@@ -1253,6 +1254,7 @@ static void ocfs2_kill_sb(struct super_block *sb)
+ 	spin_unlock(&dentry_list_lock);
+ 	/* Wait for work to finish and/or remove it */
+ 	cancel_work_sync(&osb->dentry_lock_work);
++	ocfs2_dec_mount_count();
+ out:
+ 	kill_block_super(sb);
+ }
 -- 
 1.8.1.4
 
