@@ -1,66 +1,53 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Mon, 9 Sep 2013 14:50:33 -0700
-Subject: [Ocfs2-devel] [PATCH 3/6] Remove control handling
-	from	cluster_connect
-In-Reply-To: <20130906032748.GA4163@shrek.lan>
-References: <20130906032748.GA4163@shrek.lan>
-Message-ID: <20130909215033.GE31381@wotan.suse.de>
+Date: Mon, 9 Sep 2013 14:54:23 -0700
+Subject: [Ocfs2-devel] [PATCH 6/6] Disallow cluster_stack changes if fs
+	are mounted
+In-Reply-To: <20130906032932.GA4192@shrek.lan>
+References: <20130906032932.GA4192@shrek.lan>
+Message-ID: <20130909215423.GF31381@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Sep 05, 2013 at 10:27:53PM -0500, Goldwyn Rodrigues wrote:
-> 
-> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
-> ---
->  fs/ocfs2/stack_user.c | 24 ------------------------
->  1 file changed, 24 deletions(-)
-> 
-> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-> index 2ef6ad5..d604a36 100644
-> --- a/fs/ocfs2/stack_user.c
-> +++ b/fs/ocfs2/stack_user.c
-> @@ -822,36 +822,14 @@ const struct dlm_lockspace_ops ocfs2_ls_ops = {
->  static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
->  {
->  	dlm_lockspace_t *fsdlm;
-> -	struct ocfs2_live_connection *uninitialized_var(control);
->  	int rc = 0, ops_rv;
+On Thu, Sep 05, 2013 at 10:29:37PM -0500, Goldwyn Rodrigues wrote:
+> diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+> index c953290..9eeeff03 100644
+> --- a/fs/ocfs2/stackglue.h
+> +++ b/fs/ocfs2/stackglue.h
+> @@ -291,6 +291,9 @@ int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
 >  
->  	BUG_ON(conn == NULL);
+>  void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_proto);
 >  
-> -	rc = ocfs2_live_connection_new(conn, &control);
-> -	if (rc)
-> -		goto out;
-> -
-> -	/*
-> -	 * running_proto must have been set before we allowed any mounts
-> -	 * to proceed.
-> -	 */
-> -	if (fs_protocol_compare(&running_proto, &conn->cc_version)) {
-> -		printk(KERN_ERR
-> -		       "Unable to mount with fs locking protocol version "
-> -		       "%u.%u because the userspace control daemon has "
-> -		       "negotiated %u.%u\n",
-> -		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
-> -		       running_proto.pv_major, running_proto.pv_minor);
-> -		rc = -EPROTO;
-> -		ocfs2_live_connection_drop(control);
-> -		goto out;
-> -	}
-> -
->  	rc = dlm_new_lockspace(conn->cc_name, conn->cc_cluster_name,
->  			       DLM_LSFL_FS, DLM_LVB_LEN,
->  			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
->  	if (rc) {
-> -		ocfs2_live_connection_drop(control);
->  		goto out;
->  	}
+> +void ocfs2_inc_mount_count(void);
+> +void ocfs2_dec_mount_count(void);
+> +
+>  
+>  /* Used by stack plugins */
+>  int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 60f3d8e..c91087c 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1214,6 +1214,7 @@ static int ocfs2_fill_super(struct super_block *sb, void *data, int silent)
+>  
+>  	/* Start this when the mount is almost sure of being successful */
+>  	ocfs2_orphan_scan_start(osb);
+> +	ocfs2_inc_mount_count();
+>  
+>  	return status;
+>  
+> @@ -1253,6 +1254,7 @@ static void ocfs2_kill_sb(struct super_block *sb)
+>  	spin_unlock(&dentry_list_lock);
+>  	/* Wait for work to finish and/or remove it */
+>  	cancel_work_sync(&osb->dentry_lock_work);
+> +	ocfs2_dec_mount_count();
+>  out:
+>  	kill_block_super(sb);
+>  }
 
-If it helps, you can put this stuff in it's own function for handling older
-versions of the userspace stack.
+Why not put these calls in ocfs2_dlm_init() and ocfs2_dlm_shutdown() ?
 	--Mark
 
 --
