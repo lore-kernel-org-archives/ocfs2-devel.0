@@ -1,55 +1,83 @@
 From: Jeff Liu <jeff.liu@oracle.com>
-Date: Wed, 18 Sep 2013 17:12:54 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Add missing errno in
-	ocfs2_ioctl_move_extents()
-In-Reply-To: <52396549.6040906@huawei.com>
-References: <52396549.6040906@huawei.com>
-Message-ID: <52396E96.1070106@oracle.com>
+Date: Wed, 18 Sep 2013 17:21:18 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: add missing return value and check
+	for sb_getblk
+In-Reply-To: <5239580C.7060007@huawei.com>
+References: <5239580C.7060007@huawei.com>
+Message-ID: <5239708E.5070509@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 09/18/2013 04:33 PM, Younger Liu wrote:
+On 09/18/2013 03:36 PM, Rui Xiang wrote:
 
-> If the file is not regular or writeable, it should return errno(-EPERM).
+> - Fix the return err in serval places missed in
+>   (ocfs2: return ENOMEM while sb_getblk failing).
 > 
-> This patch is based on commit 85a258b70d4891a443583530f48ab734a31e2d8d.
+> - Add the missing check for new_bh in ocfs2_create_xattr_block.
 > 
-> Signed-off-by: Younger Liu <younger.liu@huawei.com>
-> Cc: Jie Liu <jeff.liu@oracle.com>
-> Cc: Dan Carpenter <dan.carpenter@oracle.com>
+> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+> Signed-off-by: Rui Xiang <rui.xiang@huawei.com>
+
+Looks good, thanks.
+
+Reviewed-by: Jie Liu <jeff.liu@oracle.com>
+
 > ---
->  fs/ocfs2/move_extents.c |    4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
+>  fs/ocfs2/aops.c           | 1 +
+>  fs/ocfs2/buffer_head_io.c | 4 ++--
+>  fs/ocfs2/xattr.c          | 5 +++++
+>  3 files changed, 8 insertions(+), 2 deletions(-)
 > 
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index 3d3f3c8..0ef308d 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -1067,8 +1067,10 @@ int ocfs2_ioctl_move_extents(struct file *filp, void __user *argp)
->  	if (status)
->  		return status;
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index f37d3c0..e415919 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -92,6 +92,7 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
+>  			    iblock;
+>  		buffer_cache_bh = sb_getblk(osb->sb, blkno);
+>  		if (!buffer_cache_bh) {
+> +			err = -ENOMEM;
+>  			mlog(ML_ERROR, "couldn't getblock for symlink!\n");
+>  			goto bail;
+>  		}
+> diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
+> index 5d18ad1..5b704c6 100644
+> --- a/fs/ocfs2/buffer_head_io.c
+> +++ b/fs/ocfs2/buffer_head_io.c
+> @@ -115,7 +115,7 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
+>  		if (bhs[i] == NULL) {
+>  			bhs[i] = sb_getblk(osb->sb, block++);
+>  			if (bhs[i] == NULL) {
+> -				status = -EIO;
+> +				status = -ENOMEM;
+>  				mlog_errno(status);
+>  				goto bail;
+>  			}
+> @@ -214,7 +214,7 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+>  			bhs[i] = sb_getblk(sb, block++);
+>  			if (bhs[i] == NULL) {
+>  				ocfs2_metadata_cache_io_unlock(ci);
+> -				status = -EIO;
+> +				status = -ENOMEM;
+>  				mlog_errno(status);
+>  				goto bail;
+>  			}
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 05d97c7..024ce11 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -2865,6 +2865,11 @@ static int ocfs2_create_xattr_block(struct inode *inode,
+>  	}
 >  
-> -	if ((!S_ISREG(inode->i_mode)) || !(filp->f_mode & FMODE_WRITE))
-> +	if ((!S_ISREG(inode->i_mode)) || !(filp->f_mode & FMODE_WRITE)) {
-> +		status = -EPERM;
->  		goto out_drop;
+>  	new_bh = sb_getblk(inode->i_sb, first_blkno);
+> +	if (!new_bh) {
+> +		ret = -ENOMEM;
+> +		mlog_errno(ret);
+> +		goto end;
 > +	}
+>  	ocfs2_set_new_buffer_uptodate(INODE_CACHE(inode), new_bh);
 >  
->  	if (inode->i_flags & (S_IMMUTABLE|S_APPEND)) {
->  		status = -EPERM;
-
-This fix looks good, but we should also return an meaningful errno
-if the defragment start offset is larger than the file size in this
-function, i.e,
-
--       if (range.me_start > i_size_read(inode))
-+       if (range.me_start > i_size_read(inode)) {
-+               status = -EINVAL;
-                goto out_free;
-+       }
-
-Thanks,
--Jeff
+>  	ret = ocfs2_journal_access_xb(ctxt->handle, INODE_CACHE(inode),
