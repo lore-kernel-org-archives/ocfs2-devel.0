@@ -1,61 +1,41 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Wed, 18 Sep 2013 18:20:38 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: Add missing errno in
-	ocfs2_ioctl_move_extents()
-In-Reply-To: <52397BA0.6040004@huawei.com>
-References: <52397BA0.6040004@huawei.com>
-Message-ID: <52397E76.30508@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 20 Sep 2013 13:56:42 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/dlm: ocfs2 dlm umount skip
+ migrating lockres
+In-Reply-To: <52313C54.3090600@oracle.com>
+References: <1378924830-16356-1-git-send-email-tariq.x.saeed@oracle.com>
+	<523121CD.2040000@huawei.com> <52313C54.3090600@oracle.com>
+Message-ID: <20130920135642.c781dc5135dbe54b7fdca8ef@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 09/18/2013 06:08 PM, Younger Liu wrote:
+On Wed, 11 Sep 2013 21:00:20 -0700 Srinivas Eeda <srinivas.eeda@oracle.com> wrote:
 
-> If the file is not regular or writeable, it should return errno(EPERM).
+> Andrew,
+> can you please pull the following patch acked by Sunil and Joel
 > 
-> This patch is based on commit 85a258b70d4891a443583530f48ab734a31e2d8d.
-> 
-> Signed-off-by: Younger Liu <younger.liu@huawei.com>
-> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
-> Reviewed-by: Dan Carpenter <dan.carpenter@oracle.com>
+> https://oss.oracle.com/pipermail/ocfs2-devel/2012-August/008670.html
 
-Looks good to me, thanks.
-(BTW, there is no need to add my SOB because I'm not in patch submission path :)).
+Yup.  I just went through Joel's old linux-next tree and stole
+everything from it:
 
-Reviewed-by: Jie Liu <jeff.liu@oracle.com>
+From: Joel Becker <jlbec@evilplan.org>
+Subject: ocfs2: don't spam on -EDQUOT
 
-> ---
->  fs/ocfs2/move_extents.c |    8 ++++++--
->  1 file changed, 6 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index 3d3f3c8..9385fa8 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -1067,8 +1067,10 @@ int ocfs2_ioctl_move_extents(struct file *filp, void __user *argp)
->  	if (status)
->  		return status;
->  
-> -	if ((!S_ISREG(inode->i_mode)) || !(filp->f_mode & FMODE_WRITE))
-> +	if ((!S_ISREG(inode->i_mode)) || !(filp->f_mode & FMODE_WRITE)) {
-> +		status = -EPERM;
->  		goto out_drop;
-> +	}
->  
->  	if (inode->i_flags & (S_IMMUTABLE|S_APPEND)) {
->  		status = -EPERM;
-> @@ -1090,8 +1092,10 @@ int ocfs2_ioctl_move_extents(struct file *filp, void __user *argp)
->  		goto out_free;
->  	}
->  
-> -	if (range.me_start > i_size_read(inode))
-> +	if (range.me_start > i_size_read(inode)) {
-> +		status = -EINVAL;
->  		goto out_free;
-> +	}
->  
->  	if (range.me_start + range.me_len > i_size_read(inode))
->  			range.me_len = i_size_read(inode) - range.me_start;
-> -- 1.7.9.7
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: ocfs2: use bitmap_weight()
+
+From: Xue jiufei <xuejiufei@huawei.com>
+Subject: ocfs2: skip locks in the blocked list
+
+From: Xue jiufei <xuejiufei@huawei.com>
+Subject: ocfs2: delay migration when the lockres is in migration state
+
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: ocfs2: use find_last_bit()
+
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Subject: ocfs2: break useless while loop
