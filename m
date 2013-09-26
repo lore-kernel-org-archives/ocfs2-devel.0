@@ -1,79 +1,91 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Thu, 26 Sep 2013 17:22:12 -0500
-Subject: [Ocfs2-devel] [PATCH 0/6] nocontrold: Eliminating ocfs2_controld
-In-Reply-To: <20130906193846.GA31381@wotan.suse.de>
-References: <20130906032651.GA4148@shrek.lan> <20130906112253.GQ1553@suse.de>
-	<522A293C.7050800@suse.de> <20130906193846.GA31381@wotan.suse.de>
-Message-ID: <5244B394.3010307@suse.de>
+Date: Thu, 26 Sep 2013 17:23:57 -0500
+Subject: [Ocfs2-devel] [PATCH 1/6] Add dlm operations placeholders
+In-Reply-To: <20130909213839.GC31381@wotan.suse.de>
+References: <20130906032717.GA4153@shrek.lan>
+	<20130909213839.GC31381@wotan.suse.de>
+Message-ID: <5244B3FD.7020309@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-
-Thanks for the review so far. I was on vacation and could not get back 
-to this earlier.
-
-On 09/06/2013 02:38 PM, Mark Fasheh wrote:
-> On Fri, Sep 06, 2013 at 02:13:00PM -0500, Goldwyn Rodrigues wrote:
->> Hi Lars,
->>
->> On 09/06/2013 06:22 AM, Lars Marowsky-Bree wrote:
->>> On 2013-09-05T22:26:56, Goldwyn Rodrigues <rgoldwyn@suse.de> wrote:
->>>
->>> Hi Goldwyn,
->>>
->>> thanks! This looks really good.
->>>
->>>> This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
->>>> handling up to the times with respect to DLM (>=4.0.1) and corosync
->>>> (2.3.x). AFAIK, cman also is being phased out for a unified corosync
->>>> cluster stack.
->>>
->>> That's clearly necessary, also to bring OCFS2 more uptodate with the
->>> latest happenings in the GFS2 world; it'll allow both file systems to
->>> share exactly the same cluster stack.
->>>
->>>> https://github.com/goldwynr/ocfs2-tools branch: nocontrold
->>>> Currently, not many checks are present in the userspace code,
->>>> but that would change soon.
->>>
->>> There's one question I have; how will this handle
->>>
->>> - the "old" user-space code starting on a new kernel,
->>
->> The ocfs2_controld.pcmk will refuse to start because of absence of the
->> control device created by the kernel. Of course, this would deny mounts
->> as well.
+On 09/09/2013 04:38 PM, Mark Fasheh wrote:
+> This looks good, other than the backwards compatibility issue I mention
+> below.
 >
-> Do we know how the GFS2 project handled this case? It's going to be a major
-> problem for people if a kernel update horks their cluster fs.
-
-Okay, I have managed to work on this and can mount filesystems which are 
-used with ocfs2_controld. So, we have backward compatibility.
-
-The only downside is we will not have a code reduction :( I will post 
-the patches soon for review.
-
+> I see we're goign to get some recovery calllbacks node? Any chance you can
+> give a short description of what their purpose is?
+> 	--Mark
 >
->
->>> Is there anything we can do to at least provide a meaningful error
->>> message in the first case? The second should be easier to handle.
+> On Thu, Sep 05, 2013 at 10:27:21PM -0500, Goldwyn Rodrigues wrote:
 >>
->> Yes, we can capture the error code and ask the user to upgrade in the
->> second case. However, for the first case mount.ocfs2 would give a
->> cluster connect failure because ocfs2_controld is not present.
+>> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+>> ---
+>>   fs/ocfs2/stack_user.c | 30 ++++++++++++++++++++++++++++--
+>>   1 file changed, 28 insertions(+), 2 deletions(-)
 >>
->> On a different note, we should consider increasing the kernel module
->> version shown in dmesg to be in sync with the userspace tools and/or
->> possibly increase the version number of both tools and kernel module.
+>> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+>> index 286edf1..1b18193 100644
+>> --- a/fs/ocfs2/stack_user.c
+>> +++ b/fs/ocfs2/stack_user.c
+>> @@ -799,11 +799,31 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
+>>   	return 0;
+>>   }
+>>
+>> +static void user_recover_prep(void *arg)
+>> +{
+>> +}
+>> +
+>> +static void user_recover_slot(void *arg, struct dlm_slot *slot)
+>> +{
+>> +}
+>> +
+>> +static void user_recover_done(void *arg, struct dlm_slot *slots,
+>> +			      int num_slots, int our_slot,
+>> +			      uint32_t generation)
+>> +{
+>> +}
+>> +
+>> +const struct dlm_lockspace_ops ocfs2_ls_ops = {
+>> +	.recover_prep = user_recover_prep,
+>> +	.recover_slot = user_recover_slot,
+>> +	.recover_done = user_recover_done,
+>> +};
+>> +
+>>   static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>>   {
+>>   	dlm_lockspace_t *fsdlm;
+>>   	struct ocfs2_live_connection *uninitialized_var(control);
+>> -	int rc = 0;
+>> +	int rc = 0, ops_rv;
+>>
+>>   	BUG_ON(conn == NULL);
+>>
+>> @@ -828,12 +848,18 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>>   	}
+>>
+>>   	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
+>> -			       NULL, NULL, NULL, &fsdlm);
+>> +			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
+>>   	if (rc) {
+>>   		ocfs2_live_connection_drop(control);
+>>   		goto out;
+>>   	}
+>>
+>> +	if (ops_rv < 0) {
+>> +		printk(KERN_ERR "ocfs2: dlm lockspace ops could not be used. You may be using an older dlm_controld\n");
+>> +		rc = -EINVAL;
+>> +		goto out;
+>> +	}
 >
-> That shouldn't be a problem, the numbers are mostly there for us Ocfs2 devs.
+> Presumably we're going to figure out how to support all versions of
+> userspace, so this would go?
 
-Understood. I hope the devs at Oracle does too :) especially from the 
-tools POV.
+Yes, as I mentioned in the previous mail, this is feasible so we will 
+try to get a new lockspace twice, once with the ops. If that fails, we 
+try without the recovery ops.
 
 
 -- 
