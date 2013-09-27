@@ -1,92 +1,47 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Thu, 26 Sep 2013 17:23:57 -0500
-Subject: [Ocfs2-devel] [PATCH 1/6] Add dlm operations placeholders
-In-Reply-To: <20130909213839.GC31381@wotan.suse.de>
-References: <20130906032717.GA4153@shrek.lan>
-	<20130909213839.GC31381@wotan.suse.de>
-Message-ID: <5244B3FD.7020309@suse.de>
+Date: Fri, 27 Sep 2013 12:06:14 -0500
+Subject: [Ocfs2-devel] [PATCH 0/7] nocontrold: Eliminating ocfs2_controld v2
+Message-ID: <20130927170609.GA11689@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 09/09/2013 04:38 PM, Mark Fasheh wrote:
-> This looks good, other than the backwards compatibility issue I mention
-> below.
->
-> I see we're goign to get some recovery calllbacks node? Any chance you can
-> give a short description of what their purpose is?
-> 	--Mark
->
-> On Thu, Sep 05, 2013 at 10:27:21PM -0500, Goldwyn Rodrigues wrote:
->>
->> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
->> ---
->>   fs/ocfs2/stack_user.c | 30 ++++++++++++++++++++++++++++--
->>   1 file changed, 28 insertions(+), 2 deletions(-)
->>
->> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
->> index 286edf1..1b18193 100644
->> --- a/fs/ocfs2/stack_user.c
->> +++ b/fs/ocfs2/stack_user.c
->> @@ -799,11 +799,31 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
->>   	return 0;
->>   }
->>
->> +static void user_recover_prep(void *arg)
->> +{
->> +}
->> +
->> +static void user_recover_slot(void *arg, struct dlm_slot *slot)
->> +{
->> +}
->> +
->> +static void user_recover_done(void *arg, struct dlm_slot *slots,
->> +			      int num_slots, int our_slot,
->> +			      uint32_t generation)
->> +{
->> +}
->> +
->> +const struct dlm_lockspace_ops ocfs2_ls_ops = {
->> +	.recover_prep = user_recover_prep,
->> +	.recover_slot = user_recover_slot,
->> +	.recover_done = user_recover_done,
->> +};
->> +
->>   static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
->>   {
->>   	dlm_lockspace_t *fsdlm;
->>   	struct ocfs2_live_connection *uninitialized_var(control);
->> -	int rc = 0;
->> +	int rc = 0, ops_rv;
->>
->>   	BUG_ON(conn == NULL);
->>
->> @@ -828,12 +848,18 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
->>   	}
->>
->>   	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
->> -			       NULL, NULL, NULL, &fsdlm);
->> +			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
->>   	if (rc) {
->>   		ocfs2_live_connection_drop(control);
->>   		goto out;
->>   	}
->>
->> +	if (ops_rv < 0) {
->> +		printk(KERN_ERR "ocfs2: dlm lockspace ops could not be used. You may be using an older dlm_controld\n");
->> +		rc = -EINVAL;
->> +		goto out;
->> +	}
->
-> Presumably we're going to figure out how to support all versions of
-> userspace, so this would go?
+Hi,
 
-Yes, as I mentioned in the previous mail, this is feasible so we will 
-try to get a new lockspace twice, once with the ops. If that fails, we 
-try without the recovery ops.
+This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
+handling up to the times with respect to DLM (>=4.0.1) and corosync
+(2.3.x). AFAIK, cman also is being phased out for a unified corosync
+cluster stack.
 
+fs/dlm performs all the functions with respect to fencing and node
+management and provides the API's to do so for ocfs2. For all future
+references, DLM stands for fs/dlm code.
+
+The advantages are:
+ + No need to run an additional userspace daemon (ocfs2_controld)
+ + No contrrold devince handling and controld protocol
+ + Shifting responsibilities of node management to DLM layer
+
+For backward compatibility, we are keeping the controld handling code. Once
+enough time has passed we can remove a significant portion of the code.
+
+This feature requires modification in the userspace ocfs2-tools.
+The changes can be found at:
+https://github.com/goldwynr/ocfs2-tools branch: nocontrold
+Currently, not many checks are present in the userspace code,
+but that would change soon.
+
+These changes were developed on linux-stable 3.11.y, though they 
+are applicable at the current upstream as well. If you want to give
+the entire kernel a spin, the link is:
+
+https://github.com/goldwynr/linux-stable branch: nocontrold
+
+Changes since v1:
+* Backward compatibility with ocfs2_controld
+* Moved cluster_stack change restriction to dlm code
 
 -- 
 Goldwyn
