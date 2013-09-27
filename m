@@ -1,101 +1,171 @@
-From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Fri, 27 Sep 2013 12:10:11 -0500
-Subject: [Ocfs2-devel] [PATCH 7/7] Don't allow cluster_stack changes if FS
-	are mounted
-Message-ID: <20130927171007.GA11746@shrek.lan>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Fri, 27 Sep 2013 11:59:37 -0700
+Subject: [Ocfs2-devel] [PATCH 1/7] Add dlm operations placeholders
+In-Reply-To: <20130927170642.GA11701@shrek.lan>
+References: <20130927170642.GA11701@shrek.lan>
+Message-ID: <20130927185937.GC26517@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
----
- fs/ocfs2/dlmglue.c   |  3 ++-
- fs/ocfs2/stackglue.c | 18 ++++++++++++++++++
- fs/ocfs2/stackglue.h |  3 +++
- 3 files changed, 23 insertions(+), 1 deletion(-)
+On Fri, Sep 27, 2013 at 12:06:47PM -0500, Goldwyn Rodrigues wrote:
+> Try locking with the new DLM semantics with the dlm operations.
+> If operation fails with EOPNOTSUPP, try the old semantics.
+> This would ensure that filesystems are mounted for those who
+> are upgrading the kernel but not the tools.
+> Users using old tools will be presented with a notice message
+> to upgrade the tools.
+> 
+> recover_prep() is called when DLM understands a node is down.
+> recover_slot() is called once all nodes have acknowledged recover_prep and
+> recovery can begin.
+> recover_done() is called once the recovery is complete. It returns the
+> new membership.
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index f2d48c8..65b4280 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3023,7 +3023,7 @@ local:
- 	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
- 
- 	osb->cconn = conn;
--
-+	ocfs2_inc_mount_count();
- 	status = 0;
- bail:
- 	if (status < 0) {
-@@ -3058,6 +3058,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
- 
- 	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
- 	osb->cconn = NULL;
-+	ocfs2_dec_mount_count();
- 
- 	ocfs2_dlm_shutdown_debug(osb);
- }
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 4dd732b..e352a2e 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -41,6 +41,7 @@ static DEFINE_SPINLOCK(ocfs2_stack_lock);
- static LIST_HEAD(ocfs2_stack_list);
- static char cluster_stack_name[OCFS2_STACK_LABEL_LEN + 1];
- static char ocfs2_hb_ctl_path[OCFS2_MAX_HB_CTL_PATH] = "/sbin/ocfs2_hb_ctl";
-+static atomic_t mount_count = ATOMIC_INIT(0);
- 
- /*
-  * The stack currently in use.  If not null, active_stack->sp_count > 0,
-@@ -417,6 +418,18 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
- }
- EXPORT_SYMBOL_GPL(ocfs2_cluster_disconnect);
- 
-+void ocfs2_inc_mount_count()
-+{
-+	atomic_inc(&mount_count);
-+}
-+EXPORT_SYMBOL_GPL(ocfs2_inc_mount_count);
-+
-+void ocfs2_dec_mount_count()
-+{
-+	atomic_dec(&mount_count);
-+}
-+EXPORT_SYMBOL_GPL(ocfs2_dec_mount_count);
-+
- /*
-  * Leave the group for this filesystem.  This is executed by a userspace
-  * program (stored in ocfs2_hb_ctl_path).
-@@ -569,6 +582,11 @@ static ssize_t ocfs2_cluster_stack_store(struct kobject *kobj,
- 	size_t len = count;
- 	ssize_t ret;
- 
-+	if (atomic_read(&mount_count) > 0) {
-+		printk(KERN_NOTICE "ocfs2_stackglue: Cannot set cluster_stack when filesystems are mounted.\n");
-+		return -EINVAL;
-+	}
-+
- 	if (len == 0)
- 		return len;
- 
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index d3a54df..da4a913 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -293,6 +293,9 @@ int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
- 
- void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_proto);
- 
-+void ocfs2_inc_mount_count(void);
-+void ocfs2_dec_mount_count(void);
-+
- 
- /* Used by stack plugins */
- int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
+	Can recover_prep() pause?  What does the cluster do when not all
+nodes acknowledge the prep?  When they die during recover_slot()?  Which
+node recovers the slot?
+
+> ---
+>  fs/ocfs2/stack_user.c | 70 +++++++++++++++++++++++++++++++++++++--------------
+>  1 file changed, 51 insertions(+), 19 deletions(-)
+> 
+> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+> index 286edf1..b44490b 100644
+> --- a/fs/ocfs2/stack_user.c
+> +++ b/fs/ocfs2/stack_user.c
+> @@ -799,14 +799,63 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
+>  	return 0;
+>  }
+>  
+> +static void user_recover_prep(void *arg)
+> +{
+> +}
+> +
+> +static void user_recover_slot(void *arg, struct dlm_slot *slot)
+> +{
+> +}
+> +
+> +static void user_recover_done(void *arg, struct dlm_slot *slots,
+> +			      int num_slots, int our_slot,
+> +			      uint32_t generation)
+> +{
+> +}
+> +
+> +const struct dlm_lockspace_ops ocfs2_ls_ops = {
+> +	.recover_prep = user_recover_prep,
+> +	.recover_slot = user_recover_slot,
+> +	.recover_done = user_recover_done,
+> +};
+> +
+> +static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
+> +{
+> +	dlm_release_lockspace(conn->cc_lockspace, 2);
+> +	conn->cc_lockspace = NULL;
+> +	ocfs2_live_connection_drop(conn->cc_private);
+> +	conn->cc_private = NULL;
+> +	return 0;
+> +}
+> +
+>  static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>  {
+>  	dlm_lockspace_t *fsdlm;
+>  	struct ocfs2_live_connection *uninitialized_var(control);
+> -	int rc = 0;
+> +	int rc = 0, ops_rv;
+>  
+>  	BUG_ON(conn == NULL);
+>  
+> +	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
+> +				&ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
+> +
+> +	if (rc)
+> +		goto out;
+> +
+> +	if (!ops_rv) {
+> +		/* DLM lockspace creation with newer new_lockspace successful */
+> +		goto out;
+> +	} else if (ops_rv != -EOPNOTSUPP) {
+> +		rc = ops_rv;
+> +		goto out;
+> +	}
+> +
+> +	conn->cc_lockspace = fsdlm;
+
+This code returns from !ops_rv before setting cc_lockspace, yet tries to
+reference it out in user_cluster_disconnect().  That looks like a
+crashing bug.
+
+Also, it looks like you call the new form of dlm_new_lockspace() before
+the callbacks are even implemented.  If I just apply this patch, the
+code does not work.  Please reorder the patch so that ocfs2 works at
+each patch.
+
+Joel
+
+
+> +
+> +	printk(KERN_NOTICE "ocfs2: You seem to be using an older version "
+> +			"of dlm_controld and/or ocfs2-tools. Please consider "
+> +			"upgrading.\n");
+> +
+>  	rc = ocfs2_live_connection_new(conn, &control);
+>  	if (rc)
+>  		goto out;
+> @@ -823,32 +872,15 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>  		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
+>  		       running_proto.pv_major, running_proto.pv_minor);
+>  		rc = -EPROTO;
+> -		ocfs2_live_connection_drop(control);
+> -		goto out;
+> -	}
+> -
+> -	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
+> -			       NULL, NULL, NULL, &fsdlm);
+> -	if (rc) {
+> -		ocfs2_live_connection_drop(control);
+> +		user_cluster_disconnect(conn);
+>  		goto out;
+>  	}
+>  
+>  	conn->cc_private = control;
+> -	conn->cc_lockspace = fsdlm;
+>  out:
+>  	return rc;
+>  }
+>  
+> -static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
+> -{
+> -	dlm_release_lockspace(conn->cc_lockspace, 2);
+> -	conn->cc_lockspace = NULL;
+> -	ocfs2_live_connection_drop(conn->cc_private);
+> -	conn->cc_private = NULL;
+> -	return 0;
+> -}
+> -
+>  static int user_cluster_this_node(unsigned int *this_node)
+>  {
+>  	int rc;
+> -- 
+> 1.8.1.4
+> 
+> 
+> -- 
+> Goldwyn
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+
 -- 
-1.8.1.4
 
+"But all my words come back to me
+ In shades of mediocrity.
+ Like emptiness in harmony
+ I need someone to comfort me."
 
--- 
-Goldwyn
+			http://www.jlbec.org/
+			jlbec at evilplan.org
