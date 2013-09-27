@@ -1,7 +1,8 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Fri, 27 Sep 2013 12:09:42 -0500
-Subject: [Ocfs2-devel] [PATCH 6/7] Get this_node according to type
-Message-ID: <20130927170937.GA11739@shrek.lan>
+Date: Fri, 27 Sep 2013 12:10:11 -0500
+Subject: [Ocfs2-devel] [PATCH 7/7] Don't allow cluster_stack changes if FS
+	are mounted
+Message-ID: <20130927171007.GA11746@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -9,104 +10,89 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 ---
- fs/ocfs2/dlmglue.c    |  2 +-
- fs/ocfs2/stack_o2cb.c |  3 ++-
- fs/ocfs2/stack_user.c | 10 ++++++++--
- fs/ocfs2/stackglue.c  |  4 ++--
- fs/ocfs2/stackglue.h  |  6 ++++--
- 5 files changed, 17 insertions(+), 8 deletions(-)
+ fs/ocfs2/dlmglue.c   |  3 ++-
+ fs/ocfs2/stackglue.c | 18 ++++++++++++++++++
+ fs/ocfs2/stackglue.h |  3 +++
+ 3 files changed, 23 insertions(+), 1 deletion(-)
 
 diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 7c57de3..f2d48c8 100644
+index f2d48c8..65b4280 100644
 --- a/fs/ocfs2/dlmglue.c
 +++ b/fs/ocfs2/dlmglue.c
-@@ -3007,7 +3007,7 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
- 		goto bail;
- 	}
+@@ -3023,7 +3023,7 @@ local:
+ 	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
  
--	status = ocfs2_cluster_this_node(&osb->node_num);
-+	status = ocfs2_cluster_this_node(conn, &osb->node_num);
+ 	osb->cconn = conn;
+-
++	ocfs2_inc_mount_count();
+ 	status = 0;
+ bail:
  	if (status < 0) {
- 		mlog_errno(status);
- 		mlog(ML_ERROR,
-diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-index bf1f893..1724d43 100644
---- a/fs/ocfs2/stack_o2cb.c
-+++ b/fs/ocfs2/stack_o2cb.c
-@@ -398,7 +398,8 @@ static int o2cb_cluster_disconnect(struct ocfs2_cluster_connection *conn)
- 	return 0;
+@@ -3058,6 +3058,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
+ 
+ 	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
+ 	osb->cconn = NULL;
++	ocfs2_dec_mount_count();
+ 
+ 	ocfs2_dlm_shutdown_debug(osb);
  }
- 
--static int o2cb_cluster_this_node(unsigned int *node)
-+static int o2cb_cluster_this_node(struct ocfs2_cluster_connection *conn,
-+				  unsigned int *node)
- {
- 	int node_num;
- 
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index cccc1e1..2ca8162 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -923,11 +923,17 @@ out:
- 	return rc;
- }
- 
--static int user_cluster_this_node(unsigned int *this_node)
-+static int user_cluster_this_node(struct ocfs2_cluster_connection *conn,
-+				  unsigned int *this_node)
- {
- 	int rc;
-+	struct ocfs2_live_connection *lc = conn->cc_private;
-+
-+	if (lc->oc_type == NO_CONTROLD)
-+		rc = atomic_read(&lc->oc_this_node);
-+	else
-+		rc = ocfs2_control_get_this_node();
- 
--	rc = ocfs2_control_get_this_node();
- 	if (rc < 0)
- 		return rc;
- 
 diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 9acee13..4dd732b 100644
+index 4dd732b..e352a2e 100644
 --- a/fs/ocfs2/stackglue.c
 +++ b/fs/ocfs2/stackglue.c
-@@ -465,9 +465,9 @@ void ocfs2_cluster_hangup(const char *group, int grouplen)
- }
- EXPORT_SYMBOL_GPL(ocfs2_cluster_hangup);
+@@ -41,6 +41,7 @@ static DEFINE_SPINLOCK(ocfs2_stack_lock);
+ static LIST_HEAD(ocfs2_stack_list);
+ static char cluster_stack_name[OCFS2_STACK_LABEL_LEN + 1];
+ static char ocfs2_hb_ctl_path[OCFS2_MAX_HB_CTL_PATH] = "/sbin/ocfs2_hb_ctl";
++static atomic_t mount_count = ATOMIC_INIT(0);
  
--int ocfs2_cluster_this_node(unsigned int *node)
-+int ocfs2_cluster_this_node(struct ocfs2_cluster_connection *conn, unsigned int *node)
- {
--	return active_stack->sp_ops->this_node(node);
-+	return active_stack->sp_ops->this_node(conn, node);
+ /*
+  * The stack currently in use.  If not null, active_stack->sp_count > 0,
+@@ -417,6 +418,18 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
  }
- EXPORT_SYMBOL_GPL(ocfs2_cluster_this_node);
+ EXPORT_SYMBOL_GPL(ocfs2_cluster_disconnect);
+ 
++void ocfs2_inc_mount_count()
++{
++	atomic_inc(&mount_count);
++}
++EXPORT_SYMBOL_GPL(ocfs2_inc_mount_count);
++
++void ocfs2_dec_mount_count()
++{
++	atomic_dec(&mount_count);
++}
++EXPORT_SYMBOL_GPL(ocfs2_dec_mount_count);
++
+ /*
+  * Leave the group for this filesystem.  This is executed by a userspace
+  * program (stored in ocfs2_hb_ctl_path).
+@@ -569,6 +582,11 @@ static ssize_t ocfs2_cluster_stack_store(struct kobject *kobj,
+ 	size_t len = count;
+ 	ssize_t ret;
+ 
++	if (atomic_read(&mount_count) > 0) {
++		printk(KERN_NOTICE "ocfs2_stackglue: Cannot set cluster_stack when filesystems are mounted.\n");
++		return -EINVAL;
++	}
++
+ 	if (len == 0)
+ 		return len;
  
 diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index b46fd51..d3a54df 100644
+index d3a54df..da4a913 100644
 --- a/fs/ocfs2/stackglue.h
 +++ b/fs/ocfs2/stackglue.h
-@@ -157,7 +157,8 @@ struct ocfs2_stack_operations {
- 	 * ->this_node() returns the cluster's unique identifier for the
- 	 * local node.
- 	 */
--	int (*this_node)(unsigned int *node);
-+	int (*this_node)(struct ocfs2_cluster_connection *conn,
-+			 unsigned int *node);
+@@ -293,6 +293,9 @@ int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
  
- 	/*
- 	 * Call the underlying dlm lock function.  The ->dlm_lock()
-@@ -267,7 +268,8 @@ int ocfs2_cluster_connect_agnostic(const char *group,
- int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
- 			     int hangup_pending);
- void ocfs2_cluster_hangup(const char *group, int grouplen);
--int ocfs2_cluster_this_node(unsigned int *node);
-+int ocfs2_cluster_this_node(struct ocfs2_cluster_connection *,
-+			    unsigned int *node);
+ void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_proto);
  
- struct ocfs2_lock_res;
- int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
++void ocfs2_inc_mount_count(void);
++void ocfs2_dec_mount_count(void);
++
+ 
+ /* Used by stack plugins */
+ int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
 -- 
 1.8.1.4
 
