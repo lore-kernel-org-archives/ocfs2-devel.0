@@ -1,111 +1,57 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Fri, 27 Sep 2013 12:04:14 -0700
-Subject: [Ocfs2-devel] [PATCH 7/7] Don't allow cluster_stack changes if
- FS are mounted
-In-Reply-To: <20130927171007.GA11746@shrek.lan>
-References: <20130927171007.GA11746@shrek.lan>
-Message-ID: <20130927190414.GG26517@localhost>
+Date: Fri, 27 Sep 2013 12:05:29 -0700
+Subject: [Ocfs2-devel] [PATCH 1/2] ocfs2: rollback transaction in
+ ocfs2_group_add()
+In-Reply-To: <523ECBCB.6070800@huawei.com>
+References: <523ECBCB.6070800@huawei.com>
+Message-ID: <20130927190528.GH26517@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-I thought we already prevented this.  Why a new mechanism?
+Acked-by: Joel Becker <jlbec@evilplan.org>
 
-Joel
-
-On Fri, Sep 27, 2013 at 12:10:11PM -0500, Goldwyn Rodrigues wrote:
+On Sun, Sep 22, 2013 at 06:51:55PM +0800, Younger Liu wrote:
+> If ocfs2_journal_access_di fails, group->bg_next_group should rollback.
+> Otherwise, there would be a inconsistency between group_bh and main_bm_bh.
+> 
+> Signed-off-by: Younger Liu <younger.liu@huawei.com>
 > ---
->  fs/ocfs2/dlmglue.c   |  3 ++-
->  fs/ocfs2/stackglue.c | 18 ++++++++++++++++++
->  fs/ocfs2/stackglue.h |  3 +++
->  3 files changed, 23 insertions(+), 1 deletion(-)
+>  fs/ocfs2/resize.c |    3 +++
+>  1 file changed, 3 insertions(+)
 > 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index f2d48c8..65b4280 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -3023,7 +3023,7 @@ local:
->  	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
+> diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+> index ec55add..376750f 100644
+> --- a/fs/ocfs2/resize.c
+> +++ b/fs/ocfs2/resize.c
+> @@ -469,6 +469,7 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
+>  	struct ocfs2_chain_list *cl;
+>  	struct ocfs2_chain_rec *cr;
+>  	u16 cl_bpc;
+> +	u64 bg_ptr;
 >  
->  	osb->cconn = conn;
-> -
-> +	ocfs2_inc_mount_count();
->  	status = 0;
->  bail:
->  	if (status < 0) {
-> @@ -3058,6 +3058,7 @@ void ocfs2_dlm_shutdown(struct ocfs2_super *osb,
+>  	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
+>  		return -EROFS;
+> @@ -538,12 +539,14 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
+>  	}
 >  
->  	ocfs2_cluster_disconnect(osb->cconn, hangup_pending);
->  	osb->cconn = NULL;
-> +	ocfs2_dec_mount_count();
+>  	group = (struct ocfs2_group_desc *)group_bh->b_data;
+> +	bg_ptr = le64_to_cpu(group->bg_next_group);
+>  	group->bg_next_group = cr->c_blkno;
+>  	ocfs2_journal_dirty(handle, group_bh);
 >  
->  	ocfs2_dlm_shutdown_debug(osb);
->  }
-> diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-> index 4dd732b..e352a2e 100644
-> --- a/fs/ocfs2/stackglue.c
-> +++ b/fs/ocfs2/stackglue.c
-> @@ -41,6 +41,7 @@ static DEFINE_SPINLOCK(ocfs2_stack_lock);
->  static LIST_HEAD(ocfs2_stack_list);
->  static char cluster_stack_name[OCFS2_STACK_LABEL_LEN + 1];
->  static char ocfs2_hb_ctl_path[OCFS2_MAX_HB_CTL_PATH] = "/sbin/ocfs2_hb_ctl";
-> +static atomic_t mount_count = ATOMIC_INIT(0);
->  
->  /*
->   * The stack currently in use.  If not null, active_stack->sp_count > 0,
-> @@ -417,6 +418,18 @@ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
->  }
->  EXPORT_SYMBOL_GPL(ocfs2_cluster_disconnect);
->  
-> +void ocfs2_inc_mount_count()
-> +{
-> +	atomic_inc(&mount_count);
-> +}
-> +EXPORT_SYMBOL_GPL(ocfs2_inc_mount_count);
-> +
-> +void ocfs2_dec_mount_count()
-> +{
-> +	atomic_dec(&mount_count);
-> +}
-> +EXPORT_SYMBOL_GPL(ocfs2_dec_mount_count);
-> +
->  /*
->   * Leave the group for this filesystem.  This is executed by a userspace
->   * program (stored in ocfs2_hb_ctl_path).
-> @@ -569,6 +582,11 @@ static ssize_t ocfs2_cluster_stack_store(struct kobject *kobj,
->  	size_t len = count;
->  	ssize_t ret;
->  
-> +	if (atomic_read(&mount_count) > 0) {
-> +		printk(KERN_NOTICE "ocfs2_stackglue: Cannot set cluster_stack when filesystems are mounted.\n");
-> +		return -EINVAL;
-> +	}
-> +
->  	if (len == 0)
->  		return len;
->  
-> diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-> index d3a54df..da4a913 100644
-> --- a/fs/ocfs2/stackglue.h
-> +++ b/fs/ocfs2/stackglue.h
-> @@ -293,6 +293,9 @@ int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
->  
->  void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_proto);
->  
-> +void ocfs2_inc_mount_count(void);
-> +void ocfs2_dec_mount_count(void);
-> +
->  
->  /* Used by stack plugins */
->  int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
+>  	ret = ocfs2_journal_access_di(handle, INODE_CACHE(main_bm_inode),
+>  				      main_bm_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+>  	if (ret < 0) {
+> +		group->bg_next_group = cpu_to_le64(bg_ptr);
+>  		mlog_errno(ret);
+>  		goto out_commit;
+>  	}
 > -- 
-> 1.8.1.4
+> 1.7.9.7
 > 
-> 
-> -- 
-> Goldwyn
 > 
 > _______________________________________________
 > Ocfs2-devel mailing list
@@ -114,8 +60,9 @@ On Fri, Sep 27, 2013 at 12:10:11PM -0500, Goldwyn Rodrigues wrote:
 
 -- 
 
-"To fall in love is to create a religion that has a fallible god."
-        -Jorge Luis Borges
+ Joel's Second Law:
+
+	If a code change requires additional user setup, it is wrong.
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
