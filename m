@@ -1,142 +1,145 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Fri, 27 Sep 2013 12:07:23 -0500
-Subject: [Ocfs2-devel] [PATCH 2/7] Add clustername while creating new
-	lockspace
-Message-ID: <20130927170718.GA11708@shrek.lan>
+Date: Fri, 27 Sep 2013 12:07:53 -0500
+Subject: [Ocfs2-devel] [PATCH 3/7] Differentiate between no_controld and
+	with_controld
+Message-ID: <20130927170748.GA11716@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+This is done primarily for backward compatibility. I hope we do
+away with this sooner than later ;)
 ---
- fs/ocfs2/dlmglue.c    | 2 ++
- fs/ocfs2/ocfs2.h      | 1 +
- fs/ocfs2/stack_user.c | 3 ++-
- fs/ocfs2/stackglue.c  | 9 +++++++--
- fs/ocfs2/stackglue.h  | 7 +++++++
- fs/ocfs2/super.c      | 3 +++
- 6 files changed, 22 insertions(+), 3 deletions(-)
+ fs/ocfs2/stack_user.c | 70 ++++++++++++++++++++++++++++++++-------------------
+ 1 file changed, 44 insertions(+), 26 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 3a44a64..7c57de3 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -2996,6 +2996,8 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
- 
- 	/* for now, uuid == domain */
- 	status = ocfs2_cluster_connect(osb->osb_cluster_stack,
-+				       osb->osb_cluster_name,
-+				       strlen(osb->osb_cluster_name),
- 				       osb->uuid_str,
- 				       strlen(osb->uuid_str),
- 				       &lproto, ocfs2_do_node_down, osb,
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 3a90347..553f53c 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -387,6 +387,7 @@ struct ocfs2_super
- 	u8 osb_stackflags;
- 
- 	char osb_cluster_stack[OCFS2_STACK_LABEL_LEN + 1];
-+	char osb_cluster_name[OCFS2_CLUSTER_NAME_LEN + 1];
- 	struct ocfs2_cluster_connection *cconn;
- 	struct ocfs2_lock_res osb_super_lockres;
- 	struct ocfs2_lock_res osb_rename_lockres;
 diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index b44490b..2d4503b 100644
+index 2d4503b..38c69c8 100644
 --- a/fs/ocfs2/stack_user.c
 +++ b/fs/ocfs2/stack_user.c
-@@ -836,7 +836,8 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+@@ -103,6 +103,11 @@
+ #define OCFS2_CONTROL_MESSAGE_VERNUM_LEN	2
+ #define OCFS2_CONTROL_MESSAGE_NODENUM_LEN	8
+ 
++enum ocfs2_connection_type {
++	NO_CONTROLD,
++	WITH_CONTROLD
++};
++
+ /*
+  * ocfs2_live_connection is refcounted because the filesystem and
+  * miscdevice sides can detach in different order.  Let's just be safe.
+@@ -110,6 +115,7 @@
+ struct ocfs2_live_connection {
+ 	struct list_head		oc_list;
+ 	struct ocfs2_cluster_connection	*oc_conn;
++	enum ocfs2_connection_type	oc_type;
+ };
+ 
+ struct ocfs2_control_private {
+@@ -199,7 +205,8 @@ static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
+  * fill_super(), we can't get dupes here.
+  */
+ static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
+-				     struct ocfs2_live_connection **c_ret)
++				     struct ocfs2_live_connection **c_ret,
++				     enum ocfs2_connection_type type)
+ {
+ 	int rc = 0;
+ 	struct ocfs2_live_connection *c;
+@@ -210,8 +217,9 @@ static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
+ 
+ 	mutex_lock(&ocfs2_control_lock);
+ 	c->oc_conn = conn;
++	c->oc_type = type;
+ 
+-	if (atomic_read(&ocfs2_control_opened))
++	if ((type == NO_CONTROLD) || atomic_read(&ocfs2_control_opened))
+ 		list_add(&c->oc_list, &ocfs2_live_connection_list);
+ 	else {
+ 		printk(KERN_ERR
+@@ -833,6 +841,7 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+ 	dlm_lockspace_t *fsdlm;
+ 	struct ocfs2_live_connection *uninitialized_var(control);
+ 	int rc = 0, ops_rv;
++	enum ocfs2_connection_type type = NO_CONTROLD;
  
  	BUG_ON(conn == NULL);
  
--	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
-+	rc = dlm_new_lockspace(conn->cc_name, conn->cc_cluster_name,
-+			       DLM_LSFL_FS, DLM_LVB_LEN,
- 				&ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
- 
+@@ -843,38 +852,47 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
  	if (rc)
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 39abf89..9acee13 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -309,6 +309,8 @@ int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
- EXPORT_SYMBOL_GPL(ocfs2_plock);
+ 		goto out;
  
- int ocfs2_cluster_connect(const char *stack_name,
-+			  const char *cluster_name,
-+			  int cluster_name_len,
- 			  const char *group,
- 			  int grouplen,
- 			  struct ocfs2_locking_protocol *lproto,
-@@ -344,6 +346,8 @@ int ocfs2_cluster_connect(const char *stack_name,
+-	if (!ops_rv) {
+-		/* DLM lockspace creation with newer new_lockspace successful */
+-		goto out;
+-	} else if (ops_rv != -EOPNOTSUPP) {
++	if (ops_rv == -EOPNOTSUPP) {
++		type = WITH_CONTROLD;
++		printk(KERN_NOTICE "ocfs2: You seem to be using an older "
++				"version of dlm_controld and/or ocfs2-tools."
++				" Please consider upgrading.\n");
++	} else if (ops_rv) {
+ 		rc = ops_rv;
+ 		goto out;
+ 	}
+-
+ 	conn->cc_lockspace = fsdlm;
  
- 	memcpy(new_conn->cc_name, group, grouplen);
- 	new_conn->cc_namelen = grouplen;
-+	memcpy(new_conn->cc_cluster_name, cluster_name, cluster_name_len);
-+	new_conn->cc_cluster_name_len = cluster_name_len;
- 	new_conn->cc_recovery_handler = recovery_handler;
- 	new_conn->cc_recovery_data = recovery_data;
+-	printk(KERN_NOTICE "ocfs2: You seem to be using an older version "
+-			"of dlm_controld and/or ocfs2-tools. Please consider "
+-			"upgrading.\n");
+-
+-	rc = ocfs2_live_connection_new(conn, &control);
++	rc = ocfs2_live_connection_new(conn, &control, type);
+ 	if (rc)
+ 		goto out;
  
-@@ -386,8 +390,9 @@ int ocfs2_cluster_connect_agnostic(const char *group,
- 
- 	if (cluster_stack_name[0])
- 		stack_name = cluster_stack_name;
--	return ocfs2_cluster_connect(stack_name, group, grouplen, lproto,
--				     recovery_handler, recovery_data, conn);
-+	return ocfs2_cluster_connect(stack_name, NULL, 0, group, grouplen,
-+				     lproto, recovery_handler, recovery_data,
-+				     conn);
- }
- EXPORT_SYMBOL_GPL(ocfs2_cluster_connect_agnostic);
- 
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index 1ec56fd..b46fd51 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -45,6 +45,9 @@ struct file_lock;
-  */
- #define GROUP_NAME_MAX		64
- 
-+/* This shadows  OCFS2_CLUSTER_NAME_LEN */
-+#define CLUSTER_NAME_MAX	16
+-	/*
+-	 * running_proto must have been set before we allowed any mounts
+-	 * to proceed.
+-	 */
+-	if (fs_protocol_compare(&running_proto, &conn->cc_version)) {
+-		printk(KERN_ERR
+-		       "Unable to mount with fs locking protocol version "
+-		       "%u.%u because the userspace control daemon has "
+-		       "negotiated %u.%u\n",
+-		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
+-		       running_proto.pv_major, running_proto.pv_minor);
+-		rc = -EPROTO;
+-		user_cluster_disconnect(conn);
+-		goto out;
++	if (type == WITH_CONTROLD) {
++		/*
++		 * running_proto must have been set before we allowed any mounts
++		 * to proceed.
++		 */
++		if (fs_protocol_compare(&running_proto, &conn->cc_version)) {
++			printk(KERN_ERR
++			       "Unable to mount with fs locking protocol"
++			       " version %u.%u because the userspace control "
++			       "daemon has negotiated %u.%u\n",
++			       conn->cc_version.pv_major,
++			       conn->cc_version.pv_minor,
++			       running_proto.pv_major,
++			       running_proto.pv_minor);
++			rc = -EPROTO;
++			user_cluster_disconnect(conn);
++			goto out;
++		}
 +
++		rc = dlm_new_lockspace(conn->cc_name, NULL,
++				DLM_LSFL_FS, DLM_LVB_LEN,
++				NULL, NULL, NULL, &fsdlm);
++		if (rc) {
++			ocfs2_live_connection_drop(control);
++			goto out;
++		}
+ 	}
  
- /*
-  * ocfs2_protocol_version changes when ocfs2 does something different in
-@@ -99,6 +102,8 @@ struct ocfs2_locking_protocol {
- struct ocfs2_cluster_connection {
- 	char cc_name[GROUP_NAME_MAX];
- 	int cc_namelen;
-+	char cc_cluster_name[CLUSTER_NAME_MAX];
-+	int cc_cluster_name_len;
- 	struct ocfs2_protocol_version cc_version;
- 	struct ocfs2_locking_protocol *cc_proto;
- 	void (*cc_recovery_handler)(int node_num, void *recovery_data);
-@@ -239,6 +244,8 @@ struct ocfs2_stack_plugin {
- 
- /* Used by the filesystem */
- int ocfs2_cluster_connect(const char *stack_name,
-+			  const char *cluster_name,
-+			  int cluster_name_len,
- 			  const char *group,
- 			  int grouplen,
- 			  struct ocfs2_locking_protocol *lproto,
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 121da2d..917e22d 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -2237,6 +2237,9 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 			status = -EINVAL;
- 			goto bail;
- 		}
-+		memcpy(osb->osb_cluster_name,
-+			OCFS2_RAW_SB(di)->s_cluster_info.ci_cluster,
-+			OCFS2_CLUSTER_NAME_LEN);
- 	} else {
- 		/* The empty string is identical with classic tools that
- 		 * don't know about s_cluster_info. */
+ 	conn->cc_private = control;
 -- 
 1.8.1.4
 
