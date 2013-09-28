@@ -1,76 +1,190 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Fri, 27 Sep 2013 12:06:28 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: do not call brelse() if
- group_bh is not initialized in ocfs2_group_add()
-In-Reply-To: <523ECBD4.1000403@huawei.com>
-References: <523ECBD4.1000403@huawei.com>
-Message-ID: <20130927190628.GI26517@localhost>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Sat, 28 Sep 2013 09:34:00 -0500
+Subject: [Ocfs2-devel] [PATCH 1/7] Add dlm operations placeholders
+In-Reply-To: <20130927185937.GC26517@localhost>
+References: <20130927170642.GA11701@shrek.lan>
+	<20130927185937.GC26517@localhost>
+Message-ID: <5246E8D8.30806@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
+On 09/27/2013 01:59 PM, Joel Becker wrote:
+> On Fri, Sep 27, 2013 at 12:06:47PM -0500, Goldwyn Rodrigues wrote:
+>> Try locking with the new DLM semantics with the dlm operations.
+>> If operation fails with EOPNOTSUPP, try the old semantics.
+>> This would ensure that filesystems are mounted for those who
+>> are upgrading the kernel but not the tools.
+>> Users using old tools will be presented with a notice message
+>> to upgrade the tools.
+>>
+>> recover_prep() is called when DLM understands a node is down.
+>> recover_slot() is called once all nodes have acknowledged recover_prep and
+>> recovery can begin.
+>> recover_done() is called once the recovery is complete. It returns the
+>> new membership.
+>
+> 	Can recover_prep() pause?
 
-On Sun, Sep 22, 2013 at 06:52:04PM +0800, Younger Liu wrote:
-> If group_bh is not initialized, there is no need to release.
-> This problem does not cause anything wrong, but the patch 
-> would make the code more logical.
-> 
-> Signed-off-by: Younger Liu <younger.liu@huawei.com>
-> ---
->  fs/ocfs2/resize.c |    9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
-> index 376750f..822ebc1 100644
-> --- a/fs/ocfs2/resize.c
-> +++ b/fs/ocfs2/resize.c
-> @@ -514,7 +514,7 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
->  	ret = ocfs2_verify_group_and_input(main_bm_inode, fe, input, group_bh);
->  	if (ret) {
->  		mlog_errno(ret);
-> -		goto out_unlock;
-> +		goto out_free_group_bh;
->  	}
->  
->  	trace_ocfs2_group_add((unsigned long long)input->group,
-> @@ -524,7 +524,7 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
->  	if (IS_ERR(handle)) {
->  		mlog_errno(PTR_ERR(handle));
->  		ret = -EINVAL;
-> -		goto out_unlock;
-> +		goto out_free_group_bh;
->  	}
->  
->  	cl_bpc = le16_to_cpu(fe->id2.i_chain.cl_bpc);
-> @@ -577,8 +577,11 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
->  
->  out_commit:
->  	ocfs2_commit_trans(osb, handle);
-> -out_unlock:
-> +
-> +out_free_group_bh:
->  	brelse(group_bh);
-> +
-> +out_unlock:
->  	brelse(main_bm_bh);
->  
->  	ocfs2_inode_unlock(main_bm_inode, 1);
-> -- 
-> 1.7.9.7
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+ From a locking/lockdep POV yes. However, you want to recover from a 
+node failure soon, so not recommended.
+
+ > What does the cluster do when not all nodes acknowledge the prep?
+
+New membership.
+
+> When they die during recover_slot()?
+
+New membership.
+
+> Which node recovers the slot?
+recover_slot() and recover_done() is called on all nodes because it also 
+has to relay the failing node and the new membership. So, any node can 
+perform the recovery.
+
+With this patch series, it is working just as it would before: All nodes 
+call recovery. the one who locks the journal first performs the recovery.
+
+
+
+>> ---
+>>   fs/ocfs2/stack_user.c | 70 +++++++++++++++++++++++++++++++++++++--------------
+>>   1 file changed, 51 insertions(+), 19 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+>> index 286edf1..b44490b 100644
+>> --- a/fs/ocfs2/stack_user.c
+>> +++ b/fs/ocfs2/stack_user.c
+>> @@ -799,14 +799,63 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
+>>   	return 0;
+>>   }
+>>
+>> +static void user_recover_prep(void *arg)
+>> +{
+>> +}
+>> +
+>> +static void user_recover_slot(void *arg, struct dlm_slot *slot)
+>> +{
+>> +}
+>> +
+>> +static void user_recover_done(void *arg, struct dlm_slot *slots,
+>> +			      int num_slots, int our_slot,
+>> +			      uint32_t generation)
+>> +{
+>> +}
+>> +
+>> +const struct dlm_lockspace_ops ocfs2_ls_ops = {
+>> +	.recover_prep = user_recover_prep,
+>> +	.recover_slot = user_recover_slot,
+>> +	.recover_done = user_recover_done,
+>> +};
+>> +
+>> +static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
+>> +{
+>> +	dlm_release_lockspace(conn->cc_lockspace, 2);
+>> +	conn->cc_lockspace = NULL;
+>> +	ocfs2_live_connection_drop(conn->cc_private);
+>> +	conn->cc_private = NULL;
+>> +	return 0;
+>> +}
+>> +
+>>   static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>>   {
+>>   	dlm_lockspace_t *fsdlm;
+>>   	struct ocfs2_live_connection *uninitialized_var(control);
+>> -	int rc = 0;
+>> +	int rc = 0, ops_rv;
+>>
+>>   	BUG_ON(conn == NULL);
+>>
+>> +	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
+>> +				&ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
+>> +
+>> +	if (rc)
+>> +		goto out;
+>> +
+>> +	if (!ops_rv) {
+>> +		/* DLM lockspace creation with newer new_lockspace successful */
+>> +		goto out;
+>> +	} else if (ops_rv != -EOPNOTSUPP) {
+>> +		rc = ops_rv;
+>> +		goto out;
+>> +	}
+>> +
+>> +	conn->cc_lockspace = fsdlm;
+>
+> This code returns from !ops_rv before setting cc_lockspace, yet tries to
+> reference it out in user_cluster_disconnect().  That looks like a
+> crashing bug.
+>
+> Also, it looks like you call the new form of dlm_new_lockspace() before
+> the callbacks are even implemented.  If I just apply this patch, the
+> code does not work.  Please reorder the patch so that ocfs2 works at
+> each patch.
+>
+
+Ok.
+
+> Joel
+>
+>
+>> +
+>> +	printk(KERN_NOTICE "ocfs2: You seem to be using an older version "
+>> +			"of dlm_controld and/or ocfs2-tools. Please consider "
+>> +			"upgrading.\n");
+>> +
+>>   	rc = ocfs2_live_connection_new(conn, &control);
+>>   	if (rc)
+>>   		goto out;
+>> @@ -823,32 +872,15 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>>   		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
+>>   		       running_proto.pv_major, running_proto.pv_minor);
+>>   		rc = -EPROTO;
+>> -		ocfs2_live_connection_drop(control);
+>> -		goto out;
+>> -	}
+>> -
+>> -	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
+>> -			       NULL, NULL, NULL, &fsdlm);
+>> -	if (rc) {
+>> -		ocfs2_live_connection_drop(control);
+>> +		user_cluster_disconnect(conn);
+>>   		goto out;
+>>   	}
+>>
+>>   	conn->cc_private = control;
+>> -	conn->cc_lockspace = fsdlm;
+>>   out:
+>>   	return rc;
+>>   }
+>>
+>> -static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
+>> -{
+>> -	dlm_release_lockspace(conn->cc_lockspace, 2);
+>> -	conn->cc_lockspace = NULL;
+>> -	ocfs2_live_connection_drop(conn->cc_private);
+>> -	conn->cc_private = NULL;
+>> -	return 0;
+>> -}
+>> -
+>>   static int user_cluster_this_node(unsigned int *this_node)
+>>   {
+>>   	int rc;
+>> --
+>> 1.8.1.4
+>>
+>>
+>> --
+>> Goldwyn
+>>
+>> _______________________________________________
+>> Ocfs2-devel mailing list
+>> Ocfs2-devel at oss.oracle.com
+>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>
+
 
 -- 
-
-"The first thing we do, let's kill all the lawyers."
-                                        -Henry VI, IV:ii
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+Goldwyn
