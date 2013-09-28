@@ -1,189 +1,144 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Sat, 28 Sep 2013 09:34:00 -0500
-Subject: [Ocfs2-devel] [PATCH 1/7] Add dlm operations placeholders
-In-Reply-To: <20130927185937.GC26517@localhost>
-References: <20130927170642.GA11701@shrek.lan>
-	<20130927185937.GC26517@localhost>
-Message-ID: <5246E8D8.30806@suse.de>
+Date: Sat, 28 Sep 2013 09:39:42 -0500
+Subject: [Ocfs2-devel] [PATCH 3/7] Differentiate between no_controld and
+ with_controld
+In-Reply-To: <20130927190232.GD26517@localhost>
+References: <20130927170748.GA11716@shrek.lan>
+	<20130927190232.GD26517@localhost>
+Message-ID: <5246EA2E.3090405@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 09/27/2013 01:59 PM, Joel Becker wrote:
-> On Fri, Sep 27, 2013 at 12:06:47PM -0500, Goldwyn Rodrigues wrote:
->> Try locking with the new DLM semantics with the dlm operations.
->> If operation fails with EOPNOTSUPP, try the old semantics.
->> This would ensure that filesystems are mounted for those who
->> are upgrading the kernel but not the tools.
->> Users using old tools will be presented with a notice message
->> to upgrade the tools.
->>
->> recover_prep() is called when DLM understands a node is down.
->> recover_slot() is called once all nodes have acknowledged recover_prep and
->> recovery can begin.
->> recover_done() is called once the recovery is complete. It returns the
->> new membership.
->
-> 	Can recover_prep() pause?
-
- From a locking/lockdep POV yes. However, you want to recover from a 
-node failure soon, so not recommended.
-
- > What does the cluster do when not all nodes acknowledge the prep?
-
-New membership.
-
-> When they die during recover_slot()?
-
-New membership.
-
-> Which node recovers the slot?
-recover_slot() and recover_done() is called on all nodes because it also 
-has to relay the failing node and the new membership. So, any node can 
-perform the recovery.
-
-With this patch series, it is working just as it would before: All nodes 
-call recovery. the one who locks the journal first performs the recovery.
-
-
-
+On 09/27/2013 02:02 PM, Joel Becker wrote:
+> On Fri, Sep 27, 2013 at 12:07:53PM -0500, Goldwyn Rodrigues wrote:
+>> This is done primarily for backward compatibility. I hope we do
+>> away with this sooner than later ;)
 >> ---
->>   fs/ocfs2/stack_user.c | 70 +++++++++++++++++++++++++++++++++++++--------------
->>   1 file changed, 51 insertions(+), 19 deletions(-)
+>>   fs/ocfs2/stack_user.c | 70 ++++++++++++++++++++++++++++++++-------------------
+>>   1 file changed, 44 insertions(+), 26 deletions(-)
 >>
 >> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
->> index 286edf1..b44490b 100644
+>> index 2d4503b..38c69c8 100644
 >> --- a/fs/ocfs2/stack_user.c
 >> +++ b/fs/ocfs2/stack_user.c
->> @@ -799,14 +799,63 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
->>   	return 0;
->>   }
+>> @@ -103,6 +103,11 @@
+>>   #define OCFS2_CONTROL_MESSAGE_VERNUM_LEN	2
+>>   #define OCFS2_CONTROL_MESSAGE_NODENUM_LEN	8
 >>
->> +static void user_recover_prep(void *arg)
->> +{
->> +}
->> +
->> +static void user_recover_slot(void *arg, struct dlm_slot *slot)
->> +{
->> +}
->> +
->> +static void user_recover_done(void *arg, struct dlm_slot *slots,
->> +			      int num_slots, int our_slot,
->> +			      uint32_t generation)
->> +{
->> +}
->> +
->> +const struct dlm_lockspace_ops ocfs2_ls_ops = {
->> +	.recover_prep = user_recover_prep,
->> +	.recover_slot = user_recover_slot,
->> +	.recover_done = user_recover_done,
+>> +enum ocfs2_connection_type {
+>> +	NO_CONTROLD,
+>> +	WITH_CONTROLD
 >> +};
 >> +
->> +static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
->> +{
->> +	dlm_release_lockspace(conn->cc_lockspace, 2);
->> +	conn->cc_lockspace = NULL;
->> +	ocfs2_live_connection_drop(conn->cc_private);
->> +	conn->cc_private = NULL;
->> +	return 0;
->> +}
->> +
->>   static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>>   /*
+>>    * ocfs2_live_connection is refcounted because the filesystem and
+>>    * miscdevice sides can detach in different order.  Let's just be safe.
+>> @@ -110,6 +115,7 @@
+>>   struct ocfs2_live_connection {
+>>   	struct list_head		oc_list;
+>>   	struct ocfs2_cluster_connection	*oc_conn;
+>> +	enum ocfs2_connection_type	oc_type;
+>>   };
+>>
+>>   struct ocfs2_control_private {
+>> @@ -199,7 +205,8 @@ static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
+>>    * fill_super(), we can't get dupes here.
+>>    */
+>>   static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
+>> -				     struct ocfs2_live_connection **c_ret)
+>> +				     struct ocfs2_live_connection **c_ret,
+>> +				     enum ocfs2_connection_type type)
 >>   {
+>>   	int rc = 0;
+>>   	struct ocfs2_live_connection *c;
+>> @@ -210,8 +217,9 @@ static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
+>>
+>>   	mutex_lock(&ocfs2_control_lock);
+>>   	c->oc_conn = conn;
+>> +	c->oc_type = type;
+>>
+>> -	if (atomic_read(&ocfs2_control_opened))
+>> +	if ((type == NO_CONTROLD) || atomic_read(&ocfs2_control_opened))
+>>   		list_add(&c->oc_list, &ocfs2_live_connection_list);
+>>   	else {
+>>   		printk(KERN_ERR
+>> @@ -833,6 +841,7 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
 >>   	dlm_lockspace_t *fsdlm;
 >>   	struct ocfs2_live_connection *uninitialized_var(control);
->> -	int rc = 0;
->> +	int rc = 0, ops_rv;
+>>   	int rc = 0, ops_rv;
+>> +	enum ocfs2_connection_type type = NO_CONTROLD;
 >>
 >>   	BUG_ON(conn == NULL);
 >>
->> +	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
->> +				&ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
->> +
->> +	if (rc)
->> +		goto out;
->> +
->> +	if (!ops_rv) {
->> +		/* DLM lockspace creation with newer new_lockspace successful */
->> +		goto out;
->> +	} else if (ops_rv != -EOPNOTSUPP) {
->> +		rc = ops_rv;
->> +		goto out;
->> +	}
->> +
->> +	conn->cc_lockspace = fsdlm;
->
-> This code returns from !ops_rv before setting cc_lockspace, yet tries to
-> reference it out in user_cluster_disconnect().  That looks like a
-> crashing bug.
->
-> Also, it looks like you call the new form of dlm_new_lockspace() before
-> the callbacks are even implemented.  If I just apply this patch, the
-> code does not work.  Please reorder the patch so that ocfs2 works at
-> each patch.
->
-
-Ok.
-
-> Joel
->
->
->> +
->> +	printk(KERN_NOTICE "ocfs2: You seem to be using an older version "
->> +			"of dlm_controld and/or ocfs2-tools. Please consider "
->> +			"upgrading.\n");
->> +
->>   	rc = ocfs2_live_connection_new(conn, &control);
+>> @@ -843,38 +852,47 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
 >>   	if (rc)
 >>   		goto out;
->> @@ -823,32 +872,15 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
->>   		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
->>   		       running_proto.pv_major, running_proto.pv_minor);
->>   		rc = -EPROTO;
->> -		ocfs2_live_connection_drop(control);
+>>
+>> -	if (!ops_rv) {
+>> -		/* DLM lockspace creation with newer new_lockspace successful */
 >> -		goto out;
->> -	}
->> -
->> -	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
->> -			       NULL, NULL, NULL, &fsdlm);
->> -	if (rc) {
->> -		ocfs2_live_connection_drop(control);
->> +		user_cluster_disconnect(conn);
+>> -	} else if (ops_rv != -EOPNOTSUPP) {
+>> +	if (ops_rv == -EOPNOTSUPP) {
+>> +		type = WITH_CONTROLD;
+>> +		printk(KERN_NOTICE "ocfs2: You seem to be using an older "
+>> +				"version of dlm_controld and/or ocfs2-tools."
+>> +				" Please consider upgrading.\n");
+>> +	} else if (ops_rv) {
+>>   		rc = ops_rv;
 >>   		goto out;
 >>   	}
->>
->>   	conn->cc_private = control;
->> -	conn->cc_lockspace = fsdlm;
->>   out:
->>   	return rc;
->>   }
->>
->> -static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
->> -{
->> -	dlm_release_lockspace(conn->cc_lockspace, 2);
->> -	conn->cc_lockspace = NULL;
->> -	ocfs2_live_connection_drop(conn->cc_private);
->> -	conn->cc_private = NULL;
->> -	return 0;
->> -}
 >> -
->>   static int user_cluster_this_node(unsigned int *this_node)
->>   {
->>   	int rc;
->> --
->> 1.8.1.4
+>>   	conn->cc_lockspace = fsdlm;
 >>
+>> -	printk(KERN_NOTICE "ocfs2: You seem to be using an older version "
+>> -			"of dlm_controld and/or ocfs2-tools. Please consider "
+>> -			"upgrading.\n");
+>> -
+>> -	rc = ocfs2_live_connection_new(conn, &control);
+>> +	rc = ocfs2_live_connection_new(conn, &control, type);
+>>   	if (rc)
+>>   		goto out;
 >>
->> --
->> Goldwyn
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>> -	/*
+>> -	 * running_proto must have been set before we allowed any mounts
+>> -	 * to proceed.
+>> -	 */
+>> -	if (fs_protocol_compare(&running_proto, &conn->cc_version)) {
+>> -		printk(KERN_ERR
+>> -		       "Unable to mount with fs locking protocol version "
+>> -		       "%u.%u because the userspace control daemon has "
+>> -		       "negotiated %u.%u\n",
+>> -		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
+>> -		       running_proto.pv_major, running_proto.pv_minor);
+>> -		rc = -EPROTO;
+>> -		user_cluster_disconnect(conn);
+>> -		goto out;
+>> +	if (type == WITH_CONTROLD) {
+>> +		/*
+>> +		 * running_proto must have been set before we allowed any mounts
+>> +		 * to proceed.
+>> +		 */
+>> +		if (fs_protocol_compare(&running_proto, &conn->cc_version)) {
 >
+> You need to find a way to compare the fs locking protocol in the new
+> style.  Otherwise the two ocfs2 versions can't be sure they are using
+> the same locks in the same way.
+>
+
+What locking protocol is it safeguarding? Is it something to do 
+specifically with the OCFS2 fs, or with respect to controld set 
+versioning only?
+
+The advantage of eliminating controld is that all inter-node 
+communication is handled by fs/dlm. This includes protocol negotiation.
+
+Unfortunately, dlm with fs-controld (v3) is not compatible dlm without 
+fs-controld (v4). I think they call different numbers for protocol 
+versioning (v5/v6). So, all nodes will have to be upgraded anyways with 
+cluster downtime.
 
 
 -- 
