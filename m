@@ -1,105 +1,149 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Thu, 3 Oct 2013 00:49:59 -0500
-Subject: [Ocfs2-devel] [PATCH 3/5] Shift allocation ocfs2_live_connection to
-	user_connect()
-Message-ID: <20131003054954.GA12895@shrek.lan>
+Date: Thu, 3 Oct 2013 00:50:16 -0500
+Subject: [Ocfs2-devel] [PATCH 4/5] Pass ocfs2_cluster_connection to
+	ocfs2_this_node
+Message-ID: <20131003055012.GA12900@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We perform this because the DLM recovery callbacks will require
-the ocfs2_live_connection structure to record the node information
-when dlm_new_lockspace() is updated.
+This is done to differentiate between using and not using controld
+and use the connection information accordingly.
+We need to be backward compatible. So, we use a new enum
+ocfs2_connection_type to identify when controld is used and when
+it is not.
 
 Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 ---
- fs/ocfs2/stack_user.c | 33 ++++++++++++++++-----------------
- 1 file changed, 16 insertions(+), 17 deletions(-)
+ fs/ocfs2/dlmglue.c    |  2 +-
+ fs/ocfs2/stack_o2cb.c |  3 ++-
+ fs/ocfs2/stack_user.c | 17 +++++++++++++++--
+ fs/ocfs2/stackglue.c  |  5 +++--
+ fs/ocfs2/stackglue.h  |  6 ++++--
+ 5 files changed, 25 insertions(+), 8 deletions(-)
 
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 7c57de3..f2d48c8 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -3007,7 +3007,7 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
+ 		goto bail;
+ 	}
+ 
+-	status = ocfs2_cluster_this_node(&osb->node_num);
++	status = ocfs2_cluster_this_node(conn, &osb->node_num);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		mlog(ML_ERROR,
+diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
+index bf1f893..1724d43 100644
+--- a/fs/ocfs2/stack_o2cb.c
++++ b/fs/ocfs2/stack_o2cb.c
+@@ -398,7 +398,8 @@ static int o2cb_cluster_disconnect(struct ocfs2_cluster_connection *conn)
+ 	return 0;
+ }
+ 
+-static int o2cb_cluster_this_node(unsigned int *node)
++static int o2cb_cluster_this_node(struct ocfs2_cluster_connection *conn,
++				  unsigned int *node)
+ {
+ 	int node_num;
+ 
 diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index bf3e2fc..7869b90 100644
+index 7869b90..6a9038f 100644
 --- a/fs/ocfs2/stack_user.c
 +++ b/fs/ocfs2/stack_user.c
-@@ -201,14 +201,9 @@ static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
-  * fill_super(), we can't get dupes here.
-  */
- static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
--				     struct ocfs2_live_connection **c_ret)
-+				     struct ocfs2_live_connection *c)
- {
- 	int rc = 0;
--	struct ocfs2_live_connection *c;
--
--	c = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
--	if (!c)
--		return -ENOMEM;
+@@ -103,6 +103,11 @@
+ #define OCFS2_CONTROL_MESSAGE_VERNUM_LEN	2
+ #define OCFS2_CONTROL_MESSAGE_NODENUM_LEN	8
  
- 	mutex_lock(&ocfs2_control_lock);
- 	c->oc_conn = conn;
-@@ -222,12 +217,6 @@ static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
++enum ocfs2_connection_type {
++	WITH_CONTROLD,
++	NO_CONTROLD
++};
++
+ /*
+  * ocfs2_live_connection is refcounted because the filesystem and
+  * miscdevice sides can detach in different order.  Let's just be safe.
+@@ -110,6 +115,7 @@
+ struct ocfs2_live_connection {
+ 	struct list_head		oc_list;
+ 	struct ocfs2_cluster_connection	*oc_conn;
++	enum ocfs2_connection_type	oc_type;
+ 	atomic_t                        oc_this_node;
+ 	int                             oc_our_slot;
+ };
+@@ -842,6 +848,8 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+ 		goto out;
  	}
  
- 	mutex_unlock(&ocfs2_control_lock);
--
--	if (!rc)
--		*c_ret = c;
--	else
--		kfree(c);
--
- 	return rc;
- }
- 
-@@ -842,12 +831,18 @@ const struct dlm_lockspace_ops ocfs2_ls_ops = {
- static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
- {
- 	dlm_lockspace_t *fsdlm;
--	struct ocfs2_live_connection *uninitialized_var(control);
-+	struct ocfs2_live_connection *lc = NULL;
- 	int rc = 0;
- 
- 	BUG_ON(conn == NULL);
- 
--	rc = ocfs2_live_connection_new(conn, &control);
-+	lc = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
-+	if (!lc) {
-+		rc = -ENOMEM;
-+		goto out;
-+	}
++	lc->oc_type = WITH_CONTROLD;
 +
-+	rc = ocfs2_live_connection_new(conn, lc);
+ 	rc = ocfs2_live_connection_new(conn, lc);
  	if (rc)
  		goto out;
- 
-@@ -863,20 +858,24 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
- 		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
- 		       running_proto.pv_major, running_proto.pv_minor);
- 		rc = -EPROTO;
--		ocfs2_live_connection_drop(control);
-+		ocfs2_live_connection_drop(lc);
-+		lc = NULL;
- 		goto out;
- 	}
- 
- 	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
- 			       NULL, NULL, NULL, &fsdlm);
- 	if (rc) {
--		ocfs2_live_connection_drop(control);
-+		ocfs2_live_connection_drop(lc);
-+		lc = NULL;
- 		goto out;
- 	}
- 
--	conn->cc_private = control;
-+	conn->cc_private = lc;
- 	conn->cc_lockspace = fsdlm;
- out:
-+	if (rc && lc)
-+		kfree(lc);
- 	return rc;
+@@ -888,11 +896,16 @@ static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
+ 	return 0;
  }
  
+-static int user_cluster_this_node(unsigned int *this_node)
++static int user_cluster_this_node(struct ocfs2_cluster_connection *conn,
++				  unsigned int *this_node)
+ {
+ 	int rc;
++	struct ocfs2_live_connection *lc = conn->cc_private;
+ 
+-	rc = ocfs2_control_get_this_node();
++	if (lc->oc_type == WITH_CONTROLD)
++		rc = ocfs2_control_get_this_node();
++	else
++		rc = -EINVAL;
+ 	if (rc < 0)
+ 		return rc;
+ 
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 9acee13..8827489 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -465,9 +465,10 @@ void ocfs2_cluster_hangup(const char *group, int grouplen)
+ }
+ EXPORT_SYMBOL_GPL(ocfs2_cluster_hangup);
+ 
+-int ocfs2_cluster_this_node(unsigned int *node)
++int ocfs2_cluster_this_node(struct ocfs2_cluster_connection *conn,
++			    unsigned int *node)
+ {
+-	return active_stack->sp_ops->this_node(node);
++	return active_stack->sp_ops->this_node(conn, node);
+ }
+ EXPORT_SYMBOL_GPL(ocfs2_cluster_this_node);
+ 
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index b46fd51..d7bc4d0 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -157,7 +157,8 @@ struct ocfs2_stack_operations {
+ 	 * ->this_node() returns the cluster's unique identifier for the
+ 	 * local node.
+ 	 */
+-	int (*this_node)(unsigned int *node);
++	int (*this_node)(struct ocfs2_cluster_connection *conn,
++			 unsigned int *node);
+ 
+ 	/*
+ 	 * Call the underlying dlm lock function.  The ->dlm_lock()
+@@ -267,7 +268,8 @@ int ocfs2_cluster_connect_agnostic(const char *group,
+ int ocfs2_cluster_disconnect(struct ocfs2_cluster_connection *conn,
+ 			     int hangup_pending);
+ void ocfs2_cluster_hangup(const char *group, int grouplen);
+-int ocfs2_cluster_this_node(unsigned int *node);
++int ocfs2_cluster_this_node(struct ocfs2_cluster_connection *conn,
++			    unsigned int *node);
+ 
+ struct ocfs2_lock_res;
+ int ocfs2_dlm_lock(struct ocfs2_cluster_connection *conn,
 -- 
 1.8.1.4
 
