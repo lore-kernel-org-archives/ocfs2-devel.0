@@ -1,44 +1,51 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Wed, 02 Oct 2013 20:58:40 -0500
-Subject: [Ocfs2-devel] [PATCH 3/7] Differentiate between no_controld and
- with_controld
-In-Reply-To: <20131002094907.GS20001@suse.de>
-References: <20130927170748.GA11716@shrek.lan> <20131002094907.GS20001@suse.de>
-Message-ID: <524CCF50.5020501@suse.de>
+Date: Thu, 3 Oct 2013 00:48:55 -0500
+Subject: [Ocfs2-devel] [PATCH 0/5] nocontrold: Eliminating ocfs2_controld v3
+Message-ID: <20131003054851.GA12878@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10/02/2013 04:49 AM, Lars Marowsky-Bree wrote:
-> On 2013-09-27T12:07:53, Goldwyn Rodrigues <rgoldwyn@suse.de> wrote:
->
->> This is done primarily for backward compatibility. I hope we do
->> away with this sooner than later ;)
->
-> I'd actually be quite happy if we could do away with this directly.
->
-> Users that want to remain on an older user-space code base can always
-> revert this or stick to a stable long-term kernel. That may be an
-> unpopular opinion ;-)
->
-> The relevant GFS2 commit seems to be
-> http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/fs/gfs2?id=e0c2a9aa1e68455dc3439e95d85cabcaff073666
->
->
+Hi,
 
-Just to be complete, the DLM recovery callbacks were introduced in this 
-commit
+This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
+handling up to the times with respect to DLM (>=4.0.1) and corosync
+(2.3.x). AFAIK, cman also is being phased out for a unified corosync
+cluster stack.
 
-http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/fs/gfs2?id=60f98d1839376d30e13f3e452dce2433fad3060e
+fs/dlm performs all the functions with respect to fencing and node
+management and provides the API's to do so for ocfs2. For all future
+references, DLM stands for fs/dlm code.
 
-GFS2 also supports the older controld using DFL_NO_DLM_OPS flag set in 
-the lockspace structure.
+The advantages are:
+ + No need to run an additional userspace daemon (ocfs2_controld)
+ + No contrrold devince handling and controld protocol
+ + Shifting responsibilities of node management to DLM layer
 
-While I would also like the controld to be done away with: from a 
-maintenance perspective.
+For backward compatibility, we are keeping the controld handling code. Once
+enough time has passed we can remove a significant portion of the code.
 
+This feature requires modification in the userspace ocfs2-tools.
+The changes can be found at:
+https://github.com/goldwynr/ocfs2-tools branch: nocontrold
+Currently, not many checks are present in the userspace code,
+but that would change soon.
+
+These changes were developed on linux-stable 3.11.y, though they 
+are applicable at the current upstream as well. If you want to give
+the entire kernel a spin, the link is:
+
+https://github.com/goldwynr/linux-stable branch: nocontrold
+
+Changes since v2:
+* Joel's comments: patch re-factoring
+* No need to safeguard cluster_stack
+
+Changes since v1:
+* Backward compatibility with ocfs2_controld
+* Moved cluster_stack change restriction to dlm code
 
 -- 
 Goldwyn
