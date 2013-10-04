@@ -1,56 +1,45 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 3 Oct 2013 13:30:52 -0700
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Fri, 04 Oct 2013 10:01:34 -0500
 Subject: [Ocfs2-devel] [PATCH 0/5] nocontrold: Eliminating
  ocfs2_controld v3
-In-Reply-To: <20131003054851.GA12878@shrek.lan>
-References: <20131003054851.GA12878@shrek.lan>
-Message-ID: <20131003133052.7b463a37474754fac991a8fa@linux-foundation.org>
+In-Reply-To: <20131003112528.GR20001@suse.de>
+References: <20131003054851.GA12878@shrek.lan> <20131003112528.GR20001@suse.de>
+Message-ID: <524ED84E.4040109@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, 3 Oct 2013 00:48:55 -0500 Goldwyn Rodrigues <rgoldwyn@suse.de> wrote:
+On 10/03/2013 06:25 AM, Lars Marowsky-Bree wrote:
+> On 2013-10-03T00:48:55, Goldwyn Rodrigues <rgoldwyn@suse.de> wrote:
+>
+> Hi Goldwyn,
+>
+> just a minor comment:
+>
+>> For backward compatibility, we are keeping the controld handling code. Once
+>> enough time has passed we can remove a significant portion of the code.
+>
+> Can we add this to Documentation/fs/ocfs2.txt, or maybe print a one-time
+> message on activating the deprecated mode with an intended removal date?
+> (I'd propose end-of-2014.)
 
-> This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
-> handling up to the times with respect to DLM (>=4.0.1) and corosync
-> (2.3.x). AFAIK, cman also is being phased out for a unified corosync
-> cluster stack.
-> 
-> fs/dlm performs all the functions with respect to fencing and node
-> management and provides the API's to do so for ocfs2. For all future
-> references, DLM stands for fs/dlm code.
-> 
-> The advantages are:
->  + No need to run an additional userspace daemon (ocfs2_controld)
->  + No contrrold devince handling and controld protocol
->  + Shifting responsibilities of node management to DLM layer
-> 
-> For backward compatibility, we are keeping the controld handling code. Once
-> enough time has passed we can remove a significant portion of the code.
-> 
-> This feature requires modification in the userspace ocfs2-tools.
-> The changes can be found at:
-> https://github.com/goldwynr/ocfs2-tools branch: nocontrold
-> Currently, not many checks are present in the userspace code,
-> but that would change soon.
-> 
-> These changes were developed on linux-stable 3.11.y, though they 
-> are applicable at the current upstream as well. If you want to give
-> the entire kernel a spin, the link is:
-> 
-> https://github.com/goldwynr/linux-stable branch: nocontrold
-> 
-> Changes since v2:
-> * Joel's comments: patch re-factoring
-> * No need to safeguard cluster_stack
-> 
-> Changes since v1:
-> * Backward compatibility with ocfs2_controld
-> * Moved cluster_stack change restriction to dlm code
+We already print a message in dmesg saying:
+printk(KERN_NOTICE "ocfs2: You seem to be using an older "
+                    "version of dlm_controld and/or ocfs2-tools."
+                    " Please consider upgrading.\n");
 
-I'm not really sure what to do with this patchset.  It's too deep for
-me to merge on my own cognizance so I am dependent upon reviews and
-acks from ocfs2 specialists before I can move forward.  Where are we at
-with that?
+Adding a date to this should not be a problem.
+
+>
+> And, perhaps, a compile-time option to disable this earlier, so that
+> users can choose the stacks they want to build the kernel with.
+>
+
+This would a be a couple of ifdef's in user_cluster_connect(). What do 
+other ocfs2 developers feel about this?
+
+
+-- 
+Goldwyn
