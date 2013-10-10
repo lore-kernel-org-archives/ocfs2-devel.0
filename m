@@ -1,35 +1,71 @@
-From: Lars Marowsky-Bree <lmb@suse.com>
-Date: Wed, 02 Oct 2013 09:49:21 -0000
-Subject: [Ocfs2-devel] [PATCH 3/7] Differentiate between no_controld and
- with_controld
-In-Reply-To: <20130927170748.GA11716@shrek.lan>
-References: <20130927170748.GA11716@shrek.lan>
-Message-ID: <20131002094907.GS20001@suse.de>
+From: Dave Chinner <david@fromorbit.com>
+Date: Thu, 10 Oct 2013 04:28:31 -0000
+Subject: [Ocfs2-devel] [XFS on bad superblock] BUG: unable to handle
+ kernel NULL pointer dereference at 00000003
+In-Reply-To: <20131010033834.GA13141@localhost>
+References: <20131009073910.GA387@localhost>
+	<20131010005900.GE2025@devil.localdomain>
+	<20131010011640.GA5726@localhost> <20131010014117.GA6017@localhost>
+	<20131010031515.GT4446@dastard> <20131010032637.GA12725@localhost>
+	<20131010033300.GA12952@localhost>
+	<20131010033834.GA13141@localhost>
+Message-ID: <20131010042820.GA5663@dastard>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Fengguang Wu <fengguang.wu@intel.com>
+Cc: linux-kernel@vger.kernel.org, xfs@oss.sgi.com, Ben Myers <bpm@sgi.com>, Dave Chinner <dchinner@redhat.com>, linux-fsdevel@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-On 2013-09-27T12:07:53, Goldwyn Rodrigues <rgoldwyn@suse.de> wrote:
+On Thu, Oct 10, 2013 at 11:38:34AM +0800, Fengguang Wu wrote:
+> On Thu, Oct 10, 2013 at 11:33:00AM +0800, Fengguang Wu wrote:
+> > On Thu, Oct 10, 2013 at 11:26:37AM +0800, Fengguang Wu wrote:
+> > > Dave,
+> > > 
+> > > > I note that you have CONFIG_SLUB=y, which means that the cache slabs
+> > > > are shared with objects of other types. That means that the memory
+> > > > corruption problem is likely to be caused by one of the other
+> > > > filesystems that is probing the block device(s), not XFS.
+> > > 
+> > > Good to know that, it would easy to test then: just turn off every
+> > > other filesystems. I'll try it right away.
+> > 
+> > Seems that we don't even need to do that. A dig through the oops
+> > database and I find stack dumps from other FS.
+> > 
+> > This happens in the kernel with same kconfig and commit 3.12-rc1.
+> 
+> Here is a summary of all FS with oops:
+> 
+>     411 ocfs2_fill_super
+>     189 xfs_fs_fill_super
+>      86 jfs_fill_super
+>      50 isofs_fill_super
+>      33 fat_fill_super
+>      18 vfat_fill_super
+>      15 msdos_fill_super
+>      11 ext2_fill_super
+>      10 ext3_fill_super
+>       3 reiserfs_fill_super
 
-> This is done primarily for backward compatibility. I hope we do
-> away with this sooner than later ;)
+The order of probing on the original dmesg output you reported is:
 
-I'd actually be quite happy if we could do away with this directly.
+	ext3
+	ext2
+	fatfs
+	reiserfs
+	gfs2
+	isofs
+	ocfs2
 
-Users that want to remain on an older user-space code base can always
-revert this or stick to a stable long-term kernel. That may be an
-unpopular opinion ;-)
+which means that no XFS filesystem was mounted in the original bug
+report, and hence that further indicates that XFS is not responsible
+for the problem and that perhaps the original bisect was not
+reliable...
 
-The relevant GFS2 commit seems to be
-http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/fs/gfs2?id=e0c2a9aa1e68455dc3439e95d85cabcaff073666
+Cheers,
 
-
-Regards,
-    Lars
-
+Dave.
 -- 
-Architect Storage/HA
-SUSE LINUX Products GmbH, GF: Jeff Hawn, Jennifer Guild, Felix Imend?rffer, HRB 21284 (AG N?rnberg)
-"Experience is the name everyone gives to their mistakes." -- Oscar Wilde
+Dave Chinner
+david at fromorbit.com
