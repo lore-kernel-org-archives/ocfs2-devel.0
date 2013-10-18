@@ -1,112 +1,53 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Fri, 18 Oct 2013 09:45:39 -0500
-Subject: [Ocfs2-devel] [PATCH 3/6] Shift allocation ocfs2_live_connection to
-	user_connect()
-Message-ID: <20131018144534.GA4583@shrek.lan>
+Date: Fri, 18 Oct 2013 09:44:54 -0500
+Subject: [Ocfs2-devel] [PATCH 0/6] nocontrold: Eliminating ocfs2_controld v4
+Message-ID: <20131018144449.GA4568@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We perform this because the DLM recovery callbacks will require
-the ocfs2_live_connection structure to record the node information
-when dlm_new_lockspace() is updated.
+Hi,
 
-[AKPM] rc initialization is not required because it assigned in case of
-errors. It will be cleared by compiler anyways.
+This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
+handling up to the times with respect to DLM (>=4.0.1) and corosync
+(2.3.x). AFAIK, cman also is being phased out for a unified corosync
+cluster stack.
 
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
----
- fs/ocfs2/stack_user.c | 35 +++++++++++++++++------------------
- 1 file changed, 17 insertions(+), 18 deletions(-)
+fs/dlm performs all the functions with respect to fencing and node
+management and provides the API's to do so for ocfs2. For all future
+references, DLM stands for fs/dlm code.
 
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index 4111855..88259fb 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -201,14 +201,9 @@ static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
-  * fill_super(), we can't get dupes here.
-  */
- static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
--				     struct ocfs2_live_connection **c_ret)
-+				     struct ocfs2_live_connection *c)
- {
- 	int rc = 0;
--	struct ocfs2_live_connection *c;
--
--	c = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
--	if (!c)
--		return -ENOMEM;
- 
- 	mutex_lock(&ocfs2_control_lock);
- 	c->oc_conn = conn;
-@@ -222,12 +217,6 @@ static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
- 	}
- 
- 	mutex_unlock(&ocfs2_control_lock);
--
--	if (!rc)
--		*c_ret = c;
--	else
--		kfree(c);
--
- 	return rc;
- }
- 
-@@ -840,12 +829,18 @@ const struct dlm_lockspace_ops ocfs2_ls_ops = {
- static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
- {
- 	dlm_lockspace_t *fsdlm;
--	struct ocfs2_live_connection *uninitialized_var(control);
--	int rc = 0;
-+	struct ocfs2_live_connection *lc;
-+	int rc;
- 
- 	BUG_ON(conn == NULL);
- 
--	rc = ocfs2_live_connection_new(conn, &control);
-+	lc = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
-+	if (!lc) {
-+		rc = -ENOMEM;
-+		goto out;
-+	}
-+
-+	rc = ocfs2_live_connection_new(conn, lc);
- 	if (rc)
- 		goto out;
- 
-@@ -861,20 +856,24 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
- 		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
- 		       running_proto.pv_major, running_proto.pv_minor);
- 		rc = -EPROTO;
--		ocfs2_live_connection_drop(control);
-+		ocfs2_live_connection_drop(lc);
-+		lc = NULL;
- 		goto out;
- 	}
- 
- 	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
- 			       NULL, NULL, NULL, &fsdlm);
- 	if (rc) {
--		ocfs2_live_connection_drop(control);
-+		ocfs2_live_connection_drop(lc);
-+		lc = NULL;
- 		goto out;
- 	}
- 
--	conn->cc_private = control;
-+	conn->cc_private = lc;
- 	conn->cc_lockspace = fsdlm;
- out:
-+	if (rc && lc)
-+		kfree(lc);
- 	return rc;
- }
- 
--- 
-1.8.1.4
+The advantages are:
+ + No need to run an additional userspace daemon (ocfs2_controld)
+ + No contrrold devince handling and controld protocol
+ + Shifting responsibilities of node management to DLM layer
 
+For backward compatibility, we are keeping the controld handling code. Once
+enough time has passed we can remove a significant portion of the code.
+
+This feature requires modification in the userspace ocfs2-tools.
+The changes can be found at:
+https://github.com/goldwynr/ocfs2-tools branch: nocontrold
+Currently, not many checks are present in the userspace code,
+but that would change soon.
+
+These changes were developed on linux-stable 3.11.y. However, the 
+changes are applicable to the current upstream as well. If you wish
+to give the entire kernel a spin, the link is:
+
+https://github.com/goldwynr/linux-stable branch: nocontrold
+
+Changes since v3:
+* Added version negotiation using DLM lock
+* Used strlcpy() instead of memcpy()
+
+Changes since v2:
+* Joel's comments: patch re-factoring
+
+Changes since v1:
+* Backward compatibility with ocfs2_controld
 
 -- 
 Goldwyn
