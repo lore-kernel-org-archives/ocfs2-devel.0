@@ -1,53 +1,67 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Sat, 26 Oct 2013 17:58:07 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix possible double free in
-	ocfs2_write_begin_nolock
-In-Reply-To: <526B86E0.9080009@huawei.com>
-References: <526B86E0.9080009@huawei.com>
-Message-ID: <526B922F.2020700@oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Thu, 31 Oct 2013 08:15:31 -0500
+Subject: [Ocfs2-devel] [PATCH 0/6] nocontrold: Eliminating
+ ocfs2_controld v4
+In-Reply-To: <20131018230658.GC4490@localhost>
+References: <20131018144449.GA4568@shrek.lan>
+	<20131018130455.4b4dc370a7bbc6da235afb82@linux-foundation.org>
+	<20131018230658.GC4490@localhost>
+Message-ID: <527257F3.2080704@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 10/26/2013 05:09 PM, Xue jiufei wrote:
+Hi Joel/Mark,
 
-> When ocfs2_write_cluster_by_desc() failed in ocfs2_write_begin_nolock()
-> because of ENOSPC, it goes to out_quota, freeing data_ac(meta_ac). Then
-> it calls ocfs2_try_to_free_truncate_log() to free space. If enough
-> space freed, it will try to write again. Unfortunately, some error
-> happenes before ocfs2_lock_allocators(), it goes to out and free 
-> data_ac(meta_ac) again.
+On 10/18/2013 06:06 PM, Joel Becker wrote:
+> On Fri, Oct 18, 2013 at 01:04:55PM -0700, Andrew Morton wrote:
+>> On Fri, 18 Oct 2013 09:44:54 -0500 Goldwyn Rodrigues <rgoldwyn@suse.de> wrote:
+>>
+>>> This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
+>>> handling up to the times with respect to DLM (>=4.0.1) and corosync
+>>> (2.3.x). AFAIK, cman also is being phased out for a unified corosync
+>>> cluster stack.
+>>>
+>>> fs/dlm performs all the functions with respect to fencing and node
+>>> management and provides the API's to do so for ocfs2. For all future
+>>> references, DLM stands for fs/dlm code.
+>>>
+>>> The advantages are:
+>>>   + No need to run an additional userspace daemon (ocfs2_controld)
+>>>   + No contrrold devince handling and controld protocol
+>>>   + Shifting responsibilities of node management to DLM layer
+>>>
+>>> For backward compatibility, we are keeping the controld handling code. Once
+>>> enough time has passed we can remove a significant portion of the code.
+>>>
+>>> This feature requires modification in the userspace ocfs2-tools.
+>>> The changes can be found at:
+>>> https://github.com/goldwynr/ocfs2-tools branch: nocontrold
+>>> Currently, not many checks are present in the userspace code,
+>>> but that would change soon.
+>>>
+>>> These changes were developed on linux-stable 3.11.y. However, the
+>>> changes are applicable to the current upstream as well. If you wish
+>>> to give the entire kernel a spin, the link is:
+>>>
+>>> https://github.com/goldwynr/linux-stable branch: nocontrold
+>>
+>> I queued this up so it will get some linux-next exposure when Stephen
+>> gets back to his desk.  But I don't feel I can take it further without
+>> suitable input from the other ocfs2 developers (please).
+>
+> I thought I'd been pretty clear on the previous rounds.  The code had
+> some significant issues in its approach to compatibility (it wasn't).  I
+> haven't had a chance to look at this round yet, but I intend to soon.
+>
+> Please do not forward this code without an explicit Acked-by from Mark
+> or I.
+>
 
-Looks good to me, thanks.
+Did you get a chance to review this?
 
-Reviewed-by: Jie Liu <jeff.liu@oracle.com>
 
-> 
-> Signed-off-by: joyce <xuejiufei@huawei.com>
-> ---
->  fs/ocfs2/aops.c |    8 ++++++--
->  1 file changed, 6 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index f37d3c0..8ad0a41 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -1897,10 +1897,14 @@ out_commit:
->  out:
->  	ocfs2_free_write_ctxt(wc);
->  
-> -	if (data_ac)
-> +	if (data_ac) {
->  		ocfs2_free_alloc_context(data_ac);
-> -	if (meta_ac)
-> +		data_ac = NULL;
-> +	}
-> +	if (meta_ac) {
->  		ocfs2_free_alloc_context(meta_ac);
-> +		meta_ac = NULL;
-> +	}
->  
->  	if (ret == -ENOSPC && try_free) {
->  		/*
+-- 
+Goldwyn
