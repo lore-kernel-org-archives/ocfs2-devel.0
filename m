@@ -1,62 +1,32 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Mon, 4 Nov 2013 14:08:20 -0800
-Subject: [Ocfs2-devel] [PATCH 0/6] nocontrold:
-	Eliminating	ocfs2_controld v4
-In-Reply-To: <527718F7.4030104@suse.de>
-References: <20131018144449.GA4568@shrek.lan>
-	<20131104004949.GJ29346@wotan.suse.de> <527718F7.4030104@suse.de>
-Message-ID: <20131104220820.GO29346@wotan.suse.de>
+Date: Mon, 4 Nov 2013 14:09:36 -0800
+Subject: [Ocfs2-devel] [PATCH 2/6] Add DLM recovery callbacks
+In-Reply-To: <52771845.2040808@suse.de>
+References: <20131018144520.GA4579@shrek.lan>
+	<20131103221644.GH29346@wotan.suse.de> <52771845.2040808@suse.de>
+Message-ID: <20131104220936.GP29346@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sun, Nov 03, 2013 at 09:48:07PM -0600, Goldwyn Rodrigues wrote:
-> On 11/03/2013 06:49 PM, Mark Fasheh wrote:
->> On Fri, Oct 18, 2013 at 09:44:54AM -0500, Goldwyn Rodrigues wrote:
->>> Hi,
->>>
->>> This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
->>> handling up to the times with respect to DLM (>=4.0.1) and corosync
->>> (2.3.x). AFAIK, cman also is being phased out for a unified corosync
->>> cluster stack.
->>
->> Thanks again for doing this work. I'm about halfway done with the patches
->> when I write this but things seem to be coming along well.
->>
->>
->>> fs/dlm performs all the functions with respect to fencing and node
->>> management and provides the API's to do so for ocfs2. For all future
->>> references, DLM stands for fs/dlm code.
->>>
->>> The advantages are:
->>>   + No need to run an additional userspace daemon (ocfs2_controld)
->>>   + No contrrold devince handling and controld protocol
->>>   + Shifting responsibilities of node management to DLM layer
->>>
->>> For backward compatibility, we are keeping the controld handling code. Once
->>> enough time has passed we can remove a significant portion of the code.
->>
->> Can you give us some brief details on how backwards compatibility was
->> tested? I have a feeling that it would alleviate some concerns we had about
->> that when the 1st series hit ocfs2-devel.
->
-> I ran the code with an unmodified ocfs2-tools/libdlm and it worked fine and 
-> I got the expected message of upgrading dlm/ocfs2-tools.
->
-> I checked the reverse (older kernel, newer tools) as well, and mount 
-> returned ESRCH because ocfs2_controld was not running.
+On Sun, Nov 03, 2013 at 09:45:09PM -0600, Goldwyn Rodrigues wrote:
+> On 11/03/2013 04:16 PM, Mark Fasheh wrote:
+> > This also looks good in that I don't see anything wrong with the way the
+> > actual code functions. The extra description you put about the callbacks
+> > helps in understanding this too. Question - can you explain why oc_this_node
+> > is an atomic? That is to say I'd like to understand that race that you're
+> > protecting against :)
+> > 	--Mark
+> 
+> Ok, we may not require this to be atomic. The dlm thread sets up 
+> oc_this_node via .recover_done(), but it should not matter because 
+> this_node() functions are called after .cluster_connect().
 
-Ok awesome - put this in your next 0/N e-mail please :) It's totally the
-type of thing I'd love to see up front.
-
-Thanks,
+Ahh alright. And this is probably a silly question, but we know the dlm will
+never call this code concurently?
 	--Mark
 
->
->
-> -- 
-> Goldwyn
 --
 Mark Fasheh
