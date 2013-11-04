@@ -1,163 +1,51 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Sun, 03 Nov 2013 21:46:47 -0600
-Subject: [Ocfs2-devel] [PATCH 5/6] Framework for version LVB
-In-Reply-To: <20131104011000.GM29346@wotan.suse.de>
-References: <20131018144608.GA4594@shrek.lan>
-	<20131104011000.GM29346@wotan.suse.de>
-Message-ID: <527718A7.1010706@suse.de>
+Date: Sun, 03 Nov 2013 21:48:07 -0600
+Subject: [Ocfs2-devel] [PATCH 0/6] nocontrold: Eliminating
+ ocfs2_controld v4
+In-Reply-To: <20131104004949.GJ29346@wotan.suse.de>
+References: <20131018144449.GA4568@shrek.lan>
+	<20131104004949.GJ29346@wotan.suse.de>
+Message-ID: <527718F7.4030104@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 11/03/2013 07:10 PM, Mark Fasheh wrote:
-> On Fri, Oct 18, 2013 at 09:46:12AM -0500, Goldwyn Rodrigues wrote:
->> Use the native DLM locks for version control negotiation. Most
->> of the framework is taken from gfs2/lock_dlm.c
+On 11/03/2013 06:49 PM, Mark Fasheh wrote:
+> On Fri, Oct 18, 2013 at 09:44:54AM -0500, Goldwyn Rodrigues wrote:
+>> Hi,
 >>
->> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
->> ---
->>   fs/ocfs2/stack_user.c | 102 ++++++++++++++++++++++++++++++++++++++++++++++++++
->>   1 file changed, 102 insertions(+)
+>> This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
+>> handling up to the times with respect to DLM (>=4.0.1) and corosync
+>> (2.3.x). AFAIK, cman also is being phased out for a unified corosync
+>> cluster stack.
+>
+> Thanks again for doing this work. I'm about halfway done with the patches
+> when I write this but things seem to be coming along well.
+>
+>
+>> fs/dlm performs all the functions with respect to fencing and node
+>> management and provides the API's to do so for ocfs2. For all future
+>> references, DLM stands for fs/dlm code.
 >>
->> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
->> index 5660e6d..f417d5e 100644
->> --- a/fs/ocfs2/stack_user.c
->> +++ b/fs/ocfs2/stack_user.c
->> @@ -118,6 +118,9 @@ struct ocfs2_live_connection {
->>   	enum ocfs2_connection_type	oc_type;
->>   	atomic_t                        oc_this_node;
->>   	int                             oc_our_slot;
->> +	struct dlm_lksb                 oc_version_lksb;
->> +	char                            oc_lvb[DLM_LVB_LEN];
->> +	struct completion               oc_sync_wait;
->>   };
+>> The advantages are:
+>>   + No need to run an additional userspace daemon (ocfs2_controld)
+>>   + No contrrold devince handling and controld protocol
+>>   + Shifting responsibilities of node management to DLM layer
 >>
->>   struct ocfs2_control_private {
->> @@ -796,6 +799,105 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
->>   	return 0;
->>   }
->>
->> +static int lvb_to_version(char *lvb, struct ocfs2_protocol_version *ver)
->> +{
->> +	struct ocfs2_protocol_version pv;
->> +	struct ocfs2_protocol_version *max =
->> +		&ocfs2_user_plugin.sp_max_proto;
->> +
->> +	memcpy(&pv, lvb, sizeof(struct ocfs2_protocol_version));
->> +	if ((pv.pv_major == LONG_MIN) || (pv.pv_major == LONG_MAX) ||
->> +	    (pv.pv_major > (u8)-1) || (pv.pv_major < 1))
->> +		return -ERANGE;
->> +	if ((pv.pv_minor == LONG_MIN) || (pv.pv_minor == LONG_MAX) ||
->> +	    (pv.pv_minor > (u8)-1) || (pv.pv_minor < 0))
->> +		return -ERANGE;
->> +	if ((pv.pv_major != max->pv_major) ||
->> +	    (pv.pv_minor > max->pv_minor))
->> +		return -EINVAL;
->> +	ver->pv_major = pv.pv_major;
->> +	ver->pv_minor = pv.pv_minor;
->> +	return 0;
->> +}
+>> For backward compatibility, we are keeping the controld handling code. Once
+>> enough time has passed we can remove a significant portion of the code.
 >
-> I don't like that lvb_to_version() can return error - I would prefer that
-> validation of the lvb contents happen _outside_ the conversion function.
-> There should actually never be a reason to fail converting an lvb and any
-> corruptions, etc should be caught afterwards.
+> Can you give us some brief details on how backwards compatibility was
+> tested? I have a feeling that it would alleviate some concerns we had about
+> that when the 1st series hit ocfs2-devel.
 
-Ok. Will do.
+I ran the code with an unmodified ocfs2-tools/libdlm and it worked fine 
+and I got the expected message of upgrading dlm/ocfs2-tools.
 
->
->
->> +static void version_to_lvb(struct ocfs2_protocol_version *ver, char *lvb)
->> +{
->> +	memcpy(lvb, ver, sizeof(struct ocfs2_protocol_version));
->> +}
->
-> You'll need to account for mixed-endian clusters here and above. Look at
-> ocfs_stuff_meta_lvb() and ocfs2_refresh_inode_from_lvb() to see what I'm
-> talking about. Since the lvb goes over the network we chose a big-endian
-> representation there.
-
-ocfs2_protocol_version has two variables, pv_major and pv_minor both of 
-which are u8 :) Perhaps I could put in a comment if you like.
-
->
->
->> +static void sync_wait_cb(void *arg)
->> +{
->> +	struct ocfs2_cluster_connection *conn = arg;
->> +	struct ocfs2_live_connection *lc = conn->cc_private;
->> +	complete(&lc->oc_sync_wait);
->> +}
->> +
->> +static int sync_unlock(struct ocfs2_cluster_connection *conn,
->> +		struct dlm_lksb *lksb, char *name)
->> +{
->> +	int error;
->> +	struct ocfs2_live_connection *lc = conn->cc_private;
->> +
->> +	error = dlm_unlock(conn->cc_lockspace, lksb->sb_lkid, 0, lksb, conn);
->> +	if (error) {
->> +		printk(KERN_ERR "%s lkid %x error %d\n",
->> +				name, lksb->sb_lkid, error);
->> +		return error;
->> +	}
->> +
->> +	wait_for_completion(&lc->oc_sync_wait);
->> +
->> +	if (lksb->sb_status != -DLM_EUNLOCK) {
->> +		printk(KERN_ERR "%s lkid %x status %d\n",
->> +				name, lksb->sb_lkid, lksb->sb_status);
->> +		return -1;
->> +	}
->> +	return 0;
->> +}
->> +
->> +static int sync_lock(struct ocfs2_cluster_connection *conn,
->> +		int mode, uint32_t flags,
->> +		struct dlm_lksb *lksb, char *name)
->> +{
->> +	int error, status;
->> +	struct ocfs2_live_connection *lc = conn->cc_private;
->> +
->> +	error = dlm_lock(conn->cc_lockspace, mode, lksb, flags,
->> +			name, strlen(name),
->> +			0, sync_wait_cb, conn, NULL);
->> +	if (error) {
->> +		printk(KERN_ERR "%s lkid %x flags %x mode %d error %d\n",
->> +				name, lksb->sb_lkid, flags, mode, error);
->> +		return error;
->> +	}
->> +
->> +	wait_for_completion(&lc->oc_sync_wait);
->> +
->> +	status = lksb->sb_status;
->> +
->> +	if (status && status != -EAGAIN) {
->> +		printk(KERN_ERR "%s lkid %x flags %x mode %d status %d\n",
->> +				name, lksb->sb_lkid, flags, mode, status);
->> +	}
->> +
->> +	return status;
->> +}
->> +
->> +
->> +static int version_lock(struct ocfs2_cluster_connection *conn, int mode,
->> +		int flags)
->> +{
->> +	struct ocfs2_live_connection *lc = conn->cc_private;
->> +	return sync_lock(conn, mode, flags,
->> +			&lc->oc_version_lksb, "version_lock");
->> +}
->
-> #define	VERSION_LOCK_NAME	"version_lock"
->
-> and take the "name" argument out of sync_lock().
-> 	--Mark
->
-
-Understood.
+I checked the reverse (older kernel, newer tools) as well, and mount 
+returned ESRCH because ocfs2_controld was not running.
 
 
 -- 
