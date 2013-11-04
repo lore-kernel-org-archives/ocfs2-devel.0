@@ -1,51 +1,109 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Sun, 03 Nov 2013 21:48:07 -0600
-Subject: [Ocfs2-devel] [PATCH 0/6] nocontrold: Eliminating
- ocfs2_controld v4
-In-Reply-To: <20131104004949.GJ29346@wotan.suse.de>
-References: <20131018144449.GA4568@shrek.lan>
-	<20131104004949.GJ29346@wotan.suse.de>
-Message-ID: <527718F7.4030104@suse.de>
+Date: Sun, 03 Nov 2013 21:48:14 -0600
+Subject: [Ocfs2-devel] [PATCH 6/6] Use the new DLM operation callbacks
+ while requesting new lockspace
+In-Reply-To: <20131104011209.GN29346@wotan.suse.de>
+References: <20131018144626.GA4598@shrek.lan>
+	<20131104011209.GN29346@wotan.suse.de>
+Message-ID: <527718FE.3050903@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 11/03/2013 06:49 PM, Mark Fasheh wrote:
-> On Fri, Oct 18, 2013 at 09:44:54AM -0500, Goldwyn Rodrigues wrote:
->> Hi,
+On 11/03/2013 07:12 PM, Mark Fasheh wrote:
+> On Fri, Oct 18, 2013 at 09:46:31AM -0500, Goldwyn Rodrigues wrote:
+>> Attempt to use the new DLM operations. If it is not supported,
+>> use the traditional ocfs2_controld.
 >>
->> This is an effort of removing ocfs2_controld.pcmk and getting ocfs2 DLM
->> handling up to the times with respect to DLM (>=4.0.1) and corosync
->> (2.3.x). AFAIK, cman also is being phased out for a unified corosync
->> cluster stack.
->
-> Thanks again for doing this work. I'm about halfway done with the patches
-> when I write this but things seem to be coming along well.
->
->
->> fs/dlm performs all the functions with respect to fencing and node
->> management and provides the API's to do so for ocfs2. For all future
->> references, DLM stands for fs/dlm code.
+>> To exchange ocfs2 versioning, we use the LVB of the version dlm lock.
+>> It first attempts to take the lock in EX mode (non-blocking). If
+>> successful (which means it is the first mount), it writes the
+>> version number and downconverts to PR lock. If it is unsuccessful,
+>> it reads the version from the lock.
 >>
->> The advantages are:
->>   + No need to run an additional userspace daemon (ocfs2_controld)
->>   + No contrrold devince handling and controld protocol
->>   + Shifting responsibilities of node management to DLM layer
+>> If this becomes the standard (wit o2cb as well), it could
+>> simplify userspace tools to check if the filesystem is mounted
+>> on other nodes.
 >>
->> For backward compatibility, we are keeping the controld handling code. Once
->> enough time has passed we can remove a significant portion of the code.
+>> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+>> ---
+>>   fs/ocfs2/stack_user.c | 97 ++++++++++++++++++++++++++++++++++++++-------------
+>>   1 file changed, 73 insertions(+), 24 deletions(-)
 >
-> Can you give us some brief details on how backwards compatibility was
-> tested? I have a feeling that it would alleviate some concerns we had about
-> that when the 1st series hit ocfs2-devel.
+>
+>> @@ -948,12 +961,65 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>>   		goto out;
+>>   	}
+>>
+>> -	lc->oc_type = WITH_CONTROLD;
+>> +	init_waitqueue_head(&lc->oc_wait);
+>> +	init_completion(&lc->oc_sync_wait);
+>> +	atomic_set(&lc->oc_this_node, 0);
+>> +	conn->cc_private = lc;
+>> +	lc->oc_type = NO_CONTROLD;
+>> +
+>> +	rc = dlm_new_lockspace(conn->cc_name, conn->cc_cluster_name,
+>> +			       DLM_LSFL_FS, DLM_LVB_LEN,
+>> +			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
+>> +	if (rc)
+>> +		goto out;
+>> +
+>> +	if (ops_rv == -EOPNOTSUPP) {
+>> +		lc->oc_type = WITH_CONTROLD;
+>> +		printk(KERN_NOTICE "ocfs2: You seem to be using an older "
+>> +				"version of dlm_controld and/or ocfs2-tools."
+>> +				" Please consider upgrading.\n");
+>> +	} else if (ops_rv) {
+>> +		rc = ops_rv;
+>> +		goto out;
+>> +	}
+>> +	conn->cc_lockspace = fsdlm;
+>>
+>>   	rc = ocfs2_live_connection_new(conn, lc);
+>>   	if (rc)
+>>   		goto out;
+>>
+>> +	if (lc->oc_type == NO_CONTROLD) {
+>> +		int ret;
+>> +		lc->oc_version_lksb.sb_lvbptr = lc->oc_lvb;
+>> +		ret = version_lock(conn, DLM_LOCK_EX,
+>> +				DLM_LKF_VALBLK|DLM_LKF_NOQUEUE);
+>> +		running_proto.pv_major =
+>> +			ocfs2_user_plugin.sp_max_proto.pv_major;
+>> +		running_proto.pv_minor =
+>> +			ocfs2_user_plugin.sp_max_proto.pv_minor;
+>> +		if (!ret) {
+>> +			conn->cc_version.pv_major = running_proto.pv_major;
+>> +			conn->cc_version.pv_minor = running_proto.pv_minor;
+>> +			version_to_lvb(&running_proto, lc->oc_lvb);
+>> +			version_lock(conn, DLM_LOCK_PR, DLM_LKF_CONVERT|DLM_LKF_VALBLK);
+>> +		} else if (ret == -EAGAIN) {
+>> +			version_lock(conn, DLM_LOCK_PR, DLM_LKF_VALBLK);
+>> +			ret = lvb_to_version(lc->oc_lvb, &conn->cc_version);
+>> +			if (ret) {
+>> +				rc = ret;
+>> +				user_cluster_disconnect(conn);
+>> +				goto out;
+>> +			}
+>> +		} else {
+>> +			printk(KERN_ERR "ocfs2: Could not determine"
+>> +					" locking version\n");
+>> +			rc = ret;
+>> +			user_cluster_disconnect(conn);
+>> +			goto out;
+>> +		}
+>> +		wait_event(lc->oc_wait, (atomic_read(&lc->oc_this_node) > 0));
+>> +	}
+>> +
+>
+> Can we put this block in it's own function?
 
-I ran the code with an unmodified ocfs2-tools/libdlm and it worked fine 
-and I got the expected message of upgrading dlm/ocfs2-tools.
+Yes. Sure.
 
-I checked the reverse (older kernel, newer tools) as well, and mount 
-returned ESRCH because ocfs2_controld was not running.
+I suppose thats about it. I will incorporate these changes and put them 
+in the next series.
 
 
 -- 
