@@ -1,151 +1,104 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Sun, 3 Nov 2013 17:10:00 -0800
-Subject: [Ocfs2-devel] [PATCH 5/6] Framework for version LVB
-In-Reply-To: <20131018144608.GA4594@shrek.lan>
-References: <20131018144608.GA4594@shrek.lan>
-Message-ID: <20131104011000.GM29346@wotan.suse.de>
+Date: Sun, 3 Nov 2013 17:12:09 -0800
+Subject: [Ocfs2-devel] [PATCH 6/6] Use the new DLM operation callbacks
+	while	requesting new lockspace
+In-Reply-To: <20131018144626.GA4598@shrek.lan>
+References: <20131018144626.GA4598@shrek.lan>
+Message-ID: <20131104011209.GN29346@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Oct 18, 2013 at 09:46:12AM -0500, Goldwyn Rodrigues wrote:
-> Use the native DLM locks for version control negotiation. Most
-> of the framework is taken from gfs2/lock_dlm.c
+On Fri, Oct 18, 2013 at 09:46:31AM -0500, Goldwyn Rodrigues wrote:
+> Attempt to use the new DLM operations. If it is not supported,
+> use the traditional ocfs2_controld.
+> 
+> To exchange ocfs2 versioning, we use the LVB of the version dlm lock.
+> It first attempts to take the lock in EX mode (non-blocking). If
+> successful (which means it is the first mount), it writes the
+> version number and downconverts to PR lock. If it is unsuccessful,
+> it reads the version from the lock.
+> 
+> If this becomes the standard (wit o2cb as well), it could
+> simplify userspace tools to check if the filesystem is mounted
+> on other nodes.
 > 
 > Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 > ---
->  fs/ocfs2/stack_user.c | 102 ++++++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 102 insertions(+)
-> 
-> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-> index 5660e6d..f417d5e 100644
-> --- a/fs/ocfs2/stack_user.c
-> +++ b/fs/ocfs2/stack_user.c
-> @@ -118,6 +118,9 @@ struct ocfs2_live_connection {
->  	enum ocfs2_connection_type	oc_type;
->  	atomic_t                        oc_this_node;
->  	int                             oc_our_slot;
-> +	struct dlm_lksb                 oc_version_lksb;
-> +	char                            oc_lvb[DLM_LVB_LEN];
-> +	struct completion               oc_sync_wait;
->  };
+>  fs/ocfs2/stack_user.c | 97 ++++++++++++++++++++++++++++++++++++++-------------
+>  1 file changed, 73 insertions(+), 24 deletions(-)
+
+
+> @@ -948,12 +961,65 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>  		goto out;
+>  	}
 >  
->  struct ocfs2_control_private {
-> @@ -796,6 +799,105 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
->  	return 0;
->  }
+> -	lc->oc_type = WITH_CONTROLD;
+> +	init_waitqueue_head(&lc->oc_wait);
+> +	init_completion(&lc->oc_sync_wait);
+> +	atomic_set(&lc->oc_this_node, 0);
+> +	conn->cc_private = lc;
+> +	lc->oc_type = NO_CONTROLD;
+> +
+> +	rc = dlm_new_lockspace(conn->cc_name, conn->cc_cluster_name,
+> +			       DLM_LSFL_FS, DLM_LVB_LEN,
+> +			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
+> +	if (rc)
+> +		goto out;
+> +
+> +	if (ops_rv == -EOPNOTSUPP) {
+> +		lc->oc_type = WITH_CONTROLD;
+> +		printk(KERN_NOTICE "ocfs2: You seem to be using an older "
+> +				"version of dlm_controld and/or ocfs2-tools."
+> +				" Please consider upgrading.\n");
+> +	} else if (ops_rv) {
+> +		rc = ops_rv;
+> +		goto out;
+> +	}
+> +	conn->cc_lockspace = fsdlm;
 >  
-> +static int lvb_to_version(char *lvb, struct ocfs2_protocol_version *ver)
-> +{
-> +	struct ocfs2_protocol_version pv;
-> +	struct ocfs2_protocol_version *max =
-> +		&ocfs2_user_plugin.sp_max_proto;
-> +
-> +	memcpy(&pv, lvb, sizeof(struct ocfs2_protocol_version));
-> +	if ((pv.pv_major == LONG_MIN) || (pv.pv_major == LONG_MAX) ||
-> +	    (pv.pv_major > (u8)-1) || (pv.pv_major < 1))
-> +		return -ERANGE;
-> +	if ((pv.pv_minor == LONG_MIN) || (pv.pv_minor == LONG_MAX) ||
-> +	    (pv.pv_minor > (u8)-1) || (pv.pv_minor < 0))
-> +		return -ERANGE;
-> +	if ((pv.pv_major != max->pv_major) ||
-> +	    (pv.pv_minor > max->pv_minor))
-> +		return -EINVAL;
-> +	ver->pv_major = pv.pv_major;
-> +	ver->pv_minor = pv.pv_minor;
-> +	return 0;
-> +}
-
-I don't like that lvb_to_version() can return error - I would prefer that
-validation of the lvb contents happen _outside_ the conversion function.
-There should actually never be a reason to fail converting an lvb and any
-corruptions, etc should be caught afterwards.
-
-
-> +static void version_to_lvb(struct ocfs2_protocol_version *ver, char *lvb)
-> +{
-> +	memcpy(lvb, ver, sizeof(struct ocfs2_protocol_version));
-> +}
-
-You'll need to account for mixed-endian clusters here and above. Look at
-ocfs_stuff_meta_lvb() and ocfs2_refresh_inode_from_lvb() to see what I'm
-talking about. Since the lvb goes over the network we chose a big-endian
-representation there.
-
-
-> +static void sync_wait_cb(void *arg)
-> +{
-> +	struct ocfs2_cluster_connection *conn = arg;
-> +	struct ocfs2_live_connection *lc = conn->cc_private;
-> +	complete(&lc->oc_sync_wait);
-> +}
-> +
-> +static int sync_unlock(struct ocfs2_cluster_connection *conn,
-> +		struct dlm_lksb *lksb, char *name)
-> +{
-> +	int error;
-> +	struct ocfs2_live_connection *lc = conn->cc_private;
-> +
-> +	error = dlm_unlock(conn->cc_lockspace, lksb->sb_lkid, 0, lksb, conn);
-> +	if (error) {
-> +		printk(KERN_ERR "%s lkid %x error %d\n",
-> +				name, lksb->sb_lkid, error);
-> +		return error;
+>  	rc = ocfs2_live_connection_new(conn, lc);
+>  	if (rc)
+>  		goto out;
+>  
+> +	if (lc->oc_type == NO_CONTROLD) {
+> +		int ret;
+> +		lc->oc_version_lksb.sb_lvbptr = lc->oc_lvb;
+> +		ret = version_lock(conn, DLM_LOCK_EX,
+> +				DLM_LKF_VALBLK|DLM_LKF_NOQUEUE);
+> +		running_proto.pv_major = 
+> +			ocfs2_user_plugin.sp_max_proto.pv_major;
+> +		running_proto.pv_minor =
+> +			ocfs2_user_plugin.sp_max_proto.pv_minor;
+> +		if (!ret) {
+> +			conn->cc_version.pv_major = running_proto.pv_major;
+> +			conn->cc_version.pv_minor = running_proto.pv_minor;
+> +			version_to_lvb(&running_proto, lc->oc_lvb);
+> +			version_lock(conn, DLM_LOCK_PR, DLM_LKF_CONVERT|DLM_LKF_VALBLK);
+> +		} else if (ret == -EAGAIN) {
+> +			version_lock(conn, DLM_LOCK_PR, DLM_LKF_VALBLK);
+> +			ret = lvb_to_version(lc->oc_lvb, &conn->cc_version);
+> +			if (ret) {
+> +				rc = ret;
+> +				user_cluster_disconnect(conn);
+> +				goto out;
+> +			}
+> +		} else {
+> +			printk(KERN_ERR "ocfs2: Could not determine"
+> +					" locking version\n");
+> +			rc = ret;
+> +			user_cluster_disconnect(conn);
+> +			goto out;
+> +		}
+> +		wait_event(lc->oc_wait, (atomic_read(&lc->oc_this_node) > 0));
 > +	}
 > +
-> +	wait_for_completion(&lc->oc_sync_wait);
-> +
-> +	if (lksb->sb_status != -DLM_EUNLOCK) {
-> +		printk(KERN_ERR "%s lkid %x status %d\n",
-> +				name, lksb->sb_lkid, lksb->sb_status);
-> +		return -1;
-> +	}
-> +	return 0;
-> +}
-> +
-> +static int sync_lock(struct ocfs2_cluster_connection *conn,
-> +		int mode, uint32_t flags, 
-> +		struct dlm_lksb *lksb, char *name)
-> +{
-> +	int error, status;
-> +	struct ocfs2_live_connection *lc = conn->cc_private;
-> +
-> +	error = dlm_lock(conn->cc_lockspace, mode, lksb, flags,
-> +			name, strlen(name),
-> +			0, sync_wait_cb, conn, NULL);
-> +	if (error) {
-> +		printk(KERN_ERR "%s lkid %x flags %x mode %d error %d\n",
-> +				name, lksb->sb_lkid, flags, mode, error);
-> +		return error;
-> +	}
-> +
-> +	wait_for_completion(&lc->oc_sync_wait);
-> +
-> +	status = lksb->sb_status;
-> +
-> +	if (status && status != -EAGAIN) {
-> +		printk(KERN_ERR "%s lkid %x flags %x mode %d status %d\n",
-> +				name, lksb->sb_lkid, flags, mode, status);
-> +	}
-> +
-> +	return status;
-> +}
-> +
-> +
-> +static int version_lock(struct ocfs2_cluster_connection *conn, int mode,
-> +		int flags)
-> +{
-> +	struct ocfs2_live_connection *lc = conn->cc_private;
-> +	return sync_lock(conn, mode, flags, 
-> +			&lc->oc_version_lksb, "version_lock");
-> +}
 
-#define	VERSION_LOCK_NAME	"version_lock"
-
-and take the "name" argument out of sync_lock().
+Can we put this block in it's own function?
 	--Mark
+
 
 --
 Mark Fasheh
