@@ -1,110 +1,48 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Sun, 03 Nov 2013 21:45:09 -0600
-Subject: [Ocfs2-devel] [PATCH 2/6] Add DLM recovery callbacks
-In-Reply-To: <20131103221644.GH29346@wotan.suse.de>
-References: <20131018144520.GA4579@shrek.lan>
-	<20131103221644.GH29346@wotan.suse.de>
-Message-ID: <52771845.2040808@suse.de>
+Date: Sun, 03 Nov 2013 21:46:01 -0600
+Subject: [Ocfs2-devel] [PATCH 3/6] Shift allocation
+	ocfs2_live_connection to user_connect()
+In-Reply-To: <20131103231457.GI29346@wotan.suse.de>
+References: <20131018144534.GA4583@shrek.lan>
+	<20131103231457.GI29346@wotan.suse.de>
+Message-ID: <52771879.5060808@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 11/03/2013 04:16 PM, Mark Fasheh wrote:
-> This also looks good in that I don't see anything wrong with the way the
-> actual code functions. The extra description you put about the callbacks
-> helps in understanding this too. Question - can you explain why oc_this_node
-> is an atomic? That is to say I'd like to understand that race that you're
-> protecting against :)
-> 	--Mark
-
-Ok, we may not require this to be atomic. The dlm thread sets up 
-oc_this_node via .recover_done(), but it should not matter because 
-this_node() functions are called after .cluster_connect().
-
+On 11/03/2013 05:14 PM, Mark Fasheh wrote:
+> On Fri, Oct 18, 2013 at 09:45:39AM -0500, Goldwyn Rodrigues wrote:
+>> We perform this because the DLM recovery callbacks will require
+>> the ocfs2_live_connection structure to record the node information
+>> when dlm_new_lockspace() is updated.
 >
-> On Fri, Oct 18, 2013 at 09:45:25AM -0500, Goldwyn Rodrigues wrote:
->> These are the callbacks called by the fs/dlm code in case the membership
->> changes. If there is a failure while/during calling any of these, the
->> DLM creates a new membership and relays to the rest of the nodes.
->>
->> recover_prep() is called when DLM understands a node is down.
->> recover_slot() is called once all nodes have acknowledged recover_prep
->> and recovery can begin.
->> recover_done() is called once the recovery is complete. It returns the
->> new membership.
->>
->> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
->> ---
->>   fs/ocfs2/stack_user.c | 38 ++++++++++++++++++++++++++++++++++++++
->>   1 file changed, 38 insertions(+)
->>
->> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
->> index 286edf1..4111855 100644
->> --- a/fs/ocfs2/stack_user.c
->> +++ b/fs/ocfs2/stack_user.c
->> @@ -110,6 +110,8 @@
->>   struct ocfs2_live_connection {
->>   	struct list_head		oc_list;
->>   	struct ocfs2_cluster_connection	*oc_conn;
->> +	atomic_t                        oc_this_node;
->> +	int                             oc_our_slot;
->>   };
->>
->>   struct ocfs2_control_private {
->> @@ -799,6 +801,42 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
->>   	return 0;
->>   }
->>
->> +static void user_recover_prep(void *arg)
->> +{
->> +}
->> +
->> +static void user_recover_slot(void *arg, struct dlm_slot *slot)
->> +{
->> +	struct ocfs2_cluster_connection *conn = arg;
->> +	printk(KERN_INFO "ocfs2: Node %d/%d down. Initiating recovery.\n",
->> +			slot->nodeid, slot->slot);
->> +	conn->cc_recovery_handler(slot->nodeid, conn->cc_recovery_data);
->> +
->> +}
->> +
->> +static void user_recover_done(void *arg, struct dlm_slot *slots,
->> +		int num_slots, int our_slot,
->> +		uint32_t generation)
->> +{
->> +	struct ocfs2_cluster_connection *conn = arg;
->> +	struct ocfs2_live_connection *lc = conn->cc_private;
->> +	int i;
->> +
->> +	for (i = 0; i < num_slots; i++)
->> +		if (slots[i].slot == our_slot) {
->> +			atomic_set(&lc->oc_this_node, slots[i].nodeid);
->> +			break;
->> +		}
->> +
->> +	lc->oc_our_slot = our_slot;
->> +}
->> +
->> +const struct dlm_lockspace_ops ocfs2_ls_ops = {
->> +	.recover_prep = user_recover_prep,
->> +	.recover_slot = user_recover_slot,
->> +	.recover_done = user_recover_done,
->> +};
->> +
->>   static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
->>   {
->>   	dlm_lockspace_t *fsdlm;
->> --
->> 1.8.1.4
->>
->>
->> --
->> Goldwyn
-> --
-> Mark Fasheh
+> Ok but what I see below is that you took the alloc out of
+> ocfs2_live_connecion_new() and just do it above that call in
+> user_cluster_connect(), then call ocfs2_live_connection_new().
 >
+> Aside from that though this doesn't seem to add new functionality, which is
+> fine if the later patches use what you've done here but I don't where this
+> change has made any impact on patches 4-6. So my guess is that there's one
+> of two things going on here:
+>
+> 1) This change was just left in by accident in which case you can just
+> remove this patch from your series.
+>
+> 2) I made an error reading the later patches and this _is_ used :)
+> If that's the case do me a favor and point out what I missed :)
+
+When dlm_new_lockspace is called, it calls recover_done() to inform our 
+node number. This is recorded in the live_connection data structure and 
+  needs ocfs2_live_connection to be available before the call to 
+dlm_lockspce_new(). I will put this information in the next series.
+
+> Also, if this needs to stay I would rename ocfs2_live_connecion_new() since
+> _new() usually makes me think "allocates" and we're not doing that any more.
+> Maybe something like ocfs2_live_connection_attach()?
+
+Yes, we should change the name of the function.
 
 
 -- 
