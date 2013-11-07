@@ -1,54 +1,44 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Thu, 7 Nov 2013 05:19:48 -0800
-Subject: [Ocfs2-devel] ocfs2: a dead lock case when running
- dirop_fileop_racer
-In-Reply-To: <527B8392.8010807@huawei.com>
-References: <527B8392.8010807@huawei.com>
-Message-ID: <20131107131948.GH24799@localhost>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Thu, 07 Nov 2013 16:02:48 -0600
+Subject: [Ocfs2-devel] [patch] ocfs2: remove some impossible checks
+In-Reply-To: <20131107074232.GC21844@elgon.mountain>
+References: <20131107074232.GC21844@elgon.mountain>
+Message-ID: <527C0E08.1000105@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Nov 07, 2013 at 08:12:02PM +0800, Joseph Qi wrote:
-> We ran ocfs2 test program dirop_fileop_racer and found a dead lock case.
-> 
-> The case is described below.
-> 2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
-> /race/16/1 in the filesystem, and let the inode number of dir 16 is less
-> than the inode number of dir race.
-> 
-> Node A                            Node B
-> mv /race/16/1 /race/
->                                   right after Node A has got the
->                                   EX mode of /race/16/, and tries to
->                                   get EX mode of /race
->                                   ls /race/16/
-> 
-> In this case, Node A has got the EX mode of /race/16/, and wants to get
-> EX mode of /race/. Node B has got the PR mode of /race/, and wants to
-> get the PR mode of /race/16/. Since EX and PR are mutually exclusive,
-> dead lock happens.
+On 11/07/2013 01:42 AM, Dan Carpenter wrote:
+> pv_major and pv_minor are unsigned char type so these checks are just
+> noise.
+>
+> Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
 
-Interesting.  What DLM are you using, o2dlm or fs/dlm?  I would expect
-that fs/dlm would do deadlock detection, but I could be wrong.
+Thanks. I will incorporate these changes alongwith Mark Fasheh's review 
+comments
 
-There's no way the PR on /race/ will downconvert, because there is a
-reference.  We really want a signal to that PR waiting on /race/16/, but
-there's no in-progress work happening on node A for that.
+>
+> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+> index 4599de7..eca3f93 100644
+> --- a/fs/ocfs2/stack_user.c
+> +++ b/fs/ocfs2/stack_user.c
+> @@ -808,11 +808,7 @@ static int lvb_to_version(char *lvb, struct ocfs2_protocol_version *ver)
+>   		&ocfs2_user_plugin.sp_max_proto;
+>
+>   	memcpy(&pv, lvb, sizeof(struct ocfs2_protocol_version));
+> -	if ((pv.pv_major == LONG_MIN) || (pv.pv_major == LONG_MAX) ||
+> -	    (pv.pv_major > (u8)-1) || (pv.pv_major < 1))
+> -		return -ERANGE;
+> -	if ((pv.pv_minor == LONG_MIN) || (pv.pv_minor == LONG_MAX) ||
+> -	    (pv.pv_minor > (u8)-1) || (pv.pv_minor < 0))
+> +	if (pv.pv_major < 1)
+>   		return -ERANGE;
+>   	if ((pv.pv_major != max->pv_major) ||
+>   	    (pv.pv_minor > max->pv_minor))
+>
 
-I suppose we could hack this to check for ancestors.  That is, rename
-locks should be in ancestor order before trying inode number order.  I'm
-not sure that always works, though, especially if the ancestors are not
-consecutive and might also be affected by in-flight moves...
-
-Joel
 
 -- 
-
-"Egotist: a person more interested in himself than in me."
-         - Ambrose Bierce 
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+Goldwyn
