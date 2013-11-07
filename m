@@ -1,32 +1,77 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Thu, 7 Nov 2013 10:42:32 +0300
-Subject: [Ocfs2-devel] [patch] ocfs2: remove some impossible checks
-Message-ID: <20131107074232.GC21844@elgon.mountain>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Thu, 7 Nov 2013 03:06:45 -0800
+Subject: [Ocfs2-devel] [PATCH 17/24] ocfs2: Convert use of typedef
+ ctl_table to struct ctl_table
+In-Reply-To: <f5f72664f6f5b3b433149e515cacbd0d90bf99f9.1382480758.git.joe@perches.com>
+References: <cover.1382480758.git.joe@perches.com>
+	<f5f72664f6f5b3b433149e515cacbd0d90bf99f9.1382480758.git.joe@perches.com>
+Message-ID: <20131107110645.GE24799@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joe Perches <joe@perches.com>
+Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
 
-pv_major and pv_minor are unsigned char type so these checks are just
-noise.
+On Tue, Oct 22, 2013 at 03:30:00PM -0700, Joe Perches wrote:
+> This typedef is unnecessary and should just be removed.
+> 
+> Signed-off-by: Joe Perches <joe@perches.com>
 
-Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+Acked-by: Joel Becker <jlbec@evilplan.org>
+> ---
+>  fs/ocfs2/stackglue.c | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
+> 
+> diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+> index 39abf89..cb7ec0b 100644
+> --- a/fs/ocfs2/stackglue.c
+> +++ b/fs/ocfs2/stackglue.c
+> @@ -643,7 +643,7 @@ error:
+>  
+>  #define FS_OCFS2_NM		1
+>  
+> -static ctl_table ocfs2_nm_table[] = {
+> +static struct ctl_table ocfs2_nm_table[] = {
+>  	{
+>  		.procname	= "hb_ctl_path",
+>  		.data		= ocfs2_hb_ctl_path,
+> @@ -654,7 +654,7 @@ static ctl_table ocfs2_nm_table[] = {
+>  	{ }
+>  };
+>  
+> -static ctl_table ocfs2_mod_table[] = {
+> +static struct ctl_table ocfs2_mod_table[] = {
+>  	{
+>  		.procname	= "nm",
+>  		.data		= NULL,
+> @@ -665,7 +665,7 @@ static ctl_table ocfs2_mod_table[] = {
+>  	{ }
+>  };
+>  
+> -static ctl_table ocfs2_kern_table[] = {
+> +static struct ctl_table ocfs2_kern_table[] = {
+>  	{
+>  		.procname	= "ocfs2",
+>  		.data		= NULL,
+> @@ -676,7 +676,7 @@ static ctl_table ocfs2_kern_table[] = {
+>  	{ }
+>  };
+>  
+> -static ctl_table ocfs2_root_table[] = {
+> +static struct ctl_table ocfs2_root_table[] = {
+>  	{
+>  		.procname	= "fs",
+>  		.data		= NULL,
+> -- 
+> 1.8.1.2.459.gbcd45b4.dirty
+> 
 
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index 4599de7..eca3f93 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -808,11 +808,7 @@ static int lvb_to_version(char *lvb, struct ocfs2_protocol_version *ver)
- 		&ocfs2_user_plugin.sp_max_proto;
- 
- 	memcpy(&pv, lvb, sizeof(struct ocfs2_protocol_version));
--	if ((pv.pv_major == LONG_MIN) || (pv.pv_major == LONG_MAX) ||
--	    (pv.pv_major > (u8)-1) || (pv.pv_major < 1))
--		return -ERANGE;
--	if ((pv.pv_minor == LONG_MIN) || (pv.pv_minor == LONG_MAX) ||
--	    (pv.pv_minor > (u8)-1) || (pv.pv_minor < 0))
-+	if (pv.pv_major < 1)
- 		return -ERANGE;
- 	if ((pv.pv_major != max->pv_major) ||
- 	    (pv.pv_minor > max->pv_minor))
+-- 
+
+Life's Little Instruction Book #451
+
+	"Don't be afraid to say, 'I'm sorry.'"
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
