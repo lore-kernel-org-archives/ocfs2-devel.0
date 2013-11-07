@@ -1,65 +1,32 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 6 Nov 2013 09:05:48 +0800
-Subject: [Ocfs2-devel] ocfs2: why not set EROFS when clearing bits
- multiple times
-In-Reply-To: <527983CA.8050403@oracle.com>
-References: <5278AA38.9050603@huawei.com> <527983CA.8050403@oracle.com>
-Message-ID: <527995EC.402@huawei.com>
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Thu, 7 Nov 2013 10:42:32 +0300
+Subject: [Ocfs2-devel] [patch] ocfs2: remove some impossible checks
+Message-ID: <20131107074232.GC21844@elgon.mountain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/11/6 7:48, Srinivas Eeda wrote:
-> On 11/05/2013 12:20 AM, Joseph Qi wrote:
->> In ocfs2_block_group_clear_bits, when num_bits != bits_cleared, it just
->> log an error message without setting EROFS.
->>
->> The code is below:
->>
->> 	/*
->> 	 * If encountered, it means we are clearing bits multiple times. While
->> 	 * we are handling the case, we still need to be alerted to its
->> 	 * occurrence. Hence, marking it as an ERROR and not NOTICE.
->> 	 */
->> 	if (num_bits != bits_cleared) {
->> 		mlog(ML_ERROR, "Trying to clear %u bits at offset %u in group "
->> 		     "descriptor # %llu (device %s), needed to clear %u bits\n",
->> 		     num_bits, bit_off,
->> 		     (unsigned long long)le64_to_cpu(bg->bg_blkno),
->> 		     alloc_inode->i_sb->s_id, bits_cleared);
->> 	}
->>
->> If this case happens, does it mean the filesystem have already been
->> inconsistent? If so, why not set EROFS when this case happens?
->> Or anyone knows which case will casue bits to be cleared multiple times?
-> in the past we have seen a case where the number of free bits were more 
-> than actual bits which took fs read only. I think running fsck fixed 
-> this count but didn't report any other issues. So it appeared there is a 
-> case where we were trying to free some bits twice. Since there was no 
-> real corruption we didn't take the fs read only.
-> 
-> My guess is this problem may in code paths of releasing unused 
-> localalloc bits back to global bitmap.
-> 
-Thanks for your quick reply.
-Any more details about the case which led to this change? Now we have
-encountered this error message but have no idea why it happened.
-And we will investigate the code paths what your mentioned.
+pv_major and pv_minor are unsigned char type so these checks are just
+noise.
 
->> Thanks very much.
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
+Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+
+diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+index 4599de7..eca3f93 100644
+--- a/fs/ocfs2/stack_user.c
++++ b/fs/ocfs2/stack_user.c
+@@ -808,11 +808,7 @@ static int lvb_to_version(char *lvb, struct ocfs2_protocol_version *ver)
+ 		&ocfs2_user_plugin.sp_max_proto;
+ 
+ 	memcpy(&pv, lvb, sizeof(struct ocfs2_protocol_version));
+-	if ((pv.pv_major == LONG_MIN) || (pv.pv_major == LONG_MAX) ||
+-	    (pv.pv_major > (u8)-1) || (pv.pv_major < 1))
+-		return -ERANGE;
+-	if ((pv.pv_minor == LONG_MIN) || (pv.pv_minor == LONG_MAX) ||
+-	    (pv.pv_minor > (u8)-1) || (pv.pv_minor < 0))
++	if (pv.pv_major < 1)
+ 		return -ERANGE;
+ 	if ((pv.pv_major != max->pv_major) ||
+ 	    (pv.pv_minor > max->pv_minor))
