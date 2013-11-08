@@ -1,44 +1,68 @@
-From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Thu, 07 Nov 2013 16:02:48 -0600
-Subject: [Ocfs2-devel] [patch] ocfs2: remove some impossible checks
-In-Reply-To: <20131107074232.GC21844@elgon.mountain>
-References: <20131107074232.GC21844@elgon.mountain>
-Message-ID: <527C0E08.1000105@suse.de>
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Fri, 08 Nov 2013 01:21:50 +0000
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Do not write error flag to user
+ structure we cannot copy from/to
+In-Reply-To: <20131107112243.GG24799@localhost>
+References: <1382905082.2994.32.camel@deadeye.wl.decadent.org.uk>
+	<20131107112243.GG24799@localhost>
+Message-ID: <1383873710.8136.25.camel@deadeye.wl.decadent.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 11/07/2013 01:42 AM, Dan Carpenter wrote:
-> pv_major and pv_minor are unsigned char type so these checks are just
-> noise.
->
-> Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+On Thu, 2013-11-07 at 03:22 -0800, Joel Becker wrote:
+> On Sun, Oct 27, 2013 at 08:18:02PM +0000, Ben Hutchings wrote:
+> > If we failed to copy from the structure, writing back the flags leaks
+> > 31 bits of kernel memory (the rest of the ir_flags field).
+> > 
+> > In any case, if we cannot copy from/to the structure, why should we
+> > expect putting just the flags to work?
+> 
+> The first issue could be fixed; we could clear the flags.  The second
+> issue is what matters.  If we're getting EFAULT, we're not going to be
+> moving any flags around.  We should just return the EFAULT and be done
+> with it.
+>  
+> > Also make sure ocfs2_info_handle_freeinode() returns the right error
+> > code if the copy_to_user() fails.
+> > 
+> > Compile-tested only.
+> > 
+> > Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+> > Cc: stable at vger.kernel.org
+> > Fixes: ddee5cdb70e6 ('Ocfs2: Add new OCFS2_IOC_INFO ioctl for ocfs2 v8.')
+> 
+> I can't recommend this for stable if it hasn't actually been tested.
 
-Thanks. I will incorporate these changes alongwith Mark Fasheh's review 
-comments
+I wouldn't expect you to apply it without testing!  But if it is
+correct, then it should go to stable.
 
->
-> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-> index 4599de7..eca3f93 100644
-> --- a/fs/ocfs2/stack_user.c
-> +++ b/fs/ocfs2/stack_user.c
-> @@ -808,11 +808,7 @@ static int lvb_to_version(char *lvb, struct ocfs2_protocol_version *ver)
->   		&ocfs2_user_plugin.sp_max_proto;
->
->   	memcpy(&pv, lvb, sizeof(struct ocfs2_protocol_version));
-> -	if ((pv.pv_major == LONG_MIN) || (pv.pv_major == LONG_MAX) ||
-> -	    (pv.pv_major > (u8)-1) || (pv.pv_major < 1))
-> -		return -ERANGE;
-> -	if ((pv.pv_minor == LONG_MIN) || (pv.pv_minor == LONG_MAX) ||
-> -	    (pv.pv_minor > (u8)-1) || (pv.pv_minor < 0))
-> +	if (pv.pv_major < 1)
->   		return -ERANGE;
->   	if ((pv.pv_major != max->pv_major) ||
->   	    (pv.pv_minor > max->pv_minor))
->
+> There is no exposure; as you point out, the put_user() will fail if the
+> get_user() is failing.
 
+This is true for a program that accidentally used an invalid pointer.
+But a malicious program can have one thread manipulating memory mappings
+while the other thread runs the ioctl(), so that only the put_user()
+succeeds.
+
+> Send me a version without stable and I'll Ack it.
+[...]
+
+I believe this meets the criteria for stable.  It is your perogative as
+maintainer to remove the cc if you disagree.
+
+Ben.
 
 -- 
-Goldwyn
+Ben Hutchings
+Horngren's Observation:
+                   Among economists, the real world is often a special case.
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 828 bytes
+Desc: This is a digitally signed message part
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20131108/ef5097f7/attachment.bin 
