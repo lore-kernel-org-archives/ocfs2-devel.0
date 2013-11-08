@@ -1,68 +1,54 @@
-From: Ben Hutchings <ben@decadent.org.uk>
-Date: Fri, 08 Nov 2013 01:21:50 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Do not write error flag to user
- structure we cannot copy from/to
-In-Reply-To: <20131107112243.GG24799@localhost>
-References: <1382905082.2994.32.camel@deadeye.wl.decadent.org.uk>
-	<20131107112243.GG24799@localhost>
-Message-ID: <1383873710.8136.25.camel@deadeye.wl.decadent.org.uk>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 8 Nov 2013 10:19:55 +0800
+Subject: [Ocfs2-devel] ocfs2: a dead lock case when running
+	dirop_fileop_racer
+In-Reply-To: <20131107131948.GH24799@localhost>
+References: <527B8392.8010807@huawei.com> <20131107131948.GH24799@localhost>
+Message-ID: <527C4A4B.6020402@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, 2013-11-07 at 03:22 -0800, Joel Becker wrote:
-> On Sun, Oct 27, 2013 at 08:18:02PM +0000, Ben Hutchings wrote:
-> > If we failed to copy from the structure, writing back the flags leaks
-> > 31 bits of kernel memory (the rest of the ir_flags field).
-> > 
-> > In any case, if we cannot copy from/to the structure, why should we
-> > expect putting just the flags to work?
+On 2013/11/7 21:19, Joel Becker wrote:
+> On Thu, Nov 07, 2013 at 08:12:02PM +0800, Joseph Qi wrote:
+>> We ran ocfs2 test program dirop_fileop_racer and found a dead lock case.
+>>
+>> The case is described below.
+>> 2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
+>> /race/16/1 in the filesystem, and let the inode number of dir 16 is less
+>> than the inode number of dir race.
+>>
+>> Node A                            Node B
+>> mv /race/16/1 /race/
+>>                                   right after Node A has got the
+>>                                   EX mode of /race/16/, and tries to
+>>                                   get EX mode of /race/
+>>                                   ls /race/16/
+>>
+>> In this case, Node A has got the EX mode of /race/16/, and wants to get
+>> EX mode of /race/. Node B has got the PR mode of /race/, and wants to
+>> get the PR mode of /race/16/. Since EX and PR are mutually exclusive,
+>> dead lock happens.
 > 
-> The first issue could be fixed; we could clear the flags.  The second
-> issue is what matters.  If we're getting EFAULT, we're not going to be
-> moving any flags around.  We should just return the EFAULT and be done
-> with it.
->  
-> > Also make sure ocfs2_info_handle_freeinode() returns the right error
-> > code if the copy_to_user() fails.
-> > 
-> > Compile-tested only.
-> > 
-> > Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
-> > Cc: stable at vger.kernel.org
-> > Fixes: ddee5cdb70e6 ('Ocfs2: Add new OCFS2_IOC_INFO ioctl for ocfs2 v8.')
+> Interesting.  What DLM are you using, o2dlm or fs/dlm?  I would expect
+> that fs/dlm would do deadlock detection, but I could be wrong.
+>
+We are using ocfs2 dlm.
+
+> There's no way the PR on /race/ will downconvert, because there is a
+> reference.  We really want a signal to that PR waiting on /race/16/, but
+> there's no in-progress work happening on node A for that.
 > 
-> I can't recommend this for stable if it hasn't actually been tested.
+Can timeout resolve this issue?
+A glancing thought is, once timeout happens, cancel the queued lock and
+let it lock operation fail.
 
-I wouldn't expect you to apply it without testing!  But if it is
-correct, then it should go to stable.
-
-> There is no exposure; as you point out, the put_user() will fail if the
-> get_user() is failing.
-
-This is true for a program that accidentally used an invalid pointer.
-But a malicious program can have one thread manipulating memory mappings
-while the other thread runs the ioctl(), so that only the put_user()
-succeeds.
-
-> Send me a version without stable and I'll Ack it.
-[...]
-
-I believe this meets the criteria for stable.  It is your perogative as
-maintainer to remove the cc if you disagree.
-
-Ben.
-
--- 
-Ben Hutchings
-Horngren's Observation:
-                   Among economists, the real world is often a special case.
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: not available
-Type: application/pgp-signature
-Size: 828 bytes
-Desc: This is a digitally signed message part
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20131108/ef5097f7/attachment.bin 
+> I suppose we could hack this to check for ancestors.  That is, rename
+> locks should be in ancestor order before trying inode number order.  I'm
+> not sure that always works, though, especially if the ancestors are not
+> consecutive and might also be affected by in-flight moves...
+> 
+> Joel
+> 
