@@ -1,54 +1,63 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 8 Nov 2013 10:19:55 +0800
-Subject: [Ocfs2-devel] ocfs2: a dead lock case when running
-	dirop_fileop_racer
-In-Reply-To: <20131107131948.GH24799@localhost>
-References: <527B8392.8010807@huawei.com> <20131107131948.GH24799@localhost>
-Message-ID: <527C4A4B.6020402@huawei.com>
+From: Jan Kara <jack@suse.cz>
+Date: Mon, 11 Nov 2013 22:51:07 +0100
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Simplify ocfs2_invalidatepage() and
+	ocfs2_releasepage()
+Message-ID: <1384206667-8667-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/11/7 21:19, Joel Becker wrote:
-> On Thu, Nov 07, 2013 at 08:12:02PM +0800, Joseph Qi wrote:
->> We ran ocfs2 test program dirop_fileop_racer and found a dead lock case.
->>
->> The case is described below.
->> 2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
->> /race/16/1 in the filesystem, and let the inode number of dir 16 is less
->> than the inode number of dir race.
->>
->> Node A                            Node B
->> mv /race/16/1 /race/
->>                                   right after Node A has got the
->>                                   EX mode of /race/16/, and tries to
->>                                   get EX mode of /race/
->>                                   ls /race/16/
->>
->> In this case, Node A has got the EX mode of /race/16/, and wants to get
->> EX mode of /race/. Node B has got the PR mode of /race/, and wants to
->> get the PR mode of /race/16/. Since EX and PR are mutually exclusive,
->> dead lock happens.
-> 
-> Interesting.  What DLM are you using, o2dlm or fs/dlm?  I would expect
-> that fs/dlm would do deadlock detection, but I could be wrong.
->
-We are using ocfs2 dlm.
+Ocfs2 doesn't do data journalling. Thus its ->invalidatepage and ->releasepage
+functions never get called on buffers that have journal heads attached. So
+just use standard variants of functions from buffer.c.
 
-> There's no way the PR on /race/ will downconvert, because there is a
-> reference.  We really want a signal to that PR waiting on /race/16/, but
-> there's no in-progress work happening on node A for that.
-> 
-Can timeout resolve this issue?
-A glancing thought is, once timeout happens, cancel the queued lock and
-let it lock operation fail.
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/aops.c | 19 ++-----------------
+ 1 file changed, 2 insertions(+), 17 deletions(-)
 
-> I suppose we could hack this to check for ancestors.  That is, rename
-> locks should be in ancestor order before trying inode number order.  I'm
-> not sure that always works, though, especially if the ancestors are not
-> consecutive and might also be affected by in-flight moves...
-> 
-> Joel
-> 
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index f37d3c0e2053..04df2ae18592 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -592,26 +592,11 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
+ 	ocfs2_rw_unlock(inode, level);
+ }
+ 
+-/*
+- * ocfs2_invalidatepage() and ocfs2_releasepage() are shamelessly stolen
+- * from ext3.  PageChecked() bits have been removed as OCFS2 does not
+- * do journalled data.
+- */
+-static void ocfs2_invalidatepage(struct page *page, unsigned int offset,
+-				 unsigned int length)
+-{
+-	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
+-
+-	jbd2_journal_invalidatepage(journal, page, offset, length);
+-}
+-
+ static int ocfs2_releasepage(struct page *page, gfp_t wait)
+ {
+-	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
+-
+ 	if (!page_has_buffers(page))
+ 		return 0;
+-	return jbd2_journal_try_to_free_buffers(journal, page, wait);
++	return try_to_free_buffers(page);
+ }
+ 
+ static ssize_t ocfs2_direct_IO(int rw,
+@@ -2087,7 +2072,7 @@ const struct address_space_operations ocfs2_aops = {
+ 	.write_end		= ocfs2_write_end,
+ 	.bmap			= ocfs2_bmap,
+ 	.direct_IO		= ocfs2_direct_IO,
+-	.invalidatepage		= ocfs2_invalidatepage,
++	.invalidatepage		= block_invalidatepage,
+ 	.releasepage		= ocfs2_releasepage,
+ 	.migratepage		= buffer_migrate_page,
+ 	.is_partially_uptodate	= block_is_partially_uptodate,
+-- 
+1.8.1.4
