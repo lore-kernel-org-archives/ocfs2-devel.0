@@ -1,78 +1,70 @@
-From: Joel Becker <jlbec@evilplan.org>
-Date: Wed, 13 Nov 2013 05:41:42 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Simplify ocfs2_invalidatepage()
- and ocfs2_releasepage()
-In-Reply-To: <1384206667-8667-1-git-send-email-jack@suse.cz>
-References: <1384206667-8667-1-git-send-email-jack@suse.cz>
-Message-ID: <20131113134141.GB3962@localhost>
+From: Tariq Saeed <tariq.x.saeed@oracle.com>
+Date: Thu, 14 Nov 2013 18:00:54 -0800
+Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/o2net: incorrect to terminate
+	accepting connections loop upon rejecting an ivalid one
+	Orabug: 17489469
+Message-ID: <1384480854-28925-1-git-send-email-tariq.x.saeed@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Nov 11, 2013 at 10:51:07PM +0100, Jan Kara wrote:
-> Ocfs2 doesn't do data journalling. Thus its ->invalidatepage and ->releasepage
-> functions never get called on buffers that have journal heads attached. So
-> just use standard variants of functions from buffer.c.
-> 
-> Signed-off-by: Jan Kara <jack@suse.cz>
+When o2net-accept-one() rejects an illegal connection,
+it terminates the loop picking up the remaining queued connections.
+This fix will continue accepting connections till the queue is
+emtpy.
 
-Acked-by: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Tariq Saseed <tariq.x.saeed@oracle.com>
+---
+ fs/ocfs2/cluster/tcp.c |   13 +++++++++++--
+ 1 files changed, 11 insertions(+), 2 deletions(-)
 
-> ---
->  fs/ocfs2/aops.c | 19 ++-----------------
->  1 file changed, 2 insertions(+), 17 deletions(-)
-> 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index f37d3c0e2053..04df2ae18592 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -592,26 +592,11 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
->  	ocfs2_rw_unlock(inode, level);
->  }
->  
-> -/*
-> - * ocfs2_invalidatepage() and ocfs2_releasepage() are shamelessly stolen
-> - * from ext3.  PageChecked() bits have been removed as OCFS2 does not
-> - * do journalled data.
-> - */
-> -static void ocfs2_invalidatepage(struct page *page, unsigned int offset,
-> -				 unsigned int length)
-> -{
-> -	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
-> -
-> -	jbd2_journal_invalidatepage(journal, page, offset, length);
-> -}
-> -
->  static int ocfs2_releasepage(struct page *page, gfp_t wait)
->  {
-> -	journal_t *journal = OCFS2_SB(page->mapping->host->i_sb)->journal->j_journal;
-> -
->  	if (!page_has_buffers(page))
->  		return 0;
-> -	return jbd2_journal_try_to_free_buffers(journal, page, wait);
-> +	return try_to_free_buffers(page);
->  }
->  
->  static ssize_t ocfs2_direct_IO(int rw,
-> @@ -2087,7 +2072,7 @@ const struct address_space_operations ocfs2_aops = {
->  	.write_end		= ocfs2_write_end,
->  	.bmap			= ocfs2_bmap,
->  	.direct_IO		= ocfs2_direct_IO,
-> -	.invalidatepage		= ocfs2_invalidatepage,
-> +	.invalidatepage		= block_invalidatepage,
->  	.releasepage		= ocfs2_releasepage,
->  	.migratepage		= buffer_migrate_page,
->  	.is_partially_uptodate	= block_is_partially_uptodate,
-> -- 
-> 1.8.1.4
-> 
-
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index b9cb50d..58e071a 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -1830,7 +1830,7 @@ int o2net_register_hb_callbacks(void)
+ 
+ /* ------------------------------------------------------------ */
+ 
+-static int o2net_accept_one(struct socket *sock)
++static int o2net_accept_one(struct socket *sock, int *more)
+ {
+ 	int ret, slen;
+ 	struct sockaddr_in sin;
+@@ -1841,6 +1841,7 @@ static int o2net_accept_one(struct socket *sock)
+ 	struct o2net_node *nn;
+ 
+ 	BUG_ON(sock == NULL);
++	*more = 0;
+ 	ret = sock_create_lite(sock->sk->sk_family, sock->sk->sk_type,
+ 			       sock->sk->sk_protocol, &new_sock);
+ 	if (ret)
+@@ -1852,6 +1853,7 @@ static int o2net_accept_one(struct socket *sock)
+ 	if (ret < 0)
+ 		goto out;
+ 
++	*more = 1;
+ 	new_sock->sk->sk_allocation = GFP_ATOMIC;
+ 
+ 	ret = o2net_set_nodelay(new_sock);
+@@ -1949,8 +1951,15 @@ out:
+ static void o2net_accept_many(struct work_struct *work)
+ {
+ 	struct socket *sock = o2net_listen_sock;
+-	while (o2net_accept_one(sock) == 0)
++	int	more;
++	int	err;
++
++	for (;;) {
++		err = o2net_accept_one(sock, &more);
++		if (!more)
++			break;
+ 		cond_resched();
++	}
+ }
+ 
+ static void o2net_listen_data_ready(struct sock *sk, int bytes)
 -- 
-
-"Against stupidity the Gods themselves contend in vain."
-	- Friedrich von Schiller
-
-			http://www.jlbec.org/
-			jlbec at evilplan.org
+1.7.1
