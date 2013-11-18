@@ -1,70 +1,79 @@
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Date: Thu, 14 Nov 2013 18:00:54 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] ocfs2/o2net: incorrect to terminate
-	accepting connections loop upon rejecting an ivalid one
-	Orabug: 17489469
-Message-ID: <1384480854-28925-1-git-send-email-tariq.x.saeed@oracle.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Mon, 18 Nov 2013 15:39:22 -0800
+Subject: [Ocfs2-devel] [PATCH 1/6] Add clustername to cluster connection
+In-Reply-To: <20131112140627.GA3928@shrek.lan>
+References: <20131112140627.GA3928@shrek.lan>
+Message-ID: <20131118233922.GW29346@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When o2net-accept-one() rejects an illegal connection,
-it terminates the loop picking up the remaining queued connections.
-This fix will continue accepting connections till the queue is
-emtpy.
+On Tue, Nov 12, 2013 at 08:06:31AM -0600, Goldwyn Rodrigues wrote:
+> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+> ---
+>  fs/ocfs2/dlmglue.c   |  2 ++
+>  fs/ocfs2/ocfs2.h     |  1 +
+>  fs/ocfs2/stackglue.c | 11 ++++++++---
+>  fs/ocfs2/stackglue.h |  7 +++++++
+>  fs/ocfs2/super.c     |  8 +++++---
+>  5 files changed, 23 insertions(+), 6 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index 3a44a64..7c57de3 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -2996,6 +2996,8 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
+>  
+>  	/* for now, uuid == domain */
+>  	status = ocfs2_cluster_connect(osb->osb_cluster_stack,
+> +				       osb->osb_cluster_name,
+> +				       strlen(osb->osb_cluster_name),
+>  				       osb->uuid_str,
+>  				       strlen(osb->uuid_str),
+>  				       &lproto, ocfs2_do_node_down, osb,
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index 3a90347..553f53c 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -387,6 +387,7 @@ struct ocfs2_super
+>  	u8 osb_stackflags;
+>  
+>  	char osb_cluster_stack[OCFS2_STACK_LABEL_LEN + 1];
+> +	char osb_cluster_name[OCFS2_CLUSTER_NAME_LEN + 1];
+>  	struct ocfs2_cluster_connection *cconn;
+>  	struct ocfs2_lock_res osb_super_lockres;
+>  	struct ocfs2_lock_res osb_rename_lockres;
+> diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+> index 39abf89..58b53f9 100644
+> --- a/fs/ocfs2/stackglue.c
+> +++ b/fs/ocfs2/stackglue.c
+> @@ -309,6 +309,8 @@ int ocfs2_plock(struct ocfs2_cluster_connection *conn, u64 ino,
+>  EXPORT_SYMBOL_GPL(ocfs2_plock);
+>  
+>  int ocfs2_cluster_connect(const char *stack_name,
+> +			  const char *cluster_name,
+> +			  int cluster_name_len,
+>  			  const char *group,
+>  			  int grouplen,
+>  			  struct ocfs2_locking_protocol *lproto,
+> @@ -342,8 +344,10 @@ int ocfs2_cluster_connect(const char *stack_name,
+>  		goto out;
+>  	}
+>  
+> -	memcpy(new_conn->cc_name, group, grouplen);
+> +	strlcpy(new_conn->cc_name, group, grouplen + 1);
+>  	new_conn->cc_namelen = grouplen;
+> +	strlcpy(new_conn->cc_cluster_name, cluster_name, cluster_name_len + 1);
+> +	new_conn->cc_cluster_name_len = cluster_name_len;
 
-Signed-off-by: Tariq Saseed <tariq.x.saeed@oracle.com>
----
- fs/ocfs2/cluster/tcp.c |   13 +++++++++++--
- 1 files changed, 11 insertions(+), 2 deletions(-)
+Ok, so strlcpy says the length argument is 'size of destination buffer'.
+Here you use cluster_name_len + 1 but cc_cluster_name is defined as having
+CLUSTER_NAME_MAX. Possibly this is just confusing because I'm seeing the
+other char array declarations in this patch, but shouldn't that be
+CLUSTER_NAME_MAX+1 for the definition of cc_cluster_name ?
+	--Mark
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index b9cb50d..58e071a 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -1830,7 +1830,7 @@ int o2net_register_hb_callbacks(void)
- 
- /* ------------------------------------------------------------ */
- 
--static int o2net_accept_one(struct socket *sock)
-+static int o2net_accept_one(struct socket *sock, int *more)
- {
- 	int ret, slen;
- 	struct sockaddr_in sin;
-@@ -1841,6 +1841,7 @@ static int o2net_accept_one(struct socket *sock)
- 	struct o2net_node *nn;
- 
- 	BUG_ON(sock == NULL);
-+	*more = 0;
- 	ret = sock_create_lite(sock->sk->sk_family, sock->sk->sk_type,
- 			       sock->sk->sk_protocol, &new_sock);
- 	if (ret)
-@@ -1852,6 +1853,7 @@ static int o2net_accept_one(struct socket *sock)
- 	if (ret < 0)
- 		goto out;
- 
-+	*more = 1;
- 	new_sock->sk->sk_allocation = GFP_ATOMIC;
- 
- 	ret = o2net_set_nodelay(new_sock);
-@@ -1949,8 +1951,15 @@ out:
- static void o2net_accept_many(struct work_struct *work)
- {
- 	struct socket *sock = o2net_listen_sock;
--	while (o2net_accept_one(sock) == 0)
-+	int	more;
-+	int	err;
-+
-+	for (;;) {
-+		err = o2net_accept_one(sock, &more);
-+		if (!more)
-+			break;
- 		cond_resched();
-+	}
- }
- 
- static void o2net_listen_data_ready(struct sock *sk, int bytes)
--- 
-1.7.1
+--
+Mark Fasheh
