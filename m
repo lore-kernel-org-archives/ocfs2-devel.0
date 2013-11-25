@@ -1,32 +1,128 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Mon, 25 Nov 2013 15:00:34 -0800
-Subject: [Ocfs2-devel] [PATCH 2/6] Add DLM recovery callbacks
-In-Reply-To: <20131112140654.GA3934@shrek.lan>
-References: <20131112140654.GA3934@shrek.lan>
-Message-ID: <20131125230034.GX29346@wotan.suse.de>
+Date: Mon, 25 Nov 2013 15:05:51 -0800
+Subject: [Ocfs2-devel] [PATCH 3/6] Shift allocation
+	ocfs2_live_connection to	user_connect()
+In-Reply-To: <20131112140710.GA3940@shrek.lan>
+References: <20131112140710.GA3940@shrek.lan>
+Message-ID: <20131125230551.GY29346@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Nov 12, 2013 at 08:06:59AM -0600, Goldwyn Rodrigues wrote:
-> These are the callbacks called by the fs/dlm code in case the membership
-> changes. If there is a failure while/during calling any of these, the
-> DLM creates a new membership and relays to the rest of the nodes.
+Ok, we changed ocfs2_live_connection_new() to ocfs2_live_connection_attach()
+per my previous request.
+
+Reveiwed-by: Mark Fasheh <mfasheh@suse.de>
+
+On Tue, Nov 12, 2013 at 08:07:14AM -0600, Goldwyn Rodrigues wrote:
+> We perform this because the DLM recovery callbacks will require
+> the ocfs2_live_connection structure to record the node information
+> when dlm_new_lockspace() is updated (in the last patch of the series).
 > 
-> recover_prep() is called when DLM understands a node is down.
-> recover_slot() is called once all nodes have acknowledged recover_prep
-> and recovery can begin.
-> recover_done() is called once the recovery is complete. It returns the
-> new membership.
+> Before calling dlm_new_lockspace(), we need the structure ready for
+> the .recover_done() callback, which would set oc_this_node. This is
+> the reason we allocate ocfs2_live_connection beforehand in user_connect().
+> 
+> [AKPM] rc initialization is not required because it assigned in case of
+> errors. It will be cleared by compiler anyways.
 > 
 > Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
-
-Looks good, I didn't have anything last time, nothing still this time so:
-
-Reviewed-by: Mark Fasheh <mfasheh@suse.com>
-	--Mark
-
+> ---
+>  fs/ocfs2/stack_user.c | 37 ++++++++++++++++++-------------------
+>  1 file changed, 18 insertions(+), 19 deletions(-)
+> 
+> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+> index 4111855..0afb86d 100644
+> --- a/fs/ocfs2/stack_user.c
+> +++ b/fs/ocfs2/stack_user.c
+> @@ -200,15 +200,10 @@ static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
+>   * mount path.  Since the VFS prevents multiple calls to
+>   * fill_super(), we can't get dupes here.
+>   */
+> -static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
+> -				     struct ocfs2_live_connection **c_ret)
+> +static int ocfs2_live_connection_attach(struct ocfs2_cluster_connection *conn,
+> +				     struct ocfs2_live_connection *c)
+>  {
+>  	int rc = 0;
+> -	struct ocfs2_live_connection *c;
+> -
+> -	c = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
+> -	if (!c)
+> -		return -ENOMEM;
+>  
+>  	mutex_lock(&ocfs2_control_lock);
+>  	c->oc_conn = conn;
+> @@ -222,12 +217,6 @@ static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
+>  	}
+>  
+>  	mutex_unlock(&ocfs2_control_lock);
+> -
+> -	if (!rc)
+> -		*c_ret = c;
+> -	else
+> -		kfree(c);
+> -
+>  	return rc;
+>  }
+>  
+> @@ -840,12 +829,18 @@ const struct dlm_lockspace_ops ocfs2_ls_ops = {
+>  static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>  {
+>  	dlm_lockspace_t *fsdlm;
+> -	struct ocfs2_live_connection *uninitialized_var(control);
+> -	int rc = 0;
+> +	struct ocfs2_live_connection *lc;
+> +	int rc;
+>  
+>  	BUG_ON(conn == NULL);
+>  
+> -	rc = ocfs2_live_connection_new(conn, &control);
+> +	lc = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
+> +	if (!lc) {
+> +		rc = -ENOMEM;
+> +		goto out;
+> +	}
+> +
+> +	rc = ocfs2_live_connection_attach(conn, lc);
+>  	if (rc)
+>  		goto out;
+>  
+> @@ -861,20 +856,24 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+>  		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
+>  		       running_proto.pv_major, running_proto.pv_minor);
+>  		rc = -EPROTO;
+> -		ocfs2_live_connection_drop(control);
+> +		ocfs2_live_connection_drop(lc);
+> +		lc = NULL;
+>  		goto out;
+>  	}
+>  
+>  	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
+>  			       NULL, NULL, NULL, &fsdlm);
+>  	if (rc) {
+> -		ocfs2_live_connection_drop(control);
+> +		ocfs2_live_connection_drop(lc);
+> +		lc = NULL;
+>  		goto out;
+>  	}
+>  
+> -	conn->cc_private = control;
+> +	conn->cc_private = lc;
+>  	conn->cc_lockspace = fsdlm;
+>  out:
+> +	if (rc && lc)
+> +		kfree(lc);
+>  	return rc;
+>  }
+>  
+> -- 
+> 1.8.1.4
+> 
+> 
+> -- 
+> Goldwyn
 --
 Mark Fasheh
