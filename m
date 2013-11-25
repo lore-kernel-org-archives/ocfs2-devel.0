@@ -1,37 +1,32 @@
-From: Younger Liu <younger.liucn@gmail.com>
-Date: Mon, 25 Nov 2013 19:03:15 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix ocfs2_sync_file() if filesystem is
-	readonly
-Message-ID: <52932E73.5090902@gmail.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Mon, 25 Nov 2013 15:00:34 -0800
+Subject: [Ocfs2-devel] [PATCH 2/6] Add DLM recovery callbacks
+In-Reply-To: <20131112140654.GA3934@shrek.lan>
+References: <20131112140654.GA3934@shrek.lan>
+Message-ID: <20131125230034.GX29346@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+On Tue, Nov 12, 2013 at 08:06:59AM -0600, Goldwyn Rodrigues wrote:
+> These are the callbacks called by the fs/dlm code in case the membership
+> changes. If there is a failure while/during calling any of these, the
+> DLM creates a new membership and relays to the rest of the nodes.
+> 
+> recover_prep() is called when DLM understands a node is down.
+> recover_slot() is called once all nodes have acknowledged recover_prep
+> and recovery can begin.
+> recover_done() is called once the recovery is complete. It returns the
+> new membership.
+> 
+> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 
-  If filesystem is readonly, there is no need to flush drive's caches
-or force any uncommitted transactions.
+Looks good, I didn't have anything last time, nothing still this time so:
 
-Signed-off-by: Younger Liu <younger.liucn@gmail.com>
----
- fs/ocfs2/file.c |    3 +++
- 1 file changed, 3 insertions(+)
+Reviewed-by: Mark Fasheh <mfasheh@suse.com>
+	--Mark
 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index d54d1bf..618f18f 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -185,6 +185,9 @@ static int ocfs2_sync_file(struct file *file, loff_t
-start, loff_t end,
- 			      file->f_path.dentry->d_name.name,
- 			      (unsigned long long)datasync);
-
-+	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-+		return 0;
-+
- 	err = filemap_write_and_wait_range(inode->i_mapping, start, end);
- 	if (err)
- 		return err;
--- 
-1.7.9.5
+--
+Mark Fasheh
