@@ -1,81 +1,69 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 28 Nov 2013 09:03:17 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: drop the unwanted null byte in
-	dentry lock name
-In-Reply-To: <20131127153841.4d3414a425d735459288f4ee@linux-foundation.org>
-References: <5295B5BC.5020905@huawei.com>
-	<20131127153841.4d3414a425d735459288f4ee@linux-foundation.org>
-Message-ID: <52969655.2030507@huawei.com>
+Date: Thu, 28 Nov 2013 09:40:41 +0800
+Subject: [Ocfs2-devel] ocfs2: a dead lock case when running
+	dirop_fileop_racer
+In-Reply-To: <527C4A4B.6020402@huawei.com>
+References: <527B8392.8010807@huawei.com> <20131107131948.GH24799@localhost>
+	<527C4A4B.6020402@huawei.com>
+Message-ID: <52969F19.9080502@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2013/11/28 7:38, Andrew Morton wrote:
-> On Wed, 27 Nov 2013 17:05:00 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
+On 2013/11/8 10:19, Joseph Qi wrote:
+> On 2013/11/7 21:19, Joel Becker wrote:
+>> On Thu, Nov 07, 2013 at 08:12:02PM +0800, Joseph Qi wrote:
+>>> We ran ocfs2 test program dirop_fileop_racer and found a dead lock case.
+>>>
+>>> The case is described below.
+>>> 2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
+>>> /race/16/1 in the filesystem, and let the inode number of dir 16 is less
+>>> than the inode number of dir race.
+>>>
+>>> Node A                            Node B
+>>> mv /race/16/1 /race/
+>>>                                   right after Node A has got the
+>>>                                   EX mode of /race/16/, and tries to
+>>>                                   get EX mode of /race/
+>>>                                   ls /race/16/
+>>>
+>>> In this case, Node A has got the EX mode of /race/16/, and wants to get
+>>> EX mode of /race/. Node B has got the PR mode of /race/, and wants to
+>>> get the PR mode of /race/16/. Since EX and PR are mutually exclusive,
+>>> dead lock happens.
+>>
+>> Interesting.  What DLM are you using, o2dlm or fs/dlm?  I would expect
+>> that fs/dlm would do deadlock detection, but I could be wrong.
+>>
+> We are using ocfs2 dlm.
 > 
->> Dentry lock name is made up of the type 'N', the parent blkno and its
->> blkno represented as a binary value.
->> Now there is a null byte between parent blkno and the binary blkno
->> value, so drop it.
+>> There's no way the PR on /race/ will downconvert, because there is a
+>> reference.  We really want a signal to that PR waiting on /race/16/, but
+>> there's no in-progress work happening on node A for that.
+>>
+> Can timeout resolve this issue?
+> A glancing thought is, once timeout happens, cancel the queued lock and
+> let it lock operation fail.
 > 
-> Geeze.
-> 
-> What are the runtime effects of this change?
-> 
+If this case happens, it seems that we can try to get the lock of /race/
+first (parent), and then get the lock of /race/16/ (child).
+That is to mean, check if one inode is the ancestor of the other.
+Anything I am missing?
 
-If the null byte exists, it is obviously we cannot print the full dentry
-lock name using '%s'.
-But the fact is, the blkno is stuffed with binary value, it may also
-contain null bytes, so we still cannot get the full dentry lock name in
-the message.
-Maybe we should also distinguish dentry lock and other lockres when
-print lock name. But this makes the code malformed.
-
->> --- a/fs/ocfs2/dlm/dlmdebug.c
->> +++ b/fs/ocfs2/dlm/dlmdebug.c
->> @@ -257,7 +257,7 @@ static int stringify_lockname(const char *lockname, int locklen, char *buf,
->>  #define OCFS2_DENTRY_LOCK_INO_START	18
->>  	if (*lockname == 'N') {
->>  		memcpy((__be64 *)&inode_blkno_be,
->> -		       (char *)&lockname[OCFS2_DENTRY_LOCK_INO_START],
->> +		       (char *)&lockname[OCFS2_DENTRY_LOCK_INO_START - 1],
+>> I suppose we could hack this to check for ancestors.  That is, rename
+>> locks should be in ancestor order before trying inode number order.  I'm
+>> not sure that always works, though, especially if the ancestors are not
+>> consecutive and might also be affected by in-flight moves...
+>>
+>> Joel
+>>
 > 
-> And what's up with all the CrazyCasting?  &inode_blkno_be is *already*
-> __be64* and the second arg to memcpy is `const void *', so the cast
-> there is also unneeded.
 > 
->>  		       sizeof(__be64));
->>  		out += snprintf(buf + out, len - out, "%.*s%08x",
->>  				OCFS2_DENTRY_LOCK_INO_START - 1, lockname,
->> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
->> index 3a44a64..62f2387 100644
->> --- a/fs/ocfs2/dlmglue.c
->> +++ b/fs/ocfs2/dlmglue.c
->> @@ -586,7 +586,7 @@ static __u64 ocfs2_get_dentry_lock_ino(struct ocfs2_lock_res *lockres)
->>  {
->>  	__be64 inode_blkno_be;
->>  
->> -	memcpy(&inode_blkno_be, &lockres->l_name[OCFS2_DENTRY_LOCK_INO_START],
->> +	memcpy(&inode_blkno_be, &lockres->l_name[OCFS2_DENTRY_LOCK_INO_START - 1],
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 > 
-> Like that.
-> 
->>  	       sizeof(__be64));
->>  
->>  	return be64_to_cpu(inode_blkno_be);
->> @@ -631,7 +631,7 @@ void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
->>  
->>  	BUG_ON(len != (OCFS2_DENTRY_LOCK_INO_START - 1));
->>  
->> -	memcpy(&lockres->l_name[OCFS2_DENTRY_LOCK_INO_START], &inode_blkno_be,
->> +	memcpy(&lockres->l_name[OCFS2_DENTRY_LOCK_INO_START - 1], &inode_blkno_be,
->>  	       sizeof(__be64));
->>  
->>  	ocfs2_lock_res_init_common(OCFS2_SB(inode->i_sb), lockres,
->> -- 
->> 1.8.4.3
-> 
-> .
 > 
