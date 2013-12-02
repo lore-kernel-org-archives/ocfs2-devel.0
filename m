@@ -1,51 +1,67 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Sun, 1 Dec 2013 15:16:48 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: drop the unwanted null byte
-	in	dentry lock name
-In-Reply-To: <52994320.8000503@huawei.com>
-References: <5295B5BC.5020905@huawei.com>
-	<20131127153841.4d3414a425d735459288f4ee@linux-foundation.org>
-	<20131128164044.GB29346@wotan.suse.de>
-	<52994320.8000503@huawei.com>
-Message-ID: <20131201231648.GB16774@wotan.suse.de>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Mon,  2 Dec 2013 09:45:02 -0500
+Subject: [Ocfs2-devel] [PATCH 2/2] jbd2: return ENOSPC in
+	journal_dirty_metadata if a handle runs out of space
+In-Reply-To: <1385995502-8344-1-git-send-email-tytso@mit.edu>
+References: <1385995502-8344-1-git-send-email-tytso@mit.edu>
+Message-ID: <1385995502-8344-2-git-send-email-tytso@mit.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Ext4 Developers List <linux-ext4@vger.kernel.org>
+Cc: Theodore Ts'o <tytso@mit.edu>, ocfs2-devel@oss.oracle.com
 
-On Sat, Nov 30, 2013 at 09:45:04AM +0800, Joseph Qi wrote:
-> On 2013/11/29 0:40, Mark Fasheh wrote:
-> > On Wed, Nov 27, 2013 at 03:38:41PM -0800, Andrew Morton wrote:
-> >> On Wed, 27 Nov 2013 17:05:00 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
-> >>
-> >>> Dentry lock name is made up of the type 'N', the parent blkno and its
-> >>> blkno represented as a binary value.
-> >>> Now there is a null byte between parent blkno and the binary blkno
-> >>> value, so drop it.
-> >>
-> >> Geeze.
-> >>
-> >> What are the runtime effects of this change?
-> > 
-> > This will change the over-the-wire protocol, so big NACK for this
-> > patch please. Some of the lock names are binary and have been forever now.
-> > We have a limited amount of space in the name and some lock types would have
-> > names too long if we stringified every field.
-> > 	--Mark
-> > 
-> What do you mean by change the over-the-wire protocol?
-> In my opinion, the only thing we should do is to make buildup and parse
-> consistent.
-> But if the new version is mixed mounted with the old, it may have
-> problem because of the changed protocol.
+If a handle runs out of space, we currently stop the kernel with a
+BUG.  This makes it hard to figure out what might be going on.  So
+return an error of ENOSPC, so we can let the file system layer figure
+out what is going on, to make it more likely we can get useful
+debugging information).  This should make it easier to debug problems
+such as the one which was reported by:
 
-That's exactly what "change the over-the-wire protocol" means - "new" and
-old versions of the file will not be able to communicate. This is
-unacceptable and will anger our users.
+    https://bugzilla.kernel.org/show_bug.cgi?id=44731
 
-We don't make changes like that just to clean up fields.
-	--Mark
+The only two callers of this function are ext4_handle_dirty_metadata()
+and ocfs2_journal_dirty().  The ocfs2 function will trigger a
+BUG_ON(), which means there will be no change in behavior.  The ext4
+function will call ext4_error_inode() which will print the useful
+debugging information and then handle the situation using ext4's error
+handling mechanisms (i.e., which might mean halting the kernel or
+remounting the file system read-only).
 
---
-Mark Fasheh
+Also, since both file systems already call WARN_ON(), drop the WARN_ON
+from jbd2_journal_dirty_metadata() to avoid two stack traces from
+being displayed.
+
+Signed-off-by: "Theodore Ts'o" <tytso@mit.edu>
+Cc: ocfs2-devel at oss.oracle.com
+---
+ fs/jbd2/transaction.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index 7aa9a32..b0b74e5 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -1290,7 +1290,10 @@ int jbd2_journal_dirty_metadata(handle_t *handle, struct buffer_head *bh)
+ 		 * once a transaction -bzzz
+ 		 */
+ 		jh->b_modified = 1;
+-		J_ASSERT_JH(jh, handle->h_buffer_credits > 0);
++		if (handle->h_buffer_credits <= 0) {
++			ret = -ENOSPC;
++			goto out_unlock_bh;
++		}
+ 		handle->h_buffer_credits--;
+ 	}
+ 
+@@ -1373,7 +1376,6 @@ out_unlock_bh:
+ 	jbd2_journal_put_journal_head(jh);
+ out:
+ 	JBUFFER_TRACE(jh, "exit");
+-	WARN_ON(ret);	/* All errors are bugs, so dump the stack */
+ 	return ret;
+ }
+ 
+-- 
+1.8.5.rc3.362.gdf10213
