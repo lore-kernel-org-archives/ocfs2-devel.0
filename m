@@ -1,85 +1,116 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Mon, 9 Dec 2013 13:41:02 -0600
-Subject: [Ocfs2-devel] [PATCH 2/6] Add DLM recovery callbacks
-Message-ID: <20131209194057.GA5268@shrek.lan>
+Date: Mon, 9 Dec 2013 13:41:20 -0600
+Subject: [Ocfs2-devel] [PATCH 3/6] Shift allocation ocfs2_live_connection to
+	user_connect()
+Message-ID: <20131209194115.GA5272@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-These are the callbacks called by the fs/dlm code in case the membership
-changes. If there is a failure while/during calling any of these, the
-DLM creates a new membership and relays to the rest of the nodes.
+We perform this because the DLM recovery callbacks will require
+the ocfs2_live_connection structure to record the node information
+when dlm_new_lockspace() is updated (in the last patch of the series).
 
-recover_prep() is called when DLM understands a node is down.
-recover_slot() is called once all nodes have acknowledged recover_prep
-and recovery can begin.
-recover_done() is called once the recovery is complete. It returns the
-new membership.
+Before calling dlm_new_lockspace(), we need the structure ready for
+the .recover_done() callback, which would set oc_this_node. This is
+the reason we allocate ocfs2_live_connection beforehand in user_connect().
 
-Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+[AKPM] rc initialization is not required because it assigned in case of
+errors. It will be cleared by compiler anyways.
+
+Reveiwed-by: Mark Fasheh <mfasheh@suse.de>
 Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 ---
- fs/ocfs2/stack_user.c | 38 ++++++++++++++++++++++++++++++++++++++
- 1 file changed, 38 insertions(+)
+ fs/ocfs2/stack_user.c | 37 ++++++++++++++++++-------------------
+ 1 file changed, 18 insertions(+), 19 deletions(-)
 
 diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index 286edf1..4111855 100644
+index 4111855..0afb86d 100644
 --- a/fs/ocfs2/stack_user.c
 +++ b/fs/ocfs2/stack_user.c
-@@ -110,6 +110,8 @@
- struct ocfs2_live_connection {
- 	struct list_head		oc_list;
- 	struct ocfs2_cluster_connection	*oc_conn;
-+	atomic_t                        oc_this_node;
-+	int                             oc_our_slot;
- };
+@@ -200,15 +200,10 @@ static struct ocfs2_live_connection *ocfs2_connection_find(const char *name)
+  * mount path.  Since the VFS prevents multiple calls to
+  * fill_super(), we can't get dupes here.
+  */
+-static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
+-				     struct ocfs2_live_connection **c_ret)
++static int ocfs2_live_connection_attach(struct ocfs2_cluster_connection *conn,
++				     struct ocfs2_live_connection *c)
+ {
+ 	int rc = 0;
+-	struct ocfs2_live_connection *c;
+-
+-	c = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
+-	if (!c)
+-		return -ENOMEM;
  
- struct ocfs2_control_private {
-@@ -799,6 +801,42 @@ static int fs_protocol_compare(struct ocfs2_protocol_version *existing,
- 	return 0;
+ 	mutex_lock(&ocfs2_control_lock);
+ 	c->oc_conn = conn;
+@@ -222,12 +217,6 @@ static int ocfs2_live_connection_new(struct ocfs2_cluster_connection *conn,
+ 	}
+ 
+ 	mutex_unlock(&ocfs2_control_lock);
+-
+-	if (!rc)
+-		*c_ret = c;
+-	else
+-		kfree(c);
+-
+ 	return rc;
  }
  
-+static void user_recover_prep(void *arg)
-+{
-+}
-+
-+static void user_recover_slot(void *arg, struct dlm_slot *slot)
-+{
-+	struct ocfs2_cluster_connection *conn = arg;
-+	printk(KERN_INFO "ocfs2: Node %d/%d down. Initiating recovery.\n",
-+			slot->nodeid, slot->slot);
-+	conn->cc_recovery_handler(slot->nodeid, conn->cc_recovery_data);
-+
-+}
-+
-+static void user_recover_done(void *arg, struct dlm_slot *slots,
-+		int num_slots, int our_slot,
-+		uint32_t generation)
-+{
-+	struct ocfs2_cluster_connection *conn = arg;
-+	struct ocfs2_live_connection *lc = conn->cc_private;
-+	int i;
-+
-+	for (i = 0; i < num_slots; i++)
-+		if (slots[i].slot == our_slot) {
-+			atomic_set(&lc->oc_this_node, slots[i].nodeid);
-+			break;
-+		}
-+
-+	lc->oc_our_slot = our_slot;
-+}
-+
-+const struct dlm_lockspace_ops ocfs2_ls_ops = {
-+	.recover_prep = user_recover_prep,
-+	.recover_slot = user_recover_slot,
-+	.recover_done = user_recover_done,
-+};
-+
+@@ -840,12 +829,18 @@ const struct dlm_lockspace_ops ocfs2_ls_ops = {
  static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
  {
  	dlm_lockspace_t *fsdlm;
+-	struct ocfs2_live_connection *uninitialized_var(control);
+-	int rc = 0;
++	struct ocfs2_live_connection *lc;
++	int rc;
+ 
+ 	BUG_ON(conn == NULL);
+ 
+-	rc = ocfs2_live_connection_new(conn, &control);
++	lc = kzalloc(sizeof(struct ocfs2_live_connection), GFP_KERNEL);
++	if (!lc) {
++		rc = -ENOMEM;
++		goto out;
++	}
++
++	rc = ocfs2_live_connection_attach(conn, lc);
+ 	if (rc)
+ 		goto out;
+ 
+@@ -861,20 +856,24 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
+ 		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
+ 		       running_proto.pv_major, running_proto.pv_minor);
+ 		rc = -EPROTO;
+-		ocfs2_live_connection_drop(control);
++		ocfs2_live_connection_drop(lc);
++		lc = NULL;
+ 		goto out;
+ 	}
+ 
+ 	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
+ 			       NULL, NULL, NULL, &fsdlm);
+ 	if (rc) {
+-		ocfs2_live_connection_drop(control);
++		ocfs2_live_connection_drop(lc);
++		lc = NULL;
+ 		goto out;
+ 	}
+ 
+-	conn->cc_private = control;
++	conn->cc_private = lc;
+ 	conn->cc_lockspace = fsdlm;
+ out:
++	if (rc && lc)
++		kfree(lc);
+ 	return rc;
+ }
+ 
 -- 
 1.8.4
 
