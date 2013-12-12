@@ -1,71 +1,61 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 27 Dec 2013 10:27:06 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix NULL pointer dereference when
- dismount and ocfs2rec simultaneously
-Message-ID: <52BCE57A.7050406@huawei.com>
+From: David Sterba <dsterba@suse.cz>
+Date: Thu, 12 Dec 2013 15:26:08 -0000
+Subject: [Ocfs2-devel] [PATCH 0/4 v3] fiemap: introduce
+	EXTENT_DATA_COMPRESSED flag
+Message-ID: <cover.1386778302.git.dsterba@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: David Sterba <dsterba@suse.cz>, adilger@dilger.ca, hch@infradead.org, mfasheh@suse.com, viro@zeniv.linux.org.uk, xfs@oss.sgi.com, linux-nilfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-ext4@vger.kernel.org, linux-btrfs@vger.kernel.org
 
-From: Yiwen Jiang <jiangyiwen@huawei.com>
+The original FIEMAP patch did not define this bit, btrfs will make use of
+it.  The defined constant maintains the same value as originally proposed.
 
-2 nodes cluster, say Node A and Node B, mount the same ocfs2 volume,
-and create a file 1.
+Currently, the 'filefrag' utility has no way to recognize and denote a
+compressed extent. As implemented in btrfs right now, the compression step
+splits a big extent into smaller chunks and this is reported as a heavily
+fragmented file. Adding the flag to filefrag will at least give some
+explanation why, this has been confusing users for some time already.
 
-Node A			Node B
-open 1, get open lock
-                        rm 1, and then add 1 to orphan_dir
-storage link down,
-o2hb_write_timeout
-->o2quo_disk_timeout
-->emergency_restart
-                        at the moment, Node B dismount and do
-			ocfs2rec simultaneously
-                        1) ocfs2_dismount_volume
-			->ocfs2_recovery_exit
-			->wait_event(osb->recovery_event)
-			->flush_workqueue(ocfs2_wq)
-			2) ocfs2rec
-			->queue_work(&journal->j_recovery_work)
-                        ->ocfs2_recover_orphans
-			->ocfs2_commit_truncate
-                        ->queue_delayed_work(&osb->osb_truncate_log_wq)
+V3:
+Based on feedback from Andreas, implement #1 from V2, current users of
+fiemap_fill_next_extent (fs/, ext4, gfs2, ocfs2, nilfs2, xfs) updated
+accordingly, no functional change.
 
-In ocfs2_recovery_exit, it flushes workqueue and then releases system
-inodes. When doing ocfs2rec, it will call ocfs2_flush_truncate_log
-which will try to get sys_root_inode, and NULL pointer dereference
-occurs.
+V2:
+Based on feedback from Andreas, the fiemap_extent is now able to hold the
+physical extent length, to be filled by the filesystem callback.
 
-Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
-Signed-off-by: joyce <xuejiufei@huawei.com>
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/super.c | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+The filesystems do not have access to the structure that is passed back to
+userspace and are supposed to call fiemap_fill_next_extent, there's no direct
+way to fill fe_phys_length. There are two ways to pass it:
 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index c414929..665e91e 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1947,11 +1947,15 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 
- 	ocfs2_shutdown_local_alloc(osb);
- 
--	ocfs2_truncate_log_shutdown(osb);
--
- 	/* This will disable recovery and flush any recovery work. */
- 	ocfs2_recovery_exit(osb);
- 
-+	/*
-+	 * During dismount, when it recovers another node it will call
-+	 * ocfs2_recover_orphans and queue delayed work osb_truncate_log_wq.
-+	 */
-+	ocfs2_truncate_log_shutdown(osb);
-+
- 	ocfs2_journal_shutdown(osb);
- 
- 	ocfs2_sync_blockdev(sb);
+1) extend fiemap_fill_next_extent to take phys_length and update all
+   users (ext4, gfs2, ocfs2, nilfs2, xfs)
+
+2) add new function that takes arguments for all the fiemap_extent items,
+   newly added phys_length compared to fiemap_fill_next_extent
+
+David Sterba (4):
+  fiemap: fix comment at EXTENT_DATA_ENCRYPTED
+  fiemap: add EXTENT_DATA_COMPRESSED flag
+  btrfs: set FIEMAP_EXTENT_DATA_COMPRESSED for compressed extents
+  Documentation/fiemap: Document the DATA_COMPRESSED flag
+
+ Documentation/filesystems/fiemap.txt |   17 +++++++++++++----
+ fs/btrfs/extent_io.c                 |    9 +++++++--
+ fs/ext4/extents.c                    |    3 ++-
+ fs/ext4/inline.c                     |    2 +-
+ fs/gfs2/inode.c                      |    2 +-
+ fs/ioctl.c                           |   18 ++++++++++++------
+ fs/nilfs2/inode.c                    |    8 +++++---
+ fs/ocfs2/extent_map.c                |    4 ++--
+ fs/xfs/xfs_iops.c                    |    2 +-
+ include/linux/fs.h                   |    2 +-
+ include/uapi/linux/fiemap.h          |    8 ++++++--
+ 11 files changed, 51 insertions(+), 24 deletions(-)
+
 -- 
-1.8.4.3
+1.7.9
