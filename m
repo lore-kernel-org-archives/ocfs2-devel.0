@@ -1,260 +1,85 @@
-From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Mon, 9 Dec 2013 13:42:23 -0600
-Subject: [Ocfs2-devel] [PATCH 6/6] Use the new DLM operation callbacks while
- requesting new lockspace
-Message-ID: <20131209194218.GA5285@shrek.lan>
+From: Andreas Dilger <adilger@dilger.ca>
+Date: Thu, 12 Dec 2013 15:22:20 -0700
+Subject: [Ocfs2-devel] [PATCH 0/4 v3] fiemap: introduce
+	EXTENT_DATA_COMPRESSED flag
+In-Reply-To: <cover.1386778302.git.dsterba@suse.cz>
+References: <cover.1386778302.git.dsterba@suse.cz>
+Message-ID: <6CAFB777-F514-4DD9-BD8B-95E7525FD534@dilger.ca>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: David Sterba <dsterba@suse.cz>
+Cc: linux-fsdevel <linux-fsdevel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Mark Fasheh <mfasheh@suse.com>, Alexander Viro <viro@zeniv.linux.org.uk>, xfs@oss.sgi.com, linux-nilfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, Ext4 Developers List <linux-ext4@vger.kernel.org>, "linux-btrfs@vger.kernel.org Btrfs" <linux-btrfs@vger.kernel.org>
 
-Attempt to use the new DLM operations. If it is not supported,
-use the traditional ocfs2_controld.
+On Dec 12, 2013, at 8:25 AM, David Sterba <dsterba@suse.cz> wrote:
+> The original FIEMAP patch did not define this bit, btrfs will make use of
+> it.  The defined constant maintains the same value as originally proposed.
+> 
+> Currently, the 'filefrag' utility has no way to recognize and denote a
+> compressed extent. As implemented in btrfs right now, the compression step
+> splits a big extent into smaller chunks and this is reported as a heavily
+> fragmented file. Adding the flag to filefrag will at least give some
+> explanation why, this has been confusing users for some time already.
 
-To exchange ocfs2 versioning, we use the LVB of the version dlm lock.
-It first attempts to take the lock in EX mode (non-blocking). If
-successful (which means it is the first mount), it writes the
-version number and downconverts to PR lock. If it is unsuccessful,
-it reads the version from the lock.
+The whole series looks good to me (one minor nit if it needs to be resubmitted
+for some reason).  You can add my:
 
-If this becomes the standard (with o2cb as well), it could
-simplify userspace tools to check if the filesystem is mounted
-on other nodes.
+Reviewed-by: Andreas Dilger <adilger@dilger.ca>
 
-Dan: Since ocfs2_protocol_version are two u8 values, the additional
-checks with LONG* don't make sense.
-
-Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
-Reviewed-by: Mark Fasheh <mfasheh@suse.de>
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
----
- fs/ocfs2/stack_user.c | 130 ++++++++++++++++++++++++++++++++++++++++----------
- 1 file changed, 106 insertions(+), 24 deletions(-)
-
-diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
-index d33dd05..c84379b 100644
---- a/fs/ocfs2/stack_user.c
-+++ b/fs/ocfs2/stack_user.c
-@@ -23,6 +23,7 @@
- #include <linux/mutex.h>
- #include <linux/slab.h>
- #include <linux/reboot.h>
-+#include <linux/sched.h>
- #include <asm/uaccess.h>
- 
- #include "stackglue.h"
-@@ -122,6 +123,7 @@ struct ocfs2_live_connection {
- 	struct dlm_lksb                 oc_version_lksb;
- 	char                            oc_lvb[DLM_LVB_LEN];
- 	struct completion               oc_sync_wait;
-+	wait_queue_head_t		oc_wait;
- };
- 
- struct ocfs2_control_private {
-@@ -218,7 +220,7 @@ static int ocfs2_live_connection_attach(struct ocfs2_cluster_connection *conn,
- 	mutex_lock(&ocfs2_control_lock);
- 	c->oc_conn = conn;
- 
--	if (atomic_read(&ocfs2_control_opened))
-+	if ((c->oc_type == NO_CONTROLD) || atomic_read(&ocfs2_control_opened))
- 		list_add(&c->oc_list, &ocfs2_live_connection_list);
- 	else {
- 		printk(KERN_ERR
-@@ -897,6 +899,59 @@ static int version_unlock(struct ocfs2_cluster_connection *conn)
- 	return sync_unlock(conn, &lc->oc_version_lksb, VERSION_LOCK);
- }
- 
-+/* get_protocol_version()
-+ *
-+ * To exchange ocfs2 versioning, we use the LVB of the version dlm lock.
-+ * The algorithm is:
-+ * 1. Attempt to take the lock in EX mode (non-blocking).
-+ * 2. If successful (which means it is the first mount), write the
-+ *    version number and downconvert to PR lock. 
-+ * 3. If unsuccessful (returns -EAGAIN), read the version from the LVB after
-+ *    taking the PR lock.
-+ */
-+
-+static int get_protocol_version(struct ocfs2_cluster_connection *conn)
-+{
-+	int ret;
-+	struct ocfs2_live_connection *lc = conn->cc_private;
-+	struct ocfs2_protocol_version pv;
-+	
-+	running_proto.pv_major = 
-+		ocfs2_user_plugin.sp_max_proto.pv_major;
-+	running_proto.pv_minor =
-+		ocfs2_user_plugin.sp_max_proto.pv_minor;
-+
-+	lc->oc_version_lksb.sb_lvbptr = lc->oc_lvb;
-+	ret = version_lock(conn, DLM_LOCK_EX,
-+			DLM_LKF_VALBLK|DLM_LKF_NOQUEUE);
-+	if (!ret) {
-+		conn->cc_version.pv_major = running_proto.pv_major;
-+		conn->cc_version.pv_minor = running_proto.pv_minor;
-+		version_to_lvb(&running_proto, lc->oc_lvb);
-+		version_lock(conn, DLM_LOCK_PR, DLM_LKF_CONVERT|DLM_LKF_VALBLK);
-+	} else if (ret == -EAGAIN) {
-+		ret = version_lock(conn, DLM_LOCK_PR, DLM_LKF_VALBLK);
-+		if (ret)
-+			goto out;
-+		lvb_to_version(lc->oc_lvb, &pv);
-+
-+		if (pv.pv_minor < 0) {
-+			ret = -ERANGE;
-+			goto out;
-+		}
-+		if ((pv.pv_major != running_proto.pv_major) ||
-+				(pv.pv_minor > running_proto.pv_minor)) {
-+			ret = -EINVAL;
-+			goto out;
-+		}
-+
-+		conn->cc_version.pv_major = pv.pv_major;
-+		conn->cc_version.pv_minor = pv.pv_minor;
-+	}
-+out:
-+	return ret;
-+}
-+
- static void user_recover_prep(void *arg)
- {
- }
-@@ -925,6 +980,7 @@ static void user_recover_done(void *arg, struct dlm_slot *slots,
- 		}
- 
- 	lc->oc_our_slot = our_slot;
-+	wake_up(&lc->oc_wait);
- }
- 
- const struct dlm_lockspace_ops ocfs2_ls_ops = {
-@@ -933,11 +989,21 @@ const struct dlm_lockspace_ops ocfs2_ls_ops = {
- 	.recover_done = user_recover_done,
- };
- 
-+static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
-+{
-+	version_unlock(conn);
-+	dlm_release_lockspace(conn->cc_lockspace, 2);
-+	conn->cc_lockspace = NULL;
-+	ocfs2_live_connection_drop(conn->cc_private);
-+	conn->cc_private = NULL;
-+	return 0;
-+}
-+
- static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
- {
- 	dlm_lockspace_t *fsdlm;
- 	struct ocfs2_live_connection *lc;
--	int rc;
-+	int rc, ops_rv;
- 
- 	BUG_ON(conn == NULL);
- 
-@@ -947,11 +1013,44 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
- 		goto out;
- 	}
- 
--	lc->oc_type = WITH_CONTROLD;
-+	init_waitqueue_head(&lc->oc_wait);
-+	init_completion(&lc->oc_sync_wait);
-+	atomic_set(&lc->oc_this_node, 0);
-+	conn->cc_private = lc;
-+	lc->oc_type = NO_CONTROLD;
-+
-+	rc = dlm_new_lockspace(conn->cc_name, conn->cc_cluster_name,
-+			       DLM_LSFL_FS, DLM_LVB_LEN,
-+			       &ocfs2_ls_ops, conn, &ops_rv, &fsdlm);
-+	if (rc)
-+		goto out;
-+
-+	if (ops_rv == -EOPNOTSUPP) {
-+		lc->oc_type = WITH_CONTROLD;
-+		printk(KERN_NOTICE "ocfs2: You seem to be using an older "
-+				"version of dlm_controld and/or ocfs2-tools."
-+				" Please consider upgrading.\n");
-+	} else if (ops_rv) {
-+		rc = ops_rv;
-+		goto out;
-+	}
-+	conn->cc_lockspace = fsdlm;
-+
- 	rc = ocfs2_live_connection_attach(conn, lc);
- 	if (rc)
- 		goto out;
- 
-+	if (lc->oc_type == NO_CONTROLD) {
-+		rc = get_protocol_version(conn);
-+		if (rc) {
-+			printk(KERN_ERR "ocfs2: Could not determine"
-+					" locking version\n");
-+			user_cluster_disconnect(conn);
-+			goto out;
-+		}
-+		wait_event(lc->oc_wait, (atomic_read(&lc->oc_this_node) > 0));
-+	}
-+
- 	/*
- 	 * running_proto must have been set before we allowed any mounts
- 	 * to proceed.
-@@ -959,40 +1058,20 @@ static int user_cluster_connect(struct ocfs2_cluster_connection *conn)
- 	if (fs_protocol_compare(&running_proto, &conn->cc_version)) {
- 		printk(KERN_ERR
- 		       "Unable to mount with fs locking protocol version "
--		       "%u.%u because the userspace control daemon has "
--		       "negotiated %u.%u\n",
-+		       "%u.%u because negotiated protocol is %u.%u\n",
- 		       conn->cc_version.pv_major, conn->cc_version.pv_minor,
- 		       running_proto.pv_major, running_proto.pv_minor);
- 		rc = -EPROTO;
- 		ocfs2_live_connection_drop(lc);
- 		lc = NULL;
--		goto out;
- 	}
- 
--	rc = dlm_new_lockspace(conn->cc_name, NULL, DLM_LSFL_FS, DLM_LVB_LEN,
--			       NULL, NULL, NULL, &fsdlm);
--	if (rc) {
--		ocfs2_live_connection_drop(lc);
--		lc = NULL;
--		goto out;
--	}
--
--	conn->cc_private = lc;
--	conn->cc_lockspace = fsdlm;
- out:
- 	if (rc && lc)
- 		kfree(lc);
- 	return rc;
- }
- 
--static int user_cluster_disconnect(struct ocfs2_cluster_connection *conn)
--{
--	dlm_release_lockspace(conn->cc_lockspace, 2);
--	conn->cc_lockspace = NULL;
--	ocfs2_live_connection_drop(conn->cc_private);
--	conn->cc_private = NULL;
--	return 0;
--}
- 
- static int user_cluster_this_node(struct ocfs2_cluster_connection *conn,
- 				  unsigned int *this_node)
-@@ -1002,8 +1081,11 @@ static int user_cluster_this_node(struct ocfs2_cluster_connection *conn,
- 
- 	if (lc->oc_type == WITH_CONTROLD)
- 		rc = ocfs2_control_get_this_node();
-+	else if (lc->oc_type == NO_CONTROLD)
-+		rc = atomic_read(&lc->oc_this_node);
- 	else
- 		rc = -EINVAL;
-+
- 	if (rc < 0)
- 		return rc;
- 
--- 
-1.8.4
+> V3:
+> Based on feedback from Andreas, implement #1 from V2, current users of
+> fiemap_fill_next_extent (fs/, ext4, gfs2, ocfs2, nilfs2, xfs) updated
+> accordingly, no functional change.
+> 
+> V2:
+> Based on feedback from Andreas, the fiemap_extent is now able to hold the
+> physical extent length, to be filled by the filesystem callback.
+> 
+> The filesystems do not have access to the structure that is passed back to
+> userspace and are supposed to call fiemap_fill_next_extent, there's no direct
+> way to fill fe_phys_length. There are two ways to pass it:
+> 
+> 1) extend fiemap_fill_next_extent to take phys_length and update all
+>   users (ext4, gfs2, ocfs2, nilfs2, xfs)
+> 
+> 2) add new function that takes arguments for all the fiemap_extent items,
+>   newly added phys_length compared to fiemap_fill_next_extent
+> 
+> David Sterba (4):
+>  fiemap: fix comment at EXTENT_DATA_ENCRYPTED
+>  fiemap: add EXTENT_DATA_COMPRESSED flag
+>  btrfs: set FIEMAP_EXTENT_DATA_COMPRESSED for compressed extents
+>  Documentation/fiemap: Document the DATA_COMPRESSED flag
+> 
+> Documentation/filesystems/fiemap.txt |   17 +++++++++++++----
+> fs/btrfs/extent_io.c                 |    9 +++++++--
+> fs/ext4/extents.c                    |    3 ++-
+> fs/ext4/inline.c                     |    2 +-
+> fs/gfs2/inode.c                      |    2 +-
+> fs/ioctl.c                           |   18 ++++++++++++------
+> fs/nilfs2/inode.c                    |    8 +++++---
+> fs/ocfs2/extent_map.c                |    4 ++--
+> fs/xfs/xfs_iops.c                    |    2 +-
+> include/linux/fs.h                   |    2 +-
+> include/uapi/linux/fiemap.h          |    8 ++++++--
+> 11 files changed, 51 insertions(+), 24 deletions(-)
+> 
+> -- 
+> 1.7.9
+> 
 
 
--- 
-Goldwyn
+Cheers, Andreas
+
+
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 833 bytes
+Desc: Message signed with OpenPGP using GPGMail
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20131212/6348d653/attachment.bin 
