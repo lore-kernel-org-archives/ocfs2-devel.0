@@ -1,75 +1,71 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Thu, 26 Dec 2013 12:39:22 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Check existence of old dentry in
-	ocfs2_link()
-Message-ID: <52BBB2FA.6090205@huawei.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 27 Dec 2013 10:27:06 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix NULL pointer dereference when
+ dismount and ocfs2rec simultaneously
+Message-ID: <52BCE57A.7050406@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-  System call linkat first calls user_path_at(), check the existence
-of old dentry, and then calls vfs_link()->ocfs2_link() to do the actual
-work. There may exist a race when Node A create a hard link for file
-while node B rm it.
+From: Yiwen Jiang <jiangyiwen@huawei.com>
 
+2 nodes cluster, say Node A and Node B, mount the same ocfs2 volume,
+and create a file 1.
 
-         Node A                          Node B
-user_path_at()
-  ->ocfs2_lookup(),
-find old dentry exist
-                                rm file, add inode say inodeA
-                                to orphan_dir
+Node A			Node B
+open 1, get open lock
+                        rm 1, and then add 1 to orphan_dir
+storage link down,
+o2hb_write_timeout
+->o2quo_disk_timeout
+->emergency_restart
+                        at the moment, Node B dismount and do
+			ocfs2rec simultaneously
+                        1) ocfs2_dismount_volume
+			->ocfs2_recovery_exit
+			->wait_event(osb->recovery_event)
+			->flush_workqueue(ocfs2_wq)
+			2) ocfs2rec
+			->queue_work(&journal->j_recovery_work)
+                        ->ocfs2_recover_orphans
+			->ocfs2_commit_truncate
+                        ->queue_delayed_work(&osb->osb_truncate_log_wq)
 
-call ocfs2_link(),create a
-hard link for inodeA.
+In ocfs2_recovery_exit, it flushes workqueue and then releases system
+inodes. When doing ocfs2rec, it will call ocfs2_flush_truncate_log
+which will try to get sys_root_inode, and NULL pointer dereference
+occurs.
 
-                                rm the link, add inodeA to orphan_dir
-                                again
-
-When orphan_scan work start, it calls ocfs2_queue_orphans() to do
-the main work. It first tranverses entrys in orphan_dir, linking
-all inodes in this orphan_dir to a list look like this:
-inodeA->inodeB->...->inodeA
-When tranvering this list, it will fall into loop, calling iput() again and again.
-And finally trigger BUG_ON(inode->i_state & I_CLEAR).
-
+Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
 Signed-off-by: joyce <xuejiufei@huawei.com>
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 ---
- fs/ocfs2/namei.c | 13 +++++++++++++
- 1 file changed, 13 insertions(+)
+ fs/ocfs2/super.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 4f791f6..c008e91 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -644,6 +644,7 @@ static int ocfs2_link(struct dentry *old_dentry,
- 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 	sigset_t oldset;
-+	u64 old_de_ino;
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index c414929..665e91e 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -1947,11 +1947,15 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
  
- 	trace_ocfs2_link((unsigned long long)OCFS2_I(inode)->ip_blkno,
- 			 old_dentry->d_name.len, old_dentry->d_name.name,
-@@ -666,6 +667,18 @@ static int ocfs2_link(struct dentry *old_dentry,
- 		goto out;
- 	}
+ 	ocfs2_shutdown_local_alloc(osb);
  
-+	err = ocfs2_lookup_ino_from_name(dir, old_dentry->d_name.name,
-+			old_dentry->d_name.len, &old_de_ino);
-+	if (err) {
-+		err = -ENOENT;
-+		goto out;
-+	}
+-	ocfs2_truncate_log_shutdown(osb);
+-
+ 	/* This will disable recovery and flush any recovery work. */
+ 	ocfs2_recovery_exit(osb);
+ 
++	/*
++	 * During dismount, when it recovers another node it will call
++	 * ocfs2_recover_orphans and queue delayed work osb_truncate_log_wq.
++	 */
++	ocfs2_truncate_log_shutdown(osb);
 +
-+	if (old_de_ino != OCFS2_I(inode)->ip_blkno) {
-+		err = -ENOENT;
-+		goto out;
-+	}
-+
- 	err = ocfs2_check_dir_for_entry(dir, dentry->d_name.name,
- 					dentry->d_name.len);
- 	if (err)
+ 	ocfs2_journal_shutdown(osb);
+ 
+ 	ocfs2_sync_blockdev(sb);
 -- 
 1.8.4.3
