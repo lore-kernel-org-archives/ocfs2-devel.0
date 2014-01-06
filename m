@@ -1,10 +1,10 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Date: Mon, 06 Jan 2014 22:40:26 -0000
-Subject: [Ocfs2-devel] [PATCH 3.12 132/144] jbd2: dont BUG but return ENOSPC
+Date: Mon, 06 Jan 2014 22:41:39 -0000
+Subject: [Ocfs2-devel] [PATCH 3.10 085/129] jbd2: dont BUG but return ENOSPC
 	if a handle runs out of space
-In-Reply-To: <20140106223745.326293132@linuxfoundation.org>
-References: <20140106223745.326293132@linuxfoundation.org>
-Message-ID: <20140106223749.135145858@linuxfoundation.org>
+In-Reply-To: <20140106223859.589799655@linuxfoundation.org>
+References: <20140106223859.589799655@linuxfoundation.org>
+Message-ID: <20140106223902.042515684@linuxfoundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,7 +12,7 @@ Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Theodore Tso <tytso@mit.edu>, ocfs2-devel@oss.oracle.com, Joel Becker <jlbec@evilplan.org>
 
-3.12-stable review patch.  If anyone has any objections, please let me know.
+3.10-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -52,7 +52,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/fs/jbd2/transaction.c
 +++ b/fs/jbd2/transaction.c
-@@ -1290,7 +1290,10 @@ int jbd2_journal_dirty_metadata(handle_t
+@@ -1151,7 +1151,10 @@ int jbd2_journal_dirty_metadata(handle_t
  		 * once a transaction -bzzz
  		 */
  		jh->b_modified = 1;
@@ -64,7 +64,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  		handle->h_buffer_credits--;
  	}
  
-@@ -1373,7 +1376,6 @@ out_unlock_bh:
+@@ -1234,7 +1237,6 @@ out_unlock_bh:
  	jbd2_journal_put_journal_head(jh);
  out:
  	JBUFFER_TRACE(jh, "exit");
