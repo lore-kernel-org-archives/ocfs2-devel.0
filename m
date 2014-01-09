@@ -1,9 +1,9 @@
 From: Luis Henriques <luis.henriques@canonical.com>
-Date: Wed, 08 Jan 2014 14:21:19 -0000
-Subject: [Ocfs2-devel] [3.5.y.z extended stable] Patch "jbd2: don't BUG but
+Date: Thu, 09 Jan 2014 12:04:52 -0000
+Subject: [Ocfs2-devel] [3.11.y.z extended stable] Patch "jbd2: don't BUG but
 	return ENOSPC if a handle runs out of space" has been added
 	to staging queue
-Message-ID: <1389190874-12718-1-git-send-email-luis.henriques@canonical.com>
+Message-ID: <1389269087-31678-1-git-send-email-luis.henriques@canonical.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,15 +14,15 @@ This is a note to let you know that I have just added a patch titled
 
     jbd2: don't BUG but return ENOSPC if a handle runs out of space
 
-to the linux-3.5.y-queue branch of the 3.5.y.z extended stable tree 
+to the linux-3.11.y-queue branch of the 3.11.y.z extended stable tree 
 which can be found at:
 
- http://kernel.ubuntu.com/git?p=ubuntu/linux.git;a=shortlog;h=refs/heads/linux-3.5.y-queue
+ http://kernel.ubuntu.com/git?p=ubuntu/linux.git;a=shortlog;h=refs/heads/linux-3.11.y-queue
 
 If you, or anyone else, feels it should not be added to this tree, please 
 reply to this email.
 
-For more information about the 3.5.y.z tree, see
+For more information about the 3.11.y.z tree, see
 https://wiki.ubuntu.com/Kernel/Dev/ExtendedStable
 
 Thanks.
@@ -30,7 +30,7 @@ Thanks.
 
 ------
 
-From bc53fe8f253aede4b44e5c0b7e1761461e6c7565 Mon Sep 17 00:00:00 2001
+From 2fca912f31797cfcfb17de2c37c66f63da847945 Mon Sep 17 00:00:00 2001
 From: Theodore Ts'o <tytso@mit.edu>
 Date: Sun, 8 Dec 2013 21:12:59 -0500
 Subject: jbd2: don't BUG but return ENOSPC if a handle runs out of space
@@ -67,10 +67,10 @@ Signed-off-by: Luis Henriques <luis.henriques@canonical.com>
  1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
-index 81203d1..edfb1ec 100644
+index 7aa9a32..b0b74e5 100644
 --- a/fs/jbd2/transaction.c
 +++ b/fs/jbd2/transaction.c
-@@ -1126,7 +1126,10 @@ int jbd2_journal_dirty_metadata(handle_t *handle, struct buffer_head *bh)
+@@ -1290,7 +1290,10 @@ int jbd2_journal_dirty_metadata(handle_t *handle, struct buffer_head *bh)
  		 * once a transaction -bzzz
  		 */
  		jh->b_modified = 1;
@@ -82,7 +82,7 @@ index 81203d1..edfb1ec 100644
  		handle->h_buffer_credits--;
  	}
 
-@@ -1209,7 +1212,6 @@ out_unlock_bh:
+@@ -1373,7 +1376,6 @@ out_unlock_bh:
  	jbd2_journal_put_journal_head(jh);
  out:
  	JBUFFER_TRACE(jh, "exit");
