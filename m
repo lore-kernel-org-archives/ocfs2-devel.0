@@ -1,27 +1,55 @@
-From: Goldwyn Rodrigues <rgoldwyn@gmail.com>
-Date: Wed, 8 Jan 2014 18:12:20 -0600
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Wed, 08 Jan 2014 17:29:35 -0800
 Subject: [Ocfs2-devel] What's the need of OCFS2_INODE_MAYBE_ORPHANED?
-Message-ID: <CAJtY7HVQue79bLEUPXnN=fSbvcKS_mA8FUQbmaNE0dipSp1XoA@mail.gmail.com>
+In-Reply-To: <CAJtY7HVQue79bLEUPXnN=fSbvcKS_mA8FUQbmaNE0dipSp1XoA@mail.gmail.com>
+References: <CAJtY7HVQue79bLEUPXnN=fSbvcKS_mA8FUQbmaNE0dipSp1XoA@mail.gmail.com>
+Message-ID: <52CDFB7F.5010200@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+Hi Goldwyn,
 
-From the comments in fs/ocfs2/inode.h:90 it seems, this was used in
-legacy ocfs2 systems when a node received unlink votes. Since unlink
-votes has been done away with and replaced with open locks, is this
-flag still required? If yes, why?
+On 01/08/2014 04:12 PM, Goldwyn Rodrigues wrote:
+> Hi,
+>
+> >From the comments in fs/ocfs2/inode.h:90 it seems, this was used in
+> legacy ocfs2 systems when a node received unlink votes. Since unlink
+> votes has been done away with and replaced with open locks, is this
+> flag still required? If yes, why?
+My understanding is that unlink voting protocol was heavy. So the 
+following was done to address it.
 
-From my ongoing investigation of unlink() times, it seems this flag is
-causing the delay with releasing the open locks while downconverting
-dentry locks. The flag is set  _everytime_ a dentry downconvert is
-performed even if the file  is not scheduled to be deleted. If not, we
-can be smartly evict the inodes which are *not* to be deleted
-(i_nlink>0) by not offloading to ocfs2_wq. This way open lock will
-release faster speeding up unlink on the deleting node.
+To do an unlink, dentry has to be removed. In order to do that the node 
+has to get EX lock on the dentry which means all other nodes have to 
+downconvert. In general EX lock on dentry is acquired only in unlink and 
+I assume rename case. So all nodes which down convert the lock mark 
+their inode OCFS2_INODE_MAYBE_ORPHANED. The only problem with this is 
+that dentry on a node can get purged because of memory pressure which 
+marks inode as OCFS2_INODE_MAYBE_ORPHANED even when no unlink was done 
+on this inode.
 
--- 
-Goldwyn
+
+> >From my ongoing investigation of unlink() times, it seems this flag is
+> causing the delay with releasing the open locks while downconverting
+> dentry locks. The flag is set  _everytime_ a dentry downconvert is
+> performed even if the file  is not scheduled to be deleted. If not, we
+> can be smartly evict the inodes which are *not* to be deleted
+> (i_nlink>0) by not offloading to ocfs2_wq. This way open lock will
+> release faster speeding up unlink on the deleting node.
+>
+>
+Are you referring to the delay caused by ocfs2_drop_dentry_lock queueing 
+dentry locks to dentry_lock_list ?. If that's the case, have you tried 
+removing following patches which introduced that behavior ? I think that 
+quota's deadlock bug might have to be addressed differently ?
+
+ea455f8ab68338ba69f5d3362b342c115bea8e13
+eb90e46458b08bc7c1c96420ca0eb4263dc1d6e5
+bb44bf820481e19381ec549118e4ee0b89d56191
+
+The above patches were leaving orphan files around which was causing a 
+big problem to some applications that removes lot of files which inturn 
+caused intermittent hangs
