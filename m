@@ -1,57 +1,50 @@
 From: Joel Becker <jlbec@evilplan.org>
-Date: Mon, 13 Jan 2014 07:37:11 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] o2dlm: fix NULL pointer dereference
- in o2dlm_blocking_ast_wrapper
-In-Reply-To: <1389403153-4220-1-git-send-email-srinivas.eeda@oracle.com>
-References: <1389403153-4220-1-git-send-email-srinivas.eeda@oracle.com>
-Message-ID: <20140113153711.GB18208@localhost>
+Date: Mon, 13 Jan 2014 07:39:56 -0800
+Subject: [Ocfs2-devel] What's the need of OCFS2_INODE_MAYBE_ORPHANED?
+In-Reply-To: <52CEA589.9060607@suse.de>
+References: <CAJtY7HVQue79bLEUPXnN=fSbvcKS_mA8FUQbmaNE0dipSp1XoA@mail.gmail.com>
+	<52CDFB7F.5010200@oracle.com> <52CE13AF.5080107@suse.de>
+	<52CE3409.8080108@oracle.com>
+	<20140109102301.GD10565@ZenIV.linux.org.uk>
+	<52CEA589.9060607@suse.de>
+Message-ID: <20140113153956.GC18208@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jan 10, 2014 at 05:19:13PM -0800, Srinivas Eeda wrote:
-> From: Srinivas Eeda <seeda@srini.(none)>
+On Thu, Jan 09, 2014 at 07:35:05AM -0600, Goldwyn Rodrigues wrote:
+> On 01/09/2014 04:23 AM, Joel Becker wrote:
+> >Unlink can happen from anywhere, but only the last closing node can
+> >actually remove the file.  MAYBE_ORPHANED tells the node to try for
+> >removal at close time.  It is absolutely necessary.
+> >
 > 
-> A tiny race between BAST and unlock message causes the NULL dereference.
+> The reason I asked the query is that OCFS2_INODE_MAYBE_ORPHANED is
+> being set at every dentry downconvert. Is this really necessary
+> because every dentry downconvert does not turn into unlink? (I know
+> it says maybe :/ )
 > 
-> A node sends an unlock request to master and receives a response. Before
-> processing the response it receives a BAST from the master. Since both requests
-> are processed by different threads it creates a race. While the BAST is being
-> processed, lock can get freed by unlock code.
-> 
-> This patch makes bast to return immediately if lock is found but unlock is
-> pending. The code should handle this race. We also have to fix master node to
-> skip sending BAST after receiving unlock message.
+> Is it okay to set it when the open_lock fails or is it too late in
+> the process? If another node has performed an unlink, it would need
+> to get the open lock before it performs the inode wipe. So we should
+> be safe that way? Is there anything incorrect in this design?
 
-Did the master send the BAST after the unlock, or does that race too?
-Does the master know the unlock has succeeded, or does it just think so?
-
-> @@ -385,8 +385,13 @@ int dlm_proxy_ast_handler(struct o2net_msg *msg, u32 len, void *data,
->  		head = &res->granted;
->  
->  	list_for_each_entry(lock, head, list) {
-> -		if (lock->ml.cookie == cookie)
-> -			goto do_ast;
-> +		/* if lock is found but unlock is pending ignore the bast */
-> +		if (lock->ml.cookie == cookie) {
-> +			if (lock->unlock_pending)
-> +				break;
-> +			else
-> +				goto do_ast;
-> +		}
-
-This breaks out for asts as well as basts.  Can't that cause problems
-with the unlock ast expected by the caller?
+It's not safe.  Srini has already answered this on the other part of the
+thread.  I'll address your other comments there.
 
 Joel
 
+> 
+> 
+> -- 
+> Goldwyn
 
 -- 
 
-"Not being known doesn't stop the truth from being true."
-        - Richard Bach
+"You look in her eyes, the music begins to play.
+ Hopeless romantics, here we go again."
 
 			http://www.jlbec.org/
 			jlbec at evilplan.org
