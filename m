@@ -1,10 +1,10 @@
 From: Luis Henriques <luis.henriques@canonical.com>
-Date: Mon, 13 Jan 2014 14:26:34 -0000
-Subject: [Ocfs2-devel] [PATCH 3.5 64/96] jbd2: don't BUG but return ENOSPC
-	if a handle runs out of space
-In-Reply-To: <1389623099-18783-1-git-send-email-luis.henriques@canonical.com>
-References: <1389623099-18783-1-git-send-email-luis.henriques@canonical.com>
-Message-ID: <1389623099-18783-65-git-send-email-luis.henriques@canonical.com>
+Date: Mon, 13 Jan 2014 16:03:31 -0000
+Subject: [Ocfs2-devel] [PATCH 3.11 111/208] jbd2: don't BUG but return
+	ENOSPC if a handle runs out of space
+In-Reply-To: <1389628849-1614-1-git-send-email-luis.henriques@canonical.com>
+References: <1389628849-1614-1-git-send-email-luis.henriques@canonical.com>
+Message-ID: <1389628849-1614-112-git-send-email-luis.henriques@canonical.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,7 +12,7 @@ Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org, stable@vger.kernel.org, kernel-team@lists.ubuntu.com
 Cc: Theodore Ts'o <tytso@mit.edu>, ocfs2-devel@oss.oracle.com, Luis Henriques <luis.henriques@canonical.com>
 
-3.5.7.29 -stable review patch.  If anyone has any objections, please let me know.
+3.11.10.3 -stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -50,10 +50,10 @@ Signed-off-by: Luis Henriques <luis.henriques@canonical.com>
  1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
-index 81203d1..edfb1ec 100644
+index 7aa9a32..b0b74e5 100644
 --- a/fs/jbd2/transaction.c
 +++ b/fs/jbd2/transaction.c
-@@ -1126,7 +1126,10 @@ int jbd2_journal_dirty_metadata(handle_t *handle, struct buffer_head *bh)
+@@ -1290,7 +1290,10 @@ int jbd2_journal_dirty_metadata(handle_t *handle, struct buffer_head *bh)
  		 * once a transaction -bzzz
  		 */
  		jh->b_modified = 1;
@@ -65,7 +65,7 @@ index 81203d1..edfb1ec 100644
  		handle->h_buffer_credits--;
  	}
  
-@@ -1209,7 +1212,6 @@ out_unlock_bh:
+@@ -1373,7 +1376,6 @@ out_unlock_bh:
  	jbd2_journal_put_journal_head(jh);
  out:
  	JBUFFER_TRACE(jh, "exit");
