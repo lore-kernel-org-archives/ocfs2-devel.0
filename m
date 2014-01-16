@@ -1,162 +1,122 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 16 Jan 2014 20:24:51 +0100
+Date: Thu, 16 Jan 2014 20:34:44 +0100
 Subject: [Ocfs2-devel] [PATCH] Revert iput deferring code in
 	ocfs2_drop_dentry_lock
-In-Reply-To: <52D81B45.60905@suse.de>
-References: <20140115133344.GB9141@quack.suse.cz> <52D6AA17.6040101@suse.de>
+In-Reply-To: <52D830D3.6010605@oracle.com>
+References: <20140115125144.GA2953@shrek.lan>
+	<20140115133344.GB9141@quack.suse.cz> <52D6AA17.6040101@suse.de>
 	<20140115155354.GB13988@quack.suse.cz> <52D71723.2080305@suse.de>
 	<20140116024743.GA25833@quack.suse.cz> <52D7E03E.8090702@suse.de>
-	<20140116140244.GA2662@quack.suse.cz> <52D7FF9A.8050009@suse.de>
-	<20140116171315.GA5774@quack.suse.cz> <52D81B45.60905@suse.de>
-Message-ID: <20140116192451.GA10628@quack.suse.cz>
+	<20140116140244.GA2662@quack.suse.cz> <52D830D3.6010605@oracle.com>
+Message-ID: <20140116193444.GB10628@quack.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu 16-01-14 11:47:49, Goldwyn Rodrigues wrote:
-> On 01/16/2014 11:13 AM, Jan Kara wrote:
-> >On Thu 16-01-14 09:49:46, Goldwyn Rodrigues wrote:
-> >>On 01/16/2014 08:02 AM, Jan Kara wrote:
-> >>>On Thu 16-01-14 07:35:58, Goldwyn Rodrigues wrote:
-> >>>>On 01/15/2014 08:47 PM, Jan Kara wrote:
-> >>>>>On Wed 15-01-14 17:17:55, Goldwyn Rodrigues wrote:
-> >>>>>>On 01/15/2014 09:53 AM, Jan Kara wrote:
-> >>>>>>>On Wed 15-01-14 09:32:39, Goldwyn Rodrigues wrote:
-> >>>>>>>>On 01/15/2014 07:33 AM, Jan Kara wrote:
-> >>>>>>>>>On Wed 15-01-14 06:51:51, Goldwyn Rodrigues wrote:
-> >>>>>>>>>>The following patches are reverted in this patch because these
-> >>>>>>>>>>patches caused regression in the unlink() calls.
-> >>>>>>>>>>
-> >>>>>>>>>>ea455f8ab68338ba69f5d3362b342c115bea8e13 - ocfs2: Push out dropping
-> >>>>>>>>>>of dentry lock to ocfs2_wq
-> >>>>>>>>>>f7b1aa69be138ad9d7d3f31fa56f4c9407f56b6a - ocfs2: Fix deadlock on umount
-> >>>>>>>>>>5fd131893793567c361ae64cbeb28a2a753bbe35 - ocfs2: Don't oops in
-> >>>>>>>>>>ocfs2_kill_sb on a failed mount
-> >>>>>>>>>>
-> >>>>>>>>>>The regression is caused because these patches delay the iput() in case
-> >>>>>>>>>>of dentry unlocks. This also delays the unlocking of the open lockres.
-> >>>>>>>>>>The open lockresource is required to test if the inode can be wiped from
-> >>>>>>>>>>disk on not. When the deleting node does not get the open lock, it marks
-> >>>>>>>>>>it as orphan (even though it is not in use by another node/process)
-> >>>>>>>>>>and causes a journal checkpoint. This delays operations following the
-> >>>>>>>>>>inode eviction. This also moves the inode to the orphaned inode
-> >>>>>>>>>>which further causes more I/O and a lot of unneccessary orphans.
-> >>>>>>>>>>
-> >>>>>>>>>>As for the fix, I tried reproducing the problem by using quotas and enabling
-> >>>>>>>>>>lockdep, but the issue could not be reproduced.
-> >>>>>>>>>   So I was thinking about this for a while trying to remember... What it
-> >>>>>>>>>really boils down to is whether it is OK to call ocfs2_delete_inode() from
-> >>>>>>>>>DLM downconvert thread. Bear in mind that ocfs2_delete_inode() takes all
-> >>>>>>>>>kinds of interesting cluster locks meaning that the downconvert thread can
-> >>>>>>>>>block waiting to acquire some cluster lock. That seems like asking for
-> >>>>>>>>>trouble to me (i.e., what if the node holding the lock we need from
-> >>>>>>>>>downconvert thread needs a lock from us first?) but maybe it is OK these
-> >>>>>>>>>days.
-> >>>>>>>>>
+On Thu 16-01-14 11:19:47, Srinivas Eeda wrote:
+> Hi Jan,
+> thanks a lot for explaining the problem. Please see my comment below.
+> 
+> On 01/16/2014 06:02 AM, Jan Kara wrote:
+> >On Thu 16-01-14 07:35:58, Goldwyn Rodrigues wrote:
+> >>On 01/15/2014 08:47 PM, Jan Kara wrote:
+> >>>On Wed 15-01-14 17:17:55, Goldwyn Rodrigues wrote:
+> >>>>On 01/15/2014 09:53 AM, Jan Kara wrote:
+> >>>>>On Wed 15-01-14 09:32:39, Goldwyn Rodrigues wrote:
+> >>>>>>On 01/15/2014 07:33 AM, Jan Kara wrote:
+> >>>>>>>On Wed 15-01-14 06:51:51, Goldwyn Rodrigues wrote:
+> >>>>>>>>The following patches are reverted in this patch because these
+> >>>>>>>>patches caused regression in the unlink() calls.
 > >>>>>>>>
-> >>>>>>>>The only lock it tries to take is the "inode lock" resource, which
-> >>>>>>>>seems to be fine to take.
-> >>>>>>>   Why is it obviously fine? Some other node might be holding the inode lock
-> >>>>>>>and still write to the inode. If that needs a cluster lock for block
-> >>>>>>>allocation and that allocation cluster lock is currently hold by our node,
-> >>>>>>>we are screwed. Aren't we?
+> >>>>>>>>ea455f8ab68338ba69f5d3362b342c115bea8e13 - ocfs2: Push out dropping
+> >>>>>>>>of dentry lock to ocfs2_wq
+> >>>>>>>>f7b1aa69be138ad9d7d3f31fa56f4c9407f56b6a - ocfs2: Fix deadlock on umount
+> >>>>>>>>5fd131893793567c361ae64cbeb28a2a753bbe35 - ocfs2: Don't oops in
+> >>>>>>>>ocfs2_kill_sb on a failed mount
+> >>>>>>>>
+> >>>>>>>>The regression is caused because these patches delay the iput() in case
+> >>>>>>>>of dentry unlocks. This also delays the unlocking of the open lockres.
+> >>>>>>>>The open lockresource is required to test if the inode can be wiped from
+> >>>>>>>>disk on not. When the deleting node does not get the open lock, it marks
+> >>>>>>>>it as orphan (even though it is not in use by another node/process)
+> >>>>>>>>and causes a journal checkpoint. This delays operations following the
+> >>>>>>>>inode eviction. This also moves the inode to the orphaned inode
+> >>>>>>>>which further causes more I/O and a lot of unneccessary orphans.
+> >>>>>>>>
+> >>>>>>>>As for the fix, I tried reproducing the problem by using quotas and enabling
+> >>>>>>>>lockdep, but the issue could not be reproduced.
+> >>>>>>>   So I was thinking about this for a while trying to remember... What it
+> >>>>>>>really boils down to is whether it is OK to call ocfs2_delete_inode() from
+> >>>>>>>DLM downconvert thread. Bear in mind that ocfs2_delete_inode() takes all
+> >>>>>>>kinds of interesting cluster locks meaning that the downconvert thread can
+> >>>>>>>block waiting to acquire some cluster lock. That seems like asking for
+> >>>>>>>trouble to me (i.e., what if the node holding the lock we need from
+> >>>>>>>downconvert thread needs a lock from us first?) but maybe it is OK these
+> >>>>>>>days.
 > >>>>>>>
-> >>>>>>
-> >>>>>>No. If another thread is using the allocation cluster lock implies
-> >>>>>>we already have the inode lock. Cluster locks are also taken in a
-> >>>>>>strict order in order to avoid ABBA locking.
-> >>>>>   I agree with what you wrote above but it's not exactly what I'm talking
-> >>>>>about. What seems to be possible is:
-> >>>>>NODE 1					NODE2
-> >>>>>holds dentry lock for 'foo'
-> >>>>>holds inode lock for GLOBAL_BITMAP_SYSTEM_INODE
-> >>>>>					dquot_initialize(bar)
-> >>>>>					  ocfs2_dquot_acquire()
-> >>>>>					    ocfs2_inode_lock(USER_QUOTA_SYSTEM_INODE)
-> >>>>>					    ...
-> >>>>>downconvert thread (triggered from another
-> >>>>>node or a different process from NODE2)
-> >>>>>   ocfs2_dentry_post_unlock()
-> >>>>>     ...
-> >>>>>     iput(foo)
-> >>>>>       ocfs2_evict_inode(foo)
-> >>>>>         ocfs2_clear_inode(foo)
-> >>>>>           dquot_drop(inode)
-> >>>>>	    ...
-> >>>>>             ocfs2_inode_lock(USER_QUOTA_SYSTEM_INODE)
-> >>>>>              - blocks
-> >>>>>					    finds we need more space in
-> >>>>>					    quota file
-> >>>>>					    ...
-> >>>>>					    ocfs2_extend_no_holes()
-> >>>>>					      ocfs2_inode_lock(GLOBAL_BITMAP_SYSTEM_INODE)
-> >>>>>						- deadlocks waiting for
-> >>>>>						  downconvert thread
+> >>>>>>The only lock it tries to take is the "inode lock" resource, which
+> >>>>>>seems to be fine to take.
+> >>>>>   Why is it obviously fine? Some other node might be holding the inode lock
+> >>>>>and still write to the inode. If that needs a cluster lock for block
+> >>>>>allocation and that allocation cluster lock is currently hold by our node,
+> >>>>>we are screwed. Aren't we?
 > >>>>>
-> >>>>
-> >>>>Thanks. This explains the situation much better. Whats stopping
-> >>>>NODE1 from releasing the GLOBAL_BITMAP_SYSTEM_INODE? (to break from
-> >>>>hold and wait condition)
-> >>>   The fact that to release the lock, it has to be downconverted. And there
-> >>>is only one downconvert thread (ocfs2dc) and that is busy waiting for
-> >>>USER_QUOTA_SYSTEM_INODE lock...
+> >>>>No. If another thread is using the allocation cluster lock implies
+> >>>>we already have the inode lock. Cluster locks are also taken in a
+> >>>>strict order in order to avoid ABBA locking.
+> >>>   I agree with what you wrote above but it's not exactly what I'm talking
+> >>>about. What seems to be possible is:
+> >>>NODE 1					NODE2
+> >>>holds dentry lock for 'foo'
+> >>>holds inode lock for GLOBAL_BITMAP_SYSTEM_INODE
+> >>>					dquot_initialize(bar)
+> >>>					  ocfs2_dquot_acquire()
+> >>>					    ocfs2_inode_lock(USER_QUOTA_SYSTEM_INODE)
+> >>>					    ...
+> >>>downconvert thread (triggered from another
+> >>>node or a different process from NODE2)
+> >>>   ocfs2_dentry_post_unlock()
+> >>>     ...
+> >>>     iput(foo)
+> >>>       ocfs2_evict_inode(foo)
+> >>>         ocfs2_clear_inode(foo)
+> >>>           dquot_drop(inode)
+> >>>	    ...
+> >>>             ocfs2_inode_lock(USER_QUOTA_SYSTEM_INODE)
+> >>>              - blocks
+> >>>					    finds we need more space in
+> >>>					    quota file
+> >>>					    ...
+> >>>					    ocfs2_extend_no_holes()
+> >>>					      ocfs2_inode_lock(GLOBAL_BITMAP_SYSTEM_INODE)
+> >>>						- deadlocks waiting for
+> >>>						  downconvert thread
 > >>>
-> >>>>>However the positive part of this is that the race I was originally afraid
-> >>>>>of - when ocfs2_delete_inode() would be triggered from
-> >>>>>ocfs2_dentry_post_unlock() - isn't possible because ocfs2 seems to keep
-> >>>>>invariant that node can cache dentry for 'foo' without holding inode lock
-> >>>>>for 'foo' only if foo->i_nlink > 0. Thus iput() from downconvert thread
-> >>>>>should never go into ocfs2_delete_inode() (however it would be nice to
-> >>>>>assert this in ocfs2_dentry_post_unlock() for a peace of mind).
-> >>>>
-> >>>>No, ocfs2_dentry_convert_worker sets OCFS2_INODE_MAYBE_ORPHANED. So,
-> >>>>ocfs2_delete_inode() is called even if i_nlink > 0.
-> >>>   Ah, too bad :(. Do you know why we do that? I have to admit inode
-> >>>deletion locking was always one of the trickier part of ocfs2 locking and
-> >>>I'm not sure I've fully appreciated all its details.
-> >>>
-> >>
-> >>Well, The file could be unlinked on another node while it is open on
-> >>this node. inode->i_nlink is a node-local value (and is refreshed
-> >>only later).
-> >   OK, but ocfs2_inode_is_valid_to_delete() will skip deleting inode if
-> >called from downconvert thread anyway (see the current == osb->dc_task
-> >check). So setting OCFS2_INODE_MAYBE_ORPHANED in
-> >ocfs2_dentry_convert_worker() seems to be futile?
-> >
-> >Also the node doing unlink fails to delete the inode only if
-> >ocfs2_query_inode_wipe() fails to upconvert the open lock. That means some
-> >other node is still holding open lock for the inode. Since
-> >ocfs2_query_inode_wipe() is called after unlink is finished and thus all
-> >dentry locks are dropped, we can be sure that dropping the dentry lock
-> >will never drop the last inode reference for an unlinked inode.
-> >
-> >So it seems to be safe to just remove OCFS2_INODE_MAYBE_ORPHANED from
-> >ocfs2_dentry_convert_worker()?
-> >
-> 
-> I just walked this path and got badgered ;)
-> https://oss.oracle.com/pipermail/ocfs2-devel/2014-January/009509.html
-> 
-> The problem is that if this node has the file open, and another node
-> initiates the unlink, deleting the inode becomes the responsibility
-> of the current node which has the file open after the last close.
-  Yes, in the mean time I read more code around that flag and understood
-the logic - either we know the inode cannot be deleted because we have a
-dentry lock on some dentry pointing to it, or we flag the inode with
-OCFS2_INODE_MAYBE_ORPHANED to check during inode removal from memory
-whether it doesn't need to be deleted.
-
-> However, from the VFS point of view, would an inode be evicted if
-> the file is open?
-  Certainly not. Inode is evicted only when last reference to it is
-dropped. In particular that means after all file pointers to it are closed.
-I wrote some patches to see how things will work out and it seems
-postponing just quota cleanup should be doable.
+> >>Thanks. This explains the situation much better. Whats stopping
+> >>NODE1 from releasing the GLOBAL_BITMAP_SYSTEM_INODE? (to break from
+> >>hold and wait condition)
+> >   The fact that to release the lock, it has to be downconverted. And there
+> >is only one downconvert thread (ocfs2dc) and that is busy waiting for
+> >USER_QUOTA_SYSTEM_INODE lock...
+> Yes that indeed seems to be a problem, thanks a lot for explaining
+> :). I do not know much about quota's code but wondering if we can
+> fix this problem by enforcing the lock ordering ? Can NODE2 check
+> first if it needs space before getting lock on
+> USER_QUOTA_SYSTEM_INODE. If it does then it should acquire
+> GLOBAL_BITMAP_SYSTEM_INODE before acquiring lock on
+> USER_QUOTA_SYSTEM_INODE ? (Basically we enforce
+> GLOBAL_BITMAP_SYSTEM_INODE cannot be taken while node has
+> USER_QUOTA_SYSTEM_INODE lock)
+  Well, that is impractical to say the least - we would have to rewrite the
+allocation path to handle specifically quota code which would get the
+GLOBAL_BITMAP_SYSTEM_INODE lock at a different place than any other code.
+I think it is better to postpone dropping quota references - that leaves
+the pain localized into the code handling inode eviction.
 
 								Honza
+
 -- 
 Jan Kara <jack@suse.cz>
 SUSE Labs, CR
