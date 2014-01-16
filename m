@@ -1,122 +1,66 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 16 Jan 2014 20:34:44 +0100
-Subject: [Ocfs2-devel] [PATCH] Revert iput deferring code in
-	ocfs2_drop_dentry_lock
-In-Reply-To: <52D830D3.6010605@oracle.com>
-References: <20140115125144.GA2953@shrek.lan>
-	<20140115133344.GB9141@quack.suse.cz> <52D6AA17.6040101@suse.de>
-	<20140115155354.GB13988@quack.suse.cz> <52D71723.2080305@suse.de>
-	<20140116024743.GA25833@quack.suse.cz> <52D7E03E.8090702@suse.de>
-	<20140116140244.GA2662@quack.suse.cz> <52D830D3.6010605@oracle.com>
-Message-ID: <20140116193444.GB10628@quack.suse.cz>
+Date: Thu, 16 Jan 2014 23:28:48 +0100
+Subject: [Ocfs2-devel] [PATCH 4/5] quota: Provide function to grab quota
+	structure reference
+In-Reply-To: <1389911329-25523-1-git-send-email-jack@suse.cz>
+References: <1389911329-25523-1-git-send-email-jack@suse.cz>
+Message-ID: <1389911329-25523-5-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu 16-01-14 11:19:47, Srinivas Eeda wrote:
-> Hi Jan,
-> thanks a lot for explaining the problem. Please see my comment below.
-> 
-> On 01/16/2014 06:02 AM, Jan Kara wrote:
-> >On Thu 16-01-14 07:35:58, Goldwyn Rodrigues wrote:
-> >>On 01/15/2014 08:47 PM, Jan Kara wrote:
-> >>>On Wed 15-01-14 17:17:55, Goldwyn Rodrigues wrote:
-> >>>>On 01/15/2014 09:53 AM, Jan Kara wrote:
-> >>>>>On Wed 15-01-14 09:32:39, Goldwyn Rodrigues wrote:
-> >>>>>>On 01/15/2014 07:33 AM, Jan Kara wrote:
-> >>>>>>>On Wed 15-01-14 06:51:51, Goldwyn Rodrigues wrote:
-> >>>>>>>>The following patches are reverted in this patch because these
-> >>>>>>>>patches caused regression in the unlink() calls.
-> >>>>>>>>
-> >>>>>>>>ea455f8ab68338ba69f5d3362b342c115bea8e13 - ocfs2: Push out dropping
-> >>>>>>>>of dentry lock to ocfs2_wq
-> >>>>>>>>f7b1aa69be138ad9d7d3f31fa56f4c9407f56b6a - ocfs2: Fix deadlock on umount
-> >>>>>>>>5fd131893793567c361ae64cbeb28a2a753bbe35 - ocfs2: Don't oops in
-> >>>>>>>>ocfs2_kill_sb on a failed mount
-> >>>>>>>>
-> >>>>>>>>The regression is caused because these patches delay the iput() in case
-> >>>>>>>>of dentry unlocks. This also delays the unlocking of the open lockres.
-> >>>>>>>>The open lockresource is required to test if the inode can be wiped from
-> >>>>>>>>disk on not. When the deleting node does not get the open lock, it marks
-> >>>>>>>>it as orphan (even though it is not in use by another node/process)
-> >>>>>>>>and causes a journal checkpoint. This delays operations following the
-> >>>>>>>>inode eviction. This also moves the inode to the orphaned inode
-> >>>>>>>>which further causes more I/O and a lot of unneccessary orphans.
-> >>>>>>>>
-> >>>>>>>>As for the fix, I tried reproducing the problem by using quotas and enabling
-> >>>>>>>>lockdep, but the issue could not be reproduced.
-> >>>>>>>   So I was thinking about this for a while trying to remember... What it
-> >>>>>>>really boils down to is whether it is OK to call ocfs2_delete_inode() from
-> >>>>>>>DLM downconvert thread. Bear in mind that ocfs2_delete_inode() takes all
-> >>>>>>>kinds of interesting cluster locks meaning that the downconvert thread can
-> >>>>>>>block waiting to acquire some cluster lock. That seems like asking for
-> >>>>>>>trouble to me (i.e., what if the node holding the lock we need from
-> >>>>>>>downconvert thread needs a lock from us first?) but maybe it is OK these
-> >>>>>>>days.
-> >>>>>>>
-> >>>>>>The only lock it tries to take is the "inode lock" resource, which
-> >>>>>>seems to be fine to take.
-> >>>>>   Why is it obviously fine? Some other node might be holding the inode lock
-> >>>>>and still write to the inode. If that needs a cluster lock for block
-> >>>>>allocation and that allocation cluster lock is currently hold by our node,
-> >>>>>we are screwed. Aren't we?
-> >>>>>
-> >>>>No. If another thread is using the allocation cluster lock implies
-> >>>>we already have the inode lock. Cluster locks are also taken in a
-> >>>>strict order in order to avoid ABBA locking.
-> >>>   I agree with what you wrote above but it's not exactly what I'm talking
-> >>>about. What seems to be possible is:
-> >>>NODE 1					NODE2
-> >>>holds dentry lock for 'foo'
-> >>>holds inode lock for GLOBAL_BITMAP_SYSTEM_INODE
-> >>>					dquot_initialize(bar)
-> >>>					  ocfs2_dquot_acquire()
-> >>>					    ocfs2_inode_lock(USER_QUOTA_SYSTEM_INODE)
-> >>>					    ...
-> >>>downconvert thread (triggered from another
-> >>>node or a different process from NODE2)
-> >>>   ocfs2_dentry_post_unlock()
-> >>>     ...
-> >>>     iput(foo)
-> >>>       ocfs2_evict_inode(foo)
-> >>>         ocfs2_clear_inode(foo)
-> >>>           dquot_drop(inode)
-> >>>	    ...
-> >>>             ocfs2_inode_lock(USER_QUOTA_SYSTEM_INODE)
-> >>>              - blocks
-> >>>					    finds we need more space in
-> >>>					    quota file
-> >>>					    ...
-> >>>					    ocfs2_extend_no_holes()
-> >>>					      ocfs2_inode_lock(GLOBAL_BITMAP_SYSTEM_INODE)
-> >>>						- deadlocks waiting for
-> >>>						  downconvert thread
-> >>>
-> >>Thanks. This explains the situation much better. Whats stopping
-> >>NODE1 from releasing the GLOBAL_BITMAP_SYSTEM_INODE? (to break from
-> >>hold and wait condition)
-> >   The fact that to release the lock, it has to be downconverted. And there
-> >is only one downconvert thread (ocfs2dc) and that is busy waiting for
-> >USER_QUOTA_SYSTEM_INODE lock...
-> Yes that indeed seems to be a problem, thanks a lot for explaining
-> :). I do not know much about quota's code but wondering if we can
-> fix this problem by enforcing the lock ordering ? Can NODE2 check
-> first if it needs space before getting lock on
-> USER_QUOTA_SYSTEM_INODE. If it does then it should acquire
-> GLOBAL_BITMAP_SYSTEM_INODE before acquiring lock on
-> USER_QUOTA_SYSTEM_INODE ? (Basically we enforce
-> GLOBAL_BITMAP_SYSTEM_INODE cannot be taken while node has
-> USER_QUOTA_SYSTEM_INODE lock)
-  Well, that is impractical to say the least - we would have to rewrite the
-allocation path to handle specifically quota code which would get the
-GLOBAL_BITMAP_SYSTEM_INODE lock at a different place than any other code.
-I think it is better to postpone dropping quota references - that leaves
-the pain localized into the code handling inode eviction.
+Provide dqgrab() function to get quota structure reference when we are
+sure it already has at least one active reference. Make use of this
+function inside quota code.
 
-								Honza
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/quota/dquot.c         | 4 ++--
+ include/linux/quotaops.h | 8 ++++++++
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
+diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
+index 831d49a4111f..e3f09e34d0b2 100644
+--- a/fs/quota/dquot.c
++++ b/fs/quota/dquot.c
+@@ -528,7 +528,7 @@ restart:
+ 		if (atomic_read(&dquot->dq_count)) {
+ 			DEFINE_WAIT(wait);
+ 
+-			atomic_inc(&dquot->dq_count);
++			dqgrab(dquot);
+ 			prepare_to_wait(&dquot->dq_wait_unused, &wait,
+ 					TASK_UNINTERRUPTIBLE);
+ 			spin_unlock(&dq_list_lock);
+@@ -624,7 +624,7 @@ int dquot_writeback_dquots(struct super_block *sb, int type)
+ 			/* Now we have active dquot from which someone is
+  			 * holding reference so we can safely just increase
+ 			 * use count */
+-			atomic_inc(&dquot->dq_count);
++			dqgrab(dquot);
+ 			spin_unlock(&dq_list_lock);
+ 			dqstats_inc(DQST_LOOKUPS);
+ 			err = sb->dq_op->write_dquot(dquot);
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index 6965fe394c3b..1d3eee594cd6 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -46,6 +46,14 @@ void inode_reclaim_rsv_space(struct inode *inode, qsize_t number);
+ void dquot_initialize(struct inode *inode);
+ void dquot_drop(struct inode *inode);
+ struct dquot *dqget(struct super_block *sb, struct kqid qid);
++static inline struct dquot *dqgrab(struct dquot *dquot)
++{
++	/* Make sure someone else has active reference to dquot */
++	WARN_ON_ONCE(!atomic_read(&dquot->dq_count));
++	WARN_ON_ONCE(!test_bit(DQ_ACTIVE_B, &dquot->dq_flags));
++	atomic_inc(&dquot->dq_count);
++	return dquot;
++}
+ void dqput(struct dquot *dquot);
+ int dquot_scan_active(struct super_block *sb,
+ 		      int (*fn)(struct dquot *dquot, unsigned long priv),
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+1.8.1.4
