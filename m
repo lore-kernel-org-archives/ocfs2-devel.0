@@ -1,245 +1,103 @@
-From: Jan Kara <jack@suse.cz>
-Date: Tue, 21 Jan 2014 21:23:07 +0100
-Subject: [Ocfs2-devel] [PATCH 5/5] ocfs2: Implement delayed dropping of
- last dquot reference
-In-Reply-To: <52DE180F.5080805@oracle.com>
-References: <1389911329-25523-1-git-send-email-jack@suse.cz>
-	<1389911329-25523-6-git-send-email-jack@suse.cz>
-	<20140116225858.GA25384@quack.suse.cz> <52DD415C.6010901@suse.de>
-	<52DE180F.5080805@oracle.com>
-Message-ID: <20140121202307.GH21195@quack.suse.cz>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Tue, 21 Jan 2014 13:33:27 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Code cleanup: Removed unused
+	functions
+In-Reply-To: <20140120134710.GA7989@shrek.lan>
+References: <20140120134710.GA7989@shrek.lan>
+Message-ID: <52DEE7A7.2060805@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon 20-01-14 22:47:43, Srinivas Eeda wrote:
-> On 01/20/2014 07:31 AM, Goldwyn Rodrigues wrote:
-> >On 01/16/2014 04:58 PM, Jan Kara wrote:
-> >>On Thu 16-01-14 23:28:49, Jan Kara wrote:
-> >>>We cannot drop last dquot reference from downconvert thread as that
-> >>>creates the following deadlock:
-> >>>
-> >>>NODE 1                                  NODE2
-> >>>holds dentry lock for 'foo'
-> >>>holds inode lock for GLOBAL_BITMAP_SYSTEM_INODE
-> >>>                                         dquot_initialize(bar)
-> >>>ocfs2_dquot_acquire()
-> >>>ocfs2_inode_lock(USER_QUOTA_SYSTEM_INODE)
-> >>>                                             ...
-> >>>downconvert thread (triggered from another
-> >>>node or a different process from NODE2)
-> >>>   ocfs2_dentry_post_unlock()
-> >>>     ...
-> >>>     iput(foo)
-> >>>       ocfs2_evict_inode(foo)
-> >>>         ocfs2_clear_inode(foo)
-> >>>           dquot_drop(inode)
-> >>>             ...
-> >>>        ocfs2_dquot_release()
-> >>>               ocfs2_inode_lock(USER_QUOTA_SYSTEM_INODE)
-> >>>                - blocks
-> >>>                                             finds we need
-> >>>more space in
-> >>>                                             quota file
-> >>>                                             ...
-> >>>ocfs2_extend_no_holes()
-> >>>ocfs2_inode_lock(GLOBAL_BITMAP_SYSTEM_INODE)
-> >>>                                                 - deadlocks
-> >>>waiting for
-> >>>                                                   downconvert thread
-> >>>
-> >>>We solve the problem by postponing dropping of the last dquot reference
-> >>>to a workqueue if it happens from the downconvert thread.
-> >>   Hum, now looking again into ocfs2_clear_inode() there are
-> >>more problems
-> >>than I originally thought. Look for example at
-> >>ocfs2_mark_lockres_freeing(). That will block on rw/inode/open lock if
-> >>there is downconvert pending waiting for that downconvert to finish.
-> >>However that never happens when ocfs2_clear_inode() is called from the
-> >>downconvert thread.
-> >>
-> >>So we are back to square one - I don't see a way how to fix
-> >>these deadlocks
-> >>without postponing dropping of inode reference to a workqueue :(.
-> >>
-> >
-> >Since the reason of the unlink performance is the delay in calling
-> >ocfs2_open_unlock(), and the ocfs2_mark_lockres_freeing() comes
-> >after ocfs2_open_unlock(): can we move the call to
-> >ocfs2_open_unlock() to ocfs2_evict_inode() and then perform
-> >ocfs2_clear_inode() in a deferred way?
-> once ocfs2_evict_inode is returned, vfs would destroy the inode, so
-> I think we should do the cleanup before that and hence we cannot
-> differ ocfs2_clear_inode from inside ocfs2_evict_inode
-  Yes.
+Hi Goldwyn,
 
-> May be we should queue ocfs2_blocking_ast call itself to down
-> convert thread. That way it doesn't prevent down convert thread from
-> clearing the inode. Once when down convert thread comes to processes
-> the queued ast/bast and finds lockres cleared it can just return.
-  Yes, I was thinking about some trick like this myself. But I don't really
-know all the constraints in that area so I'm not sure what will work and
-what not and I didn't have time to look deep into that yet.
+I am not 100% sure ... but my understanding is ocfs2_fs.h defines 
+metadata structures and helper functions. This file is shared between 
+ocfs2-tools and kernel modules. The functions you mentioned are used by 
+ocfs2-tools code and hence exist in this file.
 
-								Honza
+Thanks,
+--Srini
 
-> >>>Signed-off-by: Jan Kara <jack@suse.cz>
-> >>>---
-> >>>  fs/ocfs2/ocfs2.h        |  5 +++++
-> >>>  fs/ocfs2/quota.h        |  2 ++
-> >>>  fs/ocfs2/quota_global.c | 35 +++++++++++++++++++++++++++++++++++
-> >>>  fs/ocfs2/super.c        |  8 ++++++++
-> >>>  4 files changed, 50 insertions(+)
-> >>>
-> >>>diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> >>>index ca81f6b49236..f6134345fe42 100644
-> >>>--- a/fs/ocfs2/ocfs2.h
-> >>>+++ b/fs/ocfs2/ocfs2.h
-> >>>@@ -30,6 +30,7 @@
-> >>>  #include <linux/sched.h>
-> >>>  #include <linux/wait.h>
-> >>>  #include <linux/list.h>
-> >>>+#include <linux/llist.h>
-> >>>  #include <linux/rbtree.h>
-> >>>  #include <linux/workqueue.h>
-> >>>  #include <linux/kref.h>
-> >>>@@ -410,6 +411,10 @@ struct ocfs2_super
-> >>>      struct list_head blocked_lock_list;
-> >>>      unsigned long blocked_lock_count;
-> >>>
-> >>>+    /* List of dquot structures to drop last reference to */
-> >>>+    struct llist_head dquot_drop_list;
-> >>>+    struct work_struct dquot_drop_work;
-> >>>+
-> >>>      wait_queue_head_t        osb_mount_event;
-> >>>
-> >>>      /* Truncate log info */
-> >>>diff --git a/fs/ocfs2/quota.h b/fs/ocfs2/quota.h
-> >>>index d5ab56cbe5c5..f266d67df3c6 100644
-> >>>--- a/fs/ocfs2/quota.h
-> >>>+++ b/fs/ocfs2/quota.h
-> >>>@@ -28,6 +28,7 @@ struct ocfs2_dquot {
-> >>>      unsigned int dq_use_count;    /* Number of nodes having
-> >>>reference to this entry in global quota file */
-> >>>      s64 dq_origspace;    /* Last globally synced space usage */
-> >>>      s64 dq_originodes;    /* Last globally synced inode usage */
-> >>>+    struct llist_node list;    /* Member of list of dquots to drop */
-> >>>  };
-> >>>
-> >>>  /* Description of one chunk to recover in memory */
-> >>>@@ -110,6 +111,7 @@ int ocfs2_read_quota_phys_block(struct
-> >>>inode *inode, u64 p_block,
-> >>>  int ocfs2_create_local_dquot(struct dquot *dquot);
-> >>>  int ocfs2_local_release_dquot(handle_t *handle, struct dquot *dquot);
-> >>>  int ocfs2_local_write_dquot(struct dquot *dquot);
-> >>>+void ocfs2_drop_dquot_refs(struct work_struct *work);
-> >>>
-> >>>  extern const struct dquot_operations ocfs2_quota_operations;
-> >>>  extern struct quota_format_type ocfs2_quota_format;
-> >>>diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-> >>>index aaa50611ec66..7921e209c64b 100644
-> >>>--- a/fs/ocfs2/quota_global.c
-> >>>+++ b/fs/ocfs2/quota_global.c
-> >>>@@ -10,6 +10,7 @@
-> >>>  #include <linux/jiffies.h>
-> >>>  #include <linux/writeback.h>
-> >>>  #include <linux/workqueue.h>
-> >>>+#include <linux/llist.h>
-> >>>
-> >>>  #include <cluster/masklog.h>
-> >>>
-> >>>@@ -679,6 +680,27 @@ static int ocfs2_calc_qdel_credits(struct
-> >>>super_block *sb, int type)
-> >>>             OCFS2_INODE_UPDATE_CREDITS;
-> >>>  }
-> >>>
-> >>>+void ocfs2_drop_dquot_refs(struct work_struct *work)
-> >>>+{
-> >>>+    struct ocfs2_super *osb = container_of(work, struct ocfs2_super,
-> >>>+                           dquot_drop_work);
-> >>>+    struct llist_node *list;
-> >>>+    struct ocfs2_dquot *odquot, *next_odquot;
-> >>>+
-> >>>+    list = llist_del_all(&osb->dquot_drop_list);
-> >>>+    llist_for_each_entry_safe(odquot, next_odquot, list, list) {
-> >>>+        /* Drop the reference we acquired in ocfs2_dquot_release() */
-> >>>+        dqput(&odquot->dq_dquot);
-> >>>+    }
-> >>>+}
-> >>>+
-> >>>+/*
-> >>>+ * Called when the last reference to dquot is dropped. If we
-> >>>are called from
-> >>>+ * downconvert thread, we cannot do all the handling here
-> >>>because grabbing
-> >>>+ * quota lock could deadlock (the node holding the quota lock
-> >>>could need some
-> >>>+ * other cluster lock to proceed but with blocked downconvert
-> >>>thread we cannot
-> >>>+ * release any lock).
-> >>>+ */
-> >>>  static int ocfs2_release_dquot(struct dquot *dquot)
-> >>>  {
-> >>>      handle_t *handle;
-> >>>@@ -694,6 +716,19 @@ static int ocfs2_release_dquot(struct
-> >>>dquot *dquot)
-> >>>      /* Check whether we are not racing with some other dqget() */
-> >>>      if (atomic_read(&dquot->dq_count) > 1)
-> >>>          goto out;
-> >>>+    /* Running from downconvert thread? Postpone quota
-> >>>processing to wq */
-> >>>+    if (current == osb->dc_task) {
-> >>>+        /*
-> >>>+         * Grab our own reference to dquot and queue it for delayed
-> >>>+         * dropping.  Quota code rechecks after calling
-> >>>+         * ->release_dquot() and won't free dquot structure.
-> >>>+         */
-> >>>+        dqgrab(dquot);
-> >>>+        /* First entry on list -> queue work */
-> >>>+        if (llist_add(&OCFS2_DQUOT(dquot)->list,
-> >>>&osb->dquot_drop_list))
-> >>>+            queue_work(ocfs2_wq, &osb->dquot_drop_work);
-> >>>+        goto out;
-> >>>+    }
-> >>>      status = ocfs2_lock_global_qf(oinfo, 1);
-> >>>      if (status < 0)
-> >>>          goto out;
-> >>>diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> >>>index c7f71360666f..0c5ea9454967 100644
-> >>>--- a/fs/ocfs2/super.c
-> >>>+++ b/fs/ocfs2/super.c
-> >>>@@ -1920,6 +1920,11 @@ static void
-> >>>ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
-> >>>
-> >>>      ocfs2_disable_quotas(osb);
-> >>>
-> >>>+    /* All dquots should be freed by now */
-> >>>+    WARN_ON(!llist_empty(&osb->dquot_drop_list));
-> >>>+    /* Wait for worker to be done with the work structure in osb */
-> >>>+    cancel_work_sync(&osb->dquot_drop_work);
-> >>>+
-> >>>      ocfs2_shutdown_local_alloc(osb);
-> >>>
-> >>>      ocfs2_truncate_log_shutdown(osb);
-> >>>@@ -2247,6 +2252,9 @@ static int ocfs2_initialize_super(struct
-> >>>super_block *sb,
-> >>>      INIT_WORK(&journal->j_recovery_work, ocfs2_complete_recovery);
-> >>>      journal->j_state = OCFS2_JOURNAL_FREE;
-> >>>
-> >>>+    INIT_WORK(&osb->dquot_drop_work, ocfs2_drop_dquot_refs);
-> >>>+    init_llist_head(&osb->dquot_drop_list);
-> >>>+
-> >>>      /* get some pseudo constants for clustersize bits */
-> >>>      osb->s_clustersize_bits =
-> >>>          le32_to_cpu(di->id2.i_super.s_clustersize_bits);
-> >>>-- 
-> >>>1.8.1.4
-> >>>
-> >
-> >
-> 
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+On 01/20/2014 05:47 AM, Goldwyn Rodrigues wrote:
+> These functions are either coded in individual files as static or
+> not used at all. Remove them.
+>
+> Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
+> ---
+>   fs/ocfs2/ocfs2_fs.h | 40 ----------------------------------------
+>   1 file changed, 40 deletions(-)
+>
+> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+> index 938387a..3ba3851 100644
+> --- a/fs/ocfs2/ocfs2_fs.h
+> +++ b/fs/ocfs2/ocfs2_fs.h
+> @@ -1325,16 +1325,6 @@ static inline int ocfs2_extent_recs_per_dx_root(struct super_block *sb)
+>   	return size / sizeof(struct ocfs2_extent_rec);
+>   }
+>   
+> -static inline int ocfs2_chain_recs_per_inode(struct super_block *sb)
+> -{
+> -	int size;
+> -
+> -	size = sb->s_blocksize -
+> -		offsetof(struct ocfs2_dinode, id2.i_chain.cl_recs);
+> -
+> -	return size / sizeof(struct ocfs2_chain_rec);
+> -}
+> -
+>   static inline u16 ocfs2_extent_recs_per_eb(struct super_block *sb)
+>   {
+>   	int size;
+> @@ -1493,16 +1483,6 @@ static inline int ocfs2_extent_recs_per_inode(int blocksize)
+>   	return size / sizeof(struct ocfs2_extent_rec);
+>   }
+>   
+> -static inline int ocfs2_chain_recs_per_inode(int blocksize)
+> -{
+> -	int size;
+> -
+> -	size = blocksize -
+> -		offsetof(struct ocfs2_dinode, id2.i_chain.cl_recs);
+> -
+> -	return size / sizeof(struct ocfs2_chain_rec);
+> -}
+> -
+>   static inline int ocfs2_extent_recs_per_eb(int blocksize)
+>   {
+>   	int size;
+> @@ -1589,12 +1569,6 @@ static inline int ocfs2_xattr_recs_per_xb(int blocksize)
+>   #endif  /* __KERNEL__ */
+>   
+>   
+> -static inline int ocfs2_system_inode_is_global(int type)
+> -{
+> -	return ((type >= 0) &&
+> -		(type <= OCFS2_LAST_GLOBAL_SYSTEM_INODE));
+> -}
+> -
+>   static inline int ocfs2_sprintf_system_inode_name(char *buf, int len,
+>   						  int type, int slot)
+>   {
+> @@ -1622,19 +1596,5 @@ static inline void ocfs2_set_de_type(struct ocfs2_dir_entry *de,
+>   	de->file_type = ocfs2_type_by_mode[(mode & S_IFMT)>>S_SHIFT];
+>   }
+>   
+> -static inline int ocfs2_gd_is_discontig(struct ocfs2_group_desc *gd)
+> -{
+> -	if ((offsetof(struct ocfs2_group_desc, bg_bitmap) +
+> -	     le16_to_cpu(gd->bg_size)) !=
+> -	    offsetof(struct ocfs2_group_desc, bg_list))
+> -		return 0;
+> -	/*
+> -	 * Only valid to check l_next_free_rec if
+> -	 * bg_bitmap + bg_size == bg_list.
+> -	 */
+> -	if (!gd->bg_list.l_next_free_rec)
+> -		return 0;
+> -	return 1;
+> -}
+>   #endif  /* _OCFS2_FS_H */
+>   
