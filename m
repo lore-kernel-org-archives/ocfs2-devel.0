@@ -1,97 +1,65 @@
-From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Fri, 24 Jan 2014 12:47:04 -0800
-Subject: [Ocfs2-devel] [patch 05/11] ocfs2: code cleanup: remove unused
-	functions
-Message-ID: <20140124204704.C07CA5A4203@corp2gmr1-2.hot.corp.google.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 24 Jan 2014 12:46:51 -0800
+Subject: [Ocfs2-devel] stalled ocfs2 patches
+Message-ID: <20140124124651.e805a6c3435fdc6f92973c6c@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Subject: ocfs2: code cleanup: remove unused functions
 
-These functions are either coded in individual files as static or not used
-at all.  Remove them.
+Guys, I'm developing an increasingly large backlog of ocfs2 patches
+which I am unprepared to send upstream.  Some I feel need review which
+is beyond my understanding and some were reviewed, with an unclear
+outcome.
 
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+Can we please take another look at all of these and try to get this all
+cleared away?
 
- fs/ocfs2/ocfs2_fs.h |   40 ----------------------------------------
- 1 file changed, 40 deletions(-)
+I'll send all the patches now.  My notes are as follows:
 
-diff -puN fs/ocfs2/ocfs2_fs.h~ocfs2-code-cleanup-remove-unused-functions fs/ocfs2/ocfs2_fs.h
---- a/fs/ocfs2/ocfs2_fs.h~ocfs2-code-cleanup-remove-unused-functions
-+++ a/fs/ocfs2/ocfs2_fs.h
-@@ -1325,16 +1325,6 @@ static inline int ocfs2_extent_recs_per_
- 	return size / sizeof(struct ocfs2_extent_rec);
- }
- 
--static inline int ocfs2_chain_recs_per_inode(struct super_block *sb)
--{
--	int size;
--
--	size = sb->s_blocksize -
--		offsetof(struct ocfs2_dinode, id2.i_chain.cl_recs);
--
--	return size / sizeof(struct ocfs2_chain_rec);
--}
--
- static inline u16 ocfs2_extent_recs_per_eb(struct super_block *sb)
- {
- 	int size;
-@@ -1493,16 +1483,6 @@ static inline int ocfs2_extent_recs_per_
- 	return size / sizeof(struct ocfs2_extent_rec);
- }
- 
--static inline int ocfs2_chain_recs_per_inode(int blocksize)
--{
--	int size;
--
--	size = blocksize -
--		offsetof(struct ocfs2_dinode, id2.i_chain.cl_recs);
--
--	return size / sizeof(struct ocfs2_chain_rec);
--}
--
- static inline int ocfs2_extent_recs_per_eb(int blocksize)
- {
- 	int size;
-@@ -1589,12 +1569,6 @@ static inline int ocfs2_xattr_recs_per_x
- #endif  /* __KERNEL__ */
- 
- 
--static inline int ocfs2_system_inode_is_global(int type)
--{
--	return ((type >= 0) &&
--		(type <= OCFS2_LAST_GLOBAL_SYSTEM_INODE));
--}
--
- static inline int ocfs2_sprintf_system_inode_name(char *buf, int len,
- 						  int type, int slot)
- {
-@@ -1622,19 +1596,5 @@ static inline void ocfs2_set_de_type(str
- 	de->file_type = ocfs2_type_by_mode[(mode & S_IFMT)>>S_SHIFT];
- }
- 
--static inline int ocfs2_gd_is_discontig(struct ocfs2_group_desc *gd)
--{
--	if ((offsetof(struct ocfs2_group_desc, bg_bitmap) +
--	     le16_to_cpu(gd->bg_size)) !=
--	    offsetof(struct ocfs2_group_desc, bg_list))
--		return 0;
--	/*
--	 * Only valid to check l_next_free_rec if
--	 * bg_bitmap + bg_size == bg_list.
--	 */
--	if (!gd->bg_list.l_next_free_rec)
--		return 0;
--	return 1;
--}
- #endif  /* _OCFS2_FS_H */
- 
-_
+ocfs2-fix-ocfs2_sync_file-if-filesystem-is-readonly.patch
+
+  Needs acks
+
+ocfs2-free-allocated-clusters-if-error-occurs-after-ocfs2_claim_clusters.patch
+
+  Needs acks
+
+ocfs2-o2net-incorrect-to-terminate-accepting-connections-loop-upon-rejecting-an-invalid-one.patch
+
+  Needs acks
+
+ocfs2-fix-a-tiny-race-when-running-dirop_fileop_racer.patch
+
+  Needs acks
+
+ocfs2-code-cleanup-remove-unused-functions.patch
+
+  Might have been nacked?
+
+ocfs2-o2net-o2net_listen_data_ready-should-do-nothing-if-socket-state-is-not-tcp_listen.patch
+
+  Needs acks
+
+ocfs2-check-existence-of-old-dentry-in-ocfs2_link.patch
+
+  Needs acks
+
+ocfs2-should-call-ocfs2_journal_access_di-before-ocfs2_delete_entry-in-ocfs2_orphan_del.patch
+
+  Needs more review.  Sunil might have nacked this, but it was foggy.
+
+ocfs2-llseek-requires-ocfs2-inode-lock-for-the-file-in-seek_end.patch
+
+  Sunil was worried about performance, Joel had a question, Mark
+  wanted an update, Joel acked it.
+
+ocfs2-fix-issue-that-ocfs2_setattr-does-not-deal-with-new_i_size==i_size.patch
+
+  To be updated in response to comment from Jeff Liu
+
+ocfs2-update-inode-size-after-zeronig-the-hole.patch
+
+  Needs acks
