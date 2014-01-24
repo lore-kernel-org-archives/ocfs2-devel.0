@@ -1,144 +1,82 @@
-From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Fri, 24 Jan 2014 12:47:11 -0800
-Subject: [Ocfs2-devel] [patch 11/11] ocfs2: update inode size after zeroing
-	the hole
-Message-ID: <20140124204712.15E4031C2C7@corp2gmr1-1.hot.corp.google.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Fri, 24 Jan 2014 13:55:54 -0800
+Subject: [Ocfs2-devel] [patch 03/11] ocfs2/o2net: incorrect to terminate
+	accepting	connections loop upon rejecting an invalid one
+In-Reply-To: <20140124204702.9871031C2C7@corp2gmr1-1.hot.corp.google.com>
+References: <20140124204702.9871031C2C7@corp2gmr1-1.hot.corp.google.com>
+Message-ID: <20140124215554.GC24361@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Subject: ocfs2: update inode size after zeroing the hole
+On Fri, Jan 24, 2014 at 12:47:02PM -0800, akpm at linux-foundation.org wrote:
+> From: Tariq Saeed <tariq.x.saeed@oracle.com>
+> Subject: ocfs2/o2net: incorrect to terminate accepting connections loop upon rejecting an invalid one
+> 
+> When o2net-accept-one() rejects an illegal connection, it terminates the
+> loop picking up the remaining queued connections.  This fix will continue
+> accepting connections till the queue is emtpy.
+> 
+> Addresses Orabug 17489469.
 
-fs-writeback will release the dirty pages without page lock whose offset
-are over inode size, the release happens at block_write_full_page_endio().
- If not update, dirty pages in file holes may be released before flushed
-to the disk, then file holes will contain some non-zero data, this will
-cause sparse file md5sum error.
+Thanks for sending this, review comments below.
 
-To reproduce the bug, find a big sparse file with many holes, like vm
-image file, its actual size should be bigger than available mem size to
-make writeback work more frequently, tar it with -S option, then keep
-untar it and check its md5sum again and again until you get a wrong
-md5sum.
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Younger Liu <younger.liu@huawei.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+> diff -puN fs/ocfs2/cluster/tcp.c~ocfs2-o2net-incorrect-to-terminate-accepting-connections-loop-upon-rejecting-an-invalid-one fs/ocfs2/cluster/tcp.c
+> --- a/fs/ocfs2/cluster/tcp.c~ocfs2-o2net-incorrect-to-terminate-accepting-connections-loop-upon-rejecting-an-invalid-one
+> +++ a/fs/ocfs2/cluster/tcp.c
+> @@ -1826,7 +1826,7 @@ int o2net_register_hb_callbacks(void)
+>  
+>  /* ------------------------------------------------------------ */
+>  
+> -static int o2net_accept_one(struct socket *sock)
+> +static int o2net_accept_one(struct socket *sock, int *more)
+>  {
+>  	int ret, slen;
+>  	struct sockaddr_in sin;
+> @@ -1837,6 +1837,7 @@ static int o2net_accept_one(struct socke
+>  	struct o2net_node *nn;
+>  
+>  	BUG_ON(sock == NULL);
+> +	*more = 0;
+>  	ret = sock_create_lite(sock->sk->sk_family, sock->sk->sk_type,
+>  			       sock->sk->sk_protocol, &new_sock);
+>  	if (ret)
+> @@ -1848,6 +1849,7 @@ static int o2net_accept_one(struct socke
+>  	if (ret < 0)
+>  		goto out;
+>  
+> +	*more = 1;
+>  	new_sock->sk->sk_allocation = GFP_ATOMIC;
+>  
+>  	ret = o2net_set_nodelay(new_sock);
+> @@ -1949,8 +1951,15 @@ out:
+>  static void o2net_accept_many(struct work_struct *work)
+>  {
+>  	struct socket *sock = o2net_listen_sock;
+> -	while (o2net_accept_one(sock) == 0)
+> +	int	more;
+> +	int	err;
+> +
+> +	for (;;) {
+> +		err = o2net_accept_one(sock, &more);
+> +		if (!more)
+> +			break;
 
- fs/ocfs2/file.c |   40 ++++++++++++++++++++++++++++++++--------
- 1 file changed, 32 insertions(+), 8 deletions(-)
+We're throwing out 'err' here and trusting the variable 'more'. However, err
+could be set and more would be 0 regardless of whether there actually are
+more connections to be had. This makes more sense given when 'more' is set:
 
-diff -puN fs/ocfs2/file.c~ocfs2-update-inode-size-after-zeronig-the-hole fs/ocfs2/file.c
---- a/fs/ocfs2/file.c~ocfs2-update-inode-size-after-zeronig-the-hole
-+++ a/fs/ocfs2/file.c
-@@ -716,7 +716,8 @@ leave:
-  * While a write will already be ordering the data, a truncate will not.
-  * Thus, we need to explicitly order the zeroed pages.
-  */
--static handle_t *ocfs2_zero_start_ordered_transaction(struct inode *inode)
-+static handle_t *ocfs2_zero_start_ordered_transaction(struct inode *inode,
-+						struct buffer_head *di_bh)
- {
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	handle_t *handle = NULL;
-@@ -733,7 +734,14 @@ static handle_t *ocfs2_zero_start_ordere
- 	}
- 
- 	ret = ocfs2_jbd2_file_inode(handle, inode);
--	if (ret < 0)
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret)
- 		mlog_errno(ret);
- 
- out:
-@@ -749,7 +757,7 @@ out:
-  * to be too fragile to do exactly what we need without us having to
-  * worry about recursive locking in ->write_begin() and ->write_end(). */
- static int ocfs2_write_zero_page(struct inode *inode, u64 abs_from,
--				 u64 abs_to)
-+				 u64 abs_to, struct buffer_head *di_bh)
- {
- 	struct address_space *mapping = inode->i_mapping;
- 	struct page *page;
-@@ -757,6 +765,7 @@ static int ocfs2_write_zero_page(struct
- 	handle_t *handle = NULL;
- 	int ret = 0;
- 	unsigned zero_from, zero_to, block_start, block_end;
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
- 
- 	BUG_ON(abs_from >= abs_to);
- 	BUG_ON(abs_to > (((u64)index + 1) << PAGE_CACHE_SHIFT));
-@@ -799,7 +808,8 @@ static int ocfs2_write_zero_page(struct
- 		}
- 
- 		if (!handle) {
--			handle = ocfs2_zero_start_ordered_transaction(inode);
-+			handle = ocfs2_zero_start_ordered_transaction(inode,
-+								      di_bh);
- 			if (IS_ERR(handle)) {
- 				ret = PTR_ERR(handle);
- 				handle = NULL;
-@@ -816,8 +826,22 @@ static int ocfs2_write_zero_page(struct
- 			ret = 0;
- 	}
- 
--	if (handle)
-+	if (handle) {
-+		/*
-+		 * fs-writeback will release the dirty pages without page lock
-+		 * whose offset are over inode size, the release happens at
-+		 * block_write_full_page_endio().
-+		 */
-+		i_size_write(inode, abs_to);
-+		inode->i_blocks = ocfs2_inode_sector_count(inode);
-+		di->i_size = cpu_to_le64((u64)i_size_read(inode));
-+		inode->i_mtime = inode->i_ctime = CURRENT_TIME;
-+		di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
-+		di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
-+		di->i_mtime_nsec = di->i_ctime_nsec;
-+		ocfs2_journal_dirty(handle, di_bh);
- 		ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
-+	}
- 
- out_unlock:
- 	unlock_page(page);
-@@ -913,7 +937,7 @@ out:
-  * has made sure that the entire range needs zeroing.
-  */
- static int ocfs2_zero_extend_range(struct inode *inode, u64 range_start,
--				   u64 range_end)
-+				   u64 range_end, struct buffer_head *di_bh)
- {
- 	int rc = 0;
- 	u64 next_pos;
-@@ -929,7 +953,7 @@ static int ocfs2_zero_extend_range(struc
- 		next_pos = (zero_pos & PAGE_CACHE_MASK) + PAGE_CACHE_SIZE;
- 		if (next_pos > range_end)
- 			next_pos = range_end;
--		rc = ocfs2_write_zero_page(inode, zero_pos, next_pos);
-+		rc = ocfs2_write_zero_page(inode, zero_pos, next_pos, di_bh);
- 		if (rc < 0) {
- 			mlog_errno(rc);
- 			break;
-@@ -975,7 +999,7 @@ int ocfs2_zero_extend(struct inode *inod
- 			range_end = zero_to_size;
- 
- 		ret = ocfs2_zero_extend_range(inode, range_start,
--					      range_end);
-+					      range_end, di_bh);
- 		if (ret) {
- 			mlog_errno(ret);
- 			break;
-_
+	if (err)
+		break;
+	/* only trust the value of 'more' when err == 0 */
+	if (more)
+		break;
+
+Thanks,
+	--Mark
+
+--
+Mark Fasheh
