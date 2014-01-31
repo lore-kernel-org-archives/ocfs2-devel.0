@@ -1,20 +1,69 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Tue, 28 Jan 2014 17:53:05 +0800
-Subject: [Ocfs2-devel] [RFD] ocfs2: poor performance on append write/punch
-	hole
-Message-ID: <52E77E01.9010902@huawei.com>
+From: Joel Becker <jlbec@evilplan.org>
+Date: Thu, 30 Jan 2014 16:06:23 -0800
+Subject: [Ocfs2-devel] [patch 02/11] ocfs2: free allocated clusters if
+ error occurs after ocfs2_claim_clusters
+In-Reply-To: <52E7018D.2080009@huawei.com>
+References: <20140124204701.6AC005A4203@corp2gmr1-2.hot.corp.google.com>
+	<52E478A4.2030109@huawei.com>
+	<20140127150722.ec1bb078cd4ae18f44ece9ae@linux-foundation.org>
+	<52E7018D.2080009@huawei.com>
+Message-ID: <20140131000622.GE31873@localhost>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_file_aio_write, it will fall back to buffered IO when cannot
-complete direct IO request, e.g. append write and punch hole. And mostly
-it should firstly do space allocation and this will make much more
-journal to flush.
-From test, we found the above two cases performs almost 70% lower than
-normal case(allocate space first and overwrite). Furthermore, it spends
-more than 90% time on jbd2_journal_force_commit during aio write.
+On Tue, Jan 28, 2014 at 09:02:05AM +0800, Joseph Qi wrote:
+> On 2014/1/28 7:07, Andrew Morton wrote:
+> > On Sun, 26 Jan 2014 10:53:24 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
+> > 
+> >> Hi
+> >>
+> >> On 2014/1/25 4:47, akpm at linux-foundation.org wrote:
+> >>> From: Zongxun Wang <wangzongxun@huawei.com>
+> >>> Subject: ocfs2: free allocated clusters if error occurs after ocfs2_claim_clusters
+> >>>
+> >>> Even if using the same jbd2 handle, we cannot rollback a transaction.  So
+> >>> once some error occurs after successfully allocating clusters, the
+> >>> allocated clusters will never be used and it means they are lost.  For
+> >>> example, call ocfs2_claim_clusters successfully when expanding a file, but
+> >>> failed in ocfs2_insert_extent.  So we need free the allocated clusters if
+> >>> they are not used indeed.
+> >>>
+> >>
+> >> We should note down num of bits to be freed, so as to update i_used
+> >> correspondingly after clearing those bits in bitmap.
+> >> I sent a patch based on this:
+> >> [PATCH] ocfs2: correctly update i_used in	ocfs2_free_local_alloc_bits
+> >> https://oss.oracle.com/pipermail/ocfs2-devel/2013-November/009462.html
+> > 
+> > OK thanks, I now have that, as
+> > ocfs2-free-allocated-clusters-if-error-occurs-after-ocfs2_claim_clusters-fix.patch
+> > 
+> > Do we think that
+> > ocfs2-free-allocated-clusters-if-error-occurs-after-ocfs2_claim_clusters.patch
+> > and
+> > ocfs2-free-allocated-clusters-if-error-occurs-after-ocfs2_claim_clusters-fix.patch
+> > should now be merged upstream?
 
-So if anyone have an idea on how to tune the performance on these two cases?
+These patches combined look sane.  I'm curious what failed to cause this
+to be noticed, but still:
+
+Acked-by: Joel Becker <jlbec@evilplan.org>
+
+> > 
+> > 
+> > .
+> > 
+> Could Mark & Joel review the two patches? Thanks.
+> 
+
+-- 
+
+Life's Little Instruction Book #139
+
+	"Never deprive someone of hope; it might be all they have."
+
+			http://www.jlbec.org/
+			jlbec at evilplan.org
