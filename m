@@ -1,45 +1,55 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Thu, 6 Feb 2014 15:28:39 -0800
-Subject: [Ocfs2-devel] [patch 08/11] ocfs2: should call
-	ocfs2_journal_access_di()	before ocfs2_delete_entry() in
-	ocfs2_orphan_del()
-In-Reply-To: <20140124204708.4CAEB5A4203@corp2gmr1-2.hot.corp.google.com>
-References: <20140124204708.4CAEB5A4203@corp2gmr1-2.hot.corp.google.com>
-Message-ID: <20140206232839.GP24361@wotan.suse.de>
+Date: Thu, 6 Feb 2014 15:36:32 -0800
+Subject: [Ocfs2-devel] [patch 06/11]
+	ocfs2/o2net:	o2net_listen_data_ready should do nothing if
+	socket state is not	TCP_LISTEN
+In-Reply-To: <20140205155104.474e603d7dd50b3afc156aa1@linux-foundation.org>
+References: <20140124204705.E43E65A4203@corp2gmr1-2.hot.corp.google.com>
+	<20140205234055.GN24361@wotan.suse.de>
+	<20140205155104.474e603d7dd50b3afc156aa1@linux-foundation.org>
+Message-ID: <20140206233632.GQ24361@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Jan 24, 2014 at 12:47:07PM -0800, akpm at linux-foundation.org wrote:
-> From: Younger Liu <younger.liu@huawei.com>
-> Subject: ocfs2: should call ocfs2_journal_access_di() before ocfs2_delete_entry() in ocfs2_orphan_del()
+On Wed, Feb 05, 2014 at 03:51:04PM -0800, Andrew Morton wrote:
+> On Wed, 5 Feb 2014 15:40:55 -0800 Mark Fasheh <mfasheh@suse.de> wrote:
 > 
-> While deleting a file into orphan dir in ocfs2_orphan_del(), it calls
-> ocfs2_delete_entry() before ocfs2_journal_access_di().  If
-> ocfs2_delete_entry() succeeded and ocfs2_journal_access_di() failed, there
-> would be a inconsistency: the file is deleted from orphan dir, but orphan
-> dir dinode is not updated.
+> > On Fri, Jan 24, 2014 at 12:47:05PM -0800, akpm at linux-foundation.org wrote:
+> > > From: Tariq Saeed <tariq.x.saeed@oracle.com>
+> > > Subject: ocfs2/o2net: o2net_listen_data_ready should do nothing if socket state is not TCP_LISTEN
+> > > 
+> > > Orabug: 17330860
+> > > 
+> > > When accepting an incomming connection o2net_accept_one clones a child
+> > > data socket from the parent listening socket.  It then proceeds to setup
+> > > the child with callback o2net_data_ready() and sk_user_data to NULL.  If
+> > > data arrives in this window, o2net_listen_data_ready will be called with
+> > > some non-deterministic value in sk_user_data (not inherited).  We panic
+> > > when we page fault on sk_user_data -- in parent it is sock_def_readable().
+> > >  The fix is to recognize that this is a data socket being set up by
+> > > looking at the socket state and do nothing.
+> > > 
+> > > Signed-off-by: Tariq Saseed <tariq.x.saeed@oracle.com>
+> > > Signed-off-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+> > > Cc: Joel Becker <jlbec@evilplan.org>
+> > > Cc: Mark Fasheh <mfasheh@suse.com>
+> > > Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+> > 
+> > Signed-off-by: Mark Fasheh <mfasheh@suse.de>
+> > 
 > 
-> So we need to call ocfs2_journal_access_di() before ocfs2_orphan_del().
+> Signed-off-by is unexpected.  It means that your either contributed to
+> this patch or transmitted it to someone else.  I suspect that
+> Reviewed-by: is the appropriate tag in this case?
 
-I am confused by this. Re-reading the code in fs/ocfs2/dir.c,
-__ocfs2_delete_entry() takes great pains to mark the buffer head as part of
-the journal:
+Yes, sorry bad habit I need to fix.
 
-	ocfs2_journal_access_func access = ocfs2_journal_access_db;
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 
-	if (OCFS2_I(dir)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
-		access = ocfs2_journal_access_di;
-
-<snip>
-
-			status = access(handle, INODE_CACHE(dir), bh,
-					OCFS2_JOURNAL_ACCESS_WRITE);
-
-
-Am I missing something here?
+would be fine. I'll use Reviewed-by: for when I review a patch from now on.
 	--Mark
 
 --
