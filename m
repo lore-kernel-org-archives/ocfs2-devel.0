@@ -1,63 +1,82 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Fri, 7 Feb 2014 18:07:03 -0800
-Subject: [Ocfs2-devel] [patch 09/11] ocfs2: llseek requires ocfs2
-	inode	lock for the file in SEEK_END
-In-Reply-To: <52F587AB.3010604@huawei.com>
-References: <20140124204709.85C895A4203@corp2gmr1-2.hot.corp.google.com>
-	<20140206234253.GR24361@wotan.suse.de>
-	<20140206155029.b7275670913c34ef6bc9a530@linux-foundation.org>
-	<20140207224409.GS24361@wotan.suse.de>
-	<52F587AB.3010604@huawei.com>
-Message-ID: <20140208020703.GT24361@wotan.suse.de>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Sat, 8 Feb 2014 10:16:28 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: Check existence of old dentry in
+	ocfs2_link()
+Message-ID: <52F5937C.5050507@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sat, Feb 08, 2014 at 09:26:03AM +0800, Jensen wrote:
-> On 2014/2/8 6:44, Mark Fasheh wrote:
-> > On Thu, Feb 06, 2014 at 03:50:29PM -0800, Andrew Morton wrote:
-> >> On Thu, 6 Feb 2014 15:42:53 -0800 Mark Fasheh <mfasheh@suse.de> wrote:
-> >>
-> >>> On Fri, Jan 24, 2014 at 12:47:09PM -0800, akpm at linux-foundation.org wrote:
-> >>>> From: Jensen <shencanquan@huawei.com>
-> >>>> Subject: ocfs2: llseek requires ocfs2 inode lock for the file in SEEK_END
-> >>>>
-> >>>> llseek requires ocfs2 inode lock for updating the file size in SEEK_END. 
-> >>>> because the file size maybe update on another node.
-> >>>>
-> >>>> This bug can be reproduce the following scenario: at first, we dd a test
-> >>>> fileA, the file size is 10k.
-> >>> Basically, you want to amke SEEK_END cluster-aware. This patch would be the
-> >>> right way to do it.
-> >> Sunil was worried about the performance impact.  Correctness beats
-> >> performance, but some quantitative testing would be useful?
-> > Performance is my primary concern as well. I thought of writing it up but
-> > realized I don't really have any evidence off the top of my head one way or
-> > the other that this might slow us down.
-> >
-> > That said, I kind of question the usefulness of this patch - we got
-> > along pretty well so far without locking in lseek and some random dd(1) test
-> > doesn't really provide a great end-user reason for why we should do this.
-> >
-> > I will note that gfs2 locks for SEEK_END.
-> >
-> >
-> > Testing would help to answer this, yes. Jensen is this something you can do?
-> > I'm not sure exactly what we would run yet though, I have to think about
-> > that (or maybe someone can suggest something).
-> >
-> > Thanks,
-> > 	--Mark
-> >
->    ocfs2 is a cluster file system.  as like read/write/open/rmdir/unlink interface which think of cluster-aware. I think the seek interface need
->    cluster-aware. May be it has the performance impact. but it's correctness is more important than performance.
+  System call linkat first calls user_path_at(), check the existence
+of old dentry, and then calls vfs_link()->ocfs2_link() to do the actual
+work. There may exist a race when Node A create a hard link for file
+while node B rm it.
 
-That doesn't mean we can't or shouldn't quantify the performance impact of your patch.
+         Node A                          Node B
+user_path_at()
+  ->ocfs2_lookup(),
+find old dentry exist
+                                rm file, add inode say inodeA
+                                to orphan_dir
 
-Please help us measure what the end-user impact of this change will be.
-	--Mark
+call ocfs2_link(),create a
+hard link for inodeA.
 
---
-Mark Fasheh
+                                rm the link, add inodeA to orphan_dir
+                                again
+
+When orphan_scan work start, it calls ocfs2_queue_orphans() to do
+the main work. It first tranverses entrys in orphan_dir, linking
+all inodes in this orphan_dir to a list look like this:
+inodeA->inodeB->...->inodeA
+When tranvering this list, it will fall into loop, calling iput() again and again.
+And finally trigger BUG_ON(inode->i_state & I_CLEAR).
+
+Signed-off-by: joyce <xuejiufei@huawei.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+---
+ fs/ocfs2/namei.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index f4d609b..3683643 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -664,6 +664,7 @@ static int ocfs2_link(struct dentry *old_dentry,
+ 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+ 	struct ocfs2_dir_lookup_result lookup = { NULL, };
+ 	sigset_t oldset;
++	u64 old_de_ino;
+ 
+ 	trace_ocfs2_link((unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 			 old_dentry->d_name.len, old_dentry->d_name.name,
+@@ -686,6 +687,22 @@ static int ocfs2_link(struct dentry *old_dentry,
+ 		goto out;
+ 	}
+ 
++	err = ocfs2_lookup_ino_from_name(dir, old_dentry->d_name.name,
++			old_dentry->d_name.len, &old_de_ino);
++	if (err) {
++		err = -ENOENT;
++		goto out;
++	}
++
++	/*
++	 * Check whether another node removed the source inode while we
++	 * were in the vfs.
++	 */
++	if (old_de_ino != OCFS2_I(inode)->ip_blkno) {
++		err = -ENOENT;
++		goto out;
++	}
++
+ 	err = ocfs2_check_dir_for_entry(dir, dentry->d_name.name,
+ 					dentry->d_name.len);
+ 	if (err)
+-- 
+1.8.4.3
