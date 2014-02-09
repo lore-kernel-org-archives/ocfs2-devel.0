@@ -1,43 +1,41 @@
 From: Rashika Kheria <rashika.kheria@gmail.com>
-Date: Sun, 09 Feb 2014 13:16:24 -0000
-Subject: [Ocfs2-devel] [PATCH 15/21] fs: Mark function as static in
-	ocfs2/xattr.c
+Date: Sun, 09 Feb 2014 13:17:38 -0000
+Subject: [Ocfs2-devel] [PATCH 16/21] fs: Mark function as static in
+ ocfs2/cluster/heartbeat.c
 In-Reply-To: <b572932c3e016c55e596686283036316a1aacd2f.1391949868.git.rashika.kheria@gmail.com>
 References: <b572932c3e016c55e596686283036316a1aacd2f.1391949868.git.rashika.kheria@gmail.com>
-Message-ID: <4c4a91b6cb44627906572e2beae874160a470362.1391949868.git.rashika.kheria@gmail.com>
+Message-ID: <105d09df399b657f59ede72e355e04a0080b6126.1391949868.git.rashika.kheria@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, josh@joshtriplett.org
+Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, Joyce <xuejiufei@huawei.com>, Jie Liu <jeff.liu@oracle.com>, Sunil Mushran <sunil.mushran@gmail.com>, Akinobu Mita <akinobu.mita@gmail.com>, Kent Overstreet <kmo@daterainc.com>, Tim Gardner <tim.gardner@canonical.com>, Dong Fang <yp.fangdong@gmail.com>, ocfs2-devel@oss.oracle.com, josh@joshtriplett.org
 
-Mark functions as static in ocfs2/xattr.c because it is not used outside
-this file.
+Mark function as static in ocfs2/cluster/heartbeat.c because it is
+not used outside this file.
 
-This eliminates the following warning in ocfs2/xattr.c:
-fs/ocfs2/xattr.c:7256:5: warning: no previous prototype for ?ocfs2_initxattrs? [-Wmissing-prototypes]
+This eliminates the following warning in ocfs2/cluster/heartbeat.c:
+fs/ocfs2/cluster/heartbeat.c:2470:6: warning: no previous prototype for ?o2hb_region_dec_user? [-Wmissing-prototypes]
 
 Signed-off-by: Rashika Kheria <rashika.kheria@gmail.com>
 Reviewed-by: Josh Triplett <josh@joshtriplett.org>
 ---
- fs/ocfs2/xattr.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 185fa3b7..7041df5 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -7256,8 +7256,8 @@ static int ocfs2_xattr_security_set(struct dentry *dentry, const char *name,
- 			       name, value, size, flags);
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index bf482df..ca10dec 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -2467,7 +2467,7 @@ unlock:
+ 	return ret;
  }
  
--int ocfs2_initxattrs(struct inode *inode, const struct xattr *xattr_array,
--		     void *fs_info)
-+static int ocfs2_initxattrs(struct inode *inode, const struct xattr *xattr_array,
-+			    void *fs_info)
+-void o2hb_region_dec_user(const char *region_uuid)
++static void o2hb_region_dec_user(const char *region_uuid)
  {
- 	const struct xattr *xattr;
- 	int err = 0;
+ 	spin_lock(&o2hb_live_lock);
+ 
 -- 
 1.7.9.5
