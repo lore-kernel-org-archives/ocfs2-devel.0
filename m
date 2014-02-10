@@ -1,85 +1,46 @@
-From: Jensen <shencanquan@huawei.com>
-Date: Mon, 10 Feb 2014 16:51:32 +0800
-Subject: [Ocfs2-devel] [patch 09/11] ocfs2: llseek requires ocfs2 inode
- lock for the file in SEEK_END
-In-Reply-To: <20140208020703.GT24361@wotan.suse.de>
-References: <20140124204709.85C895A4203@corp2gmr1-2.hot.corp.google.com>
-	<20140206234253.GR24361@wotan.suse.de>
-	<20140206155029.b7275670913c34ef6bc9a530@linux-foundation.org>
-	<20140207224409.GS24361@wotan.suse.de>
-	<52F587AB.3010604@huawei.com>
-	<20140208020703.GT24361@wotan.suse.de>
-Message-ID: <52F89314.6060103@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Mon, 10 Feb 2014 13:14:14 -0800
+Subject: [Ocfs2-devel] [patch 10/11] ocfs2: fix issue
+	that	ocfs2_setattr() does not deal with new_i_size==i_size
+In-Reply-To: <20140124204710.C713531C1B6@corp2gmr1-1.hot.corp.google.com>
+References: <20140124204710.C713531C1B6@corp2gmr1-1.hot.corp.google.com>
+Message-ID: <20140210211414.GU24361@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2014/2/8 10:07, Mark Fasheh wrote:
-> On Sat, Feb 08, 2014 at 09:26:03AM +0800, Jensen wrote:
->> On 2014/2/8 6:44, Mark Fasheh wrote:
->>> On Thu, Feb 06, 2014 at 03:50:29PM -0800, Andrew Morton wrote:
->>>> On Thu, 6 Feb 2014 15:42:53 -0800 Mark Fasheh <mfasheh@suse.de> wrote:
->>>>
->>>>> On Fri, Jan 24, 2014 at 12:47:09PM -0800, akpm at linux-foundation.org wrote:
->>>>>> From: Jensen <shencanquan@huawei.com>
->>>>>> Subject: ocfs2: llseek requires ocfs2 inode lock for the file in SEEK_END
->>>>>>
->>>>>> llseek requires ocfs2 inode lock for updating the file size in SEEK_END. 
->>>>>> because the file size maybe update on another node.
->>>>>>
->>>>>> This bug can be reproduce the following scenario: at first, we dd a test
->>>>>> fileA, the file size is 10k.
->>>>> Basically, you want to amke SEEK_END cluster-aware. This patch would be the
->>>>> right way to do it.
->>>> Sunil was worried about the performance impact.  Correctness beats
->>>> performance, but some quantitative testing would be useful?
->>> Performance is my primary concern as well. I thought of writing it up but
->>> realized I don't really have any evidence off the top of my head one way or
->>> the other that this might slow us down.
->>>
->>> That said, I kind of question the usefulness of this patch - we got
->>> along pretty well so far without locking in lseek and some random dd(1) test
->>> doesn't really provide a great end-user reason for why we should do this.
->>>
->>> I will note that gfs2 locks for SEEK_END.
->>>
->>>
->>> Testing would help to answer this, yes. Jensen is this something you can do?
->>> I'm not sure exactly what we would run yet though, I have to think about
->>> that (or maybe someone can suggest something).
->>>
->>> Thanks,
->>> 	--Mark
->>>
->>    ocfs2 is a cluster file system.  as like read/write/open/rmdir/unlink interface which think of cluster-aware. I think the seek interface need
->>    cluster-aware. May be it has the performance impact. but it's correctness is more important than performance.
-> That doesn't mean we can't or shouldn't quantify the performance impact of your patch.
->
-> Please help us measure what the end-user impact of this change will be.
-> 	--Mark
-  test result: 1000000 times lseek call;
-  index        lseek with inode lock (unit:us)                lseek without inode lock (unit:us)
-    1                   1168162                                    555383
-    2                   1168011                                    549504
-    3                   1170538                                    549396
-    4                   1170375                                    551685
-    5                   1170444                                    556719
-    6                   1174364                                    555307
-    7                   1163294                                    551552
-    8                   1170080                                    549350
-    9                   1162464                                    553700
-  10                   1165441                                    552594
+On Fri, Jan 24, 2014 at 12:47:10PM -0800, akpm at linux-foundation.org wrote:
+> From: Younger Liu <younger.liu@huawei.com>
+> Subject: ocfs2: fix issue that ocfs2_setattr() does not deal with new_i_size==i_size
+> 
+> The issue scenario is as following:
+> 
+> - Create a small file and fallocate a large disk space for a file with
+>   FALLOC_FL_KEEP_SIZE option.
+> 
+> - ftruncate the file back to the original size again.  but the disk free
+>   space is not changed back.  This is a real bug that be fixed in this
+>   patch.
+> 
+> In order to solve the issue above, we modified ocfs2_setattr(), if
+> attr->ia_size != i_size_read(inode), It calls ocfs2_truncate_file(), and
+> truncate disk space to attr->ia_size.
+> 
+> Signed-off-by: Younger Liu <younger.liu@huawei.com>
+> Reviewed-by: Jie Liu <jeff.liu@oracle.com>
+> Tested-by: Jie Liu <jeff.liu@oracle.com>
+> Cc: Joel Becker <jlbec@evilplan.org>
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Cc: Sunil Mushran <sunil.mushran@gmail.com>
+> Reviewed-by: Jensen <shencanquan@huawei.com>
+> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
- avg                  1168317                                    552519
+This looks good, thanks for the fix Younger.
+	--Mark
 
-avg with lock - avg without lock = 615798
-(avg with lock - avg without lock)/1000000=0.615798 us
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 
->
-> --
-> Mark Fasheh
->
-> .
->
+--
+Mark Fasheh
