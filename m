@@ -1,5 +1,5 @@
 From: Jensen <shencanquan@huawei.com>
-Date: Sat, 8 Feb 2014 10:46:14 +0800
+Date: Mon, 10 Feb 2014 16:51:32 +0800
 Subject: [Ocfs2-devel] [patch 09/11] ocfs2: llseek requires ocfs2 inode
  lock for the file in SEEK_END
 In-Reply-To: <20140208020703.GT24361@wotan.suse.de>
@@ -9,7 +9,7 @@ References: <20140124204709.85C895A4203@corp2gmr1-2.hot.corp.google.com>
 	<20140207224409.GS24361@wotan.suse.de>
 	<52F587AB.3010604@huawei.com>
 	<20140208020703.GT24361@wotan.suse.de>
-Message-ID: <52F59A76.1060206@huawei.com>
+Message-ID: <52F89314.6060103@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -59,6 +59,27 @@ On 2014/2/8 10:07, Mark Fasheh wrote:
 >
 > Please help us measure what the end-user impact of this change will be.
 > 	--Mark
-Ok,  I see.  I think that how to test the performance impact.  we found the bug in web application which only concerned about the correctness.
-Thanks,
-                    --Jensen
+  test result: 1000000 times lseek call;
+  index        lseek with inode lock (unit:us)                lseek without inode lock (unit:us)
+    1                   1168162                                    555383
+    2                   1168011                                    549504
+    3                   1170538                                    549396
+    4                   1170375                                    551685
+    5                   1170444                                    556719
+    6                   1174364                                    555307
+    7                   1163294                                    551552
+    8                   1170080                                    549350
+    9                   1162464                                    553700
+  10                   1165441                                    552594
+
+ avg                  1168317                                    552519
+
+avg with lock - avg without lock = 615798
+(avg with lock - avg without lock)/1000000=0.615798 us
+
+>
+> --
+> Mark Fasheh
+>
+> .
+>
