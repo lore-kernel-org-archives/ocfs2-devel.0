@@ -1,52 +1,45 @@
-From: Darrick J. Wong <darrick.wong@oracle.com>
-Date: Wed, 12 Feb 2014 17:53:43 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: improve fsync efficiency and fix
- deadlock between aio_write and sync_file
-In-Reply-To: <20140212225818.GX24361@wotan.suse.de>
-References: <20140130034848.GE8798@birch.djwong.org>
-	<20140212225818.GX24361@wotan.suse.de>
-Message-ID: <20140213015343.GC30642@birch.djwong.org>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Thu, 13 Feb 2014 13:18:46 +0800
+Subject: [Ocfs2-devel] [patch 04/11] ocfs2: fix a tiny race when running
+	dirop_fileop_racer
+In-Reply-To: <20140212232921.GZ24361@wotan.suse.de>
+References: <20140124204703.AF70F5A4203@corp2gmr1-2.hot.corp.google.com>
+	<20140212232921.GZ24361@wotan.suse.de>
+Message-ID: <52FC55B6.7020403@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Feb 12, 2014 at 02:58:18PM -0800, Mark Fasheh wrote:
-> On Wed, Jan 29, 2014 at 07:48:48PM -0800, Darrick J. Wong wrote:
-> > Currently, ocfs2_sync_file grabs i_mutex and forces the current
-> > journal transaction to complete.  This isn't terribly efficient, since
-> > sync_file really only needs to wait for the last transaction involving
-> > that inode to complete, and this doesn't require i_mutex.
-> > 
-> > Therefore, implement the necessary bits to track the newest tid
-> > associated with an inode, and teach sync_file to wait for that instead
-> > of waiting for everything in the journal to commit.  Furthermore, only
-> > issue the flush request to the drive if jbd2 hasn't already done so.
-> > 
-> > This also eliminates the deadlock between ocfs2_file_aio_write() and
-> > ocfs2_sync_file().  aio_write takes i_mutex then calls
-> > ocfs2_aiodio_wait() to wait for unaligned dio writes to finish.
-> > However, if that dio completion involves calling fsync, then we can
-> > get into trouble when some ocfs2_sync_file tries to take i_mutex.
-> > 
-> > Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
+On 2014/2/13 7:29, Mark Fasheh wrote:
+>> @@ -1097,6 +1174,22 @@ static int ocfs2_rename(struct inode *ol
+>>  			goto bail;
+>>  		}
+>>  		rename_lock = 1;
+>> +
+>> +		/* here we cannot guarantee the inodes haven't just been
+>> +		 * changed, so check if they are nested again */
+>> +		status = ocfs2_check_if_ancestor(osb, new_dir->i_ino,
+>> +				old_inode->i_ino);
+>> +		if (status < 0) {
+>> +			mlog_errno(status);
+>> +			goto bail;
+>> +		} else if (status == 1) {
+>> +			status = -EPERM;
+>> +			mlog(ML_ERROR, "src inode %llu should not be ancestor "
+>> +				"of new dir inode %llu\n",
+>> +				(unsigned long long)old_inode->i_ino,
+>> +				(unsigned long long)new_dir->i_ino);
 > 
-> Ok, I can see what the patch is doing, but I have a silly question - where
-> exactly are we marking the latest transaction id during a write system call?
-
-The patch should update those tids every time anything touches the inode --
-block allocations, truncates, attribute/timestamp updates, etc.  For rewriting
-a disk block without touching the inode, ocfs2_sync_file will either wait for
-the last transaction involving the inode to commit + flush, or if the
-transaction has long since been committed, it will issue the flush directly
-without needing a recent tid.
-
-Does that help?  I /think/ I covered all the cases where I need to update the
-tid.
-
---D
+> Is it possible for the user to trigger this mlog(ML_ERROR, "....") print at
+> will? If so we need to make it a debug print otherwise we risk blowing up
+> systemlog when someone abuses rename().
 > 	--Mark
 > 
 > --
 > Mark Fasheh
+> 
+> 
+The nested condition can be constructed but it is rare, isn't it?
+And only one system log for one rename, so we log it as error message.
