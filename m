@@ -1,44 +1,41 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 14 Feb 2014 10:50:50 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: remove unused variable uuid_net_key in
-	ocfs2_initialize_super
-Message-ID: <52FD848A.9010406@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Fri, 14 Feb 2014 14:18:18 -0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: improve fsync efficiency and
+	fix deadlock	between aio_write and sync_file
+In-Reply-To: <20140214023234.GB8800@birch.djwong.org>
+References: <20140214023234.GB8800@birch.djwong.org>
+Message-ID: <20140214221818.GC5716@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: joyce.xue <xuejiufei@huawei.com>
+On Thu, Feb 13, 2014 at 06:32:34PM -0800, Darrick J. Wong wrote:
+> Currently, ocfs2_sync_file grabs i_mutex and forces the current
+> journal transaction to complete.  This isn't terribly efficient, since
+> sync_file really only needs to wait for the last transaction involving
+> that inode to complete, and this doesn't require i_mutex.
+> 
+> Therefore, implement the necessary bits to track the newest tid
+> associated with an inode, and teach sync_file to wait for that instead
+> of waiting for everything in the journal to commit.  Furthermore, only
+> issue the flush request to the drive if jbd2 hasn't already done so.
+> 
+> This also eliminates the deadlock between ocfs2_file_aio_write() and
+> ocfs2_sync_file().  aio_write takes i_mutex then calls
+> ocfs2_aiodio_wait() to wait for unaligned dio writes to finish.
+> However, if that dio completion involves calling fsync, then we can
+> get into trouble when some ocfs2_sync_file tries to take i_mutex.
+> 
+> v2: Update tid when updating mtime.
+> 
+> Signed-off-by: Darrick J. Wong <darrick.wong@oracle.com>
 
-Variable uuid_net_key in ocfs2_initialize_super() is not used. Clean
-it up.
+Thanks Darrick, this looks good.
 
-Signed-off-by: joyce.xue <xuejiufei@huawei.com>
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/super.c | 3 ---
- 1 file changed, 3 deletions(-)
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+	--Mark
 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 49d84f8..4b17054 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -2077,7 +2077,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
- 	struct inode *inode = NULL;
- 	struct ocfs2_journal *journal;
--	__le32 uuid_net_key;
- 	struct ocfs2_super *osb;
- 	u64 total_blocks;
- 
-@@ -2311,8 +2310,6 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 		goto bail;
- 	}
- 
--	memcpy(&uuid_net_key, di->id2.i_super.s_uuid, sizeof(uuid_net_key));
--
- 	strncpy(osb->vol_label, di->id2.i_super.s_label, 63);
- 	osb->vol_label[63] = '\0';
- 	osb->root_blkno = le64_to_cpu(di->id2.i_super.s_root_blkno);
--- 1.8.4.3
+--
+Mark Fasheh
