@@ -1,148 +1,94 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Wed, 19 Feb 2014 11:24:06 +0800
-Subject: [Ocfs2-devel] [PATCH] [ocfs2]: change ip_unaligned_aio to of type
-	mutex from atomit_t
-Message-ID: <1392780246-17982-1-git-send-email-wen.gang.wang@oracle.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 19 Feb 2014 16:30:31 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: fix recovery hung
+Message-ID: <1392798631-16510-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-There is a problem that waitqueue_active() may check stale data thus miss a
-wakeup of threads waiting on ip_unaligned_aio.
-The valid value of ip_unaligned_aio is only 0 and 1 so we can change it to
-be of type mutex thus the above prolem is avoid. Another benifit is that mutex
-which works as FIFO is fairer than wake_up_all().
+There is a race window in dlm_do_recovery() between dlm_remaster_locks()
+and dlm_reset_recovery() when the recovery master nearly finish the recovery
+process for a dead node. After the master sends FINALIZE_RECO message in
+dlm_remaster_locks(), another node may become the recovery master for another
+dead node, and then send the BEGIN_RECO message to all the nodes included the
+old master, in the handler of this message dlm_begin_reco_handler() of old master,
+dlm->reco.dead_node and dlm->reco.new_master will be set to the second dead
+node and the new master, then in dlm_reset_recovery(), these two variables
+will be reset to default value. This will cause new recovery master can not finish
+the recovery process and hung, at last the whole cluster will hung for recovery.
 
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+old recovery master:                                 new recovery master:
+dlm_remaster_locks()
+                                                  become recovery master for
+                                                  another dead node.
+                                                  dlm_send_begin_reco_message()
+dlm_begin_reco_handler()
+{
+ if (dlm->reco.state & DLM_RECO_STATE_FINALIZE) {
+  return -EAGAIN;
+ }
+ dlm_set_reco_master(dlm, br->node_idx);
+ dlm_set_reco_dead_node(dlm, br->dead_node);
+}
+dlm_reset_recovery()
+{
+ dlm_set_reco_dead_node(dlm, O2NM_INVALID_NODE_NUM);
+ dlm_set_reco_master(dlm, O2NM_INVALID_NODE_NUM);
+}
+                                                  will hung in dlm_remaster_locks() for
+                                                  request dlm locks info
+
+Before send FINALIZE_RECO message, recovery master should set DLM_RECO_STATE_FINALIZE
+for itself and clear it after the recovery done, this can break the race windows as
+the BEGIN_RECO messages will not be handled before DLM_RECO_STATE_FINALIZE flag is
+cleared.
+
+A similar race may happen between new recovery master and normal node which is in
+dlm_finalize_reco_handler(), also fix it.
+
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
 ---
- fs/ocfs2/aops.c  |  6 +-----
- fs/ocfs2/aops.h  |  5 -----
- fs/ocfs2/file.c  | 15 +++------------
- fs/ocfs2/inode.h |  2 +-
- fs/ocfs2/super.c |  9 ++-------
- 5 files changed, 7 insertions(+), 30 deletions(-)
+ fs/ocfs2/dlm/dlmrecovery.c |   11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index aeb44e8..ebe44f7 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -571,7 +571,6 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
- {
- 	struct inode *inode = file_inode(iocb->ki_filp);
- 	int level;
--	wait_queue_head_t *wq = ocfs2_ioend_wq(inode);
- 
- 	/* this io's submitter should not have unlocked this before we could */
- 	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
-@@ -582,10 +581,7 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
- 	if (ocfs2_iocb_is_unaligned_aio(iocb)) {
- 		ocfs2_iocb_clear_unaligned_aio(iocb);
- 
--		if (atomic_dec_and_test(&OCFS2_I(inode)->ip_unaligned_aio) &&
--		    waitqueue_active(wq)) {
--			wake_up_all(wq);
--		}
-+		mutex_unlock(&OCFS2_I(inode)->ip_unaligned_aio);
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 7035af0..fe58e8b 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -537,7 +537,10 @@ master_here:
+ 		/* success!  see if any other nodes need recovery */
+ 		mlog(0, "DONE mastering recovery of %s:%u here(this=%u)!\n",
+ 		     dlm->name, dlm->reco.dead_node, dlm->node_num);
+-		dlm_reset_recovery(dlm);
++		spin_lock(&dlm->spinlock);
++		__dlm_reset_recovery(dlm);
++		dlm->reco.state &= ~DLM_RECO_STATE_FINALIZE;
++		spin_unlock(&dlm->spinlock);
  	}
+ 	dlm_end_recovery(dlm);
  
- 	ocfs2_iocb_clear_rw_locked(iocb);
-diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
-index f671e49..6cae155 100644
---- a/fs/ocfs2/aops.h
-+++ b/fs/ocfs2/aops.h
-@@ -102,9 +102,4 @@ enum ocfs2_iocb_lock_bits {
- #define ocfs2_iocb_is_unaligned_aio(iocb) \
- 	test_bit(OCFS2_IOCB_UNALIGNED_IO, (unsigned long *)&iocb->private)
+@@ -695,6 +698,10 @@ static int dlm_remaster_locks(struct dlm_ctxt *dlm, u8 dead_node)
+ 		if (all_nodes_done) {
+ 			int ret;
  
--#define OCFS2_IOEND_WQ_HASH_SZ	37
--#define ocfs2_ioend_wq(v)   (&ocfs2__ioend_wq[((unsigned long)(v)) %\
--					    OCFS2_IOEND_WQ_HASH_SZ])
--extern wait_queue_head_t ocfs2__ioend_wq[OCFS2_IOEND_WQ_HASH_SZ];
--
- #endif /* OCFS2_FILE_H */
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 8450262bc..51f67cd 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2061,13 +2061,6 @@ out:
- 	return ret;
- }
- 
--static void ocfs2_aiodio_wait(struct inode *inode)
--{
--	wait_queue_head_t *wq = ocfs2_ioend_wq(inode);
--
--	wait_event(*wq, (atomic_read(&OCFS2_I(inode)->ip_unaligned_aio) == 0));
--}
--
- static int ocfs2_is_io_unaligned(struct inode *inode, size_t count, loff_t pos)
- {
- 	int blockmask = inode->i_sb->s_blocksize - 1;
-@@ -2345,10 +2338,8 @@ relock:
- 		 * Wait on previous unaligned aio to complete before
- 		 * proceeding.
- 		 */
--		ocfs2_aiodio_wait(inode);
--
--		/* Mark the iocb as needing a decrement in ocfs2_dio_end_io */
--		atomic_inc(&OCFS2_I(inode)->ip_unaligned_aio);
-+		mutex_lock(&OCFS2_I(inode)->ip_unaligned_aio);
-+		/* Mark the iocb as needing an unlock in ocfs2_dio_end_io */
- 		ocfs2_iocb_set_unaligned_aio(iocb);
- 	}
- 
-@@ -2428,7 +2419,7 @@ out_dio:
- 
- 	if (unaligned_dio) {
- 		ocfs2_iocb_clear_unaligned_aio(iocb);
--		atomic_dec(&OCFS2_I(inode)->ip_unaligned_aio);
-+		mutex_unlock(&OCFS2_I(inode)->ip_unaligned_aio);
- 	}
- 
- out:
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index 621fc73..9f1580b 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -44,7 +44,7 @@ struct ocfs2_inode_info
- 	struct rw_semaphore		ip_xattr_sem;
- 
- 	/* Number of outstanding AIO's which are not page aligned */
--	atomic_t			ip_unaligned_aio;
-+	struct mutex			ip_unaligned_aio;
- 
- 	/* These fields are protected by ip_lock */
- 	spinlock_t			ip_lock;
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 49d84f8..d171455 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1612,14 +1612,9 @@ static int ocfs2_show_options(struct seq_file *s, struct dentry *root)
- 	return 0;
- }
- 
--wait_queue_head_t ocfs2__ioend_wq[OCFS2_IOEND_WQ_HASH_SZ];
--
- static int __init ocfs2_init(void)
- {
--	int status, i;
--
--	for (i = 0; i < OCFS2_IOEND_WQ_HASH_SZ; i++)
--		init_waitqueue_head(&ocfs2__ioend_wq[i]);
-+	int status;
- 
- 	status = init_ocfs2_uptodate_cache();
- 	if (status < 0)
-@@ -1761,7 +1756,7 @@ static void ocfs2_inode_init_once(void *data)
- 	ocfs2_extent_map_init(&oi->vfs_inode);
- 	INIT_LIST_HEAD(&oi->ip_io_markers);
- 	oi->ip_dir_start_lookup = 0;
--	atomic_set(&oi->ip_unaligned_aio, 0);
-+	mutex_init(&oi->ip_unaligned_aio);
- 	init_rwsem(&oi->ip_alloc_sem);
- 	init_rwsem(&oi->ip_xattr_sem);
- 	mutex_init(&oi->ip_io_mutex);
++			spin_lock(&dlm->spinlock);
++			dlm->reco.state |= DLM_RECO_STATE_FINALIZE;
++			spin_unlock(&dlm->spinlock);
++
+ 			/* all nodes are now in DLM_RECO_NODE_DATA_DONE state
+ 	 		 * just send a finalize message to everyone and
+ 	 		 * clean up */
+@@ -2882,8 +2889,8 @@ int dlm_finalize_reco_handler(struct o2net_msg *msg, u32 len, void *data,
+ 				BUG();
+ 			}
+ 			dlm->reco.state &= ~DLM_RECO_STATE_FINALIZE;
++			__dlm_reset_recovery(dlm);
+ 			spin_unlock(&dlm->spinlock);
+-			dlm_reset_recovery(dlm);
+ 			dlm_kick_recovery_thread(dlm);
+ 			break;
+ 		default:
 -- 
-1.8.3.1
+1.7.9.5
