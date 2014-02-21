@@ -1,88 +1,73 @@
 From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Thu, 20 Feb 2014 21:14:12 -0800
-Subject: [Ocfs2-devel] [PATCH 1/6] ocfs2: Remove OCFS2_INODE_SKIP_DELETE
-	flag
-In-Reply-To: <1392909511-2933-2-git-send-email-jack@suse.cz>
+Date: Thu, 20 Feb 2014 21:14:34 -0800
+Subject: [Ocfs2-devel] [PATCH 2/6] ocfs2: Move dquot_initialize() in
+ ocfs2_delete_inode() somewhat later
+In-Reply-To: <1392909511-2933-3-git-send-email-jack@suse.cz>
 References: <1392909511-2933-1-git-send-email-jack@suse.cz>
-	<1392909511-2933-2-git-send-email-jack@suse.cz>
-Message-ID: <5306E0A4.4000208@oracle.com>
+	<1392909511-2933-3-git-send-email-jack@suse.cz>
+Message-ID: <5306E0BA.7060407@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+looks good to me
+
 Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 
 On 02/20/2014 07:18 AM, Jan Kara wrote:
-> The flag was never set, delete it.
+> Move dquot_initalize() call in ocfs2_delete_inode() after the moment we
+> verify inode is actually a sane one to delete. We certainly don't want
+> to initialize quota for system inodes etc. This also avoids calling into
+> quota code from downconvert thread.
+>
+> Add more details into the comment why bailing out from
+> ocfs2_delete_inode() when we are in downconvert thread is OK.
 >
 > Signed-off-by: Jan Kara <jack@suse.cz>
 > ---
->   fs/ocfs2/inode.c   | 6 ------
->   fs/ocfs2/inode.h   | 8 +++-----
->   fs/ocfs2/journal.c | 6 ------
->   3 files changed, 3 insertions(+), 17 deletions(-)
+>   fs/ocfs2/inode.c | 16 +++++++++-------
+>   1 file changed, 9 insertions(+), 7 deletions(-)
 >
 > diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index f29a90fde619..b4baaefe4dd4 100644
+> index b4baaefe4dd4..3b0d722de35e 100644
 > --- a/fs/ocfs2/inode.c
 > +++ b/fs/ocfs2/inode.c
-> @@ -822,12 +822,6 @@ static int ocfs2_inode_is_valid_to_delete(struct inode *inode)
->   		goto bail_unlock;
+> @@ -804,11 +804,13 @@ static int ocfs2_inode_is_valid_to_delete(struct inode *inode)
+>   		goto bail;
 >   	}
 >   
-> -	/* If we have allowd wipe of this inode for another node, it
-> -	 * will be marked here so we can safely skip it. Recovery will
-> -	 * cleanup any inodes we might inadvertently skip here. */
-> -	if (oi->ip_flags & OCFS2_INODE_SKIP_DELETE)
-> -		goto bail_unlock;
-> -
->   	ret = 1;
->   bail_unlock:
->   	spin_unlock(&oi->ip_lock);
-> diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-> index 621fc73bf23d..f60bc314ee0a 100644
-> --- a/fs/ocfs2/inode.h
-> +++ b/fs/ocfs2/inode.h
-> @@ -84,8 +84,6 @@ struct ocfs2_inode_info
->   #define OCFS2_INODE_BITMAP		0x00000004
->   /* This inode has been wiped from disk */
->   #define OCFS2_INODE_DELETED		0x00000008
-> -/* Another node is deleting, so our delete is a nop */
-> -#define OCFS2_INODE_SKIP_DELETE		0x00000010
->   /* Has the inode been orphaned on another node?
->    *
->    * This hints to ocfs2_drop_inode that it should clear i_nlink before
-> @@ -100,11 +98,11 @@ struct ocfs2_inode_info
->    * rely on ocfs2_delete_inode to sort things out under the proper
->    * cluster locks.
->    */
-> -#define OCFS2_INODE_MAYBE_ORPHANED	0x00000020
-> +#define OCFS2_INODE_MAYBE_ORPHANED	0x00000010
->   /* Does someone have the file open O_DIRECT */
-> -#define OCFS2_INODE_OPEN_DIRECT		0x00000040
-> +#define OCFS2_INODE_OPEN_DIRECT		0x00000020
->   /* Tell the inode wipe code it's not in orphan dir */
-> -#define OCFS2_INODE_SKIP_ORPHAN_DIR     0x00000080
-> +#define OCFS2_INODE_SKIP_ORPHAN_DIR     0x00000040
+> -	/* If we're coming from downconvert_thread we can't go into our own
+> -	 * voting [hello, deadlock city!], so unforuntately we just
+> -	 * have to skip deleting this guy. That's OK though because
+> -	 * the node who's doing the actual deleting should handle it
+> -	 * anyway. */
+> +	/*
+> +	 * If we're coming from downconvert_thread we can't go into our own
+> +	 * voting [hello, deadlock city!] so we cannot delete the inode. But
+> +	 * since we dropped last inode ref when downconverting dentry lock,
+> +	 * we cannot have the file open and thus the node doing unlink will
+> +	 * take care of deleting the inode.
+> +	 */
+>   	if (current == osb->dc_task)
+>   		goto bail;
 >   
->   static inline struct ocfs2_inode_info *OCFS2_I(struct inode *inode)
->   {
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 44fc3e530c3d..03ea9314fecd 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -2132,12 +2132,6 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
->   		iter = oi->ip_next_orphan;
+> @@ -954,8 +956,6 @@ static void ocfs2_delete_inode(struct inode *inode)
+>   	if (is_bad_inode(inode) || !OCFS2_I(inode)->ip_blkno)
+>   		goto bail;
 >   
->   		spin_lock(&oi->ip_lock);
-> -		/* The remote delete code may have set these on the
-> -		 * assumption that the other node would wipe them
-> -		 * successfully.  If they are still in the node's
-> -		 * orphan dir, we need to reset that state. */
-> -		oi->ip_flags &= ~(OCFS2_INODE_DELETED|OCFS2_INODE_SKIP_DELETE);
+> -	dquot_initialize(inode);
 > -
->   		/* Set the proper information to get us going into
->   		 * ocfs2_delete_inode. */
->   		oi->ip_flags |= OCFS2_INODE_MAYBE_ORPHANED;
+>   	if (!ocfs2_inode_is_valid_to_delete(inode)) {
+>   		/* It's probably not necessary to truncate_inode_pages
+>   		 * here but we do it for safety anyway (it will most
+> @@ -964,6 +964,8 @@ static void ocfs2_delete_inode(struct inode *inode)
+>   		goto bail;
+>   	}
+>   
+> +	dquot_initialize(inode);
+> +
+>   	/* We want to block signals in delete_inode as the lock and
+>   	 * messaging paths may return us -ERESTARTSYS. Which would
+>   	 * cause us to exit early, resulting in inodes being orphaned
