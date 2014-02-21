@@ -1,67 +1,86 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 21 Feb 2014 10:45:01 +0100
-Subject: [Ocfs2-devel] [PATCH 3/6] quota: Provide function to grab quota
-	structure reference
+Date: Fri, 21 Feb 2014 10:44:59 +0100
+Subject: [Ocfs2-devel] [PATCH 1/6] ocfs2: Remove OCFS2_INODE_SKIP_DELETE flag
 In-Reply-To: <1392975904-16944-1-git-send-email-jack@suse.cz>
 References: <1392975904-16944-1-git-send-email-jack@suse.cz>
-Message-ID: <1392975904-16944-4-git-send-email-jack@suse.cz>
+Message-ID: <1392975904-16944-2-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Provide dqgrab() function to get quota structure reference when we are
-sure it already has at least one active reference. Make use of this
-function inside quota code.
+The flag was never set, delete it.
 
 Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/quota/dquot.c         | 4 ++--
- include/linux/quotaops.h | 8 ++++++++
- 2 files changed, 10 insertions(+), 2 deletions(-)
+ fs/ocfs2/inode.c   | 6 ------
+ fs/ocfs2/inode.h   | 8 +++-----
+ fs/ocfs2/journal.c | 6 ------
+ 3 files changed, 3 insertions(+), 17 deletions(-)
 
-diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
-index 831d49a4111f..e3f09e34d0b2 100644
---- a/fs/quota/dquot.c
-+++ b/fs/quota/dquot.c
-@@ -528,7 +528,7 @@ restart:
- 		if (atomic_read(&dquot->dq_count)) {
- 			DEFINE_WAIT(wait);
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index f29a90fde619..b4baaefe4dd4 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -822,12 +822,6 @@ static int ocfs2_inode_is_valid_to_delete(struct inode *inode)
+ 		goto bail_unlock;
+ 	}
  
--			atomic_inc(&dquot->dq_count);
-+			dqgrab(dquot);
- 			prepare_to_wait(&dquot->dq_wait_unused, &wait,
- 					TASK_UNINTERRUPTIBLE);
- 			spin_unlock(&dq_list_lock);
-@@ -624,7 +624,7 @@ int dquot_writeback_dquots(struct super_block *sb, int type)
- 			/* Now we have active dquot from which someone is
-  			 * holding reference so we can safely just increase
- 			 * use count */
--			atomic_inc(&dquot->dq_count);
-+			dqgrab(dquot);
- 			spin_unlock(&dq_list_lock);
- 			dqstats_inc(DQST_LOOKUPS);
- 			err = sb->dq_op->write_dquot(dquot);
-diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index 6965fe394c3b..1d3eee594cd6 100644
---- a/include/linux/quotaops.h
-+++ b/include/linux/quotaops.h
-@@ -46,6 +46,14 @@ void inode_reclaim_rsv_space(struct inode *inode, qsize_t number);
- void dquot_initialize(struct inode *inode);
- void dquot_drop(struct inode *inode);
- struct dquot *dqget(struct super_block *sb, struct kqid qid);
-+static inline struct dquot *dqgrab(struct dquot *dquot)
-+{
-+	/* Make sure someone else has active reference to dquot */
-+	WARN_ON_ONCE(!atomic_read(&dquot->dq_count));
-+	WARN_ON_ONCE(!test_bit(DQ_ACTIVE_B, &dquot->dq_flags));
-+	atomic_inc(&dquot->dq_count);
-+	return dquot;
-+}
- void dqput(struct dquot *dquot);
- int dquot_scan_active(struct super_block *sb,
- 		      int (*fn)(struct dquot *dquot, unsigned long priv),
+-	/* If we have allowd wipe of this inode for another node, it
+-	 * will be marked here so we can safely skip it. Recovery will
+-	 * cleanup any inodes we might inadvertently skip here. */
+-	if (oi->ip_flags & OCFS2_INODE_SKIP_DELETE)
+-		goto bail_unlock;
+-
+ 	ret = 1;
+ bail_unlock:
+ 	spin_unlock(&oi->ip_lock);
+diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+index 621fc73bf23d..f60bc314ee0a 100644
+--- a/fs/ocfs2/inode.h
++++ b/fs/ocfs2/inode.h
+@@ -84,8 +84,6 @@ struct ocfs2_inode_info
+ #define OCFS2_INODE_BITMAP		0x00000004
+ /* This inode has been wiped from disk */
+ #define OCFS2_INODE_DELETED		0x00000008
+-/* Another node is deleting, so our delete is a nop */
+-#define OCFS2_INODE_SKIP_DELETE		0x00000010
+ /* Has the inode been orphaned on another node?
+  *
+  * This hints to ocfs2_drop_inode that it should clear i_nlink before
+@@ -100,11 +98,11 @@ struct ocfs2_inode_info
+  * rely on ocfs2_delete_inode to sort things out under the proper
+  * cluster locks.
+  */
+-#define OCFS2_INODE_MAYBE_ORPHANED	0x00000020
++#define OCFS2_INODE_MAYBE_ORPHANED	0x00000010
+ /* Does someone have the file open O_DIRECT */
+-#define OCFS2_INODE_OPEN_DIRECT		0x00000040
++#define OCFS2_INODE_OPEN_DIRECT		0x00000020
+ /* Tell the inode wipe code it's not in orphan dir */
+-#define OCFS2_INODE_SKIP_ORPHAN_DIR     0x00000080
++#define OCFS2_INODE_SKIP_ORPHAN_DIR     0x00000040
+ 
+ static inline struct ocfs2_inode_info *OCFS2_I(struct inode *inode)
+ {
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 44fc3e530c3d..03ea9314fecd 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -2132,12 +2132,6 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
+ 		iter = oi->ip_next_orphan;
+ 
+ 		spin_lock(&oi->ip_lock);
+-		/* The remote delete code may have set these on the
+-		 * assumption that the other node would wipe them
+-		 * successfully.  If they are still in the node's
+-		 * orphan dir, we need to reset that state. */
+-		oi->ip_flags &= ~(OCFS2_INODE_DELETED|OCFS2_INODE_SKIP_DELETE);
+-
+ 		/* Set the proper information to get us going into
+ 		 * ocfs2_delete_inode. */
+ 		oi->ip_flags |= OCFS2_INODE_MAYBE_ORPHANED;
 -- 
 1.8.1.4
