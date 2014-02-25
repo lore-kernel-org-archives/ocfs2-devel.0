@@ -1,17 +1,15 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 25 Feb 2014 09:54:25 +0800
+Date: Tue, 25 Feb 2014 10:14:29 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: fix dlm lock migration crash
 In-Reply-To: <530BD609.8080104@oracle.com>
 References: <1342509026-6170-1-git-send-email-junxiao.bi@oracle.com>	<CAEeiSHVKM7TK0u4Cd_JWVY9Z8bKj3326ay2RG5dqi4z9fXPaHQ@mail.gmail.com>	<5006131A.8010303@oracle.com>	<CAEeiSHXpcU6xXeDzP3nA8jGDnoit-NtZHM2A73hya_9c01Y_mg@mail.gmail.com>	<50076428.2040908@oracle.com>	<CAEeiSHV+TVsnwqnsi0u4r=ucBoddo8wD8DcqbsCn1UoA3xjtdg@mail.gmail.com>	<530B0BB5.90600@oracle.com>
 	<530BD609.8080104@oracle.com>
-Message-ID: <530BF7D1.80202@oracle.com>
+Message-ID: <530BFC85.5030409@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-
-Hi Srini,
 
 On 02/25/2014 07:30 AM, Srinivas Eeda wrote:
 > Junxiao, thanks for looking into this issue. Please see my comment below
@@ -50,47 +48,20 @@ On 02/25/2014 07:30 AM, Srinivas Eeda wrote:
 > in dlm_lockres_release_ast would make dlm_unlock handler to return
 > DLM_MIGRATING to the caller (in this case node x). So I don't see how
 > granted_list could have stale lock. Am I missing something ?
-I agree granted_list will not have stale lock. The issue is triggered
-when there is no locks in the granted_list. In migrate target node, the
-granted_list is also empty after unlock. Then due to the wrong use of
-list_for_each_entry in the following code, lock will be not null even
-the granted_list is null. The lock is invalid and lock->ml.node !=
-ml->node may be true and cause the bug.
-
-
-                         for (j = DLM_GRANTED_LIST; j <=
-DLM_BLOCKED_LIST; j++) {
-                                tmpq = dlm_list_idx_to_ptr(res, j);
-                                list_for_each_entry(lock, tmpq, list) {
-                                        if (lock->ml.cookie != ml->cookie)
-                                                lock = NULL;
-                                        else
-                                                break;
-                                }
-                                if (lock)
-                                        break;
-                        }
-
-                        /* lock is always created locally first, and
-                         * destroyed locally last.  it must be on the
-list */
-                        if (!lock) {
-                                c = ml->cookie;
-                               
-                                BUG();
-                        }
-
-                        if (lock->ml.node != ml->node) {
-                                c = lock->ml.cookie;      
-                                c = ml->cookie;           
-                                BUG();
-                        }
-
-Thanks,
-Junxiao.
 >
 > I do think there is such race that you pointed below exist, but I am
 > not sure if it was due to the above race described.
+Outside the windows from set RES_BLOCK_DIRTY flag and wait_event() to
+dlm_lockres_release_ast(), granted_list can not be empty, since
+wait_event will wait until dlm_thread clear the dirty flag where shuffle
+list will pick another lock to the granted list. After the window,
+DLM_MIGRATING flag will stop other node unlock to the granted list. So I
+think this cause the empty granted list and cause the migrate target
+panic. I didn't see any other harm of this since the migrate target node
+will shuffle the list and send the ast message later.
+
+Thanks,
+Junxiao.
 >
 >>      dlm_lockres_release_ast(dlm, res);
 >>     }  
@@ -235,4 +206,4 @@ Junxiao.
 
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140225/4c5bcdde/attachment-0001.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140225/4bf61a97/attachment-0001.html 
