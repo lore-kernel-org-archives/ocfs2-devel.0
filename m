@@ -1,36 +1,49 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Tue, 25 Feb 2014 12:03:43 -0800
-Subject: [Ocfs2-devel] [PATCH 5/6] ocfs2: Avoid blocking in
- ocfs2_mark_lockres_freeing() in downconvert thread
-In-Reply-To: <20140225191257.GJ5716@wotan.suse.de>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Tue, 25 Feb 2014 12:02:36 -0800
+Subject: [Ocfs2-devel] [PATCH 6/6] ocfs2: Revert iput deferring code
+	in	ocfs2_drop_dentry_lock
+In-Reply-To: <1392975904-16944-7-git-send-email-jack@suse.cz>
 References: <1392975904-16944-1-git-send-email-jack@suse.cz>
-	<1392975904-16944-6-git-send-email-jack@suse.cz>
-	<20140225191257.GJ5716@wotan.suse.de>
-Message-ID: <530CF71F.7080304@oracle.com>
+	<1392975904-16944-7-git-send-email-jack@suse.cz>
+Message-ID: <20140225200236.GK5716@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+I think I would have preferred this be broken up to make review easier. That
+said, I didn't find anything wrong with the code changes (which took me
+longer to review, etc)
 
-On 02/25/2014 11:12 AM, Mark Fasheh wrote:
-> On Fri, Feb 21, 2014 at 10:45:03AM +0100, Jan Kara wrote:
->> If we are dropping last inode reference from downconvert thread, we will
->> end up calling ocfs2_mark_lockres_freeing() which can block if the lock
->> we are freeing is queued thus creating an A-A deadlock. Luckily, since
->> we are the downconvert thread, we can immediately dequeue the lock and
->> thus avoid waiting in this case.
->>
->> Signed-off-by: Jan Kara <jack@suse.cz>
-> Latest version of this looks good, thanks Jan!
->
-> Reviewed-by: Mark Fasheh <mfasheh@suse.de>
-> 	--Mark
-I didn't sent my reviewed by as akpm already queued this patch. But yes 
-the new version looks good to me.
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 
-Reviewed-by: Srinivas Eeda<srinivas.eeda@oracle.com>
 
-> --
-> Mark Fasheh
+
+On Fri, Feb 21, 2014 at 10:45:04AM +0100, Jan Kara wrote:
+> From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+> 
+> The following patches are reverted in this patch because these
+> patches caused performance regression in the remote unlink() calls.
+> 
+> ea455f8ab68338ba69f5d3362b342c115bea8e13 - ocfs2: Push out dropping
+> of dentry lock to ocfs2_wq
+> f7b1aa69be138ad9d7d3f31fa56f4c9407f56b6a - ocfs2: Fix deadlock on umount
+> 5fd131893793567c361ae64cbeb28a2a753bbe35 - ocfs2: Don't oops in
+> ocfs2_kill_sb on a failed mount
+> 
+> Previous patches in this series removed the possible deadlocks from
+> downconvert thread so the above patches shouldn't be needed anymore.
+> 
+> The regression is caused because these patches delay the iput() in case
+> of dentry unlocks. This also delays the unlocking of the open lockres.
+> The open lockresource is required to test if the inode can be wiped from
+> disk or not. When the deleting node does not get the open lock, it marks
+> it as orphan (even though it is not in use by another node/process)
+> and causes a journal checkpoint. This delays operations following the
+> inode eviction. This also moves the inode to the orphaned inode
+> which further causes more I/O and a lot of unneccessary orphans.
+> 
+
+--
+Mark Fasheh
