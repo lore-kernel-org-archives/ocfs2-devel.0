@@ -1,71 +1,68 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed, 26 Feb 2014 12:05:54 +0100
-Subject: [Ocfs2-devel] [PATCH 2/6] ocfs2: Move dquot_initialize() in
-	ocfs2_delete_inode() somewhat later
+Date: Wed, 26 Feb 2014 12:05:55 +0100
+Subject: [Ocfs2-devel] [PATCH 3/6] quota: Provide function to grab quota
+	structure reference
 In-Reply-To: <1393412758-9764-1-git-send-email-jack@suse.cz>
 References: <1393412758-9764-1-git-send-email-jack@suse.cz>
-Message-ID: <1393412758-9764-3-git-send-email-jack@suse.cz>
+Message-ID: <1393412758-9764-4-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Move dquot_initalize() call in ocfs2_delete_inode() after the moment we
-verify inode is actually a sane one to delete. We certainly don't want
-to initialize quota for system inodes etc. This also avoids calling into
-quota code from downconvert thread.
-
-Add more details into the comment why bailing out from
-ocfs2_delete_inode() when we are in downconvert thread is OK.
+Provide dqgrab() function to get quota structure reference when we are
+sure it already has at least one active reference. Make use of this
+function inside quota code.
 
 Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/inode.c | 16 +++++++++-------
- 1 file changed, 9 insertions(+), 7 deletions(-)
+ fs/quota/dquot.c         | 4 ++--
+ include/linux/quotaops.h | 8 ++++++++
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index b4baaefe4dd4..3b0d722de35e 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -804,11 +804,13 @@ static int ocfs2_inode_is_valid_to_delete(struct inode *inode)
- 		goto bail;
- 	}
+diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
+index 831d49a4111f..e3f09e34d0b2 100644
+--- a/fs/quota/dquot.c
++++ b/fs/quota/dquot.c
+@@ -528,7 +528,7 @@ restart:
+ 		if (atomic_read(&dquot->dq_count)) {
+ 			DEFINE_WAIT(wait);
  
--	/* If we're coming from downconvert_thread we can't go into our own
--	 * voting [hello, deadlock city!], so unforuntately we just
--	 * have to skip deleting this guy. That's OK though because
--	 * the node who's doing the actual deleting should handle it
--	 * anyway. */
-+	/*
-+	 * If we're coming from downconvert_thread we can't go into our own
-+	 * voting [hello, deadlock city!] so we cannot delete the inode. But
-+	 * since we dropped last inode ref when downconverting dentry lock,
-+	 * we cannot have the file open and thus the node doing unlink will
-+	 * take care of deleting the inode.
-+	 */
- 	if (current == osb->dc_task)
- 		goto bail;
- 
-@@ -954,8 +956,6 @@ static void ocfs2_delete_inode(struct inode *inode)
- 	if (is_bad_inode(inode) || !OCFS2_I(inode)->ip_blkno)
- 		goto bail;
- 
--	dquot_initialize(inode);
--
- 	if (!ocfs2_inode_is_valid_to_delete(inode)) {
- 		/* It's probably not necessary to truncate_inode_pages
- 		 * here but we do it for safety anyway (it will most
-@@ -964,6 +964,8 @@ static void ocfs2_delete_inode(struct inode *inode)
- 		goto bail;
- 	}
- 
-+	dquot_initialize(inode);
-+
- 	/* We want to block signals in delete_inode as the lock and
- 	 * messaging paths may return us -ERESTARTSYS. Which would
- 	 * cause us to exit early, resulting in inodes being orphaned
+-			atomic_inc(&dquot->dq_count);
++			dqgrab(dquot);
+ 			prepare_to_wait(&dquot->dq_wait_unused, &wait,
+ 					TASK_UNINTERRUPTIBLE);
+ 			spin_unlock(&dq_list_lock);
+@@ -624,7 +624,7 @@ int dquot_writeback_dquots(struct super_block *sb, int type)
+ 			/* Now we have active dquot from which someone is
+  			 * holding reference so we can safely just increase
+ 			 * use count */
+-			atomic_inc(&dquot->dq_count);
++			dqgrab(dquot);
+ 			spin_unlock(&dq_list_lock);
+ 			dqstats_inc(DQST_LOOKUPS);
+ 			err = sb->dq_op->write_dquot(dquot);
+diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
+index 6965fe394c3b..1d3eee594cd6 100644
+--- a/include/linux/quotaops.h
++++ b/include/linux/quotaops.h
+@@ -46,6 +46,14 @@ void inode_reclaim_rsv_space(struct inode *inode, qsize_t number);
+ void dquot_initialize(struct inode *inode);
+ void dquot_drop(struct inode *inode);
+ struct dquot *dqget(struct super_block *sb, struct kqid qid);
++static inline struct dquot *dqgrab(struct dquot *dquot)
++{
++	/* Make sure someone else has active reference to dquot */
++	WARN_ON_ONCE(!atomic_read(&dquot->dq_count));
++	WARN_ON_ONCE(!test_bit(DQ_ACTIVE_B, &dquot->dq_flags));
++	atomic_inc(&dquot->dq_count);
++	return dquot;
++}
+ void dqput(struct dquot *dquot);
+ int dquot_scan_active(struct super_block *sb,
+ 		      int (*fn)(struct dquot *dquot, unsigned long priv),
 -- 
 1.8.1.4
