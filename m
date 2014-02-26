@@ -1,55 +1,114 @@
-From: Jan Kara <jack@suse.cz>
-Date: Tue, 25 Feb 2014 22:18:08 +0100
-Subject: [Ocfs2-devel] [PATCH 6/6] ocfs2: Revert iput deferring code in
- ocfs2_drop_dentry_lock
-In-Reply-To: <20140225200236.GK5716@wotan.suse.de>
-References: <1392975904-16944-1-git-send-email-jack@suse.cz>
-	<1392975904-16944-7-git-send-email-jack@suse.cz>
-	<20140225200236.GK5716@wotan.suse.de>
-Message-ID: <20140225211808.GB21329@quack.suse.cz>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 26 Feb 2014 15:47:37 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: dlm: fix lock migration crash
+Message-ID: <1393400857-12294-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue 25-02-14 12:02:36, Mark Fasheh wrote:
-> I think I would have preferred this be broken up to make review easier. That
-> said, I didn't find anything wrong with the code changes (which took me
-> longer to review, etc)
-> 
-> Reviewed-by: Mark Fasheh <mfasheh@suse.de>
-  Thanks for review Mark!
+This issue was introduced by commit 800deef3 where it replaced list_for_each
+with list_for_each_entry. The variable "lock" will point to invalid data if
+"tmpq" list is empty and a panic will be triggered due to this.
+Sunil advised reverting it back, but the old version was also not right. At
+the end of the outer for loop, that list_for_each_entry will also set "lock"
+to an invalid data, then in the next loop, if the "tmpq" list is empty, "lock"
+will be an stale invalid data and cause the panic. So reverting the list_for_each
+back and reset "lock" to NULL to fix this issue.
 
-								Honza
+Another concern is that this seemes can not happen because the "tmpq" list should
+not be empty. Let me describe how.
+old lock resource owner(node 1):                                  migratation target(node 2):
+image there's lockres with a EX lock from node 2 in
+granted list, a NR lock from node x with convert_type
+EX in converting list.
+dlm_empty_lockres() {
+ dlm_pick_migration_target() {
+   pick node 2 as target as its lock is the first one
+   in granted list.
+ }
+ dlm_migrate_lockres() {
+   dlm_mark_lockres_migrating() {
+     res->state |= DLM_LOCK_RES_BLOCK_DIRTY;
+     wait_event(dlm->ast_wq, !dlm_lockres_is_dirty(dlm, res));
+	 //after the above code, we can not dirty lockres any more,
+     // so dlm_thread shuffle list will not run
+                                                                   downconvert lock from EX to NR
+                                                                   upconvert lock from NR to EX
+<<< migration may schedule out here, then
+<<< node 2 send down convert request to convert type from EX to
+<<< NR, then send up convert request to convert type from NR to
+<<< EX,@this time, lockres granted list is empty, and two locks
+<<< in the converting list, node x up convert lock followed by
+<<< node 2 up convert lock.
 
-> On Fri, Feb 21, 2014 at 10:45:04AM +0100, Jan Kara wrote:
-> > From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-> > 
-> > The following patches are reverted in this patch because these
-> > patches caused performance regression in the remote unlink() calls.
-> > 
-> > ea455f8ab68338ba69f5d3362b342c115bea8e13 - ocfs2: Push out dropping
-> > of dentry lock to ocfs2_wq
-> > f7b1aa69be138ad9d7d3f31fa56f4c9407f56b6a - ocfs2: Fix deadlock on umount
-> > 5fd131893793567c361ae64cbeb28a2a753bbe35 - ocfs2: Don't oops in
-> > ocfs2_kill_sb on a failed mount
-> > 
-> > Previous patches in this series removed the possible deadlocks from
-> > downconvert thread so the above patches shouldn't be needed anymore.
-> > 
-> > The regression is caused because these patches delay the iput() in case
-> > of dentry unlocks. This also delays the unlocking of the open lockres.
-> > The open lockresource is required to test if the inode can be wiped from
-> > disk or not. When the deleting node does not get the open lock, it marks
-> > it as orphan (even though it is not in use by another node/process)
-> > and causes a journal checkpoint. This delays operations following the
-> > inode eviction. This also moves the inode to the orphaned inode
-> > which further causes more I/O and a lot of unneccessary orphans.
-> > 
-> 
-> --
-> Mark Fasheh
+	 // will set lockres RES_MIGRATING flag, the following
+	 // lock/unlock can not run
+     dlm_lockres_release_ast(dlm, res);
+   }
+
+   dlm_send_one_lockres()
+                                                                 dlm_process_recovery_data()
+                                                                   for (i=0; i<mres->num_locks; i++)
+                                                                     if (ml->node == dlm->node_num)
+                                                                       for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+                                                                        list_for_each_entry(lock, tmpq, list)
+                                                                        if (lock) break; <<< lock is invalid as grant list is empty.
+                                                                       }
+                                                                       if (lock->ml.node != ml->node)
+                                                                         BUG() >>> crash here
+ }
+I see the above locks status from a vmcore of our internal bug.
+
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Sunil Mushran <sunil.mushran@gmail.com>
+Cc: Srinivas Eeda <srinivas.eeda@oracle.com>
+Cc: <stable@vger.kernel.org>
+---
+ fs/ocfs2/dlm/dlmrecovery.c |   14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 7035af0..c2dd258 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1750,13 +1750,13 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 				     struct dlm_migratable_lockres *mres)
+ {
+ 	struct dlm_migratable_lock *ml;
+-	struct list_head *queue;
++	struct list_head *queue, *iter;
+ 	struct list_head *tmpq = NULL;
+ 	struct dlm_lock *newlock = NULL;
+ 	struct dlm_lockstatus *lksb = NULL;
+ 	int ret = 0;
+ 	int i, j, bad;
+-	struct dlm_lock *lock = NULL;
++	struct dlm_lock *lock;
+ 	u8 from = O2NM_MAX_NODES;
+ 	unsigned int added = 0;
+ 	__be64 c;
+@@ -1791,14 +1791,16 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 			/* MIGRATION ONLY! */
+ 			BUG_ON(!(mres->flags & DLM_MRES_MIGRATION));
+ 
++			lock = NULL;
+ 			spin_lock(&res->spinlock);
+ 			for (j = DLM_GRANTED_LIST; j <= DLM_BLOCKED_LIST; j++) {
+ 				tmpq = dlm_list_idx_to_ptr(res, j);
+-				list_for_each_entry(lock, tmpq, list) {
+-					if (lock->ml.cookie != ml->cookie)
+-						lock = NULL;
+-					else
++				list_for_each(iter, tmpq) {
++					lock = list_entry(iter,
++						  struct dlm_lock, list);
++					if (lock->ml.cookie == ml->cookie)
+ 						break;
++					lock = NULL;
+ 				}
+ 				if (lock)
+ 					break;
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+1.7.9.5
