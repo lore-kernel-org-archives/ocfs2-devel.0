@@ -1,94 +1,73 @@
 From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Tue, 4 Mar 2014 09:34:45 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: manually do the iput once
- ocfs2_add_entry failed in ocfs2_symlink and ocfs2_mknod
-Message-ID: <53152DB5.6070601@huawei.com>
+Date: Tue, 4 Mar 2014 19:34:20 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: do not return
+ DLM_MIGRATE_RESPONSE_MASTERY_REF to avoid endless, loop during umount
+Message-ID: <5315BA3C.6040106@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When call ocfs2_add_entry() failed in ocfs2_symlink() and
-ocfs2_mknod(), iput() will not be called during dput(dentry) because no
-d_instantiate(), and this will lead to umount hung.
+The following case may lead to endless loop during umount.
+
+node A         node B               node C       node D
+umount volume,
+migrate lockres1
+to B
+                                                 want to lock lockres1,
+                                                 send
+                                                 MASTER_REQUEST_MSG
+                                                 to C
+                                    init block mle
+               send
+               MIGRATE_REQUEST_MSG
+               to C
+                                    find a block
+                                    mle, and then
+                                    return
+                                    DLM_MIGRATE_RESPONSE_MASTERY_REF
+                                    to B
+               set C in refmap
+                                    umount successfully
+               try to umount, endless
+               loop occurs when migrate
+               lockres1 since C is in
+               refmap
+
+So we can fix this endless loop case by only returning
+DLM_MIGRATE_RESPONSE_MASTERY_REF if it has a mastery mle when receiving
+MIGRATE_REQUEST_MSG.
 
 Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
 ---
- fs/ocfs2/namei.c | 26 ++++++++++++++++++++++++++
- 1 file changed, 26 insertions(+)
+ fs/ocfs2/dlm/dlmmaster.c | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index f4d609b..600a891 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -231,6 +231,7 @@ static int ocfs2_mknod(struct inode *dir,
- 	sigset_t oldset;
- 	int did_block_signals = 0;
- 	struct posix_acl *default_acl = NULL, *acl = NULL;
-+	struct ocfs2_dentry_lock *dl = NULL;
-
- 	trace_ocfs2_mknod(dir, dentry, dentry->d_name.len, dentry->d_name.name,
- 			  (unsigned long long)OCFS2_I(dir)->ip_blkno,
-@@ -423,6 +424,8 @@ static int ocfs2_mknod(struct inode *dir,
- 		goto leave;
- 	}
-
-+	dl = dentry->d_fsdata;
-+
- 	status = ocfs2_add_entry(handle, dentry, inode,
- 				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
- 				 &lookup);
-@@ -470,6 +473,16 @@ leave:
- 	 * ocfs2_delete_inode will mutex_lock again.
- 	 */
- 	if ((status < 0) && inode) {
-+		if (dl) {
-+			ocfs2_simple_drop_lockres(osb, &dl->dl_lockres);
-+			ocfs2_lock_res_free(&dl->dl_lockres);
-+			BUG_ON(dl->dl_count != 1);
-+			spin_lock(&dentry_attach_lock);
-+			dentry->d_fsdata = NULL;
-+			spin_unlock(&dentry_attach_lock);
-+			kfree(dl);
-+			iput(inode);
-+		}
- 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SKIP_ORPHAN_DIR;
- 		clear_nlink(inode);
- 		iput(inode);
-@@ -1625,6 +1638,7 @@ static int ocfs2_symlink(struct inode *dir,
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 	sigset_t oldset;
- 	int did_block_signals = 0;
-+	struct ocfs2_dentry_lock *dl = NULL;
-
- 	trace_ocfs2_symlink_begin(dir, dentry, symname,
- 				  dentry->d_name.len, dentry->d_name.name);
-@@ -1813,6 +1827,8 @@ static int ocfs2_symlink(struct inode *dir,
- 		goto bail;
- 	}
-
-+	dl = dentry->d_fsdata;
-+
- 	status = ocfs2_add_entry(handle, dentry, inode,
- 				 le64_to_cpu(fe->i_blkno), parent_fe_bh,
- 				 &lookup);
-@@ -1848,6 +1864,16 @@ bail:
- 	if (xattr_ac)
- 		ocfs2_free_alloc_context(xattr_ac);
- 	if ((status < 0) && inode) {
-+		if (dl) {
-+			ocfs2_simple_drop_lockres(osb, &dl->dl_lockres);
-+			ocfs2_lock_res_free(&dl->dl_lockres);
-+			BUG_ON(dl->dl_count != 1);
-+			spin_lock(&dentry_attach_lock);
-+			dentry->d_fsdata = NULL;
-+			spin_unlock(&dentry_attach_lock);
-+			kfree(dl);
-+			iput(inode);
-+		}
- 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SKIP_ORPHAN_DIR;
- 		clear_nlink(inode);
- 		iput(inode);
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index af3f7aa..1b11a47 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -3084,11 +3084,15 @@ static int dlm_add_migration_mle(struct dlm_ctxt *dlm,
+                        /* remove it so that only one mle will be found */
+                        __dlm_unlink_mle(dlm, tmp);
+                        __dlm_mle_detach_hb_events(dlm, tmp);
+-                       ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
+-                       mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
+-                           "telling master to get ref for cleared out mle "
+-                           "during migration\n", dlm->name, namelen, name,
+-                           master, new_master);
++                       if (tmp->type == DLM_MLE_MASTER) {
++                               ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
++                               mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
++                                               "telling master to get ref "
++                                               "for cleared out mle during "
++                                               "migration\n", dlm->name,
++                                               namelen, name, master,
++                                               new_master);
++                       }
+                }
+                spin_unlock(&tmp->spinlock);
+        }
 --
 1.8.4.3
