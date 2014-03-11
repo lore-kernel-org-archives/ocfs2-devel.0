@@ -1,53 +1,58 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Mon, 10 Mar 2014 14:59:52 -0700
-Subject: [Ocfs2-devel] [PATCH] allow for more than one data extent when
- creating xattr
-In-Reply-To: <1394485700-12641-1-git-send-email-tariq.x.saeed@oracle.com>
-References: <1394485700-12641-1-git-send-email-tariq.x.saeed@oracle.com>
-Message-ID: <531E35D8.6020102@oracle.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Tue, 11 Mar 2014 11:09:14 +0000
+Subject: [Ocfs2-devel] One Patch reported, Anyone review it, thanks
+Message-ID: <71604351584F6A4EBAE558C676F37CA42EC3CCB9@H3CMLB02-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-looks good to me.
-Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+I review the code of the kernel 3.11.10.
 
-On 03/10/2014 02:08 PM, Tariq Saeed wrote:
-> Orabug: 18108070
->
-> ocfs2_xattr_extend_allocation() hits panic when creating xattr during
-> data extent alloc phase. The problem occurs if due to local alloc
-> fragmentation, clusters are spread over multiple extents.  In this case
-> ocfs2_add_clusters_in_btree() finds no space to store more than one extent
-> record and therefore fails returning RESTART_META.  The situation is
-> anticipated for xattr update case but not xattr create case. This fix
-> simply ports that code to create case.
->
-> Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
-> ---
->   fs/ocfs2/xattr.c |    9 ++++++++-
->   1 files changed, 8 insertions(+), 1 deletions(-)
->
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 5b8d944..bfa1c37 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -3207,8 +3207,15 @@ meta_guess:
->   			clusters_add += 1;
->   		}
->   	} else {
-> -		meta_add += 1;
->   		credits += OCFS2_XATTR_BLOCK_CREATE_CREDITS;
-> +		if (xi->xi_value_len > OCFS2_XATTR_INLINE_SIZE) {
-> +			struct ocfs2_extent_list *el = &def_xv.xv.xr_list;
-> +			meta_add += ocfs2_extend_meta_needed(el);
-> +			credits += ocfs2_calc_extend_credits(inode->i_sb,
-> +							     el, 1);
-> +		} else {
-> +			meta_add += 1;
-> +		}
->   	}
->   out:
->   	if (clusters_need)
+The difference is as below:
+
+-- ../linux-3.11.10/fs/ocfs2/dlm/dlmdomain.c       2013-11-30 02:42:37.000000000 +0800
++++ ocfs2-ko-3.11/dlm/dlmdomain.c     2014-03-11 18:57:23.323897515 +0800
+@@ -1135,6 +1135,9 @@ static int dlm_query_region_handler(stru
+      int status = 0;
+      int locked = 0;
++    /* Wether domain locked */
++    int domain_locked = 0;
++
+      qr = (struct dlm_query_region *) msg->buf;
+       mlog(0, "Node %u queries hb regions on domain %s\n", qr->qr_node,
+@@ -1150,6 +1153,7 @@ static int dlm_query_region_handler(stru
+      status = -EINVAL;
+       spin_lock(&dlm_domain_lock);
++    domain_locked = 1;
+      dlm = __dlm_lookup_domain_full(qr->qr_domain, qr->qr_namelen);
+      if (!dlm) {
+              mlog(ML_ERROR, "Node %d queried hb regions on domain %s "
+@@ -1181,9 +1185,12 @@ static int dlm_query_region_handler(stru
+bail:
+      if (locked)
+              spin_unlock(&dlm->spinlock);
+-       spin_unlock(&dlm_domain_lock);
+-       kfree(local);
++    if (domain_locked)
++        spin_unlock(&dlm_domain_lock);
++
++    if (local)
++        kfree(local);
+       return status;
+}
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140311/10b2ed58/attachment.html 
