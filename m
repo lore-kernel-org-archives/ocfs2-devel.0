@@ -1,51 +1,36 @@
-From: Sasha Levin <sasha.levin@oracle.com>
-Date: Wed, 26 Mar 2014 18:23:41 -0400
-Subject: [Ocfs2-devel] [PATCH] ocfs2: check if cluster name exists
-	before deref
-In-Reply-To: <20140326220018.GE5716@wotan.suse.de>
-References: <1395768118-21368-1-git-send-email-sasha.levin@oracle.com>
-	<20140326220018.GE5716@wotan.suse.de>
-Message-ID: <5333536D.5020603@oracle.com>
+From: Dongsheng Yang <yangds.fnst@cn.fujitsu.com>
+Date: Tue, 11 Mar 2014 05:01:32 -0000
+Subject: [Ocfs2-devel] [PATCH 08/15] fs/hearbeat: Replace hardcoding of -20
+	with MIN_NICE.
+In-Reply-To: <cover.1394513466.git.yangds.fnst@cn.fujitsu.com>
+References: <cover.1394513466.git.yangds.fnst@cn.fujitsu.com>
+Message-ID: <86b0868b5919c58a3de047205b9adfb5b0a6949b.1394513466.git.yangds.fnst@cn.fujitsu.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: joe@perches.com, peterz@infradead.org, mingo@kernel.org, tglx@linutronix.de, Dongsheng Yang <yangds.fnst@cn.fujitsu.com>, ocfs2-devel@oss.oracle.com, Dong Fang <yp.fangdong@gmail.com>
 
-On 03/26/2014 06:00 PM, Mark Fasheh wrote:
-> On Tue, Mar 25, 2014 at 01:21:58PM -0400, Sasha Levin wrote:
->> As a side note, how the hell was this new code path tested?
->> It's obviously broken and there's no way it even passes
->> a very basic test.
->
-> I'm not trying to 'defend' Goldwyn, or anything, but mistakes get made -
-> it's a fact of life. We have a review process to hopefully catch these sorts
-> of things, you are welcome to take part in it. In fact, if you were
-> willing to test and report these sorts of things to the Ocfs2-devel list
-> before they go upstream that would probably help prevent this sort of thing
-> from happening in the future.
+Signed-off-by: Dongsheng Yang <yangds.fnst@cn.fujitsu.com>
+cc: ocfs2-devel at oss.oracle.com
+cc: Dong Fang <yp.fangdong@gmail.com>
+---
+ fs/ocfs2/cluster/heartbeat.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Hi Mark,
-
-I'm fuzz testing the kernel and not really testing or reviewing any subsystem
-in particular.
-
-My frustration about not testing it was because it's so simple to reproduce this
-issue:
-
-  # mount -t ocfs2_dlmfs ocfs2_dlmfs dlm
-  # mkdir dlm/anything
-  [ boom ]
-
-This is a very basic test that should have been run more than once before this
-patch made it into Linus's tree. Whether as part of some ocfs2 test suite or
-maybe xfstest.
-
-My beef is not with Goldwyn not testing that path, it's more with whatever
-process (or lack thereof) ocfs2 has to test and verify patches before
-they make it upstream. Even if Goldwyn missed it, it should have been
-caught at a different place on it's way.
-
-
-Thanks,
-Sasha
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index bf482df..7303929 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1107,7 +1107,7 @@ static int o2hb_thread(void *data)
+ 
+ 	mlog(ML_HEARTBEAT|ML_KTHREAD, "hb thread running\n");
+ 
+-	set_user_nice(current, -20);
++	set_user_nice(current, MIN_NICE);
+ 
+ 	/* Pin node */
+ 	o2nm_depend_this_node();
+-- 
+1.8.2.1
