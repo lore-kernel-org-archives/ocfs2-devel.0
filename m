@@ -1,325 +1,99 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 19 Mar 2014 14:09:59 -0700
-Subject: [Ocfs2-devel] [patch 1/8] ocfs2: alloc_dinode counts and group
-	bitmap should be update simultaneously
-Message-ID: <20140319210959.8E1C531C1E1@corp2gmr1-1.hot.corp.google.com>
+Date: Wed, 19 Mar 2014 14:10:04 -0700
+Subject: [Ocfs2-devel] [patch 6/8] ocfs2: manually do the iput once
+	ocfs2_add_entry failed in ocfs2_symlink and ocfs2_mknod
+Message-ID: <20140319211005.3A1EB5A41DB@corp2gmr1-2.hot.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Younger Liu <younger.liucn@gmail.com>
-Subject: ocfs2: alloc_dinode counts and group bitmap should be update simultaneously
+From: jiangyiwen <jiangyiwen@huawei.com>
+Subject: ocfs2: manually do the iput once ocfs2_add_entry failed in ocfs2_symlink and ocfs2_mknod
 
-Updating alloc_dinode counts in ocfs2_alloc_dinode_update_counts() and
-setting group bitmap in ocfs2_alloc_dinode_update_bitmap() have to be done
-simultaneously.  Two cases are as follow:
+When the call to ocfs2_add_entry() failed in ocfs2_symlink() and
+ocfs2_mknod(), iput() will not be called during dput(dentry) because no
+d_instantiate(), and this will lead to umount hung.
 
-(1) If ocfs2_alloc_dinode_update_counts() fails, there is no need to
-    set group bitmap.  This case has been considered.
-
-(2) If ocfs2_alloc_dinode_update_bitmap() fails, alloc_dinode counts
-    should be rolled back.  Otherwise, some clusters would never be used. 
-    This case is not considered.
-
-So, we combine two functions, and ensure simultaneity.
-
-Signed-off-by: Younger Liu <younger.liucn@gmail.com>
-Cc: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/move_extents.c |   11 --
- fs/ocfs2/ocfs2_trace.h  |    2 
- fs/ocfs2/suballoc.c     |  155 +++++++++++++++-----------------------
- fs/ocfs2/suballoc.h     |   21 +----
- 4 files changed, 77 insertions(+), 112 deletions(-)
+ fs/ocfs2/namei.c |   26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
 
-diff -puN fs/ocfs2/move_extents.c~ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously fs/ocfs2/move_extents.c
---- a/fs/ocfs2/move_extents.c~ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously
-+++ a/fs/ocfs2/move_extents.c
-@@ -681,18 +681,15 @@ static int ocfs2_move_extent(struct ocfs
+diff -puN fs/ocfs2/namei.c~ocfs2-manually-do-the-iput-once-ocfs2_add_entry-failed-in-ocfs2_symlink-and-ocfs2_mknod fs/ocfs2/namei.c
+--- a/fs/ocfs2/namei.c~ocfs2-manually-do-the-iput-once-ocfs2_add_entry-failed-in-ocfs2_symlink-and-ocfs2_mknod
++++ a/fs/ocfs2/namei.c
+@@ -231,6 +231,7 @@ static int ocfs2_mknod(struct inode *dir
+ 	sigset_t oldset;
+ 	int did_block_signals = 0;
+ 	struct posix_acl *default_acl = NULL, *acl = NULL;
++	struct ocfs2_dentry_lock *dl = NULL;
+ 
+ 	trace_ocfs2_mknod(dir, dentry, dentry->d_name.len, dentry->d_name.name,
+ 			  (unsigned long long)OCFS2_I(dir)->ip_blkno,
+@@ -423,6 +424,8 @@ static int ocfs2_mknod(struct inode *dir
+ 		goto leave;
  	}
  
- 	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
--	ret = ocfs2_alloc_dinode_update_counts(gb_inode, handle, gb_bh, len,
--					       le16_to_cpu(gd->bg_chain));
-+	ret = ocfs2_alloc_dinode_update_bitmap(handle,
-+				gb_inode, gb_bh, gd, gb_bh,
-+				le16_to_cpu(gd->bg_chain),
-+				goal_bit, len);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out_commit;
- 	}
- 
--	ret = ocfs2_block_group_set_bits(handle, gb_inode, gd, gd_bh,
--					 goal_bit, len);
--	if (ret)
--		mlog_errno(ret);
--
- 	/*
- 	 * Here we should write the new page out first if we are
- 	 * in write-back mode.
-diff -puN fs/ocfs2/ocfs2_trace.h~ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously fs/ocfs2/ocfs2_trace.h
---- a/fs/ocfs2/ocfs2_trace.h~ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously
-+++ a/fs/ocfs2/ocfs2_trace.h
-@@ -788,7 +788,7 @@ DEFINE_OCFS2_UINT_UINT_UINT_EVENT(ocfs2_
- 
- DEFINE_OCFS2_ULL_EVENT(ocfs2_reserve_new_inode_new_group);
- 
--DEFINE_OCFS2_UINT_UINT_EVENT(ocfs2_block_group_set_bits);
-+DEFINE_OCFS2_UINT_UINT_EVENT(ocfs2_alloc_dinode_update_bitmap);
- 
- TRACE_EVENT(ocfs2_relink_block_group,
- 	TP_PROTO(unsigned long long i_blkno, unsigned int chain,
-diff -puN fs/ocfs2/suballoc.c~ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously fs/ocfs2/suballoc.c
---- a/fs/ocfs2/suballoc.c~ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously
-+++ a/fs/ocfs2/suballoc.c
-@@ -1337,54 +1337,6 @@ static int ocfs2_block_group_find_clear_
- 	return status;
- }
- 
--int ocfs2_block_group_set_bits(handle_t *handle,
--					     struct inode *alloc_inode,
--					     struct ocfs2_group_desc *bg,
--					     struct buffer_head *group_bh,
--					     unsigned int bit_off,
--					     unsigned int num_bits)
--{
--	int status;
--	void *bitmap = bg->bg_bitmap;
--	int journal_type = OCFS2_JOURNAL_ACCESS_WRITE;
--
--	/* All callers get the descriptor via
--	 * ocfs2_read_group_descriptor().  Any corruption is a code bug. */
--	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
--	BUG_ON(le16_to_cpu(bg->bg_free_bits_count) < num_bits);
--
--	trace_ocfs2_block_group_set_bits(bit_off, num_bits);
--
--	if (ocfs2_is_cluster_bitmap(alloc_inode))
--		journal_type = OCFS2_JOURNAL_ACCESS_UNDO;
--
--	status = ocfs2_journal_access_gd(handle,
--					 INODE_CACHE(alloc_inode),
--					 group_bh,
--					 journal_type);
--	if (status < 0) {
--		mlog_errno(status);
--		goto bail;
--	}
--
--	le16_add_cpu(&bg->bg_free_bits_count, -num_bits);
--	if (le16_to_cpu(bg->bg_free_bits_count) > le16_to_cpu(bg->bg_bits)) {
--		ocfs2_error(alloc_inode->i_sb, "Group descriptor # %llu has bit"
--			    " count %u but claims %u are freed. num_bits %d",
--			    (unsigned long long)le64_to_cpu(bg->bg_blkno),
--			    le16_to_cpu(bg->bg_bits),
--			    le16_to_cpu(bg->bg_free_bits_count), num_bits);
--		return -EROFS;
--	}
--	while(num_bits--)
--		ocfs2_set_bit(bit_off++, bitmap);
--
--	ocfs2_journal_dirty(handle, group_bh);
--
--bail:
--	return status;
--}
--
- /* find the one with the most empty bits */
- static inline u16 ocfs2_find_victim_chain(struct ocfs2_chain_list *cl)
- {
-@@ -1580,31 +1532,78 @@ static int ocfs2_block_group_search(stru
- 	return ret;
- }
- 
--int ocfs2_alloc_dinode_update_counts(struct inode *inode,
--				       handle_t *handle,
--				       struct buffer_head *di_bh,
--				       u32 num_bits,
--				       u16 chain)
-+int ocfs2_alloc_dinode_update_bitmap(handle_t *handle,
-+				struct inode *alloc_inode,
-+				struct buffer_head *di_bh,
-+				struct ocfs2_group_desc *bg,
-+				struct buffer_head *group_bh,
-+				u16 chain, u32 bit_off, u32 num_bits)
- {
- 	int ret;
- 	u32 tmp_used;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *) di_bh->b_data;
- 	struct ocfs2_chain_list *cl = (struct ocfs2_chain_list *) &di->id2.i_chain;
-+	void *bitmap = bg->bg_bitmap;
-+	int journal_type = OCFS2_JOURNAL_ACCESS_WRITE;
- 
--	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
--				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	/*
-+	 * All callers get the descriptor via
-+	 * ocfs2_read_group_descriptor().  Any corruption is a code bug.
-+	 */
-+	BUG_ON(!OCFS2_IS_VALID_GROUP_DESC(bg));
-+	BUG_ON(le16_to_cpu(bg->bg_free_bits_count) < num_bits);
++	dl = dentry->d_fsdata;
 +
-+	trace_ocfs2_alloc_dinode_update_bitmap(bit_off, num_bits);
-+
-+	ret = ocfs2_journal_access_di(handle,
-+			INODE_CACHE(alloc_inode), di_bh, journal_type);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
+ 	status = ocfs2_add_entry(handle, dentry, inode,
+ 				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
+ 				 &lookup);
+@@ -470,6 +473,16 @@ leave:
+ 	 * ocfs2_delete_inode will mutex_lock again.
+ 	 */
+ 	if ((status < 0) && inode) {
++		if (dl) {
++			ocfs2_simple_drop_lockres(osb, &dl->dl_lockres);
++			ocfs2_lock_res_free(&dl->dl_lockres);
++			BUG_ON(dl->dl_count != 1);
++			spin_lock(&dentry_attach_lock);
++			dentry->d_fsdata = NULL;
++			spin_unlock(&dentry_attach_lock);
++			kfree(dl);
++			iput(inode);
++		}
+ 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SKIP_ORPHAN_DIR;
+ 		clear_nlink(inode);
+ 		iput(inode);
+@@ -1739,6 +1752,7 @@ static int ocfs2_symlink(struct inode *d
+ 	struct ocfs2_dir_lookup_result lookup = { NULL, };
+ 	sigset_t oldset;
+ 	int did_block_signals = 0;
++	struct ocfs2_dentry_lock *dl = NULL;
  
-+	if (ocfs2_is_cluster_bitmap(alloc_inode))
-+		journal_type = OCFS2_JOURNAL_ACCESS_UNDO;
-+
-+	ret = ocfs2_journal_access_gd(handle,
-+			INODE_CACHE(alloc_inode), group_bh, journal_type);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	/* update alloc_dinode counts */
- 	tmp_used = le32_to_cpu(di->id1.bitmap1.i_used);
- 	di->id1.bitmap1.i_used = cpu_to_le32(num_bits + tmp_used);
- 	le32_add_cpu(&cl->cl_recs[chain].c_free, -num_bits);
-+
-+	/* update bg counts and bitmap*/
-+	le16_add_cpu(&bg->bg_free_bits_count, -num_bits);
-+	if (le16_to_cpu(bg->bg_free_bits_count) > le16_to_cpu(bg->bg_bits)) {
-+		ocfs2_error(alloc_inode->i_sb, "Group descriptor # %llu has bit"
-+			" count %u but claims %u are freed. num_bits %d",
-+			(unsigned long long)le64_to_cpu(bg->bg_blkno),
-+			le16_to_cpu(bg->bg_bits),
-+			le16_to_cpu(bg->bg_free_bits_count), num_bits);
-+		ret = -EROFS;
-+		goto out_rollback;
-+	}
-+	while (num_bits--)
-+		ocfs2_set_bit(bit_off++, bitmap);
-+
- 	ocfs2_journal_dirty(handle, di_bh);
-+	ocfs2_journal_dirty(handle, group_bh);
- 
- out:
- 	return ret;
-+
-+out_rollback:
-+	le16_add_cpu(&bg->bg_free_bits_count, num_bits);
-+
-+	di->id1.bitmap1.i_used = cpu_to_le32(tmp_used - num_bits);
-+	le32_add_cpu(&cl->cl_recs[chain].c_free, num_bits);
-+
-+	return ret;
- }
- 
- static int ocfs2_bg_discontig_fix_by_rec(struct ocfs2_suballoc_result *res,
-@@ -1697,19 +1696,15 @@ static int ocfs2_search_one_group(struct
- 	if (ac->ac_find_loc_only)
- 		goto out_loc_only;
- 
--	ret = ocfs2_alloc_dinode_update_counts(alloc_inode, handle, ac->ac_bh,
--					       res->sr_bits,
--					       le16_to_cpu(gd->bg_chain));
-+	ret = ocfs2_alloc_dinode_update_bitmap(handle,
-+			alloc_inode, ac->ac_bh, gd, group_bh,
-+			le16_to_cpu(gd->bg_chain),
-+			res->sr_bit_offset, res->sr_bits);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
- 	}
- 
--	ret = ocfs2_block_group_set_bits(handle, alloc_inode, gd, group_bh,
--					 res->sr_bit_offset, res->sr_bits);
--	if (ret < 0)
--		mlog_errno(ret);
--
- out_loc_only:
- 	*bits_left = le16_to_cpu(gd->bg_free_bits_count);
- 
-@@ -1823,20 +1818,9 @@ static int ocfs2_search_chain(struct ocf
- 	if (ac->ac_find_loc_only)
- 		goto out_loc_only;
- 
--	status = ocfs2_alloc_dinode_update_counts(alloc_inode, handle,
--						  ac->ac_bh, res->sr_bits,
--						  chain);
--	if (status) {
--		mlog_errno(status);
--		goto bail;
--	}
--
--	status = ocfs2_block_group_set_bits(handle,
--					    alloc_inode,
--					    bg,
--					    group_bh,
--					    res->sr_bit_offset,
--					    res->sr_bits);
-+	status = ocfs2_alloc_dinode_update_bitmap(handle,
-+			alloc_inode, ac->ac_bh, bg, group_bh,
-+			chain, res->sr_bit_offset, res->sr_bits);
- 	if (status < 0) {
- 		mlog_errno(status);
+ 	trace_ocfs2_symlink_begin(dir, dentry, symname,
+ 				  dentry->d_name.len, dentry->d_name.name);
+@@ -1927,6 +1941,8 @@ static int ocfs2_symlink(struct inode *d
  		goto bail;
-@@ -2134,20 +2118,9 @@ int ocfs2_claim_new_inode_at_loc(handle_
- 	bg = (struct ocfs2_group_desc *) bg_bh->b_data;
- 	chain = le16_to_cpu(bg->bg_chain);
+ 	}
  
--	ret = ocfs2_alloc_dinode_update_counts(ac->ac_inode, handle,
--					       ac->ac_bh, res->sr_bits,
--					       chain);
--	if (ret) {
--		mlog_errno(ret);
--		goto out;
--	}
--
--	ret = ocfs2_block_group_set_bits(handle,
--					 ac->ac_inode,
--					 bg,
--					 bg_bh,
--					 res->sr_bit_offset,
--					 res->sr_bits);
-+	ret = ocfs2_alloc_dinode_update_bitmap(handle,
-+			ac->ac_inode, ac->ac_bh, bg, bg_bh,
-+			chain, res->sr_bit_offset, res->sr_bits);
- 	if (ret < 0) {
- 		mlog_errno(ret);
- 		goto out;
-diff -puN fs/ocfs2/suballoc.h~ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously fs/ocfs2/suballoc.h
---- a/fs/ocfs2/suballoc.h~ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously
-+++ a/fs/ocfs2/suballoc.h
-@@ -85,19 +85,14 @@ int ocfs2_reserve_new_inode(struct ocfs2
- int ocfs2_reserve_clusters(struct ocfs2_super *osb,
- 			   u32 bits_wanted,
- 			   struct ocfs2_alloc_context **ac);
--
--int ocfs2_alloc_dinode_update_counts(struct inode *inode,
--			 handle_t *handle,
--			 struct buffer_head *di_bh,
--			 u32 num_bits,
--			 u16 chain);
--int ocfs2_block_group_set_bits(handle_t *handle,
--			 struct inode *alloc_inode,
--			 struct ocfs2_group_desc *bg,
--			 struct buffer_head *group_bh,
--			 unsigned int bit_off,
--			 unsigned int num_bits);
--
-+int ocfs2_alloc_dinode_update_bitmap(handle_t *handle,
-+				struct inode *alloc_inode,
-+				struct buffer_head *di_bh,
-+				struct ocfs2_group_desc *bg,
-+				struct buffer_head *group_bh,
-+				u16 chain,
-+				u32 bit_off,
-+				u32 num_bits);
- int ocfs2_claim_metadata(handle_t *handle,
- 			 struct ocfs2_alloc_context *ac,
- 			 u32 bits_wanted,
++	dl = dentry->d_fsdata;
++
+ 	status = ocfs2_add_entry(handle, dentry, inode,
+ 				 le64_to_cpu(fe->i_blkno), parent_fe_bh,
+ 				 &lookup);
+@@ -1962,6 +1978,16 @@ bail:
+ 	if (xattr_ac)
+ 		ocfs2_free_alloc_context(xattr_ac);
+ 	if ((status < 0) && inode) {
++		if (dl) {
++			ocfs2_simple_drop_lockres(osb, &dl->dl_lockres);
++			ocfs2_lock_res_free(&dl->dl_lockres);
++			BUG_ON(dl->dl_count != 1);
++			spin_lock(&dentry_attach_lock);
++			dentry->d_fsdata = NULL;
++			spin_unlock(&dentry_attach_lock);
++			kfree(dl);
++			iput(inode);
++		}
+ 		OCFS2_I(inode)->ip_flags |= OCFS2_INODE_SKIP_ORPHAN_DIR;
+ 		clear_nlink(inode);
+ 		iput(inode);
 _
