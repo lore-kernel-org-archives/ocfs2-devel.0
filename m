@@ -1,43 +1,62 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 19 Mar 2014 14:10:00 -0700
-Subject: [Ocfs2-devel] [patch 2/8] ocfs2: flock: drop cross-node lock when
-	failed locally
-Message-ID: <20140319211000.A597C31C25A@corp2gmr1-1.hot.corp.google.com>
+Date: Wed, 19 Mar 2014 14:10:05 -0700
+Subject: [Ocfs2-devel] [patch 7/8] ocfs2: should call
+	ocfs2_journal_access_di() before ocfs2_delete_entry() in
+	ocfs2_orphan_del()
+Message-ID: <20140319211006.4CD9731C1E1@corp2gmr1-1.hot.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Subject: ocfs2: flock: drop cross-node lock when failed locally
+From: Younger Liu <younger.liu@huawei.com>
+Subject: ocfs2: should call ocfs2_journal_access_di() before ocfs2_delete_entry() in ocfs2_orphan_del()
 
-ocfs2_do_flock() calls ocfs2_file_lock() to get the cross-node clock and
-then call flock_lock_file_wait() to compete with local processes.  In case
-flock_lock_file_wait() failed, say -ENOMEM, clean up work is not done. 
-This patch adds the cleanup --drop the cross-node lock which was just
-granted.
+While deleting a file into orphan dir in ocfs2_orphan_del(), it calls
+ocfs2_delete_entry() before ocfs2_journal_access_di().  If
+ocfs2_delete_entry() succeeded and ocfs2_journal_access_di() failed, there
+would be a inconsistency: the file is deleted from orphan dir, but orphan
+dir dinode is not updated.
 
-[akpm at linux-foundation.org: coding-style fixes]
-Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+So we need to call ocfs2_journal_access_di() before ocfs2_orphan_del().
+
+Signed-off-by: Younger Liu <younger.liu@huawei.com>
+Reviewed-by: Jensen <shencanquan@huawei.com>
+Cc: Jie Liu <jeff.liu@oracle.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/locks.c |    2 ++
- 1 file changed, 2 insertions(+)
+ fs/ocfs2/namei.c |   12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff -puN fs/ocfs2/locks.c~ocfs2-flock-drop-cross-node-lock-when-failed-locally fs/ocfs2/locks.c
---- a/fs/ocfs2/locks.c~ocfs2-flock-drop-cross-node-lock-when-failed-locally
-+++ a/fs/ocfs2/locks.c
-@@ -82,6 +82,8 @@ static int ocfs2_do_flock(struct file *f
+diff -puN fs/ocfs2/namei.c~ocfs2-should-call-ocfs2_journal_access_di-before-ocfs2_delete_entry-in-ocfs2_orphan_del fs/ocfs2/namei.c
+--- a/fs/ocfs2/namei.c~ocfs2-should-call-ocfs2_journal_access_di-before-ocfs2_delete_entry-in-ocfs2_orphan_del
++++ a/fs/ocfs2/namei.c
+@@ -2261,17 +2261,17 @@ int ocfs2_orphan_del(struct ocfs2_super
+ 		goto leave;
  	}
  
- 	ret = flock_lock_file_wait(file, fl);
-+	if (ret)
-+		ocfs2_file_unlock(file);
+-	/* remove it from the orphan directory */
+-	status = ocfs2_delete_entry(handle, orphan_dir_inode, &lookup);
++	status = ocfs2_journal_access_di(handle,
++					 INODE_CACHE(orphan_dir_inode),
++					 orphan_dir_bh,
++					 OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto leave;
+ 	}
  
- out:
- 	mutex_unlock(&fp->fp_mutex);
+-	status = ocfs2_journal_access_di(handle,
+-					 INODE_CACHE(orphan_dir_inode),
+-					 orphan_dir_bh,
+-					 OCFS2_JOURNAL_ACCESS_WRITE);
++	/* remove it from the orphan directory */
++	status = ocfs2_delete_entry(handle, orphan_dir_inode, &lookup);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto leave;
 _
