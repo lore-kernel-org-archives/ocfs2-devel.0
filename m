@@ -1,53 +1,47 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Fri, 14 Mar 2014 17:57:26 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: iput inode alloc when failed locally
-Message-ID: <5322D286.4010506@huawei.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 19 Mar 2014 18:28:56 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2 : fix type conversion risk when get
+	cluster attributes
+Message-ID: <53297168.1040302@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_info_handle_freeinode() and ocfs2_test_inode_bit() func,
-after calls ocfs2_get_system_file_inode() to get inode ref, if
-calls ocfs2_info_scan_inode_alloc() or ocfs2_inode_lock() failed,
-we should iput inode alloc to avoid inode alloc be left over.
+In o2nm_cluster, cl_idle_timeout_ms, cl_keepalive_delay_ms, as well as
+cl_reconnect_delay_ms, are defined as type of unsigned int. So we should
+also use unsigned int in the helper functions.
 
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 ---
- fs/ocfs2/ioctl.c    | 5 +++--
- fs/ocfs2/suballoc.c | 1 +
- 2 files changed, 4 insertions(+), 2 deletions(-)
+ fs/ocfs2/cluster/tcp.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 8ca3c29..490229f 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -413,11 +413,12 @@ int ocfs2_info_handle_freeinode(struct inode *inode,
- 		}
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 2cd2406..b4ab371 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -262,17 +262,17 @@ static void o2net_update_recv_stats(struct
+o2net_sock_container *sc)
 
- 		status = ocfs2_info_scan_inode_alloc(osb, inode_alloc, blkno, oifi, i);
--		if (status < 0)
--			goto bail;
+ #endif /* CONFIG_OCFS2_FS_STATS */
 
- 		iput(inode_alloc);
- 		inode_alloc = NULL;
-+
-+		if (status < 0)
-+			goto bail;
- 	}
+-static inline int o2net_reconnect_delay(void)
++static inline unsigned int o2net_reconnect_delay(void)
+ {
+ 	return o2nm_single_cluster->cl_reconnect_delay_ms;
+ }
 
- 	o2info_set_request_filled(&oifi->ifi_req);
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 47ae266..5843420 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -2870,6 +2870,7 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
- 	status = ocfs2_inode_lock(inode_alloc_inode, &alloc_bh, 0);
- 	if (status < 0) {
- 		mutex_unlock(&inode_alloc_inode->i_mutex);
-+		iput(inode_alloc_inode);
- 		mlog(ML_ERROR, "lock on alloc inode on slot %u failed %d\n",
- 		     (u32)suballoc_slot, status);
- 		goto bail;
+-static inline int o2net_keepalive_delay(void)
++static inline unsigned int o2net_keepalive_delay(void)
+ {
+ 	return o2nm_single_cluster->cl_keepalive_delay_ms;
+ }
+
+-static inline int o2net_idle_timeout(void)
++static inline unsigned int o2net_idle_timeout(void)
+ {
+ 	return o2nm_single_cluster->cl_idle_timeout_ms;
+ }
+-- 1.8.4.3
