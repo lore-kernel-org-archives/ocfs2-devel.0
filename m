@@ -1,48 +1,49 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Wed, 19 Mar 2014 16:00:39 -0700
-Subject: [Ocfs2-devel] ocfs2 patches pending review/ack
-In-Reply-To: <20140319140907.e46f32085a2a499f23048ccd@linux-foundation.org>
-References: <20140319140907.e46f32085a2a499f23048ccd@linux-foundation.org>
-Message-ID: <20140319230039.GB5716@wotan.suse.de>
+From: Tariq Saeed <tariq.x.saeed@oracle.com>
+Date: Wed, 19 Mar 2014 18:08:00 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] allow for more than one data extent when
+	creating xattr
+Message-ID: <1395277680-13033-1-git-send-email-tariq.x.saeed@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Mar 19, 2014 at 02:09:07PM -0700, Andrew Morton wrote:
-> 
-> I'm sitting on six patches which I'm reluctant to merge under my own
-> steam.  Some of these I have probably send out before.
-> 
-> ocfs2-alloc_dinode-counts-and-group-bitmap-should-be-update-simultaneously.patch
-> ocfs2-flock-drop-cross-node-lock-when-failed-locally.patch
-> ocfs2-o2net-o2net_listen_data_ready-should-do-nothing-if-socket-state-is-not-tcp_listen.patch
-> ocfs2-call-ocfs2_update_inode_fsync_trans-when-updating-any-inode.patch
-> ocfs2-do-not-return-dlm_migrate_response_mastery_ref-to-avoid-endlessloop-during-umount.patch
-> ocfs2-manually-do-the-iput-once-ocfs2_add_entry-failed-in-ocfs2_symlink-and-ocfs2_mknod.patch
+Orabug: 18108070
 
-I can the review above patches tommorrow for us.
+ocfs2_xattr_extend_allocation() hits panic when creating xattr during
+data extent alloc phase. The problem occurs if due to local alloc
+fragmentation, clusters are spread over multiple extents.  In this case
+ocfs2_add_clusters_in_btree() finds no space to store more than one extent
+record and therefore fails returning RESTART_META.  The situation is
+anticipated for xattr update case but not xattr create case. This fix
+simply ports that code to create case.
 
+Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
+---
+ fs/ocfs2/xattr.c |    9 ++++++++-
+ 1 files changed, 8 insertions(+), 1 deletions(-)
 
-> And these two have been hanging around for a long time:
-> 
-> ocfs2-should-call-ocfs2_journal_access_di-before-ocfs2_delete_entry-in-ocfs2_orphan_del.patch
-> ("Sunil nack, Mark confused")
-
-Go ahead and drop this one please. I never figured out exactly what the
-actual problem was - I'd be happy to come back to it later once we know
-more.
-
-
-> ocfs2-llseek-requires-ocfs2-inode-lock-for-the-file-in-seek_end.patch
-> ("Sunil worried about performance, Joel had Q, Mark wanted update, Joel
-> acked, worried about perf")
-
-The performance testing didn't really happen in a way that was useful. I
-wanted to find time to do it on my own but never did. Since this fixes a bug
-for a known user I would say to go for it.
-	--Mark
-
---
-Mark Fasheh
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 185fa3b..4217fed 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -3200,8 +3200,15 @@ meta_guess:
+ 			clusters_add += 1;
+ 		}
+ 	} else {
+-		meta_add += 1;
+ 		credits += OCFS2_XATTR_BLOCK_CREATE_CREDITS;
++		if (xi->xi_value_len > OCFS2_XATTR_INLINE_SIZE) {
++			struct ocfs2_extent_list *el = &def_xv.xv.xr_list;
++			meta_add += ocfs2_extend_meta_needed(el);
++			credits += ocfs2_calc_extend_credits(inode->i_sb,
++							     el);
++		} else {
++			meta_add += 1;
++		}
+ 	}
+ out:
+ 	if (clusters_need)
+-- 
+1.7.1
