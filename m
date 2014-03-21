@@ -1,63 +1,33 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 20 Mar 2014 16:41:12 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix dead lock risk when kmalloc
- failed in dlm_query_region_handler
-In-Reply-To: <532A6DAA.9020707@huawei.com>
-References: <532A6DAA.9020707@huawei.com>
-Message-ID: <20140320164112.df1aa9b451527b1493eef799@linux-foundation.org>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 21 Mar 2014 15:41:06 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix dead lock risk when kmalloc
+	failed in dlm_query_region_handler
+Message-ID: <532BED12.5020408@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, 20 Mar 2014 12:25:14 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
+From: Zhonghua Guo <guozhonghua@h3c.com>
 
-> From: Zhonghua Guo <guozhonghua@h3c.com>
-> 
-> In dlm_query_region_handler(), once kmalloc failed, it will unlock
-> dlm_domain_lock without lock first, then dead lock happens.
-> This patch adds a flag domain_locked to fix this issue.
-> 
-> ...
->
-> --- a/fs/ocfs2/dlm/dlmdomain.c
-> +++ b/fs/ocfs2/dlm/dlmdomain.c
-> @@ -1124,6 +1124,7 @@ static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
->  	char *local = NULL;
->  	int status = 0;
->  	int locked = 0;
-> +	int domain_locked = 0;
->  
->  	qr = (struct dlm_query_region *) msg->buf;
->  
-> @@ -1140,6 +1141,7 @@ static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
->  	status = -EINVAL;
->  
->  	spin_lock(&dlm_domain_lock);
-> +	domain_locked = 1;
->  	dlm = __dlm_lookup_domain_full(qr->qr_domain, qr->qr_namelen);
->  	if (!dlm) {
->  		mlog(ML_ERROR, "Node %d queried hb regions on domain %s "
-> @@ -1171,7 +1173,8 @@ static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
->  bail:
->  	if (locked)
->  		spin_unlock(&dlm->spinlock);
-> -	spin_unlock(&dlm_domain_lock);
-> +	if (domain_locked)
-> +		spin_unlock(&dlm_domain_lock);
->  
->  	kfree(local);
+In dlm_query_region_handler(), once kmalloc failed, it will unlock
+dlm_domain_lock without lock first, then dead lock happens.
 
-That makes the code messier, by adding another local and testing it.
+Signed-off-by: Zhonghua Guo <guozhonghua@h3c.com>
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+Reviewed-by: Andrew Morton <akpm@linux-foundation.org>
+Tested-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/dlm/dlmdomain.c | 21 +++++++++------------
+ 1 file changed, 9 insertions(+), 12 deletions(-)
 
-We can instead make the code cleaner by adopting conventional error
-unwinding techniques:
-
-
---- a/fs/ocfs2/dlm/dlmdomain.c~ocfs2-fix-dead-lock-risk-when-kmalloc-failed-in-dlm_query_region_handler
-+++ a/fs/ocfs2/dlm/dlmdomain.c
-@@ -1123,7 +1123,6 @@ static int dlm_query_region_handler(stru
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index 33660a4..01c4e9e 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1123,7 +1123,6 @@ static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
  	struct dlm_ctxt *dlm = NULL;
  	char *local = NULL;
  	int status = 0;
@@ -65,7 +35,7 @@ unwinding techniques:
  
  	qr = (struct dlm_query_region *) msg->buf;
  
-@@ -1132,10 +1131,8 @@ static int dlm_query_region_handler(stru
+@@ -1132,10 +1131,8 @@ static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
  
  	/* buffer used in dlm_mast_regions() */
  	local = kmalloc(sizeof(qr->qr_regions), GFP_KERNEL);
@@ -78,7 +48,7 @@ unwinding techniques:
  
  	status = -EINVAL;
  
-@@ -1144,16 +1141,15 @@ static int dlm_query_region_handler(stru
+@@ -1144,16 +1141,15 @@ static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
  	if (!dlm) {
  		mlog(ML_ERROR, "Node %d queried hb regions on domain %s "
  		     "before join domain\n", qr->qr_node, qr->qr_domain);
@@ -97,7 +67,7 @@ unwinding techniques:
  	}
  
  	/* Support for global heartbeat was added in 1.1 */
-@@ -1163,14 +1159,14 @@ static int dlm_query_region_handler(stru
+@@ -1163,14 +1159,15 @@ static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
  		     "but active dlm protocol is %d.%d\n", qr->qr_node,
  		     qr->qr_domain, dlm->dlm_locking_proto.pv_major,
  		     dlm->dlm_locking_proto.pv_minor);
@@ -112,9 +82,10 @@ unwinding techniques:
 -		spin_unlock(&dlm->spinlock);
 +out_dlm_lock:
 +	spin_unlock(&dlm->spinlock);
++
 +out_domain_lock:
  	spin_unlock(&dlm_domain_lock);
  
  	kfree(local);
-
-Please review and test this then send it back at me?
+-- 
+1.8.4.3
