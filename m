@@ -1,64 +1,52 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Wed, 26 Mar 2014 10:10:29 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: do not put bh when buffer_uptodate
- failed
-In-Reply-To: <53322C82.6030800@huawei.com>
-References: <53312AD6.4080607@huawei.com> <5331CEB1.8030706@oracle.com>
-	<53322C82.6030800@huawei.com>
-Message-ID: <53330A05.4030703@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Wed, 26 Mar 2014 14:33:03 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: check if cluster name exists
+	before deref
+In-Reply-To: <1395768118-21368-1-git-send-email-sasha.levin@oracle.com>
+References: <1395768118-21368-1-git-send-email-sasha.levin@oracle.com>
+Message-ID: <20140326143303.11d720d90a6388e41bf7b6fe@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Thanks for explaining
-Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+On Tue, 25 Mar 2014 13:21:58 -0400 Sasha Levin <sasha.levin@oracle.com> wrote:
 
-On 03/25/2014 06:25 PM, alex chen wrote:
-> On 2014/3/26 2:45, Srinivas Eeda wrote:
->> These changes looks good to me. However ocfs2_read_blocks and
->> ocfs2_read_blocks_sync needs the same fix ? :)
-> There is no need to do this in ocfs2_read_blocks and
-> ocfs2_read_blocks_sync, because bh will be set to NULL after put_bh,
-> and brelse will handle it.
->
->> On 03/25/2014 12:05 AM, alex chen wrote:
->>> Do not put bh when buffer_uptodate failed in ocfs2_write_block and
->>> ocfs2_write_super_or_backup, because it will put bh in b_end_io.
->>> Otherwise it will hit a warning "VFS: brelse: Trying to free free
->>> buffer".
->>>
->>> Signed-off-by: Alex Chen <alex.chen@huawei.com>
->>> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
->>> ---
->>>    fs/ocfs2/buffer_head_io.c | 2 --
->>>    1 file changed, 2 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
->>> index 5b704c6..1edcb14 100644
->>> --- a/fs/ocfs2/buffer_head_io.c
->>> +++ b/fs/ocfs2/buffer_head_io.c
->>> @@ -90,7 +90,6 @@ int ocfs2_write_block(struct ocfs2_super *osb, struct buffer_head *bh,
->>>    		 * information for this bh as it's not marked locally
->>>    		 * uptodate. */
->>>    		ret = -EIO;
->>> -		put_bh(bh);
->>>    		mlog_errno(ret);
->>>    	}
->>>
->>> @@ -420,7 +419,6 @@ int ocfs2_write_super_or_backup(struct ocfs2_super *osb,
->>>
->>>    	if (!buffer_uptodate(bh)) {
->>>    		ret = -EIO;
->>> -		put_bh(bh);
->>>    		mlog_errno(ret);
->>>    	}
->>>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
->>
+> Commit c74a3bdd9b "ocfs2: add clustername to cluster connection"
+> is trying to strlcpy a string which was explicitly passed as NULL
+> in the very same patch, triggering a NULL ptr deref.
+> 
+> [  640.225193] BUG: unable to handle kernel NULL pointer dereference at           (null)
+> [  640.230224] IP: strlcpy (lib/string.c:388 lib/string.c:151)
+
+Well that was a bit of a screwup.
+
+> As a side note, how the hell was this new code path tested?
+> It's obviously broken and there's no way it even passes
+> a very basic test.
+
+I was wondering that.
+
+> diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+> index 5e4d314..83f1a66 100644
+> --- a/fs/ocfs2/stackglue.c
+> +++ b/fs/ocfs2/stackglue.c
+> @@ -346,7 +346,9 @@ int ocfs2_cluster_connect(const char *stack_name,
+>  
+>  	strlcpy(new_conn->cc_name, group, GROUP_NAME_MAX + 1);
+>  	new_conn->cc_namelen = grouplen;
+> -	strlcpy(new_conn->cc_cluster_name, cluster_name, CLUSTER_NAME_MAX + 1);
+> +	if (cluster_name_len)
+> +		strlcpy(new_conn->cc_cluster_name, cluster_name,
+> +			CLUSTER_NAME_MAX + 1);
+>  	new_conn->cc_cluster_name_len = cluster_name_len;
+>  	new_conn->cc_recovery_handler = recovery_handler;
+>  	new_conn->cc_recovery_data = recovery_data;
+
+So we end up with the null string for the cluster name.
+
+I suppose we can merge this short-term to avoid the oops, but surely
+this isn't what's supposed to happen.
+
+Goldwyn, this needs urgent attention please.
