@@ -1,98 +1,115 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Sun, 30 Mar 2014 19:23:42 -0700
-Subject: [Ocfs2-devel] [patch 5/8] ocfs2: do not
-	return	DLM_MIGRATE_RESPONSE_MASTERY_REF to avoid endless,
-	loop during umount
-In-Reply-To: <20140319211004.23C7F31C1E1@corp2gmr1-1.hot.corp.google.com>
-References: <20140319211004.23C7F31C1E1@corp2gmr1-1.hot.corp.google.com>
-Message-ID: <20140331022342.GE4488@wotan.suse.de>
+From: Younger Liu <younger.liucn@gmail.com>
+Date: Mon, 31 Mar 2014 21:07:40 +0800
+Subject: [Ocfs2-devel] [PATCH] Ocfs2: Rollback alloc_dinode counts when
+ ocfs2_block_group_set_bits() failed
+Message-ID: <5339689C.1060807@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Mar 19, 2014 at 02:10:03PM -0700, Andrew Morton wrote:
-> From: jiangyiwen <jiangyiwen@huawei.com>
-> Subject: ocfs2: do not return DLM_MIGRATE_RESPONSE_MASTERY_REF to avoid endless,loop during umount
-> 
-> The following case may lead to endless loop during umount.
-> 
-> node A         node B               node C       node D
-> umount volume,
-> migrate lockres1
-> to B
->                                                  want to lock lockres1,
->                                                  send
->                                                  MASTER_REQUEST_MSG
->                                                  to C
->                                     init block mle
->                send
->                MIGRATE_REQUEST_MSG
->                to C
->                                     find a block
->                                     mle, and then
->                                     return
->                                     DLM_MIGRATE_RESPONSE_MASTERY_REF
->                                     to B
->                set C in refmap
->                                     umount successfully
->                try to umount, endless
->                loop occurs when migrate
->                lockres1 since C is in
->                refmap
-> 
-> So we can fix this endless loop case by only returning
-> DLM_MIGRATE_RESPONSE_MASTERY_REF if it has a mastery mle when receiving
-> MIGRATE_REQUEST_MSG.
-> 
-> [akpm at linux-foundation.org: coding-style fixes]
-> Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Xue jiufei <xuejiufei@huawei.com>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+  After updating alloc_dinode counts in ocfs2_alloc_dinode_update_counts(),
+if ocfs2_alloc_dinode_update_bitmap() failed, there is a rare case that some
+space may be lost.
+  So, we rollback alloc_dinode counts when ocfs2_block_group_set_bits() failed.
 
-Ok, I _think_ I got this race condition, and the patch itself seems sane.
+Signed-off-by: Younger Liu <younger.liucn@gmail.com>
+Cc: Mark Fasheh <mfasheh@suse.de>
+---
+ fs/ocfs2/move_extents.c |    5 ++++-
+ fs/ocfs2/suballoc.c     |   24 +++++++++++++++++++++++-
+ fs/ocfs2/suballoc.h     |    4 ++++
+ 3 files changed, 31 insertions(+), 2 deletions(-)
 
-How was this bug hit, and how much testing did you do with this patch? I ask
-because dlm changes can sometimes have unintended effects and I really don't
-understand that particular code well enough right now to tell with 100%
-certainty we didn't mess something else up.
-
-Actually, I'm going to CC Sunil in the hopes he can look at this.
-	--Mark
-
-
-> ---
-> 
->  fs/ocfs2/dlm/dlmmaster.c |   14 +++++++++-----
->  1 file changed, 9 insertions(+), 5 deletions(-)
-> 
-> diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-do-not-return-dlm_migrate_response_mastery_ref-to-avoid-endlessloop-during-umount fs/ocfs2/dlm/dlmmaster.c
-> --- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-do-not-return-dlm_migrate_response_mastery_ref-to-avoid-endlessloop-during-umount
-> +++ a/fs/ocfs2/dlm/dlmmaster.c
-> @@ -3084,11 +3084,15 @@ static int dlm_add_migration_mle(struct
->  			/* remove it so that only one mle will be found */
->  			__dlm_unlink_mle(dlm, tmp);
->  			__dlm_mle_detach_hb_events(dlm, tmp);
-> -			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
-> -			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
-> -			    "telling master to get ref for cleared out mle "
-> -			    "during migration\n", dlm->name, namelen, name,
-> -			    master, new_master);
-> +			if (tmp->type == DLM_MLE_MASTER) {
-> +				ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
-> +				mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
-> +						"telling master to get ref "
-> +						"for cleared out mle during "
-> +						"migration\n", dlm->name,
-> +						namelen, name, master,
-> +						new_master);
-> +			}
->  		}
->  		spin_unlock(&tmp->spinlock);
->  	}
-> _
---
-Mark Fasheh
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index 64c304d..65483d0 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -690,8 +690,11 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+ 
+ 	ret = ocfs2_block_group_set_bits(handle, gb_inode, gd, gd_bh,
+ 					 goal_bit, len);
+-	if (ret)
++	if (ret) {
++		ocfs2_rollback_alloc_dinode_counts(gb_inode, gb_bh, len,
++					       le16_to_cpu(gd->bg_chain));
+ 		mlog_errno(ret);
++	}
+ 
+ 	/*
+ 	 * Here we should write the new page out first if we are
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 47ae266..150d94f 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1607,6 +1607,20 @@ out:
+ 	return ret;
+ }
+ 
++void ocfs2_rollback_alloc_dinode_counts(struct inode *inode,
++				       struct buffer_head *di_bh,
++				       u32 num_bits,
++				       u16 chain)
++{
++	u32 tmp_used;
++	struct ocfs2_dinode *di = (struct ocfs2_dinode *) di_bh->b_data;
++	struct ocfs2_chain_list *cl = (struct ocfs2_chain_list *) &di->id2.i_chain;
++
++	tmp_used = le32_to_cpu(di->id1.bitmap1.i_used);
++	di->id1.bitmap1.i_used = cpu_to_le32(tmp_used - num_bits);
++	le32_add_cpu(&cl->cl_recs[chain].c_free, num_bits);
++}
++
+ static int ocfs2_bg_discontig_fix_by_rec(struct ocfs2_suballoc_result *res,
+ 					 struct ocfs2_extent_rec *rec,
+ 					 struct ocfs2_chain_list *cl)
+@@ -1707,8 +1721,12 @@ static int ocfs2_search_one_group(struct ocfs2_alloc_context *ac,
+ 
+ 	ret = ocfs2_block_group_set_bits(handle, alloc_inode, gd, group_bh,
+ 					 res->sr_bit_offset, res->sr_bits);
+-	if (ret < 0)
++	if (ret < 0) {
++		ocfs2_rollback_alloc_dinode_counts(alloc_inode, ac->ac_bh,
++					       res->sr_bits,
++					       le16_to_cpu(gd->bg_chain));
+ 		mlog_errno(ret);
++	}
+ 
+ out_loc_only:
+ 	*bits_left = le16_to_cpu(gd->bg_free_bits_count);
+@@ -1838,6 +1856,8 @@ static int ocfs2_search_chain(struct ocfs2_alloc_context *ac,
+ 					    res->sr_bit_offset,
+ 					    res->sr_bits);
+ 	if (status < 0) {
++		ocfs2_rollback_alloc_dinode_counts(alloc_inode,
++					ac->ac_bh, res->sr_bits, chain);
+ 		mlog_errno(status);
+ 		goto bail;
+ 	}
+@@ -2149,6 +2169,8 @@ int ocfs2_claim_new_inode_at_loc(handle_t *handle,
+ 					 res->sr_bit_offset,
+ 					 res->sr_bits);
+ 	if (ret < 0) {
++		ocfs2_rollback_alloc_dinode_counts(ac->ac_inode,
++					       ac->ac_bh, res->sr_bits, chain);
+ 		mlog_errno(ret);
+ 		goto out;
+ 	}
+diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
+index 218d803..2d25017 100644
+--- a/fs/ocfs2/suballoc.h
++++ b/fs/ocfs2/suballoc.h
+@@ -91,6 +91,10 @@ int ocfs2_alloc_dinode_update_counts(struct inode *inode,
+ 			 struct buffer_head *di_bh,
+ 			 u32 num_bits,
+ 			 u16 chain);
++void ocfs2_rollback_alloc_dinode_counts(struct inode *inode,
++			 struct buffer_head *di_bh,
++			 u32 num_bits,
++			 u16 chain);
+ int ocfs2_block_group_set_bits(handle_t *handle,
+ 			 struct inode *alloc_inode,
+ 			 struct ocfs2_group_desc *bg,
+-- 
+1.7.9.5
