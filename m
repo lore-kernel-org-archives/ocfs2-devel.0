@@ -1,44 +1,29 @@
-From: Wengang <wen.gang.wang@oracle.com>
-Date: Mon, 31 Mar 2014 09:39:44 +0800
-Subject: [Ocfs2-devel] [patch 2/8] ocfs2: flock: drop cross-node lock
- when failed locally
-In-Reply-To: <20140331013047.GC4488@wotan.suse.de>
-References: <20140319211000.A597C31C25A@corp2gmr1-1.hot.corp.google.com>
-	<20140331013047.GC4488@wotan.suse.de>
-Message-ID: <5338C760.4090409@oracle.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Sun, 30 Mar 2014 19:05:46 -0700
+Subject: [Ocfs2-devel] [patch 4/8] ocfs2: call
+	ocfs2_update_inode_fsync_trans when	updating any inode
+In-Reply-To: <20140319211002.D199A5A4217@corp2gmr1-2.hot.corp.google.com>
+References: <20140319211002.D199A5A4217@corp2gmr1-2.hot.corp.google.com>
+Message-ID: <20140331020546.GD4488@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
+On Wed, Mar 19, 2014 at 02:10:02PM -0700, Andrew Morton wrote:
+> From: "Darrick J. Wong" <darrick.wong@oracle.com>
+> Subject: ocfs2: call ocfs2_update_inode_fsync_trans when updating any inode
+> 
+> Ensure that ocfs2_update_inode_fsync_trans() is called any time we touch
+> an inode in a given transaction.  This is a follow-on to the previous
+> patch to reduce lock contention and deadlocking during an fsync operation.
 
-I find it by code review.
+This looks fine but I have a question - what happens if a future patch adds
+some disk structure change but forgets to call
+ocfs2_update_inode_fsync_trans(). Could we wind up skipping some blocks to
+sync in that case?
+	--Mark
 
-thanks,
-wengang
-
-? 2014?03?31? 09:30, Mark Fasheh ??:
-> On Wed, Mar 19, 2014 at 02:10:00PM -0700, Andrew Morton wrote:
->> From: Wengang Wang <wen.gang.wang@oracle.com>
->> Subject: ocfs2: flock: drop cross-node lock when failed locally
->>
->> ocfs2_do_flock() calls ocfs2_file_lock() to get the cross-node clock and
->> then call flock_lock_file_wait() to compete with local processes.  In case
->> flock_lock_file_wait() failed, say -ENOMEM, clean up work is not done.
->> This patch adds the cleanup --drop the cross-node lock which was just
->> granted.
-> Out of curiousity was this a bug someone hit, or did you catch this
-> via code review.
->
-> Reviewed-by: Mark Fasheh <mfasheh@suse.de>
-> 	--Mark
->
-> --
-> Mark Fasheh
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+--
+Mark Fasheh
