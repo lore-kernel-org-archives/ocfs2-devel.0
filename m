@@ -1,122 +1,59 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 1 Apr 2014 14:36:57 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Avoid system inode ref in
- confusion by add mutex lock
-In-Reply-To: <53226198.2000902@huawei.com>
-References: <53226198.2000902@huawei.com>
-Message-ID: <20140401143657.7cbda18c6c73abf6320fc1c7@linux-foundation.org>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Tue, 1 Apr 2014 16:26:25 -0700
+Subject: [Ocfs2-devel] +
+	pass-new-parameter-to-ocfs2_init_xattr_bucket.patch added
+	to	-mm tree
+In-Reply-To: <5335e056./bmn0Gvv2b5bhbdp%akpm@linux-foundation.org>
+References: <5335e056./bmn0Gvv2b5bhbdp%akpm@linux-foundation.org>
+Message-ID: <20140401232625.GM4488@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, 14 Mar 2014 09:55:36 +0800 jiangyiwen <jiangyiwen@huawei.com> wrote:
-
-> The following case may lead to the same system inode ref in confusion.
+On Fri, Mar 28, 2014 at 01:49:26PM -0700, Andrew Morton wrote:
+<snip> 
+> It hit the BUG_ON() in ocfs2_set_new_buffer_uptodate().
 > 
-> A thread                            B thread
-> ocfs2_get_system_file_inode
-> ->get_local_system_inode
-> ->_ocfs2_get_system_file_inode
->                                     because of *arr == NULL,
->                                     ocfs2_get_system_file_inode
->                                     ->get_local_system_inode
->                                     ->_ocfs2_get_system_file_inode
-> gets first ref thru
-> _ocfs2_get_system_file_inode,
-> gets second ref thru igrab and
-> set *arr = inode
->                                     at the moment, B thread also gets
->                                     two refs, so lead to one more
->                                     inode ref.
+> 527 void ocfs2_set_new_buffer_uptodate(struct ocfs2_caching_info *ci,
+> 528                                    struct buffer_head *bh)
+> 529 {
+> 530         /* This should definitely *not* exist in our cache */
+> 531         if (ocfs2_buffer_cached(ci, bh))
+> 532                 printk(KERN_ERR "bh->b_blocknr: %lu @ %p\n", bh->b_blocknr, bh);
+> 533         BUG_ON(ocfs2_buffer_cached(ci, bh));
+> 534
+> 535         set_buffer_uptodate(bh);
+> 536
+> 537         ocfs2_metadata_cache_io_lock(ci);
+> 538         ocfs2_set_buffer_uptodate(ci, bh);
+> 539         ocfs2_metadata_cache_io_unlock(ci);
+> 540 }
 > 
-> So add mutex lock to avoid multi thread set two inode ref once at
-> the same time.
+> The problem here is:
+> 
+> We cached a block, but the buffer_head got reused.  When we are to pick up
+> this block again, a new buffer_head created with UPTODATE flag cleared. 
+> ocfs2_buffer_uptodate() returned false since no UPTODATE is set on the
+> buffer_head.  so we set this block to cache as a NEW block, then it failed
+> at asserting block is not in cache.
+> 
+> The fix is to add a new parameter indicating the bucket is a new allocated
+> or not to ocfs2_init_xattr_bucket().  ocfs2_init_xattr_bucket() assert
+> block not cached accordingly.
+> 
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
+> Cc: Joel Becker <jlbec@evilplan.org>
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Cc: Joe Jin <joe.jin@oracle.com>
+> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+> ---
 
-Looks good to me.  I queued it for 3.15-rc1.
+Good catch - the patch looks good too. Thanks Wengang!
 
-From: jiangyiwen <jiangyiwen@huawei.com>
-Subject: ocfs2: avoid system inode ref confusion by adding mutex lock
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+	--Mark
 
-The following case may lead to the same system inode ref in confusion.
-
-A thread                            B thread
-ocfs2_get_system_file_inode
-->get_local_system_inode
-->_ocfs2_get_system_file_inode
-                                    because of *arr == NULL,
-                                    ocfs2_get_system_file_inode
-                                    ->get_local_system_inode
-                                    ->_ocfs2_get_system_file_inode
-gets first ref thru
-_ocfs2_get_system_file_inode,
-gets second ref thru igrab and
-set *arr = inode
-                                    at the moment, B thread also gets
-                                    two refs, so lead to one more
-                                    inode ref.
-
-So add mutex lock to avoid multi thread set two inode ref once at the same
-time.
-
-Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/ocfs2.h   |    2 ++
- fs/ocfs2/super.c   |    2 ++
- fs/ocfs2/sysfile.c |    3 +++
- 3 files changed, 7 insertions(+)
-
-diff -puN fs/ocfs2/ocfs2.h~ocfs2-avoid-system-inode-ref-confusion-by-adding-mutex-lock fs/ocfs2/ocfs2.h
---- a/fs/ocfs2/ocfs2.h~ocfs2-avoid-system-inode-ref-confusion-by-adding-mutex-lock
-+++ a/fs/ocfs2/ocfs2.h
-@@ -446,6 +446,8 @@ struct ocfs2_super
- 	/* rb tree root for refcount lock. */
- 	struct rb_root	osb_rf_lock_tree;
- 	struct ocfs2_refcount_tree *osb_ref_tree_lru;
-+
-+	struct mutex system_file_mutex;
- };
- 
- #define OCFS2_SB(sb)	    ((struct ocfs2_super *)(sb)->s_fs_info)
-diff -puN fs/ocfs2/super.c~ocfs2-avoid-system-inode-ref-confusion-by-adding-mutex-lock fs/ocfs2/super.c
---- a/fs/ocfs2/super.c~ocfs2-avoid-system-inode-ref-confusion-by-adding-mutex-lock
-+++ a/fs/ocfs2/super.c
-@@ -2100,6 +2100,8 @@ static int ocfs2_initialize_super(struct
- 	spin_lock_init(&osb->osb_xattr_lock);
- 	ocfs2_init_steal_slots(osb);
- 
-+	mutex_init(&osb->system_file_mutex);
-+
- 	atomic_set(&osb->alloc_stats.moves, 0);
- 	atomic_set(&osb->alloc_stats.local_data, 0);
- 	atomic_set(&osb->alloc_stats.bitmap_data, 0);
-diff -puN fs/ocfs2/sysfile.c~ocfs2-avoid-system-inode-ref-confusion-by-adding-mutex-lock fs/ocfs2/sysfile.c
---- a/fs/ocfs2/sysfile.c~ocfs2-avoid-system-inode-ref-confusion-by-adding-mutex-lock
-+++ a/fs/ocfs2/sysfile.c
-@@ -113,9 +113,11 @@ struct inode *ocfs2_get_system_file_inod
- 	} else
- 		arr = get_local_system_inode(osb, type, slot);
- 
-+	mutex_lock(&osb->system_file_mutex);
- 	if (arr && ((inode = *arr) != NULL)) {
- 		/* get a ref in addition to the array ref */
- 		inode = igrab(inode);
-+		mutex_unlock(&osb->system_file_mutex);
- 		BUG_ON(!inode);
- 
- 		return inode;
-@@ -129,6 +131,7 @@ struct inode *ocfs2_get_system_file_inod
- 		*arr = igrab(inode);
- 		BUG_ON(!*arr);
- 	}
-+	mutex_unlock(&osb->system_file_mutex);
- 	return inode;
- }
- 
-_
+--
+Mark Fasheh
