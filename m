@@ -1,54 +1,38 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Date: Tue, 8 Apr 2014 07:51:07 +1000
-Subject: [Ocfs2-devel] linux-next: build failure after merge of the
-	final tree
-In-Reply-To: <20140407112654.e2172fd7c0df975bf79df388@linux-foundation.org>
-References: <20140407145242.1958251349e0b6c6c8923f46@canb.auug.org.au>
-	<20140407112654.e2172fd7c0df975bf79df388@linux-foundation.org>
-Message-ID: <20140408075107.f13e69a4d08471656acfb9f3@canb.auug.org.au>
+From: Fabian Frederick <fabf@skynet.be>
+Date: Tue, 8 Apr 2014 22:09:34 +0200
+Subject: [Ocfs2-devel] [PATCH 1/1] fs/ocfs2/super.c: Use
+ OCFS2_MAX_VOL_LABEL_LEN and strlcpy
+Message-ID: <20140408220934.0db1da0682cdeff131c3b2d8@skynet.be>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus <torvalds@linux-foundation.org>, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+To: linux-kernel <linux-kernel@vger.kernel.org>
+Cc: akpm <akpm@linux-foundation.org>, ocfs2-devel@oss.oracle.com
 
-Hi Andrew,
+Replace strncpy(size 63) by defined value.
 
-On Mon, 7 Apr 2014 11:26:54 -0700 Andrew Morton <akpm@linux-foundation.org> wrote:
->
-> On Mon, 7 Apr 2014 14:52:42 +1000 Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> 
-> > After merging the final tree, today's linux-next build (powerpc
-> > allyesconfig) failed like this:
-> > 
-> > fs/ocfs2/suballoc.c: In function 'ocfs2_block_group_set_bits':
-> > fs/ocfs2/suballoc.c:1357:2: error: implicit declaration of function 'trace_ocfs2_block_group_set_bits' [-Werror=implicit-function-declaration]
-> >   trace_ocfs2_block_group_set_bits(bit_off, num_bits);
-> >   ^
-> > 
-> > I have no idea how to track this down :-( The only patches affecting this
-> > code are now in Linus' tree.  I can only assume that some implicitly
-> > included header file is no longer included.  I have just left it broken
-> > for now.
-> 
-> I can't reproduce this with either mainline or linux-next.  Pulled half
-> an hour ago, powerpc allyesconfig.
+Cc: Andrew Morton <akpm@linuxfoundation.org>
+Cc: ocfs2-devel at oss.oracle.com
+Signed-off-by: Fabian Frederick <fabf@skynet.be>
+---
+ fs/ocfs2/super.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Rats!  I think I have been fooled by my own scripts.  What was built here
-was the result of me trying to merge your tree.  After abandoning the
-attempt, my build tree did not get reset to the final linux-next before I
-did my final build checks which include the powerpc allyesconfig.
-
-Sorry about that.
-
+diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+index a7cdd56..5dee292c 100644
+--- a/fs/ocfs2/super.c
++++ b/fs/ocfs2/super.c
+@@ -2292,8 +2292,8 @@ static int ocfs2_initialize_super(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
+-	strncpy(osb->vol_label, di->id2.i_super.s_label, 63);
+-	osb->vol_label[63] = '\0';
++	strlcpy(osb->vol_label, di->id2.i_super.s_label,
++		OCFS2_MAX_VOL_LABEL_LEN);
+ 	osb->root_blkno = le64_to_cpu(di->id2.i_super.s_root_blkno);
+ 	osb->system_dir_blkno = le64_to_cpu(di->id2.i_super.s_system_dir_blkno);
+ 	osb->first_cluster_group_blkno =
 -- 
-Cheers,
-Stephen Rothwell                    sfr at canb.auug.org.au
--------------- next part --------------
-A non-text attachment was scrubbed...
-Name: not available
-Type: application/pgp-signature
-Size: 836 bytes
-Desc: not available
-Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140408/9586f0c6/attachment-0001.bin 
+1.8.4.5
