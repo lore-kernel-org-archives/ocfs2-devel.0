@@ -1,73 +1,90 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Tue, 8 Apr 2014 18:47:04 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: retry once
- dlm_dispatch_assert_master failed with ENOMEM
-Message-ID: <5343D3A8.1080302@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Tue, 8 Apr 2014 12:42:41 -0700
+Subject: [Ocfs2-devel] [patch 03/11] ocfs2/o2net: incorrect to terminate
+	accepting	connections loop upon rejecting an invalid one
+In-Reply-To: <534367FD.8060403@oracle.com>
+References: <20140124204702.9871031C2C7@corp2gmr1-1.hot.corp.google.com>
+	<20140124215554.GC24361@wotan.suse.de>
+	<52E2E7C1.7070801@oracle.com>
+	<20140319140143.b3a0fa14b49284fb79c1bd61@linux-foundation.org>
+	<534367FD.8060403@oracle.com>
+Message-ID: <20140408194241.GR4488@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Once dlm_dispatch_assert_master failed in dlm_master_requery_handler,
-the only reason is ENOMEM.
-Add retry logic to avoid BUG() in case of not enough memory
-temporarily.
+On Mon, Apr 07, 2014 at 08:07:41PM -0700, Tariq Saeed wrote:
+>>>>> diff -puN fs/ocfs2/cluster/tcp.c~ocfs2-o2net-incorrect-to-terminate-accepting-connections-loop-upon-rejecting-an-invalid-one fs/ocfs2/cluster/tcp.c
+>>>>> --- a/fs/ocfs2/cluster/tcp.c~ocfs2-o2net-incorrect-to-terminate-accepting-connections-loop-upon-rejecting-an-invalid-one
+>>>>> +++ a/fs/ocfs2/cluster/tcp.c
+>>>>> @@ -1826,7 +1826,7 @@ int o2net_register_hb_callbacks(void)
+>>>>>
+>>>>>    /* ------------------------------------------------------------ */
+>>>>>
+>>>>> -static int o2net_accept_one(struct socket *sock)
+>>>>> +static int o2net_accept_one(struct socket *sock, int *more)
+>>>>>    {
+>>>>>    	int ret, slen;
+>>>>>    	struct sockaddr_in sin;
+>>>>> @@ -1837,6 +1837,7 @@ static int o2net_accept_one(struct socke
+>>>>>    	struct o2net_node *nn;
+>>>>>
+>>>>>    	BUG_ON(sock == NULL);
+>>>>> +	*more = 0;
+>>>>>    	ret = sock_create_lite(sock->sk->sk_family, sock->sk->sk_type,
+>>>>>    			       sock->sk->sk_protocol, &new_sock);
+>>>>>    	if (ret)
+>>>>> @@ -1848,6 +1849,7 @@ static int o2net_accept_one(struct socke
+>>>>>    	if (ret < 0)
+>>>>>    		goto out;
+>>>>>
+>>>>> +	*more = 1;
+>>>>>    	new_sock->sk->sk_allocation = GFP_ATOMIC;
+>>>>>
+>>>>>    	ret = o2net_set_nodelay(new_sock);
+>>>>> @@ -1949,8 +1951,15 @@ out:
+>>>>>    static void o2net_accept_many(struct work_struct *work)
+>>>>>    {
+>>>>>    	struct socket *sock = o2net_listen_sock;
+>>>>> -	while (o2net_accept_one(sock) == 0)
+>>>>> +	int	more;
+>>>>> +	int	err;
+>>>>> +
+>>>>> +	for (;;) {
+>>>>> +		err = o2net_accept_one(sock, &more);
+>>>>> +		if (!more)
+>>>>> +			break;
+>>>> We're throwing out 'err' here and trusting the variable 'more'. However, err
+>>>> could be set and more would be 0 regardless of whether there actually are
+>>>> more connections to be had. This makes more sense given when 'more' is set:
+>>>
+>>> Thanks for the comments.
+>>> To understand the consequences of ignoring the err, we need to look at
+>>> what is going on.
+>>> We get a softIRQ when a connection packet (tcp SYN). It is critical to
+>>> note that we may not
+>>> get a softIRQ_for every connection s_ince connection packets can arrive
+>>> back-to-back (as happened in this bug). So, one softIRQ could be
+>>> delivered for > 1 pending accept.
+>>> _This is the KEY point. _
+>>>
+>>> If we terminate the loop calling o2net_accept_one() upon seeing an
+>>> error, what happens
+>>> to the rest of the connections in the queue. If no new connection
+>>> arrives for hours, no new softIRQ
+>>> will be delivered, and the connections will just sit in the queue.
+>>
+>> Please note that I had to edit your email to undo the top-posting so I
+>> could reply to it.  Please don't top-post.
+>>
+>> Mark, are you now OK with the patch as-is?
+> Mark, do you have further questios?
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/dlm/dlmrecovery.c | 25 ++++++++++++++++++++-----
- 1 file changed, 20 insertions(+), 5 deletions(-)
+No but we're going to need a comment explaining this above the code in
+question. It's not entirely clear just by reading it.
+	--Mark
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 7035af0..7db0465 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1676,6 +1676,9 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
- 	unsigned int hash;
- 	int master = DLM_LOCK_RES_OWNER_UNKNOWN;
- 	u32 flags = DLM_ASSERT_MASTER_REQUERY;
-+	int ret, retries = 0;
-+
-+#define DISPATCH_ASSERT_RETRY_TIMES 3
- 
- 	if (!dlm_grab(dlm)) {
- 		/* since the domain has gone away on this
-@@ -1685,18 +1688,30 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
- 
- 	hash = dlm_lockid_hash(req->name, req->namelen);
- 
-+retry:
- 	spin_lock(&dlm->spinlock);
- 	res = __dlm_lookup_lockres(dlm, req->name, req->namelen, hash);
- 	if (res) {
- 		spin_lock(&res->spinlock);
- 		master = res->owner;
- 		if (master == dlm->node_num) {
--			int ret = dlm_dispatch_assert_master(dlm, res,
--							     0, 0, flags);
-+			ret = dlm_dispatch_assert_master(dlm, res,
-+					0, 0, flags);
- 			if (ret < 0) {
--				mlog_errno(-ENOMEM);
--				/* retry!? */
--				BUG();
-+				mlog_errno(ret);
-+
-+				/* ENOMEM returns, retry until
-+				 * DISPATCH_ASSERT_RETRY_TIMES reached */
-+				if (retries < DISPATCH_ASSERT_RETRY_TIMES) {
-+					spin_unlock(&res->spinlock);
-+					dlm_lockres_put(res);
-+					spin_unlock(&dlm->spinlock);
-+					msleep(50);
-+					retries++;
-+					goto retry;
-+				} else {
-+					BUG();
-+				}
- 			}
- 		} else /* put.. incase we are not the master */
- 			dlm_lockres_put(res);
--- 
-1.8.4.3
+--
+Mark Fasheh
