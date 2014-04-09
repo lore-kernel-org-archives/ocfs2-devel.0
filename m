@@ -1,46 +1,76 @@
 From: Andrew Morton <akpm@linux-foundation.org>
-Date: Wed, 9 Apr 2014 13:44:48 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] OCFS2: Remove NULL assignments on
- static
-In-Reply-To: <534499FA.8010107@oracle.com>
-References: <20140408221342.9759bea1dd852f2787f82586@skynet.be>
-	<534499FA.8010107@oracle.com>
-Message-ID: <20140409134448.cb23b34622bf986d145f1eaa@linux-foundation.org>
+Date: Wed, 9 Apr 2014 14:44:59 -0700
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: retry once
+ dlm_dispatch_assert_master failed with ENOMEM
+In-Reply-To: <5343D3A8.1080302@huawei.com>
+References: <5343D3A8.1080302@huawei.com>
+Message-ID: <20140409144459.ffbb36cc9e6c15382d5a2674@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Wengang <wen.gang.wang@oracle.com>
-Cc: Fabian Frederick <fabf@skynet.be>, linux-kernel <linux-kernel@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Wed, 09 Apr 2014 08:53:14 +0800 Wengang <wen.gang.wang@oracle.com> wrote:
+On Tue, 8 Apr 2014 18:47:04 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
 
-> ___ 2014___04___09___ 04:13, Fabian Frederick ______:
-> > static values are automatically initialized to NULL.
-> >
+> Once dlm_dispatch_assert_master failed in dlm_master_requery_handler,
+> the only reason is ENOMEM.
+> Add retry logic to avoid BUG() in case of not enough memory
+> temporarily.
+> 
+> ...
 >
-> What's the badness if we do the assignments?
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -1676,6 +1676,9 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
+>  	unsigned int hash;
+>  	int master = DLM_LOCK_RES_OWNER_UNKNOWN;
+>  	u32 flags = DLM_ASSERT_MASTER_REQUERY;
+> +	int ret, retries = 0;
+> +
+> +#define DISPATCH_ASSERT_RETRY_TIMES 3
+>  
+>  	if (!dlm_grab(dlm)) {
+>  		/* since the domain has gone away on this
+> @@ -1685,18 +1688,30 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
+>  
+>  	hash = dlm_lockid_hash(req->name, req->namelen);
+>  
+> +retry:
+>  	spin_lock(&dlm->spinlock);
+>  	res = __dlm_lookup_lockres(dlm, req->name, req->namelen, hash);
+>  	if (res) {
+>  		spin_lock(&res->spinlock);
+>  		master = res->owner;
+>  		if (master == dlm->node_num) {
+> -			int ret = dlm_dispatch_assert_master(dlm, res,
+> -							     0, 0, flags);
+> +			ret = dlm_dispatch_assert_master(dlm, res,
+> +					0, 0, flags);
+>  			if (ret < 0) {
+> -				mlog_errno(-ENOMEM);
+> -				/* retry!? */
+> -				BUG();
+> +				mlog_errno(ret);
+> +
+> +				/* ENOMEM returns, retry until
+> +				 * DISPATCH_ASSERT_RETRY_TIMES reached */
+> +				if (retries < DISPATCH_ASSERT_RETRY_TIMES) {
+> +					spin_unlock(&res->spinlock);
+> +					dlm_lockres_put(res);
+> +					spin_unlock(&dlm->spinlock);
+> +					msleep(50);
+> +					retries++;
+> +					goto retry;
+> +				} else {
+> +					BUG();
+> +				}
 
-(top-posting repaired...)
+urgh, this is not good.  dlm_dispatch_assert_master() uses GFP_ATOMIC
+and the chances of that failing are relatively high.  The msleep()
+might save us, but what happens if we cannot get more memory until some
+writeback occurs to this filesystem?
 
-Back in the olden days,
-
-	static int x = 0;
-
-would consume space in the .data segment and
-
-	static int x;
-
-would consume space in the .bss segment.
-
-
-The .data segment is a part of vmlinux (because it contains non-zero
-data) whereas .bss does not occupy space in vmlinux because .bss is
-all-zero and can be built at runtime
-
-So the effect of this patch would be to reduce the size of the kernel
-image.  Less disk space, less ROM space, etc.
-
-
-I think more recent gcc's and linkers got smarter about that and move
-initialized-to-zero .data into .bss anyway.
+It would be much better to use GFP_KERNEL in
+dlm_dispatch_assert_master().  That means preallocating the
+dlm_work_item in the caller before taking the spinlock.
