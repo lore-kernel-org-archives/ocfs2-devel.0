@@ -1,8 +1,8 @@
 From: Guozhonghua <guozhonghua@h3c.com>
-Date: Tue, 15 Apr 2014 01:22:49 +0000
-Subject: [Ocfs2-devel] Is it an issue,
-	or had been fixed in new kernel verions? Thanks
-Message-ID: <71604351584F6A4EBAE558C676F37CA42EC3FB37@H3CMLB02-EX.srv.huawei-3com.com>
+Date: Tue, 15 Apr 2014 12:35:33 +0000
+Subject: [Ocfs2-devel] OCFS2 issue patch requesting reviews,
+ is there anyone with some good advices, thanks.
+Message-ID: <71604351584F6A4EBAE558C676F37CA42EC3FBD5@H3CMLB02-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,6 +14,80 @@ Hi, everyone:
 As the disk is umounted, the host is panic or bloked.
 The host must be repowered.
 The test scenario is with Linux kernel 3.13.6.
+
+I reviewed the code and cannot find where is the lock's lvb changed which make the lvb difference.
+So many code with lvb which is changed.
+I changed some code to avoid BUG() which can cause the host panic or blocked.
+
+The patch and log is as below, and I would like to receive some good ideas about it.
+I think it may be a bug of ocfs2 kernel code, so there is another good way to fix it.
+
+Thanks a lot.
+
+root at gzh-139:/vms/linux_kernel# diff -u -p linux-3.13.6/fs/ocfs2/dlm/dlmrecovery.c linux-3.13.6.changed/ocfs2-ko-3.13/dlm/dlmrecovery.c
+--- linux-3.13.6/fs/ocfs2/dlm/dlmrecovery.c  2014-03-07 14:07:02.000000000 +0800
++++ linux-3.13.6.changed/ocfs2-ko-3.13/dlm/dlmrecovery.c        2014-04-15 20:10:34.024541267 +0800
+@@ -1173,29 +1173,29 @@ static void dlm_init_migratable_lockres(
+      mres->master = master;
+}
+-static void dlm_prepare_lvb_for_migration(struct dlm_lock *lock,
++static int dlm_prepare_lvb_for_migration(struct dlm_lock *lock,
+                                        struct dlm_migratable_lockres *mres,
+                                        int queue)
+{
+      if (!lock->lksb)
+-              return;
++        return 0;
+       /* Ignore lvb in all locks in the blocked list */
+      if (queue == DLM_BLOCKED_LIST)
+-               return;
++              return 0;
+       /* Only consider lvbs in locks with granted EX or PR lock levels */
+      if (lock->ml.type != LKM_EXMODE && lock->ml.type != LKM_PRMODE)
+-               return;
++              return 0;
+       if (dlm_lvb_is_empty(mres->lvb)) {
+              memcpy(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN);
+-               return;
++              return 0;
+      }
+       /* Ensure the lvb copied for migration matches in other valid locks */
+      if (!memcmp(mres->lvb, lock->lksb->lvb, DLM_LVB_LEN))
+-               return;
++              return 0;
+       mlog(ML_ERROR, "Mismatched lvb in lock cookie=%u:%llu, name=%.*s, "
+           "node=%u\n",
+@@ -1204,7 +1204,9 @@ static void dlm_prepare_lvb_for_migratio
+           lock->lockres->lockname.len, lock->lockres->lockname.name,
+           lock->ml.node);
+      dlm_print_one_lock_resource(lock->lockres);
+-       BUG();
++      /* BUG();*/
++
++    return 1;
+}
+ /* returns 1 if this lock fills the network structure,
+@@ -1215,6 +1217,13 @@ static int dlm_add_lock_to_array(struct
+      struct dlm_migratable_lock *ml;
+      int lock_num = mres->num_locks;
++    if (lock->lksb) {
++        /* if failed, return 1 and send the lock message immeditely */
++              if (dlm_prepare_lvb_for_migration(lock, mres, queue)) {
++            return 1;
++        }
++      }
++
+       ml = &(mres->ml[lock_num]);
+      ml->cookie = lock->ml.cookie;
+      ml->type = lock->ml.type;
+@@ -1223,7 +1232,6 @@ static int dlm_add_lock_to_array(struct
+      ml->list = queue;
+      if (lock->lksb) {
+              ml->flags = lock->lksb->flags;
+-               dlm_prepare_lvb_for_migration(lock, mres, queue);
+      }
+      ml->node = lock->ml.node;
+      mres->num_locks++;
 
 
 Apr 12 20:55:01 ZJ-HZDX-0321-D20-CVK-03 kernel: [870221.355731] sd 7:0:0:0: [sdl] Very big device. Trying to use READ CAPACITY(16).
@@ -81,6 +155,10 @@ Apr 12 20:55:08 ZJ-HZDX-0321-D20-CVK-03 kernel: [870227.844940] ---[ end trace c
 Apr 12 20:55:28 ZJ-HZDX-0321-D20-CVK-03 kernel: [870247.737249] o2dlm: Leaving domain 1220B17D51D141C784B30E8FE4C7E19C
 Apr 12 20:55:30 ZJ-HZDX-0321-D20-CVK-03 kernel: [870249.949859] ocfs2: Unmounting device (8,176) on (node 3)
 Apr 12 20:55:30 ZJ-HZDX-0321-D20-CVK-03 multipathd: sdl: remove path (uevent)
+
+
+
+
 -------------------------------------------------------------------------------------------------------------------------------------
 ????????????????????????????????????????
 ????????????????????????????????????????
@@ -94,4 +172,4 @@ recipient(s) is prohibited. If you receive this e-mail in error, please notify t
 by phone or email immediately and delete it!
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140415/a7ca0d0b/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140415/8e7f90bb/attachment-0001.html 
