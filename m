@@ -1,74 +1,82 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Fri, 18 Apr 2014 16:02:04 +0800
-Subject: [Ocfs2-devel] [patch 6/8] ocfs2: manually do the iput once
- ocfs2_add_entry failed in ocfs2_symlink and ocfs2_mknod
-In-Reply-To: <20140401194544.GJ4488@wotan.suse.de>
-References: <20140319211005.3A1EB5A41DB@corp2gmr1-2.hot.corp.google.com>
-	<20140401194544.GJ4488@wotan.suse.de>
-Message-ID: <5350DBFC.7040106@huawei.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 18 Apr 2014 17:18:27 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: limit printk when journal is
+	aborted
+In-Reply-To: <20140418024539.GE27178@wotan.suse.de>
+References: <534FB63A.9090402@huawei.com>
+	<20140417210132.GB27178@wotan.suse.de>
+	<535079A9.9060603@huawei.com>
+	<20140418024539.GE27178@wotan.suse.de>
+Message-ID: <5350EDE3.2040605@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2014/4/2 3:45, Mark Fasheh wrote:
-> On Wed, Mar 19, 2014 at 02:10:04PM -0700, Andrew Morton wrote:
->> From: jiangyiwen <jiangyiwen@huawei.com>
->> Subject: ocfs2: manually do the iput once ocfs2_add_entry failed in ocfs2_symlink and ocfs2_mknod
->>
->> When the call to ocfs2_add_entry() failed in ocfs2_symlink() and
->> ocfs2_mknod(), iput() will not be called during dput(dentry) because no
->> d_instantiate(), and this will lead to umount hung.
+On 2014/4/18 10:45, Mark Fasheh wrote:
+> On Fri, Apr 18, 2014 at 09:02:33AM +0800, Joseph Qi wrote:
+>> On 2014/4/18 5:01, Mark Fasheh wrote:
+>>> On Thu, Apr 17, 2014 at 07:08:42PM +0800, Joseph Qi wrote:
+>>>>
+>>>> Once JBD2_ABORT is set, ocfs2_commit_cache will fail in
+>>>> ocfs2_commit_thread. Then it will get into a loop with mass logs. This
+>>>> will meaninglessly consume a larger number of resource and may lead to
+>>>> system hung at last.
+>>>> So limit printk in this case.
+>>>>
+>>>> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+>>>> ---
+>>>>  fs/ocfs2/journal.c | 12 ++++++++++--
+>>>>  1 file changed, 10 insertions(+), 2 deletions(-)
+>>>>
+>>>> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+>>>> index 44fc3e5..cfefbd1 100644
+>>>> --- a/fs/ocfs2/journal.c
+>>>> +++ b/fs/ocfs2/journal.c
+>>>> @@ -30,6 +30,7 @@
+>>>>  #include <linux/kthread.h>
+>>>>  #include <linux/time.h>
+>>>>  #include <linux/random.h>
+>>>> +#include <linux/delay.h>
+>>>>  
+>>>>  #include <cluster/masklog.h>
+>>>>  
+>>>> @@ -2191,8 +2192,15 @@ static int ocfs2_commit_thread(void *arg)
+>>>>  					 || kthread_should_stop());
+>>>>  
+>>>>  		status = ocfs2_commit_cache(osb);
+>>>> -		if (status < 0)
+>>>> -			mlog_errno(status);
+>>>> +		if (status < 0) {
+>>>> +			static unsigned long abort_warn_time;
+>>>> +
+>>>> +			/* Warn about this once per minute */
+>>>> +			if (printk_timed_ratelimit(&abort_warn_time, 60*HZ))
+>>>> +				mlog(ML_ERROR, "status = %d, journal is "
+>>>> +						"already aborted.\n", status);
+>>>> +			msleep_interruptible(1000);
+>>>> +		}
+>>>
+>>> Why the msleep? ocfs2_commit_thread will wait on the checkpoint_event queue
+>>> right after this anyway - is there a problem with it waiting on that?
+>>>
+>> Since jbd2 is already aborted, commit cache is meaningless.
 > 
-> This is probably the heaviest way to do this. If you're getting a hang on
-> mount, there's something wrong with the cleanup code in fs/ocfs2/dcache.c.
-> See the following comment just above ocfs2_add_entry()
+> I understand that, but I'm asking why the msleep and whether we can avoid
+> that. To go back to my question:
 > 
-> 	/*
-> 	 * Do this before adding the entry to the directory. We add
-> 	 * also set d_op after success so that ->d_iput() will cleanup
-> 	 * the dentry lock even if ocfs2_add_entry() fails below.
-> 	 */
-> 	status = ocfs2_dentry_attach_lock(dentry, inode,
-> 					  OCFS2_I(dir)->ip_blkno);
-> 	if (status) {
-> 		mlog_errno(status);
-> 		goto leave;
-> 	}
-> 
-> 	status = ocfs2_add_entry(handle, dentry, inode,
-> 				 OCFS2_I(inode)->ip_blkno, parent_fe_bh,
-> 				 &lookup);
-> 	if (status < 0) {
-> 		mlog_errno(status);
-> 		goto leave;
-> 	}
-Mark:
-    I am sorry I reply you too late. The above comment was added in your patch
-"ocfs2: Add directory entry later in ocfs2_symlink() and ocfs2_mknod()".
-But there has two problems:
-
-    1. I think this comment has little effect, d_iput() will not be called during
-dput(dentry) because no d_instantiate(). So, I will manually do the iput. I think your
-suggestions very good, I will form a function to include the large block of code.
-
-    2. Why do this handle only in ocfs2_mknod and ocfs2_symlink, not in ocfs2_link
-and ocfs2_mv_orphaned_inode_to_new?
-
-Thanks,
-	--jiangyiwen
-> 
-> So if you hung during unmount on a dentry lock, I think we need to
-> investigate that path of recovery first. If there's something that it simply
-> can't handle, then the large block of code you copied into namei.c needs to
-> go into it's own function (or be a function broken out of the dentry lock
-> cleanup code).
+> "ocfs2_commit_thread will wait on the checkpoint_event queue right after
+> this anyway - is there a problem with it waiting on that?"
 > 
 > Thanks,
 > 	--Mark
+Sorry for my obscure description.
+If ocfs2_commit_cache fails because of JBD2_ABORT, j_num_trans won't be cleared.
+Then the condition of checkpoint event still evaluates true, so it won't wait.
 > 
 > --
 > Mark Fasheh
 > 
+> .
 > 
