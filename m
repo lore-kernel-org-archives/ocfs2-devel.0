@@ -1,74 +1,49 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Thu, 17 Apr 2014 19:45:39 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: limit printk when journal
-	is	aborted
-In-Reply-To: <535079A9.9060603@huawei.com>
-References: <534FB63A.9090402@huawei.com>
-	<20140417210132.GB27178@wotan.suse.de>
-	<535079A9.9060603@huawei.com>
-Message-ID: <20140418024539.GE27178@wotan.suse.de>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Fri, 18 Apr 2014 05:21:41 +0000
+Subject: [Ocfs2-devel] It is maybe a bug, requiring anyone to review it,
+	Thanks.
+Message-ID: <71604351584F6A4EBAE558C676F37CA42EC3FE24@H3CMLB02-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Apr 18, 2014 at 09:02:33AM +0800, Joseph Qi wrote:
-> On 2014/4/18 5:01, Mark Fasheh wrote:
-> > On Thu, Apr 17, 2014 at 07:08:42PM +0800, Joseph Qi wrote:
-> >>
-> >> Once JBD2_ABORT is set, ocfs2_commit_cache will fail in
-> >> ocfs2_commit_thread. Then it will get into a loop with mass logs. This
-> >> will meaninglessly consume a larger number of resource and may lead to
-> >> system hung at last.
-> >> So limit printk in this case.
-> >>
-> >> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-> >> ---
-> >>  fs/ocfs2/journal.c | 12 ++++++++++--
-> >>  1 file changed, 10 insertions(+), 2 deletions(-)
-> >>
-> >> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> >> index 44fc3e5..cfefbd1 100644
-> >> --- a/fs/ocfs2/journal.c
-> >> +++ b/fs/ocfs2/journal.c
-> >> @@ -30,6 +30,7 @@
-> >>  #include <linux/kthread.h>
-> >>  #include <linux/time.h>
-> >>  #include <linux/random.h>
-> >> +#include <linux/delay.h>
-> >>  
-> >>  #include <cluster/masklog.h>
-> >>  
-> >> @@ -2191,8 +2192,15 @@ static int ocfs2_commit_thread(void *arg)
-> >>  					 || kthread_should_stop());
-> >>  
-> >>  		status = ocfs2_commit_cache(osb);
-> >> -		if (status < 0)
-> >> -			mlog_errno(status);
-> >> +		if (status < 0) {
-> >> +			static unsigned long abort_warn_time;
-> >> +
-> >> +			/* Warn about this once per minute */
-> >> +			if (printk_timed_ratelimit(&abort_warn_time, 60*HZ))
-> >> +				mlog(ML_ERROR, "status = %d, journal is "
-> >> +						"already aborted.\n", status);
-> >> +			msleep_interruptible(1000);
-> >> +		}
-> > 
-> > Why the msleep? ocfs2_commit_thread will wait on the checkpoint_event queue
-> > right after this anyway - is there a problem with it waiting on that?
-> > 
-> Since jbd2 is already aborted, commit cache is meaningless.
+void o2net_fill_node_map(unsigned long *map, unsigned bytes)
+{
+struct o2net_sock_container *sc = NULL;
+int node, ret;
 
-I understand that, but I'm asking why the msleep and whether we can avoid
-that. To go back to my question:
+BUG_ON(bytes < (BITS_TO_LONGS(O2NM_MAX_NODES) * sizeof(unsigned long)));
 
-"ocfs2_commit_thread will wait on the checkpoint_event queue right after
-this anyway - is there a problem with it waiting on that?"
+memset(map, 0, bytes);
+for (node = 0; node < O2NM_MAX_NODES; ++node) {
+o2net_tx_can_proceed(o2net_nn_from_num(node), &sc, &ret);
+if (!ret) {
+set_bit(node, map);
 
-Thanks,
-	--Mark
+             if (sc) {
+     sc_put(sc);
+             }
+}
++ sc = NULL;
+}
+}
 
---
-Mark Fasheh
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140418/0f544b9d/attachment-0001.html 
