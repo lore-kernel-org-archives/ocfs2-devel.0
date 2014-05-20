@@ -1,102 +1,121 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Mon, 19 May 2014 09:36:08 +0800
-Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: o2net: fix packets lost issue
- when reconnect
-In-Reply-To: <5375D3DA.6030603@huawei.com>
-References: <1400127983-9774-1-git-send-email-junxiao.bi@oracle.com>
-	<53747A65.1000200@huawei.com> <537575A8.8080600@oracle.com>
-	<5375C6C4.9040207@huawei.com> <5375CD34.60101@oracle.com>
-	<5375D3DA.6030603@huawei.com>
-Message-ID: <53796008.5040501@oracle.com>
+From: Tariq Saeed <tariq.x.saeed@oracle.com>
+Date: Tue, 20 May 2014 14:53:36 -0700
+Subject: [Ocfs2-devel] [PATCH 1/1] deadlock when two nodes are converting
+	same lock from PR to EX and idletimeout closes conn
+Message-ID: <1400622816-10372-1-git-send-email-tariq.x.saeed@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 05/16/2014 05:01 PM, Joseph Qi wrote:
-> On 2014/5/16 16:32, Junxiao Bi wrote:
->> On 05/16/2014 04:05 PM, Joseph Qi wrote:
->>> Hi Junxiao,
->>>
->>> On 2014/5/16 10:19, Junxiao Bi wrote:
->>>> Hi Joseph,
->>>>
->>>> On 05/15/2014 04:27 PM, Joseph Qi wrote:
->>>>> On 2014/5/15 12:26, Junxiao Bi wrote:
->>>>>> Hi,
->>>>>>
->>>>>> After the tcp connection is established between two ocfs2 nodes, an idle
->>>>>> timer will be set to check its state periodically, if no messages are
->>>>>> received during this time, idle timer will timeout, it will shutdown
->>>>>> the connection and try to rebuild, so pending message in tcp queues will
->>>>>> be lost. This may cause the whole ocfs2 cluster hung. 
->>>>>> This is very possible to happen when network state goes bad. Do the
->>>>>> reconnect is useless, it will fail if network state doesn't recover.
->>>>>> Just waiting there for network recovering may be a good idea, it will
->>>>>> not lost messages and some node will be fenced until cluster goes into
->>>>>> split-brain state, for this case, Tcp user timeout is used to override
->>>>>> the tcp retransmit timeout. It will timeout after 25 days, user should
->>>>>> have notice this through the provided log and fix the network, if they
->>>>>> don't, ocfs2 will fall back to original reconnect way.
->>>>>> The following is the serial of patches to fix the bug. Please help review.
->>>>> TCP RTT is auto-regressive, that means the following case may take
->>>>> place:
->>>>> Suppose current retransmission interval is ?T (somewhat long), network
->>>>> recovers but down again before the next retransmission windows
->>>>> comes (< ?T), so the network recovery won't be detected and ocfs2
->>>>> cluster still hungs.
->>>> Network recovers but down again, this means the network is still down.
->>>> Ocfs2 hung is an expected behavior when network is down if split-brain case.
->>>> What we need take care is how long can ocfs2 recover from hung after
->>>> network recover(not down again). I didn't know tcp internal about how
->>>> they retransmit the packets, I just test blocking the network for half
->>>> an hour, it just need several seconds to recover from the hung.  Of
->>>> course, how long the hung recover may also depends on how hard it hung
->>>> from dlm.
->>>>
->>> Yes, it is an expected behavior. But currently ocfs2 will make quorum
->>> decision after timeout and cluster won't hang long.
->> Not always, sometimes, the quorum decision can't fence any node. Like in
->> three nodes cluster, 1, 2, 3,  if the network between node 2 and node 3
->> is down, but the network of each node to node 1 is good. No node will be
->> fenced. This is what we call split-brain case. Cluster will hung.
-> Yes, you are right. In such a case currently ocfs2 cannot handle.
-> But if all nodes are connected with the same switch, I am curious about
-> how this happens.
-I think we'd better not assume the network topo. We should support all
-the user cases.
+Orabug: 18639535
 
-Thanks,
-Junxiao.
->
->>> So should it be better fence than wait till recover in this situation?
->>> After all, it widely affects cluster operations.
->> Yes, but making fence decision is not that easy in the split-brain case.
->> This needs a node know every connections status of the cluster. Then it
->> can decide to cut some nodes to make the cluster work again. But now
->> every node only know itself connections status, like node 1 didn't know
->> the connection status between node 2 and node 3.
->>> Another thought is, could we retry the message? And to avoid BUG when
->>> a same message is handled twice, we can add an unique message sequence
->>> number.
->> Retry is useless when network is bad. It will fail again and again until
->> network recover.
-> The thought is based on quorum decision will be made when timeout.
-> And I suppose network down within cluster range.
->
->> Thanks,
->> Junxiao.
->>>> Thanks,
->>>> Junxiao.
->>>>>> Thanks,
->>>>>> Junxiao.
->>>>>>
->>>>>> _______________________________________________
->>>>>> Ocfs2-devel mailing list
->>>>>> Ocfs2-devel at oss.oracle.com
->>>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
->> .
->>
->
+Two node cluster and both nodes hold a lock at PR level and both want
+to convert to EX at the same time. Master node 1 has sent BAST and then
+closes the connection due to idletime out. Node 0  receives BAST, sends
+unlock req with cancel flag but gets error  -ENOTCONN. The problem is this
+error is ignored in dlm_send_remote_unlock_request() on the **incorrect**
+assumption that the master is dead.  See NOTE in comment why it returns
+DLM_NORMAL.  Upon getting DLM_NORMAL, node 0 proceeds to sends convert
+(without cancel flg) which fails with -ENOTCONN. waits 5 sec and resends.
+This time gets DLM_IVLOCKID from the master since lock not found in grant
+, it had been moved to converting queue in response to conv PR->EX req.
+No way out.
+
+Node 1 (master)				Node 0
+==============				======
+
+lock mode PR				PR
+
+convert PR -> EX
+mv grant -> convert and que BAST
+...
+                     <-------- convert PR -> EX
+convert que looks like this: ((node 1, PR -> EX) (node 0, PR -> EX))
+...
+			BAST (want PR -> NL)
+                     ------------------>
+...
+idle timout, conn closed
+                                ...
+				In response to BAST,
+				sends unlock with cancel convert flag
+				gets -ENOTCONN. Ignores and
+                                sends remote convert request
+                                gets -ENOTCONN, waits 5 Sec, retries
+...
+reconnects
+                   <----------------- convert req goes through on next try
+does not find lock on grant que
+                   status DLM_IVLOCKID
+                   ------------------>
+...
+
+No way out. Fix is to keep retrying unlock with cancel flag untill it succeeds
+or the master dies.
+
+Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
+---
+ fs/ocfs2/dlm/dlmunlock.c |   18 +++++++++++++-----
+ 1 files changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
+index 5698b52..2e3c9db 100644
+--- a/fs/ocfs2/dlm/dlmunlock.c
++++ b/fs/ocfs2/dlm/dlmunlock.c
+@@ -191,7 +191,9 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+ 				     DLM_UNLOCK_CLEAR_CONVERT_TYPE);
+ 		} else if (status == DLM_RECOVERING ||
+ 			   status == DLM_MIGRATING ||
+-			   status == DLM_FORWARD) {
++			   status == DLM_FORWARD ||
++			   status == DLM_NOLOCKMGR
++			   ) {
+ 			/* must clear the actions because this unlock
+ 			 * is about to be retried.  cannot free or do
+ 			 * any list manipulation. */
+@@ -200,7 +202,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
+ 			     res->lockname.name,
+ 			     status==DLM_RECOVERING?"recovering":
+ 			     (status==DLM_MIGRATING?"migrating":
+-			      "forward"));
++				(status == DLM_FORWARD ? "forward" :
++						"nolockmanager")));
+ 			actions = 0;
+ 		}
+ 		if (flags & LKM_CANCEL)
+@@ -364,7 +367,10 @@ static enum dlm_status dlm_send_remote_unlock_request(struct dlm_ctxt *dlm,
+ 			 * updated state to the recovery master.  this thread
+ 			 * just needs to finish out the operation and call
+ 			 * the unlockast. */
+-			ret = DLM_NORMAL;
++			if (dlm_is_node_dead(dlm, owner))
++				ret = DLM_NORMAL;
++			else
++				ret = DLM_NOLOCKMGR;
+ 		} else {
+ 			/* something bad.  this will BUG in ocfs2 */
+ 			ret = dlm_err_to_dlm_status(tmpret);
+@@ -638,7 +644,9 @@ retry:
+ 
+ 	if (status == DLM_RECOVERING ||
+ 	    status == DLM_MIGRATING ||
+-	    status == DLM_FORWARD) {
++	    status == DLM_FORWARD ||
++	    status == DLM_NOLOCKMGR) {
++
+ 		/* We want to go away for a tiny bit to allow recovery
+ 		 * / migration to complete on this resource. I don't
+ 		 * know of any wait queue we could sleep on as this
+@@ -650,7 +658,7 @@ retry:
+ 		msleep(50);
+ 
+ 		mlog(0, "retrying unlock due to pending recovery/"
+-		     "migration/in-progress\n");
++		     "migration/in-progress/reconnect\n");
+ 		goto retry;
+ 	}
+ 
+-- 
+1.7.1
