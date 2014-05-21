@@ -1,80 +1,27 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Wed, 21 May 2014 11:51:43 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2/dlm: fix possible convertion deadlock
-Message-ID: <537C22CF.601@huawei.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Wed, 21 May 2014 15:29:22 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix umount hang while shutting
+	down truncate log
+In-Reply-To: <537C1848.4070202@huawei.com>
+References: <537C1848.4070202@huawei.com>
+Message-ID: <20140521152922.4789ca7d1bea10a7422cc686@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-We found there is a convertion deadlock when the owner of lockres
-happened to crash before send DLM_PROXY_AST_MSG for a downconverting
-lock. The situation is as follows:
+On Wed, 21 May 2014 11:06:48 +0800 Xue jiufei <xuejiufei@huawei.com> wrote:
 
-Node1                            Node2                  Node3
-                           the owner of lockresA
-lock_1 granted at EX mode
-and call ocfs2_cluster_unlock
-to decrease ex_holders.
-                                                 converting lock_3 from
-                                                 NL to EX
-                           send DLM_PROXY_AST_MSG
-                           to Node1, asking Node 1
-                           to downconvert.
-receiving DLM_PROXY_AST_MSG,
-thread ocfs2dc send
-DLM_CONVERT_LOCK_MSG
-to Node2 to downconvert
-lock_1(EX->NL).
-                           lock_1 can be granted and
-                           put it into pending_asts
-                           list, return DLM_NORMAL.
-                           then something happened
-                           and Node2 crashed.
-received DLM_NORMAL, waiting
-for DLM_PROXY_AST_MSG.
-                                               selected as the recovery
-                                               master, receving migrate
-                                               lock from Node1, queue
-                                               lock_1 to the tail of
-                                               converting list.
+> Revert the following patch because it may cause umount hang while
+> shutting down truncate log.
+> 5f82eaa502c75d881c1db7979f3c2bf2da6865f
 
-After dlm recovery, converting list in the master of lockresA(Node3)
-will be: converting list head <-> lock_3(NL->EX) <->lock_1(EX<->NL).
-Requested mode of lock_3 is not compatible with the granted mode of
-lock_1, so it can not be granted. and lock_1 can not downconvert
-because covnerting queue is strictly FIFO. So a deadlock is created.
-We think function dlm_process_recovery_data() should queue_ast for
-lock_1 or alter the order of lock_1 and lock_3, so dlm_thread can
-process lock_1 first. And if there are multiple downconverting locks,
-they must convert form PR to NL, so no need to sort them.
+I can find no such commit.
 
-Signed-off-by: joyce.xue <xuejiufei@huawei.com>
----
- fs/ocfs2/dlm/dlmrecovery.c | 10 +++++++++-
- 1 file changed, 9 insertions(+), 1 deletion(-)
+When referring to commits, please use the form
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index fe29f79..5de0194 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1986,7 +1986,15 @@ skip_lvb:
- 		}
- 		if (!bad) {
- 			dlm_lock_get(newlock);
--			list_add_tail(&newlock->list, queue);
-+			if (mres->flags & DLM_MRES_RECOVERY &&
-+					ml->list == DLM_CONVERTING_LIST &&
-+					newlock->ml.type >
-+					newlock->ml.convert_type) {
-+				/* newlock is doing downconvert, add it to the
-+				 * head of converting list */
-+				list_add(&newlock->list, queue);
-+			} else
-+				list_add_tail(&newlock->list, queue);
- 			mlog(0, "%s:%.*s: added lock for node %u, "
- 			     "setting refmap bit\n", dlm->name,
- 			     res->lockname.len, res->lockname.name, ml->node);
--- 
-1.8.3.4
+	c4028958b6ec ("WorkStruct: make allyesconfig")
+
+so that people can still identify the commit when it has a different
+hash.
