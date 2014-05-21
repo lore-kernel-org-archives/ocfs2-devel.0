@@ -1,121 +1,82 @@
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Date: Tue, 20 May 2014 14:53:36 -0700
-Subject: [Ocfs2-devel] [PATCH 1/1] deadlock when two nodes are converting
-	same lock from PR to EX and idletimeout closes conn
-Message-ID: <1400622816-10372-1-git-send-email-tariq.x.saeed@oracle.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Wed, 21 May 2014 11:06:48 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix umount hang while shutting down
+	truncate log
+Message-ID: <537C1848.4070202@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Orabug: 18639535
+Revert the following patch because it may cause umount hang while
+shutting down truncate log.
+5f82eaa502c75d881c1db7979f3c2bf2da6865f
+fix NULL pointer dereference when dismount and ocfs2rec simultaneously
 
-Two node cluster and both nodes hold a lock at PR level and both want
-to convert to EX at the same time. Master node 1 has sent BAST and then
-closes the connection due to idletime out. Node 0  receives BAST, sends
-unlock req with cancel flag but gets error  -ENOTCONN. The problem is this
-error is ignored in dlm_send_remote_unlock_request() on the **incorrect**
-assumption that the master is dead.  See NOTE in comment why it returns
-DLM_NORMAL.  Upon getting DLM_NORMAL, node 0 proceeds to sends convert
-(without cancel flg) which fails with -ENOTCONN. waits 5 sec and resends.
-This time gets DLM_IVLOCKID from the master since lock not found in grant
-, it had been moved to converting queue in response to conv PR->EX req.
-No way out.
+The situation is as followes:
+ocfs2_dismout_volume
+-> ocfs2_recovery_exit
+  -> free osb->recovery_map
+-> ocfs2_truncate_shutdown
+  -> lock global bitmap inode
+    -> ocfs2_wait_for_recovery
+	  -> check whether osb->recovery_map->rm_used is zero
+Because osb->recovery_map is already freed, rm_used can be any other
+values, so it may yield umount hang.
 
-Node 1 (master)				Node 0
-==============				======
+To prevent NULL pointer dereference while getting sys_root_inode, we
+use a osb_tl_disable flag to disable schedule osb_truncate_log_wq after
+truncate log shutdown.
 
-lock mode PR				PR
-
-convert PR -> EX
-mv grant -> convert and que BAST
-...
-                     <-------- convert PR -> EX
-convert que looks like this: ((node 1, PR -> EX) (node 0, PR -> EX))
-...
-			BAST (want PR -> NL)
-                     ------------------>
-...
-idle timout, conn closed
-                                ...
-				In response to BAST,
-				sends unlock with cancel convert flag
-				gets -ENOTCONN. Ignores and
-                                sends remote convert request
-                                gets -ENOTCONN, waits 5 Sec, retries
-...
-reconnects
-                   <----------------- convert req goes through on next try
-does not find lock on grant que
-                   status DLM_IVLOCKID
-                   ------------------>
-...
-
-No way out. Fix is to keep retrying unlock with cancel flag untill it succeeds
-or the master dies.
-
-Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
 ---
- fs/ocfs2/dlm/dlmunlock.c |   18 +++++++++++++-----
- 1 files changed, 13 insertions(+), 5 deletions(-)
+ fs/ocfs2/alloc.c | 6 +++++-
+ fs/ocfs2/ocfs2.h | 1 +
+ 2 files changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/dlm/dlmunlock.c b/fs/ocfs2/dlm/dlmunlock.c
-index 5698b52..2e3c9db 100644
---- a/fs/ocfs2/dlm/dlmunlock.c
-+++ b/fs/ocfs2/dlm/dlmunlock.c
-@@ -191,7 +191,9 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
- 				     DLM_UNLOCK_CLEAR_CONVERT_TYPE);
- 		} else if (status == DLM_RECOVERING ||
- 			   status == DLM_MIGRATING ||
--			   status == DLM_FORWARD) {
-+			   status == DLM_FORWARD ||
-+			   status == DLM_NOLOCKMGR
-+			   ) {
- 			/* must clear the actions because this unlock
- 			 * is about to be retried.  cannot free or do
- 			 * any list manipulation. */
-@@ -200,7 +202,8 @@ static enum dlm_status dlmunlock_common(struct dlm_ctxt *dlm,
- 			     res->lockname.name,
- 			     status==DLM_RECOVERING?"recovering":
- 			     (status==DLM_MIGRATING?"migrating":
--			      "forward"));
-+				(status == DLM_FORWARD ? "forward" :
-+						"nolockmanager")));
- 			actions = 0;
- 		}
- 		if (flags & LKM_CANCEL)
-@@ -364,7 +367,10 @@ static enum dlm_status dlm_send_remote_unlock_request(struct dlm_ctxt *dlm,
- 			 * updated state to the recovery master.  this thread
- 			 * just needs to finish out the operation and call
- 			 * the unlockast. */
--			ret = DLM_NORMAL;
-+			if (dlm_is_node_dead(dlm, owner))
-+				ret = DLM_NORMAL;
-+			else
-+				ret = DLM_NOLOCKMGR;
- 		} else {
- 			/* something bad.  this will BUG in ocfs2 */
- 			ret = dlm_err_to_dlm_status(tmpret);
-@@ -638,7 +644,9 @@ retry:
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index b4deb5f..9d8fcf2 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -6046,7 +6046,8 @@ static void ocfs2_truncate_log_worker(struct work_struct *work)
+ void ocfs2_schedule_truncate_log_flush(struct ocfs2_super *osb,
+ 				       int cancel)
+ {
+-	if (osb->osb_tl_inode) {
++	if (osb->osb_tl_inode &&
++			atomic_read(&osb->osb_tl_disable) == 0) {
+ 		/* We want to push off log flushes while truncates are
+ 		 * still running. */
+ 		if (cancel)
+@@ -6223,6 +6224,8 @@ void ocfs2_truncate_log_shutdown(struct ocfs2_super *osb)
+ 	int status;
+ 	struct inode *tl_inode = osb->osb_tl_inode;
  
- 	if (status == DLM_RECOVERING ||
- 	    status == DLM_MIGRATING ||
--	    status == DLM_FORWARD) {
-+	    status == DLM_FORWARD ||
-+	    status == DLM_NOLOCKMGR) {
++	atomic_set(&osb->osb_tl_disable, 1);
 +
- 		/* We want to go away for a tiny bit to allow recovery
- 		 * / migration to complete on this resource. I don't
- 		 * know of any wait queue we could sleep on as this
-@@ -650,7 +658,7 @@ retry:
- 		msleep(50);
+ 	if (tl_inode) {
+ 		cancel_delayed_work(&osb->osb_truncate_log_wq);
+ 		flush_workqueue(ocfs2_wq);
+@@ -6254,6 +6257,7 @@ int ocfs2_truncate_log_init(struct ocfs2_super *osb)
+ 	 * until we're sure all is well. */
+ 	INIT_DELAYED_WORK(&osb->osb_truncate_log_wq,
+ 			  ocfs2_truncate_log_worker);
++	atomic_set(&osb->osb_tl_disable, 0);
+ 	osb->osb_tl_bh    = tl_bh;
+ 	osb->osb_tl_inode = tl_inode;
  
- 		mlog(0, "retrying unlock due to pending recovery/"
--		     "migration/in-progress\n");
-+		     "migration/in-progress/reconnect\n");
- 		goto retry;
- 	}
- 
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 8d64a97..bbec539 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -422,6 +422,7 @@ struct ocfs2_super
+ 	struct inode			*osb_tl_inode;
+ 	struct buffer_head		*osb_tl_bh;
+ 	struct delayed_work		osb_truncate_log_wq;
++	atomic_t			osb_tl_disable;
+ 	/*
+ 	 * How many clusters in our truncate log.
+ 	 * It must be protected by osb_tl_inode->i_mutex.
 -- 
-1.7.1
+1.8.3.4
