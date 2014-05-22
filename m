@@ -1,53 +1,42 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 23 May 2014 18:12:07 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: cleanup unused paramters in
-	ocfs2_calc_new_backup_super
-Message-ID: <537F1EF7.309@huawei.com>
+From: Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>
+Date: Thu, 22 May 2014 22:46:44 +0200
+Subject: [Ocfs2-devel] [PATCH] fs: ocfs2: move_extents.c: Fix for possible
+	null pointer dereference
+Message-ID: <1400791604-12094-1-git-send-email-rickard_strandqvist@spectrumdigital.se>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>
+Cc: Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Parameters new_clusters and first_new_cluster are not used in
-ocfs2_update_last_group_and_inode, so remove them.
+There is otherwise a risk of a possible null pointer dereference.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: joyce.xue <xuejiufei@huawei.com>
+Was largely found by using a static code analysis program called cppcheck.
+
+Signed-off-by: Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>
 ---
- fs/ocfs2/resize.c | 6 ------
- 1 file changed, 6 deletions(-)
+ fs/ocfs2/move_extents.c |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
-index 4261c74..d5da6f6 100644
---- a/fs/ocfs2/resize.c
-+++ b/fs/ocfs2/resize.c
-@@ -53,8 +53,6 @@
-  */
- static u16 ocfs2_calc_new_backup_super(struct inode *inode,
- 				       struct ocfs2_group_desc *gd,
--				       int new_clusters,
--				       u32 first_new_cluster,
- 				       u16 cl_cpg,
- 				       int set)
- {
-@@ -127,8 +125,6 @@ static int ocfs2_update_last_group_and_inode(handle_t *handle,
- 				     OCFS2_FEATURE_COMPAT_BACKUP_SB)) {
- 		backups = ocfs2_calc_new_backup_super(bm_inode,
- 						     group,
--						     new_clusters,
--						     first_new_cluster,
- 						     cl_cpg, 1);
- 		le16_add_cpu(&group->bg_free_bits_count, -1 * backups);
- 	}
-@@ -167,8 +163,6 @@ out_rollback:
- 	if (ret < 0) {
- 		ocfs2_calc_new_backup_super(bm_inode,
- 					    group,
--					    new_clusters,
--					    first_new_cluster,
- 					    cl_cpg, 0);
- 		le16_add_cpu(&group->bg_free_bits_count, backups);
- 		le16_add_cpu(&group->bg_bits, -1 * num_bits);
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index 599eb4c..6a8e3c8 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -902,11 +902,13 @@ static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
+ 	struct inode *inode = context->inode;
+ 	struct ocfs2_dinode *di;
+ 	struct buffer_head *di_bh = NULL;
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	struct ocfs2_super *osb;
+ 
+ 	if (!inode)
+ 		return -ENOENT;
+ 
++	osb = OCFS2_SB(inode->i_sb);
++
+ 	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
+ 		return -EROFS;
+ 
 -- 
-1.8.4.3
+1.7.10.4
