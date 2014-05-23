@@ -1,59 +1,47 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Fri, 23 May 2014 10:21:18 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: remove some unused codes
-Message-ID: <537EB09E.7080004@huawei.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 23 May 2014 18:02:28 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix incorrect i_size of global bitmap
+ inode after resize
+Message-ID: <537F1CB4.7000803@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Signed-off-by: joyce.xue <xuejiufei@huawei.com>
----
- fs/ocfs2/dlm/dlmcommon.h | 1 -
- fs/ocfs2/dlm/dlmdomain.c | 1 -
- fs/ocfs2/dlmglue.c       | 5 -----
- 3 files changed, 7 deletions(-)
+Ocfs2 cluster size may be 1MB, which has 20 bits. When resize, the
+input new clusters is mostly the number of clusters in a group
+descriptor(32256).
+Since the input clusters is defined as type int, so it will overflow
+when shift left 20 bits and then lead to incorrect global bitmap
+i_size.
 
-diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
-index fa2bd21..fae17c6 100644
---- a/fs/ocfs2/dlm/dlmcommon.h
-+++ b/fs/ocfs2/dlm/dlmcommon.h
-@@ -108,7 +108,6 @@ static inline int dlm_is_recovery_lock(const char *lock_name, int name_len)
- struct dlm_recovery_ctxt
- {
- 	struct list_head resources;
--	struct list_head received;
- 	struct list_head node_data;
- 	u8  new_master;
- 	u8  dead_node;
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index c973690..34fbbe5 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -2023,7 +2023,6 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
- 	INIT_LIST_HEAD(&dlm->list);
- 	INIT_LIST_HEAD(&dlm->dirty_list);
- 	INIT_LIST_HEAD(&dlm->reco.resources);
--	INIT_LIST_HEAD(&dlm->reco.received);
- 	INIT_LIST_HEAD(&dlm->reco.node_data);
- 	INIT_LIST_HEAD(&dlm->purge_list);
- 	INIT_LIST_HEAD(&dlm->dlm_domain_handlers);
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 6bd690b..52cfe99 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -2544,11 +2544,6 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
- 	 * refreshed, so we do it here. Of course, making sense of
- 	 * everything is up to the caller :) */
- 	status = ocfs2_should_refresh_lock_res(lockres);
--	if (status < 0) {
--		ocfs2_cluster_unlock(osb, lockres, level);
--		mlog_errno(status);
--		goto bail;
--	}
- 	if (status) {
- 		status = ocfs2_refresh_slot_info(osb);
- 
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/resize.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index 822ebc1..4261c74 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -157,7 +157,7 @@ static int ocfs2_update_last_group_and_inode(handle_t *handle,
+
+ 	spin_lock(&OCFS2_I(bm_inode)->ip_lock);
+ 	OCFS2_I(bm_inode)->ip_clusters = le32_to_cpu(fe->i_clusters);
+-	le64_add_cpu(&fe->i_size, new_clusters << osb->s_clustersize_bits);
++	le64_add_cpu(&fe->i_size, (u64)new_clusters << osb->s_clustersize_bits);
+ 	spin_unlock(&OCFS2_I(bm_inode)->ip_lock);
+ 	i_size_write(bm_inode, le64_to_cpu(fe->i_size));
+
+@@ -569,7 +569,7 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
+
+ 	spin_lock(&OCFS2_I(main_bm_inode)->ip_lock);
+ 	OCFS2_I(main_bm_inode)->ip_clusters = le32_to_cpu(fe->i_clusters);
+-	le64_add_cpu(&fe->i_size, input->clusters << osb->s_clustersize_bits);
++	le64_add_cpu(&fe->i_size, (u64)input->clusters << osb->s_clustersize_bits);
+ 	spin_unlock(&OCFS2_I(main_bm_inode)->ip_lock);
+ 	i_size_write(main_bm_inode, le64_to_cpu(fe->i_size));
+
 -- 
-1.8.3.4
+1.8.4.3
