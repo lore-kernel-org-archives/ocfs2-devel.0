@@ -1,58 +1,95 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Mon, 26 May 2014 11:28:40 +0800
-Subject: [Ocfs2-devel] [PATCH] fs: ocfs2: move_extents.c: Fix for
- possible null pointer dereference
-In-Reply-To: <1400791604-12094-1-git-send-email-rickard_strandqvist@spectrumdigital.se>
-References: <1400791604-12094-1-git-send-email-rickard_strandqvist@spectrumdigital.se>
-Message-ID: <5382B4E8.7020806@oracle.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Mon, 26 May 2014 15:13:26 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: Disallow node joining when
+	recovery is on going
+Message-ID: <5382E996.6090109@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>
-Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Hi,
+We found a race situation when dlm recovery and node joining
+occurs simultaneously if the network state is bad.
 
-On 05/23/2014 04:46 AM, Rickard Strandqvist wrote:
-> There is otherwise a risk of a possible null pointer dereference.
-> 
-> Was largely found by using a static code analysis program called cppcheck.
-> 
-> Signed-off-by: Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>
-> ---
->  fs/ocfs2/move_extents.c |    4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index 599eb4c..6a8e3c8 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -902,11 +902,13 @@ static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
->  	struct inode *inode = context->inode;
->  	struct ocfs2_dinode *di;
->  	struct buffer_head *di_bh = NULL;
-> -	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +	struct ocfs2_super *osb;
->  
->  	if (!inode)
->  		return -ENOENT;
->  
-> +	osb = OCFS2_SB(inode->i_sb);
-> +
->  	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
->  		return -EROFS;
+N1                                      N4
+start joining dlm and send
+query join to all live nodes
+                            set joining node to N1, return OK
+send query join to other
+live nodes and it may take
+a while
 
-Thanks for your patch, it looks reasonable if we consider it in the context
-of above function only. However, the inode should not be NULL in any case
-given that ocfs2_move_extents() is called by ocfs2_ioctl_move_extents() at
-where the inode is already validated.
+call dlm_send_join_assert()
+to send assert join message
+when N2 is down, so keep
+trying to send message to N2
+until find N2 is down
 
-IMO, maybe we can just get rid of the useless inode pre-checkup, i.e,
+send assert join message to
+N3, but connection is down
+with N3, so it may take a
+while
+                            become the recovery master for N2
+                            and send begin reco message to other
+                            nodes in domain map but no N1
+connection with N3 is rebuild,
+then send assert join to N4
+                            call dlm_assert_joined_handler(),
+                            add N1 to domain_map
 
-if (!inode)
-	return -ENOENT;
+                            dlm recovery done, send finalize message
+                            to nodes in domain map, including N1
+receiving finalize message,
+trigger the BUG() because
+recovery master mismatch.
 
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
+---
+ fs/ocfs2/dlm/dlmdomain.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
 
-Thanks,
--Jeff
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index c973690..8d46907 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -959,6 +959,14 @@ static int dlm_assert_joined_handler(struct o2net_msg *msg, u32 len, void *data,
+ 		 * domain. Set him in the map and clean up our
+ 		 * leftover join state. */
+ 		BUG_ON(dlm->joining_node != assert->node_idx);
++
++		if (dlm->reco.state & DLM_RECO_STATE_ACTIVE) {
++			mlog(0, "dlm recovery is ongoing, disallow join\n");
++			spin_unlock(&dlm->spinlock);
++			spin_unlock(&dlm_domain_lock);
++			return -EAGAIN;
++		}
++
+ 		set_bit(assert->node_idx, dlm->domain_map);
+ 		clear_bit(assert->node_idx, dlm->exit_domain_map);
+ 		__dlm_set_joining_node(dlm, DLM_LOCK_RES_OWNER_UNKNOWN);
+@@ -1517,6 +1525,7 @@ static int dlm_send_one_join_assert(struct dlm_ctxt *dlm,
+ 				    unsigned int node)
+ {
+ 	int status;
++	int ret;
+ 	struct dlm_assert_joined assert_msg;
+ 
+ 	mlog(0, "Sending join assert to node %u\n", node);
+@@ -1528,11 +1537,13 @@ static int dlm_send_one_join_assert(struct dlm_ctxt *dlm,
+ 
+ 	status = o2net_send_message(DLM_ASSERT_JOINED_MSG, DLM_MOD_KEY,
+ 				    &assert_msg, sizeof(assert_msg), node,
+-				    NULL);
++				    &ret);
+ 	if (status < 0)
+ 		mlog(ML_ERROR, "Error %d when sending message %u (key 0x%x) to "
+ 		     "node %u\n", status, DLM_ASSERT_JOINED_MSG, DLM_MOD_KEY,
+ 		     node);
++	else
++		status = ret;
+ 
+ 	return status;
+ }
+-- 
+1.8.3.4
