@@ -1,121 +1,257 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Fri, 30 May 2014 22:01:42 +0200
-Subject: [Ocfs2-devel] [RFC 18/32] ocfs2: convert to struct inode_time
-In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-Message-ID: <1401480116-1973111-19-git-send-email-arnd@arndb.de>
+Date: Fri, 30 May 2014 22:01:24 +0200
+Subject: [Ocfs2-devel] [RFC 00/32] making inode time stamps y2038 ready
+Message-ID: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, ceph-devel@vger.kernel.org, cluster-devel@redhat.com, coda@cs.cmu.edu, codalist@coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, linux-scsi@vger.kernel.org, logfs@logfs.org, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, samba-technical@lists.samba.org, xfs@oss.sgi.com
 
-ocfs2 uses unsigned 34-bit seconds for inode timestamps, which will work
-for the next 500 years, but the VFS uses struct timespec for timestamps,
-which is only good until 2038 on 32-bit CPUs.
+Based on the recent discussion about 64-bit time_t for new
+architectures, and for solving the year 2038 problem in general,
+I decided to try out what it would take to solve part of the
+kernel side of things.
 
-This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in ocfs2.
+This is a proof-of-concept work to get us to the point where
+two system calls (utimes and stat) provide a working interface
+to user space to pass 64-bit inode time stamps in and out of
+the kernel all the way to the file systems.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel at oss.oracle.com
----
- fs/ocfs2/dlmglue.c | 16 ++++++++--------
- fs/ocfs2/file.c    |  6 +++---
- fs/ocfs2/ocfs2.h   |  2 +-
- 3 files changed, 12 insertions(+), 12 deletions(-)
+I picked this because it is a fairly isolated problem, as the
+inode time stamps are rarely assigned to any other time values.
+As a byproduct of this work, I documented for each of the file
+systems we support how long the on-disk format can work[1].
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 6bd690b..26913ae 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -2010,7 +2010,7 @@ static void ocfs2_downconvert_on_unlock(struct ocfs2_super *osb,
- 
- /* LVB only has room for 64 bits of time here so we pack it for
-  * now. */
--static u64 ocfs2_pack_timespec(struct timespec *spec)
-+static u64 ocfs2_pack_inode_time(struct inode_time *spec)
- {
- 	u64 res;
- 	u64 sec = spec->tv_sec;
-@@ -2050,11 +2050,11 @@ static void __ocfs2_stuff_meta_lvb(struct inode *inode)
- 	lvb->lvb_imode     = cpu_to_be16(inode->i_mode);
- 	lvb->lvb_inlink    = cpu_to_be16(inode->i_nlink);
- 	lvb->lvb_iatime_packed  =
--		cpu_to_be64(ocfs2_pack_timespec(&inode->i_atime));
-+		cpu_to_be64(ocfs2_pack_inode_time(&inode->i_atime));
- 	lvb->lvb_ictime_packed =
--		cpu_to_be64(ocfs2_pack_timespec(&inode->i_ctime));
-+		cpu_to_be64(ocfs2_pack_inode_time(&inode->i_ctime));
- 	lvb->lvb_imtime_packed =
--		cpu_to_be64(ocfs2_pack_timespec(&inode->i_mtime));
-+		cpu_to_be64(ocfs2_pack_inode_time(&inode->i_mtime));
- 	lvb->lvb_iattr    = cpu_to_be32(oi->ip_attr);
- 	lvb->lvb_idynfeatures = cpu_to_be16(oi->ip_dyn_features);
- 	lvb->lvb_igeneration = cpu_to_be32(inode->i_generation);
-@@ -2063,7 +2063,7 @@ out:
- 	mlog_meta_lvb(0, lockres);
- }
- 
--static void ocfs2_unpack_timespec(struct timespec *spec,
-+static void ocfs2_unpack_inode_time(struct inode_time *spec,
- 				  u64 packed_time)
- {
- 	spec->tv_sec = packed_time >> OCFS2_SEC_SHIFT;
-@@ -2099,11 +2099,11 @@ static void ocfs2_refresh_inode_from_lvb(struct inode *inode)
- 	i_gid_write(inode, be32_to_cpu(lvb->lvb_igid));
- 	inode->i_mode    = be16_to_cpu(lvb->lvb_imode);
- 	set_nlink(inode, be16_to_cpu(lvb->lvb_inlink));
--	ocfs2_unpack_timespec(&inode->i_atime,
-+	ocfs2_unpack_inode_time(&inode->i_atime,
- 			      be64_to_cpu(lvb->lvb_iatime_packed));
--	ocfs2_unpack_timespec(&inode->i_mtime,
-+	ocfs2_unpack_inode_time(&inode->i_mtime,
- 			      be64_to_cpu(lvb->lvb_imtime_packed));
--	ocfs2_unpack_timespec(&inode->i_ctime,
-+	ocfs2_unpack_inode_time(&inode->i_ctime,
- 			      be64_to_cpu(lvb->lvb_ictime_packed));
- 	spin_unlock(&oi->ip_lock);
- }
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 2930e23..88deaa6 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -216,7 +216,7 @@ static int ocfs2_sync_file(struct file *file, loff_t start, loff_t end,
- int ocfs2_should_update_atime(struct inode *inode,
- 			      struct vfsmount *vfsmnt)
- {
--	struct timespec now;
-+	struct inode_time now;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-@@ -242,8 +242,8 @@ int ocfs2_should_update_atime(struct inode *inode,
- 		return 0;
- 
- 	if (vfsmnt->mnt_flags & MNT_RELATIME) {
--		if ((timespec_compare(&inode->i_atime, &inode->i_mtime) <= 0) ||
--		    (timespec_compare(&inode->i_atime, &inode->i_ctime) <= 0))
-+		if ((inode_time_compare(&inode->i_atime, &inode->i_mtime) <= 0) ||
-+		    (inode_time_compare(&inode->i_atime, &inode->i_ctime) <= 0))
- 			return 1;
- 
- 		return 0;
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index bbec539..11a06e7 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -213,7 +213,7 @@ struct ocfs2_orphan_scan {
- 	struct ocfs2_super 	*os_osb;
- 	struct ocfs2_lock_res 	os_lockres;     /* lock to synchronize scans */
- 	struct delayed_work 	os_orphan_scan_work;
--	struct timespec		os_scantime;  /* time this node ran the scan */
-+	struct inode_time	os_scantime;  /* time this node ran the scan */
- 	u32			os_count;      /* tracks node specific scans */
- 	u32  			os_seqno;       /* tracks cluster wide scans */
- 	atomic_t		os_state;              /* ACTIVE or INACTIVE */
+Obviously we also need to convert all the other syscalls and
+have a proper libc implementation using those for this to
+be really useful, but it's a start and it can be tested
+independently (I didn't so far, want to wait for initial
+feedback).
+
+All the interesting stuff is in the first five patches here,
+the rest is the straightforward conversion of all file systems
+that use 'timespec' values internally.
+
+There are of course a number of open questions:
+
+a) is this the right approach in general? The previous discussion
+   pointed this way, but there may be other opinions.
+b) what type should we use internally to represent inode time
+   stamps? The code contains three different versions that would
+   all work, we just have to pick a good tradeoff between
+   efficiency and the range of times we want to cover.
+c) Should we continue this way for all 32-bit platforms for
+   consistency, including future ones, or should we go to
+   different 64-bit types right away? My feeling is that the
+   second approach would complicate this work.
+
+	Arnd
+
+[1] http://kernelnewbies.org/y2038
+
+Arnd Bergmann (32):
+  fs: introduce new 'struct inode_time'
+  uapi: add struct __kernel_timespec{32,64}
+  fs: introduce sys_utimens64at
+  fs: introduce sys_newfstat64/sys_newfstatat64
+  arch: hook up new stat and utimes syscalls
+  isofs: fix timestamps beyond 2027
+  fs/nfs: convert to struct inode_time
+  fs/ceph: convert to 'struct inode_time'
+  fs/pstore: convert to struct inode_time
+  fs/coda: convert to struct inode_time
+  xfs: convert to struct inode_time
+  btrfs: convert to struct inode_time
+  ext3: convert to struct inode_time
+  ext4: convert to struct inode_time
+  cifs: convert to struct inode_time
+  ntfs: convert to struct inode_time
+  ubifs: convert to struct inode_time
+  ocfs2: convert to struct inode_time
+  fs/fat: convert to struct inode_time
+  afs: convert to struct inode_time
+  udf: convert to struct inode_time
+  fs: convert simple fs to inode_time
+  logfs: convert to struct inode_time
+  hfs, hfsplus: convert to struct inode_time
+  gfs2: convert to struct inode_time
+  reiserfs: convert to struct inode_time
+  jffs2: convert to struct inode_time
+  adfs: convert to struct inode_time
+  f2fs: convert to struct inode_time
+  fuse: convert to struct inode_time
+  scsi: fnic: use current_kernel_time() for timestamp
+  fs: use new inode_time definition unconditionally
+
+ arch/alpha/kernel/osf_sys.c        |  2 +-
+ arch/arm/include/asm/unistd.h      |  2 +-
+ arch/arm/include/uapi/asm/stat.h   | 25 +++++++++++++++++
+ arch/arm/include/uapi/asm/unistd.h |  3 +++
+ arch/arm/kernel/calls.S            |  3 +++
+ arch/arm64/include/asm/unistd32.h  |  5 +++-
+ arch/x86/include/uapi/asm/stat.h   | 28 +++++++++++++++++++
+ arch/x86/syscalls/syscall_32.tbl   |  3 +++
+ drivers/block/rbd.c                |  2 +-
+ drivers/firmware/efi/efi-pstore.c  | 28 +++++++++----------
+ drivers/scsi/fnic/fnic_trace.c     |  2 +-
+ drivers/tty/tty_io.c               |  2 +-
+ drivers/usb/gadget/f_fs.c          |  2 +-
+ fs/adfs/inode.c                    |  4 +--
+ fs/afs/afs.h                       |  6 ++---
+ fs/afs/fsclient.c                  |  2 +-
+ fs/attr.c                          |  8 +++---
+ fs/btrfs/file.c                    |  6 ++---
+ fs/btrfs/inode.c                   |  4 +--
+ fs/btrfs/ioctl.c                   |  4 +--
+ fs/btrfs/root-tree.c               |  2 +-
+ fs/btrfs/transaction.c             |  2 +-
+ fs/ceph/cache.c                    |  2 +-
+ fs/ceph/caps.c                     |  6 ++---
+ fs/ceph/file.c                     |  4 +--
+ fs/ceph/inode.c                    | 20 +++++++-------
+ fs/ceph/super.h                    |  8 +++---
+ fs/cifs/cache.c                    |  6 ++---
+ fs/cifs/cifsglob.h                 |  6 ++---
+ fs/cifs/cifsproto.h                |  6 ++---
+ fs/cifs/cifssmb.c                  |  5 ++--
+ fs/cifs/inode.c                    |  2 +-
+ fs/cifs/netmisc.c                  | 15 ++++++-----
+ fs/coda/coda_linux.c               | 18 ++++++++-----
+ fs/compat.c                        | 19 ++-----------
+ fs/configfs/inode.c                |  6 ++---
+ fs/cramfs/inode.c                  |  2 +-
+ fs/ext3/inode.c                    |  4 +--
+ fs/ext4/ext4.h                     | 10 +++----
+ fs/ext4/extents.c                  |  2 +-
+ fs/f2fs/file.c                     |  6 ++---
+ fs/fat/dir.c                       |  2 +-
+ fs/fat/fat.h                       |  6 ++---
+ fs/fat/misc.c                      |  4 +--
+ fs/fat/namei_msdos.c               |  8 +++---
+ fs/fat/namei_vfat.c                | 10 +++----
+ fs/fuse/inode.c                    |  6 ++---
+ fs/gfs2/dir.c                      |  6 ++---
+ fs/gfs2/glops.c                    |  4 +--
+ fs/hfs/hfs_fs.h                    |  2 +-
+ fs/hfsplus/hfsplus_fs.h            |  2 +-
+ fs/inode.c                         | 18 ++++++-------
+ fs/isofs/util.c                    |  2 +-
+ fs/jffs2/os-linux.h                |  2 +-
+ fs/locks.c                         |  4 +--
+ fs/logfs/readwrite.c               | 18 ++++++-------
+ fs/nfs/callback.h                  |  4 +--
+ fs/nfs/callback_xdr.c              |  6 ++---
+ fs/nfs/file.c                      |  2 +-
+ fs/nfs/fscache-index.c             |  8 +++---
+ fs/nfs/inode.c                     | 10 +++----
+ fs/nfs/internal.h                  |  4 +--
+ fs/nfs/netns.h                     |  2 +-
+ fs/nfs/nfs2xdr.c                   |  8 +++---
+ fs/nfs/nfs3xdr.c                   | 10 +++----
+ fs/nfs/nfs4xdr.c                   | 20 +++++++-------
+ fs/nfsd/nfs3xdr.c                  |  6 ++---
+ fs/nfsd/nfsfh.h                    |  4 +--
+ fs/nfsd/nfsxdr.c                   |  2 +-
+ fs/ntfs/inode.c                    | 12 ++++-----
+ fs/ntfs/time.h                     |  8 +++---
+ fs/ocfs2/dlmglue.c                 | 16 +++++------
+ fs/ocfs2/file.c                    |  6 ++---
+ fs/ocfs2/ocfs2.h                   |  2 +-
+ fs/pstore/inode.c                  |  2 +-
+ fs/pstore/internal.h               |  2 +-
+ fs/pstore/platform.c               |  2 +-
+ fs/pstore/ram.c                    | 18 +++++++------
+ fs/reiserfs/namei.c                |  2 +-
+ fs/reiserfs/xattr.c                |  4 +--
+ fs/stat.c                          | 55 ++++++++++++++++++++++++++++++++++++++
+ fs/ubifs/dir.c                     |  2 +-
+ fs/ubifs/file.c                    | 16 +++++------
+ fs/ubifs/misc.h                    |  2 +-
+ fs/udf/udf_i.h                     |  2 +-
+ fs/udf/udf_sb.h                    |  2 +-
+ fs/udf/udfdecl.h                   |  7 ++---
+ fs/udf/udftime.c                   |  7 ++---
+ fs/utimes.c                        | 47 +++++++++++++++++++++++++++-----
+ fs/xfs/time.h                      |  4 +--
+ fs/xfs/xfs_inode.c                 |  2 +-
+ fs/xfs/xfs_iops.c                  |  2 +-
+ fs/xfs/xfs_trans_inode.c           |  6 ++---
+ include/linux/ceph/decode.h        |  8 +++---
+ include/linux/ceph/osd_client.h    |  4 +--
+ include/linux/compat.h             |  2 +-
+ include/linux/fs.h                 | 32 +++++++++++-----------
+ include/linux/nfs_fs_sb.h          |  2 +-
+ include/linux/nfs_xdr.h            | 14 +++++-----
+ include/linux/pstore.h             |  4 +--
+ include/linux/stat.h               |  6 ++---
+ include/linux/syscalls.h           |  9 ++++++-
+ include/linux/time.h               | 44 +++++++++++++++++++++++++++---
+ include/uapi/asm-generic/stat.h    | 29 ++++++++++++++++++--
+ include/uapi/asm-generic/unistd.h  |  8 +++++-
+ include/uapi/linux/coda.h          |  1 +
+ include/uapi/linux/time.h          | 40 ++++++++++++++++++++++++++-
+ init/initramfs.c                   |  2 +-
+ kernel/audit.c                     |  2 +-
+ kernel/auditsc.c                   |  2 +-
+ kernel/time.c                      | 44 +++++++++++++++++++++++++-----
+ kernel/time/timekeeping.c          | 16 +++++++++++
+ net/ceph/auth_x.c                  |  2 +-
+ net/ceph/osd_client.c              |  4 +--
+ 114 files changed, 642 insertions(+), 333 deletions(-)
+
 -- 
 1.8.3.2
+
+Bcc: "J. Bruce Fields" <bfields@fieldses.org>
+Bcc: "Theodore Ts'o" <tytso@mit.edu>
+Bcc: Adrian Hunter <adrian.hunter@intel.com>
+Bcc: Andreas Dilger <adilger.kernel@dilger.ca>
+Bcc: Andrew Morton <akpm@linux-foundation.org>
+Bcc: Anton Altaparmakov <anton@tuxera.com>
+Bcc: Anton Vorontsov <anton@enomsg.org>
+Bcc: Artem Bityutskiy <dedekind1@gmail.com>
+Bcc: Brian Uchino <buchino@cisco.com>
+Bcc: Chris Mason <clm@fb.com>
+Bcc: Colin Cross <ccross@android.com>
+Bcc: Dave Chinner <david@fromorbit.com>
+Bcc: David Howells <dhowells@redhat.com>
+Bcc: David Woodhouse <dwmw2@infradead.org>
+Bcc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Bcc: Hiral Patel <hiralpat@cisco.com>
+Bcc: Jaegeuk Kim <jaegeuk.kim@samsung.com>
+Bcc: Jan Harkes <jaharkes@cs.cmu.edu>
+Bcc: Jan Kara <jack@suse.cz>
+Bcc: Joel Becker <jlbec@evilplan.org>
+Bcc: Joern Engel <joern@logfs.org>
+Bcc: Josef Bacik <jbacik@fb.com>
+Bcc: Kees Cook <keescook@chromium.org>
+Bcc: Mark Fasheh <mfasheh@suse.com>
+Bcc: Miklos Szeredi <miklos@szeredi.hu>
+Bcc: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
+Bcc: Prasad Joshi <prasadjoshi.linux@gmail.com>
+Bcc: Sage Weil <sage@inktank.com>
+Bcc: Steve French <sfrench@samba.org>
+Bcc: Steven Whitehouse <swhiteho@redhat.com>
+Bcc: Suma Ramars <sramars@cisco.com>
+Bcc: Tony Luck <tony.luck@intel.com>
+Cc: ceph-devel at vger.kernel.org
+Cc: cluster-devel at redhat.com
+Cc: coda at cs.cmu.edu
+Cc: codalist at coda.cs.cmu.edu
+Cc: fuse-devel at lists.sourceforge.net
+Cc: linux-afs at lists.infradead.org
+Cc: linux-btrfs at vger.kernel.org
+Cc: linux-cifs at vger.kernel.org
+Cc: linux-ext4 at vger.kernel.org
+Cc: linux-f2fs-devel at lists.sourceforge.net
+Cc: linux-mtd at lists.infradead.org
+Cc: linux-nfs at vger.kernel.org
+Cc: linux-ntfs-dev at lists.sourceforge.net
+Cc: linux-scsi at vger.kernel.org
+Cc: logfs at logfs.org
+Cc: ocfs2-devel at oss.oracle.com
+Cc: reiserfs-devel at vger.kernel.org
+Cc: samba-technical at lists.samba.org
+Cc: xfs at oss.sgi.com
