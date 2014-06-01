@@ -1,70 +1,27 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 27 Jun 2014 17:44:03 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix race between dispatched_work
-	and dlm_lockres_grab_inflight_worker
-Message-ID: <53AD3CE3.6070409@huawei.com>
+From: Richard Cochran <richardcochran@gmail.com>
+Date: Sun, 1 Jun 2014 06:44:36 +0200
+Subject: [Ocfs2-devel] [RFC 00/32] making inode time stamps y2038 ready
+In-Reply-To: <6347520.8jMPlVsFjM@wuerfel>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+	<20140531145114.GA3721@localhost.localdomain>
+	<6347520.8jMPlVsFjM@wuerfel>
+Message-ID: <20140601044436.GC3722@localhost.localdomain>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, hch@infradead.org, linux-mtd@lists.infradead.org, hpa@zytor.com, logfs@logfs.org, linux-afs@lists.infradead.org, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-cifs@vger.kernel.org, linux-scsi@vger.kernel.org, ceph-devel@vger.kernel.org, codalist@coda.cs.cmu.edu, cluster-devel@redhat.com, coda@cs.cmu.edu, geert@linux-m68k.org, linux-ext4@vger.kernel.org, fuse-devel@lists.sourceforge.net, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, john.stultz@linaro.org, tglx@linutronix.de, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, samba-technical@lists.samba.org, linux-f2fs-devel@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, lftan@altera.com, linux-btrfs@vger.kernel.org
 
-Patch ac4fef4d23ed (ocfs2/dlm: do not purge lockres that is queued for
-assert master) may have the following possible race case:
-dlm_dispatch_assert_master       dlm_wq
-----------------------------------------------------------------------
-queue_work(dlm->quedlm_worker,
-	&dlm->dispatched_work);
-                                 dispatch work,
-				 dlm_lockres_drop_inflight_worker
-				 *BUG_ON(res->inflight_assert_workers == 0)*
-dlm_lockres_grab_inflight_worker
-inflight_assert_workers++	
+On Sat, May 31, 2014 at 05:23:02PM +0200, Arnd Bergmann wrote:
+> On Saturday 31 May 2014 16:51:15 Richard Cochran wrote:
+> > 
+> > Why are some of the time stamp expiration dates marked as "never"?
+> 
+> It's an approximation:
 
-So ensure inflight_assert_workers to be increased first.
+Also, the term "never" might mean using arbitrarily long integers
+as in ASN.1.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Signed-off-by: Xue jiufei <xuejiufei@huawei.com>
----
- fs/ocfs2/dlm/dlmmaster.c | 12 +++---------
- 1 file changed, 3 insertions(+), 9 deletions(-)
-
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 6222b35..fc78237 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -694,14 +694,6 @@ void __dlm_lockres_grab_inflight_worker(struct dlm_ctxt *dlm,
- 			res->inflight_assert_workers);
- }
-
--static void dlm_lockres_grab_inflight_worker(struct dlm_ctxt *dlm,
--		struct dlm_lock_resource *res)
--{
--	spin_lock(&res->spinlock);
--	__dlm_lockres_grab_inflight_worker(dlm, res);
--	spin_unlock(&res->spinlock);
--}
--
- static void __dlm_lockres_drop_inflight_worker(struct dlm_ctxt *dlm,
- 		struct dlm_lock_resource *res)
- {
-@@ -1635,6 +1627,7 @@ send_response:
- 		}
- 		mlog(0, "%u is the owner of %.*s, cleaning everyone else\n",
- 			     dlm->node_num, res->lockname.len, res->lockname.name);
-+		spin_lock(&res->spinlock);
- 		ret = dlm_dispatch_assert_master(dlm, res, 0, request->node_idx,
- 						 DLM_ASSERT_MASTER_MLE_CLEANUP);
- 		if (ret < 0) {
-@@ -1642,7 +1635,8 @@ send_response:
- 			response = DLM_MASTER_RESP_ERROR;
- 			dlm_lockres_put(res);
- 		} else
--			dlm_lockres_grab_inflight_worker(dlm, res);
-+			__dlm_lockres_grab_inflight_worker(dlm, res);
-+		spin_unlock(&res->spinlock);
- 	} else {
- 		if (res)
- 			dlm_lockres_put(res);
--- 
-1.8.4.3
+Thanks,
+Richard
