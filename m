@@ -1,44 +1,40 @@
-From: H. Peter Anvin <hpa@zytor.com>
-Date: Mon, 02 Jun 2014 14:57:26 -0700
-Subject: [Ocfs2-devel] [RFC 00/32] making inode time stamps y2038 ready
-In-Reply-To: <7175692.dpgYFMbTaP@wuerfel>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<4233989.Saca0ocOUr@wuerfel> <538CCFDE.2010107@zytor.com>
-	<7175692.dpgYFMbTaP@wuerfel>
-Message-ID: <538CF346.2070504@zytor.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Mon, 2 Jun 2014 16:21:40 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: remove some unused codes
+In-Reply-To: <537EB09E.7080004@huawei.com>
+References: <537EB09E.7080004@huawei.com>
+Message-ID: <20140602162140.35b5ec0bdae2959a983f8c99@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: "Joseph S. Myers" <joseph-qD8j1LwMmJjtCj0u4l0SBw@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, lftan-EIB2kfCEclfQT0dZR+AlfA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, coda-ETDLCGt7PQU3uPMLIKxrzw@public.gmane.org, codalist-ySnCqBnJi5yMVn35/9/JlcWGCVk0P7UB@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-mtd-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ntfs-dev-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, logfs-PCqxUs/MD9bYtjvyW6yDsg@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, reiserfs-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, samba-technical-w/Ol4Ecudpl8XjKLYN78aQ@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org
+To: ocfs2-devel@oss.oracle.com
 
-On 06/02/2014 12:55 PM, Arnd Bergmann wrote:
->>
->> The bit that is really going to hurt is every single ioctl that uses a
->> timespec.
->>
->> Honestly, though, I really don't understand the point with "struct
->> inode_time".  It seems like the zeroeth-order thing is to change the
->> kernel internal version of struct timespec to have a 64-bit time... it
->> isn't just about inodes.  We then should be explicit about the external
->> uses of time, and use accessors.
-> 
-> I picked these because they are fairly isolated from all other uses,
-> in particular since inode times are the only things where we really
-> care about times in the distant past or future (decades away as opposed
-> to things that happened between boot and shutdown).
-> 
+On Fri, 23 May 2014 10:21:18 +0800 Xue jiufei <xuejiufei@huawei.com> wrote:
 
-If nothing else, I would expect to be able to set the system time to
-weird values for testing.  So I'm not so sure I agree with that...
+Please write changelogs for the patches if they are not utterly obvious?
 
-> For other kernel-internal uses, we may be better off migrating to
-> a completely different representation, such as nanoseconds since
-> boot or the architecture specific ktime_t, but this is really something
-> to decide for each subsystem.
+And part of this patch was not utterly obvious.  So I wrote your changelog:
 
-Having a bunch of different time representations in the kernel seems
-like a real headache...
+: dlm_recovery_ctxt.received is unused.
+:
+: ocfs2_should_refresh_lock_res() can only return 0 or 1, so the error
+: handling code in ocfs2_super_lock() is unneeded.
 
-	-hpa
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -2544,11 +2544,6 @@ int ocfs2_super_lock(struct ocfs2_super *osb,
+>  	 * refreshed, so we do it here. Of course, making sense of
+>  	 * everything is up to the caller :) */
+>  	status = ocfs2_should_refresh_lock_res(lockres);
+> -	if (status < 0) {
+> -		ocfs2_cluster_unlock(osb, lockres, level);
+> -		mlog_errno(status);
+> -		goto bail;
+> -	}
+>  	if (status) {
+>  		status = ocfs2_refresh_slot_info(osb);
+
+One does wonder if this is the correct fix.  Perhaps
+ocfs2_should_refresh_lock_res() should be checking something but forgot
+to do so?
