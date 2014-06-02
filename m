@@ -1,47 +1,26 @@
-From: H. Peter Anvin <hpa@zytor.com>
-Date: Sat, 31 May 2014 12:34:12 -0700
+From: Joseph S. Myers <joseph@codesourcery.com>
+Date: Mon, 2 Jun 2014 13:52:19 +0000
 Subject: [Ocfs2-devel] [RFC 00/32] making inode time stamps y2038 ready
-In-Reply-To: <20140531182237.GA5382@localhost.localdomain>
+In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<20140531145114.GA3721@localhost.localdomain>
-	<6347520.8jMPlVsFjM@wuerfel>
-	<20140531182237.GA5382@localhost.localdomain>
-Message-ID: <57071155-5a08-4579-9189-92d442cd65e7@email.android.com>
+Message-ID: <Pine.LNX.4.64.1406021350030.19591@digraph.polyomino.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Richard Cochran <richardcochran@gmail.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, hch@infradead.org, linux-mtd@lists.infradead.org, logfs@logfs.org, linux-afs@lists.infradead.org, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-cifs@vger.kernel.org, linux-scsi@vger.kernel.org, ceph-devel@vger.kernel.org, codalist@TELEMANN.coda.cs.cmu.edu, cluster-devel@redhat.com, coda@cs.cmu.edu, geert@linux-m68k.org, linux-ext4@vger.kernel.org, fuse-devel@lists.sourceforge.net, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, john.stultz@linaro.org, tglx@linutronix.de, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, samba-technical@lists.samba.org, linux-f2fs-devel@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, lftan@altera.com, linux-btrfs@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, ceph-devel@vger.kernel.org, cluster-devel@redhat.com, coda@cs.cmu.edu, codalist@coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, linux-scsi@vger.kernel.org, logfs@logfs.org, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, samba-technical@lists.samba.org, xfs@oss.sgi.com
 
-Typically they are using 64-bit signed seconds.
+On Fri, 30 May 2014, Arnd Bergmann wrote:
 
-On May 31, 2014 11:22:37 AM PDT, Richard Cochran <richardcochran@gmail.com> wrote:
->On Sat, May 31, 2014 at 05:23:02PM +0200, Arnd Bergmann wrote:
->> 
->> It's an approximation:
->
->(Approximately never ;)
->
->> with 64-bit timestamps, you can represent close to 300 billion
->> years, which is way past the time that our planet can sustain
->> life of any form[1].
->
->Did you mean mean 64 bits worth of seconds?
->
->  2^64 / (3600*24*365) = 584,942,417,355
->
->That is more than 300 billion years, and still, it is not quite the
->same as "never".
->
->In any case, that term is not too helpful in the comparison table,
->IMHO. One could think that some sort of clever running count relative
->to the last mount time was implied.
->
->Thanks,
->Richard
->
->[1] You are forgetting the immortal robotic overlords.
+> a) is this the right approach in general? The previous discussion
+>    pointed this way, but there may be other opinions.
+
+The syscall changes seem like the sort of thing I'd expect, although 
+patches adding new syscalls or otherwise affecting the kernel/userspace 
+interface (as opposed to those relating to an individual filesystem) 
+should go to linux-api as well as other relevant lists.
 
 -- 
-Sent from my mobile phone.  Please pardon brevity and lack of formatting.
+Joseph S. Myers
+joseph at codesourcery.com
