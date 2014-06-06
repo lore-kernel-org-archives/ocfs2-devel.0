@@ -1,29 +1,48 @@
-From: H. Peter Anvin <hpa@zytor.com>
-Date: Wed, 04 Jun 2014 17:10:24 -0700
-Subject: [Ocfs2-devel] [RFC 00/32] making inode time stamps y2038 ready
-In-Reply-To: <8770583.6XeZxCxOY8@wuerfel>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<201406041703.47592.arnd@arndb.de>
-	<alpine.LFD.2.11.1406041308300.17310@knanqh.ubzr>
-	<8770583.6XeZxCxOY8@wuerfel>
-Message-ID: <538FB570.8000502@zytor.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 06 Jun 2014 10:18:43 +0800
+Subject: [Ocfs2-devel] [PATCH 0/3] ocfs2: o2net: fix packets lost issue
+ when reconnect
+In-Reply-To: <1400127983-9774-1-git-send-email-junxiao.bi@oracle.com>
+References: <1400127983-9774-1-git-send-email-junxiao.bi@oracle.com>
+Message-ID: <53912503.6080601@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Nicolas Pitre <nicolas.pitre-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
-Cc: hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, Dave Chinner <david-FqsqvQoI3Ljby3iVrkZq2A@public.gmane.org>, linux-mtd-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Joseph S. Myers" <joseph-qD8j1LwMmJjtCj0u4l0SBw@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, coda-ETDLCGt7PQU3uPMLIKxrzw@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, codalist-ySnCqBnJi5yMVn35/9/JlcWGCVk0P7UB@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, reiserfs-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org, john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ntfs-dev-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, samba-technical-w/Ol4Ecudpl8XjKLYN78aQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, logfs-PCqxUs/MD9bYtjvyW6yDsg@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lftan-EIB2kfCEclfQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org
+To: ocfs2-devel@oss.oracle.com
 
-On 06/04/2014 12:24 PM, Arnd Bergmann wrote:
-> 
-> For other timekeeping stuff in the kernel, I agree that using some
-> 64-bit representation (nanoseconds, 32/32 unsigned seconds/nanoseconds,
-> ...) has advantages, that's exactly the point I was making earlier
-> against simply extending the internal time_t/timespec to 64-bit
-> seconds for everything.
-> 
+Hi Mark & Andrew,
 
-How much of a performance issue is it to make time_t 64 bits, and for
-the bits there are, how hard are they to fix?
+Could you help review this patch list?
+This bug can be saw when network state go bad. It may cause ocfs2 hung
+forever if some packets lost. With this fix, ocfs2 will recover from
+hung if network becomes good.
 
-	-hpa
+Thanks,
+Junxiao.
+
+On 05/15/2014 12:26 PM, Junxiao Bi wrote:
+> Hi,
+>
+> After the tcp connection is established between two ocfs2 nodes, an idle
+> timer will be set to check its state periodically, if no messages are
+> received during this time, idle timer will timeout, it will shutdown
+> the connection and try to rebuild, so pending message in tcp queues will
+> be lost. This may cause the whole ocfs2 cluster hung. 
+> This is very possible to happen when network state goes bad. Do the
+> reconnect is useless, it will fail if network state doesn't recover.
+> Just waiting there for network recovering may be a good idea, it will
+> not lost messages and some node will be fenced until cluster goes into
+> split-brain state, for this case, Tcp user timeout is used to override
+> the tcp retransmit timeout. It will timeout after 25 days, user should
+> have notice this through the provided log and fix the network, if they
+> don't, ocfs2 will fall back to original reconnect way.
+> The following is the serial of patches to fix the bug. Please help review.
+>
+> Thanks,
+> Junxiao.
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
