@@ -1,126 +1,61 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Mon, 09 Jun 2014 13:04:00 -0700
-Subject: [Ocfs2-devel] [patch 2/8] ocfs2: fix deadlock when two nodes are
-	converting same lock from PR to EX and idletimeout closes conn
-Message-ID: <20140609200401.3D4AB5A4A6F@corp2gmr1-2.hot.corp.google.com>
+Date: Mon, 09 Jun 2014 13:04:02 -0700
+Subject: [Ocfs2-devel] [patch 3/8] ocfs2: revert "ocfs2: fix NULL pointer
+	dereference when dismount and ocfs2rec simultaneously"
+Message-ID: <20140609200402.66B1331C76B@corp2gmr1-1.hot.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Subject: ocfs2: fix deadlock when two nodes are converting same lock from PR to EX and idletimeout closes conn
+From: Xue jiufei <xuejiufei@huawei.com>
+Subject: ocfs2: revert "ocfs2: fix NULL pointer dereference when dismount and ocfs2rec simultaneously"
 
-Orabug: 18639535
+75f82eaa502c ("ocfs2: fix NULL pointer dereference when dismount and
+ocfs2rec simultaneously") may cause umount hang while shutting down
+truncate log.
 
-Two node cluster and both nodes hold a lock at PR level and both want to
-convert to EX at the same time.  Master node 1 has sent BAST and then
-closes the connection due to idletime out.  Node 0 receives BAST, sends
-unlock req with cancel flag but gets error -ENOTCONN.  The problem is this
-error is ignored in dlm_send_remote_unlock_request() on the **incorrect**
-assumption that the master is dead.  See NOTE in comment why it returns
-DLM_NORMAL.  Upon getting DLM_NORMAL, node 0 proceeds to sends convert
-(without cancel flg) which fails with -ENOTCONN.  waits 5 sec and resends.
- This time gets DLM_IVLOCKID from the master since lock not found in grant
-, it had been moved to converting queue in response to conv PR->EX req. 
-No way out.
+The situation is as followes:
+ocfs2_dismout_volume
+-> ocfs2_recovery_exit
+  -> free osb->recovery_map
+-> ocfs2_truncate_shutdown
+  -> lock global bitmap inode
+    -> ocfs2_wait_for_recovery
+	  -> check whether osb->recovery_map->rm_used is zero
+	
+Because osb->recovery_map is already freed, rm_used can be any other
+values, so it may yield umount hang.
 
-Node 1 (master)				Node 0
-==============				======
-
-lock mode PR				PR
-
-convert PR -> EX
-mv grant -> convert and que BAST
-...
-                     <-------- convert PR -> EX
-convert que looks like this: ((node 1, PR -> EX) (node 0, PR -> EX))
-...
-			BAST (want PR -> NL)
-                     ------------------>
-...
-idle timout, conn closed
-                                ...
-				In response to BAST,
-				sends unlock with cancel convert flag
-				gets -ENOTCONN. Ignores and
-                                sends remote convert request
-                                gets -ENOTCONN, waits 5 Sec, retries
-...
-reconnects
-                   <----------------- convert req goes through on next try
-does not find lock on grant que
-                   status DLM_IVLOCKID
-                   ------------------>
-...
-
-No way out.  Fix is to keep retrying unlock with cancel flag until it
-succeeds or the master dies.
-
-Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/dlm/dlmunlock.c |   18 +++++++++++++-----
- 1 file changed, 13 insertions(+), 5 deletions(-)
+ fs/ocfs2/super.c |    8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
 
-diff -puN fs/ocfs2/dlm/dlmunlock.c~deadlock-when-two-nodes-are-converting-same-lock-from-pr-to-ex-and-idletimeout-closes-conn fs/ocfs2/dlm/dlmunlock.c
---- a/fs/ocfs2/dlm/dlmunlock.c~deadlock-when-two-nodes-are-converting-same-lock-from-pr-to-ex-and-idletimeout-closes-conn
-+++ a/fs/ocfs2/dlm/dlmunlock.c
-@@ -191,7 +191,9 @@ static enum dlm_status dlmunlock_common(
- 				     DLM_UNLOCK_CLEAR_CONVERT_TYPE);
- 		} else if (status == DLM_RECOVERING ||
- 			   status == DLM_MIGRATING ||
--			   status == DLM_FORWARD) {
-+			   status == DLM_FORWARD ||
-+			   status == DLM_NOLOCKMGR
-+			   ) {
- 			/* must clear the actions because this unlock
- 			 * is about to be retried.  cannot free or do
- 			 * any list manipulation. */
-@@ -200,7 +202,8 @@ static enum dlm_status dlmunlock_common(
- 			     res->lockname.name,
- 			     status==DLM_RECOVERING?"recovering":
- 			     (status==DLM_MIGRATING?"migrating":
--			      "forward"));
-+				(status == DLM_FORWARD ? "forward" :
-+						"nolockmanager")));
- 			actions = 0;
- 		}
- 		if (flags & LKM_CANCEL)
-@@ -364,7 +367,10 @@ static enum dlm_status dlm_send_remote_u
- 			 * updated state to the recovery master.  this thread
- 			 * just needs to finish out the operation and call
- 			 * the unlockast. */
--			ret = DLM_NORMAL;
-+			if (dlm_is_node_dead(dlm, owner))
-+				ret = DLM_NORMAL;
-+			else
-+				ret = DLM_NOLOCKMGR;
- 		} else {
- 			/* something bad.  this will BUG in ocfs2 */
- 			ret = dlm_err_to_dlm_status(tmpret);
-@@ -638,7 +644,9 @@ retry:
+diff -puN fs/ocfs2/super.c~ocfs2-revert-the-patch-fix-null-pointer-dereference-when-dismount-and-ocfs2rec-simultaneously fs/ocfs2/super.c
+--- a/fs/ocfs2/super.c~ocfs2-revert-the-patch-fix-null-pointer-dereference-when-dismount-and-ocfs2rec-simultaneously
++++ a/fs/ocfs2/super.c
+@@ -1925,15 +1925,11 @@ static void ocfs2_dismount_volume(struct
  
- 	if (status == DLM_RECOVERING ||
- 	    status == DLM_MIGRATING ||
--	    status == DLM_FORWARD) {
-+	    status == DLM_FORWARD ||
-+	    status == DLM_NOLOCKMGR) {
+ 	ocfs2_shutdown_local_alloc(osb);
+ 
++	ocfs2_truncate_log_shutdown(osb);
 +
- 		/* We want to go away for a tiny bit to allow recovery
- 		 * / migration to complete on this resource. I don't
- 		 * know of any wait queue we could sleep on as this
-@@ -650,7 +658,7 @@ retry:
- 		msleep(50);
+ 	/* This will disable recovery and flush any recovery work. */
+ 	ocfs2_recovery_exit(osb);
  
- 		mlog(0, "retrying unlock due to pending recovery/"
--		     "migration/in-progress\n");
-+		     "migration/in-progress/reconnect\n");
- 		goto retry;
- 	}
+-	/*
+-	 * During dismount, when it recovers another node it will call
+-	 * ocfs2_recover_orphans and queue delayed work osb_truncate_log_wq.
+-	 */
+-	ocfs2_truncate_log_shutdown(osb);
+-
+ 	ocfs2_journal_shutdown(osb);
  
+ 	ocfs2_sync_blockdev(sb);
 _
