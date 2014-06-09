@@ -1,118 +1,126 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Mon, 09 Jun 2014 13:03:59 -0700
-Subject: [Ocfs2-devel] [patch 1/8] ocfs2: should add inode into orphan dir
-	after updating entry in ocfs2_rename()
-Message-ID: <20140609200400.1AB405A4A6F@corp2gmr1-2.hot.corp.google.com>
+Date: Mon, 09 Jun 2014 13:04:00 -0700
+Subject: [Ocfs2-devel] [patch 2/8] ocfs2: fix deadlock when two nodes are
+	converting same lock from PR to EX and idletimeout closes conn
+Message-ID: <20140609200401.3D4AB5A4A6F@corp2gmr1-2.hot.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: alex chen <alex.chen@huawei.com>
-Subject: ocfs2: should add inode into orphan dir after updating entry in ocfs2_rename()
+From: Tariq Saeed <tariq.x.saeed@oracle.com>
+Subject: ocfs2: fix deadlock when two nodes are converting same lock from PR to EX and idletimeout closes conn
 
-There are two files a and b in dir /mnt/ocfs2.
-    node A                           node B
-mv a b
-In ocfs2_rename(), after calling
-ocfs2_orphan_add(), the inode of
-file b will be added into orphan
-dir.
+Orabug: 18639535
 
-If ocfs2_update_entry() fails,
-ocfs2_rename return error and mv
-operation fails. But file b still
-exists in the parent dir.
+Two node cluster and both nodes hold a lock at PR level and both want to
+convert to EX at the same time.  Master node 1 has sent BAST and then
+closes the connection due to idletime out.  Node 0 receives BAST, sends
+unlock req with cancel flag but gets error -ENOTCONN.  The problem is this
+error is ignored in dlm_send_remote_unlock_request() on the **incorrect**
+assumption that the master is dead.  See NOTE in comment why it returns
+DLM_NORMAL.  Upon getting DLM_NORMAL, node 0 proceeds to sends convert
+(without cancel flg) which fails with -ENOTCONN.  waits 5 sec and resends.
+ This time gets DLM_IVLOCKID from the master since lock not found in grant
+, it had been moved to converting queue in response to conv PR->EX req. 
+No way out.
 
-ocfs2_queue_orphan_scan
--> ocfs2_queue_recovery_completion
--> ocfs2_complete_recovery
--> ocfs2_recover_orphans
-The inode of the file b will be
-put with iput().
+Node 1 (master)				Node 0
+==============				======
 
-ocfs2_evict_inode
--> ocfs2_delete_inode
--> ocfs2_wipe_inode
--> ocfs2_remove_inode
-OCFS2_VALID_FL in the inode
-i_flags will be cleared.
+lock mode PR				PR
 
-                                   The file b still can be accessed
-                                   on node B.
-                                   ls /mnt/ocfs2
-                                   When first read the file b with
-                                   ocfs2_read_inode_block(). It will
-                                   validate the inode using
-                                   ocfs2_validate_inode_block().
-                                   Because OCFS2_VALID_FL not set in
-                                   the inode i_flags, so the file
-                                   system will be readonly.
+convert PR -> EX
+mv grant -> convert and que BAST
+...
+                     <-------- convert PR -> EX
+convert que looks like this: ((node 1, PR -> EX) (node 0, PR -> EX))
+...
+			BAST (want PR -> NL)
+                     ------------------>
+...
+idle timout, conn closed
+                                ...
+				In response to BAST,
+				sends unlock with cancel convert flag
+				gets -ENOTCONN. Ignores and
+                                sends remote convert request
+                                gets -ENOTCONN, waits 5 Sec, retries
+...
+reconnects
+                   <----------------- convert req goes through on next try
+does not find lock on grant que
+                   status DLM_IVLOCKID
+                   ------------------>
+...
 
-So we should add inode into orphan dir after updating entry in
-ocfs2_rename().
+No way out.  Fix is to keep retrying unlock with cancel flag until it
+succeeds or the master dies.
 
-Signed-off-by: alex.chen <alex.chen@huawei.com>
+Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/namei.c |   22 +++++++++++-----------
- 1 file changed, 11 insertions(+), 11 deletions(-)
+ fs/ocfs2/dlm/dlmunlock.c |   18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
 
-diff -puN fs/ocfs2/namei.c~ocfs2-should-add-inode-into-orphan-dir-after-updating-entry-in-ocfs2_rename fs/ocfs2/namei.c
---- a/fs/ocfs2/namei.c~ocfs2-should-add-inode-into-orphan-dir-after-updating-entry-in-ocfs2_rename
-+++ a/fs/ocfs2/namei.c
-@@ -1098,6 +1098,7 @@ static int ocfs2_rename(struct inode *ol
- 	struct ocfs2_dir_lookup_result old_entry_lookup = { NULL, };
- 	struct ocfs2_dir_lookup_result orphan_insert = { NULL, };
- 	struct ocfs2_dir_lookup_result target_insert = { NULL, };
-+	bool should_add_orphan = false;
- 
- 	/* At some point it might be nice to break this function up a
- 	 * bit. */
-@@ -1304,6 +1305,7 @@ static int ocfs2_rename(struct inode *ol
- 				mlog_errno(status);
- 				goto bail;
- 			}
-+			should_add_orphan = true;
+diff -puN fs/ocfs2/dlm/dlmunlock.c~deadlock-when-two-nodes-are-converting-same-lock-from-pr-to-ex-and-idletimeout-closes-conn fs/ocfs2/dlm/dlmunlock.c
+--- a/fs/ocfs2/dlm/dlmunlock.c~deadlock-when-two-nodes-are-converting-same-lock-from-pr-to-ex-and-idletimeout-closes-conn
++++ a/fs/ocfs2/dlm/dlmunlock.c
+@@ -191,7 +191,9 @@ static enum dlm_status dlmunlock_common(
+ 				     DLM_UNLOCK_CLEAR_CONVERT_TYPE);
+ 		} else if (status == DLM_RECOVERING ||
+ 			   status == DLM_MIGRATING ||
+-			   status == DLM_FORWARD) {
++			   status == DLM_FORWARD ||
++			   status == DLM_NOLOCKMGR
++			   ) {
+ 			/* must clear the actions because this unlock
+ 			 * is about to be retried.  cannot free or do
+ 			 * any list manipulation. */
+@@ -200,7 +202,8 @@ static enum dlm_status dlmunlock_common(
+ 			     res->lockname.name,
+ 			     status==DLM_RECOVERING?"recovering":
+ 			     (status==DLM_MIGRATING?"migrating":
+-			      "forward"));
++				(status == DLM_FORWARD ? "forward" :
++						"nolockmanager")));
+ 			actions = 0;
  		}
- 	} else {
- 		BUG_ON(new_dentry->d_parent->d_inode != new_dir);
-@@ -1348,17 +1350,6 @@ static int ocfs2_rename(struct inode *ol
- 			goto bail;
- 		}
+ 		if (flags & LKM_CANCEL)
+@@ -364,7 +367,10 @@ static enum dlm_status dlm_send_remote_u
+ 			 * updated state to the recovery master.  this thread
+ 			 * just needs to finish out the operation and call
+ 			 * the unlockast. */
+-			ret = DLM_NORMAL;
++			if (dlm_is_node_dead(dlm, owner))
++				ret = DLM_NORMAL;
++			else
++				ret = DLM_NOLOCKMGR;
+ 		} else {
+ 			/* something bad.  this will BUG in ocfs2 */
+ 			ret = dlm_err_to_dlm_status(tmpret);
+@@ -638,7 +644,9 @@ retry:
  
--		if (S_ISDIR(new_inode->i_mode) ||
--		    (ocfs2_read_links_count(newfe) == 1)) {
--			status = ocfs2_orphan_add(osb, handle, new_inode,
--						  newfe_bh, orphan_name,
--						  &orphan_insert, orphan_dir);
--			if (status < 0) {
--				mlog_errno(status);
--				goto bail;
--			}
--		}
--
- 		/* change the dirent to point to the correct inode */
- 		status = ocfs2_update_entry(new_dir, handle, &target_lookup_res,
- 					    old_inode);
-@@ -1373,6 +1364,15 @@ static int ocfs2_rename(struct inode *ol
- 		else
- 			ocfs2_add_links_count(newfe, -1);
- 		ocfs2_journal_dirty(handle, newfe_bh);
-+		if (should_add_orphan) {
-+			status = ocfs2_orphan_add(osb, handle, new_inode,
-+					newfe_bh, orphan_name,
-+					&orphan_insert, orphan_dir);
-+			if (status < 0) {
-+				mlog_errno(status);
-+				goto bail;
-+			}
-+		}
- 	} else {
- 		/* if the name was not found in new_dir, add it now */
- 		status = ocfs2_add_entry(handle, new_dentry, old_inode,
+ 	if (status == DLM_RECOVERING ||
+ 	    status == DLM_MIGRATING ||
+-	    status == DLM_FORWARD) {
++	    status == DLM_FORWARD ||
++	    status == DLM_NOLOCKMGR) {
++
+ 		/* We want to go away for a tiny bit to allow recovery
+ 		 * / migration to complete on this resource. I don't
+ 		 * know of any wait queue we could sleep on as this
+@@ -650,7 +658,7 @@ retry:
+ 		msleep(50);
+ 
+ 		mlog(0, "retrying unlock due to pending recovery/"
+-		     "migration/in-progress\n");
++		     "migration/in-progress/reconnect\n");
+ 		goto retry;
+ 	}
+ 
 _
