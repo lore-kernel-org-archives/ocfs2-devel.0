@@ -1,175 +1,81 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Mon, 09 Jun 2014 13:04:05 -0700
-Subject: [Ocfs2-devel] [patch 6/8] ocfs2: fix a tiny race when running
-	dirop_fileop_racer
-Message-ID: <20140609200405.C8C6A5A4A39@corp2gmr1-2.hot.corp.google.com>
+Date: Mon, 09 Jun 2014 13:04:06 -0700
+Subject: [Ocfs2-devel] [patch 7/8] ocfs2: do not return
+	DLM_MIGRATE_RESPONSE_MASTERY_REF to avoid endless,
+	loop during umount
+Message-ID: <20140609200406.E45385A4A39@corp2gmr1-2.hot.corp.google.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Yiwen Jiang <jiangyiwen@huawei.com>
-Subject: ocfs2: fix a tiny race when running dirop_fileop_racer
+From: jiangyiwen <jiangyiwen@huawei.com>
+Subject: ocfs2: do not return DLM_MIGRATE_RESPONSE_MASTERY_REF to avoid endless,loop during umount
 
-When running dirop_fileop_racer we found a dead lock case.
+The following case may lead to endless loop during umount.
 
-2 nodes, say Node A and Node B, mount the same ocfs2 volume.  Create
-/race/16/1 in the filesystem, and let the inode number of dir 16 is less
-than the inode number of dir race.
+node A         node B               node C       node D
+umount volume,
+migrate lockres1
+to B
+                                                 want to lock lockres1,
+                                                 send
+                                                 MASTER_REQUEST_MSG
+                                                 to C
+                                    init block mle
+               send
+               MIGRATE_REQUEST_MSG
+               to C
+                                    find a block
+                                    mle, and then
+                                    return
+                                    DLM_MIGRATE_RESPONSE_MASTERY_REF
+                                    to B
+               set C in refmap
+                                    umount successfully
+               try to umount, endless
+               loop occurs when migrate
+               lockres1 since C is in
+               refmap
 
-Node A                            Node B
-mv /race/16/1 /race/
-                                  right after Node A has got the
-                                  EX mode of /race/16/, and tries to
-                                  get EX mode of /race
-                                  ls /race/16/
+So we can fix this endless loop case by only returning
+DLM_MIGRATE_RESPONSE_MASTERY_REF if it has a mastery mle when receiving
+MIGRATE_REQUEST_MSG.
 
-In this case, Node A has got the EX mode of /race/16/, and wants to get EX
-mode of /race/.  Node B has got the PR mode of /race/, and wants to get
-the PR mode of /race/16/.  Since EX and PR are mutually exclusive, dead
-lock happens.
-
-This patch fixes this case by locking in ancestor order before trying
-inode number order.
-
-Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Cc: Joel Becker <jlbec@evilplan.org>
+[akpm at linux-foundation.org: coding-style fixes]
+Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Xue jiufei <xuejiufei@huawei.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/namei.c |   97 ++++++++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 95 insertions(+), 2 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |   14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
 
-diff -puN fs/ocfs2/namei.c~ocfs2-fix-a-tiny-race-when-running-dirop_fileop_racer fs/ocfs2/namei.c
---- a/fs/ocfs2/namei.c~ocfs2-fix-a-tiny-race-when-running-dirop_fileop_racer
-+++ a/fs/ocfs2/namei.c
-@@ -991,6 +991,65 @@ leave:
- 	return status;
- }
- 
-+static int ocfs2_check_if_ancestor(struct ocfs2_super *osb,
-+		u64 src_inode_no, u64 dest_inode_no)
-+{
-+	int ret = 0, i = 0;
-+	u64 parent_inode_no = 0;
-+	u64 child_inode_no = src_inode_no;
-+	struct inode *child_inode;
-+
-+#define MAX_LOOKUP_TIMES 32
-+	while (1) {
-+		child_inode = ocfs2_iget(osb, child_inode_no, 0, 0);
-+		if (IS_ERR(child_inode)) {
-+			ret = PTR_ERR(child_inode);
-+			break;
-+		}
-+
-+		ret = ocfs2_inode_lock(child_inode, NULL, 0);
-+		if (ret < 0) {
-+			iput(child_inode);
-+			if (ret != -ENOENT)
-+				mlog_errno(ret);
-+			break;
-+		}
-+
-+		ret = ocfs2_lookup_ino_from_name(child_inode, "..", 2,
-+				&parent_inode_no);
-+		ocfs2_inode_unlock(child_inode, 0);
-+		iput(child_inode);
-+		if (ret < 0) {
-+			ret = -ENOENT;
-+			break;
-+		}
-+
-+		if (parent_inode_no == dest_inode_no) {
-+			ret = 1;
-+			break;
-+		}
-+
-+		if (parent_inode_no == osb->root_inode->i_ino) {
-+			ret = 0;
-+			break;
-+		}
-+
-+		child_inode_no = parent_inode_no;
-+
-+		if (++i >= MAX_LOOKUP_TIMES) {
-+			mlog(ML_NOTICE, "max lookup times reached, filesystem "
-+					"may have nested directories, "
-+					"src inode: %llu, dest inode: %llu.\n",
-+					(unsigned long long)src_inode_no,
-+					(unsigned long long)dest_inode_no);
-+			ret = 0;
-+			break;
-+		}
-+	}
-+
-+	return ret;
-+}
-+
- /*
-  * The only place this should be used is rename!
-  * if they have the same id, then the 1st one is the only one locked.
-@@ -1002,6 +1061,7 @@ static int ocfs2_double_lock(struct ocfs
- 			     struct inode *inode2)
- {
- 	int status;
-+	int inode1_is_ancestor, inode2_is_ancestor;
- 	struct ocfs2_inode_info *oi1 = OCFS2_I(inode1);
- 	struct ocfs2_inode_info *oi2 = OCFS2_I(inode2);
- 	struct buffer_head **tmpbh;
-@@ -1015,9 +1075,26 @@ static int ocfs2_double_lock(struct ocfs
- 	if (*bh2)
- 		*bh2 = NULL;
- 
--	/* we always want to lock the one with the lower lockid first. */
-+	/* we always want to lock the one with the lower lockid first.
-+	 * and if they are nested, we lock ancestor first */
- 	if (oi1->ip_blkno != oi2->ip_blkno) {
--		if (oi1->ip_blkno < oi2->ip_blkno) {
-+		inode1_is_ancestor = ocfs2_check_if_ancestor(osb, oi2->ip_blkno,
-+				oi1->ip_blkno);
-+		if (inode1_is_ancestor < 0) {
-+			status = inode1_is_ancestor;
-+			goto bail;
-+		}
-+
-+		inode2_is_ancestor = ocfs2_check_if_ancestor(osb, oi1->ip_blkno,
-+				oi2->ip_blkno);
-+		if (inode2_is_ancestor < 0) {
-+			status = inode2_is_ancestor;
-+			goto bail;
-+		}
-+
-+		if ((inode1_is_ancestor == 1) ||
-+				(oi1->ip_blkno < oi2->ip_blkno &&
-+				inode2_is_ancestor == 0)) {
- 			/* switch id1 and id2 around */
- 			tmpbh = bh2;
- 			bh2 = bh1;
-@@ -1135,6 +1212,22 @@ static int ocfs2_rename(struct inode *ol
- 			goto bail;
+diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-do-not-return-dlm_migrate_response_mastery_ref-to-avoid-endlessloop-during-umount fs/ocfs2/dlm/dlmmaster.c
+--- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-do-not-return-dlm_migrate_response_mastery_ref-to-avoid-endlessloop-during-umount
++++ a/fs/ocfs2/dlm/dlmmaster.c
+@@ -3088,11 +3088,15 @@ static int dlm_add_migration_mle(struct
+ 			/* remove it so that only one mle will be found */
+ 			__dlm_unlink_mle(dlm, tmp);
+ 			__dlm_mle_detach_hb_events(dlm, tmp);
+-			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
+-			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
+-			    "telling master to get ref for cleared out mle "
+-			    "during migration\n", dlm->name, namelen, name,
+-			    master, new_master);
++			if (tmp->type == DLM_MLE_MASTER) {
++				ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
++				mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
++						"telling master to get ref "
++						"for cleared out mle during "
++						"migration\n", dlm->name,
++						namelen, name, master,
++						new_master);
++			}
  		}
- 		rename_lock = 1;
-+
-+		/* here we cannot guarantee the inodes haven't just been
-+		 * changed, so check if they are nested again */
-+		status = ocfs2_check_if_ancestor(osb, new_dir->i_ino,
-+				old_inode->i_ino);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		} else if (status == 1) {
-+			status = -EPERM;
-+			mlog(ML_ERROR, "src inode %llu should not be ancestor "
-+				"of new dir inode %llu\n",
-+				(unsigned long long)old_inode->i_ino,
-+				(unsigned long long)new_dir->i_ino);
-+			goto bail;
-+		}
+ 		spin_unlock(&tmp->spinlock);
  	}
- 
- 	/* if old and new are the same, this'll just do one lock. */
 _
