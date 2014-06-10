@@ -1,103 +1,52 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Tue, 10 Jun 2014 21:13:31 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: correctly check the return value of
-	ocfs2_search_extent_list
-Message-ID: <5397047B.6030406@huawei.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Tue, 10 Jun 2014 11:54:14 +0200
+Subject: [Ocfs2-devel] [RFC 00/32] making inode time stamps y2038 ready
+In-Reply-To: <538FB570.8000502@zytor.com>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+	<8770583.6XeZxCxOY8@wuerfel> <538FB570.8000502@zytor.com>
+Message-ID: <10173877.4plnjUiyX8@wuerfel>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Dave Chinner <david@fromorbit.com>, linux-mtd@lists.infradead.org, linux-f2fs-devel@lists.sourceforge.net, ceph-devel@vger.kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, linux-cifs@vger.kernel.org, linux-scsi@vger.kernel.org, linux-afs@lists.infradead.org, cluster-devel@redhat.com, coda@cs.cmu.edu, geert@linux-m68k.org, linux-ext4@vger.kernel.org, codalist@telemann.coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, john.stultz@linaro.org, tglx@linutronix.de, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, samba-technical@lists.samba.org, linux-kernel@vger.kernel.org, logfs@logfs.org, linux-btrfs@vger.kernel.org, linux-fsdevel@vger.kernel.
 
-From: Yingtai Xie <xieyingtai@huawei.com>
+On Wednesday 04 June 2014 17:10:24 H. Peter Anvin wrote:
+> On 06/04/2014 12:24 PM, Arnd Bergmann wrote:
+> > 
+> > For other timekeeping stuff in the kernel, I agree that using some
+> > 64-bit representation (nanoseconds, 32/32 unsigned seconds/nanoseconds,
+> > ...) has advantages, that's exactly the point I was making earlier
+> > against simply extending the internal time_t/timespec to 64-bit
+> > seconds for everything.
+> > 
+> 
+> How much of a performance issue is it to make time_t 64 bits, and for
+> the bits there are, how hard are they to fix?
 
-ocfs2_search_extent_list may return -1, so we should check the return
-value in ocfs2_split_and_insert, otherwise it may cause array index out
-of bound.
-And ocfs2_search_extent_list can only return value less than
-el->l_next_free_rec, so check if it is equal or larger than
-le16_to_cpu(el->l_next_free_rec) is meaningless.
+Probably very little overhead for most uses, it's more the regression
+potential in the less common parts of the kernel I'm worried about.
 
-Signed-off-by: Yingtai Xie <xieyingtai@huawei.com>
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/alloc.c        | 15 ++++++++++++---
- fs/ocfs2/move_extents.c |  2 +-
- fs/ocfs2/refcounttree.c |  2 +-
- 3 files changed, 14 insertions(+), 5 deletions(-)
+There is a significant but not overwhelming number of uses of the
+main problematic types in the kernel:
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index b4deb5f..1f435be 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -4961,6 +4961,15 @@ leftright:
+arnd at wuerfel:~/arm-soc$ git grep -wl time_t | wc
+    188     188    5566
+arnd at wuerfel:~/arm-soc$ git grep -wl timeval | wc
+    320     320   10353
+arnd at wuerfel:~/arm-soc$ git grep -wl timespec | wc
+    406     406   10886
 
- 		el = path_leaf_el(path);
- 		split_index = ocfs2_search_extent_list(el, cpos);
-+		if (split_index == -1) {
-+			ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
-+					"Owner %llu has an extent at cpos %u "
-+					"which can no longer be found.\n",
-+					(unsigned long long)ocfs2_metadata_cache_owner(et->et_ci),
-+					cpos);
-+			ret = -EROFS;
-+			goto out;
-+		}
- 		goto leftright;
- 	}
- out:
-@@ -5135,7 +5144,7 @@ int ocfs2_change_extent_flag(handle_t *handle,
- 	el = path_leaf_el(left_path);
+I believe we have to audit all of them anyway if we want to change
+the kernel to less problematic types and introduce new user
+interfaces.
 
- 	index = ocfs2_search_extent_list(el, cpos);
--	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
-+	if (index == -1) {
- 		ocfs2_error(sb,
- 			    "Owner %llu has an extent at cpos %u which can no "
- 			    "longer be found.\n",
-@@ -5491,7 +5500,7 @@ int ocfs2_remove_extent(handle_t *handle,
+IMHO this work is helped if we change the uses to a new type
+as we find the problems. This lets us do the work one subsystem
+at a time and avoid accidental ABI changes. I don't care much what
+type that will be, and having a 96-bit type will certainly work
+well in a lot of cases, but I don't see a strong reason to use
+that over other types, especially when they can be more efficient.
 
- 	el = path_leaf_el(path);
- 	index = ocfs2_search_extent_list(el, cpos);
--	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
-+	if (index == -1) {
- 		ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
- 			    "Owner %llu has an extent at cpos %u which can no "
- 			    "longer be found.\n",
-@@ -5557,7 +5566,7 @@ int ocfs2_remove_extent(handle_t *handle,
-
- 		el = path_leaf_el(path);
- 		index = ocfs2_search_extent_list(el, cpos);
--		if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
-+		if (index == -1) {
- 			ocfs2_error(ocfs2_metadata_cache_get_super(et->et_ci),
- 				    "Owner %llu: split at cpos %u lost record.",
- 				    (unsigned long long)ocfs2_metadata_cache_owner(et->et_ci),
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 599eb4c..6219aaa 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -98,7 +98,7 @@ static int __ocfs2_move_extent(handle_t *handle,
- 	el = path_leaf_el(path);
-
- 	index = ocfs2_search_extent_list(el, cpos);
--	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
-+	if (index == -1) {
- 		ocfs2_error(inode->i_sb,
- 			    "Inode %llu has an extent at cpos %u which can no "
- 			    "longer be found.\n",
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 6ba4bcb..aad45f6 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -3110,7 +3110,7 @@ static int ocfs2_clear_ext_refcount(handle_t *handle,
- 	el = path_leaf_el(path);
-
- 	index = ocfs2_search_extent_list(el, cpos);
--	if (index == -1 || index >= le16_to_cpu(el->l_next_free_rec)) {
-+	if (index == -1) {
- 		ocfs2_error(sb,
- 			    "Inode %llu has an extent at cpos %u which can no "
- 			    "longer be found.\n",
--- 
-1.8.4.3
+	Arnd
