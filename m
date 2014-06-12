@@ -1,72 +1,42 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Thu, 12 Jun 2014 16:05:18 -0700
-Subject: [Ocfs2-devel] [patch 2/8] ocfs2: fix deadlock when two nodes
-	are converting	same lock from PR to EX and idletimeout closes conn
-In-Reply-To: <20140609200401.3D4AB5A4A6F@corp2gmr1-2.hot.corp.google.com>
-References: <20140609200401.3D4AB5A4A6F@corp2gmr1-2.hot.corp.google.com>
-Message-ID: <20140612230518.GD5484@wotan.suse.de>
+Date: Thu, 12 Jun 2014 16:17:38 -0700
+Subject: [Ocfs2-devel] [patch 3/8] ocfs2: revert "ocfs2: fix NULL
+	pointer dereference	when dismount and ocfs2rec simultaneously"
+In-Reply-To: <20140609200402.66B1331C76B@corp2gmr1-1.hot.corp.google.com>
+References: <20140609200402.66B1331C76B@corp2gmr1-1.hot.corp.google.com>
+Message-ID: <20140612231738.GE5484@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Jun 09, 2014 at 01:04:00PM -0700, Andrew Morton wrote:
-> From: Tariq Saeed <tariq.x.saeed@oracle.com>
-> Subject: ocfs2: fix deadlock when two nodes are converting same lock from PR to EX and idletimeout closes conn
+On Mon, Jun 09, 2014 at 01:04:02PM -0700, Andrew Morton wrote:
+> From: Xue jiufei <xuejiufei@huawei.com>
+> Subject: ocfs2: revert "ocfs2: fix NULL pointer dereference when dismount and ocfs2rec simultaneously"
 > 
-> Orabug: 18639535
+> 75f82eaa502c ("ocfs2: fix NULL pointer dereference when dismount and
+> ocfs2rec simultaneously") may cause umount hang while shutting down
+> truncate log.
 > 
-> Two node cluster and both nodes hold a lock at PR level and both want to
-> convert to EX at the same time.  Master node 1 has sent BAST and then
-> closes the connection due to idletime out.  Node 0 receives BAST, sends
-> unlock req with cancel flag but gets error -ENOTCONN.  The problem is this
-> error is ignored in dlm_send_remote_unlock_request() on the **incorrect**
-> assumption that the master is dead.  See NOTE in comment why it returns
-> DLM_NORMAL.  Upon getting DLM_NORMAL, node 0 proceeds to sends convert
-> (without cancel flg) which fails with -ENOTCONN.  waits 5 sec and resends.
->  This time gets DLM_IVLOCKID from the master since lock not found in grant
-> , it had been moved to converting queue in response to conv PR->EX req. 
-> No way out.
-> 
-> Node 1 (master)				Node 0
-> ==============				======
-> 
-> lock mode PR				PR
-> 
-> convert PR -> EX
-> mv grant -> convert and que BAST
-> ...
->                      <-------- convert PR -> EX
-> convert que looks like this: ((node 1, PR -> EX) (node 0, PR -> EX))
-> ...
-> 			BAST (want PR -> NL)
->                      ------------------>
-> ...
-> idle timout, conn closed
->                                 ...
-> 				In response to BAST,
-> 				sends unlock with cancel convert flag
-> 				gets -ENOTCONN. Ignores and
->                                 sends remote convert request
->                                 gets -ENOTCONN, waits 5 Sec, retries
-> ...
-> reconnects
->                    <----------------- convert req goes through on next try
-> does not find lock on grant que
->                    status DLM_IVLOCKID
->                    ------------------>
-> ...
-> 
-> No way out.  Fix is to keep retrying unlock with cancel flag until it
-> succeeds or the master dies.
-> 
-> Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+> The situation is as followes:
+> ocfs2_dismout_volume
+> -> ocfs2_recovery_exit
+>   -> free osb->recovery_map
+> -> ocfs2_truncate_shutdown
+>   -> lock global bitmap inode
+>     -> ocfs2_wait_for_recovery
+> 	  -> check whether osb->recovery_map->rm_used is zero
+> 	
+> Because osb->recovery_map is already freed, rm_used can be any other
+> values, so it may yield umount hang.
 
-That looks good, thanks Tariq, in particular for the detailed explanation.
+Good catch, thanks for this.
+
+I'm thinking the original patch was just wrong and we need to make sure
+everything related to file system maintenance is shut down completely
+(including truncate log flushes) before turning off recovery.
+
 
 Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 	--Mark
