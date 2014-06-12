@@ -1,38 +1,69 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 12 Jun 2014 15:33:04 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: call ocfs2_journal_access_di()
- before ocfs2_journal_dirty() in ocfs2_write_end_nolock()
-In-Reply-To: <5395AE8D.4090505@huawei.com>
-References: <5395AE8D.4090505@huawei.com>
-Message-ID: <20140612153304.41f6060c7f76d597b430306b@linux-foundation.org>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Thu, 12 Jun 2014 15:52:14 -0700
+Subject: [Ocfs2-devel] [patch 1/8] ocfs2: should add inode into orphan
+	dir after	updating entry in ocfs2_rename()
+In-Reply-To: <20140609200400.1AB405A4A6F@corp2gmr1-2.hot.corp.google.com>
+References: <20140609200400.1AB405A4A6F@corp2gmr1-2.hot.corp.google.com>
+Message-ID: <20140612225214.GA5484@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, 9 Jun 2014 20:54:37 +0800 yangwenfang <vicky.yangwenfang@huawei.com> wrote:
-
-> @@ -2040,8 +2030,16 @@ out_write_size:
->  	di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
->  	di->i_mtime_nsec = di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
->  	ocfs2_update_inode_fsync_trans(handle, inode, 1);
-> -	ocfs2_journal_dirty(handle, wc->w_di_bh);
-> +	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), wc->w_di_bh,
-> +				      OCFS2_JOURNAL_ACCESS_WRITE);
-> +	if (ret) {
-> +		copied = ret;
-> +		mlog_errno(ret);	
-> +		goto out;
-> +	}	
+On Mon, Jun 09, 2014 at 01:03:59PM -0700, Andrew Morton wrote:
+> From: alex chen <alex.chen@huawei.com>
+> Subject: ocfs2: should add inode into orphan dir after updating entry in ocfs2_rename()
 > 
-> +	ocfs2_journal_dirty(handle, wc->w_di_bh);
-> +out:
->  	ocfs2_commit_trans(osb, handle);
+> There are two files a and b in dir /mnt/ocfs2.
+>     node A                           node B
+> mv a b
+> In ocfs2_rename(), after calling
+> ocfs2_orphan_add(), the inode of
+> file b will be added into orphan
+> dir.
 > 
->  	ocfs2_run_deallocs(osb, &wc->w_dealloc);
+> If ocfs2_update_entry() fails,
+> ocfs2_rename return error and mv
+> operation fails. But file b still
+> exists in the parent dir.
+> 
+> ocfs2_queue_orphan_scan
+> -> ocfs2_queue_recovery_completion
+> -> ocfs2_complete_recovery
+> -> ocfs2_recover_orphans
+> The inode of the file b will be
+> put with iput().
+> 
+> ocfs2_evict_inode
+> -> ocfs2_delete_inode
+> -> ocfs2_wipe_inode
+> -> ocfs2_remove_inode
+> OCFS2_VALID_FL in the inode
+> i_flags will be cleared.
+> 
+>                                    The file b still can be accessed
+>                                    on node B.
+>                                    ls /mnt/ocfs2
+>                                    When first read the file b with
+>                                    ocfs2_read_inode_block(). It will
+>                                    validate the inode using
+>                                    ocfs2_validate_inode_block().
+>                                    Because OCFS2_VALID_FL not set in
+>                                    the inode i_flags, so the file
+>                                    system will be readonly.
+> 
+> So we should add inode into orphan dir after updating entry in
+> ocfs2_rename().
 
-fs/ocfs2/aops.c: In function 'ocfs2_write_end_nolock':
-fs/ocfs2/aops.c:2033: error: 'ret' undeclared (first use in this function)
-fs/ocfs2/aops.c:2033: error: (Each undeclared identifier is reported only once
-fs/ocfs2/aops.c:2033: error: for each function it appears in.)
+That looks fine. I guess the downside now is that if we fail during orphan
+add we could leak the file which would have been otherwise replaced. In my
+opinion though this is much better than going readonly because we have a
+link to a dead file.
+
+
+Thanks for this Alex,
+	--Mark
+
+--
+Mark Fasheh
