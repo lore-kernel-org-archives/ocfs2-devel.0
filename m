@@ -1,91 +1,132 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Fri, 13 Jun 2014 17:21:04 +0800
-Subject: [Ocfs2-devel] [patch 7/8] ocfs2: do not return
- DLM_MIGRATE_RESPONSE_MASTERY_REF to avoid endless, loop during umount
-In-Reply-To: <20140609200406.E45385A4A39@corp2gmr1-2.hot.corp.google.com>
-References: <20140609200406.E45385A4A39@corp2gmr1-2.hot.corp.google.com>
-Message-ID: <539AC280.6010606@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Fri, 13 Jun 2014 13:37:12 -0700
+Subject: [Ocfs2-devel] [PATCH] [ocfs2]: refcount: take rw_lock
+	in	ocfs2_reflink
+In-Reply-To: <1402644381-24566-1-git-send-email-wen.gang.wang@oracle.com>
+References: <1402644381-24566-1-git-send-email-wen.gang.wang@oracle.com>
+Message-ID: <20140613203712.GH5484@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Mark:
-	Please help me to review following patch, Thank you very much!
+Looks good, thanks Wengang.
 
-----jiangyiwen
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 
-On 2014/6/10 4:04, akpm at linux-foundation.org wrote:
-> From: jiangyiwen <jiangyiwen@huawei.com>
-> Subject: ocfs2: do not return DLM_MIGRATE_RESPONSE_MASTERY_REF to avoid endless,loop during umount
+	--Mark
+
+On Fri, Jun 13, 2014 at 03:26:21PM +0800, Wengang Wang wrote:
+> Mark, please review.
 > 
-> The following case may lead to endless loop during umount.
+> This patch tries to fix this crash:
 > 
-> node A         node B               node C       node D
-> umount volume,
-> migrate lockres1
-> to B
->                                                  want to lock lockres1,
->                                                  send
->                                                  MASTER_REQUEST_MSG
->                                                  to C
->                                     init block mle
->                send
->                MIGRATE_REQUEST_MSG
->                to C
->                                     find a block
->                                     mle, and then
->                                     return
->                                     DLM_MIGRATE_RESPONSE_MASTERY_REF
->                                     to B
->                set C in refmap
->                                     umount successfully
->                try to umount, endless
->                loop occurs when migrate
->                lockres1 since C is in
->                refmap
+>  #5 [ffff88003c1cd690] do_invalid_op at ffffffff810166d5
+>  #6 [ffff88003c1cd730] invalid_op at ffffffff8159b2de
+>     [exception RIP: ocfs2_direct_IO_get_blocks+359]
+>     RIP: ffffffffa05dfa27  RSP: ffff88003c1cd7e8  RFLAGS: 00010202
+>     RAX: 0000000000000000  RBX: ffff88003c1cdaa8  RCX: 0000000000000000
+>     RDX: 000000000000000c  RSI: ffff880027a95000  RDI: ffff88003c79b540
+>     RBP: ffff88003c1cd858   R8: 0000000000000000   R9: ffffffff815f6ba0
+>     R10: 00000000000001c9  R11: 00000000000001c9  R12: ffff88002d271500
+>     R13: 0000000000000001  R14: 0000000000000000  R15: 0000000000001000
+>     ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018
+>  #7 [ffff88003c1cd860] do_direct_IO at ffffffff811cd31b
+>  #8 [ffff88003c1cd950] direct_IO_iovec at ffffffff811cde9c
+>  #9 [ffff88003c1cd9b0] do_blockdev_direct_IO at ffffffff811ce764
+> #10 [ffff88003c1cdb80] __blockdev_direct_IO at ffffffff811ce7cc
+> #11 [ffff88003c1cdbb0] ocfs2_direct_IO at ffffffffa05df756 [ocfs2]
+> #12 [ffff88003c1cdbe0] generic_file_direct_write_iter at ffffffff8112f935
+> #13 [ffff88003c1cdc40] ocfs2_file_write_iter at ffffffffa0600ccc [ocfs2]
+> #14 [ffff88003c1cdd50] do_aio_write at ffffffff8119126c
+> #15 [ffff88003c1cddc0] aio_rw_vect_retry at ffffffff811d9bb4
+> #16 [ffff88003c1cddf0] aio_run_iocb at ffffffff811db880
+> #17 [ffff88003c1cde30] io_submit_one at ffffffff811dc238
+> #18 [ffff88003c1cde80] do_io_submit at ffffffff811dc437
+> #19 [ffff88003c1cdf70] sys_io_submit at ffffffff811dc530
+> #20 [ffff88003c1cdf80] system_call_fastpath at ffffffff8159a159
 > 
-> So we can fix this endless loop case by only returning
-> DLM_MIGRATE_RESPONSE_MASTERY_REF if it has a mastery mle when receiving
-> MIGRATE_REQUEST_MSG.
+> It crashes at
+> 	BUG_ON(create && (ext_flags & OCFS2_EXT_REFCOUNTED));
+> in ocfs2_direct_IO_get_blocks.
 > 
-> [akpm at linux-foundation.org: coding-style fixes]
-> Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Xue jiufei <xuejiufei@huawei.com>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+> ocfs2_direct_IO_get_blocks is expecting the OCFS2_EXT_REFCOUNTED be removed in
+> ocfs2_prepare_inode_for_write() if it was there. But no cluster lock is taken
+> during the time before (or inside) ocfs2_prepare_inode_for_write() and after
+> ocfs2_direct_IO_get_blocks().
+> 
+> It can happen in this case:
+> 
+> Node A(which crashes)				Node B
+> ------------------------                 ---------------------------
+> ocfs2_file_aio_write
+>   ocfs2_prepare_inode_for_write
+>     ocfs2_inode_lock
+>     ...
+>     ocfs2_inode_unlock
+>   #no refcount found
+> ....					ocfs2_reflink
+> 					  ocfs2_inode_lock
+> 					  ...
+> 					  ocfs2_inode_unlock
+> 					  #now, refcount flag set on extent
+> 
+> 					...
+> 					flush change to disk
+> 
+> ocfs2_direct_IO_get_blocks
+>   ocfs2_get_clusters
+>     #extent map miss
+>     #buffer_head miss
+>     read extents from disk
+>   found refcount flag on extent
+>   crash..
+> 
+> Fix:
+> Take rw_lock in ocfs2_reflink path
+> 
+> Signed-off-by: Wengang Wang <wen.gang.wang@oracle.com>
 > ---
+>  fs/ocfs2/refcounttree.c | 8 ++++++++
+>  1 file changed, 8 insertions(+)
 > 
->  fs/ocfs2/dlm/dlmmaster.c |   14 +++++++++-----
->  1 file changed, 9 insertions(+), 5 deletions(-)
-> 
-> diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-do-not-return-dlm_migrate_response_mastery_ref-to-avoid-endlessloop-during-umount fs/ocfs2/dlm/dlmmaster.c
-> --- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-do-not-return-dlm_migrate_response_mastery_ref-to-avoid-endlessloop-during-umount
-> +++ a/fs/ocfs2/dlm/dlmmaster.c
-> @@ -3088,11 +3088,15 @@ static int dlm_add_migration_mle(struct
->  			/* remove it so that only one mle will be found */
->  			__dlm_unlink_mle(dlm, tmp);
->  			__dlm_mle_detach_hb_events(dlm, tmp);
-> -			ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
-> -			mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
-> -			    "telling master to get ref for cleared out mle "
-> -			    "during migration\n", dlm->name, namelen, name,
-> -			    master, new_master);
-> +			if (tmp->type == DLM_MLE_MASTER) {
-> +				ret = DLM_MIGRATE_RESPONSE_MASTERY_REF;
-> +				mlog(0, "%s:%.*s: master=%u, newmaster=%u, "
-> +						"telling master to get ref "
-> +						"for cleared out mle during "
-> +						"migration\n", dlm->name,
-> +						namelen, name, master,
-> +						new_master);
-> +			}
->  		}
->  		spin_unlock(&tmp->spinlock);
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 6ba4bcb..2dddd9b 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -4289,9 +4289,16 @@ static int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
+>  		goto out;
 >  	}
-> _
+>  
+> +	error = ocfs2_rw_lock(inode, 1);
+> +	if (error) {
+> +		mlog_errno(error);
+> +		goto out;
+> +	}
+> +
+>  	error = ocfs2_inode_lock(inode, &old_bh, 1);
+>  	if (error) {
+>  		mlog_errno(error);
+> +		ocfs2_rw_unlock(inode, 1);
+>  		goto out;
+>  	}
+>  
+> @@ -4303,6 +4310,7 @@ static int ocfs2_reflink(struct dentry *old_dentry, struct inode *dir,
+>  	up_write(&OCFS2_I(inode)->ip_xattr_sem);
+>  
+>  	ocfs2_inode_unlock(inode, 1);
+> +	ocfs2_rw_unlock(inode, 1);
+>  	brelse(old_bh);
+>  
+>  	if (error) {
+> -- 
+> 1.8.3.1
 > 
-> .
 > 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+--
+Mark Fasheh
