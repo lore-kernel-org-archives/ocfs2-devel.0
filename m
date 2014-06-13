@@ -1,8 +1,8 @@
 From: Xue jiufei <xuejiufei@huawei.com>
-Date: Fri, 13 Jun 2014 15:26:29 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix misuse of list_move_tail() in
-	dlm_run_purge_list()
-Message-ID: <539AA7A5.8030607@huawei.com>
+Date: Fri, 13 Jun 2014 15:41:59 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2/dlm: fix misuse of list_move_tail()
+	in dlm_run_purge_list()
+Message-ID: <539AAB47.8050705@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -23,7 +23,7 @@ Signed-off-by: joyce.xue <xuejiufei@huawei.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index 9db869d..ce017de 100644
+index 9db869d..cf53a82 100644
 --- a/fs/ocfs2/dlm/dlmthread.c
 +++ b/fs/ocfs2/dlm/dlmthread.c
 @@ -264,7 +264,7 @@ static void dlm_run_purge_list(struct dlm_ctxt *dlm,
@@ -31,7 +31,7 @@ index 9db869d..ce017de 100644
  			     lockres->lockname.len, lockres->lockname.name,
  			     !unused, lockres->state);
 -			list_move_tail(&dlm->purge_list, &lockres->purge);
-+			list_move_tail(&lockres->purge, dlm->purge_list);
++			list_move_tail(&lockres->purge, &dlm->purge_list);
  			spin_unlock(&lockres->spinlock);
  			continue;
  		}
