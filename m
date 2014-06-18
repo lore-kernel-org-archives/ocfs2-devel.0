@@ -1,56 +1,141 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Tue, 17 Jun 2014 22:34:40 +0800
-Subject: [Ocfs2-devel] [PATCH 22/24] ocfs2: return actual error on sysfs
-	functions
-Message-ID: <53A05200.9070805@oracle.com>
+From: Wengang <wen.gang.wang@oracle.com>
+Date: Wed, 18 Jun 2014 09:09:44 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: call ocfs2_journal_access_di()
+ before ocfs2_journal_dirty() in ocfs2_write_end_nolock()
+In-Reply-To: <53A02B94.7020807@huawei.com>
+References: <53A02B94.7020807@huawei.com>
+Message-ID: <53A0E6D8.6030308@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Jie Liu <jeff.liu@oracle.com>
+With this drop, you have to take care of the case of INLINE DATA.
 
-Return the actual error code if kset_create_and_add() failed
+thanks
+wengang
 
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Jie Liu <jeff.liu@oracle.com>
----
- fs/ocfs2/cluster/sys.c | 4 ++--
- fs/ocfs2/stackglue.c   | 4 ++--
- 2 files changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/fs/ocfs2/cluster/sys.c b/fs/ocfs2/cluster/sys.c
-index b7f5727..6d8c793 100644
---- a/fs/ocfs2/cluster/sys.c
-+++ b/fs/ocfs2/cluster/sys.c
-@@ -65,8 +65,8 @@ int o2cb_sys_init(void)
- 	int ret;
- 
- 	o2cb_kset = kset_create_and_add("o2cb", NULL, fs_kobj);
--	if (!o2cb_kset)
--		return -ENOMEM;
-+	if (IS_ERR(o2cb_kset))
-+		return PTR_ERR(o2cb_kset);
- 
- 	ret = sysfs_create_group(&o2cb_kset->kobj, &o2cb_attr_group);
- 	if (ret)
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 5d965e8..e6eae89 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -641,8 +641,8 @@ static int ocfs2_sysfs_init(void)
- 	int ret;
- 
- 	ocfs2_kset = kset_create_and_add("ocfs2", NULL, fs_kobj);
--	if (!ocfs2_kset)
--		return -ENOMEM;
-+	if (IS_ERR(ocfs2_kset))
-+		return PTR_ERR(ocfs2_kset);
- 
- 	ret = sysfs_create_group(&ocfs2_kset->kobj, &ocfs2_attr_group);
- 	if (ret)
--- 
-1.8.3.2
+? 2014?06?17? 19:50, yangwenfang ??:
+> 1.After we call ocfs2_journal_access_di() in ocfs2_write_begin(),
+> jbd2_journal_restart() may also be called, in this function
+> transaction A's t_updates-- and obtains a new transaction B.
+> If jbd2_journal_commit_transaction() is happened to commit
+> transaction A, when t_updates==0, it will continue to complete
+> commit and unfile buffer.
+>
+> So when jbd2_journal_dirty_metadata(), the handle is pointed a new
+> transaction B, and the buffer head's journal head is already freed,
+> jh->b_transaction == NULL, jh->b_next_transaction == NULL,
+> it returns EINVAL, So it triggers the BUG_ON(status).
+>
+> thread 1:                             jbd2:
+> ocfs2_write_begin                     jbd2_journal_commit_transaction
+> ocfs2_write_begin_nolock
+>    ocfs2_start_trans
+>      jbd2__journal_start(t_updates+1,
+>                         transaction A)
+>      ocfs2_journal_access_di
+>      ocfs2_write_cluster_by_desc
+>        ocfs2_mark_extent_written
+>          ocfs2_change_extent_flag
+>            ocfs2_split_extent
+>              ocfs2_extend_rotate_transaction
+>                jbd2_journal_restart
+>                (t_updates-1,transaction B) t_updates==0
+>                                          __jbd2_journal_refile_buffer
+>
+> ocfs2_write_end
+> ocfs2_write_end_nolock
+>      ocfs2_journal_dirty
+>          jbd2_journal_dirty_metadata(bug)
+>     ocfs2_commit_trans
+>
+> 2. In ext4, I found that: jbd2_journal_get_write_access() called by
+> ext4_write_end.
+> ext4_write_begin
+>      ext4_journal_start
+>          __ext4_journal_start_sb
+>              ext4_journal_check_start
+>              jbd2__journal_start
+>
+> ext4_write_end
+>      ext4_mark_inode_dirty
+>          ext4_reserve_inode_write
+>              ext4_journal_get_write_access
+>                  jbd2_journal_get_write_access
+>          ext4_mark_iloc_dirty
+>              ext4_do_update_inode
+>                  ext4_handle_dirty_metadata
+>                      jbd2_journal_dirty_metadata
+>
+> 3.So I think we should put ocfs2_journal_access_di before
+> ocfs2_journal_dirty in the ocfs2_write_end.
+> and it works well after my modification.
+>
+> Signed-off-by: vicky <vicky.yangwenfang@huawei.com>
+> ---
+>   fs/ocfs2/aops.c | 21 ++++++++++-----------
+>   1 file changed, 10 insertions(+), 11 deletions(-)
+>
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index d310d12..230e686 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -1818,16 +1818,6 @@ try_again:
+>                  if (ret)
+>                          goto out_commit;
+>          }
+> -       /*
+> -        * We don't want this to fail in ocfs2_write_end(), so do it
+> -        * here.
+> -        */
+> -       ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), wc->w_di_bh,
+> -                                     OCFS2_JOURNAL_ACCESS_WRITE);
+> -       if (ret) {
+> -               mlog_errno(ret);
+> -               goto out_quota;
+> -       }
+>
+>          /*
+>           * Fill our page array first. That way we've grabbed enough so
+> @@ -1978,7 +1968,7 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+>                             loff_t pos, unsigned len, unsigned copied,
+>                             struct page *page, void *fsdata)
+>   {
+> -       int i;
+> +       int i, ret;
+>          unsigned from, to, start = pos & (PAGE_CACHE_SIZE - 1);
+>          struct inode *inode = mapping->host;
+>          struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> @@ -2028,6 +2018,14 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+>                  }
+>          }
+>
+> +       ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), wc->w_di_bh,
+> +                                     OCFS2_JOURNAL_ACCESS_WRITE);
+> +       if (ret) {
+> +               copied = ret;
+> +               mlog_errno(ret);
+> +               goto out;
+> +       }
+> +
+>   out_write_size:
+>          pos += copied;
+>          if (pos > i_size_read(inode)) {
+> @@ -2042,6 +2040,7 @@ out_write_size:
+>          ocfs2_update_inode_fsync_trans(handle, inode, 1);
+>          ocfs2_journal_dirty(handle, wc->w_di_bh);
+>
+> +out:
+>          ocfs2_commit_trans(osb, handle);
+>
+>          ocfs2_run_deallocs(osb, &wc->w_dealloc);
+> --
+> 1.8.3.4
+>
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
