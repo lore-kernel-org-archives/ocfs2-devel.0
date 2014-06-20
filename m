@@ -1,30 +1,38 @@
-From: Jeff Liu <jeff.liu@oracle.com>
-Date: Wed, 18 Jun 2014 09:51:09 +0800
-Subject: [Ocfs2-devel] [PATCH 22/24] ocfs2: return actual error on sysfs
-	functions
-In-Reply-To: <53A05200.9070805@oracle.com>
-References: <53A05200.9070805@oracle.com>
-Message-ID: <53A0F08D.9050507@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Fri, 20 Jun 2014 15:33:46 -0700
+Subject: [Ocfs2-devel] [patch 4/8] ocfs2/dlm: do not purge lockres that
+ is queued for assert master
+In-Reply-To: <539E47DD.3070002@huawei.com>
+References: <20140609200403.6A34D31C75B@corp2gmr1-1.hot.corp.google.com>
+	<20140613213144.GM5484@wotan.suse.de> <539E47DD.3070002@huawei.com>
+Message-ID: <20140620153346.173373af4f00a7b5286c8663@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
+On Mon, 16 Jun 2014 09:26:53 +0800 Xue jiufei <xuejiufei@huawei.com> wrote:
 
-On 06/17/2014 22:34 PM, Jeff Liu wrote:
-> From: Jie Liu <jeff.liu@oracle.com>
-> 
-> Return the actual error code if kset_create_and_add() failed
-> 
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Signed-off-by: Jie Liu <jeff.liu@oracle.com>
+> >>  		spin_unlock(&res->spinlock);
+> >> diff -puN fs/ocfs2/dlm/dlmthread.c~ocfs2-dlm-do-not-purge-lockres-that-is-queued-for-assert-master fs/ocfs2/dlm/dlmthread.c
+> >> --- a/fs/ocfs2/dlm/dlmthread.c~ocfs2-dlm-do-not-purge-lockres-that-is-queued-for-assert-master
+> >> +++ a/fs/ocfs2/dlm/dlmthread.c
+> >> @@ -259,11 +259,14 @@ static void dlm_run_purge_list(struct dl
+> >>  		 * refs on it. */
+> >>  		unused = __dlm_lockres_unused(lockres);
+> >>  		if (!unused ||
+> >> -		    (lockres->state & DLM_LOCK_RES_MIGRATING)) {
+> >> +		    (lockres->state & DLM_LOCK_RES_MIGRATING) ||
+> >> +		    (lockres->inflight_assert_workers != 0)) {
+> > 
+> > If there's any assert master message we will halt purging *all* lock
+> > resources. That seems extreme to me :/
+> > 
+> Not halt purging *all* lock resource, when one lockres is queued for
+> master assert, it will be moved to the tail of the purge list, so
+> dlm_thread can keep purging other lock resources.
 
-Please ignore this patch because Greg think that is incorrect.
+Where are we up to with this one?
 
-
-Cheers,
--Jeff
+Thanks.
