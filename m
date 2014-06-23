@@ -1,49 +1,37 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Fri, 20 Jun 2014 15:49:57 -0700
-Subject: [Ocfs2-devel] [patch 4/8] ocfs2/dlm: do not purge lockres that
-	is queued for	assert master
-In-Reply-To: <20140620153346.173373af4f00a7b5286c8663@linux-foundation.org>
-References: <20140609200403.6A34D31C75B@corp2gmr1-1.hot.corp.google.com>
-	<20140613213144.GM5484@wotan.suse.de> <539E47DD.3070002@huawei.com>
-	<20140620153346.173373af4f00a7b5286c8663@linux-foundation.org>
-Message-ID: <20140620224957.GT5484@wotan.suse.de>
+From: Fabian Frederick <fabf@skynet.be>
+Date: Mon, 23 Jun 2014 18:44:06 +0200
+Subject: [Ocfs2-devel] [PATCH 1/1] fs/ocfs2/slot_map.c: replace count*size
+	kzalloc by kcalloc
+Message-ID: <1403541846-11025-1-git-send-email-fabf@skynet.be>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: Fabian Frederick <fabf@skynet.be>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
 
-On Fri, Jun 20, 2014 at 03:33:46PM -0700, Andrew Morton wrote:
-> On Mon, 16 Jun 2014 09:26:53 +0800 Xue jiufei <xuejiufei@huawei.com> wrote:
-> 
-> > >>  		spin_unlock(&res->spinlock);
-> > >> diff -puN fs/ocfs2/dlm/dlmthread.c~ocfs2-dlm-do-not-purge-lockres-that-is-queued-for-assert-master fs/ocfs2/dlm/dlmthread.c
-> > >> --- a/fs/ocfs2/dlm/dlmthread.c~ocfs2-dlm-do-not-purge-lockres-that-is-queued-for-assert-master
-> > >> +++ a/fs/ocfs2/dlm/dlmthread.c
-> > >> @@ -259,11 +259,14 @@ static void dlm_run_purge_list(struct dl
-> > >>  		 * refs on it. */
-> > >>  		unused = __dlm_lockres_unused(lockres);
-> > >>  		if (!unused ||
-> > >> -		    (lockres->state & DLM_LOCK_RES_MIGRATING)) {
-> > >> +		    (lockres->state & DLM_LOCK_RES_MIGRATING) ||
-> > >> +		    (lockres->inflight_assert_workers != 0)) {
-> > > 
-> > > If there's any assert master message we will halt purging *all* lock
-> > > resources. That seems extreme to me :/
-> > > 
-> > Not halt purging *all* lock resource, when one lockres is queued for
-> > master assert, it will be moved to the tail of the purge list, so
-> > dlm_thread can keep purging other lock resources.
-> 
-> Where are we up to with this one?
+kcalloc manages count*sizeof overflow.
 
-I read the code wrong, Xue is correct:
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: ocfs2-devel at oss.oracle.com
+Signed-off-by: Fabian Frederick <fabf@skynet.be>
+---
+ fs/ocfs2/slot_map.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Reviewed-by: Mark Fasheh <mfasheh@suse.de>
-
-Thanks,
-	--Mark
-
-
---
-Mark Fasheh
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index 1424c15..a88b2a4 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -382,7 +382,7 @@ static int ocfs2_map_slot_buffers(struct ocfs2_super *osb,
+ 
+ 	trace_ocfs2_map_slot_buffers(bytes, si->si_blocks);
+ 
+-	si->si_bh = kzalloc(sizeof(struct buffer_head *) * si->si_blocks,
++	si->si_bh = kcalloc(si->si_blocks, sizeof(struct buffer_head *),
+ 			    GFP_KERNEL);
+ 	if (!si->si_bh) {
+ 		status = -ENOMEM;
+-- 
+1.8.4.5
