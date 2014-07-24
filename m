@@ -1,56 +1,95 @@
-From: David Sterba <dsterba@suse.cz>
-Date: Thu, 24 Jul 2014 21:22:45 +0200
+From: Andreas Dilger <adilger@dilger.ca>
+Date: Thu, 24 Jul 2014 16:34:35 -0600
 Subject: [Ocfs2-devel] [PATCH 2/4 v3] fiemap: add EXTENT_DATA_COMPRESSED
 	flag
-In-Reply-To: <B58DEEA8-561A-4173-B9F5-528B73E06C6D@dilger.ca>
+In-Reply-To: <20140724192245.GG1553@suse.cz>
 References: <cover.1386778302.git.dsterba@suse.cz>
 	<4f8d5dc5b51a43efaf16c39398c23a6276e40a30.1386778303.git.dsterba@suse.cz>
 	<20131212232443.GL31386@dastard>
 	<9520AB36-B728-423A-8EA1-FDD22B79AE90@dilger.ca>
 	<B58DEEA8-561A-4173-B9F5-528B73E06C6D@dilger.ca>
-Message-ID: <20140724192245.GG1553@suse.cz>
+	<20140724192245.GG1553@suse.cz>
+Message-ID: <5B4825C3-F47E-48B7-8DA4-6D79F53B73B1@dilger.ca>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andreas Dilger <adilger@dilger.ca>
+To: dsterba@suse.cz
 Cc: linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-nilfs@vger.kernel.org, xfs@oss.sgi.com, Btrfs Developer List <linux-btrfs@vger.kernel.org>, Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com
 
-On Thu, Jul 17, 2014 at 12:07:57AM -0600, Andreas Dilger wrote:
-> any progress on this patch series?
 
-I'm sorry I got distracted at the end of year and did not finish the
-series.
-
-> I never saw an updated version of this patch series after the last round of
-> reviews, but it would be great to move it forward.  I have filefrag patches
-> in my e2fsprogs tree waiting for an updated version of your patch.
+On Jul 24, 2014, at 1:22 PM, David Sterba <dsterba@suse.cz> wrote:
+> On Thu, Jul 17, 2014 at 12:07:57AM -0600, Andreas Dilger wrote:
+>> any progress on this patch series?
 > 
-> I recall the main changes were:
-> - add FIEMAP_EXTENT_PHYS_LENGTH flag to indicate if fe_phys_length was valid
-
-fe_phys_length will be always valid, so other the flags are set only if it's
-not equal to the logical length.
-
-> - rename fe_length to fe_logi_length and #define fe_length fe_logi_length
-> - always fill in fe_phys_length (= fe_logi_length for uncompressed files)
->   and set FIEMAP_EXTENT_PHYS_LENGTH whether the extent is compressed or not
-
-This is my understanding and contradicts the first point.
-
-> - add WARN_ONCE() in fiemap_fill_next_extent() as described below
->
-> I don't know if there was any clear statement about whether there should be
-> separate FIEMAP_EXTENT_PHYS_LENGTH and FIEMAP_EXTENT_DATA_COMPRESSED flags,
-> or if the latter should be implicit?  Probably makes sense to have separate
-> flags.  It should be fine to use:
->
-> #define FIEMAP_EXTENT_PHYS_LENGTH	0x00000010
+> I'm sorry I got distracted at the end of year and did not finish the
+> series.
 > 
-> since this flag was never used.
+>> I never saw an updated version of this patch series after the last round of
+>> reviews, but it would be great to move it forward.  I have filefrag patches
+>> in my e2fsprogs tree waiting for an updated version of your patch.
+>> 
+>> I recall the main changes were:
+>> - add FIEMAP_EXTENT_PHYS_LENGTH flag to indicate if fe_phys_length was valid
+> 
+> fe_phys_length will be always valid, so other the flags are set only if it's
+> not equal to the logical length.
+> 
+>> - rename fe_length to fe_logi_length and #define fe_length fe_logi_length
+>> - always fill in fe_phys_length (= fe_logi_length for uncompressed files)
+>>  and set FIEMAP_EXTENT_PHYS_LENGTH whether the extent is compressed or not
+> 
+> This is my understanding and contradicts the first point.
 
-I've kept only FIEMAP_EXTENT_DATA_COMPRESSED, I don't see a need for
-FIEMAP_EXTENT_PHYS_LENGTH and this would be yet another flag because the
-FIEMAP_EXTENT_DATA_ENCODED is also implied.
+I think Dave Chinner's former point was that having fe_phys_length validity
+depend on FIEMAP_EXTENT_DATA_COMPRESSED is a non-intuitive interface.  It is
+not true that fe_phys_length would always be valid, since that is not the
+case for older kernels that currently always set this field to 0, so they
+need some flag to indicate if fe_phys_length is valid.  Alternately,
+userspace could do:
 
-I'll send V4, we can discuss the PHYS_LENGTH flag then.
+	if (ext->fe_phys_length == 0)
+		ext->fe_phys_length = ext->fe_logi_length;
+
+but that pre-supposes that fe_phys_length == 0 is never a valid value when
+fe_logi_length is non-zero, and this might introduce errors in some cases.
+I could imagine that some compression methods might not allocate any space
+at all if it was all zeroes, and just store a bit in the blockpointer or
+extent, so having a separate FIEMAP_EXTENT_PHYS_LENGTH is probably safer
+in the long run.  That opens up the question of whether a written zero
+filled space that gets compressed away is different from a hole, but I'd
+prefer to just return whatever the file mapping is than interpret it.
+
+Cheers, Andreas
+
+>> - add WARN_ONCE() in fiemap_fill_next_extent() as described below
+>> 
+>> I don't know if there was any clear statement about whether there should be
+>> separate FIEMAP_EXTENT_PHYS_LENGTH and FIEMAP_EXTENT_DATA_COMPRESSED flags,
+>> or if the latter should be implicit?  Probably makes sense to have separate
+>> flags.  It should be fine to use:
+>> 
+>> #define FIEMAP_EXTENT_PHYS_LENGTH	0x00000010
+>> 
+>> since this flag was never used.
+> 
+> I've kept only FIEMAP_EXTENT_DATA_COMPRESSED, I don't see a need for
+> FIEMAP_EXTENT_PHYS_LENGTH and this would be yet another flag because the
+> FIEMAP_EXTENT_DATA_ENCODED is also implied.
+> 
+> I'll send V4, we can discuss the PHYS_LENGTH flag then.
+
+
+Cheers, Andreas
+
+
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 833 bytes
+Desc: Message signed with OpenPGP using GPGMail
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140724/59e1cdd9/attachment.bin 
