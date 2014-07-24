@@ -1,79 +1,84 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Wed, 23 Jul 2014 10:29:06 +0800
-Subject: [Ocfs2-devel] [PATCH]ocfs2: Avoid access invalid address when read
- o2dlm debug messages.
-Message-ID: <53CF1DF2.2090201@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 24 Jul 2014 16:58:00 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix journal commit deadlock
+Message-ID: <1406192280-6643-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following case will lead to a lockres is freed but is still in use.
+For buffer write, page lock will be got in write_begin and released
+in write_end, in ocfs2_write_end_nolock(), before it unlock the page
+in ocfs2_free_write_ctxt(), it calls ocfs2_run_deallocs(), this will
+ask for the read lock of journal->j_trans_barrier. Holding page lock
+and ask for journal->j_trans_barrier breaks the locking order.
 
-cat /sys/kernel/debug/o2dlm/locking_state	dlm_thread
-lockres_seq_start
-    -> lock dlm->track_lock
-    -> get resA
-                                                resA->refs decrease to 0,
-                                                call dlm_lockres_release,
-                                                and wait for "cat" unlock.
-Although resA->refs is already set to 0,
-increase resA->refs, and then unlock
-                                                lock dlm->track_lock
-                                                    -> list_del_init()
-                                                    -> unlock
-                                                    -> free resA
+This will cause a deadlock with journal commit threads, ocfs2cmt will
+get write lock of journal->j_trans_barrier first, then it wakes up
+kjournald2 to do the commit work, at last it waits until done. To
+commit journal, kjournald2 needs flushing data first, it needs get
+the cache page lock.
 
-In such a race case, invalid address access may occurs.
-So we should delete list res->tracking before resA->refs decrease to 0.
+Since some ocfs2 cluster locks are holding by write process, this
+deadlock may hung the whole cluster.
 
-Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
+unlock pages before ocfs2_run_deallocs() can fix the locking order,
+also put unlock before ocfs2_commit_trans() to make page lock is
+unlocked before j_trans_barrier to preserve unlocking order.
+
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: <stable@vger.kernel.org>
+Reviewed-by: Wengang Wang <wen.gang.wang@oracle.com>
 ---
- fs/ocfs2/dlm/dlmmaster.c | 10 ----------
- fs/ocfs2/dlm/dlmthread.c | 10 ++++++++++
- 2 files changed, 10 insertions(+), 10 deletions(-)
+ fs/ocfs2/aops.c |   16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 3087a21..8266bc2 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -498,16 +498,6 @@ static void dlm_lockres_release(struct kref *kref)
- 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
- 	     res->lockname.name);
-
--	spin_lock(&dlm->track_lock);
--	if (!list_empty(&res->tracking))
--		list_del_init(&res->tracking);
--	else {
--		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
--		     res->lockname.len, res->lockname.name);
--		dlm_print_one_lock_resource(res);
--	}
--	spin_unlock(&dlm->track_lock);
--
- 	atomic_dec(&dlm->res_cur_count);
-
- 	if (!hlist_unhashed(&res->hash_node) ||
-diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
-index 9db869d..ca93b84 100644
---- a/fs/ocfs2/dlm/dlmthread.c
-+++ b/fs/ocfs2/dlm/dlmthread.c
-@@ -211,6 +211,16 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
-
- 	__dlm_unhash_lockres(dlm, res);
-
-+	spin_lock(&dlm->track_lock);
-+	if (!list_empty(&res->tracking))
-+		list_del_init(&res->tracking);
-+	else {
-+		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
-+				res->lockname.len, res->lockname.name);
-+		dlm_print_one_lock_resource(res);
-+	}
-+	spin_unlock(&dlm->track_lock);
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 4a231a1..c04183b 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -894,7 +894,7 @@ void ocfs2_unlock_and_free_pages(struct page **pages, int num_pages)
+ 	}
+ }
+ 
+-static void ocfs2_free_write_ctxt(struct ocfs2_write_ctxt *wc)
++static void ocfs2_unlock_pages(struct ocfs2_write_ctxt *wc)
+ {
+ 	int i;
+ 
+@@ -915,7 +915,11 @@ static void ocfs2_free_write_ctxt(struct ocfs2_write_ctxt *wc)
+ 		page_cache_release(wc->w_target_page);
+ 	}
+ 	ocfs2_unlock_and_free_pages(wc->w_pages, wc->w_num_pages);
++}
+ 
++static void ocfs2_free_write_ctxt(struct ocfs2_write_ctxt *wc)
++{
++	ocfs2_unlock_pages(wc);
+ 	brelse(wc->w_di_bh);
+ 	kfree(wc);
+ }
+@@ -2041,11 +2045,19 @@ out_write_size:
+ 	ocfs2_update_inode_fsync_trans(handle, inode, 1);
+ 	ocfs2_journal_dirty(handle, wc->w_di_bh);
+ 
++	/* unlock pages before dealloc since it needs acquiring j_trans_barrier
++	 * lock, or it will cause a deadlock since journal commit threads holds
++	 * this lock and will ask for the page lock when flushing the data.
++	 * put it here to preserve the unlock order.
++	 */
++	ocfs2_unlock_pages(wc);
 +
- 	/* lockres is not in the hash now.  drop the flag and wake up
- 	 * any processes waiting in dlm_get_lock_resource. */
- 	if (!master) {
--- 1.8.4.3
+ 	ocfs2_commit_trans(osb, handle);
+ 
+ 	ocfs2_run_deallocs(osb, &wc->w_dealloc);
+ 
+-	ocfs2_free_write_ctxt(wc);
++	brelse(wc->w_di_bh);
++	kfree(wc);
+ 
+ 	return copied;
+ }
+-- 
+1.7.9.5
