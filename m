@@ -1,67 +1,37 @@
-From: David Sterba <dsterba@suse.cz>
-Date: Mon, 28 Jul 2014 18:49:09 +0200
-Subject: [Ocfs2-devel] [PATCH 2/4 v3] fiemap: add EXTENT_DATA_COMPRESSED
- flag
-In-Reply-To: <5B4825C3-F47E-48B7-8DA4-6D79F53B73B1@dilger.ca>
-References: <cover.1386778302.git.dsterba@suse.cz>
-	<4f8d5dc5b51a43efaf16c39398c23a6276e40a30.1386778303.git.dsterba@suse.cz>
-	<20131212232443.GL31386@dastard>
-	<9520AB36-B728-423A-8EA1-FDD22B79AE90@dilger.ca>
-	<B58DEEA8-561A-4173-B9F5-528B73E06C6D@dilger.ca>
-	<20140724192245.GG1553@suse.cz>
-	<5B4825C3-F47E-48B7-8DA4-6D79F53B73B1@dilger.ca>
-Message-ID: <20140728164909.GK1553@twin.jikos.cz>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Mon, 28 Jul 2014 16:40:12 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix journal commit deadlock
+In-Reply-To: <1406192280-6643-1-git-send-email-junxiao.bi@oracle.com>
+References: <1406192280-6643-1-git-send-email-junxiao.bi@oracle.com>
+Message-ID: <20140728164012.e4c201a4b8c1512468909eaa@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andreas Dilger <adilger@dilger.ca>
-Cc: dsterba@suse.cz, linux-nilfs@vger.kernel.org, xfs@oss.sgi.com, Btrfs Developer List <linux-btrfs@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Ext4 Developers List <linux-ext4@vger.kernel.org>, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Thanks for the feedback.
+On Thu, 24 Jul 2014 16:58:00 +0800 Junxiao Bi <junxiao.bi@oracle.com> wrote:
 
-On Thu, Jul 24, 2014 at 04:34:35PM -0600, Andreas Dilger wrote:
-> >> - rename fe_length to fe_logi_length and #define fe_length fe_logi_length
-> >> - always fill in fe_phys_length (= fe_logi_length for uncompressed files)
-> >>  and set FIEMAP_EXTENT_PHYS_LENGTH whether the extent is compressed or not
-> > 
-> > This is my understanding and contradicts the first point.
+> For buffer write, page lock will be got in write_begin and released
+> in write_end, in ocfs2_write_end_nolock(), before it unlock the page
+> in ocfs2_free_write_ctxt(), it calls ocfs2_run_deallocs(), this will
+> ask for the read lock of journal->j_trans_barrier. Holding page lock
+> and ask for journal->j_trans_barrier breaks the locking order.
 > 
-> I think Dave Chinner's former point was that having fe_phys_length validity
-> depend on FIEMAP_EXTENT_DATA_COMPRESSED is a non-intuitive interface.  It is
-> not true that fe_phys_length would always be valid, since that is not the
-> case for older kernels that currently always set this field to 0, so they
-> need some flag to indicate if fe_phys_length is valid.
-
-I see the backward compatibility issue now. The patches (up to v4)
-updated all filesystems to fill the physical length with logical,
-but this should be 0 to keep the backward compatibility and also to keep
-the changes to existing fiemap users minimal.
-
-So for v5, PHYS_LENGTH will be introduced but only used by btrfs
-together with ENCODED and COMPRESSED. Though this may look too much for
-my needs to represent compressed extent, it is flexible for future use.
-
-> Alternately,
-> userspace could do:
+> This will cause a deadlock with journal commit threads, ocfs2cmt will
+> get write lock of journal->j_trans_barrier first, then it wakes up
+> kjournald2 to do the commit work, at last it waits until done. To
+> commit journal, kjournald2 needs flushing data first, it needs get
+> the cache page lock.
 > 
-> 	if (ext->fe_phys_length == 0)
-> 		ext->fe_phys_length = ext->fe_logi_length;
+> Since some ocfs2 cluster locks are holding by write process, this
+> deadlock may hung the whole cluster.
 > 
-> but that pre-supposes that fe_phys_length == 0 is never a valid value when
-> fe_logi_length is non-zero, and this might introduce errors in some cases.
-> I could imagine that some compression methods might not allocate any space
-> at all if it was all zeroes, and just store a bit in the blockpointer or
-> extent, so having a separate FIEMAP_EXTENT_PHYS_LENGTH is probably safer
-> in the long run.
+> unlock pages before ocfs2_run_deallocs() can fix the locking order,
+> also put unlock before ocfs2_commit_trans() to make page lock is
+> unlocked before j_trans_barrier to preserve unlocking order.
 
-Sounds good to me.
-
-> That opens up the question of whether a written zero
-> filled space that gets compressed away is different from a hole, but I'd
-> prefer to just return whatever the file mapping is than interpret it.
-
-It could save some bytes, but I don' see it too practical. I expect the
-amount of zeroed blocks to be low on average and the current compression
-methods are able to squeeze long runs of zeros to a few tens of bytes
-per page.
+This conflicts with
+http://ozlabs.org/~akpm/mmots/broken-out/ocfs2-call-ocfs2_journal_access_di-before-ocfs2_journal_dirty-in-ocfs2_write_end_nolock.patch
+in ways which I am not confident in resolving.  Could you please redo
+the patch against linux-next and retest?
