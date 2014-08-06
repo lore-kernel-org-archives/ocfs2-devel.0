@@ -1,354 +1,56 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 06 Aug 2014 13:32:00 -0700
-Subject: [Ocfs2-devel] [patch 01/10] ocfs2: do not write error flag to user
-	structure we cannot copy from/to
-Message-ID: <53e290c0.JrBMAOun3Le6OEB7%akpm@linux-foundation.org>
+Date: Wed, 06 Aug 2014 13:32:02 -0700
+Subject: [Ocfs2-devel] [patch 02/10] ocfs2: free inode when i_count becomes
+	zero
+Message-ID: <53e290c2.UrOYpRJudvt5Qabp%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Ben Hutchings <ben@decadent.org.uk>
-Subject: ocfs2: do not write error flag to user structure we cannot copy from/to
+From: Xue jiufei <xuejiufei@huawei.com>
+Subject: ocfs2: free inode when i_count becomes zero
 
-If we failed to copy from the structure, writing back the flags leaks 31
-bits of kernel memory (the rest of the ir_flags field).
+Disk inode deletion may be heavily delayed when one node unlink a file
+after the same dentry is freed on another node(say N1) because of memory
+shrink but inode is left in memory.  This inode can only be freed while N1
+doing the orphan scan work.
 
-In any case, if we cannot copy from/to the structure, why should we expect
-putting just the flags to work?
+However, N1 may skip orphan scan for several times because other nodes may
+do the work earlier.  In our tests, it may take 1 hour on 4 nodes cluster
+and this will cause bad user experience.  So we think the inode should be
+freed when i_count becomes zero to avoid such circumstances.
 
-Also make sure ocfs2_info_handle_freeinode() returns the right error code
-if the copy_to_user() fails.
-
-Fixes: ddee5cdb70e6 ('Ocfs2: Add new OCFS2_IOC_INFO ioctl for ocfs2 v8.')
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
-Cc: Joel Becker <jlbec@evilplan.org>
+[akpm at linux-foundation.org: coding-style fixes]
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/ioctl.c |  129 +++++++++++++++------------------------------
- 1 file changed, 43 insertions(+), 86 deletions(-)
+ fs/ocfs2/inode.c |   10 +---------
+ 1 file changed, 1 insertion(+), 9 deletions(-)
 
-diff -puN fs/ocfs2/ioctl.c~ocfs2-do-not-write-error-flag-to-user-structure-we-cannot-copy-from-to fs/ocfs2/ioctl.c
---- a/fs/ocfs2/ioctl.c~ocfs2-do-not-write-error-flag-to-user-structure-we-cannot-copy-from-to
-+++ a/fs/ocfs2/ioctl.c
-@@ -35,9 +35,8 @@
- 		copy_to_user((typeof(a) __user *)b, &(a), sizeof(a))
- 
- /*
-- * This call is void because we are already reporting an error that may
-- * be -EFAULT.  The error will be returned from the ioctl(2) call.  It's
-- * just a best-effort to tell userspace that this request caused the error.
-+ * This is just a best-effort to tell userspace that this request
-+ * caused the error.
-  */
- static inline void o2info_set_request_error(struct ocfs2_info_request *kreq,
- 					struct ocfs2_info_request __user *req)
-@@ -146,136 +145,105 @@ bail:
- static int ocfs2_info_handle_blocksize(struct inode *inode,
- 				       struct ocfs2_info_request __user *req)
+diff -puN fs/ocfs2/inode.c~ocfs2-free-inode-when-i_count-becomes-zero fs/ocfs2/inode.c
+--- a/fs/ocfs2/inode.c~ocfs2-free-inode-when-i_count-becomes-zero
++++ a/fs/ocfs2/inode.c
+@@ -1192,17 +1192,9 @@ void ocfs2_evict_inode(struct inode *ino
+ int ocfs2_drop_inode(struct inode *inode)
  {
--	int status = -EFAULT;
- 	struct ocfs2_info_blocksize oib;
- 
- 	if (o2info_from_user(oib, req))
--		goto bail;
-+		return -EFAULT;
- 
- 	oib.ib_blocksize = inode->i_sb->s_blocksize;
- 
- 	o2info_set_request_filled(&oib.ib_req);
- 
- 	if (o2info_to_user(oib, req))
--		goto bail;
-+		return -EFAULT;
- 
--	status = 0;
--bail:
--	if (status)
--		o2info_set_request_error(&oib.ib_req, req);
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+-	int res;
 -
--	return status;
-+	return 0;
- }
- 
- static int ocfs2_info_handle_clustersize(struct inode *inode,
- 					 struct ocfs2_info_request __user *req)
- {
--	int status = -EFAULT;
- 	struct ocfs2_info_clustersize oic;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	if (o2info_from_user(oic, req))
--		goto bail;
-+		return -EFAULT;
- 
- 	oic.ic_clustersize = osb->s_clustersize;
- 
- 	o2info_set_request_filled(&oic.ic_req);
- 
- 	if (o2info_to_user(oic, req))
--		goto bail;
-+		return -EFAULT;
- 
--	status = 0;
--bail:
--	if (status)
--		o2info_set_request_error(&oic.ic_req, req);
+ 	trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
+ 				inode->i_nlink, oi->ip_flags);
 -
--	return status;
-+	return 0;
- }
- 
- static int ocfs2_info_handle_maxslots(struct inode *inode,
- 				      struct ocfs2_info_request __user *req)
- {
--	int status = -EFAULT;
- 	struct ocfs2_info_maxslots oim;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	if (o2info_from_user(oim, req))
--		goto bail;
-+		return -EFAULT;
- 
- 	oim.im_max_slots = osb->max_slots;
- 
- 	o2info_set_request_filled(&oim.im_req);
- 
- 	if (o2info_to_user(oim, req))
--		goto bail;
+-	if (oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)
+-		res = 1;
+-	else
+-		res = generic_drop_inode(inode);
 -
--	status = 0;
--bail:
--	if (status)
--		o2info_set_request_error(&oim.im_req, req);
-+		return -EFAULT;
- 
--	return status;
-+	return 0;
- }
- 
- static int ocfs2_info_handle_label(struct inode *inode,
- 				   struct ocfs2_info_request __user *req)
- {
--	int status = -EFAULT;
- 	struct ocfs2_info_label oil;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	if (o2info_from_user(oil, req))
--		goto bail;
-+		return -EFAULT;
- 
- 	memcpy(oil.il_label, osb->vol_label, OCFS2_MAX_VOL_LABEL_LEN);
- 
- 	o2info_set_request_filled(&oil.il_req);
- 
- 	if (o2info_to_user(oil, req))
--		goto bail;
-+		return -EFAULT;
- 
--	status = 0;
--bail:
--	if (status)
--		o2info_set_request_error(&oil.il_req, req);
--
--	return status;
-+	return 0;
- }
- 
- static int ocfs2_info_handle_uuid(struct inode *inode,
- 				  struct ocfs2_info_request __user *req)
- {
--	int status = -EFAULT;
- 	struct ocfs2_info_uuid oiu;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	if (o2info_from_user(oiu, req))
--		goto bail;
-+		return -EFAULT;
- 
- 	memcpy(oiu.iu_uuid_str, osb->uuid_str, OCFS2_TEXT_UUID_LEN + 1);
- 
- 	o2info_set_request_filled(&oiu.iu_req);
- 
- 	if (o2info_to_user(oiu, req))
--		goto bail;
--
--	status = 0;
--bail:
--	if (status)
--		o2info_set_request_error(&oiu.iu_req, req);
-+		return -EFAULT;
- 
--	return status;
-+	return 0;
- }
- 
- static int ocfs2_info_handle_fs_features(struct inode *inode,
- 					 struct ocfs2_info_request __user *req)
- {
--	int status = -EFAULT;
- 	struct ocfs2_info_fs_features oif;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	if (o2info_from_user(oif, req))
--		goto bail;
-+		return -EFAULT;
- 
- 	oif.if_compat_features = osb->s_feature_compat;
- 	oif.if_incompat_features = osb->s_feature_incompat;
-@@ -284,39 +252,28 @@ static int ocfs2_info_handle_fs_features
- 	o2info_set_request_filled(&oif.if_req);
- 
- 	if (o2info_to_user(oif, req))
--		goto bail;
-+		return -EFAULT;
- 
--	status = 0;
--bail:
--	if (status)
--		o2info_set_request_error(&oif.if_req, req);
--
--	return status;
-+	return 0;
- }
- 
- static int ocfs2_info_handle_journal_size(struct inode *inode,
- 					  struct ocfs2_info_request __user *req)
- {
--	int status = -EFAULT;
- 	struct ocfs2_info_journal_size oij;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	if (o2info_from_user(oij, req))
--		goto bail;
-+		return -EFAULT;
- 
- 	oij.ij_journal_size = i_size_read(osb->journal->j_inode);
- 
- 	o2info_set_request_filled(&oij.ij_req);
- 
- 	if (o2info_to_user(oij, req))
--		goto bail;
--
--	status = 0;
--bail:
--	if (status)
--		o2info_set_request_error(&oij.ij_req, req);
-+		return -EFAULT;
- 
--	return status;
-+	return 0;
- }
- 
- static int ocfs2_info_scan_inode_alloc(struct ocfs2_super *osb,
-@@ -373,7 +330,7 @@ static int ocfs2_info_handle_freeinode(s
- 	u32 i;
- 	u64 blkno = -1;
- 	char namebuf[40];
--	int status = -EFAULT, type = INODE_ALLOC_SYSTEM_INODE;
-+	int status, type = INODE_ALLOC_SYSTEM_INODE;
- 	struct ocfs2_info_freeinode *oifi = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 	struct inode *inode_alloc = NULL;
-@@ -385,8 +342,10 @@ static int ocfs2_info_handle_freeinode(s
- 		goto out_err;
- 	}
- 
--	if (o2info_from_user(*oifi, req))
--		goto bail;
-+	if (o2info_from_user(*oifi, req)) {
-+		status = -EFAULT;
-+		goto out_free;
-+	}
- 
- 	oifi->ifi_slotnum = osb->max_slots;
- 
-@@ -424,14 +383,16 @@ static int ocfs2_info_handle_freeinode(s
- 
- 	o2info_set_request_filled(&oifi->ifi_req);
- 
--	if (o2info_to_user(*oifi, req))
--		goto bail;
-+	if (o2info_to_user(*oifi, req)) {
-+		status = -EFAULT;
-+		goto out_free;
-+	}
- 
- 	status = 0;
- bail:
- 	if (status)
- 		o2info_set_request_error(&oifi->ifi_req, req);
--
-+out_free:
- 	kfree(oifi);
- out_err:
- 	return status;
-@@ -658,7 +619,7 @@ static int ocfs2_info_handle_freefrag(st
- {
- 	u64 blkno = -1;
- 	char namebuf[40];
--	int status = -EFAULT, type = GLOBAL_BITMAP_SYSTEM_INODE;
-+	int status, type = GLOBAL_BITMAP_SYSTEM_INODE;
- 
- 	struct ocfs2_info_freefrag *oiff;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-@@ -671,8 +632,10 @@ static int ocfs2_info_handle_freefrag(st
- 		goto out_err;
- 	}
- 
--	if (o2info_from_user(*oiff, req))
--		goto bail;
-+	if (o2info_from_user(*oiff, req)) {
-+		status = -EFAULT;
-+		goto out_free;
-+	}
- 	/*
- 	 * chunksize from userspace should be power of 2.
- 	 */
-@@ -711,14 +674,14 @@ static int ocfs2_info_handle_freefrag(st
- 
- 	if (o2info_to_user(*oiff, req)) {
- 		status = -EFAULT;
--		goto bail;
-+		goto out_free;
- 	}
- 
- 	status = 0;
- bail:
- 	if (status)
- 		o2info_set_request_error(&oiff->iff_req, req);
--
-+out_free:
- 	kfree(oiff);
- out_err:
- 	return status;
-@@ -727,23 +690,17 @@ out_err:
- static int ocfs2_info_handle_unknown(struct inode *inode,
- 				     struct ocfs2_info_request __user *req)
- {
--	int status = -EFAULT;
- 	struct ocfs2_info_request oir;
- 
- 	if (o2info_from_user(oir, req))
--		goto bail;
-+		return -EFAULT;
- 
- 	o2info_clear_request_filled(&oir);
- 
- 	if (o2info_to_user(oir, req))
--		goto bail;
--
--	status = 0;
--bail:
--	if (status)
--		o2info_set_request_error(&oir, req);
-+		return -EFAULT;
- 
--	return status;
-+	return 0;
+-	return res;
++	return 1;
  }
  
  /*
