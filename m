@@ -1,91 +1,85 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 06 Aug 2014 13:32:07 -0700
-Subject: [Ocfs2-devel] [patch 04/10] ocfs2: o2net: set tcp user timeout to
-	max value
-Message-ID: <53e290c7.CpvTdt/ZlZEYmIIE%akpm@linux-foundation.org>
+Date: Wed, 06 Aug 2014 13:32:13 -0700
+Subject: [Ocfs2-devel] [patch 07/10] ocfs2: avoid access invalid address
+	when read o2dlm debug messages.
+Message-ID: <53e290cd.x/GQNL+fsxwHoqzs%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Subject: ocfs2: o2net: set tcp user timeout to max value
+From: jiangyiwen <jiangyiwen@huawei.com>
+Subject: ocfs2: avoid access invalid address when read o2dlm debug messages.
 
-When tcp retransmit timeout(15mins), the connection will be closed. 
-Pending messages may be lost during this time.  So we set tcp user timeout
-to override the retransmit timeout to the max value.  This is OK for ocfs2
-since we have disk heartbeat, if peer crash, the disk heartbeat will
-timeout and it will be evicted, if disk heartbeat not timeout and
-connection idle for a long time, then this means the cluster enters
-split-brain state, since fence can't happen, we'd better keep the
-connection and wait network recover.
+The following case will lead to a lockres bieing freed while it is still
+in use.
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
+cat /sys/kernel/debug/o2dlm/locking_state	dlm_thread
+lockres_seq_start
+    -> lock dlm->track_lock
+    -> get resA
+                                                resA->refs decrease to 0,
+                                                call dlm_lockres_release,
+                                                and wait for "cat" unlock.
+Although resA->refs is already set to 0,
+increase resA->refs, and then unlock
+                                                lock dlm->track_lock
+                                                    -> list_del_init()
+                                                    -> unlock
+                                                    -> free resA
+
+In such a race case, invalid address access may occurs.  So we should
+delete list res->tracking before resA->refs decrease to 0.
+
+Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
 Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Joseph Qi <joseph.qi@huawei.com>
+Cc: Mark Fasheh <mfasheh@suse.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/cluster/tcp.c |   20 ++++++++++++++++++++
- fs/ocfs2/cluster/tcp.h |    1 +
- 2 files changed, 21 insertions(+)
+ fs/ocfs2/dlm/dlmmaster.c |   10 ----------
+ fs/ocfs2/dlm/dlmthread.c |   10 ++++++++++
+ 2 files changed, 10 insertions(+), 10 deletions(-)
 
-diff -puN fs/ocfs2/cluster/tcp.c~ocfs2-o2net-set-tcp-user-timeout-to-max-value fs/ocfs2/cluster/tcp.c
---- a/fs/ocfs2/cluster/tcp.c~ocfs2-o2net-set-tcp-user-timeout-to-max-value
-+++ a/fs/ocfs2/cluster/tcp.c
-@@ -1480,6 +1480,14 @@ static int o2net_set_nodelay(struct sock
- 	return ret;
- }
+diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages fs/ocfs2/dlm/dlmmaster.c
+--- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages
++++ a/fs/ocfs2/dlm/dlmmaster.c
+@@ -498,16 +498,6 @@ static void dlm_lockres_release(struct k
+ 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+ 	     res->lockname.name);
  
-+static int o2net_set_usertimeout(struct socket *sock)
-+{
-+	int user_timeout = O2NET_TCP_USER_TIMEOUT;
-+
-+	return kernel_setsockopt(sock, SOL_TCP, TCP_USER_TIMEOUT,
-+				(char *)&user_timeout, sizeof(user_timeout));
-+}
-+
- static void o2net_initialize_handshake(void)
- {
- 	o2net_hand->o2hb_heartbeat_timeout_ms = cpu_to_be32(
-@@ -1663,6 +1671,12 @@ static void o2net_start_connect(struct w
- 		goto out;
- 	}
+-	spin_lock(&dlm->track_lock);
+-	if (!list_empty(&res->tracking))
+-		list_del_init(&res->tracking);
+-	else {
+-		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
+-		     res->lockname.len, res->lockname.name);
+-		dlm_print_one_lock_resource(res);
+-	}
+-	spin_unlock(&dlm->track_lock);
+-
+ 	atomic_dec(&dlm->res_cur_count);
  
-+	ret = o2net_set_usertimeout(sock);
-+	if (ret) {
-+		mlog(ML_ERROR, "set TCP_USER_TIMEOUT failed with %d\n", ret);
-+		goto out;
+ 	if (!hlist_unhashed(&res->hash_node) ||
+diff -puN fs/ocfs2/dlm/dlmthread.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages fs/ocfs2/dlm/dlmthread.c
+--- a/fs/ocfs2/dlm/dlmthread.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages
++++ a/fs/ocfs2/dlm/dlmthread.c
+@@ -211,6 +211,16 @@ static void dlm_purge_lockres(struct dlm
+ 
+ 	__dlm_unhash_lockres(dlm, res);
+ 
++	spin_lock(&dlm->track_lock);
++	if (!list_empty(&res->tracking))
++		list_del_init(&res->tracking);
++	else {
++		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
++				res->lockname.len, res->lockname.name);
++		dlm_print_one_lock_resource(res);
 +	}
++	spin_unlock(&dlm->track_lock);
 +
- 	o2net_register_callbacks(sc->sc_sock->sk, sc);
- 
- 	spin_lock(&nn->nn_lock);
-@@ -1844,6 +1858,12 @@ static int o2net_accept_one(struct socke
- 		goto out;
- 	}
- 
-+	ret = o2net_set_usertimeout(new_sock);
-+	if (ret) {
-+		mlog(ML_ERROR, "set TCP_USER_TIMEOUT failed with %d\n", ret);
-+		goto out;
-+	}
-+
- 	slen = sizeof(sin);
- 	ret = new_sock->ops->getname(new_sock, (struct sockaddr *) &sin,
- 				       &slen, 1);
-diff -puN fs/ocfs2/cluster/tcp.h~ocfs2-o2net-set-tcp-user-timeout-to-max-value fs/ocfs2/cluster/tcp.h
---- a/fs/ocfs2/cluster/tcp.h~ocfs2-o2net-set-tcp-user-timeout-to-max-value
-+++ a/fs/ocfs2/cluster/tcp.h
-@@ -63,6 +63,7 @@ typedef void (o2net_post_msg_handler_fun
- #define O2NET_KEEPALIVE_DELAY_MS_DEFAULT	2000
- #define O2NET_IDLE_TIMEOUT_MS_DEFAULT		30000
- 
-+#define O2NET_TCP_USER_TIMEOUT			0x7fffffff
- 
- /* TODO: figure this out.... */
- static inline int o2net_link_down(int err, struct socket *sock)
+ 	/* lockres is not in the hash now.  drop the flag and wake up
+ 	 * any processes waiting in dlm_get_lock_resource. */
+ 	if (!master) {
 _
