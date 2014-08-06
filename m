@@ -1,133 +1,76 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 06 Aug 2014 13:32:11 -0700
-Subject: [Ocfs2-devel] [patch 06/10] ocfs2: call ocfs2_journal_access_di()
- before ocfs2_journal_dirty() in ocfs2_write_end_nolock()
-Message-ID: <53e290cb.rCYzzvUZ1cY/IQ85%akpm@linux-foundation.org>
+Date: Wed, 06 Aug 2014 13:32:15 -0700
+Subject: [Ocfs2-devel] [patch 08/10] ocfs2/dlm: fix race between
+ dispatched_work and dlm_lockres_grab_inflight_worker
+Message-ID: <53e290cf.RN63BH6SAjPsXyDT%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: yangwenfang <vicky.yangwenfang@huawei.com>
-Subject: ocfs2: call ocfs2_journal_access_di() before ocfs2_journal_dirty() in ocfs2_write_end_nolock()
+From: Joseph Qi <joseph.qi@huawei.com>
+Subject: ocfs2/dlm: fix race between dispatched_work and dlm_lockres_grab_inflight_worker
 
-After we call ocfs2_journal_access_di() in ocfs2_write_begin(),
-jbd2_journal_restart() may also be called, in this function transaction
-A's t_updates-- and obtains a new transaction B.  If
-jbd2_journal_commit_transaction() is happened to commit transaction A,
-when t_updates==0, it will continue to complete commit and unfile buffer.
+ac4fef4d23ed ("ocfs2/dlm: do not purge lockres that is queued for assert
+master") may have the following possible race case:
 
-So when jbd2_journal_dirty_metadata(), the handle is pointed a new
-transaction B, and the buffer head's journal head is already freed,
-jh->b_transaction == NULL, jh->b_next_transaction == NULL, it returns
-EINVAL, So it triggers the BUG_ON(status).
+dlm_dispatch_assert_master       dlm_wq
+========================================================================
+queue_work(dlm->quedlm_worker,
+	&dlm->dispatched_work);
+                                 dispatch work,
+				 dlm_lockres_drop_inflight_worker
+				 *BUG_ON(res->inflight_assert_workers == 0)*
+dlm_lockres_grab_inflight_worker
+inflight_assert_workers++
 
-thread 1:                             jbd2:
-ocfs2_write_begin                     jbd2_journal_commit_transaction
-ocfs2_write_begin_nolock
-  ocfs2_start_trans
-    jbd2__journal_start(t_updates+1,
-                       transaction A)
-    ocfs2_journal_access_di
-    ocfs2_write_cluster_by_desc
-      ocfs2_mark_extent_written
-        ocfs2_change_extent_flag
-          ocfs2_split_extent
-            ocfs2_extend_rotate_transaction
-              jbd2_journal_restart
-              (t_updates-1,transaction B) t_updates==0
-                                        __jbd2_journal_refile_buffer
+So ensure inflight_assert_workers to be increased first.
 
-ocfs2_write_end
-ocfs2_write_end_nolock
-    ocfs2_journal_dirty
-        jbd2_journal_dirty_metadata(bug)
-   ocfs2_commit_trans
-
-In ext4, I found that: jbd2_journal_get_write_access() called by
-
-ext4_write_end.
-ext4_write_begin
-    ext4_journal_start
-        __ext4_journal_start_sb
-            ext4_journal_check_start
-            jbd2__journal_start
-
-ext4_write_end
-    ext4_mark_inode_dirty
-        ext4_reserve_inode_write
-            ext4_journal_get_write_access
-                jbd2_journal_get_write_access
-        ext4_mark_iloc_dirty
-            ext4_do_update_inode
-                ext4_handle_dirty_metadata
-                    jbd2_journal_dirty_metadata
-
-
-So I think we should put ocfs2_journal_access_di before
-  ocfs2_journal_dirty in the ocfs2_write_end.  and it works well after my
-  modification.
-
-Signed-off-by: vicky <vicky.yangwenfang@huawei.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Signed-off-by: Xue jiufei <xuejiufei@huawei.com>
 Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Mark Fasheh <mfasheh@suse.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/aops.c |   21 ++++++++++-----------
- 1 file changed, 10 insertions(+), 11 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c |   12 +++---------
+ 1 file changed, 3 insertions(+), 9 deletions(-)
 
-diff -puN fs/ocfs2/aops.c~ocfs2-call-ocfs2_journal_access_di-before-ocfs2_journal_dirty-in-ocfs2_write_end_nolock fs/ocfs2/aops.c
---- a/fs/ocfs2/aops.c~ocfs2-call-ocfs2_journal_access_di-before-ocfs2_journal_dirty-in-ocfs2_write_end_nolock
-+++ a/fs/ocfs2/aops.c
-@@ -1817,16 +1817,6 @@ try_again:
- 		if (ret)
- 			goto out_commit;
- 	}
--	/*
--	 * We don't want this to fail in ocfs2_write_end(), so do it
--	 * here.
--	 */
--	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), wc->w_di_bh,
--				      OCFS2_JOURNAL_ACCESS_WRITE);
--	if (ret) {
--		mlog_errno(ret);
--		goto out_quota;
--	}
+diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-dlm-fix-race-between-dispatched_work-and-dlm_lockres_grab_inflight_worker fs/ocfs2/dlm/dlmmaster.c
+--- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-dlm-fix-race-between-dispatched_work-and-dlm_lockres_grab_inflight_worker
++++ a/fs/ocfs2/dlm/dlmmaster.c
+@@ -684,14 +684,6 @@ void __dlm_lockres_grab_inflight_worker(
+ 			res->inflight_assert_workers);
+ }
  
- 	/*
- 	 * Fill our page array first. That way we've grabbed enough so
-@@ -1977,7 +1967,7 @@ int ocfs2_write_end_nolock(struct addres
- 			   loff_t pos, unsigned len, unsigned copied,
- 			   struct page *page, void *fsdata)
+-static void dlm_lockres_grab_inflight_worker(struct dlm_ctxt *dlm,
+-		struct dlm_lock_resource *res)
+-{
+-	spin_lock(&res->spinlock);
+-	__dlm_lockres_grab_inflight_worker(dlm, res);
+-	spin_unlock(&res->spinlock);
+-}
+-
+ static void __dlm_lockres_drop_inflight_worker(struct dlm_ctxt *dlm,
+ 		struct dlm_lock_resource *res)
  {
--	int i;
-+	int i, ret;
- 	unsigned from, to, start = pos & (PAGE_CACHE_SIZE - 1);
- 	struct inode *inode = mapping->host;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-@@ -2027,6 +2017,14 @@ int ocfs2_write_end_nolock(struct addres
+@@ -1625,6 +1617,7 @@ send_response:
  		}
- 	}
- 
-+	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), wc->w_di_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		copied = ret;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
- out_write_size:
- 	pos += copied;
- 	if (pos > i_size_read(inode)) {
-@@ -2041,6 +2039,7 @@ out_write_size:
- 	ocfs2_update_inode_fsync_trans(handle, inode, 1);
- 	ocfs2_journal_dirty(handle, wc->w_di_bh);
- 
-+out:
- 	ocfs2_commit_trans(osb, handle);
- 
- 	ocfs2_run_deallocs(osb, &wc->w_dealloc);
+ 		mlog(0, "%u is the owner of %.*s, cleaning everyone else\n",
+ 			     dlm->node_num, res->lockname.len, res->lockname.name);
++		spin_lock(&res->spinlock);
+ 		ret = dlm_dispatch_assert_master(dlm, res, 0, request->node_idx,
+ 						 DLM_ASSERT_MASTER_MLE_CLEANUP);
+ 		if (ret < 0) {
+@@ -1632,7 +1625,8 @@ send_response:
+ 			response = DLM_MASTER_RESP_ERROR;
+ 			dlm_lockres_put(res);
+ 		} else
+-			dlm_lockres_grab_inflight_worker(dlm, res);
++			__dlm_lockres_grab_inflight_worker(dlm, res);
++		spin_unlock(&res->spinlock);
+ 	} else {
+ 		if (res)
+ 			dlm_lockres_put(res);
 _
