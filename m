@@ -1,76 +1,88 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 06 Aug 2014 13:32:15 -0700
-Subject: [Ocfs2-devel] [patch 08/10] ocfs2/dlm: fix race between
- dispatched_work and dlm_lockres_grab_inflight_worker
-Message-ID: <53e290cf.RN63BH6SAjPsXyDT%akpm@linux-foundation.org>
+Date: Wed, 06 Aug 2014 13:32:20 -0700
+Subject: [Ocfs2-devel] [patch 10/10] ocfs2: fix journal commit deadlock
+Message-ID: <53e290d4.8PUA4wfAaI9MLZMU%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Joseph Qi <joseph.qi@huawei.com>
-Subject: ocfs2/dlm: fix race between dispatched_work and dlm_lockres_grab_inflight_worker
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Subject: ocfs2: fix journal commit deadlock
 
-ac4fef4d23ed ("ocfs2/dlm: do not purge lockres that is queued for assert
-master") may have the following possible race case:
+For buffer write, page lock will be got in write_begin and released in
+write_end, in ocfs2_write_end_nolock(), before it unlock the page in
+ocfs2_free_write_ctxt(), it calls ocfs2_run_deallocs(), this will ask for
+the read lock of journal->j_trans_barrier.  Holding page lock and ask for
+journal->j_trans_barrier breaks the locking order.
 
-dlm_dispatch_assert_master       dlm_wq
-========================================================================
-queue_work(dlm->quedlm_worker,
-	&dlm->dispatched_work);
-                                 dispatch work,
-				 dlm_lockres_drop_inflight_worker
-				 *BUG_ON(res->inflight_assert_workers == 0)*
-dlm_lockres_grab_inflight_worker
-inflight_assert_workers++
+This will cause a deadlock with journal commit threads, ocfs2cmt will get
+write lock of journal->j_trans_barrier first, then it wakes up kjournald2
+to do the commit work, at last it waits until done.  To commit journal,
+kjournald2 needs flushing data first, it needs get the cache page lock.
 
-So ensure inflight_assert_workers to be increased first.
+Since some ocfs2 cluster locks are holding by write process, this
+deadlock may hung the whole cluster.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Signed-off-by: Xue jiufei <xuejiufei@huawei.com>
-Cc: Joel Becker <jlbec@evilplan.org>
+unlock pages before ocfs2_run_deallocs() can fix the locking order, also
+put unlock before ocfs2_commit_trans() to make page lock is unlocked
+before j_trans_barrier to preserve unlocking order.
+
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+Reviewed-by: Wengang Wang <wen.gang.wang@oracle.com>
+Cc: <stable@vger.kernel.org>
 Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/dlm/dlmmaster.c |   12 +++---------
- 1 file changed, 3 insertions(+), 9 deletions(-)
+ fs/ocfs2/aops.c |   16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
 
-diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-dlm-fix-race-between-dispatched_work-and-dlm_lockres_grab_inflight_worker fs/ocfs2/dlm/dlmmaster.c
---- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-dlm-fix-race-between-dispatched_work-and-dlm_lockres_grab_inflight_worker
-+++ a/fs/ocfs2/dlm/dlmmaster.c
-@@ -684,14 +684,6 @@ void __dlm_lockres_grab_inflight_worker(
- 			res->inflight_assert_workers);
+diff -puN fs/ocfs2/aops.c~ocfs2-fix-journal-commit-deadlock fs/ocfs2/aops.c
+--- a/fs/ocfs2/aops.c~ocfs2-fix-journal-commit-deadlock
++++ a/fs/ocfs2/aops.c
+@@ -894,7 +894,7 @@ void ocfs2_unlock_and_free_pages(struct
+ 	}
  }
  
--static void dlm_lockres_grab_inflight_worker(struct dlm_ctxt *dlm,
--		struct dlm_lock_resource *res)
--{
--	spin_lock(&res->spinlock);
--	__dlm_lockres_grab_inflight_worker(dlm, res);
--	spin_unlock(&res->spinlock);
--}
--
- static void __dlm_lockres_drop_inflight_worker(struct dlm_ctxt *dlm,
- 		struct dlm_lock_resource *res)
+-static void ocfs2_free_write_ctxt(struct ocfs2_write_ctxt *wc)
++static void ocfs2_unlock_pages(struct ocfs2_write_ctxt *wc)
  {
-@@ -1625,6 +1617,7 @@ send_response:
- 		}
- 		mlog(0, "%u is the owner of %.*s, cleaning everyone else\n",
- 			     dlm->node_num, res->lockname.len, res->lockname.name);
-+		spin_lock(&res->spinlock);
- 		ret = dlm_dispatch_assert_master(dlm, res, 0, request->node_idx,
- 						 DLM_ASSERT_MASTER_MLE_CLEANUP);
- 		if (ret < 0) {
-@@ -1632,7 +1625,8 @@ send_response:
- 			response = DLM_MASTER_RESP_ERROR;
- 			dlm_lockres_put(res);
- 		} else
--			dlm_lockres_grab_inflight_worker(dlm, res);
-+			__dlm_lockres_grab_inflight_worker(dlm, res);
-+		spin_unlock(&res->spinlock);
- 	} else {
- 		if (res)
- 			dlm_lockres_put(res);
+ 	int i;
+ 
+@@ -915,7 +915,11 @@ static void ocfs2_free_write_ctxt(struct
+ 		page_cache_release(wc->w_target_page);
+ 	}
+ 	ocfs2_unlock_and_free_pages(wc->w_pages, wc->w_num_pages);
++}
+ 
++static void ocfs2_free_write_ctxt(struct ocfs2_write_ctxt *wc)
++{
++	ocfs2_unlock_pages(wc);
+ 	brelse(wc->w_di_bh);
+ 	kfree(wc);
+ }
+@@ -2040,11 +2044,19 @@ out_write_size:
+ 	ocfs2_journal_dirty(handle, wc->w_di_bh);
+ 
+ out:
++	/* unlock pages before dealloc since it needs acquiring j_trans_barrier
++	 * lock, or it will cause a deadlock since journal commit threads holds
++	 * this lock and will ask for the page lock when flushing the data.
++	 * put it here to preserve the unlock order.
++	 */
++	ocfs2_unlock_pages(wc);
++
+ 	ocfs2_commit_trans(osb, handle);
+ 
+ 	ocfs2_run_deallocs(osb, &wc->w_dealloc);
+ 
+-	ocfs2_free_write_ctxt(wc);
++	brelse(wc->w_di_bh);
++	kfree(wc);
+ 
+ 	return copied;
+ }
 _
