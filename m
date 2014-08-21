@@ -1,40 +1,64 @@
-From: Guozhonghua <guozhonghua@h3c.com>
-Date: Thu, 21 Aug 2014 02:31:09 +0000
-Subject: [Ocfs2-devel] =?utf-8?b?562U5aSNOiAgQ2x1c3RlciBibG9ja2VkLCBzbyBh?=
- =?utf-8?q?s_to_reboot_all_nodes_to_avoid_it=2E_Is_there_any_patchs_for_it?=
- =?utf-8?b?PyBUaGFua3Mu?=
-In-Reply-To: <53F5528E.2030608@huawei.com>
-References: <71604351584F6A4EBAE558C676F37CA42EC6360C@H3CMLB14-EX.srv.huawei-3com.com>
-	<53F5528E.2030608@huawei.com>
-Message-ID: <71604351584F6A4EBAE558C676F37CA42EC636F4@H3CMLB14-EX.srv.huawei-3com.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Thu, 21 Aug 2014 14:58:44 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: delete double assignment
+In-Reply-To: <20140728152632.GA2926@himangi-Dell>
+References: <20140728152632.GA2926@himangi-Dell>
+Message-ID: <20140821145844.a661662c0823ec930ae39a6f@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Himangi Saraogi <himangi774@gmail.com>
+Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, julia.lawall@lip6.fr
 
-Thanks Joseph
+On Mon, 28 Jul 2014 20:56:32 +0530 Himangi Saraogi <himangi774@gmail.com> wrote:
 
-But as I try it, there is some error:
-debugfs: fs_locks -B
-Debug string proto 3 found, but 2 is the highest I understand.
+> Delete successive assignments to the same location. The two assignments are
+> simply identical.
+> 
+> A simplified version of Coccinelle semantic match that finds this problem is as
+> follows:
+> 
+> // <smpl>
+> @@
+> expression i;
+> @@
+> 
+> *i = ...;
+>  i = ...;
+> // </smpl>
+> 
+> Signed-off-by: Himangi Saraogi <himangi774@gmail.com>
+> ---
+> Should the fist assignment be initializing the pv_minor field?
 
-Ocfs2-tools 1.6.4.  Is the tools version older?
+I'd say so, yes.
 
 
-We have the blocked scenario several times for different code stack, and is there any way changing codes to avoid it?
-I means return error code for blocked lock without wait the completion.
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: fs/ocfs2/stack_user.c: fix typo in ocfs2_control_release()
 
-Thanks
+It is supposed to zero pv_minor.
 
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
+Reported-by: Himangi Saraogi <himangi774@gmail.com>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ocfs2/stack_user.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff -puN fs/ocfs2/stack_user.c~fs-ocfs2-stack_userc-fix-typo-in-ocfs2_control_release fs/ocfs2/stack_user.c
+--- a/fs/ocfs2/stack_user.c~fs-ocfs2-stack_userc-fix-typo-in-ocfs2_control_release
++++ a/fs/ocfs2/stack_user.c
+@@ -591,7 +591,7 @@ static int ocfs2_control_release(struct
+ 		 */
+ 		ocfs2_control_this_node = -1;
+ 		running_proto.pv_major = 0;
+-		running_proto.pv_major = 0;
++		running_proto.pv_minor = 0;
+ 	}
+ 
+ out:
+_
