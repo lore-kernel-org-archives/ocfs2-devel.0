@@ -1,64 +1,62 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Thu, 21 Aug 2014 14:58:44 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2: delete double assignment
-In-Reply-To: <20140728152632.GA2926@himangi-Dell>
-References: <20140728152632.GA2926@himangi-Dell>
-Message-ID: <20140821145844.a661662c0823ec930ae39a6f@linux-foundation.org>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 22 Aug 2014 16:30:47 +0800
+Subject: [Ocfs2-devel] A deadlock when system do not has sufficient
+	memory
+In-Reply-To: <53F41CAE.2040204@huawei.com>
+References: <53F41CAE.2040204@huawei.com>
+Message-ID: <53F6FFB7.1090305@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Himangi Saraogi <himangi774@gmail.com>
-Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, julia.lawall@lip6.fr
+To: ocfs2-devel@oss.oracle.com
 
-On Mon, 28 Jul 2014 20:56:32 +0530 Himangi Saraogi <himangi774@gmail.com> wrote:
-
-> Delete successive assignments to the same location. The two assignments are
-> simply identical.
+On 2014/8/20 11:57, Xue jiufei wrote:
+> Hi all,
+> We found there may exist a deadlock when system has not sufficient
+> memory. Here's the situation:
+>             N1                                      N2
+>                                              send message to N1
+>       o2net_wq(kworker)
+> receiving message and call corresponding
+> handler to handle this message. It may 
+> need to alloc some memory(use GFP_NOFS or GFP_KERNEL).
+> but there's no sufficient memory, lower then
+> min watermark. So it wakeup kswapd to reclaim memory
+> and itself may also call
+> __alloc_pages_direct_reclaim(), trying to
+> free some pages.
 > 
-> A simplified version of Coccinelle semantic match that finds this problem is as
-> follows:
+> It tries to free ocfs2 inode
+> cache and calls ocfs2_drop_lock()->dlmunlock()
+> to drop inode lock, sending unlock message to master,
+> say N2. When reply comes, queue sc_rx_work and
+> wait o2net_wq to handle this work. however
+> o2net_wq is still handling last message, so can not 
+> process the reply message. It will wait
+> o2net_nsw_completed() in o2net_send_message_vec()
+> forever. 
+> Kswapd thread enconter the same situation.
 > 
-> // <smpl>
-> @@
-> expression i;
-> @@
 > 
-> *i = ...;
->  i = ...;
-> // </smpl>
+> So is there any advice to solve this deadlock?
+> And what is the probability that kmalloc return ENOMEM when use GFP_ATOMIC flag?
 > 
-> Signed-off-by: Himangi Saraogi <himangi774@gmail.com>
-> ---
-> Should the fist assignment be initializing the pv_minor field?
-
-I'd say so, yes.
-
-
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: fs/ocfs2/stack_user.c: fix typo in ocfs2_control_release()
-
-It is supposed to zero pv_minor.
-
-Reported-by: Himangi Saraogi <himangi774@gmail.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/stack_user.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff -puN fs/ocfs2/stack_user.c~fs-ocfs2-stack_userc-fix-typo-in-ocfs2_control_release fs/ocfs2/stack_user.c
---- a/fs/ocfs2/stack_user.c~fs-ocfs2-stack_userc-fix-typo-in-ocfs2_control_release
-+++ a/fs/ocfs2/stack_user.c
-@@ -591,7 +591,7 @@ static int ocfs2_control_release(struct
- 		 */
- 		ocfs2_control_this_node = -1;
- 		running_proto.pv_major = 0;
--		running_proto.pv_major = 0;
-+		running_proto.pv_minor = 0;
- 	}
- 
- out:
-_
+> Thanks.
+> 
+To avoid this deadlock, we want to alloc memory with flag GFP_ATOMIC
+in all handlers and return ENOMEM to peer when failed. The peer will
+try to resend the message again, o2net_wq can handle other messages.
+However, it can not solve all problems. For example, if o2net_wq is
+processing sc_connect_work which would call sock_alloc_inode() to alloc
+socket_alloc with GFP_KERNEL flag when memory is insufficient and enter
+reclaim progress, it also trigger the deadlock. We can not change this
+alloc flag.
+We have no idea about it. Is there any better ideas. 
+Thanks very much.
+xuejiufei
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
