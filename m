@@ -1,8 +1,8 @@
-From: Sunil Mushran <sunil.mushran@gmail.com>
-Date: Mon, 25 Aug 2014 10:13:16 -0700
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Wed, 27 Aug 2014 09:57:38 +0800
 Subject: [Ocfs2-devel] A deadlock when system do not has sufficient
 	memory
-In-Reply-To: <53FAD239.7020709@huawei.com>
+In-Reply-To: <CAEeiSHXmTbTJsEFbE4C1oZxNFwgR08P+f7KmC3r3usLeUMC1DQ@mail.gmail.com>
 References: <53F41CAE.2040204@huawei.com> <53F6FFB7.1090305@huawei.com>
 	<CAEeiSHVP60=zNcP-Q2bCD_BdD3g8v1a__Vyn4ZMF_8Z97cpE8g@mail.gmail.com>
 	<53FA99FD.1090008@huawei.com>
@@ -10,34 +10,48 @@ References: <53F41CAE.2040204@huawei.com> <53F6FFB7.1090305@huawei.com>
 	<53FACC99.8070701@huawei.com>
 	<CAEeiSHXurWFQYX5g3oi1U3-Ma4YpKUYF4PaBWyU0oAGxNFTuLg@mail.gmail.com>
 	<53FAD239.7020709@huawei.com>
-Message-ID: <CAEeiSHXmTbTJsEFbE4C1oZxNFwgR08P+f7KmC3r3usLeUMC1DQ@mail.gmail.com>
+	<CAEeiSHXmTbTJsEFbE4C1oZxNFwgR08P+f7KmC3r3usLeUMC1DQ@mail.gmail.com>
+Message-ID: <53FD3B12.5070802@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Sun, Aug 24, 2014 at 11:05 PM, Joseph Qi <joseph.qi@huawei.com> wrote:
+Hi, Sunil
+On 2014/8/26 1:13, Sunil Mushran wrote:
+> On Sun, Aug 24, 2014 at 11:05 PM, Joseph Qi <joseph.qi at huawei.com <mailto:joseph.qi@huawei.com>> wrote:
+> 
+>     On 2014/8/25 13:45, Sunil Mushran wrote:
+>     > Please could you expand on that.
+>     >
+>     In our scenario, one node can mount multiple volumes across the
+>     cluster.
+>     For instance, N1 has mounted ocfs2 volumes say volume1, volume2,
+>     volume3. And volume3 may do umount/mount during runtime of other
+>     volumes.
+> 
+> 
+> I meant expand on the deadlock. Say we are mounting a new volume and that triggers a inode cleanup. That inode being cleaned up will have to be from one of the mounted volumes. How can this lead to a deadlock?
+> 
+> Two variations:
+> a) Node death leading to recovery during the mount.
+> b) Mount atop a mount.
+> 
+> But I cannot still see a deadlock in either scenario.
+The deadlock situation is just the same as the I described in my first mail.
+o2net_wq
+-> dlm_query_region_handler
+-> kmalloc(no sufficient memory)
+-> triggers ocfs2 inodes cleanup
+-> ocfs2_drop_lock
+-> call o2net_send_message to send unlock message
+-> wait_event(nsw.ns_wq, o2net_nsw_completed(nn, &nsw))
+   to wait for the reply from master
+-> tcp layer receive the reply, call o2net_data_ready
+-> queue sc_rx_work, but o2net_wq cannot handle this work
+so it triggers the deadlock, o2net_wq is waiting itself to
+handle unlock reply and complete the nsw.
 
-> On 2014/8/25 13:45, Sunil Mushran wrote:
-> > Please could you expand on that.
-> >
-> In our scenario, one node can mount multiple volumes across the
-> cluster.
-> For instance, N1 has mounted ocfs2 volumes say volume1, volume2,
-> volume3. And volume3 may do umount/mount during runtime of other
-> volumes.
-
-
-I meant expand on the deadlock. Say we are mounting a new volume and that
-triggers a inode cleanup. That inode being cleaned up will have to be from
-one of the mounted volumes. How can this lead to a deadlock?
-
-Two variations:
-a) Node death leading to recovery during the mount.
-b) Mount atop a mount.
-
-But I cannot still see a deadlock in either scenario.
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140825/b2f6791f/attachment.html 
+Thanks.
+Xuejiufei
