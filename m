@@ -1,97 +1,81 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 27 Aug 2014 18:57:11 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix deadlock between o2hb thread and
-	o2net_wq
-Message-ID: <53FDB987.2010001@huawei.com>
+From: Sunil Mushran <sunil.mushran@gmail.com>
+Date: Wed, 27 Aug 2014 18:16:23 -0700
+Subject: [Ocfs2-devel] A deadlock when system do not has sufficient
+	memory
+In-Reply-To: <53FD3B12.5070802@huawei.com>
+References: <53F41CAE.2040204@huawei.com> <53F6FFB7.1090305@huawei.com>
+	<CAEeiSHVP60=zNcP-Q2bCD_BdD3g8v1a__Vyn4ZMF_8Z97cpE8g@mail.gmail.com>
+	<53FA99FD.1090008@huawei.com>
+	<CAEeiSHWiPZHKC5gwLTuuZAm3xUeGT48BLNs97qdUgZSMM+AFZQ@mail.gmail.com>
+	<53FACC99.8070701@huawei.com>
+	<CAEeiSHXurWFQYX5g3oi1U3-Ma4YpKUYF4PaBWyU0oAGxNFTuLg@mail.gmail.com>
+	<53FAD239.7020709@huawei.com>
+	<CAEeiSHXmTbTJsEFbE4C1oZxNFwgR08P+f7KmC3r3usLeUMC1DQ@mail.gmail.com>
+	<53FD3B12.5070802@huawei.com>
+Message-ID: <CAEeiSHXLKQBRXuUw6J7X0dOP36oJ8q3-BzDwOEdLf-zF1i4bRw@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following case may lead to o2net_wq and o2hb thread deadlock on
-o2hb_callback_sem.
-Currently there are 2 nodes say N1, N2 in the cluster. And N2 down, at
-the same time, N3 tries to join the cluster. So N1 will handle node
-down (N2) and join (N3) simultaneously.
-    o2hb                               o2net_wq
-    ->o2hb_do_disk_heartbeat
-    ->o2hb_check_slot
-    ->o2hb_run_event_list
-    ->o2hb_fire_callbacks
-    ->down_write(&o2hb_callback_sem)
-    ->o2net_hb_node_down_cb
-    ->flush_workqueue(o2net_wq)
-                                       ->o2net_process_message
-                                       ->dlm_query_join_handler
-                                       ->o2hb_check_node_heartbeating
-                                       ->o2hb_fill_node_map
-                                       ->down_read(&o2hb_callback_sem)
+Hi,
 
-No need to take o2hb_callback_sem in dlm_query_join_handler,
-o2hb_live_lock is enough to protect live node map.
+What is o2net_wq waiting on that is preventing it from processing the reply
+for unlock?
+Sorry for being a bit slow. Do you have the raw stacks of the deadlock?
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/cluster/heartbeat.c | 19 +++++++++++++++++++
- fs/ocfs2/cluster/heartbeat.h |  1 +
- fs/ocfs2/dlm/dlmdomain.c     |  2 +-
- 3 files changed, 21 insertions(+), 1 deletion(-)
+I mean, making that alloc NOFS should not be an issue. But I would like to
+understand whether we are fixing the actual problem or not.
 
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 7303929..d133854 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -2572,6 +2572,25 @@ int o2hb_check_node_heartbeating(u8 node_num)
- }
- EXPORT_SYMBOL_GPL(o2hb_check_node_heartbeating);
+Sunil
 
-+int o2hb_check_node_heartbeating_no_sem(u8 node_num)
-+{
-+	unsigned long testing_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
-+	unsigned long flags;
-+
-+	spin_lock_irqsave(&o2hb_live_lock, flags);
-+	o2hb_fill_node_map_from_callback(testing_map, sizeof(testing_map));
-+	spin_unlock_irqrestore(&o2hb_live_lock, flags);
-+	if (!test_bit(node_num, testing_map)) {
-+		mlog(ML_HEARTBEAT,
-+		     "node (%u) does not have heartbeating enabled.\n",
-+		     node_num);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+EXPORT_SYMBOL_GPL(o2hb_check_node_heartbeating_no_sem);
-+
- int o2hb_check_node_heartbeating_from_callback(u8 node_num)
- {
- 	unsigned long testing_map[BITS_TO_LONGS(O2NM_MAX_NODES)];
-diff --git a/fs/ocfs2/cluster/heartbeat.h b/fs/ocfs2/cluster/heartbeat.h
-index 00ad8e8..3ef5137 100644
---- a/fs/ocfs2/cluster/heartbeat.h
-+++ b/fs/ocfs2/cluster/heartbeat.h
-@@ -80,6 +80,7 @@ void o2hb_fill_node_map(unsigned long *map,
- void o2hb_exit(void);
- int o2hb_init(void);
- int o2hb_check_node_heartbeating(u8 node_num);
-+int o2hb_check_node_heartbeating_no_sem(u8 node_num);
- int o2hb_check_node_heartbeating_from_callback(u8 node_num);
- int o2hb_check_local_node_heartbeating(void);
- void o2hb_stop_all_regions(void);
-diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
-index 39efc50..bf86ed4 100644
---- a/fs/ocfs2/dlm/dlmdomain.c
-+++ b/fs/ocfs2/dlm/dlmdomain.c
-@@ -839,7 +839,7 @@ static int dlm_query_join_handler(struct o2net_msg *msg, u32 len, void *data,
- 	 * to back off and try again.  This gives heartbeat a chance
- 	 * to catch up.
- 	 */
--	if (!o2hb_check_node_heartbeating(query->node_idx)) {
-+	if (!o2hb_check_node_heartbeating_no_sem(query->node_idx)) {
- 		mlog(0, "node %u is not in our live map yet\n",
- 		     query->node_idx);
 
--- 
-1.8.4.3
+On Tue, Aug 26, 2014 at 6:57 PM, Xue jiufei <xuejiufei@huawei.com> wrote:
+
+> Hi, Sunil
+> On 2014/8/26 1:13, Sunil Mushran wrote:
+> > On Sun, Aug 24, 2014 at 11:05 PM, Joseph Qi <joseph.qi@huawei.com
+> <mailto:joseph.qi@huawei.com>> wrote:
+> >
+> >     On 2014/8/25 13:45, Sunil Mushran wrote:
+> >     > Please could you expand on that.
+> >     >
+> >     In our scenario, one node can mount multiple volumes across the
+> >     cluster.
+> >     For instance, N1 has mounted ocfs2 volumes say volume1, volume2,
+> >     volume3. And volume3 may do umount/mount during runtime of other
+> >     volumes.
+> >
+> >
+> > I meant expand on the deadlock. Say we are mounting a new volume and
+> that triggers a inode cleanup. That inode being cleaned up will have to be
+> from one of the mounted volumes. How can this lead to a deadlock?
+> >
+> > Two variations:
+> > a) Node death leading to recovery during the mount.
+> > b) Mount atop a mount.
+> >
+> > But I cannot still see a deadlock in either scenario.
+> The deadlock situation is just the same as the I described in my first
+> mail.
+> o2net_wq
+> -> dlm_query_region_handler
+> -> kmalloc(no sufficient memory)
+> -> triggers ocfs2 inodes cleanup
+> -> ocfs2_drop_lock
+> -> call o2net_send_message to send unlock message
+> -> wait_event(nsw.ns_wq, o2net_nsw_completed(nn, &nsw))
+>    to wait for the reply from master
+> -> tcp layer receive the reply, call o2net_data_ready
+> -> queue sc_rx_work, but o2net_wq cannot handle this work
+> so it triggers the deadlock, o2net_wq is waiting itself to
+> handle unlock reply and complete the nsw.
+>
+> Thanks.
+> Xuejiufei
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140827/0df968ca/attachment.html 
