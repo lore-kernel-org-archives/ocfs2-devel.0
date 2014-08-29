@@ -1,153 +1,95 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Fri, 29 Aug 2014 15:30:14 +0800
-Subject: [Ocfs2-devel] A deadlock when system do not has sufficient
-	memory
-In-Reply-To: <54002A23.6050708@huawei.com>
-References: <53F41CAE.2040204@huawei.com> <53F6FFB7.1090305@huawei.com>
-	<53FA9673.20205@oracle.com> <53FEE543.10407@huawei.com>
-	<53FFF2FB.20706@oracle.com> <54002A23.6050708@huawei.com>
-Message-ID: <54002C06.3030805@oracle.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 29 Aug 2014 17:57:22 +0800
+Subject: [Ocfs2-devel] [PATCH] fs/super.c: do not shrink fs slab during
+	direct memory reclaim
+Message-ID: <54004E82.3060608@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-On 08/29/2014 03:22 PM, Xue jiufei wrote:
-> On 2014/8/29 11:26, Junxiao Bi wrote:
->> On 08/28/2014 04:16 PM, Xue jiufei wrote:
->>> Hi Junxiao,
->>> On 2014/8/25 9:50, Junxiao Bi wrote:
->>>> Hi Jiufei,
->>>>
->>>> Maybe you can consider using PF_FSTRANS flag, set this flag before
->>>> allocating memory with GFP_KERNEL flag and unset after the allocation.
->>>> Checking this flag in ocfs2 when trying to free some pages during memory
->>>> direct reclaim. See an example from upstream commit
->>>> 5cf02d09b50b1ee1c2d536c9cf64af5a7d433f56 (nfs: skip commit in
->>>> releasepage if we're freeing memory for fs-related reasons) .
->>>>
->>>> Thanks,
->>>> Junxiao.
->>>>
->>> Thank you very much for your suggestion. But in our situation,
->>> o2net_wq is evicting inode during memory direct reclaim, which cannot
->>> return error or do nothing because vfs would destroy_inode after evict,
->>> but we haven't drop inode lock yet.
->> How about checking the flag in vfs like this? And you can set PF_FSTRANS
->> flag in o2net_wq context where GFP_NOFS flag can't be set.
->>
->>
->> commit 8d27fdec5ce234d2f02e4582d340d231396b92af
->> Author: Junxiao Bi <junxiao.bi@oracle.com>
->> Date:   Fri Aug 29 11:05:25 2014 +0800
->>
->>     super: stop shrinker for processes with PF_FSTRANS flag
->>
->>     For some cluster fs, like ocfs2, it may be impossible to
->>     set GFP_NOFS for some memory allocation, as the allocation
->>     is in network common code, like sock_alloc() and in this
->>     case, the shrinker will call back into the fs and cause
->>     deadlock when available memory is not enough.
->>
->>     Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
->>
->> diff --git a/fs/super.c b/fs/super.c
->> index b9a214d..c4a8dc1 100644
->> --- a/fs/super.c
->> +++ b/fs/super.c
->> @@ -71,6 +71,9 @@ static unsigned long super_cache_scan(struct shrinker
->> *shrink,
->>         if (!(sc->gfp_mask & __GFP_FS))
->>                 return SHRINK_STOP;
->>
->> +       if (current->flags & PF_FSTRANS)
->> +               return SHRINK_STOP;
->> +
->>         if (!grab_super_passive(sb))
->>                 return SHRINK_STOP;
->>
->>
->> Thanks,
->> Junxiao.
->>
-> Yes, this patch can resolve our problem. Thanks a lot.
-> Have you send this patch to fs-devel list?
-No. May you send it with your ocfs2 fix? I think that is more convincing
-with the ocfs2 deadlock case. I will monitor it if there is any concern
-about it.
+The patch trys to solve one deadlock problem caused by cluster
+fs, like ocfs2. And the problem may happen at least in the below
+situations:
+1)Receiving a connect message from other nodes, node queues a
+work_struct o2net_listen_work.
+2)o2net_wq processes this work and calls sock_alloc() to allocate
+memory for a new socket.
+3)It would do direct memory reclaim when available memory is not
+enough and trigger the inode cleanup. That inode being cleaned up
+is happened to be ocfs2 inode, so call evict()->ocfs2_evict_inode()
+->ocfs2_drop_lock()->dlmunlock()->o2net_send_message_vec(),
+and wait for the unlock response from master.
+4)tcp layer received the response, call o2net_data_ready() and
+queue sc_rx_work, waiting o2net_wq to process this work.
+5)o2net_wq is a single thread workqueue, it process the work one by
+one. Right now it is still doing o2net_listen_work and cannot handle
+sc_rx_work. so we deadlock.
 
-Thanks,
-Junxiao.
->>>
->>> Thanks
->>> Xuejiufei
->>>
->>>> On 08/22/2014 04:30 PM, Xue jiufei wrote:
->>>>> On 2014/8/20 11:57, Xue jiufei wrote:
->>>>>> Hi all,
->>>>>> We found there may exist a deadlock when system has not sufficient
->>>>>> memory. Here's the situation:
->>>>>>             N1                                      N2
->>>>>>                                              send message to N1
->>>>>>       o2net_wq(kworker)
->>>>>> receiving message and call corresponding
->>>>>> handler to handle this message. It may 
->>>>>> need to alloc some memory(use GFP_NOFS or GFP_KERNEL).
->>>>>> but there's no sufficient memory, lower then
->>>>>> min watermark. So it wakeup kswapd to reclaim memory
->>>>>> and itself may also call
->>>>>> __alloc_pages_direct_reclaim(), trying to
->>>>>> free some pages.
->>>>>>
->>>>>> It tries to free ocfs2 inode
->>>>>> cache and calls ocfs2_drop_lock()->dlmunlock()
->>>>>> to drop inode lock, sending unlock message to master,
->>>>>> say N2. When reply comes, queue sc_rx_work and
->>>>>> wait o2net_wq to handle this work. however
->>>>>> o2net_wq is still handling last message, so can not 
->>>>>> process the reply message. It will wait
->>>>>> o2net_nsw_completed() in o2net_send_message_vec()
->>>>>> forever. 
->>>>>> Kswapd thread enconter the same situation.
->>>>>>
->>>>>>
->>>>>> So is there any advice to solve this deadlock?
->>>>>> And what is the probability that kmalloc return ENOMEM when use GFP_ATOMIC flag?
->>>>>>
->>>>>> Thanks.
->>>>>>
->>>>> To avoid this deadlock, we want to alloc memory with flag GFP_ATOMIC
->>>>> in all handlers and return ENOMEM to peer when failed. The peer will
->>>>> try to resend the message again, o2net_wq can handle other messages.
->>>>> However, it can not solve all problems. For example, if o2net_wq is
->>>>> processing sc_connect_work which would call sock_alloc_inode() to alloc
->>>>> socket_alloc with GFP_KERNEL flag when memory is insufficient and enter
->>>>> reclaim progress, it also trigger the deadlock. We can not change this
->>>>> alloc flag.
->>>>> We have no idea about it. Is there any better ideas. 
->>>>> Thanks very much.
->>>>> xuejiufei
->>>>>> _______________________________________________
->>>>>> Ocfs2-devel mailing list
->>>>>> Ocfs2-devel at oss.oracle.com
->>>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>>>>
->>>>>
->>>>>
->>>>>
->>>>> _______________________________________________
->>>>> Ocfs2-devel mailing list
->>>>> Ocfs2-devel at oss.oracle.com
->>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>>>>
->>>>
->>>> .
->>>>
->>>
->>>
->>
->> .
->>
-> 
-> 
+It is impossible to set GFP_NOFS for memory allocation in sock_alloc().
+So we use PF_FSTRANS to avoid the task reentering filesystem when
+available memory is not enough.
+
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
+---
+ fs/ocfs2/cluster/tcp.c | 7 +++++++
+ fs/super.c             | 3 +++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 681691b..629b4da 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -1581,6 +1581,8 @@ static void o2net_start_connect(struct work_struct *work)
+ 	int ret = 0, stop;
+ 	unsigned int timeout;
+ 
++	current->flags |= PF_FSTRANS;
++
+ 	/* if we're greater we initiate tx, otherwise we accept */
+ 	if (o2nm_this_node() <= o2net_num_from_nn(nn))
+ 		goto out;
+@@ -1683,6 +1685,7 @@ out:
+ 	if (mynode)
+ 		o2nm_node_put(mynode);
+ 
++	current->flags &= ~PF_FSTRANS;
+ 	return;
+ }
+ 
+@@ -1809,6 +1812,8 @@ static int o2net_accept_one(struct socket *sock, int *more)
+ 	struct o2net_sock_container *sc = NULL;
+ 	struct o2net_node *nn;
+ 
++	current->flags |= PF_FSTRANS;
++
+ 	BUG_ON(sock == NULL);
+ 	*more = 0;
+ 	ret = sock_create_lite(sock->sk->sk_family, sock->sk->sk_type,
+@@ -1918,6 +1923,8 @@ out:
+ 		o2nm_node_put(local_node);
+ 	if (sc)
+ 		sc_put(sc);
++
++	current->flags &= ~PF_FSTRANS;
+ 	return ret;
+ }
+ 
+diff --git a/fs/super.c b/fs/super.c
+index b9a214d..c4a8dc1 100644
+--- a/fs/super.c
++++ b/fs/super.c
+@@ -71,6 +71,9 @@ static unsigned long super_cache_scan(struct shrinker *shrink,
+ 	if (!(sc->gfp_mask & __GFP_FS))
+ 		return SHRINK_STOP;
+ 
++	if (current->flags & PF_FSTRANS)
++		return SHRINK_STOP;
++
+ 	if (!grab_super_passive(sb))
+ 		return SHRINK_STOP;
+ 
+-- 
+1.8.4.3
