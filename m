@@ -1,45 +1,137 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 28 Aug 2014 18:37:31 +0800
-Subject: [Ocfs2-devel] Can one single file's size is larger than 2T in
- one ocfs2 cluseter?
-In-Reply-To: <71604351584F6A4EBAE558C676F37CA42EC65836@H3CMLB14-EX.srv.huawei-3com.com>
-References: <71604351584F6A4EBAE558C676F37CA42EC65836@H3CMLB14-EX.srv.huawei-3com.com>
-Message-ID: <53FF066B.9050109@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Fri, 29 Aug 2014 11:26:51 +0800
+Subject: [Ocfs2-devel] A deadlock when system do not has sufficient
+	memory
+In-Reply-To: <53FEE543.10407@huawei.com>
+References: <53F41CAE.2040204@huawei.com> <53F6FFB7.1090305@huawei.com>
+	<53FA9673.20205@oracle.com> <53FEE543.10407@huawei.com>
+Message-ID: <53FFF2FB.20706@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2014/8/28 17:49, Guozhonghua wrote:
-> Hi all,
-> 
-> As we have test the OCFS2, and create one image file to be used as one virtual machine?s disk, it size is more than 2T, but its stats information is error.
-> 
-> Is file size limited to 2T? Or any other way to avoid its?
-> 
-AFAIK, no such limit.
-Theoretically it supports maximum 4PB file. And we've tested 10T.
+On 08/28/2014 04:16 PM, Xue jiufei wrote:
+> Hi Junxiao,
+> On 2014/8/25 9:50, Junxiao Bi wrote:
+>> Hi Jiufei,
+>>
+>> Maybe you can consider using PF_FSTRANS flag, set this flag before
+>> allocating memory with GFP_KERNEL flag and unset after the allocation.
+>> Checking this flag in ocfs2 when trying to free some pages during memory
+>> direct reclaim. See an example from upstream commit
+>> 5cf02d09b50b1ee1c2d536c9cf64af5a7d433f56 (nfs: skip commit in
+>> releasepage if we're freeing memory for fs-related reasons) .
+>>
+>> Thanks,
+>> Junxiao.
+>>
+> Thank you very much for your suggestion. But in our situation,
+> o2net_wq is evicting inode during memory direct reclaim, which cannot
+> return error or do nothing because vfs would destroy_inode after evict,
+> but we haven't drop inode lock yet.
+How about checking the flag in vfs like this? And you can set PF_FSTRANS
+flag in o2net_wq context where GFP_NOFS flag can't be set.
 
->  
+
+commit 8d27fdec5ce234d2f02e4582d340d231396b92af
+Author: Junxiao Bi <junxiao.bi@oracle.com>
+Date:   Fri Aug 29 11:05:25 2014 +0800
+
+    super: stop shrinker for processes with PF_FSTRANS flag
+
+    For some cluster fs, like ocfs2, it may be impossible to
+    set GFP_NOFS for some memory allocation, as the allocation
+    is in network common code, like sock_alloc() and in this
+    case, the shrinker will call back into the fs and cause
+    deadlock when available memory is not enough.
+
+    Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
+
+diff --git a/fs/super.c b/fs/super.c
+index b9a214d..c4a8dc1 100644
+--- a/fs/super.c
++++ b/fs/super.c
+@@ -71,6 +71,9 @@ static unsigned long super_cache_scan(struct shrinker
+*shrink,
+        if (!(sc->gfp_mask & __GFP_FS))
+                return SHRINK_STOP;
+
++       if (current->flags & PF_FSTRANS)
++               return SHRINK_STOP;
++
+        if (!grab_super_passive(sb))
+                return SHRINK_STOP;
+
+
+Thanks,
+Junxiao.
+
 > 
 > Thanks
+> Xuejiufei
 > 
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from H3C, which is
-> intended only for the person or entity whose address is listed above. Any use of the
-> information contained herein in any way (including, but not limited to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-> by phone or email immediately and delete it!
+>> On 08/22/2014 04:30 PM, Xue jiufei wrote:
+>>> On 2014/8/20 11:57, Xue jiufei wrote:
+>>>> Hi all,
+>>>> We found there may exist a deadlock when system has not sufficient
+>>>> memory. Here's the situation:
+>>>>             N1                                      N2
+>>>>                                              send message to N1
+>>>>       o2net_wq(kworker)
+>>>> receiving message and call corresponding
+>>>> handler to handle this message. It may 
+>>>> need to alloc some memory(use GFP_NOFS or GFP_KERNEL).
+>>>> but there's no sufficient memory, lower then
+>>>> min watermark. So it wakeup kswapd to reclaim memory
+>>>> and itself may also call
+>>>> __alloc_pages_direct_reclaim(), trying to
+>>>> free some pages.
+>>>>
+>>>> It tries to free ocfs2 inode
+>>>> cache and calls ocfs2_drop_lock()->dlmunlock()
+>>>> to drop inode lock, sending unlock message to master,
+>>>> say N2. When reply comes, queue sc_rx_work and
+>>>> wait o2net_wq to handle this work. however
+>>>> o2net_wq is still handling last message, so can not 
+>>>> process the reply message. It will wait
+>>>> o2net_nsw_completed() in o2net_send_message_vec()
+>>>> forever. 
+>>>> Kswapd thread enconter the same situation.
+>>>>
+>>>>
+>>>> So is there any advice to solve this deadlock?
+>>>> And what is the probability that kmalloc return ENOMEM when use GFP_ATOMIC flag?
+>>>>
+>>>> Thanks.
+>>>>
+>>> To avoid this deadlock, we want to alloc memory with flag GFP_ATOMIC
+>>> in all handlers and return ENOMEM to peer when failed. The peer will
+>>> try to resend the message again, o2net_wq can handle other messages.
+>>> However, it can not solve all problems. For example, if o2net_wq is
+>>> processing sc_connect_work which would call sock_alloc_inode() to alloc
+>>> socket_alloc with GFP_KERNEL flag when memory is insufficient and enter
+>>> reclaim progress, it also trigger the deadlock. We can not change this
+>>> alloc flag.
+>>> We have no idea about it. Is there any better ideas. 
+>>> Thanks very much.
+>>> xuejiufei
+>>>> _______________________________________________
+>>>> Ocfs2-devel mailing list
+>>>> Ocfs2-devel at oss.oracle.com
+>>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>>>
+>>>
+>>>
+>>>
+>>> _______________________________________________
+>>> Ocfs2-devel mailing list
+>>> Ocfs2-devel at oss.oracle.com
+>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>>
+>>
+>> .
+>>
 > 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
 > 
