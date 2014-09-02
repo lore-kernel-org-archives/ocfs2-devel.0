@@ -1,49 +1,80 @@
-From: Dave Chinner <david@fromorbit.com>
-Date: Tue, 2 Sep 2014 09:51:02 +1000
-Subject: [Ocfs2-devel] [PATCH] fs/super.c: do not shrink fs slab during
- direct memory reclaim
-In-Reply-To: <54004E82.3060608@huawei.com>
-References: <54004E82.3060608@huawei.com>
-Message-ID: <20140901235102.GI26465@dastard>
+From: jiangyiwen <jiangyiwen@huawei.com>
+Date: Tue, 2 Sep 2014 15:38:08 +0800
+Subject: [Ocfs2-devel] [PATCH V2]ocfs2: Avoid access invalid address when
+ read o2dlm debug messages.
+Message-ID: <540573E0.90708@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Xue jiufei <xuejiufei@huawei.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-fsdevel@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, Junxiao Bi <junxiao.bi@oracle.com>
+To: ocfs2-devel@oss.oracle.com
 
-On Fri, Aug 29, 2014 at 05:57:22PM +0800, Xue jiufei wrote:
-> The patch trys to solve one deadlock problem caused by cluster
-> fs, like ocfs2. And the problem may happen at least in the below
-> situations:
-> 1)Receiving a connect message from other nodes, node queues a
-> work_struct o2net_listen_work.
-> 2)o2net_wq processes this work and calls sock_alloc() to allocate
-> memory for a new socket.
-> 3)It would do direct memory reclaim when available memory is not
-> enough and trigger the inode cleanup. That inode being cleaned up
-> is happened to be ocfs2 inode, so call evict()->ocfs2_evict_inode()
-> ->ocfs2_drop_lock()->dlmunlock()->o2net_send_message_vec(),
-> and wait for the unlock response from master.
-> 4)tcp layer received the response, call o2net_data_ready() and
-> queue sc_rx_work, waiting o2net_wq to process this work.
-> 5)o2net_wq is a single thread workqueue, it process the work one by
-> one. Right now it is still doing o2net_listen_work and cannot handle
-> sc_rx_work. so we deadlock.
-> 
-> It is impossible to set GFP_NOFS for memory allocation in sock_alloc().
-> So we use PF_FSTRANS to avoid the task reentering filesystem when
-> available memory is not enough.
-> 
-> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
+The following case will lead to a lockres is freed but is still in use.
 
-For the second time: use memalloc_noio_save/memalloc_noio_restore.
-And please put a great big comment in the code explaining why you
-need to do this special thing with memory reclaim flags.
+cat /sys/kernel/debug/o2dlm/locking_state	dlm_thread
+lockres_seq_start
+    -> lock dlm->track_lock
+    -> get resA
+                                                resA->refs decrease to 0,
+                                                call dlm_lockres_release,
+                                                and wait for "cat" unlock.
+Although resA->refs is already set to 0,
+increase resA->refs, and then unlock
+                                                lock dlm->track_lock
+                                                    -> list_del_init()
+                                                    -> unlock
+                                                    -> free resA
 
-Cheers,
+In such a race case, invalid address access may occurs.
+So we should delete list res->tracking before resA->refs decrease to 0.
 
-Dave.
+Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
+---
+ fs/ocfs2/dlm/dlmmaster.c | 10 ----------
+ fs/ocfs2/dlm/dlmthread.c | 10 ++++++++++
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index 3ec906e..204f70d 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -498,16 +498,6 @@ static void dlm_lockres_release(struct kref *kref)
+ 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+ 	     res->lockname.name);
+
+-	spin_lock(&dlm->track_lock);
+-	if (!list_empty(&res->tracking))
+-		list_del_init(&res->tracking);
+-	else {
+-		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
+-		     res->lockname.len, res->lockname.name);
+-		dlm_print_one_lock_resource(res);
+-	}
+-	spin_unlock(&dlm->track_lock);
+-
+ 	atomic_dec(&dlm->res_cur_count);
+
+ 	if (!hlist_unhashed(&res->hash_node) ||
+diff --git a/fs/ocfs2/dlm/dlmthread.c b/fs/ocfs2/dlm/dlmthread.c
+index 69aac6f..2e5e6d5 100644
+--- a/fs/ocfs2/dlm/dlmthread.c
++++ b/fs/ocfs2/dlm/dlmthread.c
+@@ -211,6 +211,16 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
+
+ 	__dlm_unhash_lockres(dlm, res);
+
++	spin_lock(&dlm->track_lock);
++	if (!list_empty(&res->tracking))
++		list_del_init(&res->tracking);
++	else {
++		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
++				res->lockname.len, res->lockname.name);
++		__dlm_print_one_lock_resource(res);
++	}
++	spin_unlock(&dlm->track_lock);
++
+ 	/* lockres is not in the hash now.  drop the flag and wake up
+ 	 * any processes waiting in dlm_get_lock_resource. */
+ 	if (!master) {
 -- 
-Dave Chinner
-david at fromorbit.com
+1.8.4.3
