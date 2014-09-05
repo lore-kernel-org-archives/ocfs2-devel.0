@@ -1,49 +1,106 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 5 Sep 2014 16:47:30 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix shift left operations overflow
-Message-ID: <540978A2.5010706@huawei.com>
+Date: Fri, 5 Sep 2014 16:56:58 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: refactor error handling in
+	dlm_alloc_ctxt
+Message-ID: <54097ADA.80505@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-ocfs2_inode_info->ip_clusters and ocfs2_dinode->id1.bitmap1.i_total are
-defined as type u32, so the shift left operations may overflow if
-volume size is large, for example, 2TB and cluster size is 1MB.
+Refactoring error handling in dlm_alloc_ctxt to simplify code.
 
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 Reviewed-by: Alex Chen <alex.chen@huawei.com>
 ---
- fs/ocfs2/inode.h        | 2 +-
- fs/ocfs2/move_extents.c | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ fs/ocfs2/dlm/dlmdomain.c | 42 ++++++++++++++++++++++--------------------
+ 1 file changed, 22 insertions(+), 20 deletions(-)
 
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index a6c991c..a9b76de 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -162,7 +162,7 @@ static inline blkcnt_t ocfs2_inode_sector_count(struct inode *inode)
- {
- 	int c_to_s_bits = OCFS2_SB(inode->i_sb)->s_clustersize_bits - 9;
+diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+index bf86ed4..5f6199d 100644
+--- a/fs/ocfs2/dlm/dlmdomain.c
++++ b/fs/ocfs2/dlm/dlmdomain.c
+@@ -1976,24 +1976,22 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
 
--	return (blkcnt_t)(OCFS2_I(inode)->ip_clusters << c_to_s_bits);
-+	return (blkcnt_t)OCFS2_I(inode)->ip_clusters << c_to_s_bits;
+ 	dlm = kzalloc(sizeof(*dlm), GFP_KERNEL);
+ 	if (!dlm) {
+-		mlog_errno(-ENOMEM);
++		ret = -ENOMEM;
++		mlog_errno(ret);
+ 		goto leave;
+ 	}
+
+ 	dlm->name = kstrdup(domain, GFP_KERNEL);
+ 	if (dlm->name == NULL) {
+-		mlog_errno(-ENOMEM);
+-		kfree(dlm);
+-		dlm = NULL;
++		ret = -ENOMEM;
++		mlog_errno(ret);
+ 		goto leave;
+ 	}
+
+ 	dlm->lockres_hash = (struct hlist_head **)dlm_alloc_pagevec(DLM_HASH_PAGES);
+ 	if (!dlm->lockres_hash) {
+-		mlog_errno(-ENOMEM);
+-		kfree(dlm->name);
+-		kfree(dlm);
+-		dlm = NULL;
++		ret = -ENOMEM;
++		mlog_errno(ret);
+ 		goto leave;
+ 	}
+
+@@ -2003,11 +2001,8 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	dlm->master_hash = (struct hlist_head **)
+ 				dlm_alloc_pagevec(DLM_HASH_PAGES);
+ 	if (!dlm->master_hash) {
+-		mlog_errno(-ENOMEM);
+-		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
+-		kfree(dlm->name);
+-		kfree(dlm);
+-		dlm = NULL;
++		ret = -ENOMEM;
++		mlog_errno(ret);
+ 		goto leave;
+ 	}
+
+@@ -2018,14 +2013,8 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 	dlm->node_num = o2nm_this_node();
+
+ 	ret = dlm_create_debugfs_subroot(dlm);
+-	if (ret < 0) {
+-		dlm_free_pagevec((void **)dlm->master_hash, DLM_HASH_PAGES);
+-		dlm_free_pagevec((void **)dlm->lockres_hash, DLM_HASH_PAGES);
+-		kfree(dlm->name);
+-		kfree(dlm);
+-		dlm = NULL;
++	if (ret < 0)
+ 		goto leave;
+-	}
+
+ 	spin_lock_init(&dlm->spinlock);
+ 	spin_lock_init(&dlm->master_lock);
+@@ -2086,6 +2075,19 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
+ 		  atomic_read(&dlm->dlm_refs.refcount));
+
+ leave:
++	if (ret < 0 && dlm) {
++		if (dlm->master_hash)
++			dlm_free_pagevec((void **)dlm->master_hash,
++					DLM_HASH_PAGES);
++
++		if (dlm->lockres_hash)
++			dlm_free_pagevec((void **)dlm->lockres_hash,
++					DLM_HASH_PAGES);
++
++		kfree(dlm->name);
++		kfree(dlm);
++		dlm = NULL;
++	}
+ 	return dlm;
  }
 
- /* Validate that a bh contains a valid inode */
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 599eb4c..bb9cc7e 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -404,7 +404,7 @@ static int ocfs2_find_victim_alloc_group(struct inode *inode,
- 	 * 'vict_blkno' was out of the valid range.
- 	 */
- 	if ((vict_blkno < le64_to_cpu(rec->c_blkno)) ||
--	    (vict_blkno >= (le32_to_cpu(ac_dinode->id1.bitmap1.i_total) <<
-+	    (vict_blkno >= ((u64)le32_to_cpu(ac_dinode->id1.bitmap1.i_total) <<
- 				bits_per_unit))) {
- 		ret = -EINVAL;
- 		goto out;
 -- 
 1.8.4.3
