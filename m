@@ -1,10 +1,10 @@
 From: Rob Jones <rob.jones@codethink.co.uk>
-Date: Wed, 10 Sep 2014 15:49:16 +0100
-Subject: [Ocfs2-devel] [PATCH 1/3] fs: ocfs2: use seq_open_private() not
+Date: Wed, 10 Sep 2014 15:49:18 +0100
+Subject: [Ocfs2-devel] [PATCH 3/3] fs: ocfs2: Use __seq_open_private() not
 	seq_open()
 In-Reply-To: <1410360558-28399-1-git-send-email-rob.jones@codethink.co.uk>
 References: <1410360558-28399-1-git-send-email-rob.jones@codethink.co.uk>
-Message-ID: <1410360558-28399-2-git-send-email-rob.jones@codethink.co.uk>
+Message-ID: <1410360558-28399-4-git-send-email-rob.jones@codethink.co.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -16,68 +16,55 @@ Reduce boilerplate code by using seq_open_private() instead of seq_open()
 
 Signed-off-by: Rob Jones <rob.jones@codethink.co.uk>
 ---
- fs/ocfs2/dlm/dlmdebug.c |   39 ++++++++++++++-------------------------
- 1 file changed, 14 insertions(+), 25 deletions(-)
+ fs/ocfs2/dlmglue.c |   23 +++++------------------
+ 1 file changed, 5 insertions(+), 18 deletions(-)
 
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index e33cd7a..38ca17e 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -647,41 +647,30 @@ static const struct seq_operations debug_lockres_ops = {
- static int debug_lockres_open(struct inode *inode, struct file *file)
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 6bd690b..503184d 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2897,37 +2897,24 @@ static int ocfs2_dlm_debug_release(struct inode *inode, struct file *file)
+ 
+ static int ocfs2_dlm_debug_open(struct inode *inode, struct file *file)
  {
- 	struct dlm_ctxt *dlm = inode->i_private;
--	int ret = -ENOMEM;
+-	int ret;
+ 	struct ocfs2_dlm_seq_priv *priv;
 -	struct seq_file *seq;
--	struct debug_lockres *dl = NULL;
-+	struct debug_lockres *dl;
-+	void *buf;
+ 	struct ocfs2_super *osb;
  
--	dl = kzalloc(sizeof(struct debug_lockres), GFP_KERNEL);
--	if (!dl) {
+-	priv = kzalloc(sizeof(struct ocfs2_dlm_seq_priv), GFP_KERNEL);
++	priv = __seq_open_private(file, &ocfs2_dlm_seq_ops, sizeof(*priv));
+ 	if (!priv) {
+-		ret = -ENOMEM;
 -		mlog_errno(ret);
-+	buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
-+	if (!buf)
- 		goto bail;
--	}
+-		goto out;
++		mlog_errno(-ENOMEM);
++		return -ENOMEM;
+ 	}
++
+ 	osb = inode->i_private;
+ 	ocfs2_get_dlm_debug(osb->osb_dlm_debug);
+ 	priv->p_dlm_debug = osb->osb_dlm_debug;
+ 	INIT_LIST_HEAD(&priv->p_iter_res.l_debug_list);
  
--	dl->dl_len = PAGE_SIZE;
--	dl->dl_buf = kmalloc(dl->dl_len, GFP_KERNEL);
--	if (!dl->dl_buf) {
--		mlog_errno(ret);
--		goto bail;
--	}
-+	dl = __seq_open_private(file, &debug_lockres_ops, sizeof(*dl));
-+	if (!dl)
-+		goto bailfree;
- 
--	ret = seq_open(file, &debug_lockres_ops);
+-	ret = seq_open(file, &ocfs2_dlm_seq_ops);
 -	if (ret) {
+-		kfree(priv);
 -		mlog_errno(ret);
--		goto bail;
+-		goto out;
 -	}
 -
 -	seq = file->private_data;
--	seq->private = dl;
-+	dl->dl_len = PAGE_SIZE;
-+	dl->dl_buf = buf;
+-	seq->private = priv;
+-
+ 	ocfs2_add_lockres_tracking(&priv->p_iter_res,
+ 				   priv->p_dlm_debug);
  
- 	dlm_grab(dlm);
- 	dl->dl_ctxt = dlm;
- 
- 	return 0;
-+
-+bailfree:
-+	kfree(buf);
- bail:
--	if (dl)
--		kfree(dl->dl_buf);
--	kfree(dl);
+-out:
 -	return ret;
-+	mlog_errno(-ENOMEM);
-+	return -ENOMEM;
++	return 0;
  }
  
- static int debug_lockres_release(struct inode *inode, struct file *file)
+ static const struct file_operations ocfs2_dlm_debug_fops = {
 -- 
 1.7.10.4
