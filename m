@@ -1,37 +1,40 @@
-From: Guozhonghua <guozhonghua@h3c.com>
-Date: Wed, 10 Sep 2014 02:55:48 +0000
-Subject: [Ocfs2-devel] How to unlock a bloked resource? Thanks
-Message-ID: <71604351584F6A4EBAE558C676F37CA42EC6B020@H3CMLB14-EX.srv.huawei-3com.com>
+From: WeiWei Wang <wangww631@huawei.com>
+Date: Wed, 10 Sep 2014 20:38:04 +0800
+Subject: [Ocfs2-devel] [PATCH 0/7] ocfs2: allocate blocks in direct I/O write
+Message-ID: <5410462C.8090707@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi All:
+hi all,
+In ocfs2 append I/O write and fill holes I/O write situation, blocks have not been allocated yet, so the direct I/O write will fallback to buffer I/O write.
+Buffer I/O write the data to page cache first, then flush the page cache to disk, this will consume some performance. In this patch, the direct I/O write
+doesn't not need to fallback to buffer I/O write any more because the allocate blocks are enabled in direct I/O now.
 
-As we test with two node in one OCFS2 cluster.
-The cluster is hang up may be for dead lock.
-We use the debugfs.ocfs tool founding that one resource is holding by one node who has it for long time and another node can still wait for the resource.
-So the cluster is hang up.
+This patch set can be applied against 3.17-rc4 branch of ocfs2 directly.
 
-debugfs.ocfs2 -R "fs_locks -B" /dev/dm-0
-debugfs.ocfs2 -R "dlm_locks LOCKID_XXX" /dev/dm-0
+Thanks,
+							-- Wang
 
-How to unlock the lock held by the node? Is there some commands to unlock the resource?
+Weiwei Wang (7)
+	ocfs2: eliminate the static flag of some functions
+	ocfs2: add two functions of add and remove inode in orphan dir
+	ocfs2: add orphan recovery types in ocfs2_recover_orphans
+	ocfs2: add and remove inode to orphan in ocfs2_direct_IO
+	ocfs2: allocate blocks in ocfs2_direct_IO_get_blocks
+	ocfs2: do not fallback to buffer I/O write if appending
+	ocfs2: do not fallback to buffer I/O write if fill holes
 
-Thanks.
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140910/06c1f352/attachment.html 
+ fs/ocfs2/aops.c    | 160 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+------
+ fs/ocfs2/file.c    | 104 +++++++++++++++++++++++++++++++----------------------------------------------------
+ fs/ocfs2/file.h    |   9 ++++++++
+ fs/ocfs2/journal.c |  90 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-------------
+ fs/ocfs2/journal.h |   5 ++++
+ fs/ocfs2/namei.c   | 161 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++----
+---------
+ fs/ocfs2/namei.h   |  21 ++++++++++++++++-
+ fs/ocfs2/ocfs2.h   |   6 +++++
+ 8 files changed, 451 insertions(+), 105 deletions(-)
