@@ -1,25 +1,73 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Wed, 10 Sep 2014 12:42:27 -0700
-Subject: [Ocfs2-devel] [PATCH 0/7] ocfs2: allocate blocks in direct I/O
-	write
-In-Reply-To: <5410462C.8090707@huawei.com>
-References: <5410462C.8090707@huawei.com>
-Message-ID: <20140910124227.fb91ca07159191d5aee73d33@linux-foundation.org>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Thu, 11 Sep 2014 11:28:29 +0000
+Subject: [Ocfs2-devel] May be deadlock for wrong locking order,
+ patch request reviewed, thanks
+Message-ID: <71604351584F6A4EBAE558C676F37CA42EC6B8CB@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, 10 Sep 2014 20:38:04 +0800 WeiWei Wang <wangww631@huawei.com> wrote:
+As we test the ocfs2 cluster, the cluster is sometime hangs up.
 
-> hi all,
-> In ocfs2 append I/O write and fill holes I/O write situation, blocks have not been allocated yet, so the direct I/O write will fallback to buffer I/O write.
-> Buffer I/O write the data to page cache first, then flush the page cache to disk, this will consume some performance. In this patch, the direct I/O write
-> doesn't not need to fallback to buffer I/O write any more because the allocate blocks are enabled in direct I/O now.
-> 
+I got some information about the dead lock, which cause the cluster hangs up, the sys dir / lock is held and the node did not release it which cause the cluster hangs up.
+    root at cvknode-21:~# ps -e -o pid,stat,comm,wchan=WIDE-WCHAN-COLUMN | grep D
+      PID STAT COMMAND WIDE-WCHAN-COLUMN
+     7489 D jbd2/sdh-621 jbd2_journal_commit_transaction
+    16218 D ls iterate_dir
+    16533 D mkdir dlm_wait_for_lock_mastery
+    31195 D+ ls iterate_dir
 
-The entire point of the patchset is to improve performance, but the
-changelog contains no performance measurements!  How do we know it's
-worth considering?  Please include quantitative benchmarking results
-in the changelog.
+So the code reviewed, and I found the order of the lock may wrong.
+In the function dlm_master_request_handler, the resource lock is held and so after the lock of &dlm->master_lock is locked.
+But in the function dlm_get_lock_resource, the &dlm->master_lock is locked first and so resource lock.
+They are different order in different function.
+If there are two task, one holds the res->lock waiting for the dlm->master_lock, with the function dlm_master_request_handler.
+Another task holds the &dlm->master_lock waiting for the res->lock with dlm_get_lock_resource.
+So the deadlock may be up.
+
+I changed some code, and the patch request reviews.
+
+
+
+*** ocfs2-ko-3.16/dlm/dlmmaster.c      2014-09-11 12:45:45.821657634 +0800
+--- ocfs2-ko-3.16_compared/dlm/dlmmaster.c      2014-09-11 18:54:34.970243238 +0800
+*************** way_up_top:
+*** 1506,1512 ****
+--- 1506,1515 ----
+              }
+
+              // mlog(0, "lockres is in progress...\n");
++             spin_unlock(&res->spinlock);
++
+              spin_lock(&dlm->master_lock);
++             spin_lock(&res->spinlock);
+              found = dlm_find_mle(dlm, &tmpmle, name, namelen);
+              if (!found) {
+                      mlog(ML_ERROR, "no mle found for this lock!\n");
+*************** way_up_top:
+*** 1551,1558 ****
+                      set_bit(request->node_idx, tmpmle->maybe_map);
+              spin_unlock(&tmpmle->spinlock);
+
+-              spin_unlock(&dlm->master_lock);
+              spin_unlock(&res->spinlock);
++             spin_unlock(&dlm->master_lock);
+
+              /* keep the mle attached to heartbeat events */
+              dlm_put_mle(tmpmle);
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20140911/2a124d44/attachment-0001.html 
