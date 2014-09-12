@@ -1,62 +1,49 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 11 Sep 2014 21:45:47 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: call o2quo_exit if malloc failed in
-	o2net_init
-Message-ID: <5411A78B.1060401@huawei.com>
+From: WeiWei Wang <wangww631@huawei.com>
+Date: Fri, 12 Sep 2014 09:28:42 +0800
+Subject: [Ocfs2-devel] [PATCH 0/7] ocfs2: allocate blocks in direct I/O
+	write
+In-Reply-To: <20140910124227.fb91ca07159191d5aee73d33@linux-foundation.org>
+References: <5410462C.8090707@huawei.com>
+	<20140910124227.fb91ca07159191d5aee73d33@linux-foundation.org>
+Message-ID: <54124C4A.7000002@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In o2net_init, if malloc failed, it directly returns -ENOMEM.
-Then o2quo_exit won't be called in init_o2nm.
+On 2014/9/11 3:42, Andrew Morton wrote:
+> On Wed, 10 Sep 2014 20:38:04 +0800 WeiWei Wang <wangww631@huawei.com> wrote:
+> 
+>> hi all,
+>> In ocfs2 append I/O write and fill holes I/O write situation, blocks have not been allocated yet, so the direct I/O write will fallback to buffer I/O write.
+>> Buffer I/O write the data to page cache first, then flush the page cache to disk, this will consume some performance. In this patch, the direct I/O write
+>> doesn't not need to fallback to buffer I/O write any more because the allocate blocks are enabled in direct I/O now.
+>>
+> 
+> The entire point of the patchset is to improve performance, but the
+> changelog contains no performance measurements!  How do we know it's
+> worth considering?  Please include quantitative benchmarking results
+> in the changelog.
+> 
+>
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: joyce.xue <xuejiufei@huawei.com>
----
- fs/ocfs2/cluster/tcp.c | 18 +++++++++++-------
- 1 file changed, 11 insertions(+), 7 deletions(-)
+ We test the performance under the virtualized scenarios before,
+IO from iometer tool within a virtual machine which running on the
+Xen virtualization environment, benchmarking results are measured
+by iops, 5 seconds take once iops, in this situation, all IO take
+O_DIRECT flag, enable allocate blocks in O_DIRECT write brings up
+5% IOPS performance improvement in append sequential write.
+  Changelog description of this commit patchset may be not very
+accurate, we mainly want to describe that if the O_DIRECT write
+block allocation is supported, page cache will not be used any more
+in the O_DIRECT write, memory fragmentation will be reduced and page
+cache can be managed more effective both. When O_DIRECT flag is set,
+we really want to go O_DIRECT write, not buffer I/O. In append
+write and fill hole write situations, O_DIRECT write will not fallback
+to buffer I/O any more.
+  Besides, other modern filesystems like ext4 also support direct io
+with block allocation. So I think this feature is valuable.
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 681691b..bb84766 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -2113,17 +2113,13 @@ int o2net_init(void)
- 	o2quo_init();
-
- 	if (o2net_debugfs_init())
--		return -ENOMEM;
-+		goto out;
-
- 	o2net_hand = kzalloc(sizeof(struct o2net_handshake), GFP_KERNEL);
- 	o2net_keep_req = kzalloc(sizeof(struct o2net_msg), GFP_KERNEL);
- 	o2net_keep_resp = kzalloc(sizeof(struct o2net_msg), GFP_KERNEL);
--	if (!o2net_hand || !o2net_keep_req || !o2net_keep_resp) {
--		kfree(o2net_hand);
--		kfree(o2net_keep_req);
--		kfree(o2net_keep_resp);
--		return -ENOMEM;
--	}
-+	if (!o2net_hand || !o2net_keep_req || !o2net_keep_resp)
-+		goto out;
-
- 	o2net_hand->protocol_version = cpu_to_be64(O2NET_PROTOCOL_VERSION);
- 	o2net_hand->connector_id = cpu_to_be64(1);
-@@ -2148,6 +2144,14 @@ int o2net_init(void)
- 	}
-
- 	return 0;
-+
-+out:
-+	kfree(o2net_hand);
-+	kfree(o2net_keep_req);
-+	kfree(o2net_keep_resp);
-+
-+	o2quo_exit();
-+	return -ENOMEM;
- }
-
- void o2net_exit(void)
--- 
-1.8.4.3
+Thanks,
+					     --Wang
