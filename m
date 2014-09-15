@@ -1,149 +1,53 @@
-From: Rob Jones <rob.jones@codethink.co.uk>
-Date: Wed, 10 Sep 2014 15:49:17 +0100
-Subject: [Ocfs2-devel] [PATCH 2/3] fs: ocfs2: use seq_open_private() not
-	seq_open()
-In-Reply-To: <1410360558-28399-1-git-send-email-rob.jones@codethink.co.uk>
-References: <1410360558-28399-1-git-send-email-rob.jones@codethink.co.uk>
-Message-ID: <1410360558-28399-3-git-send-email-rob.jones@codethink.co.uk>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Mon, 15 Sep 2014 16:27:52 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: don't fire quorum before connection
+	established
+Message-ID: <1410769672-19753-1-git-send-email-junxiao.bi@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@oss.oracle.com, dan.carpenter@oracle.com, akpm@linux-foundation.org, jlbec@evilplan.org, mfasheh@suse.com, linux-kernel@codethink.co.uk, rob.jones@codethink.co.uk
+To: ocfs2-devel@oss.oracle.com
 
-Reduce boilerplate code by using seq_open_private() instead of seq_open()
+Fire quorum before connection established can cause node unexpected reboot.
+Assume there are 3 nodes in the cluster, Node 1, 2, 3. Node 2 and 3 have
+wrong ip address of Node 1 in cluster.conf and global heartbeat is enabled
+in the cluster. After the heatbeat are started on these three nodes, Node 1
+will reboot due to quorum fencing. It is similar case if Node 1's networking
+is not ready when starting the global heatbeat.
+The reboot is not friendly as customer is not fully ready for ocfs2 to work.
+Fix it by not allow firing quorum before connection established. In this
+case, ocfs2 will wait until wrong configure fixed or networking up to continue.
+Also update the log to guide user where to check when connection is not built
+for a long time.
 
-Note that the code in and using sc_common_open() has been quite
-extensively changed. Not least because there was a latent memory
-leak in the code as was: if sc_common_open() failed, the previously
-allocated buffer was not freed.
-
-Signed-off-by: Rob Jones <rob.jones@codethink.co.uk>
+Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
 ---
- fs/ocfs2/cluster/netdebug.c |   78 +++++++++++--------------------------------
- 1 file changed, 19 insertions(+), 59 deletions(-)
+ fs/ocfs2/cluster/tcp.c |    5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index 73ba819..27d1242 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -185,29 +185,13 @@ static const struct seq_operations nst_seq_ops = {
- static int nst_fop_open(struct inode *inode, struct file *file)
- {
- 	struct o2net_send_tracking *dummy_nst;
--	struct seq_file *seq;
--	int ret;
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index ea34952..6447a1d 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -536,7 +536,7 @@ static void o2net_set_nn_state(struct o2net_node *nn,
+ 	if (nn->nn_persistent_error || nn->nn_sc_valid)
+ 		wake_up(&nn->nn_sc_wq);
  
--	dummy_nst = kmalloc(sizeof(struct o2net_send_tracking), GFP_KERNEL);
--	if (dummy_nst == NULL) {
--		ret = -ENOMEM;
--		goto out;
--	}
--	dummy_nst->st_task = NULL;
--
--	ret = seq_open(file, &nst_seq_ops);
--	if (ret)
--		goto out;
--
--	seq = file->private_data;
--	seq->private = dummy_nst;
-+	dummy_nst = __seq_open_private(file, &nst_seq_ops, sizeof(*dummy_nst));
-+	if (!dummy_nst)
-+		return -ENOMEM;
- 	o2net_debug_add_nst(dummy_nst);
- 
--	dummy_nst = NULL;
--
--out:
--	kfree(dummy_nst);
--	return ret;
-+	return 0;
- }
- 
- static int nst_fop_release(struct inode *inode, struct file *file)
-@@ -412,33 +396,27 @@ static const struct seq_operations sc_seq_ops = {
- 	.show = sc_seq_show,
- };
- 
--static int sc_common_open(struct file *file, struct o2net_sock_debug *sd)
-+static int sc_common_open(struct file *file, int ctxt)
- {
-+	struct o2net_sock_debug *sd;
- 	struct o2net_sock_container *dummy_sc;
--	struct seq_file *seq;
--	int ret;
- 
--	dummy_sc = kmalloc(sizeof(struct o2net_sock_container), GFP_KERNEL);
--	if (dummy_sc == NULL) {
--		ret = -ENOMEM;
--		goto out;
--	}
--	dummy_sc->sc_page = NULL;
-+	dummy_sc = kzalloc(sizeof(*dummy_sc), GFP_KERNEL);
-+	if (!dummy_sc)
-+		return -ENOMEM;
- 
--	ret = seq_open(file, &sc_seq_ops);
--	if (ret)
--		goto out;
-+	sd = __seq_open_private(file, &sc_seq_ops, sizeof(*sd));
-+	if (!sd) {
-+		kfree(dummy_sc);
-+		return -ENOMEM;
-+	}
- 
--	seq = file->private_data;
--	seq->private = sd;
-+	sd->dbg_ctxt = ctxt;
- 	sd->dbg_sock = dummy_sc;
--	o2net_debug_add_sc(dummy_sc);
- 
--	dummy_sc = NULL;
-+	o2net_debug_add_sc(dummy_sc);
- 
--out:
--	kfree(dummy_sc);
--	return ret;
-+	return 0;
- }
- 
- static int sc_fop_release(struct inode *inode, struct file *file)
-@@ -453,16 +431,7 @@ static int sc_fop_release(struct inode *inode, struct file *file)
- 
- static int stats_fop_open(struct inode *inode, struct file *file)
- {
--	struct o2net_sock_debug *sd;
--
--	sd = kmalloc(sizeof(struct o2net_sock_debug), GFP_KERNEL);
--	if (sd == NULL)
--		return -ENOMEM;
--
--	sd->dbg_ctxt = SHOW_SOCK_STATS;
--	sd->dbg_sock = NULL;
--
--	return sc_common_open(file, sd);
-+	return sc_common_open(file, SHOW_SOCK_STATS);
- }
- 
- static const struct file_operations stats_seq_fops = {
-@@ -474,16 +443,7 @@ static const struct file_operations stats_seq_fops = {
- 
- static int sc_fop_open(struct inode *inode, struct file *file)
- {
--	struct o2net_sock_debug *sd;
--
--	sd = kmalloc(sizeof(struct o2net_sock_debug), GFP_KERNEL);
--	if (sd == NULL)
--		return -ENOMEM;
--
--	sd->dbg_ctxt = SHOW_SOCK_CONTAINERS;
--	sd->dbg_sock = NULL;
--
--	return sc_common_open(file, sd);
-+	return sc_common_open(file, SHOW_SOCK_CONTAINERS);
- }
- 
- static const struct file_operations sc_seq_fops = {
+-	if (!was_err && nn->nn_persistent_error) {
++	if (was_valid && !was_err && nn->nn_persistent_error) {
+ 		o2quo_conn_err(o2net_num_from_nn(nn));
+ 		queue_delayed_work(o2net_wq, &nn->nn_still_up,
+ 				   msecs_to_jiffies(O2NET_QUORUM_DELAY_MS));
+@@ -1721,7 +1721,8 @@ static void o2net_connect_expired(struct work_struct *work)
+ 	spin_lock(&nn->nn_lock);
+ 	if (!nn->nn_sc_valid) {
+ 		printk(KERN_NOTICE "o2net: No connection established with "
+-		       "node %u after %u.%u seconds, giving up.\n",
++		       "node %u after %u.%u seconds, checking the networking"
++		       " and ocfs2 configure.\n",
+ 		     o2net_num_from_nn(nn),
+ 		     o2net_idle_timeout() / 1000,
+ 		     o2net_idle_timeout() % 1000);
 -- 
-1.7.10.4
+1.7.9.5
