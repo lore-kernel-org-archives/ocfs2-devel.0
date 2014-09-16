@@ -1,59 +1,68 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Tue, 16 Sep 2014 09:32:21 -0700
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: don't fire quorum before
-	connection established
-In-Reply-To: <1410844519-23662-1-git-send-email-junxiao.bi@oracle.com>
-References: <1410844519-23662-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <54186615.3080508@oracle.com>
+From: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Date: Tue, 16 Sep 2014 22:51:20 +0200
+Subject: [Ocfs2-devel] [PATCH 06/22] ocfs2: Replace strnicmp with strncasecmp
+In-Reply-To: <1410900696-6481-1-git-send-email-linux@rasmusvillemoes.dk>
+References: <1410900696-6481-1-git-send-email-linux@rasmusvillemoes.dk>
+Message-ID: <1410900696-6481-7-git-send-email-linux@rasmusvillemoes.dk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
 
-Looks good to me. Thanks for the patch
+The kernel used to contain two functions for length-delimited,
+case-insensitive string comparison, strnicmp with correct semantics
+and a slightly buggy strncasecmp. The latter is the POSIX name, so
+strnicmp was renamed to strncasecmp, and strnicmp made into a wrapper
+for the new strncasecmp to avoid breaking existing users.
 
-Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
+To allow the compat wrapper strnicmp to be removed at some point in
+the future, and to avoid the extra indirection cost, do
+s/strnicmp/strncasecmp/g.
 
-On 09/15/2014 10:15 PM, Junxiao Bi wrote:
-> Firing quorum before connection established can cause unexpected node to reboot.
-> Assume there are 3 nodes in the cluster, Node 1, 2, 3. Node 2 and 3 have
-> wrong ip address of Node 1 in cluster.conf and global heartbeat is enabled
-> in the cluster. After the heatbeat are started on these three nodes, Node 1
-> will reboot due to quorum fencing. It is similar case if Node 1's networking
-> is not ready when starting the global heatbeat.
-> The reboot is not friendly as customer is not fully ready for ocfs2 to work.
-> Fix it by not allow firing quorum before connection established. In this
-> case, ocfs2 will wait until wrong configure fixed or networking up to continue.
-> Also update the log to guide user where to check when connection is not built
-> for a long time.
->
-> Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-> Reviewed-by: Srinivas Eeda <srinivas.eeda@oracle.com>
-> ---
->   fs/ocfs2/cluster/tcp.c |    5 +++--
->   1 file changed, 3 insertions(+), 2 deletions(-)
->
-> diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-> index ea34952..b2cc010 100644
-> --- a/fs/ocfs2/cluster/tcp.c
-> +++ b/fs/ocfs2/cluster/tcp.c
-> @@ -536,7 +536,7 @@ static void o2net_set_nn_state(struct o2net_node *nn,
->   	if (nn->nn_persistent_error || nn->nn_sc_valid)
->   		wake_up(&nn->nn_sc_wq);
->   
-> -	if (!was_err && nn->nn_persistent_error) {
-> +	if (was_valid && !was_err && nn->nn_persistent_error) {
->   		o2quo_conn_err(o2net_num_from_nn(nn));
->   		queue_delayed_work(o2net_wq, &nn->nn_still_up,
->   				   msecs_to_jiffies(O2NET_QUORUM_DELAY_MS));
-> @@ -1721,7 +1721,8 @@ static void o2net_connect_expired(struct work_struct *work)
->   	spin_lock(&nn->nn_lock);
->   	if (!nn->nn_sc_valid) {
->   		printk(KERN_NOTICE "o2net: No connection established with "
-> -		       "node %u after %u.%u seconds, giving up.\n",
-> +		       "node %u after %u.%u seconds, check network and"
-> +		       " cluster configuration.\n",
->   		     o2net_num_from_nn(nn),
->   		     o2net_idle_timeout() / 1000,
->   		     o2net_idle_timeout() % 1000);
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: ocfs2-devel at oss.oracle.com
+Signed-off-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+---
+ fs/ocfs2/cluster/heartbeat.c | 2 +-
+ fs/ocfs2/cluster/masklog.c   | 6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 7303929..eec35c2 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -2244,7 +2244,7 @@ ssize_t o2hb_heartbeat_group_mode_store(struct o2hb_heartbeat_group *group,
+ 		return -EINVAL;
+ 
+ 	for (i = 0; i < O2HB_HEARTBEAT_NUM_MODES; ++i) {
+-		if (strnicmp(page, o2hb_heartbeat_mode_desc[i], len))
++		if (strncasecmp(page, o2hb_heartbeat_mode_desc[i], len))
+ 			continue;
+ 
+ 		ret = o2hb_global_heartbeat_mode_set(i);
+diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
+index 07ac24f..af7598b 100644
+--- a/fs/ocfs2/cluster/masklog.c
++++ b/fs/ocfs2/cluster/masklog.c
+@@ -49,13 +49,13 @@ static ssize_t mlog_mask_show(u64 mask, char *buf)
+ 
+ static ssize_t mlog_mask_store(u64 mask, const char *buf, size_t count)
+ {
+-	if (!strnicmp(buf, "allow", 5)) {
++	if (!strncasecmp(buf, "allow", 5)) {
+ 		__mlog_set_u64(mask, mlog_and_bits);
+ 		__mlog_clear_u64(mask, mlog_not_bits);
+-	} else if (!strnicmp(buf, "deny", 4)) {
++	} else if (!strncasecmp(buf, "deny", 4)) {
+ 		__mlog_set_u64(mask, mlog_not_bits);
+ 		__mlog_clear_u64(mask, mlog_and_bits);
+-	} else if (!strnicmp(buf, "off", 3)) {
++	} else if (!strncasecmp(buf, "off", 3)) {
+ 		__mlog_clear_u64(mask, mlog_not_bits);
+ 		__mlog_clear_u64(mask, mlog_and_bits);
+ 	} else
+-- 
+2.0.4
