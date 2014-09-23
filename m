@@ -1,38 +1,48 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 23 Sep 2014 11:57:49 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2/dlm: should put mle when goto kill
- in dlm_assert_master_handler
-Message-ID: <5420EFBD.1060502@huawei.com>
+From: WeiWei Wang <wangww631@huawei.com>
+Date: Tue, 23 Sep 2014 17:05:09 +0800
+Subject: [Ocfs2-devel] [PATCH 0/7 v2] ocfs2: allocate blocks in direct I/O
+ write
+Message-ID: <542137C5.1020207@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In dlm_assert_master_handler, the mle is get in dlm_find_mle, should be
-put when goto kill, otherwise, this mle will never be released.
 
-Signed-off-by: Alex Chen <alex.chen@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: joyce.xue <xuejiufei@huawei.com>
----
- fs/ocfs2/dlm/dlmmaster.c | 4 ++++
- 1 file changed, 4 insertions(+)
+Hi all,
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 3ec906e..0a2de18 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -2037,6 +2037,10 @@ kill:
- 	     "and killing the other node now!  This node is OK and can continue.\n");
- 	__dlm_print_one_lock_resource(res);
- 	spin_unlock(&res->spinlock);
-+	spin_lock(&dlm->master_lock);
-+	if (mle)
-+		__dlm_put_mle(mle);
-+	spin_unlock(&dlm->master_lock);
- 	spin_unlock(&dlm->spinlock);
- 	*ret_data = (void *)res;
- 	dlm_put(dlm);
--- 
-1.8.4.3
+Currently in case of O_DIRECT append write (block not allocated yet),
+ocfs2 will fall back to buffered I/O. This has some disadvantages.
+Firstly, it is not the behavior as expected. Secondly, it will consume
+huge page cache, e.g. in mass backup scenario. Thirdly, modern
+filesystems such as ext4 support this feature.
+
+In this patch set, the direct I/O write doesn't fallback to buffer I/O
+write any more because the allocate blocks are enabled in direct I/O now.
+
+This patch set can be applied against 3.17-rc6 branch of ocfs2 directly.
+
+Please consider, Thanks.
+							-- Wang
+
+Weiwei Wang (7)
+	ocfs2: eliminate the static flag of some functions
+	ocfs2: add two functions of add and remove inode in orphan dir
+	ocfs2: add orphan recovery types in ocfs2_recover_orphans
+	ocfs2: add and remove inode to orphan in ocfs2_direct_IO
+	ocfs2: allocate blocks in ocfs2_direct_IO_get_blocks
+	ocfs2: do not fallback to buffer I/O write if appending
+	ocfs2: do not fallback to buffer I/O write if fill holes
+
+ fs/ocfs2/aops.c    | 160 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+------
+ fs/ocfs2/file.c    | 104 +++++++++++++++++++++++++++++++----------------------------------------------------
+ fs/ocfs2/file.h    |   9 ++++++++
+ fs/ocfs2/journal.c |  90 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-------------
+ fs/ocfs2/journal.h |   5 ++++
+ fs/ocfs2/namei.c   | 161 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++----
+---------
+ fs/ocfs2/namei.h   |  21 ++++++++++++++++-
+ fs/ocfs2/ocfs2.h   |   6 +++++
+ 8 files changed, 451 insertions(+), 105 deletions(-)
