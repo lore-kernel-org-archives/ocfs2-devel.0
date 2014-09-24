@@ -1,17 +1,17 @@
 From: alex chen <alex.chen@huawei.com>
-Date: Wed, 24 Sep 2014 16:49:08 +0800
+Date: Wed, 24 Sep 2014 17:41:37 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: fix deadlock due to wrong locking
  order
 In-Reply-To: <1410313732-27840-1-git-send-email-junxiao.bi@oracle.com>
 References: <1410313732-27840-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <54228584.1090107@huawei.com>
+Message-ID: <542291D1.7070204@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi, Junxiao:
+Hi Junxiao,
 
 On 2014/9/10 9:48, Junxiao Bi wrote:
 > For commit ocfs2 journal, ocfs2 journal thread will acquire the mutex
@@ -142,21 +142,7 @@ On 2014/9/10 9:48, Junxiao Bi wrote:
 > +	}
 > +
 
-In ocfs2_zero_start_ordered_transaction, the inode will be filed into
-inode list of transaction by ocfs2_jbd2_file_inode.
-The relationship between ocfs2_jbd2_file_inode and lock_page as
-follow:
-	find_or_create_page
-		->lock_page
-	ocfs2_zero_start_ordered_transaction
-		->ocfs2_jbd2_file_inode
-	unlock_page
-
-But in your patch, the inode will be filed into inode list before the
-lock_page, is there a problem?
-
-Thanks.
-	--Alex
+The ocfs2_zero_start_ordered_transaction may return NULL.
 
 >  	page = find_or_create_page(mapping, index, GFP_NOFS);
 >  	if (!page) {
@@ -218,12 +204,20 @@ Thanks.
 > +	di->i_mtime_nsec = di->i_ctime_nsec;
 > +	ocfs2_journal_dirty(handle, di_bh);
 > +	ocfs2_update_inode_fsync_trans(handle, inode, 1);
+
+if ocfs2_zero_start_ordered_transaction return NULL, here will BUG.
+so should judge if handle is NULL.
+
 >  
 >  out_unlock:
 >  	unlock_page(page);
 >  	page_cache_release(page);
 > +out_commit_trans:
 > +	ocfs2_commit_trans(OCFS2_SB(inode->i_sb), handle);
+
+if ocfs2_zero_start_ordered_transaction return NULL, here will BUG.
+so should judge if handle is NULL.
+
 >  out:
 >  	return ret;
 >  }
