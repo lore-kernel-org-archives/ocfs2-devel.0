@@ -1,307 +1,114 @@
-From: WeiWei Wang <wangww631@huawei.com>
-Date: Fri, 26 Sep 2014 17:57:44 +0800
-Subject: [Ocfs2-devel] [PATCH 3/7 v3] ocfs2: add orphan recovery types in
- ocfs2_recover_orphans
-Message-ID: <54253898.2030304@huawei.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Fri, 26 Sep 2014 12:06:10 +0000
+Subject: [Ocfs2-devel] One node hangs up issue requiring goog idea, thanks
+Message-ID: <71604351584F6A4EBAE558C676F37CA42EC73D64@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This commit defines three orphan recovery types, which used in mount complete, node recovery and orphan scan situation respectively.
-In original, only deleted inode will be add to orphan dir, and inode->i_nlink is reduced to zero. In this patch, direct-io write will
-add the inode to orphan dir first, after direct-io finished, remove the inode from orphan dir later, in this case, the inode->i_nlink
-may be not reduced to zero but it does add to orphan dir however.
+Hi, all,
 
-Signed-off-by: Weiwei Wang <wangww631@huawei.com>
----
- fs/ocfs2/journal.c | 90 ++++++++++++++++++++++++++++++++++++++++++++----------
- fs/ocfs2/journal.h |  5 +++
- fs/ocfs2/ocfs2.h   |  6 ++++
- 3 files changed, 85 insertions(+), 16 deletions(-)
+As we use OCFS2, the network is not good.
+When the converting request message can?t send to the another node, there will be a node hangs up which will still waiting for the dlm.
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 4b0c688..c8dcb84 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -50,6 +50,8 @@
- #include "sysfile.h"
- #include "uptodate.h"
- #include "quota.h"
-+#include "file.h"
-+#include "namei.h"
+CAS2/logdir/var/log/syslog.1-6778-Sep 16 20:57:16 CAS2 kernel: [516366.623623] o2net: Connection to node CAS1 (num 1) at 10.172.254.1:7100 has been idle for 30.87 secs, shutting it down.
+CAS2/logdir/var/log/syslog.1-6779-Sep 16 20:57:16 CAS2 kernel: [516366.623631] o2net_idle_timer 1621: Local and remote node is heartbeating, and try connect
+CAS2/logdir/var/log/syslog.1-6780-Sep 16 20:57:16 CAS2 kernel: [516366.623792] o2net: No longer connected to node CAS1 (num 1) at 10.172.254.1:7100
+CAS2/logdir/var/log/syslog.1:6781:Sep 16 20:57:16 CAS2 kernel: [516366.623881] (dlm_thread,5140,4):dlm_send_proxy_ast_msg:482 ERROR: B258FD07DDD64710B68EB9683FD7D1B9: res M00000000000000046e011700000000, error -112 send AST to node 1
+CAS2/logdir/var/log/syslog.1-6782-Sep 16 20:57:16 CAS2 kernel: [516366.623900] (dlm_thread,5140,4):dlm_flush_asts:596 ERROR: status = -112
+CAS2/logdir/var/log/syslog.1-6783-Sep 16 20:57:16 CAS2 kernel: [516366.623937] (dlm_thread,5140,4):dlm_send_proxy_ast_msg:482 ERROR: B258FD07DDD64710B68EB9683FD7D1B9: res M000000000000001626011000000000, error -107 send AST to node 1
+CAS2/logdir/var/log/syslog.1-6784-Sep 16 20:57:16 CAS2 kernel: [516366.623946] (dlm_thread,5140,4):dlm_flush_asts:596 ERROR: status = -107
+CAS2/logdir/var/log/syslog.1-6785-Sep 16 20:57:16 CAS2 kernel: [516366.623997] Connect node 1 OK, and set timeout 0
+CAS2/logdir/var/log/syslog.1-6786-Sep 16 20:57:17 CAS2 kernel: [516367.623592] o2net: Connected to node CAS1 (num 1) at 10.172.254.1:7100
 
- #include "buffer_head_io.h"
- #include "ocfs2_trace.h"
-@@ -69,13 +71,15 @@ static int ocfs2_journal_toggle_dirty(struct ocfs2_super *osb,
- static int ocfs2_trylock_journal(struct ocfs2_super *osb,
- 				 int slot_num);
- static int ocfs2_recover_orphans(struct ocfs2_super *osb,
--				 int slot);
-+				 int slot,
-+				 enum ocfs2_orphan_reco_type orphan_reco_type);
- static int ocfs2_commit_thread(void *arg);
- static void ocfs2_queue_recovery_completion(struct ocfs2_journal *journal,
- 					    int slot_num,
- 					    struct ocfs2_dinode *la_dinode,
- 					    struct ocfs2_dinode *tl_dinode,
--					    struct ocfs2_quota_recovery *qrec);
-+					    struct ocfs2_quota_recovery *qrec,
-+				enum ocfs2_orphan_reco_type orphan_reco_type);
+debugfs: fs_locks -B
+Lockres: M00000000000000046e011700000000  Mode: Protected Read
+Flags: Initialized Attached Busy
+RO Holders: 0  EX Holders: 0
+Pending Action: Convert  Pending Unlock Action: None
+Requested Mode: Exclusive  Blocking Mode: No Lock
+PR > Gets: 318317  Fails: 0    Waits (usec) Total: 128622  Max: 3
+EX > Gets: 706878  Fails: 0    Waits (usec) Total: 284967  Max: 2
+Disk Refreshes: 0
 
- static inline int ocfs2_wait_on_mount(struct ocfs2_super *osb)
- {
-@@ -149,7 +153,8 @@ int ocfs2_compute_replay_slots(struct ocfs2_super *osb)
- 	return 0;
- }
+debugfs: dlm_locks M00000000000000046e011700000000
+Lockres: M00000000000000046e011700000000   Owner: 2    State: 0x0
+Last Used: 0      ASTs Reserved: 0    Inflight: 0    Migration Pending: No
+Refs: 4    Locks: 2    On Lists: None
+Reference Map: 1
+ Lock-Queue  Node  Level  Conv  Cookie           Refs  AST  BAST  Pending-Action
+ Granted     1     PR     -1    1:195            2     No   No    None
+ Converting  2     PR     EX    2:196            2     No   No    None
 
--void ocfs2_queue_replay_slots(struct ocfs2_super *osb)
-+void ocfs2_queue_replay_slots(struct ocfs2_super *osb,
-+				enum ocfs2_orphan_reco_type orphan_reco_type)
- {
- 	struct ocfs2_replay_map *replay_map = osb->replay_map;
- 	int i;
-@@ -163,7 +168,8 @@ void ocfs2_queue_replay_slots(struct ocfs2_super *osb)
- 	for (i = 0; i < replay_map->rm_slots; i++)
- 		if (replay_map->rm_replay_slots[i])
- 			ocfs2_queue_recovery_completion(osb->journal, i, NULL,
--							NULL, NULL);
-+							NULL, NULL,
-+							orphan_reco_type);
- 	replay_map->rm_state = REPLAY_DONE;
- }
+We reviews the code, and want to resend the dlm message to avoid it.
 
-@@ -1174,6 +1180,7 @@ struct ocfs2_la_recovery_item {
- 	struct ocfs2_dinode	*lri_la_dinode;
- 	struct ocfs2_dinode	*lri_tl_dinode;
- 	struct ocfs2_quota_recovery *lri_qrec;
-+	enum ocfs2_orphan_reco_type  lri_orphan_reco_type;
- };
+The patch is required reviewing.
+The patch has been test when the network interface is shut down and up manually to recreate the issue.
+If the TCP channel between two node set up within 5 seconds, resend msg works well.
 
- /* Does the second half of the recovery process. By this point, the
-@@ -1195,6 +1202,7 @@ void ocfs2_complete_recovery(struct work_struct *work)
- 	struct ocfs2_dinode *la_dinode, *tl_dinode;
- 	struct ocfs2_la_recovery_item *item, *n;
- 	struct ocfs2_quota_recovery *qrec;
-+	enum ocfs2_orphan_reco_type orphan_reco_type;
- 	LIST_HEAD(tmp_la_list);
+We are forward to appreciate another better way to avoid it.
+Thanks.
 
- 	trace_ocfs2_complete_recovery(
-@@ -1212,6 +1220,7 @@ void ocfs2_complete_recovery(struct work_struct *work)
- 		la_dinode = item->lri_la_dinode;
- 		tl_dinode = item->lri_tl_dinode;
- 		qrec = item->lri_qrec;
-+		orphan_reco_type = item->lri_orphan_reco_type;
 
- 		trace_ocfs2_complete_recovery_slot(item->lri_slot,
- 			la_dinode ? le64_to_cpu(la_dinode->i_blkno) : 0,
-@@ -1236,7 +1245,8 @@ void ocfs2_complete_recovery(struct work_struct *work)
- 			kfree(tl_dinode);
- 		}
+--- ocfs2/dlm/dlmthread.c 2014-06-07 10:40:09.000000000 +0800
++++ ocfs2/dlm/dlmthread.c 2014-09-26 16:42:36.000000000 +0800
+@@ -517,6 +517,9 @@ static void dlm_flush_asts(struct dlm_ct
+        struct dlm_lock_resource *res;
+        u8 hi;
 
--		ret = ocfs2_recover_orphans(osb, item->lri_slot);
-+		ret = ocfs2_recover_orphans(osb, item->lri_slot,
-+					    orphan_reco_type);
- 		if (ret < 0)
- 			mlog_errno(ret);
-
-@@ -1261,7 +1271,8 @@ static void ocfs2_queue_recovery_completion(struct ocfs2_journal *journal,
- 					    int slot_num,
- 					    struct ocfs2_dinode *la_dinode,
- 					    struct ocfs2_dinode *tl_dinode,
--					    struct ocfs2_quota_recovery *qrec)
-+					    struct ocfs2_quota_recovery *qrec,
-+				enum ocfs2_orphan_reco_type orphan_reco_type)
- {
- 	struct ocfs2_la_recovery_item *item;
-
-@@ -1285,6 +1296,7 @@ static void ocfs2_queue_recovery_completion(struct ocfs2_journal *journal,
- 	item->lri_slot = slot_num;
- 	item->lri_tl_dinode = tl_dinode;
- 	item->lri_qrec = qrec;
-+	item->lri_orphan_reco_type = orphan_reco_type;
-
- 	spin_lock(&journal->j_lock);
- 	list_add_tail(&item->lri_list, &journal->j_la_cleanups);
-@@ -1304,7 +1316,8 @@ void ocfs2_complete_mount_recovery(struct ocfs2_super *osb)
- 	/* No need to queue up our truncate_log as regular cleanup will catch
- 	 * that */
- 	ocfs2_queue_recovery_completion(journal, osb->slot_num,
--					osb->local_alloc_copy, NULL, NULL);
-+					osb->local_alloc_copy, NULL, NULL,
-+					ORPHAN_MOUNT_COMPLETE);
- 	ocfs2_schedule_truncate_log_flush(osb, 0);
-
- 	osb->local_alloc_copy = NULL;
-@@ -1312,7 +1325,7 @@ void ocfs2_complete_mount_recovery(struct ocfs2_super *osb)
-
- 	/* queue to recover orphan slots for all offline slots */
- 	ocfs2_replay_map_set_state(osb, REPLAY_NEEDED);
--	ocfs2_queue_replay_slots(osb);
-+	ocfs2_queue_replay_slots(osb, ORPHAN_MOUNT_COMPLETE);
- 	ocfs2_free_replay_slots(osb);
- }
-
-@@ -1323,7 +1336,8 @@ void ocfs2_complete_quota_recovery(struct ocfs2_super *osb)
- 						osb->slot_num,
- 						NULL,
- 						NULL,
--						osb->quota_rec);
-+						osb->quota_rec,
-+						ORPHAN_MOUNT_COMPLETE);
- 		osb->quota_rec = NULL;
- 	}
- }
-@@ -1360,7 +1374,7 @@ restart:
-
- 	/* queue recovery for our own slot */
- 	ocfs2_queue_recovery_completion(osb->journal, osb->slot_num, NULL,
--					NULL, NULL);
-+					NULL, NULL, ORPHAN_NODE_RECOVERY);
-
- 	spin_lock(&osb->osb_lock);
- 	while (rm->rm_used) {
-@@ -1419,13 +1433,14 @@ skip_recovery:
- 			continue;
- 		}
- 		ocfs2_queue_recovery_completion(osb->journal, rm_quota[i],
--						NULL, NULL, qrec);
-+						NULL, NULL, qrec,
-+						ORPHAN_NODE_RECOVERY);
- 	}
-
- 	ocfs2_super_unlock(osb, 1);
-
- 	/* queue recovery for offline slots */
--	ocfs2_queue_replay_slots(osb);
-+	ocfs2_queue_replay_slots(osb, ORPHAN_NODE_RECOVERY);
-
- bail:
- 	mutex_lock(&osb->recovery_lock);
-@@ -1712,7 +1727,7 @@ static int ocfs2_recover_node(struct ocfs2_super *osb,
-
- 	/* This will kfree the memory pointed to by la_copy and tl_copy */
- 	ocfs2_queue_recovery_completion(osb->journal, slot_num, la_copy,
--					tl_copy, NULL);
-+					tl_copy, NULL, ORPHAN_NODE_RECOVERY);
-
- 	status = 0;
- done:
-@@ -1902,7 +1917,7 @@ void ocfs2_queue_orphan_scan(struct ocfs2_super *osb)
-
- 	for (i = 0; i < osb->max_slots; i++)
- 		ocfs2_queue_recovery_completion(osb->journal, i, NULL, NULL,
--						NULL);
-+						NULL, ORPHAN_SCAN_WORK);
- 	/*
- 	 * We queued a recovery on orphan slots, increment the sequence
- 	 * number and update LVB so other node will skip the scan for a while
-@@ -2107,12 +2122,15 @@ static void ocfs2_clear_recovering_orphan_dir(struct ocfs2_super *osb,
-  *   advertising our state to ocfs2_delete_inode().
-  */
- static int ocfs2_recover_orphans(struct ocfs2_super *osb,
--				 int slot)
-+				 int slot,
-+				 enum ocfs2_orphan_reco_type orphan_reco_type)
- {
- 	int ret = 0;
- 	struct inode *inode = NULL;
- 	struct inode *iter;
- 	struct ocfs2_inode_info *oi;
-+	struct buffer_head *di_bh = NULL;
-+	handle_t *handle = NULL;
-
- 	trace_ocfs2_recover_orphans(slot);
-
-@@ -2135,7 +2153,46 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
- 		spin_lock(&oi->ip_lock);
- 		/* Set the proper information to get us going into
- 		 * ocfs2_delete_inode. */
--		oi->ip_flags |= OCFS2_INODE_MAYBE_ORPHANED;
-+		if (!inode->i_nlink)
-+			oi->ip_flags |= OCFS2_INODE_MAYBE_ORPHANED;
-+		else if (orphan_reco_type == ORPHAN_MOUNT_COMPLETE ||
-+			    orphan_reco_type == ORPHAN_NODE_RECOVERY) {
-+			ret = ocfs2_inode_lock(inode, &di_bh, 1);
-+			if (ret) {
-+				mlog_errno(ret);
-+				spin_unlock(&oi->ip_lock);
-+				goto out;
-+			}
-+			ocfs2_truncate_file(inode, di_bh, i_size_read(inode));
-+			ocfs2_inode_unlock(inode, 1);
-+			brelse(di_bh);
++    /* resend the msg again */
++    int send_times = 0;
 +
-+			/* after truncate file, remove the inode from
-+			 * the orphan dir. */
-+			handle = ocfs2_start_trans(osb,
-+					OCFS2_INODE_DEL_FROM_ORPHAN_CREDITS);
-+			if (IS_ERR(handle)) {
-+				ret = PTR_ERR(handle);
-+				goto out;
-+			}
-+			ret = ocfs2_del_inode_from_orphan(osb, handle, inode);
-+			if (ret) {
-+				mlog_errno(ret);
-+				ocfs2_commit_trans(osb, handle);
-+				spin_unlock(&oi->ip_lock);
-+				goto out;
-+			}
-+			ocfs2_commit_trans(osb, handle);
-+		}
-+		/*
-+		 * if the orphan scan work, continue to process the
-+		 * next orphan.
-+		 */
-+		else if (orphan_reco_type == ORPHAN_SCAN_WORK) {
-+			spin_unlock(&oi->ip_lock);
-+			inode = iter;
-+			continue;
-+		}
- 		spin_unlock(&oi->ip_lock);
+        spin_lock(&dlm->ast_lock);
+        while (!list_empty(&dlm->pending_asts)) {
+                lock = list_entry(dlm->pending_asts.next,
+@@ -539,9 +542,16 @@ static void dlm_flush_asts(struct dlm_ct
+                spin_unlock(&dlm->ast_lock);
 
- 		iput(inode);
-@@ -2143,6 +2200,7 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
- 		inode = iter;
- 	}
+                if (lock->ml.node != dlm->node_num) {
+-                       ret = dlm_do_remote_ast(dlm, res, lock);
+-                       if (ret < 0)
++                       ret = dlm_do_remote_ast(dlm, res, lock);
++                       if (ret < 0) {
+                                mlog_errno(ret);
++                           while ((ret == -112 || ret == -107) && send_times++ < 5 ) {
++                               msleep(1000);
++                               ret = dlm_do_remote_ast(dlm, res, lock);
++                               mlog(ML_NOTICE, "AST message retry send again, %d code, send_time = %d\n", ret, send_times);
++                           }
++                           send_times = 0;
++                   }
+                } else
+                        dlm_do_local_ast(dlm, res, lock);
 
-+out:
- 	return ret;
- }
+@@ -592,8 +602,15 @@ static void dlm_flush_asts(struct dlm_ct
 
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 7f8cde9..f4cd3c3 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -472,6 +472,11 @@ static inline int ocfs2_unlink_credits(struct super_block *sb)
-  * orphan dir index leaf */
- #define OCFS2_DELETE_INODE_CREDITS (3 * OCFS2_INODE_UPDATE_CREDITS + 4)
+                if (lock->ml.node != dlm->node_num) {
+                        ret = dlm_send_proxy_bast(dlm, res, lock, hi);
+-                       if (ret < 0)
++                       if (ret < 0) {
+                            mlog_errno(ret);
++                           while ((ret == -112 || ret == -107) && send_times++ < 5 ) {
++                               msleep(1000);
++                               ret = dlm_send_proxy_bast(dlm, res, lock, hi);;
++                               mlog(ML_NOTICE, "BAST message retry send again, %d code, send_time = %d\n", ret, send_times);
++                           }
++                           send_times = 0;
++                   }
+                } else
+                        dlm_do_local_bast(dlm, res, lock, hi);
 
-+/* dinode + orphan dir dinode + extent tree leaf block + orphan dir entry +
-+ * orphan dir index root + orphan dir index leaf */
-+#define OCFS2_INODE_ADD_TO_ORPHAN_CREDITS  (2 * OCFS2_INODE_UPDATE_CREDITS + 4)
-+#define OCFS2_INODE_DEL_FROM_ORPHAN_CREDITS  OCFS2_INODE_ADD_TO_ORPHAN_CREDITS
-+
- /* dinode update, old dir dinode update, new dir dinode update, old
-  * dir dir entry, new dir dir entry, dir entry update for renaming
-  * directory + target unlink + 3 x dir index leaves */
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index bbec539..71c9dac 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -203,6 +203,12 @@ struct ocfs2_lock_res {
- #endif
- };
 
-+enum ocfs2_orphan_reco_type {
-+	ORPHAN_MOUNT_COMPLETE = 0,
-+	ORPHAN_NODE_RECOVERY,
-+	ORPHAN_SCAN_WORK,
-+};
-+
- enum ocfs2_orphan_scan_state {
- 	ORPHAN_SCAN_ACTIVE,
- 	ORPHAN_SCAN_INACTIVE
--- 
-1.8.4.3
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
