@@ -1,95 +1,59 @@
 From: WeiWei Wang <wangww631@huawei.com>
-Date: Fri, 26 Sep 2014 18:00:18 +0800
-Subject: [Ocfs2-devel] [PATCH 5/7 v3] ocfs2: allocate blocks in
-	ocfs2_direct_IO_get_blocks
-Message-ID: <54253932.7000407@huawei.com>
+Date: Fri, 26 Sep 2014 18:01:29 +0800
+Subject: [Ocfs2-devel] [PATCH 6/7 v3] ocfs2: do not fallback to buffer I/O
+ write if appending
+Message-ID: <54253979.2040509@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-This commit allocate blocks in ocfs2_direct_IO_get_blocks, so in append direct-io write and fill
-holes write situation, direct-io write doesn't need fallback to buffer I/O any more.
+After enable block allocation in direct-io write now, we don't fallback to buffer I/O
+write in append write sitiaion any more. If the O_DIRECT flag is taken, we use direct-io.
 
 Signed-off-by: Weiwei Wang <wangww631@huawei.com>
 ---
- fs/ocfs2/aops.c | 44 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 44 insertions(+)
+ fs/ocfs2/aops.c |  4 ----
+ fs/ocfs2/file.c | 11 -----------
+ 2 files changed, 15 deletions(-)
 
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index bdb91bd..9b89415 100644
+index 9b89415..227db90 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
-@@ -517,10 +517,17 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 				     struct buffer_head *bh_result, int create)
- {
- 	int ret;
-+	u32 cpos = 0;
-+	int alloc_locked = 0;
- 	u64 p_blkno, inode_blocks, contig_blocks;
- 	unsigned int ext_flags;
- 	unsigned char blocksize_bits = inode->i_sb->s_blocksize_bits;
- 	unsigned long max_blocks = bh_result->b_size >> inode->i_blkbits;
-+	unsigned long len = bh_result->b_size;
-+	struct buffer_head *di_bh = NULL;
-+	unsigned int clusters_to_alloc = 0;
-+
-+	cpos = ocfs2_blocks_to_clusters(inode->i_sb, iblock);
+@@ -667,10 +667,6 @@ static ssize_t ocfs2_direct_IO(int rw,
+ 	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
+ 		return 0;
 
- 	/* This function won't even be called if the request isn't all
- 	 * nicely aligned and of the right size, so there's no need
-@@ -542,6 +549,39 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 	/* We should already CoW the refcounted extent in case of create. */
- 	BUG_ON(create && (ext_flags & OCFS2_EXT_REFCOUNTED));
+-	/* Fallback to buffered I/O if we are appending. */
+-	if (i_size_read(inode) <= offset)
+-		return 0;
+-
+ 	if (rw == WRITE) {
+ 		loff_t final_size = offset + count;
+ 		/*
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 964d442..a3b0efb 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2193,17 +2193,6 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
+ 		}
 
-+	/* allocate blocks if no p_blkno is found, and create==1 */
-+	if (!p_blkno && create) {
-+		ret = ocfs2_inode_lock(inode, &di_bh, 1);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto bail;
-+		}
-+		alloc_locked = 1;
-+
-+		/* fill hole, allocate blocks can't be larger than the size
-+		 * of the hole */
-+		clusters_to_alloc = ocfs2_clusters_for_bytes(inode->i_sb, len);
-+		if (clusters_to_alloc > contig_blocks)
-+			clusters_to_alloc = contig_blocks;
-+
-+		/* allocate extent and insert them into the extent tree */
-+		ret = __ocfs2_extend_allocation(inode, cpos,
-+						clusters_to_alloc, 0);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto bail;
-+		}
-+
-+		ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
-+					  &contig_blocks, &ext_flags);
-+		if (ret) {
-+			mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
-+			     (unsigned long long)iblock);
-+			ret = -EIO;
-+			goto bail;
-+		}
-+	}
-+
- 	/*
- 	 * get_more_blocks() expects us to describe a hole by clearing
- 	 * the mapped bit on bh_result().
-@@ -558,7 +598,11 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 	if (max_blocks < contig_blocks)
- 		contig_blocks = max_blocks;
- 	bh_result->b_size = contig_blocks << blocksize_bits;
-+
- bail:
-+	if (alloc_locked)
-+		ocfs2_inode_unlock(inode, 1);
-+	brelse(di_bh);
- 	return ret;
- }
-
+ 		/*
+-		 * Allowing concurrent direct writes means
+-		 * i_size changes wouldn't be synchronized, so
+-		 * one node could wind up truncating another
+-		 * nodes writes.
+-		 */
+-		if (end > i_size_read(inode)) {
+-			*direct_io = 0;
+-			break;
+-		}
+-
+-		/*
+ 		 * We don't fill holes during direct io, so
+ 		 * check for them here. If any are found, the
+ 		 * caller will have to retake some cluster
 -- 
 1.8.4.3
