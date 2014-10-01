@@ -1,92 +1,76 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed,  1 Oct 2014 21:31:23 +0200
-Subject: [Ocfs2-devel] [PATCH 01/12] quota: Allow each filesystem to specify
-	which quota types it supports
+Date: Wed,  1 Oct 2014 21:31:29 +0200
+Subject: [Ocfs2-devel] [PATCH 07/12] ext3: Convert to private i_dquot field
 In-Reply-To: <1412191894-9113-1-git-send-email-jack@suse.cz>
 References: <1412191894-9113-1-git-send-email-jack@suse.cz>
-Message-ID: <1412191894-9113-2-git-send-email-jack@suse.cz>
+Message-ID: <1412191894-9113-8-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com
 
-Currently all filesystems supporting VFS quota support user and group
-quotas. With introduction of project quotas this is going to change so
-make sure filesystem isn't called for quota type it doesn't support by
-introduction of a bitmask determining which quota types each filesystem
-supports.
-
+CC: linux-ext4 at vger.kernel.org
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/quota/quota.c      | 13 +++++++++++--
- fs/super.c            |  7 +++++++
- include/linux/quota.h |  1 +
- 3 files changed, 19 insertions(+), 2 deletions(-)
+ fs/ext3/ext3.h  |  4 ++++
+ fs/ext3/super.c | 13 +++++++++++++
+ 2 files changed, 17 insertions(+)
 
-diff --git a/fs/quota/quota.c b/fs/quota/quota.c
-index 75621649dbd7..0f28eac6e638 100644
---- a/fs/quota/quota.c
-+++ b/fs/quota/quota.c
-@@ -47,8 +47,11 @@ static int check_quotactl_permission(struct super_block *sb, int type, int cmd,
+diff --git a/fs/ext3/ext3.h b/fs/ext3/ext3.h
+index e85ff15a060e..04f30a1f96cb 100644
+--- a/fs/ext3/ext3.h
++++ b/fs/ext3/ext3.h
+@@ -613,6 +613,10 @@ struct ext3_inode_info {
+ 	atomic_t i_sync_tid;
+ 	atomic_t i_datasync_tid;
  
- static void quota_sync_one(struct super_block *sb, void *arg)
- {
--	if (sb->s_qcop && sb->s_qcop->quota_sync)
--		sb->s_qcop->quota_sync(sb, *(int *)arg);
-+	int type = *(int *)arg;
++#ifdef CONFIG_QUOTA
++	struct dquot *i_dquot[MAXQUOTAS];
++#endif
 +
-+	if (sb->s_qcop && sb->s_qcop->quota_sync &&
-+	    (sb->s_dquot.allowed_types & (1 << type)))
-+		sb->s_qcop->quota_sync(sb, type);
+ 	struct inode vfs_inode;
+ };
+ 
+diff --git a/fs/ext3/super.c b/fs/ext3/super.c
+index 622e88249024..93373aaa9b77 100644
+--- a/fs/ext3/super.c
++++ b/fs/ext3/super.c
+@@ -485,6 +485,10 @@ static struct inode *ext3_alloc_inode(struct super_block *sb)
+ 	ei->vfs_inode.i_version = 1;
+ 	atomic_set(&ei->i_datasync_tid, 0);
+ 	atomic_set(&ei->i_sync_tid, 0);
++#ifdef CONFIG_QUOTA
++	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
++#endif
++
+ 	return &ei->vfs_inode;
  }
  
- static int quota_sync_all(int type)
-@@ -297,8 +300,14 @@ static int do_quotactl(struct super_block *sb, int type, int cmd, qid_t id,
+@@ -807,6 +811,13 @@ static const struct super_operations ext3_sops = {
+ 	.bdev_try_to_free_page = bdev_try_to_free_page,
+ };
  
- 	if (type >= (XQM_COMMAND(cmd) ? XQM_MAXQUOTAS : MAXQUOTAS))
- 		return -EINVAL;
-+	/*
-+	 * Quota not supported on this fs? Check this before allowed_types
-+	 * since they needn't be set if quota is not supported.
-+	 */
- 	if (!sb->s_qcop)
- 		return -ENOSYS;
-+	if (!(sb->s_dquot.allowed_types & (1 << type)))
-+		return -EINVAL;
- 
- 	ret = check_quotactl_permission(sb, type, cmd, id);
- 	if (ret < 0)
-diff --git a/fs/super.c b/fs/super.c
-index b9a214d2fe98..dc577370f5fd 100644
---- a/fs/super.c
-+++ b/fs/super.c
-@@ -215,6 +215,13 @@ static struct super_block *alloc_super(struct file_system_type *type, int flags)
- 	atomic_set(&s->s_active, 1);
- 	mutex_init(&s->s_vfs_rename_mutex);
- 	lockdep_set_class(&s->s_vfs_rename_mutex, &type->s_vfs_rename_key);
-+	/*
-+	 * For now MAXQUOTAS check in do_quotactl() will limit quota type
-+	 * appropriately. When each fs sets allowed_types, we can remove the
-+	 * line below
-+	 */
-+	s->s_dquot.allowed_types = (1 << USRQUOTA) | (1 << GRPQUOTA) |
-+				   (1 << PRJQUOTA);
- 	mutex_init(&s->s_dquot.dqio_mutex);
- 	mutex_init(&s->s_dquot.dqonoff_mutex);
- 	s->s_maxbytes = MAX_NON_LFS;
-diff --git a/include/linux/quota.h b/include/linux/quota.h
-index 80d345a3524c..91f328971acc 100644
---- a/include/linux/quota.h
-+++ b/include/linux/quota.h
-@@ -388,6 +388,7 @@ static inline void quota_send_warning(struct kqid qid, dev_t dev,
- 
- struct quota_info {
- 	unsigned int flags;			/* Flags for diskquotas on this device */
-+	unsigned int allowed_types;		/* Bitmask of quota types this fs supports */
- 	struct mutex dqio_mutex;		/* lock device while I/O in progress */
- 	struct mutex dqonoff_mutex;		/* Serialize quotaon & quotaoff */
- 	struct inode *files[MAXQUOTAS];		/* inodes of quotafiles */
++static const int ext3_inode_fields[IF_FIELD_NR] = {
++#ifdef CONFIG_QUOTA
++	[IF_DQUOTS] = (int)offsetof(struct ext3_inode_info, i_dquot) -
++		      (int)offsetof(struct ext3_inode_info, vfs_inode),
++#endif
++};
++
+ static const struct export_operations ext3_export_ops = {
+ 	.fh_to_dentry = ext3_fh_to_dentry,
+ 	.fh_to_parent = ext3_fh_to_parent,
+@@ -2008,7 +2019,9 @@ static int ext3_fill_super (struct super_block *sb, void *data, int silent)
+ #ifdef CONFIG_QUOTA
+ 	sb->s_qcop = &ext3_qctl_operations;
+ 	sb->dq_op = &ext3_quota_operations;
++	sb_dqopt(sb)->allowed_types = (1 << USRQUOTA) | (1 << GRPQUOTA);
+ #endif
++	sb_init_inode_fields(sb, ext3_inode_fields);
+ 	memcpy(sb->s_uuid, es->s_uuid, sizeof(es->s_uuid));
+ 	INIT_LIST_HEAD(&sbi->s_orphan); /* unlinked but open files */
+ 	mutex_init(&sbi->s_orphan_lock);
 -- 
 1.8.1.4
