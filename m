@@ -1,9 +1,9 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed,  1 Oct 2014 21:31:24 +0200
-Subject: [Ocfs2-devel] [PATCH 02/12] gfs2: Set allowed quota types
+Date: Wed,  1 Oct 2014 21:31:25 +0200
+Subject: [Ocfs2-devel] [PATCH 03/12] xfs: Set allowed quota types
 In-Reply-To: <1412191894-9113-1-git-send-email-jack@suse.cz>
 References: <1412191894-9113-1-git-send-email-jack@suse.cz>
-Message-ID: <1412191894-9113-3-git-send-email-jack@suse.cz>
+Message-ID: <1412191894-9113-4-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,26 +11,27 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com
 
-We support user and group quotas. Tell vfs about it.
+We support user, group, and project quotas. Tell VFS about it.
 
-CC: Steven Whitehouse <swhiteho@redhat.com>
-CC: cluster-devel at redhat.com
+CC: xfs at oss.sgi.com
+CC: Dave Chinner <david@fromorbit.com>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/gfs2/ops_fstype.c | 1 +
- 1 file changed, 1 insertion(+)
+ fs/xfs/xfs_super.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/fs/gfs2/ops_fstype.c b/fs/gfs2/ops_fstype.c
-index d3eae244076e..3032e6d069b5 100644
---- a/fs/gfs2/ops_fstype.c
-+++ b/fs/gfs2/ops_fstype.c
-@@ -1083,6 +1083,7 @@ static int fill_super(struct super_block *sb, struct gfs2_args *args, int silent
- 	sb->s_xattr = gfs2_xattr_handlers;
- 	sb->s_qcop = &gfs2_quotactl_ops;
- 	sb_dqopt(sb)->flags |= DQUOT_QUOTA_SYS_FILE;
-+	sb_dqopt(sb)->allowed_types = (1 << USRQUOTA) | (1 << GRPQUOTA);
- 	sb->s_time_gran = 1;
- 	sb->s_maxbytes = MAX_LFS_FILESIZE;
+diff --git a/fs/xfs/xfs_super.c b/fs/xfs/xfs_super.c
+index b194652033cd..b32e998e8cbc 100644
+--- a/fs/xfs/xfs_super.c
++++ b/fs/xfs/xfs_super.c
+@@ -1419,6 +1419,8 @@ xfs_fs_fill_super(
+ 	sb->s_export_op = &xfs_export_operations;
+ #ifdef CONFIG_XFS_QUOTA
+ 	sb->s_qcop = &xfs_quotactl_operations;
++	sb->s_dquot.allowed_types = (1 << USRQUOTA) | (1 << GRPQUOTA) |
++				    (1 << PRJQUOTA);
+ #endif
+ 	sb->s_op = &xfs_super_operations;
  
 -- 
 1.8.1.4
