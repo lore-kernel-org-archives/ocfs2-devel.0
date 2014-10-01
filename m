@@ -1,74 +1,125 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed,  1 Oct 2014 21:31:30 +0200
-Subject: [Ocfs2-devel] [PATCH 08/12] ext4: Convert to private i_dquot field
-In-Reply-To: <1412191894-9113-1-git-send-email-jack@suse.cz>
+From: Andreas Dilger <adilger@dilger.ca>
+Date: Wed, 1 Oct 2014 15:05:46 -0600
+Subject: [Ocfs2-devel] [PATCH 04/12] fs: Generic infrastructure for
+	optional inode fields
+In-Reply-To: <1412191894-9113-5-git-send-email-jack@suse.cz>
 References: <1412191894-9113-1-git-send-email-jack@suse.cz>
-Message-ID: <1412191894-9113-9-git-send-email-jack@suse.cz>
+	<1412191894-9113-5-git-send-email-jack@suse.cz>
+Message-ID: <3BFF1023-E198-4797-A96A-EA158137157E@dilger.ca>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jan Kara <jack@suse.cz>
+To: Jan Kara <jack@suse.cz>
+Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu
 
-CC: linux-ext4 at vger.kernel.org
-CC: "Theodore Ts'o" <tytso@mit.edu>
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/ext4/ext4.h  |  4 ++++
- fs/ext4/super.c | 10 ++++++++++
- 2 files changed, 14 insertions(+)
+On Oct 1, 2014, at 1:31 PM, Jan Kara <jack@suse.cz> wrote:
+> There are parts of struct inode which are used only by a few filesystems
+> (e.g. i_dquot pointers, i_mapping->private_list, ...). Thus all the
+> other filesystems are just wasting memory with these fields. On the
+> other hand it isn't simple to just move these fields to filesystem
+> specific part of inode because there is generic code which needs to peek
+> into the fields and it is cumbersome to provide helpers into which fs
+> has to stuff the field it is storing elsewhere.
+> 
+> We create a simple infrastructure which allows for optional inode fields
+> stored in the fs-specific part of the inode. Accessing these fields has
+> a slightly worse performance as we have to lookup their offset in the
+> offset table stored in the superblock but in most cases this is
+> acceptable. Notably, this offset-table mechanism is faster than having
+> fs-specific hook functions which would need to be called to provide
+> pointers to desired fields.
+> 
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> ---
+> include/linux/fs.h | 24 ++++++++++++++++++++++++
+> 1 file changed, 24 insertions(+)
+> 
+> diff --git a/include/linux/fs.h b/include/linux/fs.h
+> index 94187721ad41..977f8fb6ca88 100644
+> --- a/include/linux/fs.h
+> +++ b/include/linux/fs.h
+> @@ -615,6 +615,11 @@ struct inode {
+> 	void			*i_private; /* fs or device private pointer */
+> };
+> 
+> +/* Optional inode fields (stored in filesystems inode if the fs needs them) */
+> +enum {
 
-diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-index b0c225cdb52c..571a9f409e94 100644
---- a/fs/ext4/ext4.h
-+++ b/fs/ext4/ext4.h
-@@ -940,6 +940,10 @@ struct ext4_inode_info {
- 	tid_t i_sync_tid;
- 	tid_t i_datasync_tid;
- 
-+#ifdef CONFIG_QUOTA
-+	struct dquot *i_dquot[MAXQUOTAS];
-+#endif
-+
- 	/* Precomputed uuid+inum+igen checksum for seeding inode checksums */
- 	__u32 i_csum_seed;
- };
-diff --git a/fs/ext4/super.c b/fs/ext4/super.c
-index 0b28b36e7915..a4cccf9fba60 100644
---- a/fs/ext4/super.c
-+++ b/fs/ext4/super.c
-@@ -895,6 +895,7 @@ static struct inode *ext4_alloc_inode(struct super_block *sb)
- 	spin_lock_init(&(ei->i_block_reservation_lock));
- #ifdef CONFIG_QUOTA
- 	ei->i_reserved_quota = 0;
-+	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
- #endif
- 	ei->jinode = NULL;
- 	INIT_LIST_HEAD(&ei->i_rsv_conversion_list);
-@@ -1143,6 +1144,13 @@ static const struct super_operations ext4_nojournal_sops = {
- 	.bdev_try_to_free_page = bdev_try_to_free_page,
- };
- 
-+static const int ext4_inode_fields[IF_FIELD_NR] = {
-+#ifdef CONFIG_QUOTA
-+	[IF_DQUOTS] = offsetof(struct ext4_inode_info, i_dquot) -
-+		      offsetof(struct ext4_inode_info, vfs_inode),
-+#endif
-+};
-+
- static const struct export_operations ext4_export_ops = {
- 	.fh_to_dentry = ext4_fh_to_dentry,
- 	.fh_to_parent = ext4_fh_to_parent,
-@@ -3916,7 +3924,9 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
- 		sb->s_qcop = &ext4_qctl_sysfile_operations;
- 	else
- 		sb->s_qcop = &ext4_qctl_operations;
-+	sb_dqopt(sb)->allowed_types = (1 << USRQUOTA) | (1 << GRPQUOTA);
- #endif
-+	sb_init_inode_fields(sb, ext4_inode_fields);
- 	memcpy(sb->s_uuid, es->s_uuid, sizeof(es->s_uuid));
- 
- 	INIT_LIST_HEAD(&sbi->s_orphan); /* unlinked but open files */
--- 
-1.8.1.4
+This should be a named enum, like "enum inode_field" or similar, so it
+can be referenced below.
+
+> +	IF_FIELD_NR	/* Number of optional inode fields */
+> +};
+> +
+> static inline int inode_unhashed(struct inode *inode)
+> {
+> 	return hlist_unhashed(&inode->i_hash);
+> @@ -1236,6 +1241,11 @@ struct super_block {
+> 	void 			*s_fs_info;	/* Filesystem private info */
+> 	unsigned int		s_max_links;
+> 	fmode_t			s_mode;
+> +	/*
+> +	 * We could have here just a pointer to the offsets array but this
+> +	 * way we save one dereference when looking up field offsets
+> +	 */
+> +	int			s_inode_fields[IF_FIELD_NR];
+> 
+> 	/* Granularity of c/m/atime in ns.
+> 	   Cannot be worse than a second */
+> @@ -1286,6 +1296,20 @@ struct super_block {
+> 	struct rcu_head		rcu;
+> };
+> 
+> +static inline void *inode_field(const struct inode *inode, int field)
+
+This should use "enum inode_field" instead of int, so the compiler could
+warn about invalid parameter values.  It might make sense to add a check:
+
+        if (field < IF_FIELD_NR)
+
+but I'm not sure if the overhead is worthwhile, unless it can always be
+resolved@compile time.  That might be possible since this is a static
+inline function.
+
+Cheers, Andreas
+
+> +{
+> +	int offset = inode->i_sb->s_inode_fields[field];
+> +
+> +	if (!offset)	/* Field not present? */
+> +		return NULL;
+
+> +	return ((char *)inode) + offset;
+> +}
+> +
+> +static inline void sb_init_inode_fields(struct super_block *sb, int *fields)
+> +{
+> +	memcpy(sb->s_inode_fields, fields, sizeof(int) * IF_FIELD_NR);
+> +}
+> +
+> extern struct timespec current_fs_time(struct super_block *sb);
+> 
+> /*
+> -- 
+> 1.8.1.4
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-fsdevel" in
+> the body of a message to majordomo at vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+
+
+Cheers, Andreas
+
+
+
+
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 833 bytes
+Desc: Message signed with OpenPGP using GPGMail
+Url : http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20141001/67c9609c/attachment.bin 
