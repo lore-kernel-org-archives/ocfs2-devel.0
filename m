@@ -1,77 +1,86 @@
 From: Jan Kara <jack@suse.cz>
-Date: Wed,  1 Oct 2014 21:31:31 +0200
-Subject: [Ocfs2-devel] [PATCH 09/12] ocfs2: Convert to private i_dquot field
+Date: Wed,  1 Oct 2014 21:31:26 +0200
+Subject: [Ocfs2-devel] [PATCH 04/12] fs: Generic infrastructure for optional
+	inode fields
 In-Reply-To: <1412191894-9113-1-git-send-email-jack@suse.cz>
 References: <1412191894-9113-1-git-send-email-jack@suse.cz>
-Message-ID: <1412191894-9113-10-git-send-email-jack@suse.cz>
+Message-ID: <1412191894-9113-5-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jan Kara <jack@suse.cz>
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com
 
-CC: Mark Fasheh <mfasheh@suse.com>
-CC: Joel Becker <jlbec@evilplan.org>
-CC: ocfs2-devel at oss.oracle.com
+There are parts of struct inode which are used only by a few filesystems
+(e.g. i_dquot pointers, i_mapping->private_list, ...). Thus all the
+other filesystems are just wasting memory with these fields. On the
+other hand it isn't simple to just move these fields to filesystem
+specific part of inode because there is generic code which needs to peek
+into the fields and it is cumbersome to provide helpers into which fs
+has to stuff the field it is storing elsewhere.
+
+We create a simple infrastructure which allows for optional inode fields
+stored in the fs-specific part of the inode. Accessing these fields has
+a slightly worse performance as we have to lookup their offset in the
+offset table stored in the superblock but in most cases this is
+acceptable. Notably, this offset-table mechanism is faster than having
+fs-specific hook functions which would need to be called to provide
+pointers to desired fields.
+
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/inode.h |  4 ++++
- fs/ocfs2/super.c | 12 ++++++++++++
- 2 files changed, 16 insertions(+)
+ include/linux/fs.h | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index a6c991c0fc98..aed65d3aff57 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -80,6 +80,10 @@ struct ocfs2_inode_info
- 	 */
- 	tid_t i_sync_tid;
- 	tid_t i_datasync_tid;
-+
-+#ifdef CONFIG_QUOTA
-+	struct dquot *i_dquot[MAXQUOTAS];
-+#endif
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 94187721ad41..977f8fb6ca88 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -615,6 +615,11 @@ struct inode {
+ 	void			*i_private; /* fs or device private pointer */
  };
  
- /*
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index ddb662b32447..190dc8620ae0 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -157,6 +157,13 @@ static const struct super_operations ocfs2_sops = {
- 	.quota_write	= ocfs2_quota_write,
- };
- 
-+static const int ocfs2_inode_fields[IF_FIELD_NR] = {
-+#ifdef CONFIG_QUOTA
-+	[IF_DQUOTS] = offsetof(struct ocfs2_inode_info, i_dquot) -
-+		      offsetof(struct ocfs2_inode_info, vfs_inode),
-+#endif
++/* Optional inode fields (stored in filesystems inode if the fs needs them) */
++enum {
++	IF_FIELD_NR	/* Number of optional inode fields */
 +};
 +
- enum {
- 	Opt_barrier,
- 	Opt_err_panic,
-@@ -563,6 +570,9 @@ static struct inode *ocfs2_alloc_inode(struct super_block *sb)
+ static inline int inode_unhashed(struct inode *inode)
+ {
+ 	return hlist_unhashed(&inode->i_hash);
+@@ -1236,6 +1241,11 @@ struct super_block {
+ 	void 			*s_fs_info;	/* Filesystem private info */
+ 	unsigned int		s_max_links;
+ 	fmode_t			s_mode;
++	/*
++	 * We could have here just a pointer to the offsets array but this
++	 * way we save one dereference when looking up field offsets
++	 */
++	int			s_inode_fields[IF_FIELD_NR];
  
- 	oi->i_sync_tid = 0;
- 	oi->i_datasync_tid = 0;
-+#ifdef CONFIG_QUOTA
-+	memset(&oi->i_dquot, 0, sizeof(oi->i_dquot));
-+#endif
+ 	/* Granularity of c/m/atime in ns.
+ 	   Cannot be worse than a second */
+@@ -1286,6 +1296,20 @@ struct super_block {
+ 	struct rcu_head		rcu;
+ };
  
- 	jbd2_journal_init_jbd_inode(&oi->ip_jinode, &oi->vfs_inode);
- 	return &oi->vfs_inode;
-@@ -2069,7 +2079,9 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	sb->s_export_op = &ocfs2_export_ops;
- 	sb->s_qcop = &ocfs2_quotactl_ops;
- 	sb->dq_op = &ocfs2_quota_operations;
-+	sb_dqopt(sb)->allowed_types = (1 << USRQUOTA) | (1 << GRPQUOTA);
- 	sb->s_xattr = ocfs2_xattr_handlers;
-+	sb_init_inode_fields(sb, ocfs2_inode_fields);
- 	sb->s_time_gran = 1;
- 	sb->s_flags |= MS_NOATIME;
- 	/* this is needed to support O_LARGEFILE */
++static inline void *inode_field(const struct inode *inode, int field)
++{
++	int offset = inode->i_sb->s_inode_fields[field];
++
++	if (!offset)	/* Field not present? */
++		return NULL;
++	return ((char *)inode) + offset;
++}
++
++static inline void sb_init_inode_fields(struct super_block *sb, int *fields)
++{
++	memcpy(sb->s_inode_fields, fields, sizeof(int) * IF_FIELD_NR);
++}
++
+ extern struct timespec current_fs_time(struct super_block *sb);
+ 
+ /*
 -- 
 1.8.1.4
