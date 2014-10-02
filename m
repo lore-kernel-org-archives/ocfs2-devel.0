@@ -1,42 +1,41 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Wed, 1 Oct 2014 15:55:49 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: call dlm_lockres_put without
- resource spinlock
-In-Reply-To: <542526C3.2090302@huawei.com>
-References: <542526C3.2090302@huawei.com>
-Message-ID: <20141001155549.e64a41bbf797482eb388f65b@linux-foundation.org>
+From: Steven Whitehouse <swhiteho@redhat.com>
+Date: Thu, 02 Oct 2014 11:41:27 +0100
+Subject: [Ocfs2-devel] [PATCH 02/12] gfs2: Set allowed quota types
+In-Reply-To: <1412191894-9113-3-git-send-email-jack@suse.cz>
+References: <1412191894-9113-1-git-send-email-jack@suse.cz>
+	<1412191894-9113-3-git-send-email-jack@suse.cz>
+Message-ID: <542D2BD7.8020704@redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Fri, 26 Sep 2014 16:41:39 +0800 alex chen <alex.chen@huawei.com> wrote:
+Hi,
 
-> dlm_lockres_put should be called without &res->spinlock, otherwise a
-> deadlock case may happen.
-> 
-> spin_lock(&res->spinlock)
-> ...
-> dlm_lockres_put
->   ->dlm_lockres_release
->     ->dlm_print_one_lock_resource
->       ->spin_lock(&res->spinlock)
-> 
-> Signed-off-by: Alex Chen <alex.chen@huawei.com>
-> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+On 01/10/14 20:31, Jan Kara wrote:
+> We support user and group quotas. Tell vfs about it.
+>
+> CC: Steven Whitehouse <swhiteho@redhat.com>
+> CC: cluster-devel at redhat.com
+> Signed-off-by: Jan Kara <jack@suse.cz>
 > ---
->  fs/ocfs2/dlm/dlmrecovery.c | 7 +++++--
->  1 file changed, 5 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> index 45067fa..3365839 100644
-> --- a/fs/ocfs2/dlm/dlmrecovery.c
-> +++ b/fs/ocfs2/dlm/dlmrecovery.c
-> @@ -1710,9 +1710,12 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
->  				BUG();
+>   fs/gfs2/ops_fstype.c | 1 +
+>   1 file changed, 1 insertion(+)
+Acked-by: Steven Whitehouse <swhiteho@redhat.com>
 
-This code does a GFP_ATOMIC allocation attempt and if that fails, it
-goes BUG().
+Steve.
 
-Guys, GFP_ATOMIC is unreliable.  This isn't production quality code :(
+> diff --git a/fs/gfs2/ops_fstype.c b/fs/gfs2/ops_fstype.c
+> index d3eae244076e..3032e6d069b5 100644
+> --- a/fs/gfs2/ops_fstype.c
+> +++ b/fs/gfs2/ops_fstype.c
+> @@ -1083,6 +1083,7 @@ static int fill_super(struct super_block *sb, struct gfs2_args *args, int silent
+>   	sb->s_xattr = gfs2_xattr_handlers;
+>   	sb->s_qcop = &gfs2_quotactl_ops;
+>   	sb_dqopt(sb)->flags |= DQUOT_QUOTA_SYS_FILE;
+> +	sb_dqopt(sb)->allowed_types = (1 << USRQUOTA) | (1 << GRPQUOTA);
+>   	sb->s_time_gran = 1;
+>   	sb->s_maxbytes = MAX_LFS_FILESIZE;
+>   
