@@ -1,56 +1,65 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 8 Oct 2014 09:48:58 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: call dlm_lockres_put without
- resource spinlock
-In-Reply-To: <20141001155549.e64a41bbf797482eb388f65b@linux-foundation.org>
-References: <542526C3.2090302@huawei.com>
-	<20141001155549.e64a41bbf797482eb388f65b@linux-foundation.org>
-Message-ID: <5434980A.2030708@huawei.com>
+Date: Wed, 8 Oct 2014 13:44:33 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: let sender retry if
+ dlm_dispatch_assert_master failed with -ENOMEM
+Message-ID: <5434CF41.3040403@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2014/10/2 6:55, Andrew Morton wrote:
-> On Fri, 26 Sep 2014 16:41:39 +0800 alex chen <alex.chen@huawei.com> wrote:
-> 
->> dlm_lockres_put should be called without &res->spinlock, otherwise a
->> deadlock case may happen.
->>
->> spin_lock(&res->spinlock)
->> ...
->> dlm_lockres_put
->>   ->dlm_lockres_release
->>     ->dlm_print_one_lock_resource
->>       ->spin_lock(&res->spinlock)
->>
->> Signed-off-by: Alex Chen <alex.chen@huawei.com>
->> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
->> ---
->>  fs/ocfs2/dlm/dlmrecovery.c | 7 +++++--
->>  1 file changed, 5 insertions(+), 2 deletions(-)
->>
->> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
->> index 45067fa..3365839 100644
->> --- a/fs/ocfs2/dlm/dlmrecovery.c
->> +++ b/fs/ocfs2/dlm/dlmrecovery.c
->> @@ -1710,9 +1710,12 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
->>  				BUG();
-> 
-> This code does a GFP_ATOMIC allocation attempt and if that fails, it
-> goes BUG().
-> 
-> Guys, GFP_ATOMIC is unreliable.  This isn't production quality code :(
-> 
-Last time we talked about this and Wengang sugguested it return an
-error to the sender and let the sender retry.
-I'll take this idea and send a patch.
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
+Do not BUG() if GFP_ATOMIC allocation fails in
+dlm_dispatch_assert_master.
+Instead, return -ENOMEM to the sender and then retry.
+
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Alex Chen <alex.chen@huawei.com>
+---
+ fs/ocfs2/dlm/dlmrecovery.c | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 3365839..79b5af5 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1656,14 +1656,18 @@ int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
+ 	req.namelen = res->lockname.len;
+ 	memcpy(req.name, res->lockname.name, res->lockname.len);
+
++resend:
+ 	ret = o2net_send_message(DLM_MASTER_REQUERY_MSG, dlm->key,
+ 				 &req, sizeof(req), nodenum, &status);
+-	/* XXX: negative status not handled properly here. */
+ 	if (ret < 0)
+ 		mlog(ML_ERROR, "Error %d when sending message %u (key "
+ 		     "0x%x) to node %u\n", ret, DLM_MASTER_REQUERY_MSG,
+ 		     dlm->key, nodenum);
+-	else {
++	else if (status == -ENOMEM) {
++		mlog_errno(status);
++		msleep(50);
++		goto resend;
++	} else {
+ 		BUG_ON(status < 0);
+ 		BUG_ON(status > DLM_LOCK_RES_OWNER_UNKNOWN);
+ 		*real_master = (u8) (status & 0xff);
+@@ -1705,9 +1709,13 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
+ 			int ret = dlm_dispatch_assert_master(dlm, res,
+ 							     0, 0, flags);
+ 			if (ret < 0) {
+-				mlog_errno(-ENOMEM);
+-				/* retry!? */
+-				BUG();
++				mlog_errno(ret);
++				spin_unlock(&res->spinlock);
++				dlm_lockres_put(res);
++				spin_unlock(&dlm->spinlock);
++				dlm_put(dlm);
++				/* sender will take care of this and retry */
++				return ret;
+ 			} else
+ 				__dlm_lockres_grab_inflight_worker(dlm, res);
+ 			spin_unlock(&res->spinlock);
+-- 
+1.8.4.3
