@@ -1,65 +1,70 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 8 Oct 2014 13:44:33 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: let sender retry if
- dlm_dispatch_assert_master failed with -ENOMEM
-Message-ID: <5434CF41.3040403@huawei.com>
+From: Jan Kara <jack@suse.cz>
+Date: Wed, 8 Oct 2014 10:42:51 +0200
+Subject: [Ocfs2-devel] [PATCH 03/12] xfs: Set allowed quota types
+In-Reply-To: <3391F66C-E2A7-4FC8-8696-3C1600D54DA9@dilger.ca>
+References: <1412191894-9113-1-git-send-email-jack@suse.cz>
+	<1412191894-9113-4-git-send-email-jack@suse.cz>
+	<20141006203028.GB2301@dastard>
+	<20141007192935.GF30038@quack.suse.cz>
+	<3391F66C-E2A7-4FC8-8696-3C1600D54DA9@dilger.ca>
+Message-ID: <20141008084251.GB11781@quack.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Andreas Dilger <adilger@dilger.ca>
+Cc: Jan Kara <jack@suse.cz>, Dave Chinner <david@fromorbit.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Ext4 Developers List <linux-ext4@vger.kernel.org>, xfs@oss.sgi.com, cluster-devel <cluster-devel@redhat.com>, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu
 
-Do not BUG() if GFP_ATOMIC allocation fails in
-dlm_dispatch_assert_master.
-Instead, return -ENOMEM to the sender and then retry.
+On Tue 07-10-14 13:46:20, Andreas Dilger wrote:
+> On Oct 7, 2014, at 1:29 PM, Jan Kara <jack@suse.cz> wrote:
+> > On Tue 07-10-14 07:30:28, Dave Chinner wrote:
+> >> On Wed, Oct 01, 2014 at 09:31:25PM +0200, Jan Kara wrote:
+> >>> We support user, group, and project quotas. Tell VFS about it.
+> >>> 
+> >>> CC: xfs at oss.sgi.com
+> >>> CC: Dave Chinner <david@fromorbit.com>
+> >>> Signed-off-by: Jan Kara <jack@suse.cz>
+> >>> ---
+> >>> fs/xfs/xfs_super.c | 2 ++
+> >>> 1 file changed, 2 insertions(+)
+> >>> 
+> >>> diff --git a/fs/xfs/xfs_super.c b/fs/xfs/xfs_super.c
+> >>> index b194652033cd..b32e998e8cbc 100644
+> >>> --- a/fs/xfs/xfs_super.c
+> >>> +++ b/fs/xfs/xfs_super.c
+> >>> @@ -1419,6 +1419,8 @@ xfs_fs_fill_super(
+> >>> 	sb->s_export_op = &xfs_export_operations;
+> >>> #ifdef CONFIG_XFS_QUOTA
+> >>> 	sb->s_qcop = &xfs_quotactl_operations;
+> >>> +	sb->s_dquot.allowed_types = (1 << USRQUOTA) | (1 << GRPQUOTA) |
+> >>> +				    (1 << PRJQUOTA);
+> >> 
+> >> Would it be better to define masks for these rather than open
+> >> coding these shifts everywhere?
+> >  I can do that. Any suggestion for a name? I was thinking about it for a
+> > while and couldn't come up with anything satisfactory...
+> 
+> Better to have QUOTA at the start, and TYPE in the name, so maybe:
+> 
+> enum quota_types {
+> 	QUOTA_TYPE_USR = 1 << USRQUOTA,
+> 	QUOTA_TYPE_GRP = 1 << GRPQUOTA,
+> 	QUOTA_TYPE_PRJ = 1 << PRJQUOTA,
+> };
+> 
+> or maybe "enum quota_type_mask" or similar.
+> 
+> I prefer named enums over #defines since this makes it more clear
+> when declaring variables like "allowed_types" what valid values are
+> instead of just "int" that someone might mistakenly set to USRQUOTA
+> directly or something.
+  OK, QUOTA_TYPE_USR etc. looks good. I'm not so sure about named enum. I'd
+be fine with named enum for USRQUOTA, GRPQUOTA, etc. - i.e., types which
+should have one of the named values but for a bitmask with arbitrary
+combinations of flags it looks confusing to me (although technically
+it would work).
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: Alex Chen <alex.chen@huawei.com>
----
- fs/ocfs2/dlm/dlmrecovery.c | 18 +++++++++++++-----
- 1 file changed, 13 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 3365839..79b5af5 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1656,14 +1656,18 @@ int dlm_do_master_requery(struct dlm_ctxt *dlm, struct dlm_lock_resource *res,
- 	req.namelen = res->lockname.len;
- 	memcpy(req.name, res->lockname.name, res->lockname.len);
-
-+resend:
- 	ret = o2net_send_message(DLM_MASTER_REQUERY_MSG, dlm->key,
- 				 &req, sizeof(req), nodenum, &status);
--	/* XXX: negative status not handled properly here. */
- 	if (ret < 0)
- 		mlog(ML_ERROR, "Error %d when sending message %u (key "
- 		     "0x%x) to node %u\n", ret, DLM_MASTER_REQUERY_MSG,
- 		     dlm->key, nodenum);
--	else {
-+	else if (status == -ENOMEM) {
-+		mlog_errno(status);
-+		msleep(50);
-+		goto resend;
-+	} else {
- 		BUG_ON(status < 0);
- 		BUG_ON(status > DLM_LOCK_RES_OWNER_UNKNOWN);
- 		*real_master = (u8) (status & 0xff);
-@@ -1705,9 +1709,13 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
- 			int ret = dlm_dispatch_assert_master(dlm, res,
- 							     0, 0, flags);
- 			if (ret < 0) {
--				mlog_errno(-ENOMEM);
--				/* retry!? */
--				BUG();
-+				mlog_errno(ret);
-+				spin_unlock(&res->spinlock);
-+				dlm_lockres_put(res);
-+				spin_unlock(&dlm->spinlock);
-+				dlm_put(dlm);
-+				/* sender will take care of this and retry */
-+				return ret;
- 			} else
- 				__dlm_lockres_grab_inflight_worker(dlm, res);
- 			spin_unlock(&res->spinlock);
+								Honza
 -- 
-1.8.4.3
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
