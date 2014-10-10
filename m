@@ -1,60 +1,80 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Thu, 09 Oct 2014 20:29:00 -0700
-Subject: [Ocfs2-devel] Ocfs2-devel Digest, Vol 127, Issue 25
-In-Reply-To: <54363EF4.2070901@huawei.com>
-References: <71604351584F6A4EBAE558C676F37CA42EC764A5@H3CMLB14-EX.srv.huawei-3com.com>
-	<54363EF4.2070901@huawei.com>
-Message-ID: <5437527C.2030808@oracle.com>
+From: Jan Kara <jack@suse.cz>
+Date: Fri, 10 Oct 2014 16:23:20 +0200
+Subject: [Ocfs2-devel] [PATCH] ext4: Speedup WB_SYNC_ALL pass
+In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
+References: <1412951028-4085-1-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-16-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-On 10/09/2014 12:53 AM, Joseph Qi wrote:
-> On 2014/10/9 15:16, Guozhonghua wrote:
->> Hi Joseph and Srinivas,
->>
->> We had merged and test the two patches:
->> 1.    ocfs2: o2net: set tcp user timeout to max value
->>           8e9801dfe37c9e68cdbfcd15988df2187191864e
->> 2.    ocfs2: o2net: don't shutdown connection when idle timeout
->>           c43c363def04cdaed0d9e26dae846081f55714e7
->>
->> They are works well as we shut down and up the Ethernet interface manually and intervals to create the scenarios with shell scripts, the issues cat not be recreated.
->> Thanks you for reviews and better advices.
->>
->> There is another question.
->> As the node number rises to 32 or 128 in one cluster, we think the TCP keep alive MSG interval should be make longer from 2 seconds to 10 seconds and the idle timeout value should be 60000ms or 90000ms.
->> We think it can reduce the non-useful keep alive messages and improve the performance of the TCP connection.
->> O2CB_IDLE_TIMEOUT_MS=30000  to  90000
->> O2CB_KEEPALIVE_DELAY_MS=2000  to  10000
->>
-> In my opinion, O2CB_IDLE_TIMEOUT_MS can be changed to suit your scenario.
-> But for O2CB_KEEPALIVE_DELAY_MS, I don't think you have to change it.
-> It will send keepalive packet only if there is no DLM messages between nodes.
->
->> We test the values and the changes works well.
-As Joseph explained they both are tunables, you can run "service o2cb 
-configure" to change values. It falls down to how sensitive your 
-application want to be to detect network problems.
+When doing filesystem wide sync, there's no need to force transaction
+commit (or synchronously write inode buffer) separately for each inode
+because ext4_sync_fs() takes care of forcing commit at the end (VFS
+takes care of flushing buffer cache, respectively). Most of the time
+this slowness doesn't manifest because previous WB_SYNC_NONE writeback
+doesn't leave much to write but when there are processes aggressively
+creating new files and several filesystems to sync, the sync slowness
+can be noticeable. In the following test script sync(1) takes around 6
+minutes when there are two ext4 filesystems mounted on a standard SATA
+drive. After this patch sync takes a couple of seconds so we have about
+two orders of magnitude improvement.
 
-Can you please elaborate on what you meant by "changes works well". How 
-did you test it and what you found ?
+      function run_writers
+      {
+        for (( i = 0; i < 10; i++ )); do
+          mkdir $1/dir$i
+          for (( j = 0; j < 40000; j++ )); do
+            dd if=/dev/zero of=$1/dir$i/$j bs=4k count=4 &>/dev/null
+          done &
+        done
+      }
 
->> Is there any side effect? We are forward your better thoughts about that.
->> Thanks.
->>
->> -------------------------------------------------------------------------------------------------------------------------------------
->> ????????????????????????????????????????
->> ????????????????????????????????????????
->> ????????????????????????????????????????
->> ???
->> This e-mail and its attachments contain confidential information from H3C, which is
->> intended only for the person or entity whose address is listed above. Any use of the
->> information contained herein in any way (including, but not limited to, total or partial
->> disclosure, reproduction, or dissemination) by persons other than the intended
->> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
->> by phone or email immediately and delete it!
->>
->
+      for dir in "$@"; do
+        run_writers $dir
+      done
+
+      sleep 40
+      time sync
+
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ext4/inode.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+index 6e39895a91b8..7850584b0679 100644
+--- a/fs/ext4/inode.c
++++ b/fs/ext4/inode.c
+@@ -4443,7 +4443,12 @@ int ext4_write_inode(struct inode *inode, struct writeback_control *wbc)
+ 			return -EIO;
+ 		}
+ 
+-		if (wbc->sync_mode != WB_SYNC_ALL)
++		/*
++		 * No need to force transaction in WB_SYNC_NONE mode. Also
++		 * ext4_sync_fs() will force the commit after everything is
++		 * written.
++		 */
++		if (wbc->sync_mode != WB_SYNC_ALL || wbc->for_sync)
+ 			return 0;
+ 
+ 		err = ext4_force_commit(inode->i_sb);
+@@ -4453,7 +4458,11 @@ int ext4_write_inode(struct inode *inode, struct writeback_control *wbc)
+ 		err = __ext4_get_inode_loc(inode, &iloc, 0);
+ 		if (err)
+ 			return err;
+-		if (wbc->sync_mode == WB_SYNC_ALL)
++		/*
++		 * sync(2) will flush the whole buffer cache. No need to do
++		 * it here separately for each inode.
++		 */
++		if (wbc->sync_mode == WB_SYNC_ALL && !wbc->for_sync)
+ 			sync_dirty_buffer(iloc.bh);
+ 		if (buffer_req(iloc.bh) && !buffer_uptodate(iloc.bh)) {
+ 			EXT4_ERROR_INODE_BLOCK(inode, iloc.bh->b_blocknr,
+-- 
+1.8.1.4
