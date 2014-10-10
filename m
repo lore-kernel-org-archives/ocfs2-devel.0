@@ -1,76 +1,83 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:55:05 +0200
-Subject: [Ocfs2-devel] [PATCH 07/12] ext3: Convert to private i_dquot field
+Date: Fri, 10 Oct 2014 16:55:09 +0200
+Subject: [Ocfs2-devel] [PATCH 11/12] jfs: Convert to private i_dquot field
 In-Reply-To: <1412952910-7142-1-git-send-email-jack@suse.cz>
 References: <1412952910-7142-1-git-send-email-jack@suse.cz>
-Message-ID: <1412952910-7142-8-git-send-email-jack@suse.cz>
+Message-ID: <1412952910-7142-12-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
 
-CC: linux-ext4 at vger.kernel.org
+CC: Dave Kleikamp <shaggy@kernel.org>
+CC: jfs-discussion at lists.sourceforge.net
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ext3/ext3.h  |  4 ++++
- fs/ext3/super.c | 13 +++++++++++++
- 2 files changed, 17 insertions(+)
+ fs/jfs/jfs_incore.h |  3 +++
+ fs/jfs/super.c      | 13 +++++++++++++
+ 2 files changed, 16 insertions(+)
 
-diff --git a/fs/ext3/ext3.h b/fs/ext3/ext3.h
-index e85ff15a060e..04f30a1f96cb 100644
---- a/fs/ext3/ext3.h
-+++ b/fs/ext3/ext3.h
-@@ -613,6 +613,10 @@ struct ext3_inode_info {
- 	atomic_t i_sync_tid;
- 	atomic_t i_datasync_tid;
- 
+diff --git a/fs/jfs/jfs_incore.h b/fs/jfs/jfs_incore.h
+index cf47f09e8ac8..fa7e795bd8ae 100644
+--- a/fs/jfs/jfs_incore.h
++++ b/fs/jfs/jfs_incore.h
+@@ -94,6 +94,9 @@ struct jfs_inode_info {
+ 			unchar _inline_ea[128];	/* 128: inline extended attr */
+ 		} link;
+ 	} u;
 +#ifdef CONFIG_QUOTA
 +	struct dquot *i_dquot[MAXQUOTAS];
 +#endif
-+
- 	struct inode vfs_inode;
+ 	u32 dev;	/* will die when we get wide dev_t */
+ 	struct inode	vfs_inode;
  };
+diff --git a/fs/jfs/super.c b/fs/jfs/super.c
+index adf8cb045b9e..a13727dd3826 100644
+--- a/fs/jfs/super.c
++++ b/fs/jfs/super.c
+@@ -54,6 +54,7 @@ static struct kmem_cache *jfs_inode_cachep;
  
-diff --git a/fs/ext3/super.c b/fs/ext3/super.c
-index 622e88249024..9e152626ab47 100644
---- a/fs/ext3/super.c
-+++ b/fs/ext3/super.c
-@@ -485,6 +485,10 @@ static struct inode *ext3_alloc_inode(struct super_block *sb)
- 	ei->vfs_inode.i_version = 1;
- 	atomic_set(&ei->i_datasync_tid, 0);
- 	atomic_set(&ei->i_sync_tid, 0);
+ static const struct super_operations jfs_super_operations;
+ static const struct export_operations jfs_export_operations;
++static const int jfs_inode_fields[IF_FIELD_NR];
+ static struct file_system_type jfs_fs_type;
+ 
+ #define MAX_COMMIT_THREADS 64
+@@ -117,6 +118,9 @@ static struct inode *jfs_alloc_inode(struct super_block *sb)
+ 	jfs_inode = kmem_cache_alloc(jfs_inode_cachep, GFP_NOFS);
+ 	if (!jfs_inode)
+ 		return NULL;
 +#ifdef CONFIG_QUOTA
-+	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
++	memset(&jfs_inode->i_dquot, 0, sizeof(jfs_inode->i_dquot));
 +#endif
-+
- 	return &ei->vfs_inode;
+ 	return &jfs_inode->vfs_inode;
  }
  
-@@ -807,6 +811,13 @@ static const struct super_operations ext3_sops = {
- 	.bdev_try_to_free_page = bdev_try_to_free_page,
+@@ -537,7 +541,9 @@ static int jfs_fill_super(struct super_block *sb, void *data, int silent)
+ #ifdef CONFIG_QUOTA
+ 	sb->dq_op = &dquot_operations;
+ 	sb->s_qcop = &dquot_quotactl_ops;
++	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
+ #endif
++	sb_init_inode_fields(sb, jfs_inode_fields);
+ 
+ 	/*
+ 	 * Initialize direct-mapping inode/address-space
+@@ -857,6 +863,13 @@ static const struct super_operations jfs_super_operations = {
+ #endif
  };
  
-+static const int ext3_inode_fields[IF_FIELD_NR] = {
++static const int jfs_inode_fields[IF_FIELD_NR] = {
 +#ifdef CONFIG_QUOTA
-+	[IF_DQUOTS] = (int)offsetof(struct ext3_inode_info, i_dquot) -
-+		      (int)offsetof(struct ext3_inode_info, vfs_inode),
++	[IF_DQUOTS] = (int)offsetof(struct jfs_inode_info, i_dquot) -
++		      (int)offsetof(struct jfs_inode_info, vfs_inode),
 +#endif
 +};
 +
- static const struct export_operations ext3_export_ops = {
- 	.fh_to_dentry = ext3_fh_to_dentry,
- 	.fh_to_parent = ext3_fh_to_parent,
-@@ -2008,7 +2019,9 @@ static int ext3_fill_super (struct super_block *sb, void *data, int silent)
- #ifdef CONFIG_QUOTA
- 	sb->s_qcop = &ext3_qctl_operations;
- 	sb->dq_op = &ext3_quota_operations;
-+	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
- #endif
-+	sb_init_inode_fields(sb, ext3_inode_fields);
- 	memcpy(sb->s_uuid, es->s_uuid, sizeof(es->s_uuid));
- 	INIT_LIST_HEAD(&sbi->s_orphan); /* unlinked but open files */
- 	mutex_init(&sbi->s_orphan_lock);
+ static const struct export_operations jfs_export_operations = {
+ 	.fh_to_dentry	= jfs_fh_to_dentry,
+ 	.fh_to_parent	= jfs_fh_to_parent,
 -- 
 1.8.1.4
