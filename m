@@ -1,255 +1,169 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:35 +0200
-Subject: [Ocfs2-devel] [PATCH] timer: Fix lock inversion between
-	hrtimer_bases.lock and scheduler locks
+Date: Fri, 10 Oct 2014 16:23:10 +0200
+Subject: [Ocfs2-devel] [PATCH] block: strict rq_affinity
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-31-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-6-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: Roland Dreier <roland@purestorage.com>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Christoph Hellwig <hch@infradead.org>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jens Axboe <jaxboe@fusionio.com>, Dan Williams <dan.j.williams@intel.com>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-clockevents_increase_min_delta() calls printk() from under
-hrtimer_bases.lock. That causes lock inversion on scheduler locks because
-printk() can call into the scheduler. Lockdep puts it as:
+From: Dan Williams <dan.j.williams@intel.com>
 
-======================================================
-[ INFO: possible circular locking dependency detected ]
-3.15.0-rc8-06195-g939f04b #2 Not tainted
--------------------------------------------------------
-trinity-main/74 is trying to acquire lock:
- (&port_lock_key){-.....}, at: [<811c60be>] serial8250_console_write+0x8c/0x10c
+Some systems benefit from completions always being steered to the strict
+requester cpu rather than the looser "per-socket" steering that
+blk_cpu_to_group() attempts by default. This is because the first
+CPU in the group mask ends up being completely overloaded with work,
+while the others (including the original submitter) has power left
+to spare.
 
-but task is already holding lock:
- (hrtimer_bases.lock){-.-...}, at: [<8103caeb>] hrtimer_try_to_cancel+0x13/0x66
+Allow the strict mode to be set by writing '2' to the sysfs control
+file. This is identical to the scheme used for the nomerges file,
+where '2' is a more aggressive setting than just being turned on.
 
-which lock already depends on the new lock.
+echo 2 > /sys/block/<bdev>/queue/rq_affinity
 
-the existing dependency chain (in reverse order) is:
-
--> #5 (hrtimer_bases.lock){-.-...}:
-       [<8104a942>] lock_acquire+0x92/0x101
-       [<8142f11d>] _raw_spin_lock_irqsave+0x2e/0x3e
-       [<8103c918>] __hrtimer_start_range_ns+0x1c/0x197
-       [<8107ec20>] perf_swevent_start_hrtimer.part.41+0x7a/0x85
-       [<81080792>] task_clock_event_start+0x3a/0x3f
-       [<810807a4>] task_clock_event_add+0xd/0x14
-       [<8108259a>] event_sched_in+0xb6/0x17a
-       [<810826a2>] group_sched_in+0x44/0x122
-       [<81082885>] ctx_sched_in.isra.67+0x105/0x11f
-       [<810828e6>] perf_event_sched_in.isra.70+0x47/0x4b
-       [<81082bf6>] __perf_install_in_context+0x8b/0xa3
-       [<8107eb8e>] remote_function+0x12/0x2a
-       [<8105f5af>] smp_call_function_single+0x2d/0x53
-       [<8107e17d>] task_function_call+0x30/0x36
-       [<8107fb82>] perf_install_in_context+0x87/0xbb
-       [<810852c9>] SYSC_perf_event_open+0x5c6/0x701
-       [<810856f9>] SyS_perf_event_open+0x17/0x19
-       [<8142f8ee>] syscall_call+0x7/0xb
-
--> #4 (&ctx->lock){......}:
-       [<8104a942>] lock_acquire+0x92/0x101
-       [<8142f04c>] _raw_spin_lock+0x21/0x30
-       [<81081df3>] __perf_event_task_sched_out+0x1dc/0x34f
-       [<8142cacc>] __schedule+0x4c6/0x4cb
-       [<8142cae0>] schedule+0xf/0x11
-       [<8142f9a6>] work_resched+0x5/0x30
-
--> #3 (&rq->lock){-.-.-.}:
-       [<8104a942>] lock_acquire+0x92/0x101
-       [<8142f04c>] _raw_spin_lock+0x21/0x30
-       [<81040873>] __task_rq_lock+0x33/0x3a
-       [<8104184c>] wake_up_new_task+0x25/0xc2
-       [<8102474b>] do_fork+0x15c/0x2a0
-       [<810248a9>] kernel_thread+0x1a/0x1f
-       [<814232a2>] rest_init+0x1a/0x10e
-       [<817af949>] start_kernel+0x303/0x308
-       [<817af2ab>] i386_start_kernel+0x79/0x7d
-
--> #2 (&p->pi_lock){-.-...}:
-       [<8104a942>] lock_acquire+0x92/0x101
-       [<8142f11d>] _raw_spin_lock_irqsave+0x2e/0x3e
-       [<810413dd>] try_to_wake_up+0x1d/0xd6
-       [<810414cd>] default_wake_function+0xb/0xd
-       [<810461f3>] __wake_up_common+0x39/0x59
-       [<81046346>] __wake_up+0x29/0x3b
-       [<811b8733>] tty_wakeup+0x49/0x51
-       [<811c3568>] uart_write_wakeup+0x17/0x19
-       [<811c5dc1>] serial8250_tx_chars+0xbc/0xfb
-       [<811c5f28>] serial8250_handle_irq+0x54/0x6a
-       [<811c5f57>] serial8250_default_handle_irq+0x19/0x1c
-       [<811c56d8>] serial8250_interrupt+0x38/0x9e
-       [<810510e7>] handle_irq_event_percpu+0x5f/0x1e2
-       [<81051296>] handle_irq_event+0x2c/0x43
-       [<81052cee>] handle_level_irq+0x57/0x80
-       [<81002a72>] handle_irq+0x46/0x5c
-       [<810027df>] do_IRQ+0x32/0x89
-       [<8143036e>] common_interrupt+0x2e/0x33
-       [<8142f23c>] _raw_spin_unlock_irqrestore+0x3f/0x49
-       [<811c25a4>] uart_start+0x2d/0x32
-       [<811c2c04>] uart_write+0xc7/0xd6
-       [<811bc6f6>] n_tty_write+0xb8/0x35e
-       [<811b9beb>] tty_write+0x163/0x1e4
-       [<811b9cd9>] redirected_tty_write+0x6d/0x75
-       [<810b6ed6>] vfs_write+0x75/0xb0
-       [<810b7265>] SyS_write+0x44/0x77
-       [<8142f8ee>] syscall_call+0x7/0xb
-
--> #1 (&tty->write_wait){-.....}:
-       [<8104a942>] lock_acquire+0x92/0x101
-       [<8142f11d>] _raw_spin_lock_irqsave+0x2e/0x3e
-       [<81046332>] __wake_up+0x15/0x3b
-       [<811b8733>] tty_wakeup+0x49/0x51
-       [<811c3568>] uart_write_wakeup+0x17/0x19
-       [<811c5dc1>] serial8250_tx_chars+0xbc/0xfb
-       [<811c5f28>] serial8250_handle_irq+0x54/0x6a
-       [<811c5f57>] serial8250_default_handle_irq+0x19/0x1c
-       [<811c56d8>] serial8250_interrupt+0x38/0x9e
-       [<810510e7>] handle_irq_event_percpu+0x5f/0x1e2
-       [<81051296>] handle_irq_event+0x2c/0x43
-       [<81052cee>] handle_level_irq+0x57/0x80
-       [<81002a72>] handle_irq+0x46/0x5c
-       [<810027df>] do_IRQ+0x32/0x89
-       [<8143036e>] common_interrupt+0x2e/0x33
-       [<8142f23c>] _raw_spin_unlock_irqrestore+0x3f/0x49
-       [<811c25a4>] uart_start+0x2d/0x32
-       [<811c2c04>] uart_write+0xc7/0xd6
-       [<811bc6f6>] n_tty_write+0xb8/0x35e
-       [<811b9beb>] tty_write+0x163/0x1e4
-       [<811b9cd9>] redirected_tty_write+0x6d/0x75
-       [<810b6ed6>] vfs_write+0x75/0xb0
-       [<810b7265>] SyS_write+0x44/0x77
-       [<8142f8ee>] syscall_call+0x7/0xb
-
--> #0 (&port_lock_key){-.....}:
-       [<8104a62d>] __lock_acquire+0x9ea/0xc6d
-       [<8104a942>] lock_acquire+0x92/0x101
-       [<8142f11d>] _raw_spin_lock_irqsave+0x2e/0x3e
-       [<811c60be>] serial8250_console_write+0x8c/0x10c
-       [<8104e402>] call_console_drivers.constprop.31+0x87/0x118
-       [<8104f5d5>] console_unlock+0x1d7/0x398
-       [<8104fb70>] vprintk_emit+0x3da/0x3e4
-       [<81425f76>] printk+0x17/0x19
-       [<8105bfa0>] clockevents_program_min_delta+0x104/0x116
-       [<8105c548>] clockevents_program_event+0xe7/0xf3
-       [<8105cc1c>] tick_program_event+0x1e/0x23
-       [<8103c43c>] hrtimer_force_reprogram+0x88/0x8f
-       [<8103c49e>] __remove_hrtimer+0x5b/0x79
-       [<8103cb21>] hrtimer_try_to_cancel+0x49/0x66
-       [<8103cb4b>] hrtimer_cancel+0xd/0x18
-       [<8107f102>] perf_swevent_cancel_hrtimer.part.60+0x2b/0x30
-       [<81080705>] task_clock_event_stop+0x20/0x64
-       [<81080756>] task_clock_event_del+0xd/0xf
-       [<81081350>] event_sched_out+0xab/0x11e
-       [<810813e0>] group_sched_out+0x1d/0x66
-       [<81081682>] ctx_sched_out+0xaf/0xbf
-       [<81081e04>] __perf_event_task_sched_out+0x1ed/0x34f
-       [<8142cacc>] __schedule+0x4c6/0x4cb
-       [<8142cae0>] schedule+0xf/0x11
-       [<8142f9a6>] work_resched+0x5/0x30
-
-other info that might help us debug this:
-
-Chain exists of:
-  &port_lock_key --> &ctx->lock --> hrtimer_bases.lock
-
- Possible unsafe locking scenario:
-
-       CPU0                    CPU1
-       ----                    ----
-  lock(hrtimer_bases.lock);
-                               lock(&ctx->lock);
-                               lock(hrtimer_bases.lock);
-  lock(&port_lock_key);
-
- *** DEADLOCK ***
-
-4 locks held by trinity-main/74:
- #0:  (&rq->lock){-.-.-.}, at: [<8142c6f3>] __schedule+0xed/0x4cb
- #1:  (&ctx->lock){......}, at: [<81081df3>] __perf_event_task_sched_out+0x1dc/0x34f
- #2:  (hrtimer_bases.lock){-.-...}, at: [<8103caeb>] hrtimer_try_to_cancel+0x13/0x66
- #3:  (console_lock){+.+...}, at: [<8104fb5d>] vprintk_emit+0x3c7/0x3e4
-
-stack backtrace:
-CPU: 0 PID: 74 Comm: trinity-main Not tainted 3.15.0-rc8-06195-g939f04b #2
- 00000000 81c3a310 8b995c14 81426f69 8b995c44 81425a99 8161f671 8161f570
- 8161f538 8161f559 8161f538 8b995c78 8b142bb0 00000004 8b142fdc 8b142bb0
- 8b995ca8 8104a62d 8b142fac 000016f2 81c3a310 00000001 00000001 00000003
-Call Trace:
- [<81426f69>] dump_stack+0x16/0x18
- [<81425a99>] print_circular_bug+0x18f/0x19c
- [<8104a62d>] __lock_acquire+0x9ea/0xc6d
- [<8104a942>] lock_acquire+0x92/0x101
- [<811c60be>] ? serial8250_console_write+0x8c/0x10c
- [<811c6032>] ? wait_for_xmitr+0x76/0x76
- [<8142f11d>] _raw_spin_lock_irqsave+0x2e/0x3e
- [<811c60be>] ? serial8250_console_write+0x8c/0x10c
- [<811c60be>] serial8250_console_write+0x8c/0x10c
- [<8104af87>] ? lock_release+0x191/0x223
- [<811c6032>] ? wait_for_xmitr+0x76/0x76
- [<8104e402>] call_console_drivers.constprop.31+0x87/0x118
- [<8104f5d5>] console_unlock+0x1d7/0x398
- [<8104fb70>] vprintk_emit+0x3da/0x3e4
- [<81425f76>] printk+0x17/0x19
- [<8105bfa0>] clockevents_program_min_delta+0x104/0x116
- [<8105cc1c>] tick_program_event+0x1e/0x23
- [<8103c43c>] hrtimer_force_reprogram+0x88/0x8f
- [<8103c49e>] __remove_hrtimer+0x5b/0x79
- [<8103cb21>] hrtimer_try_to_cancel+0x49/0x66
- [<8103cb4b>] hrtimer_cancel+0xd/0x18
- [<8107f102>] perf_swevent_cancel_hrtimer.part.60+0x2b/0x30
- [<81080705>] task_clock_event_stop+0x20/0x64
- [<81080756>] task_clock_event_del+0xd/0xf
- [<81081350>] event_sched_out+0xab/0x11e
- [<810813e0>] group_sched_out+0x1d/0x66
- [<81081682>] ctx_sched_out+0xaf/0xbf
- [<81081e04>] __perf_event_task_sched_out+0x1ed/0x34f
- [<8104416d>] ? __dequeue_entity+0x23/0x27
- [<81044505>] ? pick_next_task_fair+0xb1/0x120
- [<8142cacc>] __schedule+0x4c6/0x4cb
- [<81047574>] ? trace_hardirqs_off_caller+0xd7/0x108
- [<810475b0>] ? trace_hardirqs_off+0xb/0xd
- [<81056346>] ? rcu_irq_exit+0x64/0x77
-
-Fix the problem by using printk_deferred() which does not call into the
-scheduler.
-
-Reported-by: Fengguang Wu <fengguang.wu@intel.com>
-Signed-off-by: Jan Kara <jack@suse.cz>
+Cc: Christoph Hellwig <hch@infradead.org>
+Cc: Roland Dreier <roland@purestorage.com>
+Tested-by: Dave Jiang <dave.jiang@intel.com>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Signed-off-by: Jens Axboe <jaxboe@fusionio.com>
 ---
- kernel/time/clockevents.c | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ Documentation/block/queue-sysfs.txt | 10 +++++++---
+ block/blk-core.c                    |  6 ++----
+ block/blk-softirq.c                 | 11 +++++++----
+ block/blk-sysfs.c                   | 13 +++++++++----
+ include/linux/blkdev.h              |  3 ++-
+ 5 files changed, 27 insertions(+), 16 deletions(-)
 
-diff --git a/kernel/time/clockevents.c b/kernel/time/clockevents.c
-index ad362c260ef4..9c94c19f1305 100644
---- a/kernel/time/clockevents.c
-+++ b/kernel/time/clockevents.c
-@@ -146,7 +146,8 @@ static int clockevents_increase_min_delta(struct clock_event_device *dev)
- {
- 	/* Nothing to do if we already reached the limit */
- 	if (dev->min_delta_ns >= MIN_DELTA_LIMIT) {
--		printk(KERN_WARNING "CE: Reprogramming failure. Giving up\n");
-+		printk_deferred(KERN_WARNING
-+				"CE: Reprogramming failure. Giving up\n");
- 		dev->next_event.tv64 = KTIME_MAX;
- 		return -ETIME;
- 	}
-@@ -159,9 +160,10 @@ static int clockevents_increase_min_delta(struct clock_event_device *dev)
- 	if (dev->min_delta_ns > MIN_DELTA_LIMIT)
- 		dev->min_delta_ns = MIN_DELTA_LIMIT;
+diff --git a/Documentation/block/queue-sysfs.txt b/Documentation/block/queue-sysfs.txt
+index f65274081c8d..d8147b336c35 100644
+--- a/Documentation/block/queue-sysfs.txt
++++ b/Documentation/block/queue-sysfs.txt
+@@ -45,9 +45,13 @@ device.
  
--	printk(KERN_WARNING "CE: %s increased min_delta_ns to %llu nsec\n",
--	       dev->name ? dev->name : "?",
--	       (unsigned long long) dev->min_delta_ns);
-+	printk_deferred(KERN_WARNING
-+			"CE: %s increased min_delta_ns to %llu nsec\n",
-+			dev->name ? dev->name : "?",
-+			(unsigned long long) dev->min_delta_ns);
- 	return 0;
+ rq_affinity (RW)
+ ----------------
+-If this option is enabled, the block layer will migrate request completions
+-to the CPU that originally submitted the request. For some workloads
+-this provides a significant reduction in CPU cycles due to caching effects.
++If this option is '1', the block layer will migrate request completions to the
++cpu "group" that originally submitted the request. For some workloads this
++provides a significant reduction in CPU cycles due to caching effects.
++
++For storage configurations that need to maximize distribution of completion
++processing setting this option to '2' forces the completion to run on the
++requesting cpu (bypassing the "group" aggregation logic).
+ 
+ scheduler (RW)
+ --------------
+diff --git a/block/blk-core.c b/block/blk-core.c
+index a56485292062..b3228255304d 100644
+--- a/block/blk-core.c
++++ b/block/blk-core.c
+@@ -1279,10 +1279,8 @@ get_rq:
+ 	init_request_from_bio(req, bio);
+ 
+ 	if (test_bit(QUEUE_FLAG_SAME_COMP, &q->queue_flags) ||
+-	    bio_flagged(bio, BIO_CPU_AFFINE)) {
+-		req->cpu = blk_cpu_to_group(get_cpu());
+-		put_cpu();
+-	}
++	    bio_flagged(bio, BIO_CPU_AFFINE))
++		req->cpu = smp_processor_id();
+ 
+ 	plug = current->plug;
+ 	if (plug) {
+diff --git a/block/blk-softirq.c b/block/blk-softirq.c
+index ee9c21602228..475fab809a80 100644
+--- a/block/blk-softirq.c
++++ b/block/blk-softirq.c
+@@ -103,22 +103,25 @@ static struct notifier_block __cpuinitdata blk_cpu_notifier = {
+ 
+ void __blk_complete_request(struct request *req)
+ {
++	int ccpu, cpu, group_cpu = NR_CPUS;
+ 	struct request_queue *q = req->q;
+ 	unsigned long flags;
+-	int ccpu, cpu, group_cpu;
+ 
+ 	BUG_ON(!q->softirq_done_fn);
+ 
+ 	local_irq_save(flags);
+ 	cpu = smp_processor_id();
+-	group_cpu = blk_cpu_to_group(cpu);
+ 
+ 	/*
+ 	 * Select completion CPU
+ 	 */
+-	if (test_bit(QUEUE_FLAG_SAME_COMP, &q->queue_flags) && req->cpu != -1)
++	if (test_bit(QUEUE_FLAG_SAME_COMP, &q->queue_flags) && req->cpu != -1) {
+ 		ccpu = req->cpu;
+-	else
++		if (!test_bit(QUEUE_FLAG_SAME_FORCE, &q->queue_flags)) {
++			ccpu = blk_cpu_to_group(ccpu);
++			group_cpu = blk_cpu_to_group(cpu);
++		}
++	} else
+ 		ccpu = cpu;
+ 
+ 	if (ccpu == cpu || ccpu == group_cpu) {
+diff --git a/block/blk-sysfs.c b/block/blk-sysfs.c
+index d935bd859c87..0ee17b5e7fb6 100644
+--- a/block/blk-sysfs.c
++++ b/block/blk-sysfs.c
+@@ -244,8 +244,9 @@ static ssize_t queue_nomerges_store(struct request_queue *q, const char *page,
+ static ssize_t queue_rq_affinity_show(struct request_queue *q, char *page)
+ {
+ 	bool set = test_bit(QUEUE_FLAG_SAME_COMP, &q->queue_flags);
++	bool force = test_bit(QUEUE_FLAG_SAME_FORCE, &q->queue_flags);
+ 
+-	return queue_var_show(set, page);
++	return queue_var_show(set << force, page);
  }
  
+ static ssize_t
+@@ -257,10 +258,14 @@ queue_rq_affinity_store(struct request_queue *q, const char *page, size_t count)
+ 
+ 	ret = queue_var_store(&val, page, count);
+ 	spin_lock_irq(q->queue_lock);
+-	if (val)
++	if (val) {
+ 		queue_flag_set(QUEUE_FLAG_SAME_COMP, q);
+-	else
+-		queue_flag_clear(QUEUE_FLAG_SAME_COMP,  q);
++		if (val == 2)
++			queue_flag_set(QUEUE_FLAG_SAME_FORCE, q);
++	} else {
++		queue_flag_clear(QUEUE_FLAG_SAME_COMP, q);
++		queue_flag_clear(QUEUE_FLAG_SAME_FORCE, q);
++	}
+ 	spin_unlock_irq(q->queue_lock);
+ #endif
+ 	return ret;
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index c0cd9a2f22ef..0e67c45b3bc9 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -392,7 +392,7 @@ struct request_queue {
+ #define QUEUE_FLAG_ELVSWITCH	6	/* don't use elevator, just do FIFO */
+ #define QUEUE_FLAG_BIDI		7	/* queue supports bidi requests */
+ #define QUEUE_FLAG_NOMERGES     8	/* disable merge attempts */
+-#define QUEUE_FLAG_SAME_COMP	9	/* force complete on same CPU */
++#define QUEUE_FLAG_SAME_COMP	9	/* complete on same CPU-group */
+ #define QUEUE_FLAG_FAIL_IO     10	/* fake timeout */
+ #define QUEUE_FLAG_STACKABLE   11	/* supports request stacking */
+ #define QUEUE_FLAG_NONROT      12	/* non-rotational device (SSD) */
+@@ -402,6 +402,7 @@ struct request_queue {
+ #define QUEUE_FLAG_NOXMERGES   15	/* No extended merges */
+ #define QUEUE_FLAG_ADD_RANDOM  16	/* Contributes to random pool */
+ #define QUEUE_FLAG_SECDISCARD  17	/* supports SECDISCARD */
++#define QUEUE_FLAG_SAME_FORCE  18	/* force complete on same CPU */
+ 
+ #define QUEUE_FLAG_DEFAULT	((1 << QUEUE_FLAG_IO_STAT) |		\
+ 				 (1 << QUEUE_FLAG_STACKABLE)	|	\
 -- 
 1.8.1.4
