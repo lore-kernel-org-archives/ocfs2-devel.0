@@ -1,47 +1,90 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:26 +0200
-Subject: [Ocfs2-devel] [PATCH] mm: Fixup pagecache_isize_extended()
-	definitions for !CONFIG_MMU
+Date: Fri, 10 Oct 2014 16:23:41 +0200
+Subject: [Ocfs2-devel] [PATCH] writeback: plug writeback at a high level
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-22-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-37-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Dave Chinner <dchinner@redhat.com>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-For !CONFIG_MMU systems we defined pagecache_isize_extended() in both
-include/linux/mm.h and mm/truncate.c which causes compilation error.
-Although pagecache_isize_extended() doesn't do anything useful for
-!CONFIG_MMU systems, it could do something in future and it's overhead
-isn't huge. So don't try to be too smart and remove !CONFIG_MMU
-definition of pagecache_isize_extended().
+From: Dave Chinner <dchinner@redhat.com>
 
+tl;dr: 3 lines of code, 86% better fsmark thoughput consuming 13%
+less CPU and 43% lower runtime.
+
+Doing writeback on lots of little files causes terrible IOPS storms
+because of the per-mapping writeback plugging we do. This
+essentially causes imeediate dispatch of IO for each mapping,
+regardless of the context in which writeback is occurring.
+
+IOWs, running a concurrent write-lots-of-small 4k files using fsmark
+on XFS results in a huge number of IOPS being issued for data
+writes.  Metadata writes are sorted and plugged at a high level by
+XFS, so aggregate nicely into large IOs.
+
+However, data writeback IOs are dispatched in individual 4k IOs -
+even when the blocks of two consecutively written files are
+adjacent - because the underlying block device is fast enough not to
+congest on such IO. This behaviour is not SSD related - anything
+with hardware caches is going to see the same benefits as the IO
+rates are limited only by how fast adjacent IOs can be sent to the
+hardware caches for aggregation.
+
+Hence the speed of the physical device is irrelevant to this common
+writeback workload (happens every time you untar a tarball!) -
+performance is limited by the overhead of dispatching individual
+IOs from a single writeback thread.
+
+Test VM: 16p, 16GB RAM, 2xSSD in RAID0, 500TB sparse XFS filesystem,
+metadata CRCs enabled.
+
+Test:
+
+$ ./fs_mark  -D  10000  -S0  -n  10000  -s  4096  -L  120  -d
+/mnt/scratch/0  -d  /mnt/scratch/1  -d  /mnt/scratch/2  -d
+/mnt/scratch/3  -d  /mnt/scratch/4  -d  /mnt/scratch/5  -d
+/mnt/scratch/6  -d  /mnt/scratch/7
+
+Result:
+		wall	sys	create rate	Physical write IO
+		time	CPU	(avg files/s)	 IOPS	Bandwidth
+		-----	-----	-------------	------	---------
+unpatched	5m54s	15m32s	32,500+/-2200	28,000	150MB/s
+patched		3m19s	13m28s	52,900+/-1800	 1,500	280MB/s
+improvement	-43.8%	-13.3%	  +62.7%	-94.6%	+86.6%
+
+Signed-off-by: Dave Chinner <dchinner@redhat.com>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- include/linux/mm.h | 7 -------
- 1 file changed, 7 deletions(-)
+ fs/fs-writeback.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index f0e53e5a3b17..5005464fe012 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1155,14 +1155,7 @@ static inline void unmap_shared_mapping_range(struct address_space *mapping,
+diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
+index 279292ba9403..d935fd3796ba 100644
+--- a/fs/fs-writeback.c
++++ b/fs/fs-writeback.c
+@@ -599,6 +599,9 @@ static long generic_writeback_inodes(struct wb_writeback_work *work)
+ 	unsigned long end_time = jiffies + HZ / 10;
+ 	long write_chunk;
+ 	long wrote = 0;  /* count both pages and inodes */
++	struct blk_plug plug;
++
++	blk_start_plug(&plug);
  
- extern void truncate_pagecache(struct inode *inode, loff_t new);
- extern void truncate_setsize(struct inode *inode, loff_t newsize);
--#ifdef CONFIG_MMU
- void pagecache_isize_extended(struct inode *inode, loff_t from, loff_t to);
--#else
--static inline void pagecache_isize_extended(struct inode *inode, loff_t from,
--					    loff_t to)
--{
--}
--#endif
- void truncate_pagecache_range(struct inode *inode, loff_t offset, loff_t end);
- int truncate_inode_page(struct address_space *mapping, struct page *page);
- int generic_error_remove_page(struct address_space *mapping, struct page *page);
+ 	spin_lock(&wb->list_lock);
+ 	while (1) {
+@@ -688,6 +691,8 @@ static long generic_writeback_inodes(struct wb_writeback_work *work)
+ out:
+ 	spin_unlock(&wb->list_lock);
+ 
++	blk_finish_plug(&plug);
++
+ 	return wrote;
+ }
+ 
 -- 
 1.8.1.4
