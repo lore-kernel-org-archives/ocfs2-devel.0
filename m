@@ -1,98 +1,124 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:11 +0200
-Subject: [Ocfs2-devel] [PATCH] ext3: Fix deadlock in data=journal mode when
-	fs is frozen
+Date: Fri, 10 Oct 2014 16:23:34 +0200
+Subject: [Ocfs2-devel] [PATCH] sync: don't block the flusher thread waiting
+	on IO
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-7-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-30-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Dave Chinner <dchinner@redhat.com>, linux-ext4@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-When ext3 is used in data=journal mode, syncing filesystem makes sure
-all the data is committed in the journal but the data doesn't have to be
-checkpointed. ext3_freeze() then takes care of checkpointing all the
-data so all buffer heads are clean but pages can still have dangling
-dirty bits. So when flusher thread comes later when filesystem is
-frozen, it tries to write back dirty pages, ext3_journalled_writepage()
-tries to start a transaction and hangs waiting for frozen fs causing a
-deadlock because a holder of s_umount semaphore may be waiting for
-flusher thread to complete.
+From: Dave Chinner <dchinner@redhat.com>
 
-The fix is luckily relatively easy. We don't have to start a transaction
-in ext3_journalled_writepage() when a page is just dirty (and doesn't
-have PageChecked set) because in that case all buffers should be already
-mapped (mapping must happen before writing a buffer to the journal) and
-it is enough to write them out. This optimization also solves the deadlock
-because block_write_full_page() will just find out there's no buffer to
-write and do nothing.
+When sync does it's WB_SYNC_ALL writeback, it issues data Io and
+then immediately waits for IO completion. This is done in the
+context of the flusher thread, and hence completely ties up the
+flusher thread for the backing device until all the dirty inodes
+have been synced. On filesystems that are dirtying inodes constantly
+and quickly, this means the flusher thread can be tied up for
+minutes per sync call and hence badly affect system level write IO
+performance as the page cache cannot be cleaned quickly.
 
-Signed-off-by: Jan Kara <jack@suse.cz>
+We already have a wait loop for IO completion for sync(2), so cut
+this out of the flusher thread and delegate it to wait_sb_inodes().
+Hence we can do rapid IO submission, and then wait for it all to
+complete.
+
+Effect of sync on fsmark before the patch:
+
+FSUse%        Count         Size    Files/sec     App Overhead
+.....
+     0       640000         4096      35154.6          1026984
+     0       720000         4096      36740.3          1023844
+     0       800000         4096      36184.6           916599
+     0       880000         4096       1282.7          1054367
+     0       960000         4096       3951.3           918773
+     0      1040000         4096      40646.2           996448
+     0      1120000         4096      43610.1           895647
+     0      1200000         4096      40333.1           921048
+
+And a single sync pass took:
+
+  real    0m52.407s
+  user    0m0.000s
+  sys     0m0.090s
+
+After the patch, there is no impact on fsmark results, and each
+individual sync(2) operation run concurrently with the same fsmark
+workload takes roughly 7s:
+
+  real    0m6.930s
+  user    0m0.000s
+  sys     0m0.039s
+
+IOWs, sync is 7-8x faster on a busy filesystem and does not have an
+adverse impact on ongoing async data write operations.
+
+Signed-off-by: Dave Chinner <dchinner@redhat.com>
+Reviewed-by: Jan Kara <jack@suse.cz>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 ---
- fs/ext3/inode.c | 33 +++++++++++++++++----------------
- 1 file changed, 17 insertions(+), 16 deletions(-)
+ fs/fs-writeback.c         | 9 +++++++--
+ include/linux/writeback.h | 1 +
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
-  JFYI: I've added this patch to my tree.
-
-diff --git a/fs/ext3/inode.c b/fs/ext3/inode.c
-index f5157d0d1b43..695abe738a24 100644
---- a/fs/ext3/inode.c
-+++ b/fs/ext3/inode.c
-@@ -1716,17 +1716,17 @@ static int ext3_journalled_writepage(struct page *page,
- 	WARN_ON_ONCE(IS_RDONLY(inode) &&
- 		     !(EXT3_SB(inode->i_sb)->s_mount_state & EXT3_ERROR_FS));
+diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
+index 3be57189efd5..a85ac4e33436 100644
+--- a/fs/fs-writeback.c
++++ b/fs/fs-writeback.c
+@@ -45,6 +45,7 @@ struct wb_writeback_work {
+ 	unsigned int for_kupdate:1;
+ 	unsigned int range_cyclic:1;
+ 	unsigned int for_background:1;
++	unsigned int for_sync:1;	/* sync(2) WB_SYNC_ALL writeback */
+ 	enum wb_reason reason;		/* why was writeback initiated? */
  
--	if (ext3_journal_current_handle())
--		goto no_write;
--
- 	trace_ext3_journalled_writepage(page);
--	handle = ext3_journal_start(inode, ext3_writepage_trans_blocks(inode));
--	if (IS_ERR(handle)) {
--		ret = PTR_ERR(handle);
--		goto no_write;
--	}
--
- 	if (!page_has_buffers(page) || PageChecked(page)) {
-+		if (ext3_journal_current_handle())
-+			goto no_write;
-+
-+		handle = ext3_journal_start(inode,
-+					    ext3_writepage_trans_blocks(inode));
-+		if (IS_ERR(handle)) {
-+			ret = PTR_ERR(handle);
-+			goto no_write;
-+		}
- 		/*
- 		 * It's mmapped pagecache.  Add buffers and journal it.  There
- 		 * doesn't seem much point in redirtying the page here.
-@@ -1749,17 +1749,18 @@ static int ext3_journalled_writepage(struct page *page,
- 		atomic_set(&EXT3_I(inode)->i_datasync_tid,
- 			   handle->h_transaction->t_tid);
- 		unlock_page(page);
-+		err = ext3_journal_stop(handle);
-+		if (!ret)
-+			ret = err;
- 	} else {
- 		/*
--		 * It may be a page full of checkpoint-mode buffers.  We don't
--		 * really know unless we go poke around in the buffer_heads.
--		 * But block_write_full_page will do the right thing.
-+		 * It is a page full of checkpoint-mode buffers. Go and write
-+		 * them. They should have been already mapped when they went
-+		 * to the journal so provide NULL get_block function to catch
-+		 * errors.
- 		 */
--		ret = block_write_full_page(page, ext3_get_block, wbc);
-+		ret = block_write_full_page(page, NULL, wbc);
- 	}
--	err = ext3_journal_stop(handle);
--	if (!ret)
--		ret = err;
- out:
- 	return ret;
+ 	struct list_head list;		/* pending work list */
+@@ -443,9 +444,11 @@ __writeback_single_inode(struct inode *inode, struct writeback_control *wbc)
+ 	/*
+ 	 * Make sure to wait on the data before writing out the metadata.
+ 	 * This is important for filesystems that modify metadata on data
+-	 * I/O completion.
++	 * I/O completion. We don't do it for sync(2) writeback because it has a
++	 * separate, external IO completion path and ->sync_fs for guaranteeing
++	 * inode metadata is written back correctly.
+ 	 */
+-	if (wbc->sync_mode == WB_SYNC_ALL) {
++	if (wbc->sync_mode == WB_SYNC_ALL && !wbc->for_sync) {
+ 		int err = filemap_fdatawait(mapping);
+ 		if (ret == 0)
+ 			ret = err;
+@@ -578,6 +581,7 @@ static long writeback_sb_inodes(struct super_block *sb,
+ 		.tagged_writepages	= work->tagged_writepages,
+ 		.for_kupdate		= work->for_kupdate,
+ 		.for_background		= work->for_background,
++		.for_sync		= work->for_sync,
+ 		.range_cyclic		= work->range_cyclic,
+ 		.range_start		= 0,
+ 		.range_end		= LLONG_MAX,
+@@ -1362,6 +1366,7 @@ void sync_inodes_sb(struct super_block *sb)
+ 		.range_cyclic	= 0,
+ 		.done		= &done,
+ 		.reason		= WB_REASON_SYNC,
++		.for_sync	= 1,
+ 	};
  
+ 	/* Nothing to do? */
+diff --git a/include/linux/writeback.h b/include/linux/writeback.h
+index 579a5007c696..abfe11787af3 100644
+--- a/include/linux/writeback.h
++++ b/include/linux/writeback.h
+@@ -78,6 +78,7 @@ struct writeback_control {
+ 	unsigned tagged_writepages:1;	/* tag-and-write to avoid livelock */
+ 	unsigned for_reclaim:1;		/* Invoked from the page allocator */
+ 	unsigned range_cyclic:1;	/* range_start is cyclic */
++	unsigned for_sync:1;		/* sync(2) WB_SYNC_ALL writeback */
+ };
+ 
+ /*
 -- 
 1.8.1.4
