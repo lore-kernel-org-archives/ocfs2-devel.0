@@ -1,47 +1,50 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:44 +0200
-Subject: [Ocfs2-devel] [PATCH 2/2] ext3: Don't check quota format when there
-	are no quota files
+Date: Fri, 10 Oct 2014 16:23:48 +0200
+Subject: [Ocfs2-devel] [PATCH 2/2] printk: Debug patch 2
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-40-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-44-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, stable@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
 
-The check whether quota format is set even though there are no
-quota files with journalled quota is pointless and it actually
-makes it impossible to turn off journalled quotas (as there's
-no way to unset journalled quota format). Just remove the check.
-
-CC: stable at vger.kernel.org
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ext3/super.c | 7 -------
- 1 file changed, 7 deletions(-)
+ kernel/printk/printk.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
 
-I'm going to queue this patch unless someone objects.
-
-diff --git a/fs/ext3/super.c b/fs/ext3/super.c
-index 622e88249024..2c42e739e3d1 100644
---- a/fs/ext3/super.c
-+++ b/fs/ext3/super.c
-@@ -1354,13 +1354,6 @@ set_qf_format:
- 					"not specified.");
- 			return 0;
- 		}
--	} else {
--		if (sbi->s_jquota_fmt) {
--			ext3_msg(sb, KERN_ERR, "error: journaled quota format "
--					"specified with no journaling "
--					"enabled.");
--			return 0;
--		}
- 	}
- #endif
- 	return 1;
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+index a39f4129f848..00a9ad5c2708 100644
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -1718,17 +1718,19 @@ asmlinkage int vprintk_emit(int facility, int level,
+ 
+ 	logbuf_cpu = UINT_MAX;
+ 	raw_spin_unlock(&logbuf_lock);
+-	local_irq_restore(flags);
+-
+-	/* If called from the scheduler, we can not call up(). */
+-	if (in_sched)
+-		return printed_len;
+-
+ 	/*
+ 	 * Disable preemption to avoid being preempted while holding
+ 	 * console_sem which would prevent anyone from printing to console
+ 	 */
+ 	preempt_disable();
++	local_irq_restore(flags);
++
++	/* If called from the scheduler, we can not call up(). */
++	if (in_sched) {
++		preempt_enable();
++		return printed_len;
++	}
++
+ 	/*
+ 	 * Try to acquire and then immediately release the console semaphore.
+ 	 * The release will print out buffers and wake up /dev/kmsg and syslog()
 -- 
 1.8.1.4
