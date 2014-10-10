@@ -1,94 +1,98 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:40 +0200
-Subject: [Ocfs2-devel] [PATCH RESEND] vfs: Return EINVAL for default
-	SEEK_HOLE, SEEK_DATA implementation
+Date: Fri, 10 Oct 2014 16:23:36 +0200
+Subject: [Ocfs2-devel] [PATCH] udf: Avoid infinite loop when processing
+	indirect ICBs
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-36-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-32-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
 
-Generic implementation of SEEK_HOLE & SEEK_DATA in
-generic_file_llseek_size() and default_llseek() behaved as if everything
-within i_size is data and everything beyond i_size is a hole. That makes
-sense at the first sight (and definitely is a valid implementation of
-the spec) but at the second sight it isn't very useful. If anyone
-bothers with looking for holes / data, he should be better told we don't
-really know so that he can fall back to his chosen backup strategy
-(think of e.g. cp(1)).
+We did not implement any bound on number of indirect ICBs we follow when
+loading inode. Thus corrupted medium could cause kernel to go into an
+infinite loop, possibly causing a stack overflow.
 
-This is a userspace API change however the kernel interface is there
-only for two years so hopefully userspace is still prepared to handle
-EINVAL return value.
+Fix the possible stack overflow by removing recursion from
+__udf_read_inode() and limit number of indirect ICBs we follow to avoid
+infinite loops.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/read_write.c | 38 ++------------------------------------
- 1 file changed, 2 insertions(+), 36 deletions(-)
+ fs/udf/inode.c | 35 +++++++++++++++++++++--------------
+ 1 file changed, 21 insertions(+), 14 deletions(-)
 
-Al, what do you think about this change?
-
-diff --git a/fs/read_write.c b/fs/read_write.c
-index edc5746a902a..71525d75742f 100644
---- a/fs/read_write.c
-+++ b/fs/read_write.c
-@@ -111,22 +111,8 @@ generic_file_llseek_size(struct file *file, loff_t offset, int whence,
- 		spin_unlock(&file->f_lock);
- 		return offset;
- 	case SEEK_DATA:
--		/*
--		 * In the generic case the entire file is data, so as long as
--		 * offset isn't at the end of the file then the offset is data.
--		 */
--		if (offset >= eof)
--			return -ENXIO;
--		break;
- 	case SEEK_HOLE:
--		/*
--		 * There is a virtual hole at the end of the file, so as long as
--		 * offset isn't i_size or larger, return i_size.
--		 */
--		if (offset >= eof)
--			return -ENXIO;
--		offset = eof;
--		break;
-+		return -EINVAL;
- 	}
+diff --git a/fs/udf/inode.c b/fs/udf/inode.c
+index 68cc7b144c26..a6a40536ebf1 100644
+--- a/fs/udf/inode.c
++++ b/fs/udf/inode.c
+@@ -1270,6 +1270,13 @@ update_time:
+ 	return 0;
+ }
  
- 	return vfs_setpos(file, offset, maxsize);
-@@ -214,28 +200,8 @@ loff_t default_llseek(struct file *file, loff_t offset, int whence)
- 			offset += file->f_pos;
- 			break;
- 		case SEEK_DATA:
--			/*
--			 * In the generic case the entire file is data, so as
--			 * long as offset isn't at the end of the file then the
--			 * offset is data.
--			 */
--			if (offset >= inode->i_size) {
--				retval = -ENXIO;
--				goto out;
--			}
--			break;
- 		case SEEK_HOLE:
--			/*
--			 * There is a virtual hole at the end of the file, so
--			 * as long as offset isn't i_size or larger, return
--			 * i_size.
--			 */
--			if (offset >= inode->i_size) {
--				retval = -ENXIO;
--				goto out;
--			}
--			offset = inode->i_size;
--			break;
-+			return -EINVAL;
- 	}
- 	retval = -EINVAL;
- 	if (offset >= 0 || unsigned_offsets(file)) {
++/*
++ * Maximum length of linked list formed by ICB hierarchy. The chosen number is
++ * arbitrary - just that we hopefully don't limit any real use of rewritten
++ * inode on write-once media but avoid looping for too long on corrupted media.
++ */
++#define UDF_MAX_ICB_NESTING 1024
++
+ static void __udf_read_inode(struct inode *inode)
+ {
+ 	struct buffer_head *bh = NULL;
+@@ -1279,7 +1286,9 @@ static void __udf_read_inode(struct inode *inode)
+ 	struct udf_inode_info *iinfo = UDF_I(inode);
+ 	struct udf_sb_info *sbi = UDF_SB(inode->i_sb);
+ 	unsigned int link_count;
++	unsigned int indirections = 0;
+ 
++reread:
+ 	/*
+ 	 * Set defaults, but the inode is still incomplete!
+ 	 * Note: get_new_inode() sets the following on a new inode:
+@@ -1317,28 +1326,26 @@ static void __udf_read_inode(struct inode *inode)
+ 		ibh = udf_read_ptagged(inode->i_sb, &iinfo->i_location, 1,
+ 					&ident);
+ 		if (ident == TAG_IDENT_IE && ibh) {
+-			struct buffer_head *nbh = NULL;
+ 			struct kernel_lb_addr loc;
+ 			struct indirectEntry *ie;
+ 
+ 			ie = (struct indirectEntry *)ibh->b_data;
+ 			loc = lelb_to_cpu(ie->indirectICB.extLocation);
+ 
+-			if (ie->indirectICB.extLength &&
+-				(nbh = udf_read_ptagged(inode->i_sb, &loc, 0,
+-							&ident))) {
+-				if (ident == TAG_IDENT_FE ||
+-					ident == TAG_IDENT_EFE) {
+-					memcpy(&iinfo->i_location,
+-						&loc,
+-						sizeof(struct kernel_lb_addr));
+-					brelse(bh);
+-					brelse(ibh);
+-					brelse(nbh);
+-					__udf_read_inode(inode);
++			if (ie->indirectICB.extLength) {
++				brelse(bh);
++				brelse(ibh);
++				memcpy(&iinfo->i_location, &loc,
++				       sizeof(struct kernel_lb_addr));
++				if (++indirections > UDF_MAX_ICB_NESTING) {
++					udf_err(inode->i_sb,
++						"too many ICBs in ICB hierarchy"
++						" (max %d supported)\n",
++						UDF_MAX_ICB_NESTING);
++					make_bad_inode(inode);
+ 					return;
+ 				}
+-				brelse(nbh);
++				goto reread;
+ 			}
+ 		}
+ 		brelse(ibh);
 -- 
 1.8.1.4
