@@ -1,77 +1,61 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:08 +0200
-Subject: [Ocfs2-devel] [PATCH] block: improve rq_affinity placement
+Date: Fri, 10 Oct 2014 16:23:07 +0200
+Subject: [Ocfs2-devel] [PATCH] block: free q->flush_rq in
+	blk_init_allocated_queue error paths
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-4-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-3-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Shaohua Li <shaohua.li@intel.com>, Jens Axboe <jaxboe@fusionio.com>
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Dave Jones <davej@redhat.com>, Dave Jones <davej@fedoraproject.org>, Jens Axboe <axboe@fb.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-From: Shaohua Li <shaohua.li@intel.com>
+From: Dave Jones <davej@redhat.com>
 
-This patch reverts commit 35ae66e0a09ab70ed(block: Make rq_affinity = 1
-work as expected). The purpose is to avoid an unnecessary IPI.
-Let's take an example. My test box has cpu 0-7, one socket. Say request is
-added from CPU 1, blk_complete_request() occurs at CPU 7. Without the reverted
-patch, softirq will be done at CPU 7. With it, an IPI will be directed to CPU
-0, and softirq will be done at CPU 0. In this case, doing softirq at CPU 0 and
-CPU 7 have no difference from cache sharing point view and we can avoid an
-ipi if doing it in CPU 7.
-An immediate concern is this is just like QUEUE_FLAG_SAME_FORCE, but actually
-not. blk_complete_request() is running in interrupt handler, and currently
-I/O controller doesn't support multiple interrupts (I checked several LSI
-cards and AHCI), so only one CPU can run blk_complete_request(). This is
-still quite different as QUEUE_FLAG_SAME_FORCE.
-Since only one CPU runs softirq, the only difference with below patch is
-softirq not always runs at the first CPU of a group.
+Commit 7982e90c3a57 ("block: fix q->flush_rq NULL pointer crash on
+dm-mpath flush") moved an allocation to blk_init_allocated_queue(), but
+neglected to free that allocation on the error paths that follow.
 
-Signed-off-by: Shaohua Li <shaohua.li@intel.com>
-Signed-off-by: Jens Axboe <jaxboe@fusionio.com>
+Signed-off-by: Dave Jones <davej@fedoraproject.org>
+Acked-by: Mike Snitzer <snitzer@redhat.com>
+Signed-off-by: Jens Axboe <axboe@fb.com>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 ---
- block/blk-softirq.c | 16 +++++++++++++---
- 1 file changed, 13 insertions(+), 3 deletions(-)
+ block/blk-core.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/block/blk-softirq.c b/block/blk-softirq.c
-index 487addc85bb5..58340d0cb23a 100644
---- a/block/blk-softirq.c
-+++ b/block/blk-softirq.c
-@@ -103,7 +103,7 @@ static struct notifier_block __cpuinitdata blk_cpu_notifier = {
+diff --git a/block/blk-core.c b/block/blk-core.c
+index 4cd5ffc18442..bfe16d5af9f9 100644
+--- a/block/blk-core.c
++++ b/block/blk-core.c
+@@ -713,7 +713,7 @@ blk_init_allocated_queue(struct request_queue *q, request_fn_proc *rfn,
+ 		return NULL;
  
- void __blk_complete_request(struct request *req)
- {
--	int ccpu, cpu;
-+	int ccpu, cpu, group_cpu = NR_CPUS;
- 	struct request_queue *q = req->q;
- 	unsigned long flags;
+ 	if (blk_init_rl(&q->root_rl, q, GFP_KERNEL))
+-		return NULL;
++		goto fail;
  
-@@ -117,12 +117,22 @@ void __blk_complete_request(struct request *req)
- 	 */
- 	if (test_bit(QUEUE_FLAG_SAME_COMP, &q->queue_flags) && req->cpu != -1) {
- 		ccpu = req->cpu;
--		if (!test_bit(QUEUE_FLAG_SAME_FORCE, &q->queue_flags))
-+		if (!test_bit(QUEUE_FLAG_SAME_FORCE, &q->queue_flags)) {
- 			ccpu = blk_cpu_to_group(ccpu);
-+			group_cpu = blk_cpu_to_group(cpu);
-+		}
- 	} else
- 		ccpu = cpu;
+ 	q->request_fn		= rfn;
+ 	q->prep_rq_fn		= NULL;
+@@ -737,12 +737,16 @@ blk_init_allocated_queue(struct request_queue *q, request_fn_proc *rfn,
+ 	/* init elevator */
+ 	if (elevator_init(q, NULL)) {
+ 		mutex_unlock(&q->sysfs_lock);
+-		return NULL;
++		goto fail;
+ 	}
  
--	if (ccpu == cpu) {
-+	/*
-+	 * If current CPU and requested CPU are in the same group, running
-+	 * softirq in current CPU. One might concern this is just like
-+	 * QUEUE_FLAG_SAME_FORCE, but actually not. blk_complete_request() is
-+	 * running in interrupt handler, and currently I/O controller doesn't
-+	 * support multiple interrupts, so current CPU is unique actually. This
-+	 * avoids IPI sending from current CPU to the first CPU of a group.
-+	 */
-+	if (ccpu == cpu || ccpu == group_cpu) {
- 		struct list_head *list;
- do_local:
- 		list = &__get_cpu_var(blk_cpu_done);
+ 	mutex_unlock(&q->sysfs_lock);
+ 
+ 	return q;
++
++fail:
++	kfree(q->flush_rq);
++	return NULL;
+ }
+ EXPORT_SYMBOL(blk_init_allocated_queue);
+ 
 -- 
 1.8.1.4
