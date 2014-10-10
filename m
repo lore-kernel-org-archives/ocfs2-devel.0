@@ -1,151 +1,64 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:47 +0200
-Subject: [Ocfs2-devel] [PATCH 2/2] jbd2: Simplify calling convention around
-	__jbd2_journal_clean_checkpoint_list
+Date: Fri, 10 Oct 2014 16:23:45 +0200
+Subject: [Ocfs2-devel] [PATCH 2/2] ext4: Fix hole punching for files with
+	indirect blocks
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-43-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-41-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, stable@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-__jbd2_journal_clean_checkpoint_list() returns number of buffers it
-freed but noone was using the value so just stop doing that. This
-also allows for simplifying the calling convention for
-journal_clean_once_cp_list().
+Hole punching code for files with indirect blocks wrongly computed
+number of blocks which need to be cleared when traversing the indirect
+block tree. That could result in punching more blocks than actually
+requested and thus effectively cause a data loss. For example:
 
+fallocate -n -p 10240000 4096
+
+will punch the range 10240000 - 12632064 instead of the range 1024000 -
+10244096. Fix the calculation.
+
+CC: stable at vger.kernel.org
+Fixes: 8bad6fc813a3a5300f51369c39d315679fd88c72
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/jbd2/checkpoint.c | 56 ++++++++++++++++++++++------------------------------
- include/linux/jbd2.h |  2 +-
- 2 files changed, 25 insertions(+), 33 deletions(-)
+ fs/ext4/indirect.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/fs/jbd2/checkpoint.c b/fs/jbd2/checkpoint.c
-index e39b2d0e1079..ef23d6f4a6a2 100644
---- a/fs/jbd2/checkpoint.c
-+++ b/fs/jbd2/checkpoint.c
-@@ -479,16 +479,15 @@ int jbd2_cleanup_journal_tail(journal_t *journal)
-  * release them.
-  *
-  * Called with j_list_lock held.
-- * Returns number of buffers reaped (for debug)
-+ * Returns 1 if we freed the transaction, 0 otherwise.
-  */
--
--static int journal_clean_one_cp_list(struct journal_head *jh, int *released)
-+static int journal_clean_one_cp_list(struct journal_head *jh)
- {
- 	struct journal_head *last_jh;
- 	struct journal_head *next_jh = jh;
--	int ret, freed = 0;
-+	int ret;
-+	int freed = 0;
- 
--	*released = 0;
- 	if (!jh)
- 		return 0;
- 
-@@ -499,11 +498,9 @@ static int journal_clean_one_cp_list(struct journal_head *jh, int *released)
- 		ret = __try_to_free_cp_buf(jh);
- 		if (!ret)
- 			return freed;
--		freed++;
--		if (ret == 2) {
--			*released = 1;
--			return freed;
--		}
-+		if (ret == 2)
-+			return 1;
-+		freed = 1;
- 		/*
- 		 * This function only frees up some memory
- 		 * if possible so we dont have an obligation
-@@ -523,53 +520,48 @@ static int journal_clean_one_cp_list(struct journal_head *jh, int *released)
-  * Find all the written-back checkpoint buffers in the journal and release them.
-  *
-  * Called with j_list_lock held.
-- * Returns number of buffers reaped (for debug)
-  */
--
--int __jbd2_journal_clean_checkpoint_list(journal_t *journal)
-+void __jbd2_journal_clean_checkpoint_list(journal_t *journal)
- {
- 	transaction_t *transaction, *last_transaction, *next_transaction;
- 	int ret;
--	int freed = 0;
--	int released;
- 
- 	transaction = journal->j_checkpoint_transactions;
- 	if (!transaction)
--		goto out;
-+		return;
- 
- 	last_transaction = transaction->t_cpprev;
- 	next_transaction = transaction;
- 	do {
- 		transaction = next_transaction;
- 		next_transaction = transaction->t_cpnext;
--		ret = journal_clean_one_cp_list(transaction->
--				t_checkpoint_list, &released);
-+		ret = journal_clean_one_cp_list(transaction->t_checkpoint_list);
- 		/*
- 		 * This function only frees up some memory if possible so we
- 		 * dont have an obligation to finish processing. Bail out if
- 		 * preemption requested:
- 		 */
--		if (need_resched()) {
--			freed += ret;
--			goto out;
--		}
--		if (released) {
--			freed += ret;
-+		if (need_resched())
-+			return;
-+		if (ret)
- 			continue;
--		}
- 		/*
- 		 * It is essential that we are as careful as in the case of
- 		 * t_checkpoint_list with removing the buffer from the list as
- 		 * we can possibly see not yet submitted buffers on io_list
- 		 */
--		ret += journal_clean_one_cp_list(transaction->
--				t_checkpoint_io_list, &released);
--		freed += ret;
--		if (need_resched() || !ret)
--			goto out;
-+		ret = journal_clean_one_cp_list(transaction->
-+				t_checkpoint_io_list);
-+		if (need_resched())
-+			return;
-+		/*
-+		 * Stop scanning if we couldn't free the transaction. This
-+		 * avoids pointless scanning of transactions which still
-+		 * weren't checkpointed.
-+		 */
-+ 		if (!ret)
-+			return;
- 	} while (transaction != last_transaction);
--out:
--	return freed;
- }
- 
- /*
-diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
-index 0dae71e9971c..704b9a599b26 100644
---- a/include/linux/jbd2.h
-+++ b/include/linux/jbd2.h
-@@ -1042,7 +1042,7 @@ void jbd2_update_log_tail(journal_t *journal, tid_t tid, unsigned long block);
- extern void jbd2_journal_commit_transaction(journal_t *);
- 
- /* Checkpoint list management */
--int __jbd2_journal_clean_checkpoint_list(journal_t *journal);
-+void __jbd2_journal_clean_checkpoint_list(journal_t *journal);
- int __jbd2_journal_remove_checkpoint(struct journal_head *);
- void __jbd2_journal_insert_checkpoint(struct journal_head *, transaction_t *);
- 
+diff --git a/fs/ext4/indirect.c b/fs/ext4/indirect.c
+index 9d381707a6fc..771949c82715 100644
+--- a/fs/ext4/indirect.c
++++ b/fs/ext4/indirect.c
+@@ -1310,16 +1310,24 @@ static int free_hole_blocks(handle_t *handle, struct inode *inode,
+ 		blk = *i_data;
+ 		if (level > 0) {
+ 			ext4_lblk_t first2;
++			ext4_lblk_t count2;
++
+ 			bh = sb_bread(inode->i_sb, le32_to_cpu(blk));
+ 			if (!bh) {
+ 				EXT4_ERROR_INODE_BLOCK(inode, le32_to_cpu(blk),
+ 						       "Read failure");
+ 				return -EIO;
+ 			}
+-			first2 = (first > offset) ? first - offset : 0;
++			if (first > offset) {
++				first2 = first - offset;
++				count2 = count;
++			} else {
++				first2 = 0;
++				count2 = count - (offset - first);
++			}
+ 			ret = free_hole_blocks(handle, inode, bh,
+ 					       (__le32 *)bh->b_data, level - 1,
+-					       first2, count - offset,
++					       first2, count2,
+ 					       inode->i_sb->s_blocksize >> 2);
+ 			if (ret) {
+ 				brelse(bh);
 -- 
 1.8.1.4
