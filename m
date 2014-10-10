@@ -1,124 +1,75 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:34 +0200
-Subject: [Ocfs2-devel] [PATCH] sync: don't block the flusher thread waiting
-	on IO
+Date: Fri, 10 Oct 2014 16:23:18 +0200
+Subject: [Ocfs2-devel] [PATCH] ext4: Fix zeroing of page during writeback
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-30-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-14-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Dave Chinner <dchinner@redhat.com>, linux-ext4@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>, stable@vger.kernel.org
 
-From: Dave Chinner <dchinner@redhat.com>
+Tail of a page straddling inode size must be zeroed when being written
+out due to POSIX requirement that modifications of mmaped page beyond
+inode size must not be written to the file. ext4_bio_write_page() did
+this only for blocks fully beyond inode size but didn't properly zero
+blocks partially beyond inode size. Fix this.
 
-When sync does it's WB_SYNC_ALL writeback, it issues data Io and
-then immediately waits for IO completion. This is done in the
-context of the flusher thread, and hence completely ties up the
-flusher thread for the backing device until all the dirty inodes
-have been synced. On filesystems that are dirtying inodes constantly
-and quickly, this means the flusher thread can be tied up for
-minutes per sync call and hence badly affect system level write IO
-performance as the page cache cannot be cleaned quickly.
+The problem has been uncovered by mmap_11-4 test in openposix test suite
+(part of LTP).
 
-We already have a wait loop for IO completion for sync(2), so cut
-this out of the flusher thread and delegate it to wait_sb_inodes().
-Hence we can do rapid IO submission, and then wait for it all to
-complete.
-
-Effect of sync on fsmark before the patch:
-
-FSUse%        Count         Size    Files/sec     App Overhead
-.....
-     0       640000         4096      35154.6          1026984
-     0       720000         4096      36740.3          1023844
-     0       800000         4096      36184.6           916599
-     0       880000         4096       1282.7          1054367
-     0       960000         4096       3951.3           918773
-     0      1040000         4096      40646.2           996448
-     0      1120000         4096      43610.1           895647
-     0      1200000         4096      40333.1           921048
-
-And a single sync pass took:
-
-  real    0m52.407s
-  user    0m0.000s
-  sys     0m0.090s
-
-After the patch, there is no impact on fsmark results, and each
-individual sync(2) operation run concurrently with the same fsmark
-workload takes roughly 7s:
-
-  real    0m6.930s
-  user    0m0.000s
-  sys     0m0.039s
-
-IOWs, sync is 7-8x faster on a busy filesystem and does not have an
-adverse impact on ongoing async data write operations.
-
-Signed-off-by: Dave Chinner <dchinner@redhat.com>
-Reviewed-by: Jan Kara <jack@suse.cz>
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Reported-by: Xiaoguang Wang <wangxg.fnst@cn.fujitsu.com>
+Fixes: 5a0dc7365c240
+Fixes: bd2d0210cf22f
+CC: stable at vger.kernel.org
+Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/fs-writeback.c         | 9 +++++++--
- include/linux/writeback.h | 1 +
- 2 files changed, 8 insertions(+), 2 deletions(-)
+ fs/ext4/page-io.c | 24 +++++++++++-------------
+ 1 file changed, 11 insertions(+), 13 deletions(-)
 
-diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
-index 3be57189efd5..a85ac4e33436 100644
---- a/fs/fs-writeback.c
-+++ b/fs/fs-writeback.c
-@@ -45,6 +45,7 @@ struct wb_writeback_work {
- 	unsigned int for_kupdate:1;
- 	unsigned int range_cyclic:1;
- 	unsigned int for_background:1;
-+	unsigned int for_sync:1;	/* sync(2) WB_SYNC_ALL writeback */
- 	enum wb_reason reason;		/* why was writeback initiated? */
+diff --git a/fs/ext4/page-io.c b/fs/ext4/page-io.c
+index c18d95b50540..b936388b834f 100644
+--- a/fs/ext4/page-io.c
++++ b/fs/ext4/page-io.c
+@@ -418,6 +418,17 @@ int ext4_bio_write_page(struct ext4_io_submit *io,
+ 	ClearPageError(page);
  
- 	struct list_head list;		/* pending work list */
-@@ -443,9 +444,11 @@ __writeback_single_inode(struct inode *inode, struct writeback_control *wbc)
  	/*
- 	 * Make sure to wait on the data before writing out the metadata.
- 	 * This is important for filesystems that modify metadata on data
--	 * I/O completion.
-+	 * I/O completion. We don't do it for sync(2) writeback because it has a
-+	 * separate, external IO completion path and ->sync_fs for guaranteeing
-+	 * inode metadata is written back correctly.
- 	 */
--	if (wbc->sync_mode == WB_SYNC_ALL) {
-+	if (wbc->sync_mode == WB_SYNC_ALL && !wbc->for_sync) {
- 		int err = filemap_fdatawait(mapping);
- 		if (ret == 0)
- 			ret = err;
-@@ -578,6 +581,7 @@ static long writeback_sb_inodes(struct super_block *sb,
- 		.tagged_writepages	= work->tagged_writepages,
- 		.for_kupdate		= work->for_kupdate,
- 		.for_background		= work->for_background,
-+		.for_sync		= work->for_sync,
- 		.range_cyclic		= work->range_cyclic,
- 		.range_start		= 0,
- 		.range_end		= LLONG_MAX,
-@@ -1362,6 +1366,7 @@ void sync_inodes_sb(struct super_block *sb)
- 		.range_cyclic	= 0,
- 		.done		= &done,
- 		.reason		= WB_REASON_SYNC,
-+		.for_sync	= 1,
- 	};
- 
- 	/* Nothing to do? */
-diff --git a/include/linux/writeback.h b/include/linux/writeback.h
-index 579a5007c696..abfe11787af3 100644
---- a/include/linux/writeback.h
-+++ b/include/linux/writeback.h
-@@ -78,6 +78,7 @@ struct writeback_control {
- 	unsigned tagged_writepages:1;	/* tag-and-write to avoid livelock */
- 	unsigned for_reclaim:1;		/* Invoked from the page allocator */
- 	unsigned range_cyclic:1;	/* range_start is cyclic */
-+	unsigned for_sync:1;		/* sync(2) WB_SYNC_ALL writeback */
- };
- 
- /*
++	 * Comments copied from block_write_full_page_endio:
++	 *
++	 * The page straddles i_size.  It must be zeroed out on each and every
++	 * writepage invocation because it may be mmapped.  "A file is mapped
++	 * in multiples of the page size.  For a file that is not a multiple of
++	 * the page size, the remaining memory is zeroed when mapped, and
++	 * writes to that region are not written out to the file."
++	 */
++	if (len < PAGE_CACHE_SIZE)
++		zero_user_segment(page, len, PAGE_CACHE_SIZE);
++	/*
+ 	 * In the first loop we prepare and mark buffers to submit. We have to
+ 	 * mark all buffers in the page before submitting so that
+ 	 * end_page_writeback() cannot be called from ext4_bio_end_io() when IO
+@@ -428,19 +439,6 @@ int ext4_bio_write_page(struct ext4_io_submit *io,
+ 	do {
+ 		block_start = bh_offset(bh);
+ 		if (block_start >= len) {
+-			/*
+-			 * Comments copied from block_write_full_page_endio:
+-			 *
+-			 * The page straddles i_size.  It must be zeroed out on
+-			 * each and every writepage invocation because it may
+-			 * be mmapped.  "A file is mapped in multiples of the
+-			 * page size.  For a file that is not a multiple of
+-			 * the  page size, the remaining memory is zeroed when
+-			 * mapped, and writes to that region are not written
+-			 * out to the file."
+-			 */
+-			zero_user_segment(page, block_start,
+-					  block_start + blocksize);
+ 			clear_buffer_dirty(bh);
+ 			set_buffer_uptodate(bh);
+ 			continue;
 -- 
 1.8.1.4
