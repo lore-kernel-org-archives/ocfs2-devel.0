@@ -1,77 +1,54 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:33 +0200
-Subject: [Ocfs2-devel] [PATCH] scsi: Keep interrupts disabled while
-	submitting requests
+Date: Fri, 10 Oct 2014 16:23:13 +0200
+Subject: [Ocfs2-devel] [PATCH] ext4: Avoid lock inversion between
+	i_mmap_mutex and transaction start
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-29-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-9-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-scsi_request_fn() can be called from softirq context during IO
-completion. If it enables interrupts there, HW interrupts can interrupt
-softirq processing and queue more IO completion work which can
-eventually lead to softlockup reports because IO completion softirq runs
-for too long. Keep interrupts disabled in scsi_request_fn().
+When DAX is enabled, it uses i_mmap_mutex as a protection against
+truncate during page fault. This inevitably forces i_mmap_mutex to rank
+outside of a transaction start and thus we have to avoid calling
+pagecache purging operations when transaction is started.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- drivers/scsi/scsi_lib.c | 11 ++++++-----
- 1 file changed, 6 insertions(+), 5 deletions(-)
+ fs/ext4/inode.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index f7e316368c99..44b867e9adc9 100644
---- a/drivers/scsi/scsi_lib.c
-+++ b/drivers/scsi/scsi_lib.c
-@@ -1481,7 +1481,8 @@ static void scsi_softirq_done(struct request *rq)
-  *
-  * Returns:     Nothing
-  *
-- * Lock status: IO request lock assumed to be held when called.
-+ * Lock status: IO request lock assumed to be held when called, interrupts
-+ * must be disabled.
-  */
- static void scsi_request_fn(struct request_queue *q)
- 	__releases(q->queue_lock)
-@@ -1563,7 +1564,7 @@ static void scsi_request_fn(struct request_queue *q)
- 		 * XXX(hch): This is rather suboptimal, scsi_dispatch_cmd will
- 		 *		take the lock again.
- 		 */
--		spin_unlock_irq(shost->host_lock);
-+		spin_unlock(shost->host_lock);
+diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+index 8a064734e6eb..494a8645d63e 100644
+--- a/fs/ext4/inode.c
++++ b/fs/ext4/inode.c
+@@ -3631,13 +3631,19 @@ int ext4_punch_hole(struct inode *inode, loff_t offset, loff_t length)
+ 	if (IS_SYNC(inode))
+ 		ext4_handle_sync(handle);
  
- 		/*
- 		 * Finally, initialize any error handling parameters, and set up
-@@ -1575,7 +1576,7 @@ static void scsi_request_fn(struct request_queue *q)
- 		 * Dispatch the command to the low-level driver.
- 		 */
- 		rtn = scsi_dispatch_cmd(cmd);
--		spin_lock_irq(q->queue_lock);
-+		spin_lock(q->queue_lock);
- 		if (rtn)
- 			goto out_delay;
- 	}
-@@ -1583,7 +1584,7 @@ static void scsi_request_fn(struct request_queue *q)
- 	return;
- 
-  not_ready:
--	spin_unlock_irq(shost->host_lock);
-+	spin_unlock(shost->host_lock);
- 
- 	/*
- 	 * lock q, handle tag, requeue req, and decrement device_busy. We
-@@ -1593,7 +1594,7 @@ static void scsi_request_fn(struct request_queue *q)
- 	 * cases (host limits or settings) should run the queue at some
- 	 * later time.
- 	 */
--	spin_lock_irq(q->queue_lock);
-+	spin_lock(q->queue_lock);
- 	blk_requeue_request(q, req);
- 	sdev->device_busy--;
- out_delay:
+-	/* Now release the pages again to reduce race window */
++	inode->i_mtime = inode->i_ctime = ext4_current_time(inode);
++	ext4_mark_inode_dirty(handle, inode);
++	ext4_journal_stop(handle);
++
++	/*
++	 * Now release the pages again to reduce race window. This has to happen
++	 * outside of a transaction to avoid lock inversion on i_mmap_mutex
++	 * when DAX is enabled.
++	 */
+ 	if (last_block_offset > first_block_offset)
+ 		truncate_pagecache_range(inode, first_block_offset,
+ 					 last_block_offset);
+-
+-	inode->i_mtime = inode->i_ctime = ext4_current_time(inode);
+-	ext4_mark_inode_dirty(handle, inode);
++	goto out_dio;
+ out_stop:
+ 	ext4_journal_stop(handle);
+ out_dio:
 -- 
 1.8.1.4
