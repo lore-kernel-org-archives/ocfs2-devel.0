@@ -1,74 +1,75 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:55:06 +0200
-Subject: [Ocfs2-devel] [PATCH 08/12] ext4: Convert to private i_dquot field
+Date: Fri, 10 Oct 2014 16:55:04 +0200
+Subject: [Ocfs2-devel] [PATCH 06/12] ext2: Convert to private i_dquot field
 In-Reply-To: <1412952910-7142-1-git-send-email-jack@suse.cz>
 References: <1412952910-7142-1-git-send-email-jack@suse.cz>
-Message-ID: <1412952910-7142-9-git-send-email-jack@suse.cz>
+Message-ID: <1412952910-7142-7-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
 CC: linux-ext4 at vger.kernel.org
-CC: "Theodore Ts'o" <tytso@mit.edu>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ext4/ext4.h  |  4 ++++
- fs/ext4/super.c | 10 ++++++++++
- 2 files changed, 14 insertions(+)
+ fs/ext2/ext2.h  |  3 +++
+ fs/ext2/super.c | 13 +++++++++++++
+ 2 files changed, 16 insertions(+)
 
-diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-index b0c225cdb52c..571a9f409e94 100644
---- a/fs/ext4/ext4.h
-+++ b/fs/ext4/ext4.h
-@@ -940,6 +940,10 @@ struct ext4_inode_info {
- 	tid_t i_sync_tid;
- 	tid_t i_datasync_tid;
- 
+diff --git a/fs/ext2/ext2.h b/fs/ext2/ext2.h
+index d9a17d0b124d..e4279ead4a05 100644
+--- a/fs/ext2/ext2.h
++++ b/fs/ext2/ext2.h
+@@ -689,6 +689,9 @@ struct ext2_inode_info {
+ 	struct mutex truncate_mutex;
+ 	struct inode	vfs_inode;
+ 	struct list_head i_orphan;	/* unlinked but open inodes */
 +#ifdef CONFIG_QUOTA
 +	struct dquot *i_dquot[MAXQUOTAS];
 +#endif
-+
- 	/* Precomputed uuid+inum+igen checksum for seeding inode checksums */
- 	__u32 i_csum_seed;
- };
-diff --git a/fs/ext4/super.c b/fs/ext4/super.c
-index 0b28b36e7915..ceac3c1b1552 100644
---- a/fs/ext4/super.c
-+++ b/fs/ext4/super.c
-@@ -895,6 +895,7 @@ static struct inode *ext4_alloc_inode(struct super_block *sb)
- 	spin_lock_init(&(ei->i_block_reservation_lock));
- #ifdef CONFIG_QUOTA
- 	ei->i_reserved_quota = 0;
-+	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
- #endif
- 	ei->jinode = NULL;
- 	INIT_LIST_HEAD(&ei->i_rsv_conversion_list);
-@@ -1143,6 +1144,13 @@ static const struct super_operations ext4_nojournal_sops = {
- 	.bdev_try_to_free_page = bdev_try_to_free_page,
  };
  
-+static const int ext4_inode_fields[IF_FIELD_NR] = {
+ /*
+diff --git a/fs/ext2/super.c b/fs/ext2/super.c
+index b88edc05c230..47d97af2ebcd 100644
+--- a/fs/ext2/super.c
++++ b/fs/ext2/super.c
+@@ -166,6 +166,10 @@ static struct inode *ext2_alloc_inode(struct super_block *sb)
+ 		return NULL;
+ 	ei->i_block_alloc_info = NULL;
+ 	ei->vfs_inode.i_version = 1;
 +#ifdef CONFIG_QUOTA
-+	[IF_DQUOTS] = offsetof(struct ext4_inode_info, i_dquot) -
-+		      offsetof(struct ext4_inode_info, vfs_inode),
++	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
++#endif
++
+ 	return &ei->vfs_inode;
+ }
+ 
+@@ -323,6 +327,13 @@ static const struct super_operations ext2_sops = {
+ #endif
+ };
+ 
++static const int ext2_inode_fields[IF_FIELD_NR] = {
++#ifdef CONFIG_QUOTA
++	[IF_DQUOTS] = offsetof(struct ext2_inode_info, i_dquot) -
++		      offsetof(struct ext2_inode_info, vfs_inode),
 +#endif
 +};
 +
- static const struct export_operations ext4_export_ops = {
- 	.fh_to_dentry = ext4_fh_to_dentry,
- 	.fh_to_parent = ext4_fh_to_parent,
-@@ -3916,7 +3924,9 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
- 		sb->s_qcop = &ext4_qctl_sysfile_operations;
- 	else
- 		sb->s_qcop = &ext4_qctl_operations;
+ static struct inode *ext2_nfs_get_inode(struct super_block *sb,
+ 		u64 ino, u32 generation)
+ {
+@@ -1090,7 +1101,9 @@ static int ext2_fill_super(struct super_block *sb, void *data, int silent)
+ #ifdef CONFIG_QUOTA
+ 	sb->dq_op = &dquot_operations;
+ 	sb->s_qcop = &dquot_quotactl_ops;
 +	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
  #endif
-+	sb_init_inode_fields(sb, ext4_inode_fields);
- 	memcpy(sb->s_uuid, es->s_uuid, sizeof(es->s_uuid));
++	sb_init_inode_fields(sb, ext2_inode_fields);
  
- 	INIT_LIST_HEAD(&sbi->s_orphan); /* unlinked but open files */
+ 	root = ext2_iget(sb, EXT2_ROOT_INO);
+ 	if (IS_ERR(root)) {
 -- 
 1.8.1.4
