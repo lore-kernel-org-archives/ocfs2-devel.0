@@ -1,90 +1,94 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:41 +0200
-Subject: [Ocfs2-devel] [PATCH] writeback: plug writeback at a high level
+Date: Fri, 10 Oct 2014 16:23:40 +0200
+Subject: [Ocfs2-devel] [PATCH RESEND] vfs: Return EINVAL for default
+	SEEK_HOLE, SEEK_DATA implementation
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-37-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-36-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Dave Chinner <dchinner@redhat.com>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-From: Dave Chinner <dchinner@redhat.com>
+Generic implementation of SEEK_HOLE & SEEK_DATA in
+generic_file_llseek_size() and default_llseek() behaved as if everything
+within i_size is data and everything beyond i_size is a hole. That makes
+sense at the first sight (and definitely is a valid implementation of
+the spec) but at the second sight it isn't very useful. If anyone
+bothers with looking for holes / data, he should be better told we don't
+really know so that he can fall back to his chosen backup strategy
+(think of e.g. cp(1)).
 
-tl;dr: 3 lines of code, 86% better fsmark thoughput consuming 13%
-less CPU and 43% lower runtime.
+This is a userspace API change however the kernel interface is there
+only for two years so hopefully userspace is still prepared to handle
+EINVAL return value.
 
-Doing writeback on lots of little files causes terrible IOPS storms
-because of the per-mapping writeback plugging we do. This
-essentially causes imeediate dispatch of IO for each mapping,
-regardless of the context in which writeback is occurring.
-
-IOWs, running a concurrent write-lots-of-small 4k files using fsmark
-on XFS results in a huge number of IOPS being issued for data
-writes.  Metadata writes are sorted and plugged at a high level by
-XFS, so aggregate nicely into large IOs.
-
-However, data writeback IOs are dispatched in individual 4k IOs -
-even when the blocks of two consecutively written files are
-adjacent - because the underlying block device is fast enough not to
-congest on such IO. This behaviour is not SSD related - anything
-with hardware caches is going to see the same benefits as the IO
-rates are limited only by how fast adjacent IOs can be sent to the
-hardware caches for aggregation.
-
-Hence the speed of the physical device is irrelevant to this common
-writeback workload (happens every time you untar a tarball!) -
-performance is limited by the overhead of dispatching individual
-IOs from a single writeback thread.
-
-Test VM: 16p, 16GB RAM, 2xSSD in RAID0, 500TB sparse XFS filesystem,
-metadata CRCs enabled.
-
-Test:
-
-$ ./fs_mark  -D  10000  -S0  -n  10000  -s  4096  -L  120  -d
-/mnt/scratch/0  -d  /mnt/scratch/1  -d  /mnt/scratch/2  -d
-/mnt/scratch/3  -d  /mnt/scratch/4  -d  /mnt/scratch/5  -d
-/mnt/scratch/6  -d  /mnt/scratch/7
-
-Result:
-		wall	sys	create rate	Physical write IO
-		time	CPU	(avg files/s)	 IOPS	Bandwidth
-		-----	-----	-------------	------	---------
-unpatched	5m54s	15m32s	32,500+/-2200	28,000	150MB/s
-patched		3m19s	13m28s	52,900+/-1800	 1,500	280MB/s
-improvement	-43.8%	-13.3%	  +62.7%	-94.6%	+86.6%
-
-Signed-off-by: Dave Chinner <dchinner@redhat.com>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/fs-writeback.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ fs/read_write.c | 38 ++------------------------------------
+ 1 file changed, 2 insertions(+), 36 deletions(-)
 
-diff --git a/fs/fs-writeback.c b/fs/fs-writeback.c
-index 279292ba9403..d935fd3796ba 100644
---- a/fs/fs-writeback.c
-+++ b/fs/fs-writeback.c
-@@ -599,6 +599,9 @@ static long generic_writeback_inodes(struct wb_writeback_work *work)
- 	unsigned long end_time = jiffies + HZ / 10;
- 	long write_chunk;
- 	long wrote = 0;  /* count both pages and inodes */
-+	struct blk_plug plug;
-+
-+	blk_start_plug(&plug);
+Al, what do you think about this change?
+
+diff --git a/fs/read_write.c b/fs/read_write.c
+index edc5746a902a..71525d75742f 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -111,22 +111,8 @@ generic_file_llseek_size(struct file *file, loff_t offset, int whence,
+ 		spin_unlock(&file->f_lock);
+ 		return offset;
+ 	case SEEK_DATA:
+-		/*
+-		 * In the generic case the entire file is data, so as long as
+-		 * offset isn't at the end of the file then the offset is data.
+-		 */
+-		if (offset >= eof)
+-			return -ENXIO;
+-		break;
+ 	case SEEK_HOLE:
+-		/*
+-		 * There is a virtual hole at the end of the file, so as long as
+-		 * offset isn't i_size or larger, return i_size.
+-		 */
+-		if (offset >= eof)
+-			return -ENXIO;
+-		offset = eof;
+-		break;
++		return -EINVAL;
+ 	}
  
- 	spin_lock(&wb->list_lock);
- 	while (1) {
-@@ -688,6 +691,8 @@ static long generic_writeback_inodes(struct wb_writeback_work *work)
- out:
- 	spin_unlock(&wb->list_lock);
- 
-+	blk_finish_plug(&plug);
-+
- 	return wrote;
- }
- 
+ 	return vfs_setpos(file, offset, maxsize);
+@@ -214,28 +200,8 @@ loff_t default_llseek(struct file *file, loff_t offset, int whence)
+ 			offset += file->f_pos;
+ 			break;
+ 		case SEEK_DATA:
+-			/*
+-			 * In the generic case the entire file is data, so as
+-			 * long as offset isn't at the end of the file then the
+-			 * offset is data.
+-			 */
+-			if (offset >= inode->i_size) {
+-				retval = -ENXIO;
+-				goto out;
+-			}
+-			break;
+ 		case SEEK_HOLE:
+-			/*
+-			 * There is a virtual hole at the end of the file, so
+-			 * as long as offset isn't i_size or larger, return
+-			 * i_size.
+-			 */
+-			if (offset >= inode->i_size) {
+-				retval = -ENXIO;
+-				goto out;
+-			}
+-			offset = inode->i_size;
+-			break;
++			return -EINVAL;
+ 	}
+ 	retval = -EINVAL;
+ 	if (offset >= 0 || unsigned_offsets(file)) {
 -- 
 1.8.1.4
