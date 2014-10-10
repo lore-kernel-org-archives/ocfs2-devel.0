@@ -1,61 +1,42 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:07 +0200
-Subject: [Ocfs2-devel] [PATCH] block: free q->flush_rq in
-	blk_init_allocated_queue error paths
+Date: Fri, 10 Oct 2014 16:23:29 +0200
+Subject: [Ocfs2-devel] [PATCH 1/2] printk: Debug patch1
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-3-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-25-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Dave Jones <davej@redhat.com>, Dave Jones <davej@fedoraproject.org>, Jens Axboe <axboe@fb.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-From: Dave Jones <davej@redhat.com>
-
-Commit 7982e90c3a57 ("block: fix q->flush_rq NULL pointer crash on
-dm-mpath flush") moved an allocation to blk_init_allocated_queue(), but
-neglected to free that allocation on the error paths that follow.
-
-Signed-off-by: Dave Jones <davej@fedoraproject.org>
-Acked-by: Mike Snitzer <snitzer@redhat.com>
-Signed-off-by: Jens Axboe <axboe@fb.com>
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- block/blk-core.c | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+ kernel/printk/printk.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/block/blk-core.c b/block/blk-core.c
-index 4cd5ffc18442..bfe16d5af9f9 100644
---- a/block/blk-core.c
-+++ b/block/blk-core.c
-@@ -713,7 +713,7 @@ blk_init_allocated_queue(struct request_queue *q, request_fn_proc *rfn,
- 		return NULL;
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+index ea2d5f6962ed..a39f4129f848 100644
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -1718,7 +1718,6 @@ asmlinkage int vprintk_emit(int facility, int level,
  
- 	if (blk_init_rl(&q->root_rl, q, GFP_KERNEL))
--		return NULL;
-+		goto fail;
+ 	logbuf_cpu = UINT_MAX;
+ 	raw_spin_unlock(&logbuf_lock);
+-	lockdep_on();
+ 	local_irq_restore(flags);
  
- 	q->request_fn		= rfn;
- 	q->prep_rq_fn		= NULL;
-@@ -737,12 +737,16 @@ blk_init_allocated_queue(struct request_queue *q, request_fn_proc *rfn,
- 	/* init elevator */
- 	if (elevator_init(q, NULL)) {
- 		mutex_unlock(&q->sysfs_lock);
--		return NULL;
-+		goto fail;
- 	}
+ 	/* If called from the scheduler, we can not call up(). */
+@@ -1738,6 +1737,9 @@ asmlinkage int vprintk_emit(int facility, int level,
+ 	if (console_trylock_for_printk())
+ 		console_unlock();
+ 	preempt_enable();
++	local_irq_save(flags);
++	lockdep_on();
++	local_irq_restore(flags);
  
- 	mutex_unlock(&q->sysfs_lock);
- 
- 	return q;
-+
-+fail:
-+	kfree(q->flush_rq);
-+	return NULL;
+ 	return printed_len;
  }
- EXPORT_SYMBOL(blk_init_allocated_queue);
- 
 -- 
 1.8.1.4
