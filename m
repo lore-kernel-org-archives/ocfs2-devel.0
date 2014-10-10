@@ -1,77 +1,78 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:55:07 +0200
-Subject: [Ocfs2-devel] [PATCH 09/12] ocfs2: Convert to private i_dquot field
+Date: Fri, 10 Oct 2014 16:55:08 +0200
+Subject: [Ocfs2-devel] [PATCH 10/12] reiserfs: Convert to private i_dquot
+	field
 In-Reply-To: <1412952910-7142-1-git-send-email-jack@suse.cz>
 References: <1412952910-7142-1-git-send-email-jack@suse.cz>
-Message-ID: <1412952910-7142-10-git-send-email-jack@suse.cz>
+Message-ID: <1412952910-7142-11-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
 
-CC: Mark Fasheh <mfasheh@suse.com>
-CC: Joel Becker <jlbec@evilplan.org>
-CC: ocfs2-devel at oss.oracle.com
+CC: reiserfs-devel at vger.kernel.org
+CC: Jeff Mahoney <jeffm@suse.de>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/inode.h |  4 ++++
- fs/ocfs2/super.c | 12 ++++++++++++
- 2 files changed, 16 insertions(+)
+ fs/reiserfs/reiserfs.h |  4 ++++
+ fs/reiserfs/super.c    | 13 +++++++++++++
+ 2 files changed, 17 insertions(+)
 
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index a6c991c0fc98..aed65d3aff57 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -80,6 +80,10 @@ struct ocfs2_inode_info
- 	 */
- 	tid_t i_sync_tid;
- 	tid_t i_datasync_tid;
-+
+diff --git a/fs/reiserfs/reiserfs.h b/fs/reiserfs/reiserfs.h
+index 735c2c2b4536..197e59cbeb1c 100644
+--- a/fs/reiserfs/reiserfs.h
++++ b/fs/reiserfs/reiserfs.h
+@@ -97,6 +97,10 @@ struct reiserfs_inode_info {
+ #ifdef CONFIG_REISERFS_FS_XATTR
+ 	struct rw_semaphore i_xattr_sem;
+ #endif
 +#ifdef CONFIG_QUOTA
 +	struct dquot *i_dquot[MAXQUOTAS];
 +#endif
++
+ 	struct inode vfs_inode;
  };
  
- /*
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index ddb662b32447..4147b6962097 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -157,6 +157,13 @@ static const struct super_operations ocfs2_sops = {
- 	.quota_write	= ocfs2_quota_write,
- };
- 
-+static const int ocfs2_inode_fields[IF_FIELD_NR] = {
+diff --git a/fs/reiserfs/super.c b/fs/reiserfs/super.c
+index d46e88a33b02..04babe57253a 100644
+--- a/fs/reiserfs/super.c
++++ b/fs/reiserfs/super.c
+@@ -594,6 +594,10 @@ static struct inode *reiserfs_alloc_inode(struct super_block *sb)
+ 		return NULL;
+ 	atomic_set(&ei->openers, 0);
+ 	mutex_init(&ei->tailpack);
 +#ifdef CONFIG_QUOTA
-+	[IF_DQUOTS] = offsetof(struct ocfs2_inode_info, i_dquot) -
-+		      offsetof(struct ocfs2_inode_info, vfs_inode),
++	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
++#endif
++
+ 	return &ei->vfs_inode;
+ }
+ 
+@@ -771,6 +775,13 @@ static const struct super_operations reiserfs_sops = {
+ #endif
+ };
+ 
++static const int reiserfs_inode_fields[IF_FIELD_NR] = {
++#ifdef CONFIG_QUOTA
++	[IF_DQUOTS] = (int)offsetof(struct reiserfs_inode_info, i_dquot) -
++		      (int)offsetof(struct reiserfs_inode_info, vfs_inode),
 +#endif
 +};
 +
- enum {
- 	Opt_barrier,
- 	Opt_err_panic,
-@@ -563,6 +570,9 @@ static struct inode *ocfs2_alloc_inode(struct super_block *sb)
+ #ifdef CONFIG_QUOTA
+ #define QTYPE2NAME(t) ((t)==USRQUOTA?"user":"group")
  
- 	oi->i_sync_tid = 0;
- 	oi->i_datasync_tid = 0;
-+#ifdef CONFIG_QUOTA
-+	memset(&oi->i_dquot, 0, sizeof(oi->i_dquot));
-+#endif
+@@ -1633,7 +1644,9 @@ static int read_super_block(struct super_block *s, int offset)
+ #ifdef CONFIG_QUOTA
+ 	s->s_qcop = &reiserfs_qctl_operations;
+ 	s->dq_op = &reiserfs_quota_operations;
++	sb_dqopt(s)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
+ #endif
++	sb_init_inode_fields(s, reiserfs_inode_fields);
  
- 	jbd2_journal_init_jbd_inode(&oi->ip_jinode, &oi->vfs_inode);
- 	return &oi->vfs_inode;
-@@ -2069,7 +2079,9 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	sb->s_export_op = &ocfs2_export_ops;
- 	sb->s_qcop = &ocfs2_quotactl_ops;
- 	sb->dq_op = &ocfs2_quota_operations;
-+	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
- 	sb->s_xattr = ocfs2_xattr_handlers;
-+	sb_init_inode_fields(sb, ocfs2_inode_fields);
- 	sb->s_time_gran = 1;
- 	sb->s_flags |= MS_NOATIME;
- 	/* this is needed to support O_LARGEFILE */
+ 	/*
+ 	 * new format is limited by the 32 bit wide i_blocks field, want to
 -- 
 1.8.1.4
