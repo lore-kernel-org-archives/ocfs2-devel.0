@@ -1,33 +1,45 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:05 +0200
-Subject: [Ocfs2-devel] [PATCH 0/2 v2] Fix data corruption when blocksize <
-	pagesize for mmapped data
-Message-ID: <1412951028-4085-1-git-send-email-jack@suse.cz>
+Date: Fri, 10 Oct 2014 16:23:14 +0200
+Subject: [Ocfs2-devel] [PATCH 1/2] ext4: Don't check quota format when there
+	are no quota files
+In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
+References: <1412951028-4085-1-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-10-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, stable@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-  Hello,
+The check whether quota format is set even though there are no
+quota files with journalled quota is pointless and it actually
+makes it impossible to turn off journalled quotas (as there's
+no way to unset journalled quota format). Just remove the check.
 
-  this is a second version of the patches to fix data corruption in mmapped
-data when blocksize < pagesize as tested by xfstests generic/030 test.
-The patchset fixes XFS and ext4. I've checked and btrfs doesn't need fixing
-because it doesn't support blocksize < pagesize. If that's ever going
-to change btrfs will likely need a similar treatment. ocfs2, ext2, ext3 are
-OK since they happily allocate blocks during writeback. For other filesystems
-like gfs2, ubifs, nilfs, ceph,... I'm not sure whether they support blocksize <
-pagesize@all. Interesting is also NFS which may care but I don't understand
-its ->page_mkwrite() handler good enough to judge.
+CC: stable at vger.kernel.org
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ext4/super.c | 7 -------
+ 1 file changed, 7 deletions(-)
 
-Changes since v1:
-- changed helper function name and moved it to mm/truncate.c - I originally
-  thought we can make the helper function update i_size to simplify the
-  interface but it's actually impossible due to generic_write_end() lock
-  ordering constraints.
-- used round_up() instead of ALIGN()
-- taught truncate_setsize() to use the helper function
-
-								Honza
+diff --git a/fs/ext4/super.c b/fs/ext4/super.c
+index 0b28b36e7915..3ff598f3d4af 100644
+--- a/fs/ext4/super.c
++++ b/fs/ext4/super.c
+@@ -1712,13 +1712,6 @@ static int parse_options(char *options, struct super_block *sb,
+ 					"not specified");
+ 			return 0;
+ 		}
+-	} else {
+-		if (sbi->s_jquota_fmt) {
+-			ext4_msg(sb, KERN_ERR, "journaled quota format "
+-					"specified with no journaling "
+-					"enabled");
+-			return 0;
+-		}
+ 	}
+ #endif
+ 	if (test_opt(sb, DIOREAD_NOLOCK)) {
+-- 
+1.8.1.4
