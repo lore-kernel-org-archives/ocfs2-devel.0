@@ -1,76 +1,117 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:32 +0200
-Subject: [Ocfs2-devel] [PATCH] quota: Fix race between dqput() and
-	dquot_scan_active()
+Date: Fri, 10 Oct 2014 16:23:31 +0200
+Subject: [Ocfs2-devel] [PATCH] printk: enable interrupts before calling
+	console_trylock_for_printk()
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-28-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-27-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
 
-Currently last dqput() can race with dquot_scan_active() causing it to
-call callback for an already deactivated dquot. The race is as follows:
+We need interrupts disabled when calling console_trylock_for_printk()
+only so that cpu id we pass to can_use_console() remains valid (for
+other things console_sem provides all the exclusion we need and
+deadlocks on console_sem due to interrupts are impossible because we use
+down_trylock()).  However if we are rescheduled, we are guaranteed to
+run on an online cpu so we can easily just get the cpu id in
+can_use_console().
 
-CPU1					CPU2
-  dqput()
-    spin_lock(&dq_list_lock);
-    if (atomic_read(&dquot->dq_count) > 1) {
-     - not taken
-    if (test_bit(DQ_ACTIVE_B, &dquot->dq_flags)) {
-      spin_unlock(&dq_list_lock);
-      ->release_dquot(dquot);
-        if (atomic_read(&dquot->dq_count) > 1)
-         - not taken
-					  dquot_scan_active()
-					    spin_lock(&dq_list_lock);
-					    if (!test_bit(DQ_ACTIVE_B, &dquot->dq_flags))
-					     - not taken
-					    atomic_inc(&dquot->dq_count);
-					    spin_unlock(&dq_list_lock);
-        - proceeds to release dquot
-					    ret = fn(dquot, priv);
-					     - called for inactive dquot
+We can lose a bit of performance when we enable interrupts in
+vprintk_emit() and then disable them again in console_unlock() but OTOH
+it can somewhat reduce interrupt latency caused by console_unlock().
 
-Fix the problem by making sure possible ->release_dquot() is finished by
-the time we call the callback and new calls to it will notice reference
-dquot_scan_active() has taken and bail out.
+We differ from (reverted) commit 939f04bec1a4 in that we avoid calling
+console_unlock() from vprintk_emit() with lockdep enabled as that has
+unveiled quite some bugs leading to system freezes during boot (e.g.
+https://lkml.org/lkml/2014/5/30/242,
+https://lkml.org/lkml/2014/6/28/521).
 
+Tested-by: Andreas Bombe <aeb@debian.org>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/quota/dquot.c | 14 +++++++++++---
- 1 file changed, 11 insertions(+), 3 deletions(-)
+ kernel/printk/printk.c | 31 +++++++++++++++++++++----------
+ 1 file changed, 21 insertions(+), 10 deletions(-)
 
-  This is the last patch needed to make ocfs2 quotas rock solid in my testing.
-I will carry it in my tree and push it to Linus soon.
+ Andrew, can you please queue this patch? Thanks.
 
-diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
-index 831d49a4111f..cfc8dcc16043 100644
---- a/fs/quota/dquot.c
-+++ b/fs/quota/dquot.c
-@@ -581,9 +581,17 @@ int dquot_scan_active(struct super_block *sb,
- 		dqstats_inc(DQST_LOOKUPS);
- 		dqput(old_dquot);
- 		old_dquot = dquot;
--		ret = fn(dquot, priv);
--		if (ret < 0)
--			goto out;
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+index 13e839dbca07..fe4154d83fe4 100644
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -1416,10 +1416,9 @@ static int have_callable_console(void)
+ /*
+  * Can we actually use the console at this time on this cpu?
+  *
+- * Console drivers may assume that per-cpu resources have
+- * been allocated. So unless they're explicitly marked as
+- * being able to cope (CON_ANYTIME) don't call them until
+- * this CPU is officially up.
++ * Console drivers may assume that per-cpu resources have been allocated. So
++ * unless they're explicitly marked as being able to cope (CON_ANYTIME) don't
++ * call them until this CPU is officially up.
+  */
+ static inline int can_use_console(unsigned int cpu)
+ {
+@@ -1432,8 +1431,10 @@ static inline int can_use_console(unsigned int cpu)
+  * console_lock held, and 'console_locked' set) if it
+  * is successful, false otherwise.
+  */
+-static int console_trylock_for_printk(unsigned int cpu)
++static int console_trylock_for_printk(void)
+ {
++	unsigned int cpu = smp_processor_id();
++
+ 	if (!console_trylock())
+ 		return 0;
+ 	/*
+@@ -1608,7 +1609,8 @@ asmlinkage int vprintk_emit(int facility, int level,
+ 		 */
+ 		if (!oops_in_progress && !lockdep_recursing(current)) {
+ 			recursion_bug = 1;
+-			goto out_restore_irqs;
++			local_irq_restore(flags);
++			return 0;
+ 		}
+ 		zap_locks();
+ 	}
+@@ -1716,21 +1718,30 @@ asmlinkage int vprintk_emit(int facility, int level,
+ 
+ 	logbuf_cpu = UINT_MAX;
+ 	raw_spin_unlock(&logbuf_lock);
++	lockdep_on();
++	local_irq_restore(flags);
+ 
+ 	/* If called from the scheduler, we can not call up(). */
+ 	if (!in_sched) {
++		lockdep_off();
 +		/*
-+		 * ->release_dquot() can be racing with us. Our reference
-+		 * protects us from new calls to it so just wait for any
-+		 * outstanding call and recheck the DQ_ACTIVE_B after that.
++		 * Disable preemption to avoid being preempted while holding
++		 * console_sem which would prevent anyone from printing to
++		 * console
 +		 */
-+		wait_on_dquot(dquot);
-+		if (test_bit(DQ_ACTIVE_B, &dquot->dq_flags)) {
-+			ret = fn(dquot, priv);
-+			if (ret < 0)
-+				goto out;
-+		}
- 		spin_lock(&dq_list_lock);
- 		/* We are safe to continue now because our dquot could not
- 		 * be moved out of the inuse list while we hold the reference */
++		preempt_disable();
++
+ 		/*
+ 		 * Try to acquire and then immediately release the console
+ 		 * semaphore.  The release will print out buffers and wake up
+ 		 * /dev/kmsg and syslog() users.
+ 		 */
+-		if (console_trylock_for_printk(this_cpu))
++		if (console_trylock_for_printk())
+ 			console_unlock();
++		preempt_enable();
++		lockdep_on();
+ 	}
+ 
+-	lockdep_on();
+-out_restore_irqs:
+-	local_irq_restore(flags);
+ 	return printed_len;
+ }
+ EXPORT_SYMBOL(vprintk_emit);
 -- 
 1.8.1.4
