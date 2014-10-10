@@ -1,47 +1,77 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:23:22 +0200
-Subject: [Ocfs2-devel] [PATCH] fs: Avoid userspace mounting anon_inodefs
-	filesystem
+Date: Fri, 10 Oct 2014 16:23:08 +0200
+Subject: [Ocfs2-devel] [PATCH] block: improve rq_affinity placement
 In-Reply-To: <1412951028-4085-1-git-send-email-jack@suse.cz>
 References: <1412951028-4085-1-git-send-email-jack@suse.cz>
-Message-ID: <1412951028-4085-18-git-send-email-jack@suse.cz>
+Message-ID: <1412951028-4085-4-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Shaohua Li <shaohua.li@intel.com>, Jens Axboe <jaxboe@fusionio.com>
 
-anon_inodefs filesystem is a kernel internal filesystem userspace
-shouldn't mess with. Remove registration of it so userspace cannot
-even try to mount it (which would fail anyway because the filesystem is
-MS_NOUSER).
+From: Shaohua Li <shaohua.li@intel.com>
 
-This fixes an oops triggered by trinity when it tried mounting
-anon_inodefs which overwrote anon_inode_inode pointer while other CPU
-has been in anon_inode_getfile() between ihold() and d_instantiate().
-Thus effectively creating dentry pointing to an inode without holding a
-reference to it.
+This patch reverts commit 35ae66e0a09ab70ed(block: Make rq_affinity = 1
+work as expected). The purpose is to avoid an unnecessary IPI.
+Let's take an example. My test box has cpu 0-7, one socket. Say request is
+added from CPU 1, blk_complete_request() occurs at CPU 7. Without the reverted
+patch, softirq will be done at CPU 7. With it, an IPI will be directed to CPU
+0, and softirq will be done at CPU 0. In this case, doing softirq at CPU 0 and
+CPU 7 have no difference from cache sharing point view and we can avoid an
+ipi if doing it in CPU 7.
+An immediate concern is this is just like QUEUE_FLAG_SAME_FORCE, but actually
+not. blk_complete_request() is running in interrupt handler, and currently
+I/O controller doesn't support multiple interrupts (I checked several LSI
+cards and AHCI), so only one CPU can run blk_complete_request(). This is
+still quite different as QUEUE_FLAG_SAME_FORCE.
+Since only one CPU runs softirq, the only difference with below patch is
+softirq not always runs at the first CPU of a group.
 
-Reported-by: Sasha Levin <sasha.levin@oracle.com>
-Signed-off-by: Jan Kara <jack@suse.cz>
+Signed-off-by: Shaohua Li <shaohua.li@intel.com>
+Signed-off-by: Jens Axboe <jaxboe@fusionio.com>
 ---
- fs/anon_inodes.c | 3 ---
- 1 file changed, 3 deletions(-)
+ block/blk-softirq.c | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
 
-diff --git a/fs/anon_inodes.c b/fs/anon_inodes.c
-index 24084732b1d0..4b4543b8b894 100644
---- a/fs/anon_inodes.c
-+++ b/fs/anon_inodes.c
-@@ -177,9 +177,6 @@ static int __init anon_inode_init(void)
- {
- 	int error;
+diff --git a/block/blk-softirq.c b/block/blk-softirq.c
+index 487addc85bb5..58340d0cb23a 100644
+--- a/block/blk-softirq.c
++++ b/block/blk-softirq.c
+@@ -103,7 +103,7 @@ static struct notifier_block __cpuinitdata blk_cpu_notifier = {
  
--	error = register_filesystem(&anon_inode_fs_type);
--	if (error)
--		goto err_exit;
- 	anon_inode_mnt = kern_mount(&anon_inode_fs_type);
- 	if (IS_ERR(anon_inode_mnt)) {
- 		error = PTR_ERR(anon_inode_mnt);
+ void __blk_complete_request(struct request *req)
+ {
+-	int ccpu, cpu;
++	int ccpu, cpu, group_cpu = NR_CPUS;
+ 	struct request_queue *q = req->q;
+ 	unsigned long flags;
+ 
+@@ -117,12 +117,22 @@ void __blk_complete_request(struct request *req)
+ 	 */
+ 	if (test_bit(QUEUE_FLAG_SAME_COMP, &q->queue_flags) && req->cpu != -1) {
+ 		ccpu = req->cpu;
+-		if (!test_bit(QUEUE_FLAG_SAME_FORCE, &q->queue_flags))
++		if (!test_bit(QUEUE_FLAG_SAME_FORCE, &q->queue_flags)) {
+ 			ccpu = blk_cpu_to_group(ccpu);
++			group_cpu = blk_cpu_to_group(cpu);
++		}
+ 	} else
+ 		ccpu = cpu;
+ 
+-	if (ccpu == cpu) {
++	/*
++	 * If current CPU and requested CPU are in the same group, running
++	 * softirq in current CPU. One might concern this is just like
++	 * QUEUE_FLAG_SAME_FORCE, but actually not. blk_complete_request() is
++	 * running in interrupt handler, and currently I/O controller doesn't
++	 * support multiple interrupts, so current CPU is unique actually. This
++	 * avoids IPI sending from current CPU to the first CPU of a group.
++	 */
++	if (ccpu == cpu || ccpu == group_cpu) {
+ 		struct list_head *list;
+ do_local:
+ 		list = &__get_cpu_var(blk_cpu_done);
 -- 
 1.8.1.4
