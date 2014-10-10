@@ -1,78 +1,109 @@
-From: Jan Kara <jack@suse.cz>
-Date: Fri, 10 Oct 2014 16:55:08 +0200
-Subject: [Ocfs2-devel] [PATCH 10/12] reiserfs: Convert to private i_dquot
-	field
-In-Reply-To: <1412952910-7142-1-git-send-email-jack@suse.cz>
+From: Dave Kleikamp <dave.kleikamp@oracle.com>
+Date: Fri, 10 Oct 2014 10:26:41 -0500
+Subject: [Ocfs2-devel] [PATCH 01/12] quota: Allow each filesystem to
+ specify which quota types it supports
+In-Reply-To: <1412952910-7142-2-git-send-email-jack@suse.cz>
 References: <1412952910-7142-1-git-send-email-jack@suse.cz>
-Message-ID: <1412952910-7142-11-git-send-email-jack@suse.cz>
+	<1412952910-7142-2-git-send-email-jack@suse.cz>
+Message-ID: <5437FAB1.1010005@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, Jan Kara <jack@suse.cz>
+To: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-CC: reiserfs-devel at vger.kernel.org
-CC: Jeff Mahoney <jeffm@suse.de>
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/reiserfs/reiserfs.h |  4 ++++
- fs/reiserfs/super.c    | 13 +++++++++++++
- 2 files changed, 17 insertions(+)
+On 10/10/2014 09:54 AM, Jan Kara wrote:
+> Currently all filesystems supporting VFS quota support user and group
+> quotas. With introduction of project quotas this is going to change so
+> make sure filesystem isn't called for quota type it doesn't support by
+> introduction of a bitmask determining which quota types each filesystem
+> supports.
+> 
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> ---
+>  fs/quota/quota.c      | 13 +++++++++++--
+>  fs/super.c            |  7 +++++++
+>  include/linux/quota.h |  6 ++++++
+>  3 files changed, 24 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/quota/quota.c b/fs/quota/quota.c
+> index 75621649dbd7..0f28eac6e638 100644
+> --- a/fs/quota/quota.c
+> +++ b/fs/quota/quota.c
+> @@ -47,8 +47,11 @@ static int check_quotactl_permission(struct super_block *sb, int type, int cmd,
+>  
+>  static void quota_sync_one(struct super_block *sb, void *arg)
+>  {
+> -	if (sb->s_qcop && sb->s_qcop->quota_sync)
+> -		sb->s_qcop->quota_sync(sb, *(int *)arg);
+> +	int type = *(int *)arg;
+> +
+> +	if (sb->s_qcop && sb->s_qcop->quota_sync &&
+> +	    (sb->s_dquot.allowed_types & (1 << type)))
+> +		sb->s_qcop->quota_sync(sb, type);
+>  }
+>  
+>  static int quota_sync_all(int type)
+> @@ -297,8 +300,14 @@ static int do_quotactl(struct super_block *sb, int type, int cmd, qid_t id,
+>  
+>  	if (type >= (XQM_COMMAND(cmd) ? XQM_MAXQUOTAS : MAXQUOTAS))
+>  		return -EINVAL;
+> +	/*
+> +	 * Quota not supported on this fs? Check this before allowed_types
+> +	 * since they needn't be set if quota is not supported.
+> +	 */
+>  	if (!sb->s_qcop)
+>  		return -ENOSYS;
+> +	if (!(sb->s_dquot.allowed_types & (1 << type)))
+> +		return -EINVAL;
+>  
+>  	ret = check_quotactl_permission(sb, type, cmd, id);
+>  	if (ret < 0)
+> diff --git a/fs/super.c b/fs/super.c
+> index b9a214d2fe98..c6c9b2de9e31 100644
+> --- a/fs/super.c
+> +++ b/fs/super.c
+> @@ -215,6 +215,13 @@ static struct super_block *alloc_super(struct file_system_type *type, int flags)
+>  	atomic_set(&s->s_active, 1);
+>  	mutex_init(&s->s_vfs_rename_mutex);
+>  	lockdep_set_class(&s->s_vfs_rename_mutex, &type->s_vfs_rename_key);
+> +	/*
+> +	 * For now MAXQUOTAS check in do_quotactl() will limit quota type
+> +	 * appropriately. When each fs sets allowed_types, we can remove the
+> +	 * line below
+> +	 */
+> +	s->s_dquot.allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP |
+> +				   QTYPE_MASK_PRJ;
+>  	mutex_init(&s->s_dquot.dqio_mutex);
+>  	mutex_init(&s->s_dquot.dqonoff_mutex);
+>  	s->s_maxbytes = MAX_NON_LFS;
+> diff --git a/include/linux/quota.h b/include/linux/quota.h
+> index 80d345a3524c..b52539f42e19 100644
+> --- a/include/linux/quota.h
+> +++ b/include/linux/quota.h
+> @@ -56,6 +56,11 @@ enum quota_type {
+>  	PRJQUOTA = 2,		/* element used for project quotas */
+>  };
+>  
+> +/* Masks for quota types when used as a bitmask */
+> +#define QTYPE_MASK_USER (1 << USRQUOTA)
+> +#define QTYPE_MASK_GROUP (1 << GRPQUOTA)
+> +#define QTYPE_MASK_PROJECT (1 << PRJQUOTA)
 
-diff --git a/fs/reiserfs/reiserfs.h b/fs/reiserfs/reiserfs.h
-index 735c2c2b4536..197e59cbeb1c 100644
---- a/fs/reiserfs/reiserfs.h
-+++ b/fs/reiserfs/reiserfs.h
-@@ -97,6 +97,10 @@ struct reiserfs_inode_info {
- #ifdef CONFIG_REISERFS_FS_XATTR
- 	struct rw_semaphore i_xattr_sem;
- #endif
-+#ifdef CONFIG_QUOTA
-+	struct dquot *i_dquot[MAXQUOTAS];
-+#endif
-+
- 	struct inode vfs_inode;
- };
- 
-diff --git a/fs/reiserfs/super.c b/fs/reiserfs/super.c
-index d46e88a33b02..04babe57253a 100644
---- a/fs/reiserfs/super.c
-+++ b/fs/reiserfs/super.c
-@@ -594,6 +594,10 @@ static struct inode *reiserfs_alloc_inode(struct super_block *sb)
- 		return NULL;
- 	atomic_set(&ei->openers, 0);
- 	mutex_init(&ei->tailpack);
-+#ifdef CONFIG_QUOTA
-+	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
-+#endif
-+
- 	return &ei->vfs_inode;
- }
- 
-@@ -771,6 +775,13 @@ static const struct super_operations reiserfs_sops = {
- #endif
- };
- 
-+static const int reiserfs_inode_fields[IF_FIELD_NR] = {
-+#ifdef CONFIG_QUOTA
-+	[IF_DQUOTS] = (int)offsetof(struct reiserfs_inode_info, i_dquot) -
-+		      (int)offsetof(struct reiserfs_inode_info, vfs_inode),
-+#endif
-+};
-+
- #ifdef CONFIG_QUOTA
- #define QTYPE2NAME(t) ((t)==USRQUOTA?"user":"group")
- 
-@@ -1633,7 +1644,9 @@ static int read_super_block(struct super_block *s, int offset)
- #ifdef CONFIG_QUOTA
- 	s->s_qcop = &reiserfs_qctl_operations;
- 	s->dq_op = &reiserfs_quota_operations;
-+	sb_dqopt(s)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
- #endif
-+	sb_init_inode_fields(s, reiserfs_inode_fields);
- 
- 	/*
- 	 * new format is limited by the 32 bit wide i_blocks field, want to
--- 
-1.8.1.4
+The uses of these masks use the names QTYPE_MASK_USR, QTYPE_MASK_GRP,
+and QTYPE_MASK_PRJ
+
+> +
+>  typedef __kernel_uid32_t qid_t; /* Type in which we store ids in memory */
+>  typedef long long qsize_t;	/* Type in which we store sizes */
+>  
+> @@ -388,6 +393,7 @@ static inline void quota_send_warning(struct kqid qid, dev_t dev,
+>  
+>  struct quota_info {
+>  	unsigned int flags;			/* Flags for diskquotas on this device */
+> +	unsigned int allowed_types;		/* Bitmask of quota types this fs supports */
+>  	struct mutex dqio_mutex;		/* lock device while I/O in progress */
+>  	struct mutex dqonoff_mutex;		/* Serialize quotaon & quotaoff */
+>  	struct inode *files[MAXQUOTAS];		/* inodes of quotafiles */
+> 
