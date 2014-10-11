@@ -1,98 +1,60 @@
-From: Dave Kleikamp <dave.kleikamp@oracle.com>
-Date: Fri, 10 Oct 2014 10:43:05 -0500
-Subject: [Ocfs2-devel] [PATCH 11/12] jfs: Convert to private i_dquot
-	field
-In-Reply-To: <20141010154043.GC8705@quack.suse.cz>
-References: <1412952910-7142-1-git-send-email-jack@suse.cz>
-	<1412952910-7142-12-git-send-email-jack@suse.cz>
-	<5437FC2E.6020000@oracle.com> <20141010154043.GC8705@quack.suse.cz>
-Message-ID: <5437FE89.7040005@oracle.com>
+From: WeiWei Wang <wangww631@huawei.com>
+Date: Sat, 11 Oct 2014 20:23:59 +0800
+Subject: [Ocfs2-devel] [PATCH 0/7 v4] ocfs2: allocate blocks in direct I/O
+ write
+Message-ID: <5439215F.2020709@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Jan Kara <jack@suse.cz>
-Cc: jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: ocfs2-devel@oss.oracle.com
 
-You can add my
-Acked-by: Dave Kleikamp <dave.kleikamp@oracle.com>
+Hi all,
 
-On 10/10/2014 10:40 AM, Jan Kara wrote:
-> On Fri 10-10-14 10:33:02, Dave Kleikamp wrote:
->> On 10/10/2014 09:55 AM, Jan Kara wrote:
->>> CC: Dave Kleikamp <shaggy@kernel.org>
->>> CC: jfs-discussion at lists.sourceforge.net
->>> Signed-off-by: Jan Kara <jack@suse.cz>
->>> ---
->>>  fs/jfs/jfs_incore.h |  3 +++
->>>  fs/jfs/super.c      | 13 +++++++++++++
->>>  2 files changed, 16 insertions(+)
->>>
->>> diff --git a/fs/jfs/jfs_incore.h b/fs/jfs/jfs_incore.h
->>> index cf47f09e8ac8..fa7e795bd8ae 100644
->>> --- a/fs/jfs/jfs_incore.h
->>> +++ b/fs/jfs/jfs_incore.h
->>> @@ -94,6 +94,9 @@ struct jfs_inode_info {
->>>  			unchar _inline_ea[128];	/* 128: inline extended attr */
->>>  		} link;
->>>  	} u;
->>> +#ifdef CONFIG_QUOTA
->>> +	struct dquot *i_dquot[MAXQUOTAS];
->>> +#endif
->>>  	u32 dev;	/* will die when we get wide dev_t */
->>>  	struct inode	vfs_inode;
->>>  };
->>> diff --git a/fs/jfs/super.c b/fs/jfs/super.c
->>> index adf8cb045b9e..a13727dd3826 100644
->>> --- a/fs/jfs/super.c
->>> +++ b/fs/jfs/super.c
->>> @@ -54,6 +54,7 @@ static struct kmem_cache *jfs_inode_cachep;
->>>  
->>>  static const struct super_operations jfs_super_operations;
->>>  static const struct export_operations jfs_export_operations;
->>> +static const int jfs_inode_fields[IF_FIELD_NR];
->>
->> see below
->>
->>>  static struct file_system_type jfs_fs_type;
->>>  
->>>  #define MAX_COMMIT_THREADS 64
->>> @@ -117,6 +118,9 @@ static struct inode *jfs_alloc_inode(struct super_block *sb)
->>>  	jfs_inode = kmem_cache_alloc(jfs_inode_cachep, GFP_NOFS);
->>>  	if (!jfs_inode)
->>>  		return NULL;
->>> +#ifdef CONFIG_QUOTA
->>> +	memset(&jfs_inode->i_dquot, 0, sizeof(jfs_inode->i_dquot));
->>> +#endif
->>>  	return &jfs_inode->vfs_inode;
->>>  }
->>>  
->>> @@ -537,7 +541,9 @@ static int jfs_fill_super(struct super_block *sb, void *data, int silent)
->>>  #ifdef CONFIG_QUOTA
->>>  	sb->dq_op = &dquot_operations;
->>>  	sb->s_qcop = &dquot_quotactl_ops;
->>> +	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
->>>  #endif
->>> +	sb_init_inode_fields(sb, jfs_inode_fields);
->>>  
->>>  	/*
->>>  	 * Initialize direct-mapping inode/address-space
->>> @@ -857,6 +863,13 @@ static const struct super_operations jfs_super_operations = {
->>>  #endif
->>>  };
->>>  
->>> +static const int jfs_inode_fields[IF_FIELD_NR] = {
->>> +#ifdef CONFIG_QUOTA
->>> +	[IF_DQUOTS] = (int)offsetof(struct jfs_inode_info, i_dquot) -
->>> +		      (int)offsetof(struct jfs_inode_info, vfs_inode),
->>> +#endif
->>> +};
->>
->> Why isn't the initialization done up above where jfs_inode_fields is
->> first defined?
->   There's no good reason, I'll move the definition. The code got created this
-> way because I added the table in all filesystems after jfs_super_operations
-> definition but JFS needed the structure earlier... Thanks for review.
-> 
-> 								Honza
-> 
+Currently in case of O_DIRECT append write (block not allocated yet),
+ocfs2 will fall back to buffered I/O. This has some disadvantages.
+Firstly, it is not the behavior as expected. Secondly, it will consume
+huge page cache, e.g. in mass backup scenario. Thirdly, modern
+filesystems such as ext4 support this feature.
+
+In this patch set, the direct I/O write doesn't fallback to buffer I/O
+write any more because the allocate blocks are enabled in direct I/O
+now.
+
+changelog:
+v4 <- v3:
+ -- zeroing blocks when O_DIRECT append write is not cluster aligned.
+ -- fallback to buffered I/O if we are appending and concurrent
+	O_DIRECT writes are allowed.
+ -- no longer call ocfs2_start_trans with ocfs2_inode_lock, to avoid
+	possible deadlock.
+ -- no need call ocfs2_journal_access_di since it will be called in
+	ocfs2_orphan_add and ocfs2_orphan_del.
+ -- simplify the ocfs2_orphan_reco_type to two types.
+ -- fix a deadlock in ocfs2_recover_orphans, and distinguish the new
+	truncate logic from original recover logic.
+ -- refactor ocfs2_direct_IO.
+
+Any feedbacks are always appreciated.
+Thanks,
+							-- Wang
+
+Weiwei Wang (7)
+	ocfs2: eliminate the static flag of some functions
+	ocfs2: add two functions of add and remove inode in orphan dir
+	ocfs2: add orphan recovery types in ocfs2_recover_orphans
+	ocfs2: add and remove inode to orphan in ocfs2_direct_IO
+	ocfs2: allocate blocks in ocfs2_direct_IO_get_blocks
+	ocfs2: do not fallback to buffer I/O write if appending
+	ocfs2: do not fallback to buffer I/O write if fill holes
+
+fs/ocfs2/aops.c    | 223 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+----
+fs/ocfs2/file.c    | 104 +++++++++++++++++-------------------
+fs/ocfs2/file.h    |   9 ++++
+fs/ocfs2/journal.c | 131 ++++++++++++++++++++++++++++++++++++---------
+fs/ocfs2/journal.h |   5 ++
+fs/ocfs2/namei.c   | 165 +++++++++++++++++++++++++++++++++++++++++++++++++++------
+fs/ocfs2/namei.h   |  20 ++++++-
+fs/ocfs2/ocfs2.h   |   5 ++
+8 files changed, 555 insertions(+), 107 deletions(-)
