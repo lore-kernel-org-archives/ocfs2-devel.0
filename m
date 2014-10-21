@@ -1,9 +1,9 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue, 21 Oct 2014 16:38:36 +0200
-Subject: [Ocfs2-devel] [PATCH 12/12] vfs: Remove i_dquot field from inode
+Date: Tue, 21 Oct 2014 16:38:30 +0200
+Subject: [Ocfs2-devel] [PATCH 06/12] ext2: Convert to private i_dquot field
 In-Reply-To: <1413902316-17997-1-git-send-email-jack@suse.cz>
 References: <1413902316-17997-1-git-send-email-jack@suse.cz>
-Message-ID: <1413902316-17997-13-git-send-email-jack@suse.cz>
+Message-ID: <1413902316-17997-7-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,76 +11,68 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, hch@lst.de, Jan Kara <jack@suse.cz>
 
-All filesystems using VFS quotas are now converted to use their private
-i_dquot fields. Remove the i_dquot field from generic inode structure.
-
+CC: linux-ext4 at vger.kernel.org
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/inode.c         | 3 ---
- fs/quota/dquot.c   | 3 ---
- fs/super.c         | 7 -------
- include/linux/fs.h | 3 ---
- 4 files changed, 16 deletions(-)
+ fs/ext2/ext2.h  |  3 +++
+ fs/ext2/super.c | 10 ++++++++++
+ 2 files changed, 13 insertions(+)
 
-diff --git a/fs/inode.c b/fs/inode.c
-index 26753ba7b6d6..2ed95f7caa4f 100644
---- a/fs/inode.c
-+++ b/fs/inode.c
-@@ -143,9 +143,6 @@ int inode_init_always(struct super_block *sb, struct inode *inode)
- 	inode->i_blocks = 0;
- 	inode->i_bytes = 0;
- 	inode->i_generation = 0;
--#ifdef CONFIG_QUOTA
--	memset(&inode->i_dquot, 0, sizeof(inode->i_dquot));
--#endif
- 	inode->i_pipe = NULL;
- 	inode->i_bdev = NULL;
- 	inode->i_cdev = NULL;
-diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
-index 8144ff2b561d..5bc5f254ac1f 100644
---- a/fs/quota/dquot.c
-+++ b/fs/quota/dquot.c
-@@ -895,9 +895,6 @@ EXPORT_SYMBOL(dqget);
+diff --git a/fs/ext2/ext2.h b/fs/ext2/ext2.h
+index d9a17d0b124d..e4279ead4a05 100644
+--- a/fs/ext2/ext2.h
++++ b/fs/ext2/ext2.h
+@@ -689,6 +689,9 @@ struct ext2_inode_info {
+ 	struct mutex truncate_mutex;
+ 	struct inode	vfs_inode;
+ 	struct list_head i_orphan;	/* unlinked but open inodes */
++#ifdef CONFIG_QUOTA
++	struct dquot *i_dquot[MAXQUOTAS];
++#endif
+ };
  
- static inline struct dquot **i_dquot(struct inode *inode)
- {
--	/* Temporary workaround until all filesystems are converted. */
--	if (!inode->i_sb->s_op->get_dquots)
--		return inode->i_dquot;
- 	return inode->i_sb->s_op->get_dquots(inode);
+ /*
+diff --git a/fs/ext2/super.c b/fs/ext2/super.c
+index 170dc41e8bf4..ef2a6cce75d8 100644
+--- a/fs/ext2/super.c
++++ b/fs/ext2/super.c
+@@ -166,6 +166,10 @@ static struct inode *ext2_alloc_inode(struct super_block *sb)
+ 		return NULL;
+ 	ei->i_block_alloc_info = NULL;
+ 	ei->vfs_inode.i_version = 1;
++#ifdef CONFIG_QUOTA
++	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
++#endif
++
+ 	return &ei->vfs_inode;
  }
  
-diff --git a/fs/super.c b/fs/super.c
-index 5e70cc327dae..eae088f6aaae 100644
---- a/fs/super.c
-+++ b/fs/super.c
-@@ -218,13 +218,6 @@ static struct super_block *alloc_super(struct file_system_type *type, int flags)
- 	atomic_set(&s->s_active, 1);
- 	mutex_init(&s->s_vfs_rename_mutex);
- 	lockdep_set_class(&s->s_vfs_rename_mutex, &type->s_vfs_rename_key);
--	/*
--	 * For now MAXQUOTAS check in do_quotactl() will limit quota type
--	 * appropriately. When each fs sets allowed_types, we can remove the
--	 * line below
--	 */
--	s->s_dquot.allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP |
--				   QTYPE_MASK_PRJ;
- 	mutex_init(&s->s_dquot.dqio_mutex);
- 	mutex_init(&s->s_dquot.dqonoff_mutex);
- 	s->s_maxbytes = MAX_NON_LFS;
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index b714e8e0415d..ab3513abf30f 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -593,9 +593,6 @@ struct inode {
- 	const struct file_operations	*i_fop;	/* former ->i_op->default_file_ops */
- 	struct file_lock	*i_flock;
- 	struct address_space	i_data;
--#ifdef CONFIG_QUOTA
--	struct dquot		*i_dquot[MAXQUOTAS];
--#endif
- 	struct list_head	i_devices;
- 	union {
- 		struct pipe_inode_info	*i_pipe;
+@@ -303,6 +307,10 @@ static int ext2_show_options(struct seq_file *seq, struct dentry *root)
+ #ifdef CONFIG_QUOTA
+ static ssize_t ext2_quota_read(struct super_block *sb, int type, char *data, size_t len, loff_t off);
+ static ssize_t ext2_quota_write(struct super_block *sb, int type, const char *data, size_t len, loff_t off);
++static struct dquot **ext2_get_dquots(struct inode *inode)
++{
++	return EXT2_I(inode)->i_dquot;
++}
+ #endif
+ 
+ static const struct super_operations ext2_sops = {
+@@ -320,6 +328,7 @@ static const struct super_operations ext2_sops = {
+ #ifdef CONFIG_QUOTA
+ 	.quota_read	= ext2_quota_read,
+ 	.quota_write	= ext2_quota_write,
++	.get_dquots	= ext2_get_dquots,
+ #endif
+ };
+ 
+@@ -1090,6 +1099,7 @@ static int ext2_fill_super(struct super_block *sb, void *data, int silent)
+ #ifdef CONFIG_QUOTA
+ 	sb->dq_op = &dquot_operations;
+ 	sb->s_qcop = &dquot_quotactl_ops;
++	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
+ #endif
+ 
+ 	root = ext2_iget(sb, EXT2_ROOT_INO);
 -- 
 1.8.1.4
