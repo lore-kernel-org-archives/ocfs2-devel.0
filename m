@@ -1,78 +1,78 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue, 21 Oct 2014 16:38:32 +0200
-Subject: [Ocfs2-devel] [PATCH 08/12] ext4: Convert to private i_dquot field
+Date: Tue, 21 Oct 2014 16:38:35 +0200
+Subject: [Ocfs2-devel] [PATCH 11/12] jfs: Convert to private i_dquot field
 In-Reply-To: <1413902316-17997-1-git-send-email-jack@suse.cz>
 References: <1413902316-17997-1-git-send-email-jack@suse.cz>
-Message-ID: <1413902316-17997-9-git-send-email-jack@suse.cz>
+Message-ID: <1413902316-17997-12-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, hch@lst.de, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Dave Kleikamp <dave.kleikamp@oracle.com>, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, hch@lst.de, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-CC: linux-ext4 at vger.kernel.org
-CC: "Theodore Ts'o" <tytso@mit.edu>
+CC: Dave Kleikamp <dave.kleikamp@oracle.com>
+CC: jfs-discussion at lists.sourceforge.net
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ext4/ext4.h  | 4 ++++
- fs/ext4/super.c | 8 ++++++++
+ fs/jfs/jfs_incore.h | 3 +++
+ fs/jfs/super.c      | 9 +++++++++
  2 files changed, 12 insertions(+)
 
-diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-index c55a1faaed58..db3f772e57ae 100644
---- a/fs/ext4/ext4.h
-+++ b/fs/ext4/ext4.h
-@@ -941,6 +941,10 @@ struct ext4_inode_info {
- 	tid_t i_sync_tid;
- 	tid_t i_datasync_tid;
- 
+diff --git a/fs/jfs/jfs_incore.h b/fs/jfs/jfs_incore.h
+index cf47f09e8ac8..fa7e795bd8ae 100644
+--- a/fs/jfs/jfs_incore.h
++++ b/fs/jfs/jfs_incore.h
+@@ -94,6 +94,9 @@ struct jfs_inode_info {
+ 			unchar _inline_ea[128];	/* 128: inline extended attr */
+ 		} link;
+ 	} u;
 +#ifdef CONFIG_QUOTA
 +	struct dquot *i_dquot[MAXQUOTAS];
 +#endif
-+
- 	/* Precomputed uuid+inum+igen checksum for seeding inode checksums */
- 	__u32 i_csum_seed;
+ 	u32 dev;	/* will die when we get wide dev_t */
+ 	struct inode	vfs_inode;
  };
-diff --git a/fs/ext4/super.c b/fs/ext4/super.c
-index 1eda6ab0ef9d..7207799e5939 100644
---- a/fs/ext4/super.c
-+++ b/fs/ext4/super.c
-@@ -892,6 +892,7 @@ static struct inode *ext4_alloc_inode(struct super_block *sb)
- 	spin_lock_init(&(ei->i_block_reservation_lock));
- #ifdef CONFIG_QUOTA
- 	ei->i_reserved_quota = 0;
-+	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
- #endif
- 	ei->jinode = NULL;
- 	INIT_LIST_HEAD(&ei->i_rsv_conversion_list);
-@@ -1068,6 +1069,11 @@ static int ext4_quota_enable(struct super_block *sb, int type, int format_id,
- 			     unsigned int flags);
- static int ext4_enable_quotas(struct super_block *sb);
+diff --git a/fs/jfs/super.c b/fs/jfs/super.c
+index 93e897e588a8..2a34332e889f 100644
+--- a/fs/jfs/super.c
++++ b/fs/jfs/super.c
+@@ -117,6 +117,9 @@ static struct inode *jfs_alloc_inode(struct super_block *sb)
+ 	jfs_inode = kmem_cache_alloc(jfs_inode_cachep, GFP_NOFS);
+ 	if (!jfs_inode)
+ 		return NULL;
++#ifdef CONFIG_QUOTA
++	memset(&jfs_inode->i_dquot, 0, sizeof(jfs_inode->i_dquot));
++#endif
+ 	return &jfs_inode->vfs_inode;
+ }
  
-+static struct dquot **ext4_get_dquots(struct inode *inode)
-+{
-+	return EXT4_I(inode)->i_dquot;
-+}
-+
- static const struct dquot_operations ext4_quota_operations = {
- 	.get_reserved_space = ext4_get_reserved_space,
- 	.write_dquot	= ext4_write_dquot,
-@@ -1117,6 +1123,7 @@ static const struct super_operations ext4_sops = {
+@@ -537,6 +540,7 @@ static int jfs_fill_super(struct super_block *sb, void *data, int silent)
  #ifdef CONFIG_QUOTA
- 	.quota_read	= ext4_quota_read,
- 	.quota_write	= ext4_quota_write,
-+	.get_dquots	= ext4_get_dquots,
- #endif
- 	.bdev_try_to_free_page = bdev_try_to_free_page,
- };
-@@ -3928,6 +3935,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
- 		sb->s_qcop = &ext4_qctl_sysfile_operations;
- 	else
- 		sb->s_qcop = &ext4_qctl_operations;
+ 	sb->dq_op = &dquot_operations;
+ 	sb->s_qcop = &dquot_quotactl_ops;
 +	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
  #endif
- 	memcpy(sb->s_uuid, es->s_uuid, sizeof(es->s_uuid));
+ 
+ 	/*
+@@ -836,6 +840,10 @@ out:
+ 	return len - towrite;
+ }
+ 
++static struct dquot **jfs_get_dquots(struct inode *inode)
++{
++	return JFS_IP(inode)->i_dquot;
++}
+ #endif
+ 
+ static const struct super_operations jfs_super_operations = {
+@@ -854,6 +862,7 @@ static const struct super_operations jfs_super_operations = {
+ #ifdef CONFIG_QUOTA
+ 	.quota_read	= jfs_quota_read,
+ 	.quota_write	= jfs_quota_write,
++	.get_dquots	= jfs_get_dquots,
+ #endif
+ };
  
 -- 
 1.8.1.4
