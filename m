@@ -1,24 +1,79 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Mon, 20 Oct 2014 16:12:19 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Fix d_splice_alias() return
- code checking
-In-Reply-To: <1413715184-30196-2-git-send-email-richard@nod.at>
-References: <1413715184-30196-1-git-send-email-richard@nod.at>
-	<1413715184-30196-2-git-send-email-richard@nod.at>
-Message-ID: <20141020161219.e68870b37a4a45dbf1e89db8@linux-foundation.org>
+From: Jan Kara <jack@suse.cz>
+Date: Tue, 21 Oct 2014 16:38:31 +0200
+Subject: [Ocfs2-devel] [PATCH 07/12] ext3: Convert to private i_dquot field
+In-Reply-To: <1413902316-17997-1-git-send-email-jack@suse.cz>
+References: <1413902316-17997-1-git-send-email-jack@suse.cz>
+Message-ID: <1413902316-17997-8-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Richard Weinberger <richard@nod.at>
-Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
+To: linux-fsdevel@vger.kernel.org
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, hch@lst.de, Jan Kara <jack@suse.cz>
 
-On Sun, 19 Oct 2014 12:39:44 +0200 Richard Weinberger <richard@nod.at> wrote:
+CC: linux-ext4 at vger.kernel.org
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ext3/ext3.h  |  4 ++++
+ fs/ext3/super.c | 10 ++++++++++
+ 2 files changed, 14 insertions(+)
 
-> d_splice_alias() can return a valid dentry, NULL or an ERR_PTR.
-> Currently the code checks not for ERR_PTR and my oops in
-> ocfs2_dentry_attach_lock().
-
-It's unclear what the second sentence is trying to tell us.  The patch
-fixes an oops?  If so, a copy of the trace would be useful, as would an
-explanation of why it occurred.  If not, I'm all confused.
+diff --git a/fs/ext3/ext3.h b/fs/ext3/ext3.h
+index fc3cdcf24aed..f483a80b3fe7 100644
+--- a/fs/ext3/ext3.h
++++ b/fs/ext3/ext3.h
+@@ -615,6 +615,10 @@ struct ext3_inode_info {
+ 	atomic_t i_sync_tid;
+ 	atomic_t i_datasync_tid;
+ 
++#ifdef CONFIG_QUOTA
++	struct dquot *i_dquot[MAXQUOTAS];
++#endif
++
+ 	struct inode vfs_inode;
+ };
+ 
+diff --git a/fs/ext3/super.c b/fs/ext3/super.c
+index 7015db0bafd1..cfb338cc0263 100644
+--- a/fs/ext3/super.c
++++ b/fs/ext3/super.c
+@@ -485,6 +485,10 @@ static struct inode *ext3_alloc_inode(struct super_block *sb)
+ 	ei->vfs_inode.i_version = 1;
+ 	atomic_set(&ei->i_datasync_tid, 0);
+ 	atomic_set(&ei->i_sync_tid, 0);
++#ifdef CONFIG_QUOTA
++	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
++#endif
++
+ 	return &ei->vfs_inode;
+ }
+ 
+@@ -764,6 +768,10 @@ static ssize_t ext3_quota_read(struct super_block *sb, int type, char *data,
+ 			       size_t len, loff_t off);
+ static ssize_t ext3_quota_write(struct super_block *sb, int type,
+ 				const char *data, size_t len, loff_t off);
++static struct dquot **ext3_get_dquots(struct inode *inode)
++{
++	return EXT3_I(inode)->i_dquot;
++}
+ 
+ static const struct dquot_operations ext3_quota_operations = {
+ 	.write_dquot	= ext3_write_dquot,
+@@ -803,6 +811,7 @@ static const struct super_operations ext3_sops = {
+ #ifdef CONFIG_QUOTA
+ 	.quota_read	= ext3_quota_read,
+ 	.quota_write	= ext3_quota_write,
++	.get_dquots	= ext3_get_dquots,
+ #endif
+ 	.bdev_try_to_free_page = bdev_try_to_free_page,
+ };
+@@ -2008,6 +2017,7 @@ static int ext3_fill_super (struct super_block *sb, void *data, int silent)
+ #ifdef CONFIG_QUOTA
+ 	sb->s_qcop = &ext3_qctl_operations;
+ 	sb->dq_op = &ext3_quota_operations;
++	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
+ #endif
+ 	memcpy(sb->s_uuid, es->s_uuid, sizeof(es->s_uuid));
+ 	INIT_LIST_HEAD(&sbi->s_orphan); /* unlinked but open files */
+-- 
+1.8.1.4
