@@ -1,82 +1,78 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue, 21 Oct 2014 16:38:34 +0200
-Subject: [Ocfs2-devel] [PATCH 10/12] reiserfs: Convert to private i_dquot
-	field
+Date: Tue, 21 Oct 2014 16:38:32 +0200
+Subject: [Ocfs2-devel] [PATCH 08/12] ext4: Convert to private i_dquot field
 In-Reply-To: <1413902316-17997-1-git-send-email-jack@suse.cz>
 References: <1413902316-17997-1-git-send-email-jack@suse.cz>
-Message-ID: <1413902316-17997-11-git-send-email-jack@suse.cz>
+Message-ID: <1413902316-17997-9-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, hch@lst.de, Jan Kara <jack@suse.cz>
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, hch@lst.de, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-CC: reiserfs-devel at vger.kernel.org
-CC: Jeff Mahoney <jeffm@suse.de>
+CC: linux-ext4 at vger.kernel.org
+CC: "Theodore Ts'o" <tytso@mit.edu>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/reiserfs/reiserfs.h |  4 ++++
- fs/reiserfs/super.c    | 11 +++++++++++
- 2 files changed, 15 insertions(+)
+ fs/ext4/ext4.h  | 4 ++++
+ fs/ext4/super.c | 8 ++++++++
+ 2 files changed, 12 insertions(+)
 
-diff --git a/fs/reiserfs/reiserfs.h b/fs/reiserfs/reiserfs.h
-index 1894d96ccb7c..bb79cddf0a1f 100644
---- a/fs/reiserfs/reiserfs.h
-+++ b/fs/reiserfs/reiserfs.h
-@@ -97,6 +97,10 @@ struct reiserfs_inode_info {
- #ifdef CONFIG_REISERFS_FS_XATTR
- 	struct rw_semaphore i_xattr_sem;
- #endif
+diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
+index c55a1faaed58..db3f772e57ae 100644
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -941,6 +941,10 @@ struct ext4_inode_info {
+ 	tid_t i_sync_tid;
+ 	tid_t i_datasync_tid;
+ 
 +#ifdef CONFIG_QUOTA
 +	struct dquot *i_dquot[MAXQUOTAS];
 +#endif
 +
- 	struct inode vfs_inode;
+ 	/* Precomputed uuid+inum+igen checksum for seeding inode checksums */
+ 	__u32 i_csum_seed;
  };
- 
-diff --git a/fs/reiserfs/super.c b/fs/reiserfs/super.c
-index f1376c92cf74..f9bbac270cb5 100644
---- a/fs/reiserfs/super.c
-+++ b/fs/reiserfs/super.c
-@@ -594,6 +594,10 @@ static struct inode *reiserfs_alloc_inode(struct super_block *sb)
- 		return NULL;
- 	atomic_set(&ei->openers, 0);
- 	mutex_init(&ei->tailpack);
-+#ifdef CONFIG_QUOTA
+diff --git a/fs/ext4/super.c b/fs/ext4/super.c
+index 1eda6ab0ef9d..7207799e5939 100644
+--- a/fs/ext4/super.c
++++ b/fs/ext4/super.c
+@@ -892,6 +892,7 @@ static struct inode *ext4_alloc_inode(struct super_block *sb)
+ 	spin_lock_init(&(ei->i_block_reservation_lock));
+ #ifdef CONFIG_QUOTA
+ 	ei->i_reserved_quota = 0;
 +	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
-+#endif
-+
- 	return &ei->vfs_inode;
- }
+ #endif
+ 	ei->jinode = NULL;
+ 	INIT_LIST_HEAD(&ei->i_rsv_conversion_list);
+@@ -1068,6 +1069,11 @@ static int ext4_quota_enable(struct super_block *sb, int type, int format_id,
+ 			     unsigned int flags);
+ static int ext4_enable_quotas(struct super_block *sb);
  
-@@ -750,6 +754,11 @@ static ssize_t reiserfs_quota_write(struct super_block *, int, const char *,
- 				    size_t, loff_t);
- static ssize_t reiserfs_quota_read(struct super_block *, int, char *, size_t,
- 				   loff_t);
-+
-+static struct dquot **reiserfs_get_dquots(struct inode *inode)
++static struct dquot **ext4_get_dquots(struct inode *inode)
 +{
-+	return REISERFS_I(inode)->i_dquot;
++	return EXT4_I(inode)->i_dquot;
 +}
- #endif
- 
- static const struct super_operations reiserfs_sops = {
-@@ -768,6 +777,7 @@ static const struct super_operations reiserfs_sops = {
++
+ static const struct dquot_operations ext4_quota_operations = {
+ 	.get_reserved_space = ext4_get_reserved_space,
+ 	.write_dquot	= ext4_write_dquot,
+@@ -1117,6 +1123,7 @@ static const struct super_operations ext4_sops = {
  #ifdef CONFIG_QUOTA
- 	.quota_read = reiserfs_quota_read,
- 	.quota_write = reiserfs_quota_write,
-+	.get_dquots = reiserfs_get_dquots,
+ 	.quota_read	= ext4_quota_read,
+ 	.quota_write	= ext4_quota_write,
++	.get_dquots	= ext4_get_dquots,
  #endif
+ 	.bdev_try_to_free_page = bdev_try_to_free_page,
  };
- 
-@@ -1633,6 +1643,7 @@ static int read_super_block(struct super_block *s, int offset)
- #ifdef CONFIG_QUOTA
- 	s->s_qcop = &reiserfs_qctl_operations;
- 	s->dq_op = &reiserfs_quota_operations;
-+	sb_dqopt(s)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
+@@ -3928,6 +3935,7 @@ static int ext4_fill_super(struct super_block *sb, void *data, int silent)
+ 		sb->s_qcop = &ext4_qctl_sysfile_operations;
+ 	else
+ 		sb->s_qcop = &ext4_qctl_operations;
++	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
  #endif
+ 	memcpy(sb->s_uuid, es->s_uuid, sizeof(es->s_uuid));
  
- 	/*
 -- 
 1.8.1.4
