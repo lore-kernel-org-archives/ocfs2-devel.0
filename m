@@ -1,81 +1,40 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue, 21 Oct 2014 16:38:33 +0200
-Subject: [Ocfs2-devel] [PATCH 09/12] ocfs2: Convert to private i_dquot field
-In-Reply-To: <1413902316-17997-1-git-send-email-jack@suse.cz>
-References: <1413902316-17997-1-git-send-email-jack@suse.cz>
-Message-ID: <1413902316-17997-10-git-send-email-jack@suse.cz>
+Date: Tue, 21 Oct 2014 16:50:50 +0200
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Report error from
+	o2hb_do_disk_heartbeat() to user
+Message-ID: <1413903050-18490-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, hch@lst.de, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: ocfs2-devel@oss.oracle.com
 
-CC: Mark Fasheh <mfasheh@suse.com>
-CC: Joel Becker <jlbec@evilplan.org>
-CC: ocfs2-devel at oss.oracle.com
+Report return value of o2hb_do_disk_heartbeat() as a part of ML_HEARTBEAT
+message so that we know whether a heartbeat actually happened or not.
+This also makes assigned but otherwise unused 'ret' variable used.
+
+Coverity-id: 1227053
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/ocfs2/inode.h |  4 ++++
- fs/ocfs2/super.c | 10 ++++++++++
- 2 files changed, 14 insertions(+)
+ fs/ocfs2/cluster/heartbeat.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
-index a9b76de46047..1bb2e27eaad7 100644
---- a/fs/ocfs2/inode.h
-+++ b/fs/ocfs2/inode.h
-@@ -80,6 +80,10 @@ struct ocfs2_inode_info
- 	 */
- 	tid_t i_sync_tid;
- 	tid_t i_datasync_tid;
-+
-+#ifdef CONFIG_QUOTA
-+	struct dquot *i_dquot[MAXQUOTAS];
-+#endif
- };
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index eb9d48746ab4..16eff45727ee 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1127,10 +1127,10 @@ static int o2hb_thread(void *data)
+ 		elapsed_msec = o2hb_elapsed_msecs(&before_hb, &after_hb);
  
- /*
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 93c85bc745e1..9a97986d54f5 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -143,6 +143,11 @@ static int ocfs2_susp_quotas(struct ocfs2_super *osb, int unsuspend);
- static int ocfs2_enable_quotas(struct ocfs2_super *osb);
- static void ocfs2_disable_quotas(struct ocfs2_super *osb);
+ 		mlog(ML_HEARTBEAT,
+-		     "start = %lu.%lu, end = %lu.%lu, msec = %u\n",
++		     "start = %lu.%lu, end = %lu.%lu, msec = %u, ret = %d\n",
+ 		     before_hb.tv_sec, (unsigned long) before_hb.tv_usec,
+ 		     after_hb.tv_sec, (unsigned long) after_hb.tv_usec,
+-		     elapsed_msec);
++		     elapsed_msec, ret);
  
-+static struct dquot **ocfs2_get_dquots(struct inode *inode)
-+{
-+	return OCFS2_I(inode)->i_dquot;
-+}
-+
- static const struct super_operations ocfs2_sops = {
- 	.statfs		= ocfs2_statfs,
- 	.alloc_inode	= ocfs2_alloc_inode,
-@@ -155,6 +160,7 @@ static const struct super_operations ocfs2_sops = {
- 	.show_options   = ocfs2_show_options,
- 	.quota_read	= ocfs2_quota_read,
- 	.quota_write	= ocfs2_quota_write,
-+	.get_dquots	= ocfs2_get_dquots,
- };
- 
- enum {
-@@ -563,6 +569,9 @@ static struct inode *ocfs2_alloc_inode(struct super_block *sb)
- 
- 	oi->i_sync_tid = 0;
- 	oi->i_datasync_tid = 0;
-+#ifdef CONFIG_QUOTA
-+	memset(&oi->i_dquot, 0, sizeof(oi->i_dquot));
-+#endif
- 
- 	jbd2_journal_init_jbd_inode(&oi->ip_jinode, &oi->vfs_inode);
- 	return &oi->vfs_inode;
-@@ -2073,6 +2082,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	sb->s_export_op = &ocfs2_export_ops;
- 	sb->s_qcop = &ocfs2_quotactl_ops;
- 	sb->dq_op = &ocfs2_quota_operations;
-+	sb_dqopt(sb)->allowed_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
- 	sb->s_xattr = ocfs2_xattr_handlers;
- 	sb->s_time_gran = 1;
- 	sb->s_flags |= MS_NOATIME;
+ 		if (!kthread_should_stop() &&
+ 		    elapsed_msec < reg->hr_timeout_ms) {
 -- 
 1.8.1.4
