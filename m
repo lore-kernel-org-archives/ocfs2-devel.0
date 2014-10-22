@@ -1,46 +1,31 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 22 Oct 2014 18:51:50 +0200
-Subject: [Ocfs2-devel] [PATCH 02/12] quota: Allow each filesystem to
- specify which quota types it supports
-In-Reply-To: <20141022162915.GB18443@lst.de>
-References: <1413902316-17997-1-git-send-email-jack@suse.cz>
-	<1413902316-17997-3-git-send-email-jack@suse.cz>
-	<20141022162915.GB18443@lst.de>
-Message-ID: <20141022165150.GA12809@quack.suse.cz>
+From: Richard Weinberger <richard@nod.at>
+Date: Wed, 22 Oct 2014 22:33:59 +0200
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Fix d_splice_alias() return
+ code checking
+In-Reply-To: <20141020161219.e68870b37a4a45dbf1e89db8@linux-foundation.org>
+References: <1413715184-30196-1-git-send-email-richard@nod.at>	<1413715184-30196-2-git-send-email-richard@nod.at>
+	<20141020161219.e68870b37a4a45dbf1e89db8@linux-foundation.org>
+Message-ID: <544814B7.5000300@nod.at>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@lst.de>
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, Jan Kara <jack@suse.cz>, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, linux-fsdevel@vger.kernel.org, tytso@mit.edu, linux-ext4@vger.kernel.org, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
 
-On Wed 22-10-14 18:29:15, Christoph Hellwig wrote:
-> On Tue, Oct 21, 2014 at 04:38:26PM +0200, Jan Kara wrote:
-> > Currently all filesystems supporting VFS quota support user and group
-> > quotas. With introduction of project quotas this is going to change so
-> > make sure filesystem isn't called for quota type it doesn't support by
-> > introduction of a bitmask determining which quota types each filesystem
-> > supports.
+Am 21.10.2014 um 01:12 schrieb Andrew Morton:
+> On Sun, 19 Oct 2014 12:39:44 +0200 Richard Weinberger <richard@nod.at> wrote:
 > 
-> Why don't you keep this bitmask in the dquot.c instead of pushing it
-> to the caller?  So far usage of s_dquot is mostly confined to dquot.c
-> (with a few leaks to the filesystems using it), so keeping it that
-> way seems like a good idea.
-  So there are two reasons:
-1) Currently if you call quotactl() with invalid quota type you'll get
-EINVAL. To maintain this with addition of project quotas you need to check
-the types early before calling check_quotactl_permission() and other
-checks.
+>> d_splice_alias() can return a valid dentry, NULL or an ERR_PTR.
+>> Currently the code checks not for ERR_PTR and my oops in
+>> ocfs2_dentry_attach_lock().
+> 
+> It's unclear what the second sentence is trying to tell us.  The patch
+> fixes an oops?  If so, a copy of the trace would be useful, as would an
+> explanation of why it occurred.  If not, I'm all confused.
 
-2) I didn't want filesystem quotactl callbacks to deal with quota types
-they don't support. Sure each fs could do a type check in the callback but
-this looked easier.
+ocfs2_dentry_attach_lock() derefs the dentry pointer.
+If d_splice_alias() returns ERR_PTR(-EIO) it will oops.
 
-Now I see your point about s_dquot and I can move allowed_types out of
-s_dquot if that makes you happier. But otherwise what I did still seems as
-the best solution to me.
-
-								Honza
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+Thanks,
+//richard
