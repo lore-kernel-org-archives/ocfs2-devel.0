@@ -1,39 +1,26 @@
-From: Jan Kara <jack@suse.cz>
-Date: Wed, 22 Oct 2014 15:47:02 +0200
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Remove bogus test from
-	ocfs2_read_locked_inode()
-Message-ID: <1413985622-8637-1-git-send-email-jack@suse.cz>
+From: Christoph Hellwig <hch@lst.de>
+Date: Wed, 22 Oct 2014 18:29:15 +0200
+Subject: [Ocfs2-devel] [PATCH 02/12] quota: Allow each filesystem to
+	specify which	quota types it supports
+In-Reply-To: <1413902316-17997-3-git-send-email-jack@suse.cz>
+References: <1413902316-17997-1-git-send-email-jack@suse.cz>
+	<1413902316-17997-3-git-send-email-jack@suse.cz>
+Message-ID: <20141022162915.GB18443@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.cz>
+Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, hch@lst.de
 
-'args' are always set for ocfs2_read_locked_inode() and brelse() checks
-whether bh is NULL. So the test (args && bh) is unnecessary (plus the
-args part is really confusing anyway). Remove it.
+On Tue, Oct 21, 2014 at 04:38:26PM +0200, Jan Kara wrote:
+> Currently all filesystems supporting VFS quota support user and group
+> quotas. With introduction of project quotas this is going to change so
+> make sure filesystem isn't called for quota type it doesn't support by
+> introduction of a bitmask determining which quota types each filesystem
+> supports.
 
-Coverity-id: 1128856
-CC: Mark Fasheh <mfasheh@suse.com>
-CC: Joel Becker <jlbec@evilplan.org>
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/ocfs2/inode.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 437de7f768c6..c8b25de9efbb 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -540,8 +540,7 @@ bail:
- 	if (status < 0)
- 		make_bad_inode(inode);
- 
--	if (args && bh)
--		brelse(bh);
-+	brelse(bh);
- 
- 	return status;
- }
--- 
-1.8.1.4
+Why don't you keep this bitmask in the dquot.c instead of pushing it
+to the caller?  So far usage of s_dquot is mostly confined to dquot.c
+(with a few leaks to the filesystems using it), so keeping it that
+way seems like a good idea.
