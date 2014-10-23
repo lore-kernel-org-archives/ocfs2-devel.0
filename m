@@ -1,31 +1,33 @@
-From: Richard Weinberger <richard@nod.at>
-Date: Wed, 22 Oct 2014 22:33:59 +0200
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: Fix d_splice_alias() return
- code checking
-In-Reply-To: <20141020161219.e68870b37a4a45dbf1e89db8@linux-foundation.org>
-References: <1413715184-30196-1-git-send-email-richard@nod.at>	<1413715184-30196-2-git-send-email-richard@nod.at>
-	<20141020161219.e68870b37a4a45dbf1e89db8@linux-foundation.org>
-Message-ID: <544814B7.5000300@nod.at>
+From: Christoph Hellwig <hch@lst.de>
+Date: Thu, 23 Oct 2014 10:53:50 +0200
+Subject: [Ocfs2-devel] [PATCH 02/12] quota: Allow each filesystem to
+	specify which	quota types it supports
+In-Reply-To: <20141022165150.GA12809@quack.suse.cz>
+References: <1413902316-17997-1-git-send-email-jack@suse.cz>
+	<1413902316-17997-3-git-send-email-jack@suse.cz>
+	<20141022162915.GB18443@lst.de>
+	<20141022165150.GA12809@quack.suse.cz>
+Message-ID: <20141023085349.GA30381@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-fsdevel@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>
+To: Jan Kara <jack@suse.cz>
+Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk
 
-Am 21.10.2014 um 01:12 schrieb Andrew Morton:
-> On Sun, 19 Oct 2014 12:39:44 +0200 Richard Weinberger <richard@nod.at> wrote:
+On Wed, Oct 22, 2014 at 06:51:50PM +0200, Jan Kara wrote:
+>   So there are two reasons:
+> 1) Currently if you call quotactl() with invalid quota type you'll get
+> EINVAL. To maintain this with addition of project quotas you need to check
+> the types early before calling check_quotactl_permission() and other
+> checks.
 > 
->> d_splice_alias() can return a valid dentry, NULL or an ERR_PTR.
->> Currently the code checks not for ERR_PTR and my oops in
->> ocfs2_dentry_attach_lock().
+> 2) I didn't want filesystem quotactl callbacks to deal with quota types
+> they don't support. Sure each fs could do a type check in the callback but
+> this looked easier.
 > 
-> It's unclear what the second sentence is trying to tell us.  The patch
-> fixes an oops?  If so, a copy of the trace would be useful, as would an
-> explanation of why it occurred.  If not, I'm all confused.
+> Now I see your point about s_dquot and I can move allowed_types out of
+> s_dquot if that makes you happier. But otherwise what I did still seems as
+> the best solution to me.
 
-ocfs2_dentry_attach_lock() derefs the dentry pointer.
-If d_splice_alias() returns ERR_PTR(-EIO) it will oops.
-
-Thanks,
-//richard
+Moving it out of s_dquot seems very sensible to me.
