@@ -1,36 +1,78 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue,  4 Nov 2014 12:19:45 +0100
-Subject: [Ocfs2-devel] [PATCH 04/12] xfs: Set allowed quota types
+Date: Tue,  4 Nov 2014 12:19:47 +0100
+Subject: [Ocfs2-devel] [PATCH 06/12] ext2: Convert to private i_dquot field
 In-Reply-To: <1415099993-18034-1-git-send-email-jack@suse.cz>
 References: <1415099993-18034-1-git-send-email-jack@suse.cz>
-Message-ID: <1415099993-18034-5-git-send-email-jack@suse.cz>
+Message-ID: <1415099993-18034-7-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, hch@lst.de, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: linux-ext4@vger.kernel.org, Dave Chinner <david@fromorbit.com>, xfs@oss.sgi.com, cluster-devel@redhat.com, Steven Whitehouse <swhiteho@redhat.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, Jeff Mahoney <jeffm@suse.de>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, viro@zeniv.linux.org.uk, hch@lst.de, Jan Kara <jack@suse.cz>
 
-We support user, group, and project quotas. Tell VFS about it.
-
-CC: xfs at oss.sgi.com
-CC: Dave Chinner <david@fromorbit.com>
+CC: linux-ext4 at vger.kernel.org
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/xfs/xfs_super.c | 1 +
- 1 file changed, 1 insertion(+)
+ fs/ext2/ext2.h  |  3 +++
+ fs/ext2/super.c | 10 ++++++++++
+ 2 files changed, 13 insertions(+)
 
-diff --git a/fs/xfs/xfs_super.c b/fs/xfs/xfs_super.c
-index 9f622feda6a4..206b97fd1d8a 100644
---- a/fs/xfs/xfs_super.c
-+++ b/fs/xfs/xfs_super.c
-@@ -1425,6 +1425,7 @@ xfs_fs_fill_super(
- 	sb->s_export_op = &xfs_export_operations;
- #ifdef CONFIG_XFS_QUOTA
- 	sb->s_qcop = &xfs_quotactl_operations;
-+	sb->s_quota_types = QTYPE_MASK_USR | QTYPE_MASK_GRP | QTYPE_MASK_PRJ;
- #endif
- 	sb->s_op = &xfs_super_operations;
+diff --git a/fs/ext2/ext2.h b/fs/ext2/ext2.h
+index d9a17d0b124d..e4279ead4a05 100644
+--- a/fs/ext2/ext2.h
++++ b/fs/ext2/ext2.h
+@@ -689,6 +689,9 @@ struct ext2_inode_info {
+ 	struct mutex truncate_mutex;
+ 	struct inode	vfs_inode;
+ 	struct list_head i_orphan;	/* unlinked but open inodes */
++#ifdef CONFIG_QUOTA
++	struct dquot *i_dquot[MAXQUOTAS];
++#endif
+ };
  
+ /*
+diff --git a/fs/ext2/super.c b/fs/ext2/super.c
+index 170dc41e8bf4..ae55fddc26a9 100644
+--- a/fs/ext2/super.c
++++ b/fs/ext2/super.c
+@@ -166,6 +166,10 @@ static struct inode *ext2_alloc_inode(struct super_block *sb)
+ 		return NULL;
+ 	ei->i_block_alloc_info = NULL;
+ 	ei->vfs_inode.i_version = 1;
++#ifdef CONFIG_QUOTA
++	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
++#endif
++
+ 	return &ei->vfs_inode;
+ }
+ 
+@@ -303,6 +307,10 @@ static int ext2_show_options(struct seq_file *seq, struct dentry *root)
+ #ifdef CONFIG_QUOTA
+ static ssize_t ext2_quota_read(struct super_block *sb, int type, char *data, size_t len, loff_t off);
+ static ssize_t ext2_quota_write(struct super_block *sb, int type, const char *data, size_t len, loff_t off);
++static struct dquot **ext2_get_dquots(struct inode *inode)
++{
++	return EXT2_I(inode)->i_dquot;
++}
+ #endif
+ 
+ static const struct super_operations ext2_sops = {
+@@ -320,6 +328,7 @@ static const struct super_operations ext2_sops = {
+ #ifdef CONFIG_QUOTA
+ 	.quota_read	= ext2_quota_read,
+ 	.quota_write	= ext2_quota_write,
++	.get_dquots	= ext2_get_dquots,
+ #endif
+ };
+ 
+@@ -1090,6 +1099,7 @@ static int ext2_fill_super(struct super_block *sb, void *data, int silent)
+ #ifdef CONFIG_QUOTA
+ 	sb->dq_op = &dquot_operations;
+ 	sb->s_qcop = &dquot_quotactl_ops;
++	sb->s_quota_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
+ #endif
+ 
+ 	root = ext2_iget(sb, EXT2_ROOT_INO);
 -- 
 1.8.1.4
