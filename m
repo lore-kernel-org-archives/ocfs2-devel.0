@@ -1,46 +1,78 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 3 Nov 2014 13:01:16 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: improve code readability
-In-Reply-To: <1414758561-30022-1-git-send-email-sudipm.mukherjee@gmail.com>
-References: <1414758561-30022-1-git-send-email-sudipm.mukherjee@gmail.com>
-Message-ID: <54570C1C.9080508@huawei.com>
+From: Jan Kara <jack@suse.cz>
+Date: Tue,  4 Nov 2014 12:19:52 +0100
+Subject: [Ocfs2-devel] [PATCH 11/12] jfs: Convert to private i_dquot field
+In-Reply-To: <1415099993-18034-1-git-send-email-jack@suse.cz>
+References: <1415099993-18034-1-git-send-email-jack@suse.cz>
+Message-ID: <1415099993-18034-12-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, hch@lst.de, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-You are right. Actually Andrew has already fixed this in mm tree.
-Thanks.
+CC: Dave Kleikamp <dave.kleikamp@oracle.com>
+CC: jfs-discussion at lists.sourceforge.net
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/jfs/jfs_incore.h | 3 +++
+ fs/jfs/super.c      | 9 +++++++++
+ 2 files changed, 12 insertions(+)
 
-On 2014/10/31 20:29, Sudip Mukherjee wrote:
-> code was getting confusing as the priority of both the
-> operators ! and & are same.
-> this change is done to just to improve the readability
-> of the code.
-> 
-> Signed-off-by: Sudip Mukherjee <sudip@vectorindia.org>
-> ---
-> 
-> hi,
-> i hope this is the way Weiwei Wang has thought of the logic when giving that BUG_ON,
-> please discard this patch if this assumption was worng.
-> 
-> 
->  fs/ocfs2/namei.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 62620ab..1a05574 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -2764,7 +2764,7 @@ int ocfs2_del_inode_from_orphan(struct ocfs2_super *osb,
->  		goto bail_unlock_orphan;
->  	}
->  
-> -	BUG_ON(!di->i_flags & cpu_to_le32(OCFS2_DIO_ORPHANED_FL));
-> +	BUG_ON(!(di->i_flags & cpu_to_le32(OCFS2_DIO_ORPHANED_FL)));
->  
->  	/* Only delete entry if OCFS2_ORPHANED_FL not set, or
->  	 * there are two entries added */
-> 
+diff --git a/fs/jfs/jfs_incore.h b/fs/jfs/jfs_incore.h
+index cf47f09e8ac8..fa7e795bd8ae 100644
+--- a/fs/jfs/jfs_incore.h
++++ b/fs/jfs/jfs_incore.h
+@@ -94,6 +94,9 @@ struct jfs_inode_info {
+ 			unchar _inline_ea[128];	/* 128: inline extended attr */
+ 		} link;
+ 	} u;
++#ifdef CONFIG_QUOTA
++	struct dquot *i_dquot[MAXQUOTAS];
++#endif
+ 	u32 dev;	/* will die when we get wide dev_t */
+ 	struct inode	vfs_inode;
+ };
+diff --git a/fs/jfs/super.c b/fs/jfs/super.c
+index 93e897e588a8..16c3a9556634 100644
+--- a/fs/jfs/super.c
++++ b/fs/jfs/super.c
+@@ -117,6 +117,9 @@ static struct inode *jfs_alloc_inode(struct super_block *sb)
+ 	jfs_inode = kmem_cache_alloc(jfs_inode_cachep, GFP_NOFS);
+ 	if (!jfs_inode)
+ 		return NULL;
++#ifdef CONFIG_QUOTA
++	memset(&jfs_inode->i_dquot, 0, sizeof(jfs_inode->i_dquot));
++#endif
+ 	return &jfs_inode->vfs_inode;
+ }
+ 
+@@ -537,6 +540,7 @@ static int jfs_fill_super(struct super_block *sb, void *data, int silent)
+ #ifdef CONFIG_QUOTA
+ 	sb->dq_op = &dquot_operations;
+ 	sb->s_qcop = &dquot_quotactl_ops;
++	sb->s_quota_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
+ #endif
+ 
+ 	/*
+@@ -836,6 +840,10 @@ out:
+ 	return len - towrite;
+ }
+ 
++static struct dquot **jfs_get_dquots(struct inode *inode)
++{
++	return JFS_IP(inode)->i_dquot;
++}
+ #endif
+ 
+ static const struct super_operations jfs_super_operations = {
+@@ -854,6 +862,7 @@ static const struct super_operations jfs_super_operations = {
+ #ifdef CONFIG_QUOTA
+ 	.quota_read	= jfs_quota_read,
+ 	.quota_write	= jfs_quota_write,
++	.get_dquots	= jfs_get_dquots,
+ #endif
+ };
+ 
+-- 
+1.8.1.4
