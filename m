@@ -1,82 +1,36 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue,  4 Nov 2014 12:19:51 +0100
-Subject: [Ocfs2-devel] [PATCH 10/12] reiserfs: Convert to private i_dquot
-	field
+Date: Tue,  4 Nov 2014 12:19:45 +0100
+Subject: [Ocfs2-devel] [PATCH 04/12] xfs: Set allowed quota types
 In-Reply-To: <1415099993-18034-1-git-send-email-jack@suse.cz>
 References: <1415099993-18034-1-git-send-email-jack@suse.cz>
-Message-ID: <1415099993-18034-11-git-send-email-jack@suse.cz>
+Message-ID: <1415099993-18034-5-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
-Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, hch@lst.de, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
+Cc: Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, tytso@mit.edu, Jeff Mahoney <jeffm@suse.de>, Mark Fasheh <mfasheh@suse.com>, Dave Chinner <david@fromorbit.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, Joel Becker <jlbec@evilplan.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org, hch@lst.de, Steven Whitehouse <swhiteho@redhat.com>, ocfs2-devel@oss.oracle.com, viro@zeniv.linux.org.uk
 
-CC: reiserfs-devel at vger.kernel.org
-CC: Jeff Mahoney <jeffm@suse.de>
+We support user, group, and project quotas. Tell VFS about it.
+
+CC: xfs at oss.sgi.com
+CC: Dave Chinner <david@fromorbit.com>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/reiserfs/reiserfs.h |  4 ++++
- fs/reiserfs/super.c    | 11 +++++++++++
- 2 files changed, 15 insertions(+)
+ fs/xfs/xfs_super.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/fs/reiserfs/reiserfs.h b/fs/reiserfs/reiserfs.h
-index 1894d96ccb7c..bb79cddf0a1f 100644
---- a/fs/reiserfs/reiserfs.h
-+++ b/fs/reiserfs/reiserfs.h
-@@ -97,6 +97,10 @@ struct reiserfs_inode_info {
- #ifdef CONFIG_REISERFS_FS_XATTR
- 	struct rw_semaphore i_xattr_sem;
+diff --git a/fs/xfs/xfs_super.c b/fs/xfs/xfs_super.c
+index 9f622feda6a4..206b97fd1d8a 100644
+--- a/fs/xfs/xfs_super.c
++++ b/fs/xfs/xfs_super.c
+@@ -1425,6 +1425,7 @@ xfs_fs_fill_super(
+ 	sb->s_export_op = &xfs_export_operations;
+ #ifdef CONFIG_XFS_QUOTA
+ 	sb->s_qcop = &xfs_quotactl_operations;
++	sb->s_quota_types = QTYPE_MASK_USR | QTYPE_MASK_GRP | QTYPE_MASK_PRJ;
  #endif
-+#ifdef CONFIG_QUOTA
-+	struct dquot *i_dquot[MAXQUOTAS];
-+#endif
-+
- 	struct inode vfs_inode;
- };
+ 	sb->s_op = &xfs_super_operations;
  
-diff --git a/fs/reiserfs/super.c b/fs/reiserfs/super.c
-index f1376c92cf74..ea63ab13ef92 100644
---- a/fs/reiserfs/super.c
-+++ b/fs/reiserfs/super.c
-@@ -594,6 +594,10 @@ static struct inode *reiserfs_alloc_inode(struct super_block *sb)
- 		return NULL;
- 	atomic_set(&ei->openers, 0);
- 	mutex_init(&ei->tailpack);
-+#ifdef CONFIG_QUOTA
-+	memset(&ei->i_dquot, 0, sizeof(ei->i_dquot));
-+#endif
-+
- 	return &ei->vfs_inode;
- }
- 
-@@ -750,6 +754,11 @@ static ssize_t reiserfs_quota_write(struct super_block *, int, const char *,
- 				    size_t, loff_t);
- static ssize_t reiserfs_quota_read(struct super_block *, int, char *, size_t,
- 				   loff_t);
-+
-+static struct dquot **reiserfs_get_dquots(struct inode *inode)
-+{
-+	return REISERFS_I(inode)->i_dquot;
-+}
- #endif
- 
- static const struct super_operations reiserfs_sops = {
-@@ -768,6 +777,7 @@ static const struct super_operations reiserfs_sops = {
- #ifdef CONFIG_QUOTA
- 	.quota_read = reiserfs_quota_read,
- 	.quota_write = reiserfs_quota_write,
-+	.get_dquots = reiserfs_get_dquots,
- #endif
- };
- 
-@@ -1633,6 +1643,7 @@ static int read_super_block(struct super_block *s, int offset)
- #ifdef CONFIG_QUOTA
- 	s->s_qcop = &reiserfs_qctl_operations;
- 	s->dq_op = &reiserfs_quota_operations;
-+	s->s_quota_types = QTYPE_MASK_USR | QTYPE_MASK_GRP;
- #endif
- 
- 	/*
 -- 
 1.8.1.4
