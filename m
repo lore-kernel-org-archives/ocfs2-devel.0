@@ -1,51 +1,39 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 6 Nov 2014 15:37:19 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fix error handling when creating
- debugfs root in ocfs2_init()
-In-Reply-To: <1415257654-17607-1-git-send-email-jack@suse.cz>
-References: <1415257654-17607-1-git-send-email-jack@suse.cz>
-Message-ID: <545B252F.7070601@huawei.com>
+From: Jeff Moyer <jmoyer@redhat.com>
+Date: Thu, 06 Nov 2014 18:46:08 -0500
+Subject: [Ocfs2-devel] [PATCH v5 7/7] fs: add a flag for per-operation
+	O_DSYNC semantics
+In-Reply-To: <c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com>
+	(Milosz Tanski's message of "Wed, 5 Nov 2014 16:14:53 -0500")
+References: <cover.1415220890.git.milosz@adfin.com>
+	<cover.1415220890.git.milosz@adfin.com>
+	<c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com>
+Message-ID: <x49r3xf28qn.fsf@segfault.boston.devel.redhat.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Milosz Tanski <milosz@adfin.com>
+Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, ceph-devel@vger.kernel.org, fuse-devel@lists.sourceforge.net, linux-nfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
 
-Looks good to me. Thanks.
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+Milosz Tanski <milosz@adfin.com> writes:
 
-On 2014/11/6 15:07, Jan Kara wrote:
-> Error handling if creation of root of debugfs in ocfs2_init() fails is
-> broken. Although error code is set we fail to exit ocfs2_init() with
-> error and thus initialization ends with success. Later when mounting a
-> filesystem, ocfs2 debugfs entries end up being created in the root of
-> debugfs filesystem which is confusing.
-> 
-> Fix the error handling to bail out.
-> 
-> Coverity-id: 1227009
-> Signed-off-by: Jan Kara <jack@suse.cz>
-> ---
->  fs/ocfs2/super.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> This replaces patch "ocfs2: Remove pointless assignment in ocfs2_init()".
-> Things are safer this way and when debugfs dir creation fails, something is
-> really wrong.
-> 
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 93c85bc745e1..8e3ac25efb9f 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -1622,8 +1622,9 @@ static int __init ocfs2_init(void)
->  
->  	ocfs2_debugfs_root = debugfs_create_dir("ocfs2", NULL);
->  	if (!ocfs2_debugfs_root) {
-> -		status = -EFAULT;
-> +		status = -ENOMEM;
->  		mlog(ML_ERROR, "Unable to create ocfs2 debugfs root.\n");
-> +		goto out4;
->  	}
->  
->  	ocfs2_set_locking_protocol();
-> 
+> -		if (type == READ && (flags & RWF_NONBLOCK))
+> -			return -EAGAIN;
+> +		if (type == READ) {
+> +			if (flags & RWF_NONBLOCK)
+> +				return -EAGAIN;
+> +		} else {
+> +			if (flags & RWF_DSYNC)
+> +				return -EINVAL;
+> +		}
+
+Minor nit, but I'd rather read something that looks like this:
+
+	if (type == READ && (flags & RWF_NONBLOCK))
+		return -EAGAIN;
+	else if (type == WRITE && (flags & RWF_DSYNC))
+		return -EINVAL;
+
+I won't lose sleep over it, though.
+
+Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
