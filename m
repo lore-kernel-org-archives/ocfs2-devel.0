@@ -1,39 +1,54 @@
-From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Fri, 7 Nov 2014 10:37:41 +0000
-Subject: [Ocfs2-devel] how can the [o2hb-x] kernel thread begin running in
-	the ocfs2
-References: <mailman.16278.1415343839.23890.ocfs2-devel@oss.oracle.com>
-Message-ID: <20141107183741199576112@h3c.com>
+From: Anton Altaparmakov <aia21@cam.ac.uk>
+Date: Fri, 7 Nov 2014 06:22:48 +0200
+Subject: [Ocfs2-devel] [PATCH v5 7/7] add a flag for per-operation
+	O_DSYNC semantics
+In-Reply-To: <x49r3xf28qn.fsf@segfault.boston.devel.redhat.com>
+References: <cover.1415220890.git.milosz@adfin.com>
+	<cover.1415220890.git.milosz@adfin.com>
+	<c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com>
+	<x49r3xf28qn.fsf@segfault.boston.devel.redhat.com>
+Message-ID: <BF30FAEC-D4D3-4079-9ECD-2743747279BD@cam.ac.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jeff Moyer <jmoyer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: Milosz Tanski <milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-aio-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Mel Gorman <mgorman-l3A5Bk7waGM@public.gmane.org>, Volker Lendecke <Volker.Lendecke-3ekOc4rQMZmzQB+pC5nmwQ@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org
 
+Hi Jeff,
 
-Hi
+> On 7 Nov 2014, at 01:46, Jeff Moyer <jmoyer@redhat.com> wrote:
+> 
+> Milosz Tanski <milosz@adfin.com> writes:
+> 
+>> -		if (type == READ && (flags & RWF_NONBLOCK))
+>> -			return -EAGAIN;
+>> +		if (type == READ) {
+>> +			if (flags & RWF_NONBLOCK)
+>> +				return -EAGAIN;
+>> +		} else {
+>> +			if (flags & RWF_DSYNC)
+>> +				return -EINVAL;
+>> +		}
+> 
+> Minor nit, but I'd rather read something that looks like this:
+> 
+> 	if (type == READ && (flags & RWF_NONBLOCK))
+> 		return -EAGAIN;
+> 	else if (type == WRITE && (flags & RWF_DSYNC))
+> 		return -EINVAL;
 
+But your version is less logically efficient for the case where "type == READ" is true and "flags & RWF_NONBLOCK" is false because your version then has to do the "if (type == WRITE" check before discovering it does not need to take that branch either, whilst the original version does not have to do such a test at all.
 
-        While mounting -t ocfs2 , the function ocfs2_fill_super is triggered.
+Best regards,
 
-In the process, which specific function will trigger the callback of o2hb_region_dev_write,
+	Anton
 
-how can the [o2hb-x] kernel thread begin running?
+> I won't lose sleep over it, though.
+> 
+> Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
 
- thanks
-
-
--------------------------------------------------------------------------------------------------------------------------------------
-??????????????????????????,?????????????
-?????????????????????(??????????????????
-???)?????????????????,??????????????????
-??!
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20141107/e64e0892/attachment.html 
+-- 
+Anton Altaparmakov <aia21@cam.ac.uk> (replace at with @)
+University of Cambridge Information Services, Roger Needham Building
+7 JJ Thomson Avenue, Cambridge, CB3 0RB, UK
