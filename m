@@ -1,39 +1,136 @@
-From: Jeff Moyer <jmoyer@redhat.com>
-Date: Thu, 06 Nov 2014 18:46:08 -0500
-Subject: [Ocfs2-devel] [PATCH v5 7/7] fs: add a flag for per-operation
-	O_DSYNC semantics
-In-Reply-To: <c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com>
-	(Milosz Tanski's message of "Wed, 5 Nov 2014 16:14:53 -0500")
-References: <cover.1415220890.git.milosz@adfin.com>
-	<cover.1415220890.git.milosz@adfin.com>
-	<c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com>
-Message-ID: <x49r3xf28qn.fsf@segfault.boston.devel.redhat.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 7 Nov 2014 11:41:00 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: do not set
+ OCFS2_LOCK_UPCONVERT_FINISHING if nonblocking lock can not be granted at
+ once
+Message-ID: <545C3F4C.5070703@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Milosz Tanski <milosz@adfin.com>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, ceph-devel@vger.kernel.org, fuse-devel@lists.sourceforge.net, linux-nfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
+To: ocfs2-devel@oss.oracle.com
 
-Milosz Tanski <milosz@adfin.com> writes:
+Function ocfs2_readpages() use nonblocking flag to avoid page lock
+inversion. It will trigger cluster hang because that flag
+OCFS2_LOCK_UPCONVERT_FINISHING is not cleared if nonblocking lock
+cannot be granted at once. The flag would prevent dc thread from
+downconverting. So other nodes cannot acheive this lockres for ever.
 
-> -		if (type == READ && (flags & RWF_NONBLOCK))
-> -			return -EAGAIN;
-> +		if (type == READ) {
-> +			if (flags & RWF_NONBLOCK)
-> +				return -EAGAIN;
-> +		} else {
-> +			if (flags & RWF_DSYNC)
-> +				return -EINVAL;
-> +		}
+So we should not set OCFS2_LOCK_UPCONVERT_FINISHING when receiving ast
+if nonblocking lock had already returned.
 
-Minor nit, but I'd rather read something that looks like this:
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
+---
+ fs/ocfs2/dlmglue.c | 37 +++++++++++++++++++++++++++++++------
+ fs/ocfs2/ocfs2.h   |  6 ++++++
+ 2 files changed, 37 insertions(+), 6 deletions(-)
 
-	if (type == READ && (flags & RWF_NONBLOCK))
-		return -EAGAIN;
-	else if (type == WRITE && (flags & RWF_DSYNC))
-		return -EINVAL;
-
-I won't lose sleep over it, though.
-
-Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 21262f2..1ddb6f1 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -861,8 +861,13 @@ static inline void ocfs2_generic_handle_convert_action(struct ocfs2_lock_res *lo
+ 	 * We set the OCFS2_LOCK_UPCONVERT_FINISHING flag before clearing
+ 	 * the OCFS2_LOCK_BUSY flag to prevent the dc thread from
+ 	 * downconverting the lock before the upconvert has fully completed.
++	 * Do not prevent the dc thread from downconverting if NONBLOCK lock
++	 * had already returned.
+ 	 */
+-	lockres_or_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
++	if (!(lockres->l_flags & OCFS2_LOCK_NONBLOCK_FINISHED))
++		lockres_or_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
++	else
++		lockres_clear_flags(lockres, OCFS2_LOCK_NONBLOCK_FINISHED);
+ 
+ 	lockres_clear_flags(lockres, OCFS2_LOCK_BUSY);
+ }
+@@ -1324,13 +1329,12 @@ static void lockres_add_mask_waiter(struct ocfs2_lock_res *lockres,
+ 
+ /* returns 0 if the mw that was removed was already satisfied, -EBUSY
+  * if the mask still hadn't reached its goal */
+-static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
++static int __lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
+ 				      struct ocfs2_mask_waiter *mw)
+ {
+-	unsigned long flags;
+ 	int ret = 0;
+ 
+-	spin_lock_irqsave(&lockres->l_lock, flags);
++	assert_spin_locked(&lockres->l_lock);
+ 	if (!list_empty(&mw->mw_item)) {
+ 		if ((lockres->l_flags & mw->mw_mask) != mw->mw_goal)
+ 			ret = -EBUSY;
+@@ -1338,6 +1342,18 @@ static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
+ 		list_del_init(&mw->mw_item);
+ 		init_completion(&mw->mw_complete);
+ 	}
++
++	return ret;
++}
++
++static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
++				      struct ocfs2_mask_waiter *mw)
++{
++	unsigned long flags;
++	int ret = 0;
++
++	spin_lock_irqsave(&lockres->l_lock, flags);
++	ret = __lockres_remove_mask_waiter(lockres, mw);
+ 	spin_unlock_irqrestore(&lockres->l_lock, flags);
+ 
+ 	return ret;
+@@ -1373,6 +1389,7 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
+ 	unsigned long flags;
+ 	unsigned int gen;
+ 	int noqueue_attempted = 0;
++	int dlm_locked = 0;
+ 
+ 	ocfs2_init_mask_waiter(&mw);
+ 
+@@ -1481,6 +1498,7 @@ again:
+ 			ocfs2_recover_from_dlm_error(lockres, 1);
+ 			goto out;
+ 		}
++		dlm_locked = 1;
+ 
+ 		mlog(0, "lock %s, successful return from ocfs2_dlm_lock\n",
+ 		     lockres->l_name);
+@@ -1514,10 +1532,17 @@ out:
+ 	if (wait && arg_flags & OCFS2_LOCK_NONBLOCK &&
+ 	    mw.mw_mask & (OCFS2_LOCK_BUSY|OCFS2_LOCK_BLOCKED)) {
+ 		wait = 0;
+-		if (lockres_remove_mask_waiter(lockres, &mw))
++		spin_lock_irqsave(&lockres->l_lock, flags);
++		if (__lockres_remove_mask_waiter(lockres, &mw)) {
++			if (dlm_locked)
++				lockres_or_flags(lockres,
++					OCFS2_LOCK_NONBLOCK_FINISHED);
++			spin_unlock_irqrestore(&lockres->l_lock, flags);
+ 			ret = -EAGAIN;
+-		else
++		} else {
++			spin_unlock_irqrestore(&lockres->l_lock, flags);
+ 			goto again;
++		}
+ 	}
+ 	if (wait) {
+ 		ret = ocfs2_wait_for_mask(&mw);
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index bbec539..7d6b7d0 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -144,6 +144,12 @@ enum ocfs2_unlock_action {
+ 						     * before the upconvert
+ 						     * has completed */
+ 
++#define OCFS2_LOCK_NONBLOCK_FINISHED (0x00001000) /* NONBLOCK cluster
++						   * lock has already
++						   * returned, do not block
++						   * dc thread from
++						   * downconverting */
++
+ struct ocfs2_lock_res_ops;
+ 
+ typedef void (*ocfs2_lock_callback)(int status, unsigned long data);
+-- 
+1.8.4.3
