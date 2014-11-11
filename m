@@ -1,222 +1,217 @@
-From: Milosz Tanski <milosz@adfin.com>
-Date: Mon, 10 Nov 2014 11:40:30 -0500
-Subject: [Ocfs2-devel] [PATCH v6 7/7] fs: add a flag for per-operation
-	O_DSYNC semantics
-In-Reply-To: <cover.1415636409.git.milosz@adfin.com>
-References: <cover.1415636409.git.milosz@adfin.com>
-Message-ID: <66d286ef31b6b21ce252ba2716c228639b484e53.1415636409.git.milosz@adfin.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Tue, 11 Nov 2014 09:41:20 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: do not set
+ OCFS2_LOCK_UPCONVERT_FINISHING if nonblocking lock can not be granted at
+ once
+In-Reply-To: <54601A6C.20703@oracle.com>
+References: <545C3F4C.5070703@huawei.com> <545C5E91.5000501@oracle.com>
+	<545C6852.5020305@huawei.com> <545C6EAE.6030304@oracle.com>
+	<545C907A.4010706@huawei.com> <54601A6C.20703@oracle.com>
+Message-ID: <54616940.9020208@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-kernel@vger.kernel.org
-Cc: Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, ceph-devel@vger.kernel.org, fuse-devel@lists.sourceforge.net, linux-nfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
+To: ocfs2-devel@oss.oracle.com
 
-From: Christoph Hellwig <hch@lst.de>
+Hi JunXiao,
+On 2014/11/10 9:52, Junxiao Bi wrote:
+> On 11/07/2014 05:27 PM, Xue jiufei wrote:
+>> On 2014/11/7 15:03, Junxiao Bi wrote:
+>>> On 11/07/2014 02:36 PM, Xue jiufei wrote:
+>>>> Hi Junxiao
+>>>>
+>>>> On 2014/11/7 13:54, Junxiao Bi wrote:
+>>>>> Hi Jiufei,
+>>>>>
+>>>>> On 11/07/2014 11:41 AM, Xue jiufei wrote:
+>>>>>> Function ocfs2_readpages() use nonblocking flag to avoid page lock
+>>>>>> inversion. It will trigger cluster hang because that flag
+>>>>>> OCFS2_LOCK_UPCONVERT_FINISHING is not cleared if nonblocking lock
+>>>>>> cannot be granted at once. The flag would prevent dc thread from
+>>>>>> downconverting. So other nodes cannot acheive this lockres for ever.
+>>>>>>
+>>>>>> So we should not set OCFS2_LOCK_UPCONVERT_FINISHING when receiving ast
+>>>>>> if nonblocking lock had already returned.
+>>>>>>
+>>>>>
+>>>>> Use OCFS2_LOCK_NONBLOCK_FINISHED can't fix this issue. Like there are
+>>>>> two processes doing non-blocking lock in the following order.
+>>>> I am wondering why these two processes can lock in such order.
+>>>
+>>> Yes, you are right. LOCK_BUSY flag stop this race. Your fix works. But
+>>> just as i mentioned, i think for non-blocking lock, no need do cluster
+>>> wild locking, because AST is async, before it reached, most of the time,
+>>> the non-blocking lock had returned fail.
+>> We have added some debug information in function dlm_proxy_ast_handler()
+>> and dlm_send_remote_lock_request(), and run race testcase before.
+>> The result shows that the probability that AST message came earlier
+>> than returned status of locking is about 1/4. 
+> That may depend on how your race testcase is made.
+>>
+>> In addition, if non-blocking lock do not do cluster wide lock, ocfs2_readpages()
+>> will never succeed, 
+> Jiufei, can you explain why?
+> 
+If node A takes EX lock, and node B call ocfs2_readpages(), which do not do cluster
+wide lock, master will not notice node A to downconvert. So even node B call ocfs2_readpages()
+many times, it will not succeed.
 
-With the new read/write with flags syscalls we can support a flag
-to enable O_DSYNC semantics on a per-operation basis.  This ?s
-useful to implement protocols like SMB, NFS or SCSI that have such
-per-operation flags.
-
-Example program below:
-
-cat > pwritev2.c << EOF
-
-        (off_t) val,                              \
-        (off_t) ((((uint64_t) (val)) >> (sizeof (long) * 4)) >> (sizeof (long) * 4))
-
-static ssize_t
-pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
-{
-        return syscall(__NR_pwritev2, fd, iov, iovcnt, LO_HI_LONG(offset),
-			 flags);
-}
-
-int main(int argc, char **argv)
-{
-	int fd = open(argv[1], O_WRONLY|O_CREAT|O_TRUNC, 0666);
-	char buf[1024];
-	struct iovec iov = { .iov_base = buf, .iov_len = 1024 };
-	int ret;
-
-        if (fd < 0) {
-                perror("open");
-                return 0;
-        }
-
-	memset(buf, 0xfe, sizeof(buf));
-
-	ret = pwritev2(fd, &iov, 1, 0, RWF_DSYNC);
-	if (ret < 0)
-		perror("pwritev2");
-	else
-		printf("ret = %d\n", ret);
-
-	return 0;
-}
-EOF
-
-Signed-off-by: Christoph Hellwig <hch@lst.de>
-[milosz at adfin.com: comapt syscall changes for RWF_ODSYNC]
-Signed-off-by: Milosz Tanski <milosz@adfin.com>
-Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
-Acked-by: Sage Weil <sage@redhat.com>
----
- fs/ceph/file.c     |  4 +++-
- fs/fuse/file.c     |  2 ++
- fs/nfs/file.c      | 10 ++++++----
- fs/ocfs2/file.c    |  6 ++++--
- fs/read_write.c    |  8 ++++++--
- include/linux/fs.h |  3 ++-
- mm/filemap.c       |  4 +++-
- 7 files changed, 26 insertions(+), 11 deletions(-)
-
-diff --git a/fs/ceph/file.c b/fs/ceph/file.c
-index b798b5c..2d4e15a 100644
---- a/fs/ceph/file.c
-+++ b/fs/ceph/file.c
-@@ -983,7 +983,9 @@ retry_snap:
- 	ceph_put_cap_refs(ci, got);
- 
- 	if (written >= 0 &&
--	    ((file->f_flags & O_SYNC) || IS_SYNC(file->f_mapping->host) ||
-+	    ((file->f_flags & O_SYNC) ||
-+	     IS_SYNC(file->f_mapping->host) ||
-+	     (iocb->ki_rwflags & RWF_DSYNC) ||
- 	     ceph_osdmap_flag(osdc->osdmap, CEPH_OSDMAP_NEARFULL))) {
- 		err = vfs_fsync_range(file, pos, pos + written - 1, 1);
- 		if (err < 0)
-diff --git a/fs/fuse/file.c b/fs/fuse/file.c
-index caa8d95..bb4fb23 100644
---- a/fs/fuse/file.c
-+++ b/fs/fuse/file.c
-@@ -1248,6 +1248,8 @@ static ssize_t fuse_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
- 		written += written_buffered;
- 		iocb->ki_pos = pos + written_buffered;
- 	} else {
-+		if (iocb->ki_rwflags & RWF_DSYNC)
-+			return -EINVAL;
- 		written = fuse_perform_write(file, mapping, from, pos);
- 		if (written >= 0)
- 			iocb->ki_pos = pos + written;
-diff --git a/fs/nfs/file.c b/fs/nfs/file.c
-index aa9046f..c59b0b7 100644
---- a/fs/nfs/file.c
-+++ b/fs/nfs/file.c
-@@ -652,13 +652,15 @@ static const struct vm_operations_struct nfs_file_vm_ops = {
- 	.remap_pages = generic_file_remap_pages,
- };
- 
--static int nfs_need_sync_write(struct file *filp, struct inode *inode)
-+static int nfs_need_sync_write(struct kiocb *iocb, struct inode *inode)
- {
- 	struct nfs_open_context *ctx;
- 
--	if (IS_SYNC(inode) || (filp->f_flags & O_DSYNC))
-+	if (IS_SYNC(inode) ||
-+	    (iocb->ki_filp->f_flags & O_DSYNC) ||
-+	    (iocb->ki_rwflags & RWF_DSYNC))
- 		return 1;
--	ctx = nfs_file_open_context(filp);
-+	ctx = nfs_file_open_context(iocb->ki_filp);
- 	if (test_bit(NFS_CONTEXT_ERROR_WRITE, &ctx->flags) ||
- 	    nfs_ctx_key_to_expire(ctx))
- 		return 1;
-@@ -705,7 +707,7 @@ ssize_t nfs_file_write(struct kiocb *iocb, struct iov_iter *from)
- 		written = result;
- 
- 	/* Return error values for O_DSYNC and IS_SYNC() */
--	if (result >= 0 && nfs_need_sync_write(file, inode)) {
-+	if (result >= 0 && nfs_need_sync_write(iocb, inode)) {
- 		int err = vfs_fsync(file, 0);
- 		if (err < 0)
- 			result = err;
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index bb66ca4..8f9a86b 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -2374,8 +2374,10 @@ out_dio:
- 	/* buffered aio wouldn't have proper lock coverage today */
- 	BUG_ON(ret == -EIOCBQUEUED && !(file->f_flags & O_DIRECT));
- 
--	if (((file->f_flags & O_DSYNC) && !direct_io) || IS_SYNC(inode) ||
--	    ((file->f_flags & O_DIRECT) && !direct_io)) {
-+	if (((file->f_flags & O_DSYNC) && !direct_io) ||
-+	    IS_SYNC(inode) ||
-+	    ((file->f_flags & O_DIRECT) && !direct_io) ||
-+	    (iocb->ki_rwflags & RWF_DSYNC)) {
- 		ret = filemap_fdatawrite_range(file->f_mapping, *ppos,
- 					       *ppos + count - 1);
- 		if (ret < 0)
-diff --git a/fs/read_write.c b/fs/read_write.c
-index adf85ab..c2e3c0a 100644
---- a/fs/read_write.c
-+++ b/fs/read_write.c
-@@ -841,6 +841,8 @@ static ssize_t do_readv_writev(int type, struct file *file,
- 	} else {
- 		if (type == READ && (flags & RWF_NONBLOCK))
- 			return -EAGAIN;
-+		if (type == WRITE && (flags & RWF_DSYNC))
-+			return -EINVAL;
- 
- 		if (fnv)
- 			ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
-@@ -888,7 +890,7 @@ ssize_t vfs_writev(struct file *file, const struct iovec __user *vec,
- 		return -EBADF;
- 	if (!(file->f_mode & FMODE_CAN_WRITE))
- 		return -EINVAL;
--	if (flags & ~0)
-+	if (flags & ~RWF_DSYNC)
- 		return -EINVAL;
- 
- 	return do_readv_writev(WRITE, file, vec, vlen, pos, flags);
-@@ -1082,6 +1084,8 @@ static ssize_t compat_do_readv_writev(int type, struct file *file,
- 	} else {
- 		if (type == READ && (flags & RWF_NONBLOCK))
- 			return -EAGAIN;
-+		if (type == WRITE && (flags & RWF_DSYNC))
-+			return -EINVAL;
- 
- 		if (fnv)
- 			ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
-@@ -1221,7 +1225,7 @@ static size_t compat_writev(struct file *file,
- 	ret = -EINVAL;
- 	if (!(file->f_mode & FMODE_CAN_WRITE))
- 		goto out;
--	if (flags & ~0)
-+	if (flags & ~RWF_DSYNC)
- 		goto out;
- 
- 	ret = compat_do_readv_writev(WRITE, file, vec, vlen, pos, flags);
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index 7d0e116..7786b88 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -1460,7 +1460,8 @@ struct block_device_operations;
- #define HAVE_UNLOCKED_IOCTL 1
- 
- /* These flags are used for the readv/writev syscalls with flags. */
--#define RWF_NONBLOCK 0x00000001
-+#define RWF_NONBLOCK	0x00000001
-+#define RWF_DSYNC	0x00000002
- 
- struct iov_iter;
- 
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 535967b..8c50d35 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -2669,7 +2669,9 @@ int generic_write_sync(struct kiocb *iocb, loff_t count)
- 	struct file *file = iocb->ki_filp;
- 
- 	if (count > 0 &&
--	    ((file->f_flags & O_DSYNC) || IS_SYNC(file->f_mapping->host))) {
-+	    ((file->f_flags & O_DSYNC) ||
-+	     (iocb->ki_rwflags & RWF_DSYNC) ||
-+	     IS_SYNC(file->f_mapping->host))) {
- 		bool fdatasync = !(file->f_flags & __O_SYNC);
- 		ssize_t ret;
- 
--- 
-1.9.1
+> Thanks,
+> Junxiao.
+> 
+> which is not we wanted.
+>>
+>> Thanks,
+>> Jiufei
+>>>
+>>> Thanks,
+>>> Junxiao.
+>>>>> 1. Process A issue non-blocking lock fail, set OCFS2_LOCK_NONBLOCK_FINISHED.
+>>>> We had set OCFS2_LOCK_BUSY flag before process A call ocfs2_dlm_lock(),
+>>>>> 2. Process B issue non-blocking lock fail, set
+>>>>> OCFS2_LOCK_NONBLOCK_FINISHED again.
+>>>> So process B must wait until ast for Process A returns and clear OCFS2_LOCK_BUSY.
+>>>>
+>>>>> 3. Ast for process A come, clear OCFS2_LOCK_NONBLOCK_FINISHED.
+>>>>> 4. Ast for process B come, set OCFS2_LOCK_UPCONVERT_FINISHING.
+>>>>>
+>>>>> So down convert can still be blocked.
+>>>>>
+>>>>> To fix this issue, I think no need to call ocfs2_dlm_lock() for
+>>>>> non-blocking lock, just check local lockres->l_level is enough, if
+>>>>> request level equal or smaller than it, lock success, or lock fail.
+>>>>>
+>>>>> Thanks,
+>>>>> Junxiao.
+>>>>>
+>>>> Thanks,
+>>>> jiufei.
+>>>>
+>>>>>> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
+>>>>>> ---
+>>>>>>  fs/ocfs2/dlmglue.c | 37 +++++++++++++++++++++++++++++++------
+>>>>>>  fs/ocfs2/ocfs2.h   |  6 ++++++
+>>>>>>  2 files changed, 37 insertions(+), 6 deletions(-)
+>>>>>>
+>>>>>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+>>>>>> index 21262f2..1ddb6f1 100644
+>>>>>> --- a/fs/ocfs2/dlmglue.c
+>>>>>> +++ b/fs/ocfs2/dlmglue.c
+>>>>>> @@ -861,8 +861,13 @@ static inline void ocfs2_generic_handle_convert_action(struct ocfs2_lock_res *lo
+>>>>>>  	 * We set the OCFS2_LOCK_UPCONVERT_FINISHING flag before clearing
+>>>>>>  	 * the OCFS2_LOCK_BUSY flag to prevent the dc thread from
+>>>>>>  	 * downconverting the lock before the upconvert has fully completed.
+>>>>>> +	 * Do not prevent the dc thread from downconverting if NONBLOCK lock
+>>>>>> +	 * had already returned.
+>>>>>>  	 */
+>>>>>> -	lockres_or_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
+>>>>>> +	if (!(lockres->l_flags & OCFS2_LOCK_NONBLOCK_FINISHED))
+>>>>>> +		lockres_or_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
+>>>>>> +	else
+>>>>>> +		lockres_clear_flags(lockres, OCFS2_LOCK_NONBLOCK_FINISHED);
+>>>>>>  
+>>>>>>  	lockres_clear_flags(lockres, OCFS2_LOCK_BUSY);
+>>>>>>  }
+>>>>>> @@ -1324,13 +1329,12 @@ static void lockres_add_mask_waiter(struct ocfs2_lock_res *lockres,
+>>>>>>  
+>>>>>>  /* returns 0 if the mw that was removed was already satisfied, -EBUSY
+>>>>>>   * if the mask still hadn't reached its goal */
+>>>>>> -static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
+>>>>>> +static int __lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
+>>>>>>  				      struct ocfs2_mask_waiter *mw)
+>>>>>>  {
+>>>>>> -	unsigned long flags;
+>>>>>>  	int ret = 0;
+>>>>>>  
+>>>>>> -	spin_lock_irqsave(&lockres->l_lock, flags);
+>>>>>> +	assert_spin_locked(&lockres->l_lock);
+>>>>>>  	if (!list_empty(&mw->mw_item)) {
+>>>>>>  		if ((lockres->l_flags & mw->mw_mask) != mw->mw_goal)
+>>>>>>  			ret = -EBUSY;
+>>>>>> @@ -1338,6 +1342,18 @@ static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
+>>>>>>  		list_del_init(&mw->mw_item);
+>>>>>>  		init_completion(&mw->mw_complete);
+>>>>>>  	}
+>>>>>> +
+>>>>>> +	return ret;
+>>>>>> +}
+>>>>>> +
+>>>>>> +static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
+>>>>>> +				      struct ocfs2_mask_waiter *mw)
+>>>>>> +{
+>>>>>> +	unsigned long flags;
+>>>>>> +	int ret = 0;
+>>>>>> +
+>>>>>> +	spin_lock_irqsave(&lockres->l_lock, flags);
+>>>>>> +	ret = __lockres_remove_mask_waiter(lockres, mw);
+>>>>>>  	spin_unlock_irqrestore(&lockres->l_lock, flags);
+>>>>>>  
+>>>>>>  	return ret;
+>>>>>> @@ -1373,6 +1389,7 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
+>>>>>>  	unsigned long flags;
+>>>>>>  	unsigned int gen;
+>>>>>>  	int noqueue_attempted = 0;
+>>>>>> +	int dlm_locked = 0;
+>>>>>>  
+>>>>>>  	ocfs2_init_mask_waiter(&mw);
+>>>>>>  
+>>>>>> @@ -1481,6 +1498,7 @@ again:
+>>>>>>  			ocfs2_recover_from_dlm_error(lockres, 1);
+>>>>>>  			goto out;
+>>>>>>  		}
+>>>>>> +		dlm_locked = 1;
+>>>>>>  
+>>>>>>  		mlog(0, "lock %s, successful return from ocfs2_dlm_lock\n",
+>>>>>>  		     lockres->l_name);
+>>>>>> @@ -1514,10 +1532,17 @@ out:
+>>>>>>  	if (wait && arg_flags & OCFS2_LOCK_NONBLOCK &&
+>>>>>>  	    mw.mw_mask & (OCFS2_LOCK_BUSY|OCFS2_LOCK_BLOCKED)) {
+>>>>>>  		wait = 0;
+>>>>>> -		if (lockres_remove_mask_waiter(lockres, &mw))
+>>>>>> +		spin_lock_irqsave(&lockres->l_lock, flags);
+>>>>>> +		if (__lockres_remove_mask_waiter(lockres, &mw)) {
+>>>>>> +			if (dlm_locked)
+>>>>>> +				lockres_or_flags(lockres,
+>>>>>> +					OCFS2_LOCK_NONBLOCK_FINISHED);
+>>>>>> +			spin_unlock_irqrestore(&lockres->l_lock, flags);
+>>>>>>  			ret = -EAGAIN;
+>>>>>> -		else
+>>>>>> +		} else {
+>>>>>> +			spin_unlock_irqrestore(&lockres->l_lock, flags);
+>>>>>>  			goto again;
+>>>>>> +		}
+>>>>>>  	}
+>>>>>>  	if (wait) {
+>>>>>>  		ret = ocfs2_wait_for_mask(&mw);
+>>>>>> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+>>>>>> index bbec539..7d6b7d0 100644
+>>>>>> --- a/fs/ocfs2/ocfs2.h
+>>>>>> +++ b/fs/ocfs2/ocfs2.h
+>>>>>> @@ -144,6 +144,12 @@ enum ocfs2_unlock_action {
+>>>>>>  						     * before the upconvert
+>>>>>>  						     * has completed */
+>>>>>>  
+>>>>>> +#define OCFS2_LOCK_NONBLOCK_FINISHED (0x00001000) /* NONBLOCK cluster
+>>>>>> +						   * lock has already
+>>>>>> +						   * returned, do not block
+>>>>>> +						   * dc thread from
+>>>>>> +						   * downconverting */
+>>>>>> +
+>>>>>>  struct ocfs2_lock_res_ops;
+>>>>>>  
+>>>>>>  typedef void (*ocfs2_lock_callback)(int status, unsigned long data);
+>>>>>>
+>>>>>
+>>>>> .
+>>>>>
+>>>>
+>>>>
+>>>
+>>> .
+>>>
+>>
+>>
+> 
+> .
+> 
