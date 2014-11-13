@@ -1,227 +1,66 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 11 Nov 2014 11:59:16 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: do not set
- OCFS2_LOCK_UPCONVERT_FINISHING if nonblocking lock can not be granted at
- once
-In-Reply-To: <54616940.9020208@huawei.com>
-References: <545C3F4C.5070703@huawei.com> <545C5E91.5000501@oracle.com>
-	<545C6852.5020305@huawei.com> <545C6EAE.6030304@oracle.com>
-	<545C907A.4010706@huawei.com> <54601A6C.20703@oracle.com>
-	<54616940.9020208@huawei.com>
-Message-ID: <54618994.8060800@oracle.com>
+From: Pieter Smith <pieter@boesman.nl>
+Date: Thu, 13 Nov 2014 22:23:13 +0100
+Subject: [Ocfs2-devel] [PATCH 36/56] fs/ocfs2: support compiling out splice
+In-Reply-To: <1415913813-362-1-git-send-email-pieter@boesman.nl>
+References: <pieter@boesman.nl>
+	<1415913813-362-1-git-send-email-pieter@boesman.nl>
+Message-ID: <1415913813-362-37-git-send-email-pieter@boesman.nl>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: pieter@boesman.nl
+Cc: Josh Triplett <josh@joshtriplett.org>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, "moderated list:ORACLE CLUSTER FI..." <ocfs2-devel@oss.oracle.com>, open list <linux-kernel@vger.kernel.org>
 
-On 11/11/2014 09:41 AM, Xue jiufei wrote:
-> Hi JunXiao,
-> On 2014/11/10 9:52, Junxiao Bi wrote:
->> On 11/07/2014 05:27 PM, Xue jiufei wrote:
->>> On 2014/11/7 15:03, Junxiao Bi wrote:
->>>> On 11/07/2014 02:36 PM, Xue jiufei wrote:
->>>>> Hi Junxiao
->>>>>
->>>>> On 2014/11/7 13:54, Junxiao Bi wrote:
->>>>>> Hi Jiufei,
->>>>>>
->>>>>> On 11/07/2014 11:41 AM, Xue jiufei wrote:
->>>>>>> Function ocfs2_readpages() use nonblocking flag to avoid page lock
->>>>>>> inversion. It will trigger cluster hang because that flag
->>>>>>> OCFS2_LOCK_UPCONVERT_FINISHING is not cleared if nonblocking lock
->>>>>>> cannot be granted at once. The flag would prevent dc thread from
->>>>>>> downconverting. So other nodes cannot acheive this lockres for ever.
->>>>>>>
->>>>>>> So we should not set OCFS2_LOCK_UPCONVERT_FINISHING when receiving ast
->>>>>>> if nonblocking lock had already returned.
->>>>>>>
->>>>>>
->>>>>> Use OCFS2_LOCK_NONBLOCK_FINISHED can't fix this issue. Like there are
->>>>>> two processes doing non-blocking lock in the following order.
->>>>> I am wondering why these two processes can lock in such order.
->>>>
->>>> Yes, you are right. LOCK_BUSY flag stop this race. Your fix works. But
->>>> just as i mentioned, i think for non-blocking lock, no need do cluster
->>>> wild locking, because AST is async, before it reached, most of the time,
->>>> the non-blocking lock had returned fail.
->>> We have added some debug information in function dlm_proxy_ast_handler()
->>> and dlm_send_remote_lock_request(), and run race testcase before.
->>> The result shows that the probability that AST message came earlier
->>> than returned status of locking is about 1/4. 
->> That may depend on how your race testcase is made.
->>>
->>> In addition, if non-blocking lock do not do cluster wide lock, ocfs2_readpages()
->>> will never succeed, 
->> Jiufei, can you explain why?
->>
-> If node A takes EX lock, and node B call ocfs2_readpages(), which do not do cluster
-> wide lock, master will not notice node A to downconvert. So even node B call ocfs2_readpages()
-> many times, it will not succeed.
-Not sure whether this will happen. As i thought, if there is read ahead
-ops for this file, there should also be read op which can trigger the
-down convert. Any way i think we'd better not depend on this.
+Compile out splice support from ocfs2 when the splice-family of syscalls is not
+supported by the system (i.e. CONFIG_SYSCALL_SPLICE is undefined).
 
-Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
+Signed-off-by: Pieter Smith <pieter@boesman.nl>
+---
+ fs/ocfs2/file.c | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
 
-> 
->> Thanks,
->> Junxiao.
->>
->> which is not we wanted.
->>>
->>> Thanks,
->>> Jiufei
->>>>
->>>> Thanks,
->>>> Junxiao.
->>>>>> 1. Process A issue non-blocking lock fail, set OCFS2_LOCK_NONBLOCK_FINISHED.
->>>>> We had set OCFS2_LOCK_BUSY flag before process A call ocfs2_dlm_lock(),
->>>>>> 2. Process B issue non-blocking lock fail, set
->>>>>> OCFS2_LOCK_NONBLOCK_FINISHED again.
->>>>> So process B must wait until ast for Process A returns and clear OCFS2_LOCK_BUSY.
->>>>>
->>>>>> 3. Ast for process A come, clear OCFS2_LOCK_NONBLOCK_FINISHED.
->>>>>> 4. Ast for process B come, set OCFS2_LOCK_UPCONVERT_FINISHING.
->>>>>>
->>>>>> So down convert can still be blocked.
->>>>>>
->>>>>> To fix this issue, I think no need to call ocfs2_dlm_lock() for
->>>>>> non-blocking lock, just check local lockres->l_level is enough, if
->>>>>> request level equal or smaller than it, lock success, or lock fail.
->>>>>>
->>>>>> Thanks,
->>>>>> Junxiao.
->>>>>>
->>>>> Thanks,
->>>>> jiufei.
->>>>>
->>>>>>> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
->>>>>>> ---
->>>>>>>  fs/ocfs2/dlmglue.c | 37 +++++++++++++++++++++++++++++++------
->>>>>>>  fs/ocfs2/ocfs2.h   |  6 ++++++
->>>>>>>  2 files changed, 37 insertions(+), 6 deletions(-)
->>>>>>>
->>>>>>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
->>>>>>> index 21262f2..1ddb6f1 100644
->>>>>>> --- a/fs/ocfs2/dlmglue.c
->>>>>>> +++ b/fs/ocfs2/dlmglue.c
->>>>>>> @@ -861,8 +861,13 @@ static inline void ocfs2_generic_handle_convert_action(struct ocfs2_lock_res *lo
->>>>>>>  	 * We set the OCFS2_LOCK_UPCONVERT_FINISHING flag before clearing
->>>>>>>  	 * the OCFS2_LOCK_BUSY flag to prevent the dc thread from
->>>>>>>  	 * downconverting the lock before the upconvert has fully completed.
->>>>>>> +	 * Do not prevent the dc thread from downconverting if NONBLOCK lock
->>>>>>> +	 * had already returned.
->>>>>>>  	 */
->>>>>>> -	lockres_or_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
->>>>>>> +	if (!(lockres->l_flags & OCFS2_LOCK_NONBLOCK_FINISHED))
->>>>>>> +		lockres_or_flags(lockres, OCFS2_LOCK_UPCONVERT_FINISHING);
->>>>>>> +	else
->>>>>>> +		lockres_clear_flags(lockres, OCFS2_LOCK_NONBLOCK_FINISHED);
->>>>>>>  
->>>>>>>  	lockres_clear_flags(lockres, OCFS2_LOCK_BUSY);
->>>>>>>  }
->>>>>>> @@ -1324,13 +1329,12 @@ static void lockres_add_mask_waiter(struct ocfs2_lock_res *lockres,
->>>>>>>  
->>>>>>>  /* returns 0 if the mw that was removed was already satisfied, -EBUSY
->>>>>>>   * if the mask still hadn't reached its goal */
->>>>>>> -static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
->>>>>>> +static int __lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
->>>>>>>  				      struct ocfs2_mask_waiter *mw)
->>>>>>>  {
->>>>>>> -	unsigned long flags;
->>>>>>>  	int ret = 0;
->>>>>>>  
->>>>>>> -	spin_lock_irqsave(&lockres->l_lock, flags);
->>>>>>> +	assert_spin_locked(&lockres->l_lock);
->>>>>>>  	if (!list_empty(&mw->mw_item)) {
->>>>>>>  		if ((lockres->l_flags & mw->mw_mask) != mw->mw_goal)
->>>>>>>  			ret = -EBUSY;
->>>>>>> @@ -1338,6 +1342,18 @@ static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
->>>>>>>  		list_del_init(&mw->mw_item);
->>>>>>>  		init_completion(&mw->mw_complete);
->>>>>>>  	}
->>>>>>> +
->>>>>>> +	return ret;
->>>>>>> +}
->>>>>>> +
->>>>>>> +static int lockres_remove_mask_waiter(struct ocfs2_lock_res *lockres,
->>>>>>> +				      struct ocfs2_mask_waiter *mw)
->>>>>>> +{
->>>>>>> +	unsigned long flags;
->>>>>>> +	int ret = 0;
->>>>>>> +
->>>>>>> +	spin_lock_irqsave(&lockres->l_lock, flags);
->>>>>>> +	ret = __lockres_remove_mask_waiter(lockres, mw);
->>>>>>>  	spin_unlock_irqrestore(&lockres->l_lock, flags);
->>>>>>>  
->>>>>>>  	return ret;
->>>>>>> @@ -1373,6 +1389,7 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
->>>>>>>  	unsigned long flags;
->>>>>>>  	unsigned int gen;
->>>>>>>  	int noqueue_attempted = 0;
->>>>>>> +	int dlm_locked = 0;
->>>>>>>  
->>>>>>>  	ocfs2_init_mask_waiter(&mw);
->>>>>>>  
->>>>>>> @@ -1481,6 +1498,7 @@ again:
->>>>>>>  			ocfs2_recover_from_dlm_error(lockres, 1);
->>>>>>>  			goto out;
->>>>>>>  		}
->>>>>>> +		dlm_locked = 1;
->>>>>>>  
->>>>>>>  		mlog(0, "lock %s, successful return from ocfs2_dlm_lock\n",
->>>>>>>  		     lockres->l_name);
->>>>>>> @@ -1514,10 +1532,17 @@ out:
->>>>>>>  	if (wait && arg_flags & OCFS2_LOCK_NONBLOCK &&
->>>>>>>  	    mw.mw_mask & (OCFS2_LOCK_BUSY|OCFS2_LOCK_BLOCKED)) {
->>>>>>>  		wait = 0;
->>>>>>> -		if (lockres_remove_mask_waiter(lockres, &mw))
->>>>>>> +		spin_lock_irqsave(&lockres->l_lock, flags);
->>>>>>> +		if (__lockres_remove_mask_waiter(lockres, &mw)) {
->>>>>>> +			if (dlm_locked)
->>>>>>> +				lockres_or_flags(lockres,
->>>>>>> +					OCFS2_LOCK_NONBLOCK_FINISHED);
->>>>>>> +			spin_unlock_irqrestore(&lockres->l_lock, flags);
->>>>>>>  			ret = -EAGAIN;
->>>>>>> -		else
->>>>>>> +		} else {
->>>>>>> +			spin_unlock_irqrestore(&lockres->l_lock, flags);
->>>>>>>  			goto again;
->>>>>>> +		}
->>>>>>>  	}
->>>>>>>  	if (wait) {
->>>>>>>  		ret = ocfs2_wait_for_mask(&mw);
->>>>>>> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
->>>>>>> index bbec539..7d6b7d0 100644
->>>>>>> --- a/fs/ocfs2/ocfs2.h
->>>>>>> +++ b/fs/ocfs2/ocfs2.h
->>>>>>> @@ -144,6 +144,12 @@ enum ocfs2_unlock_action {
->>>>>>>  						     * before the upconvert
->>>>>>>  						     * has completed */
->>>>>>>  
->>>>>>> +#define OCFS2_LOCK_NONBLOCK_FINISHED (0x00001000) /* NONBLOCK cluster
->>>>>>> +						   * lock has already
->>>>>>> +						   * returned, do not block
->>>>>>> +						   * dc thread from
->>>>>>> +						   * downconverting */
->>>>>>> +
->>>>>>>  struct ocfs2_lock_res_ops;
->>>>>>>  
->>>>>>>  typedef void (*ocfs2_lock_callback)(int status, unsigned long data);
->>>>>>>
->>>>>>
->>>>>> .
->>>>>>
->>>>>
->>>>>
->>>>
->>>> .
->>>>
->>>
->>>
->>
->> .
->>
-> 
-> 
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 2930e23..44b9605 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2430,6 +2430,7 @@ out_sems:
+ 	return ret;
+ }
+ 
++#ifdef CONFIG_SYSCALL_SPLICE
+ static ssize_t ocfs2_file_splice_read(struct file *in,
+ 				      loff_t *ppos,
+ 				      struct pipe_inode_info *pipe,
+@@ -2459,6 +2460,7 @@ static ssize_t ocfs2_file_splice_read(struct file *in,
+ bail:
+ 	return ret;
+ }
++#endif /* #ifdef CONFIG_SYSCALL_SPLICE */
+ 
+ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 				   struct iov_iter *to)
+@@ -2629,8 +2631,8 @@ const struct file_operations ocfs2_fops = {
+ #endif
+ 	.lock		= ocfs2_lock,
+ 	.flock		= ocfs2_flock,
+-	.splice_read	= ocfs2_file_splice_read,
+-	.splice_write	= iter_file_splice_write,
++	SPLICE_READ_INIT(ocfs2_file_splice_read)
++	SPLICE_WRITE_INIT(iter_file_splice_write)
+ 	.fallocate	= ocfs2_fallocate,
+ };
+ 
+@@ -2676,8 +2678,8 @@ const struct file_operations ocfs2_fops_no_plocks = {
+ 	.compat_ioctl   = ocfs2_compat_ioctl,
+ #endif
+ 	.flock		= ocfs2_flock,
+-	.splice_read	= ocfs2_file_splice_read,
+-	.splice_write	= iter_file_splice_write,
++	SPLICE_READ_INIT(ocfs2_file_splice_read)
++	SPLICE_WRITE_INIT(iter_file_splice_write)
+ 	.fallocate	= ocfs2_fallocate,
+ };
+ 
+-- 
+1.9.1
