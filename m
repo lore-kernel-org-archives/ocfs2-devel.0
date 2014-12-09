@@ -1,56 +1,48 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Tue, 9 Dec 2014 14:38:01 +0800
-Subject: [Ocfs2-devel] how can the [o2hb-x] kernel thread begin running
- in the ocfs2
-In-Reply-To: <20141107183741199576112@h3c.com>
-References: <mailman.16278.1415343839.23890.ocfs2-devel@oss.oracle.com>
-	<20141107183741199576112@h3c.com>
-Message-ID: <548698C9.605@huawei.com>
+From: Germano Percossi <germano.percossi@citrix.com>
+Date: Tue, 9 Dec 2014 19:32:28 +0000
+Subject: [Ocfs2-devel] ocfs2-tools repository and documentation
+Message-ID: <54874E4C.8040006@citrix.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi, 
+Hi,
 
-Ocfs2 uses configfs to do user-space configuration tasks. When thread
-mount.ocfs2 writes fd to /sys/kernel/config/cluster/{clustername}/heartbeat/{region_name}/dev,
-kernel will trigger the callback. you can find the source code in
-function o2cb_create_heartbeat_region() in ocfs2-tools package.
+Sorry if this has been asked in the past but I did not
+find anything in the archive.
 
-Thanks.
-Xue Jiufei
+It is not very clear to me where are the most up-to-date
+ocfs-tools repository (both source code and
+packages) and documentation.
 
-On 2014/11/7 18:37, Zhangguanghui wrote:
-> 
->     Hi
-> 
-> 
->             While mounting -t ocfs2 , the function ocfs2_fill_super is triggered.
-> 
->     In the process, which specific function will trigger the callback of o2hb_region_dev_write,
-> 
->     how can the [o2hb-x] kernel thread begin running?
-> 
->      thanks
-> 
-> 
-> -------------------------------------------------------------------------------------------------------------------------------------
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ????????????????????????????????????????
-> ???
-> This e-mail and its attachments contain confidential information from H3C, which is
-> intended only for the person or entity whose address is listed above. Any use of the
-> information contained herein in any way (including, but not limited to, total or partial
-> disclosure, reproduction, or dissemination) by persons other than the intended
-> recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-> by phone or email immediately and delete it!
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+For development I am looking at 
+https://oss.oracle.com/git/?p=ocfs2-tools.git;a=summary but the most 
+recent commit seems to be more than
+1 year old.
+
+I found an RPM (asking a colleague of mine to ask one of his contacts
+in Oracle) here 
+http://public-yum.oracle.com/repo/OracleLinux/OL7/0/base/x86_64/getPackageSource/ocfs2-tools-1.8.0-16.el7.src.rpm.
+When I inspected the content I found, comparing it to another package we
+have, the following:
+- a spec file (ok)
+- some patches (ok)
+- a tar.gz (ok but..)
+
+The tar.gz is ocfs2-tools-1.8.0.tar.gz. The first strange thing is
+that there are no versions tagged 1.8.0 in the git repo I am watching.
+The other thing is, in our old RPM we have a tar.gz with the same name.
+When I compared the content I found they differ just for the
+vendor/rhel7 directory. Its content though is not in the git repository.
+
+Is this repository the right one?
+
+Similar doubts apply to documentation (referring to 1.6 version of the
+tools and subversion as repository) and RPM repositories.
+
+Would you please point me to the right development resources?
+
+Thanks you,
+Germano
