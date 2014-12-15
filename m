@@ -1,453 +1,333 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Mon, 15 Dec 2014 14:51:14 -0800
-Subject: [Ocfs2-devel] [patch 09/15] ocfs2: add functions to add and remove
- inode in orphan dir
-Message-ID: <548f65e2.GaTIVhOoT5YiOhC8%akpm@linux-foundation.org>
+Date: Mon, 15 Dec 2014 14:51:17 -0800
+Subject: [Ocfs2-devel] [patch 10/15] ocfs2: add orphan recovery types in
+ ocfs2_recover_orphans
+Message-ID: <548f65e5.W2X7pIDuU7pvqzIH%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Weiwei Wang <wangww631@huawei.com>
-Subject: ocfs2: add functions to add and remove inode in orphan dir
+From: Joseph Qi <joseph.qi@huawei.com>
+Subject: ocfs2: add orphan recovery types in ocfs2_recover_orphans
 
-Add functions to add inode to orphan dir and remove inode in orphan dir. 
-Here we do not call ocfs2_prepare_orphan_dir and ocfs2_orphan_add
-directly.  Because append O_DIRECT will add inode to orphan two and may
-result in more than one orphan entry for the same inode.
+Define two orphan recovery types, which indicates if need truncate file or
+not.
 
-[akpm at linux-foundation.org: fix warning]
+Originally, only deleted inode will be add to orphan dir.  We use orphan
+dir to temporary store the file in append O_DIRECT write to ensure the
+block allocation and inode size updating in the same handle once the
+append O_DIRECT fails.  So now there may be not truly deleted files in
+orphan dir.
+
 Signed-off-by: Weiwei Wang <wangww631@huawei.com>
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/journal.h     |    5 
- fs/ocfs2/namei.c       |  315 +++++++++++++++++++++++++++++++++++++++
- fs/ocfs2/namei.h       |    5 
- fs/ocfs2/ocfs2_fs.h    |    5 
- fs/ocfs2/ocfs2_trace.h |    3 
- 5 files changed, 332 insertions(+), 1 deletion(-)
+ fs/ocfs2/journal.c |  113 +++++++++++++++++++++++++++++++++++--------
+ fs/ocfs2/ocfs2.h   |   15 +++++
+ 2 files changed, 108 insertions(+), 20 deletions(-)
 
-diff -puN fs/ocfs2/journal.h~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir fs/ocfs2/journal.h
---- a/fs/ocfs2/journal.h~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir
-+++ a/fs/ocfs2/journal.h
-@@ -472,6 +472,11 @@ static inline int ocfs2_unlink_credits(s
-  * orphan dir index leaf */
- #define OCFS2_DELETE_INODE_CREDITS (3 * OCFS2_INODE_UPDATE_CREDITS + 4)
+diff -puN fs/ocfs2/journal.c~ocfs2-add-orphan-recovery-types-in-ocfs2_recover_orphans fs/ocfs2/journal.c
+--- a/fs/ocfs2/journal.c~ocfs2-add-orphan-recovery-types-in-ocfs2_recover_orphans
++++ a/fs/ocfs2/journal.c
+@@ -50,6 +50,8 @@
+ #include "sysfile.h"
+ #include "uptodate.h"
+ #include "quota.h"
++#include "file.h"
++#include "namei.h"
  
-+/* dinode + orphan dir dinode + extent tree leaf block + orphan dir entry +
-+ * orphan dir index root + orphan dir index leaf */
-+#define OCFS2_INODE_ADD_TO_ORPHAN_CREDITS  (2 * OCFS2_INODE_UPDATE_CREDITS + 4)
-+#define OCFS2_INODE_DEL_FROM_ORPHAN_CREDITS  OCFS2_INODE_ADD_TO_ORPHAN_CREDITS
-+
- /* dinode update, old dir dinode update, new dir dinode update, old
-  * dir dir entry, new dir dir entry, dir entry update for renaming
-  * directory + target unlink + 3 x dir index leaves */
-diff -puN fs/ocfs2/namei.c~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir fs/ocfs2/namei.c
---- a/fs/ocfs2/namei.c~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir
-+++ a/fs/ocfs2/namei.c
-@@ -81,6 +81,12 @@ static int ocfs2_prepare_orphan_dir(stru
- 				    char *name,
- 				    struct ocfs2_dir_lookup_result *lookup);
+ #include "buffer_head_io.h"
+ #include "ocfs2_trace.h"
+@@ -69,13 +71,15 @@ static int ocfs2_journal_toggle_dirty(st
+ static int ocfs2_trylock_journal(struct ocfs2_super *osb,
+ 				 int slot_num);
+ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
+-				 int slot);
++				 int slot,
++				 enum ocfs2_orphan_reco_type orphan_reco_type);
+ static int ocfs2_commit_thread(void *arg);
+ static void ocfs2_queue_recovery_completion(struct ocfs2_journal *journal,
+ 					    int slot_num,
+ 					    struct ocfs2_dinode *la_dinode,
+ 					    struct ocfs2_dinode *tl_dinode,
+-					    struct ocfs2_quota_recovery *qrec);
++					    struct ocfs2_quota_recovery *qrec,
++					    enum ocfs2_orphan_reco_type orphan_reco_type);
  
-+static int ocfs2_dio_prepare_orphan_dir(struct ocfs2_super *osb,
-+		struct inode **ret_orphan_dir,
-+		u64 blkno,
-+		char *name,
-+		struct ocfs2_dir_lookup_result *lookup);
-+
- static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 			    handle_t *handle,
- 			    struct inode *inode,
-@@ -89,6 +95,15 @@ static int ocfs2_orphan_add(struct ocfs2
- 			    struct ocfs2_dir_lookup_result *lookup,
- 			    struct inode *orphan_dir_inode);
- 
-+static int ocfs2_dio_orphan_add(struct ocfs2_super *osb,
-+		handle_t *handle,
-+		struct inode *inode,
-+		struct buffer_head *fe_bh,
-+		char *name,
-+		struct ocfs2_dir_lookup_result *lookup,
-+		struct inode *orphan_dir_inode,
-+		bool orphaned);
-+
- static int ocfs2_create_symlink_data(struct ocfs2_super *osb,
- 				     handle_t *handle,
- 				     struct inode *inode,
-@@ -2137,6 +2152,51 @@ out:
- 	return ret;
+ static inline int ocfs2_wait_on_mount(struct ocfs2_super *osb)
+ {
+@@ -149,7 +153,8 @@ int ocfs2_compute_replay_slots(struct oc
+ 	return 0;
  }
  
-+/**
-+ * Copy from ocfs2_prepare_orphan_dir(). The difference:
-+ * It will still lock orphan dir if entry exists.
-+ * Caller must take care of -EEXIST and responsible for unlock.
-+*/
-+static int ocfs2_dio_prepare_orphan_dir(struct ocfs2_super *osb,
-+				    struct inode **ret_orphan_dir,
-+				    u64 blkno,
-+				    char *name,
-+				    struct ocfs2_dir_lookup_result *lookup)
+-void ocfs2_queue_replay_slots(struct ocfs2_super *osb)
++void ocfs2_queue_replay_slots(struct ocfs2_super *osb,
++		enum ocfs2_orphan_reco_type orphan_reco_type)
+ {
+ 	struct ocfs2_replay_map *replay_map = osb->replay_map;
+ 	int i;
+@@ -163,7 +168,8 @@ void ocfs2_queue_replay_slots(struct ocf
+ 	for (i = 0; i < replay_map->rm_slots; i++)
+ 		if (replay_map->rm_replay_slots[i])
+ 			ocfs2_queue_recovery_completion(osb->journal, i, NULL,
+-							NULL, NULL);
++							NULL, NULL,
++							orphan_reco_type);
+ 	replay_map->rm_state = REPLAY_DONE;
+ }
+ 
+@@ -1174,6 +1180,7 @@ struct ocfs2_la_recovery_item {
+ 	struct ocfs2_dinode	*lri_la_dinode;
+ 	struct ocfs2_dinode	*lri_tl_dinode;
+ 	struct ocfs2_quota_recovery *lri_qrec;
++	enum ocfs2_orphan_reco_type  lri_orphan_reco_type;
+ };
+ 
+ /* Does the second half of the recovery process. By this point, the
+@@ -1195,6 +1202,7 @@ void ocfs2_complete_recovery(struct work
+ 	struct ocfs2_dinode *la_dinode, *tl_dinode;
+ 	struct ocfs2_la_recovery_item *item, *n;
+ 	struct ocfs2_quota_recovery *qrec;
++	enum ocfs2_orphan_reco_type orphan_reco_type;
+ 	LIST_HEAD(tmp_la_list);
+ 
+ 	trace_ocfs2_complete_recovery(
+@@ -1212,6 +1220,7 @@ void ocfs2_complete_recovery(struct work
+ 		la_dinode = item->lri_la_dinode;
+ 		tl_dinode = item->lri_tl_dinode;
+ 		qrec = item->lri_qrec;
++		orphan_reco_type = item->lri_orphan_reco_type;
+ 
+ 		trace_ocfs2_complete_recovery_slot(item->lri_slot,
+ 			la_dinode ? le64_to_cpu(la_dinode->i_blkno) : 0,
+@@ -1236,7 +1245,8 @@ void ocfs2_complete_recovery(struct work
+ 			kfree(tl_dinode);
+ 		}
+ 
+-		ret = ocfs2_recover_orphans(osb, item->lri_slot);
++		ret = ocfs2_recover_orphans(osb, item->lri_slot,
++				orphan_reco_type);
+ 		if (ret < 0)
+ 			mlog_errno(ret);
+ 
+@@ -1261,7 +1271,8 @@ static void ocfs2_queue_recovery_complet
+ 					    int slot_num,
+ 					    struct ocfs2_dinode *la_dinode,
+ 					    struct ocfs2_dinode *tl_dinode,
+-					    struct ocfs2_quota_recovery *qrec)
++					    struct ocfs2_quota_recovery *qrec,
++					    enum ocfs2_orphan_reco_type orphan_reco_type)
+ {
+ 	struct ocfs2_la_recovery_item *item;
+ 
+@@ -1285,6 +1296,7 @@ static void ocfs2_queue_recovery_complet
+ 	item->lri_slot = slot_num;
+ 	item->lri_tl_dinode = tl_dinode;
+ 	item->lri_qrec = qrec;
++	item->lri_orphan_reco_type = orphan_reco_type;
+ 
+ 	spin_lock(&journal->j_lock);
+ 	list_add_tail(&item->lri_list, &journal->j_la_cleanups);
+@@ -1304,7 +1316,8 @@ void ocfs2_complete_mount_recovery(struc
+ 	/* No need to queue up our truncate_log as regular cleanup will catch
+ 	 * that */
+ 	ocfs2_queue_recovery_completion(journal, osb->slot_num,
+-					osb->local_alloc_copy, NULL, NULL);
++					osb->local_alloc_copy, NULL, NULL,
++					ORPHAN_NEED_TRUNCATE);
+ 	ocfs2_schedule_truncate_log_flush(osb, 0);
+ 
+ 	osb->local_alloc_copy = NULL;
+@@ -1312,7 +1325,7 @@ void ocfs2_complete_mount_recovery(struc
+ 
+ 	/* queue to recover orphan slots for all offline slots */
+ 	ocfs2_replay_map_set_state(osb, REPLAY_NEEDED);
+-	ocfs2_queue_replay_slots(osb);
++	ocfs2_queue_replay_slots(osb, ORPHAN_NEED_TRUNCATE);
+ 	ocfs2_free_replay_slots(osb);
+ }
+ 
+@@ -1323,7 +1336,8 @@ void ocfs2_complete_quota_recovery(struc
+ 						osb->slot_num,
+ 						NULL,
+ 						NULL,
+-						osb->quota_rec);
++						osb->quota_rec,
++						ORPHAN_NEED_TRUNCATE);
+ 		osb->quota_rec = NULL;
+ 	}
+ }
+@@ -1360,7 +1374,7 @@ restart:
+ 
+ 	/* queue recovery for our own slot */
+ 	ocfs2_queue_recovery_completion(osb->journal, osb->slot_num, NULL,
+-					NULL, NULL);
++					NULL, NULL, ORPHAN_NO_NEED_TRUNCATE);
+ 
+ 	spin_lock(&osb->osb_lock);
+ 	while (rm->rm_used) {
+@@ -1419,13 +1433,14 @@ skip_recovery:
+ 			continue;
+ 		}
+ 		ocfs2_queue_recovery_completion(osb->journal, rm_quota[i],
+-						NULL, NULL, qrec);
++						NULL, NULL, qrec,
++						ORPHAN_NEED_TRUNCATE);
+ 	}
+ 
+ 	ocfs2_super_unlock(osb, 1);
+ 
+ 	/* queue recovery for offline slots */
+-	ocfs2_queue_replay_slots(osb);
++	ocfs2_queue_replay_slots(osb, ORPHAN_NEED_TRUNCATE);
+ 
+ bail:
+ 	mutex_lock(&osb->recovery_lock);
+@@ -1712,7 +1727,7 @@ static int ocfs2_recover_node(struct ocf
+ 
+ 	/* This will kfree the memory pointed to by la_copy and tl_copy */
+ 	ocfs2_queue_recovery_completion(osb->journal, slot_num, la_copy,
+-					tl_copy, NULL);
++					tl_copy, NULL, ORPHAN_NEED_TRUNCATE);
+ 
+ 	status = 0;
+ done:
+@@ -1902,7 +1917,7 @@ void ocfs2_queue_orphan_scan(struct ocfs
+ 
+ 	for (i = 0; i < osb->max_slots; i++)
+ 		ocfs2_queue_recovery_completion(osb->journal, i, NULL, NULL,
+-						NULL);
++						NULL, ORPHAN_NO_NEED_TRUNCATE);
+ 	/*
+ 	 * We queued a recovery on orphan slots, increment the sequence
+ 	 * number and update LVB so other node will skip the scan for a while
+@@ -2090,6 +2105,39 @@ static void ocfs2_clear_recovering_orpha
+ 	ocfs2_node_map_clear_bit(osb, &osb->osb_recovering_orphan_dirs, slot);
+ }
+ 
++static int ocfs2_truncate_file_locked(struct inode *inode)
 +{
-+	struct inode *orphan_dir_inode = NULL;
-+	struct buffer_head *orphan_dir_bh = NULL;
-+	int ret = 0;
++	struct buffer_head *di_bh = NULL;
++	int ret;
 +
-+	ret = ocfs2_lookup_lock_orphan_dir(osb, &orphan_dir_inode,
-+					   &orphan_dir_bh);
++	ret = ocfs2_rw_lock(inode, 1);
 +	if (ret < 0) {
-+		mlog_errno(ret);
-+		return ret;
-+	}
-+
-+	ret = __ocfs2_prepare_orphan_dir(orphan_dir_inode, orphan_dir_bh,
-+					 blkno, name, lookup);
-+	if (ret < 0 && ret != -EEXIST) {
 +		mlog_errno(ret);
 +		goto out;
 +	}
 +
-+	*ret_orphan_dir = orphan_dir_inode;
-+
-+out:
-+	brelse(orphan_dir_bh);
-+
-+	if (ret && ret != -EEXIST) {
-+		ocfs2_inode_unlock(orphan_dir_inode, 1);
-+		mutex_unlock(&orphan_dir_inode->i_mutex);
-+		iput(orphan_dir_inode);
++	ret = ocfs2_inode_lock(inode, &di_bh, 1);
++	if (ret < 0) {
++		ocfs2_rw_unlock(inode, 1);
++		mlog_errno(ret);
++		goto out;
 +	}
 +
-+	if (ret && ret != -EEXIST)
-+		mlog_errno(ret);
++	ret = ocfs2_truncate_file(inode, di_bh, i_size_read(inode));
++	if (ret < 0) {
++		if (ret != -ENOSPC)
++			mlog_errno(ret);
++		ret = -ENOSPC;
++	}
++
++	ocfs2_inode_unlock(inode, 1);
++	ocfs2_rw_unlock(inode, 1);
++	brelse(di_bh);
++
++out:
 +	return ret;
 +}
 +
- static int ocfs2_orphan_add(struct ocfs2_super *osb,
- 			    handle_t *handle,
- 			    struct inode *inode,
-@@ -2226,6 +2286,100 @@ leave:
- 	return status;
- }
- 
-+/**
-+ * Copy from ocfs2_orphan_add, the difference:
-+ * 1. Do not add entry if already added.
-+ * 2. Update di flags OCFS2_DIO_ORPHANED_FL and record the
-+ * orphan slot.
-+*/
-+static int ocfs2_dio_orphan_add(struct ocfs2_super *osb,
-+			    handle_t *handle,
-+			    struct inode *inode,
-+			    struct buffer_head *fe_bh,
-+			    char *name,
-+			    struct ocfs2_dir_lookup_result *lookup,
-+			    struct inode *orphan_dir_inode,
-+			    bool orphaned)
-+{
-+	struct buffer_head *orphan_dir_bh = NULL;
-+	int status = 0;
-+	struct ocfs2_dinode *orphan_fe;
-+	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) fe_bh->b_data;
-+
-+	trace_ocfs2_dio_orphan_add_begin(
-+				(unsigned long long)OCFS2_I(inode)->ip_blkno);
-+
-+	status = ocfs2_read_inode_block(orphan_dir_inode, &orphan_dir_bh);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto leave;
-+	}
-+
-+	status = ocfs2_journal_access_di(handle,
-+					 INODE_CACHE(orphan_dir_inode),
-+					 orphan_dir_bh,
-+					 OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto leave;
-+	}
-+
-+	/*
-+	 * We're going to journal the change of i_flags and i_dio_orphaned_slot.
-+	 * It's safe anyway, though some callers may duplicate the journaling.
-+	 * Journaling within the func just make the logic look more
-+	 * straightforward.
-+	 */
-+	status = ocfs2_journal_access_di(handle,
-+					 INODE_CACHE(inode),
-+					 fe_bh,
-+					 OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto leave;
-+	}
-+
-+	/* we're a cluster, and nlink can change on disk from
-+	 * underneath us... */
-+	orphan_fe = (struct ocfs2_dinode *) orphan_dir_bh->b_data;
-+	if (S_ISDIR(inode->i_mode))
-+		ocfs2_add_links_count(orphan_fe, 1);
-+	set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe));
-+	ocfs2_journal_dirty(handle, orphan_dir_bh);
-+
-+	/* It may already be orphaned by ocfs2_unlink/ocfs2_rename */
-+	if (!orphaned) {
-+		status = __ocfs2_add_entry(handle, orphan_dir_inode, name,
-+				   OCFS2_ORPHAN_NAMELEN, inode,
-+				   OCFS2_I(inode)->ip_blkno,
-+				   orphan_dir_bh, lookup);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto rollback;
-+		}
-+	}
-+
-+	/* Update flag OCFS2_DIO_ORPHANED_FL and record the orphan slot */
-+	fe->i_flags |= cpu_to_le32(OCFS2_DIO_ORPHANED_FL);
-+	fe->i_dio_orphaned_slot = cpu_to_le16(osb->slot_num);
-+
-+	ocfs2_journal_dirty(handle, fe_bh);
-+
-+	trace_ocfs2_dio_orphan_add_end((unsigned long long)OCFS2_I(inode)->ip_blkno,
-+				   osb->slot_num);
-+
-+rollback:
-+	if (status < 0) {
-+		if (S_ISDIR(inode->i_mode))
-+			ocfs2_add_links_count(orphan_fe, -1);
-+		set_nlink(orphan_dir_inode, ocfs2_read_links_count(orphan_fe));
-+	}
-+
-+leave:
-+	brelse(orphan_dir_bh);
-+
-+	return status;
-+}
- /* unlike orphan_add, we expect the orphan dir to already be locked here. */
- int ocfs2_orphan_del(struct ocfs2_super *osb,
- 		     handle_t *handle,
-@@ -2500,6 +2654,167 @@ leave:
- 	return status;
- }
- 
-+int ocfs2_add_inode_to_orphan(struct ocfs2_super *osb,
-+	struct inode *inode)
-+{
-+	char orphan_name[OCFS2_ORPHAN_NAMELEN + 1];
-+	struct inode *orphan_dir_inode = NULL;
-+	struct ocfs2_dir_lookup_result orphan_insert = { NULL, };
-+	struct buffer_head *di_bh = NULL;
-+	int status = 0;
-+	handle_t *handle = NULL;
-+	struct ocfs2_dinode *di = NULL;
-+	bool orphaned = false;
-+
-+	status = ocfs2_inode_lock(inode, &di_bh, 1);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto bail;
-+	}
-+
-+	status = ocfs2_dio_prepare_orphan_dir(osb, &orphan_dir_inode,
-+			OCFS2_I(inode)->ip_blkno,
-+			orphan_name,
-+			&orphan_insert);
-+	if (status < 0 && status != -EEXIST) {
-+		mlog_errno(status);
-+		goto bail_unlock_inode;
-+	} else if (status == -EEXIST) {
-+		mlog(ML_NOTICE, "inode %llu already added to "
-+				"orphan dir %llu.\n",
-+				OCFS2_I(inode)->ip_blkno,
-+				OCFS2_I(orphan_dir_inode)->ip_blkno);
-+		di = (struct ocfs2_dinode *) di_bh->b_data;
-+		if (!(di->i_flags & le32_to_cpu(OCFS2_ORPHANED_FL))) {
-+			mlog_errno(status);
-+			goto bail_unlock_orphan;
-+		}
-+		orphaned = true;
-+	}
-+
-+	handle = ocfs2_start_trans(osb,
-+			OCFS2_INODE_ADD_TO_ORPHAN_CREDITS);
-+	if (IS_ERR(handle)) {
-+		status = PTR_ERR(handle);
-+		goto bail_unlock_orphan;
-+	}
-+
-+	status = ocfs2_dio_orphan_add(osb, handle, inode, di_bh, orphan_name,
-+			&orphan_insert, orphan_dir_inode, orphaned);
-+	if (status)
-+		mlog_errno(status);
-+
-+	ocfs2_commit_trans(osb, handle);
-+
-+bail_unlock_orphan:
-+	ocfs2_inode_unlock(orphan_dir_inode, 1);
-+	mutex_unlock(&orphan_dir_inode->i_mutex);
-+	iput(orphan_dir_inode);
-+
-+	ocfs2_free_dir_lookup_result(&orphan_insert);
-+
-+bail_unlock_inode:
-+	ocfs2_inode_unlock(inode, 1);
-+	brelse(di_bh);
-+
-+bail:
-+	return status;
-+}
-+
-+int ocfs2_del_inode_from_orphan(struct ocfs2_super *osb,
-+		struct inode *inode, int update_isize,
-+		loff_t end)
-+{
-+	struct inode *orphan_dir_inode = NULL;
-+	struct buffer_head *orphan_dir_bh = NULL;
-+	struct buffer_head *di_bh = NULL;
-+	struct ocfs2_dinode *di = NULL;
-+	handle_t *handle = NULL;
-+	int status = 0;
-+
-+	status = ocfs2_inode_lock(inode, &di_bh, 1);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto bail;
-+	}
-+	di = (struct ocfs2_dinode *) di_bh->b_data;
-+
-+	orphan_dir_inode = ocfs2_get_system_file_inode(osb,
-+			ORPHAN_DIR_SYSTEM_INODE,
-+			le16_to_cpu(di->i_dio_orphaned_slot));
-+	if (!orphan_dir_inode) {
-+		status = -EEXIST;
-+		mlog_errno(status);
-+		goto bail_unlock_inode;
-+	}
-+
-+	mutex_lock(&orphan_dir_inode->i_mutex);
-+	status = ocfs2_inode_lock(orphan_dir_inode, &orphan_dir_bh, 1);
-+	if (status < 0) {
-+		mutex_unlock(&orphan_dir_inode->i_mutex);
-+		iput(orphan_dir_inode);
-+		mlog_errno(status);
-+		goto bail_unlock_inode;
-+	}
-+
-+	handle = ocfs2_start_trans(osb,
-+			OCFS2_INODE_DEL_FROM_ORPHAN_CREDITS);
-+	if (IS_ERR(handle)) {
-+		status = PTR_ERR(handle);
-+		goto bail_unlock_orphan;
-+	}
-+
-+	BUG_ON(!(di->i_flags & cpu_to_le32(OCFS2_DIO_ORPHANED_FL)));
-+
-+	/* Only delete entry if OCFS2_ORPHANED_FL not set, or
-+	 * there are two entries added */
-+	if (!(di->i_flags & cpu_to_le32(OCFS2_ORPHANED_FL)) ||
-+			(di->i_flags & cpu_to_le32(OCFS2_ORPHANED_FL) &&
-+			(di->i_orphaned_slot != di->i_dio_orphaned_slot))) {
-+		status = ocfs2_orphan_del(osb, handle, orphan_dir_inode,
-+				inode, orphan_dir_bh);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail_commit;
-+		}
-+	}
-+
-+	status = ocfs2_journal_access_di(handle,
-+			INODE_CACHE(inode),
-+			di_bh,
-+			OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto bail_commit;
-+	}
-+
-+	di->i_flags &= ~cpu_to_le32(OCFS2_DIO_ORPHANED_FL);
-+	di->i_dio_orphaned_slot = 0;
-+
-+	if (update_isize) {
-+		status = ocfs2_set_inode_size(handle, inode, di_bh, end);
-+		if (status)
-+			mlog_errno(status);
-+	} else
-+		ocfs2_journal_dirty(handle, di_bh);
-+
-+bail_commit:
-+	ocfs2_commit_trans(osb, handle);
-+
-+bail_unlock_orphan:
-+	ocfs2_inode_unlock(orphan_dir_inode, 1);
-+	mutex_unlock(&orphan_dir_inode->i_mutex);
-+	brelse(orphan_dir_bh);
-+	iput(orphan_dir_inode);
-+
-+bail_unlock_inode:
-+	ocfs2_inode_unlock(inode, 1);
-+	brelse(di_bh);
-+
-+bail:
-+	return status;
-+}
-+
- int ocfs2_mv_orphaned_inode_to_new(struct inode *dir,
- 				   struct inode *inode,
- 				   struct dentry *dentry)
-diff -puN fs/ocfs2/namei.h~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir fs/ocfs2/namei.h
---- a/fs/ocfs2/namei.h~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir
-+++ a/fs/ocfs2/namei.h
-@@ -38,6 +38,11 @@ int ocfs2_orphan_del(struct ocfs2_super
- int ocfs2_create_inode_in_orphan(struct inode *dir,
- 				 int mode,
- 				 struct inode **new_inode);
-+int ocfs2_add_inode_to_orphan(struct ocfs2_super *osb,
-+		struct inode *inode);
-+int ocfs2_del_inode_from_orphan(struct ocfs2_super *osb,
-+		struct inode *inode, int update_isize,
-+		loff_t end);
- int ocfs2_mv_orphaned_inode_to_new(struct inode *dir,
- 				   struct inode *new_inode,
- 				   struct dentry *new_dentry);
-diff -puN fs/ocfs2/ocfs2_fs.h~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir fs/ocfs2/ocfs2_fs.h
---- a/fs/ocfs2/ocfs2_fs.h~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir
-+++ a/fs/ocfs2/ocfs2_fs.h
-@@ -229,6 +229,7 @@
- #define OCFS2_CHAIN_FL		(0x00000400)	/* Chain allocator */
- #define OCFS2_DEALLOC_FL	(0x00000800)	/* Truncate log */
- #define OCFS2_QUOTA_FL		(0x00001000)	/* Quota file */
-+#define OCFS2_DIO_ORPHANED_FL	(0X00002000)	/* On the orphan list especially for dio */
- 
  /*
-  * Flags on ocfs2_dinode.i_dyn_features
-@@ -729,7 +730,9 @@ struct ocfs2_dinode {
- 					   inode belongs to.  Only valid
- 					   if allocated from a
- 					   discontiguous block group */
--/*A0*/	__le64 i_reserved2[3];
-+/*A0*/	__le16 i_dio_orphaned_slot;	/* only used for append dio write */
-+	__le16 i_reserved1[3];
-+	__le64 i_reserved2[2];
- /*B8*/	union {
- 		__le64 i_pad1;		/* Generic way to refer to this
- 					   64bit union */
-diff -puN fs/ocfs2/ocfs2_trace.h~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir fs/ocfs2/ocfs2_trace.h
---- a/fs/ocfs2/ocfs2_trace.h~ocfs2-add-functions-to-add-and-remove-inode-in-orphan-dir
-+++ a/fs/ocfs2/ocfs2_trace.h
-@@ -2373,6 +2373,9 @@ DEFINE_OCFS2_ULL_EVENT(ocfs2_orphan_add_
+  * Orphan recovery. Each mounted node has it's own orphan dir which we
+  * must run during recovery. Our strategy here is to build a list of
+@@ -2109,7 +2157,8 @@ static void ocfs2_clear_recovering_orpha
+  *   advertising our state to ocfs2_delete_inode().
+  */
+ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
+-				 int slot)
++				 int slot,
++				 enum ocfs2_orphan_reco_type orphan_reco_type)
+ {
+ 	int ret = 0;
+ 	struct inode *inode = NULL;
+@@ -2134,12 +2183,36 @@ static int ocfs2_recover_orphans(struct
  
- DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_orphan_add_end);
+ 		iter = oi->ip_next_orphan;
  
-+DEFINE_OCFS2_ULL_EVENT(ocfs2_dio_orphan_add_begin);
-+DEFINE_OCFS2_ULL_UINT_EVENT(ocfs2_dio_orphan_add_end);
+-		spin_lock(&oi->ip_lock);
+-		/* Set the proper information to get us going into
+-		 * ocfs2_delete_inode. */
+-		oi->ip_flags |= OCFS2_INODE_MAYBE_ORPHANED;
+-		spin_unlock(&oi->ip_lock);
++		/*
++		 * We need to take and drop the inode lock to
++		 * force read inode from disk.
++		 */
++		ret = ocfs2_inode_lock(inode, NULL, 0);
++		if (ret) {
++			mlog_errno(ret);
++			goto next;
++		}
++		ocfs2_inode_unlock(inode, 0);
 +
- TRACE_EVENT(ocfs2_orphan_del,
- 	TP_PROTO(unsigned long long dir, const char *name, int namelen),
- 	TP_ARGS(dir, name, namelen),
++		if (inode->i_nlink == 0) {
++			spin_lock(&oi->ip_lock);
++			/* Set the proper information to get us going into
++			 * ocfs2_delete_inode. */
++			oi->ip_flags |= OCFS2_INODE_MAYBE_ORPHANED;
++			spin_unlock(&oi->ip_lock);
++		} else if (orphan_reco_type == ORPHAN_NEED_TRUNCATE) {
++			ret = ocfs2_truncate_file_locked(inode);
++			if (ret) {
++				mlog_errno(ret);
++				goto next;
++			}
++
++			ret = ocfs2_del_inode_from_orphan(osb, inode, 0, 0);
++			if (ret)
++				mlog_errno(ret);
++		} /* else if ORPHAN_NO_NEED_TRUNCATE, do nothing */
+ 
++next:
+ 		iput(inode);
+ 
+ 		inode = iter;
+diff -puN fs/ocfs2/ocfs2.h~ocfs2-add-orphan-recovery-types-in-ocfs2_recover_orphans fs/ocfs2/ocfs2.h
+--- a/fs/ocfs2/ocfs2.h~ocfs2-add-orphan-recovery-types-in-ocfs2_recover_orphans
++++ a/fs/ocfs2/ocfs2.h
+@@ -209,6 +209,11 @@ struct ocfs2_lock_res {
+ #endif
+ };
+ 
++enum ocfs2_orphan_reco_type {
++	ORPHAN_NO_NEED_TRUNCATE = 0,
++	ORPHAN_NEED_TRUNCATE,
++};
++
+ enum ocfs2_orphan_scan_state {
+ 	ORPHAN_SCAN_ACTIVE,
+ 	ORPHAN_SCAN_INACTIVE
+@@ -724,6 +729,16 @@ static inline unsigned int ocfs2_cluster
+ 	return clusters;
+ }
+ 
++static inline unsigned int ocfs2_bytes_to_clusters(struct super_block *sb,
++		u64 bytes)
++{
++	int cl_bits = OCFS2_SB(sb)->s_clustersize_bits;
++	unsigned int clusters;
++
++	clusters = (unsigned int)(bytes >> cl_bits);
++	return clusters;
++}
++
+ static inline u64 ocfs2_blocks_for_bytes(struct super_block *sb,
+ 					 u64 bytes)
+ {
 _
