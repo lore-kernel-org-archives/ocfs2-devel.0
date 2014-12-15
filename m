@@ -1,8 +1,7 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Mon, 15 Dec 2014 14:51:06 -0800
-Subject: [Ocfs2-devel] [patch 06/15] ocfs2: reflink: fix slow unlink for
-	refcounted file
-Message-ID: <548f65da.rrmQq58cyUfZy3uq%akpm@linux-foundation.org>
+Date: Mon, 15 Dec 2014 14:51:09 -0800
+Subject: [Ocfs2-devel] [patch 07/15] ocfs2: fix journal commit deadlock
+Message-ID: <548f65dd.p6iIKNzwu5PVSHMt%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,142 +9,80 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Subject: ocfs2: reflink: fix slow unlink for refcounted file
+Subject: ocfs2: fix journal commit deadlock
 
-When running ocfs2 test suite multiple nodes reflink stress test, for a 4
-nodes cluster, every unlink() for refcounted file needs about 700s.
+For buffer write, page lock will be got in write_begin and released in
+write_end, in ocfs2_write_end_nolock(), before it unlock the page in
+ocfs2_free_write_ctxt(), it calls ocfs2_run_deallocs(), this will ask for
+the read lock of journal->j_trans_barrier.  Holding page lock and ask for
+journal->j_trans_barrier breaks the locking order.
 
-The slow unlink is caused by the contention of refcount tree lock since
-all nodes are unlink files using the same refcount tree.  When the
-unlinking file have many extents(over 1600 in our test), most of the
-extents has refcounted flag set.  In ocfs2_commit_truncate(), it will
-execute the following call trace for every extents.  This means it needs
-get and released refcount tree lock about 1600 times.  And when several
-nodes are do this at the same time, the performance will be very low.
+This will cause a deadlock with journal commit threads, ocfs2cmt will get
+write lock of journal->j_trans_barrier first, then it wakes up kjournald2
+to do the commit work, at last it waits until done.  To commit journal,
+kjournald2 needs flushing data first, it needs get the cache page lock.
 
-ocfs2_remove_btree_range()
-----ocfs2_lock_refcount_tree()
-------ocfs2_refcount_lock()
---------__ocfs2_cluster_lock()
+Since some ocfs2 cluster locks are holding by write process, this
+deadlock may hung the whole cluster.
 
-ocfs2_refcount_lock() is costly, move it to ocfs2_commit_truncate() to do
-lock/unlock once can improve a lot performance.
+unlock pages before ocfs2_run_deallocs() can fix the locking order, also
+put unlock before ocfs2_commit_trans() to make page lock is unlocked
+before j_trans_barrier to preserve unlocking order.
 
 Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Wengang <wen.gang.wang@oracle.com>
+Reviewed-by: Wengang Wang <wen.gang.wang@oracle.com>
+Cc: <stable@vger.kernel.org>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/alloc.c |   28 +++++++++++++++++++++-------
- fs/ocfs2/alloc.h |    2 +-
- fs/ocfs2/dir.c   |    2 +-
- fs/ocfs2/file.c  |    2 +-
- 4 files changed, 24 insertions(+), 10 deletions(-)
+ fs/ocfs2/aops.c |   16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
 
-diff -puN fs/ocfs2/alloc.c~ocfs2-reflink-fix-slow-unlink-for-refcounted-file fs/ocfs2/alloc.c
---- a/fs/ocfs2/alloc.c~ocfs2-reflink-fix-slow-unlink-for-refcounted-file
-+++ a/fs/ocfs2/alloc.c
-@@ -5662,7 +5662,7 @@ int ocfs2_remove_btree_range(struct inod
- 			     struct ocfs2_extent_tree *et,
- 			     u32 cpos, u32 phys_cpos, u32 len, int flags,
- 			     struct ocfs2_cached_dealloc_ctxt *dealloc,
--			     u64 refcount_loc)
-+			     u64 refcount_loc, bool refcount_tree_locked)
+diff -puN fs/ocfs2/aops.c~ocfs2-fix-journal-commit-deadlock fs/ocfs2/aops.c
+--- a/fs/ocfs2/aops.c~ocfs2-fix-journal-commit-deadlock
++++ a/fs/ocfs2/aops.c
+@@ -894,7 +894,7 @@ void ocfs2_unlock_and_free_pages(struct
+ 	}
+ }
+ 
+-static void ocfs2_free_write_ctxt(struct ocfs2_write_ctxt *wc)
++static void ocfs2_unlock_pages(struct ocfs2_write_ctxt *wc)
  {
- 	int ret, credits = 0, extra_blocks = 0;
- 	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
-@@ -5676,11 +5676,13 @@ int ocfs2_remove_btree_range(struct inod
- 		BUG_ON(!(OCFS2_I(inode)->ip_dyn_features &
- 			 OCFS2_HAS_REFCOUNT_FL));
+ 	int i;
  
--		ret = ocfs2_lock_refcount_tree(osb, refcount_loc, 1,
--					       &ref_tree, NULL);
--		if (ret) {
--			mlog_errno(ret);
--			goto bail;
-+		if (!refcount_tree_locked) {
-+			ret = ocfs2_lock_refcount_tree(osb, refcount_loc, 1,
-+						       &ref_tree, NULL);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto bail;
-+			}
- 		}
+@@ -915,7 +915,11 @@ static void ocfs2_free_write_ctxt(struct
+ 		page_cache_release(wc->w_target_page);
+ 	}
+ 	ocfs2_unlock_and_free_pages(wc->w_pages, wc->w_num_pages);
++}
  
- 		ret = ocfs2_prepare_refcount_change_for_del(inode,
-@@ -7021,6 +7023,7 @@ int ocfs2_commit_truncate(struct ocfs2_s
- 	u64 refcount_loc = le64_to_cpu(di->i_refcount_loc);
- 	struct ocfs2_extent_tree et;
- 	struct ocfs2_cached_dealloc_ctxt dealloc;
-+	struct ocfs2_refcount_tree *ref_tree = NULL;
++static void ocfs2_free_write_ctxt(struct ocfs2_write_ctxt *wc)
++{
++	ocfs2_unlock_pages(wc);
+ 	brelse(wc->w_di_bh);
+ 	kfree(wc);
+ }
+@@ -2041,11 +2045,19 @@ out_write_size:
+ 	ocfs2_journal_dirty(handle, wc->w_di_bh);
  
- 	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
- 	ocfs2_init_dealloc_ctxt(&dealloc);
-@@ -7130,9 +7133,18 @@ start:
- 
- 	phys_cpos = ocfs2_blocks_to_clusters(inode->i_sb, blkno);
- 
-+	if ((flags & OCFS2_EXT_REFCOUNTED) && trunc_len && !ref_tree) {
-+		status = ocfs2_lock_refcount_tree(osb, refcount_loc, 1,
-+				&ref_tree, NULL);
-+		if (status) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
+ out:
++	/* unlock pages before dealloc since it needs acquiring j_trans_barrier
++	 * lock, or it will cause a deadlock since journal commit threads holds
++	 * this lock and will ask for the page lock when flushing the data.
++	 * put it here to preserve the unlock order.
++	 */
++	ocfs2_unlock_pages(wc);
 +
- 	status = ocfs2_remove_btree_range(inode, &et, trunc_cpos,
- 					  phys_cpos, trunc_len, flags, &dealloc,
--					  refcount_loc);
-+					  refcount_loc, true);
- 	if (status < 0) {
- 		mlog_errno(status);
- 		goto bail;
-@@ -7147,6 +7159,8 @@ start:
- 	goto start;
+ 	ocfs2_commit_trans(osb, handle);
  
- bail:
-+	if (ref_tree)
-+		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
+ 	ocfs2_run_deallocs(osb, &wc->w_dealloc);
  
- 	ocfs2_schedule_truncate_log_flush(osb, 1);
+-	ocfs2_free_write_ctxt(wc);
++	brelse(wc->w_di_bh);
++	kfree(wc);
  
-diff -puN fs/ocfs2/alloc.h~ocfs2-reflink-fix-slow-unlink-for-refcounted-file fs/ocfs2/alloc.h
---- a/fs/ocfs2/alloc.h~ocfs2-reflink-fix-slow-unlink-for-refcounted-file
-+++ a/fs/ocfs2/alloc.h
-@@ -142,7 +142,7 @@ int ocfs2_remove_btree_range(struct inod
- 			     struct ocfs2_extent_tree *et,
- 			     u32 cpos, u32 phys_cpos, u32 len, int flags,
- 			     struct ocfs2_cached_dealloc_ctxt *dealloc,
--			     u64 refcount_loc);
-+			     u64 refcount_loc, bool refcount_tree_locked);
- 
- int ocfs2_num_free_extents(struct ocfs2_super *osb,
- 			   struct ocfs2_extent_tree *et);
-diff -puN fs/ocfs2/dir.c~ocfs2-reflink-fix-slow-unlink-for-refcounted-file fs/ocfs2/dir.c
---- a/fs/ocfs2/dir.c~ocfs2-reflink-fix-slow-unlink-for-refcounted-file
-+++ a/fs/ocfs2/dir.c
-@@ -4479,7 +4479,7 @@ int ocfs2_dx_dir_truncate(struct inode *
- 		p_cpos = ocfs2_blocks_to_clusters(dir->i_sb, blkno);
- 
- 		ret = ocfs2_remove_btree_range(dir, &et, cpos, p_cpos, clen, 0,
--					       &dealloc, 0);
-+					       &dealloc, 0, false);
- 		if (ret) {
- 			mlog_errno(ret);
- 			goto out;
-diff -puN fs/ocfs2/file.c~ocfs2-reflink-fix-slow-unlink-for-refcounted-file fs/ocfs2/file.c
---- a/fs/ocfs2/file.c~ocfs2-reflink-fix-slow-unlink-for-refcounted-file
-+++ a/fs/ocfs2/file.c
-@@ -1803,7 +1803,7 @@ static int ocfs2_remove_inode_range(stru
- 
- 		ret = ocfs2_remove_btree_range(inode, &et, trunc_cpos,
- 					       phys_cpos, trunc_len, flags,
--					       &dealloc, refcount_loc);
-+					       &dealloc, refcount_loc, false);
- 		if (ret < 0) {
- 			mlog_errno(ret);
- 			goto out;
+ 	return copied;
+ }
 _
