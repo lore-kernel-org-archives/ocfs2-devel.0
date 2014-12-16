@@ -1,77 +1,72 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Tue, 16 Dec 2014 09:37:37 +0800
-Subject: [Ocfs2-devel] [patch 02/15] ocfs2: free inode when i_count
-	becomes zero
-In-Reply-To: <548f65ce.ZbhXsSTn9X8vwoWR%akpm@linux-foundation.org>
-References: <548f65ce.ZbhXsSTn9X8vwoWR%akpm@linux-foundation.org>
-Message-ID: <548F8CE1.7030202@huawei.com>
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Mon, 15 Dec 2014 21:35:46 -0800
+Subject: [Ocfs2-devel] ocfs2-tools repository and documentation
+In-Reply-To: <548F2CA6.4060707@citrix.com>
+References: <54874E4C.8040006@citrix.com> <548D3B1E.5030309@suse.de>
+	<548F2CA6.4060707@citrix.com>
+Message-ID: <548FC4B2.30308@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi, Andrew,
-This patch may lead to data loss so please remove it from mm tree please.
-Here is the situation: 
-When i_count becomes zero but there still exists dirty pages in i_mapping,
-the dirty pages would be freed without flushing the data.
+Hi Goldwyn, Germano
 
-To avoid this problem, we should flush dirty page before dropping
-the inode, but I don't think it it a good idea to flush page in
-function ocfs2_drop_inode().
+I have updated ocfs2-tools git repo with latest fixes :)
 
-So now there is no better way to solve this problem.
+Germano,
 
-Thanks,
-Xuejiufei
+following documentation is available for OCFS2
 
-On 2014/12/16 6:50, akpm at linux-foundation.org wrote:
-> From: Xue jiufei <xuejiufei@huawei.com>
-> Subject: ocfs2: free inode when i_count becomes zero
-> 
-> Disk inode deletion may be heavily delayed when one node unlink a file
-> after the same dentry is freed on another node(say N1) because of memory
-> shrink but inode is left in memory.  This inode can only be freed while N1
-> doing the orphan scan work.
-> 
-> However, N1 may skip orphan scan for several times because other nodes may
-> do the work earlier.  In our tests, it may take 1 hour on 4 nodes cluster
-> and this will cause bad user experience.  So we think the inode should be
-> freed when i_count becomes zero to avoid such circumstances.
-> 
-> [akpm at linux-foundation.org: coding-style fixes]
-> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
->  fs/ocfs2/inode.c |   10 +---------
->  1 file changed, 1 insertion(+), 9 deletions(-)
-> 
-> diff -puN fs/ocfs2/inode.c~ocfs2-free-inode-when-i_count-becomes-zero fs/ocfs2/inode.c
-> --- a/fs/ocfs2/inode.c~ocfs2-free-inode-when-i_count-becomes-zero
-> +++ a/fs/ocfs2/inode.c
-> @@ -1191,17 +1191,9 @@ void ocfs2_evict_inode(struct inode *ino
->  int ocfs2_drop_inode(struct inode *inode)
->  {
->  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-> -	int res;
-> -
->  	trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
->  				inode->i_nlink, oi->ip_flags);
-> -
-> -	if (oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)
-> -		res = 1;
-> -	else
-> -		res = generic_drop_inode(inode);
-> -
-> -	return res;
-> +	return 1;
->  }
->  
->  /*
-> _
-> .
-> 
+http://docs.oracle.com/cd/E37670_01/E37355/html/ol_ocfs2.html
+http://www.oracle.com/us/technologies/linux/025995.htm
+https://oss.oracle.com/projects/ocfs2/dist/documentation/v1.8/ocfs2-1_8_2-manpages.pdf
+https://oss.oracle.com/projects/ocfs2/documentation/
+
+
+On 12/15/2014 10:47 AM, Germano Percossi wrote:
+> Hi Goldwyn,
+>
+> Thanks for your answer. I will have a look at your code.
+> I just want to be sure that the source code I am looking at
+> is the latest one to avoid fixing things that maybe have been already
+> fixed elsewhere.
+>
+> Same is true for documentation and package repositories.
+> If I could have links to the latest, no matter how old and not
+> maintained, documentation and repository, it would be helpful,
+> as well.
+>
+> Do you know of any other distro, besides Suse, maintaining a stack
+> of patches?
+>
+> Cheers,
+> Germano
+>
+> On 14/12/14 07:24, Goldwyn Rodrigues wrote:
+>> Yes, if you don't count the last 2 patches, it is more close to 3 years
+>> now ;)
+>>
+>> Since the patches were not being updated. I started maintaining an
+>> alternate repository where I am putting all the bugs reported at SUSE:
+>>
+>> https://github.com/goldwynr/ocfs2-tools
+>>
+>> Branch suse-fixes has the fixes found by SUSE over the "upstream" branch.
+>>
+>> Branch nocontrold has the patches for the feature of doing away with
+>> ocfs2_controld to work with the latest corosync/pacemaker stack. Patches
+>> for the kernel are already in the kernel but the ones in the tools need
+>> some review.
+>>
+>> I had a mail conversation with Srini and he has promised to update the
+>> upstream branch soon.
+>>
+>> Regards,
+>>
+>
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
