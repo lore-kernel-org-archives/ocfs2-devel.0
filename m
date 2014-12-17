@@ -1,40 +1,39 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 17 Dec 2014 08:50:31 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: remove bogus check in
-	dlm_process_recovery_data
-Message-ID: <5490D357.1080506@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Wed, 17 Dec 2014 10:31:36 -0800
+Subject: [Ocfs2-devel] [patch 05/15] ocfs2/dlm: fix race between
+	dispatched_work and	dlm_lockres_grab_inflight_worker
+In-Reply-To: <548f65d7.mLvwv5K/G+Eyb58w%akpm@linux-foundation.org>
+References: <548f65d7.mLvwv5K/G+Eyb58w%akpm@linux-foundation.org>
+Message-ID: <20141217183136.GP7238@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In dlm_process_recovery_data, only when dlm_new_lock failed the ret
-will be set to -ENOMEM. And in this case, newlock is definitely NULL.
-So test newlock is meaningless, remove it.
+On Mon, Dec 15, 2014 at 02:51:03PM -0800, Andrew Morton wrote:
+> From: Joseph Qi <joseph.qi@huawei.com>
+> Subject: ocfs2/dlm: fix race between dispatched_work and dlm_lockres_grab_inflight_worker
+> 
+> ac4fef4d23ed ("ocfs2/dlm: do not purge lockres that is queued for assert
+> master") may have the following possible race case:
+> 
+> dlm_dispatch_assert_master       dlm_wq
+> ========================================================================
+> queue_work(dlm->quedlm_worker,
+> 	&dlm->dispatched_work);
+>                                  dispatch work,
+> 				 dlm_lockres_drop_inflight_worker
+> 				 *BUG_ON(res->inflight_assert_workers == 0)*
+> dlm_lockres_grab_inflight_worker
+> inflight_assert_workers++
+> 
+> So ensure inflight_assert_workers to be increased first.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: Alex Chen <alex.chen@huawei.com>
----
- fs/ocfs2/dlm/dlmrecovery.c | 5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+Good catch, thank you Joseph.
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 3365839..a239010 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -2015,11 +2015,8 @@ leave:
- 	dlm_lockres_drop_inflight_ref(dlm, res);
- 	spin_unlock(&res->spinlock);
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+	--Mark
 
--	if (ret < 0) {
-+	if (ret < 0)
- 		mlog_errno(ret);
--		if (newlock)
--			dlm_lock_put(newlock);
--	}
-
- 	return ret;
- }
--- 
-1.8.4.3
+--
+Mark Fasheh
