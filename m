@@ -1,339 +1,58 @@
-From: Jan Kara <jack@suse.cz>
-Date: Thu, 18 Dec 2014 16:37:34 +0100
-Subject: [Ocfs2-devel] [PATCH 20/25] xfs: Convert to using ->get_state
-	callback
-In-Reply-To: <1418917059-23870-1-git-send-email-jack@suse.cz>
-References: <1418917059-23870-1-git-send-email-jack@suse.cz>
-Message-ID: <1418917059-23870-21-git-send-email-jack@suse.cz>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Thu, 18 Dec 2014 15:18:59 -0800
+Subject: [Ocfs2-devel] [patch 09/15] ocfs2: add functions to add and
+	remove inode in	orphan dir
+In-Reply-To: <548f65e2.GaTIVhOoT5YiOhC8%akpm@linux-foundation.org>
+References: <548f65e2.GaTIVhOoT5YiOhC8%akpm@linux-foundation.org>
+Message-ID: <20141218231859.GV7238@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: linux-fsdevel@vger.kernel.org
-Cc: xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
+To: ocfs2-devel@oss.oracle.com
 
-Convert xfs to use ->get_state callback instead of ->get_xstate and
-->get_xstatev.
+Thanks once again for all of this by the way.
 
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/xfs/xfs_qm.h          |   6 +-
- fs/xfs/xfs_qm_syscalls.c | 219 ++++++++++++-----------------------------------
- fs/xfs/xfs_quotaops.c    |  26 +-----
- 3 files changed, 58 insertions(+), 193 deletions(-)
+On Mon, Dec 15, 2014 at 02:51:14PM -0800, Andrew Morton wrote:
+> From: Weiwei Wang <wangww631@huawei.com>
+> Subject: ocfs2: add functions to add and remove inode in orphan dir
+> 
+> Add functions to add inode to orphan dir and remove inode in orphan dir. 
+> Here we do not call ocfs2_prepare_orphan_dir and ocfs2_orphan_add
+> directly.  Because append O_DIRECT will add inode to orphan two and may
+> result in more than one orphan entry for the same inode.
 
-diff --git a/fs/xfs/xfs_qm.h b/fs/xfs/xfs_qm.h
-index 41f6c0b9d51c..f40506f20bd5 100644
---- a/fs/xfs/xfs_qm.h
-+++ b/fs/xfs/xfs_qm.h
-@@ -169,10 +169,8 @@ extern int		xfs_qm_scall_getquota(struct xfs_mount *, xfs_dqid_t,
- 					uint, struct qc_dqblk *);
- extern int		xfs_qm_scall_setqlim(struct xfs_mount *, xfs_dqid_t, uint,
- 					struct qc_dqblk *);
--extern int		xfs_qm_scall_getqstat(struct xfs_mount *,
--					struct fs_quota_stat *);
--extern int		xfs_qm_scall_getqstatv(struct xfs_mount *,
--					struct fs_quota_statv *);
-+extern int		xfs_qm_scall_getstate(struct xfs_mount *,
-+					struct qc_state *);
- extern int		xfs_qm_scall_quotaon(struct xfs_mount *, uint);
- extern int		xfs_qm_scall_quotaoff(struct xfs_mount *, uint);
- 
-diff --git a/fs/xfs/xfs_qm_syscalls.c b/fs/xfs/xfs_qm_syscalls.c
-index 8cb5090dcdbc..b3429a5dfc7b 100644
---- a/fs/xfs/xfs_qm_syscalls.c
-+++ b/fs/xfs/xfs_qm_syscalls.c
-@@ -38,7 +38,6 @@
- STATIC int	xfs_qm_log_quotaoff(xfs_mount_t *, xfs_qoff_logitem_t **, uint);
- STATIC int	xfs_qm_log_quotaoff_end(xfs_mount_t *, xfs_qoff_logitem_t *,
- 					uint);
--STATIC uint	xfs_qm_export_flags(uint);
- 
- /*
-  * Turn off quota accounting and/or enforcement for all udquots and/or
-@@ -389,156 +388,66 @@ xfs_qm_scall_quotaon(
- 	return 0;
- }
- 
--
--/*
-- * Return quota status information, such as uquota-off, enforcements, etc.
-- * for Q_XGETQSTAT command.
-- */
--int
--xfs_qm_scall_getqstat(
--	struct xfs_mount	*mp,
--	struct fs_quota_stat	*out)
-+static void xfs_qm_fill_state(struct qc_type_state *tstate,
-+			      struct xfs_mount *mp,
-+			      struct xfs_inode *ip,
-+			      xfs_ino_t ino)
- {
--	struct xfs_quotainfo	*q = mp->m_quotainfo;
--	struct xfs_inode	*uip = NULL;
--	struct xfs_inode	*gip = NULL;
--	struct xfs_inode	*pip = NULL;
--	bool                    tempuqip = false;
--	bool                    tempgqip = false;
--	bool                    temppqip = false;
--
--	memset(out, 0, sizeof(fs_quota_stat_t));
--
--	out->qs_version = FS_QSTAT_VERSION;
--	out->qs_flags = (__uint16_t) xfs_qm_export_flags(mp->m_qflags &
--							(XFS_ALL_QUOTA_ACCT|
--							 XFS_ALL_QUOTA_ENFD));
--	uip = q->qi_uquotaip;
--	gip = q->qi_gquotaip;
--	pip = q->qi_pquotaip;
--	if (!uip && mp->m_sb.sb_uquotino != NULLFSINO) {
--		if (xfs_iget(mp, NULL, mp->m_sb.sb_uquotino,
--					0, 0, &uip) == 0)
--			tempuqip = true;
--	}
--	if (!gip && mp->m_sb.sb_gquotino != NULLFSINO) {
--		if (xfs_iget(mp, NULL, mp->m_sb.sb_gquotino,
--					0, 0, &gip) == 0)
--			tempgqip = true;
--	}
--	/*
--	 * Q_XGETQSTAT doesn't have room for both group and project quotas.
--	 * So, allow the project quota values to be copied out only if
--	 * there is no group quota information available.
--	 */
--	if (!gip) {
--		if (!pip && mp->m_sb.sb_pquotino != NULLFSINO) {
--			if (xfs_iget(mp, NULL, mp->m_sb.sb_pquotino,
--						0, 0, &pip) == 0)
--				temppqip = true;
--		}
--	} else
--		pip = NULL;
--	if (uip) {
--		out->qs_uquota.qfs_ino = mp->m_sb.sb_uquotino;
--		out->qs_uquota.qfs_nblks = uip->i_d.di_nblocks;
--		out->qs_uquota.qfs_nextents = uip->i_d.di_nextents;
--		if (tempuqip)
--			IRELE(uip);
--	}
--
--	if (gip) {
--		out->qs_gquota.qfs_ino = mp->m_sb.sb_gquotino;
--		out->qs_gquota.qfs_nblks = gip->i_d.di_nblocks;
--		out->qs_gquota.qfs_nextents = gip->i_d.di_nextents;
--		if (tempgqip)
--			IRELE(gip);
--	}
--	if (pip) {
--		out->qs_gquota.qfs_ino = mp->m_sb.sb_gquotino;
--		out->qs_gquota.qfs_nblks = pip->i_d.di_nblocks;
--		out->qs_gquota.qfs_nextents = pip->i_d.di_nextents;
--		if (temppqip)
--			IRELE(pip);
--	}
--	out->qs_incoredqs = q->qi_dquots;
--	out->qs_btimelimit = q->qi_btimelimit;
--	out->qs_itimelimit = q->qi_itimelimit;
--	out->qs_rtbtimelimit = q->qi_rtbtimelimit;
--	out->qs_bwarnlimit = q->qi_bwarnlimit;
--	out->qs_iwarnlimit = q->qi_iwarnlimit;
--
--	return 0;
-+	struct xfs_quotainfo *q = mp->m_quotainfo;
-+	bool tempqip = false;
-+
-+	tstate->ino = ino;
-+	if (!ip && ino == NULLFSINO)
-+		return;
-+	if (!ip) {
-+		if (xfs_iget(mp, NULL, ino, 0, 0, &ip))
-+			return;
-+		tempqip = true;
-+	}
-+	tstate->flags |= QCI_SYSFILE;
-+	tstate->blocks = ip->i_d.di_nblocks;
-+	tstate->nextents = ip->i_d.di_nextents;
-+	tstate->spc_timelimit = q->qi_btimelimit;
-+	tstate->ino_timelimit = q->qi_itimelimit;
-+	tstate->rt_spc_timelimit = q->qi_rtbtimelimit;
-+	tstate->spc_warnlimit = q->qi_bwarnlimit;
-+	tstate->ino_warnlimit = q->qi_iwarnlimit;
-+	tstate->rt_spc_warnlimit = q->qi_rtbwarnlimit;
-+	if (tempqip)
-+		IRELE(ip);
- }
- 
- /*
-- * Return quota status information, such as uquota-off, enforcements, etc.
-- * for Q_XGETQSTATV command, to support separate project quota field.
-+ * Return quota status information, such as enforcements, quota file inode
-+ * numbers etc.
-  */
--int
--xfs_qm_scall_getqstatv(
--	struct xfs_mount	*mp,
--	struct fs_quota_statv	*out)
-+int xfs_qm_scall_getstate(struct xfs_mount *mp, struct qc_state *state)
- {
--	struct xfs_quotainfo	*q = mp->m_quotainfo;
--	struct xfs_inode	*uip = NULL;
--	struct xfs_inode	*gip = NULL;
--	struct xfs_inode	*pip = NULL;
--	bool                    tempuqip = false;
--	bool                    tempgqip = false;
--	bool                    temppqip = false;
--
--	out->qs_flags = (__uint16_t) xfs_qm_export_flags(mp->m_qflags &
--							(XFS_ALL_QUOTA_ACCT|
--							 XFS_ALL_QUOTA_ENFD));
--	out->qs_uquota.qfs_ino = mp->m_sb.sb_uquotino;
--	out->qs_gquota.qfs_ino = mp->m_sb.sb_gquotino;
--	out->qs_pquota.qfs_ino = mp->m_sb.sb_pquotino;
--
--	uip = q->qi_uquotaip;
--	gip = q->qi_gquotaip;
--	pip = q->qi_pquotaip;
--	if (!uip && mp->m_sb.sb_uquotino != NULLFSINO) {
--		if (xfs_iget(mp, NULL, mp->m_sb.sb_uquotino,
--					0, 0, &uip) == 0)
--			tempuqip = true;
--	}
--	if (!gip && mp->m_sb.sb_gquotino != NULLFSINO) {
--		if (xfs_iget(mp, NULL, mp->m_sb.sb_gquotino,
--					0, 0, &gip) == 0)
--			tempgqip = true;
--	}
--	if (!pip && mp->m_sb.sb_pquotino != NULLFSINO) {
--		if (xfs_iget(mp, NULL, mp->m_sb.sb_pquotino,
--					0, 0, &pip) == 0)
--			temppqip = true;
--	}
--	if (uip) {
--		out->qs_uquota.qfs_nblks = uip->i_d.di_nblocks;
--		out->qs_uquota.qfs_nextents = uip->i_d.di_nextents;
--		if (tempuqip)
--			IRELE(uip);
--	}
--
--	if (gip) {
--		out->qs_gquota.qfs_nblks = gip->i_d.di_nblocks;
--		out->qs_gquota.qfs_nextents = gip->i_d.di_nextents;
--		if (tempgqip)
--			IRELE(gip);
--	}
--	if (pip) {
--		out->qs_pquota.qfs_nblks = pip->i_d.di_nblocks;
--		out->qs_pquota.qfs_nextents = pip->i_d.di_nextents;
--		if (temppqip)
--			IRELE(pip);
--	}
--	out->qs_incoredqs = q->qi_dquots;
--	out->qs_btimelimit = q->qi_btimelimit;
--	out->qs_itimelimit = q->qi_itimelimit;
--	out->qs_rtbtimelimit = q->qi_rtbtimelimit;
--	out->qs_bwarnlimit = q->qi_bwarnlimit;
--	out->qs_iwarnlimit = q->qi_iwarnlimit;
-+	struct xfs_quotainfo *q = mp->m_quotainfo;
- 
-+	memset(state, 0, sizeof(*state));
-+	if (!XFS_IS_QUOTA_RUNNING(mp))
-+		return 0;
-+	state->s_incoredqs = q->qi_dquots;
-+	if (XFS_IS_UQUOTA_RUNNING(mp))
-+		state->s_state[USRQUOTA].flags |= QCI_ACCT_ENABLED;
-+	if (XFS_IS_UQUOTA_ENFORCED(mp))
-+		state->s_state[USRQUOTA].flags |= QCI_LIMITS_ENFORCED;
-+	if (XFS_IS_GQUOTA_RUNNING(mp))
-+		state->s_state[GRPQUOTA].flags |= QCI_ACCT_ENABLED;
-+	if (XFS_IS_GQUOTA_ENFORCED(mp))
-+		state->s_state[GRPQUOTA].flags |= QCI_LIMITS_ENFORCED;
-+	if (XFS_IS_PQUOTA_RUNNING(mp))
-+		state->s_state[PRJQUOTA].flags |= QCI_ACCT_ENABLED;
-+	if (XFS_IS_PQUOTA_ENFORCED(mp))
-+		state->s_state[PRJQUOTA].flags |= QCI_LIMITS_ENFORCED;
-+
-+	xfs_qm_fill_state(&state->s_state[USRQUOTA], mp, q->qi_uquotaip,
-+			  mp->m_sb.sb_uquotino);
-+	xfs_qm_fill_state(&state->s_state[GRPQUOTA], mp, q->qi_gquotaip,
-+			  mp->m_sb.sb_gquotino);
-+	xfs_qm_fill_state(&state->s_state[PRJQUOTA], mp, q->qi_pquotaip,
-+			  mp->m_sb.sb_pquotino);
- 	return 0;
- }
- 
-@@ -873,28 +782,6 @@ out_put:
- 	return error;
- }
- 
--STATIC uint
--xfs_qm_export_flags(
--	uint flags)
--{
--	uint uflags;
--
--	uflags = 0;
--	if (flags & XFS_UQUOTA_ACCT)
--		uflags |= FS_QUOTA_UDQ_ACCT;
--	if (flags & XFS_GQUOTA_ACCT)
--		uflags |= FS_QUOTA_GDQ_ACCT;
--	if (flags & XFS_PQUOTA_ACCT)
--		uflags |= FS_QUOTA_PDQ_ACCT;
--	if (flags & XFS_UQUOTA_ENFD)
--		uflags |= FS_QUOTA_UDQ_ENFD;
--	if (flags & XFS_GQUOTA_ENFD)
--		uflags |= FS_QUOTA_GDQ_ENFD;
--	if (flags & XFS_PQUOTA_ENFD)
--		uflags |= FS_QUOTA_PDQ_ENFD;
--	return uflags;
--}
--
- 
- STATIC int
- xfs_dqrele_inode(
-diff --git a/fs/xfs/xfs_quotaops.c b/fs/xfs/xfs_quotaops.c
-index 35f4d968e5aa..698e6faac519 100644
---- a/fs/xfs/xfs_quotaops.c
-+++ b/fs/xfs/xfs_quotaops.c
-@@ -40,28 +40,9 @@ xfs_quota_type(int type)
- 	}
- }
- 
--STATIC int
--xfs_fs_get_xstate(
--	struct super_block	*sb,
--	struct fs_quota_stat	*fqs)
-+static int xfs_fs_get_quota_state(struct super_block *sb, struct qc_state *s)
- {
--	struct xfs_mount	*mp = XFS_M(sb);
--
--	if (!XFS_IS_QUOTA_RUNNING(mp))
--		return -ENOSYS;
--	return xfs_qm_scall_getqstat(mp, fqs);
--}
--
--STATIC int
--xfs_fs_get_xstatev(
--	struct super_block	*sb,
--	struct fs_quota_statv	*fqs)
--{
--	struct xfs_mount	*mp = XFS_M(sb);
--
--	if (!XFS_IS_QUOTA_RUNNING(mp))
--		return -ENOSYS;
--	return xfs_qm_scall_getqstatv(mp, fqs);
-+	return xfs_qm_scall_getstate(XFS_M(sb), s);
- }
- 
- static unsigned int xfs_quota_flags(unsigned int uflags)
-@@ -177,8 +158,7 @@ xfs_fs_set_dqblk(
- }
- 
- const struct quotactl_ops xfs_quotactl_operations = {
--	.get_xstatev		= xfs_fs_get_xstatev,
--	.get_xstate		= xfs_fs_get_xstate,
-+	.get_state		= xfs_fs_get_quota_state,
- 	.quota_enable		= xfs_quota_enable,
- 	.quota_disable		= xfs_quota_disable,
- 	.rm_xquota		= xfs_fs_rm_xquota,
--- 
-1.8.4.5
+Just so I understand -  your problem is that ocfs2_prepare_orphan_dir() will
+EEXIST when it finds the inode already there.
+
+The solution you have below has a couple problems, stemming from the fact
+that it uses the same name for an inode that is orphaned because of
+nlink == 0 as that of one that is orphaned because it is undergoing direct
+IO.
+
+Having identical names in a directory is always considered an error, even
+for system directories like the orphan dir. In my honest opinion we should
+not do that here either.
+
+Instead you could use a prefix for those entries - something like "dio-".
+
+If you modify ocfs2_prepare_orphan_dir() and __ocfs2_prepare_orphan_dir()
+to pass down an optional prefix which is prepended to the name you don't need a
+special dio prepare function. Then we don't need ocfs2_dio_prepare_orphan_dir()
+any more.
+
+In fact, the EEXIST check now becomes valid again and you don't need to
+do all that extra work in ocfs2_dio_orphan_add() to figure out whether the
+name is there because of nlink == 0 or we're doing dio (or both!).
+
+Actually, it really becomes trivial to special case dio in
+ocfs2_orphan_add() so I would suggest just adding a boolean argument and
+doing the bits for dio there, thus allowing us to drop
+ocfs2_dio_orphan_add() too.
+
+
+I hope this all helps.
+	--Mark
+
+--
+Mark Fasheh
