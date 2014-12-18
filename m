@@ -1,10 +1,10 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 18 Dec 2014 16:37:27 +0100
-Subject: [Ocfs2-devel] [PATCH 13/25] quota: Don't store flags for v2 quota
-	format
+Date: Thu, 18 Dec 2014 16:37:28 +0100
+Subject: [Ocfs2-devel] [PATCH 14/25] ocfs2: Move OLQF_CLEAN flag out of
+	generic quota flags
 In-Reply-To: <1418917059-23870-1-git-send-email-jack@suse.cz>
 References: <1418917059-23870-1-git-send-email-jack@suse.cz>
-Message-ID: <1418917059-23870-14-git-send-email-jack@suse.cz>
+Message-ID: <1418917059-23870-15-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,44 +12,75 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
 
-Currently, v2 quota format blindly stored flags from in-memory dqinfo on
-disk, although there are no flags supported. Since it is stupid to store
-flags which have no effect, just store 0 unconditionally and don't
-bother loading it from disk.
-
-Note that userspace could have stored some flags there via Q_SETINFO
-quotactl and then later read them (although flags have no effect) but
-I'm pretty sure noone does that (most definitely quota-tools don't and
-quota interface doesn't have too much other users).
+OLQF_CLEAN flag is used by OCFS2 on disk to recognize whether quota
+recovery is needed or not. We also somewhat abuse mem_dqinfo->dqi_flags
+to pass this flag around. Use private flags for this to avoid clashes
+with other quota flags / not pollute generic quota flag namespace.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/quota/quota_v2.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ fs/ocfs2/quota.h       |  1 +
+ fs/ocfs2/quota_local.c | 10 +++++-----
+ 2 files changed, 6 insertions(+), 5 deletions(-)
 
-diff --git a/fs/quota/quota_v2.c b/fs/quota/quota_v2.c
-index d1a8054bba9a..8aa5a092de9f 100644
---- a/fs/quota/quota_v2.c
-+++ b/fs/quota/quota_v2.c
-@@ -126,7 +126,8 @@ static int v2_read_file_info(struct super_block *sb, int type)
- 	}
- 	info->dqi_bgrace = le32_to_cpu(dinfo.dqi_bgrace);
- 	info->dqi_igrace = le32_to_cpu(dinfo.dqi_igrace);
--	info->dqi_flags = le32_to_cpu(dinfo.dqi_flags);
-+	/* No flags currently supported */
-+	info->dqi_flags = le32_to_cpu(0);
- 	qinfo->dqi_sb = sb;
- 	qinfo->dqi_type = type;
- 	qinfo->dqi_blocks = le32_to_cpu(dinfo.dqi_blocks);
-@@ -157,7 +158,8 @@ static int v2_write_file_info(struct super_block *sb, int type)
- 	info->dqi_flags &= ~DQF_INFO_DIRTY;
- 	dinfo.dqi_bgrace = cpu_to_le32(info->dqi_bgrace);
- 	dinfo.dqi_igrace = cpu_to_le32(info->dqi_igrace);
--	dinfo.dqi_flags = cpu_to_le32(info->dqi_flags & DQF_MASK);
-+	/* No flags currently supported */
-+	dinfo.dqi_flags = 0;
+diff --git a/fs/ocfs2/quota.h b/fs/ocfs2/quota.h
+index 1eae330193a6..b6d51333ad02 100644
+--- a/fs/ocfs2/quota.h
++++ b/fs/ocfs2/quota.h
+@@ -48,6 +48,7 @@ struct ocfs2_quota_recovery {
+ /* In-memory structure with quota header information */
+ struct ocfs2_mem_dqinfo {
+ 	unsigned int dqi_type;		/* Quota type this structure describes */
++	unsigned int dqi_flags;		/* Flags OLQF_* */
+ 	unsigned int dqi_chunks;	/* Number of chunks in local quota file */
+ 	unsigned int dqi_blocks;	/* Number of blocks allocated for local quota file */
+ 	unsigned int dqi_syncms;	/* How often should we sync with other nodes */
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index 465223b7592e..89c0b2620814 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -292,7 +292,7 @@ static void olq_update_info(struct buffer_head *bh, void *private)
+ 	ldinfo = (struct ocfs2_local_disk_dqinfo *)(bh->b_data +
+ 						OCFS2_LOCAL_INFO_OFF);
+ 	spin_lock(&dq_data_lock);
+-	ldinfo->dqi_flags = cpu_to_le32(info->dqi_flags & DQF_MASK);
++	ldinfo->dqi_flags = cpu_to_le32(oinfo->dqi_flags);
+ 	ldinfo->dqi_chunks = cpu_to_le32(oinfo->dqi_chunks);
+ 	ldinfo->dqi_blocks = cpu_to_le32(oinfo->dqi_blocks);
  	spin_unlock(&dq_data_lock);
- 	dinfo.dqi_blocks = cpu_to_le32(qinfo->dqi_blocks);
- 	dinfo.dqi_free_blk = cpu_to_le32(qinfo->dqi_free_blk);
+@@ -737,13 +737,13 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+ 	}
+ 	ldinfo = (struct ocfs2_local_disk_dqinfo *)(bh->b_data +
+ 						OCFS2_LOCAL_INFO_OFF);
+-	info->dqi_flags = le32_to_cpu(ldinfo->dqi_flags);
++	oinfo->dqi_flags = le32_to_cpu(ldinfo->dqi_flags);
+ 	oinfo->dqi_chunks = le32_to_cpu(ldinfo->dqi_chunks);
+ 	oinfo->dqi_blocks = le32_to_cpu(ldinfo->dqi_blocks);
+ 	oinfo->dqi_libh = bh;
+ 
+ 	/* We crashed when using local quota file? */
+-	if (!(info->dqi_flags & OLQF_CLEAN)) {
++	if (!(oinfo->dqi_flags & OLQF_CLEAN)) {
+ 		rec = OCFS2_SB(sb)->quota_rec;
+ 		if (!rec) {
+ 			rec = ocfs2_alloc_quota_recovery();
+@@ -772,7 +772,7 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+ 	}
+ 
+ 	/* Now mark quota file as used */
+-	info->dqi_flags &= ~OLQF_CLEAN;
++	oinfo->dqi_flags &= ~OLQF_CLEAN;
+ 	status = ocfs2_modify_bh(lqinode, bh, olq_update_info, info);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+@@ -857,7 +857,7 @@ static int ocfs2_local_free_info(struct super_block *sb, int type)
+ 		goto out;
+ 
+ 	/* Mark local file as clean */
+-	info->dqi_flags |= OLQF_CLEAN;
++	oinfo->dqi_flags |= OLQF_CLEAN;
+ 	status = ocfs2_modify_bh(sb_dqopt(sb)->files[type],
+ 				 oinfo->dqi_libh,
+ 				 olq_update_info,
 -- 
 1.8.4.5
