@@ -1,9 +1,9 @@
 From: Jan Kara <jack@suse.cz>
-Date: Thu, 18 Dec 2014 16:37:29 +0100
-Subject: [Ocfs2-devel] [PATCH 15/25] quota: Cleanup flags definitions
+Date: Thu, 18 Dec 2014 16:37:33 +0100
+Subject: [Ocfs2-devel] [PATCH 19/25] xfs: Remove some pointless quota checks
 In-Reply-To: <1418917059-23870-1-git-send-email-jack@suse.cz>
 References: <1418917059-23870-1-git-send-email-jack@suse.cz>
-Message-ID: <1418917059-23870-16-git-send-email-jack@suse.cz>
+Message-ID: <1418917059-23870-20-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -11,97 +11,117 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
 
-Currently all quota flags were defined just in kernel-private headers.
-Export flags readable / writeable from userspace to userspace via
-include/uapi/linux/quota.h.
+xfs_fs_get_xstate() and xfs_fs_get_xstatev() check whether there's quota
+running before calling xfs_qm_scall_getqstat() or
+xfs_qm_scall_getqstatv(). Thus we are certain that superblock supports
+quota and xfs_sb_version_hasquota() check is pointless. Similarly we
+know that when quota is running, mp->m_quotainfo will be allocated.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/quota/dquot.c           |  2 +-
- include/linux/dqblk_v1.h   |  3 ---
- include/linux/quota.h      | 14 ++++++++------
- include/uapi/linux/quota.h | 14 +++++++++++++-
- 4 files changed, 22 insertions(+), 11 deletions(-)
+ fs/xfs/xfs_qm_syscalls.c | 59 ++++++++++++++++--------------------------------
+ 1 file changed, 20 insertions(+), 39 deletions(-)
 
-diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
-index 1fa9ba3b504d..a6b5795a4181 100644
---- a/fs/quota/dquot.c
-+++ b/fs/quota/dquot.c
-@@ -1248,7 +1248,7 @@ static int ignore_hardlimit(struct dquot *dquot)
+diff --git a/fs/xfs/xfs_qm_syscalls.c b/fs/xfs/xfs_qm_syscalls.c
+index 26070257fd39..8cb5090dcdbc 100644
+--- a/fs/xfs/xfs_qm_syscalls.c
++++ b/fs/xfs/xfs_qm_syscalls.c
+@@ -410,20 +410,12 @@ xfs_qm_scall_getqstat(
+ 	memset(out, 0, sizeof(fs_quota_stat_t));
  
- 	return capable(CAP_SYS_RESOURCE) &&
- 	       (info->dqi_format->qf_fmt_id != QFMT_VFS_OLD ||
--		!(info->dqi_flags & V1_DQF_RSQUASH));
-+		!(info->dqi_flags & DQF_ROOT_SQUASH));
+ 	out->qs_version = FS_QSTAT_VERSION;
+-	if (!xfs_sb_version_hasquota(&mp->m_sb)) {
+-		out->qs_uquota.qfs_ino = NULLFSINO;
+-		out->qs_gquota.qfs_ino = NULLFSINO;
+-		return 0;
+-	}
+-
+ 	out->qs_flags = (__uint16_t) xfs_qm_export_flags(mp->m_qflags &
+ 							(XFS_ALL_QUOTA_ACCT|
+ 							 XFS_ALL_QUOTA_ENFD));
+-	if (q) {
+-		uip = q->qi_uquotaip;
+-		gip = q->qi_gquotaip;
+-		pip = q->qi_pquotaip;
+-	}
++	uip = q->qi_uquotaip;
++	gip = q->qi_gquotaip;
++	pip = q->qi_pquotaip;
+ 	if (!uip && mp->m_sb.sb_uquotino != NULLFSINO) {
+ 		if (xfs_iget(mp, NULL, mp->m_sb.sb_uquotino,
+ 					0, 0, &uip) == 0)
+@@ -469,14 +461,13 @@ xfs_qm_scall_getqstat(
+ 		if (temppqip)
+ 			IRELE(pip);
+ 	}
+-	if (q) {
+-		out->qs_incoredqs = q->qi_dquots;
+-		out->qs_btimelimit = q->qi_btimelimit;
+-		out->qs_itimelimit = q->qi_itimelimit;
+-		out->qs_rtbtimelimit = q->qi_rtbtimelimit;
+-		out->qs_bwarnlimit = q->qi_bwarnlimit;
+-		out->qs_iwarnlimit = q->qi_iwarnlimit;
+-	}
++	out->qs_incoredqs = q->qi_dquots;
++	out->qs_btimelimit = q->qi_btimelimit;
++	out->qs_itimelimit = q->qi_itimelimit;
++	out->qs_rtbtimelimit = q->qi_rtbtimelimit;
++	out->qs_bwarnlimit = q->qi_bwarnlimit;
++	out->qs_iwarnlimit = q->qi_iwarnlimit;
++
+ 	return 0;
  }
  
- /* needs dq_data_lock */
-diff --git a/include/linux/dqblk_v1.h b/include/linux/dqblk_v1.h
-index 3713a7232dd8..c0d4d1e2a45c 100644
---- a/include/linux/dqblk_v1.h
-+++ b/include/linux/dqblk_v1.h
-@@ -5,9 +5,6 @@
- #ifndef _LINUX_DQBLK_V1_H
- #define _LINUX_DQBLK_V1_H
+@@ -497,13 +488,6 @@ xfs_qm_scall_getqstatv(
+ 	bool                    tempgqip = false;
+ 	bool                    temppqip = false;
  
--/* Root squash turned on */
--#define V1_DQF_RSQUASH 1
+-	if (!xfs_sb_version_hasquota(&mp->m_sb)) {
+-		out->qs_uquota.qfs_ino = NULLFSINO;
+-		out->qs_gquota.qfs_ino = NULLFSINO;
+-		out->qs_pquota.qfs_ino = NULLFSINO;
+-		return 0;
+-	}
 -
- /* Numbers of blocks needed for updates */
- #define V1_INIT_ALLOC 1
- #define V1_INIT_REWRITE 1
-diff --git a/include/linux/quota.h b/include/linux/quota.h
-index 4a086724d1b3..d534e8ed308a 100644
---- a/include/linux/quota.h
-+++ b/include/linux/quota.h
-@@ -223,12 +223,14 @@ struct mem_dqinfo {
+ 	out->qs_flags = (__uint16_t) xfs_qm_export_flags(mp->m_qflags &
+ 							(XFS_ALL_QUOTA_ACCT|
+ 							 XFS_ALL_QUOTA_ENFD));
+@@ -511,11 +495,9 @@ xfs_qm_scall_getqstatv(
+ 	out->qs_gquota.qfs_ino = mp->m_sb.sb_gquotino;
+ 	out->qs_pquota.qfs_ino = mp->m_sb.sb_pquotino;
  
- struct super_block;
- 
--#define DQF_MASK 0xffff		/* Mask for format specific flags */
--#define DQF_GETINFO_MASK 0x1ffff	/* Mask for flags passed to userspace */
--#define DQF_SETINFO_MASK 0xffff		/* Mask for flags modifiable from userspace */
--#define DQF_SYS_FILE_B		16
--#define DQF_SYS_FILE (1 << DQF_SYS_FILE_B)	/* Quota file stored as system file */
--#define DQF_INFO_DIRTY_B	31
-+/* Mask for flags passed to userspace */
-+#define DQF_GETINFO_MASK (DQF_ROOT_SQUASH | DQF_SYS_FILE)
-+/* Mask for flags modifiable from userspace */
-+#define DQF_SETINFO_MASK DQF_ROOT_SQUASH
+-	if (q) {
+-		uip = q->qi_uquotaip;
+-		gip = q->qi_gquotaip;
+-		pip = q->qi_pquotaip;
+-	}
++	uip = q->qi_uquotaip;
++	gip = q->qi_gquotaip;
++	pip = q->qi_pquotaip;
+ 	if (!uip && mp->m_sb.sb_uquotino != NULLFSINO) {
+ 		if (xfs_iget(mp, NULL, mp->m_sb.sb_uquotino,
+ 					0, 0, &uip) == 0)
+@@ -550,14 +532,13 @@ xfs_qm_scall_getqstatv(
+ 		if (temppqip)
+ 			IRELE(pip);
+ 	}
+-	if (q) {
+-		out->qs_incoredqs = q->qi_dquots;
+-		out->qs_btimelimit = q->qi_btimelimit;
+-		out->qs_itimelimit = q->qi_itimelimit;
+-		out->qs_rtbtimelimit = q->qi_rtbtimelimit;
+-		out->qs_bwarnlimit = q->qi_bwarnlimit;
+-		out->qs_iwarnlimit = q->qi_iwarnlimit;
+-	}
++	out->qs_incoredqs = q->qi_dquots;
++	out->qs_btimelimit = q->qi_btimelimit;
++	out->qs_itimelimit = q->qi_itimelimit;
++	out->qs_rtbtimelimit = q->qi_rtbtimelimit;
++	out->qs_bwarnlimit = q->qi_bwarnlimit;
++	out->qs_iwarnlimit = q->qi_iwarnlimit;
 +
-+enum {
-+	DQF_INFO_DIRTY_B = DQF_PRIVATE,
-+};
- #define DQF_INFO_DIRTY (1 << DQF_INFO_DIRTY_B)	/* Is info dirty? */
- 
- extern void mark_info_dirty(struct super_block *sb, int type);
-diff --git a/include/uapi/linux/quota.h b/include/uapi/linux/quota.h
-index 3b6cfbeb086d..1f49b8341c99 100644
---- a/include/uapi/linux/quota.h
-+++ b/include/uapi/linux/quota.h
-@@ -126,10 +126,22 @@ struct if_dqblk {
- #define IIF_FLAGS	4
- #define IIF_ALL		(IIF_BGRACE | IIF_IGRACE | IIF_FLAGS)
- 
-+enum {
-+	DQF_ROOT_SQUASH_B = 0,
-+	DQF_SYS_FILE_B = 16,
-+	/* Kernel internal flags invisible to userspace */
-+	DQF_PRIVATE
-+};
-+
-+/* Root squash enabled (for v1 quota format) */
-+#define DQF_ROOT_SQUASH	(1 << DQF_ROOT_SQUASH_B)
-+/* Quota stored in a system file */
-+#define DQF_SYS_FILE	(1 << DQF_SYS_FILE_B)
-+
- struct if_dqinfo {
- 	__u64 dqi_bgrace;
- 	__u64 dqi_igrace;
--	__u32 dqi_flags;
-+	__u32 dqi_flags;	/* DFQ_* */
- 	__u32 dqi_valid;
- };
+ 	return 0;
+ }
  
 -- 
 1.8.4.5
