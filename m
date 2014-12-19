@@ -1,95 +1,63 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Fri, 19 Dec 2014 12:25:03 -0800
-Subject: [Ocfs2-devel] [patch 04/15] ocfs2: avoid access invalid address
-	when read	o2dlm debug messages
-In-Reply-To: <5493E31F.2000509@huawei.com>
-References: <548f65d4.jhly8vWOTpWuHPjg%akpm@linux-foundation.org>
-	<20141216222629.GO7238@wotan.suse.de> <5493E31F.2000509@huawei.com>
-Message-ID: <20141219202503.GX7238@wotan.suse.de>
+Date: Fri, 19 Dec 2014 12:33:52 -0800
+Subject: [Ocfs2-devel] [patch 09/15] ocfs2: add functions to add and
+	remove inode in	orphan dir
+In-Reply-To: <54939D94.7040308@huawei.com>
+References: <548f65e2.GaTIVhOoT5YiOhC8%akpm@linux-foundation.org>
+	<20141218231859.GV7238@wotan.suse.de> <54939D94.7040308@huawei.com>
+Message-ID: <20141219203352.GY7238@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 19, 2014 at 04:34:39PM +0800, jiangyiwen wrote:
-> ? 2014/12/17 6:26, Mark Fasheh ??:
-> > On Mon, Dec 15, 2014 at 02:51:00PM -0800, Andrew Morton wrote:
-> >> In such a race case, invalid address access may occurs.  So we should
-> >> delete list res->tracking before resA->refs decrease to 0.
-> >>
-> > 
-> > 
-> >> diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages fs/ocfs2/dlm/dlmmaster.c
-> >> --- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages
-> >> +++ a/fs/ocfs2/dlm/dlmmaster.c
-> >> @@ -498,16 +498,6 @@ static void dlm_lockres_release(struct k
-> >>  	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
-> >>  	     res->lockname.name);
-> >>  
-> >> -	spin_lock(&dlm->track_lock);
-> >> -	if (!list_empty(&res->tracking))
-> >> -		list_del_init(&res->tracking);
-> >> -	else {
-> >> -		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
-> >> -		     res->lockname.len, res->lockname.name);
-> >> -		dlm_print_one_lock_resource(res);
-> >> -	}
-> >> -	spin_unlock(&dlm->track_lock);
-> >> -
-> >>  	atomic_dec(&dlm->res_cur_count);
-> >>  
-> >>  	if (!hlist_unhashed(&res->hash_node) ||
-> >> diff -puN fs/ocfs2/dlm/dlmthread.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages fs/ocfs2/dlm/dlmthread.c
-> >> --- a/fs/ocfs2/dlm/dlmthread.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages
-> >> +++ a/fs/ocfs2/dlm/dlmthread.c
-> >> @@ -211,6 +211,16 @@ static void dlm_purge_lockres(struct dlm
-> >>  
-> >>  	__dlm_unhash_lockres(dlm, res);
-> >>  
-> >> +	spin_lock(&dlm->track_lock);
-> >> +	if (!list_empty(&res->tracking))
-> >> +		list_del_init(&res->tracking);
-> >> +	else {
-> >> +		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
-> >> +				res->lockname.len, res->lockname.name);
-> >> +		__dlm_print_one_lock_resource(res);
-> >> +	}
-> >> +	spin_unlock(&dlm->track_lock);
-> >> +
-> >>  	/* lockres is not in the hash now.  drop the flag and wake up
-> >>  	 * any processes waiting in dlm_get_lock_resource. */
-> >>  	if (!master) {
-> >> _
-> > 
-> > How do we know that dlm_purge_lockres() is the last caller of
-> > dlm_lockres_put()? Don't we now have a problem where if the last ref is
-> > dropped by any other function than dlm_purge_lockres() the lockres is freed
-> > while on the tracking list?
-> > 	--Mark
-> > 
-> > --
-> > Mark Fasheh
-> > 
-> > .
-> > 
-> dlm_purge_lockres is not necessarily the last caller of
-> dlm_lockres_put(), but it means lockres will be purged if
-> dlm_purge_lockres is called. Besides, lockres is also unhashed in
-> dlm_purge_lockres, so lockres can be removed from tracking list.
-> contents of dlm->tracking_list will be consistent with
-> dlm->lockres_hash.
+On Fri, Dec 19, 2014 at 11:37:56AM +0800, Joseph Qi wrote:
+> Hi Mark,
+> I much appreciate your pertinent comments on this feature.
+> 
+> The reason we use orphan dir is to make sure allocating blocks and
+> updating inode size consistent, and this will result an entry in orphan
+> is not truly deleted one.
 
-I'm still confused. This is what I'm worried about:
+Right, I got that from the patch. Good idea by the way.
 
-1) a procss calls dlm_lockres_put(), NOT from dlm_purge_lockres().
 
-2) if the count goes to zero, then that process will call dlm_lockres_release()
+> To distinguish dio from unlink, we introduce a new dinode flag
+> OCFS2_DIO_ORPHANED_FL.
 
-3) dlm_lockres_release() will free the lockres without removing it from the
-tracking list. Thus we will have a corrupted list.
+Ok, that's also good.
 
-Does that make sense? Am I wrong here?
+
+> So after this change, once unlink and dio happen concurrently, there
+> may be two kinds of results:
+> 1. On the same node, only one entry will be added with flag
+> OCFS2_ORPHANED_FL, and flag OCFS2_DIO_ORPHANED_FL will be set and clear
+> during dio.
+> 2. On different nodes, two entries will be added with each flag
+> OCFS2_ORPHANED_FL or OCFS2_DIO_ORPHANED_FL.
+> 
+> Since entry name is stringified from blkno and the length is fixed
+> OCFS2_ORPHAN_NAMELEN, so adding a prefix as you suggested may affect
+> too much.
+
+No, adding the prefix is much more preferable to intentionally corrupting
+the conents of a directory. That OCFS2_ORPHAN_NAMELEN is a #define does not
+matter, you are free to make it whatever reasonable value fits the name. The
+directory code naturally handles this, whtether the length is
+OCFS2_ORPHAN_NAMELEN or OCFS2_ORPHAN_NAMELEN + PREFIX_NAMELEN.
+
+Also if you were to run fsck against the file system it will (should) complain
+about having duplciate entries in the orphan dir.
+
+Aside from the corruption issue, there are usability issues too. Someone
+running "ls //orphan_dir:0000" will not be able to tell whether a name is
+there for dio or nlink==0. If you prefix it, then debugging becomes much
+easier.
+
+
+Btw, did you see my note about a readonly superblock flag for this? We're
+going to need to handle backward compatibility too.
 	--Mark
 
 --
