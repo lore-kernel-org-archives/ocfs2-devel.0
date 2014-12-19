@@ -1,63 +1,49 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Fri, 19 Dec 2014 12:33:52 -0800
-Subject: [Ocfs2-devel] [patch 09/15] ocfs2: add functions to add and
-	remove inode in	orphan dir
-In-Reply-To: <54939D94.7040308@huawei.com>
-References: <548f65e2.GaTIVhOoT5YiOhC8%akpm@linux-foundation.org>
-	<20141218231859.GV7238@wotan.suse.de> <54939D94.7040308@huawei.com>
-Message-ID: <20141219203352.GY7238@wotan.suse.de>
+Date: Fri, 19 Dec 2014 12:49:25 -0800
+Subject: [Ocfs2-devel] [patch 10/15] ocfs2: add orphan recovery types	in
+	ocfs2_recover_orphans
+In-Reply-To: <548f65e5.W2X7pIDuU7pvqzIH%akpm@linux-foundation.org>
+References: <548f65e5.W2X7pIDuU7pvqzIH%akpm@linux-foundation.org>
+Message-ID: <20141219204925.GZ7238@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, Dec 19, 2014 at 11:37:56AM +0800, Joseph Qi wrote:
-> Hi Mark,
-> I much appreciate your pertinent comments on this feature.
+On Mon, Dec 15, 2014 at 02:51:17PM -0800, Andrew Morton wrote:
+> From: Joseph Qi <joseph.qi@huawei.com>
+> Subject: ocfs2: add orphan recovery types in ocfs2_recover_orphans
 > 
-> The reason we use orphan dir is to make sure allocating blocks and
-> updating inode size consistent, and this will result an entry in orphan
-> is not truly deleted one.
-
-Right, I got that from the patch. Good idea by the way.
-
-
-> To distinguish dio from unlink, we introduce a new dinode flag
-> OCFS2_DIO_ORPHANED_FL.
-
-Ok, that's also good.
-
-
-> So after this change, once unlink and dio happen concurrently, there
-> may be two kinds of results:
-> 1. On the same node, only one entry will be added with flag
-> OCFS2_ORPHANED_FL, and flag OCFS2_DIO_ORPHANED_FL will be set and clear
-> during dio.
-> 2. On different nodes, two entries will be added with each flag
-> OCFS2_ORPHANED_FL or OCFS2_DIO_ORPHANED_FL.
+> Define two orphan recovery types, which indicates if need truncate file or
+> not.
 > 
-> Since entry name is stringified from blkno and the length is fixed
-> OCFS2_ORPHAN_NAMELEN, so adding a prefix as you suggested may affect
-> too much.
+> Originally, only deleted inode will be add to orphan dir.  We use orphan
+> dir to temporary store the file in append O_DIRECT write to ensure the
+> block allocation and inode size updating in the same handle once the
+> append O_DIRECT fails.  So now there may be not truly deleted files in
+> orphan dir.
 
-No, adding the prefix is much more preferable to intentionally corrupting
-the conents of a directory. That OCFS2_ORPHAN_NAMELEN is a #define does not
-matter, you are free to make it whatever reasonable value fits the name. The
-directory code naturally handles this, whtether the length is
-OCFS2_ORPHAN_NAMELEN or OCFS2_ORPHAN_NAMELEN + PREFIX_NAMELEN.
-
-Also if you were to run fsck against the file system it will (should) complain
-about having duplciate entries in the orphan dir.
-
-Aside from the corruption issue, there are usability issues too. Someone
-running "ls //orphan_dir:0000" will not be able to tell whether a name is
-there for dio or nlink==0. If you prefix it, then debugging becomes much
-easier.
+Most of this looks good btw, just a minor comment below.
 
 
-Btw, did you see my note about a readonly superblock flag for this? We're
-going to need to handle backward compatibility too.
+> @@ -1902,7 +1917,7 @@ void ocfs2_queue_orphan_scan(struct ocfs
+>  
+>  	for (i = 0; i < osb->max_slots; i++)
+>  		ocfs2_queue_recovery_completion(osb->journal, i, NULL, NULL,
+> -						NULL);
+> +						NULL, ORPHAN_NO_NEED_TRUNCATE);
+>  	/*
+>  	 * We queued a recovery on orphan slots, increment the sequence
+>  	 * number and update LVB so other node will skip the scan for a while
+> @@ -2090,6 +2105,39 @@ static void ocfs2_clear_recovering_orpha
+>  	ocfs2_node_map_clear_bit(osb, &osb->osb_recovering_orphan_dirs, slot);
+>  }
+>  
+> +static int ocfs2_truncate_file_locked(struct inode *inode)
+
+Call this "ocfs2_truncate_file" please, we use the _locked for when it's
+expected you enter the functino with the object already locked.
 	--Mark
 
 --
