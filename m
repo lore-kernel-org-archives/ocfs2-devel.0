@@ -1,47 +1,37 @@
-From: Aron Szabo <aron@ubit.hu>
-Date: Mon, 22 Dec 2014 09:52:14 +0100
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix the wrong directory passed to
- ocfs2_lookup_ino_from_name() when link file
-In-Reply-To: <20141219141513.d68d5737c625c1b188004c89@linux-foundation.org>
-References: <5493F8F1.3020602@huawei.com>
-	<20141219141513.d68d5737c625c1b188004c89@linux-foundation.org>
-Message-ID: <5497DBBE.7060700@ubit.hu>
+From: Fabian Frederick <fabf@skynet.be>
+Date: Mon, 22 Dec 2014 20:05:09 +0100
+Subject: [Ocfs2-devel] [PATCH 1/1 linux-next] ocfs2: remove unnecessary
+	sizeof(char)
+Message-ID: <1419275109-11641-1-git-send-email-fabf@skynet.be>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org
+Cc: joe@perches.com, Fabian Frederick <fabf@skynet.be>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com
 
-Hi Andew!
+sizeof(char) is always 1.
 
-Hard linking works again, when paths are relative with at least one 
-subdirectory. This is how the problem was reproducable:
+Suggested-by: Joe Perches <joe@perches.com>
+Signed-off-by: Fabian Frederick <fabf@skynet.be>
+---
+ fs/ocfs2/journal.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-# mkdir a
-# mkdir b
-# touch a/test
-# ln a/test b/test
-ln: failed to create hard link `b/test' => `a/test': No such file or 
-directory
-
-However when creating links in the same dir, it worked well.
-
-Now the link gets created.
-
-Thanks for the quick fix Xue!
-
-Yours,
-Aron
-
-12/19/2014 11:15 PM keltez?ssel, Andrew Morton ?rta:
-> On Fri, 19 Dec 2014 18:07:45 +0800 Xue jiufei <xuejiufei@huawei.com> wrote:
->
->> In function ocfs2_link(), parent directory inode passed to function
->> ocfs2_lookup_ino_from_name() is wrong. Parameter dir is the parent
->> of new_dentry not old_dentry. We should get old_dir from old_dentry
->> and lookup old_dentry in old_dir in case another node remove the old dentry.
-> What are the user-visible effects of this change?
-
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20141222/0cf52b56/attachment.html 
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index e238bbc..750597c 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -129,8 +129,8 @@ int ocfs2_compute_replay_slots(struct ocfs2_super *osb)
+ 	if (osb->replay_map)
+ 		return 0;
+ 
+-	replay_map = kzalloc(sizeof(struct ocfs2_replay_map) +
+-			     (osb->max_slots * sizeof(char)), GFP_KERNEL);
++	replay_map = kzalloc(sizeof(struct ocfs2_replay_map) + osb->max_slots,
++			     GFP_KERNEL);
+ 
+ 	if (!replay_map) {
+ 		mlog_errno(-ENOMEM);
+-- 
+1.9.1
