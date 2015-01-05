@@ -1,45 +1,49 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu, 25 Dec 2014 13:52:17 +0800
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: fix wrong comment
-In-Reply-To: <1419486737-16102-1-git-send-email-junxiao.bi@oracle.com>
-References: <1419486737-16102-1-git-send-email-junxiao.bi@oracle.com>
-Message-ID: <1419486737-16102-2-git-send-email-junxiao.bi@oracle.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Mon, 5 Jan 2015 14:16:32 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix the wrong directory passed to
+ ocfs2_lookup_ino_from_name() when link file
+In-Reply-To: <5497DBBE.7060700@ubit.hu>
+References: <5493F8F1.3020602@huawei.com>
+	<20141219141513.d68d5737c625c1b188004c89@linux-foundation.org>
+	<5497DBBE.7060700@ubit.hu>
+Message-ID: <20150105141632.a14da73fc82f5c2439e51001@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-O2NET_CONN_IDLE_DELAY is not defined, connection attempts will not be
-canceled due to timeout.
+On Mon, 22 Dec 2014 09:52:14 +0100 Aron Szabo <aron@ubit.hu> wrote:
 
-Signed-off-by: Junxiao Bi <junxiao.bi@oracle.com>
----
- fs/ocfs2/cluster/tcp_internal.h |   12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+> 12/19/2014 11:15 PM keltez__ssel, Andrew Morton __rta:
+> > On Fri, 19 Dec 2014 18:07:45 +0800 Xue jiufei <xuejiufei@huawei.com> wrote:
+> >
+> >> In function ocfs2_link(), parent directory inode passed to function
+> >> ocfs2_lookup_ino_from_name() is wrong. Parameter dir is the parent
+> >> of new_dentry not old_dentry. We should get old_dir from old_dentry
+> >> and lookup old_dentry in old_dir in case another node remove the old dentry.
+> > What are the user-visible effects of this change?
+> 
+> Hi Andew!
+> 
+> Hard linking works again, when paths are relative with at least one 
+> subdirectory. This is how the problem was reproducable:
+> 
+> # mkdir a
+> # mkdir b
+> # touch a/test
+> # ln a/test b/test
+> ln: failed to create hard link `b/test' => `a/test': No such file or 
+> directory
+> 
+> However when creating links in the same dir, it worked well.
+> 
+> Now the link gets created.
+> 
+> Thanks for the quick fix Xue!
 
-diff --git a/fs/ocfs2/cluster/tcp_internal.h b/fs/ocfs2/cluster/tcp_internal.h
-index dc02436..b95e7df 100644
---- a/fs/ocfs2/cluster/tcp_internal.h
-+++ b/fs/ocfs2/cluster/tcp_internal.h
-@@ -107,12 +107,12 @@ struct o2net_node {
- 	struct list_head		nn_status_list;
- 
- 	/* connects are attempted from when heartbeat comes up until either hb
--	 * goes down, the node is unconfigured, no connect attempts succeed
--	 * before O2NET_CONN_IDLE_DELAY, or a connect succeeds.  connect_work
--	 * is queued from set_nn_state both from hb up and from itself if a
--	 * connect attempt fails and so can be self-arming.  shutdown is
--	 * careful to first mark the nn such that no connects will be attempted
--	 * before canceling delayed connect work and flushing the queue. */
-+	 * goes down, the node is unconfigured, or a connect succeeds.
-+	 * connect_work is queued from set_nn_state both from hb up and from
-+	 * itself if a connect attempt fails and so can be self-arming.
-+	 * shutdown is careful to first mark the nn such that no connects will
-+	 * be attempted before canceling delayed connect work and flushing the
-+	 * queue. */
- 	struct delayed_work		nn_connect_work;
- 	unsigned long			nn_last_connect_attempt;
- 
--- 
-1.7.9.5
+(top-posting untangled)
+
+When you say "works again", you mean that we broke it?  This patch
+fixes a regression?  If so, do we know what caused that regression?  Or
+at least when it occurred?
