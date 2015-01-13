@@ -1,82 +1,79 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Tue, 13 Jan 2015 09:27:01 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix journal commit deadlock in
-	ocfs2_convert_inline_data_to_extents
-Message-ID: <54B47465.1050205@huawei.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 13 Jan 2015 16:36:14 +0800
+Subject: [Ocfs2-devel] [patch 09/15] ocfs2: add functions to add and
+ remove inode in orphan dir
+In-Reply-To: <20141222070619.GB7238@wotan.suse.de>
+References: <548f65e2.GaTIVhOoT5YiOhC8%akpm@linux-foundation.org>
+	<20141218231859.GV7238@wotan.suse.de> <54939D94.7040308@huawei.com>
+	<20141219203352.GY7238@wotan.suse.de> <54976E19.6000202@huawei.com>
+	<20141222070619.GB7238@wotan.suse.de>
+Message-ID: <54B4D8FE.6090907@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Similar to ocfs2_write_end_nolock() which is metioned at commit
-136f49b917(ocfs2: fix journal commit deadlock), we should unlock pages
-before ocfs2_commit_trans() in ocfs2_convert_inline_data_to_extents,
-otherwise, it will cause a deadlock with journal commit threads.
+Hi Mark,
 
-Signed-off-by: Alex Chen <alex.chen@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/alloc.c | 18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+On 2014/12/22 15:06, Mark Fasheh wrote:
+> On Mon, Dec 22, 2014 at 09:04:25AM +0800, Joseph Qi wrote:
+>>>> So after this change, once unlink and dio happen concurrently, there
+>>>> may be two kinds of results:
+>>>> 1. On the same node, only one entry will be added with flag
+>>>> OCFS2_ORPHANED_FL, and flag OCFS2_DIO_ORPHANED_FL will be set and clear
+>>>> during dio.
+>>>> 2. On different nodes, two entries will be added with each flag
+>>>> OCFS2_ORPHANED_FL or OCFS2_DIO_ORPHANED_FL.
+>>>>
+>>>> Since entry name is stringified from blkno and the length is fixed
+>>>> OCFS2_ORPHAN_NAMELEN, so adding a prefix as you suggested may affect
+>>>> too much.
+>>>
+>>> No, adding the prefix is much more preferable to intentionally corrupting
+>>> the conents of a directory. That OCFS2_ORPHAN_NAMELEN is a #define does not
+>>> matter, you are free to make it whatever reasonable value fits the name. The
+>>> directory code naturally handles this, whtether the length is
+>>> OCFS2_ORPHAN_NAMELEN or OCFS2_ORPHAN_NAMELEN + PREFIX_NAMELEN.
+>>>
+>>> Also if you were to run fsck against the file system it will (should) complain
+>>> about having duplciate entries in the orphan dir.
+>>>
+>>> Aside from the corruption issue, there are usability issues too. Someone
+>>> running "ls //orphan_dir:0000" will not be able to tell whether a name is
+>>> there for dio or nlink==0. If you prefix it, then debugging becomes much
+>>> easier.
+>>>
+>> Okay, I will try to take your advice and make a change.
+> 
+> Great, thank you.
+> 
+> 
+>>> Btw, did you see my note about a readonly superblock flag for this? We're
+>>> going to need to handle backward compatibility too.
+>> Yes. At my first glance, it may need a lot change to support feature ro compat
+>> at my first glance. I need to investigate on it before do the actual change.
+>> Thanks.
+> 
+> Kernel should be straight forward - if the flag isn't there just use the
+> existing fallback. Otherwise we can use the new direct_IO code.
+> 
+>>From memory, in ocfs2-tools you'll have to update mkfs to write the flag,
+> tunefs to turn it on/off for an existing filesystem and fsck to truncate the
+> direct-io orphans it finds.
+> 	--Mark
+> 
+For the comments about setting it to a ro compat feature, I still have
+one more questions.
+If I check this feature flag in ocfs2_direct_IO, that means the existing
+formatted ocfs2 volume won't take this feature except we explicitly turn
+it on using tunefs.
+But I don't think there is any problem if feature is default on.
+Do you mean we have to treat this feature as optional and let user
+choose?
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index a93bf98..6d15c32 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -6871,7 +6871,7 @@ int ocfs2_convert_inline_data_to_extents(struct inode *inode,
- 	if (IS_ERR(handle)) {
- 		ret = PTR_ERR(handle);
- 		mlog_errno(ret);
--		goto out_unlock;
-+		goto out;
- 	}
-
- 	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-@@ -6929,7 +6929,7 @@ int ocfs2_convert_inline_data_to_extents(struct inode *inode,
- 		if (ret) {
- 			mlog_errno(ret);
- 			need_free = 1;
--			goto out_commit;
-+			goto out_unlock;
- 		}
-
- 		page_end = PAGE_CACHE_SIZE;
-@@ -6962,12 +6962,16 @@ int ocfs2_convert_inline_data_to_extents(struct inode *inode,
- 		if (ret) {
- 			mlog_errno(ret);
- 			need_free = 1;
--			goto out_commit;
-+			goto out_unlock;
- 		}
-
- 		inode->i_blocks = ocfs2_inode_sector_count(inode);
- 	}
-
-+out_unlock:
-+	if (pages)
-+		ocfs2_unlock_and_free_pages(pages, num_pages);
-+
- out_commit:
- 	if (ret < 0 && did_quota)
- 		dquot_free_space_nodirty(inode,
-@@ -6987,15 +6991,11 @@ out_commit:
-
- 	ocfs2_commit_trans(osb, handle);
-
--out_unlock:
-+out:
- 	if (data_ac)
- 		ocfs2_free_alloc_context(data_ac);
--
--out:
--	if (pages) {
--		ocfs2_unlock_and_free_pages(pages, num_pages);
-+	if (pages)
- 		kfree(pages);
--	}
-
- 	return ret;
- }
--- 
-1.8.4.3
+> --
+> Mark Fasheh
+> 
+> .
+> 
