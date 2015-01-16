@@ -1,10 +1,8 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 16 Jan 2015 13:47:49 +0100
-Subject: [Ocfs2-devel] [PATCH 15/17] quota: Make ->set_info use structure
-	with neccesary info to VFS and XFS
-In-Reply-To: <1421412471-4747-1-git-send-email-jack@suse.cz>
-References: <1421412471-4747-1-git-send-email-jack@suse.cz>
-Message-ID: <1421412471-4747-16-git-send-email-jack@suse.cz>
+Date: Fri, 16 Jan 2015 13:47:34 +0100
+Subject: [Ocfs2-devel] [PATCH 0/17 v3] quota: Unify VFS and XFS quota
+	interfaces
+Message-ID: <1421412471-4747-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,174 +10,44 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
 
-Change ->set_info to take new qc_info structure which contains all the
-necessary information both for XFS and VFS. Convert Q_SETINFO handler
-to use this structure.
+  Hello,
 
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/quota/dquot.c         | 27 ++++++++++++++++-----------
- fs/quota/quota.c         | 21 ++++++++++++++++++++-
- include/linux/quota.h    | 21 +++++++++++++++++++--
- include/linux/quotaops.h |  2 +-
- 4 files changed, 56 insertions(+), 15 deletions(-)
+  this is another iteration of patches to unify VFS and XFS quota interfaces so
+that XFS quotactls work for filesystems with VFS quotas and vice versa.  This
+is useful so that userspace doesn't have to care that much about which
+filesystem it is using at least when using basic quota functionality. In
+particular we should be able to reuse project quota tests in xfstests for ext4.
 
-diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
-index 57b9a62254d6..50779a166fb3 100644
---- a/fs/quota/dquot.c
-+++ b/fs/quota/dquot.c
-@@ -2651,33 +2651,38 @@ int dquot_get_state(struct super_block *sb, struct qc_state *state)
- EXPORT_SYMBOL(dquot_get_state);
- 
- /* Generic routine for setting common part of quota file information */
--int dquot_set_dqinfo(struct super_block *sb, int type, struct if_dqinfo *ii)
-+int dquot_set_dqinfo(struct super_block *sb, int type, struct qc_info *ii)
- {
- 	struct mem_dqinfo *mi;
- 	int err = 0;
- 
-+	if ((ii->i_fieldmask & QC_WARNS_MASK) ||
-+	    (ii->i_fieldmask & QC_RT_SPC_TIMER))
-+		return -EINVAL;
- 	mutex_lock(&sb_dqopt(sb)->dqonoff_mutex);
- 	if (!sb_has_quota_active(sb, type)) {
- 		err = -ESRCH;
- 		goto out;
- 	}
- 	mi = sb_dqopt(sb)->info + type;
--	if (ii->dqi_valid & IIF_FLAGS) {
--		if (ii->dqi_flags & ~DQF_SETINFO_MASK ||
--		    (ii->dqi_flags & DQF_ROOT_SQUASH &&
-+	if (ii->i_fieldmask & QC_FLAGS) {
-+		if ((ii->i_flags & QCI_ROOT_SQUASH &&
- 		     mi->dqi_format->qf_fmt_id != QFMT_VFS_OLD)) {
- 			err = -EINVAL;
- 			goto out;
- 		}
- 	}
- 	spin_lock(&dq_data_lock);
--	if (ii->dqi_valid & IIF_BGRACE)
--		mi->dqi_bgrace = ii->dqi_bgrace;
--	if (ii->dqi_valid & IIF_IGRACE)
--		mi->dqi_igrace = ii->dqi_igrace;
--	if (ii->dqi_valid & IIF_FLAGS)
--		mi->dqi_flags = (mi->dqi_flags & ~DQF_SETINFO_MASK) |
--				(ii->dqi_flags & DQF_SETINFO_MASK);
-+	if (ii->i_fieldmask & QC_SPC_TIMER)
-+		mi->dqi_bgrace = ii->i_spc_timelimit;
-+	if (ii->i_fieldmask & QC_INO_TIMER)
-+		mi->dqi_igrace = ii->i_ino_timelimit;
-+	if (ii->i_fieldmask & QC_FLAGS) {
-+		if (ii->i_flags & QCI_ROOT_SQUASH)
-+			mi->dqi_flags |= DQF_ROOT_SQUASH;
-+		else
-+			mi->dqi_flags &= ~DQF_ROOT_SQUASH;
-+	}
- 	spin_unlock(&dq_data_lock);
- 	mark_info_dirty(sb, type);
- 	/* Force write to disk */
-diff --git a/fs/quota/quota.c b/fs/quota/quota.c
-index cb52a1d9c91a..f39bf4725184 100644
---- a/fs/quota/quota.c
-+++ b/fs/quota/quota.c
-@@ -149,12 +149,31 @@ static int quota_getinfo(struct super_block *sb, int type, void __user *addr)
- static int quota_setinfo(struct super_block *sb, int type, void __user *addr)
- {
- 	struct if_dqinfo info;
-+	struct qc_info qinfo;
- 
- 	if (copy_from_user(&info, addr, sizeof(info)))
- 		return -EFAULT;
- 	if (!sb->s_qcop->set_info)
- 		return -ENOSYS;
--	return sb->s_qcop->set_info(sb, type, &info);
-+	if (info.dqi_valid & ~(IIF_FLAGS | IIF_BGRACE | IIF_IGRACE))
-+		return -EINVAL;
-+	memset(&qinfo, 0, sizeof(qinfo));
-+	if (info.dqi_valid & IIF_FLAGS) {
-+		if (info.dqi_flags & ~DQF_SETINFO_MASK)
-+			return -EINVAL;
-+		if (info.dqi_flags & DQF_ROOT_SQUASH)
-+			qinfo.i_flags |= QCI_ROOT_SQUASH;
-+		qinfo.i_fieldmask |= QC_FLAGS;
-+	}
-+	if (info.dqi_valid & IIF_BGRACE) {
-+		qinfo.i_spc_timelimit = info.dqi_bgrace;
-+		qinfo.i_fieldmask |= QC_SPC_TIMER;
-+	}
-+	if (info.dqi_valid & IIF_IGRACE) {
-+		qinfo.i_ino_timelimit = info.dqi_igrace;
-+		qinfo.i_fieldmask |= QC_INO_TIMER;
-+	}
-+	return sb->s_qcop->set_info(sb, type, &qinfo);
- }
- 
- static inline qsize_t qbtos(qsize_t blocks)
-diff --git a/include/linux/quota.h b/include/linux/quota.h
-index a07f2ed25284..3d521199a0bd 100644
---- a/include/linux/quota.h
-+++ b/include/linux/quota.h
-@@ -344,7 +344,10 @@ struct qc_dqblk {
- 	int d_rt_spc_warns;	/* # warnings issued wrt RT space */
- };
- 
--/* Field specifiers for ->set_dqblk() in struct qc_dqblk */
-+/*
-+ * Field specifiers for ->set_dqblk() in struct qc_dqblk and also for
-+ * ->set_info() in struct qc_info
-+ */
- #define	QC_INO_SOFT	(1<<0)
- #define	QC_INO_HARD	(1<<1)
- #define	QC_SPC_SOFT	(1<<2)
-@@ -365,6 +368,7 @@ struct qc_dqblk {
- #define	QC_INO_COUNT	(1<<13)
- #define	QC_RT_SPACE	(1<<14)
- #define QC_ACCT_MASK (QC_SPACE | QC_INO_COUNT | QC_RT_SPACE)
-+#define QC_FLAGS	(1<<15)
- 
- #define QCI_SYSFILE		(1 << 0)	/* Quota file is hidden from userspace */
- #define QCI_ROOT_SQUASH		(1 << 1)	/* Root squash turned on */
-@@ -397,6 +401,19 @@ struct qc_state {
- 	struct qc_type_state s_state[XQM_MAXQUOTAS];
- };
- 
-+/* Structure for communicating via ->set_info */
-+struct qc_info {
-+	int i_fieldmask;	/* mask of fields to change in ->set_info() */
-+	unsigned int i_flags;		/* Flags QCI_* */
-+	unsigned int i_spc_timelimit;	/* Time after which space softlimit is
-+					 * enforced */
-+	unsigned int i_ino_timelimit;	/* Ditto for inode softlimit */
-+	unsigned int i_rt_spc_timelimit;/* Ditto for real-time space */
-+	unsigned int i_spc_warnlimit;	/* Limit for number of space warnings */
-+	unsigned int i_ino_warnlimit;	/* Limit for number of inode warnings */
-+	unsigned int i_rt_spc_warnlimit;	/* Ditto for real-time space */
-+};
-+
- /* Operations handling requests from userspace */
- struct quotactl_ops {
- 	int (*quota_on)(struct super_block *, int, int, struct path *);
-@@ -404,7 +421,7 @@ struct quotactl_ops {
- 	int (*quota_enable)(struct super_block *, unsigned int);
- 	int (*quota_disable)(struct super_block *, unsigned int);
- 	int (*quota_sync)(struct super_block *, int);
--	int (*set_info)(struct super_block *, int, struct if_dqinfo *);
-+	int (*set_info)(struct super_block *, int, struct qc_info *);
- 	int (*get_dqblk)(struct super_block *, struct kqid, struct qc_dqblk *);
- 	int (*set_dqblk)(struct super_block *, struct kqid, struct qc_dqblk *);
- 	int (*get_state)(struct super_block *, struct qc_state *);
-diff --git a/include/linux/quotaops.h b/include/linux/quotaops.h
-index 881517091c67..f0a37be2899c 100644
---- a/include/linux/quotaops.h
-+++ b/include/linux/quotaops.h
-@@ -98,7 +98,7 @@ int dquot_quota_disable(struct super_block *sb, unsigned int flags);
- int dquot_writeback_dquots(struct super_block *sb, int type);
- int dquot_quota_sync(struct super_block *sb, int type);
- int dquot_get_state(struct super_block *sb, struct qc_state *state);
--int dquot_set_dqinfo(struct super_block *sb, int type, struct if_dqinfo *ii);
-+int dquot_set_dqinfo(struct super_block *sb, int type, struct qc_info *ii);
- int dquot_get_dqblk(struct super_block *sb, struct kqid id,
- 		struct qc_dqblk *di);
- int dquot_set_dqblk(struct super_block *sb, struct kqid id,
--- 
-2.1.2
+The patches are based on quota cleanup series [1] and XFS cleanup series [2]
+I've sent previously and based on 3.19-rc4 + for-next branch of XFS tree.  I
+could further split this series into per-quotactl series but frankly I don't
+think it will help reviewers in any way (the patches in the current series are
+already ordered by quotactl).
+
+I would like to get some review especially of the fs-specific parts of the
+series - mostly for XFS where things aren't always trivial.
+
+Some more details about the series below:
+
+In this patch set I unify quotaon / quotaoff handling (Q_QUOTAON, Q_QUOTAOFF,
+Q_XQUOTAON, Q_XQUOTAOFF calls), fix some bugs in the Q_XGETQUOTA, Q_XSETQLIM,
+Q_GETQUOTA, Q_SETQUOTA calls done by Christoph some time ago, unify
+Q_GETXSTATE, Q_GETXSTATV with Q_GETINFO, and also wire up Q_SETINFO to work
+with XFS (and Q_XSETQLIM for id 0 to modify time limits for VFS quotas).
+So after these patches xfs_quota can manipulate quotas for ext4 filesystem and
+similarly quota-tools can be used to manipulate quotas for xfs filesystem.
+
+I have also verified that xfstests pass fine both for xfs and ext4 so
+hopefully I didn't introduce any regression in the current functionality (I
+also did a couple of manual checks for timer setting etc).
+
+All the comments to the first version of the series are hopefully addressed,
+except for Dave's request to reduce number of copying of dquot information -
+I have benchmarked that reducing number of copies from 3 to 2 brings just 2%
+improvement in speed in my test setup and getting quota information isn't IMHO
+so performance critical that it would be worth the complications of the code.
+
+								Honza
+
+[1] http://www.spinics.net/lists/linux-fsdevel/msg81903.html
+[2] http://www.spinics.net/lists/xfs/msg31389.html
