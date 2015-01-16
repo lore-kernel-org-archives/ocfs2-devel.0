@@ -1,88 +1,42 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Fri, 16 Jan 2015 14:56:38 -0800
-Subject: [Ocfs2-devel] [patch 09/15] ocfs2: add functions to add
-	and	remove inode in orphan dir
-In-Reply-To: <54B4D8FE.6090907@huawei.com>
-References: <548f65e2.GaTIVhOoT5YiOhC8%akpm@linux-foundation.org>
-	<20141218231859.GV7238@wotan.suse.de> <54939D94.7040308@huawei.com>
-	<20141219203352.GY7238@wotan.suse.de> <54976E19.6000202@huawei.com>
-	<20141222070619.GB7238@wotan.suse.de> <54B4D8FE.6090907@huawei.com>
-Message-ID: <20150116225638.GG20308@wotan.suse.de>
+Date: Fri, 16 Jan 2015 15:21:07 -0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: add a mount option
+	journal_async_commit on	ocfs2 filesystem
+In-Reply-To: <54ACAFA5.3080508@huawei.com>
+References: <54ACAFA5.3080508@huawei.com>
+Message-ID: <20150116232107.GH20308@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, Jan 13, 2015 at 04:36:14PM +0800, Joseph Qi wrote:
-> Hi Mark,
+On Wed, Jan 07, 2015 at 12:01:41PM +0800, alex chen wrote:
+> Add a mount option to support JBD2 feature:
+> JBD2_FEATURE_INCOMPAT_ASYNC_COMMIT. When this feature is opened,
+> journal commit block can be written to disk without waiting for
+> descriptor blocks, which can improve journal commit performance. This
+> option will enable 'journal_checksum' internally.
 > 
-> On 2014/12/22 15:06, Mark Fasheh wrote:
-> > On Mon, Dec 22, 2014 at 09:04:25AM +0800, Joseph Qi wrote:
-> >>>> So after this change, once unlink and dio happen concurrently, there
-> >>>> may be two kinds of results:
-> >>>> 1. On the same node, only one entry will be added with flag
-> >>>> OCFS2_ORPHANED_FL, and flag OCFS2_DIO_ORPHANED_FL will be set and clear
-> >>>> during dio.
-> >>>> 2. On different nodes, two entries will be added with each flag
-> >>>> OCFS2_ORPHANED_FL or OCFS2_DIO_ORPHANED_FL.
-> >>>>
-> >>>> Since entry name is stringified from blkno and the length is fixed
-> >>>> OCFS2_ORPHAN_NAMELEN, so adding a prefix as you suggested may affect
-> >>>> too much.
-> >>>
-> >>> No, adding the prefix is much more preferable to intentionally corrupting
-> >>> the conents of a directory. That OCFS2_ORPHAN_NAMELEN is a #define does not
-> >>> matter, you are free to make it whatever reasonable value fits the name. The
-> >>> directory code naturally handles this, whtether the length is
-> >>> OCFS2_ORPHAN_NAMELEN or OCFS2_ORPHAN_NAMELEN + PREFIX_NAMELEN.
-> >>>
-> >>> Also if you were to run fsck against the file system it will (should) complain
-> >>> about having duplciate entries in the orphan dir.
-> >>>
-> >>> Aside from the corruption issue, there are usability issues too. Someone
-> >>> running "ls //orphan_dir:0000" will not be able to tell whether a name is
-> >>> there for dio or nlink==0. If you prefix it, then debugging becomes much
-> >>> easier.
-> >>>
-> >> Okay, I will try to take your advice and make a change.
-> > 
-> > Great, thank you.
-> > 
-> > 
-> >>> Btw, did you see my note about a readonly superblock flag for this? We're
-> >>> going to need to handle backward compatibility too.
-> >> Yes. At my first glance, it may need a lot change to support feature ro compat
-> >> at my first glance. I need to investigate on it before do the actual change.
-> >> Thanks.
-> > 
-> > Kernel should be straight forward - if the flag isn't there just use the
-> > existing fallback. Otherwise we can use the new direct_IO code.
-> > 
-> >>From memory, in ocfs2-tools you'll have to update mkfs to write the flag,
-> > tunefs to turn it on/off for an existing filesystem and fsck to truncate the
-> > direct-io orphans it finds.
-> > 	--Mark
-> > 
-> For the comments about setting it to a ro compat feature, I still have
-> one more questions.
-> If I check this feature flag in ocfs2_direct_IO, that means the existing
-> formatted ocfs2 volume won't take this feature except we explicitly turn
-> it on using tunefs.
-
-Correct.
-
-
-> But I don't think there is any problem if feature is default on.
-> Do you mean we have to treat this feature as optional and let user
-> choose?
-
-Yes it should be optional, though we can always have mkfs.ocfs2 turn it on by default.
-
-If the user uses this, and the node crashes with inodes in the orphan dir
-they might be deleted by another node with an ealier version of the fs code.
-We can not allow that and therefore have to guard with an incompat bit.
+> Using the fs_mark benchmark, using journal_async_commit shows a 50%
+> improvement, the files per second go up from 215.2 to 317.5.
+> 
+> test script:
+> fs_mark  -d  /mnt/ocfs2/  -s  10240  -n  1000
+> 
+> default:
+> FSUse%        Count         Size    Files/sec     App Overhead
+>      0         1000        10240        215.2            17878
+> 
+> with journal_async_commit option:
+> FSUse%        Count         Size    Files/sec     App Overhead
+>      0         1000        10240        317.5            17881
+> 
+> Signed-off-by: Alex Chen <alex.chen@huawei.com>
+> Signed-off-by: Weiwei Wang <wangww631@huawei.comm>
+> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 	--Mark
-
+ 
 --
 Mark Fasheh
