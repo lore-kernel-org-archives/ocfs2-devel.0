@@ -1,10 +1,10 @@
 From: Jan Kara <jack@suse.cz>
-Date: Fri, 16 Jan 2015 13:47:43 +0100
-Subject: [Ocfs2-devel] [PATCH 09/17] quota: Make Q_XQUOTASYNC support VFS
-	quota syncing
+Date: Fri, 16 Jan 2015 13:47:48 +0100
+Subject: [Ocfs2-devel] [PATCH 14/17] quota: Remove ->get_xstate and
+	->get_xstatev callbacks
 In-Reply-To: <1421412471-4747-1-git-send-email-jack@suse.cz>
 References: <1421412471-4747-1-git-send-email-jack@suse.cz>
-Message-ID: <1421412471-4747-10-git-send-email-jack@suse.cz>
+Message-ID: <1421412471-4747-15-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,29 +12,66 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
 
-Call ->quota_sync method from Q_XQUOTASYNC for better userspace
-compatibility.
+These callbacks are now unused. Remove them.
 
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/quota/quota.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ fs/quota/quota.c      | 14 ++++----------
+ include/linux/quota.h |  2 --
+ 2 files changed, 4 insertions(+), 12 deletions(-)
 
 diff --git a/fs/quota/quota.c b/fs/quota/quota.c
-index 2cc50b35a3b5..5ec04321aace 100644
+index 7d04b95dfbbf..cb52a1d9c91a 100644
 --- a/fs/quota/quota.c
 +++ b/fs/quota/quota.c
-@@ -477,8 +477,9 @@ static int do_quotactl(struct super_block *sb, int type, int cmd, qid_t id,
- 	case Q_XQUOTASYNC:
- 		if (sb->s_flags & MS_RDONLY)
- 			return -EROFS;
--		/* XFS quotas are fully coherent now, making this call a noop */
--		return 0;
-+		if (!sb->s_qcop->quota_sync)
-+			return 0;
-+		return sb->s_qcop->quota_sync(sb, type);
+@@ -350,12 +350,9 @@ static int quota_getxstate(struct super_block *sb, void __user *addr)
+ 	struct fs_quota_stat fqs;
+ 	int ret;
+ 
+-	if (!sb->s_qcop->get_xstate && !sb->s_qcop->get_state)
++	if (!sb->s_qcop->get_state)
+ 		return -ENOSYS;
+-	if (sb->s_qcop->get_state)
+-		ret = quota_getstate(sb, &fqs);
+-	else
+-		ret = sb->s_qcop->get_xstate(sb, &fqs);
++	ret = quota_getstate(sb, &fqs);
+ 	if (!ret && copy_to_user(addr, &fqs, sizeof(fqs)))
+ 		return -EFAULT;
+ 	return ret;
+@@ -414,7 +411,7 @@ static int quota_getxstatev(struct super_block *sb, void __user *addr)
+ 	struct fs_quota_statv fqs;
+ 	int ret;
+ 
+-	if (!sb->s_qcop->get_xstatev && !sb->s_qcop->get_state)
++	if (!sb->s_qcop->get_state)
+ 		return -ENOSYS;
+ 
+ 	memset(&fqs, 0, sizeof(fqs));
+@@ -428,10 +425,7 @@ static int quota_getxstatev(struct super_block *sb, void __user *addr)
  	default:
  		return -EINVAL;
  	}
+-	if (sb->s_qcop->get_state)
+-		ret = quota_getstatev(sb, &fqs);
+-	else
+-		ret = sb->s_qcop->get_xstatev(sb, &fqs);
++	ret = quota_getstatev(sb, &fqs);
+ 	if (!ret && copy_to_user(addr, &fqs, sizeof(fqs)))
+ 		return -EFAULT;
+ 	return ret;
+diff --git a/include/linux/quota.h b/include/linux/quota.h
+index 6ecac0f3b2ca..a07f2ed25284 100644
+--- a/include/linux/quota.h
++++ b/include/linux/quota.h
+@@ -408,8 +408,6 @@ struct quotactl_ops {
+ 	int (*get_dqblk)(struct super_block *, struct kqid, struct qc_dqblk *);
+ 	int (*set_dqblk)(struct super_block *, struct kqid, struct qc_dqblk *);
+ 	int (*get_state)(struct super_block *, struct qc_state *);
+-	int (*get_xstate)(struct super_block *, struct fs_quota_stat *);
+-	int (*get_xstatev)(struct super_block *, struct fs_quota_statv *);
+ 	int (*rm_xquota)(struct super_block *, unsigned int);
+ };
+ 
 -- 
 2.1.2
