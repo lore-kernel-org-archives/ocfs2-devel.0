@@ -1,32 +1,26 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Fri, 16 Jan 2015 15:26:59 -0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix snprintf format specifier in
-	dlmdebug.c
-In-Reply-To: <54AE4E6D.6050902@huawei.com>
-References: <54AE4E6D.6050902@huawei.com>
-Message-ID: <20150116232659.GI20308@wotan.suse.de>
+From: Christoph Hellwig <hch@infradead.org>
+Date: Mon, 19 Jan 2015 01:00:35 -0800
+Subject: [Ocfs2-devel] [PATCH 01/17] quota: Split ->set_xstate callback
+	into two
+In-Reply-To: <1421412471-4747-2-git-send-email-jack@suse.cz>
+References: <1421412471-4747-1-git-send-email-jack@suse.cz>
+	<1421412471-4747-2-git-send-email-jack@suse.cz>
+Message-ID: <20150119090035.GA27474@infradead.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.cz>
+Cc: linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
 
-On Thu, Jan 08, 2015 at 05:31:25PM +0800, alex chen wrote:
-> Use snprintf format specifier "%lu" instead of "%ld" for
-> argument of type 'unsigned long'.
+On Fri, Jan 16, 2015 at 01:47:35PM +0100, Jan Kara wrote:
+> Split ->set_xstate callback into two callbacks - one for turning quotas
+> on (->quota_enable) and one for turning quotas off (->quota_disable). That
+> way we don't have to pass quotactl command into the callback which seems
+> cleaner.
 > 
-> Signed-off-by: Alex Chen <alex.chen@huawei.com>
+> Signed-off-by: Jan Kara <jack@suse.cz>
 
-Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+Looks good,
 
-
-> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-
-Btw, did this review happen on the mailing list? It's customary for review
-to happen publicly.
-
-Thanks,
-	--Mark
-
---
-Mark Fasheh
+Reviewed-by: Christoph Hellwig <hch@lst.de>
