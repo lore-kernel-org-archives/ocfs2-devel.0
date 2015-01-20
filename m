@@ -1,56 +1,30 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue, 20 Jan 2015 18:13:48 +0100
-Subject: [Ocfs2-devel] [PATCH 05/17] ocfs2: Use generic helpers for
-	quotaon and quotaoff
-In-Reply-To: <20150119090347.GE27474@infradead.org>
+Date: Tue, 20 Jan 2015 18:16:31 +0100
+Subject: [Ocfs2-devel] [PATCH 09/17] quota: Make Q_XQUOTASYNC support
+	VFS quota syncing
+In-Reply-To: <20150119090914.GI27474@infradead.org>
 References: <1421412471-4747-1-git-send-email-jack@suse.cz>
-	<1421412471-4747-6-git-send-email-jack@suse.cz>
-	<20150119090347.GE27474@infradead.org>
-Message-ID: <20150120171348.GF3648@quack.suse.cz>
+	<1421412471-4747-10-git-send-email-jack@suse.cz>
+	<20150119090914.GI27474@infradead.org>
+Message-ID: <20150120171631.GG3648@quack.suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Christoph Hellwig <hch@infradead.org>
-Cc: linux-fsdevel@vger.kernel.org, cluster-devel@redhat.com, Jan Kara <jack@suse.cz>, ocfs2-devel@oss.oracle.com, xfs@oss.sgi.com
+Cc: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
 
-On Mon 19-01-15 01:03:47, Christoph Hellwig wrote:
-> On Fri, Jan 16, 2015 at 01:47:39PM +0100, Jan Kara wrote:
-> > Ocfs2 can just use the generic helpers provided by quota code for
-> > turning quotas on and off when quota files are stored as system inodes.
-> > The only difference is the feature test in ocfs2_quota_on() and that is
-> > covered by dquot_quota_enable() checking whether usage tracking is
-> > enabled (which can happen only if the filesystem has the quota feature
-> > set).
-> > 
-> > Signed-off-by: Jan Kara <jack@suse.cz>
-> > ---
-> >  fs/ocfs2/super.c | 32 +-------------------------------
-> >  1 file changed, 1 insertion(+), 31 deletions(-)
-> > 
-> > diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> > index 83723179e1ec..706c71c2955d 100644
-> > --- a/fs/ocfs2/super.c
-> > +++ b/fs/ocfs2/super.c
-> > @@ -1000,36 +1000,6 @@ static void ocfs2_disable_quotas(struct ocfs2_super *osb)
-> >  	}
-> >  }
-> >  
-> > -/* Handle quota on quotactl */
-> > -static int ocfs2_quota_on(struct super_block *sb, int type, int format_id)
-> > -{
-> > -	unsigned int feature[OCFS2_MAXQUOTAS] = {
-> > -					OCFS2_FEATURE_RO_COMPAT_USRQUOTA,
-> > -					OCFS2_FEATURE_RO_COMPAT_GRPQUOTA};
-> > -
-> > -	if (!OCFS2_HAS_RO_COMPAT_FEATURE(sb, feature[type]))
-> > -		return -EINVAL;
+On Mon 19-01-15 01:09:14, Christoph Hellwig wrote:
+> On Fri, Jan 16, 2015 at 01:47:43PM +0100, Jan Kara wrote:
+> > Call ->quota_sync method from Q_XQUOTASYNC for better userspace
+> > compatibility.
 > 
-> Where are we doing this feature check now?
-  So OCFS2 (similarly as ext4 or xfs) has to enable quota accounting on
-mount and at that point we test for the feature. Q_QUOTAON quotactl is
-used just to turn on enforcement and at that point it makes no sense to
-check for the feature (BTW, the changelog already explains this ;).
+> Q_XQUOTASYNC never did the equivalent to ->quota_sync, but rather was
+> the equivalent to sys_syncfs which also happens to write out quotas.
+> 
+> Unless you have a really strong reason for wiring it up, I'd rather keep
+> it as-is.
+  OK, patch dropped.
 
 								Honza
 -- 
