@@ -1,52 +1,104 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Tue, 20 Jan 2015 16:26:33 +0800
-Subject: [Ocfs2-devel] [PATCH 0/9 v6] ocfs2: support append O_DIRECT
-	write
-In-Reply-To: <54BE0B46.8030301@huawei.com>
-References: <54BE0B46.8030301@huawei.com>
-Message-ID: <54BE1139.4090304@oracle.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 20 Jan 2015 16:35:12 +0800
+Subject: [Ocfs2-devel] [PATCH 9/9 v6] ocfs2: set append dio as a ro compat
+	feature
+Message-ID: <54BE1340.6000903@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Joseph,
+Intruduce a bit OCFS2_FEATURE_RO_COMPAT_APPEND_DIO and check it in
+write flow. If the bit is not set, fall back to the old way.
 
-Did this version make any performance improvement with v5? I tested v5,
-and it didn't improve performance with original buffer write + sync.
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Cc: Weiwei Wang <wangww631@huawei.com>
+---
+ fs/ocfs2/file.c     | 17 ++++++++++++++++-
+ fs/ocfs2/ocfs2.h    |  8 ++++++++
+ fs/ocfs2/ocfs2_fs.h |  8 +++++++-
+ 3 files changed, 31 insertions(+), 2 deletions(-)
 
-Thanks,
-Junxiao.
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 4a712cf..41700d8 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2213,6 +2213,15 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
+ 		}
 
-On 01/20/2015 04:01 PM, Joseph Qi wrote:
-> Currently in case of append O_DIRECT write (block not allocated yet),
-> ocfs2 will fall back to buffered I/O. This has some disadvantages.
-> Firstly, it is not the behavior as expected.
-> Secondly, it will consume huge page cache, e.g. in mass backup scenario.
-> Thirdly, modern filesystems such as ext4 support this feature.
-> 
-> In this patch set, the direct I/O write doesn't fallback to buffer I/O
-> write any more because the allocate blocks are enabled in direct I/O
-> now.
-> 
-> changelog:
-> v6 <- v5:
-> -- Take Mark's advice to use prefix "dio-" to distinguish dio orphan
->    entry from unlink/rename.
-> -- Take Mark's advice to treat this feature as a ro compat feature.
-> -- Fix a bug in case of not cluster aligned io, cluster_align should
->    be !zero_len, not !!zero_len.
-> -- Fix a bug in case of fallocate with FALLOC_FL_KEEP_SIZE.
-> -- Fix the wrong *ppos and written when completing the rest request
->    using buffer io.
-> 
-> Corresponding ocfs2 tools (mkfs.ocfs2, tunefs.ocfs2, fsck.ocfs2, etc.)
-> will be updated later.
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
+ 		/*
++		 * Fallback to old way if the feature bit is not set.
++		 */
++		if (end > i_size_read(inode) &&
++				!ocfs2_supports_append_dio(osb)) {
++			*direct_io = 0;
++			break;
++		}
++
++		/*
+ 		 * We don't fill holes during direct io, so
+ 		 * check for them here. If any are found, the
+ 		 * caller will have to retake some cluster
+@@ -2220,7 +2229,13 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
+ 		 */
+ 		ret = ocfs2_check_range_for_holes(inode, saved_pos, count);
+ 		if (ret == 1) {
+-			*direct_io = 0;
++			/*
++			 * Fallback to old way if the feature bit is not set.
++			 * Otherwise try dio first and then complete the rest
++			 * request through buffer io.
++			 */
++			if (!ocfs2_supports_append_dio(osb))
++				*direct_io = 0;
+ 			ret = 0;
+ 		} else if (ret < 0)
+ 			mlog_errno(ret);
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 131cc1c..bcc1cd6 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -498,6 +498,14 @@ static inline int ocfs2_writes_unwritten_extents(struct ocfs2_super *osb)
+ 	return 0;
+ }
+
++static inline int ocfs2_supports_append_dio(struct ocfs2_super *osb)
++{
++	if (osb->s_feature_ro_compat & OCFS2_FEATURE_RO_COMPAT_APPEND_DIO)
++		return 1;
++	return 0;
++}
++
++
+ static inline int ocfs2_supports_inline_data(struct ocfs2_super *osb)
+ {
+ 	if (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_INLINE_DATA)
+diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
+index cf4fa43..20e37a3 100644
+--- a/fs/ocfs2/ocfs2_fs.h
++++ b/fs/ocfs2/ocfs2_fs.h
+@@ -105,7 +105,8 @@
+ 					 | OCFS2_FEATURE_INCOMPAT_CLUSTERINFO)
+ #define OCFS2_FEATURE_RO_COMPAT_SUPP	(OCFS2_FEATURE_RO_COMPAT_UNWRITTEN \
+ 					 | OCFS2_FEATURE_RO_COMPAT_USRQUOTA \
+-					 | OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)
++					 | OCFS2_FEATURE_RO_COMPAT_GRPQUOTA \
++					 | OCFS2_FEATURE_RO_COMPAT_APPEND_DIO)
+
+ /*
+  * Heartbeat-only devices are missing journals and other files.  The
+@@ -199,6 +200,11 @@
+ #define OCFS2_FEATURE_RO_COMPAT_USRQUOTA	0x0002
+ #define OCFS2_FEATURE_RO_COMPAT_GRPQUOTA	0x0004
+
++/*
++ * Append Direct IO support
++ */
++#define OCFS2_FEATURE_RO_COMPAT_APPEND_DIO	0x0008
++
+ /* The byte offset of the first backup block will be 1G.
+  * The following will be 4G, 16G, 64G, 256G and 1T.
+  */
+-- 
+1.8.4.3
