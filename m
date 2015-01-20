@@ -1,20 +1,33 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 19 Jan 2015 21:29:37 +0800
-Subject: [Ocfs2-devel] About the commit 1b56e98990
-Message-ID: <54BD06C1.8030009@huawei.com>
+Date: Tue, 20 Jan 2015 16:01:10 +0800
+Subject: [Ocfs2-devel] [PATCH 0/9 v6] ocfs2: support append O_DIRECT write
+Message-ID: <54BE0B46.8030301@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Viro,
-In the commit 1b56e98990 (ocfs2 syncs the wrong range...) you submitted,
-you changed pos to *ppos when sync the range.
-I don't think this is right, because *ppos will be changed in
-generic_file_direct_write/generic_file_buffered_write, so after this
-change, the sync range is not the one that we truly want.
-Am I miss something?
+Currently in case of append O_DIRECT write (block not allocated yet),
+ocfs2 will fall back to buffered I/O. This has some disadvantages.
+Firstly, it is not the behavior as expected.
+Secondly, it will consume huge page cache, e.g. in mass backup scenario.
+Thirdly, modern filesystems such as ext4 support this feature.
 
---
-Joseph
+In this patch set, the direct I/O write doesn't fallback to buffer I/O
+write any more because the allocate blocks are enabled in direct I/O
+now.
+
+changelog:
+v6 <- v5:
+-- Take Mark's advice to use prefix "dio-" to distinguish dio orphan
+   entry from unlink/rename.
+-- Take Mark's advice to treat this feature as a ro compat feature.
+-- Fix a bug in case of not cluster aligned io, cluster_align should
+   be !zero_len, not !!zero_len.
+-- Fix a bug in case of fallocate with FALLOC_FL_KEEP_SIZE.
+-- Fix the wrong *ppos and written when completing the rest request
+   using buffer io.
+
+Corresponding ocfs2 tools (mkfs.ocfs2, tunefs.ocfs2, fsck.ocfs2, etc.)
+will be updated later.
