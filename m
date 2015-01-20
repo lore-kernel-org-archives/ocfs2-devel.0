@@ -1,100 +1,86 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Tue, 20 Jan 2015 16:07:58 +0800
-Subject: [Ocfs2-devel] [PATCH 5/9 v6] ocfs2: allocate blocks in
-	ocfs2_direct_IO_get_blocks
-Message-ID: <54BE0CDE.7010800@huawei.com>
+Date: Tue, 20 Jan 2015 16:10:22 +0800
+Subject: [Ocfs2-devel] [PATCH 7/9 v6] ocfs2: complete the rest request
+	through buffer io
+Message-ID: <54BE0D6E.9020906@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Allow blocks allocation in ocfs2_direct_IO_get_blocks.
+Complte the rest request thourgh buffer io after direct write performed.
 
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 Cc: Weiwei Wang <wangww631@huawei.com>
 ---
- fs/ocfs2/aops.c | 45 ++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 42 insertions(+), 3 deletions(-)
+ fs/ocfs2/file.c | 43 ++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 42 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 8b464fe..fc2e5ac 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -510,18 +510,21 @@ bail:
-  *
-  * called like this: dio->get_blocks(dio->inode, fs_startblk,
-  * 					fs_count, map_bh, dio->rw == WRITE);
-- *
-- * Note that we never bother to allocate blocks here, and thus ignore the
-- * create argument.
-  */
- static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 				     struct buffer_head *bh_result, int create)
- {
- 	int ret;
-+	u32 cpos = 0;
-+	int alloc_locked = 0;
- 	u64 p_blkno, inode_blocks, contig_blocks;
- 	unsigned int ext_flags;
- 	unsigned char blocksize_bits = inode->i_sb->s_blocksize_bits;
- 	unsigned long max_blocks = bh_result->b_size >> inode->i_blkbits;
-+	unsigned long len = bh_result->b_size;
-+	unsigned int clusters_to_alloc = 0;
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index c1446cf..4a712cf 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2253,6 +2253,7 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
+ 	u32 old_clusters;
+ 	struct file *file = iocb->ki_filp;
+ 	struct inode *inode = file_inode(file);
++	struct address_space *mapping = file->f_mapping;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 	int full_coherency = !(osb->s_mount_opt &
+ 			       OCFS2_MOUNT_COHERENCY_BUFFERED);
+@@ -2367,11 +2368,51 @@ relock:
+
+ 	iov_iter_truncate(from, count);
+ 	if (direct_io) {
++		loff_t endbyte;
++		ssize_t written_buffered;
+ 		written = generic_file_direct_write(iocb, from, *ppos);
+-		if (written < 0) {
++		if (written < 0 || written == count) {
+ 			ret = written;
+ 			goto out_dio;
+ 		}
 +
-+	cpos = ocfs2_blocks_to_clusters(inode->i_sb, iblock);
-
- 	/* This function won't even be called if the request isn't all
- 	 * nicely aligned and of the right size, so there's no need
-@@ -543,6 +546,40 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 	/* We should already CoW the refcounted extent in case of create. */
- 	BUG_ON(create && (ext_flags & OCFS2_EXT_REFCOUNTED));
-
-+	/* allocate blocks if no p_blkno is found, and create == 1 */
-+	if (!p_blkno && create) {
-+		ret = ocfs2_inode_lock(inode, NULL, 1);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto bail;
++		/*
++		 * for completing the rest of the request.
++		 */
++		*ppos += written;
++		count -= written;
++		written_buffered = generic_perform_write(file, from, *ppos);
++		/*
++		 * If generic_file_buffered_write() returned a synchronous error
++		 * then we want to return the number of bytes which were
++		 * direct-written, or the error code if that was zero. Note
++		 * that this differs from normal direct-io semantics, which
++		 * will return -EFOO even if some bytes were written.
++		 */
++		if (written_buffered < 0) {
++			ret = written_buffered;
++			goto out_dio;
 +		}
 +
-+		alloc_locked = 1;
-+
-+		/* fill hole, allocate blocks can't be larger than the size
-+		 * of the hole */
-+		clusters_to_alloc = ocfs2_clusters_for_bytes(inode->i_sb, len);
-+		if (clusters_to_alloc > contig_blocks)
-+			clusters_to_alloc = contig_blocks;
-+
-+		/* allocate extent and insert them into the extent tree */
-+		ret = ocfs2_extend_allocation(inode, cpos,
-+				clusters_to_alloc, 0);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto bail;
++		iocb->ki_pos = *ppos + written_buffered;
++		/* We need to ensure that the page cache pages are written to
++		 * disk and invalidated to preserve the expected O_DIRECT
++		 * semantics.
++		 */
++		endbyte = *ppos + written_buffered - 1;
++		ret = filemap_write_and_wait_range(file->f_mapping, *ppos,
++				endbyte);
++		if (ret == 0) {
++			written += written_buffered;
++			invalidate_mapping_pages(mapping,
++					*ppos >> PAGE_CACHE_SHIFT,
++					endbyte >> PAGE_CACHE_SHIFT);
++		} else {
++			/*
++			 * We don't know how much we wrote, so just return
++			 * the number of bytes which were direct-written
++			 */
 +		}
-+
-+		ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
-+				&contig_blocks, &ext_flags);
-+		if (ret < 0) {
-+			mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
-+					(unsigned long long)iblock);
-+			ret = -EIO;
-+			goto bail;
-+		}
-+	}
-+
- 	/*
- 	 * get_more_blocks() expects us to describe a hole by clearing
- 	 * the mapped bit on bh_result().
-@@ -560,6 +597,8 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 		contig_blocks = max_blocks;
- 	bh_result->b_size = contig_blocks << blocksize_bits;
- bail:
-+	if (alloc_locked)
-+		ocfs2_inode_unlock(inode, 1);
- 	return ret;
- }
-
+ 	} else {
+ 		current->backing_dev_info = file->f_mapping->backing_dev_info;
+ 		written = generic_perform_write(file, from, *ppos);
 -- 
 1.8.4.3
