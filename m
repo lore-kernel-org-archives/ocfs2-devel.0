@@ -1,45 +1,36 @@
 From: Jan Kara <jack@suse.cz>
-Date: Tue, 20 Jan 2015 18:33:07 +0100
-Subject: [Ocfs2-devel] [PATCH 12/17] xfs: Convert to using ->get_state
-	callback
-In-Reply-To: <20150119093810.GA16484@infradead.org>
-References: <1421412471-4747-1-git-send-email-jack@suse.cz>
-	<1421412471-4747-13-git-send-email-jack@suse.cz>
-	<20150119093810.GA16484@infradead.org>
-Message-ID: <20150120173307.GH3648@quack.suse.cz>
+Date: Wed, 21 Jan 2015 13:46:05 +0100
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Remove pointless assignment from
+	ocfs2_calc_refcount_meta_credits()
+Message-ID: <1421844365-15343-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-On Mon 19-01-15 01:38:10, Christoph Hellwig wrote:
-> > +static void xfs_qm_fill_state(struct qc_type_state *tstate,
-> 
-> Normal xfs style would be to keep the "static void " on a separate line,
-> as well as the arguments, e.g.
-  OK, will change it to conform to the XFS coding style.
+The assigned value is never used.
 
-> static void
-> xfs_qm_fill_state(
-> 	struct qc_type_state	*tstate,
-> 
-> >
-> > +			      struct xfs_mount *mp,
-> > +			      struct xfs_inode *ip,
-> > +			      xfs_ino_t ino)
-> 
-> No need to pass mp, as it can be derived as ip->i_mount.
-  Good point.
+Coverity-id: 1226847
+CC: Mark Fasheh <mfasheh@suse.com>
+CC: Joel Becker <jlbec@evilplan.org>
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/refcounttree.c | 2 --
+ 1 file changed, 2 deletions(-)
 
-> Btw, I think this code should move into xfs_quotaops.c now
-> that it ties into the Linux quota interface, and xfs_qm_scall_getstate
-> should be folded into xfs_fs_get_quota_state.
-  OK, will do.
-
-								Honza
-
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index d81f6e2a97f5..ee541f92dab4 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2428,8 +2428,6 @@ static int ocfs2_calc_refcount_meta_credits(struct super_block *sb,
+ 			get_bh(prev_bh);
+ 		}
+ 
+-		rb = (struct ocfs2_refcount_block *)ref_leaf_bh->b_data;
+-
+ 		trace_ocfs2_calc_refcount_meta_credits_iterate(
+ 				recs_add, (unsigned long long)cpos, clusters,
+ 				(unsigned long long)le64_to_cpu(rec.r_cpos),
 -- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+2.1.2
