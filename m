@@ -1,37 +1,78 @@
-From: Srinivas Eeda <srinivas.eeda@oracle.com>
-Date: Wed, 21 Jan 2015 17:12:06 -0800
-Subject: [Ocfs2-devel] ocfs2: should not use le32_add_cpu to set
-	ocfs2_dinode i_flags
-In-Reply-To: <54C04D64.80501@huawei.com>
-References: <54BFE80E.7090002@oracle.com> <54C04D64.80501@huawei.com>
-Message-ID: <54C04E66.4090506@oracle.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 22 Jan 2015 10:10:55 +0800
+Subject: [Ocfs2-devel] [PATCH 0/9 v6] ocfs2: support append O_DIRECT
+	write
+In-Reply-To: <54BE1919.1000507@huawei.com>
+References: <54BE0B46.8030301@huawei.com> <54BE1139.4090304@oracle.com>
+	<54BE1919.1000507@huawei.com>
+Message-ID: <54C05C2F.5080009@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Ok, understood. Thanks for explaining :)
-
-
-On 01/21/2015 05:07 PM, Joseph Qi wrote:
-> Hi Srini,
->
-> On 2015/1/22 1:55, Srinivas Eeda wrote:
->> Hi Joesph,
+On 01/20/2015 05:00 PM, Joseph Qi wrote:
+> Hi Junxiao,
+> 
+> On 2015/1/20 16:26, Junxiao Bi wrote:
+>> Hi Joseph,
 >>
->> thanks a lot for submitting the above patch. I am trying to understand what kind of flag corruption have you noticed and under what circumstances ? I agree with the patch that bitwise operations are better than adding, but I am not able to understand the corruption it could cause. Can you please share!
->>
-> Suppose a the following case:
-> The dinode i_flag already has the OCFS2_ORPHANED_FL bit set, and calling
-> le32_add_cpu again. Then it will corrupt the i_flag.
->
+>> Did this version make any performance improvement with v5? I tested v5,
+>> and it didn't improve performance with original buffer write + sync.
+> No performance difference between these two versions.
+> But we have tested with fio before, it shows about 5% performance
+> improvement with normal buffer write (without sync).
+> As I described, this feature is not truly for performance improvement.
+> We aim to reduce the host page cache consumption. For example, dom0
+> in virtualization case which won't be configured too much memory.
+I cared the direct-io performance because recently i got a bug that
+ocfs2 appending write direct-io performance was two times less than
+ext4. Since you followed some idea from ext4, do you know why ext4 is
+faster and any advise to improve ocfs2 performance?
+
+Thanks,
+Junxiao.
+> 
 > --
 > Joseph
->
+>>
 >> Thanks,
->> --Srini
+>> Junxiao.
+>>
+>> On 01/20/2015 04:01 PM, Joseph Qi wrote:
+>>> Currently in case of append O_DIRECT write (block not allocated yet),
+>>> ocfs2 will fall back to buffered I/O. This has some disadvantages.
+>>> Firstly, it is not the behavior as expected.
+>>> Secondly, it will consume huge page cache, e.g. in mass backup scenario.
+>>> Thirdly, modern filesystems such as ext4 support this feature.
+>>>
+>>> In this patch set, the direct I/O write doesn't fallback to buffer I/O
+>>> write any more because the allocate blocks are enabled in direct I/O
+>>> now.
+>>>
+>>> changelog:
+>>> v6 <- v5:
+>>> -- Take Mark's advice to use prefix "dio-" to distinguish dio orphan
+>>>    entry from unlink/rename.
+>>> -- Take Mark's advice to treat this feature as a ro compat feature.
+>>> -- Fix a bug in case of not cluster aligned io, cluster_align should
+>>>    be !zero_len, not !!zero_len.
+>>> -- Fix a bug in case of fallocate with FALLOC_FL_KEEP_SIZE.
+>>> -- Fix the wrong *ppos and written when completing the rest request
+>>>    using buffer io.
+>>>
+>>> Corresponding ocfs2 tools (mkfs.ocfs2, tunefs.ocfs2, fsck.ocfs2, etc.)
+>>> will be updated later.
+>>>
+>>>
+>>> _______________________________________________
+>>> Ocfs2-devel mailing list
+>>> Ocfs2-devel at oss.oracle.com
+>>> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>>>
 >>
 >>
 >>
->
+> 
+> 
