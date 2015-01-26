@@ -1,84 +1,42 @@
-From: yangwenfang <vicky.yangwenfang@huawei.com>
-Date: Mon, 26 Jan 2015 20:28:36 +0800
-Subject: [Ocfs2-devel] [RFC] ocfs2/dlm: support range lock
-Message-ID: <54C632F4.3070705@huawei.com>
+From: Jan Kara <jack@suse.cz>
+Date: Mon, 26 Jan 2015 15:34:17 +0100
+Subject: [Ocfs2-devel] [PATCH 00/16 v4] quota: Unify VFS and XFS quota
+	interfaces
+Message-ID: <1422282873-3381-1-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-fsdevel@vger.kernel.org
+Cc: xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
 
-What:
-Byte range lock is applied to lock a region of a file to accelerate
-reading/writing concurrently.
+  Hello,
 
-Why:		
-Currently ocfs2 does not support byte range lock. Since multiple nodes
-may concurrently update/write at different positions of the same file
-in database workloads, the performance(tpmc) of DB+ocfs2 is much poorer than
-DB+GPFS in running TPCC.
-Aiming at improving the efficiency of parallel accesses to the same file,
-we have implemented a demo of range lock feature which has been supported
-by lustre and GPFS, so that a file can be updated by different nodes in
-the cluster when they are visiting different blocks.
+  this is another iteration of patches to unify VFS and XFS quota interfaces so
+that XFS quotactls work for filesystems with VFS quotas and vice versa.  This
+is useful so that userspace doesn't have to care that much about which
+filesystem it is using at least when using basic quota functionality. In
+particular we should be able to reuse project quota tests in xfstests for ext4.
 
-How:
-Key issues in design and implementation:
-1.In ocfs2, each file only has one lock, which is incapable of telling
-different position.
-One solution is to add a range field (start,end) in a lock. For example:
--ocfs2_lock_res(N1)	      dlm_lock_resource(Master)	ocfs2_lock_res(N2)
--ocfs2_res_range_lock (0,9)----dlm_lock(0,9)    N1			
--				dlm_lock(10,19)  N2<--ocfs2_res_range_lock(10,19)
--ocfs2_res_range_lock (20,29)---dlm_lock(20,29)  N1			
--				dlm_lock(30,49)  N2<--ocfs2_res_range_lock(30,49)
--ocfs2_res_range_lock (50,59)---dlm_lock(50,59)  N1			
--				dlm_lock(60,69)  N2<--ocfs2_res_range_lock(60,69)
+The patches are based on top of 'for_next' branch of my tree [1] which already
+contains quota cleanup series [2] and XFS cleanup series [3] I've sent
+previously. The patch series can also be pulled from 'quota_interface' branch
+of my tree.
 
-Each lock resource deploys an interval tree to manage the range, which
-supports basic operations like add, delete, insert, find, split and merge.
-The most important issue is to determine the existance of conflicts
-among the ranges. Conflict-free ranges of the same file can be accessed
-concurrently. In the contrary, nodes must wait for the release of a
-conflicted lock before accessing the range of file.
+Since the previous version I have addressed all Christoph's comments (dropped
+patch for Q_XQUOTASYNC quotactl, moved some code around) and also put the fix
+for Q_GETQUOTA vs Q_XGETQUOTA breakage at the beginning of the series and
+added CC to stable for it since some users have hit the problem in practice.
 
-Byte range lock supports split and merge rules: for same level, larger
-scope; different level, write > read(If a node keeps EX lock with
-range(start,end), then it has PR range lock(start,end)).
-For example:
-(1) merge: N1 keeps range lock (0,9)PR and (5,19)PR, the lock is merged into
-(0,19) PR;
-(2) merge: N1 keeps range lock (0,9)PR and (5,19)EX, the merged lock should
-become(0,19) PR, (5,19)EX;
-(3) split: N1 keeps range lock (0,9)PR, N2 tries to lock(0,5) PR, N1 should
-split the lock and keep (6,9)PR.
+The patch series got already reviewed by Christoph (thanks!) upto unification
+of Q_GETXSTAT[EV] with Q_GETINFO so if noone objects in a few days, I'll push
+the reviewed part of the series to my tree in the second half of this week (so
+that it gets some exposure in linux-next before the merge window).
 
-2.In ocfs2, there are only three types of lock resources: rw, inode and open
-which provide protections to different contents.
-We need to add another lock resource(ip_range_lock_lockres) to protect
-different ranges in IO read/write process.
-For example: buffer read/write.
-(1)ocfs2_file_aio_write	------------->ocfs2_file_aio_write
-	ocfs2_rw_lock(ex)		ocfs2_rw_lock(pr)
-					ocfs2_range_lock(start, end, ex)
-	ocfs2_write_begin
-		ocfs2_inode_lock(ex)    ocfs2_inode_lock(pr)
-					if append, update to ex;
-(2)ocfs2_file_aio_read---------------> no need to change.
-	ocfs2_readpage
-		ocfs2_inode_lock(pr)
-(3)but it is a problem in read_ahead.
-	ocfs2_readpages------------------>ocfs2_readpages
-	ocfs2_inode_lock(pr)		ocfs2_inode_lock(pr)
-					ocfs2_range_lock(start, end, pr)
-																	
-Limitations based on our assumption:
-1.Byte range lock is only beneficial for update write.
-2.Too many locks because of delayed unlock.
-3.Significant source code modification is necessitated, involving almost the
-whole dlmglue and dlm modules.
+Review of the remaining parts is welcome!
 
-As described above, there are also many limitations base on our assumption.
-Many thanks for any advice.
+								Honza
 
-thanks.
+[1] git://git.kernel.org/pub/scm/linux/kernel/git/jack/linux-fs.git
+[2] http://www.spinics.net/lists/linux-fsdevel/msg81903.html
+[3] http://www.spinics.net/lists/xfs/msg31389.html
