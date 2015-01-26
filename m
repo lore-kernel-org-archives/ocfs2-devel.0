@@ -1,33 +1,51 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Fri, 23 Jan 2015 14:24:21 +0300
-Subject: [Ocfs2-devel] [patch] ocfs2: o2net: silence uninitialized variable
-	warning
-Message-ID: <20150123112421.GA14552@mwanda>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Mon, 26 Jan 2015 09:26:53 +0800
+Subject: [Ocfs2-devel] PATCH] ocfs2: fix warning 'ocfs2_orphan_del' uses
+	dynamic stack allocation
+Message-ID: <54C597DD.106@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Smatch complains that, if o2net_tx_can_proceed() returns false, then
-"sc" and "ret" are uninialized or maybe we are re-using the data from
-previous iteration.  I do not know if we can hit this bug in real life
-but checking the return value is harmless and we may as well silence the
-static checker warning.
+In ocfs2_orphan_del it uses dynamic stack allocation for orphan entry
+name. Fix it by using dynamic heap allocation.
 
-Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Reviewed-by: Xuejiufei <xuejiufei@huawei.com>
+---
+ fs/ocfs2/namei.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 2e355e0..56c403a 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -1016,7 +1016,8 @@ void o2net_fill_node_map(unsigned long *map, unsigned bytes)
- 
- 	memset(map, 0, bytes);
- 	for (node = 0; node < O2NM_MAX_NODES; ++node) {
--		o2net_tx_can_proceed(o2net_nn_from_num(node), &sc, &ret);
-+		if (!o2net_tx_can_proceed(o2net_nn_from_num(node), &sc, &ret))
-+			continue;
- 		if (!ret) {
- 			set_bit(node, map);
- 			sc_put(sc);
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 873b40a..a3aa6b5 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -2298,11 +2298,15 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
+ {
+ 	int namelen = dio ? OCFS2_DIO_ORPHAN_PREFIX_LEN + OCFS2_ORPHAN_NAMELEN :
+ 			OCFS2_ORPHAN_NAMELEN;
+-	char name[namelen + 1];
++	char *name;
+ 	struct ocfs2_dinode *orphan_fe;
+ 	int status = 0;
+ 	struct ocfs2_dir_lookup_result lookup = { NULL, };
+
++	name = kmalloc(namelen + 1, GFP_NOFS);
++	if (!name)
++		goto leave;
++
+ 	if (dio) {
+ 		status = snprintf(name, OCFS2_DIO_ORPHAN_PREFIX_LEN + 1, "%s",
+ 				OCFS2_DIO_ORPHAN_PREFIX);
+@@ -2357,6 +2361,7 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
+ 	ocfs2_journal_dirty(handle, orphan_dir_bh);
+
+ leave:
++	kfree(name);
+ 	ocfs2_free_dir_lookup_result(&lookup);
+
+ 	if (status)
+-- 
+1.8.4.3
