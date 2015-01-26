@@ -1,60 +1,84 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 26 Jan 2015 11:20:47 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix warning 'ocfs2_orphan_del' uses
- dynamic stack allocation
-Message-ID: <54C5B28F.8030704@huawei.com>
+From: yangwenfang <vicky.yangwenfang@huawei.com>
+Date: Mon, 26 Jan 2015 20:28:36 +0800
+Subject: [Ocfs2-devel] [RFC] ocfs2/dlm: support range lock
+Message-ID: <54C632F4.3070705@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_orphan_del it uses dynamic stack allocation for orphan entry
-name. Fix it by using dynamic heap allocation.
+What:
+Byte range lock is applied to lock a region of a file to accelerate
+reading/writing concurrently.
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: Xuejiufei <xuejiufei@huawei.com>
-Reviewed-by: alex chen <alex.chen@huawei.com>
----
- fs/ocfs2/namei.c | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+Why:		
+Currently ocfs2 does not support byte range lock. Since multiple nodes
+may concurrently update/write at different positions of the same file
+in database workloads, the performance(tpmc) of DB+ocfs2 is much poorer than
+DB+GPFS in running TPCC.
+Aiming at improving the efficiency of parallel accesses to the same file,
+we have implemented a demo of range lock feature which has been supported
+by lustre and GPFS, so that a file can be updated by different nodes in
+the cluster when they are visiting different blocks.
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 873b40a..5fe3af9 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -2298,18 +2298,22 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
- {
- 	int namelen = dio ? OCFS2_DIO_ORPHAN_PREFIX_LEN + OCFS2_ORPHAN_NAMELEN :
- 			OCFS2_ORPHAN_NAMELEN;
--	char name[namelen + 1];
-+	char *name;
- 	struct ocfs2_dinode *orphan_fe;
- 	int status = 0;
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
+How:
+Key issues in design and implementation:
+1.In ocfs2, each file only has one lock, which is incapable of telling
+different position.
+One solution is to add a range field (start,end) in a lock. For example:
+-ocfs2_lock_res(N1)	      dlm_lock_resource(Master)	ocfs2_lock_res(N2)
+-ocfs2_res_range_lock (0,9)----dlm_lock(0,9)    N1			
+-				dlm_lock(10,19)  N2<--ocfs2_res_range_lock(10,19)
+-ocfs2_res_range_lock (20,29)---dlm_lock(20,29)  N1			
+-				dlm_lock(30,49)  N2<--ocfs2_res_range_lock(30,49)
+-ocfs2_res_range_lock (50,59)---dlm_lock(50,59)  N1			
+-				dlm_lock(60,69)  N2<--ocfs2_res_range_lock(60,69)
 
-+	name = kmalloc(namelen + 1, GFP_NOFS);
-+	if (!name)
-+		goto leave;
-+
- 	if (dio) {
- 		status = snprintf(name, OCFS2_DIO_ORPHAN_PREFIX_LEN + 1, "%s",
- 				OCFS2_DIO_ORPHAN_PREFIX);
- 		if (status != OCFS2_DIO_ORPHAN_PREFIX_LEN) {
- 			status = -EINVAL;
- 			mlog_errno(status);
--			return status;
-+			goto leave;
- 		}
+Each lock resource deploys an interval tree to manage the range, which
+supports basic operations like add, delete, insert, find, split and merge.
+The most important issue is to determine the existance of conflicts
+among the ranges. Conflict-free ranges of the same file can be accessed
+concurrently. In the contrary, nodes must wait for the release of a
+conflicted lock before accessing the range of file.
 
- 		status = ocfs2_blkno_stringify(OCFS2_I(inode)->ip_blkno,
-@@ -2357,6 +2361,7 @@ int ocfs2_orphan_del(struct ocfs2_super *osb,
- 	ocfs2_journal_dirty(handle, orphan_dir_bh);
+Byte range lock supports split and merge rules: for same level, larger
+scope; different level, write > read(If a node keeps EX lock with
+range(start,end), then it has PR range lock(start,end)).
+For example:
+(1) merge: N1 keeps range lock (0,9)PR and (5,19)PR, the lock is merged into
+(0,19) PR;
+(2) merge: N1 keeps range lock (0,9)PR and (5,19)EX, the merged lock should
+become(0,19) PR, (5,19)EX;
+(3) split: N1 keeps range lock (0,9)PR, N2 tries to lock(0,5) PR, N1 should
+split the lock and keep (6,9)PR.
 
- leave:
-+	kfree(name);
- 	ocfs2_free_dir_lookup_result(&lookup);
+2.In ocfs2, there are only three types of lock resources: rw, inode and open
+which provide protections to different contents.
+We need to add another lock resource(ip_range_lock_lockres) to protect
+different ranges in IO read/write process.
+For example: buffer read/write.
+(1)ocfs2_file_aio_write	------------->ocfs2_file_aio_write
+	ocfs2_rw_lock(ex)		ocfs2_rw_lock(pr)
+					ocfs2_range_lock(start, end, ex)
+	ocfs2_write_begin
+		ocfs2_inode_lock(ex)    ocfs2_inode_lock(pr)
+					if append, update to ex;
+(2)ocfs2_file_aio_read---------------> no need to change.
+	ocfs2_readpage
+		ocfs2_inode_lock(pr)
+(3)but it is a problem in read_ahead.
+	ocfs2_readpages------------------>ocfs2_readpages
+	ocfs2_inode_lock(pr)		ocfs2_inode_lock(pr)
+					ocfs2_range_lock(start, end, pr)
+																	
+Limitations based on our assumption:
+1.Byte range lock is only beneficial for update write.
+2.Too many locks because of delayed unlock.
+3.Significant source code modification is necessitated, involving almost the
+whole dlmglue and dlm modules.
 
- 	if (status)
--- 
-1.8.4.3
+As described above, there are also many limitations base on our assumption.
+Many thanks for any advice.
+
+thanks.
