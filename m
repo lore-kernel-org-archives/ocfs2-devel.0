@@ -1,10 +1,10 @@
 From: Jan Kara <jack@suse.cz>
-Date: Mon, 26 Jan 2015 15:34:30 +0100
-Subject: [Ocfs2-devel] [PATCH 13/16] quota: Remove ->get_xstate and
-	->get_xstatev callbacks
+Date: Mon, 26 Jan 2015 15:34:25 +0100
+Subject: [Ocfs2-devel] [PATCH 08/16] quota: Store maximum space limit in
+	bytes
 In-Reply-To: <1422282873-3381-1-git-send-email-jack@suse.cz>
 References: <1422282873-3381-1-git-send-email-jack@suse.cz>
-Message-ID: <1422282873-3381-14-git-send-email-jack@suse.cz>
+Message-ID: <1422282873-3381-9-git-send-email-jack@suse.cz>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,66 +12,125 @@ Content-Transfer-Encoding: 7bit
 To: linux-fsdevel@vger.kernel.org
 Cc: xfs@oss.sgi.com, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, Jan Kara <jack@suse.cz>
 
-These callbacks are now unused. Remove them.
+Currently maximum space limit quota format supports is in blocks however
+since we store space limits in bytes, this is somewhat confusing. So
+store the maximum limit in bytes as well. Also rename the field to match
+the new unit and related inode field to match the new naming scheme.
 
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- fs/quota/quota.c      | 14 ++++----------
- include/linux/quota.h |  2 --
- 2 files changed, 4 insertions(+), 12 deletions(-)
+ fs/ocfs2/quota_local.c |  4 ++--
+ fs/quota/dquot.c       | 18 ++++--------------
+ fs/quota/quota_v1.c    |  4 ++--
+ fs/quota/quota_v2.c    | 10 +++++-----
+ include/linux/quota.h  |  4 ++--
+ 5 files changed, 15 insertions(+), 25 deletions(-)
 
-diff --git a/fs/quota/quota.c b/fs/quota/quota.c
-index 83939ff4c444..20d11cd21247 100644
---- a/fs/quota/quota.c
-+++ b/fs/quota/quota.c
-@@ -350,12 +350,9 @@ static int quota_getxstate(struct super_block *sb, void __user *addr)
- 	struct fs_quota_stat fqs;
- 	int ret;
- 
--	if (!sb->s_qcop->get_xstate && !sb->s_qcop->get_state)
-+	if (!sb->s_qcop->get_state)
- 		return -ENOSYS;
--	if (sb->s_qcop->get_state)
--		ret = quota_getstate(sb, &fqs);
--	else
--		ret = sb->s_qcop->get_xstate(sb, &fqs);
-+	ret = quota_getstate(sb, &fqs);
- 	if (!ret && copy_to_user(addr, &fqs, sizeof(fqs)))
- 		return -EFAULT;
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index 55f832f553cb..89c0b2620814 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -701,8 +701,8 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
+ 	/* We don't need the lock and we have to acquire quota file locks
+ 	 * which will later depend on this lock */
+ 	mutex_unlock(&sb_dqopt(sb)->dqio_mutex);
+-	info->dqi_maxblimit = 0x7fffffffffffffffLL;
+-	info->dqi_maxilimit = 0x7fffffffffffffffLL;
++	info->dqi_max_spc_limit = 0x7fffffffffffffffLL;
++	info->dqi_max_ino_limit = 0x7fffffffffffffffLL;
+ 	oinfo = kmalloc(sizeof(struct ocfs2_mem_dqinfo), GFP_NOFS);
+ 	if (!oinfo) {
+ 		mlog(ML_ERROR, "failed to allocate memory for ocfs2 quota"
+diff --git a/fs/quota/dquot.c b/fs/quota/dquot.c
+index b47d0c17ea6f..0ccd4ba3a246 100644
+--- a/fs/quota/dquot.c
++++ b/fs/quota/dquot.c
+@@ -2465,16 +2465,6 @@ out_err:
  	return ret;
-@@ -414,7 +411,7 @@ static int quota_getxstatev(struct super_block *sb, void __user *addr)
- 	struct fs_quota_statv fqs;
- 	int ret;
+ }
  
--	if (!sb->s_qcop->get_xstatev && !sb->s_qcop->get_state)
-+	if (!sb->s_qcop->get_state)
- 		return -ENOSYS;
- 
- 	memset(&fqs, 0, sizeof(fqs));
-@@ -428,10 +425,7 @@ static int quota_getxstatev(struct super_block *sb, void __user *addr)
- 	default:
+-static inline qsize_t qbtos(qsize_t blocks)
+-{
+-	return blocks << QIF_DQBLKSIZE_BITS;
+-}
+-
+-static inline qsize_t stoqb(qsize_t space)
+-{
+-	return (space + QIF_DQBLKSIZE - 1) >> QIF_DQBLKSIZE_BITS;
+-}
+-
+ /* Generic routine for getting common part of quota structure */
+ static void do_get_dqblk(struct dquot *dquot, struct qc_dqblk *di)
+ {
+@@ -2524,13 +2514,13 @@ static int do_set_dqblk(struct dquot *dquot, struct qc_dqblk *di)
  		return -EINVAL;
+ 
+ 	if (((di->d_fieldmask & QC_SPC_SOFT) &&
+-	     stoqb(di->d_spc_softlimit) > dqi->dqi_maxblimit) ||
++	     di->d_spc_softlimit > dqi->dqi_max_spc_limit) ||
+ 	    ((di->d_fieldmask & QC_SPC_HARD) &&
+-	     stoqb(di->d_spc_hardlimit) > dqi->dqi_maxblimit) ||
++	     di->d_spc_hardlimit > dqi->dqi_max_spc_limit) ||
+ 	    ((di->d_fieldmask & QC_INO_SOFT) &&
+-	     (di->d_ino_softlimit > dqi->dqi_maxilimit)) ||
++	     (di->d_ino_softlimit > dqi->dqi_max_ino_limit)) ||
+ 	    ((di->d_fieldmask & QC_INO_HARD) &&
+-	     (di->d_ino_hardlimit > dqi->dqi_maxilimit)))
++	     (di->d_ino_hardlimit > dqi->dqi_max_ino_limit)))
+ 		return -ERANGE;
+ 
+ 	spin_lock(&dq_data_lock);
+diff --git a/fs/quota/quota_v1.c b/fs/quota/quota_v1.c
+index 469c6848b322..8fe79beced5c 100644
+--- a/fs/quota/quota_v1.c
++++ b/fs/quota/quota_v1.c
+@@ -169,8 +169,8 @@ static int v1_read_file_info(struct super_block *sb, int type)
  	}
--	if (sb->s_qcop->get_state)
--		ret = quota_getstatev(sb, &fqs);
--	else
--		ret = sb->s_qcop->get_xstatev(sb, &fqs);
-+	ret = quota_getstatev(sb, &fqs);
- 	if (!ret && copy_to_user(addr, &fqs, sizeof(fqs)))
- 		return -EFAULT;
- 	return ret;
+ 	ret = 0;
+ 	/* limits are stored as unsigned 32-bit data */
+-	dqopt->info[type].dqi_maxblimit = 0xffffffff;
+-	dqopt->info[type].dqi_maxilimit = 0xffffffff;
++	dqopt->info[type].dqi_max_spc_limit = 0xffffffffULL << QUOTABLOCK_BITS;
++	dqopt->info[type].dqi_max_ino_limit = 0xffffffff;
+ 	dqopt->info[type].dqi_igrace =
+ 			dqblk.dqb_itime ? dqblk.dqb_itime : MAX_IQ_TIME;
+ 	dqopt->info[type].dqi_bgrace =
+diff --git a/fs/quota/quota_v2.c b/fs/quota/quota_v2.c
+index 54cac436ac72..9cb10d7197f7 100644
+--- a/fs/quota/quota_v2.c
++++ b/fs/quota/quota_v2.c
+@@ -117,12 +117,12 @@ static int v2_read_file_info(struct super_block *sb, int type)
+ 	qinfo = info->dqi_priv;
+ 	if (version == 0) {
+ 		/* limits are stored as unsigned 32-bit data */
+-		info->dqi_maxblimit = 0xffffffff;
+-		info->dqi_maxilimit = 0xffffffff;
++		info->dqi_max_spc_limit = 0xffffffffULL << QUOTABLOCK_BITS;
++		info->dqi_max_ino_limit = 0xffffffff;
+ 	} else {
+-		/* used space is stored as unsigned 64-bit value */
+-		info->dqi_maxblimit = 0xffffffffffffffffULL;	/* 2^64-1 */
+-		info->dqi_maxilimit = 0xffffffffffffffffULL;
++		/* used space is stored as unsigned 64-bit value in bytes */
++		info->dqi_max_spc_limit = 0xffffffffffffffffULL; /* 2^64-1 */
++		info->dqi_max_ino_limit = 0xffffffffffffffffULL;
+ 	}
+ 	info->dqi_bgrace = le32_to_cpu(dinfo.dqi_bgrace);
+ 	info->dqi_igrace = le32_to_cpu(dinfo.dqi_igrace);
 diff --git a/include/linux/quota.h b/include/linux/quota.h
-index 6ecac0f3b2ca..a07f2ed25284 100644
+index 0938159d65c8..d534e8ed308a 100644
 --- a/include/linux/quota.h
 +++ b/include/linux/quota.h
-@@ -408,8 +408,6 @@ struct quotactl_ops {
- 	int (*get_dqblk)(struct super_block *, struct kqid, struct qc_dqblk *);
- 	int (*set_dqblk)(struct super_block *, struct kqid, struct qc_dqblk *);
- 	int (*get_state)(struct super_block *, struct qc_state *);
--	int (*get_xstate)(struct super_block *, struct fs_quota_stat *);
--	int (*get_xstatev)(struct super_block *, struct fs_quota_statv *);
- 	int (*rm_xquota)(struct super_block *, unsigned int);
+@@ -216,8 +216,8 @@ struct mem_dqinfo {
+ 	unsigned long dqi_flags;
+ 	unsigned int dqi_bgrace;
+ 	unsigned int dqi_igrace;
+-	qsize_t dqi_maxblimit;
+-	qsize_t dqi_maxilimit;
++	qsize_t dqi_max_spc_limit;
++	qsize_t dqi_max_ino_limit;
+ 	void *dqi_priv;
  };
  
 -- 
