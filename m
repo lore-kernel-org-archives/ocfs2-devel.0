@@ -1,10 +1,10 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Wed, 28 Jan 2015 14:12:04 -0800
-Subject: [Ocfs2-devel] [PATCH 2/6] Don't use controld if kernel supports DLM
-	callbacks
+Date: Wed, 28 Jan 2015 14:12:05 -0800
+Subject: [Ocfs2-devel] [PATCH 3/6] Auto setup cluster_stack based on what is
+	on disk
 In-Reply-To: <1422483128-32471-1-git-send-email-mfasheh@suse.de>
 References: <1422483128-32471-1-git-send-email-mfasheh@suse.de>
-Message-ID: <1422483128-32471-3-git-send-email-mfasheh@suse.de>
+Message-ID: <1422483128-32471-4-git-send-email-mfasheh@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,378 +13,176 @@ To: ocfs2-devel@oss.oracle.com
 
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
 
-This requires dlm_lt libraries and they have been added wherever
-required.
-
-Note, we can possibly remove runtime load of dlm_lt and should use
-compile time options. We are detecting the presence of libdlm during
-compile time anyways.
+This happens only the first time.
+mount.ocfs2 reads the stack from the filesystems superblock. If the
+stack is not setup, it will modprobe the modules and write the
+appropriate stack name to cluster_stack file.
+If it is already present, it tries to edit/re-write it, if different.
+If it fails, the mount fails.
 
 Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
 Signed-off-by: Mark Fasheh <mfasheh@suse.de>
 ---
- debugfs.ocfs2/Makefile               |  3 +++
- fsck.ocfs2/Makefile                  |  5 ++++-
- fswreck/Makefile                     |  4 ++++
- libo2cb/Makefile                     |  3 +++
- libo2cb/o2cb_abi.c                   | 38 ++++++++++++++++++++++++++++++++++++
- libocfs2/Makefile                    |  4 ++++
- listuuid/Makefile                    |  4 ++++
- mkfs.ocfs2/Makefile                  |  3 +++
- mount.ocfs2/Makefile                 |  5 ++++-
- mounted.ocfs2/Makefile               |  5 ++++-
- o2cb_ctl/Makefile                    |  7 +++++--
- o2image/Makefile                     |  4 ++++
- ocfs2_controld/Makefile              |  2 +-
- ocfs2_hb_ctl/Makefile                |  5 ++++-
- ocfs2cdsl/Makefile                   |  4 ++++
- ocfs2console/ocfs2interface/Makefile |  4 ++++
- tunefs.ocfs2/Makefile                |  5 ++++-
- 17 files changed, 97 insertions(+), 8 deletions(-)
+ include/o2cb/o2cb.h       |   1 +
+ libo2cb/o2cb_abi.c        | 106 ++++++++++++++++++++++++++++++++++++++++++++++
+ mount.ocfs2/mount.ocfs2.c |   6 +++
+ 3 files changed, 113 insertions(+)
 
-diff --git a/debugfs.ocfs2/Makefile b/debugfs.ocfs2/Makefile
-index ff00e69..3db7b60 100644
---- a/debugfs.ocfs2/Makefile
-+++ b/debugfs.ocfs2/Makefile
-@@ -33,6 +33,9 @@ OBJS = $(subst .c,.o,$(CFILES))
+diff --git a/include/o2cb/o2cb.h b/include/o2cb/o2cb.h
+index d512cf9..5ef9754 100644
+--- a/include/o2cb/o2cb.h
++++ b/include/o2cb/o2cb.h
+@@ -208,5 +208,6 @@ void o2cb_control_close(void);
+ errcode_t o2cb_control_node_down(const char *uuid, unsigned int nodeid);
  
- LIBOCFS2_LIBS = -L$(TOPDIR)/libocfs2 -locfs2
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS += -ldlm_lt
-+endif
- ifneq ($(BUILD_CMAP_SUPPORT),)
- LIBO2CB_LIBS += -lcmap
- endif
-diff --git a/fsck.ocfs2/Makefile b/fsck.ocfs2/Makefile
-index c49940e..051ed74 100644
---- a/fsck.ocfs2/Makefile
-+++ b/fsck.ocfs2/Makefile
-@@ -13,10 +13,13 @@ LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS += -ldlm_lt
-+endif
- ifneq ($(BUILD_CMAP_SUPPORT),)
- LIBO2CB_LIBS += -lcmap
- endif
--LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- LIBTOOLS_INTERNAL_LIBS = -L$(TOPDIR)/libtools-internal -ltools-internal
- LIBTOOLS_INTERNAL_DEPS = $(TOPDIR)/libtools-internal/libtools-internal.a
+ errcode_t o2cb_get_hb_ctl_path(char *buf, int count);
++errcode_t o2cb_setup_stack(char *stack_name);
  
-diff --git a/fswreck/Makefile b/fswreck/Makefile
-index ffbd6ea..9856e0d 100644
---- a/fswreck/Makefile
-+++ b/fswreck/Makefile
-@@ -41,7 +41,11 @@ LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- 
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb -ldlm_lt
-+else
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+endif
- LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- dist-subdircreate:
-diff --git a/libo2cb/Makefile b/libo2cb/Makefile
-index 0ae177b..5f12b07 100644
---- a/libo2cb/Makefile
-+++ b/libo2cb/Makefile
-@@ -15,6 +15,9 @@ ifneq ($(BUILD_CMAP_SUPPORT),)
- DEFINES += -DHAVE_CMAP
- endif
- 
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+DEFINES += -DHAVE_FSDLM
-+endif
- 
- ifneq ($(OCFS2_DEBUG_EXE),)
- DEBUG_EXE_FILES = $(shell awk '/DEBUG_EXE/{if (k[FILENAME] == 0) {print FILENAME; k[FILENAME] = 1;}}' $(CFILES))
+ #endif  /* _O2CB_H */
 diff --git a/libo2cb/o2cb_abi.c b/libo2cb/o2cb_abi.c
-index 2d86c8e..2867fea 100644
+index 2867fea..4414ff2 100644
 --- a/libo2cb/o2cb_abi.c
 +++ b/libo2cb/o2cb_abi.c
-@@ -40,6 +40,9 @@
- #ifdef HAVE_CMAP
- #include <corosync/cmap.h>
- #endif
-+#ifdef HAVE_FSDLM
-+#include <libdlm.h>
-+#endif
+@@ -29,6 +29,7 @@
+ #include <sys/ioctl.h>
+ #include <sys/ipc.h>
+ #include <sys/sem.h>
++#include <sys/wait.h>
+ #include <dirent.h>
+ #include <fcntl.h>
+ #include <unistd.h>
+@@ -150,6 +151,22 @@ static ssize_t read_single_line_file(const char *file, char *line,
+ 	return ret;
+ }
  
- #include "o2cb/o2cb.h"
- #include "o2cb/o2cb_client_proto.h"
-@@ -50,6 +53,7 @@
- #define LOCKING_PROTOCOL_FILE	"/sys/fs/ocfs2/max_locking_protocol"
- #define OCFS2_STACK_LABEL_LEN	4
- #define CONTROL_DEVICE		"/dev/misc/ocfs2_control"
-+#define DLM_RECOVER_CALLBACK   "/sys/fs/ocfs2/dlm_recover_callback_support"
++static int write_single_line_file(char *filename, char *line, size_t count)
++{
++	ssize_t ret = 0;
++	FILE *f;
++
++	f = fopen(filename, "w");
++	if (f) {
++		if (fputs(line, f))
++			ret = strlen(line);
++		fclose(f);
++	} else
++		ret = -errno;
++
++	return ret;
++}
++
+ static ssize_t read_stack_file(char *line, size_t count)
+ {
+ 	return read_single_line_file(CLUSTER_STACK_FILE, line, count);
+@@ -2582,3 +2599,92 @@ errcode_t o2cb_get_hb_ctl_path(char *buf, int count)
  
- static errcode_t o2cb_validate_cluster_name(struct o2cb_cluster_desc *desc);
- static errcode_t o2cb_validate_cluster_flags(struct o2cb_cluster_desc *desc,
-@@ -1384,6 +1388,26 @@ static errcode_t user_begin_group_join(struct o2cb_cluster_desc *cluster,
- 	char *argv[OCFS2_CONTROLD_MAXARGS + 1];
- 	char buf[OCFS2_CONTROLD_MAXLINE];
- 
-+#ifdef HAVE_FSDLM
-+	uint32_t maj, min, pat;
+ 	return 0;
+ }
 +
-+	if (strncmp(cluster->c_stack, OCFS2_PCMK_CLUSTER_STACK, OCFS2_STACK_LABEL_LEN))
-+			goto no_pcmk;
++#define MODPROBE_COMMAND	"/sbin/modprobe"
++#define USER_KERNEL_MODULE	"ocfs2_stack_user"
++#define O2CB_KERNEL_MODULE	"ocfs2_stack_o2cb"
 +
-+	rc = dlm_kernel_version(&maj, &min, &pat);
++static int perform_modprobe(char *module_name)
++{
++	pid_t child;
++	int child_status;
 +
-+	if (rc < 0)
-+		return O2CB_ET_SERVICE_UNAVAILABLE;
++	char *argv[3];
 +
-+	if (read_single_line_file(DLM_RECOVER_CALLBACK, buf, 3) > 0) {
-+		/* Controld is not required */
-+		if (maj < 6)
-+			return O2CB_ET_INTERNAL_FAILURE;
-+		return 0;
++	argv[0] = MODPROBE_COMMAND;
++	argv[1] = module_name;
++	argv[2] = NULL;
++
++	child = fork();
++	if (child == 0) {
++		execv(MODPROBE_COMMAND, argv);
++		/* If execv fails, we have a problem */
++		return -EINVAL;
++	} else
++		wait(&child_status);
++
++	return child_status;
++}
++
++errcode_t o2cb_setup_stack(char *stack_name)
++{
++	char line[64];
++	int modprobe_performed = 0, write_performed = 0;
++	errcode_t err = O2CB_ET_SERVICE_UNAVAILABLE;
++	int len;
++
++redo:
++	len = read_single_line_file(CLUSTER_STACK_FILE, line, sizeof(line));
++
++	if (len > 0) {
++		if (line[len - 1] == '\n') {
++			line[len - 1] = '\0';
++			len--;
++		}
++
++		if (len != OCFS2_STACK_LABEL_LEN) {
++			err = O2CB_ET_INTERNAL_FAILURE;
++			goto out;
++		}
++
++		if (!strncmp(line, stack_name, OCFS2_STACK_LABEL_LEN)) {
++			err = 0;
++			goto out;
++		}
++
++		if (!write_performed) {
++			len = write_single_line_file(CLUSTER_STACK_FILE,
++					stack_name, strlen(stack_name));
++			if (len < 0)
++				goto out;
++			write_performed = 1;
++			goto redo;
++		}
++
++	} else if (len == -ENOENT) {
++		if (!modprobe_performed) {
++			perform_modprobe("ocfs2");
++			if ((!strncmp(stack_name, OCFS2_PCMK_CLUSTER_STACK,
++						OCFS2_STACK_LABEL_LEN)) ||
++				(!strncmp(stack_name, OCFS2_CMAN_CLUSTER_STACK,
++						OCFS2_STACK_LABEL_LEN)))
++				perform_modprobe(USER_KERNEL_MODULE);
++			else if (!strncmp(stack_name, classic_stack.s_name,
++						OCFS2_STACK_LABEL_LEN))
++				perform_modprobe(O2CB_KERNEL_MODULE);
++
++			write_single_line_file(CLUSTER_STACK_FILE, stack_name,
++					OCFS2_STACK_LABEL_LEN);
++			write_performed = 1;
++			goto redo;
++		} else
++			err = O2CB_ET_INTERNAL_FAILURE;
++	} else {
++		err = O2CB_ET_INTERNAL_FAILURE;
++		goto out;
 +	}
-+no_pcmk:
-+#endif
 +
- 	if (control_daemon_fd != -1) {
- 		/* fprintf(stderr, "Join already in progress!\n"); */
- 		err = O2CB_ET_INTERNAL_FAILURE;
-@@ -1475,6 +1499,13 @@ static errcode_t user_complete_group_join(struct o2cb_cluster_desc *cluster,
- 	char *argv[OCFS2_CONTROLD_MAXARGS + 1];
- 	char buf[OCFS2_CONTROLD_MAXLINE];
++	err = 0;
++out:
++	return err;
++}
+diff --git a/mount.ocfs2/mount.ocfs2.c b/mount.ocfs2/mount.ocfs2.c
+index 2fa2c2f..a1c8698 100644
+--- a/mount.ocfs2/mount.ocfs2.c
++++ b/mount.ocfs2/mount.ocfs2.c
+@@ -358,6 +358,12 @@ int main(int argc, char **argv)
+ 	if (verbose)
+ 		printf("device=%s\n", mo.dev);
  
-+#ifdef HAVE_FSDLM
-+	if (read_single_line_file(DLM_RECOVER_CALLBACK, buf, 3) > 0) {
-+		/* Controld is not required */
-+		return 0;
++	ret = o2cb_setup_stack((char *)OCFS2_RAW_SB(fs->fs_super)->s_cluster_info.ci_stack);
++	if (ret) {
++		com_err(progname, ret, "while setting up stack\n");
++		goto bail;
 +	}
-+#endif
 +
- 	if (control_daemon_fd == -1) {
- 		/* fprintf(stderr, "Join not started!\n"); */
- 		err = O2CB_ET_SERVICE_UNAVAILABLE;
-@@ -1545,6 +1576,13 @@ static errcode_t user_group_leave(struct o2cb_cluster_desc *cluster,
- 	char *argv[OCFS2_CONTROLD_MAXARGS + 1];
- 	char buf[OCFS2_CONTROLD_MAXLINE];
- 
-+#ifdef HAVE_FSDLM
-+	if (read_single_line_file(DLM_RECOVER_CALLBACK, buf, 3) > 0) {
-+		/* Controld is not required */
-+		return 0;
-+	}
-+#endif
-+
- 	if (control_daemon_fd != -1) {
- 		/* fprintf(stderr, "Join in progress!\n"); */
- 		err = O2CB_ET_INTERNAL_FAILURE;
-diff --git a/libocfs2/Makefile b/libocfs2/Makefile
-index a4027c2..9ed420a 100644
---- a/libocfs2/Makefile
-+++ b/libocfs2/Makefile
-@@ -9,7 +9,11 @@ LIBRARIES = libocfs2.a
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- 
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb -ldlm_lt
-+else
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+endif
- LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- CFLAGS += -fPIC
-diff --git a/listuuid/Makefile b/listuuid/Makefile
-index 7f03b9c..2859724 100644
---- a/listuuid/Makefile
-+++ b/listuuid/Makefile
-@@ -10,7 +10,11 @@ LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- 
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb -ldlm_lt
-+else
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+endif
- LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- UNINST_PROGRAMS = listuuid
-diff --git a/mkfs.ocfs2/Makefile b/mkfs.ocfs2/Makefile
-index ee246db..604c522 100644
---- a/mkfs.ocfs2/Makefile
-+++ b/mkfs.ocfs2/Makefile
-@@ -13,6 +13,9 @@ LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- ifneq ($(BUILD_CMAP_SUPPORT),)
- LIBO2CB_LIBS += -lcmap
- endif
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS += -ldlm_lt
-+endif
- 
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
-diff --git a/mount.ocfs2/Makefile b/mount.ocfs2/Makefile
-index 3715120..73c3df8 100644
---- a/mount.ocfs2/Makefile
-+++ b/mount.ocfs2/Makefile
-@@ -11,10 +11,13 @@ LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS += -ldlm_lt
-+endif
- ifneq ($(BUILD_CMAP_SUPPORT),)
- LIBO2CB_LIBS += -lcmap
- endif
--LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- DEFINES = -DVERSION=\"$(VERSION)\"
- 
-diff --git a/mounted.ocfs2/Makefile b/mounted.ocfs2/Makefile
-index 21f3824..a36ab29 100644
---- a/mounted.ocfs2/Makefile
-+++ b/mounted.ocfs2/Makefile
-@@ -9,10 +9,13 @@ LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- 
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS += -ldlm_lt
-+endif
- ifneq ($(BUILD_CMAP_SUPPORT),)
- LIBO2CB_LIBS += -lcmap
- endif
--LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- LIBTOOLS_INTERNAL_LIBS = -L$(TOPDIR)/libtools-internal -ltools-internal
- LIBTOOLS_INTERNAL_DEPS = $(TOPDIR)/libtools-internal/libtools-internal.a
-diff --git a/o2cb_ctl/Makefile b/o2cb_ctl/Makefile
-index 76ddef8..21d25b9 100644
---- a/o2cb_ctl/Makefile
-+++ b/o2cb_ctl/Makefile
-@@ -13,11 +13,14 @@ LIBTOOLS_INTERNAL_DEPS = $(TOPDIR)/libtools-internal/libtools-internal.a
- LIBOCFS2_LIBS = -L$(TOPDIR)/libocfs2 -locfs2
- LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
- 
--LIBO2CB_LIBS  = -L$(TOPDIR)/libo2cb -lo2cb
-+LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS += -ldlm_lt
-+endif
- ifneq ($(BUILD_CMAP_SUPPORT),)
- LIBO2CB_LIBS += -lcmap
- endif
--LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
-diff --git a/o2image/Makefile b/o2image/Makefile
-index b0d9511..3bc1b58 100644
---- a/o2image/Makefile
-+++ b/o2image/Makefile
-@@ -13,7 +13,11 @@ LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- 
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb -ldlm_lt
-+else
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+endif
- LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- sbindir = $(root_sbindir)
-diff --git a/ocfs2_controld/Makefile b/ocfs2_controld/Makefile
-index f6ac203..ef842d4 100644
---- a/ocfs2_controld/Makefile
-+++ b/ocfs2_controld/Makefile
-@@ -18,7 +18,7 @@ PCMK_INCLUDES = -I/usr/include/pacemaker -I/usr/include/heartbeat/ $(GLIB_CFLAGS
- endif
- 
- INCLUDES = -I$(TOPDIR)/include -I. $(PCMK_INCLUDES)
--LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb -ldlm_lt
- LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- LIBOCFS2_LIBS = -L$(TOPDIR)/libocfs2 -locfs2
- LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
-diff --git a/ocfs2_hb_ctl/Makefile b/ocfs2_hb_ctl/Makefile
-index 7049c11..b4d0490 100644
---- a/ocfs2_hb_ctl/Makefile
-+++ b/ocfs2_hb_ctl/Makefile
-@@ -11,10 +11,13 @@ LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS += -ldlm_lt
-+endif
- ifneq ($(BUILD_CMAP_SUPPORT),)
- LIBO2CB_LIBS += -lcmap
- endif
--LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- ifndef OCFS2_DYNAMIC_CTL
- LDFLAGS += -static
-diff --git a/ocfs2cdsl/Makefile b/ocfs2cdsl/Makefile
-index 391b553..f07bfaa 100644
---- a/ocfs2cdsl/Makefile
-+++ b/ocfs2cdsl/Makefile
-@@ -9,7 +9,11 @@ LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- 
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb -ldlm_lt
-+else
- LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
-+endif
- 
- sbindir = $(root_sbindir)
- SBIN_PROGRAMS = ocfs2cdsl
-diff --git a/ocfs2console/ocfs2interface/Makefile b/ocfs2console/ocfs2interface/Makefile
-index 63fb56f..5409455 100644
---- a/ocfs2console/ocfs2interface/Makefile
-+++ b/ocfs2console/ocfs2interface/Makefile
-@@ -14,7 +14,11 @@ LIBOCFS2_DEPS = $(TOPDIR)/libocfs2/libocfs2.a
- LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- 
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb -ldlm_lt
-+else
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+endif
- LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- ifdef HAVE_BLKID
-diff --git a/tunefs.ocfs2/Makefile b/tunefs.ocfs2/Makefile
-index 35564e5..ba603b9 100644
---- a/tunefs.ocfs2/Makefile
-+++ b/tunefs.ocfs2/Makefile
-@@ -12,10 +12,13 @@ LIBO2DLM_LIBS = -L$(TOPDIR)/libo2dlm -lo2dlm $(DL_LIBS)
- LIBO2DLM_DEPS = $(TOPDIR)/libo2dlm/libo2dlm.a
- 
- LIBO2CB_LIBS = -L$(TOPDIR)/libo2cb -lo2cb
-+LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
-+ifneq ($(BUILD_FSDLM_SUPPORT),)
-+LIBO2CB_LIBS += -ldlm_lt
-+endif
- ifneq ($(BUILD_CMAP_SUPPORT),)
- LIBO2CB_LIBS += -lcmap
- endif
--LIBO2CB_DEPS = $(TOPDIR)/libo2cb/libo2cb.a
- 
- UNINST_LIBRARIES = libocfs2ne.a
- 
+ 	if (clustered) {
+ 		ret = o2cb_init();
+ 		if (ret) {
 -- 
 2.1.2
