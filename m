@@ -1,7 +1,7 @@
-From: David Weber <wb@munzinger.de>
-Date: Wed, 28 Jan 2015 08:43:06 +0000
-Subject: [Ocfs2-devel] [RFC] ocfs2/dlm: support range lock
-Message-ID: <0005282F.54C8AF2A@pegasus.munzinger.de>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Wed, 28 Jan 2015 14:12:02 -0800
+Subject: [Ocfs2-devel] [PATCH 0/6] ocfs2-tools: userspace clustering updates
+Message-ID: <1422483128-32471-1-git-send-email-mfasheh@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,24 +10,25 @@ To: ocfs2-devel@oss.oracle.com
 
 Hi,
 
-On 01/26/2015 04:28 AM, yangwenfang wrote:
-> 
-> What:
-> Byte range lock is applied to lock a region of a file to accelerate
-> reading/writing concurrently.
-> 
-> Why:		
-> Currently ocfs2 does not support byte range lock. Since multiple nodes
-> may concurrently update/write at different positions of the same file
-> in database workloads, the performance(tpmc) of DB+ocfs2 is much poorer 
-> than
-> DB+GPFS in running TPCC.
-> Aiming at improving the efficiency of parallel accesses to the same file,
-> we have implemented a demo of range lock feature which has been supported
-> by lustre and GPFS, so that a file can be updated by different nodes in
-> the cluster when they are visiting different blocks.
+The following series of patches updates ocfs2-tools to work with the latest
+userspace clustering releases from SUSE. Kernel clustering (o2cb)
+functionality is not changed.
 
-would this also make cluster aware fcntl(2) locks with the o2cb stack possible?
+The first 3 patches teach ocfs2-tools about the nocontrold feature
+which Goldwyn implemented last year.
 
-Cheers,
-David
+https://oss.oracle.com/pipermail/ocfs2-tools-devel/2014-February/004161.html
+
+The following 3 add on to that to allow ocfs2-tools to setup a cluster
+stack (if not already setup) based on the stack specified in the fs
+superblock. If the stack is not available the command will fail as it
+normally does.
+
+The last patch is just a small cleanup I added while I was testing
+these changes.
+
+Other than my own testing (to make sure nothing broke), these have
+been shipping in SUSE for over a year now.
+
+Thanks!
+     --Mark
