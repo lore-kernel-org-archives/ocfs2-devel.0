@@ -1,10 +1,10 @@
-From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Thu, 29 Jan 2015 05:07:00 -0600
+From: Goldwyn Rodrigues <grodrgs2@illinois.edu>
+Date: Thu, 29 Jan 2015 05:04:06 -0600
 Subject: [Ocfs2-devel] [RFC] ocfs2/dlm: support range lock
 In-Reply-To: <54C9D63C.9010401@huawei.com>
 References: <54C632F4.3070705@huawei.com> <54C73985.8060604@oracle.com>
 	<54C9D63C.9010401@huawei.com>
-Message-ID: <54CA1454.5040702@suse.de>
+Message-ID: <54CA13A6.8070702@illinois.edu>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -37,7 +37,6 @@ On 01/29/2015 12:42 AM, yangwenfang wrote:
 > RW lock can be used, but it is complicated to add the feature to rw_lock because RW lock is also applicated in read/write/truncate.
 > Byte range lock is only beneficial for update write, so I just modify write IO to finish the demo to get performance results as soon as possible.
 > I think ocfs2_rw_lock(pr)  + ocfs2_range_lock(start, end, ex) are equivalent to ocfs2_rw_lock(ex)?am I rigth?
-
 
 Okay, let me ask this question in another way: What is the purpose of 
 ocfs2_rw_lock(pr) in *this* scenario, where you are using 
