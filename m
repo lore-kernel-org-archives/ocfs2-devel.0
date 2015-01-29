@@ -1,27 +1,48 @@
-From: Wengang Wang <wen.gang.wang@oracle.com>
-Date: Thu, 29 Jan 2015 11:21:09 +0800
+From: yangwenfang <vicky.yangwenfang@huawei.com>
+Date: Thu, 29 Jan 2015 14:42:04 +0800
 Subject: [Ocfs2-devel] [RFC] ocfs2/dlm: support range lock
-In-Reply-To: <54C9794B.9000708@suse.de>
-References: <54C632F4.3070705@huawei.com> <54C9794B.9000708@suse.de>
-Message-ID: <54C9A725.3010909@oracle.com>
+In-Reply-To: <54C73985.8060604@oracle.com>
+References: <54C632F4.3070705@huawei.com> <54C73985.8060604@oracle.com>
+Message-ID: <54C9D63C.9010401@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-
-? 2015?01?29? 08:05, Goldwyn Rodrigues ??:
+On 2015/1/27 15:08, Srinivas Eeda wrote:
 > Hi Yangwenfang,
->
-> I appreciate the effort in this regard.
->
-> On 01/26/2015 06:28 AM, yangwenfang wrote:
+> 
+> thank you very much for initiating this RFC :). This feature is long due for OCFS2 and we are also interested in implementing this feature. Wengang(cc'ed) has been looking into analysing and giving an attempt to implement it. We haven't  looked at splitting and merging the range locking yet, but looked at having lock fairness and range locking. Wengang has done some of the dlm changes to see how it can be done but other changes are still work in progress. We will email more details in coming few days.
+> 
+> Since you are also looking into it, it would be great if we can collaborate work on this feature. Can you please share more info on the demo code you mentioned ? Like what it does and how much work has been done on this ?
+> 
+Hi,
+About 6k lines of code was modified including dlmglue and dlm in our demo.
+
+code modification:
+1.read/write IO: get the range(start, end) and call ocfs2_range_lock.
+2.dlmglue: modify key data struct: each inode has one ocfs2_lock_res including many range locks which have different range.
+		   determine the existance of conflicts betwen multiple threads within the node.
+		   manage the cache of range lock to support unlock-delay.
+3.dlm: determine the existance of conflicts betwen multiple nodes.
+	   add splitting and merging the range locking.
+4.lib: interval tree.
+> One of the thing we considered was making the rw lock itself support range locking, which is a different approach from what you mentioned. Is there any reason why rw lock cannot be used and we needa new ip_range_lock_lockres ?
+> 
+RW lock can be used, but it is complicated to add the feature to rw_lock because RW lock is also applicated in read/write/truncate.
+Byte range lock is only beneficial for update write, so I just modify write IO to finish the demo to get performance results as soon as possible.
+I think ocfs2_rw_lock(pr)  + ocfs2_range_lock(start, end, ex) are equivalent to ocfs2_rw_lock(ex)?am I rigth?
+> Thanks,
+> --Srini
+> 
+> 
+> Hi On 01/26/2015 04:28 AM, yangwenfang wrote:
 >> What:
 >> Byte range lock is applied to lock a region of a file to accelerate
 >> reading/writing concurrently.
 >>
->> Why:		
+>> Why:       
 >> Currently ocfs2 does not support byte range lock. Since multiple nodes
 >> may concurrently update/write at different positions of the same file
 >> in database workloads, the performance(tpmc) of DB+ocfs2 is much poorer than
@@ -36,13 +57,13 @@ To: ocfs2-devel@oss.oracle.com
 >> 1.In ocfs2, each file only has one lock, which is incapable of telling
 >> different position.
 >> One solution is to add a range field (start,end) in a lock. For example:
->> -ocfs2_lock_res(N1)	      dlm_lock_resource(Master)	ocfs2_lock_res(N2)
->> -ocfs2_res_range_lock (0,9)----dlm_lock(0,9)    N1			
->> -				dlm_lock(10,19)  N2<--ocfs2_res_range_lock(10,19)
->> -ocfs2_res_range_lock (20,29)---dlm_lock(20,29)  N1			
->> -				dlm_lock(30,49)  N2<--ocfs2_res_range_lock(30,49)
->> -ocfs2_res_range_lock (50,59)---dlm_lock(50,59)  N1			
->> -				dlm_lock(60,69)  N2<--ocfs2_res_range_lock(60,69)
+>> -ocfs2_lock_res(N1)          dlm_lock_resource(Master)    ocfs2_lock_res(N2)
+>> -ocfs2_res_range_lock (0,9)----dlm_lock(0,9)    N1           
+>> -                dlm_lock(10,19)  N2<--ocfs2_res_range_lock(10,19)
+>> -ocfs2_res_range_lock (20,29)---dlm_lock(20,29)  N1           
+>> -                dlm_lock(30,49)  N2<--ocfs2_res_range_lock(30,49)
+>> -ocfs2_res_range_lock (50,59)---dlm_lock(50,59)  N1           
+>> -                dlm_lock(60,69)  N2<--ocfs2_res_range_lock(60,69)
 >>
 >> Each lock resource deploys an interval tree to manage the range, which
 >> supports basic operations like add, delete, insert, find, split and merge.
@@ -61,52 +82,26 @@ To: ocfs2-devel@oss.oracle.com
 >> become(0,19) PR, (5,19)EX;
 >> (3) split: N1 keeps range lock (0,9)PR, N2 tries to lock(0,5) PR, N1 should
 >> split the lock and keep (6,9)PR.
-> What is the purpose of doing this kind of merge/split? I assume this
-> will be required in case of multiple processes from the same node
-> read/write to the file. Would it not be simpler to not merge or split
-> and keep separate instances in lock resources? This way you would have
-> to do relatively lesser book keeping with respect to comparisons.
->
-> Are these numbers in your pseudocode byte ranges? If yes, how do you
-> propose multiple writes which lie within a block_size/cluster_size range?
->
-
-Yes, if the range lock is used for file read/write, the granularity 
-would be block rather than byte.
-Say for example block size is 512, a write to 0-9 would acquire whole 
-0~511 bytes to be locked. Or acquire 0~0 block to be locked. Otherwise 
-If two write requests would access to same block, say one writes to 
-0~254 and the other writes to 255~511, if they take 0~254 and 255~511 
-respectively, the contents in this block may get corrupted after the two 
-writes.
-
-thanks,
-wengang
-
+>>
 >> 2.In ocfs2, there are only three types of lock resources: rw, inode and open
 >> which provide protections to different contents.
 >> We need to add another lock resource(ip_range_lock_lockres) to protect
 >> different ranges in IO read/write process.
 >> For example: buffer read/write.
->> (1)ocfs2_file_aio_write	------------->ocfs2_file_aio_write
->> 	ocfs2_rw_lock(ex)		ocfs2_rw_lock(pr)
->> 					ocfs2_range_lock(start, end, ex)
-> This does not seem right. ocfs2_rw_lock is meant to serialize writes to
-> the same file. Changing it from ex to pr would make the file
-> inconsistent for writes to the same file. As Srini proposed, why create
-> a new lock instead of adding the feature to rw_lock?
->
->> 	ocfs2_write_begin
->> 		ocfs2_inode_lock(ex)    ocfs2_inode_lock(pr)
->> 					if append, update to ex;
+>> (1)ocfs2_file_aio_write    ------------->ocfs2_file_aio_write
+>>     ocfs2_rw_lock(ex)        ocfs2_rw_lock(pr)
+>>                     ocfs2_range_lock(start, end, ex)
+>>     ocfs2_write_begin
+>>         ocfs2_inode_lock(ex)    ocfs2_inode_lock(pr)
+>>                     if append, update to ex;
 >> (2)ocfs2_file_aio_read---------------> no need to change.
->> 	ocfs2_readpage
->> 		ocfs2_inode_lock(pr)
+>>     ocfs2_readpage
+>>         ocfs2_inode_lock(pr)
 >> (3)but it is a problem in read_ahead.
->> 	ocfs2_readpages------------------>ocfs2_readpages
->> 	ocfs2_inode_lock(pr)		ocfs2_inode_lock(pr)
->> 					ocfs2_range_lock(start, end, pr)
->> 																	
+>>     ocfs2_readpages------------------>ocfs2_readpages
+>>     ocfs2_inode_lock(pr)        ocfs2_inode_lock(pr)
+>>                     ocfs2_range_lock(start, end, pr)
+>>                                                                    
 >> Limitations based on our assumption:
 >> 1.Byte range lock is only beneficial for update write.
 >> 2.Too many locks because of delayed unlock.
@@ -116,4 +111,9 @@ wengang
 >> As described above, there are also many limitations base on our assumption.
 >> Many thanks for any advice.
 >>
->
+>> thanks.
+>>
+> 
+> 
+> .
+> 
