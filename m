@@ -1,130 +1,54 @@
-From: Tina Ruchandani <ruchandani.tina@gmail.com>
-Date: Thu, 29 Jan 2015 11:30:58 +0530
-Subject: [Ocfs2-devel] [PATCH v3] ocfs2: Use 64bit variables to track
-	heartbeat time
-Message-ID: <20150129060057.GA3176@tinar>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 30 Jan 2015 10:59:21 +0800
+Subject: [Ocfs2-devel] [RFC] ocfs2/dlm: support range lock
+In-Reply-To: <54CA13A6.8070702@illinois.edu>
+References: <54C632F4.3070705@huawei.com>
+	<54C73985.8060604@oracle.com>	<54C9D63C.9010401@huawei.com>
+	<54CA13A6.8070702@illinois.edu>
+Message-ID: <54CAF389.8090404@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
-Cc: linux-kernel@vger.kernel.org, Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Arnd Bergmann <arnd@arndb.de>
 
-o2hb_elapsed_msecs computes the time taken for a disk heartbeat.
-'struct timeval' variables are used to store start and end  times.
-On 32-bit systems, the 'tv_sec' component of 'struct timeval' will
-overflow in year 2038 and beyond.
-This patch solves the overflow with the following:
-1.  Replace o2hb_elapsed_msecs using 'ktime_t' values to measure start
-    and end time, and built-in function 'ktime_ms_delta' to compute the
-    elapsed time.
-    ktime_get_real() is used since the code prints out the wallclock time.
-2.  Changes format string to print time as a single 64-bit nanoseconds
-    value ("%lld") instead of seconds and microseconds. This simplifies
-    the code since converting ktime_t to that format would need expensive
-    computation. However, the debug log string is less readable than the
-    previous format.
+Hi Goldwyn,
+On 2015/1/29 19:04, Goldwyn Rodrigues wrote:
+> Yangwenfang,
+> 
+> On 01/29/2015 12:42 AM, yangwenfang wrote:
+>> On 2015/1/27 15:08, Srinivas Eeda wrote:
+>>> Hi Yangwenfang,
+>>>
+>>> thank you very much for initiating this RFC :). This feature is long due for OCFS2 and we are also interested in implementing this feature. Wengang(cc'ed) has been looking into analysing and giving an attempt to implement it. We haven't  looked at splitting and merging the range locking yet, but looked at having lock fairness and range locking. Wengang has done some of the dlm changes to see how it can be done but other changes are still work in progress. We will email more details in coming few days.
+>>>
+>>> Since you are also looking into it, it would be great if we can collaborate work on this feature. Can you please share more info on the demo code you mentioned ? Like what it does and how much work has been done on this ?
+>>>
+>> Hi,
+>> About 6k lines of code was modified including dlmglue and dlm in our demo.
+>>
+>> code modification:
+>> 1.read/write IO: get the range(start, end) and call ocfs2_range_lock.
+>> 2.dlmglue: modify key data struct: each inode has one ocfs2_lock_res including many range locks which have different range.
+>> 		   determine the existance of conflicts betwen multiple threads within the node.
+>> 		   manage the cache of range lock to support unlock-delay.
+>> 3.dlm: determine the existance of conflicts betwen multiple nodes.
+>> 	   add splitting and merging the range locking.
+>> 4.lib: interval tree.
+>>> One of the thing we considered was making the rw lock itself support range locking, which is a different approach from what you mentioned. Is there any reason why rw lock cannot be used and we needa new ip_range_lock_lockres ?
+>>>
+>> RW lock can be used, but it is complicated to add the feature to rw_lock because RW lock is also applicated in read/write/truncate.
+>> Byte range lock is only beneficial for update write, so I just modify write IO to finish the demo to get performance results as soon as possible.
+>> I think ocfs2_rw_lock(pr)  + ocfs2_range_lock(start, end, ex) are equivalent to ocfs2_rw_lock(ex)?am I rigth?
+> 
+> Okay, let me ask this question in another way: What is the purpose of 
+> ocfs2_rw_lock(pr) in *this* scenario, where you are using 
+> ocfs2_range_lock in conjunction with ocfs2_rw_lock. What is 
+> ocfs2_rw_lock guarding?
+> 
+Because RW lock is also used to protect O_DIRECT reads from racing with truncate,
+buffer read is not protected by RW lock. We do not want to change rw lock in buffer
+read scenario. So we add another range lock to complete this demo.
 
-Suggested by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Tina Ruchandani <ruchandani.tina@gmail.com>
----
-Changes in v3:
-	- Remove usage of timespec64 as its inefficient, change the prints
-	  format string instead.
-Changes in v2:
-	- Use ktime_t instead of timespec64 to simplify computation of
-       	  elapsed time.
-	- Use ktime_ms_delta instead of timespec64_sub and
-	  dividing, since 32-bit kernel cannot divide a 64-bit number.
----
- fs/ocfs2/cluster/heartbeat.c | 49 ++++++++------------------------------------
- 1 file changed, 9 insertions(+), 40 deletions(-)
-
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 16eff45..3a60c832 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -36,7 +36,7 @@
- #include <linux/debugfs.h>
- #include <linux/slab.h>
- #include <linux/bitmap.h>
--
-+#include <linux/ktime.h>
- #include "heartbeat.h"
- #include "tcp.h"
- #include "nodemanager.h"
-@@ -1061,37 +1061,6 @@ bail:
- 	return ret;
- }
-
--/* Subtract b from a, storing the result in a. a *must* have a larger
-- * value than b. */
--static void o2hb_tv_subtract(struct timeval *a,
--			     struct timeval *b)
--{
--	/* just return 0 when a is after b */
--	if (a->tv_sec < b->tv_sec ||
--	    (a->tv_sec == b->tv_sec && a->tv_usec < b->tv_usec)) {
--		a->tv_sec = 0;
--		a->tv_usec = 0;
--		return;
--	}
--
--	a->tv_sec -= b->tv_sec;
--	a->tv_usec -= b->tv_usec;
--	while ( a->tv_usec < 0 ) {
--		a->tv_sec--;
--		a->tv_usec += 1000000;
--	}
--}
--
--static unsigned int o2hb_elapsed_msecs(struct timeval *start,
--				       struct timeval *end)
--{
--	struct timeval res = *end;
--
--	o2hb_tv_subtract(&res, start);
--
--	return res.tv_sec * 1000 + res.tv_usec / 1000;
--}
--
- /*
-  * we ride the region ref that the region dir holds.  before the region
-  * dir is removed and drops it ref it will wait to tear down this
-@@ -1102,7 +1071,7 @@ static int o2hb_thread(void *data)
- 	int i, ret;
- 	struct o2hb_region *reg = data;
- 	struct o2hb_bio_wait_ctxt write_wc;
--	struct timeval before_hb, after_hb;
-+	ktime_t before_hb, after_hb;
- 	unsigned int elapsed_msec;
-
- 	mlog(ML_HEARTBEAT|ML_KTHREAD, "hb thread running\n");
-@@ -1119,18 +1088,18 @@ static int o2hb_thread(void *data)
- 		 * hr_timeout_ms between disk writes. On busy systems
- 		 * this should result in a heartbeat which is less
- 		 * likely to time itself out. */
--		do_gettimeofday(&before_hb);
-+		before_hb = ktime_get_real();
-
- 		ret = o2hb_do_disk_heartbeat(reg);
-
--		do_gettimeofday(&after_hb);
--		elapsed_msec = o2hb_elapsed_msecs(&before_hb, &after_hb);
-+		after_hb = ktime_get_real();
-+
-+		elapsed_msec = (unsigned int)
-+				ktime_ms_delta(after_hb, before_hb);
-
- 		mlog(ML_HEARTBEAT,
--		     "start = %lu.%lu, end = %lu.%lu, msec = %u, ret = %d\n",
--		     before_hb.tv_sec, (unsigned long) before_hb.tv_usec,
--		     after_hb.tv_sec, (unsigned long) after_hb.tv_usec,
--		     elapsed_msec, ret);
-+		     "start = %lld, end = %lld, msec = %u, ret = %d\n",
-+		     before_hb.tv64, after_hb.tv64, elapsed_msec, ret);
- 
- 		if (!kthread_should_stop() &&
- 		    elapsed_msec < reg->hr_timeout_ms) {
--- 
-2.2.0.rc0.207.ga3a616c
+Thanks
+Xuejiufei
