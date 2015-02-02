@@ -1,187 +1,92 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 2 Feb 2015 10:59:16 +0800
-Subject: [Ocfs2-devel] [PATCH 2/3] tunefs.ocfs2: support append direct io ro
+Date: Mon, 2 Feb 2015 10:59:57 +0800
+Subject: [Ocfs2-devel] [PATCH 3/3] fsck.ocfs2: support append direct io ro
 	compat feature
-Message-ID: <54CEE804.7020305@huawei.com>
+Message-ID: <54CEE82D.5040609@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Support turn on/off the feature. This is mostly for the existing ocfs2
-volume upgrade.
+Support to truncate direct io orphan entry in fsck.ocfs2.
 
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 ---
- tunefs.ocfs2/Makefile             |   3 +-
- tunefs.ocfs2/feature_append_dio.c | 123 ++++++++++++++++++++++++++++++++++++++
- tunefs.ocfs2/op_features.c        |   2 +
- 3 files changed, 127 insertions(+), 1 deletion(-)
- create mode 100644 tunefs.ocfs2/feature_append_dio.c
+ fsck.ocfs2/pass4.c  |  9 +++++++++
+ libocfs2/truncate.c | 12 ++++++++++++
+ 2 files changed, 21 insertions(+)
 
-diff --git a/tunefs.ocfs2/Makefile b/tunefs.ocfs2/Makefile
-index 585a68c..62a5e8e 100644
---- a/tunefs.ocfs2/Makefile
-+++ b/tunefs.ocfs2/Makefile
-@@ -29,7 +29,8 @@ OCFS2NE_FEATURES =			\
- 	feature_xattr			\
- 	feature_indexed_dirs		\
- 	feature_quota			\
--	feature_clusterinfo
-+	feature_clusterinfo		\
-+	feature_append_dio
+diff --git a/fsck.ocfs2/pass4.c b/fsck.ocfs2/pass4.c
+index 7737cc9..de3f672 100644
+--- a/fsck.ocfs2/pass4.c
++++ b/fsck.ocfs2/pass4.c
+@@ -100,6 +100,9 @@ out:
+ 	return;
+ }
 
- OCFS2NE_OPERATIONS =			\
- 	op_cloned_volume		\
-diff --git a/tunefs.ocfs2/feature_append_dio.c b/tunefs.ocfs2/feature_append_dio.c
-new file mode 100644
-index 0000000..791dd64
---- /dev/null
-+++ b/tunefs.ocfs2/feature_append_dio.c
-@@ -0,0 +1,123 @@
-+/* -*- mode: c; c-basic-offset: 8; -*-
-+ * vim: noexpandtab sw=8 ts=8 sts=0:
-+ *
-+ * feature_append_dio.c
-+ *
-+ * ocfs2 tune utility for enabling and disabling the append direct
-+ * io feature.
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public
-+ * License version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ */
++#define OCFS2_DIO_ORPHAN_PREFIX "dio-"
++#define OCFS2_DIO_ORPHAN_PREFIX_LEN 4
 +
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <string.h>
-+#include <sys/stat.h>
-+#include <ctype.h>
-+#include <inttypes.h>
-+#include <assert.h>
+ static int replay_orphan_iterate(struct ocfs2_dir_entry *dirent,
+ 				 uint64_t blocknr,
+ 				 int	offset,
+@@ -138,6 +141,11 @@ static int replay_orphan_iterate(struct ocfs2_dir_entry *dirent,
+ 		goto out;
+ 	}
+
++	/* do not delete inode in case of dio orphan entry */
++	if (!strncmp(dirent->name, OCFS2_DIO_ORPHAN_PREFIX,
++			OCFS2_DIO_ORPHAN_PREFIX_LEN))
++		goto out_check;
 +
-+#include "ocfs2/ocfs2.h"
-+
-+#include "libocfs2ne.h"
-+
-+
-+static int enable_append_dio(ocfs2_filesys *fs, int flags)
-+{
-+	errcode_t ret = 0;
-+	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
-+	struct tools_progress *prog;
-+
-+	if (ocfs2_supports_append_dio(super)) {
-+		verbosef(VL_APP,
-+			 "Append direct io feature is already enabled; "
-+			 "nothing to enable\n");
-+		goto out;
+ 	ret = ocfs2_delete_inode(ost->ost_fs, dirent->inode);
+ 	if (ret) {
+ 		com_err(whoami, ret, "while deleting orphan inode %"PRIu64
+@@ -148,6 +156,7 @@ static int replay_orphan_iterate(struct ocfs2_dir_entry *dirent,
+
+ 	ost->ost_orphan_deleted_count++;
+
++out_check:
+ 	/* Only calculate icount in force check. */
+ 	if (ost->ost_force) {
+ 		/*
+diff --git a/libocfs2/truncate.c b/libocfs2/truncate.c
+index 7327253..451db28 100644
+--- a/libocfs2/truncate.c
++++ b/libocfs2/truncate.c
+@@ -33,6 +33,7 @@
+ #include <assert.h>
+ #include <errno.h>
+ #include "ocfs2/ocfs2.h"
++#include "ocfs2/byteorder.h"
+
+ struct truncate_ctxt {
+ 	uint64_t ino;
+@@ -356,6 +357,16 @@ errcode_t ocfs2_truncate_full(ocfs2_filesys *fs, uint64_t ino,
+ 	if (ret)
+ 		goto out;
+
++	/* in case of dio crashed, force do trucate since blocks may already
++	 * be allocated
++	 */
++	if (ci->ci_inode->i_flags & cpu_to_le32(OCFS2_DIO_ORPHANED_FL)) {
++		ci->ci_inode->i_flags &= ~cpu_to_le32(OCFS2_DIO_ORPHANED_FL);
++		ci->ci_inode->i_dio_orphaned_slot = 0;
++		new_i_size = ci->ci_inode->i_size;
++		goto truncate;
 +	}
 +
-+	if (!tools_interact("Enable the append direct io feature on "
-+			    "device \"%s\"? ",
-+			    fs->fs_devname))
-+		goto out;
-+
-+	prog = tools_progress_start("Enable append direct io", "append-dio", 1);
-+	if (!prog) {
-+		ret = TUNEFS_ET_NO_MEMORY;
-+		tcom_err(ret, "while initializing the progress display");
-+		goto out;
-+	}
-+
-+	OCFS2_SET_RO_COMPAT_FEATURE(super,
-+				    OCFS2_FEATURE_RO_COMPAT_APPEND_DIO);
-+	tunefs_block_signals();
-+	ret = ocfs2_write_super(fs);
-+	tunefs_unblock_signals();
-+	if (ret)
-+		tcom_err(ret, "while writing out the superblock");
-+
-+	tools_progress_step(prog, 1);
-+	tools_progress_stop(prog);
-+out:
-+	return ret;
-+}
-+
-+static int disable_append_dio(ocfs2_filesys *fs, int flags)
-+{
-+	errcode_t ret = 0;
-+	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
-+	struct tools_progress *prog = NULL;
-+
-+	if (!ocfs2_supports_append_dio(super)) {
-+		verbosef(VL_APP,
-+			 "Append direct io feature is not enabled; "
-+			 "nothing to disable\n");
-+		goto out;
-+	}
-+
-+	if (!tools_interact("Disable the append direct io feature on "
-+			    "device \"%s\"? ",
-+			    fs->fs_devname))
-+		goto out;
-+
-+	prog = tools_progress_start("Disabling append direct io", "noappend-dio", 0);
-+	if (!prog) {
-+		ret = TUNEFS_ET_NO_MEMORY;
-+		tcom_err(ret, "while initializing the progress display");
-+		goto out;
-+	}
-+
-+	OCFS2_CLEAR_RO_COMPAT_FEATURE(super,
-+				      OCFS2_FEATURE_RO_COMPAT_APPEND_DIO);
-+	tunefs_block_signals();
-+	ret = ocfs2_write_super(fs);
-+	tunefs_unblock_signals();
-+	if (ret)
-+		tcom_err(ret, "while writing out the superblock");
-+
-+	tools_progress_step(prog, 1);
-+
-+out:
-+	if (prog)
-+		tools_progress_stop(prog);
-+	return ret;
-+}
-+
-+DEFINE_TUNEFS_FEATURE_RO_COMPAT(append_dio,
-+				OCFS2_FEATURE_RO_COMPAT_APPEND_DIO,
-+				TUNEFS_FLAG_RW | TUNEFS_FLAG_ONLINE,
-+				enable_append_dio,
-+				disable_append_dio);
-+
-+#ifdef DEBUG_EXE
-+int main(int argc, char *argv[])
-+{
-+	return tunefs_feature_main(argc, argv, &append_dio_feature);
-+}
-+#endif
-diff --git a/tunefs.ocfs2/op_features.c b/tunefs.ocfs2/op_features.c
-index 20b65a5..b6235aa 100644
---- a/tunefs.ocfs2/op_features.c
-+++ b/tunefs.ocfs2/op_features.c
-@@ -47,6 +47,7 @@ extern struct tunefs_feature refcount_feature;
- extern struct tunefs_feature indexed_dirs_feature;
- extern struct tunefs_feature discontig_bg_feature;
- extern struct tunefs_feature clusterinfo_feature;
-+extern struct tunefs_feature append_dio_feature;
+ 	if (ci->ci_inode->i_size == new_i_size)
+ 		goto out;
 
- /* List of features supported by ocfs2ne */
- static struct tunefs_feature *features[] = {
-@@ -64,6 +65,7 @@ static struct tunefs_feature *features[] = {
- 	&indexed_dirs_feature,
- 	&discontig_bg_feature,
- 	&clusterinfo_feature,
-+	&append_dio_feature,
- 	NULL,
- };
+@@ -364,6 +375,7 @@ errcode_t ocfs2_truncate_full(ocfs2_filesys *fs, uint64_t ino,
+ 		goto out;
+ 	}
 
++truncate:
+ 	if ((S_ISLNK(ci->ci_inode->i_mode) && !ci->ci_inode->i_clusters) ||
+ 	    (ci->ci_inode->i_dyn_features & OCFS2_INLINE_DATA_FL))
+ 		ret = ocfs2_truncate_inline(fs, ino, new_i_size);
 -- 
 1.8.4.3
