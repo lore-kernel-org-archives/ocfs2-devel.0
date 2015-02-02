@@ -1,174 +1,187 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 2 Feb 2015 10:57:43 +0800
-Subject: [Ocfs2-devel] [PATCH 1/3] mkfs.ocfs2: support append direct io ro
+Date: Mon, 2 Feb 2015 10:59:16 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] tunefs.ocfs2: support append direct io ro
 	compat feature
-Message-ID: <54CEE7A7.8020204@huawei.com>
+Message-ID: <54CEE804.7020305@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Turn on append direct io ro compat feature when fromatting a new volume
-by default.
+Support turn on/off the feature. This is mostly for the existing ocfs2
+volume upgrade.
 
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 ---
- include/ocfs2-kernel/ocfs2_fs.h | 14 ++++++++++++--
- include/ocfs2/ocfs2.h           |  7 +++++++
- libocfs2/feature_string.c       | 27 +++++++++++++++++++++------
- 3 files changed, 40 insertions(+), 8 deletions(-)
+ tunefs.ocfs2/Makefile             |   3 +-
+ tunefs.ocfs2/feature_append_dio.c | 123 ++++++++++++++++++++++++++++++++++++++
+ tunefs.ocfs2/op_features.c        |   2 +
+ 3 files changed, 127 insertions(+), 1 deletion(-)
+ create mode 100644 tunefs.ocfs2/feature_append_dio.c
 
-diff --git a/include/ocfs2-kernel/ocfs2_fs.h b/include/ocfs2-kernel/ocfs2_fs.h
-index 79e4f2f..b80f046 100644
---- a/include/ocfs2-kernel/ocfs2_fs.h
-+++ b/include/ocfs2-kernel/ocfs2_fs.h
-@@ -105,7 +105,8 @@
- 					 | OCFS2_FEATURE_INCOMPAT_CLUSTERINFO)
- #define OCFS2_FEATURE_RO_COMPAT_SUPP	(OCFS2_FEATURE_RO_COMPAT_UNWRITTEN \
- 					 | OCFS2_FEATURE_RO_COMPAT_USRQUOTA \
--					 | OCFS2_FEATURE_RO_COMPAT_GRPQUOTA)
-+					 | OCFS2_FEATURE_RO_COMPAT_GRPQUOTA \
-+					 | OCFS2_FEATURE_RO_COMPAT_APPEND_DIO)
+diff --git a/tunefs.ocfs2/Makefile b/tunefs.ocfs2/Makefile
+index 585a68c..62a5e8e 100644
+--- a/tunefs.ocfs2/Makefile
++++ b/tunefs.ocfs2/Makefile
+@@ -29,7 +29,8 @@ OCFS2NE_FEATURES =			\
+ 	feature_xattr			\
+ 	feature_indexed_dirs		\
+ 	feature_quota			\
+-	feature_clusterinfo
++	feature_clusterinfo		\
++	feature_append_dio
 
- /*
-  * Heartbeat-only devices are missing journals and other files.  The
-@@ -199,6 +200,11 @@
- #define OCFS2_FEATURE_RO_COMPAT_USRQUOTA	0x0002
- #define OCFS2_FEATURE_RO_COMPAT_GRPQUOTA	0x0004
-
-+/*
-+ * Append Direct IO support
+ OCFS2NE_OPERATIONS =			\
+ 	op_cloned_volume		\
+diff --git a/tunefs.ocfs2/feature_append_dio.c b/tunefs.ocfs2/feature_append_dio.c
+new file mode 100644
+index 0000000..791dd64
+--- /dev/null
++++ b/tunefs.ocfs2/feature_append_dio.c
+@@ -0,0 +1,123 @@
++/* -*- mode: c; c-basic-offset: 8; -*-
++ * vim: noexpandtab sw=8 ts=8 sts=0:
++ *
++ * feature_append_dio.c
++ *
++ * ocfs2 tune utility for enabling and disabling the append direct
++ * io feature.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public
++ * License version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
 + */
-+#define OCFS2_FEATURE_RO_COMPAT_APPEND_DIO	0x0008
 +
- /* The byte offset of the first backup block will be 1G.
-  * The following will be 4G, 16G, 64G, 256G and 1T.
-  */
-@@ -232,6 +238,8 @@
- #define OCFS2_CHAIN_FL		(0x00000400)	/* Chain allocator */
- #define OCFS2_DEALLOC_FL	(0x00000800)	/* Truncate log */
- #define OCFS2_QUOTA_FL		(0x00001000)	/* Quota file */
-+#define OCFS2_DIO_ORPHANED_FL	(0X00002000)	/* On the orphan list especially
-+						 * for dio */
-
- /*
-  * Flags on ocfs2_dinode.i_dyn_features
-@@ -737,7 +745,9 @@ struct ocfs2_dinode {
- 					   inode belongs to.  Only valid
- 					   if allocated from a
- 					   discontiguous block group */
--/*A0*/	__le64 i_reserved2[3];
-+/*A0*/	__le16 i_dio_orphaned_slot;	/* only used for append dio write */
-+	__le16 i_reserved1[3];
-+	__le64 i_reserved2[2];
- /*B8*/	union {
- 		__le64 i_pad1;		/* Generic way to refer to this
- 					   64bit union */
-diff --git a/include/ocfs2/ocfs2.h b/include/ocfs2/ocfs2.h
-index 3b54880..f4300e3 100644
---- a/include/ocfs2/ocfs2.h
-+++ b/include/ocfs2/ocfs2.h
-@@ -1346,6 +1346,13 @@ static inline int ocfs2_writes_unwritten_extents(struct ocfs2_super_block *osb)
- 	return 0;
- }
-
-+static inline int ocfs2_supports_append_dio(struct ocfs2_super_block *osb)
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/stat.h>
++#include <ctype.h>
++#include <inttypes.h>
++#include <assert.h>
++
++#include "ocfs2/ocfs2.h"
++
++#include "libocfs2ne.h"
++
++
++static int enable_append_dio(ocfs2_filesys *fs, int flags)
 +{
-+	if (osb->s_feature_ro_compat & OCFS2_FEATURE_RO_COMPAT_APPEND_DIO)
-+		return 1;
-+	return 0;
++	errcode_t ret = 0;
++	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
++	struct tools_progress *prog;
++
++	if (ocfs2_supports_append_dio(super)) {
++		verbosef(VL_APP,
++			 "Append direct io feature is already enabled; "
++			 "nothing to enable\n");
++		goto out;
++	}
++
++	if (!tools_interact("Enable the append direct io feature on "
++			    "device \"%s\"? ",
++			    fs->fs_devname))
++		goto out;
++
++	prog = tools_progress_start("Enable append direct io", "append-dio", 1);
++	if (!prog) {
++		ret = TUNEFS_ET_NO_MEMORY;
++		tcom_err(ret, "while initializing the progress display");
++		goto out;
++	}
++
++	OCFS2_SET_RO_COMPAT_FEATURE(super,
++				    OCFS2_FEATURE_RO_COMPAT_APPEND_DIO);
++	tunefs_block_signals();
++	ret = ocfs2_write_super(fs);
++	tunefs_unblock_signals();
++	if (ret)
++		tcom_err(ret, "while writing out the superblock");
++
++	tools_progress_step(prog, 1);
++	tools_progress_stop(prog);
++out:
++	return ret;
 +}
 +
- static inline int ocfs2_uses_extended_slot_map(struct ocfs2_super_block *osb)
- {
- 	if (osb->s_feature_incompat & OCFS2_FEATURE_INCOMPAT_EXTENDED_SLOT_MAP)
-diff --git a/libocfs2/feature_string.c b/libocfs2/feature_string.c
-index 544cc6e..97a4454 100644
---- a/libocfs2/feature_string.c
-+++ b/libocfs2/feature_string.c
-@@ -69,7 +69,8 @@ static ocfs2_fs_options feature_level_defaults[] = {
- 	 OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE |
- 	 OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS |
- 	 OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG,
--	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN},  /* OCFS2_FEATURE_LEVEL_DEFAULT */
-+	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN |
-+	 OCFS2_FEATURE_RO_COMPAT_APPEND_DIO},  /* OCFS2_FEATURE_LEVEL_DEFAULT */
++static int disable_append_dio(ocfs2_filesys *fs, int flags)
++{
++	errcode_t ret = 0;
++	struct ocfs2_super_block *super = OCFS2_RAW_SB(fs->fs_super);
++	struct tools_progress *prog = NULL;
++
++	if (!ocfs2_supports_append_dio(super)) {
++		verbosef(VL_APP,
++			 "Append direct io feature is not enabled; "
++			 "nothing to disable\n");
++		goto out;
++	}
++
++	if (!tools_interact("Disable the append direct io feature on "
++			    "device \"%s\"? ",
++			    fs->fs_devname))
++		goto out;
++
++	prog = tools_progress_start("Disabling append direct io", "noappend-dio", 0);
++	if (!prog) {
++		ret = TUNEFS_ET_NO_MEMORY;
++		tcom_err(ret, "while initializing the progress display");
++		goto out;
++	}
++
++	OCFS2_CLEAR_RO_COMPAT_FEATURE(super,
++				      OCFS2_FEATURE_RO_COMPAT_APPEND_DIO);
++	tunefs_block_signals();
++	ret = ocfs2_write_super(fs);
++	tunefs_unblock_signals();
++	if (ret)
++		tcom_err(ret, "while writing out the superblock");
++
++	tools_progress_step(prog, 1);
++
++out:
++	if (prog)
++		tools_progress_stop(prog);
++	return ret;
++}
++
++DEFINE_TUNEFS_FEATURE_RO_COMPAT(append_dio,
++				OCFS2_FEATURE_RO_COMPAT_APPEND_DIO,
++				TUNEFS_FLAG_RW | TUNEFS_FLAG_ONLINE,
++				enable_append_dio,
++				disable_append_dio);
++
++#ifdef DEBUG_EXE
++int main(int argc, char *argv[])
++{
++	return tunefs_feature_main(argc, argv, &append_dio_feature);
++}
++#endif
+diff --git a/tunefs.ocfs2/op_features.c b/tunefs.ocfs2/op_features.c
+index 20b65a5..b6235aa 100644
+--- a/tunefs.ocfs2/op_features.c
++++ b/tunefs.ocfs2/op_features.c
+@@ -47,6 +47,7 @@ extern struct tunefs_feature refcount_feature;
+ extern struct tunefs_feature indexed_dirs_feature;
+ extern struct tunefs_feature discontig_bg_feature;
+ extern struct tunefs_feature clusterinfo_feature;
++extern struct tunefs_feature append_dio_feature;
 
- 	{OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
- 	 0,
-@@ -86,7 +87,8 @@ static ocfs2_fs_options feature_level_defaults[] = {
- 	 OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG,
- 	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN |
- 	 OCFS2_FEATURE_RO_COMPAT_USRQUOTA |
--	 OCFS2_FEATURE_RO_COMPAT_GRPQUOTA }, /* OCFS2_FEATURE_LEVEL_MAX_FEATURES */
-+	 OCFS2_FEATURE_RO_COMPAT_GRPQUOTA |
-+	 OCFS2_FEATURE_RO_COMPAT_APPEND_DIO}, /* OCFS2_FEATURE_LEVEL_MAX_FEATURES */
+ /* List of features supported by ocfs2ne */
+ static struct tunefs_feature *features[] = {
+@@ -64,6 +65,7 @@ static struct tunefs_feature *features[] = {
+ 	&indexed_dirs_feature,
+ 	&discontig_bg_feature,
+ 	&clusterinfo_feature,
++	&append_dio_feature,
+ 	NULL,
  };
 
- static ocfs2_fs_options mkfstypes_features_defaults[] = {
-@@ -98,7 +100,8 @@ static ocfs2_fs_options mkfstypes_features_defaults[] = {
- 	 OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE |
- 	 OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS |
- 	 OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG,
--	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN},  /* OCFS2_MKFSTYPE_DEFAULT */
-+	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN |
-+	 OCFS2_FEATURE_RO_COMPAT_APPEND_DIO},  /* OCFS2_MKFSTYPE_DEFAULT */
-
- 	{OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
- 	 OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC |
-@@ -108,7 +111,8 @@ static ocfs2_fs_options mkfstypes_features_defaults[] = {
- 	 OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE |
- 	 OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS |
- 	 OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG,
--	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN},  /* OCFS2_MKFSTYPE_DATAFILES */
-+	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN |
-+	 OCFS2_FEATURE_RO_COMPAT_APPEND_DIO},  /* OCFS2_MKFSTYPE_DATAFILES */
-
- 	{OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
- 	 OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC |
-@@ -118,7 +122,8 @@ static ocfs2_fs_options mkfstypes_features_defaults[] = {
- 	 OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE |
- 	 OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS |
- 	 OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG,
--	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN},  /* OCFS2_MKFSTYPE_MAIL */
-+	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN |
-+	 OCFS2_FEATURE_RO_COMPAT_APPEND_DIO},  /* OCFS2_MKFSTYPE_MAIL */
-
- 	{OCFS2_FEATURE_COMPAT_BACKUP_SB | OCFS2_FEATURE_COMPAT_JBD2_SB,
- 	 OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC |
-@@ -128,7 +133,8 @@ static ocfs2_fs_options mkfstypes_features_defaults[] = {
- 	 OCFS2_FEATURE_INCOMPAT_REFCOUNT_TREE |
- 	 OCFS2_FEATURE_INCOMPAT_INDEXED_DIRS |
- 	 OCFS2_FEATURE_INCOMPAT_DISCONTIG_BG,
--	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN},  /* OCFS2_MKFSTYPE_VMSTORE */
-+	 OCFS2_FEATURE_RO_COMPAT_UNWRITTEN |
-+	 OCFS2_FEATURE_RO_COMPAT_APPEND_DIO},  /* OCFS2_MKFSTYPE_VMSTORE */
- };
-
- /* These are the features we support in mkfs/tunefs via --fs-features */
-@@ -205,6 +211,11 @@ static struct fs_feature_flags ocfs2_supported_features[] = {
- 		{0, OCFS2_FEATURE_INCOMPAT_CLUSTERINFO, 0},
- 	},
- 	{
-+		"append-dio",
-+		{0, 0, OCFS2_FEATURE_RO_COMPAT_APPEND_DIO},
-+		{0, 0, OCFS2_FEATURE_RO_COMPAT_APPEND_DIO},
-+	},
-+	{
- 		NULL,
- 		{0, 0, 0},
- 		{0, 0, 0}
-@@ -296,6 +307,10 @@ static struct feature_name ocfs2_feature_names[] = {
- 		.fn_flag = {0, OCFS2_FEATURE_INCOMPAT_CLUSTERINFO, 0},
- 	},
- 	{
-+		.fn_name = "append-dio",
-+		.fn_flag = {0, 0, OCFS2_FEATURE_RO_COMPAT_APPEND_DIO},
-+	},
-+	{
- 		.fn_name = NULL,
- 	},
- };
 -- 
 1.8.4.3
