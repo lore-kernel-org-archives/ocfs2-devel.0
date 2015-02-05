@@ -1,85 +1,40 @@
-From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 04 Feb 2015 16:00:55 -0800
-Subject: [Ocfs2-devel] [patch 4/4] ocfs2: avoid access invalid address when
- read o2dlm debug messages
-Message-ID: <54d2b2b7.i03Jy8SMt1c1OpMs%akpm@linux-foundation.org>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Thu, 5 Feb 2015 08:43:47 +0800
+Subject: [Ocfs2-devel] ocfs2 patch review for 3.19
+In-Reply-To: <20150204160024.3bfdfa2ecc067c1760f5fdd2@linux-foundation.org>
+References: <20150204160024.3bfdfa2ecc067c1760f5fdd2@linux-foundation.org>
+Message-ID: <54D2BCC3.8070109@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: jiangyiwen <jiangyiwen@huawei.com>
-Subject: ocfs2: avoid access invalid address when read o2dlm debug messages
+Hi Andrew,
 
-The following case will lead to a lockres is freed but is still in use.
+On 2015/2/5 8:00, Andrew Morton wrote:
+> 
+> Thsi time I have only four patches which I consider need expert review,
+> please.
+> 
+> ocfs2-prune-the-dcache-before-deleting-the-dentry-of-directory.patch
+> 
+> o2dlm-fix-null-pointer-dereference-in-o2dlm_blocking_ast_wrapper.patch
+> (Joseph Qi had issues)
+Srini has already explained the difference with the old version.
+I have no issue with this patch now:)
 
-cat /sys/kernel/debug/o2dlm/locking_state	dlm_thread
-lockres_seq_start
-    -> lock dlm->track_lock
-    -> get resA
-                                                resA->refs decrease to 0,
-                                                call dlm_lockres_release,
-                                                and wait for "cat" unlock.
-Although resA->refs is already set to 0,
-increase resA->refs, and then unlock
-                                                lock dlm->track_lock
-                                                    -> list_del_init()
-                                                    -> unlock
-                                                    -> free resA
-
-In such a race case, invalid address access may occurs.  So we should
-delete list res->tracking before resA->refs decrease to 0.
-
-
-Signed-off-by: jiangyiwen <jiangyiwen@huawei.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/dlm/dlmmaster.c |   10 ----------
- fs/ocfs2/dlm/dlmthread.c |   10 ++++++++++
- 2 files changed, 10 insertions(+), 10 deletions(-)
-
-diff -puN fs/ocfs2/dlm/dlmmaster.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages fs/ocfs2/dlm/dlmmaster.c
---- a/fs/ocfs2/dlm/dlmmaster.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages
-+++ a/fs/ocfs2/dlm/dlmmaster.c
-@@ -498,16 +498,6 @@ static void dlm_lockres_release(struct k
- 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
- 	     res->lockname.name);
- 
--	spin_lock(&dlm->track_lock);
--	if (!list_empty(&res->tracking))
--		list_del_init(&res->tracking);
--	else {
--		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
--		     res->lockname.len, res->lockname.name);
--		dlm_print_one_lock_resource(res);
--	}
--	spin_unlock(&dlm->track_lock);
--
- 	atomic_dec(&dlm->res_cur_count);
- 
- 	if (!hlist_unhashed(&res->hash_node) ||
-diff -puN fs/ocfs2/dlm/dlmthread.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages fs/ocfs2/dlm/dlmthread.c
---- a/fs/ocfs2/dlm/dlmthread.c~ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages
-+++ a/fs/ocfs2/dlm/dlmthread.c
-@@ -211,6 +211,16 @@ static void dlm_purge_lockres(struct dlm
- 
- 	__dlm_unhash_lockres(dlm, res);
- 
-+	spin_lock(&dlm->track_lock);
-+	if (!list_empty(&res->tracking))
-+		list_del_init(&res->tracking);
-+	else {
-+		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
-+				res->lockname.len, res->lockname.name);
-+		__dlm_print_one_lock_resource(res);
-+	}
-+	spin_unlock(&dlm->track_lock);
-+
- 	/* lockres is not in the hash now.  drop the flag and wake up
- 	 * any processes waiting in dlm_get_lock_resource. */
- 	if (!master) {
-_
+Joseph
+> 
+> ocfs2-call-ocfs2_journal_access_di-before-ocfs2_journal_dirty-in-ocfs2_write_end_nolock.patch
+> (Mark has list of things which need doing)
+> 
+> ocfs2-avoid-access-invalid-address-when-read-o2dlm-debug-messages.patch
+> (Mark has issues with it)
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+> 
