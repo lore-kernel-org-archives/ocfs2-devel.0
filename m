@@ -1,80 +1,103 @@
-From: zren <zren@suse.com>
-Date: Mon, 09 Feb 2015 11:39:32 +0800
-Subject: [Ocfs2-devel] ocfs2-tools.git is moving, ocfs2 web site plans
-In-Reply-To: <20150206210203.GI21790@wotan.suse.de>
-References: <20150206210203.GI21790@wotan.suse.de>
-Message-ID: <54D82BF4.5040408@suse.com>
+From: jiangyiwen <jiangyiwen@huawei.com>
+Date: Mon, 9 Feb 2015 11:59:22 +0800
+Subject: [Ocfs2-devel] [PATCH V3]ocfs2: Avoid access invalid address when
+ read o2dlm debug messages.
+Message-ID: <54D8309A.3050405@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark and all,
-I am wondering whether this plan will also cover ocfs2-test project.
+The following case will lead to a lockres is freed but is still in use.
 
-I noticed that ocfs2-test on oss.oracle.com has not any update since 
-2012-03-15.
-However,there are two branches on github I found which have some 
-updates. They are:
-1. pibroch/ocfs2-test: https://github.com/pibroch/ocfs2-test and
-2. goldwynr/ocfs2-test: https://github.com/goldwynr/ocfs2-test/tree/suse.
+cat /sys/kernel/debug/o2dlm/locking_state	dlm_thread
+lockres_seq_start
+    -> lock dlm->track_lock
+    -> get resA
+                                                resA->refs decrease to 0,
+                                                call dlm_lockres_release,
+                                                and wait for "cat" unlock.
+Although resA->refs is already set to 0,
+increase resA->refs, and then unlock
+                                                lock dlm->track_lock
+                                                    -> list_del_init()
+                                                    -> unlock
+                                                    -> free resA
 
-Any information about this issue is appreciated.
+In such a race case, invalid address access may occurs.
+So we should delete list res->tracking before resA->refs decrease to 0.
 
-Thanks,
-         -- zhen
-On 2015?02?07? 05:02, Mark Fasheh wrote:
-> Hi all,
->
-> I used to have commit access to ocfs2-tools.git but legitimate
-> security concerns at Oracle have no longer made that possible. Moving
-> forward, I will host the official ocfs2-tools.git in my github:
->
-> https://github.com/markfasheh/ocfs2-tools
->
-> I started with a mirror of what's on oss.oracle.com. Both Srini and Goldwyn
-> have commit access to the repo. The way we commit should not change -
-> patches need to have at least one reviewed-by (as well as a sign-off). If
-> anyone feels strongly that they should also have commit access, let me know.
->
-> I will send a patch to update our kernel documentation regarding the
-> location of ocfs2-tools.git shortly.
->
-> The other issue I wanted to discuss was the 'official' ocfs2 web
-> page. By 'official', I mean the page we refer users to in our kernel
-> documentation. Right now it's http://oss.oracle.com/projects/ocfs2
-> which is somewhat Oracle specific, but more importantly has the same
-> restrictions as the git tree (I or other interested parties can no
-> longer edit it).
->
-> I'm looking into securing ourselves a new 'official' page, which can give a
-> description of Ocfs2 and also link to any Oracle or SUSE pages, so their
-> users know where to go. Again I don't envision anything at SUSE or Oracle
-> has to change here, just that if someone opens up linux-2.6.git/fs/ocfs2.txt
-> it points them somewhere common to all Ocfs2 development (and we can branch
-> out from there). Also, in the future it would be nice if we put design docs
-> on an official site.
->
-> Right now I'm hoping I can get ocfs2.wiki.kernel.org going, otherwise I
-> could always put it in another github project (or the ocfs2-tools project).
-> If anyone has suggestions, please let me know. Also if anyone could help
-> with any web/wiki for the project, also let me know. Both wiki.kernel.org
-> and github wikis allow multiple collaborators.
->
-> Thanks,
->      --Mark
->
-> --
-> Mark Fasheh
->
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->
+Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
 
+---
+ dlm/dlmmaster.c | 23 ++++++++++++-----------
+ dlm/dlmthread.c | 10 ++++++++++
+ 2 files changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/dlm/dlmmaster.c b/dlm/dlmmaster.c
+index a6944b2..52c1a14 100644
+--- a/dlm/dlmmaster.c
++++ b/dlm/dlmmaster.c
+@@ -498,16 +498,6 @@ static void dlm_lockres_release(struct kref *kref)
+ 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
+ 	     res->lockname.name);
+
+-	spin_lock(&dlm->track_lock);
+-	if (!list_empty(&res->tracking))
+-		list_del_init(&res->tracking);
+-	else {
+-		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
+-		     res->lockname.len, res->lockname.name);
+-		dlm_print_one_lock_resource(res);
+-	}
+-	spin_unlock(&dlm->track_lock);
+-
+ 	atomic_dec(&dlm->res_cur_count);
+
+ 	if (!hlist_unhashed(&res->hash_node) ||
+@@ -782,8 +772,19 @@ lookup:
+ 		dlm_lockres_grab_inflight_ref(dlm, tmpres);
+
+ 		spin_unlock(&tmpres->spinlock);
+-		if (res)
++		if (res) {
++			spin_lock(&dlm->track_lock);
++			if (!list_empty(&res->tracking))
++				list_del_init(&res->tracking);
++			else {
++				mlog(ML_ERROR, "Resource %.*s not "
++						"on the Tracking list\n",
++						res->lockname.len,
++						res->lockname.name);
++			}
++			spin_unlock(&dlm->track_lock);
+ 			dlm_lockres_put(res);
++		}
+ 		res = tmpres;
+ 		goto leave;
+ 	}
+diff --git a/dlm/dlmthread.c b/dlm/dlmthread.c
+index 69aac6f..2e5e6d5 100644
+--- a/dlm/dlmthread.c
++++ b/dlm/dlmthread.c
+@@ -211,6 +211,16 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
+
+ 	__dlm_unhash_lockres(dlm, res);
+
++	spin_lock(&dlm->track_lock);
++	if (!list_empty(&res->tracking))
++		list_del_init(&res->tracking);
++	else {
++		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
++				res->lockname.len, res->lockname.name);
++		__dlm_print_one_lock_resource(res);
++	}
++	spin_unlock(&dlm->track_lock);
++
+ 	/* lockres is not in the hash now.  drop the flag and wake up
+ 	 * any processes waiting in dlm_get_lock_resource. */
+ 	if (!master) {
 -- 
-Regards,
-Zhen, Ren
-HA team, SUSE
+1.8.3.4
