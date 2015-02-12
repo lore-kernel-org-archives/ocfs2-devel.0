@@ -1,103 +1,36 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Mon, 9 Feb 2015 11:59:22 +0800
-Subject: [Ocfs2-devel] [PATCH V3]ocfs2: Avoid access invalid address when
- read o2dlm debug messages.
-Message-ID: <54D8309A.3050405@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Thu, 12 Feb 2015 15:26:25 -0800
+Subject: [Ocfs2-devel] ocfs2-tools.git is moving, ocfs2 web site plans
+In-Reply-To: <54D82BF4.5040408@suse.com>
+References: <20150206210203.GI21790@wotan.suse.de> <54D82BF4.5040408@suse.com>
+Message-ID: <20150212232625.GP21790@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following case will lead to a lockres is freed but is still in use.
+On Mon, Feb 09, 2015 at 11:39:32AM +0800, zren wrote:
+> Hi Mark and all,
+> I am wondering whether this plan will also cover ocfs2-test project.
 
-cat /sys/kernel/debug/o2dlm/locking_state	dlm_thread
-lockres_seq_start
-    -> lock dlm->track_lock
-    -> get resA
-                                                resA->refs decrease to 0,
-                                                call dlm_lockres_release,
-                                                and wait for "cat" unlock.
-Although resA->refs is already set to 0,
-increase resA->refs, and then unlock
-                                                lock dlm->track_lock
-                                                    -> list_del_init()
-                                                    -> unlock
-                                                    -> free resA
+No, I kind of left it out because I forgot!
 
-In such a race case, invalid address access may occurs.
-So we should delete list res->tracking before resA->refs decrease to 0.
 
-Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+> I noticed that ocfs2-test on oss.oracle.com has not any update since 
+> 2012-03-15.
+> However,there are two branches on github I found which have some 
+> updates. They are:
+> 1. pibroch/ocfs2-test: https://github.com/pibroch/ocfs2-test and
+> 2. goldwynr/ocfs2-test: https://github.com/goldwynr/ocfs2-test/tree/suse.
+> 
+> Any information about this issue is appreciated.
 
----
- dlm/dlmmaster.c | 23 ++++++++++++-----------
- dlm/dlmthread.c | 10 ++++++++++
- 2 files changed, 22 insertions(+), 11 deletions(-)
+I'll take a look at the branches to see what's different. I'll go ahead nad
+mirror the repository on my github. If everyone would rather do development
+there, then I can help out with review, etc. Generally though ocfs2-test is
+getting even fewer updates these days than ocfs2-tools.
+	--Mark
 
-diff --git a/dlm/dlmmaster.c b/dlm/dlmmaster.c
-index a6944b2..52c1a14 100644
---- a/dlm/dlmmaster.c
-+++ b/dlm/dlmmaster.c
-@@ -498,16 +498,6 @@ static void dlm_lockres_release(struct kref *kref)
- 	mlog(0, "destroying lockres %.*s\n", res->lockname.len,
- 	     res->lockname.name);
-
--	spin_lock(&dlm->track_lock);
--	if (!list_empty(&res->tracking))
--		list_del_init(&res->tracking);
--	else {
--		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
--		     res->lockname.len, res->lockname.name);
--		dlm_print_one_lock_resource(res);
--	}
--	spin_unlock(&dlm->track_lock);
--
- 	atomic_dec(&dlm->res_cur_count);
-
- 	if (!hlist_unhashed(&res->hash_node) ||
-@@ -782,8 +772,19 @@ lookup:
- 		dlm_lockres_grab_inflight_ref(dlm, tmpres);
-
- 		spin_unlock(&tmpres->spinlock);
--		if (res)
-+		if (res) {
-+			spin_lock(&dlm->track_lock);
-+			if (!list_empty(&res->tracking))
-+				list_del_init(&res->tracking);
-+			else {
-+				mlog(ML_ERROR, "Resource %.*s not "
-+						"on the Tracking list\n",
-+						res->lockname.len,
-+						res->lockname.name);
-+			}
-+			spin_unlock(&dlm->track_lock);
- 			dlm_lockres_put(res);
-+		}
- 		res = tmpres;
- 		goto leave;
- 	}
-diff --git a/dlm/dlmthread.c b/dlm/dlmthread.c
-index 69aac6f..2e5e6d5 100644
---- a/dlm/dlmthread.c
-+++ b/dlm/dlmthread.c
-@@ -211,6 +211,16 @@ static void dlm_purge_lockres(struct dlm_ctxt *dlm,
-
- 	__dlm_unhash_lockres(dlm, res);
-
-+	spin_lock(&dlm->track_lock);
-+	if (!list_empty(&res->tracking))
-+		list_del_init(&res->tracking);
-+	else {
-+		mlog(ML_ERROR, "Resource %.*s not on the Tracking list\n",
-+				res->lockname.len, res->lockname.name);
-+		__dlm_print_one_lock_resource(res);
-+	}
-+	spin_unlock(&dlm->track_lock);
-+
- 	/* lockres is not in the hash now.  drop the flag and wake up
- 	 * any processes waiting in dlm_get_lock_resource. */
- 	if (!master) {
--- 
-1.8.3.4
+--
+Mark Fasheh
