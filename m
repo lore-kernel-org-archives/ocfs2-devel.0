@@ -1,53 +1,76 @@
-From: Gang He <ghe@suse.com>
-Date: Thu, 12 Feb 2015 19:13:52 -0700
-Subject: [Ocfs2-devel] ocfs2-tools.git is moving, ocfs2 web site plans
-In-Reply-To: <20150212232625.GP21790@wotan.suse.de>
-References: <20150206210203.GI21790@wotan.suse.de>
-	<54D82BF4.5040408@suse.com> <20150212232625.GP21790@wotan.suse.de>
-Message-ID: <54DDCE60020000F9000027E3@relay2.provo.novell.com>
+From: Guozhonghua <guozhonghua@h3c.com>
+Date: Fri, 13 Feb 2015 08:39:14 +0000
+Subject: [Ocfs2-devel] Read only issue,
+ any other ideas aout it will be appreciated, Thanks a lot.
+Message-ID: <71604351584F6A4EBAE558C676F37CA4696AC5F8@H3CMLB14-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
+Hi All,
+
+As we test with OCFS2, sometime the file system become read only. The log is bellows.
+We had review the code and try to find the reason, but did not find any ways to avoid this issue.
+All the nodes in the cluster reach the read only file system finally.
+
+Feb 12 15:38:30 node01 kernel: [173109.179478] OCFS2: ERROR (device dm-1): ocfs2_commit_truncate: Inode 8918280 has empty extent block at 8918280
+Feb 12 15:38:30 node01 kernel: [173109.179478]
+Feb 12 15:38:30 node01 kernel: [173109.179493] File system is now read-only due to the potential of on-disk corruption. Please run fsck.ocfs2 once the file system is unmounted.
+Feb 12 15:38:30 node01 kernel: [173109.232387] (libvirtd,7367,11):ocfs2_truncate_for_delete:574 ERROR: status = -30
+Feb 12 15:38:30 node01 kernel: [173109.232401] (libvirtd,7367,11):ocfs2_wipe_inode:743 ERROR: status = -30
+Feb 12 15:38:30 node01 kernel: [173109.232408] (libvirtd,7367,11):ocfs2_delete_inode:1022 ERROR: status = -30
 
 
->>> 
-> On Mon, Feb 09, 2015 at 11:39:32AM +0800, zren wrote:
->> Hi Mark and all,
->> I am wondering whether this plan will also cover ocfs2-test project.
-> 
-> No, I kind of left it out because I forgot!
-> 
-> 
->> I noticed that ocfs2-test on oss.oracle.com has not any update since 
->> 2012-03-15.
->> However,there are two branches on github I found which have some 
->> updates. They are:
->> 1. pibroch/ocfs2-test: https://github.com/pibroch/ocfs2-test and
->> 2. goldwynr/ocfs2-test: https://github.com/goldwynr/ocfs2-test/tree/suse.
->> 
->> Any information about this issue is appreciated.
-> 
-> I'll take a look at the branches to see what's different. I'll go ahead nad
-> mirror the repository on my github. If everyone would rather do development
-> there, then I can help out with review, etc. Generally though ocfs2-test is
-> getting even fewer updates these days than ocfs2-tools.
-> 	--Mark
->
-Thank for your response, for SuSe distribution, in the past days it always uses the source code from goldwynr/ocfs2-test: https://github.com/goldwynr/ocfs2-test/tree/suse.
-but now, Goldwyn will take most efforts in other projects, Zhen and I will take it from him for adding some fixes, to let the whole test cases run under OpenSuSe13.2 with ocfs2-tools v1.8.3.
-we forked Goldwyn's branch to https://github.com/ganghe/ocfs2-test, if you have time for review, you can look at the change logs. Or, you can fork the branch from Goldwyn, then we pull the changes to you.
-Thanks
-Gang
+We had use the command of "fsck.ocfs -fpy" to repair the file system.
+The repair procedures log is as below, there are some error about the inode data:
+fsck.ocfs2 1.6.3
+Checking OCFS2 filesystem in /dev/dm-1:
+  Label:              o20140820105531
+  UUID:               F1AAAC6C765D480F9052946392C6527A
+  Number of blocks:   2621440000
+  Block size:         4096
+  Number of clusters: 10240000
+  Cluster size:       1048576
+  Number of slots:    32
 
- 
-> --
-> Mark Fasheh
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+/dev/dm-1 was run with -f, check forced.
+Pass 0a: Checking cluster allocation chains
+[CHAIN_BITS] Chain 60 in allocator inode 519 has 36784 bits marked free out of 64512 total bits but the block groups in the chain have 36762 free out of 64512 total.  Fix this by updating the chain record? y
+[CHAIN_GROUP_BITS] Allocator inode 519 has 2071620 bits marked used out of 10240000 total bits but the chains have 2071642 used out of 10240000 total.  Fix this by updating the inode counts? y
+Pass 0b: Checking inode allocation chains
+Pass 0c: Checking extent block allocation chains
+^[Pass 1: Checking inodes and blocks.
+[INODE_SPARSE_CLUSTERS] Inode 8918280 has 4294967286 clusters but its blocks fit in 0 clusters. Correct the number of clusters? y
+Pass 2: Checking directory entries.
+Pass 3: Checking directory connectivity.
+Pass 4a: checking for orphaned inodes
+[INODE_ORPHANED] Inode 8918280 was found in the orphan directory. Delete its contents and unlink it? y
+Pass 4b: Checking inodes link counts.
+[INODE_NOT_CONNECTED] Inode 8918281 isn't referenced by any directory entries.  Move it to lost+found? y
+[INODE_NOT_CONNECTED] Inode 8918282 isn't referenced by any directory entries.  Move it to lost+found? y
+All passes succeeded.
+
+We are using Linux kernel with version 3.13.
+Is there any way to fix it? Or any other patches?
+
+Thanks a lot.
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150213/62f129cd/attachment.html 
