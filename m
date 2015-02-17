@@ -1,44 +1,75 @@
-From: Daeseok Youn <daeseok.youn@gmail.com>
-Date: Tue, 17 Feb 2015 16:14:24 +0900
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2: remove unneeded 'rc' for kfree()
-Message-ID: <20150217071424.GA9582@devel.8.8.4.4>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Tue, 17 Feb 2015 12:53:26 -0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: update web page + git tree in
+	documentation
+Message-ID: <20150217205326.GU21790@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, akpm@linux-foundation.org
-Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: akpm@linux-foundation.org, jlbec@evilplan.org, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-If kzalloc() is failed, just goto 'out' label and
-'out_free' label doesn't need to check 'rc' variable.
+We (the Ocfs2 project) recently moved the location of our ocfs2-tools git
+tree and project web page. The pertinent discussion can be seen here:
 
-Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
+https://oss.oracle.com/pipermail/ocfs2-devel/2015-February/010579.html
+
+The following patch updates the Ocfs2 documentation in MAINTAINERS,
+ocfs2.txt, and dlmfs.txt. I added our new official web page, changed the
+location of our tools git tree and removed the link to Joel's ancient kernel
+git tree - Andrew has handled our patches for a while now.
+
+Signed-off-by: Mark Fasheh <mfasheh@suse.de>
 ---
- fs/ocfs2/stack_o2cb.c |    5 ++---
- 1 files changed, 2 insertions(+), 3 deletions(-)
+ Documentation/filesystems/dlmfs.txt | 4 ++--
+ Documentation/filesystems/ocfs2.txt | 4 ++--
+ MAINTAINERS                         | 3 +--
+ 3 files changed, 5 insertions(+), 6 deletions(-)
 
-diff --git a/fs/ocfs2/stack_o2cb.c b/fs/ocfs2/stack_o2cb.c
-index 813d726..46ab104 100644
---- a/fs/ocfs2/stack_o2cb.c
-+++ b/fs/ocfs2/stack_o2cb.c
-@@ -347,7 +347,7 @@ static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
- 	priv = kzalloc(sizeof(struct o2dlm_private), GFP_KERNEL);
- 	if (!priv) {
- 		rc = -ENOMEM;
--		goto out_free;
-+		goto out;
- 	}
+diff --git a/Documentation/filesystems/dlmfs.txt b/Documentation/filesystems/dlmfs.txt
+index 1b528b2..fcf4d50 100644
+--- a/Documentation/filesystems/dlmfs.txt
++++ b/Documentation/filesystems/dlmfs.txt
+@@ -5,8 +5,8 @@ system.
  
- 	/* This just fills the structure in.  It is safe to pass conn. */
-@@ -376,8 +376,7 @@ static int o2cb_cluster_connect(struct ocfs2_cluster_connection *conn)
- 	dlm_register_eviction_cb(dlm, &priv->op_eviction_cb);
+ dlmfs is built with OCFS2 as it requires most of its infrastructure.
  
- out_free:
--	if (rc)
--		kfree(conn->cc_private);
-+	kfree(conn->cc_private);
+-Project web page:    http://oss.oracle.com/projects/ocfs2
+-Tools web page:      http://oss.oracle.com/projects/ocfs2-tools
++Project web page:    http://ocfs2.wiki.kernel.org
++Tools web page:      https://github.com/markfasheh/ocfs2-tools
+ OCFS2 mailing lists: http://oss.oracle.com/projects/ocfs2/mailman/
  
- out:
- 	return rc;
+ All code copyright 2005 Oracle except when otherwise noted.
+diff --git a/Documentation/filesystems/ocfs2.txt b/Documentation/filesystems/ocfs2.txt
+index 28f8c08..4c49e54 100644
+--- a/Documentation/filesystems/ocfs2.txt
++++ b/Documentation/filesystems/ocfs2.txt
+@@ -8,8 +8,8 @@ also make it attractive for non-clustered use.
+ You'll want to install the ocfs2-tools package in order to at least
+ get "mount.ocfs2" and "ocfs2_hb_ctl".
+ 
+-Project web page:    http://oss.oracle.com/projects/ocfs2
+-Tools web page:      http://oss.oracle.com/projects/ocfs2-tools
++Project web page:    http://ocfs2.wiki.kernel.org
++Tools git tree:      https://github.com/markfasheh/ocfs2-tools
+ OCFS2 mailing lists: http://oss.oracle.com/projects/ocfs2/mailman/
+ 
+ All code copyright 2005 Oracle except when otherwise noted.
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 85024e2..dc63a8e 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -7201,8 +7201,7 @@ ORACLE CLUSTER FILESYSTEM 2 (OCFS2)
+ M:	Mark Fasheh <mfasheh@suse.com>
+ M:	Joel Becker <jlbec@evilplan.org>
+ L:	ocfs2-devel at oss.oracle.com (moderated for non-subscribers)
+-W:	http://oss.oracle.com/projects/ocfs2/
+-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/jlbec/ocfs2.git
++W:	http://ocfs2.wiki.kernel.org
+ S:	Supported
+ F:	Documentation/filesystems/ocfs2.txt
+ F:	Documentation/filesystems/dlmfs.txt
 -- 
-1.7.1
+2.1.2
