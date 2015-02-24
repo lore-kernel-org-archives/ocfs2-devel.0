@@ -1,8 +1,8 @@
 From: Daeseok Youn <daeseok.youn@gmail.com>
-Date: Mon, 23 Feb 2015 19:39:11 +0900
-Subject: [Ocfs2-devel] [PATCH 3/3] ocfs2: need to handle error for
- ocfs2_journal_access_di() call
-Message-ID: <20150223103911.GA16889@devel.8.8.4.4>
+Date: Tue, 24 Feb 2015 19:25:49 +0900
+Subject: [Ocfs2-devel] [PATCH] ocfs2: remove goto statement in
+	ocfs2_check_dir_for_entry()
+Message-ID: <20150224102548.GA3371@devel.8.8.4.4>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,38 +10,42 @@ Content-Transfer-Encoding: 7bit
 To: mfasheh@suse.com, akpm@linux-foundation.org
 Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-There is no error handle when ocfs2_journal_access_di() is failed.
-And also it doesn't need to call ocfs2_dx_dir_insert() when
-ocfs2_journal_access_db() is failed.
-
 Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
 ---
- fs/ocfs2/dir.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ fs/ocfs2/dir.c |   13 +++++--------
+ 1 files changed, 5 insertions(+), 8 deletions(-)
 
 diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index c1ab24f..c63f2b6 100644
+index c63f2b6..b3ab2a6 100644
 --- a/fs/ocfs2/dir.c
 +++ b/fs/ocfs2/dir.c
-@@ -1703,15 +1703,15 @@ int __ocfs2_add_entry(handle_t *handle,
- 								 insert_bh,
- 					      OCFS2_JOURNAL_ACCESS_WRITE);
+@@ -2043,22 +2043,19 @@ int ocfs2_check_dir_for_entry(struct inode *dir,
+ 			      const char *name,
+ 			      int namelen)
+ {
+-	int ret;
++	int ret = 0;
+ 	struct ocfs2_dir_lookup_result lookup = { NULL, };
  
--				if (ocfs2_dir_indexed(dir)) {
-+				if (!retval && ocfs2_dir_indexed(dir))
- 					retval = ocfs2_dx_dir_insert(dir,
- 								handle,
- 								lookup);
--					if (retval)
--						goto bail;
--				}
- 			}
+ 	trace_ocfs2_check_dir_for_entry(
+ 		(unsigned long long)OCFS2_I(dir)->ip_blkno, namelen, name);
  
-+			if (retval)
-+				goto bail;
-+
- 			/* By now the buffer is marked for journaling */
- 			offset += le16_to_cpu(de->rec_len);
- 			if (le64_to_cpu(de->inode)) {
+-	ret = -EEXIST;
+-	if (ocfs2_find_entry(name, namelen, dir, &lookup) == 0)
+-		goto bail;
++	if (ocfs2_find_entry(name, namelen, dir, &lookup) == 0) {
++		ret = -EEXIST;
++		mlog_errno(ret);
++	}
+ 
+-	ret = 0;
+-bail:
+ 	ocfs2_free_dir_lookup_result(&lookup);
+ 
+-	if (ret)
+-		mlog_errno(ret);
+ 	return ret;
+ }
+ 
 -- 
 1.7.1
