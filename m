@@ -1,51 +1,34 @@
-From: Daeseok Youn <daeseok.youn@gmail.com>
-Date: Tue, 24 Feb 2015 19:25:49 +0900
-Subject: [Ocfs2-devel] [PATCH] ocfs2: remove goto statement in
-	ocfs2_check_dir_for_entry()
-Message-ID: <20150224102548.GA3371@devel.8.8.4.4>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 25 Feb 2015 17:28:14 +0800
+Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: fix a typing error in
+	ocfs2_direct_IO_write
+Message-ID: <54ED95AE.2060601@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, akpm@linux-foundation.org
-Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
+Only when direct IO succeeds we need consider zeroing out in case of
+cluster not aligned.
+
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 ---
- fs/ocfs2/dir.c |   13 +++++--------
- 1 files changed, 5 insertions(+), 8 deletions(-)
+ fs/ocfs2/aops.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index c63f2b6..b3ab2a6 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -2043,22 +2043,19 @@ int ocfs2_check_dir_for_entry(struct inode *dir,
- 			      const char *name,
- 			      int namelen)
- {
--	int ret;
-+	int ret = 0;
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 
- 	trace_ocfs2_check_dir_for_entry(
- 		(unsigned long long)OCFS2_I(dir)->ip_blkno, namelen, name);
- 
--	ret = -EEXIST;
--	if (ocfs2_find_entry(name, namelen, dir, &lookup) == 0)
--		goto bail;
-+	if (ocfs2_find_entry(name, namelen, dir, &lookup) == 0) {
-+		ret = -EEXIST;
-+		mlog_errno(ret);
-+	}
- 
--	ret = 0;
--bail:
- 	ocfs2_free_dir_lookup_result(&lookup);
- 
--	if (ret)
--		mlog_errno(ret);
- 	return ret;
- }
- 
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 44db180..0c2848a 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -771,7 +771,7 @@ static ssize_t ocfs2_direct_IO_write(struct kiocb *iocb,
+ 			if (ret < 0)
+ 				mlog_errno(ret);
+ 		}
+-	} else if (written < 0 && append_write && !is_overwrite &&
++	} else if (written > 0 && append_write && !is_overwrite &&
+ 			!cluster_align) {
+ 		u32 p_cpos = 0;
+ 		u32 v_cpos = ocfs2_bytes_to_clusters(osb->sb, offset);
 -- 
-1.7.1
+1.8.4.3
