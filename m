@@ -1,27 +1,72 @@
-From: Richard Weinberger <richard.weinberger@gmail.com>
-Date: Fri, 27 Feb 2015 10:41:15 +0100
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: remove unneeded variable
-	'status'
-In-Reply-To: <CAHb8M2BBVnZFWM0RyKfy3wein=PWXnHrEwdwTfOLVahX_P_uPw@mail.gmail.com>
-References: <20150223103810.GA16869@devel.8.8.4.4>
-	<20150226133329.8a80c302d3ec014a2b0d58ff@linux-foundation.org>
-	<CAHb8M2BBVnZFWM0RyKfy3wein=PWXnHrEwdwTfOLVahX_P_uPw@mail.gmail.com>
-Message-ID: <CAFLxGvyH-yLWRzDGH8iEiWDvggxskYDFsraS84wgwRjLLkhtsw@mail.gmail.com>
+From: Daeseok Youn <daeseok.youn@gmail.com>
+Date: Sat, 28 Feb 2015 08:48:40 +0900
+Subject: [Ocfs2-devel] [PATCH 1/4 V2] ocfs2: use retval instead of status
+	for checking error
+Message-ID: <20150227234840.GA12922@devel.8.8.4.4>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: DaeSeok Youn <daeseok.youn@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, mfasheh@suse.com, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, linux-kernel <linux-kernel@vger.kernel.org>
+To: mfasheh@suse.com, akpm@linux-foundation.org
+Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, richard.weinberger@gmail.com
 
-On Fri, Feb 27, 2015 at 10:27 AM, DaeSeok Youn <daeseok.youn@gmail.com> wrote:
-> Hi,
->
-> I think this patch was already queued. Can I send this patch again
-> after update changelog?
+The use of 'status' in __ocfs2_add_entry() can return wrong
+status when some functions are failed.
 
-One thing that is much more important, how did you test this patch? Did you?
+If ocfs2_journal_access_db() in __ocfs2_add_entry() is failed,
+that status is saved to 'status' but return variable is 'retval'
+which is saved 'success' status. In case of this,  __ocfs2_add_entry()
+is failed but can be returned as 'success'.
 
+So replace 'status' with 'retval'.
+
+Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
+---
+V2 : update changelog
+
+ fs/ocfs2/dir.c |   12 ++++++------
+ 1 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index b08050b..1478a50 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -1617,7 +1617,7 @@ int __ocfs2_add_entry(handle_t *handle,
+ 	struct ocfs2_dir_entry *de, *de1;
+ 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)parent_fe_bh->b_data;
+ 	struct super_block *sb = dir->i_sb;
+-	int retval, status;
++	int retval;
+ 	unsigned int size = sb->s_blocksize;
+ 	struct buffer_head *insert_bh = lookup->dl_leaf_bh;
+ 	char *data_start = insert_bh->b_data;
+@@ -1695,22 +1695,22 @@ int __ocfs2_add_entry(handle_t *handle,
+ 			}
+ 
+ 			if (insert_bh == parent_fe_bh)
+-				status = ocfs2_journal_access_di(handle,
++				retval = ocfs2_journal_access_di(handle,
+ 								 INODE_CACHE(dir),
+ 								 insert_bh,
+ 								 OCFS2_JOURNAL_ACCESS_WRITE);
+ 			else {
+-				status = ocfs2_journal_access_db(handle,
++				retval = ocfs2_journal_access_db(handle,
+ 								 INODE_CACHE(dir),
+ 								 insert_bh,
+ 					      OCFS2_JOURNAL_ACCESS_WRITE);
+ 
+ 				if (ocfs2_dir_indexed(dir)) {
+-					status = ocfs2_dx_dir_insert(dir,
++					retval = ocfs2_dx_dir_insert(dir,
+ 								handle,
+ 								lookup);
+-					if (status) {
+-						mlog_errno(status);
++					if (retval) {
++						mlog_errno(retval);
+ 						goto bail;
+ 					}
+ 				}
 -- 
-Thanks,
-//richard
+1.7.1
