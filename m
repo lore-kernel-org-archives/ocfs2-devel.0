@@ -1,53 +1,35 @@
-From: Daeseok Youn <daeseok.youn@gmail.com>
-Date: Sat, 28 Feb 2015 08:53:29 +0900
-Subject: [Ocfs2-devel] [PATCH 4/4 RESEND] ocfs2: remove goto statement in
- ocfs2_check_dir_for_entry()
-Message-ID: <20150227235329.GA12979@devel.8.8.4.4>
+From: Richard Weinberger <richard@nod.at>
+Date: Sat, 28 Feb 2015 07:55:19 +0100
+Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: remove unneeded variable
+	'status'
+In-Reply-To: <CAHb8M2CkVZxJQ_aD7sq4B5UjL6ewgCa4YTW0jjbGyvXN+eeYPg@mail.gmail.com>
+References: <20150223103810.GA16869@devel.8.8.4.4>	<20150226133329.8a80c302d3ec014a2b0d58ff@linux-foundation.org>	<CAHb8M2BBVnZFWM0RyKfy3wein=PWXnHrEwdwTfOLVahX_P_uPw@mail.gmail.com>	<CAFLxGvyH-yLWRzDGH8iEiWDvggxskYDFsraS84wgwRjLLkhtsw@mail.gmail.com>
+	<CAHb8M2CkVZxJQ_aD7sq4B5UjL6ewgCa4YTW0jjbGyvXN+eeYPg@mail.gmail.com>
+Message-ID: <54F16657.4000800@nod.at>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, akpm@linux-foundation.org
-Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: DaeSeok Youn <daeseok.youn@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, mfasheh@suse.com, Joel Becker <jlbec@evilplan.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-kernel <linux-kernel@vger.kernel.org>
 
-Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
----
-RESEND: this patch is rebased by 1/4.
+Am 27.02.2015 um 11:29 schrieb DaeSeok Youn:
+> Hi,
+> 
+> 2015-02-27 18:41 GMT+09:00 Richard Weinberger <richard.weinberger@gmail.com>:
+>> On Fri, Feb 27, 2015 at 10:27 AM, DaeSeok Youn <daeseok.youn@gmail.com> wrote:
+>>> Hi,
+>>>
+>>> I think this patch was already queued. Can I send this patch again
+>>> after update changelog?
+>>
+>> One thing that is much more important, how did you test this patch? Did you?
+> 
+> I couldn't test, actually I don't have the environment for testing
+> this file system.
+> just looking this file for cleaning up and found this.
 
- fs/ocfs2/dir.c |   13 +++++--------
- 1 files changed, 5 insertions(+), 8 deletions(-)
+*please* setup a test environment and test the code paths you're changing.
 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index c63f2b6..b3ab2a6 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -2043,22 +2043,19 @@ int ocfs2_check_dir_for_entry(struct inode *dir,
- 			      const char *name,
- 			      int namelen)
- {
--	int ret;
-+	int ret = 0;
- 	struct ocfs2_dir_lookup_result lookup = { NULL, };
- 
- 	trace_ocfs2_check_dir_for_entry(
- 		(unsigned long long)OCFS2_I(dir)->ip_blkno, namelen, name);
- 
--	ret = -EEXIST;
--	if (ocfs2_find_entry(name, namelen, dir, &lookup) == 0)
--		goto bail;
-+	if (ocfs2_find_entry(name, namelen, dir, &lookup) == 0) {
-+		ret = -EEXIST;
-+		mlog_errno(ret);
-+	}
- 
--	ret = 0;
--bail:
- 	ocfs2_free_dir_lookup_result(&lookup);
- 
--	if (ret)
--		mlog_errno(ret);
- 	return ret;
- }
- 
--- 
-1.7.1
+Thanks,
+//richard
