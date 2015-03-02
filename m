@@ -1,35 +1,30 @@
 From: Richard Weinberger <richard@nod.at>
-Date: Sat, 28 Feb 2015 07:55:19 +0100
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: remove unneeded variable
-	'status'
-In-Reply-To: <CAHb8M2CkVZxJQ_aD7sq4B5UjL6ewgCa4YTW0jjbGyvXN+eeYPg@mail.gmail.com>
-References: <20150223103810.GA16869@devel.8.8.4.4>	<20150226133329.8a80c302d3ec014a2b0d58ff@linux-foundation.org>	<CAHb8M2BBVnZFWM0RyKfy3wein=PWXnHrEwdwTfOLVahX_P_uPw@mail.gmail.com>	<CAFLxGvyH-yLWRzDGH8iEiWDvggxskYDFsraS84wgwRjLLkhtsw@mail.gmail.com>
-	<CAHb8M2CkVZxJQ_aD7sq4B5UjL6ewgCa4YTW0jjbGyvXN+eeYPg@mail.gmail.com>
-Message-ID: <54F16657.4000800@nod.at>
+Date: Mon, 02 Mar 2015 10:04:23 +0100
+Subject: [Ocfs2-devel] [PATCH 1/4 V2] ocfs2: use retval instead of
+ status for checking error
+In-Reply-To: <20150227234840.GA12922@devel.8.8.4.4>
+References: <20150227234840.GA12922@devel.8.8.4.4>
+Message-ID: <54F42797.1040908@nod.at>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: DaeSeok Youn <daeseok.youn@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, mfasheh@suse.com, Joel Becker <jlbec@evilplan.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-kernel <linux-kernel@vger.kernel.org>
+To: Daeseok Youn <daeseok.youn@gmail.com>, mfasheh@suse.com, akpm@linux-foundation.org
+Cc: jlbec@evilplan.org, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Am 27.02.2015 um 11:29 schrieb DaeSeok Youn:
-> Hi,
+Am 28.02.2015 um 00:48 schrieb Daeseok Youn:
+> The use of 'status' in __ocfs2_add_entry() can return wrong
+> status when some functions are failed.
 > 
-> 2015-02-27 18:41 GMT+09:00 Richard Weinberger <richard.weinberger@gmail.com>:
->> On Fri, Feb 27, 2015 at 10:27 AM, DaeSeok Youn <daeseok.youn@gmail.com> wrote:
->>> Hi,
->>>
->>> I think this patch was already queued. Can I send this patch again
->>> after update changelog?
->>
->> One thing that is much more important, how did you test this patch? Did you?
+> If ocfs2_journal_access_db() in __ocfs2_add_entry() is failed,
+> that status is saved to 'status' but return variable is 'retval'
+> which is saved 'success' status. In case of this,  __ocfs2_add_entry()
+> is failed but can be returned as 'success'.
 > 
-> I couldn't test, actually I don't have the environment for testing
-> this file system.
-> just looking this file for cleaning up and found this.
+> So replace 'status' with 'retval'.
 
-*please* setup a test environment and test the code paths you're changing.
+As this patch is untested and the issue is theoretical I'm nervous.
+But the final decision is up to ocfs2 maintainers.
 
 Thanks,
 //richard
