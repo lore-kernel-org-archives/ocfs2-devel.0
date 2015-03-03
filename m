@@ -1,41 +1,62 @@
-From: DaeSeok Youn <daeseok.youn@gmail.com>
-Date: Tue, 3 Mar 2015 10:38:31 +0900
-Subject: [Ocfs2-devel] [PATCH 1/4 V2] ocfs2: use retval instead of
-	status for checking error
-In-Reply-To: <54F42797.1040908@nod.at>
-References: <20150227234840.GA12922@devel.8.8.4.4>
-	<54F42797.1040908@nod.at>
-Message-ID: <CAHb8M2CjHi98k825GgBE2g_0WL1a6H+OdDSxCpJFJj_qenD14g@mail.gmail.com>
+From: jiangyiwen <jiangyiwen@huawei.com>
+Date: Tue, 3 Mar 2015 14:29:53 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a tiny case that inode can not
+	removed.
+Message-ID: <54F554E1.5080802@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Richard Weinberger <richard@nod.at>
-Cc: mfasheh@suse.com, Andrew Morton <akpm@linux-foundation.org>, Joel Becker <jlbec@evilplan.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-kernel <linux-kernel@vger.kernel.org>
+To: ocfs2-devel@oss.oracle.com
 
-Hi, all
+When running dirop_fileop_racer we found a case that inode
+can not removed.
 
-please, review this patch.
+2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
+two dirs /race/1/ and /race/2/ in the filesystem.
 
-thanks.
+Node A                            Node B
+rm -r /race/2/
+                                  mv /race/1/ /race/2/
+call ocfs2_unlink(), get
+the EX mode of /race/2/
+                                  wait for B unlock /race/2/
+decrease i_nlink of /race/2/ to 0,
+and add inode of /race/2/ into
+orphan dir, unlock /race/2/
+                                  got EX mode of /race/2/. because
+                                  /race/1/ is dir, so inc i_nlink
+                                  of /race/2/ and update into disk,
+                                  unlock /race/2/
+because i_nlink of /race/2/
+is not zero, this inode will
+always remain in orphan dir
 
-regards,
-Daeseok Youn.
+This patch fixes this case by test whether i_nlink of new dir is zero.
 
-2015-03-02 18:04 GMT+09:00 Richard Weinberger <richard@nod.at>:
-> Am 28.02.2015 um 00:48 schrieb Daeseok Youn:
->> The use of 'status' in __ocfs2_add_entry() can return wrong
->> status when some functions are failed.
->>
->> If ocfs2_journal_access_db() in __ocfs2_add_entry() is failed,
->> that status is saved to 'status' but return variable is 'retval'
->> which is saved 'success' status. In case of this,  __ocfs2_add_entry()
->> is failed but can be returned as 'success'.
->>
->> So replace 'status' with 'retval'.
->
-> As this patch is untested and the issue is theoretical I'm nervous.
-> But the final decision is up to ocfs2 maintainers.
->
-> Thanks,
-> //richard
+Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
+---
+ fs/ocfs2/namei.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index b5c3a5e..fd6db5b 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -1291,6 +1291,15 @@ static int ocfs2_rename(struct inode *old_dir,
+ 	}
+ 	parents_locked = 1;
+
++	if (!new_dir->i_nlink) {
++		mlog(ML_ERROR, "new dir %llu has been removed, inode %llu "
++				"can not be moved into it.",
++				(unsigned long long)new_dir->i_ino,
++				(unsigned long long)old_inode->i_ino);
++		status = -EACCES;
++		goto bail;
++	}
++
+ 	/* make sure both dirs have bhs
+ 	 * get an extra ref on old_dir_bh if old==new */
+ 	if (!new_dir_bh) {
+-- 1.8.3.4
