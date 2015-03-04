@@ -1,21 +1,34 @@
-From: Gang He <ghe@suse.com>
-Date: Tue, 03 Mar 2015 20:26:08 -0700
-Subject: [Ocfs2-devel] some problem encountered when running ocfs2-test
-Message-ID: <54F6EBD0020000F900004211@relay2.provo.novell.com>
+From: Masanari Iida <standby24x7@gmail.com>
+Date: Wed,  4 Mar 2015 12:51:35 +0900
+Subject: [Ocfs2-devel] [PATCH] fs:ocfs2: Fix typo in MODULE_DESCRIPTION in
+	stackglue.c
+Message-ID: <1425441095-12823-1-git-send-email-standby24x7@gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: linux-kernel@vger.kernel.org, jlbec@evilplan.org, mfasheh@suse.com, ocfs2-devel@oss.oracle.com
+Cc: Masanari Iida <standby24x7@gmail.com>
 
-Hello ocfs2 developers,
+This patch fix spelling typo in MODULE_DESCRIPTION within stackglue.c
 
-I and Zhen are new for ocfs2 project, we are looking at ocfs2-test testing suits for evaluating the ocfs2/ocfs2-tools quality, now there are some problem encountered when running ocfs2-test.
-1) How to evaluate ocfs2/ocfs2-tools after you add some new code? only use ocfs2-test? but it has been inactive for 2 years. I just want to know if there is any other test suits, hope some old people can give some suggestions.
-2) We set up a ocfs2 cluster under openSuSe 13.2, tried to run ocfs2-test-1.0.4 test suits, but two cases cannot pass, just want to know who encounter the similar problem and how to fix.
-2.1) run_mmaptruncate, run this case in the condition "blocksize=4096 clustersize=1048576 sparse,unwritten,inline-data  data=writeback" will be hanged.
-2.2) run_reflink_test, run to this step "[11] OracleVM Data Integrity Test", this will last lots of time and then let this VM node reboot, this test case cannot be completed.
+Signed-off-by: Masanari Iida <standby24x7@gmail.com>
+---
+ fs/ocfs2/stackglue.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-
-Thanks
-Gang   
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 5d965e8..8e59bb3 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -742,7 +742,7 @@ static void __exit ocfs2_stack_glue_exit(void)
+ }
+ 
+ MODULE_AUTHOR("Oracle");
+-MODULE_DESCRIPTION("ocfs2 cluter stack glue layer");
++MODULE_DESCRIPTION("ocfs2 cluster stack glue layer");
+ MODULE_LICENSE("GPL");
+ module_init(ocfs2_stack_glue_init);
+ module_exit(ocfs2_stack_glue_exit);
+-- 
+2.3.1.167.g7f4ba4b
