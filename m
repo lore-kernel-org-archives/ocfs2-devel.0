@@ -1,40 +1,21 @@
-From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Tue, 3 Mar 2015 12:09:01 -0600
-Subject: [Ocfs2-devel] [PATCH 3/3] Clear the rest of the buffers on error
-Message-ID: <20150303180901.GA13147@shrek.lan>
+From: Gang He <ghe@suse.com>
+Date: Tue, 03 Mar 2015 20:26:08 -0700
+Subject: [Ocfs2-devel] some problem encountered when running ocfs2-test
+Message-ID: <54F6EBD0020000F900004211@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In case a validation fails, clear the rest of the buffers and
-return the error to the calling function.
+Hello ocfs2 developers,
 
-This also facilitates bubbling up the error originating from
-ocfs2_error to calling functions.
+I and Zhen are new for ocfs2 project, we are looking at ocfs2-test testing suits for evaluating the ocfs2/ocfs2-tools quality, now there are some problem encountered when running ocfs2-test.
+1) How to evaluate ocfs2/ocfs2-tools after you add some new code? only use ocfs2-test? but it has been inactive for 2 years. I just want to know if there is any other test suits, hope some old people can give some suggestions.
+2) We set up a ocfs2 cluster under openSuSe 13.2, tried to run ocfs2-test-1.0.4 test suits, but two cases cannot pass, just want to know who encounter the similar problem and how to fix.
+2.1) run_mmaptruncate, run this case in the condition "blocksize=4096 clustersize=1048576 sparse,unwritten,inline-data  data=writeback" will be hanged.
+2.2) run_reflink_test, run to this step "[11] OracleVM Data Integrity Test", this will last lots of time and then let this VM node reboot, this test case cannot be completed.
 
-Signed-off-by: Goldwyn Rodrigues <rgoldwyn@suse.com>
----
- fs/ocfs2/buffer_head_io.c | 6 ++++++
- 1 file changed, 6 insertions(+)
 
-diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-index 1edcb14..fe50ded 100644
---- a/fs/ocfs2/buffer_head_io.c
-+++ b/fs/ocfs2/buffer_head_io.c
-@@ -316,6 +316,12 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 		bh = bhs[i];
- 
- 		if (!(flags & OCFS2_BH_READAHEAD)) {
-+			if (status) {
-+				/* Clear the rest of the buffers on error */
-+				put_bh(bh);
-+				bhs[i] = NULL;
-+				continue;
-+			}
- 			/* We know this can't have changed as we hold the
- 			 * owner sem. Avoid doing any work on the bh if the
- 			 * journal has it. */
--- 
-2.1.4
+Thanks
+Gang   
