@@ -1,34 +1,51 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 5 Mar 2015 14:47:08 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix typo in
-	ocfs2_reserve_local_alloc_bits
-Message-ID: <54F7FBEC.9030108@huawei.com>
+From: DaeSeok Youn <daeseok.youn@gmail.com>
+Date: Thu, 5 Mar 2015 18:36:39 +0900
+Subject: [Ocfs2-devel] [PATCH 1/4 V2] ocfs2: use retval instead of
+	status for checking error
+In-Reply-To: <CAHb8M2CjHi98k825GgBE2g_0WL1a6H+OdDSxCpJFJj_qenD14g@mail.gmail.com>
+References: <20150227234840.GA12922@devel.8.8.4.4> <54F42797.1040908@nod.at>
+	<CAHb8M2CjHi98k825GgBE2g_0WL1a6H+OdDSxCpJFJj_qenD14g@mail.gmail.com>
+Message-ID: <CAHb8M2DyVvNbvX3tQ0zKxhm07A=DWCax5RNt+Xp=dZK95RuL4A@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: mfasheh@suse.com, Richard Weinberger <richard@nod.at>, Joel Becker <jlbec@evilplan.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-kernel <linux-kernel@vger.kernel.org>
 
-In ocfs2_reserve_local_alloc_bits, it calls ocfs2_error if local alloc
-inode bitmap used bits mismatch, but the log mistakes it as free bits.
+Hi,
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/localalloc.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+How is this patch going on?
 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index 0440134..096cff6 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -666,7 +666,7 @@ int ocfs2_reserve_local_alloc_bits(struct ocfs2_super *osb,
- 	if (le32_to_cpu(alloc->id1.bitmap1.i_used) !=
- 	    ocfs2_local_alloc_count_bits(alloc)) {
- 		ocfs2_error(osb->sb, "local alloc inode %llu says it has "
--			    "%u free bits, but a count shows %u",
-+			    "%u used bits, but a count shows %u",
- 			    (unsigned long long)le64_to_cpu(alloc->i_blkno),
- 			    le32_to_cpu(alloc->id1.bitmap1.i_used),
- 			    ocfs2_local_alloc_count_bits(alloc));
--- 
-1.8.4.3
+please check for me.
+
+Thanks.
+Daeseok Youn.
+
+2015-03-03 10:38 GMT+09:00 DaeSeok Youn <daeseok.youn@gmail.com>:
+> Hi, all
+>
+> please, review this patch.
+>
+> thanks.
+>
+> regards,
+> Daeseok Youn.
+>
+> 2015-03-02 18:04 GMT+09:00 Richard Weinberger <richard@nod.at>:
+>> Am 28.02.2015 um 00:48 schrieb Daeseok Youn:
+>>> The use of 'status' in __ocfs2_add_entry() can return wrong
+>>> status when some functions are failed.
+>>>
+>>> If ocfs2_journal_access_db() in __ocfs2_add_entry() is failed,
+>>> that status is saved to 'status' but return variable is 'retval'
+>>> which is saved 'success' status. In case of this,  __ocfs2_add_entry()
+>>> is failed but can be returned as 'success'.
+>>>
+>>> So replace 'status' with 'retval'.
+>>
+>> As this patch is untested and the issue is theoretical I'm nervous.
+>> But the final decision is up to ocfs2 maintainers.
+>>
+>> Thanks,
+>> //richard
