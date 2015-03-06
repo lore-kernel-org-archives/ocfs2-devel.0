@@ -1,32 +1,61 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Thu, 5 Mar 2015 13:34:21 -0800
-Subject: [Ocfs2-devel] [PATCH 1/1] BUG_ON(lockres->l_level !=
- DLM_LOCK_EX && !checkpointed) tripped in ocfs2_ci_checkpointed
-In-Reply-To: <54F8AFA3.6010305@oracle.com>
-References: <1425333797-26082-1-git-send-email-tariq.x.saeed@oracle.com>
-	<20150304235719.GW21790@wotan.suse.de>
-	<54F8AFA3.6010305@oracle.com>
-Message-ID: <20150305213421.GA23615@wotan.suse.de>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 6 Mar 2015 08:37:56 +0800
+Subject: [Ocfs2-devel] [PATCH V2] ocfs2: flush inode data to disk and free
+ inode when i_count becomes zero
+In-Reply-To: <54F45E27.8020907@huawei.com>
+References: <54F45E27.8020907@huawei.com>
+Message-ID: <54F8F6E4.1030700@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Thu, Mar 05, 2015 at 11:33:55AM -0800, Tariq Saeed wrote:
-> 
-> On 03/04/2015 03:57 PM, Mark Fasheh wrote:
-> > Ok, so the problem is that we're not holding a cluster lock across acl
-> Yes, but in addition to that,  the inode lock in ocfs2_setattr MUST not 
-> be dropped till
-> the exit since all operations,mode change, size change etc,
-> in that function plus any changes to acls are atomic from user's point 
-> of view.
+Disk inode deletion may be heavily delayed when one node unlink a file
+after the same dentry is freed on another node(say N1) because of
+memory shrink but inode is left in memory. This inode can only be
+freed while N1 doing the orphan scan work.
 
-That's fine, my primary concern is that we're not locking ACL calls _at
-all_. The fix you submitted doesn't really adress that, it just fixes one
-isolated case, hence my description of a more complete solution :)
-	--Mark
+However, N1 may skip orphan scan for several times because other nodes
+may do the work earlier.  In our tests, it may take 1 hour on 4 nodes
+cluster and it hurts the user experience. So we think the inode should
+be freed after the data flushed to disk when i_count becomes zero to
+avoid such circumstances.
 
---
-Mark Fasheh
+Signed-off-by:  Joyce.xue <xuejiufei@huawei.com>
+---
+ fs/ocfs2/inode.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 3025c0d..7ff422d 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1191,17 +1191,19 @@ void ocfs2_evict_inode(struct inode *inode)
+ int ocfs2_drop_inode(struct inode *inode)
+ {
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+-	int res;
+ 
+ 	trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
+ 				inode->i_nlink, oi->ip_flags);
+ 
+-	if (oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)
+-		res = 1;
+-	else
+-		res = generic_drop_inode(inode);
++	assert_spin_locked(&inode->i_lock);
++	inode->i_state |= I_WILL_FREE;
++	spin_unlock(&inode->i_lock);
++	write_inode_now(inode, 1);
++	spin_lock(&inode->i_lock);
++	WARN_ON(inode->i_state & I_NEW);
++	inode->i_state &= ~I_WILL_FREE;
+ 
+-	return res;
++	return 1;
+ }
+ 
+ /*
+-- 
+1.8.4.3
