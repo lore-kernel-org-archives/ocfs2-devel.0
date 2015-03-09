@@ -1,61 +1,25 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Fri, 6 Mar 2015 08:37:56 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: flush inode data to disk and free
- inode when i_count becomes zero
-In-Reply-To: <54F45E27.8020907@huawei.com>
-References: <54F45E27.8020907@huawei.com>
-Message-ID: <54F8F6E4.1030700@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Mon, 9 Mar 2015 08:02:45 -0700
+Subject: [Ocfs2-devel] [patch 1/2] ocfs2: dereferencing freed pointers
+ in ocfs2_reflink()
+In-Reply-To: <20150305174619.GA13294@mwanda>
+References: <20150124193124.GA18322@mwanda>
+ <20150305174619.GA13294@mwanda>
+Message-ID: <20150309150245.GJ23615@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Dan Carpenter <dan.carpenter@oracle.com>
+Cc: Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, kernel-janitors@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-Disk inode deletion may be heavily delayed when one node unlink a file
-after the same dentry is freed on another node(say N1) because of
-memory shrink but inode is left in memory. This inode can only be
-freed while N1 doing the orphan scan work.
+On Thu, Mar 05, 2015 at 08:46:19PM +0300, Dan Carpenter wrote:
+> The code at the "out" label assumes that "default_acl" and "acl" are
+> NULL, but actually the pointers can be NULL, unitialized, or freed.
+> 
+> Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
 
-However, N1 may skip orphan scan for several times because other nodes
-may do the work earlier.  In our tests, it may take 1 hour on 4 nodes
-cluster and it hurts the user experience. So we think the inode should
-be freed after the data flushed to disk when i_count becomes zero to
-avoid such circumstances.
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 
-Signed-off-by:  Joyce.xue <xuejiufei@huawei.com>
----
- fs/ocfs2/inode.c | 14 ++++++++------
- 1 file changed, 8 insertions(+), 6 deletions(-)
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 3025c0d..7ff422d 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1191,17 +1191,19 @@ void ocfs2_evict_inode(struct inode *inode)
- int ocfs2_drop_inode(struct inode *inode)
- {
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
--	int res;
- 
- 	trace_ocfs2_drop_inode((unsigned long long)oi->ip_blkno,
- 				inode->i_nlink, oi->ip_flags);
- 
--	if (oi->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)
--		res = 1;
--	else
--		res = generic_drop_inode(inode);
-+	assert_spin_locked(&inode->i_lock);
-+	inode->i_state |= I_WILL_FREE;
-+	spin_unlock(&inode->i_lock);
-+	write_inode_now(inode, 1);
-+	spin_lock(&inode->i_lock);
-+	WARN_ON(inode->i_state & I_NEW);
-+	inode->i_state &= ~I_WILL_FREE;
- 
--	return res;
-+	return 1;
- }
- 
- /*
--- 
-1.8.4.3
+--
+Mark Fasheh
