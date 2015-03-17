@@ -1,36 +1,20 @@
-From: Omar Sandoval <osandov@osandov.com>
-Date: Tue, 17 Mar 2015 03:18:35 -0700
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Date: Tue, 17 Mar 2015 18:19:15 +0000
 Subject: [Ocfs2-devel] [RFC PATCH 1/5] new helper: iov_iter_rw()
 In-Reply-To: <20150317093151.GS20767@twin.jikos.cz>
 References: <cover.1426502566.git.osandov@osandov.com>
 	<34dc78b262546e9343e0ed872232a97f5eaa5f15.1426502566.git.osandov@osandov.com>
 	<20150316173605.GX29656@ZenIV.linux.org.uk>
 	<20150317093151.GS20767@twin.jikos.cz>
-Message-ID: <20150317101835.GA31649@mew>
+Message-ID: <20150317181910.GK29656@ZenIV.linux.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: David Sterba <dsterba@suse.cz>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, ceph-devel@vger.kernel.org, linux-cifs@vger.kernel.org, osd-dev@open-osd.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, fuse-devel@lists.sourceforge.net, cluster-devel@redhat.com, jfs-discussion@lists.sourceforge.net, HPDD-discuss@ml01.01.org, linux-nfs@vger.kernel.org, linux-nilfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, v9fs-developer@lists.sourceforge.net, xfs@oss.sgi.com, linux-kernel@vger.kernel.org
+To: dsterba-AlSwsSmVLrQ@public.gmane.org, Omar Sandoval <osandov-nWWhXC5lh1RBDgjK7y7TUQ@public.gmane.org>, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, osd-dev-yNzVSZO3znNg9hUCZPvPmw@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, jfs-discussion-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, HPDD-discuss-y27Ovi1pjclAfugRpC6u6w@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nilfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, reiserfs-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, v9fs-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chris Mason <clm-b10kYP2dOMg@public.gmane.org>, Josef Bacik <jbacik-b10kYP2dOMg@public.gmane.org>, Yan Zheng <zyan-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sage Weil <sage-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Steve French <sfrench-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Boaz Harrosh <ooo-rh7Tgz9RNieUD9Wbbkgo/g@public.gmane.org>, Benny Halevy <bhalevy-7I+n7zu2hftEKMMhf/gKZA@public.gmane.org>, Jan Kara <jack-AlSwsSmVLrQ@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>
 
 On Tue, Mar 17, 2015 at 10:31:51AM +0100, David Sterba wrote:
-> On Mon, Mar 16, 2015 at 05:36:05PM +0000, Al Viro wrote:
-> > On Mon, Mar 16, 2015 at 04:33:49AM -0700, Omar Sandoval wrote:
-> > > Get either READ or WRITE out of iter->type.
-> > 
-> > Umm...  
-> > 
-> > > + * Get one of READ or WRITE out of iter->type without any other flags OR'd in
-> > > + * with it.
-> > > + */
-> > > +static inline int iov_iter_rw(const struct iov_iter *i)
-> > > +{
-> > > +	return i->type & RW_MASK;
-> > > +}
-> > 
-> > TBH, I would turn that into a macro.  Reason: indirect includes.
-> 
+
 > Agreed, but the proposed define is rather cryptic and I was not able to
 > understand the meaning on the first glance.
 > 
@@ -46,15 +30,12 @@ On Tue, Mar 17, 2015 at 10:31:51AM +0100, David Sterba wrote:
 > 
 > The assignment is optimized out.
 
-[-cc individual fs maintainers to avoid all of these email bounces,
-should've looked a bit closer at that get_maintainer.pl output...]
+... and you are getting
+	a) use of rather lousy gccism when plain C would do
+	b) double evaluation since you've got it wrong (should've been
+__iter.type & RW_MASK, if you do it that way).  As it is, if argument has
+any side effects, your variant will trigger those twice - even if the
+destination of the assignment is never used, the side effects remain.
 
-I agree that this is a bit more readable, but it evaluates i twice.
-That's an easy fix, just do __iter.type instead of (i)->type, but
-there's still the possibility of someone passing in something called
-__iter as i, and the fix for that tends to be "add more underscores". At
-the very least, Al's macro could probably use a comment explaining
-what's going on there, though.
-
--- 
-Omar
+I agree that it could use /* use ?: for typechecking */, but let's not go into
+({...}) land unless we absolutely have to.
