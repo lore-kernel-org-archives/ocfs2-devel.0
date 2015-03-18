@@ -1,41 +1,43 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Date: Tue, 17 Mar 2015 18:19:15 +0000
-Subject: [Ocfs2-devel] [RFC PATCH 1/5] new helper: iov_iter_rw()
-In-Reply-To: <20150317093151.GS20767@twin.jikos.cz>
-References: <cover.1426502566.git.osandov@osandov.com>
-	<34dc78b262546e9343e0ed872232a97f5eaa5f15.1426502566.git.osandov@osandov.com>
-	<20150316173605.GX29656@ZenIV.linux.org.uk>
-	<20150317093151.GS20767@twin.jikos.cz>
-Message-ID: <20150317181910.GK29656@ZenIV.linux.org.uk>
+From: Umarzuki Mochlis <umarzuki@gmail.com>
+Date: Wed, 18 Mar 2015 10:50:24 +0800
+Subject: [Ocfs2-devel] [Ocfs2-users] size increase
+In-Reply-To: <55094DE0020000D400003494@relay2.provo.novell.com>
+References: <CAHW9mbwxOMu5gP8DHW8e65apFaN_+A_gqOG6wV_kUNjVkF2hLg@mail.gmail.com>
+	<55094DE0020000D400003494@relay2.provo.novell.com>
+Message-ID: <CAHW9mbxD7DhZt=eed50WJ4UNSHkRXjxdAXHG_8COsFCQUJWJMQ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: dsterba-AlSwsSmVLrQ@public.gmane.org, Omar Sandoval <osandov-nWWhXC5lh1RBDgjK7y7TUQ@public.gmane.org>, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, osd-dev-yNzVSZO3znNg9hUCZPvPmw@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, jfs-discussion-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, HPDD-discuss-y27Ovi1pjclAfugRpC6u6w@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nilfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, reiserfs-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, v9fs-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chris Mason <clm-b10kYP2dOMg@public.gmane.org>, Josef Bacik <jbacik-b10kYP2dOMg@public.gmane.org>, Yan Zheng <zyan-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sage Weil <sage-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Steve French <sfrench-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Boaz Harrosh <ooo-rh7Tgz9RNieUD9Wbbkgo/g@public.gmane.org>, Benny Halevy <bhalevy-7I+n7zu2hftEKMMhf/gKZA@public.gmane.org>, Jan Kara <jack-AlSwsSmVLrQ@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>
+To: ocfs2-devel@oss.oracle.com
 
-On Tue, Mar 17, 2015 at 10:31:51AM +0100, David Sterba wrote:
+1) yes
 
-> Agreed, but the proposed define is rather cryptic and I was not able to
-> understand the meaning on the first glance.
-> 
-> > #define iov_iter_rw(i) ((0 ? (struct iov_iter *)0 : (i))->type & RW_MASK)
-> 
-> This worked for me, does not compile with anything else than
-> 'struct iov_iter*' as i:
-> 
-> #define iov_iter_rw(i)	({			\
-> 	struct iov_iter __iter = *(i);		\
-> 	(i)->type & RW_MASK;			\
-> 	})
-> 
-> The assignment is optimized out.
+even 36K text html file in ext4 became 128K inside ocfs2
 
-... and you are getting
-	a) use of rather lousy gccism when plain C would do
-	b) double evaluation since you've got it wrong (should've been
-__iter.type & RW_MASK, if you do it that way).  As it is, if argument has
-any side effects, your variant will trigger those twice - even if the
-destination of the assignment is never used, the side effects remain.
+2) I installed ocfs-tools on Ubuntu 14.04 amd64
 
-I agree that it could use /* use ?: for typechecking */, but let's not go into
-({...}) land unless we absolutely have to.
+A LUN added to a newly created LVM group, so no other physical volume
+added other than this one and formatted as ocfs2 with below command
+
+sudo mkfs.ocfs2 -b 4K -C 128K -L "Web Cluster" /dev/webvg/weblv
+
+/dev/webvg/weblv mounted on /var/www
+
+I'll check with ext3 later
+
+2015-03-18 10:05 GMT+08:00 Zhen Ren <zren@suse.com>:
+> Hi Umarzuki,
+> 1) Does it always occur, or sometime?
+>
+> 2) Could you give more info to reproduce this issue?
+>
+> 3) And could you have a try on ext3? Frankly,most of suse people (if I don't make a mistake) use ext3.
+>
+> Also,I add the devel mail list. Hope experts there can help.
+>
+> --
+> Best regards,
+> Eric, Ren
+> HA team, SUSE
+>
