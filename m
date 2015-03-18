@@ -1,43 +1,34 @@
 From: Umarzuki Mochlis <umarzuki@gmail.com>
-Date: Wed, 18 Mar 2015 10:50:24 +0800
+Date: Wed, 18 Mar 2015 11:03:32 +0800
 Subject: [Ocfs2-devel] [Ocfs2-users] size increase
-In-Reply-To: <55094DE0020000D400003494@relay2.provo.novell.com>
+In-Reply-To: <5508E7F1.6070504@huawei.com>
 References: <CAHW9mbwxOMu5gP8DHW8e65apFaN_+A_gqOG6wV_kUNjVkF2hLg@mail.gmail.com>
 	<55094DE0020000D400003494@relay2.provo.novell.com>
-Message-ID: <CAHW9mbxD7DhZt=eed50WJ4UNSHkRXjxdAXHG_8COsFCQUJWJMQ@mail.gmail.com>
+	<5508E7F1.6070504@huawei.com>
+Message-ID: <CAHW9mbx73AuENu-CQo++2kxBOR+HMv_GLr-taxbRjFHp6syboQ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-1) yes
+Hi,
 
-even 36K text html file in ext4 became 128K inside ocfs2
+What I meant by total size is output of 'du -hs'
 
-2) I installed ocfs-tools on Ubuntu 14.04 amd64
+I can see output of fdisk on mpath1 of ocfs2 LUN similar to logical
+volume of ext4 partition (255 head & 63 sectors)
 
-A LUN added to a newly created LVM group, so no other physical volume
-added other than this one and formatted as ocfs2 with below command
+It is a 2 nodes ocfs cluster.
 
-sudo mkfs.ocfs2 -b 4K -C 128K -L "Web Cluster" /dev/webvg/weblv
-
-/dev/webvg/weblv mounted on /var/www
-
-I'll check with ext3 later
-
-2015-03-18 10:05 GMT+08:00 Zhen Ren <zren@suse.com>:
+2015-03-18 10:50 GMT+08:00 Xue jiufei <xuejiufei@huawei.com>:
 > Hi Umarzuki,
-> 1) Does it always occur, or sometime?
+> What is the meaning of total size, file size or disk usage?
+> If you means the disk usage, I think maybe the difference of
+> cluster size(the minimum allocation unit) is the case.
+> Have you notice the cluster size or block size of your ocfs2
+> and ext4 filesystem?
 >
-> 2) Could you give more info to reproduce this issue?
->
-> 3) And could you have a try on ext3? Frankly,most of suse people (if I don't make a mistake) use ext3.
->
-> Also,I add the devel mail list. Hope experts there can help.
->
-> --
-> Best regards,
-> Eric, Ren
-> HA team, SUSE
+> Thanks,
+> Xuejiufei
 >
