@@ -1,34 +1,78 @@
-From: Umarzuki Mochlis <umarzuki@gmail.com>
-Date: Wed, 18 Mar 2015 11:03:32 +0800
-Subject: [Ocfs2-devel] [Ocfs2-users] size increase
-In-Reply-To: <5508E7F1.6070504@huawei.com>
-References: <CAHW9mbwxOMu5gP8DHW8e65apFaN_+A_gqOG6wV_kUNjVkF2hLg@mail.gmail.com>
-	<55094DE0020000D400003494@relay2.provo.novell.com>
-	<5508E7F1.6070504@huawei.com>
-Message-ID: <CAHW9mbx73AuENu-CQo++2kxBOR+HMv_GLr-taxbRjFHp6syboQ@mail.gmail.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Thu, 19 Mar 2015 14:24:51 +0800
+Subject: [Ocfs2-devel] [PATCH 1/4 V2] ocfs2: use retval instead of
+ status for checking error
+In-Reply-To: <20150227234840.GA12922@devel.8.8.4.4>
+References: <20150227234840.GA12922@devel.8.8.4.4>
+Message-ID: <550A6BB3.5000901@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Daeseok Youn <daeseok.youn@gmail.com>
+Cc: mfasheh@suse.com, akpm@linux-foundation.org, richard.weinberger@gmail.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
 
-Hi,
+Looks good to me.
 
-What I meant by total size is output of 'du -hs'
+On 2015/2/28 7:48, Daeseok Youn wrote:
+> The use of 'status' in __ocfs2_add_entry() can return wrong
+> status when some functions are failed.
+> 
+> If ocfs2_journal_access_db() in __ocfs2_add_entry() is failed,
+> that status is saved to 'status' but return variable is 'retval'
+> which is saved 'success' status. In case of this,  __ocfs2_add_entry()
+> is failed but can be returned as 'success'.
+> 
+> So replace 'status' with 'retval'.
+> 
+> Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
 
-I can see output of fdisk on mpath1 of ocfs2 LUN similar to logical
-volume of ext4 partition (255 head & 63 sectors)
-
-It is a 2 nodes ocfs cluster.
-
-2015-03-18 10:50 GMT+08:00 Xue jiufei <xuejiufei@huawei.com>:
-> Hi Umarzuki,
-> What is the meaning of total size, file size or disk usage?
-> If you means the disk usage, I think maybe the difference of
-> cluster size(the minimum allocation unit) is the case.
-> Have you notice the cluster size or block size of your ocfs2
-> and ext4 filesystem?
->
-> Thanks,
-> Xuejiufei
->
+Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+> ---
+> V2 : update changelog
+> 
+>  fs/ocfs2/dir.c |   12 ++++++------
+>  1 files changed, 6 insertions(+), 6 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index b08050b..1478a50 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -1617,7 +1617,7 @@ int __ocfs2_add_entry(handle_t *handle,
+>  	struct ocfs2_dir_entry *de, *de1;
+>  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)parent_fe_bh->b_data;
+>  	struct super_block *sb = dir->i_sb;
+> -	int retval, status;
+> +	int retval;
+>  	unsigned int size = sb->s_blocksize;
+>  	struct buffer_head *insert_bh = lookup->dl_leaf_bh;
+>  	char *data_start = insert_bh->b_data;
+> @@ -1695,22 +1695,22 @@ int __ocfs2_add_entry(handle_t *handle,
+>  			}
+>  
+>  			if (insert_bh == parent_fe_bh)
+> -				status = ocfs2_journal_access_di(handle,
+> +				retval = ocfs2_journal_access_di(handle,
+>  								 INODE_CACHE(dir),
+>  								 insert_bh,
+>  								 OCFS2_JOURNAL_ACCESS_WRITE);
+>  			else {
+> -				status = ocfs2_journal_access_db(handle,
+> +				retval = ocfs2_journal_access_db(handle,
+>  								 INODE_CACHE(dir),
+>  								 insert_bh,
+>  					      OCFS2_JOURNAL_ACCESS_WRITE);
+>  
+>  				if (ocfs2_dir_indexed(dir)) {
+> -					status = ocfs2_dx_dir_insert(dir,
+> +					retval = ocfs2_dx_dir_insert(dir,
+>  								handle,
+>  								lookup);
+> -					if (status) {
+> -						mlog_errno(status);
+> +					if (retval) {
+> +						mlog_errno(retval);
+>  						goto bail;
+>  					}
+>  				}
+> 
