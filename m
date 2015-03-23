@@ -1,43 +1,22 @@
-From: Zhen Ren <zren@suse.com>
-Date: Mon, 23 Mar 2015 01:35:31 -0600
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix a typo in the copyright
- statement
-In-Reply-To: <1427059258-6622-1-git-send-email-jwilk@jwilk.net>
-References: <1427059258-6622-1-git-send-email-jwilk@jwilk.net>
-Message-ID: <55105CF3020000D400069604@relay2.provo.novell.com>
+From: Sanidhya Kashyap <sanidhya.gatech@gmail.com>
+Date: Mon, 23 Mar 2015 08:56:04 -0400
+Subject: [Ocfs2-devel] CAP_SYS_ADMIN capability check for
+	ocfs2_xattr_trusted_list
+Message-ID: <CADa969jYEktr=anV2r4djrLwhiupR3UTN214UH0jfDLraqEEyQ@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Good catch!
+Hi Mark,
 
-Reviewed-by: Eric Ren <zren@suse.com>
+In the ocfs2_xattr_trusted_list function, there is no check for
+CAP_SYS_ADMIN whereas the man page explains that list should be
+accessible only to the processes that have this capability enabled.
 
---
-Best regards,
-Eric, Ren
-HA team, SUSE
+It would be great if you can tell whether there is a particular reason
+for not having the check?
 
-
->>> 
-> Signed-off-by: Jakub Wilk <jwilk@jwilk.net> 
-> --- 
->  fs/ocfs2/dir.c | 2 +- 
->  1 file changed, 1 insertion(+), 1 deletion(-) 
->  
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c 
-> index b08050b..a59ee40 100644 
-> --- a/fs/ocfs2/dir.c 
-> +++ b/fs/ocfs2/dir.c 
-> @@ -18,7 +18,7 @@ 
->   * 
->   *   linux/fs/minix/dir.c 
->   * 
-> - *   Copyright (C) 1991, 1992 Linux Torvalds 
-> + *   Copyright (C) 1991, 1992 Linus Torvalds 
->   * 
->   * This program is free software; you can redistribute it and/or 
->   * modify it under the terms of the GNU General Public 
- 
+Thanks,
+Sanidhya
