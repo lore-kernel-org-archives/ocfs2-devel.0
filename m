@@ -1,25 +1,33 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 27 Mar 2015 10:27:11 +0800
-Subject: [Ocfs2-devel] Question about incorrect free bits setting
-Message-ID: <5514BFFF.7070009@huawei.com>
+From: Joe Perches <joe@perches.com>
+Date: Thu, 26 Mar 2015 20:07:06 -0700
+Subject: [Ocfs2-devel] [PATCH 0/2] ocfs2: logging neatening
+Message-ID: <cover.1427425496.git.joe@perches.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+Cc: Joel Becker <jlbec@evilplan.org>, linux-kernel@vger.kernel.org
 
-Hi Goldwyn,
-I found you posted a mail to discuss about incorrect free bits setting.
-https://oss.oracle.com/pipermail/ocfs2-devel/2012-January/008458.html
+Joe Perches (2):
+  ocfs2: Logging: Remove static buffer, use vsprintf extension %pV
+  ocfs2: Neaten do_error, ocfs2_error and ocfs2_abort
 
-In this topic, Sunil said it was because of the patch added to delay
-dropping of the dentry locks (commit ea455f8ab683) and suggested to fix
-the quota issue in a different way.
-Then you reverted the patches based on Honza's new way to fix the quota
-issue.
-https://oss.oracle.com/pipermail/ocfs2-devel/2014-February/009662.html
+ fs/ocfs2/alloc.c        | 90 +++++++++++++++++++------------------------------
+ fs/ocfs2/aops.c         |  4 +--
+ fs/ocfs2/dir.c          | 49 +++++++++++++--------------
+ fs/ocfs2/extent_map.c   | 22 ++++++------
+ fs/ocfs2/inode.c        | 18 +++++-----
+ fs/ocfs2/journal.c      |  2 +-
+ fs/ocfs2/localalloc.c   |  3 +-
+ fs/ocfs2/move_extents.c |  5 ++-
+ fs/ocfs2/quota_local.c  |  3 +-
+ fs/ocfs2/refcounttree.c | 53 +++++++++++++----------------
+ fs/ocfs2/suballoc.c     | 75 +++++++++++++++++++----------------------
+ fs/ocfs2/super.c        | 34 ++++++++++---------
+ fs/ocfs2/super.h        |  6 ++--
+ fs/ocfs2/xattr.c        | 35 +++++++++----------
+ 14 files changed, 182 insertions(+), 217 deletions(-)
 
-I have investigated these patches and still do not know how can it
-happen.
-Could you please tell me more about the case that bits to be cleared
-twice?
+-- 
+2.1.2
