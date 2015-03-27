@@ -1,9 +1,9 @@
-From: Goldwyn Rodrigues <rgoldwyn@suse.com>
-Date: Fri, 27 Mar 2015 11:54:31 -0500
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Fri, 27 Mar 2015 11:57:53 -0500
 Subject: [Ocfs2-devel] Question about incorrect free bits setting
-In-Reply-To: <5514BFFF.7070009@huawei.com>
-References: <5514BFFF.7070009@huawei.com>
-Message-ID: <55158B47.1000302@suse.com>
+In-Reply-To: <55158B47.1000302@suse.com>
+References: <5514BFFF.7070009@huawei.com> <55158B47.1000302@suse.com>
+Message-ID: <55158C11.5080909@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -31,18 +31,19 @@ On 03/26/2015 09:27 PM, Joseph Qi wrote:
 
 I am not sure how the quota patches were related. It was a long time ago.
 
-However, what we fixed in Honza's patches is the way unlink is 
-performed. The problem was we were getting very bad performance because 
-of too much of journal activity. We realized that it was because the 
-inodes were shown as busy and hence moved orphan directory, when they 
-were not busy. It all came to the point that the open lock was still 
+However, what we fixed in Honza's patches is the way unlink is
+performed. The problem was we were getting very bad performance because
+of too much of journal activity. We realized that it was because the
+inodes were shown as busy and hence moved orphan directory, when they
+were not busy. It all came to the point that the open lock was still
 being held because it was delayed/offloaded to another thread.
 
-I am not sure, but I guess that this delay may be messing up the 
-accounting between the node being the owner of the lock and the one 
-deleting the file (also requesting for the lock). I have not seen this 
-issue for a long time now so I am not sure. Perhaps Sunil may be able to 
+I am not sure, but I guess that this delay may be messing up the
+accounting between the node being the owner of the lock and the one
+deleting the file (also requesting for the lock). I have not seen this
+issue for a long time now so I am not sure. Perhaps Sunil may be able to
 give more inputs.
+
 
 -- 
 Goldwyn
