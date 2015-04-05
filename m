@@ -1,150 +1,21 @@
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Date: Fri,  3 Apr 2015 14:46:19 -0700
-Subject: [Ocfs2-devel] [PATCH 1/2] BUG_ON(lockres->l_level != DLM_LOCK_EX &&
-	!checkpointed) tripped in ocfs2_ci_checkpointed
-Message-ID: <1428097580-25352-1-git-send-email-tariq.x.saeed@oracle.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Date: Sun, 5 Apr 2015 17:27:59 +0100
+Subject: [Ocfs2-devel] [RFC PATCH 0/5] Remove rw parameter from
+	direct_IO()
+In-Reply-To: <cover.1426502566.git.osandov@osandov.com>
+References: <cover.1426502566.git.osandov@osandov.com>
+Message-ID: <20150405162758.GI889@ZenIV.linux.org.uk>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Omar Sandoval <osandov-nWWhXC5lh1RBDgjK7y7TUQ@public.gmane.org>
+Cc: linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, osd-dev-yNzVSZO3znNg9hUCZPvPmw@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, jfs-discussion-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, HPDD-discuss-y27Ovi1pjclAfugRpC6u6w@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-nilfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, reiserfs-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, v9fs-developer-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chris Mason <clm-b10kYP2dOMg@public.gmane.org>, Josef Bacik <jbacik-b10kYP2dOMg@public.gmane.org>, David Sterba <dsterba-AlSwsSmVLrQ@public.gmane.org>, Yan Zheng <zyan-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Sage Weil <sage-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Steve French <sfrench-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Boaz Harrosh <ooo-rh7Tgz9RNieUD9Wbbkgo/g@public.gmane.org>, Benny Halevy <bhalevy-7I+n7zu2hftEKMMhf/gKZA@public.gmane.org>, Jan Kara <jack-AlSwsSmVLrQ@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>, Andreas Dilger <adilger.kernel@dilger.>
 
-Orabug: 20189959
+On Mon, Mar 16, 2015 at 04:33:48AM -0700, Omar Sandoval wrote:
+> Hi,
+> 
+> Al, here's some cleanup that you mentioned back in December that I got
+> around to (https://lkml.org/lkml/2014/12/15/28).
 
-PID: 614    TASK: ffff882a739da580  CPU: 3   COMMAND: "ocfs2dc"
- #0 [ffff882ecc3759b0] machine_kexec at ffffffff8103b35d
- #1 [ffff882ecc375a20] crash_kexec at ffffffff810b95b5
- #2 [ffff882ecc375af0] oops_end at ffffffff815091d8
- #3 [ffff882ecc375b20] die at ffffffff8101868b
- #4 [ffff882ecc375b50] do_trap at ffffffff81508bb0
- #5 [ffff882ecc375ba0] do_invalid_op at ffffffff810165e5
- #6 [ffff882ecc375c40] invalid_op at ffffffff815116fb
-    [exception RIP: ocfs2_ci_checkpointed+208]
-    RIP: ffffffffa0a7e940  RSP: ffff882ecc375cf0  RFLAGS: 00010002
-    RAX: 0000000000000001  RBX: 000000000000654b  RCX: ffff8812dc83f1f8
-    RDX: 00000000000017d9  RSI: ffff8812dc83f1f8  RDI: ffffffffa0b2c318
-    RBP: ffff882ecc375d20   R8: ffff882ef6ecfa60   R9: ffff88301f272200
-    R10: 0000000000000000  R11: 0000000000000000  R12: ffffffffffffffff
-    R13: ffff8812dc83f4f0  R14: 0000000000000000  R15: ffff8812dc83f1f8
-    ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018
- #7 [ffff882ecc375d28] ocfs2_check_meta_downconvert at ffffffffa0a7edbd [ocfs2]
- #8 [ffff882ecc375d38] ocfs2_unblock_lock at ffffffffa0a84af8 [ocfs2]
- #9 [ffff882ecc375dc8] ocfs2_process_blocked_lock at ffffffffa0a85285 [ocfs2]
-#10 [ffff882ecc375e18] ocfs2_downconvert_thread_do_work at ffffffffa0a85445 [ocfs2]
-#11 [ffff882ecc375e68] ocfs2_downconvert_thread at ffffffffa0a854de [ocfs2]
-#12 [ffff882ecc375ee8] kthread at ffffffff81090da7
-#13 [ffff882ecc375f48] kernel_thread_helper at ffffffff81511884
-assert is tripped because the tran is not checkpointed and the lock level is PR.
-
-Some time ago, chmod command had been executed. As result, the following call
-chain left the inode cluster lock in PR state, latter on causing the assert.
-system_call_fastpath
- -> my_chmod
-  -> sys_chmod
-   -> sys_fchmodat
-    -> notify_change
-     -> ocfs2_setattr
-      -> posix_acl_chmod
-       -> ocfs2_iop_set_acl
-        -> ocfs2_set_acl
-         -> ocfs2_acl_set_mode
-Here is how.
-1119 int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
-1120 {
-1247         ocfs2_inode_unlock(inode, 1); <<< WRONG thing to do.
-..
-1258         if (!status && attr->ia_valid & ATTR_MODE) {
-1259                 status =  posix_acl_chmod(inode, inode->i_mode);
-
-519 posix_acl_chmod(struct inode *inode, umode_t mode)
-520 {
-..
-539         ret = inode->i_op->set_acl(inode, acl, ACL_TYPE_ACCESS);
-
-287 int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, ...
-288 {
-289         return ocfs2_set_acl(NULL, inode, NULL, type, acl, NULL, NULL);
-
-224 int ocfs2_set_acl(handle_t *handle,
-225                          struct inode *inode, ...
-231 {
-..
-252                                 ret = ocfs2_acl_set_mode(inode, di_bh,
-253                                                          handle, mode);
-
-168 static int ocfs2_acl_set_mode(struct inode *inode, struct buffer_head ...
-170 {
-183         if (handle == NULL) {
-                   >>> BUG: inode lock not held in ex at this point <<<
-184                 handle = ocfs2_start_trans(OCFS2_SB(inode->i_sb),
-185                                            OCFS2_INODE_UPDATE_CREDITS);
-
-ocfs2_setattr.#1247 we unlock and at #1259 call posix_acl_chmod. When we reach
-ocfs2_acl_set_mode.#181 and do trans, the inode cluster lock is not held in EX
-mode (it should be). How this could have happended?
-
-We are the lock master, were holding lock EX and have released it in
-ocfs2_setattr.#1247. Note that there are no holders of this lock at
-this point. Another node needs the lock in PR, and we downconvert from
-EX to PR. So the inode lock is PR when do the trans in
-ocfs2_acl_set_mode.#184. The trans stays in core (not flushed to disc).
-Now another node want the lock in EX, downconvert thread gets kicked (the
-one that tripped assert abovt), finds an unflushed trans but the lock is
-not EX (it is PR). If the lock was at EX, it would have flushed the trans
-ocfs2_ci_checkpointed -> ocfs2_start_checkpoint before downconverting (to NULL)
-for the request.
-
-ocfs2_setattr must not drop inode lock ex in this code path. If it does,
-takes it again before the trans, say in ocfs2_set_acl, another cluster node can
-get in between, execute another setattr, overwriting the one in progress
-on this node, resulting in a mode acl size combo that is a mix of the two.
-
-Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
----
- fs/ocfs2/file.c |   10 ++++++++--
- 1 files changed, 8 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index 3950693..113880c 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -1118,7 +1118,7 @@ out:
- 
- int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- {
--	int status = 0, size_change;
-+	int status = 0, size_change, inode_locked = 0;
- 	struct inode *inode = dentry->d_inode;
- 	struct super_block *sb = inode->i_sb;
- 	struct ocfs2_super *osb = OCFS2_SB(sb);
-@@ -1164,6 +1164,7 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- 			mlog_errno(status);
- 		goto bail_unlock_rw;
- 	}
-+	inode_locked = 1;
- 
- 	if (size_change) {
- 		status = inode_newsize_ok(inode, attr->ia_size);
-@@ -1244,7 +1245,10 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
- bail_commit:
- 	ocfs2_commit_trans(osb, handle);
- bail_unlock:
--	ocfs2_inode_unlock(inode, 1);
-+	if (status) {
-+		ocfs2_inode_unlock(inode, 1);
-+		inode_locked = 0;
-+	}
- bail_unlock_rw:
- 	if (size_change)
- 		ocfs2_rw_unlock(inode, 1);
-@@ -1260,6 +1264,8 @@ bail:
- 		if (status < 0)
- 			mlog_errno(status);
- 	}
-+	if (inode_locked)
-+		ocfs2_inode_unlock(inode, 1);
- 
- 	return status;
- }
--- 
-1.7.1
+Applied.  See #for-next
