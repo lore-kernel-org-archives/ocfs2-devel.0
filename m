@@ -1,68 +1,66 @@
-From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Tue, 07 Apr 2015 14:56:02 -0700
-Subject: [Ocfs2-devel] [patch 6/9] ocfs2: fix a tiny case that inode can not
-	removed.
-Message-ID: <55245272.yTVatCR+9/iCOZF6%akpm@linux-foundation.org>
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Thu, 9 Apr 2015 22:39:54 +0300
+Subject: [Ocfs2-devel] vfs: Add general support to enforce project quota
+	limits
+Message-ID: <20150409193954.GA19913@mwanda>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: jiangyiwen <jiangyiwen@huawei.com>
-Subject: ocfs2: fix a tiny case that inode can not removed.
+Hello Li Xi,
 
-When running dirop_fileop_racer we found a case that inode
-can not removed.
+The patch 847aac644e92: "vfs: Add general support to enforce project
+quota limits" from Mar 19, 2015, leads to the following static
+checker warning:
 
-2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
-two dirs /race/1/ and /race/2/ in the filesystem.
+	fs/ocfs2/quota_local.c:183 ocfs2_local_check_quota_file()
+	error: buffer overflow 'lmagics' 2 <= 2
 
-Node A                            Node B
-rm -r /race/2/
-                                  mv /race/1/ /race/2/
-call ocfs2_unlink(), get
-the EX mode of /race/2/
-                                  wait for B unlock /race/2/
-decrease i_nlink of /race/2/ to 0,
-and add inode of /race/2/ into
-orphan dir, unlock /race/2/
-                                  got EX mode of /race/2/. because
-                                  /race/1/ is dir, so inc i_nlink
-                                  of /race/2/ and update into disk,
-                                  unlock /race/2/
-because i_nlink of /race/2/
-is not zero, this inode will
-always remain in orphan dir
+fs/ocfs2/quota_local.c
+   159  /* Check whether we understand format of quota files */
+   160  static int ocfs2_local_check_quota_file(struct super_block *sb, int type)
+   161  {
+   162          unsigned int lmagics[OCFS2_MAXQUOTAS] = OCFS2_LOCAL_QMAGICS;
+                                     ^^^^^^^^^^^^^^^
+This is 2.  Maybe the fix is to change this to MAXQUOTAS.
 
-This patch fixes this case by test whether i_nlink of new dir is zero.
+   163          unsigned int lversions[OCFS2_MAXQUOTAS] = OCFS2_LOCAL_QVERSIONS;
+   164          unsigned int gmagics[OCFS2_MAXQUOTAS] = OCFS2_GLOBAL_QMAGICS;
+   165          unsigned int gversions[OCFS2_MAXQUOTAS] = OCFS2_GLOBAL_QVERSIONS;
+   166          unsigned int ino[OCFS2_MAXQUOTAS] = { USER_QUOTA_SYSTEM_INODE,
+   167                                                GROUP_QUOTA_SYSTEM_INODE };
+   168          struct buffer_head *bh = NULL;
+   169          struct inode *linode = sb_dqopt(sb)->files[type];
+   170          struct inode *ginode = NULL;
+   171          struct ocfs2_disk_dqheader *dqhead;
+   172          int status, ret = 0;
+   173  
+   174          /* First check whether we understand local quota file */
+   175          status = ocfs2_read_quota_block(linode, 0, &bh);
+   176          if (status) {
+   177                  mlog_errno(status);
+   178                  mlog(ML_ERROR, "failed to read quota file header (type=%d)\n",
+   179                          type);
+   180                  goto out_err;
+   181          }
+   182          dqhead = (struct ocfs2_disk_dqheader *)(bh->b_data);
+   183          if (le32_to_cpu(dqhead->dqh_magic) != lmagics[type]) {
+                                                      ^^^^^^^^^^^^^
+This is one past the end of the array.  It used to be limitied in
+do_quotactl().
 
-Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+	if (type >= (XQM_COMMAND(cmd) ? XQM_MAXQUOTAS : MAXQUOTAS))
 
- fs/ocfs2/namei.c |    9 +++++++++
- 1 file changed, 9 insertions(+)
+The old logic was the XFS had 3 quotas and everyone else had 2 but now
+we raised MAXQUOTAS to 3 as well.
 
-diff -puN fs/ocfs2/namei.c~ocfs2-fix-a-tiny-case-that-inode-can-not-removed fs/ocfs2/namei.c
---- a/fs/ocfs2/namei.c~ocfs2-fix-a-tiny-case-that-inode-can-not-removed
-+++ a/fs/ocfs2/namei.c
-@@ -1291,6 +1291,15 @@ static int ocfs2_rename(struct inode *ol
- 	}
- 	parents_locked = 1;
- 
-+	if (!new_dir->i_nlink) {
-+		mlog(ML_ERROR, "new dir %llu has been removed, inode %llu "
-+				"can not be moved into it.",
-+				(unsigned long long)new_dir->i_ino,
-+				(unsigned long long)old_inode->i_ino);
-+		status = -EACCES;
-+		goto bail;
-+	}
-+
- 	/* make sure both dirs have bhs
- 	 * get an extra ref on old_dir_bh if old==new */
- 	if (!new_dir_bh) {
-_
+   184                  mlog(ML_ERROR, "quota file magic does not match (%u != %u),"
+   185                          " type=%d\n", le32_to_cpu(dqhead->dqh_magic),
+   186                          lmagics[type], type);
+   187                  goto out_err;
+   188          }
+
+regards,
+dan carpenter
