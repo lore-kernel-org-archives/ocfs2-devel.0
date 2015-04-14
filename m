@@ -1,41 +1,38 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Tue, 14 Apr 2015 11:52:23 +0800
-Subject: [Ocfs2-devel] Question about commit cf1b5ea1c5cd
-In-Reply-To: <20150414034009.GV889@ZenIV.linux.org.uk>
-References: <552C8440.2000106@huawei.com>
-	<20150414034009.GV889@ZenIV.linux.org.uk>
-Message-ID: <552C8EF7.5060905@huawei.com>
+Date: Tue, 14 Apr 2015 14:18:07 +0800
+Subject: [Ocfs2-devel] [PATCH 1/3] Add errors=continue
+In-Reply-To: <20150303180829.GA13122@shrek.lan>
+References: <20150303180829.GA13122@shrek.lan>
+Message-ID: <552CB11F.60801@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2015/4/14 11:40, Al Viro wrote:
-> On Tue, Apr 14, 2015 at 11:06:40AM +0800, Joseph Qi wrote:
->> Hi Viro,
->> I have questions about your commit cf1b5ea1c5cd
->> ("[regression] ocfs2: do *not* increment ->ki_pos twice").
->> Yes, ->ki_pos is increased in generic_file_direct_write(). But
->> *ppos doesn't. So I increase it here for further use in
->> generic_perform_write.
->> After this, ->ki_pos and *ppos are equal.
+Hi Goldwyn,
+On 2015/3/4 2:08, Goldwyn Rodrigues wrote:
+> OCFS2 is often used in high-availaibility systems. However, ocfs2
+> converts the filesystem to read-only at the drop of the hat. This
+> may not be necessary, since turning the filesystem read-only would
+> affect other running processes as well, decreasing availability.
 > 
-> They are equal all along, for a very simple reason: ppos *points* *to*
-> iocb->ki_pos.  So yes, you do increase it twice, once via one alias,
-> once via another.
+> This attempt is to add errors=continue, which would return the EIO
+> to the calling process and terminate furhter processing so that
+> the filesystem is not corrupted further. However, the filesystem
+> is not converted to read-only.
 > 
-> Check and you'll see - ppos is initialized with &iocb->ki_pos and never
-> reassigned.  What happens is an equivalent of
-> 
-> int x = 0;
-> int *p = &x;
-> 
-> x += 10;
-> *p += 10;
-> 
-> which obviously ends with x increased by 20, not by 10...
-> 
-> 
-I see. My mistake of ignoring this.
-Thanks very much for spotting it out.
+> As a future plan, I intend to create a small utility or extend
+> fsck.ocfs2 to fix small errors such as in the inode. The input
+> to the utility such as the inode can come from the kernel logs
+> so we don't have to schedule a downtime for fixing small-enough
+> errors.
+I am interested in your thought. As a cluster filesystem, I don't think
+it is a good idea that we set the whole filesystem to readonly because
+of a small error (for example, inode OCFS2_VALID_FL not set). It impacts
+too much. So we can isolate some errors and fix them in the backgroud,
+without offline fsck.
+I think you can send a RFC to discuss this topic.
+
+--
+Joseph
