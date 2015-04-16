@@ -1,76 +1,29 @@
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Date: Thu, 16 Apr 2015 12:32:46 -0700
-Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2_iop_set/get_acl() called from the
-	VFS so take inode lock -v2(second version)
-Message-ID: <1429212766-25577-1-git-send-email-tariq.x.saeed@oracle.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Thu, 16 Apr 2015 14:15:55 -0700
+Subject: [Ocfs2-devel] [PATCH 2/2] ocfs2_iop_set/get_acl() are also
+ called from the VFS so we must take inode lock
+In-Reply-To: <553004BD.9020601@oracle.com>
+References: <1428097580-25352-1-git-send-email-tariq.x.saeed@oracle.com>
+	<1428097580-25352-2-git-send-email-tariq.x.saeed@oracle.com>
+	<552F775B.6040203@oracle.com> <553004BD.9020601@oracle.com>
+Message-ID: <20150416211554.GM17170@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Orabug: 20189959
+On Thu, Apr 16, 2015 at 11:51:41AM -0700, Tariq Saeed wrote:
+> I have no objection to applying your suggestions and re-submitting the
+> patch. Mark, what is the protocol for that. Do I need to mention
+> that this is a re-sumit?
 
-This bug in mainline code is pointed out by Mark Fasheh. When ocfs2_iop_set_acl
-and ocfs2_iop_ge_acl are entered from VFS layer, inode lock is not held. This
-seems to be regression from older kernels. The patch is to fix that.
+If you're re-submitting something that hasn't gone upstream yet it's
+sufficient to add a 'V2' (or whatever you like) to the subject line. Also, a
+change log in those cases is nice.
 
-Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
----
- fs/ocfs2/acl.c |   26 ++++++++++++++++++++------
- 1 files changed, 20 insertions(+), 6 deletions(-)
+Thanks,
+	--Mark
 
-diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-index 7e8282d..d8b11ca 100644
---- a/fs/ocfs2/acl.c
-+++ b/fs/ocfs2/acl.c
-@@ -286,7 +286,19 @@ int ocfs2_set_acl(handle_t *handle,
- 
- int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
- {
--	return ocfs2_set_acl(NULL, inode, NULL, type, acl, NULL, NULL);
-+	struct buffer_head *bh = NULL;
-+	int status = 0;
-+
-+	status = ocfs2_inode_lock(inode, &bh, 1);
-+	if (status < 0) {
-+		if (status != -ENOENT)
-+			mlog_errno(status);
-+		return status;
-+	}
-+	status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
-+	ocfs2_inode_unlock(inode, 1);
-+	brelse(bh);
-+	return status;
- }
- 
- struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
-@@ -294,19 +306,21 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
- 	struct ocfs2_super *osb;
- 	struct buffer_head *di_bh = NULL;
- 	struct posix_acl *acl;
--	int ret = -EAGAIN;
-+	int ret;
- 
- 	osb = OCFS2_SB(inode->i_sb);
- 	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
- 		return NULL;
--
--	ret = ocfs2_read_inode_block(inode, &di_bh);
--	if (ret < 0)
-+	ret = ocfs2_inode_lock(inode, &di_bh, 0);
-+	if (ret < 0) {
-+		if (ret != -ENOENT)
-+			mlog_errno(ret);
- 		return ERR_PTR(ret);
-+	}
- 
- 	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
- 
-+	ocfs2_inode_unlock(inode, 0);
- 	brelse(di_bh);
--
- 	return acl;
- }
--- 
-1.7.1
+--
+Mark Fasheh
