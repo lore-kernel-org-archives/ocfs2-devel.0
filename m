@@ -1,56 +1,45 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Wed, 15 Apr 2015 09:37:59 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: set filesytem read-only when
-	ocfs2_delete_entry failed.
-Message-ID: <552DC0F7.2070303@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Thu, 16 Apr 2015 13:42:17 +0800
+Subject: [Ocfs2-devel] [PATCH 1/1] automated tool detected uninitialized
+ variable use in ocfs2_local_alloc_find_clear_bits
+In-Reply-To: <1428705866-26954-1-git-send-email-tariq.x.saeed@oracle.com>
+References: <1428705866-26954-1-git-send-email-tariq.x.saeed@oracle.com>
+Message-ID: <552F4BB9.9090400@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-In ocfs2_rename, it will lead to an inode with two entried(old and new)
-if ocfs2_delete_entry(old) failed. Thus, filesystem will be
-inconsistent.
-The case is described below:
-ocfs2_rename
-    -> ocfs2_start_trans
-    -> ocfs2_add_entry(new)
-    -> ocfs2_delete_entry(old)
-        -> __ocfs2_journal_access *failed* because of -ENOMEM
-    -> ocfs2_commit_trans
-So filesystem should be set to read-only at the moment.
+Hi Tariq,
 
-Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
----
- fs/ocfs2/namei.c | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
+This have been fixed by upstream commit
+023d4ea358494ccfeb37abfe5b0fd01b45a6051c ("ocfs2: fix possible
+uninitialized variable access").
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index b5c3a5e..6f2f36d 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -1551,12 +1551,21 @@ static int ocfs2_rename(struct inode *old_dir,
- 	status = ocfs2_find_entry(old_dentry->d_name.name,
- 				  old_dentry->d_name.len, old_dir,
- 				  &old_entry_lookup);
--	if (status)
-+	if (status) {
-+		ocfs2_error(osb->sb, "new entry %.*s is added, but old entry %.*s "
-+				"is not deleted.",
-+				new_dentry->d_name.len, new_dentry->d_name.name,
-+				old_dentry->d_name.len, old_dentry->d_name.name);
- 		goto bail;
-+	}
-
- 	status = ocfs2_delete_entry(handle, old_dir, &old_entry_lookup);
- 	if (status < 0) {
- 		mlog_errno(status);
-+		ocfs2_error(osb->sb, "new entry %.*s is added, but old entry %.*s "
-+				"is not deleted.",
-+				new_dentry->d_name.len, new_dentry->d_name.name,
-+				old_dentry->d_name.len, old_dentry->d_name.name);
- 		goto bail;
- 	}
-
--- 1.8.3.4
+Thanks,
+Junxiao.
+On 04/11/2015 06:44 AM, Tariq Saeed wrote:
+> Orabug: 19060842
+> 
+> In ocfs2_local_alloc_find_clear_bits(), local int numbits is used
+> without being initialized in an error path.
+> 
+> Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
+> ---
+>  fs/ocfs2/localalloc.c |    1 +
+>  1 files changed, 1 insertions(+), 0 deletions(-)
+> 
+> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+> index 0440134..978a6e0 100644
+> --- a/fs/ocfs2/localalloc.c
+> +++ b/fs/ocfs2/localalloc.c
+> @@ -847,6 +847,7 @@ static int ocfs2_local_alloc_find_clear_bits(struct ocfs2_super *osb,
+>  
+>  	if (!alloc->id1.bitmap1.i_total) {
+>  		bitoff = -1;
+> +		numfound = -1;
+>  		goto bail;
+>  	}
+>  
+> 
