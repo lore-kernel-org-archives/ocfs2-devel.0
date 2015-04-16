@@ -1,45 +1,76 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu, 16 Apr 2015 13:42:17 +0800
-Subject: [Ocfs2-devel] [PATCH 1/1] automated tool detected uninitialized
- variable use in ocfs2_local_alloc_find_clear_bits
-In-Reply-To: <1428705866-26954-1-git-send-email-tariq.x.saeed@oracle.com>
-References: <1428705866-26954-1-git-send-email-tariq.x.saeed@oracle.com>
-Message-ID: <552F4BB9.9090400@oracle.com>
+Date: Thu, 16 Apr 2015 15:28:07 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: check if the ocfs2 lock resource
+ be initialized before calling ocfs2_dlm_lock
+In-Reply-To: <5518C165.10106@huawei.com>
+References: <5518C165.10106@huawei.com>
+Message-ID: <552F6487.4020707@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Tariq,
+Hi Alex,
 
-This have been fixed by upstream commit
-023d4ea358494ccfeb37abfe5b0fd01b45a6051c ("ocfs2: fix possible
-uninitialized variable access").
+On 03/30/2015 11:22 AM, alex chen wrote:
+> If ocfs2 lockres has not been initialized before calling ocfs2_dlm_lock,
+> the lock won't be dropped and then will lead umount hung. The case is
+> described below:
+> 
+> ocfs2_mknod
+>     ocfs2_mknod_locked
+>         __ocfs2_mknod_locked
+>             ocfs2_journal_access_di
+>             Failed because of -ENOMEM or other reasons, the inode lockres
+>             has not been initialized yet.
+
+If failed here, is OCFS2_I(inode)->ip_inode_lockres initialized?  If not
+how can you break __ocfs2_cluster_lock with the following condition?
+
+if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED))
 
 Thanks,
 Junxiao.
-On 04/11/2015 06:44 AM, Tariq Saeed wrote:
-> Orabug: 19060842
+
 > 
-> In ocfs2_local_alloc_find_clear_bits(), local int numbits is used
-> without being initialized in an error path.
+>     iput(inode)
+>         ocfs2_evict_inode
+>             ocfs2_delete_inode
+>                 ocfs2_inode_lock
+>                     ocfs2_inode_lock_full_nested
+>                         __ocfs2_cluster_lock
+>                         Succeeds and allocates a new dlm lockres.
+>             ocfs2_clear_inode
+>                 ocfs2_open_unlock
+>                     ocfs2_drop_inode_locks
+>                         ocfs2_drop_lock
+>                         Since lockres has not been initialized, the lock
+>                         can't be dropped and the lockres can't be
+>                         migrated, thus umount will hang forever.
 > 
-> Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
+> Signed-off-by: Alex Chen <alex.chen@huawei.com>
+> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+> Reviewed-by: joyce.xue <xuejiufei@huawei.com>
+> 
 > ---
->  fs/ocfs2/localalloc.c |    1 +
->  1 files changed, 1 insertions(+), 0 deletions(-)
+>  fs/ocfs2/dlmglue.c | 5 +++++
+>  1 file changed, 5 insertions(+)
 > 
-> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-> index 0440134..978a6e0 100644
-> --- a/fs/ocfs2/localalloc.c
-> +++ b/fs/ocfs2/localalloc.c
-> @@ -847,6 +847,7 @@ static int ocfs2_local_alloc_find_clear_bits(struct ocfs2_super *osb,
->  
->  	if (!alloc->id1.bitmap1.i_total) {
->  		bitoff = -1;
-> +		numfound = -1;
->  		goto bail;
->  	}
->  
+> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+> index 11849a4..8b23aa2 100644
+> --- a/fs/ocfs2/dlmglue.c
+> +++ b/fs/ocfs2/dlmglue.c
+> @@ -1391,6 +1391,11 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
+>  	int noqueue_attempted = 0;
+>  	int dlm_locked = 0;
+> 
+> +	if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) {
+> +		mlog_errno(-EINVAL);
+> +		return -EINVAL;
+> +	}
+> +
+>  	ocfs2_init_mask_waiter(&mw);
+> 
+>  	if (lockres->l_ops->flags & LOCK_TYPE_USES_LVB)
 > 
