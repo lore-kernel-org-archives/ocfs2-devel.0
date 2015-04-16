@@ -1,76 +1,159 @@
 From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Thu, 16 Apr 2015 15:28:07 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: check if the ocfs2 lock resource
- be initialized before calling ocfs2_dlm_lock
-In-Reply-To: <5518C165.10106@huawei.com>
-References: <5518C165.10106@huawei.com>
-Message-ID: <552F6487.4020707@oracle.com>
+Date: Thu, 16 Apr 2015 16:34:43 +0800
+Subject: [Ocfs2-devel] [PATCH 1/2] BUG_ON(lockres->l_level !=
+ DLM_LOCK_EX && !checkpointed) tripped in ocfs2_ci_checkpointed
+In-Reply-To: <1428097580-25352-1-git-send-email-tariq.x.saeed@oracle.com>
+References: <1428097580-25352-1-git-send-email-tariq.x.saeed@oracle.com>
+Message-ID: <552F7423.4070301@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Alex,
-
-On 03/30/2015 11:22 AM, alex chen wrote:
-> If ocfs2 lockres has not been initialized before calling ocfs2_dlm_lock,
-> the lock won't be dropped and then will lead umount hung. The case is
-> described below:
+On 04/04/2015 05:46 AM, Tariq Saeed wrote:
+> Orabug: 20189959
 > 
-> ocfs2_mknod
->     ocfs2_mknod_locked
->         __ocfs2_mknod_locked
->             ocfs2_journal_access_di
->             Failed because of -ENOMEM or other reasons, the inode lockres
->             has not been initialized yet.
+> PID: 614    TASK: ffff882a739da580  CPU: 3   COMMAND: "ocfs2dc"
+>  #0 [ffff882ecc3759b0] machine_kexec at ffffffff8103b35d
+>  #1 [ffff882ecc375a20] crash_kexec at ffffffff810b95b5
+>  #2 [ffff882ecc375af0] oops_end at ffffffff815091d8
+>  #3 [ffff882ecc375b20] die at ffffffff8101868b
+>  #4 [ffff882ecc375b50] do_trap at ffffffff81508bb0
+>  #5 [ffff882ecc375ba0] do_invalid_op at ffffffff810165e5
+>  #6 [ffff882ecc375c40] invalid_op at ffffffff815116fb
+>     [exception RIP: ocfs2_ci_checkpointed+208]
+>     RIP: ffffffffa0a7e940  RSP: ffff882ecc375cf0  RFLAGS: 00010002
+>     RAX: 0000000000000001  RBX: 000000000000654b  RCX: ffff8812dc83f1f8
+>     RDX: 00000000000017d9  RSI: ffff8812dc83f1f8  RDI: ffffffffa0b2c318
+>     RBP: ffff882ecc375d20   R8: ffff882ef6ecfa60   R9: ffff88301f272200
+>     R10: 0000000000000000  R11: 0000000000000000  R12: ffffffffffffffff
+>     R13: ffff8812dc83f4f0  R14: 0000000000000000  R15: ffff8812dc83f1f8
+>     ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018
+>  #7 [ffff882ecc375d28] ocfs2_check_meta_downconvert at ffffffffa0a7edbd [ocfs2]
+>  #8 [ffff882ecc375d38] ocfs2_unblock_lock at ffffffffa0a84af8 [ocfs2]
+>  #9 [ffff882ecc375dc8] ocfs2_process_blocked_lock at ffffffffa0a85285 [ocfs2]
+> #10 [ffff882ecc375e18] ocfs2_downconvert_thread_do_work at ffffffffa0a85445 [ocfs2]
+> #11 [ffff882ecc375e68] ocfs2_downconvert_thread at ffffffffa0a854de [ocfs2]
+> #12 [ffff882ecc375ee8] kthread at ffffffff81090da7
+> #13 [ffff882ecc375f48] kernel_thread_helper at ffffffff81511884
+> assert is tripped because the tran is not checkpointed and the lock level is PR.
+> 
+> Some time ago, chmod command had been executed. As result, the following call
+> chain left the inode cluster lock in PR state, latter on causing the assert.
+> system_call_fastpath
+>  -> my_chmod
+>   -> sys_chmod
+>    -> sys_fchmodat
+>     -> notify_change
+>      -> ocfs2_setattr
+>       -> posix_acl_chmod
+>        -> ocfs2_iop_set_acl
+>         -> ocfs2_set_acl
+>          -> ocfs2_acl_set_mode
+> Here is how.
+> 1119 int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+> 1120 {
+> 1247         ocfs2_inode_unlock(inode, 1); <<< WRONG thing to do.
+> ..
+> 1258         if (!status && attr->ia_valid & ATTR_MODE) {
+> 1259                 status =  posix_acl_chmod(inode, inode->i_mode);
+> 
+> 519 posix_acl_chmod(struct inode *inode, umode_t mode)
+> 520 {
+> ..
+> 539         ret = inode->i_op->set_acl(inode, acl, ACL_TYPE_ACCESS);
+> 
+> 287 int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, ...
+> 288 {
+> 289         return ocfs2_set_acl(NULL, inode, NULL, type, acl, NULL, NULL);
+> 
+> 224 int ocfs2_set_acl(handle_t *handle,
+> 225                          struct inode *inode, ...
+> 231 {
+> ..
+> 252                                 ret = ocfs2_acl_set_mode(inode, di_bh,
+> 253                                                          handle, mode);
+> 
+> 168 static int ocfs2_acl_set_mode(struct inode *inode, struct buffer_head ...
+> 170 {
+> 183         if (handle == NULL) {
+>                    >>> BUG: inode lock not held in ex at this point <<<
+> 184                 handle = ocfs2_start_trans(OCFS2_SB(inode->i_sb),
+> 185                                            OCFS2_INODE_UPDATE_CREDITS);
+> 
+> ocfs2_setattr.#1247 we unlock and at #1259 call posix_acl_chmod. When we reach
+> ocfs2_acl_set_mode.#181 and do trans, the inode cluster lock is not held in EX
+> mode (it should be). How this could have happended?
+> 
+> We are the lock master, were holding lock EX and have released it in
+> ocfs2_setattr.#1247. Note that there are no holders of this lock at
+> this point. Another node needs the lock in PR, and we downconvert from
+> EX to PR. So the inode lock is PR when do the trans in
+> ocfs2_acl_set_mode.#184. The trans stays in core (not flushed to disc).
+> Now another node want the lock in EX, downconvert thread gets kicked (the
+> one that tripped assert abovt), finds an unflushed trans but the lock is
+> not EX (it is PR). If the lock was at EX, it would have flushed the trans
+> ocfs2_ci_checkpointed -> ocfs2_start_checkpoint before downconverting (to NULL)
+> for the request.
+> 
+> ocfs2_setattr must not drop inode lock ex in this code path. If it does,
+> takes it again before the trans, say in ocfs2_set_acl, another cluster node can
+> get in between, execute another setattr, overwriting the one in progress
+> on this node, resulting in a mode acl size combo that is a mix of the two.
+Good explanation.
 
-If failed here, is OCFS2_I(inode)->ip_inode_lockres initialized?  If not
-how can you break __ocfs2_cluster_lock with the following condition?
-
-if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED))
+Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
 
 Thanks,
 Junxiao.
 
 > 
->     iput(inode)
->         ocfs2_evict_inode
->             ocfs2_delete_inode
->                 ocfs2_inode_lock
->                     ocfs2_inode_lock_full_nested
->                         __ocfs2_cluster_lock
->                         Succeeds and allocates a new dlm lockres.
->             ocfs2_clear_inode
->                 ocfs2_open_unlock
->                     ocfs2_drop_inode_locks
->                         ocfs2_drop_lock
->                         Since lockres has not been initialized, the lock
->                         can't be dropped and the lockres can't be
->                         migrated, thus umount will hang forever.
-> 
-> Signed-off-by: Alex Chen <alex.chen@huawei.com>
-> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-> Reviewed-by: joyce.xue <xuejiufei@huawei.com>
-> 
+> Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
 > ---
->  fs/ocfs2/dlmglue.c | 5 +++++
->  1 file changed, 5 insertions(+)
+>  fs/ocfs2/file.c |   10 ++++++++--
+>  1 files changed, 8 insertions(+), 2 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 11849a4..8b23aa2 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -1391,6 +1391,11 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
->  	int noqueue_attempted = 0;
->  	int dlm_locked = 0;
-> 
-> +	if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) {
-> +		mlog_errno(-EINVAL);
-> +		return -EINVAL;
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 3950693..113880c 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -1118,7 +1118,7 @@ out:
+>  
+>  int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>  {
+> -	int status = 0, size_change;
+> +	int status = 0, size_change, inode_locked = 0;
+>  	struct inode *inode = dentry->d_inode;
+>  	struct super_block *sb = inode->i_sb;
+>  	struct ocfs2_super *osb = OCFS2_SB(sb);
+> @@ -1164,6 +1164,7 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>  			mlog_errno(status);
+>  		goto bail_unlock_rw;
+>  	}
+> +	inode_locked = 1;
+>  
+>  	if (size_change) {
+>  		status = inode_newsize_ok(inode, attr->ia_size);
+> @@ -1244,7 +1245,10 @@ int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+>  bail_commit:
+>  	ocfs2_commit_trans(osb, handle);
+>  bail_unlock:
+> -	ocfs2_inode_unlock(inode, 1);
+> +	if (status) {
+> +		ocfs2_inode_unlock(inode, 1);
+> +		inode_locked = 0;
 > +	}
-> +
->  	ocfs2_init_mask_waiter(&mw);
-> 
->  	if (lockres->l_ops->flags & LOCK_TYPE_USES_LVB)
+>  bail_unlock_rw:
+>  	if (size_change)
+>  		ocfs2_rw_unlock(inode, 1);
+> @@ -1260,6 +1264,8 @@ bail:
+>  		if (status < 0)
+>  			mlog_errno(status);
+>  	}
+> +	if (inode_locked)
+> +		ocfs2_inode_unlock(inode, 1);
+>  
+>  	return status;
+>  }
 > 
