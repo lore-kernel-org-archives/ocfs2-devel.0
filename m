@@ -1,124 +1,76 @@
-From: Joe Perches <joe@perches.com>
-Date: Fri, 17 Apr 2015 00:17:50 -0700
-Subject: [Ocfs2-devel] [PATCH next] ocfs2: Reduce object size of mlog uses
-Message-ID: <1429255070.2850.84.camel@perches.com>
+From: Xue jiufei <xuejiufei@huawei.com>
+Date: Fri, 17 Apr 2015 17:09:04 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: return error while
+ ocfs2_figure_merge_contig_type failing
+Message-ID: <5530CDB0.9040901@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
+To: ocfs2-devel@oss.oracle.com
 
-Using a function for __mlog_printk instead of a macro
-reduces the object size of built-in.o more than 120KB, or
-~10% overall (x86-64 defconfig with all ocfs2 options)
+Now function ocfs2_figure_merge_contig_type() still return CONTIG_NONE
+when some error occurs which will cause unpredictable error.
+So return error while ocfs2_figure_merge_contig_type failing.
 
-$ size fs/ocfs2/built-in.o*
-   text	   data	    bss	    dec	    hex	filename
- 936255	 118071	 134408	1188734	 12237e	fs/ocfs2/built-in.o.new
-1064081	 118071	 134408	1316560	 1416d0	fs/ocfs2/built-in.o.old
-
-Miscellanea:
-
-o Neaten macros around the __mlog_printk uses.
-o Use __func__ for __PRETTY_FUNCTION__
-o Use ##__VA_ARGS__ for args...
-
-Signed-off-by: Joe Perches <joe@perches.com>
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
 ---
-Compiled/untested
+ fs/ocfs2/alloc.c | 22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
 
- fs/ocfs2/cluster/masklog.c | 17 +++++++++++++++++
- fs/ocfs2/cluster/masklog.h | 28 +++++++++++++++++-----------
- 2 files changed, 34 insertions(+), 11 deletions(-)
-
-diff --git a/fs/ocfs2/cluster/masklog.c b/fs/ocfs2/cluster/masklog.c
-index af7598b..5b7a351 100644
---- a/fs/ocfs2/cluster/masklog.c
-+++ b/fs/ocfs2/cluster/masklog.c
-@@ -64,6 +64,23 @@ static ssize_t mlog_mask_store(u64 mask, const char *buf, size_t count)
- 	return count;
+diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+index 044158b..aa039f2 100644
+--- a/fs/ocfs2/alloc.c
++++ b/fs/ocfs2/alloc.c
+@@ -4313,11 +4313,11 @@ out:
+ 	return ret;
  }
  
-+void __mlog_printk(const char *level, const char *func, int line,
-+		   const char *fmt, ...)
-+{
-+	struct va_format vaf;
-+	va_list args;
-+
-+	va_start(args, fmt);
-+
-+	vaf.fmt = fmt;
-+	vaf.va = &args;
-+
-+	printk("%s(%s,%u,%lu):%s:%d %pV",
-+	       level, current->comm, task_pid_nr(current), __mlog_cpu_guess,
-+	       func, line, &vaf);
-+
-+	va_end(args);
-+}
- struct mlog_attribute {
- 	struct attribute attr;
- 	u64 mask;
-diff --git a/fs/ocfs2/cluster/masklog.h b/fs/ocfs2/cluster/masklog.h
-index 7fdc25a..6036e6a 100644
---- a/fs/ocfs2/cluster/masklog.h
-+++ b/fs/ocfs2/cluster/masklog.h
-@@ -168,7 +168,8 @@ extern struct mlog_bits mlog_and_bits, mlog_not_bits;
-  * scream.  just do this instead of trying to guess which we're building
-  * against.. *sigh*.
-  */
--#define __mlog_cpu_guess ({		\
-+#define __mlog_cpu_guess		\
-+({					\
- 	unsigned long _cpu = get_cpu();	\
- 	put_cpu();			\
- 	_cpu;				\
-@@ -178,21 +179,25 @@ extern struct mlog_bits mlog_and_bits, mlog_not_bits;
-  * before ##args is intentional. Otherwise, gcc 2.95 will eat the
-  * previous token if args expands to nothing.
-  */
--#define __mlog_printk(level, fmt, args...)				\
--	printk(level "(%s,%u,%lu):%s:%d " fmt, current->comm,		\
--	       task_pid_nr(current), __mlog_cpu_guess,			\
--	       __PRETTY_FUNCTION__, __LINE__ , ##args)
-+__printf(4, 5)
-+void __mlog_printk(const char *level, const char *func, int line,
-+		   const char *fmt, ...);
+-static enum ocfs2_contig_type
+-ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
++int ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
+ 			       struct ocfs2_path *path,
+ 			       struct ocfs2_extent_list *el, int index,
+-			       struct ocfs2_extent_rec *split_rec)
++			       struct ocfs2_extent_rec *split_rec,
++			       struct ocfs2_merge_ctxt *ctxt)
+ {
+ 	int status;
+ 	enum ocfs2_contig_type ret = CONTIG_NONE;
+@@ -4431,12 +4431,15 @@ ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
+ 	}
  
--#define mlog(mask, fmt, args...) do {					\
-+#define mlog(mask, fmt, ...)						\
-+do {									\
- 	u64 __m = MLOG_MASK_PREFIX | (mask);				\
- 	if ((__m & ML_ALLOWED_BITS) &&					\
- 	    __mlog_test_u64(__m, mlog_and_bits) &&			\
- 	    !__mlog_test_u64(__m, mlog_not_bits)) {			\
- 		if (__m & ML_ERROR)					\
--			__mlog_printk(KERN_ERR, "ERROR: "fmt , ##args);	\
-+			__mlog_printk(KERN_ERR, __func__, __LINE__,	\
-+				      "ERROR: " fmt, ##__VA_ARGS__);	\
- 		else if (__m & ML_NOTICE)				\
--			__mlog_printk(KERN_NOTICE, fmt , ##args);	\
--		else __mlog_printk(KERN_INFO, fmt , ##args);		\
-+			__mlog_printk(KERN_NOTICE, __func__, __LINE__,	\
-+				      fmt, ##__VA_ARGS__);		\
-+		else							\
-+			__mlog_printk(KERN_INFO, __func__, __LINE__,	\
-+				      fmt, ##__VA_ARGS__);		\
- 	}								\
- } while (0)
+ out:
++	if (status == 0)
++		ctxt->c_contig_type = ret;
++
+ 	if (left_path)
+ 		ocfs2_free_path(left_path);
+ 	if (right_path)
+ 		ocfs2_free_path(right_path);
  
-@@ -205,10 +210,11 @@ extern struct mlog_bits mlog_and_bits, mlog_not_bits;
- 	_st;								\
- })
+-	return ret;
++	return status;
+ }
  
--#define mlog_bug_on_msg(cond, fmt, args...) do {			\
-+#define mlog_bug_on_msg(cond, fmt, ...)					\
-+do {									\
- 	if (cond) {							\
- 		mlog(ML_ERROR, "bug expression: " #cond "\n");		\
--		mlog(ML_ERROR, fmt, ##args);				\
-+		mlog(ML_ERROR, fmt, ##__VA_ARGS__);			\
- 		BUG();							\
- 	}								\
- } while (0)
+ static void ocfs2_figure_contig_type(struct ocfs2_extent_tree *et,
+@@ -5042,9 +5045,14 @@ int ocfs2_split_extent(handle_t *handle,
+ 		goto out;
+ 	}
+ 
+-	ctxt.c_contig_type = ocfs2_figure_merge_contig_type(et, path, el,
+-							    split_index,
+-							    split_rec);
++	ret =  ocfs2_figure_merge_contig_type(et, path, el,
++					      split_index,
++					      split_rec,
++					      &ctxt);
++	if (ret) {
++		mlog_errno(ret);
++		goto out;
++	}
+ 
+ 	/*
+ 	 * The core merge / split code wants to know how much room is
+-- 
+1.8.4.3
