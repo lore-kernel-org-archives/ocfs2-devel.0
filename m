@@ -1,76 +1,107 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Wed, 22 Apr 2015 08:36:10 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: return error while
- ocfs2_figure_merge_contig_type failing
-Message-ID: <5536ECFA.5080400@huawei.com>
+From: Junxiao Bi <junxiao.bi@oracle.com>
+Date: Wed, 22 Apr 2015 09:46:51 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: check if the ocfs2 lock resource
+ be initialized before calling ocfs2_dlm_lock
+In-Reply-To: <5535BBC8.5030007@huawei.com>
+References: <5518C165.10106@huawei.com> <552F6487.4020707@oracle.com>
+	<5535BBC8.5030007@huawei.com>
+Message-ID: <5536FD8B.9050903@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Now function ocfs2_figure_merge_contig_type() still return CONTIG_NONE
-when some error occurs which will cause unpredictable error.
-So return error while ocfs2_figure_merge_contig_type failing.
+On 04/21/2015 10:54 AM, alex chen wrote:
+> Hi Junxiao,
+> 
+> On 2015/4/16 15:28, Junxiao Bi wrote:
+>> Hi Alex,
+>>
+>> On 03/30/2015 11:22 AM, alex chen wrote:
+>>> If ocfs2 lockres has not been initialized before calling ocfs2_dlm_lock,
+>>> the lock won't be dropped and then will lead umount hung. The case is
+>>> described below:
+>>>
+>>> ocfs2_mknod
+>>>     ocfs2_mknod_locked
+>>>         __ocfs2_mknod_locked
+>>>             ocfs2_journal_access_di
+>>>             Failed because of -ENOMEM or other reasons, the inode lockres
+>>>             has not been initialized yet.
+>>
+>> If failed here, is OCFS2_I(inode)->ip_inode_lockres initialized?  If not
+> 
+> The OCFS2_I(inode)->ip_inode_lockres is initialized as follows:
+> __ocfs2_mknod_locked
+>     ocfs2_populate_inode
+>         ocfs2_inode_lock_res_init
+>             ocfs2_lock_res_init_common
+> So if ocfs2_journal_access_di is failed, the ip_inode_lockres will not be
+> initialized.
+> In this situation, we should not allocate a new dlm lockres through calling
+> ocfs2_dlm_lock() in __ocfs2_cluster_lock(), otherwise it will lead umount
+> hung. So we need bread __ocfs2_cluster_lock() if the inode lockres is not
+> be initialized, that is the condition
+> (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) is TRUE.
 
-Signed-off-by: joyce.xue <xuejiufei@huawei.com>
----
- fs/ocfs2/alloc.c | 22 +++++++++++++++-------
- 1 file changed, 15 insertions(+), 7 deletions(-)
+Looks good. Just didn't remind that inode_info is init once when it is
+allocated from "ocfs2_inode_cache". lockres->l_flags is init there.
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 044158b..2d07b38 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -4313,11 +4313,11 @@ out:
- 	return ret;
- }
- 
--static enum ocfs2_contig_type
--ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
-+static int ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
- 			       struct ocfs2_path *path,
- 			       struct ocfs2_extent_list *el, int index,
--			       struct ocfs2_extent_rec *split_rec)
-+			       struct ocfs2_extent_rec *split_rec,
-+			       struct ocfs2_merge_ctxt *ctxt)
- {
- 	int status;
- 	enum ocfs2_contig_type ret = CONTIG_NONE;
-@@ -4431,12 +4431,15 @@ ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
- 	}
- 
- out:
-+	if (status == 0)
-+		ctxt->c_contig_type = ret;
-+
- 	if (left_path)
- 		ocfs2_free_path(left_path);
- 	if (right_path)
- 		ocfs2_free_path(right_path);
- 
--	return ret;
-+	return status;
- }
- 
- static void ocfs2_figure_contig_type(struct ocfs2_extent_tree *et,
-@@ -5042,9 +5045,14 @@ int ocfs2_split_extent(handle_t *handle,
- 		goto out;
- 	}
- 
--	ctxt.c_contig_type = ocfs2_figure_merge_contig_type(et, path, el,
--							    split_index,
--							    split_rec);
-+	ret =  ocfs2_figure_merge_contig_type(et, path, el,
-+					      split_index,
-+					      split_rec,
-+					      &ctxt);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
- 
- 	/*
- 	 * The core merge / split code wants to know how much room is
--- 
-1.8.4.3
+Thanks,
+Junxiao.
+
+> 
+>> how can you break __ocfs2_cluster_lock with the following condition?
+>>
+>> if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED))
+>>
+>> Thanks,
+>> Junxiao.
+>>
+>>>
+>>>     iput(inode)
+>>>         ocfs2_evict_inode
+>>>             ocfs2_delete_inode
+>>>                 ocfs2_inode_lock
+>>>                     ocfs2_inode_lock_full_nested
+>>>                         __ocfs2_cluster_lock
+>>>                         Succeeds and allocates a new dlm lockres.
+>>>             ocfs2_clear_inode
+>>>                 ocfs2_open_unlock
+>>>                     ocfs2_drop_inode_locks
+>>>                         ocfs2_drop_lock
+>>>                         Since lockres has not been initialized, the lock
+>>>                         can't be dropped and the lockres can't be
+>>>                         migrated, thus umount will hang forever.
+>>>
+>>> Signed-off-by: Alex Chen <alex.chen@huawei.com>
+>>> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+>>> Reviewed-by: joyce.xue <xuejiufei@huawei.com>
+>>>
+>>> ---
+>>>  fs/ocfs2/dlmglue.c | 5 +++++
+>>>  1 file changed, 5 insertions(+)
+>>>
+>>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+>>> index 11849a4..8b23aa2 100644
+>>> --- a/fs/ocfs2/dlmglue.c
+>>> +++ b/fs/ocfs2/dlmglue.c
+>>> @@ -1391,6 +1391,11 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
+>>>  	int noqueue_attempted = 0;
+>>>  	int dlm_locked = 0;
+>>>
+>>> +	if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) {
+>>> +		mlog_errno(-EINVAL);
+>>> +		return -EINVAL;
+>>> +	}
+>>> +
+>>>  	ocfs2_init_mask_waiter(&mw);
+>>>
+>>>  	if (lockres->l_ops->flags & LOCK_TYPE_USES_LVB)
+>>>
+>>
+>>
+>> .
+>>
+> 
