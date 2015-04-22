@@ -1,119 +1,133 @@
-From: alex chen <alex.chen@huawei.com>
-Date: Wed, 22 Apr 2015 16:14:09 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: check if the ocfs2 lock resource
- be initialized before calling ocfs2_dlm_lock
-In-Reply-To: <5536FD8B.9050903@oracle.com>
-References: <5518C165.10106@huawei.com> <552F6487.4020707@oracle.com>
-	<5535BBC8.5030007@huawei.com> <5536FD8B.9050903@oracle.com>
-Message-ID: <55375851.5070107@huawei.com>
+From: DaeSeok Youn <daeseok.youn@gmail.com>
+Date: Wed, 22 Apr 2015 18:50:53 +0900
+Subject: [Ocfs2-devel] [PATCH] ocfs2: use retval instead of status for
+	checking error
+In-Reply-To: <20150419054303.GA8548@devel.8.8.4.4>
+References: <20150419054303.GA8548@devel.8.8.4.4>
+Message-ID: <CAHb8M2B770M9q_5iLQKnHkns1akrMToqFccP6hQPCGy+7+7f9g@mail.gmail.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi, Joseph.
 
+Can you review this patch again, actually you had reviewed by
+ 'https://lkml.org/lkml/2015/2/27/655'.
 
-On 2015/4/22 9:46, Junxiao Bi wrote:
-> On 04/21/2015 10:54 AM, alex chen wrote:
->> Hi Junxiao,
->>
->> On 2015/4/16 15:28, Junxiao Bi wrote:
->>> Hi Alex,
->>>
->>> On 03/30/2015 11:22 AM, alex chen wrote:
->>>> If ocfs2 lockres has not been initialized before calling ocfs2_dlm_lock,
->>>> the lock won't be dropped and then will lead umount hung. The case is
->>>> described below:
->>>>
->>>> ocfs2_mknod
->>>>     ocfs2_mknod_locked
->>>>         __ocfs2_mknod_locked
->>>>             ocfs2_journal_access_di
->>>>             Failed because of -ENOMEM or other reasons, the inode lockres
->>>>             has not been initialized yet.
->>>
->>> If failed here, is OCFS2_I(inode)->ip_inode_lockres initialized?  If not
->>
->> The OCFS2_I(inode)->ip_inode_lockres is initialized as follows:
->> __ocfs2_mknod_locked
->>     ocfs2_populate_inode
->>         ocfs2_inode_lock_res_init
->>             ocfs2_lock_res_init_common
->> So if ocfs2_journal_access_di is failed, the ip_inode_lockres will not be
->> initialized.
->> In this situation, we should not allocate a new dlm lockres through calling
->> ocfs2_dlm_lock() in __ocfs2_cluster_lock(), otherwise it will lead umount
->> hung. So we need bread __ocfs2_cluster_lock() if the inode lockres is not
->> be initialized, that is the condition
->> (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) is TRUE.
-> 
-> Looks good. Just didn't remind that inode_info is init once when it is
-> allocated from "ocfs2_inode_cache". lockres->l_flags is init there.
-> 
-> Thanks,
-> Junxiao.
-> 
+Thanks.
 
-Thank you for your remind. If the subject is "check if lockres->l_flags be
-initialized to OCFS2_LOCK_INITIALIZED before calling ocfs2_dlm_lock" will
-be better.
+regards,
+Daeseok Youn
 
->>
->>> how can you break __ocfs2_cluster_lock with the following condition?
->>>
->>> if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED))
->>>
->>> Thanks,
->>> Junxiao.
->>>
->>>>
->>>>     iput(inode)
->>>>         ocfs2_evict_inode
->>>>             ocfs2_delete_inode
->>>>                 ocfs2_inode_lock
->>>>                     ocfs2_inode_lock_full_nested
->>>>                         __ocfs2_cluster_lock
->>>>                         Succeeds and allocates a new dlm lockres.
->>>>             ocfs2_clear_inode
->>>>                 ocfs2_open_unlock
->>>>                     ocfs2_drop_inode_locks
->>>>                         ocfs2_drop_lock
->>>>                         Since lockres has not been initialized, the lock
->>>>                         can't be dropped and the lockres can't be
->>>>                         migrated, thus umount will hang forever.
->>>>
->>>> Signed-off-by: Alex Chen <alex.chen@huawei.com>
->>>> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
->>>> Reviewed-by: joyce.xue <xuejiufei@huawei.com>
->>>>
->>>> ---
->>>>  fs/ocfs2/dlmglue.c | 5 +++++
->>>>  1 file changed, 5 insertions(+)
->>>>
->>>> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
->>>> index 11849a4..8b23aa2 100644
->>>> --- a/fs/ocfs2/dlmglue.c
->>>> +++ b/fs/ocfs2/dlmglue.c
->>>> @@ -1391,6 +1391,11 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
->>>>  	int noqueue_attempted = 0;
->>>>  	int dlm_locked = 0;
->>>>
->>>> +	if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) {
->>>> +		mlog_errno(-EINVAL);
->>>> +		return -EINVAL;
->>>> +	}
->>>> +
->>>>  	ocfs2_init_mask_waiter(&mw);
->>>>
->>>>  	if (lockres->l_ops->flags & LOCK_TYPE_USES_LVB)
->>>>
->>>
->>>
->>> .
->>>
->>
-> 
-> 
-> .
-> 
+2015-04-19 14:43 GMT+09:00 Daeseok Youn <daeseok.youn@gmail.com>:
+
+> The use of 'status' in __ocfs2_add_entry() can return wrong
+> value. Some functions' return value in __ocfs2_add_entry(),
+> i.e ocfs2_journal_access_di() is saved to 'status'.
+> But 'status' is not used in 'bail' label for returning result
+> of __ocfs2_add_entry().
+>
+> So use retval instead of status.
+>
+> Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
+> ---
+> This patch was came from 'https://lkml.org/lkml/2015/2/27/655'
+> This patch was needed to test but I didn't have any environment
+> for testing ocfs2 filesystem. But I have one, now.
+> (I'm too busy to make this enviroment. And qemu for this fs is difficult
+>  for me. :-(, sorry for that)
+>
+> Briefly how to set my environment for testing this fs with qemu.
+> 1. Getting and building linux kernel with linux-next branch for x86_64
+> qemu.
+>    And also options of ocfs2 related are enabled(built-in)
+> 2. Makes own root file system with 'buildroot' project.
+> 3. Getting and building ocfs2-tools.
+>   Then binaries after building this tool are moved my rootfs.
+> 4. Makes dummy disk image(5G) which will be formatted in qemu.
+> 5. Booting qemu with rootfs image and dummy disk image.
+> 6. mkfs.ocfs2 --fs-feature=local <device>
+>   this maybe possilbe to mount standalone mode.
+> 7. tunefs.ocfs2  --fs-features=indexed-dirs,noinline-data <device>
+> 8. make a cluster and one node
+>   use o2cb_ctl tool.
+> 9. o2cb service load and initialize
+>   # /etc/init.d/o2cb load && /etc/init.d/o2cb configure
+>   # /etc/init.d/o2cb online
+> 10. mount ocfs2
+>   # mount.ocfs2 <device> <some directory>
+>
+> And use GDB for debugging my patch path.
+> Connect gdb with qemu and add breakpoint in __ocfs2_add_entry() of
+> fs/ocfs2/dir.c
+>
+> And test my patch.
+> # cd <some directory mounted with ocfs2>
+> # mkdir <specific directory>
+>
+> This how-to is not written all my work, just briefly I said.
+>
+>  fs/ocfs2/dir.c |   20 ++++++++++----------
+>  1 files changed, 10 insertions(+), 10 deletions(-)
+>
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index 990e8f7..a9513ff 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -1607,7 +1607,7 @@ int __ocfs2_add_entry(handle_t *handle,
+>         struct ocfs2_dir_entry *de, *de1;
+>         struct ocfs2_dinode *di = (struct ocfs2_dinode
+> *)parent_fe_bh->b_data;
+>         struct super_block *sb = dir->i_sb;
+> -       int retval, status;
+> +       int retval;
+>         unsigned int size = sb->s_blocksize;
+>         struct buffer_head *insert_bh = lookup->dl_leaf_bh;
+>         char *data_start = insert_bh->b_data;
+> @@ -1685,25 +1685,25 @@ int __ocfs2_add_entry(handle_t *handle,
+>                         }
+>
+>                         if (insert_bh == parent_fe_bh)
+> -                               status = ocfs2_journal_access_di(handle,
+> +                               retval = ocfs2_journal_access_di(handle,
+>
+>  INODE_CACHE(dir),
+>                                                                  insert_bh,
+>
+>  OCFS2_JOURNAL_ACCESS_WRITE);
+>                         else {
+> -                               status = ocfs2_journal_access_db(handle,
+> +                               retval = ocfs2_journal_access_db(handle,
+>
+>  INODE_CACHE(dir),
+>                                                                  insert_bh,
+>                                               OCFS2_JOURNAL_ACCESS_WRITE);
+>
+> -                               if (ocfs2_dir_indexed(dir)) {
+> -                                       status = ocfs2_dx_dir_insert(dir,
+> +                               if (!retval && ocfs2_dir_indexed(dir))
+> +                                       retval = ocfs2_dx_dir_insert(dir,
+>                                                                 handle,
+>                                                                 lookup);
+> -                                       if (status) {
+> -                                               mlog_errno(status);
+> -                                               goto bail;
+> -                                       }
+> -                               }
+> +                       }
+> +
+> +                       if (retval) {
+> +                               mlog_errno(retval);
+> +                               goto bail;
+>                         }
+>
+>                         /* By now the buffer is marked for journaling */
+> --
+> 1.7.1
+>
+>
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150422/4414adab/attachment.html 
