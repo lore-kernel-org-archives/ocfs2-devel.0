@@ -1,122 +1,101 @@
-From: DaeSeok Youn <daeseok.youn@gmail.com>
-Date: Thu, 23 Apr 2015 10:20:20 +0900
-Subject: [Ocfs2-devel] [PATCH] ocfs2: use retval instead of status for
-	checking error
-In-Reply-To: <553841A0.5070901@huawei.com>
-References: <20150419054303.GA8548@devel.8.8.4.4> <553841A0.5070901@huawei.com>
-Message-ID: <CAHb8M2BFsAbSTyK63_p7HB2a=mXCVuNSsDe7u4gBowtMMiMsYA@mail.gmail.com>
+From: Joe Perches <joe@perches.com>
+Date: Wed, 22 Apr 2015 19:34:41 -0700
+Subject: [Ocfs2-devel] [PATCH next] ocfs2: Reduce object size of mlog
+	uses
+In-Reply-To: <20150422154604.3cb62467b66b1e313a30132c@linux-foundation.org>
+References: <1429255070.2850.84.camel@perches.com>
+	<20150422154604.3cb62467b66b1e313a30132c@linux-foundation.org>
+Message-ID: <1429756481.32612.26.camel@perches.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joseph Qi <joseph.qi@huawei.com>
-Cc: mfasheh@suse.com, Joel Becker <jlbec@evilplan.org>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-kernel <linux-kernel@vger.kernel.org>, Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
 
-Hi, Joseph.
+On Wed, 2015-04-22 at 15:46 -0700, Andrew Morton wrote:
+> On Fri, 17 Apr 2015 00:17:50 -0700 Joe Perches <joe@perches.com> wrote:
+> 
+> > Using a function for __mlog_printk instead of a macro
+> > reduces the object size of built-in.o more than 120KB, or
+> > ~10% overall (x86-64 defconfig with all ocfs2 options)
+> > 
+> > $ size fs/ocfs2/built-in.o*
+> >    text	   data	    bss	    dec	    hex	filename
+> >  936255	 118071	 134408	1188734	 12237e	fs/ocfs2/built-in.o.new
+> > 1064081	 118071	 134408	1316560	 1416d0	fs/ocfs2/built-in.o.old
+> 
+> It's a start.
+> 
+> > --- a/fs/ocfs2/cluster/masklog.c
+> > +++ b/fs/ocfs2/cluster/masklog.c
+> > @@ -64,6 +64,23 @@ static ssize_t mlog_mask_store(u64 mask, const char *buf, size_t count)
+> >  	return count;
+> >  }
+> >  
+> > +void __mlog_printk(const char *level, const char *func, int line,
+> > +		   const char *fmt, ...)
+> > +{
+> > +	struct va_format vaf;
+> > +	va_list args;
+> > +
+> > +	va_start(args, fmt);
+> > +
+> > +	vaf.fmt = fmt;
+> > +	vaf.va = &args;
+> > +
+> > +	printk("%s(%s,%u,%lu):%s:%d %pV",
+> > +	       level, current->comm, task_pid_nr(current), __mlog_cpu_guess,
+> > +	       func, line, &vaf);
+> > +
+> > +	va_end(args);
+> > +}
+> 
+> Logging function-name and line-number was a bit weird.  I wonder if
+> anyone will mind if this is converted to file-n-line, as God intended. 
+> That will shrink rodata a bit, because number-of-files is a lot less
+> than number-of-functions.
 
-2015-04-23 9:49 GMT+09:00 Joseph Qi <joseph.qi@huawei.com>:
-> On 2015/4/19 13:43, Daeseok Youn wrote:
->> The use of 'status' in __ocfs2_add_entry() can return wrong
->> value. Some functions' return value in __ocfs2_add_entry(),
->> i.e ocfs2_journal_access_di() is saved to 'status'.
->> But 'status' is not used in 'bail' label for returning result
->> of __ocfs2_add_entry().
->>
->> So use retval instead of status.
->>
->> Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
->
-> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-Thanks for review.
+I don't care one way or another.
 
-regards,
-Daeseok Youn.
->> ---
->> This patch was came from 'https://lkml.org/lkml/2015/2/27/655'
->> This patch was needed to test but I didn't have any environment
->> for testing ocfs2 filesystem. But I have one, now.
->> (I'm too busy to make this enviroment. And qemu for this fs is difficult
->>  for me. :-(, sorry for that)
->>
->> Briefly how to set my environment for testing this fs with qemu.
->> 1. Getting and building linux kernel with linux-next branch for x86_64 qemu.
->>    And also options of ocfs2 related are enabled(built-in)
->> 2. Makes own root file system with 'buildroot' project.
->> 3. Getting and building ocfs2-tools.
->>   Then binaries after building this tool are moved my rootfs.
->> 4. Makes dummy disk image(5G) which will be formatted in qemu.
->> 5. Booting qemu with rootfs image and dummy disk image.
->> 6. mkfs.ocfs2 --fs-feature=local <device>
->>   this maybe possilbe to mount standalone mode.
->> 7. tunefs.ocfs2  --fs-features=indexed-dirs,noinline-data <device>
->> 8. make a cluster and one node
->>   use o2cb_ctl tool.
->> 9. o2cb service load and initialize
->>   # /etc/init.d/o2cb load && /etc/init.d/o2cb configure
->>   # /etc/init.d/o2cb online
->> 10. mount ocfs2
->>   # mount.ocfs2 <device> <some directory>
->>
->> And use GDB for debugging my patch path.
->> Connect gdb with qemu and add breakpoint in __ocfs2_add_entry() of fs/ocfs2/dir.c
->>
->> And test my patch.
->> # cd <some directory mounted with ocfs2>
->> # mkdir <specific directory>
->>
->> This how-to is not written all my work, just briefly I said.
->>
->>  fs/ocfs2/dir.c |   20 ++++++++++----------
->>  1 files changed, 10 insertions(+), 10 deletions(-)
->>
->> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
->> index 990e8f7..a9513ff 100644
->> --- a/fs/ocfs2/dir.c
->> +++ b/fs/ocfs2/dir.c
->> @@ -1607,7 +1607,7 @@ int __ocfs2_add_entry(handle_t *handle,
->>       struct ocfs2_dir_entry *de, *de1;
->>       struct ocfs2_dinode *di = (struct ocfs2_dinode *)parent_fe_bh->b_data;
->>       struct super_block *sb = dir->i_sb;
->> -     int retval, status;
->> +     int retval;
->>       unsigned int size = sb->s_blocksize;
->>       struct buffer_head *insert_bh = lookup->dl_leaf_bh;
->>       char *data_start = insert_bh->b_data;
->> @@ -1685,25 +1685,25 @@ int __ocfs2_add_entry(handle_t *handle,
->>                       }
->>
->>                       if (insert_bh == parent_fe_bh)
->> -                             status = ocfs2_journal_access_di(handle,
->> +                             retval = ocfs2_journal_access_di(handle,
->>                                                                INODE_CACHE(dir),
->>                                                                insert_bh,
->>                                                                OCFS2_JOURNAL_ACCESS_WRITE);
->>                       else {
->> -                             status = ocfs2_journal_access_db(handle,
->> +                             retval = ocfs2_journal_access_db(handle,
->>                                                                INODE_CACHE(dir),
->>                                                                insert_bh,
->>                                             OCFS2_JOURNAL_ACCESS_WRITE);
->>
->> -                             if (ocfs2_dir_indexed(dir)) {
->> -                                     status = ocfs2_dx_dir_insert(dir,
->> +                             if (!retval && ocfs2_dir_indexed(dir))
->> +                                     retval = ocfs2_dx_dir_insert(dir,
->>                                                               handle,
->>                                                               lookup);
->> -                                     if (status) {
->> -                                             mlog_errno(status);
->> -                                             goto bail;
->> -                                     }
->> -                             }
->> +                     }
->> +
->> +                     if (retval) {
->> +                             mlog_errno(retval);
->> +                             goto bail;
->>                       }
->>
->>                       /* By now the buffer is marked for journaling */
->>
->
->
+Using __FILE__ vs __func__ reduces built-in.o
+by about 25K.
+
+I didn't bother to determine the actual total
+reduction in a vmlinux.o
+
+> > -#define mlog(mask, fmt, args...) do {					\
+> > +#define mlog(mask, fmt, ...)						\
+> > +do {									\
+> >  	u64 __m = MLOG_MASK_PREFIX | (mask);				\
+> >  	if ((__m & ML_ALLOWED_BITS) &&					\
+> >  	    __mlog_test_u64(__m, mlog_and_bits) &&			\
+> >  	    !__mlog_test_u64(__m, mlog_not_bits)) {			\
+> >  		if (__m & ML_ERROR)					\
+
+> All this goop can also be uninlined?
+
+You have to convert the level pointer to a u64 pointer
+passing &__m, but yeah, it's becomes about 65K smaller.
+
+The macro becomes simpler too as the (__m & ML_<LEVEL>)
+tests go into the function.
+
+So that's another 7 or 8 % or more total shrinking.
+
+> I guess this patch is a step on the way - a 10% shrink is decent.  But
+> I believe that with full uninlining of the ocfs2 logging code we can
+> shrink the filesystem's footprint by 50%.
+
+Nope.
+
+Even if CONFIG_PRINTK is not set and the mlog #define
+is a no-op, it's not quite that big a reduction.
+
+You have to turn the function tracing code off too for
+that 50%.
+
+> If you feel like undertaking such a rotorooting then go wild - that should
+> wake 'em up ;)
+
+One step at a time...
