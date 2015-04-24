@@ -1,116 +1,44 @@
-From: Daeseok Youn <daeseok.youn@gmail.com>
-Date: Fri, 24 Apr 2015 10:45:45 +0900
-Subject: [Ocfs2-devel] [PATCH RESEND] ocfs2: use retval instead of status
-	for checking error
-Message-ID: <20150424014545.GA9252@devel.8.8.4.4>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Fri, 24 Apr 2015 13:31:51 -0700
+Subject: [Ocfs2-devel] [PATCH next] ocfs2: Reduce object size of mlog
+	uses
+In-Reply-To: <CAFLxGvzt2V=vVV3u7ur19wDMhmnqri5ctaqbxpo_fW1bohqzUA@mail.gmail.com>
+References: <1429255070.2850.84.camel@perches.com>
+	<20150422154604.3cb62467b66b1e313a30132c@linux-foundation.org>
+	<20150423230418.GR17170@wotan.suse.de>
+	<20150423161923.be61ea8cd9e64a9e30a23eca@linux-foundation.org>
+	<CAFLxGvzt2V=vVV3u7ur19wDMhmnqri5ctaqbxpo_fW1bohqzUA@mail.gmail.com>
+Message-ID: <20150424203150.GS17170@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: mfasheh@suse.com, akpm@linux-foundation.org
-Cc: ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org, richard@nod.at, joseph.qi@huawei.com
+To: Richard Weinberger <richard.weinberger@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Joe Perches <joe@perches.com>, ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
 
-The use of 'status' in __ocfs2_add_entry() can return wrong
-value. Some functions' return value in __ocfs2_add_entry(),
-i.e ocfs2_journal_access_di() is saved to 'status'.
-But 'status' is not used in 'bail' label for returning result
-of __ocfs2_add_entry().
+On Fri, Apr 24, 2015 at 01:37:34AM +0200, Richard Weinberger wrote:
+> On Fri, Apr 24, 2015 at 1:19 AM, Andrew Morton
+> <akpm@linux-foundation.org> wrote:
+> > On Thu, 23 Apr 2015 16:04:18 -0700 Mark Fasheh <mfasheh@suse.de> wrote:
+> >
+> >> > This code needs some pretty serious rework and rethink, perhaps
+> >> > involving a change to the emitted info.  I was hoping one of the ocfs2
+> >> > developers would take the bait, but they're all in hiding.
+> >>
+> >> If it functions the same and doesn't have a major performance change, I'm
+> >> pretty sure it'll be fine. We sometimes ask customers to enable some of the
+> >> debugging if they are having an issue. I would ask that it be tested
+> >> on a live system - a local fs, no cluster or cluster config required.
+> >
+> > Is there a simpleton's guide to testing ocfs2 on a local disk?  One
+> > which assumes a starting point of "knows how to type".
+> 
+> See http://docs.oracle.com/cd/E37670_01/E41138/html/ol_crlcl_ocfs2.html
 
-So use retval instead of status.
+As Richard points out, it's pretty straightforward, just use the '-M local'
+switch to mkfs.ocfs2. From there mount.ocfs2 will do the right thing when
+you ask it to load the file system.
+	--Mark
 
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
----
-RESEND: missed my patch in ocfs2-devel mailing list so send it again
-And also add 'Reviewed-by' line.
-
-Previous sent message of my patch
-This patch was came from 'https://lkml.org/lkml/2015/2/27/655'
-This patch was needed to test but I didn't have any environment
-for testing ocfs2 filesystem. But I have one, now.
-(I'm too busy to make this enviroment. And qemu for this fs is difficult
-  for me. :-(, sorry for that)
-
-Briefly how to set my environment for testing this fs with qemu.
-1. Getting and building linux kernel with linux-next branch for x86_64
-qemu.
-And also options of ocfs2 related are enabled(built-in)
-2. Makes own root file system with 'buildroot' project.
-3. Getting and building ocfs2-tools.
-   Then binaries after building this tool are moved my rootfs.
-4. Makes dummy disk image(5G) which will be formatted in qemu.
-5. Booting qemu with rootfs image and dummy disk image.
-6. mkfs.ocfs2 --fs-feature=local <device>
-   this maybe possilbe to mount standalone mode.
-7. tunefs.ocfs2  --fs-features=indexed-dirs,noinline-data <device>
-8. make a cluster and one node
-   use o2cb_ctl tool.
-9. o2cb service load and initialize
-  # /etc/init.d/o2cb load && /etc/init.d/o2cb configure
-  # /etc/init.d/o2cb online
-10. mount ocfs2
-  # mount.ocfs2 <device> <some directory>
-
-And use GDB for debugging my patch path.
-Connect gdb with qemu and add breakpoint in __ocfs2_add_entry() of
-fs/ocfs2/dir.c
-
-And test my patch.
-# cd <some directory mounted with ocfs2>
-# mkdir <specific directory>
-
-This how-to is not written all my work, just briefly I said.
-
- fs/ocfs2/dir.c |   20 ++++++++++----------
- 1 files changed, 10 insertions(+), 10 deletions(-)
-
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 990e8f7..a9513ff 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -1607,7 +1607,7 @@ int __ocfs2_add_entry(handle_t *handle,
- 	struct ocfs2_dir_entry *de, *de1;
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)parent_fe_bh->b_data;
- 	struct super_block *sb = dir->i_sb;
--	int retval, status;
-+	int retval;
- 	unsigned int size = sb->s_blocksize;
- 	struct buffer_head *insert_bh = lookup->dl_leaf_bh;
- 	char *data_start = insert_bh->b_data;
-@@ -1685,25 +1685,25 @@ int __ocfs2_add_entry(handle_t *handle,
- 			}
- 
- 			if (insert_bh == parent_fe_bh)
--				status = ocfs2_journal_access_di(handle,
-+				retval = ocfs2_journal_access_di(handle,
- 								 INODE_CACHE(dir),
- 								 insert_bh,
- 								 OCFS2_JOURNAL_ACCESS_WRITE);
- 			else {
--				status = ocfs2_journal_access_db(handle,
-+				retval = ocfs2_journal_access_db(handle,
- 								 INODE_CACHE(dir),
- 								 insert_bh,
- 					      OCFS2_JOURNAL_ACCESS_WRITE);
- 
--				if (ocfs2_dir_indexed(dir)) {
--					status = ocfs2_dx_dir_insert(dir,
-+				if (!retval && ocfs2_dir_indexed(dir))
-+					retval = ocfs2_dx_dir_insert(dir,
- 								handle,
- 								lookup);
--					if (status) {
--						mlog_errno(status);
--						goto bail;
--					}
--				}
-+			}
-+
-+			if (retval) {
-+				mlog_errno(retval);
-+				goto bail;
- 			}
- 
- 			/* By now the buffer is marked for journaling */
--- 
-1.7.1
+--
+Mark Fasheh
