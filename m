@@ -1,69 +1,108 @@
 From: Xue jiufei <xuejiufei@huawei.com>
-Date: Mon, 27 Apr 2015 10:51:30 +0800
-Subject: [Ocfs2-devel] [PATCH 3/3] extend enough credits for freeing one
- truncate record while replaying truncate records
-Message-ID: <553DA432.2070307@huawei.com>
+Date: Mon, 27 Apr 2015 10:51:18 +0800
+Subject: [Ocfs2-devel] [PATCH 2/3] ocfs2: do not set fs read-only if rec[0]
+ is empty while committing truncate
+Message-ID: <553DA426.9030608@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Now function ocfs2_replay_truncate_records first modify the tl_used,
-then call ocfs2_extend_trans to extend transactions for gd and alloc
-inode used for freeing clusters. jbd2_journal_restart() may be
-called and it may happened that tl_used in truncate log is decreased
-but the clusters is not freed, which means these clusters are lost.
-So we should avoid extending transactions in these two operations.
+While appending an extent to a file, it will call these functions:
+ocfs2_insert_extent
+  -> call ocfs2_grow_tree() if there's no free rec
+     -> ocfs2_add_branch add a new branch to extent tree,
+        now rec[0] in the leaf of rightmost path is empty
+  -> ocfs2_do_insert_extent
+     -> ocfs2_rotate_tree_right
+       -> ocfs2_extend_rotate_transaction
+          -> jbd2_journal_restart if jbd2_journal_extend fail
+     -> ocfs2_insert_path
+        -> ocfs2_extend_trans
+          -> jbd2_journal_restart if jbd2_journal_extend fail
+        -> ocfs2_insert_at_leaf
+     -> ocfs2_et_update_clusters
+Function jbd2_journal_restart() may be called and it may happened that
+buffers dirtied in ocfs2_add_branch() are committed
+while buffers dirtied in ocfs2_insert_at_leaf() and
+ocfs2_et_update_clusters() are not.
+So an empty rec[0] is left in rightmost path which will cause
+read-only filesystem when call ocfs2_commit_truncate() 
+with the error message: "Inode %lu has an empty extent record".
+
+This is not a serious problem, so remove the rightmost path when call
+ocfs2_commit_truncate().
 
 Signed-off-by: joyce.xue <xuejiufei@huawei.com>
 ---
- fs/ocfs2/alloc.c | 19 ++++++++-----------
- 1 file changed, 8 insertions(+), 11 deletions(-)
+ fs/ocfs2/alloc.c | 44 ++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 38 insertions(+), 6 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index ebb2cc4..6f571aa 100644
+index 286a392..ebb2cc4 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -5975,16 +5975,6 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
+@@ -3104,6 +3104,30 @@ out:
+ 	return ret;
+ }
  
- 		ocfs2_journal_dirty(handle, tl_bh);
- 
--		/* TODO: Perhaps we can calculate the bulk of the
--		 * credits up front rather than extending like
--		 * this. */
--		status = ocfs2_extend_trans(handle,
--					    OCFS2_TRUNCATE_LOG_FLUSH_ONE_REC);
--		if (status < 0) {
--			mlog_errno(status);
--			goto bail;
--		}
--
- 		rec = tl->tl_recs[i];
- 		start_blk = ocfs2_clusters_to_blocks(data_alloc_inode->i_sb,
- 						    le32_to_cpu(rec.t_start));
-@@ -6005,6 +5995,13 @@ static int ocfs2_replay_truncate_records(struct ocfs2_super *osb,
- 				goto bail;
- 			}
- 		}
++static int ocfs2_remove_rightmost_empty_extent(struct ocfs2_super *osb,
++				struct ocfs2_extent_tree *et,
++				struct ocfs2_path *path,
++				struct ocfs2_cached_dealloc_ctxt *dealloc)
++{
++	handle_t *handle;
++	int ret;
++	int credits = path->p_tree_depth * 2 + 1;
 +
-+		status = ocfs2_extend_trans(handle,
-+				OCFS2_TRUNCATE_LOG_FLUSH_ONE_REC);
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
- 		i--;
- 	}
- 
-@@ -6063,7 +6060,7 @@ int __ocfs2_flush_truncate_log(struct ocfs2_super *osb)
- 		goto out_mutex;
- 	}
- 
--	handle = ocfs2_start_trans(osb, OCFS2_TRUNCATE_LOG_UPDATE);
-+	handle = ocfs2_start_trans(osb, OCFS2_TRUNCATE_LOG_FLUSH_ONE_REC);
- 	if (IS_ERR(handle)) {
- 		status = PTR_ERR(handle);
- 		mlog_errno(status);
++	handle = ocfs2_start_trans(osb, credits);
++	if (IS_ERR(handle)) {
++		ret = PTR_ERR(handle);
++		mlog_errno(ret);
++		return ret;
++	}
++
++	ret = ocfs2_remove_rightmost_path(handle, et, path, dealloc);
++	if (ret)
++		mlog_errno(ret);
++
++	ocfs2_commit_trans(osb, handle);
++	return ret;
++}
++
+ /*
+  * Left rotation of btree records.
+  *
+@@ -7134,15 +7158,23 @@ start:
+ 		 * to check it up here before changing the tree.
+ 		*/
+ 		if (root_el->l_tree_depth && rec->e_int_clusters == 0) {
+-			ocfs2_error(inode->i_sb, "Inode %lu has an empty "
++			mlog(ML_ERROR, "Inode %lu has an empty "
+ 				    "extent record, depth %u\n", inode->i_ino,
+ 				    le16_to_cpu(root_el->l_tree_depth));
+-			status = -EROFS;
+-			goto bail;
++			status = ocfs2_remove_rightmost_empty_extent(osb,
++					&et, path, &dealloc);
++			if (status) {
++				mlog_errno(status);
++				goto bail;
++			}
++
++			ocfs2_reinit_path(path, 1);
++			goto start;
++		} else {
++			trunc_cpos = le32_to_cpu(rec->e_cpos);
++			trunc_len = 0;
++			blkno = 0;
+ 		}
+-		trunc_cpos = le32_to_cpu(rec->e_cpos);
+-		trunc_len = 0;
+-		blkno = 0;
+ 	} else if (le32_to_cpu(rec->e_cpos) >= new_highest_cpos) {
+ 		/*
+ 		 * Truncate entire record.
 -- 
 1.8.4.3
