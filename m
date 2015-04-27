@@ -1,200 +1,76 @@
-From: Xue jiufei <xuejiufei@huawei.com>
-Date: Mon, 27 Apr 2015 10:51:12 +0800
-Subject: [Ocfs2-devel] [PATCH 1/3] ocfs2: extend transaction for
- ocfs2_remove_rightmost_path and ocfs2_update_edge_lengths before to avoid
- inconsistency between inode and et
-Message-ID: <553DA420.80402@huawei.com>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Mon, 27 Apr 2015 16:32:27 -0500
+Subject: [Ocfs2-devel] [RFC] Online File(system) check
+Message-ID: <20150427213227.GA28129@shrek.lan>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The following functions will be called while truncating an extent:
-ocfs2_remove_btree_range
-  -> ocfs2_start_trans
-  -> ocfs2_remove_extent
-     -> ocfs2_truncate_rec 
-       -> ocfs2_extend_rotate_transaction
-         -> jbd2_journal_restart if jbd2_journal_extend fail
-       -> ocfs2_rotate_tree_left
-         -> ocfs2_remove_rightmost_path
-             -> ocfs2_extend_rotate_transaction
-               -> ocfs2_unlink_subtree
-                -> ocfs2_update_edge_lengths
-                  -> ocfs2_extend_trans
-                    -> jbd2_journal_restart if jbd2_journal_extend fail
-  -> ocfs2_et_update_clusters
-  -> ocfs2_commit_trans
+On popular demand, here is an RFC. If you think there is a better
+way to communicate with the kernel module for the check, please
+let me know.
 
-Function jbd2_journal_restart() may be called and it may happened that
-the buffers dirtied in ocfs2_truncate_rec() are committed while
-buffers dirtied in ocfs2_et_update_clusters() are not, the total
-clusters on extent tree and i_clusters in ocfs2_dinode is
-inconsistency. So the clusters got from ocfs2_dinode is
-incorrect, and it also cause read-only problem when call
-ocfs2_commit_truncate() with the error message:
-"Inode %llu has empty extent block at %llu".
 
-We should extend enough credits for function ocfs2_remove_rightmost_path
-and ocfs2_update_edge_lengths to avoid this inconsistency.
+Intro
+-----
+OCFS2 is often used in high-availaibility systems. However, ocfs2
+converts the filesystem to read-only at the drop of the hat. This
+may not be necessary, since turning the filesystem read-only would
+affect other running processes as well, decreasing availability.
 
-Signed-off-by: joyce.xue <xuejiufei@huawei.com>
----
- fs/ocfs2/alloc.c | 82 +++++++++++++++++++++++++++++++++++++-------------------
- 1 file changed, 54 insertions(+), 28 deletions(-)
+This attempt is to add errors=continue, which would return the EIO
+to the calling process and terminate furhter processing so that
+the filesystem is not corrupted further. However, the filesystem
+is not converted to read-only.
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 5997c00..286a392 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -2526,21 +2526,6 @@ static int ocfs2_update_edge_lengths(handle_t *handle,
- 	struct ocfs2_extent_block *eb;
- 	u32 range;
- 
--	/*
--	 * In normal tree rotation process, we will never touch the
--	 * tree branch above subtree_index and ocfs2_extend_rotate_transaction
--	 * doesn't reserve the credits for them either.
--	 *
--	 * But we do have a special case here which will update the rightmost
--	 * records for all the bh in the path.
--	 * So we have to allocate extra credits and access them.
--	 */
--	ret = ocfs2_extend_trans(handle, subtree_index);
--	if (ret) {
--		mlog_errno(ret);
--		goto out;
--	}
--
- 	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
- 	if (ret) {
- 		mlog_errno(ret);
-@@ -2967,7 +2952,7 @@ static int __ocfs2_rotate_tree_left(handle_t *handle,
- 		     right_path->p_node[subtree_root].bh->b_blocknr,
- 		     right_path->p_tree_depth);
- 
--		ret = ocfs2_extend_rotate_transaction(handle, subtree_root,
-+		ret = ocfs2_extend_rotate_transaction(handle, 0,
- 						      orig_credits, left_path);
- 		if (ret) {
- 			mlog_errno(ret);
-@@ -3040,21 +3025,9 @@ static int ocfs2_remove_rightmost_path(handle_t *handle,
- 	struct ocfs2_extent_block *eb;
- 	struct ocfs2_extent_list *el;
- 
--
- 	ret = ocfs2_et_sanity_check(et);
- 	if (ret)
- 		goto out;
--	/*
--	 * There's two ways we handle this depending on
--	 * whether path is the only existing one.
--	 */
--	ret = ocfs2_extend_rotate_transaction(handle, 0,
--					      handle->h_buffer_credits,
--					      path);
--	if (ret) {
--		mlog_errno(ret);
--		goto out;
--	}
- 
- 	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
- 	if (ret) {
-@@ -3628,6 +3601,14 @@ static int ocfs2_merge_rec_left(struct ocfs2_path *right_path,
- 		 */
- 		if (le16_to_cpu(right_rec->e_leaf_clusters) == 0 &&
- 		    le16_to_cpu(el->l_next_free_rec) == 1) {
-+			/* extend credit for ocfs2_remove_rightmost_path */
-+			ret = ocfs2_extend_rotate_transaction(handle, 0,
-+					handle->h_buffer_credits,
-+					right_path);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
- 
- 			ret = ocfs2_remove_rightmost_path(handle, et,
- 							  right_path,
-@@ -3666,6 +3647,14 @@ static int ocfs2_try_to_merge_extent(handle_t *handle,
- 	BUG_ON(ctxt->c_contig_type == CONTIG_NONE);
- 
- 	if (ctxt->c_split_covers_rec && ctxt->c_has_empty_extent) {
-+		/* extend credit for ocfs2_remove_rightmost_path */
-+		ret = ocfs2_extend_rotate_transaction(handle, 0,
-+				handle->h_buffer_credits,
-+				path);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
- 		/*
- 		 * The merge code will need to create an empty
- 		 * extent to take the place of the newly
-@@ -3714,6 +3703,15 @@ static int ocfs2_try_to_merge_extent(handle_t *handle,
- 		 */
- 		BUG_ON(!ocfs2_is_empty_extent(&el->l_recs[0]));
- 
-+		/* extend credit for ocfs2_remove_rightmost_path */
-+		ret = ocfs2_extend_rotate_transaction(handle, 0,
-+					handle->h_buffer_credits,
-+					path);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
- 		/* The merge left us with an empty extent, remove it. */
- 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
- 		if (ret) {
-@@ -3735,6 +3733,15 @@ static int ocfs2_try_to_merge_extent(handle_t *handle,
- 			goto out;
- 		}
- 
-+		/* extend credit for ocfs2_remove_rightmost_path */
-+		ret = ocfs2_extend_rotate_transaction(handle, 0,
-+				handle->h_buffer_credits,
-+				path);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
- 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
- 		/*
- 		 * Error from this last rotate is not critical, so
-@@ -3770,6 +3777,16 @@ static int ocfs2_try_to_merge_extent(handle_t *handle,
- 		}
- 
- 		if (ctxt->c_split_covers_rec) {
-+			/* extend credit for ocfs2_remove_rightmost_path */
-+			ret = ocfs2_extend_rotate_transaction(handle, 0,
-+					handle->h_buffer_credits,
-+					path);
-+			if (ret) {
-+				mlog_errno(ret);
-+				ret = 0;
-+				goto out;
-+			}
-+
- 			/*
- 			 * The merge may have left an empty extent in
- 			 * our leaf. Try to rotate it away.
-@@ -5337,6 +5354,15 @@ static int ocfs2_truncate_rec(handle_t *handle,
- 	struct ocfs2_extent_block *eb;
- 
- 	if (ocfs2_is_empty_extent(&el->l_recs[0]) && index > 0) {
-+		/* extend credit for ocfs2_remove_rightmost_path */
-+		ret = ocfs2_extend_rotate_transaction(handle, 0,
-+				handle->h_buffer_credits,
-+				path);
-+		if (ret) {
-+			mlog_errno(ret);
-+			goto out;
-+		}
-+
- 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
- 		if (ret) {
- 			mlog_errno(ret);
--- 
-1.8.4.3
+Scope
+-----
+This effort is to fix small issues which may hinder day-today operations
+of a cluster filesystem by turning the filesystem read-only. The scope of
+fixing is at the file level, initially for regular files and eventually
+to all files (including system files) of the filesystem.
+
+In case of directory to file links is incorrect, the directory inode
+is reported as erroneous.
+
+This feature is not suited for extravagant checks which involve dependency of
+other components of the filesystem, such as but not limited to, checking if the bits for file blocks in the allocation has been set. In case of such an error,
+the offline fsck should/would be recommended.
+
+Finally, such an operation/feature should not be automated lest the filesystem
+may end up with more damage than before the repair attempt. So, this has to
+be performed using user interaction and consent.
+
+
+Communication
+-------------
+When there are errors in the ocfs2 filesystem, they are usually accompanied
+by the inode number which caused the error. This inode number would be the
+input to fixing the file.
+
+One of these options could be considered:
+
+A file in the sys filesytem which would accept inode numbers. This
+could be used to communication back what has to be fixed or is fixed.
+You could write:
+  # echo "CHECK <inode>" > /sys/fs/ocfs2/filecheck
+  or
+  # echo "FIX <inode>" > /sys/fs/ocfs2/filecheck
+
+
+Fixing stuff
+------------
+
+On receivng the inode, the filesystem would read the inode and the
+file metadata. In case of errors, the filesystem would fix the errors
+and report the problems it fixed. As a precautionary measure, the
+inode must first be checked for errors before performing a final fix.
+
+The inode and the fix history will be maintained temporarily in a
+small linked list buffer which would contain the last (N) inodes
+fixed/checked, alongwith the logs of what errors were reported/fixed.
+
+
+Comments/Criticism welcome.
