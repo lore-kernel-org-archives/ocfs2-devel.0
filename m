@@ -1,85 +1,63 @@
 From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 28 Apr 2015 13:32:04 -0700
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix race between purge and get
-	lock resource
-In-Reply-To: <553B3CAB.9020102@huawei.com>
-References: <553B3CAB.9020102@huawei.com>
-Message-ID: <20150428133204.142f01cf1fa14e41ae39a943@linux-foundation.org>
+Date: Tue, 28 Apr 2015 13:45:31 -0700
+Subject: [Ocfs2-devel] [PATCH V3] ocfs2: return error while
+ ocfs2_figure_merge_contig_type failing
+In-Reply-To: <553B5BE3.8080307@huawei.com>
+References: <553B5BE3.8080307@huawei.com>
+Message-ID: <20150428134531.6fbd57fcd9231ec26e119859@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joseph Qi <joseph.qi@huawei.com>
-Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Sunil Mushran <sunil.mushran@gmail.com>, Xuejiufei <xuejiufei@huawei.com>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, stable@vger.kernel.org
+To: ocfs2-devel@oss.oracle.com
 
-On Sat, 25 Apr 2015 15:05:15 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
+On Sat, 25 Apr 2015 17:18:27 +0800 Xue jiufei <xuejiufei@huawei.com> wrote:
 
-> There is a race between purge and get lock resource, which will lead to
-> ast unfinished and system hung. The case is described below:
+> Now function ocfs2_figure_merge_contig_type() still return CONTIG_NONE
+> when some error occurs which will cause unpredictable error.
+> So return error while ocfs2_figure_merge_contig_type failing.
 > 
-> mkdir                                  dlm_thread
-> -----------------------------------------------------------------------
-> o2cb_dlm_lock                        |
-> -> dlmlock                           |
->   -> dlm_get_lock_resource           |
->     -> __dlm_lookup_lockres_full     |
->       -> spin_unlock(&dlm->spinlock) |
->                                      | dlm_run_purge_list
->                                      | -> dlm_purge_lockres
->                                      |   -> dlm_drop_lockres_ref
->                                      |   -> spin_lock(&dlm->spinlock)
->                                      |   -> spin_lock(&res->spinlock)
->                                      |   -> ~DLM_LOCK_RES_DROPPING_REF
->                                      |   -> spin_unlock(&res->spinlock)
->                                      |   -> spin_unlock(&dlm->spinlock)
->       -> spin_lock(&tmpres->spinlock)|
->       DLM_LOCK_RES_DROPPING_REF cleared |
->       -> spin_unlock(&tmpres->spinlock) |
->       return the purged lockres         |
-> 
-> So after this, once ast comes, it will ingore the ast because the
-> lockres cannot be found anymore. Thus the OCFS2_LOCK_BUSY won't be
-> cleared and corresponding thread hangs.
-> The &dlm->spinlock was hold when checking DLM_LOCK_RES_DROPPING_REF at
-> the very begining. And commit 7b791d6856 (ocfs2/dlm: Fix race during
-> lockres mastery) moved it up because of the possible wait.
-> So take the &dlm->spinlock and introduce a new wait function to fix the
-> race.
-> 
+> @@ -4336,8 +4336,11 @@ ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
+>  
+>  		if (left_cpos != 0) {
+>  			left_path = ocfs2_new_path_from_path(path);
+> -			if (!left_path)
+> +			if (!left_path) {
+> +				status = -ENOMEM;
+> +				mlog_errno(status);
+>  				goto exit;
+> +			}
+>  
+>  			status = ocfs2_find_path(et->et_ci, left_path,
+>
+>
+> ...
+>  						 left_cpos);
+> @@ -4392,8 +4395,11 @@ ocfs2_figure_merge_contig_type(struct ocfs2_extent_tree *et,
+>  			goto free_left_path;
+>  
+>  		right_path = ocfs2_new_path_from_path(path);
+> -		if (!right_path)
+> +		if (!right_path) {
+> +			status = -ENOMEM;
+> +			mlog_errno(status);
+>  			goto free_left_path;
+> +		}
+>  
+>  		status = ocfs2_find_path(et->et_ci, right_path, right_cpos);
+>  		if (status)
 > ...
 >
-> --- a/fs/ocfs2/dlm/dlmthread.c
-> +++ b/fs/ocfs2/dlm/dlmthread.c
-> @@ -77,6 +77,29 @@ repeat:
->  	__set_current_state(TASK_RUNNING);
->  }
-> 
-> +void __dlm_wait_on_lockres_flags_new(struct dlm_ctxt *dlm,
-> +		struct dlm_lock_resource *res, int flags)
-> +{
-> +	DECLARE_WAITQUEUE(wait, current);
-> +
-> +	assert_spin_locked(&dlm->spinlock);
-> +	assert_spin_locked(&res->spinlock);
-
-Not strictly needed - lockdep will catch this.   A minor thing.
-
-> +	add_wait_queue(&res->wq, &wait);
-> +repeat:
-> +	set_current_state(TASK_UNINTERRUPTIBLE);
-> +	if (res->state & flags) {
-> +		spin_unlock(&res->spinlock);
-> +		spin_unlock(&dlm->spinlock);
-> +		schedule();
-> +		spin_lock(&dlm->spinlock);
-> +		spin_lock(&res->spinlock);
-> +		goto repeat;
+> +	ret = ocfs2_figure_merge_contig_type(et, path, el,
+> +					     split_index,
+> +					     split_rec,
+> +					     &ctxt);
+> +	if (ret) {
+> +		mlog_errno(ret);
+> +		goto out;
 > +	}
-> +	remove_wait_queue(&res->wq, &wait);
-> +	__set_current_state(TASK_RUNNING);
-> +}
 
-This is pretty nasty.  Theoretically this could spin forever, if other
-tasks are setting the flag in a suitably synchronized fashion.
+This guarantees that mlog_errno() will be called twice for a single error.
 
-Is there no clean approach?  A reorganization of the locking?
+But I suppose that ocfs2 does this a lot.  I guess the place to fix it
+is in mlog_errno(): teach it to filter out duplicates somehow.
