@@ -1,133 +1,98 @@
-From: DaeSeok Youn <daeseok.youn@gmail.com>
-Date: Wed, 29 Apr 2015 09:06:59 +0900
-Subject: [Ocfs2-devel] [PATCH RESEND] ocfs2: use retval instead of
-	status for checking error
-In-Reply-To: <20150424014545.GA9252@devel.8.8.4.4>
-References: <20150424014545.GA9252@devel.8.8.4.4>
-Message-ID: <CAHb8M2Ccqx_bDfHUHCKfcPU9525Nw8cJjF8baNoMp+=Lo_c0CA@mail.gmail.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 29 Apr 2015 08:51:10 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix race between purge and get
+	lock resource
+In-Reply-To: <20150428133204.142f01cf1fa14e41ae39a943@linux-foundation.org>
+References: <553B3CAB.9020102@huawei.com>
+	<20150428133204.142f01cf1fa14e41ae39a943@linux-foundation.org>
+Message-ID: <55402AFE.7080808@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: mfasheh@suse.com, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-kernel <linux-kernel@vger.kernel.org>, Richard Weinberger <richard@nod.at>, Joseph Qi <joseph.qi@huawei.com>
+Cc: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>, Sunil Mushran <sunil.mushran@gmail.com>, Xuejiufei <xuejiufei@huawei.com>, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, stable@vger.kernel.org
 
-Hi, Andrew.
+Hi Andrew,
 
-2015-04-24 10:45 GMT+09:00 Daeseok Youn <daeseok.youn@gmail.com>:
-> The use of 'status' in __ocfs2_add_entry() can return wrong
-> value. Some functions' return value in __ocfs2_add_entry(),
-> i.e ocfs2_journal_access_di() is saved to 'status'.
-> But 'status' is not used in 'bail' label for returning result
-> of __ocfs2_add_entry().
->
-> So use retval instead of status.
->
-> Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-> Signed-off-by: Daeseok Youn <daeseok.youn@gmail.com>
+On 2015/4/29 4:32, Andrew Morton wrote:
+> On Sat, 25 Apr 2015 15:05:15 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
+> 
+>> There is a race between purge and get lock resource, which will lead to
+>> ast unfinished and system hung. The case is described below:
+>>
+>> mkdir                                  dlm_thread
+>> -----------------------------------------------------------------------
+>> o2cb_dlm_lock                        |
+>> -> dlmlock                           |
+>>   -> dlm_get_lock_resource           |
+>>     -> __dlm_lookup_lockres_full     |
+>>       -> spin_unlock(&dlm->spinlock) |
+>>                                      | dlm_run_purge_list
+>>                                      | -> dlm_purge_lockres
+>>                                      |   -> dlm_drop_lockres_ref
+>>                                      |   -> spin_lock(&dlm->spinlock)
+>>                                      |   -> spin_lock(&res->spinlock)
+>>                                      |   -> ~DLM_LOCK_RES_DROPPING_REF
+>>                                      |   -> spin_unlock(&res->spinlock)
+>>                                      |   -> spin_unlock(&dlm->spinlock)
+>>       -> spin_lock(&tmpres->spinlock)|
+>>       DLM_LOCK_RES_DROPPING_REF cleared |
+>>       -> spin_unlock(&tmpres->spinlock) |
+>>       return the purged lockres         |
+>>
+>> So after this, once ast comes, it will ingore the ast because the
+>> lockres cannot be found anymore. Thus the OCFS2_LOCK_BUSY won't be
+>> cleared and corresponding thread hangs.
+>> The &dlm->spinlock was hold when checking DLM_LOCK_RES_DROPPING_REF at
+>> the very begining. And commit 7b791d6856 (ocfs2/dlm: Fix race during
+>> lockres mastery) moved it up because of the possible wait.
+>> So take the &dlm->spinlock and introduce a new wait function to fix the
+>> race.
+>>
+>> ...
+>>
+>> --- a/fs/ocfs2/dlm/dlmthread.c
+>> +++ b/fs/ocfs2/dlm/dlmthread.c
+>> @@ -77,6 +77,29 @@ repeat:
+>>  	__set_current_state(TASK_RUNNING);
+>>  }
+>>
+>> +void __dlm_wait_on_lockres_flags_new(struct dlm_ctxt *dlm,
+>> +		struct dlm_lock_resource *res, int flags)
+>> +{
+>> +	DECLARE_WAITQUEUE(wait, current);
+>> +
+>> +	assert_spin_locked(&dlm->spinlock);
+>> +	assert_spin_locked(&res->spinlock);
+> 
+> Not strictly needed - lockdep will catch this.   A minor thing.
+> 
+>> +	add_wait_queue(&res->wq, &wait);
+>> +repeat:
+>> +	set_current_state(TASK_UNINTERRUPTIBLE);
+>> +	if (res->state & flags) {
+>> +		spin_unlock(&res->spinlock);
+>> +		spin_unlock(&dlm->spinlock);
+>> +		schedule();
+>> +		spin_lock(&dlm->spinlock);
+>> +		spin_lock(&res->spinlock);
+>> +		goto repeat;
+>> +	}
+>> +	remove_wait_queue(&res->wq, &wait);
+>> +	__set_current_state(TASK_RUNNING);
+>> +}
+> 
+> This is pretty nasty.  Theoretically this could spin forever, if other
+> tasks are setting the flag in a suitably synchronized fashion.
+> 
+> Is there no clean approach?  A reorganization of the locking?
+> 
+Do you mean the flag won't be cleared forever? If so, only taking
+&res->spinlock also has the same risk. But we haven't found this in our
+test/production environments so far.
+To fix the race case above, I don't have another approach besides taking
+&dlm->spinlock.
 
-This patch was shown up to ocfs2 mailing list.
-https://oss.oracle.com/pipermail/ocfs2-devel/2015-April/010757.html
-
-please check for me.
-
-If this patch has any problem, let me know.
-Thanks.
-
-regards,
-Daeseok Youn.
-> ---
-> RESEND: missed my patch in ocfs2-devel mailing list so send it again
-> And also add 'Reviewed-by' line.
->
-> Previous sent message of my patch
-> This patch was came from 'https://lkml.org/lkml/2015/2/27/655'
-> This patch was needed to test but I didn't have any environment
-> for testing ocfs2 filesystem. But I have one, now.
-> (I'm too busy to make this enviroment. And qemu for this fs is difficult
->   for me. :-(, sorry for that)
->
-> Briefly how to set my environment for testing this fs with qemu.
-> 1. Getting and building linux kernel with linux-next branch for x86_64
-> qemu.
-> And also options of ocfs2 related are enabled(built-in)
-> 2. Makes own root file system with 'buildroot' project.
-> 3. Getting and building ocfs2-tools.
->    Then binaries after building this tool are moved my rootfs.
-> 4. Makes dummy disk image(5G) which will be formatted in qemu.
-> 5. Booting qemu with rootfs image and dummy disk image.
-> 6. mkfs.ocfs2 --fs-feature=local <device>
->    this maybe possilbe to mount standalone mode.
-> 7. tunefs.ocfs2  --fs-features=indexed-dirs,noinline-data <device>
-> 8. make a cluster and one node
->    use o2cb_ctl tool.
-> 9. o2cb service load and initialize
->   # /etc/init.d/o2cb load && /etc/init.d/o2cb configure
->   # /etc/init.d/o2cb online
-> 10. mount ocfs2
->   # mount.ocfs2 <device> <some directory>
->
-> And use GDB for debugging my patch path.
-> Connect gdb with qemu and add breakpoint in __ocfs2_add_entry() of
-> fs/ocfs2/dir.c
->
-> And test my patch.
-> # cd <some directory mounted with ocfs2>
-> # mkdir <specific directory>
->
-> This how-to is not written all my work, just briefly I said.
->
->  fs/ocfs2/dir.c |   20 ++++++++++----------
->  1 files changed, 10 insertions(+), 10 deletions(-)
->
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index 990e8f7..a9513ff 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -1607,7 +1607,7 @@ int __ocfs2_add_entry(handle_t *handle,
->         struct ocfs2_dir_entry *de, *de1;
->         struct ocfs2_dinode *di = (struct ocfs2_dinode *)parent_fe_bh->b_data;
->         struct super_block *sb = dir->i_sb;
-> -       int retval, status;
-> +       int retval;
->         unsigned int size = sb->s_blocksize;
->         struct buffer_head *insert_bh = lookup->dl_leaf_bh;
->         char *data_start = insert_bh->b_data;
-> @@ -1685,25 +1685,25 @@ int __ocfs2_add_entry(handle_t *handle,
->                         }
->
->                         if (insert_bh == parent_fe_bh)
-> -                               status = ocfs2_journal_access_di(handle,
-> +                               retval = ocfs2_journal_access_di(handle,
->                                                                  INODE_CACHE(dir),
->                                                                  insert_bh,
->                                                                  OCFS2_JOURNAL_ACCESS_WRITE);
->                         else {
-> -                               status = ocfs2_journal_access_db(handle,
-> +                               retval = ocfs2_journal_access_db(handle,
->                                                                  INODE_CACHE(dir),
->                                                                  insert_bh,
->                                               OCFS2_JOURNAL_ACCESS_WRITE);
->
-> -                               if (ocfs2_dir_indexed(dir)) {
-> -                                       status = ocfs2_dx_dir_insert(dir,
-> +                               if (!retval && ocfs2_dir_indexed(dir))
-> +                                       retval = ocfs2_dx_dir_insert(dir,
->                                                                 handle,
->                                                                 lookup);
-> -                                       if (status) {
-> -                                               mlog_errno(status);
-> -                                               goto bail;
-> -                                       }
-> -                               }
-> +                       }
-> +
-> +                       if (retval) {
-> +                               mlog_errno(retval);
-> +                               goto bail;
->                         }
->
->                         /* By now the buffer is marked for journaling */
-> --
-> 1.7.1
->
+> .
+> 
