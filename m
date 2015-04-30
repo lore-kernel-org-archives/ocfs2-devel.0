@@ -1,113 +1,52 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 30 Apr 2015 10:29:10 +0800
-Subject: [Ocfs2-devel] [RFC] Online File(system) check
-In-Reply-To: <5540B487020000F90000843F@relay2.provo.novell.com>
-References: <20150427213227.GA28129@shrek.lan>
-	<553F6853020000F90000822C@relay2.provo.novell.com>
-	<553F7B56.2010909@suse.de> <553F891A.1080004@huawei.com>
-	<5540B487020000F90000843F@relay2.provo.novell.com>
-Message-ID: <55419376.70606@huawei.com>
+From: Joe Perches <joe@perches.com>
+Date: Wed, 29 Apr 2015 22:05:46 -0700
+Subject: [Ocfs2-devel] [PATCH next] ocfs2: Reduce object size of mlog
+ uses
+In-Reply-To: <20150428183007.GT17170@wotan.suse.de>
+References: <1429255070.2850.84.camel@perches.com>
+	<20150422154604.3cb62467b66b1e313a30132c@linux-foundation.org>
+	<20150423230418.GR17170@wotan.suse.de>
+	<1429832121.32612.43.camel@perches.com>
+	<20150428183007.GT17170@wotan.suse.de>
+Message-ID: <1430370346.2575.12.camel@perches.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.de>
+Cc: ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>
 
-On 2015/4/29 10:37, Gang He wrote:
-> Hi Joseph,
-> 
-> Thanks for your detailed description.
-> See my question inline.
-> 
-> 
->>>>
->> Hi Goldwyn,
->>
->> Thanks for the good proposal.
->>
->> On 2015/4/28 20:21, Goldwyn Rodrigues wrote:
->>> Hi Gang,
->>>
->>> On 04/27/2015 10:00 PM, Gang He wrote:
->>>> Hi Glodwyn,
->>>>
->>>> Very nice proposal.
->>>> So far, there are some comments from me.
->>>> 1) which task will we do in check/fix a file, we need to define the detailed 
->> requirements further, since we just do a light-level file check/fix according 
->> to inode number, we need to know which items can be done by online check, 
->> which items can be done by offline fsck.
->>>
->>> For the first phase (regular files), these are all the reasons the disk 
->> validate function would fail. Some examples are ocfs2_validate_inode_block, 
->> ocfs2_validate_extent_block etc.
->>> As we take up system inodes (phase 2), we will add more functionality.
->>>
->> Can we classify all corrupted cases and their corresponding fix ways? Maybe 
->> we can get some hints from fsck.
->> And I don't think errors=continue can fit for all cases.
->> For some cases we shouldn't let it continue with errors to prevent more 
->> damages.
->>
->>>> 2) can we keep check and fix two option, check option is to check if a file 
->> is good or bad, but not modify anything, fix option is to check and fix a 
->> file if the file is corrupted.
->>>
->>> Yes, there are two options, CHECKS only checks wheras FIX fixes the errors. 
->> As a precautionary measure, a CHECK command should be provided before a FIX 
->> is issued. IOW, a file should be checked for errors before actually fixing 
->> it.
->>>
->> A convenient way to know which to be checked should also be taken into 
->> consideration.
->>
->>>> 3) when users execute the command "echo CHECK <inode> > 
->> /sys/fs/ocfs2/filecheck" to check a file, how to give the feedback 
->> information besides printing the messages to syslog?
->>>
->>> The output should be when you cat /sys/fs/ocfs2/filecheck. It would provide 
->> the results of the last (N) files checked. I don't want to flood the kernel 
->> log with this. Thanks for bringing this up, I will put it on the doc. 
->> Something like:
->>>
->>> Inode Status Description
->>> 1234   ERROR Metadata incorrect
->>> 2352   FIXED Valid flag not set
->>> 9382   CHECKING -
->>> 8926   GOOD -
->>> 7230   CANT-FIX Please execute fsck.ocfs2 after taking filesystem offline.
->>>
->>> So, for the current scenario, only 1234 can be fixed. An echo should err 
->> with EINVAL if any other inode number is provided with FIX.
->>>
->>>
->>>> 4) we should support a list to accept the "check/fix" requests from 
->> user-space and queue them, then handle them one by one, right? what is the 
->> behavior for the request user which execute "echo check ..." from the user 
->> space? the user post a request to the kernel space, then the command will end 
->> or wait for the file check end?
->>>>
->>>
->>> I would not suggest that, atleast for now. This is to improve availability. 
->> However, if the filesystem is very bad, we should suggest an offline check. 
->> However, the user can provide multiple CHECK requests.
-> My question is, if users can execute "echo check > .." to check/fix files simultaneously? since users can trigger this command from different terminates.
-I think we have to restrict it. Since offline fsck is also not supposed
-to allow such a case.
-If we have to, maybe user dlm can take care of this.
+On Tue, 2015-04-28 at 11:30 -0700, Mark Fasheh wrote:
+> On Thu, Apr 23, 2015 at 04:35:21PM -0700, Joe Perches wrote:
+> > On Thu, 2015-04-23 at 16:04 -0700, Mark Fasheh wrote:
+> > > On Wed, Apr 22, 2015 at 03:46:04PM -0700, Andrew Morton wrote:
+> > > > If you feel like undertaking such a rotorooting then go wild - that should
+> > > > wake 'em up ;)
+> > > Ok, I've taken the bait  :)
+> > "Here fishy, fishy...", erm, "Here Fasheh, Fasheh..."
+> > With that out of the way:
+> :)
 
-> Second, users send a command to kernel space, the kernel space have to cache these commands in a list/array, since kernel can not finish a check request immediately, otherwise, how does the kernel accept a new request during the kernel are handing the current request.  
-I think the operations should be done one by one.
-IMO, kernel finds the corruption and reports to user space.
-In user space we maintain a corruptions list.
-Then user check/fix one by one.
+Yeah.  Sorry 'bout that.
 
+My own name is vaguely aquatic too so I thought I
+could get away with it.  Bad Joe...
+
+> > A couple of possibilities:
+> > 
+> > o I wonder whether or not file/func/line matter at all.
+> >   I think they don't.
+> >   Removing them would reduce code size ~90K
 > 
-> Thanks
-> Gang
-> 
->>>
-> 
-> 
-> .
-> 
+> They do to those that are debugging live Ocfs2 modules. I would like at
+> least one pair kept please.
+
+Your code, your choice.
+
+> > o There's a small logging improvement possible in tcp.c.
+> This part looks good to me though, thanks for it.
+
+Please submit something like it whenever you deem
+appropriate.
+
+cheers, Joe
