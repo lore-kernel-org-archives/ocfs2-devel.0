@@ -1,9 +1,12 @@
 From: Goldwyn Rodrigues <rgoldwyn@suse.de>
-Date: Sat, 02 May 2015 07:45:17 -0500
+Date: Sat, 02 May 2015 07:52:21 -0500
 Subject: [Ocfs2-devel] [RFC] Online File(system) check
-In-Reply-To: <55408F6D.5020908@oracle.com>
-References: <20150427213227.GA28129@shrek.lan> <55408F6D.5020908@oracle.com>
-Message-ID: <5544C6DD.8000406@suse.de>
+In-Reply-To: <5540B487020000F90000843F@relay2.provo.novell.com>
+References: <20150427213227.GA28129@shrek.lan>
+	<553F6853020000F90000822C@relay2.provo.novell.com>
+	<553F7B56.2010909@suse.de> <553F891A.1080004@huawei.com>
+	<5540B487020000F90000843F@relay2.provo.novell.com>
+Message-ID: <5544C885.9080604@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,40 +15,96 @@ To: ocfs2-devel@oss.oracle.com
 
 
 
-On 04/29/2015 02:59 AM, Junxiao Bi wrote:
-> On 04/28/2015 05:32 AM, Goldwyn Rodrigues wrote:
->> On popular demand, here is an RFC. If you think there is a better
->> way to communicate with the kernel module for the check, please
->> let me know.
->>
->>
->> Intro
->> -----
->> OCFS2 is often used in high-availaibility systems. However, ocfs2
->> converts the filesystem to read-only at the drop of the hat. This
->> may not be necessary, since turning the filesystem read-only would
->> affect other running processes as well, decreasing availability.
->>
->> This attempt is to add errors=continue, which would return the EIO
->> to the calling process and terminate furhter processing so that
->> the filesystem is not corrupted further. However, the filesystem
->> is not converted to read-only.
-> Is this safe, if detected an error when accessing an inode, how do you
-> know this is only inode internal error?
-
-
-Thanks for your comments. The error message would need to be modified to 
-specify the inode(s) which need to be checked. It could be a regular 
-file or the system inode.
-
-> If there is corruptions in other
-> place, the fs will be corrupted further.
+On 04/28/2015 09:37 PM, Gang He wrote:
+> Hi Joseph,
 >
-It there is a corruption in another place, the process will err at that 
-location.
+> Thanks for your detailed description.
+> See my question inline.
+>
+>
+>>>>
+>> Hi Goldwyn,
+>>
+>> Thanks for the good proposal.
+>>
+>> On 2015/4/28 20:21, Goldwyn Rodrigues wrote:
+>>> Hi Gang,
+>>>
+>>> On 04/27/2015 10:00 PM, Gang He wrote:
+>>>> Hi Glodwyn,
+>>>>
+>>>> Very nice proposal.
+>>>> So far, there are some comments from me.
+>>>> 1) which task will we do in check/fix a file, we need to define the detailed
+>> requirements further, since we just do a light-level file check/fix according
+>> to inode number, we need to know which items can be done by online check,
+>> which items can be done by offline fsck.
+>>>
+>>> For the first phase (regular files), these are all the reasons the disk
+>> validate function would fail. Some examples are ocfs2_validate_inode_block,
+>> ocfs2_validate_extent_block etc.
+>>> As we take up system inodes (phase 2), we will add more functionality.
+>>>
+>> Can we classify all corrupted cases and their corresponding fix ways? Maybe
+>> we can get some hints from fsck.
+>> And I don't think errors=continue can fit for all cases.
+>> For some cases we shouldn't let it continue with errors to prevent more
+>> damages.
+>>
+>>>> 2) can we keep check and fix two option, check option is to check if a file
+>> is good or bad, but not modify anything, fix option is to check and fix a
+>> file if the file is corrupted.
+>>>
+>>> Yes, there are two options, CHECKS only checks wheras FIX fixes the errors.
+>> As a precautionary measure, a CHECK command should be provided before a FIX
+>> is issued. IOW, a file should be checked for errors before actually fixing
+>> it.
+>>>
+>> A convenient way to know which to be checked should also be taken into
+>> consideration.
+>>
+>>>> 3) when users execute the command "echo CHECK <inode> >
+>> /sys/fs/ocfs2/filecheck" to check a file, how to give the feedback
+>> information besides printing the messages to syslog?
+>>>
+>>> The output should be when you cat /sys/fs/ocfs2/filecheck. It would provide
+>> the results of the last (N) files checked. I don't want to flood the kernel
+>> log with this. Thanks for bringing this up, I will put it on the doc.
+>> Something like:
+>>>
+>>> Inode Status Description
+>>> 1234   ERROR Metadata incorrect
+>>> 2352   FIXED Valid flag not set
+>>> 9382   CHECKING -
+>>> 8926   GOOD -
+>>> 7230   CANT-FIX Please execute fsck.ocfs2 after taking filesystem offline.
+>>>
+>>> So, for the current scenario, only 1234 can be fixed. An echo should err
+>> with EINVAL if any other inode number is provided with FIX.
+>>>
+>>>
+>>>> 4) we should support a list to accept the "check/fix" requests from
+>> user-space and queue them, then handle them one by one, right? what is the
+>> behavior for the request user which execute "echo check ..." from the user
+>> space? the user post a request to the kernel space, then the command will end
+>> or wait for the file check end?
+>>>>
+>>>
+>>> I would not suggest that, atleast for now. This is to improve availability.
+>> However, if the filesystem is very bad, we should suggest an offline check.
+>> However, the user can provide multiple CHECK requests.
+> My question is, if users can execute "echo check > .." to check/fix files simultaneously? since users can trigger this command from different terminates.
 
-Could you provide a sample case to explain this situation? and how is it 
-different from what is already present in the code?
+This would like a general file access with all the dlm procedures 
+attached. You would need the DLM locks to access and write to the inode.
+For that matter, checks for the same file can be triggered from 
+different nodes as well, in which case they would be executed 
+individually, just like any other file access.
+
+
+> Second, users send a command to kernel space, the kernel space have to cache these commands in a list/array, since kernel can not finish a check request immediately, otherwise, how does the kernel accept a new request during the kernel are handing the current request.
+
+No, no caching. Just one at a time.
 
 -- 
 Goldwyn
