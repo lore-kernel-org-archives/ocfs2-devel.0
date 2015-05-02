@@ -1,90 +1,51 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 1 Apr 2015 08:43:45 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: check if the ocfs2 lock resource
- be initialized before calling ocfs2_dlm_lock
-In-Reply-To: <20150331151348.2887ede16683257826833e04@linux-foundation.org>
-References: <5518C165.10106@huawei.com>
-	<20150331151348.2887ede16683257826833e04@linux-foundation.org>
-Message-ID: <551B3F41.6020501@huawei.com>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Sat, 02 May 2015 07:45:17 -0500
+Subject: [Ocfs2-devel] [RFC] Online File(system) check
+In-Reply-To: <55408F6D.5020908@oracle.com>
+References: <20150427213227.GA28129@shrek.lan> <55408F6D.5020908@oracle.com>
+Message-ID: <5544C6DD.8000406@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Andrew,
 
-On 2015/4/1 6:13, Andrew Morton wrote:
-> On Mon, 30 Mar 2015 11:22:13 +0800 alex chen <alex.chen@huawei.com> wrote:
-> 
->> --- a/fs/ocfs2/dlmglue.c
->> +++ b/fs/ocfs2/dlmglue.c
->> @@ -1391,6 +1391,11 @@ static int __ocfs2_cluster_lock(struct ocfs2_super *osb,
->>  	int noqueue_attempted = 0;
->>  	int dlm_locked = 0;
+
+On 04/29/2015 02:59 AM, Junxiao Bi wrote:
+> On 04/28/2015 05:32 AM, Goldwyn Rodrigues wrote:
+>> On popular demand, here is an RFC. If you think there is a better
+>> way to communicate with the kernel module for the check, please
+>> let me know.
 >>
->> +	if (!(lockres->l_flags & OCFS2_LOCK_INITIALIZED)) {
->> +		mlog_errno(-EINVAL);
->> +		return -EINVAL;
->> +	}
-> 
-> hm.  How about we do this?
-> 
-> 
-> From: Andrew Morton <akpm@linux-foundation.org>
-> Subject: ocfs2: make mlog_errno return the errno
-> 
-> ocfs2 does
-> 
-> 	mlog_errno(v);
-> 	return v;
-> 
-> in many places.  Change mlog_errno() so we can do
-> 
-> 	return mlog_errno(v);
-> 
-I don't think this is fit for all.
-In many places it should do cleanup rather than just return the error
-code.
+>>
+>> Intro
+>> -----
+>> OCFS2 is often used in high-availaibility systems. However, ocfs2
+>> converts the filesystem to read-only at the drop of the hat. This
+>> may not be necessary, since turning the filesystem read-only would
+>> affect other running processes as well, decreasing availability.
+>>
+>> This attempt is to add errors=continue, which would return the EIO
+>> to the calling process and terminate furhter processing so that
+>> the filesystem is not corrupted further. However, the filesystem
+>> is not converted to read-only.
+> Is this safe, if detected an error when accessing an inode, how do you
+> know this is only inode internal error?
 
-> For some weird reason this patch reduces the size of ocfs2 by 6k:
-> 
-> akpm3:/usr/src/25> size fs/ocfs2/ocfs2.ko
->    text    data     bss     dec     hex filename
-> 1146613   82767  832192 2061572  1f7504 fs/ocfs2/ocfs2.ko-before
-> 1140857   82767  832192 2055816  1f5e88 fs/ocfs2/ocfs2.ko-after
-> 
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: alex chen <alex.chen@huawei.com>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
->  fs/ocfs2/cluster/masklog.h |    5 +++--
->  1 file changed, 3 insertions(+), 2 deletions(-)
-> 
-> diff -puN fs/ocfs2/cluster/masklog.h~a fs/ocfs2/cluster/masklog.h
-> --- a/fs/ocfs2/cluster/masklog.h~a
-> +++ a/fs/ocfs2/cluster/masklog.h
-> @@ -196,13 +196,14 @@ extern struct mlog_bits mlog_and_bits, m
->  	}								\
->  } while (0)
->  
-> -#define mlog_errno(st) do {						\
-> +#define mlog_errno(st) ({						\
->  	int _st = (st);							\
->  	if (_st != -ERESTARTSYS && _st != -EINTR &&			\
->  	    _st != AOP_TRUNCATED_PAGE && _st != -ENOSPC &&		\
->  	    _st != -EDQUOT)						\
->  		mlog(ML_ERROR, "status = %lld\n", (long long)_st);	\
-> -} while (0)
-> +	st;								\
-> +})
->  
->  #define mlog_bug_on_msg(cond, fmt, args...) do {			\
->  	if (cond) {							\
-> _
-> 
-> 
-> .
-> 
+
+Thanks for your comments. The error message would need to be modified to 
+specify the inode(s) which need to be checked. It could be a regular 
+file or the system inode.
+
+> If there is corruptions in other
+> place, the fs will be corrupted further.
+>
+It there is a corruption in another place, the process will err at that 
+location.
+
+Could you provide a sample case to explain this situation? and how is it 
+different from what is already present in the code?
+
+-- 
+Goldwyn
