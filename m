@@ -1,63 +1,69 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 11 May 2015 15:48:13 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: do not BUG if
- jbd2_journal_dirty_metadata fails
-In-Reply-To: <554041B3.2070405@huawei.com>
-References: <553F7BA9.1090303@huawei.com> <554041B3.2070405@huawei.com>
-Message-ID: <55505EBD.8000101@huawei.com>
+From: Eugene Istomin <E.Istomin@edss.ee>
+Date: Mon, 11 May 2015 11:48:11 +0300
+Subject: [Ocfs2-devel] Read IOPS storm in case of reflinking running VM
+	disk
+In-Reply-To: <2921711.4r2dU24ThL@evis>
+References: <2921711.4r2dU24ThL@evis>
+Message-ID: <7399970.tYBXgTWiTd@evis>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2015/4/29 10:28, Xue jiufei wrote:
-> Hi Joseph,
-> On 2015/4/28 20:23, Joseph Qi wrote:
->> jbd2_journal_dirty_metadata may fail. Currently it cannot take care of
->> non zero return value and just BUG in ocfs2_journal_dirty.
->> This patch is aborting the handle instead of BUG.
->>
->> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
->> ---
->>  fs/ocfs2/journal.c | 10 +++++++++-
->>  1 file changed, 9 insertions(+), 1 deletion(-)
->>
->> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
->> index ff53192..4482420 100644
->> --- a/fs/ocfs2/journal.c
->> +++ b/fs/ocfs2/journal.c
->> @@ -775,7 +775,15 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
->>  	trace_ocfs2_journal_dirty((unsigned long long)bh->b_blocknr);
->>
->>  	status = jbd2_journal_dirty_metadata(handle, bh);
->> -	BUG_ON(status);
->> +	if (status) {
->> +		mlog_errno(status);
->> +		if (!is_handle_aborted(handle)) {
->> +			handle->h_err = status;
->> +			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
->> +					"Aborting transaction.");
->> +			jbd2_journal_abort_handle(handle);
-> The buffers dirtied before are still committed to disk while handle is aborted
-> and may cause some inconsistency.
-> Maybe the journal should also be set aborted if jbd2_journal_dirty_metadata
-> fails like ext4?
-Maybe aborting the handle and journal is also not enough.
-Though the journal is aborted, the caller still returns success. Then
-the user space thinks the operation is successful, but the metadata
-cannot be committed to disk due to aborted journal.
-Do we also have to return the error in ocfs2_journal_dirty and then
-handle it in caller? If so, it must be huge work:)
+Hello Goldwyn,
 
->> +		}
->> +	}
->>  }
->>
->>  #define OCFS2_DEFAULT_COMMIT_INTERVAL	(HZ * JBD2_DEFAULT_MAX_COMMIT_AGE)
->>
+Do you know something about such behavior?
+The question is why a reflink operation on VM disk leads to plenty of read ops?
+Is this related to CoW specific structures? 
+
+We can provide others details & ssh to testbed.
+
+-- 
+Best regards,
+Eugene Istomin
+
+
+On Friday, May 08, 2015 08:56:57 AM Eugene Istomin wrote:
+> Hello,
+> 
+> after deploying reflink-based VM snapshots to production servers we
+> discovered a performace degradation:
+> 
+> OS: Opensuse 13.1, 13.2
+> Hypervisors: Xen 4.4, 4.5
+> Dom0 kernels: 3.12, 3.16, 3.18
+> DomU kernels: 3.12, 3.16, 3.18
+> Tested DomU disk backends: tapdisk2, qdisk
 > 
 > 
+> 1) on DomU (VM)
+> #dd if=/dev/zero of=test2 bs=1M count=6000
 > 
-> .
+> 2) atop on Dom0:
+> sdb - busy:92% - read:375 - write:130902
+> Reads are from others VMs, seems OK
 > 
+> 3) DomU dd finished:
+> 6291456000 bytes (6.3 GB) copied, 16.6265 s, 378 MB/s
+> 
+> 4) Lets start dd again & do a snapshot:
+> #dd if=/dev/zero of=test2 bs=1M count=6000
+> #reflink test.raw ref/
+> 
+> 5) atop on Dom0:
+> sdb - busy:97% - read:112740 - write:28037
+> So, Read IOPS = 112740, why?
+> 
+> 6) DomU dd finished:
+> 6291456000 bytes (6.3 GB) copied, 175.45 s, 35.9 MB/s
+> 
+> 7) Second & further reflinks do not change the atop stat & dd time
+> #dd if=/dev/zero of=test2 bs=1M count=6000
+> #reflink --backup=t test.raw ref/    \\ * n times
+> ~ 6291456000 bytes (6.3 GB) copied, 162.959 s, 38.6 MB/s
+> 
+> The question is why reflinking a running VM disk leads to read IOPS storm?
+> 
+> 
+> Thanks!
