@@ -1,104 +1,63 @@
-From: WeiWei Wang <wangww631@huawei.com>
-Date: Mon, 11 May 2015 14:42:57 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: add ip_alloc_sem in direct IO to
- protect allocation changes
-Message-ID: <55504F71.1030004@huawei.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Mon, 11 May 2015 15:48:13 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: do not BUG if
+ jbd2_journal_dirty_metadata fails
+In-Reply-To: <554041B3.2070405@huawei.com>
+References: <553F7BA9.1090303@huawei.com> <554041B3.2070405@huawei.com>
+Message-ID: <55505EBD.8000101@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi all,
+On 2015/4/29 10:28, Xue jiufei wrote:
+> Hi Joseph,
+> On 2015/4/28 20:23, Joseph Qi wrote:
+>> jbd2_journal_dirty_metadata may fail. Currently it cannot take care of
+>> non zero return value and just BUG in ocfs2_journal_dirty.
+>> This patch is aborting the handle instead of BUG.
+>>
+>> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+>> ---
+>>  fs/ocfs2/journal.c | 10 +++++++++-
+>>  1 file changed, 9 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+>> index ff53192..4482420 100644
+>> --- a/fs/ocfs2/journal.c
+>> +++ b/fs/ocfs2/journal.c
+>> @@ -775,7 +775,15 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
+>>  	trace_ocfs2_journal_dirty((unsigned long long)bh->b_blocknr);
+>>
+>>  	status = jbd2_journal_dirty_metadata(handle, bh);
+>> -	BUG_ON(status);
+>> +	if (status) {
+>> +		mlog_errno(status);
+>> +		if (!is_handle_aborted(handle)) {
+>> +			handle->h_err = status;
+>> +			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
+>> +					"Aborting transaction.");
+>> +			jbd2_journal_abort_handle(handle);
+> The buffers dirtied before are still committed to disk while handle is aborted
+> and may cause some inconsistency.
+> Maybe the journal should also be set aborted if jbd2_journal_dirty_metadata
+> fails like ext4?
+Maybe aborting the handle and journal is also not enough.
+Though the journal is aborted, the caller still returns success. Then
+the user space thinks the operation is successful, but the metadata
+cannot be committed to disk due to aborted journal.
+Do we also have to return the error in ocfs2_journal_dirty and then
+handle it in caller? If so, it must be huge work:)
 
-In ocfs2, ip_alloc_sem is used to protect allocation changes on the node.
-In direct IO, we add ip_alloc_sem to protect date consistent between direct-io
-and ocfs2_truncate_file race (buffer io use ip_alloc_sem already).
-Although inode->i_mutex lock is used to avoid concurrency of above situation,
-i think ip_alloc_sem is still needed because protect allocation changes is
-significant.
-
-Other filesystem like ext4 also uses rw_semaphore to protect data consistent
-between get_block-vs-truncate race by other means, So ip_alloc_sem in ocfs2
-direct io is needed.
-
-Any comments are appreciated, thanks!
-					-- Weiwei Wang
-
-
-Signed-off-by: Weiwei Wang <wangww631@huawei.com>
----
- fs/ocfs2/aops.c | 18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index f906a25..5b32450 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -533,10 +533,14 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
-
- 	inode_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
-
-+	down_read(&OCFS2_I(inode)->ip_alloc_sem);
-+
- 	/* This figures out the size of the next contiguous block, and
- 	 * our logical offset */
- 	ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
- 					  &contig_blocks, &ext_flags);
-+	up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+
- 	if (ret) {
- 		mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
- 		     (unsigned long long)iblock);
-@@ -557,6 +561,8 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
-
- 		alloc_locked = 1;
-
-+		down_write(&OCFS2_I(inode)->ip_alloc_sem);
-+
- 		/* fill hole, allocate blocks can't be larger than the size
- 		 * of the hole */
- 		clusters_to_alloc = ocfs2_clusters_for_bytes(inode->i_sb, len);
-@@ -567,6 +573,7 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 		ret = ocfs2_extend_allocation(inode, cpos,
- 				clusters_to_alloc, 0);
- 		if (ret < 0) {
-+			up_write(&OCFS2_I(inode)->ip_alloc_sem);
- 			mlog_errno(ret);
- 			goto bail;
- 		}
-@@ -574,11 +581,13 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
- 		ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
- 				&contig_blocks, &ext_flags);
- 		if (ret < 0) {
-+			up_write(&OCFS2_I(inode)->ip_alloc_sem);
- 			mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
- 					(unsigned long long)iblock);
- 			ret = -EIO;
- 			goto bail;
- 		}
-+		up_write(&OCFS2_I(inode)->ip_alloc_sem);
- 	}
-
- 	/*
-@@ -833,12 +842,17 @@ static ssize_t ocfs2_direct_IO_write(struct kiocb *iocb,
-
- 		/* zeroing out the previously allocated cluster tail
- 		 * that but not zeroed */
--		if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb)))
-+		if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb))) {
-+			down_read(&OCFS2_I(inode)->ip_alloc_sem);
- 			ret = ocfs2_direct_IO_zero_extend(osb, inode, offset,
- 					zero_len_tail, cluster_align_tail);
--		else
-+			up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+		} else {
-+			down_write(&OCFS2_I(inode)->ip_alloc_sem);
- 			ret = ocfs2_direct_IO_extend_no_holes(osb, inode,
- 					offset);
-+			up_write(&OCFS2_I(inode)->ip_alloc_sem);
-+		}
- 		if (ret < 0) {
- 			mlog_errno(ret);
- 			ocfs2_inode_unlock(inode, 1);
--- 
+>> +		}
+>> +	}
+>>  }
+>>
+>>  #define OCFS2_DEFAULT_COMMIT_INTERVAL	(HZ * JBD2_DEFAULT_MAX_COMMIT_AGE)
+>>
+> 
+> 
+> 
+> .
+> 
