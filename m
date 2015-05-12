@@ -1,69 +1,47 @@
-From: Eugene Istomin <E.Istomin@edss.ee>
-Date: Mon, 11 May 2015 11:48:11 +0300
-Subject: [Ocfs2-devel] Read IOPS storm in case of reflinking running VM
-	disk
-In-Reply-To: <2921711.4r2dU24ThL@evis>
-References: <2921711.4r2dU24ThL@evis>
-Message-ID: <7399970.tYBXgTWiTd@evis>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 12 May 2015 09:53:47 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: do not BUG if
+	jbd2_journal_dirty_metadata fails
+Message-ID: <55515D2B.8010202@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hello Goldwyn,
+jbd2_journal_dirty_metadata may fail. Currently it cannot take care of
+non zero return value and just BUG in ocfs2_journal_dirty.
+This patch is aborting the handle and journal instead of BUG.
 
-Do you know something about such behavior?
-The question is why a reflink operation on VM disk leads to plenty of read ops?
-Is this related to CoW specific structures? 
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Cc: joyce.xue <xuejiufei@huawei.com>
+---
+ fs/ocfs2/journal.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
 
-We can provide others details & ssh to testbed.
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index ff53192..eefca1e 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -775,7 +775,17 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
+ 	trace_ocfs2_journal_dirty((unsigned long long)bh->b_blocknr);
 
+ 	status = jbd2_journal_dirty_metadata(handle, bh);
+-	BUG_ON(status);
++	if (status) {
++		mlog_errno(status);
++		if (!is_handle_aborted(handle)) {
++			journal_t *journal = handle->h_transaction->t_journal;
++
++			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
++					"Aborting transaction and journal.");
++			handle->h_err = status;
++			jbd2_journal_abort_handle(handle);
++			jbd2_journal_abort(journal, status);
++		}
++	}
+ }
+
+ #define OCFS2_DEFAULT_COMMIT_INTERVAL	(HZ * JBD2_DEFAULT_MAX_COMMIT_AGE)
 -- 
-Best regards,
-Eugene Istomin
-
-
-On Friday, May 08, 2015 08:56:57 AM Eugene Istomin wrote:
-> Hello,
-> 
-> after deploying reflink-based VM snapshots to production servers we
-> discovered a performace degradation:
-> 
-> OS: Opensuse 13.1, 13.2
-> Hypervisors: Xen 4.4, 4.5
-> Dom0 kernels: 3.12, 3.16, 3.18
-> DomU kernels: 3.12, 3.16, 3.18
-> Tested DomU disk backends: tapdisk2, qdisk
-> 
-> 
-> 1) on DomU (VM)
-> #dd if=/dev/zero of=test2 bs=1M count=6000
-> 
-> 2) atop on Dom0:
-> sdb - busy:92% - read:375 - write:130902
-> Reads are from others VMs, seems OK
-> 
-> 3) DomU dd finished:
-> 6291456000 bytes (6.3 GB) copied, 16.6265 s, 378 MB/s
-> 
-> 4) Lets start dd again & do a snapshot:
-> #dd if=/dev/zero of=test2 bs=1M count=6000
-> #reflink test.raw ref/
-> 
-> 5) atop on Dom0:
-> sdb - busy:97% - read:112740 - write:28037
-> So, Read IOPS = 112740, why?
-> 
-> 6) DomU dd finished:
-> 6291456000 bytes (6.3 GB) copied, 175.45 s, 35.9 MB/s
-> 
-> 7) Second & further reflinks do not change the atop stat & dd time
-> #dd if=/dev/zero of=test2 bs=1M count=6000
-> #reflink --backup=t test.raw ref/    \\ * n times
-> ~ 6291456000 bytes (6.3 GB) copied, 162.959 s, 38.6 MB/s
-> 
-> The question is why reflinking a running VM disk leads to read IOPS storm?
-> 
-> 
-> Thanks!
+1.8.4.3
