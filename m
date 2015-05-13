@@ -1,54 +1,54 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 12 May 2015 16:03:50 -0700
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: do not BUG if
- jbd2_journal_dirty_metadata fails
-In-Reply-To: <55515D2B.8010202@huawei.com>
-References: <55515D2B.8010202@huawei.com>
-Message-ID: <20150512160350.476474387848736a843817e9@linux-foundation.org>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 13 May 2015 10:52:52 +0800
+Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix BUG in
+	ocfs2_downconvert_thread_do_work
+Message-ID: <5552BC84.2050204@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Tue, 12 May 2015 09:53:47 +0800 Joseph Qi <joseph.qi@huawei.com> wrote:
+BUG_ON(list_empty(&osb->blocked_lock_list)) in
+ocfs2_downconvert_thread_do_work can be triggered in the following case:
 
-> jbd2_journal_dirty_metadata may fail. Currently it cannot take care of
-> non zero return value and just BUG in ocfs2_journal_dirty.
-> This patch is aborting the handle and journal instead of BUG.
-> 
+ocfs2dc has firstly saved osb->blocked_lock_count to local variable
+'processed', and then processes the dentry lockres. During the dentry put,
+it calls iput and then deletes rw, inode and open lockres from blocked
+list in ocfs2_mark_lockres_freeing.  And this causes the variable
+'processed' to not reflect the number of blocked lockres to be processed,
+which triggers the BUG.
 
-This patch is internally inconsistent.
+Changes since v1:
+As Mark suggested, we can only add it to loop condition and explain the
+case with comments instead of BUG.
 
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -775,7 +775,17 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Cc: <stable@vger.kernel.org>
+---
+ fs/ocfs2/dlmglue.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-The "-775,7 +775,17" means "the 7 lines at line 775 get turned into 17
-lines".  ie: 10 lines are added.
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 8b23aa2..23157e4 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -4025,9 +4025,13 @@ static void ocfs2_downconvert_thread_do_work(struct ocfs2_super *osb)
+ 	osb->dc_work_sequence = osb->dc_wake_sequence;
 
->  	trace_ocfs2_journal_dirty((unsigned long long)bh->b_blocknr);
-> 
->  	status = jbd2_journal_dirty_metadata(handle, bh);
-> -	BUG_ON(status);
-> +	if (status) {
-> +		mlog_errno(status);
-> +		if (!is_handle_aborted(handle)) {
-> +			journal_t *journal = handle->h_transaction->t_journal;
-> +
-> +			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
-> +					"Aborting transaction and journal.");
-> +			handle->h_err = status;
-> +			jbd2_journal_abort_handle(handle);
-> +			jbd2_journal_abort(journal, status);
-> +		}
-> +	}
->  }
-
-But the patch deletes 1 line and adds 12, for a net addition of 11 lines,
-not 10.
-
-So the patch doesn't apply.  Changing the "17" to "18" fixes that.
-
-
-Whatever tool you used for generating this patch needs slapping.
+ 	processed = osb->blocked_lock_count;
+-	while (processed) {
+-		BUG_ON(list_empty(&osb->blocked_lock_list));
+-
++	/*
++	 * blocked lock processing in this loop might call iput which can
++	 * remove items off osb->blocked_lock_list. Downconvert up to
++	 * 'processed' number of locks, but stop short if we had some
++	 * removed in ocfs2_mark_lockres_freeing when downconverting.
++	 */
++	while (processed && !list_empty(&osb->blocked_lock_list)) {
+ 		lockres = list_entry(osb->blocked_lock_list.next,
+ 				     struct ocfs2_lock_res, l_blocked_list);
+ 		list_del_init(&lockres->l_blocked_list);
+-- 
+1.8.4.3
