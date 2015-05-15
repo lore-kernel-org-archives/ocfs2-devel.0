@@ -1,54 +1,176 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 13 May 2015 10:52:52 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: fix BUG in
-	ocfs2_downconvert_thread_do_work
-Message-ID: <5552BC84.2050204@huawei.com>
+From: WeiWei Wang <wangww631@huawei.com>
+Date: Fri, 15 May 2015 11:35:46 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: remove OCFS2_IOCB_SEM lock type in
+ direct io
+Message-ID: <55556992.6040002@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-BUG_ON(list_empty(&osb->blocked_lock_list)) in
-ocfs2_downconvert_thread_do_work can be triggered in the following case:
+Hi all,
 
-ocfs2dc has firstly saved osb->blocked_lock_count to local variable
-'processed', and then processes the dentry lockres. During the dentry put,
-it calls iput and then deletes rw, inode and open lockres from blocked
-list in ocfs2_mark_lockres_freeing.  And this causes the variable
-'processed' to not reflect the number of blocked lockres to be processed,
-which triggers the BUG.
+In ocfs2 direct read/write, OCFS2_IOCB_SEM lock type is used to protect
+inode->i_alloc_sem rw semaphore lock in the earlier kernel version.
+However, in the latest kernel, inode->i_alloc_sem rw semaphore lock
+is not used at all, so OCFS2_IOCB_SEM lock type needs to be removed.
 
-Changes since v1:
-As Mark suggested, we can only add it to loop condition and explain the
-case with comments instead of BUG.
+Any comments are appreciated, thanks!
+					-- Weiwei Wang
 
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Cc: <stable@vger.kernel.org>
+
+Signed-off-by: Weiwei Wang <wangww631@huawei.com>
 ---
- fs/ocfs2/dlmglue.c | 10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
+ fs/ocfs2/aops.c |  3 ---
+ fs/ocfs2/aops.h |  7 -------
+ fs/ocfs2/file.c | 31 ++++---------------------------
+ 3 files changed, 4 insertions(+), 37 deletions(-)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 8b23aa2..23157e4 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -4025,9 +4025,13 @@ static void ocfs2_downconvert_thread_do_work(struct ocfs2_super *osb)
- 	osb->dc_work_sequence = osb->dc_wake_sequence;
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index f906a25..d3eccc0 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -619,9 +619,6 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
+ 	/* this io's submitter should not have unlocked this before we could */
+ 	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
 
- 	processed = osb->blocked_lock_count;
--	while (processed) {
--		BUG_ON(list_empty(&osb->blocked_lock_list));
+-	if (ocfs2_iocb_is_sem_locked(iocb))
+-		ocfs2_iocb_clear_sem_locked(iocb);
 -
-+	/*
-+	 * blocked lock processing in this loop might call iput which can
-+	 * remove items off osb->blocked_lock_list. Downconvert up to
-+	 * 'processed' number of locks, but stop short if we had some
-+	 * removed in ocfs2_mark_lockres_freeing when downconverting.
-+	 */
-+	while (processed && !list_empty(&osb->blocked_lock_list)) {
- 		lockres = list_entry(osb->blocked_lock_list.next,
- 				     struct ocfs2_lock_res, l_blocked_list);
- 		list_del_init(&lockres->l_blocked_list);
+ 	if (ocfs2_iocb_is_unaligned_aio(iocb)) {
+ 		ocfs2_iocb_clear_unaligned_aio(iocb);
+
+diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
+index dd59599..24e496d 100644
+--- a/fs/ocfs2/aops.h
++++ b/fs/ocfs2/aops.h
+@@ -79,7 +79,6 @@ static inline void ocfs2_iocb_set_rw_locked(struct kiocb *iocb, int level)
+ enum ocfs2_iocb_lock_bits {
+ 	OCFS2_IOCB_RW_LOCK = 0,
+ 	OCFS2_IOCB_RW_LOCK_LEVEL,
+-	OCFS2_IOCB_SEM,
+ 	OCFS2_IOCB_UNALIGNED_IO,
+ 	OCFS2_IOCB_NUM_LOCKS
+ };
+@@ -88,12 +87,6 @@ enum ocfs2_iocb_lock_bits {
+ 	clear_bit(OCFS2_IOCB_RW_LOCK, (unsigned long *)&iocb->private)
+ #define ocfs2_iocb_rw_locked_level(iocb) \
+ 	test_bit(OCFS2_IOCB_RW_LOCK_LEVEL, (unsigned long *)&iocb->private)
+-#define ocfs2_iocb_set_sem_locked(iocb) \
+-	set_bit(OCFS2_IOCB_SEM, (unsigned long *)&iocb->private)
+-#define ocfs2_iocb_clear_sem_locked(iocb) \
+-	clear_bit(OCFS2_IOCB_SEM, (unsigned long *)&iocb->private)
+-#define ocfs2_iocb_is_sem_locked(iocb) \
+-	test_bit(OCFS2_IOCB_SEM, (unsigned long *)&iocb->private)
+
+ #define ocfs2_iocb_set_unaligned_aio(iocb) \
+ 	set_bit(OCFS2_IOCB_UNALIGNED_IO, (unsigned long *)&iocb->private)
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index d8b670c..fbfadb2 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2250,7 +2250,7 @@ out:
+ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
+ 				    struct iov_iter *from)
+ {
+-	int direct_io, appending, rw_level, have_alloc_sem  = 0;
++	int direct_io, appending, rw_level;
+ 	int can_do_direct, has_refcount = 0;
+ 	ssize_t written = 0;
+ 	ssize_t ret;
+@@ -2279,16 +2279,7 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
+
+ 	mutex_lock(&inode->i_mutex);
+
+-	ocfs2_iocb_clear_sem_locked(iocb);
+-
+ relock:
+-	/* to match setattr's i_mutex -> rw_lock ordering */
+-	if (direct_io) {
+-		have_alloc_sem = 1;
+-		/* communicate with ocfs2_dio_end_io */
+-		ocfs2_iocb_set_sem_locked(iocb);
+-	}
+-
+ 	/*
+ 	 * Concurrent O_DIRECT writes are allowed with
+ 	 * mount_option "coherency=buffered".
+@@ -2298,7 +2289,7 @@ relock:
+ 	ret = ocfs2_rw_lock(inode, rw_level);
+ 	if (ret < 0) {
+ 		mlog_errno(ret);
+-		goto out_sems;
++		goto out_mutex;
+ 	}
+
+ 	/*
+@@ -2347,7 +2338,6 @@ relock:
+ 	if (direct_io && !can_do_direct) {
+ 		ocfs2_rw_unlock(inode, rw_level);
+
+-		have_alloc_sem = 0;
+ 		rw_level = -1;
+
+ 		direct_io = 0;
+@@ -2416,7 +2406,6 @@ no_sync:
+ 	 */
+ 	if ((ret == -EIOCBQUEUED) || (!ocfs2_iocb_is_rw_locked(iocb))) {
+ 		rw_level = -1;
+-		have_alloc_sem = 0;
+ 		unaligned_dio = 0;
+ 	}
+
+@@ -2429,10 +2418,7 @@ out:
+ 	if (rw_level != -1)
+ 		ocfs2_rw_unlock(inode, rw_level);
+
+-out_sems:
+-	if (have_alloc_sem)
+-		ocfs2_iocb_clear_sem_locked(iocb);
+-
++out_mutex:
+ 	mutex_unlock(&inode->i_mutex);
+
+ 	if (written)
+@@ -2473,7 +2459,7 @@ bail:
+ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 				   struct iov_iter *to)
+ {
+-	int ret = 0, rw_level = -1, have_alloc_sem = 0, lock_level = 0;
++	int ret = 0, rw_level = -1, lock_level = 0;
+ 	struct file *filp = iocb->ki_filp;
+ 	struct inode *inode = file_inode(filp);
+
+@@ -2490,16 +2476,11 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 		goto bail;
+ 	}
+
+-	ocfs2_iocb_clear_sem_locked(iocb);
+-
+ 	/*
+ 	 * buffered reads protect themselves in ->readpage().  O_DIRECT reads
+ 	 * need locks to protect pending reads from racing with truncate.
+ 	 */
+ 	if (iocb->ki_flags & IOCB_DIRECT) {
+-		have_alloc_sem = 1;
+-		ocfs2_iocb_set_sem_locked(iocb);
+-
+ 		ret = ocfs2_rw_lock(inode, 0);
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+@@ -2535,13 +2516,9 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 	/* see ocfs2_file_write_iter */
+ 	if (ret == -EIOCBQUEUED || !ocfs2_iocb_is_rw_locked(iocb)) {
+ 		rw_level = -1;
+-		have_alloc_sem = 0;
+ 	}
+
+ bail:
+-	if (have_alloc_sem)
+-		ocfs2_iocb_clear_sem_locked(iocb);
+-
+ 	if (rw_level != -1)
+ 		ocfs2_rw_unlock(inode, rw_level);
+
 -- 
-1.8.4.3
