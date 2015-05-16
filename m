@@ -1,10 +1,7 @@
 From: Shichangkuo <shi.changkuo@h3c.com>
-Date: Sat, 16 May 2015 13:20:00 +0000
-Subject: [Ocfs2-devel] =?gb2312?b?tPC4tDogIFtQQVRDSF0gb2NmczI6IHJlbW92ZSBP?=
- =?gb2312?b?Q0ZTMl9JT0NCX1NFTSBsb2NrIHR5cGUgaW4gZGlyZWN0IGlv?=
-In-Reply-To: <55556992.6040002@huawei.com>
-References: <55556992.6040002@huawei.com>
-Message-ID: <D1E4D02760513D4B90DC3B40FF32AF351817B139@H3CMLB12-EX.srv.huawei-3com.com>
+Date: Sat, 16 May 2015 13:23:23 +0000
+Subject: [Ocfs2-devel] Could someone tell me the function of LVB, thanks
+Message-ID: <D1E4D02760513D4B90DC3B40FF32AF351817B149@H3CMLB12-EX.srv.huawei-3com.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,8 +11,7 @@ To: ocfs2-devel@oss.oracle.com
 Hi all,
     In my 10 nodes cluster, I find some strange logs in kernel.log when operating some days. logs as follws:
 
-May 14 14:01:33 cvk68 kernel: [272684.537063] (umount,52420,10):dlm_prepare_lvb_for_migration:1216 ERROR: Mismatched lvb in lock cookie=8:982, name=M00000000000000007e012000000000, node=8
-May 14 14:01:33 cvk68 kernel: [272684.537066] lockres: M00000000000000007e012000000000, owner=6, state=32
+May 14 14:01:33 cvk68 kernel: [272684.537063] (umount,52420,10):dlm_prepare_lvb_for_migration:1216 ERROR: Mismatched lvb in lock cookie=8:982, name=M00000000000000007e012000000000, node=8 May 14 14:01:33 cvk68 kernel: [272684.537066] lockres: M00000000000000007e012000000000, owner=6, state=32
 May 14 14:01:33 cvk68 kernel: [272684.537067]   last used: 0, refcnt: 11, on purge list: no
 May 14 14:01:33 cvk68 kernel: [272684.537068]   on dirty list: no, on reco list: no, migrating pending: no
 May 14 14:01:33 cvk68 kernel: [272684.537069]   inflight locks: 0, asts reserved: 0
