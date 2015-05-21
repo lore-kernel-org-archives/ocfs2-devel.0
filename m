@@ -1,109 +1,74 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 21 May 2015 11:54:23 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2: do not BUG if
- jbd2_journal_dirty_metadata fails
-In-Reply-To: <555D3E3D.8070101@oracle.com>
-References: <55515D2B.8010202@huawei.com> <555C4434.7090807@oracle.com>
-	<555C610C.3020902@huawei.com> <555C6B65.2080605@oracle.com>
-	<555D2B8F.1050704@huawei.com> <555D3E3D.8070101@oracle.com>
-Message-ID: <555D56EF.50907@huawei.com>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Thu, 21 May 2015 06:57:21 -0500
+Subject: [Ocfs2-devel] Read IOPS storm in case of reflinking running VM
+ disk
+In-Reply-To: <2137407.TBXHbaxxee@evis>
+References: <2921711.4r2dU24ThL@evis> <16475571.Tn5VYR8sPy@evis>
+	<555A2544.2070607@suse.de> <2137407.TBXHbaxxee@evis>
+Message-ID: <555DC821.5010603@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2015/5/21 10:09, Junxiao Bi wrote:
-> On 05/21/2015 08:49 AM, Joseph Qi wrote:
->> On 2015/5/20 19:09, Junxiao Bi wrote:
->>> On 05/20/2015 06:25 PM, Joseph Qi wrote:
->>>> On 2015/5/20 16:22, Junxiao Bi wrote:
->>>>> On 05/12/2015 09:53 AM, Joseph Qi wrote:
->>>>>> jbd2_journal_dirty_metadata may fail. Currently it cannot take care of
->>>>>> non zero return value and just BUG in ocfs2_journal_dirty.
->>>>>> This patch is aborting the handle and journal instead of BUG.
->>>>>>
->>>>>> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
->>>>>> Cc: joyce.xue <xuejiufei@huawei.com>
->>>>>> ---
->>>>>>  fs/ocfs2/journal.c | 12 +++++++++++-
->>>>>>  1 file changed, 11 insertions(+), 1 deletion(-)
->>>>>>
->>>>>> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
->>>>>> index ff53192..eefca1e 100644
->>>>>> --- a/fs/ocfs2/journal.c
->>>>>> +++ b/fs/ocfs2/journal.c
->>>>>> @@ -775,7 +775,17 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
->>>>>>  	trace_ocfs2_journal_dirty((unsigned long long)bh->b_blocknr);
->>>>>>
->>>>>>  	status = jbd2_journal_dirty_metadata(handle, bh);
->>>>>> -	BUG_ON(status);
->>>>>> +	if (status) {
->>>>>> +		mlog_errno(status);
->>>>>> +		if (!is_handle_aborted(handle)) {
->>>>>> +			journal_t *journal = handle->h_transaction->t_journal;
->>>>>> +
->>>>>> +			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
->>>>>> +					"Aborting transaction and journal.");
->>>>>> +			handle->h_err = status;
->>>>>> +			jbd2_journal_abort_handle(handle);
->>>>>> +			jbd2_journal_abort(journal, status);
->>>>> Let fs go after journal lose affect seemed not safe, may we set fs
->>>>> read-only here?
->>>>>
->>>>> Thanks,
->>>>> Junxiao.
->>>>>
->>>>>
->>>> Do you mean journal can still be updated even if it is aborted?
->>> No, journal will not be updated. After abort, journal api will return
->>> error, at last fs will be set read-only, but there is also api which
->>> didn't return error like ocfs2_journal_dirty(), so why not stop at the
->>> first time?
->>>
->>> Thanks,
->>> Junxiao.
->> Agree with you.
->> But here bh can be anything like di, gd, ... As Joyce Xue reported, the
->> problem also exists in ocfs2_abort_trigger. So I don't think we can get
->> sb we needed.
-> Yes, right.
-> 
->> Is there any other way except changing prototype of ocfs2_journal_dirty?
-> I can't see how to do that. From me, if jbd2_journal_dirty_metadata()
-> return an error, there seemed a bug, BUG_ON for a bug seemed acceptable
-> since not easy to set fs read-only from here.
-> Did you ever watch this BUG_ON triggered not due to a bug?
-> 
-Yes, one case is jbd2_journal_dirty_metadata returns -EROFS.
-Another is it returns -EINVAL once transaction has changed. ocfs2 will
-extends transaction once credits not enough. But I think ocfs2 should
-take care of this case when calling jbd2_journal_restart.
 
-> Thanks,
-> Junxiao.
-> 
-> 
->>
->>>>
->>>>>> +		}
->>>>>> +	}
->>>>>>  }
->>>>>>
->>>>>>  #define OCFS2_DEFAULT_COMMIT_INTERVAL	(HZ * JBD2_DEFAULT_MAX_COMMIT_AGE)
->>>>>>
->>>>>
->>>>>
->>>>>
->>>>
->>>>
->>>
->>>
->>> .
->>>
->>
->>
-> 
-> 
-> .
-> 
+
+On 05/20/2015 05:33 PM, Eugene Istomin wrote:
+> Goldwyn,
+>
+> thanks for the answer!
+>
+> I read
+> https://oss.oracle.com/osswiki/OCFS2(2f)DesignDocs(2f)RefcountTrees.html
+> carefully to understand the problem.
+>
+> As i understand:
+>
+>  1. There are B-Tree structures for reflink: ocfs2_refcount_tree;
+>     ocfs2_refcount_block -> ocfs2_refcount_list -> ocfs2_refcount_rec
+>  2. "The refcount tree root is a refcount block pointed to by
+>     i_refcount_loc"
+>  3. Some operations needs extra uncached lookups
+>
+> Also i dumped frag/stat/refcount from production hypervisor node using
+> debugfs.ocfs2, files are in attach (url as alt way -
+> http://public.edss.ee/tmp/debugfs.tar.gz ).
+>
+> Hypervisor OCFS2 mount options:
+> rw,nosuid,noexec,noatime,heartbeat=none,nointr,data=ordered,errors=remount-ro,localalloc=2048,coherency=full,user_xattr,acl
+>
+> Mkfs string:
+>
+> mkfs.ocfs2 -b 4KB -C 1MB -N 2 -T vmstore -L "storage"
+> --fs-features=local,backup-super,sparse,unwritten,inline-data,metaecc,refcount,xattr,indexed-dirs,discontig-bg
+>
+> Can you please explain why there are so many extent blocks (204)? Is it
+> really impossible to store plenty of clusters in single extent (like
+> #25, block 3874095 -> 20847 clusters)?
+>
+
+A file's extent tree is based on your usage pattern and what is already 
+present on disk. Creating a new file, with large block writes, on a new 
+filesystem with no other nodes may create a file with small number of 
+extents.
+
+Modifying refcounted files can increase number of extents. The answer 
+lies in the document you mentioned:
+
+<quote>
+
+Refcount records do not map 1:1 with extent records. A large extent may 
+be split by a CoW operation. To unchanged inodes, they have one extent 
+record covering the entire extent. The changed inode will have an extent 
+record for the unchanged portion and a new extent record for the changed 
+portion. The refcount tree will have similarly split the single refcount 
+record into two. The changed portion will have decremented the reference 
+count by one, as the changed inode is no longer using that physical extent.
+
+</quote>
+
+HTH,
+
+-- 
+Goldwyn
