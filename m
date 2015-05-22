@@ -1,41 +1,54 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 22 May 2015 11:38:44 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix NULL pointer dereference in
- function ocfs2_abort_trigger()
-In-Reply-To: <555E9E3A.1080607@huawei.com>
-References: <555E9E3A.1080607@huawei.com>
-Message-ID: <555EA4C4.7070403@huawei.com>
+Date: Fri, 22 May 2015 15:12:26 +0800
+Subject: [Ocfs2-devel] [PATCH v3] ocfs2: do not BUG if
+	jbd2_journal_dirty_metadata fails
+Message-ID: <555ED6DA.8000607@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2015/5/22 11:10, Xue jiufei wrote:
-> Function ocfs2_abort_trigger() use bh->b_assoc_map to get sb.
-> But there's no function to set bh->b_assoc_map in ocfs2, it
-> will trigger NULL pointer dereference while calling this
-> function. We can get sb from bh->b_bdev->bd_super instead of
-> b_assoc_map.
-> 
-> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
-> ---
->  fs/ocfs2/journal.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index ff53192..11cb383 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -573,7 +573,7 @@ static void ocfs2_abort_trigger(struct jbd2_buffer_trigger_type *triggers,
->  
->  	/* We aren't guaranteed to have the superblock here - but if we
->  	 * don't, it'll just crash. */
-Should we delete this comments correspondingly?
+jbd2_journal_dirty_metadata may fail. Currently it cannot take care of
+non zero return value and just BUG in ocfs2_journal_dirty.
+Instead of BUG, this patch is aborting the handle and journal, and then
+set filesystem to read-only.
 
-> -	ocfs2_error(bh->b_assoc_map->host->i_sb,
-> +	ocfs2_error(bh->b_bdev->bd_super,
->  		    "JBD2 has aborted our journal, ocfs2 cannot continue\n");
->  }
->  
-> 
+Changes since v2:
+As Junxiao suggested, we also set filesystem read-only here.
+
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Cc: joyce.xue <xuejiufei@huawei.com>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
+---
+ fs/ocfs2/journal.c | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index ff53192..4b28538 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -775,7 +775,20 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
+ 	trace_ocfs2_journal_dirty((unsigned long long)bh->b_blocknr);
+
+ 	status = jbd2_journal_dirty_metadata(handle, bh);
+-	BUG_ON(status);
++	if (status) {
++		mlog_errno(status);
++		if (!is_handle_aborted(handle)) {
++			journal_t *journal = handle->h_transaction->t_journal;
++			struct super_block *sb = bh->b_bdev->bd_super;
++
++			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
++					"Aborting transaction and journal.\n");
++			handle->h_err = status;
++			jbd2_journal_abort_handle(handle);
++			jbd2_journal_abort(journal, status);
++			ocfs2_abort(sb, "Journal already aborted.\n");
++		}
++	}
+ }
+
+ #define OCFS2_DEFAULT_COMMIT_INTERVAL	(HZ * JBD2_DEFAULT_MAX_COMMIT_AGE)
+-- 
+1.8.4.3
