@@ -1,54 +1,70 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 22 May 2015 15:12:26 +0800
-Subject: [Ocfs2-devel] [PATCH v3] ocfs2: do not BUG if
-	jbd2_journal_dirty_metadata fails
-Message-ID: <555ED6DA.8000607@huawei.com>
+Date: Sat, 23 May 2015 14:12:18 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix wrong check in
+	ocfs2_direct_IO_get_blocks
+Message-ID: <55601A42.8080803@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-jbd2_journal_dirty_metadata may fail. Currently it cannot take care of
-non zero return value and just BUG in ocfs2_journal_dirty.
-Instead of BUG, this patch is aborting the handle and journal, and then
-set filesystem to read-only.
-
-Changes since v2:
-As Junxiao suggested, we also set filesystem read-only here.
+contig_blocks gotten from ocfs2_extent_map_get_blocks cannot be compared
+with clusters_to_alloc. So convert it to clusters first.
 
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Cc: joyce.xue <xuejiufei@huawei.com>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Weiwei Wang <wangww631@huawei.com>
 ---
- fs/ocfs2/journal.c | 15 ++++++++++++++-
- 1 file changed, 14 insertions(+), 1 deletion(-)
+ fs/ocfs2/aops.c  |  8 +++++---
+ fs/ocfs2/ocfs2.h | 10 ++++++++++
+ 2 files changed, 15 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index ff53192..4b28538 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -775,7 +775,20 @@ void ocfs2_journal_dirty(handle_t *handle, struct buffer_head *bh)
- 	trace_ocfs2_journal_dirty((unsigned long long)bh->b_blocknr);
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index d3eccc0..d922365 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -523,7 +523,7 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
+ 	unsigned char blocksize_bits = inode->i_sb->s_blocksize_bits;
+ 	unsigned long max_blocks = bh_result->b_size >> inode->i_blkbits;
+ 	unsigned long len = bh_result->b_size;
+-	unsigned int clusters_to_alloc = 0;
++	unsigned int clusters_to_alloc = 0, contig_clusters = 0;
 
- 	status = jbd2_journal_dirty_metadata(handle, bh);
--	BUG_ON(status);
-+	if (status) {
-+		mlog_errno(status);
-+		if (!is_handle_aborted(handle)) {
-+			journal_t *journal = handle->h_transaction->t_journal;
-+			struct super_block *sb = bh->b_bdev->bd_super;
-+
-+			mlog(ML_ERROR, "jbd2_journal_dirty_metadata failed. "
-+					"Aborting transaction and journal.\n");
-+			handle->h_err = status;
-+			jbd2_journal_abort_handle(handle);
-+			jbd2_journal_abort(journal, status);
-+			ocfs2_abort(sb, "Journal already aborted.\n");
-+		}
-+	}
+ 	cpos = ocfs2_blocks_to_clusters(inode->i_sb, iblock);
+
+@@ -560,8 +560,10 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
+ 		/* fill hole, allocate blocks can't be larger than the size
+ 		 * of the hole */
+ 		clusters_to_alloc = ocfs2_clusters_for_bytes(inode->i_sb, len);
+-		if (clusters_to_alloc > contig_blocks)
+-			clusters_to_alloc = contig_blocks;
++		contig_clusters = ocfs2_clusters_for_blocks(inode->i_sb,
++				contig_blocks);
++		if (clusters_to_alloc > contig_clusters)
++			clusters_to_alloc = contig_clusters;
+
+ 		/* allocate extent and insert them into the extent tree */
+ 		ret = ocfs2_extend_allocation(inode, cpos,
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 460c6c3..690ddc6 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -717,6 +717,16 @@ static inline u64 ocfs2_clusters_to_blocks(struct super_block *sb,
+ 	return (u64)clusters << c_to_b_bits;
  }
 
- #define OCFS2_DEFAULT_COMMIT_INTERVAL	(HZ * JBD2_DEFAULT_MAX_COMMIT_AGE)
++static inline u32 ocfs2_clusters_for_blocks(struct super_block *sb,
++		u64 blocks)
++{
++	int b_to_c_bits = OCFS2_SB(sb)->s_clustersize_bits -
++			sb->s_blocksize_bits;
++
++	blocks += (1 << b_to_c_bits) - 1;
++	return (u32)(blocks >> b_to_c_bits);
++}
++
+ static inline u32 ocfs2_blocks_to_clusters(struct super_block *sb,
+ 					   u64 blocks)
+ {
 -- 
 1.8.4.3
