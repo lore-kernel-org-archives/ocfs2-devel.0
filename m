@@ -1,122 +1,45 @@
-From: yangwenfang <vicky.yangwenfang@huawei.com>
-Date: Sat, 30 May 2015 18:08:43 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: call ocfs2_journal_access_di()
- before ocfs2_journal_dirty() in ocfs2_write_end_nolock()
-Message-ID: <55698C2B.9000801@huawei.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Tue, 2 Jun 2015 15:47:56 +0800
+Subject: [Ocfs2-devel] ocfs2 inconsistent when updating journal superblock
+	failed
+Message-ID: <556D5FAC.20702@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>, linux-ext4@vger.kernel.org
 
-1.After we call ocfs2_journal_access_di() in ocfs2_write_begin(),
-jbd2_journal_restart() may also be called, in this function
-transaction A's t_updates-- and obtains a new transaction B.
-If jbd2_journal_commit_transaction() is happened to commit
-transaction A, when t_updates==0, it will continue to complete
-commit and unfile buffer.
+Hi all,
+If jbd2 has failed to update superblock because of iscsi link down, it
+may cause ocfs2 inconsistent.
 
-So when jbd2_journal_dirty_metadata(), the handle is pointed a new
-transaction B, and the buffer head's journal head is already freed,
-jh->b_transaction == NULL, jh->b_next_transaction == NULL,
-it returns EINVAL, So it triggers the BUG_ON(status).
+kernel version: 3.0.93
+dmesg:
+JBD2: I/O error detected when updating journal superblock for
+dm-41-36.
 
-thread 1                                          jbd2
-ocfs2_write_begin                     jbd2_journal_commit_transaction
-ocfs2_write_begin_nolock
-  ocfs2_start_trans
-    jbd2__journal_start(t_updates+1,
-                       transaction A)
-    ocfs2_journal_access_di
-    ocfs2_write_cluster_by_desc
-      ocfs2_mark_extent_written
-        ocfs2_change_extent_flag
-          ocfs2_split_extent
-            ocfs2_extend_rotate_transaction
-              jbd2_journal_restart
-              (t_updates-1,transaction B) t_updates==0
-                                        __jbd2_journal_refile_buffer
-                                        (jh->b_transaction = NULL)
-ocfs2_write_end
-ocfs2_write_end_nolock
-    ocfs2_journal_dirty
-        jbd2_journal_dirty_metadata(bug)
-   ocfs2_commit_trans
+Case description:
+Node 1 was doing the checkpoint of global bitmap.
+ocfs2_commit_thread
+  ocfs2_commit_cache
+    jbd2_journal_flush
+      jbd2_cleanup_journal_tail
+        jbd2_journal_update_superblock
+          sync_dirty_buffer
+            submit_bh  *failed*
+Since the error was ignored, jbd2_journal_flush would return 0.
+Then ocfs2_commit_cache thought it normal, incremented trans id and woke
+downconvert thread.
+So node 2 could get the lock because the checkpoint had been done
+successfully (in fact, bitmap on disk had been updated but journal
+superblock not). Then node 2 did the update to global bitmap as normal.
+After a while, node 2 found node 1 down and began the journal recovery.
+As a result, the new update by node 2 would be overwritten and filesystem
+became inconsistent.
 
-2. In ext4, I found that: jbd2_journal_get_write_access() called by
-ext4_write_end.
-ext4_write_begin
-    ext4_journal_start
-        __ext4_journal_start_sb
-            ext4_journal_check_start
-            jbd2__journal_start
+I'm not sure if ext4 has the same case (can it be deployed on LUN?).
+But for ocfs2, I don't think the error can be omitted.
+Any ideas about this?
 
-ext4_write_end
-    ext4_mark_inode_dirty
-        ext4_reserve_inode_write
-            ext4_journal_get_write_access
-                jbd2_journal_get_write_access
-        ext4_mark_iloc_dirty
-            ext4_do_update_inode
-                ext4_handle_dirty_metadata
-                    jbd2_journal_dirty_metadata
-
-3.So I think we should put ocfs2_journal_access_di before
-ocfs2_journal_dirty in the ocfs2_write_end.
-and it works well after my modification.
-
-Signed-off-by: vicky <vicky.yangwenfang@huawei.com>
----
- fs/ocfs2/aops.c | 16 +++++++++++-----
- 1 file changed, 11 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index f906a25..f3d7e52 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -2176,10 +2176,7 @@ try_again:
- 		if (ret)
- 			goto out_commit;
- 	}
--	/*
--	 * We don't want this to fail in ocfs2_write_end(), so do it
--	 * here.
--	 */
-+
- 	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), wc->w_di_bh,
- 				      OCFS2_JOURNAL_ACCESS_WRITE);
- 	if (ret) {
-@@ -2336,7 +2333,7 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
- 			   loff_t pos, unsigned len, unsigned copied,
- 			   struct page *page, void *fsdata)
- {
--	int i;
-+	int i, ret;
- 	unsigned from, to, start = pos & (PAGE_CACHE_SIZE - 1);
- 	struct inode *inode = mapping->host;
- 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-@@ -2345,6 +2342,14 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
- 	handle_t *handle = wc->w_handle;
- 	struct page *tmppage;
-
-+	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), wc->w_di_bh,
-+			OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		copied = ret;
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
- 	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
- 		ocfs2_write_end_inline(inode, pos, len, &copied, di, wc);
- 		goto out_write_size;
-@@ -2400,6 +2405,7 @@ out_write_size:
- 	ocfs2_update_inode_fsync_trans(handle, inode, 1);
- 	ocfs2_journal_dirty(handle, wc->w_di_bh);
-
-+out:
- 	/* unlock pages before dealloc since it needs acquiring j_trans_barrier
- 	 * lock, or it will cause a deadlock since journal commit threads holds
- 	 * this lock and will ask for the page lock when flushing the data.
--- 
-1.7.12.4
+Thanks,
+Joseph
