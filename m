@@ -1,15 +1,17 @@
 From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Sat, 6 Jun 2015 13:06:59 +0000
-Subject: [Ocfs2-devel] o2net_tx_can_proceed reviews, thanks
-Message-ID: <2015060621065807886420@h3c.com>
+Date: Sat, 6 Jun 2015 13:11:07 +0000
+Subject: [Ocfs2-devel] o2net_fill_node_map reviews, thanks
+References: <71604351584F6A4EBAE558C676F37CA4696D3C66@H3CMLB14-EX.srv.huawei-3com.com>,
+	<2015052520192992179519@h3c.com>
+Message-ID: <2015060621110661541823@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi
 
+Hi
 1. in the callback o2net_fill_node_map -> o2net_tx_can_proceed()
 2. if the function o2net_tx_can_proceed returns false,  then "ret" and sc are uninialized,
 and re-using the value from the previous iteration.  I think this is not reasonable.
@@ -21,7 +23,6 @@ Finally, any feedback about this process (positive or negative) would be  greatl
 /* Get a map of all nodes to which this node is currently connected to */
 
 void o2net_fill_node_map(unsigned long *map, unsigned bytes)
-
 {
         struct o2net_sock_container *sc = NULL;
         int node, ret = 0;
@@ -34,7 +35,7 @@ void o2net_fill_node_map(unsigned long *map, unsigned bytes)
                         set_bit(node, map);
                         sc_put(sc)
 
-                }
+               }
 
               +   sc = NULL;
 
@@ -43,8 +44,6 @@ void o2net_fill_node_map(unsigned long *map, unsigned bytes)
         }
 }
 
-________________________________
-zhangguanghui 10102
 -------------------------------------------------------------------------------------------------------------------------------------
 ????????????????????????????????????????
 ????????????????????????????????????????
@@ -58,4 +57,4 @@ recipient(s) is prohibited. If you receive this e-mail in error, please notify t
 by phone or email immediately and delete it!
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150606/c2954986/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150606/8ee03875/attachment.html 
