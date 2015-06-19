@@ -1,49 +1,45 @@
-From: Gang He <ghe@suse.com>
-Date: Thu, 18 Jun 2015 21:13:03 -0600
-Subject: [Ocfs2-devel] ftrace question about ocfs2
-In-Reply-To: <55836C77.3090003@oracle.com>
-References: <55836C77.3090003@oracle.com>
-Message-ID: <5583F93F020000F90000C67E@relay2.provo.novell.com>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Fri, 19 Jun 2015 10:48:31 -0400
+Subject: [Ocfs2-devel] [PATCH] jbd2: fix ocfs2 corrupt when updating
+ journal superblock fails
+In-Reply-To: <5574F060.2080503@huawei.com>
+References: <5574F060.2080503@huawei.com>
+Message-ID: <20150619144831.GL4076@thunk.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Joseph Qi <joseph.qi@huawei.com>
+Cc: Mark Fasheh <mfasheh@suse.com>, linux-ext4@vger.kernel.org, "ocfs2-devel@oss.oracle.com" <ocfs2-devel@oss.oracle.com>
 
-Hi Tariq,
+This patch caused test ext4/306 to fail, because it caused resize2fs
+to fail.  The problem is that jbd2_cleanup_journal_tail() will return
+1 if there is nothing to cleanup, and a negative error number if there
+is an error.  Unfortunately, this patch hunk:
 
-First, please check the source code (ocfs2_trace.h) of your kernel module, how to define the related function trace.
-Second, you can send the reproduce steps to list, see if there is any issue.
-Third, since these trace entries are macro definitions, you can try to pre-compile the kernel module to see the real C code (or dis-assemble kernel module, more touch :-) ).
-
-
-Thanks
-Gang   
-
-
->>> 
-> Hi,
-> I apologize for using this list but no response to my query from 
-> individual email.
-> There are trace calls like all over the code that seem to write into the 
-> ftrace buffer.
-> trace_ocfs2_lookup(dir, dentry, dentry->d_name.len,
->                             dentry->d_name.name,
->                             (unsigned long long)OCFS2_I(dir)->ip_blkno, 0);
+On Mon, Jun 08, 2015 at 09:31:12AM +0800, Joseph Qi wrote:
+> diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
+> index b96bd80..6b33a42 100644
+> --- a/fs/jbd2/journal.c
+> +++ b/fs/jbd2/journal.c
+> @@ -1950,7 +1966,13 @@ int jbd2_journal_flush(journal_t *journal)
+>  		return -EIO;
 > 
-> But ftrace only shows fn name. No arguments. For example here is a 
-> snippet from ls command.
->                ls-8932  [000] 10729002.743220: ocfs2_lookup <-do_lookup
->                ls-8932  [000] 10729002.743227: 
-> ocfs2_inode_lock_full_nested <-ocfs2_lookup
-> 
-> How do I get it to write args in the buffer and then display.
-> 
-> Thank You.
-> -Tariq Saeed
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com 
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+>  	mutex_lock(&journal->j_checkpoint_mutex);
+> -	jbd2_cleanup_journal_tail(journal);
+> +	if (!err) {
+> +		err = jbd2_cleanup_journal_tail(journal);
+> +		if (err < 0) {
+> +			mutex_unlock(&journal->j_checkpoint_mutex);
+> +			goto out;
+> +		}
+> +	}
+
+... would let the non-negative return value leak out to
+jbd2_journal_flush(), and its callers are *not* prepared to handle the
+non-negative return value (since jbd2_journal_flush wasn't doing this
+before.)
+
+I've fixed this by adding a "err = 0;" after the if statement.
+
+          	   	   	    	 - Ted
