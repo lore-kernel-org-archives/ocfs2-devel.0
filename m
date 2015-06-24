@@ -1,10 +1,7 @@
 From: Gang He <ghe@suse.com>
-Date: Wed, 24 Jun 2015 13:24:18 +0800
-Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: export ocfs2_kset for online file
-	check
-In-Reply-To: <1435123461-3525-1-git-send-email-ghe@suse.com>
-References: <1435123461-3525-1-git-send-email-ghe@suse.com>
-Message-ID: <1435123461-3525-2-git-send-email-ghe@suse.com>
+Date: Wed, 24 Jun 2015 13:24:17 +0800
+Subject: [Ocfs2-devel] [PATCH 0/4] ocfs2: add online file check feature
+Message-ID: <1435123461-3525-1-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -12,41 +9,35 @@ Content-Transfer-Encoding: 7bit
 To: mfasheh@suse.com, ghe@suse.com, rgoldwyn@suse.de
 Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-Export ocfs2_kset object from ocfs2_stackglue kernel module,
-then online file check code will create the related sysfiles
-under ocfs2_kset object.
+When there are errors in the ocfs2 filesystem,
+they are usually accompanied by the inode number which caused the error.
+This inode number would be the input to fixing the file.
+One of these options could be considered:
+A file in the sys filesytem which would accept inode numbers.
+This could be used to communication back what has to be fixed or is fixed.
+You could write:
+$# echo "CHECK <inode>" > /sys/fs/ocfs2/devname/filecheck
+or
+$# echo "FIX <inode>" > /sys/fs/ocfs2/devname/filecheck
 
-Signed-off-by: Gang He <ghe@suse.com>
-Reviewed-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
----
- fs/ocfs2/stackglue.c | 3 ++-
- fs/ocfs2/stackglue.h | 2 ++
- 2 files changed, 4 insertions(+), 1 deletion(-)
+Gang He (4):
+  ocfs2: export ocfs2_kset for online file check
+  ocfs2: sysfile interfaces for online file check
+  ocfs2: create/remove sysfile for online file check
+  ocfs2: check/fix inode block for online file check
 
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index 5d965e8..13219ed 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -629,7 +629,8 @@ static struct attribute_group ocfs2_attr_group = {
- 	.attrs = ocfs2_attrs,
- };
- 
--static struct kset *ocfs2_kset;
-+struct kset *ocfs2_kset;
-+EXPORT_SYMBOL_GPL(ocfs2_kset);
- 
- static void ocfs2_sysfs_exit(void)
- {
-diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
-index 66334a3..f2dce10 100644
---- a/fs/ocfs2/stackglue.h
-+++ b/fs/ocfs2/stackglue.h
-@@ -298,4 +298,6 @@ void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_p
- int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
- void ocfs2_stack_glue_unregister(struct ocfs2_stack_plugin *plugin);
- 
-+extern struct kset *ocfs2_kset;
-+
- #endif  /* STACKGLUE_H */
+ fs/ocfs2/Makefile      |   3 +-
+ fs/ocfs2/filecheck.c   | 569 +++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/filecheck.h   |  48 +++++
+ fs/ocfs2/inode.c       | 196 ++++++++++++++++-
+ fs/ocfs2/inode.h       |   3 +
+ fs/ocfs2/ocfs2_trace.h |   2 +
+ fs/ocfs2/stackglue.c   |   3 +-
+ fs/ocfs2/stackglue.h   |   2 +
+ fs/ocfs2/super.c       |   5 +
+ 9 files changed, 823 insertions(+), 8 deletions(-)
+ create mode 100644 fs/ocfs2/filecheck.c
+ create mode 100644 fs/ocfs2/filecheck.h
+
 -- 
 2.1.2
