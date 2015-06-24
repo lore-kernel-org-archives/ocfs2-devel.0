@@ -1,46 +1,52 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 24 Jun 2015 08:36:56 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2:Make the function ocfs2_initxattrs
- static
-In-Reply-To: <1435103331-16407-1-git-send-email-xerofoify@gmail.com>
-References: <1435103331-16407-1-git-send-email-xerofoify@gmail.com>
-Message-ID: <5589FBA8.7020204@huawei.com>
+From: Gang He <ghe@suse.com>
+Date: Wed, 24 Jun 2015 13:24:18 +0800
+Subject: [Ocfs2-devel] [PATCH 1/4] ocfs2: export ocfs2_kset for online file
+	check
+In-Reply-To: <1435123461-3525-1-git-send-email-ghe@suse.com>
+References: <1435123461-3525-1-git-send-email-ghe@suse.com>
+Message-ID: <1435123461-3525-2-git-send-email-ghe@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Nicholas Krause <xerofoify@gmail.com>
-Cc: mfasheh@suse.com, ocfs2-devel@oss.oracle.com, linux-kernel@vger.kernel.org
+To: mfasheh@suse.com, ghe@suse.com, rgoldwyn@suse.de
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com, akpm@linux-foundation.org
 
-Hi Nicholas,
-It has already been staged as a part of the patch "ocfs2: mark local
-functions as static" in the -mm tree.
-Thanks all the same.
+Export ocfs2_kset object from ocfs2_stackglue kernel module,
+then online file check code will create the related sysfiles
+under ocfs2_kset object.
 
---
-Joseph
+Signed-off-by: Gang He <ghe@suse.com>
+Reviewed-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+---
+ fs/ocfs2/stackglue.c | 3 ++-
+ fs/ocfs2/stackglue.h | 2 ++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
 
-On 2015/6/24 7:48, Nicholas Krause wrote:
-> This makes the function ocfs2_initxattrs static now due
-> to this function's only caller being in its own declaration
-> and definition file of xattr.c.
-> 
-> Signed-off-by: Nicholas Krause <xerofoify@gmail.com>
-> ---
->  fs/ocfs2/xattr.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index d03bfbf..889f379 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -7271,7 +7271,7 @@ static int ocfs2_xattr_security_set(struct dentry *dentry, const char *name,
->  			       name, value, size, flags);
->  }
->  
-> -int ocfs2_initxattrs(struct inode *inode, const struct xattr *xattr_array,
-> +static int ocfs2_initxattrs(struct inode *inode, const struct xattr *xattr_array,
->  		     void *fs_info)
->  {
->  	const struct xattr *xattr;
-> 
+diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+index 5d965e8..13219ed 100644
+--- a/fs/ocfs2/stackglue.c
++++ b/fs/ocfs2/stackglue.c
+@@ -629,7 +629,8 @@ static struct attribute_group ocfs2_attr_group = {
+ 	.attrs = ocfs2_attrs,
+ };
+ 
+-static struct kset *ocfs2_kset;
++struct kset *ocfs2_kset;
++EXPORT_SYMBOL_GPL(ocfs2_kset);
+ 
+ static void ocfs2_sysfs_exit(void)
+ {
+diff --git a/fs/ocfs2/stackglue.h b/fs/ocfs2/stackglue.h
+index 66334a3..f2dce10 100644
+--- a/fs/ocfs2/stackglue.h
++++ b/fs/ocfs2/stackglue.h
+@@ -298,4 +298,6 @@ void ocfs2_stack_glue_set_max_proto_version(struct ocfs2_protocol_version *max_p
+ int ocfs2_stack_glue_register(struct ocfs2_stack_plugin *plugin);
+ void ocfs2_stack_glue_unregister(struct ocfs2_stack_plugin *plugin);
+ 
++extern struct kset *ocfs2_kset;
++
+ #endif  /* STACKGLUE_H */
+-- 
+2.1.2
