@@ -1,82 +1,53 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 25 Jun 2015 09:28:50 +0800
-Subject: [Ocfs2-devel] OCFS2 errors in log EVEN just after FSCK
-In-Reply-To: <2132073.zUxpZVA18y@dmitry.home>
-References: <2132073.zUxpZVA18y@dmitry.home>
-Message-ID: <558B5952.8020503@huawei.com>
+Date: Fri, 26 Jun 2015 13:52:52 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix race between dio and recover orphan
+Message-ID: <558CE8B4.8070904@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-It seems that it cannot find entry in ocfs2_orphan_del.
-Could you please check if commit e38a573907 is involved in your kernel
-version?
+During direct io the inode will be added to orphan first and then
+deleted from orphan. There is a race window that the orphan entry will
+be deleted twice and thus trigger the BUG when validating
+OCFS2_DIO_ORPHANED_FL in ocfs2_del_inode_from_orphan.
 
-On 2015/6/24 15:15, vde at ykoctpa.ru wrote:
-> There is 2-node cluster with master-master DRBD and OCFS2 filesystem, kernel 
-> 4.0.4
-> 
-> Some time ago I found such errors in log (on both nodes)
-> 
-> Jun 24 06:43:05 node1 kernel: [31704.810029] (php-
-> fpm,30917,1):ocfs2_orphan_del:2331 ERROR: status = -2
-> Jun 24 06:43:05 node1 kernel: [31704.810034] (php-
-> fpm,30917,1):ocfs2_orphan_del:2362 ERROR: status = -2
-> Jun 24 06:43:05 node1 kernel: [31704.810037] (php-
-> fpm,30917,1):ocfs2_remove_inode:653 ERROR: status = -2
-> Jun 24 06:43:05 node1 kernel: [31704.810041] (php-
-> fpm,30917,1):ocfs2_wipe_inode:798 ERROR: status = -2
-> Jun 24 06:43:05 node1 kernel: [31704.810044] (php-
-> fpm,30917,1):ocfs2_delete_inode:1050 ERROR: status = -2
-> Jun 24 06:44:27 node1 o2hbmonitor: mount debugfs at /sys/kernel/debug
-> Jun 24 06:45:09 node1 kernel: [31828.939394] 
-> (kworker/u8:1,25619,1):ocfs2_orphan_del:2331 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.939399] 
-> (kworker/u8:1,25619,1):ocfs2_orphan_del:2362 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.939402] 
-> (kworker/u8:1,25619,1):ocfs2_remove_inode:653 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.939406] 
-> (kworker/u8:1,25619,1):ocfs2_wipe_inode:798 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.939409] 
-> (kworker/u8:1,25619,1):ocfs2_delete_inode:1050 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.943074] 
-> (kworker/u8:1,25619,1):ocfs2_orphan_del:2331 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.943078] 
-> (kworker/u8:1,25619,1):ocfs2_orphan_del:2362 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.943081] 
-> (kworker/u8:1,25619,1):ocfs2_remove_inode:653 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.943084] 
-> (kworker/u8:1,25619,1):ocfs2_wipe_inode:798 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.943087] 
-> (kworker/u8:1,25619,1):ocfs2_delete_inode:1050 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.951077]  
-> (kworker/u8:1,25619,1):ocfs2_orphan_del:2331 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.951081] 
-> (kworker/u8:1,25619,1):ocfs2_orphan_del:2362 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.951083] 
-> (kworker/u8:1,25619,1):ocfs2_remove_inode:653 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.951087] 
-> (kworker/u8:1,25619,1):ocfs2_wipe_inode:798 ERROR: status = -2
-> Jun 24 06:45:09 node1 kernel: [31828.951089] 
-> (kworker/u8:1,25619,1):ocfs2_delete_inode:1050 ERROR: status = -2
-> 
-> and so on. FSCK (ocfs2_tools 1.8.4) every time found and fix lots of "orphaned 
-> cluster" errors but after mount this starts again.
-> 
-> in namei.c I found that this starts from ocfs2_find_entry  - so there is some 
-> filesystem errors leaved even after fsck 
-> 
-> WBR,
-> Dmitry V.
-> 
-> 
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
+ocfs2_direct_IO_write
+    ...
+    ocfs2_add_inode_to_orphan
+    >>>>>>>> race window, another node may rm the file and then down,
+             this node take care of orphan recovery and clear flag
+             OCFS2_DIO_ORPHANED_FL
+    ocfs2_del_inode_from_orphan
+
+Take inode mutex lock to fix this race case.
+
+Reported-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/journal.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 8017032..f8206d1 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -2172,6 +2172,7 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
+ 		iter = oi->ip_next_orphan;
+ 		oi->ip_next_orphan = NULL;
+
++		mutex_lock(&inode->i_mutex);
+ 		ret = ocfs2_rw_lock(inode, 1);
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+@@ -2218,6 +2219,7 @@ unlock_inode:
+ unlock_rw:
+ 		ocfs2_rw_unlock(inode, 1);
+ next:
++		mutex_unlock(&inode->i_mutex);
+ 		iput(inode);
+ 		brelse(di_bh);
+ 		di_bh = NULL;
+-- 
+1.8.4.3
