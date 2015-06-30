@@ -1,58 +1,94 @@
-From: WeiWei Wang <wangww631@huawei.com>
-Date: Fri, 26 Jun 2015 15:17:13 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: fix race between dio and recover
- orphan
-In-Reply-To: <558CE8B4.8070904@huawei.com>
-References: <558CE8B4.8070904@huawei.com>
-Message-ID: <558CFC79.5050808@huawei.com>
+From: Zhangguanghui <zhang.guanghui@h3c.com>
+Date: Tue, 30 Jun 2015 03:13:22 +0000
+Subject: [Ocfs2-devel] o2net_sendpage reviews, thanks
+References: <2015060621065807886420@h3c.com>
+Message-ID: <2015063011132144102146@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2015/6/26 13:52, Joseph Qi wrote:
-> During direct io the inode will be added to orphan first and then
-> deleted from orphan. There is a race window that the orphan entry will
-> be deleted twice and thus trigger the BUG when validating
-> OCFS2_DIO_ORPHANED_FL in ocfs2_del_inode_from_orphan.
-> 
-> ocfs2_direct_IO_write
->     ...
->     ocfs2_add_inode_to_orphan
->     >>>>>>>> race window, another node may rm the file and then down,
->              this node take care of orphan recovery and clear flag
->              OCFS2_DIO_ORPHANED_FL
->     ocfs2_del_inode_from_orphan
-> 
-> Take inode mutex lock to fix this race case.
-> 
-> Reported-by: Yiwen Jiang <jiangyiwen@huawei.com>
-> Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Hi
 
-Reviewed-by: Weiwei Wang <wangww631@huawei.com>
-> ---
->  fs/ocfs2/journal.c | 2 ++
->  1 file changed, 2 insertions(+)
-> 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index 8017032..f8206d1 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -2172,6 +2172,7 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
->  		iter = oi->ip_next_orphan;
->  		oi->ip_next_orphan = NULL;
-> 
-> +		mutex_lock(&inode->i_mutex);
->  		ret = ocfs2_rw_lock(inode, 1);
->  		if (ret < 0) {
->  			mlog_errno(ret);
-> @@ -2218,6 +2219,7 @@ unlock_inode:
->  unlock_rw:
->  		ocfs2_rw_unlock(inode, 1);
->  next:
-> +		mutex_unlock(&inode->i_mutex);
->  		iput(inode);
->  		brelse(di_bh);
->  		di_bh = NULL;
-> 
+1.  In the callback o2net_sendpage -> sendpage()
+2.  If sendpage (tcp socket send) continuously returns -EAGAIN, then get into an endless loop,
+    even though the function of cond_resched() have already used.
+3.  I think it is not reasonable, try to continuously send 20 times returns -EAGAIN ,
+    shutdown the socket to avoid affecting the entire cluster.
+
+        Finally, any feedback about this process (positive or negative) would be greatly appreciated.
+
+--- tcp.c   2015-06-30 11:46:54.727447919 +0800
+
++++ tcp.c.diff  2015-06-30 11:52:12.823447881 +0800
+
+@@ -949,6 +949,7 @@
+
+ {
+
+    struct o2net_node *nn = o2net_nn_from_num(sc->sc_node->nd_num);
+
+    ssize_t ret;
+
++   int send_fails = 20;
+
+
+
+    while (1) {
+
+        mutex_lock(&sc->sc_send_lock);
+
+@@ -959,10 +960,11 @@
+
+        mutex_unlock(&sc->sc_send_lock);
+
+        if (ret == size)
+
+            break;
+
+-       if (ret == (ssize_t)-EAGAIN) {
+
++       if (ret == (ssize_t)-EAGAIN && send_fails > 0) {
+
+            mlog(0, "sendpage of size %zu to " SC_NODEF_FMT
+
+                 " returned EAGAIN\n", size, SC_NODEF_ARGS(sc));
+
+            cond_resched();
+
++           --send_fails;
+
+            continue;
+
+        }
+
+        mlog(ML_ERROR, "sendpage of size %zu to " SC_NODEF_FMT
+
+
+syslog:
+
+/var/log/syslog:Jun 29 09:32:58 cvk47 kernel: [156022.769539] (kworker/u130:1,12041,9):o2net_sendpage:1026 sendpage of size 24 to node cvk61 (num 5) at 172.16.202.61:7100 returned EAGAIN
+
+/var/log/syslog:Jun 29 09:32:58 cvk47 kernel: [156022.769542] (kworker/u130:1,12041,9):o2net_sendpage:1026 sendpage of size 24 to node cvk61 (num 5) at 172.16.202.61:7100 returned EAGAIN
+
+/var/log/syslog:Jun 29 09:32:58 cvk47 kernel: [156022.769544] (kworker/u130:1,12041,9):o2net_sendpage:1026 sendpage of size 24 to node cvk61 (num 5) at 172.16.202.61:7100 returned EAGAIN
+
+/var/log/syslog:Jun 29 09:32:58 cvk47 kernel: [156022.769546] (kworker/u130:1,12041,9):o2net_sendpage:1026 sendpage of
+
+________________________________
+zhangguanghui 10102
+-------------------------------------------------------------------------------------------------------------------------------------
+????????????????????????????????????????
+????????????????????????????????????????
+????????????????????????????????????????
+???
+This e-mail and its attachments contain confidential information from H3C, which is
+intended only for the person or entity whose address is listed above. Any use of the
+information contained herein in any way (including, but not limited to, total or partial
+disclosure, reproduction, or dissemination) by persons other than the intended
+recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
+by phone or email immediately and delete it!
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150630/33cc54e0/attachment.html 
