@@ -1,13 +1,14 @@
 From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Tue, 30 Jun 2015 03:13:22 +0000
+Date: Tue, 30 Jun 2015 03:18:06 +0000
 Subject: [Ocfs2-devel] o2net_sendpage reviews, thanks
-References: <2015060621065807886420@h3c.com>
-Message-ID: <2015063011132144102146@h3c.com>
+References: <2015060621065807886420@h3c.com>, <2015063011132144102146@h3c.com>
+Message-ID: <2015063011180600247349@h3c.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
 
 Hi
 
@@ -17,7 +18,7 @@ Hi
 3.  I think it is not reasonable, try to continuously send 20 times returns -EAGAIN ,
     shutdown the socket to avoid affecting the entire cluster.
 
-        Finally, any feedback about this process (positive or negative) would be greatly appreciated.
+Finally, any feedback about this process (positive or negative) would be greatly appreciated.
 
 --- tcp.c   2015-06-30 11:46:54.727447919 +0800
 
@@ -32,8 +33,6 @@ Hi
     ssize_t ret;
 
 +   int send_fails = 20;
-
-
 
     while (1) {
 
@@ -62,7 +61,6 @@ Hi
             continue;
 
         }
-
         mlog(ML_ERROR, "sendpage of size %zu to " SC_NODEF_FMT
 
 
@@ -91,4 +89,4 @@ recipient(s) is prohibited. If you receive this e-mail in error, please notify t
 by phone or email immediately and delete it!
 -------------- next part --------------
 An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150630/33cc54e0/attachment.html 
+URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150630/ca5d1058/attachment.html 
