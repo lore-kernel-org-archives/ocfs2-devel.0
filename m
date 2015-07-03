@@ -1,70 +1,61 @@
-From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Tue, 30 Jun 2015 03:28:08 +0000
-Subject: [Ocfs2-devel] o2net_sendpage reviews, thanks
-References: <2015060621065807886420@h3c.com>,
-	<2015063011132144102146@h3c.com>, <2015063011180600247349@h3c.com>
-Message-ID: <2015063011280785381652@h3c.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Fri, 3 Jul 2015 15:28:44 +0800
+Subject: [Ocfs2-devel] [PATCH 0/4] ocfs2: add online file check feature
+In-Reply-To: <1435123461-3525-1-git-send-email-ghe@suse.com>
+References: <1435123461-3525-1-git-send-email-ghe@suse.com>
+Message-ID: <559639AC.80602@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Gang He <ghe@suse.com>
+Cc: mfasheh@suse.com, rgoldwyn@suse.de, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-Hi
+Hi Gang,
+Thank you and Goldwyn for posting this feature as well as its framework.
+This patch set tries to fix inode related errors such as block no, valid
+flag, generation, metaecc, etc. I think it may fit some cases but not all.
+For example, valid flag not set readonly may be caused by an inode with
+two entries, so I think it is not right to just reset it.
+Moreover, in our environment, most readonly cases we have encountered are
+related gd and entent tree/block. So do you have any consideration about
+these cases?
+For more details about gd and entent tree/block readonly cases, please
+refer the previous mails:
+https://oss.oracle.com/pipermail/ocfs2-devel/2015-April/010768.html
+https://oss.oracle.com/pipermail/ocfs2-devel/2015-June/010873.html
 
-1.  In the callback o2net_sendpage -> sendpage()
-2.  If sendpage (tcp socket send) continuously returns -EAGAIN, then get into an endless loop,
-    even though the function of cond_resched() have already used.
-3.  I think it is not reasonable, try to continuously send 20 times returns -EAGAIN ,
-    shutdown the socket to avoid affecting the entire cluster.
+Thanks,
+Joseph
 
-Finally, any feedback about this process (positive or negative) would be greatly appreciated.
-
---- tcp.c       2015-06-30 11:46:54.727447919 +0800
-+++ tcp.c.diff  2015-06-30 11:52:12.823447881 +0800
-@@ -949,6 +949,7 @@
- {
-        struct o2net_node *nn = o2net_nn_from_num(sc->sc_node->nd_num);
-        ssize_t ret;
-+       int send_fails = 20;
-
-        while (1) {
-                mutex_lock(&sc->sc_send_lock);
-@@ -959,10 +960,11 @@
-                mutex_unlock(&sc->sc_send_lock);
-                if (ret == size)
-                        break;
--               if (ret == (ssize_t)-EAGAIN) {
-+               if (ret == (ssize_t)-EAGAIN && send_fails > 0) {
-                        mlog(0, "sendpage of size %zu to " SC_NODEF_FMT
-                             " returned EAGAIN\n", size, SC_NODEF_ARGS(sc));
-                        cond_resched();
-+                       --send_fails;
-                        continue;
-                }
-                mlog(ML_ERROR, "sendpage of size %zu to " SC_NODEF_FMT
-
-syslog:
-
-/var/log/syslog:Jun 29 09:32:58 cvk47 kernel: [156022.769539] (kworker/u130:1,12041,9):o2net_sendpage:1026 sendpage of size 24 to node cvk61 (num 5) at 172.16.202.61:7100 returned EAGAINne
-
-/var/log/syslog:Jun 29 09:32:58 cvk47 kernel: [156022.769542] (kworker/u130:1,12041,9):o2net_sendpage:1026 sendpage of size 24 to node cvk61 (num 5) at 172.16.202.61:7100 returned EAGAINne
-/var/log/syslog:Jun 29 09:32:58 cvk47 kernel: [156022.769544] (kworker/u130:1,12041,9):o2net_sendpage:1026 sendpage of size 24 to node cvk61 (num 5) at 172.16.202.61:7100 returned EAGAINne
-/var/log/syslog:Jun 29 09:32:58 cvk47 kernel: [156022.769546] (kworker/u130:1,12041,9):o2net_sendpage:1026 sendpage of
-
-________________________________
-zhangguanghui 10102
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150630/e3d5e240/attachment-0001.html 
+On 2015/6/24 13:24, Gang He wrote:
+> When there are errors in the ocfs2 filesystem,
+> they are usually accompanied by the inode number which caused the error.
+> This inode number would be the input to fixing the file.
+> One of these options could be considered:
+> A file in the sys filesytem which would accept inode numbers.
+> This could be used to communication back what has to be fixed or is fixed.
+> You could write:
+> $# echo "CHECK <inode>" > /sys/fs/ocfs2/devname/filecheck
+> or
+> $# echo "FIX <inode>" > /sys/fs/ocfs2/devname/filecheck
+> 
+> Gang He (4):
+>   ocfs2: export ocfs2_kset for online file check
+>   ocfs2: sysfile interfaces for online file check
+>   ocfs2: create/remove sysfile for online file check
+>   ocfs2: check/fix inode block for online file check
+> 
+>  fs/ocfs2/Makefile      |   3 +-
+>  fs/ocfs2/filecheck.c   | 569 +++++++++++++++++++++++++++++++++++++++++++++++++
+>  fs/ocfs2/filecheck.h   |  48 +++++
+>  fs/ocfs2/inode.c       | 196 ++++++++++++++++-
+>  fs/ocfs2/inode.h       |   3 +
+>  fs/ocfs2/ocfs2_trace.h |   2 +
+>  fs/ocfs2/stackglue.c   |   3 +-
+>  fs/ocfs2/stackglue.h   |   2 +
+>  fs/ocfs2/super.c       |   5 +
+>  9 files changed, 823 insertions(+), 8 deletions(-)
+>  create mode 100644 fs/ocfs2/filecheck.c
+>  create mode 100644 fs/ocfs2/filecheck.h
+> 
