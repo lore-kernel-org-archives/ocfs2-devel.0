@@ -1,55 +1,52 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 6 Jul 2015 09:39:08 +0800
-Subject: [Ocfs2-devel] [PATCH RESEND] ocfs2: fix race between dio and
-	recover orphan
-Message-ID: <5599DC3C.5050108@huawei.com>
+Date: Mon, 6 Jul 2015 10:05:24 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: do not BUG if buffer not uptodate in
+	__ocfs2_journal_access
+Message-ID: <5599E264.7080606@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-During direct io the inode will be added to orphan first and then
-deleted from orphan. There is a race window that the orphan entry will
-be deleted twice and thus trigger the BUG when validating
-OCFS2_DIO_ORPHANED_FL in ocfs2_del_inode_from_orphan.
+When storage network is unstable, it may trigger the BUG in
+__ocfs2_journal_access because of buffer not uptodate. We can retry the
+write in this case or return error instead of BUG.
 
-ocfs2_direct_IO_write
-    ...
-    ocfs2_add_inode_to_orphan
-    >>>>>>>> race window, another node may rm the file and then down,
-             this node take care of orphan recovery and clear flag
-             OCFS2_DIO_ORPHANED_FL
-    ocfs2_del_inode_from_orphan
-
-Take inode mutex lock to fix this case.
-
-Reported-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Reported-by: Zhangguanghui <zhang.guanghui@h3c.com>
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Reviewed-by: Weiwei Wang <wangww631@huawei.com>
 ---
- fs/ocfs2/journal.c | 2 ++
- 1 file changed, 2 insertions(+)
+ fs/ocfs2/journal.c | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
 
 diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index 8017032..f8206d1 100644
+index f8206d1..e731374 100644
 --- a/fs/ocfs2/journal.c
 +++ b/fs/ocfs2/journal.c
-@@ -2172,6 +2172,7 @@ static int ocfs2_recover_orphans(struct ocfs2_super *osb,
- 		iter = oi->ip_next_orphan;
- 		oi->ip_next_orphan = NULL;
+@@ -670,7 +670,23 @@ static int __ocfs2_journal_access(handle_t *handle,
+ 		mlog(ML_ERROR, "giving me a buffer that's not uptodate!\n");
+ 		mlog(ML_ERROR, "b_blocknr=%llu\n",
+ 		     (unsigned long long)bh->b_blocknr);
+-		BUG();
++
++		lock_buffer(bh);
++		/*
++		 * A previous attempt to write this buffer head failed.
++		 * Nothing we can do but to retry the write and hope for
++		 * the best.
++		 */
++		if (buffer_write_io_error(bh) && !buffer_uptodate(bh)) {
++			clear_buffer_write_io_error(bh);
++			set_buffer_uptodate(bh);
++		}
++
++		if (!buffer_uptodate(bh)) {
++			unlock_buffer(bh);
++			return -EIO;
++		}
++		unlock_buffer(bh);
+ 	}
 
-+		mutex_lock(&inode->i_mutex);
- 		ret = ocfs2_rw_lock(inode, 1);
- 		if (ret < 0) {
- 			mlog_errno(ret);
-@@ -2218,6 +2219,7 @@ unlock_inode:
- unlock_rw:
- 		ocfs2_rw_unlock(inode, 1);
- next:
-+		mutex_unlock(&inode->i_mutex);
- 		iput(inode);
- 		brelse(di_bh);
- 		di_bh = NULL;
+ 	/* Set the current transaction information on the ci so
 -- 
 1.8.4.3
