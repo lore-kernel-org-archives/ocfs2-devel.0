@@ -1,84 +1,37 @@
-From: Zhangguanghui <zhang.guanghui@h3c.com>
-Date: Mon, 6 Jul 2015 02:29:54 +0000
-Subject: [Ocfs2-devel] [PATCH] ocfs2: do not BUG if buffer not uptodate
- in __ocfs2_journal_access
-References: <5599E264.7080606@huawei.com>
-Message-ID: <2015070610294906954814@h3c.com>
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Mon, 6 Jul 2015 11:54:15 +0300
+Subject: [Ocfs2-devel] [PATCH 03/11] ocfs2: Less checks in
+ ocfs2_rename() after error detection
+In-Reply-To: <55993170.6060306@users.sourceforge.net>
+References: <alpine.DEB.2.10.1402251840450.7035@hadrien>
+	<530CF8FF.8080600@users.sourceforge.net>
+	<alpine.DEB.2.02.1402252117150.2047@localhost6.localdomain6>
+	<530DD06F.4090703@users.sourceforge.net>
+	<alpine.DEB.2.02.1402262129250.2221@localhost6.localdomain6>
+	<5317A59D.4@users.sourceforge.net>
+	<5455FC05.4010606@users.sourceforge.net>
+	<alpine.DEB.2.02.1411021150540.2239@localhost6.localdomain6>
+	<55992DF0.5030205@users.sourceforge.net>
+	<55993170.6060306@users.sourceforge.net>
+Message-ID: <20150706085414.GD28762@mwanda>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: SF Markus Elfring <elfring@users.sourceforge.net>
+Cc: Joel Becker <jlbec@evilplan.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>, kernel-janitors@vger.kernel.org, Julia Lawall <julia.lawall@lip6.fr>
 
+On Sun, Jul 05, 2015 at 03:30:24PM +0200, SF Markus Elfring wrote:
+> From: Markus Elfring <elfring@users.sourceforge.net>
+> Date: Sat, 4 Jul 2015 15:30:18 +0200
+> 
+> Skip checks for a few variables in three error handling cases within
+> the ocfs2_rename() function by adjustment of a few jump targets
+> according to the Linux coding style convention.
+> 
+> Signed-off-by: Markus Elfring <elfring@users.sourceforge.net>
 
-This patch is currently verified and working well for two weeks.
-So it is reasonable for the case.
+I don't think this is an improvement.
 
-Finally, any feedback about this process (positive or negative) would be greatly appreciated.
-________________________________
-zhangguanghui
-
-From: Joseph Qi<mailto:joseph.qi@huawei.com>
-Date: 2015-07-06 10:05
-To: Andrew Morton<mailto:akpm@linux-foundation.org>
-CC: Mark Fasheh<mailto:mfasheh@suse.com>; Joel Becker<mailto:jlbec@evilplan.org>; zhangguanghui 10102 (CCPL)<mailto:zhang.guanghui@h3c.com>; ocfs2-devel at oss.oracle.com<mailto:ocfs2-devel@oss.oracle.com>
-Subject: [PATCH] ocfs2: do not BUG if buffer not uptodate in __ocfs2_journal_access
-
-When storage network is unstable, it may trigger the BUG in
-__ocfs2_journal_access because of buffer not uptodate. We can retry the
-write in this case or return error instead of BUG.
-
-Reported-by: Zhangguanghui <zhang.guanghui@h3c.com>
-Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
----
- fs/ocfs2/journal.c | 18 +++++++++++++++++-
- 1 file changed, 17 insertions(+), 1 deletion(-)
-
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index f8206d1..e731374 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -670,7 +670,23 @@ static int __ocfs2_journal_access(handle_t *handle,
-                mlog(ML_ERROR, "giving me a buffer that's not uptodate!\n");
-                mlog(ML_ERROR, "b_blocknr=%llu\n",
-                     (unsigned long long)bh->b_blocknr);
--               BUG();
-+
-+               lock_buffer(bh);
-+               /*
-+                * A previous attempt to write this buffer head failed.
-+                * Nothing we can do but to retry the write and hope for
-+                * the best.
-+                */
-+               if (buffer_write_io_error(bh) && !buffer_uptodate(bh)) {
-+                       clear_buffer_write_io_error(bh);
-+                       set_buffer_uptodate(bh);
-+               }
-+
-+               if (!buffer_uptodate(bh)) {
-+                       unlock_buffer(bh);
-+                       return -EIO;
-+               }
-+               unlock_buffer(bh);
-        }
-
-        /* Set the current transaction information on the ci so
---
-1.8.4.3
-
-
-
--------------------------------------------------------------------------------------------------------------------------------------
-????????????????????????????????????????
-????????????????????????????????????????
-????????????????????????????????????????
-???
-This e-mail and its attachments contain confidential information from H3C, which is
-intended only for the person or entity whose address is listed above. Any use of the
-information contained herein in any way (including, but not limited to, total or partial
-disclosure, reproduction, or dissemination) by persons other than the intended
-recipient(s) is prohibited. If you receive this e-mail in error, please notify the sender
-by phone or email immediately and delete it!
--------------- next part --------------
-An HTML attachment was scrubbed...
-URL: http://oss.oracle.com/pipermail/ocfs2-devel/attachments/20150706/5d63c9ea/attachment.html 
+regards,
+dan carpenter
