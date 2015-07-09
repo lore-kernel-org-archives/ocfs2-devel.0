@@ -1,37 +1,32 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Date: Mon, 6 Jul 2015 11:54:15 +0300
-Subject: [Ocfs2-devel] [PATCH 03/11] ocfs2: Less checks in
- ocfs2_rename() after error detection
-In-Reply-To: <55993170.6060306@users.sourceforge.net>
-References: <alpine.DEB.2.10.1402251840450.7035@hadrien>
-	<530CF8FF.8080600@users.sourceforge.net>
-	<alpine.DEB.2.02.1402252117150.2047@localhost6.localdomain6>
-	<530DD06F.4090703@users.sourceforge.net>
-	<alpine.DEB.2.02.1402262129250.2221@localhost6.localdomain6>
-	<5317A59D.4@users.sourceforge.net>
-	<5455FC05.4010606@users.sourceforge.net>
-	<alpine.DEB.2.02.1411021150540.2239@localhost6.localdomain6>
-	<55992DF0.5030205@users.sourceforge.net>
-	<55993170.6060306@users.sourceforge.net>
-Message-ID: <20150706085414.GD28762@mwanda>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Thu, 9 Jul 2015 14:06:02 -0700
+Subject: [Ocfs2-devel] [PATCH 0/4] ocfs2: add online file check feature
+In-Reply-To: <1435123461-3525-1-git-send-email-ghe@suse.com>
+References: <1435123461-3525-1-git-send-email-ghe@suse.com>
+Message-ID: <20150709140602.eafbc5a3b7660a6c7588e1b6@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: SF Markus Elfring <elfring@users.sourceforge.net>
-Cc: Joel Becker <jlbec@evilplan.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com, LKML <linux-kernel@vger.kernel.org>, kernel-janitors@vger.kernel.org, Julia Lawall <julia.lawall@lip6.fr>
+To: Gang He <ghe@suse.com>
+Cc: mfasheh@suse.com, rgoldwyn@suse.de, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
-On Sun, Jul 05, 2015 at 03:30:24PM +0200, SF Markus Elfring wrote:
-> From: Markus Elfring <elfring@users.sourceforge.net>
-> Date: Sat, 4 Jul 2015 15:30:18 +0200
-> 
-> Skip checks for a few variables in three error handling cases within
-> the ocfs2_rename() function by adjustment of a few jump targets
-> according to the Linux coding style convention.
-> 
-> Signed-off-by: Markus Elfring <elfring@users.sourceforge.net>
+On Wed, 24 Jun 2015 13:24:17 +0800 Gang He <ghe@suse.com> wrote:
 
-I don't think this is an improvement.
+> When there are errors in the ocfs2 filesystem,
+> they are usually accompanied by the inode number which caused the error.
+> This inode number would be the input to fixing the file.
+> One of these options could be considered:
+> A file in the sys filesytem which would accept inode numbers.
+> This could be used to communication back what has to be fixed or is fixed.
+> You could write:
+> $# echo "CHECK <inode>" > /sys/fs/ocfs2/devname/filecheck
+> or
+> $# echo "FIX <inode>" > /sys/fs/ocfs2/devname/filecheck
 
-regards,
-dan carpenter
+This is a userspace feature so it should have user documentation. 
+Documentation/filesystems/ocfs2.txt is presumably the appropriate
+place.
+
+And the availability of the complete user documentation will make the
+review of this patchset more productive.
