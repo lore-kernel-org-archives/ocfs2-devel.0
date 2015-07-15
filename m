@@ -1,37 +1,25 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 13 Jul 2015 08:54:28 +0800
-Subject: [Ocfs2-devel] [PATCH 1/2 v2] ocfs2: fix race between dio and
- recover orphan
-In-Reply-To: <55A2C9A6020000D40006F887@relay2.provo.novell.com>
-References: <559FAA0E.8090005@huawei.com>
-	<55A2C9A6020000D40006F887@relay2.provo.novell.com>
-Message-ID: <55A30C44.3090006@huawei.com>
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Wed, 15 Jul 2015 10:20:26 -0400
+Subject: [Ocfs2-devel] [PATCH 3/6] ext4: Handle error from
+	dquot_initialize()
+In-Reply-To: <1436964152-11203-4-git-send-email-jack@suse.com>
+References: <1436964152-11203-1-git-send-email-jack@suse.com>
+	<1436964152-11203-4-git-send-email-jack@suse.com>
+Message-ID: <20150715142026.GB18400@thunk.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Jan Kara <jack@suse.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@oss.oracle.com, Mark Fasheh <mfasheh@suse.com>, Dave Kleikamp <shaggy@kernel.org>, jfs-discussion@lists.sourceforge.net, reiserfs-devel@vger.kernel.org
 
-On 2015/7/12 18:10, Zhen Ren wrote:
-> Hi Joseph,
+On Wed, Jul 15, 2015 at 02:42:29PM +0200, Jan Kara wrote:
+> dquot_initialize() can now return error. Handle it where possible.
 > 
-> The following added lines are same as the deleted. Is it because the unnecessary trailing whitespaces?
-> 
-> -	level = ocfs2_iocb_rw_locked_level(iocb);
-> -	ocfs2_rw_unlock(inode, level);
-> +		level = ocfs2_iocb_rw_locked_level(iocb);
-> +		ocfs2_rw_unlock(inode, level);
-> 
-No, I want rw unlock to be done later in case of append direct io. This
-is for preventing the described race case.
+> Signed-off-by: Jan Kara <jack@suse.com>
 
-> --
-> Eric
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
-> 
-> 
+Thanks!!
+
+Acked-by: Theodore Ts'o <tytso@mit.edu>
+
+						- Ted
