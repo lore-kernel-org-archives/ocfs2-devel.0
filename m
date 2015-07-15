@@ -1,9 +1,9 @@
 From: Jan Kara <jack@suse.com>
-Date: Wed, 15 Jul 2015 14:42:29 +0200
-Subject: [Ocfs2-devel] [PATCH 3/6] ext4: Handle error from dquot_initialize()
+Date: Wed, 15 Jul 2015 14:42:31 +0200
+Subject: [Ocfs2-devel] [PATCH 5/6] jfs: Handle error from dquot_initialize()
 In-Reply-To: <1436964152-11203-1-git-send-email-jack@suse.com>
 References: <1436964152-11203-1-git-send-email-jack@suse.com>
-Message-ID: <1436964152-11203-4-git-send-email-jack@suse.com>
+Message-ID: <1436964152-11203-6-git-send-email-jack@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,192 +15,182 @@ dquot_initialize() can now return error. Handle it where possible.
 
 Signed-off-by: Jan Kara <jack@suse.com>
 ---
- fs/ext4/ialloc.c |  6 ++++--
- fs/ext4/inode.c  |  7 +++++--
- fs/ext4/namei.c  | 63 ++++++++++++++++++++++++++++++++++++++++++--------------
- 3 files changed, 56 insertions(+), 20 deletions(-)
+ fs/jfs/file.c      |  7 +++++--
+ fs/jfs/jfs_inode.c |  4 +++-
+ fs/jfs/namei.c     | 53 +++++++++++++++++++++++++++++++++++++++--------------
+ 3 files changed, 47 insertions(+), 17 deletions(-)
 
-diff --git a/fs/ext4/ialloc.c b/fs/ext4/ialloc.c
-index 173c1ae21395..619bfc1fda8c 100644
---- a/fs/ext4/ialloc.c
-+++ b/fs/ext4/ialloc.c
-@@ -721,7 +721,7 @@ struct inode *__ext4_new_inode(handle_t *handle, struct inode *dir,
- 	struct ext4_group_desc *gdp = NULL;
- 	struct ext4_inode_info *ei;
- 	struct ext4_sb_info *sbi;
--	int ret2, err = 0;
-+	int ret2, err;
- 	struct inode *ret;
- 	ext4_group_t i;
- 	ext4_group_t flex_group;
-@@ -769,7 +769,9 @@ struct inode *__ext4_new_inode(handle_t *handle, struct inode *dir,
- 		inode->i_gid = dir->i_gid;
- 	} else
- 		inode_init_owner(inode, dir, mode);
+diff --git a/fs/jfs/file.c b/fs/jfs/file.c
+index e98d39d75cf4..34ad63ea0280 100644
+--- a/fs/jfs/file.c
++++ b/fs/jfs/file.c
+@@ -107,8 +107,11 @@ int jfs_setattr(struct dentry *dentry, struct iattr *iattr)
+ 	if (rc)
+ 		return rc;
+ 
+-	if (is_quota_modification(inode, iattr))
+-		dquot_initialize(inode);
++	if (is_quota_modification(inode, iattr)) {
++		rc = dquot_initialize(inode);
++		if (rc)
++			return rc;
++	}
+ 	if ((iattr->ia_valid & ATTR_UID && !uid_eq(iattr->ia_uid, inode->i_uid)) ||
+ 	    (iattr->ia_valid & ATTR_GID && !gid_eq(iattr->ia_gid, inode->i_gid))) {
+ 		rc = dquot_transfer(inode, iattr);
+diff --git a/fs/jfs/jfs_inode.c b/fs/jfs/jfs_inode.c
+index 6b0f816201a2..cf7936fe2e68 100644
+--- a/fs/jfs/jfs_inode.c
++++ b/fs/jfs/jfs_inode.c
+@@ -109,7 +109,9 @@ struct inode *ialloc(struct inode *parent, umode_t mode)
+ 	/*
+ 	 * Allocate inode to quota.
+ 	 */
 -	dquot_initialize(inode);
-+	err = dquot_initialize(inode);
-+	if (err)
++	rc = dquot_initialize(inode);
++	if (rc)
++		goto fail_drop;
+ 	rc = dquot_alloc_inode(inode);
+ 	if (rc)
+ 		goto fail_drop;
+diff --git a/fs/jfs/namei.c b/fs/jfs/namei.c
+index e33be921aa41..fb28ce85aa52 100644
+--- a/fs/jfs/namei.c
++++ b/fs/jfs/namei.c
+@@ -86,7 +86,9 @@ static int jfs_create(struct inode *dip, struct dentry *dentry, umode_t mode,
+ 
+ 	jfs_info("jfs_create: dip:0x%p name:%pd", dip, dentry);
+ 
+-	dquot_initialize(dip);
++	rc = dquot_initialize(dip);
++	if (rc)
++		goto out1;
+ 
+ 	/*
+ 	 * search parent directory for entry/freespace
+@@ -218,7 +220,9 @@ static int jfs_mkdir(struct inode *dip, struct dentry *dentry, umode_t mode)
+ 
+ 	jfs_info("jfs_mkdir: dip:0x%p name:%pd", dip, dentry);
+ 
+-	dquot_initialize(dip);
++	rc = dquot_initialize(dip);
++	if (rc)
++		goto out1;
+ 
+ 	/*
+ 	 * search parent directory for entry/freespace
+@@ -355,8 +359,12 @@ static int jfs_rmdir(struct inode *dip, struct dentry *dentry)
+ 	jfs_info("jfs_rmdir: dip:0x%p name:%pd", dip, dentry);
+ 
+ 	/* Init inode for quota operations. */
+-	dquot_initialize(dip);
+-	dquot_initialize(ip);
++	rc = dquot_initialize(dip);
++	if (rc)
++		goto out;
++	rc = dquot_initialize(ip);
++	if (rc)
 +		goto out;
  
- 	if (!goal)
- 		goal = sbi->s_inode_goal;
-diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
-index cecf9aa10811..fed7ee7ea6e8 100644
---- a/fs/ext4/inode.c
-+++ b/fs/ext4/inode.c
-@@ -4661,8 +4661,11 @@ int ext4_setattr(struct dentry *dentry, struct iattr *attr)
- 	if (error)
- 		return error;
+ 	/* directory must be empty to be removed */
+ 	if (!dtEmpty(ip)) {
+@@ -483,8 +491,12 @@ static int jfs_unlink(struct inode *dip, struct dentry *dentry)
+ 	jfs_info("jfs_unlink: dip:0x%p name:%pd", dip, dentry);
  
--	if (is_quota_modification(inode, attr))
--		dquot_initialize(inode);
-+	if (is_quota_modification(inode, attr)) {
-+		error = dquot_initialize(inode);
-+		if (error)
-+			return error;
-+	}
- 	if ((ia_valid & ATTR_UID && !uid_eq(attr->ia_uid, inode->i_uid)) ||
- 	    (ia_valid & ATTR_GID && !gid_eq(attr->ia_gid, inode->i_gid))) {
- 		handle_t *handle;
-diff --git a/fs/ext4/namei.c b/fs/ext4/namei.c
-index 011dcfb5cce3..d3ff83742a33 100644
---- a/fs/ext4/namei.c
-+++ b/fs/ext4/namei.c
-@@ -2436,7 +2436,9 @@ static int ext4_create(struct inode *dir, struct dentry *dentry, umode_t mode,
- 	struct inode *inode;
- 	int err, credits, retries = 0;
+ 	/* Init inode for quota operations. */
+-	dquot_initialize(dip);
+-	dquot_initialize(ip);
++	rc = dquot_initialize(dip);
++	if (rc)
++		goto out;
++	rc = dquot_initialize(ip);
++	if (rc)
++		goto out;
+ 
+ 	if ((rc = get_UCSname(&dname, dentry)))
+ 		goto out;
+@@ -799,7 +811,9 @@ static int jfs_link(struct dentry *old_dentry,
+ 
+ 	jfs_info("jfs_link: %pd %pd", old_dentry, dentry);
  
 -	dquot_initialize(dir);
-+	err = dquot_initialize(dir);
-+	if (err)
-+		return err;
++	rc = dquot_initialize(dir);
++	if (rc)
++		goto out;
  
- 	credits = (EXT4_DATA_TRANS_BLOCKS(dir->i_sb) +
- 		   EXT4_INDEX_EXTRA_TRANS_BLOCKS + 3);
-@@ -2470,7 +2472,9 @@ static int ext4_mknod(struct inode *dir, struct dentry *dentry,
- 	if (!new_valid_dev(rdev))
- 		return -EINVAL;
+ 	tid = txBegin(ip->i_sb, 0);
  
--	dquot_initialize(dir);
-+	err = dquot_initialize(dir);
-+	if (err)
-+		return err;
+@@ -810,7 +824,7 @@ static int jfs_link(struct dentry *old_dentry,
+ 	 * scan parent directory for entry/freespace
+ 	 */
+ 	if ((rc = get_UCSname(&dname, dentry)))
+-		goto out;
++		goto out_tx;
  
- 	credits = (EXT4_DATA_TRANS_BLOCKS(dir->i_sb) +
- 		   EXT4_INDEX_EXTRA_TRANS_BLOCKS + 3);
-@@ -2499,7 +2503,9 @@ static int ext4_tmpfile(struct inode *dir, struct dentry *dentry, umode_t mode)
- 	struct inode *inode;
- 	int err, retries = 0;
+ 	if ((rc = dtSearch(dir, &dname, &ino, &btstack, JFS_CREATE)))
+ 		goto free_dname;
+@@ -842,12 +856,13 @@ static int jfs_link(struct dentry *old_dentry,
+       free_dname:
+ 	free_UCSname(&dname);
  
--	dquot_initialize(dir);
-+	err = dquot_initialize(dir);
-+	if (err)
-+		return err;
+-      out:
++      out_tx:
+ 	txEnd(tid);
  
- retry:
- 	inode = ext4_new_inode_start_handle(dir, mode,
-@@ -2612,7 +2618,9 @@ static int ext4_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
- 	if (EXT4_DIR_LINK_MAX(dir))
- 		return -EMLINK;
+ 	mutex_unlock(&JFS_IP(ip)->commit_mutex);
+ 	mutex_unlock(&JFS_IP(dir)->commit_mutex);
  
--	dquot_initialize(dir);
-+	err = dquot_initialize(dir);
-+	if (err)
-+		return err;
++      out:
+ 	jfs_info("jfs_link: rc:%d", rc);
+ 	return rc;
+ }
+@@ -891,7 +906,9 @@ static int jfs_symlink(struct inode *dip, struct dentry *dentry,
  
- 	credits = (EXT4_DATA_TRANS_BLOCKS(dir->i_sb) +
- 		   EXT4_INDEX_EXTRA_TRANS_BLOCKS + 3);
-@@ -2910,8 +2918,12 @@ static int ext4_rmdir(struct inode *dir, struct dentry *dentry)
+ 	jfs_info("jfs_symlink: dip:0x%p name:%s", dip, name);
  
- 	/* Initialize quotas before so that eventual writes go in
- 	 * separate transaction */
--	dquot_initialize(dir);
--	dquot_initialize(d_inode(dentry));
-+	retval = dquot_initialize(dir);
-+	if (retval)
-+		return retval;
-+	retval = dquot_initialize(d_inode(dentry));
-+	if (retval)
-+		return retval;
+-	dquot_initialize(dip);
++	rc = dquot_initialize(dip);
++	if (rc)
++		goto out1;
  
- 	retval = -ENOENT;
- 	bh = ext4_find_entry(dir, &dentry->d_name, &de, NULL);
-@@ -2980,8 +2992,12 @@ static int ext4_unlink(struct inode *dir, struct dentry *dentry)
- 	trace_ext4_unlink_enter(dir, dentry);
- 	/* Initialize quotas before so that eventual writes go
- 	 * in separate transaction */
--	dquot_initialize(dir);
--	dquot_initialize(d_inode(dentry));
-+	retval = dquot_initialize(dir);
-+	if (retval)
-+		return retval;
-+	retval = dquot_initialize(d_inode(dentry));
-+	if (retval)
-+		return retval;
+ 	ssize = strlen(name) + 1;
  
- 	retval = -ENOENT;
- 	bh = ext4_find_entry(dir, &dentry->d_name, &de, NULL);
-@@ -3066,7 +3082,9 @@ static int ext4_symlink(struct inode *dir,
- 		goto err_free_sd;
+@@ -1082,8 +1099,12 @@ static int jfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+ 
+ 	jfs_info("jfs_rename: %pd %pd", old_dentry, new_dentry);
+ 
+-	dquot_initialize(old_dir);
+-	dquot_initialize(new_dir);
++	rc = dquot_initialize(old_dir);
++	if (rc)
++		goto out1;
++	rc = dquot_initialize(new_dir);
++	if (rc)
++		goto out1;
+ 
+ 	old_ip = d_inode(old_dentry);
+ 	new_ip = d_inode(new_dentry);
+@@ -1130,7 +1151,9 @@ static int jfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+ 	} else if (new_ip) {
+ 		IWRITE_LOCK(new_ip, RDWRLOCK_NORMAL);
+ 		/* Init inode for quota operations. */
+-		dquot_initialize(new_ip);
++		rc = dquot_initialize(new_ip);
++		if (rc)
++			goto out3;
  	}
  
+ 	/*
+@@ -1354,7 +1377,9 @@ static int jfs_mknod(struct inode *dir, struct dentry *dentry,
+ 
+ 	jfs_info("jfs_mknod: %pd", dentry);
+ 
 -	dquot_initialize(dir);
-+	err = dquot_initialize(dir);
-+	if (err)
-+		return err;
++	rc = dquot_initialize(dir);
++	if (rc)
++		goto out;
  
- 	if ((disk_link.len > EXT4_N_BLOCKS * 4)) {
- 		/*
-@@ -3197,7 +3215,9 @@ static int ext4_link(struct dentry *old_dentry,
- 	if (ext4_encrypted_inode(dir) &&
- 	    !ext4_is_child_context_consistent_with_parent(dir, inode))
- 		return -EPERM;
--	dquot_initialize(dir);
-+	err = dquot_initialize(dir);
-+	if (err)
-+		return err;
- 
- retry:
- 	handle = ext4_journal_start(dir, EXT4_HT_DIR,
-@@ -3476,13 +3496,20 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
- 	int credits;
- 	u8 old_file_type;
- 
--	dquot_initialize(old.dir);
--	dquot_initialize(new.dir);
-+	retval = dquot_initialize(old.dir);
-+	if (retval)
-+		return retval;
-+	retval = dquot_initialize(new.dir);
-+	if (retval)
-+		return retval;
- 
- 	/* Initialize quotas before so that eventual writes go
- 	 * in separate transaction */
--	if (new.inode)
--		dquot_initialize(new.inode);
-+	if (new.inode) {
-+		retval = dquot_initialize(new.inode);
-+		if (retval)
-+			return retval;
-+	}
- 
- 	old.bh = ext4_find_entry(old.dir, &old.dentry->d_name, &old.de, NULL);
- 	if (IS_ERR(old.bh))
-@@ -3678,8 +3705,12 @@ static int ext4_cross_rename(struct inode *old_dir, struct dentry *old_dentry,
- 							   new.inode)))
- 		return -EPERM;
- 
--	dquot_initialize(old.dir);
--	dquot_initialize(new.dir);
-+	retval = dquot_initialize(old.dir);
-+	if (retval)
-+		return retval;
-+	retval = dquot_initialize(new.dir);
-+	if (retval)
-+		return retval;
- 
- 	old.bh = ext4_find_entry(old.dir, &old.dentry->d_name,
- 				 &old.de, &old.inlined);
+ 	if ((rc = get_UCSname(&dname, dentry)))
+ 		goto out;
 -- 
 2.1.4
