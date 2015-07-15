@@ -1,9 +1,9 @@
 From: Jan Kara <jack@suse.com>
-Date: Wed, 15 Jul 2015 14:42:28 +0200
-Subject: [Ocfs2-devel] [PATCH 2/6] ext2: Handle error from dquot_initalize()
+Date: Wed, 15 Jul 2015 14:42:29 +0200
+Subject: [Ocfs2-devel] [PATCH 3/6] ext4: Handle error from dquot_initialize()
 In-Reply-To: <1436964152-11203-1-git-send-email-jack@suse.com>
 References: <1436964152-11203-1-git-send-email-jack@suse.com>
-Message-ID: <1436964152-11203-3-git-send-email-jack@suse.com>
+Message-ID: <1436964152-11203-4-git-send-email-jack@suse.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -15,63 +15,69 @@ dquot_initialize() can now return error. Handle it where possible.
 
 Signed-off-by: Jan Kara <jack@suse.com>
 ---
- fs/ext2/ialloc.c |  5 ++++-
- fs/ext2/inode.c  |  7 +++++--
- fs/ext2/namei.c  | 46 ++++++++++++++++++++++++++++++++++------------
- 3 files changed, 43 insertions(+), 15 deletions(-)
+ fs/ext4/ialloc.c |  6 ++++--
+ fs/ext4/inode.c  |  7 +++++--
+ fs/ext4/namei.c  | 63 ++++++++++++++++++++++++++++++++++++++++++--------------
+ 3 files changed, 56 insertions(+), 20 deletions(-)
 
-diff --git a/fs/ext2/ialloc.c b/fs/ext2/ialloc.c
-index 5c04a0ddea80..efe5fb21c533 100644
---- a/fs/ext2/ialloc.c
-+++ b/fs/ext2/ialloc.c
-@@ -577,7 +577,10 @@ got:
- 		goto fail;
- 	}
- 
+diff --git a/fs/ext4/ialloc.c b/fs/ext4/ialloc.c
+index 173c1ae21395..619bfc1fda8c 100644
+--- a/fs/ext4/ialloc.c
++++ b/fs/ext4/ialloc.c
+@@ -721,7 +721,7 @@ struct inode *__ext4_new_inode(handle_t *handle, struct inode *dir,
+ 	struct ext4_group_desc *gdp = NULL;
+ 	struct ext4_inode_info *ei;
+ 	struct ext4_sb_info *sbi;
+-	int ret2, err = 0;
++	int ret2, err;
+ 	struct inode *ret;
+ 	ext4_group_t i;
+ 	ext4_group_t flex_group;
+@@ -769,7 +769,9 @@ struct inode *__ext4_new_inode(handle_t *handle, struct inode *dir,
+ 		inode->i_gid = dir->i_gid;
+ 	} else
+ 		inode_init_owner(inode, dir, mode);
 -	dquot_initialize(inode);
 +	err = dquot_initialize(inode);
 +	if (err)
-+		goto fail_drop;
-+
- 	err = dquot_alloc_inode(inode);
- 	if (err)
- 		goto fail_drop;
-diff --git a/fs/ext2/inode.c b/fs/ext2/inode.c
-index 5c09776d347f..a3a404c5df2e 100644
---- a/fs/ext2/inode.c
-+++ b/fs/ext2/inode.c
-@@ -1552,8 +1552,11 @@ int ext2_setattr(struct dentry *dentry, struct iattr *iattr)
++		goto out;
+ 
+ 	if (!goal)
+ 		goal = sbi->s_inode_goal;
+diff --git a/fs/ext4/inode.c b/fs/ext4/inode.c
+index cecf9aa10811..fed7ee7ea6e8 100644
+--- a/fs/ext4/inode.c
++++ b/fs/ext4/inode.c
+@@ -4661,8 +4661,11 @@ int ext4_setattr(struct dentry *dentry, struct iattr *attr)
  	if (error)
  		return error;
  
--	if (is_quota_modification(inode, iattr))
+-	if (is_quota_modification(inode, attr))
 -		dquot_initialize(inode);
-+	if (is_quota_modification(inode, iattr)) {
++	if (is_quota_modification(inode, attr)) {
 +		error = dquot_initialize(inode);
 +		if (error)
 +			return error;
 +	}
- 	if ((iattr->ia_valid & ATTR_UID && !uid_eq(iattr->ia_uid, inode->i_uid)) ||
- 	    (iattr->ia_valid & ATTR_GID && !gid_eq(iattr->ia_gid, inode->i_gid))) {
- 		error = dquot_transfer(inode, iattr);
-diff --git a/fs/ext2/namei.c b/fs/ext2/namei.c
-index 13ec54a99c96..b4841e3066a5 100644
---- a/fs/ext2/namei.c
-+++ b/fs/ext2/namei.c
-@@ -96,8 +96,11 @@ struct dentry *ext2_get_parent(struct dentry *child)
- static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode, bool excl)
- {
+ 	if ((ia_valid & ATTR_UID && !uid_eq(attr->ia_uid, inode->i_uid)) ||
+ 	    (ia_valid & ATTR_GID && !gid_eq(attr->ia_gid, inode->i_gid))) {
+ 		handle_t *handle;
+diff --git a/fs/ext4/namei.c b/fs/ext4/namei.c
+index 011dcfb5cce3..d3ff83742a33 100644
+--- a/fs/ext4/namei.c
++++ b/fs/ext4/namei.c
+@@ -2436,7 +2436,9 @@ static int ext4_create(struct inode *dir, struct dentry *dentry, umode_t mode,
  	struct inode *inode;
-+	int err;
+ 	int err, credits, retries = 0;
  
 -	dquot_initialize(dir);
 +	err = dquot_initialize(dir);
 +	if (err)
 +		return err;
  
- 	inode = ext2_new_inode(dir, mode, &dentry->d_name);
- 	if (IS_ERR(inode))
-@@ -143,7 +146,9 @@ static int ext2_mknod (struct inode * dir, struct dentry *dentry, umode_t mode,
+ 	credits = (EXT4_DATA_TRANS_BLOCKS(dir->i_sb) +
+ 		   EXT4_INDEX_EXTRA_TRANS_BLOCKS + 3);
+@@ -2470,7 +2472,9 @@ static int ext4_mknod(struct inode *dir, struct dentry *dentry,
  	if (!new_valid_dev(rdev))
  		return -EINVAL;
  
@@ -80,87 +86,121 @@ index 13ec54a99c96..b4841e3066a5 100644
 +	if (err)
 +		return err;
  
- 	inode = ext2_new_inode (dir, mode, &dentry->d_name);
- 	err = PTR_ERR(inode);
-@@ -169,7 +174,9 @@ static int ext2_symlink (struct inode * dir, struct dentry * dentry,
- 	if (l > sb->s_blocksize)
- 		goto out;
- 
--	dquot_initialize(dir);
-+	err = dquot_initialize(dir);
-+	if (err)
-+		goto out;
- 
- 	inode = ext2_new_inode (dir, S_IFLNK | S_IRWXUGO, &dentry->d_name);
- 	err = PTR_ERR(inode);
-@@ -212,7 +219,9 @@ static int ext2_link (struct dentry * old_dentry, struct inode * dir,
- 	struct inode *inode = d_inode(old_dentry);
- 	int err;
+ 	credits = (EXT4_DATA_TRANS_BLOCKS(dir->i_sb) +
+ 		   EXT4_INDEX_EXTRA_TRANS_BLOCKS + 3);
+@@ -2499,7 +2503,9 @@ static int ext4_tmpfile(struct inode *dir, struct dentry *dentry, umode_t mode)
+ 	struct inode *inode;
+ 	int err, retries = 0;
  
 -	dquot_initialize(dir);
 +	err = dquot_initialize(dir);
 +	if (err)
 +		return err;
  
- 	inode->i_ctime = CURRENT_TIME_SEC;
- 	inode_inc_link_count(inode);
-@@ -233,7 +242,9 @@ static int ext2_mkdir(struct inode * dir, struct dentry * dentry, umode_t mode)
- 	struct inode * inode;
- 	int err;
+ retry:
+ 	inode = ext4_new_inode_start_handle(dir, mode,
+@@ -2612,7 +2618,9 @@ static int ext4_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
+ 	if (EXT4_DIR_LINK_MAX(dir))
+ 		return -EMLINK;
  
 -	dquot_initialize(dir);
 +	err = dquot_initialize(dir);
 +	if (err)
 +		return err;
  
- 	inode_inc_link_count(dir);
+ 	credits = (EXT4_DATA_TRANS_BLOCKS(dir->i_sb) +
+ 		   EXT4_INDEX_EXTRA_TRANS_BLOCKS + 3);
+@@ -2910,8 +2918,12 @@ static int ext4_rmdir(struct inode *dir, struct dentry *dentry)
  
-@@ -279,13 +290,17 @@ static int ext2_unlink(struct inode * dir, struct dentry *dentry)
- 	struct inode * inode = d_inode(dentry);
- 	struct ext2_dir_entry_2 * de;
- 	struct page * page;
--	int err = -ENOENT;
-+	int err;
+ 	/* Initialize quotas before so that eventual writes go in
+ 	 * separate transaction */
+-	dquot_initialize(dir);
+-	dquot_initialize(d_inode(dentry));
++	retval = dquot_initialize(dir);
++	if (retval)
++		return retval;
++	retval = dquot_initialize(d_inode(dentry));
++	if (retval)
++		return retval;
+ 
+ 	retval = -ENOENT;
+ 	bh = ext4_find_entry(dir, &dentry->d_name, &de, NULL);
+@@ -2980,8 +2992,12 @@ static int ext4_unlink(struct inode *dir, struct dentry *dentry)
+ 	trace_ext4_unlink_enter(dir, dentry);
+ 	/* Initialize quotas before so that eventual writes go
+ 	 * in separate transaction */
+-	dquot_initialize(dir);
+-	dquot_initialize(d_inode(dentry));
++	retval = dquot_initialize(dir);
++	if (retval)
++		return retval;
++	retval = dquot_initialize(d_inode(dentry));
++	if (retval)
++		return retval;
+ 
+ 	retval = -ENOENT;
+ 	bh = ext4_find_entry(dir, &dentry->d_name, &de, NULL);
+@@ -3066,7 +3082,9 @@ static int ext4_symlink(struct inode *dir,
+ 		goto err_free_sd;
+ 	}
  
 -	dquot_initialize(dir);
 +	err = dquot_initialize(dir);
 +	if (err)
-+		goto out;
++		return err;
  
- 	de = ext2_find_entry (dir, &dentry->d_name, &page);
--	if (!de)
-+	if (!de) {
-+		err = -ENOENT;
- 		goto out;
+ 	if ((disk_link.len > EXT4_N_BLOCKS * 4)) {
+ 		/*
+@@ -3197,7 +3215,9 @@ static int ext4_link(struct dentry *old_dentry,
+ 	if (ext4_encrypted_inode(dir) &&
+ 	    !ext4_is_child_context_consistent_with_parent(dir, inode))
+ 		return -EPERM;
+-	dquot_initialize(dir);
++	err = dquot_initialize(dir);
++	if (err)
++		return err;
+ 
+ retry:
+ 	handle = ext4_journal_start(dir, EXT4_HT_DIR,
+@@ -3476,13 +3496,20 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
+ 	int credits;
+ 	u8 old_file_type;
+ 
+-	dquot_initialize(old.dir);
+-	dquot_initialize(new.dir);
++	retval = dquot_initialize(old.dir);
++	if (retval)
++		return retval;
++	retval = dquot_initialize(new.dir);
++	if (retval)
++		return retval;
+ 
+ 	/* Initialize quotas before so that eventual writes go
+ 	 * in separate transaction */
+-	if (new.inode)
+-		dquot_initialize(new.inode);
++	if (new.inode) {
++		retval = dquot_initialize(new.inode);
++		if (retval)
++			return retval;
 +	}
  
- 	err = ext2_delete_entry (de, page);
- 	if (err)
-@@ -323,14 +338,21 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
- 	struct ext2_dir_entry_2 * dir_de = NULL;
- 	struct page * old_page;
- 	struct ext2_dir_entry_2 * old_de;
--	int err = -ENOENT;
-+	int err;
-+
-+	err = dquot_initialize(old_dir);
-+	if (err)
-+		goto out;
+ 	old.bh = ext4_find_entry(old.dir, &old.dentry->d_name, &old.de, NULL);
+ 	if (IS_ERR(old.bh))
+@@ -3678,8 +3705,12 @@ static int ext4_cross_rename(struct inode *old_dir, struct dentry *old_dentry,
+ 							   new.inode)))
+ 		return -EPERM;
  
--	dquot_initialize(old_dir);
--	dquot_initialize(new_dir);
-+	err = dquot_initialize(new_dir);
-+	if (err)
-+		goto out;
+-	dquot_initialize(old.dir);
+-	dquot_initialize(new.dir);
++	retval = dquot_initialize(old.dir);
++	if (retval)
++		return retval;
++	retval = dquot_initialize(new.dir);
++	if (retval)
++		return retval;
  
- 	old_de = ext2_find_entry (old_dir, &old_dentry->d_name, &old_page);
--	if (!old_de)
-+	if (!old_de) {
-+		err = -ENOENT;
- 		goto out;
-+	}
- 
- 	if (S_ISDIR(old_inode->i_mode)) {
- 		err = -EIO;
+ 	old.bh = ext4_find_entry(old.dir, &old.dentry->d_name,
+ 				 &old.de, &old.inlined);
 -- 
 2.1.4
