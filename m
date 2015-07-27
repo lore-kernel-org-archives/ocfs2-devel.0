@@ -1,44 +1,42 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Sat, 25 Jul 2015 18:08:41 +0800
-Subject: [Ocfs2-devel] extent alloc gd abnormally cleared
-Message-ID: <55B36029.5010900@huawei.com>
+Date: Mon, 27 Jul 2015 11:39:16 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: fix shift left overflow
+Message-ID: <55B5A7E4.6050600@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi All,
-We have encountered a case that extent alloc gd has been abnormally
-cleared.
-In our environment, the volume has been formatted with 128 slots but
-actually has 64 slots in use. Since extent alloc is allocated when
-formatting, and extent_alloc:0107 (inode 259) hasn't been use in our
-environment, I have no idea how it can happen.
-Does any one have an idea?
+cluster pos is defined as u32, when calculate corresponding sector it
+should be converted to u64 first, otherwise it may overflow.
 
-The fsck log is attached below:
-fsck.ocfs2 1.6.4
-Checking OCFS2 filesystem in /dev/disk/by-id/scsi-360022a11000b17590551993300000001:
-  Label:              <NONE>
-  UUID:               908A3228F49B41468FFC4927FAE1E54F
-  Number of blocks:   2415918080
-  Block size:         4096
-  Number of clusters: 301989760
-  Cluster size:       32768
-  Number of slots:    128
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+---
+ fs/ocfs2/aops.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-/dev/disk/by-id/scsi-360022a11000b17590551993300000001 was run with -f, check forced.
-Pass 0a: Checking cluster allocation chains
-Pass 0b: Checking inode allocation chains
-Pass 0c: Checking extent block allocation chains
-[CHAIN_LINK_MAGIC] Chain 24 in allocator at inode 259 contains a reference at depth 0 to block 6578184 which doesn't have a valid checksum.  Truncate this chain? y
-[CHAIN_BITS] Chain 24 in allocator inode 259 has 1023 bits marked free out of 1024 total bits but the block groups in the chain have 0 free out of 0 total.  Fix this by updating the chain record? y
-[CHAIN_EMPTY] Chain 24 in allocator inode 259 is empty.  Remove it from the chain record array in the inode and shift further chains into its place? y
-[GROUP_CHAIN] Group descriptor at block 6603784 was found in chain 24 but it claims to be in chain 49. Update the descriptor's recorded chain? y
-Duplicate clusters detected.  Pass 1b will be run
-Pass 1: Checking inodes and blocks.
-......
-Running additional passes to resolve clusters claimed by more than one inode...
-Pass 1b: Determining ownership of multiply-claimed clusters
-pass1b: Inode type does not contain extents while processing inode 17
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index b57f0c7..b36dcad 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -688,7 +688,7 @@ static int ocfs2_direct_IO_zero_extend(struct ocfs2_super *osb,
+
+ 	if (p_cpos && !(ext_flags & OCFS2_EXT_UNWRITTEN)) {
+ 		u64 s = i_size_read(inode);
+-		sector_t sector = (p_cpos << (osb->s_clustersize_bits - 9)) +
++		sector_t sector = ((u64)p_cpos << (osb->s_clustersize_bits - 9)) +
+ 			(do_div(s, osb->s_clustersize) >> 9);
+
+ 		ret = blkdev_issue_zeroout(osb->sb->s_bdev, sector,
+@@ -916,7 +916,7 @@ static ssize_t ocfs2_direct_IO_write(struct kiocb *iocb,
+ 		BUG_ON(!p_cpos || (ext_flags & OCFS2_EXT_UNWRITTEN));
+
+ 		ret = blkdev_issue_zeroout(osb->sb->s_bdev,
+-				p_cpos << (osb->s_clustersize_bits - 9),
++				(u64)p_cpos << (osb->s_clustersize_bits - 9),
+ 				zero_len_head >> 9, GFP_NOFS, false);
+ 		if (ret < 0)
+ 			mlog_errno(ret);
+-- 
+1.8.4.3
