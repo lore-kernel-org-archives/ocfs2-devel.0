@@ -1,11 +1,11 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 5 Aug 2015 14:40:15 +0800
+Date: Wed, 5 Aug 2015 15:08:03 +0800
 Subject: [Ocfs2-devel] [PATCH 0/9 v6] ocfs2: support append O_DIRECT
 	write
 In-Reply-To: <55C193AA.5020508@oracle.com>
 References: <55C058D6.9030809@oracle.com> <55C07FFA.4060701@huawei.com>
 	<55C193AA.5020508@oracle.com>
-Message-ID: <55C1AFCF.8050608@huawei.com>
+Message-ID: <55C1B653.5000605@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -38,11 +38,6 @@ On 2015/8/5 12:40, Ryan Ding wrote:
 > We should balance the benefit and disadvantage to determine whether #2 should be supported.
 > The disadvantage is: bring too much complexity to the code, bugs will come along. And involved a incompatible feature.
 > For example, I did a single node sparse file test, and it failed.
-What do you mean by "failed"? Could you please send out the test case
-and the actual output?
-And which version did you test? Because some bug fixes were submitted later.
-Currently doing direct io with hole is not support.
-
 > The original way of ocfs2 handling direct io(turn to buffer io when it's append write or write to a file hole) has 2 consideration:
 > 1. easier to support cluster wide coherence.
 > 2. easier to support sparse file.
@@ -52,9 +47,9 @@ Currently doing direct io with hole is not support.
 >> you please explain it more clearly?
 > I mean the original way of handle append-dio will consume some page cache. The page cache size it consume depend on the direct io size. For example, 1MB direct io will consume 1MB page cache.But since direct io size can not be too large, the page cache it consume can not be too large also. And those pages can be freed after direct io finished by calling invalidate_mapping_pages().
 >>
-I've got your point. Please consider the following user scenario.
-1. A node mounted several ocfs2 volumes, for example, 10.
-2. For each ocfs2 volume, there are several thin provision VMs.
+One more thing, in ocfs2, o2net_wq is single thread workqueue and has
+many responsibilities, including unlock when reclaiming cache. That
+means the path will be much longer and involve network.
 
 >> Thanks,
 >> Joseph
