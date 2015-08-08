@@ -1,98 +1,45 @@
-From: ryding <ryan.ding@oracle.com>
-Date: Fri, 07 Aug 2015 16:39:06 +0800
-Subject: [Ocfs2-devel] fully support O_DIRECT for ocfs2
-Message-ID: <55C46EAA.7010104@oracle.com>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Sat, 8 Aug 2015 07:44:38 -0500
+Subject: [Ocfs2-devel] OCFS2 support which architectures and can the
+ cluster work under mixed architectures?
+In-Reply-To: <55C309E0.6040103@huawei.com>
+References: <55C33EFB020000F9000111BC@relay2.provo.novell.com>
+	<55C2F021.9010106@oracle.com> <55C309E0.6040103@huawei.com>
+Message-ID: <55C5F9B6.3050400@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi,
 
-I want to redesign the direct io code path for ocfs2. Here is some 
-analysis and designation. Any suggestion is appreciated.
 
-1. Reason why ocfs2 turn to buffer io.
-ocfs2 use cluster inode lock to protect buffer io, although it's acquire 
-and release quickly in write_begin and write_end. It will do a check 
-point and page flush wait when get a bast. This will make buffer fully 
-covered by the lock.
-I think that's why direct io can not act like buffer io to allocate 
-extent and do append write. Since direct io beyond control of cluster 
-inode lock. That is, cluster inode lock can not flush direct io data. 
-This will disturb cache coherence.
-There is 2 way to resolve it:
-* add the user page to page cache, so jbd2 check point can wait that page.
-* wait all direct io to return when downconvert inode lock.
-The former one will hack a lot of code. The later one is more simple, 
-and easy to implement.
+On 08/06/2015 02:16 AM, Joseph Qi wrote:
+> On 2015/8/6 13:26, Junxiao Bi wrote:
+>> Hi Gang,
+>>
+>> On 08/06/2015 11:03 AM, Gang He wrote:
+>>> Hello guys,
+>>>
+>>> >From the document(https://oss.oracle.com/projects/ocfs2/), it says that OCFS2 supports x86, x86_64, ia64 and ppc64. I am not sure that this doc is up-to-date, now, OCFS2 supports any other architecture? e.g. s390x?
+>>> The second question, since OCFS2 is a cluster FS and support multiple architectures, can a OCFS2 cluster work under a mixed architectures environment? e.g. some nodes are x86, some nodes are ppc64.
+>> I think ocfs2 works good on le endian, but maybe not on big endian
+>> though i never test it. From the source code, kernel seemed be prepared
+>> for big endian, but for tools, maybe not, i found lot of codes reading
+>> stuff from disk to memory without conversion in fsck.ocfs2. I am not
+>> sure about other tools, so may need do a full check.
+>>
+> Junxiao is right. Most tools are not taking care the endian conversion.
+> They just treat them as little endian which fits x86.
+> Maybe we have to do some changes for this.
+>
 
-2. More things to be considered when doing direct io.
+OCFS2 supports big-endian architectures. There has been significant 
+effort in making sure that it is big-endian compatible.
 
-* sparse file support:
-we can use __blockdev_direct_IO() to deal with hole inside block. But 
-for hole that outside block, we should do it by ourself.
+Though it is capable of running on mixed architectures, we do not 
+recommend it.
 
-* data consistency:
-Means when a crash is happened during write, file system should ensure 
-that the file do not have stale data. There are2 methods to ensure data 
-consistency:
-a) allocate extent with flag UNWRITE before write. After data is written 
-to disk, clear UNWRITE flag. This is a 2 phase commit. And these 2 phase 
-do not require to be in the same transaction. But file size can not be 
-protected by this method.
-b) use journal to ensure meta data is committed after data written to 
-disk. In ordered journal mode, jbd2 will wait data to be flushed and 
-then commit meta data.
-Buffer io can use these 2 method together. While direct io can only use 
-a), since journal can not monitor direct io pages. So, ext4 invite 
-orphan to protect file size when doing direct append.
-Unfortunately, ocfs2 direct io can not use a). ocfs2 can not clear 
-UNWRITE flag after the io is done. Because ocfs2 needs to acquire 
-cluster inode lock to change that flag. And this will cause dead lock 
-when the inode lock is downconverting.
-So, the data consistency can not be guaranteed in direct io mode. 
-Further, we need not to invite ext4 way to add inode to orphan when 
-doing direct append.
 
-3. detail design
-Use pseudo code to explain:
-
-ocfs2_direct_IO() {
-...
-     ocfs2_inode_lock()
-     increase inode direct_io_count
-...
-     __blockdev_direct_IO(ocfs2_direct_IO_get_blocks, ocfs2_dio_end_io, 
-ocfs2_dio_submit)
-...
-     ocfs2_inode_unlock()
-     fill file hole. add some empty page to bio list
-     submit bio list.
-...
-}
-
-ocfs2_direct_IO_get_blocks() {
-...
-     create new extent when write to a hole
-     increase file size when append.
-...
-}
-
-ocfs2_dio_submit() {
-     add bio to a list. do not actually submit it.
-}
-
-ocfs2_dio_end_io(){
-...
-     decrease inode direct_io_count.
-...
-}
-
-/* This is the inode lock downconvert callback. */
-ocfs2_data_convert_worker() {
-...
-     wait inode direct_io_count drop to 0.
-...
-}
+-- 
+Goldwyn
