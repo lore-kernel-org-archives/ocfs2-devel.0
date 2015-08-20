@@ -1,35 +1,33 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 20 Aug 2015 20:42:05 +0800
+From: Srinivas Eeda <srinivas.eeda@oracle.com>
+Date: Thu, 20 Aug 2015 09:56:57 -0700
 Subject: [Ocfs2-devel] [PATCH] ocfs2: optimize error handling in
 	dlm_request_join
 In-Reply-To: <55D5BEE8.8070001@huawei.com>
 References: <55D5BEE8.8070001@huawei.com>
-Message-ID: <55D5CB1D.1030103@huawei.com>
+Message-ID: <55D606D9.20407@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2015/8/20 19:50, Norton.Zhu wrote:
+On 08/20/2015 04:50 AM, Norton.Zhu wrote:
 > Currently error handling in dlm_request_join is a little obscure.
 > So optimize it to promote readability.
-> 
+>
 > Signed-off-by: Norton.Zhu <norton.zhu@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
-
 > ---
->  fs/ocfs2/dlm/dlmdomain.c | 69 ++++++++++++++++++++++++++----------------------
->  1 file changed, 37 insertions(+), 32 deletions(-)
-> 
+>   fs/ocfs2/dlm/dlmdomain.c | 69 ++++++++++++++++++++++++++----------------------
+>   1 file changed, 37 insertions(+), 32 deletions(-)
+>
 > diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
 > index 7df88a6..af4f7aa 100644
 > --- a/fs/ocfs2/dlm/dlmdomain.c
 > +++ b/fs/ocfs2/dlm/dlmdomain.c
 > @@ -1465,39 +1465,44 @@ static int dlm_request_join(struct dlm_ctxt *dlm,
->  	if (status == -ENOPROTOOPT) {
->  		status = 0;
->  		*response = JOIN_OK_NO_MAP;
+>   	if (status == -ENOPROTOOPT) {
+>   		status = 0;
+>   		*response = JOIN_OK_NO_MAP;
 > -	} else if (packet.code == JOIN_DISALLOW ||
 > -		   packet.code == JOIN_OK_NO_MAP) {
 > -		*response = packet.code;
@@ -59,11 +57,18 @@ Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
 > -		     dlm->dlm_locking_proto.pv_minor,
 > -		     dlm->fs_locking_proto.pv_major,
 > -		     dlm->fs_locking_proto.pv_minor);
->  	} else {
+>   	} else {
 > -		status = -EINVAL;
 > -		mlog(ML_ERROR, "invalid response %d from node %u\n",
 > -		     packet.code, node);
 > +		*response = packet.code;
+Norton, it looks much better :)
+
+one minor comment. we don't want to reset "*response" with packet.code 
+if it's unrecognized. We should leave the value to JOIN_DISALLOW;
+
+rest looks good.
+
 > +		switch (packet.code) {
 > +		case JOIN_DISALLOW:
 > +		case JOIN_OK_NO_MAP:
@@ -100,7 +105,6 @@ Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
 > +			     packet.code, node);
 > +			break;
 > +		}
->  	}
-> 
->  	mlog(0, "status %d, node %d response is %d\n", status, node,
-> 
+>   	}
+>
+>   	mlog(0, "status %d, node %d response is %d\n", status, node,
