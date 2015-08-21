@@ -1,8 +1,8 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Fri, 21 Aug 2015 14:41:25 -0700
-Subject: [Ocfs2-devel] [patch 13/24] ocfs2: fix BUG_ON() in
-	ocfs2_ci_checkpointed()
-Message-ID: <55d79b05.h/NAtNKC1bQOexm+%akpm@linux-foundation.org>
+Date: Fri, 21 Aug 2015 14:41:28 -0700
+Subject: [Ocfs2-devel] [patch 14/24] ocfs2: take inode lock in
+	ocfs2_iop_set/get_acl()
+Message-ID: <55d79b08.PPZdOvC/g9OcEu39%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,146 +10,73 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Subject: ocfs2: fix BUG_ON() in ocfs2_ci_checkpointed()
+Subject: ocfs2: take inode lock in ocfs2_iop_set/get_acl()
 
 Orabug: 20189959
 
-PID: 614    TASK: ffff882a739da580  CPU: 3   COMMAND: "ocfs2dc"
-  #0 [ffff882ecc3759b0] machine_kexec at ffffffff8103b35d
-  #1 [ffff882ecc375a20] crash_kexec at ffffffff810b95b5
-  #2 [ffff882ecc375af0] oops_end at ffffffff815091d8
-  #3 [ffff882ecc375b20] die at ffffffff8101868b
-  #4 [ffff882ecc375b50] do_trap at ffffffff81508bb0
-  #5 [ffff882ecc375ba0] do_invalid_op at ffffffff810165e5
-  #6 [ffff882ecc375c40] invalid_op at ffffffff815116fb
-     [exception RIP: ocfs2_ci_checkpointed+208]
-     RIP: ffffffffa0a7e940  RSP: ffff882ecc375cf0  RFLAGS: 00010002
-     RAX: 0000000000000001  RBX: 000000000000654b  RCX: ffff8812dc83f1f8
-     RDX: 00000000000017d9  RSI: ffff8812dc83f1f8  RDI: ffffffffa0b2c318
-     RBP: ffff882ecc375d20   R8: ffff882ef6ecfa60   R9: ffff88301f272200
-     R10: 0000000000000000  R11: 0000000000000000  R12: ffffffffffffffff
-     R13: ffff8812dc83f4f0  R14: 0000000000000000  R15: ffff8812dc83f1f8
-     ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018
-  #7 [ffff882ecc375d28] ocfs2_check_meta_downconvert at ffffffffa0a7edbd [ocfs2]
-  #8 [ffff882ecc375d38] ocfs2_unblock_lock at ffffffffa0a84af8 [ocfs2]
-  #9 [ffff882ecc375dc8] ocfs2_process_blocked_lock at ffffffffa0a85285 [ocfs2]
-#10 [ffff882ecc375e18] ocfs2_downconvert_thread_do_work at ffffffffa0a85445 [ocfs2]
-#11 [ffff882ecc375e68] ocfs2_downconvert_thread at ffffffffa0a854de [ocfs2]
-#12 [ffff882ecc375ee8] kthread at ffffffff81090da7
-#13 [ffff882ecc375f48] kernel_thread_helper at ffffffff81511884
-assert is tripped because the tran is not checkpointed and the lock level is PR.
-
-Some time ago, chmod command had been executed. As result, the following call
-chain left the inode cluster lock in PR state, latter on causing the assert.
-system_call_fastpath
-  -> my_chmod
-   -> sys_chmod
-    -> sys_fchmodat
-     -> notify_change
-      -> ocfs2_setattr
-       -> posix_acl_chmod
-        -> ocfs2_iop_set_acl
-         -> ocfs2_set_acl
-          -> ocfs2_acl_set_mode
-Here is how.
-1119 int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
-1120 {
-1247         ocfs2_inode_unlock(inode, 1); <<< WRONG thing to do.
-..
-1258         if (!status && attr->ia_valid & ATTR_MODE) {
-1259                 status =  posix_acl_chmod(inode, inode->i_mode);
-
-519 posix_acl_chmod(struct inode *inode, umode_t mode)
-520 {
-..
-539         ret = inode->i_op->set_acl(inode, acl, ACL_TYPE_ACCESS);
-
-287 int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, ...
-288 {
-289         return ocfs2_set_acl(NULL, inode, NULL, type, acl, NULL, NULL);
-
-224 int ocfs2_set_acl(handle_t *handle,
-225                          struct inode *inode, ...
-231 {
-..
-252                                 ret = ocfs2_acl_set_mode(inode, di_bh,
-253                                                          handle, mode);
-
-168 static int ocfs2_acl_set_mode(struct inode *inode, struct buffer_head ...
-170 {
-183         if (handle == NULL) {
-                    >>> BUG: inode lock not held in ex at this point <<<
-184                 handle = ocfs2_start_trans(OCFS2_SB(inode->i_sb),
-185                                            OCFS2_INODE_UPDATE_CREDITS);
-
-ocfs2_setattr.#1247 we unlock and at #1259 call posix_acl_chmod. When we reach
-ocfs2_acl_set_mode.#181 and do trans, the inode cluster lock is not held in EX
-mode (it should be). How this could have happended?
-
-We are the lock master, were holding lock EX and have released it in
-ocfs2_setattr.#1247. Note that there are no holders of this lock at
-this point. Another node needs the lock in PR, and we downconvert from
-EX to PR. So the inode lock is PR when do the trans in
-ocfs2_acl_set_mode.#184. The trans stays in core (not flushed to disc).
-Now another node want the lock in EX, downconvert thread gets kicked (the
-one that tripped assert abovt), finds an unflushed trans but the lock is
-not EX (it is PR). If the lock was at EX, it would have flushed the trans
-ocfs2_ci_checkpointed -> ocfs2_start_checkpoint before downconverting (to NULL)
-for the request.
-
-ocfs2_setattr must not drop inode lock ex in this code path. If it does,
-takes it again before the trans, say in ocfs2_set_acl, another cluster node can
-get in between, execute another setattr, overwriting the one in progress
-on this node, resulting in a mode acl size combo that is a mix of the two.
+This bug in mainline code is pointed out by Mark Fasheh.  When
+ocfs2_iop_set_acl() and ocfs2_iop_get_acl() are entered from VFS layer,
+inode lock is not held.  This seems to be regression from older kernels. 
+The patch is to fix that.
 
 Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Joseph Qi <joseph.qi@huawei.com>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/file.c |    9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ fs/ocfs2/acl.c |   26 ++++++++++++++++++++------
+ 1 file changed, 20 insertions(+), 6 deletions(-)
 
-diff -puN fs/ocfs2/file.c~resubmit-bug_onlockres-l_level-=-dlm_lock_ex-checkpointed-tripped-in-ocfs2_ci_checkpointed fs/ocfs2/file.c
---- a/fs/ocfs2/file.c~resubmit-bug_onlockres-l_level-=-dlm_lock_ex-checkpointed-tripped-in-ocfs2_ci_checkpointed
-+++ a/fs/ocfs2/file.c
-@@ -1127,6 +1127,7 @@ out:
- int ocfs2_setattr(struct dentry *dentry, struct iattr *attr)
+diff -puN fs/ocfs2/acl.c~resubmit-ocfs2_iop_set-get_acl-called-from-the-vfs-so-take-inode-lock-v2second-version fs/ocfs2/acl.c
+--- a/fs/ocfs2/acl.c~resubmit-ocfs2_iop_set-get_acl-called-from-the-vfs-so-take-inode-lock-v2second-version
++++ a/fs/ocfs2/acl.c
+@@ -284,7 +284,19 @@ int ocfs2_set_acl(handle_t *handle,
+ 
+ int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
  {
- 	int status = 0, size_change;
-+	int inode_locked = 0;
- 	struct inode *inode = d_inode(dentry);
- 	struct super_block *sb = inode->i_sb;
- 	struct ocfs2_super *osb = OCFS2_SB(sb);
-@@ -1172,6 +1173,7 @@ int ocfs2_setattr(struct dentry *dentry,
- 			mlog_errno(status);
- 		goto bail_unlock_rw;
- 	}
-+	inode_locked = 1;
- 
- 	if (size_change) {
- 		status = inode_newsize_ok(inode, attr->ia_size);
-@@ -1252,7 +1254,10 @@ int ocfs2_setattr(struct dentry *dentry,
- bail_commit:
- 	ocfs2_commit_trans(osb, handle);
- bail_unlock:
--	ocfs2_inode_unlock(inode, 1);
-+	if (status) {
-+		ocfs2_inode_unlock(inode, 1);
-+		inode_locked = 0;
+-	return ocfs2_set_acl(NULL, inode, NULL, type, acl, NULL, NULL);
++	struct buffer_head *bh = NULL;
++	int status = 0;
++
++	status = ocfs2_inode_lock(inode, &bh, 1);
++	if (status < 0) {
++		if (status != -ENOENT)
++			mlog_errno(status);
++		return status;
 +	}
- bail_unlock_rw:
- 	if (size_change)
- 		ocfs2_rw_unlock(inode, 1);
-@@ -1268,6 +1273,8 @@ bail:
- 		if (status < 0)
- 			mlog_errno(status);
- 	}
-+	if (inode_locked)
-+		ocfs2_inode_unlock(inode, 1);
++	status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
++	ocfs2_inode_unlock(inode, 1);
++	brelse(bh);
++	return status;
+ }
  
- 	return status;
+ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
+@@ -292,19 +304,21 @@ struct posix_acl *ocfs2_iop_get_acl(stru
+ 	struct ocfs2_super *osb;
+ 	struct buffer_head *di_bh = NULL;
+ 	struct posix_acl *acl;
+-	int ret = -EAGAIN;
++	int ret;
+ 
+ 	osb = OCFS2_SB(inode->i_sb);
+ 	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
+ 		return NULL;
+-
+-	ret = ocfs2_read_inode_block(inode, &di_bh);
+-	if (ret < 0)
++	ret = ocfs2_inode_lock(inode, &di_bh, 0);
++	if (ret < 0) {
++		if (ret != -ENOENT)
++			mlog_errno(ret);
+ 		return ERR_PTR(ret);
++	}
+ 
+ 	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
+ 
++	ocfs2_inode_unlock(inode, 0);
+ 	brelse(di_bh);
+-
+ 	return acl;
  }
 _
