@@ -1,68 +1,104 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Fri, 21 Aug 2015 14:41:09 -0700
-Subject: [Ocfs2-devel] [patch 07/24] ocfs2: fix a tiny case that inode can
-	not removed.
-Message-ID: <55d79af5.vof3qQ+dtZ/KFVyv%akpm@linux-foundation.org>
+Date: Fri, 21 Aug 2015 14:41:11 -0700
+Subject: [Ocfs2-devel] [patch 08/24] ocfs2: add ip_alloc_sem in direct IO to
+ protect allocation changes
+Message-ID: <55d79af7.n1McjfL2bt8f5iDI%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: jiangyiwen <jiangyiwen@huawei.com>
-Subject: ocfs2: fix a tiny case that inode can not removed.
+From: WeiWei Wang <wangww631@huawei.com>
+Subject: ocfs2: add ip_alloc_sem in direct IO to protect allocation changes
 
-When running dirop_fileop_racer we found a case that inode
-can not removed.
+In ocfs2, ip_alloc_sem is used to protect allocation changes on the node. 
+In direct IO, we add ip_alloc_sem to protect date consistent between
+direct-io and ocfs2_truncate_file race (buffer io use ip_alloc_sem
+already).  Although inode->i_mutex lock is used to avoid concurrency of
+above situation, i think ip_alloc_sem is still needed because protect
+allocation changes is significant.
 
-2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
-two dirs /race/1/ and /race/2/ in the filesystem.
+Other filesystem like ext4 also uses rw_semaphore to protect data
+consistent between get_block-vs-truncate race by other means, So
+ip_alloc_sem in ocfs2 direct io is needed.
 
-Node A                            Node B
-rm -r /race/2/
-                                  mv /race/1/ /race/2/
-call ocfs2_unlink(), get
-the EX mode of /race/2/
-                                  wait for B unlock /race/2/
-decrease i_nlink of /race/2/ to 0,
-and add inode of /race/2/ into
-orphan dir, unlock /race/2/
-                                  got EX mode of /race/2/. because
-                                  /race/1/ is dir, so inc i_nlink
-                                  of /race/2/ and update into disk,
-                                  unlock /race/2/
-because i_nlink of /race/2/
-is not zero, this inode will
-always remain in orphan dir
-
-This patch fixes this case by test whether i_nlink of new dir is zero.
-
-Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Signed-off-by: Weiwei Wang <wangww631@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/namei.c |    9 +++++++++
- 1 file changed, 9 insertions(+)
+ fs/ocfs2/aops.c |   18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-diff -puN fs/ocfs2/namei.c~ocfs2-fix-a-tiny-case-that-inode-can-not-removed fs/ocfs2/namei.c
---- a/fs/ocfs2/namei.c~ocfs2-fix-a-tiny-case-that-inode-can-not-removed
-+++ a/fs/ocfs2/namei.c
-@@ -1284,6 +1284,15 @@ static int ocfs2_rename(struct inode *ol
- 	}
- 	parents_locked = 1;
+diff -puN fs/ocfs2/aops.c~ocfs2-add-ip_alloc_sem-in-direct-io-to-protect-allocation-changes fs/ocfs2/aops.c
+--- a/fs/ocfs2/aops.c~ocfs2-add-ip_alloc_sem-in-direct-io-to-protect-allocation-changes
++++ a/fs/ocfs2/aops.c
+@@ -533,10 +533,14 @@ static int ocfs2_direct_IO_get_blocks(st
  
-+	if (!new_dir->i_nlink) {
-+		mlog(ML_ERROR, "new dir %llu has been removed, inode %llu "
-+				"can not be moved into it.",
-+				(unsigned long long)new_dir->i_ino,
-+				(unsigned long long)old_inode->i_ino);
-+		status = -EACCES;
-+		goto bail;
-+	}
+ 	inode_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
+ 
++	down_read(&OCFS2_I(inode)->ip_alloc_sem);
 +
- 	/* make sure both dirs have bhs
- 	 * get an extra ref on old_dir_bh if old==new */
- 	if (!new_dir_bh) {
+ 	/* This figures out the size of the next contiguous block, and
+ 	 * our logical offset */
+ 	ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
+ 					  &contig_blocks, &ext_flags);
++	up_read(&OCFS2_I(inode)->ip_alloc_sem);
++
+ 	if (ret) {
+ 		mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
+ 		     (unsigned long long)iblock);
+@@ -557,6 +561,8 @@ static int ocfs2_direct_IO_get_blocks(st
+ 
+ 		alloc_locked = 1;
+ 
++		down_write(&OCFS2_I(inode)->ip_alloc_sem);
++
+ 		/* fill hole, allocate blocks can't be larger than the size
+ 		 * of the hole */
+ 		clusters_to_alloc = ocfs2_clusters_for_bytes(inode->i_sb, len);
+@@ -569,6 +575,7 @@ static int ocfs2_direct_IO_get_blocks(st
+ 		ret = ocfs2_extend_allocation(inode, cpos,
+ 				clusters_to_alloc, 0);
+ 		if (ret < 0) {
++			up_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 			mlog_errno(ret);
+ 			goto bail;
+ 		}
+@@ -576,11 +583,13 @@ static int ocfs2_direct_IO_get_blocks(st
+ 		ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
+ 				&contig_blocks, &ext_flags);
+ 		if (ret < 0) {
++			up_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 			mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
+ 					(unsigned long long)iblock);
+ 			ret = -EIO;
+ 			goto bail;
+ 		}
++		up_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 	}
+ 
+ 	/*
+@@ -835,12 +844,17 @@ static ssize_t ocfs2_direct_IO_write(str
+ 
+ 		/* zeroing out the previously allocated cluster tail
+ 		 * that but not zeroed */
+-		if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb)))
++		if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb))) {
++			down_read(&OCFS2_I(inode)->ip_alloc_sem);
+ 			ret = ocfs2_direct_IO_zero_extend(osb, inode, offset,
+ 					zero_len_tail, cluster_align_tail);
+-		else
++			up_read(&OCFS2_I(inode)->ip_alloc_sem);
++		} else {
++			down_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 			ret = ocfs2_direct_IO_extend_no_holes(osb, inode,
+ 					offset);
++			up_write(&OCFS2_I(inode)->ip_alloc_sem);
++		}
+ 		if (ret < 0) {
+ 			mlog_errno(ret);
+ 			ocfs2_inode_unlock(inode, 1);
 _
