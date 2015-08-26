@@ -1,104 +1,214 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 26 Aug 2015 15:11:40 -0700
-Subject: [Ocfs2-devel] [patch 08/28] ocfs2: add ip_alloc_sem in direct IO to
- protect allocation changes
-Message-ID: <55de399c.PCB+X4ihy+Ps4440%akpm@linux-foundation.org>
+Date: Wed, 26 Aug 2015 15:11:43 -0700
+Subject: [Ocfs2-devel] [patch 09/28] ocfs2: extend transaction for
+ ocfs2_remove_rightmost_path() and ocfs2_update_edge_lengths() before to
+ avoid inconsistency between inode and et
+Message-ID: <55de399f.yPaGHMUq09ui5Z7/%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: WeiWei Wang <wangww631@huawei.com>
-Subject: ocfs2: add ip_alloc_sem in direct IO to protect allocation changes
+From: Xue jiufei <xuejiufei@huawei.com>
+Subject: ocfs2: extend transaction for ocfs2_remove_rightmost_path() and ocfs2_update_edge_lengths() before to avoid inconsistency between inode and et
 
-In ocfs2, ip_alloc_sem is used to protect allocation changes on the node. 
-In direct IO, we add ip_alloc_sem to protect date consistent between
-direct-io and ocfs2_truncate_file race (buffer io use ip_alloc_sem
-already).  Although inode->i_mutex lock is used to avoid concurrency of
-above situation, i think ip_alloc_sem is still needed because protect
-allocation changes is significant.
+I found that jbd2_journal_restart() is called in some places without
+keeping things consistently before.  However, jbd2_journal_restart() may
+commit the handle's transaction and restart another one.  If the first
+transaction is committed successfully while another not, it may cause
+filesystem inconsistency or read only.  This is an effort to fix this kind
+of problems.
 
-Other filesystem like ext4 also uses rw_semaphore to protect data
-consistent between get_block-vs-truncate race by other means, So
-ip_alloc_sem in ocfs2 direct io is needed.
 
-Signed-off-by: Weiwei Wang <wangww631@huawei.com>
+This patch (of 3):
+
+The following functions will be called while truncating an extent:
+ocfs2_remove_btree_range
+  -> ocfs2_start_trans
+  -> ocfs2_remove_extent
+     -> ocfs2_truncate_rec
+       -> ocfs2_extend_rotate_transaction
+         -> jbd2_journal_restart if jbd2_journal_extend fail
+       -> ocfs2_rotate_tree_left
+         -> ocfs2_remove_rightmost_path
+             -> ocfs2_extend_rotate_transaction
+               -> ocfs2_unlink_subtree
+                -> ocfs2_update_edge_lengths
+                  -> ocfs2_extend_trans
+                    -> jbd2_journal_restart if jbd2_journal_extend fail
+  -> ocfs2_et_update_clusters
+  -> ocfs2_commit_trans
+
+jbd2_journal_restart() may be called and it may happened that the buffers
+dirtied in ocfs2_truncate_rec() are committed while buffers dirtied in
+ocfs2_et_update_clusters() are not, the total clusters on extent tree and
+i_clusters in ocfs2_dinode is inconsistency.  So the clusters got from
+ocfs2_dinode is incorrect, and it also cause read-only problem when call
+ocfs2_commit_truncate() with the error message: "Inode %llu has empty
+extent block at %llu".
+
+We should extend enough credits for function ocfs2_remove_rightmost_path
+and ocfs2_update_edge_lengths to avoid this inconsistency.
+
+Signed-off-by: joyce.xue <xuejiufei@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/aops.c |   18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+ fs/ocfs2/alloc.c |   82 +++++++++++++++++++++++++++++----------------
+ 1 file changed, 54 insertions(+), 28 deletions(-)
 
-diff -puN fs/ocfs2/aops.c~ocfs2-add-ip_alloc_sem-in-direct-io-to-protect-allocation-changes fs/ocfs2/aops.c
---- a/fs/ocfs2/aops.c~ocfs2-add-ip_alloc_sem-in-direct-io-to-protect-allocation-changes
-+++ a/fs/ocfs2/aops.c
-@@ -533,10 +533,14 @@ static int ocfs2_direct_IO_get_blocks(st
+diff -puN fs/ocfs2/alloc.c~ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et fs/ocfs2/alloc.c
+--- a/fs/ocfs2/alloc.c~ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et
++++ a/fs/ocfs2/alloc.c
+@@ -2526,21 +2526,6 @@ static int ocfs2_update_edge_lengths(han
+ 	struct ocfs2_extent_block *eb;
+ 	u32 range;
  
- 	inode_blocks = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
- 
-+	down_read(&OCFS2_I(inode)->ip_alloc_sem);
-+
- 	/* This figures out the size of the next contiguous block, and
- 	 * our logical offset */
- 	ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
- 					  &contig_blocks, &ext_flags);
-+	up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+
+-	/*
+-	 * In normal tree rotation process, we will never touch the
+-	 * tree branch above subtree_index and ocfs2_extend_rotate_transaction
+-	 * doesn't reserve the credits for them either.
+-	 *
+-	 * But we do have a special case here which will update the rightmost
+-	 * records for all the bh in the path.
+-	 * So we have to allocate extra credits and access them.
+-	 */
+-	ret = ocfs2_extend_trans(handle, subtree_index);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+ 	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
  	if (ret) {
- 		mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
- 		     (unsigned long long)iblock);
-@@ -557,6 +561,8 @@ static int ocfs2_direct_IO_get_blocks(st
+ 		mlog_errno(ret);
+@@ -2967,7 +2952,7 @@ static int __ocfs2_rotate_tree_left(hand
+ 		     right_path->p_node[subtree_root].bh->b_blocknr,
+ 		     right_path->p_tree_depth);
  
- 		alloc_locked = 1;
- 
-+		down_write(&OCFS2_I(inode)->ip_alloc_sem);
-+
- 		/* fill hole, allocate blocks can't be larger than the size
- 		 * of the hole */
- 		clusters_to_alloc = ocfs2_clusters_for_bytes(inode->i_sb, len);
-@@ -569,6 +575,7 @@ static int ocfs2_direct_IO_get_blocks(st
- 		ret = ocfs2_extend_allocation(inode, cpos,
- 				clusters_to_alloc, 0);
- 		if (ret < 0) {
-+			up_write(&OCFS2_I(inode)->ip_alloc_sem);
+-		ret = ocfs2_extend_rotate_transaction(handle, subtree_root,
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
+ 						      orig_credits, left_path);
+ 		if (ret) {
  			mlog_errno(ret);
- 			goto bail;
- 		}
-@@ -576,11 +583,13 @@ static int ocfs2_direct_IO_get_blocks(st
- 		ret = ocfs2_extent_map_get_blocks(inode, iblock, &p_blkno,
- 				&contig_blocks, &ext_flags);
- 		if (ret < 0) {
-+			up_write(&OCFS2_I(inode)->ip_alloc_sem);
- 			mlog(ML_ERROR, "get_blocks() failed iblock=%llu\n",
- 					(unsigned long long)iblock);
- 			ret = -EIO;
- 			goto bail;
- 		}
-+		up_write(&OCFS2_I(inode)->ip_alloc_sem);
- 	}
+@@ -3040,21 +3025,9 @@ static int ocfs2_remove_rightmost_path(h
+ 	struct ocfs2_extent_block *eb;
+ 	struct ocfs2_extent_list *el;
  
- 	/*
-@@ -835,12 +844,17 @@ static ssize_t ocfs2_direct_IO_write(str
+-
+ 	ret = ocfs2_et_sanity_check(et);
+ 	if (ret)
+ 		goto out;
+-	/*
+-	 * There's two ways we handle this depending on
+-	 * whether path is the only existing one.
+-	 */
+-	ret = ocfs2_extend_rotate_transaction(handle, 0,
+-					      handle->h_buffer_credits,
+-					      path);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
  
- 		/* zeroing out the previously allocated cluster tail
- 		 * that but not zeroed */
--		if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb)))
-+		if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb))) {
-+			down_read(&OCFS2_I(inode)->ip_alloc_sem);
- 			ret = ocfs2_direct_IO_zero_extend(osb, inode, offset,
- 					zero_len_tail, cluster_align_tail);
--		else
-+			up_read(&OCFS2_I(inode)->ip_alloc_sem);
-+		} else {
-+			down_write(&OCFS2_I(inode)->ip_alloc_sem);
- 			ret = ocfs2_direct_IO_extend_no_holes(osb, inode,
- 					offset);
-+			up_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
+ 	if (ret) {
+@@ -3628,6 +3601,14 @@ static int ocfs2_merge_rec_left(struct o
+ 		 */
+ 		if (le16_to_cpu(right_rec->e_leaf_clusters) == 0 &&
+ 		    le16_to_cpu(el->l_next_free_rec) == 1) {
++			/* extend credit for ocfs2_remove_rightmost_path */
++			ret = ocfs2_extend_rotate_transaction(handle, 0,
++					handle->h_buffer_credits,
++					right_path);
++			if (ret) {
++				mlog_errno(ret);
++				goto out;
++			}
+ 
+ 			ret = ocfs2_remove_rightmost_path(handle, et,
+ 							  right_path,
+@@ -3666,6 +3647,14 @@ static int ocfs2_try_to_merge_extent(han
+ 	BUG_ON(ctxt->c_contig_type == CONTIG_NONE);
+ 
+ 	if (ctxt->c_split_covers_rec && ctxt->c_has_empty_extent) {
++		/* extend credit for ocfs2_remove_rightmost_path */
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
++				handle->h_buffer_credits,
++				path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
 +		}
- 		if (ret < 0) {
+ 		/*
+ 		 * The merge code will need to create an empty
+ 		 * extent to take the place of the newly
+@@ -3714,6 +3703,15 @@ static int ocfs2_try_to_merge_extent(han
+ 		 */
+ 		BUG_ON(!ocfs2_is_empty_extent(&el->l_recs[0]));
+ 
++		/* extend credit for ocfs2_remove_rightmost_path */
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
++					handle->h_buffer_credits,
++					path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
+ 		/* The merge left us with an empty extent, remove it. */
+ 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
+ 		if (ret) {
+@@ -3735,6 +3733,15 @@ static int ocfs2_try_to_merge_extent(han
+ 			goto out;
+ 		}
+ 
++		/* extend credit for ocfs2_remove_rightmost_path */
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
++				handle->h_buffer_credits,
++				path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
+ 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
+ 		/*
+ 		 * Error from this last rotate is not critical, so
+@@ -3770,6 +3777,16 @@ static int ocfs2_try_to_merge_extent(han
+ 		}
+ 
+ 		if (ctxt->c_split_covers_rec) {
++			/* extend credit for ocfs2_remove_rightmost_path */
++			ret = ocfs2_extend_rotate_transaction(handle, 0,
++					handle->h_buffer_credits,
++					path);
++			if (ret) {
++				mlog_errno(ret);
++				ret = 0;
++				goto out;
++			}
++
+ 			/*
+ 			 * The merge may have left an empty extent in
+ 			 * our leaf. Try to rotate it away.
+@@ -5337,6 +5354,15 @@ static int ocfs2_truncate_rec(handle_t *
+ 	struct ocfs2_extent_block *eb;
+ 
+ 	if (ocfs2_is_empty_extent(&el->l_recs[0]) && index > 0) {
++		/* extend credit for ocfs2_remove_rightmost_path */
++		ret = ocfs2_extend_rotate_transaction(handle, 0,
++				handle->h_buffer_credits,
++				path);
++		if (ret) {
++			mlog_errno(ret);
++			goto out;
++		}
++
+ 		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
+ 		if (ret) {
  			mlog_errno(ret);
- 			ocfs2_inode_unlock(inode, 1);
 _
