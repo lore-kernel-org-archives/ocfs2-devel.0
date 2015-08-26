@@ -1,24 +1,69 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Wed, 26 Aug 2015 15:08:33 -0700
-Subject: [Ocfs2-devel] ocfs2 pending patch review
-In-Reply-To: <20150821143955.8de8dd80c5e85dc450db121c@linux-foundation.org>
-References: <20150821143955.8de8dd80c5e85dc450db121c@linux-foundation.org>
-Message-ID: <20150826150833.333419b9e437151f2829e83b@linux-foundation.org>
+From: akpm at linux-foundation.org <akpm@linux-foundation.org>
+Date: Wed, 26 Aug 2015 15:11:21 -0700
+Subject: [Ocfs2-devel] [patch 01/28] ocfs2: set filesytem read-only when
+ ocfs2_delete_entry failed.
+Message-ID: <55de3989.YMw1ECdWagoCdX9X%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Fri, 21 Aug 2015 14:39:55 -0700 Andrew Morton <akpm@linux-foundation.org> wrote:
+From: jiangyiwen <jiangyiwen@huawei.com>
+Subject: ocfs2: set filesytem read-only when ocfs2_delete_entry failed.
 
-> Guys, we're really getting behind with this and I'm sitting on a large
-> number of rather old patches.
-> 
-> So can we please get down, review this code and make a decision one way
-> or the other?
-> 
-> Here's the list of 24 patches I shall send out, along with a few notes:
+In ocfs2_rename, it will lead to an inode with two entried(old and new) if
+ocfs2_delete_entry(old) failed.  Thus, filesystem will be inconsistent.
 
-oops, I forgot to send the patches.  Sorry for keeping you
-all in suspense ;)
+The case is described below:
+
+ocfs2_rename
+    -> ocfs2_start_trans
+    -> ocfs2_add_entry(new)
+    -> ocfs2_delete_entry(old)
+        -> __ocfs2_journal_access *failed* because of -ENOMEM
+    -> ocfs2_commit_trans
+
+So filesystem should be set to read-only at the moment.
+
+Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Cc: Joseph Qi <joseph.qi@huawei.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ fs/ocfs2/namei.c |   15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff -puN fs/ocfs2/namei.c~ocfs2-set-filesytem-read-only-when-ocfs2_delete_entry-failed fs/ocfs2/namei.c
+--- a/fs/ocfs2/namei.c~ocfs2-set-filesytem-read-only-when-ocfs2_delete_entry-failed
++++ a/fs/ocfs2/namei.c
+@@ -1544,12 +1544,25 @@ static int ocfs2_rename(struct inode *ol
+ 	status = ocfs2_find_entry(old_dentry->d_name.name,
+ 				  old_dentry->d_name.len, old_dir,
+ 				  &old_entry_lookup);
+-	if (status)
++	if (status) {
++		if (!is_journal_aborted(osb->journal->j_journal)) {
++			ocfs2_error(osb->sb, "new entry %.*s is added, but old entry %.*s "
++					"is not deleted.",
++					new_dentry->d_name.len, new_dentry->d_name.name,
++					old_dentry->d_name.len, old_dentry->d_name.name);
++		}
+ 		goto bail;
++	}
+ 
+ 	status = ocfs2_delete_entry(handle, old_dir, &old_entry_lookup);
+ 	if (status < 0) {
+ 		mlog_errno(status);
++		if (!is_journal_aborted(osb->journal->j_journal)) {
++			ocfs2_error(osb->sb, "new entry %.*s is added, but old entry %.*s "
++					"is not deleted.",
++					new_dentry->d_name.len, new_dentry->d_name.name,
++					old_dentry->d_name.len, old_dentry->d_name.name);
++		}
+ 		goto bail;
+ 	}
+ 
+_
