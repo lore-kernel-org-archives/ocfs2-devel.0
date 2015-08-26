@@ -1,8 +1,8 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 26 Aug 2015 15:12:22 -0700
-Subject: [Ocfs2-devel] [patch 23/28] ocfs2: check/fix inode block for online
+Date: Wed, 26 Aug 2015 15:12:25 -0700
+Subject: [Ocfs2-devel] [patch 24/28] ocfs2: add feature document for online
 	file check
-Message-ID: <55de39c6.NQqMm5hA00TLdLDU%akpm@linux-foundation.org>
+Message-ID: <55de39c9.NAoA+ITBkmwk4Suv%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -10,290 +10,127 @@ Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
 From: Gang He <ghe@suse.com>
-Subject: ocfs2: check/fix inode block for online file check
+Subject: ocfs2: add feature document for online file check
 
-Implement online check or fix inode block during reading a inode block to
-memory.
+This document describes the OCFS2 online file check feature.
+
+OCFS2 is often used in high-availaibility systems.  However, OCFS2 usually
+converts the filesystem to read-only on errors.  This may not be
+necessary, since turning the filesystem read-only would affect other
+running processes as well, decreasing availability.  Then, a mount option
+(errors=continue) was introduced, which would return the EIO to the
+calling process and terminate furhter processing so that the filesystem is
+not corrupted further.  The filesystem is not converted to read-only, and
+the problematic file's inode number is reported in the kernel log.  The
+user can try to check/fix this file via online filecheck feature.
 
 Signed-off-by: Gang He <ghe@suse.com>
-Reviewed-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Cc: Goldwyn Rodrigues <rgoldwyn@suse.de>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/inode.c       |  196 +++++++++++++++++++++++++++++++++++++--
- fs/ocfs2/ocfs2_trace.h |    2 
- 2 files changed, 192 insertions(+), 6 deletions(-)
+ Documentation/filesystems/ocfs2-online-filecheck.txt |   95 ++++++++++
+ 1 file changed, 95 insertions(+)
 
-diff -puN fs/ocfs2/inode.c~ocfs2-check-fix-inode-block-for-online-file-check fs/ocfs2/inode.c
---- a/fs/ocfs2/inode.c~ocfs2-check-fix-inode-block-for-online-file-check
-+++ a/fs/ocfs2/inode.c
-@@ -53,6 +53,7 @@
- #include "xattr.h"
- #include "refcounttree.h"
- #include "ocfs2_trace.h"
-+#include "filecheck.h"
- 
- #include "buffer_head_io.h"
- 
-@@ -74,6 +75,13 @@ static int ocfs2_truncate_for_delete(str
- 				    struct inode *inode,
- 				    struct buffer_head *fe_bh);
- 
-+static int ocfs2_filecheck_read_inode_block_full(struct inode *inode,
-+			struct buffer_head **bh, int flags, int type);
-+static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
-+			struct buffer_head *bh);
-+static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
-+			struct buffer_head *bh);
+diff -puN /dev/null Documentation/filesystems/ocfs2-online-filecheck.txt
+--- /dev/null
++++ a/Documentation/filesystems/ocfs2-online-filecheck.txt
+@@ -0,0 +1,95 @@
++		    OCFS2 online file check
++		    -----------------------
 +
- void ocfs2_set_inode_flags(struct inode *inode)
- {
- 	unsigned int flags = OCFS2_I(inode)->ip_attr;
-@@ -127,6 +135,7 @@ struct inode *ocfs2_ilookup(struct super
- struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned flags,
- 			 int sysfile_type)
- {
-+	int rc = 0;
- 	struct inode *inode = NULL;
- 	struct super_block *sb = osb->sb;
- 	struct ocfs2_find_inode_args args;
-@@ -161,12 +170,17 @@ struct inode *ocfs2_iget(struct ocfs2_su
- 	}
- 	trace_ocfs2_iget5_locked(inode->i_state);
- 	if (inode->i_state & I_NEW) {
--		ocfs2_read_locked_inode(inode, &args);
-+		rc = ocfs2_read_locked_inode(inode, &args);
- 		unlock_new_inode(inode);
- 	}
- 	if (is_bad_inode(inode)) {
- 		iput(inode);
--		inode = ERR_PTR(-ESTALE);
-+		if ((flags & OCFS2_FI_FLAG_FILECHECK_CHK) ||
-+			(flags & OCFS2_FI_FLAG_FILECHECK_FIX))
-+			/* Return OCFS2_FILECHECK_ERR_XXX related errno */
-+			inode = ERR_PTR(rc);
-+		else
-+			inode = ERR_PTR(-ESTALE);
- 		goto bail;
- 	}
- 
-@@ -494,16 +508,32 @@ static int ocfs2_read_locked_inode(struc
- 	}
- 
- 	if (can_lock) {
--		status = ocfs2_read_inode_block_full(inode, &bh,
--						     OCFS2_BH_IGNORE_CACHE);
-+		if (args->fi_flags & OCFS2_FI_FLAG_FILECHECK_CHK)
-+			status = ocfs2_filecheck_read_inode_block_full(inode,
-+						&bh, OCFS2_BH_IGNORE_CACHE, 0);
-+		else if (args->fi_flags & OCFS2_FI_FLAG_FILECHECK_FIX)
-+			status = ocfs2_filecheck_read_inode_block_full(inode,
-+						&bh, OCFS2_BH_IGNORE_CACHE, 1);
-+		else
-+			status = ocfs2_read_inode_block_full(inode,
-+						&bh, OCFS2_BH_IGNORE_CACHE);
- 	} else {
- 		status = ocfs2_read_blocks_sync(osb, args->fi_blkno, 1, &bh);
- 		/*
- 		 * If buffer is in jbd, then its checksum may not have been
- 		 * computed as yet.
- 		 */
--		if (!status && !buffer_jbd(bh))
--			status = ocfs2_validate_inode_block(osb->sb, bh);
-+		if (!status && !buffer_jbd(bh)) {
-+			if (args->fi_flags & OCFS2_FI_FLAG_FILECHECK_CHK)
-+				status = ocfs2_filecheck_validate_inode_block(
-+								osb->sb, bh);
-+			else if (args->fi_flags & OCFS2_FI_FLAG_FILECHECK_FIX)
-+				status = ocfs2_filecheck_repair_inode_block(
-+								osb->sb, bh);
-+			else
-+				status = ocfs2_validate_inode_block(
-+								osb->sb, bh);
-+		}
- 	}
- 	if (status < 0) {
- 		mlog_errno(status);
-@@ -531,6 +561,14 @@ static int ocfs2_read_locked_inode(struc
- 
- 	BUG_ON(args->fi_blkno != le64_to_cpu(fe->i_blkno));
- 
-+	if (buffer_dirty(bh)) {
-+		status = ocfs2_write_block(osb, bh, INODE_CACHE(inode));
-+		if (status < 0) {
-+			mlog_errno(status);
-+			goto bail;
-+		}
-+	}
++This document will describe OCFS2 online file check feature.
 +
- 	status = 0;
- 
- bail:
-@@ -1396,6 +1434,152 @@ bail:
- 	return rc;
- }
- 
-+static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
-+			       struct buffer_head *bh)
-+{
-+	int rc = 0;
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
++Introduction
++============
++OCFS2 is often used in high-availaibility systems. However, OCFS2 usually
++converts the filesystem to read-only on errors. This may not be necessary, since
++turning the filesystem read-only would affect other running processes as well,
++decreasing availability. Then, a mount option (errors=continue) was introduced,
++which would return the EIO to the calling process and terminate furhter
++processing so that the filesystem is not corrupted further. The filesystem is
++not converted to read-only, and the problematic file's inode number is reported
++in the kernel log. The user can try to check/fix this file via online filecheck
++feature.
 +
-+	trace_ocfs2_filecheck_validate_inode_block(
-+		(unsigned long long)bh->b_blocknr);
++Scope
++=====
++This effort is to check/fix small issues which may hinder day-to-day operations
++of a cluster filesystem by turning the filesystem read-only. The scope of
++checking/fixing is at the file level, initially for regular files and eventually
++to all files (including system files) of the filesystem.
 +
-+	BUG_ON(!buffer_uptodate(bh));
++In case of directory to file links is incorrect, the directory inode is
++reported as erroneous.
 +
-+	if (!OCFS2_IS_VALID_DINODE(di)) {
-+		mlog(ML_ERROR,
-+			"Filecheck: invalid dinode #%llu: signature = %.*s\n",
-+			(unsigned long long)bh->b_blocknr, 7, di->i_signature);
-+		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-+		goto bail;
-+	}
++This feature is not suited for extravagant checks which involve dependency of
++other components of the filesystem, such as but not limited to, checking if the
++bits for file blocks in the allocation has been set. In case of such an error,
++the offline fsck should/would be recommended.
 +
-+	rc = ocfs2_validate_meta_ecc(sb, bh->b_data, &di->i_check);
-+	if (rc) {
-+		mlog(ML_ERROR,
-+			"Filecheck: checksum failed for dinode %llu\n",
-+			(unsigned long long)bh->b_blocknr);
-+		rc = -OCFS2_FILECHECK_ERR_BLOCKECC;
-+		goto bail;
-+	}
++Finally, such an operation/feature should not be automated lest the filesystem
++may end up with more damage than before the repair attempt. So, this has to
++be performed using user interaction and consent.
 +
-+	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
-+		mlog(ML_ERROR,
-+			"Filecheck: invalid dinode #%llu: i_blkno is %llu\n",
-+			(unsigned long long)bh->b_blocknr,
-+			(unsigned long long)le64_to_cpu(di->i_blkno));
-+		rc = -OCFS2_FILECHECK_ERR_BLOCKNO;
-+		goto bail;
-+	}
++User interface
++==============
++When there are errors in the OCFS2 filesystem, they are usually accompanied
++by the inode number which caused the error. This inode number would be the
++input to check/fix the file.
 +
-+	if (!(di->i_flags & cpu_to_le32(OCFS2_VALID_FL))) {
-+		mlog(ML_ERROR,
-+			"Filecheck: invalid dinode #%llu: OCFS2_VALID_FL not set\n",
-+			(unsigned long long)bh->b_blocknr);
-+		rc = -OCFS2_FILECHECK_ERR_VALIDFLAG;
-+		goto bail;
-+	}
++There is a sysfs file for each OCFS2 file system mounting:
 +
-+	if (le32_to_cpu(di->i_fs_generation) !=
-+	    OCFS2_SB(sb)->fs_generation) {
-+		mlog(ML_ERROR,
-+			"Filecheck: invalid dinode #%llu: fs_generation is %u\n",
-+			(unsigned long long)bh->b_blocknr,
-+			le32_to_cpu(di->i_fs_generation));
-+		rc = -OCFS2_FILECHECK_ERR_GENERATION;
-+		goto bail;
-+	}
++  /sys/fs/ocfs2/<devname>/filecheck
 +
-+bail:
-+	return rc;
-+}
++Here, <devname> indicates the name of OCFS2 volumn device which has been already
++mounted. The file above would accept inode numbers. This could be used to
++communicate with kernel space, tell which file(inode number) will be checked or
++fixed. Currently, three operations are supported, which includes checking
++inode, fixing inode and setting the size of result record history.
 +
-+static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
-+			       struct buffer_head *bh)
-+{
-+	int rc;
-+	int changed = 0;
-+	struct ocfs2_dinode *di = (struct ocfs2_dinode *)bh->b_data;
++1. If you want to know what error exactly happened to <inode> before fixing, do
 +
-+	rc = ocfs2_filecheck_validate_inode_block(sb, bh);
-+	/* Can't fix invalid inode block */
-+	if (!rc || rc == -OCFS2_FILECHECK_ERR_INVALIDINO)
-+		return rc;
++  # echo "CHECK <inode>" > /sys/fs/ocfs2/<devname>/filecheck
++  # cat /sys/fs/ocfs2/<devname>/filecheck
 +
-+	trace_ocfs2_filecheck_repair_inode_block(
-+		(unsigned long long)bh->b_blocknr);
++The output is like this:
++  INO		TYPE		DONE		ERROR
++39502		0		1		GENERATION
 +
-+	if (ocfs2_is_hard_readonly(OCFS2_SB(sb)) ||
-+		ocfs2_is_soft_readonly(OCFS2_SB(sb))) {
-+		mlog(ML_ERROR,
-+			"Filecheck: try to repair dinode #%llu on readonly filesystem\n",
-+			(unsigned long long)bh->b_blocknr);
-+		return -OCFS2_FILECHECK_ERR_READONLY;
-+	}
++<INO> lists the inode numbers.
++<TYPE> is what kind of operation you've done, 0 for inode check,1 for inode fix.
++<DONE> indicates whether the operation has been finished.
++<ERROR> says what kind of errors was found. For the detailed error numbers,
++please refer to the file linux/fs/ocfs2/filecheck.h.
 +
-+	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
-+		di->i_blkno = cpu_to_le64(bh->b_blocknr);
-+		changed = 1;
-+		mlog(ML_ERROR,
-+			"Filecheck: reset dinode #%llu: i_blkno to %llu\n",
-+			(unsigned long long)bh->b_blocknr,
-+			(unsigned long long)le64_to_cpu(di->i_blkno));
-+	}
++2. If you determine to fix this inode, do
 +
-+	if (!(di->i_flags & cpu_to_le32(OCFS2_VALID_FL))) {
-+		di->i_flags |= cpu_to_le32(OCFS2_VALID_FL);
-+		changed = 1;
-+		mlog(ML_ERROR,
-+			"Filecheck: reset dinode #%llu: OCFS2_VALID_FL is set\n",
-+			(unsigned long long)bh->b_blocknr);
-+	}
++  # echo "FIX <inode>" > /sys/fs/ocfs2/<devname>/filecheck
++  # cat /sys/fs/ocfs2/<devname>/filecheck
 +
-+	if (le32_to_cpu(di->i_fs_generation) !=
-+	    OCFS2_SB(sb)->fs_generation) {
-+		di->i_fs_generation = cpu_to_le32(OCFS2_SB(sb)->fs_generation);
-+		changed = 1;
-+		mlog(ML_ERROR,
-+			"Filecheck: reset dinode #%llu: fs_generation to %u\n",
-+			(unsigned long long)bh->b_blocknr,
-+			le32_to_cpu(di->i_fs_generation));
-+	}
++The output is like this:
++  INO		TYPE		DONE		ERROR
++39502		1		1		SUCCESS
 +
-+	if (changed ||
-+		ocfs2_validate_meta_ecc(sb, bh->b_data, &di->i_check)) {
-+		ocfs2_compute_meta_ecc(sb, bh->b_data, &di->i_check);
-+		mark_buffer_dirty(bh);
-+		mlog(ML_ERROR,
-+			"Filecheck: reset dinode #%llu: compute meta ecc\n",
-+			(unsigned long long)bh->b_blocknr);
-+	}
++This time, the <ERROR> column indicates whether this fix is successful or not.
 +
-+	return 0;
-+}
++3. The record cache is used to store the history of check/fix result. Its
++defalut size is 10, and can be adjust between the range of 10 ~ 100. You can
++adjust the size like this:
 +
-+static int
-+ocfs2_filecheck_read_inode_block_full(struct inode *inode,
-+		struct buffer_head **bh, int flags, int type)
-+{
-+	int rc;
-+	struct buffer_head *tmp = *bh;
++  # echo "SET <size>" > /sys/fs/ocfs2/<devname>/filecheck
 +
-+	if (!type) /* Check inode block */
-+		rc = ocfs2_read_blocks(INODE_CACHE(inode),
-+				OCFS2_I(inode)->ip_blkno,
-+				1, &tmp, flags,
-+				ocfs2_filecheck_validate_inode_block);
-+	else /* Repair inode block */
-+		rc = ocfs2_read_blocks(INODE_CACHE(inode),
-+				OCFS2_I(inode)->ip_blkno,
-+				1, &tmp, flags,
-+				ocfs2_filecheck_repair_inode_block);
++Fixing stuff
++============
++On receivng the inode, the filesystem would read the inode and the
++file metadata. In case of errors, the filesystem would fix the errors
++and report the problems it fixed in the kernel log. As a precautionary measure,
++the inode must first be checked for errors before performing a final fix.
 +
-+	/* If ocfs2_read_blocks() got us a new bh, pass it up. */
-+	if (!rc && !*bh)
-+		*bh = tmp;
-+
-+	return rc;
-+}
-+
- int ocfs2_read_inode_block_full(struct inode *inode, struct buffer_head **bh,
- 				int flags)
- {
-diff -puN fs/ocfs2/ocfs2_trace.h~ocfs2-check-fix-inode-block-for-online-file-check fs/ocfs2/ocfs2_trace.h
---- a/fs/ocfs2/ocfs2_trace.h~ocfs2-check-fix-inode-block-for-online-file-check
-+++ a/fs/ocfs2/ocfs2_trace.h
-@@ -1540,6 +1540,8 @@ DEFINE_OCFS2_ULL_INT_EVENT(ocfs2_read_lo
- DEFINE_OCFS2_INT_INT_EVENT(ocfs2_check_orphan_recovery_state);
- 
- DEFINE_OCFS2_ULL_EVENT(ocfs2_validate_inode_block);
-+DEFINE_OCFS2_ULL_EVENT(ocfs2_filecheck_validate_inode_block);
-+DEFINE_OCFS2_ULL_EVENT(ocfs2_filecheck_repair_inode_block);
- 
- TRACE_EVENT(ocfs2_inode_is_valid_to_delete,
- 	TP_PROTO(void *task, void *dc_task, unsigned long long ino,
++The inode and the result history will be maintained temporarily in a
++small linked list buffer which would contain the last (N) inodes
++fixed/checked, the detailed errors which were fixed/checked are printed in the
++kernel log.
 _
