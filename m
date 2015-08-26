@@ -1,82 +1,82 @@
 From: akpm at linux-foundation.org <akpm@linux-foundation.org>
-Date: Wed, 26 Aug 2015 15:11:57 -0700
-Subject: [Ocfs2-devel] [patch 14/28] ocfs2: take inode lock in
-	ocfs2_iop_set/get_acl()
-Message-ID: <55de39ad.N03/N28MqAInBiTy%akpm@linux-foundation.org>
+Date: Wed, 26 Aug 2015 15:12:00 -0700
+Subject: [Ocfs2-devel] [patch 15/28] ocfs2: fix race between crashed dio and
+	rm
+Message-ID: <55de39b0.aaGASvWligtEatCU%akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-From: Tariq Saeed <tariq.x.saeed@oracle.com>
-Subject: ocfs2: take inode lock in ocfs2_iop_set/get_acl()
+From: Joseph Qi <joseph.qi@huawei.com>
+Subject: ocfs2: fix race between crashed dio and rm
 
-Orabug: 20189959
+There is a race case between crashed dio and rm, which will lead to
+OCFS2_VALID_FL not set read-only.
 
-This bug in mainline code is pointed out by Mark Fasheh.  When
-ocfs2_iop_set_acl() and ocfs2_iop_get_acl() are entered from VFS layer,
-inode lock is not held.  This seems to be regression from older kernels. 
-The patch is to fix that.
+N1                              N2
+------------------------------------------------------------------------
+dd with direct flag
+                                rm file
+crashed with an dio entry left
+in orphan dir
+                                clear OCFS2_VALID_FL in
+                                ocfs2_remove_inode
+                                recover N1 and read the corrupted inode,
+                                and set filesystem read-only
 
-Signed-off-by: Tariq Saeed <tariq.x.saeed@oracle.com>
+So we skip the inode deletion this time and wait for dio entry
+recovered first.
+
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
 Cc: Mark Fasheh <mfasheh@suse.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- fs/ocfs2/acl.c |   26 ++++++++++++++++++++------
- 1 file changed, 20 insertions(+), 6 deletions(-)
+ fs/ocfs2/inode.c   |    9 +++++++++
+ fs/ocfs2/journal.c |    4 +++-
+ 2 files changed, 12 insertions(+), 1 deletion(-)
 
-diff -puN fs/ocfs2/acl.c~resubmit-ocfs2_iop_set-get_acl-called-from-the-vfs-so-take-inode-lock-v2second-version fs/ocfs2/acl.c
---- a/fs/ocfs2/acl.c~resubmit-ocfs2_iop_set-get_acl-called-from-the-vfs-so-take-inode-lock-v2second-version
-+++ a/fs/ocfs2/acl.c
-@@ -284,7 +284,19 @@ int ocfs2_set_acl(handle_t *handle,
- 
- int ocfs2_iop_set_acl(struct inode *inode, struct posix_acl *acl, int type)
- {
--	return ocfs2_set_acl(NULL, inode, NULL, type, acl, NULL, NULL);
-+	struct buffer_head *bh = NULL;
-+	int status = 0;
-+
-+	status = ocfs2_inode_lock(inode, &bh, 1);
-+	if (status < 0) {
-+		if (status != -ENOENT)
-+			mlog_errno(status);
-+		return status;
-+	}
-+	status = ocfs2_set_acl(NULL, inode, bh, type, acl, NULL, NULL);
-+	ocfs2_inode_unlock(inode, 1);
-+	brelse(bh);
-+	return status;
- }
- 
- struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
-@@ -292,19 +304,21 @@ struct posix_acl *ocfs2_iop_get_acl(stru
- 	struct ocfs2_super *osb;
+diff -puN fs/ocfs2/inode.c~ocfs2-fix-race-between-crashed-dio-and-rm fs/ocfs2/inode.c
+--- a/fs/ocfs2/inode.c~ocfs2-fix-race-between-crashed-dio-and-rm
++++ a/fs/ocfs2/inode.c
+@@ -971,6 +971,7 @@ static void ocfs2_delete_inode(struct in
+ 	int wipe, status;
+ 	sigset_t oldset;
  	struct buffer_head *di_bh = NULL;
- 	struct posix_acl *acl;
--	int ret = -EAGAIN;
-+	int ret;
++	struct ocfs2_dinode *di = NULL;
  
- 	osb = OCFS2_SB(inode->i_sb);
- 	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
- 		return NULL;
--
--	ret = ocfs2_read_inode_block(inode, &di_bh);
--	if (ret < 0)
-+	ret = ocfs2_inode_lock(inode, &di_bh, 0);
-+	if (ret < 0) {
-+		if (ret != -ENOENT)
-+			mlog_errno(ret);
- 		return ERR_PTR(ret);
+ 	trace_ocfs2_delete_inode(inode->i_ino,
+ 				 (unsigned long long)OCFS2_I(inode)->ip_blkno,
+@@ -1025,6 +1026,14 @@ static void ocfs2_delete_inode(struct in
+ 		goto bail_unlock_nfs_sync;
+ 	}
+ 
++	di = (struct ocfs2_dinode *)di_bh->b_data;
++	/* Skip inode deletion and wait for dio orphan entry recovered
++	 * first */
++	if (unlikely(di->i_flags & cpu_to_le32(OCFS2_DIO_ORPHANED_FL))) {
++		ocfs2_cleanup_delete_inode(inode, 0);
++		goto bail_unlock_inode;
 +	}
- 
- 	acl = ocfs2_get_acl_nolock(inode, type, di_bh);
- 
-+	ocfs2_inode_unlock(inode, 0);
- 	brelse(di_bh);
--
- 	return acl;
- }
++
+ 	/* Query the cluster. This will be the final decision made
+ 	 * before we go ahead and wipe the inode. */
+ 	status = ocfs2_query_inode_wipe(inode, di_bh, &wipe);
+diff -puN fs/ocfs2/journal.c~ocfs2-fix-race-between-crashed-dio-and-rm fs/ocfs2/journal.c
+--- a/fs/ocfs2/journal.c~ocfs2-fix-race-between-crashed-dio-and-rm
++++ a/fs/ocfs2/journal.c
+@@ -2210,7 +2210,9 @@ static int ocfs2_recover_orphans(struct
+ 			 * ocfs2_delete_inode. */
+ 			oi->ip_flags |= OCFS2_INODE_MAYBE_ORPHANED;
+ 			spin_unlock(&oi->ip_lock);
+-		} else if ((orphan_reco_type == ORPHAN_NEED_TRUNCATE) &&
++		}
++
++		if ((orphan_reco_type == ORPHAN_NEED_TRUNCATE) &&
+ 				(di->i_flags & cpu_to_le32(OCFS2_DIO_ORPHANED_FL))) {
+ 			ret = ocfs2_truncate_file(inode, di_bh,
+ 					i_size_read(inode));
 _
