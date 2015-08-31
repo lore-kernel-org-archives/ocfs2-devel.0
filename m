@@ -1,71 +1,76 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Sat, 29 Aug 2015 10:38:09 +0800
-Subject: [Ocfs2-devel] [patch 11/28] ocfs2: extend enough credits for
- freeing one truncate record while replaying truncate records
-In-Reply-To: <20150828235543.GQ1145@wotan.suse.de>
-References: <55de39a4.mm24W9YHh8D6r9FS%akpm@linux-foundation.org>
-	<20150828235543.GQ1145@wotan.suse.de>
-Message-ID: <55E11B11.8000701@huawei.com>
+From: jiangyiwen <jiangyiwen@huawei.com>
+Date: Mon, 31 Aug 2015 15:28:54 +0800
+Subject: [Ocfs2-devel] [patch 07/28] ocfs2: fix a tiny case that inode
+	can not removed.
+In-Reply-To: <20150828232632.GL1145@wotan.suse.de>
+References: <55de3999.S27PDhRmJdx2Acho%akpm@linux-foundation.org>
+	<20150828232632.GL1145@wotan.suse.de>
+Message-ID: <55E40236.5020104@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-
-On 2015/8/29 7:55, Mark Fasheh wrote:
-> On Wed, Aug 26, 2015 at 03:11:48PM -0700, Andrew Morton wrote:
->> From: Xue jiufei <xuejiufei@huawei.com>
->> Subject: ocfs2: extend enough credits for freeing one truncate record while replaying truncate records
+On 2015/8/29 7:26, Mark Fasheh wrote:
+> On Wed, Aug 26, 2015 at 03:11:37PM -0700, Andrew Morton wrote:
+>> From: jiangyiwen <jiangyiwen@huawei.com>
+>> Subject: ocfs2: fix a tiny case that inode can not removed.
 >>
->> Now function ocfs2_replay_truncate_records() first modifies tl_used, then
->> calls ocfs2_extend_trans() to extend transactions for gd and alloc inode
->> used for freeing clusters.  jbd2_journal_restart() may be called and it
->> may happen that tl_used in truncate log is decreased but the clusters are
->> not freed, which means these clusters are lost.  So we should avoid
->> extending transactions in these two operations.
+>> When running dirop_fileop_racer we found a case that inode
+>> can not removed.
 >>
->> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
->> Cc: Mark Fasheh <mfasheh@suse.com>
->> Cc: Joel Becker <jlbec@evilplan.org>
->> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
->> ---
+>> 2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
+>> two dirs /race/1/ and /race/2/ in the filesystem.
 >>
->>  fs/ocfs2/alloc.c |   19 ++++++++-----------
->>  1 file changed, 8 insertions(+), 11 deletions(-)
+>> Node A                            Node B
+>> rm -r /race/2/
+>>                                   mv /race/1/ /race/2/
+>> call ocfs2_unlink(), get
+>> the EX mode of /race/2/
+>>                                   wait for B unlock /race/2/
+>> decrease i_nlink of /race/2/ to 0,
+>> and add inode of /race/2/ into
+>> orphan dir, unlock /race/2/
+>>                                   got EX mode of /race/2/. because
+>>                                   /race/1/ is dir, so inc i_nlink
+>>                                   of /race/2/ and update into disk,
+>>                                   unlock /race/2/
+>> because i_nlink of /race/2/
+>> is not zero, this inode will
+>> always remain in orphan dir
 >>
->> diff -puN fs/ocfs2/alloc.c~extend-enough-credits-for-freeing-one-truncate-record-while-replaying-truncate-records fs/ocfs2/alloc.c
->> --- a/fs/ocfs2/alloc.c~extend-enough-credits-for-freeing-one-truncate-record-while-replaying-truncate-records
->> +++ a/fs/ocfs2/alloc.c
+>> This patch fixes this case by test whether i_nlink of new dir is zero.
 > 
-> <looks good>
 > 
->> @@ -6063,7 +6060,7 @@ int __ocfs2_flush_truncate_log(struct oc
->>  		goto out_mutex;
+> Good catch, thanks for this.
+> 
+> 
+>> diff -puN fs/ocfs2/namei.c~ocfs2-fix-a-tiny-case-that-inode-can-not-removed fs/ocfs2/namei.c
+>> --- a/fs/ocfs2/namei.c~ocfs2-fix-a-tiny-case-that-inode-can-not-removed
+>> +++ a/fs/ocfs2/namei.c
+>> @@ -1284,6 +1284,15 @@ static int ocfs2_rename(struct inode *ol
 >>  	}
+>>  	parents_locked = 1;
 >>  
->> -	handle = ocfs2_start_trans(osb, OCFS2_TRUNCATE_LOG_UPDATE);
->> +	handle = ocfs2_start_trans(osb, OCFS2_TRUNCATE_LOG_FLUSH_ONE_REC);
->>  	if (IS_ERR(handle)) {
->>  		status = PTR_ERR(handle);
->>  		mlog_errno(status);
+>> +	if (!new_dir->i_nlink) {
+>> +		mlog(ML_ERROR, "new dir %llu has been removed, inode %llu "
+>> +				"can not be moved into it.",
+>> +				(unsigned long long)new_dir->i_ino,
+>> +				(unsigned long long)old_inode->i_ino);
 > 
-> Why is this particular change here?
+> This is something that is rare, but not an error or otherwise outstanding
+> condition. Therefore printing to the kernel log is not advisable and may
+> confuse users. Please turn that into a debug print or remove it all
+> together, thanks.
 > 	--Mark
 > 
-I think Joyce wants to get enough credits at first and then call
-ocfs2_replay_truncate_records.
-
-Thanks
-Joseph
-
 > --
 > Mark Fasheh
 > 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> .
 > 
-> 
+OK, thanks Mark, I will resend a new version immediately.
+
+Thanks,
+Yiwen Jiang
