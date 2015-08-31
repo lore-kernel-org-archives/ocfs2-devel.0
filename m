@@ -1,45 +1,85 @@
 From: Mark Fasheh <mfasheh@suse.de>
-Date: Mon, 31 Aug 2015 12:54:33 -0700
-Subject: [Ocfs2-devel] [patch 16/28] ocfs2: use 64bit variables to track
-	heartbeat time
-In-Reply-To: <55de39b3.bvLYc7Hlsn6Fm6Py%akpm@linux-foundation.org>
-References: <55de39b3.bvLYc7Hlsn6Fm6Py%akpm@linux-foundation.org>
-Message-ID: <20150831195433.GV1145@wotan.suse.de>
+Date: Mon, 31 Aug 2015 13:00:13 -0700
+Subject: [Ocfs2-devel] [patch 17/28] ocfs2: call
+ ocfs2_journal_access_di() before ocfs2_journal_dirty() in
+ ocfs2_write_end_nolock()
+In-Reply-To: <55de39b6.amMqJlKPcMt+SaBx%akpm@linux-foundation.org>
+References: <55de39b6.amMqJlKPcMt+SaBx%akpm@linux-foundation.org>
+Message-ID: <20150831200013.GW1145@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Aug 26, 2015 at 03:12:03PM -0700, Andrew Morton wrote:
-> From: Tina Ruchandani <ruchandani.tina@gmail.com>
-> Subject: ocfs2: use 64bit variables to track heartbeat time
+On Wed, Aug 26, 2015 at 03:12:06PM -0700, Andrew Morton wrote:
+> From: yangwenfang <vicky.yangwenfang@huawei.com>
+> Subject: ocfs2: call ocfs2_journal_access_di() before ocfs2_journal_dirty() in ocfs2_write_end_nolock()
 > 
-> o2hb_elapsed_msecs computes the time taken for a disk heartbeat.  'struct
-> timeval' variables are used to store start and end times.  On 32-bit
-> systems, the 'tv_sec' component of 'struct timeval' will overflow in year
-> 2038 and beyond.
+> 1: After we call ocfs2_journal_access_di() in ocfs2_write_begin(),
+>    jbd2_journal_restart() may also be called, in this function transaction
+>    A's t_updates-- and obtains a new transaction B.  If
+>    jbd2_journal_commit_transaction() is happened to commit transaction A,
+>    when t_updates==0, it will continue to complete commit and unfile
+>    buffer.
 > 
-> This patch solves the overflow with the following:
+>    So when jbd2_journal_dirty_metadata(), the handle is pointed a new
+>    transaction B, and the buffer head's journal head is already freed,
+>    jh->b_transaction == NULL, jh->b_next_transaction == NULL, it returns
+>    EINVAL, So it triggers the BUG_ON(status).
 > 
-> 1. Replace o2hb_elapsed_msecs using 'ktime_t' values to measure start
->    and end time, and built-in function 'ktime_ms_delta' to compute the
->    elapsed time.  ktime_get_real() is used since the code prints out the
->    wallclock time.
+> thread 1                                          jbd2
+> ocfs2_write_begin                     jbd2_journal_commit_transaction
+> ocfs2_write_begin_nolock
+>   ocfs2_start_trans
+>     jbd2__journal_start(t_updates+1,
+>                        transaction A)
+>     ocfs2_journal_access_di
+>     ocfs2_write_cluster_by_desc
+>       ocfs2_mark_extent_written
+>         ocfs2_change_extent_flag
+>           ocfs2_split_extent
+>             ocfs2_extend_rotate_transaction
+>               jbd2_journal_restart
+>               (t_updates-1,transaction B) t_updates==0
+>                                         __jbd2_journal_refile_buffer
+>                                         (jh->b_transaction = NULL)
+> ocfs2_write_end
+> ocfs2_write_end_nolock
+>     ocfs2_journal_dirty
+>         jbd2_journal_dirty_metadata(bug)
+>    ocfs2_commit_trans
 > 
-> 2. Changes format string to print time as a single 64-bit nanoseconds
->    value ("%lld") instead of seconds and microseconds.  This simplifies
->    the code since converting ktime_t to that format would need expensive
->    computation.  However, the debug log string is less readable than the
->    previous format.
+> 2.  In ext4, I found that: jbd2_journal_get_write_access() called by
+>    ext4_write_end.
 > 
-> Signed-off-by: Tina Ruchandani <ruchandani.tina@gmail.com>
-> Suggested by: Arnd Bergmann <arnd@arndb.de>
+> ext4_write_begin
+>     ext4_journal_start
+>         __ext4_journal_start_sb
+>             ext4_journal_check_start
+>             jbd2__journal_start
+> 
+> ext4_write_end
+>     ext4_mark_inode_dirty
+>         ext4_reserve_inode_write
+>             ext4_journal_get_write_access
+>                 jbd2_journal_get_write_access
+>         ext4_mark_iloc_dirty
+>             ext4_do_update_inode
+>                 ext4_handle_dirty_metadata
+>                     jbd2_journal_dirty_metadata
+> 
+> 3. So I think we should put ocfs2_journal_access_di before
+>    ocfs2_journal_dirty in the ocfs2_write_end.  and it works well after my
+>    modification.
+> 
+> Signed-off-by: vicky <vicky.yangwenfang@huawei.com>
 > Cc: Mark Fasheh <mfasheh@suse.com>
 > Cc: Joel Becker <jlbec@evilplan.org>
+> Cc: Zhangguanghui <zhang.guanghui@h3c.com>
 > Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-
 Reviewed-by: Mark Fasheh <mfasheh@suse.de>
+	--Mark
 
 --
 Mark Fasheh
