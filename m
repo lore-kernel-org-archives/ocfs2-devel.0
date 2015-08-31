@@ -1,59 +1,35 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Mon, 31 Aug 2015 15:36:15 +0800
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: fix a tiny case that inode can not
-	removed.
-Message-ID: <55E403EF.3060702@huawei.com>
+From: Mark Fasheh <mfasheh@suse.de>
+Date: Mon, 31 Aug 2015 12:39:13 -0700
+Subject: [Ocfs2-devel] [patch 12/28] ocfs2: optimize error handling in
+	dlm_request_join
+In-Reply-To: <55de39a7.aiByz4JkQhq9VuSt%akpm@linux-foundation.org>
+References: <55de39a7.aiByz4JkQhq9VuSt%akpm@linux-foundation.org>
+Message-ID: <20150831193913.GR1145@wotan.suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-When running dirop_fileop_racer we found a case that inode
-can not removed.
+On Wed, Aug 26, 2015 at 03:11:51PM -0700, Andrew Morton wrote:
+> From: "Norton.Zhu" <norton.zhu@huawei.com>
+> Subject: ocfs2: optimize error handling in dlm_request_join
+> 
+> Currently error handling in dlm_request_join is a little obscure, so
+> optimize it to promote readability.
+> 
+> If packet.code is invalid, reset it to JOIN_DISALLOW to keep it meaningful. 
+> It only influences the log printing.
+> 
+> Signed-off-by: Norton.Zhu <norton.zhu@huawei.com>
+> Cc: Srinivas Eeda <srinivas.eeda@oracle.com>
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Cc: Joel Becker <jlbec@evilplan.org>
+> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 
-2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
-two dirs /race/1/ and /race/2/ in the filesystem.
+Great cleanup btw, turning that mess into a switch statement, thanks.
 
-Node A                            Node B
-rm -r /race/2/
-                                  mv /race/1/ /race/2/
-call ocfs2_unlink(), get
-the EX mode of /race/2/
-                                  wait for B unlock /race/2/
-decrease i_nlink of /race/2/ to 0,
-and add inode of /race/2/ into
-orphan dir, unlock /race/2/
-                                  got EX mode of /race/2/. because
-                                  /race/1/ is dir, so inc i_nlink
-                                  of /race/2/ and update into disk,
-                                  unlock /race/2/
-because i_nlink of /race/2/
-is not zero, this inode will
-always remain in orphan dir
+Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 
-This patch fixes this case by test whether i_nlink of new dir is zero.
-
-Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
----
- fs/ocfs2/namei.c | 5 +++++
- 1 file changed, 5 insertions(+)
-
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 6e6abb9..2092c88 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -1284,6 +1284,11 @@ static int ocfs2_rename(struct inode *old_dir,
- 	}
- 	parents_locked = 1;
-
-+	if (!new_dir->i_nlink) {
-+		status = -EACCES;
-+		goto bail;
-+	}
-+
- 	/* make sure both dirs have bhs
- 	 * get an extra ref on old_dir_bh if old==new */
- 	if (!new_dir_bh) {
--- 
-1.8.3.4
+--
+Mark Fasheh
