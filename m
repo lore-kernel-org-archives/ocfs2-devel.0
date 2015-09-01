@@ -1,142 +1,36 @@
-From: Gang He <ghe@suse.com>
-Date: Mon, 31 Aug 2015 21:35:27 -0600
-Subject: [Ocfs2-devel] [patch 23/28] ocfs2: check/fix inode block for
- online file check
-In-Reply-To: <20150831205626.GB1145@wotan.suse.de>
-References: <55de39c6.NQqMm5hA00TLdLDU%akpm@linux-foundation.org>
-	<20150831205626.GB1145@wotan.suse.de>
-Message-ID: <55E58D7F020000F900013CB4@relay2.provo.novell.com>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Tue, 1 Sep 2015 05:32:16 -0500
+Subject: [Ocfs2-devel] ocfs2 version issue
+In-Reply-To: <55E50BF8.50004@oracle.com>
+References: <55E50BF8.50004@oracle.com>
+Message-ID: <55E57EB0.8060207@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hello Mark,
+Hi Junxiao,
 
-Thanks for your reviewing, please see my comments inline.
+On 08/31/2015 09:22 PM, Junxiao Bi wrote:
+> Hi Goldwyn,
+>
+> Ocfs2 kernel version is removed from commit
+> ff8fb335221e2c446b0d4cbea26be371fd2feb64 ("ocfs2: remove versioning
+> information"), but Oracle CRS depends on this version, and this made
+> Oracle CRS can't be installed. So i think we should revert this commit
+> and sync this version with ocfs2-tools. Do you have any other concern
+> about this?
+
+We removed the version because it did not make sense. Even if we put in 
+the version back we will have to maintain it and will have a similar 
+case where the version number in the kernel is way behind the tools 
+versions because of lack of updating. Add to it the confusion of users 
+who would not know which version to quote.
+
+I suggest the Oracle CRS should be modified to use the kernel version as 
+opposed to the ocfs2 kernel module specific versions.
 
 
->>> 
-> On Wed, Aug 26, 2015 at 03:12:22PM -0700, Andrew Morton wrote:
->> From: Gang He <ghe@suse.com>
->> Subject: ocfs2: check/fix inode block for online file check
->> 
->> Implement online check or fix inode block during reading a inode block to
->> memory.
->> 
->> Signed-off-by: Gang He <ghe@suse.com>
->> Reviewed-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
->> Cc: Mark Fasheh <mfasheh@suse.com>
->> Cc: Joel Becker <jlbec@evilplan.org>
->> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
->> ---
->> 
->>  fs/ocfs2/inode.c       |  196 +++++++++++++++++++++++++++++++++++++--
->>  fs/ocfs2/ocfs2_trace.h |    2 
->>  2 files changed, 192 insertions(+), 6 deletions(-)
->> 
->> diff -puN fs/ocfs2/inode.c~ocfs2-check-fix-inode-block-for-online-file-check 
-> fs/ocfs2/inode.c
->> --- a/fs/ocfs2/inode.c~ocfs2-check-fix-inode-block-for-online-file-check
->> +++ a/fs/ocfs2/inode.c
->> @@ -53,6 +53,7 @@
->>  #include "xattr.h"
->>  #include "refcounttree.h"
->>  #include "ocfs2_trace.h"
->> +#include "filecheck.h"
->>  
->>  #include "buffer_head_io.h"
->>  
->> @@ -74,6 +75,13 @@ static int ocfs2_truncate_for_delete(str
->>  				    struct inode *inode,
->>  				    struct buffer_head *fe_bh);
->>  
->> +static int ocfs2_filecheck_read_inode_block_full(struct inode *inode,
->> +			struct buffer_head **bh, int flags, int type);
->> +static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
->> +			struct buffer_head *bh);
->> +static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
->> +			struct buffer_head *bh);
->> +
->>  void ocfs2_set_inode_flags(struct inode *inode)
->>  {
->>  	unsigned int flags = OCFS2_I(inode)->ip_attr;
->> @@ -127,6 +135,7 @@ struct inode *ocfs2_ilookup(struct super
->>  struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned 
-> flags,
->>  			 int sysfile_type)
->>  {
->> +	int rc = 0;
->>  	struct inode *inode = NULL;
->>  	struct super_block *sb = osb->sb;
->>  	struct ocfs2_find_inode_args args;
->> @@ -161,12 +170,17 @@ struct inode *ocfs2_iget(struct ocfs2_su
->>  	}
->>  	trace_ocfs2_iget5_locked(inode->i_state);
->>  	if (inode->i_state & I_NEW) {
->> -		ocfs2_read_locked_inode(inode, &args);
->> +		rc = ocfs2_read_locked_inode(inode, &args);
->>  		unlock_new_inode(inode);
->>  	}
->>  	if (is_bad_inode(inode)) {
->>  		iput(inode);
->> -		inode = ERR_PTR(-ESTALE);
->> +		if ((flags & OCFS2_FI_FLAG_FILECHECK_CHK) ||
->> +			(flags & OCFS2_FI_FLAG_FILECHECK_FIX))
->> +			/* Return OCFS2_FILECHECK_ERR_XXX related errno */
->> +			inode = ERR_PTR(rc);
->> +		else
->> +			inode = ERR_PTR(-ESTALE);
->>  		goto bail;
->>  	}
->>  
->> @@ -494,16 +508,32 @@ static int ocfs2_read_locked_inode(struc
->>  	}
->>  
->>  	if (can_lock) {
->> -		status = ocfs2_read_inode_block_full(inode, &bh,
->> -						     OCFS2_BH_IGNORE_CACHE);
->> +		if (args->fi_flags & OCFS2_FI_FLAG_FILECHECK_CHK)
->> +			status = ocfs2_filecheck_read_inode_block_full(inode,
->> +						&bh, OCFS2_BH_IGNORE_CACHE, 0);
->> +		else if (args->fi_flags & OCFS2_FI_FLAG_FILECHECK_FIX)
->> +			status = ocfs2_filecheck_read_inode_block_full(inode,
->> +						&bh, OCFS2_BH_IGNORE_CACHE, 1);
->> +		else
->> +			status = ocfs2_read_inode_block_full(inode,
->> +						&bh, OCFS2_BH_IGNORE_CACHE);
-> 
-> NAK, at first glance this is very hacky - I don't like that we've hidden 
-> these checks
-> and fixups down in iget(). If there's a reason it has to be this way that
-> should be explained, but otherwise I would expect the check/repair code to
-> be less intertwined with ocfs2_iget(). Otherwise I fear we're setting 
-> ourselves up
-> for finding some ugly bugs down the road.
-Firstly, I want to read inode block separately, but the feature is working with a online file system, 
-we can't avoid the inodes cache and the cluster environment, I think that I should not handle a inode 
-block separately without considering the current inodes cache and potential cluster access from other node.
-Then I tried to integrate this light-level online check/fix with iget() function, make the online check/fix 
-operations is compatible with the inodes cache and the cluster environment.
-This is why I use iget() to integrate this feature. if there is a more graceful way to implement this feature,
-please help to give some suggestions. 
-
-> 
-> Btw, how does the code handle the case where the inode is already in our
-> cache? In that case you'd never get to read_locked_inode()...
-This online file check/fix is light-level meta-data block check/fix, the check/fix fields usually correspond 
-with ocfs2_validate_inode_block(), for more serious problem, we have to use fsck by offline.
-If the inode is already in our cache, that means this inode block passed ocfs2_validate_inode_block()
-verification during loading inode block from the disk, this inode block is sane, we need not check it again.
-
-Thanks
-Gang 
- 
-
-> 
-> Thanks,
-> 	--Mark
-> 
-> --
-> Mark Fasheh
+-- 
+Goldwyn
