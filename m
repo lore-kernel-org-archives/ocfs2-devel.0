@@ -1,48 +1,32 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Tue, 1 Sep 2015 10:55:50 -0700
-Subject: [Ocfs2-devel] [PATCH V2] ocfs2: fix a tiny case that inode can
-	not removed.
-In-Reply-To: <55E403EF.3060702@huawei.com>
-References: <55E403EF.3060702@huawei.com>
-Message-ID: <20150901175550.GH1145@wotan.suse.de>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 1 Sep 2015 15:12:07 -0700
+Subject: [Ocfs2-devel] [patch 11/28] ocfs2: extend enough credits for
+ freeing one truncate record while replaying truncate records
+In-Reply-To: <20150901175403.GG1145@wotan.suse.de>
+References: <55de39a4.mm24W9YHh8D6r9FS%akpm@linux-foundation.org>
+	<20150828235543.GQ1145@wotan.suse.de> <55E11B11.8000701@huawei.com>
+	<20150901175403.GG1145@wotan.suse.de>
+Message-ID: <20150901151207.2306af0e.akpm@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Mon, Aug 31, 2015 at 03:36:15PM +0800, jiangyiwen wrote:
-> When running dirop_fileop_racer we found a case that inode
-> can not removed.
-> 
-> 2 nodes, say Node A and Node B, mount the same ocfs2 volume. Create
-> two dirs /race/1/ and /race/2/ in the filesystem.
-> 
-> Node A                            Node B
-> rm -r /race/2/
->                                   mv /race/1/ /race/2/
-> call ocfs2_unlink(), get
-> the EX mode of /race/2/
->                                   wait for B unlock /race/2/
-> decrease i_nlink of /race/2/ to 0,
-> and add inode of /race/2/ into
-> orphan dir, unlock /race/2/
->                                   got EX mode of /race/2/. because
->                                   /race/1/ is dir, so inc i_nlink
->                                   of /race/2/ and update into disk,
->                                   unlock /race/2/
-> because i_nlink of /race/2/
-> is not zero, this inode will
-> always remain in orphan dir
-> 
-> This patch fixes this case by test whether i_nlink of new dir is zero.
-> 
-> Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
+On Tue, 1 Sep 2015 10:54:03 -0700 Mark Fasheh <mfasheh@suse.de> wrote:
 
-Looks great, thanks
+> > > Why is this particular change here?
+> > > 	--Mark
+> > > 
+> > I think Joyce wants to get enough credits at first and then call
+> > ocfs2_replay_truncate_records.
+> 
+> Oh ok I see. That's fine then, the patch otherwise looked good to me,
+> thanks.
+> 
+> Reviewed-by: Mark Fasheh <mfasheh@suse.de>
 
-Reviewed-by: Mark Fasheh <mfasheh@suse.de>
-	--Mark
+Cool.  And where are we at with
+http://ozlabs.org/~akpm/mmots/broken-out/ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et.patch
 
---
-Mark Fasheh
+?
