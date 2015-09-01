@@ -1,185 +1,142 @@
-From: Mark Fasheh <mfasheh@suse.de>
-Date: Mon, 31 Aug 2015 14:31:17 -0700
-Subject: [Ocfs2-devel] [patch 09/28] ocfs2: extend transaction for
- ocfs2_remove_rightmost_path() and ocfs2_update_edge_lengths() before to
- avoid inconsistency between inode and et
-In-Reply-To: <55de399f.yPaGHMUq09ui5Z7/%akpm@linux-foundation.org>
-References: <55de399f.yPaGHMUq09ui5Z7/%akpm@linux-foundation.org>
-Message-ID: <20150831213117.GE1145@wotan.suse.de>
+From: Gang He <ghe@suse.com>
+Date: Mon, 31 Aug 2015 21:35:27 -0600
+Subject: [Ocfs2-devel] [patch 23/28] ocfs2: check/fix inode block for
+ online file check
+In-Reply-To: <20150831205626.GB1145@wotan.suse.de>
+References: <55de39c6.NQqMm5hA00TLdLDU%akpm@linux-foundation.org>
+	<20150831205626.GB1145@wotan.suse.de>
+Message-ID: <55E58D7F020000F900013CB4@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On Wed, Aug 26, 2015 at 03:11:43PM -0700, Andrew Morton wrote:
-> From: Xue jiufei <xuejiufei@huawei.com>
-> Subject: ocfs2: extend transaction for ocfs2_remove_rightmost_path() and ocfs2_update_edge_lengths() before to avoid inconsistency between inode and et
-> 
-> I found that jbd2_journal_restart() is called in some places without
-> keeping things consistently before.  However, jbd2_journal_restart() may
-> commit the handle's transaction and restart another one.  If the first
-> transaction is committed successfully while another not, it may cause
-> filesystem inconsistency or read only.  This is an effort to fix this kind
-> of problems.
-> 
-> 
-> This patch (of 3):
-> 
-> The following functions will be called while truncating an extent:
-> ocfs2_remove_btree_range
->   -> ocfs2_start_trans
->   -> ocfs2_remove_extent
->      -> ocfs2_truncate_rec
->        -> ocfs2_extend_rotate_transaction
->          -> jbd2_journal_restart if jbd2_journal_extend fail
->        -> ocfs2_rotate_tree_left
->          -> ocfs2_remove_rightmost_path
->              -> ocfs2_extend_rotate_transaction
->                -> ocfs2_unlink_subtree
->                 -> ocfs2_update_edge_lengths
->                   -> ocfs2_extend_trans
->                     -> jbd2_journal_restart if jbd2_journal_extend fail
->   -> ocfs2_et_update_clusters
->   -> ocfs2_commit_trans
-> 
-> jbd2_journal_restart() may be called and it may happened that the buffers
-> dirtied in ocfs2_truncate_rec() are committed while buffers dirtied in
-> ocfs2_et_update_clusters() are not, the total clusters on extent tree and
-> i_clusters in ocfs2_dinode is inconsistency.  So the clusters got from
-> ocfs2_dinode is incorrect, and it also cause read-only problem when call
-> ocfs2_commit_truncate() with the error message: "Inode %llu has empty
-> extent block at %llu".
-> 
-> We should extend enough credits for function ocfs2_remove_rightmost_path
-> and ocfs2_update_edge_lengths to avoid this inconsistency.
-> 
-> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
-> Cc: Mark Fasheh <mfasheh@suse.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
->  fs/ocfs2/alloc.c |   82 +++++++++++++++++++++++++++++----------------
->  1 file changed, 54 insertions(+), 28 deletions(-)
-> 
-> diff -puN fs/ocfs2/alloc.c~ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et fs/ocfs2/alloc.c
-> --- a/fs/ocfs2/alloc.c~ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et
-> +++ a/fs/ocfs2/alloc.c
-> @@ -2526,21 +2526,6 @@ static int ocfs2_update_edge_lengths(han
->  	struct ocfs2_extent_block *eb;
->  	u32 range;
->  
-> -	/*
-> -	 * In normal tree rotation process, we will never touch the
-> -	 * tree branch above subtree_index and ocfs2_extend_rotate_transaction
-> -	 * doesn't reserve the credits for them either.
-> -	 *
-> -	 * But we do have a special case here which will update the rightmost
-> -	 * records for all the bh in the path.
-> -	 * So we have to allocate extra credits and access them.
-> -	 */
-> -	ret = ocfs2_extend_trans(handle, subtree_index);
-> -	if (ret) {
-> -		mlog_errno(ret);
-> -		goto out;
-> -	}
-> -
->  	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
->  	if (ret) {
->  		mlog_errno(ret);
-> @@ -2967,7 +2952,7 @@ static int __ocfs2_rotate_tree_left(hand
->  		     right_path->p_node[subtree_root].bh->b_blocknr,
->  		     right_path->p_tree_depth);
->  
-> -		ret = ocfs2_extend_rotate_transaction(handle, subtree_root,
-> +		ret = ocfs2_extend_rotate_transaction(handle, 0,
+Hello Mark,
 
-I don't understand why you changed the subtree depth parameter here to zero.
-
-Also, I don't understand why it's zero in all the calls below either. Is
-there something wrong with the way the math in
-ocfs2_extend_rotate_transaction() is working out?
+Thanks for your reviewing, please see my comments inline.
 
 
->  						      orig_credits, left_path);
->  		if (ret) {
->  			mlog_errno(ret);
-> @@ -3040,21 +3025,9 @@ static int ocfs2_remove_rightmost_path(h
->  	struct ocfs2_extent_block *eb;
->  	struct ocfs2_extent_list *el;
->  
-> -
->  	ret = ocfs2_et_sanity_check(et);
->  	if (ret)
->  		goto out;
-> -	/*
-> -	 * There's two ways we handle this depending on
-> -	 * whether path is the only existing one.
-> -	 */
-> -	ret = ocfs2_extend_rotate_transaction(handle, 0,
-> -					      handle->h_buffer_credits,
-> -					      path);
-> -	if (ret) {
-> -		mlog_errno(ret);
-> -		goto out;
-> -	}
->  
->  	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
->  	if (ret) {
-> @@ -3628,6 +3601,14 @@ static int ocfs2_merge_rec_left(struct o
->  		 */
->  		if (le16_to_cpu(right_rec->e_leaf_clusters) == 0 &&
->  		    le16_to_cpu(el->l_next_free_rec) == 1) {
-> +			/* extend credit for ocfs2_remove_rightmost_path */
-> +			ret = ocfs2_extend_rotate_transaction(handle, 0,
-> +					handle->h_buffer_credits,
-> +					right_path);
-> +			if (ret) {
-> +				mlog_errno(ret);
-> +				goto out;
-> +			}
->  
->  			ret = ocfs2_remove_rightmost_path(handle, et,
->  							  right_path,
-> @@ -3666,6 +3647,14 @@ static int ocfs2_try_to_merge_extent(han
->  	BUG_ON(ctxt->c_contig_type == CONTIG_NONE);
->  
->  	if (ctxt->c_split_covers_rec && ctxt->c_has_empty_extent) {
-> +		/* extend credit for ocfs2_remove_rightmost_path */
-> +		ret = ocfs2_extend_rotate_transaction(handle, 0,
-> +				handle->h_buffer_credits,
-> +				path);
-> +		if (ret) {
-> +			mlog_errno(ret);
-> +			goto out;
-> +		}
->  		/*
->  		 * The merge code will need to create an empty
->  		 * extent to take the place of the newly
-> @@ -3714,6 +3703,15 @@ static int ocfs2_try_to_merge_extent(han
->  		 */
->  		BUG_ON(!ocfs2_is_empty_extent(&el->l_recs[0]));
->  
-> +		/* extend credit for ocfs2_remove_rightmost_path */
-> +		ret = ocfs2_extend_rotate_transaction(handle, 0,
-> +					handle->h_buffer_credits,
-> +					path);
-> +		if (ret) {
-> +			mlog_errno(ret);
-> +			goto out;
-> +		}
-> +
->  		/* The merge left us with an empty extent, remove it. */
->  		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
->  		if (ret) {
+>>> 
+> On Wed, Aug 26, 2015 at 03:12:22PM -0700, Andrew Morton wrote:
+>> From: Gang He <ghe@suse.com>
+>> Subject: ocfs2: check/fix inode block for online file check
+>> 
+>> Implement online check or fix inode block during reading a inode block to
+>> memory.
+>> 
+>> Signed-off-by: Gang He <ghe@suse.com>
+>> Reviewed-by: Goldwyn Rodrigues <rgoldwyn@suse.de>
+>> Cc: Mark Fasheh <mfasheh@suse.com>
+>> Cc: Joel Becker <jlbec@evilplan.org>
+>> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+>> ---
+>> 
+>>  fs/ocfs2/inode.c       |  196 +++++++++++++++++++++++++++++++++++++--
+>>  fs/ocfs2/ocfs2_trace.h |    2 
+>>  2 files changed, 192 insertions(+), 6 deletions(-)
+>> 
+>> diff -puN fs/ocfs2/inode.c~ocfs2-check-fix-inode-block-for-online-file-check 
+> fs/ocfs2/inode.c
+>> --- a/fs/ocfs2/inode.c~ocfs2-check-fix-inode-block-for-online-file-check
+>> +++ a/fs/ocfs2/inode.c
+>> @@ -53,6 +53,7 @@
+>>  #include "xattr.h"
+>>  #include "refcounttree.h"
+>>  #include "ocfs2_trace.h"
+>> +#include "filecheck.h"
+>>  
+>>  #include "buffer_head_io.h"
+>>  
+>> @@ -74,6 +75,13 @@ static int ocfs2_truncate_for_delete(str
+>>  				    struct inode *inode,
+>>  				    struct buffer_head *fe_bh);
+>>  
+>> +static int ocfs2_filecheck_read_inode_block_full(struct inode *inode,
+>> +			struct buffer_head **bh, int flags, int type);
+>> +static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
+>> +			struct buffer_head *bh);
+>> +static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
+>> +			struct buffer_head *bh);
+>> +
+>>  void ocfs2_set_inode_flags(struct inode *inode)
+>>  {
+>>  	unsigned int flags = OCFS2_I(inode)->ip_attr;
+>> @@ -127,6 +135,7 @@ struct inode *ocfs2_ilookup(struct super
+>>  struct inode *ocfs2_iget(struct ocfs2_super *osb, u64 blkno, unsigned 
+> flags,
+>>  			 int sysfile_type)
+>>  {
+>> +	int rc = 0;
+>>  	struct inode *inode = NULL;
+>>  	struct super_block *sb = osb->sb;
+>>  	struct ocfs2_find_inode_args args;
+>> @@ -161,12 +170,17 @@ struct inode *ocfs2_iget(struct ocfs2_su
+>>  	}
+>>  	trace_ocfs2_iget5_locked(inode->i_state);
+>>  	if (inode->i_state & I_NEW) {
+>> -		ocfs2_read_locked_inode(inode, &args);
+>> +		rc = ocfs2_read_locked_inode(inode, &args);
+>>  		unlock_new_inode(inode);
+>>  	}
+>>  	if (is_bad_inode(inode)) {
+>>  		iput(inode);
+>> -		inode = ERR_PTR(-ESTALE);
+>> +		if ((flags & OCFS2_FI_FLAG_FILECHECK_CHK) ||
+>> +			(flags & OCFS2_FI_FLAG_FILECHECK_FIX))
+>> +			/* Return OCFS2_FILECHECK_ERR_XXX related errno */
+>> +			inode = ERR_PTR(rc);
+>> +		else
+>> +			inode = ERR_PTR(-ESTALE);
+>>  		goto bail;
+>>  	}
+>>  
+>> @@ -494,16 +508,32 @@ static int ocfs2_read_locked_inode(struc
+>>  	}
+>>  
+>>  	if (can_lock) {
+>> -		status = ocfs2_read_inode_block_full(inode, &bh,
+>> -						     OCFS2_BH_IGNORE_CACHE);
+>> +		if (args->fi_flags & OCFS2_FI_FLAG_FILECHECK_CHK)
+>> +			status = ocfs2_filecheck_read_inode_block_full(inode,
+>> +						&bh, OCFS2_BH_IGNORE_CACHE, 0);
+>> +		else if (args->fi_flags & OCFS2_FI_FLAG_FILECHECK_FIX)
+>> +			status = ocfs2_filecheck_read_inode_block_full(inode,
+>> +						&bh, OCFS2_BH_IGNORE_CACHE, 1);
+>> +		else
+>> +			status = ocfs2_read_inode_block_full(inode,
+>> +						&bh, OCFS2_BH_IGNORE_CACHE);
+> 
+> NAK, at first glance this is very hacky - I don't like that we've hidden 
+> these checks
+> and fixups down in iget(). If there's a reason it has to be this way that
+> should be explained, but otherwise I would expect the check/repair code to
+> be less intertwined with ocfs2_iget(). Otherwise I fear we're setting 
+> ourselves up
+> for finding some ugly bugs down the road.
+Firstly, I want to read inode block separately, but the feature is working with a online file system, 
+we can't avoid the inodes cache and the cluster environment, I think that I should not handle a inode 
+block separately without considering the current inodes cache and potential cluster access from other node.
+Then I tried to integrate this light-level online check/fix with iget() function, make the online check/fix 
+operations is compatible with the inodes cache and the cluster environment.
+This is why I use iget() to integrate this feature. if there is a more graceful way to implement this feature,
+please help to give some suggestions. 
 
-A few of these were added, where we do the transaction extend before calling
-ocfs2_rotate_tree_left(), can we move the call into ocfs2_rotate_tree_left()
-then?
+> 
+> Btw, how does the code handle the case where the inode is already in our
+> cache? In that case you'd never get to read_locked_inode()...
+This online file check/fix is light-level meta-data block check/fix, the check/fix fields usually correspond 
+with ocfs2_validate_inode_block(), for more serious problem, we have to use fsck by offline.
+If the inode is already in our cache, that means this inode block passed ocfs2_validate_inode_block()
+verification during loading inode block from the disk, this inode block is sane, we need not check it again.
 
-Thanks,
-	--Mark
+Thanks
+Gang 
+ 
 
---
-Mark Fasheh
+> 
+> Thanks,
+> 	--Mark
+> 
+> --
+> Mark Fasheh
