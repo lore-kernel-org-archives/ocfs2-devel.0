@@ -1,210 +1,87 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 2 Sep 2015 10:52:04 +0800
-Subject: [Ocfs2-devel] [patch 09/28] ocfs2: extend transaction for
- ocfs2_remove_rightmost_path() and ocfs2_update_edge_lengths() before to
- avoid inconsistency between inode and et
-In-Reply-To: <20150831213117.GE1145@wotan.suse.de>
-References: <55de399f.yPaGHMUq09ui5Z7/%akpm@linux-foundation.org>
-	<20150831213117.GE1145@wotan.suse.de>
-Message-ID: <55E66454.8080204@huawei.com>
+From: Goldwyn Rodrigues <rgoldwyn@suse.de>
+Date: Wed, 2 Sep 2015 07:34:17 -0500
+Subject: [Ocfs2-devel] ocfs2 version issue
+In-Reply-To: <55E63E0E.1090301@oracle.com>
+References: <55E50BF8.50004@oracle.com> <55E57EB0.8060207@suse.de>
+	<55E63E0E.1090301@oracle.com>
+Message-ID: <55E6ECC9.7040008@suse.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-Since Joyce is on holiday, I'll try to answer your doubt.
 
-On 2015/9/1 5:31, Mark Fasheh wrote:
-> On Wed, Aug 26, 2015 at 03:11:43PM -0700, Andrew Morton wrote:
->> From: Xue jiufei <xuejiufei@huawei.com>
->> Subject: ocfs2: extend transaction for ocfs2_remove_rightmost_path() and ocfs2_update_edge_lengths() before to avoid inconsistency between inode and et
->>
->> I found that jbd2_journal_restart() is called in some places without
->> keeping things consistently before.  However, jbd2_journal_restart() may
->> commit the handle's transaction and restart another one.  If the first
->> transaction is committed successfully while another not, it may cause
->> filesystem inconsistency or read only.  This is an effort to fix this kind
->> of problems.
->>
->>
->> This patch (of 3):
->>
->> The following functions will be called while truncating an extent:
->> ocfs2_remove_btree_range
->>   -> ocfs2_start_trans
->>   -> ocfs2_remove_extent
->>      -> ocfs2_truncate_rec
->>        -> ocfs2_extend_rotate_transaction
->>          -> jbd2_journal_restart if jbd2_journal_extend fail
->>        -> ocfs2_rotate_tree_left
->>          -> ocfs2_remove_rightmost_path
->>              -> ocfs2_extend_rotate_transaction
->>                -> ocfs2_unlink_subtree
->>                 -> ocfs2_update_edge_lengths
->>                   -> ocfs2_extend_trans
->>                     -> jbd2_journal_restart if jbd2_journal_extend fail
->>   -> ocfs2_et_update_clusters
->>   -> ocfs2_commit_trans
->>
->> jbd2_journal_restart() may be called and it may happened that the buffers
->> dirtied in ocfs2_truncate_rec() are committed while buffers dirtied in
->> ocfs2_et_update_clusters() are not, the total clusters on extent tree and
->> i_clusters in ocfs2_dinode is inconsistency.  So the clusters got from
->> ocfs2_dinode is incorrect, and it also cause read-only problem when call
->> ocfs2_commit_truncate() with the error message: "Inode %llu has empty
->> extent block at %llu".
->>
->> We should extend enough credits for function ocfs2_remove_rightmost_path
->> and ocfs2_update_edge_lengths to avoid this inconsistency.
->>
->> Signed-off-by: joyce.xue <xuejiufei@huawei.com>
->> Cc: Mark Fasheh <mfasheh@suse.com>
->> Cc: Joel Becker <jlbec@evilplan.org>
->> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
->> ---
->>
->>  fs/ocfs2/alloc.c |   82 +++++++++++++++++++++++++++++----------------
->>  1 file changed, 54 insertions(+), 28 deletions(-)
->>
->> diff -puN fs/ocfs2/alloc.c~ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et fs/ocfs2/alloc.c
->> --- a/fs/ocfs2/alloc.c~ocfs2-extend-transaction-for-ocfs2_remove_rightmost_path-and-ocfs2_update_edge_lengths-before-to-avoid-inconsistency-between-inode-and-et
->> +++ a/fs/ocfs2/alloc.c
->> @@ -2526,21 +2526,6 @@ static int ocfs2_update_edge_lengths(han
->>  	struct ocfs2_extent_block *eb;
->>  	u32 range;
->>  
->> -	/*
->> -	 * In normal tree rotation process, we will never touch the
->> -	 * tree branch above subtree_index and ocfs2_extend_rotate_transaction
->> -	 * doesn't reserve the credits for them either.
->> -	 *
->> -	 * But we do have a special case here which will update the rightmost
->> -	 * records for all the bh in the path.
->> -	 * So we have to allocate extra credits and access them.
->> -	 */
->> -	ret = ocfs2_extend_trans(handle, subtree_index);
->> -	if (ret) {
->> -		mlog_errno(ret);
->> -		goto out;
->> -	}
->> -
->>  	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
->>  	if (ret) {
->>  		mlog_errno(ret);
->> @@ -2967,7 +2952,7 @@ static int __ocfs2_rotate_tree_left(hand
->>  		     right_path->p_node[subtree_root].bh->b_blocknr,
->>  		     right_path->p_tree_depth);
->>  
->> -		ret = ocfs2_extend_rotate_transaction(handle, subtree_root,
->> +		ret = ocfs2_extend_rotate_transaction(handle, 0,
-> 
-> I don't understand why you changed the subtree depth parameter here to zero.
-> 
-> Also, I don't understand why it's zero in all the calls below either. Is
-> there something wrong with the way the math in
-> ocfs2_extend_rotate_transaction() is working out?
 
-The credits in ocfs2_extend_rotate_transaction is calculated as
-(path->p_tree_depth - subtree_depth) * 2 + 1 + op_credits.
-So changing the subtree_depth parameter to 0 means we get extra credits
-in ocfs2_truncate_rec ASAP. Then extending credits in
-ocfs2_update_edge_lengths is no longer needed.
-In other words, Joyce wants to resolve the issue by extending enough
-credits at the very beginning.
+On 09/01/2015 07:08 PM, Srinivas Eeda wrote:
 
-Thanks,
-Joseph
+>>>
+>>> Ocfs2 kernel version is removed from commit
+>>> ff8fb335221e2c446b0d4cbea26be371fd2feb64 ("ocfs2: remove versioning
+>>> information"), but Oracle CRS depends on this version, and this made
+>>> Oracle CRS can't be installed. So i think we should revert this commit
+>>> and sync this version with ocfs2-tools. Do you have any other concern
+>>> about this?
+>> We removed the version because it did not make sense.
+> I am not sure how other kernel modules work, but for me a OCFS2
+> maintaining it's own version is a good idea :). This version number
+> defines the feature-set it currently supports.
 
-> 
-> 
->>  						      orig_credits, left_path);
->>  		if (ret) {
->>  			mlog_errno(ret);
->> @@ -3040,21 +3025,9 @@ static int ocfs2_remove_rightmost_path(h
->>  	struct ocfs2_extent_block *eb;
->>  	struct ocfs2_extent_list *el;
->>  
->> -
->>  	ret = ocfs2_et_sanity_check(et);
->>  	if (ret)
->>  		goto out;
->> -	/*
->> -	 * There's two ways we handle this depending on
->> -	 * whether path is the only existing one.
->> -	 */
->> -	ret = ocfs2_extend_rotate_transaction(handle, 0,
->> -					      handle->h_buffer_credits,
->> -					      path);
->> -	if (ret) {
->> -		mlog_errno(ret);
->> -		goto out;
->> -	}
->>  
->>  	ret = ocfs2_journal_access_path(et->et_ci, handle, path);
->>  	if (ret) {
->> @@ -3628,6 +3601,14 @@ static int ocfs2_merge_rec_left(struct o
->>  		 */
->>  		if (le16_to_cpu(right_rec->e_leaf_clusters) == 0 &&
->>  		    le16_to_cpu(el->l_next_free_rec) == 1) {
->> +			/* extend credit for ocfs2_remove_rightmost_path */
->> +			ret = ocfs2_extend_rotate_transaction(handle, 0,
->> +					handle->h_buffer_credits,
->> +					right_path);
->> +			if (ret) {
->> +				mlog_errno(ret);
->> +				goto out;
->> +			}
->>  
->>  			ret = ocfs2_remove_rightmost_path(handle, et,
->>  							  right_path,
->> @@ -3666,6 +3647,14 @@ static int ocfs2_try_to_merge_extent(han
->>  	BUG_ON(ctxt->c_contig_type == CONTIG_NONE);
->>  
->>  	if (ctxt->c_split_covers_rec && ctxt->c_has_empty_extent) {
->> +		/* extend credit for ocfs2_remove_rightmost_path */
->> +		ret = ocfs2_extend_rotate_transaction(handle, 0,
->> +				handle->h_buffer_credits,
->> +				path);
->> +		if (ret) {
->> +			mlog_errno(ret);
->> +			goto out;
->> +		}
->>  		/*
->>  		 * The merge code will need to create an empty
->>  		 * extent to take the place of the newly
->> @@ -3714,6 +3703,15 @@ static int ocfs2_try_to_merge_extent(han
->>  		 */
->>  		BUG_ON(!ocfs2_is_empty_extent(&el->l_recs[0]));
->>  
->> +		/* extend credit for ocfs2_remove_rightmost_path */
->> +		ret = ocfs2_extend_rotate_transaction(handle, 0,
->> +					handle->h_buffer_credits,
->> +					path);
->> +		if (ret) {
->> +			mlog_errno(ret);
->> +			goto out;
->> +		}
->> +
->>  		/* The merge left us with an empty extent, remove it. */
->>  		ret = ocfs2_rotate_tree_left(handle, et, path, dealloc);
->>  		if (ret) {
-> 
-> A few of these were added, where we do the transaction extend before calling
-> ocfs2_rotate_tree_left(), can we move the call into ocfs2_rotate_tree_left()
-> then?
-> 
-> Thanks,
-> 	--Mark
-> 
-> --
-> Mark Fasheh
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> .
-> 
+The kernel version is enough to define the feature it supports. If at 
+all you backport, it becomes distro-specfic.
+
+> It also allows a
+> feature-set to be backported to older kernels(if need arises).
+
+Again, this is distro-specific and is unrelated to vanilla kernels.
+
+>
+>>   Even if we put in
+>> the version back we will have to maintain it and will have a similar
+>> case where the version number in the kernel is way behind the tools
+>> versions because of lack of updating. Add to it the confusion of users
+>> who would not know which version to quote.
+> I agree that this got out of sync so probably we should fix that part
+> than to remove it all together. I also don't see why tools version has
+> to dictate kernel module version or vise-versa. Isn't it practical for a
+> kernel module to implement a new feature-set but doesn't require any
+> tools changes or vise-versa ? ;)
+
+Yes, it is possible. For that matter, our feature bits are set in such a 
+way that you can use an older tool with a newer kernel and vice-versa. 
+Even if it fails, it must do gracefully. However, users are getting 
+confused with the version number displayed in the ocfs2 modules.
+
+Users had questions like "Why is indexed dir being used when we are 
+using 1.5?" (and their tools were 1.8 based)
+
+Or "I would like to use feature abc which was introduced in version 1.6 
+according to the changelog. However, my ocfs2 modules version is 1.5. Is 
+feature abc incorporated?"
+
+>
+>> I suggest the Oracle CRS should be modified to use the kernel version as
+>> opposed to the ocfs2 kernel module specific versions.
+> It may not be just Oracle CRS ... there may be other applications that
+> might be using this. The problem is that we don't want a customer to
+> upgrade a kernel and run into a failure which just looks bad on
+> kernel/filesystem :(.  One may argue to write notes/readme's to inform
+> customers but it's not practical and is a painful for some customers to
+> update application software and kernel at the same time.
+>
+
+My suggestion would be to carry a distro-specific deprecating version 
+patch until Oracle CRS learns to use the kernel versioning.
+
+> Anyway, if we decide to remove the versioning forever then it may be a
+> good idea to deprecate it first so applications have enough time to
+> incorporate these changes. But my vote would be for ocfs2 to maintain
+> it's own version number :)
+
+While I see the problem, I fail to see why kernel version is not good 
+enough for this. The only place you would require versioning is if you 
+are dealing with specific hardware/firmware. I don't see any functional 
+value in keeping separate versioning system for kernel modules.
+
+-- 
+Goldwyn
