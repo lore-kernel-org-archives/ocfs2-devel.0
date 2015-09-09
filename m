@@ -1,40 +1,40 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Mon, 7 Sep 2015 15:10:11 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2_direct_IO_write misses
- ocfs2_is_overwrite error code
-In-Reply-To: <55ED2F7F.80109@huawei.com>
-References: <55ED2F7F.80109@huawei.com>
-Message-ID: <55ED3853.6070809@huawei.com>
+From: jiangyiwen <jiangyiwen@huawei.com>
+Date: Wed, 9 Sep 2015 09:55:16 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fill-in the unused portion of the
+ block with zeros by dio_zero_block()
+Message-ID: <55EF9184.5090007@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 2015/9/7 14:32, Norton.Zhu wrote:
-> If ocfs2_is_overwrite failed, ocfs2_direct_IO_write may still return success to the caller.
-> changelog:
-> Using mlog_errno(ret) looks better than mlog_errno(is_overwrite)
-> 
-> Signed-off-by: Norton.Zhu <norton.zhu@huawei.com>
-Reviewed-by: Joseph Qi <joseph.qi@huawei.com>
+A simplified test case is (this case from Ryan):
+1) dd if=/dev/zero of=/mnt/hello bs=512 count=1 oflag=direct;
+2) truncate /mnt/hello -s 2097152
+file 'hello' is not exist before test. After this command,
+file 'hello' should be all zero. But 512~4096 is some random data.
 
-> ---
->  aops.c | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/aops.c b/aops.c
-> index 0f5fd9d..01bbc56 100644
-> --- a/aops.c
-> +++ b/aops.c
-> @@ -846,7 +846,8 @@ static ssize_t ocfs2_direct_IO_write(struct kiocb *iocb,
-> 
->  		is_overwrite = ocfs2_is_overwrite(osb, inode, offset);
->  		if (is_overwrite < 0) {
-> -			mlog_errno(is_overwrite);
-> +			ret = is_overwrite;
-> +			mlog_errno(ret);
->  			ocfs2_inode_unlock(inode, 1);
->  			goto clean_orphan;
->  		}
-> 
+Setting bh state to new when get a new block, if so,
+direct_io_worker()->dio_zero_block() will fill-in the unused portion
+of the block with zero.
+
+Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
+---
+ fs/ocfs2/aops.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 1a35c61..bd106b9 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -581,6 +581,7 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
+ 			ret = -EIO;
+ 			goto bail;
+ 		}
++		set_buffer_new(bh_result);
+ 	}
+
+ 	/*
+-- 
+1.8.3.4
