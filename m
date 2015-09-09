@@ -1,16 +1,18 @@
-From: jiangyiwen <jiangyiwen@huawei.com>
-Date: Wed, 9 Sep 2015 17:14:19 +0800
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Wed, 9 Sep 2015 17:13:09 +0800
 Subject: [Ocfs2-devel] [PATCH] ocfs2: Fill-in the unused portion of the
  block with zeros by dio_zero_block()
 In-Reply-To: <55F0313A020000D400009435@relay2.provo.novell.com>
 References: <55EF9184.5090007@huawei.com>
 	<55F0313A020000D400009435@relay2.provo.novell.com>
-Message-ID: <55EFF86B.2090809@huawei.com>
+Message-ID: <55EFF825.4020403@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
+
+Hi Zhen,
 
 On 2015/9/9 13:16, Zhen Ren wrote:
 > Hi Yiwen,
@@ -27,13 +29,9 @@ On 2015/9/9 13:16, Zhen Ren wrote:
 > 512 bytes (512 B) copied, 0.000684382 s, 748 kB/s
 > laptop:/mnt/shared # truncate hello -s 2097152
 > laptop:/mnt/shared # cat hello                            ======> nothing
-Please use this command to read binary file "hexdump -C /mnt/shared/hello", you will
-see the result like this:
-linux-ZnXfWq:/mnt/ocfs2 # hexdump -C hello
-00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
-*
-00200000
-it means in file area 512~4096 is zero not random data.
+I don't think 'cat' works here.
+Could you please use hexdump?
+
 > laptop:/mnt/shared # uname -r
 > 3.16.7-21-desktop
 > ===
@@ -80,5 +78,9 @@ it means in file area 512~4096 is zero not random data.
 > 
 > 
 > 
-> .
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
 > 
