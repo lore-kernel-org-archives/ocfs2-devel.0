@@ -1,24 +1,74 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Wed, 9 Sep 2015 17:13:09 +0800
+From: Zhen Ren <zren@suse.com>
+Date: Wed, 09 Sep 2015 04:42:17 -0600
 Subject: [Ocfs2-devel] [PATCH] ocfs2: Fill-in the unused portion of the
  block with zeros by dio_zero_block()
-In-Reply-To: <55F0313A020000D400009435@relay2.provo.novell.com>
+In-Reply-To: <55EFF825.4020403@huawei.com>
 References: <55EF9184.5090007@huawei.com>
 	<55F0313A020000D400009435@relay2.provo.novell.com>
-Message-ID: <55EFF825.4020403@huawei.com>
+	<55EFF825.4020403@huawei.com>
+Message-ID: <55F099A9020000D4000731F7@relay2.provo.novell.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
+Hi Joseph and Yiwen,
+
+Sorry for that misoperation. 
+
+This time, I did the same cmds using "hexdump" on ocfs2 and btrfs.
+The testing results look the same:
+==
+laptop:/mnt/shared # dd if=/dev/zero of=hello bs=512 count=1 oflag=direct                                    ===> on ocfs2
+1+0 records in
+1+0 records out
+512 bytes (512 B) copied, 0.000834866 s, 613 kB/s
+laptop:/mnt/shared # hexdump hello -C
+00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000200
+laptop:/mnt/shared # truncate hello -s 2097152
+laptop:/mnt/shared # truncate hello -s 2097152
+laptop:/mnt/shared # hexdump hello -C
+00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00200000
+
+laptop:~ # dd if=/dev/zero of=hello bs=512 count=1 oflag=direct                                                                         ===> on btrfs
+1+0 records in
+1+0 records out
+512 bytes (512 B) copied, 0.000201759 s, 2.5 MB/s
+laptop:~ # hexdump hello -C
+00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000200
+laptop:~ # truncate hello -s 2097152
+laptop:~ # hexdump hello -C
+00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00200000
+==
+
+BTW, Yiwen, I'm confused by your comment and commit message.
+1. >> file 'hello' should be all zero. But 512~4096 is some random data. 
+ 2. it means in file area 512~4096 is zero not random data.
+
+Anyway, I didn't look into this case, but just try to understand it. 
+So, if there's any problem, let it go ;-)
+
+Thanks.
+--
+Eric Ren
+
+>>> Joseph Qi <joseph.qi@huawei.com> 09/09/15 6:04 PM >>>
 Hi Zhen,
 
 On 2015/9/9 13:16, Zhen Ren wrote:
 > Hi Yiwen,
 > 
 > I try to reproduce this case, but it didn't act like you describe.
-> What I did:
+> What I did: 
 > ===
 > laptop:/mnt/shared # mount | grep ocfs2
 > ocfs2_dlmfs on /dlm type ocfs2_dlmfs (rw,relatime)
