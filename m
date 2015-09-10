@@ -1,51 +1,44 @@
-From: ryding <ryan.ding@oracle.com>
-Date: Thu, 10 Sep 2015 09:53:11 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fill-in the unused portion of the
- block with zeros by dio_zero_block()
-In-Reply-To: <55EF9184.5090007@huawei.com>
-References: <55EF9184.5090007@huawei.com>
-Message-ID: <55F0E287.1020701@oracle.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Thu, 10 Sep 2015 19:23:29 +0800
+Subject: [Ocfs2-devel] Performance issue about localalloc
+Message-ID: <55F16831.5060702@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Yiwen,
+Hi Mark,
+I have encountered a performance issue about localalloc.
 
-I'm working on this issue. The patch will be send out soon. And the 
-issue that do not support file hole will be fixed too. I have proved it 
-can pass all ltp-aiodio test cases, and has better performance. ;-)
+ocfs2 volume information:
+block size = 4k, cluster size = 1M, mount option with localalloc=2048
+
+So in the above circumstance, gd size is 32256M. Suppose I want to
+create a normal file with size of 50G. Since the localalloc window is
+2G, it will eventually allocate space like, 2Gfrom gd0, 2G from gd1,
+..., and this will lead to poor performance because of the
+dis-contiguous file with large span.
+
+One way to resolve this issue is changing the mount option with
+localalloc=31104, but this will make end user confused because 31G is
+"missing" even he has only used 2M.
+
+So I wander if we can let the allocation continues with the last gd if
+it has enough space for a localalloc window. I have blamed the code
+history and found that firstly you have already designed like this but
+disabled in the commit "ocfs2: properly set and use inode group alloc
+hint". I wander why?
+
+A simply code hack is,
+static u64 ocfs2_group_from_res(struct ocfs2_suballoc_result *res)
+{
+	if (res->sr_blkno == 0)
+		return 0;  // This will set the hint to 0
+	...
+}
+
+Am I missing something?
 
 Thanks,
-Ryan
-
-
-On 09/09/2015 09:55 AM, jiangyiwen wrote:
-> A simplified test case is (this case from Ryan):
-> 1) dd if=/dev/zero of=/mnt/hello bs=512 count=1 oflag=direct;
-> 2) truncate /mnt/hello -s 2097152
-> file 'hello' is not exist before test. After this command,
-> file 'hello' should be all zero. But 512~4096 is some random data.
->
-> Setting bh state to new when get a new block, if so,
-> direct_io_worker()->dio_zero_block() will fill-in the unused portion
-> of the block with zero.
->
-> Signed-off-by: Yiwen Jiang <jiangyiwen@huawei.com>
-> ---
->   fs/ocfs2/aops.c | 1 +
->   1 file changed, 1 insertion(+)
->
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 1a35c61..bd106b9 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -581,6 +581,7 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
->   			ret = -EIO;
->   			goto bail;
->   		}
-> +		set_buffer_new(bh_result);
->   	}
->
->   	/*
+Joseph
