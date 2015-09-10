@@ -1,44 +1,45 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Thu, 10 Sep 2015 19:23:29 +0800
-Subject: [Ocfs2-devel] Performance issue about localalloc
-Message-ID: <55F16831.5060702@huawei.com>
+Date: Thu, 10 Sep 2015 19:49:45 +0800
+Subject: [Ocfs2-devel] [RFC] Doubt about dlm_worker
+In-Reply-To: <55EC3B99.7040601@huawei.com>
+References: <55EC3B99.7040601@huawei.com>
+Message-ID: <55F16E59.8070006@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-I have encountered a performance issue about localalloc.
-
-ocfs2 volume information:
-block size = 4k, cluster size = 1M, mount option with localalloc=2048
-
-So in the above circumstance, gd size is 32256M. Suppose I want to
-create a normal file with size of 50G. Since the localalloc window is
-2G, it will eventually allocate space like, 2Gfrom gd0, 2G from gd1,
-..., and this will lead to poor performance because of the
-dis-contiguous file with large span.
-
-One way to resolve this issue is changing the mount option with
-localalloc=31104, but this will make end user confused because 31G is
-"missing" even he has only used 2M.
-
-So I wander if we can let the allocation continues with the last gd if
-it has enough space for a localalloc window. I have blamed the code
-history and found that firstly you have already designed like this but
-disabled in the commit "ocfs2: properly set and use inode group alloc
-hint". I wander why?
-
-A simply code hack is,
-static u64 ocfs2_group_from_res(struct ocfs2_suballoc_result *res)
-{
-	if (res->sr_blkno == 0)
-		return 0;  // This will set the hint to 0
-	...
-}
-
-Am I missing something?
+Hi Junxiao & Sunil,
+Your comments would be appreciated.
 
 Thanks,
 Joseph
+
+On 2015/9/6 21:11, Joseph Qi wrote:
+> Comments for dlm_dispatch_work is described below:
+> /* Worker function used during recovery. */
+> 
+> But actually dlm_worker is used by 4 types of dlm message workers:
+> 	dlm_assert_master_worker
+> 	dlm_deref_lockres_worker
+> 	dlm_request_all_locks_worker
+> 	dlm_mig_lockres_worker
+> 
+> And the first 2 are not dlm recovery related. Moreover, it will send
+> DLM_ASSERT_MASTER_MSG to all other nodes in dlm_assert_master_worker.
+> And it may do a lot of assert master during recovery. In our scenario,
+> it is tens of thousands.
+> This will delay the recovery because dlm_worker is a single thread
+> workqueue and cluster is hanging during dlm recovery.
+> So I doubt if we can move the assert master to a new workqueue or just
+> use a system workqueue.
+> Any suggestions?
+> 
+> 
+> _______________________________________________
+> Ocfs2-devel mailing list
+> Ocfs2-devel at oss.oracle.com
+> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
+> 
+> 
