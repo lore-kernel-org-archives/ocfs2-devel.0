@@ -1,10 +1,9 @@
 From: Ryan Ding <ryan.ding@oracle.com>
-Date: Fri, 11 Sep 2015 16:19:13 +0800
-Subject: [Ocfs2-devel] [PATCH 2/8] ocfs2: use c_new to indicate newly
-	allocated extents
+Date: Fri, 11 Sep 2015 16:19:14 +0800
+Subject: [Ocfs2-devel] [PATCH 3/8] ocfs2: test target page before change it
 In-Reply-To: <1441959559-29947-1-git-send-email-ryan.ding@oracle.com>
 References: <1441959559-29947-1-git-send-email-ryan.ding@oracle.com>
-Message-ID: <1441959559-29947-3-git-send-email-ryan.ding@oracle.com>
+Message-ID: <1441959559-29947-4-git-send-email-ryan.ding@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -13,112 +12,114 @@ To: ocfs2-devel@oss.oracle.com
 
 To support direct io in ocfs2_write_begin_nolock & ocfs2_write_end_nolock.
 
-There is a problem in ocfs2's direct io implement: if system crashed after
-extents allocated, and before data return, we will get a extent with dirty data
-on disk. This problem violate the journal=order semantics, which means meta
-changes take effect after data written to disk.
-To resolve this issue, direct write can use the UNWRITTEN flag to describe a
-extent during direct data writeback. The direct write procedure should act in
-the following order:
-
-phase 1: alloc extent with UNWRITTEN flag
-phase 2: submit direct data to disk, add zero page to page cache
-phase 3: clear UNWRITTEN flag when data has been written to disk
-
-This patch is to change the 'c_unwritten' member of ocfs2_write_cluster_desc to
-'c_clear_unwritten'. Means whether to clear the unwritten flag. It do not care
-if a extent is allocated or not. And use 'c_new' to specify a newly allocated
-extent. So the direct io procedure can use c_clear_unwritten to control the
-UNWRITTEN bit on extent.
+Direct io data will not appear in buffer. The w_target_page member will not be
+filled by direct io. So avoid to use it when it's NULL.
+Unlinke buffer io and mmap, direct io will call write_begin with more than 1
+page a time. So the target_index is not sufficient to describe the actual data.
+change it to a range start at target_index, end in end_index.
 
 Signed-off-by: Ryan Ding <ryan.ding@oracle.com>
 Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
 cc: Joseph Qi <joseph.qi@huawei.com>
 ---
- fs/ocfs2/aops.c |   22 ++++++++++++----------
- 1 files changed, 12 insertions(+), 10 deletions(-)
+ fs/ocfs2/aops.c |   32 ++++++++++++++++++++++++++------
+ 1 files changed, 26 insertions(+), 6 deletions(-)
 
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index b65ebb1..0f022dc 100644
+index 0f022dc..eff5b59 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
-@@ -1204,7 +1204,7 @@ struct ocfs2_write_cluster_desc {
- 	 * filled.
- 	 */
- 	unsigned	c_new;
--	unsigned	c_unwritten;
-+	unsigned	c_clear_unwritten;
- 	unsigned	c_needs_zero;
- };
+@@ -1398,12 +1398,13 @@ static void ocfs2_write_failure(struct inode *inode,
+ 		to = user_pos + user_len;
+ 	struct page *tmppage;
  
-@@ -1580,19 +1580,19 @@ out:
-  * Prepare a single cluster for write one cluster into the file.
-  */
- static int ocfs2_write_cluster(struct address_space *mapping,
--			       u32 phys, unsigned int unwritten,
-+			       u32 phys, unsigned int new,
-+			       unsigned int clear_unwritten,
- 			       unsigned int should_zero,
- 			       struct ocfs2_alloc_context *data_ac,
- 			       struct ocfs2_alloc_context *meta_ac,
- 			       struct ocfs2_write_ctxt *wc, u32 cpos,
- 			       loff_t user_pos, unsigned user_len)
- {
--	int ret, i, new;
-+	int ret, i;
- 	u64 v_blkno, p_blkno;
- 	struct inode *inode = mapping->host;
- 	struct ocfs2_extent_tree et;
+-	ocfs2_zero_new_buffers(wc->w_target_page, from, to);
++	if (wc->w_target_page)
++		ocfs2_zero_new_buffers(wc->w_target_page, from, to);
  
--	new = phys == 0 ? 1 : 0;
- 	if (new) {
- 		u32 tmp_pos;
+ 	for(i = 0; i < wc->w_num_pages; i++) {
+ 		tmppage = wc->w_pages[i];
  
-@@ -1602,9 +1602,9 @@ static int ocfs2_write_cluster(struct address_space *mapping,
- 		 */
- 		tmp_pos = cpos;
- 		ret = ocfs2_add_inode_data(OCFS2_SB(inode->i_sb), inode,
--					   &tmp_pos, 1, 0, wc->w_di_bh,
--					   wc->w_handle, data_ac,
--					   meta_ac, NULL);
-+					   &tmp_pos, 1, !clear_unwritten,
-+					   wc->w_di_bh, wc->w_handle,
-+					   data_ac, meta_ac, NULL);
- 		/*
- 		 * This shouldn't happen because we must have already
- 		 * calculated the correct meta data allocation required. The
-@@ -1621,7 +1621,7 @@ static int ocfs2_write_cluster(struct address_space *mapping,
- 			mlog_errno(ret);
- 			goto out;
- 		}
--	} else if (unwritten) {
-+	} else if (clear_unwritten) {
- 		ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode),
- 					      wc->w_di_bh);
- 		ret = ocfs2_mark_extent_written(inode, &et,
-@@ -1704,7 +1704,8 @@ static int ocfs2_write_cluster_by_desc(struct address_space *mapping,
- 			local_len = osb->s_clustersize - cluster_off;
+-		if (page_has_buffers(tmppage)) {
++		if (tmppage && page_has_buffers(tmppage)) {
+ 			if (ocfs2_should_order_data(inode))
+ 				ocfs2_jbd2_file_inode(wc->w_handle, inode);
  
- 		ret = ocfs2_write_cluster(mapping, desc->c_phys,
--					  desc->c_unwritten,
-+					  desc->c_new,
-+					  desc->c_clear_unwritten,
- 					  desc->c_needs_zero,
- 					  data_ac, meta_ac,
- 					  wc, desc->c_cpos, pos, local_len);
-@@ -1849,11 +1850,12 @@ static int ocfs2_populate_write_desc(struct inode *inode,
- 		if (phys == 0) {
- 			desc->c_new = 1;
- 			desc->c_needs_zero = 1;
-+			desc->c_clear_unwritten = 1;
- 			*clusters_to_alloc = *clusters_to_alloc + 1;
- 		}
+@@ -1533,11 +1534,13 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
+ 		wc->w_num_pages = 1;
+ 		start = target_index;
+ 	}
++	end_index = (user_pos + user_len - 1) >> PAGE_CACHE_SHIFT;
  
- 		if (ext_flags & OCFS2_EXT_UNWRITTEN) {
--			desc->c_unwritten = 1;
-+			desc->c_clear_unwritten = 1;
- 			desc->c_needs_zero = 1;
- 		}
+ 	for(i = 0; i < wc->w_num_pages; i++) {
+ 		index = start + i;
  
+-		if (index == target_index && mmap_page) {
++		if (index >= target_index && index <= end_index &&
++		    wc->w_type == OCFS2_WRITE_MMAP) {
+ 			/*
+ 			 * ocfs2_pagemkwrite() is a little different
+ 			 * and wants us to directly use the page
+@@ -1556,6 +1559,11 @@ static int ocfs2_grab_pages_for_write(struct address_space *mapping,
+ 			page_cache_get(mmap_page);
+ 			wc->w_pages[i] = mmap_page;
+ 			wc->w_target_locked = true;
++		} else if (index >= target_index && index <= end_index &&
++			   wc->w_type == OCFS2_WRITE_DIRECT) {
++			/* Direct write has no mapping page. */
++			wc->w_pages[i] = NULL;
++			continue;
+ 		} else {
+ 			wc->w_pages[i] = find_or_create_page(mapping, index,
+ 							     GFP_NOFS);
+@@ -1657,6 +1665,12 @@ static int ocfs2_write_cluster(struct address_space *mapping,
+ 	for(i = 0; i < wc->w_num_pages; i++) {
+ 		int tmpret;
+ 
++		/* This is the direct io target page. */
++		if (wc->w_pages[i] == NULL) {
++			p_blkno++;
++			continue;
++		}
++
+ 		tmpret = ocfs2_prepare_page_for_write(inode, &p_blkno, wc,
+ 						      wc->w_pages[i], cpos,
+ 						      user_pos, user_len,
+@@ -2258,7 +2272,8 @@ try_again:
+ 		ocfs2_free_alloc_context(meta_ac);
+ 
+ success:
+-	*pagep = wc->w_target_page;
++	if (pagep)
++		*pagep = wc->w_target_page;
+ 	*fsdata = wc;
+ 	return 0;
+ out_quota:
+@@ -2392,18 +2407,23 @@ int ocfs2_write_end_nolock(struct address_space *mapping,
+ 		goto out_write_size;
+ 	}
+ 
+-	if (unlikely(copied < len)) {
++	if (unlikely(copied < len) && wc->w_target_page) {
+ 		if (!PageUptodate(wc->w_target_page))
+ 			copied = 0;
+ 
+ 		ocfs2_zero_new_buffers(wc->w_target_page, start+copied,
+ 				       start+len);
+ 	}
+-	flush_dcache_page(wc->w_target_page);
++	if (wc->w_target_page)
++		flush_dcache_page(wc->w_target_page);
+ 
+ 	for(i = 0; i < wc->w_num_pages; i++) {
+ 		tmppage = wc->w_pages[i];
+ 
++		/* This is the direct io target page. */
++		if (tmppage == NULL)
++			continue;
++
+ 		if (tmppage == wc->w_target_page) {
+ 			from = wc->w_target_from;
+ 			to = wc->w_target_to;
 -- 
 1.7.1
