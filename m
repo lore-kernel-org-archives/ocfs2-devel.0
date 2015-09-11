@@ -1,55 +1,43 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Fri, 11 Sep 2015 10:19:51 +0800
-Subject: [Ocfs2-devel] [RFC] Doubt about dlm_worker
-In-Reply-To: <55F16E59.8070006@huawei.com>
-References: <55EC3B99.7040601@huawei.com> <55F16E59.8070006@huawei.com>
-Message-ID: <55F23A47.8080805@oracle.com>
+From: Ryan Ding <ryan.ding@oracle.com>
+Date: Fri, 11 Sep 2015 16:19:11 +0800
+Subject: [Ocfs2-devel] [PATCH 0/8] ocfs2: fix ocfs2 direct io code patch to
+	support sparse file and data ordering semantics
+Message-ID: <1441959559-29947-1-git-send-email-ryan.ding@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 09/10/2015 07:49 PM, Joseph Qi wrote:
-> Hi Junxiao & Sunil,
-> Your comments would be appreciated.
-> 
-> Thanks,
-> Joseph
-> 
-> On 2015/9/6 21:11, Joseph Qi wrote:
->> Comments for dlm_dispatch_work is described below:
->> /* Worker function used during recovery. */
->>
->> But actually dlm_worker is used by 4 types of dlm message workers:
->> 	dlm_assert_master_worker
->> 	dlm_deref_lockres_worker
->> 	dlm_request_all_locks_worker
->> 	dlm_mig_lockres_worker
->>
->> And the first 2 are not dlm recovery related. Moreover, it will send
->> DLM_ASSERT_MASTER_MSG to all other nodes in dlm_assert_master_worker.
->> And it may do a lot of assert master during recovery. In our scenario,
->> it is tens of thousands.
->> This will delay the recovery because dlm_worker is a single thread
->> workqueue and cluster is hanging during dlm recovery.
->> So I doubt if we can move the assert master to a new workqueue or just
->> use a system workqueue.
->> Any suggestions?
-Take a look at the code and didn't see an obvious need that these four
-worker should be run in order and they use locks to protect. So i think
-it's OK to split it out. But better do a good test to avoid this unhide
-some bug.
+The idea is to use buffer io(more precisely use the interface
+ocfs2_write_begin_nolock & ocfs2_write_end_nolock) to do the zero work beyond
+block size. And clear UNWRITTEN flag until direct io data has been written to
+disk, which can prevent data corruption when system crashed during direct write.
 
-Thanks,
-Junxiao.
->>
->>
->> _______________________________________________
->> Ocfs2-devel mailing list
->> Ocfs2-devel at oss.oracle.com
->> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
->>
->>
-> 
-> 
+And we will also archive a better performance:
+eg. dd direct write new file with block size 4KB:
+before this patch:
+2.5 MB/s
+after this patch:
+66.4 MB/s
+
+----------------------------------------------------------------
+Ryan Ding (8):
+      ocfs2: add ocfs2_write_type_t type to identify the caller of write
+      ocfs2: use c_new to indicate newly allocated extents
+      ocfs2: test target page before change it
+      ocfs2: do not change i_size in write_end for direct io
+      ocfs2: return the physical address in ocfs2_write_cluster
+      ocfs2: record UNWRITTEN extents when populate write desc
+      ocfs2: fix sparse file & data ordering issue in direct io. 
+      ocfs2: code clean up for direct io
+
+ fs/ocfs2/aops.c        | 1118 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++------------------------------------------------------------------------------------------
+ fs/ocfs2/aops.h        |   11 +-
+ fs/ocfs2/file.c        |  138 +---------------------
+ fs/ocfs2/inode.c       |    3 +
+ fs/ocfs2/inode.h       |    3 + 
+ fs/ocfs2/mmap.c        |    4 +-
+ fs/ocfs2/ocfs2_trace.h |   16 +-- 
+ fs/ocfs2/super.c       |    1 +
+ 8 files changed, 568 insertions(+), 726 deletions(-)
