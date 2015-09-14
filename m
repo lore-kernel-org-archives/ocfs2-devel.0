@@ -1,75 +1,52 @@
-From: Joseph Qi <joseph.qi@huawei.com>
-Date: Sun, 13 Sep 2015 18:00:01 +0800
-Subject: [Ocfs2-devel] Performance issue about localalloc
-In-Reply-To: <55F16831.5060702@huawei.com>
-References: <55F16831.5060702@huawei.com>
-Message-ID: <55F54921.80305@huawei.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Mon, 14 Sep 2015 15:13:13 -0700
+Subject: [Ocfs2-devel] [PATCH] ocfs2: Fill-in the unused portion of the
+ block with zeros by dio_zero_block()
+In-Reply-To: <55EF9184.5090007@huawei.com>
+References: <55EF9184.5090007@huawei.com>
+Message-ID: <20150914151313.76ca8bedd5c5ffa859eff4ad@linux-foundation.org>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-Hi Mark,
-Could you please take a look at this?
-And I want to change it by setting hint to res->sr_bg_blkno if it is
-cluster alloc.
-From my test case (block size = 4K, cluster size = 1M, localalloc
-2048M), the file allocation is more contiguous than before and has much
-better performance.
+On Wed, 9 Sep 2015 09:55:16 +0800 jiangyiwen <jiangyiwen@huawei.com> wrote:
 
- 	status = ocfs2_search_chain(ac, handle, bits_wanted, min_bits,
- 				    res, &bits_left);
- 	if (!status) {
--		hint = ocfs2_group_from_res(res);
-+		if (ocfs2_is_cluster_bitmap(ac->ac_inode))
-+			hint = res->sr_bg_blkno;
-+		else
-+			hint = ocfs2_group_from_res(res);
- 		goto set_hint;
+> A simplified test case is (this case from Ryan):
+> 1) dd if=/dev/zero of=/mnt/hello bs=512 count=1 oflag=direct;
+> 2) truncate /mnt/hello -s 2097152
+> file 'hello' is not exist before test. After this command,
+> file 'hello' should be all zero. But 512~4096 is some random data.
+> 
+> Setting bh state to new when get a new block, if so,
+> direct_io_worker()->dio_zero_block() will fill-in the unused portion
+> of the block with zero.
+> 
+> ...
+>
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -581,6 +581,7 @@ static int ocfs2_direct_IO_get_blocks(struct inode *inode, sector_t iblock,
+>  			ret = -EIO;
+>  			goto bail;
+>  		}
+> +		set_buffer_new(bh_result);
+>  	}
+> 
+
+You're working against an old kernel.  I did this:
+
+--- a/fs/ocfs2/aops.c~ocfs2-fill-in-the-unused-portion-of-the-block-with-zeros-by-dio_zero_block
++++ a/fs/ocfs2/aops.c
+@@ -589,6 +589,7 @@ static int ocfs2_direct_IO_get_blocks(st
+ 			ret = -EIO;
+ 			goto bail;
+ 		}
++		set_buffer_new(bh_result);
+ 		up_write(&OCFS2_I(inode)->ip_alloc_sem);
  	}
- 	if (status < 0 && status != -ENOSPC) {
+ 
 
-On 2015/9/10 19:23, Joseph Qi wrote:
-> Hi Mark,
-> I have encountered a performance issue about localalloc.
-> 
-> ocfs2 volume information:
-> block size = 4k, cluster size = 1M, mount option with localalloc=2048
-> 
-> So in the above circumstance, gd size is 32256M. Suppose I want to
-> create a normal file with size of 50G. Since the localalloc window is
-> 2G, it will eventually allocate space like, 2Gfrom gd0, 2G from gd1,
-> ..., and this will lead to poor performance because of the
-> dis-contiguous file with large span.
-> 
-> One way to resolve this issue is changing the mount option with
-> localalloc=31104, but this will make end user confused because 31G is
-> "missing" even he has only used 2M.
-> 
-> So I wander if we can let the allocation continues with the last gd if
-> it has enough space for a localalloc window. I have blamed the code
-> history and found that firstly you have already designed like this but
-> disabled in the commit "ocfs2: properly set and use inode group alloc
-> hint". I wander why?
-> 
-> A simply code hack is,
-> static u64 ocfs2_group_from_res(struct ocfs2_suballoc_result *res)
-> {
-> 	if (res->sr_blkno == 0)
-> 		return 0;  // This will set the hint to 0
-> 	...
-> }
-> 
-> Am I missing something?
-> 
-> Thanks,
-> Joseph
-> 
-> 
-> _______________________________________________
-> Ocfs2-devel mailing list
-> Ocfs2-devel at oss.oracle.com
-> https://oss.oracle.com/mailman/listinfo/ocfs2-devel
-> 
-> 
+Probably we could run set_buffer_new() after the up_write(), which
+would decrease lok hold times a little bit.
