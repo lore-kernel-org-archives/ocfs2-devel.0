@@ -1,32 +1,64 @@
-From: ryding <ryan.ding@oracle.com>
-Date: Tue, 15 Sep 2015 10:34:36 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2: Fill-in the unused portion of the
- block with zeros by dio_zero_block()
-In-Reply-To: <20150914152216.f0eac2d700ab39911d0aedf3@linux-foundation.org>
-References: <55EF9184.5090007@huawei.com>	<55F0E287.1020701@oracle.com>
-	<20150914152216.f0eac2d700ab39911d0aedf3@linux-foundation.org>
-Message-ID: <55F783BC.5080402@oracle.com>
+From: Andrzej Hajda <a.hajda@samsung.com>
+Date: Wed, 16 Sep 2015 12:04:31 +0200
+Subject: [Ocfs2-devel] [PATCH 23/31] fs/ocfs2: use kmemdup rather than
+ duplicating its implementation
+In-Reply-To: <1438934377-4922-24-git-send-email-a.hajda@samsung.com>
+References: <1438934377-4922-1-git-send-email-a.hajda@samsung.com>
+	<1438934377-4922-24-git-send-email-a.hajda@samsung.com>
+Message-ID: <55F93EAF.4080704@samsung.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: ocfs2-devel@oss.oracle.com
+To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>
+Cc: Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
 
+Ping.
 
-On 09/15/2015 06:22 AM, Andrew Morton wrote:
-> On Thu, 10 Sep 2015 09:53:11 +0800 ryding <ryan.ding@oracle.com> wrote:
+Regards
+Andrzej
+
+On 08/07/2015 09:59 AM, Andrzej Hajda wrote:
+> The patch was generated using fixed coccinelle semantic patch
+> scripts/coccinelle/api/memdup.cocci [1].
 >
->> Hi Yiwen,
->>
->> I'm working on this issue. The patch will be send out soon. And the
->> issue that do not support file hole will be fixed too. I have proved it
->> can pass all ltp-aiodio test cases, and has better performance. ;-)
-> Yes, your "ocfs2: fill in the unused portion of the block with zeros by
-> dio_zero_block()" conflicts with this patch a little.
+> [1]: http://permalink.gmane.org/gmane.linux.kernel/2014320
 >
-> Does your patchset need alteration to fix this bug?
-My patchset "ocfs2: fix ocfs2 direct io code patch to support sparse 
-file and
-data ordering semantics" has already include the fix to this bug. 
-Yiwen's patch
-is no longer needed if my patchset is accepted.
+> Signed-off-by: Andrzej Hajda <a.hajda@samsung.com>
+> ---
+>  fs/ocfs2/localalloc.c | 6 ++----
+>  1 file changed, 2 insertions(+), 4 deletions(-)
+>
+> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+> index 0a4457f..194d6d6 100644
+> --- a/fs/ocfs2/localalloc.c
+> +++ b/fs/ocfs2/localalloc.c
+> @@ -434,12 +434,11 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
+>  	bh = osb->local_alloc_bh;
+>  	alloc = (struct ocfs2_dinode *) bh->b_data;
+>  
+> -	alloc_copy = kmalloc(bh->b_size, GFP_NOFS);
+> +	alloc_copy = kmemdup(alloc, bh->b_size, GFP_NOFS);
+>  	if (!alloc_copy) {
+>  		status = -ENOMEM;
+>  		goto out_commit;
+>  	}
+> -	memcpy(alloc_copy, alloc, bh->b_size);
+>  
+>  	status = ocfs2_journal_access_di(handle, INODE_CACHE(local_alloc_inode),
+>  					 bh, OCFS2_JOURNAL_ACCESS_WRITE);
+> @@ -1285,13 +1284,12 @@ static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
+>  	 * local alloc shutdown won't try to double free main bitmap
+>  	 * bits. Make a copy so the sync function knows which bits to
+>  	 * free. */
+> -	alloc_copy = kmalloc(osb->local_alloc_bh->b_size, GFP_NOFS);
+> +	alloc_copy = kmemdup(alloc, osb->local_alloc_bh->b_size, GFP_NOFS);
+>  	if (!alloc_copy) {
+>  		status = -ENOMEM;
+>  		mlog_errno(status);
+>  		goto bail;
+>  	}
+> -	memcpy(alloc_copy, alloc, osb->local_alloc_bh->b_size);
+>  
+>  	status = ocfs2_journal_access_di(handle,
+>  					 INODE_CACHE(local_alloc_inode),
