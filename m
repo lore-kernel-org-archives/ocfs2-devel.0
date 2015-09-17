@@ -1,64 +1,73 @@
-From: Andrzej Hajda <a.hajda@samsung.com>
-Date: Wed, 16 Sep 2015 12:04:31 +0200
-Subject: [Ocfs2-devel] [PATCH 23/31] fs/ocfs2: use kmemdup rather than
- duplicating its implementation
-In-Reply-To: <1438934377-4922-24-git-send-email-a.hajda@samsung.com>
-References: <1438934377-4922-1-git-send-email-a.hajda@samsung.com>
-	<1438934377-4922-24-git-send-email-a.hajda@samsung.com>
-Message-ID: <55F93EAF.4080704@samsung.com>
+From: Joseph Qi <joseph.qi@huawei.com>
+Date: Thu, 17 Sep 2015 21:17:25 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix race between convert and
+	recovery
+Message-ID: <55FABD65.4010107@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Mark Fasheh <mfasheh@suse.com>, Joel Becker <jlbec@evilplan.org>
-Cc: Bartlomiej Zolnierkiewicz <b.zolnierkie@samsung.com>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org, ocfs2-devel@oss.oracle.com
+To: ocfs2-devel@oss.oracle.com
 
-Ping.
+There is a race window between dlmconvert_remote and
+dlm_move_lockres_to_recovery_list, which will cause a lock with
+OCFS2_LOCK_BUSY in grant list, thus system hangs.
 
-Regards
-Andrzej
+dlmconvert_remote
+{
+	spin_lock(&res->spinlock);
+	list_move_tail(&lock->list, &res->converting);
+	lock->convert_pending = 1;
+	spin_unlock(&res->spinlock);
 
-On 08/07/2015 09:59 AM, Andrzej Hajda wrote:
-> The patch was generated using fixed coccinelle semantic patch
-> scripts/coccinelle/api/memdup.cocci [1].
->
-> [1]: http://permalink.gmane.org/gmane.linux.kernel/2014320
->
-> Signed-off-by: Andrzej Hajda <a.hajda@samsung.com>
-> ---
->  fs/ocfs2/localalloc.c | 6 ++----
->  1 file changed, 2 insertions(+), 4 deletions(-)
->
-> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-> index 0a4457f..194d6d6 100644
-> --- a/fs/ocfs2/localalloc.c
-> +++ b/fs/ocfs2/localalloc.c
-> @@ -434,12 +434,11 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
->  	bh = osb->local_alloc_bh;
->  	alloc = (struct ocfs2_dinode *) bh->b_data;
->  
-> -	alloc_copy = kmalloc(bh->b_size, GFP_NOFS);
-> +	alloc_copy = kmemdup(alloc, bh->b_size, GFP_NOFS);
->  	if (!alloc_copy) {
->  		status = -ENOMEM;
->  		goto out_commit;
->  	}
-> -	memcpy(alloc_copy, alloc, bh->b_size);
->  
->  	status = ocfs2_journal_access_di(handle, INODE_CACHE(local_alloc_inode),
->  					 bh, OCFS2_JOURNAL_ACCESS_WRITE);
-> @@ -1285,13 +1284,12 @@ static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
->  	 * local alloc shutdown won't try to double free main bitmap
->  	 * bits. Make a copy so the sync function knows which bits to
->  	 * free. */
-> -	alloc_copy = kmalloc(osb->local_alloc_bh->b_size, GFP_NOFS);
-> +	alloc_copy = kmemdup(alloc, osb->local_alloc_bh->b_size, GFP_NOFS);
->  	if (!alloc_copy) {
->  		status = -ENOMEM;
->  		mlog_errno(status);
->  		goto bail;
->  	}
-> -	memcpy(alloc_copy, alloc, osb->local_alloc_bh->b_size);
->  
->  	status = ocfs2_journal_access_di(handle,
->  					 INODE_CACHE(local_alloc_inode),
+	status = dlm_send_remote_convert_request();
+	>>>>>> race window, master has queued ast and return DLM_NORMAL,
+	       and then down before sending ast.
+	       this node detects master down and call
+	       dlm_move_lockres_to_recovery_list, which will revert the
+	       lock to grant list.
+	       Then OCFS2_LOCK_BUSY won't be cleared as new master won't
+	       send ast any more because it thinks already be authorized.
+
+	spin_lock(&res->spinlock);
+	lock->convert_pending = 0;
+	if (status != DLM_NORMAL)
+		dlm_revert_pending_convert(res, lock);
+	spin_unlock(&res->spinlock);
+}
+
+In this case, just leave it in convert list and new master will take
+care of it after recovery. And if convert request returns other than
+DLM_NORMAL, convert thread will do the revert itself.
+So remove the revert logic in dlm_move_lockres_to_recovery_list.
+
+Reported-by: Yiwen Jiang <jiangyiwen@huawei.com>
+Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
+Cc: <stable@vger.kernel.org>
+---
+ fs/ocfs2/dlm/dlmrecovery.c | 10 +---------
+ 1 file changed, 1 insertion(+), 9 deletions(-)
+
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index ce12e0b..d797d49 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2058,15 +2058,7 @@ void dlm_move_lockres_to_recovery_list(struct dlm_ctxt *dlm,
+ 		queue = dlm_list_idx_to_ptr(res, i);
+ 		list_for_each_entry_safe(lock, next, queue, list) {
+ 			dlm_lock_get(lock);
+-			if (lock->convert_pending) {
+-				/* move converting lock back to granted */
+-				BUG_ON(i != DLM_CONVERTING_LIST);
+-				mlog(0, "node died with convert pending "
+-				     "on %.*s. move back to granted list.\n",
+-				     res->lockname.len, res->lockname.name);
+-				dlm_revert_pending_convert(res, lock);
+-				lock->convert_pending = 0;
+-			} else if (lock->lock_pending) {
++			if (lock->lock_pending) {
+ 				/* remove pending lock requests completely */
+ 				BUG_ON(i != DLM_BLOCKED_LIST);
+ 				mlog(0, "node died with lock pending "
+-- 
+1.8.4.3
