@@ -1,105 +1,56 @@
 From: Joseph Qi <joseph.qi@huawei.com>
-Date: Fri, 18 Sep 2015 19:44:57 +0800
-Subject: [Ocfs2-devel] [PATCH] ocfs2/dlm: fix deadlock when dispatch assert
-	master
-Message-ID: <55FBF939.1000401@huawei.com>
+Date: Sat, 19 Sep 2015 11:00:44 +0800
+Subject: [Ocfs2-devel] [PATCH] ocfs2: improve performance for localalloc
+Message-ID: <55FCCFDC.5050607@huawei.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-The order of the following three spinlock should be:
-dlm_domain_lock < dlm_ctxt->spinlock < dlm_lock_resource->spinlock
-
-But dlm_dispatch_assert_master is called with holding dlm_ctxt->spinlock
-and dlm_lock_resource->spinlock, and then it calls dlm_grab which will
-take dlm_domain_lock.
-Once another thread (for example, dlm_query_join_handler) has already
-taken dlm_domain_lock, and tries to take dlm_ctxt->spinlock deadlock
-happens.
+Currently cluster allocation is always trying to find a victim chain
+(a chian has most space), and this may lead to poor performance because
+of discontiguous allocation in some scenarios.
+Our test case is block size 4k, cluster size 1M and mount option with
+localalloc=2048 (2G), since a gd is 32256M (about 31.5G) and a
+localalloc window is only 2G, creating 50G file will result in 2G from
+gd0, 2G from gd1, ...
+One way to improve performance is enlarge localalloc window size (max
+31104M), but this will make end user feel that about 30G is suddenly
+"missing", and localalloc currently do not support steal, which means
+one node cannot use another node's localalloc even it is not used in
+fact. So using the last gd to record the allocation and continues with
+the gd if it has enough space for a localalloc window can make the
+allocation as more contiguous as possible.
+Our test result is below (evaluated in IOPS), which is using iometer
+running in VM, dynamic vhd virtual disk stored in ocfs2.
+IO model                Original   After   Improved(%)
+16K60%Write100%Random   703        876     24.59%
+8K90%Write100%Random    735        827     12.59%
+4K100%Write100%Random   859        915     6.52%
+4K100%Read100%Random    2092       2600    24.30%
 
 Signed-off-by: Joseph Qi <joseph.qi@huawei.com>
-Cc: <stable@vger.kernel.org>
+Tested-by: Norton Zhu <norton.zhu@huawei.com>
 ---
- fs/ocfs2/dlm/dlmmaster.c   | 9 ++++++---
- fs/ocfs2/dlm/dlmrecovery.c | 8 ++++++--
- 2 files changed, 12 insertions(+), 5 deletions(-)
+ fs/ocfs2/suballoc.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index fdf4b41..482cfd3 100644
---- a/fs/ocfs2/dlm/dlmmaster.c
-+++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -1439,6 +1439,7 @@ int dlm_master_request_handler(struct o2net_msg *msg, u32 len, void *data,
- 	int found, ret;
- 	int set_maybe;
- 	int dispatch_assert = 0;
-+	int dispatched = 0;
-
- 	if (!dlm_grab(dlm))
- 		return DLM_MASTER_RESP_NO;
-@@ -1658,15 +1659,18 @@ send_response:
- 			mlog(ML_ERROR, "failed to dispatch assert master work\n");
- 			response = DLM_MASTER_RESP_ERROR;
- 			dlm_lockres_put(res);
--		} else
-+		} else {
-+			dispatched = 1;
- 			__dlm_lockres_grab_inflight_worker(dlm, res);
-+		}
- 		spin_unlock(&res->spinlock);
- 	} else {
- 		if (res)
- 			dlm_lockres_put(res);
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 4479029..26976b9 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1939,7 +1939,10 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
+ 	status = ocfs2_search_chain(ac, handle, bits_wanted, min_bits,
+ 				    res, &bits_left);
+ 	if (!status) {
+-		hint = ocfs2_group_from_res(res);
++		if (ocfs2_is_cluster_bitmap(ac->ac_inode))
++			hint = res->sr_bg_blkno;
++		else
++			hint = ocfs2_group_from_res(res);
+ 		goto set_hint;
  	}
-
--	dlm_put(dlm);
-+	if (!dispatched)
-+		dlm_put(dlm);
- 	return response;
- }
-
-@@ -2090,7 +2094,6 @@ int dlm_dispatch_assert_master(struct dlm_ctxt *dlm,
-
-
- 	/* queue up work for dlm_assert_master_worker */
--	dlm_grab(dlm);  /* get an extra ref for the work item */
- 	dlm_init_work_item(dlm, item, dlm_assert_master_worker, NULL);
- 	item->u.am.lockres = res; /* already have a ref */
- 	/* can optionally ignore node numbers higher than this node */
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index ce12e0b..3d90ad7 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -1694,6 +1694,7 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
- 	unsigned int hash;
- 	int master = DLM_LOCK_RES_OWNER_UNKNOWN;
- 	u32 flags = DLM_ASSERT_MASTER_REQUERY;
-+	int dispatched = 0;
-
- 	if (!dlm_grab(dlm)) {
- 		/* since the domain has gone away on this
-@@ -1719,8 +1720,10 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
- 				dlm_put(dlm);
- 				/* sender will take care of this and retry */
- 				return ret;
--			} else
-+			} else {
-+				dispatched = 1;
- 				__dlm_lockres_grab_inflight_worker(dlm, res);
-+			}
- 			spin_unlock(&res->spinlock);
- 		} else {
- 			/* put.. incase we are not the master */
-@@ -1730,7 +1733,8 @@ int dlm_master_requery_handler(struct o2net_msg *msg, u32 len, void *data,
- 	}
- 	spin_unlock(&dlm->spinlock);
-
--	dlm_put(dlm);
-+	if (!dispatched)
-+		dlm_put(dlm);
- 	return master;
- }
-
+ 	if (status < 0 && status != -ENOSPC) {
 -- 
 1.8.4.3
