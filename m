@@ -1,124 +1,114 @@
-From: Junxiao Bi <junxiao.bi@oracle.com>
-Date: Wed, 23 Sep 2015 09:59:16 +0800
-Subject: [Ocfs2-devel] [PATCH v2] ocfs2/dlm: fix race between convert
-	and recovery
-In-Reply-To: <56020495.7070306@huawei.com>
-References: <55FBF4BA.30000@huawei.com>
-	<C60669F9-0021-4753-A41A-FA6B3E615E55@oracle.com>
-	<55FFCC9F.90201@huawei.com> <5600A6FD.90901@oracle.com>
-	<5601485F.4030506@huawei.com> <5601FFA6.4020407@oracle.com>
-	<56020495.7070306@huawei.com>
-Message-ID: <56020774.1020102@oracle.com>
+From: Ryan Ding <ryan.ding@oracle.com>
+Date: Wed, 23 Sep 2015 10:14:11 +0800
+Subject: [Ocfs2-devel] ocfs2: do not change i_size in write_end for
+	direct io
+In-Reply-To: <20150921162343.GC5648@mwanda>
+References: <20150921162343.GC5648@mwanda>
+Message-ID: <56020AF3.5060602@oracle.com>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 To: ocfs2-devel@oss.oracle.com
 
-On 09/23/2015 09:47 AM, Joseph Qi wrote:
-> On 2015/9/23 9:25, Junxiao Bi wrote:
->> On 09/22/2015 08:23 PM, Joseph Qi wrote:
->>> Hi Junxiao,
->>>
->>> On 2015/9/22 8:55, Junxiao Bi wrote:
->>>> On 09/21/2015 05:23 PM, Joseph Qi wrote:
->>>>> Hi Junxiao,
->>>>> This solution may have problem in the following scenario:
->>>>> Consider dlm_send_remote_convert_request has taken too much time, and
->>>>> dlm_move_lockres_to_recovery_list runs first and new master will see
->>>>> this node is currently in convert list after recovery.
->>>>> Then dlm_send_remote_convert_request returns other than DLM_NORMAL and
->>>>> it will revert it to grant list, then retry convert. This will makes
->>>>> this node and master inconsistent.
->>>>> I will try to find another solution to resolve the race issue.
->>>>
->>>> If master is down, no need retry convert. May check the return value of
->>>> dlm_send_remote_convert_request(), if DLM_RECOVERING, don't retry,
->>>> otherwise retry?
->>>
->>> I want to keep the original logic. And for fixing the race case I
->>> described, how about the following idea?
->>>
->>> Check the status DLM_NORMAL. If res->state is currently
->>> DLM_LOCK_RES_RECOVERING (set in dlm_move_lockres_to_recovery_list, means
->>> still in recovery) or res master changed (means new master has finished
->>> the recovery), reset the status to DLM_RECOVERING, just like the check
->>> at the beginning of dlmconvert_remote. Then it is now in grant list and
->>> outer will retry.
->> How this idea fix the race windows you described in patch log? Lock is
->> reverted to granted list but dlm_send_remote_convert_request() return
->> DLM_NORMAL.
->>
-> As I described in the former mail, status is now reset to DLM_RECOVERING,
-> caller will retry. And the original way will just wait forever.
-I mean convert request was sent to res master successfully,
-dlm_send_remote_convert_request() have return DLM_NORMAL, but before res
-master send ast it panic. Looks convert will not retry in this case.
+HiDan,
 
-Thanks,
-Junxiao.
-> 
-> Thanks
-> Joseph
-> 
->> Thanks,
->> Junxiao.
->>>
->>>>
->>>> Thanks,
->>>> Junxiao.
->>>>
->>>>>
->>>>> On 2015/9/20 15:20, Junxiao Bi wrote:
->>>>>> Reviewed-by: Junxiao Bi <junxiao.bi@oracle.com>
->>>>>>
->>>>>>>> ? 2015?9?18????7:25?Joseph Qi <joseph.qi@huawei.com> ???
->>>>>>>>
->>>>>>>> There is a race window between dlmconvert_remote and
->>>>>>>> dlm_move_lockres_to_recovery_list, which will cause a lock with
->>>>>>>> OCFS2_LOCK_BUSY in grant list, thus system hangs.
->>>>>>>>
->>>>>>>> dlmconvert_remote
->>>>>>>> {	
->>>>>>>>        spin_lock(&res->spinlock);
->>>>>>>>        list_move_tail(&lock->list, &res->converting);
->>>>>>>>        lock->convert_pending = 1;
->>>>>>>>        spin_unlock(&res->spinlock);
->>>>>>>>
->>>>>>>>        status = dlm_send_remote_convert_request();
->>>>>>>>>>>>>>>>>>>> race window, master has queued ast and return DLM_NORMAL,
->>>>>>>>               and then down before sending ast.
->>>>>>>>               this node detects master down and calls
->>>>>>>>               dlm_move_lockres_to_recovery_list, which will revert the
->>>>>>>>               lock to grant list.
->>>>>>>>               Then OCFS2_LOCK_BUSY won't be cleared as new master won't
->>>>>>>>               send ast any more because it thinks already be authorized.
->>>>>>>>
->>>>>>>>        spin_lock(&res->spinlock);
->>>>>>>>        lock->convert_pending = 0;
->>>>>>>>        if (status != DLM_NORMAL)
->>>>>>>>                dlm_revert_pending_convert(res, lock);
->>>>>>>>        spin_unlock(&res->spinlock);
->>>>>>>> }
->>>>>>>>
->>>>>>>> In this case, just leave it in convert list and new master will take care
->>>>>>>> of it after recovery.  And if convert request returns other than
->>>>>>>> DLM_NORMAL, convert thread will do the revert itself. So remove the
->>>>>>>> revert logic in dlm_move_lockres_to_recovery_list.
->>>>>>>>
->>>>>>>> changelog since v1:
->>>>>>>> Clean up convert_pending since it is now useless.
->>>>>
->>>>>
->>>>
->>>>
->>>> .
->>>>
->>>
->>>
->>
->>
->> .
->>
-> 
-> 
+On 09/22/2015 12:24 AM, Dan Carpenter wrote:
+> Hello Ryan Ding,
+>
+> This is a semi-automatic email about new static checker warnings.
+>
+> The patch 3d598f72dc44: "ocfs2: do not change i_size in write_end for
+> direct io" from Sep 17, 2015, leads to the following Smatch complaint:
+>
+> fs/ocfs2/aops.c:2063 ocfs2_write_end_nolock()
+> 	 error: we previously assumed 'handle' could be null (see line 1994)
+>
+> fs/ocfs2/aops.c
+>    1993	
+>    1994		if (handle) {
+>
+> Patch adds check.
+>
+>    1995			ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode),
+>    1996					wc->w_di_bh, OCFS2_JOURNAL_ACCESS_WRITE);
+>    1997			if (ret) {
+>    1998				copied = ret;
+>    1999				mlog_errno(ret);
+>    2000				goto out;
+>    2001			}
+>    2002		}
+>    2003	
+>    2004		if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL) {
+>    2005			ocfs2_write_end_inline(inode, pos, len, &copied, di, wc);
+>    2006			goto out_write_size;
+>    2007		}
+>    2008	
+>    2009		if (unlikely(copied < len) && wc->w_target_page) {
+>    2010			if (!PageUptodate(wc->w_target_page))
+>    2011				copied = 0;
+>    2012	
+>    2013			ocfs2_zero_new_buffers(wc->w_target_page, start+copied,
+>    2014					       start+len);
+>    2015		}
+>    2016		if (wc->w_target_page)
+>    2017			flush_dcache_page(wc->w_target_page);
+>    2018	
+>    2019		for(i = 0; i < wc->w_num_pages; i++) {
+>    2020			tmppage = wc->w_pages[i];
+>    2021	
+>    2022			/* This is the direct io target page. */
+>    2023			if (tmppage == NULL)
+>    2024				continue;
+>    2025	
+>    2026			if (tmppage == wc->w_target_page) {
+>    2027				from = wc->w_target_from;
+>    2028				to = wc->w_target_to;
+>    2029	
+>    2030				BUG_ON(from > PAGE_CACHE_SIZE ||
+>    2031				       to > PAGE_CACHE_SIZE ||
+>    2032				       to < from);
+>    2033			} else {
+>    2034				/*
+>    2035				 * Pages adjacent to the target (if any) imply
+>    2036				 * a hole-filling write in which case we want
+>    2037				 * to flush their entire range.
+>    2038				 */
+>    2039				from = 0;
+>    2040				to = PAGE_CACHE_SIZE;
+>    2041			}
+>    2042	
+>    2043			if (page_has_buffers(tmppage)) {
+>    2044				if (handle && ocfs2_should_order_data(inode))
+>    2045					ocfs2_jbd2_file_inode(handle, inode);
+>    2046				block_commit_write(tmppage, from, to);
+>    2047			}
+>    2048		}
+>    2049	
+>    2050	out_write_size:
+>    2051		/* Direct io do not update i_size here. */
+>    2052		if (wc->w_type != OCFS2_WRITE_DIRECT) {
+>    2053			pos += copied;
+>    2054			if (pos > i_size_read(inode)) {
+>    2055				i_size_write(inode, pos);
+>    2056				mark_inode_dirty(inode);
+>    2057			}
+>    2058			inode->i_blocks = ocfs2_inode_sector_count(inode);
+>    2059			di->i_size = cpu_to_le64((u64)i_size_read(inode));
+>    2060			inode->i_mtime = inode->i_ctime = CURRENT_TIME;
+>    2061			di->i_mtime = di->i_ctime = cpu_to_le64(inode->i_mtime.tv_sec);
+>    2062			di->i_mtime_nsec = di->i_ctime_nsec = cpu_to_le32(inode->i_mtime.tv_nsec);
+>    2063			ocfs2_update_inode_fsync_trans(handle, inode, 1);
+>                                                         ^^^^^^
+> Unchecked dereference inside function call.
+Previous check (wc->w_type != OCFS2_WRITE_DIRECT) will make sure 
+'handle' is not NULL. Since only direct io may have a NULL handle.
+
+Regards,
+Ryan
+>
+>    2064		}
+>    2065		if (handle)
+>
+> regards,
+> dan carpenter
