@@ -1,10 +1,10 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:53 -0700
-Subject: [Ocfs2-devel] [PATCH 16/23] usb-gadget/f_serial: use per-attribute
+Date: Fri, 25 Sep 2015 06:49:49 -0700
+Subject: [Ocfs2-devel] [PATCH 12/23] usb-gadget/f_ac1: use per-attribute
 	show and store methods
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-17-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-13-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,57 +14,114 @@ Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/usb/gadget/function/f_serial.c | 26 ++++----------------------
- 1 file changed, 4 insertions(+), 22 deletions(-)
+ drivers/usb/gadget/function/f_uac1.c | 39 +++++++++++++++---------------------
+ 1 file changed, 16 insertions(+), 23 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/f_serial.c b/drivers/usb/gadget/function/f_serial.c
-index 1d162e2..ec837f4 100644
---- a/drivers/usb/gadget/function/f_serial.c
-+++ b/drivers/usb/gadget/function/f_serial.c
-@@ -266,22 +266,6 @@ static inline struct f_serial_opts *to_f_serial_opts(struct config_item *item)
+diff --git a/drivers/usb/gadget/function/f_uac1.c b/drivers/usb/gadget/function/f_uac1.c
+index 7856b33..ad01032 100644
+--- a/drivers/usb/gadget/function/f_uac1.c
++++ b/drivers/usb/gadget/function/f_uac1.c
+@@ -773,9 +773,6 @@ static inline struct f_uac1_opts *to_f_uac1_opts(struct config_item *item)
  			    func_inst.group);
  }
  
--CONFIGFS_ATTR_STRUCT(f_serial_opts);
--static ssize_t f_serial_attr_show(struct config_item *item,
--				  struct configfs_attribute *attr,
--				  char *page)
--{
--	struct f_serial_opts *opts = to_f_serial_opts(item);
--	struct f_serial_opts_attribute *f_serial_opts_attr =
--		container_of(attr, struct f_serial_opts_attribute, attr);
--	ssize_t ret = 0;
+-CONFIGFS_ATTR_STRUCT(f_uac1_opts);
+-CONFIGFS_ATTR_OPS(f_uac1_opts);
 -
--	if (f_serial_opts_attr->show)
--		ret = f_serial_opts_attr->show(opts, page);
--
--	return ret;
--}
--
- static void serial_attr_release(struct config_item *item)
+ static void f_uac1_attr_release(struct config_item *item)
  {
- 	struct f_serial_opts *opts = to_f_serial_opts(item);
-@@ -291,19 +275,17 @@ static void serial_attr_release(struct config_item *item)
+ 	struct f_uac1_opts *opts = to_f_uac1_opts(item);
+@@ -785,14 +782,13 @@ static void f_uac1_attr_release(struct config_item *item)
  
- static struct configfs_item_operations serial_item_ops = {
- 	.release	= serial_attr_release,
--	.show_attribute = f_serial_attr_show,
+ static struct configfs_item_operations f_uac1_item_ops = {
+ 	.release	= f_uac1_attr_release,
+-	.show_attribute	= f_uac1_opts_attr_show,
+-	.store_attribute = f_uac1_opts_attr_store,
  };
  
--static ssize_t f_serial_port_num_show(struct f_serial_opts *opts, char *page)
-+static ssize_t f_serial_port_num_show(struct config_item *item, char *page)
- {
--	return sprintf(page, "%u\n", opts->port_num);
-+	return sprintf(page, "%u\n", to_f_serial_opts(item)->port_num);
- }
+ #define UAC1_INT_ATTRIBUTE(name)					\
+-static ssize_t f_uac1_opts_##name##_show(struct f_uac1_opts *opts,	\
++static ssize_t f_uac1_opts_##name##_show(struct config_item *item,	\
+ 					 char *page)			\
+ {									\
++	struct f_uac1_opts *opts = to_f_uac1_opts(item);		\
+ 	int result;							\
+ 									\
+ 	mutex_lock(&opts->lock);					\
+@@ -802,9 +798,10 @@ static ssize_t f_uac1_opts_##name##_show(struct f_uac1_opts *opts,	\
+ 	return result;							\
+ }									\
+ 									\
+-static ssize_t f_uac1_opts_##name##_store(struct f_uac1_opts *opts,	\
++static ssize_t f_uac1_opts_##name##_store(struct config_item *item,		\
+ 					  const char *page, size_t len)	\
+ {									\
++	struct f_uac1_opts *opts = to_f_uac1_opts(item);		\
+ 	int ret;							\
+ 	u32 num;							\
+ 									\
+@@ -826,19 +823,17 @@ end:									\
+ 	return ret;							\
+ }									\
+ 									\
+-static struct f_uac1_opts_attribute f_uac1_opts_##name =		\
+-	__CONFIGFS_ATTR(name, S_IRUGO | S_IWUSR,			\
+-			f_uac1_opts_##name##_show,			\
+-			f_uac1_opts_##name##_store)
++CONFIGFS_ATTR(f_uac1_opts_, name)
  
--static struct f_serial_opts_attribute f_serial_port_num =
--	__CONFIGFS_ATTR_RO(port_num, f_serial_port_num_show);
-+CONFIGFS_ATTR_RO(f_serial_, port_num);
+ UAC1_INT_ATTRIBUTE(req_buf_size);
+ UAC1_INT_ATTRIBUTE(req_count);
+ UAC1_INT_ATTRIBUTE(audio_buf_size);
  
- static struct configfs_attribute *acm_attrs[] = {
--	&f_serial_port_num.attr,
-+	&f_serial_attr_port_num,
+ #define UAC1_STR_ATTRIBUTE(name)					\
+-static ssize_t f_uac1_opts_##name##_show(struct f_uac1_opts *opts,	\
++static ssize_t f_uac1_opts_##name##_show(struct config_item *item,	\
+ 					 char *page)			\
+ {									\
++	struct f_uac1_opts *opts = to_f_uac1_opts(item);		\
+ 	int result;							\
+ 									\
+ 	mutex_lock(&opts->lock);					\
+@@ -848,9 +843,10 @@ static ssize_t f_uac1_opts_##name##_show(struct f_uac1_opts *opts,	\
+ 	return result;							\
+ }									\
+ 									\
+-static ssize_t f_uac1_opts_##name##_store(struct f_uac1_opts *opts,	\
++static ssize_t f_uac1_opts_##name##_store(struct config_item *item,	\
+ 					  const char *page, size_t len)	\
+ {									\
++	struct f_uac1_opts *opts = to_f_uac1_opts(item);		\
+ 	int ret = -EBUSY;						\
+ 	char *tmp;							\
+ 									\
+@@ -874,22 +870,19 @@ end:									\
+ 	return ret;							\
+ }									\
+ 									\
+-static struct f_uac1_opts_attribute f_uac1_opts_##name =		\
+-	__CONFIGFS_ATTR(name, S_IRUGO | S_IWUSR,			\
+-			f_uac1_opts_##name##_show,			\
+-			f_uac1_opts_##name##_store)
++CONFIGFS_ATTR(f_uac1_opts_, name)
+ 
+ UAC1_STR_ATTRIBUTE(fn_play);
+ UAC1_STR_ATTRIBUTE(fn_cap);
+ UAC1_STR_ATTRIBUTE(fn_cntl);
+ 
+ static struct configfs_attribute *f_uac1_attrs[] = {
+-	&f_uac1_opts_req_buf_size.attr,
+-	&f_uac1_opts_req_count.attr,
+-	&f_uac1_opts_audio_buf_size.attr,
+-	&f_uac1_opts_fn_play.attr,
+-	&f_uac1_opts_fn_cap.attr,
+-	&f_uac1_opts_fn_cntl.attr,
++	&f_uac1_opts_attr_req_buf_size,
++	&f_uac1_opts_attr_req_count,
++	&f_uac1_opts_attr_audio_buf_size,
++	&f_uac1_opts_attr_fn_play,
++	&f_uac1_opts_attr_fn_cap,
++	&f_uac1_opts_attr_fn_cntl,
  	NULL,
  };
  
