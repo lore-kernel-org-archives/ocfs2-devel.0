@@ -1,109 +1,478 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:44 -0700
-Subject: [Ocfs2-devel] [PATCH 07/23] usb-gadget/f_loopback: use
-	per-attribute show and store methods
+Date: Fri, 25 Sep 2015 06:49:54 -0700
+Subject: [Ocfs2-devel] [PATCH 17/23] dlm: use per-attribute show and store
+	methods
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-8-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-18-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-To: Joel Becker <jlbec-aKy9MeLSZ9dg9hUCZPvPmw@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Felipe Balbi <balbi-l0cyMroinI0@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Pratyush Anand <pratyush.anand-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, target-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Felipe Balbi <balbi@ti.com>, Tejun Heo <tj@kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, target-devel@vger.kernel.org, cluster-devel@redhat.com, ocfs2-devel@oss.oracle.com, linux-usb@vger.kernel.org, netdev@vger.kernel.org
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/usb/gadget/function/f_loopback.c | 32 ++++++++++++--------------------
- 1 file changed, 12 insertions(+), 20 deletions(-)
+ fs/dlm/config.c | 288 +++++++++++++++-----------------------------------------
+ 1 file changed, 74 insertions(+), 214 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/f_loopback.c b/drivers/usb/gadget/function/f_loopback.c
-index 6e2fe63..d4ef421 100644
---- a/drivers/usb/gadget/function/f_loopback.c
-+++ b/drivers/usb/gadget/function/f_loopback.c
-@@ -413,9 +413,6 @@ static inline struct f_lb_opts *to_f_lb_opts(struct config_item *item)
- 			    func_inst.group);
- }
+diff --git a/fs/dlm/config.c b/fs/dlm/config.c
+index d521bdd..8e294fb 100644
+--- a/fs/dlm/config.c
++++ b/fs/dlm/config.c
+@@ -61,35 +61,8 @@ static struct config_item *make_node(struct config_group *, const char *);
+ static void drop_node(struct config_group *, struct config_item *);
+ static void release_node(struct config_item *);
  
--CONFIGFS_ATTR_STRUCT(f_lb_opts);
--CONFIGFS_ATTR_OPS(f_lb_opts);
+-static ssize_t show_cluster(struct config_item *i, struct configfs_attribute *a,
+-			    char *buf);
+-static ssize_t store_cluster(struct config_item *i,
+-			     struct configfs_attribute *a,
+-			     const char *buf, size_t len);
+-static ssize_t show_comm(struct config_item *i, struct configfs_attribute *a,
+-			 char *buf);
+-static ssize_t store_comm(struct config_item *i, struct configfs_attribute *a,
+-			  const char *buf, size_t len);
+-static ssize_t show_node(struct config_item *i, struct configfs_attribute *a,
+-			 char *buf);
+-static ssize_t store_node(struct config_item *i, struct configfs_attribute *a,
+-			  const char *buf, size_t len);
 -
- static void lb_attr_release(struct config_item *item)
- {
- 	struct f_lb_opts *lb_opts = to_f_lb_opts(item);
-@@ -425,12 +422,11 @@ static void lb_attr_release(struct config_item *item)
+-static ssize_t comm_nodeid_read(struct dlm_comm *cm, char *buf);
+-static ssize_t comm_nodeid_write(struct dlm_comm *cm, const char *buf,
+-				size_t len);
+-static ssize_t comm_local_read(struct dlm_comm *cm, char *buf);
+-static ssize_t comm_local_write(struct dlm_comm *cm, const char *buf,
+-				size_t len);
+-static ssize_t comm_addr_write(struct dlm_comm *cm, const char *buf,
+-				size_t len);
+-static ssize_t comm_addr_list_read(struct dlm_comm *cm, char *buf);
+-static ssize_t node_nodeid_read(struct dlm_node *nd, char *buf);
+-static ssize_t node_nodeid_write(struct dlm_node *nd, const char *buf,
+-				size_t len);
+-static ssize_t node_weight_read(struct dlm_node *nd, char *buf);
+-static ssize_t node_weight_write(struct dlm_node *nd, const char *buf,
+-				size_t len);
++static struct configfs_attribute *comm_attrs[];
++static struct configfs_attribute *node_attrs[];
  
- static struct configfs_item_operations lb_item_ops = {
- 	.release		= lb_attr_release,
--	.show_attribute		= f_lb_opts_attr_show,
--	.store_attribute	= f_lb_opts_attr_store,
+ struct dlm_cluster {
+ 	struct config_group group;
+@@ -108,6 +81,12 @@ struct dlm_cluster {
+ 	char cl_cluster_name[DLM_LOCKSPACE_LEN];
  };
  
--static ssize_t f_lb_opts_qlen_show(struct f_lb_opts *opts, char *page)
-+static ssize_t f_lb_opts_qlen_show(struct config_item *item, char *page)
- {
-+	struct f_lb_opts *opts = to_f_lb_opts(item);
- 	int result;
++static struct dlm_cluster *config_item_to_cluster(struct config_item *i)
++{
++	return i ? container_of(to_config_group(i), struct dlm_cluster, group) :
++		   NULL;
++}
++
+ enum {
+ 	CLUSTER_ATTR_TCP_PORT = 0,
+ 	CLUSTER_ATTR_BUFFER_SIZE,
+@@ -124,33 +103,24 @@ enum {
+ 	CLUSTER_ATTR_CLUSTER_NAME,
+ };
  
- 	mutex_lock(&opts->lock);
-@@ -440,9 +436,10 @@ static ssize_t f_lb_opts_qlen_show(struct f_lb_opts *opts, char *page)
- 	return result;
- }
- 
--static ssize_t f_lb_opts_qlen_store(struct f_lb_opts *opts,
-+static ssize_t f_lb_opts_qlen_store(struct config_item *item,
- 				    const char *page, size_t len)
- {
-+	struct f_lb_opts *opts = to_f_lb_opts(item);
- 	int ret;
- 	u32 num;
- 
-@@ -463,13 +460,9 @@ end:
- 	return ret;
- }
- 
--static struct f_lb_opts_attribute f_lb_opts_qlen =
--	__CONFIGFS_ATTR(qlen, S_IRUGO | S_IWUSR,
--			f_lb_opts_qlen_show,
--			f_lb_opts_qlen_store);
+-struct cluster_attribute {
+-	struct configfs_attribute attr;
+-	ssize_t (*show)(struct dlm_cluster *, char *);
+-	ssize_t (*store)(struct dlm_cluster *, const char *, size_t);
+-};
 -
--static ssize_t f_lb_opts_bulk_buflen_show(struct f_lb_opts *opts, char *page)
-+static ssize_t f_lb_opts_bulk_buflen_show(struct config_item *item, char *page)
+-static ssize_t cluster_cluster_name_read(struct dlm_cluster *cl, char *buf)
++static ssize_t cluster_cluster_name_show(struct config_item *item, char *buf)
  {
-+	struct f_lb_opts *opts = to_f_lb_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -479,9 +472,10 @@ static ssize_t f_lb_opts_bulk_buflen_show(struct f_lb_opts *opts, char *page)
- 	return result;
++	struct dlm_cluster *cl = config_item_to_cluster(item);
+ 	return sprintf(buf, "%s\n", cl->cl_cluster_name);
  }
  
--static ssize_t f_lb_opts_bulk_buflen_store(struct f_lb_opts *opts,
-+static ssize_t f_lb_opts_bulk_buflen_store(struct config_item *item,
- 				    const char *page, size_t len)
+-static ssize_t cluster_cluster_name_write(struct dlm_cluster *cl,
++static ssize_t cluster_cluster_name_store(struct config_item *item,
+ 					  const char *buf, size_t len)
  {
-+	struct f_lb_opts *opts = to_f_lb_opts(item);
- 	int ret;
- 	u32 num;
- 
-@@ -502,14 +496,12 @@ end:
- 	return ret;
++	struct dlm_cluster *cl = config_item_to_cluster(item);
++
+ 	strlcpy(dlm_config.ci_cluster_name, buf,
+ 				sizeof(dlm_config.ci_cluster_name));
+ 	strlcpy(cl->cl_cluster_name, buf, sizeof(cl->cl_cluster_name));
+ 	return len;
  }
  
--static struct f_lb_opts_attribute f_lb_opts_bulk_buflen =
--	__CONFIGFS_ATTR(buflen, S_IRUGO | S_IWUSR,
--			f_lb_opts_bulk_buflen_show,
--			f_lb_opts_bulk_buflen_store);
-+CONFIGFS_ATTR(f_lb_opts_, qlen);
-+CONFIGFS_ATTR(f_lb_opts_, bulk_buflen);
+-static struct cluster_attribute cluster_attr_cluster_name = {
+-	.attr   = { .ca_owner = THIS_MODULE,
+-                    .ca_name = "cluster_name",
+-                    .ca_mode = S_IRUGO | S_IWUSR },
+-	.show   = cluster_cluster_name_read,
+-	.store  = cluster_cluster_name_write,
+-};
++CONFIGFS_ATTR(cluster_, cluster_name);
  
- static struct configfs_attribute *lb_attrs[] = {
--	&f_lb_opts_qlen.attr,
--	&f_lb_opts_bulk_buflen.attr,
-+	&f_lb_opts_attr_qlen,
-+	&f_lb_opts_attr_bulk_buflen,
+ static ssize_t cluster_set(struct dlm_cluster *cl, unsigned int *cl_field,
+ 			   int *info_field, int check_zero,
+@@ -175,17 +145,19 @@ static ssize_t cluster_set(struct dlm_cluster *cl, unsigned int *cl_field,
+ }
+ 
+ #define CLUSTER_ATTR(name, check_zero)                                        \
+-static ssize_t name##_write(struct dlm_cluster *cl, const char *buf, size_t len) \
++static ssize_t cluster_##name##_store(struct config_item *item, \
++		const char *buf, size_t len) \
+ {                                                                             \
++	struct dlm_cluster *cl = config_item_to_cluster(item);		      \
+ 	return cluster_set(cl, &cl->cl_##name, &dlm_config.ci_##name,         \
+ 			   check_zero, buf, len);                             \
+ }                                                                             \
+-static ssize_t name##_read(struct dlm_cluster *cl, char *buf)                 \
++static ssize_t cluster_##name##_show(struct config_item *item, char *buf)     \
+ {                                                                             \
++	struct dlm_cluster *cl = config_item_to_cluster(item);		      \
+ 	return snprintf(buf, PAGE_SIZE, "%u\n", cl->cl_##name);               \
+ }                                                                             \
+-static struct cluster_attribute cluster_attr_##name =                         \
+-__CONFIGFS_ATTR(name, 0644, name##_read, name##_write)
++CONFIGFS_ATTR(cluster_, name);
+ 
+ CLUSTER_ATTR(tcp_port, 1);
+ CLUSTER_ATTR(buffer_size, 1);
+@@ -201,19 +173,19 @@ CLUSTER_ATTR(new_rsb_count, 0);
+ CLUSTER_ATTR(recover_callbacks, 0);
+ 
+ static struct configfs_attribute *cluster_attrs[] = {
+-	[CLUSTER_ATTR_TCP_PORT] = &cluster_attr_tcp_port.attr,
+-	[CLUSTER_ATTR_BUFFER_SIZE] = &cluster_attr_buffer_size.attr,
+-	[CLUSTER_ATTR_RSBTBL_SIZE] = &cluster_attr_rsbtbl_size.attr,
+-	[CLUSTER_ATTR_RECOVER_TIMER] = &cluster_attr_recover_timer.attr,
+-	[CLUSTER_ATTR_TOSS_SECS] = &cluster_attr_toss_secs.attr,
+-	[CLUSTER_ATTR_SCAN_SECS] = &cluster_attr_scan_secs.attr,
+-	[CLUSTER_ATTR_LOG_DEBUG] = &cluster_attr_log_debug.attr,
+-	[CLUSTER_ATTR_PROTOCOL] = &cluster_attr_protocol.attr,
+-	[CLUSTER_ATTR_TIMEWARN_CS] = &cluster_attr_timewarn_cs.attr,
+-	[CLUSTER_ATTR_WAITWARN_US] = &cluster_attr_waitwarn_us.attr,
+-	[CLUSTER_ATTR_NEW_RSB_COUNT] = &cluster_attr_new_rsb_count.attr,
+-	[CLUSTER_ATTR_RECOVER_CALLBACKS] = &cluster_attr_recover_callbacks.attr,
+-	[CLUSTER_ATTR_CLUSTER_NAME] = &cluster_attr_cluster_name.attr,
++	[CLUSTER_ATTR_TCP_PORT] = &cluster_attr_tcp_port,
++	[CLUSTER_ATTR_BUFFER_SIZE] = &cluster_attr_buffer_size,
++	[CLUSTER_ATTR_RSBTBL_SIZE] = &cluster_attr_rsbtbl_size,
++	[CLUSTER_ATTR_RECOVER_TIMER] = &cluster_attr_recover_timer,
++	[CLUSTER_ATTR_TOSS_SECS] = &cluster_attr_toss_secs,
++	[CLUSTER_ATTR_SCAN_SECS] = &cluster_attr_scan_secs,
++	[CLUSTER_ATTR_LOG_DEBUG] = &cluster_attr_log_debug,
++	[CLUSTER_ATTR_PROTOCOL] = &cluster_attr_protocol,
++	[CLUSTER_ATTR_TIMEWARN_CS] = &cluster_attr_timewarn_cs,
++	[CLUSTER_ATTR_WAITWARN_US] = &cluster_attr_waitwarn_us,
++	[CLUSTER_ATTR_NEW_RSB_COUNT] = &cluster_attr_new_rsb_count,
++	[CLUSTER_ATTR_RECOVER_CALLBACKS] = &cluster_attr_recover_callbacks,
++	[CLUSTER_ATTR_CLUSTER_NAME] = &cluster_attr_cluster_name,
  	NULL,
  };
  
+@@ -224,83 +196,11 @@ enum {
+ 	COMM_ATTR_ADDR_LIST,
+ };
+ 
+-struct comm_attribute {
+-	struct configfs_attribute attr;
+-	ssize_t (*show)(struct dlm_comm *, char *);
+-	ssize_t (*store)(struct dlm_comm *, const char *, size_t);
+-};
+-
+-static struct comm_attribute comm_attr_nodeid = {
+-	.attr   = { .ca_owner = THIS_MODULE,
+-                    .ca_name = "nodeid",
+-                    .ca_mode = S_IRUGO | S_IWUSR },
+-	.show   = comm_nodeid_read,
+-	.store  = comm_nodeid_write,
+-};
+-
+-static struct comm_attribute comm_attr_local = {
+-	.attr   = { .ca_owner = THIS_MODULE,
+-                    .ca_name = "local",
+-                    .ca_mode = S_IRUGO | S_IWUSR },
+-	.show   = comm_local_read,
+-	.store  = comm_local_write,
+-};
+-
+-static struct comm_attribute comm_attr_addr = {
+-	.attr   = { .ca_owner = THIS_MODULE,
+-                    .ca_name = "addr",
+-                    .ca_mode = S_IWUSR },
+-	.store  = comm_addr_write,
+-};
+-
+-static struct comm_attribute comm_attr_addr_list = {
+-	.attr   = { .ca_owner = THIS_MODULE,
+-                    .ca_name = "addr_list",
+-                    .ca_mode = S_IRUGO },
+-	.show   = comm_addr_list_read,
+-};
+-
+-static struct configfs_attribute *comm_attrs[] = {
+-	[COMM_ATTR_NODEID] = &comm_attr_nodeid.attr,
+-	[COMM_ATTR_LOCAL] = &comm_attr_local.attr,
+-	[COMM_ATTR_ADDR] = &comm_attr_addr.attr,
+-	[COMM_ATTR_ADDR_LIST] = &comm_attr_addr_list.attr,
+-	NULL,
+-};
+-
+ enum {
+ 	NODE_ATTR_NODEID = 0,
+ 	NODE_ATTR_WEIGHT,
+ };
+ 
+-struct node_attribute {
+-	struct configfs_attribute attr;
+-	ssize_t (*show)(struct dlm_node *, char *);
+-	ssize_t (*store)(struct dlm_node *, const char *, size_t);
+-};
+-
+-static struct node_attribute node_attr_nodeid = {
+-	.attr   = { .ca_owner = THIS_MODULE,
+-                    .ca_name = "nodeid",
+-                    .ca_mode = S_IRUGO | S_IWUSR },
+-	.show   = node_nodeid_read,
+-	.store  = node_nodeid_write,
+-};
+-
+-static struct node_attribute node_attr_weight = {
+-	.attr   = { .ca_owner = THIS_MODULE,
+-                    .ca_name = "weight",
+-                    .ca_mode = S_IRUGO | S_IWUSR },
+-	.show   = node_weight_read,
+-	.store  = node_weight_write,
+-};
+-
+-static struct configfs_attribute *node_attrs[] = {
+-	[NODE_ATTR_NODEID] = &node_attr_nodeid.attr,
+-	[NODE_ATTR_WEIGHT] = &node_attr_weight.attr,
+-	NULL,
+-};
+-
+ struct dlm_clusters {
+ 	struct configfs_subsystem subsys;
+ };
+@@ -349,8 +249,6 @@ static struct configfs_group_operations clusters_ops = {
+ 
+ static struct configfs_item_operations cluster_ops = {
+ 	.release = release_cluster,
+-	.show_attribute = show_cluster,
+-	.store_attribute = store_cluster,
+ };
+ 
+ static struct configfs_group_operations spaces_ops = {
+@@ -369,8 +267,6 @@ static struct configfs_group_operations comms_ops = {
+ 
+ static struct configfs_item_operations comm_ops = {
+ 	.release = release_comm,
+-	.show_attribute = show_comm,
+-	.store_attribute = store_comm,
+ };
+ 
+ static struct configfs_group_operations nodes_ops = {
+@@ -380,8 +276,6 @@ static struct configfs_group_operations nodes_ops = {
+ 
+ static struct configfs_item_operations node_ops = {
+ 	.release = release_node,
+-	.show_attribute = show_node,
+-	.store_attribute = store_node,
+ };
+ 
+ static struct config_item_type clusters_type = {
+@@ -427,12 +321,6 @@ static struct config_item_type node_type = {
+ 	.ct_owner = THIS_MODULE,
+ };
+ 
+-static struct dlm_cluster *config_item_to_cluster(struct config_item *i)
+-{
+-	return i ? container_of(to_config_group(i), struct dlm_cluster, group) :
+-		   NULL;
+-}
+-
+ static struct dlm_space *config_item_to_space(struct config_item *i)
+ {
+ 	return i ? container_of(to_config_group(i), struct dlm_space, group) :
+@@ -687,66 +575,30 @@ void dlm_config_exit(void)
+  * Functions for user space to read/write attributes
+  */
+ 
+-static ssize_t show_cluster(struct config_item *i, struct configfs_attribute *a,
+-			    char *buf)
+-{
+-	struct dlm_cluster *cl = config_item_to_cluster(i);
+-	struct cluster_attribute *cla =
+-			container_of(a, struct cluster_attribute, attr);
+-	return cla->show ? cla->show(cl, buf) : 0;
+-}
+-
+-static ssize_t store_cluster(struct config_item *i,
+-			     struct configfs_attribute *a,
+-			     const char *buf, size_t len)
++static ssize_t comm_nodeid_show(struct config_item *item, char *buf)
+ {
+-	struct dlm_cluster *cl = config_item_to_cluster(i);
+-	struct cluster_attribute *cla =
+-		container_of(a, struct cluster_attribute, attr);
+-	return cla->store ? cla->store(cl, buf, len) : -EINVAL;
+-}
+-
+-static ssize_t show_comm(struct config_item *i, struct configfs_attribute *a,
+-			 char *buf)
+-{
+-	struct dlm_comm *cm = config_item_to_comm(i);
+-	struct comm_attribute *cma =
+-			container_of(a, struct comm_attribute, attr);
+-	return cma->show ? cma->show(cm, buf) : 0;
+-}
+-
+-static ssize_t store_comm(struct config_item *i, struct configfs_attribute *a,
+-			  const char *buf, size_t len)
+-{
+-	struct dlm_comm *cm = config_item_to_comm(i);
+-	struct comm_attribute *cma =
+-		container_of(a, struct comm_attribute, attr);
+-	return cma->store ? cma->store(cm, buf, len) : -EINVAL;
++	return sprintf(buf, "%d\n", config_item_to_comm(item)->nodeid);
+ }
+ 
+-static ssize_t comm_nodeid_read(struct dlm_comm *cm, char *buf)
+-{
+-	return sprintf(buf, "%d\n", cm->nodeid);
+-}
+-
+-static ssize_t comm_nodeid_write(struct dlm_comm *cm, const char *buf,
++static ssize_t comm_nodeid_store(struct config_item *item, const char *buf,
+ 				 size_t len)
+ {
+-	int rc = kstrtoint(buf, 0, &cm->nodeid);
++	int rc = kstrtoint(buf, 0, &config_item_to_comm(item)->nodeid);
+ 
+ 	if (rc)
+ 		return rc;
+ 	return len;
+ }
+ 
+-static ssize_t comm_local_read(struct dlm_comm *cm, char *buf)
++static ssize_t comm_local_show(struct config_item *item, char *buf)
+ {
+-	return sprintf(buf, "%d\n", cm->local);
++	return sprintf(buf, "%d\n", config_item_to_comm(item)->local);
+ }
+ 
+-static ssize_t comm_local_write(struct dlm_comm *cm, const char *buf,
++static ssize_t comm_local_store(struct config_item *item, const char *buf,
+ 				size_t len)
+ {
++	struct dlm_comm *cm = config_item_to_comm(item);
+ 	int rc = kstrtoint(buf, 0, &cm->local);
+ 
+ 	if (rc)
+@@ -756,8 +608,10 @@ static ssize_t comm_local_write(struct dlm_comm *cm, const char *buf,
+ 	return len;
+ }
+ 
+-static ssize_t comm_addr_write(struct dlm_comm *cm, const char *buf, size_t len)
++static ssize_t comm_addr_store(struct config_item *item, const char *buf,
++		size_t len)
+ {
++	struct dlm_comm *cm = config_item_to_comm(item);
+ 	struct sockaddr_storage *addr;
+ 	int rv;
+ 
+@@ -783,8 +637,9 @@ static ssize_t comm_addr_write(struct dlm_comm *cm, const char *buf, size_t len)
+ 	return len;
+ }
+ 
+-static ssize_t comm_addr_list_read(struct dlm_comm *cm, char *buf)
++static ssize_t comm_addr_list_show(struct config_item *item, char *buf)
+ {
++	struct dlm_comm *cm = config_item_to_comm(item);
+ 	ssize_t s;
+ 	ssize_t allowance;
+ 	int i;
+@@ -827,32 +682,28 @@ static ssize_t comm_addr_list_read(struct dlm_comm *cm, char *buf)
+ 	return 4096 - allowance;
+ }
+ 
+-static ssize_t show_node(struct config_item *i, struct configfs_attribute *a,
+-			 char *buf)
+-{
+-	struct dlm_node *nd = config_item_to_node(i);
+-	struct node_attribute *nda =
+-			container_of(a, struct node_attribute, attr);
+-	return nda->show ? nda->show(nd, buf) : 0;
+-}
++CONFIGFS_ATTR(comm_, nodeid);
++CONFIGFS_ATTR(comm_, local);
++CONFIGFS_ATTR_WO(comm_, addr);
++CONFIGFS_ATTR_RO(comm_, addr_list);
+ 
+-static ssize_t store_node(struct config_item *i, struct configfs_attribute *a,
+-			  const char *buf, size_t len)
+-{
+-	struct dlm_node *nd = config_item_to_node(i);
+-	struct node_attribute *nda =
+-		container_of(a, struct node_attribute, attr);
+-	return nda->store ? nda->store(nd, buf, len) : -EINVAL;
+-}
++static struct configfs_attribute *comm_attrs[] = {
++	[COMM_ATTR_NODEID] = &comm_attr_nodeid,
++	[COMM_ATTR_LOCAL] = &comm_attr_local,
++	[COMM_ATTR_ADDR] = &comm_attr_addr,
++	[COMM_ATTR_ADDR_LIST] = &comm_attr_addr_list,
++	NULL,
++};
+ 
+-static ssize_t node_nodeid_read(struct dlm_node *nd, char *buf)
++static ssize_t node_nodeid_show(struct config_item *item, char *buf)
+ {
+-	return sprintf(buf, "%d\n", nd->nodeid);
++	return sprintf(buf, "%d\n", config_item_to_node(item)->nodeid);
+ }
+ 
+-static ssize_t node_nodeid_write(struct dlm_node *nd, const char *buf,
++static ssize_t node_nodeid_store(struct config_item *item, const char *buf,
+ 				 size_t len)
+ {
++	struct dlm_node *nd = config_item_to_node(item);
+ 	uint32_t seq = 0;
+ 	int rc = kstrtoint(buf, 0, &nd->nodeid);
+ 
+@@ -863,21 +714,30 @@ static ssize_t node_nodeid_write(struct dlm_node *nd, const char *buf,
+ 	return len;
+ }
+ 
+-static ssize_t node_weight_read(struct dlm_node *nd, char *buf)
++static ssize_t node_weight_show(struct config_item *item, char *buf)
+ {
+-	return sprintf(buf, "%d\n", nd->weight);
++	return sprintf(buf, "%d\n", config_item_to_node(item)->weight);
+ }
+ 
+-static ssize_t node_weight_write(struct dlm_node *nd, const char *buf,
++static ssize_t node_weight_store(struct config_item *item, const char *buf,
+ 				 size_t len)
+ {
+-	int rc = kstrtoint(buf, 0, &nd->weight);
++	int rc = kstrtoint(buf, 0, &config_item_to_node(item)->weight);
+ 
+ 	if (rc)
+ 		return rc;
+ 	return len;
+ }
+ 
++CONFIGFS_ATTR(node_, nodeid);
++CONFIGFS_ATTR(node_, weight);
++
++static struct configfs_attribute *node_attrs[] = {
++	[NODE_ATTR_NODEID] = &node_attr_nodeid,
++	[NODE_ATTR_WEIGHT] = &node_attr_weight,
++	NULL,
++};
++
+ /*
+  * Functions for the dlm to get the info that's been configured
+  */
 -- 
 1.9.1
