@@ -1,10 +1,10 @@
 From: Christoph Hellwig <hch@lst.de>
-Date: Fri, 25 Sep 2015 06:49:45 -0700
-Subject: [Ocfs2-devel] [PATCH 08/23] usb-gadget/f_midi: use per-attribute
+Date: Fri, 25 Sep 2015 06:49:51 -0700
+Subject: [Ocfs2-devel] [PATCH 14/23] usb-gadget/f_obex: use per-attribute
 	show and store methods
 In-Reply-To: <1443189000-13398-1-git-send-email-hch@lst.de>
 References: <1443189000-13398-1-git-send-email-hch@lst.de>
-Message-ID: <1443189000-13398-9-git-send-email-hch@lst.de>
+Message-ID: <1443189000-13398-15-git-send-email-hch@lst.de>
 List-Id: <ocfs2-devel.oss.oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -14,107 +14,57 @@ Cc: linux-usb@vger.kernel.org, netdev@vger.kernel.org, Pratyush Anand <pratyush.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/usb/gadget/function/f_midi.c | 37 ++++++++++++++++--------------------
- 1 file changed, 16 insertions(+), 21 deletions(-)
+ drivers/usb/gadget/function/f_obex.c | 26 ++++----------------------
+ 1 file changed, 4 insertions(+), 22 deletions(-)
 
-diff --git a/drivers/usb/gadget/function/f_midi.c b/drivers/usb/gadget/function/f_midi.c
-index a287a48..0e2b8ed 100644
---- a/drivers/usb/gadget/function/f_midi.c
-+++ b/drivers/usb/gadget/function/f_midi.c
-@@ -906,9 +906,6 @@ static inline struct f_midi_opts *to_f_midi_opts(struct config_item *item)
+diff --git a/drivers/usb/gadget/function/f_obex.c b/drivers/usb/gadget/function/f_obex.c
+index 5460426..f6f1e6b 100644
+--- a/drivers/usb/gadget/function/f_obex.c
++++ b/drivers/usb/gadget/function/f_obex.c
+@@ -395,22 +395,6 @@ static inline struct f_serial_opts *to_f_serial_opts(struct config_item *item)
  			    func_inst.group);
  }
  
--CONFIGFS_ATTR_STRUCT(f_midi_opts);
--CONFIGFS_ATTR_OPS(f_midi_opts);
+-CONFIGFS_ATTR_STRUCT(f_serial_opts);
+-static ssize_t f_obex_attr_show(struct config_item *item,
+-				struct configfs_attribute *attr,
+-				char *page)
+-{
+-	struct f_serial_opts *opts = to_f_serial_opts(item);
+-	struct f_serial_opts_attribute *f_serial_opts_attr =
+-		container_of(attr, struct f_serial_opts_attribute, attr);
+-	ssize_t ret = 0;
 -
- static void midi_attr_release(struct config_item *item)
+-	if (f_serial_opts_attr->show)
+-		ret = f_serial_opts_attr->show(opts, page);
+-
+-	return ret;
+-}
+-
+ static void obex_attr_release(struct config_item *item)
  {
- 	struct f_midi_opts *opts = to_f_midi_opts(item);
-@@ -918,13 +915,12 @@ static void midi_attr_release(struct config_item *item)
+ 	struct f_serial_opts *opts = to_f_serial_opts(item);
+@@ -420,19 +404,17 @@ static void obex_attr_release(struct config_item *item)
  
- static struct configfs_item_operations midi_item_ops = {
- 	.release	= midi_attr_release,
--	.show_attribute	= f_midi_opts_attr_show,
--	.store_attribute = f_midi_opts_attr_store,
+ static struct configfs_item_operations obex_item_ops = {
+ 	.release	= obex_attr_release,
+-	.show_attribute = f_obex_attr_show,
  };
  
- #define F_MIDI_OPT(name, test_limit, limit)				\
--static ssize_t f_midi_opts_##name##_show(struct f_midi_opts *opts, char *page) \
-+static ssize_t f_midi_opts_##name##_show(struct config_item *item, char *page) \
- {									\
-+	struct f_midi_opts *opts = to_f_midi_opts(item);		\
- 	int result;							\
- 									\
- 	mutex_lock(&opts->lock);					\
-@@ -934,9 +930,10 @@ static ssize_t f_midi_opts_##name##_show(struct f_midi_opts *opts, char *page) \
- 	return result;							\
- }									\
- 									\
--static ssize_t f_midi_opts_##name##_store(struct f_midi_opts *opts,	\
-+static ssize_t f_midi_opts_##name##_store(struct config_item *item,	\
- 					 const char *page, size_t len)	\
- {									\
-+	struct f_midi_opts *opts = to_f_midi_opts(item);		\
- 	int ret;							\
- 	u32 num;							\
- 									\
-@@ -962,9 +959,7 @@ end:									\
- 	return ret;							\
- }									\
- 									\
--static struct f_midi_opts_attribute f_midi_opts_##name =		\
--	__CONFIGFS_ATTR(name, S_IRUGO | S_IWUSR, f_midi_opts_##name##_show, \
--			f_midi_opts_##name##_store)
-+CONFIGFS_ATTR(f_midi_opts_, name);
- 
- F_MIDI_OPT(index, true, SNDRV_CARDS);
- F_MIDI_OPT(buflen, false, 0);
-@@ -972,8 +967,9 @@ F_MIDI_OPT(qlen, false, 0);
- F_MIDI_OPT(in_ports, true, MAX_PORTS);
- F_MIDI_OPT(out_ports, true, MAX_PORTS);
- 
--static ssize_t f_midi_opts_id_show(struct f_midi_opts *opts, char *page)
-+static ssize_t f_midi_opts_id_show(struct config_item *item, char *page)
+-static ssize_t f_obex_port_num_show(struct f_serial_opts *opts, char *page)
++static ssize_t f_obex_port_num_show(struct config_item *item, char *page)
  {
-+	struct f_midi_opts *opts = to_f_midi_opts(item);
- 	int result;
- 
- 	mutex_lock(&opts->lock);
-@@ -989,9 +985,10 @@ static ssize_t f_midi_opts_id_show(struct f_midi_opts *opts, char *page)
- 	return result;
+-	return sprintf(page, "%u\n", opts->port_num);
++	return sprintf(page, "%u\n", to_f_serial_opts(item)->port_num);
  }
  
--static ssize_t f_midi_opts_id_store(struct f_midi_opts *opts,
-+static ssize_t f_midi_opts_id_store(struct config_item *item,
- 				    const char *page, size_t len)
- {
-+	struct f_midi_opts *opts = to_f_midi_opts(item);
- 	int ret;
- 	char *c;
+-static struct f_serial_opts_attribute f_obex_port_num =
+-	__CONFIGFS_ATTR_RO(port_num, f_obex_port_num_show);
++CONFIGFS_ATTR_RO(f_obex_, port_num);
  
-@@ -1016,17 +1013,15 @@ end:
- 	return ret;
- }
- 
--static struct f_midi_opts_attribute f_midi_opts_id =
--	__CONFIGFS_ATTR(id, S_IRUGO | S_IWUSR, f_midi_opts_id_show,
--			f_midi_opts_id_store);
-+CONFIGFS_ATTR(f_midi_opts_, id);
- 
- static struct configfs_attribute *midi_attrs[] = {
--	&f_midi_opts_index.attr,
--	&f_midi_opts_buflen.attr,
--	&f_midi_opts_qlen.attr,
--	&f_midi_opts_in_ports.attr,
--	&f_midi_opts_out_ports.attr,
--	&f_midi_opts_id.attr,
-+	&f_midi_opts_attr_index,
-+	&f_midi_opts_attr_buflen,
-+	&f_midi_opts_attr_qlen,
-+	&f_midi_opts_attr_in_ports,
-+	&f_midi_opts_attr_out_ports,
-+	&f_midi_opts_attr_id,
+ static struct configfs_attribute *acm_attrs[] = {
+-	&f_obex_port_num.attr,
++	&f_obex_attr_port_num,
  	NULL,
  };
  
